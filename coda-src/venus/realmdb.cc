@@ -48,17 +48,21 @@ Realm *RealmDB::GetRealm(const char *realmname)
 {
     struct dllist_head *p;
     Realm *realm;
+    const char *name = realmname;
+
+    if (name[0] == '\0')
+	name = default_realm;
 
     list_for_each(p, realms) {
 	realm = (Realm *)list_entry(p, PersistentObject, list);
-	if (strcmp(realm->Name(), realmname) == 0) {
+	if (strcmp(realm->Name(), name) == 0) {
 	    realm->GetRef();
 	    return realm;
 	}
     }
 
     Recov_BeginTrans();
-    realm = new Realm(realmname, &realms);
+    realm = new Realm(name, &realms);
     Recov_EndTrans(0);
 
     return realm;

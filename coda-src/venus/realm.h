@@ -48,11 +48,10 @@ public:
 //    volent *GetVolume(const char *volname);
 
     const char *Name(void) { return name; }
-    const RealmId Id(void) { return id; }
+    const RealmId Id(void) { return (RealmId)this; }
     void print(FILE *f);
 
 private:
-    RealmId id;
     char *name;
 
 /*T*/struct in_addr *rootservers;

@@ -93,9 +93,9 @@ static void ParseHoardCommands(FILE *, olist&, olist&, olist&, olist&, olist&, o
 static char *my_fgets(char *, int, FILE *);
 static char *GetToken(char *, char *, char **);
 static int my_atoi(char *, int *);
-static int canonicalize(char *, VolumeId *, char *, char *, VolumeId *, char (*)[MAXPATHLEN]);
-static char *vol_getwd(VolumeId *, char *, char *);
-static VolumeId GetVid(char *);
+static int canonicalize(char *, Volid *, char *, char *, Volid *, char (*)[MAXPATHLEN]);
+static char *vol_getwd(Volid *, char *, char *);
+static int  GetVid(Volid *, char *);
 static void DoClears(olist&);
 static void DoAdds(olist&);
 static void DoModifies(olist&);
@@ -106,7 +106,7 @@ static void DoVerifies(olist&);
 static void DoEnables(olist&);
 static void DoDisables(olist&);
 static void MetaExpand(olist&, char *, int, int);
-static void ExpandNode(char *, VolumeId, char *, olist&, int, int);
+static void ExpandNode(char *, Volid *, char *, olist&, int, int);
 static int CreateOutFile(char *, char *);
 static void RenameOutFile(char *, char *);
 static void error(int, char * ...);
@@ -128,8 +128,9 @@ class add_entry : public olink {
   public:
     hdb_add_msg msg;
 
-    add_entry(VolumeId volno, char *name, int priority, int attributes) {
-	msg.volno = volno;
+    add_entry(Volid *vid, char *name, int priority, int attributes)
+    {
+	msg.vid = *vid;
 	strcpy(msg.name, name);
 	msg.priority = priority;
 	msg.attributes = attributes;
@@ -140,8 +141,8 @@ class delete_entry : public olink {
   public:
     hdb_delete_msg msg;
 
-    delete_entry(VolumeId volno, char *name) {
-	msg.volno = volno;
+    delete_entry(Volid *vid, char *name) {
+	msg.vid = *vid;
 	strcpy(msg.name, name);
     }
 };
@@ -352,7 +353,7 @@ next_cmd:
 
 		/* Parse <volume-number> <hoard-filename>. */
 		/* Also record <fullname> for later meta-expansion. */
-		VolumeId volno, svollist[CODA_MAXSYMLINK];
+		Volid vid, svidlist[CODA_MAXSYMLINK];
 		char name[MAXPATHLEN], snamelist[CODA_MAXSYMLINK][MAXPATHLEN];
 		char fullname[MAXPATHLEN];
 		if (GetToken(cp, token, &cp) == NULL) {
@@ -360,12 +361,11 @@ next_cmd:
 		    continue;
 		}
 #ifdef __CYGWIN32__
-		volno = GetVid(token);
-		if (!volno)    
+		if (GetVid(&vid, token))
 		    continue;
 		strcpy(name, token);
 #else		
-		if (!canonicalize(token, &volno, name, fullname, svollist, snamelist))
+		if (!canonicalize(token, &vid, name, fullname, svidlist, snamelist))
 		    continue;
 #endif
 		/* Parse <priority/attributes> string. */
@@ -423,16 +423,16 @@ next_cmd:
 		    !(attributes & H_INHERIT))
 		    MetaExpand(Add, fullname, priority, attributes);
 		else
-		    Add.append(new add_entry(volno, name, priority, attributes));
+		    Add.append(new add_entry(&vid, name, priority, attributes));
 
 		/* add symlink entries */
 		for (int i = 0; i < CODA_MAXSYMLINK; i++) 
-		    if (svollist[i] != 0) {
+		    if (svidlist[i].Volume != 0) {
 			DEBUG(printf("adding symlink entry <%x, %s>\n",	
-				     svollist[i], snamelist[i]));
-			/*			Add.append(new add_entry(svollist[i], snamelist[i], 
+				     svidlist[i], snamelist[i]));
+			/*			Add.append(new add_entry(svidlist[i], snamelist[i], 
 						 priority, attributes)); */
-			Add.append(new add_entry(svollist[i], snamelist[i], 
+			Add.append(new add_entry(&svidlist[i], snamelist[i], 
 						 priority, H_DFLT_ATTRS)); 
 		    }
 		break;
@@ -447,20 +447,20 @@ next_cmd:
 		}
 
 		/* Parse <volume-number> <hoard-filename>. */
-		VolumeId volno;
+		Volid vid;
 		char name[MAXPATHLEN];
 		if (GetToken(cp, token, &cp) == NULL) {
 		    parse_error(line);
 		    continue;
 		}
-		if (!canonicalize(token, &volno, name, 0, 0, 0))
+		if (!canonicalize(token, &vid, name, 0, 0, 0))
 		    continue;
 		if (GetToken(cp, token, &cp) != NULL) {
 		    parse_error(line);
 		    continue;
 		}
 
-		Delete.append(new delete_entry(volno, name));
+		Delete.append(new delete_entry(&vid, name));
 		break;
 		}
 
@@ -678,8 +678,8 @@ static int my_atoi(char *token, int *ip) {
 /* Caller may ask for either "volume" or "full" canonicalization, or both. */
 /* "Volume" canonicalization splits the result into a <volid, canonical-name-from-volroot> pair. */
 /* Returns 1 on success, 0 on failure. */
-static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
-			 VolumeId *svp, char (*sname)[MAXPATHLEN]) {
+static int canonicalize(char *path, Volid *vp, char *vname, char *fullname,
+			 Volid *svp, char (*sname)[MAXPATHLEN]) {
 /*
     DEBUG(printf("Entering canonicalize (%s)\n", path););
 */
@@ -690,17 +690,17 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
      */
 
     int rc = 0;
-    if (vp) {
-	*vp = 0;
-	vname[0] = '\0';
-    }
+
+    memset(vp, 0, sizeof(Volid));
+    vname[0] = '\0';
+
     if (fullname)
 	fullname[0] = '\0';
 
     int ix = 0;
     if (svp) 
 	for (int i = 0; i < CODA_MAXSYMLINK; i++) {
-	    svp[i] = 0;
+	    memset(&svp[i], 0, sizeof(Volid));
 	    sname[i][0] = '\0';
 	}
 
@@ -797,12 +797,11 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 	}
 
 	/* We're at lowest existing component.  Get its canonical name. */
-	if (vp) {
-	    if (vol_getwd(vp, NULL, vname) == NULL) {
-		error(!FATAL, "canonicalize: %s", vname);
-		goto done;
-	    }
+	if (vol_getwd(vp, NULL, vname) == NULL) {
+	    error(!FATAL, "canonicalize: %s", vname);
+	    goto done;
 	}
+
 	if (fullname) {
 	    if (getcwd(fullname, MAXPATHLEN) == NULL) {
 		error(!FATAL, "canonicalize: %s", fullname);
@@ -812,14 +811,13 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 
 	/* Tack on the trailing component(s). */
 	if (next_comp[0] != '\0') {
-	    if (vp) {
+	    strcat(vname, "/");
+	    strcat(vname, next_comp);
+	    if (*p != '\0') {
 		strcat(vname, "/");
-		strcat(vname, next_comp);
-		if (*p != '\0') {
-		    strcat(vname, "/");
-		    strcat(vname, p);
-		}
+		strcat(vname, p);
 	    }
+
 	    if (fullname) {
 		strcat(fullname, "/");
 		strcat(fullname, next_comp);
@@ -839,8 +837,8 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 done:
     if (chdir(cwd) < 0)
 	error(FATAL, "canonicalize: chdir(%s) failed (%s)", cwd, strerror(errno));
-    DEBUG(printf("canonicalize: %s -> %d, <%x, %s>, %s\n",
-		  path, rc, vp ? *vp : 0, vname ? vname : "", fullname ? fullname : "");)
+    DEBUG(printf("canonicalize: %s -> %d, <%x.%x, %s>, %s\n",
+		  path, rc, vp->Realm, vp->Volume, vname ? vname : "", fullname ? fullname : "");)
     return(rc);
 }
 
@@ -849,9 +847,9 @@ done:
 /*     head:  path from root to volume_root */
 /*     tail:  path from volume_root to working directory */
 /* The volume number is also returned. */
-/* The caller may pass in NULL for vp, head or both. */
-static char *vol_getwd(VolumeId *vp, char *head, char *tail) {
-    if (vp) *vp = 0;
+/* The caller may pass in NULL head or both. */
+static char *vol_getwd(Volid *vp, char *head, char *tail)
+{
     tail[0] = '\0';
     if (head) head[0] = '\0';
 
@@ -861,8 +859,7 @@ static char *vol_getwd(VolumeId *vp, char *head, char *tail) {
 	return(NULL);
     }
 
-    VolumeId vid = GetVid(".");
-    if (vid == 0){
+    if (GetVid(vp, ".")) {
 	sprintf(tail, "vol_getwd: can't get volid for %s (%s)",
 		fullname, strerror(errno));
 	return(NULL);
@@ -885,9 +882,10 @@ static char *vol_getwd(VolumeId *vp, char *head, char *tail) {
 	while (p1 >= fullname && *--p1 != '/')
 	    ;
 
-	VolumeId tvid = GetVid(tname);
-	if (tvid != vid) {
-	    if (tvid == 0) {
+	Volid tvid;
+	int err = GetVid(&tvid, tname);
+	if (err || !FID_VolEQ(&tvid, vp)) {
+	    if (err) {
 		/* Only some value(s) of errno here should allow us to continue! -JJK */
 	    }
 	    break;
@@ -895,53 +893,32 @@ static char *vol_getwd(VolumeId *vp, char *head, char *tail) {
     }
 
     /* p2 is now the path to the volume root. */
-    if (vp) *vp = vid;
     strcpy(tail, ".");
     if (p2[0] != '\0') {
 	if (p2[0] != '/') strcat(tail, "/");
 	strcat(tail, p2);
     }
-/*
-    strcpy(tail, p2);
-    if (tail[0] == '\0')
-	strcpy(tail, "/");
-*/
+
     if (head) {
 	int len = p2 - fullname;
 	strncpy(head, fullname, len);
 	head[len] = '\0';
     }
 
-    DEBUG(printf("vol_getwd: %s -> %x, %s, %s\n",
-		  fullname, vp ? *vp : 0, head ? head : "", tail);)
+    DEBUG(printf("vol_getwd: %s -> %x.%x, %s, %s\n",
+		  fullname, vp->Realm, vp->Volume, head ? head : "", tail);)
     return(tail);
 }
 
 
-static VolumeId GetVid(char *name) {
+static int GetVid(Volid *vid, char *name)
+{
 /**/
     DEBUG(printf("Entering GetVid (%s)\n", name););
 /**/
-
-    VolumeId vid = 0;
-
-/*
-    struct getvolstat_msg {
-	VolumeStatus volstat;
-	char strings[544];
-    } gvs_msg;
-
-    struct ViceIoctl vi;
-    vi.in = 0;
-    vi.in_size = 0;
-    vi.out = (char *)&gvs_msg;
-    vi.out_size = sizeof(struct getvolstat_msg);
-    if (pioctl(name, VIOCGETVOLSTAT, &vi, 1) == 0)
-	vid = gvs_msg.volstat.Vid;
-*/
-
+    int err;
     struct getfid_msg {
-	ViceFid fid;
+	VenusFid fid;
 	ViceVersionVector vv;
     } gf_msg;
 
@@ -950,10 +927,16 @@ static VolumeId GetVid(char *name) {
     vi.in_size = 0;
     vi.out = (char *)&gf_msg;
     vi.out_size = sizeof(struct getfid_msg);
-    if (pioctl(name, VIOC_GETFID, &vi, 1) == 0)
-	vid = gf_msg.fid.Volume;
-    DEBUG(printf("GetVid: %s -> %x\n", name, vid);)
-    return(vid);
+    err = pioctl(name, VIOC_GETFID, &vi, 1);
+    
+    if (!err)
+	*vid = *MakeVolid(&gf_msg.fid);
+    else 
+	memset(vid, 0, sizeof(Volid));
+
+    DEBUG(printf("GetVid: %s -> %x.%x\n", name, vid->Realm, vid->Volume);)
+
+    return err;
 }
 
 
@@ -986,8 +969,9 @@ static void DoAdds(olist& Add) {
 	vi.out_size = 0;
 
 	if (pioctl(mountpoint, VIOC_HDB_ADD, &vi, 0) != 0) {
-	    error(!FATAL, "pioctl:Add(%x, %s, %d, %d, %d): %s",
-		  a->msg.volno, a->msg.name, a->msg.priority, a->msg.attributes, ruid, strerror(errno));
+	    error(!FATAL, "pioctl:Add(%x.%x, %s, %d, %d, %d): %s",
+		  a->msg.vid.Realm, a->msg.vid.Volume, a->msg.name,
+		  a->msg.priority, a->msg.attributes, ruid, strerror(errno));
 	}
     }
 }
@@ -1004,8 +988,9 @@ static void DoDeletes(olist& Delete) {
 	vi.out_size = 0;
 
 	if (pioctl(mountpoint, VIOC_HDB_DELETE, &vi, 0) != 0) {
-	    error(!FATAL, "pioctl:Delete(%x, %s, %d): %s",
-		  d->msg.volno, d->msg.name, ruid, strerror(errno));
+	    error(!FATAL, "pioctl:Delete(%x.%x, %s, %d): %s",
+		  d->msg.vid.Realm, d->msg.vid.Volume, d->msg.name, ruid,
+		  strerror(errno));
 	}
     }
 }
@@ -1127,7 +1112,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 	error(!FATAL, "MetaExpand: chdir(%s) failed (%s)", FullName, strerror(errno));
 	goto done;
     }
-    VolumeId vid; vid = 0;
+    Volid vid;
     char VRPath[MAXPATHLEN];
     char NodeName[MAXPATHLEN];
     if (vol_getwd(&vid, VRPath, NodeName) == 0)
@@ -1141,7 +1126,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
     char *cp;
     if ((cp = rindex(VRPath, '/')) == NULL) cp = mountpoint;
     strcpy(mtpt, cp + 1);
-    ExpandNode(mtpt, vid, NodeName, Add, priority, attributes);
+    ExpandNode(mtpt, &vid, NodeName, Add, priority, attributes);
 
 done:
     if (chdir(cwd) < 0)
@@ -1150,15 +1135,16 @@ done:
 
 
 /* N.B. Format of "name" is "./comp1/.../compn".  cwd = "name/..". */
-static void ExpandNode(char *mtpt, VolumeId vid, char *name,
-			 olist& Add, int priority, int attributes) {
-    DEBUG(printf("ExpandNode: %s, %x, %s, %d, %d\n",
-		  mtpt, vid, name, priority, attributes););
+static void ExpandNode(char *mtpt, Volid *vid, char *name,
+			 olist& Add, int priority, int attributes)
+{
+    DEBUG(printf("ExpandNode: %s, %x.%x, %s, %d, %d\n",
+		  mtpt, vid->Realm, vid->Volume, name, priority, attributes););
 
     /* Make an entry for this node. */
     {
 	if (Verbose)
-	    printf("\t%x, %s\n", vid, name);
+	    printf("\t%x.%x, %s\n", vid->Realm, vid->Volume, name);
 	Add.append(new add_entry(vid, name, priority, attributes));
     }
 
@@ -1191,7 +1177,10 @@ static void ExpandNode(char *mtpt, VolumeId vid, char *name,
 	    while((dp = readdir(dirp)) != NULL) {
 		DEBUG(printf("ExpandNode: d_name = %s\n", dp->d_name););
 		if (STREQ(".", dp->d_name) || STREQ("..", dp->d_name)) continue;
-		if (GetVid(dp->d_name) != vid) continue;
+
+		Volid tmp;
+		int err = GetVid(&tmp, dp->d_name);
+		if (err || !FID_VolEQ(&tmp, vid)) continue;
 
 		char tname[MAXPATHLEN];
 		strcpy(tname, name);
@@ -1231,6 +1220,7 @@ static int CreateOutFile(char *in, char *out) {
 	/* Wait for child to finish. */
 	int status;
 	int rc;
+	Volid tmp;
 
 	while ((rc = wait(&status)) != child)
 	    if (rc < 0) return(-1);
@@ -1240,15 +1230,15 @@ static int CreateOutFile(char *in, char *out) {
 	}
 
 	/* Canonicalize the name of the file child just created/truncated. */
-	if (!canonicalize(in, (VolumeId *)0, 0, out, 0, 0)) {
+	if (!canonicalize(in, &tmp, 0, out, 0, 0)) {
 	    errno = EINVAL;
 	    return(-1);
 	}
 
 	/* If the file lives in Coda, convert it to "Fid-form." */
-	if (GetVid(out) != 0) {
+	{
 	    struct GetFid {
-		ViceFid fid;
+		VenusFid fid;
 		ViceVersionVector vv;
 	    } gf;
 	    memset((void *)&gf, 0, sizeof(struct GetFid));
@@ -1259,10 +1249,8 @@ static int CreateOutFile(char *in, char *out) {
 	    vi.out = (char *)&gf;
 	    vi.out_size = sizeof(struct GetFid);
 
-	    if (pioctl(out, VIOC_GETFID, &vi, 0) < 0)
-		return(-1);
-
-	    sprintf(out, "@%x.%x.%x", gf.fid.Volume, gf.fid.Vnode, gf.fid.Unique);
+	    if (pioctl(out, VIOC_GETFID, &vi, 0) == 0)
+		sprintf(out, "@%s", FID_(&gf.fid));
 	}
 
 	return(0);

@@ -192,11 +192,8 @@ void VolInit()
 	memset(&LocalVol, 0, sizeof(VolumeInfo));
 	FID_MakeVolFake(&LocalVol.Vid);
         LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
-	Realm *realm = REALMDB->GetRealm(default_realm);
-	if (!realm) {
-	    eprint("Unable to find local realm \"%s\", exiting\n", default_realm);
-	    exit(0);
-	}
+	Realm *realm = REALMDB->GetRealm(""); /* empty string gets default realm */
+	CODA_ASSERT(realm);
 	CODA_ASSERT(VDB->Create(realm, &LocalVol, "Local"));
 	realm->PutRef();
     }
@@ -258,12 +255,9 @@ void VolInit()
     VolumeId LocalVid;
     Volid volid;
 
-    Realm *realm = REALMDB->GetRealm(default_realm);
-    if (!realm) {
-	eprint("Failed to start: Couldn't find local realm \"%s\"\n"
-	       "Please check your configuration", default_realm);
-	exit(0);
-    }
+    Realm *realm = REALMDB->GetRealm("");
+    CODA_ASSERT(realm);
+
     volid.Realm = realm->Id();
     FID_MakeVolFake(&LocalVid);
     volid.Volume = LocalVid;
@@ -278,7 +272,7 @@ void VolInit()
 int VOL_HashFN(const void *key)
 {
     Volid *volid = (Volid *)key;
-    return volid->Volume;
+    return volid->Realm + volid->Volume;
 }
 
 
@@ -311,16 +305,15 @@ int GetRootVolume()
 
 	/* Get the default realm */
 	int code = ENOENT;
-	Realm *r = REALMDB->GetRealm(default_realm);
 	connent *c = NULL;
+	Realm *r = REALMDB->GetRealm(default_realm);
+	CODA_ASSERT(r);
 
-	if (r) {
-	    /* Get the connection. */
-	    code = r->GetAdmConn(&c);
-	    r->PutRef();
-	}
+	/* Get the connection. */
+	code = r->GetAdmConn(&c);
+	r->PutRef();
 	if (code != 0) {
-	    LOG(100, ("GetRootVolume: can't get SUConn!\n"));
+	    LOG(100, ("GetRootVolume: can't get connection for realm %s!\n", default_realm));
 	    RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
 	    goto failure;
 	}
@@ -359,19 +352,15 @@ found_rootvolname:
 
     /* Retrieve the volume. */
     volent *v;
-    Realm *realm = REALMDB->GetRealm(default_realm);
     int code;
-
-    if (!realm) {
-	eprint("GetRootVolume: can't get default realm %s", default_realm);
-	return 0;
-    }
+    Realm *realm = REALMDB->GetRealm(default_realm);
+    CODA_ASSERT(realm);
 
     code = VDB->Get(&v, realm, RootVolName);
     realm->PutRef();
 
     if (code != 0) {
-	eprint("GetRootVolume: can't get volinfo for root volume (%s @ %s)!",
+	eprint("GetRootVolume: can't get volinfo for root volume %s(@%s)!",
 	       RootVolName, default_realm);
 	return 0;
     }
@@ -427,7 +416,8 @@ volent *vdb::Find(Volid *volid)
     volent *v;
 
     while ((v = rvnext()) || (v = vrnext()))
-        if (v->GetRealmId() == volid->Realm && v->GetVolumeId() == volid->Volume)
+        if (v->GetRealmId() == volid->Realm &&
+	    v->GetVolumeId() == volid->Volume)
 	    return(v);
 
     return(0);
@@ -645,15 +635,10 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
     if (realm_name) {
 	realm->PutRef();
 	realm = REALMDB->GetRealm(realm_name);
+	CODA_ASSERT(realm);
     }
 
-    if (!realm) {
-	eprint("Failed to find realm \"%s\"\n", realm_name);
-	code = ENOENT;
-	goto error_exit;
-    }
-
-    LOG(100, ("vdb::Get: volname = %s @ %s\n", volname, realm->Name()));
+    LOG(100, ("vdb::Get: volname = %s@%s\n", volname, realm->Name()));
 
     *vpp = 0;
 
@@ -692,8 +677,8 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
 	goto error_exit;
     }
     if (v && v->GetVolumeId() != volinfo.Vid) {
-	eprint("Mapping changed for volume %s (%x --> %x)",
-	       volname, v->GetVolumeId(), volinfo.Vid);
+	eprint("Mapping changed for volume %s@%s (%x --> %x)",
+	       volname, realm->Name(), v->GetVolumeId(), volinfo.Vid);
 
 	/* Put a (unique) fakename in the old volent. */
 	char fakename[V_MAXVOLNAMELEN];
@@ -716,7 +701,8 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
     v = Create(realm, &volinfo, volname);
 
     if (!v) {
-	LOG(0, ("vdb::Get: Create (%x, %s) failed\n", volinfo.Vid, volname));
+	LOG(0, ("vdb::Get: Create (%x@%s, %s) failed\n", volinfo.Vid,
+		realm->Name(), volname));
 	*vpp = NULL;
 	code = EIO;
 	goto error_exit;
@@ -2366,7 +2352,7 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 	(&StagingVol.Type0)[replicatedVolume] = vid;
 	StagingVol.Server0 = ntohl(srvr->s_addr);
 
-	Realm *realm = REALMDB->GetRealm(default_realm);
+	Realm *realm = REALMDB->GetRealm("");
 	ro_replica = (volrep *)VDB->Create(realm, &StagingVol, stagingname);
 	realm->PutRef();
 
@@ -2375,7 +2361,7 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 
 	    /* fake a CB-connection */
 	    {
-		srvent *s = GetServer(srvr, GetRealmId());
+		srvent *s = GetServer(srvr, ro_replica->GetRealmId());
 		if (s) s->connid = 666;
 		PutServer(&s);
 	    }

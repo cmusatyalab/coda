@@ -211,15 +211,14 @@ struct venus_dirent {
 #endif
 
 typedef struct {
-    u_int32_t opaque[3];
+    u_int32_t opaque[4];
 } CodaFid;
 
 
 static __inline__ ino_t coda_f2i(CodaFid *fid)
 {
-	if ( ! fid ) 
-		return 0; 
-	return (fid->opaque[0] + (fid->opaque[1]<<10) + (fid->opaque[2]<<20));
+	if (!fid) return 0; 
+	return (fid->opaque[1] + (fid->opaque[2]<<10) + (fid->opaque[3]<<20));
 }
 	
 

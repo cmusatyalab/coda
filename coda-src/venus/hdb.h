@@ -38,6 +38,7 @@ extern "C" {
 /* interfaces */
 #include <vice.h>
 #include <coda.h>
+#include <venusfid.h>
 
 #define HDB_ASSERT(ex) \
 {\
@@ -69,17 +70,15 @@ struct hdb_clear_msg {
 };
 
 struct hdb_add_msg {
-    VolumeId volno;
+    Volid    vid;
     char     name[CODA_MAXPATHLEN];
     int      priority;
     int      attributes;
-    int      spare;
 };
 
 struct hdb_delete_msg {
-    VolumeId volno;
+    Volid    vid;
     char     name[CODA_MAXPATHLEN];
-    int      spare;
 };
 
 struct hdb_list_msg {
@@ -211,11 +210,11 @@ class hdb {
     ~hdb() { abort(); }
 
     /* Allocation/Deallocation routines. */
-    hdbent *Create(VolumeId, char *, vuid_t, int, int, int);
+    hdbent *Create(Volid *, char *, vuid_t, int, int, int);
 
 
   public:
-    hdbent *Find(VolumeId, char *);
+    hdbent *Find(Volid *, char *);
 
     /* The external interface. */
     int Add(hdb_add_msg *, vuid_t local_id);
@@ -256,10 +255,10 @@ class hdb {
 
 class hdb_key {
   public: 
-    VolumeId vid;
+    Volid vid;
     char *name;
 
-    hdb_key(VolumeId, char *);
+    hdb_key(Volid *, char *);
 };
 
 class hdbent {
@@ -271,8 +270,7 @@ class hdbent {
     int MagicNumber;
 
     /* Key. */
-    RealmId realm;
-    VolumeId vid;
+    Volid vid;
     char *path;
 
     /* Assoc(key). */
@@ -288,7 +286,7 @@ class hdbent {
 
     /* Constructors, destructors. */
     void *operator new(size_t);
-    hdbent(VolumeId, char *, vuid_t, int, int, int);
+    hdbent(Volid *, char *, vuid_t, int, int, int);
     void ResetTransient();
     ~hdbent();
     void operator delete(void *, size_t);

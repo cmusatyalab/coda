@@ -49,10 +49,6 @@ Realm::Realm(const char *realm_name, struct dllist_head *h) :
     CODA_ASSERT(name);
     strcpy(name, realm_name);
 
-    RVMLIB_REC_OBJECT(id);
-#warning "realmid's"
-    id = 0;
-
     /* Grab a reference until volumes hold on to this realm... */
     Rec_GetRef();
     ResetTransient();

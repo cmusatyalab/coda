@@ -87,6 +87,7 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
+#include "realmdb.h"
 
 
 int HDBEs = 0;
@@ -179,14 +180,14 @@ void HDB_Init()
 
 static int HDB_HashFN(const void *key)
 {
-    int value = ((hdb_key *)key)->vid;
+    hdb_key *k = (hdb_key *)key;
+    int value = k->vid.Realm + k->vid.Volume;
+    int len = strlen(k->name);
 
-    /*    return(((hdb_key *)key)->vid + ((int *)(((hdb_key *)key)->name))[0]); */
+    for (int i=0; i < len; i++)
+      value += (int)((k->name)[i]);
 
-    for (unsigned int i=0; i < strlen(((hdb_key *)key)->name); i++) {
-      value += (int)((((hdb_key *)key)->name)[i]);
-    }
-    return(value);
+    return value;
 }
 
 static void HoardWalkProgress(int fetched, int total)
@@ -244,12 +245,13 @@ void hdb::operator delete(void *deadobj, size_t len){
 }
 
 
-hdbent *hdb::Find(VolumeId vid, char *name) {
+hdbent *hdb::Find(Volid *vid, char *name)
+{
     class hdb_key key(vid, name);
     hdb_iterator next(&key);
     hdbent *h;
     while ((h = next()))
-	if (vid == h->vid && STREQ(name, h->path))
+	if (FID_VolEQ(vid, &h->vid) && STREQ(name, h->path))
 	    return(h);
 
     return(0);
@@ -257,8 +259,9 @@ hdbent *hdb::Find(VolumeId vid, char *name) {
 
 
 /* MUST NOT be called from within transaction! */
-hdbent *hdb::Create(VolumeId vid, char *name, vuid_t local_id,
-		     int priority, int expand_children, int expand_descendents) {
+hdbent *hdb::Create(Volid *vid, char *name, vuid_t local_id, int priority,
+		    int expand_children, int expand_descendents)
+{
     hdbent *h = 0;
 
     /* Check whether the key is already in the database. */
@@ -272,23 +275,25 @@ hdbent *hdb::Create(VolumeId vid, char *name, vuid_t local_id,
     Recov_EndTrans(DMFP);
 
     if (h == 0)
-	LOG(0, ("hdb::Create: (%x, %s, %d) failed\n", vid, name, 0/*AllocPriority*/));
+	LOG(0, ("hdb::Create: (%x.%x, %s) failed\n", vid->Realm, vid->Volume, name));
     return(h);
 }
 
 
-int hdb::Add(hdb_add_msg *m, vuid_t local_id) {
-    LOG(10, ("hdb::Add: <%x, %s, %d, %d, %d>\n",
-	     m->volno, m->name, m->priority, m->attributes, local_id));
+int hdb::Add(hdb_add_msg *m, vuid_t local_id)
+{
+    LOG(10, ("hdb::Add: <%x.%x, %s, %d, %d, %d>\n", m->vid.Realm, m->vid.Volume,
+	     m->name, m->priority, m->attributes, local_id));
 
     /* See if an entry already exists.  If it does, try to delete it. */
-    hdbent *h = Find(m->volno, m->name);
+    hdbent *h;
+    h = Find(&m->vid, m->name);
     if (h) {
-	LOG(1, ("hdb::Add: (%x, %s, %d) already exists (%d)\n",
-		m->volno, m->name, local_id, h->vuid));
+	LOG(1, ("hdb::Add: (%x.%x, %s, %d) already exists (%d)\n",
+		m->vid.Realm, m->vid.Volume, m->name, local_id, h->vuid));
 
 	hdb_delete_msg dm;
-	dm.volno = m->volno;
+	dm.vid = m->vid;
 	strcpy(dm.name, m->name);
 	int code = Delete(&dm, local_id);
 	if (code != 0) return(code);
@@ -305,30 +310,32 @@ int hdb::Add(hdb_add_msg *m, vuid_t local_id) {
 	else if (m->attributes & H_CHILDREN)
 	    expand_children = 1;
     }
-    h = Create(m->volno, m->name, local_id, m->priority,
-		expand_children, expand_descendents);
-    if (h == 0) return(ENOSPC);
+    h = Create(&m->vid, m->name, local_id, m->priority,
+	       expand_children, expand_descendents);
+    if (!h) return(ENOSPC);
 
     return(0);
 }
 
 
-int hdb::Delete(hdb_delete_msg *m, vuid_t local_id) {
-    LOG(10, ("hdb::Delete: <%x, %s, %d>\n",
-	      m->volno, m->name, local_id));
+int hdb::Delete(hdb_delete_msg *m, vuid_t local_id)
+{
+    LOG(10, ("hdb::Delete: <%x.%x, %s, %d>\n", m->vid.Realm, m->vid.Volume,
+	     m->name, local_id));
 
     /* Look up the entry. */
-    hdbent *h = Find(m->volno, m->name);
+    hdbent *h;
+    h = Find(&m->vid, m->name);
     if (h == 0) {
-	LOG(1, ("hdb::Delete: (%x, %s, %d) not found\n",
-		m->volno, m->name, local_id));
+	LOG(1, ("hdb::Delete: (%x@%s, %s, %d) not found\n",
+		m->vid.Realm, m->vid.Volume, m->name, local_id));
 	return(ENOENT);
     }
 
     /* Can only delete one's own entries unless root or authorized user. */
     if (local_id != h->vuid && local_id != V_UID && !AuthorizedUser(local_id)) {
-	LOG(1, ("hdb::Delete: (%x, %s, %d) not authorized\n",
-		m->volno, m->name, local_id));
+	LOG(1, ("hdb::Delete: (%x.%x, %s, %d) not authorized\n",
+		m->vid.Realm, m->vid.Volume, m->name, local_id));
 	return(EACCES);
     }
 
@@ -1316,14 +1323,13 @@ void *hdbent::operator new(size_t len){
 }
 
 /* MUST be called from within transaction! */
-hdbent::hdbent(VolumeId Vid, char *Name, vuid_t Vuid,
-	       int Priority, int Children, int Descendents) {
+hdbent::hdbent(Volid *Vid, char *Name, vuid_t Vuid, int Priority, int Children,
+	       int Descendents)
+{
 
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = HDBENT_MagicNumber;
-#warning "XXX init hdbent.realm"
-    realm = 0;
-    vid = Vid;
+    vid = *Vid;
     {
 	int len = (int) strlen(Name) + 1;
 	path = (char *)rvmlib_rec_malloc(len);
@@ -1338,7 +1344,7 @@ hdbent::hdbent(VolumeId Vid, char *Name, vuid_t Vuid,
     ResetTransient();
 
     /* Insert into hash table. */
-    hdb_key key(vid, path);
+    hdb_key key(&vid, path);
     HDB->htab.append(&key, &tbl_handle);
 }
 
@@ -1349,8 +1355,8 @@ void hdbent::ResetTransient() {
 	{ print(logFile); CHOKE("hdbent::ResetTransient: bogus MagicNumber"); }
 
     VenusFid cdir;
-    cdir.Realm = realm;
-    cdir.Volume = vid;
+    cdir.Realm = vid.Realm;
+    cdir.Volume = vid.Volume;
     FID_MakeRoot(MakeViceFid(&cdir));
     nc = new namectxt(&cdir, path, vuid, priority,
 		       expand_children, expand_descendents);
@@ -1358,17 +1364,17 @@ void hdbent::ResetTransient() {
 
 
 /* MUST be called from within transaction! */
-hdbent::~hdbent() {
-    LOG(10, ("hdbent::~hdbent: (%x, %s)\n", vid, path));
+hdbent::~hdbent()
+{
+    LOG(10, ("hdbent::~hdbent: (%x.%x, %s)\n", vid.Realm, vid.Volume, path));
 
     /* Shut down the name-context. */
     nc->Kill();
 
     /* Remove from the hash table. */
-    hdb_key key(vid, path);
+    hdb_key key(&vid, path);
     if (HDB->htab.remove(&key, &tbl_handle) != &tbl_handle)
 	{ print(logFile); CHOKE("hdbent::~hdbent: htab remove"); }
-
 
     /* Release path. */
     rvmlib_rec_free(path);
@@ -2513,8 +2519,9 @@ int NC_PriorityFN(bsnode *b1, bsnode *b2) {
 }
 
 
-hdb_key::hdb_key(VolumeId Vid, char *Name) {
-    vid = Vid;
+hdb_key::hdb_key(Volid *Vid, char *Name)
+{
+    vid = *Vid;
     name = Name;
 }
 

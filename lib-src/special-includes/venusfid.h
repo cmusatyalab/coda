@@ -35,13 +35,12 @@ typedef struct {
 
 inline CodaFid *VenusToKernelFid(VenusFid *fid)
 {
-    return (CodaFid *)(&fid->Volume);
+    return (CodaFid *)fid;
 }
 
 inline void KernelToVenusFid(VenusFid *fid, CodaFid *kfid)
 {
-    fid->Realm = 0;
-    memcpy(&fid->Volume, kfid, sizeof(CodaFid));
+    *fid = *(VenusFid *)kfid;
 }
 
 inline ViceFid *MakeViceFid(VenusFid *fid)
@@ -60,9 +59,14 @@ inline int FID_EQ(const VenusFid *a, const VenusFid *b)
 	    a->Vnode == b->Vnode && a->Unique == b->Unique);
 }
 
-inline int FID_VolEQ(const VenusFid *a, const VenusFid *b)
+inline int FID_VolEQ(const Volid *a, const Volid *b)
 {
 	return (a->Realm == b->Realm && a->Volume == b->Volume);
+}
+
+inline int FID_VolEQ(const VenusFid *a, const VenusFid *b)
+{
+	return FID_VolEQ(MakeVolid(a), MakeVolid(b));
 }
 
 inline int FID_VolIsLocal(VenusFid *fid)
