@@ -42,6 +42,9 @@ Pittsburgh, PA.
 	-- SFTP Globals and routines common to sftp1.c and sftp2.c
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -72,10 +75,6 @@ long SFTP_DupThreshold;
 long SFTP_MaxPackets;
 
 /* long SFTP_DebugLevel; */	/* defined to RPC2_DebugLevel for now */
-struct TM_Elem *sftp_Chain;
-long sftp_Socket;
-RPC2_PortIdent sftp_Port;
-PROCESS sftp_ListenerPID;
 long sftp_PacketsInUse;
 
 long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,
@@ -152,7 +151,6 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
     }
     oflags |= O_BINARY;
 
-
     switch(sftpd->Tag) {
     case FILEBYNAME:
 	sEntry->openfd = open(sftpd->FileInfo.ByName.LocalFileName, oflags,
@@ -165,8 +163,8 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	break;
 	
     case FILEBYFD:
-	/* trust the user to have given a good fd! */
-	/* However the fd might be shared, so we actually need to re-seek to
+	/* trust the user to have given a good fd!
+	 * However the fd might be shared, so we actually need to re-seek to
 	 * the fileoffset that we expect on every operation, so we have to know
 	 * where we currently are */
 	sEntry->openfd = dup(sftpd->FileInfo.ByFD.fd);
@@ -191,10 +189,10 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
     }
 
     if (sftpd->SeekOffset > 0) {
-	sEntry->fd_offset = sftpd->SeekOffset;
+	sEntry->fd_offset = (off_t)sftpd->SeekOffset;
 	(void)lseek(sEntry->openfd, sEntry->fd_offset, SEEK_SET);
     }
-    
+
     return(0);
 }
 
@@ -960,7 +958,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
     RPC2_PacketBuffer *pb;
     long i, j;
     unsigned long now;
-    int x, y, dont_ackme;
+    int dont_ackme;
 
     if (sEntry->ReadAheadCount == 0)
 	{/* Nothing to send; but caller expects need ack limit to be set */
@@ -968,10 +966,10 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	return(0);
 	}
 
-    /* try to avoid generating an ack when there might be ack packets queued up
-     * already and we're not sending a full window's worth */
+    /* try to avoid generating data when there might be ack packets queued up
+     * already and we're not about to send a full window's worth */
     dont_ackme = (sEntry->ReadAheadCount < sEntry->SendAhead) &&
-	sftp_MorePackets(&x, &y);
+	sftp_MorePackets();
 	
     /* j is the packet to be acked */
     if (sEntry->AckPoint > sEntry->ReadAheadCount)
@@ -1030,8 +1028,10 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	struct CEntry		*thisce;
 	int			host;
 
-	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPort, sEntry->PInfo.RemoteHandle, CLIENT)) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	me = rpc2_GetMgrp(NULL, sEntry->PInfo.RemoteHandle, CLIENT);
+	assert(me);
+	mse = (struct SFTP_Entry *)me->SideEffectPtr;
+	assert(mse);
 	assert(mse == sEntry);			/* paranoia */
 
 	for (host = 0; host < me->howmanylisteners; host++)
@@ -1110,8 +1110,10 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 	SE_Descriptor		*thisdesc;
 	int			host;
 
-	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPort, sEntry->PInfo.RemoteHandle, CLIENT)) != NULL);
-	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
+	me = rpc2_GetMgrp(NULL, sEntry->PInfo.RemoteHandle, CLIENT);
+	assert(me);
+	mse = (struct SFTP_Entry *)me->SideEffectPtr;
+	assert(mse);
 	assert(mse == sEntry);			/* paranoia */
 
 	for (host = 0; host < me->howmanylisteners; host++)

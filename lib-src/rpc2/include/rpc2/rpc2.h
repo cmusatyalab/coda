@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #ifndef _RPC2_
 #define _RPC2_
 
@@ -52,15 +51,6 @@ Pittsburgh, PA.
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
-
-#ifndef HAVE_INET_ATON
-int inet_aton(const char *str, struct in_addr *out);
-#endif
-
-#ifndef HAVE_INET_NTOA
-char *inet_ntoa(struct in_addr ip);
-#endif
-
 
 /* This string is used in RPC initialization calls to ensure that the
 runtime system and the header files are mutually consistent.  Also
@@ -222,12 +212,13 @@ System Limits
 
 /* Host, Mgrp, Port and Subsys Representations */
 
-typedef	enum {RPC2_HOSTBYNAME = 39, RPC2_HOSTBYINETADDR = 17, 
-	      RPC2_DUMMYHOST=88888} HostTag;
+typedef	enum {RPC2_HOSTBYNAME = 39, RPC2_HOSTBYINETADDR = 17,
+	      RPC2_HOSTBYADDRINFO = 6, RPC2_DUMMYHOST=88888} HostTag;
 typedef	enum {RPC2_PORTBYINETNUMBER = 53, RPC2_PORTBYNAME = 64, 
 	      RPC2_DUMMYPORT = 99999} PortTag;
 typedef enum {RPC2_SUBSYSBYID = 71, RPC2_SUBSYSBYNAME = 84} SubsysTag;
-typedef	enum {RPC2_MGRPBYINETADDR = 111, RPC2_MGRPBYNAME = 137} MgrpTag;
+typedef	enum {RPC2_MGRPBYINETADDR = 111, RPC2_MGRPBYADDRINFO = 121,
+	      RPC2_MGRPBYNAME = 137, RPC2_DUMMYMGRP = 77777} MgrpTag;
 
 /*
 Global variables for debugging:
@@ -333,6 +324,7 @@ typedef
 	HostTag Tag;
 	union
 	    {
+	    struct RPC2_addrinfo *AddrInfo; /* includes sockaddr, which includes port */
 	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
 	    char Name[64];	/* minimum length for use with domain names */
 	    }
@@ -373,7 +365,8 @@ typedef
 	MgrpTag Tag;
 	union
 	    {
-	    struct in_addr  InetAddress;    /* NOTE: in network order, not host order */
+	    struct RPC2_addrinfo *AddrInfo; /* includes sockaddr, which includes port */
+	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
 	    char	    Name[64];	    /* minimum length for use with domain names */
 	    }
 	    Value;
@@ -421,8 +414,9 @@ typedef struct RPC2_PacketBuffer {
 	long Line;
 
 	/* these fields are set when we receive the packet. */
-	RPC2_HostIdent		PeerHost;
-	RPC2_PortIdent		PeerPort;
+	struct RPC2_addrinfo	*PeerAddr;
+	char   oldhostandport[88]; /* padding to keep the userspace interface
+				      mostly identical */
 	struct timeval		RecvStamp;
     } Prefix;
 
@@ -531,10 +525,11 @@ typedef
 typedef 
     struct 
         {
-	    RPC2_Byte	ScaleTimeouts;
+	    RPC2_Byte	Flags;
 	}
     RPC2_Options;
 
+#define RPC2_OPTION_IPV6 1
 
 /* Structure for passing parameters to RPC2_NewBinding() and its multi clone */
 

@@ -47,6 +47,7 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <time.h>
 #include <assert.h>
+#include <rpc2/rpc2.h>
 #include "rpc2.private.h"
 
 /* HASHLENGTH should be a power of two, because we use modulo HASHLENGTH-1 to
@@ -134,7 +135,7 @@ static void Uniquefy(IN struct CEntry *ceaddr)
         handle = rpc2_NextRandom(NULL);
 
 	/* skip the handles which have special meaning */
-	if (handle == 0 || handle == -1)
+	if (handle <= 0)
 	    continue;
     }
     while(rpc2_GetConn(handle) != NULL);
@@ -176,7 +177,7 @@ struct CEntry *rpc2_getFreeConn()
     return ce;
 }
 
-struct CEntry *rpc2_AllocConn()
+struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
 {
     struct CEntry *ce;
 
@@ -214,7 +215,8 @@ struct CEntry *rpc2_AllocConn()
     ce->HeldPacket = NULL;
     ce->reqsize = 0;
     ce->respsize = 0;
-    ce->HostInfo = NULL;
+    ce->HostInfo = rpc2_GetHost(addr);
+    assert(ce->HostInfo);
 
     /* Then make it unique */
     Uniquefy(ce);
@@ -253,6 +255,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     }
 
     list_del(&ce->Chain);
+    rpc2_FreeHost(&ce->HostInfo);
     SetRole(ce, FREE);
 
     /* move the conn entry over to the freelist */
@@ -290,35 +293,6 @@ void rpc2_ReapDeadConns(void)
 	}
     }
 }
-
-#if 0
-static void PrintHashTable()
-{
-    struct dllist_head *ptr;
-    struct CEntry      *ce;
-    long                i;
-
-    printf("EntriesInUse = %ld\tHASHLENGTH = %d\n", rpc2_ConnCount, HASHLENGTH);
-
-    for (i=0; i < HASHLENGTH; i++)
-    {
-        printf("HashTable[%ld] =", i);
-
-        for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
-        {
-            ce = list_entry(ptr, struct CEntry, Chain);
-            assert(ce->MagicNumber == OBJ_CENTRY);
-
-            printf(" %s:%d:%d",
-		   inet_ntoa(ce->PeerHost.Value.InetAddress),
-		   ntohl(ce->PeerPort.Value.InetPortNumber),
-		   ntohl(ce->PeerUnique));
-        }
-
-        printf("\n");
-    }
-}
-#endif
 
 void rpc2_SetConnError(IN struct CEntry *ce)
 {
@@ -363,8 +337,7 @@ build and maintain.  */
 
 struct RecentBind
 {
-    RPC2_HostIdent Host;	/* Remote Host */
-    RPC2_PortIdent Port;	/* Remote Port */
+    struct RPC2_addrinfo *addr;	/* Remote Host */
     RPC2_Integer Unique;	/* Uniquefier value in Init1 packet */
     RPC2_Handle MyConn;		/* Local handle allocated for this connection */
 };
@@ -379,8 +352,8 @@ static int RBCacheOn = 0;	/* 0 = RBCacheOff, 1 = RBCacheOn */
 
 /* Adds information about a new bind to the RBCache; throws out the
    oldest entry if needed */
-void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, 
-		 RPC2_Integer whichUnique, RPC2_Handle whichConn)
+void rpc2_NoteBinding(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique,
+		      RPC2_Handle whichConn)
 {
     if (rpc2_ConnCount <= RBCACHE_THRESHOLD)
             return;
@@ -388,12 +361,13 @@ void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
     if (!RBCacheOn) {
 	    /* first use of RBCache- must allocate cache */
 	    RBCache = (struct RecentBind *) malloc(RBSIZE * sizeof(struct RecentBind));
+	    memset(RBCache, 0, RBSIZE * sizeof(struct RecentBind));
 	    RBCacheOn = 1;
     }
+    if (RBCache[NextRB].addr)
+	RPC2_freeaddrinfo(RBCache[NextRB].addr);
 
-    memset(&RBCache[NextRB], 0, sizeof(struct RecentBind));
-    RBCache[NextRB].Host = *whichHost;	/* struct assignment */
-    RBCache[NextRB].Port = *whichPort;	/* struct assignment */
+    RBCache[NextRB].addr = RPC2_copyaddrinfo(addr);
     RBCache[NextRB].Unique = whichUnique;
     RBCache[NextRB].MyConn = whichConn;
     
@@ -411,14 +385,13 @@ void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
    list.    */
 
 struct CEntry *
-rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, 
-		      RPC2_Integer whichUnique)
+rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique)
 {
     struct RecentBind *rbn;
     int next, count;
     struct CEntry *ce;
     struct dllist_head *ptr;
-    int i, j;
+    int i, j = 0;
     
     /* If RBCache is being used, check it first; search it backwards,
      * to increase chances of hit on recent binds.  */
@@ -434,9 +407,8 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
 	    while (i < count) {
 		    rbn = &RBCache[next];
 		    /* do cheapest test first */
-		    if (rbn->Unique == whichUnique		
-			&& rpc2_HostIdentEqual(&rbn->Host, whichHost)
-			&& rpc2_PortIdentEqual(&rbn->Port, whichPort)) {
+		    if (rbn->Unique == whichUnique &&
+			RPC2_cmpaddrinfo(rbn->addr, addr)) {
 			    say(0, RPC2_DebugLevel, "RBCache hit after %d tries\n", i+1);
 			    return(rpc2_GetConn(rbn->MyConn));
 		    }
@@ -453,18 +425,18 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
     
     /* It was not in the RBCache; scan all the connections */
     
-    for (ptr = rpc2_ConnList.next;
-	 ptr != &rpc2_ConnList;
-	 ptr = ptr->next)
+    /* XXX what we probably want to do is first find a host matching the
+     * current addr, and then drill down to the right connection entry.
+     * However, this code just walks all connections -JH */
+    for (ptr = rpc2_ConnList.next; ptr != &rpc2_ConnList; ptr = ptr->next)
     {
 	ce = list_entry(ptr, struct CEntry, connlist);
 	assert(ce->MagicNumber == OBJ_CENTRY);
 
 	j++; /* count # searched connections */
 
-	if (ce->PeerUnique == whichUnique  /* do cheapest test first */
-	    && rpc2_HostIdentEqual(&ce->PeerHost, whichHost)
-	    && rpc2_PortIdentEqual(&ce->PeerPort, whichPort))
+	if (ce->PeerUnique == whichUnique && /* do cheapest test first */
+	    RPC2_cmpaddrinfo(ce->HostInfo->Addr, addr))
 	{
 	    say(0, RPC2_DebugLevel,
 		"Match after searching %d connection entries\n", j);
@@ -479,3 +451,4 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
 
     return(NULL);
 }
+

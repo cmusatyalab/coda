@@ -73,7 +73,7 @@ Pittsburgh, PA.
 static long GetFile();
 static long PutFile();
 static RPC2_PacketBuffer *AwaitPacket();
-static void AddTimerEntry();
+static long MakeBigEnough();
 
 /*---------------------------  Local macros ---------------------------*/
 #define FAIL(se, rCode)\
@@ -102,21 +102,6 @@ long SFTP_Init()
     char *sname;
     
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
-
-    /* initialize the sftp timer chain */
-    TM_Init(&sftp_Chain);
-
-    if (sftp_Port.Tag)
-    {
-        /* Create socket for SFTP packets */
-        if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port) != RPC2_SUCCESS)
-            return(RPC2_FAIL);
-    }
-
-    /* Create SFTP listener process */
-    sname = "sftp_Listener";
-    LWP_CreateProcess((PFIC)sftp_Listener, 16384, LWP_NORMAL_PRIORITY,
-		      sname, sname, &sftp_ListenerPID);
 
     sftp_InitTrace();
 
@@ -164,7 +149,6 @@ void SFTP_Activate(initPtr)
 	SFTP_DoPiggy = initPtr->DoPiggy;
 	SFTP_DupThreshold = initPtr->DupThreshold;
 	SFTP_MaxPackets = initPtr->MaxPackets;
-	sftp_Port = initPtr->Port;			/* structure assignment */
 	}
     assert(SFTP_SendAhead <= 16);	/* 'cause of readv() bogosity */
 
@@ -226,7 +210,15 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
 
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
-    se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
+
+    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
+     * IPv4 address. Convert it back to the more useful RPC2_addrinfo... */
+    rpc2_simplifyHost(&se->PInfo.RemoteHost, &se->PInfo.RemotePort);
+
+    assert(se->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+    se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
+    assert(se->HostInfo);
+
     if (BindTime)
     {
         /* XXX Do some estimate of the amount of transferred data --JH */
@@ -268,7 +260,15 @@ long SFTP_NewConn(IN ConnHandle, IN ClientIdent)
     se->WhoAmI = SFSERVER;
     se->LocalHandle = ConnHandle;
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
-    se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
+
+    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
+     * IPv4 address. Convert it back to the more useful RPC2_addrinfo... */
+    rpc2_simplifyHost(&se->PInfo.RemoteHost, &se->PInfo.RemotePort);
+
+    assert(se->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+    se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
+    assert(se->HostInfo);
+
     RPC2_SetSEPointer(ConnHandle, se);
 
     return(RPC2_SUCCESS);    
@@ -678,13 +678,7 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
 
     if (se == NULL) return(RPC2_NOCONNECTION);
 
-    /* 
-     * There may still be no host info.  If not, see if some of
-     * the right type has appeared since the bind.
-     */
-    if (se->HostInfo == NULL) 
-	se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
-	
+    assert(se->HostInfo);
     *HPtr = se->HostInfo;
     return(RPC2_SUCCESS);
     }
@@ -895,59 +889,35 @@ GotAck:
 }
 
 
-static RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
-    struct timeval *tOut;
-    struct SFTP_Entry *sEntry;
-    
+static RPC2_PacketBuffer *AwaitPacket(struct timeval *tOut,
+				      struct SFTP_Entry *sEntry)
     /* Awaits for a packet on sEntry or  timeout tOut
 	Returns pointer to arrived packet or NULL
     */
+{
+    struct SL_Entry *sl;
+
+    if (LWP_GetRock(SMARTFTP, (char **)&sl) != LWP_SUCCESS)
     {
-    struct SLSlot *sls;
+	sl = rpc2_AllocSle(OTHER, NULL);
+	assert(LWP_NewRock(SMARTFTP, (char *)sl) == LWP_SUCCESS);
+    }
 
-    if (LWP_GetRock(SMARTFTP, (char **)&sls) != LWP_SUCCESS)
-	{
-	sls = (struct SLSlot *) malloc(sizeof(struct SLSlot));
-	memset(sls, 0, sizeof(struct SLSlot));
-	sls->Magic = SSLMAGIC;
-	LWP_CurrentProcess(&sls->Owner);
-	assert(LWP_NewRock(SMARTFTP, (char *)sls) == LWP_SUCCESS);
-	}
+    sEntry->Sleeper = sl;
+    rpc2_ActivateSle(sl, tOut);
+    LWP_WaitProcess((char *)sl);
 
-    sls->TChain = sftp_Chain;
-    sls->Te.TotalTime = *tOut;	/* structure assignment */
-    sls->Te.BackPointer = (char *)sls;
-    sls->State = S_WAITING;
-    sEntry->Sleeper = sls;
-    AddTimerEntry(&sls->Te);
-    LWP_WaitProcess((char *)sls);
-    switch(sls->State)
+    switch(sl->ReturnCode)
 	{
-	case S_TIMEOUT:	sls->State = S_INACTIVE; return(NULL);
-    
-	case S_ARRIVED:	sls->State = S_INACTIVE; return(sls->Packet);
-	
+	case TIMEOUT:	sl->ReturnCode = 0; return(NULL);
+	case ARRIVED:	sl->ReturnCode = 0; return(sl->Packet);
 	default: assert(FALSE);
 	}
     /*NOTREACHED*/
     assert(0);
     return NULL;
-    }
+}
     
-
-static void AddTimerEntry(whichElem)
-    struct TM_Elem *whichElem;
-    {
-    struct TM_Elem *t;
-    long mytime;
-
-    mytime = whichElem->TotalTime.tv_sec*1000000 + whichElem->TotalTime.tv_usec;
-    t = TM_GetEarliest(sftp_Chain);
-    if (t == NULL || (t->TimeLeft.tv_sec*1000000 + t->TimeLeft.tv_usec) > mytime)
-	IOMGR_Cancel(sftp_ListenerPID);
-    TM_Insert(sftp_Chain, whichElem);
-    }
-
 
 /*---------------------- Piggybacking routines -------------------------*/
 
@@ -1077,8 +1047,11 @@ int sftp_AppendParmsToPacket(struct SFTP_Entry *sEntry,
        Returns 0 on success, -1 on failure */
 {
     struct SFTP_Parms sp;
+    RPC2_PortIdent nullport;
+    nullport.Tag = 0;
+    nullport.Value.InetPortNumber = 0;
 
-    sp.Port = sftp_Port;	/* structure assignment */
+    sp.Port = nullport;	/* structure assignment */
     sp.Port.Tag = (PortTag)htonl(sp.Port.Tag);
     sp.WindowSize = htonl(sEntry->WindowSize);
     sp.SendAhead = htonl(sEntry->SendAhead);
@@ -1114,19 +1087,6 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
     /* We copy out the data physically:
        else structure alignment problem on IBM-RTs */
     memcpy(&sp, &whichP->Body[whichP->Header.BodyLength - sizeof(struct SFTP_Parms)], sizeof(struct SFTP_Parms));
-
-    sEntry->PeerPort = sp.Port;
-    sEntry->PeerPort.Tag = (PortTag)ntohl(sp.Port.Tag);
-
-    if (sEntry->WhoAmI == SFSERVER)
-    {
-	/* Set up host/port linkage. */
-	sEntry->HostInfo = rpc2_GetHost(&sEntry->PInfo.RemoteHost);
-	if (sEntry->HostInfo == NULL) 
-	    sEntry->HostInfo = rpc2_AllocHost(&sEntry->PInfo.RemoteHost);
-    }
-    else
-	assert(sEntry->WhoAmI == SFCLIENT);
 
     sp.WindowSize = ntohl(sp.WindowSize);
     sp.SendAhead = ntohl(sp.SendAhead);
@@ -1192,6 +1152,8 @@ void sftp_FreeSEntry(struct SFTP_Entry *se)
     if (se->PiggySDesc) sftp_FreePiggySDesc(se);
     for (i = 0; i < MAXOPACKETS; i++)
 	if (se->ThesePackets[i] != NULL) SFTP_FreeBuffer(&se->ThesePackets[i]);
+    if (se->HostInfo)
+	rpc2_FreeHost(&se->HostInfo);
     free(se);
 }
 

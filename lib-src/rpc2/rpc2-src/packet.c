@@ -67,33 +67,35 @@ static struct timeval DefaultRetryInterval = {60, 0};
 int (*Fail_SendPredicate)() = NULL,
     (*Fail_RecvPredicate)() = NULL;
 
-static long DontFailPacket(predicate, pb, addr, sock)
-    int (*predicate)();
-    RPC2_PacketBuffer *pb;
-    struct sockaddr_in *addr;
-    int sock;
-    {
-    long dontFail;
+static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
+			   struct RPC2_addrinfo *addr, int sock)
+{
+    long drop;
     unsigned char ip1, ip2, ip3, ip4;
     unsigned char color;
 
-    if (predicate)
-	{
-	ip1 = (ntohl(addr->sin_addr.s_addr) >> 24) & 0x000000ff;
-	ip2 = (ntohl(addr->sin_addr.s_addr) >> 16) & 0x000000ff;
-	ip3 = (ntohl(addr->sin_addr.s_addr) >> 8) & 0x000000ff;
-	ip4 = ntohl(addr->sin_addr.s_addr) & 0x000000ff;
-	ntohPktColor(pb);
-	color = GetPktColor(pb);
-	htonPktColor(pb);
-	dontFail = (*predicate)(ip1, ip2, ip3, ip4, color, pb, addr, sock);
-        }
-    else dontFail = TRUE;
-    return (dontFail);
-    }
+    if (!predicate)
+	return 0;
+
+#warning "fail filters can only handle ipv4 addresses"
+    if (addr->ai_family != PF_INET)
+	return 0;
+
+    struct sockaddr_in *sin =(struct sockaddr_in *)addr->ai_addr;
+    unsigned char *inaddr = (unsigned char *)&sin->sin_addr;
+
+    ip1 = inaddr[0]; ip2 = inaddr[1]; ip3 = inaddr[2]; ip4 = inaddr[3]; 
+
+    ntohPktColor(pb);
+    color = GetPktColor(pb);
+    htonPktColor(pb);
+
+    drop = ((*predicate)(ip1, ip2, ip3, ip4, color, pb, sin, sock) == 0);
+    return drop;
+}
 
 void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
-		     IN RPC2_HostIdent *whichHost, IN RPC2_PortIdent *whichPort)
+		     IN struct RPC2_addrinfo *addr)
 {
     int n;
 
@@ -103,11 +105,9 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
     if (RPC2_DebugLevel > 9)
 	{
 	fprintf(rpc2_logfile, "\t");
-	rpc2_PrintHostIdent(whichHost, 0);
-	fprintf(rpc2_logfile, "    ");
-	rpc2_PrintPortIdent(whichPort, 0);
+	rpc2_printaddrinfo(addr, rpc2_logfile);
 	fprintf(rpc2_logfile, "\n");
-	rpc2_PrintPacketHeader(whichPB, 0);
+	rpc2_PrintPacketHeader(whichPB, rpc2_logfile);
 	}
 #endif
 
@@ -117,64 +117,45 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 
     /* Only Internet for now; no name->number translation attempted */
 
-    switch(whichHost->Tag)
-	{
-	case RPC2_HOSTBYINETADDR:
-	case RPC2_MGRPBYINETADDR:
-	    {
-	    struct sockaddr_in sa;
+    if (ntohl(whichPB->Header.Flags) & RPC2_MULTICAST)
+    {
+	rpc2_MSent.Total++;
+	rpc2_MSent.Bytes += whichPB->Prefix.LengthOfPacket;
+    }
+    else
+    {
+	rpc2_Sent.Total++;
+	rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
+    }
 
-	    assert(whichPort->Tag == RPC2_PORTBYINETNUMBER);
-	    sa.sin_family = AF_INET;
-	    sa.sin_addr.s_addr = whichHost->Value.InetAddress.s_addr;	/* In network order */
-	    sa.sin_port = whichPort->Value.InetPortNumber; /* In network order */
+    if (FailPacket(Fail_SendPredicate, whichPB, addr, whichSocket))
+	return;
 
-	    if (ntohl(whichPB->Header.Flags) & RPC2_MULTICAST)
-		{
-		rpc2_MSent.Total++;
-		rpc2_MSent.Bytes += whichPB->Prefix.LengthOfPacket;
-		}
-	    else
-		{
-		rpc2_Sent.Total++;
-		rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
-		}
-
-	    if (DontFailPacket(Fail_SendPredicate, whichPB, &sa, whichSocket))
-		{
-                n = sendto(whichSocket, &whichPB->Header,
-                           whichPB->Prefix.LengthOfPacket, 0,
-                           (struct sockaddr *)&sa, sizeof(struct sockaddr_in));
+    n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket, 0,
+	       addr->ai_addr, addr->ai_addrlen);
 
 #ifdef __linux__
-                if ((n == -1) && (errno == ECONNREFUSED))
-                {
-		    /* On linux ECONNREFUSED is a result of a previous sendto
-		     * triggering an ICMP bad host/port response. This
-		     * behaviour seems to be required by RFC1122, but in
-		     * practice this is not implemented by other UDP stacks.
-		     * We retry the send, because the failing host was possibly
-		     * not the one we tried to send to this time. --JH
-                     */
-                    n = sendto(whichSocket, &whichPB->Header,
-                               whichPB->Prefix.LengthOfPacket, 0,
-                               (struct sockaddr *)&sa,
-                               sizeof(struct sockaddr_in));
-                }
+    if (n == -1 && errno == ECONNREFUSED)
+    {
+	/* On linux ECONNREFUSED is a result of a previous sendto
+	 * triggering an ICMP bad host/port response. This
+	 * behaviour seems to be required by RFC1122, but in
+	 * practice this is not implemented by other UDP stacks.
+	 * We retry the send, because the failing host was possibly
+	 * not the one we tried to send to this time. --JH
+	 */
+	n = sendto(whichSocket, &whichPB->Header,
+		   whichPB->Prefix.LengthOfPacket, 0,
+		   addr->ai_addr, addr->ai_addrlen);
+    }
 #endif
 
-		if (n != whichPB->Prefix.LengthOfPacket)
-		    {
-		    char msg[100];
-		    (void) sprintf(msg, "socket %ld", whichSocket);
-		    if (RPC2_Perror) perror(msg);
-		    }
-	        }
-	    }
-	    break;
-	    
-	default: assert(FALSE);
-	}
+    if (RPC2_Perror && n != whichPB->Prefix.LengthOfPacket)
+    {
+	char msg[100];
+	sprintf(msg, "Xmit_Packet socket %ld", whichSocket);
+	perror(msg);
+    }
 }
 
 /* Reads the next packet from whichSocket into whichBuff, sets its
@@ -189,7 +170,7 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 {
     long rc, len;
     int fromlen;
-    struct sockaddr_in sa;
+    struct sockaddr_storage sa;
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
     assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
@@ -207,18 +188,14 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 	    return(-1);
     }
 
-    /* do we really need to zero these? */
-    memset(&whichBuff->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
-    memset(&whichBuff->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
-
-    whichBuff->Prefix.PeerHost.Tag = RPC2_HOSTBYINETADDR;
-    whichBuff->Prefix.PeerHost.Value.InetAddress.s_addr = sa.sin_addr.s_addr;
-    whichBuff->Prefix.PeerPort.Tag = RPC2_PORTBYINETNUMBER;
-    whichBuff->Prefix.PeerPort.Value.InetPortNumber = sa.sin_port;
+    whichBuff->Prefix.PeerAddr =
+	RPC2_allocaddrinfo((struct sockaddr *)&sa, fromlen);
 
     TR_RECV();
 
-    if (!DontFailPacket(Fail_RecvPredicate, whichBuff, &sa, whichSocket)) {
+    if (FailPacket(Fail_RecvPredicate, whichBuff, whichBuff->Prefix.PeerAddr,
+		   whichSocket))
+    {
 	    errno = 0;
 	    return (-1);
     }
@@ -481,7 +458,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     say(9, RPC2_DebugLevel, "Sending try at %d on 0x%lx (timeout %ld.%06ld)\n", 
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
-    rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, Packet, Conn->HostInfo->Addr);
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
@@ -539,7 +516,8 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		rpc2_Sent.Retries += 1;
-		rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPort);
+		rpc2_XmitPacket(rpc2_RequestSocket, Packet,
+				Conn->HostInfo->Addr);
 		break;	/* switch */
 		
 	    default: assert(FALSE);
@@ -605,8 +583,7 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 	pb->Header.Lamport	= RPC2_LamportTime();
 	pb->Header.BodyLength   = bodylen;
 	pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
-	memset(&pb->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
-	memset(&pb->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
+	//pb->Prefix.PeerAddr   = NULL;
 	memset(&pb->Prefix.RecvStamp, 0, sizeof(struct timeval));
 	if (ce)	{
 		pb->Header.RemoteHandle = ce->PeerHandle;

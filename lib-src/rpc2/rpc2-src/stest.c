@@ -50,6 +50,7 @@ Pittsburgh, PA.
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
+#include <rpc2/rpc2_addrinfo.h>
 #include <rpc2/se.h>
 #include "sftp.h"
 #include "test.h"
@@ -243,15 +244,18 @@ static void PrintHostIdent(hPtr, tFile)
     RPC2_HostIdent *hPtr;
     FILE *tFile;
     {
+    char addr[INET_ADDRSTRLEN];
     if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
     switch (hPtr->Tag)
 	{
+	case RPC2_HOSTBYADDRINFO:
+		rpc2_printaddrinfo(hPtr->Value.AddrInfo, tFile);
+		break;
+
 	case RPC2_HOSTBYINETADDR:
-		{
-		fprintf(tFile, "Host.InetAddress = %s",
-			inet_ntoa(hPtr->Value.InetAddress));
+		inet_ntop(AF_INET, &hPtr->Value.InetAddress, addr, INET_ADDRSTRLEN);
+		fprintf(tFile, "Host.InetAddress = %s", addr);
 		break;	
-		}
 	
 	case RPC2_HOSTBYNAME:
 		fprintf(tFile, "Host.Name = \"%s\"", hPtr->Value.Name);
@@ -556,8 +560,6 @@ void InitRPC(void)
     if (WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, pp,
 		      (long) 6, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
 	exit(-1);
-    PrintHostIdent(&rpc2_LocalHost, (FILE *)NULL);
-    printf("    ");
     PrintPortIdent(&rpc2_LocalPort, (FILE *)NULL);
     printf("\n\n");
     subsysid.Tag = RPC2_SUBSYSBYID;

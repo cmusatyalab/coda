@@ -561,14 +561,10 @@ void ClearStats()
 
 void GetHost(RPC2_HostIdent *h)
 {
-    char buff[100];
-
-    do {
-	h->Tag = RPC2_HOSTBYINETADDR;
-	if (!qflag) printf("Host id? ");
-	(void) fscanf(ifd, "%s", buff);
-	if (!qflag && fflag) printf(" %s\n", buff);
-    } while (inet_aton(buff, &h->Value.InetAddress) != 0);
+    h->Tag = RPC2_HOSTBYNAME;
+    if (!qflag) printf("Host name? ");
+    (void) fscanf(ifd, "%s", h->Value.Name);
+    if (!qflag && fflag) printf(" %s\n", h->Value.Name);
 }
 
 void GetPort(    RPC2_PortIdent *p)

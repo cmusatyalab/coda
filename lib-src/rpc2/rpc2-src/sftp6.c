@@ -160,7 +160,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 
 	/* reacquire MEntry pointer */
 	assert(MCast->Mgroup != 0);
-	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPort, MCast->Mgroup, CLIENT)) != NULL);
+	assert((me = rpc2_GetMgrp(NULL, MCast->Mgroup, CLIENT)) != NULL);
 	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
 	assert(mse->SDesc == NULL);
 	if (mse->WhoAmI != SFCLIENT) FAIL_MCRPC1(RPC2_SEFAIL1);
@@ -320,7 +320,7 @@ long SFTP_CreateMgrp(IN MgroupHandle)
     RPC2_PeerInfo	*PeerInfo;
 
     say(0, SFTP_DebugLevel, "SFTP_CreateMgrp()\n");
-    assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPort, MgroupHandle, CLIENT)) != NULL);
+    assert((me = rpc2_GetMgrp(NULL, MgroupHandle, CLIENT)) != NULL);
 
     /* allocate an SFTP_Entry for the multicast group */
     mse = sftp_AllocSEntry();
@@ -329,8 +329,13 @@ long SFTP_CreateMgrp(IN MgroupHandle)
 
     /* fill in peer info; can't use RPC2_GetPeerInfo() */
     PeerInfo = &mse->PInfo;
-    PeerInfo->RemoteHost = me->IPMHost;		/* structure assignment */
-    PeerInfo->RemotePort = me->IPMPort;	/* structure assignment */
+    rpc2_splitaddrinfo(&PeerInfo->RemoteHost, &PeerInfo->RemotePort,
+		       me->IPMAddr);
+
+    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
+     * IPv4 address. Convert it back to the more useful RPC2_addrinfo... */
+    rpc2_simplifyHost(&PeerInfo->RemoteHost, &PeerInfo->RemotePort);
+
     PeerInfo->RemoteSubsys.Tag = RPC2_SUBSYSBYID;
     PeerInfo->RemoteSubsys.Value.SubsysId = me->SubsysId;
     PeerInfo->RemoteHandle = me->MgroupID;
@@ -338,12 +343,6 @@ long SFTP_CreateMgrp(IN MgroupHandle)
     PeerInfo->EncryptionType = me->EncryptionType;
     PeerInfo->Uniquefier = 0;		/* not used */
     memcpy(PeerInfo->SessionKey, me->SessionKey, sizeof(RPC2_EncryptionKey));
-
-    /* Hopefully we'll either get SFTP parameters, or the other side is a
-     * recent version of RPC2 or he'll miss some messages */
-    //mse->PeerPort = PeerInfo->RemotePort;
-    //mse->PeerPort.Value.InetPortNumber = htons(ntohs(mse->PeerPort.Value.InetPortNumber) + 1);
-    mse->PeerPort.Tag = 0;
 
     /* plug in the SFTP descriptor */
     me->SideEffectPtr = (char *)mse;
@@ -361,7 +360,7 @@ long SFTP_AddToMgrp(IN MgroupHandle, IN ConnHandle, INOUT Request)
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
     struct SFTP_Entry	*sse;			/* Singlecast SFTP_Entry */
 
-    assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPort, MgroupHandle, CLIENT)) != NULL);
+    assert((me = rpc2_GetMgrp(NULL, MgroupHandle, CLIENT)) != NULL);
     assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
     assert(RPC2_GetSEPointer(ConnHandle, &sse) == RPC2_SUCCESS);
 
@@ -380,11 +379,17 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     struct SFTP_Entry	*sse;			/* Singlecast SFTP Entry */
     struct MEntry	*me;
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
+    int ret;
 
     say(0, SFTP_DebugLevel, "SFTP_InitMulticast()\n");
-    assert((ce = rpc2_GetConn(ConnHandle)) != NULL);
-    assert((me = rpc2_GetMgrp(&ce->PeerHost, &ce->PeerPort, MgroupHandle, SERVER)) != NULL);
-    assert(RPC2_GetSEPointer(ConnHandle, &sse) == RPC2_SUCCESS);
+    ce = rpc2_GetConn(ConnHandle);
+    assert(ce != NULL);
+
+    me = rpc2_GetMgrp(ce->HostInfo->Addr, MgroupHandle, SERVER);
+    assert(me != NULL);
+
+    ret = RPC2_GetSEPointer(ConnHandle, &sse);
+    assert(ret == RPC2_SUCCESS);
 
     /* Allocate and initialize the MULTICAST parameter block. */
     mse = sftp_AllocSEntry();
@@ -399,6 +404,11 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
 
     /* Fill in peer info; get SessionKey from Mgrp, not Conn */
     RPC2_GetPeerInfo(ConnHandle, &mse->PInfo);
+
+    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
+     * IPv4 address. Convert it back to the more useful RPC2_addrinfo... */
+    rpc2_simplifyHost(&mse->PInfo.RemoteHost, &mse->PInfo.RemotePort);
+
     memcpy(mse->PInfo.SessionKey, me->SessionKey, sizeof(RPC2_EncryptionKey));
 
     /* Plug in the SFTP Entry */
@@ -408,19 +418,15 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     }
 
 
-long SFTP_DeleteMgrp(IN MgroupHandle, IN ClientHost, IN ClientPort, IN Role)
-    RPC2_Handle		MgroupHandle;
-    RPC2_HostIdent	*ClientHost;
-    RPC2_PortIdent	*ClientPort;
-    long		Role;
+long SFTP_DeleteMgrp(RPC2_Handle MgroupHandle, struct RPC2_addrinfo *ClientAddr,
+		     long Role)
     {
     struct MEntry	*me;
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
     int			i;
 
     say(0, SFTP_DebugLevel, "SFTP_DeleteMgrp()\n");
-    assert(ClientHost->Tag == RPC2_HOSTBYINETADDR && ClientPort->Tag == RPC2_PORTBYINETNUMBER);
-    assert((me = rpc2_GetMgrp(ClientHost, ClientPort, MgroupHandle, Role)) != NULL);
+    assert((me = rpc2_GetMgrp(ClientAddr, MgroupHandle, Role)) != NULL);
 
     /* ...below is taken from SFTP_Unbind()... */
     if ((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL)
@@ -451,38 +457,37 @@ int SFXlateMcastPacket(RPC2_PacketBuffer *pb)
 	    h_Opcode,						/* decrypt first */
 	    h_SeqNumber,					/* decrypt first */
 	    h_ThisRPCCall;					/* decrypt first */
-    RPC2_PortIdent		XlatePort;
-
-    XlatePort = pb->Prefix.PeerPort;		/* structure assignment */
+    char addr[RPC2_ADDRSTRLEN];
 
     say(9, SFTP_DebugLevel, "SFXlateMcastPacket()\n");
-    say(9, SFTP_DebugLevel, "Host = %s\tPort = 0x%x\tMgrp = 0x%lx\n",
-	inet_ntoa(pb->Prefix.PeerHost.Value.InetAddress),
-	(unsigned) XlatePort.Value.InetPortNumber - 1, h_RemoteHandle);
+    RPC2_formataddrinfo(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
+    say(9, SFTP_DebugLevel, "Host = %s\tMgrp = 0x%lx\n", addr, h_RemoteHandle);
 
     /* Find and validate the relevant data structures */
     assert(h_RemoteHandle != 0 && h_LocalHandle == 0);
-    assert(XlatePort.Tag == RPC2_PORTBYINETNUMBER);
-    XlatePort.Value.InetPortNumber = htons(ntohs(XlatePort.Value.InetPortNumber) - 1);
-    me = rpc2_GetMgrp(&pb->Prefix.PeerHost, &XlatePort, h_RemoteHandle, SERVER);
+
+    me = rpc2_GetMgrp(pb->Prefix.PeerAddr, h_RemoteHandle, SERVER);
     if (me == NULL) {
 	say(9, SFTP_DebugLevel, "me == NULL\n");
 	return(FALSE);
     }
     ce = me->conn;
     assert(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
-    if ((sse = (struct SFTP_Entry *)ce->SideEffectPtr) == NULL) {
-	say(9, SFTP_DebugLevel, "sse == NULL\n"); return(FALSE);}
-    if (sse->WhoAmI != SFSERVER) {
-	say(9, SFTP_DebugLevel, "sse->WhoAmI != SFSERVER\n"); return(FALSE);}
-    if ((mse = (struct SFTP_Entry *)me->SideEffectPtr) == NULL) {
-	say(9, SFTP_DebugLevel, "mse == NULL\n"); return(FALSE);}
-    if (mse->WhoAmI != SFSERVER) {
-	say(9, SFTP_DebugLevel, "mse->WhoAmI != SFSERVER\n"); return(FALSE);}
 
-    say(9, SFTP_DebugLevel, "Host = %s\tPort = 0x%x\tMgrp = 0x%lx\n",
-	    inet_ntoa(pb->Prefix.PeerHost.Value.InetAddress),
-	    XlatePort.Value.InetPortNumber, h_RemoteHandle );
+    sse = (struct SFTP_Entry *)ce->SideEffectPtr;
+    if  (!sse || sse->WhoAmI != SFSERVER) {
+	say(9, SFTP_DebugLevel, "sse == NULL || sse->WhoAmI != SFSERVER\n");
+	return(FALSE);
+    }
+
+    mse = (struct SFTP_Entry *)me->SideEffectPtr;
+    if  (!mse || mse->WhoAmI != SFSERVER) {
+	say(9, SFTP_DebugLevel, "mse == NULL || mse->WhoAmI != SFSERVER\n");
+	return(FALSE);
+    }
+
+    RPC2_formataddrinfo(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
+    say(9, SFTP_DebugLevel, "Host = %s\tMgrp = 0x%lx\n", addr, h_RemoteHandle);
 
     /* Decrypt the packet with the MULTICAST session key. Clear the encrypted bit so that we don't
 	decrypt again with the connection session key. */

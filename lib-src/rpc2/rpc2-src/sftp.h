@@ -193,7 +193,6 @@ struct SFTP_Entry		/* per-connection data structure */
     RPC2_Handle LocalHandle;	/* which RPC2 conn on this side do I
 				   correspond to? */
     RPC2_PeerInfo  PInfo;	/* all the RPC info  about the other side */
-    RPC2_PortIdent PeerPort;	/* SFTP port on the other side */
     struct timeval LastWord;	/* Last time we received something on this SE */
     struct HEntry *HostInfo;	/* Connection-independent host info. set by
 				   ExaminePacket on client side (if
@@ -216,7 +215,7 @@ struct SFTP_Entry		/* per-connection data structure */
 				   transfer */
     off_t fd_offset;		/* For FILEBYFD transfers, we save the offset
 				   within the file after each read/write */
-    struct SLSlot *Sleeper;	/* SLSlot of LWP sleeping on this connection,
+    struct SL_Entry *Sleeper;	/* SL_Entry of LWP sleeping on this connection,
 				   or NULL */
     long PacketSize;		/* Amount of  data in each packet */
     long WindowSize;		/* Max Number of outstanding packets without
@@ -306,52 +305,10 @@ struct SFTP_Entry		/* per-connection data structure */
     };
 
 
-/* Per-LWP SFTP status information: accessed via LWP_SetRock() and LWP_GetRock() 
-
-    Disclaimer (made in total disgust)
-    =================================
-	All this stuff dealing with SLSlots etc. is needed because the LWP
-    package does not provide me with a very fundamental primitive: the ability to wait for
-    an arbitrary event or a timeout.  This is apparently impossible to add in an efficient
-    manner to the current LWP package.  So I have to fake this using the same strategy used in
-    the base RPC2 (SLEntries for communication between SocketListener and the other LWPs).  The
-    difference here is that the number of SLSlots is at most one per LWP, since an LWP can be
-    waiting for at most one packet at a time.  The creation of an SLSlot for an LWP is 
-    deferred until the first use of this mechanism, since we have no  way to gain control when 
-    a LWP_CreateProcess() is done.
-*/
-
-#define SSLMAGIC	2305988
-enum SLState {S_WAITING, S_ARRIVED, S_TIMEOUT, S_INACTIVE};
-struct SLSlot		/* pointed to by rock in current LWP */
-    {
-    long Magic;		/* SSLMAGIC */
-    PROCESS Owner;	/* redundant, but useful backpointer */
-    enum SLState State;	
-    struct TM_Elem Te;		/* if State is WAITING, will be in linked list of timer elements */
-    struct TM_Elem *TChain;	/* NULL or chain in which Te is in at present */
-    RPC2_PacketBuffer *Packet;	/* newly arrived packet */
-    };
-
-
-#define REMOVETIMER(x)	/* Removes an SLSlot x from a timer chain */\
-	    if (x->TChain != NULL)\
-		{\
-		TM_Remove(x->TChain, &x->Te);\
-		x->TChain = NULL;\
-		}
-
-extern PROCESS sftp_ListenerPID;	/* pid of listener */
-extern struct TM_Elem *sftp_Chain;	/* head of linked list of all sleeping LWPs waiting for a packet or a timeout */
-extern long sftp_Socket;		/* for all SFTP traffic */
-extern RPC2_PortIdent sftp_Port;
 extern long SFTP_DebugLevel;
 
-
-
-long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket);
 int  sftp_XmitPacket(struct SFTP_Entry *sentry, RPC2_PacketBuffer *pb);
-void sftp_Listener(void);
+void sftp_Timer(void);
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 
 #define IsSource(sfe)\
@@ -448,7 +405,7 @@ off_t sftp_AppendFileToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whi
 off_t sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
 int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, off_t dSize, long maxSize);
 void sftp_SetError(struct SFTP_Entry *s, enum SFState e);
-int sftp_MorePackets(int *rpc2, int *sftp);
+int sftp_MorePackets(void);
 
 
 extern long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,

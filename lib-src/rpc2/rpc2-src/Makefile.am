@@ -30,7 +30,8 @@ EXTRA_DIST = makeinc.pl errordb.txt fxor.s
 
 librpc2_la_SOURCES = rpc2a.c rpc2b.c sl.c packet.c secure.c globals.c se.c \
     lists.c ct.c debug.c conn.c cbuf.c ffs.c host.c multi1.c multi2.c \
-    multi3.c mkcall.c stats.c errors.c cbuf.h trace.h dllist.c
+    multi3.c mkcall.c stats.c errors.c cbuf.h trace.h dllist.c rpc2_addrinfo.c \
+    compat.c
 librpc2_la_LDFLAGS = -version-info $(LIBTOOL_VERSION)
 
 libse_la_SOURCES = sftp1.c sftp2.c sftp3.c sftp4.c sftp5.c sftp6.c

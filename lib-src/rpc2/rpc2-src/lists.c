@@ -227,15 +227,14 @@ void rpc2_ActivateSle (selem, exptime)
     t->TotalTime = *exptime; /* structure assignment */
 
     oldt = TM_GetEarliest(rpc2_TimerQueue);
-    if (oldt != NULL)
-	{
-		/* remove oldt if it isn't the soonest anymore */
-	delta = (oldt->TimeLeft.tv_sec - t->TotalTime.tv_sec)*1000000 +
-		    (oldt->TimeLeft.tv_usec - t->TotalTime.tv_usec);
-	if (delta > 0) 	IOMGR_Cancel(rpc2_SocketListenerPID);
-	}
-    else  /* why the heck remove something that isn't there? */
-	    IOMGR_Cancel(rpc2_SocketListenerPID);
+    /* if the new entry expires before any previous timeout, signal the socket
+     * listener to recheck the timerqueue (being able to rely on the
+     * availability of timercmp would be nice) */
+    if (!oldt || oldt->TimeLeft.tv_sec > t->TotalTime.tv_sec ||
+	(oldt->TimeLeft.tv_sec == t->TotalTime.tv_sec &&
+	 oldt->TimeLeft.tv_usec > t->TotalTime.tv_usec))
+	IOMGR_Cancel(rpc2_SocketListenerPID);
+
     TM_Insert(rpc2_TimerQueue, t);
     }
 

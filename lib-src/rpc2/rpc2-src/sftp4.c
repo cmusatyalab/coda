@@ -50,11 +50,11 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <sys/uio.h>
+#include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
 #include "cbuf.h"
-
 
 #define TRACELEN 1000
 
@@ -69,8 +69,6 @@ struct CBUF_Header *TraceBuf;
 
 int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
 {
-    int whichSocket;
-    RPC2_PortIdent *whichPort;
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
 
@@ -79,18 +77,7 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
     te->ph = pb->Header;	/* structure assignment */
 #endif
 
-    whichSocket = sftp_Socket;
-    whichPort = &sEntry->PeerPort;
-
-    /* when either side is in `masquerading mode', send the packet out
-     * of the rpc2 socket */
-    if (!sftp_Port.Tag || !sEntry->PeerPort.Tag) {
-	/* send from the rpc2 socket to the rpc2 port on the other side */
-        whichSocket = rpc2_RequestSocket;
-	whichPort = &sEntry->PInfo.RemotePort;
-    }
-
-    rpc2_XmitPacket(whichSocket, pb, &sEntry->PInfo.RemoteHost, whichPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, sEntry->HostInfo->Addr);
 
     if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
 	rpc2_MSent.Total--;
@@ -105,24 +92,6 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
     }
 
     return(RPC2_SUCCESS);
-}
-
-long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket)
-{
-    long rc;
-    
-    rc = rpc2_RecvPacket(whichSocket, whichPacket);
-    if (rc < 0) return(rc);
-
-#ifdef RPC2DEBUG
-    {
-	struct TraceEntry *te = (struct TraceEntry *)CBUF_NextSlot(TraceBuf);
-	te->tcode = RECVD;
-	te->ph = whichPacket->Header;	/* structure assignment */
-    }
-#endif
-
-    return(rc);
 }
 
 void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum)

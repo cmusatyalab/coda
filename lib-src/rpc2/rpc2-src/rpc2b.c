@@ -80,6 +80,7 @@ long RPC2_Init(char *VId,		/* magic version string */
 {
     char *c;
     long rc, i, ctpid;
+    struct RPC2_addrinfo *rpc2_localaddr;
 
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
@@ -97,28 +98,30 @@ long RPC2_Init(char *VId,		/* magic version string */
     /* rpc2_InitConn returns 0 if we're already initialized */
     if (rpc2_InitConn() == 0) rpc2_Quit(RPC2_SUCCESS);
 
+    if (Options && (Options->Flags & RPC2_OPTION_IPV6))
+	rpc2_ipv6ready = 1;
+
     rpc2_InitMgrp();
     rpc2_InitHost();
 
-    if (Port) rpc2_LocalPort = *Port; 
-    else      rpc2_LocalPort.Tag = (PortTag)0;  
+    rpc2_localaddr = rpc2_resolve(NULL, Port);
+    if (!rpc2_localaddr) {
+	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't get addrinfo for localhost!\n");
+	rpc2_Quit(RPC2_FAIL);
+    }
     
-    /* We put the localhost IP-address in rpc2_LocalHost, this value is _ONLY_
-     * used to hash the Mgroup entries, and we are _not_ sending it to the
-     * rpc2 Peer. So this should give no problems. Changing the AllocMgrp and
-     * GetMgrp functions to accept a NULL pointer would be better, but
-     * requires an enormous amount of modifications all over rpc2. --JH */
-    
-    rpc2_LocalHost.Tag = RPC2_HOSTBYINETADDR;
-    rpc2_LocalHost.Value.InetAddress.s_addr = htonl(INADDR_LOOPBACK);
-    
-    rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalPort);
-    if (Port) *Port = rpc2_LocalPort; 
+    /* XXX we only bind to the first one that binds successfully */
+    rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, rpc2_localaddr,
+			     &rpc2_LocalPort);
+    RPC2_freeaddrinfo(rpc2_localaddr);
 
     if (rc < RPC2_ELIMIT) {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't create socket\n");
 	rpc2_Quit(rc);
     }
+
+    if (Port)
+	*Port = rpc2_LocalPort;
 
     /* Initialize retry parameters */
     if (rpc2_InitRetry(RetryCount, KAInterval) != 0) {
@@ -325,6 +328,11 @@ long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
 
     assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
+    if ((*BuffPtr)->Prefix.PeerAddr) {
+	RPC2_freeaddrinfo((*BuffPtr)->Prefix.PeerAddr);
+	(*BuffPtr)->Prefix.PeerAddr = NULL;
+    }
+
     switch((int) (*BuffPtr)->Prefix.BufferSize)
 	{
 	case SMALLPACKET:
@@ -477,7 +485,7 @@ long RPC2_SetSEPointer(IN ConnHandle, IN SEPtr)
 long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     RPC2_Handle ConnHandle;
     RPC2_PeerInfo *PeerInfo;
-    {
+{
     struct CEntry *ceaddr;
 
     rpc2_Enter();
@@ -486,8 +494,8 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     ceaddr = rpc2_GetConn(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
 
-    PeerInfo->RemoteHost = ceaddr->PeerHost;	/* structure assignment */
-    PeerInfo->RemotePort = ceaddr->PeerPort;  /* structure assignment */
+    rpc2_splitaddrinfo(&PeerInfo->RemoteHost, &PeerInfo->RemotePort,
+		       ceaddr->HostInfo->Addr);
     PeerInfo->RemoteSubsys.Tag = RPC2_SUBSYSBYID;
     PeerInfo->RemoteSubsys.Value.SubsysId = ceaddr->SubsysId;
     PeerInfo->RemoteHandle = ceaddr->PeerHandle;
@@ -496,7 +504,7 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     memcpy(PeerInfo->SessionKey, ceaddr->SessionKey, RPC2_KEYSIZE);
     PeerInfo->Uniquefier = ceaddr->PeerUnique;
     rpc2_Quit(RPC2_SUCCESS);
-    }
+}
 
 
 long RPC2_DumpTrace(IN OutFile, IN HowMany)
@@ -802,29 +810,22 @@ long RPC2_ClearNetInfo(IN Conn)
     }  
 
     
-long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
+/* adding this arg in theory allows me to specify whether to
+   create a v4 or v6 socket.  Simpler way to do this? */
+long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
+			 RPC2_PortIdent *Port)
 {
-	struct sockaddr_in bindaddr;
-	struct servent *sentry;
-	int blen = 0x8000 ;
+    int err = RPC2_FAIL;
 
+    for (; addr; addr = addr->ai_next) {
 	/* Allocate socket */
-	*svar = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (*svar < 0) 
-		return(RPC2_FAIL);
-
-#if 0
-	pe = getprotobyname("ip");
-	if ( pe == NULL ) 
-		exit(1);
-
- 	/* let udp layer (17) give debugging info */
-	rc = setsockopt(*svar, pe->p_proto, SO_DEBUG, NULL, 0);
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
+	*svar = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+	if (*svar < 0) {
+	    err = RPC2_FAIL;
+	    continue;
 	}
 
+#if 0
 	rc = setsockopt(*svar, SOL_SOCKET, SO_SNDBUF, &blen, sizeof(blen));
 	if ( rc ) {
 		perror("setsockopt: ");
@@ -836,62 +837,43 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 		perror("setsockopt: ");
 		exit(1);
 	}
-
-	rc = setsockopt(*svar, pe->p_proto, SO_DEBUG, NULL, 0);
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
-	}
 #endif
-	/* set host address for bind() */
-	memset(&bindaddr, 0, sizeof(bindaddr));
-	bindaddr.sin_family = AF_INET;
-	bindaddr.sin_addr = rpc2_bindaddr;
-					
-	/* set port address for bind() */
-	switch (pvar->Tag) {
-	case RPC2_PORTBYNAME:
-		sentry = getservbyname(pvar->Value.Name, "udp");
-		if (sentry == NULL) 
-			return(RPC2_BADSERVER);
-		/* sentry has port in network order */
-		bindaddr.sin_port  = sentry->s_port;
-		break;
-	
-		/*  XXXX NO INETNUMBER , just ports */
-	case RPC2_PORTBYINETNUMBER:
-		bindaddr.sin_port = pvar->Value.InetPortNumber;
-		break;
-
-	case RPC2_DUMMYPORT:
-	default:
-		bindaddr.sin_port = 0;	/* kernel will assign */
-	}
-
 	/* Now bind the socket */
-	if (bind (*svar, (struct sockaddr *)&bindaddr, sizeof(bindaddr)) < 0) {
-		if (errno == EADDRINUSE) 
-			return(RPC2_DUPLICATESERVER);
-		else 
-			return(RPC2_BADSERVER);
+	if (bind(*svar, addr->ai_addr, addr->ai_addrlen) < 0) {
+	    err = (errno == EADDRINUSE) ? RPC2_DUPLICATESERVER : RPC2_BADSERVER;
+	    close(*svar);
+	    *svar = -1;
+	    continue;
 	}
 
 	/* Retrieve fully resolved socket address */
-	assert(pvar->Tag != RPC2_DUMMYPORT);
+	if (Port) {
+	    struct RPC2_addrinfo *ai;
+	    struct sockaddr_storage bindaddr;
+	    socklen_t blen = sizeof(bindaddr);
+	    int rc = getsockname(*svar, (struct sockaddr *)&bindaddr, &blen);
+	    if (rc < 0) {
+		err = RPC2_FAIL;
+		close(*svar);
+		*svar = -1;
+		continue;
+	    }
 
-        blen = sizeof(bindaddr);
-        if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) 
-            return(RPC2_FAIL);
-        pvar->Tag = RPC2_PORTBYINETNUMBER;
-        pvar->Value.InetPortNumber = bindaddr.sin_port;
+	    ai = RPC2_allocaddrinfo((struct sockaddr *)&bindaddr, blen);
+	    rpc2_splitaddrinfo(NULL, Port, ai);
+	    RPC2_freeaddrinfo(ai);
 
 #ifdef RPC2DEBUG
-	if (RPC2_DebugLevel > 9) {
-            rpc2_PrintPortIdent(pvar, rpc2_tracefile);
-            printf("\n");
-	}
+	    if (RPC2_DebugLevel > 9) {
+		rpc2_PrintPortIdent(Port, rpc2_tracefile);
+		fprintf(rpc2_tracefile, "\n");
+	    }
 #endif
-	return RPC2_SUCCESS;
+	}
+	err = RPC2_SUCCESS;
+	break;
+    }
+    return err;
 }
 
 unsigned int rpc2_MakeTimeStamp()

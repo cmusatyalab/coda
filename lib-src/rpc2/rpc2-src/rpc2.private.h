@@ -48,6 +48,8 @@ Pittsburgh, PA.
 #include <string.h>
 #include <dllist.h>
 
+#include <rpc2/rpc2_addrinfo.h>
+
 /*
 Magic Number assignments for runtime system objects.
 Truly random values to allow easy detection of storage corruption.
@@ -142,8 +144,6 @@ struct CEntry		/* describes a single RPC connection */
 
     /* PeerInfo */
     RPC2_Handle      PeerHandle; /* peer's connection ID */
-    RPC2_HostIdent   PeerHost;	 /* Internet or other address */
-    RPC2_PortIdent   PeerPort;   /* Internet port */
     RPC2_Integer     PeerUnique; /* Unique integer used in Init1 bind request
 				    from peer */
     struct HEntry   *HostInfo;	 /* Link to host table and liveness
@@ -191,8 +191,7 @@ struct MEntry			/* describes an RPC multicast connection */
 
     /* Multicast Group Connection info */
     RPC2_Integer	    State;	    /* eg {C,S}_AWAITREQUEST */
-    RPC2_HostIdent	    ClientHost;	    /* |		*/
-    RPC2_PortIdent	    ClientPort;     /* | Unique ID	*/
+    struct RPC2_addrinfo    *ClientAddr;    /* |		*/
     RPC2_Handle		    MgroupID;	    /* |		*/
     RPC2_Integer	    NextSeqNumber;  /* for mgrp connection */
     RPC2_Integer	    SubsysId;
@@ -225,8 +224,7 @@ struct MEntry			/* describes an RPC multicast connection */
 #define	conn		    me_conns.mes_conn
 
     /* Other information - Only needed by client */
-    RPC2_HostIdent	    IPMHost;	    /* IP Multicast Host Address */
-    RPC2_PortIdent	    IPMPort;	    /* IP Multicast Port Number */
+    struct RPC2_addrinfo    *IPMAddr;	    /* IP Multicast Host Address */
     RPC2_PacketBuffer	    *CurrentPacket; /* current multicast packet */
 	};
 
@@ -310,9 +308,9 @@ struct HEntry {
 		     MagicNumber;
     struct HEntry    *Qname;	/* LinkEntry field */
     struct HEntry    *HLink;	/* for host hash */
-    struct in_addr   Host;      /* IP address */
+    int		      RefCount; /* # connections that have a reference */
+    struct RPC2_addrinfo *Addr; /* network address */
     struct timeval   LastWord;	/* Most recent time we've heard from this host*/
-
     unsigned RPC2_NumEntries;	/* number of observations recorded */
     RPC2_NetLogEntry RPC2_Log[RPC2_MAXLOGLENGTH];
 				/* circular buffer for recent observations on
@@ -340,8 +338,8 @@ struct Init1Body			/* Client to Server: format of packets with opcode of RPC2_IN
     {
     RPC2_NewConnectionBody FakeBody;	/* body of fake packet from RPC2_GetRequest() */
     RPC2_Integer XRandom;		/* encrypted random number */
-    RPC2_HostIdent   SenderHost;   /* XXX not used anymore */
-    RPC2_PortIdent   SenderPort;   /* XXX not used anymore */
+    char usedtobehostport[92];		/* XXX not used anymore but old rpc2
+					   servers need the alignment */
     RPC2_Integer Uniquefier;		/* to allow detection of retransmissions */
     RPC2_Integer Spare1;
     RPC2_Integer Spare2;
@@ -427,6 +425,7 @@ extern long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
 
 
 /*------------- Miscellaneous  global data  ------------*/
+extern int rpc2_ipv6ready; /* can userspace handle IPv6 addresses */
 extern long rpc2_RequestSocket;	/* fd of RPC socket  */
 				/* we may need more when we deal with many domains */
 extern struct TM_Elem *rpc2_TimerQueue;
@@ -450,12 +449,14 @@ void rpc2_FreeSubsys();
 void FreeHeld(struct SL_Entry *sle);
 
 /* Socket creation */
-long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar);
+
+long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
+			 RPC2_PortIdent *Port);
 
 /* Packet  routines */
 long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
 void rpc2_XmitPacket(long whichSocket, RPC2_PacketBuffer *whichPB,
-		     RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort);
+		     struct RPC2_addrinfo *addr);
 void rpc2_InitPacket();
 long rpc2_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichBuff);
 void rpc2_htonp(RPC2_PacketBuffer *p);
@@ -470,16 +471,15 @@ void rpc2_ProcessPackets(), rpc2_ExpireEvents();
 int rpc2_InitConn(void);
 void rpc2_FreeConn(), rpc2_SetConnError();
 struct CEntry *rpc2_AllocConn();
-struct CEntry *rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, RPC2_Integer whichUnique);
+struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *peeraddr,
+				     RPC2_Integer whichUnique);
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
 void rpc2_ReapDeadConns(void);
 void rpc2_IncrementSeqNumber(struct CEntry *);
 
 /* Host manipulation routines */
 void rpc2_InitHost(void);
-struct HEntry *rpc2_FindHEAddr(struct in_addr *whichHost);
-struct HEntry *rpc2_GetHost(RPC2_HostIdent *host);
-struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host);
+struct HEntry *rpc2_GetHost(struct RPC2_addrinfo *addr);
 void rpc2_FreeHost(struct HEntry **whichHost);
 void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 		     NetLogEntryType type);
@@ -495,7 +495,9 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
 
 /* Multicast group manipulation routines */
 void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();
-struct MEntry *rpc2_AllocMgrp(), *rpc2_GetMgrp();
+struct MEntry *rpc2_AllocMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle);
+struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
+			    long role);
 
 /* Hold queue routines */
 void rpc2_HoldPacket(), rpc2_UnholdPacket();
@@ -531,8 +533,7 @@ void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
 time_t rpc2_time();
 long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
 
-void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, 
-		 RPC2_Integer whichUnique, RPC2_Handle whichConn);
+void rpc2_NoteBinding(struct RPC2_addrinfo *peeraddr, RPC2_Integer whichUnique, RPC2_Handle whichConn);
 
 int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 	   RPC2_Handle ConnList[], long offset, long rpcval, int *args);
@@ -553,16 +554,10 @@ int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 /* The lengths of the names really should be #defined. */
 #define rpc2_HostIdentEqual(_hi1p_,_hi2p_) \
 (((_hi1p_)->Tag == RPC2_HOSTBYINETADDR && (_hi2p_)->Tag == RPC2_HOSTBYINETADDR)? \
- ((_hi1p_)->Value.InetAddress.s_addr == (_hi2p_)->Value.InetAddress.s_addr): \
+ ((_hi1p_)->Value.AddrInfo->ai_family == (_hi2p_)->Value.AddrInfo->ai_family && \
+ (_hi1p_)->Value.AddrInfo->ai_addrlen == (_hi2p_)->Value.AddrInfo->ai_addrlen && !memcmp((_hi1p_)->Value.AddrInfo->ai_addr,(_hi2p_)->Value.AddrInfo->ai_addr,(_hi2p_)->Value.AddrInfo->ai_addrlen)): \
  (((_hi1p_)->Tag == RPC2_HOSTBYNAME && (_hi2p_)->Tag == RPC2_HOSTBYNAME)? \
   (strncmp((_hi1p_)->Value.Name, (_hi2p_)->Value.Name, 64) == 0):0))
-
-#define rpc2_PortIdentEqual(_pi1p_,_pi2p_) \
-(((_pi1p_)->Tag == RPC2_PORTBYINETNUMBER && (_pi2p_)->Tag == RPC2_PORTBYINETNUMBER)? \
- ((_pi1p_)->Value.InetPortNumber == (_pi2p_)->Value.InetPortNumber): \
- (((_pi1p_)->Tag == RPC2_PORTBYNAME && (_pi2p_)->Tag == RPC2_PORTBYNAME)? \
-  (strncmp((_pi1p_)->Value.Name, (_pi2p_)->Value.Name, 20) == 0):0))
-
 
 /*------ Other definitions ------*/
 
@@ -579,6 +574,14 @@ extern struct in_addr rpc2_bindaddr;
 extern unsigned long rpc2_NoNaks;
 extern long rpc2_BindLimit, rpc2_BindsInQueue;
 extern long rpc2_FreeMgrps, rpc2_AllocMgrps;
+
+/* RPC2_addrinfo helper routines */
+struct RPC2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port);
+void rpc2_printaddrinfo(const struct RPC2_addrinfo *ai, FILE *f);
+void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
+			const struct RPC2_addrinfo *ai);
+void rpc2_simplifyHost(RPC2_HostIdent *Host, RPC2_PortIdent *Port);
+
 
 /*--------------- Useful definitions that used to be in potpourri.h or util.h ---------------*/
 /*                 Now included here to avoid including either of those files                */

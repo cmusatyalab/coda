@@ -2,6 +2,19 @@ New in 1.18:
 
 * Removed pool allocator for MultiRPC contexts. It had a hardcoded size of
   only 8 contexts and would die on an assertion whenever it got exhausted.
+* Merged IPv6 support from Rod Van Meter. This only really deals with IPv6
+  compatible addressing and does not handle the fact that IPv6 doesn't do
+  ip-level packet fragmentation for us.
+* We still accept and return the old HostIdent structures for applications
+  that haven't been 'ported' to the new IPv6 interface. The IPv6 ready
+  application has to call RPC2_Init with the RPC2_Options.Flags set to
+  RPC2_OPTION_IPV6 before we even bind a listening socket to an IPv6 address.
+  This means that we are drop-in compatible for existing applications.
+* Removed sftp socket and socket listener/timeout threads. Essentially we are
+  now always running 'masqueraded'. I believe it will work fine even for
+  existing clients that are not configured to use masquerading as long as
+  their rpc2-library is capable of receiving sftp packets on the rpc2 port
+  (i.e. >= rpc2-1.9).
 
 New in 1.17:
 

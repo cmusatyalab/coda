@@ -1,0 +1,119 @@
+The RPC2 IPv6 code is copyright (c) 2002, Nokia.  The author is Rod
+Van Meter (Rod.VanMeter@Nokia.com or rdv@alumni.caltech.edu).  As part
+of the RPC2 suite, this code is licensed under the LGPL.
+
+This code is a rewrite of the key networking code, following the
+advice of Metz [1], to be protocol independent.  It replaces the IPv4
+code with code intended to support both IPv4 and IPv6.  The code uses
+the more modern getaddrinfo() to replace gethostbyname() [2].
+
+The new code has been tested to work (using stest and ctest) both
+within a node (using the loopback address) and between a pair of nodes
+with globally routable IPv6 addresses, using DNS names.  Also tested
+for IPv4.
+
+This should, in theory, work over Mobile IPv6, which should enhance
+its overall usability.  This is not yet tested.
+
+COMPILING AND INSTALLING
+
+To turn on this code, compile with
+
+#define CODA_IPV6
+
+To do this, at the moment, I run ./configure, then put the following
+at the bottom of the generated config.h:
+
+/* XXX hand-hacked by rdv */
+#define CODA_IPV6
+
+
+TODO
+
+This is, so far, VERY incomplete code, and reflects my still-evolving
+understanding of the best way to write protocol-independent code.
+Some of these are marked with XXX in the source.
+
+(- comments from Jan)
+
+* One goal is to eliminate RPC2_PortIdent and rpc2_LocalPort and keep
+  it all in one structure, RPC2_HostIdent.  This is only partially
+  done.
+- What RPC2_PortIdent? ;) I removed pretty much all references and now
+  only sftp and 2 seemingly unused tracebuffer entries still use it.
+
+* There are probably ways to reduce further the dependence on
+  sockaddr_in and sockaddr_in6.  Some of the existing use is probably
+  not type safe, too.
+- Removed most places we used them. We only use it in 3 places now, reporting
+  bound port, when a packet is received and when we convert addrinfo to a
+  "hostip:port" string.
+
+* This is only in the RPC2 code.  To be useful, it needs to be
+  incorporated into the full Coda code, including things like the
+  configuration files.
+- Current interface only requires userspace to handle returned
+  HostIdent's that contain an addrinfo type, which is now the only one
+  we return as everything in rpc2 uses addrinfo.
+
+* I'm far from certain, at this point, that I'm not leaking memory
+  with the malloc()s I'm doing for addrinfo.
+- Using my own 'rpc2_addrinfo' so that I actually know the allocation
+  policy and can handle deep copy operations and freeing structures.
+
+* I'm equally uncertain that what I have is thread safe, to the extent
+  that the code can handle concurrent requests.
+- It seems to be. Ofcourse it is LWP-thread safe, which is far simpler
+  than pthread safe.
+
+* Multi-valued returns from getaddrinfo, which are the norm, are not
+  yet handled properly.  The code should look through the list to find
+  the best one for its purposes, perhaps by trying them all.  This is
+  especially important given that not all clients and servers will
+  support v6 right away.
+- NewBinding now tries all addresses until it gets a hit. On the
+  listener side we probably should bind to all returned addresses, but
+  then we get multiple sockets and have to figure out which socket to
+  use for replies, or get yet another unbound socket for those.
+
+* There are too many places with #ifdef CODA_IPV6...#else...This is
+  fragile code.
+- One place left, and that is where we tie into the fail filter.
+
+* I'm sure there are error conditions I'm not catching right yet.
+- I probably got them all.
+
+* So far, this is only tested on Linux (Red Hat 8.0 with the stock
+  2.4.18-14 kernel).  I'll test it on FreeBSD 4.x and other Linux
+  kernels at some point, but someone else will have to test the
+  broader range of systems.  The APIs should be the same, but
+  differences in behavior (e.g., ordering of addresses returned) may
+  affect it.
+* As mentioned above, not yet tested over Mobile IP.
+* Testing so far consists of running stest and a single ctest.  There
+  are probably bugs lurking that aren't exercised with this simple
+  setup.
+* Not yet tested with scoped (site or link local) addresses, other
+  than the loopback address.  This probably needs code (the advanced
+  sockets API [3]).
+* Not yet tested on a system that supports v6 but doesn't have the
+  module loaded or IPv6 otherwise enabled.  I'll bet
+    if (error = getaddrinfo("::1", NULL, &req, &ai))
+      if (error = getaddrinfo("localhost", NULL, &req, &ai))
+  will do it.
+- According to the manpage the following should do the trick,
+  hint.ai_flags = AI_PASSIVE;
+  error = getaddrinfo(NULL, service, &hint, &ai);
+
+References
+
+[1] Metz, C., "Protocol Independence Using the Sockets API", FREENIX
+2000, June 2000.
+http://www.usenix.org/publications/library/proceedings/usenix2000/freenix/metzprotocol.html
+
+[2] R. Gilligan, S. Thomson, J. Bound, W. Stevens,  "Basic Socket
+Interface Extensions for IPv6", RFC2553, March 1999.
+
+[3] W. Stevens, M. Thomas, "Advanced Sockets API for IPv6",  RFC 2292,
+February 1998.
+

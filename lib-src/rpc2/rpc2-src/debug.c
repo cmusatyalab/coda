@@ -37,7 +37,6 @@ Pittsburgh, PA.
 
 */
 
-
 #ifdef RPC2DEBUG
 #include <stdio.h>
 #include <sys/types.h>
@@ -184,7 +183,8 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
     fprintf(tFile, "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
 	(long)hPtr, (long)hPtr->Next, (long)hPtr->Prev, WhichMagic(hPtr->MagicNumber));
 
-    fprintf(tFile, "\tHost.InetAddress = %s\n", inet_ntoa(hPtr->Host));
+    rpc2_printaddrinfo(hPtr->Addr, tFile);
+
     fprintf(tFile, "\tLastWord = %ld.%06ld\n", hPtr->LastWord.tv_sec, hPtr->LastWord.tv_usec);
     fprintf(tFile, "\tRTT = %ld.%03ld, RTTvar = %ld.%03ld\n",
 	    hPtr->RTT >> RPC2_RTT_SHIFT,
@@ -262,11 +262,7 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
     fprintf(tFile, "\tHeldPacket = 0x%lx  PeerUnique = %ld\n",
     	(long)cPtr->HeldPacket, cPtr->PeerUnique);
     fprintf(tFile, "Peer==> ");    
-    rpc2_PrintHostIdent(&cPtr->PeerHost, tFile);
-    fprintf(tFile, "    ");
-    rpc2_PrintPortIdent(&cPtr->PeerPort, tFile);
-    if (cPtr->HostInfo)
-	rpc2_PrintHEntry(cPtr->HostInfo, tFile);
+    rpc2_PrintHEntry(cPtr->HostInfo, tFile);
 
     fprintf(tFile, "\n");
     (void) fflush(tFile);
@@ -309,18 +305,15 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
     fprintf(tFile, "\n\tMgrpID = %ld  NextSeqNumber = %ld  SubsysID = %ld\n",
     	mPtr->MgroupID, mPtr->NextSeqNumber, mPtr->SubsysId);
 	
-    fprintf(tFile, "Client Host Ident:\n");
-    rpc2_PrintHostIdent(&mPtr->ClientHost, tFile);
-    fprintf(tFile, "Client PortIdent:\n");
-    rpc2_PrintPortIdent(&mPtr->ClientPort, tFile);
+    fprintf(tFile, "Client Host Ident: ");
+    rpc2_printaddrinfo(mPtr->ClientAddr, tFile);
+    fprintf(tFile, "\n");
 
     if (TestRole(mPtr,CLIENT)) {
 	fprintf(tFile, "\n\tMaxlisteners = %ld  Listeners = %ld\n",
 	    mPtr->me_conns.me_client.mec_maxlisteners, mPtr->me_conns.me_client.mec_howmanylisteners);
 	fprintf(tFile, "IP Multicast Host Address:\n");
-	rpc2_PrintHostIdent(&mPtr->IPMHost, tFile);
-	fprintf(tFile, "IP Multicast Port Number:\n");
-	rpc2_PrintPortIdent(&mPtr->IPMPort, tFile);
+	rpc2_printaddrinfo(mPtr->IPMAddr, tFile);
 	fprintf(tFile, "Current multicast packet:\n");
 	rpc2_PrintPacketHeader(mPtr->CurrentPacket, tFile);
     }
@@ -333,22 +326,24 @@ void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
     (void) fflush(tFile);
 }
 
-
 void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
 {
+    char addr[INET_ADDRSTRLEN];
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     if (hPtr)
     {
         switch (hPtr->Tag)
         {
+        case RPC2_HOSTBYADDRINFO:
+        case RPC2_MGRPBYADDRINFO:
+	    rpc2_printaddrinfo(hPtr->Value.AddrInfo, tFile);
+	    break;	
+
         case RPC2_HOSTBYINETADDR:
-        case RPC2_MGRPBYINETADDR:
-            {
-                fprintf(tFile, "Host.InetAddress = %s",
-                        inet_ntoa(hPtr->Value.InetAddress));
-                break;	
-            }
+	    inet_ntop(AF_INET, &hPtr->Value.InetAddress, addr, INET_ADDRSTRLEN);
+	    fprintf(tFile, "Host.InetAddr = %s", addr);
+	    break;	
 
         case RPC2_MGRPBYNAME:
         case RPC2_HOSTBYNAME:
@@ -652,6 +647,15 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 			fprintf(outFile, "Host:	Tag = RPC2_HOSTBYNAME    Name = \"%s\"\n", tea->Host.Value.Name);
 			break;
 		    
+		    case RPC2_HOSTBYADDRINFO:
+		    {
+			char addr[RPC2_ADDRSTRLEN];
+			RPC2_formataddrinfo(tea->Host.Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
+			fprintf(outFile, "Host:     Tag = RPC2_HOSTBYINETADDR	AddrInfo = %s\n",
+				addr);
+			break;
+		    }
+
 		    case RPC2_HOSTBYINETADDR:
 			fprintf(outFile, "Host:     Tag = RPC2_HOSTBYINETADDR	InetAddress = %s\n",
 				inet_ntoa(tea->Host.Value.InetAddress));
@@ -669,7 +673,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 			break;
 			
 		    case RPC2_PORTBYINETNUMBER:
-			fprintf(outFile, "Port:    Tag = RPC2_PORTBYINETNUMBER    InetNumber = \"%u\"\n", (unsigned) tea->Port.Value.InetPortNumber);		    
+			fprintf(outFile, "Port:    Tag = RPC2_PORTBYINETNUMBER    InetNumber = \"%u\"\n", ntohs(tea->Port.Value.InetPortNumber));
 			break;
 			
 		    default:
@@ -825,9 +829,8 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		struct te_XMITPACKET *tea;
 		tea = &whichTE->Args.XmitPacketEntry;
 		fprintf(outFile, "whichSocket = %ld\n", tea->whichSocket);
-		fprintf(outFile, "whichHost:    "); rpc2_PrintHostIdent(&tea->whichHost, outFile);
-		fprintf(outFile, "    ");
-		fprintf(outFile, "whichPort:    "); rpc2_PrintPortIdent(&tea->whichPort, outFile);
+		fprintf(outFile, "whichAddr:    ");
+		rpc2_printaddrinfo(&tea->whichAddr, outFile);
 		fprintf(outFile,"\n");
 		rpc2_PrintPacketHeader(&tea->whichPB, outFile);
 		break;	/* switch */
@@ -891,9 +894,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 			tea->pb_address);
 		rpc2_PrintPacketHeader(&tea->pb, outFile);
 		fprintf(outFile, "         ClientHost:      ");
-		rpc2_PrintHostIdent((RPC2_HostIdent *)&tea->ThisHost, outFile);
-		fprintf(outFile, "         ClientPort:     ");
-		rpc2_PrintPortIdent(&tea->ThisPort, outFile);
+		rpc2_printaddrinfo(&tea->ThisAddr, outFile);
 		fprintf(outFile, "\n");
 		break; /* switch */
 		}

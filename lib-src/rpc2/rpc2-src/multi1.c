@@ -609,7 +609,7 @@ static long mrpc_SendPacketsReliably(
     }
 
     timestamp = rpc2_MakeTimeStamp();
-    say(9, RPC2_DebugLevel, "Sending initial packets at time %ld\n", timestamp);
+    say(9, RPC2_DebugLevel, "Sending initial packets at time %lu\n", timestamp);
 
     /* Do an initial send of packets on all good connections */
     /* for estimating the effiency of the calculation */
@@ -643,8 +643,7 @@ static long mrpc_SendPacketsReliably(
 
 	    mcon[thispacket].req->Header.TimeStamp = htonl(timestamp);
 	    rpc2_XmitPacket(rpc2_RequestSocket, mcon[thispacket].req,
-			    &mcon[thispacket].ceaddr->PeerHost,
-			    &mcon[thispacket].ceaddr->PeerPort);
+			    mcon[thispacket].ceaddr->HostInfo->Addr);
 	    }
 
         if (rpc2_Bandwidth) 
@@ -666,7 +665,7 @@ static long mrpc_SendPacketsReliably(
 	{
 	say(9, RPC2_DebugLevel, "Sending multicast packet at time %d\n", rpc2_time());
 	me->CurrentPacket->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
-	rpc2_XmitPacket(rpc2_RequestSocket, me->CurrentPacket, &me->IPMHost, &me->IPMPort);
+	rpc2_XmitPacket(rpc2_RequestSocket, me->CurrentPacket, me->IPMAddr);
 	me->NextSeqNumber += 2;	/* blindly increment the multicast sequence number??? */
 	}
 
@@ -806,7 +805,8 @@ static long mrpc_SendPacketsReliably(
 		    mcon[thispacket].req->Header.Flags = htonl((ntohl(mcon[thispacket].req->Header.Flags) | RPC2_RETRY));
 		    mcon[thispacket].req->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */
-		    rpc2_XmitPacket(rpc2_RequestSocket, mcon[thispacket].req, &c_entry->PeerHost, &c_entry->PeerPort);
+		    rpc2_XmitPacket(rpc2_RequestSocket, mcon[thispacket].req,
+				    c_entry->HostInfo->Addr);
 		    break;	/* switch */
 		    
 		default:    /* abort */

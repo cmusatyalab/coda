@@ -194,7 +194,6 @@ void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
         struct CEntry *ce;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
 
-	/* collect statistics */
 	if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
 	    rpc2_MRecvd.Total++;
 	    rpc2_MRecvd.Bytes += pb->Prefix.LengthOfPacket;
@@ -345,11 +344,9 @@ static RPC2_PacketBuffer *PullPacket()
 
 #ifdef RPC2DEBUG
 	if (RPC2_DebugLevel > 9) {
-		fprintf(rpc2_tracefile, "Packet received from   ");
-		rpc2_PrintHostIdent(&pb->Prefix.PeerHost, 0);
-		fprintf(rpc2_tracefile, "    ");
-		rpc2_PrintPortIdent(&pb->Prefix.PeerPort, 0);
-		fprintf(rpc2_tracefile, "\n");
+	    fprintf(rpc2_tracefile, "Packet received from   ");
+	    rpc2_printaddrinfo(pb->Prefix.PeerAddr, rpc2_tracefile);
+	    fprintf(rpc2_tracefile, "\n");
 	}
 #endif
 
@@ -418,8 +415,7 @@ static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 	/* Optionally do a bit stronger checking whether the sender of the
 	 * packet is really a match. --JH */
 	    (RPC2_strict_ip_matching &&
-	     (!rpc2_HostIdentEqual(&pb->Prefix.PeerHost, &(ce->PeerHost)) ||
-	      !rpc2_PortIdentEqual(&pb->Prefix.PeerPort, &(ce->PeerPort)))))
+	     !RPC2_cmpaddrinfo(ce->HostInfo->Addr, pb->Prefix.PeerAddr)))
 	{
 	    /* NAKIT() expects host order */
 	    pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
@@ -620,8 +616,7 @@ static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb)
 		RPC2_AllocBuffer(pb->Header.BodyLength, &pb2);
 		if ( !pb2 ) 
 			return pb;
-		pb2->Prefix.PeerHost = pb->Prefix.PeerHost;
-		pb2->Prefix.PeerPort = pb->Prefix.PeerPort;
+		pb2->Prefix.PeerAddr = RPC2_copyaddrinfo(pb->Prefix.PeerAddr);
 		pb2->Prefix.RecvStamp = pb->Prefix.RecvStamp;
 		pb2->Prefix.LengthOfPacket = pb->Prefix.LengthOfPacket;
 		memcpy(&pb2->Header, &pb->Header, pb->Prefix.LengthOfPacket);
@@ -708,7 +703,7 @@ static void SendBusy(struct CEntry *ce, int doEncrypt)
     rpc2_htonp(pb);
     if (doEncrypt) rpc2_ApplyE(pb, ce);
 
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, ce->HostInfo->Addr);
     RPC2_FreeBuffer(&pb);
 }
 
@@ -883,9 +878,8 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 
 	/* Have we seen this bind request before? */
 	if (pb->Header.Flags & RPC2_RETRY) {
-		ce = rpc2_ConnFromBindInfo(&pb->Prefix.PeerHost,
-					   &pb->Prefix.PeerPort,
-					    pb->Header.Uniquefier);
+		ce = rpc2_ConnFromBindInfo(pb->Prefix.PeerAddr,
+					   pb->Header.Uniquefier);
 		if (ce)	{
 			ce->TimeStampEcho = pb->Header.TimeStamp;
 			/* if we're modifying the TimeStampEcho, we also have
@@ -954,7 +948,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		say(0, RPC2_DebugLevel, "Resending Init2 0x%lx\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
 		rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket, 
-				&ce->PeerHost, &ce->PeerPort);
+				ce->HostInfo->Addr);
 		RPC2_FreeBuffer(&pb);
 		return;
 	}
@@ -1022,7 +1016,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			/* My Init4 must have got lost; resend it */
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);    
 			rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket,
-					&ce->PeerHost, &ce->PeerPort);
+					ce->HostInfo->Addr);
 		}  else 
 			say(0, RPC2_DebugLevel, "Bogus Init3\n");
 		/* Throw packet away anyway */
@@ -1066,8 +1060,6 @@ static void SendNak(RPC2_PacketBuffer *pb)
 {
 	RPC2_PacketBuffer *nakpb;
 	RPC2_Handle remoteHandle  = pb->Header.LocalHandle;
-	RPC2_HostIdent *whichHost = &pb->Prefix.PeerHost;
-	RPC2_PortIdent *whichPort = &pb->Prefix.PeerPort;
 
 	say(0, RPC2_DebugLevel, "Sending NAK\n");
 	RPC2_AllocBuffer(0, &nakpb);
@@ -1077,7 +1069,7 @@ static void SendNak(RPC2_PacketBuffer *pb)
 	nakpb->Header.Opcode = RPC2_NAKED;
 
 	rpc2_htonp(nakpb);
-	rpc2_XmitPacket(rpc2_RequestSocket, nakpb, whichHost, whichPort);
+	rpc2_XmitPacket(rpc2_RequestSocket, nakpb, pb->Prefix.PeerAddr);
 	RPC2_FreeBuffer(&nakpb);
 	rpc2_Sent.Naks++;
 }
@@ -1106,7 +1098,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 		return(NULL);
 	}
 
-	ce = rpc2_AllocConn();
+	ce = rpc2_AllocConn(pb->Prefix.PeerAddr);
 	ce->TimeStampEcho = pb->Header.TimeStamp;
 	TVTOTS(&pb->Prefix.RecvStamp, ce->RequestTime);
 
@@ -1145,8 +1137,6 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 	SetState(ce, S_STARTBIND);
 	ce->PeerHandle = pb->Header.LocalHandle;
 	ce->SubsysId   = pb->Header.SubsysId;
-	ce->PeerHost   = pb->Prefix.PeerHost;  	/* structure assignment */
-	ce->PeerPort = pb->Prefix.PeerPort;	/* structure assignment */
 	ce->PeerUnique = pb->Header.Uniquefier;
 	ce->SEProcs = NULL;
 	ce->Color = GetPktColor(pb);
@@ -1159,8 +1149,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 	}
 #endif
 	
-	rpc2_NoteBinding(&pb->Prefix.PeerHost, &pb->Prefix.PeerPort, 
-			 pb->Header.Uniquefier, ce->UniqueCID);
+	rpc2_NoteBinding(pb->Prefix.PeerAddr, pb->Header.Uniquefier, ce->UniqueCID);
 	return(ce);
 }
 
@@ -1183,7 +1172,7 @@ static void HandleOldRequest(   RPC2_PacketBuffer *pb, struct CEntry *ce)
 	if (ce->HeldPacket != NULL) {
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
 			rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket,
-					&ce->PeerHost, &ce->PeerPort);
+					ce->HostInfo->Addr);
 		}
 	RPC2_FreeBuffer(&pb);
 }
