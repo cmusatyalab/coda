@@ -648,11 +648,8 @@ typedef
 /*
 RPC2 runtime routines:
 */
-#if (__cplusplus | __STDC__)
 #include "se.h"
 #include "multi.h"
-#include <stdio.h>
-#endif /* (__cplusplus | __STDC__) */
 
 
 extern long RPC2_Init (char *VersionId, RPC2_Options *Options, RPC2_PortIdent *PortList, long RetryCount, struct timeval *KeepAliveInterval);
