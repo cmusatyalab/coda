@@ -1,5 +1,7 @@
 New in 1.6:
 
+* Fixed the binding to specific addresses by using RPC2_setip before
+  calling RPC2_Init.
 * Cross compilation stuff for the Itsy (SA-1100). (Jason Flinn)
 * Corrected byteswapping of incoming/outgoing packets on Itsy's. (Jason Flinn)
 * Linking against the updated liblwp in lwp-1.5.

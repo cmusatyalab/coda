@@ -52,14 +52,21 @@ if test ${build} != ${target} ; then
     LIBTOOL_LDFLAGS="-no-undefined"
     ;;
    arm-unknown-linux-gnuelf )
-    CC="arm-unknown-linuxelf-gcc"
-    AR="arm-unknown-linuxelf-ar"
-    RANLIB="arm-unknown-linuxelf-ranlib"
-    AS="arm-unknown-linuxelf-as"
-    NM="arm-unknown-linuxelf-nm"
-    OBJDUMP="arm-unknown-linuxelf-objdump"
+    CROSS_COMPILE="arm-unknown-linuxelf-"
     ;;
  esac
+fi
+if test "${CROSS_COMPILE}" ; then
+  CC=${CROSS_COMPILE}gcc
+  CXX=${CROSS_COMPILE}g++
+  CPP="${CC} -E"
+  AS=${CROSS_COMPILE}as
+  LD=${CROSS_COMPILE}ld
+  AR=${CROSS_COMPILE}ar
+  RANLIB=${CROSS_COMPILE}ranlib
+  NM=${CROSS_COMPILE}nm
+  OBJDUMP=${CROSS_COMPILE}objdump
+  DLLTOOL=${CROSS_COMPILE}dlltool
 fi])
 
 dnl ---------------------------------------------
