@@ -133,10 +133,11 @@ struct CEntry		/* describes a single RPC connection */
 
     /* State, identity  and sequencing */
     long State;
-    RPC2_Handle UniqueCID;
+    RPC2_Handle  UniqueCID;
     RPC2_Integer NextSeqNumber;	
     RPC2_Integer SubsysId;
     RPC2_Integer Flags;	    /* CE_OLDV ? */
+    time_t LastRef;    			/* when CEntry was last looked up */
 
     /* Security */
     RPC2_Integer SecurityLevel;
@@ -146,10 +147,10 @@ struct CEntry		/* describes a single RPC connection */
     /* PeerInfo */
     RPC2_Handle      PeerHandle; /* peer's connection ID */
     RPC2_HostIdent   PeerHost;	 /* Internet or other address */
-    RPC2_PortIdent   PeerPort; /* Internet port or other portal */
+    RPC2_PortIdent   PeerPort;   /* Internet port */
     RPC2_Integer     PeerUnique; /* Unique integer used in Init1 bind request
 				    from peer */
-    struct HEntry *HostInfo;	 /* Link to host table and liveness
+    struct HEntry   *HostInfo;	 /* Link to host table and liveness
 				    information */
 
     /* Auxiliary stuff */
@@ -469,6 +470,7 @@ void rpc2_InitConn(), rpc2_FreeConn(), rpc2_SetConnError();
 struct CEntry *rpc2_AllocConn();
 struct CEntry *rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, RPC2_Integer whichUnique);
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
+void rpc2_ReapDeadConns(void);
 void rpc2_IncrementSeqNumber(struct CEntry *);
 /*  XXX where is this baby extern bool rpc2_TestState(); */
 

@@ -99,6 +99,8 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
              * the front of the chain */
             list_del(ptr); list_add(ptr, &HashTable[i]);
 
+	    /* keep the grim reaper out */
+	    ceaddr->LastRef = time(NULL);
             return (ceaddr);
         }
     }
@@ -161,7 +163,7 @@ struct CEntry *rpc2_AllocConn()
     /* Initialize */
     ce->State = 0;
     ce->UniqueCID = 0;
-    ce->NextSeqNumber = 0;	
+    ce->NextSeqNumber = 0;
     ce->SubsysId = 0;
     list_head_init(&ce->Chain);
     ce->Flags = 0;
@@ -169,6 +171,7 @@ struct CEntry *rpc2_AllocConn()
     ce->EncryptionType = 0;
     ce->PeerHandle = 0;
     ce->PeerUnique = 0;
+    ce->LastRef = time(NULL);
     ce->SEProcs = NULL;
     ce->sebroken = 0;
     ce->Mgrp = (struct MEntry *)NULL;
@@ -203,6 +206,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     assert(ce != NULL);
     assert(ce->MagicNumber == OBJ_CENTRY);
     rpc2_FreeConns++;
+    list_del(&ce->Chain);
 
     free(ce->Retry_Beta);
     if (ce->HeldPacket != NULL)
@@ -223,13 +227,33 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
 	    }
     }
 
-
     SetRole(ce, FREE);
     rpc2_MoveEntry(&rpc2_ConnList, &rpc2_ConnFreeList, ce,
 			&rpc2_ConnCount, &rpc2_ConnFreeCount);
-    
-    list_del(&ce->Chain);
     EntriesInUse--;
+}
+
+/* Reap connections that have not seen any activity in the past 15 minutes */
+#define RPC2_DEAD_CONN_TIMEOUT 900
+void rpc2_ReapDeadConns(void)
+{
+	struct CEntry *ce, *next;
+	time_t now;
+
+	now = time(NULL);
+
+	next = (struct CEntry *)rpc2_ConnList;
+	while (next)
+	{
+		ce = next; next = ce->NextEntry;
+		
+		if (!ce->PrivatePtr &&
+		    ce->LastRef + RPC2_DEAD_CONN_TIMEOUT < now) {
+			say(0, RPC2_DebugLevel, "Reaping dead connection %ld\n",
+			    ce->UniqueCID);
+			RPC2_Unbind(ce->UniqueCID);
+		}
+	}
 }
 
 #if 0

@@ -1,6 +1,7 @@
 New in 1.2:
 
 * Avoid iopen dependency on systems that don't have that syscall.
+* Reaping dead connections.
 
 New in 1.1:
 

@@ -50,7 +50,6 @@ Pittsburgh, PA.
 #include "trace.h"
 #include "cbuf.h"
 
-#ifdef RPC2DEBUG
 /* this surrounds the entire file */
 
 /*
@@ -61,7 +60,7 @@ Pittsburgh, PA.
 #define TICKINTERVAL 60		/* in seconds */
 
 void rpc2_ClockTick()
-    {/* Non terminating LWP */
+{/* Non terminating LWP */
     struct SL_Entry *sl;
     struct timeval tval;
     long timenow;
@@ -71,7 +70,7 @@ void rpc2_ClockTick()
     tval.tv_usec = 0;
 
     while (TRUE)
-	{
+    {
 	/* ask for SocketListener to wake me up after TICKINTERVAL seconds */
 	rpc2_ActivateSle(sl, &tval);
 
@@ -79,8 +78,9 @@ void rpc2_ClockTick()
 	timenow = rpc2_time();
 	say(0, RPC2_DebugLevel, "Clock Tick at %ld\n",  timenow);
 
+#ifdef RPC2DEBUG
 	if (RPC2_Trace && rpc2_TraceBuffHeader)
-	    {
+	{
 	    struct TraceElem *te;
 	    struct te_CLOCKTICK *tea;
 	    te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);
@@ -88,9 +88,10 @@ void rpc2_ClockTick()
 	    te->CallCode = CLOCKTICK;
 	    strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);
 	    tea->TimeNow = timenow;	/* structure assignment */
-	    }
 	}
+#endif
+	
+	/* and free up `dead' connections */
+	rpc2_ReapDeadConns();
     }
-
-
-#endif RPC2DEBUG
+}
