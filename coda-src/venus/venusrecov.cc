@@ -49,7 +49,6 @@ extern "C" {
 #include <rvm_segment.h>
 #include <rvm_statistics.h>
 
-#include <sys/mman.h>
 #include "coda_mmap_anon.h"
 
 /* function defined in rpc2.private.h, which we need to seed the random

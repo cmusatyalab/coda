@@ -107,7 +107,6 @@ rvm_return_t bad_region(rvm_region)
 
 #define PAGE_ALLOC_DEFINED 
 #include <sys/types.h>
-#include <sys/mman.h>
 #include "coda_mmap_anon.h"
 #include <errno.h>
 

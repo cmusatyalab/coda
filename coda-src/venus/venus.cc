@@ -446,6 +446,7 @@ static void DefaultCmdlineParms()
     CONF_INT(CacheBlocks,       "cacheblocks",   40000);
     CONF_STR(CacheDir,          "cachedir",      DFLT_CD);
     CONF_STR(SpoolDir,          "checkpointdir", "/usr/coda/spool");
+    CONF_STR(VenusLogFile,	"logfile",	 "/usr/coda/etc/venus.log");
     CONF_STR(consoleFile,       "errorlog",      "/usr/coda/etc/console");
     CONF_STR(kernDevice,        "kerneldevice",  "/dev/cfs0");
     CONF_INT(MapPrivate,	"mapprivate",	 0);
@@ -509,16 +510,6 @@ static void DefaultCmdlineParms()
 	    VenusControlFile=(char*)malloc(strlen(CacheDir)+strlen(CTRLFILE)+1);
 	    strcpy(VenusControlFile, CacheDir);
 	    strcat(VenusControlFile, CTRLFILE);
-	}
-    }
-
-    CONF_STR(VenusLogFile,	"logfile",	 NULL);
-    {
-#define LOGFILE "/venus.log"
-	if (!VenusLogFile) {
-	    VenusLogFile=(char*)malloc(strlen(CacheDir)+strlen(LOGFILE)+1);
-	    strcpy(VenusLogFile, CacheDir);
-	    strcat(VenusLogFile, LOGFILE);
 	}
     }
 

@@ -96,8 +96,6 @@ extern int venus_relay_addr;
 
 int global_kernfd;
 
-struct Features HAVE = { 0 };
-
 /* static class members */
 int worker::muxfd;
 int worker::nworkers;
@@ -700,8 +698,6 @@ void WorkerInit() {
 #if defined(__BSD44__) || defined(__linux__)
     if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) >= 0 ) {
         switch (kernel_version) {
-        case 3: /* introduces CODA_OPENFID downcall */
-            HAVE.coda_openfid = 1;
         case 2: /* luckily 1 & 2 are upwards compatible */
         case 1:
             break;

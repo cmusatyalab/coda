@@ -308,6 +308,7 @@ int CacheFile::Open(fsobj *fso, int flags)
     fd = ::open(name, flags, V_MODE);
     if (fd == -1) return -1;
     
+#if 0 /* experimental code for linux-2.3, probably not needed anymore */
     if (HAVE.coda_openfid) {
         msg.oh.opcode = CODA_MAKE_CINODE;
         msg.oh.unique = 0;
@@ -323,6 +324,7 @@ int CacheFile::Open(fsobj *fso, int flags)
              * the moment either. So we optimistically ignore the error. */
         }
     }
+#endif
 
     return fd;
 }

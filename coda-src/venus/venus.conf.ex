@@ -101,7 +101,7 @@ cacheblocks=100000
 #
 # Venus log file
 #
-#logfile=/usr/coda/venus.cache/venus.log
+#logfile=/usr/coda/etc/venus.log
 
 #
 # Mariner socket, 

@@ -74,27 +74,19 @@ extern "C" {
    an ASR was started and it should block */
 #define EASRSTARTED     200
 
-/* What features does the kernel module support */
-struct Features {
-    unsigned coda_openfid : 1;
-};
-extern struct Features HAVE;
 
 /*  *****  Command-line/vstab parameter defaults.  ***** */
 
-#define	CODADIR	"/usr/coda"
 #define	VSTAB	"/usr/coda/etc/vstab"
 
-#if !defined(DJGPP)
-#define	DFLT_VR	"/coda"			    /* venus root */
+#if defined(DJGPP)
+#define DFLT_VR "N:"                     /* Venus Root */ 
+#define MCFD    16                       /* Michael Callahan File Descriptor? */
 #else
-#define DFLT_VR "N:"                         /* Venus Root */ 
-#define MCFD    16                           /* Michael Callahan File Descriptor */
+#define	DFLT_VR	"/coda"			 /* venus root */
 #endif
 
-#if defined(DJGPP) 
-#define	DFLT_CD	"C:/usr/coda/venus.cache"    /* Win cache directory */
-#elif  defined(__CYGWIN32__)
+#if defined(DJGPP) || defined(__CYGWIN32__)
 #define	DFLT_CD	"C:/usr/coda/venus.cache"    /* Win cache directory */
 #else 
 #define	DFLT_CD	"/usr/coda/venus.cache"	    /* cache directory */
