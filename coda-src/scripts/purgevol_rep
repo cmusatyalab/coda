@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/purgevol_rep,v 4.1 1997/01/08 21:50:51 rvb Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/purgevol_rep,v 4.2 1997/11/20 15:10:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ fi
 for i in $REPS 
 do 
 	echo "Deleting volume " $i ;
-	awk '$2 ~ /^'$i'$/ { print | "/vice/bin/volutil -h "$3" purge " $2" " $1}' /vice/vol/AllVolumes
+	awk '$2 ~ /^'$i'$/ { print | "volutil -h "$3" purge " $2" " $1}' /vice/vol/AllVolumes
 done
 
 #
@@ -86,9 +86,9 @@ mv /vice/db/dumplist.tmp /vice/db/dumplist
 
 # Make sure that the vldb and vrdb are updated.
 
-/vice/bin/volutil makevrdb /vice/vol/VRList
+volutil makevrdb /vice/vol/VRList
 echo "fetching updated VolumeList from $HOSTS"
-/vice/bin/bldvldb.sh $HOSTS
+bldvldb.sh $HOSTS
 
 
 

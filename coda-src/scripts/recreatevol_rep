@@ -16,7 +16,7 @@
 #*/
 #
 #
-#static char *rcsid = "$Header: createvol_rep,v 1.4.1.1 93/03/08 16:08:36 raiff Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/recreatevol_rep,v 4.2 1997/08/18 14:54:51 raiff Exp $";
 #endif _BLURB_
 
 # Parge arguments
@@ -100,7 +100,7 @@ set N=0
 set ENTRY=($VOLNAME $HEXGROUPID $NSERVERS 0 0 0 0 0 0 0 0 $VSGADDR)
 foreach SERVER ($SERVERS)
 	echo "creating volume" $VOLNAME.$N on $SERVER
-	set vol_msg=`/vice/bin/volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID`
+	set vol_msg=`volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID`
 	echo $vol_msg
 	@ IX = $N + 4
 	set ENTRY[$IX]=`echo $vol_msg |awk '{print $7}'`

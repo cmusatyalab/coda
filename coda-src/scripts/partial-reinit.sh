@@ -44,7 +44,7 @@ egrep -v '^P' /vice/vol/VolumeList | egrep -v '\.backup ' | \
 	fi
 
 	# Rearrange the arguments and put the call into a script file
-	echo "/vice/bin/volutil create_rep $part $name $repid $volid" >> $SCRIPT
+	echo "volutil create_rep $part $name $repid $volid" >> $SCRIPT
 
     done
 

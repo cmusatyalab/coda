@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/reinit.sh,v 1.1 1996/11/22 19:06:56 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/reinit.sh,v 4.1 1997/01/08 21:50:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/reinit.sh,v 1.1 1996/11/22 19:06:56 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/reinit.sh,v 4.1 1997/01/08 21:50:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -181,7 +181,7 @@ recreate_replicated_vols() {
 		echo "mv -f /vice/db/dumplist.\$\$ /vice/db/dumplist" >> $OUTFILE
 	    fi
 
-	    echo "/vice/bin/recreatevol_rep $name $vsgaddr $partition $backup" >> $OUTFILE
+	    echo "recreatevol_rep $name $vsgaddr $partition $backup" >> $OUTFILE
 	    generate_client_file $name $numreps
 	    echo "" >> $OUTFILE
 	fi
@@ -359,14 +359,14 @@ echo "# Rebuild the vldb.  This takes care of having to delete" >> $OUTFILE
 echo "# entries from /vice/vol/AllVolumes and simplifies the script" >> $OUTFILE
 echo "# in general.  Unfortunately, We still need to remove entries" >> $OUTFILE
 echo "# from VRList" >> $OUTFILE
-echo "echo \"/vice/bin/bldvldb.sh\"" >> $OUTFILE
-echo "/vice/bin/bldvldb.sh" >> $OUTFILE
+echo "echo \"bldvldb.sh\"" >> $OUTFILE
+echo "bldvldb.sh" >> $OUTFILE
 echo "" >> $OUTFILE
 
 # Set the new maximum volume id in RVM on each server.
 echo "# Now set the maximum volume id on each server" >> $OUTFILE
 for SERVER in $SERVERS ; do
-    maxvolid="`/vice/bin/volutil -h $SERVER getmaxvol | awk '/volume id/ {print substr($5, 3)}'`"
+    maxvolid="`volutil -h $SERVER getmaxvol | awk '/volume id/ {print substr($5, 3)}'`"
     if [ "$maxvolid" = "" ] ; then
 	echo "ERROR: Cannot get maxvolid from $SERVER, exitting"
 	abort
@@ -386,7 +386,7 @@ _____EOF_____
     fi
     
     echo "Will change maxvolid on $SERVER to $maxvolid"
-    echo "/vice/bin/volutil -h $SERVER setmaxvol $maxvolid" >> $OUTFILE
+    echo "volutil -h $SERVER setmaxvol $maxvolid" >> $OUTFILE
 done
 echo "" >> $OUTFILE
 
@@ -448,7 +448,7 @@ awk '{print $1, $3, $4, $8}' /vice/vol/AllVolumes | \
 	echo "Generating code for non-replicated volume: $name"
 	echo "# Volume name: $name" >> $OUTFILE
 	echo "echo \"Creating non-replicated volume: $name\"" >> $OUTFILE
-	echo "/vice/bin/recreatevol $name $server $partition $backup" >> $OUTFILE
+	echo "/recreatevol $name $server $partition $backup" >> $OUTFILE
 	generate_client_file $name
 	echo "" >> $OUTFILE
     done
@@ -457,8 +457,8 @@ awk '{print $1, $3, $4, $8}' /vice/vol/AllVolumes | \
 
 # rebuild the vrdb and vldb
 echo "# Rebuild the vrdb and vldb" >> $OUTFILE
-echo "/vice/bin/bldvldb.sh" >> $OUTFILE
-echo "/vice/bin/volutil makevrdb /vice/vol/VRList" >> $OUTFILE
+echo "bldvldb.sh" >> $OUTFILE
+echo "volutil makevrdb /vice/vol/VRList" >> $OUTFILE
 
 echo "echo \"\$argv[0] done.\"" >> $OUTFILE
 echo "echo \"Now retore the original data from tape and\"" >> $OUTFILE

@@ -73,7 +73,7 @@ VOLNAME=$1
 # then go ahead and purge it
 awk '
 	$1 ~ /^'$VOLNAME'$/ { 
-	print | "/vice/bin/volutil -h "$3" purge "$2" " $1
+	print | "volutil -h "$3" purge "$2" " $1
 	}
 ' /vice/vol/AllVolumes
 
@@ -86,7 +86,7 @@ mv /vice/db/dumplist.tmp /vice/db/dumplist
 
 #
 # Update the VLDB
-/vice/bin/bldvldb.sh
+bldvldb.sh
 
 
 

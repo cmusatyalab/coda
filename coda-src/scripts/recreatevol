@@ -15,7 +15,7 @@
 #*/
 #
 #
-#static char *rcsid = "$Header: createvol,v 1.4.1.1 93/03/08 16:08:34 raiff Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/recreatevol,v 4.2 1997/08/18 14:54:50 raiff Exp $";
 #endif _BLURB_
 
 #/*
@@ -65,7 +65,7 @@ if ($VOLNAME == `awk ' $1 ~ /^'$1'$/  {print $1}' /vice/vol/AllVolumes` ||\
 	exit
 endif
 
-set vol_msg=`/vice/bin/volutil -h $SERVER create $PARTITION $VOLNAME`
+set vol_msg=`volutil -h $SERVER create $PARTITION $VOLNAME`
 echo $vol_msg
 
 set VOLID=`echo $vol_msg | awk '{print $7}'`
