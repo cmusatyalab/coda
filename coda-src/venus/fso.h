@@ -502,10 +502,9 @@ class fsobj {
     void Kill(int =1);
     void GC();
     int Flush();
-    void UpdateStatusAndSHA(ViceStatus *, uid_t, RPC2_BoundedBS *);
-    void UpdateStatusAndClearSHA(ViceStatus *, ViceVersionVector *, uid_t);
+    void UpdateStatus(ViceStatus *, ViceVersionVector *, uid_t);
     int StatusEq(ViceStatus *, int);
-    void ReplaceStatusAndSHA(ViceStatus *, ViceVersionVector *, RPC2_BoundedBS *);
+    void ReplaceStatus(ViceStatus *, ViceVersionVector *);
     int CheckRcRights(int);
     void SetRcRights(int);
     void ClearRcRights();

@@ -197,7 +197,7 @@ int fsobj::RepairStore()
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatusAndClearSHA(&status, &UpdateSet, vp->u.u_uid);
+	UpdateStatus(&status, &UpdateSet, vp->u.u_uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -251,7 +251,7 @@ RepExit:
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatusAndClearSHA(&status, 0, vp->u.u_uid);
+	UpdateStatus(&status, NULL, vp->u.u_uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:

@@ -222,55 +222,50 @@ int fsobj::Fetch(uid_t uid)
 
     long cbtemp = cbbreaks;
 
+    /* (Satya, 1/03)
+       Do lookaside to see if fetch can be short-cirucited.
+       Assumptions for lookaside:
+       (a) we are operating normally (not in a repair)
+       (b) we have valid status
+       (c) file is a plain file (not sym link, directory, etc.)
+       (d) non-zero SHA
+
+       (a) and (b) were  verified in Sanity Checks above;
+       (c) and (d) verified below; check for replicated volume 
+       further ensures we never do lookaside during repair
+
+       SHA value is obtained initially from fsobj and used for lookaside.
+     */
+    if (IsFile() && !IsZeroSHA(VenusSHA)) {
+	int lka_successful;
+	char emsg[256];
+	memset(emsg, 0, sizeof(emsg));
+
+	lka_successful = LookAsideAndFillContainer(VenusSHA, fd,
+						   stat.Length, venusRoot,
+						   emsg, sizeof(emsg)-1);
+	if (emsg[0])
+	    LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.Name(), emsg));
+
+	if (lka_successful) {
+	    LOG(0, ("Lookaside of %s succeeded!\n", cf.Name()));
+	    Recov_BeginTrans();
+	    data.file->SetLength(stat.Length);
+	    cf.SetValidData(cf.Length()); 
+	    SetRcRights(RC_DATA | RC_STATUS); /* we now have the data */
+	    code = 0; /* success */
+	    Recov_EndTrans(CMFP);
+
+	    /* we're done, skip out of here */
+	    goto SHAExit;
+	}
+	/* else continue with real fetch */
+    }
+
     if (vol->IsReplicated()) {
         mgrpent *m = 0;
 	int asy_resolve = 0;
         repvol *vp = (repvol *)vol;
-
-	/* (Satya, 1/03)
-	Do lookaside to see if fetch can be short-cirucited.
-	Assumptions for lookaside:
-	    (a) we are operating normally (not in a repair)
-	    (b) we have valid status
-	    (c) file is a plain file (not sym link, directory, etc.)
-	    (d) non-zero SHA
-
-	(a) and (b) were  verified in Sanity Checks above;
-	(c) and (d) verified below; check for replicated volume 
-	    further ensures we never do lookaside during repair
-
-	SHA value is obtained initially from fsobj and used for lookaside;
-	If lookaside fails and a real fetch has to be done, we conservatively
-	clear this SHA value first;   this causes the fsobj's VenusSHA 
-	to also be cleared by call to UpdateStatusPlusSHA() at end;  but who 
-	cares, since we have the actual data and could always recompute
-	SHA from container before a future Venus cache replacement of the fsobj
-	*/
-	if (IsFile() && !IsZeroSHA(VenusSHA)) {
-	    int lka_successful;
-	    char emsg[256];
-	    memset(emsg, 0, sizeof(emsg));
-
-	    lka_successful = LookAsideAndFillContainer(VenusSHA, fd,
-						       stat.Length, venusRoot,
-						       emsg, sizeof(emsg)-1);
-	    if (emsg[0])
-		LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.Name(), emsg));
-
-	    if (lka_successful) {
-		LOG(0, ("Lookaside of %s succeeded!\n", cf.Name()));
-		Recov_BeginTrans();
-		data.file->SetLength(stat.Length);
-		cf.SetValidData(cf.Length()); 
-		SetRcRights(RC_DATA | RC_STATUS); /* we now have the data */
-		code = 0; /* success */
-		Recov_EndTrans(CMFP);
-
-		/* we're done, skip out of here */
-		goto SHAExit;
-	    }
-	    /* else continue with real fetch */
-	}
 
 	/* Acquire an Mgroup. */
 	code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
@@ -377,7 +372,7 @@ int fsobj::Fetch(uid_t uid)
 	    code = EAGAIN;
 
 	Recov_BeginTrans();
-	UpdateStatusAndSHA(&status, uid, NULL); /* CAVEAT: zero SHA being set */
+	UpdateStatus(&status, NULL, uid);
 	Recov_EndTrans(CMFP);
 
 RepExit:
@@ -397,8 +392,6 @@ RepExit:
 	default:
 	    break;
 	}
-SHAExit:
-	/* nothing left to do */;
     }
     else {
 	/* Acquire a Connection. */
@@ -445,12 +438,15 @@ SHAExit:
 	}
 
 	Recov_BeginTrans();
-	UpdateStatusAndSHA(&status, uid, NULL); /* CAVEAT: zero SHA being set */
+	UpdateStatus(&status, NULL, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
     }
+
+SHAExit:
+	/* nothing left to do */;
     
     if (fd != -1)
         data.file->Close(fd);
@@ -556,7 +552,6 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     mysha.SeqBody = VenusSHA;
     mysha.MaxSeqLen = SHA_DIGEST_LENGTH;
     mysha.SeqLen = 0; 
-
 
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];
@@ -982,7 +977,14 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 	}
 
 	Recov_BeginTrans();
-	UpdateStatusAndSHA(&status, uid, &mysha);
+	UpdateStatus(&status, NULL, uid);
+
+	if (IsFile()) {
+	    RVMLIB_REC_OBJECT(VenusSHA);
+	    /* VenusSHA already was set by getattr */
+	    if (mysha.SeqLen != SHA_DIGEST_LENGTH)
+		memset(&VenusSHA, 0, SHA_DIGEST_LENGTH);
+	}
 	Recov_EndTrans(CMFP);
 
 RepExit:
@@ -1108,7 +1110,14 @@ RepExit:
 	}
 
 	Recov_BeginTrans();
-	UpdateStatusAndSHA(&status, uid, &mysha); /* SHA remains zero in non-rep case */
+	UpdateStatus(&status, NULL, uid);
+
+	if (IsFile()) {
+	    RVMLIB_REC_OBJECT(VenusSHA);
+	    /* VenusSHA already was set by getattr */
+	    if (mysha.SeqLen != SHA_DIGEST_LENGTH)
+		memset(&VenusSHA, 0, SHA_DIGEST_LENGTH);
+	}
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1166,6 +1175,7 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
     stat.DataVersion++;
     stat.Length = NewLength;
     stat.Date = Mtime;
+    memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
 
     UpdateCacheStats((IsDir() ? &FSDB->DirAttrStats : &FSDB->FileAttrStats),
                      WRITE, NBLOCKS(sizeof(fsobj)));
@@ -1297,7 +1307,7 @@ int fsobj::ConnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength)
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatusAndClearSHA(&status, &UpdateSet, uid);
+	UpdateStatus(&status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -1360,7 +1370,7 @@ RepExit:
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatusAndClearSHA(&status, 0, uid);
+	UpdateStatus(&status, 0, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1447,6 +1457,7 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
         }
         stat.Length = NewLength;
         stat.Date = Mtime;
+	memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
     }
     if (NewDate != (Date_t)-1) stat.Date = NewDate;
     if (NewOwner != VA_IGNORE_UID) stat.Owner = NewOwner;
@@ -1598,7 +1609,7 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
 	Recov_BeginTrans();
 	if (!setacl)
 		LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
-	UpdateStatusAndClearSHA(&status, &UpdateSet, uid);
+	UpdateStatus(&status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -1662,7 +1673,7 @@ RepExit:
 	Recov_BeginTrans();
 	if (!setacl)
 		LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
-	UpdateStatusAndClearSHA(&status, 0, uid);
+	UpdateStatus(&status, NULL, uid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1960,8 +1971,9 @@ int fsobj::ConnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 	/* Do Create locally. */
 	Recov_BeginTrans();
 	LocalCreate(Mtime, target_fso, name, uid, Mode);
-	UpdateStatusAndClearSHA(&parent_status, &UpdateSet, uid);
-	target_fso->UpdateStatusAndClearSHA(&target_status, &UpdateSet, uid);
+	UpdateStatus(&parent_status, &UpdateSet, uid);
+	/* New objects already have a cleared SHA */
+	target_fso->UpdateStatus(&target_status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -2030,8 +2042,8 @@ RepExit:
 	/* Do Create locally. */
 	Recov_BeginTrans();
 	LocalCreate(Mtime, target_fso, name, uid, Mode);
-	UpdateStatusAndClearSHA(&parent_status, 0, uid);
-	target_fso->UpdateStatusAndClearSHA(&target_status, 0, uid);
+	UpdateStatus(&parent_status, NULL, uid);
+	target_fso->UpdateStatus(&target_status, NULL, uid);
 	Recov_EndTrans(CMFP);
 	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);

@@ -178,6 +178,7 @@ void fsobj::ResetPersistent() {
     CleanStat.Length = (unsigned long)-1;
     CleanStat.Date = (Date_t)-1;
     data.havedata = 0;
+    memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
 }
 
 /* local-repair modification */
@@ -667,60 +668,27 @@ int fsobj::Flush() {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 /* Called as result of {GetAttr, ValidateAttr, GetData, ValidateData}. */
-
-void fsobj::UpdateStatusAndSHA(ViceStatus *vstat, uid_t uid, RPC2_BoundedBS *newsha)
+void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
 {
     /* Mount points are never updated. */
     if (IsMtPt())
-	{ print(logFile); CHOKE("fsobj::UpdateStatusAndSHA: IsMtPt!"); }
+	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsMtPt!"); }
     /* Fake objects are never updated. */
     if (IsFake())
-	{ print(logFile); CHOKE("fsobj::UpdateStatusAndSHA: IsFake!"); }
+	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsFake!"); }
 
-    LOG(100, ("fsobj::UpdateStatusAndSHA: (%s), uid = %d\n", FID_(&fid), uid));
+    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), uid));
 
     if (HAVESTATUS(this)) {		/* {ValidateAttr} */
       if (!StatusEq(vstat, 0))
-	    ReplaceStatusAndSHA(vstat, 0, newsha);
-      /* else ValidateAttr was successful for this object, so
-	 leave SHA alone */
+	    ReplaceStatus(vstat, UpdateSet);
     }
     else {				/* {GetAttr} */
+	ReplaceStatus(vstat, UpdateSet);
 	Matriculate();
-	ReplaceStatusAndSHA(vstat, 0, newsha);
     }
 
     /* Set access rights and parent (if they differ). */
-    if (IsDir())
-	SetAcRights(uid, vstat->MyAccess, vstat->AnyAccess);
-
-    SetParent(vstat->vparent, vstat->uparent);
-}
-
-
-/* MUST be called from within transaction! */
-/* Call with object write-locked. */
-/* Called for mutating operations. */
-/* SHA is always cleared by this call */
-void fsobj::UpdateStatusAndClearSHA(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
-{
-    /* Mount points are never updated. */
-    if (IsMtPt())
-	{ print(logFile); CHOKE("fsobj::UpdateStatusAndClearSHA: IsMtPt!"); }
-    /* Fake objects are never updated. */
-    if (IsFake())
-	{ print(logFile); CHOKE("fsobj::UpdateStatusAndClearSHA: IsFake!"); }
-
-    LOG(100, ("fsobj::UpdateStatusAndClearSHA: (%s), uid = %d\n", FID_(&fid), uid));
-
-    /* Install the new status block. */
-    if (!StatusEq(vstat, 1))
-	/* Ought to Die in this event! */;
-
-    ReplaceStatusAndSHA(vstat, UpdateSet, NULL);
-
-    /* Set access rights and parent (if they differ). */
-    /* N.B.  It should be a fatal error if they differ! */
     if (IsDir())
 	SetAcRights(uid, vstat->MyAccess, vstat->AnyAccess);
 
@@ -795,20 +763,15 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating)
 
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
-void fsobj::ReplaceStatusAndSHA(ViceStatus *vstat, vv_t *UpdateSet, RPC2_BoundedBS *vsha)
+void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet)
 {
     RVMLIB_REC_OBJECT(stat);
-    RVMLIB_REC_OBJECT(VenusSHA);
-
-    if (vsha && vsha->SeqLen == SHA_DIGEST_LENGTH)
-	 memcpy(VenusSHA, vsha->SeqBody, SHA_DIGEST_LENGTH);
-    else memset(VenusSHA, 0, SHA_DIGEST_LENGTH);
 
     /* We're changing the length? 
      * Then the cached data is probably no longer useable! But try to fix up
      * the cachefile so that we can at least give a stale copy. */
     if (HAVEDATA(this) && stat.Length != vstat->Length) {
-	LOG(0, ("fsobj::ReplaceStatusAndSHA: (%s), changed stat.length %d->%d\n",
+	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d\n",
 		FID_(&fid), stat.Length, vstat->Length));
 	if (IsFile())
 	    LocalSetAttr((unsigned long)-1, vstat->Length, (unsigned long)-1,
