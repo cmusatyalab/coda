@@ -2374,7 +2374,7 @@ static void WhereIs (int argc, char *argv[], int opslot)
     {
     int rc, i, j, w;
     struct ViceIoctl vio;
-    long *custodians;
+    struct in_addr *custodians;
     struct hostent *hent;
 
 
@@ -2401,21 +2401,16 @@ static void WhereIs (int argc, char *argv[], int opslot)
         
         /* Print custodians */
         if (argc > 3) printf("  %*s:  ", w, argv[i]);
-        custodians = (long *)piobuf; /* pioctl returns array of IP addrs */
+        /* pioctl returns array of IP addrs */
+        custodians = (struct in_addr *)piobuf;
         for (j = 0; j < 8; j++)
             {
             long a;
             
-            a = htonl(custodians[j]);
-            if (a == 0) break;
-            hent = gethostbyaddr((char *)&a, (int) sizeof(long), AF_INET);
+            if (custodians[j].s_addr == 0) continue;
+            hent = gethostbyaddr((char *)&custodians[j], sizeof(long), AF_INET);
             if (hent) printf("  %s", hent->h_name);
-            else
-                {
-                a = custodians[j]; /* a may have been clobbered by gethostbyaddr() */
-                printf("  %ld.%ld.%ld.%ld", (a&0xff000000) >> 24, (a&0x00ff0000) >> 16,
-                        (a&0x0000ff00) >> 8, a&0x000000ff);
-                }
+            else      printf("  %s", inet_ntoa(custodians[j]));
             }
         printf("\n");
         }
