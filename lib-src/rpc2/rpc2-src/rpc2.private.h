@@ -46,6 +46,7 @@ Pittsburgh, PA.
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
 #include "coda_assert.h"
+#include "coda_string.h"
 #include "dllist.h"
 
 #define bool long
