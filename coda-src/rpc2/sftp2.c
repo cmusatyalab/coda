@@ -240,7 +240,7 @@ static void ExaminePacket(RPC2_PacketBuffer *pb)
 	sfp->WhoAmI == DISKERROR)
     {
 	/* SFSendNAK expects host-order */
-	pb->Header.RemoteHandle = ntohl(pb->Header.RemoteHandle);
+	pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
 	SFSendNAK(pb); /* NAK this packet */
 	BOGUS(pb);
 	return;
