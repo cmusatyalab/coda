@@ -498,10 +498,8 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
         break;
         }
 
-    case ROVOL: /* Readonly replicated volume are not supported */
-        break;
-
     case RWVOL:
+    case ROVOL:
     case BACKVOL:
         {
         volrep *vp;
@@ -511,7 +509,7 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
         /* instantiate the new volume replica */
         Recov_BeginTrans();
         vp = new volrep(realm, volinfo->Vid, volname, &srvaddr,
-                        volinfo->Type == BACKVOL,
+                        volinfo->Type != RWVOL,
                         (&volinfo->Type0)[replicatedVolume]);
         v = vp;
         Recov_EndTrans(MAXFP);
