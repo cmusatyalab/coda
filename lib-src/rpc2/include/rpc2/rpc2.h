@@ -791,7 +791,10 @@ extern long rpc2_PBSmallCreationCount,  rpc2_PBSmallFreeCount;
 extern long rpc2_PBMediumCreationCount, rpc2_PBMediumFreeCount;
 extern long rpc2_PBLargeCreationCount,  rpc2_PBLargeFreeCount;
 extern long rpc2_SLCreationCount,       rpc2_SLFreeCount;
-extern long rpc2_ConnCreationCount,     rpc2_ConnFreeCount;
+extern long rpc2_ConnCreationCount,     rpc2_ConnCount,	rpc2_ConnFreeCount;
+extern long rpc2_SSCreationCount,	rpc2_SSCount,   rpc2_SSFreeCount;
 extern long rpc2_Unbinds, rpc2_FreeConns, rpc2_AllocConns, rpc2_GCConns;
+extern long rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount;
+extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
 
 #endif /* _RPC2_ */

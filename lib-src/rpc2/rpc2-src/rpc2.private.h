@@ -402,7 +402,6 @@ struct InitMulticastBody	/* Client to Server */
 /* The basic connection abstraction */
 extern struct CEntry *rpc2_ConnFreeList,	/* free connection blocks */
 			*rpc2_ConnList;		/* active connections  */
-extern long rpc2_ConnCount;
 
 /* The multicast group abstraction */
 extern struct MEntry *rpc2_MgrpFreeList;	/* free mgrp blocks */
@@ -417,13 +416,11 @@ extern long rpc2_SLReqCount, rpc2_SLCount;
 
 /* Packet buffers */
 extern RPC2_PacketBuffer *rpc2_PBList, *rpc2_PBHoldList;
-extern long rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount;
 extern RPC2_PacketBuffer *rpc2_PBSmallFreeList, *rpc2_PBMediumFreeList, *rpc2_PBLargeFreeList;
 
 /* Subsystem definitions */
 extern struct SubsysEntry *rpc2_SSFreeList,	/* free entries */
 			*rpc2_SSList;		/* subsystems in active use */
-extern long rpc2_SSFreeCount, rpc2_SSCount, rpc2_SSCreationCount;
 	
 /* Host info definitions */
 extern struct HEntry *rpc2_HostFreeList, *rpc2_HostList;
@@ -574,7 +571,6 @@ extern struct in_addr rpc2_bindaddr;
 extern unsigned long rpc2_NoNaks;
 extern long rpc2_BindLimit, rpc2_BindsInQueue;
 extern long rpc2_FreeMgrps, rpc2_AllocMgrps;
-extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
 
 /*--------------- Useful definitions that used to be in potpourri.h or util.h ---------------*/
 /*                 Now included here to avoid including either of those files                */
