@@ -168,7 +168,7 @@ int repvol::GetVolAttr(uid_t uid)
 	     * case of VFlags, that would be a real waste of space (which is
 	     * going over the wire).
 	     */
-	    char VFlags[MAX_PIGGY_VALIDATIONS];
+	    signed char VFlags[MAX_PIGGY_VALIDATIONS];
 	    RPC2_BoundedBS VFlagBS;
 	    VFlagBS.MaxSeqLen = 0;
 	    VFlagBS.SeqLen = 0;
@@ -264,7 +264,7 @@ int repvol::GetVolAttr(uid_t uid)
 		goto RepExit;
 	    }
 
-	    unsigned numVFlags = 0;
+	    unsigned int numVFlags = 0;
 	    for (i = 0; i < vsg->MaxVSG(); i++) {
 		if (m->rocc.hosts[i].s_addr != 0) {
 		    if (numVFlags == 0) {
@@ -274,7 +274,7 @@ int repvol::GetVolAttr(uid_t uid)
 		    } else {
 			/* "and" in results from other servers. note VFlagBS.SeqBody == VFlags. */
 			for (int j = 0; j < nVols; j++) {
-			    if ((VFlags[j] == -1) || ((char) VFlagvar_bufs[i].SeqBody[j] == -1))
+			    if ((VFlags[j] == -1) || ((signed char) VFlagvar_bufs[i].SeqBody[j] == -1))
 				VFlags[j] = -1;
 			    else 
 				VFlags[j] &= VFlagvar_bufs[i].SeqBody[j];

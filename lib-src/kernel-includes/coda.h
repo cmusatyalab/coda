@@ -140,8 +140,8 @@ typedef int		     int32_t;
 typedef unsigned int	   u_int32_t;
 #endif
 
-typedef int32_t cuid_t;
-typedef int32_t cgid_t;
+typedef u_int32_t cuid_t;
+typedef u_int32_t cgid_t;
 
 /*
  * Cfs constants
@@ -769,9 +769,9 @@ union coda_downcalls {
 
 #define PIOCPARM_MASK 0x0000ffff
 struct ViceIoctl {
-        caddr_t in, out;        /* Data to be transferred in, or out */
-        short in_size;          /* Size of input buffer <= 2K */
-        short out_size;         /* Maximum size of output buffer, <= 2K */
+        caddr_t   in, out;	/* Data to be transferred in, or out */
+        u_int16_t in_size;	/* Size of input buffer <= 2K */
+        u_int16_t out_size;	/* Maximum size of output buffer, <= 2K */
 };
 
 struct PioctlData {

@@ -68,7 +68,8 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
                        EncryptedSecretToken sToken)
 {
     FILE *f;
-    char *buf = NULL, c;
+    char *buf = NULL;
+    signed char c;
     int len;
 
     f = fopen(filename, "r");

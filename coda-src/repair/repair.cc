@@ -442,7 +442,12 @@ void rep_ListLocal(int largc, char **largv)
     vioc.out = space;
     vioc.out_size = DEF_BUF;
     strcpy(filename, "/tmp/listlocal.XXXXXX");
-    mktemp(filename);
+    fd = mkstemp(filename);
+    if (fd < 0) {
+	perror(filename);
+	return;
+    }
+
     vioc.in = buf;
     sprintf(buf, "%d %s", REP_CMD_LIST, filename);
     vioc.in_size = (short) strlen(vioc.in) + 1;
@@ -452,14 +457,10 @@ void rep_ListLocal(int largc, char **largv)
     printf("%s\n", vioc.out);
     fflush(stdout);
     if (rc == 0) {
-	fd = open(filename, O_RDONLY, 0);
-	if (fd < 0) perror(filename);
-	else {
-	    while ((n = read(fd, buf, DEF_BUF)) > 0)
-		write(1, buf, n);
-	    close(fd);
-	}
+	while ((n = read(fd, buf, DEF_BUF)) > 0)
+	    write(1, buf, n);
     }
+    close(fd);
     unlink(filename);
 }
 

@@ -57,7 +57,7 @@ struct vldb {
     byte volumeType;		/* Volume type, as defined in vice.h  (RWVOL,
 				   ROVOL, BACKVOL) */
     byte nServers;		/* Number of servers that have this volume */
-    unsigned long volumeId[MAXVOLTYPES]; /* *NETORDER* Corresponding volume of
+    uint32_t volumeId[MAXVOLTYPES]; /* *NETORDER* Corresponding volume of
 					    each type + 2 extra unused */
     byte serverNumber[VSG_MEMBERS];/* Server number for each server claiming
 				      to know about this volume */
@@ -68,8 +68,8 @@ struct vldb {
 /* Header takes up entry #0.  0 is not a legit hash code */
 
 struct vldbHeader {
-    long magic;			/* *NETORDER* Magic number */
-    long hashSize;		/* *NETORDER* Size to use for hash calculation (see HashString) */
+    uint32_t magic;			/* *NETORDER* Magic number */
+    uint32_t hashSize;		/* *NETORDER* Size to use for hash calculation (see HashString) */
 };
 
 #define VLDB_MAGIC 0xABCD4321

@@ -1016,7 +1016,7 @@ struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno)
 /* Hash a string to a number between 0 and NHASH. */
 int DIR_Hash (const char *string)
 {
-    char tc;
+    signed char tc;
     int hval, tval;
 
     hval = 0;
