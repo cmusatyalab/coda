@@ -2532,10 +2532,16 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
     VFlagBS->SeqLen = 0;
     memset(VFlagBS->SeqBody, 0, VFlagBS->MaxSeqLen);
 
-    if ( numVids > VFlagBS->MaxSeqLen ) {
-	    SLog(0, "Client sending wrong output buffer while validating"
-		 "volumes:MaxSeqLen %d, should be %d", 
-		 VFlagBS->MaxSeqLen, numVids);
+    if (VSBS->SeqLen < (numVids * VSG_MEMBERS * sizeof(RPC2_Unsigned))) {
+	    SLog(, "Wrong input buffer while validating volumes: "
+		 "SeqLen %d, should be %d", VSBS->SeqLen,
+		 numVids * VSG_MEMBERS * sizeof(RPC2_Unsigned));
+	    return(EINVAL);
+    }
+
+    if (VFlagBS->MaxSeqLen < numVids) {
+	    SLog(0, "Wrong output buffer while validating volumes: "
+		 "MaxSeqLen %d, should be %d", VFlagBS->MaxSeqLen, numVids);
 	    return(EINVAL);
     }
 
