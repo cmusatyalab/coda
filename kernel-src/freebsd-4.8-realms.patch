@@ -1,0 +1,2024 @@
+diff -r -u coda.ori/00READ coda/00READ
+--- coda.ori/00READ	Mon May 12 21:09:46 2003
++++ coda/00READ	Mon May 12 21:33:40 2003
+@@ -13,3 +13,9 @@
+ 
+ 
+ 						rvb@cmu.edu
++Oct 15, 2002   phil@cs.wwu.edu
++
++	Changes have been made to support coda realms.  This breaks
++	binary compatibility with earlier coda kernel modules.
++	This version requires a realms aware venus.
++
+diff -r -u coda.ori/cnode.h coda/cnode.h
+--- coda.ori/cnode.h	Mon May 12 21:09:46 2003
++++ coda/cnode.h	Mon May 12 21:33:40 2003
+@@ -101,7 +101,7 @@
+ struct cnode {
+     struct vnode	*c_vnode;
+     u_short		 c_flags;	/* flags (see below) */
+-    ViceFid		 c_fid;		/* file handle */
++    CodaFid		 c_fid;		/* file handle */
+     struct lock		 c_lock;	/* new lock protocol */
+     struct vnode	*c_ovp;		/* open vnode pointer */
+     u_short		 c_ocount;	/* count of openers */
+@@ -195,7 +195,7 @@
+ extern int  coda_vmflush(struct cnode *cp);
+ 
+ /* cfs_vnodeops.h */
+-extern struct cnode *make_coda_node(ViceFid *fid, struct mount *vfsp, short type);
++extern struct cnode *make_coda_node(CodaFid *fid, struct mount *vfsp, short type);
+ extern int coda_vnodeopstats_init(void);
+ 
+ /* coda_vfsops.h */
+diff -r -u coda.ori/coda.h coda/coda.h
+--- coda.ori/coda.h	Mon May 12 21:09:46 2003
++++ coda/coda.h	Mon May 12 21:33:40 2003
+@@ -1,51 +1,49 @@
++/*	$NetBSD: 	*/
++
+ /*
+- * 
+- *             Coda: an Experimental Distributed File System
+- *                              Release 3.1
+- * 
+- *           Copyright (c) 1987-1998 Carnegie Mellon University
+- *                          All Rights Reserved
+- * 
+- * Permission  to  use, copy, modify and distribute this software and its
+- * documentation is hereby granted,  provided  that  both  the  copyright
+- * notice  and  this  permission  notice  appear  in  all  copies  of the
+- * software, derivative works or  modified  versions,  and  any  portions
+- * thereof, and that both notices appear in supporting documentation, and
+- * that credit is given to Carnegie Mellon University  in  all  documents
+- * and publicity pertaining to direct or indirect use of this code or its
+- * derivatives.
+- * 
+- * CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+- * SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+- * FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+- * DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+- * RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+- * ANY DERIVATIVE WORK.
+- * 
+- * Carnegie  Mellon  encourages  users  of  this  software  to return any
+- * improvements or extensions that  they  make,  and  to  grant  Carnegie
+- * Mellon the rights to redistribute these changes without encumbrance.
+- * 
+- * 	@(#) src/sys/coda/coda.h,v 1.1.1.1 1998/08/29 21:14:52 rvb Exp $ 
+- * $FreeBSD: src/sys/coda/coda.h,v 1.9 1999/12/29 04:54:30 peter Exp $
+- * 
+- */
+ 
++            Coda: an Experimental Distributed File System
++                             Release 4.0
++
++          Copyright (c) 1987-1999 Carnegie Mellon University
++                         All Rights Reserved
++
++Permission  to  use, copy, modify and distribute this software and its
++documentation is hereby granted,  provided  that  both  the  copyright
++notice  and  this  permission  notice  appear  in  all  copies  of the
++software, derivative works or  modified  versions,  and  any  portions
++thereof, and that both notices appear in supporting documentation, and
++that credit is given to Carnegie Mellon University  in  all  documents
++and publicity pertaining to direct or indirect use of this code or its
++derivatives.
++
++CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
++SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
++FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
++DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
++RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
++ANY DERIVATIVE WORK.
++
++Carnegie  Mellon  encourages  users  of  this  software  to return any
++improvements or extensions that  they  make,  and  to  grant  Carnegie
++Mellon the rights to redistribute these changes without encumbrance.
++*/
+ 
+ /*
+  *
+  * Based on cfs.h from Mach, but revamped for increased simplicity.
+- * Linux modifications by Peter Braam, Aug 1996
++ * Linux modifications by 
++ * Peter Braam, Aug 1996
+  */
+ 
+ #ifndef _CODA_HEADER_
+ #define _CODA_HEADER_
+ 
+-
+-
+-/* Catch new _KERNEL defn for NetBSD */
+-#ifdef __NetBSD__
++/* Catch new _KERNEL defn for NetBSD and DJGPP/__CYGWIN32__ */
++#if defined(__NetBSD__) || \
++  ((defined(DJGPP) || defined(__CYGWIN32__)) && !defined(KERNEL))
+ #include <sys/types.h>
++#include <sys/systm.h>
+ #endif 
+ 
+ #ifndef CODA_MAXSYMLINKS
+@@ -53,7 +51,7 @@
+ #endif
+ 
+ #if defined(DJGPP) || defined(__CYGWIN32__)
+-#ifdef _KERNEL
++#ifdef KERNEL
+ typedef unsigned long u_long;
+ typedef unsigned int u_int;
+ typedef unsigned short u_short;
+@@ -72,30 +70,52 @@
+         long       ts_sec;
+         long       ts_nsec;
+ };
+-#else  /* DJGPP but not _KERNEL */
+-#include <sys/types.h>
++#else  /* DJGPP but not KERNEL */
+ #include <sys/time.h>
+ typedef unsigned long long u_quad_t;
+-#endif /* !_KERNEL */
++#endif /* !KERNEL */
+ #endif /* !DJGPP */
+ 
+ 
+ #if defined(__linux__)
+ #define cdev_t u_quad_t
++#ifndef __KERNEL__
+ #if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
+ #define _UQUAD_T_ 1
+ typedef unsigned long long u_quad_t;
+ #endif
++#else /*__KERNEL__ */
++typedef unsigned long long u_quad_t;
++#endif /* __KERNEL__ */
+ #else
+ #define cdev_t udev_t
+ #endif
+ 
+-#ifdef __CYGWIN32__
+-typedef unsigned char u_int8_t;
+-struct timespec {
+-        time_t  tv_sec;         /* seconds */
+-        long    tv_nsec;        /* nanoseconds */
+-};
++/* Solaris Definitions */
++#if defined(sun)
++#include <sys/types.h>
++#include <sys/time.h>
++typedef unsigned long long u_quad_t;
++#undef __BIT_TYPES_DEFINED__
++#endif
++
++/* Mac OS X / Darwin */
++#if defined(__APPLE__) && defined(__MACH__)
++#define __BIT_TYPES_DEFINED__
++#endif
++
++#if defined(__FreeBSD__)
++#define __BIT_TYPES_DEFINED__
++#endif
++
++#ifndef __BIT_TYPES_DEFINED__
++#define __BIT_TYPES_DEFINED__
++typedef signed char	      int8_t;
++typedef unsigned char	    u_int8_t;
++typedef short		     int16_t;
++typedef unsigned short	   u_int16_t;
++typedef int		     int32_t;
++typedef unsigned int	   u_int32_t;
+ #endif
+ 
+ 
+@@ -126,15 +146,26 @@
+ #define C_A_X_OK    1               /* Test for execute permission.  */
+ #define C_A_F_OK    0               /* Test for existence.  */
+ 
+-
++#if defined(sun)
++#define _VENUS_DIRENT_T_ 1
++struct venus_dirent {
++        unsigned long	d_fileno;		/* file number of entry */
++        unsigned short	d_reclen;		/* length of this record */
++        unsigned short	d_namlen;		/* length of string in d_name */
++        char		d_name[CODA_MAXNAMLEN + 1];/* name must be no longer than this */
++};
++#undef DIRSIZ
++#define DIRSIZ(dp)      ((sizeof (struct venus_dirent) - (CODA_MAXNAMLEN+1)) + \
++                         (((dp)->d_namlen+1 + 3) &~ 3))
++#endif
+ 
+ #ifndef _VENUS_DIRENT_T_
+ #define _VENUS_DIRENT_T_ 1
+ struct venus_dirent {
+         unsigned long	d_fileno;		/* file number of entry */
+         unsigned short	d_reclen;		/* length of this record */
+-        char 		d_type;			/* file type, see below */
+-        char		d_namlen;		/* length of string in d_name */
++        unsigned char 	d_type;			/* file type, see below */
++        unsigned char	d_namlen;		/* length of string in d_name */
+         char		d_name[CODA_MAXNAMLEN + 1];/* name must be no longer than this */
+ };
+ #undef DIRSIZ
+@@ -162,59 +193,32 @@
+ 
+ #endif
+ 
+-#ifndef	_FID_T_
+-#define _FID_T_	1
+-typedef u_long VolumeId;
+-typedef u_long VnodeId;
+-typedef u_long Unique_t;
+-typedef u_long FileVersion;
+-#endif 
++typedef struct {
++    u_int32_t opaque[4];
++} CodaFid;
+ 
+-#ifndef	_VICEFID_T_
+-#define _VICEFID_T_	1
+-typedef struct ViceFid {
+-    VolumeId Volume;
+-    VnodeId Vnode;
+-    Unique_t Unique;
+-} ViceFid;
+-#endif	/* VICEFID */
+ 
++static __inline__ ino_t coda_f2i(CodaFid *fid)
++{
++	if (!fid) return 0; 
++	return (fid->opaque[3] ^ (fid->opaque[2]<<10) ^ (fid->opaque[1]<<20) ^ fid->opaque[0]);
++}
+ 
+-#ifdef __linux__
+-static __inline__ ino_t  coda_f2i(struct ViceFid *fid)
++static __inline__ char * coda_f2s(CodaFid *fid)
+ {
+-	if ( ! fid ) 
+-		return 0; 
+-	if (fid->Vnode == 0xfffffffe || fid->Vnode == 0xffffffff)
+-		return ((fid->Volume << 20) | (fid->Unique & 0xfffff));
+-	else
+-		return (fid->Unique + (fid->Vnode<<10) + (fid->Volume<<20));
++  static char fid_str [35];
++  snprintf (fid_str, 35, "[%x.%x.%x.%x]", fid->opaque[0],
++	    fid->opaque[1], fid->opaque[2], fid->opaque[3]);
++  return fid_str;
+ }
+ 	
+-#else
+-#define coda_f2i(fid)\
+-	((fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0)
+-#endif
+-
+-
+-#ifndef __BIT_TYPES_DEFINED__
+-#define u_int32_t unsigned int
+-#endif
+-
+-
+-#ifndef _VUID_T_
+-#define _VUID_T_
+-typedef u_int32_t vuid_t;
+-typedef u_int32_t vgid_t;
+-#endif /*_VUID_T_ */
+-
+-#ifndef _CODACRED_T_
+-#define _CODACRED_T_
+-struct coda_cred {
+-    vuid_t cr_uid, cr_euid, cr_suid, cr_fsuid; /* Real, efftve, set, fs uid*/
+-    vgid_t cr_groupid,     cr_egid, cr_sgid, cr_fsgid; /* same for groups */
+-};
+-#endif 
++static __inline__ int coda_fid_eq (CodaFid *fid1, CodaFid *fid2)
++{
++  return (fid1->opaque[0] == fid2->opaque[0] &&
++	  fid1->opaque[1] == fid2->opaque[1] &&
++	  fid1->opaque[2] == fid2->opaque[2] &&
++	  fid1->opaque[3] == fid2->opaque[3]);
++}
+ 
+ #ifndef _VENUS_VATTR_T_
+ #define _VENUS_VATTR_T_
+@@ -224,11 +228,11 @@
+ enum coda_vtype	{ C_VNON, C_VREG, C_VDIR, C_VBLK, C_VCHR, C_VLNK, C_VSOCK, C_VFIFO, C_VBAD };
+ 
+ struct coda_vattr {
+-	int     	va_type;	/* vnode type (for create) */
++	long     	va_type;	/* vnode type (for create) */
+ 	u_short		va_mode;	/* files access mode and type */
+ 	short		va_nlink;	/* number of references to file */
+-	vuid_t		va_uid;		/* owner user id */
+-	vgid_t		va_gid;		/* owner group id */
++	uid_t		va_uid;		/* owner user id */
++	gid_t		va_gid;		/* owner group id */
+ 	long		va_fileid;	/* file id */
+ 	u_quad_t	va_size;	/* file size in bytes */
+ 	long		va_blocksize;	/* blocksize preferred for i/o */
+@@ -244,12 +248,21 @@
+ 
+ #endif 
+ 
++/* structure used by CODA_STATFS for getting cache information from venus */
++struct coda_statfs {
++    int32_t f_blocks;
++    int32_t f_bfree;
++    int32_t f_bavail;
++    int32_t f_files;
++    int32_t f_ffree;
++};
++
+ /*
+  * Kernel <--> Venus communications.
+  */
+ 
+ #define CODA_ROOT	2
+-#define CODA_SYNC	3
++#define CODA_OPEN_BY_FD	3
+ #define CODA_OPEN	4
+ #define CODA_CLOSE	5
+ #define CODA_IOCTL	6
+@@ -270,69 +283,65 @@
+ #define CODA_INACTIVE	21
+ #define CODA_VGET	22
+ #define CODA_SIGNAL	23
+-#define CODA_REPLACE	24
+-#define CODA_FLUSH       25
+-#define CODA_PURGEUSER   26
+-#define CODA_ZAPFILE     27
+-#define CODA_ZAPDIR      28
+-#define CODA_PURGEFID    30
++#define CODA_REPLACE	 24 /* DOWNCALL */
++#define CODA_FLUSH       25 /* DOWNCALL */
++#define CODA_PURGEUSER   26 /* DOWNCALL */
++#define CODA_ZAPFILE     27 /* DOWNCALL */
++#define CODA_ZAPDIR      28 /* DOWNCALL */
++#define CODA_PURGEFID    30 /* DOWNCALL */
+ #define CODA_OPEN_BY_PATH 31
+ #define CODA_RESOLVE     32
+ #define CODA_REINTEGRATE 33
+-#define CODA_NCALLS 34
++#define CODA_STATFS	 34
++#define CODA_NCALLS 35
+ 
+-#define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID)
++#define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID) 
+ 
+ #define VC_MAXDATASIZE	    8192
+ #define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
+                             VC_MAXDATASIZE  
+ 
+ #define CIOC_KERNEL_VERSION _IOWR('c', 10, sizeof (int))
+-#if	0
+-	/* don't care about kernel version number */
+-#define CODA_KERNEL_VERSION 0
+-	/* The old venus 4.6 compatible interface */
+-#define CODA_KERNEL_VERSION 1
++
++#if 0
++#define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
++#define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
+ #endif
+-	/* venus_lookup gets an extra parameter to aid windows.*/
+-#define CODA_KERNEL_VERSION 2
++/* #define CODA_KERNEL_VERSION 2 */ /* venus_lookup gets an extra parameter */
++#define CODA_KERNEL_VERSION 3 /* realms/cells */
+ 
+ /*
+  *        Venus <-> Coda  RPC arguments
+  */
+ struct coda_in_hdr {
+-    unsigned long opcode;
+-    unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
+-    u_short pid;		    /* Common to all */
+-    u_short pgid;		    /* Common to all */
+-    u_short sid;                    /* Common to all */
+-    struct coda_cred cred;	    /* Common to all */
++    u_int32_t opcode;
++    u_int32_t unique;	    /* Keep multiple outstanding msgs distinct */
++    pid_t pid;		    /* Common to all */
++    pid_t pgid;		    /* Common to all */
++    uid_t uid;		    /* Common to all */
+ };
+ 
+ /* Really important that opcode and unique are 1st two fields! */
+ struct coda_out_hdr {
+-    unsigned long opcode;
+-    unsigned long unique;	
+-    unsigned long result;
++    u_int32_t opcode;
++    u_int32_t unique;	
++    u_int32_t result;
+ };
+ 
+ /* coda_root: NO_IN */
+ struct coda_root_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    CodaFid Fid;
+ };
+ 
+ struct coda_root_in {
+     struct coda_in_hdr in;
+ };
+ 
+-/* coda_sync: */
+-/* Nothing needed for coda_sync */
+-
+ /* coda_open: */
+ struct coda_open_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     int	flags;
+ };
+ 
+@@ -346,7 +355,7 @@
+ /* coda_close: */
+ struct coda_close_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     int	flags;
+ };
+ 
+@@ -357,7 +366,7 @@
+ /* coda_ioctl: */
+ struct coda_ioctl_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    CodaFid Fid;
+     int	cmd;
+     int	len;
+     int	rwflag;
+@@ -374,7 +383,7 @@
+ /* coda_getattr: */
+ struct coda_getattr_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    CodaFid Fid;
+ };
+ 
+ struct coda_getattr_out {
+@@ -386,7 +395,7 @@
+ /* coda_setattr: NO_OUT */
+ struct coda_setattr_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    CodaFid Fid;
+     struct coda_vattr attr;
+ };
+ 
+@@ -397,7 +406,7 @@
+ /* coda_access: NO_OUT */
+ struct coda_access_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     int	flags;
+ };
+ 
+@@ -413,14 +422,14 @@
+ /* coda_lookup: */
+ struct  coda_lookup_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     int         name;		/* Place holder for data. */
+     int         flags;	
+ };
+ 
+ struct coda_lookup_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    CodaFid Fid;
+     int	vtype;
+ };
+ 
+@@ -428,7 +437,7 @@
+ /* coda_create: */
+ struct coda_create_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    CodaFid Fid;
+     struct coda_vattr attr;
+     int excl;
+     int mode;
+@@ -437,7 +446,7 @@
+ 
+ struct coda_create_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    CodaFid Fid;
+     struct coda_vattr attr;
+ };
+ 
+@@ -445,7 +454,7 @@
+ /* coda_remove: NO_OUT */
+ struct coda_remove_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     int name;		/* Place holder for data. */
+ };
+ 
+@@ -456,8 +465,8 @@
+ /* coda_link: NO_OUT */
+ struct coda_link_in {
+     struct coda_in_hdr ih;
+-    ViceFid sourceFid;          /* cnode to link *to* */
+-    ViceFid destFid;            /* Directory in which to place link */
++    CodaFid sourceFid;          /* cnode to link *to* */
++    CodaFid destFid;            /* Directory in which to place link */
+     int tname;		/* Place holder for data. */
+ };
+ 
+@@ -469,9 +478,9 @@
+ /* coda_rename: NO_OUT */
+ struct coda_rename_in {
+     struct coda_in_hdr ih;
+-    ViceFid	sourceFid;
++    CodaFid sourceFid;
+     int 	srcname;
+-    ViceFid destFid;
++    CodaFid destFid;
+     int 	destname;
+ };
+ 
+@@ -482,14 +491,14 @@
+ /* coda_mkdir: */
+ struct coda_mkdir_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     struct coda_vattr attr;
+     int	   name;		/* Place holder for data. */
+ };
+ 
+ struct coda_mkdir_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    CodaFid Fid;
+     struct coda_vattr attr;
+ };
+ 
+@@ -497,7 +506,7 @@
+ /* coda_rmdir: NO_OUT */
+ struct coda_rmdir_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     int name;		/* Place holder for data. */
+ };
+ 
+@@ -508,7 +517,7 @@
+ /* coda_readdir: */
+ struct coda_readdir_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     int	count;
+     int	offset;
+ };
+@@ -522,7 +531,7 @@
+ /* coda_symlink: NO_OUT */
+ struct coda_symlink_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;          /* Directory to put symlink in */
++    CodaFid Fid;          /* Directory to put symlink in */
+     int srcname;
+     struct coda_vattr attr;
+     int tname;
+@@ -535,7 +544,7 @@
+ /* coda_readlink: */
+ struct coda_readlink_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    CodaFid Fid;
+ };
+ 
+ struct coda_readlink_out {
+@@ -548,28 +557,22 @@
+ /* coda_fsync: NO_OUT */
+ struct coda_fsync_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    CodaFid Fid;
+ };
+ 
+ struct coda_fsync_out {
+     struct coda_out_hdr out;
+ };
+ 
+-/* coda_inactive: NO_OUT */
+-struct coda_inactive_in {
+-    struct coda_in_hdr ih;
+-    ViceFid VFid;
+-};
+-
+ /* coda_vget: */
+ struct coda_vget_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    CodaFid Fid;
+ };
+ 
+ struct coda_vget_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    CodaFid Fid;
+     int	vtype;
+ };
+ 
+@@ -582,69 +585,62 @@
+ /* CODA_PURGEUSER is a venus->kernel call */
+ struct coda_purgeuser_out {
+     struct coda_out_hdr oh;
+-    struct coda_cred cred;
++    uid_t		uid;
+ };
+ 
+ /* coda_zapfile: */
+ /* CODA_ZAPFILE is a venus->kernel call */
+ struct coda_zapfile_out {  
+     struct coda_out_hdr oh;
+-    ViceFid CodaFid;
++    CodaFid Fid;
+ };
+ 
+ /* coda_zapdir: */
+ /* CODA_ZAPDIR is a venus->kernel call */	
+ struct coda_zapdir_out {	  
+     struct coda_out_hdr oh;
+-    ViceFid CodaFid;
++    CodaFid Fid;
+ };
+ 
+ /* coda_zapnode: */
+ /* CODA_ZAPVNODE is a venus->kernel call */	
+ struct coda_zapvnode_out { 
+     struct coda_out_hdr oh;
+-    struct coda_cred cred;
+-    ViceFid VFid;
++    CodaFid Fid;
+ };
+ 
+ /* coda_purgefid: */
+ /* CODA_PURGEFID is a venus->kernel call */	
+ struct coda_purgefid_out { 
+     struct coda_out_hdr oh;
+-    ViceFid CodaFid;
+-};
+-
+-/* coda_rdwr: */
+-struct coda_rdwr_in {
+-    struct coda_in_hdr ih;
+-    ViceFid	VFid;
+-    int	rwflag;
+-    int	count;
+-    int	offset;
+-    int	ioflag;
+-    caddr_t	data;		/* Place holder for data. */	
++    CodaFid Fid;
+ };
+ 
+-struct coda_rdwr_out {
++/* coda_replace: */
++/* CODA_REPLACE is a venus->kernel call */	
++struct coda_replace_out { /* coda_replace is a venus->kernel call */
+     struct coda_out_hdr oh;
+-    int	rwflag;
+-    int	count;
+-    caddr_t	data;	/* Place holder for data. */
++    CodaFid NewFid;
++    CodaFid OldFid;
+ };
+ 
++/* coda_open_by_fd: */
++struct coda_open_by_fd_in {
++    struct coda_in_hdr ih;
++    CodaFid Fid;
++    int	flags;
++};
+ 
+-/* coda_replace: */
+-/* CODA_REPLACE is a venus->kernel call */	
+-struct coda_replace_out { /* coda_replace is a venus->kernel call */
++struct coda_open_by_fd_out {
+     struct coda_out_hdr oh;
+-    ViceFid NewFid;
+-    ViceFid OldFid;
++    int fd;
++    struct file *fh;
+ };
+ 
+ /* coda_open_by_path: */
+ struct coda_open_by_path_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    CodaFid Fid;
+     int	flags;
+ };
+ 
+@@ -653,6 +649,16 @@
+ 	int path;
+ };
+ 
++/* coda_statfs: NO_IN */
++struct coda_statfs_in {
++    struct coda_in_hdr ih;
++};
++
++struct coda_statfs_out {
++    struct coda_out_hdr oh;
++    struct coda_statfs stat;
++};
++
+ /* 
+  * Occasionally, we don't cache the fid returned by CODA_LOOKUP. 
+  * For instance, if the fid is inconsistent. 
+@@ -679,10 +685,10 @@
+     struct coda_symlink_in coda_symlink;
+     struct coda_readlink_in coda_readlink;
+     struct coda_fsync_in coda_fsync;
+-    struct coda_inactive_in coda_inactive;
+     struct coda_vget_in coda_vget;
+-    struct coda_rdwr_in coda_rdwr;
+-	struct coda_open_by_path_in coda_open_by_path;
++    struct coda_open_by_fd_in coda_open_by_fd;
++    struct coda_open_by_path_in coda_open_by_path;
++    struct coda_statfs_in coda_statfs;
+ };
+ 
+ union outputArgs {
+@@ -702,9 +708,10 @@
+     struct coda_zapdir_out coda_zapdir;
+     struct coda_zapvnode_out coda_zapvnode;
+     struct coda_purgefid_out coda_purgefid;
+-    struct coda_rdwr_out coda_rdwr;
+     struct coda_replace_out coda_replace;
+-	struct coda_open_by_path_out coda_open_by_path;
++    struct coda_open_by_fd_out coda_open_by_fd;
++    struct coda_open_by_path_out coda_open_by_path;
++    struct coda_statfs_out coda_statfs;
+ };    
+ 
+ union coda_downcalls {
+@@ -730,32 +737,35 @@
+         short out_size;         /* Maximum size of output buffer, <= 2K */
+ };
+ 
+-#if defined(__CYGWIN32__) || defined(DJGPP)
+-struct PioctlData {
+-	unsigned long cmd;
+-        const char *path;
+-        int follow;
+-        struct ViceIoctl vi;
+-};
+-#else
+ struct PioctlData {
+         const char *path;
+         int follow;
++#if defined(__CYGWIN32__) || defined(__NT_CODA__)
++	int cmd;
++#endif
+         struct ViceIoctl vi;
+ };
+-#endif
+ 
+ #define	CODA_CONTROL		".CONTROL"
+ #define CODA_CONTROLLEN           8
+-#define	CTL_VOL			-1
+-#define	CTL_VNO			-1
+-#define	CTL_UNI			-1
++#define	CTL_FID			{ { -1, -1, -1, -1 } }
+ #define CTL_INO                 -1
+ #define	CTL_FILE		"/coda/.CONTROL"
+ 
+ 
+-#define	IS_CTL_FID(fidp)	((fidp)->Volume == CTL_VOL &&\
+-				 (fidp)->Vnode == CTL_VNO &&\
+-				 (fidp)->Unique == CTL_UNI)
++#define	IS_CTL_FID(fidp)	((fidp)->opaque[0] == -1 &&\
++				 (fidp)->opaque[1] == -1 &&\
++				 (fidp)->opaque[2] == -1 &&\
++				 (fidp)->opaque[3] == -1)
++
++/* Data passed to mount */
++
++#define CODA_MOUNT_VERSION 1
++
++struct coda_mount_data {
++	int		version;
++	int		fd;       /* Opened device */
++};
++
+ #endif 
+ 
+diff -r -u coda.ori/coda_namecache.c coda/coda_namecache.c
+--- coda.ori/coda_namecache.c	Mon May 12 21:09:46 2003
++++ coda/coda_namecache.c	Mon May 12 21:33:40 2003
+@@ -184,8 +184,8 @@
+ 	int count = 1;
+ 
+ 	CODA_NC_DEBUG(CODA_NC_FIND, 
+-		    myprintf(("coda_nc_find(dcp %p, name %s, len %d, cred %p, hash %d\n",
+-			   dcp, name, namelen, cred, hash));)
++		myprintf(("coda_nc_find(dcp %p, name %s, len %d, cred %p, hash %d\n",
++			dcp, name, namelen, cred, hash));)
+ 
+ 	for (cncp = coda_nc_hash[hash].hash_next; 
+ 	     cncp != (struct coda_cache *)&coda_nc_hash[hash];
+@@ -358,9 +358,9 @@
+ 	 * place it at the head of the lru list.
+ 	 */
+         CODA_NC_DEBUG(CODA_NC_REMOVE,
+-		    myprintf(("coda_nc_remove %s from parent %lx.%lx.%lx\n",
+-			   cncp->name, (cncp->dcp)->c_fid.Volume,
+-			   (cncp->dcp)->c_fid.Vnode, (cncp->dcp)->c_fid.Unique));)
++		    myprintf(("coda_nc_remove %s from parent %s\n",
++			      cncp->name, coda_f2s(&cncp->dcp->c_fid))); )
++			   
+ 
+   	CODA_NC_HSHREM(cncp);
+ 
+@@ -389,7 +389,7 @@
+  */
+ void
+ coda_nc_zapParentfid(fid, dcstat)
+-	ViceFid *fid;
++	CodaFid *fid;
+ 	enum dc_status dcstat;
+ {
+ 	/* To get to a specific fid, we might either have another hashing
+@@ -404,8 +404,7 @@
+ 		return;
+ 
+ 	CODA_NC_DEBUG(CODA_NC_ZAPPFID, 
+-		myprintf(("ZapParent: fid 0x%lx, 0x%lx, 0x%lx \n",
+-			fid->Volume, fid->Vnode, fid->Unique)); )
++		myprintf(("ZapParent: fid %s\n", coda_f2s(fid))); )
+ 
+ 	coda_nc_stat.zapPfids++;
+ 
+@@ -420,9 +419,7 @@
+ 		     cncp != (struct coda_cache *)&coda_nc_hash[i];
+ 		     cncp = ncncp) {
+ 			ncncp = cncp->hash_next;
+-			if ((cncp->dcp->c_fid.Volume == fid->Volume) &&
+-			    (cncp->dcp->c_fid.Vnode == fid->Vnode)   &&
+-			    (cncp->dcp->c_fid.Unique == fid->Unique)) {
++			if (coda_fid_eq(&(cncp->dcp->c_fid), fid)) {
+ 			        coda_nc_hash[i].length--;      /* Used for tuning */
+ 				coda_nc_remove(cncp, dcstat); 
+ 			}
+@@ -436,7 +433,7 @@
+  */
+ void
+ coda_nc_zapfid(fid, dcstat)
+-	ViceFid *fid;
++	CodaFid *fid;
+ 	enum dc_status dcstat;
+ {
+ 	/* See comment for zapParentfid. This routine will be used
+@@ -449,8 +446,7 @@
+ 		return;
+ 
+ 	CODA_NC_DEBUG(CODA_NC_ZAPFID, 
+-		myprintf(("Zapfid: fid 0x%lx, 0x%lx, 0x%lx \n",
+-			fid->Volume, fid->Vnode, fid->Unique)); )
++		myprintf(("Zapfid: fid %s\n", coda_f2s(fid))); )
+ 
+ 	coda_nc_stat.zapFids++;
+ 
+@@ -459,9 +455,7 @@
+ 		     cncp != (struct coda_cache *)&coda_nc_hash[i];
+ 		     cncp = ncncp) {
+ 			ncncp = cncp->hash_next;
+-			if ((cncp->cp->c_fid.Volume == fid->Volume) &&
+-			    (cncp->cp->c_fid.Vnode == fid->Vnode)   &&
+-			    (cncp->cp->c_fid.Unique == fid->Unique)) {
++			if (coda_fid_eq(&cncp->cp->c_fid, fid)) {
+ 			        coda_nc_hash[i].length--;     /* Used for tuning */
+ 				coda_nc_remove(cncp, dcstat); 
+ 			}
+@@ -474,7 +468,7 @@
+  */
+ void
+ coda_nc_zapvnode(fid, cred, dcstat)	
+-	ViceFid *fid;
++	CodaFid *fid;
+ 	struct ucred *cred;
+ 	enum dc_status dcstat;
+ {
+@@ -486,9 +480,8 @@
+ 		return;
+ 
+ 	CODA_NC_DEBUG(CODA_NC_ZAPVNODE, 
+-		myprintf(("Zapvnode: fid 0x%lx, 0x%lx, 0x%lx cred %p\n",
+-			  fid->Volume, fid->Vnode, fid->Unique, cred)); )
+-
++		myprintf(("Zapvnode: fid %s cred %p\n",
++			  coda_f2s(fid), cred)); )
+ }
+ 
+ /*
+@@ -537,7 +530,7 @@
+  */
+ void
+ coda_nc_purge_user(uid, dcstat)
+-	vuid_t	uid;
++	uid_t	uid;
+ 	enum dc_status  dcstat;
+ {
+ 	/* 
+@@ -619,7 +612,8 @@
+ 			if (CTOV(cncp->cp)->v_flag & VTEXT) {
+ 			    if (coda_vmflush(cncp->cp))
+ 				CODADEBUG(CODA_FLUSH, 
+-					 myprintf(("coda_nc_flush: (%lx.%lx.%lx) busy\n", cncp->cp->c_fid.Volume, cncp->cp->c_fid.Vnode, cncp->cp->c_fid.Unique)); )
++					myprintf(("coda_nc_flush: %s busy\n",
++						coda_f2s(&cncp->cp->c_fid))); )
+ 			}
+ 
+ 			if ((dcstat == IS_DOWNCALL) 
+diff -r -u coda.ori/coda_namecache.h coda/coda_namecache.h
+--- coda.ori/coda_namecache.h	Mon May 12 21:09:46 2003
++++ coda/coda_namecache.h	Mon May 12 21:33:41 2003
+@@ -140,11 +140,11 @@
+ extern void coda_nc_enter(struct cnode *, const char *, int, struct ucred *, struct cnode *);
+ extern struct cnode *coda_nc_lookup(struct cnode *, const char *, int, struct ucred *);
+ 
+-extern void coda_nc_zapParentfid(ViceFid *, enum dc_status);
+-extern void coda_nc_zapfid(ViceFid *, enum dc_status);
+-extern void coda_nc_zapvnode(ViceFid *, struct ucred *, enum dc_status);
++extern void coda_nc_zapParentfid(CodaFid *, enum dc_status);
++extern void coda_nc_zapfid(CodaFid *, enum dc_status);
++extern void coda_nc_zapvnode(CodaFid *, struct ucred *, enum dc_status);
+ extern void coda_nc_zapfile(struct cnode *, const char *, int);
+-extern void coda_nc_purge_user(vuid_t, enum dc_status);
++extern void coda_nc_purge_user(uid_t, enum dc_status);
+ extern void coda_nc_flush(enum dc_status);
+ 
+ extern void print_coda_nc(void);
+diff -r -u coda.ori/coda_subr.c coda/coda_subr.c
+--- coda.ori/coda_subr.c	Mon May 12 21:09:46 2003
++++ coda/coda_subr.c	Mon May 12 21:33:41 2003
+@@ -76,9 +76,9 @@
+ struct cnode *coda_freelist = NULL;
+ struct cnode *coda_cache[CODA_CACHESIZE];
+ 
+-#define coda_hash(fid) (((fid)->Volume + (fid)->Vnode) & (CODA_CACHESIZE-1))
++#define coda_hash(fid) (coda_f2i(fid) & (CODA_CACHESIZE-1))
+ #define	CNODE_NEXT(cp)	((cp)->c_next)
+-#define ODD(vnode)        ((vnode) & 0x1)
++#define IS_DIR(cnode)        (cnode.opaque[2] & 0x1)
+ 
+ /*
+  * Allocate a cnode.
+@@ -163,15 +163,13 @@
+  */
+ struct cnode *
+ coda_find(fid) 
+-     ViceFid *fid;
++     CodaFid *fid;
+ {
+     struct cnode *cp;
+ 
+     cp = coda_cache[coda_hash(fid)];
+     while (cp) {
+-	if ((cp->c_fid.Vnode == fid->Vnode) &&
+-	    (cp->c_fid.Volume == fid->Volume) &&
+-	    (cp->c_fid.Unique == fid->Unique) &&
++    	if (coda_fid_eq(&(cp->c_fid), fid) &&
+ 	    (!IS_UNMOUNTING(cp)))
+ 	    {
+ 		coda_active++;
+@@ -220,10 +218,8 @@
+ #endif
+ 				count++;
+ 				CODADEBUG(CODA_FLUSH, 
+-					 myprintf(("Live cnode fid %lx.%lx.%lx flags %d count %d\n",
+-						   (cp->c_fid).Volume,
+-						   (cp->c_fid).Vnode,
+-						   (cp->c_fid).Unique, 
++					 myprintf(("Live cnode fid %s flags %d count %d\n",
++						   coda_f2s(&cp->c_fid),
+ 						   cp->c_flags,
+ 						   CTOV(cp)->v_usecount)); );
+ 			}
+@@ -250,7 +246,7 @@
+ 
+     for (hash = 0; hash < CODA_CACHESIZE; hash++) {
+ 	for (cp = coda_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {  
+-	    if (!ODD(cp->c_fid.Vnode)) /* only files can be executed */
++	    if (!IS_DIR(cp->c_fid)) /* only files can be executed */
+ 		coda_vmflush(cp);
+ 	}
+     }
+@@ -270,9 +266,8 @@
+ 	for (cp = coda_cache[hash];
+ 	     cp != NULL;
+ 	     cp = CNODE_NEXT(cp)) {  
+-	    myprintf(("Live cnode fid %lx.%lx.%lx count %d\n",
+-		      (cp->c_fid).Volume,(cp->c_fid).Vnode,
+-		      (cp->c_fid).Unique, CTOV(cp)->v_usecount));
++	    myprintf(("Live cnode fid %s count %d\n",
++		      coda_f2s(&cp->c_fid), CTOV(cp)->v_usecount));
+ 	}
+     }
+ }
+@@ -375,7 +370,7 @@
+  * The sixth allows Venus to replace local fids with global ones
+  * during reintegration.
+  *
+- * CODA_REPLACE -- replace one ViceFid with another throughout the name cache 
++ * CODA_REPLACE -- replace one CodaFid with another throughout the name cache 
+  */
+ 
+ int handleDownCall(opcode, out)
+@@ -398,7 +393,7 @@
+ 	  coda_clstat.reqs[CODA_PURGEUSER]++;
+ 	  
+ 	  /* XXX - need to prevent fsync's */
+-	  coda_nc_purge_user(out->coda_purgeuser.cred.cr_uid, IS_DOWNCALL);
++	  coda_nc_purge_user(out->coda_purgeuser.uid, IS_DOWNCALL);
+ 	  return(0);
+       }
+ 	
+@@ -409,19 +404,16 @@
+ 	  coda_clstat.ncalls++;
+ 	  coda_clstat.reqs[CODA_ZAPFILE]++;
+ 	  
+-	  cp = coda_find(&out->coda_zapfile.CodaFid);
++	  cp = coda_find(&out->coda_zapfile.Fid);
+ 	  if (cp != NULL) {
+ 	      vref(CTOV(cp));
+ 	      
+ 	      cp->c_flags &= ~C_VATTR;
+ 	      if (CTOV(cp)->v_flag & VTEXT)
+ 		  error = coda_vmflush(cp);
+-	      CODADEBUG(CODA_ZAPFILE, myprintf(("zapfile: fid = (%lx.%lx.%lx), 
+-                                              refcnt = %d, error = %d\n",
+-					      cp->c_fid.Volume, 
+-					      cp->c_fid.Vnode, 
+-					      cp->c_fid.Unique, 
+-					      CTOV(cp)->v_usecount - 1, error)););
++	      CODADEBUG(CODA_ZAPFILE, myprintf((
++		  "zapfile: fid = %s, refcnt = %d, error = %d\n",
++		  coda_f2s(&cp->c_fid), CTOV(cp)->v_usecount - 1, error)););
+ 	      if (CTOV(cp)->v_usecount == 1) {
+ 		  cp->c_flags |= C_PURGING;
+ 	      }
+@@ -437,18 +429,16 @@
+ 	  coda_clstat.ncalls++;
+ 	  coda_clstat.reqs[CODA_ZAPDIR]++;
+ 	  
+-	  cp = coda_find(&out->coda_zapdir.CodaFid);
++	  cp = coda_find(&out->coda_zapdir.Fid);
+ 	  if (cp != NULL) {
+ 	      vref(CTOV(cp));
+ 	      
+ 	      cp->c_flags &= ~C_VATTR;
+-	      coda_nc_zapParentfid(&out->coda_zapdir.CodaFid, IS_DOWNCALL);     
++	      coda_nc_zapParentfid(&out->coda_zapdir.Fid, IS_DOWNCALL);     
+ 	      
+-	      CODADEBUG(CODA_ZAPDIR, myprintf(("zapdir: fid = (%lx.%lx.%lx), 
+-                                          refcnt = %d\n",cp->c_fid.Volume, 
+-					     cp->c_fid.Vnode, 
+-					     cp->c_fid.Unique, 
+-					     CTOV(cp)->v_usecount - 1)););
++	      CODADEBUG(CODA_ZAPDIR, myprintf((
++		  "zapdir: fid = %s, refcnt = %d\n",
++		  coda_f2s(&cp->c_fid), CTOV(cp)->v_usecount - 1)););
+ 	      if (CTOV(cp)->v_usecount == 1) {
+ 		  cp->c_flags |= C_PURGING;
+ 	      }
+@@ -465,24 +455,23 @@
+ 	  coda_clstat.ncalls++;
+ 	  coda_clstat.reqs[CODA_PURGEFID]++;
+ 
+-	  cp = coda_find(&out->coda_purgefid.CodaFid);
++	  cp = coda_find(&out->coda_purgefid.Fid);
+ 	  if (cp != NULL) {
+ 	      vref(CTOV(cp));
+-	      if (ODD(out->coda_purgefid.CodaFid.Vnode)) { /* Vnode is a directory */
+-		  coda_nc_zapParentfid(&out->coda_purgefid.CodaFid,
++	      if (IS_DIR(out->coda_purgefid.Fid)) { /* Vnode is a directory */
++		  coda_nc_zapParentfid(&out->coda_purgefid.Fid,
+ 				     IS_DOWNCALL);     
+ 	      }
+ 	      cp->c_flags &= ~C_VATTR;
+-	      coda_nc_zapfid(&out->coda_purgefid.CodaFid, IS_DOWNCALL);
+-	      if (!(ODD(out->coda_purgefid.CodaFid.Vnode)) 
++	      coda_nc_zapfid(&out->coda_purgefid.Fid, IS_DOWNCALL);
++	      if (!(IS_DIR(out->coda_purgefid.Fid)) 
+ 		  && (CTOV(cp)->v_flag & VTEXT)) {
+ 		  
+ 		  error = coda_vmflush(cp);
+ 	      }
+-	      CODADEBUG(CODA_PURGEFID, myprintf(("purgefid: fid = (%lx.%lx.%lx), refcnt = %d, error = %d\n",
+-                                            cp->c_fid.Volume, cp->c_fid.Vnode,
+-                                            cp->c_fid.Unique, 
+-					    CTOV(cp)->v_usecount - 1, error)););
++	      CODADEBUG(CODA_PURGEFID, myprintf((
++			 "purgefid: fid = %s, refcnt = %d, error = %d\n",
++			 coda_f2s(&cp->c_fid), CTOV(cp)->v_usecount - 1, error)););
+ 	      if (CTOV(cp)->v_usecount == 1) {
+ 		  cp->c_flags |= C_PURGING;
+ 	      }
+@@ -505,12 +494,10 @@
+ 	      cp->c_fid = out->coda_replace.NewFid;
+ 	      coda_save(cp);
+ 
+-	      CODADEBUG(CODA_REPLACE, myprintf(("replace: oldfid = (%lx.%lx.%lx), newfid = (%lx.%lx.%lx), cp = %p\n",
+-					   out->coda_replace.OldFid.Volume,
+-					   out->coda_replace.OldFid.Vnode,
+-					   out->coda_replace.OldFid.Unique,
+-					   cp->c_fid.Volume, cp->c_fid.Vnode, 
+-					   cp->c_fid.Unique, cp));)
++	      CODADEBUG(CODA_REPLACE, myprintf((
++			"replace: oldfid = %s, newfid = %s, cp = %p\n",
++			coda_f2s(&out->coda_replace.OldFid),
++			coda_f2s(&cp->c_fid), cp));)
+ 	      vrele(CTOV(cp));
+ 	  }
+ 	  return (0);
+diff -r -u coda.ori/coda_subr.h coda/coda_subr.h
+--- coda.ori/coda_subr.h	Mon May 12 21:09:46 2003
++++ coda/coda_subr.h	Mon May 12 21:33:41 2003
+@@ -33,7 +33,7 @@
+ 
+ struct cnode *coda_alloc(void);
+ void  coda_free(struct cnode *cp);
+-struct cnode *coda_find(ViceFid *fid);
++struct cnode *coda_find(CodaFid *fid);
+ void coda_flush(enum dc_status dcstat);
+ void coda_testflush(void);
+ void coda_checkunmounting(struct mount *mp);
+diff -r -u coda.ori/coda_venus.c coda/coda_venus.c
+--- coda.ori/coda_venus.c	Mon May 12 21:09:46 2003
++++ coda/coda_venus.c	Mon May 12 21:33:41 2003
+@@ -91,19 +91,15 @@
+     ((char*)inp + (int)inp->struc)[len++] = 0; \
+     Isize += len
+ 
+-#define INIT_IN(in, op, ident, p) \
+-	  (in)->opcode = (op); \
+-	  (in)->pid = p ? p->p_pid : -1; \
+-          (in)->pgid = p ? p->p_pgid : -1; \
+-          (in)->sid = (p && p->p_session && p->p_session->s_leader) ? (p->p_session->s_leader->p_pid) : -1; \
+-          if (ident != NOCRED) {                              \
+-	      (in)->cred.cr_uid = ident->cr_uid;              \
+-	      (in)->cred.cr_groupid = ident->cr_gid;          \
+-          } else {                                            \
+-	      bzero(&((in)->cred),sizeof(struct coda_cred));  \
+-	      (in)->cred.cr_uid = -1;                         \
+-	      (in)->cred.cr_groupid = -1;                     \
+-          }                                                   \
++#define INIT_IN(in, op, ident, p)                       \
++	  (in)->opcode = (op);                          \
++	  (in)->pid = p ? p->p_pid : -1;                \
++          (in)->pgid = p ? p->p_pgid : -1;              \
++          if (ident != NOCRED) {                        \
++	      (in)->uid = ident->cr_uid;              	\
++          } else {                                      \
++	      (in)->uid = -1;                           \
++          }                                             \
+ 
+ #define	CNV_OFLAG(to, from) 				\
+     do { 						\
+@@ -122,7 +118,7 @@
+ 		(top)->va_nlink = (fromp)->va_nlink; \
+ 		(top)->va_uid = (fromp)->va_uid; \
+ 		(top)->va_gid = (fromp)->va_gid; \
+-		(top)->va_fsid = VNOVAL; \
++		(top)->va_fsid =  VNOVAL; \
+ 		(top)->va_fileid = (fromp)->va_fileid; \
+ 		(top)->va_size = (fromp)->va_size; \
+ 		(top)->va_blocksize = (fromp)->va_blocksize; \
+@@ -164,7 +160,7 @@
+ int
+ venus_root(void *mdp,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid)
++/*out*/	CodaFid *VFid)
+ {
+     DECL_NO_IN(coda_root);		/* sets Isize & Osize */
+     ALLOC_NO_IN(coda_root);		/* sets inp & outp */
+@@ -174,14 +170,14 @@
+ 
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+     if (!error)
+-	*VFid = outp->VFid;
++	*VFid = outp->Fid;
+ 
+     CODA_FREE(inp, coda_root_size);
+     return error;
+ }
+ 
+ int
+-venus_open(void *mdp, ViceFid *fid, int flag,
++venus_open(void *mdp, CodaFid *fid, int flag,
+ 	struct ucred *cred, struct proc *p,
+ /*out*/	dev_t *dev, ino_t *inode)
+ {
+@@ -191,7 +187,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_OPEN, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+     CNV_OFLAG(cflag, flag);
+     inp->flags = cflag;
+ 
+@@ -207,7 +203,7 @@
+ }
+ 
+ int
+-venus_close(void *mdp, ViceFid *fid, int flag,
++venus_close(void *mdp, CodaFid *fid, int flag,
+ 	struct ucred *cred, struct proc *p)
+ {
+     int cflag;
+@@ -215,7 +211,7 @@
+     ALLOC_NO_OUT(coda_close);		/* sets inp & outp */
+ 
+     INIT_IN(&inp->ih, CODA_CLOSE, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+     CNV_OFLAG(cflag, flag);
+     inp->flags = cflag;
+ 
+@@ -244,7 +240,7 @@
+  * normal files.
+  */
+ int
+-venus_ioctl(void *mdp, ViceFid *fid,
++venus_ioctl(void *mdp, CodaFid *fid,
+ 	int com, int flag, caddr_t data,
+ 	struct ucred *cred, struct proc *p)
+ {
+@@ -256,7 +252,7 @@
+     ALLOC(coda_ioctl);			/* sets inp & outp */
+ 
+     INIT_IN(&inp->ih, CODA_IOCTL, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+ 
+     /* command was mutated by increasing its size field to reflect the  
+      * path and follow args. we need to subtract that out before sending
+@@ -295,7 +291,7 @@
+ }
+ 
+ int
+-venus_getattr(void *mdp, ViceFid *fid,
++venus_getattr(void *mdp, CodaFid *fid,
+ 	struct ucred *cred, struct proc *p,
+ /*out*/	struct vattr *vap)
+ {
+@@ -304,7 +300,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_GETATTR, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+ 
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+     if (!error) {
+@@ -316,7 +312,7 @@
+ }
+ 
+ int
+-venus_setattr(void *mdp, ViceFid *fid, struct vattr *vap,
++venus_setattr(void *mdp, CodaFid *fid, struct vattr *vap,
+ 	struct ucred *cred, struct proc *p)
+ {
+     DECL_NO_OUT(coda_setattr);		/* sets Isize & Osize */
+@@ -324,7 +320,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_SETATTR, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+     CNV_V2VV_ATTR(&inp->attr, vap);
+ 
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+@@ -334,7 +330,7 @@
+ }
+ 
+ int
+-venus_access(void *mdp, ViceFid *fid, int mode,
++venus_access(void *mdp, CodaFid *fid, int mode,
+ 	struct ucred *cred, struct proc *p)
+ {
+     DECL_NO_OUT(coda_access);		/* sets Isize & Osize */
+@@ -342,7 +338,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_ACCESS, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+     /* NOTE:
+      * NetBSD and Venus internals use the "data" in the low 3 bits.
+      * Hence, the conversion.
+@@ -356,7 +352,7 @@
+ }
+ 
+ int
+-venus_readlink(void *mdp, ViceFid *fid,
++venus_readlink(void *mdp, CodaFid *fid,
+ 	struct ucred *cred, struct proc *p,
+ /*out*/	char **str, int *len)
+ {
+@@ -366,7 +362,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_READLINK, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+ 
+     Osize += CODA_MAXPATHLEN;
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+@@ -381,7 +377,7 @@
+ }
+ 
+ int
+-venus_fsync(void *mdp, ViceFid *fid,
++venus_fsync(void *mdp, CodaFid *fid,
+ 	struct ucred *cred, struct proc *p)
+ {
+     DECL_NO_OUT(coda_fsync);		/* sets Isize & Osize */
+@@ -389,7 +385,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_FSYNC, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+ 
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+ 
+@@ -398,10 +394,10 @@
+ }
+ 
+ int
+-venus_lookup(void *mdp, ViceFid *fid,
++venus_lookup(void *mdp, CodaFid *fid,
+     	const char *nm, int len,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid, int *vtype)
++/*out*/	CodaFid *VFid, int *vtype)
+ {
+     DECL(coda_lookup);			/* sets Isize & Osize */
+     coda_lookup_size += len + 1;
+@@ -409,7 +405,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_LOOKUP, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+ 
+     /* NOTE:
+      * Between version 1 and version 2 we have added an extra flag field
+@@ -426,7 +422,7 @@
+ 
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+     if (!error) {
+-	*VFid = outp->VFid;
++	*VFid = outp->Fid;
+ 	*vtype = outp->vtype;
+     }
+ 
+@@ -435,10 +431,10 @@
+ }
+ 
+ int
+-venus_create(void *mdp, ViceFid *fid,
++venus_create(void *mdp, CodaFid *fid,
+     	const char *nm, int len, int exclusive, int mode, struct vattr *va,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid, struct vattr *attr)
++/*out*/	CodaFid *VFid, struct vattr *attr)
+ {
+     DECL(coda_create);			/* sets Isize & Osize */
+     coda_create_size += len + 1;
+@@ -446,7 +442,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_CREATE, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+     inp->excl = exclusive ? C_O_EXCL : 0;
+     inp->mode = mode;
+     CNV_V2VV_ATTR(&inp->attr, va);
+@@ -456,7 +452,7 @@
+ 
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+     if (!error) {
+-	*VFid = outp->VFid;
++	*VFid = outp->Fid;
+ 	CNV_VV2V_ATTR(attr, &outp->attr);
+     }
+ 
+@@ -465,7 +461,7 @@
+ }
+ 
+ int
+-venus_remove(void *mdp, ViceFid *fid,
++venus_remove(void *mdp, CodaFid *fid,
+         const char *nm, int len,
+ 	struct ucred *cred, struct proc *p)
+ {
+@@ -475,7 +471,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_REMOVE, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+ 
+     inp->name = Isize;
+     STRCPY(name, nm, len);		/* increments Isize */
+@@ -487,7 +483,7 @@
+ }
+ 
+ int
+-venus_link(void *mdp, ViceFid *fid, ViceFid *tfid,
++venus_link(void *mdp, CodaFid *fid, CodaFid *tfid,
+         const char *nm, int len,
+ 	struct ucred *cred, struct proc *p)
+ {
+@@ -510,7 +506,7 @@
+ }
+ 
+ int
+-venus_rename(void *mdp, ViceFid *fid, ViceFid *tfid,
++venus_rename(void *mdp, CodaFid *fid, CodaFid *tfid,
+         const char *nm, int len, const char *tnm, int tlen,
+ 	struct ucred *cred, struct proc *p)
+ {
+@@ -536,10 +532,10 @@
+ }
+ 
+ int
+-venus_mkdir(void *mdp, ViceFid *fid,
++venus_mkdir(void *mdp, CodaFid *fid,
+     	const char *nm, int len, struct vattr *va,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid, struct vattr *ova)
++/*out*/	CodaFid *VFid, struct vattr *ova)
+ {
+     DECL(coda_mkdir);			/* sets Isize & Osize */
+     coda_mkdir_size += len + 1;
+@@ -547,7 +543,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_MKDIR, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+     CNV_V2VV_ATTR(&inp->attr, va);
+ 
+     inp->name = Isize;
+@@ -555,7 +551,7 @@
+ 
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+     if (!error) {
+-	*VFid = outp->VFid;
++	*VFid = outp->Fid;
+ 	CNV_VV2V_ATTR(ova, &outp->attr);
+     }
+ 
+@@ -564,7 +560,7 @@
+ }
+ 
+ int
+-venus_rmdir(void *mdp, ViceFid *fid,
++venus_rmdir(void *mdp, CodaFid *fid,
+     	const char *nm, int len,
+ 	struct ucred *cred, struct proc *p)
+ {
+@@ -574,7 +570,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_RMDIR, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+ 
+     inp->name = Isize;
+     STRCPY(name, nm, len);		/* increments Isize */
+@@ -586,7 +582,7 @@
+ }
+ 
+ int
+-venus_symlink(void *mdp, ViceFid *fid,
++venus_symlink(void *mdp, CodaFid *fid,
+         const char *lnm, int llen, const char *nm, int len, struct vattr *va,
+ 	struct ucred *cred, struct proc *p)
+ {
+@@ -596,7 +592,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_SYMLINK, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+     CNV_V2VV_ATTR(&inp->attr, va);
+ 
+     inp->srcname = Isize;
+@@ -612,7 +608,7 @@
+ }
+ 
+ int
+-venus_readdir(void *mdp, ViceFid *fid,
++venus_readdir(void *mdp, CodaFid *fid,
+     	int count, int offset,
+ 	struct ucred *cred, struct proc *p,
+ /*out*/	char *buffer, int *len)
+@@ -623,7 +619,7 @@
+ 
+     /* send the open to venus. */
+     INIT_IN(&inp->ih, CODA_READDIR, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+     inp->count = count;
+     inp->offset = offset;
+ 
+@@ -639,20 +635,20 @@
+ }
+ 
+ int
+-venus_fhtovp(void *mdp, ViceFid *fid,
++venus_fhtovp(void *mdp, CodaFid *fid,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid, int *vtype)
++/*out*/	CodaFid *VFid, int *vtype)
+ {
+     DECL(coda_vget);			/* sets Isize & Osize */
+     ALLOC(coda_vget);			/* sets inp & outp */
+ 
+     /* Send the open to Venus. */
+     INIT_IN(&inp->ih, CODA_VGET, cred, p);
+-    inp->VFid = *fid;
++    inp->Fid = *fid;
+ 
+     error = coda_call(mdp, Isize, &Osize, (char *)inp);
+     if (!error) {
+-	*VFid = outp->VFid;
++	*VFid = outp->Fid;
+ 	*vtype = outp->vtype;
+     }
+ 
+diff -r -u coda.ori/coda_venus.h coda/coda_venus.h
+--- coda.ori/coda_venus.h	Mon May 12 21:09:46 2003
++++ coda/coda_venus.h	Mon May 12 21:33:41 2003
+@@ -34,15 +34,15 @@
+ int
+ venus_root(void *mdp,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid);
++/*out*/	CodaFid *VFid);
+ 
+ int
+-venus_open(void *mdp, ViceFid *fid, int flag,
++venus_open(void *mdp, CodaFid *fid, int flag,
+ 	struct ucred *cred, struct proc *p,
+ /*out*/	dev_t *dev, ino_t *inode);
+ 
+ int
+-venus_close(void *mdp, ViceFid *fid, int flag,
++venus_close(void *mdp, CodaFid *fid, int flag,
+ 	struct ucred *cred, struct proc *p);
+ 
+ void
+@@ -52,82 +52,82 @@
+ venus_write(void);
+ 
+ int
+-venus_ioctl(void *mdp, ViceFid *fid,
++venus_ioctl(void *mdp, CodaFid *fid,
+ 	int com, int flag, caddr_t data,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_getattr(void *mdp, ViceFid *fid,
++venus_getattr(void *mdp, CodaFid *fid,
+ 	struct ucred *cred, struct proc *p,
+ /*out*/	struct vattr *vap);
+ 
+ int
+-venus_setattr(void *mdp, ViceFid *fid, struct vattr *vap,
++venus_setattr(void *mdp, CodaFid *fid, struct vattr *vap,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_access(void *mdp, ViceFid *fid, int mode,
++venus_access(void *mdp, CodaFid *fid, int mode,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_readlink(void *mdp, ViceFid *fid,
++venus_readlink(void *mdp, CodaFid *fid,
+ 	struct ucred *cred, struct proc *p,
+ /*out*/	char **str, int *len);
+ 
+ int
+-venus_fsync(void *mdp, ViceFid *fid,
++venus_fsync(void *mdp, CodaFid *fid,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_lookup(void *mdp, ViceFid *fid,
++venus_lookup(void *mdp, CodaFid *fid,
+     	const char *nm, int len,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid, int *vtype);
++/*out*/	CodaFid *VFid, int *vtype);
+ 
+ int
+-venus_create(void *mdp, ViceFid *fid,
++venus_create(void *mdp, CodaFid *fid,
+     	const char *nm, int len, int exclusive, int mode, struct vattr *va,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid, struct vattr *attr);
++/*out*/	CodaFid *VFid, struct vattr *attr);
+ 
+ int
+-venus_remove(void *mdp, ViceFid *fid,
++venus_remove(void *mdp, CodaFid *fid,
+         const char *nm, int len,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_link(void *mdp, ViceFid *fid, ViceFid *tfid,
++venus_link(void *mdp, CodaFid *fid, CodaFid *tfid,
+         const char *nm, int len,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_rename(void *mdp, ViceFid *fid, ViceFid *tfid,
++venus_rename(void *mdp, CodaFid *fid, CodaFid *tfid,
+         const char *nm, int len, const char *tnm, int tlen,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_mkdir(void *mdp, ViceFid *fid,
++venus_mkdir(void *mdp, CodaFid *fid,
+     	const char *nm, int len, struct vattr *va,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid, struct vattr *ova);
++/*out*/	CodaFid *VFid, struct vattr *ova);
+ 
+ int
+-venus_rmdir(void *mdp, ViceFid *fid,
++venus_rmdir(void *mdp, CodaFid *fid,
+     	const char *nm, int len,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_symlink(void *mdp, ViceFid *fid,
++venus_symlink(void *mdp, CodaFid *fid,
+         const char *lnm, int llen, const char *nm, int len, struct vattr *va,
+ 	struct ucred *cred, struct proc *p);
+ 
+ int
+-venus_readdir(void *mdp, ViceFid *fid,
++venus_readdir(void *mdp, CodaFid *fid,
+     	int count, int offset,
+ 	struct ucred *cred, struct proc *p,
+ /*out*/	char *buffer, int *len);
+ 
+ int
+-venus_fhtovp(void *mdp, ViceFid *fid,
++venus_fhtovp(void *mdp, CodaFid *fid,
+ 	struct ucred *cred, struct proc *p,
+-/*out*/	ViceFid *VFid, int *vtype);
++/*out*/	CodaFid *VFid, int *vtype);
+diff -r -u coda.ori/coda_vfsops.c coda/coda_vfsops.c
+--- coda.ori/coda_vfsops.c	Mon May 12 21:09:46 2003
++++ coda/coda_vfsops.c	Mon May 12 21:33:41 2003
+@@ -120,8 +120,8 @@
+     dev_t dev;
+     struct coda_mntinfo *mi;
+     struct vnode *rootvp;
+-    ViceFid rootfid;
+-    ViceFid ctlfid;
++    CodaFid rootfid;
++    CodaFid ctlfid = CTL_FID; 
+     int error;
+ 
+     ENTRY;
+@@ -189,16 +189,14 @@
+      * actually make the CODA_ROOT call to venus until the first call
+      * to coda_root in case a server is down while venus is starting.
+      */
+-    rootfid.Volume = 0;
+-    rootfid.Vnode = 0;
+-    rootfid.Unique = 0;
++    rootfid.opaque[0] = 0;
++    rootfid.opaque[1] = 0;
++    rootfid.opaque[2] = 0;
++    rootfid.opaque[3] = 0;
+     cp = make_coda_node(&rootfid, vfsp, VDIR);
+     rootvp = CTOV(cp);
+     rootvp->v_flag |= VROOT;
+ 	
+-    ctlfid.Volume = CTL_VOL;
+-    ctlfid.Vnode = CTL_VNO;
+-    ctlfid.Unique = CTL_UNI;
+ /*  cp = make_coda_node(&ctlfid, vfsp, VCHR);
+     The above code seems to cause a loop in the cnode links.
+     I don't totally understand when it happens, it is caught
+@@ -294,16 +292,17 @@
+     struct vnode **result;
+     int error;
+     struct proc *p = curproc;    /* XXX - bnoble */
+-    ViceFid VFid;
++    CodaFid VFid;
+ 
+     ENTRY;
+     MARK_ENTRY(CODA_ROOT_STATS);
+     result = NULL;
+     
+     if (vfsp == mi->mi_vfsp) {
+-	if ((VTOC(mi->mi_rootvp)->c_fid.Volume != 0) ||
+-	    (VTOC(mi->mi_rootvp)->c_fid.Vnode != 0) ||
+-	    (VTOC(mi->mi_rootvp)->c_fid.Unique != 0))
++	if ((VTOC(mi->mi_rootvp)->c_fid.opaque[0] != 0) ||
++	    (VTOC(mi->mi_rootvp)->c_fid.opaque[1] != 0) ||
++	    (VTOC(mi->mi_rootvp)->c_fid.opaque[2] != 0) ||
++	    (VTOC(mi->mi_rootvp)->c_fid.opaque[3] != 0))
+ 	    { /* Found valid root. */
+ 		*vpp = mi->mi_rootvp;
+ 		/* On Mach, this is vref.  On NetBSD, VOP_LOCK */
+@@ -443,7 +442,7 @@
+     struct cnode *cp = 0;
+     int error;
+     struct proc *p = curproc; /* XXX -mach */
+-    ViceFid VFid;
++    CodaFid VFid;
+     int vtype;
+ 
+     ENTRY;
+@@ -464,8 +463,8 @@
+ 	    *vpp = (struct vnode *)0;
+     } else {
+ 	CODADEBUG(CODA_VGET, 
+-		 myprintf(("vget: vol %lx vno %lx uni %lx type %d result %d\n",
+-			VFid.Volume, VFid.Vnode, VFid.Unique, vtype, error)); )
++		 myprintf(("vget: %s type %d result %d\n",
++			coda_f2s(&VFid), vtype, error)); )
+ 	    
+ 	cp = make_coda_node(&VFid, vfsp, vtype);
+ 	*vpp = CTOV(cp);
+@@ -488,7 +487,7 @@
+     
+     ENTRY;
+ 
+-    cfid.cfid_len = (short)sizeof(ViceFid);
++    cfid.cfid_len = (short)sizeof(CodaFid);
+     cfid.cfid_fid = VTOC(*vpp)->c_fid;	/* Structure assignment. */
+     /* XXX ? */
+ 
+diff -r -u coda.ori/coda_vfsops.h coda/coda_vfsops.h
+--- coda.ori/coda_vfsops.h	Mon May 12 21:09:46 2003
++++ coda/coda_vfsops.h	Mon May 12 21:33:41 2003
+@@ -40,7 +40,7 @@
+ struct cfid {
+     u_short	cfid_len;
+     u_short     padding;
+-    ViceFid	cfid_fid;
++    CodaFid	cfid_fid;
+ };
+ 
+ struct mount;
+diff -r -u coda.ori/coda_vnops.c coda/coda_vnops.c
+--- coda.ori/coda_vnops.c	Mon May 12 21:09:46 2003
++++ coda/coda_vnops.c	Mon May 12 21:33:41 2003
+@@ -476,9 +476,8 @@
+     }
+ 
+     /* Have UFS handle the call. */
+-    CODADEBUG(CODA_RDWR, myprintf(("indirect rdwr: fid = (%lx.%lx.%lx), refcnt = %d\n",
+-			      cp->c_fid.Volume, cp->c_fid.Vnode, 
+-			      cp->c_fid.Unique, CTOV(cp)->v_usecount)); )
++    CODADEBUG(CODA_RDWR, myprintf(("indirect rdwr: fid = %s, refcnt = %d\n",
++			coda_f2s(&cp->c_fid), CTOV(cp)->v_usecount)); )
+ 
+ 
+     if (rw == UIO_READ) {
+@@ -625,10 +624,8 @@
+ 
+     /* Check to see if the attributes have already been cached */
+     if (VALID_VATTR(cp)) { 
+-	CODADEBUG(CODA_GETATTR, { myprintf(("attr cache hit: (%lx.%lx.%lx)\n",
+-				       cp->c_fid.Volume,
+-				       cp->c_fid.Vnode,
+-				       cp->c_fid.Unique));});
++	CODADEBUG(CODA_GETATTR, { myprintf(("attr cache hit: %s\n",
++					coda_f2s(&cp->c_fid)));});
+ 	CODADEBUG(CODA_GETATTR, if (!(codadebug & ~CODA_GETATTR))
+ 		 print_vattr(&cp->c_vattr); );
+ 	
+@@ -640,11 +637,8 @@
+     error = venus_getattr(vtomi(vp), &cp->c_fid, cred, p, vap);
+ 
+     if (!error) {
+-	CODADEBUG(CODA_GETATTR, myprintf(("getattr miss (%lx.%lx.%lx): result %d\n",
+-				     cp->c_fid.Volume,
+-				     cp->c_fid.Vnode,
+-				     cp->c_fid.Unique,
+-				     error)); )
++	CODADEBUG(CODA_GETATTR, myprintf(("getattr miss %s: result %d\n",
++				     coda_f2s(&cp->c_fid), error)); )
+ 	    
+ 	CODADEBUG(CODA_GETATTR, if (!(codadebug & ~CODA_GETATTR))
+ 		 print_vattr(vap);	);
+@@ -888,9 +882,8 @@
+ 	return 0;
+     }
+ 
+-    CODADEBUG(CODA_INACTIVE, myprintf(("in inactive, %lx.%lx.%lx. vfsp %p\n",
+-				  cp->c_fid.Volume, cp->c_fid.Vnode, 
+-				  cp->c_fid.Unique, vp->v_mount));)
++    CODADEBUG(CODA_INACTIVE, myprintf(("in inactive, %s, vfsp %p\n",
++				  coda_f2s(&cp->c_fid), vp->v_mount));)
+ 
+     /* If an array has been allocated to hold the symlink, deallocate it */
+     if ((coda_symlink_cache) && (VALID_SYMLINK(cp))) {
+@@ -963,15 +956,14 @@
+     struct cnode *cp;
+     const char *nm = cnp->cn_nameptr;
+     int len = cnp->cn_namelen;
+-    ViceFid VFid;
++    CodaFid VFid;
+     int	vtype;
+     int error = 0;
+ 
+     MARK_ENTRY(CODA_LOOKUP_STATS);
+ 
+-    CODADEBUG(CODA_LOOKUP, myprintf(("lookup: %s in %lx.%lx.%lx\n",
+-				   nm, dcp->c_fid.Volume,
+-				   dcp->c_fid.Vnode, dcp->c_fid.Unique)););
++    CODADEBUG(CODA_LOOKUP, myprintf(("lookup: %s in %s\n",
++				   nm, coda_f2s(&dcp->c_fid))););
+ 
+     /* Check for lookup of control object. */
+     if (IS_CTL_NAME(dvp, nm, len)) {
+@@ -983,9 +975,8 @@
+ 
+     if (len+1 > CODA_MAXNAMLEN) {
+ 	MARK_INT_FAIL(CODA_LOOKUP_STATS);
+-	CODADEBUG(CODA_LOOKUP, myprintf(("name too long: lookup, %lx.%lx.%lx(%s)\n",
+-				    dcp->c_fid.Volume, dcp->c_fid.Vnode,
+-				    dcp->c_fid.Unique, nm)););
++	CODADEBUG(CODA_LOOKUP, myprintf(("name too long: lookup, %s (%s)\n",
++				    coda_f2s(&dcp->c_fid), nm)););
+ 	*vpp = (struct vnode *)0;
+ 	error = EINVAL;
+ 	goto exit;
+@@ -1005,15 +996,14 @@
+ 	
+ 	if (error) {
+ 	    MARK_INT_FAIL(CODA_LOOKUP_STATS);
+-	    CODADEBUG(CODA_LOOKUP, myprintf(("lookup error on %lx.%lx.%lx(%s)%d\n",
+-					dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, nm, error));)
++	    CODADEBUG(CODA_LOOKUP, myprintf(("lookup error on %s (%s)%d\n",
++					coda_f2s(&dcp->c_fid), nm, error));)
+ 	    *vpp = (struct vnode *)0;
+ 	} else {
+ 	    MARK_INT_SAT(CODA_LOOKUP_STATS);
+ 	    CODADEBUG(CODA_LOOKUP, 
+-		     myprintf(("lookup: vol %lx vno %lx uni %lx type %o result %d\n",
+-			    VFid.Volume, VFid.Vnode, VFid.Unique, vtype,
+-			    error)); )
++		     myprintf(("lookup: %s type %o result %d\n",
++			    coda_f2s(&VFid), vtype, error)); )
+ 		
+ 	    cp = make_coda_node(&VFid, dvp->v_mount, vtype);
+ 	    *vpp = CTOV(cp);
+@@ -1124,7 +1114,7 @@
+     struct cnode *cp;
+     const char *nm = cnp->cn_nameptr;
+     int len = cnp->cn_namelen;
+-    ViceFid VFid;
++    CodaFid VFid;
+     struct vattr attr;
+ 
+     MARK_ENTRY(CODA_CREATE_STATS);
+@@ -1169,8 +1159,8 @@
+ 	coda_nc_enter(VTOC(dvp), nm, len, cred, VTOC(*vpp));
+ 	
+ 	CODADEBUG(CODA_CREATE, 
+-		 myprintf(("create: (%lx.%lx.%lx), result %d\n",
+-			VFid.Volume, VFid.Vnode, VFid.Unique, error)); )
++		 myprintf(("create: %s, result %d\n",
++			coda_f2s(&VFid), error)); )
+     } else {
+ 	*vpp = (struct vnode *)0;
+ 	CODADEBUG(CODA_CREATE, myprintf(("create error %d\n", error));)
+@@ -1211,9 +1201,8 @@
+ 
+     MARK_ENTRY(CODA_REMOVE_STATS);
+ 
+-    CODADEBUG(CODA_REMOVE, myprintf(("remove: %s in %lx.%lx.%lx\n",
+-				   nm, cp->c_fid.Volume, cp->c_fid.Vnode,
+-				   cp->c_fid.Unique)););
++    CODADEBUG(CODA_REMOVE, myprintf(("remove: %s in %s\n",
++				   nm, coda_f2s(&cp->c_fid))););
+ 
+     /* Remove the file's entry from the CODA Name Cache */
+     /* We're being conservative here, it might be that this person
+@@ -1274,17 +1263,17 @@
+ 
+     if (codadebug & CODADBGMSK(CODA_LINK)) {
+ 
+-	myprintf(("nb_link:   vp fid: (%lx.%lx.%lx)\n",
+-		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
+-	myprintf(("nb_link: tdvp fid: (%lx.%lx.%lx)\n",
+-		  tdcp->c_fid.Volume, tdcp->c_fid.Vnode, tdcp->c_fid.Unique));
++	myprintf(("nb_link:   vp fid: %s\n",
++		  coda_f2s(&cp->c_fid)));
++	myprintf(("nb_link: tdvp fid: %s)\n",
++		  coda_f2s(&tdcp->c_fid)));
+ 	
+     }
+     if (codadebug & CODADBGMSK(CODA_LINK)) {
+-	myprintf(("link:   vp fid: (%lx.%lx.%lx)\n",
+-		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
+-	myprintf(("link: tdvp fid: (%lx.%lx.%lx)\n",
+-		  tdcp->c_fid.Volume, tdcp->c_fid.Vnode, tdcp->c_fid.Unique));
++	myprintf(("link:   vp fid: %s\n",
++		  coda_f2s(&cp->c_fid)));
++	myprintf(("link: tdvp fid: %s\n",
++		  coda_f2s(&tdcp->c_fid)));
+ 
+     }
+ 
+@@ -1418,7 +1407,7 @@
+     const char *nm = cnp->cn_nameptr;
+     int len = cnp->cn_namelen;
+     struct cnode *cp;
+-    ViceFid VFid;
++    CodaFid VFid;
+     struct vattr ova;
+ 
+     MARK_ENTRY(CODA_MKDIR_STATS);
+@@ -1461,8 +1450,8 @@
+ 	/* Invalidate the parent's attr cache, the modification time has changed */
+ 	VTOC(dvp)->c_flags &= ~C_VATTR;
+ 	
+-	CODADEBUG( CODA_MKDIR, myprintf(("mkdir: (%lx.%lx.%lx) result %d\n",
+-				    VFid.Volume, VFid.Vnode, VFid.Unique, error)); )
++	CODADEBUG( CODA_MKDIR, myprintf(("mkdir: %s result %d\n",
++				    coda_f2s(&VFid), error)); )
+     } else {
+ 	*vpp = (struct vnode *)0;
+ 	CODADEBUG(CODA_MKDIR, myprintf(("mkdir error %d\n",error));)
+@@ -1646,7 +1635,7 @@
+ 	}
+ 	
+ 	/* Have UFS handle the call. */
+-	CODADEBUG(CODA_READDIR, myprintf(("indirect readdir: fid = (%lx.%lx.%lx), refcnt = %d\n",cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, vp->v_usecount)); )
++	CODADEBUG(CODA_READDIR, myprintf(("indirect readdir: fid = %s, refcnt = %d\n", coda_f2s(&cp->c_fid), vp->v_usecount)); )
+ 	error = VOP_READDIR(cp->c_ovp, uiop, cred, eofflag, ncookies,
+ 			       cookies);
+ 	
+@@ -1778,8 +1767,8 @@
+     ENTRY;
+ 
+     if (coda_lockdebug) {
+-	myprintf(("Attempting lock on %lx.%lx.%lx\n",
+-		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
++	myprintf(("Attempting lock on %s\n",
++		  coda_f2s(&cp->c_fid)));
+     }
+ 
+ #ifndef	DEBUG_LOCKS
+@@ -1804,8 +1793,8 @@
+ 
+     ENTRY;
+     if (coda_lockdebug) {
+-	myprintf(("Attempting unlock on %lx.%lx.%lx\n",
+-		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
++	myprintf(("Attempting unlock on %s\n",
++		  coda_f2s(&cp->c_fid)));
+     }
+ 
+     return (lockmgr(&cp->c_lock, ap->a_flags | LK_RELEASE, &vp->v_interlock, p));
+@@ -1924,14 +1913,14 @@
+ /*
+  * Return a vnode for the given fid.
+  * If no cnode exists for this fid create one and put it
+- * in a table hashed by fid.Volume and fid.Vnode.  If the cnode for
++ * in a table hashed by coda_f2i().  If the cnode for
+  * this fid is already in the table return it (ref count is
+  * incremented by coda_find.  The cnode will be flushed from the
+  * table when coda_inactive calls coda_unsave.
+  */
+ struct cnode *
+ make_coda_node(fid, vfsp, type)
+-     ViceFid *fid; struct mount *vfsp; short type;
++     CodaFid *fid; struct mount *vfsp; short type;
+ {
+     struct cnode *cp;
+     int          err;
