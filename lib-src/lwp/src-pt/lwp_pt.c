@@ -41,8 +41,8 @@ struct timeval cont_sw_threshold;  /* how long a lwp is allowed to run */
 struct timeval run_wait_threshold;
 /* END - NOT USED exported variables */
 
-FILE *lwp_logfile = stderr; /* where to log debug messages to */
-int   lwp_loglevel = 0;     /* which messages to log */
+FILE *lwp_logfile = NULL; /* where to log debug messages to */
+int   lwp_loglevel = 0;   /* which messages to log */
 
 static pthread_key_t      lwp_private; /* thread specific data */
 static struct dllist_head lwp_list;    /* list of all threads */
@@ -423,7 +423,7 @@ int LWP_CreateProcess (PFIC ep, int stacksize, int priority, char *parm,
     newproc.pid   = me;
     
     assert(pthread_attr_init(&attr) == 0);
-    attr.detachstate = PTHREAD_CREATE_DETACHED;
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     err = pthread_create(&threadid, &attr, lwp_newprocess, &newproc);
     if (err) {

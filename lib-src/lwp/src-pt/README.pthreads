@@ -38,8 +38,8 @@ LWP_SignalProcess/LWP_NoYieldSignal/LWP_MwaitProcess/LWP_WaitProcess
 Compiling
 ---------
 
-Make sure that LIBPTHREAD is defined in the Makeconf file. You also need
-to compile all c/c++ code with the -D_REENTRANT flag.
+All c/c++ code which will be linked against liblwp_pt has to be compiled
+with -D_REENTRANT.
 
 
 Future additions

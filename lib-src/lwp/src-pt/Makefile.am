@@ -25,7 +25,7 @@ INCLUDES = -I$(top_srcdir)/include -D_REENTRANT
 liblwp_pt_la_SOURCES = iomgr_pt.c lock_pt.c lwp_pt.c preempt_pt.c \
     lwp.private_pt.h dllist.h
 liblwp_pt_la_LIBADD = fasttime_pt.lo timer_pt.lo
-liblwp_pt_la_LDFLAGS = -version-info 1:0:0 $(LIBPTHREAD)
+liblwp_pt_la_LDFLAGS = -version-info 1:1:0 $(LIBPTHREAD)
 
 noinst_PROGRAMS = cswitch_pt test_pt test-static_pt tdb_pt rw_pt
 cswitch_pt_SOURCES =

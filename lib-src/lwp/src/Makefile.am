@@ -31,6 +31,7 @@ LDADD = liblwp.la
 test_static_SOURCES = test.c
 test_static_LDFLAGS = -static
 
+DISTCLEANFILES = process.s
 MAINTAINERCLEANFILES = Makefile.in
 
 SUFFIXES = .ss
