@@ -17,8 +17,8 @@ MACHINE_FLAGS  := $(MACHINE_FLAGS) -D__CYGWIN32__ -gstabs
 SHORTSYS      	= cygwin
 LIBFIXUP	= $(TOPOBJ)/cygwin/libbraindead.a
 LIBCOMPAT	=
-INCREADLINE	= -I/usr/gnuwin32/include/readline
-LIBREADLINE	= /usr/gnuwin32/lib/libreadline.a
+INCREADLINE	= 
+LIBREADLINE	= 
 LIBTERMCAP	= -ltermcap
 #for rvm
 LIBDB         = -ldb
