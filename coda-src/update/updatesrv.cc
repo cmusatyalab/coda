@@ -181,7 +181,6 @@ InList (char *name)
 int main(int argc, char **argv)
 {
     char    sname[20];
-    char    pname[20];
     char    errmsg[MAXPATHLEN];
     FILE * file;
     int     i;
@@ -195,9 +194,6 @@ int main(int argc, char **argv)
     struct stat statbuf;
     char *miscdir;
 
-    /* default value */
-    strcpy(pname,"coda_udpsrv");
-    
     /* process the command line arguments */
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-d"))
@@ -208,7 +204,8 @@ int main(int argc, char **argv)
 	else if (!strcmp(argv[i], "-p")) {
 	    prefix = argv[++i];
 	} else if (!strcmp(argv[i], "-q")) {
-	    strcpy(pname, argv[++i]);
+	    fprintf(stderr, "Old argument -q to update srv\n");
+	    ++i;
 	} else {
 	    fprintf(stderr, "Bad argument %s to update srv\n", 
 		    argv[i]);
@@ -246,13 +243,16 @@ int main(int argc, char **argv)
     fprintf(stderr, "Updatesrv started!\n");
 
     if (!prefix)
-      prefix = strdup(vice_sharedfile("db"));
+      prefix = strdup(vice_sharedfile(NULL));
 
     if (chdir(prefix)) {
 	snprintf (errmsg, MAXPATHLEN, "Could not chdir to %s", prefix);
 	perror (errmsg);
 	exit(-1);
     }
+
+    LogMsg(0, SrvDebugLevel, stdout, "Update Server working directory %s",
+	   prefix);
     
     file = fopen(vice_sharedfile("misc/updatesrv.pid"), "w");
     if ( !file ) {
@@ -430,22 +430,21 @@ static void ServerLWP(int *Ident)
 int AccessAllowed(char *name)
 {
     char *p = name;
+
+    /* Do we need to check? */
+    if (!checknames) return 1;
+
     /* Any `..' in the name, deny access! */
     while (1) {
 	p = strchr(p, '.');
 	if (!p) break;
 	if (*(++p) == '.') return 0;
     }
-    /* if the file is in the export list, allow */
+
+    /* If the file is in the export list, allow */
     if (InList(name)) return 1;
 
-    /* export list was specified and the file was not listed, deny */
-    if (checknames) return 0;
-
-    /* not absolute path or in the /vice subtree, allow */
-    if (name[0] != '/' || strncmp(name, "/vice/", 6) == 0) return 1;
-	
-    /* you lose */
+    /* No access granted */
     return 0;
 }
 

@@ -133,7 +133,6 @@ static RPC2_Handle con;
 static char host[256];
 static int waitinterval = 30;	/* 5 min */
 static int reps = 6;
-static char pname[20];
 
 static struct timeval  tp;
 static struct timezone tsp;
@@ -154,17 +153,34 @@ int main(int argc, char **argv)
     char    errmsg[MAXPATHLEN];
     
     *host = '\0';
-    strcpy(pname, "coda_udpsrv");
 
     ProcessArgs(argc, argv);
 
     ReadConfigFile();
 
+    /* Check if host has been set.  If not, try to read it out of
+       vice_sharefile("db/scm").  */
+    if ( host[0] == '\0' ) {
+        file = fopen (vice_sharedfile("db/scm"), "r");
+	if (!file || !fgets(host, 256, file)) {
+	    LogMsg(0, SrvDebugLevel, stdout, "No host given!\n");
+	    if (file)
+	        fclose(file);
+	    exit(-1);
+	}
+	fclose(file);
+	if (host[strlen(host)-1] == '\n')
+	    host[strlen(host)-1] = '\0';
+    }
+
+    LogMsg(1, SrvDebugLevel, stdout, "Using host '%s' for updatesrv\n",
+	   host);
+
     CheckLibStructure();
 
-    rc = chdir(vice_sharedfile("db"));
+    rc = chdir(vice_sharedfile(NULL));
     if ( rc ) {
-        snprintf(errmsg, MAXPATHLEN, "Cannot cd to %s", vice_sharedfile("db"));
+        snprintf(errmsg, MAXPATHLEN, "Cannot cd to %s", vice_sharedfile(NULL));
 	perror(errmsg);
 	exit(1);
     }
@@ -224,7 +240,8 @@ int main(int argc, char **argv)
 	    i = reps;
 	}
 
-	if (CheckDir(vice_sharedfile("db"), 0644)) {
+	/* Checking "db" relative to updatesrv working directory. */
+	if (CheckDir("db", 0644)) {
 	    operatorSecs = 0;	/* if something changed time has elapsed */
 	    /* XXXX check for multiple servers */
 	    /* signal file server to check data bases */
@@ -283,8 +300,10 @@ static void ProcessArgs(int argc, char **argv)
 	    if (!strcmp(argv[i], "-h"))
 		strcpy(host, argv[++i]);
 	else
-	    if (!strcmp(argv[i], "-q"))
-		strcpy(pname, argv[++i]);
+	  if (!strcmp(argv[i], "-q")) {
+	        fprintf (stderr, "Old argument -q to update clnt.\n");
+		++i;
+	  }
 	else
 	    if (!strcmp(argv[i], "-w"))
 		waitinterval = atoi(argv[++i]);
@@ -295,13 +314,9 @@ static void ProcessArgs(int argc, char **argv)
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "usage: update [-d (debug level)] ");
 	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "[-h (operator console hostname)] [-q (port name)]");
+		   "[-h (operator console hostname)] ");
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "[-r (reps of w for long wait time)] [-w (short wait time)]\n");
-	    exit(-1);
-	}
-	if ( host[0] == '\0' ) {
-	    LogMsg(0, SrvDebugLevel, stdout, "No host given!\n");
 	    exit(-1);
 	}
     }
@@ -380,7 +395,7 @@ static int CheckDir(char *prefix, int mode)
 	rc = 0;
     struct stat buff;
 
-    LogMsg(1, SrvDebugLevel, stdout, "Checking %s\n", prefix);
+    LogMsg(1, SrvDebugLevel, stdout, "Checking directory %s\n", prefix);
     if ((!(CheckFile(prefix, 0755))) && !CheckAll)
 	return(0);
 
@@ -453,6 +468,8 @@ static int CheckFile(char *fileName, int mode)
     long     rc;
     SE_Descriptor sed;
 
+    LogMsg(1, SrvDebugLevel, stdout, "Checking file %s\n", fileName); 
+
     if (stat(fileName, &buff)) {
 	time = 0;
     }
@@ -487,20 +504,20 @@ static int CheckFile(char *fileName, int mode)
     if (rc) {
 	operatorSecs = 0;
 	unlink(tmpname);
-	LogMsg(0, SrvDebugLevel, stdout, "Fetch failed with %s\n", ViceErrorMsg((int)rc));
+	LogMsg(0, SrvDebugLevel, stdout, "Fetch failed for '%s' with %s\n",
+	       fileName, ViceErrorMsg((int)rc));
 	if (rc <= RPC2_ELIMIT) {
 	    Rebind = 1;
-	    return(0);
 	}
+	return(0);
+    }
+
+    if (currentsecs > newtime) {
+        operatorSecs = currentsecs;
+	operatorUsecs = currentusecs;
     }
     else {
-	if (currentsecs > newtime) {
-	    operatorSecs = currentsecs;
-	    operatorUsecs = currentusecs;
-	}
-	else {
-	    operatorSecs = 0;
-	}
+        operatorSecs = 0;
     }
 
     if ((newtime != 0) && (time != newtime)) {
@@ -521,8 +538,10 @@ static int CheckFile(char *fileName, int mode)
 	    perror("utimes failed with");
 	}
     }
-    else
+    else {
+        unlink(tmpname);
 	rc = 0;
+    }
 
     return(rc);
 }
