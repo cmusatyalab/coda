@@ -49,7 +49,12 @@ if  [ $# = 0 ]; then
     usage
 fi
 
+# strip the - from the command.  
+if [ x$BASH_VERSION != x ] ; then
 par=${1#-}
+else
+par=`echo $1 | sed -e "s/-//"`
+fi
 #echo $par
 
 case $par in
