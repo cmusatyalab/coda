@@ -6,12 +6,14 @@ proc ReadAdviceConfiguration { } {
     #
     # Format of the .advicerc file:
     #
-    # Event:<stuff> where stuff is <EventName>:<Urgency>:<Notify>:<Popup>:<Beep>:<Flash>
-    # Color:<stuff> where stuff is <Normal|Warning|Critical>:<color>
-    # Behavior:<stuff> where stuff is <data|program|task>:<on|off>
+    # Event:<stuff> where stuff is: 
+    #                   <EventName>:<Urgency>:<Notify>:<Popup>:<Beep>:<Flash>
+    # Color:<stuff> where stuff is:
+    #                   <Normal|Warning|Critical>:<color>
+    # Behavior:<stuff> where stuff is:
+    #                   <data|program|task>:<on|off>
     # Lines beginning with a # are comments
     #
-#    MakeMilestone $Pathnames(advicerc) [exec date +"%Y%b%e_%H:%M:%S"]
     MakeMilestone $Pathnames(advicerc) [nowString]
     set AdviceRC [MyRenameAndOpen $Pathnames(advicerc) {RDONLY CREAT}] 
     foreach line [split [read $AdviceRC] \n] {

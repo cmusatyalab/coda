@@ -14,8 +14,21 @@ proc InitPathnamesArray { } {
     set Pathnames(passwd) /etc/passwd
 
     set Pathnames(home) /coda/usr/$user
+    if { [file isdirectory $Pathnames(home)] == 0 } then {
+	SendToStdErr "InitPathnamesArray: The directory $Pathnames(home) does not exist.  Please create it."
+	exit
+    }
+
     set Pathnames(newHoarding) $Pathnames(home)/newHoarding
+    if { [file isdirectory $Pathnames(home)/newHoarding] == 0 } then {
+	SendToStdErr "Initializing $Pathnames(home)/newHoarding directory"
+	exec mkdir $Pathnames(home)/newHoarding
+    } 
+
     set Pathnames(advicerc) $Pathnames(home)/.advicerc
+    if { [file exists $Pathnames(home)/.advicerc] == 0 } then {
+	InitAdviceRC $Pathnames(home)/.advicerc
+    }
 
     # The ++ notation below is replaced by the Makefile
     set Pathnames(cfs) +CFS+
@@ -30,6 +43,55 @@ proc InitPathnamesArray { } {
     set Pathnames(df) +DF+
     set Pathnames(grep) +GREP+
     set Pathnames(hostname) +HOSTNAME+
+}
+
+proc InitAdviceRC { path } {
+
+    SendToStdErr "Initializing $path"
+    set AdviceRC [open $path {WRONLY CREAT}]
+
+    puts $AdviceRC "#"
+    puts $AdviceRC "# Event Configuration"
+    puts $AdviceRC "#"
+    puts $AdviceRC "Event:TokensAcquired:N:1:0:0:0"
+    puts $AdviceRC "Event:TokenExpiry:W:1:0:0:0"
+    puts $AdviceRC "Event:ActivityPendingTokens:C:1:0:0:1"
+    puts $AdviceRC "Event:SpaceNormal:N:1:0:0:0"
+    puts $AdviceRC "Event:SpaceWarning:W:1:0:0:0"
+    puts $AdviceRC "Event:SpaceCritical:C:1:0:0:0"
+    puts $AdviceRC "Event:OperatingStronglyConnected:N:1:0:0:0"
+    puts $AdviceRC "Event:OperatingWeaklyConnected:W:1:0:0:0"
+    puts $AdviceRC "Event:OperatingDisconnected:C:1:0:0:0"
+    puts $AdviceRC "Event:WeaklyConnectedCacheMissAdvice:C:1:0:0:1"
+    puts $AdviceRC "Event:ReadDisconnectedCacheMissAdvice:W:0:0:0:0"
+    puts $AdviceRC "Event:DisconnectedCacheMissAdvice:W:0:0:0:0"
+    puts $AdviceRC "Event:ReconnectionSurvey:W:0:0:0:1"
+    puts $AdviceRC "Event:HoardWalkBegin:W:1:0:0:0"
+    puts $AdviceRC "Event:HoardWalkPendingAdvice:C:1:0:0:0"
+    puts $AdviceRC "Event:HoardWalkEnd:N:1:0:0:0"
+    puts $AdviceRC "Event:HoardWalkOff:N:1:0:0:0"
+    puts $AdviceRC "Event:HoardWalkOn:N:1:0:0:0"
+    puts $AdviceRC "Event:ReintegrationPending:C:1:0:0:0"
+    puts $AdviceRC "Event:ReintegrationCompleted:N:1:0:0:0"
+    puts $AdviceRC "Event:RepairPending:C:1:0:0:0"
+    puts $AdviceRC "Event:RepairCompleted:N:1:0:0:0"
+    puts $AdviceRC "Event:AllTasksAvailable:N:1:0:0:0"
+    puts $AdviceRC "Event:OneOrMoreTasksUnavailable:C:1:0:1:1"
+    puts $AdviceRC "#"
+    puts $AdviceRC "# Color Configuration"
+    puts $AdviceRC "#"
+    puts $AdviceRC "Color:Normal:ForestGreen"
+    puts $AdviceRC "Color:Warning:Gold"
+    puts $AdviceRC "Color:Critical:OrangeRed1"
+    puts $AdviceRC "#"
+    puts $AdviceRC "# Behavior Configuration"
+    puts $AdviceRC "#"
+    puts $AdviceRC "Behavior:data:off"
+    puts $AdviceRC "Behavior:program:off"
+    puts $AdviceRC "Behavior:task:off"
+
+    flush $AdviceRC
+    close $AdviceRC
 }
 
 proc InitDimensionsArray { } {

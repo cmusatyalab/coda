@@ -232,9 +232,9 @@ proc ShowTokenExpirationDate { } {
     set rc [catch {exec $Pathnames(ctokens)} ctokens]
 
     set UIDindex [string first "UID" $ctokens]
-    set userid [string range $ctokens [expr $UIDindex + 4] [expr $UIDindex + 8]]
+    regexp {[0-9]*} [string range $ctokens [expr $UIDindex + 4] end] userid
 
-    set results [eval exec "grep $userid $Pathnames(passwd)"]
+    set results [eval exec "grep :[string trim $userid]: $Pathnames(passwd)"]
     set username [string range $results 0 [expr [string first ":" $results] - 1]]
 
     set ExpiresIndex [string first "Expires" $ctokens]
