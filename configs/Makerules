@@ -238,9 +238,6 @@ distclean: clean
 	-$(RM) coda-src/scripts/venus.init
 	-$(RM) coda-src/scripts/vice-setup
 	-$(RM) coda-src/scripts/vice-setup-rvm
-	-$(RM) coda-src/scripts/vice-setup-scm
-	-$(RM) coda-src/scripts/vice-setup-srvdir
-	-$(RM) coda-src/scripts/vice-setup-user
 	-$(RM) coda-src/scripts/vutil
 
 
