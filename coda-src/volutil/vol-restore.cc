@@ -53,7 +53,6 @@ extern "C" {
 #include <sys/file.h>
 #include <sys/time.h>
 #include <ctype.h>
-#include <varargs.h>
 
 #include <unistd.h>
 #include <stdlib.h>
