@@ -1,11 +1,33 @@
+1998-06-24    <braam@carissimi.coda.cs.cmu.edu>
+
+	* kernel-src/vfs/linux21: enormous amounts of changes. New
+	Makefiles for the linux-coda module.  Improvements to the 
+	kernel code. 
+	* coda-src/fail: filcon now returns 0. 
+	* minor changes for BSD package building.
+
+1998-06-18    <braam@carissimi.coda.cs.cmu.edu>
+
+	* kernel-src/vfs/Makefile.in (SUBDIRS): linux kernel code builds
+ 	no longer part of Coda building. Too many deps on kernel
+ 	flags. This has implications for the coda.spec.in file too.
+	* lib-src/mlwp/lwp.c: stacks are now mmapped with guard pages.
+	* rvm-src/rvm/rvm_logrecovr.c: two important bugs were caught in a 
+	large scale debugging effort.  They both resulted from the rvm
+	thread not correctly signalling the other threads in case the log
+	was empty but recover was triggered because a large transaction
+	was pending. Servers now startup fine, even first time around.
+	
 1998-06-16  Peter Braam  <braam@motet.coda.cs.cmu.edu>
 
-	* rvm-src/rvmlwp and rdslwp: Jan fixed building RVM inside the source tree
-	* coda-src/vice/srv.cc: moved RVM initialization before RPC2 startup.
-	* coda-src/scripts/vutil & venus: Jan: improve signal handling, vutil now 
-	changes the debug level correctly on Linux (at last)
-	* coda-src/vice/srvproc2.cc: Shafeeq and Peter: more changes to connection
-	setup in the server.
+	* rvm-src/rvmlwp and rdslwp: Jan fixed building RVM inside the
+	source tree 
+	* coda-src/vice/srv.cc: moved RVM initialization before RPC2
+	startup. 
+	* coda-src/scripts/vutil & venus: Jan: improve signal handling,
+	vutil now  changes the debug level correctly on Linux (at last)
+	* coda-src/vice/srvproc2.cc: Shafeeq and Peter: more changes to
+	connection setup in the server.
 	
 1998-06-11  Peter Braam  <braam@motet.coda.cs.cmu.edu>
 

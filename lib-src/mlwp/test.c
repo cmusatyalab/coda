@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/test.c,v 4.2 1998/04/14 20:42:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/test.c,v 4.2 98/04/14 20:42:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <signal.h>
 #include <sys/time.h>
 #include <assert.h>
 #include "lwp.h"
@@ -65,19 +64,12 @@ supported by Transarc Corporation, Pittsburgh, PA.
 char semaphore;
 
 void OtherProcess()
-{
-	for(;;) {
-		/*		fprintf(stderr, "OtherProcess now running\n"); */
-		if ( lwp_debug > 0)
-			LWP_Print_Processes();
-		LWP_SignalProcess(&semaphore);
+    {
+    for(;;)
+	{
+	LWP_SignalProcess(&semaphore);
 	}
-}
-
-void mysighandler(int signal)
-{
-	fprintf(stderr, "Sighandler now running for %d\n", signal);
-}
+    }
 
 int main(int argc, char **argv)
 {
@@ -89,46 +81,30 @@ int main(int argc, char **argv)
     char *waitarray[2];
     static char c[] = "OtherProcess";
     
-
-    if ( argc < 2|| argc > 3 ) {
-	    fprintf(stderr, "Usage %s number-of-waits debuglevel\n", argv[0]);
-	    exit(1);
-    } else {
-	    fprintf(stderr, "My pid is %d\n", getpid());
-    }
-    if ( argc == 3 ) {
-	    LWP_SetLog(stderr, atoi(argv[2]));
-    }
-
     count = atoi(argv[1]);
 
-    signal(SIGUSR1, &mysighandler);
+
     cont_sw_threshold.tv_sec = 0;
     cont_sw_threshold.tv_usec = 10000;
     last_context_switch.tv_sec = 0;
     last_context_switch.tv_usec = 0;
 
 #ifdef	__linux__
-    assert(LWP_Init(LWP_VERSION, 3, (PROCESS *)&pid) == LWP_SUCCESS);
+    assert(LWP_Init(LWP_VERSION, 0, (PROCESS *)&pid) == LWP_SUCCESS);
 #else
     assert(LWP_Init(LWP_VERSION, 0, &pid) == LWP_SUCCESS);
 #endif
-    assert(LWP_CreateProcess((PFI)OtherProcess,0x3000,3, 0, c, (PROCESS *)&otherpid) == LWP_SUCCESS);
+    assert(LWP_CreateProcess((PFI)OtherProcess,4096,0, 0, c, (PROCESS *)&otherpid) == LWP_SUCCESS);
     assert(IOMGR_Initialize() == LWP_SUCCESS);
-    if ( lwp_debug > 0)
-	    LWP_Print_Processes();
     waitarray[0] = &semaphore;
     waitarray[1] = 0;
     gettimeofday(&t1, NULL);
     for (i = 0; i < count; i++)
 	{
-	sleeptime.tv_sec = 1;
+	for (j = 0; j < 100000; j++);
+	sleeptime.tv_sec = i;
 	sleeptime.tv_usec = 0;
-	fprintf(stderr, "Main process going to sleep.\n");
 	IOMGR_Select(0, NULL, NULL, NULL, &sleeptime);
-	if ( lwp_debug > 0)
-		LWP_Print_Processes();
-	fprintf(stderr, "Main process just woke up.\n");
 	LWP_MwaitProcess(1, waitarray);
 	}
     gettimeofday(&t2, NULL);

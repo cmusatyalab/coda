@@ -29,9 +29,9 @@ void coda_cache_clear_cred(struct super_block *sb, struct coda_cred *cred);
 int coda_cache_check(struct inode *inode, int mask);
 
 /* for downcalls and attributes and lookups */
-void coda_purge_children(struct inode *inode);
-void coda_purge_dentries(struct inode *inode);
-void coda_flag_inode(struct inode *, int);
+void coda_flag_inode(struct inode *inode, int flag);
+void coda_flag_alias_children(struct inode *inode, int flag);
+
 
 /*
  * Structure to contain statistics on the cache usage

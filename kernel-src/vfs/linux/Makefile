@@ -1,63 +1,43 @@
+# Generated automatically from Makefile.in by configure.
+
 #
-# Makefile 1.00 Peter Braam <braam@cs.cmu.edu>
+# Makefile for the Linux userfs-filesystem routines.
+#
+# Edit DEFINES below depending on your kernel version
 #
 
-include ../config.mk
-
-MODDIR = $(PREFIX)/lib/modules/$(UTS_RELEASE)
-
-ifndef CFLAGS
-# Don't remove "-O2" or bad things will happen!
-KFLAGS = -O2 -Wall -Wstrict-prototypes -Winline -pipe
+TOPDIR = ../../..
+ifndef MAKDIR
+MAKDIR = ../../..
 endif
+srcdir = .
+TOPOBJ = /home/braam/coda-4.6.0
 
-CPPFLAGS = $(PCDEBUG) -D__KERNEL__ -DMODULE -DL20 -I../include \
-	   -I. -I$(LINUX)/include $(SMPFLAG)
-COFLAGS = -kv
+include $(MAKDIR)/Makeconf
 
-CFLAGS= $(KFLAGS) $(MFLAG)
+INCLDIR     := $(INCLDIR)/cfs
+BINDIR      =  $(prefix)/../lib/modules/`uname -r`/fs
+CBINS       =  coda.o
+CSBINS 	    =  coda-cache coda-debug coda-flush coda-resize coda-trace
+EXECUTABLES =  coda.o
+HEADERS     =  
+OBJS        =  psdev.o cnode.o coda_linux.o upcall.o comm.o super.o inode.o file.o namecache.o sysctl.o 
 
-SRCS=cnode.c coda_linux.c comm.c file.c inode.c namecache.c psdev.c super.c sysctl.c upcall.c
-OBJS=$(SRCS:%.c=%.o)
+DEFINES =  -DMODULE  -DL20 -DMODVERSIONS -Wstrict-prototypes -Wall -O2
+INCL    =  -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
+CFLAGS  := -D__KERNEL__ $(INCL)   $(DEFINES)  $(CFLAGS)
 
-MODULES = coda.o
+linux:
+	ln -s $(INCLDIR) linux
 
-all:	../.prereq.ok kcheck $(MODULES) 
+coda: coda.o
+	-touch coda.o
 
-showvar:
-	@echo CFLAGS $(CFLAGS)
-	@echo CPPFLAGS $(CPPFLAGS)
-	@echo MODDIR $(MODDIR)
-	@echo UTS_RELEASE $(UTS_RELEASE)
-	@echo SRCS $(SRCS)
-	@echo OBJS $(OBJS)
+Coda: coda.o
+	-touch coda.o
 
-clean:
-	rm -f core core.* *.o .*.o *.s *.a *~ .depend .depfiles/*.d
-
-MODDIR = $(PREFIX)/lib/modules/$(UTS_RELEASE)
-
-install: $(MODULES) ../.prereq.ok kcheck
-	-mkdir -p $(MODDIR)/fs
-	install -o root -g root -m 644 $(MODULES) $(MODDIR)/fs/
-
-# Stuff to automatically maintain dependency files
-
-.c.o:
-	$(CC) -MD $(CFLAGS) $(CPPFLAGS) -c $<
-	@mkdir -p .depfiles ; mv $*.d .depfiles
-
-kcheck:
-	@. ../config.out ; \
-	if [ "$$CHECK" != "" ] ; then \
-	    if [ "`cksum < $$CHECK`" != "$$CKSUM" ] ; then \
-		/bin/echo -n "Kernel configuration has changed." ; \
-		/bin/echo "  Please re-run 'make config'." ; \
-		exit 1 ; \
-	    fi ; \
-	fi
-
-coda.o: $(OBJS)
+coda.o: linux $(OBJS)
 	$(LD) -m "`ld --help | awk '/supported emulations/ {print $$4}'`" -r -o $@ $(OBJS)
 
--include $(SRCS:%.c=.depfiles/%.d)
+include $(MAKDIR)/configs/Makerules
+

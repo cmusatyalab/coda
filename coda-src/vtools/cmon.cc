@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.4 1997/12/20 23:35:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.5 1998/04/14 21:01:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -157,10 +157,10 @@ main(int argc, char *argv[])
     InitRPC();
     DrawCaptions();
 
-    LWP_CreateProcess((PFIC)kbdlwp, 8192, LWP_NORMAL_PRIORITY, NULL, "KBD", (PROCESS *)&i);
+    LWP_CreateProcess((PFIC)kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", (PROCESS *)&i);
     for (i = 0; i < SrvCount; i++)
 	{
-	LWP_CreateProcess((PFIC)srvlwp, 16384, LWP_NORMAL_PRIORITY, (char *)i, (char *)srv[i].srvname, (PROCESS *)&srv[i].pid);
+	LWP_CreateProcess((PFIC)srvlwp, 0x8000, LWP_NORMAL_PRIORITY, (char *)i, (char *)srv[i].srvname, (PROCESS *)&srv[i].pid);
 	}
     
     LWP_WaitProcess(&Dummy); /* wait for Godot */

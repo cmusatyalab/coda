@@ -12,7 +12,7 @@ fi
 
 cd /vice
 
-for i in backup db srv vol bin ; do
+for i in backup db srv vol bin auth2 ; do
     if [ ! -d $i ]; then
        mkdir $i
     fi
@@ -107,17 +107,27 @@ fi
 #
 # startup scripts
 #
-if [ `uname` = NetBSD -o `uname` = FreeBSD ]; then
+CODABASE=
+case x`uname` in
+  xNetBSD)
+	CODABASE=/usr/pkg
+	;;
+  xFreeBSD)
+	CODABASE=/usr/local
+	;;
+esac
+
+if [ x$CODABASE != x ]; then
 yesno=""
 until [ x$yesno != x ]; do
    echo -n 'Do you want to start the server at boot time? (y/n) '
    read yesno
    if [ x$yesno = xy  -o  x$yesno = xyes -o x$yesno = xY ]; then
        touch /vice/srv/STARTFROMBOOT
-	    grep '/etc/rc.vice' /etc/rc.local > /dev/null 2>1
-	    if [ $? != 0 ]; then 
-	         echo 'if [ -e /etc/rc.vice ]; then /etc/rc.vice start ; fi' >> /etc/rc.local 
-	    fi
+       grep "${CODABASE}/etc/rc.vice" /etc/rc.local > /dev/null 2>1
+       if [ $? != 0 ]; then 
+         echo "if [ -x ${CODABASE}/etc/rc.vice ]; then ${CODABASE}/etc/rc.vice start ; fi" >> /etc/rc.local 
+       fi
        echo "Startup scripts now installed."
    fi
 done

@@ -446,8 +446,8 @@ int coda_unlink(struct inode *dir, struct dentry *de)
 
         /* cache management */
 	dircnp->c_flags |= C_VATTR;
-	
 	de->d_inode->i_nlink--;
+
 	d_delete(de);
 
         return 0;
@@ -522,50 +522,68 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	ENTRY;
 	coda_vfs_stat.rename++;
 
+        if ( (old_length > CFS_MAXNAMLEN) || new_length > CFS_MAXNAMLEN ) {
+                return -ENAMETOOLONG;
+        }
+
         old_cnp = ITOC(old_dir);
-        CHECK_CNODE(old_cnp);
         new_cnp = ITOC(new_dir);
-        CHECK_CNODE(new_cnp);
+
+	/* make sure target is not in use */
+	if ( new_dentry->d_count > 1 && !list_empty(&new_dentry->d_subdirs) )
+		shrink_dcache_parent(new_dentry);
+	if ( new_dentry->d_count >1 )
+		return -EBUSY;
 
         CDEBUG(D_INODE, "old: %s, (%d length, %d strlen), new: %s (%d length, %d strlen).\n", 
 	       old_name, old_length, strlen(old_name), new_name, new_length, 
 	       strlen(new_name));
 
-        if ( (old_length > CFS_MAXNAMLEN) || new_length > CFS_MAXNAMLEN ) {
-                return -ENAMETOOLONG;
-        }
+	if ( old_cnp->c_fid.Volume != new_cnp->c_fid.Volume )
+		return -EXDEV;
+
+	/* if the volumeid are the same we can reuse the inode,
+	   otherwise we need a new inode, since the new file 
+	   will have a new ionde number. */
 
 
-        /* cross directory moves */
-	if (new_dir != old_dir  &&
-	    S_ISDIR(old_inode->i_mode) && 
-	    old_dentry->d_count > 1)
-	        shrink_dcache_parent(old_dentry);
-		
-	/* We must prevent any new references to the
-	 * target while the rename is in progress, so
-	 * we unhash the dentry.  */
-	if (!list_empty(&new_dentry->d_hash)) {
-	        d_drop(new_dentry);
-		rehash = 1;
+	/* if moving a directory, clean the dcache */
+	if (S_ISDIR(old_inode->i_mode) & old_dentry->d_count > 1) 
+		shrink_dcache_parent(old_dentry);
+
+	if (old_dentry->d_count > 1) {
+		return -EBUSY;
 	}
+
+	if (new_dentry->d_count > 1) {
+		return -EBUSY;
+	}
+
+	d_drop(old_dentry);
+
+	if (!list_empty(&new_dentry->d_hash)) {
+		d_drop(new_dentry);
+		rehash = update;
+	}
+
+	if (new_inode)
+		d_delete(new_dentry);
 
         error = venus_rename(old_dir->i_sb, &(old_cnp->c_fid), 
 			     &(new_cnp->c_fid), old_length, new_length, 
 			     (const char *) old_name, (const char *)new_name);
-
-	if (rehash) {
-		d_add(new_dentry, new_inode);
-	}
 
         if ( error ) {
                 CDEBUG(D_INODE, "returned error %d\n", error);
                 return error;
         }
 	/* Update the dcache if needed */
+	if (rehash) {
+		d_add(new_dentry, new_inode);
+	}
 	if (update)
 	        d_move(old_dentry, new_dentry);
-         
+	
         CDEBUG(D_INODE, "result %d\n", error); 
 
 	EXIT;
@@ -642,20 +660,19 @@ int coda_open(struct inode *i, struct file *f)
 
         /* coda_upcall returns ino number of cached object, get inode */
         CDEBUG(D_FILE, "cache file dev %d, ino %ld\n", dev, ino);
+	error = coda_inode_grab(dev, ino, &cont_inode);
+	
+	if ( error || !cont_inode ){
+		printk("coda_open: coda_inode_grab error %d.", error);
+		if (cont_inode) 
+			iput(cont_inode);
+		return error;
+	}
 
         if (  cnp->c_ovp ) {
 		iput(cnp->c_ovp);
+		cnp->c_ovp = NULL;
 	}
-
-	error = coda_inode_grab(dev, ino, &cont_inode);
-	
-	if ( error ){
-		printk("coda_open: coda_inode_grab error %d.", error);
-		if (cont_inode) iput(cont_inode);
-		return error;
-	}
-	CDEBUG(D_FILE, "GRAB: coda_inode_grab: ino %ld, ops at %x\n", 
-	       cont_inode->i_ino, (int)cont_inode->i_op);
 	cnp->c_ovp = cont_inode; 
         cnp->c_ocount++;
 

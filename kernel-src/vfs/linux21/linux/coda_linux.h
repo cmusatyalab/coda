@@ -51,10 +51,6 @@ int coda_fid_is_volroot(struct ViceFid *);
 int coda_fid_is_weird(struct ViceFid *fid);
 int coda_iscontrol(const char *name, size_t length);
 
-void coda_free_dentries(struct inode *inode);
-int coda_check_inode(struct inode *inode, char *funcfile, int line);
-#define EVIL(inode) coda_check_inode(inode, __FUNCTION__, __LINE__)
-
 
 void coda_load_creds(struct coda_cred *cred);
 int coda_mycred(struct coda_cred *);
