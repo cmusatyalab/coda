@@ -27,13 +27,10 @@ int RPC2_R2SError(int cerr)
     int sval;
     char *ctxt;
     
-    if ( cerr < 0 ) 
+    if ( cerr <= 0 ) 
 	return cerr;
 
     switch ( cerr ) {
-    case 0:
-	sval = 0;
-	break;
 
         #include <switchc2s.h>
 

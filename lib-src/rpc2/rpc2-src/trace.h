@@ -477,12 +477,12 @@ struct TraceElem
 	tea = &te->Args.MSendPacketsReliablyEntry;\
 	te->CallCode = MSENDPACKETSRELIABLY;\
 	strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);\
-	tea->HowMany = HowMany;\
-	for(idx = 0; !ConnHandleList[idx] && idx < HowMany; idx++)/*loop*/; \
-	tea->ConnArray0 = ConnArray[idx];\
-	tea->ConnArray0_UniqueCID = (ConnArray[idx])->UniqueCID;\
-	tea->PacketArray0_Address = PacketArray[idx];\
-	tea->PacketArray0 = *(PacketArray[idx]);  /* structure assignment */\
+	tea->HowMany = mcon->count;\
+	for(idx = 0; !ConnHandleList[idx] && idx < mcon->count; idx++)/*loop*/; \
+	tea->ConnArray0 = mcon->ceaddr[idx];\
+	tea->ConnArray0_UniqueCID = (mcon->ceaddr[idx])->UniqueCID;\
+	tea->PacketArray0_Address = mcon->preq[idx];\
+	tea->PacketArray0 = *(mcon->preq[idx]);  /* structure assignment */\
 	if (TimeOut == NULL) tea->IsNullTimeout = 1;\
 	else\
 	    {\

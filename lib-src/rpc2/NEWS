@@ -1,8 +1,14 @@
+New in 1.18:
+
+* Removed pool allocator for MultiRPC contexts. It had a hardcoded size of
+  only 8 contexts and would die on an assertion whenever it got exhausted.
+
 New in 1.17:
 
 * Small files sent with MultiRPC only arrived at the first server
   in the mgrp. Resolution fixes things for normal store operations
   but it broke repair in some cases.
+* Random number generator was initialized incorrectly (Ivan Popov).
 
 New in 1.16:
 
