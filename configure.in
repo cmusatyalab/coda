@@ -4,17 +4,23 @@ AC_INIT(coda-src/librepair/resolve.h)
 AC_CONFIG_HEADER(config.h)
 
 AC_CONFIG_AUX_DIR(configs)
+dnl Set up the environment for djgpp/cygwin cross compilation.
+sinclude(configs/coda_cross.m4)
+dnl Load the CODA_ tests.
 sinclude(configs/coda_macros.m4)
 
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
+CODA_PROG_NATIVECC
 AC_PROG_CPP
 AC_PROG_CXXCPP
+AC_PROG_RANLIB
+AC_CHECK_PROG(AR, ar, ar)
+AC_CHECK_PROG(AS, as, as)
 AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_INSTALL
-
 AC_PROG_AWK
 AC_PATH_PROG(CP, cp, "")
 AC_PATH_PROG(DF, df, "")
@@ -30,7 +36,7 @@ CODA_CHECK_LIBDB185
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)
-AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/mount.h)
+AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/mount.h sys/vfs.h)
 AC_CHECK_HEADERS(sys/types.h sys/time.h sys/select.h sys/socket.h sys/ioccom.h)
 AC_CHECK_HEADERS(arpa/inet.h arpa/nameser.h netinet/in.h)
 
@@ -43,10 +49,10 @@ CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(permissive, -fpermissive)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror select statfs)
+AC_CHECK_FUNCS(strerror select statfs setpgrp)
 AC_FUNC_MMAP
-AC_FUNC_SETPGRP
 AC_FUNC_SELECT_ARGTYPES
+CODA_FUNC_SETPGRP
 CODA_CHECK_FLOCK
 CODA_CHECK_BCOPY
 CODA_CHECK_SETENV

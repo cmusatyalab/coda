@@ -61,11 +61,11 @@ VOBJS = advice.o advice_daemon.o  binding.o  comm.o comm_daemon.o daemon.o fso0.
 
 
 venus:  ${VOBJS} dummy.o $(LIBS)
-	$(CXX) $(LIBFLAGS) ${VOBJS} dummy.o $(LIBS) -lm -o venus
+	$(CXX) $(LDFLAGS) ${VOBJS} dummy.o $(LIBS) -lm -o venus
 
 # When the new plumber works it should be linked in here too.
 venus.plumber:  ${VOBJS} $(LIBPLUMBER) $(LIBS)
-	$(CXX) $(LIBFLAGS) ${VOBJS} $(LIBPLUMBER) $(LIBS) -lm -lsys -o venus.plumber
+	$(CXX) $(LDFLAGS) ${VOBJS} $(LIBPLUMBER) $(LIBS) -lm -lsys -o venus.plumber
 
 testtallyent: tallyent.cc tallyent.h
 	$(CXX) $(CXXFLAGS) -DTESTING -o testtallyent ${srcdir}/tallyent.cc ${LIBUTIL}

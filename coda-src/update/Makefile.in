@@ -74,10 +74,10 @@ endif
 include $(TOPDIR)/configs/Makerules
 
 updatesrv: updatesrv.o update.server.o ${LIBS}
-	$(CXX) $(LIBFLAGS) updatesrv.o update.server.o ${LIBS} ${LIBFIXUP} -lm -o updatesrv
+	$(CXX) $(LDFLAGS) updatesrv.o update.server.o ${LIBS} ${LIBFIXUP} -lm -o updatesrv
 
 updateclnt: updateclnt.o update.client.o  ${LIBS}
-	$(CXX) $(LIBFLAGS) updateclnt.o update.client.o  ${LIBS} ${LIBFIXUP} -lm -o updateclnt
+	$(CXX) $(LDFLAGS) updateclnt.o update.client.o  ${LIBS} ${LIBFIXUP} -lm -o updateclnt
 
 updatefetch: updatefetch.o update.client.o  ${LIBS}
-	$(CXX) $(LIBFLAGS) updatefetch.o update.client.o  ${LIBS} ${LIBFIXUP} -lm -o updatefetch
+	$(CXX) $(LDFLAGS) updatefetch.o update.client.o  ${LIBS} ${LIBFIXUP} -lm -o updatefetch

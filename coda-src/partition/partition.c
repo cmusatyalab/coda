@@ -32,6 +32,8 @@ extern "C" {
 #include <sys/statvfs.h>
 #elif defined(HAVE_SYS_STATFS_H)
 #include <sys/statfs.h>
+#elif defined(HAVE_SYS_VFS_H)
+#include <sys/vfs.h>
 #elif defined(HAVE_SYS_MOUNT_H)
 #include <sys/param.h>
 #include <sys/mount.h>

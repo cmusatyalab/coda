@@ -15,19 +15,13 @@
 
 include $(TOPOBJ)/Makeconf.setup
 
-LIBEXECDIR:=$(exec_prefix)/lib/coda
-BINDIR:=$(exec_prefix)/bin
-SBINDIR:=$(exec_prefix)/sbin
+LIBEXECDIR:=$libexecdir
+BINDIR:=$bindir
+SBINDIR:=$sbindir
 INITDIR:=$(initsuffix)
 MANDIR:=$(mandir)
 
-NATIVECC = cc
-AR=ar
-RANLIB=ranlib
-INSTALL = cp -p
-
 include $(TOPDIR)/configs/Makeconf.$(SYS)
-
 
 ##############################
 # VPATH & INCLUDE DIRECTORY

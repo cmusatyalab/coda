@@ -32,9 +32,9 @@ CBINS       = $(EXECUTABLES) $(SCRIPTS)
 LIBS=	$(LIBDIRLIB)  $(LIBKERNDEP) $(LIBBASE) $(LIBUTIL) $(LIBFIXUP)
 
 removeinc: removeinc.o $(LIBS)
-	$(CC) $(LIBFLAGS) $^ ${LIBS} -o removeinc
+	$(CC) $(LDFLAGS) $^ ${LIBS} -o removeinc
 
 filerepair: filerepair.o $(LIBS)
-	$(CC) $(LIBFLAGS) $^ ${LIBS} -o filerepair
+	$(CC) $(LDFLAGS) $^ ${LIBS} -o filerepair
 
 include $(TOPDIR)/configs/Makerules

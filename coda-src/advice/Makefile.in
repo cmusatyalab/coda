@@ -64,6 +64,6 @@ fake_rpc_setup.o: rpc_setup.cc
 	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/rpc_setup.cc -o fake_rpc_setup.o
 
 advice_srv: advice_srv.h $(LIBS) $(OTHERLIBS) libadvice.a advice_srv.o
-	$(CXX) $(LIBFLAGS) advice_srv.o libadvice.a $(LIBS) $(OTHERLIBS) $(LIBDB) $(LIBFIXUP) -o advice_srv
+	$(CXX) $(LDFLAGS) advice_srv.o libadvice.a $(LIBS) $(OTHERLIBS) $(LIBDB) $(LIBFIXUP) -o advice_srv
 
 include $(TOPDIR)/configs/Makerules

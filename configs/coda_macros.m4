@@ -30,6 +30,21 @@ AC_DEFUN(CODA_CXX_FEATURE_TEST,
      CXX="$CXX $2"
    fi])
 
+AC_SUBST(NATIVECC)
+AC_DEFUN(CODA_PROG_NATIVECC,
+    if test $cross_compiling = yes ; then
+       [AC_CHECKING([for native C compiler on the build host])
+	AC_CHECK_PROG(NATIVECC, gcc, gcc)
+	if test -z "$NATIVECC" ; then
+	    AC_CHECK_PROG(NATIVECC, cc, cc, , , /usr/ucb/cc)
+	fi
+	test -z "$NATIVECC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
+	AC_MSG_RESULT([	found.])
+	dnl Just assume it works.]
+    else
+	NATIVECC=${CC}
+    fi)
+
 dnl Check which lib provides termcap functionality
 AC_SUBST(LIBTERMCAP)
 AC_DEFUN(CODA_CHECK_LIBTERMCAP,
@@ -39,29 +54,33 @@ AC_DEFUN(CODA_CHECK_LIBTERMCAP,
 dnl Check for a curses library, and if it needs termcap
 AC_SUBST(LIBCURSES)
 AC_DEFUN(CODA_CHECK_LIBCURSES,
-  AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
-      [AC_CHECK_LIB(curses, main, [LIBCURSES="-lcurses"],
-	  [AC_MSG_ERROR("failed to find curses library")
-	  ], $LIBTERMCAP)
-      ], $LIBTERMCAP)
-
-  AC_CACHE_CHECK("if curses library requires -ltermcap",
-    coda_cv_curses_needs_termcap,
-    [coda_save_LIBS="$LIBS"
-     LIBS="$LIBCURSES $LIBS"
-     AC_TRY_LINK([],[],
-       coda_cv_curses_needs_termcap=no,
-       coda_cv_curses_needs_termcap=yes)
-     LIBS="$coda_save_LIBS"])
-  if test $coda_cv_curses_needs_termcap = yes; then
-    LIBCURSES="$LIBCURSES $LIBTERMCAP"
+  if test $target != "i386-pc-cygwin32" -a $target != "i386-pc-djgpp" ; then
+    AC_CHECK_LIB(ncurses, main, [LIBCURSES="-lncurses"],
+	[AC_CHECK_LIB(curses, main, [LIBCURSES="-lcurses"],
+	    [AC_MSG_ERROR("failed to find curses library")
+	    ], $LIBTERMCAP)
+	], $LIBTERMCAP)
+    AC_CACHE_CHECK("if curses library requires -ltermcap",
+	coda_cv_curses_needs_termcap,
+	[coda_save_LIBS="$LIBS"
+	LIBS="$LIBCURSES $LIBS"
+	AC_TRY_LINK([],[],
+	coda_cv_curses_needs_termcap=no,
+	coda_cv_curses_needs_termcap=yes)
+	LIBS="$coda_save_LIBS"])
+    if test $coda_cv_curses_needs_termcap = yes; then
+	LIBCURSES="$LIBCURSES $LIBTERMCAP"
+    fi
   fi)
+
 
 dnl Find an installed libdb-1.85
 dnl  cygwin and glibc-2.0 have libdb
 dnl  BSD systems have it in libc
 dnl  glibc-2.1 has libdb1 (and libdb is db2)
 dnl  Solaris systems have dbm in libc
+dnl All coda-servers _must_ use the same library, otherwise certain databases
+dnl cannot be replicated.
 AC_SUBST(LIBDB)
 AC_DEFUN(CODA_CHECK_LIBDB185,
   AC_CHECK_LIB(db, dbopen, [LIBDB="-ldb"],
@@ -92,6 +111,15 @@ AC_DEFUN(CODA_CHECK_LIBDB185,
        AC_DEFINE(HAVE_DB_185_H)],
       [AC_MSG_RESULT("yes")])
     LIBS="$coda_save_LIBS"
+  fi)
+
+dnl We cannot test for setpgrp(void) when cross-compiling, let's just assume
+dnl we're POSIX-compliant in that case.
+AC_DEFUN(CODA_FUNC_SETPGRP,
+  if test $target != "i386-pc-cygwin32" -a $target != "i386-pc-djgpp" ; then
+    [AC_FUNC_SETPGRP]
+  else
+    [AC_DEFINE(SETPGRP_VOID)]
   fi)
 
 dnl check wether we have flock or fcntl

@@ -35,10 +35,10 @@ STD_LIBS = $(LIBREADLINE) $(LIBTERMCAP) ${LIBFIXUP}
 OFILES = rvol.o path.o
 
 reptest: reptest.o (OFILES) $(RLIBS)
-	$(CXX) $(LIBFLAGS) reptest.o $(OFILES) $(RLIBS) $(STD_LIBS) -o reptest
+	$(CXX) $(LDFLAGS) reptest.o $(OFILES) $(RLIBS) $(STD_LIBS) -o reptest
 
 repair:  repair.o $(OFILES) $(RLIBS)
-	$(CXX) $(LIBFLAGS) repair.o $(OFILES) $(RLIBS) $(STD_LIBS) -o repair
+	$(CXX) $(LDFLAGS) repair.o $(OFILES) $(RLIBS) $(STD_LIBS) -o repair
 
 include $(TOPDIR)/configs/Makerules
 

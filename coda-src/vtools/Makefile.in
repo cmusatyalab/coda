@@ -44,27 +44,27 @@ CXXFLAGS := $(CXXFLAGS) -UVENUS
 include $(TOPDIR)/configs/Makerules
 
 cmon: cmon.o $(CMON_LIBS)
-	$(CXX) $(LIBFLAGS) cmon.o $(CMON_LIBS) $(STD_LIBS) -o cmon
+	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(STD_LIBS) -o cmon
 
 codacon:    codacon.o
-	$(CXX) $(LIBFLAGS) $(LIBFIXUP) -o codacon codacon.o
+	$(CXX) $(LDFLAGS) $(LIBFIXUP) -o codacon codacon.o
 
 cfs:  cfs.o $(CFS_LIBS)
-	$(CXX) $(LIBFLAGS) cfs.o $(CFS_LIBS) $(STD_LIBS) -o cfs
+	$(CXX) $(LDFLAGS) cfs.o $(CFS_LIBS) $(STD_LIBS) -o cfs
 
 hoard: hoard.o $(HOARD_LIBS)
-	$(CXX) $(LIBFLAGS) hoard.o $(HOARD_LIBS) $(STD_LIBS) -o hoard
+	$(CXX) $(LDFLAGS) hoard.o $(HOARD_LIBS) $(STD_LIBS) -o hoard
 
 spy: spy.o
-	$(CXX) $(LIBFLAGS) $(LIBFIXUP) spy.o -o spy
+	$(CXX) $(LDFLAGS) $(LIBFIXUP) spy.o -o spy
 
 replay: replay.o
-	$(CXX) $(LIBFLAGS) $(LIBFIXUP) replay.o -o replay
+	$(CXX) $(LDFLAGS) $(LIBFIXUP) replay.o -o replay
 
 # up is broken on the pmax because a.out.h seems incomplete
 # fix if up is really needed (Satya 3/23/92)
 up: up.o
-	$(CXX) $(LIBFLAGS)  up.o -o up
+	$(CXX) $(LDFLAGS)  up.o -o up
 
 logbandwidth: logbandwidth.in translate.sed
 	sed -f translate.sed  $< > $@

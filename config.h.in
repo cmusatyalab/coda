@@ -21,6 +21,9 @@
 /* Define if you have the select function.  */
 #undef HAVE_SELECT
 
+/* Define if you have the setpgrp function.  */
+#undef HAVE_SETPGRP
+
 /* Define if you have the statfs function.  */
 #undef HAVE_STATFS
 
@@ -68,6 +71,9 @@
 
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
+
+/* Define if you have the <sys/vfs.h> header file.  */
+#undef HAVE_SYS_VFS_H
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H

@@ -15,26 +15,31 @@
 # 
 
 exec_prefix = @exec_prefix@
-prefix = @prefix@
-libdir = @libdir@
-libexecdir = $(exec_prefix)/lib/coda
-bindir = $(exec_prefix)/bin
-sbindir = $(exec_prefix)/sbin
-initsuffix = @initsuffix@
-mandir = @mandir@
+prefix      = @prefix@
+libdir      = @libdir@
+libexecdir  = $(exec_prefix)/lib/coda
+bindir      = @bindir@
+sbindir     = @sbindir@
+initsuffix  = $(prefix)/@initsuffix@
+mandir      = @mandir@
 
-host = @host@
-host_alias = @host_alias@
+target = @target@
 
-CC=     @CC@
-CPP=    @CPP@ -x c-header
-CXX=    @CXX@
-LIBS=   @LIBS@
-CFLAGS= @CFLAGS@
-YACC=   @YACC@
-LEX=    @LEX@
-LEXLIB= @LEXLIB@
-INSTALL=@INSTALL@
+CC=       @CC@
+CPP=      @CPP@ -x c-header
+CXX=      @CXX@
+NATIVECC= @NATIVECC@
+AS=	  @AS@
+AR=	  @AR@
+RANLIB=   @RANLIB@
+LIBS=     @LIBS@
+CFLAGS=   @CFLAGS@
+CXXFLAGS= @CXXFLAGS@
+LDFLAGS=  @LDFLAGS@
+YACC=     @YACC@
+LEX=      @LEX@
+LEXLIB=   @LEXLIB@
+INSTALL=  @INSTALL@
 
 LIBTERMCAP= @LIBTERMCAP@
 LIBCURSES=  @LIBCURSES@

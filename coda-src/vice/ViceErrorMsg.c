@@ -48,6 +48,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <errno.h>
 #include <errors.h>
 #include "coda_string.h"

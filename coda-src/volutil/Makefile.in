@@ -124,18 +124,18 @@ local.a: ${LOCALOBJS}
 
 
 volutil:    ${VOLCLIENTOBJS} ${VLIBS}
-	${CXX} $(LIBFLAGS) ${VOLCLIENTOBJS} ${VLIBS} ${LIBS} -lm -o volutil
+	${CXX} $(LDFLAGS) ${VOLCLIENTOBJS} ${VLIBS} ${LIBS} -lm -o volutil
 
 merge:	merge.o dumpstream.o dumpstuff.o ${VLIBS}
-	$(CXX) $(LIBFLAGS) merge.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o merge
+	$(CXX) $(LDFLAGS) merge.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o merge
 
 backup: backup.o ${VLIBS}
-	$(CXX) $(LIBFLAGS) backup.o ${VLIBS} ${LIBS} -lm -o backup
+	$(CXX) $(LDFLAGS) backup.o ${VLIBS} ${LIBS} -lm -o backup
 
 readdump: readdump.o dumpstream.o dumpstuff.o ${VLIBS}
-	$(CXX) $(LIBFLAGS) readdump.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o readdump
+	$(CXX) $(LDFLAGS) readdump.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o readdump
 
 parserecdump: parserecdump.o ${VLIBS} 
-	$(CXX) $(LIBFLAGS) parserecdump.o ${VLIBS} ${LIBS} -o parserecdump
+	$(CXX) $(LDFLAGS) parserecdump.o ${VLIBS} ${LIBS} -o parserecdump
 
 

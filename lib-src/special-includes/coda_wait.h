@@ -21,14 +21,14 @@ Coda are listed in the file CREDITS.
 
 /* Header files and macros for a common denominator in wait and friends */
 
-#ifdef __linux__
-#define _USE_BSD
 #include <sys/types.h>
-#include <sys/resource.h>
-#elif defined(HAVE_SYS_RESOURCE_H)
+
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
+
 #include <sys/wait.h>
+
 #ifndef WEXITSTATUS
 #define WEXITSTATUS(x)  ((unsigned(x) >> 8)
 #endif
@@ -36,10 +36,8 @@ Coda are listed in the file CREDITS.
 #define WTERMSIG(x)     ((x) & 255)
 #endif
 #ifndef WCOREDUMP
-#define WCOREDUMP(x)    (x) & 0200)
+#define WCOREDUMP(x)    ((x) & 0200)
 #endif
 
-#ifdef __linux__
-#undef _USE_BSD
-#endif
-#endif
+#endif /* CODA_WAIT_H */
+

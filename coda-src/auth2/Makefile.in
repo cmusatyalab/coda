@@ -99,25 +99,25 @@ libauth2.a: $(LIBAUTH2OBJS)
 libauser.a: $(LIBAUSEROBJS)
 
 $(AUTH2): auth2.o libauth2.a $(LIBS)
-	$(CC) $(LIBFLAGS) auth2.o libauth2.a $(LIBS) $(LIBKRBS) $(LIBDB) $(LIBFIXUP) -o $(AUTH2)
+	$(CC) $(LDFLAGS) auth2.o libauth2.a $(LIBS) $(LIBKRBS) $(LIBDB) $(LIBFIXUP) -o $(AUTH2)
 
 initpw: initpw.o $(LIBS)
-	$(CC) $(LIBFLAGS) initpw.o $(LIBS) $(LIBFIXUP) -o initpw
+	$(CC) $(LDFLAGS) initpw.o $(LIBS) $(LIBFIXUP) -o initpw
 
 $(AU): au.o libauser.a $(LIBS)
-	$(CC) $(LIBFLAGS) au.o libauser.a $(LIBS) $(LIBKRBS) $(LIBFIXUP) -o $(AU)
+	$(CC) $(LDFLAGS) au.o libauser.a $(LIBS) $(LIBKRBS) $(LIBFIXUP) -o $(AU)
 
 $(CLOG): clog.o tokenfile.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) clog.o tokenfile.o libauser.a ${LIBS} $(LIBKRBS) $(LIBFIXUP) -o $(CLOG)
+	${CC} $(LDFLAGS) clog.o tokenfile.o libauser.a ${LIBS} $(LIBKRBS) $(LIBFIXUP) -o $(CLOG)
 
 cunlog: cunlog.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) cunlog.o libauser.a ${LIBS} $(LIBFIXUP) -o cunlog
+	${CC} $(LDFLAGS) cunlog.o libauser.a ${LIBS} $(LIBFIXUP) -o cunlog
 
 cpasswd: cpasswd.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) cpasswd.o  libauser.a ${LIBS} ${LIBKRBS} $(LIBFIXUP) -o cpasswd
+	${CC} $(LDFLAGS) cpasswd.o  libauser.a ${LIBS} ${LIBKRBS} $(LIBFIXUP) -o cpasswd
 
 ctokens: ctokens.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) ctokens.o libauser.a ${LIBS} $(LIBFIXUP) -o ctokens
+	${CC} $(LDFLAGS) ctokens.o libauser.a ${LIBS} $(LIBFIXUP) -o ctokens
 
 tokentool: tokentool.o tokenfile.o ${LIBS}
-	${CC} $(LIBFLAGS) tokentool.o tokenfile.o ${LIBS} $(LIBFIXUP) -o tokentool
+	${CC} $(LDFLAGS) tokentool.o tokenfile.o ${LIBS} $(LIBFIXUP) -o tokentool

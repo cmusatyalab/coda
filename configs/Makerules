@@ -92,7 +92,7 @@ endif
 #####################
 installclient: c_bin_install c_sbin_install
 
-ifeq ($(host_alias),windows95) 
+ifeq ($(target),i386-pc-djgpp) 
 TARGETCBINS := $(CBINS:%=%.exe)
 TARGETCSBINS := $(CSBINS:%=%.exe)
 else
@@ -197,7 +197,7 @@ mkdep:
 VARS=SECSRC OLDVPATH VPATH VPATHTAIL CFLAGS AFLAGS LFLAGS\
     INCLDIR INCLFLAGS INCLPATH TOPDIR LIBDIR LIBS LIBEXECDIR\
     BINDIR SBINDIR MANDIR SHORTSYS VFSDIR LIBRARIES EXECUTABLES SSBINS\
-    SBINS CSBINS CBINS TARGETCBINS TARGETCSBINS host host_alias sys\
+    SBINS CSBINS CBINS TARGETCBINS TARGETCSBINS target sys\
     shortsys HEADERS RP2HEADERS 
 ECHOVAR+= echo "$(VAR)	 $($(VAR))" ;
 ECHOCMD:= $(foreach VAR, $(VARS), $(ECHOVAR))

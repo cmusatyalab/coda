@@ -1,5 +1,3 @@
-AC_CANONICAL_SYSTEM
-
 dnl      --------  Adding a new system ----------
 dnl Figure out what the GNU canonical name of your target is by
 dnl running configure in the top directory
@@ -7,23 +5,16 @@ dnl   - add a configs/Makeconf.$sys file for your system
 dnl   - add your VFS code to kernel-src/vfs/$vfsdir
 dnl   - add a case statement below to set $sys and $vfsdir
 
+case ${target} in
 
-
-case ${host_alias} in
-
-	windows95 )
+	*-*-djgpp )
 		sys=win95
 		initsuffix=../etc
  ;;
-	nt )
+	*-*-cygwin32 )
 		sys=cygwin32
 		initsuffix=../etc
  ;;
-	cygwin32 )
-		sys=cygwin32
-		initsuffix=../etc
- ;;
-
 	*-*-netbsd* )
 	    	shortsys=nbsd
 		sys=nbsd
@@ -86,7 +77,7 @@ case ${host_alias} in
 		esac
 		fullos=`uname -r`
 		vfsdir=solaris2
-		initstuff=../etc/init.d
+		initsuffix=../etc/init.d
 ;;
 esac
 AC_SUBST(shortsys)
