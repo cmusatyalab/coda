@@ -92,11 +92,11 @@ int IOMGR_Poll(void)
 {
     int i;
 
-    if (!dllist_empty(&lwp_join_queue))
+    if (!list_empty(&lwp_join_queue))
         return 1;
 
     for (i = 0; i < LWP_MAX_PRIORITY; i++)
-        if (!dllist_empty(&lwp_runq[i]))
+        if (!list_empty(&lwp_runq[i]))
             return 1;
     return 0;
 }

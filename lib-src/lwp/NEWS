@@ -4,6 +4,8 @@ New in 1.4:
 * Ported to FreeBSD-alpha.
 * Fixed unaligned access problems on 64-bit machines..
 * Increased the IOMGR stacksize to 32KB to avoid stackoverflows.
+* Avoid lock.h nameclashes with Coda on the list_head definition
+  (_pt version only).
 
 New in 1.3:
 

@@ -21,35 +21,35 @@ Coda are listed in the file CREDITS.
 
 /* based on linux kernel code lists. */
 
-/* struct dllist_head is defined in <lwp/lock.h> */
+/* struct list_head is defined in <lwp/lock.h> */
 #include <lwp/lock.h>
 #if 0
-struct dllist_head {
-	struct dllist_head *next, *prev;
+struct list_head {
+	struct list_head *next, *prev;
 };
 #endif
 
-#define dllist_entry(ptr, type, member) \
+#define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
-#define dllist_init(head) do { \
-    struct dllist_head *h = head; \
+#define list_init(head) do { \
+    struct list_head *h = head; \
     h->prev = h->next = h; } while(0);
 
-#define dllist_add(entry, head) do { \
-    struct dllist_head *h = head, *e = entry; \
+#define list_add(entry, head) do { \
+    struct list_head *h = head, *e = entry; \
     h->next->prev = e; \
     e->next = h->next; \
     e->prev = h; \
     h->next = e; } while(0);
 
-#define dllist_del(entry) do { \
-    struct dllist_head *e = entry; \
+#define list_del(entry) do { \
+    struct list_head *e = entry; \
     e->prev->next = e->next; \
     e->next->prev = e->prev; \
     e->prev = e->next = e; } while(0);
 
-#define dllist_empty(head) ((head)->next == head)
+#define list_empty(head) ((head)->next == head)
 
 #endif /* _DLLIST_H_ */
 

@@ -47,7 +47,7 @@ void Lock_Init(struct Lock *lock)
     lock->readers     = 0;
     lock->excl        = NULL;
     pthread_mutex_init(&lock->access, NULL);
-    dllist_init(&lock->pending);
+    list_init(&lock->pending);
 
     lwp_debug(LWP_DBG_LOCKS, "I lock %p\n", lock)
 }
@@ -66,7 +66,7 @@ static void ObtainLock(struct Lock *lock, char type)
     pthread_mutex_lock(&lock->access);
 
     /* add ourselves to the pending list */
-    dllist_add(&pid->lockq, lock->pending.prev);
+    list_add(&pid->lockq, lock->pending.prev);
 
     /* now start waiting, writers wait until all readers have left, all locks
      * wait for the excl flag to be cleared */
@@ -79,13 +79,13 @@ static void ObtainLock(struct Lock *lock, char type)
 
     /* Obtain the correct lock flags, read locks increment readers, write
      * locks set the excl flag and shared locks do both */
-    dllist_del(&pid->lockq);
+    list_del(&pid->lockq);
     if (type != 'R') lock->excl = pid;
     if (type != 'W') lock->readers++;
 
     /* signal the next in the queue, it might also be a reader */
-    if (type != 'W' && !dllist_empty(&lock->pending)) {
-        next = dllist_entry(lock->pending.next, struct lwp_pcb, lockq);
+    if (type != 'W' && !list_empty(&lock->pending)) {
+        next = list_entry(lock->pending.next, struct lwp_pcb, lockq);
         pthread_cond_signal(&next->lock_cond);
     }
 
@@ -113,8 +113,8 @@ static void ReleaseLock(struct Lock *lock, char type)
     lwp_debug(LWP_DBG_LOCKS, "%c- pid %p lock %p\n", type, pid, lock)
 
     /* if we cleared the lock, signal the next pending locker */
-    if (!lock->readers && !lock->excl && !dllist_empty(&lock->pending)) {
-        next = dllist_entry(lock->pending.next, struct lwp_pcb, lockq);
+    if (!lock->readers && !lock->excl && !list_empty(&lock->pending)) {
+        next = list_entry(lock->pending.next, struct lwp_pcb, lockq);
         pthread_cond_signal(&next->lock_cond);
     }
 

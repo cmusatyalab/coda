@@ -74,16 +74,16 @@ void Lock_ReleaseW (struct Lock *);
 #else /* _REENTRANT || _THREAD_SAFE */
 #include <pthread.h>
 
-struct dllist_head {
-    struct dllist_head *next, *prev;
+struct list_head {
+    struct list_head *next, *prev;
 };
 
 struct Lock {
-    char               initialized;
-    char               readers;
-    PROCESS            excl;
-    pthread_mutex_t    access;
-    struct dllist_head pending;
+    char             initialized;
+    char             readers;
+    PROCESS          excl;
+    pthread_mutex_t  access;
+    struct list_head pending;
 };
 #endif /* _REENTRANT || _THREAD_SAFE */
 

@@ -31,19 +31,19 @@ struct rock {
 };
 
 struct lwp_pcb {
-    pthread_t   thread;                 /* thread id */
-    struct dllist_head list;            /* list of all threads */
+    pthread_t        thread;            /* thread id */
+    struct list_head list;              /* list of all threads */
 
-    struct dllist_head runq;
-    pthread_cond_t     run_cond;
-    pthread_cond_t     join_cond;
-    struct dllist_head lockq;
-    pthread_cond_t     lock_cond;
-    int                concurrent;
-    int                havelock;
-    int                priority;
+    struct list_head runq;
+    pthread_cond_t   run_cond;
+    pthread_cond_t   join_cond;
+    struct list_head lockq;
+    pthread_cond_t   lock_cond;
+    int              concurrent;
+    int              havelock;
+    int              priority;
 
-    char        name[32];               /* ASCII name */
+    char	     name[32];          /* ASCII name */
 
     int       (*func)(void *);          /* entry point */
     void       *parm;                   /* parameters */
@@ -60,8 +60,8 @@ struct lwp_pcb {
     char         **evlist;              /* list of event we wait for */
 };
 
-extern struct dllist_head lwp_runq[LWP_MAX_PRIORITY + 1];
-extern struct dllist_head lwp_join_queue;
+extern struct list_head lwp_runq[LWP_MAX_PRIORITY + 1];
+extern struct list_head lwp_join_queue;
 
 void lwp_JOIN(PROCESS pid);
 void lwp_LEAVE(PROCESS pid);

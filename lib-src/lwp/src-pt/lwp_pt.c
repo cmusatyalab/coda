@@ -44,8 +44,8 @@ struct timeval run_wait_threshold;
 FILE *lwp_logfile = NULL; /* where to log debug messages to */
 int   lwp_loglevel = 0;   /* which messages to log */
 
-static pthread_key_t      lwp_private; /* thread specific data */
-static struct dllist_head lwp_list;    /* list of all threads */
+static pthread_key_t    lwp_private; /* thread specific data */
+static struct list_head lwp_list;    /* list of all threads */
 
 /* information passed to a child process */
 struct lwp_forkinfo {
@@ -60,9 +60,19 @@ struct lwp_forkinfo {
 /* mutexes to block concurrent threads & various run queues */
 static pthread_mutex_t run_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t join_mutex = PTHREAD_MUTEX_INITIALIZER;
-struct dllist_head lwp_runq[LWP_MAX_PRIORITY + 1];
-struct dllist_head lwp_join_queue;
+struct list_head lwp_runq[LWP_MAX_PRIORITY + 1];
+struct list_head lwp_join_queue;
 PROCESS lwp_cpptr = NULL; /* the current non-concurrent process */
+
+#ifdef BUGGY_MUTEX_LOCK
+/* hmm, RH5.2 seems to suffer from some serious implementation problems */
+#define PTHREAD_MUTEX_LOCK(mtx) do { \
+    while((mtx)->m_count) sched_yield(); \
+    pthread_mutex_lock(mtx); \
+} while(0);
+#else
+#define PTHREAD_MUTEX_LOCK(mtx) pthread_mutex_lock(mtx);
+#endif
 
 /* Short explanation of the scheduling
  * 
@@ -131,10 +141,10 @@ static int SIGNAL(PROCESS pid)
     lwp_cpptr = NULL;
 
     /* signal a thread waiting to join */
-    pthread_mutex_lock(&join_mutex);
+    PTHREAD_MUTEX_LOCK(&join_mutex);
     {
-        if (!dllist_empty(&lwp_join_queue)) {
-            next = dllist_entry(lwp_join_queue.next, struct lwp_pcb, runq);
+        if (!list_empty(&lwp_join_queue)) {
+            next = list_entry(lwp_join_queue.next, struct lwp_pcb, runq);
             pthread_cond_signal(&next->join_cond);
             done = 1;
         }
@@ -144,8 +154,8 @@ static int SIGNAL(PROCESS pid)
     
     /* otherwise signal the highest priority thread */
     for (i = LWP_MAX_PRIORITY; i >= 0; i--) {
-        if (!dllist_empty(&lwp_runq[i])) {
-            next = dllist_entry(lwp_runq[i].next, struct lwp_pcb, runq);
+        if (!list_empty(&lwp_runq[i])) {
+            next = list_entry(lwp_runq[i].next, struct lwp_pcb, runq);
             pthread_cond_signal(&next->run_cond);
             break;
         }
@@ -164,7 +174,7 @@ static void SCHEDULE(PROCESS pid)
      * variable. (cleanup needs to call lwp_JOIN before removing us from the
      * list of threads, but we are already joined) */
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
-    dllist_add(&pid->runq, lwp_runq[pid->priority].prev);
+    list_add(&pid->runq, lwp_runq[pid->priority].prev);
 
     /* If we are the highest priority thread on the runqueue,
      * `higher' priority threads might be in limbo between being signalled
@@ -176,18 +186,18 @@ static void SCHEDULE(PROCESS pid)
         sched_yield(); /* really try very hard to give them a chance by
                           forcing a context switch */
 #endif
-        pthread_mutex_lock(&run_mutex);
+        PTHREAD_MUTEX_LOCK(&run_mutex);
     }
 
     do {
-        pthread_mutex_lock(&join_mutex);
+        PTHREAD_MUTEX_LOCK(&join_mutex);
         {
-            done = dllist_empty(&lwp_join_queue);
+            done = list_empty(&lwp_join_queue);
         }
         pthread_mutex_unlock(&join_mutex);
 
         for (i = LWP_MAX_PRIORITY; done && i > pid->priority; i--)
-            if (!dllist_empty(&lwp_runq[i])) done = 0;
+            if (!list_empty(&lwp_runq[i])) done = 0;
 
         if (done && lwp_runq[pid->priority].next == &pid->runq)
             break;
@@ -195,7 +205,7 @@ static void SCHEDULE(PROCESS pid)
         pthread_cond_wait(&pid->run_cond, &run_mutex);
     } while(1);
 
-    dllist_del(&pid->runq);
+    list_del(&pid->runq);
 
     pid->havelock = 1;
     lwp_cpptr = pid;
@@ -211,9 +221,9 @@ void lwp_JOIN(PROCESS pid)
 {
     assert(pid->havelock == 0);
 
-    pthread_mutex_lock(&join_mutex);
+    PTHREAD_MUTEX_LOCK(&join_mutex);
     {
-        dllist_add(&pid->runq, lwp_join_queue.prev);
+        list_add(&pid->runq, lwp_join_queue.prev);
         while (lwp_join_queue.next != &pid->runq)
             /* this is a safe cancellation point because we (should) only hold
              * the join_mutex */
@@ -221,14 +231,14 @@ void lwp_JOIN(PROCESS pid)
     }
     pthread_mutex_unlock(&join_mutex);
 
-    pthread_mutex_lock(&run_mutex);
+    PTHREAD_MUTEX_LOCK(&run_mutex);
   /*{*/
         pid->havelock = 1;
         lwp_cpptr = pid;
 
-        pthread_mutex_lock(&join_mutex);
+        PTHREAD_MUTEX_LOCK(&join_mutex);
         {
-            dllist_del(&pid->runq);
+            list_del(&pid->runq);
         }
         pthread_mutex_unlock(&join_mutex);
 }
@@ -257,14 +267,14 @@ static void lwp_cleanup_process(void *data)
     /* we need the run_mutex to fiddle around with the process list */
     if (!pid->havelock) lwp_JOIN(pid);
 
-    dllist_del(&pid->list);
+    list_del(&pid->list);
 
     /* make sure we don't block other processes, and we are not on
      * the runqueue anymore */
     lwp_LEAVE(pid);
 
     /* ok, we're safe, now start cleaning up */
-    dllist_del(&pid->lockq);
+    list_del(&pid->lockq);
     sem_destroy(&pid->waitq);
     pthread_cond_destroy(&pid->run_cond);
     pthread_cond_destroy(&pid->lock_cond);
@@ -296,9 +306,9 @@ int LWP_Init (int version, int priority, PROCESS *pid)
     assert(pthread_key_create(&lwp_private, lwp_cleanup_process) == 0);
 
     for (i = 0; i <= LWP_MAX_PRIORITY; i++)
-        dllist_init(&lwp_runq[i]);
-    dllist_init(&lwp_join_queue);
-    dllist_init(&lwp_list);
+        list_init(&lwp_runq[i]);
+    list_init(&lwp_join_queue);
+    list_init(&lwp_list);
 
     lwp_inited = 1;
 
@@ -309,7 +319,7 @@ int LWP_Init (int version, int priority, PROCESS *pid)
     me->priority = priority;
 
     lwp_JOIN(me);
-    dllist_add(&me->list, &lwp_list);
+    list_add(&me->list, &lwp_list);
 
     if (pid) *pid = me;
 
@@ -337,15 +347,15 @@ int LWP_CurrentProcess(PROCESS *pid)
     (*pid)->evsize   = 5;
     (*pid)->evlist   = (char **)malloc((*pid)->evsize * sizeof(char*));
 
-    dllist_init(&(*pid)->list);
+    list_init(&(*pid)->list);
     assert(sem_init(&(*pid)->waitq, 0, 0) == 0);
     assert(pthread_cond_init(&(*pid)->event, NULL) == 0);
 
-    dllist_init(&(*pid)->runq);
+    list_init(&(*pid)->runq);
     assert(pthread_cond_init(&(*pid)->run_cond, NULL) == 0);
     assert(pthread_cond_init(&(*pid)->join_cond, NULL) == 0);
 
-    dllist_init(&(*pid)->lockq);
+    list_init(&(*pid)->lockq);
     assert(pthread_cond_init(&(*pid)->lock_cond, NULL) == 0);
 
     pthread_setspecific(lwp_private, *pid);
@@ -393,7 +403,7 @@ static void *lwp_newprocess(void *arg)
     /* Grab the concurrency semaphore, to comply with existing LWP policy
      * of not having concurrent threads. */
     LWP_QWait(); /* as a side effect this does an implicit lwp_JOIN */
-    dllist_add(&pid->list, &lwp_list);
+    list_add(&pid->list, &lwp_list);
 
     /* Fire off the newborn */
     retval = pid->func(pid->parm);
@@ -449,8 +459,8 @@ int LWP_DestroyProcess (PROCESS pid)
 
 int LWP_TerminateProcessSupport()
 {
-    struct dllist_head *ptr;
-    PROCESS             me, pid;
+    struct list_head *ptr;
+    PROCESS           me, pid;
     
     assert(LWP_CurrentProcess(&me) == 0);
 
@@ -458,21 +468,23 @@ int LWP_TerminateProcessSupport()
     if (me->concurrent) lwp_JOIN(me);
 
     for (ptr = lwp_list.next; ptr != &lwp_list; ptr = ptr->next) {
-        pid = dllist_entry(ptr, struct lwp_pcb, list);
+        pid = list_entry(ptr, struct lwp_pcb, list);
 
         /* venus flytrap? */
         pid->concurrent = 0;
 
         /* I should not kill myself. */
-        if (pthread_equal(me->thread, pid->thread) == 0)
+        if (!pthread_equal(me->thread, pid->thread))
             LWP_DestroyProcess(pid);
     }
 
     /* At this point we are at least sure that all non-concurrent threads
      * are blocking in the scheduler. And as the scheduler is a cancellation
      * point, all blocked threads should be cancelled by now. */
-    lwp_LEAVE(me);
-    lwp_JOIN(me);
+    list_del(&me->list);
+    while(!list_empty(&lwp_list)) {
+	SCHEDULE(me);
+    }
     lwp_LEAVE(me);
 
     /* We can start cleaning. */
@@ -522,16 +534,16 @@ int LWP_QWait()
 
 int LWP_INTERNALSIGNAL(void *event, int yield)
 {
-    struct dllist_head *ptr;
-    PROCESS             me, pid;
-    int                 i;
+    struct list_head *ptr;
+    PROCESS           me, pid;
+    int               i;
 
     assert(LWP_CurrentProcess(&me) == 0);
 
     if (!me->havelock) lwp_JOIN(me);
 
     for (ptr = lwp_list.next; ptr != &lwp_list; ptr = ptr->next) {
-        pid = dllist_entry(ptr, struct lwp_pcb, list);
+        pid = list_entry(ptr, struct lwp_pcb, list);
         if (pid == me) continue;
 
         for (i = 0; i < pid->eventcnt; i++) {
