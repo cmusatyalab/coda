@@ -916,7 +916,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	r = (rle *)rlog->first();
 	int i = 0;
 
-	while (i < (*volptr)->nReintegrators) {
+	while (r && i < (*volptr)->nReintegrators) {
 	    if ((r->sid.Host == (*volptr)->reintegrators[i].Host) &&
 		(r->sid.Uniquifier <= (*volptr)->reintegrators[i].Uniquifier)) {
 		errorCode = VLOGSTALE;
@@ -2267,7 +2267,6 @@ int AddChild(Volume **volptr, dlist *vlist, ViceFid *Did,
 Exit:
     if (vptr) {
 	Error fileCode = 0;
-	VN_PutDirHandle(vptr);
 	VPutVnode(&fileCode, vptr);
 	CODA_ASSERT(fileCode == 0);
     }
@@ -2283,7 +2282,7 @@ int LookupChild(Volume *volptr, Vnode *vptr, char *Name, ViceFid *Fid)
 
     	PDirHandle dh;
 
-	dh = DC_DC2DH(vptr->dh);
+	dh = VN_SetDirHandle(vptr);
 	errorCode = DH_Lookup(dh, Name, Fid, CLU_CASE_SENSITIVE);
 	if ( errorCode != 0) {
 		errorCode = ENOENT;
@@ -2292,6 +2291,7 @@ int LookupChild(Volume *volptr, Vnode *vptr, char *Name, ViceFid *Fid)
 	Fid->Volume = V_id(volptr);
 
  Exit:
+	VN_PutDirHandle(vptr);
 	SLog(10,  
 	       "LookupChild returns %s", ViceErrorMsg(errorCode));
 	return(errorCode);

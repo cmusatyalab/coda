@@ -149,7 +149,7 @@ static int GetMyRepairList(ViceFid *, struct listhdr *, int ,
 static int CheckTreeRemoveSemantics(ClientEntry *, Volume *, 
 				     ViceFid *, dlist *);
 
-static int getFids(dlist *, char *, long , long );
+static int getFids(struct DirEntry *dirent, void * data);
 
 
 static int GetRepairObjects(Volume *, vle *, dlist *, 
@@ -1205,9 +1205,12 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		    /* do semantic checking recursively */
 		    if (errorCode = CheckTreeRemoveSemantics(client, volptr, 
 							     (ViceFid *)(&repairent.parms[0]),
-							     vlist))
+							     vlist)) {
+			VN_PutDirHandle(cv->vptr);
 			return(errorCode);
+		    }
 		}
+		VN_PutDirHandle(cv->vptr);
 	    }
 	    break;
 	  case REPAIR_RENAME:
@@ -1230,6 +1233,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		sdh = VN_SetDirHandle(sdv->vptr);
 
 		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid, CLU_CASE_SENSITIVE) == 0);
+		VN_PutDirHandle(sdv->vptr);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
@@ -1243,6 +1247,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		    tv = FindVLE(*vlist, &tfid);
 		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
 		}
+		VN_PutDirHandle(tdv->vptr);
 		if (errorCode = CheckRepairRenameSemantics(client, volptr, sdv, tdv, 
 							   sv, tv, repairent.name, repairent.newname))
 		    return(errorCode);
@@ -1482,6 +1487,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		{
 		    CODA_ASSERT(DH_IsEmpty(cdir));
 		    tblocks = 0;
+		    VN_PutDirHandle(cv->vptr);
 		    PerformRmdir(client, VSGVolnum, volptr, 
 				 ov->vptr, cv->vptr, repairent.name, status->Date,
 				 0, StoreId, &ov->d_cinode, &tblocks);
@@ -1513,6 +1519,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		sdh = VN_SetDirHandle(sdv->vptr);
 
 		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid, CLU_CASE_SENSITIVE) == 0);
+		VN_PutDirHandle(sdv->vptr);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
@@ -1527,6 +1534,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
 		}
 		
+		VN_PutDirHandle(tdv->vptr);
 		int tblocks = 0;
 		PerformRename(client, VSGVolnum, volptr,
 			      sdv->vptr, tdv->vptr, sv->vptr, 
@@ -1703,8 +1711,10 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 				   (struct ViceFid *)&(repairent.parms[0]), CLU_CASE_SENSITIVE) != 0) {
 			    SLog(0,  "REMOVEFSL: No name %s in directory",
 				    repairent.name);
+			    VN_PutDirHandle(ov->vptr);
 			    return(ENOENT);
 			}
+			VN_PutDirHandle(ov->vptr);
 			repairent.parms[0] = (unsigned int)vid;
 			AddVLE(*vlist, (ViceFid *)&(repairent.parms[0]));
 		    }
@@ -1718,8 +1728,10 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			    SLog(0,  
 				   "REMOVED: No name %s in directory",
 				    repairent.name);
+			    VN_PutDirHandle(ov->vptr);
 			    return(ENOENT);
 			}
+			VN_PutDirHandle(ov->vptr);
 			repairent.parms[0] = (unsigned int)vid;
 			int errorCode = 0;
 			errorCode = GetSubTree((ViceFid *)&(repairent.parms[0]),
@@ -1860,20 +1872,26 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     return(errorCode);
 }
 
-static int getFids(dlist *flist, char *name, long vnode, long unique)
+static int getFids(struct DirEntry *de, void * data)
 {
-    SLog(9,  "Entering GetFid for %s", name);
-    if (!strcmp(name, ".") || !strcmp(name, ".."))
-	return 0;
+        dlist *flist = (dlist *)data;
+	char *name = de->name;
+	long vnode, unique;
+	ViceFid fid;
 
-    ViceFid fid;
-    fid.Volume = 0;
-    fid.Vnode = vnode;
-    fid.Unique = unique;
-    AddVLE(*flist, &fid);
+	SLog(9,  "Entering GetFid for %s", name);
 
-    SLog(9,  "Leaving GetFid for %s ", name);
-    return(0);
+	FID_NFid2Int(&de->fid, &vnode, &unique);
+	if (!strcmp(name, ".") || !strcmp(name, ".."))
+		return 0;
+
+	fid.Volume = 0;
+	fid.Vnode = vnode;
+	fid.Unique = unique;
+	AddVLE(*flist, &fid);
+
+	SLog(9,  "Leaving GetFid for %s ", name);
+	return(0);
 }
 
 class rmblk {
@@ -1955,6 +1973,7 @@ static int RecursiveCheckRemoveSemantics(PDirEntry de, void * data)
 	    td = VN_SetDirHandle(ov->vptr);
 	    if (!DH_IsEmpty(td)) 
 		DH_EnumerateDir(td, RecursiveCheckRemoveSemantics, (void *)rb);
+	    VN_PutDirHandle(ov->vptr);
 	}
     }
 
@@ -1985,6 +2004,7 @@ static int CheckTreeRemoveSemantics(ClientEntry *client, Volume *volptr,
 		if (!DH_IsEmpty(td)) 
 			DH_EnumerateDir(td, RecursiveCheckRemoveSemantics, 
 					(void *)&enumparm);
+		VN_PutDirHandle(tv->vptr);
 		return(enumparm.result);
 	}
 }
@@ -2032,9 +2052,12 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		if (cv->vptr->disk.type == vDirectory) {
 			PDirHandle cDir;
 			cDir = VN_SetDirHandle(cv->vptr);
-			if (!DH_IsEmpty(cDir)) 
+			if (!DH_IsEmpty(cDir)) {
 				DH_EnumerateDir(cDir, PerformTreeRemoval, 
 						(void *) pkdparm);
+				CODA_ASSERT(DC_Dirty(cv->vptr->dh));
+			}
+			VN_PutDirHandle(cv->vptr);
 		}
 	}
 

@@ -4439,6 +4439,7 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
     /* Remove the name from the directory. */
     CODA_ASSERT(DH_Delete(pDir, Name) == 0);
+    CODA_ASSERT(DC_Dirty(dirvptr->dh));
     int newlength = DH_Length(pDir);
     VN_PutDirHandle(dirvptr);
     int newblocks = (int) (nBlocks(newlength) - nBlocks(dirvptr->disk.length));

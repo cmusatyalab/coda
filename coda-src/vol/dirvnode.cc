@@ -110,6 +110,7 @@ int VN_DAbort(Vnode *vnp)
 	}
     
 	DH_FreeData(DC_DC2DH(vnp->dh));
+	DC_SetDirty(vnp->dh, 0);
 
 	return(0);
 }
@@ -129,18 +130,18 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 
 	if ( vn->disk.inodeNumber == 0 && vn->dh == 0 ) {  
 		pdce = DC_New();
-		SLog(0, "VN_GetDirHandle NEW Vnode %#x Uniq %#x cnt %d\n",
-		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
 		vn->dh = pdce;
 		vn->dh_refc = 1;
+		SLog(0, "VN_GetDirHandle NEW Vnode %#x Uniq %#x cnt %d\n",
+		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
 	} else if ( vn->disk.inodeNumber ) {
 		pdce = DC_Get((PDirInode)vn->disk.inodeNumber);
+		vn->dh = pdce;
+		vn->dh_refc++;
 		SLog(0, "VN_GetDirHandle for Vnode %#x Uniq" 
 		     " %#x cnt %d, vn_cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, 
 		     DC_Count(pdce), vn->dh_refc);
-		vn->dh = pdce;
-		vn->dh_refc++;
 	} else {
 		pdce = vn->dh;
 		DC_SetCount(pdce, DC_Count(pdce) + 1);

@@ -262,6 +262,7 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
 	    tmpFid.Volume = SrcFid.Volume;
 	    SrcNameFidBindingOK = FID_EQ(&tmpFid, &SrcFid);
 	}
+	VN_PutDirHandle(opv->vptr);
 	sv = FindVLE(*vlist, &SrcFid);
 	if (sv && sv->vptr && !sv->vptr->delete_me)
 	    SrcObjExists = TRUE;
@@ -306,9 +307,11 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
 		LogMsg(0, SrvDebugLevel, stdout,  
 		       "ChkResRenSem: Target name %s already exists wrongly",
 		       r->name2);
+		VN_PutDirHandle(npv->vptr);
 		errorCode = EINCONS;
 		goto Exit;
 	    }
+	    VN_PutDirHandle(npv->vptr);
 	}
 	else {
 	    // target is supposed to exist 
@@ -331,6 +334,7 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
 		TgtNameExists = TRUE;
 		TgtNameFidBindingOK = FID_EQ(&tmpFid, &TgtFid);
 	    }
+	    VN_PutDirHandle(npv->vptr);
 	    tv = FindVLE(*vlist, &TgtFid);
 	    if (tv && tv->vptr && !tv->vptr->delete_me)
 		TgtObjExists = TRUE;
@@ -449,11 +453,13 @@ static int CleanRenameTarget(rsle *r, dlist *vlist, Volume *volptr,
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "CleanRenameTarget: Target %x.%x is already empty",
 		tFid.Vnode, tFid.Unique);
+	VN_PutDirHandle(tv->vptr);
 	return(0);
     }
     TreeRmBlk pkdparm;
     pkdparm.init(0, VSGVolnum, volptr, 0, &r->storeid, vlist, 
 		 1, AllLogs, r->index, blocks);
     DH_EnumerateDir(tdh, PerformTreeRemoval, (void *)&pkdparm);
+    VN_PutDirHandle(tv->vptr);
     return(0);
 }
