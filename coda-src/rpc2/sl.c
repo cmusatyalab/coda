@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.1 1997/01/08 21:50:32 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.2 1998/04/14 21:07:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -111,25 +111,23 @@ PRIVATE void
 PRIVATE RPC2_HostIdent rpc2_ThisHost;
 PRIVATE RPC2_PortalIdent rpc2_ThisPortal;
 
-
 #define EXTRADEBUG 1
 #ifdef	EXTRADEBUG
-#define BOGUS(p, msg)	/* bogus packet; throw it away */\
+#define BOGUS(p, msg) do {	/* bogus packet; throw it away */\
     say(-1, RPC2_DebugLevel, (msg));\
     rpc2_Recvd.Bogus++;\
-    RPC2_FreeBuffer(&p);
+    RPC2_FreeBuffer(&p); } while (0)
 #else	EXTRADEBUG
-#define BOGUS(p, msg)	/* bogus packet; throw it away */\
+#define BOGUS(p, msg)	do { /* bogus packet; throw it away */\
     say(9, RPC2_DebugLevel, (msg));\
     rpc2_Recvd.Bogus++;\
-    RPC2_FreeBuffer(&p);
+    RPC2_FreeBuffer(&p); } while (0)
 #endif	EXTRADEBUG
 
-#define NAKIT(p)	/* bogus packet; NAK it and then throw it away */\
+#define NAKIT(p) do { 	/* bogus packet; NAK it and then throw it away */\
     rpc2_Recvd.Bogus++;\
     SendNak(p->Header.LocalHandle, &rpc2_ThisHost, &rpc2_ThisPortal);\
-    RPC2_FreeBuffer(&p);
-
+    RPC2_FreeBuffer(&p); } while (0) 
 
 
 void rpc2_SocketListener()

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/trace.h,v 1.1 1996/11/22 19:07:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/trace.h,v 4.1 1997/01/08 21:50:34 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -326,7 +326,7 @@ struct TraceElem
 
 /* Macros to actually do the tracing follows.  Each of these is used only once,
     but is placed here to avoid cluttering up all the other files */
-#define TR_SENDRESPONSE()\
+#define TR_SENDRESPONSE() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -338,10 +338,10 @@ struct TraceElem
 	tea->ConnHandle = ConnHandle;\
 	tea->Reply_Address = Reply;\
 	tea->Reply = *Reply;	/* structure assignment */\
-	}
+	} } while (0)
 
 
-#define TR_GETREQUEST()\
+#define TR_GETREQUEST() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -355,9 +355,9 @@ struct TraceElem
 	else {tea->IsNullBreathOfLife = FALSE; tea->BreathOfLife = *BreathOfLife; /* structure assignment */}\
 	tea->GetKeys = GetKeys;\
 	tea->EncryptionTypeMask = EncryptionTypeMask;\
-	}
+	} } while(0)
 
-#define TR_MAKERPC()\
+#define TR_MAKERPC() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -374,10 +374,10 @@ struct TraceElem
 	if (BreathOfLife == NULL) tea->IsNullBreathOfLife = TRUE;\
 	else {tea->IsNullBreathOfLife = FALSE; tea->BreathOfLife = *BreathOfLife; /* structure assignment */}\
 	tea->EnqueueRequest = EnqueueRequest;\
-	}
+	} } while (0)
 
 
-#define TR_BIND()\
+#define TR_BIND() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -403,9 +403,9 @@ struct TraceElem
 	    }\
 	if (Bparms->SharedSecret == NULL) tea->IsNullSharedSecret = TRUE;\
 	else {tea->IsNullSharedSecret = FALSE; bcopy(Bparms->SharedSecret, tea->SharedSecret, sizeof(RPC2_EncryptionKey));}\
-	}
+	} } while (0)
 
-#define TR_INITSE()\
+#define TR_INITSE()do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -417,10 +417,10 @@ struct TraceElem
 	tea->ConnHandle = ConnHandle;\
 	if (SDesc == NULL) tea->IsNullSDesc = TRUE;\
 	else {tea->IsNullSDesc = FALSE; tea->SDesc = *SDesc; /* structure assignment */ }\
-	}
+	} } while(0)
 
 
-#define TR_CHECKSE()\
+#define TR_CHECKSE()do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -433,9 +433,9 @@ struct TraceElem
 	if (SDesc == NULL) tea->IsNullSDesc = TRUE;\
 	else {tea->IsNullSDesc = FALSE; tea->SDesc = *SDesc;	/* structure assignment */}\
 	tea->Flags = Flags;\
-	}
+	} } while (0)
 
-#define TR_UNBIND()\
+#define TR_UNBIND() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -445,9 +445,9 @@ struct TraceElem
 	te->CallCode = UNBIND;\
 	strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);\
 	tea->whichConn = whichConn;\
-	}
+	}} while (0)
 
-#define TR_MULTI()\
+#define TR_MULTI() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -464,10 +464,10 @@ struct TraceElem
 	tea->HandleResult = ArgInfo->HandleResult;\
 	if (BreathOfLife == NULL) tea->IsNullBreathOfLife = TRUE;\
 	else {tea->IsNullBreathOfLife = FALSE; tea->BreathOfLife = *BreathOfLife; /* structure assignment */}\
-	}
+	} } while (0)
 
 
-#define TR_MSENDRELIABLY()\
+#define TR_MSENDRELIABLY() do { \
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -487,9 +487,9 @@ struct TraceElem
 	    tea->IsNullTimeout = 0;\
 	    tea->Timeout = *TimeOut;	/* structure assignment */\
 	    }\
-	}
+	} } while(0)
 
-#define TR_XMIT()\
+#define TR_XMIT() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -504,9 +504,9 @@ struct TraceElem
 	rpc2_htonp(&tea->whichPB);\
 	tea->whichHost = *whichHost;	/* structure assignment */\
 	tea->whichPortal = *whichPortal;	/* structure assignment */\
-	}
+	} }while(0)
 
-#define TR_RECV()\
+#define TR_RECV() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -518,9 +518,9 @@ struct TraceElem
 	tea->pb_Address = whichBuff;\
 	tea->pb = *whichBuff;	/* Structure assignment */\
 	rpc2_ntohp(&tea->pb);\
-	}
+	} } while(0)
 
-#define TR_SENDRELIABLY()\
+#define TR_SENDRELIABLY() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -539,10 +539,10 @@ struct TraceElem
 	    tea->IsNullTimeout = 0;\
 	    tea->Timeout = *TimeOut;	/* structure assignment */\
 	    }\
-	}
+	} } while(0)
 
 
-#define TR_CREATEMGRP()\
+#define TR_CREATEMGRP() do { \
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -559,9 +559,9 @@ struct TraceElem
 	tea->IsEncrypted = ((SessionKey == NULL) ? 0 : 1);\
 	if (tea->IsEncrypted) bcopy(SessionKey, tea->SessionKey, sizeof(RPC2_EncryptionKey));\
 	tea->EncryptionType = EncryptionType;\
-	}
+	} } while(0)
 
-#define TR_ADDTOMGRP()\
+#define TR_ADDTOMGRP() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -571,10 +571,10 @@ struct TraceElem
 	te->CallCode = ADDTOMGRP;\
 	tea->MgroupHandle = MgroupHandle;\
 	tea->ConnHandle = ConnHandle;\
-	}
+	} }while(0)
 
 
-#define TR_REMOVEFROMMGRP()\
+#define TR_REMOVEFROMMGRP() do { \
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -584,10 +584,10 @@ struct TraceElem
 	te->CallCode = REMOVEFROMMGRP;\
 	tea->me = *me;	    /* structure assignment */\
 	tea->ce = *ce;	    /* structure assignment */\
-	}
+	} } while (0)
 
 
-#define TR_XLATEMCASTPACKET()\
+#define TR_XLATEMCASTPACKET() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
 	register struct TraceElem *te;\
@@ -599,7 +599,7 @@ struct TraceElem
 	tea->pb_address = (long) pb;\
 	tea->ThisHost = *ThisHost;	/* structure assignment */\
 	tea->ThisPortal = *ThisPortal;	/* structure assignment */\
-	}
+	} } while (0)
 
 
 

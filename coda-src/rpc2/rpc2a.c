@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.4 1998/04/14 21:07:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.5 1998/05/15 01:23:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -162,7 +162,7 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
     assert(Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
 #ifdef RPC2DEBUG
-    TR_SENDRESPONSE()
+    TR_SENDRESPONSE();
 #endif RPC2DEBUG
 
 	    
