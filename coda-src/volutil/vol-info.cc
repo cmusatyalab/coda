@@ -224,7 +224,7 @@ static void printvns(Volume *vp, VnodeClass vclass)
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
     register int vnodeIndex;
 
-    vindex v_index(V_id(vp), vclass, vp->device, vcp->diskSize);
+    vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
     vindex_iterator vnext(v_index);
 
     while ((vnodeIndex = vnext(vnode)) != -1) {

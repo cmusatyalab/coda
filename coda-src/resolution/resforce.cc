@@ -424,7 +424,7 @@ int ObtainDirOps(PDirEntry de, void *data)
     Unique_t unique;
     FID_NFid2Int(&de->fid, &vnode, &unique);
 
-    dirop_t op;
+    dirop_t op = CreateF;
     SLog(9,  "Entering ObtainDirOps for %s(%x.%x)",
 	    name, vnode, unique);
     /* skip over "." and ".." entries */

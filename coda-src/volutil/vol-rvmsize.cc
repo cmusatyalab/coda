@@ -112,7 +112,7 @@ long S_VolRVMSize(RPC2_Handle rpcid, VolumeId VolID, RVMSize_data *data) {
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)&buf;
     
-    vindex vol_index(V_id(vp), vLarge, vp->device, VnodeClassInfo_Array[vLarge].diskSize);
+    vindex vol_index(V_id(vp), vLarge, V_device(vp), VnodeClassInfo_Array[vLarge].diskSize);
     vindex_iterator vnext(vol_index);
     data->DirPagesSize = 0;
     int vnodeindex;

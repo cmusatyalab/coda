@@ -160,7 +160,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
 	 rpcid, originalId);
 
     /* Don't bother unlocking volume, Unlock would fail too */
-    if (VInitVolUtil(volumeUtility)) 
+    if ((rc = VInitVolUtil(volumeUtility))) 
 	return rc;
 
     originalvp = VGetVolume(&error, originalId);
@@ -509,7 +509,7 @@ static void purgeDeadVnodes(Volume *backupvp, rec_smolist *BackupLists,
     
     /* Set up an iterator for the backup vnodes. */
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-    vindex vol_index(V_id(backupvp), vclass, backupvp->device, vcp->diskSize);
+    vindex vol_index(V_id(backupvp), vclass, V_device(backupvp), vcp->diskSize);
     vindex_iterator vnext(vol_index);
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *bVnode = (VnodeDiskObject *)buf;
@@ -606,7 +606,7 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 
     /* setup an iterator for the read/write vnodes */
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-    vindex vol_index(V_id(rwvp), vclass, rwvp->device, vcp->diskSize);
+    vindex vol_index(V_id(rwvp), vclass, V_device(rwvp), vcp->diskSize);
     vindex_iterator next(vol_index);
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *rwVnode = (VnodeDiskObject *)buf;

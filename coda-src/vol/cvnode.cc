@@ -369,7 +369,7 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	LogMsg(19, VolDebugLevel, stdout,  "Entering VAllocVnodeCommon: ");
 	VnodeClass vclass = vnodeTypeToClass(type);
 	struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
-	vindex vol_index(V_id(vp), vclass, vp->device, vcp->diskSize);
+	vindex vol_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
 	int newHash = VNODE_HASH(vp, vnode, unique);
 	Vnode *vnp = NULL;
 
@@ -530,7 +530,7 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		}
 
 		/* Read vnode from volume index */
-		vindex v_index(V_id(vp), vclass, vp->device, vcp->diskSize);
+		vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
 		if ((n = v_index.get(vnodeNumber, unq, &vnp->disk)) != 0) {
 			/* Vnode is not allocated */
 			*ec = VNOVNODE;
@@ -664,7 +664,8 @@ void VPutVnode(Error *ec,register Vnode *vnp)
 		
 		if (vnp->changed || vnp->delete_me) {
 			Volume *vp = vnp->volumePtr;
-			vindex v_index(V_id(vp), vclass, vp->device, vcp->diskSize);
+			vindex v_index(V_id(vp), vclass, V_device(vp),
+				       vcp->diskSize);
 			long now = FT_ApproxTime();
 			CODA_ASSERT(vnp->cacheCheck == vnp->cacheCheck);
 			if (vnp->delete_me) 
@@ -764,7 +765,7 @@ void VFlushVnode(Error *ec, Vnode *vnp)
     Volume *vp = vnp->volumePtr;
     CODA_ASSERT(V_inUse(vp));
     CODA_ASSERT(vp->cacheCheck == vnp->cacheCheck);
-    vindex v_index(V_id(vp), vclass, vp->device, vcp->diskSize);
+    vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
     /* Re-read the disk part of the vnode if it exists in rvm */
     if (ObjectExists(V_volumeindex(vp), vclass, 
 		     vnodeIdToBitNumber(vnp->vnodeNumber),

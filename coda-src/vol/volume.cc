@@ -136,7 +136,7 @@ static void VListVolume(FILE *file, Volume *vp);
 static void VAppendVolume(Volume *vp);
 static void WriteVolumeHeader(Error *ec, Volume *vp);
 static Volume *attach2(Error *ec, char *path, struct VolumeHeader *header,
-			Device device, char *partition);
+		       struct DiskPartition *dp);
 static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass);
 static void VAdjustVolumeStatistics(Volume *vp);
 static void VScanUpdateList();
@@ -727,8 +727,7 @@ Volume *
 VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 {
 	register Volume *vp;
-	int rc,listVolume;
-	struct stat status;
+	int rc,listVolume = 0;
 	struct VolumeHeader header;
 	struct DiskPartition *dp;
 	char name[32];
@@ -796,7 +795,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 			return NULL;
 		}
 	}
-	vp = attach2(ec, name, &header, status.st_dev, partition);
+	vp = attach2(ec, name, &header, dp);
 	if (vp == NULL)
 		VLog(9, "VAttachVolumeById: attach2 returns vp == NULL");
 
@@ -840,29 +839,26 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 }
 
 static Volume *attach2(Error *ec, char *name, 
-		       register struct VolumeHeader *header,
-		       Device device, char *partition)
+		       struct VolumeHeader *header,
+		       struct DiskPartition *dp)
 {
-	register Volume *vp;
+	Volume *vp;
 	ProgramType *pt;
 
 	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 	VLog(9, "Entering attach2(); %s running as fileServer",
 	     (*pt==fileServer)?"":"not");
 
-
-
 	vp = (Volume *) calloc(1, sizeof(Volume));
 	CODA_ASSERT(vp != NULL);
 
-	vp->partition = DP_Get(partition);
+	vp->partition = dp;
 	if (vp->partition == NULL) {
 		FreeVolume(vp);
 		return NULL;
 	}
     
 	vp->specialStatus = 0;
-	vp->device = device;
 	vp->cacheCheck = ++VolumeCacheCheck;
 	vp->shuttingDown = 0;
 	vp->goingOffline = 0;
@@ -1033,7 +1029,7 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 	VLog(39, "VGetVolume: partition name for volume %x is %s",
 				V_id(vp), V_partname(vp));
 	CODA_ASSERT(stat(V_partname(vp), &status) == 0);
-	VLog(39, "VGetVolume: vp->device = %u, disk.device = %u",
+	VLog(39, "VGetVolume: vp->partition->device = %u, disk.device = %u",
 				V_device(vp),  status.st_dev);
 
 	if (vp->shuttingDown) {
@@ -1183,7 +1179,7 @@ void VOffline(Volume *vp, char *message)
 void VDetachVolume(Error *ec, Volume *vp)
 {
     VolumeId volume;
-    int notifyServer;
+    int notifyServer = 0;
     ProgramType *pt;
 
     VLog(9, "Entering VDetachVolume() for volume %x", V_id(vp));
@@ -1436,7 +1432,7 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
 	VLog(9, "Entering GetBitmap() for volume %x, vclass = %d",
 	     V_id(vp), vclass);
 	*ec = 0;
-	vindex vol_index(V_id(vp), vclass, vp->device, vcp->diskSize);
+	vindex vol_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);
 	vindex_iterator vnext(vol_index);
 	int slots = vol_index.elts();
 

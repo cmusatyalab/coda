@@ -43,6 +43,7 @@ Pittsburgh, PA.
  */
 #include <recov_vollog.h>
 #include <vice.h>
+#include <partition.h>
 #include "voldefs.h"
 
 
@@ -260,7 +261,6 @@ struct Volume {
     struct	Volume 	*hashNext; /* Next in hash resolution table */
     VolumeId	hashid;		   /* Volume number -- for hash table lookup */
     struct	volHeader *header; /* Cached disk data */
-    Device	device;		   /* Unix device for the volume */ 
     struct DiskPartition
     		*partition;	   /* Information about the Unix partition */
     int		vol_index;	   /* index of this volume in recoverable volume array */
@@ -312,8 +312,8 @@ struct volHeader {
 /* These macros are used to export fields within the volume header.
    This was added to facilitate changing the actual representation */
 
-#define V_device(vp)		((vp)->device)
 #define V_partition(vp)		((vp)->partition)
+#define V_device(vp)		(V_partition(vp)->device)
 #define V_inode(vp)		((vp)->inode)
 /*#define V_diskDataInode(vp)	((vp)->diskDataInode) */
 #define V_vnodeIndex(vp)	((vp)->vnIndex)

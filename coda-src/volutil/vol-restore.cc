@@ -701,7 +701,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	if (tag == D_FILEDATA) {
 	    int fd;
 	
-	    vdop->inodeNumber = icreate((int)vp->device, 0, 
+	    vdop->inodeNumber = icreate((int)V_device(vp), 0, 
 					(int)V_parentId(vp),
 					(int)*vnodeNumber, 
 					(int)vdop->uniquifier,
@@ -711,7 +711,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 		     *vnodeNumber);
 		return -1;
 	    }
-	    fd = iopen((int)vp->device, (int)vdop->inodeNumber, O_WRONLY);
+	    fd = iopen((int)V_device(vp), (int)vdop->inodeNumber, O_WRONLY);
 	    if (fd == -1){
 		VLog(0, "Failure to open inode for writing %d", errno);
 		return -1;
@@ -734,7 +734,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    close(fd);
 	} else if (tag == D_BADINODE) {
 	    /* Create a null inode. */
-	    vdop->inodeNumber = icreate((int)vp->device, 0, 
+	    vdop->inodeNumber = icreate((int)V_device(vp), 0, 
 					(int)V_parentId(vp),
 					(int)*vnodeNumber, 
 					(int)vdop->uniquifier,

@@ -221,7 +221,7 @@ static int ViceCreateRoot(Volume *vp)
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vLarge];
     char buf3[sizeof(Vnode)];
     Vnode *vn = (Vnode *)buf3;
-    vindex v_index(V_id(vp), vLarge, vp->device, SIZEOF_LARGEDISKVNODE);
+    vindex v_index(V_id(vp), vLarge, V_device(vp), SIZEOF_LARGEDISKVNODE);
 
     bzero((void *)vn, sizeof(Vnode));
     bzero((char *)vnode, SIZEOF_LARGEDISKVNODE);    

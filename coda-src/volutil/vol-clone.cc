@@ -377,7 +377,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
 
-    vindex vol_index(V_id(rwVp), vclass, rwVp->device, vcp->diskSize);
+    vindex vol_index(V_id(rwVp), vclass, V_device(rwVp), vcp->diskSize);
     vindex_iterator vnext(vol_index);
 
     int vnodeindex;
@@ -469,13 +469,13 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex,
 	    docreate = (int)IsBarren(vnode->versionvector);
 	
 	if (docreate) {
-	    vnode->inodeNumber = icreate((int)cloneVp->device, 0,
+	    vnode->inodeNumber = icreate((int)V_device(cloneVp), 0,
 					 (int)V_id(rwVp), vnodeNum,
 					 (int)vnode->uniquifier, 0);
 	    vnode->length = 0;	/* Reset length since we have a new null inode. */
 	} else	
 	    /* Inodes should not disappear while the server is running. */
-	    CODA_ASSERT(iinc((int)rwVp->device, (int)vnode->inodeNumber,
+	    CODA_ASSERT(iinc((int)V_device(rwVp), (int)vnode->inodeNumber,
 			(int)V_parentId(rwVp)) == 0);
     } 
     

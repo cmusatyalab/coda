@@ -1,8 +1,18 @@
+1999-06-25    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.2.7 =========
+	* Corrected token file decoding.
+	* Fixed a repair fixfile parsing error which caused servers to
+	  crash for some types of repair commands..
+	* Fixed a bug which potentially causes severe bitmap corruptions
+	  when a server has multiple data partitions (could also occur
+	  with multiple volumes).
+
 1999-06-24    <jaharkes@cs.cmu.edu>
-	* ======== Release 5.2.6  =========
+	* ======== (Release 5.2.6) =========
 	* Fixed a bug which caused volume creation to fail on new servers.
 
 1999-06-21    <jaharkes@cs.cmu.edu>
+	* ======== (Release 5.2.5) =========
 	* Applied patch to libal to work correctly with libdb2's
 	  libdb-1.85 emulation. (Andreas Koenig)
 	* Fixed the repair tool, it now can handle spaces in filenames.

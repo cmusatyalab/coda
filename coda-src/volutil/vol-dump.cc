@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.13 $
+#define RCSVERSION $Revision: 4.14 $
 
 /* vol-dump.c */
 
@@ -297,7 +297,7 @@ failure:
 
 static int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp, RPC2_Unsigned Incremental, long unique)
 {
-    DumpDev = vp->device;
+    DumpDev = V_device(vp);
     DumpDouble(dbuf, (byte) D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
     DumpLong(dbuf, 'v', V_id(vp));
     DumpLong(dbuf, 'p', V_parentId(vp));
