@@ -38,6 +38,9 @@ listed in the file CREDITS.
  *
  *  HISTORY
  * $Log: filecopy.cc,v $
+ * Revision 4.2  1998/12/21 22:24:58  jaharkes
+ * Here it is.... GPL/LGPL
+ *
  * Revision 4.1  1997/01/08 21:49:16  rvb
  * r = 4.1; fix $ HEADERS
  *
