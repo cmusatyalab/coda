@@ -120,7 +120,7 @@ int DelayPacket(int latency, int speed, long socket, struct sockaddr_in *sap,
 	    dq->lastElem = pp;
 	} else {
 	    /* Start the timer. */
-	    assert(!dq->lastElem && !dq->timer.tv_sec && !dq->timer.tv_usec);
+	    assert(!dq->lastElem);
 	    dq->delayQueue = dq->lastElem = pp;
 	    dq->timer = pp->timeToWait;
             FT_GetTimeOfDay(&now, NULL);

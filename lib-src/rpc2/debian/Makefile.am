@@ -17,7 +17,7 @@
 #                            none currently
 #*/
 
-EXTRADIST = changelog control copyright dirs docs librpc22.docs \
+EXTRA_DIST = changelog control copyright dirs docs librpc22.docs \
     librpc22.files librpc22.postinst librpc22.prerm postinst prerm \
     rpc2-tools.files rpc2-tools.postinst rpc2-tools.prerm rules watch
 

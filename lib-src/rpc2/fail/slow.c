@@ -147,7 +147,7 @@ int slow(int argc, char** argv)
 void ParseArgs(int argc, char **argv)
 {
     int i;
-    if (argc != 9)
+    if (argc != 11)
 	    PrintUsage();
 
     for (i = 1; i < argc; i++) {
