@@ -767,11 +767,6 @@ item: Install File
   Flags=0000000010000010
 end
 item: Install File
-  Source=c:\wise-coda\nt\purgevol
-  Destination=%MAINDIR%\coda\bin\purgevol
-  Flags=0000000010000010
-end
-item: Install File
   Source=c:\wise-coda\nt\purgevol_rep
   Destination=%MAINDIR%\coda\bin\purgevol_rep
   Flags=0000000010000010

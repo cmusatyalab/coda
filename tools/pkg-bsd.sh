@@ -236,7 +236,6 @@ sbin/parserecdump
 sbin/partial-reinit.sh
 sbin/pdbtool
 sbin/printvrdb
-sbin/purgevol
 sbin/purgevol_rep
 sbin/readdump
 sbin/rpc2portmap
