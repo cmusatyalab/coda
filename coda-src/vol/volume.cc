@@ -1041,13 +1041,6 @@ Volume *VGetVolume(Error *ec, VolumeId volumeId)
 	    }
 	}
 	
-    /* temp debugging stuff */
-	VLog(39, "VGetVolume: partition name for volume %x is %s",
-				V_id(vp), V_partname(vp));
-	CODA_ASSERT(stat(V_partname(vp), &status) == 0);
-	VLog(39, "VGetVolume: vp->partition->device = %u, disk.device = %u",
-				V_device(vp),  status.st_dev);
-
 	if (vp->shuttingDown) {
 	    VLog(29, "VGetVolume: volume %x is shutting down",
 		V_id(vp));
