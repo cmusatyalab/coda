@@ -462,7 +462,7 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
     info->Type = vldp->volumeType;
     for (i = 0, vidp = &info->Type0; i<MAXVOLTYPES; )
 	*vidp++ = ntohl((unsigned long) vldp->volumeId[i++]);
-    CODA_ASSERT(vldp->nServers <= MAXVOLSERVERS);
+    CODA_ASSERT(vldp->nServers <= VSG_MEMBERS);
     serverList = (bit32 *) &info->Server0;
     for (nReported = i = 0; i<vldp->nServers; i++) {
 	register unsigned long serverAddress;
@@ -487,7 +487,7 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
 	    serverList[s] = serverList[s+1];
 	serverList[i] = temp;
     }
-    for (i = nReported; i<MAXVOLSERVERS; )
+    for (i = nReported; i < VSG_MEMBERS; )
         serverList[i++] = 0;
     info->ServerCount = nReported;
     if (nReported == 1) {

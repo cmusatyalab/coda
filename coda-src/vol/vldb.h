@@ -40,21 +40,27 @@ Pittsburgh, PA.
 #ifndef _VLDB_H_
 #define _VLDB_H_ 1
 
-/* Note: this structure happens to be 64 bytes long which isn't real important.  But it seemed like
-   a nice number, and the code currently does use a shift. */
+/* Note: this structure happens to be 64 bytes long which isn't real important.
+ * But it seemed like a nice number, and the code currently does use a shift. */
 
-#define MAXVOLTYPES	5	/* Maximum number of different types of volumes, each of which can be
-				   associated with the current volume */
-#define MAXVOLSERVERS   8	/* Maximum number of servers that can be recorded in the vldb as serving
+#define MAXVOLTYPES	5	/* Maximum number of different types of
+				   volumes, each of which can be associated
+				   with the current volume */
+/* (defined in vcrcommon.rpc2) VSG_MEMBERS 8 -* Maximum number of servers
+				   that can be recorded in the vldb as serving
 				   a single volume */
 struct vldb {
-    char key[33];		/* Name or volume id, in ascii, null terminated */
-    byte hashNext;		/* Number of entries between here and next hash entry for same hash.
-    				   0 is the last */
-    byte volumeType;		/* Volume type, as defined in vice.h  (RWVOL, ROVOL, BACKVOL) */
+    char key[33];		/* Name or volume id, in ascii, null terminated
+				 */
+    byte hashNext;		/* Number of entries between here and next hash
+				   entry for same hash. 0 is the last */
+    byte volumeType;		/* Volume type, as defined in vice.h  (RWVOL,
+				   ROVOL, BACKVOL) */
     byte nServers;		/* Number of servers that have this volume */
-    unsigned long volumeId[MAXVOLTYPES]; /* *NETORDER* Corresponding volume of each type + 2 extra unused */
-    byte serverNumber[MAXVOLSERVERS];/* Server number for each server claiming to know about this volume */
+    unsigned long volumeId[MAXVOLTYPES]; /* *NETORDER* Corresponding volume of
+					    each type + 2 extra unused */
+    byte serverNumber[VSG_MEMBERS];/* Server number for each server claiming
+				      to know about this volume */
 };
 
 #define LOG_VLDBSIZE	 6	/* Assume the structure is 64 bytes */

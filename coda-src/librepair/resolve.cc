@@ -658,15 +658,15 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
     /* returns fid and absolute path of parent */
     int rc;
     struct ViceIoctl vi;
-    char junk[2048];
+    char tmp[2048];
     char path[MAXPATHLEN];
 
     /* first get the path of the child relative to vol root */
     vi.in = (char *)cfid;
     vi.in_size = sizeof(ViceFid);
-    vi.out = junk;
-    vi.out_size = sizeof(junk);
-    memset(junk, 0, sizeof(junk));
+    vi.out = tmp;
+    vi.out_size = sizeof(tmp);
+    memset(tmp, 0, sizeof(tmp));
 
     strcpy(path, "/coda");
     rc = pioctl(path, VIOC_GETPATH, &vi, 0);
@@ -676,16 +676,24 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
 	return(rc);
     }
 
+#if 0 /* this seems to be wrong, replaced it by conditionalizing the
+	 strcpy a few lines down. --JH */
     if (!volmtpt) {
 	strcpy(dpath, path);
 	return(0);
     }
+#endif
+
     /* form the absolute path name of the parent */
-    char *lastcomp = rindex(junk, '/');
+    char *lastcomp = rindex(tmp, '/');
     if (lastcomp) 
 	*lastcomp = '\0';
-    char *firstcomp = index(junk, '/');
-    strcpy(path, volmtpt);
+    char *firstcomp = index(tmp, '/');
+
+    /* if a volmtpt has not been passed along use "/coda", which already
+     * happens to be what path contains. --JH */
+    if (volmtpt) strcpy(path, volmtpt);
+
     if (firstcomp && (firstcomp != lastcomp)) {
 	strcat(path, "/");
 	strcat(path, firstcomp + 1);
@@ -698,14 +706,14 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
     //res_getfid(path, dfid, &VV);
     vi.in = (char *)cfid;
     vi.in_size = sizeof(ViceFid);
-    vi.out = junk;
-    vi.out_size = sizeof(junk);
+    vi.out = tmp;
+    vi.out_size = sizeof(tmp);
     strcpy(path, "/coda");
     rc = pioctl(path, VIOC_GETPFID, &vi, 0);
     if (rc) {
 	printf("Error %d occured while trying to get fid of %s's parent\n", childname);
 	return(rc);
     }
-    memmove((void *)dfid, (const void *)junk, sizeof(ViceFid));
+    memcpy(dfid, tmp, sizeof(ViceFid));
     return(0);
 }
