@@ -342,14 +342,10 @@ struct coda_statfs {
 #if 0
 #define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
 #define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
-#endif
-
-/* using ifdef to avoid breaking solaris/bsd kernel modules */
-#ifdef __linux__
+/* Only linux-2.3 kernels use venus-kernel protocol version 3 */
 #define CODA_KERNEL_VERSION 3 /* added CODA_MAKE_CINODE downcall */
-#else
-#define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
 #endif
+#define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
 
 /*
  *        Venus <-> Coda  RPC arguments
@@ -680,14 +676,10 @@ struct coda_purgefid_out {
     ViceFid CodaFid;
 };
 
-struct coda_openfid_out {
+struct coda_make_cinode_out {
     struct coda_out_hdr oh;
     ViceFid CodaFid;
-    int fd;
-};
-
-struct coda_closefid_out {
-    struct coda_out_hdr oh;
+    struct coda_vattr attr;
     int fd;
 };
 
@@ -793,8 +785,7 @@ union outputArgs {
     struct coda_purgefid_out coda_purgefid;
     struct coda_rdwr_out coda_rdwr;
     struct coda_replace_out coda_replace;
-    struct coda_openfid_out coda_openfid;
-    struct coda_closefid_out coda_closefid;
+    struct coda_make_cinode_out coda_make_cinode;
     struct coda_open_by_path_out coda_open_by_path;
     struct coda_statfs_out coda_statfs;
 };    
