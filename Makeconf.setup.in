@@ -20,7 +20,7 @@ libdir      = @libdir@
 libexecdir  = $(exec_prefix)/lib/coda
 bindir      = @bindir@
 sbindir     = @sbindir@
-initsuffix  = $(prefix)/@initsuffix@
+initsuffix  = @initsuffix@
 mandir      = @mandir@
 
 target = @target@
