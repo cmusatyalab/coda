@@ -50,7 +50,7 @@ binary-arch: build install
 #	dh_testversion
 	dh_testdir
 	dh_testroot
-	dh_movefiles
+	dh_movefiles || true
 #	dh_installdebconf	
 	dh_installdocs
 	dh_installexamples
