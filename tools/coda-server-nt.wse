@@ -1,0 +1,1423 @@
+Document Type: WSE
+item: Global
+  Version=7.0
+  Title=Coda Server for Windows NT4.0 Installation
+  Flags=00010111
+  Languages=65 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  Japanese Font Name=MS Gothic
+  Japanese Font Size=10
+  Progress Bar DLL=%_WISE_%\Progress\WIZ%_EXE_OS_TYPE_%.DLL
+  Start Gradient=0 0 255
+  End Gradient=0 0 0
+  Windows Flags=00000100000000010010010000000000
+  Log Pathname=%MAINDIR%\coda\INSTALL.LOG
+  Message Font=MS Sans Serif
+  Font Size=8
+  Pages Modified=00111000111101100000010000000101
+  Extra Pages=00000000000000000000000000100000
+  Disk Filename=SETUP
+  Patch Flags=0000000000001001
+  Patch Threshold=85
+  Patch Memory=4000
+  EXE Filename=c:\wise-coda\nt\Coda-server-5.0-nt.exe
+  FTP Cluster Size=20
+  Per-User Version ID=1
+  Dialogs Version=7
+  Version File=5.0.0
+  Version Description=Coda Server for Windows NT 4.0
+  Version Copyright=Carnegie Mellon University
+  Version Company=Carnegie Mellon University
+  Step View=All
+  Variable Name1=_SYS_
+  Variable Default1=C:\WINNT\System32
+  Variable Flags1=00001000
+  Variable Name2=_WISE_
+  Variable Default2=C:\Program Files\Wise InstallBuilder
+  Variable Flags2=00001000
+  Variable Name3=_ALIASNAME_
+  Variable Flags3=00001000
+  Variable Name4=_ALIASPATH_
+  Variable Flags4=00001000
+  Variable Name5=_ALIASTYPE_
+  Variable Flags5=00001000
+end
+item: Get Temporary Filename
+  Variable=READMEFILE
+end
+item: Install File
+  Source=C:\wise-coda\nt\GNU-LICENSE.txt
+  Destination=%TEMP%\%READMEFILE%
+  Flags=0000000000100010
+end
+item: Check Configuration
+  Flags=10000000
+end
+item: Check Configuration
+  Flags=01100000
+end
+item: End Block
+end
+item: Check Configuration
+  Flags=10100000
+end
+item: Check Configuration
+  Flags=01011011
+end
+item: End Block
+end
+item: Open/Close INSTALL.LOG
+  Flags=00000001
+end
+item: Check if File/Dir Exists
+  Pathname=%SYS%
+  Flags=10000100
+end
+item: Set Variable
+  Variable=SYS
+  Value=%WIN%
+end
+item: End Block
+end
+item: Set Variable
+  Variable=APPTITLE
+  Value=Coda Server for Windows NT4.0
+  Flags=10000000
+end
+item: Set Variable
+  Variable=GROUP
+  Flags=10000000
+end
+item: Set Variable
+  Variable=DISABLED
+  Value=!
+end
+item: Set Variable
+  Variable=MAINDIR
+  Flags=10000000
+end
+item: Check Configuration
+  Flags=10111011
+end
+item: Get Registry Key Value
+  Variable=COMMON
+  Key=SOFTWARE\Microsoft\Windows\CurrentVersion
+  Default=C:\Program Files\Common Files
+  Value Name=CommonFilesDir
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=PROGRAM_FILES
+  Key=SOFTWARE\Microsoft\Windows\CurrentVersion
+  Default=C:\Program Files
+  Value Name=ProgramFilesDir
+  Flags=00000100
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=C:\%MAINDIR%
+  Flags=00001100
+end
+item: Set Variable
+  Variable=EXPLORER
+  Value=1
+end
+item: Else Statement
+end
+item: Get Registry Key Value
+  Variable=DESKTOPDIR
+  Key=SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Desktop
+  Default=%WIN%\Desktop
+  Value Name=DesktopDir
+  Flags=00000010
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=C:\%MAINDIR%
+  Flags=00001100
+end
+item: End Block
+end
+item: Set Variable
+  Variable=BACKUP
+  Value=%MAINDIR%\BACKUP
+  Flags=10000000
+end
+item: Set Variable
+  Variable=DOBACKUP
+  Value=B
+  Flags=10000000
+end
+item: Set Variable
+  Variable=COMPONENTS
+  Flags=10000000
+end
+item: Set Variable
+  Variable=BRANDING
+  Value=0
+end
+item: If/While Statement
+  Variable=BRANDING
+  Value=1
+end
+item: Read INI Value
+  Variable=NAME
+  Pathname=%INST%\CUSTDATA.INI
+  Section=Registration
+  Item=Name
+end
+item: Read INI Value
+  Variable=COMPANY
+  Pathname=%INST%\CUSTDATA.INI
+  Section=Registration
+  Item=Company
+end
+item: If/While Statement
+  Variable=NAME
+end
+item: Set Variable
+  Variable=DOBRAND
+  Value=1
+end
+item: End Block
+end
+item: End Block
+end
+item: Search for File
+  Variable=CYGWINDLL
+  Pathname List=cygwinb19.dll
+  Default=not-exists
+  Description=Searching for cygwinb19.dll
+end
+item: If/While Statement
+  Variable=CYGWINDLL
+  Value=not-exists
+end
+item: Display Message
+  Title=Warning, couldn't find cygwinb19.dll
+  Text=Something is wrong! This file should exist, when the CYGWIN package is installed correctly. Install the CYGWIN package what can be found at http:www.cygnus.com. The installation will be stopped.
+  Flags=00010000
+end
+item: Exit Installation
+end
+item: End Block
+end
+item: Install File
+  Source=C:\wise-coda\nt\cygwinb19.dll
+  Destination=%CYGWINDLL%
+  Description=The Cygwin DLL cygwinb19.dll will be displaced
+  Flags=0000000010100010
+end
+item: Search for File
+  Variable=CYGNUSBAT
+  Pathname List=cygnus.bat
+  Default=not-exists
+  Description=Searching for cygnus.bat
+end
+item: If/While Statement
+  Variable=CYGNUSBAT
+  Value=not-exists
+end
+item: Display Message
+  Title=Warning, couldn't find cygnus.bat
+  Text=Add the line "SET HOME=C:\Coda" to the file cygnus.bat which belongs to the CYGWIN Package
+  Flags=00000100
+end
+item: End Block
+end
+item: Insert Line into Text File
+  Pathname=%CYGNUSBAT%
+  New Text=SET HOME=C:\Coda
+  Search Text=SET
+  Line Number=0
+  Flags=00010000
+end
+item: Wizard Block
+  Direction Variable=DIRECTION
+  Display Variable=DISPLAY
+  Bitmap Pathname=%_WISE_%\DIALOGS\TEMPLATE\WIZARD.BMP
+  X Position=9
+  Y Position=10
+  Filler Color=8421440
+  Flags=00000011
+end
+item: Custom Dialog Set
+  Name=Welcome
+  Display Variable=DISPLAY
+  item: Dialog
+    Title=Welcome to the Coda Server Setup for Windows NT 4.0
+    Title French=Bienvenue
+    Title German=Willkommen
+    Title Portuguese=Bem-vindo 
+    Title Spanish=Bienvenido
+    Title Italian=Benvenuto
+    Title Danish=Velkommen
+    Title Dutch=Welkom
+    Title Norwegian=Velkommen
+    Title Swedish=Välkommen
+    Width=280
+    Height=224
+    Font Name=Helv
+    Font Size=8
+    item: Push Button
+      Rectangle=172 185 214 199
+      Variable=DIRECTION
+      Value=N
+      Create Flags=01010000000000010000000000000001
+      Text=&Next >
+      Text French=&Suivant>
+      Text German=&Weiter>
+      Text Portuguese=&Próximo>
+      Text Spanish=&Siguiente >
+      Text Italian=&Avanti >
+      Text Danish=&Næste>
+      Text Dutch=&Volgende>
+      Text Norwegian=&Neste>
+      Text Swedish=&Nästa >
+    end
+    item: Push Button
+      Rectangle=222 185 264 199
+      Action=3
+      Create Flags=01010000000000010000000000000000
+      Text=Cancel
+      Text French=Annuler
+      Text German=Abbrechen
+      Text Portuguese=Cancelar
+      Text Spanish=Cancelar
+      Text Italian=Annulla
+      Text Danish=Annuller
+      Text Dutch=Annuleren
+      Text Norwegian=Avbryt
+      Text Swedish=Avbryt
+    end
+    item: Static
+      Rectangle=9 177 263 178
+      Action=3
+      Create Flags=01010000000000000000000000000111
+    end
+    item: Static
+      Rectangle=83 8 121 33
+      Action=2
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000000000000000001011
+      Pathname=%_WISE_%\dialogs\template\install.grf
+      Pathname French=%_WISE_%\dialogs\template\install.grf
+      Pathname German=%_WISE_%\dialogs\template\install.grf
+      Pathname Portuguese=%_WISE_%\dialogs\template\install.grf
+      Pathname Spanish=%_WISE_%\dialogs\template\install.grf
+      Pathname Italian=%_WISE_%\dialogs\template\install.grf
+      Pathname Danish=%_WISE_%\dialogs\template\install.grf
+      Pathname Dutch=%_WISE_%\dialogs\template\install.grf
+      Pathname Norwegian=%_WISE_%\dialogs\template\install.grf
+      Pathname Swedish=%_WISE_%\dialogs\template\install.grf
+    end
+    item: Static
+      Rectangle=121 10 258 44
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000000000000000000000
+      Text=Welcome to %APPTITLE% Setup program. This program will install %APPTITLE% on your computer.
+      Text French=Bienvenue sur le programme d'installation %APPTITLE%. Ce programme va installer %APPTITLE% sur votre ordinateur.
+      Text German=Willkommen im Installationsprogramm für %APPTITLE%. Dieses Programm installiert  %APPTITLE% auf Ihrem Computer.
+      Text Portuguese=Bem-vindo ao programa de configuração %APPTITLE%. Este programa instalará %APPTITLE% no seu computador
+      Text Spanish=Bienvenido al programa de Configuración %APPTITLE%. Este programa instalará %APPTITLE en su ordenador
+      Text Italian=Benvenuto nel programma di installazione di %APPTITLE%. Con questo programma puoi installare %APPTITLE% sul tuo computer.
+      Text Danish=Velkommen til %APPTITLE% installationsprogrammet. Dette program installerer %APPTITLE% på computeren.
+      Text Dutch=Welkom bij het %APPTITLE% installatieprogramma. Dit programma installeert %APPTITLE% op uw computer.
+      Text Norwegian=Velkommen til %APPTITLE% Oppsett-program. Dette programmet vil installere %APPTITLE% på datamaskinen din.
+      Text Swedish=Välkommen till installationsprogrammet för %APPTITLE%. Detta program installerar %APPTITLE% på din dator.
+    end
+    item: Static
+      Rectangle=90 45 260 175
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000000000000000000000
+      Text=It is strongly recommended that you exit all Windows programs before running this Setup Program.
+      Text=
+      Text=Click Cancel to quit Setup and close any programs you have running.  Click Next to continue with the Setup program .
+      Text=
+      Text=WARNING: This program is protected by copyright law and international treaties.
+      Text=
+      Text=Unauthorized reproduction or distribution of this program, or any portion of it, may result in severe civil and criminal penalties, and will be prosecuted to the maximum extent possible under law.
+      Text French=Il vous est fortement recommandé de fermer tous les programmes Windows avant d'exécuter le Programme d'Installation
+      Text French=
+      Text French=Cliquez sur Annuler pour quitter l'Installation et fermez tous les programmes actuellement utilisés. Cliquez sur Suivant pour continuer l'installation
+      Text French=
+      Text French=ATTENTION : Ce programme est protégé par la loi sur les droits d'exploitation et par les traités internationaux
+      Text French=
+      Text French=Toute reproduction ou distribution, même partielle, de ce programme qui n'aura pas reçu d'autorisation préalable fera l'objet de poursuites et sera sévèrement sanctionnée par le droit civil et pénal
+      Text German=Wir empfehlen nachdrücklich, vor Ausführen dieses Installationsprogramms alle Windows-Programme zu beenden. 
+      Text German=
+      Text German=Auf Abbrechen klicken, um die Installation zu beenden und alle laufenden Programme zu schließen. Auf Weiter klicken, um mit dem Installationsprogramm beginnen.
+      Text German=
+      Text German=WARNUNG: Dieses Programm ist urheberrechtlich sowie durch internationale Verträge geschützt. 
+      Text German=
+      Text German=Die unzulässige Vervielfältigung oder Verbreitung dieses Programms, ob ganz oder auszugsweise, kann schwere zivil- und strafrechtliche Konsequenzen nach sich ziehen und wird unter voller Ausschöpfung der Rechtsmittel geahndet.
+      Text Portuguese=Recomenda-se insistentemente que saia de todos os programas do Windows antes de executar este Programa de Configuração.
+      Text Portuguese=
+      Text Portuguese=Faça um clique sobre Cancelar para sair da Configuração e feche todos os programas que estiver a executar. Faça um clique sobre Próximo para continuar com o programa de configuração
+      Text Portuguese=
+      Text Portuguese=AVISO: Este programa está protegido pela lei de direitos do autor e tratados internacionais
+      Text Portuguese=
+      Text Portuguese=A reprodução e a distribuição sem autorização deste programa, ou qualquer parte dele, pode dar lugar à aplicação de severas sanções civis e criminais, e serão perseguidas à extensão máxima permitida pela lei.
+      Text Spanish=Se recomienda encarecidamente que salga de todos los programas Windows antes de ejecutar este programa de Configuración.
+      Text Spanish=
+      Text Spanish=Haga un clic en Cancelar para abandonar la Configuración y cerrar cualquier programa que haya estado ejecutando. Haga un clic en Siguiente para continuar con el programa de Configuración.
+      Text Spanish=
+      Text Spanish=AVISO: Este programa está protegido por las leyes de derechos de autor y tratados internacionales.
+      Text Spanish=
+      Text Spanish=La reproducción o distribución no autorizadas de este programa, o cualquier parte de él, podría dar como resultado rigurosas multas civiles y penales, y se entablará la máxima acción judicial que permita la ley.
+      Text Italian=Ti consigliamo di uscire da tutti i programmi Windows prima di eseguire questo programma di installazione.
+      Text Italian=
+      Text Italian=Fai clic su Annulla per uscire dal programma di installazione e chiudi tutti i programmi aperti. Fai clic su Avanti per continuare con il programma di Installazione.
+      Text Italian=
+      Text Italian=AVVERTENZA: Questo programma è protetto ai sensi delle norme di legge e delle convenzioni internazionali in materia di diritti di copyright.
+      Text Italian=
+      Text Italian=La riproduzione o la distribuzione totale o parziale non autorizzata di questo programma potrà essere soggetta a penalità civili e penali, e sarà punita con la massima severità possibile a norma di legge.
+      Text Danish=Det anbefales kraftigt at afslutte alle Windows programmer, inden man kører dette installationsprogram.
+      Text Danish=
+      Text Danish=Klik på Annuller for at forlade installationsprogrammet og lukke alle igangværende programmer. Klik på Næste for at fortsætte med installationsprogrammet.
+      Text Danish=
+      Text Danish=ADVARSEL: Dette program er beskyttet af copyright og internationale traktater. 
+      Text Danish=
+      Text Danish=Uautoriseret gengivelse eller videresalg af dette program eller dele heraf kan føre til streng civil- og/eller kriminel stra. Retsforfølgning heraf vil finde sted i det videste omfang der hjemles muligt.
+      Text Dutch=Het wordt aangeraden om alle Windows programma's af te sluiten voordat u met de installatie van dit programma begint.
+      Text Dutch=
+      Text Dutch=Klik op Annuleren om de installatie te verlaten en eventueel nog lopende programma's af te sluiten. Klik op Volgende om verder te gaan met het Installatieprogramma.
+      Text Dutch=
+      Text Dutch=WAARSCHUWING: dit computerprogramma is auteursrechtelijk beschermd.
+      Text Dutch=
+      Text Dutch=Onrechtmatige verveelvoudiging of distributie van dit programma of een gedeelte ervan is verboden en strafbaar en zal met alle beschikbare juridische middelen worden bestreden.
+      Text Norwegian=Det anbefales på det sterkeste at du avslutter alle Windows-programmer før du kjører dette Oppsett-programmet.
+      Text Norwegian=
+      Text Norwegian=Velg Avbryt for å avbryte Oppsett og lukk alle programmer som er i bruk. Velg Neste for å fortsette med Oppsett-programmet.
+      Text Norwegian=
+      Text Norwegian=ADVARSEL: Dette programmet er beskyttet i henhold til lover om opphavsrett og internasjonale konvensjoner.
+      Text Norwegian=
+      Text Norwegian=Uautorisert kopiering eller distribuering av dette programmet eller deler av det, vil resultere i alvorlig sivil og kriminell straff og vil føre til saksmål i høyest mulig utstrekning i henhold til loven. 
+      Text Swedish=Du tillråds bestämt att gå ur alla Windows-program innan du kör installationsprogrammet.
+      Text Swedish=
+      Text Swedish=Klicka på Avbryt för att gå ur installationsprogrammet och stäng eventuella program som du har laddade. Klicka på Nästa för att fortsätta med installationen.
+      Text Swedish=
+      Text Swedish=VARNING: Detta program är skyddat av upphovsrätten och internationella avtal.
+      Text Swedish=
+      Text Swedish=Om du utan tillstånd kopierar eller distribuerar detta program eller delar av det kan det bli allvarliga civilrättsliga och brottsrättliga straffpåföljder. Vi beivrar sådana överträdelser i den allra högsta utsträckning som lagen tillåter.
+    end
+  end
+end
+item: Custom Dialog Set
+  Name=Display ReadMe
+  Display Variable=DISPLAY
+  item: Dialog
+    Title=Read Me File
+    Title French=Fichier Lisez-moi
+    Title German=Liesmich-Datei
+    Title Portuguese=Ficheiro Leia-me
+    Title Spanish=Archivo Léeme
+    Title Italian=File Leggimi
+    Title Danish=Vigtigt fil
+    Title Dutch=Leesmij-bestand
+    Title Norwegian=Informasjonsfil
+    Title Swedish=Läs mig-fil
+    Width=280
+    Height=224
+    Font Name=Helv
+    Font Size=8
+    item: Push Button
+      Rectangle=172 185 214 199
+      Variable=DIRECTION
+      Value=N
+      Create Flags=01010000000000010000000000000001
+      Text=&Next >
+      Text French=&Suivant>
+      Text German=&Weiter>
+      Text Portuguese=&Próximo>
+      Text Spanish=&Siguiente >
+      Text Italian=&Avanti >
+      Text Danish=&Næste>
+      Text Dutch=&Volgende>
+      Text Norwegian=&Neste>
+      Text Swedish=&Nästa >
+    end
+    item: Push Button
+      Rectangle=222 185 264 199
+      Action=3
+      Create Flags=01010000000000010000000000000000
+      Text=Cancel
+      Text French=Annuler
+      Text German=Abbrechen
+      Text Portuguese=Cancelar
+      Text Spanish=Cancelar
+      Text Italian=Annulla
+      Text Danish=Slet
+      Text Dutch=Annuleren
+      Text Norwegian=Avbryt
+      Text Swedish=Avbryt
+    end
+    item: Static
+      Rectangle=9 177 263 178
+      Action=3
+      Create Flags=01010000000000000000000000000111
+    end
+    item: Editbox
+      Rectangle=85 11 254 170
+      Value=%TEMP%\%READMEFILE%
+      Help Context=16711681
+      Create Flags=01010000101000000000100000000100
+    end
+    item: Push Button
+      Rectangle=130 185 172 199
+      Variable=DIRECTION
+      Value=B
+      Create Flags=01010000000000010000000000000000
+      Flags=0000000000000001
+      Text=< &Back
+      Text French=<&Retour
+      Text German=<&Zurück
+      Text Portuguese=<&Retornar
+      Text Spanish=<&Retroceder
+      Text Italian=< &Indietro
+      Text Danish=<&Back
+      Text Dutch=<&Terug
+      Text Norwegian=<&Tilbake
+      Text Swedish=< &Tillbaka
+    end
+  end
+end
+item: Custom Dialog Set
+  Name=Start Installation
+  Display Variable=DISPLAY
+  item: Dialog
+    Title=Start Coda Server Installation
+    Title French=Commencer l'installation
+    Title German=Installation beginnen
+    Title Portuguese=Iniciar Instalação
+    Title Spanish=Comenzar la Instalación
+    Title Italian=Avvia Installazione
+    Title Danish=Start installationen
+    Title Dutch=Start de installatie
+    Title Norwegian=Start installeringen
+    Title Swedish=Starta installationen
+    Width=280
+    Height=224
+    Font Name=Helv
+    Font Size=8
+    item: Push Button
+      Rectangle=172 185 214 199
+      Variable=DIRECTION
+      Value=N
+      Create Flags=01010000000000010000000000000001
+      Text=&Next >
+      Text French=&Suivant>
+      Text German=&Weiter>
+      Text Portuguese=&Próximo>
+      Text Spanish=&Siguiente >
+      Text Italian=&Avanti >
+      Text Danish=&Næste>
+      Text Dutch=&Volgende>
+      Text Norwegian=&Neste>
+      Text Swedish=&Nästa >
+    end
+    item: Push Button
+      Rectangle=130 185 172 199
+      Variable=DIRECTION
+      Value=B
+      Create Flags=01010000000000010000000000000000
+      Text=< &Back
+      Text French=<&Retour
+      Text German=<&Zurück
+      Text Portuguese=<&Retornar
+      Text Spanish=<&Retroceder
+      Text Italian=< &Indietro
+      Text Danish=<&Tilbage
+      Text Dutch=<&Terug
+      Text Norwegian=<&Tilbake
+      Text Swedish=< &Tillbaka
+    end
+    item: Push Button
+      Rectangle=222 185 264 199
+      Action=3
+      Create Flags=01010000000000010000000000000000
+      Text=Cancel
+      Text French=Annuler
+      Text German=Abbrechen
+      Text Portuguese=Cancelar
+      Text Spanish=Cancelar
+      Text Italian=Annulla
+      Text Danish=Annuller
+      Text Dutch=Annuleren
+      Text Norwegian=Avbryt
+      Text Swedish=Avbryt
+    end
+    item: Static
+      Rectangle=9 177 263 178
+      Action=3
+      Create Flags=01010000000000000000000000000111
+    end
+    item: Static
+      Rectangle=90 10 260 70
+      Create Flags=01010000000000000000000000000000
+      Text=You are now ready to install %APPTITLE%.
+      Text=
+      Text=Press the Next button to begin the installation or the Back button to reenter the installation information.
+      Text French=Vous êtes maintenant prêt à installer %APPTITLE%
+      Text French=
+      Text French=Cliquez sur Suivant pour commencer l'installation ou Retour pour entrer à nouveau les informations d'installation
+      Text German=Sie sind jetzt zur Installation von %APPTITLE% bereit.
+      Text German=
+      Text German=Auf die Schaltfläche Weiter klicken, um mit dem Start der Installation zu beginnen, oder auf die Schaltfläche Zurück, um die Installationsinformationen nochmals aufzurufen.
+      Text Portuguese=Está agora pronto para instalar %APPTITLE%
+      Text Portuguese=
+      Text Portuguese=Pressione o botão Próximo para começar a instalação ou o botão Retornar para introduzir novamente a informação sobre a instalação
+      Text Spanish=Ahora estará listo para instalar %APPTITLE%.
+      Text Spanish=
+      Text Spanish=Pulse el botón de Siguiente para comenzar la instalación o el botón Retroceder para volver a introducir la información sobre la instalación.
+      Text Italian=Sei pronto ad installare %APPTITLE%.
+      Text Italian=
+      Text Italian=Premi il tasto Avanti per iniziare l’installazione o il tasto Indietro per rientrare nuovamente nei dati sull’installazione
+      Text Danish=Du er nu klar til at installere %APPTITLE%.
+      Text Danish=
+      Text Danish=Klik på Næste for at starte installationen eller på Tilbage for at ændre installationsoplysningerne.
+      Text Dutch=U bent nu klaar om %APPTITLE% te installeren.
+      Text Dutch=
+      Text Dutch=Druk op Volgende om met de installatie te beginnen of op Terug om de installatie-informatie opnieuw in te voeren.
+      Text Norwegian=Du er nå klar til å installere %APPTITLE%
+      Text Norwegian=
+      Text Norwegian=Trykk på Neste-tasten for å starte installeringen, eller Tilbake-tasten for å taste inn installasjonsinformasjonen på nytt.
+      Text Swedish=Du är nu redo att installera %APPTITLE%.
+      Text Swedish=
+      Text Swedish=Tryck på Nästa för att starta installationen eller på Tillbaka för att skriva in installationsinformationen på nytt.
+    end
+  end
+end
+item: If/While Statement
+  Variable=DISPLAY
+  Value=Select Destination Directory
+end
+item: Set Variable
+  Variable=BACKUP
+  Value=%MAINDIR%\BACKUP
+end
+item: End Block
+end
+item: End Block
+end
+item: If/While Statement
+  Variable=DOBACKUP
+  Value=A
+end
+item: Set Variable
+  Variable=BACKUPDIR
+  Value=%BACKUP%
+end
+item: End Block
+end
+item: If/While Statement
+  Variable=BRANDING
+  Value=1
+end
+item: If/While Statement
+  Variable=DOBRAND
+  Value=1
+end
+item: Edit INI File
+  Pathname=%INST%\CUSTDATA.INI
+  Settings=[Registration]
+  Settings=NAME=%NAME%
+  Settings=COMPANY=%COMPANY%
+  Settings=
+end
+item: End Block
+end
+item: End Block
+end
+item: Open/Close INSTALL.LOG
+end
+item: Check Disk Space
+  Component=COMPONENTS
+end
+item: Display Graphic
+  Pathname=C:\wise-coda\nt\logo.bmp
+  X Position=16
+  Y Position=16
+end
+item: Include Script
+  Pathname=%_WISE_%\INCLUDE\uninstal.wse
+end
+item: Install File
+  Source=c:\wise-coda\nt\cygwinb19.dll
+  Destination=%MAINDIR%\coda\bin\cygwinb19.dll
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\.bashrc
+  Destination=%MAINDIR%\coda\.bashrc
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\au
+  Destination=%MAINDIR%\coda\bin\au
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\auth2
+  Destination=%MAINDIR%\coda\bin\auth2
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\backup
+  Destination=%MAINDIR%\coda\bin\backup
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\backup.sh
+  Destination=%MAINDIR%\coda\bin\backup.sh
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\bldvldb.sh
+  Destination=%MAINDIR%\coda\bin\bldvldb.sh
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\codasrv
+  Destination=%MAINDIR%\coda\bin\codasrv
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\codastart
+  Destination=%MAINDIR%\coda\bin\codastart
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\createvol_rep
+  Destination=%MAINDIR%\coda\bin\createvol_rep
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\vice-setup-user
+  Destination=%MAINDIR%\coda\bin\vice-setup-user
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\volutil
+  Destination=%MAINDIR%\coda\bin\volutil
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\filcon
+  Destination=%MAINDIR%\coda\bin\filcon
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\initpw
+  Destination=%MAINDIR%\coda\bin\initpw
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\inoder
+  Destination=%MAINDIR%\coda\bin\inoder
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\vice-setup-srvdir
+  Destination=%MAINDIR%\coda\bin\vice-setup-srvdir
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\makeftree
+  Destination=%MAINDIR%\coda\bin\makeftree
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\merge
+  Destination=%MAINDIR%\coda\bin\merge
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\mvdb
+  Destination=%MAINDIR%\coda\bin\mvdb
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\norton
+  Destination=%MAINDIR%\coda\bin\norton
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\norton-reinit
+  Destination=%MAINDIR%\coda\bin\norton-reinit
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\parserecdump
+  Destination=%MAINDIR%\coda\bin\parserecdump
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\partial-reinit.sh
+  Destination=%MAINDIR%\coda\bin\partial-reinit.sh
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\pcfgen
+  Destination=%MAINDIR%\coda\bin\pcfgen
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\printvrdb
+  Destination=%MAINDIR%\coda\bin\printvrdb
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\purgevol
+  Destination=%MAINDIR%\coda\bin\purgevol
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\purgevol_rep
+  Destination=%MAINDIR%\coda\bin\purgevol_rep
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\pwd2pdb
+  Destination=%MAINDIR%\coda\bin\pwd2pdb
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\rc.vice
+  Destination=%MAINDIR%\coda\bin\rc.vice
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\rdsinit
+  Destination=%MAINDIR%\coda\bin\rdsinit
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\readdump
+  Destination=%MAINDIR%\coda\bin\readdump
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\vice-setup-scm
+  Destination=%MAINDIR%\coda\bin\vice-setup-scm
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\reinit
+  Destination=%MAINDIR%\coda\bin\reinit
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\rpc2portmap
+  Destination=%MAINDIR%\coda\bin\rpc2portmap
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\rvmutl
+  Destination=%MAINDIR%\coda\bin\rvmutl
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\sh.exe
+  Destination=%MAINDIR%\coda\bin\sh.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\startserver
+  Destination=%MAINDIR%\coda\bin\startserver
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\tape.pl
+  Destination=%MAINDIR%\coda\bin\tape.pl
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\updateclnt
+  Destination=%MAINDIR%\coda\bin\updateclnt
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\updatefetch
+  Destination=%MAINDIR%\coda\bin\updatefetch
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\updatesrv
+  Destination=%MAINDIR%\coda\bin\updatesrv
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\vice-killvolumes
+  Destination=%MAINDIR%\coda\bin\vice-killvolumes
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\vice-setup
+  Destination=%MAINDIR%\coda\bin\vice-setup
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\vice-setup-ports
+  Destination=%MAINDIR%\coda\bin\vice-setup-ports
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\vice-setup-rvm
+  Destination=%MAINDIR%\coda\bin\vice-setup-rvm
+  Flags=0000000010000010
+end
+item: Install File
+  Source=C:\wise-coda\nt\coda-howto.html
+  Destination=%MAINDIR%\coda\bin\coda-howto.html
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\nt\empty
+  Destination=%MAINDIR%\coda\empty
+  Flags=0000000010000010
+end
+item: Set Variable
+  Variable=COMMON
+  Value=%COMMON%
+  Flags=00010100
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=%MAINDIR%
+  Flags=00010100
+end
+item: Check Configuration
+  Flags=10111011
+end
+item: Get Registry Key Value
+  Variable=STARTUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu\Programs\StartUp
+  Value Name=StartUp
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=DESKTOPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Desktop
+  Value Name=Desktop
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=STARTMENUDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu
+  Value Name=Start Menu
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=GROUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu\Programs
+  Value Name=Programs
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=CSTARTUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%STARTUPDIR%
+  Value Name=Common Startup
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CDESKTOPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%DESKTOPDIR%
+  Value Name=Common Desktop
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CSTARTMENUDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%STARTMENUDIR%
+  Value Name=Common Start Menu
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CGROUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%GROUPDIR%
+  Value Name=Common Programs
+  Flags=00000100
+end
+item: Set Variable
+  Variable=CGROUP_SAVE
+  Value=%GROUP%
+end
+item: Set Variable
+  Variable=GROUP
+  Value=%GROUPDIR%\%GROUP%
+end
+item: Else Statement
+end
+item: End Block
+end
+item: Edit Registry
+  Total Keys=20
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\00
+    New Value=\\.\tape1:
+    Value Name=native
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\00
+    New Value=/dev/st1
+    Value Name=unix
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\00
+    New Value=0
+    Value Name=fbinary
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\00
+    New Value=1
+    Value Name=fsilent
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\01
+    New Value=\\.\tape0:
+    Value Name=native
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\01
+    New Value=/dev/st0
+    Value Name=unix
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\01
+    New Value=0
+    Value Name=fbinary
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\01
+    New Value=1
+    Value Name=fsilent
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\02
+    New Value=\\.\b:
+    Value Name=native
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\02
+    New Value=/dev/fd1
+    Value Name=unix
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\02
+    New Value=0
+    Value Name=fbinary
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\02
+    New Value=1
+    Value Name=fsilent
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\03
+    New Value=\\.\a:
+    Value Name=native
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\03
+    New Value=/dev/fd0
+    Value Name=unix
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\03
+    New Value=0
+    Value Name=fbinary
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\03
+    New Value=1
+    Value Name=fsilent
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\04
+    New Value=c:\coda
+    Value Name=native
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\04
+    New Value=/
+    Value Name=unix
+    Root=1
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\04
+    New Value=1
+    Value Name=fbinary
+    Root=1
+    Data Type=3
+  end
+  item: Key
+    Key=Software\Cygnus Solutions\CYGWIN.DLL setup\b15.0\mounts\04
+    New Value=0
+    Value Name=fsilent
+    Root=1
+    Data Type=3
+  end
+end
+item: Self-Register OCXs/DLLs
+  Description=Updating System Configuration, Please Wait...
+end
+item: Custom Dialog Set
+  Name=CODA-HOWTO
+  item: Dialog
+    Title=CODA-HOWTO
+    Width=150
+    Height=150
+    Font Name=Helv
+    Font Size=8
+    item: Static
+      Rectangle=22 12 127 46
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000000000000000000000
+      Text=A link to the CODA-HOWTO html file will be created on you desktop. Would you like to read the CODA-HOWTO right away?
+    end
+    item: Push Button
+      Rectangle=54 102 89 117
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000010000000000000000
+      Text=OK
+    end
+    item: Radio Button
+      Rectangle=30 58 122 87
+      Variable=HOWTO
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000010000000000001001
+      Text=Open CODA-HOWTO
+      Text=Do not open CODA-HOWTO
+      Text=
+    end
+  end
+end
+item: Create Shortcut
+  Source=%MAINDIR%\coda\bin\coda-howto.html
+  Destination=%DESKTOPDIR%\coda-howto.lnk
+  Description=CODA-HOWTO
+  Key Type=1536
+  Flags=00000001
+end
+item: If/While Statement
+  Variable=HOWTO
+  Value=A
+end
+item: Execute Program
+  Pathname=%MAINDIR%\coda\bin\coda-howto.html
+end
+item: End Block
+end
+item: Wizard Block
+  Direction Variable=DIRECTION
+  Display Variable=DISPLAY
+  Bitmap Pathname=%_WISE_%\DIALOGS\TEMPLATE\WIZARD.BMP
+  X Position=9
+  Y Position=10
+  Filler Color=8421440
+  Flags=00000011
+end
+item: Create Directory
+  Pathname=%MAINDIR%\coda\tmp
+end
+item: Create Directory
+  Pathname=%MAINDIR%\coda\rvm
+end
+item: Copy Local File
+  Source=%MAINDIR%\coda\empty
+  Destination=%MAINDIR%\coda\rvm\LOG
+  Flags=0000000011000010
+end
+item: Copy Local File
+  Source=%MAINDIR%\coda\empty
+  Destination=%MAINDIR%\coda\rvm\DATA
+  Flags=0000000011000010
+end
+item: Add Directory to Path
+  Directory=%MAINDIR%\coda
+end
+item: Set Variable
+  Variable=OK
+  Value=YES
+end
+item: Read/Update Text File
+  Variable=SERVICES
+  Pathname=%SYS32%\drivers\etc\Services
+end
+item: If/While Statement
+  Variable=SERVICES
+  Value=# Iana allocated Coda filesystem port numbers
+  Flags=00000100
+end
+item: Set Variable
+  Variable=OK
+  Value=NO
+end
+item: End Block
+end
+item: End Block
+end
+item: If/While Statement
+  Variable=OK
+  Value=YES
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=# Iana allocated Coda filesystem port numbers
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=rpc2portmap     369/tcp
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=rpc2portmap     369/udp    # Coda portmapper
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=codaauth2       370/tcp
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=codaauth2       370/udp    # Coda authentication server
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=venus           2430/tcp   # codacon port
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=venus           2430/udp   # Venus callback/wbc interface
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=venus-se        2431/tcp   # tcp side effects
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=venus-se        2431/udp   # udp sftp side effect
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=codasrv         2432/tcp   # not used
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=codasrv         2432/udp   # server port
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=codasrv-se      2433/tcp   # tcp side effects
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%SYS32%\drivers\etc\Services
+  New Text=codasrv-se      2433/udp   # udp sftp side effect
+  Line Number=0
+  Flags=00001000
+end
+item: End Block
+end
+item: Delete File
+  Pathname=%MAINDIR%\coda\empty
+end
+item: Custom Dialog Set
+  Name=Finished
+  Display Variable=DISPLAY
+  item: Dialog
+    Title=Installation Complete
+    Title French=Installation en cours
+    Title German=Installation abgeschlossen
+    Title Portuguese=Instalação Completa 
+    Title Spanish=Se ha completado la Instalación
+    Title Italian=Installazione completata
+    Title Danish=Installation gennemført
+    Title Dutch=Installatie afgerond
+    Title Norwegian=Installasjonen er fullført
+    Title Swedish=Installationen klar
+    Width=280
+    Height=224
+    Font Name=Helv
+    Font Size=8
+    item: Push Button
+      Rectangle=170 185 212 199
+      Variable=DIRECTION
+      Value=N
+      Create Flags=01010000000000010000000000000001
+      Text=&Finish >
+      Text French=&Terminer>
+      Text German=&Fertigstellen>
+      Text Portuguese=&Terminar >
+      Text Spanish=&Finalizar>
+      Text Italian=&Fine >
+      Text Danish=&Afslut >
+      Text Dutch=&Klaar>
+      Text Norwegian=&Avslutt>
+      Text Swedish=&Sluta>
+    end
+    item: Push Button
+      Control Name=CANCEL
+      Rectangle=222 185 264 199
+      Action=3
+      Create Flags=01010000000000010000000000000000
+      Text=Cancel
+      Text French=Annuler
+      Text German=Abbrechen
+      Text Portuguese=Cancelar
+      Text Spanish=Cancelar
+      Text Italian=Annulla
+      Text Danish=Annuller
+      Text Dutch=Annuleren
+      Text Norwegian=Avbryt
+      Text Swedish=Avbryt
+    end
+    item: Static
+      Rectangle=9 177 263 178
+      Action=3
+      Create Flags=01010000000000000000000000000111
+    end
+    item: Static
+      Rectangle=90 10 260 68
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000000000000000000000
+      Text=%APPTITLE% has been successfully installed.
+      Text=
+      Text=It is very important to read the coda-howto file which you will find on your desktop.There you will learn how to configure and start your coda server
+      Text=Press the Finish button to exit this installation.
+      Text=
+      Text French=L'installation de %APPTITLE% est réussie
+      Text French=
+      Text French=
+      Text French=Cliquez sur Terminer pour quitter cette installation
+      Text French=
+      Text German=%APPTITLE% wurde erfolgreich installiert.
+      Text German=
+      Text German=
+      Text German=Zum Beenden dieser Installation Fertigstellen anklicken.
+      Text German=
+      Text Portuguese=%APPTITLE% foi instalado com êxito
+      Text Portuguese=
+      Text Portuguese=
+      Text Portuguese=Pressionar o botão Terminar para sair desta instalação
+      Text Portuguese=
+      Text Spanish=%APPTITLE% se ha instalado con éxito.
+      Text Spanish=
+      Text Spanish=
+      Text Spanish=Pulse el botón de Finalizar para salir de esta instalación.
+      Text Spanish=
+      Text Italian=%APPTITLE% è stato installato.
+      Text Italian=
+      Text Italian=
+      Text Italian=Premi il pulsante Fine per uscire dal programma di installazione
+      Text Italian=
+      Text Danish=%APPTITLE% er nu installeret korrekt.
+      Text Danish=
+      Text Danish=
+      Text Danish=Klik på Afslut for at afslutte installationen.
+      Text Danish=
+      Text Dutch=%APPTITLE% is met succes geïnstalleerd.
+      Text Dutch=
+      Text Dutch=
+      Text Dutch=Druk op Klaar om deze installatie af te ronden.
+      Text Dutch=
+      Text Norwegian=Installasjonen av %APPTITLE% er vellykket.
+      Text Norwegian=
+      Text Norwegian=
+      Text Norwegian=Trykk på Avslutt-tasten for å avslutte denne installasjonen.
+      Text Norwegian=
+      Text Swedish=Installationen av %APPTITLE% har lyckats.
+      Text Swedish=
+      Text Swedish=
+      Text Swedish=Tryck på Sluta för att gå ur installationsprogrammet.
+      Text Swedish=
+    end
+    item: Push Button
+      Control Name=BACK
+      Rectangle=128 185 170 199
+      Variable=DIRECTION
+      Value=B
+      Create Flags=01010000000000010000000000000000
+      Text=< &Back
+      Text French=<&Retour
+      Text German=<&Zurück
+      Text Portuguese=<&Retornar
+      Text Spanish=<&Retroceder
+      Text Italian=< &Indietro
+      Text Danish=<&Tilbage
+      Text Dutch=<&Terug
+      Text Norwegian=<&Tilbake
+      Text Swedish=< &Tillbaka
+    end
+    item: Set Control Attribute
+      Control Name=BACK
+      Operation=1
+    end
+    item: Set Control Attribute
+      Control Name=CANCEL
+      Operation=1
+    end
+  end
+end
+item: End Block
+end
+item: New Event
+  Name=Cancel
+end
+item: Include Script
+  Pathname=%_WISE_%\INCLUDE\rollback.wse
+end

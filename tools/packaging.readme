@@ -1,0 +1,7 @@
+Windows 95 and Windows NT
+
+1. Create the local directories C:\wise-coda\{nt,win95}.
+2. Start the wise installer and open the wise script (coda-95.wse, coda-server-nt.wse).
+3. Copy all files needed by the wise script to the directory nt or win95.
+4. Press compile in the lower right corner of the wise installer.
+5. Find the .EXE install binary in the win95 or nt directory. 
