@@ -30,12 +30,9 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/bldvldb.sh,v 4.4 1997/09/10 19:13:17 clement Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/bldvldb.sh,v 4.5 1997/10/15 15:50:20 braam Exp $";
 #endif /*_BLURB_*/
 
-
-KLIST=/usr/misc/bin/klist
-KSRVTGT=/usr/local/bin/ksrvtgt
 THISHOST=`hostname | tr A-Z a-z`
 REMOTE=/vice/vol/remote
 
@@ -56,22 +53,9 @@ fi
 
 for server in $SERVERS
 do 
-    # XXXX change this to use updfetch
-    # Get a ticket-granting-ticket (which is good for 5 mins only) if needed
-    $KLIST -t
-    if [ $? != 0 ]; then
-        $KSRVTGT rcmd $THISHOST
-    fi
 
-    echo ${server}
-
-    # If your site does not have kerberos, use rcp instead.
-    # For some reason I can't get a connection fom Mach to NetBSD machines
-    # if I try to encrypt the data, so use -X for now.
-    # Get rid of it once Mach machines go away or if you are at a site where
-    # it's not needed.
-    
-    krcp -X ${server}:/vice/vol/VolumeList ${REMOTE}/${server}.list.new
+    updfetch -h ${server} -r /vice/vol/VolumeList -l \
+	${REMOTE}/${server}.list.new
 
     if [ -r ${REMOTE}/${server}.list.new ]; then
         mv ${REMOTE}/${server}.list.new ${REMOTE}/${server}.list

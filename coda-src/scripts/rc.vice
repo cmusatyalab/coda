@@ -27,19 +27,21 @@ case "$1" in
  		${VICEBIN}/authmon &
 		echo -n "authmon/auth2,"
 	    fi
-	    if [ -f ${VICEBIN}/updatemon ]; then
-		${VICEBIN}/updatemon -s -p /vice/db &
-		echo "updatemon/updatesrv."
-	    fi
 	else 	# for non-scm machines.
 	    if [ -f "${VICEBIN}/authmon"  ]; then
 		${VICEBIN}/authmon -chk &
 		echo -n "authmon/auth2(ro),"
 	    fi
-	    if [ -f ${VICEBIN}/updatemon ]; then
+	fi
+
+	# update srv and updatemon run on all servers
+	if [ -f ${VICEBIN}/updatemon ]; then
 		${VICEBIN}/updatemon -h `cat /.scm`  -q coda_udpsrv &
 		echo "updatemon/updateclnt."
-	    fi
+	fi
+	if [ -f ${VICEBIN}/updatemon ]; then
+		${VICEBIN}/updatemon -s -p /vice/db &
+		echo "updatemon/updatesrv."
 	fi
 
 	# now the server
