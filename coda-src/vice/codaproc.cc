@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vice/RCS/codaproc.cc,v 4.2 1997/01/28 11:54:32 satya Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vice/RCS/codaproc.cc,v 4.3 1997/02/26 16:03:42 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -387,7 +387,7 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
     errorCode = mgrp->CheckResult();
 
     // delete hosts from mgroup where rpc succeeded but call returned error 
-    lockerror = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
+    lockerror = CheckResRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
 			      mgrp->rrcc.hosts, hosts);
     errorCode = mgrp->GetHostSet(hosts);
 
@@ -427,7 +427,9 @@ FreeGroups:
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "ViceResolve:Couldnt lock volume %x at all accessible servers",
 		Fid->Volume);
-	return(EWOULDBLOCK);
+	if ( lockerror != VNOVNODE ) 
+	    lockerror = EWOULDBLOCK;
+	return(lockerror);
     }
     if (errorCode){
 	if (errorCode == ETIMEDOUT) 
