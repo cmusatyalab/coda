@@ -25,7 +25,6 @@ listed in the file CREDITS.
 
 
 #include "coda_assert.h"
-#include <cfs/coda.h>
 #include "codadir.h"
 #include "util.h"
 

@@ -60,6 +60,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <time.h>
 #include <cfs/coda.h>
 #include <pioctl.h>
 #include <sys/file.h>

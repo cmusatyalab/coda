@@ -31,14 +31,12 @@ extern "C" {
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #ifdef __BSD44__
 #include <ufs/ufs/dir.h>
 #undef	DIRSIZ
 #else
 #define DIRBLKSIZ	0x200
 #endif
-#include <cfs/coda.h>
 #include <lwp.h>
 #include <lock.h>
 #include <rvmlib.h>

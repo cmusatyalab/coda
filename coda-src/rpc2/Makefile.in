@@ -25,6 +25,8 @@ srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
+PERL= @PERL@
+
 include $(TOPDIR)/Makeconf
 
 EXECUTABLES  = ctest stest rpc2test
@@ -50,9 +52,8 @@ include $(TOPDIR)/configs/Makerules
 
 # Special case of errors:
 errors.o: errordb.txt
-	perl ${srcdir}/makeinc.pl < ${srcdir}/errordb.txt
+	$(PERL) ${srcdir}/makeinc.pl < ${srcdir}/errordb.txt
 	$(CC) $(CFLAGS) -c ${srcdir}/errors.c
-
 
 # Libraries
 librpc2.a: $(OFILES) $(ASMOFILES)

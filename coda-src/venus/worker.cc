@@ -59,9 +59,7 @@ extern "C" {
 #include <mntent.h>
 #endif
 
-#include <cfs/coda.h>
 #include <vice.h>
-
 
 #ifdef DJGPP
 #include <relay.h>

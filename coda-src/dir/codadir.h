@@ -19,6 +19,8 @@ listed in the file CREDITS.
 #ifndef CODA_DIR_H_
 #define CODA_DIR_H_ 1
 #include <lock.h>
+#include <sys/types.h>
+#include <time.h>
 #include <cfs/coda.h>
 #include <dllist.h>
 

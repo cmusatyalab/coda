@@ -23,7 +23,6 @@ listed in the file CREDITS.
 
 #include <lwp.h>
 #include <lock.h>
-#include <cfs/coda.h>
 #include <dllist.h>
 #include <util.h>
 #include "codadir.h"

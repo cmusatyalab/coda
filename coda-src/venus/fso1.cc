@@ -46,6 +46,9 @@ extern "C" {
 
 #include <math.h>
 
+#include <time.h>
+#include <cfs/coda.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -53,17 +56,6 @@ extern "C" {
 /* interfaces */
 /* this is silly and only needed for the IsVirgin/IsBackfetching tests! */
 #include <cml.h>
-
-/* cfs/{cfs,cnode}.h must follow vice.h */
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-#include <cfs/coda.h>
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
 
 /* from vicedep */
 #include <venusioctl.h>

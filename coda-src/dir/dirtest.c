@@ -36,9 +36,8 @@ listed in the file CREDITS.
 #include <rvmlib.h>
 #include <util.h>
 #include <parser.h>
-#include <cfs/coda.h>
-#include <codadir.h>
-#include <dirbody.h>
+#include "codadir.h"
+#include "dirbody.h"
 
 void dt_init(int argc, char **argv);
 void dt_ok(int argc, char **argv);

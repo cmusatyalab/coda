@@ -44,5 +44,4 @@ LIBTHREADS    =
 LIBMACH       = 
 LIBMATH       = 
 LIBDB         = -ldb
-PERL          = perl
 GUIDIR        = /usr/lib/coda

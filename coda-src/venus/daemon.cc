@@ -37,25 +37,13 @@ extern "C" {
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
-
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
-
-#include "vice.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-#include <cfs/coda.h>
 #include <timer.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
+#include "vice.h"
 #include "vproc.h"
 #include "venus.private.h"
 

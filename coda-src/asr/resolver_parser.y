@@ -38,8 +38,8 @@ extern int yylex ( void );
 #endif
 
 #include <sys/types.h>
+#include <time.h>
 #include <cfs/coda.h>
-
 
 #ifdef __cplusplus
 }

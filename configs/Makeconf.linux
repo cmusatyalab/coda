@@ -23,7 +23,6 @@ INCREADLINE   = -I/usr/include/readline
 LIBTHREADS    =
 LIBMACH       = 
 LIBMATH       = -lm
-PERL          = perl
 
 GUIDIR        = /usr/lib/coda
 KRBINCLFLAGS  = -I/usr/include/kerberosIV

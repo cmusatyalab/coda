@@ -31,10 +31,7 @@ extern "C" {
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/time.h>
-#include <time.h>
 
-#include <cfs/coda.h>
 #include <lwp.h>
 #include <lock.h>
 #include <rvmlib.h>

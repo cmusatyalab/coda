@@ -36,7 +36,6 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
-
 #include <cfs/coda.h>
 
 /* interfaces */

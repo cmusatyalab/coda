@@ -50,6 +50,7 @@ extern FILE *_findiop();
 #include <unistd.h>
 #include <stdlib.h>
 
+#include <time.h>
 #include <cfs/coda.h>
 
 #ifdef __cplusplus
