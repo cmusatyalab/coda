@@ -40,6 +40,8 @@ Pittsburgh, PA.
 #ifndef _VLDB_H_
 #define _VLDB_H_ 1
 
+#include <stdint.h>
+
 /* Note: this structure happens to be 64 bytes long which isn't real important.
  * But it seemed like a nice number, and the code currently does use a shift. */
 
