@@ -19,7 +19,7 @@ AC_PROG_MAKE_SET
 AM_PROG_LIBTOOL
 
 dnl Checks for libraries.
-CODA_FIND_LIBLWP
+CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 
 dnl For playing with the _pt version...
 if test ${with_LWP_PT}p = nop ; then

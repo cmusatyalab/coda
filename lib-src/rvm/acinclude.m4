@@ -65,24 +65,31 @@ AC_DEFUN(CODA_OPTION_LWP,
  ]) 
 
 dnl ---------------------------------------------
-dnl Search for an installed lwp library
+dnl Search for an installed library in:
+dnl      /usr/lib /usr/local/lib /usr/pkg/lib ${prefix}/lib
 
-AC_DEFUN(CODA_FIND_LIBLWP,
- [AC_CACHE_CHECK(location of liblwp, coda_cv_lwppath,
+AC_DEFUN(CODA_FIND_LIB,
+ [AC_CACHE_CHECK(location of lib$1, coda_cv_path_$1,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
-   coda_cv_lwppath=none ; LIBS="-llwp"
-   for path in ${prefix} /usr /usr/local /usr/pkg ; do
-     CFLAGS="${CFLAGS} -I${path}/include"
-     LDFLAGS="${LDFLAGS} -L${path}/lib"
-     AC_TRY_LINK([#include <lwp/lwp.h>], [LWP_Init(0,0,0)],
-		 [coda_cv_lwppath=${path} ; break])
+   coda_cv_path_$1=none ; LIBS="-l$1"
+   for path in default /usr /usr/local /usr/pkg ${prefix} ; do
+     if test ${path} != default ; then
+       CFLAGS="-I${path}/include ${CFLAGS}"
+       LDFLAGS="-L${path}/lib ${LDFLAGS}"
+     fi
+     AC_TRY_LINK([$2], [$3], [coda_cv_path_$1=${path} ; break])
+     CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}"
    done
-   CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"
+   LIBS="${saved_LIBS}"
   ])
- case $coda_cv_lwppath in
-   none) AC_MSG_ERROR("Cannot determine the location of liblwp") ;;
-   /usr) ;;
-   *)    CPPFLAGS="${CPPFLAGS} -I${coda_cv_lwppath}/include"
-         LDFLAGS="${LDFLAGS} -L${coda_cv_lwppath}/lib" ;;
- esac])
+  case ${coda_cv_path_$1} in
+    none) AC_MSG_ERROR("Cannot determine the location of lib$1")
+          ;;
+    default)
+	  ;;
+    *)    CFLAGS="-I${coda_cv_path_$1}/include ${CFLAGS}"
+          CXXFLAGS="-I${coda_cv_path_$1}/include ${CXXFLAGS}"
+          LDFLAGS="-L${coda_cv_path_$1}/lib ${LDFLAGS}"
+          ;;
+  esac])
 
