@@ -88,9 +88,9 @@ static void freehostent(struct hostent *ip)
 }
 #endif /* !HAVE_GETIPNODEBYNAME */
 
-static struct RPC2_addrinfo *addrinfo_init(int family, const void *addr,
-					   short port,
-					   const struct RPC2_addrinfo *hints)
+static int addrinfo_init(int family, const void *addr, short port,
+			 const struct RPC2_addrinfo *hints,
+			 struct RPC2_addrinfo **res)
 {
     struct sockaddr_storage ss;
     struct RPC2_addrinfo *ai;
@@ -119,11 +119,12 @@ static struct RPC2_addrinfo *addrinfo_init(int family, const void *addr,
 	}
 #endif
     default:
-	return NULL;
+	return RPC2_EAI_FAMILY;
     }
+
     ai = RPC2_allocaddrinfo((struct sockaddr *)&ss, addrlen);
     if (!ai)
-	return NULL;
+	return RPC2_EAI_MEMORY;
 
     if (hints) {
 	ai->ai_socktype = hints->ai_socktype;
@@ -132,7 +133,10 @@ static struct RPC2_addrinfo *addrinfo_init(int family, const void *addr,
 	ai->ai_socktype = SOCK_STREAM;
 	ai->ai_protocol = IPPROTO_TCP;
     }
-    return ai;
+
+    ai->ai_next = *res;
+    *res = ai;
+    return 0;
 }
 
 static int getaddrinfo_noresolve(const char *node, short port,
@@ -142,49 +146,51 @@ static int getaddrinfo_noresolve(const char *node, short port,
     struct RPC2_addrinfo *ai;
     int family = hints ? hints->ai_family : PF_UNSPEC;
     char addr[sizeof(struct in6_addr)];
+    int err4, err6;
 
-    if (!node) {
-	switch(family) {
-	default:
-#if !defined(__CYGWIN32__)
-	case PF_INET6:
-	    {
-		struct in6_addr *in6addr = (struct in6_addr *)&addr;
-		family = PF_INET6;
-		if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
-		     *in6addr = in6addr_any;
-		else *in6addr = in6addr_loopback;
-		break;
-	    }
-#endif       
-	case PF_INET:
-	    {
-		struct in_addr *inaddr = (struct in_addr *)&addr;
-		family = PF_INET;
-		if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
-		     inaddr->s_addr = INADDR_ANY;
-		else inaddr->s_addr = INADDR_LOOPBACK;
-		break;
-	    }
+    err4 = err6 = RPC2_EAI_NONAME;
+    if (!hints || hints->ai_family != PF_INET6) /* PF_UNSPEC || PF_INET */
+    {
+	struct in_addr addr;
+	if (!node) {
+	    if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
+		 addr.s_addr = INADDR_ANY;
+	    else addr.s_addr = INADDR_LOOPBACK;
 	}
-    } else {
-	if (family != PF_INET && inet_pton(PF_INET6, node, &addr) > 0)
-	    family = PF_INET6;
+	else if (inet_pton(PF_INET, node, &addr) <= 0)
+	    goto v4_not_found;
 
-	if (family != PF_INET6 && inet_pton(PF_INET, node, &addr) > 0)
-	    family = PF_INET;
+	err4 = addrinfo_init(PF_INET, &addr, port, hints, res);
     }
+v4_not_found:
 
-    if (family == PF_UNSPEC)
-	return RPC2_EAI_NONAME; 
+#if !defined(__CYGWIN32__)
+    if (!hints || hints->ai_family != PF_INET) /* PF_UNSPEC || PF_INET6 */
+    {
+	struct in6_addr addr;
+	if (!node) {
+	    if (hints && hints->ai_flags & RPC2_AI_PASSIVE)
+		 addr = in6addr_any;
+	    else addr = in6addr_loopback;
+	}
+	else if (inet_pton(PF_INET6, node, &addr) <= 0)
+	    goto v6_not_found;
 
-    ai = addrinfo_init(family, &addr, port, hints);
-    if (!ai)
+	err6 = addrinfo_init(PF_INET6, &addr, port, hints, res);
+    }
+v6_not_found:
+#endif
+
+    /* did we find any usable address? */
+    if (!err4 || !err6)
+	return 0;
+
+    /* perhaps we had an allocation error? */
+    if (err4 == RPC2_EAI_MEMORY || err6 == RPC2_EAI_MEMORY)
 	return RPC2_EAI_MEMORY;
 
-    ai->ai_next = *res;
-    *res = ai;
-    return 0;
+    /* unable to get an ip-address from the passed arguments */
+    return RPC2_EAI_NONAME;
 }
 #endif /* !HAVE_GETADDRINFO */
 
@@ -382,16 +388,14 @@ int RPC2_getaddrinfo(const char *node, const char *service,
     }
 
     for (i = 0; he->h_addr_list[i]; i++) {
-	struct RPC2_addrinfo *ai =
-	    addrinfo_init(he->h_addrtype, he->h_addr_list[i], port, hints);
-	if (!ai)
+	int err = 
+	    addrinfo_init(he->h_addrtype, he->h_addr_list[i], port, hints, res);
+	if (err)
 	    continue;
 
 	if (hints && hints->ai_flags & RPC2_AI_CANONNAME)
-	    ai->ai_canonname = strdup(he->h_name);
+	    (*res)->ai_canonname = strdup(he->h_name);
 
-	ai->ai_next = *res;
-	*res = ai;
 	resolved++;
     }
     freehostent(he);
