@@ -309,7 +309,7 @@ Opfound:
 	default:
 	    ADVANCE();
 	    NEXTFIELD();
-	    if (unquote(rs->newname, c, MAXNAMELEN) !=0)
+	    if (unquote(rs->name, c, MAXNAMELEN) !=0)
 		return(-1);
 	    break;
 	}
