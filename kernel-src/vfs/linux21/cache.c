@@ -306,7 +306,7 @@ static void coda_flag_children(struct dentry *parent, int flag)
 	return; 
 }
 
-void coda_purge_children(struct inode *inode)
+void coda_flag_inode_children(struct inode *inode, int flag)
 {
 	struct list_head *alias;
 	struct dentry *alias_de;
@@ -324,7 +324,7 @@ void coda_purge_children(struct inode *inode)
 	alias = inode->i_dentry.next; 
 	while ( alias != &inode->i_dentry ) {
 		alias_de = list_entry(alias, struct dentry, d_alias);
-		coda_flag_children(alias_de, C_PURGE);
+		coda_flag_children(alias_de, flag);
 		shrink_dcache_parent(alias_de);
 		alias = alias->next;
 	}

@@ -819,6 +819,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		   CDEBUG(D_DOWNCALL, "CODA_FLUSH\n");
 		   coda_cache_clear_all(sb);
 		   shrink_dcache_sb(sb);
+		   coda_flag_inode(sb->s_root->d_inode, C_FLUSH);
 		   return(0);
 	  }
 

@@ -859,6 +859,10 @@ static int coda_dentry_revalidate(struct dentry *de)
 		cii = ITOC(de->d_inode);
 		if (cii->c_flags & C_PURGE) 
 			valid = 0;
+		if (cii->c_flags & C_FLUSH) {
+			coda_flag_inode_children(inode, C_FLUSH);
+			valid = 0;
+		}
 	}
 	return valid ||  coda_isroot(de->d_inode);
 }
@@ -916,7 +920,7 @@ int coda_revalidate_inode(struct dentry *dentry)
 	}
 
 	
-	if (cii->c_flags & (C_VATTR | C_PURGE)) {
+	if (cii->c_flags & (C_VATTR | C_PURGE | C_FLUSH)) {
 		error = venus_getattr(inode->i_sb, &(cii->c_fid), &attr);
 		if ( error ) { 
 			make_bad_inode(inode);
@@ -946,7 +950,10 @@ int coda_revalidate_inode(struct dentry *dentry)
 			return -EIO;
 		}
 		
-		cii->c_flags &= ~C_VATTR;
+		if ( cii->c_flags ) 
+			coda_flag_inode_children(inode, C_FLUSH);
+		
+		cii->c_flags &= ~(C_VATTR | C_PURGE | C_FLUSH);
 	}
 
 	return 0;

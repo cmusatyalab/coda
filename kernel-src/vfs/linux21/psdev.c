@@ -121,36 +121,29 @@ CDEBUG(D_PSDEV, "**\n");
 			       hdr.opcode, hdr.unique);
 			return count;
 		}
-CDEBUG(D_PSDEV, "**\n");
 		CODA_ALLOC(dcbuf, union outputArgs *, size);
 		if ( count > size ) {
 		        printk("Coda: downcall opc %ld, uniq %ld, too much!",
 			       hdr.opcode, hdr.unique);
 		        count = size;
 		}
-CDEBUG(D_PSDEV, "**\n");
 		if (copy_from_user(dcbuf, buf, count))
 		        return -EFAULT;
-CDEBUG(D_PSDEV, "**\n");
 
 		/* what downcall errors does Venus handle ? */
 		error = coda_downcall(hdr.opcode, dcbuf, sb);
-CDEBUG(D_PSDEV, "**\n");
 
 		if ( error) {
 		        printk("psdev_write: coda_downcall error: %d\n", 
 			       error);
 			return 0;
 		}
-CDEBUG(D_PSDEV, "**\n");
 		CODA_FREE(dcbuf, size);
-CDEBUG(D_PSDEV, "**\n");
 		return count;
         }
 
         
         /* Look for the message on the processing queue. */
-CDEBUG(D_PSDEV, "**\n");
 	lh  = &vcp->vc_processing;
         while ( (lh = lh->next) != &vcp->vc_processing ) {
 		tmp = list_entry(lh, struct upc_req , uc_chain);
@@ -162,13 +155,11 @@ CDEBUG(D_PSDEV, "**\n");
 			break;
 		}
 	}
-CDEBUG(D_PSDEV, "**\n");
         if (!req) {
 	        printk("psdev_write: msg (%ld, %ld) not found\n", 
 		       hdr.opcode, hdr.unique);
 		return(-ESRCH);
         }
-CDEBUG(D_PSDEV, "**\n");
 
         /* move data into response buffer. */
         if (req->uc_outSize < count) {
@@ -176,7 +167,6 @@ CDEBUG(D_PSDEV, "**\n");
 		       req->uc_outSize, count, hdr.opcode, hdr.unique);
 		count = req->uc_outSize; /* don't have more space! */
 	}
-CDEBUG(D_PSDEV, "**\n");
         if (copy_from_user(req->uc_data, buf, count))
 	        return -EFAULT;
 

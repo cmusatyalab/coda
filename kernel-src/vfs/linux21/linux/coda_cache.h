@@ -30,7 +30,7 @@ int coda_cache_check(struct inode *inode, int mask);
 
 /* for downcalls and attributes and lookups */
 void coda_flag_inode(struct inode *inode, int flag);
-void coda_flag_alias_children(struct inode *inode, int flag);
+void coda_flag_inode_children(struct inode *inode, int flag);
 
 
 /*
