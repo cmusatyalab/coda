@@ -242,7 +242,7 @@ void CommInit() {
     port1.Value.InetPortNumber = s->s_port;
 
     /* SFTP initialization. */
-    s = getservbyname("venus-se", 0);
+    s = getservbyname("venus-se", "udp");
     if (s == 0) 
 	CHOKE("CommInit: getservbyname failed; check /etc/services");
     SFTP_Initializer sei;
