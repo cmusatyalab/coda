@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/peter-objs/coda-src/venus/RCS/dirent.h,v 1.1 1996/11/22 19:11:43 braam Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venus-dirent.h,v 1.1 1996/11/22 20:43:01 braam Exp braam $";
 #endif /*_BLURB_*/
 
 /*	$NetBSD: dirent.h,v 1.9 1994/12/13 15:58:20 mycroft Exp $	*/
@@ -80,7 +80,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/peter-objs/cod
  * The maximum length of a name in a directory is MAXNAMLEN.
  */
 
-#ifdef LINUX
+#if LINUX || MACH
 #define u_int32_t   unsigned int
 #define u_int16_t   unsigned short
 #define u_int8_t    char

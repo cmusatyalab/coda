@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venus_vnode.h,v 1.1 1996/11/22 19:11:54 braam Exp braam $";
 #endif /*_BLURB_*/
 
 /*	$NetBSD: vnode.h,v 1.32 1995/03/26 20:25:05 jtc Exp $	*/
@@ -69,6 +69,8 @@ static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
  *	@(#)vnode.h	8.11 (Berkeley) 11/21/94
  */
 
+#ifndef _VENUS_VNODE
+#define _VENUS_VNODE
 #include <sys/queue.h>
 
 /*
@@ -441,3 +443,6 @@ void 	vrele __P((struct vnode *vp));
 int	vaccess __P((mode_t file_mode, uid_t uid, gid_t gid,
 	    mode_t acc_mode, struct ucred *cred));
 #endif /* _KERNEL */
+
+
+#endif /* _VENUS_VNODE */
