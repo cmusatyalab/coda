@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.17.4.1 1998/09/14 22:26:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.17.4.2 1998/10/05 02:09:40 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -290,9 +290,11 @@ void VFSMount() {
 #endif /* __MACH__ */
 #ifdef __BSD44__
     if (mount("coda", venusRoot, 0, kernDevice) < 0) {
-	eprint("mount(%s, %s) failed (%d), exiting",
-	       kernDevice, venusRoot, errno);
-	exit(-1);
+	if (mount("cfs", venusRoot, 0, kernDevice) < 0) {
+	    eprint("mount(%s, %s) failed (%d), exiting",
+		   kernDevice, venusRoot, errno);
+	    exit(-1);
+	}
     }
 #endif /* __BSD44__ */
 #ifdef __linux__
