@@ -30,13 +30,13 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/configs/RCS/Makeconf.i386_mach,v 4.6 1997/02/09 22:23:15 rvb Exp braam $";
+# static char *rcsid = "$Header: Makeconf.i386_mach,v 4.7 97/04/22 21:00:25 braam Locked $";
 
 MACHINE_FLAGS = -D__MACH__
 SHORTSYS      = mach
 INCLFLAGS     = -I/usr/cs/include
 GFLAG         = -g
-LEX           = flex
+LEX           = /usr/local/bin/flex
 CPP           = /usr/cs/lib/cpp
 LIBSYS        = /usr/cs/lib/libsys.a
 LIBCURSES     = -lcurses
