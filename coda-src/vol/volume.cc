@@ -527,7 +527,7 @@ retry:
 		 V_backupDate(vp), volumeusage);
 
     /* hack, snprintf sometimes fucks up and doesn't return -1 */
-    if (n >= (*buflen - *offset)) n = -1;
+    if (n >= (int)(*buflen - *offset)) n = -1;
 
     if (n == -1) {
 	*buflen += 1024;
@@ -558,7 +558,7 @@ retry:
 		     part->name, ThisHost, part->totalUsable, part->free);
 
 	/* hack, snprintf sometimes fucks up and doesn't return -1 */
-	if (n >= (*buflen - *offset)) n = -1;
+	if (n >= (int)(buflen - *offset)) n = -1;
 
 	if (n == -1) {
 	    buflen += 1024;
