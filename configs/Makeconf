@@ -45,27 +45,13 @@ endif
 # Location of objects
 ##############################
 
-ifeq	($(origin BLD),environment)
-rel = no
-else
- ifeq	($(SHOB),)
- rel = yes
- else
- rel = no
- endif
-endif
-
-ifeq ($(rel),yes)
+ifeq ($(SHOB),)
 INCLDIR=$(TOPOBJ)/include
 INCLSPECIAL=$(INCLDIR)
 RP2GEN=../rp2gen/rp2gen
 PCFGEN=../pcfgen/pcfgen
 
 else
-
-ifeq	($(SHOB),)
-ROOT:=$(TOPOBJ)/BLD/$(SYS)
-endif
 
 BINSPECIAL = ${ROOT}/BIN-SPECIAL
 BINDIR = ${ROOT}/bin
@@ -108,7 +94,7 @@ RP2FLAGS  = -n -I . -I $(srcdir) -I $(INCLDIR)
 ##############################
 # Library definitions
 ##############################
-ifneq	($(origin BLD),environment)
+ifeq	($(SHOB),)
 
 ##############################
 # CASE 1: use binaries and libraries from tree
@@ -237,10 +223,8 @@ RES_RPC2 = $(INCLDIR)/res.rpc2
 ADMON_RPC2 = $(INCLDIR)/admon.rpc2
 ADSRV_RPC2 = $(INCLDIR)/adsrv.rpc2
 
-ifneq	($(origin BLD),environment)
 	# needed to pick up "shared" rpc2's
 vpath %.rpc2 $(INCLDIR)
-endif
 
 endif
 
