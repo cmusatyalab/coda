@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.4 1997/12/01 17:27:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.5 1998/01/10 18:38:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -147,10 +147,10 @@ PRIVATE void CVWriteEntry(char *name, ino_t inode, CVDescriptor *cvd) {
     dir.d_namlen = strlen(name);
 
     dir.d_fileno = inode;
-    dir.d_type = (u_int8_t) (cvd->vType == Directory ? DT_DIR : 
-			     (cvd->vType == File ? DT_REG : 
-			      (cvd->vType == SymbolicLink ? DT_LNK : 
-			       DT_UNKNOWN)));
+    dir.d_type = (u_int8_t) (cvd->vType == Directory ? CDT_DIR : 
+			     (cvd->vType == File ? CDT_REG : 
+			      (cvd->vType == SymbolicLink ? CDT_LNK : 
+			       CDT_UNKNOWN)));
 
     dir.d_reclen = DIRSIZ(&dir);
     strcpy(dir.d_name, name);
