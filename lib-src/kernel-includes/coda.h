@@ -144,8 +144,16 @@ typedef struct ViceFid {
 
 
 #ifdef __linux__
-#define coda_f2i(fid)\
-	(fid) ? (((fid)->Volume << 20) | ((fid)->Unique & 0xfffff)) : 0
+extern __inline__ ino_t  coda_f2i(struct ViceFid *fid)
+{
+	if ( ! fid ) 
+		return 0; 
+	if (fid->Vnode == 0xfffffffe || fid->Vnode == 0xffffffff)
+		return ((fid->Volume << 20) | (fid->Unique & 0xfffff));
+	else
+		return (fid->Unique + (fid->Vnode<<10) + (fid->Volume<<20));
+}
+	
 #else
 #define coda_f2i(fid)\
 	(fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0

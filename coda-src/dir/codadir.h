@@ -54,6 +54,10 @@ typedef struct DirHeader *PDirHeader;
 typedef struct DirHandle *PDirHandle;
 typedef struct DCEntry *PDCEntry;
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #if 0
 /* moved from vice/file.h to remove circular dependency */
 typedef struct ODirHandle {
