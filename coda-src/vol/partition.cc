@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr2/raiff/coda/coda-src/vol/RCS/partition.cc,v 4.4 97/04/28 15:08:41 braam Exp Locker: raiff $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/partition.cc,v 4.5 1997/05/12 18:19:44 raiff Exp $";
 #endif /*_BLURB_*/
 
 
@@ -218,7 +218,7 @@ void VAdjustDiskUsage(Error *ec, Volume *vp, int blocks)
 	 * else if (V_maxquota(vp) && V_diskused(vp) + blocks > V_maxquota(vp))
 	 */
 	else if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))
-	    *ec = VOVERQUOTA;
+	    *ec = EDQUOT;
     }    
     vp->partition->free -= blocks;
     V_diskused(vp) += blocks;
@@ -235,7 +235,7 @@ void VCheckDiskUsage(Error *ec, Volume *vp, int blocks)
 	 * else if (V_maxquota(vp) && (V_diskused(vp) + blocks > V_maxquota(vp)))
 	 */
 	else if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))	
-	    *ec = VOVERQUOTA;
+	    *ec = EDQUOT;
     }
 }
 

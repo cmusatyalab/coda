@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/fssync.cc,v 4.1 1997/01/08 21:52:10 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/fssync.cc,v 4.2 1997/02/26 16:03:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -133,9 +133,10 @@ PRIVATE int AddUtility (int myid);
 PRIVATE int FindUtility (int myid);
 PRIVATE int RemoveUtility (int myid);
 
-/* File server synchronization initialization. Starts up an lwp to watch over the */
-/* synchronization. This is bogus, since now that it doesn't have to listen on a */
-/* socket this is only performing a timer function */
+/* File server synchronization initialization. Starts up an lwp to
+   watch over the synchronization. This is bogus, since now that it
+   doesn't have to listen on a socket this is only performing a timer
+   function */
 void FSYNC_fsInit() {
     PROCESS pid;
     long rc;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vol/errors.h,v 1.1 1996/11/22 19:10:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/errors.h,v 4.1 1997/01/08 21:52:10 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,7 +84,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define VONLINE		107	/* Volume is already on line */
 #define VDISKFULL	ENOSPC	/* Partition is "full", i.e. rougly within
 				   n% of full */
-#define VOVERQUOTA	EDQUOT	/* Volume max quota exceeded */
 #define VBUSY		110	/* Volume temporarily unavailable; try again.
 				   The volume should be available again shortly; if
 				   it isn't something is wrong.  Not normally to be

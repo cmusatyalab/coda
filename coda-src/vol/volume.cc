@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/volume.cc,v 4.3 1997/04/28 15:08:41 braam Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.4 1997/04/30 19:54:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -311,9 +311,11 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
         LogMsg(0, VolDebugLevel, stdout, "VInitVolumePackage: Couldn't find file system %s; ignored", part);
 	    continue;
 	}
-	/* Satya (8/2/96): test below used to be a simple test (status.st_ino != ROOTINO)
-		on Mach; unfortunately ROOTINO is defined in sys/fs.h which doesn't
-		exist in BSD44; MountedAtRoot() is a more portable test for the same */
+	/* Satya (8/2/96): test below used to be a simple test
+		(status.st_ino != ROOTINO) on Mach; unfortunately
+		ROOTINO is defined in sys/fs.h which doesn't exist in
+		BSD44; MountedAtRoot() is a more portable test for the
+		same */
 	if (!MountedAtRoot(part)) {
 	    LogMsg(0, VolDebugLevel, stdout, "%s is not a mounted file system; ignored", part);
 	    continue;
@@ -855,11 +857,14 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	    return NULL;
 	}
 	if (VolumeWriteable(vp) && V_dontSalvage(vp) == 0) {
-	    /* This is a hack:  by temporarily settint the incore dontSalvage flag ON, the
-	       volume will be put back on the Update list (with dontSalvage OFF again).  It will
-	       then come back in N minutes with DONT_SALVAGE eventually set.  This is the way
-	       that volumes that have never had it set get it set; or that volumes that have
-	       been offline without DONT SALVAGE having been set also eventually get it set */
+	    /* This is a hack: by temporarily settint the incore
+	       dontSalvage flag ON, the volume will be put back on the
+	       Update list (with dontSalvage OFF again).  It will then
+	       come back in N minutes with DONT_SALVAGE eventually
+	       set.  This is the way that volumes that have never had
+	       it set get it set; or that volumes that have been
+	       offline without DONT SALVAGE having been set also
+	       eventually get it set */
 	    V_dontSalvage(vp) = DONT_SALVAGE;
 	    VAddToVolumeUpdateList(ec,vp);
 	    if (*ec) {
@@ -1236,12 +1241,14 @@ void VDetachVolume(Error *ec, Volume *vp)
     /* Will be detached sometime in the future--this is OK since volume is offline */
 
     if (*pt == volumeUtility && notifyServer) {
-	/* Note:  The server is not notified in the case of a bogus volume explicitly to
-	   make it possible to create a volume, do a partial restore, then abort the
-	   operation without ever putting the volume online.  This is essential in the
-   	   case of a volume move operation between two partitions on the same server.  In
-	   that case, there would be two instances of the same volume, one of them bogus,
-	   which the file server would attempt to put on line */
+	/* Note: The server is not notified in the case of a bogus
+   	   volume explicitly to make it possible to create a volume,
+   	   do a partial restore, then abort the operation without ever
+   	   putting the volume online.  This is essential in the case
+   	   of a volume move operation between two partitions on the
+   	   same server.  In that case, there would be two instances of
+   	   the same volume, one of them bogus, which the file server
+   	   would attempt to put on line */
 	/* masquerade as fileserver for FSYNC_askfs call */
 	*pt = fileServer;
 	FSYNC_askfs(volume, FSYNC_ON, 0);

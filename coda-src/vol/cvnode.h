@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vol/cvnode.h,v 1.1 1996/11/22 19:10:06 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.h,v 4.1 1997/01/08 21:52:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -120,13 +120,7 @@ extern struct VnodeClassInfo VnodeClassInfo_Array[nVNODECLASSES];
 #define bitNumberToVnodeNumber(b,vclass) (((b)<<VNODECLASSWIDTH)+(vclass)+1)
 #define vnodeIsDirectory(vnodeNumber) (vnodeIdToClass(vnodeNumber) == vLarge)
 
-/*
-  BEGIN_HTML
-   <a name="VnodeDiskObject">
-   <strong>Structure of vnode stored in RVM</strong>
-   </a> 
-  END_HTML
-*/
+/* VnodeDiskObject: Structure of vnode stored in RVM */
 typedef struct VnodeDiskObjectStruct {
     VnodeType	  type:3;	/* Vnode is file, directory, symbolic link
     				   or not allocated */
@@ -162,8 +156,8 @@ typedef struct VnodeDiskObjectStruct {
        than 0 (in an old file system).  Or go through and zero the fields,
        when we notice a version change (the index version number) */
     ViceLock	  lock;		/* Advisory lock */
-    Date_t	  serverModifyTime;	/* Used only by the server; for incremental
-    				   backup purposes */
+    Date_t	  serverModifyTime;	/* Used only by the server;
+					   for incremental backup purposes */
     rec_smolink	  nextvn;	/* link to next vnode with same vnodeindex */
     rec_dlist	  *log;		/* resolution log in RVM */
     /* Missing:
