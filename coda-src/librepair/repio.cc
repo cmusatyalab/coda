@@ -544,16 +544,12 @@ void repair_printline(struct repair *rs, FILE *ff)
 	default: c = "???????"; break;
 	}
     
-
-    /* At some point we can always quote the filenames. However, currently
-     * I prefer to _only_ break the existing servers on something they
-     * couldn't do anyways. */
     quote(quoted_name, rs->name, 3*MAXNAMELEN);
     fprintf(ff, "\t%s %s", c, quoted_name);
 
     if (rs->opcode == REPAIR_RENAME) {
 	quote(quoted_name, rs->newname, 3*MAXNAMELEN);
-	fprintf(ff, "\t%s ", c, quoted_name);
+	fprintf(ff, "\t%s ", quoted_name);
 
 	for (i = 0; i < REPAIR_MAX; i++)
 	{
