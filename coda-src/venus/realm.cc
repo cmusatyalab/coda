@@ -33,11 +33,11 @@ extern "C" {
 #endif
 
 #include <rvmlib.h>
-#include "rec_dllist.h"
 #include "realm.h"
 #include "realmdb.h"
 #include "comm.h"
 #include "parse_realms.h"
+#include "rec_dllist.h"
 
 /* MUST be called from within a transaction */
 Realm::Realm(const char *realm_name)

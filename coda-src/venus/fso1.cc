@@ -2063,7 +2063,7 @@ int fsobj::Fakeify()
 	    /* Create the target directory. */
 	    dir_MakeDir();
 	    list_for_each(p, REALMDB->realms) {
-		Realm *realm = list_entry_plusplus(p, Realm, realms);
+		Realm *realm = list_entry(p, Realm, realms);
 		if (!realm->rootservers) continue;
 
 		fakefid.Vnode = 0xfffffffc;
