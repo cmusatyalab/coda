@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.4 1998/08/26 17:08:10 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.5 98/09/14 19:14:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -208,7 +208,8 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff,
     
     /* WARNING: only Internet works; no warnings */
     fromlen = sizeof(sa);
-    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0, &sa, &fromlen);
+    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0, 
+        (struct sockaddr *) &sa, &fromlen);
 
     if (rc < 0) {
 	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
