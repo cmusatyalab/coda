@@ -45,6 +45,7 @@ Pittsburgh, PA.
 #include <errno.h>
 #include <sys/file.h>
 #include <sys/time.h>
+#include <fcntl.h>
 #include "coda_assert.h"
 #include "lwp.h"
 #include "lwp.private.h"
