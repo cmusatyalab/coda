@@ -82,13 +82,13 @@ DISTNAME=	coda-@VERSION@
 @FreeBSD PORTVERSION=	@VERSION@
 CATEGORIES=	net
 MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/coda/src/
-EXTRACT_SUFX=	.tgz
+EXTRACT_SUFX=	.tar.gz
 
-MAINTAINER=	rvb@cs.cmu.edu
+MAINTAINER=	coda@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
 @FreeBSD LIB_DEPENDS+=	lwp.2:\${PORTSDIR}/devel/lwp
-@FreeBSD LIB_DEPENDS+=	rpc2.3:\${PORTSDIR}/devel/rpc2
-@FreeBSD LIB_DEPENDS+=	rvm.1:\${PORTSDIR}/devel/rvm
+@FreeBSD LIB_DEPENDS+=	rpc2.4:\${PORTSDIR}/devel/rpc2
+@FreeBSD LIB_DEPENDS+=	rvm.2:\${PORTSDIR}/devel/rvm
 
 @NetBSD DEPENDS+=	readline-2.2:../../devel/readline
 @NetBSD DEPENDS+=	perl-5.00404:../../lang/perl5
