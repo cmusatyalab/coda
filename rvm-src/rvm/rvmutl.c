@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvmutl.c,v 4.2 1997/02/26 16:05:06 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.3 1997/04/01 01:55:57 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -4592,7 +4592,7 @@ static rvm_bool_t do_monitor()
 
         /* scan monitoring vmaddr */
         if (isdigit(*cmd_cur) || (*cmd_cur == 'x') || (*cmd_cur == 'X'))
-            rvm_chk_vec[rvm_chk_len].vmaddr = (char *)str2ul(cmd_cur,
+            rvm_chk_vec[rvm_chk_len].vmaddr = (void *)str2ul(cmd_cur,
                             &cmd_cur,&rvm_chk_vec[rvm_chk_len].radix);
         else
             {
@@ -4863,7 +4863,7 @@ static rvm_bool_t do_recover()
             cmd_cur = cmd_save;
             goto file_name;
             }
-        switch ((long)recover_key_vec[key].target)
+        switch ((int)recover_key_vec[key].target)
             {
           case CLEAR_KEY:
             clear_monitor(); break;
