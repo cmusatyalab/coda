@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.6 1998/07/13 11:14:45 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.7 1998/08/31 12:23:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.6 $
+#define RCSVERSION $Revision: 4.7 $
 
 /* vol-dump.c */
 
@@ -85,6 +85,8 @@ extern "C" {
 #include <inodeops.h>
 #include <util.h>
 #include <rvmlib.h>
+#include <codadir.h>
+#include <partition.h>
 #include <volutil.h>
 #include <vice.h>
 #ifdef __cplusplus
@@ -95,12 +97,10 @@ extern "C" {
 #include <cvnode.h>
 #include <volume.h>
 #include <errors.h>
-#include <partition.h>
 #include <viceinode.h>
 #include <vutil.h>
 #include <index.h>
 #include <recov.h>
-#include <codadir.h>
 #include <camprivate.h>
 #include <coda_globals.h>
 #include <vrdb.h>
@@ -119,10 +119,12 @@ FILE *Ancient = NULL;
 
 #define DUMPFILE "/tmp/volumedump"
 
-static int DumpVnodeIndex(DumpBuffer_t *, Volume *, VnodeClass, RPC2_Unsigned);
+static int DumpVnodeIndex(DumpBuffer_t *, Volume *, VnodeClass, 
+			  RPC2_Unsigned);
 static int DumpDumpHeader(DumpBuffer_t *, Volume *, RPC2_Unsigned, long);
 static int DumpVolumeDiskData(DumpBuffer_t *, register VolumeDiskData *);
-static int DumpVnodeDiskObject(DumpBuffer_t *, struct VnodeDiskObject *, int );
+static int DumpVnodeDiskObject(DumpBuffer_t *, struct VnodeDiskObject *, 
+			       int );
 Device DumpDev;   /* Device the volume being dumped resides on */
 
 #if (LISTLINESIZE >= SIZEOF_LARGEDISKVNODE)	/* Compile should fail.*/
@@ -132,16 +134,16 @@ Help, LISTLINESIZE >= SIZEOF_LARGEDISKVNODE)!
 #define DUMPBUFSIZE 512000
 long S_VolDump(RPC2_Handle rpcid)
 {
-    LogMsg(0,0,stdout,"S_VolDump called -- should be S_VolNewDump!");
+    SLog(0,0,stdout,"S_VolDump called -- should be S_VolNewDump!");
     return -1;
 }
 
 /*
-  BEGIN_HTML
-  <a name="S_VolNewDump"><strong>Dump the contents of the requested volume into a file in a host independent manner</strong></a>
-  END_HTML
+  S_VolNewDump: Dump the contents of the requested volume into a file in a 
+  host independent manner
 */
-long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Unsigned *Incremental)
+long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, 
+	RPC2_Unsigned *Incremental)
 {
     register Volume *vp = 0;
     long rc = 0, retcode = 0;
@@ -162,7 +164,8 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
 
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolNewDump: rpcid = %d, volumeNumber = %x, Incremental = %u", rpcid, volumeNumber, *Incremental);
+    SLog(9, "S_VolNewDump: conn: %d, volume:  %#x, Inc?: %u", 
+	 rpcid, volumeNumber, *Incremental);
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0) {
 	return rc;
@@ -170,25 +173,25 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
 
     vp = VGetVolume(&error, volumeNumber);    
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "Unable to get the volume %x, not dumped", volumeNumber);
+	SLog(0, "Unable to get the volume %x, not dumped", volumeNumber);
 	VDisconnectFS();
 	return (int)error;
     }
 
-    LogMsg(0, VolDebugLevel, stdout, "volumeNumber %x V_id %x", volumeNumber, V_id(vp));
+    SLog(0, "volumeNumber %x V_id %x", volumeNumber, V_id(vp));
     
     /* Find the vrdb entry for the parent volume */
     vrent *vre = VRDB.ReverseFind(V_parentId(vp));
 
     if (V_type(vp) == RWVOL) {
-	LogMsg(0, VolDebugLevel, stdout, "Volume is read-write.  Dump not allowed");
+	SLog(0, "Volume is read-write.  Dump not allowed");
 	retcode = VFAIL;
 	goto failure;
     }
 
     DumpBuf = (char *)malloc(DUMPBUFSIZE);
     if (!DumpBuf) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolDumpHeader: Can't malloc buffer!");
+	SLog(0, "S_VolDumpHeader: Can't malloc buffer!");
 	retcode = VFAIL;
 	goto failure;
     }
@@ -198,7 +201,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
 	/* Look up the index of this host. */
 	int ix = vre->index(ThisHostAddr);
 	if (ix < 0) {
-	    LogMsg(0, VolDebugLevel, stdout, "S_VolDumpHeader: this host not found!");
+	    SLog(0, "S_VolDumpHeader: this host not found!");
 	    retcode = VFAIL;
 	    goto failure;
 	}
@@ -214,11 +217,11 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
 
     char VVlistfile[MAXLISTNAME];
     getlistfilename(VVlistfile, volnum, V_parentId(vp), "newlist");
-    LogMsg(0, VolDebugLevel, stdout, "NewDump: file %s volnum %x id %x parent %x",
+    SLog(0, "NewDump: file %s volnum %x id %x parent %x",
 	VVlistfile, volnum, volumeNumber, V_parentId(vp));
     VVListFd = open(VVlistfile, O_CREAT | O_WRONLY | O_TRUNC, 0755);
     if (VVListFd < 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolDumpHeader: Couldn't open VVlistfile.");
+	SLog(0, "S_VolDumpHeader: Couldn't open VVlistfile.");
 	retcode = VFAIL;
 	goto failure;
     }
@@ -229,15 +232,15 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
 
 	Ancient = fopen(listfile, "r");
 	if (Ancient == NULL) {
-	    LogMsg(0, VolDebugLevel, stdout, "S_VolDump: Couldn't open Ancient vvlist %s, will do a full backup instead.", listfile);
+	    SLog(0, "S_VolDump: Couldn't open Ancient vvlist %s, will do a full backup instead.", listfile);
 	    *Incremental = 0;
 	} else 
-	    LogMsg(9, VolDebugLevel, stdout, "Dump: Just opened listfile %s", listfile);
+	    SLog(9, "Dump: Just opened listfile %s", listfile);
     }
 
     /* Set up a connection with the client. */
     if ((rc = RPC2_GetPeerInfo(rpcid, &peerinfo)) != RPC2_SUCCESS) {
-	LogMsg(0, VolDebugLevel, stdout,"VolDump: GetPeerInfo failed with %s", RPC2_ErrorMsg((int)rc));
+	SLog(0,"VolDump: GetPeerInfo failed with %s", RPC2_ErrorMsg((int)rc));
 	retcode = rc;
 	goto failure;
     }
@@ -253,7 +256,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
     bparms.SharedSecret = NULL;
     
     if ((rc = RPC2_NewBinding(&hid, &pid, &sid, &bparms, &cid))!=RPC2_SUCCESS) {
-	LogMsg(0, VolDebugLevel, stdout, "VolDump: Bind to client failed, %s!", RPC2_ErrorMsg((int)rc));
+	SLog(0, "VolDump: Bind to client failed, %s!", RPC2_ErrorMsg((int)rc));
 	retcode = rc;
 	goto failure;
     }
@@ -266,7 +269,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber, RPC2_Uns
 	(DumpVnodeIndex(dbuf, vp, vLarge, *Incremental) == -1) ||
 	(DumpVnodeIndex(dbuf, vp, vSmall, *Incremental) == -1) ||
 	(DumpEnd(dbuf) == -1)) {
-	LogMsg(0, VolDebugLevel, stdout, "Dump failed due to FlushBuf failure.");
+	SLog(0, "Dump failed due to FlushBuf failure.");
 	retcode = VFAIL;
     }
 
@@ -280,30 +283,29 @@ failure:
     Ancient = NULL;
     
     VDisconnectFS();
-
-    RVMLIB_BEGIN_TRANSACTION(restore)
-	VPutVolume(vp);
-    RVMLIB_END_TRANSACTION(flush, &(status));
-    assert(status == 0);
-
+    VPutVolume(vp);
+    
     if (dbuf) {
-	LogMsg(2, VolDebugLevel, stdout,"Dump took %d seconds to dump %d bytes.",dbuf->secs,dbuf->nbytes);
+	SLog(2, "Dump took %d seconds to dump %d bytes.",
+	     dbuf->secs, dbuf->nbytes);
 	free(dbuf);
     }
-    if (DumpBuf) free(DumpBuf);
+    if (DumpBuf) 
+	    free(DumpBuf);
 
     if (RPC2_Unbind(cid) != RPC2_SUCCESS) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolNewDump: Can't close binding %s", RPC2_ErrorMsg((int)rc));
+	SLog(0, "S_VolNewDump: Can't close binding %s", 
+	     RPC2_ErrorMsg((int)rc));
     }
     
     if (retcode == 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolNewDump: %s volume dump succeeded",
+	SLog(0, "S_VolNewDump: %s volume dump succeeded",
 	    *Incremental?"Incremental":"");
 	return 0;
     }
 
     unlink(VVlistfile);
-    LogMsg(0, VolDebugLevel, stdout, "S_VolNewDump: %s volume dump failed with status = %d",
+    SLog(0, "S_VolNewDump: %s volume dump failed with status = %d",
 	*Incremental?"Incremental":"", retcode);
 
     return retcode;
@@ -326,7 +328,7 @@ static int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp, RPC2_Unsigned Incremen
 	/* Read in the header, hope it doesn't break */
 	int oldUnique;
 	if (!ValidListVVHeader(Ancient, vp, &oldUnique)) {
-	    LogMsg(0, VolDebugLevel, stdout, "Dump: Ancient list file has invalid header");
+	    SLog(0, "Dump: Ancient list file has invalid header");
 	    return -1;
 	}
 
@@ -372,14 +374,15 @@ static int DumpVolumeDiskData(DumpBuffer_t *dbuf, register VolumeDiskData *vol)
     return DumpVV(dbuf, 'V', &(vol->versionvector));
 }
 
-static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC2_Unsigned Incremental)
+static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, 
+			  VnodeClass vclass, RPC2_Unsigned Incremental)
 {
     register struct VnodeClassInfo *vcp;
     char buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode;
     bit32	nLists, nVnodes;
     
-    LogMsg(9, VolDebugLevel, stdout, "Entering DumpVnodeIndex()");
+    SLog(9, "Entering DumpVnodeIndex()");
 
     vcp = &VnodeClassInfo_Array[vclass];
 
@@ -387,8 +390,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC
 	DumpTag(dbuf, (byte) D_LARGEINDEX);
 	nVnodes = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nlargevnodes;
 	nLists = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nlargeLists;
-    }
-    else {
+    } else {
 	DumpTag(dbuf, (byte) D_SMALLINDEX);
 	nVnodes = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nsmallvnodes;
 	nLists = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nsmallLists;
@@ -400,9 +402,9 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC
     sprintf(buf, "Start of %s list, %d vnodes, %d lists.\n",
 	    ((vclass == vLarge)? "Large" : "Small"), nVnodes, nLists);
     if (write(VVListFd, buf, (int)strlen(buf)) != strlen(buf)) {
-	LogMsg(0, VolDebugLevel, stdout, "Write %s Index header didn't succeed.", ((vclass == vLarge)? "Large" : "Small"));
+	SLog(0, "Write %s Index header didn't succeed.", ((vclass == vLarge)? "Large" : "Small"));
 	VPutVolume(vp);
-	rvmlib_abort(-1);
+	return -1;
     }
 
    /* Currently we have two counts of vnodes: nVnodes and nvnodes; the # of vnodes
@@ -416,11 +418,11 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC
     vindex_iterator vnext(v_index);
 	
        if (Incremental) {
-	LogMsg(9, VolDebugLevel, stdout, "Beginning Incremental dump of vnodes.");
+	SLog(9, "Beginning Incremental dump of vnodes.");
 
 	/* Determine how many entries in the list... */
 	if (fgets(buf, LISTLINESIZE, Ancient) == NULL) {
-	    LogMsg(10, VolDebugLevel, stdout, "Dump: fgets indicates error."); /* Abort? */
+	    SLog(10, "Dump: fgets indicates error."); /* Abort? */
 	}
 
 	/* Read in enough info from vvlist file to start a vvlist class object. */
@@ -430,14 +432,14 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC
 	
 	if (sscanf(buf, "Start of %s list, %d vnodes, %d lists.\n",
 		   Class, &nvnodes, &nlists)!=3) { 
-	    LogMsg(0, VolDebugLevel, stdout, "Couldn't scan head of %s Index.", 
+	    SLog(0, "Couldn't scan head of %s Index.", 
 		(vclass==vLarge?"Large":"Small"));
 	    VPutVolume(vp);
-	    rvmlib_abort(-1);
+	    return -1;
 	}
 
 	assert(strcmp(Class,((vclass == vLarge)? "Large" : "Small")) == 0);
-	LogMsg(9, VolDebugLevel, stdout, "Ancient clone had %d vnodes, %d lists.", nvnodes, nlists);
+	SLog(9, "Ancient clone had %d vnodes, %d lists.", nvnodes, nlists);
 
 	rec_smolist *vnList;
 	vvtable vvlist(Ancient, vclass, nlists);
@@ -463,11 +465,11 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC
 		if (vvlist.IsModified(vnodeIndex, vnode->uniquifier,
 				      &(vnode->versionvector.StoreId))) {
 		    if (DumpVnodeDiskObject(dbuf, vnode, VnodeNumber) == -1) {
-			LogMsg(0, 0, stdout, "DumpVnodeDiskObject (%s) failed.",
+			SLog(0, 0, stdout, "DumpVnodeDiskObject (%s) failed.",
 			       (vclass == vLarge) ? "large" : "small");
 			return -1;
 		    }
-		    LogMsg(9, VolDebugLevel, stdout,
+		    SLog(9,
 			   "Dump: Incremental found %x.%x modified.",
 			   VnodeNumber, vnode->uniquifier);
 		    if ((vnodeIndex % VnodePollPeriod) == 0)
@@ -495,17 +497,17 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC
 		    
 		    int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
 		    if (DumpDouble(dbuf, (byte) D_RMVNODE, VnodeNumber, vventry->unique) == -1) {
-			LogMsg(0, 0, stdout, "Dump RMVNODE failed, aborting.");
+			SLog(0, 0, stdout, "Dump RMVNODE failed, aborting.");
 			return -1;
 		    }
-		    LogMsg(9, VolDebugLevel, stdout,
+		    SLog(9,
 			   "Dump: Incremental found %x.%x deleted.",
 			   VnodeNumber, vventry->unique);
 		}
 	    }
 	}
     } else {
-	LogMsg(9, VolDebugLevel, stdout, "Beginning Full dump of vnodes.");
+	SLog(9, "Beginning Full dump of vnodes.");
 	int count = 0;
 
 	vnode = (struct VnodeDiskObject *) buf;
@@ -514,7 +516,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC
 	     nVnodes--, count++) {
 	    int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
 	    if (DumpVnodeDiskObject(dbuf, vnode, VnodeNumber) == -1) {
-		LogMsg(0, VolDebugLevel, stdout, "DumpVnodeDiskObject (%s) failed.",
+		SLog(0, "DumpVnodeDiskObject (%s) failed.",
 		    (vclass == vLarge) ? "large" : "small");
 		return -1;
 	    }
@@ -529,9 +531,9 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp, VnodeClass vclass, RPC
     if (vclass == vLarge) { 	/* Output End of Large Vnode list */
 	    sprintf(buf, "%s", ENDLARGEINDEX);	/* Macro contains a new-line */
 	    if (write(VVListFd, buf, (int)strlen(buf)) != strlen(buf))
-		    LogMsg(0, VolDebugLevel, stdout, "EndLargeIndex write didn't succeed.");
+		    SLog(0, "EndLargeIndex write didn't succeed.");
     }
-    LogMsg(9, VolDebugLevel, stdout, "Leaving DumpVnodeIndex()");
+    SLog(9, "Leaving DumpVnodeIndex()");
     return 0;
 }
 
@@ -539,7 +541,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, in
 {
     int fd;
     int i;
-    LogMsg(9, VolDebugLevel, stdout, "Dumping vnode number %x", vnodeNumber);
+    SLog(9, "Dumping vnode number %x", vnodeNumber);
     if (!v || v->type == vNull) {
 	return DumpTag(dbuf, (byte) D_NULLVNODE);
     }
@@ -567,19 +569,19 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, in
 		   upon restore.
 		 */
 		
-		LogMsg(0, 0, stdout,
+		SLog(0, 0, stdout,
 		       "dump: Unable to open inode %d for vnode 0x%x; not dumped",
 		       v->inodeNumber, vnodeNumber);
 		DumpTag(dbuf, (byte) D_BADINODE);
 	    } else {
 		if (DumpFile(dbuf, D_FILEDATA, fd, vnodeNumber) == -1) {
-		    LogMsg(0, VolDebugLevel, stdout, "Dump: DumpFile failed.");
+		    SLog(0, "Dump: DumpFile failed.");
 		    return -1;
 		}
 		close(fd);
 	    }
 	} else {
-	    LogMsg(0, 0, stdout,
+	    SLog(0, 0, stdout,
 		   "dump: ACKK! Found barren inode in RO volume. (%x.%x)\n",
 		   vnodeNumber, v->uniquifier);
 	    DumpTag(dbuf, (byte) D_BADINODE);
@@ -593,7 +595,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, in
 
 	/* Dump the Access Control List */
 	if (DumpByteString(dbuf, 'A', (byte *) VVnodeDiskACL(v), VAclDiskSize(v)) == -1) {
-	    LogMsg(0, VolDebugLevel, stdout, "DumpVnode: BumpByteString failed.");
+	    SLog(0, "DumpVnode: BumpByteString failed.");
 	    return -1;
 	}
 
@@ -607,7 +609,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, in
 		return -1;
 	}
 
-	LogMsg(9, VolDebugLevel, stdout, "DumpVnode finished dumping directory");
+	SLog(9, "DumpVnode finished dumping directory");
     }
     return 0;
 }

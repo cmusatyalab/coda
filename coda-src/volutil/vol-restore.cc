@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.8 1998/08/31 12:23:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.9 1998/10/09 21:57:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -110,8 +110,7 @@ extern "C" {
 static int RestoreVolume(DumpBuffer_t *, char *, char *, VolumeId *);
 static int ReadLargeVnodeIndex(DumpBuffer_t *, Volume *);
 static int ReadSmallVnodeIndex(DumpBuffer_t *, Volume *);
-static void ReadVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, DirInode **, Volume *, long *);
-extern void VMFreeDirInode(DirInode *inode);
+static int ReadVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, DirInode **, Volume *, long *);
 
 static int VnodePollPeriod = 16;  /* Number of vnodes restored per transaction */
 extern void PollAndYield();
@@ -144,35 +143,39 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolRestore for %x--%s, partition %s", *volid, volname,
+    VLog(9, "Entering S_VolRestore for %x--%s, partition %s", *volid, volname,
 	partition);
 
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolRestore: VInitVolUtil failed with error code %d", rc);
+	VLog(0, "S_VolRestore: VInitVolUtil failed with error code %d", rc);
 	return(rc);
     }
 
     /* Avoid using a bogus partition. */
     if (DP_Get(partition) == NULL) {
-	LogMsg(0, VolDebugLevel, stdout, "VolRestore: %s is not in the partition list; not restored.", partition);
+	VLog(0, "VolRestore: %s is not in the partition list; not restored.", 
+	     partition);
+	VDisconnectFS();
 	return VFAIL;
     }
-    
     
     /* Verify that volid isn't already in use on this server. */
     if (*volid != 0) {
 	if (HashLookup(*volid) != -1) {
-	    LogMsg(0, VolDebugLevel, stdout, "Restore: Volid %x already in use; restore aborted.",*volid);
+	    VLog(0, "Restore: Volid %x already in use; restore aborted.",
+		 *volid);
 	    VDisconnectFS();
 	    return VVOLEXISTS;
 	}
     }
+
     /* To allow r/o replication reuse of volume names is allowed. */
 
     /* Set up a connection with the client. */
     if ((rc = RPC2_GetPeerInfo(rpcid, &peerinfo)) != RPC2_SUCCESS) {
-	LogMsg(0, VolDebugLevel, stdout,"VolRestore: GetPeerInfo failed with %s", RPC2_ErrorMsg((int)rc));
+	VLog(0,"VolRestore: GetPeerInfo failed with %s", 
+	     RPC2_ErrorMsg((int)rc));
 	VDisconnectFS();
 	return rc;
     }
@@ -188,14 +191,15 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     bparms.SharedSecret = NULL;
     
     if ((rc = RPC2_NewBinding(&hid, &pid, &sid, &bparms, &cid))!=RPC2_SUCCESS) {
-	LogMsg(0, VolDebugLevel, stdout, "VolRestore: Bind to client failed, %s!", RPC2_ErrorMsg((int)rc));
+	VLog(0, "VolRestore: Bind to client failed, %s!", 
+	     RPC2_ErrorMsg((int)rc));
 	VDisconnectFS();
 	return rc;
     }
 
     DumpBuf = (char *)malloc(DUMPBUFSIZE);
     if (!DumpBuf) {
-	LogMsg(0, VolDebugLevel, stdout, "VolRestore: Can't malloc buffer (%d)!", errno);
+	VLog(0, "VolRestore: Can't malloc buffer (%d)!", errno);
 	VDisconnectFS();
 	return VFAIL;
     }
@@ -203,24 +207,26 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     dbuf = InitDumpBuf((byte *)DumpBuf, (long)DUMPBUFSIZE, *volid, cid);
     
     status = RestoreVolume(dbuf, partition, volname, volid);
-
     if (status != 0) {
 	HashDelete(*volid);	       /* Just in case VCreateVolume was called */
     } 
 
     VDisconnectFS();
-    LogMsg(2, VolDebugLevel, stdout, "Restore took %d seconds to dump %d bytes.",dbuf->secs,dbuf->nbytes);
+    VLog(2, "Restore took %d seconds to dump %d bytes.",
+	 dbuf->secs, dbuf->nbytes);
     free(dbuf);
     free(DumpBuf);
 
     if (RPC2_Unbind(cid) != RPC2_SUCCESS) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolNewDump: Can't close binding %s", RPC2_ErrorMsg((int)rc));
+	    VLog(0, "S_VolNewDump: Can't close binding %s", 
+	     RPC2_ErrorMsg((int)rc));
     }
 
     return(status?status:rc);
 }
 
-static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, VolumeId *volid)
+static int RestoreVolume(DumpBuffer_t *buf, char *partition, 
+			 char *volname, VolumeId *volid)
 {
     VolumeDiskData vol;
     struct DumpHeader header;
@@ -231,30 +237,35 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Volu
 
     /* Get header information from the dump buffer. */
     if (!ReadDumpHeader(buf, &header)) {
-	LogMsg(0, VolDebugLevel, stdout, "Error reading dump header; aborted");
+	VLog(0, "Error reading dump header; aborted");
 	return VFAIL;
     }
-    LogMsg(9, VolDebugLevel, stdout, "Volume id = %x, Volume name = %s", header.volumeId, header.volumeName);
-    LogMsg(9, VolDebugLevel, stdout, "Dump from backup taken from %x at %s", header.parentId, ctime((long *)&header.backupDate));
-    LogMsg(9, VolDebugLevel, stdout, "Dump uniquifiers %x -> %x", header.oldest, header.latest);
+    VLog(9, "Volume id = %x, Volume name = %s", 
+	 header.volumeId, header.volumeName);
+    VLog(9, "Dump from backup taken from %x at %s", 
+	 header.parentId, ctime((long *)&header.backupDate));
+    VLog(9, "Dump uniquifiers %x -> %x", 
+	 header.oldest, header.latest);
     
     if (header.Incremental) {
-	LogMsg(0, VolDebugLevel, stdout, "VolRestore Error -- trying to restore incremental dump!");
+	VLog(0, "VolRestore Error -- trying to restore incremental dump!");
 	return VFAIL;
     }
     
     if (ReadTag(buf) != D_VOLUMEDISKDATA) {
-	LogMsg(0, VolDebugLevel, stdout, "VolRestore: Volume header missing from dump; not restored");
+	VLog(0, "VolRestore: Volume header missing from dump; not restored");
 	return VFAIL;
     }
+
     bzero((void *)&vol, sizeof(VolumeDiskData));
     if (!ReadVolumeDiskData(buf, &vol)) {
-	LogMsg(0, VolDebugLevel, stdout, "VolRestore: ReadVolDiskData failed; not restored.");
+	VLog(0, "VolRestore: ReadVolDiskData failed; not restored.");
 	return VFAIL;
     }
+
     int volumeType = vol.type;
     if ((volumeType == readwriteVolume) || (volumeType == replicatedVolume)) {
-	LogMsg(0, VolDebugLevel, stdout, "VolRestore: Dumped volume has Illegal type; not restored.");
+	VLog(0, "VolRestore: Dumped volume has Illegal type; not restored.");
 	return VFAIL;
     }
 
@@ -263,7 +274,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Volu
 	/* update Maxid of the volumes so that the volume routines will work */
 	unsigned long maxid = *volid & 0x00FFFFFF;
 	if (maxid > (SRV_RVM(MaxVolId) & 0x00FFFFFF)){
-	    LogMsg(0, VolDebugLevel, stdout, "Restore: Updating MaxVolId; maxid = 0x%x MaxVolId = 0x%x", 
+	    VLog(0, "Restore: Updating MaxVolId; maxid = %#x MaxVolId = %#x", 
 		maxid, SRV_RVM(MaxVolId));
 	    RVMLIB_MODIFY(SRV_RVM(MaxVolId),
 			  (maxid + 1) | (SRV_RVM(MaxVolId) & 0xFF000000));
@@ -271,7 +282,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Volu
     } else {
 	*volid = VAllocateVolumeId(&error);
 	if (error) {
-	    LogMsg(0, VolDebugLevel, stdout, "Unable to allocate volume id; restore aborted");
+	    VLog(0, "Unable to allocate volume id; restore aborted");
 	    rvmlib_abort(VFAIL);
 	}
     }
@@ -283,28 +294,28 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Volu
 
     vp = VCreateVolume(&error, partition, *volid, parentid, 0, volumeType);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout,"Unable to create volume %x; not restored", *volid);
+	VLog(0,"Unable to create volume %x; not restored", *volid);
 	rvmlib_abort(-1);
     }
 
     V_blessed(vp) = 0;
     VUpdateVolume(&error, vp);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: Trouble updating voldata for %#8x!", *volid);
+	VLog(0, "S_VolClone: Trouble updating voldata for %#x!", *volid);
 	rvmlib_abort(VFAIL);
     }
 
     RVMLIB_END_TRANSACTION(flush, &status)
     if (status == 0)
-	LogMsg(9, VolDebugLevel, stdout, "restore createvol completed successfully");
+	VLog(9, "restore createvol of %#x completed successfully", *volid);
     else {
-	LogMsg(0, VolDebugLevel, stdout, "restore: createvol failed.");
+	VLog(0, "restore: createvol failed.");
 	return status;
     }
     
     /* Read in and create the large vnode list. */
     if (ReadTag(buf) != D_LARGEINDEX) {
-	LogMsg(0, VolDebugLevel, stdout, "Large Vnode Index not found; restore aborted");
+	VLog(0, "Large Vnode Index not found; restore aborted");
 	return VNOVNODE;
     }
     if (!ReadLargeVnodeIndex(buf, vp)) 
@@ -312,7 +323,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Volu
 
     /* Read in and create the small vnode list. */
     if (ReadTag(buf) != D_SMALLINDEX) {
-	LogMsg(0, VolDebugLevel, stdout, "Small Vnode Index not found; restore aborted");
+	VLog(0, "Small Vnode Index not found; restore aborted");
 	return VNOVNODE;
     }
     if (!ReadSmallVnodeIndex(buf, vp))
@@ -320,16 +331,16 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Volu
 
     /* Verify that we're really at the end of the dump. */
     if (!EndOfDump(buf)){
-	LogMsg(0, VolDebugLevel, stdout, "End of dump doesnt look good; restore aborted");
+	VLog(0, "End of dump doesnt look good; restore aborted");
 	return VFAIL;
     }
 
     /* Modify vp (data from create) with vol (data from the dump.) */
     if (strlen(volname) == 0) {
-	AssignVolumeName(&vol, vol.name,
-			 (volumeType==readonlyVolume?".readonly":".restored"));
+	    AssignVolumeName(&vol, vol.name,
+		    (volumeType==readonlyVolume?".readonly":".restored"));
     } else {
-	strcpy(vol.name, volname);
+	    strcpy(vol.name, volname);
     }
 
     ClearVolumeStats(&vol);
@@ -340,31 +351,33 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition, char *volname, Volu
     V_needsSalvaged(vp) = V_destroyMe(vp) = 0; /* Make sure it gets online. */
     V_inService(vp) = V_blessed(vp) = 1;
     
-    LogMsg(0, VolDebugLevel, stdout, "partname -%s-", V_partname(vp));
+    VLog(0, "partname -%s-", V_partname(vp));
     RVMLIB_BEGIN_TRANSACTION(restore);
 
     VUpdateVolume(&error, vp);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "restore: Unable to rewrite volume header; restore aborted");
+	VLog(0, "restore: Unable to rewrite volume header; restore aborted");
 	rvmlib_abort(-1);
+	return -1;
     }
 
     VDetachVolume(&error, vp); /* Let file server get its hands on it */
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "restore: Unable to detach volume; restore aborted");
+	VLog(0, "restore: Unable to detach volume; restore aborted");
 	rvmlib_abort(-1);
+	return -1;
     }
     VListVolumes();			/* Create updated /vice/vol/VolumeList */
 
     RVMLIB_END_TRANSACTION(flush, &status)
     if (status == 0)
-	LogMsg(9, VolDebugLevel, stdout, "S_VolRestore: VUpdateVolume completed successfully");
+	VLog(9, "S_VolRestore: VUpdateVolume completed successfully");
     else {
-	LogMsg(0, VolDebugLevel, stdout, "restore: VUpdateVolume failed ");
+	VLog(0, "restore: VUpdateVolume failed ");
 	return status;
     }
 
-    LogMsg(0, VolDebugLevel, stdout, "Volume %x (%s) restored successfully", *volid, vol.name);
+    VLog(0, "Volume %x (%s) restored successfully", *volid, vol.name);
     return 0;
 }
 
@@ -388,26 +401,24 @@ static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists, 0); 
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes, 0);
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nsmallLists, 0);
-    }
-    else if (vclass == vLarge){
+    } else if (vclass == vLarge){
 	list = SRV_RVM(VolumeList[volindex]).data.largeVnodeLists;
 	listsize = SRV_RVM(VolumeList[volindex]).data.nlargeLists;
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists, 0); 
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes, 0);
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargeLists, 0);
-    }
-    else 
-	assert(1==2);
+    } else 
+	assert(0);
     /* now free the list */
     for (int i = 0; i < listsize; i++){
-	rec_smolink *p;
-	while (p = list[i].get()){
-	    LogMsg(0, VolDebugLevel, stdout, "Vol_Restore: Found a vnode on the new volume's %s list!",
-		(vclass == vLarge) ? "Large" : "Small");
-	    vdo = strbase(VnodeDiskObject, p, nextvn);
-	    rvmlib_rec_free((char *)vdo);
-	    
-	}
+	    rec_smolink *p;
+	    while (p = list[i].get()){
+	     VLog(0, "Vol_Restore: Found a vnode on the new volume's %s list!",
+		  (vclass == vLarge) ? "Large" : "Small");
+	     vdo = strbase(VnodeDiskObject, p, nextvn);
+	     rvmlib_rec_free((char *)vdo);
+	     
+	    }
     }	
     rvmlib_rec_free(((char *)list));
 
@@ -428,7 +439,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     register char tag;
     int volindex = V_volumeindex(vp);
 
-    LogMsg(9, VolDebugLevel, stdout, "Restore: Reading in large vnode array.");
+    VLog(9, "Restore: Reading in large vnode array.");
     FreeVnodeIndex(vp, vLarge);
     while ((tag = ReadTag(buf)) > D_MAX && tag != EOF) {
 	switch(tag) {
@@ -439,7 +450,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		ReadLong(buf, (unsigned long *)&list_size);
 		break;
 	    default:
-		LogMsg(0, VolDebugLevel, stdout, "Unexpected field of Vnode found; restore aborted");
+		VLog(0, "Unexpected field of Vnode found; restore aborted");
 		return FALSE;
 	}
     }
@@ -471,8 +482,14 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     while (i < num_vnodes) {
 	RVMLIB_BEGIN_TRANSACTION(restore);
 	do {
-	    ReadVnodeDiskObject(buf, vdo, &dinode, vp, &vnodenumber);
-	    LogMsg(19, VolDebugLevel, stdout, "Just read vnode for index %d.", vnodenumber);
+		int rc; 
+		rc = ReadVnodeDiskObject(buf, vdo, &dinode, vp, &vnodenumber);
+		if (rc) {
+			status = -1;
+			rvmlib_abort(status);
+			return -1;
+		}
+	    VLog(19, "Just read vnode for index %d.", vnodenumber);
 	    if (vdo->type != vNull){
 		/* this vnode is allocated */
 		/* copy the directory pages into rec storage */
@@ -494,13 +511,13 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 	} while ((i++ < num_vnodes) && (i % VnodePollPeriod));
 	RVMLIB_END_TRANSACTION(flush, &status)
 	assert(status == 0);			/* Never aborts... */
-	LogMsg(9, VolDebugLevel, stdout, "S_VolRestore: Did another series of Vnode restores.");
+	VLog(9, "S_VolRestore: Did another series of Vnode restores.");
 	PollAndYield();
     }
-    LogMsg(9, VolDebugLevel, stdout, "S_VolRestore: Done with vnode restores for large vnodes.");
+    VLog(9, "S_VolRestore: Done with vnode restores for large vnodes.");
 
     if (nvnodes != num_vnodes){	
-	LogMsg(0, VolDebugLevel, stdout, "ReadLargeVnodeIndex: #vnodes read != #vnodes dumped");
+	VLog(0, "ReadLargeVnodeIndex: #vnodes read != #vnodes dumped");
 	return FALSE;
     }
     return TRUE;
@@ -518,7 +535,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     rec_smolist *rlist;
     int volindex = V_volumeindex(vp);
 
-    LogMsg(9, VolDebugLevel, stdout, "Restore: Reading in small vnode array.");
+    VLog(9, "Restore: Reading in small vnode array.");
     FreeVnodeIndex(vp, vSmall);
     while ((tag = ReadTag(buf)) > D_MAX && tag != EOF) {
 	switch(tag) {
@@ -529,8 +546,8 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		ReadLong(buf, (unsigned long *)&list_size);
 		break;
 	    default:
-		LogMsg(0, VolDebugLevel, stdout, "Unexpected field of Vnode found; restore aborted");
-		rvmlib_abort(-1);
+		VLog(0, "Unexpected field of Vnode found; restore aborted");
+		return -1;
 	}
     }
     PutTag(tag, buf);
@@ -561,7 +578,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 	RVMLIB_BEGIN_TRANSACTION(restore);
 	do {
 	    ReadVnodeDiskObject(buf, vdo, NULL, vp, &vnodenumber);
-	    LogMsg(19, VolDebugLevel, stdout, "Just read vnode for index %d.", vnodenumber);
+	    VLog(19, "Just read vnode for index %d.", vnodenumber);
 	    if (vdo->type != vNull){
 		/* this vnode is allocated */
 		camvdo=(VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
@@ -580,36 +597,38 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 	RVMLIB_END_TRANSACTION(flush, &status)
 	if (status != 0)
 	    return FALSE;
-	LogMsg(9, VolDebugLevel, stdout, "S_VolRestore: Did another series of Vnode restores.");
+	VLog(9, "S_VolRestore: Did another series of Vnode restores.");
 	PollAndYield();
     }
-    LogMsg(9, VolDebugLevel, stdout, "S_VolRestore: Done with vnode restores for small vnodes.");
+    VLog(9, "S_VolRestore: Done with vnode restores for small vnodes.");
     
     if (nvnodes != num_vnodes){
-	LogMsg(0, VolDebugLevel, stdout, "ReadSmallVnodeIndex: #vnodes read != #vnodes dumped");
+	VLog(0, "ReadSmallVnodeIndex: #vnodes read != #vnodes dumped");
 	return FALSE;
     }
     return TRUE;
 }
 
-static void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirInode **dinode, Volume *vp, long *vnodeNumber)
+static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, 
+				DirInode **dinode, Volume *vp, 
+				long *vnodeNumber)
 {
     register char tag;
     *vnodeNumber = -1;
     tag = ReadTag(buf);
     if (tag == D_NULLVNODE){
 	vdop->type = vNull;
-	return;
-    }
-    else if (tag != D_VNODE){	/* Shouldn't this be an error? */
+	return 0;
+    } else if (tag != D_VNODE){	/* Shouldn't this be an error? */
 	PutTag(tag, buf);
 	vdop->type = vNull;
-	return;
+	return 0;
     }
     
-    if (!ReadLong(buf, (unsigned long *)vnodeNumber) || !ReadLong(buf, (unsigned long *)&vdop->uniquifier)) {
-	LogMsg(0, VolDebugLevel, stdout, "ReadVnodeDiskObject: Readstuff failed, aborting.");
-	rvmlib_abort(-1);
+    if (!ReadLong(buf, (unsigned long *)vnodeNumber) || 
+	!ReadLong(buf, (unsigned long *)&vdop->uniquifier)) {
+	    VLog(0, "ReadVnodeDiskObject: Readstuff failed, aborting.");
+	    return -1;
     }
 
     bzero((void *)&(vdop->nextvn), sizeof(rec_smolink));
@@ -659,8 +678,8 @@ static void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIno
     }
 
     if (!tag) {
-	LogMsg(0, VolDebugLevel, stdout, "ReadVnodeDiskObject: Readstuff failed, aborting.");
-	rvmlib_abort(-1);
+	VLog(0, "ReadVnodeDiskObject: Readstuff failed, aborting.");
+	return -1;
     }
 
     PutTag(tag, buf);
@@ -668,9 +687,11 @@ static void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIno
     if (vdop->type == vDirectory) {
 	int npages = 0;
 	assert(ReadTag(buf) == D_DIRPAGES);
-	if (!ReadLong(buf, (unsigned long *)&npages) || (npages > DIR_MAXPAGES)) {
-	    LogMsg(0, VolDebugLevel, stdout, "Restore: Dir has to many pages for vnode %d", *vnodeNumber);
-	    rvmlib_abort(-1);
+	if (!ReadLong(buf, (unsigned long *)&npages) || 
+	    (npages > DIR_MAXPAGES)) {
+	    VLog(0, "Restore: Dir has to many pages for vnode %d", 
+		 *vnodeNumber);
+	    return -1;
 	}
 	*dinode = (DirInode *)malloc(sizeof(DirInode));
 	bzero((void *)*dinode, sizeof(DirInode));
@@ -678,12 +699,12 @@ static void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIno
 	    (*dinode)->di_pages[i] = (long *)malloc(DIR_PAGESIZE);
 	    register tmp = ReadTag(buf);
 	    if ((byte)tmp != 'P'){
-		LogMsg(0, VolDebugLevel, stdout, "Restore: Dir page does not have a P tag");
-		rvmlib_abort(-1);
+		VLog(0, "Restore: Dir page does not have a P tag");
+		return -1;
 	    }
 	    if (!ReadByteString(buf, (byte *)((*dinode)->di_pages[i]), DIR_PAGESIZE)) {
-		LogMsg(0, VolDebugLevel, stdout, "Restore: Failure reading dir page, aborting.");
-		rvmlib_abort(-1);
+		VLog(0, "Restore: Failure reading dir page, aborting.");
+		return -1;
 	    }
 		
 	}
@@ -694,51 +715,55 @@ static void ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop, DirIno
 	if (tag == D_FILEDATA) {
 	    int fd;
 	
-	    vdop->inodeNumber = icreate((int)vp->device, 0, (int)V_parentId(vp),
-					(int)*vnodeNumber, (int)vdop->uniquifier,
+	    vdop->inodeNumber = icreate((int)vp->device, 0, 
+					(int)V_parentId(vp),
+					(int)*vnodeNumber, 
+					(int)vdop->uniquifier,
 					(int)vdop->dataVersion);
 	    if (vdop->inodeNumber < 0) {
-		LogMsg(0, VolDebugLevel, stdout,
-		       "Unable to allocate inode for vnode %d: Restore aborted",
-		       *vnodeNumber);
-		rvmlib_abort(-1);
+		VLog(0,"Unable to allocate inode for vnode %#x: aborted",
+		     *vnodeNumber);
+		return -1;
 	    }
 	    fd = iopen((int)vp->device, (int)vdop->inodeNumber, O_WRONLY);
 	    if (fd == -1){
-		LogMsg(0, VolDebugLevel, stdout, "Failure to open inode for writing %d", errno);
-		rvmlib_abort(-1);
+		VLog(0, "Failure to open inode for writing %d", errno);
+		return -1;
 	    }
 
 	    FILE *ifile = fdopen(fd, "w");
 	    if (ifile == NULL) {
-		LogMsg(0, VolDebugLevel, stdout, "Failure to open inode file stream %d", errno);
-		rvmlib_abort(-1);
+		VLog(0, "Failure to open inode file stream %d", errno);
+		return -1;
 	    }
 
 	    vdop->length = ReadFile(buf, ifile);
 	    if (vdop->length == -1) {
-		LogMsg(0, VolDebugLevel, stdout, "Failure to read in data for vnode %d: Restore aborted", *vnodeNumber);
-		rvmlib_abort(-1);
+		VLog(0, "Failure reading in data for vnode %d: aborted", 
+		     *vnodeNumber);
+		return -1;
 	    }
 
 	    fclose(ifile);
 	    close(fd);
 	} else if (tag == D_BADINODE) {
 	    /* Create a null inode. */
-	    vdop->inodeNumber = icreate((int)vp->device, 0, (int)V_parentId(vp),
-					(int)*vnodeNumber, (int)vdop->uniquifier,
+	    vdop->inodeNumber = icreate((int)vp->device, 0, 
+					(int)V_parentId(vp),
+					(int)*vnodeNumber, 
+					(int)vdop->uniquifier,
 					(int)vdop->dataVersion);
 	    if (vdop->inodeNumber < 0) {
-		LogMsg(0, VolDebugLevel, stdout,
-		       "Unable to allocate inode for vnode %d: Restore aborted",
+		VLog(0,
+		       "Unable to allocate inode for vnode %d: aborted",
 		       *vnodeNumber);
-		rvmlib_abort(-1);
+		return -1;
 	    }
 	} else {
-	    LogMsg(0, VolDebugLevel, stdout, "Restore: FileData not properly tagged, aborting.");
-	    rvmlib_abort(-1);
+	    VLog(0, "Restore: FileData not properly tagged, aborting.");
+	    return -1;
 	}
-	
     }
+    return 0;
 }
 

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.6 98/08/26 15:40:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.7 1998/09/29 21:04:58 jaharkes Exp $";
 #endif _BLURB_
 
 /*
@@ -42,7 +42,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 *
 */
 
-/*LINTLIBRARY*/
 
 /* permit multiple includes */
 #ifndef _RVM_PRIVATE_
@@ -88,26 +87,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 
 
 #define ASSERT(ex) assert(ex)
-#if 0
-/* assert that preserves stack */
-#ifdef ASSERT
-#undef ASSERT
-#endif
-#define ASSERT(ex) \
-    MACRO_BEGIN \
-    if (!(ex)) \
-        { \
-        long _i_ = 0; \
-        fflush(stdout); \
-        fprintf(stderr,"Assertion failed: file \"%s\", line %d\n", \
-                __FILE__, __LINE__); \
-        fflush(stderr); \
-         _i_ = *(long *)_i_; \
-        abort(); \
-         } \
-    MACRO_END
 
-#endif
 
 /* RVM Internal Error Messages */
 
@@ -1547,74 +1527,31 @@ rvm_return_t alloc_log_buf();           /* [rvm_logrecovr.c] */
 extern
 void free_log_buf();                    /* [rvm_logrecovr.c] */
 /*  log_t           *log; */
-/* Segment & region management functions */
 
-extern
-seg_t *seg_lookup();                    /* [rvm_map.c] */
-/*  char            *dev_name;
-    rvm_return_t    *retval;
-*/
-extern
-long open_seg_dev();                    /* [rvm_map.c] */
-/*  seg_t           *seg;
-    rvm_offset_t    *dev_length;
-*/
-extern
-long close_seg_dev();                   /* [rvm_map.c] */
-/*  seg_t           *seg; */
+/* Segment & region management functions */
+/* [rvm_map.c] */
+void init_map_roots(void);
+rvm_return_t bad_region(rvm_region_t *rvm_region);
+rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
+rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
+rvm_page_entry_t *find_page_entry(char *vmaddr);
+char *page_alloc(rvm_length_t len);
+void page_free(char *vmaddr, rvm_length_t length);
+rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length);
+long open_seg_dev(seg_t *seg, rvm_offset_t *dev_length);
+long close_seg_dev(seg_t *seg);
+rvm_return_t close_all_segs(void);
+seg_t *seg_lookup(char *dev_name, rvm_return_t *retval);
+rvm_return_t define_seg(log_t *log, seg_t *seg);
+rvm_return_t define_all_segs(log_t *log);
+long dev_partial_include(rvm_offset_t *base1, rvm_offset_t *end1, rvm_offset_t *base2, rvm_offset_t *end2);
+long dev_total_include(rvm_offset_t *base1, rvm_offset_t *end1, rvm_offset_t *base2, rvm_offset_t *end2);
+long mem_partial_include(tree_node_t *tnode1, tree_node_t *tnode2);
+long mem_total_include(tree_node_t *tnode1, tree_node_t *tnode2);
+region_t *find_whole_range(char *dest, rvm_length_t length, rw_lock_mode_t mode);
+region_t *find_partial_range(char *dest, rvm_length_t length, long *code);
+rvm_return_t rvm_map(rvm_region_t *rvm_region, rvm_options_t *rvm_options);
 
-extern
-rvm_return_t close_all_segs();          /* [rvm_map.c] */
-
-extern
-rvm_return_t define_seg();              /* [rvm_map.c] */
-/*  log_t           *log;
-    seg_t           *seg;
-*/
-extern
-rvm_return_t define_all_segs();         /* [rvm_map.c] */
-/*  log_t           *log; */
-
-extern
-region_t *find_whole_range();           /* [rvm_map.c] */
-/*  char            *dest;
-    rvm_length_t    length;
-    rw_lock_mode    mode;
-*/
-extern
-region_t *find_partial_range();         /* [rvm_map.c] */
-/*  char            *dest;
-    rvm_length_t    length;
-    long            *code;
-*/
-extern                                  /* [rvm_map.c] */
-long mem_partial_include();
-/*  tree_node_t     *tnode1;
-    tree_node_t     *tnode2;
-*/
-extern                                  /* [rvm_map.c] */
-long mem_total_include();
-/*  tree_node_t     *tnode1;
-    tree_node_t     *tnode2;
-*/
-extern                                /* [rvm_map.c] */
-long dev_partial_include();
-/*  rvm_offset_t    *base1,*end1;
-    rvm_offset_t    *base2,*end2;
-*/
-extern                                  /* [rvm_map.c] */
-long dev_total_include();
-/*  rvm_offset_t    *base1,*end1;
-    rvm_offset_t    *base2,*end2;
-*/
-extern
-char *page_alloc();                     /* [rvm_map.c] */
-/*  rvm_length_t   len; */
-extern
-void page_free();                       /* [rvm_map.c] */
-/*  char            *base;
-    rvm_length_t    length;
-*/
 
 /* segment dictionary functions */
 extern

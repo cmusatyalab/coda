@@ -51,7 +51,7 @@ char       *RootDir    = "\temp";                    /* -rd */
 int         FidTabSize = 255;                            /* -ts */
 char       *MountPt    = "/coda";                        /* -mp */
 int         Interval   = 30;                             /* -i  */
-int         verbose    = 1;                              /* -v  */
+int         verbose    = 0;                              /* -v  */
 
 /************************************************ Other globals */
 ds_hash_t        *FidTab;         /* Table of known vnodes, by fid */
@@ -313,7 +313,7 @@ int MsgRead(char *m)
 #else
 	 int cc = read(KernFD, m, (int) (VC_MAXMSGSIZE));
 #endif
-	 if (cc < sizeof(struct cfs_in_hdr)) 
+	 if (cc < sizeof(struct coda_in_hdr)) 
 		 return(-1);
 	 /* printf("MsgRead: returning %d\n", cc); */
 	 return(cc);
@@ -384,10 +384,10 @@ Setup() {
 #endif
 
     assert(KernFD >= 0);
-    msg.oh.opcode = CFS_FLUSH;
+    msg.oh.opcode = CODA_FLUSH;
     msg.oh.unique = 0;
-    assert (MsgWrite((char*)&msg, sizeof(struct cfs_out_hdr))
-	    == sizeof(struct cfs_out_hdr));
+    assert (MsgWrite((char*)&msg, sizeof(struct coda_out_hdr))
+	    == sizeof(struct coda_out_hdr));
 
 #ifdef __linux__
     if ( fork() == 0 ) {
@@ -520,8 +520,8 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
 
 #define VC_OUTSIZE(name) sizeof(struct name)
 #define VC_INSIZE(name)  sizeof(struct name)
-#define VC_OUT_NO_DATA   sizeof(struct cfs_out_hdr)
-#define VC_IN_NO_DATA    sizeof(struct cfs_in_hdr)
+#define VC_OUT_NO_DATA   sizeof(struct coda_out_hdr)
+#define VC_IN_NO_DATA    sizeof(struct coda_in_hdr)
 
 void
 DoRoot(union inputArgs *in, union outputArgs *out, int *reply)
@@ -534,16 +534,16 @@ DoRoot(union inputArgs *in, union outputArgs *out, int *reply)
 	RootFep = root;
 	RootFid = &(root->fid);
     }
-    out->cfs_root.VFid.Volume = RootFid->Volume;
-    out->cfs_root.VFid.Vnode = RootFid->Vnode;
-    out->cfs_root.VFid.Unique = RootFid->Unique;
+    out->coda_root.VFid.Volume = RootFid->Volume;
+    out->coda_root.VFid.Vnode = RootFid->Vnode;
+    out->coda_root.VFid.Unique = RootFid->Unique;
     out->oh.result = 0;
 
     if (verbose) {
 	printf("Returning root: fid (%x.%x.%x)\n",RootFid->Volume,
 	       RootFid->Vnode, RootFid->Unique);
     }
-    *reply = VC_OUTSIZE(cfs_root_out);
+    *reply = VC_OUTSIZE(coda_root_out);
     return;
 }
 
@@ -557,8 +557,8 @@ DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
     char                 *path=NULL;
     struct stat           sbuf;
 
-    fp = &(in->cfs_open.VFid);
-    flags = &(in->cfs_open.flags);
+    fp = &(in->coda_open.VFid);
+    flags = &(in->coda_open.flags);
 
     dummy.fid = *fp;
     assert((fep = ds_hash_member(FidTab, &dummy)) != NULL);
@@ -573,8 +573,8 @@ DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
 	out->oh.result = errno;
 	goto exit;
     }
-    out->cfs_open.dev = sbuf.st_dev;
-    out->cfs_open.inode = sbuf.st_ino; 
+    out->coda_open.dev = sbuf.st_dev;
+    out->coda_open.inode = sbuf.st_ino; 
     out->oh.result = 0;
     if (verbose) {
 	printf("....found\n");
@@ -582,7 +582,7 @@ DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
     }
  exit:
     if (path) free(path);
-    *reply = VC_OUTSIZE(cfs_open_out);
+    *reply = VC_OUTSIZE(coda_open_out);
     return;
 }
 
@@ -599,8 +599,8 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
     char *slash;
     char *begin;
 
-    fp = &(in->cfs_open_by_path.VFid);
-    flags = &(in->cfs_open_by_path.flags);
+    fp = &(in->coda_open_by_path.VFid);
+    flags = &(in->coda_open_by_path.flags);
 
     dummy.fid = *fp;
     assert((fep = ds_hash_member(FidTab, &dummy)) != NULL);
@@ -615,8 +615,8 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
 	out->oh.result = errno;
 	goto exit;
     }
-    begin = (char *)(&out->cfs_open_by_path.path + 1);
-    out->cfs_open_by_path.path = begin - (char *)out;
+    begin = (char *)(&out->coda_open_by_path.path + 1);
+    out->coda_open_by_path.path = begin - (char *)out;
     printf("Rootdir %s path %s, total %s\n", RootDir, path, begin);
     sprintf(begin, "%s/%s", RootDir, path);
 #if defined(DJGPP) || defined(__CYGWIN32__)
@@ -634,7 +634,7 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
     }
  exit:
     if (path) free(path);
-    *reply = sizeof (struct cfs_open_by_path_out) + 
+    *reply = sizeof (struct coda_open_by_path_out) + 
 				strlen(begin) + 1;
     return;
 }
@@ -644,7 +644,7 @@ DoClose(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid  *fp;
 
-    fp = &(in->cfs_close.VFid);
+    fp = &(in->coda_close.VFid);
 
     /* Close always succeeds */
     if (verbose) {
@@ -662,7 +662,7 @@ DoAccess(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid  *fp;
 
-    fp = &(in->cfs_close.VFid);
+    fp = &(in->coda_close.VFid);
 
     /* Access always succeeds, for now */
     if (verbose) {
@@ -688,9 +688,9 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
     char              *path=NULL;
     struct stat        sbuf;
     
-    fp = &(in->cfs_lookup.VFid);
-    assert((int)in->cfs_lookup.name == VC_INSIZE(cfs_lookup_in));
-    name = (char*)in + (int)in->cfs_lookup.name;
+    fp = &(in->coda_lookup.VFid);
+    assert((int)in->coda_lookup.name == VC_INSIZE(coda_lookup_in));
+    name = (char*)in + (int)in->coda_lookup.name;
 
     if (verbose) {
 	printf("Doing lookup of (%s) in fid (%x.%x.%x)\n",
@@ -768,8 +768,8 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
 
  found:
     /* Okay. We now have a valid vnode in childp, we'll succeed */
-    out->cfs_lookup.VFid = childp->fid;
-    out->cfs_lookup.vtype = childp->type;
+    out->coda_lookup.VFid = childp->fid;
+    out->coda_lookup.vtype = childp->type;
     out->oh.result = 0;
     if (verbose) {
 	printf("....found\n");
@@ -782,7 +782,7 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
 	free(childp);
     }
     if (path) free(path);
-    *reply = VC_OUTSIZE(cfs_lookup_out);
+    *reply = VC_OUTSIZE(coda_lookup_out);
     return;
 }
 
@@ -798,8 +798,8 @@ DoGetattr(union inputArgs *in, union outputArgs *out, int *reply)
     struct coda_vattr     *vbuf;
     char             *path = NULL;
     
-    fp = &(in->cfs_getattr.VFid);
-    vbuf = &(out->cfs_getattr.attr);
+    fp = &(in->coda_getattr.VFid);
+    vbuf = &(out->coda_getattr.attr);
 
     if (verbose) {
 	printf("Doing getattr for fid (%x.%x.%x)\n",
@@ -824,7 +824,7 @@ DoGetattr(union inputArgs *in, union outputArgs *out, int *reply)
 
  exit:
     if (path) free(path);
-    *reply = VC_OUTSIZE(cfs_getattr_out);
+    *reply = VC_OUTSIZE(coda_getattr_out);
     return;
 }
 
@@ -873,18 +873,18 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     uid_t            suid;
     gid_t            sgid;
 
-    fp = &(in->cfs_create.VFid);
-    attr = &(in->cfs_create.attr);
+    fp = &(in->coda_create.VFid);
+    attr = &(in->coda_create.attr);
     cred = &(in->ih.cred);
-    exclp = in->cfs_create.excl;
-    mode = in->cfs_create.mode;
+    exclp = in->coda_create.excl;
+    mode = in->coda_create.mode;
     readp = mode & C_M_READ;
     writep = mode & C_M_WRITE;
     truncp = (attr->va_size == 0);
-    assert((int)in->cfs_create.name == VC_INSIZE(cfs_create_in));
-    name = (char*)in + (int)in->cfs_create.name;
-    newFp = &(out->cfs_create.VFid);
-    newAttr = &(out->cfs_create.attr);
+    assert((int)in->coda_create.name == VC_INSIZE(coda_create_in));
+    name = (char*)in + (int)in->coda_create.name;
+    newFp = &(out->coda_create.VFid);
+    newAttr = &(out->coda_create.attr);
 
     if (verbose) {
 	printf("Doing create of (%s) in fid (%x.%x.%x) mode 0%o %s\n",
@@ -995,7 +995,7 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     /* Set the creator for this file */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
     /* Do the open */
@@ -1042,7 +1042,7 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
 	free(newFep);
     }
     if (path) free(path);
-    *reply = VC_OUTSIZE(cfs_create_out);
+    *reply = VC_OUTSIZE(coda_create_out);
     return;
 }
 
@@ -1062,10 +1062,10 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     uid_t            suid;
     gid_t            sgid;
 
-    fp = &(in->cfs_remove.VFid);
+    fp = &(in->coda_remove.VFid);
     cred = &(in->ih.cred);
-    assert((int)in->cfs_remove.name == VC_INSIZE(cfs_remove_in));
-    name = (char*)in + (int)in->cfs_remove.name;
+    assert((int)in->coda_remove.name == VC_INSIZE(coda_remove_in));
+    name = (char*)in + (int)in->coda_remove.name;
     
     if (verbose) {
 	printf("Doing remove of (%s) in fid (%x.%x.%x)\n",
@@ -1165,7 +1165,7 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     /* Do the unlink.  Need to try it as the user calling us */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
     if (unlink(path)) {
@@ -1214,9 +1214,9 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
     gid_t             sgid;
     struct timeval    times[2];
 
-    fp = &(in->cfs_setattr.VFid);
+    fp = &(in->coda_setattr.VFid);
     cred = &(in->ih.cred);
-    vap = &(in->cfs_setattr.attr);
+    vap = &(in->coda_setattr.attr);
 
     if (verbose) {
 	printf("Doing setattr for fid (%x.%x.%x)\n",
@@ -1296,7 +1296,7 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
      */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
     /* Are we truncating the file? */
@@ -1387,11 +1387,11 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
     uid_t             suid;
     gid_t             sgid;
     
-    sdfp = &(in->cfs_rename.sourceFid);
-    tdfp = &(in->cfs_rename.destFid);
+    sdfp = &(in->coda_rename.sourceFid);
+    tdfp = &(in->coda_rename.destFid);
     cred = &(in->ih.cred);
-    sname = (char*)in + (int)in->cfs_rename.srcname;
-    tname = (char*)in + (int)in->cfs_rename.destname;
+    sname = (char*)in + (int)in->coda_rename.srcname;
+    tname = (char*)in + (int)in->coda_rename.destname;
 
     if (verbose) {
 	printf("Rename: moving %s from (%x.%x.%x) to %s in (%x.%x.%x)\n",
@@ -1484,7 +1484,7 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
     /* Step 3: try to do the rename. */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
     if (rename(spath,tpath)) {
@@ -1556,13 +1556,13 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
     uid_t             suid;
     gid_t             sgid;
     
-    fp = &(in->cfs_mkdir.VFid);
-    attr = &(in->cfs_mkdir.attr);
+    fp = &(in->coda_mkdir.VFid);
+    attr = &(in->coda_mkdir.attr);
     cred = &(in->ih.cred);
-    assert((int)in->cfs_mkdir.name == VC_INSIZE(cfs_mkdir_in));
-    name = (char*)in + (int)in->cfs_mkdir.name;
-    newFp = &(out->cfs_mkdir.VFid);
-    newAttr = &(out->cfs_mkdir.attr);
+    assert((int)in->coda_mkdir.name == VC_INSIZE(coda_mkdir_in));
+    name = (char*)in + (int)in->coda_mkdir.name;
+    newFp = &(out->coda_mkdir.VFid);
+    newAttr = &(out->coda_mkdir.attr);
     mode = attr->va_mode & 07777; /* XXX, but probably not */
 
     if (verbose) {
@@ -1620,7 +1620,7 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
     /* Set the creator for this file */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
     /* Do the mkdir */
@@ -1661,7 +1661,7 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
  exit:
     if (out->oh.result && newFep) free(newFep);
     if (path) free (path);
-    *reply = VC_OUTSIZE(cfs_mkdir_out);
+    *reply = VC_OUTSIZE(coda_mkdir_out);
     return;
 }
 
@@ -1681,10 +1681,10 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
     uid_t              suid;
     gid_t              sgid;
 
-    fp = &(in->cfs_rmdir.VFid);
+    fp = &(in->coda_rmdir.VFid);
     cred = &(in->ih.cred);
-    assert((int)in->cfs_rmdir.name == VC_INSIZE(cfs_rmdir_in));
-    name = (char*)in + (int)in->cfs_rmdir.name;
+    assert((int)in->coda_rmdir.name == VC_INSIZE(coda_rmdir_in));
+    name = (char*)in + (int)in->coda_rmdir.name;
 
     if (verbose) {
 	printf("Doing rmdir of (%s) in fid (%x.%x.%x)\n",
@@ -1789,7 +1789,7 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
     /* Do the rmdir. */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
     if (rmdir(path)) {
@@ -1835,8 +1835,8 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
     uid_t               suid;
     gid_t               sgid;
 
-    fp = &(in->cfs_readlink.VFid);
-    count = &(out->cfs_readlink.count);
+    fp = &(in->coda_readlink.VFid);
+    count = &(out->coda_readlink.count);
     cred = &(in->ih.cred);
 
     if (verbose) {
@@ -1858,13 +1858,13 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
 
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
-    out->cfs_readlink.data = (char*)VC_OUTSIZE(cfs_readlink_out);
+    out->coda_readlink.data = (char*)VC_OUTSIZE(coda_readlink_out);
 #ifndef DJGPP
     *count = readlink(path,
-		      (char*)out+(int)out->cfs_readlink.data,
+		      (char*)out+(int)out->coda_readlink.data,
 		      VC_MAXDATASIZE-1);
 #endif
     assert(!seteuid(suid));
@@ -1882,7 +1882,7 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
     out->oh.result = 0;
  exit:
     if (path) free(path);
-    *reply = VC_OUTSIZE(cfs_readlink_out) + *count;
+    *reply = VC_OUTSIZE(coda_readlink_out) + *count;
     return;
 }
 
@@ -1909,11 +1909,11 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
     uid_t            suid;
     gid_t            sgid;
 
-    dfp = &(in->cfs_link.destFid);
-    tfp = &(in->cfs_link.sourceFid);
+    dfp = &(in->coda_link.destFid);
+    tfp = &(in->coda_link.sourceFid);
     cred = &(in->ih.cred);
-    assert((int)in->cfs_link.tname == VC_INSIZE(cfs_link_in));
-    name = (char*)in + (int)in->cfs_link.tname;
+    assert((int)in->coda_link.tname == VC_INSIZE(coda_link_in));
+    name = (char*)in + (int)in->coda_link.tname;
     
     if (verbose) {
 	printf("Doing hard link to fid (%x.%x.%x) in fid (%x.%x.%x)",
@@ -1989,7 +1989,7 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
     /* Do the link */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
     if (link(tpath,lpath)) {
@@ -2042,10 +2042,10 @@ DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
     uid_t           suid;
     gid_t           sgid;
 
-    fp = &(in->cfs_symlink.VFid);
-    attr = &(in->cfs_symlink.attr);
-    contents = (char*)in + (int)(in->cfs_symlink.srcname);
-    name = (char*)in + (int)(in->cfs_symlink.tname);
+    fp = &(in->coda_symlink.VFid);
+    attr = &(in->coda_symlink.attr);
+    contents = (char*)in + (int)(in->coda_symlink.srcname);
+    name = (char*)in + (int)(in->coda_symlink.tname);
     cred = &(in->ih.cred);
 
     if (verbose) {
@@ -2092,7 +2092,7 @@ DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
     /* Set up credentials */
     suid = getuid();
     sgid = getgid();
-    assert(!setgid(cred->cr_gid));
+    assert(!setgid(cred->cr_groupid));
     assert(!seteuid(cred->cr_uid));
 
     if (symlink(contents, path)) {
@@ -2126,7 +2126,7 @@ DoFsync(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid  *fp;
     
-    fp = &(in->cfs_fsync.VFid);
+    fp = &(in->coda_fsync.VFid);
 
     /* Fsync always succeeds, for now */
     if (verbose) {
@@ -2158,55 +2158,55 @@ Dispatch(union inputArgs *in, union outputArgs *out, int *reply) {
     fflush(stdout);
 
     switch(in->ih.opcode) {
-    case CFS_ROOT:
+    case CODA_ROOT:
 	DoRoot(in,out,reply);
 	break;
-    case CFS_OPEN:
+    case CODA_OPEN:
 	DoOpen(in,out,reply);
 	break;
-    case CFS_CLOSE:
+    case CODA_CLOSE:
 	DoClose(in,out,reply);
 	break;
-    case CFS_ACCESS:
+    case CODA_ACCESS:
 	DoAccess(in,out,reply);
 	break;
-    case CFS_LOOKUP:
+    case CODA_LOOKUP:
 	DoLookup(in,out,reply);
 	break;
-    case CFS_GETATTR:
+    case CODA_GETATTR:
 	DoGetattr(in,out,reply);
 	break;
-    case CFS_CREATE:
+    case CODA_CREATE:
 	DoCreate(in,out,reply);
 	break;
-    case CFS_REMOVE:
+    case CODA_REMOVE:
 	DoRemove(in,out,reply);
 	break;
-    case CFS_SETATTR:
+    case CODA_SETATTR:
 	DoSetattr(in,out,reply);
 	break;
-    case CFS_MKDIR:
+    case CODA_MKDIR:
 	DoMkdir(in,out,reply);
 	break;
-    case CFS_RMDIR:
+    case CODA_RMDIR:
 	DoRmdir(in,out,reply);
 	break;
-    case CFS_READLINK:
+    case CODA_READLINK:
 	DoReadlink(in,out,reply);
 	break;
-    case CFS_SYMLINK:
+    case CODA_SYMLINK:
 	DoSymlink(in,out,reply);
 	break;
-    case CFS_LINK:
+    case CODA_LINK:
 	DoLink(in,out,reply);
 	break;
-    case CFS_RENAME:
+    case CODA_RENAME:
 	DoRename(in,out,reply);
 	break;
-    case CFS_FSYNC:
+    case CODA_FSYNC:
 	DoFsync(in,out,reply);
 	break;
-    case CFS_OPEN_BY_PATH:
+    case CODA_OPEN_BY_PATH:
 	DoOpenByPath(in,out,reply);
 	break;
     default:

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.5 1998/08/31 12:23:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.6 1998/10/09 21:57:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -112,9 +112,7 @@ static void printvns(Volume *, VnodeClass);
 static void date(unsigned long, char *);
 
 /*
-  BEGIN_HTML
-  <a name="S_VolInfo"><strong>Dump out information (in ascii) about a volume </strong></a> 
-  END_HTML
+  S_VolInfo: Dump out information (in ascii) about a volume 
 */
 long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer dumpall, SE_Descriptor *formal_sed) {
     Volume *vp;
@@ -129,9 +127,8 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
     char *volkey = (char *)formal_volkey;
     
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolInfo(%u, %s, %d)", rpcid, volkey, dumpall);
+    VLog(9, "Entering S_VolInfo(%u, %s, %d)", rpcid, volkey, dumpall);
 
-    RVMLIB_BEGIN_TRANSACTION(restore)
     VInitVolUtil(volumeUtility);
 
     /* If user entered volume name, use it to find volid. */
@@ -142,10 +139,9 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
 	sscanf(volkey, "%X", &volid);
 	long index = HashLookup(volid);
 	if (index == -1) {
-	    LogMsg(0, VolDebugLevel, stdout, "Info: Invalid name or volid %s!", volkey);
-	    rvmlib_abort(-1);
-	status = -1;
-	goto exit;
+	    VLog(0, "Info: Invalid name or volid %s!", volkey);
+	    status = -1;
+	    goto exit;
 	}
     }
 
@@ -153,7 +149,6 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
     if (vp == NULL) {
 	SLog(0, "Vol-Info: VGetVolume returned error %d for %x", 
 	     error, volid);
-        rvmlib_abort(error);
 	status = error;
 	goto exit;
     }
@@ -186,8 +181,7 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
-	LogMsg(0, VolDebugLevel, stdout, "VolInfo: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
-	rvmlib_abort(VFAIL);
+	VLog(0, "VolInfo: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
 	status = VFAIL;
 	goto exit;
     }
@@ -196,18 +190,16 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
 		RPC2_ELIMIT) {
 	VLog(0, "VolInfo: CheckSideEffect failed with %s", 
 	     RPC2_ErrorMsg(rc));
-	rvmlib_abort(VFAIL);
     }
 
-    RVMLIB_END_TRANSACTION(flush, &(status));
  exit:
 
     VDisconnectFS();
 
     if (status)
-	LogMsg(0, VolDebugLevel, stdout, "SVolInfo failed with %d", status);
+	VLog(0, "SVolInfo failed with %d", status);
     else
-	LogMsg(9, VolDebugLevel, stdout, "SVolInfo returns %s", RPC2_ErrorMsg(rc));
+	VLog(9, "SVolInfo returns %s", RPC2_ErrorMsg(rc));
 
     return (status?status:rc);
 }

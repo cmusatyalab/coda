@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.8 1998/09/29 16:38:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.9 1998/10/09 21:57:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -413,8 +413,10 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 	    }
 
 	    *error = CloneVnode(rwVp, cloneVp, vnodeindex, rvlist, vnode, vclass);
-	    if (*error)
+	    if (*error) {
 		rvmlib_abort(VFAIL);
+		return ;
+	    }
 
 
 	} 

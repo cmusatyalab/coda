@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.20 1998/10/09 21:57:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.21 1998/10/21 22:06:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -186,7 +186,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     int UtilityOK = 0;	/* flag specifying whether the salvager may run as a volume utility */
     ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
 
-    LogMsg(9, VolDebugLevel, stdout, 
+    VLog(9, 
 	   "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
 	   rpcid, path, singleVolumeNumber, force, Debug, list);
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
@@ -197,7 +197,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     debug = Debug;
     ListInodeOption = list;
     
-    LogMsg(0, VolDebugLevel, stdout, 
+    VLog(0, 
 	   "Vice file system salvager, version %s.", 
 	   SalvageVersion);
 
@@ -211,7 +211,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
 
     rc = VInitVolUtil(UtilityOK? volumeUtility: salvager);
     if (rc != 0) {
-	LogMsg(0, VolDebugLevel, stdout, 
+	VLog(0, 
 	       "S_VolSalvage: VInitVolUtil failed with %d.", rc);
 	return(rc);
     }
@@ -246,7 +246,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     }
     release_locks(UtilityOK);
     zero_globals();	/* clean up state */
-    LogMsg(9, VolDebugLevel, stdout, "Leaving S_VolSalvage with rc = %d", rc);
+    VLog(9, "Leaving S_VolSalvage with rc = %d", rc);
     return(rc);
 }
 
@@ -277,11 +277,11 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
     struct VolumeSummary *vsp;
     int i,rc, camstatus;
 
-    LogMsg(9, VolDebugLevel, stdout, 
+    VLog(9, 
 	   "Entering SalvageFileSys (%s, %x)", path, singleVolumeNumber);
 
     if (stat(path,&status) == -1) {
-	LogMsg(0, VolDebugLevel, stdout, 
+	VLog(0, 
 	       "Couldn't find file system \"%s\", aborting", path);
 	return(VFAIL);
     }
@@ -308,10 +308,10 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	if ((rc = AskOffline(singleVolumeNumber)) != 0)
 	    return (rc);
     } else {
-	LogMsg(0, VolDebugLevel, stdout, 
+	VLog(0, 
 	       "Salvaging file system partition %s", path);
 	if (ForceSalvage)
-	    LogMsg(0, VolDebugLevel, stdout, 
+	    VLog(0, 
 		   "Force salvage of all volumes on this partition");
     }
 
@@ -325,31 +325,31 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	    return 0;
 	}
 	else {
-	    LogMsg(9, VolDebugLevel, stdout, 
+	    VLog(9, 
 		   "SalvageFileSys: GetInodeSummary failed with %d", rc);
 	    return rc;
 	}
     } else {
-	LogMsg(9, VolDebugLevel, stdout, "GetInodeSummary returns success");
+	VLog(9, "GetInodeSummary returns success");
     }
 
     /* open the summary file and unlink it for automatic cleanup */
     inodeFd = open(inodeListPath, O_RDONLY, 0);
     assert(unlink(inodeListPath) != -1);
     if (inodeFd == -1) {
-	LogMsg(0, VolDebugLevel, stdout, "Temporary file %s is missing...",
+	VLog(0, "Temporary file %s is missing...",
 		inodeListPath);
 	return(VNOVNODE);
     }
 
     /* get volume summaries */
     if ((rc = GetVolumeSummary(singleVolumeNumber)) != 0) {
-	LogMsg(0, VolDebugLevel, stdout, 
+	VLog(0, 
 	       "SalvageFileSys: GetVolumeSummary failed with %d", rc);
 	return(rc);
     }
     if (nVolumes > nVolumesInInodeFile)
-      LogMsg(0, VolDebugLevel, stdout, 
+      VLog(0, 
 	     "SFS: There are some volumes without any inodes in them");
 
 
@@ -359,27 +359,27 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
     for (i = 0, vsp = volumeSummary; i < nVolumesInInodeFile; i++){
 	VolumeId rwvid = inodeSummary[i].RWvolumeId;
 	while (nVolumes && (vsp->header.parent < rwvid)){
-	    LogMsg(0, VolDebugLevel, stdout,
+	    VLog(0,
 		   "SFS:No Inode summary for volume 0x%x; skipping full salvage",  
 		vsp->header.parent);
-	    LogMsg(0, VolDebugLevel, stdout, 
+	    VLog(0, 
 		   "SalvageFileSys: Therefore only resetting inUse flag");
 	    ClearROInUseBit(vsp);
 	    vsp->inSummary = NULL;
 	    nVolumes--;
 	    vsp++;
 	}
-	LogMsg(9, VolDebugLevel, stdout, 
+	VLog(9, 
 	       "SFS: nVolumes = %d, parent = 0x%x, id = 0x%x, rwvid = 0x%x", 
 	       nVolumes, vsp->header.parent, vsp->header.id, rwvid);
 	    
 	if (nVolumes && vsp->header.parent == rwvid){
-	    LogMsg(9, VolDebugLevel, stdout, 
+	    VLog(9, 
 		   "SFS: Found a volume for Inodesummary %d", i);
 	    VolumeSummary *startVsp = vsp;
 	    int SalVolCnt = 0;
 	    while (nVolumes && vsp->header.parent == rwvid){
-		LogMsg(9, VolDebugLevel, stdout, 
+		VLog(9, 
 		       "SFS: Setting Volume 0x%x inodesummary to %d",
 		    rwvid, i);
 		vsp->inSummary = &(inodeSummary[i]);
@@ -389,24 +389,22 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	    }
 	    rc = SalvageVolumeGroup(startVsp, SalVolCnt);
 	    if (rc) {
-		LogMsg(9, VolDebugLevel, stdout, 
-		       "SalvageVolumeGroup failed with rc = %d, ABORTING", rc);
+		VLog(9, "SalvageVolumeGroup failed with rc = %d, ABORTING", 
+		     rc);
 		rvmlib_abort(VFAIL);
+		return VFAIL;
 	    }
 	    continue;
 	} else {
-	    LogMsg(0, VolDebugLevel, stdout, 
-		   "*****No Volume corresponding to inodes with rwvid 0x%lx", 
-		rwvid);
+	    VLog(0, "No Volume corresponding for inodes with vid 0x%lx", 
+		 rwvid);
 	    CleanInodes(&(inodeSummary[i]));
 	}
     }
     while (nVolumes) {
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "SalvageFileSys:  unclaimed volume header file or no Inodes in volume %x",
+	VLog(0, "SalvageFileSys:  unclaimed volume header file or no Inodes in volume %x",
 	    vsp->header.id);
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "SalvageFileSys: Therefore only resetting inUse flag");
+	VLog(0, "SalvageFileSys: Therefore only resetting inUse flag");
 	ClearROInUseBit(vsp);
 	nVolumes--;
 	vsp++;
@@ -414,8 +412,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 
     RVMLIB_END_TRANSACTION(flush, &(camstatus));
     if (camstatus){
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "SFS: aborting salvage with status %d", camstatus);
+	VLog(0, "SFS: aborting salvage with status %d", camstatus);
 	return (camstatus);
     }
 
@@ -423,7 +420,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	if (stat(forcepath, &force) == 0)
 	    unlink("forcepath");
     }
-    LogMsg(0, VolDebugLevel, stdout, "SalvageFileSys completed on %s", path);
+    VLog(0, "SalvageFileSys completed on %s", path);
     return (0);
 }
 
@@ -432,23 +429,23 @@ static int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
     struct ViceInodeInfo *inodes=0;
     int	size;
     int haveRWvolume = !(readOnly(vsp));
-    LogMsg(9, VolDebugLevel, stdout, "Entering SalvageVolumeGroup(%#08x, %d)", 
+    VLog(9, "Entering SalvageVolumeGroup(%#08x, %d)", 
 	 vsp->header.parent, nVols);
-    LogMsg(9, VolDebugLevel, stdout, "ForceSalvage = %d", ForceSalvage);
+    VLog(9, "ForceSalvage = %d", ForceSalvage);
 
     /* if any of the volumes in this group are not to be salvaged
 	then just return */
     if (skipvolnums != NULL){
 	for (int i = 0; i < nVols; i++){
 	    if (InSkipVolumeList(vsp[i].header.parent, skipvolnums, nskipvols)){
-		LogMsg(9, VolDebugLevel, stdout, "Volume %x is not to be salvaged",
+		VLog(9, "Volume %x is not to be salvaged",
 		    vsp[i].header.parent);
 		return 0;
 	    }
 	}
     }
     if (!ForceSalvage && QuickCheck(vsp, nVols)){
-	LogMsg(9, VolDebugLevel, stdout, "SVG: Leaving SVG with rc = 0");
+	VLog(9, "SVG: Leaving SVG with rc = 0");
 	return 0;
     }
 
@@ -463,22 +460,22 @@ static int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
     assert(read(inodeFd,(char *)inodes,size) == size);
     
     for (int i = 0; i < nVols; i++){
-	LogMsg(9, VolDebugLevel, stdout, "SalvageVolumeGroup: Going to salvage Volume 0x%#08x header",
+	VLog(9, "SalvageVolumeGroup: Going to salvage Volume 0x%#08x header",
 	    vsp[i].header.id);
 
 	/* check volume head looks ok */
 	if (SalvageVolHead(&(vsp[i])) == -1){
-	    LogMsg(0, VolDebugLevel, stdout, "SalvageVolumeGroup: Bad Volume 0x%#08x");
+	    VLog(0, "SalvageVolumeGroup: Bad Volume 0x%#08x");
 	    if (i == 0)
 		haveRWvolume = 0;
 	    continue;
 	}
-	LogMsg(9, VolDebugLevel, stdout, "SVG: Going to salvage Volume 0x%#08x vnodes", vsp[i].header.id);
+	VLog(9, "SVG: Going to salvage Volume 0x%#08x vnodes", vsp[i].header.id);
 
 	/* make sure all small vnodes have a matching inode */
 	if (VnodeInodeCheck(!(readOnly(&vsp[i])), inodes, 
 			    vsp[i].inSummary->nInodes, &(vsp[i])) == -1) {
-	    LogMsg(0, VolDebugLevel, stdout, "SVG: Vnode/Inode correspondence not OK(0x%08x).... Aborting set", 
+	    VLog(0, "SVG: Vnode/Inode correspondence not OK(0x%08x).... Aborting set", 
 		vsp[i].header.parent);
 	    if (inodes)	free(inodes);
 	    return -1;
@@ -492,7 +489,7 @@ static int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
     FixInodeLinkcount(inodes, isp);
     free((char *)inodes);
     
-    LogMsg(9, VolDebugLevel, stdout, "Leaving SalvageVolumeGroup(0x%#08x, %d)", 
+    VLog(9, "Leaving SalvageVolumeGroup(0x%#08x, %d)", 
 	 vsp->header.parent, nVols);
     return 0;
 }
@@ -504,7 +501,7 @@ static int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
     register int i;
     Error ec;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering QuickCheck()");
+    VLog(9, "Entering QuickCheck()");
     for (i = 0; i<nVols; i++) {
 	VolumeDiskData volHeader;
 	if (!vsp)
@@ -516,14 +513,14 @@ static int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
 	&& volHeader.needsSalvaged == 0 && volHeader.destroyMe == 0) {
 	    if (volHeader.inUse == 1) {
 		volHeader.inUse = 0;
-		LogMsg(9, VolDebugLevel, stdout, "Setting volHeader.inUse = %d for volume %x",
+		VLog(9, "Setting volHeader.inUse = %d for volume %x",
 			volHeader.inUse, volHeader.id);
 		ReplaceVolDiskInfo(&ec, vsp->volindex, &volHeader);
 		if (ec != 0)
 		    return 0;	// write back failed
 	    }
 	    else {
-		LogMsg(9, VolDebugLevel, stdout, "QuickCheck: inUse == %d", volHeader.inUse);
+		VLog(9, "QuickCheck: inUse == %d", volHeader.inUse);
     }
 	}
 	else {
@@ -537,21 +534,21 @@ static int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
 static int SalvageVolHead(register struct VolumeSummary *vsp)
 {
     Error ec = 0;
-    LogMsg(9, VolDebugLevel, stdout, "Entering SalvageVolHead(rw = %#08x, vid = %#08x)",
+    VLog(9, "Entering SalvageVolHead(rw = %#08x, vid = %#08x)",
 	 vsp->header.parent, vsp->header.id);
     if (readOnly(vsp)){
 	ClearROInUseBit(vsp);
-	LogMsg(9, VolDebugLevel, stdout, "SalvageVolHead returning with rc = 0");
+	VLog(9, "SalvageVolHead returning with rc = 0");
 	return 0;
     }
     CheckVolData(&ec, vsp->volindex);
     if (ec) {
-	LogMsg(0, VolDebugLevel, stdout, "SalvageVolHead: bad VolumeData for volume %#08x",
+	VLog(0, "SalvageVolHead: bad VolumeData for volume %#08x",
 	    vsp->header.id);
-	LogMsg(0, VolDebugLevel, stdout, "SalvageVolHead: returning with rc = -1");
+	VLog(0, "SalvageVolHead: returning with rc = -1");
 	return -1;
     }
-    LogMsg(9, VolDebugLevel, stdout, "SalvageVolHead: returning with rc = 0");
+    VLog(9, "SalvageVolHead: returning with rc = 0");
     return 0;
 }
 
@@ -566,7 +563,7 @@ static int SalvageVolHead(register struct VolumeSummary *vsp)
 static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes, 
 			    struct VolumeSummary *vsp) {
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VnodeInodeCheck()");    
+    VLog(9, "Entering VnodeInodeCheck()");    
     VolumeId volumeNumber = vsp->header.id;
     char buf[SIZEOF_SMALLDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
@@ -593,12 +590,11 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		continue;
 	    }
 	    else if (vnode->inodeNumber == 0){
-		LogMsg(0, VolDebugLevel, stdout, 
-		       "SalvageIndex:  Vnode 0x%x has no inodeNumber", vnodeNumber);
+		VLog(0, "SalvageIndex:  Vnode 0x%x has no inodeNumber", 
+		     vnodeNumber);
 		assert(RW);
 		assert(vnode->dataVersion == 0); // inodenumber == 0 only after create 
-		LogMsg(0, VolDebugLevel, stdout, 
-		       "SalvageIndex: Creating an empty object for it");
+		VLog(0, "SalvageIndex: Creating an empty object for it");
 		vnode->inodeNumber = icreate(fileSysDevice, 0,
 					     vsp->header.id, vnodeNumber,
 					     vnode->uniquifier, 0);
@@ -626,7 +622,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		break;
 	    }
 	    else {
-		LogMsg(0, VolDebugLevel, stdout, "VICheck: Found old inode %d for vnode number %d", 
+		VLog(0, "VICheck: Found old inode %d for vnode number %d", 
 		    lip->InodeNumber, vnodeNumber);	
 		lip++;
 		lnInodes--;
@@ -642,8 +638,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		vd = vnode->dataVersion;
 		id = lip->InodeDataVersion;
 		if ((vu != iu) ||(vd != id)) {
-		    LogMsg(0, VolDebugLevel, stdout, 
-			   "SI: Vnode (0x%x.%x.%x) uniquifier(0x%x)/dataversion(%d) doesn't match with inode(0x%x/%d); marking BARREN",
+		    VLog(0, "SI: Vnode (0x%x.%x.%x) uniquifier(0x%x)/dataversion(%d) doesn't match with inode(0x%x/%d); marking BARREN",
 			vsp->header.id, vnodeNumber, vnode->uniquifier, vu, vd, iu, id);
 		    SetBarren(vnode->versionvector);
 		    assert(v_index.put(vnodeNumber,vnode->uniquifier,vnode) == 0);
@@ -652,9 +647,9 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		}
 	    }
 	    if (lip->ByteCount != vnode->length) {
-		LogMsg(0, VolDebugLevel, stdout, "Vnode (%x.%x.%x): length incorrect; can't happen!",
+		VLog(0, "Vnode (%x.%x.%x): length incorrect; can't happen!",
 		    vsp->header.id, vnodeNumber, vnode->uniquifier);
-		LogMsg(0, VolDebugLevel, stdout, "Marking as BARREN ");
+		VLog(0, "Marking as BARREN ");
 		SetBarren(vnode->versionvector);
 		assert(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
 		VolumeChanged = 1;
@@ -668,7 +663,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	    // create a new inode for readonly volumes
 	    // mark as BARREN for r/w volumes
 	    if (readOnly(vsp)) {
-		LogMsg(0, VolDebugLevel, stdout, 
+		VLog(0, 
 		       "Vnode 0x%x.%x in a ro volume has no inode - creating one\n",
 		       vnodeNumber, vnode->uniquifier);
 		vnode->inodeNumber = icreate(fileSysDevice, 0,
@@ -682,7 +677,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	    else {
 		if (!IsBarren(vnode->versionvector)){
 		    if (!debarrenize) {
-			LogMsg(0, VolDebugLevel, stdout, 
+			VLog(0, 
 			       "Vnode (%x.%x.%x) incorrect inode - marking as BARREN",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
 			
@@ -690,7 +685,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 			
 		    }
 		    else {
-			LogMsg(0, VolDebugLevel, stdout, 
+			VLog(0, 
 			       "Vnode 0x%x.%x.%x incorrect inode - Correcting\n",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
 			vnode->inodeNumber = icreate(fileSysDevice, 0,
@@ -706,7 +701,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		}
 		else {	// Barren vnode 
 		    if (debarrenize) {
-			LogMsg(0, VolDebugLevel, stdout, 
+			VLog(0, 
 			       "Vnode 0x%x.%x.%x is BARREN - Debarrenizing\n",
 			       vsp->header.id, vnodeNumber, vnode->uniquifier);
 			vnode->inodeNumber = icreate(fileSysDevice, 0,
@@ -745,12 +740,12 @@ static void CleanInodes(struct InodeSummary *isp)
     assert(lseek(inodeFd, isp->index * sizeof(struct ViceInodeInfo), 
 		  L_SET) != -1);
     assert(read(inodeFd, (char *)inodes, size) == size);
-    LogMsg(0, VolDebugLevel, stdout, 
+    VLog(0, 
 	   "Inodes found from destroyed volumes: scavenging.");    
     for(int i = 0; i < isp->nInodes; i++) {
 	ViceInodeInfo *ip = &inodes[i];
 	assert(ip->LinkCount > 0);
-	LogMsg(1, VolDebugLevel, stdout, 
+	VLog(1, 
 	       "Scavenging inode %u, size %u, p=(%lx,%lx,%lx,%lx)",
 	       ip->InodeNumber, ip->ByteCount,
 	       ip->VolumeNo, ip->VnodeNumber, ip->VnodeUniquifier, 
@@ -771,7 +766,7 @@ static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t unq)
     VnodeClass vclass;
     struct VnodeInfo *vip;
 
-    LogMsg(39, VolDebugLevel, stdout,  "Entering CheckVnodeNumber(%d)", vnodeNumber);
+    VLog(39,  "Entering CheckVnodeNumber(%d)", vnodeNumber);
     vclass = vnodeIdToClass(vnodeNumber);
     vip = &vnodeInfo[vclass];
     for(int i = 0; i < vip->nVnodes; i++){
@@ -808,16 +803,16 @@ static int JudgeEntry(struct DirEntry *de, void *data)
 
 	FID_NFid2Int(&de->fid, &vnodeNumber, &unique);
 
-	LogMsg(39, VolDebugLevel, stdout, 
+	VLog(39, 
 	       "Entering JudgeEntry(%s (%#x.%x.%x))", 
 	       name, dir->Vid, vnodeNumber, unique);
 
 	vnodeEssence = CheckVnodeNumber(vnodeNumber, unique);
 	if (vnodeEssence == NULL || vnodeEssence->unique != unique) {
-		LogMsg(0, VolDebugLevel, stdout, 
+		VLog(0, 
 	       "JE: directory vnode %#x.%x.%x: invalid entry %s; ",
 	       dir->Vid, dir->vnodeNumber, dir->unique, name);
-		LogMsg(0, VolDebugLevel, stdout, 
+		VLog(0, 
 	       "JE: child vnode not allocated or uniqfiers dont match; cannot happen");
 		assert(0);
 	}
@@ -825,7 +820,7 @@ static int JudgeEntry(struct DirEntry *de, void *data)
 		if (dir->vnodeNumber != vnodeNumber || dir->unique != unique) {
 			SLog(0, "JE:directory vnode %#x.%x.%x: bad '.' entry (was 0x%x.%x); ",
 			     dir->Vid, dir->vnodeNumber, dir->unique, vnodeNumber, unique);
-			LogMsg(0, VolDebugLevel, stdout, "JE: Bad '.' - cannot happen ");
+			VLog(0, "JE: Bad '.' - cannot happen ");
 			assert(0);
 		}
 		dir->haveDot = 1;
@@ -870,12 +865,11 @@ static int JudgeEntry(struct DirEntry *de, void *data)
 
 }
 
-static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp) {
-    LogMsg(9, SrvDebugLevel, stdout,
-	   "Entering MarkLogEntries....\n");
+static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp) 
+{
+    VLog(9, "Entering MarkLogEntries....\n");
     if (!loglist) {
-	LogMsg(0, SrvDebugLevel, stdout,
-	       "MarkLogEntries: loglist was NULL ... Not good\n");
+	VLog(0, "MarkLogEntries: loglist was NULL ... Not good\n");
 	assert(0);
     }
     assert(vsp->logbm);
@@ -883,8 +877,7 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp) {
     recle *r;
     while (r = (recle *)next()) {
 	if (vsp->logbm->Value(r->index))  {
-	    LogMsg(0, SrvDebugLevel, stdout,
-		   "MarkLogEntries: This index %d already set\n",
+	    VLog(0, "MarkLogEntries: This index %d already set\n",
 		   r->index);
 	    r->print();
 	    assert(0);
@@ -893,13 +886,11 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp) {
 	    vsp->logbm->SetIndex(r->index);
 	rec_dlist *childlist;
 	if (childlist = r->HasList()) {
-	    LogMsg(9, SrvDebugLevel, stdout, 
-		   "MarkLogEntries: Looking recursively.....\n");
+	    VLog(9, "MarkLogEntries: Looking recursively.....\n");
 	    MarkLogEntries(childlist, vsp);
 	}
     }
-    LogMsg(9, SrvDebugLevel, stdout,
-	   "Leaving MarkLogEntries....\n");
+    VLog(9, "Leaving MarkLogEntries....\n");
 }
 
 
@@ -912,7 +903,7 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
     vindex v_index(volid, vclass, fileSysDevice, vcp->diskSize);
     vindex_iterator vnext(v_index);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering DistilVnodeEssence(%d, %u)", vclass, volid);
+    VLog(9, "Entering DistilVnodeEssence(%d, %u)", vclass, volid);
 
     vip->nVnodes = v_index.vnodes();
 
@@ -1081,7 +1072,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     }
     
     if  ( doassert ) {
-	    LogMsg(0, VolDebugLevel, stdout, "Salvage vol 0x%x: fatal error.", vid);
+	    VLog(0, "Salvage vol 0x%x: fatal error.", vid);
 	    assert(0);
     }
     /* clean up state */
@@ -1099,12 +1090,12 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     
     /* Make sure the uniquifer is big enough */
     if (volHeader.uniquifier < (vsp->inSummary->maxUniquifier + 1)) {
-	    LogMsg(0, VolDebugLevel, stdout, "DCC: Warning - uniquifier is too low for volume (0x%x)", vid);
+	    VLog(0, "DCC: Warning - uniquifier is too low for volume (0x%x)", vid);
     }
     
     /* Turn off the inUse bit; the volume's been salvaged! */
     volHeader.inUse = 0;
-    LogMsg(9, VolDebugLevel, stdout, "DCC: setting volHeader.inUse = %d for volume 0x%#08x",
+    VLog(9, "DCC: setting volHeader.inUse = %d for volume 0x%#08x",
 	   volHeader.inUse, volHeader.id);
     volHeader.needsSalvaged = 0;
     volHeader.needsCallback = (VolumeChanged != 0);    
@@ -1112,12 +1103,12 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     VolumeChanged = 0;
     ReplaceVolDiskInfo(&ec, vsp->volindex, &volHeader);
     if (ec != 0){
-	    LogMsg(0, VolDebugLevel, stdout, "DCC: Couldnt write the volHeader for volume (%#08x)",
+	    VLog(0, "DCC: Couldnt write the volHeader for volume (%#08x)",
 		   vsp->header.id);
 	    return;    /* couldn't write out the volHeader */
     }
-    LogMsg(0, VolDebugLevel, stdout, "done:\t%d files/dirs,\t%d blocks", FilesInVolume, BlocksInVolume);
-    LogMsg(9, VolDebugLevel, stdout, "Leaving DCC()");
+    VLog(0, "done:\t%d files/dirs,\t%d blocks", FilesInVolume, BlocksInVolume);
+    VLog(9, "Leaving DCC()");
 }
 
 /* Zero inUse and needsSalvaged fields in VolumeDiskData */
@@ -1127,7 +1118,7 @@ static void ClearROInUseBit(struct VolumeSummary *summary)
     VolumeId headerVid = summary->header.id;
     VolumeDiskData volHeader;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering ClearROInUseBit()");
+    VLog(9, "Entering ClearROInUseBit()");
 
     ExtractVolDiskInfo(&ec, summary->volindex, &volHeader);
     assert(ec == 0);
@@ -1135,7 +1126,7 @@ static void ClearROInUseBit(struct VolumeSummary *summary)
     if (volHeader.destroyMe == DESTROY_ME)
 	return;
     volHeader.inUse = 0;
-    LogMsg(9, VolDebugLevel, stdout, "ClearROInUseBit: setting volHeader.inUse = %d for volume %x",
+    VLog(9, "ClearROInUseBit: setting volHeader.inUse = %d for volume %x",
 		volHeader.inUse, volHeader.id);
     volHeader.needsSalvaged = 0;
     volHeader.dontSalvage = DONT_SALVAGE;
@@ -1150,7 +1141,7 @@ static int AskOffline(VolumeId volumeId)
     ProgramType *pt, tmp;
     int rc = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering AskOffline(%x)", volumeId);
+    VLog(9, "Entering AskOffline(%x)", volumeId);
 
     /* Note:  we're depending upon file server to put the volumes online
        after salvaging */
@@ -1161,8 +1152,8 @@ static int AskOffline(VolumeId volumeId)
     rc = FSYNC_askfs(volumeId, FSYNC_OFF, FSYNC_SALVAGE);
     *pt = tmp;
     if (rc == FSYNC_DENIED) {
-	LogMsg(0, VolDebugLevel, stdout, "AskOffline:  file server denied offline request; a general salvage is required.");
-        LogMsg(0, VolDebugLevel, stdout, "Salvage aborted");
+	VLog(0, "AskOffline:  file server denied offline request; a general salvage is required.");
+        VLog(0, "Salvage aborted");
 	return(VNOVOL);
     }
     return (0);
@@ -1174,7 +1165,7 @@ static int AskOnline(VolumeId volumeId)
     ProgramType *pt, tmp;
     int rc = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering AskOnline(%x)", volumeId);
+    VLog(9, "Entering AskOnline(%x)", volumeId);
 
     /* Note:  we're depending upon file server to put the volumes online
        after salvaging */
@@ -1185,7 +1176,7 @@ static int AskOnline(VolumeId volumeId)
     rc = FSYNC_askfs(volumeId, FSYNC_ON, 0);
     *pt = tmp;
     if (rc == FSYNC_DENIED) {
-	LogMsg(0, VolDebugLevel, stdout, "AskOnline:  file server denied online request; a general salvage is required.");
+	VLog(0, "AskOnline:  file server denied online request; a general salvage is required.");
     }
     return (0);
 }
@@ -1196,7 +1187,7 @@ static int CopyInode(Device device, Inode inode1, Inode inode2)
     char buf[4096];
     register int fd1, fd2, n;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering CopyInode()");
+    VLog(9, "Entering CopyInode()");
 
     fd1 = iopen(device, inode1, O_RDONLY);
     fd2 = iopen(device, inode2, O_WRONLY);
@@ -1217,7 +1208,7 @@ static void PrintInodeList() {
     struct stat status;
     register nInodes;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering PrintInodeList()");
+    VLog(9, "Entering PrintInodeList()");
 
     assert(fstat(inodeFd, &status) == 0);
     buf = (struct ViceInodeInfo *) malloc(status.st_size);
@@ -1225,7 +1216,7 @@ static void PrintInodeList() {
     nInodes = status.st_size / sizeof(struct ViceInodeInfo);
     assert(read(inodeFd, (char *)buf, status.st_size) == status.st_size);
     for(ip = buf; nInodes--; ip++) {
-	LogMsg(0, VolDebugLevel, stdout, 
+	VLog(0, 
 	       "Inode:%u, linkCount=%d, size=%u, p=(%lx,%lx,%lx,%lx)",
 	       ip->InodeNumber, ip->LinkCount, ip->ByteCount,
 	       ip->VolumeNo, ip->VnodeNumber, ip->VnodeUniquifier, 
@@ -1244,20 +1235,20 @@ static void release_locks(int volUtil) {
     fslock = open("/vice/vol/fs.lock", O_CREAT|O_RDWR, 0666);
     assert(fslock >= 0);
     if (flock(fslock, LOCK_UN) != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "release_locks: unable to release file server lock");
+	VLog(0, "release_locks: unable to release file server lock");
     }
     else {
-	LogMsg(9, VolDebugLevel, stdout, "release_locks: released file server lock");
+	VLog(9, "release_locks: released file server lock");
     }
     close(fslock);
 
     fslock = open ("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
     assert(fslock >= 0);
     if (flock(fslock, LOCK_UN) != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "release_locks: unable to release volume utility lock");
+	VLog(0, "release_locks: unable to release volume utility lock");
     }
     else {
-	LogMsg(9, VolDebugLevel, stdout, "release_locks: released volume utility lock");
+	VLog(9, "release_locks: released volume utility lock");
     }
     close(fslock);
 }
@@ -1283,9 +1274,9 @@ static void GetSkipVolumeNumbers() {
     } /* drop scope for int i above; to avoid identifier clash */
 
 	fclose(skipsalv);
-	LogMsg(1, VolDebugLevel, stdout, "The Volume numbers to be skipped salvaging are :");
+	VLog(1, "The Volume numbers to be skipped salvaging are :");
 	for (int i = 0; i < nskipvols; i++){
-	    LogMsg(1, VolDebugLevel, stdout, "Volume %x", skipvolnums[i]);
+	    VLog(1, "Volume %x", skipvolnums[i]);
 	}
     }
 }
@@ -1309,18 +1300,18 @@ static void SanityCheckFreeLists() {
     struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
     bzero((void *)zerovn, SIZEOF_LARGEDISKVNODE);
     
-    LogMsg(0, VolDebugLevel, stdout, "SanityCheckFreeLists: Checking RVM Vnode Free lists.");
+    VLog(0, "SanityCheckFreeLists: Checking RVM Vnode Free lists.");
     for (i = 0; i < SRV_RVM(SmallVnodeIndex); i++) {
 	if (bcmp((const void *)SRV_RVM(SmallVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_SMALLDISKVNODE) != 0) {
-	    LogMsg(0, VolDebugLevel, stdout,"Small Free Vnode at index %d not zero!", i);
+	    VLog(0,"Small Free Vnode at index %d not zero!", i);
 	    assert(0);
 	}
 	
 	for (j = i + 1; j < SRV_RVM(SmallVnodeIndex); j++)
 	    if (SRV_RVM(SmallVnodeFreeList[i]) ==
 		SRV_RVM(SmallVnodeFreeList[j])) {
-		LogMsg(0, VolDebugLevel, stdout, "Vdo 0x%x appears twice (%d and %d) in smallfreelist!",
+		VLog(0, "Vdo 0x%x appears twice (%d and %d) in smallfreelist!",
 		       SRV_RVM(SmallVnodeFreeList[i]), i, j);
 		assert(0);
 	    }
@@ -1329,14 +1320,14 @@ static void SanityCheckFreeLists() {
     for (i = 0; i < SRV_RVM(LargeVnodeIndex); i++) {
 	if (bcmp((const void *)SRV_RVM(LargeVnodeFreeList[i]), (const void *) zerovn,
 		 SIZEOF_LARGEDISKVNODE) != 0) {
-	    LogMsg(0, VolDebugLevel, stdout, "Large Free Vnode at index %d not zero!", i);
+	    VLog(0, "Large Free Vnode at index %d not zero!", i);
 	    assert(0);
 	}
 	
 	for (j = i + 1; j < SRV_RVM(LargeVnodeIndex); j++)
 	    if (SRV_RVM(LargeVnodeFreeList[i]) ==
 		SRV_RVM(LargeVnodeFreeList[j])) {
-		LogMsg(0, VolDebugLevel, stdout, "Vdo 0x%x appears twice (%d and %d) in largefreelist!",
+		VLog(0, "Vdo 0x%x appears twice (%d and %d) in largefreelist!",
 		       SRV_RVM(LargeVnodeFreeList[i]), i, j);
 		assert(0);
 	    }		    
@@ -1349,7 +1340,7 @@ static void SanityCheckFreeLists() {
  * the volume shouldn't be destroyed if it's in the skipsalvage file.
  */
 static int DestroyBadVolumes() {
-    LogMsg(0, VolDebugLevel, stdout, "DestroyBadVolumes: Checking for destroyed volumes.");
+    VLog(0, "DestroyBadVolumes: Checking for destroyed volumes.");
     for (int i = 0; i <= MAXVOLS; i++) {
 	struct VolumeHeader header;
 
@@ -1362,13 +1353,13 @@ static int DestroyBadVolumes() {
 	    continue; 	/* corresponds to purged volume */
 	
 	if (SRV_RVM(VolumeList[i].data.volumeInfo)->destroyMe==DESTROY_ME){
-	    LogMsg(0, VolDebugLevel, stdout, "Salvage: Removing destroyed volume %x", header.id);
+	    VLog(0, "Salvage: Removing destroyed volume %x", header.id);
 	    
 	    /* Need to get device */
 	    struct stat status;
 	    char *part = SRV_RVM(VolumeList[i].data.volumeInfo)->partition;
 	    if (stat(part, &status) == -1) {
-		LogMsg(0, VolDebugLevel, stdout, "Couldn't find partition \"%s\" for destroy", part);
+		VLog(0, "Couldn't find partition \"%s\" for destroy", part);
 		return(VFAIL);
 	    }
 	    /* Remove the volume */
@@ -1386,7 +1377,7 @@ static void FixInodeLinkcount(struct ViceInodeInfo *inodes,
 	static TraceBadLinkCounts = 25;
 	if (ip->LinkCount != 0 && TraceBadLinkCounts) {
 	    TraceBadLinkCounts--; 
-	    LogMsg(0, VolDebugLevel, stdout, 
+	    VLog(0, 
 		   "Link count incorrect by %d; inode %u, size %u, p=(%lx,%lx,%lx,%lx)",
 		   ip->LinkCount, ip->InodeNumber, ip->ByteCount,
 		   ip->VolumeNo, ip->VnodeNumber, ip->VnodeUniquifier, 
@@ -1434,14 +1425,14 @@ static void CountVolumeInodes(register struct ViceInodeInfo *ip,
     register n, nSpecial;
     register Unique_t maxunique;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering CountVolumeInodes()");
+    VLog(9, "Entering CountVolumeInodes()");
 
     n = nSpecial = 0;
     maxunique = 0;
     while (maxInodes-- && volume == ip->VolumeNo) {
 	n++;
 	if (ip->VnodeNumber == INODESPECIAL) {
-	    LogMsg(0, VolDebugLevel, stdout, "CountVolumeInodes: Bogus specialinode; can't happen");
+	    VLog(0, "CountVolumeInodes: Bogus specialinode; can't happen");
 	    assert(0);
 	}
 	else {
@@ -1461,7 +1452,7 @@ int OnlyOneVolume(struct ViceInodeInfo *inodeinfo,
 {
 
     if (inodeinfo->VnodeNumber == INODESPECIAL) {
-	LogMsg(0, VolDebugLevel, stdout, "OnlyOneVolume: tripped over INODESPECIAL- can't happen!");
+	VLog(0, "OnlyOneVolume: tripped over INODESPECIAL- can't happen!");
 	assert(FALSE);
     }
     return (inodeinfo->VolumeNo == singleVolumeNumber);
@@ -1474,7 +1465,7 @@ static int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
     int i;
     if ( (p1->VnodeNumber == INODESPECIAL) ||
 	 (p2->VnodeNumber == INODESPECIAL)) {
-	LogMsg(0, VolDebugLevel, stdout, "CompareInodes: found special inode! Aborting");
+	VLog(0, "CompareInodes: found special inode! Aborting");
 	assert(0);
 	return -1;
     }
@@ -1518,13 +1509,13 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
     struct DiskPartition *dp = DP_Get(fspath);
 
     if ( dp == NULL ) {
-	LogMsg(0, VolDebugLevel, stdout, 
+	VLog(0, 
 	       "Cannot find partition %s\n",
 	       path);
 	return VFAIL;
     }
 
-    LogMsg(9, VolDebugLevel, stdout, 
+    VLog(9, 
 	   "Entering GetInodeSummary (%s, %x)", path, singleVolumeNumber);
 
     if(singleVolumeNumber)
@@ -1535,23 +1526,23 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
 				     singleVolumeNumber);
 
     if (rc == 0) {
-	LogMsg(9, VolDebugLevel, stdout, 
+	VLog(9, 
 	       "ListViceInodes returns success");
     }
 
 
     if(rc == -1) {
-	LogMsg(0, VolDebugLevel, stdout, "Unable to get inodes for \"%s\"; not salvaged", dev);
+	VLog(0, "Unable to get inodes for \"%s\"; not salvaged", dev);
 	return(VFAIL);
     }
     inodeFd = open(path, O_RDWR, 0);
     if (inodeFd == -1 || fstat(inodeFd, &status) == -1) {
-	LogMsg(0, VolDebugLevel, stdout, "No inode description file for \"%s\"; not salvaged", dev);
+	VLog(0, "No inode description file for \"%s\"; not salvaged", dev);
 	return(VFAIL);
     }
     summaryFd = open("/tmp/salvage.temp", O_RDWR|O_CREAT|O_TRUNC, 0600);
     if (summaryFd == -1) {
-	LogMsg(0, VolDebugLevel, stdout, "GetInodeSummary: Unable to create inode summary file");
+	VLog(0, "GetInodeSummary: Unable to create inode summary file");
 	return(VFAIL);
     }
 
@@ -1561,29 +1552,29 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
 
     ip = tmp_ip = (struct ViceInodeInfo *) malloc(status.st_size);
     if (ip == NULL) {
-	LogMsg(0, VolDebugLevel, stdout, "Unable to allocate enough space to read inode table; %s not salvaged", dev);
+	VLog(0, "Unable to allocate enough space to read inode table; %s not salvaged", dev);
 	return(VFAIL);
     }
     if (read(inodeFd, (char *)ip, status.st_size) != status.st_size) {
-	LogMsg(0, VolDebugLevel, stdout, "Unable to read inode table; %s not salvaged", dev);
+	VLog(0, "Unable to read inode table; %s not salvaged", dev);
 	return(VFAIL);
     }
-    LogMsg(9, VolDebugLevel, stdout, "entering qsort(0x%x, %d, %d, 0x%x)", ip, nInodes,
+    VLog(9, "entering qsort(0x%x, %d, %d, 0x%x)", ip, nInodes,
 		    sizeof(struct ViceInodeInfo), CompareInodes);
     qsort((void *)ip, nInodes, sizeof(struct ViceInodeInfo), 
 	  (int (*)(const void *, const void *))CompareInodes);
-    LogMsg(9, VolDebugLevel, stdout, "returned from qsort");
+    VLog(9, "returned from qsort");
     if (lseek(inodeFd,0,L_SET) == -1 ||
 	write(inodeFd, (char *)ip, status.st_size) != status.st_size) {
-	LogMsg(0, VolDebugLevel, stdout, "Unable to rewrite inode table; %s not salvaged", dev);
+	VLog(0, "Unable to rewrite inode table; %s not salvaged", dev);
 	return(VFAIL);
     }
     summary.index = 0;	    /* beginning index for each volume */
     while (nInodes) {
 	CountVolumeInodes(ip, nInodes, &summary);
-	LogMsg(9, VolDebugLevel, stdout, "returned from CountVolumeInodes");
+	VLog(9, "returned from CountVolumeInodes");
 	if (fwrite((char *)&summary, sizeof (summary), 1, summaryFile) != 1) {
-	    LogMsg(0, VolDebugLevel, stdout, "Difficulty writing summary file; %s not salvaged",dev);
+	    VLog(0, "Difficulty writing summary file; %s not salvaged",dev);
 	    return(VNOVNODE);
 	}
 	summary.index += (summary.nInodes);
@@ -1594,7 +1585,7 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
 
     assert(fstat(summaryFd,&status) != -1);
     /* store inode info in global array */
-    LogMsg(9, VolDebugLevel, stdout, "about to malloc %d bytes for inodeSummary", status.st_size);
+    VLog(9, "about to malloc %d bytes for inodeSummary", status.st_size);
     inodeSummary = (struct InodeSummary *) malloc(status.st_size);
     assert(inodeSummary != NULL);
     assert(lseek(summaryFd, 0, L_SET) != -1);
@@ -1604,7 +1595,7 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
     close(inodeFd);
     unlink("/tmp/salvage.temp");
     free(tmp_ip);
-    LogMsg(9, VolDebugLevel, stdout, "Leaving GetInodeSummary()");
+    VLog(9, "Leaving GetInodeSummary()");
     return (0);
 }
 
@@ -1615,7 +1606,7 @@ static int CompareVolumes(register struct VolumeSummary *p1,
 				register struct VolumeSummary *p2)
 {
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering CompareVolumes()");
+    VLog(9, "Entering CompareVolumes()");
 
     if (p1->header.parent != p2->header.parent)
 	return p1->header.parent < p2->header.parent? -1: 1;
@@ -1640,19 +1631,19 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber) {
     int rc = 0;
     int i;
 
-    LogMsg(9, VolDebugLevel, stdout, 
+    VLog(9, 
 	   "Entering GetVolumeSummary(%x)", singleVolumeNumber);
 
     /* Make sure the disk partition is readable */
     if ( access(fileSysPath, R_OK) != 0  ) {
-	LogMsg(0, VolDebugLevel, stdout, 
+	VLog(0, 
 	       "Can't read directory %s; not salvaged", fileSysPath);
 	return(VNOVNODE);
     }
 
     /* iterate through all the volumes on this partition, and try to */
     /* match with the desired volumeid */
-    LogMsg(39, VolDebugLevel, stdout, 
+    VLog(39, 
 	   "GetVolSummary: filesyspath = %s nVolumes = %d", 
 	   fileSysPath, nVolumes);
     for (i = 0; i <= MAXVOLS; i++) {
@@ -1675,18 +1666,18 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber) {
 	    if (vsp->header.id == SRV_RVM(VolumeList[j]).header.id) assert(0);
 	
 	/* reject volumes from other partitions */
-	LogMsg(39, VolDebugLevel, stdout, 
+	VLog(39, 
 	       "Partition for vol-index %d, (id 0x%x) is (%s)",
 	       i, vsp->header.id, 
 	       (SRV_RVM(VolumeList[i]).data.volumeInfo)->partition);
 	GetVolPartition(&ec, vsp->header.id, i, thispartition);
-	LogMsg(39, VolDebugLevel, stdout, "GetVolSummary: For Volume id 0x%x GetVolPartition returns %s",
+	VLog(39, "GetVolSummary: For Volume id 0x%x GetVolPartition returns %s",
 	    vsp->header.id, thispartition);
 	if ((ec != 0) || (strcmp(thispartition, fileSysPath) != 0))
 	    continue;	    /* bogus volume */
 
 	/* Make sure volume is in the volid hashtable so SalvageInodes works */
-	LogMsg(9, VolDebugLevel, stdout, "GetVolSummary: inserting volume %x into hashtable for index %d",
+	VLog(9, "GetVolSummary: inserting volume %x into hashtable for index %d",
 	    vsp->header.id, i);
 	HashInsert(vsp->header.id, i);
 
@@ -1701,7 +1692,7 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber) {
 	/* Is this the specific volume we're looking for? */
 	if (singleVolumeNumber && vsp->header.id == singleVolumeNumber) {
 	    if (vsp->header.type == readonlyVolume) {	// skip readonly volumes
-		LogMsg(0, VolDebugLevel, stdout, "%d is a read-only volume; not salvaged", singleVolumeNumber);
+		VLog(0, "%d is a read-only volume; not salvaged", singleVolumeNumber);
 		return(VREADONLY);
 	    }
 
@@ -1709,7 +1700,7 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber) {
 		vsp->volindex = i;			// set the volume index
 		rc = AskOffline(vsp->header.id);	// have the fileserver take it offline
 		if (rc) {
-		    LogMsg(0, VolDebugLevel, stdout, "GetVolumeSummary: AskOffline failed, returning");
+		    VLog(0, "GetVolumeSummary: AskOffline failed, returning");
 		    return(rc);				/* we can't have it; return */
 		}
 		nVolumes = 1;		// in case we need this set
@@ -1719,7 +1710,7 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber) {
 	    if (!singleVolumeNumber) {
 		vsp->volindex = i;			// set the volume index
 		if (nVolumes++ > MAXVOLS_PER_PARTITION) {
-		    LogMsg(0, VolDebugLevel, stdout, 
+		    VLog(0, 
 			"More than %d volumes in partition %s; partition not salvaged\n", 
 			MAXVOLS_PER_PARTITION);
 		    return (VFAIL);
@@ -1728,7 +1719,7 @@ static int GetVolumeSummary(VolumeId singleVolumeNumber) {
 	}
     }
 
-    LogMsg(9, VolDebugLevel, stdout, "GetVolumeSummary: entering qsort for %d volumes", nVolumes);
+    VLog(9, "GetVolumeSummary: entering qsort for %d volumes", nVolumes);
     qsort((char *)volumeSummary, nVolumes, sizeof(struct VolumeSummary),
 	  (int (*)(const void *, const void *)) CompareVolumes);
     return (0);

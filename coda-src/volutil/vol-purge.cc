@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-purge.cc,v 4.3 1998/04/14 21:00:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-purge.cc,v 4.4 1998/08/31 12:23:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -89,11 +89,11 @@ extern "C" {
 
 
 /*
-  BEGIN_HTML
-  <a name="S_VolPurge"><strong>Purge the requested volume</strong></a> 
-  END_HTML
+  S_VolPurge: Purge the requested volume
 */
-long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String formal_purgeName) {
+long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, 
+		    RPC2_String formal_purgeName) 
+{
     Error error = 0;
     Error error2 = 0;
     Volume *vp = NULL;
@@ -106,54 +106,51 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String
     char *purgeName = (char *)formal_purgeName;
     VolumeId purgeId = (VolumeId)formal_purgeId;
 
-    LogMsg(69, VolDebugLevel, stdout, "Checking lwp rock in S_VolPurge");
+    VLog(69, "Checking lwp rock in S_VolPurge");
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolPurge: purgeId = %x, purgeName = %s",
+    VLog(9, "Entering S_VolPurge: purgeId = %x, purgeName = %s",
 					    purgeId, purgeName);
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolPurge: returned %ld from VInitVolUtil; aborting", rc);
+	VLog(0, "S_VolPurge: returned %ld from VInitVolUtil; aborting", rc);
 	return rc;
     }
 
-    /* I think VAttachVolume needs a transaction, not sure if VGetVolume does. */
-    RVMLIB_BEGIN_TRANSACTION(restore)
-    
     vp = VGetVolume(&error, purgeId);	/* Does this need a transaction? */
     if (error){
 	if (error == VOFFLINE){
-	    LogMsg(9, VolDebugLevel, stdout, "VolPurge: Volume %x was already offline", V_id(vp));
+	    VLog(9, "VolPurge: Volume %x was already offline", V_id(vp));
 	    AlreadyOffline = 1;
-	}
-	else if (error == VNOVOL){
+	} else if (error == VNOVOL){
 	    /* volume is not attached or is shutting down */
 	    vp = VAttachVolume(&error2, purgeId, V_UPDATE);
 	    if (error2) {
-		LogMsg(0, VolDebugLevel, stdout, "Unable to attach volume %x; not purged", purgeId);
-		rvmlib_abort(VNOVOL);
+		VLog(0, "Unable to attach volume %x; not purged", purgeId);
+		rc = VNOVOL;
 	    }
 	    AlreadyOffline = 1;
-	}
-	else {
+	} else {
 	    if (vp)
 		VPutVolume(vp);
-	    LogMsg(0, VolDebugLevel, stdout, "VolPurge: GetVolume %x  returns error %d", purgeId, error);
-	    rvmlib_abort(error);
+	    VLog(0, "VolPurge: GetVolume %x  returns error %d", purgeId, error);
+	    rc = error;
+	    goto exit;
 	}
     }
 
     assert(vp != NULL);
     if (strcmp(V_name(vp), purgeName) != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "The name you specified (%s) does not match the internal name (%s) for volume %x; not purged",
+	VLog(0, "The name you specified (%s) does not match the internal name (%s) for volume %x; not purged",
 	   (int) purgeName, (int) V_name(vp), purgeId);
 	VPutVolume(vp);
-	rvmlib_abort(VNOVOL);
+	status = VNOVOL;
+	goto exit;
     }
 
     if (!AlreadyOffline){
 	/* force the volume offline */
-	LogMsg(9, VolDebugLevel, stdout, "VolPurge: Forcing Volume %x offline", V_id(vp));
+	VLog(9, "VolPurge: Forcing Volume %x offline", V_id(vp));
 	*pt = fileServer;
 	VOffline(vp, "Volume being Purged");
 	*pt = volumeUtility;
@@ -161,9 +158,8 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String
 	assert(error == VOFFLINE);
     }
 
-    RVMLIB_END_TRANSACTION(flush, &(status));
     if (status != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolPurge: Transaction aborted!");
+	VLog(0, "S_VolPurge: Transaction aborted!");
 	VDisconnectFS();
 	return status;
     }
@@ -177,7 +173,8 @@ long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String
     VListVolumes();			/* Create updated /vice/vol/VolumeList */
 
     PrintVolumesInHashTable();
+ exit:
     VDisconnectFS();
-    LogMsg(0, VolDebugLevel, stdout, "purge: volume %x (%s) purged", purgeId, purgeName);
+    VLog(0, "purge: volume %x (%s) purged", purgeId, purgeName);
     return(status?status:rc);
 }
