@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/Makefile.in,v 4.3 1997/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -38,42 +38,12 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-EXECUTABLES = cmon codacon cfs hoard spy replay
-CBINS       = $(EXECUTABLES)
+# example test program
 
-RP2FILES    = $(VICE_RPC2)
-RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
+#OBJECTS = test.o
+#TESTS = test
 
-CMON_LIBS   =  $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBOLDLWP) $(LIBCURSES) $(LIBCOMPAT)
-CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL)
-HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) 
-
-CXXFLAGS := $(CXXFLAGS) -UVENUS
-
-cmon: cmon.o $(CMON_LIBS)
-	$(CXX) $(LIBFLAGS) cmon.o $(CMON_LIBS) -ltermcap -o cmon
-
-codacon:    codacon.o
-	$(CXX) $(LIBFLAGS) -o codacon codacon.o
-
-cfs:  cfs.o $(CFS_LIBS)
-	$(CXX) $(LIBFLAGS) cfs.o $(CFS_LIBS) -o cfs
-
-hoard: hoard.o $(HOARD_LIBS)
-	$(CXX) $(LIBFLAGS) hoard.o $(HOARD_LIBS) -o hoard
-
-spy: spy.o
-	$(CXX) $(LIBFLAGS) spy.o -o spy
-
-replay: replay.o
-	$(CXX) $(LIBFLAGS) replay.o -o replay
-
-# up is broken on the pmax because a.out.h seems incomplete
-# fix if up is really needed (Satya 3/23/92)
-up: up.o
-	$(CXX) $(LIBFLAGS)  up.o -o up
-
-vice.h vice.client.c: $(VICE_RPC2) $(VCRCOMMON_RPC2)
-cmon.o: $(INCLDIR)/vice.rpc2
+#test: test.o
+#	$(CC) -o test test.o -L../libutil.a
 
 include $(MAKDIR)/Makerules
