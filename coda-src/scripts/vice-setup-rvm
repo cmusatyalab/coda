@@ -50,9 +50,9 @@ until [ x$logsize != x ]; do
     echo
    echo  "The log size must be smaller than you log partition."
    echo  "We recommend not more than 30M log size, and 2M is a good choice."
-    echo
    echo -n "What is your log size? (enter as e.g. '12M') "
    read logsize
+    echo
 done
 
 until [ x$data != x ]; do
@@ -63,12 +63,13 @@ done
 until [ x$datasize != x ]; do
     echo
    echo  "The data size must be approx 4% of you server file space."
-   echo  "We have templates for servers of approx: 500M, 1G, 2.2G and 3.3G"
+   echo  "We have templates for servers of approx: 500M, 1G, 2.2G, 3.3G, 8G"
    echo  "(you can store less, but not more on such servers)."
-   echo  "The corresponding data sizes are  22M, 44M, 90M, 130M." 
+   echo  "The corresponding data sizes are  22M, 44M, 90M, 130M, 315M." 
+   echo  "(use 330M only on very fast machines)"
    echo  "Pick one of the defaults, otherwise I will bail out"
     echo
-   echo -n "What is the size of you data partition (or file) [22M,44M, 90M, 130M]: "
+   echo -n "What is the size of you data partition (or file) [22M,44M, 90M, 130M, 315M]: "
     read datasize 
 done
 
@@ -104,39 +105,49 @@ echo LOG file has been initialized!
 
 echo
 
-case `uname -sr` in
-	"NetBSD 1.2" )
-		rvmstart=0x20000000 ;;
-	"NetBSD 1.3" )
-		rvmstart=0x50000000 ;;
-	"FreeBSD 2.2.5-RELEASE" )
-		rvmstart=0x50000000 ;;
-	*)
-		rvmstart=0x20000000 ;;
-esac
+
+if [  "`uname -sr`" = "NetBSD 1.2" ]; then
+		rvmstart=0x20000000 
+elif [ "`uname -sr`" = "NetBSD 1.3" ]; then
+		rvmstart=0x50000000 
+elif [ "`uname -sr`" = "FreeBSD 2.2.5-RELEASE" ]; then
+		rvmstart=0x50000000 
+elif [ "`uname -s`" = "Linux" ]; then
+		rvmstart=0x20000000
+fi
 
 case $datasize in 
     22M )
-       parms="20480000 $rvmstart 0x1000000 0x100000 80 32"
        dsparm=20480000
+       heapsize=0x1200000
        ;;
      44M )
-       parms="39690240 $rvmstart 0x1000000 0x100000 80 32"
        dsparm=39690240
+       heapsize=0x2400000
         ;;
      90M )
-       parms="79380480 $rvmstart 0x1000000 0x100000 80 32"
        dsparm=79380480
+       heapsize=0x4a00000
         ;;
      130M )
-       parms="119070700 $rvmstart 0x1000000 0x100000 80 32"
        dsparm=119070700
+       heapsize=0x7000000
+        ;;
+     315M )
+       dsparm=330301440
+       heapsize=0x13000000
         ;;
      * )
         echo 'Read rdsinit(8) use rdsinit to configure your data area.'
 	exit 
         ;; 
 esac
+
+staticsize=0x100000
+nlists=80
+chunk=32
+
+parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
 
 echo "-rvm $log $data $dsparm" >> /vice/srv.conf
 

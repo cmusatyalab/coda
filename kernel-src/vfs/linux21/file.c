@@ -7,6 +7,8 @@
  * to the Coda project. Contact Peter Braam <coda@cs.cmu.edu>.
  */
 
+
+
 #include <linux/types.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
@@ -25,7 +27,7 @@
 #include <linux/coda_cache.h>
 
 /* file operations */
-static int coda_readpage(struct dentry * dentry, struct page * page);
+static int coda_readpage(struct file *file, struct page * page);
 static ssize_t coda_file_read(struct file *f, char *buf, size_t count, loff_t *off);
 static ssize_t coda_file_write(struct file *f, const char *buf, size_t count, loff_t *off);
 static int coda_file_mmap(struct file * file, struct vm_area_struct * vma);
@@ -74,8 +76,9 @@ struct file_operations coda_file_operations = {
 };
 
 /*  File file operations */
-static int coda_readpage(struct dentry *de, struct page * page)
+static int coda_readpage(struct file * file, struct page * page)
 {
+	struct dentry *de = file->f_dentry;
 	struct inode *inode = de->d_inode;
 	struct dentry cont_dentry;
         struct inode *cont_inode;

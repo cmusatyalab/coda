@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.14 1998/01/10 18:39:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.15 1998/03/06 20:20:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -341,8 +341,14 @@ extern long FidToNodeid(ViceFid *);
 
 /* vnodes in BSD44 don't seem to store effective user & group ids.  So just
    coerce everything to uid */
+
+#ifdef __linux__
+#define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
+#define	CRTORUID(cred)	((vuid_t)((cred).cr_fsuid))
+#else
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
+#endif
 
 #define	FTTOVT(ft)	((ft) == (int)File ? C_VREG :\
 			 (ft) == (int)Directory ? C_VDIR :\
