@@ -61,6 +61,8 @@ extern "C" {
 #include <sys/utsname.h>
 #endif
 
+#include <sys/wait.h>
+
 #ifdef sun
 #include <sys/mnttab.h>
 #include <sys/filio.h>
@@ -268,9 +270,9 @@ void VFSMount()
 {
     /* Linux (and NetBSD) Coda filesystems are mounted through forking since
      * they need venus.
-     * XXX we could merge some of the duplicated code between BSD and Linux
-     * XXX eliminate zombie? */ 
-#ifdef __BSD44__
+     */
+
+#ifdef __BSD44__ /* BSD specific preamble */
     /* Silently unmount the root node in case an earlier venus exited without
      * successfully unmounting. */
     unmount(venusRoot,0);
@@ -296,105 +298,112 @@ void VFSMount()
 	exit(-1);
     }
     rootnodeid = tstat.st_ino;
+#endif /* __BSD44__ */
 
-    if ( fork() == 0 ) {
+#ifdef __linux__ /* Linux specific preamble */
+    int islinux20 = 0;
+    int mounted = 0;
+    struct utsname un;
+    struct mntent *ent;
+    FILE *fd;
+
+    /* Test if we are running on a 2.0 kernel. In that case we need to pass
+       different mount arguments. */
+    uname(&un);
+    islinux20 = strncmp(un.release, "2.0.", 4) == 0 ? 1 : 0;
+
+    fd = setmntent("/etc/mtab", "r");
+    if (fd) { 
+	while (1) {
+	    ent = getmntent(fd);
+	    if (!ent) break;
+
+	    if (STREQ(ent->mnt_fsname, "Coda") &&
+		STREQ(ent->mnt_dir, venusRoot)) {
+		mounted = 1;
+		break;
+	    }
+	}
+	endmntent(fd);
+
+	if (mounted) {
+	    eprint("%s already mounted", venusRoot);
+	    if (allow_reattach)
+		return;
+	    exit(-1);
+	}
+    }
+#endif /* __linux__ */
+
+#if defined(__BSD44__) || defined(__linux__)
+    pid_t child = fork();
+    if (child == 0) {
+	pid_t parent;
+	int error = 0;
+	
+	parent = getppid();
+
+	/* Use a double fork to avoid having to reap zombie processes
+	 * http://www.faqs.org/faqs/unix-faq/faq/part3/section-13.html
+	 *
+	 * The child will be reaped by Venus immediately, and as a result the
+	 * grandchild has no parent and init will take care of the 'orphan'.
+	 */
+	if (fork() != 0)
+	    goto child_done;
+
+#ifdef __BSD44__ /* BSD specific mount */
 	/* Issue the VFS mount request. */
-	int error = mount("coda", venusRoot, 0, kernDevice);
+	error = mount("coda", venusRoot, 0, kernDevice);
 	if (error < 0)
 	    error = mount("cfs", venusRoot, 0, kernDevice);
-#if	defined(__FreeBSD__) && !defined(__FreeBSD_version)
+#if defined(__FreeBSD__) && !defined(__FreeBSD_version)
 #define MOUNT_CFS 19
 	if (error < 0)
 	    error = mount(MOUNT_CFS, venusRoot, 0, kernDevice);
 #endif
+#endif /* __BSD44__ */
+
+#ifdef __linux__ /* Linux specific mount */
+	struct coda_mount_data mountdata;
+	mountdata.version = CODA_MOUNT_VERSION;
+	mountdata.fd = worker::muxfd;
+
+	error = mount("coda", venusRoot, "coda",  MS_MGC_VAL,
+		      islinux20 ? (void *)&kernDevice : (void *)&mountdata);
+
+	if (!error) {
+	    FILE *fd = setmntent("/etc/mtab", "a");
+	    struct mntent ent;
+	    if (fd) { 
+		ent.mnt_fsname = "coda";
+		ent.mnt_dir    = venusRoot;
+		ent.mnt_type   = "coda";
+		ent.mnt_opts   = "rw";
+		ent.mnt_freq   = 0;
+		ent.mnt_passno = 0;
+		addmntent(fd, &ent);
+		endmntent(fd);
+	    }
+	}
+#endif /* __linux__ */
+
 	if (error < 0) {
-	    pid_t parent;
 	    LOG(0, ("CHILD: mount system call failed. Killing parent.\n"));
 	    eprint("CHILD: mount system call failed. Killing parent.\n");
-	    parent = getppid();
 	    kill(parent, SIGKILL);
 	} else {
 	    eprint("%s now mounted.\n", venusRoot);
 	}
+
+child_done:
 	WorkerCloseMuxfd();
 	exit(error < 0 ? 1 : 0);
     }
-#endif /* __BSD44__ */
 
-#ifdef __linux__
-    int islinux20 = 0;
-    { /* Test if we are running on a 2.0 kernel. In that case we need to pass
-	 different mount arguments. */
-	struct utsname un;
-	uname(&un);
-	islinux20 = strncmp(un.release, "2.0.", 4) == 0 ? 1 : 0;
-    }
-    {
-	struct sigaction sa;
-	sa.sa_handler = SIG_IGN;
-	sigemptyset(&(sa.sa_mask));
-	sa.sa_flags = 0;
-	if ( sigaction(SIGCHLD, &sa, NULL) ) {
-	    eprint("Cannot set signal handler for SIGCHLD");
-	    CODA_ASSERT(0);
-	}
-    }
-    {
-	FILE *fd;
-	struct mntent *ent;
-        int mounted = 0;
-	fd = setmntent("/etc/mtab", "r");
-	if ( fd > 0 ) { 
-	  while (!mounted && (ent = getmntent(fd))) {
-	      if (STREQ(ent->mnt_fsname, "Coda") &&
-		  STREQ(ent->mnt_dir, venusRoot)) {
-                  mounted = 1;
-	      }
-	  }
-	  endmntent(fd);
-
-          if (mounted) {
-              eprint("%s already mounted", venusRoot);
-              if (allow_reattach) return;
-              exit(-1);
-          }
-	}
-    }
-    if ( fork() == 0 ) {
-      int error;
-      struct coda_mount_data mountdata;
-      mountdata.version = CODA_MOUNT_VERSION;
-      mountdata.fd = worker::muxfd;
-
-      error = mount("coda", venusRoot, "coda",  MS_MGC_VAL,
-		    islinux20 ? (void *)&kernDevice : (void *)&mountdata);
-
-      if ( error ) {
-	pid_t parent;
-	LOG(0, ("CHILD: mount system call failed. Killing parent.\n"));
-	eprint("CHILD: mount system call failed. Killing parent.\n");
-	parent = getppid();
-	kill(parent, SIGKILL);
-      } else {
-	FILE *fd;
-	struct mntent ent;
-	eprint("%s now mounted.\n", venusRoot);
-	fd = setmntent("/etc/mtab", "a");
-	if ( fd > 0 ) { 
-	  ent.mnt_fsname="Coda";
-	  ent.mnt_dir=venusRoot;
-	  ent.mnt_type= "coda";
-	  ent.mnt_opts = "rw";
-	  ent.mnt_freq = 0;
-	  ent.mnt_passno = 0;
-	  error = addmntent(fd, & ent);
-	  error = endmntent(fd);
-	}
-      }
-      WorkerCloseMuxfd();
-      exit(error ? 1 : 0);
-    }
-#endif
+    /* we just wait around to reap the first child */
+    while (waitpid(child, NULL, 0) != child) /* loop */;
+#endif /* __BSD44__ || __linux__ */
 
 #ifdef sun
     { int error;
