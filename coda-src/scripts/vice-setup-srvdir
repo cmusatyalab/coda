@@ -24,6 +24,11 @@ if [  -e $srvdir -a ! -d $srvdir ]; then
    exit 1
 fi
 
+if [ -d $srvdir -a -e $srvdir/FTREEDB ]; then
+   echo "An FTREEDB exists in $srvdir.  Clean up first and rerun $0"
+   exit 1
+fi
+
 mkdir $srvdir
 touch $srvdir/FTREEDB
 

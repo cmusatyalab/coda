@@ -112,7 +112,7 @@ yesno=""
 until [ x$yesno != x ]; do
    echo -n 'Do you want to start the server at boot time? (y/n) '
    read yesno
-   if [ x$yesno = xy  -o  x$yesno = xyes -o x$yesno = xY]; then
+   if [ x$yesno = xy  -o  x$yesno = xyes -o x$yesno = xY ]; then
        touch /vice/srv/STARTFROMBOOT
        if [ `uname` = Linux ]; then
 	    ln -s /etc/rc.d/init.d/vice.init /etc/rc.d/rc3.d/S98vice
