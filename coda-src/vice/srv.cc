@@ -1383,10 +1383,24 @@ static int ReadConfigFile(void)
     CONF_INT(_Rvm_Truncate, 	"rvmtruncate",	   0);
 
     if (RvmType == UNSET) {
-        CONF_STR(_Rvm_Log_Device,  "rvm_log",         "");
-        CONF_STR(_Rvm_Data_Device, "rvm_data",        "");
-        CONF_INT(datalen,	   "rvm_data_length", 0);
-        CONF_STR(srvhost,  	   "hostname",	       NULL);
+	if (ServerNumber == 0) {
+	    CONF_STR(_Rvm_Log_Device,	"rvm_log",         "");
+	    CONF_STR(_Rvm_Data_Device,	"rvm_data",        "");
+	    CONF_INT(datalen,		"rvm_data_length", 0);
+	    CONF_STR(srvhost,		"hostname",	   NULL);
+	} else {
+	    sprintf(confname, "rvm_log_%d", ServerNumber);
+	    CONF_STR(_Rvm_Log_Device,  confname, "");
+
+	    sprintf(confname, "rvm_data_%d", ServerNumber);
+	    CONF_STR(_Rvm_Data_Device, confname, "");
+
+	    sprintf(confname, "rvm_data_length_%d", ServerNumber);
+	    CONF_INT(datalen, confname, 0);
+
+	    sprintf(confname, "hostname_%d", ServerNumber);
+	    CONF_STR(srvhost, confname,	NULL);
+	}
     }
     if (ServerNumber && (srvhost == NULL || *srvhost == 0)) {
         SLog(0, "Multiple servers specified, must specify hostname.\n");

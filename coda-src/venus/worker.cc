@@ -860,17 +860,6 @@ void WorkerMux(int mask) {
 }
 
 
-void WorkerReturnEarly(ViceFid *fid) {
-    worker_iterator next;
-    worker *w;
-    while ((w = next()))
-	if (FID_EQ(&w->StoreFid, fid)) {
-	    w->StoreFid = NullFid;
-	    w->Return(0);
-	}
-}
-
-
 int GetWorkerIdleTime() {
     /* Return 0 if any call is in progress. */
     worker_iterator next;

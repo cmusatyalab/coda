@@ -103,7 +103,6 @@ class worker : public vproc {
   friend worker *GetIdleWorker();
   friend void DispatchWorker(msgent *);
   friend void WorkerMux(int);
-  friend void WorkerReturnEarly(ViceFid *);
   friend int GetWorkerIdleTime();
   friend void PrintWorkers(int);
   friend int MsgRead(msgent *);
@@ -168,7 +167,6 @@ extern worker *FindWorker(u_long);
 extern worker *GetIdleWorker();
 extern void DispatchWorker(msgent *);
 extern void WorkerMux(int);
-extern void WorkerReturnEarly(ViceFid *);
 extern int GetWorkerIdleTime();
 extern void PrintWorkers();
 extern void PrintWorkers(FILE *);

@@ -69,8 +69,4 @@ extern int MaxCBServers;
 extern int cbbreaks;
 extern void CallBackInit();
 
-
-/* This should be a separate subsystem. */
-extern int EarlyReturnAllowed;
-
 #endif not _VENUSCB_H_

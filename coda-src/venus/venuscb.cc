@@ -333,29 +333,3 @@ long CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
     return(0);
 }
 
-
-/* ---------------------------------------------------------------------- */
-/* This really ought to be implemented by a separate subsystem since it performs an independent */
-/*  function.  The purpose is to allow us to return to the user once it is established that a close */
-/*  will either succeed or fail due to communications or server disk error (i.e., all other error checks */
-/*  have already been made).  The (weak?) justification for this is that virtually no one checks return */
-/*  codes from close anyway, so this is actually analagous to the local case. */
-
-int EarlyReturnAllowed = 1;	/* can we return early on stores? */
-
-
-long CallBackReceivedStore(RPC2_Handle RPCid, ViceFid *fid) {
-    LOG(1, ("CallBackReceivedStore: fid = (%x.%x.%x)\n",
-	     fid->Volume, fid->Vnode, fid->Unique));
-
-    MarinerLog("callback::ReceivedStore (%x.%x.%x)\n",
-		fid->Volume, fid->Vnode, fid->Unique);
-
-    /* Check global flag to see if early returns are permitted. */
-    if (!EarlyReturnAllowed) return(0);
-
-    /* Allow worker to return early if possible. */
-    WorkerReturnEarly((ViceFid *)fid);
-
-    return(0);
-}

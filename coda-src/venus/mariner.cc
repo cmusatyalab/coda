@@ -473,10 +473,6 @@ void mariner::main(void)
 		Write("tracing off\n");
 	    }
 	}
-	else if (STREQ(argv[0], "era")) {
-	    EarlyReturnAllowed = (1 - EarlyReturnAllowed);
-	    Write("EarlyReturnAllowed is now %d.\n", EarlyReturnAllowed);
-	}
 	else if (STREQ(argv[0], "cop") && argc == 2) {
 	    /* This is a hack! -JJK */
 	    int OldModes = COPModes;

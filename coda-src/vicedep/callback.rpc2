@@ -44,16 +44,15 @@ Subsystem "cb" 1 1;
 
 #include "vcrcommon.rpc2"
 
-CallBackConnect (IN RPC2_Integer SideEffectType,
-		 IN RPC2_Integer SecurityLevel,
-		 IN RPC2_Integer EncryptionType,
-		 IN RPC2_Integer AuthType,
-		 IN RPC2_CountedBS ClientIdent)
-		 NEW_CONNECTION;
+CallBackConnect  (IN RPC2_Integer SideEffectType,
+		  IN RPC2_Integer SecurityLevel,
+		  IN RPC2_Integer EncryptionType,
+		  IN RPC2_Integer AuthType,
+		  IN RPC2_CountedBS ClientIdent)
+		  NEW_CONNECTION;
 
-1: CallBack	(IN ViceFid Fid);
+1: CallBack	 (IN ViceFid Fid);
 
-2: CallBackFetch	(IN ViceFid Fid,
-		 IN OUT SE_Descriptor BD);
+2: CallBackFetch (IN ViceFid Fid,
+		  IN OUT SE_Descriptor BD);
 
-3: CallBackReceivedStore (IN ViceFid Fid);
