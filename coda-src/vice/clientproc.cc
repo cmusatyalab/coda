@@ -183,11 +183,21 @@ void CLIENT_Delete(ClientEntry *clientPtr)
 }
 
 
+void CLIENT_InitHostTable(void) 
+{
+    for (int i = 0; i < MAXHOSTTABLEENTRIES; i++) {
+	memset(&hostTable[i], 0, sizeof(struct HostTable));
+	Lock_Init(&hostTable[i].lock);
+	list_head_init(&hostTable[i].WBconns);
+	list_head_init(&hostTable[i].Clients);
+    }
+}
+
 static void client_GetVenusId(RPC2_Handle RPCid, ClientEntry *client) 
 {
 	/* Look up the Peer info corresponding to the given RPC handle. */
 	RPC2_PeerInfo peer;
-	int i, old = 0, free = -1;
+	int i, old = -1;
 	time_t oldest = 0;
 
 	CODA_ASSERT(RPC2_GetPeerInfo(RPCid, &peer) == 0);
@@ -195,49 +205,22 @@ static void client_GetVenusId(RPC2_Handle RPCid, ClientEntry *client)
 	CODA_ASSERT(peer.RemotePort.Tag == RPC2_PORTBYINETNUMBER);
 
 	/* Look for a corresponding host entry. */
-	for (i = 0; i < maxHost; i++) {
-	  if (memcmp(&hostTable[i].host, &peer.RemoteHost.Value.InetAddress,
-		     sizeof(struct in_addr)) == 0 &&
-	      hostTable[i].port == peer.RemotePort.Value.InetPortNumber)
-	      goto GotIt;
+	for (i = 0; i < MAXHOSTTABLEENTRIES; i++) {
+	    if (memcmp(&hostTable[i].host, &peer.RemoteHost.Value.InetAddress,
+		       sizeof(struct in_addr)) == 0 &&
+		hostTable[i].port == peer.RemotePort.Value.InetPortNumber)
+		goto GotIt;
 
-	    if (free == -1 && hostTable[i].host.s_addr == INADDR_ANY)
-		free = i;
-
-	    if (!oldest || hostTable[i].LastCall < oldest) {
+	    if (old == -1 || hostTable[i].LastCall < oldest) {
 		old = i;
 		oldest = hostTable[i].LastCall;
 	    }
 	}
 
-	/* Not found. Use the first unused slot */
-	if (free != -1) {
-	    i = free;
-	    goto NewSlot;
-	}
-
-	for (i = 0; i < maxHost; i++) {
-	    if (hostTable[i].host.s_addr == INADDR_ANY)
-		goto NewSlot;
-	}
-
-	/* Not found. Add another entry to the hostTable */
-	if (maxHost < MAXHOSTTABLEENTRIES) {
-	    maxHost++;
-	    goto NewSlot;
-	}
-
 	/* PANIC, hosttable full, kill the oldest client */
 	CLIENT_CleanUpHost(&hostTable[old]);
 	i = old;
-	goto Recycled;
 
-NewSlot:
-	Lock_Init(&hostTable[i].lock);
-	list_head_init(&hostTable[i].WBconns);
-	list_head_init(&hostTable[i].Clients);
-
-Recycled:
 	hostTable[i].id = 0;
 	memcpy(&hostTable[i].host, &peer.RemoteHost.Value.InetAddress,
 	       sizeof(struct in_addr));
@@ -254,7 +237,6 @@ GotIt:
 	list_add(&client->Clients, &hostTable[i].Clients);
 	ReleaseWriteLock(&hostTable[i].lock);
 }
-
 
 /* look up a host entry given the (callback) connection id */
 HostTable *CLIENT_FindHostEntry(RPC2_Handle CBCid) 

@@ -428,6 +428,9 @@ int main(int argc, char *argv[])
 	case UNSET	   : SLog(0, "No RvmType selected!"); exit(-1);
     }
 
+    /* Initialize the hosttable structure */
+    CLIENT_InitHostTable();
+
     SLog(0, "Main process doing a LWP_Init()");
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,&parentPid)==LWP_SUCCESS);
 
@@ -1790,15 +1793,10 @@ static void InitializeServerRVM(char *name)
 		 "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
 	    options->truncate = _Rvm_Truncate;
 	}
-#if	defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
-#define	NetBSD1_4
-#else
-#undef	NetBSD1_4
-#endif
 
 #if	defined(__FreeBSD__)
 	sbrk((int)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
-#elif	defined(__NetBSD__) && (defined(NetBSD1_3) || defined(NetBSD1_4))
+#elif	defined(__NetBSD__) && (defined(NetBSD1_3) || defined(__NetBSD_Version__))
 	/*sbrk((void *)(0x50000000 - (int)sbrk(0))); / * for garbage reasons. */
 	/* Commented out by Phil Nelson because it caused a SIGBUS on 1.4.2
 	   and it appears to work just fine without this for 1.4.1 ... */

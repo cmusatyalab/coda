@@ -16,11 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
+extern void CLIENT_InitHostTable(void);
 extern int CLIENT_Build(RPC2_Handle, char *, RPC2_Integer, SecretToken *,
 			ClientEntry **);
 extern void CLIENT_Delete(ClientEntry *);
