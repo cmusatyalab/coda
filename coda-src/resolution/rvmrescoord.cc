@@ -134,7 +134,8 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     // res stats stuff 
     {
 	drstats.dir_nresolves++;
-	if (mgrp->IncompleteVSG()) drstats.dir_incvsg++;
+	if (mgrp->IncompleteVSG())
+	    drstats.dir_incvsg++;
     }
 
     // Phase 1, locking the volume, has already been done by ViceResolve

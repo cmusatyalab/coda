@@ -435,29 +435,32 @@ int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 
     //check for weak equality
     SLog(9, "RegDirResolution: Checking for weak Equality");
-    if (IsWeaklyEqual(VV, VSG_MEMBERS)) {
-	unsigned long hosts[VSG_MEMBERS];
-	ViceStoreId stid;
-	SLog(39, "RegDirResolution: WEAKLY EQUAL DIRECTORIES");
+    if (!IsWeaklyEqual(VV, VSG_MEMBERS)) {
+	ret = 1;
+	goto Exit;
+    }
 
-	ret = WEResPhase1(Fid, VV, mgrp, hosts, &stid, rstatusp);
-	if (ret || mgrp->GetHostSet(hosts)) {
-	    SLog(0, "RegDirResolution: error %d in (WE)ResPhase1()", ret);
-	    goto Exit;
-	}
+    SLog(39, "RegDirResolution: WEAKLY EQUAL DIRECTORIES");
 
-	if (!rstatusp) {
-	    /* OldDirResolve case, i.e. there are no RVM resolution logs so we
-	     * have to do a COP2 here */
-            ret = WEResPhase2(mgrp, Fid, hosts, &stid);
-            if (ret)
-                SLog(0,  "RegDirResolve: error %d in (WE)ResPhase2", ret);
-	}
+    unsigned long hosts[VSG_MEMBERS];
+    ViceStoreId stid;
+    ret = WEResPhase1(Fid, VV, mgrp, hosts, &stid, rstatusp);
+    if (ret || mgrp->GetHostSet(hosts)) {
+	SLog(0, "RegDirResolution: error %d in (WE)ResPhase1()", ret);
+	goto Exit;
+    }
+
+    if (!rstatusp) {
+	/* OldDirResolve case, i.e. there are no RVM resolution logs so we
+	 * have to do a COP2 here */
+	ret = WEResPhase2(mgrp, Fid, hosts, &stid);
+	if (ret)
+	    SLog(0,  "RegDirResolve: error %d in (WE)ResPhase2", ret);
     }
 Exit:
     SLog(1, "RegDirResolution: Further resolution %srequired: errorCode = %d",
 	 ret == 0 ? "not " : "", ret);
-    return(ret);
+    return ret;
 }
 
 long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
