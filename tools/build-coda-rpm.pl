@@ -2,18 +2,12 @@
 
 use Getopt::Long;
 
-GetOptions("debug!" => \$debug, "rel=s" => \$rel, "version=s" => \$version, "libc=s" => \$libc);
+GetOptions("debug!" => \$debug, "rel=s" => \$rel, "version=s" => \$version);
 
-if ( ! $rel || ! $version || ! $libc ) {
-    print "Usage $0 --rel=release --version=cvs-version --libc={libc,glibc} {--debug} \n";
+if ( ! $rel || ! $version ) {
+    print "Usage $0 --rel=release --version=cvs-version  {--debug} \n";
     exit 1;
 }
-
-if ( $libc != "glibc" && $libc != "libc" ) {
-    print "Usage $0 --rel=release --version=cvs-version --libc={libc,glibc} {--debug} \n";
-    exit 1;
-}
-
 
 
 if ( $debug == 1 ) {
@@ -23,14 +17,8 @@ if ( $debug == 1 ) {
 }
 print "DEBUG is $debug, name is $codaname\n";
 
-$kernel =`uname -r`;
-chop $kernel;
-$kv=$kernel;
-$kv=~ s/\.[0-9]*$//;
 
-print "kernel: $kernel\n";
-
-$dir="$codaname-$kernel-$version-$rel";
+$dir="$codaname-$version-$rel";
 $specfile="/usr/src/redhat/SPECS/$dir.spec";
 print "Will create specfile $specfile\n";
 
