@@ -305,8 +305,8 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    sftp_MRecvd.DataRetries++;
 	else
 	    sftp_Recvd.DataRetries++;
-	if (pBuff->Header.Flags & SFTP_ACKME || 
-	    sEntry->DupsSinceAck > sEntry->DupThreshold) {
+	if (((pBuff->Header.Flags & SFTP_ACKME) && sEntry->WhoAmI == SFCLIENT)
+	    || sEntry->DupsSinceAck > sEntry->DupThreshold) {
 	    /* we already saw this packet, so this must be considered
 	     * as a retransmission. --JH */
 	    sEntry->Retransmitting = TRUE;
