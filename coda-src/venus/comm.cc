@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.6 1997/05/27 21:32:49 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.7 1997/09/23 17:55:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -931,8 +931,8 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles) {
     RPC2_Integer   *usecs_bufs =
 	(RPC2_Integer *)malloc(HowMany * sizeof(RPC2_Integer));
     ASSERT(usecs_bufs);
-    for (int i = 0; i < HowMany; i++)
-	usecs_ptrs[i] = &usecs_bufs[i]; 
+    for (int ii = 0; ii < HowMany; ii++)
+	usecs_ptrs[ii] = &usecs_bufs[ii]; 
 
     /* Make the RPC call. */
     MarinerLog("fetch::Probe\n");
