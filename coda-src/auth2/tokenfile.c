@@ -19,6 +19,7 @@ listed in the file CREDITS.
 #include <config.h>
 #endif
 
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "coda_string.h"
