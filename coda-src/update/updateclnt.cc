@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.6 1998/01/10 18:38:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.7 1998/01/12 23:35:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -304,7 +304,6 @@ PRIVATE void CheckLibStructure()
 	printf("Creating /vice structure\n");
 	mkdir("/vice",0755);
 	mkdir("/vice/db",0755);
-	mkdir("/vice/bin",0755);
 	mkdir("/vice/srv",0755);
 	mkdir("/vice/vol",0755);
 	mkdir("/vice/spool",0755);
@@ -313,10 +312,6 @@ PRIVATE void CheckLibStructure()
 	if((stat("/vice/db",&lbuf)) && (errno == ENOENT)) {
 	    printf("Creating /vice/db\n");
 	    mkdir("/vice/db",0755);
-	}
-	if((stat("/vice/bin",&lbuf)) && (errno == ENOENT)) {
-	    printf("Creating /vice/bin\n");
-	    mkdir("/vice/bin",0755);
 	}
 	if((stat("/vice/srv",&lbuf)) && (errno == ENOENT)) {
 	    printf("Creating /vice/srv\n");
