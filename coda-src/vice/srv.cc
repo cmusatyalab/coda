@@ -179,8 +179,8 @@ static char *srvhost;		// default NULL
 static int trace = 0;		// default 0 
 static int SrvWindowSize = 0;	// default 32
 static int SrvSendAhead = 0;	// default 8
-static int timeout = 0;		// default 15, formerly 30, then 60
-static int retrycnt = 0;	// default 4, formerly 20, then 6
+static int timeout = 0;		// default 60, formerly 15, 30, then 60
+static int retrycnt = 0;	// default 5, formerly 4, 20, then 6
 static int debuglevel = 0;	// Command line set only.
 static int lwps = 0;		// default 6
 static int buffs = 0;		// default 100, formerly 200
@@ -1278,8 +1278,8 @@ static int ReadConfigFile(void)
     CODACONF_INT(trace,		"trace",	0);
     CODACONF_INT(SrvWindowSize,	"windowsize",	32);
     CODACONF_INT(SrvSendAhead,	"sendahead",	8);
-    CODACONF_INT(timeout,	"timeout",	15);
-    CODACONF_INT(retrycnt,	"retrycnt",	4);
+    CODACONF_INT(timeout,	"timeout",	60);
+    CODACONF_INT(retrycnt,	"retrycnt",	5);
     CODACONF_INT(lwps,		"lwps",		6);
     if (lwps > MAXLWP) lwps = MAXLWP;
 

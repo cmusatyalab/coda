@@ -102,12 +102,12 @@ allow_sha=1
 #pollandyield=1
 #pathtiming=1
 #resolution=1
-#retrycnt=4
 #salvageonshutdown=0
 #sendahead=8
 #small=500
 #stack=96
-#timeout=15
+#timeout=60
+#retrycnt=5
 #windowsize=32
 #zombify=0
 
