@@ -94,7 +94,7 @@ int Bind(const char *service, const char *host) {
     if (host) {
 	hp = gethostbyname(host);
 	if (hp == NULL) return(-1);
-        memcpy(hp->h_addr, (char *)&server.sin_addr, hp->h_length);
+        memcpy((char *)&server.sin_addr, hp->h_addr, hp->h_length);
 	server.sin_family = hp->h_addrtype;
     } else {
 	server.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
