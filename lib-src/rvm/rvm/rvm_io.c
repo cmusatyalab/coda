@@ -37,7 +37,7 @@ Coda are listed in the file CREDITS.
 #define UIO_MAXIOV 16
 #endif
 
-#ifdef _POSIX_SYNCHRONIZED_IO
+#ifdef HAVE_FDATASYNC
 #define FSYNC(fd) fdatasync(fd)
 #else
 #define FSYNC(fd) fsync(fd)

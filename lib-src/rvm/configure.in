@@ -53,7 +53,7 @@ dnl Checks for compiler characteristics.
 CODA_DARWIN_BROKEN_CPP_WORKAROUND
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror)
+AC_CHECK_FUNCS(strerror fdatasync)
 AC_FUNC_MMAP
 
 dnl Checks for system services.
