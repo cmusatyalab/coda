@@ -3306,6 +3306,7 @@ static int RLE_Size(ARG *ArgTypes ...)
 {
     int len = 0;
     ARG *a_types;
+    unsigned int arg;
     PARM *args;
 
     va_list ap;
@@ -3318,10 +3319,12 @@ static int RLE_Size(ARG *ArgTypes ...)
 
     for	(a_types = ArgTypes; a_types->mode != C_END; a_types++)
     {
-	args = (PARM *)&va_arg(ap, unsigned long);
+	arg = va_arg(ap, unsigned int);
+	args = (PARM *)&arg;
+
 	LOG(1000, ("RLE_Size: a_types = [%d %d %d %x], args = (%x %x)\n",
 		   a_types->mode, a_types->type, a_types->size, a_types->field,
-		   args, *args));
+		   *args));
 
 	if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
 	    continue;
@@ -3347,13 +3350,15 @@ static int RLE_Size(ARG *ArgTypes ...)
 static void RLE_Pack(PARM **ptr, ARG *ArgTypes ...)
 {
     ARG *a_types;
+    unsigned int arg;
     PARM *args;
     va_list ap;
     va_start(ap, ArgTypes);
 
     /* see comment about GNU C above. */
     for	(ARG *a_types =	ArgTypes; a_types->mode	!= C_END; a_types++) {
-	args = (PARM *)&va_arg(ap, unsigned long);
+	arg = va_arg(ap, unsigned int);
+	args = (PARM *)&arg;
 	LOG(1000, ("RLE_Pack: a_types = [%d %d %d %x], ptr = (%x %x %x), args = (%x %x)\n",
 		   a_types->mode, a_types->type, a_types->size, a_types->field,
 		   ptr, *ptr, **ptr, args, *args));
