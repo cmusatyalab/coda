@@ -51,7 +51,7 @@ extern "C" {
 static const int ProbeDaemonStackSize = 40960;
              int T1Interval = 0; /* "up" server probe interval
 				    initialized in venus.cc as 12 * 60 */
-static const int T2Interval = 4 * 60;	     /* "down" servers */
+static       int T2Interval = 4 * 60; /* "down" servers */
 static const int CommCheckInterval = 5;
 static const int ProbeInterval	= CommCheckInterval; /* min(T1, T2, Comm) */
 
@@ -59,6 +59,11 @@ static char probe_sync;
 
 void PROD_Init(void)
 {
+    /* force the down server probe to be more frequent as well when the
+     * 'serverprobe' option in venus.conf is low enough. */
+    if (T1Interval < T2Interval)
+	    T2Interval = T1Interval;
+
     (void)new vproc("ProbeDaemon", &ProbeDaemon, VPT_ProbeDaemon,
 		    ProbeDaemonStackSize);    
 }

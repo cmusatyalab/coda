@@ -128,9 +128,8 @@ cacheblocks=100000
 # memory when memory gets tight. Private mappings do not work when rvm
 # data is stored on a raw partition. Set to 1 to use private mappings,
 # 0 to use anonymous mappings.
-# This option is on by default, uncomment the following line to disable.
 # 
-#mapprivate=0
+mapprivate=1
 
 #
 # Mountpoint,
@@ -160,9 +159,8 @@ cacheblocks=100000
 # bulk data transfers. This allows a Coda client to connect to servers
 # from behind a masquerading firewall. The rpc2 library on both the
 # client and the servers must be at least version 1.9 for this to work.
-# This option is on by default, uncomment the following line to disable.
 # 
-#masquerade=0
+masquerade=1
 
 #
 # On NT with Cygwin, venus names are different than the NT real names.
@@ -187,7 +185,8 @@ cacheblocks=100000
 # How many seconds between checks whether the servers are still alive. The
 # default is 12 minutes. However masquerading firewalls will typically forget
 # about UDP connections sooner. For instance, connection tracking in Linux's
-# netfilter only remembers UDP streams for about 3 minutes.
+# netfilter only remembers UDP streams for about 3 minutes, so 150 seconds
+# would be a good choice here.
 #
 # If you are going through a firewall and regularily see messages that the
 # servers nak'ed lowering this timeout could very well help a lot.

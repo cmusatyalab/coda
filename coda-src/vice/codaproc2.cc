@@ -207,7 +207,7 @@ static int AllocReintegrateVnode(Volume **, dlist *, ViceFid *, ViceFid *,
 static int AddParent(Volume **, dlist *, ViceFid *);
 static int ReintNormalVCmp(int, VnodeType, void *, void *);
 static int ReintNormalVCmpNoRes(int, VnodeType, void *, void *);
-static void ReintPrelimCOP(vle *, ViceStoreId *, ViceStoreId *, Volume *);
+static void ReintPrelimCOP(vle *, const ViceStoreId *, ViceStoreId *, Volume *);
 static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *);
 static int ValidateRHandle(VolumeId, ViceReintHandle *);
 
@@ -557,6 +557,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	char *rfile = 0;
 	PARM *_ptr = 0;
 	int index;
+	char *OldName = NULL;
+	char *NewName = NULL;
 
 	/* Translate the volume. */
 	VolumeId VSGVolnum = *Vid;
@@ -622,6 +624,14 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		sid.Value.SmartFTPD.BytesTransferred);
     }
 
+    OldName = new char[MAXNAMELEN+1];
+    NewName = new char[MAXNAMELEN+1];
+    if (!OldName || !NewName) {
+	    errorCode = ENOMEM;
+	    index = -1;
+	    goto Exit;
+    }
+
     /* Allocate/unpack entries and append them to the RL. */
     for (_ptr = (PARM *)rfile, index = 0; (char *)_ptr - rfile < rlen; index++) {
 	RPC2_CountedBS DummyCBS;
@@ -653,41 +663,17 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		r->opcode, r->Mtime);
 
 	switch(r->opcode) {
-	case OLDCML_SymLink_OP:
-	case OLDCML_Rename_OP:
-	case CML_SymLink_OP:
-	case CML_Rename_OP:
-	    r->Name[1] = new char[MAXNAMELEN+1];
-	    if (!r->Name[1]) {
-		errorCode = ENOMEM;
-		goto Exit;
-	    }
-	    /* fall through */
-
-	case OLDCML_Create_OP:
-	case OLDCML_Link_OP:
-	case OLDCML_MakeDir_OP:
-	case OLDCML_Remove_OP:
-	case OLDCML_RemoveDir_OP:
-	case CML_Create_OP:
-	case CML_Link_OP:
-	case CML_MakeDir_OP:
-	case CML_Remove_OP:
-	case CML_RemoveDir_OP:
-	    r->Name[0] = new char[MAXNAMELEN+1];
-	    if (!r->Name[0]) {
-		if (r->Name[1]) delete r->Name[1];
-		errorCode = ENOMEM;
-		goto Exit;
-	    }
-	}
-
-	switch(r->opcode) {
 	    case OLDCML_Create_OP:
 		RLE_Unpack(&_ptr, OLDCML_Create_PTR, &r->Fid[0],
-			   &DummyFid, r->Name[0], &Status,
+			   &DummyFid, NewName, &Status,
                            &r->Fid[1], &DirStatus, &DummyAllocHost,
 			   &r->sid, &DummyCBS);
+
+		r->Name[0] = strdup(NewName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 
                 r->opcode = CML_Create_OP;
                 r->VV[0] = DirStatus.VV;
@@ -696,9 +682,15 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_Link_OP:
-		RLE_Unpack(&_ptr, OLDCML_Link_PTR, &r->Fid[0], r->Name[0],
+		RLE_Unpack(&_ptr, OLDCML_Link_PTR, &r->Fid[0], NewName,
 			   &r->Fid[1], &Status, &DirStatus, &DummyPH,
                            &r->sid, &DummyCBS);
+
+		r->Name[0] = strdup(NewName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 
                 r->opcode = CML_Link_OP;
                 r->VV[0] = DirStatus.VV;
@@ -707,8 +699,14 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case OLDCML_MakeDir_OP:
 		RLE_Unpack(&_ptr, OLDCML_MakeDir_PTR, &r->Fid[0],
-			   r->Name[0], &Status, &r->Fid[1], &DirStatus,
+			   NewName, &Status, &r->Fid[1], &DirStatus,
 			   &DummyAllocHost, &r->sid, &DummyCBS);
+
+		r->Name[0] = strdup(NewName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 
                 r->opcode = CML_MakeDir_OP;
                 r->VV[0] = DirStatus.VV;
@@ -718,9 +716,23 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case OLDCML_SymLink_OP:
 		RLE_Unpack(&_ptr, OLDCML_SymLink_PTR, &r->Fid[0],
-			   r->Name[1], r->Name[0],// yes, newname then oldname
+			   NewName, OldName,// yes, newname then oldname
 			   &r->Fid[1], &Status, &DirStatus,
                            &DummyAllocHost, &r->sid, &DummyCBS);
+
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
+
+		r->Name[1] = strdup(NewName);
+		if (!r->Name[1]) {
+		    free(r->Name[0]);
+		    r->Name[0] = NULL;
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 
                 r->opcode = CML_SymLink_OP;
                 r->VV[0] = DirStatus.VV;
@@ -729,8 +741,14 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_Remove_OP:
-		RLE_Unpack(&_ptr, OLDCML_Remove_PTR, &r->Fid[0], r->Name[0],
+		RLE_Unpack(&_ptr, OLDCML_Remove_PTR, &r->Fid[0], OldName,
 			   &DirStatus, &Status, &DummyPH, &r->sid, &DummyCBS);
+
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 
                 r->opcode = CML_Remove_OP;
                 r->VV[0] = DirStatus.VV;
@@ -738,8 +756,14 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_RemoveDir_OP:
-		RLE_Unpack(&_ptr, OLDCML_RemoveDir_PTR, &r->Fid[0], r->Name[0],
+		RLE_Unpack(&_ptr, OLDCML_RemoveDir_PTR, &r->Fid[0], OldName,
 			   &DirStatus, &Status, &DummyPH, &r->sid, &DummyCBS);
+
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 
                 r->opcode = CML_RemoveDir_OP;
                 r->VV[0] = DirStatus.VV;
@@ -791,10 +815,24 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_Rename_OP:
-		RLE_Unpack(&_ptr, OLDCML_Rename_PTR, &r->Fid[0], r->Name[0],
-			   &r->Fid[1], r->Name[1], &OldDirStatus,
+		RLE_Unpack(&_ptr, OLDCML_Rename_PTR, &r->Fid[0], OldName,
+			   &r->Fid[1], NewName, &OldDirStatus,
 			   &DirStatus, &Status, &DummyStatus, &DummyPH,
                            &r->sid, &DummyCBS);
+
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
+
+		r->Name[1] = strdup(NewName);
+		if (!r->Name[1]) {
+		    free(r->Name[0]);
+		    r->Name[0] = NULL;
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 
                 r->opcode = CML_Rename_OP;
                 r->VV[0] = OldDirStatus.VV;
@@ -805,39 +843,81 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
             /* new, more efficient CML packing */
 
 	    case CML_Create_OP:
-		{
 		RLE_Unpack(&_ptr, CML_Create_PTR, &r->Fid[0], &r->VV,
-			   r->Name[0], &r->u.u_create.Owner,
+			   NewName, &r->u.u_create.Owner,
 			   &r->u.u_create.Mode, &r->Fid[1], &r->sid);
+
+		r->Name[0] = strdup(NewName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
 		}
                 break;
 
 	    case CML_Link_OP:
 		RLE_Unpack(&_ptr, CML_Link_PTR, &r->Fid[0], &r->VV[0],
-			   r->Name[0], &r->Fid[1], &r->VV[1], &r->sid);
+			   NewName, &r->Fid[1], &r->VV[1], &r->sid);
+
+		r->Name[0] = strdup(NewName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 		break;
 
 	    case CML_MakeDir_OP:
 		RLE_Unpack(&_ptr, CML_MakeDir_PTR, &r->Fid[0], &r->VV[0],
-			   r->Name[0], &r->Fid[1], &r->u.u_mkdir.Owner,
+			   NewName, &r->Fid[1], &r->u.u_mkdir.Owner,
                            &r->u.u_mkdir.Mode, &r->sid);
+
+		r->Name[0] = strdup(NewName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 		break;
 
 	    case CML_SymLink_OP:
 		RLE_Unpack(&_ptr, CML_SymLink_PTR, &r->Fid[0],
-                           &r->VV[0], r->Name[0], r->Name[1], &r->Fid[1],
+                           &r->VV[0], OldName, NewName, &r->Fid[1],
                            &r->u.u_symlink.Owner, &r->u.u_symlink.Mode,
                            &r->sid);
+
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
+
+		r->Name[1] = strdup(NewName);
+		if (!r->Name[1]) {
+		    free(r->Name[0]);
+		    r->Name[0] = NULL;
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 		break;
 
 	    case CML_Remove_OP:
 		RLE_Unpack(&_ptr, CML_Remove_PTR, &r->Fid[0],
-			   &r->VV[0], r->Name[0], &r->VV[1], &r->sid);
+			   &r->VV[0], OldName, &r->VV[1], &r->sid);
+
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 		break;
 
 	    case CML_RemoveDir_OP:
 		RLE_Unpack(&_ptr, CML_RemoveDir_PTR, &r->Fid[0], &r->VV[0],
-			   r->Name[0], &r->VV[1], &r->sid);
+			   OldName, &r->VV[1], &r->sid);
+
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 		break;
 
 	    case CML_Store_OP:
@@ -865,9 +945,23 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	    case CML_Rename_OP:
                 RLE_Unpack(&_ptr, CML_Rename_PTR,
-			   &r->Fid[0], &r->VV[0], r->Name[0],
-                           &r->Fid[1], &r->VV[1], r->Name[1],
+			   &r->Fid[0], &r->VV[0], OldName,
+                           &r->Fid[1], &r->VV[1], NewName,
 			   &r->VV[2], &r->sid);
+
+		r->Name[0] = strdup(OldName);
+		if (!r->Name[0]) {
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
+
+		r->Name[1] = strdup(NewName);
+		if (!r->Name[1]) {
+		    free(r->Name[0]);
+		    r->Name[0] = NULL;
+		    errorCode = ENOMEM;
+		    goto Exit;
+		}
 		break;
 
 	    default:
@@ -955,6 +1049,10 @@ Exit:
     if (Index) *Index = (RPC2_Integer) index;
     SLog(10,  "ValidateReintegrateParms: returning %s", ViceErrorMsg(errorCode));
 END_TIMING(Reintegrate_ValidateParms);
+
+    if (OldName) delete OldName;
+    if (NewName) delete NewName;
+
     return(errorCode);
 }
 
@@ -1653,7 +1751,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			ReintPrelimCOP(td_v, &r->VV[1].StoreId, &r->sid, volptr);
 		    ReintPrelimCOP(s_v, &r->VV[2].StoreId, &r->sid, volptr);
 		    if (TargetExists)
-			ReintPrelimCOP(t_v, &NullVV.StoreId, &r->sid, volptr); /* XXX wrong? */
+			ReintPrelimCOP(t_v, &NullSid, &r->sid, volptr); /* XXX wrong? */
 		    {
 			if (!SameParent) {
 			    /* SpoolRenameLogRecord() only allows one opcode, so we must */
@@ -2014,8 +2112,8 @@ START_TIMING(Reintegrate_PutObjects);
 	while ((r = (rle *)rlog->get())) {
 	    if (rlog->count() == 0) 	/* last one -- save sid */
 		sid = r->sid;
-	    if (r->Name[0]) delete r->Name[0];
-	    if (r->Name[1]) delete r->Name[1];
+	    if (r->Name[0]) free(r->Name[0]);
+	    if (r->Name[1]) free(r->Name[1]);
 	    delete r;
 
 	    /* Yield after every so many records. */
@@ -2083,9 +2181,8 @@ START_TIMING(Reintegrate_PutObjects);
 		    ViceStoreId *newlist = (ViceStoreId *) 
 			malloc(sizeof(ViceStoreId) * (i + VNREINTEGRATORS));
 		    if (volptr->reintegrators) {
-			memmove((void *)newlist,
-				(const void *)volptr->reintegrators,
-				(int) sizeof(ViceStoreId) * (i + VNREINTEGRATORS));
+			memcpy(newlist, volptr->reintegrators,
+			       sizeof(ViceStoreId) * (i + VNREINTEGRATORS));
 			free(volptr->reintegrators);
 		    }
 		    volptr->reintegrators = newlist;
@@ -2297,7 +2394,7 @@ static int ReintNormalVCmpNoRes(int ReplicatedOp, VnodeType type,
 
 
 /* This probably ought to be folded into the PerformXXX routines!  -JJK */
-static void ReintPrelimCOP(vle *v, ViceStoreId *OldSid,
+static void ReintPrelimCOP(vle *v, const ViceStoreId *OldSid,
 			   ViceStoreId *NewSid, Volume *volptr) 
 {
 	/* Directories which are not identical to "old" contents MUST be

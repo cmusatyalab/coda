@@ -64,7 +64,7 @@ listed in the file CREDITS.
 
 /* Used to be in vice/codaproc2.c */
 #define	SID_EQ(a, b)	((a).Host == (b).Host && (a).Uniquifier == (b).Uniquifier)
-extern ViceStoreId NullSid;
+extern const ViceStoreId NullSid;
 
 
 /* Unique tag for store identification; hostid + unique counter (per host) */
@@ -75,8 +75,8 @@ typedef ViceStoreId storeid_t;
 typedef ViceVersionVector vv_t;
 
 
-extern int VV_Cmp (vv_t *, vv_t *);
-extern int VV_Cmp_IgnoreInc (vv_t *, vv_t *);
+extern int VV_Cmp (const vv_t *, const vv_t *);
+extern int VV_Cmp_IgnoreInc (const vv_t *, const vv_t *);
 extern int VV_Check (int *, vv_t **, int);
 extern int VV_Check_IgnoreInc (int *, vv_t **, int);
 extern int IsRunt (vv_t *);

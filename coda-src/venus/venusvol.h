@@ -441,13 +441,13 @@ class cmlent {
 class cml_iterator {
     ClientModifyLog *log;
     CmlIterOrder order;
-    ViceFid *fidp;
+    const ViceFid *fidp;
     ViceFid fid;
     cmlent *prelude;	/* start iteration after this element */
     dlist_iterator *next;
 
   public:
-    cml_iterator(ClientModifyLog&, CmlIterOrder =CommitOrder, ViceFid * =0, cmlent * =0);
+    cml_iterator(ClientModifyLog&, CmlIterOrder =CommitOrder, const ViceFid * =NULL, cmlent * =0);
     ~cml_iterator();
     cmlent *operator()();
 };
@@ -853,12 +853,12 @@ class repvol : public volent {
     int LogChown(time_t, vuid_t, ViceFid *, UserId, int = UNSET_TID);
     int LogChmod(time_t, vuid_t, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
     int LogCreate(time_t, vuid_t, ViceFid *, char *, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRemove(time_t, vuid_t, ViceFid *, char *, ViceFid *, int, int = UNSET_TID);
+    int LogRemove(time_t, vuid_t, ViceFid *, char *, const ViceFid *, int, int = UNSET_TID);
     int LogLink(time_t, vuid_t, ViceFid *, char *, ViceFid *, int = UNSET_TID);
     int LogRename(time_t, vuid_t, ViceFid *, char *,
-		   ViceFid *, char *, ViceFid *, ViceFid *, int, int = UNSET_TID);
+		   ViceFid *, char *, ViceFid *, const ViceFid *, int, int = UNSET_TID);
     int LogMkdir(time_t, vuid_t, ViceFid *, char *, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRmdir(time_t, vuid_t, ViceFid *, char *, ViceFid *, int = UNSET_TID);
+    int LogRmdir(time_t, vuid_t, ViceFid *, char *, const ViceFid *, int = UNSET_TID);
     int LogSymlink(time_t, vuid_t, ViceFid *, char *,
 		    char *, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
     int LogRepair(time_t, vuid_t, ViceFid *, RPC2_Unsigned,

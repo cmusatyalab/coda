@@ -84,8 +84,8 @@ extern "C" {
 FILE *logFile = 0;
 int LogLevel = 0;
 int MallocTrace = 0;
-ViceFid NullFid = {0, 0, 0};
-vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
+const ViceFid NullFid = {0, 0, 0};
+const vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 VFSStatistics VFSStats;
 RPCOpStatistics RPCOpStats;
 

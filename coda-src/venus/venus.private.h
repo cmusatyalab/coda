@@ -313,8 +313,8 @@ extern long int RPC2_DebugLevel;
 extern long int SFTP_DebugLevel;
 extern long int RPC2_Trace;
 extern int MallocTrace;
-extern ViceFid NullFid;		    /* should be const -JJK */
-extern vv_t NullVV;		    /* should be const -JJK */
+extern const ViceFid NullFid;
+extern const vv_t NullVV;
 extern VFSStatistics VFSStats;
 extern RPCOpStatistics RPCOpStats;
 extern struct timeval DaemonExpiry;

@@ -1301,7 +1301,7 @@ int repvol::LogCreate(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 
 /* local-repair modification */
 int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
-                      ViceFid *CFid, int LinkCount, int tid)
+                      const ViceFid *CFid, int LinkCount, int tid)
 {
     LOG(1, ("repvol::LogRemove: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
@@ -1426,7 +1426,8 @@ int repvol::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 /* local-repair modification */
 int repvol::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
                       char *OldName, ViceFid *TPFid, char *NewName,
-                      ViceFid *SFid, ViceFid *TFid, int LinkCount, int tid)
+                      ViceFid *SFid, const ViceFid *TFid, int LinkCount,
+		      int tid)
 {
     /* Record "target remove" as a separate log entry. */
     if (!FID_EQ(TFid, &NullFid)) {
@@ -1466,7 +1467,7 @@ int repvol::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 
 /* local-repair modification */
 int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
-                     ViceFid *CFid, int tid) {
+                     const ViceFid *CFid, int tid) {
     LOG(1, ("repvol::LogRmdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, tid));
@@ -4515,7 +4516,7 @@ int cmlent::IsReintegrating()
  */
 
 cml_iterator::cml_iterator(ClientModifyLog& Log, CmlIterOrder Order,
-			    ViceFid *Fid, cmlent *Prelude) {
+			    const ViceFid *Fid, cmlent *Prelude) {
     log = &Log;
     order = Order;
     fidp = Fid;

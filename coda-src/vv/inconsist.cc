@@ -48,18 +48,18 @@ extern "C" {
 #include "inconsist.h"
 
 /* From vice/codaproc2.c */
-ViceStoreId NullSid = { 0, 0 };
+const ViceStoreId NullSid = { 0, 0 };
 
 static int VV_BruteForceCheck(int *, vv_t **, int, int);
 static int VV_Check_Real(int *, vv_t **, int, int);
 
-int VV_Cmp(vv_t *a, vv_t *b) {
+int VV_Cmp(const vv_t *a, const vv_t *b) {
     if (IsIncon(*a) || IsIncon(*b)) return(VV_INC);
 
     return(VV_Cmp_IgnoreInc(a, b));
 }
 
-int VV_Cmp_IgnoreInc(vv_t *a, vv_t *b) {
+int VV_Cmp_IgnoreInc(const vv_t *a, const vv_t *b) {
 
     int	res = VV_EQ;
 

@@ -425,9 +425,9 @@ static void DefaultCmdlineParms()
     CONF_STR(VenusLogFile,	"logfile",	 "/usr/coda/etc/venus.log");
     CONF_STR(consoleFile,       "errorlog",      "/usr/coda/etc/console");
     CONF_STR(kernDevice,        "kerneldevice",  "/dev/cfs0");
-    CONF_INT(MapPrivate,	"mapprivate",	 1);
+    CONF_INT(MapPrivate,	"mapprivate",	 0);
     CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
-    CONF_INT(masquerade,	"masquerade",	 1);
+    CONF_INT(masquerade,	"masquerade",	 0);
     CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
     CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
     CONF_STR(fsname,            "rootservers",   "");

@@ -1839,7 +1839,7 @@ RepExit:
 	long cbtemp; cbtemp = cbbreaks;
 	CFSOP_PRELUDE("store::Create %-30s\n", name, NullFid);
 	UNI_START_MESSAGE(ViceVCreate_OP);
-	code = (int) ViceVCreate(c->connid, &fid, &NullFid,
+	code = (int) ViceVCreate(c->connid, &fid, (ViceFid *)&NullFid,
 				 (RPC2_String)name, &target_status, 
 				 &target_fid, &parent_status, 0, &Dummy, 
 				 &OldVS, &VS, &VCBStatus, &PiggyBS);
