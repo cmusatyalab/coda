@@ -29,6 +29,8 @@ AC_PROG_MAKE_SET
 AM_PROG_LIBTOOL
 
 dnl Checks for libraries.
+AC_SEARCH_LIBS(fdatasync, rt)
+
 CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 
 dnl For playing with the _pt version...
