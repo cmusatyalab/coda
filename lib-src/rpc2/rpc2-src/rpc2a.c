@@ -115,7 +115,7 @@ static RPC2_PacketBuffer *Send2Get3();
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce);
 static bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
 static long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce);
-static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenTicationType, OUT long *xrand, OUT RPC2_CountedBS *cident);
+static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenticationType, OUT long *xrand, OUT RPC2_CountedBS *cident);
 static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_EncryptionKey ekey);
 
 FILE *rpc2_logfile;
@@ -222,9 +222,9 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 		     OUT RPC2_Handle *ConnHandle,
 		     OUT RPC2_PacketBuffer **Request,
 		     IN struct timeval *BreathOfLife,
-		     IN long (*GetKeys)(),
+		     IN RPC2_GetKeys_func *GetKeys,
 		     IN long EncryptionTypeMask,
-		     IN long (*AuthFail)())
+		     IN RPC2_AuthFail_func *AuthFail)
 {
 	struct CEntry *ce;
 	RPC2_RequestFilter myfilter;
@@ -308,7 +308,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     {
         RPC2_EncryptionKey SharedSecret;
         /* Abort if we cannot get `keys' for a NULL client */
-        if (GetKeys && (*GetKeys)(&AuthenticationType, NULL, SharedSecret,
+        if (GetKeys && (*GetKeys)(AuthenticationType, NULL, SharedSecret,
                                   ce->SessionKey) != 0)
 	{
             RejectBind(ce, (long) sizeof(struct Init2Body), (long) RPC2_INIT2);
@@ -319,7 +319,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     }
     else
 	{
-	rc = ServerHandShake(ce, &AuthenticationType, &cident, saveXRandom, GetKeys, EncryptionTypeMask);
+	rc = ServerHandShake(ce, AuthenticationType, &cident, saveXRandom, GetKeys, EncryptionTypeMask);
 	if (rc!= RPC2_SUCCESS)
 	    {
 	    if (AuthFail)
@@ -1218,10 +1218,10 @@ static void SendOKInit2(IN struct CEntry *ce)
     }
 
 static int ServerHandShake(IN struct CEntry *ce,
-			   IN RPC2_Integer *authenticationtype,
+			   IN RPC2_Integer authenticationtype,
 			   IN RPC2_CountedBS *cident,
 			   IN long xrand /* still encrypted */,
-			   IN long (*KeyProc)(), IN long emask)
+			   IN RPC2_GetKeys_func *KeyProc, IN long emask)
     {
     RPC2_EncryptionKey SharedSecret;
     RPC2_PacketBuffer *pb;

@@ -666,14 +666,14 @@ extern long RPC2_FreeBuffer (RPC2_PacketBuffer **Buffer);
 extern long RPC2_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Reply);
 
 typedef long RPC2_GetKeys_func(RPC2_Integer AuthenticationType,
-			       RPC2_CountedBS CIdent,
+			       RPC2_CountedBS *cident,
 			       RPC2_EncryptionKey SharedSecret,
 			       RPC2_EncryptionKey sessionkey);
 typedef long RPC2_AuthFail_func(RPC2_Integer AuthenticationType,
-				RPC2_CountedBS CIdent,
+				RPC2_CountedBS *cident,
 				RPC2_Integer EncryptionType,
-				RPC2_HostIdent PeerHost,
-				RPC2_PortIdent PeerPort);
+				RPC2_HostIdent *PeerHost,
+				RPC2_PortIdent *PeerPort);
 
 extern long RPC2_GetRequest (RPC2_RequestFilter *Filter,
 			     RPC2_Handle *ConnHandle,
