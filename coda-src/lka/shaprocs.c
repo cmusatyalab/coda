@@ -28,8 +28,11 @@ listed in the file CREDITS.
 #include <unistd.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <lwp/lwp.h>
 
 #include "lka.h"
+
+#define SHA_YIELD_INTERVAL 200
 
 /* "Helper" functions for SHA */
 
@@ -60,13 +63,18 @@ int CopyAndComputeViceSHA(int infd, int outfd,
        Returns 1 on success, and 0 on any kind of failure  */
 
     int bytes_out, bytes_in = 0;
+    int i = 0;
     SHA_CTX cx;
 
 #define SHACHUNKSIZE 4096  /* might be better to set to fs block size? */
     char shachunk[SHACHUNKSIZE];
 
     SHA1_Init(&cx);
-    while (1) {
+    while (i++) {
+	/* make sure we yield to other threads once in a while */
+	if ((i % SHA_YIELD_INTERVAL) == 0)
+	    LWP_DispatchProcess();
+
 	bytes_in = read (infd, shachunk, SHACHUNKSIZE);
 	if (bytes_in <= 0)
 	    break;
