@@ -1,0 +1,2119 @@
+diff -urN linux-2.4.20/fs/coda/cache.c linux-2.4.20-coda/fs/coda/cache.c
+--- linux-2.4.20/fs/coda/cache.c	2003-01-08 12:43:58.000000000 -0500
++++ linux-2.4.20-coda/fs/coda/cache.c	2003-01-08 12:40:22.000000000 -0500
+@@ -29,8 +29,8 @@
+ {
+ 	struct coda_inode_info *cii = ITOC(inode);
+ 
+-        if ( !coda_cred_ok(&cii->c_cached_cred) ) {
+-                coda_load_creds(&cii->c_cached_cred);
++        if ( cii->c_cached_uid != current->fsuid ) {
++		cii->c_cached_uid = current->fsuid;
+                 cii->c_cached_perm = mask;
+         } else
+                 cii->c_cached_perm |= mask;
+@@ -43,8 +43,8 @@
+         cii->c_cached_perm = 0;
+ }
+ 
+-/* remove all acl caches for a principal (or all principals when cred == NULL)*/
+-void coda_cache_clear_all(struct super_block *sb, struct coda_cred *cred)
++/* remove all acl caches for a principal (or all principals when uid == NULL)*/
++void coda_cache_clear_all(struct super_block *sb, uid_t *uid)
+ {
+         struct coda_sb_info *sbi;
+         struct coda_inode_info *cii;
+@@ -56,7 +56,7 @@
+         list_for_each(tmp, &sbi->sbi_cihead)
+         {
+ 		cii = list_entry(tmp, struct coda_inode_info, c_cilist);
+-                if (!cred || coda_cred_eq(cred, &cii->c_cached_cred))
++                if (!uid ||  cii->c_cached_uid == *uid)
+                         cii->c_cached_perm = 0;
+ 	}
+ }
+@@ -68,8 +68,8 @@
+ 	struct coda_inode_info *cii = ITOC(inode);
+         int hit;
+ 	
+-        hit = ((mask & cii->c_cached_perm) == mask) &&
+-                coda_cred_ok(&cii->c_cached_cred);
++        hit = ((mask & cii->c_cached_perm) == mask &&
++	       cii->c_cached_uid == current->fsuid);
+ 
+         CDEBUG(D_CACHE, "%s for ino %ld\n", hit ? "HIT" : "MISS", inode->i_ino);
+         return hit;
+diff -urN linux-2.4.20/fs/coda/cnode.c linux-2.4.20-coda/fs/coda/cnode.c
+--- linux-2.4.20/fs/coda/cnode.c	2003-01-08 12:43:58.000000000 -0500
++++ linux-2.4.20-coda/fs/coda/cnode.c	2003-01-08 12:40:22.000000000 -0500
+@@ -13,23 +13,20 @@
+ 
+ extern int coda_debug;
+ 
+-inline int coda_fideq(ViceFid *fid1, ViceFid *fid2)
++inline int coda_fideq(struct CodaFid *fid1, struct CodaFid *fid2)
+ {
+-	if (fid1->Vnode != fid2->Vnode)   return 0;
+-	if (fid1->Volume != fid2->Volume) return 0;
+-	if (fid1->Unique != fid2->Unique) return 0;
+-	return 1;
++	return memcmp(fid1, fid2, sizeof(struct CodaFid)) == 0;
+ }
+ 
+-inline int coda_isnullfid(ViceFid *fid)
++static struct CodaFid NullFid;
++inline int coda_isnullfid(struct CodaFid *fid)
+ {
+-	if (fid->Vnode || fid->Volume || fid->Unique) return 0;
+-	return 1;
++	return coda_fideq(fid, &NullFid);
+ }
+ 
+ static int coda_inocmp(struct inode *inode, unsigned long ino, void *opaque)
+ {
+-	return (coda_fideq((ViceFid *)opaque, &(ITOC(inode)->c_fid)));
++	return (coda_fideq((struct CodaFid *)opaque, &(ITOC(inode)->c_fid)));
+ }
+ 
+ static struct inode_operations coda_symlink_inode_operations = {
+@@ -62,7 +59,7 @@
+                 init_special_inode(inode, inode->i_mode, attr->va_rdev);
+ }
+ 
+-struct inode * coda_iget(struct super_block * sb, ViceFid * fid,
++struct inode * coda_iget(struct super_block * sb, struct CodaFid * fid,
+ 			 struct coda_vattr * attr)
+ {
+ 	struct inode *inode;
+@@ -97,7 +94,7 @@
+    - link the two up if this is needed
+    - fill in the attributes
+ */
+-int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
++int coda_cnode_make(struct inode **inode, struct CodaFid *fid, struct super_block *sb)
+ {
+         struct coda_vattr attr;
+         int error;
+@@ -125,8 +122,8 @@
+ }
+ 
+ 
+-void coda_replace_fid(struct inode *inode, struct ViceFid *oldfid, 
+-		      struct ViceFid *newfid)
++void coda_replace_fid(struct inode *inode, struct CodaFid *oldfid, 
++		      struct CodaFid *newfid)
+ {
+ 	struct coda_inode_info *cii;
+ 	
+@@ -144,7 +141,7 @@
+ }
+ 
+ /* convert a fid to an inode. */
+-struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb) 
++struct inode *coda_fid_to_inode(struct CodaFid *fid, struct super_block *sb) 
+ {
+ 	ino_t nr;
+ 	struct inode *inode;
+diff -urN linux-2.4.20/fs/coda/coda_linux.c linux-2.4.20-coda/fs/coda/coda_linux.c
+--- linux-2.4.20/fs/coda/coda_linux.c	2003-01-08 12:43:58.000000000 -0500
++++ linux-2.4.20-coda/fs/coda/coda_linux.c	2003-01-08 12:40:22.000000000 -0500
+@@ -29,10 +29,10 @@
+ int coda_fake_statfs;
+ 
+ /* print a fid */
+-char * coda_f2s(ViceFid *f)
++char * coda_f2s(struct CodaFid *f)
+ {
+ 	static char s[60];
+-	sprintf(s, "(%-#lx.%-#lx.%-#lx)", f->Volume, f->Vnode, f->Unique);
++	sprintf(s, "(%-#x.%-#x.%-#x)", f->opaque[1], f->opaque[2], f->opaque[3]);
+ 	return s;
+ }
+ 
+@@ -49,30 +49,6 @@
+     return ( i->i_sb->s_root->d_inode == i );
+ }
+ 
+-/* put the current process credentials in the cred */
+-void coda_load_creds(struct coda_cred *cred)
+-{
+-        cred->cr_uid = (vuid_t) current->uid;
+-        cred->cr_euid = (vuid_t) current->euid;
+-        cred->cr_suid = (vuid_t) current->suid;
+-        cred->cr_fsuid = (vuid_t) current->fsuid;
+-
+-        cred->cr_groupid = (vgid_t) current->gid;
+-        cred->cr_egid = (vgid_t) current->egid;
+-        cred->cr_sgid = (vgid_t) current->sgid;
+-        cred->cr_fsgid = (vgid_t) current->fsgid;
+-}
+-
+-int coda_cred_ok(struct coda_cred *cred)
+-{
+-	return(current->fsuid == cred->cr_fsuid);
+-}
+-
+-int coda_cred_eq(struct coda_cred *cred1, struct coda_cred *cred2)
+-{
+-	return (cred1->cr_fsuid == cred2->cr_fsuid);
+-}
+-
+ unsigned short coda_flags_to_cflags(unsigned short flags)
+ {
+ 	unsigned short coda_flags = 0;
+diff -urN linux-2.4.20/fs/coda/dir.c linux-2.4.20-coda/fs/coda/dir.c
+--- linux-2.4.20/fs/coda/dir.c	2003-01-08 12:43:58.000000000 -0500
++++ linux-2.4.20-coda/fs/coda/dir.c	2003-01-08 12:40:22.000000000 -0500
+@@ -79,6 +79,7 @@
+ };
+ 
+ struct file_operations coda_dir_operations = {
++	llseek:		generic_file_llseek,
+ 	read:		generic_read_dir,
+ 	readdir:	coda_readdir,
+ 	open:		coda_open,
+@@ -93,12 +94,14 @@
+ static struct dentry *coda_lookup(struct inode *dir, struct dentry *entry)
+ {
+ 	struct inode *res_inode = NULL;
+-	struct ViceFid resfid = {0,0,0};
++	struct CodaFid resfid;
+ 	int dropme = 0; /* to indicate entry should not be cached */
+ 	int type = 0;
+ 	int error = 0;
+ 	const char *name = entry->d_name.name;
+ 	size_t length = entry->d_name.len;
++
++	memset(&resfid, 0, sizeof(struct CodaFid));
+ 	
+ 	if ( length > CODA_MAXNAMLEN ) {
+ 	        printk("name too long: lookup, %s (%*s)\n", 
+@@ -207,7 +210,7 @@
+ 	const char *name=de->d_name.name;
+ 	int length=de->d_name.len;
+ 	struct inode *inode;
+-	struct ViceFid newfid;
++	struct CodaFid newfid;
+ 	struct coda_vattr attrs;
+ 
+ 	coda_vfs_stat.create++;
+@@ -245,7 +248,7 @@
+ 	const char *name=de->d_name.name;
+ 	int length=de->d_name.len;
+ 	struct inode *inode;
+-	struct ViceFid newfid;
++	struct CodaFid newfid;
+ 	struct coda_vattr attrs;
+ 
+ 	if ( coda_hasmknod == 0 )
+@@ -288,7 +291,7 @@
+ 	const char *name = de->d_name.name;
+ 	int len = de->d_name.len;
+ 	int error;
+-	struct ViceFid newfid;
++	struct CodaFid newfid;
+ 
+ 	coda_vfs_stat.mkdir++;
+ 
+@@ -507,7 +510,11 @@
+ 		ret = coda_venus_readdir(host_file, filldir, dirent, coda_dentry);
+ 	} else {
+ 		/* potemkin case: we were handed a directory inode */
+-		ret = vfs_readdir(host_file, filldir, dirent);
++		/* Yuk, we can't call vfs_readdir because we are already
++		 * holding the inode semaphore. */
++		ret = -ENOENT;
++		if (!IS_DEADDIR(host_file->f_dentry->d_inode))
++			ret = host_file->f_op->readdir(host_file, filldir, dirent);
+ 	}
+ 
+ 	coda_file->f_pos = host_file->f_pos;
+diff -urN linux-2.4.20/fs/coda/file.c linux-2.4.20-coda/fs/coda/file.c
+--- linux-2.4.20/fs/coda/file.c	2003-01-08 12:43:58.000000000 -0500
++++ linux-2.4.20-coda/fs/coda/file.c	2002-09-24 18:14:04.000000000 -0400
+@@ -117,10 +117,8 @@
+ 	coda_vfs_stat.open++;
+ 
+ 	cfi = kmalloc(sizeof(struct coda_file_info), GFP_KERNEL);
+-	if (!cfi) {
+-		unlock_kernel();
++	if (!cfi)
+ 		return -ENOMEM;
+-	}
+ 
+ 	lock_kernel();
+ 
+@@ -137,7 +135,6 @@
+ 	cfi->cfi_magic = CODA_MAGIC;
+ 	cfi->cfi_mapcount = 0;
+ 	cfi->cfi_container = host_file;
+-	coda_load_creds(&cfi->cfi_cred);
+ 
+ 	host_inode = host_file->f_dentry->d_inode;
+ 	if (coda_inode->i_mapping == &coda_inode->i_data)
+@@ -185,7 +182,7 @@
+ 	if (!cfi || cfi->cfi_magic != CODA_MAGIC) BUG();
+ 
+ 	err = venus_store(coda_inode->i_sb, coda_i2f(coda_inode), coda_flags,
+-			  &cfi->cfi_cred);
++			  cfi->cfi_container->f_uid);
+ 
+ 	if (err == -EOPNOTSUPP) {
+ 		use_coda_close = 1;
+@@ -221,7 +218,7 @@
+ 
+ 	if (use_coda_close)
+ 		err = venus_close(coda_inode->i_sb, coda_i2f(coda_inode),
+-				  coda_flags, &cfi->cfi_cred);
++				  coda_flags, cfi->cfi_container->f_uid);
+ 
+ 	host_inode = cfi->cfi_container->f_dentry->d_inode;
+ 	cii = ITOC(coda_inode);
+diff -urN linux-2.4.20/fs/coda/inode.c linux-2.4.20-coda/fs/coda/inode.c
+--- linux-2.4.20/fs/coda/inode.c	2003-01-08 12:43:58.000000000 -0500
++++ linux-2.4.20-coda/fs/coda/inode.c	2003-01-08 12:40:30.000000000 -0500
+@@ -95,7 +95,7 @@
+         struct inode *root = 0; 
+ 	struct coda_sb_info *sbi = NULL;
+ 	struct venus_comm *vc = NULL;
+-        ViceFid fid;
++        struct CodaFid fid;
+         int error;
+ 	int idx;
+ 
+diff -urN linux-2.4.20/fs/coda/upcall.c linux-2.4.20-coda/fs/coda/upcall.c
+--- linux-2.4.20/fs/coda/upcall.c	2003-01-08 12:43:58.000000000 -0500
++++ linux-2.4.20-coda/fs/coda/upcall.c	2003-01-08 12:40:30.000000000 -0500
+@@ -55,7 +55,7 @@
+         inp->ih.opcode = opcode;
+ 	inp->ih.pid = current->pid;
+ 	inp->ih.pgid = current->pgrp;
+-	coda_load_creds(&(inp->ih.cred));
++	inp->ih.uid = current->uid;
+ 
+ 	return (void*)inp;
+ }
+@@ -74,7 +74,7 @@
+ 
+ 
+ /* the upcalls */
+-int venus_rootfid(struct super_block *sb, ViceFid *fidp)
++int venus_rootfid(struct super_block *sb, struct CodaFid *fidp)
+ {
+         union inputArgs *inp;
+         union outputArgs *outp;
+@@ -88,16 +88,14 @@
+ 	if (error) {
+ 	        printk("coda_get_rootfid: error %d\n", error);
+ 	} else {
+-		*fidp = (ViceFid) outp->coda_root.VFid;
+-		CDEBUG(D_SUPER, "VolumeId: %lx, VnodeId: %lx.\n",
+-		       fidp->Volume, fidp->Vnode);
++		*fidp = (struct CodaFid) outp->coda_root.Fid;
+ 	}
+ 
+ 	CODA_FREE(inp, insize);
+ 	return error;
+ }
+ 
+-int venus_getattr(struct super_block *sb, struct ViceFid *fid, 
++int venus_getattr(struct super_block *sb, struct CodaFid *fid, 
+ 		     struct coda_vattr *attr) 
+ {
+         union inputArgs *inp;
+@@ -106,7 +104,7 @@
+ 
+         insize = SIZE(getattr); 
+ 	UPARG(CODA_GETATTR);
+-        inp->coda_getattr.VFid = *fid;
++        inp->coda_getattr.Fid = *fid;
+ 
+         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+ 	
+@@ -116,7 +114,7 @@
+         return error;
+ }
+ 
+-int venus_setattr(struct super_block *sb, struct ViceFid *fid, 
++int venus_setattr(struct super_block *sb, struct CodaFid *fid, 
+ 		  struct coda_vattr *vattr)
+ {
+         union inputArgs *inp;
+@@ -126,7 +124,7 @@
+ 	insize = SIZE(setattr);
+ 	UPARG(CODA_SETATTR);
+ 
+-        inp->coda_setattr.VFid = *fid;
++        inp->coda_setattr.Fid = *fid;
+ 	inp->coda_setattr.attr = *vattr;
+ 
+         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+@@ -136,9 +134,9 @@
+         return error;
+ }
+ 
+-int venus_lookup(struct super_block *sb, struct ViceFid *fid, 
++int venus_lookup(struct super_block *sb, struct CodaFid *fid, 
+ 		    const char *name, int length, int * type, 
+-		    struct ViceFid *resfid)
++		    struct CodaFid *resfid)
+ {
+         union inputArgs *inp;
+         union outputArgs *outp;
+@@ -149,7 +147,7 @@
+         insize = max_t(unsigned int, offset + length +1, OUTSIZE(lookup));
+ 	UPARG(CODA_LOOKUP);
+ 
+-        inp->coda_lookup.VFid = *fid;
++        inp->coda_lookup.Fid = *fid;
+ 	inp->coda_lookup.name = offset;
+ 	inp->coda_lookup.flags = CLU_CASE_SENSITIVE;
+         /* send Venus a null terminated string */
+@@ -158,15 +156,14 @@
+ 
+         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+ 
+-	*resfid = outp->coda_lookup.VFid;
++	*resfid = outp->coda_lookup.Fid;
+ 	*type = outp->coda_lookup.vtype;
+ 
+ 	CODA_FREE(inp, insize);
+ 	return error;
+ }
+ 
+-int venus_store(struct super_block *sb, struct ViceFid *fid, int flags,
+-                struct coda_cred *cred)
++int venus_store(struct super_block *sb, struct CodaFid *fid, int flags, uid_t uid)
+ {
+         union inputArgs *inp;
+         union outputArgs *outp;
+@@ -175,9 +172,8 @@
+ 	insize = SIZE(store);
+ 	UPARG(CODA_STORE);
+ 	
+-	memcpy(&(inp->ih.cred), cred, sizeof(*cred));
+-	
+-        inp->coda_store.VFid = *fid;
++	inp->ih.uid = uid;
++        inp->coda_store.Fid = *fid;
+         inp->coda_store.flags = flags;
+ 
+         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+@@ -186,7 +182,7 @@
+         return error;
+ }
+ 
+-int venus_release(struct super_block *sb, struct ViceFid *fid, int flags)
++int venus_release(struct super_block *sb, struct CodaFid *fid, int flags)
+ {
+         union inputArgs *inp;
+         union outputArgs *outp;
+@@ -195,7 +191,7 @@
+ 	insize = SIZE(release);
+ 	UPARG(CODA_RELEASE);
+ 	
+-	inp->coda_release.VFid = *fid;
++	inp->coda_release.Fid = *fid;
+ 	inp->coda_release.flags = flags;
+ 
+ 	error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+@@ -204,8 +200,7 @@
+ 	return error;
+ }
+ 
+-int venus_close(struct super_block *sb, struct ViceFid *fid, int flags,
+-                struct coda_cred *cred)
++int venus_close(struct super_block *sb, struct CodaFid *fid, int flags, uid_t uid)
+ {
+ 	union inputArgs *inp;
+ 	union outputArgs *outp;
+@@ -214,9 +209,8 @@
+ 	insize = SIZE(release);
+ 	UPARG(CODA_CLOSE);
+ 	
+-	memcpy(&(inp->ih.cred), cred, sizeof(*cred));
+-	
+-        inp->coda_close.VFid = *fid;
++	inp->ih.uid = uid;
++        inp->coda_close.Fid = *fid;
+         inp->coda_close.flags = flags;
+ 
+         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+@@ -225,7 +219,7 @@
+         return error;
+ }
+ 
+-int venus_open(struct super_block *sb, struct ViceFid *fid,
++int venus_open(struct super_block *sb, struct CodaFid *fid,
+ 		  int flags, struct file **fh)
+ {
+         union inputArgs *inp;
+@@ -235,7 +229,7 @@
+ 	insize = SIZE(open_by_fd);
+ 	UPARG(CODA_OPEN_BY_FD);
+ 
+-        inp->coda_open.VFid = *fid;
++        inp->coda_open.Fid = *fid;
+         inp->coda_open.flags = flags;
+ 
+         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+@@ -246,9 +240,9 @@
+ 	return error;
+ }	
+ 
+-int venus_mkdir(struct super_block *sb, struct ViceFid *dirfid, 
++int venus_mkdir(struct super_block *sb, struct CodaFid *dirfid, 
+ 		   const char *name, int length, 
+-		   struct ViceFid *newfid, struct coda_vattr *attrs)
++		   struct CodaFid *newfid, struct coda_vattr *attrs)
+ {
+         union inputArgs *inp;
+         union outputArgs *outp;
+@@ -259,7 +253,7 @@
+ 	insize = max_t(unsigned int, offset + length + 1, OUTSIZE(mkdir));
+ 	UPARG(CODA_MKDIR);
+ 
+-        inp->coda_mkdir.VFid = *dirfid;
++        inp->coda_mkdir.Fid = *dirfid;
+         inp->coda_mkdir.attr = *attrs;
+ 	inp->coda_mkdir.name = offset;
+         /* Venus must get null terminated string */
+@@ -269,15 +263,15 @@
+         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+ 
+ 	*attrs = outp->coda_mkdir.attr;
+-	*newfid = outp->coda_mkdir.VFid;
++	*newfid = outp->coda_mkdir.Fid;
+ 
+ 	CODA_FREE(inp, insize);
+ 	return error;        
+ }
+ 
+ 
+-int venus_rename(struct super_block *sb, struct ViceFid *old_fid, 
+-		 struct ViceFid *new_fid, size_t old_length, 
++int venus_rename(struct super_block *sb, struct CodaFid *old_fid, 
++		 struct CodaFid *new_fid, size_t old_length, 
+ 		 size_t new_length, const char *old_name, 
+ 		 const char *new_name)
+ {
+@@ -315,9 +309,9 @@
+ 	return error;
+ }
+ 
+-int venus_create(struct super_block *sb, struct ViceFid *dirfid, 
++int venus_create(struct super_block *sb, struct CodaFid *dirfid, 
+ 		    const char *name, int length, int excl, int mode, int rdev,
+-		    struct ViceFid *newfid, struct coda_vattr *attrs) 
++		    struct CodaFid *newfid, struct coda_vattr *attrs) 
+ {
+         union inputArgs *inp;
+         union outputArgs *outp;
+@@ -328,7 +322,7 @@
+ 	insize = max_t(unsigned int, offset + length + 1, OUTSIZE(create));
+ 	UPARG(CODA_CREATE);
+ 
+-        inp->coda_create.VFid = *dirfid;
++        inp->coda_create.Fid = *dirfid;
+         inp->coda_create.attr.va_mode = mode;
+         inp->coda_create.attr.va_rdev = rdev;
+ 	inp->coda_create.excl = excl;
+@@ -342,13 +336,13 @@
+         error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+ 
+ 	*attrs = outp->coda_create.attr;
+-	*newfid = outp->coda_create.VFid;
++	*newfid = outp->coda_create.Fid;
+ 
+ 	CODA_FREE(inp, insize);
+ 	return error;        
+ }
+ 
+-int venus_rmdir(struct super_block *sb, struct ViceFid *dirfid, 
++int venus_rmdir(struct super_block *sb, struct CodaFid *dirfid, 
+ 		    const char *name, int length)
+ {
+         union inputArgs *inp;
+@@ -360,7 +354,7 @@
+ 	insize = max_t(unsigned int, offset + length + 1, OUTSIZE(rmdir));
+ 	UPARG(CODA_RMDIR);
+ 
+-        inp->coda_rmdir.VFid = *dirfid;
++        inp->coda_rmdir.Fid = *dirfid;
+         inp->coda_rmdir.name = offset;
+         memcpy((char *)(inp) + offset, name, length);
+ 	*((char *)inp + offset + length) = '\0';
+@@ -371,7 +365,7 @@
+ 	return error;
+ }
+ 
+-int venus_remove(struct super_block *sb, struct ViceFid *dirfid, 
++int venus_remove(struct super_block *sb, struct CodaFid *dirfid, 
+ 		    const char *name, int length)
+ {
+         union inputArgs *inp;
+@@ -382,7 +376,7 @@
+ 	insize = max_t(unsigned int, offset + length + 1, OUTSIZE(remove));
+ 	UPARG(CODA_REMOVE);
+ 
+-        inp->coda_remove.VFid = *dirfid;
++        inp->coda_remove.Fid = *dirfid;
+         inp->coda_remove.name = offset;
+         memcpy((char *)(inp) + offset, name, length);
+ 	*((char *)inp + offset + length) = '\0';
+@@ -393,7 +387,7 @@
+ 	return error;
+ }
+ 
+-int venus_readlink(struct super_block *sb, struct ViceFid *fid, 
++int venus_readlink(struct super_block *sb, struct CodaFid *fid, 
+ 		      char *buffer, int *length)
+ { 
+         union inputArgs *inp;
+@@ -406,7 +400,7 @@
+ 		     INSIZE(readlink), OUTSIZE(readlink)+ *length + 1);
+ 	UPARG(CODA_READLINK);
+ 
+-        inp->coda_readlink.VFid = *fid;
++        inp->coda_readlink.Fid = *fid;
+     
+         error =  coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+ 	
+@@ -427,8 +421,8 @@
+ 
+ 
+ 
+-int venus_link(struct super_block *sb, struct ViceFid *fid, 
+-		  struct ViceFid *dirfid, const char *name, int len )
++int venus_link(struct super_block *sb, struct CodaFid *fid, 
++		  struct CodaFid *dirfid, const char *name, int len )
+ {
+         union inputArgs *inp;
+         union outputArgs *outp;
+@@ -454,7 +448,7 @@
+         return error;
+ }
+ 
+-int venus_symlink(struct super_block *sb, struct ViceFid *fid,
++int venus_symlink(struct super_block *sb, struct CodaFid *fid,
+ 		     const char *name, int len,
+ 		     const char *symname, int symlen)
+ {
+@@ -468,7 +462,7 @@
+ 	UPARG(CODA_SYMLINK);
+         
+         /*        inp->coda_symlink.attr = *tva; XXXXXX */ 
+-        inp->coda_symlink.VFid = *fid;
++        inp->coda_symlink.Fid = *fid;
+ 
+ 	/* Round up to word boundary and null terminate */
+         inp->coda_symlink.srcname = offset;
+@@ -490,7 +484,7 @@
+         return error;
+ }
+ 
+-int venus_fsync(struct super_block *sb, struct ViceFid *fid)
++int venus_fsync(struct super_block *sb, struct CodaFid *fid)
+ {
+         union inputArgs *inp;
+         union outputArgs *outp; 
+@@ -499,7 +493,7 @@
+ 	insize=SIZE(fsync);
+ 	UPARG(CODA_FSYNC);
+ 
+-        inp->coda_fsync.VFid = *fid;
++        inp->coda_fsync.Fid = *fid;
+         error = coda_upcall(coda_sbp(sb), sizeof(union inputArgs), 
+                             &outsize, inp);
+ 
+@@ -507,7 +501,7 @@
+ 	return error;
+ }
+ 
+-int venus_access(struct super_block *sb, struct ViceFid *fid, int mask)
++int venus_access(struct super_block *sb, struct CodaFid *fid, int mask)
+ {
+         union inputArgs *inp;
+         union outputArgs *outp; 
+@@ -516,7 +510,7 @@
+ 	insize = SIZE(access);
+ 	UPARG(CODA_ACCESS);
+ 
+-        inp->coda_access.VFid = *fid;
++        inp->coda_access.Fid = *fid;
+         inp->coda_access.flags = mask;
+ 
+ 	error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
+@@ -526,7 +520,7 @@
+ }
+ 
+ 
+-int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
++int venus_pioctl(struct super_block *sb, struct CodaFid *fid,
+ 		 unsigned int cmd, struct PioctlData *data)
+ {
+         union inputArgs *inp;
+@@ -543,7 +537,7 @@
+ 		goto exit;
+         }
+ 
+-        inp->coda_ioctl.VFid = *fid;
++        inp->coda_ioctl.Fid = *fid;
+     
+         /* the cmd field was mutated by increasing its size field to
+          * reflect the path and follow args. We need to subtract that
+@@ -865,7 +859,7 @@
+  * The last  allows Venus to replace local fids with global ones
+  * during reintegration.
+  *
+- * CODA_REPLACE -- replace one ViceFid with another throughout the name cache */
++ * CODA_REPLACE -- replace one CodaFid with another throughout the name cache */
+ 
+ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
+ {
+@@ -887,20 +881,20 @@
+ 	  }
+ 
+ 	  case CODA_PURGEUSER : {
+-	           struct coda_cred *cred = &out->coda_purgeuser.cred;
++	           uid_t *uid = &out->coda_purgeuser.uid;
+ 		   CDEBUG(D_DOWNCALL, "CODA_PURGEUSER\n");
+-		   if ( !cred ) {
+-		           printk("PURGEUSER: null cred!\n");
++		   if ( !uid ) {
++		           printk("PURGEUSER: no user!\n");
+ 			   return 0;
+ 		   }
+ 		   clstats(CODA_PURGEUSER);
+-		   coda_cache_clear_all(sb, cred);
++		   coda_cache_clear_all(sb, uid);
+ 		   return(0);
+ 	  }
+ 
+ 	  case CODA_ZAPDIR : {
+ 	          struct inode *inode;
+-		  ViceFid *fid = &out->coda_zapdir.CodaFid;
++		  struct CodaFid *fid = &out->coda_zapdir.Fid;
+ 		  CDEBUG(D_DOWNCALL, "zapdir: fid = %s...\n", coda_f2s(fid));
+ 		  clstats(CODA_ZAPDIR);
+ 
+@@ -920,7 +914,7 @@
+ 
+ 	  case CODA_ZAPFILE : {
+ 	          struct inode *inode;
+-		  struct ViceFid *fid = &out->coda_zapfile.CodaFid;
++		  struct CodaFid *fid = &out->coda_zapfile.Fid;
+ 		  clstats(CODA_ZAPFILE);
+ 		  CDEBUG(D_DOWNCALL, "zapfile: fid = %s\n", coda_f2s(fid));
+ 		  inode = coda_fid_to_inode(fid, sb);
+@@ -936,7 +930,7 @@
+ 
+ 	  case CODA_PURGEFID : {
+ 	          struct inode *inode;
+-		  ViceFid *fid = &out->coda_purgefid.CodaFid;
++		  struct CodaFid *fid = &out->coda_purgefid.Fid;
+ 		  CDEBUG(D_DOWNCALL, "purgefid: fid = %s\n", coda_f2s(fid));
+ 		  clstats(CODA_PURGEFID);
+ 		  inode = coda_fid_to_inode(fid, sb);
+@@ -957,8 +951,8 @@
+ 
+ 	  case CODA_REPLACE : {
+ 	          struct inode *inode;
+-		  ViceFid *oldfid = &out->coda_replace.OldFid;
+-		  ViceFid *newfid = &out->coda_replace.NewFid;
++		  struct CodaFid *oldfid = &out->coda_replace.OldFid;
++		  struct CodaFid *newfid = &out->coda_replace.NewFid;
+ 		  clstats(CODA_REPLACE);
+ 		  CDEBUG(D_DOWNCALL, "CODA_REPLACE\n");
+ 		  inode = coda_fid_to_inode(oldfid, sb);
+diff -urN linux-2.4.20/fs/namei.c linux-2.4.20-coda/fs/namei.c
+--- linux-2.4.20/fs/namei.c	2003-01-08 12:44:19.000000000 -0500
++++ linux-2.4.20-coda/fs/namei.c	2003-01-08 12:48:05.000000000 -0500
+@@ -633,9 +633,12 @@
+ 		 * Check the cached dentry for staleness.
+ 		 */
+ 		dentry = nd->dentry;
+-		if (dentry && dentry->d_op && dentry->d_op->d_revalidate) {
++		if (dentry) {
+ 			err = -ESTALE;
+-			if (!dentry->d_op->d_revalidate(dentry, 0)) {
++			if (!dentry->d_inode || is_bad_inode(dentry->d_inode) ||
++			    (dentry->d_inode->i_op && 
++			     dentry->d_inode->i_op->revalidate &&
++			    !dentry->d_inode->i_op->revalidate(dentry))) {
+ 				d_invalidate(dentry);
+ 				break;
+ 			}
+diff -urN linux-2.4.20/include/linux/coda.h linux-2.4.20-coda/include/linux/coda.h
+--- linux-2.4.20/include/linux/coda.h	2001-04-25 19:18:54.000000000 -0400
++++ linux-2.4.20-coda/include/linux/coda.h	2003-01-08 12:55:23.000000000 -0500
+@@ -112,13 +112,6 @@
+ #define cdev_t dev_t
+ #endif
+ 
+-#ifdef __CYGWIN32__
+-struct timespec {
+-        time_t  tv_sec;         /* seconds */
+-        long    tv_nsec;        /* nanoseconds */
+-};
+-#endif
+-
+ #ifndef __BIT_TYPES_DEFINED__
+ #define __BIT_TYPES_DEFINED__
+ typedef signed char	      int8_t;
+@@ -193,54 +186,16 @@
+ 
+ #endif
+ 
+-#ifndef	_FID_T_
+-#define _FID_T_	1
+-typedef u_long VolumeId;
+-typedef u_long VnodeId;
+-typedef u_long Unique_t;
+-typedef u_long FileVersion;
+-#endif 
++struct CodaFid {
++    u_int32_t opaque[4];
++}; 
+ 
+-#ifndef	_VICEFID_T_
+-#define _VICEFID_T_	1
+-typedef struct ViceFid {
+-    VolumeId Volume;
+-    VnodeId Vnode;
+-    Unique_t Unique;
+-} ViceFid;
+-#endif	/* VICEFID */
+-
+-
+-#ifdef __linux__
+-static __inline__ ino_t  coda_f2i(struct ViceFid *fid)
++static __inline__ ino_t coda_f2i(struct CodaFid *fid)
+ {
+-	if ( ! fid ) 
+-		return 0; 
+-	if (fid->Vnode == 0xfffffffe || fid->Vnode == 0xffffffff)
+-		return ((fid->Volume << 20) | (fid->Unique & 0xfffff));
+-	else
+-		return (fid->Unique + (fid->Vnode<<10) + (fid->Volume<<20));
++	if (!fid) return 0; 
++	return (fid->opaque[3] ^ (fid->opaque[2]<<10) ^ (fid->opaque[1]<<20) ^
++		fid->opaque[0]);
+ }
+-	
+-#else
+-#define coda_f2i(fid)\
+-	((fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0)
+-#endif
+-
+-
+-#ifndef _VUID_T_
+-#define _VUID_T_
+-typedef u_int32_t vuid_t;
+-typedef u_int32_t vgid_t;
+-#endif /*_VUID_T_ */
+-
+-#ifndef _CODACRED_T_
+-#define _CODACRED_T_
+-struct coda_cred {
+-    vuid_t cr_uid, cr_euid, cr_suid, cr_fsuid; /* Real, efftve, set, fs uid*/
+-    vgid_t cr_groupid,     cr_egid, cr_sgid, cr_fsgid; /* same for groups */
+-};
+-#endif 
+ 
+ #ifndef _VENUS_VATTR_T_
+ #define _VENUS_VATTR_T_
+@@ -253,8 +208,8 @@
+ 	long     	va_type;	/* vnode type (for create) */
+ 	u_short		va_mode;	/* files access mode and type */
+ 	short		va_nlink;	/* number of references to file */
+-	vuid_t		va_uid;		/* owner user id */
+-	vgid_t		va_gid;		/* owner group id */
++	uid_t		va_uid;		/* owner user id */
++	gid_t		va_gid;		/* owner group id */
+ 	long		va_fileid;	/* file id */
+ 	u_quad_t	va_size;	/* file size in bytes */
+ 	long		va_blocksize;	/* blocksize preferred for i/o */
+@@ -328,32 +283,32 @@
+ #if 0
+ #define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
+ #define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
+-#endif
+ #define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
++#endif
++#define CODA_KERNEL_VERSION 3 /* 128-bit file identifiers */
+ 
+ /*
+  *        Venus <-> Coda  RPC arguments
+  */
+ struct coda_in_hdr {
+-    unsigned long opcode;
+-    unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
+-    u_short pid;		    /* Common to all */
+-    u_short pgid;		    /* Common to all */
+-    u_short sid;                    /* Common to all */
+-    struct coda_cred cred;	    /* Common to all */
++    u_int32_t opcode;
++    u_int32_t unique;	    /* Keep multiple outstanding msgs distinct */
++    pid_t pid;
++    pid_t pgid;
++    uid_t uid;
+ };
+ 
+ /* Really important that opcode and unique are 1st two fields! */
+ struct coda_out_hdr {
+-    unsigned long opcode;
+-    unsigned long unique;	
+-    unsigned long result;
++    u_int32_t opcode;
++    u_int32_t unique;	
++    u_int32_t result;
+ };
+ 
+ /* coda_root: NO_IN */
+ struct coda_root_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+ };
+ 
+ struct coda_root_in {
+@@ -363,7 +318,7 @@
+ /* coda_open: */
+ struct coda_open_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int	flags;
+ };
+ 
+@@ -377,7 +332,7 @@
+ /* coda_store: */
+ struct coda_store_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int	flags;
+ };
+ 
+@@ -388,7 +343,7 @@
+ /* coda_release: */
+ struct coda_release_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int	flags;
+ };
+ 
+@@ -399,7 +354,7 @@
+ /* coda_close: */
+ struct coda_close_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int	flags;
+ };
+ 
+@@ -410,7 +365,7 @@
+ /* coda_ioctl: */
+ struct coda_ioctl_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+     int	cmd;
+     int	len;
+     int	rwflag;
+@@ -427,7 +382,7 @@
+ /* coda_getattr: */
+ struct coda_getattr_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+ };
+ 
+ struct coda_getattr_out {
+@@ -439,7 +394,7 @@
+ /* coda_setattr: NO_OUT */
+ struct coda_setattr_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+     struct coda_vattr attr;
+ };
+ 
+@@ -450,7 +405,7 @@
+ /* coda_access: NO_OUT */
+ struct coda_access_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int	flags;
+ };
+ 
+@@ -466,14 +421,14 @@
+ /* coda_lookup: */
+ struct  coda_lookup_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int         name;		/* Place holder for data. */
+     int         flags;	
+ };
+ 
+ struct coda_lookup_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+     int	vtype;
+ };
+ 
+@@ -481,7 +436,7 @@
+ /* coda_create: */
+ struct coda_create_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+     struct coda_vattr attr;
+     int excl;
+     int mode;
+@@ -490,7 +445,7 @@
+ 
+ struct coda_create_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+     struct coda_vattr attr;
+ };
+ 
+@@ -498,7 +453,7 @@
+ /* coda_remove: NO_OUT */
+ struct coda_remove_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int name;		/* Place holder for data. */
+ };
+ 
+@@ -509,8 +464,8 @@
+ /* coda_link: NO_OUT */
+ struct coda_link_in {
+     struct coda_in_hdr ih;
+-    ViceFid sourceFid;          /* cnode to link *to* */
+-    ViceFid destFid;            /* Directory in which to place link */
++    struct CodaFid sourceFid;          /* cnode to link *to* */
++    struct CodaFid destFid;            /* Directory in which to place link */
+     int tname;		/* Place holder for data. */
+ };
+ 
+@@ -522,9 +477,9 @@
+ /* coda_rename: NO_OUT */
+ struct coda_rename_in {
+     struct coda_in_hdr ih;
+-    ViceFid	sourceFid;
++    struct CodaFid	sourceFid;
+     int 	srcname;
+-    ViceFid destFid;
++    struct CodaFid destFid;
+     int 	destname;
+ };
+ 
+@@ -535,14 +490,14 @@
+ /* coda_mkdir: */
+ struct coda_mkdir_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     struct coda_vattr attr;
+     int	   name;		/* Place holder for data. */
+ };
+ 
+ struct coda_mkdir_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+     struct coda_vattr attr;
+ };
+ 
+@@ -550,7 +505,7 @@
+ /* coda_rmdir: NO_OUT */
+ struct coda_rmdir_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int name;		/* Place holder for data. */
+ };
+ 
+@@ -561,7 +516,7 @@
+ /* coda_symlink: NO_OUT */
+ struct coda_symlink_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;          /* Directory to put symlink in */
++    struct CodaFid	Fid;          /* Directory to put symlink in */
+     int srcname;
+     struct coda_vattr attr;
+     int tname;
+@@ -574,7 +529,7 @@
+ /* coda_readlink: */
+ struct coda_readlink_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+ };
+ 
+ struct coda_readlink_out {
+@@ -587,7 +542,7 @@
+ /* coda_fsync: NO_OUT */
+ struct coda_fsync_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+ };
+ 
+ struct coda_fsync_out {
+@@ -597,12 +552,12 @@
+ /* coda_vget: */
+ struct coda_vget_in {
+     struct coda_in_hdr ih;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+ };
+ 
+ struct coda_vget_out {
+     struct coda_out_hdr oh;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+     int	vtype;
+ };
+ 
+@@ -615,50 +570,49 @@
+ /* CODA_PURGEUSER is a venus->kernel call */
+ struct coda_purgeuser_out {
+     struct coda_out_hdr oh;
+-    struct coda_cred cred;
++    uid_t uid;
+ };
+ 
+ /* coda_zapfile: */
+ /* CODA_ZAPFILE is a venus->kernel call */
+ struct coda_zapfile_out {  
+     struct coda_out_hdr oh;
+-    ViceFid CodaFid;
++    struct CodaFid Fid;
+ };
+ 
+ /* coda_zapdir: */
+ /* CODA_ZAPDIR is a venus->kernel call */	
+ struct coda_zapdir_out {	  
+     struct coda_out_hdr oh;
+-    ViceFid CodaFid;
++    struct CodaFid Fid;
+ };
+ 
+ /* coda_zapnode: */
+ /* CODA_ZAPVNODE is a venus->kernel call */	
+ struct coda_zapvnode_out { 
+     struct coda_out_hdr oh;
+-    struct coda_cred cred;
+-    ViceFid VFid;
++    struct CodaFid Fid;
+ };
+ 
+ /* coda_purgefid: */
+ /* CODA_PURGEFID is a venus->kernel call */	
+ struct coda_purgefid_out { 
+     struct coda_out_hdr oh;
+-    ViceFid CodaFid;
++    struct CodaFid Fid;
+ };
+ 
+ /* coda_replace: */
+ /* CODA_REPLACE is a venus->kernel call */	
+ struct coda_replace_out { /* coda_replace is a venus->kernel call */
+     struct coda_out_hdr oh;
+-    ViceFid NewFid;
+-    ViceFid OldFid;
++    struct CodaFid NewFid;
++    struct CodaFid OldFid;
+ };
+ 
+ /* coda_open_by_fd: */
+ struct coda_open_by_fd_in {
+     struct coda_in_hdr ih;
+-    ViceFid    VFid;
++    struct CodaFid    Fid;
+     int        flags;
+ };
+ 
+@@ -674,7 +628,7 @@
+ /* coda_open_by_path: */
+ struct coda_open_by_path_in {
+     struct coda_in_hdr ih;
+-    ViceFid	VFid;
++    struct CodaFid	Fid;
+     int	flags;
+ };
+ 
+@@ -785,10 +739,9 @@
+ #define CTL_INO                 -1
+ #define	CTL_FILE		"/coda/.CONTROL"
+ 
+-
+-#define	IS_CTL_FID(fidp)	((fidp)->Volume == CTL_VOL &&\
+-				 (fidp)->Vnode == CTL_VNO &&\
+-				 (fidp)->Unique == CTL_UNI)
++#define	IS_CTL_FID(fidp)	((fidp)->opaque[1] == CTL_VOL &&\
++				 (fidp)->opaque[2] == CTL_VNO &&\
++				 (fidp)->opaque[3] == CTL_UNI)
+ 
+ /* Data passed to mount */
+ 
+diff -urN linux-2.4.20/include/linux/coda.h.orig linux-2.4.20-coda/include/linux/coda.h.orig
+--- linux-2.4.20/include/linux/coda.h.orig	1969-12-31 19:00:00.000000000 -0500
++++ linux-2.4.20-coda/include/linux/coda.h.orig	2003-01-08 12:40:30.000000000 -0500
+@@ -0,0 +1,775 @@
++/* 
++   You may distribute this file under either of the two licenses that
++   follow at your discretion.
++*/
++
++/* BLURB lgpl
++
++                           Coda File System
++                              Release 5
++
++          Copyright (c) 1987-1999 Carnegie Mellon University
++                  Additional copyrights listed below
++
++This code is distributed "AS IS" without warranty of any kind under
++the terms of the GNU Library General Public Licence Version 2, as
++shown in the file LICENSE, or under the license shown below. The
++technical and financial contributors to Coda are listed in the file
++CREDITS.
++
++                        Additional copyrights 
++*/
++
++/*
++
++            Coda: an Experimental Distributed File System
++                             Release 4.0
++
++          Copyright (c) 1987-1999 Carnegie Mellon University
++                         All Rights Reserved
++
++Permission  to  use, copy, modify and distribute this software and its
++documentation is hereby granted,  provided  that  both  the  copyright
++notice  and  this  permission  notice  appear  in  all  copies  of the
++software, derivative works or  modified  versions,  and  any  portions
++thereof, and that both notices appear in supporting documentation, and
++that credit is given to Carnegie Mellon University  in  all  documents
++and publicity pertaining to direct or indirect use of this code or its
++derivatives.
++
++CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
++SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
++FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
++DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
++RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
++ANY DERIVATIVE WORK.
++
++Carnegie  Mellon  encourages  users  of  this  software  to return any
++improvements or extensions that  they  make,  and  to  grant  Carnegie
++Mellon the rights to redistribute these changes without encumbrance.
++*/
++
++/*
++ *
++ * Based on cfs.h from Mach, but revamped for increased simplicity.
++ * Linux modifications by 
++ * Peter Braam, Aug 1996
++ */
++
++#ifndef _CODA_HEADER_
++#define _CODA_HEADER_
++
++
++
++/* Catch new _KERNEL defn for NetBSD and DJGPP/__CYGWIN32__ */
++#if defined(__NetBSD__) || \
++  ((defined(DJGPP) || defined(__CYGWIN32__)) && !defined(KERNEL))
++#include <sys/types.h>
++#endif 
++
++#ifndef CODA_MAXSYMLINKS
++#define CODA_MAXSYMLINKS 10
++#endif
++
++#if defined(DJGPP) || defined(__CYGWIN32__)
++#ifdef KERNEL
++typedef unsigned long u_long;
++typedef unsigned int u_int;
++typedef unsigned short u_short;
++typedef u_long ino_t;
++typedef u_long dev_t;
++typedef void * caddr_t;
++#ifdef DOS
++typedef unsigned __int64 u_quad_t;
++#else 
++typedef unsigned long long u_quad_t;
++#endif
++
++#define inline
++
++struct timespec {
++        long       ts_sec;
++        long       ts_nsec;
++};
++#else  /* DJGPP but not KERNEL */
++#include <sys/time.h>
++typedef unsigned long long u_quad_t;
++#endif /* !KERNEL */
++#endif /* !DJGPP */
++
++
++#if defined(__linux__)
++#define cdev_t u_quad_t
++#ifndef __KERNEL__
++#if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
++#define _UQUAD_T_ 1
++typedef unsigned long long u_quad_t;
++#endif
++#else /*__KERNEL__ */
++typedef unsigned long long u_quad_t;
++#endif /* __KERNEL__ */
++#else
++#define cdev_t dev_t
++#endif
++
++#ifdef __CYGWIN32__
++struct timespec {
++        time_t  tv_sec;         /* seconds */
++        long    tv_nsec;        /* nanoseconds */
++};
++#endif
++
++#ifndef __BIT_TYPES_DEFINED__
++#define __BIT_TYPES_DEFINED__
++typedef signed char	      int8_t;
++typedef unsigned char	    u_int8_t;
++typedef short		     int16_t;
++typedef unsigned short	   u_int16_t;
++typedef int		     int32_t;
++typedef unsigned int	   u_int32_t;
++#endif
++
++
++/*
++ * Cfs constants
++ */
++#define CODA_MAXNAMLEN   255
++#define CODA_MAXPATHLEN  1024
++#define CODA_MAXSYMLINK  10
++
++/* these are Coda's version of O_RDONLY etc combinations
++ * to deal with VFS open modes
++ */
++#define	C_O_READ	0x001
++#define	C_O_WRITE       0x002
++#define C_O_TRUNC       0x010
++#define C_O_EXCL	0x100
++#define C_O_CREAT	0x200
++
++/* these are to find mode bits in Venus */ 
++#define C_M_READ  00400
++#define C_M_WRITE 00200
++
++/* for access Venus will use */
++#define C_A_C_OK    8               /* Test for writing upon create.  */
++#define C_A_R_OK    4               /* Test for read permission.  */
++#define C_A_W_OK    2               /* Test for write permission.  */
++#define C_A_X_OK    1               /* Test for execute permission.  */
++#define C_A_F_OK    0               /* Test for existence.  */
++
++
++
++#ifndef _VENUS_DIRENT_T_
++#define _VENUS_DIRENT_T_ 1
++struct venus_dirent {
++        unsigned long	d_fileno;		/* file number of entry */
++        unsigned short	d_reclen;		/* length of this record */
++        unsigned char 	d_type;			/* file type, see below */
++        unsigned char	d_namlen;		/* length of string in d_name */
++        char		d_name[CODA_MAXNAMLEN + 1];/* name must be no longer than this */
++};
++#undef DIRSIZ
++#define DIRSIZ(dp)      ((sizeof (struct venus_dirent) - (CODA_MAXNAMLEN+1)) + \
++                         (((dp)->d_namlen+1 + 3) &~ 3))
++
++/*
++ * File types
++ */
++#define	CDT_UNKNOWN	 0
++#define	CDT_FIFO	 1
++#define	CDT_CHR		 2
++#define	CDT_DIR		 4
++#define	CDT_BLK		 6
++#define	CDT_REG		 8
++#define	CDT_LNK		10
++#define	CDT_SOCK	12
++#define	CDT_WHT		14
++
++/*
++ * Convert between stat structure types and directory types.
++ */
++#define	IFTOCDT(mode)	(((mode) & 0170000) >> 12)
++#define	CDTTOIF(dirtype)	((dirtype) << 12)
++
++#endif
++
++#ifndef	_FID_T_
++#define _FID_T_	1
++typedef u_long VolumeId;
++typedef u_long VnodeId;
++typedef u_long Unique_t;
++typedef u_long FileVersion;
++#endif 
++
++struct CodaFid {
++    u_int32_t opaque[4];
++}; 
++
++#define coda_f2i(fid)\
++	((fid) ? ((fid)->opaque[3] + ((fid)->opaque[2]<<10) + ((fid)->opaque[1]<<20)) : 0)
++
++
++#ifndef _VUID_T_
++#define _VUID_T_
++typedef u_int32_t vuid_t;
++typedef u_int32_t vgid_t;
++#endif /*_VUID_T_ */
++
++#ifndef _VENUS_VATTR_T_
++#define _VENUS_VATTR_T_
++/*
++ * Vnode types.  VNON means no type.
++ */
++enum coda_vtype	{ C_VNON, C_VREG, C_VDIR, C_VBLK, C_VCHR, C_VLNK, C_VSOCK, C_VFIFO, C_VBAD };
++
++struct coda_vattr {
++	long     	va_type;	/* vnode type (for create) */
++	u_short		va_mode;	/* files access mode and type */
++	short		va_nlink;	/* number of references to file */
++	vuid_t		va_uid;		/* owner user id */
++	vgid_t		va_gid;		/* owner group id */
++	long		va_fileid;	/* file id */
++	u_quad_t	va_size;	/* file size in bytes */
++	long		va_blocksize;	/* blocksize preferred for i/o */
++	struct timespec	va_atime;	/* time of last access */
++	struct timespec	va_mtime;	/* time of last modification */
++	struct timespec	va_ctime;	/* time file changed */
++	u_long		va_gen;		/* generation number of file */
++	u_long		va_flags;	/* flags defined for file */
++	cdev_t	        va_rdev;	/* device special file represents */
++	u_quad_t	va_bytes;	/* bytes of disk space held by file */
++	u_quad_t	va_filerev;	/* file modification number */
++};
++
++#endif 
++
++/* structure used by CODA_STATFS for getting cache information from venus */
++struct coda_statfs {
++    int32_t f_blocks;
++    int32_t f_bfree;
++    int32_t f_bavail;
++    int32_t f_files;
++    int32_t f_ffree;
++};
++
++/*
++ * Kernel <--> Venus communications.
++ */
++
++#define CODA_ROOT	2
++#define CODA_OPEN_BY_FD	3
++#define CODA_OPEN	4
++#define CODA_CLOSE	5
++#define CODA_IOCTL	6
++#define CODA_GETATTR	7
++#define CODA_SETATTR	8
++#define CODA_ACCESS	9
++#define CODA_LOOKUP	10
++#define CODA_CREATE	11
++#define CODA_REMOVE	12
++#define CODA_LINK	13
++#define CODA_RENAME	14
++#define CODA_MKDIR	15
++#define CODA_RMDIR	16
++#define CODA_SYMLINK	18
++#define CODA_READLINK	19
++#define CODA_FSYNC	20
++#define CODA_VGET	22
++#define CODA_SIGNAL	23
++#define CODA_REPLACE	 24 /* DOWNCALL */
++#define CODA_FLUSH       25 /* DOWNCALL */
++#define CODA_PURGEUSER   26 /* DOWNCALL */
++#define CODA_ZAPFILE     27 /* DOWNCALL */
++#define CODA_ZAPDIR      28 /* DOWNCALL */
++#define CODA_PURGEFID    30 /* DOWNCALL */
++#define CODA_OPEN_BY_PATH 31
++#define CODA_RESOLVE     32
++#define CODA_REINTEGRATE 33
++#define CODA_STATFS	 34
++#define CODA_STORE	 35
++#define CODA_RELEASE	 36
++#define CODA_NCALLS 37
++
++#define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID)
++
++#define VC_MAXDATASIZE	    8192
++#define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
++                            VC_MAXDATASIZE  
++
++#define CIOC_KERNEL_VERSION _IOWR('c', 10, sizeof (int))
++
++#if 0
++#define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
++#define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
++#define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
++#endif
++#define CODA_KERNEL_VERSION 3 /* 128-bit file identifiers */
++
++/*
++ *        Venus <-> Coda  RPC arguments
++ */
++struct coda_in_hdr {
++    unsigned long opcode;
++    unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
++    pid_t pid;
++    pid_t pgid;
++    uid_t uid;
++};
++
++/* Really important that opcode and unique are 1st two fields! */
++struct coda_out_hdr {
++    unsigned long opcode;
++    unsigned long unique;	
++    unsigned long result;
++};
++
++/* coda_root: NO_IN */
++struct coda_root_out {
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++};
++
++struct coda_root_in {
++    struct coda_in_hdr in;
++};
++
++/* coda_open: */
++struct coda_open_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int	flags;
++};
++
++struct coda_open_out {
++    struct coda_out_hdr oh;
++    cdev_t	dev;
++    ino_t	inode;
++};
++
++
++/* coda_store: */
++struct coda_store_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int	flags;
++};
++
++struct coda_store_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_release: */
++struct coda_release_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int	flags;
++};
++
++struct coda_release_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_close: */
++struct coda_close_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int	flags;
++};
++
++struct coda_close_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_ioctl: */
++struct coda_ioctl_in {
++    struct coda_in_hdr ih;
++    struct CodaFid Fid;
++    int	cmd;
++    int	len;
++    int	rwflag;
++    char *data;			/* Place holder for data. */
++};
++
++struct coda_ioctl_out {
++    struct coda_out_hdr oh;
++    int	len;
++    caddr_t	data;		/* Place holder for data. */
++};
++
++
++/* coda_getattr: */
++struct coda_getattr_in {
++    struct coda_in_hdr ih;
++    struct CodaFid Fid;
++};
++
++struct coda_getattr_out {
++    struct coda_out_hdr oh;
++    struct coda_vattr attr;
++};
++
++
++/* coda_setattr: NO_OUT */
++struct coda_setattr_in {
++    struct coda_in_hdr ih;
++    struct CodaFid Fid;
++    struct coda_vattr attr;
++};
++
++struct coda_setattr_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_access: NO_OUT */
++struct coda_access_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int	flags;
++};
++
++struct coda_access_out {
++    struct coda_out_hdr out;
++};
++
++
++/* lookup flags */
++#define CLU_CASE_SENSITIVE     0x01
++#define CLU_CASE_INSENSITIVE   0x02
++
++/* coda_lookup: */
++struct  coda_lookup_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int         name;		/* Place holder for data. */
++    int         flags;	
++};
++
++struct coda_lookup_out {
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++    int	vtype;
++};
++
++
++/* coda_create: */
++struct coda_create_in {
++    struct coda_in_hdr ih;
++    struct CodaFid Fid;
++    struct coda_vattr attr;
++    int excl;
++    int mode;
++    int 	name;		/* Place holder for data. */
++};
++
++struct coda_create_out {
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++    struct coda_vattr attr;
++};
++
++
++/* coda_remove: NO_OUT */
++struct coda_remove_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int name;		/* Place holder for data. */
++};
++
++struct coda_remove_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_link: NO_OUT */
++struct coda_link_in {
++    struct coda_in_hdr ih;
++    struct CodaFid sourceFid;          /* cnode to link *to* */
++    struct CodaFid destFid;            /* Directory in which to place link */
++    int tname;		/* Place holder for data. */
++};
++
++struct coda_link_out {
++    struct coda_out_hdr out;
++};
++
++
++/* coda_rename: NO_OUT */
++struct coda_rename_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	sourceFid;
++    int 	srcname;
++    struct CodaFid destFid;
++    int 	destname;
++};
++
++struct coda_rename_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_mkdir: */
++struct coda_mkdir_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    struct coda_vattr attr;
++    int	   name;		/* Place holder for data. */
++};
++
++struct coda_mkdir_out {
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++    struct coda_vattr attr;
++};
++
++
++/* coda_rmdir: NO_OUT */
++struct coda_rmdir_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int name;		/* Place holder for data. */
++};
++
++struct coda_rmdir_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_symlink: NO_OUT */
++struct coda_symlink_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;          /* Directory to put symlink in */
++    int srcname;
++    struct coda_vattr attr;
++    int tname;
++};
++
++struct coda_symlink_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_readlink: */
++struct coda_readlink_in {
++    struct coda_in_hdr ih;
++    struct CodaFid Fid;
++};
++
++struct coda_readlink_out {
++    struct coda_out_hdr oh;
++    int	count;
++    caddr_t	data;		/* Place holder for data. */
++};
++
++
++/* coda_fsync: NO_OUT */
++struct coda_fsync_in {
++    struct coda_in_hdr ih;
++    struct CodaFid Fid;
++};
++
++struct coda_fsync_out {
++    struct coda_out_hdr out;
++};
++
++/* coda_vget: */
++struct coda_vget_in {
++    struct coda_in_hdr ih;
++    struct CodaFid Fid;
++};
++
++struct coda_vget_out {
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++    int	vtype;
++};
++
++
++/* CODA_SIGNAL is out-of-band, doesn't need data. */
++/* CODA_INVALIDATE is a venus->kernel call */
++/* CODA_FLUSH is a venus->kernel call */
++
++/* coda_purgeuser: */
++/* CODA_PURGEUSER is a venus->kernel call */
++struct coda_purgeuser_out {
++    struct coda_out_hdr oh;
++    uid_t uid;
++};
++
++/* coda_zapfile: */
++/* CODA_ZAPFILE is a venus->kernel call */
++struct coda_zapfile_out {  
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++};
++
++/* coda_zapdir: */
++/* CODA_ZAPDIR is a venus->kernel call */	
++struct coda_zapdir_out {	  
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++};
++
++/* coda_zapnode: */
++/* CODA_ZAPVNODE is a venus->kernel call */	
++struct coda_zapvnode_out { 
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++};
++
++/* coda_purgefid: */
++/* CODA_PURGEFID is a venus->kernel call */	
++struct coda_purgefid_out { 
++    struct coda_out_hdr oh;
++    struct CodaFid Fid;
++};
++
++/* coda_replace: */
++/* CODA_REPLACE is a venus->kernel call */	
++struct coda_replace_out { /* coda_replace is a venus->kernel call */
++    struct coda_out_hdr oh;
++    struct CodaFid NewFid;
++    struct CodaFid OldFid;
++};
++
++/* coda_open_by_fd: */
++struct coda_open_by_fd_in {
++    struct coda_in_hdr ih;
++    struct CodaFid    Fid;
++    int        flags;
++};
++
++struct coda_open_by_fd_out {
++    struct coda_out_hdr oh;
++    int fd;
++
++#ifdef __KERNEL__
++    struct file *fh; /* not passed from userspace but used in-kernel only */
++#endif
++};
++
++/* coda_open_by_path: */
++struct coda_open_by_path_in {
++    struct coda_in_hdr ih;
++    struct CodaFid	Fid;
++    int	flags;
++};
++
++struct coda_open_by_path_out {
++    struct coda_out_hdr oh;
++	int path;
++};
++
++/* coda_statfs: NO_IN */
++struct coda_statfs_in {
++    struct coda_in_hdr in;
++};
++
++struct coda_statfs_out {
++    struct coda_out_hdr oh;
++    struct coda_statfs stat;
++};
++
++/* 
++ * Occasionally, we don't cache the fid returned by CODA_LOOKUP. 
++ * For instance, if the fid is inconsistent. 
++ * This case is handled by setting the top bit of the type result parameter.
++ */
++#define CODA_NOCACHE          0x80000000
++
++union inputArgs {
++    struct coda_in_hdr ih;		/* NB: every struct below begins with an ih */
++    struct coda_open_in coda_open;
++    struct coda_store_in coda_store;
++    struct coda_release_in coda_release;
++    struct coda_close_in coda_close;
++    struct coda_ioctl_in coda_ioctl;
++    struct coda_getattr_in coda_getattr;
++    struct coda_setattr_in coda_setattr;
++    struct coda_access_in coda_access;
++    struct coda_lookup_in coda_lookup;
++    struct coda_create_in coda_create;
++    struct coda_remove_in coda_remove;
++    struct coda_link_in coda_link;
++    struct coda_rename_in coda_rename;
++    struct coda_mkdir_in coda_mkdir;
++    struct coda_rmdir_in coda_rmdir;
++    struct coda_symlink_in coda_symlink;
++    struct coda_readlink_in coda_readlink;
++    struct coda_fsync_in coda_fsync;
++    struct coda_vget_in coda_vget;
++    struct coda_open_by_fd_in coda_open_by_fd;
++    struct coda_open_by_path_in coda_open_by_path;
++    struct coda_statfs_in coda_statfs;
++};
++
++union outputArgs {
++    struct coda_out_hdr oh;		/* NB: every struct below begins with an oh */
++    struct coda_root_out coda_root;
++    struct coda_open_out coda_open;
++    struct coda_ioctl_out coda_ioctl;
++    struct coda_getattr_out coda_getattr;
++    struct coda_lookup_out coda_lookup;
++    struct coda_create_out coda_create;
++    struct coda_mkdir_out coda_mkdir;
++    struct coda_readlink_out coda_readlink;
++    struct coda_vget_out coda_vget;
++    struct coda_purgeuser_out coda_purgeuser;
++    struct coda_zapfile_out coda_zapfile;
++    struct coda_zapdir_out coda_zapdir;
++    struct coda_zapvnode_out coda_zapvnode;
++    struct coda_purgefid_out coda_purgefid;
++    struct coda_replace_out coda_replace;
++    struct coda_open_by_fd_out coda_open_by_fd;
++    struct coda_open_by_path_out coda_open_by_path;
++    struct coda_statfs_out coda_statfs;
++};    
++
++union coda_downcalls {
++    /* CODA_INVALIDATE is a venus->kernel call */
++    /* CODA_FLUSH is a venus->kernel call */
++    struct coda_purgeuser_out purgeuser;
++    struct coda_zapfile_out zapfile;
++    struct coda_zapdir_out zapdir;
++    struct coda_zapvnode_out zapvnode;
++    struct coda_purgefid_out purgefid;
++    struct coda_replace_out replace;
++};
++
++
++/*
++ * Used for identifying usage of "Control" and pioctls
++ */
++
++#define PIOCPARM_MASK 0x0000ffff
++struct ViceIoctl {
++        caddr_t in, out;        /* Data to be transferred in, or out */
++        short in_size;          /* Size of input buffer <= 2K */
++        short out_size;         /* Maximum size of output buffer, <= 2K */
++};
++
++struct PioctlData {
++        const char *path;
++        int follow;
++        struct ViceIoctl vi;
++};
++
++#define	CODA_CONTROL		".CONTROL"
++#define CODA_CONTROLLEN           8
++#define	CTL_VOL			-1
++#define	CTL_VNO			-1
++#define	CTL_UNI			-1
++#define CTL_INO                 -1
++#define	CTL_FILE		"/coda/.CONTROL"
++
++
++#define	IS_CTL_FID(fidp)	((fidp)->Volume == CTL_VOL &&\
++				 (fidp)->Vnode == CTL_VNO &&\
++				 (fidp)->Unique == CTL_UNI)
++
++/* Data passed to mount */
++
++#define CODA_MOUNT_VERSION 1
++
++struct coda_mount_data {
++	int		version;
++	int		fd;       /* Opened device */
++};
++
++#endif 
++
+diff -urN linux-2.4.20/include/linux/coda_cache.h linux-2.4.20-coda/include/linux/coda_cache.h
+--- linux-2.4.20/include/linux/coda_cache.h	2001-06-12 14:06:54.000000000 -0400
++++ linux-2.4.20-coda/include/linux/coda_cache.h	2003-01-08 12:40:30.000000000 -0500
+@@ -13,7 +13,7 @@
+ /* credential cache */
+ void coda_cache_enter(struct inode *inode, int mask);
+ void coda_cache_clear_inode(struct inode *);
+-void coda_cache_clear_all(struct super_block *sb, struct coda_cred *cred);
++void coda_cache_clear_all(struct super_block *sb, uid_t *uid);
+ int coda_cache_check(struct inode *inode, int mask);
+ 
+ /* for downcalls and attributes and lookups */
+diff -urN linux-2.4.20/include/linux/coda_fs_i.h linux-2.4.20-coda/include/linux/coda_fs_i.h
+--- linux-2.4.20/include/linux/coda_fs_i.h	2003-01-08 12:44:01.000000000 -0500
++++ linux-2.4.20-coda/include/linux/coda_fs_i.h	2003-01-08 12:40:30.000000000 -0500
+@@ -17,11 +17,11 @@
+  * coda fs inode data
+  */
+ struct coda_inode_info {
+-        struct ViceFid     c_fid;	/* Coda identifier */
++        struct CodaFid     c_fid;	/* Coda identifier */
+         u_short	           c_flags;     /* flags (see below) */
+ 	struct list_head   c_cilist;    /* list of all coda inodes */
+ 	int		   c_mapcount;	/* how often is this inode mmapped */
+-        struct coda_cred   c_cached_cred; /* credentials of cached perms */
++        uid_t		   c_cached_uid; /* credentials of cached perms */
+         unsigned int       c_cached_perm; /* cached access permissions */
+ };
+ 
+@@ -33,7 +33,6 @@
+ 	int		 cfi_magic;	/* magic number */
+ 	int		 cfi_mapcount;  /* how often this file is mapped */
+ 	struct file	*cfi_container;	/* container file for this cnode */
+-	struct coda_cred cfi_cred;	/* credentials of opener */
+ };
+ 
+ #define CODA_FTOC(file) ((struct coda_file_info *)((file)->private_data))
+@@ -44,11 +43,11 @@
+ #define C_DYING       0x4   /* from venus (which died) */
+ #define C_PURGE       0x8
+ 
+-int coda_cnode_make(struct inode **, struct ViceFid *, struct super_block *);
+-struct inode *coda_iget(struct super_block *sb, struct ViceFid *fid, struct coda_vattr *attr);
++int coda_cnode_make(struct inode **, struct CodaFid *, struct super_block *);
++struct inode *coda_iget(struct super_block *sb, struct CodaFid *fid, struct coda_vattr *attr);
+ int coda_cnode_makectl(struct inode **inode, struct super_block *sb);
+-struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb);
+-void coda_replace_fid(struct inode *, ViceFid *, ViceFid *);
++struct inode *coda_fid_to_inode(struct CodaFid *fid, struct super_block *sb);
++void coda_replace_fid(struct inode *, struct CodaFid *, struct CodaFid *);
+ 
+ #endif
+ #endif
+diff -urN linux-2.4.20/include/linux/coda_linux.h linux-2.4.20-coda/include/linux/coda_linux.h
+--- linux-2.4.20/include/linux/coda_linux.h	2003-01-08 12:44:02.000000000 -0500
++++ linux-2.4.20-coda/include/linux/coda_linux.h	2003-01-08 12:40:30.000000000 -0500
+@@ -42,7 +42,7 @@
+ int coda_permission(struct inode *inode, int mask);
+ int coda_revalidate_inode(struct dentry *);
+ int coda_notify_change(struct dentry *, struct iattr *);
+-int coda_isnullfid(ViceFid *fid);
++int coda_isnullfid(struct CodaFid *fid);
+ 
+ /* global variables */
+ extern int coda_debug;
+@@ -50,20 +50,17 @@
+ extern int coda_fake_statfs;
+ 
+ /* this file:  heloers */
+-static __inline__ struct ViceFid *coda_i2f(struct inode *);
++static __inline__ struct CodaFid *coda_i2f(struct inode *);
+ static __inline__ char *coda_i2s(struct inode *);
+ static __inline__ void coda_flag_inode(struct inode *, int flag);
+-char *coda_f2s(ViceFid *f);
++char *coda_f2s(struct CodaFid *f);
+ int coda_isroot(struct inode *i);
+ int coda_iscontrol(const char *name, size_t length);
+ 
+-void coda_load_creds(struct coda_cred *cred);
+ void coda_vattr_to_iattr(struct inode *, struct coda_vattr *);
+ void coda_iattr_to_vattr(struct iattr *, struct coda_vattr *);
+ unsigned short coda_flags_to_cflags(unsigned short);
+ void print_vattr( struct coda_vattr *attr );
+-int coda_cred_ok(struct coda_cred *cred);
+-int coda_cred_eq(struct coda_cred *cred1, struct coda_cred *cred2);
+ 
+ /* sysctl.h */
+ void coda_sysctl_init(void);
+@@ -109,7 +106,7 @@
+ 
+ #define ITOC(inode) (&((inode)->u.coda_i))
+ 
+-static __inline__ struct ViceFid *coda_i2f(struct inode *inode)
++static __inline__ struct CodaFid *coda_i2f(struct inode *inode)
+ {
+ 	return &(ITOC(inode)->c_fid);
+ }
+diff -urN linux-2.4.20/include/linux/coda_psdev.h linux-2.4.20-coda/include/linux/coda_psdev.h
+--- linux-2.4.20/include/linux/coda_psdev.h	2003-01-08 12:44:02.000000000 -0500
++++ linux-2.4.20-coda/include/linux/coda_psdev.h	2003-01-08 12:40:30.000000000 -0500
+@@ -32,46 +32,44 @@
+ 
+ 
+ /* upcalls */
+-int venus_rootfid(struct super_block *sb, ViceFid *fidp);
+-int venus_getattr(struct super_block *sb, struct ViceFid *fid, 
++int venus_rootfid(struct super_block *sb, struct CodaFid *fidp);
++int venus_getattr(struct super_block *sb, struct CodaFid *fid, 
+ 		     struct coda_vattr *attr);
+-int venus_setattr(struct super_block *, struct ViceFid *, 
++int venus_setattr(struct super_block *, struct CodaFid *, 
+ 		     struct coda_vattr *);
+-int venus_lookup(struct super_block *sb, struct ViceFid *fid, 
++int venus_lookup(struct super_block *sb, struct CodaFid *fid, 
+ 		    const char *name, int length, int *type, 
+-		    struct ViceFid *resfid);
+-int venus_store(struct super_block *sb, struct ViceFid *fid, int flags,
+-		struct coda_cred *);
+-int venus_release(struct super_block *sb, struct ViceFid *fid, int flags);
+-int venus_close(struct super_block *sb, struct ViceFid *fid, int flags,
+-		struct coda_cred *);
+-int venus_open(struct super_block *sb, struct ViceFid *fid,
++		    struct CodaFid *resfid);
++int venus_store(struct super_block *sb, struct CodaFid *fid, int flags, uid_t);
++int venus_release(struct super_block *sb, struct CodaFid *fid, int flags);
++int venus_close(struct super_block *sb, struct CodaFid *fid, int flags, uid_t);
++int venus_open(struct super_block *sb, struct CodaFid *fid,
+ 		int flags, struct file **f);
+-int venus_mkdir(struct super_block *sb, struct ViceFid *dirfid, 
++int venus_mkdir(struct super_block *sb, struct CodaFid *dirfid, 
+ 			  const char *name, int length, 
+-			  struct ViceFid *newfid, struct coda_vattr *attrs);
+-int venus_create(struct super_block *sb, struct ViceFid *dirfid, 
++			  struct CodaFid *newfid, struct coda_vattr *attrs);
++int venus_create(struct super_block *sb, struct CodaFid *dirfid, 
+ 		    const char *name, int length, int excl, int mode, int rdev,
+-		    struct ViceFid *newfid, struct coda_vattr *attrs) ;
+-int venus_rmdir(struct super_block *sb, struct ViceFid *dirfid, 
++		    struct CodaFid *newfid, struct coda_vattr *attrs) ;
++int venus_rmdir(struct super_block *sb, struct CodaFid *dirfid, 
+ 		    const char *name, int length);
+-int venus_remove(struct super_block *sb, struct ViceFid *dirfid, 
++int venus_remove(struct super_block *sb, struct CodaFid *dirfid, 
+ 		 const char *name, int length);
+-int venus_readlink(struct super_block *sb, struct ViceFid *fid, 
++int venus_readlink(struct super_block *sb, struct CodaFid *fid, 
+ 		   char *buffer, int *length);
+-int venus_rename(struct super_block *, struct ViceFid *new_fid, 
+-		 struct ViceFid *old_fid, size_t old_length, 
++int venus_rename(struct super_block *, struct CodaFid *new_fid, 
++		 struct CodaFid *old_fid, size_t old_length, 
+ 		 size_t new_length, const char *old_name, 
+ 		 const char *new_name);
+-int venus_link(struct super_block *sb, struct ViceFid *fid, 
+-		  struct ViceFid *dirfid, const char *name, int len );
+-int venus_symlink(struct super_block *sb, struct ViceFid *fid,
++int venus_link(struct super_block *sb, struct CodaFid *fid, 
++		  struct CodaFid *dirfid, const char *name, int len );
++int venus_symlink(struct super_block *sb, struct CodaFid *fid,
+ 		  const char *name, int len, const char *symname, int symlen);
+-int venus_access(struct super_block *sb, struct ViceFid *fid, int mask);
+-int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
++int venus_access(struct super_block *sb, struct CodaFid *fid, int mask);
++int venus_pioctl(struct super_block *sb, struct CodaFid *fid,
+ 		 unsigned int cmd, struct PioctlData *data);
+ int coda_downcall(int opcode, union outputArgs *out, struct super_block *sb);
+-int venus_fsync(struct super_block *sb, struct ViceFid *fid);
++int venus_fsync(struct super_block *sb, struct CodaFid *fid);
+ int venus_statfs(struct super_block *sb, struct statfs *sfs);
+ 
+ 
