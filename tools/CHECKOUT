@@ -11,10 +11,33 @@
 #
 # Created:  M. Satyanarayanan (Jan 1997)
 
+
+# First define global variables
 set UNIQUEID = 
 set ERRORMSG = "Usage: CHECKOUT ID=<unique Coda version id>"
+set PLATFORM = `uname`
 
-# ******* Process input args ********
+switch ($PLATFORM)
+
+case NetBSD:
+		set RCSCO = "co"
+		breaksw
+
+case Mach:
+		set RCSCO = "rcsco"
+		breaksw
+
+case Linux:	
+		set RCSCO = "co"
+		breaksw
+
+default:	
+		echo "Unknown platform $PLATFORM..."
+		exit -1
+endsw
+
+
+# Next process input args 
 
 # We only have one arg for now, but I bet we'll soon find 
 # the need for more ... 
@@ -73,7 +96,7 @@ echo "Checking out top level..."
 set TOPFILES = RCS/*,v
 foreach TF ($TOPFILES)
 if ($TF == "CHECKOUT,v") continue
-rcsco -r$UNIQUEID -U $TF
+$RCSCO -r$UNIQUEID  $TF
 end
 
 # Begin loop for level 0 directories
@@ -96,7 +119,7 @@ cd $A
 ln -s ../RCS/$A RCS
 
 # Checkout files at level 1
-rcsco -r$UNIQUEID -U RCS/*,v
+$RCSCO -r$UNIQUEID  RCS/*,v
 
 # Begin loop for level 1 directories
 set BLIST = `ls -a RCS`
@@ -112,7 +135,7 @@ cd $B
 ln -s ../RCS/$B RCS
 
 # Checkout files at level 2
-rcsco -r$UNIQUEID -U RCS/*,v
+$RCSCO -r$UNIQUEID  RCS/*,v
 
 # Begin loop for level 2 directories
 set CLIST = `ls -a RCS`
@@ -128,7 +151,7 @@ cd $C
 ln -s ../RCS/$C RCS
 
 # Checkout files at level 3
-rcsco -r$UNIQUEID -U RCS/*,v
+$RCSCO -r$UNIQUEID  RCS/*,v
 
 # Begin loop for level 3 directories
 set DLIST = `ls -a RCS`
@@ -144,7 +167,7 @@ cd $D
 ln -s ../RCS/$D RCS
 
 # Checkout files at level 4
-rcsco -r$UNIQUEID -U RCS/*,v
+$RCSCO -r$UNIQUEID  RCS/*,v
 
 # Make sure there are no level 4 directories!
 set ELIST = `ls -a RCS`
