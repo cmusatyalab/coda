@@ -43,6 +43,7 @@ Pittsburgh, PA.
  */
 #include <recov_vollog.h>
 #include <vice.h>
+#include <dllist.h>
 #include <partition.h>
 #include "voldefs.h"
 
@@ -222,6 +223,11 @@ typedef struct VolumeDiskData {
 #define VMSGSIZE 128
     char	offlineMessage[VMSGSIZE]; /* Why the volume is offline */
     char 	motd[VMSGSIZE];	 	  /* Volume "message of the day" */
+
+    /* Write Back Caching */
+    char	WriteBackEnable;	  /* Can this volume be WB'ed	*/
+    char        WriteBackPad[3];	  /* make size multiple of 4	*/
+    
 } VolumeDiskData;
 
 
@@ -296,7 +302,11 @@ struct Volume {
 				   reintegrated with this volume. */
     ViceStoreId	*reintegrators;	/* List of identifiers representing the last
 				   record reintegrated for each client. Could
-				   be moved to recoverable store if necessary. */
+				   be moved to recoverable store if necessary.
+				*/
+    dllist_head WriteBackHolders;	  /* Which conn to talk to	*/
+    byte       	WriteBackRevokeInProgress;/* Is a revocation happening  */
+    byte	WriteBackRevokeDone;	  /* Done revoking		*/
 };
 typedef struct Volume Volume;
 

@@ -134,9 +134,7 @@ case `uname -sr` in
                 rvmstart=0x50000000 ;;
         NetBSD\ 1.4* )
                 rvmstart=0x50000000 ;;
-        FreeBSD\ 2.2* )
-                rvmstart=0x50000000 ;;
-        FreeBSD\ 3* )
+        FreeBSD\ * )
                 rvmstart=0x50000000 ;;
         *)
                 rvmstart=0x20000000 ;;

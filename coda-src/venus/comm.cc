@@ -642,6 +642,7 @@ void Srvr_Wait() {
 
 void Srvr_Signal() {
     SRVRQ_LOCK();
+    LOG(10, ("SIGNALLING(SRVRQ):\n"));
     SRVRQ_SIGNAL();
     SRVRQ_UNLOCK();
 }

@@ -73,6 +73,7 @@ extern "C" {
 #include <rescomm.h>
 #include <ops.h>
 #include <timing.h>
+#include <writeback.h>
 
 #define	EMPTYDIRBLOCKS	    2
 #define NEWVNODEINODE -1

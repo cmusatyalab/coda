@@ -30,6 +30,7 @@ listed in the file CREDITS.
 
 /* Local constants */
 const int smallStringLength = 64;
+#define MAXSERVLISTLEN 32
 
 /* Venus Version Information */
 extern int VenusMajorVersionNumber;

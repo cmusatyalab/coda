@@ -119,7 +119,8 @@ enum vproctype {    VPT_Main,
 		    VPT_RecovDaemon,
 		    VPT_VmonDaemon,
 		    VPT_AdviceDaemon,
-		    VPT_LRDaemon
+		    VPT_LRDaemon,
+		    VPT_WriteBack
 };
 
 /* Holds user/call specific context. */

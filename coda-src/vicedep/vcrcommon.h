@@ -119,6 +119,8 @@ typedef enum{ Invalid=0, File=1, Directory=2, SymbolicLink=3 } ViceDataType;
 
 typedef enum{ NoCallBack=0, CallBackSet=1 } CallBackStatus;
 
+typedef enum{ NoPermit=0, PermitSet=1 } PermitStatus;
+
 typedef struct ViceStatus {
     RPC2_Unsigned InterfaceVersion;
     ViceDataType VnodeType;

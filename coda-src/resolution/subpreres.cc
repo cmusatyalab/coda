@@ -40,6 +40,7 @@ extern "C" {
 
 #include <errors.h>
 #include <res.h>
+#include <volume.h>
 #include <srv.h>
 #include <codadir.h>
 #include <vrdb.h>

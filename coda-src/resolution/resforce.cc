@@ -41,6 +41,7 @@ extern "C" {
 #include <olist.h>
 #include <errors.h>
 #include <vcrcommon.h>
+#include <volume.h>
 #include <srv.h>
 #include <vlist.h>
 #include <operations.h>

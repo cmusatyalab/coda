@@ -847,3 +847,32 @@ void PrintCallBacks(ViceFid *fid, FILE *fp)
 	if (useofid) GetCallBacks(ofid.Volume, fp);
     }
 }
+
+
+
+/* Clear off all readers on a volume by breaking their callbacks*/
+void WBClearReaders(HostTable * VenusId, VolumeId vid, VolumeId VSGVolnum) {
+    SLog(4, "WBClearReaders: breaking callbacks on volume %x",vid);
+
+    /* break volume callback first */
+    ViceFid fid = NullFid; fid.Volume = vid;
+    struct FileEntry *tfe = FindEntry(&fid);
+    if (tfe) {
+	SLog(4,"WBClearReaders: VID 0x%x  Volume Callback", vid);
+	CodaBreakCallBack(VenusId,&fid,VSGVolnum);
+    }
+    
+    /* print file callbacks for all fids in the volume */
+    for (int j = 0; j < VHASH; j++) {
+	struct FileEntry *nf = 0;
+	for (struct FileEntry *tf = hashTable[j]; tf; tf = nf) {
+	    nf = tf->next;
+	    if (tf->theFid.Volume == vid && tf->theFid.Vnode && tf->theFid.Unique) 
+		{
+		    SLog(4,"WBClearReaders: breaking callbackd on FID 0x%x.%x.%x", tf->theFid.Volume, tf->theFid.Vnode,tf->theFid.Unique);
+		    CodaBreakCallBack(VenusId,&tf->theFid,VSGVolnum);
+		}
+        }
+    }
+    SLog(4,"WBClearReaders: End of callbacks for %x\n", vid);
+}

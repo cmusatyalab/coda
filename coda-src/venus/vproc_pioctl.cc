@@ -49,7 +49,7 @@ extern "C" {
 
 /* from vicedep */
 #include <venusioctl.h>
-
+#include <writeback.h>
 /* from venus */
 #include "comm.h"
 #include "fso.h"
@@ -446,6 +446,9 @@ OI_FreeLocks:
         case VIOC_ENABLEASR:
         case VIOC_DISABLEASR: 
 	case VIOC_LISTCACHE_VOLUME:
+        case VIOC_BEGINWB:
+        case VIOC_STATUSWB:
+        case VIOC_ENDWB:
 	    {
 #ifdef    TIMING
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
@@ -792,6 +795,55 @@ OI_FreeLocks:
 			u.u_error = v->DisableASR(CRTORUID(u.u_cred));
 			break;
 		    }
+              case VIOC_BEGINWB:
+		    {  
+		      /* request writeback caching from the server ! */
+		      u.u_error = v->EnterWriteback();
+		      break;
+		    }
+ 	      case VIOC_AUTOWB:
+		    {
+			v->flags.autowriteback= !v->flags.autowriteback;
+			if (!v->flags.autowriteback) {
+			    eprint("Auto Writeback on volume %s is now disabled");
+			    /* first we need to not be an observer on the volume! 
+			       (massive kluge! -leg, 5/9/99) */
+			    v->Exit(volmode, CRTORUID(u.u_cred));
+			    entered = 0;
+			    u.u_error = v->LeaveWriteback();
+			    if (u.u_error == 0)
+				u.u_error = WB_DISABLED;
+			}
+			else {
+			    eprint("Auto Writeback on volume %s is now enabled");
+			    u.u_error = v->EnterWriteback();
+			    if (u.u_error == 0)
+				u.u_error = WB_PERMIT_GRANTED;
+			}
+		    }
+   	      case VIOC_STATUSWB:
+	      {
+		  int *cp = (int *)data->out;
+		  *cp = v->IsWritebacking();
+		  data->out_size = sizeof(int);
+		  break;
+	      }
+   	      case VIOC_ENDWB:
+		  {
+		  /* first we need to not be an observer on the volume! 
+		     (massive kluge! -leg, 5/9/99) */
+		      v->Exit(volmode, CRTORUID(u.u_cred));
+		      entered = 0;
+		      /* now we'll leave writeback mode */
+		      u.u_error = v->LeaveWriteback();
+		      break;
+		  }
+	      case VIOC_SYNCCACHE:
+		  {
+		      v->Exit(volmode, CRTORUID(u.u_cred));
+		      entered = 0;
+		      u.u_error = v->SyncCache(NULL);
+		  }
 	    }
 
 V_FreeLocks:

@@ -52,6 +52,7 @@ extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #include "venus.private.h"
 #include "venus.version.h"
 #include "venuscb.h"
+#include "venuswb.h"
 #include "venusrecov.h"
 #include "venusvm.h"
 #include "venusvol.h"
@@ -161,6 +162,7 @@ int main(int argc, char **argv) {
     MarinerInit();  /* set up mariner socket */
     WorkerInit();   /* open kernel device */
     CallBackInit(); /* set up callback subsystem and create callback server threads */
+    WritebackInit(); /* set up writeback subsystem */
     AdviceInit();   /* set up AdSrv and start the advice daemon */
     LRInit();	    /* set up local-repair database */
     //    VFSMount();

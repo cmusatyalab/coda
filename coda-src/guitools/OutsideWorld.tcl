@@ -86,6 +86,7 @@ proc GetPartitionUsage { partition } {
 proc GetBandwidthEstimate { server } {
     global Bandwidth
 
+    SendToStdErr $server
     if { [array names Bandwidth $server] == "" } then {
 	set Bandwidth($server) -1
     }

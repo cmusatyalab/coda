@@ -51,6 +51,7 @@ extern "C" {
 #include <olist.h>
 #include <errors.h>
 #include <vcrcommon.h>
+#include <volume.h>
 #include <srv.h>
 #include <codadir.h>
 #include <vrdb.h>

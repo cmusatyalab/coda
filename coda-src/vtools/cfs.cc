@@ -53,6 +53,7 @@ extern "C" {
 #include <vice.h>
 #include <venusioctl.h>
 #include <prs.h>
+#include <writeback.h>
 
 /* get the platform dependent @sys/@cpu expansions */
 #include <coda_expansion.h>
@@ -139,6 +140,10 @@ static void Uncompress(int, char**, int);
 static void UnloadKernel(int, char **, int);
 static void WaitForever(int, char**, int);
 static void WhereIs(int, char**, int);
+static void WriteBackStart(int, char**, int);
+static void WriteBackStop(int, char**, int);
+static void WriteBackAuto(int, char**, int);
+static void SyncCache(int, char**, int);
 static void WriteDisconnect(int, char**, int);
 static void WriteReconnect(int, char**, int);
 
@@ -307,7 +312,7 @@ struct command cmdarray[] =
             NULL
         },
         {"setquota", "sq", SetQuota,
-            "cfs setquota <dir> <blocks>",
+	 "cfs setquota <dir> <blocks>",
              "Set maximum disk quota",
              NULL
         },
@@ -355,9 +360,31 @@ struct command cmdarray[] =
             "cfs writereconnect [<dir> <dir> <dir> ...]",
             "Write connect all volumes, or volumes specified",
             NULL
-        }
+        },
+	{"wbstart", NULL, WriteBackStart,
+	    "cfs wbstart <dir> [<dir> <dir> ...]",
+            "Enable write-back caching on volumes specified",
+            NULL
+        },
+	{"wbstop", NULL, WriteBackStop,
+	    "cfs wbstop <dir> [<dir> <dir> ...]",
+	    "Disable write-back caching on volumes specified",
+	    NULL
+	},
+	{"wbauto", "wb", WriteBackAuto,
+	    "cfs wbauto <dir> [<dir> <dir> ...]",
+	    "Toggle auto write-back cache requesting on volumes specified",
+	    NULL
+	},
+
+	{"forcereintegrate", "fr", SyncCache,
+	    "cfs forcereintegrate <dir> [<dir> <dir> ...]",
+	    "Force modifications in a disconnected volume to the server",
+	    NULL
+	}
 #if 0 /* disabled these until the compression/filcon stuff works --JH */
-        {"slow", NULL, Slow, 
+        ,
+	{"slow", NULL, Slow, 
             "cfs slow <speed (bps)>",
             "Set network speed",
             NULL
@@ -371,7 +398,7 @@ struct command cmdarray[] =
             "cfs uncompress <file> [<file> <file> ...]",
             "Uncompress cached files",
             NULL
-        },
+        }
 #endif
     };
 
@@ -1621,6 +1648,24 @@ static void ListCache(int argc, char *argv[], int opslot)
 }
 
 
+static int WriteBackStatus(char *vol)
+{
+  struct ViceIoctl vio;
+  int rc;
+  int cur;
+
+  vio.in = piobuf;
+  vio.in_size = 0;
+  vio.out = (char *) &cur;
+  vio.out_size = sizeof(int);
+  
+  rc = pioctl(vol, VIOC_STATUSWB, &vio, 0);
+  if (rc < 0) {
+    perror("  VIOC_STATUSWB"); exit(-1);
+  }
+  return cur;
+}
+
 static void ListVolume(int argc, char *argv[], int opslot)
     {
     int i, rc;
@@ -1688,6 +1733,13 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	    printf("  The partition has %lu blocks available out of %lu\n",
 		   vs->PartBlocksAvail, vs->PartMaxBlocks);
 	}
+	printf("  Write-back is ");
+	if (WriteBackStatus(argv[i])) {
+	  printf("enabled\n");
+	} else {
+	  printf("disabled\n");
+	}
+	printf("\n");
 	if (conflict)
 	    printf("  *** There are pending conflicts in this volume ***\n");
 	if (conn_state == Logging || conn_state == Emulating)
@@ -1765,7 +1817,6 @@ static void LsMount (int argc, char *argv[], int opslot)
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
         bzero(piobuf, PIOBUFSIZE);
-
         rc = pioctl(part1, VIOC_AFS_STAT_MT_PT, &vio, 0);
         if (rc < 0)
             {
@@ -2347,6 +2398,131 @@ static void WriteDisconnect(int argc, char *argv[], int opslot)
         }
     }
 
+static void WriteBackStart(int argc, char *argv[], int opslot)
+{
+  int  i = 2, rc, w;
+  struct ViceIoctl vio;
+  
+  if (argc < 3) {
+    printf("Usage: %s\n", cmdarray[opslot].usetxt);
+    exit(-1);
+  }
+  
+  w = getlongest(argc, argv);
+  
+  vio.in = piobuf;
+  vio.in_size = 0;
+  vio.out = 0;
+  vio.out_size = 0;
+  
+  for (i = 2; i < argc; i++) {
+    if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
+    
+    rc = pioctl(argv[i], VIOC_BEGINWB, &vio, 0);
+    if (rc < 0) {
+	fflush(stdout); 
+	perror("  VIOC_BEGINWB");
+	printf("  return code : %d",rc);
+    }
+    else
+	printf("write-back enabled\n");
+  }
+}
+
+static void WriteBackStop(int argc, char *argv[], int opslot)
+{
+  int  i = 2, rc, w;
+  struct ViceIoctl vio;
+  
+  if (argc < 3) {
+    printf("Usage: %s\n", cmdarray[opslot].usetxt);
+    exit(-1);
+  }
+  
+  w = getlongest(argc, argv);
+  
+  vio.in = piobuf;
+  vio.in_size = 0;
+  vio.out = 0;
+  vio.out_size = 0;
+  
+  for (i = 2; i < argc; i++) {
+    if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
+    
+    rc = pioctl(argv[i], VIOC_ENDWB, &vio, 0);
+    if (rc < 0) {
+	fflush(stdout); 
+	perror("  VIOC_ENDWB");
+	printf("  return code : %d",rc);
+    }
+    else
+	printf("write-back disabled\n");
+  }
+}
+
+static void WriteBackAuto(int argc, char *argv[], int opslot)
+{
+  int  i = 2, rc, w;
+  struct ViceIoctl vio;
+  
+  if (argc < 3) {
+    printf("Usage: %s\n", cmdarray[opslot].usetxt);
+    exit(-1);
+  }
+  
+  w = getlongest(argc, argv);
+  
+  vio.in = piobuf;
+  vio.in_size = 0;
+  vio.out = 0;
+  vio.out_size = 0;
+  
+  for (i = 2; i < argc; i++) {
+    if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
+    
+    rc = pioctl(argv[i], VIOC_AUTOWB, &vio, 0);
+    if (rc < 0) {
+	fflush(stdout); 
+	perror("  VIOC_AUTOWB");
+	printf("  return code : %d",rc); 
+    }
+    else if (rc == WB_PERMIT_GRANTED)
+	printf("auto write-back enabled\n");
+    else
+	printf("auto write-back disabled\n");
+  }
+}
+
+static void SyncCache(int argc, char *argv[], int opslot)
+{
+  int  i = 2, rc, w;
+  struct ViceIoctl vio;
+  
+  if (argc < 3) {
+    printf("Usage: %s\n", cmdarray[opslot].usetxt);
+    exit(-1);
+  }
+  
+  w = getlongest(argc, argv);
+  
+  vio.in = piobuf;
+  vio.in_size = 0;
+  vio.out = 0;
+  vio.out_size = 0;
+  
+  for (i = 2; i < argc; i++) {
+    if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
+    
+    rc = pioctl(argv[i], VIOC_SYNCCACHE, &vio, 0);
+    if (rc < 0) {
+	fflush(stdout); 
+	perror("  VIOC_SYNCCACHE"); 
+	printf("  return code : %d",rc);
+    }
+    else
+	printf("modifications reintegrated to server\n");
+  }
+}
 
 static void WriteReconnect(int argc, char *argv[], int opslot)
     {

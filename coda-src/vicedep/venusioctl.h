@@ -174,7 +174,11 @@ extern "C" {
 #define	VIOC_ADAPTIVE		_VICEIOCTL(CFS_IOCTL_BASE + 49)	/* Allow bandwidth adaptation driven connectivity */
 #define	VIOC_LISTCACHE		_VICEIOCTL(CFS_IOCTL_BASE + 50)	/* List cache status */
 #define	VIOC_GET_MT_PT		_VICEIOCTL(CFS_IOCTL_BASE + 51)	/* Get mount point path from volume id */
-
+#define VIOC_BEGINWB            _VICEIOCTL(CFS_IOCTL_BASE + 200) /* start writeback from volume id */
+#define VIOC_ENDWB              _VICEIOCTL(CFS_IOCTL_BASE + 201) /* end writeback from volume id */
+#define VIOC_STATUSWB           _VICEIOCTL(CFS_IOCTL_BASE + 202) /* fetch status from volume id */
+#define VIOC_AUTOWB             _VICEIOCTL(CFS_IOCTL_BASE + 203) /* toggle autowriteback */
+#define VIOC_SYNCCACHE          _VICEIOCTL(CFS_IOCTL_BASE + 204) /* reintegrate now ! */
 
 /*  The following change is made in order to reduce the number of
  * command codes for the local/global repair interface. We now use

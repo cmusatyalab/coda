@@ -115,11 +115,23 @@ extern void ViceTerminate();
 #define	EMPTYSYMLINKBLOCKS  1
 
 
+typedef struct WBConnEntry {            
+    struct dllist_chain others;
+    RPC2_Handle         id;             /* cid for writeback connection */
+    unsigned char       inuse;          /* is this conn in use right now*/
+    unsigned char       deleteme;       /* garbage collect this conn    */
+    unsigned char       dead;           /* dead connection, should be used */
+    unsigned char       reserved;       /* padding */
+    int                 last_used;      /* time this conn last used     */
+} WBConnEntry;
+
 
 typedef struct HostTable {
     RPC2_Handle id;			/* cid for call back connection	*/
+    struct dllist_head	WBconns;	/* must have at least one        */
     unsigned int	host;		/* IP address of host		*/
     unsigned int	port;		/* port address of host		*/
+    RPC2_PeerInfo       peer;           /* RPC2 peer info, for WB       */
     unsigned int	LastCall;	/* time of last call from host	*/
     unsigned int	ActiveCall;	/* time of any call but gettime	*/
     struct ClientEntry	*FirstClient;	/* first connection from host	*/
@@ -142,6 +154,13 @@ typedef struct ClientEntry {
     char		UserName[MAXNAMELENGTH]; /* name of user	*/
     SecretToken		Token;			/* the client's token */
 } ClientEntry;
+
+
+typedef struct WBHolderEntry {
+    struct dllist_chain others;         /* other entries */
+    HostTable *         VenusId;        /* Venus who has it */
+    unsigned long       GrantedAtSecs;  /* timestamp */
+} WBHolderEntry;
 
 
 #define NEWCONNECT "NEWCONNECT"
@@ -315,4 +334,12 @@ extern int AllowResolution;
 /* coppend.c */
 extern void AddToCopPendingTable(ViceStoreId *, ViceFid *);
 
+/* writeback.c */
+extern long FS_ViceGetWBPermit(RPC2_Handle cid, VolumeId Vid, 
+			ViceFid *fid, RPC2_Integer *Permit);
+extern long FS_ViceTossWBPermit(RPC2_Handle cid, VolumeId Vid, ViceFid *fid);
+extern int CheckWriteBack(ViceFid * Fid,ClientEntry * client);
+extern WBConnEntry * findIdleWBConn(HostTable * VenusId);
+
 #endif	not _VICE_SRV_H_
+ 

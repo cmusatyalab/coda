@@ -54,6 +54,7 @@ extern "C" {
 #include "miss.h"
 #include "replacementlog.h"
 #include "rpc_setup.h"
+#include "srv.h"
 
 #define BLOCKING 1
 #define NONBLOCKING 0
@@ -706,10 +707,38 @@ fprintf(stderr, "got those stats\n"); fflush(stderr);
 		 "Received request for network connectivity information\n");
 	  CheckNetworkConnectivityForFilters();
 
+	} else if (strncmp(rfc, "GetListOfServerNames",
+			   strlen("GetListOfServerNames")) == 0) {
+		long rc,i;
+		RPC2_Integer numservers = MAXSERVLISTLEN;
+		ServerEnt servers[MAXSERVLISTLEN];
+		char srv_names[MAXSERVLISTLEN][MAXHOSTLENGTH];
+
+		for(i=0;i<numservers;i++)
+		    servers[i].name = (RPC2_String)srv_names[i];
+		
+		ObtainWriteLock(&VenusLock);
+		fprintf(stderr, "getting servers from venus\n"); fflush(stderr);
+		rc = C_GetServerInformation(VenusCID,MAXSERVERS,&numservers, servers);
+		fprintf(stderr, "got server list\n"); fflush(stderr);
+		ReleaseWriteLock(&VenusLock);
+		if (rc != RPC2_SUCCESS) {
+			fprintf(stderr, "rc = %d\n", rc); 
+			fflush(stderr);
+		}
+		CODA_ASSERT(rc == RPC2_SUCCESS);
+		
+		// Send the information to CodaConsole 
+		//sprintf(msg,"%d\n",numservers);
+		for(i=0;i<numservers;i++) {
+			sprintf(msg, "%s ", servers[i].name);
+		} 
+		strcat(msg,"\n");
+		SendToConsole(msg);
 	} else if (strncmp(rfc, "", strlen("")) == 0) {
 	  /* Input line was empty -- ignore it */
-
-	} else {
+	}
+	else {
 	  fprintf(stderr, "Input Unrecognized: \n%s\n\n", rfc); 
 	  fflush(stderr);
 	}

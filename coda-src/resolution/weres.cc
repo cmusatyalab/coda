@@ -37,6 +37,7 @@ extern "C" {
 
 
 #include <vcrcommon.h>
+#include <volume.h>
 #include <srv.h>
 #include <vrdb.h>
 #include <volume.h>

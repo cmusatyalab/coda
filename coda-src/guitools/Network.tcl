@@ -269,6 +269,8 @@ proc ServerBandwidthEstimateEvent { args } {
     for { set i 0 } { $i < [llength $args] } { incr i } {
 	set server [ParseServerName [lindex $args $i]]
 	incr i
+	SendToStdErr "SBEE"
+	SendToStdErr $server
 	set Bandwidth($server) [lindex $args $i]
     }
 

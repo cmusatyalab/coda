@@ -629,6 +629,7 @@ class vdb {
     int WriteDisconnect(unsigned =V_UNSETAGE, unsigned =V_UNSETREINTLIMIT);
     int WriteReconnect();
     void GetCmlStats(cmlstats&, cmlstats&);
+    void AutoRequestWBPermit();
 
     int CallBackBreak(VolumeId);
     void TakeTransition();	/* also a daemon function */
@@ -666,7 +667,13 @@ struct VolFlags {
     /*T*/unsigned repair_mode : 1;		/* 0 --> normal, 1 --> repair */
     /*T*/unsigned resolve_me: 1;		/* resolve reintegrated objects */
     /*T*/unsigned weaklyconnected : 1;		/* are we weakly connected? */ 
-    unsigned reserved : 19;
+    /*T*/unsigned writebacking : 1;             /* writeback mode */
+    /*T*/unsigned writebackreint :1;            /* is reint due to permit revoke? */
+    /*T*/unsigned sync_reintegrate :1;          /* perform reintegration synchronously*/
+    /*T*/unsigned sync_reintegrate_done :1;     /* synchronous reintegration done */
+    /*T*/unsigned autowriteback :1;             /* auto try to get wb permit */
+    /*T*/unsigned staylogging : 1;              /* keep logging after |cml| == 0*/
+    unsigned reserved : 14;
 };
 
 
@@ -775,6 +782,8 @@ class volent {
     ViceVersionVector VVV;              /* (maximal) volume version vector */
     /*T*/int VCBHits;			/* number of references hitting this callback */
 
+    /*T*/PermitStatus VPStatus;   /* do we have a volume permit? */
+
     /* VSR (Vmon Session Record) stuff. */
     /*T*/olist *vsr_list;
     /*T*/VmonSessionId VsrUnique;
@@ -793,17 +802,20 @@ class volent {
     /*T*/int saved_uid;
     /*T*/int saved_hits;
     /*T*/ int saved_misses;
-
+    
     /* Local synchronization state. */
     /*T*/char sync;
     /*T*/int refcnt;			/* count of fsobj's plus active threads */
-
+   
     /* Read/Write Sharing Stats */
     long current_disc_time;		/* disconnection time for the current period */
     long current_reco_time;		/* reconnection time for the current period */
     short current_rws_cnt;		/* read/write sharing count */
     short current_disc_read_cnt;	/* disconnected read count */
     rec_dlist rwsq;			/* a queue of read/write sharing stats to be reported */
+
+    /* WriteBack Caching */
+    cmlent * reintegrate_until;
 
     /* Constructors, destructors, and private utility routines. */
     void *operator new(size_t);
@@ -935,6 +947,18 @@ class volent {
     int HaveStamp() { return(VV_Cmp(&VVV, &NullVV) != VV_EQ); }
     void PackVS(int, RPC2_CountedBS *);
     void CollateVCB(mgrpent *, RPC2_Integer *, CallBackStatus *);
+
+    /* write-back routines */
+    int EnterWriteback();
+    int LeaveWriteback();
+    int StopWriteback(ViceFid *fid);
+    int SyncCache(ViceFid * fid);
+    int IsWritebacking() { return flags.writebacking; }
+    void SetPermit();
+    int GetPermit();
+    int HavePermit() { return (VPStatus == PermitSet); }
+    void ClearPermit();
+    int PermitBreak();
 
     /* VSR routines. */
     vsr *GetVSR(vuid_t);

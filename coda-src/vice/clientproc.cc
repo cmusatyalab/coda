@@ -66,6 +66,7 @@ extern "C" {
 
 #include <srv.h>
 #include <vice.private.h>
+#include <writeback.h>
 
 
 /* *****  Private variables  ***** */
@@ -227,6 +228,8 @@ static HostTable *client_GetVenusId(RPC2_Handle RPCid)
 		 * typing  hostTable.host as struct in_addr!!! --JH */
 		sprintf(hostTable[i].HostName, "%s", inet_ntoa(*(struct in_addr*)&hostTable[i].host));
 		Lock_Init(&hostTable[i].lock);
+		hostTable[i].peer = peer;
+		list_head_init(&hostTable[i].WBconns);
 		maxHost++;
 	}
 
@@ -247,6 +250,18 @@ HostTable *CLIENT_FindHostEntry(RPC2_Handle CBCid)
     return(he);
 }
 
+/* look up a host entry given the (writeback) connection id */
+HostTable *CLIENT_FindWBHostEntry(RPC2_Handle WBCid) 
+{
+    HostTable *he = NULL;
+
+    /* Look for a corresponding host entry. */
+    for (int i = 0; i < maxHost; i++)
+	if (hostTable[i].id == WBCid) 
+	    he = &hostTable[i];
+
+    return(he);
+}
 
 int CLIENT_MakeCallBackConn(ClientEntry *Client) 
 {
@@ -446,4 +461,85 @@ void CLIENT_GetWorkStats(int *num, int *active, unsigned int time)
 			if (hostTable[i].ActiveCall > time) 
 				(*active)++;
 		}
+}
+
+
+int CLIENT_MakeWriteBackConn(HostTable * HostEntry) 
+{
+
+    RPC2_PeerInfo * peer;
+    RPC2_SubsysIdent sid;
+    RPC2_CountedBS cbs;
+    RPC2_BindParms bp;
+
+    /* Look up the Peer info corresponding to the given RPC handle. */
+    // CODA_ASSERT(RPC2_GetPeerInfo(Client->RPCid, &peer) == 0);
+    peer = &(HostEntry->peer);
+    CODA_ASSERT(peer->RemoteHost.Tag == RPC2_HOSTBYINETADDR);
+    CODA_ASSERT(peer->RemotePort.Tag == RPC2_PORTBYINETNUMBER);
+
+    /* Subsystem identifier. */
+    sid.Tag = RPC2_SUBSYSBYID;
+    sid.Value.SubsysId = SUBSYS_WB;
+
+    /* Dummy argument. */
+    cbs.SeqLen = 0;
+
+    /* Bind parameters */
+    bp.SecurityLevel = RPC2_OPENKIMONO;
+    bp.EncryptionType = RPC2_XOR;
+    bp.SideEffectType = SMARTFTP;
+    bp.ClientIdent = &cbs;
+    bp.SharedSecret = NULL;
+
+    /* Set up the new ConnEnt */
+    WBConnEntry * newconn = (WBConnEntry *)malloc(sizeof(WBConnEntry));
+    if (newconn == NULL)                   /* malloc failed */
+	return(ENOMEM);
+    newconn->inuse = 1;
+    newconn->deleteme = 0;
+    newconn->dead  = 0;
+
+    ObtainWriteLock(&HostEntry->lock);
+
+    /* Attempt the bind. */
+    long errorCode = RPC2_NewBinding(&peer->RemoteHost, 
+				     &peer->RemotePort, &sid, &bp, 
+				     &newconn->id);
+    if (errorCode > RPC2_ELIMIT) {
+	    if (errorCode != 0) {
+		    SLog(0, "RPC2_Bind to %s port %d for writeback got %s",
+			 HostEntry->HostName, HostEntry->port, 
+			 ViceErrorMsg((int) errorCode));
+ 	    }
+
+	    /* Make a gratuitous probe of the writeback connection. */
+	    errorCode = RevokeWBPermit(newconn->id, 0);
+	    if (errorCode < 0) {
+		SLog(0, "Writeback message to %s port %d failed %s",
+		     HostEntry->HostName, HostEntry->port, 
+		     ViceErrorMsg((int) errorCode));
+		newconn->id = 0;
+	    }
+	    else
+		SLog(0, "Writeback message to %s port %d on conn %x succeeded",
+		     HostEntry->HostName, HostEntry->port,newconn->id);
+    } else {
+	    SLog(0, "RPC2_Bind to %s port %d for writeback failed %s",
+		 HostEntry->HostName, HostEntry->port, 
+		 ViceErrorMsg((int) errorCode));
+	    newconn->id = 0;
+    }
+
+    if (newconn->id == 0) {
+	errorCode = EPIPE;  /* don't return an RPC2 error */
+	free(newconn);
+    }
+    else {
+	newconn->inuse = 0;
+	list_add(&newconn->others,&(HostEntry->WBconns));
+    }
+    ReleaseWriteLock(&HostEntry->lock);
+    
+    return((int) errorCode);
 }

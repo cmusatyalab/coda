@@ -218,20 +218,20 @@ proc CheckStatisticsCurrency { currency } {
     global Statistics
 
     set now [nowSeconds]
-
+    
     set age [expr $now - $Statistics(LastUpdateTime)]
     if { $age > $currency } then {
 	set Statistics(Done) 0
-
-#	Lock Output
-#	puts "GetCacheStatistics"
-#	puts ""
-#	flush stdout
-#	UnLock Output
+	
+	#	Lock Output
+	#	puts "GetCacheStatistics"
+	#	puts ""
+	#	flush stdout
+	#	UnLock Output
 	SendToAdviceMonitor "GetCacheStatistics"
-
+	
 	set answer [gets stdin]
-
+	
 	SetStatistics [lindex $answer 0] [lindex $answer 1] \
 	    [lindex $answer 2] [lindex $answer 3] \
 	    [lindex $answer 4] [lindex $answer 5]
@@ -240,15 +240,16 @@ proc CheckStatisticsCurrency { currency } {
 
 proc GetListOfServerNames { } {
 
-	SendToAdviceMonitor "GetListOfServerNames"
+    SendToAdviceMonitor "GetListOfServerNames"
 
-	set answer [gets stdin]
-
-	return $answer
+    set answer [gets stdin]
+    SendToStdErr $answer
+    return $answer
 }
 
 proc InitServers { } {
     global Servers
+    global ServerList
     global Bandwidth
 
     # Ethernet bandwidth = 10 mb/sec == 1310720 B/sec
@@ -258,7 +259,9 @@ proc InitServers { } {
     set Bandwidth(WeakThreshold) [expr $Bandwidth(Ethernet) / 10]
 
     set servers [GetListOfServerNames]
+    
     set Max [expr [llength $servers] / 2]
+    set ServerList $servers
 
     # Get output lock
     Lock Output
@@ -269,19 +272,29 @@ proc InitServers { } {
     for { set i 0; set j 0 }  \
 	{ $i < [llength $servers] }  \
 	{ set i [expr $i + 2]; incr j } {
-	    set Servers($j) [lindex $servers $i]
-            set bw [lindex $servers [expr $i+1]]
+	    set Servers($j) [lindex [split [lindex $servers $j] .] 0]
+	    #set Servers($j) [lindex $servers $i]
+            #set bw [lindex $servers [expr $i+1]]
+	    set bw -1
             if { $bw == -1 } then { set bw $Bandwidth(Ethernet) }
 	    set Bandwidth($j) $bw
 	    set Bandwidth($Servers($j)) $bw
+	    
+	    SendToStdErr $i
+	    SendToStdErr $j
+	    SendToStdErr $bw
+	    SendToStdErr $Servers($j)
+	    SendToStdErr $Bandwidth($j)
+	    SendToStdErr $Bandwidth($Servers($j))
 
             # Send command overs to Advice Monitor, assume no filters until we hear otherwise
-	    puts [format "server = %s" [lindex $servers $i]]
-	    set Servers([lindex $servers $i]:Mode) "natural"
+	    set s $Servers($j)
+	    puts [format "server = %s" ${s}]
+	    set Servers(${s}:Mode) "natural"
 
 	    # Assume server is available and strongly connected
-	    set Servers([lindex $servers $i]:State) "on"
-            set Servers([lindex $servers $i]:Connectivity) "strong"
+	    set Servers(${s}:State) "on"
+            set Servers(${s}:Connectivity) "strong"
             
     }
     # Print final string
@@ -293,6 +306,7 @@ proc InitServers { } {
     UnLock Output
 
     set Servers(numServers) $j
+
 }
 
 
@@ -447,7 +461,7 @@ proc InitData { } {
     SpaceInitData
     NetworkInitData
     AdviceInitData
-    HoardWalkInitData
+    HoardWalkInitData    
     RepairInitData
     ReintegrationInitData
     TaskInitData

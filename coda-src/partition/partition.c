@@ -174,11 +174,15 @@ DP_Get(char *name)
     struct dllist_head *tmp;
 
     tmp = &DiskPartitionList;
-    while( (tmp = tmp->next) != &DiskPartitionList) {
+    dp = list_entry(tmp, struct DiskPartition, dp_chain);
+    
+    while((dp) && (strcmp(dp->name, name) != 0) &&
+	  ((tmp = tmp->next) != &DiskPartitionList)) {
 	    dp = list_entry(tmp, struct DiskPartition, dp_chain);
-	    if (strcmp(dp->name, name) == 0)
-		    break;
     }
+
+    if ((strcmp(dp->name,name)) != 0)
+	    dp = NULL;
     if (dp == NULL) {
 	VLog(0, "VGetPartition Couldn't find partition %s", name);
     }

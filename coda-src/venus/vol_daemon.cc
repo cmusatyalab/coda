@@ -65,6 +65,7 @@ static const int VolCheckPointInterval = 10 * 60;
 static	const int UserRPMInterval = 15 * 60;  
 static const int LocalSubtreeCheckInterval = 10 * 60;
 static const int VolTrickleReintegrateInterval = 10;
+static const int AutoWBPermitRequestInterval = 30;
 
 char vol_sync;
 
@@ -90,6 +91,7 @@ void VolDaemon() {
     unsigned long LastRPM = curr_time;
     unsigned long LastLocalSubtree = curr_time;
     unsigned long LastTrickleReintegrate = curr_time;
+    unsigned long LastWBPermitRequest = curr_time;
 
     for (;;) {
 	VprocWait(&vol_sync);
@@ -150,6 +152,12 @@ void VolDaemon() {
 		LastLocalSubtree = curr_time;
 		
 		VDB->CheckLocalSubtree();
+	    }
+	    
+	    /* Ask for a writeback permit if I don't have one */
+	    if (curr_time - LastWBPermitRequest >= AutoWBPermitRequestInterval) {
+		LastWBPermitRequest = curr_time;
+		VDB->AutoRequestWBPermit;
 	    }
 	}
 
@@ -313,14 +321,24 @@ void vdb::CheckLocalSubtree()
       v->CheckLocalSubtree();
 }
 
+void vdb::AutoRequestWBPermit()
+{
+    vol_iterator next;
+    volent *v;
+    while ((v = next()))
+	if (v->flags.autowriteback && !v->flags.writebacking)
+	    v->EnterWriteback();
+}
+
 
 /* Note: no longer in class vdb, since VolDaemon isn't (Satya, 5/20/95) */
 void TrickleReintegrate() {
     LOG(100, ("TrickleReintegrate(): \n"));
-
+    
     /* For each volume. */
     vol_iterator vnext;
     volent *v;
+
     while ((v = vnext())) {
 	if (FID_VolIsFake(v->vid)) 
 		continue;

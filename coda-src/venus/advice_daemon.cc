@@ -292,18 +292,23 @@ long S_GetServerInformation(RPC2_Handle _cid, RPC2_Integer maxServers, RPC2_Inte
 
     ServerPrint();
 
-    *numServers = (long)srvent::srvtab->count();
-    LOG(0, ("GetServerInformation: numServers = %d\n", numServers));
-
+    //    *numServers = (long)srvent::srvtab->count();
+    
     srv_iterator next;
     srvent *s;
     int i = 0;
     while (((s = next())) && (i < maxServers)) {
-      if (s->name != NULL) 
-	strncpy((char *)servers[i].name, s->name, strlen(s->name)+1);
-      servers[i].bw = s->bw;
-      i++;
+	if (s->name != NULL) {
+	    servers[i].name = (RPC2_String)malloc(strlen(s->name)+1);
+	    if (servers[i].name == NULL)
+		return(ENOMEM);
+	    strncpy((char *)servers[i].name, s->name, strlen(s->name)+1);
+	    servers[i].bw = s->bw;
+	    i++;
+	}
     }
+    *numServers = i;
+    LOG(0, ("GetServerInformation: numServers = %d\n", numServers));
 
     LOG(0, ("L GetServerInformation\n"));
     return(RPC2_SUCCESS);

@@ -168,7 +168,7 @@ void volent::Reintegrate()
      * but we don't want to interfere with trickle reintegration so we test
      * whether a full block has been sent (see also cmlent::GetReintegrateable)
      */
-    } while(nrecs == 100 && !code);
+    } while(((nrecs == 100) || ((nrecs > 0) && flags.writebackreint))  && !code);
 
     flags.reintegrating = 0;
 
@@ -621,9 +621,23 @@ int cmlent::ReintReady()
     }
 
     /* if vol staying write disconnected, check age. does not apply to ASRs */
-    if (!ASRinProgress && vol->flags.logv && !Aged()) {
+    if (!ASRinProgress && vol->flags.logv && !Aged() && !vol->flags.writebackreint) {
 	LOG(100, ("cmlent::ReintReady: record too young\n"));
 	return 0; 
+    }
+
+    /* if cmlent is last one needing to be flushed after writeback revocation */
+    if ((this == vol->reintegrate_until) && (vol->flags.sync_reintegrate) && (vol->flags.writebackreint)){
+	LOG(100, ("cmlent::ReintReady: last record needing to be written synchronously\n"));
+	vol->flags.sync_reintegrate_done = 1;
+	return 1;
+    }
+
+    /* we want to stop on the record after the one above */
+    if (vol->flags.sync_reintegrate_done) {
+	LOG(100, ("cmlent::ReintReady: record doesn't need to be written synchronously\n"));
+	vol->flags.sync_reintegrate_done = 0;
+	return 0;
     }
 
     return 1;
@@ -660,26 +674,32 @@ olist reintegrator::freelist;
 /* It finds a free reintegrator (or creates a new one), 
    sets up its context, and gives it a poke. */
 void Reintegrate(volent *v) {
-    LOG(0, ("Reintegrate\n"));
-    /* Get a free reintegrator. */
-    reintegrator *r;
-    olink *o = reintegrator::freelist.get();
-    r = (o == 0)
-      ? new reintegrator
-      : strbase(reintegrator, o, handle);
-    CODA_ASSERT(r->idle);
-
-    /* Set up context for reintegrator. */
-    r->u.Init();
+    if (v->flags.sync_reintegrate) {
+	LOG(0,("Reintegrate synchronously\n\n"));
+	v->Reintegrate();
+    }
+    else {
+	LOG(0, ("Reintegrate\n"));
+	/* Get a free reintegrator. */
+	reintegrator *r;
+	olink *o = reintegrator::freelist.get();
+	r = (o == 0)
+	    ? new reintegrator
+	    : strbase(reintegrator, o, handle);
+	CODA_ASSERT(r->idle);
+	
+	/* Set up context for reintegrator. */
+	r->u.Init();
 #ifdef __BSD44__
-    r->u.u_cred.cr_uid = v->CML.Owner();
+	r->u.u_cred.cr_uid = v->CML.Owner();
 #endif /* __BSD44__ */
-    r->u.u_vol = v;
-    v->hold();		    /* vproc::End_VFS() will do release */
-
-    /* Set it going. */
-    r->idle = 0;
-    VprocSignal((char *)r);	/* ignored for new reintegrators */
+	r->u.u_vol = v;
+	v->hold();		    /* vproc::End_VFS() will do release */
+	
+	/* Set it going. */
+	r->idle = 0;
+	VprocSignal((char *)r);	/* ignored for new reintegrators */
+    }
 }
 
 
@@ -727,7 +747,6 @@ void reintegrator::main(void *parm) {
 
 	/* Do the reintegration. */
 	u.u_vol->Reintegrate();
-	
 	seq++;
 	idle = 1;
 

@@ -104,7 +104,7 @@ extern "C" {
 
 }
 #endif __cplusplus
-
+#include <volume.h>
 #include <srv.h>
 #include <vice.private.h>
 #include <recov.h>
@@ -348,6 +348,7 @@ main(int argc, char *argv[])
 	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
 	SLog(0, "[-debarrenize] [-optstore] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-newchecklevel checklevel] [-canonicalize] [-usenscclock");
+	SLog(0, " [-nowriteback]");
 
 	exit(-1);
     }
@@ -1313,6 +1314,8 @@ static int ParseArgs(int argc, char *argv[])
 {
     int   i;
 
+    OpenWritebackConn = 1;
+
     for (i = 1; i < argc; i++) {
 	if (!strcmp(argv[i], "-d")) {
 	    debuglevel = atoi(argv[++i]);
@@ -1497,6 +1500,10 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-debarrenize")) {
 		extern int debarrenize;
 		debarrenize = 1;
+	    }
+	else 
+	    if (!strcmp(argv[i], "-nowriteback")) {
+		OpenWritebackConn = 0;
 	    }
 	else 
 	    if (!strcmp(argv[i], "-optstore")) {

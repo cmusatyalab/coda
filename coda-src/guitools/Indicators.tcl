@@ -167,8 +167,11 @@ proc InitIndicatorArray { } {
     set Indicator(ControlPanel:State)  [ControlPanelDetermineState]
     set Indicator(Tokens:State)        [TokensDetermineState]
     set Indicator(Space:State)         [SpaceDetermineState]
-    set Indicator(Network:State)       [NetworkDetermineState]
-    set Indicator(Advice:State)        [AdviceDetermineState]
+ 
+   SendToStdErr "done." 
+   set Indicator(Network:State)       [NetworkDetermineState]
+     set Indicator(Advice:State)        [AdviceDetermineState]
+
     set Indicator(HoardWalk:State)     [HoardWalkDetermineState]
     set Indicator(Reintegration:State) [ReintegrationDetermineState]
     set Indicator(Repair:State)        [RepairDetermineState]

@@ -50,6 +50,7 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include <volume.h>
 #include <srv.h>
 #include <volume.h>
 #include <coppend.h>

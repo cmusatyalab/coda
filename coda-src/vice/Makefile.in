@@ -80,7 +80,8 @@ objects=srvproc.o	\
 	clientproc.o	\
 	vicecb.o	\
 	smon.o		\
-	ViceErrorMsg.o	
+	ViceErrorMsg.o	\
+	writeback.o
 
 codasrv: ${objects} srv.o dummyplumber.o ${CLIBS} $(LIBFIXUP)
 	$(CXX) $(LIBFLAGS) srv.o ${objects} dummyplumber.o ${CLIBS} $(LIBDB) -lm $(LIBFIXUP) -o codasrv

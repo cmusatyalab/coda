@@ -20,15 +20,23 @@ proc gettimeofday { } {
 #                                 Main program                               #
 ##############################################################################
 
-puts stderr "preStdErr: CodaConsole started"
+#puts stdout "StdOut: CodaConsole started"
+puts stderr "StdErr: CodaConsole started"
 flush stderr
+
+#temp fix
+set dir "/usr/local/lib/coda"
+source "/usr/local/lib/coda/tclIndex"
 
 #
 # Setup the auto_path variable to use the Coda tcl library
 #
 lappend auto_path +GUIDIR+
 
-SendToStdErr "autopath'd correctly"
+#SendToStdErr "autopath'd correctly"
+set dir "."
+source "tclIndex"
+
 
 #
 #  Start Timing Events

@@ -406,10 +406,11 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 
 	/* Only limit on reintegration time if the logv flag is set.
 	 * otherwise we are trying get back to connected state. --JH */
+
+	/* XXX remove me -  WriteBack XXX */
 	if (!ASRinProgress && vol->flags.logv &&
 	    (this_time + cur_reintegration_time > vol->ReintLimit)) 
-	    break;
-
+		break;
 	/* 
 	 * freeze the record to prevent cancellation.  Note that
 	 * reintegrating --> frozen, but the converse is not true.

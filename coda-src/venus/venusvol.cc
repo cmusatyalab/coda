@@ -734,6 +734,14 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     current_rws_cnt = 0;
     current_disc_read_cnt = 0;
     bzero((void *)&rwsq, (int)sizeof(rec_dlist));
+
+    /* Writeback */
+    flags.writebacking = 0;
+    flags.writebackreint = 0;
+    flags.sync_reintegrate = 0;
+    flags.sync_reintegrate_done = 0;
+    flags.staylogging = 0;
+    flags.autowriteback = 0;
 }
 
 
@@ -1191,6 +1199,8 @@ void volent::Exit(int mode, vuid_t vuid) {
 	if (waiter_count > 0)
 	    Signal();
     }
+    if (!VOLBUSY(this))                     /* signal when volume is not busy */
+	VprocSignal((char*)&(this->shrd_count),0);
 }
 
 void volent::GetVolInfoForAdvice(int *unique_references, int *unique_unreferenced) {
@@ -1423,12 +1433,15 @@ void volent::TakeTransition() {
     switch(state) {
 	case Hoarding:
 	case Emulating:
-  	     nextstate = (size == 0) ? Emulating : ((flags.logv || CML.count() > 0) ?
-		    Logging : ((res_list->count() > 0) ? Resolving : Hoarding));
+  	     nextstate = (size == 0) ? Emulating : 
+		     ((flags.logv || CML.count() > 0) ? Logging : 
+		      ((res_list->count() > 0) ? Resolving : Hoarding));
 	     break;
         case Logging:
-	     nextstate = (size == 0) ? Emulating : ((res_list->count() > 0) ? Resolving : 
-		    ((flags.logv || CML.count() > 0) ? Logging : Hoarding));
+	     nextstate = (size == 0) ? Emulating : 
+		     ((res_list->count() > 0) ? Resolving : 
+		      ((flags.logv || flags.staylogging || CML.count() > 0) ? Logging :
+		       Hoarding));
 	     break;
 
 	case Resolving:
@@ -1725,6 +1738,117 @@ int volent::WriteReconnect() {
     return(code);
 }
 
+int volent::EnterWriteback() {
+    int code = 0;
+
+    if (type == REPVOL && flags.writebacking == 0) {
+	LOG(1, ("volent::EnterWriteback()\n"));
+	/* request a permit */
+	if (GetPermit()) {
+	    Recov_BeginTrans();
+	        RVMLIB_REC_OBJECT(*this);
+		flags.writebacking = 1;
+		/* copied from initializing WriteDisconnect */
+		flags.logv = 1;
+		flags.staylogging = 1;
+		AgeLimit = V_DEFAULTAGE; // do i want this?
+		ReintLimit = V_DEFAULTREINTLIMIT;
+	    Recov_EndTrans(MAXFP);
+            flags.transition_pending = 1;
+	} else {
+	    code = ERETRY;	// didn't get the permit!
+				// probably not the right error
+	}
+    } else {
+	if (type != REPVOL) {
+	    code = EINVAL;
+	} else {
+	    code = 0;		// already in writebacking mode
+	}
+    }
+
+    return (code);
+}
+
+int volent::LeaveWriteback() {
+    int code = 0;
+
+    if (type == REPVOL) {
+	LOG(1, ("volent::LeaveWriteback()\n"));
+	connent *c;
+	int code = GetAdmConn(&c);
+	ViceFid fid;
+	fid.Volume = vid;
+	fid.Vnode = 0;
+	fid.Unique = 0;
+	if (!code) ViceTossWBPermit(c->connid, vid, &fid);
+    } else
+	code = EINVAL;
+
+    return (code);
+}
+
+int volent::SyncCache(ViceFid * fid) {
+
+	if (type == REPVOL) {
+	    LOG(1,("volent::SyncCache()\n"));
+	    flags.transition_pending = 1;
+	    if (flags.transition_pending && VOLBUSY(this)) { 
+		// wait until they get out of our volume
+		VprocWait((char*)&this->shrd_count);
+	    }
+	    
+	    flags.sync_reintegrate = 1;
+	    /* reintegrate_until = findDepenents(fid); */
+	    reintegrate_until == NULL;   //do the whole volume
+	    
+	    if (flags.transition_pending) { 
+		// make sure no one else took our transition
+		TakeTransition();
+	    }
+	    Reintegrate();	             // this is safe to call
+	    flags.sync_reintegrate = 0;
+	    return 0;
+	}
+	else
+	    LOG(1,("volent::SyncCache(): not replicated volume."));
+	return EINVAL;
+}
+
+int volent::StopWriteback(ViceFid *fid) {
+    int code = 0;
+
+    if (type == REPVOL) {
+	LOG(1, ("volent::StopWriteback()\n"));
+	if (flags.writebacking) {
+	    ClearPermit();
+	    Recov_BeginTrans();
+	           RVMLIB_REC_OBJECT(*this);
+		   flags.writebacking = 0;
+		   flags.writebackreint = 1;
+		   /* copied from WriteReconnect */
+		   flags.logv = 0;
+		   flags.staylogging = 0;
+		   AgeLimit = V_UNSETAGE;
+		   ReintLimit = V_UNSETREINTLIMIT;
+	    Recov_EndTrans(MAXFP);
+
+	    code = this->SyncCache(fid);
+	    flags.writebackreint = 0;
+	    /* Signal done */
+	} else 
+	    if (flags.writebackreint) 
+		{    /* Wait for signal */
+		}
+	    else {
+	    }
+	    /* not writebacking?  nothing to do! */
+    } else {
+	code = EINVAL;		// the server goofed!
+    }
+
+    return (code);
+}
 
 void volent::SetReintegratePending() {
     flags.reintegratepending = 1;

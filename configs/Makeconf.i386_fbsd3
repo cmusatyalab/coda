@@ -21,7 +21,7 @@ LIBMACH       =
 LIBKVM        = /usr/lib/aout/libkvm.a
 LIBDB         =
 LIBMATH       = -lm
-GUIDIR        = /usr/lib/coda
+GUIDIR        = /usr/local/lib/coda
 
 KRBINCLFLAGS  =
 LIBKRBS = /usr/lib/aout/libkrb.a /usr/lib/aout/libdes.a

@@ -78,6 +78,7 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include <volume.h>
 #include <srv.h>
 
 #include <vmindex.h>
@@ -152,6 +153,9 @@ const int Yield_PutInodes_Period = 16;
 const int Yield_PutInodes_Mask = (Yield_PutInodes_Period - 1);
 extern void PollAndYield();
 
+/* From Writeback */
+extern int CheckWriteBack(ViceFid * Fid, ClientEntry * client);
+
 /*
  ***************************************************
  *
@@ -182,6 +186,7 @@ long FS_ViceNewFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		RPC2_Unsigned Offset, RPC2_Unsigned Quota,
 		RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
+
     /* We should have separate RPC routines for these two! */
     if (Request == FetchNoData || Request == FetchNoDataRepair) {
 	int inconok = (Request == FetchNoDataRepair);
@@ -207,11 +212,14 @@ START_TIMING(Fetch_Total);
     SLog(1, "ViceNewFetch: Fid = %s, Repair = %d", FID_(Fid), 
 	 (Request == FetchDataRepair));
 
+  
     /* Validate parameters. */
     {
 	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
 				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
+	
+	CheckWriteBack(Fid,client);
 
 	/* Request type. */
 	switch(Request) {
@@ -327,6 +335,7 @@ long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid,
     vle *av = 0;
 
 START_TIMING(GetAttr_Total);
+
     SLog(1, "ViceGetAttr: Fid = %s, Repair = %d", FID_(Fid), InconOK);
 
     /* Validate parameters. */
@@ -335,6 +344,9 @@ START_TIMING(GetAttr_Total);
 				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
+
+    CheckWriteBack(Fid,client);
+
 
     /* Get objects. */
     {
@@ -424,7 +436,7 @@ START_TIMING(ViceValidateAttrs_Total);
 				    PrimaryHost, PiggyBS)))
 		goto Exit;
     }
-
+ 	
     if ( NumPiggyFids != VFlagBS->SeqLen ) {
 	    SLog(0, "Client sending wrong output buffer while validating"
 		 ": %s; SeqLen %d, should be %d", 
@@ -447,6 +459,7 @@ START_TIMING(ViceValidateAttrs_Total);
 	    if ((iErrorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
 					   &Piggies[i].Fid.Volume, NULL, NULL)))
 		goto InvalidObj;
+	        CheckWriteBack(&Piggies[i].Fid,client);
         }
 
 	/* Get objects. */
@@ -549,6 +562,7 @@ START_TIMING(GetACL_Total);
 				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
+    CheckWriteBack(Fid,client);
 
     /* Get objects. */
     {
@@ -625,6 +639,9 @@ START_TIMING(Store_Total);
 	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
 				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
+    
+	CheckWriteBack(Fid,client);
+
 
 	/* Request type. */
 	switch(Request) {
@@ -762,6 +779,8 @@ START_TIMING(SetAttr_Total);
 				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
+    CheckWriteBack(Fid,client);
+
 
     /* Get objects. */
     {
@@ -893,6 +912,7 @@ START_TIMING(SetACL_Total);
 				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
+    CheckWriteBack(Fid,client);
 
     /* Get objects. */
     {
@@ -984,7 +1004,8 @@ START_TIMING(Create_Total);
 	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
 				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
-
+	CheckWriteBack(Fid,client);
+	
 	if (ReplicatedOp) {
 	    /* Child/Parent volume match. */
 	    if (Fid->Volume != VSGVolnum) {
@@ -1137,6 +1158,7 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
+    CheckWriteBack(Did,client);
 
     /* Get objects. */
     {
@@ -1266,7 +1288,8 @@ START_TIMING(Link_Total);
 	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
 				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
-
+	CheckWriteBack(Fid,client);
+    
 	/* Volume match. */
 	if (Fid->Volume != VSGVolnum) {
 	    SLog(0, "ViceLink: ChildVol (%x) != ParentVol (%x)",
@@ -1402,6 +1425,8 @@ START_TIMING(Rename_Total);
 	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
 				      &OldDid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
+	CheckWriteBack(NewDid,client);
+	CheckWriteBack(OldDid,client);
 
 	/* Volume match. */
 	if (NewDid->Volume != VSGVolnum) {
@@ -1602,6 +1627,7 @@ START_TIMING(MakeDir_Total);
 	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
 				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
+	CheckWriteBack(Did,client);
 
 	/* Child/Parent volume match. */
 	if (ReplicatedOp) {
@@ -1763,6 +1789,7 @@ START_TIMING(RemoveDir_Total);
 				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
+    CheckWriteBack(Did,client);
 
     /* Get objects. */
     {
@@ -1906,6 +1933,8 @@ START_TIMING(SymLink_Total);
 	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
 				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
+	CheckWriteBack(Fid,client);
+	CheckWriteBack(Did,client);
 
 	/* Child/Parent volume match. */
 	if (ReplicatedOp) {

@@ -868,6 +868,11 @@ static Volume *attach2(Error *ec, char *name,
 	Lock_Init(&(V_VolLock(vp).VolumeLock));
 	vp->nReintegrators = 0;	
 	vp->reintegrators = NULL;	
+	/* Initalize WriteBack flags */
+	vp->WriteBackRevokeInProgress = 0;
+	vp->WriteBackRevokeDone = 0;
+	list_head_init(&vp->WriteBackHolders);
+
 	GetVolumeHeader(vp);    /* get a VolHeader from LRU list */
 
 	/* get the volume index and the VolumeDiskInfo from
