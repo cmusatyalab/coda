@@ -667,10 +667,11 @@ RestartFind:
 	f->Lock(RD);
 
 	/* Update component. */
-	if (comp && comp[0] != '\0' && !STREQ(comp, ".") && !STREQ(comp, "..") && !STREQ(comp, f->comp)) {
+	if (comp && comp[0] != '\0' && !STREQ(comp, ".") && !STREQ(comp, "..") && (!f->comp || !STREQ(comp, f->comp))) {
 		Recov_BeginTrans();
 		RVMLIB_REC_OBJECT(f->comp);
-		rvmlib_rec_free(f->comp);
+		if (f->comp)
+		    rvmlib_rec_free(f->comp);
 		f->comp = rvmlib_rec_strdup(comp);
 		Recov_EndTrans(MAXFP);
 	}

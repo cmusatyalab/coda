@@ -2026,15 +2026,18 @@ int fsobj::Fakeify()
 	    }
 	    LOG(10, ("fsobj::Fakeify: created fake codaroot directory\n"));
 	} else {
+	    char *realm = comp;
+
 	    stat.Mode = 0644;
 	    stat.LinkCount = 1;
 	    stat.VnodeType = SymbolicLink;
 
 	    /* "#@RRRRRRRRR." */
-	    stat.Length = strlen(comp) + 3;
+	    if (!comp) realm = "failed to get rootvolume";
+	    stat.Length = strlen(realm) + 3;
 	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
 	    rvmlib_set_range(data.symlink, stat.Length+1);
-	    sprintf(data.symlink, "#@%s.", comp);
+	    sprintf(data.symlink, "#@%s.", realm);
 
 	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
 
