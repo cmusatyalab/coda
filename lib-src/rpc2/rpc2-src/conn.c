@@ -242,9 +242,9 @@ void rpc2_ReapDeadConns(void)
 
 	now = time(NULL);
 
-	next = (struct CEntry *)rpc2_ConnList;
-	while (next)
-	{
+	next = (struct CEntry *)(rpc2_ConnList->NextEntry);
+
+	while(next != (struct CEntry *)rpc2_ConnList) {
 		ce = next; next = ce->NextEntry;
 		
 		if (!ce->PrivatePtr &&
