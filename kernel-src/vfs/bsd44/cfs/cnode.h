@@ -13,7 +13,16 @@
 
 /* 
  * HISTORY
- * $Log: cnode.h,v $
+ * $Log:	cnode.h,v $
+ * Revision 1.3.18.2  97/11/12  12:09:45  rvb
+ * reorg pass1
+ * 
+ * Revision 1.3.18.1  97/10/29  16:06:31  rvb
+ * Kill DYING
+ * 
+ * Revision 1.3  1996/12/12 22:11:03  bnoble
+ * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
+ *
  * Revision 1.2  1996/01/02 16:57:26  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  *
@@ -41,7 +50,7 @@
  * merge kernel/latest and alpha/src/cfs
  * 
  * Revision 2.3  92/09/30  14:16:53  mja
- * 	Picked up fixed #ifdef KERNEL. Also...
+ * 	Picked up fixed #ifdef _KERNEL. Also...
  * 
  * 	Substituted rvb's history blurb so that we agree with Mach 2.5 sources.
  * 	[91/02/09            jjk]
@@ -63,63 +72,32 @@
 #ifndef	_CNODE_H_
 #define	_CNODE_H_
 
-#include <sys/types.h>
-#ifdef	KERNEL
-#ifndef	VICEFID_DEFINED
-#define	VICEFID_DEFINED	1
-typedef u_long VolumeId;
-typedef u_long VnodeId;
-typedef u_long Unique;
-typedef struct ViceFid {
-    VolumeId Volume;
-    VnodeId Vnode;
-    Unique Unique;
-} ViceFid;
-#endif	not VICEFID_DEFINED
-#else	KERNEL
-#ifdef MACH
-#include <vfs/vfs.h>
-#include <vfs/vnode.h>
-#endif
-#ifdef __NetBSD__
-#include <sys/mount.h>
-#endif
-#endif	KERNEL
-
 struct cnode {
-    C_VNODE_T       c_vnode;
+    struct vnode   *c_vnode;
     u_short	    c_flags;	/* flags (see below) */
     ViceFid	    c_fid;	/* file handle */
-#ifdef	KERNEL
-    struct vnode    *c_ovp;	/* open vnode pointer */
+    struct vnode   *c_ovp;	/* open vnode pointer */
     u_short	    c_ocount;	/* count of openers */
-    u_short         c_owrite;   /* count of open for write */
-    struct vattr    c_vattr;    /* attributes */
-    char            *c_symlink; /* pointer to symbolic link */
-    u_short         c_symlen;   /* length of symbolic link */
-#endif	KERNEL
+    u_short         c_owrite;	/* count of open for write */
+    struct vattr    c_vattr; 	/* attributes */
+    char           *c_symlink;	/* pointer to symbolic link */
+    u_short         c_symlen;	/* length of symbolic link */
     dev_t	    c_device;	/* associated vnode device */
     ino_t	    c_inode;	/* associated vnode inode */
-    LINKS;                      /* links if on NetBSD machine */
+    struct cnode   *c_next;	/* links if on NetBSD machine */
 };
 
 /* flags */
-#define C_VATTR       0x1         /* Validity of vattr in the cnode */
-#define VALID_VATTR(cp)          ((cp->c_flags) & C_VATTR)
+#define C_VATTR		0x01	/* Validity of vattr in the cnode */
+#define C_SYMLINK	0x02	/* Validity of symlink pointer in the Code */
+#define C_WANTED	0x08	/* Set if lock wanted */
+#define C_LOCKED	0x10	/* Set if lock held */
+#define C_UNMOUNTING	0X20	/* Set if unmounting */
+#define C_PURGING	0x40	/* Set if purging a fid */
 
-#define C_SYMLINK     0x2         /* Validity of symlink pointer in the cnode */
-#define VALID_SYMLINK(cp)        ((cp->c_flags) & C_SYMLINK)
+#define VALID_VATTR(cp)		((cp->c_flags) & C_VATTR)
+#define VALID_SYMLINK(cp)	((cp->c_flags) & C_SYMLINK)
+#define IS_UNMOUNTING(cp)	((cp)->c_flags & C_UNMOUNTING)
 
-#ifdef KERNEL
-#define C_DYING	      0x4	  /* Set for outstanding cnodes from last venus (which died) */
-#define IS_DYING(cp)		 ((cp->c_flags) & C_DYING)
-
-#define CN_WANTED     0x8        /* Set if lock wanted */
-#define CN_LOCKED     0x10       /* Set if lock held */
-#define CN_UNMOUNTING 0X20       /* Set if unmounting */
-#define IS_UNMOUNTING(cp)       ((cp)->c_flags & CN_UNMOUNTING)
-#define CN_PURGING    0x40       /* Set if purging a fid */
-#endif KERNEL
-
-#endif	not _CNODE_H_
+#endif	/* _CNODE_H_ */
 

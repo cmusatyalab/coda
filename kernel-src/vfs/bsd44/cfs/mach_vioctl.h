@@ -8,7 +8,13 @@
  */
 /*
  * HISTORY
- * $Log: mach_vioctl.h,v $
+ * $Log:	mach_vioctl.h,v $
+ * Revision 1.2.34.1  97/11/12  12:39:54  rvb
+ * First cut at prototype
+ * 
+ * Revision 1.2  96/01/02  16:57:27  bnoble
+ * Added support for Coda MiniCache and raw inode calls (final commit)
+ * 
  * Revision 1.1.2.1  1995/12/20 01:57:54  bnoble
  * Added CFS-specific files
  *

@@ -8,7 +8,16 @@
  */
 /*
  * HISTORY
- * $Log: mach_vioctl.h,v $
+ * $Log:	pioctl.h,v $
+ * Revision 1.2.34.2  97/11/13  22:03:06  rvb
+ * pass2 cfs_NetBSD.h mt
+ * 
+ * Revision 1.2.34.1  97/11/12  12:38:11  rvb
+ * mach_vioctl.h -> pioctl.h
+ * 
+ * Revision 1.2  96/01/02  16:57:27  bnoble
+ * Added support for Coda MiniCache and raw inode calls (final commit)
+ * 
  * Revision 1.1.2.1  1995/12/20 01:57:54  bnoble
  * Added CFS-specific files
  *
@@ -37,11 +46,8 @@
  *  TODO:  Find /usr/local/include/viceioctl.h.
  */
 
-#ifndef	_SYS_VICEIOCTL_H_
-#define _SYS_VICEIOCTL_H_
-
-#include <sys/types.h>
-#include <sys/ioctl.h>
+#ifndef	_SYS_PIOCTL_H_
+#define _SYS_PIOCTL_H_
 
 struct ViceIoctl {
 	caddr_t in, out;	/* Data to be transferred in, or out */
@@ -68,4 +74,4 @@ struct ViceIoctl {
 
 #define _VALIDVICEIOCTL(com) (com >= _VICEIOCTL(0) && com <= _VICEIOCTL(255))
 
-#endif	_SYS_VICEIOCTL_H_
+#endif	_SYS_PIOCTL_H_

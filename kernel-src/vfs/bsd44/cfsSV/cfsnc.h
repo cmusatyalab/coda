@@ -14,6 +14,20 @@
 /* 
  * HISTORY
  * $Log:	cfsnc.h,v $
+ * Revision 1.3.4.3  97/11/24  15:44:51  rvb
+ * Final cfs_venus.c w/o macros, but one locking bug
+ * 
+ * Revision 1.3.4.2  97/11/12  12:09:44  rvb
+ * reorg pass1
+ * 
+ * Revision 1.3.4.1  97/11/06  21:06:05  rvb
+ * don't include headers in headers
+ * 
+ * Revision 1.3  97/08/05  11:08:19  lily
+ * Removed cfsnc_replace, replaced it with a cfs_find, unhash, and
+ * rehash.  This fixes a cnode leak and a bug in which the fid is
+ * not actually replaced.  (cfs_namecache.c, cfsnc.h, cfs_subr.c)
+ * 
  * Revision 1.2  96/01/02  16:57:19  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  * 
@@ -59,32 +73,6 @@
  */
 #ifndef _CFSNC_HEADER_
 #define _CFSNC_HEADER_
-
-#include <sys/types.h>
-#include <sys/user.h>
-#include <rpc/types.h>
-#include <rpc/xdr.h>
-#include <cfs/cfs.h>
-#include <cfs/cnode.h>
-
-#ifdef	KERNEL
-
-#ifndef	VICEFID_DEFINED
-#define	VICEFID_DEFINED	1
-typedef u_long VolumeId;
-typedef u_long VnodeId;
-typedef u_long Unique;
-typedef struct ViceFid {
-    VolumeId Volume;
-    VnodeId Vnode;
-    Unique Unique;
-} ViceFid;
-#endif	not VICEFID_DEFINED
-
-#else	KERNEL
-#include <vfs/vfs.h>
-#include <vfs/vnode.h>
-#endif KERNEL
 
 /*
  * Cfs constants
@@ -162,6 +150,29 @@ struct cfshash {		/* Start of Hash chain */
         int length;                             /* used for tuning purposes */
 };
 
+
+/* 
+ * Symbols to aid in debugging the namecache code. Assumes the existence
+ * of the variable cfsnc_debug, which is defined in cfs_namecache.c
+ */
+#define CFSNC_DEBUG(N, STMT)     { if (cfsnc_debug & (1 <<N)) { STMT } }
+
+/* Prototypes of functions exported within cfs */
+extern void cfsnc_init();
+extern void cfsnc_enter(struct cnode *, char *, int, struct ucred *, struct cnode *);
+extern struct cnode *cfsnc_lookup(struct cnode *, char *, int, struct ucred *);
+
+extern void cfsnc_zapParentfid(ViceFid *, enum dc_status);
+extern void cfsnc_zapfid(ViceFid *, enum dc_status);
+extern void cfsnc_zapvnode(ViceFid *, struct ucred *, enum dc_status);
+extern void cfsnc_zapfile(struct cnode *, char *, int);
+extern void cfsnc_purge_user(struct ucred *, enum dc_status);
+
+extern void cfsnc_flush(enum dc_status);
+extern void print_cfsnc();
+extern void cfsnc_gather_stats();
+extern int  cfsnc_resize(int, int, enum dc_status);
+
 /*
  * Structure to contain statistics on the cache usage
  */
@@ -186,13 +197,6 @@ struct cfsnc_statistics {
 	unsigned        Num_zero_len;
 	unsigned        Search_len;
 };
-
-/* 
- * Symbols to aid in debugging the namecache code. Assumes the existence
- * of the variable cfsnc_debug, which is defined in cfs_namecache.c
- */
-extern int cfsnc_debug;
-#define CFSNC_DEBUG(N, STMT)     { if (cfsnc_debug & (1 <<N)) { STMT } }
 
 #define CFSNC_FIND		((u_long) 1)
 #define CFSNC_REMOVE		((u_long) 2)

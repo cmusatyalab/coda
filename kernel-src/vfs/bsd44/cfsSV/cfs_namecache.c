@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/project/coda/kernel/cfs/RCS/cfs_namecache.c,v 3.3 95/10/09 19:24:59 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/netbsd/cvs/src/sys/cfs/cfs_namecache.c,v 1.5.4.7 97/11/25 08:08:43 rvb Exp $";
 #endif /*_BLURB_*/
 
 /* 
@@ -48,6 +48,32 @@ static char *rcsid = "$Header: /coda/project/coda/kernel/cfs/RCS/cfs_namecache.c
 /*
  * HISTORY
  * $Log:	cfs_namecache.c,v $
+ * Revision 1.5.4.7  97/11/25  08:08:43  rvb
+ * cfs_venus ... done; until cred/vattr change
+ * 
+ * Revision 1.5.4.6  97/11/24  15:44:43  rvb
+ * Final cfs_venus.c w/o macros, but one locking bug
+ * 
+ * Revision 1.5.4.5  97/11/20  11:46:38  rvb
+ * Capture current cfs_venus
+ * 
+ * Revision 1.5.4.4  97/11/18  10:27:13  rvb
+ * cfs_nbsd.c is DEAD!!!; integrated into cfs_vf/vnops.c; cfs_nb_foo and cfs_foo are joined
+ * 
+ * Revision 1.5.4.3  97/11/13  22:02:57  rvb
+ * pass2 cfs_NetBSD.h mt
+ * 
+ * Revision 1.5.4.2  97/11/12  12:09:35  rvb
+ * reorg pass1
+ * 
+ * Revision 1.5.4.1  97/10/28  23:10:12  rvb
+ * >64Meg; venus can be killed!
+ * 
+ * Revision 1.5  97/08/05  11:08:01  lily
+ * Removed cfsnc_replace, replaced it with a cfs_find, unhash, and
+ * rehash.  This fixes a cnode leak and a bug in which the fid is
+ * not actually replaced.  (cfs_namecache.c, cfsnc.h, cfs_subr.c)
+ * 
  * Revision 1.4  96/12/12  22:10:57  bnoble
  * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
  * 
@@ -133,10 +159,25 @@ static char *rcsid = "$Header: /coda/project/coda/kernel/cfs/RCS/cfs_namecache.c
  * hash table.
  */
 
+/*
+ * NOTES: rvb@cs
+ * 1.	The name cache holds a reference to every vnode in it.  Hence files can not be
+ *	 closed or made inactive until they are released.
+ * 2.	cfsnc_name(cp) was added to get a name for a cnode pointer for debugging.
+ * 3.	cfsnc_find() has debug code to detect when entries are stored with different
+ *	 credentials.  We don't understand yet, if/how entries are NOT EQ but still
+ *	 EQUAL
+ * 4.	I wonder if this name cache could be replace by the vnode name cache.
+ *	The latter has no zapping functions, so probably not.
+ */
+
 #include <sys/param.h>
-#include <sys/types.h>
 #include <sys/errno.h>
+#include <sys/malloc.h>
+#include <sys/select.h>
+
 #include <cfs/cfs.h>
+#include <cfs/cfsk.h>
 #include <cfs/cnode.h>
 #include <cfs/cfsnc.h>
 
@@ -168,86 +209,6 @@ int cfsnc_debug = 0;
 
 
 /*
- * Auxillary routines -- shouldn't be entry points
- */
-
-static int cred_debug =0;
-
-static struct cfscache *
-cfsnc_find(dcp, name, namelen, cred, hash)
-	struct cnode *dcp;
-	char *name;
-	int namelen;
-	struct ucred *cred;
-	int hash;
-{
-	/* 
-	 * hash to find the appropriate bucket, look through the chain
-	 * for the right entry (especially right cred, unless cred == 0) 
-	 */
-	register struct cfscache *cncp;
-	int count = 1;
-
-	CFSNC_DEBUG(CFSNC_FIND, 
-		    myprintf(("cfsnc_find(dcp 0x%x, name %s, len %d, cred 0x%x, hash %d\n",
-			   dcp, name, namelen, cred, hash));)
-
-	for (cncp = cfsnchash[hash].hash_next; 
-	     cncp != (struct cfscache *)&cfsnchash[hash];
-	     cncp = cncp->hash_next, count++) 
-	{
-
-	    if ((CFS_NAMEMATCH(cncp, name, namelen, dcp)) &&
-		((cred == 0) || (cncp->cred == cred))) 
-	    { 
-		/* compare cr_uid instead */
-		cfsnc_stat.Search_len += count;
-		return(cncp);
-	    }
-	}
-	
-	return((struct cfscache *)0);
-}
-
-static void
-cfsnc_remove(cncp, dcstat)
-	struct cfscache *cncp;
-	enum dc_status dcstat;
-{
-	/* 
-	 * remove an entry -- VN_RELE(cncp->dcp, cp), crfree(cred),
-	 * remove it from it's hash chain, and
-	 * place it at the head of the lru list.
-	 */
-        CFSNC_DEBUG(CFSNC_REMOVE,
-		    myprintf(("cfsnc_remove %s from parent %x.%x.%x\n",
-			   cncp->name, (cncp->dcp)->c_fid.Volume,
-			   (cncp->dcp)->c_fid.Vnode, (cncp->dcp)->c_fid.Unique));)
-
-  	CFSNC_HSHREM(cncp);
-
-	CFSNC_HSHNUL(cncp);		/* have it be a null chain */
-	if ((dcstat == IS_DOWNCALL) && (CNODE_COUNT(cncp->dcp) == 1)) {
-		cncp->dcp->c_flags |= CN_PURGING;
-	}
-	VN_RELE(CTOV(cncp->dcp)); 
-
-	if ((dcstat == IS_DOWNCALL) && (CNODE_COUNT(cncp->cp) == 1)) {
-		cncp->cp->c_flags |= CN_PURGING;
-	}
-	VN_RELE(CTOV(cncp->cp)); 
-
-	crfree(cncp->cred); 
-	bzero(DATA_PART(cncp),DATA_SIZE);
-
-	/* Put the null entry just after the least-recently-used entry */
-	/* LRU_TOP adjusts the pointer to point to the top of the structure. */
-	CFSNC_LRUREM(cncp);
-	CFSNC_LRUINS(cncp, LRU_TOP(cfsnc_lru.lru_prev));
-}
-
-
-/*
  * Entry points for the CFS Name Cache
  */
 
@@ -263,12 +224,13 @@ int cfsnc_initialized = 0;      /* Initially the cache has not been initialized 
 void
 cfsnc_init()
 {
-    register int i;
+    int i;
 
     /* zero the statistics structure */
     
     bzero(&cfsnc_stat, (sizeof(struct cfsnc_statistics)));
-    
+
+    printf("CFS NAME CACHE: CACHE %d, HASH TBL %d\n", CFSNC_CACHESIZE, CFSNC_HASHSIZE);
     CFS_ALLOC(cfsncheap, struct cfscache *, TOTAL_CACHE_SIZE);
     CFS_ALLOC(cfsnchash, struct cfshash *, TOTAL_HASH_SIZE);
     
@@ -290,20 +252,72 @@ cfsnc_init()
 }
 
 /*
+ * Auxillary routines -- shouldn't be entry points
+ */
+
+static int cred_debug =0;
+
+static struct cfscache *
+cfsnc_find(dcp, name, namelen, cred, hash)
+	struct cnode *dcp;
+	char *name;
+	int namelen;
+	struct ucred *cred;
+	int hash;
+{
+	/* 
+	 * hash to find the appropriate bucket, look through the chain
+	 * for the right entry (especially right cred, unless cred == 0) 
+	 */
+	struct cfscache *cncp;
+	int count = 1;
+
+	CFSNC_DEBUG(CFSNC_FIND, 
+		    myprintf(("cfsnc_find(dcp 0x%x, name %s, len %d, cred 0x%x, hash %d\n",
+			   dcp, name, namelen, cred, hash));)
+
+	for (cncp = cfsnchash[hash].hash_next; 
+	     cncp != (struct cfscache *)&cfsnchash[hash];
+	     cncp = cncp->hash_next, count++) 
+	{
+
+	    if ((CFS_NAMEMATCH(cncp, name, namelen, dcp)) &&
+		((cred == 0) || (cncp->cred == cred))) 
+	    { 
+		/* compare cr_uid instead */
+		cfsnc_stat.Search_len += count;
+		return(cncp);
+	    }
+#ifdef	DEBUG
+	    else if (CFS_NAMEMATCH(cncp, name, namelen, dcp)) {
+	    	printf("cfsnc_find: name %s, new cred = %x, cred = %x\n",
+			name, cred, cncp->cred);
+		printf("nref %d, nuid %d, ngid %d // oref %d, ocred %d, ogid %d\n",
+			cred->cr_ref, cred->cr_uid, cred->cr_gid,
+			cncp->cred->cr_ref, cncp->cred->cr_uid, cncp->cred->cr_gid);
+		print_cred(cred);
+		print_cred(cncp->cred);
+	    }
+#endif
+	}
+
+	return((struct cfscache *)0);
+}
+
+/*
  * Enter a new (dir cnode, name) pair into the cache, updating the
  * LRU and Hash as needed.
  */
-
 void
-cfsnc_enter(dcp, name, cred, cp)
+cfsnc_enter(dcp, name, namelen, cred, cp)
     struct cnode *dcp;
-    register char *name;
+    char *name;
+    int namelen;
     struct ucred *cred;
     struct cnode *cp;
 {
-    register int namelen;
-    register struct cfscache *cncp;
-    register int hash;
+    struct cfscache *cncp;
+    int hash;
     
     if (cfsnc_use == 0)			/* Cache is off */
 	return;
@@ -312,7 +326,6 @@ cfsnc_enter(dcp, name, cred, cp)
 		myprintf(("Enter: dcp 0x%x cp 0x%x name %s cred 0x%x \n",
 		       dcp, cp, name, cred)); )
 	
-    namelen = strlen(name);		/* Don't store long file names */
     if (namelen > CFSNC_NAMELEN) {
 	CFSNC_DEBUG(CFSNC_ENTER, 
 		    myprintf(("long name enter %s\n",name));)
@@ -342,16 +355,16 @@ cfsnc_enter(dcp, name, cred, cp)
 	
 	cfsnc_stat.lru_rm++;	/* zapped a valid entry */
 	CFSNC_HSHREM(cncp);
-	VN_RELE(CTOV(cncp->dcp)); 
-	VN_RELE(CTOV(cncp->cp));
+	vrele(CTOV(cncp->dcp)); 
+	vrele(CTOV(cncp->cp));
 	crfree(cncp->cred);
     }
     
     /*
      * Put a hold on the current vnodes and fill in the cache entry.
      */
-    VN_HOLD(CTOV(cp));
-    VN_HOLD(CTOV(dcp));
+    vref(CTOV(cp));
+    vref(CTOV(dcp));
     crhold(cred); 
     cncp->dcp = dcp;
     cncp->cp = cp;
@@ -373,20 +386,19 @@ cfsnc_enter(dcp, name, cred, cp)
  * Find the (dir cnode, name) pair in the cache, if it's cred
  * matches the input, return it, otherwise return 0
  */
-
 struct cnode *
-cfsnc_lookup(dcp, name, cred)
+cfsnc_lookup(dcp, name, namelen, cred)
 	struct cnode *dcp;
-	register char *name;
+	char *name;
+	int namelen;
 	struct ucred *cred;
 {
-	register int namelen, hash;
-	register struct cfscache *cncp;
+	int hash;
+	struct cfscache *cncp;
 
 	if (cfsnc_use == 0)			/* Cache is off */
 		return((struct cnode *) 0);
 
-	namelen = strlen(name);
 	if (namelen > CFSNC_NAMELEN) {
 	        CFSNC_DEBUG(CFSNC_LOOKUP, 
 			    myprintf(("long name lookup %s\n",name));)
@@ -424,10 +436,46 @@ cfsnc_lookup(dcp, name, cred)
 	return(cncp->cp);
 }
 
+static void
+cfsnc_remove(cncp, dcstat)
+	struct cfscache *cncp;
+	enum dc_status dcstat;
+{
+	/* 
+	 * remove an entry -- vrele(cncp->dcp, cp), crfree(cred),
+	 * remove it from it's hash chain, and
+	 * place it at the head of the lru list.
+	 */
+        CFSNC_DEBUG(CFSNC_REMOVE,
+		    myprintf(("cfsnc_remove %s from parent %x.%x.%x\n",
+			   cncp->name, (cncp->dcp)->c_fid.Volume,
+			   (cncp->dcp)->c_fid.Vnode, (cncp->dcp)->c_fid.Unique));)
+
+  	CFSNC_HSHREM(cncp);
+
+	CFSNC_HSHNUL(cncp);		/* have it be a null chain */
+	if ((dcstat == IS_DOWNCALL) && (CTOV(cncp->dcp)->v_usecount == 1)) {
+		cncp->dcp->c_flags |= C_PURGING;
+	}
+	vrele(CTOV(cncp->dcp)); 
+
+	if ((dcstat == IS_DOWNCALL) && (CTOV(cncp->cp)->v_usecount == 1)) {
+		cncp->cp->c_flags |= C_PURGING;
+	}
+	vrele(CTOV(cncp->cp)); 
+
+	crfree(cncp->cred); 
+	bzero(DATA_PART(cncp),DATA_SIZE);
+
+	/* Put the null entry just after the least-recently-used entry */
+	/* LRU_TOP adjusts the pointer to point to the top of the structure. */
+	CFSNC_LRUREM(cncp);
+	CFSNC_LRUINS(cncp, LRU_TOP(cfsnc_lru.lru_prev));
+}
+
 /*
  * Remove all entries with a parent which has the input fid.
  */
-
 void
 cfsnc_zapParentfid(fid, dcstat)
 	ViceFid *fid;
@@ -438,8 +486,8 @@ cfsnc_zapParentfid(fid, dcstat)
 	   appropriate entries. The later may be acceptable since I don't
 	   think callbacks or whatever Case 1 covers are frequent occurences.
 	 */
-	register struct cfscache *cncp, *ncncp;
-	register int i;
+	struct cfscache *cncp, *ncncp;
+	int i;
 
 	if (cfsnc_use == 0)			/* Cache is off */
 		return;
@@ -471,6 +519,10 @@ cfsnc_zapParentfid(fid, dcstat)
 	}
 }
 
+
+/*
+ * Remove all entries which have the same fid as the input
+ */
 void
 cfsnc_zapfid(fid, dcstat)
 	ViceFid *fid;
@@ -479,8 +531,8 @@ cfsnc_zapfid(fid, dcstat)
 	/* See comment for zapParentfid. This routine will be used
 	   if attributes are being cached. 
 	 */
-	register struct cfscache *cncp, *ncncp;
-	register int i;
+	struct cfscache *cncp, *ncncp;
+	int i;
 
 	if (cfsnc_use == 0)			/* Cache is off */
 		return;
@@ -506,14 +558,9 @@ cfsnc_zapfid(fid, dcstat)
 	}
 }
 
-/*
- * Remove all entries which have the same fid as the input
- */
-
 /* 
  * Remove all entries which match the fid and the cred
  */
-
 void
 cfsnc_zapvnode(fid, cred, dcstat)	
 	ViceFid *fid;
@@ -536,17 +583,16 @@ cfsnc_zapvnode(fid, cred, dcstat)
 /*
  * Remove all entries which have the (dir vnode, name) pair
  */
-
 void
-cfsnc_zapfile(dcp, name)
+cfsnc_zapfile(dcp, name, namelen)
 	struct cnode *dcp;
-	register char *name;
+	char *name;
+	int namelen;
 {
 	/* use the hash function to locate the file, then zap all
  	   entries of it regardless of the cred.
 	 */
-	register int namelen;
-	register struct cfscache *cncp;
+	struct cfscache *cncp;
 	int hash;
 
 	if (cfsnc_use == 0)			/* Cache is off */
@@ -556,7 +602,6 @@ cfsnc_zapfile(dcp, name)
 		myprintf(("Zapfile: dcp 0x%x name %s \n",
 			  dcp, name)); )
 
-	namelen = strlen(name);
 	if (namelen > CFSNC_NAMELEN) {
 		cfsnc_stat.long_remove++;		/* record stats */
 		return;
@@ -578,7 +623,6 @@ cfsnc_zapfile(dcp, name)
  * Remove all the entries for a particular user. Used when tokens expire.
  * A user is determined by his/her effective user id (id_uid).
  */
-
 void
 cfsnc_purge_user(cred, dcstat)
 	struct ucred    *cred;
@@ -592,7 +636,7 @@ cfsnc_purge_user(cred, dcstat)
 	 * always be full and LRU is more straightforward.  
 	 */
 
-	register struct cfscache *cncp, *ncncp;
+	struct cfscache *cncp, *ncncp;
 	int hash;
 
 	if (cfsnc_use == 0)			/* Cache is off */
@@ -623,7 +667,6 @@ cfsnc_purge_user(cred, dcstat)
 /*
  * Flush the entire name cache. In response to a flush of the Venus cache.
  */
-
 void
 cfsnc_flush(dcstat)
 	enum dc_status dcstat;
@@ -639,7 +682,7 @@ cfsnc_flush(dcstat)
 	 * I don't use remove since that would rebuild the lru chain
 	 * as it went and that seemed unneccesary.
 	 */
-	register struct cfscache *cncp;
+	struct cfscache *cncp;
 	int i;
 
 	if (cfsnc_use == 0)			/* Cache is off */
@@ -654,11 +697,11 @@ cfsnc_flush(dcstat)
 			CFSNC_HSHREM(cncp);	/* only zero valid nodes */
 			CFSNC_HSHNUL(cncp);
 			if ((dcstat == IS_DOWNCALL) 
-			    && (CNODE_COUNT(cncp->dcp) == 1))
+			    && (CTOV(cncp->dcp)->v_usecount == 1))
 			{
-				cncp->dcp->c_flags |= CN_PURGING;
+				cncp->dcp->c_flags |= C_PURGING;
 			}
-			VN_RELE(CTOV(cncp->dcp)); 
+			vrele(CTOV(cncp->dcp)); 
 			if (!ISDIR(cncp->cp->c_fid) && (CTOV(cncp->cp)->v_flag & VTEXT)) {
 			    if (cfs_vmflush(cncp->cp))
 				CFSDEBUG(CFS_FLUSH, 
@@ -666,11 +709,11 @@ cfsnc_flush(dcstat)
 			}
 
 			if ((dcstat == IS_DOWNCALL) 
-			    && (CNODE_COUNT(cncp->cp) == 1))
+			    && (CTOV(cncp->cp)->v_usecount == 1))
 			{
-				cncp->cp->c_flags |= CN_PURGING;
+				cncp->cp->c_flags |= C_PURGING;
 			}
-			VN_RELE(CTOV(cncp->cp));  
+			vrele(CTOV(cncp->cp));  
 
 			crfree(cncp->cred); 
 			bzero(DATA_PART(cncp),DATA_SIZE);
@@ -688,12 +731,11 @@ cfsnc_flush(dcstat)
 /* 
  * This routine should print out all the hash chains to the console.
  */
-
 void
 print_cfsnc()
 {
 	int hash;
-	register struct cfscache *cncp;
+	struct cfscache *cncp;
 
 	for (hash = 0; hash < cfsnc_hashsize; hash++) {
 		myprintf(("\nhash %d\n",hash));
@@ -724,10 +766,10 @@ cfsnc_gather_stats()
 	    max = cfsnchash[i].length;
 	}
 
-/*
- * When computing the Arithmetic mean, only count slots which 
- * are not empty in the distribution.
- */
+	/*
+	 * When computing the Arithmetic mean, only count slots which 
+	 * are not empty in the distribution.
+	 */
         cfsnc_stat.Sum_bucket_len = sum;
         cfsnc_stat.Num_zero_len = zeros;
         cfsnc_stat.Max_bucket_len = max;
@@ -779,5 +821,28 @@ cfsnc_resize(hashsize, heapsize, dcstat)
     return(0);
 }
 
+#define DEBUG
+#ifdef	DEBUG
+void
+cfsnc_name(struct cnode *cp)
+{
+	struct cfscache *cncp, *ncncp;
+	int i;
 
+	if (cfsnc_use == 0)			/* Cache is off */
+		return;
 
+	for (i = 0; i < cfsnc_hashsize; i++) {
+		for (cncp = cfsnchash[i].hash_next; 
+		     cncp != (struct cfscache *)&cfsnchash[i];
+		     cncp = ncncp) {
+			ncncp = cncp->hash_next;
+			if (cncp->cp == cp) {
+				printf(" is %s (%x,%x)@%x,",
+					cncp->name, cncp->cp, cncp->dcp, cncp);
+			}
+
+		}
+	}
+}
+#endif

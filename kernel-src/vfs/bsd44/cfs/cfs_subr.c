@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/project/coda/kernel/cfs/RCS/cfs_subr.c,v 3.4 95/10/09 19:25:00 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/netbsd/cvs/src/sys/cfs/cfs_subr.c,v 1.5.4.8 97/11/26 15:28:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 /* 
@@ -47,6 +47,35 @@ static char *rcsid = "$Header: /coda/project/coda/kernel/cfs/RCS/cfs_subr.c,v 3.
 /*
  * HISTORY
  * $Log:	cfs_subr.c,v $
+ * Revision 1.5.4.8  97/11/26  15:28:58  rvb
+ * Cant make downcall pbuf == union cfs_downcalls yet
+ * 
+ * Revision 1.5.4.7  97/11/20  11:46:42  rvb
+ * Capture current cfs_venus
+ * 
+ * Revision 1.5.4.6  97/11/18  10:27:16  rvb
+ * cfs_nbsd.c is DEAD!!!; integrated into cfs_vf/vnops.c; cfs_nb_foo and cfs_foo are joined
+ * 
+ * Revision 1.5.4.5  97/11/13  22:03:00  rvb
+ * pass2 cfs_NetBSD.h mt
+ * 
+ * Revision 1.5.4.4  97/11/12  12:09:39  rvb
+ * reorg pass1
+ * 
+ * Revision 1.5.4.3  97/11/06  21:02:38  rvb
+ * first pass at ^c ^z
+ * 
+ * Revision 1.5.4.2  97/10/29  16:06:27  rvb
+ * Kill DYING
+ * 
+ * Revision 1.5.4.1  97/10/28 23:10:16  rvb
+ * >64Meg; venus can be killed!
+ *
+ * Revision 1.5  97/08/05  11:08:17  lily
+ * Removed cfsnc_replace, replaced it with a cfs_find, unhash, and
+ * rehash.  This fixes a cnode leak and a bug in which the fid is
+ * not actually replaced.  (cfs_namecache.c, cfsnc.h, cfs_subr.c)
+ * 
  * Revision 1.4  96/12/12  22:10:59  bnoble
  * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
  * 
@@ -131,396 +160,146 @@ static char *rcsid = "$Header: /coda/project/coda/kernel/cfs/RCS/cfs_subr.c,v 3.
 
 /* @(#)cfs_subr.c	1.5 87/09/14 3.2/4.3CFSSRC */
 
-#include <cfs/cfs.h>
-#include <cfs/cnode.h>
+/* NOTES: rvb
+ * 1.	Added cfs_unmounting to mark all cnodes as being UNMOUNTING.  This has to
+ *	 be done before dounmount is called.  Because some of the routines that
+ *	 dounmount calls before cfs_unmounted might try to force flushes to venus.
+ *	 The vnode pager does this.
+ * 2.	cfs_unmounting marks all cnodes scanning cfs_cache.
+ * 3.	cfs_checkunmounting (under DEBUG) checks all cnodes by chasing the vnodes
+ *	 under the /coda mount point.
+ * 4.	cfs_cacheprint (under DEBUG) prints names with vnode/cnode address
+ */
+
 #include <vcfs.h>
+
+#include <sys/param.h>
+#include <sys/malloc.h>
+#include <sys/select.h>
+#include <sys/mount.h>
+
+#include <cfs/cfs.h>
+#include <cfs/cfsk.h>
+#include <cfs/cnode.h>
 
 #if	NVCFS
 
-struct cnode *cfs_alloc C_ARGS((void));
-struct cnode *cfs_find C_ARGS((ViceFid *fid));
-#ifdef MACH
-extern struct fs *igetfs C_ARGS((dev_t));
-#endif /* MACH */
+struct cnode *cfs_find(ViceFid *fid);
 
-
-
-/* God this kills me. Isn't there a better way of going about this? - DCS*/
-char pass_process_info;
-
-/*
- * Statistics
- */
-struct {
-	int	ncalls;			/* client requests */
-	int	nbadcalls;		/* upcall failures */
-	int	reqs[CFS_NCALLS];	/* count of each request */
-} cfs_clstat;
-
-
-/*
- * Cnode lookup stuff.
- * NOTE: CFS_CACHESIZE must be a power of 2 for cfshash to work!
- */
-struct cnode *cfs_freelist = NULL;
+int cfs_active = 0;
 int cfs_reuse = 0;
 int cfs_new = 0;
-int cfs_active = 0;
 
-#define CFS_CACHESIZE 512
+struct cnode *cfs_freelist = NULL;
 struct cnode *cfs_cache[CFS_CACHESIZE];
 
 #define cfshash(fid) \
     (((fid)->Volume + (fid)->Vnode) & (CFS_CACHESIZE-1))
 
-
-/* 
- * Key question: whether to sleep interuptably or uninteruptably when
- * waiting for Venus.  The former seems better (cause you can ^C a
- * job), but then GNU-EMACS completion breaks. Use tsleep with no
- * timeout, and no longjmp happens. But, when sleeping
- * "uninterruptibly", we don't get told if it returns abnormally
- * (e.g. kill -9).  
- */
-
-/* If you want this to be interruptible, set this to > PZERO */
-int cfscall_sleep = PZERO - 1;
-
-int
-cfscall(mntinfo, inSize, outSize, buffer) 
-     struct cfs_mntinfo *mntinfo; int inSize; int *outSize; caddr_t buffer;
-{
-	struct vcomm *vcp;
-	struct vmsg *vmp;
-	int error;
-
-	if (mntinfo == NULL) {
-	    /* Unlikely, but could be a race condition with a dying warden */
-	    return ENODEV;
-	}
-
-	vcp = &(mntinfo->mi_vcomm);
-	
-	cfs_clstat.ncalls++;
-	cfs_clstat.reqs[((struct inputArgs *)buffer)->opcode]++;
-
-	if (!VC_OPEN(vcp))
-	    return(ENODEV);
-
-	CFS_ALLOC(vmp,struct vmsg *,sizeof(struct vmsg));
-	/* Format the request message. */
-	vmp->vm_data = buffer;
-	vmp->vm_flags = 0;
-	vmp->vm_inSize = inSize;
-	vmp->vm_outSize 
-	    = *outSize ? *outSize : inSize; /* |buffer| >= inSize */
-	vmp->vm_opcode = ((struct inputArgs *)buffer)->opcode;
-	vmp->vm_unique = ++vcp->vc_seq;
-	if (cfsdebug)
-	    myprintf(("Doing a call for %d.%d\n", 
-		      vmp->vm_opcode, vmp->vm_unique));
-	
-	/* Fill in the common input args. */
-	((struct inputArgs *)buffer)->unique = vmp->vm_unique;
-
-	/* Append msg to request queue and poke Venus. */
-	INSQUE(vmp->vm_chain, vcp->vc_requests);
-	SELWAKEUP(vcp->vc_selproc);
-
-	/* We can be interrupted while we wait for Venus to process
-	 * our request.  If the interrupt occurs before Venus has read
-	 * the request, we dequeue and return. If it occurs after the
-	 * read but before the reply, we dequeue, send a signal
-	 * message, and return. If it occurs after the reply we ignore
-	 * it. In no case do we want to restart the syscall.  If it
-	 * was interrupted by a venus shutdown (vcclose), return
-	 * ENODEV.  */
-
-	/* Ignore return, We have to check anyway */
-	SLEEP(&vmp->vm_sleep, (cfscall_sleep));
-
-	if (VC_OPEN(vcp)) {	/* Venus is still alive */
- 	/* Op went through, interrupt or not... */
-	    if (vmp->vm_flags & VM_WRITE) {
-		error = 0;
-		*outSize = vmp->vm_outSize;
-	    }
-
-	    else if (!(vmp->vm_flags & VM_READ)) { 
-		/* Interrupted before venus read it. */
-		if (cfsdebug)
-		    myprintf(("interrupted before read: intr = %x, %x, op = %d.%d, flags = %x\n",
-			   SIGLIST, THECURSIG,
-			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags));
-		REMQUE(vmp->vm_chain);
-		error = EINTR;
-	    }
-	    
-	    else { 	
-		/* (!(vmp->vm_flags & VM_WRITE)) means interrupted after
-                   upcall started */
-		/* Interrupted after start of upcall, send venus a signal */
-		struct inputArgs *dog;
-		struct vmsg *svmp;
-		
-		if (cfsdebug)
-		    myprintf(("Sending Venus a signal: intr = %x, %x, op = %d.%d, flags = %x\n",
-			   SIGLIST, THECURSIG,
-			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags));
-		
-		REMQUE(vmp->vm_chain);
-		error = EINTR;
-		
-		CFS_ALLOC(svmp, struct vmsg *, sizeof (struct vmsg));
-
-		CFS_ALLOC((svmp->vm_data), char *, VC_IN_NO_DATA);
-		dog = (struct inputArgs *)svmp->vm_data;
-		
-		svmp->vm_flags = 0;
-		dog->opcode = svmp->vm_opcode = CFS_SIGNAL;
-		dog->unique = svmp->vm_unique = vmp->vm_unique;
-		svmp->vm_inSize = VC_IN_NO_DATA;
-		svmp->vm_outSize = VC_IN_NO_DATA;
-		
-		if (cfsdebug)
-		    myprintf(("cfscall: enqueing signal msg (%d, %d)\n",
-			   svmp->vm_opcode, svmp->vm_unique));
-		
-		/* insert at head of queue! */
-		INSQUE(svmp->vm_chain, vcp->vc_requests);
-		SELWAKEUP(vcp->vc_selproc);
-	    }
-	}
-
-	else {	/* If venus died (!VC_OPEN(vcp)) */
-	    if (cfsdebug)
-		myprintf(("vcclose woke op %d.%d flags %d\n",
-		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags));
-	    
-	    if (!vmp->vm_flags & VM_WRITE)
-		error = ENODEV;
-	}
-
-	CFS_FREE(vmp, sizeof(struct vmsg));
-	return(error);
-}
-
+#define	CNODE_NEXT(cp)	((cp)->c_next)
 
 #define ODD(vnode)        ((vnode) & 0x1)
 
 /*
- * There are 6 cases where invalidations occur. The semantics of each
- * is listed here.
- *
- * CFS_FLUSH     -- flush all entries from the name cache and the cnode cache.
- * CFS_PURGEUSER -- flush all entries from the name cache for a specific user
- *                  This call is a result of token expiration.
- *
- * The next two are the result of callbacks on a file or directory.
- * CFS_ZAPDIR    -- flush the attributes for the dir from its cnode.
- *                  Zap all children of this directory from the namecache.
- * CFS_ZAPFILE   -- flush the attributes for a file.
- *
- * The fifth is a result of Venus detecting an inconsistent file.
- * CFS_PURGEFID  -- flush the attribute for the file
- *                  If it is a dir (odd vnode), purge its 
- *                  children from the namecache
- *                  remove the file from the namecache.
- *
- * The sixth allows Venus to replace local fids with global ones
- * during reintegration.
- *
- * CFS_REPLACE -- replace one ViceFid with another throughout the name cache 
- */
-
-int handleDownCall(opcode, out)
-     int opcode; struct outputArgs *out;
-{
-    int error;
-    
-    /* Handle invalidate requests. */
-    switch (opcode) {
-      case CFS_FLUSH : {
-
-	  cfs_flush(IS_DOWNCALL);
-	  
-	  CFSDEBUG(CFS_FLUSH,cfs_testflush();)    /* print remaining cnodes */
-	      return(0);
-      }
-	
-      case CFS_PURGEUSER : {
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_PURGEUSER]++;
-	  
-	  /* XXX - need to prevent fsync's */
-	  cfsnc_purge_user(&out->d.cfs_purgeuser.cred, IS_DOWNCALL);
-	  return(0);
-      }
-	
-      case CFS_ZAPFILE : {
-	  struct cnode *cp;
-	  int error = 0;
-	  
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_ZAPFILE]++;
-	  
-	  cp = cfs_find(&out->d.cfs_zapfile.CodaFid);
-	  if (cp != NULL) {
-	      VN_HOLD(CTOV(cp));
-	      
-	      cp->c_flags &= ~C_VATTR;
-	      if (CTOV(cp)->v_flag & VTEXT)
-		  error = cfs_vmflush(cp);
-	      
-	      CFSDEBUG(CFS_ZAPFILE, myprintf(("zapfile: fid = (%x.%x.%x), 
-                                              refcnt = %d, error = %d\n",
-					      cp->c_fid.Volume, 
-					      cp->c_fid.Vnode, 
-					      cp->c_fid.Unique, 
-					      CNODE_COUNT(cp) - 1, error)););
-	      if (CNODE_COUNT(cp) == 1) {
-		  cp->c_flags |= CN_PURGING;
-	      }
-	      VN_RELE(CTOV(cp));
-	  }
-	  
-	  return(error);
-      }
-	
-      case CFS_ZAPDIR : {
-	  struct cnode *cp;
-	  
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_ZAPDIR]++;
-	  
-	  cp = cfs_find(&out->d.cfs_zapdir.CodaFid);
-	  if (cp != NULL) {
-	      VN_HOLD(CTOV(cp));
-	      
-	      cp->c_flags &= ~C_VATTR;
-	      cfsnc_zapParentfid(&out->d.cfs_zapdir.CodaFid, IS_DOWNCALL);     
-	      
-	      CFSDEBUG(CFS_ZAPDIR, myprintf(("zapdir: fid = (%x.%x.%x), 
-                                          refcnt = %d\n",cp->c_fid.Volume, 
-					     cp->c_fid.Vnode, 
-					     cp->c_fid.Unique, 
-					     CNODE_COUNT(cp) - 1)););
-	      if (CNODE_COUNT(cp) == 1) {
-		  cp->c_flags |= CN_PURGING;
-	      }
-	      VN_RELE(CTOV(cp));
-	  }
-	  
-	  return(0);
-      }
-	
-      case CFS_ZAPVNODE : {
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_ZAPVNODE]++;
-	  
-	  cfsnc_zapvnode(&out->d.cfs_zapvnode.VFid, &out->d.cfs_zapvnode.cred,
-			 IS_DOWNCALL);
-	  return(0);
-      }	
-	
-      case CFS_PURGEFID : {
-	  struct cnode *cp;
-	  int error = 0;
-	  
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_PURGEFID]++;
-	  
-	  cp = cfs_find(&out->d.cfs_purgefid.CodaFid);
-	  if (cp != NULL) {
-	      VN_HOLD(CTOV(cp));
-	      
-	      if (ODD(out->d.cfs_purgefid.CodaFid.Vnode)) { /* Vnode is a directory */
-		  cfsnc_zapParentfid(&out->d.cfs_purgefid.CodaFid,
-				     IS_DOWNCALL);     
-	      }
-	      
-	      cp->c_flags &= ~C_VATTR;
-	      cfsnc_zapfid(&out->d.cfs_purgefid.CodaFid, IS_DOWNCALL);
-	      if (!(ODD(out->d.cfs_purgefid.CodaFid.Vnode)) 
-		  && (CTOV(cp)->v_flag & VTEXT)) {
-		  
-		  error = cfs_vmflush(cp);
-	      }
-	      CFSDEBUG(CFS_PURGEFID, myprintf(("purgefid: fid = (%x.%x.%x), refcnt = %d, error = %d\n",
-                                            cp->c_fid.Volume, cp->c_fid.Vnode,
-                                            cp->c_fid.Unique, 
-					    CNODE_COUNT(cp) - 1, error)););
-	      if (CNODE_COUNT(cp) == 1) {
-		  cp->c_flags |= CN_PURGING;
-	      }
-	      VN_RELE(CTOV(cp));
-	  }
-	  return(error);
-      }
-
-      case CFS_REPLACE : {
-	  struct cnode *cp = NULL;
-
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_REPLACE]++;
-	  
-	  cp = cfs_find(&out->d.cfs_replace.OldFid);
-	  if (cp != NULL) { 
-	      /* remove the cnode from the hash table, replace the fid, and reinsert */
-	      VN_HOLD(CTOV(cp));
-	      cfs_unsave(cp);
-	      cp->c_fid = out->d.cfs_replace.NewFid;
-	      cfs_save(cp);
-
-	      CFSDEBUG(CFS_REPLACE, myprintf(("replace: oldfid = (%x.%x.%x), newfid = (%x.%x.%x), cp = 0x%x\n",
-					   out->d.cfs_replace.OldFid.Volume,
-					   out->d.cfs_replace.OldFid.Vnode,
-					   out->d.cfs_replace.OldFid.Unique,
-					   cp->c_fid.Volume, cp->c_fid.Vnode, 
-					   cp->c_fid.Unique, cp));)
-	      VN_RELE(CTOV(cp));
-	  }
-	  return (0);
-      }			   
-    }
-}
-
-
-
-/*
- * Return a vnode for the given fid.
- * If no cnode exists for this fid create one and put it
- * in a table hashed by fid.Volume and fid.Vnode.  If the cnode for
- * this fid is already in the table return it (ref count is
- * incremented by cfs_find.  The cnode will be flushed from the
- * table when cfs_inactive calls cfs_unsave.
+ * Allocate a cnode.
  */
 struct cnode *
-makecfsnode(fid, vfsp, type)
-     ViceFid *fid; VFS_T *vfsp; short type;
+cfs_alloc()
 {
-    VFS_T        foo;
     struct cnode *cp;
-    int          err;
-    
-    if ((cp = cfs_find(fid)) == NULL) {
-	struct vnode *vp;
-	
-	cp = cfs_alloc();
-	cp->c_fid = *fid;
-	
-	SYS_VN_INIT(cp, vfsp, type);
-	
-	cfs_save(cp);
-	
-	/* Otherwise vfsp is 0 */
-	if (!IS_CTL_FID(fid))
-	    ((struct cfs_mntinfo *)(vfsp->VFS_DATA))->mi_refct++;
-    } else {
-	VN_HOLD(CTOV(cp));
+
+    if (cfs_freelist) {
+	cp = cfs_freelist;
+	cfs_freelist = CNODE_NEXT(cp);
+	cfs_reuse++;
     }
+    else {
+	CFS_ALLOC(cp, struct cnode *, sizeof(struct cnode));
+	/* NetBSD vnodes don't have any Pager info in them ('cause there are
+	   no external pagers, duh!) */
+#define VNODE_VM_INFO_INIT(vp)         /* MT */
+	VNODE_VM_INFO_INIT(CTOV(cp));
+	cfs_new++;
+    }
+    bzero(cp, sizeof (struct cnode));
+
+    return(cp);
+}
+
+/*
+ * Deallocate a cnode.
+ */
+void
+cfs_free(cp)
+     register struct cnode *cp;
+{
     
-    return cp;
+    CNODE_NEXT(cp) = cfs_freelist;
+    cfs_freelist = cp;
+}
+
+/*
+ * Put a cnode in the hash table
+ */
+void
+cfs_save(cp)
+     struct cnode *cp;
+{
+	CNODE_NEXT(cp) = cfs_cache[cfshash(&cp->c_fid)];
+	cfs_cache[cfshash(&cp->c_fid)] = cp;
+}
+
+/*
+ * Remove a cnode from the hash table
+ */
+void
+cfs_unsave(cp)
+     struct cnode *cp;
+{
+    struct cnode *ptr;
+    struct cnode *ptrprev = NULL;
+    
+    ptr = cfs_cache[cfshash(&cp->c_fid)]; 
+    while (ptr != NULL) { 
+	if (ptr == cp) { 
+	    if (ptrprev == NULL) {
+		cfs_cache[cfshash(&cp->c_fid)] 
+		    = CNODE_NEXT(ptr);
+	    } else {
+		CNODE_NEXT(ptrprev) = CNODE_NEXT(ptr);
+	    }
+	    CNODE_NEXT(cp) = (struct cnode *)NULL;
+	    
+	    return; 
+	}	
+	ptrprev = ptr;
+	ptr = CNODE_NEXT(ptr);
+    }	
+}
+
+/*
+ * Lookup a cnode by fid. If the cnode is dying, it is bogus so skip it.
+ * NOTE: this allows multiple cnodes with same fid -- dcs 1/25/95
+ */
+struct cnode *
+cfs_find(fid) 
+     ViceFid *fid;
+{
+    struct cnode *cp;
+
+    cp = cfs_cache[cfshash(fid)];
+    while (cp) {
+	if ((cp->c_fid.Vnode == fid->Vnode) &&
+	    (cp->c_fid.Volume == fid->Volume) &&
+	    (cp->c_fid.Unique == fid->Unique) &&
+	    (!IS_UNMOUNTING(cp)))
+	    {
+		cfs_active++;
+		return(cp); 
+	    }		    
+	cp = CNODE_NEXT(cp);
+    }
+    return(NULL);
 }
 
 /*
@@ -534,7 +313,7 @@ makecfsnode(fid, vfsp, type)
 
 int
 cfs_kill(whoIam, dcstat)
-	VFS_T *whoIam;
+	struct mount *whoIam;
 	enum dc_status dcstat;
 {
 	int hash, count = 0;
@@ -542,24 +321,11 @@ cfs_kill(whoIam, dcstat)
 	
 	/* 
 	 * Algorithm is as follows: 
-	 *     First, step through all cnodes and mark them unmounting.
-	 *         NetBSD kernels may try to fsync them now that venus
-	 *         is dead, which would be a bad thing.
-	 *
 	 *     Second, flush whatever vnodes we can from the name cache.
 	 * 
 	 *     Finally, step through whatever is left and mark them dying.
 	 *        This prevents any operation at all.
 	 */
-	
-	
-	for (hash = 0; hash < CFS_CACHESIZE; hash++) {
-		for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
-			if (VN_VFS(CTOV(cp)) == whoIam) {
-				cp->c_flags |= CN_UNMOUNTING;
-			}
-		}
-	}
 	
 	/* This is slightly overkill, but should work. Eventually it'd be
 	 * nice to only flush those entries from the namecache that
@@ -568,18 +334,18 @@ cfs_kill(whoIam, dcstat)
 	
 	for (hash = 0; hash < CFS_CACHESIZE; hash++) {
 		for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
-			if (VN_VFS(CTOV(cp)) == whoIam) {
+			if (CTOV(cp)->v_mount == whoIam) {
+#ifdef	DEBUG
+				printf("cfs_kill: vp %x, cp %x\n", CTOV(cp), cp);
+#endif
 				count++;
-				/* Clear unmountng bit, set dying bit */
-				cp->c_flags &= ~CN_UNMOUNTING;
-				cp->c_flags |= C_DYING;
 				CFSDEBUG(CFS_FLUSH, 
 					 myprintf(("Live cnode fid %x-%x-%x flags %d count %d\n",
 						   (cp->c_fid).Volume,
 						   (cp->c_fid).Vnode,
 						   (cp->c_fid).Unique, 
 						   cp->c_flags,
-						   CNODE_COUNT(cp))); );
+						   CTOV(cp)->v_usecount)); );
 			}
 		}
 	}
@@ -626,108 +392,255 @@ cfs_testflush()
 	     cp = CNODE_NEXT(cp)) {  
 	    myprintf(("Live cnode fid %x-%x-%x count %d\n",
 		      (cp->c_fid).Volume,(cp->c_fid).Vnode,
-		      (cp->c_fid).Unique, CNODE_COUNT(cp)));
+		      (cp->c_fid).Unique, CTOV(cp)->v_usecount));
 	}
     }
 }
 
 /*
- * Put a cnode in the hash table
+ *     First, step through all cnodes and mark them unmounting.
+ *         NetBSD kernels may try to fsync them now that venus
+ *         is dead, which would be a bad thing.
+ *
  */
-void
-cfs_save(cp)
-     struct cnode *cp;
-{
-	CNODE_NEXT(cp) = cfs_cache[cfshash(&cp->c_fid)];
-	cfs_cache[cfshash(&cp->c_fid)] = cp;
+cfs_unmounting(whoIam)
+	struct mount *whoIam;
+{	
+	int hash;
+	struct cnode *cp;
+	int count = 0;
+
+	for (hash = 0; hash < CFS_CACHESIZE; hash++) {
+		for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
+			if (CTOV(cp)->v_mount == whoIam) {
+				cp->c_flags |= C_UNMOUNTING;
+			}
+		}
+	}
 }
 
+#ifdef	DEBUG
+cfs_checkunmounting(mp)
+	struct mount *mp;
+{	
+	register struct vnode *vp, *nvp;
+	struct cnode *cp;
+	int count = 0, bad = 0;
+loop:
+	for (vp = mp->mnt_vnodelist.lh_first; vp; vp = nvp) {
+		if (vp->v_mount != mp)
+			goto loop;
+		nvp = vp->v_mntvnodes.le_next;
+		cp = VTOC(vp);
+		count++;
+		if (!(cp->c_flags & C_UNMOUNTING)) {
+			bad++;
+			printf("vp %x, cp %x missed\n", vp, cp);
+			cp->c_flags |= C_UNMOUNTING;
+		}
+	}
+}
+
+cfs_cacheprint(whoIam)
+	struct mount *whoIam;
+{	
+	int hash;
+	struct cnode *cp;
+	int count = 0;
+
+	printf("cfs_cacheprint: cfs_ctlvp %x, cp %x", cfs_ctlvp, VTOC(cfs_ctlvp));
+	cfsnc_name(cfs_ctlvp);
+	printf("\n");
+
+	for (hash = 0; hash < CFS_CACHESIZE; hash++) {
+		for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
+			if (CTOV(cp)->v_mount == whoIam) {
+				printf("cfs_cacheprint: vp %x, cp %x", CTOV(cp), cp);
+				cfsnc_name(cp);
+				printf("\n");
+				count++;
+			}
+		}
+	}
+	printf("cfs_cacheprint: count %d\n", count);
+}
+#endif
+
 /*
- * Remove a cnode from the hash table
+ * There are 6 cases where invalidations occur. The semantics of each
+ * is listed here.
+ *
+ * CFS_FLUSH     -- flush all entries from the name cache and the cnode cache.
+ * CFS_PURGEUSER -- flush all entries from the name cache for a specific user
+ *                  This call is a result of token expiration.
+ *
+ * The next two are the result of callbacks on a file or directory.
+ * CFS_ZAPDIR    -- flush the attributes for the dir from its cnode.
+ *                  Zap all children of this directory from the namecache.
+ * CFS_ZAPFILE   -- flush the attributes for a file.
+ *
+ * The fifth is a result of Venus detecting an inconsistent file.
+ * CFS_PURGEFID  -- flush the attribute for the file
+ *                  If it is a dir (odd vnode), purge its 
+ *                  children from the namecache
+ *                  remove the file from the namecache.
+ *
+ * The sixth allows Venus to replace local fids with global ones
+ * during reintegration.
+ *
+ * CFS_REPLACE -- replace one ViceFid with another throughout the name cache 
  */
-void
-cfs_unsave(cp)
-     struct cnode *cp;
+
+int handleDownCall(opcode, out)
+     int opcode; union cfs_downcalls *out;
 {
-    struct cnode *ptr;
-    struct cnode *ptrprev = NULL;
+    int error;
     
-    ptr = cfs_cache[cfshash(&cp->c_fid)]; 
-    while (ptr != NULL) { 
-	if (ptr == cp) { 
-	    if (ptrprev == NULL) {
-		cfs_cache[cfshash(&cp->c_fid)] 
-		    = CNODE_NEXT(ptr);
-	    } else {
-		CNODE_NEXT(ptrprev) = CNODE_NEXT(ptr);
-	    }
-	    CNODE_NEXT(cp) = (struct cnode *)NULL;
-	    
-	    return; 
-	}	
-	ptrprev = ptr;
-	ptr = CNODE_NEXT(ptr);
-    }	
-}
+    /* Handle invalidate requests. */
+    switch (opcode) {
+      case CFS_FLUSH : {
 
-/*
- * Allocate a cnode.
- */
-struct cnode *
-cfs_alloc()
-{
-    struct cnode *cp;
+	  cfs_flush(IS_DOWNCALL);
+	  
+	  CFSDEBUG(CFS_FLUSH,cfs_testflush();)    /* print remaining cnodes */
+	      return(0);
+      }
+	
+      case CFS_PURGEUSER : {
+	  cfs_clstat.ncalls++;
+	  cfs_clstat.reqs[CFS_PURGEUSER]++;
+	  
+	  /* XXX - need to prevent fsync's */
+	  cfsnc_purge_user(&out->purgeuser.cred, IS_DOWNCALL);
+	  return(0);
+      }
+	
+      case CFS_ZAPFILE : {
+	  struct cnode *cp;
+	  int error = 0;
+	  
+	  cfs_clstat.ncalls++;
+	  cfs_clstat.reqs[CFS_ZAPFILE]++;
+	  
+	  cp = cfs_find(&out->zapfile.CodaFid);
+	  if (cp != NULL) {
+	      vref(CTOV(cp));
+	      
+	      cp->c_flags &= ~C_VATTR;
+	      if (CTOV(cp)->v_flag & VTEXT)
+		  error = cfs_vmflush(cp);
+	      
+	      CFSDEBUG(CFS_ZAPFILE, myprintf(("zapfile: fid = (%x.%x.%x), 
+                                              refcnt = %d, error = %d\n",
+					      cp->c_fid.Volume, 
+					      cp->c_fid.Vnode, 
+					      cp->c_fid.Unique, 
+					      CTOV(cp)->v_usecount - 1, error)););
+	      if (CTOV(cp)->v_usecount == 1) {
+		  cp->c_flags |= C_PURGING;
+	      }
+	      vrele(CTOV(cp));
+	  }
+	  
+	  return(error);
+      }
+	
+      case CFS_ZAPDIR : {
+	  struct cnode *cp;
+	  
+	  cfs_clstat.ncalls++;
+	  cfs_clstat.reqs[CFS_ZAPDIR]++;
+	  
+	  cp = cfs_find(&out->zapdir.CodaFid);
+	  if (cp != NULL) {
+	      vref(CTOV(cp));
+	      
+	      cp->c_flags &= ~C_VATTR;
+	      cfsnc_zapParentfid(&out->zapdir.CodaFid, IS_DOWNCALL);     
+	      
+	      CFSDEBUG(CFS_ZAPDIR, myprintf(("zapdir: fid = (%x.%x.%x), 
+                                          refcnt = %d\n",cp->c_fid.Volume, 
+					     cp->c_fid.Vnode, 
+					     cp->c_fid.Unique, 
+					     CTOV(cp)->v_usecount - 1)););
+	      if (CTOV(cp)->v_usecount == 1) {
+		  cp->c_flags |= C_PURGING;
+	      }
+	      vrele(CTOV(cp));
+	  }
+	  
+	  return(0);
+      }
+	
+      case CFS_ZAPVNODE : {
+	  cfs_clstat.ncalls++;
+	  cfs_clstat.reqs[CFS_ZAPVNODE]++;
+	  
+	  cfsnc_zapvnode(&out->zapvnode.VFid, &out->zapvnode.cred,
+			 IS_DOWNCALL);
+	  return(0);
+      }	
+	
+      case CFS_PURGEFID : {
+	  struct cnode *cp;
+	  int error = 0;
+	  
+	  cfs_clstat.ncalls++;
+	  cfs_clstat.reqs[CFS_PURGEFID]++;
+	  
+	  cp = cfs_find(&out->purgefid.CodaFid);
+	  if (cp != NULL) {
+	      vref(CTOV(cp));
+	      
+	      if (ODD(out->purgefid.CodaFid.Vnode)) { /* Vnode is a directory */
+		  cfsnc_zapParentfid(&out->purgefid.CodaFid,
+				     IS_DOWNCALL);     
+	      }
+	      
+	      cp->c_flags &= ~C_VATTR;
+	      cfsnc_zapfid(&out->purgefid.CodaFid, IS_DOWNCALL);
+	      if (!(ODD(out->purgefid.CodaFid.Vnode)) 
+		  && (CTOV(cp)->v_flag & VTEXT)) {
+		  
+		  error = cfs_vmflush(cp);
+	      }
+	      CFSDEBUG(CFS_PURGEFID, myprintf(("purgefid: fid = (%x.%x.%x), refcnt = %d, error = %d\n",
+                                            cp->c_fid.Volume, cp->c_fid.Vnode,
+                                            cp->c_fid.Unique, 
+					    CTOV(cp)->v_usecount - 1, error)););
+	      if (CTOV(cp)->v_usecount == 1) {
+		  cp->c_flags |= C_PURGING;
+	      }
+	      vrele(CTOV(cp));
+	  }
+	  return(error);
+      }
 
-    if (cfs_freelist) {
-	cp = cfs_freelist;
-	cfs_freelist = CNODE_NEXT(cp);
-	cfs_reuse++;
+      case CFS_REPLACE : {
+	  struct cnode *cp = NULL;
+
+	  cfs_clstat.ncalls++;
+	  cfs_clstat.reqs[CFS_REPLACE]++;
+	  
+	  cp = cfs_find(&out->replace.OldFid);
+	  if (cp != NULL) { 
+	      /* remove the cnode from the hash table, replace the fid, and reinsert */
+	      vref(CTOV(cp));
+	      cfs_unsave(cp);
+	      cp->c_fid = out->replace.NewFid;
+	      cfs_save(cp);
+
+	      CFSDEBUG(CFS_REPLACE, myprintf(("replace: oldfid = (%x.%x.%x), newfid = (%x.%x.%x), cp = 0x%x\n",
+					   out->replace.OldFid.Volume,
+					   out->replace.OldFid.Vnode,
+					   out->replace.OldFid.Unique,
+					   cp->c_fid.Volume, cp->c_fid.Vnode, 
+					   cp->c_fid.Unique, cp));)
+	      vrele(CTOV(cp));
+	  }
+	  return (0);
+      }			   
     }
-    else {
-	CFS_ALLOC(cp, struct cnode *, sizeof(struct cnode));
-	VNODE_VM_INFO_INIT(CTOV(cp));
-	cfs_new++;
-    }
-    CN_INIT(cp);
-
-    return(cp);
-}
-
-/*
- * Deallocate a cnode.
- */
-void
-cfs_free(cp)
-     register struct cnode *cp;
-{
-    
-    CNODE_NEXT(cp) = cfs_freelist;
-    cfs_freelist = cp;
-}
-
-/*
- * Lookup a cnode by fid. If the cnode is dying, it is bogus so skip it.
- * NOTE: this allows multiple cnodes with same fid -- dcs 1/25/95
- */
-struct cnode *
-cfs_find(fid) 
-     ViceFid *fid;
-{
-    struct cnode *cp;
-
-    cp = cfs_cache[cfshash(fid)];
-    while (cp) {
-	if ((cp->c_fid.Vnode == fid->Vnode) &&
-	    (cp->c_fid.Volume == fid->Volume) &&
-	    (cp->c_fid.Unique == fid->Unique) &&
-	    (!IS_DYING(cp)))
-	    {
-		cfs_active++;
-		return(cp); 
-	    }		    
-	cp = CNODE_NEXT(cp);
-    }
-    return(NULL);
 }
 
 /* cfs_grab_vnode: lives in either cfs_mach.c or cfs_nbsd.c */
