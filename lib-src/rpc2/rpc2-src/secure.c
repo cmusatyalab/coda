@@ -97,7 +97,7 @@ void rpc2_Decrypt(IN FromBuffer, OUT ToBuffer,  IN HowManyBytes, IN WhichKey, IN
 
 void rpc2_InitRandom()
 {
-    initstate(rpc2_TrueRandom(), RNState, sizeof(RNState));
+    initstate(rpc2_TrueRandom(), RNState, sizeof(*RNState));    
     setstate(RNState);		/* default for rpc2_NextRandom() */
 }
 

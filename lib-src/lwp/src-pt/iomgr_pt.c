@@ -70,7 +70,7 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 /* ofcourse not to be confused with poll(2) :( */
 int IOMGR_Poll(void)
 {
-    return lwp_threads_waiting();
+    return lwp_waiting;
 }
 
 int IOMGR_Cancel (PROCESS pid)

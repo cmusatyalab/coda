@@ -1,9 +1,3 @@
-New in 1.17:
-
-* Small files sent with MultiRPC only arrived at the first server
-  in the mgrp. Resolution fixes things for normal store operations
-  but it broke repair in some cases.
-
 New in 1.16:
 
 * Fix for missing lseek that caused truncated backup files.

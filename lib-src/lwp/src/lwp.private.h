@@ -52,8 +52,8 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <stdio.h>
 
-#ifndef HAVE_REGISTER_T
-typedef int register_t;
+#if !HAVE_REGISTER_T
+typedef register_t int;
 #endif
 
 /* Initial size of eventlist in a PCB; grows dynamically  */ 

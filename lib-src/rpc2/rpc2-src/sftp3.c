@@ -1420,8 +1420,7 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
 	len = sftp_piggybackfilesize(se);
 	n = read(se->openfd, buf, len);
 	if (n < len) return(RPC2_SEFAIL4);
-	if (BYFDFILE(se->SDesc))
-	    (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
+	se->fd_offset += n;
     }
     return(0);
 }
