@@ -56,12 +56,14 @@ if  [ $# != 3 -a $# != 4 ]; then
 fi
 
 # Initialize local variables
-VOLNAME=$1
 SERVERS=
 NSERVERS=0
 MAXSERVERS=8
-PARTITION=$3
+
+# deal with Parameters 
+VOLNAME=$1
 VSGADDR=$2
+PARTITION=$3
 
 #
 # Create these files if they don't already exist.
@@ -104,6 +106,21 @@ for SERVER in $SERVERS ; do
 		echo Server $SERVER not in servers file
 		exit 1
 	fi
+done
+
+# Check the partitions or find them if not specified.
+for SERVER in $SERVERS ; do
+        part=`grep "^P"  ${vicedir}/vol/BigVolumeList |
+	      awk "/ H$SERVER / "'{print $1}' |
+	      sed -e "s/^P//g" `
+	np=`echo $part | wc -w`
+	if [ $np -eq 0 ]; then
+	    echo Found no partitions for server $SERVER.
+	    exit 1
+	fi 
+	if [ $np -gt 1 ]; then
+	    echo Found 2 or more partitions for server $SERVER.   You
+	    echo must 
 done
 
 # Allocate a new groupid if necessary
