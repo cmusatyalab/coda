@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/libcs/run.c,v 4.2 1997/02/26 16:04:56 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/lib-src/libcs/Attic/run.c,v 4.3 1997/12/18 23:44:51 braam Exp $";
 #endif /*_BLURB_*/
 
 /*  run[c], run[c]v, run[c]p, run[c]vp -- exec process and wait for it to exit

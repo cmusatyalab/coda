@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/libcs/RCS/expand.c,v 4.1 1997/01/08 21:53:50 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/lib-src/libcs/Attic/expand.c,v 4.2 1997/02/26 16:52:08 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*
