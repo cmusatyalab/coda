@@ -413,8 +413,6 @@ void rep_EndRepair(int largc, char **largv) {
 }
 
 void rep_Exit(int largc, char **largv) {
-    char msgbuf[DEF_BUF];
-
     /* terminate the current session, if there is one */
     if (session != NOT_IN_SESSION)
 	rep_EndRepair(0, NULL);
