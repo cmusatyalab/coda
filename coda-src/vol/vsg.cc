@@ -216,7 +216,13 @@ typedef int (*XXX)(void *);
 	/* number of hosts = i - 1 */
 	for (int j = 0; j < i - 1; j++){
 	    he = gethostbyname(Host[j]);
-	    Haddr[j] = ntohl(*(unsigned long *)(he->h_addr));
+	    if (he)
+		Haddr[j] = ntohl(*(unsigned long *)(he->h_addr));
+	    else
+		{
+		    LogMsg(10, VolDebugLevel, stdout, "InitVSGDB : lookup for host %s failed",Host[j]);
+		    CODA_ASSERT(he);
+		}
 	}
 	vsgent *newve = new vsgent(vsgaddr, Haddr, i-1);
 	if (!AddMember(newve)){
