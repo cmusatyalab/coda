@@ -1,4 +1,4 @@
-2003-08-26	<jaharkes@cs.cmu.edu>
+2003-09-29	<jaharkes@cs.cmu.edu>
         * ======== Release 6.0.3 =========
 	* clog -as <user>, clog uses setuid to switch to the specified user
 	  before obtaining tokens. This simplifies getting tokens while
@@ -18,6 +18,9 @@
 	* Fixed RPM spec file to include missing files.
 	* Redirect stdout/stderr to /dev/null to work around init issues.
 	* Fail when libreadline is not found.
+	* Correctly report fetch-progress in codacon (Phil Nelson).
+	* Venus crashed when the VSG of a volume changed.
+	* Cygwin updates (Phil Nelson).
 
 2003-08-01	<jaharkes@cs.cmu.edu>
         * ======== Release 6.0.2 =========
