@@ -31,6 +31,7 @@ extern "C" {
 #include "coda_assert.h" 
 #include "coda_string.h" 
 #include "coda_wait.h"
+#include "copyfile.h"
 #include "venus_adv.h"
 #include "venusioctl.h"
 
@@ -61,6 +62,7 @@ void init_RPC(void);
 int interests(int);
 void knock(const char *, int, int);
 int parse_cmd_line(int, char **);
+int parse_path(const char *, char *, char *);
 int parse_resolvefile(const char *, const char *, char *);
 int worker(void *);
 

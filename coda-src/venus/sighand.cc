@@ -61,12 +61,8 @@ void SigInit(void)
 {
     /* Establish/Join our own process group to avoid extraneous signals. */
 #ifndef DJGPP
-#ifdef SETPGRP_VOID
-    if (setpgrp() < 0)
-#else
-    if (setpgrp(0, getpid()) < 0)
-#endif
-	CHOKE("SigInit: setpgrp failed (%d)", errno);
+  if (setpgid(0, 0) < 0)
+    CHOKE("SigInit: setpgid failed (%d)", errno);
 #endif /* !DJGPP */
 
     /* set up the signal handlers */

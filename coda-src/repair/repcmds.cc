@@ -50,7 +50,7 @@ void help(int argc, char **argv);
 void INT(int, int, struct sigcontext *);
 
 /* args: <reppathname> <fixfilename> */
-void doRepair(int largc, char **largv) {
+void rep_DoRepair(int largc, char **largv) {
   enum {FIXDIR, FIXFILE} fixtype;
   VolumeId vid;
   struct repvol *repv;
@@ -253,7 +253,7 @@ void doRepair(int largc, char **largv) {
 }
 
 /* args: <reppathname> <fixfilename> */
-void compareDirs(int largc, char **largv) {
+void rep_CompareDirs(int largc, char **largv) {
   int nreplicas;
   char **names;
   int rc, i;
@@ -375,7 +375,7 @@ void compareDirs(int largc, char **largv) {
 }
 
 int allowclear = 0;
-void clearInc(int largc, char **largv) {
+void rep_ClearInc(int largc, char **largv) {
   int rc, i;
   char reppath[MAXPATHLEN], uconflictpath[MAXPATHLEN];
   char prefix[MAXPATHLEN], suffix[MAXPATHLEN];
@@ -482,30 +482,10 @@ void clearInc(int largc, char **largv) {
   free(names);
 }
 
-/* removes inconsistent objects:
-     first does a repair, clears the inc, and then removes the object */
-void removeInc(int largc, char **largv) {
-  int nreplicas;
-  char **names;
-  int rc, i, j;
-  int sizeOfPath;
-  char reppath[MAXPATHLEN], uconflictpath[MAXPATHLEN];
-  char prefix[MAXPATHLEN], suffix[MAXPATHLEN];
-  char tmppath[MAXPATHLEN];
-  VolumeId vid;
+void rep_RemoveInc(int largc, char **largv) {
+  int rc, dirconf;
   struct repvol *repv;
-  struct volrep  *rwv;
-  struct listhdr *repairlist;
-  resreplica *dirs;
-  struct stat buf;
-  FILE *file;
-  enum {FIXDIR, FIXFILE, UNKNOWN} fixtype;
-  char *user;
-  char *rights;
-  char *owner;
-  char *mode;
-
-  user = rights = owner = mode = NULL;
+  char pathname[MAXPATHLEN];
 
   switch (session) {
     case NOT_IN_SESSION:
@@ -521,24 +501,59 @@ void removeInc(int largc, char **largv) {
       break;
   }
 
+  /* Obtain parameters */
+  if (getremoveargs(largc, largv, pathname) < 0) {
+    printf("Could not determine pathname in conflict\n");
+    return;
+  }
+
+  /* remove the inconsistency */
+  rc = RemoveInc(pathname, &repv, &dirconf);
+
+  /* end the repair session */
+  if (EndRepair(repv, session, 0) < 0) {
+    printf("Error ending repair session.\n");
+    exit(2);
+  }
+  else session = NOT_IN_SESSION;
+
+  if (!rc) {
+    /* no error - try to remove the object */
+    if (((dirconf) ? rmdir(pathname) : unlink(pathname)) < 0)
+      printf("Could not remove %s\n", pathname);
+  }
+}
+
+/* removes inconsistencies:  first does a repair, then clears the inc */
+int RemoveInc(char *uconflictpath, struct repvol **retv, int *dirconf) {
+  int nreplicas, sizeOfPath, rc, i, j;
+  char reppath[MAXPATHLEN], tmppath[MAXPATHLEN];
+  char prefix[MAXPATHLEN], suffix[MAXPATHLEN];
+  VolumeId vid;
+  struct repvol *repv;
+  struct volrep  *rwv;
+  struct listhdr *repairlist;
+  resreplica *dirs;
+  struct stat buf;
+  FILE *file;
+  enum {FIXDIR, FIXFILE, UNKNOWN} fixtype;
+  char *user, *rights, *owner, *mode, **names;
+
+  user = rights = owner = mode = NULL;
+
   rc = 0;
   fixtype = UNKNOWN;
 
-  /* Obtain parameters */
-  rc = getremoveargs(largc, largv, uconflictpath);
-  if (rc < 0) return;
-
   /* Is this the leftmost element in conflict? */
   rc = repair_isleftmost(uconflictpath, reppath, MAXPATHLEN); 
-  if (rc < 0) return;
+  if (rc < 0) return(-1);
 
   /* Is the volume locked for repair */
   rc = repair_getmnt(reppath, prefix, suffix, &vid);
-
-  if (rc < 0) return;
+  if (rc < 0) return(-1);
   if ((repv = repair_findrep(vid)) == NULL) {
     printf("You must do \"beginrepair\" first\n"); 
-    return;
+    return(-1);
   }
     
   CODA_ASSERT(repv->rwhead);   /* better have atleast one rw replica */
@@ -554,8 +569,8 @@ void removeInc(int largc, char **largv) {
     }
     if (rc < 0) {
       repair_perror(" lstat", tmppath, errno);  
-      printf("NO replicas accessible\n");
-      return;
+      printf("No replicas accessible\n");
+      return(-1);
     }
     if ((buf.st_mode & S_IFMT) == S_IFDIR) fixtype = FIXDIR;
     else fixtype = FIXFILE;
@@ -708,37 +723,9 @@ void removeInc(int largc, char **largv) {
     free(names[i]);
   free(names);
 
-  /* disable repair after we are done */
-  {
-    struct ViceIoctl vioc;
-    int retcode;
-    vioc.out_size = 0;
-    vioc.in_size = 0;
-    vioc.out = 0;
-    repair_unlinkrep(repv);
-    retcode = pioctl(repv->mnt, VIOC_DISABLEREPAIR, &vioc, 0);
-    if (retcode < 0) repair_perror(" DISABLEREPAIR", repv->mnt, errno);
-    repair_finish(repv);
-  }
-  if (!rc) {
-    /* no error - try to remove the object */
-    if (fixtype == FIXDIR) {
-      if (rmdir(uconflictpath)) {
-	printf("Could not remove %s\n", 
-	       uconflictpath);
-	return;
-      }
-    }
-    else {
-      if (unlink(uconflictpath)) {
-	printf("Could not remove %s\n", 
-	       uconflictpath);
-	return;
-      }
-    }
-  }
-  session = NOT_IN_SESSION;
-  return;
+  if (retv != NULL) *retv = repv;
+  if (dirconf != NULL) *dirconf = (fixtype == FIXDIR);
+  return(rc);
 }
 
 void rep_EndRepair(int largc, char **largv) {
@@ -1500,7 +1487,7 @@ int BeginRepair(char *userpath, struct repvol **repv) {
 }
 
 
-void checkLocal(int largc, char **largv) {
+void rep_CheckLocal(int largc, char **largv) {
   struct ViceIoctl vioc;
   int rc;
   char space[DEF_BUF];
@@ -1529,7 +1516,7 @@ void checkLocal(int largc, char **largv) {
   fflush(stdout);
 }
 
-void listLocal(int largc, char **largv) {
+void rep_ListLocal(int largc, char **largv) {
   int fd;
   struct ViceIoctl vioc;
   int rc;
@@ -1572,7 +1559,7 @@ void listLocal(int largc, char **largv) {
   unlink(filename);
 }
 
-void preserveLocal(int largc, char **largv) {
+void rep_PreserveLocal(int largc, char **largv) {
   struct ViceIoctl vioc;
   int rc;
   struct repvol *repv;
@@ -1602,7 +1589,7 @@ void preserveLocal(int largc, char **largv) {
   fflush(stdout);
 }
 
-void preserveAllLocal(int largc, char **largv) {
+void rep_PreserveAllLocal(int largc, char **largv) {
   struct ViceIoctl vioc;
   int rc;
   char space[DEF_BUF];
@@ -1632,7 +1619,7 @@ void preserveAllLocal(int largc, char **largv) {
   fflush(stdout);
 }
 
-void discardLocal(int largc, char **largv) {
+void rep_DiscardLocal(int largc, char **largv) {
   struct ViceIoctl vioc;
   int rc;
   char space[DEF_BUF];
@@ -1661,12 +1648,9 @@ void discardLocal(int largc, char **largv) {
   fflush(stdout);
 }
 
-void discardAllLocal(int largc, char **largv) {
-  struct ViceIoctl vioc;
-  int rc;
+void rep_DiscardAllLocal(int largc, char **largv) {
   char space[DEF_BUF];
-  char buf[BUFSIZ];
-    
+
   switch (session) {
     case SERVER_SERVER:
       printf("\"discardalllocal\" can only be used to repair a local/global conflict\n");
@@ -1677,20 +1661,35 @@ void discardAllLocal(int largc, char **largv) {
       return;
       break;
   }
+  if (DiscardAllLocal(space) < 0)
+    printf("%s\ndiscardalllocal failed\n", space);
+  else
+    printf("%s\n", space);
+  fflush(stdout);
+}
 
-  vioc.out = space;
+/* returns string result of pioctl in argument if non-null */
+int DiscardAllLocal(char *ret) {
+  struct ViceIoctl vioc;
+  int rc;
+  char space[DEF_BUF];
+  char buf[BUFSIZ];
+
+  vioc.out = (ret == NULL) ? space : ret;
   vioc.out_size = DEF_BUF;
   sprintf(buf, "%d", REP_CMD_DISCARD_ALL);
   vioc.in = buf;
   vioc.in_size = (short) strlen(buf) + 1;
 
   rc = pioctl("/coda", VIOC_REP_CMD, &vioc, 0);
-  if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_DISCARD_ALL)");
-  printf("%s\n", vioc.out);
-  fflush(stdout);
+  if (rc < 0) {
+    perror("VIOC_REP_CMD(REP_CMD_DISCARD_ALL)");
+    return(-1);
+  }
+  return(0);
 }
 
-void setLocalView(int largc, char **largv) {
+void rep_SetLocalView(int largc, char **largv) {
   struct ViceIoctl vioc;
   int rc;
   char space[DEF_BUF];
@@ -1719,7 +1718,7 @@ void setLocalView(int largc, char **largv) {
   fflush(stdout);
 }
 
-void setGlobalView(int largc, char **largv) {
+void rep_SetGlobalView(int largc, char **largv) {
   struct ViceIoctl vioc;
   int rc;
   char space[DEF_BUF];
@@ -1748,7 +1747,7 @@ void setGlobalView(int largc, char **largv) {
   fflush(stdout);
 }
 
-void setMixedView(int largc, char **largv) {
+void rep_SetMixedView(int largc, char **largv) {
   struct ViceIoctl vioc;
   int rc;
   char space[DEF_BUF];

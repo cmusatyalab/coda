@@ -35,7 +35,6 @@ extern struct stat compOutputStatBuf;	 /* file information for the repair comman
 extern struct stat doInputStatBuf;
 
 extern int  IsCreatedEarlier (struct listhdr **, int, long, long);
-
 extern void SetDefaultPaths();
 extern int  compareVV(int, char **, struct repvol *);
 extern void GetArgs(int argc, char *argv[]);
@@ -52,7 +51,6 @@ extern void printAcl(struct Acl *);
 extern int  compareAcl(int, resreplica *);
 extern int  GetReplicaNames(char **, int , char *);
 extern int  GetTokens();
-extern void help(int argc, char **argv);
 extern void INT(int, int, struct sigcontext *);
 
 #define INITHELPMSG 	\
@@ -67,33 +65,34 @@ obtained by using the \"help\" facility. Finally, you can use the\n\
 
 /* Relax, command parser allows abbreviations of command names */
 command_t list[] = {
-  {"beginrepair", rep_BeginRepair, 0, ""},  	/* <reppathname> */
-  {"endrepair", rep_EndRepair, 0, ""},  	/* no args */
-  {"dorepair", doRepair, 0, ""},     		/* <reppathname> <fixfilename> */
-  {"comparedirs", compareDirs, 0, ""},	 	/* <reppathname>, <fixfile> */
-  {"clearinc", clearInc, 0, ""},	 	/* <reppathname> */
-  {"removeinc", removeInc, 0, ""}, 	 	/* <reppathname> */
-  {"quit", rep_Exit, 0, ""},         		/* no args */
-  {"checklocal", checkLocal, 0, ""},	 	/* no args */
-  {"listlocal", listLocal, 0, ""},	 	/* no args */
-  {"preservelocal", preserveLocal, 0, ""},	/* no args */
-  {"preservealllocal", preserveAllLocal, 0, ""},/* no args */
-  {"discardlocal", discardLocal, 0, ""},	/* no args */
-  {"discardalllocal", discardAllLocal, 0, ""},	/* no args */
-  {"setglobalview", setGlobalView, 0, ""},	/* no args */
-  {"setmixedview", setMixedView, 0, ""},	/* no args */
-  {"setlocalview", setLocalView, 0, ""},	/* no args */
-  {"help", help, 0, ""},
-  { 0, 0, 0, ""},
+  {"beginrepair",      rep_BeginRepair,      0, ""}, /* <reppathname> */
+  {"endrepair",        rep_EndRepair,        0, ""}, /* no args */
+  {"dorepair",         rep_DoRepair,         0, ""}, /* <reppathname> <fixfilename> */
+  {"comparedirs",      rep_CompareDirs,      0, ""}, /* <reppathname> <fixfile> */
+  {"clearinc",         rep_ClearInc,         0, ""}, /* <reppathname> */
+  {"removeinc",        rep_RemoveInc,        0, ""}, /* <reppathname> */
+  {"quit",             rep_Exit,             0, ""}, /* no args */
+  {"checklocal",       rep_CheckLocal,       0, ""}, /* no args */
+  {"listlocal",        rep_ListLocal,        0, ""}, /* no args */
+  {"preservelocal",    rep_PreserveLocal,    0, ""}, /* no args */
+  {"preservealllocal", rep_PreserveAllLocal, 0, ""}, /* no args */
+  {"discardlocal",     rep_DiscardLocal,     0, ""}, /* no args */
+  {"discardalllocal",  rep_DiscardAllLocal,  0, ""}, /* no args */
+  {"setglobalview",    rep_SetGlobalView,    0, ""}, /* no args */
+  {"setmixedview",     rep_SetMixedView,     0, ""}, /* no args */
+  {"setlocalview",     rep_SetLocalView,     0, ""}, /* no args */
+  {"help",             rep_Help,             0, ""}, /* no args */
+  { NULL, NULL, 0, ""},
 };
 
-void help(int largc, char **largv) {
+void rep_Help(int largc, char **largv) {
   printf("See the Coda manual or repair.1 for help\n");
 } 
 
 main(int argc, char **argv) {
-  int i;
+  int i, ret;
   struct repvol *repv;
+  char pathname[MAXPATHLEN];
 
   /* parse args */
   SetDefaultPaths();
@@ -107,29 +106,42 @@ main(int argc, char **argv) {
    */
 
   for (i = 0; i < argc; i++) {
-    if (strcmp(argv[i], "-remove") == 0) {
+    if (strcmp(argv[i], "-clear") == 0) {
       interactive = 0;
       if ((i != 2) || (argc < 3)) {
-	fprintf(stderr, "Usage:  %s [-d] [<pathname> -remove]\n", argv[0]);
+	fprintf(stderr, "Usage:  %s [-d] [<pathname> -clear]\n", argv[0]);
 	exit(1);
       }
       else {
-	BeginRepair(argv[1], &repv);
-	switch (session) {
-	  case LOCAL_GLOBAL:
-	    discardAllLocal(1, &argv[0]);
+	ret = BeginRepair(argv[1], &repv);
+	switch (ret) {
+	  case 0: 
+	    session = LOCAL_GLOBAL;
+	    repv->local = 1;
+	    if (DiscardAllLocal(NULL) < 0)
+	      printf("Error discarding local mutations\n");
 	    break;
-	  case SERVER_SERVER:
-	    removeInc(2, &argv[0]);
+	  case 1: 
+	    session = LOCAL_GLOBAL;
+	    repv->local = 0;
+	    printf("Local-global repair session already in progress!\n");
+	    return(1);
 	    break;
- 	  case NOT_IN_SESSION:
+  	  case 2:
+	    session = SERVER_SERVER;
+	    repv->local = 0;
+	    if (getremoveargs(2, argv, pathname) < 0)
+	      printf("Could not determine pathname in conflict\n");
+	    else if (RemoveInc(pathname, &repv, NULL) < 0)
+	      printf("Error removing inconsistency\n");
+	    break;
 	  default:
-	    fprintf(stderr, "Error beginning repair\n");
-	    exit(1);
+	    printf("Bogus return code from venus (%d)\n", ret);
+	    return(1);
 	    break;
 	}
-	rep_Exit(0, NULL);	  
-	return 0;
+	rep_Exit(0, NULL);
+	return(0);
       }
     }
   }
@@ -137,8 +149,8 @@ main(int argc, char **argv) {
   /* Sit in command loop */
   if ( argc >= 3 ) {
     rep_BeginRepair(2, &argv[0]);
-    compareDirs(argc - 1 , &argv[1]);
-    doRepair(3, &argv[0]);
+    rep_CompareDirs(argc - 1 , &argv[1]);
+    rep_DoRepair(3, &argv[0]);
     rep_Exit(0, NULL);
   } 
   else if ( argc != 3 ) {

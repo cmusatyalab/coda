@@ -45,7 +45,9 @@ int main(int argc, char **argv) {
     quit("%s\nCannot open %s for writing", strerror(errno), DEF_LOGFILE);
   if ((rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &lwpid)) != LWP_SUCCESS)
     quit("Could not initialize LWP (%d)", rc);
-  if ((mkdir("/tmp/.asrlogs", 0755) < 0) && 
+  /* create directory for ASR logs, error if it can't be created
+     or it already exists but isn't a directory */
+  if ((mkdir("/tmp/.asrlogs", 0777) < 0) && 
       ((errno != EEXIST) || (stat("/tmp/.asrlogs", &sbuf) < 0) || (!S_ISDIR(sbuf.st_mode))))
     quit("Could not create asr log directory");
 
@@ -54,13 +56,8 @@ int main(int argc, char **argv) {
     quit("%s\nCould not get hostname", strerror(errno));
   pid = getpid();
   uid = getuid();
-#ifdef SETPGRP_VOID
-  if (setpgrp() < 0)
+  if (setpgid(0, 0) < 0)
     quit("%s\nCould not set pgid", strerror(errno));
-#else
-  if (setpgrp(0, getpid()) < 0)
-    quit("%s\nCould not set pgid", strerror(errno));
-#endif
   pgid = getpgrp();
 
   init_RPC(); /* initialize RPC and LWP packages */
@@ -147,12 +144,21 @@ RPC2_Handle contact_venus(const char *hostname) {
 }
 
 int executor(char *pathname, int vuid, int req_no) {
-  char hd[MAXPATHLEN], svuid[32], asr[MAXPATHLEN], asrlog[MAXPATHLEN], fixed[64]; /* XXXX */
+  char hd[MAXPATHLEN], asr[MAXPATHLEN], asrlog[MAXPATHLEN], parent[MAXPATHLEN], conf[MAXPATHLEN];
+  char space[DEF_BUF], svuid[32], fixed[64]; /* XXXX */
   char *zargs[ASRARGS];  /* asr, fixed, lgrep, ssrep1, ssrep2, ssrep3, NULL */
   struct stat sbuf;
   int ret, pid, status, i, dirconf = 0;
   struct repvol *repv;
   struct volrep *volr;
+
+  /* set the process group and uid, and get the home directory */
+  if ((ret = setpgid(0, 0)) < 0)
+    quit("Setpgid failed: %s", strerror(errno));
+  if ((ret = setuid(vuid)) < 0)
+    quit("Setuid failed: %s", strerror(errno));
+  if ((ret = get_homedir(vuid, hd)) < 0)
+    quit("Could not get home directory");
 
   /* create the ASR logfile */
   if (fclose(logfile) < 0)
@@ -169,18 +175,14 @@ int executor(char *pathname, int vuid, int req_no) {
       || (dup2(fileno(logfile), 2) < 0))
     quit("Could not create ASR log: %s", strerror(errno));
 
-  /* set the process group and uid, and get the home directory */
-#ifdef SETPGRP_VOID
-    if ((ret = setpgrp()) < 0)
-      quit("Setpgrp failed: %s", strerror(errno));
-#else
-    if ((ret = setpgrp(0, getpid())) < 0)
-      quit("Setpgrp failed: %s", strerror(errno));
-#endif
-  if ((ret = setuid(vuid)) < 0)
-    quit("Setuid failed: %s", strerror(errno));
-  if ((ret = get_homedir(vuid, hd)) < 0)
-    quit("Could not get home directory");
+  /* parse out the parent directory and conflict name */
+  if (parse_path(pathname, parent, conf) < 0)
+    quit("Malformed pathname in conflict");
+
+  /* change to the parent directory of the conflict 
+     (if we don't, then the EndRepair will fail for weird reasons */
+  if (chdir(parent) < 0)
+    quit("%s\nCould not chdir to parent of conflict", strerror(errno));
 
   /* begin the repair session */
   if ((ret = BeginRepair(pathname, &repv)) < 0)
@@ -207,13 +209,24 @@ int executor(char *pathname, int vuid, int req_no) {
   }
 
   /* get replica name arguments */
-  for (volr = repv->rwhead, i = 2; volr != NULL; volr = volr->next, i++) {
-    if ((zargs[i] = (char *)malloc((strlen(pathname) + strlen(volr->compname) + 2) * sizeof(char))) == NULL)
-      quit("Malloc failed");
-    sprintf(zargs[i], "%s/%s", pathname, volr->compname);
+  if (session == SERVER_SERVER) {
+    for (volr = repv->rwhead, i = 2; volr != NULL; volr = volr->next, i++) {
+      if ((zargs[i] = (char *)malloc((strlen(pathname) + strlen(volr->compname) + 2) * sizeof(char))) == NULL)
+	quit("Malloc failed");
+      sprintf(zargs[i], "%s/%s", pathname, volr->compname);
+    }
+    zargs[i] = NULL;
+    if (i >= ASRARGS) quit("It shouldn't be possible to have %d arguments", i);
   }
-  zargs[i] = NULL;
-  if (i >= ASRARGS) quit("It shouldn't be possible to have %d arguments", i);
+  else { /* (session == LOCAL_GLOBAL) */
+    if ((zargs[2] = (char *)malloc((strlen(pathname) + strlen("local") + 2) * sizeof(char))) == NULL)
+      quit("Malloc failed");
+    sprintf(zargs[2], "%s/%s", pathname, "local");
+    if ((zargs[3] = (char *)malloc((strlen(pathname) + strlen("global") + 2) * sizeof(char))) == NULL)
+      quit("Malloc failed");
+    sprintf(zargs[3], "%s/%s", pathname, "global");
+    zargs[4] = NULL;
+  }
   
   /* determine conflict type and create "fixed" */
   if (stat(zargs[2], &sbuf) < 0)
@@ -227,7 +240,7 @@ int executor(char *pathname, int vuid, int req_no) {
   }
   sprintf(fixed, "/tmp/fixed.%d.XXXXXX", req_no);
   if ((mktemp(fixed) == NULL) 
-      || ((ret = (dirconf ? mkdir(fixed, 0700) : open(fixed, O_RDWR|O_CREAT|O_EXCL))) < 0)
+      || ((ret = (dirconf ? mkdir(fixed, 0700) : open(fixed, O_RDWR|O_CREAT|O_EXCL, 0700))) < 0)
       || (dirconf && (close(ret) < 0)))
     quit("Could not created fixed file: %s", strerror(errno));
   if ((zargs[1] = strdup(fixed)) == NULL)
@@ -259,9 +272,43 @@ int executor(char *pathname, int vuid, int req_no) {
   if (ret == 0) { /* if ASR exited normally */
     /* repair the conflict using "fixed" file */
     lprintf("This is where the conflict should be repaired.\n");
-    
-    if (EndRepair(RepVolHead, session, 0) < 0)
-      lprintf("Error ending repair");
+    if (dirconf) { /* directory conflict */
+      if (session == SERVER_SERVER) {
+	lprintf("Sorry, can't handle directory conflicts, yet...\n");
+      }
+      else { /* (session == LOCAL_GLOBAL) */
+	lprintf("Sorry, can't handle directory conflicts, yet...\n");
+      }
+
+      if (EndRepair(RepVolHead, session, 0) < 0)
+	lprintf("Error ending repair");
+    }
+    else { /* file conflict -- "repair" it by removing the file or discarding 
+	      all local mutations, then move the fixed file into place */
+      if (session == SERVER_SERVER) {
+	if (RemoveInc(pathname, NULL, NULL) < 0) {
+	  lprintf("Error discarding removing inconsistency: %s\n", space);
+	  if (EndRepair(RepVolHead, session, 0) < 0)
+	    lprintf("Error ending repair");
+	  quit("Could not repair server-server conflict");
+	}
+      }
+      else { /* (session == LOCAL_GLOBAL) */
+	if (DiscardAllLocal(space) < 0) {
+	  lprintf("Error discarding local mutations: %s\n", space);
+	  if (EndRepair(RepVolHead, session, 0) < 0)
+	    lprintf("Error ending repair");
+	  quit("Could not repair local-global conflict");
+	}
+      }
+
+      if (EndRepair(RepVolHead, session, 1) < 0)
+	lprintf("Error ending repair");
+
+      /* move the fixed file */
+      if (copyfile_byname(fixed, pathname) < 0)
+	quit("Error moving fixed file: %s\n", strerror(errno));
+    }
     return(0);
   }
   else {
@@ -402,6 +449,21 @@ int parse_cmd_line(int argc, char **argv) {
     else return(-1);
   }
 
+  return(0);
+}
+
+int parse_path(const char *pathname, char *parent, char *conf) {
+  char tmp[MAXPATHLEN];
+  char *mark;
+
+  strcpy(tmp, pathname); /* make a mutable copy */
+  /* chop off trailing /'s */
+  while (tmp[(strlen(tmp) - 1)] == '/')
+    tmp[(strlen(tmp) - 1)] = '\0';
+  if ((mark = strrchr(tmp, '/')) == NULL) return(-1);
+  *mark = '\0'; /* clobber the slash */
+  strcpy(parent, tmp);
+  strcpy(conf, mark + sizeof(char));
   return(0);
 }
 

@@ -23,8 +23,7 @@ listed in the file CREDITS.
 
     Created:
 	M. Satyanarayanan
-	October 1989
-	
+	October 1989	
 */
 
 #ifdef __cplusplus
@@ -65,20 +64,19 @@ extern "C" {
 #include <resolve.h>
 #include <venusioctl.h>
 
-#define MAXVOLNAME 100 /* length in bytes of OUT volume parameters */
-#define MAXHOSTS 8     /* XXXX --- get the true definition for this */
-#define HOSTNAMLEN 64  /* XXXX -- get the true definition for this */
+#define MAXVOLNAME     100   /* length in bytes of OUT volume parameters */
+#define MAXHOSTS       8     /* XXXX --- get the true definition for this */
+#define HOSTNAMLEN     64    /* XXXX -- get the true definition for this */
 /* MAXPATHLEN defined in <sys/param.h>, length in bytes of OUT path parameters */
-#define NOT_IN_SESSION		0
-#define	LOCAL_GLOBAL		1
-#define SERVER_SERVER		2
-#define DEF_BUF 2048 /* XXXX -- temporary buffer size */
+#define NOT_IN_SESSION 0
+#define	LOCAL_GLOBAL   1
+#define SERVER_SERVER  2
+#define DEF_BUF        2048  /* XXXX -- temporary buffer size */
 
 /* Element in circular, doubly-linked list of replicated volumes in repair */
 struct repvol {
   VolumeId vid;           /* id of this volume */
-  struct repvol *next;
-  struct repvol *prev;
+  struct repvol *next, *prev;
   struct volrep *rwhead;  /* Singly-linked list of volume replicas */
   char vname[MAXVOLNAME]; /* name of this volume */
   char mnt[MAXPATHLEN];   /* permanent mount point in Coda */
@@ -100,27 +98,30 @@ extern int session;
 extern char repair_ReadOnlyPrefix[];
 extern int  repair_DebugFlag;
 
-/* User-visible commands -- repair.cc */
+/* Non-interactive repair calls */
 extern int BeginRepair(char *userpath, struct repvol **repv);
-extern void checkLocal(int argc, char **largv);
-extern void clearInc(int argc, char **largv);
-extern void compareDirs(int argc, char **largv);
-extern void discardAllLocal(int argc, char **largv);
-extern void discardLocal(int argc, char **largv);
-extern void doRepair(int argc, char **largv);
+extern int DiscardAllLocal(char *ret);
 extern int EndRepair(struct repvol *rvhead, int type, int commit);
-extern void listLocal(int argc, char **largv);
-extern void preserveLocal(int argc, char **largv);
-extern void preserveAllLocal(int argc, char **largv);
-extern void removeInc(int argc, char **largv);
-extern void setGlobalView(int argc, char **largv);
-extern void setLocalView(int argc, char **largv);
-extern void setMixedView(int argc, char **largv);
-extern int  showReplicas(char *args);
-extern int  unlockVolume(char *args);
-extern void rep_BeginRepair(int argc, char **largv);
-extern void rep_Exit(int argc, char **largv);
-extern void rep_EndRepair(int argc, char **largv);
+extern int RemoveInc(char *uconflictpath, struct repvol **retv, int *dirconf);
+
+/* User-visible parser commands (possibly interactive) -- */
+extern void rep_BeginRepair     (int argc, char **largv);
+extern void rep_CheckLocal      (int argc, char **largv);
+extern void rep_ClearInc        (int argc, char **largv);
+extern void rep_CompareDirs     (int argc, char **largv);
+extern void rep_DiscardLocal    (int argc, char **largv);
+extern void rep_DiscardAllLocal (int argc, char **largv);
+extern void rep_DoRepair        (int argc, char **largv);
+extern void rep_EndRepair       (int argc, char **largv);
+extern void rep_Exit            (int argc, char **largv);
+extern void rep_Help            (int argc, char **argv);
+extern void rep_ListLocal       (int argc, char **largv);
+extern void rep_PreserveLocal   (int argc, char **largv);
+extern void rep_PreserveAllLocal(int argc, char **largv);
+extern void rep_RemoveInc       (int argc, char **largv);
+extern void rep_SetGlobalView   (int argc, char **largv);
+extern void rep_SetLocalView    (int argc, char **largv);
+extern void rep_SetMixedView    (int argc, char **largv);
 
 /* Volume data structure manipulation routines -- rvol.cc */
 extern int repair_cleanup(struct repvol *repv);
@@ -132,7 +133,7 @@ extern int repair_linkrep(struct repvol *repv);
 extern int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen);
 extern int repair_newrep(VolumeId vid, char *mnt, struct repvol **repv);
 extern int repair_unlinkrep(struct repvol *repv);
-    
+
 /* Path processing routines -- path.cc */
 extern int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid);
 extern int  repair_inconflict(char *name, ViceFid *conflictfid);
