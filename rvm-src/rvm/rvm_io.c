@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_io.c,v 4.2 1997/02/26 16:05:02 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.3 1997/04/01 01:55:57 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -56,6 +56,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rv
 
 /* global variables */
 device_t            *rvm_errdev;        /* last device to have error */
+int                 rvm_ioerrno=0;      /* also save the errno for I/O error */
 rvm_length_t        rvm_max_read_len = MAX_READ_LEN; /* maximum single read in Mach */
 
 extern int          errno;              /* kernel error number */
@@ -114,6 +115,11 @@ static long chk_seek(dev,offset)
                            L_SET);
             if (retval >= 0)
                 dev->last_position = *offset;
+	    else
+		{
+		rvm_errdev = dev;
+		rvm_ioerrno = errno;
+	        }
             }
         }
     return retval;
@@ -135,6 +141,7 @@ long set_dev_char(dev,dev_length)
     if (retval != 0)
         {
         rvm_errdev = dev;
+	rvm_ioerrno = errno;
         return retval;
         }
 
@@ -189,6 +196,7 @@ long open_dev(dev,flags,mode)
     if (handle < 0)
         {
         rvm_errdev = dev;
+	rvm_ioerrno = errno;
         return handle;                  /* can't open, see errno... */
         }
 
@@ -213,7 +221,10 @@ long close_dev(dev)
 
     /* close device */
     if ((retval=close((int)dev->handle)) < 0)
+	{
         rvm_errdev = dev;
+	rvm_ioerrno = errno;
+	}
     else
         dev->handle = 0;
 
@@ -256,6 +267,7 @@ long read_dev(dev,offset,dest,length)
         if ((nbytes=read((int)dev->handle,dest,(int)read_len)) < 0)
             {
             rvm_errdev = dev;
+	    rvm_ioerrno = errno;
             return nbytes;
             }
         if (nbytes == 0)                /* force a cheap negative test */
@@ -308,6 +320,7 @@ long write_dev(dev,offset,src,length,sync)
         if ((wrt_len=write((int)dev->handle,src,(int)length)) < 0)
             {
             rvm_errdev = dev;
+	    rvm_ioerrno = errno;
             return wrt_len;
             }
 
@@ -317,6 +330,7 @@ long write_dev(dev,offset,src,length,sync)
             if ((retval=fsync((int)dev->handle))  < 0)
                 {
                 rvm_errdev = dev;
+		rvm_ioerrno = errno;
                 return retval;
                 }
             }
@@ -357,6 +371,7 @@ static long gather_write_file(dev,offset,wrt_len)
             if (retval < 0)
                 {
                 rvm_errdev = dev;
+		rvm_ioerrno = errno;
                 return retval;
                 }
 
@@ -518,7 +533,15 @@ long sync_dev(dev)
 
     /* use kernel call for file sync */
     if (!dev->raw_io)
-        return fsync((int)dev->handle);
+	{
+	retval = fsync((int)dev->handle);
+	if (retval<0)
+	    {
+	    rvm_errdev = dev;
+	    rvm_ioerrno = errno;
+	    }
+        return retval;
+	}
 
     /* raw i/o flushes buffer */
     retval = incr_write_partition(dev,&dev->sync_offset,
@@ -528,3 +551,6 @@ long sync_dev(dev)
 
     return retval;
     }
+
+
+
