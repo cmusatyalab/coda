@@ -587,15 +587,20 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
 
     assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     
+    /* SDesc is pretty much guaranteed to be an invalid pointer by now. It is
+     * commonly on the stack when InitSE and CheckSE are called, but the stack
+     * has been unwound by the time we hit SendResponse. It should be ok,
+     * cleanup has already happened in CheckSE */
+    se->SDesc = NULL;
+
     rc = RPC2_SUCCESS;
-    if (se->PiggySDesc)
-	{/* Deal with file saved for piggybacking */
+    if (se->PiggySDesc) {
+	/* Deal with file saved for piggybacking */
 
 	if (se->PiggySDesc->Value.SmartFTPD.TransmissionDirection == SERVERTOCLIENT)
-	    {/* File is indeed for the client;  the only other way
-	        PiggySDesc can be non-null is when a file is stored
-                piggybacked, but the server does not do an 
-		InitSideEffect or CheckSideEffect */
+	{ /* File is indeed for the client;  the only other way PiggySDesc can
+	     be non-null is when a file is stored piggybacked, but the server
+	     does not do an InitSideEffect or CheckSideEffect */
 
 	    se->SDesc = se->PiggySDesc;	/* so that PutFile is happy */
 	    switch(sftp_AppendFileToPacket(se, Reply))
@@ -614,12 +619,12 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
 		    break;
 		}
 
-	    }
-	sftp_FreePiggySDesc(se);   /* always get rid of the file */
 	}
+	/* clean up state */
+	sftp_vfclose(se);
+	sftp_FreePiggySDesc(se);   /* always get rid of the file */
+    }
 
-    /* clean up state */
-    sftp_vfclose(se);
 
     if (se->WhoAmI == ERROR)
 	{

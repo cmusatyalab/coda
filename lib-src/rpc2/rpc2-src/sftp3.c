@@ -1442,12 +1442,11 @@ int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
     return(0);    
 }
 
-/* sdesc, can be null, fd ignored if sdesc refers to a vmfile, or if user provided fd */
+/* close any still open filedescriptor */
 void sftp_vfclose(struct SFTP_Entry *se)
 {
-    if (se->SDesc && MEMFILE(se->SDesc)) return;
     if (se->openfd == -1)
-    { /* we might have closed this fd when CheckSE fails. -JH */
+    { /* we closed this fd when CheckSE fails, so this is not a problem. -JH */
 	say(10, SFTP_DebugLevel, "sftp_vfclose: fd was already closed.\n");
 	return;
     }
