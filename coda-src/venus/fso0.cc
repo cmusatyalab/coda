@@ -142,6 +142,7 @@ void FSOInit() {
 	struct dirent **namelist;
 	int nentries;
 	char *cwd,*abspath,*eos;
+	struct stat statbuf;
 	abspath = strncpy(abspath,cwd,MAXPATHLEN);
 	abspath = strncat(abspath,"/",2);
 	eos = abspath + strlen(abspath) + 1;
