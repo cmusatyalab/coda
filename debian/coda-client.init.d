@@ -13,7 +13,7 @@ test -f $DAEMON || exit 0
 
 case "$1" in
   start)
-    start-stop-daemon --start --verbose --background --exec $DAEMON
+    start-stop-daemon --start --verbose --exec $DAEMON
     ;;
   stop)
     start-stop-daemon --stop --verbose --exec $DAEMON
@@ -38,7 +38,7 @@ case "$1" in
     start-stop-daemon --stop --verbose --exec $DAEMON
     umount /coda
     sleep 1
-    start-stop-daemon --start --verbose --background --exec $DAEMON
+    start-stop-daemon --start --verbose --exec $DAEMON
     ;;
   *)
     echo "Usage: /etc/init.d/coda-client {start|stop|restart|force-reload}"
