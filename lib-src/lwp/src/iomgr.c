@@ -446,10 +446,10 @@ static int SignalSignals ()
 
     /* handle software signals */
     for (i=0; i < NSOFTSIG; i++) {
-	PROCESS *pid = NULL;
+	PROCESS pid = NULL;
 	if ((p=sigProc[i])) /* This yields!!! */
 	    LWP_CreateProcess(p, STACK_SIZE, LWP_NORMAL_PRIORITY, sigRock[i],
-		"SignalHandler", pid);
+		"SignalHandler", &pid);
 	sigProc[i] = 0;
     }
 

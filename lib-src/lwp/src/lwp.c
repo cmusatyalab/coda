@@ -134,9 +134,8 @@ typedef void *register_t;
 /* Globals identical in  OLD and NEW lwps */
 /*----------------------------------------*/
 
-FILE *lwp_logfile = NULL;
+FILE   *lwp_logfile = NULL;
 int     lwp_debug = 0;
-FILE   *lwp_logfile;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
 int lwp_nextindex;		    /* Next lwp index to assign */
