@@ -30,12 +30,12 @@ librvmlwp_la_LIBADD = rvm_init_lwp.lo rvm_map_lwp.lo rvm_unmap_lwp.lo \
     rvm_trans_lwp.lo rvm_logstatus_lwp.lo rvm_logflush_lwp.lo \
     rvm_logrecovr_lwp.lo rvm_utils_lwp.lo rvm_io_lwp.lo rvm_status_lwp.lo \
     rvm_debug_lwp.lo rvm_printers_lwp.lo
-librvmlwp_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS)
+librvmlwp_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS) $(LIBLWP)
 
 sbin_PROGRAMS = rvmutl
 rvmutl_LDADD = librvm.la
 
-EXTRA_DIST = rvm_pthread.c
+EXTRA_DIST = rvm_pthread.c README.log1.4 READ_ME
 MAINTAINERCLEANFILES = Makefile.in
 
 rvm_init.lo: rvm_init.c rvm_init_lwp.lo

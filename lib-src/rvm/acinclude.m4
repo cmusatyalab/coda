@@ -10,6 +10,8 @@ case ${target} in
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
 esac
 AC_CANONICAL_SYSTEM
+host=${target}
+program_prefix=
 if test ${build} != ${target} ; then
   case ${target} in
    i386-pc-msdos )
@@ -28,7 +30,6 @@ if test ${build} != ${target} ; then
     ;;
    i386-pc-cygwin )
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
-    host=i386-pc-cygwin
     CC="gnuwin32gcc -D__CYGWIN32__"
     CXX="gnuwin32g++"
     AR="gnuwin32ar"
@@ -68,14 +69,16 @@ dnl Search for an installed lwp library
 
 AC_DEFUN(CODA_FIND_LIBLWP,
  [AC_CACHE_CHECK(location of liblwp, coda_cv_lwppath,
-  [saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
+  [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
    coda_cv_lwppath=none ; LIBS="-llwp"
    for path in ${prefix} /usr /usr/local /usr/pkg ; do
+     CFLAGS="${CFLAGS} -I${path}/include"
      LDFLAGS="${LDFLAGS} -L${path}/lib"
-     AC_TRY_LINK([], [int main(){return 0;}],
-                 [coda_cv_lwppath=${path} ; break])
+     AC_TRY_LINK([#include <lwp/lwp.h>], [LWP_Init(0,0,0)],
+		 [coda_cv_lwppath=${path} ; break])
    done
-   LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"])
+   CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"
+  ])
  case $coda_cv_lwppath in
    none) AC_MSG_ERROR("Cannot determine the location of liblwp") ;;
    /usr) ;;

@@ -1,5 +1,5 @@
-Summary: RVM library
-Name: @PACKAGE@-nt
+Summary: RVM library development files
+Name: @PACKAGE@-cygwin32
 Version: @VERSION@
 Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
@@ -7,13 +7,6 @@ Copyright: LGPL
 BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
 Group: Development/Libraries
 %description
-The RVM persistent recoverable memory library. The RVM library is used by
-the Coda distributed filesystem.
-
-%package dev
-Summary: RVM library development files
-Group: Development/Libraries
-%description dev
 Headers and static libraries for developing programs using the RVM library.
 The RVM library is used by the Coda distributed filesystem.
 
@@ -25,22 +18,26 @@ The RVM library is used by the Coda distributed filesystem.
 %setup -n @PACKAGE@-@VERSION@
 
 %build
-./configure --prefix=/usr/gnuwin32 --target=nt
+./configure --prefix=/usr/gnuwin32 --target=nt --disable-shared
 make
 
 %install
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
-make prefix=$RPM_BUILD_ROOT/usr install
+make prefix=$RPM_BUILD_ROOT/usr/gnuwin32 install
+
+rm -f /tmp/@PACKAGE@-win32-bin-@VERSION@.zip
+mkdir -p $RPM_BUILD_ROOT/win-bins
+mv $RPM_BUILD_ROOT/usr/gnuwin32/sbin/rvmutl.exe $RPM_BUILD_ROOT/win-bins
+mv $RPM_BUILD_ROOT/usr/gnuwin32/sbin/rdsinit.exe $RPM_BUILD_ROOT/win-bins
+cd $RPM_BUILD_ROOT/win-bins
+gnuwin32strip *
+zip /tmp/@PACKAGE@-win32-bin-@VERSION@.zip *
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
-/usr/gnuwin32/sbin/rvmutl.exe
-/usr/gnuwin32/sbin/rdsinit.exe
-
-%files dev
 /usr/gnuwin32/lib/librvm.la
 /usr/gnuwin32/lib/librvm.a
 /usr/gnuwin32/lib/librvmlwp.la

@@ -22,6 +22,10 @@ Coda are listed in the file CREDITS.
 *
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifdef __STDC__
 #include <stdlib.h>
 #else

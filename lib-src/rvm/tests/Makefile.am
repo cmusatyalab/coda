@@ -30,8 +30,8 @@ rvm_basher_LDADD = $(top_builddir)/rds/librds.la \
 lwp_basher_SOURCES =
 lwp_basher_LDFLAGS = -static
 lwp_basher_LDADD = lwp_basher.o $(top_builddir)/rds/librdslwp.la \
-    $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvmlwp.la \
-    $(LIBLWP) $(LIBPTHREAD)
+    $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvmlwp.la
+#    $(LIBLWP) $(LIBPTHREAD)
 
 EXTRA_DIST = README basher_parms map_chk_file map_data_file \
     t1_chk_file t3_chk_file t5_chk_file test_data_file

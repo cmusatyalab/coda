@@ -30,7 +30,7 @@ librdslwp_la_SOURCES =
 librdslwp_la_LIBADD = rds_coalesce.lo rds_free.lo rds_init.lo rds_malloc.lo \
     rds_prealloc.lo rds_split.lo rds_stats.lo rds_start.lo rds_util.lo \
     rds_zap.lo
-librdslwp_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS)
+librdslwp_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS) $(LIBLWP)
 
 sbin_PROGRAMS = rdsinit
 rdsinit_LDADD = librds.la $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la
