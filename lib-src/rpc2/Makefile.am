@@ -17,7 +17,8 @@
 #                            none currently
 #*/
 
-SUBDIRS = rpc2-src rp2gen fail include pkgs debian
+# !!! do not build, generated stubs are broken !!!
+#SUBDIRS = rpc2-src rp2gen fail include pkgs debian
 
 EXTRA_DIST = acinclude.m4 bootstrap.sh configure
 
