@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/res/RCS/reslock.cc,v 1.1 1996/11/22 19:12:59 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ extern "C" {
 #include <cam/_setjmp.h>
 #endif CAMELOT
 
-#ifndef LINUX
+#if 0
 #include <cthreads.h>
 #endif
 #include <stdio.h>
