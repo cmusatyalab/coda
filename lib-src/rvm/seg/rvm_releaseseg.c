@@ -17,6 +17,7 @@ Coda are listed in the file CREDITS.
 #*/
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <rvm/rvm.h>
 #include <rvm/rvm_segment.h>
@@ -45,5 +46,6 @@ rvm_release_segment (
     }
     rvm_free_region(region);
     free(*regions);
+    return err;
 }
 

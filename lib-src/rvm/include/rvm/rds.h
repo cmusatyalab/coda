@@ -23,6 +23,7 @@ Coda are listed in the file CREDITS.
 #ifndef	_RDS_H_
 #define	_RDS_H_
 
+#include <stdio.h>
 #include "rvm.h"
 
 /* Error codes */
@@ -90,6 +91,8 @@ extern int rds_free(
       rvm_tid_t             *tid,
       int                   *err
     );
+
+int rds_maxblock(unsigned long size);
 
 /*
  * Because a transaction may abort we don't actually want to free

@@ -5,7 +5,7 @@ AC_PREREQ(2.50)
 AC_INIT
 AC_CONFIG_SRCDIR(rvm/rvm_private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rvm, 1.9)
+AM_INIT_AUTOMAKE(rvm, 1.10)
 AC_CONFIG_HEADERS(config.h)
 
 dnl For library version updates, follow these steps in order.
@@ -14,7 +14,7 @@ dnl - when interfaces were added/removed changed, increment second and set
 dnl   first to 0
 dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
-CODA_LIBRARY_VERSION(5, 2, 1)
+CODA_LIBRARY_VERSION(0, 3, 2)
 
 CODA_OPTION_LWP
 

@@ -93,10 +93,12 @@ Coda are listed in the file CREDITS.
 #endif
 
 #define LEAVE_CRITICAL_SECTION	goto end_critical;
-#define CRITICAL(body)				\
-                 mutex_lock(&heap_lock);		\
-                 body;				\
-end_critical:    mutex_unlock(&heap_lock);
+#define CRITICAL(body) do {		   \
+                 mutex_lock(&heap_lock);   \
+                 body;			   \
+		 goto end_critical; /* avoid compiler warning */ \
+end_critical:    mutex_unlock(&heap_lock); \
+} while (0);
 
 /* Guards detect if the block structure had been illegally overwritten.
  * One is placed after the size, and before user's data. The other is placed
@@ -196,6 +198,7 @@ int           rm_from_list();
 /***********************
  * Coalesce
  */
-void coalesce();
+int merge_with_next_free(free_block_t *fbp, rvm_tid_t *tid, int *err);
+void coalesce(rvm_tid_t *tid, int *err);
 
 #endif /* _RDS_PRIVATE_H_ */

@@ -231,7 +231,7 @@ static void build_nv_range(log,tid,range)
     assert(dev->iov_cnt <= dev->iov_length);
     
     /* setup io for new values */
-    dev->iov[dev->iov_cnt].iov_base = CHOP_TO_LENGTH(range->nvaddr);
+    dev->iov[dev->iov_cnt].iov_base = range->nvaddr;
     dev->iov[dev->iov_cnt++].iov_len = RANGE_LEN(range);
 
     assert(dev->iov_cnt <= dev->iov_length);

@@ -117,12 +117,14 @@ rds_free(addr, tid, err)
 		RDS_STATS.freebytes   += bp->size * RDS_CHUNK_SIZE;
 		RDS_STATS.mallocbytes -= bp->size * RDS_CHUNK_SIZE;    
 
+		/* try to merge with trailing free blocks */
+		merge_with_next_free(bp, atid, err);
+
 		/* Add the block to the approprite free list. */
-		put_block(bp, atid, err); /* Error is picked up below... */
+		if (*err == SUCCESS)
+		    put_block(bp, atid, err); /* Error is picked up below... */
 	    }
 	}
-	if (*err == SUCCESS)
-	    coalesce(atid, err);
 
 	if ((*err != SUCCESS) && (tid == NULL)) {
 	    rvm_abort_transaction(atid);
@@ -228,15 +230,17 @@ int rds_do_free(list, mode)
 	    RDS_LOG("rdstrace: addr %p size %lx\n",
 				     USER_BLOCK(bp)  , bp->size * RDS_CHUNK_SIZE);
 
+	    /* try to merge with trailing free blocks */
+	    merge_with_next_free(bp, tid, &err);
+	    if (err != SUCCESS)
+		break;
+
 	    /* Add the block to the approprite free list. */
 	    put_block(bp, tid, &err); 
 	    if (err != SUCCESS)
 		break;
 	}
 	
-	if (err == SUCCESS)
-	    coalesce(tid, &err);
-
 	RDS_LOG("rdstrace: end do_free\n");
 
 	if (err != SUCCESS) {

@@ -29,14 +29,65 @@ Coda are listed in the file CREDITS.
  * is reset to the highest non-empty list.
  */
 
-void
-coalesce(tid, err)
-    rvm_tid_t *tid;
-    int *err;
+/* this function merges a freeblock with all of the following free blocks */
+int merge_with_next_free(free_block_t *fbp, rvm_tid_t *tid, int *err)
 {
-    free_block_t *fbp, *nfbp, *save;
+    free_block_t *nfbp;
+    guard_t *block_end;
     rvm_return_t rvmret;
-    int i, list, old_maxlist, merged;
+    int list, merged;
+
+    assert(fbp->type == FREE_GUARD);	/* Ensure fbp is a free block */
+	    
+    nfbp = NEXT_CONSECUTIVE_BLOCK(fbp);
+    merged = 0;
+
+    /* Do the set_range outside of next loop if appropriate. */
+    if ((nfbp->type == FREE_GUARD) && (nfbp < RDS_HIGH_ADDR)) { 
+	rvmret = rvm_set_range(tid, (char *)fbp, sizeof(free_block_t));
+	if (rvmret != RVM_SUCCESS) {
+	    (*err) = (int)rvmret;
+	    return 0;
+	}
+    }
+
+    /* See if the next consecutive object is free. */
+    while ((nfbp->type == FREE_GUARD) && (nfbp < RDS_HIGH_ADDR)) {
+	block_end = BLOCK_END(fbp);/* Save a ptr to the endguard */ 
+	merged = 1;
+	RDS_STATS.merged++;		/* Update merged object stat */
+	fbp->size += nfbp->size;	/* Update the object's size */
+
+	/* remove the second object from it's list */
+	list = (nfbp->size >= RDS_MAXLIST) ? RDS_MAXLIST : nfbp->size;
+	assert(RDS_FREE_LIST[list].head != NULL);
+
+	rm_from_list(&RDS_FREE_LIST[list], nfbp, tid, err);
+	if (*err != SUCCESS) return 0;
+
+	/* Take out the guards to avoid future confusion. I'm going
+	 * to assume that the next block follows immediately on
+	 * the endguard of the first block */
+	rvmret = rvm_set_range(tid, (char *)block_end,
+			       sizeof(guard_t) + sizeof(free_block_t));
+	if (rvmret != RVM_SUCCESS) {
+	    (*err) = (int)rvmret;
+	    return 0;
+	}
+	*block_end = 0;
+	BZERO(nfbp, sizeof(free_block_t));
+
+	nfbp = NEXT_CONSECUTIVE_BLOCK(fbp);
+    }
+    return merged;
+}
+
+
+void coalesce(rvm_tid_t *tid, int *err)
+{
+    free_block_t *fbp, *save;
+    rvm_return_t rvmret;
+    int i, old_maxlist, merged;
 
     /* Make sure the heap has been initialized */
     if (!HEAP_INIT) {
@@ -68,51 +119,9 @@ coalesce(tid, err)
 	fbp = RDS_FREE_LIST[i].head;
 
 	while (fbp != NULL) {
-	    assert(fbp->type == FREE_GUARD);	/* Ensure fbp is a free block */
-	    
-	    nfbp = NEXT_CONSECUTIVE_BLOCK(fbp);
-	    merged = 0;
-
-	    /* Do the set_range outside of next loop if appropriate. */
-	    if ((nfbp->type == FREE_GUARD) && (nfbp < RDS_HIGH_ADDR)) { 
-		rvmret = rvm_set_range(tid, (char *)fbp, sizeof(free_block_t));
-		if (rvmret != RVM_SUCCESS) {
-		    (*err) = (int)rvmret;
-		    return;
-		}
-	    }
-
-	    /* See if the next consecutive object is free. */
-	    
-	    while ((nfbp->type == FREE_GUARD) && (nfbp < RDS_HIGH_ADDR)) {
-		guard_t *block_end = BLOCK_END(fbp);/* Save a ptr to the endguard */ 
-		merged = 1;
-		RDS_STATS.merged++;		/* Update merged object stat */
-		fbp->size += nfbp->size;	/* Update the object's size */
-
-		/* remove the second object from it's list */
-		list = (nfbp->size >= RDS_MAXLIST)?RDS_MAXLIST:nfbp->size;
-		assert(RDS_FREE_LIST[list].head != NULL);
-		
-		rm_from_list(&RDS_FREE_LIST[list], nfbp, tid, err);
-		if (*err != SUCCESS) {
-		    return;
-		}
-
-		/* Take out the guards to avoid future confusion. I'm going
-		 * to assume that the next block follows immediately on
-		 * the endguard of the first block */
-		rvmret = rvm_set_range(tid, (char *)block_end,
-				       sizeof(guard_t) + sizeof(free_block_t));
-		if (rvmret != RVM_SUCCESS) {
-		    (*err) = (int)rvmret;
-		    return;
-		}
-		*block_end = 0;
-		BZERO(nfbp, sizeof(free_block_t));
-		
-		nfbp = NEXT_CONSECUTIVE_BLOCK(fbp);
-	    }
+	    merged = merge_with_next_free(fbp, tid, err);
+	    if (*err)
+		return;
 
 	    if (!merged)
 		RDS_STATS.unmerged++;

@@ -17,6 +17,7 @@ Coda are listed in the file CREDITS.
 #*/
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include <rvm/rvm.h>

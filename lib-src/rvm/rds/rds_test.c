@@ -132,7 +132,6 @@ main(argc, argv)
 	  case 'l' : {
 	      unsigned long nregions;
 	      rvm_region_def_t *regions;
-	      printf("%x\n",sbrk(0));
 	      ret = rvm_load_segment(DataDev,DataLen,options,&nregions, &regions);
 	      if (ret != RVM_SUCCESS) 
 		  printf("ERROR: rvm_load_seg, code: %s\n",rvm_return(ret));

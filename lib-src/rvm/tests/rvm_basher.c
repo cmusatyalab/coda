@@ -37,6 +37,7 @@ listed in the file CREDITS.
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <string.h>
+#include <time.h>
 
 #include <rvm/rvm.h>
 #include <rvm/rvm_statistics.h>
@@ -552,9 +553,8 @@ void test_chk_range(tid,addr,len,id)
     rvm_length_t    len;
     int             id;                 /* thread id */
     {
-    rvm_return_t    ret;             /* rvm return code */
-
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
+    rvm_return_t    ret;             /* rvm return code */
     /* test if range is declared in tid */
     if ((ret = rvm_chk_range(tid,addr,len))
         != RVM_SUCCESS)
@@ -696,7 +696,6 @@ void do_modify(id)
     int             id;                 /* thread id */
     {
     int             n_trans;            /* number of transactions per block */
-    rvm_return_t    ret;                /* rvm error return */
     block_t         *block;             /* block descriptor */
     block_t         range_list;         /* list of modification ranges */
     block_t         *range;
@@ -757,8 +756,8 @@ rvm_bool_t chk_region(seg_file,region)
     reg_pos = RVM_OFFSET_TO_LENGTH(RegionDefs[region].offset);
     if ((io_ret=fseek(seg_file,reg_pos,0)) != 0)
         {
-        printf("\n? Can't seek to %d in segment file, ret = %d\n",
-               reg_pos,io_ret);
+        printf("\n? Can't seek to %lu in segment file, ret = %d\n",
+               reg_pos, io_ret);
         CODA_ASSERT(rvm_false);
         }
 
@@ -771,7 +770,7 @@ rvm_bool_t chk_region(seg_file,region)
         if (c == EOF)
             {
             printf("\n? EOF encountered while reading segment; "
-                   "offset = %d\n", reg_pos);
+                   "offset = %lu\n", reg_pos);
             CODA_ASSERT(rvm_false);
             }
 #if 0
@@ -786,7 +785,7 @@ rvm_bool_t chk_region(seg_file,region)
             printf("         vm[%d] = 0x%x\n",j,(vm[j] & 255));
             printf("         region%d[%d] = 0x%x\n",region,j,
                    (c & 255));
-            printf("         region offset = %d\n",reg_pos);
+            printf("         region offset = %lu\n",reg_pos);
             CODA_ASSERT(rvm_false);
             return rvm_false;
             }
@@ -884,7 +883,7 @@ rvm_bool_t chk_vm()
     printf("  number tree nodes = %d, tree depth = %d\n",
            query->n_nodes,query->max_depth);
 #else
-    printf("  records written = %d\n",tot_recs);
+    printf("  records written = %lu\n",tot_recs);
 #endif /* VERSION_TEST */
 
     /* open segment file read-only */
@@ -906,7 +905,8 @@ rvm_bool_t chk_vm()
         }
 
     /* all's well -- close file & release the other threads */
-    if (io_ret=fclose(seg_file))
+    io_ret = fclose(seg_file);
+    if (io_ret)
         {
         printf("\n? Error closing segment file\n");
         printf("    ret = %d, errno = %d\n",ret,errno);
@@ -939,16 +939,9 @@ rvm_bool_t chk_time()
         }
 
     /* print time */
-/* temporary fix until linux get timeval.tv_sec defined to be long
- * as everybodies else.   -- clement
- */
-#ifdef __linux__
-    printf("  time: %s",ctime((time_t *)&time.tv_sec));
-#else
-    printf("  time: %s",ctime(&time.tv_sec));
-#endif
-    printf("  number of test operations: %d\n",max_op_cnt);
-    printf("  elapsed time: %d sec.\n",time.tv_sec-init_time.tv_sec);
+    printf("  time: %s", ctime(&time.tv_sec));
+    printf("  number of test operations: %d\n", max_op_cnt);
+    printf("  elapsed time: %ld sec.\n", time.tv_sec-init_time.tv_sec);
 
     init_time = time;                   /* update loop start time */
     return rvm_true;
@@ -973,7 +966,7 @@ rvm_bool_t chk_moby()
                                    (random() % temp));
 
     /* announce test */
-    printf("\nLarge range modification\n  addr:   0x%x\n  length: %d\n",
+    printf("\nLarge range modification\n  addr:   %p\n  length: %lu\n",
            start,length);
 
     /* get a buffer and save vm */
@@ -1084,13 +1077,9 @@ void monitor()
     return;
     }
 /* testing thread function */
-worker(id)
-    int             id;                 /* thread indentifier */
-    {
-    int             err, i, count = 0;
-    rvm_return_t    ret;
-    rvm_tid_t       *tid = rvm_malloc_tid();
-
+int worker(void *idp)
+{
+    int id = *(int *)idp;
     CRITICAL(print_lock,
              printf("Worker thread %d running...\n\n",id));
 
@@ -1116,6 +1105,7 @@ worker(id)
     if (--nthreads == 0)
         condition_signal(&thread_exit_code);
     cthread_exit(0);
+    return -1;
     }
 /* string name lookup: accepts minimum substring for match */
 static int  lookup_str_name(str,str_vec,ambig_str)
@@ -1170,12 +1160,6 @@ static void skip_white(ptr)
     {
     while (isspace(**ptr))
         (*ptr)++;
-    }
-
-static void skip_lf()
-    {
-    while (rvm_true)
-        if (getc(para_file) == '\n') return;
     }
 
 /* string scanner */
@@ -1283,7 +1267,7 @@ void show_test_parms()
 
     printf("  Log file:  %s\n",LogFileName);
     printf("  Data file: %s\n",DataFileName);
-    printf("  Data file length:                         %u\n",
+    printf("  Data file length:                         %lu\n",
            RVM_OFFSET_TO_LENGTH(DataLen));
     printf("  Number of operations/cycle:               %d\n",max_op_cnt);
     printf("  Maximum number of transactions/operation: %d\n",max_trans);
@@ -1355,9 +1339,9 @@ void show_test_parms()
     printf("  RVM incremental truncation time slice:    %d msec.\n",
            incr_trunc_time);
 #endif /* VERSION_TEST */
-    printf("  RVM recovery buffer length:               %d\n",rec_buf_len);
-    printf("  RVM flush buffer length:                  %d\n",flush_buf_len);
-    printf("  RVM max. read length:                     %d\n",max_read_len);
+    printf("  RVM recovery buffer length:               %lu\n",rec_buf_len);
+    printf("  RVM flush buffer length:                  %lu\n",flush_buf_len);
+    printf("  RVM max. read length:                     %lu\n",max_read_len);
     if (chk_sum_sw)
         printf("  RVM check sum flag:                        true\n");
     else
@@ -1541,7 +1525,10 @@ static void set_flags()
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
           case INCR_KEY:
             optimizations |= RVM_INCR_TRUNCATION;
+	    continue;
 #endif /* VERSION_TEST */
+	  default:
+	    continue;
             }
         }
     }
@@ -1618,9 +1605,9 @@ void show_break()
         }
 
     /* print the limits */
-    printf("\nCurrent break point:         0x%x\n",
+    printf("\nCurrent break point:         0x%lx\n",
            RVM_ROUND_LENGTH_UP_TO_PAGE_SIZE(cur_brk+5*RVM_PAGE_SIZE));
-    printf("Maximum data segment length: 0x%x\n\n",rlp.rlim_max);
+    printf("Maximum data segment length: 0x%lx\n\n",rlp.rlim_max);
 #endif
     exit(0);
     }
@@ -1687,8 +1674,8 @@ int main(argc, argv)
     {
     rvm_options_t       *options;       /* options descriptor ptr */
     rvm_return_t	ret;
-    char		*addr, *sptr, string[80];
-    int 		err, i, length;
+    char		*addr, string[80];
+    int 		err, i;
 
     if (argc == 2) {		/* input parameters from file */
       para_file = fopen(argv[1], "r");
@@ -1702,7 +1689,7 @@ int main(argc, argv)
 
     /* initializations */
     cthread_init();
-    cmd_line[0] != '\0';
+    cmd_line[0] = '\0';
     cmd_cur=cmd_line;
     chk_block = rvm_false;
     chk_sum_sw = rvm_false;
@@ -2061,15 +2048,16 @@ int main(argc, argv)
     /* fork the testing threads and run the tests */
     if (nthreads == 1)
         {
+	int arg = 0;
         last[0] = 0;
-        worker(0);
+        worker(&arg);
         }
     else
         {
         for (i = 0; i < nthreads; i++)
             {
             last[i] = 0;
-            threads[i] = cthread_fork(worker, (char *)i);
+            threads[i] = cthread_fork(worker, &i);
             }
 
         /* wait for all threads to terminate */

@@ -196,7 +196,6 @@ static rvm_return_t join_daemon(log)
     log_t           *log;
     {
     log_daemon_t    *daemon = &log->daemon; /* truncation daemon descriptor */
-    daemon_state_t  state;              /* daemon control state code */
     rvm_return_t    retval = RVM_SUCCESS;
 
     if (daemon->thread != (cthread_t)NULL)

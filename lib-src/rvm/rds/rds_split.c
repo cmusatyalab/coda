@@ -34,10 +34,11 @@ split(size, tid, err)
      int	  *err;
 {
     free_block_t *newObject1, *newObject2;
-    free_block_t *bp;
+    free_block_t *bp, *tempbp;
     rvm_return_t rvmerr;
-    int remaining_size;
+    int remaining_size, i;
     free_list_t  *list;
+    int second_attempt = 0;
     
     /* Find the list with the largest blocks that is non-empty. */
     /* Only do the setrange if necessary... */
@@ -64,31 +65,45 @@ split(size, tid, err)
 	    if (*err)
 		return NULL;
 	}
-
     }
 
+retry:
+    /* Kind of a hack, try to avoid fragmenting the blocks on MAXLIST by
+     * picking from a list that is a multiple of the requested size. */
     list = &RDS_FREE_LIST[RDS_MAXLIST];
+    for (i = size * 2; i < RDS_MAXLIST; i += size) {
+	if (RDS_FREE_LIST[i].head) {
+	    list = &RDS_FREE_LIST[i];
+	    break;
+	}
+    }
     
-    bp = list->head;
-    while ((bp != NULL) && (bp->size < size)) {
-	bp = bp->next;
+    tempbp = list->head;
+    while (tempbp) {
+	/* best fit strategy, only really useful for the largest list which
+	 * contains mixed size blocks but since we break out whenever a match
+	 * is found this shouldn't add much overhead to the simpler cases */
+	if (tempbp->size >= size && (!bp || tempbp->size < bp->size)) {
+	    bp = tempbp;
+	    if (bp->size == size)
+		break;
+	}
+	tempbp = tempbp->next;
     }
 
-    if (bp == NULL) { /* No block was big enough, coalesce and try again */
-	coalesce(tid, err);  
-	if (*err)
-	    return NULL;
+    if (!bp) {
+	if (!second_attempt) {
+	    /* No block was big enough on the first try,
+	     * coalesce and try again */
+	    coalesce(tid, err);  
+	    if (*err) return NULL;
 
-	list = &RDS_FREE_LIST[RDS_MAXLIST];  /* Maxlist might have changed. */
-    	bp = list->head;
-	while ((bp != NULL) && (bp->size < size)) {
-	    bp = bp->next;
+	    second_attempt = 1;
+	    goto retry;
 	}
 
-	if (bp == NULL) { /* Still no large enough block, oh well. */
-	    *err = ENO_ROOM; 
-	    return NULL;
-	}
+	*err = ENO_ROOM; 
+	return NULL;
     }
 
     assert(bp && bp->size >= size); /* Assume we found an appropriate block */

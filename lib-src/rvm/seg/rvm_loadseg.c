@@ -16,6 +16,7 @@ Coda are listed in the file CREDITS.
 #*/
 
 #include <stdlib.h>
+#include <string.h>
 #include <rvm/rvm.h>
 #include <rvm/rvm_segment.h>
 #include "rvm_segment_private.h"

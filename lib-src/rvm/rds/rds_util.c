@@ -181,7 +181,6 @@ get_block(size, tid, err)
       int	*err;
 {
     int list = ((size >= RDS_MAXLIST)?RDS_MAXLIST:size);
-    free_block_t *fbp;
     
     /* Check the guard on the list. */
     if (RDS_FREE_LIST[list].guard != FREE_LIST_GUARD) {
