@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/vproc.h,v 1.4 1996/12/09 18:58:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/vproc.h,v 4.1 1997/01/08 21:51:50 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -458,7 +458,7 @@ extern int vnode_deallocs;
 #define VA_ATIME_1(va)	(va)->va_atime.tv_sec
 #define VA_ATIME_2(va)	(va)->va_atime.tv_usec
 #define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
-#define VA_CTIME_2(va)	(va)->va_ctime.tv_sec
+#define VA_CTIME_2(va)	(va)->va_ctime.tv_usec
 #endif /* __MACH__ */
 
 #ifdef __NetBSD__ 
@@ -485,4 +485,39 @@ extern int vnode_deallocs;
 #endif	/* __linux__ */
 
 
-#endif	not _VENUS_PROC_H_
+/* Definitions of the value -1 with correct cast for different
+   platforms, to be used in struct vattr to indicate a
+   field to be ignored.  Used  mostly in vproc::setattr(), and a few
+   other places.  The platform-specific definitions should go away once
+   we replace use of sys/vnode.h  by venus/venus_vnode.h  (Satya, 1/11/97) */
+
+#define	VA_IGNORE_FSID		((long)-1)
+#define	VA_IGNORE_ID		((long)-1)
+#define VA_IGNORE_NLINK		((short)-1)
+#define VA_IGNORE_BLOCKSIZE	((long)-1)
+#define VA_IGNORE_RDEV		((dev_t)-1)
+#define VA_IGNORE_STORAGE	((long)-1)
+#define VA_IGNORE_MODE		((u_short)-1)
+#define VA_IGNORE_UID		((vuid_t) -1)
+#define VA_IGNORE_TIME2		((long) -1)
+
+#ifdef __MACH__
+#define VA_IGNORE_GID		((short) -1)
+#define VA_IGNORE_SIZE		((u_long)-1) 
+#define VA_IGNORE_TIME1		((long)-1)
+#endif /* __MACH */
+
+#ifdef __NetBSD__
+#define VA_IGNORE_GID		((vgid_t) -1)
+#define VA_IGNORE_SIZE		((u_quad_t)-1) 
+#define VA_IGNORE_TIME1		((time_t)-1)
+#endif /* __ NetBSD__ */
+
+#ifdef __linux__
+#define VA_IGNORE_GID		((vgid_t) -1)
+#define VA_IGNORE_SIZE		((u_long)-1) 
+#define VA_IGNORE_TIME1		((long)-1)
+#endif /* __linux__ */
+
+
+#endif /* not _VENUS_PROC_H_ */

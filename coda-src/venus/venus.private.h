@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/coda/src/coda-4.0.1/coda-src/venus/RCS/venus.private.h,v 1.3 1996/11/24 23:07:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/venus.private.h,v 4.1 1997/01/08 21:51:37 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -126,7 +126,17 @@ const int MAXHOSTS = 8;	/* The number of hosts we generally try to parse in a ho
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
 /* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
 const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
+
+#ifdef __NetBSD__
+/* Group id fields are 32 bits in NetBSD (not 16 bits); the use of a small 
+   negative number (-2) means its unsigned long representation is huge
+   (4294967294).  This causes the "ar" program to screw up because it
+   blindly does a sprintf() of the gid into the ".a" file. (Satya, 1/11/97) */
+const vuid_t V_GID = (vuid_t)99999;    /* GID that the venus process runs under. */
+#else
+/* On Mach and other systems with 16-bit gids, the -2 value gives a gid of 65534 */
 const vuid_t V_GID = (vuid_t)-2;    /* GID that the venus process runs under. */
+#endif /* __NetBSD__ */
 const vuid_t ALL_UIDS = (vuid_t)-1;
 const vuid_t HOARD_UID = (vuid_t)-2; /* uid of hoard daemon */
 const unsigned short V_MODE = 0600;

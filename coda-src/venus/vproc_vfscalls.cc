@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/vproc_vfscalls.cc,v 1.1 1996/11/22 19:11:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/vproc_vfscalls.cc,v 4.1 1997/01/08 21:51:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -506,26 +506,22 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
     fsobj *f = 0;
 
     /* Cannot set these attributes. */
-    if ( (vap->va_fsid != (long)-1) ||
-	 (VA_ID(vap) != (long)-1) ||
-	 (vap->va_nlink != (short)-1) ||
-	 (vap->va_blocksize != (long)-1) ||
-	 (vap->va_rdev != (dev_t)-1) ||
-	 (VA_STORAGE(vap) != (long)-1))
+    if ( (vap->va_fsid != VA_IGNORE_FSID) ||
+	 (VA_ID(vap) != VA_IGNORE_ID) ||
+	 (vap->va_nlink != VA_IGNORE_NLINK) ||
+	 (vap->va_blocksize != VA_IGNORE_BLOCKSIZE) ||
+	 (vap->va_rdev != VA_IGNORE_RDEV) ||
+	 (VA_STORAGE(vap) != VA_IGNORE_STORAGE) )
 	{ u.u_error = EINVAL; return; }
 
     /* Should be setting at least one of these. */
-    if ( (vap->va_mode == (u_short)-1) &&
-	 (vap->va_uid == (vuid_t) -1) &&
-#ifdef __MACH__
-	 (vap->va_gid == (short) -1) &&
-#else
-	 (vap->va_gid == (vgid_t) -1) &&
-#endif
-	 (vap->va_size == (u_long)-1) &&
-	 (VA_ATIME_1(vap) == (long)-1) &&
-	 (VA_MTIME_1(vap) == (long)-1) &&
-	 (VA_CTIME_1(vap) == (long)-1))
+    if ( (vap->va_mode == VA_IGNORE_MODE) &&
+	 (vap->va_uid == VA_IGNORE_UID) &&
+	 (vap->va_gid == VA_IGNORE_GID) &&
+	 (vap->va_size == VA_IGNORE_SIZE) &&
+	 (VA_ATIME_1(vap) == VA_IGNORE_TIME1) &&
+	 (VA_MTIME_1(vap) == VA_IGNORE_TIME1) &&
+	 (VA_CTIME_1(vap) == VA_IGNORE_TIME1) )
 
 	Choke("vproc::setattr: no attributes specified");
 
@@ -544,13 +540,13 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
 	/* Permission checks. */
 	{
 	    /* chmod, fchmod */
-	    if (vap->va_mode != (u_short)-1) {
+	    if (vap->va_mode != VA_IGNORE_MODE) {
 		u.u_error = f->Access((long)PRSFS_WRITE, 0, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
 
 	    /* chown, fchown */
-	    if (vap->va_uid != (vuid_t)-1) {
+	    if (vap->va_uid != VA_IGNORE_UID) {
 		/* Need to allow for System:Administrators here! -JJK */
 		if (f->stat.Owner != (vuid_t)vap->va_uid)
 		    { u.u_error = EACCES; goto FreeLocks; }
@@ -558,17 +554,13 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
 		u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
-#ifdef __MACH__
-	    if (vap->va_gid != (short)-1) {
-#else
-	    if (vap->va_gid != (vgid_t)-1) {
-#endif
+	    if (vap->va_gid != VA_IGNORE_GID) {
 		u.u_error = EACCES;
 		goto FreeLocks;
 	    }
 
 	    /* truncate, ftruncate */
-	    if (vap->va_size != (u_long)-1) {
+	    if (vap->va_size != VA_IGNORE_SIZE) {
 		if (!f->IsFile())
 		    { u.u_error = EISDIR; goto FreeLocks; }
 
@@ -577,9 +569,9 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
 	    }
 
 	    /* utimes */
-	    if (VA_ATIME_1(vap) != (long)-1 ||
-		VA_MTIME_1(vap) != (long)-1 ||
-		VA_CTIME_1(vap) != (long)-1) {
+	    if (VA_ATIME_1(vap) != VA_IGNORE_TIME1 ||
+		VA_MTIME_1(vap) != VA_IGNORE_TIME1 ||
+		VA_CTIME_1(vap) != VA_IGNORE_TIME1) {
 		u.u_error = f->Access((long)PRSFS_WRITE, 0, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
