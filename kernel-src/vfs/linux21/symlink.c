@@ -26,7 +26,8 @@
 #include <linux/coda_proc.h>
 
 static int coda_readlink(struct dentry *de, char *buffer, int length);
-static struct dentry *coda_follow_link(struct dentry *, struct dentry *);
+static struct dentry *coda_follow_link(struct dentry *, struct dentry *, 
+				       unsigned int);
 
 struct inode_operations coda_symlink_inode_operations = {
 	NULL,			/* no file-operations */
@@ -64,8 +65,8 @@ static int coda_readlink(struct dentry *de, char *buffer, int length)
 	coda_vfs_stat.readlink++;
 
         /* the maximum length we receive is len */
-        if ( length > CFS_MAXPATHLEN ) 
-	        len = CFS_MAXPATHLEN;
+        if ( length > CODA_MAXPATHLEN ) 
+	        len = CODA_MAXPATHLEN;
 	else
 	        len = length;
 	CODA_ALLOC(buf, char *, len);
@@ -85,14 +86,14 @@ static int coda_readlink(struct dentry *de, char *buffer, int length)
 	return error;
 }
 
-static struct dentry *coda_follow_link(struct dentry *de, 
-				       struct dentry *base)
+static struct dentry *coda_follow_link(struct dentry *de, struct dentry *base,
+				       unsigned int follow)
 {
 	struct inode *inode = de->d_inode;
 	int error;
 	struct coda_inode_info *cnp;
 	unsigned int len;
-	char mem[CFS_MAXPATHLEN];
+	char mem[CODA_MAXPATHLEN];
 	char *path;
 	ENTRY;
 	CDEBUG(D_INODE, "(%x/%ld)\n", inode->i_dev, inode->i_ino);
@@ -100,7 +101,7 @@ static struct dentry *coda_follow_link(struct dentry *de,
         cnp = ITOC(inode);
 	coda_vfs_stat.follow_link++;
 
-	len = CFS_MAXPATHLEN;
+	len = CODA_MAXPATHLEN;
 	error = venus_readlink(inode->i_sb, &(cnp->c_fid), mem, &len);
 
 	if (error) {
@@ -116,7 +117,7 @@ static struct dentry *coda_follow_link(struct dentry *de,
 	memcpy(path, mem, len);
 	path[len] = 0;
 
-	base = lookup_dentry(path, base, 1);
+	base = lookup_dentry(path, base, follow);
 	kfree(path);
 	return base;
 }

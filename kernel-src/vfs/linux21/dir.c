@@ -122,7 +122,7 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 
 	dircnp = ITOC(dir);
 
-	if ( length > CFS_MAXNAMLEN ) {
+	if ( length > CODA_MAXNAMLEN ) {
 	        printk("name too long: lookup, %s (%*s)\n", 
 		       coda_f2s(&dircnp->c_fid), length, name);
 		return -ENAMETOOLONG;
@@ -152,8 +152,8 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 
 	res_inode = NULL;
 	if (!error) {
-		if (type & CFS_NOCACHE) {
-			type &= (~CFS_NOCACHE);
+		if (type & CODA_NOCACHE) {
+			type &= (~CODA_NOCACHE);
 			CDEBUG(D_INODE, "dropme set for %s\n", 
 			       coda_f2s(&resfid));
 			dropme = 1;
@@ -249,7 +249,7 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
 	dircnp = ITOC(dir);
         CHECK_CNODE(dircnp);
 
-        if ( length > CFS_MAXNAMLEN ) {
+        if ( length > CODA_MAXNAMLEN ) {
 		printk("name too long: create, %s(%s)\n", 
 		       coda_f2s(&dircnp->c_fid), name);
 		return -ENAMETOOLONG;
@@ -306,7 +306,7 @@ static int coda_mknod(struct inode *dir, struct dentry *de, int mode, int rdev)
 	dircnp = ITOC(dir);
         CHECK_CNODE(dircnp);
 
-        if ( length > CFS_MAXNAMLEN ) {
+        if ( length > CODA_MAXNAMLEN ) {
 		printk("name too long: mknod, %s(%s)\n", 
 		       coda_f2s(&dircnp->c_fid), name);
 		return -ENAMETOOLONG;
@@ -353,7 +353,7 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
 		return -ENOENT;
 	}
 
-        if ( len > CFS_MAXNAMLEN )
+        if ( len > CODA_MAXNAMLEN )
                 return -ENAMETOOLONG;
 
 	if (coda_isroot(dir) && coda_iscontrol(name, len))
@@ -415,7 +415,7 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 	CDEBUG(D_INODE, "old: fid: %s\n", coda_f2s(&(cnp->c_fid)));
 	CDEBUG(D_INODE, "directory: %s\n", coda_f2s(&(dir_cnp->c_fid)));
 
-        if ( len > CFS_MAXNAMLEN ) {
+        if ( len > CODA_MAXNAMLEN ) {
                 printk("coda_link: name too long. \n");
                 return -ENAMETOOLONG;
         }
@@ -453,11 +453,11 @@ static int coda_symlink(struct inode *dir_inode, struct dentry *de,
 	if (coda_isroot(dir_inode) && coda_iscontrol(name, len))
 		return -EPERM;
 
-	if ( len > CFS_MAXNAMLEN )
+	if ( len > CODA_MAXNAMLEN )
                 return -ENAMETOOLONG;
 
 	symlen = strlen(symname);
-	if ( symlen > CFS_MAXPATHLEN )
+	if ( symlen > CODA_MAXPATHLEN )
                 return -ENAMETOOLONG;
 
         CDEBUG(D_INODE, "symname: %s, length: %d\n", symname, symlen);
@@ -532,7 +532,7 @@ int coda_rmdir(struct inode *dir, struct dentry *de)
         dircnp = ITOC(dir);
         CHECK_CNODE(dircnp);
 
-	if (len > CFS_MAXNAMLEN)
+	if (len > CODA_MAXNAMLEN)
 		return -ENAMETOOLONG;
 
 	error = -EBUSY;
@@ -584,7 +584,7 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
 	ENTRY;
 	coda_vfs_stat.rename++;
 
-        if ( (old_length > CFS_MAXNAMLEN) || new_length > CFS_MAXNAMLEN ) {
+        if ( (old_length > CODA_MAXNAMLEN) || new_length > CODA_MAXNAMLEN ) {
                 return -ENAMETOOLONG;
         }
 
@@ -808,8 +808,7 @@ static int coda_venus_readdir(struct file *filp, void *getdent,
         ENTRY;        
 
         /* we also need the ofset of the string in the dirent struct */
-        string_offset = sizeof ( char )* 2  + sizeof(unsigned int) + 
-                        sizeof(unsigned short);
+        string_offset = (int) (&((struct venus_dirent *)(0))->d_name);
 
         dents_callback = (struct getdents_callback *) getdent;
 
@@ -840,6 +839,11 @@ static int coda_venus_readdir(struct file *filp, void *getdent,
 
         while ( pos + string_offset < result ) {
                 vdirent = (struct venus_dirent *) (buff + pos);
+
+		/* see if we can read d_namlen in this recoord */
+		if ( pos + string_offset >= result ) {
+			break;
+		}
 
                 /* test if the name is fully in the buffer */
                 if ( pos + string_offset + (int) vdirent->d_namlen >= result ){

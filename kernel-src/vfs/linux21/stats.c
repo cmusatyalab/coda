@@ -30,7 +30,7 @@
 struct coda_vfs_stats		coda_vfs_stat;
 struct coda_permission_stats	coda_permission_stat;
 struct coda_cache_inv_stats	coda_cache_inv_stat;
-struct coda_upcall_stats_entry coda_upcall_stat[CFS_NCALLS];
+struct coda_upcall_stats_entry coda_upcall_stat[CODA_NCALLS];
 
 /* keep this in sync with coda.h! */
 char *coda_upcall_names[] = {
@@ -122,7 +122,7 @@ void coda_upcall_stats(int opcode, long unsigned runtime)
 {
 	struct coda_upcall_stats_entry * pentry;
 	
-	if ( opcode < 0 || opcode > CFS_NCALLS - 1) {
+	if ( opcode < 0 || opcode > CODA_NCALLS - 1) {
 		printk("Nasty opcode %d passed to coda_upcall_stats\n",
 		       opcode);
 		return;
@@ -321,7 +321,7 @@ int coda_upcall_stats_get_info( char * buffer, char ** start, off_t offset,
 	if ( offset < 320) 
 		len += sprintf( buffer + len,"%-79s\n",	"------\t\t    -----\t------------\t-----------------");
 	pos = 320; 
-	for ( i = 0 ; i < CFS_NCALLS ; i++ ) {
+	for ( i = 0 ; i < CODA_NCALLS ; i++ ) {
 		tmplen += sprintf(tmpbuf,"%s\t%9d\t%10ld\t%10ld", 
 				  coda_upcall_names[i],
 				  coda_upcall_stat[i].count, 

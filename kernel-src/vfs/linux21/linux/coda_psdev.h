@@ -120,7 +120,7 @@ struct vmsg {
 struct coda_upcallstats {
 	int	ncalls;			/* client requests */
 	int	nbadcalls;		/* upcall failures */
-	int	reqs[CFS_NCALLS];	/* count of each request */
+	int	reqs[CODA_NCALLS];	/* count of each request */
 } ;
 
 extern struct coda_upcallstats coda_callstats;
@@ -128,7 +128,7 @@ extern struct coda_upcallstats coda_callstats;
 static inline void clstats(int opcode)
 {
     coda_callstats.ncalls++;
-    if ( (0 <= opcode) && (opcode <= CFS_NCALLS) )
+    if ( (0 <= opcode) && (opcode <= CODA_NCALLS) )
 	coda_callstats.reqs[opcode]++;
     else
 	printk("clstats called with bad opcode %d\n", opcode); 

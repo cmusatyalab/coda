@@ -171,7 +171,7 @@ static ssize_t coda_psdev_write(struct file *file, const char *buf,
 		}
 		CDEBUG(D_PSDEV, "handling downcall\n");
 
-		if  ( count < sizeof(struct cfs_out_hdr) ) {
+		if  ( count < sizeof(struct coda_out_hdr) ) {
 		        printk("coda_downcall opc %ld uniq %ld, not enough!\n",
 			       opcode, uniq);
 			return count;
@@ -275,10 +275,10 @@ static ssize_t coda_psdev_read(struct file * file, char * buf,
                 printk("coda_psdev_read: bad chain");
 
         /* If request was a signal, don't enqueue */
-        if (vmp->vm_opcode == CFS_SIGNAL) {
+        if (vmp->vm_opcode == CODA_SIGNAL) {
                     CDEBUG(D_PSDEV, "vcread: signal msg (%d, %d)\n", 
                               vmp->vm_opcode, vmp->vm_unique);
-              CODA_FREE(vmp->vm_data, sizeof(struct cfs_in_hdr));
+              CODA_FREE(vmp->vm_data, sizeof(struct coda_in_hdr));
               CODA_FREE(vmp, sizeof(struct vmsg));
               return count;
         }
@@ -355,8 +355,8 @@ coda_psdev_release(struct inode * inode, struct file * file)
              vmp = q_getnext(&(vmp->vm_chain))) {	    
               /* Free signal request messages and don't wakeup cause
                  no one is waiting. */
-              if (vmp->vm_opcode == CFS_SIGNAL) {
-                    CODA_FREE(vmp->vm_data, sizeof(struct cfs_in_hdr));
+              if (vmp->vm_opcode == CODA_SIGNAL) {
+                    CODA_FREE(vmp->vm_data, sizeof(struct coda_in_hdr));
                     CODA_FREE(vmp, (u_int)sizeof(struct vmsg));
                     continue;
               }
