@@ -341,6 +341,7 @@ struct coda_statfs {
 /*
  *        Venus <-> Coda  RPC arguments
  */
+#ifndef sun
 struct coda_in_hdr {
     unsigned long opcode;
     unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
@@ -349,6 +350,17 @@ struct coda_in_hdr {
     u_short sid;                    /* Common to all */
     struct coda_cred cred;	    /* Common to all */
 };
+#else
+/* Solaris uses longs for pid, pgid.... change to pid_t for all? */
+struct coda_in_hdr {
+    unsigned long opcode;
+    unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
+    pid_t pid;			    /* Common to all */
+    pid_t pgid;			    /* Common to all */
+    pid_t sid;                      /* Common to all */
+    struct coda_cred cred;	    /* Common to all */
+};
+#endif
 
 /* Really important that opcode and unique are 1st two fields! */
 struct coda_out_hdr {
