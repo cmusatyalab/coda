@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.11 1998/07/01 10:35:27 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.12 1998/08/26 21:24:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -145,9 +145,6 @@ int fsobj::Fetch(vuid_t vuid) {
     int i, fd = 0, npages;
     struct DirHeader *hdrptr;
     {
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
 	    Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(flags);
 	    flags.fetching = 1;

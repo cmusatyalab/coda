@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.8 1998/08/05 23:50:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.9 1998/08/26 21:24:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -120,8 +120,8 @@ void MarinerInit() {
     /* Look up the well-known CODA mariner service. */
     struct servent *serventp = getservbyname(MarinerService, 0);
     if (!serventp) {
-	eprint("MarinerInit: mariner service lookup failed!");
-	return;
+      eprint("MarinerInit: mariner service lookup failed!");
+      return;
     }
 
     /* Bind to it. */

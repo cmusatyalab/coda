@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.18 1998/08/05 23:50:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.19 1998/08/26 21:24:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -269,7 +269,7 @@ void CommInit() {
 	/* SFTP initialization. */
 	s = getservbyname("venus-se", 0);
 	if (s == 0) 
-		Choke("CommInit: getservbyname failed; check /etc/services");
+	  Choke("CommInit: getservbyname failed; check /etc/services");
 	SFTP_Initializer sei;
 	SFTP_SetDefaults(&sei);
 	sei.WindowSize = sftp_windowsize;

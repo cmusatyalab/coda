@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cachefile.cc,v 4.5 1998/03/06 20:20:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cachefile.cc,v 4.6 1998/08/26 21:24:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -150,7 +150,7 @@ void CacheFile::ResetContainer() {
 
     int tfd;
     struct stat tstat;
-    if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC, V_MODE)) < 0)
+    if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, V_MODE)) < 0)
 	Choke("CacheFile::ResetContainer: open failed (%d)", errno);
 #ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
@@ -207,7 +207,7 @@ void CacheFile::Copy(CacheFile *source) {
     struct stat tstat;
     char buf[DIR_PAGESIZE];
 
-    if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC, V_MODE)) < 0)
+    if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC| O_BINARY, V_MODE)) < 0)
 	Choke("CacheFile::Copy: open failed (%d)", errno);
 #ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
@@ -220,7 +220,7 @@ void CacheFile::Copy(CacheFile *source) {
 	Choke("CacheFile::ResetCopy: fchown failed (%d)", errno);
 #endif
 #endif
-    if ((ffd = ::open(source->name, O_RDONLY, V_MODE)) < 0)
+    if ((ffd = ::open(source->name, O_RDONLY| O_BINARY, V_MODE)) < 0)
 	Choke("CacheFile::Copy: source open failed (%d)", errno);
 
     for (;;) {

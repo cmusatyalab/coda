@@ -10,6 +10,8 @@
 
 #define BUFSIZE 2000
 
+FILE *file;
+
 struct optab {
   int opcode;
   char *name;
@@ -64,13 +66,13 @@ opcode(int op)
 void
 printvfid(ViceFid *vfid)
 {
-  printf ("<%lx,%ld,%ld> ", vfid->Volume, vfid->Vnode, vfid->Unique);
+  fprintf (file, "<%lx,%ld,%ld> ", vfid->Volume, vfid->Vnode, vfid->Unique);
 }
 
 void
 printattr(struct coda_vattr *p)
 {
-  printf ("mode %x nlink %d uid %d gid %d size %ld ",
+  fprintf (file, "mode %x nlink %d uid %d gid %d size %ld ",
 	  p->va_mode, p->va_nlink, p->va_uid, p->va_gid,
 	  p->va_size);
 }
@@ -80,31 +82,35 @@ printrequest (char *buffer)
 {
   union inputArgs *in = (union inputArgs *) buffer;
 
-  printf ("req: %s uniq %d ", opcode(in->ih.opcode), in->ih.unique);
+  fprintf (file, "req: %s uniq %d ", opcode(in->ih.opcode), in->ih.unique);
   switch (in->ih.opcode) {
   case CFS_OPEN:
     printvfid (&in->cfs_open.VFid);
-    printf ("(fl %d) ", in->cfs_open.flags);
+    fprintf (file, "(fl %d) ", in->cfs_open.flags);
     break;
   case CFS_OPEN_BY_PATH:
     printvfid (&in->cfs_open_by_path.VFid);
-    printf ("(fl %d) ", in->cfs_open.flags);
+    fprintf (file, "(fl %d) ", in->cfs_open.flags);
     break;
   case CFS_LOOKUP:
     printvfid (&in->cfs_lookup.VFid);
-    printf ("\"%s\"", buffer + (int) in->cfs_lookup.name);
+    fprintf (file, "\"%s\"", buffer + (int) in->cfs_lookup.name);
     break;
   case CFS_CREATE:
     printvfid (&in->cfs_create.VFid);
-    printf ("\"%s\" ", buffer + (int) in->cfs_create.name);
-    printf ("mode %d", in->cfs_create.mode);
+    fprintf (file, "\"%s\" ", buffer + (int) in->cfs_create.name);
+    fprintf (file, "mode %d", in->cfs_create.mode);
+    break;
+  case CFS_MKDIR:
+    printvfid (&in->cfs_mkdir.VFid);
+    fprintf (file, "\"%s\" ", buffer = (int) in->cfs_mkdir.name);
     break;
   case CFS_CLOSE:
     printvfid (&in->cfs_close.VFid);
-    printf ("(fl %d) ", in->cfs_close.flags);
+    fprintf (file, "(fl %d) ", in->cfs_close.flags);
     break;
   }
-  printf ("\n");
+  fprintf (file, "\n");
 }
 
 void
@@ -113,52 +119,68 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
   union outputArgs *out = (union outputArgs *) buffer;
 
   /*
-  printf ("[%08x:%d -- %d bytes] ", ntohl(addr->sin_addr.s_addr), 
+  fprintf (file, "[%08x:%d -- %d bytes] ", ntohl(addr->sin_addr.s_addr), 
 	  ntohs(addr->sin_port), n);
   */
   if (n) {
-    printf ("ans: %s uniq %d ", opcode(out->oh.opcode), out->oh.unique);
+    fprintf (file, "ans: %s uniq %d ", opcode(out->oh.opcode), out->oh.unique);
     if (out->oh.opcode >= CFS_REPLACE && out->oh.opcode <= CFS_PURGEFID)
-      printf (" (DOWNCALL) ");
-    else {
-      if (out->oh.result)
-	printf (" res %d (%s) ", out->oh.result, 
+      fprintf (file, " (DOWNCALL) ");
+
+    if (out->oh.result!=0)
+      fprintf (file, " vice returned res %d (%s) ", out->oh.result, 
 		(out->oh.result >= 1 && out->oh.result <= sys_nerr) ?
 		sys_errlist[out->oh.result] : "?");
-      else
-	printf (" (success) ");
-    }
-    switch (out->oh.opcode) {
-    case CFS_ROOT:
-      printvfid(&out->cfs_root.VFid);
-      break;
+    else {
 
+      fprintf (file, " (success) ");
+
+      //These can only be printed if no error was returned by vice
+      switch (out->oh.opcode) {
+      case CFS_ROOT:
+        printvfid(&out->cfs_root.VFid);
+        break;
+	  
+      case CFS_LOOKUP:
+        printvfid(&out->cfs_lookup.VFid);
+        fprintf (file, "type %d", out->cfs_lookup.vtype);
+        break;
+
+      case CFS_OPEN_BY_PATH:
+   	fprintf (file, " path %s", (char *) out + (int) out->cfs_open_by_path.path);        
+        break;
+
+      case CFS_CREATE:
+	printvfid(&out->cfs_create.VFid);
+	printattr(&out->cfs_create.attr);
+	break;
+
+      case CFS_MKDIR:
+	printvfid(&out->cfs_mkdir.VFid);
+	printattr(&out->cfs_mkdir.attr);
+	break;
+    
+    }//switch
+
+    }//else
+
+    //These can even be printed when vice returned an error
+    switch (out->oh.opcode) {
+   
     case CFS_GETATTR:
       printattr(&out->cfs_getattr.attr);
       break;
-	  
-    case CFS_LOOKUP:
-      printvfid(&out->cfs_lookup.VFid);
-      printf ("type %d", out->cfs_lookup.vtype);
-      break;
-
-    case CFS_OPEN_BY_PATH:
-      printf (" path %s", (char *) out + (int) out->cfs_open_by_path.path);
-      break;
-
-    case CFS_CREATE:
-      printvfid(&out->cfs_create.VFid);
-      printattr(&out->cfs_create.attr);
-      break;
-
+	    
     case CFS_READDIR:
       buffer[(int) out->cfs_readdir.data + out->cfs_readdir.size] = '\0';
-      printf ("size %d buf %s", out->cfs_readdir.size, 
-	      buffer + (int) out->cfs_readdir.data);
+      fprintf (file, "size %d buf %s", out->cfs_readdir.size, 
+      	buffer + (int) out->cfs_readdir.data);
       break;
-    }
-  }
-  printf ("\n");
+    }//switch
+
+  }//if (n)
+
+  fprintf (file, "\n");
 }
 
 
@@ -196,7 +218,7 @@ int DeviceIoControl(int func, void *inBuf, int inCount,
        : "m" (mc_api), "a" (func), "S" (inBuf), "b" (inCount),
        "D" (outBuf), "c" (outCount), "d" (123456));
   if (err)
-    printf ("DeviceIoControl %d: err %d\n", func, err);
+    fprintf (file, "DeviceIoControl %d: err %d\n", func, err);
   return err;
 }
 
@@ -227,6 +249,12 @@ main()
   char buffer[BUFSIZE];
   union outputArgs *out = (union outputArgs *)buffer;
 
+  file = fopen ("relay.log", "w+");
+  if (!file){
+    perror("file");
+    exit(1);
+  }
+
   udpfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (udpfd == -1) {
     perror ("socket");
@@ -242,25 +270,25 @@ main()
   }
 
   if (open_vxd("MC      ", &mc_api)) 
-    printf ("MC.VXD already loaded\n");
+    fprintf (file, "MC.VXD already loaded\n");
   else {
     int version;
     if (!open_vxdldr())
       exit (1);
     if (!vxdldr_get_version(&version)) {
-      printf ("cannot get VXDLDR version\n");
+      fprintf (file, "cannot get VXDLDR version\n");
       exit (1);
     }
-    printf ("VXDLDR version %x\n", version);
+    fprintf (file, "VXDLDR version %x\n", version);
     if ((res = vxdldr_load_device("mc.vxd"))) {
-      printf ("cannot load MC: VXDLDR error %d\n", res);
+      fprintf (file, "cannot load MC: VXDLDR error %d\n", res);
       exit (1);
     }
     if (!open_vxd("MC      ", &mc_api)) {
-      printf ("Loaded MC, but could not get api\n");
+      fprintf (file, "Loaded MC, but could not get api\n");
       exit (1);
     }
-    printf ("Loaded MC.VXD\n");
+    fprintf (file, "Loaded MC.VXD\n");
   }
 
   {
@@ -269,19 +297,21 @@ main()
 
     res = DeviceIoControl(1, NULL, 0, calls, sizeof(calls));
     if (res) {
-      printf ("DeviceIoControl 1 failed: %d\n", res);
+      fprintf (file, "DeviceIoControl 1 failed: %d\n", res);
       exit(1);
     }
-    printf ("MC net ID %x, provider ID %x\n", calls[0], calls[1]);
+    fprintf (file, "MC net ID %x, provider ID %x\n", calls[0], calls[1]);
   }
 
   mcfd = 10;
   err = DeviceIoControl(9, &mcfd, sizeof(mcfd), NULL, 0);
   if (err) {
-    printf ("Error in allocateFD: %d\n", err);
+    fprintf (file, "Error in allocateFD: %d\n", err);
     exit (1);
   }
   __addselectablefd (mcfd);
+
+  fflush(file);
 
   timeo = 0;
   while (1) {
@@ -291,19 +321,19 @@ main()
 
     tv.tv_sec = 30;
     tv.tv_usec = 0;
-    fflush(stdout);
+    fflush(stdout);fflush(file);
     nfd = select(32, &rfd, NULL, NULL, &tv);
     if (nfd < 0) {
       perror ("select");
       exit (1);
     } else if (nfd == 0) {
-      printf ("time ");
-      fflush(stdout);
+      fprintf (file, "time ");
+      fflush(stdout);fflush(file);
       timeo++;
       continue;
     }
     if (timeo)
-      printf ("\n");
+      fprintf (file, "\n");
     timeo = 0;
 
     if (FD_ISSET (udpfd, &rfd)) {
@@ -318,13 +348,13 @@ main()
       send_buf (udpfd, 1, buffer, n);
 
       if (out->oh.opcode == 99) {
-	printf (" -------- CLOSE -------- \n");
+	fprintf (file, " -------- CLOSE -------- \n");
 	goto done;
       }
       printreply (buffer, n, &addr);
       err = DeviceIoControl (4, buffer, n, NULL, 0);
       if (err)
-	printf ("SENDREPLY error %d\n", err);
+	fprintf (file, "SENDREPLY error %d\n", err);
     }
 
   mc:
@@ -332,10 +362,10 @@ main()
       wait = 0;
       err = DeviceIoControl (3, &wait, sizeof(wait), buffer, BUFSIZE);
       if (err == 38) {
-	printf ("No request available!\n");
+	fprintf (file, "No request available!\n");
 	continue;
       } else if (err) {
-	printf ("GETREQUEST error %d\n", err);
+	fprintf (file, "GETREQUEST error %d\n", err);
 	continue;
       }
       send_buf (udpfd, 0, buffer, BUFSIZE);
@@ -349,6 +379,7 @@ main()
     }
   }
 done:
+  fclose(file);
   mcfd = 10;
   err = DeviceIoControl(10, &mcfd, sizeof(mcfd), NULL, 0);
   if (err) {
@@ -359,6 +390,7 @@ done:
   do {
     printf ("UNLOAD result %d\n", res = vxdldr_unload_device("MC"));
   } while (res == 0);
+
 }
 
 

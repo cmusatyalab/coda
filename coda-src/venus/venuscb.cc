@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.6 1998/08/05 23:50:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.7 1998/08/26 21:24:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -89,7 +89,7 @@ extern void rpc2_PrintSEDesc(SE_Descriptor *, FILE *);
 
 
 const char CBSubsys[] = "Vice2-CallBack";
-const int CallBackServerStackSize = 16384;
+const int CallBackServerStackSize = 32768;
 
 int MaxCBServers = UNSET_MAXCBSERVERS;
 int cbbreaks = 0;	/* count of broken callbacks */

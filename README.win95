@@ -93,19 +93,31 @@ You need the rpms for:
 It is highly recommended to set up Samba to share Linux generated
 binaries with the Windows box.
 
-b) for the VXD's: Visual C++ 5.0, MS assembler 6.11, the Win95 DDK
-(comes with professional MSDN).  Also you need to download a
-collection of header files vxdtdi.zip for networking
-from 
+b) for the VXD's: Visual C++ 5.0 (Internet Explorer), MS assembler 6.11,
+the Win95 DDK (comes with professional MSDN).  Also you need to download a
+collection of header files vxdtdi.zip for networking from 
 ftp.microsoft.com://developr/drg/WinSock/MS-Extensions/VXDTDI.ZIP.
 
-Note that the 95DDK needs the VC2.0 linker, which is somewhere on the DDK. 
-
+Note that the 95DDK needs the VC2.0 linker, which on the 95DDK in the 
+directory MSVC20 (also get the files Link.err and DBI.DLL, that will be needed
+by the linker). You'll also need the latest MS assembler 6.11 which 
+is on the 95DDK in the directory MASM611C.
+ 
 The VxD's you will want to build are in:
 vc95\95vxds\{mmap,sock,mcstub,mc}
 
+To build sock.vxd you'll need the header files provided by microsoft and
+can be found in VXDTDI.ZIP.
+
 You'll have to learn how to build VxDs, but it can be done from
 Developer Studio.
+-Change the path of the Linker in all .mak files.
+-In the MS-Studio environment (options) add:
+  -executable path of the assembler 6.11.
+  -include path of the 95DDK (Inc32).
+  -lib path of the 95DDK (lib).
+  -include path where VXDTDI Headers are.
+  -include path of the 95DDK (Block/Inc).
 
 Place the mcstub and mmap VxD's in c:\VxDs (or elsewhere).
 
@@ -118,13 +130,16 @@ sure to let us know! It is not essential for now.)
 c) Coda specific source code.
 Get the latest tarball of Coda sources.
 
-ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-4.6.0.tgz
+example:
+
+ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-4.6.4.tgz
 
 Also get:
 
 ftp://ftp.coda.cs.cmu.edu/pub/coda/src/vc95.zip
 
 You can rebuild Venus with ./configure --host=windows95 ; make coda
+
 and the client utilities and server with
 ./configure --host=nt (the Venus built here is unusable on Win95).
 
@@ -175,11 +190,14 @@ c:\coda-4.5.1\bin\venus -child
 
 3. start venus (first time -- very few cache files just to play)
 c:\coda-4.5.1\bin\venus -init -cf 500 
+Wait a little bit.
 
 4. mount N:
 Coda is mounted on the N: drive and should but doesn't work. 
 
 To restart venus, do not give any flags.
+When you unmount coda with "unmount.exe n:" then you have to start relay.exe
+again.
 
 =========
 Debugging
