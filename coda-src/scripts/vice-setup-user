@@ -40,7 +40,7 @@ cd ${vicedir}/db
 
 echo "Setting up users and groups for Coda"
 echo
-echo "You need to give me a uid (not 0) and username (not root)"
+echo "You need to give me a uid (not 0 or 1) and username (not root)"
 echo "for a Coda System:Administrator member on this server,"
 echo "(sort of a Coda super user)"
 echo
@@ -54,8 +54,8 @@ until [ "x$userid" != x ]; do
 	    continue
  	fi
   
- 	if [ "x$userid" = x0 ]; then
- 	    echo "Root cannot be a Coda administrator"
+ 	if [ "x$userid" = x0 -o "x$userid" = x1 ]; then
+ 	    echo "Choose a user ID other than 0 or 1"
 	    userid=
 	    continue
  	fi
@@ -70,8 +70,8 @@ until [ "x$username" != x ]; do
 	    continue
  	fi
  
- 	if [ "x$username" = xroot ]; then
- 	    echo "Root cannot be a Coda administrator"
+ 	if [ "x$username" = xroot -o "x$username" = xsystem ]; then
+ 	    echo "Choose an administrator username other than root or system"
 	    username=
 	    continue
  	fi
