@@ -172,7 +172,7 @@ void CommInit() {
     sei.AckPoint = sftp_ackpoint;
     sei.PacketSize = sftp_packetsize;
     sei.EnforceQuota = 1;
-    sei.Port.Tag = (enum PortTag)0;
+    sei.Port.Tag = (PortTag)0;
     SFTP_Activate(&sei);
 
     /* RPC2 initialization. */
