@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_map.c,v 4.2 1997/02/26 16:05:03 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_map.c,v 4.3 1997/05/23 15:42:30 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -48,6 +48,10 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rv
 #include <libc.h>
 #endif
 #include <sys/file.h>
+#if defined(__linux__) && defined(sparc)
+#include <asm/page.h>
+#define getpagesize() PAGE_SIZE
+#endif
 #if defined(hpux) || defined(__hpux)
 #include <hp_bsd.h>
 #endif /* hpux */
