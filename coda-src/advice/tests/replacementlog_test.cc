@@ -1,11 +1,9 @@
 extern "C" {
 #include <stdio.h>
 #include <lock.h>
-#include <util.h>
 }
 
-
-#include "../replacementlog.h"
+#include "replacementlog.h"
 
 FILE *LogFile;
 int LogLevel = 0;

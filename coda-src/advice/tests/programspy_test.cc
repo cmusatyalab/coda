@@ -10,8 +10,6 @@ extern "C" {
 #include <string.h>
 #include <struct.h>
 
-#include <lwp.h>
-
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -20,17 +18,12 @@ extern "C" {
 #include <vcrcommon.h>
 #include <venusioctl.h>
 
-#include "../mybstree.h"
-#include "../programspy.h"
+#include "mybstree.h"
+#include "programspy.h"
 
-//char ProfileDir[MAXPATHLEN];
-extern char ProfileDir[];
+char ProfileDir[MAXPATHLEN];
 
 int IsProgramUnderWatch(char *);
-
-void Yield() {
-    printf("Pretending to Yield\n");
-}
 
 
 int main(int argc, char *argv[]) {
@@ -39,8 +32,8 @@ int main(int argc, char *argv[]) {
 
   InitUADB();
 
-  ParseDataDefinitions("./Data");
-  ParseDataDefinitions("./Data");
+  ParseDataDefinitions("/coda/usr/mre/newHoarding/Data");
+  ParseDataDefinitions("/coda/usr/mre/newHoarding/Data");
 
   PrintUADB("/tmp/dataareas.foo");
 
@@ -61,8 +54,8 @@ int main(int argc, char *argv[]) {
     printf("Is not dataarea\n");
   
     InitPWDB();
-    ParseProgramDefinitions("./Programs");
-    ParseProgramDefinitions("./Programs");
+    ParseProgramDefinitions("/coda/usr/mre/newHoarding/Programs");
+    ParseProgramDefinitions("/coda/usr/mre/newHoarding/Programs");
 
     PrintPWDB("/tmp/programs.foo");
 
@@ -85,6 +78,6 @@ int main(int argc, char *argv[]) {
       printf("not watching %s\n", testprog);
 
 
-    strcpy(ProfileDir, "./ProgramProfiles");
-    ProcessProgramAccessLog("/usr/coda/spool/2660/program.log.old", "/tmp");
+    strcpy(ProfileDir, "/coda/usr/mre/newHoarding/ProgramProfiles");
+    ProcessProgramAccessLog("/usr/coda/spool/2660/program.log.old");
 }

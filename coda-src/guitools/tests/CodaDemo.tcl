@@ -1,8 +1,5 @@
 #!/bin/sh
 # The next line restarts using a customized wish\
-#exec tixwish "$0" "$@"
-
-
 #exec /coda/usr/mre/src/coda-src/console/CodaConsole.out  "$0" "$@"
 
 proc Quit { } {
@@ -247,12 +244,12 @@ puts stderr $Demo(OperatingDisconnectedToOne:command)
 }
 
 proc RepairPending { } {
-    puts stderr "RepairPending procedure looks bogus to me"
+    Re
 }
 
 wm withdraw .
 
-set SetupRC [catch {exec csh ./DemoSetup} result]
+set SetupRC [catch {exec csh /coda/usr/mre/thesis/UserStudy/CodaConsoleSetup/DemoSetup} result]
 
 DemoReadMeWindow .readme "README"
 

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/tests/Makefile.in,v 1.5 97/12/16 22:51:14 mre Exp $";
+# static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/advice/tests/Attic/Makefile.in,v 1.5 1997/12/16 22:51:14 mre Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -38,36 +38,44 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-LIBS =  ../$(LIBFAIL)\
-	../$(LIBUTIL)\
-	../$(LIBVICEDEP)\
-	../$(LIBSE)\
-	../$(LIBRPC2)\
-	$(LIBOLDLWP)\
-	$(LIBCOMPAT)\
-	../$(LIBKERNDEP)\
-	$(LIBGDBM)
+# example test program
+
+#OBJECTS = test.o
+#TESTS = test
+
+#test: test.o
+#	$(CC) -o test test.o -L../libutil.a
+
+replacementlog_test: ../replacementlog.o
+
+portability_test: portability_problems.o portability_test.o
+	$(CXX) $(CFLAGS) portability_problems.o portability_test.o $(LIBKVM) $(LIBS) -o portability_test
+
+fake_advice: $(AOBJS) $(LIBS) $(OTHERLIBS) fake_rpc
+	$(CXX) $(LIBFLAGS) $(AOBJS) $(LIBS) $(OTHERLIBS) -o advice_srv
+	rm ../rpc_setup.o
 
 
-OTHERLIBS = $(LIBSYS) $(LIBKVM)
+replacementlog: ../replacementlog.o replacementlog_test.o
+	$(CXX) $(CFLAGS) ../replacementlog.o replacementlog_test.o $(LIBS) -o replacementlog -lgdbm
 
-OBJECTS = replacementlog_test.o programspy_test.o
-VOBJS = fake_venus.o demo_handler.o ../conversions.o
+fake_venus: fake_venus.o demo_handler.o conversions.o $(LIBS) $(OTHERLIBS)
+	$(CXX) $(CFLAGS) $(LIBFLAGS) fake_venus.o demo_handler.o conversions.o $(LIBS) $(OTHERLIBS) -o fake_venus
 
-TESTS = replacementlog_test programspy_test fake_advice fake_venus
+programspy: programspy.o mybstree.o
+	$(CXX) $(CFLAGS) programspy.o mybstree.o $(LIBS) -o programspy
+
+fake_venus.o: 
+	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/fake_venus.cc
+
+fake_rpc: 
+	rm rpc_setup.o
+	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/rpc_setup.cc
 
 
-replacementlog_test: replacementlog_test.o ../libadvice.a
-	$(CXX) $(CFLAGS) -o replacementlog_test replacementlog_test.o ../libadvice.a $(LIBS)
+CODAWISH_LIBS  = $(LIBTIX) $(LIBTK) $(LIBTCL) $(LIBMATH) $(LIBX11)
 
-programspy_test: programspy_test.o ../libadvice.a
-	$(CXX) $(CFLAGS) -o programspy_test programspy_test.o ../libadvice.a $(LIBS)
+CFLAGS = -I$(INCTIX) -I$(INCTK) -I$(INCTCL) -I$(INCX11)
 
-fake_advice: $(LIBS) $(OTHERLIBS) ../libfakeadvice.a ../advice_srv
-	$(CXX) $(LIBFLAGS) ../advice_srv.o ../libfakeadvice.a $(LIBS) $(OTHERLIBS) -o fake_advice
-	
-
-fake_venus: $(VOBJS) $(LIBS) $(OTHERLIBS)
-	$(CXX) $(CFLAGS) $(LIBFLAGS) $(VOBJS) $(LIBS) $(OTHERLIBS) -o fake_venus
 
 include $(MAKDIR)/configs/Makerules

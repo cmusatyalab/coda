@@ -25,10 +25,11 @@ extern "C" {
 #include "admon.h"
 #include "adsrv.h"
 #include "demo_handler.h"
-#include "../conversions.h"
+#include "conversions.h"
 
-// Note that fake_venus purposely redefines ADSRVPORTAL 
+#ifdef __FAKE__
 #define ADSRVPORTAL     1435
+#endif /* __FAKE__ */
 
 
 #define DFTSTACKSIZE 1024
@@ -263,11 +264,7 @@ void CodaDemoHandler() {
  *                        that its connection is alive.
  *     RegisterInterest -- an advice monitor makes this call to Venus to register
  *                         its interest (or disinterest) in certain events.
- *     GetCacheStatistics -- an advice monitor makes this call to Venus to
- *                           request cache statistics information
- *     OutputUsageStatistics -- an advice monitor makes this call to Venus to 
- *                              obtain statistics on fsobj usage during discos
-  *     SetParameters -- an advice monitor makes this call to Venus to set internal
+ *     SetParameters -- an advice monitor makes this call to Venus to set internal
  *                      Venus parameters.  (for wizards only)
  *     ResultOfASR -- an advice monitor makes this call to Venus to return the
  *                    result of an ASR Invokation.
@@ -333,27 +330,6 @@ long S_RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, I
     fflush(stdout);
     return RPC2_SUCCESS;
 }
-
-
-long S_GetCacheStatistics(RPC2_Handle _cid, RPC2_Integer *FilesAllocated, RPC2_Integer *FilesOccupied, RPC2_Integer *BlocksAllocated, RPC2_Integer *BlocksOccupied, RPC2_Integer *RVMAllocated, RPC2_Integer *RVMOccupied) {
-
-
-    printf("E GetCacheStatistics\n");
-    fflush(stdout);
-
-    *FilesAllocated = (RPC2_Integer)6250;
-    *FilesOccupied = (RPC2_Integer)390;
-
-    *BlocksAllocated = (RPC2_Integer)50000;
-    *BlocksOccupied = (RPC2_Integer)4392;
-
-    *RVMAllocated = (RPC2_Integer)10000;
-    *RVMOccupied = (RPC2_Integer)29424;
-
-    printf("L GetCacheStatistics\n");
-    fflush(stdout);
-}
-
 
 long S_OutputUsageStatistics(RPC2_Handle _cid, RPC2_Integer userId, RPC2_String pathname) {
     FILE *UsageFILE;

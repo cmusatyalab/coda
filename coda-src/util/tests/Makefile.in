@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/tests/Makefile.in,v 1.2 97/12/02 16:40:13 braam Exp $";
+# static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/util/tests/Attic/Makefile.in,v 1.2 1997/12/02 16:40:13 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -38,12 +38,12 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-LIBS = $(LIBKVM)
+# example test program
 
-OBJECTS = proctest.o
-TEST = proctest
+#OBJECTS = test.o
+#TESTS = test
 
-proctest: proctest.o
-	$(CC) -o proctest proctest.o ../libutil.a $(LIBS)
+#test: test.o
+#	$(CC) -o test test.o -L../libutil.a
 
 include $(MAKDIR)/configs/Makerules

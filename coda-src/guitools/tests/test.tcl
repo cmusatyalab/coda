@@ -1,6 +1,6 @@
 #!/usr/bin/tixwish-tk4.1
 
-source ../tixCodaMeter.tcl
+lappend auto_path /coda/usr/mre/russians/coda/coda-src/guitools
 
 label .label -text "foo"
 pack .label
