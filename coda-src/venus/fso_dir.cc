@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/fso_dir.cc,v 1.3 1996/12/09 18:52:10 braam Exp $";
+static char *rcsid = "$Header: fso_dir.cc,v 4.1 97/01/08 21:51:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -98,6 +98,7 @@ struct CVDescriptor {
     int	dirFD;		    /* file descriptor */
     int	dirBytes;	    /* bytes written, to save ftruncate */
     int	dirPos;		    /* position in current block */
+    ViceDataType vType;     /* type of directory entry */
 };
 
 PRIVATE	int minFreeSize	= -1;	    /* smallest a free block can be */
@@ -146,6 +147,10 @@ PRIVATE void CVWriteEntry(char *name, ino_t inode, CVDescriptor *cvd) {
     dir.d_namlen = strlen(name);
 
     dir.d_fileno = inode;
+    dir.d_type = (u_int8_t) (cvd->vType == Directory ? DT_DIR : 
+			     (cvd->vType == File ? DT_REG : 
+			      (cvd->vType == SymbolicLink ? DT_LNK : 
+			       DT_UNKNOWN)));
 
     dir.d_reclen = DIRSIZ(&dir);
     strcpy(dir.d_name, name);
@@ -361,18 +366,39 @@ struct RebuildDirHook {
 PRIVATE void RebuildDir(long hook, char *name, long vnode, long vunique) {
     struct RebuildDirHook *rbd_hook = (struct RebuildDirHook *)hook;
 
-    /* Change FidToNodeid() also if this formula changes. */
-    CVWriteEntry(name, (vunique + (vnode << 10) + (rbd_hook->vid << 20)), &rbd_hook->cvd);
+    /* We'll make . and .. first (below in [dir_Rebuild]) */
+    if (strcmp(name, ".") && strcmp(name, ".."))
+    /* so ignore them when they appear later. */
+
+	/* Change FidToNodeid() also if this formula changes. */
+	CVWriteEntry(name, (vunique + (vnode << 10) + (rbd_hook->vid << 20)), &rbd_hook->cvd);
 }
 
 /* Need not be called from within transaction. */
 void fsobj::dir_Rebuild() {
+    long int tmp[3];
+    int ret;
+    long vnode, vunique;
+
     if (!HAVEDATA(this))
 	{ print(logFile); Choke("fsobj::dir_Rebuild: no data"); }
 
     struct RebuildDirHook hook;
     hook.vid = fid.Volume;
+    hook.cvd.vType = stat.VnodeType;
     CVOpen(data.dir->udcf->Name(), &hook.cvd);
+
+    /* write . */
+    ret = ::Lookup((long *)data.dir, ".", tmp);
+    vnode = tmp[1];
+    vunique = tmp[2];
+    CVWriteEntry(".", (vunique + (vnode << 10) + (hook.vid << 20)), &hook.cvd);
+    /* write .. */
+    ret = ::Lookup((long *)data.dir, "..", tmp);
+    vnode = tmp[1];
+    vunique = tmp[2];
+    CVWriteEntry("..", (vunique + (vnode << 10) + (hook.vid << 20)), &hook.cvd);
+
     ::EnumerateDir((long *)data.dir, (int (*)(void * ...))RebuildDir, (long)(&hook));
     CVClose(&hook.cvd);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/vproc.h,v 4.1 1997/01/08 21:51:50 rvb Exp $";
+static char *rcsid = "$Header: vproc.h,v 4.2 97/01/17 15:23:03 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -511,6 +511,7 @@ extern int vnode_deallocs;
 #define VA_IGNORE_GID		((vgid_t) -1)
 #define VA_IGNORE_SIZE		((u_quad_t)-1) 
 #define VA_IGNORE_TIME1		((time_t)-1)
+#define VA_IGNORE_FLAGS		((u_long) -1)
 #endif /* __ NetBSD__ */
 
 #ifdef __linux__

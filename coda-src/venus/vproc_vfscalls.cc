@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/vproc_vfscalls.cc,v 4.1 1997/01/08 21:51:52 rvb Exp $";
+static char *rcsid = "$Header: vproc_vfscalls.cc,v 4.2 97/01/17 15:23:05 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -505,12 +505,25 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
 
     fsobj *f = 0;
 
+    /* 
+     * NetBSD supports chflags, which sets the va_flags field of 
+     * the vattr.  Coda doesn't support these flags, but we will
+     * allow calls that clear the field.  
+     * 
+     * Note that even though a vattr that includes this field is 
+     * defined for mach in venus_vnode.h, the definition it picks 
+     * up is the native one from mach_vnode.h.
+     */
     /* Cannot set these attributes. */
     if ( (vap->va_fsid != VA_IGNORE_FSID) ||
 	 (VA_ID(vap) != VA_IGNORE_ID) ||
 	 (vap->va_nlink != VA_IGNORE_NLINK) ||
 	 (vap->va_blocksize != VA_IGNORE_BLOCKSIZE) ||
 	 (vap->va_rdev != VA_IGNORE_RDEV) ||
+#ifdef __NetBSD__
+	 (vap->va_flags != VA_IGNORE_FLAGS &&
+	     vap->va_flags != 0) ||
+#endif /* __NetBSD__ */
 	 (VA_STORAGE(vap) != VA_IGNORE_STORAGE) )
 	{ u.u_error = EINVAL; return; }
 
@@ -519,6 +532,9 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
 	 (vap->va_uid == VA_IGNORE_UID) &&
 	 (vap->va_gid == VA_IGNORE_GID) &&
 	 (vap->va_size == VA_IGNORE_SIZE) &&
+#ifdef __NetBSD__
+	 (vap->va_flags == VA_IGNORE_FLAGS) &&
+#endif /* __NetBSD__ */
 	 (VA_ATIME_1(vap) == VA_IGNORE_TIME1) &&
 	 (VA_MTIME_1(vap) == VA_IGNORE_TIME1) &&
 	 (VA_CTIME_1(vap) == VA_IGNORE_TIME1) )
@@ -554,7 +570,8 @@ void vproc::setattr(struct vnode *vp, struct vattr *vap) {
 		u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
-	    if (vap->va_gid != VA_IGNORE_GID) {
+	    /* gid should be V_GID for chown requests, VA_IGNORE_GID otherwise */
+	    if (vap->va_gid != VA_IGNORE_GID &&	vap->va_gid != V_GID) {
 		u.u_error = EACCES;
 		goto FreeLocks;
 	    }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venus.cc,v 1.2 1996/11/24 21:04:33 braam Exp $";
+static char *rcsid = "$Header: venus.cc,v 4.1 97/01/08 21:51:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -525,3 +525,23 @@ struct vstab *getvsent() {
 
     return(&v);
 }    
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
+/*
+ * SFTP needs this declared but Venus doesn't actually use it.
+ * N.B. If Venus ever uses the FILEBYINODE transfer option this
+ * will have to be changed!
+ */
+iopen(int dev, int inode_number, int flag)
+{
+    assert(0);
+}
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
+
