@@ -1190,7 +1190,7 @@ static void release_locks(int volUtil) {
     if (volUtil) {  /* not running full salvage */
 	return;
     }
-    fslock = open(vice_file("vol/fs.lock"), O_CREAT|O_RDWR, 0666);
+    fslock = open(vice_file("fs.lock"), O_CREAT|O_RDWR, 0666);
     CODA_ASSERT(fslock >= 0);
     if (myflock(fslock, MYFLOCK_UN, MYFLOCK_BL) != 0) {
 	VLog(0, "release_locks: unable to release file server lock");
@@ -1200,7 +1200,7 @@ static void release_locks(int volUtil) {
     }
     close(fslock);
 
-    fslock = open (vice_file("vol/volutil.lock"), O_CREAT|O_RDWR, 0666);
+    fslock = open (vice_file("volutil.lock"), O_CREAT|O_RDWR, 0666);
     CODA_ASSERT(fslock >= 0);
     if (myflock(fslock, MYFLOCK_UN, MYFLOCK_BL) != 0) {
 	VLog(0, "release_locks: unable to release volume utility lock");

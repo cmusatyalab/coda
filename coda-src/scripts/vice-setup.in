@@ -147,30 +147,16 @@ if [ ! -d $vicedir ]; then
     mkdir $vicedir
 fi
 
+echo "Setting up $vicedir."
 cd $vicedir
 
 if [ $numservers = 1 ]; then
 
-    for i in backup db srv vol misc auth2 ; do
+    for i in backup db srv vol misc auth2 vol/remote ; do
         if [ ! -d $i ]; then
             mkdir $i
         fi
     done
-
-    echo Directories under $vicedir are set up.
-    echo
-
-    #
-    # populating ${vicedir}/vol
-    #
-
-    echo
-    echo Populating ${vicedir}/vol...
-    cd ${vicedir}/vol
-    touch fs.lock
-    touch volutil.lock
-    mkdir remote
-    echo lockfiles created.
 
 else
 
@@ -180,7 +166,7 @@ else
 	exit 1
     fi
 
-    for i in db misc auth2 ; do
+    for i in db misc auth2 vol ; do
         if [ ! -d $i ]; then
             mkdir $i
         fi
@@ -199,27 +185,18 @@ else
 	echo "hostname=$hostname" > @prefix@/etc/coda/server_$n.conf
 	echo Creating $dir and subdirectories.
 	mkdir $dir
-        for i in backup srv vol vol/remote ; do
+        for i in backup srv vol ; do
             if [ ! -d $dir/$i ]; then
                 mkdir $dir/$i
             fi
         done
 
-	#
-	# populating ${dir}/vol
-	#
-
-	echo Populating ${dir}/vol...
-
-	cd ${dir}/vol
-	touch fs.lock
-	touch volutil.lock
-	mkdir remote
-	echo lockfiles created in ${dir}/vol.
-
 	n=`expr $n + 1`
     done
 fi
+
+echo Directories under $vicedir are set up.
+echo
 
 #
 # Setup .../db

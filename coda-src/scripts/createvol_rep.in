@@ -17,6 +17,14 @@
 # 
 #*/
 
+echon() {
+    if [ "`echo -n`" ] ; then
+        echo "$@"\c
+    else
+        echo -n "$@"
+    fi
+}
+
 PATH=$PATH:@prefix@/sbin
 export PATH
 
@@ -35,17 +43,16 @@ if [ ! -f ${vicedir}/hostname -o ! -f ${vicedir}/db/scm ] ; then
    exit 1
 fi
 
+# Ensure that this is the SCM
+if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]; then
+	echo "This must be run from the scm (`cat ${vicedir}/db/scm`)"
+	exit 1
+fi
 
 # Parge arguments
 if  [ $# != 3 -a $# != 4 ]; then
 	echo "bad args:  createvol_rep <volname> <vsgaddr> <partition-name> [<groupid>]"
 	exit
-fi
-
-# Ensure that this is the SCM
-if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]; then
-	echo "This must be run from the scm (`cat ${vicedir}/db/scm`)"
-	exit 1
 fi
 
 # Initialize local variables
@@ -55,15 +62,6 @@ NSERVERS=0
 MAXSERVERS=8
 PARTITION=$3
 VSGADDR=$2
-
-echon() {
-    if [ "`echo -n`" ] ; then
-        echo "$@"\c
-    else
-        echo -n "$@"
-    fi
-}
-
 
 #
 # Create these files if they don't already exist.
@@ -112,19 +110,7 @@ done
 if  [ $# = 3 ]; then
 	if  [ -f ${vicedir}/vol/maxgroupid ]; then
 		GROUPID=`cat ${vicedir}/vol/maxgroupid`
-
-		case x`uname` in
-		    xCYGWIN32_NT)
-			HEXGROUPID=`printf %x $GROUPID`
-			;;
-		    xCYGWIN_NT-4.0)
-			HEXGROUPID=`printf %x $GROUPID`
-			;;
-		    x*)	
-			HEXGROUPID=`echo obase=16\;$GROUPID | bc`
-			;;
-		esac	
-	
+		HEXGROUPID=`printf %x $GROUPID`
 		MAXGROUPID=`expr $GROUPID + 1`
 		echo $MAXGROUPID > ${vicedir}/vol/maxgroupid
 	else
@@ -134,7 +120,6 @@ if  [ $# = 3 ]; then
 else
 	HEXGROUPID=$4
 fi
-
 
 echo HexGroupId is $HEXGROUPID
 

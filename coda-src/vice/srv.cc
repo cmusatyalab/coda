@@ -848,11 +848,7 @@ static void ShutDown()
 
     if (SalvageOnShutdown) {
 	SLog(9, "Unlocking volutil lock...");
-	if (chdir(vice_file("vol"))) {
-		SLog(0, "Cannot unlock volutil lock...");
-		return;
-	}
-	int fvlock = open("volutil.lock", O_CREAT|O_RDWR, 0666);
+	int fvlock = open(vice_file("volutil.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fvlock >= 0);
 	while (myflock(fvlock, MYFLOCK_UN, MYFLOCK_BL) != 0);
 	SLog(9, "Done");

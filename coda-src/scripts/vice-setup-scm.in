@@ -44,12 +44,8 @@ if [ x${vicedir} = x ] ; then
 fi
 
 # current first maximum replicated volume id
-if [ $numservers -gt 1 ]; then
-    cd ${vicedir}/server_1/vol
-else
-    cd ${vicedir}/vol
-fi
-echo 2130706432 > maxgroupid
+mkdir ${vicedir}/vol/remote
+echo 2130706432 > ${vicedir}/vol/maxgroupid
 
 #
 # setting up servers file
@@ -74,7 +70,7 @@ if [ $numservers -eq 1 ]; then
     until [ "x$id" != x ]; do
 	echo "Enter an id for the SCM server. (hostname $bn)"
 	echo "The serverid is a unique number between 0 and 255."
-	echo "You shoule avoid 0, 127, and 255."
+	echo "You should avoid 0, 127, and 255."
 	echon "serverid: "
 	read id
     done
@@ -87,7 +83,7 @@ else
 	until [ "x$id" != x ]; do
 	    echo "Enter an id for server number $n. ($hostname)"
 	    echo "The serverid is a unique number between 0 and 255."
-	    echo "You shoule avoid 0, 127, and 255."
+	    echo "You should avoid 0, 127, and 255."
 	    echon "serverid: "
 	    read id
 	done

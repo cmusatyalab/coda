@@ -172,9 +172,9 @@ int VInitVolUtil(ProgramType pt)
 	fvlock = -1;
 
 	VLog(9, "Entering VInitVolUtil");
-	fslock = open(vice_file("vol/fs.lock"), O_CREAT|O_RDWR, 0666);
+	fslock = open(vice_file("fs.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fslock >= 0);
-	fvlock = open (vice_file("vol/volutil.lock"), O_CREAT|O_RDWR, 0666);
+	fvlock = open (vice_file("volutil.lock"), O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fvlock >= 0);
 
 	if (pt != salvager) {
@@ -191,6 +191,7 @@ int VInitVolUtil(ProgramType pt)
 			close(fvlock);
 			return(VFAIL);
 		}
+
 
 		if (!VConnectFS()) {
 			VLog(0, "Unable to synchronize with file server; aborted");
