@@ -15,12 +15,7 @@
 #                            none currently
 # 
 #*/
-
-# 		Coda libraries
-
-# Josh Raiff
-# Moved up further Peter Braam
-
+ 
 TOPDIR = @top_srcdir@
 
 srcdir = @srcdir@
@@ -29,6 +24,8 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-SUBDIRS = kernel-includes special-includes base mlwp 
+INCLDIR := $(INCLDIR)/cfs
+HEADERS = coda.h coda_opstats.h
 
 include $(TOPDIR)/configs/Makerules
+
