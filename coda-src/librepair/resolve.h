@@ -75,8 +75,8 @@ typedef struct {
     int	    entry1;		    /* index of first child in table */
     int	    nentries;		    /* number of children */
     long    replicaid;		    /* id of this replica */
-    long    vnode;		    /* fid of the parent directory */
-    long    uniqfier;
+    VnodeId  vnode;		    /* fid of the parent directory */
+    Unique_t uniqfier;
     char    *path;		    /* path name of the RO mounted copy */
     u_short modebits;
     struct  Acl *al;

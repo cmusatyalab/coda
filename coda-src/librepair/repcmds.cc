@@ -779,7 +779,8 @@ int getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize) {
 }
 
 
-static void growarray(char ***arrayaddr, int *arraysize) {
+static void growarray(char ***arrayaddr, unsigned int *arraysize)
+{
     *arraysize += 1; /* grow by one element */
     if (*arraysize > 1)
     	*arrayaddr = (char **)realloc(*arrayaddr, (*arraysize)*sizeof(char *));
@@ -791,8 +792,8 @@ static void growarray(char ***arrayaddr, int *arraysize) {
  *  Returns 0 on success, -1 on failure */
 int glexpand(char *rodir, char *fixfile, char *msg, int msgsize)
 {
-    int rc, lineno = 0, gls = 0;
-    unsigned int j, k, cnt;
+    int rc, lineno = 0;
+    unsigned int j, k, cnt, gls = 0;
     struct in_addr *custodians;
     VolumeId *repID, sID[VSG_MEMBERS];
     struct hostent *hent;

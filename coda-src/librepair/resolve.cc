@@ -354,7 +354,8 @@ int InsertListHdr (struct repair *rep, struct listhdr **ops, int index)
 }
 
 /* checks if an entry exists in a repair list */
-int InRepairList (struct listhdr *opList, unsigned opcode, long vnode, long unique)
+int InRepairList (struct listhdr *opList, unsigned opcode,
+		  VnodeId vnode, Unique_t unique)
 {
     struct repair *repList = opList->repairList;
 
@@ -365,7 +366,7 @@ int InRepairList (struct listhdr *opList, unsigned opcode, long vnode, long uniq
 }
 
 /* checks if a fid has been created by an earlier operation in a repair list */
-int IsCreatedEarlier (struct listhdr **opList, int index, long vnode, long unique)
+int IsCreatedEarlier (struct listhdr **opList, int index, VnodeId vnode, Unique_t unique)
 {
     struct repair *repList = (*opList)[index].repairList;
     unsigned int count = (*opList)[index].repairCount;
@@ -454,7 +455,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
-	printf("%s%s\n\tFid: (%lx.%lx) VV:(%ld %ld %ld %ld %ld %ld %ld %ld)(%x.%x)\n",
+	printf("%s%s\n\tFid: (%lx.%lx) VV:(%ld %ld %ld %ld %ld %ld %ld %ld)(%lx.%lx)\n",
 	       dirs[rde->replicaid].path, sortedArrByName[first]->name,
 	       rde->vno, rde->uniqfier, rde->VV.Versions.Site0,
 	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
