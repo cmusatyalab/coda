@@ -18,13 +18,26 @@ else
 OWNGRP=root:root
 fi
 
+case $SYS in
+    CYGWIN*)
+    	E=.exe ;;
+    *)
+	E="" ;;
+esac
+
 if [ ! -d $DIR ] ;  then mkdir -p $DIR; fi
 
 for f in $FILES ; do
-  TARGET=$DIR/`basename $f`
-  if [ -f $TARGET ] ; then rm -f $TARGET; fi
-  cp -p $f $TARGET
-  chmod $MODE $TARGET
-  if [ `whoami` = root ]; then chown $OWNGRP $TARGET ; fi
+  if [ -f $f$E ] ; then
+    TARGET=$DIR/`basename $f`
+    if [ -f $TARGET$E ] ; then rm -f $TARGET$E; fi
+    cp -p $f$E $TARGET$E
+    chmod $MODE $TARGET$E
+  else
+    TARGET=$DIR/`basename $f`
+    if [ -f $TARGET ] ; then rm -f $TARGET; fi
+    cp -p $f $TARGET
+    chmod $MODE $TARGET
+  fi
 done
 
