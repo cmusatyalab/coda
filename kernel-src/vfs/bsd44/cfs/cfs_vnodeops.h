@@ -14,7 +14,10 @@
 
 /*
  * HISTORY
- * $Log:	cfs_vnodeops.h,v $
+ * $Log: cfs_vnodeops.h,v $
+ * Revision 1.4  1998/01/23 11:53:49  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ *
  * Revision 1.3.2.3  98/01/23  11:21:13  rvb
  * Sync with 2.2.5
  * 
