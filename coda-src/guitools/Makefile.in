@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.5 1997/12/29 15:16:08 mre Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.6 1998/02/09 21:56:24 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -86,11 +86,5 @@ translate.sed: Makefile
 	echo "s%+HOSTNAME+%@HOSTNAME@%g" >> $@
 	echo "s%+TIXWISH+%@TIXWISH@%g" >> $@
 	echo "s%+GUIDIR+%${GUIDIR}%g" >> $@
-	echo "s%+CFS+%${BINDIR}/cfs%g" >> $@
-	echo "s%+CLOG+%${BINDIR}/clog%g" >> $@
-	echo "s%+CTOKENS+%${BINDIR}/ctokens%g" >> $@
-	echo "s%+CUNLOG+%${BINDIR}/cunlog%g" >> $@
-	echo "s%+HOARD+%${BINDIR}/hoard%g" >> $@
-	echo "s%+VUTIL+%${BINDIR}/vutil%g" >> $@
 
 include $(MAKDIR)/configs/Makerules

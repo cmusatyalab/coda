@@ -25,7 +25,7 @@ mandir = @mandir@
 
 host = @host@
 host_alias = @host_alias@
-
+LIBS= @LIBS@
 
 #
 # Platform, uncomment your choice; 

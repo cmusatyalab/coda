@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/pcfgen.cc,v 4.2 1997/02/26 16:02:43 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/pcfgen.c,v 4.1 1998/04/14 20:51:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,7 +105,11 @@ int main(int argc, char *argv[])
 
 #define ABORT {flock(fileno(yyin), LOCK_UN); fclose(yyin); exit(-1);}	
 
-    AvoidCheckSum = MyDebugFlag = yydebug = 0;
+    AvoidCheckSum = MyDebugFlag = 0;
+#if YYDEBUG != 0
+    yydebug = 0;
+#endif
+
     FileRoot[0] = '\0';
     for (i = 1; i < argc; i++)
 	{

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: parsepdb.lex,v 4.1 97/01/08 21:49:45 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/parsepdb.lex,v 4.2 1997/01/18 19:18:31 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,7 +74,11 @@ extern "C" {
 int yylook(); /* forward refs; lex doesn't emit defs for C++ */
 int yyback(int *p, int m); /* ditto */
 
-#define RETURN(Arg) if (yydebug != 0) printf("Lex: token:%d\tvalue:'%s'\n",Arg,yylval);return(Arg);
+#if YYDEBUG != 0
+# define RETURN(Arg) if (yydebug != 0) printf("Lex: token:%d\tvalue:'%s'\n",Arg,yylval);return(Arg);
+#else
+# define RETURN(Arg) return(Arg);
+#endif
 #define YYLVAL 1000 /* length of yytext */
 
 %}

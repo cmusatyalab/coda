@@ -256,6 +256,7 @@ show showvar:
 	@echo  INCLFLAGS: $(INCLFLAGS)
 	@echo  TOPDIR: $(TOPDIR) 
 	@echo  LIBDIR: $(LIBDIR)
+	@echo  LIBS: $(LIBS)
 	@echo  LIBEXECDIR: $(LIBEXECDIR)
 	@echo  BINDIR: $(BINDIR)
 	@echo  SBINDIR: $(SBINDIR)

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.8 1998/03/06 20:20:07 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.9 1998/04/14 20:58:19 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -50,7 +50,7 @@ RP2FILES    = fcon.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 
-LIBS = ${LIBRPC2} ${LIBSE} ${LIBOLDLWP} ${LIBUTIL} ${LIBCOMPAT} \
+FLIBS = ${LIBRPC2} ${LIBSE} ${LIBOLDLWP} ${LIBUTIL} ${LIBCOMPAT} \
        ${LIBREADLINE} ${LIBTERMCAP}
 
 # No longer of interest: tvclient tvserver ftclient ftserver 
@@ -58,8 +58,8 @@ OBJS = fcon.client.o fcon.server.o filtutil.o fcon.o fail.o delay.o clear.o isol
 
 libfail.a: ${OBJS}
 
-filcon: filcon.o libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} filcon.o libfail.a ${LIBS} -o filcon
+filcon: filcon.o libfail.a ${FLIBS}
+	${CC} ${LIBFLAGS} filcon.o libfail.a ${FLIBS} -o filcon
 
 fcon.client.o: fcon.client.c
 fcon.server.o: fcon.server.c
