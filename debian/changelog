@@ -1,3 +1,9 @@
+coda (5.3.13-1) experimental; urgency=low
+
+  * New release.
+
+ -- Jan Harkes <jaharkes@cs.cmu.edu>  Wed, 15 Feb 2001 19:15:05 -0500
+
 coda (5.3.11-2) experimental; urgency=low
 
   * Fixed wrong partition initialization.
