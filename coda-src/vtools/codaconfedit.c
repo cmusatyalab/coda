@@ -150,7 +150,8 @@ static void copy_template(char *confbase)
 
 int main(int argc, char **argv)
 {
-    char *conffile, *val;
+    char *conffile, *val, *p;
+    int i, len;
     FAILIF(argc < 2, "Usage: %s <conffile> [<variable> [<value>]]\n", argv[0]);
 
     conffile = codaconf_file(argv[1]);
@@ -174,9 +175,10 @@ int main(int argc, char **argv)
 	FAILIF(!conffile, "Failed to copy template file to '%s'\n", argv[1]);
     }
 
+    codaconf_init_one(conffile);
+    val = codaconf_lookup(argv[2], NULL);
+
     if (argc < 4) {
-	codaconf_init_one(conffile);
-	val = codaconf_lookup(argv[2], NULL);
 	FAILIF(!val, "Variable '%s' not found in '%s'\n", argv[2], conffile);
 
 	fprintf(stdout, "%s\n", val);
@@ -184,6 +186,19 @@ int main(int argc, char **argv)
     }
 
     /* argc >= 4 */
+    /* check if this value was already set */
+    p = val;
+    for (i = 3; i <= argc; i++) {
+	len = strlen(argv[i]);
+	if (strncmp(argv[i], p, len) != 0)
+	    break;
+	p = p + len;
+	if (*p != ' ') break;
+	p++;
+    }
+    if (i == argc-1 && *p == '\0')
+	exit(0);
+
     do_rewrite(conffile, argc, argv);
 
     exit(0);
