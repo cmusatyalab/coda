@@ -1,3 +1,9 @@
+1998-10-27    <jaharkes@cs.cmu.edu>
+	* fixed null-pointer deref in multi-rpc tracing code.
+	* 2 lwp's could gain access to the same exclusive write lock, this
+	  caused occasional deadlocks during rvm-truncation, and possibly
+	  corruption in other places.
+
 1998-10-05    <jaharkes@cs.cmu.edu>
 
 	* Integrated some of the useful & stable development patches.
