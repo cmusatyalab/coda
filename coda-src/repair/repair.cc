@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/repair/RCS/repair.cc,v 1.1 1996/11/22 19:12:33 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -49,11 +49,18 @@ extern "C" {
 #include <strings.h>
 #include <sys/stat.h>
 #include <setjmp.h>
+#ifdef __MACH__
 #include <libc.h>
+#else
+#include <unistd.h>
+#include <stdlib.h>
+#endif
 #include <rpc2.h>
 #include <signal.h>
 
+#if 0  /* included in ci.h, why repeat with a conflicting type ?? */
 extern void ci(char *, struct _iobuf *, int, struct CIENTRY *, char *, char *);
+#endif
 extern int getbool(char *, int);
 
 #ifdef __cplusplus
