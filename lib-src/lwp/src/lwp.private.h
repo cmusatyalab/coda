@@ -53,7 +53,7 @@ Pittsburgh, PA.
 #include <stdio.h>
 
 #if !HAVE_REGISTER_T
-typedef register_t int;
+typedef int register_t;
 #endif
 
 /* Initial size of eventlist in a PCB; grows dynamically  */ 
