@@ -393,9 +393,8 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, VenusFid *GlobalRootFid, fsobj 
 	RVMLIB_REC_OBJECT(*RepairRoot);
 	dir_Delete(RepairRoot->comp);
 	dir_Create(RepairRoot->comp, GlobalRootFid);
-	if (shared_parent_count == 0) {
-		flags.local = 0;
-	}
+	if (shared_parent_count == 0)
+		UnsetLocalObj();
 	DetachChild(RepairRoot);
 	RepairRoot->pfso = NULL;
 	RepairRoot->pfid = NullFid;    
@@ -407,9 +406,8 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, VenusFid *GlobalRootFid, fsobj 
 	RVMLIB_REC_OBJECT(*RepairRoot);
 	dir_Delete(RepairRoot->comp);
 	dir_Create(RepairRoot->comp, &MtPt->fid);
-	if (shared_parent_count == 0) {
-		flags.local = 0;
-	}
+	if (shared_parent_count == 0)
+		UnsetLocalObj();
 	DetachChild(RepairRoot);
 	RepairRoot->pfso = NULL;
 	RepairRoot->pfid = NullFid;    
@@ -976,29 +974,6 @@ int fsobj::LocalFakeify()
     FakeRoot->dir_Create("global", &GlobalChildFid);
     FakeRoot->dir_Create("local", &LocalChildFid);
 
-#if 0
-    {
-	struct in_addr volumehosts[VSG_MEMBERS];
-	srvent *s;
-	int i;
-	/* Make entries for each of the rw-replicas. */
-	vol->GetHosts(volumehosts);
-	for (i = 0; i < VSG_MEMBERS; i++) {
-	    if (!volumehosts[i].s_addr) continue;
-	    srvent *s;
-	    char Name[CODA_MAXNAMLEN];
-	    if ((s = FindServer(&volumehosts[i])) && s->name)
-		sprintf(Name, "%s", s->name);
-	    else
-		sprintf(Name, "%08lx", volumehosts[i]);
-	    VenusFid FakeFid = rv->GenerateFakeFid();
-	    LOG(0, ("fsobj::LocalFakeify: new entry (%s, %s)\n",
-		    Name, FID_(&FakeFid)));
-	    FakeRoot->dir_Create(Name, &FakeFid);
-	}
-    }
-#endif
-    
     /* add an new entry to the LRDB maintained fid-map */
     LRDB->RFM_Insert(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,
 		     &GlobalChildFid, &LocalChildFid, comp);

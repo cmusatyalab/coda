@@ -469,9 +469,16 @@ void fsobj::Recover()
 
     /* Get rid of fake objects, and other objects that are not likely to be
      * useful anymore. */
-    if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) ||
-	(!IsFake() && !vol->IsReplicated() && !IsLocalObj()))
+    if (IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) {
+	LOG(0, ("fsobj::Recover: (%s) is a fake object\n",
+		FID_(&fid)));
 	goto Failure;
+    }
+    if (!IsFake() && !vol->IsReplicated() && !IsLocalObj()) {
+	LOG(0, ("fsobj::Recover: (%s) is probably in a backup volume\n",
+		FID_(&fid)));
+	goto Failure;
+    }
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
      * pfid is NullFid */
