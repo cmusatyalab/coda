@@ -792,6 +792,22 @@ long Vtime() {
 
 
 /* 
+ * compares fids.  Assumes that the fids are in the same volume.
+ */
+int Fid_Compare(ViceFid *fid1, ViceFid *fid2) {
+    if (((fid1->Vnode) < (fid2->Vnode)) ||
+	((fid1->Vnode == fid2->Vnode) && ((fid1->Unique) < (fid2->Unique))))
+	    return(-1);
+
+    if (((fid1->Vnode) > (fid2->Vnode)) ||
+	((fid1->Vnode == fid2->Vnode) && ((fid1->Unique) > (fid2->Unique))))
+	    return(1);
+
+    return(0);
+}
+
+
+/* 
  * compares fids embedded in a ViceFidAndVersionVector. 
  * assumes that the fids are in the same volume.
  */

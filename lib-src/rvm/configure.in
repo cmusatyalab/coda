@@ -29,9 +29,6 @@ AM_PROG_LIBTOOL
 dnl Checks for libraries.
 CODA_FIND_LIB(lwp, [#include <lwp/lwp.h>], [LWP_Init(0,0,0)])
 
-dnl
-dnl This is broken, the xxx_lwp.c files don't have LWPFLAGS passed to them.
-dnl
 dnl For playing with the _pt version...
 if test ${with_LWP_PT}p = nop ; then
   AC_CHECK_LIB(lwp, LWP_Init, [LIBLWP="-llwp"],

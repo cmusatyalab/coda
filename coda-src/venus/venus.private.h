@@ -302,6 +302,7 @@ extern void ToggleMallocTrace();
 extern char *lvlstr(LockLevel);
 extern int GetTime(long *, long *);
 extern long Vtime();
+extern int Fid_Compare(ViceFid *, ViceFid *);
 extern int FAV_Compare(ViceFidAndVV *, ViceFidAndVV *);
 extern void DaemonInit();
 extern void RegisterDaemon(unsigned long, char *);
