@@ -80,9 +80,7 @@
 	<varlistentry>
 	<term><option>-t</option></term>
 	<listitem>
-	    <para>Probe servers every <replaceable>probeinterval</replaceable>
-	    seconds. Default is 60.
-	    </para>
+	    <para>Probe servers every <replaceable>probeinterval</replaceable> seconds. Default is 60.</para>
 	</listitem>
 	</varlistentry>
     </variablelist>
