@@ -348,6 +348,7 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
     RPC2_SubsysIdent sident;
     RPC2_EncryptionKey hkey;
     RPC2_CountedBS cident;
+    struct servent *s;
     long rc;
     int len;
 
@@ -357,9 +358,16 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
 	hident.Tag = RPC2_HOSTBYNAME;
 	strcpy(hident.Value.Name, AuthHost);
     }
-    pident.Tag = RPC2_PORTBYNAME;
+    pident.Tag = RPC2_PORTBYINETNUMBER;
 
-    strcpy(pident.Value.Name, AUTH_SERVICE);
+    s = getservbyname(AUTH_SERVICE, "udp");
+    if (s != 0)
+	pident.Value.InetPortNumber = s->s_port;
+    else {
+	eprint("getservbyname(%s,udp) failed, using 370/udp.\n", AUTH_SERVICE);
+	pident.Value.InetPortNumber = htons(370);
+    }
+
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = htonl(AUTH_SUBSYSID);
 
