@@ -1494,7 +1494,6 @@ void DH_Alloc(PDirHandle dh, int size, int in_rvm)
 		RVMLIB_REC_OBJECT(*dh);
 		dh->dh_rvmdata = rvmlib_rec_malloc(size);
 		assert(dh->dh_rvmdata);
-		rvmlib_set_range(dh->dh_rvmdata, size);
 		bzero((void *)dh->dh_rvmdata, size);
 	} else {
 		dh->dh_vmdata = malloc(size);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.18 1998/09/29 16:38:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.19 1998/10/02 15:11:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -39,9 +39,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
  *
  *    Implementation of the Venus VFS interface.
  *
- *    This set of calls supports the VFS/Vnode file system interface created by Sun Microsystems.
- *    The call interface should be identical to the latest release (actually, the release implemented
- *    by the kernel).  The implementation of each call is based on the following template:
  *
  *    vproc::template(...) {
  *        \* Log message *\
@@ -69,7 +66,8 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
  *
  *
  *    ToDo:
- *        1. Decide whether or not data is needed in the following cases (under all COP modes):
+ *        1. Decide whether or not data is needed in the following 
+ *           cases (under all COP modes):
  *          - object have its attributes set
  *          - target object of a hard link
  *          - target of a remove
@@ -109,12 +107,6 @@ extern "C" {
 
 /* ***** VFS Operations  ***** */
 
-/* These operations originally took a struct vfs * as first argument.
-   But that argument was NEVER used anywhere.  My best guess is that it was
-   present to match calls of similar name inside the kernel.  Since this is a
-   pain to port to BSD44 and no purpose is served by it, I've deleted all
-   references to struct vfs from Venus.   (Satya, 8/15/96)
-*/
 void vproc::mount(char *path, void *data) {
     LOG(1, ("vproc::mount: path = %s\n", path));
     u.u_error = EOPNOTSUPP;
