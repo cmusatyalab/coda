@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/fso_dir.cc,v 1.1 1996/11/22 19:11:01 braam Exp braam $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso_dir.cc,v 1.2 1996/12/05 01:14:32 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -70,9 +70,9 @@ extern "C" {
 #include <machine/endian.h>
 #endif
 
-#if LINUX || __NetBSD__
+
 #define DIRBLKSIZ       1024
-#endif
+
 #include "bsd_dir.h"
 
 #ifdef __cplusplus
@@ -144,11 +144,9 @@ PRIVATE void CVWriteEntry(char *name, ino_t inode, CVDescriptor *cvd) {
 
     struct direct dir;
     dir.d_namlen = strlen(name);
-#ifdef LINUX
+
     dir.d_fileno = inode;
-#else
-    dir.d_ino = inode;
-#endif
+
     dir.d_reclen = DIRSIZ(&dir);
     strcpy(dir.d_name, name);
 
