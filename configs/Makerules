@@ -59,6 +59,17 @@ ifdef SUBDIRS
 	done
 endif
 
+qclient-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
+	 hdrinstall installclient mkdep
+ifdef SUBDIRS
+	@for d in $(SUBDIRS) ; do \
+	    echo "----> Entering $$d"; \
+	    ${MAKE} -C $$d client-install; \
+	    if [ $$? != 0 ] ; then echo "----> Error in $$d"; exit 1; \
+	    else echo "----> Leaving $$d."; fi; \
+	done
+endif
+
 ###############################################################
 #  recursively descend into subdirs and build & install server
 ###############################################################
@@ -108,19 +119,16 @@ endif
 #####################
 # install  client or server executables 
 #####################
-
 installclient: c_bin_install c_sbin_install
 
 c_bin_install: $(CBINS) 
 ifdef CBINS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
-	-touch c_bin_install
 endif
 
 c_sbin_install: $(CSBINS)
 ifdef CSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
-	-touch c_sbin_install
 endif
 
 installserver: s_bin_install s_sbin_install
@@ -128,13 +136,11 @@ installserver: s_bin_install s_sbin_install
 s_bin_install: $(SBINS)
 ifdef SBINS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
-	-touch s_bin_install
 endif
 
 s_sbin_install: $(SSBINS)
 ifdef SSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
-	-touch s_sbin_install
 endif
 
 #####################

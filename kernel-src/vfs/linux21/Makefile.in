@@ -19,15 +19,23 @@ BINDIR      =  /lib/modules/`uname -r`/fs
 CBINS       =  coda.o
 # CSBINS 	    =  coda-cache coda-debug coda-flush coda-resize coda-trace
 EXECUTABLES =  coda.o
-HEADERS     =  
 OBJS        =  psdev.o cnode.o super.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o namecache.o sysctl.o 
 
 DEFINES =  -DMODULE  -DLINUX -DMODVERSIONS -Wstrict-prototypes -Wall -O2
-INCL    =  -I. -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
+INCL    =  -I. -I/usr/src/linux/include  -I/usr/src/linux/include/linux/modversions.h
 CFLAGS  := -D__KERNEL__ $(INCL)   $(DEFINES)  $(CFLAGS)
 
+linincl:
+	ln -s $(INCLDIR)/cfs/coda.h linux/coda.h
+	ln -s $(INCLDIR)/cfs/coda_opstats.h linux/coda_opstats.h
 
-coda.o: $(OBJS)
+coda: coda.o
+	touch coda.o
+
+Coda: coda.o
+	touch coda.o
+
+coda.o: linincl $(OBJS)
 	$(LD) -m "`ld --help | awk '/supported emulations/ {print $$4}'`" -r -o $@ $(OBJS)
 
 include $(MAKDIR)/Makerules

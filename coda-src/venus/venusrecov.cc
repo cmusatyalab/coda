@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.4 97/10/18 05:00:29 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.5 1997/12/19 11:20:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -322,8 +322,11 @@ PRIVATE void Recov_CheckParms() {
 	/* MLEs is not set to default unless brain-wipe has been requested! */
 	if (MLEs == UNSET_MLE && InitMetaData)
 	    MLEs = CacheBlocks / BLOCKS_PER_MLE;
-	if (MLEs != UNSET_MLE && MLEs < MIN_MLE)
-	    { eprint("minimum MLEs is %d", MIN_MLE); exit(-1); }
+	if (MLEs != UNSET_MLE && MLEs < MIN_MLE) {
+	    eprint("minimum MLEs is %d", MIN_MLE); 
+	    eprint("Cannot start. Use more than %d MLEs", MIN_MLE);
+	    exit(-1); 
+	}
     }
 
     /* From FSDB module. */
@@ -335,8 +338,10 @@ PRIVATE void Recov_CheckParms() {
 	/* CacheFiles is not set to default unless brain-wipe has been requested! */
 	if (CacheFiles == UNSET_CF && InitMetaData)
 	    CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
-	if (CacheFiles != UNSET_CF && CacheFiles < MIN_CF)
-	    { eprint("minimum cache files is %d", MIN_CF); exit(-1); }
+	if (CacheFiles != UNSET_CF && CacheFiles < MIN_CF) {
+	    eprint("Cannot start: minimum cache files is %d", MIN_CF); 
+	    exit(-1); 
+	}
     }
 
     /* From HDB module. */
@@ -348,8 +353,10 @@ PRIVATE void Recov_CheckParms() {
 	/* HDBEs is not set to default unless brain-wipe has been requested! */
 	if (HDBEs == UNSET_HDBE && InitMetaData)
 	    HDBEs = CacheBlocks / BLOCKS_PER_HDBE;
-	if (HDBEs != UNSET_HDBE && HDBEs < MIN_HDBE)
-	    { eprint("minimum HDBEs is %d", MIN_HDBE); exit(-1); }
+	if (HDBEs != UNSET_HDBE && HDBEs < MIN_HDBE) {
+	    eprint("Cannot start. Minimum HDBEs is %d", MIN_HDBE); 
+	    exit(-1); 
+	}
     }
 }
 
