@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/Makefile.in,v 4.3 1997/05/22 10:32:05 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/Makefile.in,v 4.4 1997/12/02 16:40:19 braam Exp $";
 
 
 # 
@@ -59,7 +59,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-HEADERS     = $(RP2FILES) $(OTHERHEADERS) $(RP2HEADERS)
+HEADERS     =  $(OTHERHEADERS) $(RP2HEADERS)
 RP2FILES    = res.rpc2 vcrcommon.rpc2 callback.rpc2 vice.rpc2 volutil.rpc2 \
 	      voldump.rpc2 mond.rpc2 adsrv.rpc2 admon.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
@@ -75,10 +75,6 @@ LIBRARIES = libvicedep.a
 LIBVICEDEPOBJ =  $(RP2CLOBJ) $(RP2SROBJ)  $(RP2MUOBJ)
 
 $(LIBVICEDEPOBJ): $(RP2HEADERS)
-
-
-res.client.o: res.client.cc
-res.server.o: res.server.cc
 
 libvicedep.a: $(LIBVICEDEPOBJ)
 
