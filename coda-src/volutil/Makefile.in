@@ -125,7 +125,7 @@ local.a: ${LOCALOBJS}
 
 
 volutil:    ${VOLCLIENTOBJS} ${VLIBS}
-	${CXX} $(LIBFLAGS) ${VOLCLIENTOBJS} ${VLIBS} ${LIBS} -o volutil
+	${CXX} $(LIBFLAGS) ${VOLCLIENTOBJS} ${VLIBS} ${LIBS} -lm -o volutil
 
 merge:	merge.o dumpstream.o dumpstuff.o ${VLIBS}
 	$(CXX) $(LIBFLAGS) merge.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o merge
