@@ -74,7 +74,7 @@ static int GetTokens(const char *realm)
     EncryptedSecretToken secret;
     int rc;
 
-    fprintf(stdout, "\t@%s\n", realm);
+    fprintf(stdout, "\n    @%s\n", realm);
 
     /* Get the tokens.  */
     rc = U_GetLocalTokens(&clear, secret, realm);
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 
     /* Header. */
     fprintf(stdout, "\nTokens held by the Cache Manager:\n");
-    fprintf(stdout, "Local username: %s\n\n", username);
+    fprintf(stdout, "Local username: %s\n", username);
 
     if (!realm) {
 	char *mountpoint = NULL;
