@@ -112,13 +112,6 @@ typedef unsigned long long u_quad_t;
 #define cdev_t dev_t
 #endif
 
-#ifdef __CYGWIN32__
-// struct timespec {
-//        time_t  tv_sec;         /* seconds */
-//        long    tv_nsec;        /* nanoseconds */
-// };
-#endif
-
 /* Solaris Definitions */
 #if defined(sun)
 #include <sys/types.h>
@@ -797,7 +790,7 @@ struct ViceIoctl {
 struct PioctlData {
         const char *path;
         int follow;
-#if defined(__CYGWIN32__)
+#if defined(__CYGWIN32__) || defined(__NT_CODA__)
 	int cmd;
 #endif
         struct ViceIoctl vi;
