@@ -46,8 +46,8 @@ void PDB_addToGroup(int32_t id, int32_t groupId)
 	PDB_HANDLE h;
 	PDB_profile r;
    
-	/* sanity check arguments (groupId must be < 0) */
-	CODA_ASSERT(PDB_ISGROUP(groupId) && PDB_ISUSER(id));
+	/* sanity check arguments */
+	CODA_ASSERT(PDB_ISGROUP(groupId) && (id != 0));
 
 	h = PDB_db_open(O_RDWR);
 
@@ -60,6 +60,7 @@ void PDB_addToGroup(int32_t id, int32_t groupId)
    
 	/* add groupId to user's member_of list */
 	PDB_readProfile(h, id, &r);
+	CODA_ASSERT(r.id != 0);
 	pdb_array_add(&(r.member_of), groupId);
 	PDB_updateCpsSelf(h, &r);
 	PDB_writeProfile(h, &r);
@@ -81,12 +82,14 @@ void PDB_removeFromGroup(int32_t id, int32_t groupId)
 
 	/* add id to the group's member list */
 	PDB_readProfile(h, groupId, &r);
+	CODA_ASSERT(r.id != 0);
 	pdb_array_del(&(r.groups_or_members), id);
 	PDB_writeProfile(h, &r);
 	PDB_freeProfile(&r);
    
 	/* add groupId to user's member_of list */
 	PDB_readProfile(h, id, &r);
+	CODA_ASSERT(r.id != 0);
 	pdb_array_del(&(r.member_of), groupId);
 	PDB_updateCps(h, &r);
 	PDB_writeProfile(h, &r);
@@ -121,6 +124,7 @@ void PDB_changeName(int32_t id, char *name)
 		nextid = pdb_array_head(&(r.groups_or_members), &off);
 		while(nextid != 0){
 			PDB_readProfile(h, nextid, &p);
+			CODA_ASSERT(r.id != 0);
 			if(PDB_ISGROUP(p.id)){
 				free(p.owner_name);
 				p.owner_name = strdup(name);
@@ -192,6 +196,7 @@ void PDB_cloneUser(char *name, int32_t cloneid, int32_t *newId)
 
 	/* Read the profile we are cloning */
 	PDB_readProfile(h, cloneid, &r);
+	CODA_ASSERT(r.id != 0);
 	
 	/* add one to the highest user id -- that's our new user's id */
 	PDB_db_maxids(h, &maxId, &minGroupId);
@@ -208,6 +213,7 @@ void PDB_cloneUser(char *name, int32_t cloneid, int32_t *newId)
 	nextid = pdb_array_head(&(r.member_of), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
+		CODA_ASSERT(r.id != 0);
 		pdb_array_add(&(p.groups_or_members), r.id);
 		PDB_writeProfile(h, &p);
 		PDB_freeProfile(&p);
@@ -234,13 +240,17 @@ void PDB_deleteUser(int32_t id)
 	
 	h=PDB_db_open(O_RDWR);
 	PDB_readProfile(h, id, &r);
-	if(r.id == 0) return;
+	if(r.id == 0){
+		PDB_db_close(h);
+		return;
+	}
 	PDB_deleteProfile(h, &r);
 
 	/* Remove from groups */
 	nextid = pdb_array_head(&(r.member_of), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
+		CODA_ASSERT(p.id != 0);
 		pdb_array_del(&(p.groups_or_members), id);
 		PDB_writeProfile(h, &p);
 		PDB_freeProfile(&p);
@@ -258,22 +268,22 @@ void PDB_createGroup(char *name, int32_t owner, int32_t *newGroupId)
 	PDB_profile r, p;
    
 	/* sanity check arguments */
-	CODA_ASSERT(name && (name[0] != '\0') && newGroupId);
+	CODA_ASSERT(name && (name[0] != '\0') && newGroupId
+		    && PDB_ISUSER(owner));
    
 	/* MAKE SURE NO GROUP WITH THAT NAME ALREADY EXISTS */
 	CODA_ASSERT(PDB_nameInUse(name) == 0);
 
 	h=PDB_db_open(O_RDWR);
+
+	PDB_readProfile(h, owner, &p);
+	CODA_ASSERT(p.id != 0);
 	
 	/* subtract one from the lowest group id -- that's new group's id */
 	PDB_db_maxids(h, &maxId, &minGroupId);
 	r.id = minGroupId - 1;
 	*newGroupId = r.id;
 	PDB_db_update_maxids(h, maxId, r.id, PDB_MAXID_SET);
-   
-	PDB_readProfile(h, owner, &p);
-
-	CODA_ASSERT(p.id > 0);
    
    	/* CREATE A NEW GROUP WITH SPECIFIED NAME AND OWNER */
 	
@@ -318,6 +328,7 @@ void PDB_deleteGroup(int32_t id)
 
 	/* remove from owner's list */
 	PDB_readProfile(h, r.owner_id, &p);
+	CODA_ASSERT(p.id != 0);
 	pdb_array_del(&(p.groups_or_members), id);
 	PDB_writeProfile(h, &p);
 	PDB_freeProfile(&p);
@@ -326,6 +337,7 @@ void PDB_deleteGroup(int32_t id)
 	nextid = pdb_array_head(&(r.member_of), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
+		CODA_ASSERT(p.id == 0);
 		pdb_array_del(&(p.groups_or_members), id);
 		PDB_writeProfile(h, &p);
 		PDB_freeProfile(&p);
@@ -336,6 +348,7 @@ void PDB_deleteGroup(int32_t id)
 	nextid = pdb_array_head(&(r.groups_or_members), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
+		CODA_ASSERT(p.id != 0);
 		pdb_array_del(&(p.groups_or_members), id);
 		if(PDB_ISGROUP(p.id))
 			PDB_updateCps(h, &p);
@@ -348,6 +361,7 @@ void PDB_deleteGroup(int32_t id)
 
 	/* Now fix the owner's cps */
 	PDB_readProfile(h, r.owner_id, &p);
+	CODA_ASSERT(p.id != 0);
 	PDB_updateCps(h, &p);
 	PDB_writeProfile(h, &p);
 	PDB_freeProfile(&p);
@@ -430,6 +444,7 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 	CODA_ASSERT(r.id == 0);
 
 	PDB_readProfile(h, oldId, &r);
+	CODA_ASSERT(r.id != 0);
 
 	/* Delete the old id */
 	PDB_deleteProfile(h, &r);
@@ -442,6 +457,7 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 	if(PDB_ISGROUP(oldId)){
 		/* Need to change owner info */
 		PDB_readProfile(h, r.owner_id, &p);
+		CODA_ASSERT(p.id != 0);
 		pdb_array_del(&(p.groups_or_members), oldId);
 		pdb_array_add(&(p.groups_or_members), newId);
 		PDB_writeProfile(h, &p);
@@ -455,6 +471,7 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 	nextid = pdb_array_head(&(r.member_of), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
+		CODA_ASSERT(p.id != 0);
 		pdb_array_del(&(p.groups_or_members), oldId);
 		pdb_array_add(&(p.groups_or_members), newId);
 		/* Don't need CPS updates */
@@ -467,6 +484,7 @@ void PDB_changeId(int32_t oldId, int32_t newId)
 	nextid = pdb_array_head(&(r.groups_or_members), &off);
 	while(nextid != 0){
 		PDB_readProfile(h, nextid, &p);
+		CODA_ASSERT(p.id != 0);
 		pdb_array_del(&(p.member_of), oldId);
 		pdb_array_add(&(p.member_of), newId);
 		if(PDB_ISGROUP(oldId)){

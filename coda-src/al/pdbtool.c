@@ -128,7 +128,8 @@ void tool_newUser_Id(int argc,char *argv[]){
 	int32_t id;
 	long arg2;
 	if(check_args_num(argc,3)){
-		printf("Usage: nui name id\nname\t\tname of new user\nid\t\tid of new user\n");
+		printf("Usage: nui name id\nname\t\t"
+		       "name of new user\nid\t\tid of new user\n");
 		return;
 	}
 	arg2 = atol(argv[2]);
@@ -157,7 +158,8 @@ void tool_newUser_Id(int argc,char *argv[]){
 void tool_changeName(int argc,char *argv[]){
 	long arg1;
 	if(check_args_num(argc,3)){
-		printf("Usage: cn id name\nid\t\tid number of user\n\nname\t\tnew name of user\n");
+		printf("Usage: cn id name\nid\t\t"
+		       "id number of user\n\nname\t\tnew name of user\n");
 		return;
 	}
 	arg1 = atol(argv[1]);
@@ -171,10 +173,13 @@ void tool_changeName(int argc,char *argv[]){
 
 /* CREATE NEW GROUP */
 void tool_newGroup(int argc,char *argv[]){
+	char *s;
 	int32_t id;
 	long arg2;
 	if(check_args_num(argc,3)){
-		printf("Usage: ng name owner\nname\t\tname of new group\nowner\t\tid number of group owner\n");
+		printf("Usage: ng name owner\nname\t\t"
+		       "name of new group\nowner\t\t"
+		       "id number of group owner\n");
 		return;
 	}
 	arg2 = atol(argv[2]);
@@ -182,6 +187,16 @@ void tool_newGroup(int argc,char *argv[]){
 		printf("Give numerical value.\n");
 		return;
 	}
+	if(!PDB_ISUSER(arg2)){
+		printf("Owner must be a user!\n");
+		return;
+	}
+	PDB_lookupById((int32_t) arg2, &s);
+	if(s == NULL){
+		printf("No user %ld!\n",arg2);
+		return;
+	}
+	free(s);
 	PDB_createGroup(argv[1], arg2, &id);
 }
 
@@ -191,7 +206,8 @@ void tool_newDefGroup(int argc, char **argv)
 	int32_t ownerid, id;
 	char *colon = NULL;
 	if(check_args_num(argc,2)){
-		printf("Usage: ng name\nname\t\t owner:name - name of new group\n");
+		printf("Usage: ng name\nname\t\t"
+		       "owner:name - name of new group\n");
 		return;
 	}
 	
@@ -234,7 +250,8 @@ void tool_clone(int argc,char *argv[]){
 	int32_t id;
 	long arg2;
 	if(check_args_num(argc,3)){
-		printf("Usage: cu name id\nname\t\tname of new user\nid\t\tid number of user to clone\n");
+		printf("Usage: cu name id\nname\t\t"
+		       "name of new user\nid\t\tid number of user to clone\n");
 		return;
 	}
 	arg2 = atol(argv[2]);
@@ -247,9 +264,12 @@ void tool_clone(int argc,char *argv[]){
 
 /* ADD SOMEONE (USER OR GROUP) TO A GROUP */
 void tool_addtoGroup(int argc,char *argv[]){
+	char *s;
 	long arg1, arg2;
 	if(check_args_num(argc,3)){
-		printf("Usage: ag group user\ngroup\t\tid of group to add to\nuser\t\tid number of user to add\n");
+		printf("Usage: ag group user\ngroup\t\t"
+		       "id of group to add to\nuser\t\t"
+		       "id number of user to add\n");
 		return;
 	}
 	arg1 = atol(argv[1]);
@@ -257,11 +277,23 @@ void tool_addtoGroup(int argc,char *argv[]){
 		printf("Give numerical value.\n");
 		return;
 	}
+	PDB_lookupById((int32_t) arg1, &s);
+	if(s == NULL){
+		printf("No group %ld!\n",arg1);
+		return;
+	}
+	free(s);
 	arg2 = atol(argv[2]);
 	if(arg2 == 0){
 		printf("Give numerical value.\n");
 		return;
 	}
+	PDB_lookupById((int32_t) arg2, &s);
+	if(s == NULL){
+		printf("No user %ld!\n",arg2);
+		return;
+	}
+	free(s);
 	PDB_addToGroup(arg2,arg1);
 }
 
@@ -269,7 +301,9 @@ void tool_addtoGroup(int argc,char *argv[]){
 void tool_removefromGroup(int argc,char *argv[]){
 	long arg1, arg2;
 	if(check_args_num(argc,3)){
-		printf("Usage: rg group user\ngroup\t\tid of group to remove from\nuser\t\tid number of user to remove\n");
+		printf("Usage: rg group user\ngroup\t\t"
+		       "id of group to remove from\nuser\t\t"
+		       "id number of user to remove\n");
 		return;
 	}
 	arg1 = atol(argv[1]);
@@ -287,6 +321,7 @@ void tool_removefromGroup(int argc,char *argv[]){
 
 /* DELETE USER OR GROUP */
 void tool_delete(int argc,char *argv[]){
+	char *s;
 	long arg1;
 	if(check_args_num(argc,2)){
 		printf("Usage: d id\nid\t\tid number of user/group\n");
@@ -297,6 +332,12 @@ void tool_delete(int argc,char *argv[]){
 		printf("Give numerical value.\n");
 		return;
 	}
+	PDB_lookupById((int32_t) arg1, &s);
+	if(s == NULL){
+		printf("No user %ld!\n",arg1);
+		return;
+	}
+	free(s);
 	if(PDB_ISGROUP(arg1))
 		PDB_deleteGroup(arg1);
 	else
