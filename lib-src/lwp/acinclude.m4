@@ -5,8 +5,8 @@ dnl test the cross compilation platform and adjust default settings
 
 AC_DEFUN(CODA_SETUP_BUILD,
 [case ${target} in
-  djgpp | win95 | dos )   target=i386-pc-msdos ;;
-  cygwin32 | winnt | nt ) target=i386-pc-cygwin32 ;;
+  djgpp | win95 | dos )  target=i386-pc-msdos ;;
+  cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
 esac
 AC_CANONICAL_SYSTEM
 if test ${build} != ${target} ; then
@@ -25,26 +25,24 @@ if test ${build} != ${target} ; then
     dnl get wrong as it tests the build platform feature
     ac_cv_func_mmap_fixed_mapped=yes
     ;;
-   i386-pc-cygwin32 )
+   i386-pc-cygwin )
     dnl shared libraries don't work here
-    AM_DISABLE_SHARED
+dnl    AM_DISABLE_SHARED
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
+    host=i386-pc-cygwin
     CC="gnuwin32gcc -D__CYGWIN32__"
     CXX="gnuwin32g++"
     AR="gnuwin32ar"
     RANLIB="gnuwin32ranlib"
     AS="gnuwin32as"
     NM="gnuwin32nm"
+    DLLTOOL="gnuwin32dlltool"
+    OBJDUMP="gnuwin32objdump"
 
     LDFLAGS="-L/usr/gnuwin32/lib"
     ;;
  esac
 fi])
-
-AC_DEFUN(CODA_PATCH_LIBTOOL,
-[if test ${build} != ${target} ; then
-  patch < ${srcdir}/libtool.patch
- fi])
 
 AC_DEFUN(CODA_FUNC_INSQUE,
 [AC_CHECK_FUNC(insque,,
