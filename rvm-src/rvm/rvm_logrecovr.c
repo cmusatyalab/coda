@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_logrecovr.c,v 4.1 1997/01/08 21:54:33 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_logrecovr.c,v 4.2 1997/04/01 01:55:57 clement Exp clement $";
 #endif _BLURB_
 
 /*
@@ -2528,8 +2528,9 @@ rvm_return_t apply_mods(log)
     return retval;
     }
 /* Recovery: phase 4 -- update head/tail of log */
-static rvm_return_t status_update(log)
+static rvm_return_t status_update(log, new_1st_rec_num)
     log_t           *log;               /* log descriptor */
+    rvm_length_t    new_1st_rec_num;
     {
     log_status_t    *status = &log->status; /* status descriptor */
     struct timeval  end_time;           /* end of action time temp */
@@ -2556,6 +2557,7 @@ static rvm_return_t status_update(log)
             {
             RVM_ZERO_OFFSET(status->prev_log_head);
             RVM_ZERO_OFFSET(status->prev_log_tail);
+            status->first_rec_num = new_1st_rec_num;
             }
         
         /* end timings */
@@ -2708,6 +2710,7 @@ rvm_return_t log_recover(log,count,is_daemon,flag)
 
 err_exit1:;
             });                         /* end dev_lock crit sec */
+
         if (retval != RVM_SUCCESS) goto err_exit;
         if (rvm_chk_sigint != NULL)     /* test for interrupt */
             if ((*rvm_chk_sigint)(NULL)) goto err_exit;
@@ -2722,7 +2725,7 @@ err_exit1:;
             ASSERT(log->trunc_thread == cthread_self());
             ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_BUILD_TREE);
-            status->first_rec_num = new_1st_rec_num;
+	    
             kretval= gettimeofday(&end_time,(struct timezone *)NULL);
             if (kretval != 0) return RVM_EIO;
             end_time = sub_times(&end_time,&tmp_time);
@@ -2751,7 +2754,7 @@ err_exit1:;
                     | RVM_TRUNC_APPLY;
 
         /* always update the status */
-        retval = status_update(log);    /* phase 4 */
+        retval = status_update(log, new_1st_rec_num);    /* phase 4 */
         ASSERT(log->trunc_thread == cthread_self());
         ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                == RVM_TRUNC_UPDATE);
