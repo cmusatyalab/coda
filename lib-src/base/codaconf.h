@@ -32,7 +32,7 @@ int conf_init(char *conffile);
 char *conf_lookup(char *name, char *defaultvalue);
 
 /* conf_free releases all resources allocated for the configuration data */
-char *conf_free(void);
+void conf_free(void);
 
 /* normally stderr, error message are written here */
 extern FILE *conf_errout;

@@ -216,7 +216,7 @@ char *conf_lookup(char *name, char *defaultvalue)
 }
 
 /* release all allocated resources */
-char *conf_free(void)
+void conf_free(void)
 {
     item_t cp;
 
