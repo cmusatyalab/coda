@@ -1,7 +1,6 @@
 dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
-AC_PREREQ(2.50)
 AC_INIT(src/lwp.c)
 CODA_SETUP_BUILD
 AM_INIT_AUTOMAKE(lwp, 1.9)
