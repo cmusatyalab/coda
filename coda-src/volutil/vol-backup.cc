@@ -154,6 +154,7 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     int rc;
     Volume *originalvp;
     Volume *backupvp;
+    VolumeId volid; 
 
     VLog(9, "Entering S_VolMakeBackups: RPCId=%d, Volume = %x", 
 	 rpcid, originalId);
@@ -241,12 +242,21 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
     V_blessed(backupvp) = 1;		/* Volume is valid now. */
     
     rvmlib_begin_transaction(restore);
+    volid = V_id(backupvp);
+
     VUpdateVolume(&error, backupvp);	/* Write new info to RVM */
+    CODA_ASSERT(error == 0);
     VDetachVolume(&error, backupvp);   	/* causes vol to be attached(?) */
+    CODA_ASSERT(error == 0);
     VUpdateVolume(&error, originalvp);	/* Update R/W vol data */
     CODA_ASSERT(error == 0);
     VPutVolume(originalvp);
     rvmlib_end_transaction(flush, &(status));
+
+    backupvp = VGetVolume(&error, volid);
+    CODA_ASSERT(error == 0);
+    originalvp = VGetVolume(&error, originalId);
+    CODA_ASSERT(error == 0);
     if (status == 0) {
 	    VLog(0, "S_VolMakeBackups: backup (%x) made of volume %x ",
 		 V_id(backupvp), V_id(originalvp));
@@ -254,6 +264,8 @@ long S_VolMakeBackups(RPC2_Handle rpcid, VolumeId originalId,
 	    VLog(0, "S_VolMakeBackups: volume backup failed for volume %x",
 		 V_id(originalvp));
     }
+    VPutVolume(originalvp);
+    VPutVolume(backupvp);
 
     VListVolumes();     /* do this to update VolumeList file */
     VDisconnectFS();

@@ -61,7 +61,8 @@ fi
 
 # set up a cache directory
 if [ ! -d $CACHEDIR ]; then mkdir -p $CACHEDIR; chmod 700 $CACHEDIR; fi
-if [ ! -d $TMPDIR ]; then mkdir -p $TMPDIR; chmod 700 $TMPDIR; fi
+# this tempdir currently must have 755 permissions for hoard verify
+if [ ! -d $TMPDIR ]; then mkdir -p $TMPDIR; chmod 755 $TMPDIR; fi
 
 # next run will always initialize
 touch $CACHEDIR/INIT

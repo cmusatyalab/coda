@@ -16,6 +16,33 @@ contributors.
 			December 1998
 
 
+Notes:
+
+1. Each file will say what its license is. The libbase, LWP, RPC2 and
+RVM subsystems come under the LGPL.  All files defining RPC
+interfaces, such as those used by cache manager, volume utilities and
+other utilities are LGPL'd.  This allows you, for example, to build a
+proprietary cache manager using this interface. Most of these
+interfaces are defined in the coda-src/vicedep directory.
+
+2. The use of the kernel interfaces is considered ordinary use of the
+system, so, for example, the ioctl's used in repair can be used by any
+software not withstanding its license.  Similarly the using the
+network and kernel interfaces in the cache manager and file servers is
+considered ordinary use of the system.  So, for example, it is
+possible to write proprietary kernel code which uses those interfaces
+when you port Coda to a new operating system.
+
+3. A very limited number of files describe the interface between the
+kernel and the cache manager, e.g. kernel-src/vfs/includes/coda.h.
+This file is shared by the kernel code and the user level components
+and you may distribute this file under the CMU license or the LGPL at
+your discretion.
+
+If you have questions, please contact us at coda@cs.cmu.edu.
+
+
+
 --------------- GNU GENERAL PUBLIC LICENSE ---------------
                    Version 2, June 1991
 

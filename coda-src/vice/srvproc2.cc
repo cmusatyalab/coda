@@ -856,7 +856,7 @@ return(0);
 
 static struct DiskPartition *get_part(struct dllist_head *hd)
 {
-	if ( hd = &DiskPartitionList )
+	if ( hd == &DiskPartitionList )
 		return NULL;
 
 	return list_entry(hd, struct DiskPartition, dp_chain);
@@ -1021,8 +1021,6 @@ static void SetSystemStats(ViceStatistics *stats)
 
 #if	defined(__BSD44__)
     SetSystemStats_bsd44(stats);
-#else
-    SetNoSystemStats(stats);
 #endif
 }
 

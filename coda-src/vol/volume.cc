@@ -1066,8 +1066,8 @@ void VPutVolume(register Volume *vp)
     CODA_ASSERT(--(vp->nUsers) >= 0);
     if (vp->nUsers == 0) {
         Error error;
-	/* this is bogus- we're freeing it then referencing it ***ehs***7/88*/
-	ReleaseVolumeHeader(vp->header);    /* return it to the lru queue */
+
+	ReleaseVolumeHeader(vp->header);
         if (vp->goingOffline) {
 	    CODA_ASSERT(*pt == fileServer);
 	    vp->goingOffline = 0;
@@ -1089,8 +1089,9 @@ void VPutVolume(register Volume *vp)
 	        LWP_SignalProcess((char *)VPutVolume);
 	}
     }
-    else VLog(1, "VPutVolume (%x): NO-OP since vp->nUsers = %d", 
-	      V_id(vp), vp->nUsers + 1);
+    else 
+	    VLog(1, "VPutVolume (%x): NO-OP since vp->nUsers = %d", 
+		 V_id(vp), vp->nUsers + 1);
 }
 
 /* Force the volume offline, set the salvage flag.  No further references to */
@@ -1172,6 +1173,7 @@ void VDetachVolume(Error *ec, Volume *vp)
     vp->shuttingDown = 1;
     VPutVolume(vp);
     /* Will be detached sometime in the future--this is OK since volume is offline */
+
 
     if (*pt == volumeUtility && notifyServer) {
 	/* Note: The server is not notified in the case of a bogus

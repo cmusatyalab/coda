@@ -1,8 +1,28 @@
+/* BLURB lgpl
+
+                           Coda File System
+                              Release 5
+
+          Copyright (c) 1987-1999 Carnegie Mellon University
+                  Additional copyrights listed below
+
+This code is distributed "AS IS" without warranty of any kind under
+the terms of the GNU Library General Public Licence Version 2, as
+shown in the file LICENSE, or under the license shown below. The
+technical and financial contributors to Coda are listed in the file
+CREDITS.
+
+                        Additional copyrights 
+*/
+
+
+
 
 /*
  *
  * Based on cfs.h from Mach, but revamped for increased simplicity.
- * Linux modifications by Peter Braam, Aug 1996
+ * Linux modifications by 
+ * Peter Braam, Aug 1996
  */
 
 #ifndef _CODA_HEADER_
