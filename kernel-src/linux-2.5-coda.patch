@@ -915,7 +915,7 @@ diff -urN --exclude-from=dontdiff linux-2.5.63/include/linux/coda.h linux-2.5.63
  #define coda_f2i(fid)\
 -	((fid) ? ((fid)->Unique + ((fid)->Vnode<<10) + ((fid)->Volume<<20)) : 0)
 -#endif
-+	((fid) ? ((fid)->opaque[3] + ((fid)->opaque[2]<<10) + ((fid)->opaque[1]<<20)) : 0)
++	((fid) ? ((fid->opaque[3] ^ (fid->opaque[2]<<10) ^ (fid->opaque[1]<<20) ^ fid->opaque[0])) : 0)
  
  
 -#ifndef _VUID_T_

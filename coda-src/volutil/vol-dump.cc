@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.26 $
+#define RCSVERSION $Revision: 4.27 $
 
 /* vol-dump.c */
 
@@ -606,7 +606,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 	unique = V_updateDate(vp);
     }
 
-    char VVlistfile[MAXLISTNAME];
+    char VVlistfile[PATH_MAX];
     getlistfilename(VVlistfile, volnum, V_parentId(vp), "newlist");
     SLog(0, "NewDump: file %s volnum %x id %x parent %x",
 	 VVlistfile, volnum, volumeNumber, V_parentId(vp));
@@ -618,7 +618,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     }
 
     if (*Incremental) {
-	char listfile[MAXLISTNAME];
+	char listfile[PATH_MAX];
 	getlistfilename(listfile, volnum, V_parentId(vp), "ancient");
 
 	Ancient = fopen(listfile, "r");
@@ -740,7 +740,7 @@ long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     if (!ReverseXlateVid(&volnum))
 	volnum = 0; /* non-replicated volume */
 
-    char listfile[MAXLISTNAME];
+    char listfile[PATH_MAX];
     int oldUnique;
     getlistfilename(listfile, volnum, V_parentId(vp), "ancient");
 

@@ -85,10 +85,10 @@ long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
     if (rc != 0)
 	return rc;
 
-    char listfile[MAXLISTNAME];
+    char listfile[PATH_MAX];
     getlistfilename(listfile, groupId, repId, "newlist");
 
-    char newlistfile[MAXLISTNAME];
+    char newlistfile[PATH_MAX];
     getlistfilename(newlistfile, groupId, repId, "ancient");
 
     if (rename(listfile, newlistfile) < 0) {

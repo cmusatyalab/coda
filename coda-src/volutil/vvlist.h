@@ -36,7 +36,6 @@ typedef struct vventry {
 
 #define ENDLARGEINDEX "End of the Large Vnode List.\n"
 #define LISTLINESIZE 160
-#define MAXLISTNAME 40
 
 class vvtable {
     friend class vvent_iterator;
