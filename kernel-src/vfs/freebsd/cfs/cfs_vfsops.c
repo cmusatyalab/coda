@@ -13,10 +13,10 @@
 
 /*
  * HISTORY
- * $Log:	cfs_vfsops.c,v $
- * Revision 1.7  98/01/23  11:53:45  rvb
+ * $Log: cfs_vfsops.c,v $
+ * Revision 1.7  1998/01/23 11:53:45  rvb
  * Bring RVB_CFS1_1 to HEAD
- * 
+ *
  * Revision 1.6.2.6  98/01/23  11:21:07  rvb
  * Sync with 2.2.5
  * 
@@ -346,13 +346,7 @@ cfs_mount(vfsp, path, data, ndp, p)
     ctlfid.Volume = CTL_VOL;
     ctlfid.Vnode = CTL_VNO;
     ctlfid.Unique = CTL_UNI;
-/*  cp = makecfsnode(&ctlfid, vfsp, VCHR);
-    The above code seems to cause a loop in the cnode links.
-    I don't totally understand when it happens, it is caught
-    when closing down the system.
- */
-    cp = makecfsnode(&ctlfid, 0, VCHR);
-
+    cp = makecfsnode(&ctlfid, vfsp, VCHR);
     cfs_ctlvp = CTOV(cp);
 
     /* Add vfs and rootvp to chain of vfs hanging off mntinfo */
@@ -707,29 +701,4 @@ getNewVnode(vpp)
     
     return cfs_fhtovp(mi->mi_vfsp, (struct fid*)&cfid, NULL, vpp,
 		      NULL, NULL);
-}
-
-#include <ufs/ufs/quota.h>
-#include <ufs/ufs/ufsmount.h>
-/* get the mount structure corresponding to a given device.  Assume 
- * device corresponds to a UFS. Return NULL if no device is found.
- */ 
-struct mount *devtomp(dev)
-    dev_t dev;
-{
-    struct mount *mp, *nmp;
-    
-    for (mp = mountlist.cqh_first; mp != (void*)&mountlist; mp = nmp) {
-	nmp = mp->mnt_list.cqe_next;
-	if (
-#ifdef	__NetBSD__
-	    (!strcmp(mp->mnt_op->vfs_name, MOUNT_UFS)) &&
-#endif
-	    ((VFSTOUFS(mp))->um_dev == (dev_t) dev)) {
-	    /* mount corresponds to UFS and the device matches one we want */
-	    return(mp); 
-	}
-    }
-    /* mount structure wasn't found */ 
-    return(NULL); 
 }

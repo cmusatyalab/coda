@@ -1,0 +1,64 @@
+The cfs_cache lives here.
+
+***** cfscall
+
+--Make a call up to Venus.
+
+Ensure that the device is open for this call (i.e.: venus is around)
+Set up the message buffer, and tag the inputArgs with the uniqifier
+Enqueue the mesasge
+Wakeup Venus to read the message.
+Go to sleep; wait for the corresponding write to wake up.
+If Venus is alive
+	and the request was made and responded to
+		record how big it was
+		fall through
+	and the request was never made
+		pull the request off the queue
+		set error to EINTR
+		fall through
+	and the request was made, but not responded to
+		Send venus a signal to ignore it.  (At head of Q)
+		set error to EINTR
+If Venus died return ENODEV
+return
+
+XXX NOTE: we need to try to use vnode_uncache_try rather than
+inode_uncache_try.
+
+***** handleDownCall
+
+This function deals with requests from Venus.  It's called by
+vc_nb_write when Venus writes a packet that is tagged with a downcall
+opcode.  There are currently six downcalls.  They are described in the
+source, but that description is repeated here.
+
+/*
+ * There are 6 cases where invalidations occur. The semantics of each
+ * is listed here.
+ *
+ * CFS_FLUSH     -- flush all entries from the name cache and the cnode cache.
+ * CFS_PURGEUSER -- flush all entries from the name cache for a specific user
+ *                  This call is a result of token expiration.
+ *
+ * The next two are the result of callbacks on a file or directory.
+ * CFS_ZAPDIR    -- flush the attributes for the dir from its cnode.
+ *                  Zap all children of this directory from the namecache.
+ * CFS_ZAPFILE   -- flush the attributes for a file.
+ *
+ * The fifth is a result of Venus detecting an inconsistent file.
+ * CFS_PURGEFID  -- flush the attribute for the file
+ *                  If it is a dir (odd vnode), purge its 
+ *                  children from the namecache
+ *                  remove the file from the namecache.
+ *
+ * The sixth allows Venus to replace local fids with global ones
+ * during reintegration.
+ *
+ * CFS_REPLACE -- replace one ViceFid with another throughout the name cache 
+ */
+
+CFS_FLUSH and CFS_PURGEUSER have their own functions, described below.
+
+CFS_ZAPFILE 
+

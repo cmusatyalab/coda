@@ -115,17 +115,16 @@ static int coda_pioctl(struct inode * inode, struct file * filp,
          * Look up the pathname. Note that the pathname is in 
          * user memory, and namei takes care of this
          */
-	CDEBUG(D_PIOCTL, "namei, data.follow = %d\n", 
-	       data.follow);
+	CDEBUG(D_PIOCTL, "namei, data.follow = %d\n", data.follow);
         if ( data.follow ) {
                 target_de = namei(data.path);
 	} else {
 	        target_de = lnamei(data.path);
 	}
-		
-	if ( PTR_ERR(target_de) == -ENOENT ) {
+
+	if (!target_de) {
                 CDEBUG(D_PIOCTL, "error: lookup fails.\n");
-		return PTR_ERR(target_de);
+		return -EINVAL;
         } else {
 	        target_inode = target_de->d_inode;
 	}

@@ -331,6 +331,8 @@ file ufs/ffs/ffs_subr.c			ffs | mfs
 file ufs/ffs/ffs_tables.c		ffs | mfs
 file ufs/ffs/ffs_vfsops.c		ffs | mfs
 file ufs/ffs/ffs_vnops.c		ffs | mfs
+file ufs/ifs/ifs_isyscalls.c		vcfs | odydev
+file ufs/ifs/ifs_subr.c			vcfs | odydev
 file ufs/lfs/lfs_alloc.c		lfs
 file ufs/lfs/lfs_bio.c			lfs
 file ufs/lfs/lfs_balloc.c		lfs

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.12 98/01/30 19:28:55 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/vice/srv.cc,v 4.12 1998/01/30 19:28:55 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1780,18 +1780,8 @@ static void InitializeServerRVM(void *initProc,char *name)
 	    LogMsg(0, 0, stdout, 
 		   "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
 	    options->truncate = _Rvm_Truncate;				    
-	}
-#ifdef	__linux__
-	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */
-#elif	defined(__FreeBSD__)
-	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
-#elif	defined(__NetBSD__) && NetBSD1_3
-	sbrk((void *)(0x50000000 - (int)sbrk(0))); /* for garbage reasons. */
-#elif	defined(__NetBSD__) && NetBSD1_2
-	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */
-#else
-	some mistake or other
-#endif
+	} 								    
+	sbrk((void *)(0x20000000 - (int)sbrk(0))); /* for garbage reasons. */		    
         err = RVM_INIT(options);                   /* Start rvm */           
         if ( err == RVM_ELOG_VERSION_SKEW ) {                                
             LogMsg(0, 0, stdout, 
