@@ -41,7 +41,6 @@ struct optab {
   char *name;
 } ops[] = {
   {CODA_ROOT, "CODA_ROOT"},
-  {CODA_SYNC, "CODA_SYNC"},
   {CODA_OPEN, "CODA_OPEN"},
   {CODA_CLOSE, "CODA_CLOSE"},
   {CODA_IOCTL, "CODA_IOCTL"},
@@ -55,11 +54,9 @@ struct optab {
   {CODA_RENAME, "CODA_RENAME"},
   {CODA_MKDIR, "CODA_MKDIR"},
   {CODA_RMDIR, "CODA_RMDIR"},
-  {CODA_READDIR, "CODA_READDIR"},
   {CODA_SYMLINK, "CODA_SYMLINK"},
   {CODA_READLINK, "CODA_READLINK"},
   {CODA_FSYNC, "CODA_FSYNC"},
-  {CODA_INACTIVE, "CODA_INACTIVE"},
   {CODA_VGET, "CODA_VGET"},
   {CODA_SIGNAL, "CODA_SIGNAL"},
   {CODA_REPLACE, "CODA_REPLACE"},
@@ -206,11 +203,13 @@ printreply (char *buffer, int n, struct sockaddr_in *addr)
       printattr(&out->coda_getattr.attr);
       break;
 	    
+#if 0 /* not used anymore */
     case CODA_READDIR:
       buffer[(int) out->coda_readdir.data + out->coda_readdir.size] = '\0';
       fprintf (file, "size %d buf %s", out->coda_readdir.size, 
       	buffer + (int) out->coda_readdir.data);
       break;
+#endif
     }/*switch*/
 
   }/*if (n)*/

@@ -202,19 +202,6 @@ int vsnprintf(char *buf, size_t len, char *fmt, va_list ap)
     return vsprintf(buf, fmt, ap);
 }
 
-int snprintf(char *buf, size_t len, const char *fmt, ...) 
-
-{
-    va_list ap;
-    int rc;
-
-    /* Construct message in buffer and add newline */
-    va_start(ap, fmt);
-    rc = vsnprintf(buf, len, fmt, ap); /* leave 1 char for the "\n" */
-    va_end(ap);
-    return rc;
-}
-
 long int gethostid(void)
 {
 	return 4711;
