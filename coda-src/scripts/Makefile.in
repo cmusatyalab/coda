@@ -25,8 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.11 1997/11/20 15:10:25 braam Exp $";
-
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.11.2.1 1997/11/26 18:05:31 braam Exp $";
 
 # 
 #                          IBM COPYRIGHT NOTICE
@@ -66,7 +65,7 @@ VICE-SCRIPTS	= startserver rc.vice
 REINIT-SCRIPTS	= partial-reinit.sh reinit.sh recreatevol recreatevol_rep
 VICE-SETUP      = vice-configs vice-rvmsetup vice-killvolumes vice-makerootvol vice-server-setup vice-srvdirsetup vice-user-setup vice-install 
 
-BACKUP-SCRIPTS	= backup.sh checktape.sh extract.sh writetotape.sh restore.sh
+BACKUP-SCRIPTS	= backup.sh extract.sh restore.sh tape.pl
 
 SCRIPTS := $(VENUS-SCRIPTS) $(BACKUP-SCRIPTS)\
 	   $(VOL-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS)
