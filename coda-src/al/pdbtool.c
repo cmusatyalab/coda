@@ -424,6 +424,106 @@ void tool_changeId(int argc,char *argv[])
 }
 
 /* dump/restore database contents */
+void tool_export_ldif(int argc, char *argv[])
+{
+    int32_t id, i;
+    PDB_profile rec;
+    PDB_HANDLE h;
+    FILE *ldiffile;
+    char *s, *basedn;
+    int rc, pass = 0;
+
+    if (check_args_num(argc, 3)) {
+	printf("Usage: export_ldif <ldif-file> <basedn>\n");
+	return;
+    }
+
+
+    ldiffile  = fopen(argv[1], "w");
+    basedn = argv[2];
+
+again:
+
+    h = PDB_db_open(O_RDONLY);
+    while ((rc = PDB_db_nextkey(h, &id))) {
+	if (rc == -1) continue;
+
+	PDB_readProfile(h, id, &rec);
+	{
+	    if (PDB_ISUSER(rec.id)) {
+		/* skip users during the second pass */
+		if (pass == 1) continue;
+
+		/* users are dumped as:
+		 *
+		 * dn: uid=<username>, $basedn
+		 * objectClass: top
+		 * objectClass: account
+		 * objectClass: posixAccount
+		 * cn: <username> (/Full name)
+		 * uid: <username>[@$domain]
+		 * uidNumber: <userid>
+		 * gidNumber: 65535
+		 * homeDirectory: /coda/usr/<username>
+		 */
+		fprintf(ldiffile,
+			"dn: uid=%s, %s\nobjectClass: top\n"
+                        "objectClass: account\nobjectClass: posixAccount\n"
+			"cn: %s\nuid: %s\nuidNumber: %d\ngidNumber=65535\n"
+			"homeDirectory: /coda/usr/%s\n\n",
+			rec.name, basedn, rec.name, rec.name, rec.id, rec.name);
+	    } else {
+		/* skip groups during the first pass */
+		if (pass == 0) continue;
+
+		/* groups and group members are dumped as follows:
+		 *
+		 * dn: cn=<groupname>, $basedn
+		 * objectClass: top
+		 * objectClass: posixGroup
+		 * objectClass: groupOfNames
+		 * cn: <groupname>
+		 * gidNumber: -<groupid>
+		 * owner: <owner>, $basedn
+		 * member: <member1>, $basedn
+		 * memberUid: <member1-uid>
+		 * member: <member2>, $basedn
+		 * memberUid: <member2-uid>
+		 * ...
+		 */
+
+		fprintf(ldiffile,
+			"dn: cn=%s, %s\nobjectClass: top\n"
+			"objectClass: posixGroup\nobjectClass: groupOfNames\n"
+			"cn: %s\ngidNumber: %d\nowner: %s, %s\n",
+			rec.name, basedn, rec.name, -rec.id, rec.owner_name,
+			basedn);
+
+		for (i = 0; i < rec.groups_or_members.size; i++) {
+		    PDB_lookupById(rec.groups_or_members.data[i], &s);
+		    if (s == NULL) continue;
+
+		    fprintf(ldiffile, "member: %s, %s\nmemberUid: %d\n",
+				    s, basedn, rec.groups_or_members.data[i]);
+		    free(s);
+		}
+		fprintf(ldiffile, "\n");
+	    }
+	}
+	PDB_freeProfile(&rec);
+    }
+    PDB_db_close(h);
+
+    /* we make second pass to dump the groups after the users */
+    if (pass == 0) {
+	    pass = 1;
+	    goto again;
+    }
+
+    fclose(ldiffile);
+}
+
+/* dump/restore database contents */
 void tool_export(int argc, char *argv[])
 {
     int32_t id, i;
@@ -617,6 +717,7 @@ void tool_help(int argc, char *argv[])
 	printf("u <id/name>\t\t\tupdate an id/name\n");
 	printf("ids\t\t\t\tget the database maxids\n");
 	printf("maxids <userid> <groupid>\tset the database maxids\n");
+	printf("export_ldif <ldiffile> <basedn>\tdump the contents of the pdb database in LDIF format\n");
 	printf("export <userfile> <groupfile>\tdump the contents of the pdb database\n");
 	printf("import <userfile> <groupfile>\tread a dumped pdb database\n");
 	printf("source <file>\t\t\tread commands from file\n");
@@ -644,6 +745,7 @@ command_t pdbcmds[] =
 	{"u", tool_update, 0, "update an id"},
 	{"ids", tool_get_maxids, 0, "get the database maxids"},
 	{"maxids", tool_maxids, 0, "set the database maxids"},
+	{"export_ldif", tool_export_ldif, 0, "dump the contents of the database in LDIF format"},
 	{"export", tool_export, 0, "dump the contents of the database"},
 	{"import", tool_import, 0, "load the contents of the database"},
 	{"source", tool_source, 0, "read commands from file"},
