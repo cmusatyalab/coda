@@ -31,10 +31,6 @@ extern rvm_bool_t   rvm_utlsw;          /* true if call by rvmutl */
 
 char                rvm_errmsg;         /* internal error message ptr */
 
-#ifdef RVM_USELWP
-PROCESS rvm_lwppid;     /* LWP process id */
-#endif
-
 /* initialization control */
 /* Cannot statically initialize locks with pthreads. */
 static RVM_MUTEX    init_lock = MUTEX_INITIALIZER;

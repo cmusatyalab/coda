@@ -181,6 +181,7 @@ static rvm_return_t fork_daemon(log)
     /* create daemon thread */
     if (daemon->thread == (cthread_t)NULL)
         {
+	daemon->truncate = 0;
         daemon->state = rvm_idle;
         mutex_init(&daemon->lock);
         daemon->thread = cthread_fork((PFIC)log_daemon,log);
@@ -203,17 +204,20 @@ static rvm_return_t join_daemon(log)
         {
         /* terminate the daemon */
         CRITICAL(daemon->lock,          /* begin daemon lock crit sec */
-            {
+	    {
             if (daemon->state != error)
+		{
                 daemon->state = terminate;
-            state = daemon->state;
+		condition_signal(&daemon->code);
+		}
             });                         /* end daemon lock crit sec */
-        if (state != error)
-            condition_signal(&daemon->code);
 
         /* wait for daemon thread to terminate */
         retval = (rvm_return_t)cthread_join(daemon->thread);
-        daemon->thread = (cthread_t)NULL;
+#ifdef RVM_USELWP
+        while(daemon->thread) cthread_yield();
+#endif
+	daemon->thread = (cthread_t)NULL;
         }
     daemon->truncate = 0;
 

@@ -949,7 +949,7 @@ rvm_bool_t chk_time()
     printf("  time: %s",ctime(&time.tv_sec));
 #endif
     printf("  number of test operations: %d\n",max_op_cnt);
-    printf("  elasped time: %d sec.\n",time.tv_sec-init_time.tv_sec);
+    printf("  elapsed time: %d sec.\n",time.tv_sec-init_time.tv_sec);
 
     init_time = time;                   /* update loop start time */
     return rvm_true;
@@ -2070,7 +2070,7 @@ int main(argc, argv)
         for (i = 0; i < nthreads; i++)
             {
             last[i] = 0;
-            threads[i] = cthread_fork(worker, i);
+            threads[i] = cthread_fork(worker, (char *)i);
             }
 
         /* wait for all threads to terminate */

@@ -21,8 +21,6 @@ Coda are listed in the file CREDITS.
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 
-extern PROCESS rvm_lwppid; /* LWP process id */
-
 #ifndef MACRO_BEGIN
 #define MACRO_BEGIN			do {
 #define MACRO_END			} while(0)
@@ -39,18 +37,17 @@ extern PROCESS rvm_lwppid; /* LWP process id */
 /* Supported cthread definitions */
 
 #define cthread_t			PROCESS
-#define cthread_fork(fname, arg)	(LWP_CreateProcess((fname), \
-					  RVM_STACKSIZE, \
-					  LWP_NORMAL_PRIORITY,	\
-					  (char *)arg, 		\
-					  (char *)"rvm_thread",	\
-					  &rvm_lwppid), \
-                                         rvm_lwppid)
-#define cthread_join(foo)		(0)
+static inline PROCESS cthread_fork(int (*fname)(void *), void *arg)
+{
+    PROCESS rvm_lwppid;
+    LWP_CreateProcess((PFIC)fname, RVM_STACKSIZE, LWP_NORMAL_PRIORITY,
+		      arg, "rvm_thread", &rvm_lwppid);
+    return rvm_lwppid;
+}
 #define cthread_init()			MACRO_BEGIN \
                                           LWP_Init(LWP_VERSION, \
                                                    LWP_NORMAL_PRIORITY, \
-                                                   &rvm_lwppid); \
+                                                   NULL); \
                                           IOMGR_Initialize(); \
                                         MACRO_END
 #define cthread_exit(retval)		return
@@ -58,6 +55,8 @@ extern PROCESS rvm_lwppid; /* LWP process id */
                                           IOMGR_Poll(); \
                                           LWP_DispatchProcess(); \
                                         MACRO_END
+#define cthread_join(thread)		(0)
+
 #define condition_wait(c, m)		MACRO_BEGIN \
                                           ReleaseWriteLock((m)); \
 					  LWP_WaitProcess((c)); \
@@ -70,10 +69,14 @@ extern PROCESS rvm_lwppid; /* LWP process id */
 #define mutex_init(m)			(Lock_Init(m))
 #define mutex_clear(m)			/* nop */
 #define LOCK_FREE(m)			(!WriteLocked(&(m)))
-#define cthread_self() \
-    (LWP_CurrentProcess(&rvm_lwppid), rvm_lwppid)
-/* synchronization tracing definitions of lock/unlock */
 
+static inline PROCESS cthread_self(void)
+{
+    PROCESS rvm_lwppid;
+    LWP_CurrentProcess(&rvm_lwppid);
+    return rvm_lwppid;
+}
+/* synchronization tracing definitions of lock/unlock */
 #ifdef DEBUGRVM
 #define mutex_lock(m)			MACRO_BEGIN \
                                          printf("mutex_lock OL(0x%x)%s:%d...", \

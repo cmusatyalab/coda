@@ -37,6 +37,12 @@ Coda are listed in the file CREDITS.
 #define UIO_MAXIOV 16
 #endif
 
+#ifdef _POSIX_SYNCHRONIZED_IO
+#define FSYNC(fd) fdatasync(fd)
+#else
+#define FSYNC(fd) fsync(fd)
+#endif
+
 /* global variables */
 device_t            *rvm_errdev;        /* last device to have error */
 int                 rvm_ioerrno=0;      /* also save the errno for I/O error */
@@ -321,7 +327,7 @@ long write_dev(dev,offset,src,length,sync)
         /* fsync if doing file i/o */
         if (((!dev->raw_io && sync==SYNCH) ||
 	     (dev->raw_io && dev->type == S_IFBLK))) {
-            if ((retval=fsync((int)dev->handle))  < 0) {
+            if ((retval=FSYNC((int)dev->handle))  < 0) {
                 rvm_errdev = dev;
 		rvm_ioerrno = errno;
                 return retval;
@@ -528,7 +534,7 @@ long sync_dev(dev)
     /* use kernel call for file sync */
     if (!dev->raw_io)
 	{
-	retval = fsync((int)dev->handle);
+	retval = FSYNC((int)dev->handle);
 	if (retval<0)
 	    {
 	    rvm_errdev = dev;

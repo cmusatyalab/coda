@@ -2668,8 +2668,6 @@ err_exit1:;
 		assert(daemon->state == truncating);
 		assert((status->trunc_state & RVM_ASYNC_TRUNCATE) != 0);
 		condition_signal(&daemon->flush_flag);
-		assert(log->daemon.thread == cthread_self());
-		assert(daemon->state == truncating);
 		}
             });                         /* end dev_lock crit sec */
 
@@ -2738,12 +2736,7 @@ err_exit:
                 assert(daemon->state == truncating);
                 if (retval != RVM_SUCCESS)
                     daemon->state = error;
-                else if (daemon->state == truncating)
-                    daemon->state = rvm_idle;
                 }
-            if (retval == RVM_SUCCESS) {
-                condition_broadcast(&daemon->wake_up);
-	    }
             assert(log->trunc_thread == cthread_self());
             });                         /* end daemon->lock crit sec */
 
@@ -2786,32 +2779,30 @@ rvm_return_t rvm_truncate()
 rvm_bool_t initiate_truncation(log,threshold)
     log_t           *log;               /* log descriptor */
     rvm_length_t    threshold;          /* log % truncation threshold */
-    {
+{
     log_daemon_t    *daemon = &log->daemon; /* daemon control descriptor */
     rvm_bool_t      did_init = rvm_false; /* true if initiated truncation */
+
+    /* test threshold for asynch truncation */
+    if (!daemon->truncate || threshold < daemon->truncate)
+	return rvm_false;
 
     /* trigger a truncation if log at threshold */
     CRITICAL(daemon->lock,              /* begin daemon->lock crit sec */
         {
-        /* test threshold for asynch truncation */
-        if ((daemon->truncate > 0)
-            && (threshold >= daemon->truncate))
-            {
             /* wake up daemon if idle */
             if (daemon->state == rvm_idle)
-                {
+	    {
                 did_init = rvm_true;
                 daemon->state = truncating;
                 condition_signal(&daemon->code);
                 condition_wait(&daemon->flush_flag,&daemon->lock);
-                }
-            }
+	    }
         });                             /* end daemon->lock crit sec */
 
     return did_init;
-    }
+}
 /* wait until truncation has processed all records up to time_stamp */
-int num_waiting=0;
 rvm_return_t wait_for_truncation(log,time_stamp)
     log_t           *log;               /* log descriptor */
     struct timeval  *time_stamp;        /* time threshold */
@@ -2834,11 +2825,9 @@ rvm_return_t wait_for_truncation(log,time_stamp)
                 }
 
             /* wait for concurrent truncation completion */
-            if (daemon->state == truncating)
+            while (daemon->state == truncating)
                 {
-                num_waiting++;
                 condition_wait(&daemon->wake_up,&daemon->lock);
-                num_waiting--;
                 }
             if (daemon->state == error)
                 {
@@ -2887,15 +2876,15 @@ void log_daemon(void *arg)
 
     DO_FOREVER
         {
-        assert(daemon->thread == cthread_self());
         /* wait to be awakened by request */
         CRITICAL(daemon->lock,          /* begin daemon lock crit sec */
             {
-		    while (daemon->state == rvm_idle) {
-			    condition_wait(&daemon->code,&daemon->lock);
-		    }
-            assert(daemon->thread == cthread_self());
-            state = daemon->state;      /* end daemon lock crit sec */
+		daemon->state = rvm_idle;
+		condition_broadcast(&daemon->wake_up);
+		while (daemon->state == rvm_idle) {
+		    condition_wait(&daemon->code, &daemon->lock);
+		}
+		state = daemon->state;      /* end daemon lock crit sec */
             });
 
         /* process request */
@@ -2904,14 +2893,16 @@ void log_daemon(void *arg)
           case truncating:                /* do a truncation */
             retval = log_recover(log,&log->status.tot_async_truncation,
                                  rvm_true,RVM_ASYNC_TRUNCATE);
-            assert(daemon->thread == cthread_self());
 
-            CRITICAL(daemon->lock,state = daemon->state);
+            CRITICAL(daemon->lock, state = daemon->state);
             if (state == error)
                 cthread_exit(retval);   /* error -- return code */
             if (state != terminate) break;
 
           case terminate:
+#ifdef RVM_USELWP
+	    daemon->thread = NULL;
+#endif
             cthread_exit(RVM_SUCCESS);  /* normal exit */
 
           default:    assert(rvm_false);    /* error */
