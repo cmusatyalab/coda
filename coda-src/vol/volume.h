@@ -221,9 +221,7 @@ typedef struct VolumeDiskData {
     char	offlineMessage[VMSGSIZE]; /* Why the volume is offline */
     char 	motd[VMSGSIZE];	 	  /* Volume "message of the day" */
 
-    /* Write Back Caching */
-    char	WriteBackEnable;	  /* Can this volume be WB'ed	*/
-    char        WriteBackPad[3];	  /* make size multiple of 4	*/
+    char        pad[4];	  /* make size multiple of 4	*/
     
 } VolumeDiskData;
 
@@ -247,18 +245,9 @@ struct vnodeIndex {
     };
 
 /*
- * Since write locks on volumes set by the resolution subsystem have different
- * semantics than those set by the volume utility, we added the field
- * WriteLockType for differentiation. -- dcs 10/10/90
  */
-
-/*
-Lock used to ensure exclusive use of volume during resolution.
- */
-typedef enum {Resolve = 0, VolUtil = 1} WriteLock_t;
-struct ResVolLock {
-    struct Lock VolumeLock;
-    WriteLock_t WriteLockType;
+struct VolLock {
+    struct Lock VolumeLock; /* Prevent mutations during backup/clone */
     unsigned IPAddress;
 };
 
@@ -296,7 +285,7 @@ struct Volume {
 				   salvaged should the file server crash */
     struct	Lock lock;	/* internal lock */
     PROCESS	writer;		/* process id having write lock */
-    struct  ResVolLock VolLock;	/* Volume level Lock for resolution/repair */
+    struct VolLock VolLock;	/* Volume level lock for backup/clone */
 #define VNREINTEGRATORS 8	/* List size increment */
     int		nReintegrators;	/* Number of clients that have successfully
 				   reintegrated with this volume. */
@@ -304,9 +293,6 @@ struct Volume {
 				   record reintegrated for each client. Could
 				   be moved to recoverable store if necessary.
 				*/
-    dllist_head WriteBackHolders;	  /* Which conn to talk to	*/
-    byte       	WriteBackRevokeInProgress;/* Is a revocation happening  */
-    byte	WriteBackRevokeDone;	  /* Done revoking		*/
 };
 typedef struct Volume Volume;
 
@@ -332,7 +318,6 @@ struct volHeader {
 #define V_lock(vp)		((vp)->lock)
 #define V_writer(vp)		((vp)->writer)
 #define	V_VolLock(vp)		(((vp)->VolLock))
-#define V_WriteBackHolders(vp)   ((vp)->WriteBackHolders)
 
 /* N.B. V_id must be this, rather than vp->id, or some programs will
    break, probably */
@@ -377,7 +362,6 @@ struct volHeader {
 #define V_disk(vp)		((vp)->header->diskstuff)
 #define V_RVMResOn(vp)		((vp)->header->diskstuff.ResOn & RVMRES)
 #define V_VolLog(vp)		((vp)->header->diskstuff.log)
-#define V_WriteBackEnable(vp)   ((vp)->header->diskstuff.WriteBackEnable)
 
 extern char *ThisHost;		/* This machine's hostname */
 extern int ThisServerId;	/* this server id, as found in

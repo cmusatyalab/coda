@@ -866,15 +866,11 @@ static Volume *attach2(Error *ec, char *name,
 	vp->shuttingDown = 0;
 	vp->goingOffline = 0;
 	vp->nUsers = 1;
-	/* Initialize the volume level lock  for resolution/repair */
+	/* Initialize the volume level lock for backup/clone */
 	V_VolLock(vp).IPAddress = 0;
 	Lock_Init(&(V_VolLock(vp).VolumeLock));
 	vp->nReintegrators = 0;	
 	vp->reintegrators = NULL;	
-	/* Initalize WriteBack flags */
-	vp->WriteBackRevokeInProgress = 0;
-	vp->WriteBackRevokeDone = 0;
-	list_head_init(&vp->WriteBackHolders);
 
 	GetVolumeHeader(vp);    /* get a VolHeader from LRU list */
 
@@ -1874,13 +1870,12 @@ void VGetPartitionStatus(Volume *vp, int *totalBlocks, int *freeBlocks)
 int GetVolObj(VolumeId Vid, Volume **volptr, 
 	      int LockLevel, int Enque, int LockerAddress) 
 {
-    
     int errorCode = 0;
-    *volptr = 0;
 
     *volptr = VGetVolume((Error *)&errorCode, Vid);
     if (errorCode) {
 	    SLog(0, "GetVolObj: VGetVolume(%x) error %d", Vid, errorCode);
+	    *volptr = NULL;
 	    goto FreeLocks;
     }
 
@@ -1891,8 +1886,6 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
     case VOL_SHARED_LOCK:
 	    if (V_VolLock(*volptr).IPAddress != 0) {
 		    SLog(0, "GetVolObj: Volume (%x) already write locked", Vid);
-		    VPutVolume(*volptr);
-		    *volptr = 0;
 		    errorCode = EWOULDBLOCK;
 		    goto FreeLocks;
 	    }
@@ -1903,8 +1896,6 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
 	    CODA_ASSERT(LockerAddress);
 	    if (V_VolLock(*volptr).IPAddress != 0) {
 		    SLog(0, "GetVolObj: Volume (%x) already write locked", Vid);
-		    VPutVolume(*volptr);
-		    *volptr = 0;
 		    errorCode = EWOULDBLOCK;
 		    goto FreeLocks;
 	    }
@@ -1921,6 +1912,11 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
     }
     
  FreeLocks:
+    /* make sure the volume hash isn't resized */
+    if (errorCode && *volptr) {
+	VPutVolume(*volptr);
+	*volptr = NULL;
+    }
     SLog(9, "GetVolObj: returns %d", errorCode);
     
     return(errorCode);
@@ -1960,6 +1956,6 @@ void PutVolObj(Volume **volptr, int LockLevel, int Dequeue)
     }
 
     VPutVolume(*volptr);
-    *volptr = 0;
+    *volptr = NULL;
     SLog(10, "Returning from PutVolObj");
 }
