@@ -267,9 +267,6 @@ int coda_downcall(opcode, out)
      int opcode; struct outputArgs *out;
 {
 
-    int error;
-    error = 0;
-    
     /* Handle invalidate requests. */
     switch (opcode) {
       case CFS_FLUSH : {
@@ -324,7 +321,7 @@ int coda_downcall(opcode, out)
 	  return (0);
       }			   
     }
-      return error;
+      return 0;
 }
 
 

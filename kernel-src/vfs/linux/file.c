@@ -403,7 +403,7 @@ coda_file_read(struct inode *coda_inode, struct file *coda_file,
                 CDEBUG(D_FILE, "read not supported by cache file file operations.\n" );
                 return 0;
         }
-         
+	
         result = open_file.f_op->read(cont_inode, &open_file , buff, count);
         CDEBUG(D_FILE, " result %d, count %d, position: %d\n", result, count, (int)open_file.f_pos);
 
@@ -460,7 +460,10 @@ coda_file_write(struct inode *coda_inode, struct file *coda_file,
         }
          
         /*        cnp->c_flags &= ~C_VATTR; */
+
+	down(&cont_inode->i_sem);
         result = cont_file.f_op->write(cont_inode, &cont_file , buff, count);
+	up(&cont_indoe->i_sem);
         coda_restore_codafile(coda_inode, coda_file, cont_inode, &cont_file);
 
         return result;

@@ -171,6 +171,10 @@ static int coda_psdev_write(struct inode *inode, struct file *file, const char *
               /* get the rest of the data. */
               memcpy_fromfs(&pbuf.result, buf, sizeof(pbuf) - (2 * sizeof(int)));
 
+	      /* should coda_downcall ever return an error ? 
+	          NetBSD returns all kinds of errors; all but
+		 ESCHR will crash Venus. Why? 
+	        */
               error = coda_downcall(opcode, &pbuf);
 	      if ( error) {
 		printk("psdev_write: error in coda_downcall: %d\n", error);
@@ -191,7 +195,6 @@ static int coda_psdev_write(struct inode *inode, struct file *file, const char *
     
         if (EOQ(vmp, vcp->vc_replies)) {
 	  DEBUG("msg (%ld, %ld) not found\n", opcode, seq);
-	  
 	  return(-ESRCH);
         }
 
@@ -201,8 +204,6 @@ static int coda_psdev_write(struct inode *inode, struct file *file, const char *
         /* move data into response buffer. */
         /* Don't need to copy opcode and uniquifier. */
         out = (struct outputArgs *)vmp->vm_data;
-
-        
         /* get the rest of the data. */
 #if 0
         if (vmp->vm_outSize < (count - 2 * sizeof(u_long))) {
@@ -213,6 +214,8 @@ static int coda_psdev_write(struct inode *inode, struct file *file, const char *
         } 
 #endif
 
+
+        
 #if 0
 DEBUG("memcpy_fromfs: previously attemted %d, now %d ", vmp->vm_outSize - (sizeof(u_long) * 2), count - 2 *sizeof(u_long) );
 #endif
