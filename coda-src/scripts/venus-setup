@@ -21,7 +21,7 @@ else
 	SERVERS=$1
 fi
 
-if [ X$1 != X ]; then
+if [ X$2 != X ]; then
 	CACHESIZE=$2
 fi
 
