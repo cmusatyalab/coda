@@ -341,6 +341,12 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		}
 		ViceStoreId stid;
 		AllocStoreId(&stid);
+
+		/* We are about to modify the parent vnode. Get a refcount, so
+		 * that PutObjects can update the on-disk data. --JH */
+		dh = VN_SetDirHandle(pv->vptr);
+		pv->d_inodemod = 1;
+
 		PerformLink(NULL, VSGVolnum, vp, pv->vptr, cv->vptr, 
 			    name, time(0), 0, &stid, &pv->d_cinode, blocks);
 		if (cv->vptr->delete_me) {
