@@ -95,10 +95,8 @@ static int SendSendAhead(struct SFTP_Entry *sEntry);
 static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe);
 static int WinIsOpen(struct SFTP_Entry *sEntry);
 static void sftp_SendAck(struct SFTP_Entry *sEntry);
-static int sftp_vfwritev(SE_Descriptor *sdesc, long openfd,
-			 struct iovec *iovarray, long howMany);
-static int sftp_vfreadv(SE_Descriptor *sdesc, long openfd,
-			struct iovec iovarray[], long howMany);
+static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long howMany);
+static int sftp_vfreadv(struct SFTP_Entry *se, struct iovec iovarray[], long howMany);
 
 /* sftp5.c */
 extern void B_ShiftLeft();
@@ -164,7 +162,8 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 
     switch(sftpd->Tag) {
     case FILEBYNAME:
-	sEntry->openfd = open(sftpd->FileInfo.ByName.LocalFileName, oflags, omode);
+	sEntry->openfd = open(sftpd->FileInfo.ByName.LocalFileName, oflags,
+			      omode);
 	if (sEntry->openfd < 0) {
 	    if (RPC2_Perror) perror(sftpd->FileInfo.ByName.LocalFileName);
 	    return(-1);
@@ -172,7 +171,12 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	    break;
 	
     case FILEBYFD:
-	sEntry->openfd = sftpd->FileInfo.ByFD.fd; /* trust the user to have given a good fd! */
+	/* trust the user to have given a good fd! */
+	sEntry->openfd = sftpd->FileInfo.ByFD.fd;
+
+	/* the fd might be shared, so we need to save/restore the fileoffset
+	   around every operation */
+	sEntry->fd_offset = (sftpd->SeekOffset > 0) ? sftpd->SeekOffset : 0;
 	break;
 
 
@@ -190,16 +194,16 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
     }
     
     if (sftpd->SeekOffset > 0)
-	if (lseek(sEntry->openfd, sftpd->SeekOffset, L_SET) < 0) {
+	if (lseek(sEntry->openfd, sftpd->SeekOffset, SEEK_SET) < 0) {
 	    if (RPC2_Perror) perror("lseek");
-	    CLOSE(sEntry);	    
+	    sftp_vfclose(sEntry);	    
 	    return(-1);
 	}
 
     /* stat file to obtain file size */
     if (fstat(sEntry->openfd, &statbuf) < 0) {
 	if (RPC2_Perror) perror("fstat");
-	CLOSE(sEntry);
+	sftp_vfclose(sEntry);
 	return(-1);
     }
 
@@ -412,7 +416,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     if (sftp_WriteStrategy(sEntry) < 0) 
 	return(-1);	/* one last time */
     sEntry->XferState = XferCompleted;
-    CLOSE(sEntry);
+    sftp_vfclose(sEntry);
     return(0);    
 }
 
@@ -462,8 +466,7 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
     if (iovlen == 0) 
 	return(0);  /* 0-length initial run of packets */
     
-    if (!(bytesnow == 
-	  sftp_vfwritev(sEntry->SDesc, sEntry->openfd, iovarray, iovlen))) {
+    if (!(bytesnow == sftp_vfwritev(sEntry, iovarray, iovlen))) {
 	sftp_SetError(sEntry, DISKERROR);	/* probably disk full */
 	return(-1);
     }
@@ -1085,7 +1088,7 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 	}
 
     /* Read in one fell swoop */
-    bytesread = sftp_vfreadv(sEntry->SDesc, sEntry->openfd, iovarray, sEntry->SendAhead);
+    bytesread = sftp_vfreadv(sEntry, iovarray, sEntry->SendAhead);
     if (!(bytesread >= 0))
 	{ BOGOSITY(sEntry, 0); perror("sftp_vfreadv"); return(-1); }
 
@@ -1321,7 +1324,7 @@ static int WinIsOpen(struct SFTP_Entry *sEntry)
 void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe,
 		     long bodylen)
 {
-    bzero(&pb->Header, sizeof(struct RPC2_PacketHeader));
+    memset(&pb->Header, 0, sizeof(struct RPC2_PacketHeader));
     pb->Header.ProtoVersion = SFTPVERSION;
     pb->Header.BodyLength = bodylen;
     pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
@@ -1364,8 +1367,7 @@ one (specified by name, fd or inode) or a fake one (in memory).  The first
 two args to all the routines are the same: an SE descriptor that defines
 the file, and a file descriptor that is already open in the correct mode */
 
-    /* Returns length of file sdesc using openfd
-       openfd is ignored if sdesc refers to a vmfile
+    /* Returns length of file defined by se->SDesc
        Returns RPC2 error code (< 0)  on failure
 
        !!!!! BEWARE !!!!
@@ -1376,18 +1378,18 @@ the file, and a file descriptor that is already open in the correct mode */
        ByteQuota if a quota has been specified.		- JH
        !!!!! BEWARE !!!!
     */
-int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd)
+int sftp_piggybackfilesize(struct SFTP_Entry *se)
 {
     struct stat stbuf;
     int length;
 
-    if (MEMFILE(sdesc))
+    if (MEMFILE(se->SDesc))
 	{
-	length = sdesc->Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
+	length = se->SDesc->Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
 	}
     else
 	{
-	if (fstat(openfd, &stbuf) < 0)
+	if (fstat(se->openfd, &stbuf) < 0)
 	    return(RPC2_SEFAIL4);
 
 	length = stbuf.st_size;
@@ -1395,118 +1397,138 @@ int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd)
 
     /* When we try to transfer too much, return a value so that we avoid
      * piggybacking */
-    if (SFTP_EnforceQuota && sdesc->Value.SmartFTPD.ByteQuota > 0 && 
-	length > sdesc->Value.SmartFTPD.ByteQuota)
-	return(sdesc->Value.SmartFTPD.ByteQuota);
+    if (SFTP_EnforceQuota && se->SDesc->Value.SmartFTPD.ByteQuota > 0 && 
+	length > se->SDesc->Value.SmartFTPD.ByteQuota)
+	return(se->SDesc->Value.SmartFTPD.ByteQuota);
 
     return(length);
 }
 
-int sftp_piggybackfileread(SE_Descriptor *sdesc, long openfd, char *buf)
-    /* Reads entire file defined by sdesc into buf using openfd
-       openfd is ignored if sdesc refers to a vmfile
+int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
+    /* Reads entire file defined by se->SDesc into buf.
        Returns 0 on success, RPC2 error code (< 0) on failure
        WARNING: buf must be big enough -- no checks are done!
     */
 {
     struct FileInfoByAddr *p;
 
-    if (MEMFILE(sdesc))
-	{
-	p = &sdesc->Value.SmartFTPD.FileInfo.ByAddr;
-	bcopy(p->vmfile.SeqBody, buf, sftp_piggybackfilesize(sdesc, openfd));
+    if (MEMFILE(se->SDesc)) {
+	p = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
+	memcpy(buf, p->vmfile.SeqBody, sftp_piggybackfilesize(se));
+    } else {
+	if (BYFDFILE(se->SDesc)) {
+	    if (lseek(se->openfd, se->fd_offset, SEEK_SET) == -1)
+		return(RPC2_SEFAIL4);
 	}
-    else
-	{
-	if (BYFDFILE(sdesc) && lseek(openfd, 0, SEEK_SET) < 0)
+
+	if (read(se->openfd, buf, sftp_piggybackfilesize(se)) < 0)
 	    return(RPC2_SEFAIL4);
-	
-	if (read(openfd, buf, sftp_piggybackfilesize(sdesc, openfd)) < 0)
-	    return(RPC2_SEFAIL4);
+
+	if (BYFDFILE(se->SDesc)) {
+	    se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
+	    if (se->fd_offset == -1)
+		return(RPC2_SEFAIL4);
 	}
+    }
     return(0);
 }
 
     /* writes out nbytes from buf to file sdesc using openfd
        Returns 0 on success,  RPC2 error code (< 0) on failure
     */
-int sftp_vfwritefile(SE_Descriptor *sdesc, int openfd, char *buf, int nbytes)
+int sftp_vfwritefile(struct SFTP_Entry *se, char *buf, int nbytes)
 {
     struct FileInfoByAddr *p;
 
-    if (MEMFILE(sdesc))
-	{
-	p = &sdesc->Value.SmartFTPD.FileInfo.ByAddr;
+    if (MEMFILE(se->SDesc)) {
+	p = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
 	if (nbytes > p->vmfile.MaxSeqLen)
 	    return(RPC2_SEFAIL3);
-	else
-	    {
-	    bcopy(buf, p->vmfile.SeqBody,  nbytes);
-	    p->vmfile.SeqLen = nbytes;
-	    }
+
+	memcpy(p->vmfile.SeqBody, buf, nbytes);
+	p->vmfile.SeqLen = nbytes;
+    } else {
+	if (BYFDFILE(se->SDesc)) {
+	    if (lseek(se->openfd, se->fd_offset, SEEK_SET) == -1)
+		return(RPC2_SEFAIL4);
 	}
-    else
-	{
-	if (write(openfd, buf, nbytes) < 0)
-	    {
-	    if (errno == ENOSPC) return (RPC2_SEFAIL3);
-	    else return(RPC2_SEFAIL4);	    
-	    }
+
+	if (write(se->openfd, buf, nbytes) < 0) {
+	    if (errno == ENOSPC)
+		return (RPC2_SEFAIL3);
+
+	    return(RPC2_SEFAIL4);	    
 	}
+
+	if (BYFDFILE(se->SDesc)) {
+	    se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
+	    if (se->fd_offset == -1)
+		return(RPC2_SEFAIL4);
+	}
+    }
     return(0);    
 }
 
 /* sdesc, can be null, fd ignored if sdesc refers to a vmfile, or if user provided fd */
-void sftp_vfclose(SE_Descriptor *sdesc, int openfd)
+void sftp_vfclose(struct SFTP_Entry *se)
 {
-    if (sdesc && MEMFILE(sdesc)) return;
-    if (sdesc && sdesc->Value.SmartFTPD.Tag == FILEBYFD) return;
-    if (openfd == -1)
+    if (se->SDesc && MEMFILE(se->SDesc)) return;
+    if (se->SDesc && se->SDesc->Value.SmartFTPD.Tag == FILEBYFD) return;
+    if (se->openfd == -1)
     { /* we might have closed this fd when CheckSE fails. -JH */
 	say(0, SFTP_DebugLevel, "sftp_vfclose: fd was already closed.\n");
 	return;
     }
-    close(openfd);    /* ignoring errors */
+    close(se->openfd);    /* ignoring errors */
+    se->openfd    = -1;
+    se->fd_offset = 0;
 }
 
-static int sftp_vfreadv(SE_Descriptor *sdesc,
-			long openfd, /* ignored if sdesc refers to a vm file */
-			struct iovec iovarray[], long howMany)
+static int sftp_vfreadv(struct SFTP_Entry *se, struct iovec iovarray[], long howMany)
     /* Like Unix readv().  Returns total number of bytes read.
        Can deal with in-memory files */
 {
     long i, rc, bytesleft;
     char *initp;
     struct FileInfoByAddr *x;
+    int err;
 
     /* Go to the disk if we must */
-    if (!MEMFILE(sdesc)) {
-	if (BYFDFILE(sdesc)) {
-	    /* need to seek, as multiple connections share the same fd */
-	    lseek(openfd, sdesc->Value.SmartFTPD.BytesTransferred, SEEK_SET);
+    if (!MEMFILE(se->SDesc)) {
+	if (BYFDFILE(se->SDesc)) {
+	    if (lseek(se->openfd, se->fd_offset, SEEK_SET) == -1)
+		return(RPC2_SEFAIL4);
 	}
-        return(readv(openfd, iovarray, howMany));
+
+        err = readv(se->openfd, iovarray, howMany);
+
+	if (BYFDFILE(se->SDesc)) {
+	    se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
+	    if (se->fd_offset == -1)
+		return(RPC2_SEFAIL4);
+	}
+	return err;
     }
 
     /* This is a vm file; vmfilep indicates first byte not yet consumed */
-    x = &sdesc->Value.SmartFTPD.FileInfo.ByAddr;
+    x = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
     bytesleft = x->vmfile.SeqLen - x->vmfilep;
     initp = (char *)&x->vmfile.SeqBody[x->vmfilep];
 
     rc = 0;
-    for (i = 0; i < howMany; i++)
-	{/* Fill one iov element on each iteration */
-	if (bytesleft < iovarray[i].iov_len)
-	    {
-	    bcopy(initp, iovarray[i].iov_base, bytesleft);
+    for (i = 0; i < howMany; i++) {
+	/* Fill one iov element on each iteration */
+	if (bytesleft < iovarray[i].iov_len) {
+	    memcpy(iovarray[i].iov_base, initp, bytesleft);
 	    rc += bytesleft;
 	    break;
-	    }
-	bcopy(initp, iovarray[i].iov_base, iovarray[i].iov_len);
+	}
+	
+	memcpy(iovarray[i].iov_base, initp, iovarray[i].iov_len);
 	rc += iovarray[i].iov_len;
 	initp += iovarray[i].iov_len;
 	bytesleft -= iovarray[i].iov_len;
-	}
+    }
 	
     /* update offset info for next invocation */
     x->vmfilep += rc;
@@ -1514,9 +1536,7 @@ static int sftp_vfreadv(SE_Descriptor *sdesc,
 }
 
 
-static int sftp_vfwritev(SE_Descriptor *sdesc,
-			 long openfd, /* ignored if sdesc refers to a vm file */
-			 struct iovec *iovarray, long howMany)
+static int sftp_vfwritev(struct SFTP_Entry *se, struct iovec *iovarray, long howMany)
     /*  Iterates through the array and returns the total number of
     bytes sent out.  */
 {
@@ -1526,37 +1546,46 @@ static int sftp_vfwritev(SE_Descriptor *sdesc,
 
     result = 0;
     left = howMany;
-    
-    while (left > 0)
-	{
-	if (left > 16) thistime = 16;
-		else thistime = left;
-	if (!MEMFILE(sdesc))
-	    rc = writev(openfd, &iovarray[howMany-left], thistime);
-	else 
-	    {/* in-memory file; copy it to the user's buffer */
+
+    if (BYFDFILE(se->SDesc)) {
+	if (lseek(se->openfd, se->fd_offset, SEEK_SET) == -1)
+	    return(RPC2_SEFAIL4);
+    }
+
+    while (left > 0) {
+	thistime = (left > 16) ? 16 : left;
+
+	if (!MEMFILE(se->SDesc)) {
+	    rc = writev(se->openfd, &iovarray[howMany-left], thistime);
+	} else { /* in-memory file; copy it to the user's buffer */
 	    rc = 0;
 	    for (i = 0; i < thistime; i++)
-		{
+	    {
 		thisiov = &iovarray[howMany-left+i];
-		p = &sdesc->Value.SmartFTPD.FileInfo.ByAddr;
+		p = &se->SDesc->Value.SmartFTPD.FileInfo.ByAddr;
 		if (thisiov->iov_len > (p->vmfile.MaxSeqLen - p->vmfilep))
-		    {/* file too big for buffer provided */
+		{/* file too big for buffer provided */
 		    rc = -1;  /* error bubbles up as SEFAIL3 eventually */
 		    break;		    
-		    }
-		bcopy(thisiov->iov_base, &p->vmfile.SeqBody[p->vmfilep], 
-		    thisiov->iov_len);
+		}
+		memcpy(&p->vmfile.SeqBody[p->vmfilep], thisiov->iov_base, 
+		      thisiov->iov_len);
 		rc += thisiov->iov_len;    
 		p->vmfilep += thisiov->iov_len;
 		p->vmfile.SeqLen = p->vmfilep;
-		}
 	    }
+	}
 	if (rc < 0) return(rc);
 	result += rc;
 	left -= thistime;
-	}
+    }
 
+    if (BYFDFILE(se->SDesc)) {
+	se->fd_offset = lseek(se->openfd, 0, SEEK_CUR);
+	if (se->fd_offset == -1)
+	    return(RPC2_SEFAIL4);
+    }
+    
     return(result);
 }
 

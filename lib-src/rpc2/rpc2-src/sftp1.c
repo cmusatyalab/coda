@@ -78,15 +78,15 @@ static void AddTimerEntry();
 static long MakeBigEnough();
 
 /*---------------------------  Local macros ---------------------------*/
-#define FAIL(whichS, rCode)\
+#define FAIL(se, rCode)\
 	    {\
-	    if (whichS->openfd >= 0) CLOSE(whichS);\
+	    if (se->openfd >= 0) sftp_vfclose(se);\
 	    return(rCode);\
 	    }
 
 #define QUIT(se, RC1, RC2)\
     se->SDesc->LocalStatus = RC1;\
-    if (se->openfd >= 0) CLOSE(se);\
+    if (se->openfd >= 0) sftp_vfclose(se);\
     return(RC2);
 
 
@@ -362,7 +362,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     /* Clean up local state */
     for (i = 0; i < MAXOPACKETS; i++)
 	if (se->ThesePackets[i] != NULL) SFTP_FreeBuffer(&se->ThesePackets[i]);
-    if (se->openfd >= 0) CLOSE(se);
+    if (se->openfd >= 0) sftp_vfclose(se);
     se->SDesc = NULL;
     se->SendLastContig = se->SendMostRecent;
     se->RecvLastContig = se->RecvMostRecent;
@@ -507,7 +507,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 		{/* use squirrelled-away data */
 	    
 		p = &se->PiggySDesc->Value.SmartFTPD.FileInfo.ByAddr;
-		rc = sftp_vfwritefile(se->SDesc, se->openfd, p->vmfile.SeqBody, p->vmfile.SeqLen);
+		rc = sftp_vfwritefile(se, p->vmfile.SeqBody, p->vmfile.SeqLen);
 		if (rc < 0)
 		    {
 		    sftp_SetError(se, DISKERROR);
@@ -528,7 +528,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 	    break;
 
 	case SERVERTOCLIENT:
-	    flen = sftp_piggybackfilesize(se->SDesc, se->openfd);
+	    flen = sftp_piggybackfilesize(se);
 	    if (SFTP_DoPiggy == FALSE
 		|| ((Flags & SE_AWAITREMOTESTATUS) != 0)
 		|| (flen >= SFTP_MAXBODYSIZE))
@@ -544,7 +544,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 
 		sftp_AllocPiggySDesc(se, flen, SERVERTOCLIENT);
 		p = &se->PiggySDesc->Value.SmartFTPD.FileInfo.ByAddr;	    
-		rc = sftp_piggybackfileread(se->SDesc, se->openfd, p->vmfile.SeqBody);
+		rc = sftp_piggybackfileread(se, p->vmfile.SeqBody);
 		if (rc < 0)
 		    {
 		    sftp_SetError(se, DISKERROR);
@@ -562,7 +562,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 	default: FAIL(se, RPC2_SEFAIL1);
 	}
 
-    CLOSE(se);
+    sftp_vfclose(se);
     return(rc);
     }
 
@@ -610,7 +610,7 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
 	}
 
     /* clean up state */
-    if (se->openfd >= 0) CLOSE(se);
+    if (se->openfd >= 0) sftp_vfclose(se);
 
     if (se->WhoAmI == ERROR)
 	{
@@ -1006,7 +1006,7 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
     static char GlobalJunk[SFTP_MAXBODYSIZE];	/* buffer for read();
 				    avoids huge local on my stack */
     
-    filelen = sftp_piggybackfilesize(sEntry->SDesc, sEntry->openfd);
+    filelen = sftp_piggybackfilesize(sEntry);
     if (filelen < 0) return(-1);
 
     /* now check if there is space in the packet */
@@ -1021,13 +1021,13 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
     if (filelen > maxbytes) return(-2);
 
     /* enough space: append the file! */
-    rc = sftp_piggybackfileread(sEntry->SDesc, sEntry->openfd, GlobalJunk);
+    rc = sftp_piggybackfileread(sEntry, GlobalJunk);
     if (rc < 0) return(-1);
     CODA_ASSERT(!sftp_AddPiggy(whichP, GlobalJunk, filelen, SFTP_MAXPACKETSIZE));
     sEntry->HitEOF = TRUE;
 
     /* cleanup and quit */
-    CLOSE(sEntry);
+    sftp_vfclose(sEntry);
     return(filelen);
 }
 
@@ -1040,9 +1040,9 @@ long sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry,
     long len, rc;
 
     len = whichP->Header.BodyLength - whichP->Header.SEDataOffset;
-    rc = sftp_vfwritefile(sEntry->SDesc, sEntry->openfd, 
-	    &whichP->Body[whichP->Header.BodyLength - len], len); 
-    CLOSE(sEntry);
+    rc = sftp_vfwritefile(sEntry, &whichP->Body[whichP->Header.BodyLength-len],
+			  len); 
+    sftp_vfclose(sEntry);
     if (rc < 0) return (rc);
 
     /* shorten the packet */
@@ -1150,6 +1150,7 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     bzero(sfp, sizeof(struct SFTP_Entry));	/* all fields initialized to 0 */
     sfp->Magic = SFTPMAGIC;
     sfp->openfd = -1;
+    sfp->fd_offset = 0;
     sfp->PacketSize = SFTP_PacketSize;
     sfp->WindowSize = SFTP_WindowSize;
     sfp->RetryCount = SFTP_RetryCount;
@@ -1168,7 +1169,7 @@ void sftp_FreeSEntry(struct SFTP_Entry *se)
 {
     int i;
 
-    CLOSE(se);
+    sftp_vfclose(se);
     if (se->PiggySDesc) sftp_FreePiggySDesc(se);
     for (i = 0; i < MAXOPACKETS; i++)
 	if (se->ThesePackets[i] != NULL) SFTP_FreeBuffer(&se->ThesePackets[i]);
