@@ -202,8 +202,10 @@ man/man1/cpasswd.1
 man/man1/ctokens.1
 man/man1/cunlog.1
 man/man1/hoard.1
+man/man1/repair.1
 man/man1/spy.1
 man/man8/au.8
+man/man8/venus.8
 etc/coda/realms
 etc/coda/venus.conf.ex
 etc/coda/sidekick.intr.ex
@@ -251,6 +253,8 @@ sbin/vice-setup-scm
 sbin/vice-setup-srvdir
 sbin/vice-setup-user
 sbin/volutil
+man/man5/passwd.coda.5
+man/man5/vicetab.5
 man/man8/auth2.8
 man/man8/initpw.8
 man/man8/pdbtool.8

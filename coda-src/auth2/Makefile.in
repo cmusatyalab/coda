@@ -52,7 +52,7 @@ CSBINS      = au
 CMANPAGES   = au.8 clog.1 cpasswd.1 ctokens.1 cunlog.1
 SBINS       = 
 SSBINS      = auth2 initpw
-SMANPAGES   = auth2.8 initpw.8
+SMANPAGES   = auth2.8 initpw.8 passwd.coda.5
 EXECUTABLES = $(CBINS) $(CSBINS) $(SBINS) $(SSBINS) tokentool
 
 #

@@ -30,6 +30,7 @@ CSBINS      = venus
 LIBRARIES   =
 HEADERS	    = advice.h hdb.h
 CCONFFILES  = venus.conf.ex realms
+CMANPAGES   = venus.8
 
 CXXFLAGS += -DVENUS -DTIMING -DVENUSDEBUG -DRVM_USELWP
 DEPLIBS := $(LIBLKA) $(LIBVV) $(LIBVICEDEP) $(LIBREPIO) $(LIBKERNDEP) \

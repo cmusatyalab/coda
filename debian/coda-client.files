@@ -33,5 +33,7 @@ usr/share/man/man1/cpasswd.1
 usr/share/man/man1/ctokens.1
 usr/share/man/man1/cunlog.1
 usr/share/man/man1/hoard.1
+usr/share/man/man1/repair.1
 usr/share/man/man1/spy.1
-usr/share/man/man8/au.1
+usr/share/man/man8/au.8
+usr/share/man/man8/venus.8

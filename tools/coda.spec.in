@@ -189,8 +189,10 @@ exit 0
 /usr/share/man/man1/ctokens.1
 /usr/share/man/man1/cunlog.1
 /usr/share/man/man1/hoard.1
+/usr/share/man/man1/repair.1
 /usr/share/man/man1/spy.1
 /usr/share/man/man8/au.8
+/usr/share/man/man8/venus.8
 
 %files server	
 /etc/coda/server.conf.ex
@@ -229,6 +231,8 @@ exit 0
 /usr/bin/rpc2ping
 /usr/bin/rvmsizer
 /usr/bin/smon2
+/usr/share/man/man5/passwd.coda.5
+/usr/share/man/man5/vicetab.5
 /usr/share/man/man8/auth2.8
 /usr/share/man/man8/initpw.8
 /usr/share/man/man8/pdbtool.8

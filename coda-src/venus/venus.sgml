@@ -1,0 +1,434 @@
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+  <!ENTITY package "venus">
+  <!ENTITY date    "April 2004">
+]>
+
+<refentry>
+<refentryinfo>
+    <address><email>coda@cs.cmu.edu</email></address>
+    <copyright>
+	<year>1990-2004</year>
+	<holder>Carnegie Mellon University</holder>
+    </copyright>
+    <date>&date;</date>
+</refentryinfo>
+
+<refmeta>
+    <refentrytitle>&package;</refentrytitle>
+    <manvolnum>8</manvolnum>
+    <refmiscinfo>Coda Distributed File System</refmiscinfo>
+</refmeta>
+
+<refnamediv>
+    <refname>&package;</refname>
+    <refpurpose>Coda client cache manager</refpurpose>
+</refnamediv>
+
+<refsynopsisdiv>
+    <cmdsynopsis>
+	<command>venus</command>
+	<arg>-k <replaceable>kernel device</replaceable></arg>
+	<arg>-cf <replaceable>cache files</replaceable></arg>
+	<arg>-c <replaceable>cache blocks</replaceable></arg>
+	<arg>-mles <replaceable>CML entries</replaceable</arg>
+	<arg>-d <replaceable>debuglevel</replaceable></arg>
+	<arg>-rpcdebug <replaceable>rpc2 debuglevel</replaceable></arg>
+	<arg>-f <replaceable>cache directory</replaceable></arg>
+	<arg>-m <replaceable>COP modes</replaceable></arg>
+	<arg>-console <replaceable>console file</replaceable></arg>
+	<arg>-retries <replaceable>RPC2 retries</replaceable></arg>
+	<arg>-timeout <replaceable>RPC2 timeout</replaceable></arg>
+	<arg>-ws <replaceable>SFTP window size</replaceable></arg>
+	<arg>-sa <replaceable>SFTP sendahead</replaceable></arg>
+	<arg>-ap <replaceable>SFTP ackpoint</replaceable></arg>
+	<arg>-init</arg>
+	<arg>-hdbes <replaceable>hoard entries</replaceable></arg>
+	<arg>-rvmt <replaceable>RVM type</replaceable></arg>
+        <arg>-maxprefetchers <replaceable>fetch threads</replaceable></arg>
+	<arg>-maxworkers <replaceable>worker threads</replaceable></arg>
+	<arg>-maxcbservers <replaceable>callback threads</replaceable></arg>
+	<arg>-vld <replaceable>RVM log device</replaceable></arg>
+	<arg>-vlds <replaceable>RVM log size</replaceable></arg>
+	<arg>-vdd <replaceable>RVM data device</replaceable></arg>
+	<arg>-vdds <replaceable>RVM data size</replaceable></arg>
+	<arg>-rdscs <replaceable>RVM data chunk size</replaceable></arg>
+	<arg>-rdsnl <replaceable>RVM data nr lists</replaceable></arg>
+	<arg>-logopts 0 | 1</arg>
+	<arg>-swt <replaceable>weight</replaceable></arg>
+	<arg>-mwt <replaceable>weight</replaceable></arg>
+	<arg>-ssf <replaceable>scale factor</replaceable></arg>
+	<arg>mount point</arg>
+<!-- undocumented commandline options....
+    [ -relay ipaddr ] [ -lwpdebug ] [ -rdstrace ]
+    [ -weakstale wcstale ] [ -ps SFTP packet size ] [ -newinstance ]
+    [ -alpha value ] [ -beta value ] [ -gamma value ] [ -primaryuser uid ]
+    [ -von ] [ -voff ] [ -vmon ] [ -vmoff ] [ -SearchForNOreFind ] [ -noskk ]
+    [ -noasr ] [ -novcb ] [ -nowalk ] [ -spooldir path ] [ -MarinerTcp ]
+    [ -noMarinerTcp ] [ -allow-reattach ] [ -masquerade ]
+    [ -nomasquerade ] [ -mapprivate ]
+-->
+    </cmdsynopsis>
+</refsynopsisdiv>
+
+<refsect1>
+    <title>DESCRIPTION</title>
+    <para><command>venus</command> manages a cache of files and
+    directories for a client workstation.  It has a host of parameters
+    and configuration options.  Default values of everything are
+    compiled into <command>venus</command>. Some of these are overridden
+    by the values in the <emphasis>venus.conf</emphasis> file, provided
+    that it exists.  Both default and venus.conf values may be
+    overridden with command-line arguments.  Venus must be run as root.
+    </para>
+    <para>The command-line options are:</para>
+
+    <variablelist>
+	<varlistentry>
+	<term><option>-k</option></term>
+	<listitem>
+	    <para>Take <replaceable>kernel device</replaceable> to be
+	    the device for kernel/venus communication.
+	    </para>
+	    <para>Default: <emphasis>/dev/cfs0</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-cf</option></term>
+	<listitem>
+	    <para>Limit the size of the file cache to <replaceable>cache
+	    files</replaceable> entries.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-c</option></term>
+	<listitem>
+	    <para>Limit the size of the file cache to <replaceable>cache
+	    blocks</replaceable> 1K blocks.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-mles</option></term>
+	<listitem>
+	    <para>Number of Client Modification Log entries.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-vols</option></term>
+	<listitem>
+	    <para>Limit the size of the volume cache to
+	    <replaceable>volumes</replaceable> entries.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-vsgs</option></term>
+	<listitem>
+	    <para>Limit the size of the VSG cache to
+	    <replaceable>vsgs</replaceable> entries.</para>
+	</listitem>
+	</varlistentry>
+	
+	<varlistentry>
+	<term><option>-d</option></term>
+	<listitem>
+	    <para>Initialize the debug level to <replaceable>debug
+	    level</replaceable>.
+	    </para>
+	    <para>Default: <emphasis>0</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-f</option></term>
+	<listitem>
+	    <para>Take <replaceable>cache directory</replaceable> to be
+	    the directory for the file, volume, and VSG caches.  On some
+	    platforms <command>venus</command> garbage collects any
+	    files it doesnt recognize in the cache directory so use
+	    caution when supplying this argument.
+	    </para>
+	    <para>Venus will create the directory if it doesnt already
+	    exist. The directory should have mode bits of
+	    <emphasis>rwx------</emphasis> to protect the cache from
+	    malicious local users.
+	    </para>
+	    <para>Default: <emphasis>/usr/coda/venus.cache</emphasis>
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-m</option></term>
+	<listitem>
+	    <para>Controls what Coda Optimistic Protocol (COP) options
+	    are enabled.  <replaceable>COP modes</replaceable> is
+	    interpreted according to the following bit-mask: [ 
+	    PIGGYCOP2 | ASYNCCOP2 | ASYNCCOP1 ].  Only some
+	    combinations are legal.
+	    </para>
+	    <para>Default: <emphasis>[ PIGGYCOP2 | ASYNCCOP2 ]</emphasis>
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-console</option></term>
+	<listitem>
+	    <para>Redirects console messages to <replaceable>console
+	    file</replaceable>.
+	    </para>
+	    <para>Default: <emphasis>/dev/console</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-retries</option></term>
+	<listitem>
+	    <para>Sets the number of RPC2 retries to <replaceable>RPC2
+	    retries</replaceable>.
+	    </para>
+	    <para>Default: <emphasis>5</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-timeout</option></term>
+	<listitem>
+	    <para>Sets the RPC2 timeout period to <replaceable>RPC2
+	    timeout</replaceable> seconds.
+	    </para>
+	    <para>Default: <emphasis>15</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-ws</option></term>
+	<listitem>
+	    <para>Sets the SFTP window size to <replaceable>SFTP window
+	    size</replaceable> packets.
+	    </para>
+	    <para>Default: <emphasis>8</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-sa</option></term>
+	<listitem>
+	    <para>Sets the SFTP send ahead to <replaceable>SFTP send
+	    ahead</replaceable> packets.
+	    </para>
+	    <para>Default: <emphasis>4</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-ap</option></term>
+	<listitem>
+	    <para>Sets the SFTP ack point to <replaceable>SFTP ack
+	    point</replaceable> packets.
+	    </para>
+	    <para>Default: <emphasis>4</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistenty>
+	<term><option>-init</option></term>
+	<listitem>
+	    <para>Initializes (i.e., clears) file, volume, and VSG caches.
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-hdbes</option></term>
+	<listitem>
+	    <para>Number of hoard database entries.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-rvmt</option></term>
+	<listitem>
+	    <para>Media that RVM resides on. Meaningful values are: 2
+	    (use a file to persistently back RVM memory) and 3 (do not
+	    use a file as RVM backing store, no persistency).
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-maxprefetchers</option></term>
+	<listitem>
+	    <para>Maximum number of threads doing prefetch ioctls.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-maxworkers</option></term>
+	<listitem>
+	    <para>Number of worker threads.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-maxcbservers</option></term>
+	<listitem>
+	    <para>Number of callback server threads.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-vld</option></term>
+	<listitem>
+	    <para>Location of the venus log file or partition.
+	    </para>
+	    <para>Default: <emphasis>/usr/coda/LOG</emphasis></para>
+	    </para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-vlds</option></term>
+	<listitem>
+	    <para>Size of the log file or partition.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-vdd</option></term>
+	<listitem>
+	    <para>Location of the venus data file or partition.
+	    </para>
+	    <para>Default: <emphasis>/usr/coda/DATA</emphasis></para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-vdds</option></term>
+	<listitem>
+	    <para>Size of the data file or partition.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-rdscs</option></term>
+	<listitem>
+	    <para>Specify RDS chunk size.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-rdsnl</option></term>
+	<listitem>
+	    <para>Number of RDS nlists.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-logopts</option></term>
+	<listitem>
+	    <para>Turn on log optimization.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-swt</option></term>
+	<listitem>
+	    <para>Short term cache priority weight.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-mwt</option></term>
+	<listitem>
+	    <para>Medium term cache priority weight.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>-ssf</option></term>
+	<listitem>
+	    <para>Short term cache scale factor.</para>
+	</listitem>
+	</varlistentry>
+
+	<varlistentry>
+	<term><option>mount point</option></term>
+	<listitem>
+	    <para>Directory to serve as the mount point for Coda.
+	    </para>
+	    <para>Default: <emphasis>/coda</emphasis></para>
+	    </para>
+	</listitem>
+	</varlistentry>
+    </variablelist>
+</refsect1>
+
+<refsect1>
+    <title>DIAGNOSTICS</title>
+    <para>Venus writes debugging information into the file
+    <replaceable>cache directory</replaceable>/venus.log. The verbosity
+    of this output is controlled by the <replaceable>debug
+    level</replaceable> parameter.  High priority messages are
+    also written to the console (which may be redirected with the
+    console option at start-up).  Fatal errors will cause the internal
+    state of venus to be dumped to the log file, and a core file to be
+    left in <replaceable>cache directory</replaceable>/core.
+    </para>
+    <para>Venus writes its process id into the file <replaceable>cache
+    directory</replaceable>/pid.  The
+    <citerefentry>
+	<refentrytitle>vutil</refentrytitle>
+	<manvolnum>8</manvolnum>
+    </citerefentry>
+    program reads the pid file and dynamically alter Venus behavior by
+    sending signals to it.
+    </para>
+    <para>Venus may be unable to unmount itself cleanly when it exits.
+    Usually this is due to processes which have references to vnodes in
+    the Coda namespace (e.g., a process is cd'ed somewhere in Coda).
+    Once these references are released, /coda can be unmounted.
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>BUGS</title>
+    <para>A mount point of <emphasis>/coda</emphasis> is assumed by the
+    pioctl library.
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>SEE ALSO</title>
+    <para>
+    <!-- <citerefentry>
+	<refentrytitle>venus.conf</refentrytitle>
+	<manvolnum>5</manvolnum>
+    </citerefentry>, -->
+    <emphasis>venus.conf</emphasis>,
+    <citerefentry>
+	<refentrytitle>vutil</refentrytitle>
+	<manvolnum>8</manvolnum>
+    </citerefentry>
+    </para>
+</refsect1>
+
+<refsect1>
+    <title>AUTHORS</title>
+    <para>
+    <itemizedlist>
+    <listitem><para>Jay Kistler, 1990, Created</para>
+    </listitem>
+    <listitem><para>Joshua Raiff, 1993, Documented added switches</para>
+    </listitem>
+    <listitem><para>Jan Harkes, 2004, converted to DocBook 4.1</para>
+    </listitem>
+    </itemizedlist>
+    </para>
+</refsect1>
+</refentry>
+

@@ -30,6 +30,7 @@ OBJS = vicetab.o partition.o inodeops.o simpleifs.o  ftreeifs.o makeftree.o inod
 LIBOBS = vicetab.o partition.o inodeops.o simpleifs.o ftreeifs.o backupifs.o
 EXECUTABLES = inoder
 SSBINS = inoder
+SMANPAGES = vicetab.5
 
 LIBRARIES = libpartition.a
 DEPLIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBBASE)

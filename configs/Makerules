@@ -306,6 +306,9 @@ show showvar:
 %.1: %.sgml
 	${TOPDIR}/tools/db2man $< $@
 
+%.5: %.sgml
+	${TOPDIR}/tools/db2man $< $@
+
 %.8: %.sgml
 	${TOPDIR}/tools/db2man $< $@
 

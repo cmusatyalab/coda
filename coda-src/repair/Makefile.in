@@ -26,6 +26,7 @@ include $(TOPDIR)/Makeconf
 
 EXECUTABLES = repair
 CBINS       = repair
+CMANPAGES   = repair.1
 # TESTS	    = reptest
 
 DEPLIBS = $(LIBCLNREPAIR) $(LIBREPIO) $(LIBVV) $(LIBAUTH2) $(LIBKERNDEP) \
