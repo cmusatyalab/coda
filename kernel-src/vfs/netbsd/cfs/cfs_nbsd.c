@@ -15,6 +15,9 @@
 /* 
  * HISTORY
  * $Log: cfs_nbsd.c,v $
+ * Revision 1.11  1997/02/13 18:46:14  rvb
+ * Name CODA FS for df
+ *
  * Revision 1.10  1997/02/12 15:32:05  rvb
  * Make statfs return values like for AFS
  *
@@ -62,7 +65,7 @@
 
 /* What we are delaying for in printf */
 int cfs_printf_delay = 0;  /* in microseconds */
-static int lockdebug = 0;
+static int cfs_lockdebug = 0;
 
 /* Definition of the vfs operation vector */
 
@@ -900,7 +903,7 @@ cfs_nb_lock(v)
     ENTRY;
     cp = VTOC(vp);
 
-    if (lockdebug) {
+    if (cfs_lockdebug) {
 	myprintf(("Attempting lock on %d.%d.%d\n",
 		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
     }
@@ -935,7 +938,7 @@ cfs_nb_unlock(v)
     struct cnode *cp = VTOC(ap->a_vp);
 
     ENTRY;
-    if (lockdebug) {
+    if (cfs_lockdebug) {
 	myprintf(("Attempting unlock on %d.%d.%d\n",
 		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
     }
