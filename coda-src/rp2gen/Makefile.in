@@ -47,7 +47,7 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 CC=$(NATIVECC)
-#CFLAGS:=  -I. -I/usr/include -I$(TOPOBJ)/include 
+CFLAGS:= -MD -I. -I/usr/include -I$(TOPOBJ)/include 
 
 EXECUTABLES = rp2gen
 
