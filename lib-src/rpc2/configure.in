@@ -6,7 +6,7 @@ AC_INIT
 AC_CONFIG_SRCDIR(rpc2-src/rpc2.private.h)
 CODA_SETUP_BUILD
 AM_INIT_AUTOMAKE(rpc2, 1.20)
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 dnl For library version updates, follow these steps in order.
 dnl - when any library source has changed, increment first
