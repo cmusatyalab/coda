@@ -1805,7 +1805,6 @@ static void ListVolume(int argc, char *argv[], int opslot)
         exit(-1);
         }
 
-
     for (i = 2; i < argc; i++)
         {
 	if (strcmp(argv[i], "-local") == 0) {
