@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-#define OLDFETCH
+//#define OLDFETCH
 
 /*
  *
@@ -257,9 +257,11 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    /* Collate responses from individual servers and decide what to do next. */
 	    code = vol->Collate_NonMutating(m, code);
-	    MULTI_RECORD_STATS(ViceFetch_OP);
 #ifdef OLDFETCH
+	    MULTI_RECORD_STATS(ViceFetch_OP);
 	    if (code != 0) stat.GotThisData = 0;
+#else
+	    MULTI_RECORD_STATS(ViceNewFetch_OP);
 #endif
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code == EAGAIN) { stat.GotThisData = 0; code = ERETRY; }
@@ -391,16 +393,21 @@ RepExit:
 			 acl, &status, 0, &PiggyBS, sed);
 	UNI_END_MESSAGE(ViceFetch_OP);
 #else
-	UNI_START_MESSAGE(ViceFetch_OP);
+	UNI_START_MESSAGE(ViceNewFetch_OP);
 	code = (int) ViceNewFetch(c->connid, &fid, &stat.VV, fetchtype,
 			 acl, &status, 0, offset, 0, &PiggyBS, sed);
-	UNI_END_MESSAGE(ViceFetch_OP);
+	UNI_END_MESSAGE(ViceNewFetch_OP);
 #endif
 	CFSOP_POSTLUDE("fetch::fetch done\n");
 
 	/* Examine the return code to decide what to do next. */
 	code = vol->Collate(c, code);
+#ifdef OLDFETCH
 	UNI_RECORD_STATS(ViceFetch_OP);
+	if (code != 0) stat.GotThisData = 0;
+#else
+	UNI_RECORD_STATS(ViceNewFetch_OP);
+#endif
 
 	/* when the server responds with EAGAIN, the VersionVector was
 	 * changed, so this can effectively be handled like a failed

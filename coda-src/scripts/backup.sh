@@ -48,19 +48,3 @@ fi
 cat $BACKUPLOG |  mail -s "backup for $DATE" $ADDR
 exit 0
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

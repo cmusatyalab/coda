@@ -3653,7 +3653,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
     {
 	/* When we are continueing a trickle/interrupted fetch, the version
 	 * vector must be the same */
-	if (VV && (VV_Cmp(VV, &vptr->disk.versionvector) != VV_EQ))
+	if (Offset && VV && (VV_Cmp(VV, &vptr->disk.versionvector) != VV_EQ))
 	{
 		SLog(1, "FetchBulkTransfer: Attempting resumed fetch on updated object");
 		/* now what errorcode can we use for this case?? */

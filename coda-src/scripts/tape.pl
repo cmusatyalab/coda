@@ -57,7 +57,7 @@ directive $conf 'dbdir', undef, '/vice/db';
 directive $conf 'labelsdb', undef, '/vice/db/TAPELABELS';
 directive $conf 'sleep_interval', undef, 200;
 directive $conf 'notify_cutoff', undef, 5;
-directive $conf 'maxretries', undef, 200;
+directive $conf 'maxretries', undef, 5;
 required $conf 'backupmachine', undef;
 # commands to notify operator and mail to sysad. These take message from stdin.
 required $conf 'message', undef;
