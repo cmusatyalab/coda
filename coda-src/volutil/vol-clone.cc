@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.11 1998/11/02 16:47:08 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.12 1998/11/25 19:23:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -134,33 +134,32 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     int rc = 0;
     Error error;
 
-    LogMsg(9, VolDebugLevel, stdout,
-	   "Entering S_VolClone: rpcid = %d, OldVolume = %x", rpcid, ovolid);
+    VLog(9, "Entering S_VolClone: rpcid = %d, OldVolume = %x", rpcid, ovolid);
     rc = VInitVolUtil(volumeUtility);
     if (rc != 0){
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: VInitVolUtil failed!");
+	VLog(0, "S_VolClone: VInitVolUtil failed!");
 	return rc;
     }
     
     if (newvolname[0]){		/* It's '\000' if user didn't specify a name */
-	LogMsg(0, 0, stdout, "VolClone: Looking up %s in VLDB", newvolname);
+	VLog(0, "VolClone: Looking up %s in VLDB", newvolname);
 	/* check if volume with requested new name already exists */
 	vldp = VLDBLookup(newvolname);
 
 	if (vldp != NULL){
-	    LogMsg(0, VolDebugLevel, stdout, "S_VolClone: Volume with new volume name already exists");
-	    LogMsg(0, VolDebugLevel, stdout, "S_VolClone: the vldb record looks like ");
-	    LogMsg(0, VolDebugLevel, stdout, "key = %s \t voltype = %d \n \tnServers = %d\tvolid = %x", 
+	    VLog(0, "S_VolClone: Volume with new volume name already exists");
+	    VLog(0, "S_VolClone: the vldb record looks like ");
+	    VLog(0, "key = %s \t voltype = %d \n \tnServers = %d\tvolid = %x", 
 		vldp->key, vldp->volumeType, vldp->nServers, vldp->volumeId[0]);
 	    VDisconnectFS();
 	    return -123;	/* Picked a random error code see vol-restore.c */
 	}
     }
 
-    LogMsg(29, VolDebugLevel, stdout, "Vol_Clone: Going to call VGetVolume");
+    VLog(29, "Vol_Clone: Going to call VGetVolume");
     originalvp = VGetVolume(&error, originalId);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: failure attaching volume %x", originalId);
+	VLog(0, "S_VolClone: failure attaching volume %x", originalId);
 	if (originalvp) {
 	    RVMLIB_BEGIN_TRANSACTION(restore)
 		VPutVolume(originalvp);	/* Do these need transactions? */
@@ -224,7 +223,7 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     V_blessed(newvp) = 0;
     VUpdateVolume(&error, newvp);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: Volume %x can't be unblessed!", newId);
+	VLog(0, "S_VolClone: Volume %x can't be unblessed!", newId);
 	VPutVolume(originalvp);
 	rvmlib_abort(VFAIL);
 	status = VFAIL;
@@ -234,18 +233,18 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     RVMLIB_END_TRANSACTION(flush, &(status));
  exit1:
     if (status != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: volume creation failed for volume %x", originalId);
+	VLog(0, "S_VolClone: volume creation failed for volume %x", originalId);
 	V_VolLock(originalvp).IPAddress = 0;
 	ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock));
 	VDisconnectFS();
 	return status;
     }
     
-    LogMsg(9, VolDebugLevel, stdout, "S_VolClone: Created Volume %x; going to clone from %x", newId, originalId);
+    VLog(9, "S_VolClone: Created Volume %x; going to clone from %x", newId, originalId);
 
     VUCloneVolume( &error, originalvp, newvp);
     if (error){
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: Error while cloning volume %x -> %x",
+	VLog(0, "S_VolClone: Error while cloning volume %x -> %x",
 	    originalId, newId);
 	V_VolLock(originalvp).IPAddress = 0;
 	ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock));
@@ -414,7 +413,7 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 
 	    *error = CloneVnode(rwVp, cloneVp, vnodeindex, rvlist, vnode, vclass);
 	    if (*error) {
-		    status = error;
+		    status = *error;
 		    rvmlib_abort(VFAIL);
 		    goto error;
 	    }
@@ -424,16 +423,16 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 	RVMLIB_END_TRANSACTION(flush, &(status));
     error:
 	if (status != 0) {
-	    LogMsg(0, VolDebugLevel, stdout, "CloneIndex: abort for RW %x RO %x",
+	    VLog(0, "CloneIndex: abort for RW %x RO %x",
 		   V_id(rwVp), V_id(cloneVp));
 	    return;	/* Error is already set... */
 	}
 
 	if (moreVnodes) {
-	    LogMsg(9, VolDebugLevel, stdout, "Finished %d %s vnode clones.",
+	    VLog(9, "Finished %d %s vnode clones.",
 		   MaxVnodesPerTransaction, (vclass == vLarge?"Large":"Small"));
 	} else {
-	    LogMsg(9, VolDebugLevel, stdout, "Finished cloning %s vnodes.",vclass==vLarge?"Large":"Small");
+	    VLog(9, "Finished cloning %s vnodes.",vclass==vLarge?"Large":"Small");
 	}
 
 	if (!rvm_no_yield)  /* DEBUG */
@@ -455,7 +454,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
     Error error = 0;
 
     int vnodeNum = bitNumberToVnodeNumber(vnodeIndex, vclass);
-    LogMsg(9, VolDebugLevel, stdout, "CloneVnode: Cloning %s vnode %x.%x.%x\n",
+    VLog(9, "CloneVnode: Cloning %s vnode %x.%x.%x\n",
 	   (vclass == vLarge)?"Large":"Small",
 	   V_id(rwVp), vnodeNum, vnode->uniquifier);
     
@@ -483,7 +482,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
     } else {	/* Small Vnode -- file or symlink. */
 
 	if (vnode->inodeNumber == 0) {
-	    LogMsg(0,0,stdout,"CloneVolume: VNODE %d HAD ZERO INODE.\n",vnodeNum);
+	    VLog(0, "CloneVolume: VNODE %d HAD ZERO INODE.\n",vnodeNum);
 	    CODA_ASSERT(vnode->type != vNull);
 	    docreate = TRUE;
 	} else
@@ -506,7 +505,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
 	Vnode *tmp = VGetVnode(&error, rwVp, vnodeNum,
 			       vnode->uniquifier, WRITE_LOCK, 1, 1);
 	if (error) {
-	    LogMsg(0,VolDebugLevel, stdout, "CloneVnode(%s): Error %d getting vnode index %d",
+	    VLog(0, "CloneVnode(%s): Error %d getting vnode index %d",
 		(vclass == vLarge)?"Large":"Small", error, vnodeIndex);
 	    return error;	
 	}
