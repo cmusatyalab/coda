@@ -286,9 +286,11 @@ static void ExaminePacket(RPC2_PacketBuffer *pb)
     }
 
     /* update the last-heard-from times for this SFTP entry, and the 
-       connection-independent entry for this host/SFTP port. */
+       connection-independent entry for this host. */
     CODA_ASSERT(sfp->HostInfo != NULL);
-    sfp->HostInfo->LastWord = pb->Prefix.RecvStamp; /* structure assignment */
+
+    /* structure assignment */
+    sfp->LastWord = sfp->HostInfo->LastWord = pb->Prefix.RecvStamp;
 
     /* remember packet arrival time to compensate RTT errors */
     sfp->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);

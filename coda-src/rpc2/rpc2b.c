@@ -625,12 +625,11 @@ long RPC2_GetColor(Conn, Color)
     rpc2_Quit(RPC2_SUCCESS);
     }
 
-long RPC2_GetPeerLiveness(IN ConnHandle, OUT Time, OUT SETime)
-    RPC2_Handle ConnHandle;
-    struct timeval *Time;
-    struct timeval *SETime;
-    {
+long RPC2_GetPeerLiveness(IN RPC2_Handle ConnHandle,
+			  OUT struct timeval *Time, OUT struct timeval *SETime)
+{
     struct CEntry *ceaddr;
+    long rc = RPC2_SUCCESS;
 
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_GetPeerLiveness()\n");
@@ -646,19 +645,14 @@ long RPC2_GetPeerLiveness(IN ConnHandle, OUT Time, OUT SETime)
 	*Time = ceaddr->HostInfo->LastWord;	/* structure assignment */
 
     /* get live time for side effect, if any */
-    if (ceaddr->SEProcs != NULL && ceaddr->SEProcs->SE_GetHostInfo != NULL)  {
-	struct HEntry *he;
-	long rc;
-    
-	if ((rc = (*ceaddr->SEProcs->SE_GetHostInfo)(ConnHandle, &he)) != RPC2_SUCCESS)
-	    rpc2_Quit(rc);
+    if (ceaddr->SEProcs != NULL &&
+	ceaddr->SEProcs->SE_GetSideEffectTime != NULL) {
 
-	if (he) 
-	    *SETime = he->LastWord;	/* structure assignment */
+	rc = (*ceaddr->SEProcs->SE_GetSideEffectTime)(ConnHandle, SETime);
     }
 
-    rpc2_Quit(RPC2_SUCCESS);
-    }
+    rpc2_Quit(rc);
+}
 
 
 /* 

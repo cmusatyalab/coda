@@ -158,7 +158,7 @@ typedef
 
        /* this is a callback function, which is called whenever a block of
 	* data is succesfully transferred (sink side only for now). */
-        void (*XferCB) (void *userp, off_t offset);
+        void (*XferCB) (void *userp, unsigned int offset);
         void *userp;
 	}
 	SE_Descriptor;
