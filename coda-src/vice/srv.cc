@@ -1300,7 +1300,7 @@ static int ReadConfigFile(void)
     CONF_INT(_Rvm_Truncate, 	"rvmtruncate",	   0);
 
     if (RvmType == UNSET) {
-	if (ServerNumber == 0 || multconf) {
+	if (ServerNumber == 0 || multconf == 0) {
 	    CONF_STR(_Rvm_Log_Device,	"rvm_log",         "");
 	    CONF_STR(_Rvm_Data_Device,	"rvm_data",        "");
 	    CONF_INT(datalen,		"rvm_data_length", 0);
