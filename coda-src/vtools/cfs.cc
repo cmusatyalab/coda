@@ -1705,11 +1705,11 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	ptr += sizeof(VolumeStatus);
         volname = ptr;
 	ptr += strlen(volname)+1;
-	conn_state = (VolumeStateType)*ptr;
+	conn_state = *(VolumeStateType *)ptr;
 	ptr += sizeof(int);
-	conflict = (int)*ptr;
+	conflict = *(int *)ptr;
 	ptr += sizeof(int);
-	cml_count = (int)*ptr;
+	cml_count = *(int *)ptr;
 	ptr += sizeof(int);
         omsg = ptr;
 	ptr += strlen(omsg)+1;
@@ -1739,7 +1739,6 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	} else {
 	  printf("disabled\n");
 	}
-	printf("\n");
 	if (conflict)
 	    printf("  *** There are pending conflicts in this volume ***\n");
 	if (conn_state == Logging || conn_state == Emulating)
