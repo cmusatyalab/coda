@@ -90,13 +90,13 @@ endif
 #####################
 # install  client or server executables 
 #####################
-installclient: c_bin_install c_sbin_install c_conf_install
+installclient: c_bin_install c_sbin_install c_conf_install c_script_install c_sscript_install
 
 ifeq ($(target),i386-pc-djgpp) 
 TARGETCBINS := $(CBINS:%=%.exe)
 TARGETCSBINS := $(CSBINS:%=%.exe)
 else
-ifeq ($(SHORTSYS),cygwin)
+ifeq ($(SYS),cygwin32)
 TARGETCBINS := $(CBINS:%=%.exe)
 TARGETCSBINS := $(CSBINS:%=%.exe)
 else
@@ -124,9 +124,19 @@ ifdef CCONFFILES
 	fi
 endif
 
+c_script_install: $(CSCRIPTS)
+ifdef CSCRIPTS
+	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
+endif
+	
+c_sscript_install: $(CSSCRIPTS)
+ifdef CSSCRIPTS
+	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
+endif
+
 installserver: s_bin_install s_sbin_install s_conf_install s_script_install s_sscript_install
 
-ifeq ($(SHORTSYS),cygwin)
+ifeq ($(SYS),cygwin32)
 TARGETSBINS := $(SBINS:%=%.exe)
 TARGETSSBINS := $(SSBINS:%=%.exe)
 else

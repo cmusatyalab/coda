@@ -27,7 +27,8 @@ include $(TOPDIR)/Makeconf
 
 EXECUTABLES = filerepair removeinc
 SCRIPTS     = xfrepair xaskuser
-CBINS       = $(EXECUTABLES) $(SCRIPTS)
+CBINS       = $(EXECUTABLES)
+CSCRIPTS    = $(SCRIPTS)
 
 DEPLIBS := $(LIBDIRLIB) $(LIBKERNDEP) $(LIBBASE) $(LIBUTIL)
 LIBS := $(DEPLIBS) $(LIBS)

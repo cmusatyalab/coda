@@ -26,9 +26,10 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 LOGSCRIPTS = # logbandwidth logcmls logreintegration logprogress
-EXECUTABLES = cmon codacon cfs hoard spy replay $(LOGSCRIPTS)
 ifeq ($(SYS),cygwin32)
 EXECUTABLES = codacon cfs hoard spy replay
+else
+EXECUTABLES = cmon codacon cfs hoard spy replay $(LOGSCRIPTS)
 endif
 
 CBINS       = $(EXECUTABLES)
