@@ -406,7 +406,7 @@ if [ $isscm = Y ]; then
 	echo "That seems to have worked..."
 	echo "If you have a working Coda client you should now be able to"
 	echo "access the new Coda realm"
-	echo " - ls /coda/${hn}/"
+	echo " - cfs lv /coda/${hn}/"
     fi
     echo
     echo "enjoy Coda."
