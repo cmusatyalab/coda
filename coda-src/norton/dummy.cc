@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/dummy.cc,v 4.3 1998/10/01 22:21:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/dummy.cc,v 4.4 98/10/05 17:15:04 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -72,7 +72,9 @@ void Die(char *msg) {
 }
 
 int GetFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
-	     int lock, int VolumeLock, int ignoreIncon, int ignoreBQ) {
+	     int lock, int VolumeLock, int ignoreIncon, int ignoreBQ,
+	     int getdirhandle)
+{
     assert(0);
     return(0);
 }
