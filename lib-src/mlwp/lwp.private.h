@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.private.h,v 4.1 1997/01/08 21:54:15 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.private.h,v 4.2 1998/04/14 20:42:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -146,7 +146,7 @@ extern returnto (struct lwp_context *context);
 #ifdef LWPDEBUG
 extern FILE *lwp_logfile;
 #define lwpdebug(level, msg...)\
-	 if (lwp_debug > level) {\
+	 if (lwp_debug > level && lwp_logfile) {\
 	     fprintf(lwp_logfile, "***LWP (%p): ", lwp_cpptr);\
 	     fprintf(lwp_logfile, ## msg);\
 	     fprintf(lwp_logfile, "\n");\

@@ -29,7 +29,6 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.9 1998/04/14 20:42:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -135,7 +134,7 @@ typedef void *register_t;
 /* Globals identical in  OLD and NEW lwps */
 /*----------------------------------------*/
 
-FILE *lwp_logfile;
+FILE *lwp_logfile = NULL;
 char    lwp_debug;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
@@ -795,14 +794,15 @@ int LWP_DispatchProcess()
 
 int LWP_Init(int version, int priority, PROCESS *pid)
 {
+
+    lwp_logfile = stderr;
     if (version != LWP_VERSION) {
 	    fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
 	    exit(-1);
     } else 
 	    return(InitializeProcessSupport(priority, pid));    
-
-    lwp_logfile = stderr;
 }
+
 
 /* Used to be externally visible as  LWP_InitializeProcessSupport() */
 static int InitializeProcessSupport(int priority, PROCESS *pid)
