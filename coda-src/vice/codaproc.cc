@@ -1677,6 +1677,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 				   (struct ViceFid *)&(repairent.parms[0]), CLU_CASE_SENSITIVE) != 0) {
 			    SLog(0,  "REMOVEFSL: No name %s in directory",
 				    repairent.name);
+			    VN_PutDirHandle(ov->vptr);
 			    return(ENOENT);
 			}
 			VN_PutDirHandle(ov->vptr);
@@ -1693,6 +1694,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			    SLog(0,  
 				   "REMOVED: No name %s in directory",
 				    repairent.name);
+			    VN_PutDirHandle(ov->vptr);
 			    return(ENOENT);
 			}
 			VN_PutDirHandle(ov->vptr);

@@ -2009,7 +2009,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = v->f_finode;
 		    if ((errorCode = CallBackFetch(CBCid, &r->u.u_store.UntranslatedFid, &sid))) {
 			HostTable *he = CLIENT_FindHostEntry(CBCid);
-			if ( errorCode < RPC2_ELIMIT ) {
+			if ( he && errorCode < RPC2_ELIMIT ) {
 			    ObtainWriteLock(&he->lock);
 			    CLIENT_CleanUpHost(he);
 			    ReleaseWriteLock(&he->lock);
