@@ -159,7 +159,9 @@ int MsgRead(msgent *m)
 
 #elif defined(__CYGWIN32__)
 #ifdef NEW_NT_IPC
-	int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
+        DWORD size;  
+        int cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
+	cc = read(worker::muxfd, m->msg_buf, (int)size);
 #else
         struct sockaddr_in addr;
 	int len = sizeof(addr);

@@ -43,6 +43,7 @@ typedef struct {
 //
 #define CODA_FSCTL_ANSWER 0x1002
 #define CODA_FSCTL_FETCH  0x1003
+#define CODA_FSCTL_PIOCTL 0x1006	
 
 // prototypes
 

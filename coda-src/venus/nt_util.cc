@@ -201,6 +201,7 @@ listen_kernel (void *junk)
 			      VC_MAXMSGSIZE, &bytesret, NULL);
 	if (rc) {
 	    if (bytesret > 0) {
+		write (sockfd, (char *)&bytesret, sizeof(bytesret));
 		write (sockfd, outbuf, bytesret);
 	    }
 	} else {
