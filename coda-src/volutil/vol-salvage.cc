@@ -420,7 +420,8 @@ static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols)
 	then just return */
     if (skipvolnums != NULL){
 	for (int i = 0; i < nVols; i++){
-	    if (InSkipVolumeList(vsp[i].header.parent, skipvolnums, nskipvols)){
+	    if (InSkipVolumeList(vsp[i].header.parent, skipvolnums, nskipvols) 
+		 || InSkipVolumeList(vsp[i].header.id,skipvolnums,nskipvols)){
 		VLog(0, "Volume %x listed in /vice/vol/skipsalvage and is not to be salvaged",
 		    vsp[i].header.parent);
 		return 0;
@@ -1329,7 +1330,8 @@ static int DestroyBadVolumes() {
 	if (header.stamp.magic != VOLUMEHEADERMAGIC)
 	    continue; 	/* corresponds to purged volume */
 	
-	if (SRV_RVM(VolumeList[i].data.volumeInfo)->destroyMe==DESTROY_ME){
+	if (!InSkipVolumeList(header.id,skipvolnums,nskipvols) &&
+	(SRV_RVM(VolumeList[i].data.volumeInfo)->destroyMe==DESTROY_ME)){
 	    VLog(0, "Salvage: Removing destroyed volume %x", header.id);
 	    
 	    /* Need to get device */
