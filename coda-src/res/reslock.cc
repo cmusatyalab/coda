@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/res/RCS/reslock.cc,v 1.2 1996/12/06 21:30:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/reslock.cc,v 4.1 1997/01/08 21:50:03 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,7 +91,8 @@ extern "C" {
 
 
 long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
-		     ResFetchType Request, ViceVersionVector *VV, ResStatus *rstatus,
+		     ResFetchType Request, ViceVersionVector *VV, 
+		     ResStatus *rstatus,
 		     RPC2_Integer *logsize, RPC2_Integer maxcomponents, 
 		     RPC2_Integer *ncomponents, ResPathElem *components) {
     LogMsg(1, SrvDebugLevel, stdout,
@@ -106,16 +107,6 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     *logsize = 0;
     int nentries  = 0;
 
-#ifdef 0
-    Keep this code for making fine granularity measurements; 
-    extern int clockFD;
-#define NSC_GET_COUNTER         _IOR('c', 1, long)
-    unsigned long startlockandfetch= 0;
-    unsigned long endlockandfetch = 0;
-    if (clockFD > 0) 
-	ioctl(clockFD, NSC_GET_COUNTER, &startlockandfetch);
-#endif 0
-
     // first set out parameters
     InitVV(VV);
     *logsize = 0;
@@ -126,13 +117,15 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     conninfo *cip = NULL;
     cip = GetConnectionInfo(RPCid);
     if (cip == NULL){
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_LockAndFetch: Couldnt get conn info");
+	LogMsg(0, SrvDebugLevel, stdout,  
+	       "RS_LockAndFetch: Couldnt get conn info");
 	return(EINVAL);
     }
 
     // translate replicated VolumeId to rw id 
     if (!XlateVid(&Fid->Volume)){
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_LockAndFetch: Couldnt translate Vid %x",
+	LogMsg(0, SrvDebugLevel, stdout,  
+	       "RS_LockAndFetch: Couldnt translate Vid %x",
 		Fid->Volume);
 	return(EINVAL);
     }
