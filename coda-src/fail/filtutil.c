@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filtutil.c,v 4.1 1997/12/23 17:19:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -384,7 +384,7 @@ void InitRPC()
 
   assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
-  rc = RPC2_Init(RPC2_VERSION, 0, NULL, 0,  -1, NULL);
+  rc = RPC2_Init(RPC2_VERSION, 0, NULL,  -1, NULL);
   if (rc == RPC2_SUCCESS) return;
   PrintError("InitRPC", rc);
   if (rc < RPC2_ELIMIT) exit(-1);
