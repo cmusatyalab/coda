@@ -116,20 +116,8 @@ extern void ViceTerminate();
 #define	EMPTYSYMLINKBLOCKS  1
 
 
-typedef struct WBConnEntry {            
-    struct dllist_head  others;
-    RPC2_Handle         id;             /* cid for writeback connection */
-    unsigned char       inuse;          /* is this conn in use right now*/
-    unsigned char       deleteme;       /* garbage collect this conn    */
-    unsigned char       dead;           /* dead connection, should be used */
-    unsigned char       reserved;       /* padding */
-    int                 last_used;      /* time this conn last used     */
-} WBConnEntry;
-
-
 typedef struct HostTable {
     RPC2_Handle id;			/* cid for call back connection	*/
-    struct dllist_head	WBconns;	/* must have at least one       */
     struct dllist_head	Clients;	/* list of incoming rpc2 conns  */
     struct in_addr	host;		/* IP address of host		*/
     unsigned int	port;		/* port address of host		*/
@@ -151,15 +139,8 @@ typedef struct ClientEntry {
     RPC2_Integer	LastOp;			/* op code of last call    */
     int			DoUnbind;		/* true if Unbind needed   */
     char		UserName[MAXNAMELENGTH]; /* name of user	   */
-    SecretToken		Token;			/* the client's token      */
+    RPC2_Integer	EndTimestamp;		/* expiration time from token */
 } ClientEntry;
-
-
-typedef struct WBHolderEntry {
-    struct dllist_head  others;         /* other entries */
-    HostTable *         VenusId;        /* Venus who has it */
-    unsigned long       GrantedAtSecs;  /* timestamp */
-} WBHolderEntry;
 
 
 #define NEWCONNECT "NEWCONNECT"
@@ -346,13 +327,6 @@ extern int AllowSHA;
 
 /* coppend.c */
 extern void AddToCopPendingTable(ViceStoreId *, ViceFid *);
-
-/* writeback.c */
-extern long FS_ViceGetWBPermit(RPC2_Handle cid, VolumeId Vid, 
-			ViceFid *fid, RPC2_Integer *Permit);
-extern long FS_ViceTossWBPermit(RPC2_Handle cid, VolumeId Vid, ViceFid *fid);
-extern int CheckWriteBack(ViceFid * Fid,ClientEntry * client);
-extern WBConnEntry * findIdleWBConn(HostTable * VenusId);
 
 #endif /* _VICE_SRV_H_ */
  

@@ -67,7 +67,6 @@ extern "C" {
 
 #include <srv.h>
 #include <vice.private.h>
-#include <writeback.h>
 
 /* *****  Private variables  ***** */
 
@@ -91,6 +90,9 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
 	if (STRNEQ(User, "UID=", 4) && AL_IdToName(atoi(User+4), User) == -1)
 	    strcpy(User, PRS_ANYUSERGROUP);
     } else {
+	if (!st)
+	    return RPC2_NOTAUTHENTICATED;
+
 	/* The token length, magic, and expiration times have already
 	 * been validated by GetKeysFromToken */
 	if (AL_IdToName((int) st->ViceId, User) == -1)
@@ -122,8 +124,7 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
     (*client)->LastOp = 0;
     (*client)->SecurityLevel = sl;
     strcpy((*client)->UserName, User);
-    if (st) memcpy(&(*client)->Token, st, sizeof(SecretToken));
-    else    memset(&(*client)->Token, 0, sizeof(SecretToken));
+    (*client)->EndTimestamp = st ? st->EndTimestamp : 0;
 
     client_GetVenusId(RPCid, *client);
 
@@ -186,7 +187,6 @@ void CLIENT_InitHostTable(void)
     for (int i = 0; i < MAXHOSTTABLEENTRIES; i++) {
 	memset(&hostTable[i], 0, sizeof(struct HostTable));
 	Lock_Init(&hostTable[i].lock);
-	list_head_init(&hostTable[i].WBconns);
 	list_head_init(&hostTable[i].Clients);
     }
 }
@@ -380,7 +380,6 @@ void CLIENT_CleanUpHost(HostTable *ht)
     ObtainWriteLock(&ht->lock);
 
     client_RemoveClients(ht);	/* remove any connections for this Venus */
-    /* XXX clean up writeback connections XXX */
     DeleteVenus(ht);		/* remove all callback entries	*/
     if (ht->id) {
 	SLog(1, "Unbinding RPC2 connection %d", ht->id);
@@ -409,18 +408,6 @@ static void client_RemoveClients(HostTable *ht)
 	    SLog(0, "RemoveClients got a failure from DeleteClient");
 	    break;
 	}
-    }
-
-    /* destroy old writeback connections */
-    while(!list_empty(&ht->WBconns))
-    {
-	    WBConnEntry *WBconn = 
-		list_entry(ht->WBconns.next, WBConnEntry, others);
-
-	    /* destroy this dead conn */
-	    list_del(&WBconn->others);
-	    RPC2_Unbind(WBconn->id);
-	    free(WBconn);
     }
 }
 
@@ -496,79 +483,3 @@ void CLIENT_GetWorkStats(int *num, int *active, unsigned int time)
     }
 }
 
-int CLIENT_MakeWriteBackConn(HostTable * HostEntry) 
-{
-
-    RPC2_PeerInfo peer;
-    RPC2_SubsysIdent sid;
-    RPC2_CountedBS cbs;
-    RPC2_BindParms bp;
-
-    /* Create peer info corresponding to the given Client structure. */
-    peer.RemoteHost.Tag			     = RPC2_HOSTBYINETADDR;
-    peer.RemoteHost.Value.InetAddress.s_addr = HostEntry->host.s_addr;
-    peer.RemotePort.Tag			     = RPC2_PORTBYINETNUMBER;
-    peer.RemotePort.Value.InetPortNumber     = HostEntry->port;
-
-    /* Subsystem identifier. */
-    sid.Tag = RPC2_SUBSYSBYID;
-    sid.Value.SubsysId = SUBSYS_WB;
-
-    /* Dummy argument. */
-    cbs.SeqLen = 0;
-
-    /* Bind parameters */
-    bp.SecurityLevel = RPC2_OPENKIMONO;
-    bp.EncryptionType = RPC2_XOR;
-    bp.SideEffectType = SMARTFTP;
-    bp.ClientIdent = &cbs;
-    bp.SharedSecret = NULL;
-
-    /* Set up the new ConnEnt */
-    WBConnEntry * newconn = (WBConnEntry *)malloc(sizeof(WBConnEntry));
-    if (newconn == NULL)                   /* malloc failed */
-	return(ENOMEM);
-    newconn->inuse = 1;
-    newconn->deleteme = 0;
-    newconn->dead  = 0;
-
-    ObtainWriteLock(&HostEntry->lock);
-
-    /* Attempt the bind. */
-    long errorCode = RPC2_NewBinding(&peer.RemoteHost, &peer.RemotePort, &sid,
-				     &bp, &newconn->id);
-    if (errorCode > RPC2_ELIMIT) {
-	    if (errorCode) {
-		    SLog(0, "RPC2_Bind to %s port %d for writeback got %s",
-			 inet_ntoa(HostEntry->host), ntohs(HostEntry->port), 
-			 ViceErrorMsg((int) errorCode));
- 	    }
-
-	    /* Make a gratuitous probe of the writeback connection. */
-	    errorCode = RevokeWBPermit(newconn->id, 0);
-	    if (!errorCode) {
-		SLog(0, "Writeback message to %s port %d on conn %x succeeded",
-		     inet_ntoa(HostEntry->host), ntohs(HostEntry->port),
-		     newconn->id);
-	    }
-    }
-    
-    if (errorCode) {
-	SLog(0, "RPC2_Bind to %s port %d for writeback failed %s",
-	     inet_ntoa(HostEntry->host), ntohs(HostEntry->port), 
-	     ViceErrorMsg((int) errorCode));
-	newconn->id = 0;
-    }
-
-    if (newconn->id == 0) {
-	errorCode = EPIPE;  /* don't return an RPC2 error */
-	free(newconn);
-    }
-    else {
-	newconn->inuse = 0;
-	list_add(&newconn->others,&(HostEntry->WBconns));
-    }
-    ReleaseWriteLock(&HostEntry->lock);
-    
-    return((int) errorCode);
-}

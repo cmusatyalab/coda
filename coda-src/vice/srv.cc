@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
 	SLog(0, " [-nocmp] [-nopy] [-dumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
 	SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-usenscclock]");
-	SLog(0, " [-nowriteback] [-mapprivate] [-zombify]");
+	SLog(0, " [-mapprivate] [-zombify]");
 
 	exit(-1);
     }
@@ -636,7 +636,7 @@ static void ServerLWP(int *Ident)
 		/* check token expiry, compare the token expiry time to the
 		 * receive timestamp in the PacketBuffer. */
 		if (client->SecurityLevel != RPC2_OPENKIMONO &&
-		    myrequest->Prefix.RecvStamp.tv_sec > client->Token.EndTimestamp) {
+		    myrequest->Prefix.RecvStamp.tv_sec > client->EndTimestamp) {
 		    SLog(0, "Client Token expired");
 		    /* force a disconnection for this rpc2 connection */
 		    myrequest->Header.Opcode = TokenExpired_OP;
@@ -1342,7 +1342,6 @@ static int ReadConfigFile(void)
     extern int nodebarrenize;
 
     CODACONF_INT(nodebarrenize, "nodebarrenize", 0);
-    CODACONF_INT(NoWritebackConn, "nowriteback", 0);
     CODACONF_INT(zombify, "zombify", 0);
     if (zombify)
         coda_assert_action = CODA_ASSERT_SLEEP;
@@ -1358,8 +1357,6 @@ static int ReadConfigFile(void)
 static int ParseArgs(int argc, char *argv[])
 {
     int   i;
-
-    NoWritebackConn = 0;
 
     for (i = 1; i < argc; i++) {
 	if (!strcmp(argv[i], "-d")) {
@@ -1539,10 +1536,6 @@ static int ParseArgs(int argc, char *argv[])
 	    if (!strcmp(argv[i], "-nodebarrenize")) {
 		extern int nodebarrenize;
 		nodebarrenize = 1;
-	    }
-	else 
-	    if (!strcmp(argv[i], "-nowriteback")) {
-		NoWritebackConn = 1;
 	    }
 	else 
 	    if (!strcmp(argv[i], "-mapprivate")) {

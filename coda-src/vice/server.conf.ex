@@ -99,7 +99,6 @@ allow_sha=1
 #large=500
 #lwps=6
 #nodebarrenize=0
-#nowriteback=0
 #pollandyield=1
 #pathtiming=1
 #resolution=1

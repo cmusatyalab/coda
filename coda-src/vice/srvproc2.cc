@@ -92,7 +92,6 @@ extern "C" {
 #include <vice.private.h>
 #include <operations.h>
 #include <ops.h>
-#include <writeback.h>
 #include <lockqueue.h>
 #include <vice_file.h>
 #include "coppend.h"
@@ -969,7 +968,6 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 			 ViceClient *ClientId)
 {
     long errorCode;
-    WBConnEntry *WBconn = NULL;
     ClientEntry *client = NULL;
 
     SLog(1, "FS_ViceNewConnectFS (version %d) for user %s at %s.%s",
@@ -1010,32 +1008,6 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
     if (client->VenusId->id == 0) {
 	SLog(0, "Building callback conn.");
 	errorCode = CLIENT_MakeCallBackConn(client);
-    }
-
-   /* set up a writeback channel if there isn't one for this host */
-    if (!NoWritebackConn && errorCode == RPC2_SUCCESS) {
-	/* try all free connections */
-	while ((WBconn = findIdleWBConn(client->VenusId)) != NULL) {
-	    WBconn->inuse = 1;
-	    SLog(10, "Probing existing WriteBack conn %x",WBconn->id);
-	    errorCode = RevokeWBPermit(WBconn->id, 0);
-	    SLog(0, "RevokeWBPermit on conn %x returned %d",
-		 WBconn->id,errorCode);
-	    WBconn->inuse = 0;
-
-	    /* found a working connection, we're done */
-	    if (errorCode == RPC2_SUCCESS) break;
-
-	    /* destroy this dead conn */
-	    RPC2_Unbind(WBconn->id);
-	    list_del(&WBconn->others);
-	    free(WBconn);
-	}
-
-	if (WBconn == NULL) {
-	    SLog(0, "No idle WriteBack conns, building new one");
-	    errorCode = CLIENT_MakeWriteBackConn(client->VenusId);
-	} 
     }
 
     if (errorCode)
