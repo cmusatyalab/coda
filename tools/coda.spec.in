@@ -83,10 +83,15 @@ make
 %install
 cd $RPM_BUILD_DIR/obj-%{version}
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
+mkdir -p \
+	$RPM_BUILD_ROOT/coda \
+	$RPM_BUILD_ROOT/dev \
+	$RPM_BUILD_ROOT/etc/rc.d/init.d \
 	$RPM_BUILD_ROOT/usr/coda/etc \
-	$RPM_BUILD_ROOT/coda $RPM_BUILD_ROOT/etc/rc.d/init.d\
-	$RPM_BUILD_ROOT/usr/lib/coda $RPM_BUILD_ROOT/etc/rc.d/init.d
+	$RPM_BUILD_ROOT/usr/coda/venus.cache \
+	$RPM_BUILD_ROOT/usr/share/man/man1 \
+	$RPM_BUILD_ROOT/usr/share/man/man5 \
+	$RPM_BUILD_ROOT/usr/share/man/man8
 
 make prefix=$RPM_BUILD_ROOT/usr client-install
 make prefix=$RPM_BUILD_ROOT/usr server-install
@@ -181,31 +186,34 @@ exit 0
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
-/usr/share/man/man1/cfs.1
-/usr/share/man/man1/clog.1
-/usr/share/man/man1/cmon.1
-/usr/share/man/man1/coda_replay.1
-/usr/share/man/man1/cpasswd.1
-/usr/share/man/man1/ctokens.1
-/usr/share/man/man1/cunlog.1
-/usr/share/man/man1/hoard.1
-/usr/share/man/man1/repair.1
-/usr/share/man/man1/spy.1
-/usr/share/man/man8/au.8
-/usr/share/man/man8/venus.8
+/usr/share/man/man1/cfs.1.gz
+/usr/share/man/man1/clog.1.gz
+/usr/share/man/man1/cmon.1.gz
+/usr/share/man/man1/coda_replay.1.gz
+/usr/share/man/man1/cpasswd.1.gz
+/usr/share/man/man1/ctokens.1.gz
+/usr/share/man/man1/cunlog.1.gz
+/usr/share/man/man1/hoard.1.gz
+/usr/share/man/man1/repair.1.gz
+/usr/share/man/man1/spy.1.gz
+/usr/share/man/man8/au.8.gz
+/usr/share/man/man8/venus.8.gz
 
 %files server	
 /etc/coda/server.conf.ex
 /usr/sbin/auth2
 /usr/sbin/bldvldb.sh
+/usr/sbin/coda-server-logrotate
+/usr/sbin/coda-setup-ports
 /usr/sbin/codaconfedit
 /usr/sbin/codadump2tar
 /usr/sbin/codasrv
 /usr/sbin/codastart
-/usr/sbin/coda-server-logrotate
 /usr/sbin/createvol_rep
 /usr/sbin/initpw
 /usr/sbin/inoder
+/usr/sbin/norton
+/usr/sbin/norton-reinit
 /usr/sbin/parserecdump
 /usr/sbin/partial-reinit.sh
 /usr/sbin/pdbtool
@@ -223,20 +231,18 @@ exit 0
 /usr/sbin/vice-setup-srvdir
 /usr/sbin/vice-setup-user
 /usr/sbin/vice-setup-scm
-/usr/sbin/coda-setup-ports
 /usr/sbin/volutil
 /usr/bin/getvolinfo
-/usr/bin/norton
-/usr/bin/norton-reinit
 /usr/bin/reinit
 /usr/bin/rpc2ping
 /usr/bin/rvmsizer
 /usr/bin/smon2
-/usr/share/man/man5/passwd.coda.5
-/usr/share/man/man5/vicetab.5
-/usr/share/man/man8/auth2.8
-/usr/share/man/man8/initpw.8
-/usr/share/man/man8/pdbtool.8
+/usr/share/man/man5/passwd.coda.5.gz
+/usr/share/man/man5/vicetab.5.gz
+/usr/share/man/man8/auth2.8.gz
+/usr/share/man/man8/initpw.8.gz
+/usr/share/man/man8/pdbtool.8.gz
+/usr/share/man/man8/norton.8.gz
 /etc/rc.d/init.d/codasrv.init
 /etc/rc.d/init.d/auth2.init
 /etc/rc.d/init.d/update.init
