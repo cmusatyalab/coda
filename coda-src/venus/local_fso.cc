@@ -986,9 +986,31 @@ int fsobj::LocalFakeify()
     UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
     
     /* Create the "global" and "local" children. */
-    
     FakeRoot->dir_Create("global", &GlobalChildFid);
     FakeRoot->dir_Create("local", &LocalChildFid);
+
+#if 0
+    {
+	struct in_addr volumehosts[VSG_MEMBERS];
+	srvent *s;
+	int i;
+	/* Make entries for each of the rw-replicas. */
+	vol->GetHosts(volumehosts);
+	for (i = 0; i < VSG_MEMBERS; i++) {
+	    if (!volumehosts[i].s_addr) continue;
+	    srvent *s;
+	    char Name[CODA_MAXNAMLEN];
+	    if ((s = FindServer(&volumehosts[i])) && s->name)
+		sprintf(Name, "%s", s->name);
+	    else
+		sprintf(Name, "%08lx", volumehosts[i]);
+	    ViceFid FakeFid = rv->GenerateFakeFid();
+	    LOG(0, ("fsobj::LocalFakeify: new entry (%s, %s)\n",
+		    Name, FID_(&FakeFid)));
+	    FakeRoot->dir_Create(Name, &FakeFid);
+	}
+    }
+#endif
     
     /* add an new entry to the LRDB maintained fid-map */
     LRDB->RFM_Insert(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,

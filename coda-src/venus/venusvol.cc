@@ -1804,13 +1804,11 @@ repvol::~repvol()
 
 void repvol::KillMgrps(void)
 {
-    struct dllist_head *p;
     LOG(10, ("repvol::KillMgrps volume = %x\n", vid));
 
-    for (p = mgrpents.next; p != &mgrpents;) {
-        mgrpent *m = list_entry(p, mgrpent, volhandle);
-        p = m->volhandle.next;
-        m->Suicide(1);
+    while (mgrpents.next != &mgrpents) {
+        mgrpent *m = list_entry(mgrpents.next, mgrpent, volhandle);
+        m->Suicide(1); /* takes `m' out of the mgrpents list */
     }
 }
 
@@ -1972,12 +1970,15 @@ void repvol::KillUserMgrps(vuid_t uid)
     struct dllist_head *p;
     LOG(10, ("repvol::KillUserMgrps volume = %x, uid = %d\n", vid, uid));
 
+again:
     for(p = mgrpents.next; p != &mgrpents;) {
         mgrpent *m = list_entry(p, mgrpent, volhandle);
         p = m->volhandle.next;
 
         if (m->uid != uid) continue;
         m->Suicide(1);
+	/* We yielded in m->Suicide, have to restart the scan */
+	goto again;
     }
 }
 
