@@ -91,18 +91,10 @@ static void
 
 static void SendNak(RPC2_PacketBuffer *pb);
 
-#define EXTRADEBUG 1
-#ifdef	EXTRADEBUG
-#define BOGUS(p, msg) do {	/* bogus packet; throw it away */\
-    say(-1, RPC2_DebugLevel, (msg));\
-    rpc2_Recvd.Bogus++;\
-    RPC2_FreeBuffer(&p); } while (0)
-#else	EXTRADEBUG
 #define BOGUS(p, msg)	do { /* bogus packet; throw it away */\
     say(9, RPC2_DebugLevel, (msg));\
     rpc2_Recvd.Bogus++;\
     RPC2_FreeBuffer(&p); } while (0)
-#endif	EXTRADEBUG
 
 #define NAKIT(p) do { 	/* bogus packet; NAK it and then throw it away */\
     rpc2_Recvd.Bogus++;\
