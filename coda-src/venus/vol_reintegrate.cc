@@ -177,6 +177,8 @@ void repvol::Reintegrate()
     } while(code == 0 && ((flags.sync_reintegrate && nrecs) || nrecs == 100));
 
     flags.reintegrating = 0;
+    /* we have to disable this to avoid recursion when exiting the volume */
+    flags.sync_reintegrate = 0;
 
     /* 
      * clear CML owner if possible.  If there are still mutators in the volume,

@@ -486,7 +486,7 @@ void vproc::GetStamp(char *buf) {
     time_t curr_time = Vtime();
     struct tm *lt = localtime(&curr_time);
     sprintf(buf, "[ %c(%02d) : %04d : %02d:%02d:%02d ] ",
-	     t, vpid, seq, lt->tm_hour, lt->tm_min, lt->tm_sec);
+	    t, vpid, seq, lt->tm_hour, lt->tm_min, lt->tm_sec);
 }
 
 

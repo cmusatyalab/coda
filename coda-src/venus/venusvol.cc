@@ -1343,7 +1343,7 @@ void volent::TakeTransition()
         if (rv->ResListCount())
             nextstate = Resolving;
 
-        else if (flags.logv || flags.sync_reintegrate || rv->GetCML()->count())
+        else if (flags.logv || rv->GetCML()->count())
             nextstate = Logging;
     }
 
@@ -1606,6 +1606,9 @@ int repvol::SyncCache(VenusFid * fid)
     }
 
     //Reintegrate();
+    /* actually this flag is already cleared in repvol::Reintegrate to avoid
+     * recursion when exiting the volume in cases where the reintegration
+     * required resolution or repair */
     flags.sync_reintegrate = 0;
 
     return 0;
