@@ -1368,7 +1368,9 @@ void volent::TakeTransition()
 
     switch(state) {
         case Logging:
-	    if (rv->ReadyToReintegrate()) 
+	    if (flags.sync_reintegrate)
+		rv->Reintegrate();
+	    else if (rv->ReadyToReintegrate()) 
 		::Reintegrate(rv);
             // Fall through
 
