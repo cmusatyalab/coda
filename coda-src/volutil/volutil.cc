@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/volutil.cc,v 4.1 1997/01/08 21:52:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volutil.cc,v 4.2 1997/02/26 16:04:15 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,33 +55,28 @@ extern "C" {
 #include <ctype.h>
 #include <errno.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
 #include <se.h>
+#include <vice.h> 
+#include <util.h>
+#include <volutil.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 #include <rvmlib.h>
-#include <util.h>
-#include <vice.h> 
 #include <cvnode.h>
 #include <volume.h>
 #include <vldb.h>
 #include <vutil.h>
 
 
-#include "volutil.h"
 
 extern void ViceTerminate();
 extern void ViceUpdateDB();

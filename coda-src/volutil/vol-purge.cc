@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/vol-purge.cc,v 4.1 1997/01/08 21:52:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-purge.cc,v 4.2 1997/02/26 16:04:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -76,7 +76,7 @@ extern "C" {
 
 #include <lwp.h>
 #include <lock.h>
-
+#include <volutil.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -98,7 +98,7 @@ extern "C" {
   <a name="S_VolPurge"><strong>Purge the requested volume</strong></a> 
   END_HTML
 */
-S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String formal_purgeName) {
+long int S_VolPurge(RPC2_Handle rpcid, RPC2_Unsigned formal_purgeId, RPC2_String formal_purgeName) {
     Error error = 0;
     Error error2 = 0;
     Volume *vp = NULL;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.2 1997/02/26 16:04:08 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.3 1998/01/10 18:39:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,14 +83,14 @@ extern "C" {
 #include <timer.h>
 #include <rpc2.h>
 #include <se.h>
-
+#include <util.h>
+#include <vice.h>
+#include <volutil.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <rvmlib.h>
-#include <vice.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <partition.h>
@@ -115,7 +115,7 @@ PRIVATE void date(unsigned long, char *);
   <a name="S_VolInfo"><strong>Dump out information (in ascii) about a volume </strong></a> 
   END_HTML
 */
-S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer dumpall, SE_Descriptor *formal_sed) {
+long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer dumpall, SE_Descriptor *formal_sed) {
     Volume *vp;
     Error error = 0;
     int status = 0;	    // transaction status variable

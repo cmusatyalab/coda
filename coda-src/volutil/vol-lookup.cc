@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lookup.cc,v 4.3 1997/10/23 19:26:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lookup.cc,v 4.4 1998/01/10 18:40:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,14 +57,8 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/file.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#include <mach.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <netinet/in.h>
 #include <lwp.h>
@@ -72,7 +66,7 @@ extern "C" {
 #include <timer.h>
 #include <rpc2.h>
 #include <se.h>
-
+#include <volutil.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -106,7 +100,7 @@ char *voltypes[] = {"read/write", "read only", "backup", "unknown type", "unknow
   <a name="S_VolLookup"><strong>Return information for a volume specified by name or volume-id </strong></a>
   END_HTML
 */
-S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *formal_sed) {
+long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *formal_sed) {
     VolumeInfo info;
     Error error = 0;
     int status = 0;
