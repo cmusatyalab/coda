@@ -43,7 +43,7 @@ case "$1" in
 	fi
 	[ -d /var/lock/subsys ] && touch /var/lock/subsys/venus.init
 	@sbindir@/coda-client-logrotate
-	@sbindir@/venus > /dev/null 2>&1 &
+	@sbindir@/venus > /dev/null 2>&1
 	echo "done."
     ;;
   stop)
