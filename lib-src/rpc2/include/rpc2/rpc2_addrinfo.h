@@ -79,8 +79,8 @@ void RPC2_formataddrinfo(const struct RPC2_addrinfo *host,
 			 char *buf, size_t buflen);
 
 /* The maximum size that the previous buffer can be,
- * inet6 addr + ':' + portnumber + '\0' */
-#define RPC2_ADDRSTRLEN (46 + 1 + 10 + 1)
+ * '[' + inet6 addr + ']:' + portnumber + '\0' */
+#define RPC2_ADDRSTRLEN (1 + 46 + 2 + 10 + 1)
 
 
 #endif /* _RPC2_ADDRINFO_H */
