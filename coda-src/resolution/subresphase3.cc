@@ -1096,16 +1096,12 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 
 	// this is for directory only, so there is no set length operation on it	
 	// spool the record 
-	{
-	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid, 
-					     ResolveViceNewStore_OP, STSTORE,
-					     r->u.newst.owner, r->u.newst.mode, 
-					     r->u.newst.author, r->u.newst.mtime,
-					     Mask, &(Vnode_vv(pv->vptr)))))
-		SLog(0,
-		       "PeformResOp: error %d during SpoolVMLogRecord\n",
-		       errorCode);
-	}
+	if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid, 
+					  ResolveViceNewStore_OP, STSTORE,
+					  r->u.newst.owner, r->u.newst.mode, 
+					  r->u.newst.author, r->u.newst.mtime,
+					  Mask, &(Vnode_vv(pv->vptr)))))
+	    SLog(0, "PeformResOp: error %d during SpoolVMLogRecord\n", errorCode);
 	break;	
 
       case ResolveViceRemove_OP:
@@ -1134,15 +1130,12 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    }
 	    /* spool log record */
 	    {
-		SLog(9, "PerformResOp: Spooling log record Remove(%s)",
-			name);
+		SLog(9, "PerformResOp: Spooling log record Remove(%s)", name);
 		ViceVersionVector ghostVV = cv->vptr->disk.versionvector;	    
 		if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid, 
 						 ResolveViceRemove_OP, name, cv->fid.Vnode, 
 						 cv->fid.Unique, &ghostVV)) )
-		    SLog(0, 
-			   "PeformResOp: error %d during SpoolVMLogRecord\n",
-			   errorCode);
+		    SLog(0, "PeformResOp: error %d during SpoolVMLogRecord\n", errorCode);
 	    }
 	}
 	break;
@@ -1172,17 +1165,12 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    cv->vptr->disk.author = r->u.create.owner;
 	    
 	    /* append log record */
-	    {
-		SLog(9, "PerformResOp: Spooling log record Create(%s)",
-		       name);
-		if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid,
-						 ResolveViceCreate_OP, 
-						 name, cFid.Vnode, cFid.Unique, 
-						 cv->vptr->disk.owner)))
-		    SLog(0, 
-			   "ResolveViceCreate: Error %d during SpoolVMLogRecord\n",
-			   errorCode);
-	    }
+	    SLog(9, "PerformResOp: Spooling log record Create(%s)", name);
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid,
+					      ResolveViceCreate_OP, 
+					      name, cFid.Vnode, cFid.Unique, 
+					      cv->vptr->disk.owner)))
+		SLog(0, "ResolveViceCreate: Error %d during SpoolVMLogRecord\n", errorCode);
 	}
 	break;
       case ResolveViceRename_OP:
@@ -1222,18 +1210,12 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    cv->vptr->disk.inodeNumber = cv->f_finode;
 	    
 	    /* append log record */
-	    {
-		SLog(9,  
-		       "PerformResOp: Spooling log record SymLink(%s)",
-		       name);
-		if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid,
-						 ResolveViceSymLink_OP, 
-						 name, cFid.Vnode, cFid.Unique,
-						 cv->vptr->disk.owner)) )
-		    SLog(0, 
-			   "PerformResOp(SymLink): Error %d in SpoolVMLogRecord\n",
-			   errorCode);
-	    }
+	    SLog(9, "PerformResOp: Spooling log record SymLink(%s)", name);
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid,
+					      ResolveViceSymLink_OP, 
+					      name, cFid.Vnode, cFid.Unique,
+					      cv->vptr->disk.owner)) )
+		SLog(0, "PerformResOp(SymLink): Error %d in SpoolVMLogRecord\n", errorCode);
 	}
 	break;
       case ResolveViceLink_OP:
@@ -1254,19 +1236,14 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 			cv->vptr->disk.unixModifyTime,
 			0, &r->storeid, &pv->d_cinode,
 			blocks);
+
 	    /* spool log record */
-	    {
-		SLog(9,  
-		       "PerformResOp: Spooling log record Link(%s)",
-		       name);
-		if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid,
-						 ResolveViceLink_OP, 
-						 name, cFid.Vnode, cFid.Unique, 
-						 &(Vnode_vv(cv->vptr)))))
-		    SLog(0, 
-			   "ViceLink: Error %d during SpoolVMLogRecord\n",
-			   errorCode);
-	    }
+	    SLog(9, "PerformResOp: Spooling log record Link(%s)", name);
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid,
+					      ResolveViceLink_OP, 
+					      name, cFid.Vnode, cFid.Unique, 
+					      &(Vnode_vv(cv->vptr)))))
+		SLog(0, "ViceLink: Error %d during SpoolVMLogRecord\n", errorCode);
 	}
 	break;
       case ResolveViceMakeDir_OP:
@@ -1302,27 +1279,23 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    cv->vptr->disk.author = r->u.mkdir.owner;
 	    
 	    // spool log record 	
-	    {
-		SLog(9,  "PerformResOp: Spooling log record MkDir(%s)",
-		       name);
-		if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, 
-						 &r->storeid,
-						 ResolveViceMakeDir_OP, name, 
-						 cFid.Vnode, cFid.Unique, 
-						 r->u.mkdir.owner)))
-		    SLog(0, 
-			   "PeformResOp(Mkdir): Error %d during SpoolVMLogRecord for parent\n",
-			   errorCode);
-		// spool a RES_MakeDir_OP record for child so that subsequent resolve can 
-		// find a common point 
-		if (!errorCode && (errorCode = SpoolVMLogRecord(vlist, cv, volptr, &r->storeid, 
-							 RES_MakeDir_OP, ".",
-								cFid.Vnode, 
-								cFid.Unique,
-								r->u.mkdir.owner)))
-		    SLog(0, "PerformResOp(Mkdir): Error %d during SpoolVMLogRecord for child\n",
-			   errorCode);
-	    }
+	    SLog(9, "PerformResOp: Spooling log record MkDir(%s)", name);
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, 
+					      &r->storeid,
+					      ResolveViceMakeDir_OP, name, 
+					      cFid.Vnode, cFid.Unique, 
+					      r->u.mkdir.owner)))
+		SLog(0, "PeformResOp(Mkdir): Error %d during SpoolVMLogRecord for parent\n", errorCode);
+
+	    // spool a RES_MakeDir_OP record for child so that subsequent resolve can 
+	    // find a common point 
+	    if (!errorCode && (errorCode = SpoolVMLogRecord(vlist, cv, volptr,
+							    &r->storeid,
+							    RES_MakeDir_OP,
+							    ".", cFid.Vnode,
+							    cFid.Unique,
+							    r->u.mkdir.owner)))
+		SLog(0, "PerformResOp(Mkdir): Error %d during SpoolVMLogRecord for child\n", errorCode);
 	}
 	break;
       case ResolveViceRemoveDir_OP:
@@ -1365,26 +1338,23 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 
 	    //	spool log record - should have spooled records recursively 
 	    {	
-		SLog(9, "PerformResOp: Spooling Log Record RmDir(%s)",
-		       name);
+		SLog(9, "PerformResOp: Spooling Log Record RmDir(%s)", name);
 		int errorCode = 0;
-		if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &r->storeid, 
-						 ResolveViceRemoveDir_OP, name, 
-						 cv->fid.Vnode, cv->fid.Unique, 
-						 VnLog(cv->vptr), &(Vnode_vv(cv->vptr).StoreId),
-						 &(Vnode_vv(cv->vptr).StoreId))))
-		    SLog(0, 
-			   "PerformResOp(RmDir): error %d in SpoolVMLogRecord\n",
-			   errorCode);
+		if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr,
+						  &r->storeid,
+						  ResolveViceRemoveDir_OP, name,
+						  cv->fid.Vnode, cv->fid.Unique,
+						  VnLog(cv->vptr),
+						  &(Vnode_vv(cv->vptr).StoreId),
+						  &(Vnode_vv(cv->vptr).StoreId))))
+		    SLog(0, "PerformResOp(RmDir): error %d in SpoolVMLogRecord\n", errorCode);
 	    }
 	}
 	break;
       case ResolveViceSetVolumeStatus_OP:
       case RES_SetVolumeStatus_OP:
 	{
-	  SLog(9,  
-		 "PerformResOP: Resolving quota for volume 0x%x\n", 
-		 V_id(volptr));
+	  SLog(9, "PerformResOP: Resolving quota for volume 0x%x\n", V_id(volptr));
 
 	  vle *cv = FindVLE(*vlist, &cFid);
 	  CODA_ASSERT(cv);
@@ -1392,23 +1362,20 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 
 	  PerformSetQuota(0, VSGVolnum, volptr, cv->vptr, &cFid, 
 			  r->u.sq.newquota, 0, &r->storeid);
-	    if ((errorCode = SpoolVMLogRecord(vlist, cv, volptr, &r->storeid,
-					     ResolveViceSetVolumeStatus_OP,
-					     r->u.sq.oldquota,
-					     r->u.sq.newquota)))
-		SLog(0, 
-		       "PerfromResOp(SetQuota): Error %d during SpoolVMLogRecord\n",
-		       errorCode);
+	  if ((errorCode = SpoolVMLogRecord(vlist, cv, volptr, &r->storeid,
+					    ResolveViceSetVolumeStatus_OP,
+					    r->u.sq.oldquota,
+					    r->u.sq.newquota)))
+		SLog(0, "PerfromResOp(SetQuota): Error %d during SpoolVMLogRecord\n", errorCode);
 	}
 	break;
       default:
-	SLog(0,  
-	       "Illegal Opcode for performresop %d", r->opcode);
+	SLog(0, "Illegal Opcode for performresop %d", r->opcode);
 	CODA_ASSERT(0);
 	break;
     }
 
-    SLog(9,  "PerformResOp: Returns %d", errorCode);
+    SLog(9, "PerformResOp: Returns %d", errorCode);
     return(errorCode);
 }
 
@@ -1482,7 +1449,6 @@ static int SetPhase3DirStatus(ViceStatus *status, ViceFid *Fid,
 	} else {
 	    CodaBreakCallBack(0, Fid, Fid->Volume);
         }
-
     }
     
     //do cop1 update with new local storeid - 

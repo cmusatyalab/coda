@@ -614,32 +614,25 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
 
-    if (AllowResolution && V_RVMResOn(volptr)) {
-	// append a new log record 
-	if (!FRep) {
-	    SLog(9, 
-		   "ViceRepair: Spooling Repair Log Record");
-	    if ((errorCode = SpoolVMLogRecord(vlist, ov, volptr, StoreId, 
-					     ViceRepair_OP, 0))) {
-		SLog(0, 
-		       "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
-		       errorCode, Fid->Vnode, Fid->Unique);
-		goto FreeLocks;
-	    }
-	    // set log of dir being repaired for truncation 
-	    ov->d_needslogtrunc = 1;
+    // append a new log record 
+    if (!FRep) {
+	SLog(9, "ViceRepair: Spooling Repair Log Record");
+	if ((errorCode = SpoolVMLogRecord(vlist, ov, volptr, StoreId, 
+					  ViceRepair_OP, 0))) {
+	    SLog(0, "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
+		 errorCode, Fid->Vnode, Fid->Unique);
+	    goto FreeLocks;
 	}
-	// mark all deleted children's logs for purging - (Note: not truncation)
-	if (!FRep && !errorCode) {
-	    dlist_iterator next(*vlist);
-	    vle *v;
-	    while ((v = (vle *)next())) 
-		if (v->vptr && 
-		    v->vptr->delete_me &&
-		    v->vptr->disk.type == vDirectory) 
-		    v->d_needslogpurge = 1;
-	}
-	
+	// set log of dir being repaired for truncation 
+	ov->d_needslogtrunc = 1;
+    }
+    // mark all deleted children's logs for purging - (Note: not truncation)
+    if (!FRep && !errorCode) {
+	dlist_iterator next(*vlist);
+	vle *v;
+	while ((v = (vle *)next())) 
+	    if (v->vptr && v->vptr->delete_me)
+		v->d_needslogpurge = 1;
     }
 
 FreeLocks:
@@ -1506,29 +1499,21 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		// make sure a repair record gets spooled for both parents
 		// the ov's repair record gets spooled at the end 
 		if (tdv != ov) {
-		    if (AllowResolution && V_RVMResOn(volptr)) {
-			SLog(0, 
-			       "PerformRepair: Spooling Repair(rename - target) Log Record");
-			if ((errorCode = SpoolVMLogRecord(vlist, tdv, volptr, StoreId, 
-							 ViceRepair_OP, 0))) {
-			    SLog(0, 
-				   "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
-				   errorCode, tdv->vptr->vnodeNumber, tdv->vptr->disk.uniquifier);
-			    return(errorCode);
-			}
+		    SLog(0, "PerformRepair: Spooling Repair(rename - target) Log Record");
+		    if ((errorCode = SpoolVMLogRecord(vlist, tdv, volptr, StoreId, 
+						      ViceRepair_OP, 0))) {
+			SLog(0, "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
+			     errorCode, tdv->vptr->vnodeNumber, tdv->vptr->disk.uniquifier);
+			return(errorCode);
 		    }
 		}
 		if (sdv != ov) {
-		    if (AllowResolution && V_RVMResOn(volptr)) {
-			SLog(0, 
-			       "PerformRepair: Spooling Repair(rename - source) Log Record");
-			if ((errorCode = SpoolVMLogRecord(vlist, sdv, volptr, StoreId, 
-							 ViceRepair_OP, 0))) {
-			    SLog(0, 
-				   "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
-				   errorCode, sdv->vptr->vnodeNumber, sdv->vptr->disk.uniquifier);
-			    return(errorCode);
-			}
+		    SLog(0, "PerformRepair: Spooling Repair(rename - source) Log Record");
+		    if ((errorCode = SpoolVMLogRecord(vlist, sdv, volptr, StoreId, 
+						      ViceRepair_OP, 0))) {
+			SLog(0, "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
+			     errorCode, sdv->vptr->vnodeNumber, sdv->vptr->disk.uniquifier);
+			return(errorCode);
 		    }
 		}
 	    }
@@ -2019,96 +2004,81 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 
 	/* delete the object */
 	{
-		int nblocks = 0;
-		if (cv->vptr->disk.type == vDirectory) {
-			PerformRmdir(pkdparm->client, pkdparm->VSGVnum, 
-				     pkdparm->volptr, 
-				     pv->vptr, cv->vptr, name, 
-				     pkdparm->status?pkdparm->status->Date : 
-				     pv->vptr->disk.unixModifyTime,
-				     0, pkdparm->storeid, 
-				     &pv->d_cinode, &nblocks);
-			*(pkdparm->blocks) += nblocks;
-			CODA_ASSERT(cv->vptr->delete_me);
-			nblocks = (int)-nBlocks(cv->vptr->disk.length);
-			CODA_ASSERT(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
-			*(pkdparm->blocks) += nblocks;
-	    if (AllowResolution && V_RVMResOn(pkdparm->volptr)) {
-		//spool log record for resolution 
-		if (pkdparm->IsResolve) {
-		    // find log record for original remove operation - extract storeid 
-		    ViceStoreId stid;
-		    ViceStoreId *rmtstid = GetRemoteRemoveStoreId(pkdparm->hvlog, pkdparm->srvrid,
-								  &pFid, &cFid, name);
-		    if (!rmtstid) {
-			SLog(0,
-			       "PerformTreeRemoval: No rm record found for %s 0x%x.%x.%x\n",
-			       name, V_id(pkdparm->volptr), vnode, unique);
-			AllocStoreId(&stid);
-		    }
-		    else stid = *rmtstid;
-
-		    SLog(9,  
-			   "TreeRemove: Spooling Log Record for removing dir %s",
-			   name);
-		    int errorCode = 0;
-		    if ((errorCode = SpoolVMLogRecord(pkdparm->vlist, pv, 
-						     pkdparm->volptr, &stid,
-						     ResolveViceRemoveDir_OP, name, 
-						     vnode, unique, 
-						     VnLog(cv->vptr), &(Vnode_vv(cv->vptr).StoreId),
-						     &(Vnode_vv(cv->vptr).StoreId))))
-			SLog(0, 
-			       "PerformTreeRemoval: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
-			       errorCode, vnode, unique);
-		}
-	    }
-	}
-	else {
-	    PerformRemove(pkdparm->client, pkdparm->VSGVnum, pkdparm->volptr, 
-			  pv->vptr, cv->vptr, name, 
-			  pkdparm->status ? pkdparm->status->Date :
-			  pv->vptr->disk.unixModifyTime,
-			  0, pkdparm->storeid, &pv->d_cinode, &nblocks);
-	    *(pkdparm->blocks) += nblocks;
-	    if (cv->vptr->delete_me){
+	    int nblocks = 0;
+	    if (cv->vptr->disk.type == vDirectory) {
+		PerformRmdir(pkdparm->client, pkdparm->VSGVnum, pkdparm->volptr,
+			     pv->vptr, cv->vptr, name,
+			     pkdparm->status ? pkdparm->status->Date : 
+					       pv->vptr->disk.unixModifyTime,
+			     0, pkdparm->storeid, &pv->d_cinode, &nblocks);
+		*(pkdparm->blocks) += nblocks;
+		CODA_ASSERT(cv->vptr->delete_me);
 		nblocks = (int)-nBlocks(cv->vptr->disk.length);
 		CODA_ASSERT(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
 		*(pkdparm->blocks) += nblocks;
-		cv->f_sinode = cv->vptr->disk.inodeNumber;
-		cv->vptr->disk.inodeNumber = 0;
-	    }
-	    if (AllowResolution && V_RVMResOn(pkdparm->volptr)) {
+
 		//spool log record for resolution 
 		if (pkdparm->IsResolve) {
-		    // find log record for original remove operation - extract storeid 
+		    // find log record for original remove operation
+		    // - extract storeid 
 		    ViceStoreId stid;
-		    ViceStoreId *rmtstid = GetRemoteRemoveStoreId(pkdparm->hvlog, pkdparm->srvrid,
-								  &pFid, &cFid, name);
+		    ViceStoreId *rmtstid = GetRemoteRemoveStoreId(pkdparm->hvlog, pkdparm->srvrid, &pFid, &cFid, name);
 		    if (!rmtstid) {
-			SLog(0,
-			       "PerformTreeRemoval: No rm record found for %s 0x%x.%x.%x\n",
-			       name, V_id(pkdparm->volptr), vnode, unique);
+			SLog(0, "PerformTreeRemoval: No rm record found for %s 0x%x.%x.%x\n",
+			     name, V_id(pkdparm->volptr), vnode, unique);
 			AllocStoreId(&stid);
 		    }
 		    else stid = *rmtstid;
 
-		    SLog(9,  "TreeRemove: Spooling Log Record for removing %s",
-			 name);
+		    SLog(9, "TreeRemove: Spooling Log Record for removing dir %s", name);
 		    int errorCode = 0;
 		    if ((errorCode = SpoolVMLogRecord(pkdparm->vlist, pv, 
-						     pkdparm->volptr, &stid,
-						     ResolveViceRemove_OP, name, 
-						     vnode, unique, 
-						     &(Vnode_vv(cv->vptr)))))
-			SLog(0, "PerformTreeRemoval: error %d in"
-			     " SpoolVMLogRecord for (0x%x.%x)\n",
-			     errorCode, vnode, unique);
+						      pkdparm->volptr, &stid,
+						      ResolveViceRemoveDir_OP, name, 
+						      vnode, unique, 
+						      VnLog(cv->vptr), &(Vnode_vv(cv->vptr).StoreId),
+						      &(Vnode_vv(cv->vptr).StoreId))))
+			SLog(0, "PerformTreeRemoval: error %d in SpoolVMLogRecord for (0x%x.%x)\n", errorCode, vnode, unique);
+		}
+	    }
+	    else
+	    {
+		PerformRemove(pkdparm->client, pkdparm->VSGVnum, pkdparm->volptr, 
+			      pv->vptr, cv->vptr, name, 
+			      pkdparm->status ? pkdparm->status->Date :
+			      pv->vptr->disk.unixModifyTime,
+			      0, pkdparm->storeid, &pv->d_cinode, &nblocks);
+		*(pkdparm->blocks) += nblocks;
+		if (cv->vptr->delete_me){
+		    nblocks = (int)-nBlocks(cv->vptr->disk.length);
+		    CODA_ASSERT(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
+		    *(pkdparm->blocks) += nblocks;
+		    cv->f_sinode = cv->vptr->disk.inodeNumber;
+		    cv->vptr->disk.inodeNumber = 0;
+		}
+
+		//spool log record for resolution 
+		if (pkdparm->IsResolve) {
+		    // find log record for original remove operation - extract storeid 
+		    ViceStoreId stid;
+		    ViceStoreId *rmtstid = GetRemoteRemoveStoreId(pkdparm->hvlog, pkdparm->srvrid, &pFid, &cFid, name);
+		    if (!rmtstid) {
+			SLog(0, "PerformTreeRemoval: No rm record found for %s 0x%x.%x.%x\n", name, V_id(pkdparm->volptr), vnode, unique);
+			AllocStoreId(&stid);
+		    }
+		    else stid = *rmtstid;
+
+		    SLog(9, "TreeRemove: Spooling Log Record for removing %s", name);
+		    int errorCode = 0;
+		    if ((errorCode = SpoolVMLogRecord(pkdparm->vlist, pv, 
+						      pkdparm->volptr, &stid,
+						      ResolveViceRemove_OP, name, 
+						      vnode, unique, 
+						      &(Vnode_vv(cv->vptr)))))
+			SLog(0, "PerformTreeRemoval: error %d in SpoolVMLogRecord for (0x%x.%x)\n", errorCode, vnode, unique);
 		}
 	    }
 	}
-    }
-	
 	return 0;
 }
 
@@ -2129,7 +2099,7 @@ long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId, ViceVersionVector *Upda
 START_TIMING(COP2_Total);
 
 
-    SLog(1,  "InternalCOP2, StoreId = (%x.%x), UpdateSet = []",
+    SLog(1, "InternalCOP2, StoreId = (%x.%x), UpdateSet = []",
 	     StoreId->Host, StoreId->Uniquifier);
 
     /* Dequeue the cop pending entry and sort the fids. */
@@ -2157,7 +2127,8 @@ START_TIMING(COP2_Total);
 	}
     }
 
-    if (!errorCode && volptr && V_RVMResOn(volptr)) vollog = V_VolLog(volptr);
+    if (!errorCode && volptr && V_RVMResOn(volptr))
+	vollog = V_VolLog(volptr);
 
 START_TIMING(COP2_Transaction);
     rvmlib_begin_transaction(restore);
@@ -2185,7 +2156,6 @@ END_TIMING(COP2_Transaction);
 	delete cpe;
     }
 
-
     if ((status == 0) && !errorCode && vollog) {
 	/* the transaction was successful -
 	   free up vm bitmap corresponding to 
@@ -2203,7 +2173,8 @@ END_TIMING(COP2_Total);
 }
 
 /* get resolution flags for a given volume */
-static int GetResFlag(VolumeId Vid) {
+static int GetResFlag(VolumeId Vid)
+{
     int error = 0;
     Volume *volptr = 0;
 
@@ -2213,7 +2184,7 @@ static int GetResFlag(VolumeId Vid) {
 		error, Vid);
 	return(0);
     }
-    int reson = volptr->header->diskstuff.ResOn;
+    int reson = V_RVMResOn(volptr);
     PutVolObj(&volptr, VOL_NO_LOCK, 0);
     return(reson);
 }
@@ -2345,10 +2316,8 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
 		    break;
 	    }
 
-	if (i == VSG_MEMBERS && AllowResolution && V_RVMResOn(volptr) 
-	    && freed_indices) 
+	if (i == VSG_MEMBERS && freed_indices) 
 	    TruncateLog(volptr, vptr, freed_indices);
-
     }
     
     /* do a cop2 only if the cop2 pending flag is set */

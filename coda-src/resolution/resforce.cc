@@ -295,14 +295,10 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	pv->vptr->disk.versionvector = status->VV;
     }
 
-    if (AllowResolution && V_RVMResOn(volptr) && !errorCode) {
-	SLog(9,  
-	       "RS_DoForceDirOps: Going to spool recoverable log record \n");
-        if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr,
-                                          &status->VV.StoreId, ResolveNULL_OP, 0))) 
-	    SLog(0, 
-		   "RS_DoForceDirOps: Error %d during SpoolVMLogRecord\n", 
-		   errorCode);
+    if (!errorCode) {
+	SLog(9, "RS_DoForceDirOps: Going to spool recoverable log record \n");
+	if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, &status->VV.StoreId, ResolveNULL_OP, 0))) 
+	    SLog(0, "RS_DoForceDirOps: Error %d during SpoolVMLogRecord\n", errorCode);
     }
 	
   FreeLocks:

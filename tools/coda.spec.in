@@ -147,12 +147,12 @@ fi
 /etc/coda/venus.conf.ex
 /etc/rc.d/init.d/venus.init
 /usr/sbin/@AU@
+/usr/sbin/adv_sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/venus
 /usr/sbin/venus-setup
 /usr/sbin/volmunge
 /usr/sbin/vutil
-/usr/bin/advice_srv
 /usr/bin/cfs
 /usr/bin/@CLOG@
 /usr/bin/cmon
@@ -162,10 +162,6 @@ fi
 /usr/bin/cunlog
 /usr/bin/filerepair
 /usr/bin/hoard
-/usr/bin/logbandwidth
-/usr/bin/logcmls
-/usr/bin/logprogress
-/usr/bin/logreintegration
 /usr/bin/parser
 /usr/bin/removeinc
 /usr/bin/repair
@@ -173,37 +169,9 @@ fi
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
-/usr/lib/coda/Advice.tcl
-/usr/lib/coda/CodaConsole
-/usr/lib/coda/Consider.tcl
-/usr/lib/coda/ConsiderAdding.tcl
-/usr/lib/coda/ConsiderRemoving.tcl
-/usr/lib/coda/ControlPanel.tcl
-/usr/lib/coda/Date.tcl
-/usr/lib/coda/DiscoMiss.tcl
-/usr/lib/coda/Events.tcl
-/usr/lib/coda/Globals.tcl
-/usr/lib/coda/Helper.tcl
-/usr/lib/coda/HoardWalk.tcl
-/usr/lib/coda/HoardWalkAdvice.tcl
-/usr/lib/coda/Indicators.tcl
-/usr/lib/coda/Initialization.tcl
-/usr/lib/coda/Lock.tcl
-/usr/lib/coda/Log.tcl
-/usr/lib/coda/Network.tcl
-/usr/lib/coda/OutsideWorld.tcl
-/usr/lib/coda/ReadMiss.tcl
-/usr/lib/coda/Reconnection.tcl
-/usr/lib/coda/Reintegration.tcl
-/usr/lib/coda/Repair.tcl
-/usr/lib/coda/Space.tcl
-/usr/lib/coda/Task.tcl
-/usr/lib/coda/Timing.tcl
-/usr/lib/coda/Tokens.tcl
-/usr/lib/coda/WeakMiss.tcl
-/usr/lib/coda/tixCodaMeter.tcl
 
 %files server	
+/etc/coda/server.conf.ex
 /usr/sbin/@AUTH2@
 /usr/sbin/bldvldb.sh
 /usr/sbin/codaconfedit
@@ -239,14 +207,14 @@ fi
 /etc/rc.d/init.d/auth2.init
 /etc/rc.d/init.d/update.init
 
-%files backup	
+%files backup
 /usr/sbin/auth2
 /usr/sbin/backup
 /usr/sbin/backup.sh
 /usr/sbin/merge
 /usr/sbin/readdump
 /usr/sbin/tape.pl
-/usr/sbin/updatesrv
 /usr/sbin/updateclnt
 /usr/sbin/updatefetch
 /usr/sbin/volutil
+

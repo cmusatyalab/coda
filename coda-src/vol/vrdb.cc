@@ -116,7 +116,8 @@ vrent *vrtab::find(char *grpname) {
 }
 
 
-vrent *vrtab::ReverseFind(VolumeId rwvolnum) {
+vrent *vrtab::ReverseFind(VolumeId rwvolnum)
+{
     if (rwvolnum == 0) return(0);
 
     ohashtab_iterator next(*this, (void *) -1);

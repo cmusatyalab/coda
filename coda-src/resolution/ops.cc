@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -357,9 +353,7 @@ void CreateRootLog(Volume *vol, Vnode *vptr) {
 
 void CreateResLog(Volume *vol, Vnode *vptr) 
 {
-
-    if (VnLog(vptr)) return;
-    CODA_ASSERT(V_VolLog(vol));
+    CODA_ASSERT(!VnLog(vptr) && V_VolLog(vol));
 
     /* initialize the log list header */
     VnLog(vptr) = new rec_dlist();
@@ -368,10 +362,31 @@ void CreateResLog(Volume *vol, Vnode *vptr)
 
 /* SpoolVMLogRecord: Create a log record in VM and reserve a slot for it in
  * recoverable storage. */
-int SpoolVMLogRecord(dlist *vlist, vle *v,  Volume *vol, ViceStoreId *stid, 
+int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid, 
 		     int op ...) 
 {
     CODA_ASSERT(v && v->vptr);
+
+    /* resolution logs are only associated with directories */
+    if (v->vptr->disk.type != vDirectory)
+	return 0;
+
+    /* Check whether resolution is required/allowed/requested for this volume */
+#if 0
+    /* We only need to spool when the volume is replicated on >= 2 servers */
+    if (vol->replication <= 1) return 0;
+#endif
+
+    /* Don't spool when resolution has been forced off */
+    if (!AllowResolution) return 0;
+
+    /* Don't spool when resolution has been turned off for this volume */
+    if (!V_RVMResOn(vol)) {
+	SLog(0,"Caution, replicated volume 0x%lx, resolution is turned off.\n",
+	     V_id(vol));
+	return 0;
+    }
+
     SLog(9, "Entering SpoolVMLogRecord(0x%lx.%lx.%lx)",
 	 V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
@@ -399,8 +414,8 @@ int SpoolVMLogRecord(dlist *vlist, vle *v,  Volume *vol, ViceStoreId *stid,
 
     //append record to intention list 
     v->rsl.append(rsl);
-    SLog(9,  "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
-    return(0);
+    SLog(9,  "Leaving SpoolVMLogRecord() - returns SUCCESS\n");
+    return 0;
 }
 
 int SpoolRenameLogRecord(int opcode, dlist *vl, vle *svle, vle *tvle,
@@ -478,30 +493,28 @@ void TruncateLog(Volume *vol, Vnode *vptr, vmindex *ind)
     rec_dlist *log = VnLog(vptr);
     /* number of entries that will be freed */
     int count = log->count() - 1;	
-    if (count > 0) 
-	for (int i= 0; i < count; i++) {
-	    /* remove entry from list */
-	    recle *le = (recle *)log->get();	
 
-	    rec_dlist *childlog;
-	    if ((childlog = le->HasList())) 
-		PurgeLog(childlog, vol, ind);
+    for (int i = 0; i < count; i++) {
+	/* remove entry from list */
+	recle *le = (recle *)log->get();	
 
-	    // RESSTATS
-	    VarlHisto(*(V_VolLog(vol)->vmrstats)).countdealloc(le->size);
-	    Lsize(*(V_VolLog(vol)->vmrstats)).chgsize(-(le->size + 
-							sizeof(recle)));
+	rec_dlist *childlog;
+	if ((childlog = le->HasList())) 
+	    PurgeLog(childlog, vol, ind);
 
-	    /* destroy the variable length part */
-	    le->FreeVarl();
+	// RESSTATS
+	VarlHisto(*(V_VolLog(vol)->vmrstats)).countdealloc(le->size);
+	Lsize(*(V_VolLog(vol)->vmrstats)).chgsize(-(le->size + sizeof(recle)));
 
-	    /* free up slot in rvm */
-	    V_VolLog(vol)->RecovFreeRecord(le->index);
+	/* destroy the variable length part */
+	le->FreeVarl();
 
-	    /* remember slot to be freed in vm bitmap after transaction ends */
-	    ind->add(le->index);
-	}
-    
+	/* free up slot in rvm */
+	V_VolLog(vol)->RecovFreeRecord(le->index);
+
+	/* remember slot to be freed in vm bitmap after transaction ends */
+	ind->add(le->index);
+    }
     SLog(9, "Leaving TruncRVMLog()\n");
 }
 

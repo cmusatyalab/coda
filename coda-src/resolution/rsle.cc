@@ -269,9 +269,16 @@ void rsle::init(int op, va_list ap)
 }
 
 /* called from within a transaction */
-void rsle::CommitInRVM(Volume *vol, Vnode *vptr) {
+void rsle::CommitInRVM(Volume *vol, Vnode *vptr)
+{
     CODA_ASSERT(index >= 0);
-    recle *rle = V_VolLog(vol)->RecovPutRecord(index); // commit promise log in rvm 
+    recle *rle;
+    
+    // make sure log header exists 
+    if (!VnLog(vptr))
+	CreateResLog(vol, vptr);
+
+    rle = V_VolLog(vol)->RecovPutRecord(index); // commit promise log in rvm 
     CODA_ASSERT(rle);
     rle->InitFromsle(this);		// copy into rvm - allocate var length part
     VnLog(vptr)->append(rle);		// insert record into vnode's log 

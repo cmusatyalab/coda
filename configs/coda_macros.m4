@@ -126,15 +126,6 @@ AC_DEFUN(CODA_CHECK_LIBDB185,
     LIBS="$coda_save_LIBS"
   fi)
 
-dnl We cannot test for setpgrp(void) when cross-compiling, let's just assume
-dnl we're POSIX-compliant in that case.
-AC_DEFUN(CODA_FUNC_SETPGRP,
-  if test $target != "i386-pc-cygwin32" -a $target != "i386-pc-djgpp" -a $target != "arm-unknown-linux-gnuelf"; then
-    [AC_FUNC_SETPGRP]
-  else
-    [AC_DEFINE(SETPGRP_VOID)]
-  fi)
-
 dnl check wether we have flock or fcntl
 AC_DEFUN(CODA_CHECK_FILE_LOCKING,
   AC_CACHE_CHECK(for file locking by fcntl,
@@ -188,18 +179,6 @@ AC_DEFUN(CODA_CHECK_LIBUCB,
       LIBS="$coda_save_LIBS"])
   ])
 
-dnl check wether we have setenv
-AC_DEFUN(CODA_CHECK_SETENV, 
-  AC_CACHE_CHECK(for setenv,
-    fu_cv_lib_c_setenv,  
-    [AC_TRY_LINK([#include <stdlib.h>], 
-      [ setenv("TEST", "test", 1);],
-      fu_cv_lib_c_setenv=yes,
-      fu_cv_lib_c_setenv=no)])
-  if test $fu_cv_lib_c_setenv = yes; then
-    AC_DEFINE(HAVE_SETENV)
-  fi)
-
 dnl check wether we have scandir
 AC_DEFUN(CODA_CHECK_SCANDIR, 
   AC_CACHE_CHECK(for scandir,
@@ -234,16 +213,22 @@ AC_DEFUN(CODA_CHECK_SCANDIR,
   fi)
 
 dnl ---------------------------------------------
-dnl Path leading to the lwp headers and library.
+dnl Accept user defined path leading to libraries and headers.
 
 AC_DEFUN(CODA_OPTION_SUBSYS,
-  [AC_ARG_WITH($1-includes,
-    [  --with-$1-includes	Location of the $1 include files],
-    [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`"
-      CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`" ])
-   AC_ARG_WITH($1-library,
-    [  --with-$1-library	Location of the $1 library files],
-    [ LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`" ])])
+  [AC_ARG_WITH($1,
+    [  --with-$1=<prefix>	Install prefix of $1],
+    [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`/include"
+      CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`/include"
+      LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`/libs" ])
+dnl   AC_ARG_WITH($1-includes,
+dnl    [  --with-$1-includes	Location of the $1 include files],
+dnl    [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`"
+dnl      CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`" ])
+dnl   AC_ARG_WITH($1-library,
+dnl    [  --with-$1-library	Location of the $1 library files],
+dnl    [ LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`" ])
+    ])
 
 dnl ---------------------------------------------
 dnl Search for an installed library in:

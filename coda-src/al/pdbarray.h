@@ -31,12 +31,12 @@ listed in the file CREDITS.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
-
-#ifdef DJGPP
-#define int32_t int
-#endif
 
 typedef struct pdb_array {
 	int32_t size,memsize;

@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /* resclient.c
  * 	Code implementing the client part of resolution.
  */
@@ -165,13 +161,8 @@ long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	ClearCOP2Pending(ov->vptr->disk.versionvector);	
 	(&(VV->Versions.Site0))[ix] = 1;
 	
-	// add a log entry that will be common for all hosts participating in this res
-	SLog(0, "Going to check if logentry must be spooled\n");
-	if (V_RVMResOn(volptr)) {
-	    SLog(0, 
-		   "Going to spool log entry for phase3\n");
-	    CODA_ASSERT(SpoolVMLogRecord(vlist, ov, volptr, &(VV->StoreId), ResolveNULL_OP, 0) == 0);
-	}
+	SLog(0, "Going to spool log entry for phase3\n");
+	CODA_ASSERT(SpoolVMLogRecord(vlist, ov, volptr, &(VV->StoreId), ResolveNULL_OP, 0) == 0);
     }
     /* truncate log if success everywhere in phase 1 */
     {
@@ -256,7 +247,8 @@ void MarkObjInc(ViceFid *fid, Vnode *vptr) {
  * 	If the object doesnt exist already then create it first 
  */
 int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid, 
-		       char *name, int vntype, dlist *vlist, int *blocks) {
+		       char *name, int vntype, dlist *vlist, int *blocks)
+{
     
     vle *pv = 0;
     vle *cv = 0;
@@ -372,15 +364,12 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    CODA_ASSERT(cv->f_sinode > 0);
 		    cv->vptr->disk.inodeNumber = cv->f_sinode;
 		    cv->f_sinode = 0;
-		    if (AllowResolution && V_RVMResOn(vp)) {
-			// spool log record for recoverable res logs 
-			if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid,
-                                                          ResolveViceCreate_OP, 
-                                                          name, cFid->Vnode, cFid->Unique)))
-			    SLog(0, 
-				   "CreateObjToMarkInc: Error %d during SpoolVMLogRecord\n",
-				   errorCode);
-		    }
+
+		    // spool log record for recoverable res logs 
+		    if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid,
+						      ResolveViceCreate_OP, 
+						      name, cFid->Vnode, cFid->Unique)))
+			SLog(0, "CreateObjToMarkInc: Error %d during SpoolVMLogRecord\n", errorCode);
 		}
 		return(errorCode);
 	    }
@@ -438,15 +427,10 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    cv->vptr->disk.inodeNumber = cv->f_finode;
 		    
 		    // spool log record 
-		    if (AllowResolution && V_RVMResOn(vp)) {
-			if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid,
-                                                          ResolveViceCreate_OP, 
-                                                          name, cFid->Vnode, cFid->Unique)))
-			    SLog(0, 
-				   "CreateObjToMarkInc: Error %d during SpoolVMLogRecord\n",
-				   errorCode);
-
-		    }
+		    if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid,
+						      ResolveViceCreate_OP, 
+						      name, cFid->Vnode, cFid->Unique)))
+			SLog(0, "CreateObjToMarkInc: Error %d during SpoolVMLogRecord\n", errorCode);
 		}
 		else if (cv->vptr->disk.type == vSymlink) {
 		    if ((errorCode = CheckSymlinkSemantics(NULL, &pv->vptr, 
@@ -472,14 +456,10 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    CODA_ASSERT(cv->f_finode > 0);
 		    cv->vptr->disk.inodeNumber = cv->f_finode;
 		    
-		    if (AllowResolution && V_RVMResOn(vp)) {
-			if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid, 
-							 ResolveViceSymLink_OP, 
-							 name, cFid->Vnode, cFid->Unique))) 
-			    SLog(0, 
-				   "CreateObjToMarkInc(symlink): Error %d in SpoolVMLogRecord\n",
-				   errorCode);
-		    }
+		    if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid, 
+						      ResolveViceSymLink_OP, 
+						      name, cFid->Vnode, cFid->Unique))) 
+			SLog(0, "CreateObjToMarkInc(symlink): Error %d in SpoolVMLogRecord\n", errorCode);
 		}
 		else {
 		    CODA_ASSERT(cv->vptr->disk.type == vDirectory);
@@ -499,14 +479,10 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 				 pv->vptr->disk.modeBits,
 				 0, &stid, &pv->d_cinode, &tblocks);
 		    *blocks += tblocks;
-		    if (AllowResolution && V_RVMResOn(vp)) {
-			if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid,
-                                                         ResolveViceMakeDir_OP,
-                                                         name, cFid->Vnode, cFid->Unique))) 
-			    SLog(0, 
-				   "CreateObjToMarkInc(Mkdir): Error %d during SpoolVMLogRecord for parent\n",
-				   errorCode);
-		    }
+		    if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid,
+						      ResolveViceMakeDir_OP,
+						      name, cFid->Vnode, cFid->Unique))) 
+			SLog(0, "CreateObjToMarkInc(Mkdir): Error %d during SpoolVMLogRecord for parent\n", errorCode);
 		}
 	    }
 	}

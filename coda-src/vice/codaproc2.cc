@@ -1247,7 +1247,6 @@ END_TIMING(Reintegrate_GetObjects);
 
 
 /*
- *
  *    Phase III consists of the following steps:
  *      1. Check the semantics of each operation, then perform it 
  *         (delay bulk transfers)
@@ -1397,13 +1396,10 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			    ReintPrelimCOP(v, &r->u.u_store.Status.VV.StoreId,
 					   &r->sid, volptr);
 
-			    if (v->vptr->disk.type == vDirectory &&
-				AllowResolution && V_RVMResOn(volptr)) {
+			    {
 				int opcode = (v->d_needsres)
-				  ? ResolveViceNewStore_OP
-				  : RES_NewStore_OP;
-				SLog(5, 
-				       "Spooling Reintegration newstore record \n");
+				  ? ResolveViceNewStore_OP : RES_NewStore_OP;
+				SLog(5, "Spooling Reintegration newstore record \n");
 				if ((errorCode = 
 				    SpoolVMLogRecord(vlist, v, volptr,
 						     &r->sid, opcode, STSTORE,
@@ -1413,8 +1409,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 						     r->u.u_store.Status.Date, 
 						     r->u.u_store.Mask,
 						     &(r->u.u_store.Status.VV)))) {
-				    SLog(0, "Reint: Error %d for spool of Store Op\n",
-					   errorCode);
+				    SLog(0, "Reint: Error %d for spool of Store Op\n", errorCode);
 				    goto Exit;
 				}
 			    }
@@ -1494,17 +1489,15 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			ReintPrelimCOP(child_v, &r->u.u_create.Status.VV.StoreId,
 				       &r->sid, volptr);
 
-			if (AllowResolution && V_RVMResOn(volptr)) {
+			{
 			    int opcode = (parent_v->d_needsres)
-				? ResolveViceCreate_OP
-				    : RES_Create_OP;
+				? ResolveViceCreate_OP : RES_Create_OP;
 			    if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							     &r->sid, opcode, 
 							     r->u.u_create.Name, 
 							     r->u.u_create.Fid.Vnode,
 							     r->u.u_create.Fid.Unique))) {
-				SLog(0, 
-				       "Reint(CSAP): Error %d during spooling log record for create\n",
+				SLog(0, "Reint(CSAP): Error %d during spooling log record for create\n",
 				       errorCode);
 				goto Exit;
 			    }
@@ -1552,10 +1545,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    ReintPrelimCOP(child_v, &r->u.u_remove.Status.VV.StoreId,
 				   &r->sid, volptr);
 
-		    if (AllowResolution && V_RVMResOn(volptr)) {
+		    {
 			int opcode = (parent_v->d_needsres)
-			  ? ResolveViceRemove_OP
-			  : RES_Remove_OP;
+			  ? ResolveViceRemove_OP : RES_Remove_OP;
 			ViceVersionVector *ghostVV = &Vnode_vv(child_v->vptr);	/* ??? -JJK */
 			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							 &r->sid, opcode, 
@@ -1621,7 +1613,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    ReintPrelimCOP(child_v, &r->u.u_link.Status.VV.StoreId,
 				   &r->sid, volptr);
 
-		    if (AllowResolution && V_RVMResOn(volptr)) {
+		    {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceLink_OP
 			  : RES_Link_OP;
@@ -1720,7 +1712,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (TargetExists)
 			ReintPrelimCOP(t_v, &r->u.u_rename.TgtStatus.VV.StoreId,
 				       &r->sid, volptr);
-		    if (AllowResolution && V_RVMResOn(volptr)) {
+		    {
 			if (!SameParent) {
 			    /* SpoolRenameLogRecord() only allows one opcode, so we must */
 			    /* coerce "non-resolve-needing" parent to "resolve-needing"! */
@@ -1730,8 +1722,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				sd_v->d_needsres = 1;
 			}
 			int sd_opcode = (sd_v->d_needsres)
-			  ? ResolveViceRename_OP
-			  : RES_Rename_OP;
+			  ? ResolveViceRename_OP : RES_Rename_OP;
 			// rvm resolution is on 
 			if ((errorCode = SpoolRenameLogRecord(sd_opcode, vlist, 
 							     s_v, t_v, sd_v,
@@ -1792,10 +1783,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    ReintPrelimCOP(child_v, &r->u.u_mkdir.Status.VV.StoreId,
 				   &r->sid, volptr);
 
-		    if (AllowResolution && V_RVMResOn(volptr)) {
+		    {
 			int p_opcode = (parent_v->d_needsres)
-			  ? ResolveViceMakeDir_OP
-			  : RES_MakeDir_OP;
+			  ? ResolveViceMakeDir_OP : RES_MakeDir_OP;
 			int c_opcode = RES_MakeDir_OP;
 			if (!errorCode) {
 			    if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
@@ -1864,10 +1854,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    ReintPrelimCOP(child_v, &r->u.u_rmdir.TgtStatus.VV.StoreId,
 				   &r->sid, volptr);
 
-		    if (AllowResolution && V_RVMResOn(volptr)) {
+		    {
 			int opcode = (parent_v->d_needsres)
-			  ? ResolveViceRemoveDir_OP
-			  : RES_RemoveDir_OP;
+			  ? ResolveViceRemoveDir_OP : RES_RemoveDir_OP;
 			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, 
 							 volptr, &r->sid, 
 							 opcode, 
@@ -1934,10 +1923,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    ReintPrelimCOP(child_v, &r->u.u_symlink.Status.VV.StoreId,
 				   &r->sid, volptr);
 
-		    if (AllowResolution && V_RVMResOn(volptr)) {
+		    {
 			int opcode = (parent_v->d_needsres)
-			  ? ResolveViceSymLink_OP
-			  : RES_SymLink_OP;
+			  ? ResolveViceSymLink_OP : RES_SymLink_OP;
 			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, 
 							 volptr, &r->sid,
 							 opcode, 
@@ -2388,16 +2376,12 @@ static int ReintNormalVCmpNoRes(int ReplicatedOp, VnodeType type,
 
 /* This probably ought to be folded into the PerformXXX routines!  -JJK */
 static void ReintPrelimCOP(vle *v, ViceStoreId *OldSid,
-			     ViceStoreId *NewSid, Volume *volptr) 
+			   ViceStoreId *NewSid, Volume *volptr) 
 {
 	/* Directories which are not identical to "old" contents MUST be
 	   stamped with unique Sid at end! */
-
-	if (!SID_EQ(Vnode_vv(v->vptr).StoreId, *OldSid)) {
-		CODA_ASSERT(v->vptr->disk.type == vDirectory 
-			    && AllowResolution && V_RVMResOn(volptr));
-		v->d_needsres = 1;
-	}
+	if (!SID_EQ(Vnode_vv(v->vptr).StoreId, *OldSid))
+	    v->d_needsres = 1;
 	
 	Vnode_vv(v->vptr).StoreId = *NewSid;
 }
@@ -2407,8 +2391,8 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 {
 	ViceStoreId *FinalSid;
 	ViceStoreId UniqueSid;
-	if (v->vptr->disk.type == vDirectory && v->d_needsres) {
-		CODA_ASSERT(AllowResolution && V_RVMResOn(volptr));
+	if (v->vptr->disk.type == vDirectory && v->d_needsres && 
+	    AllowResolution && V_RVMResOn(volptr)) {
 		AllocStoreId(&UniqueSid);
 		FinalSid = &UniqueSid;
 	} else {
@@ -2426,12 +2410,11 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	   works correctly. 
 	*/
 	if (v->vptr->disk.type == vDirectory && v->d_needsres) {
-		CODA_ASSERT(AllowResolution && V_RVMResOn(volptr));
-		if (V_RVMResOn(volptr))
-			CODA_ASSERT(SpoolVMLogRecord(NULL, v, volptr, FinalSid, ResolveNULL_OP, 0) == 0);
+	    CODA_ASSERT(SpoolVMLogRecord(NULL, v, volptr, FinalSid,
+					 ResolveNULL_OP, 0) == 0);
 	}
 	else {
-		AddPairToCopPendingTable(FinalSid, &v->fid);
+	    AddPairToCopPendingTable(FinalSid, &v->fid);
 	}
 }
 

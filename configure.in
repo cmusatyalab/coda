@@ -16,6 +16,10 @@ CODA_OPTION_SUBSYS(lwp)
 CODA_OPTION_SUBSYS(rvm)
 CODA_OPTION_SUBSYS(rpc2)
 
+AC_ARG_WITH(openssl,
+  [  --without-openssl     Do not link against the openssl library],
+  [OPENSSL=${withval}])
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
@@ -43,7 +47,7 @@ AC_PATH_PROG(PERL, perl, "")
 AC_PATH_PROG(RM, rm, "")
 AC_PATH_PROG(RDSINIT, rdsinit, "", $PATH:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
 AC_PATH_PROG(RVMUTL, rvmutl, "", $PATH:/usr/sbin:/usr/local/sbin:/usr/pkg/sbin)
-AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
+dnl AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
 
 MV="${MV} -f"
 RM="${RM} -f"
@@ -66,9 +70,14 @@ AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
 
 dnl check for library providing md5 checksumming
-AC_SEARCH_LIBS(MD5_Init, crypto,
-  [test "$ac_cv_search_MD5_Init" = "none required" || LIBMD5="$ac_cv_search_MD5_Init"
-  LIBS="$ac_func_search_save_LIBS"], [MD5C="md5c.o"])
+if test "${OPENSSL}" = "no" ; then
+    MD5C="md5c.o"
+else
+  AC_CHECK_HEADERS(openssl/md5.h)
+  AC_SEARCH_LIBS(MD5_Init, crypto,
+    [test "$ac_cv_search_MD5_Init" = "none required" || LIBMD5="$ac_cv_search_MD5_Init"
+     LIBS="$ac_func_search_save_LIBS"], [MD5C="md5c.o"])
+fi
 AC_SUBST(LIBMD5)
 AC_SUBST(MD5C)
 
@@ -77,9 +86,10 @@ AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h)
 AC_CHECK_HEADERS(sys/statvfs.h sys/statfs.h sys/mount.h sys/vfs.h)
 AC_CHECK_HEADERS(sys/types.h sys/time.h sys/select.h sys/socket.h sys/ioccom.h)
 AC_CHECK_HEADERS(arpa/inet.h arpa/nameser.h netinet/in.h sys/un.h)
-AC_CHECK_HEADERS(openssl/md5.h)
 
 dnl Checks for typedefs.
+AC_CHECK_TYPE(int32_t, int)
+AC_CHECK_TYPE(u_int32_t, unsigned int)
 CODA_CHECK_TYPE(socklen_t, int, sys/socket.h)
 
 dnl Checks for structures.
@@ -89,13 +99,11 @@ CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror snprintf select statfs setpgrp inet_aton inet_ntoa)
+AC_CHECK_FUNCS(inet_aton inet_ntoa select setenv snprintf statfs strerror)
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
-CODA_FUNC_SETPGRP
 CODA_CHECK_FILE_LOCKING
 CODA_CHECK_BCOPY
-CODA_CHECK_SETENV
 CODA_CHECK_SCANDIR
 CODA_RFLAG
 

@@ -29,6 +29,12 @@
 /* Define if you have d_reclen in struct dirent (and don't have scandir) */
 #undef DIRENT_HAVE_D_RECLEN
 
+/* Definition for int32_t if the type is missing*/
+#undef int32_t
+
+/* Definition for u_int32_t if the type is missing*/
+#undef u_int32_t
+
 /* Definition for socklen_t if the type is missing*/
 #undef socklen_t
 

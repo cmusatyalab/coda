@@ -498,20 +498,14 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     if(motd->SeqLen > 1)
 	strcpy(V_motd(volptr), (char *)motd->SeqBody);
 
-    CODA_ASSERT(!(AllowResolution && V_VMResOn(volptr)));
-
     // Only spool a log entry if the quota was set.
-    if (AllowResolution && V_RVMResOn(volptr) && oldquota > -1) 
+    if (oldquota > -1) 
 	if (ReplicatedOp && !errorCode) {
-	    SLog(1, 
-		   "ViceSetVolumeStatus: About to spool log record, oldquota = %d, new quota = %d\n",
-		   oldquota, status->MaxQuota);
+	    SLog(1, "ViceSetVolumeStatus: About to spool log record, oldquota = %d, new quota = %d\n", oldquota, status->MaxQuota);
 	    if ((errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId,
 					     ViceSetVolumeStatus_OP, oldquota,
 					     status->MaxQuota)))
-		SLog(0, 
-		       "ViceSetVolumeStatus: Error %d during SpoolVMLogRecord\n",
-		       errorCode);
+		SLog(0, "ViceSetVolumeStatus: Error %d during SpoolVMLogRecord\n", errorCode);
 	}
 
  Final:

@@ -48,10 +48,6 @@ listed in the file CREDITS.
 
 #include <vice_file.h>
 
-#ifdef sun
-typedef unsigned int u_int32_t;
-#endif
-
 #define PDB_MAIN vice_sharedfile("db/prot_users")
 #define PDB_NAME vice_sharedfile("db/prot_index")
 

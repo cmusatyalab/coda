@@ -143,13 +143,13 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 		pdce = DC_New();
 		vn->dh = pdce;
 		vn->dh_refc = 1;
-		SLog(0, "VN_GetDirHandle NEW Vnode %#x Uniq %#x cnt %d\n",
+		SLog(5, "VN_GetDirHandle NEW Vnode %#x Uniq %#x cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
 	} else if ( vn->disk.inodeNumber ) {
 		pdce = DC_Get((PDirInode)vn->disk.inodeNumber);
 		vn->dh = pdce;
 		vn->dh_refc++;
-		SLog(0, "VN_GetDirHandle for Vnode %#x Uniq" 
+		SLog(5, "VN_GetDirHandle for Vnode %#x Uniq" 
 		     " %#x cnt %d, vn_cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, 
 		     DC_Count(pdce), vn->dh_refc);
@@ -157,7 +157,7 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 		pdce = vn->dh;
 		DC_SetCount(pdce, DC_Count(pdce) + 1);
 		vn->dh_refc++;
-		SLog(0, "VN_GetDirHandle NEW-seen Vnode %#x Uniq %#x " 
+		SLog(5, "VN_GetDirHandle NEW-seen Vnode %#x Uniq %#x " 
 		     "cnt %d, vn_ct %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, 
 		     DC_Count(pdce), vn->dh_refc);
@@ -172,11 +172,10 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
  */
 void VN_PutDirHandle(struct Vnode *vn)
 {
-
 	CODA_ASSERT(vn->dh);
 
 	if (vn->dh) {
-		SLog(0, "VN_PutDirHandle: Vn %x Uniq %x: cnt %d, vn_cnt %d\n",
+		SLog(5, "VN_PutDirHandle: Vn %x Uniq %x: cnt %d, vn_cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, 
 		     DC_Count(vn->dh)-1, vn->dh_refc-1);
 		DC_Put(vn->dh);
@@ -191,7 +190,7 @@ void VN_PutDirHandle(struct Vnode *vn)
 void VN_DropDirHandle(struct Vnode *vn)
 {
 	if (vn->dh) {
-		SLog(0, "VN_DropDirHandle for Vnode %x Unique %x: cnt %d, vn_cnt %d\n",
+		SLog(5, "VN_DropDirHandle for Vnode %x Unique %x: cnt %d, vn_cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(vn->dh), vn->dh_refc);
 		DC_Drop(vn->dh);
 	}
@@ -259,7 +258,7 @@ void VN_CopyOnWrite(struct Vnode *vn)
 	vn->disk.cloned = 0;
  	VN_PutDirHandle(vn);
 	
-	SLog(0, "VN_CopyOnWrite: New other_count: %d dh_refc %d", 
+	SLog(5, "VN_CopyOnWrite: New other_count: %d dh_refc %d", 
 	     others_count, vn->dh_refc);
 
 }

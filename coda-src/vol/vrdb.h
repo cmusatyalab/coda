@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 #ifndef _VICE_VRDB_H_
 #define	_VICE_VRDB_H_	1
 
@@ -107,5 +101,5 @@ extern int XlateVid(VolumeId *, int *, int *);
 extern int ReverseXlateVid(VolumeId *);
 extern unsigned long XlateVidToVSG(VolumeId);
 
-#endif	not _VICE_VRDB_H_
+#endif /* _VICE_VRDB_H_ */
 

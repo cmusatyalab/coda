@@ -84,14 +84,14 @@ EXTRACT_SUFX=	.tgz
 
 MAINTAINER=	rvb@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
-@FreeBSD LIB_DEPENDS+=	lwp.1:\${PORTSDIR}/devel/lwp
+@FreeBSD LIB_DEPENDS+=	lwp.2:\${PORTSDIR}/devel/lwp
 @FreeBSD LIB_DEPENDS+=	rpc2.2:\${PORTSDIR}/devel/rpc2
 @FreeBSD LIB_DEPENDS+=	rvm.1:\${PORTSDIR}/devel/rvm
 
 @NetBSD DEPENDS+=	readline-2.2:../../devel/readline
 @NetBSD DEPENDS+=	perl-5.00404:../../lang/perl5
-@NetBSD DEPENDS+=	lwp-1.4:../../devel/lwp
-@NetBSD DEPENDS+=	rpc2-1.5:../../devel/rpc2
+@NetBSD DEPENDS+=	lwp-1.5:../../devel/lwp
+@NetBSD DEPENDS+=	rpc2-1.6:../../devel/rpc2
 @NetBSD DEPENDS+=	rvm-1.2:../../devel/rvm
 
 @NetBSD #ONLY_FOR_ARCHS=	arm32 i386 ns32k
@@ -166,41 +166,13 @@ EOF
     if [ x${pkg} = xclient ]
     then
 	cat >> ${dst} << EOF
-lib/coda/Advice.tcl
-lib/coda/CodaConsole
-lib/coda/Consider.tcl
-lib/coda/ConsiderAdding.tcl
-lib/coda/ConsiderRemoving.tcl
-lib/coda/ControlPanel.tcl
-lib/coda/Date.tcl
-lib/coda/DiscoMiss.tcl
-lib/coda/Events.tcl
-lib/coda/Globals.tcl
-lib/coda/Helper.tcl
-lib/coda/HoardWalk.tcl
-lib/coda/HoardWalkAdvice.tcl
-lib/coda/Indicators.tcl
-lib/coda/Initialization.tcl
-lib/coda/Lock.tcl
-lib/coda/Log.tcl
-lib/coda/Network.tcl
-lib/coda/OutsideWorld.tcl
-lib/coda/ReadMiss.tcl
-lib/coda/Reconnection.tcl
-lib/coda/Reintegration.tcl
-lib/coda/Repair.tcl
-lib/coda/Space.tcl
-lib/coda/Task.tcl
-lib/coda/Timing.tcl
-lib/coda/Tokens.tcl
-lib/coda/WeakMiss.tcl
-lib/coda/tixCodaMeter.tcl
 sbin/au
+sbin/adv_sidekick
+sbin/codaconfedit
 sbin/venus
 sbin/venus-setup
 sbin/volmunge
 sbin/vutil
-bin/advice_srv
 bin/cfs
 bin/clog
 bin/cmon
@@ -210,10 +182,6 @@ bin/ctokens
 bin/cunlog
 bin/filerepair
 bin/hoard
-bin/logbandwidth
-bin/logcmls
-bin/logprogress
-bin/logreintegration
 bin/parser
 bin/removeinc
 bin/repair
@@ -222,7 +190,6 @@ bin/spy
 bin/xaskuser
 bin/xfrepair
 etc/coda/venus.conf.ex
-@dirrm lib/coda
 EOF
     fi
 
@@ -265,6 +232,7 @@ sbin/vice-setup-scm
 sbin/vice-setup-srvdir
 sbin/vice-setup-user
 sbin/volutil
+etc/coda/server.conf.ex
 etc/rc.d/rc.vice
 EOF
     fi

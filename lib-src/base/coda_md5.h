@@ -23,6 +23,10 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #if defined(HAVE_OPENSSL_MD5_H)
 #include <openssl/md5.h>
 #elif defined(HAVE_MD5_H)
@@ -50,10 +54,6 @@ without express or implied warranty of any kind.
 These notices must be retained in any copies of any part of this
 documentation and/or software.
  */
-
-#ifdef sun
-typedef unsigned int u_int32_t;
-#endif
 
 typedef struct MD5Context {
     u_int32_t state[4];   /* state (ABCD) */

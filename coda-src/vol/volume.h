@@ -375,7 +375,6 @@ struct volHeader {
 #define V_offlineMessage(vp)	((vp)->header->diskstuff.offlineMessage)
 #define V_motd(vp)		((vp)->header->diskstuff.motd)
 #define V_disk(vp)		((vp)->header->diskstuff)
-#define V_VMResOn(vp)		((vp)->header->diskstuff.ResOn & VMRES)
 #define V_RVMResOn(vp)		((vp)->header->diskstuff.ResOn & RVMRES)
 #define V_maxlogentries(vp)	((vp)->header->diskstuff.maxlogentries)
 #define V_VolLog(vp)		((vp)->header->diskstuff.log)
