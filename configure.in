@@ -135,8 +135,8 @@ coda-src/guitools/tests/Makefile
 coda-src/smon2/Makefile ,
 mkdir -p rvm-src/rvmlwp 
 rm -f rvm-src/rvmlwp/Makefile
-ln -sf ../rvm/Makefile rvm-src/rvmlwp/Makefile
+ln -f -s ../rvm/Makefile rvm-src/rvmlwp/Makefile
 mkdir -p rvm-src/rdslwp
 rm -f rvm-src/rdslwp/Makefile
-ln -sf ../rds/Makefile rvm-src/rdslwp/Makefile
+ln -f -s ../rds/Makefile rvm-src/rdslwp/Makefile
  )
