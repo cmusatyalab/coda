@@ -824,11 +824,11 @@ static int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
 	// dump contents to files 
 	DumpDirContents(sid_bufs, fid);
     int replicafound = 0;
-    char *firstreplica = 0;
+    DirHeader *firstreplica = NULL;
     int firstreplicasize = 0;
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	int len = sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
-	char *buf = (char *)sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody;
+	DirHeader *buf = (DirHeader *)sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody;
 	
 	if (len) {
 	    if (!replicafound) {
@@ -837,12 +837,20 @@ static int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
 		firstreplicasize = len;
 	    }
 	    else {
-		if (bcmp(firstreplica, buf, len)) {
-		    LogMsg(0, SrvDebugLevel, stdout,  
-			   "DirContents/Vol Quotas ARE DIFFERENT");
-		    DumpDirContents(sid_bufs, fid);
+		if (DIR_Compare(firstreplica, buf)) {
+		    SLog(0, "CompareDirContents: DirContents ARE DIFFERENT");
+		    if (SrvDebugLevel > 9) {
+			DIR_Print(firstreplica);
+			DIR_Print(buf);
+		    }
 		    return(-1);
 		}
+                if (memcmp((char *)firstreplica + DIR_Length(firstreplica),
+                           (char *)buf + DIR_Length(buf), VAclSize(NULL)) != 0)
+                {
+		    SLog(0, "CompareDirContents: ACL's are DIFFERENT");
+		    return(-1);
+                }
 	    }
 	}
     }

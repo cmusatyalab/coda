@@ -278,7 +278,7 @@ AddCallBack: Establish a callback for afid with
 CallBackStatus AddCallBack(HostTable *client, ViceFid *afid) 
 {
     SLog(3, "AddCallBack for Fid 0x%x.%x.%x, Venus %s.%d", afid->Volume,
-	 afid->Vnode, afid->Unique, client->HostName, client->port);
+	 afid->Vnode, afid->Unique, client->HostName, ntohs(client->port));
 
     char aVCB = (afid->Vnode == 0 && afid->Unique == 0);
 

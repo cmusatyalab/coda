@@ -80,7 +80,7 @@ void fsobj::FetchProgressIndicator(unsigned int offset)
     }
 
     if (last != curr) {
-	MarinerLog("progress::fetching (%s) %lu%%\n", comp, curr);
+	MarinerLog("progress::fetching (%s) %lux\n", comp, curr);
     }
 
     stat.GotThisData = (unsigned long)offset;

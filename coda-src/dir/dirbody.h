@@ -79,7 +79,6 @@ struct DirHeader {
 
 int DIR_rvm(void);
 int DIR_IsEmpty(PDirHeader);
-void DIR_Print(PDirHeader);
 extern void DIR_Free(struct DirHeader *, int);
 extern int DirHash (char *);
 extern int DirToNetBuf(long *, char *, int, int *);

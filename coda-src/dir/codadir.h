@@ -163,6 +163,7 @@ char *FID_2(struct ViceFid *);
 int DIR_init(int);
 int DIR_Compare (PDirHeader, PDirHeader);
 int DIR_Length(PDirHeader);
+void DIR_Print(PDirHeader);
 #define DIR_intrans()  DIR_check_trans(__FUNCTION__, __FILE__)
 inline void DIR_check_trans(char *where, char *file);
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page);

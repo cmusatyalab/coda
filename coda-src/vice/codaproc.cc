@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /************************************************************************/
 /*									*/
 /*  codaproc.c	- File Server Coda specific routines			*/
@@ -1228,7 +1222,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		    tv = FindVLE(*vlist, &tfid);
 		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
 		}
-		VN_PutDirHandle(tv->vptr);
+		VN_PutDirHandle(tdv->vptr);
 		if (errorCode = CheckRepairRenameSemantics(client, volptr, sdv, tdv, 
 							   sv, tv, repairent.name, repairent.newname))
 		    return(errorCode);
@@ -1504,7 +1498,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
-		VN_SetDirHandle(sdv->vptr);
+		VN_PutDirHandle(sdv->vptr);
 
 		// get target vnode 
 		PDirHandle tdh;
@@ -1633,6 +1627,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			     struct repair *repList, int repCount)
 {
     int errorCode = 0;
+    vle *v;
 
     /* first get fids */
     {    
@@ -1731,8 +1726,12 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			tpfid.Vnode = repairent.parms[3];
 			tpfid.Unique = repairent.parms[4];
 			
-			AddVLE(*vlist, &spfid);
-			AddVLE(*vlist, &tpfid);
+			v = AddVLE(*vlist, &spfid);
+			v->d_inodemod = 1;
+
+			v = AddVLE(*vlist, &tpfid);
+			v->d_inodemod = 1;
+
 			AddChild(&volptr, vlist, &spfid, repairent.name, 1);
 			AddChild(&volptr, vlist, &tpfid, repairent.newname, 1);
 		    }
@@ -1757,6 +1756,10 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
     /* put back object being repaired */
     {
 	Error fileCode = 0;
+
+        if (ov->vptr->dh)
+            VN_PutDirHandle(ov->vptr);
+
 	VPutVnode(&fileCode, ov->vptr);
 	CODA_ASSERT(fileCode == 0);
 	ov->vptr = 0;
@@ -1785,6 +1788,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 */
 int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     Vnode *vptr = 0;
+    vle *v;
     dlist *tmplist = new dlist((CFN)VLECmp);
     int errorCode = 0;
 
@@ -1793,9 +1797,9 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     /* get root vnode */
     {
 	if (errorCode = GetFsObj(fid, &volptr, &vptr,
-				 READ_LOCK, NO_LOCK, 1, 0, 0)) 
+				 READ_LOCK, NO_LOCK, 1, 0, 1)) 
 	    goto Exit;
-	
+        
 	CODA_ASSERT(vptr->disk.type == vDirectory);
     }
 	
@@ -1836,7 +1840,8 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     }
 
     /* add object's fid into list */
-    AddVLE(*vlist, fid);
+    v = AddVLE(*vlist, fid);
+    v->d_inodemod = 1;
   Exit:
     {
 	vle *v;
