@@ -27,7 +27,11 @@ typedef unsigned short u_short;
 typedef u_long ino_t;
 typedef u_long dev_t;
 typedef void * caddr_t;
+#ifdef DOS
+typedef unsigned __int64 u_quad_t;
+#else 
 typedef unsigned long long u_quad_t;
+#endif
 
 #define inline
 
@@ -83,9 +87,9 @@ struct timespec {
 #define C_M_WRITE 00200
 
 /* for access Venus will use */
+#define C_A_C_OK    8               /* Test for writing upon create.  */
 #define C_A_R_OK    4               /* Test for read permission.  */
 #define C_A_W_OK    2               /* Test for write permission.  */
-#define C_A_C_OK    8               /* Test for writing upon create.  */
 #define C_A_X_OK    1               /* Test for execute permission.  */
 #define C_A_F_OK    0               /* Test for existence.  */
 
@@ -108,13 +112,13 @@ struct venus_dirent {
  * File types
  */
 #define	CDT_UNKNOWN	 0
-#define	CDT_FIFO		 1
+#define	CDT_FIFO	 1
 #define	CDT_CHR		 2
 #define	CDT_DIR		 4
 #define	CDT_BLK		 6
 #define	CDT_REG		 8
 #define	CDT_LNK		10
-#define	CDT_SOCK		12
+#define	CDT_SOCK	12
 #define	CDT_WHT		14
 
 /*
@@ -250,7 +254,15 @@ struct coda_vattr {
 #define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
                             VC_MAXDATASIZE  
 
-
+#define CIOC_KERNEL_VERSION _IOWR('c', 10, sizeof (int))
+#if	0
+	/* don't care about kernel version number */
+#define CODA_KERNEL_VERSION 0
+	/* The old venus 4.6 compatible interface */
+#define CODA_KERNEL_VERSION 1
+#endif
+	/* venus_lookup gets an extra parameter to aid windows.*/
+#define CODA_KERNEL_VERSION 2
 
 /*
  *        Venus <-> Coda  RPC arguments
@@ -360,11 +372,17 @@ struct coda_access_out {
     struct coda_out_hdr out;
 };
 
+
+/* lookup flags */
+#define CLU_CASE_SENSITIVE     0x01
+#define CLU_CASE_INSENSITIVE   0x02
+
 /* coda_lookup: */
 struct  coda_lookup_in {
     struct coda_in_hdr ih;
     ViceFid	VFid;
     int         name;		/* Place holder for data. */
+    int         flags;	
 };
 
 struct coda_lookup_out {
