@@ -153,9 +153,7 @@ class listentry : public olink {
     char tname[MAXPATHLEN];
 
     listentry(char *lname, vuid_t luid) {
-	sprintf(msg.outfile, "/usr/coda/tmp/XXXXXX");
-	(void)mktemp(msg.outfile);
-
+	tmpnam(msg.outfile);
 	strcpy(tname, lname);
 	msg.luid = luid;
     }
@@ -192,9 +190,7 @@ class verify_entry : public olink {
     char tname[MAXPATHLEN];
 
     verify_entry(char *vname, vuid_t vuid, int verbosity) {
-	sprintf(msg.outfile, "/usr/coda/tmp/XXXXXX");
-	(void)mktemp(msg.outfile);
-
+	tmpnam(msg.outfile);
 	strcpy(tname, vname);
 	msg.luid = vuid;
 	msg.verbosity = verbosity;
