@@ -375,10 +375,11 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 	/* Makes sense only if we are on sink side */
 	if (IsSink(sEntry)) {
 	    if (sftp_DataArrived(whichPacket, sEntry) < 0) {
-		if (sEntry->WhoAmI != DISKERROR)
-		    sftp_SetError(sEntry, ERROR);
 		SFSendNAK(whichPacket); /* NAK this packet */
-		SFTP_FreeBuffer(&whichPacket);
+		if (sEntry->WhoAmI != DISKERROR) {
+		    sftp_SetError(sEntry, ERROR);
+                    SFTP_FreeBuffer(&whichPacket);
+                }
 	    }
 	} else {
 	    BOGUS(whichPacket);
