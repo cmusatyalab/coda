@@ -401,10 +401,6 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
     /* rto += ( effBR * Bytes ) / 1000 ; */
     rto += ((effBR >> 3) * Bytes) >> 7;
     
-    /* clamp rtt estimates */
-    if      (rto < RPC2_MINRTO) rto = RPC2_MINRTO;
-    else if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
-
     if (*retry != 1) {
 	rtt = ce->MaxRetryInterval.tv_sec * 1000000 +
 	      ce->MaxRetryInterval.tv_usec;
@@ -417,6 +413,10 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
 	if (rtt > rto) rto = rtt;
     }
     
+    /* clamp retry estimates */
+    if      (rto < RPC2_MINRTO) rto = RPC2_MINRTO;
+    else if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
+
     tv->tv_sec  = rto / 1000000;
     tv->tv_usec = rto % 1000000;
 

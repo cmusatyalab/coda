@@ -1,6 +1,7 @@
 New in 1.13:
 
 * Fixed crash when an expired connection receives a NAK.
+* Increased lower bound on retransmission time to 300ms.
 
 New in 1.12:
 

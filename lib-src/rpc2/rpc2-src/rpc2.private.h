@@ -105,7 +105,7 @@ OBJ_HENTRY = 48127
 #endif
 
 /* MINRTO/MAXRTO are used to avoid unbounded timeouts */
-#define RPC2_MINRTO   10000        /* min rto (rtt + variance) is 10 msec */
+#define RPC2_MINRTO   300000        /* min rto (rtt + variance) is 300 msec */
 #define RPC2_MAXRTO   30000000     /* max rto (rtt + variance) is 30 seconds */
 
 /* Definitions for Flags field of connections */
