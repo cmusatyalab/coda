@@ -39,7 +39,7 @@ EXECUTABLES += codaconfedit
 CMON_LIBS   = $(LIBVICEDEP) $(LIBBASE)
 CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
 HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
-STD_LIBS = $(LIBCURSES) $(LIBS)
+STD_LIBS = $(LIBCURSES) $(LIBCRYPTO) $(LIBS)
 
 CXXFLAGS := $(CXXFLAGS) -UVENUS
 
@@ -49,10 +49,10 @@ cmon: cmon.o $(CMON_LIBS)
 	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(LIBRPC2) $(LIBSE) $(LIBLWP) $(LIBCOMPAT) $(STD_LIBS) -o cmon
 
 codacon: codacon.o $(LIBBASE)
-	$(CXX) $(LDFLAGS) codacon.o $(LIBBASE) $(LIBS) -o codacon
+	$(CXX) $(LDFLAGS) codacon.o $(LIBBASE) $(LIBCRYPTO) $(LIBS) -o codacon
 
 codaconfedit: codaconfedit.o $(LIBBASE)
-	$(CXX) $(LDFLAGS) codaconfedit.o $(LIBBASE) $(LIBS) -o codaconfedit
+	$(CXX) $(LDFLAGS) codaconfedit.o $(LIBBASE) $(LIBCRYPTO) $(LIBS) -o codaconfedit
 
 cfs:  cfs.o $(CFS_LIBS)
 	$(CXX) $(LDFLAGS) cfs.o $(CFS_LIBS) $(STD_LIBS) -o cfs
@@ -61,7 +61,7 @@ hoard: hoard.o $(HOARD_LIBS)
 	$(CXX) $(LDFLAGS) hoard.o $(HOARD_LIBS) $(STD_LIBS) -o hoard
 
 spy: spy.o $(LIBBASE)
-	$(CXX) $(LDFLAGS) spy.o $(LIBBASE) $(LIBS) -o spy
+	$(CXX) $(LDFLAGS) spy.o $(LIBBASE) $(LIBCRYPTO) $(LIBS) -o spy
 
 coda_replay: replay.o
 	$(CXX) $(LDFLAGS) replay.o $(LIBS) -o coda_replay

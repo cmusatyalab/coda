@@ -710,7 +710,6 @@ static void updateBackupVnodes(Volume *rwvp, Volume *backupvp,
 		    rwVnode->cloned = 0;	// backupVnodes can't be cloned.
 		    rwVnode->versionvector.Flags = 0; // R/O vnodes shouldn't be inconsistent.
 		    rwVnode->vol_index = bvdop->vol_index;
-		    rwVnode->lock = bvdop->lock;	// Use the backupVnode's lock
 		    rwVnode->nextvn = bvdop->nextvn;
 
 		    rvmlib_modify_bytes(bvdop, rwVnode, (vclass == vLarge) ?

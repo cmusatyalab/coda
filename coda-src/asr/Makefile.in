@@ -33,7 +33,7 @@ CBINS       = $(EXECUTABLES)
 HEADERS     = asr.h ruletypes.h
 
 DEPLIBS = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LEXLIB) $(LIBS)
+LIBS := $(DEPLIBS) $(LEXLIB) $(LIBCRYPTO) $(LIBS)
 
 #uncomment if you want to turn on timing of the ASR 
 #PERSONAL_FLAGS= -DTIMING

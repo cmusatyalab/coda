@@ -32,7 +32,7 @@ LIBRARIES := liblka.a
 OBJS := lka.o shaprocs.o
 
 DEPLIBS := $(LIBUTIL) $(LIBRWCDB) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBCRYPTO)
+LIBS := $(DEPLIBS) $(LIBCRYPTO) $(LIBS)
 
 include $(TOPDIR)/configs/Makerules
 
