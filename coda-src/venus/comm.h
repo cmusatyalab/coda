@@ -151,7 +151,7 @@ class connent {
     /* Static state; immutable after construction. */
     //struct in_addr Host;	/* Who to contact. */
     srvent *srv;
-    vuid_t uid;			/* UID to validate with respect to. */
+    uid_t uid;			/* UID to validate with respect to. */
     unsigned authenticated : 1;
 
     /* Dynamic state; varies with each call. */
@@ -159,7 +159,7 @@ class connent {
     unsigned dying : 1;
 
     /* Constructors, destructors, and private utility routines. */
-    connent(srvent *, vuid_t, RPC2_Handle, int);
+    connent(srvent *, uid_t, RPC2_Handle, int);
     connent(connent&) { abort(); }	/* not supported! */
     int operator=(connent&) { abort(); return(0); }	/* not supported! */
     ~connent();
@@ -182,7 +182,7 @@ class connent {
 
 struct ConnKey {
     struct in_addr host;
-    vuid_t vuid;
+    uid_t uid;
 };
 
 class conn_iterator : public olist_iterator {
@@ -251,7 +251,7 @@ class srvent : private RefCountedObject {
     srvent(srvent&) { abort(); }	/* not supported! */
     int operator=(srvent&) { abort(); return(0); }	/* not supported! */
     ~srvent();
-    int Connect(RPC2_Handle *, int *, vuid_t, int);
+    int Connect(RPC2_Handle *, int *, uid_t, int);
 
   public:
 #ifdef	VENUSDEBUG
@@ -260,7 +260,7 @@ class srvent : private RefCountedObject {
 #endif
     RealmId realmid;
 
-    int GetConn(connent **c, vuid_t vuid, int force =0);
+    int GetConn(connent **c, uid_t uid, int force =0);
 
     int GetStatistics(ViceStatistics *);
 

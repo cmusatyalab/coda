@@ -230,12 +230,14 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
 
     LOG(1, ("CallBackFetch: host = %s, fid = (%s)\n", s->name, FID_(&vf)));
 
-    long code = 0, fd;
+    long code = 0, fd = -1;
 
     /* Get the object. */
     fsobj *f = FSDB->Find(&vf);
-    if (f == 0)
-	{ code = ENOENT; goto GetLost; }
+    if (!f) {
+	code = ENOENT;
+	goto GetLost;
+    }
 
     /* 
      * We do not lock the object, because the reintegrator thread has already
@@ -306,7 +308,7 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
     }
 
 GetLost:
-    if (f) f->shadow->Close(fd);
+    if (f && fd != -1) f->shadow->Close(fd);
     LOG(1, ("CallBackFetch: returning %d\n", code));
     return(code);
 }

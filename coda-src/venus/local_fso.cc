@@ -264,7 +264,7 @@ NonRepExit:
 }
 
 int fsobj::RepairSetAttr(unsigned long NewLength, Date_t NewDate,
-			 vuid_t NewOwner, unsigned short NewMode,
+			 uid_t NewOwner, unsigned short NewMode,
 			 RPC2_CountedBS *acl) 
 {
     Date_t Mtime = Vtime();

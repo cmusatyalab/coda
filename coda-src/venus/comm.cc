@@ -110,9 +110,6 @@ struct FailFilterInfoStruct {
 	unsigned char used;
 } FailFilterInfo[MAXFILTERS];
 
-
-static int VSG_HashFN(void *);
-
 olist *srvent::srvtab;
 char srvent::srvtab_sync;
 olist *connent::conntab;
@@ -249,10 +246,10 @@ void Conn_Signal() {
 }
 
 
-int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
+int srvent::GetConn(connent **cpp, uid_t uid, int Force)
 {
-    LOG(100, ("srvent::GetConn: host = %s, vuid = %d, force = %d\n",
-              inet_ntoa(host), vuid, Force));
+    LOG(100, ("srvent::GetConn: host = %s, uid = %d, force = %d\n",
+              inet_ntoa(host), uid, Force));
 
     *cpp = 0;
     int code = 0;
@@ -262,7 +259,7 @@ int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
     /* Before creating a new connection, make sure the per-user limit is not exceeded. */
     for (;;) {
 	/* Check whether there is already a free connection. */
-	struct ConnKey Key; Key.host = host; Key.vuid = vuid;
+	struct ConnKey Key; Key.host = host; Key.uid = uid;
 	conn_iterator next(&Key);
 	int count = 0;
 	while ((c = next())) {
@@ -287,7 +284,7 @@ int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
     /* Try to connect to the server on behalf of the user. */
     RPC2_Handle ConnHandle = 0;
     int auth = 1;
-    code = Connect(&ConnHandle, &auth, vuid, Force);
+    code = Connect(&ConnHandle, &auth, uid, Force);
 
     switch(code) {
     case 0:      break;
@@ -298,7 +295,7 @@ int srvent::GetConn(connent **cpp, vuid_t vuid, int Force)
     }
 
     /* Create and install the new connent. */
-    c = new connent(this, vuid, ConnHandle, auth);
+    c = new connent(this, uid, ConnHandle, auth);
     if (!c) return(ENOMEM);
 
     c->inuse = 1;
@@ -360,15 +357,15 @@ void ConnPrint(int fd) {
 }
 
 
-connent::connent(srvent *server, vuid_t vuid, RPC2_Handle cid, int authflag)
+connent::connent(srvent *server, uid_t Uid, RPC2_Handle cid, int authflag)
 {
     LOG(1, ("connent::connent: host = %s, uid = %d, cid = %d, auth = %d\n",
-	     server->Name(), vuid, cid, authflag));
+	     server->Name(), uid, cid, authflag));
 
     /* These members are immutable. */
     server->GetRef();
     srv = server;
-    uid = vuid;
+    uid = Uid;
     connid = cid;
     authenticated = authflag;
 
@@ -508,7 +505,7 @@ connent *conn_iterator::operator()() {
 	if (key == (struct ConnKey *)0) return(c);
 	if ((key->host.s_addr == c->srv->host.s_addr ||
              key->host.s_addr == INADDR_ANY) &&
-	    (key->vuid == c->uid || key->vuid == ALL_UIDS))
+	    (key->uid == c->uid || key->uid == ALL_UIDS))
 	    return(c);
     }
 
@@ -1016,10 +1013,10 @@ srvent::~srvent()
 }
 
 
-int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force)
+int srvent::Connect(RPC2_Handle *cidp, int *authp, uid_t uid, int Force)
 {
     LOG(100, ("srvent::Connect: host = %s, uid = %d, force = %d\n",
-	     name, vuid, Force));
+	     name, uid, Force));
 
     int code = 0;
 
@@ -1041,7 +1038,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force)
     {
 	userent *u = 0;
 	Realm *realm = REALMDB->GetRealm(realmid);
-	GetUser(&u, realm, vuid);
+	GetUser(&u, realm, uid);
 	code = u->Connect(cidp, authp, &host);
 	PutUser(&u);
 	realm->PutRef();
@@ -1110,7 +1107,7 @@ void srvent::Reset()
 
     /* Kill all direct connections to this server. */
     {
-	struct ConnKey Key; Key.host = host; Key.vuid = ALL_UIDS;
+	struct ConnKey Key; Key.host = host; Key.uid = ALL_UIDS;
 	conn_iterator conn_next(&Key);
 	connent *c = 0;
 	connent *tc = 0;
@@ -1343,8 +1340,8 @@ void srvent::ForceStrong(int on) {
 
 void srvent::print(FILE *f)
 {
-    fprintf(f, "%#08x : %-16s : cid = %d, host = %s, binding = %d, bw = %d\n",
-            (long)this, name, connid, inet_ntoa(host), Xbinding, bw);
+    fprintf(f, "%p : %-16s : cid = %d, host = %s, binding = %d, bw = %ld\n",
+            this, name, (int)connid, inet_ntoa(host), Xbinding, bw);
     PrintRef(f);
 }
 

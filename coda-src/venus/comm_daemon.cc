@@ -130,9 +130,9 @@ void ServerProbe(long *lastupp, long *lastdownp) {
 
     /* Mark the servers to be probed */
     {
-	long curr_time = Vtime();	
-	long minlastup = curr_time;	/* assume everyone gets probed now. */
-	long minlastdown = curr_time;
+	time_t curr_time = Vtime();	
+	time_t minlastup = curr_time;	/* assume everyone gets probed now. */
+	time_t minlastdown = curr_time;
 
 	srv_iterator next;
 	srvent *s;

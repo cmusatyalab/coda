@@ -314,12 +314,11 @@ void CacheFile::print(int fdes)
 
 int CacheFile::Open(int flags)
 {
-    union outputArgs msg;
     int fd;
 
     fd = ::open(name, flags|O_BINARY, V_MODE);
 
-    CODA_ASSERT (fd != (ino_t)-1);
+    CODA_ASSERT (fd != -1);
     numopens++;
     
     return fd;

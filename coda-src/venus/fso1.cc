@@ -671,7 +671,7 @@ int fsobj::Flush() {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 /* Called as result of {GetAttr, ValidateAttr, GetData, ValidateData}. */
-void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid)
+void fsobj::UpdateStatus(ViceStatus *vstat, uid_t uid)
 {
     /* Mount points are never updated. */
     if (IsMtPt())
@@ -680,7 +680,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid)
     if (IsFake())
 	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsFake!"); }
 
-    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), vuid));
+    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), uid));
 
     if (HAVESTATUS(this)) {		/* {ValidateAttr, GetData, ValidateData} */
 	if (!StatusEq(vstat, 0))
@@ -693,7 +693,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid)
 
     /* Set access rights and parent (if they differ). */
     if (IsDir())
-	SetAcRights(vuid, vstat->MyAccess, vstat->AnyAccess);
+	SetAcRights(uid, vstat->MyAccess, vstat->AnyAccess);
 
     SetParent(vstat->vparent, vstat->uparent);
 }
@@ -702,7 +702,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid)
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 /* Called for mutating operations. */
-void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid)
+void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
 {
     /* Mount points are never updated. */
     if (IsMtPt())
@@ -711,7 +711,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid)
     if (IsFake())
 	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsFake!"); }
 
-    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), vuid));
+    LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), uid));
 
     /* Install the new status block. */
     if (!StatusEq(vstat, 1))
@@ -722,18 +722,19 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid)
     /* Set access rights and parent (if they differ). */
     /* N.B.  It should be a fatal error if they differ! */
     if (IsDir())
-	SetAcRights(vuid, vstat->MyAccess, vstat->AnyAccess);
+	SetAcRights(uid, vstat->MyAccess, vstat->AnyAccess);
 
     SetParent(vstat->vparent, vstat->uparent);
 }
 
 
 /* Need not be called from within transaction. */
-int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
+int fsobj::StatusEq(ViceStatus *vstat, int Mutating)
+{
     int eq = 1;
     int log = (Mutating || HAVEDATA(this));
 
-    if (stat.Length != (long)vstat->Length) {
+    if (stat.Length != vstat->Length) {
 	eq = 0;
 	if (log)
 	    LOG(0, ("fsobj::StatusEq: (%s), Length %d != %d\n",
@@ -821,7 +822,7 @@ void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet)
 	}
     }
     stat.Date = vstat->Date;
-    stat.Owner = (vuid_t) vstat->Owner;
+    stat.Owner = (uid_t) vstat->Owner;
     stat.Mode = (short) vstat->Mode;
     stat.LinkCount = (unsigned char) vstat->LinkCount;
     stat.VnodeType = vstat->VnodeType;
@@ -895,31 +896,33 @@ int fsobj::IsValid(int rcrights) {
 
 
 /* Returns {0, EACCES, ENOENT}. */
-int fsobj::CheckAcRights(vuid_t vuid, long rights, int connected) {
-    if (vuid != ALL_UIDS) {
+int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
+{
+    if (uid != ALL_UIDS) {
 	/* Do we have this user's rights in the cache? */
 	for (int i = 0; i < CPSIZE; i++) {
 	    if (SpecificUser[i].inuse && (!connected || SpecificUser[i].valid)
-		&& vuid == SpecificUser[i].uid)
+		&& uid == SpecificUser[i].uid)
 		return((rights & SpecificUser[i].rights) ? 0 : EACCES);
 	}
     }
-    if (vuid == ALL_UIDS || !connected) {
+    if (uid == ALL_UIDS || !connected) {
 	/* Do we have access via System:AnyUser? */
 	if (AnyUser.inuse && (!connected || AnyUser.valid))
 	    return((rights & AnyUser.rights) ? 0 : EACCES);
     }
 
     LOG(10, ("fsobj::CheckAcRights: not found, (%s), (%d, %d, %d)\n",
-	      FID_(&fid), vuid, rights, connected));
+	      FID_(&fid), uid, rights, connected));
     return(ENOENT);
 }
 
 
 /* MUST be called from within transaction! */
-void fsobj::SetAcRights(vuid_t vuid, long my_rights, long any_rights) {
-    LOG(100, ("fsobj::SetAcRights: (%s), vuid = %d, my_rights = %d, any_rights = %d\n",
-	       FID_(&fid), vuid, my_rights, any_rights));
+void fsobj::SetAcRights(uid_t uid, long my_rights, long any_rights)
+{
+    LOG(100, ("fsobj::SetAcRights: (%s), uid = %d, my_rights = %d, any_rights = %d\n",
+	       FID_(&fid), uid, my_rights, any_rights));
 
     if (!AnyUser.inuse || AnyUser.rights != any_rights) {
 	RVMLIB_REC_OBJECT(AnyUser);
@@ -930,7 +933,7 @@ void fsobj::SetAcRights(vuid_t vuid, long my_rights, long any_rights) {
 
     /* Don't record my_rights if we're not really authenticated! */
     userent *ue;
-    GetUser(&ue, vol->realm, vuid);
+    GetUser(&ue, vol->realm, uid);
     int tokensvalid = ue->TokensValid();
     PutUser(&ue);
     if (!tokensvalid) return;
@@ -939,7 +942,7 @@ void fsobj::SetAcRights(vuid_t vuid, long my_rights, long any_rights) {
     int j = -1;
     int k = -1;
     for (i = 0; i < CPSIZE; i++) {
-	if (vuid == SpecificUser[i].uid) break;
+	if (uid == SpecificUser[i].uid) break;
 	if (!SpecificUser[i].inuse) j = i;
 	if (!SpecificUser[i].valid) k = i;
     }
@@ -947,11 +950,11 @@ void fsobj::SetAcRights(vuid_t vuid, long my_rights, long any_rights) {
     if (i == CPSIZE && k != -1) i = k;
     if (i == CPSIZE) i = (int) (Vtime() % CPSIZE);
 
-    if (!SpecificUser[i].inuse || SpecificUser[i].uid != vuid ||
+    if (!SpecificUser[i].inuse || SpecificUser[i].uid != uid ||
 	SpecificUser[i].rights != my_rights)
     {
 	RVMLIB_REC_OBJECT(SpecificUser[i]);
-	SpecificUser[i].uid = vuid;
+	SpecificUser[i].uid = uid;
 	SpecificUser[i].rights = (unsigned char) my_rights;
 	SpecificUser[i].inuse = 1;
     }
@@ -960,23 +963,25 @@ void fsobj::SetAcRights(vuid_t vuid, long my_rights, long any_rights) {
 
 
 /* Need not be called from within transaction. */
-void fsobj::DemoteAcRights(vuid_t vuid) {
-    LOG(100, ("fsobj::DemoteAcRights: (%s), vuid = %d\n", FID_(&fid), vuid));
+void fsobj::DemoteAcRights(uid_t uid)
+{
+    LOG(100, ("fsobj::DemoteAcRights: (%s), uid = %d\n", FID_(&fid), uid));
 
-    if (vuid == ALL_UIDS && AnyUser.valid)
+    if (uid == ALL_UIDS && AnyUser.valid)
 	AnyUser.valid = 0;
 
     for (int i = 0; i < CPSIZE; i++)
-	if ((vuid == ALL_UIDS || SpecificUser[i].uid == vuid) && SpecificUser[i].valid)
+	if ((uid == ALL_UIDS || SpecificUser[i].uid == uid) && SpecificUser[i].valid)
 	    SpecificUser[i].valid = 0;
 }
 
 
 /* Need not be called from within transaction. */
-void fsobj::PromoteAcRights(vuid_t vuid) {
-    LOG(100, ("fsobj::PromoteAcRights: (%s), vuid = %d\n", FID_(&fid), vuid));
+void fsobj::PromoteAcRights(uid_t uid)
+{
+    LOG(100, ("fsobj::PromoteAcRights: (%s), uid = %d\n", FID_(&fid), uid));
 
-    if (vuid == ALL_UIDS) {
+    if (uid == ALL_UIDS) {
 	AnyUser.valid = 1;
 
 	/* 
@@ -999,29 +1004,30 @@ void fsobj::PromoteAcRights(vuid_t vuid) {
 	 * otherwise wouldn't have because he lost tokens.
 	 */
 	userent *ue;
-	GetUser(&ue, vol->realm, vuid);
+	GetUser(&ue, vol->realm, uid);
 	int tokensvalid = ue->TokensValid();
 	PutUser(&ue);
 	if (!tokensvalid) return;
 
 	for (int i = 0; i < CPSIZE; i++)
-	    if (SpecificUser[i].uid == vuid)
+	    if (SpecificUser[i].uid == uid)
 		SpecificUser[i].valid = 1;
     }
 }
 
 
 /* MUST be called from within transaction! */
-void fsobj::ClearAcRights(vuid_t vuid) {
-    LOG(100, ("fsobj::ClearAcRights: (%s), vuid = %d\n", FID_(&fid), vuid));
+void fsobj::ClearAcRights(uid_t uid)
+{
+    LOG(100, ("fsobj::ClearAcRights: (%s), uid = %d\n", FID_(&fid), uid));
 
-    if (vuid == ALL_UIDS) {
+    if (uid == ALL_UIDS) {
 	RVMLIB_REC_OBJECT(AnyUser);
 	AnyUser = NullAcRights;
     }
 
     for (int i = 0; i < CPSIZE; i++)
-	if (vuid == ALL_UIDS || SpecificUser[i].uid == vuid) {
+	if (uid == ALL_UIDS || SpecificUser[i].uid == uid) {
 	    RVMLIB_REC_OBJECT(SpecificUser[i]);
 	    SpecificUser[i] = NullAcRights;
 	}
@@ -1097,7 +1103,7 @@ void fsobj::MakeClean() {
 /* local-repair modification */
 /* MUST NOT be called from within transaction! */
 /* Call with object write-locked. */
-int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
+int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 {
     if (!HAVEALLDATA(this))
 	{ print(logFile); CHOKE("fsobj::TryToCover: called without data"); }
@@ -1196,13 +1202,13 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
     root_fid.Realm = tvol->GetRealmId();
     root_fid.Volume = tvol->vid;
     if (IsFake()) {
-	if (sscanf(data.symlink, "@%*lx.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
+	if (sscanf(data.symlink, "@%*x.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
 	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get <tvolid, tunique>"); }
     }
     else {
 	    FID_MakeRoot(MakeViceFid(&root_fid));
     }
-    code = FSDB->Get(&rf, &root_fid, vuid, RC_STATUS, comp);
+    code = FSDB->Get(&rf, &root_fid, uid, RC_STATUS, comp);
     if (code != 0) {
 	LOG(100, ("fsobj::TryToCover: Get root (%s) failed (%d)\n",
 		  FID_(&root_fid), code));
@@ -1607,7 +1613,7 @@ void fsobj::AttachHdbBinding(binding *b)
     namectxt *nc = (namectxt *)b->binder;
     if (nc->priority > HoardPri) {
 	HoardPri = nc->priority;
-	HoardVuid = nc->vuid;
+	HoardVuid = nc->uid;
 	ComputePriority();
     }
 }
@@ -1692,7 +1698,7 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
     /* Recompute our priority if necessary. */
     if (nc->priority == HoardPri) {
 	int new_HoardPri = 0;
-	vuid_t new_HoardVuid = HOARD_UID;
+	uid_t new_HoardVuid = HOARD_UID;
     gettimeofday(&StartTV, 0);
     LOG(10, ("Detach: hdb_binding list contains %d namectxts\n", hdb_bindings->count()));
 	dlist_iterator next(*hdb_bindings);
@@ -1702,7 +1708,7 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
 	    namectxt *nc = (namectxt *)b->binder;
 	    if (nc->priority > new_HoardPri) {
 		new_HoardPri = nc->priority;
-		new_HoardVuid = nc->vuid;
+		new_HoardVuid = nc->uid;
 	    }
 	}
     gettimeofday(&EndTV, 0);
@@ -1761,8 +1767,8 @@ int fsobj::PredetermineFetchState(int estimatedCost, int hoard_priority) {
     }
 }
 
-CacheMissAdvice 
-fsobj::ReadDisconnectedCacheMiss(vproc *vp, vuid_t vuid) {
+CacheMissAdvice fsobj::ReadDisconnectedCacheMiss(vproc *vp, uid_t uid)
+{
     char pathname[MAXPATHLEN];
     CacheMissAdvice advice;
 
@@ -1788,7 +1794,7 @@ fsobj::ReadDisconnectedCacheMiss(vproc *vp, vuid_t vuid) {
         return(FetchFromServers);
     }
     if (!(adv_mon.ConnValid())) {
-        LOG(100, ("ADVSKK STATS:  RDCM Advice NOT valid. (uid = %d)\n", vuid));
+        LOG(100, ("ADVSKK STATS:  RDCM Advice NOT valid. (uid = %d)\n", uid));
         return(FetchFromServers);
     }
 
@@ -1799,7 +1805,7 @@ fsobj::ReadDisconnectedCacheMiss(vproc *vp, vuid_t vuid) {
     return(advice);
 }
 
-CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid)
+CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, uid_t uid)
 {
     char pathname[MAXPATHLEN];
     CacheMissAdvice advice;
@@ -1827,7 +1833,7 @@ CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid)
         return(FetchFromServers);
     }
     if (!(adv_mon.ConnValid())) {
-        LOG(100, ("ADVSKK STATS:  WCCM Advice NOT valid. (uid = %d)\n", vuid));
+        LOG(100, ("ADVSKK STATS:  WCCM Advice NOT valid. (uid = %d)\n", uid));
         return(FetchFromServers);
     }
 

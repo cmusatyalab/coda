@@ -78,7 +78,7 @@ void RegisterDaemon(unsigned long interval, char *sync) {
 
 void InitOneADay() {    
     /* want once-a-day tasks to run around midnight */
-    unsigned long curr_time = Vtime();
+    time_t curr_time = Vtime();
 
     /* figure out when midnight is */
     struct tm *lt = localtime((time_t *) &curr_time);
@@ -98,7 +98,7 @@ void InitOneADay() {
 }
 
 void DispatchDaemons() {
-    unsigned long curr_time = Vtime();
+    time_t curr_time = Vtime();
 
     int num_expired = TM_Rescan(DaemonList);
     for (int i = 0; i < num_expired; i++) {

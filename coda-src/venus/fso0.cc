@@ -74,9 +74,6 @@ int FSO_SWT = UNSET_SWT;
 int FSO_MWT = UNSET_MWT;
 int FSO_SSF = UNSET_SSF;
 
-static int FSO_HashFN(void *);
-
-
 /* Call with CacheDir the current directory. */
 void FSOInit() {
     int i; 
@@ -285,12 +282,12 @@ FREE_ENTRY: /* release entry from namelist */
     }
 
     /* Set new Data version stamps. */
-    int DataVersion = (int) Vtime();
+    unsigned long DataVersion = (unsigned long) Vtime();
 
     FILE *fp = fopen("CacheInfo", "w+");
     if (fp == NULL)
 	CHOKE("FSOInit: fopen(CacheInfo, WR)");
-    fprintf(fp, "%d", DataVersion);
+    fprintf(fp, "%ld", DataVersion);
     fclose(fp);
 
     Recov_BeginTrans();
@@ -305,8 +302,8 @@ FREE_ENTRY: /* release entry from namelist */
     FSOD_Init();
 }
 
-
-static int FSO_HashFN(const void *key) {
+static int FSO_HashFN(const void *key)
+{
     VenusFid *fid = (VenusFid *)key;
     return(fid->Realm + fid->Volume + fid->Vnode);
 }
@@ -353,7 +350,7 @@ void PrintCacheStats(char *description, CacheStats *c, int fd) {
 }
 
 
-void VenusToViceStatus(VenusStat *venusstat, ViceStatus *vicestat/*, vuid_t vuid*/) {
+void VenusToViceStatus(VenusStat *venusstat, ViceStatus *vicestat/*, uid_t uid*/) {
     vicestat->InterfaceVersion = 1;
     vicestat->VnodeType = venusstat->VnodeType;
     vicestat->LinkCount = venusstat->LinkCount;
@@ -362,10 +359,10 @@ void VenusToViceStatus(VenusStat *venusstat, ViceStatus *vicestat/*, vuid_t vuid
     vicestat->VV = venusstat->VV;
 /*    ClearLocal(vicestat->VV);*/
     vicestat->Date = venusstat->Date;
-    vicestat->Author = venusstat->Author;
-    vicestat->Owner = venusstat->Owner;
+    vicestat->Author = (vuid_t)venusstat->Author;
+    vicestat->Owner = (vuid_t)venusstat->Owner;
 /*    vicestat->CallBack = NoCallBack;*/
-/*    vicestat->MyAccess = venusstat->SpecificUser[index(vuid)].rights;*/
+/*    vicestat->MyAccess = venusstat->SpecificUser[index(uid)].rights;*/
 /*    vicestat->AnyAccess = venusstat->AnyUser.rights;*/
     vicestat->Mode = venusstat->Mode;
 /*    vicestat->vparent = venusstat->pfid.Vnode;*/
@@ -505,13 +502,13 @@ fsobj *fsdb::Create(VenusFid *key, int priority, char *comp)
  * return value of ETOOMANYREFS to the user when there is *nothing* the 
  * poor user can do about it.
  */
-int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
+int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	      char *comp, int *rcode, int GetInconsistent)
 {
     int getdata = (rights & RC_DATA);
 
     LOG(100, ("fsdb::Get-mre: key = (%s), uid = %d, rights = %d, comp = %s\n",
-	       FID_(key), vuid, rights, (comp ? comp : "")));
+	       FID_(key), uid, rights, (comp ? comp : "")));
 
     { 	/* a special check for accessing already localized object */
 	volent *vol = VDB->Find(MakeVolid(key));
@@ -539,7 +536,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
     vproc *vp = VprocSelf();
 
     /* if (vp->type != VPT_HDBDaemon)
-     *  NotifyUserOfProgramAccess(vuid, vp->u.u_pid, vp->u.u_pgid, key); */
+     *  NotifyUserOfProgramAccess(uid, vp->u.u_pid, vp->u.u_pgid, key); */
 
     /* Volume state synchronization. */
     /* If a thread is already "in" one volume, we must switch contexts before entering another. */
@@ -561,7 +558,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
 	    vp->Begin_VFS(MakeVolid(key), CODA_VGET);
 	    if (vp->u.u_error) break;
 
-	    vp->u.u_error = Get(f_addr, key, vuid, rights, comp);
+	    vp->u.u_error = Get(f_addr, key, uid, rights, comp);
 
 	    if (vp->u.u_error != 0)
 		Put(f_addr);
@@ -700,7 +697,7 @@ RestartFind:
 	     * do this even if we want data and we don't have any so that we
 	     * ALWAYS know how many blocks to allocate when fetching data. */
 	    if (!STATUSVALID(f)) {
-		code = f->GetAttr(vuid);
+		code = f->GetAttr(uid);
 
 		if (rcode) *rcode = code;	/* added for local-repair */
 		/* Conjure a fake directory to represent an inconsistent object. */
@@ -712,7 +709,7 @@ RestartFind:
 		    char path[MAXPATHLEN];
 		    
 		    f->GetPath(path,1);
-		    GetUser(&u, f->vol->realm, vuid);
+		    GetUser(&u, f->vol->realm, uid);
 		    CODA_ASSERT(u != NULL);
 		    PutUser(&u);
 
@@ -799,13 +796,13 @@ RestartFind:
                         hoard_priority = f->HoardPri;
                     else {
 			f->GetPath(pathname);
-                        hoard_priority = HDB->GetSuspectPriority(MakeVolid(&f->fid), pathname, vuid);
+                        hoard_priority = HDB->GetSuspectPriority(MakeVolid(&f->fid), pathname, uid);
 		    }
 
                     int estimatedCost = f->EstimatedFetchCost();
                     /* If the fetch will take too long, coerce the request into a miss */
                     if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
-                        advice = f->WeaklyConnectedCacheMiss(vp, vuid);
+                        advice = f->WeaklyConnectedCacheMiss(vp, uid);
                         if (advice == CoerceToMiss) {
                             Put(&f);
                             LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%s>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
@@ -833,7 +830,7 @@ RestartFind:
 
                 /* Make cache misses non-transparent. */
                 if (advice == CoerceToMiss)
-                    advice = f->ReadDisconnectedCacheMiss(vp, vuid);
+                    advice = f->ReadDisconnectedCacheMiss(vp, uid);
                 switch (advice) {
                 case FetchFromServers:
                     LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
@@ -859,7 +856,7 @@ RestartFind:
                 nblocks -= NBLOCKS(f->cf.ValidData());
 
                 /* Let fsobj::Fetch go ahead and fetch the object */
-                code = f->Fetch(vuid);
+                code = f->Fetch(uid);
 
                 /* Restart operation in case of inconsistency. */
                 if (code == EINCONS)
@@ -932,11 +929,11 @@ RestartFind:
 
     /* Finalize handling of fake objects. */
     if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated() &&
-        !((repvol *)f->vol)->IsUnderRepair(vuid))
+        !((repvol *)f->vol)->IsUnderRepair(uid))
     {
         repvol *v = (repvol *)f->vol;
         LOG(1, ("(Puneet)fsdb::Get:Volume (%u) NOT under repair and IsFake(%s)\n",
-		vuid, FID_(&f->fid)));
+		uid, FID_(&f->fid)));
         char path[MAXPATHLEN];
         f->GetPath(path, 1);
         LOG(1, ("(Maria, Puneet) After GetPath, path = %s\n", path));
@@ -945,7 +942,7 @@ RestartFind:
         /* check that ASR time interval has expired */
 #if 0
         userent *u;
-        GetUser(&u, f->vol->realm, vuid);
+        GetUser(&u, f->vol->realm, uid);
 #endif
         struct timeval tv;
         gettimeofday(&tv, 0);
@@ -955,7 +952,7 @@ RestartFind:
 			    !adv_mon.skkPgid(vp->u.u_pgid) && adv_mon.ConnValid());
 	if (v->asr_running() && vp->u.u_pgid != v->asr_id())
 	  code = EAGAIN; /* bounce out anything which tries to hold kernel locks while repairing */
-        else if (ASRInvokable && (!adv_mon.RequestASRInvokation(v, path, vuid))) {
+        else if (ASRInvokable && (!adv_mon.RequestASRInvokation(v, path, uid))) {
                 gettimeofday(&tv, 0);
                 f->lastresolved = tv.tv_sec;
                 code = ERETRY; /* tell application to retry so that kernel locks get released */
@@ -1153,7 +1150,7 @@ int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 
 /* Called in event of callback message from server. */
 /* We assume this means that the object needs to be revalidated on the next
- * access and remove the callback status flags (Demote it). -JH
+ * access and remove the callback status flags (Demote it). -JH */
 /* Perhaps there should be a "MUTATED" parameter in the RPC from the server.
  * -JJK */
 int fsdb::CallBackBreak(const VenusFid *fid)
@@ -1166,13 +1163,13 @@ int fsdb::CallBackBreak(const VenusFid *fid)
     return(1);
 }
 
-void fsdb::ResetUser(vuid_t vuid) {
+void fsdb::ResetUser(uid_t uid) {
     /* Demote access rights for the user. */
     fso_iterator next(NL);
     fsobj *f;
     while ((f = next()))
 	if (f->IsDir())
-	    f->DemoteAcRights(vuid);
+	    f->DemoteAcRights(uid);
 }
 
 

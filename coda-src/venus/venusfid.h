@@ -80,7 +80,8 @@ inline char *FID_(const VenusFid *fid)
     static int i = 0;
     i = 1 - i;
     sprintf(buf[i], "%x.%x.%x.%x",
-	    fid->Realm, fid->Volume, fid->Vnode, fid->Unique);
+	    (unsigned int)fid->Realm, (unsigned int)fid->Volume,
+	    (unsigned int)fid->Vnode, (unsigned int)fid->Unique);
     return buf[i];
 }
 

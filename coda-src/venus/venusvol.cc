@@ -868,8 +868,6 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
 {
     LOG(10, ("volent::volent: (%x, %s)\n", volid, volname));
 
-    int ret;
-
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = VOLENT_MagicNumber;
 
@@ -1304,7 +1302,6 @@ void volent::TakeTransition()
 
     /* Compute next state. */
     VolumeStateType nextstate;
-    VolumeStateType prevstate = state;
 
     CODA_ASSERT(state == Hoarding || state == Emulating || state == Logging ||
 		state == Resolving);
@@ -1345,11 +1342,6 @@ void volent::TakeTransition()
     /* Take corresponding action. */
     state = nextstate;
     flags.transition_pending = 0;
-
-#if 0
-    if (SkkEnabled && state != prevstate)
-        NotifyStateChange();
-#endif
 
     switch(state) {
         case Logging:
@@ -1566,7 +1558,7 @@ int repvol::WriteReconnect()
     return 0;
 }
 
-int repvol::EnterWriteback(vuid_t vuid)
+int repvol::EnterWriteback(uid_t uid)
 {
     // already in writebacking mode
     if (flags.writebacking) return 0;
@@ -1574,7 +1566,7 @@ int repvol::EnterWriteback(vuid_t vuid)
     LOG(1, ("volent::EnterWriteback()\n"));
 
     /* request a permit */
-    if (!GetPermit(vuid)) return ERETRY; // probably not the right error
+    if (!GetPermit(uid)) return ERETRY; // probably not the right error
 
     Recov_BeginTrans();
         RVMLIB_REC_OBJECT(*this);
@@ -1590,12 +1582,12 @@ int repvol::EnterWriteback(vuid_t vuid)
     return 0;
 }
 
-int repvol::LeaveWriteback(vuid_t vuid)
+int repvol::LeaveWriteback(uid_t uid)
 {
     LOG(1, ("volent::LeaveWriteback()\n"));
 
     StopWriteback(NULL);
-    ReturnPermit(vuid);
+    ReturnPermit(uid);
     ClearPermit();
 
     return 0;
@@ -1946,13 +1938,13 @@ repvol::~repvol()
     vsg->Put();
 }
 
-int volrep::GetConn(connent **c, vuid_t vuid)
+int volrep::GetConn(connent **c, uid_t uid)
 {
     int code = ERETRY;
     *c = 0;
 
     while (code == ERETRY && !flags.transition_pending) {
-        code = volserver->GetConn(c, vuid);
+        code = volserver->GetConn(c, uid);
         if (code < 0)
             CHOKE("volent::GetConn: bogus code (%d)", code);
     }
@@ -1963,7 +1955,7 @@ int volrep::GetConn(connent **c, vuid_t vuid)
 }
 
 #if 0
-int repvol::GetConn(connent **c, vuid_t vuid)
+int repvol::GetConn(connent **c, uid_t uid)
 {
     int code = ETIMEDOUT;
     *c = 0;
@@ -1972,7 +1964,7 @@ int repvol::GetConn(connent **c, vuid_t vuid)
     for (int i = 0; i < VSG_MEMBERS && !flags.transition_pending; i++) {
 	if (replica[i]) {
 	    do {
-		code = replica[i]->GetConn(c, vuid);
+		code = replica[i]->GetConn(c, uid);
 		if (code < 0)
 		    CHOKE("volent::GetConn: bogus code (%d)", code);
 	    } while (code == ERETRY && !flags.transition_pending);
@@ -1988,7 +1980,7 @@ int repvol::GetConn(connent **c, vuid_t vuid)
 }
 #endif
 
-int repvol::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS)
+int repvol::GetMgrp(mgrpent **m, uid_t uid, RPC2_CountedBS *PiggyBS)
 {
     int code = 0;
     *m = 0;
@@ -1998,7 +1990,7 @@ int repvol::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS)
 
     /* If we have a ro_replica, force an unauthenticated connection to the
      * staging server */
-    code = vsg->GetMgrp(m, vuid, ro_replica == NULL);
+    code = vsg->GetMgrp(m, uid, ro_replica == NULL);
 
     /* Get PiggyCOP2 buffer if requested. */
     if (*m && PiggyBS)
@@ -2048,9 +2040,9 @@ void repvol::GetBandwidth(unsigned long *bw)
 }
 
 int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
-		      RPC2_Unsigned *AllocHost, vuid_t vuid, int force)
+		      RPC2_Unsigned *AllocHost, uid_t uid, int force)
 {
-    LOG(10, ("repvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, vuid));
+    LOG(10, ("repvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, uid));
 
     /* Use a preallocated Fid if possible. */
     {
@@ -2121,7 +2113,7 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 	{
 	    /* Acquire an Mgroup. */
 	    mgrpent *m = 0;
-	    code = GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	    code = GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
 	    if (code != 0) goto Exit;
 
 	    /* The Remote AllocFid call. */
@@ -2469,11 +2461,11 @@ ViceVolumeType volent::VolStatType(void)
 int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 		       VolumeStateType *conn_state, int *conflict,
                        int*cml_count, RPC2_BoundedBS *msg,
-                       RPC2_BoundedBS *motd, vuid_t vuid, int local_only)
+                       RPC2_BoundedBS *motd, uid_t uid, int local_only)
 {
     int code = 0;
 
-    LOG(100, ("volent::GetVolStat: vid = %x, vuid = %d\n", vid, vuid));
+    LOG(100, ("volent::GetVolStat: vid = %x, uid = %d\n", vid, uid));
 
     *conn_state = state;
     *conflict = 0;
@@ -2513,7 +2505,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	    /* Acquire an Mgroup. */
 	    mgrpent *m = 0;
             repvol *vp = (repvol *)this;
-	    code = vp->GetMgrp(&m, vuid);
+	    code = vp->GetMgrp(&m, uid);
 	    if (code != 0) goto RepExit;
 
 	    {
@@ -2569,7 +2561,7 @@ RepExit:
 	    /* Acquire a Connection. */
 	    connent *c;
             volrep *vol = (volrep *)this;
-	    code = vol->GetConn(&c, vuid);
+	    code = vol->GetConn(&c, uid);
 	    if (code != 0) goto NonRepExit;
 
 	    /* Make the RPC call. */
@@ -2594,8 +2586,9 @@ NonRepExit:
 
 
 int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
-		RPC2_BoundedBS *msg, RPC2_BoundedBS *motd, vuid_t vuid) {
-    LOG(100, ("volent::SetVolStat: vid = %x, vuid = %d\n", vid, vuid));
+		RPC2_BoundedBS *msg, RPC2_BoundedBS *motd, uid_t uid)
+{
+    LOG(100, ("volent::SetVolStat: vid = %x, uid = %d\n", vid, uid));
 
     int code = 0;
 
@@ -2622,7 +2615,7 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
             ViceStoreId sid = vp->GenerateStoreId();
 	    Recov_EndTrans(MAXFP);
 
-  	    code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+  	    code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
 	    if (code != 0) goto RepExit;
 
 	    {
@@ -2681,7 +2674,7 @@ RepExit:
 	    connent *c;
  	    ViceStoreId Dummy;          /* Need an address for ViceSetVolStat */
             volrep *vol = (volrep *)this;
-	    code = vol->GetConn(&c, vuid);
+	    code = vol->GetConn(&c, uid);
 	    if (code != 0) goto NonRepExit;
 
 	    /* Make the RPC call. */

@@ -77,8 +77,6 @@ extern "C" {
 /* must not be called from within a transaction */
 void repvol::Reintegrate()
 {
-    userent *u;
-
     LOG(0, ("repvol::Reintegrate\n"));
 
     /* 
@@ -225,7 +223,7 @@ void repvol::Reintegrate()
 /* must not be called from within a transaction */
 int repvol::IncReintegrate(int tid)
 {
-    LOG(0, ("volent::IncReintegrate: (%s, %d) vuid = %d\n",
+    LOG(0, ("volent::IncReintegrate: (%s, %d) uid = %d\n",
 	    name, tid, CML.owner));
     /* check if transaction "tid" has any cmlent objects */
     if (!CML.HaveElements(tid)) {
@@ -449,7 +447,7 @@ int repvol::PartialReintegrate(int tid)
     if (!m) return(ENOENT);
 
     cur_reint_tid = tid; 
-    LOG(0, ("volent::PartialReintegrate: (%s, %d) vuid = %d\n",
+    LOG(0, ("volent::PartialReintegrate: (%s, %d) uid = %d\n",
 	    name, tid, CML.owner));
 
     /* perform some late prelude functions. */

@@ -101,11 +101,10 @@ const int FREE_FACTOR = 16;
 
 /*  *****  Manifest constants for Venus.  *****  */
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
-/* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
 #ifdef DJGPP
-const vuid_t V_UID = (vuid_t)500;    /* UID that the venus process runs under. */
+const uid_t V_UID = 500;    /* UID that the venus process runs under. */
 #else
-const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
+const uid_t V_UID = 0;	    /* UID that the venus process runs under. */
 #endif
 /* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
    negative number (-2) means its unsigned long representation is huge
@@ -114,10 +113,10 @@ const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
 /* In linux kernel, gid_t is unsigned short, but in venus vgid_t is
    unsigned int which is 32-bit, so we also need to hardcode the number
    here.  (Clement 6/10/97) */
-const vuid_t V_GID = (vuid_t)65534;    /* GID that the venus process runs under. */
-const vuid_t ALL_UIDS = (vuid_t)-1;
-const vuid_t HOARD_UID = (vuid_t)-2; /* uid of hoard daemon */
-const vuid_t UNSET_UID = (vuid_t)-666; /* beastly but recognizable */
+const gid_t V_GID = 65534;    /* GID that the venus process runs under. */
+const uid_t ALL_UIDS = (uid_t)-1;
+const uid_t HOARD_UID = (uid_t)-2; /* uid of hoard daemon */
+const uid_t UNSET_UID = (uid_t)-666; /* beastly but recognizable */
 const unsigned short V_MODE = 0600;
 const int OWNERBITS = 0700;
 const int OWNERREAD = 0400;
@@ -302,7 +301,7 @@ void SwapLog();
 void ToggleMallocTrace();
 char *lvlstr(LockLevel);
 int GetTime(long *, long *);
-long Vtime();
+time_t Vtime();
 int FAV_Compare(ViceFidAndVV *, ViceFidAndVV *);
 void DaemonInit();
 void FireAndForget(char *name, void (*f)(void), int interval,
@@ -336,7 +335,7 @@ extern char *CacheDir;
 extern char *CachePrefix;
 extern int CacheBlocks;
 extern char *SpoolDir;
-extern vuid_t PrimaryUser;
+extern uid_t PrimaryUser;
 extern char *VenusPidFile;
 extern char *VenusControlFile;
 extern char *VenusLogFile;
@@ -349,6 +348,6 @@ extern int   PiggyValidations;
 extern int   T1Interval;
 
 /* spool.cc */
-extern void MakeUserSpoolDir(char *, vuid_t);
+extern void MakeUserSpoolDir(char *, uid_t);
 
 #endif /* _VENUS_PRIVATE_H_ */

@@ -223,14 +223,14 @@ class fsdb {
   public:
     fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
-    int Get(fsobj **fso, VenusFid *fid, vuid_t vuid, int rights, char *comp=0,
+    int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights, char *comp=0,
 	    int *rcode=0, int GetInconsistent=0);
     void Put(fsobj **);
     void Flush();
     void Flush(Volid *);
     int TranslateFid(VenusFid *, VenusFid *);
     int CallBackBreak(const VenusFid *);
-    void ResetUser(vuid_t);
+    void ResetUser(uid_t);
     void ClearPriorities();
     void InvalidateMtPts();
     int MakePri(int spri, int mpri)
@@ -321,25 +321,25 @@ class CacheFile {
 struct VenusStat {
     ViceDataType VnodeType;
     unsigned char LinkCount;
-    long	  Length;
-    unsigned int  DataVersion;
+    unsigned long Length;
+    unsigned long DataVersion;
     ViceVersionVector VV;
     Date_t Date;
-    vuid_t Author;
-    vuid_t Owner;
+    uid_t Author;
+    uid_t Owner;
     unsigned short Mode;
 };
 
 /* Condensed version of VenusStat. */
 /* needed to restore objects after store cancellation */
 struct MiniVenusStat {
-    long   Length;
+    unsigned long Length;
     Date_t Date;
 };
 
 /* Access Control Rights */
 struct AcRights	{
-    vuid_t uid;
+    uid_t uid;
     unsigned char rights;
     unsigned inuse : 1;
     /*T*/unsigned valid : 1;
@@ -447,7 +447,7 @@ class fsobj {
     /* Priority state. */
     /*T*/int priority;				/* f(spri, mpri) */
     /*T*/int HoardPri;				/* max of priorities of binders */
-    /*T*/vuid_t HoardVuid;			/* vuid of that entry */
+    /*T*/uid_t HoardVuid;			/* uid of that entry */
     /*T*/dlist *hdb_bindings;			/* list of (bindings to) hdbents referencing this object */
     /*T*/int FetchAllowed;                      /* Allow a hoard walk to fetch object? */
     /*T*/int AskingAllowed;                     /* Ask user for hoard fetch advice? */
@@ -500,24 +500,24 @@ class fsobj {
     void Kill(int =1);
     void GC();
     int Flush();
-    void UpdateStatus(ViceStatus *, vuid_t);
-    void UpdateStatus(ViceStatus *, ViceVersionVector *, vuid_t);
+    void UpdateStatus(ViceStatus *, uid_t);
+    void UpdateStatus(ViceStatus *, ViceVersionVector *, uid_t);
     int StatusEq(ViceStatus *, int);
     void ReplaceStatus(ViceStatus *, ViceVersionVector *);
     int CheckRcRights(int);
     void SetRcRights(int);
     void ClearRcRights();
     int IsValid(int);
-    void SetAcRights(vuid_t, long my_rights, long any_rights);
-    void DemoteAcRights(vuid_t);
-    void PromoteAcRights(vuid_t);
-    void ClearAcRights(vuid_t);
+    void SetAcRights(uid_t, long my_rights, long any_rights);
+    void DemoteAcRights(uid_t);
+    void PromoteAcRights(uid_t);
+    void ClearAcRights(uid_t);
     void SetParent(VnodeId, Unique_t);
     void MakeDirty();
     void MakeClean();
 
     /* Mount state. */
-    int TryToCover(VenusFid *, vuid_t);
+    int TryToCover(VenusFid *, uid_t);
     void CoverMtPt(fsobj *);
     void UncoverMtPt();
     void MountRoot(fsobj *);
@@ -556,8 +556,8 @@ class fsobj {
         }
 
     /* advice routines */
-    CacheMissAdvice ReadDisconnectedCacheMiss(vproc *, vuid_t);
-    CacheMissAdvice WeaklyConnectedCacheMiss(vproc *, vuid_t);
+    CacheMissAdvice ReadDisconnectedCacheMiss(vproc *, uid_t);
+    CacheMissAdvice WeaklyConnectedCacheMiss(vproc *, uid_t);
 
     /* MLE Linkage. */
     void AttachMleBinding(binding *);
@@ -598,77 +598,77 @@ class fsobj {
 
     /* Private portions of the CFS interface. */
     void LocalStore(Date_t, unsigned long);
-    int ConnectedStore(Date_t, vuid_t, unsigned long);
-    int DisconnectedStore(Date_t, vuid_t, unsigned long, int);
+    int ConnectedStore(Date_t, uid_t, unsigned long);
+    int DisconnectedStore(Date_t, uid_t, unsigned long, int);
     void LocalSetAttr(Date_t, unsigned long, Date_t,
-		       vuid_t, unsigned short);
-    int ConnectedSetAttr(Date_t, vuid_t, unsigned long, Date_t,
-			  vuid_t, unsigned short, RPC2_CountedBS *);
-    int DisconnectedSetAttr(Date_t, vuid_t, unsigned long, Date_t,
-			     vuid_t, unsigned short, int);
+		       uid_t, unsigned short);
+    int ConnectedSetAttr(Date_t, uid_t, unsigned long, Date_t,
+			  uid_t, unsigned short, RPC2_CountedBS *);
+    int DisconnectedSetAttr(Date_t, uid_t, unsigned long, Date_t,
+			     uid_t, unsigned short, int);
     void LocalCreate(Date_t, fsobj *, char *,
-		      vuid_t, unsigned short);
-    int ConnectedCreate(Date_t, vuid_t, fsobj **,
+		      uid_t, unsigned short);
+    int ConnectedCreate(Date_t, uid_t, fsobj **,
 			 char *, unsigned short, int);
-    int DisconnectedCreate(Date_t, vuid_t, fsobj **,
+    int DisconnectedCreate(Date_t, uid_t, fsobj **,
 			    char *, unsigned short, int, int);
     void LocalRemove(Date_t, char *, fsobj *);
-    int ConnectedRemove(Date_t, vuid_t, char *, fsobj *);
-    int DisconnectedRemove(Date_t, vuid_t, char *, fsobj *, int);
+    int ConnectedRemove(Date_t, uid_t, char *, fsobj *);
+    int DisconnectedRemove(Date_t, uid_t, char *, fsobj *, int);
     void LocalLink(Date_t, char *, fsobj *);
-    int ConnectedLink(Date_t, vuid_t, char *, fsobj *);
-    int DisconnectedLink(Date_t, vuid_t, char *, fsobj *, int);
+    int ConnectedLink(Date_t, uid_t, char *, fsobj *);
+    int DisconnectedLink(Date_t, uid_t, char *, fsobj *, int);
     void LocalRename(Date_t, fsobj *, char *,
 		      fsobj *, char *, fsobj *);
-    int ConnectedRename(Date_t, vuid_t, fsobj *,
+    int ConnectedRename(Date_t, uid_t, fsobj *,
 			 char *, fsobj *, char *, fsobj *);
-    int DisconnectedRename(Date_t, vuid_t, fsobj *,
+    int DisconnectedRename(Date_t, uid_t, fsobj *,
 			    char *, fsobj *, char *, fsobj *, int);
-    void LocalMkdir(Date_t, fsobj *, char *, vuid_t, unsigned short);
-    int ConnectedMkdir(Date_t, vuid_t, fsobj **,
+    void LocalMkdir(Date_t, fsobj *, char *, uid_t, unsigned short);
+    int ConnectedMkdir(Date_t, uid_t, fsobj **,
 			char *, unsigned short, int);
-    int DisconnectedMkdir(Date_t, vuid_t, fsobj **,
+    int DisconnectedMkdir(Date_t, uid_t, fsobj **,
 			   char *, unsigned short, int, int);
     void LocalRmdir(Date_t, char *, fsobj *);
-    int ConnectedRmdir(Date_t, vuid_t, char *, fsobj *);
-    int DisconnectedRmdir(Date_t, vuid_t, char *, fsobj *, int);
+    int ConnectedRmdir(Date_t, uid_t, char *, fsobj *);
+    int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *, int);
     void LocalSymlink(Date_t, fsobj *, char *,
-		       char *, vuid_t, unsigned short);
-    int ConnectedSymlink(Date_t, vuid_t, fsobj **, char *,
+		       char *, uid_t, unsigned short);
+    int ConnectedSymlink(Date_t, uid_t, fsobj **, char *,
 			  char *, unsigned short, int);
-    int DisconnectedSymlink(Date_t, vuid_t, fsobj **, char *,
+    int DisconnectedSymlink(Date_t, uid_t, fsobj **, char *,
 			     char *, unsigned short, int, int);
 
   public:
     /* The public CFS interface (Vice portion). */
-    int Fetch(vuid_t);
-    int GetAttr(vuid_t, RPC2_BoundedBS * =0);
-    int GetACL(RPC2_BoundedBS *, vuid_t);
-    int Store(unsigned long, Date_t, vuid_t);
-    int SetAttr(struct coda_vattr *, vuid_t, RPC2_CountedBS * =0);
-    int SetACL(RPC2_CountedBS *, vuid_t);
-    int Create(char *, fsobj **, vuid_t, unsigned short, int);
-    int Remove(char *, fsobj *, vuid_t);
-    int Link(char *, fsobj *, vuid_t);
-    int Rename(fsobj *, char *, fsobj *, char *, fsobj *, vuid_t);
-    int Mkdir(char *, fsobj **, vuid_t, unsigned short, int);
-    int Rmdir(char *, fsobj *, vuid_t);
-    int Symlink(char *, char *, vuid_t, unsigned short, int);
-    int SetVV(ViceVersionVector *, vuid_t);
+    int Fetch(uid_t);
+    int GetAttr(uid_t, RPC2_BoundedBS * =0);
+    int GetACL(RPC2_BoundedBS *, uid_t);
+    int Store(unsigned long, Date_t, uid_t);
+    int SetAttr(struct coda_vattr *, uid_t, RPC2_CountedBS * =0);
+    int SetACL(RPC2_CountedBS *, uid_t);
+    int Create(char *, fsobj **, uid_t, unsigned short, int);
+    int Remove(char *, fsobj *, uid_t);
+    int Link(char *, fsobj *, uid_t);
+    int Rename(fsobj *, char *, fsobj *, char *, fsobj *, uid_t);
+    int Mkdir(char *, fsobj **, uid_t, unsigned short, int);
+    int Rmdir(char *, fsobj *, uid_t);
+    int Symlink(char *, char *, uid_t, unsigned short, int);
+    int SetVV(ViceVersionVector *, uid_t);
 
     /* The public CFS interface (non-Vice portion). */
-    int Open(int, int, int, venus_cnode *, vuid_t);
-    int Sync(vuid_t vuid);
+    int Open(int, int, int, venus_cnode *, uid_t);
+    int Sync(uid_t uid);
     void Release(int writep, int execp);
-    int Close(int writep, int execp, vuid_t vuid);
-    int Access(long, int, vuid_t);
-    int Lookup(fsobj **, VenusFid *, char *, vuid_t, int);
-    int Readdir(char *, int, int, int *, vuid_t);
-    int Readlink(char *, int, int *, vuid_t);
+    int Close(int writep, int execp, uid_t uid);
+    int Access(long, int, uid_t);
+    int Lookup(fsobj **, VenusFid *, char *, uid_t, int);
+    int Readdir(char *, int, int, int *, uid_t);
+    int Readlink(char *, unsigned long, int *, uid_t);
 
     /* Miscellaneous utility routines. */
     int dir_Lookup(char *, VenusFid *, int);
-    int CheckAcRights(vuid_t, long rights, int connected);
+    int CheckAcRights(uid_t, long rights, int connected);
     void GetVattr(struct coda_vattr *);		/* translate attributes to VFS format */
     void GetFid(VenusFid *f) { *f = fid; }
     void ReturnEarly();
@@ -725,7 +725,7 @@ class fsobj {
     void RecoverRootParent(VenusFid *, char *);			/*U*/
 
     int RepairStore();
-    int RepairSetAttr(unsigned long, Date_t, vuid_t, unsigned short, RPC2_CountedBS *);
+    int RepairSetAttr(unsigned long, Date_t, uid_t, unsigned short, RPC2_CountedBS *);
     int RepairCreate(fsobj **, char *, unsigned short, int);
     int RepairRemove(char *, fsobj *);
     int RepairLink(char *, fsobj *);
@@ -734,7 +734,7 @@ class fsobj {
     int RepairRmdir(char *, fsobj *);
     int RepairSymlink(fsobj **, char *, char *, unsigned short, int);
 
-    void FetchProgressIndicator(long offset);
+    void FetchProgressIndicator(unsigned long offset);
 };
 
 class fso_iterator : public rec_ohashtab_iterator {

@@ -62,9 +62,9 @@ public:
 #endif
     void Put(void) { PutRef(); }
 
-    int GetMgrp(mgrpent **m, vuid_t vuid, int auth = 1);
+    int GetMgrp(mgrpent **m, uid_t uid, int auth = 1);
     void KillMgrps(void);
-    void KillUserMgrps(vuid_t vuid);
+    void KillUserMgrps(uid_t uid);
     void KillMgrpMember(struct in_addr *);
 
     unsigned int NHosts(void) { return nhosts; }
@@ -84,7 +84,7 @@ public:
     ~vsgdb(void);
 
     vsgent *GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realm);
-    void KillUserMgrps(vuid_t vuid);
+    void KillUserMgrps(uid_t uid);
 
     void print(FILE *f);
     void print() { print(stdout); }

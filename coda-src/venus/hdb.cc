@@ -128,10 +128,6 @@ static int ReceivedAdvice;
 extern int SearchForNOreFind;
 
 
-/*  *****  Private Routines  *****  */
-
-static int HDB_HashFN(void *);
-
 /*  *****  HDB Maintenance  ******  */
 
 void HDB_Init()
@@ -185,7 +181,7 @@ static int HDB_HashFN(const void *key)
     int rlen = strlen(k->realm);
     int len = strlen(k->name);
 
-    for (int i=0; i < len; i++)
+    for (int i=0; i < rlen; i++)
       value += (int)((k->realm)[i]);
 
     for (int i=0; i < len; i++)
@@ -263,7 +259,7 @@ hdbent *hdb::Find(VolumeId vid, char *realm, char *name)
 
 
 /* MUST NOT be called from within transaction! */
-hdbent *hdb::Create(VolumeId vid, char *realm, char *name, vuid_t local_id,
+hdbent *hdb::Create(VolumeId vid, char *realm, char *name, uid_t local_id,
 		    int priority, int expand_children, int expand_descendents)
 {
     hdbent *h = 0;
@@ -284,7 +280,7 @@ hdbent *hdb::Create(VolumeId vid, char *realm, char *name, vuid_t local_id,
 }
 
 
-int hdb::Add(hdb_add_msg *m, vuid_t local_id)
+int hdb::Add(hdb_add_msg *m, uid_t local_id)
 {
     LOG(10, ("hdb::Add: <%x@%s, %s, %d, %d, %d>\n", m->vid, m->realm,
 	     m->name, m->priority, m->attributes, local_id));
@@ -295,7 +291,7 @@ int hdb::Add(hdb_add_msg *m, vuid_t local_id)
 
     if (h) {
 	LOG(1, ("hdb::Add: (%x@%s, %s, %d) already exists (%d)\n",
-		m->vid, m->realm, m->name, local_id, h->vuid));
+		m->vid, m->realm, m->name, local_id, h->uid));
 
 	hdb_delete_msg dm;
 	dm.vid = m->vid;
@@ -324,7 +320,7 @@ int hdb::Add(hdb_add_msg *m, vuid_t local_id)
 }
 
 
-int hdb::Delete(hdb_delete_msg *m, vuid_t local_id)
+int hdb::Delete(hdb_delete_msg *m, uid_t local_id)
 {
     LOG(10, ("hdb::Delete: <%x@%s, %s, %d>\n", m->vid, m->realm,
 	     m->name, local_id));
@@ -339,7 +335,7 @@ int hdb::Delete(hdb_delete_msg *m, vuid_t local_id)
     }
 
     /* Can only delete one's own entries unless root or authorized user. */
-    if (local_id != h->vuid && local_id != V_UID && !AuthorizedUser(local_id)) {
+    if (local_id != h->uid && local_id != V_UID && !AuthorizedUser(local_id)) {
 	LOG(1, ("hdb::Delete: (%x@%s, %s, %d) not authorized\n",
 		m->vid, m->realm, m->name, local_id));
 	return(EACCES);
@@ -355,7 +351,7 @@ int hdb::Delete(hdb_delete_msg *m, vuid_t local_id)
 
 /* cuid = ALL_UIDS is a wildcard meaning "clear all entries." */
 extern FILE *logFile;
-int hdb::Clear(hdb_clear_msg *m, vuid_t local_id) {
+int hdb::Clear(hdb_clear_msg *m, uid_t local_id) {
     LOG(10, ("hdb::Clear: <%d, %d>\n", m->cuid, local_id));
 
     /* Can only clear one's own entries unless root or authorized user. */
@@ -384,7 +380,7 @@ int hdb::Clear(hdb_clear_msg *m, vuid_t local_id) {
 
 
 /* luid = ALL_UIDS is a wildcard meaning "list all entries." */
-int hdb::List(hdb_list_msg *m, vuid_t local_id) {
+int hdb::List(hdb_list_msg *m, uid_t local_id) {
     LOG(10, ("hdb::List: <%s, %d, %d>\n",
 	      m->outfile, m->luid, local_id));
 
@@ -757,7 +753,7 @@ void hdb::ListPriorityQueue() {
     }
 }
 
-int hdb::GetSuspectPriority(Volid *vid, char *pathname, int uid)
+int hdb::GetSuspectPriority(Volid *vid, char *pathname, uid_t uid)
 {
     char *lastslash;
     bstree_iterator next(*prioq, BstDescending);
@@ -778,7 +774,7 @@ int hdb::GetSuspectPriority(Volid *vid, char *pathname, int uid)
 	if (LogLevel >= 100) { n->print(logFile); fflush(logFile); }
 	if (n->cdir.Realm == vid->Realm &&
 	    n->cdir.Volume == vid->Volume &&
-	    ((n->vuid == uid) || (n->vuid == ALL_UIDS))) {
+	    ((n->uid == uid) || (n->uid == ALL_UIDS))) {
 	    /* First, deal with direct match */
 	    if (STREQ(n->path, pathname)) {
 		fflush(logFile);
@@ -929,7 +925,7 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch, int *BytesFetched) {
 	sprintf(ibuf, "\n   ENOSPC:  [%lx.%lx, %s], [%d, %d]\n",
 		indigentnc->cdir.Realm, indigentnc->cdir.Volume,
 		indigentnc->path, FSDB->MakePri(0, indigentnc->priority),
-		indigentnc->vuid);
+		indigentnc->uid);
     }
     MarinerLog("cache::EndStatusWalk [%d]\n   [%d, %d, %d, %d] [%d, %d, %d] [%d, %d, %1.1f]%s",
 	       FSDB->htab.count(),
@@ -1132,18 +1128,18 @@ void hdb::PostWalkStatus() {
 
       switch (n->state) {
           case PeValid:
-              LOG(200, ("Valid: uid=%d priority=d\n", (int)n->vuid, n->priority));
+              LOG(200, ("Valid: uid=%d priority=d\n", n->uid, n->priority));
 	      break;
           case PeSuspect:
-              LOG(200, ("Suspect: uid=%d priority=d\n", (int)n->vuid, n->priority));
-	      Tally(n->priority, n->vuid, 0, TSunknown);
+              LOG(200, ("Suspect: uid=%d priority=d\n", n->uid, n->priority));
+	      Tally(n->priority, n->uid, 0, TSunknown);
 	      break;
           case PeIndigent:
-              LOG(200, ("Indigent: uid=%d priority=d\n", (int)n->vuid, n->priority));
+              LOG(200, ("Indigent: uid=%d priority=d\n", n->uid, n->priority));
 	      break;
           case PeInconsistent:
-              LOG(200, ("Inconsistent: uid=%d priority=d\n", (int)n->vuid, n->priority));
-	      Tally(n->priority, n->vuid, 0, TSunknown);
+              LOG(200, ("Inconsistent: uid=%d priority=d\n", n->uid, n->priority));
+	      Tally(n->priority, n->uid, 0, TSunknown);
 	      break;
       }  
     }    
@@ -1156,7 +1152,7 @@ void hdb::PostWalkStatus() {
 }
 
 
-int hdb::Walk(hdb_walk_msg *m, vuid_t local_id) {
+int hdb::Walk(hdb_walk_msg *m, uid_t local_id) {
     LOG(10, ("hdb::Walk: <%d>\n", local_id));
 
     int TotalBytesToFetch = 0, BytesFetched = 0;
@@ -1195,7 +1191,7 @@ int hdb::Walk(hdb_walk_msg *m, vuid_t local_id) {
 }
 
 
-int hdb::Verify(hdb_verify_msg *m, vuid_t local_id) {
+int hdb::Verify(hdb_verify_msg *m, uid_t local_id) {
 
     LOG(0, ("hdb::Verify: <%s, %d, %d, %d>\n", m->outfile, m->verbosity, m->luid, local_id));
 
@@ -1244,7 +1240,7 @@ int hdb::Verify(hdb_verify_msg *m, vuid_t local_id) {
 }
 
 
-int hdb::Enable(hdb_walk_msg *m, vuid_t local_id) {
+int hdb::Enable(hdb_walk_msg *m, uid_t local_id) {
     LOG(10, ("hdb::Enable: <%d>\n", local_id));
 
     eprint("Enabling periodic hoard walks");
@@ -1253,7 +1249,7 @@ int hdb::Enable(hdb_walk_msg *m, vuid_t local_id) {
     return 0;
 }
 
-int hdb::Disable(hdb_walk_msg *m, vuid_t local_id) {
+int hdb::Disable(hdb_walk_msg *m, uid_t local_id) {
     LOG(10, ("hdb::Disable: <%d>\n", local_id));
 
     eprint("Disabling periodic hoard walks");
@@ -1263,13 +1259,13 @@ int hdb::Disable(hdb_walk_msg *m, vuid_t local_id) {
 }
 
 /* Demote expansions belonging to this user. */
-void hdb::ResetUser(vuid_t vuid) {
+void hdb::ResetUser(uid_t uid) {
     hdb_iterator next;
     hdbent *h;
     LOG(100, ("E hdb::ResetUser()\n"));
     while ((h = next())) {
       CODA_ASSERT(h != NULL);
-      if (h->vuid == vuid) {
+      if (h->uid == uid) {
 	CODA_ASSERT(h->nc != NULL);
 	h->nc->Demote(1);
       }
@@ -1327,7 +1323,7 @@ void *hdbent::operator new(size_t len){
 }
 
 /* MUST be called from within transaction! */
-hdbent::hdbent(VolumeId Vid, char *Realm, char *Name, vuid_t Vuid,
+hdbent::hdbent(VolumeId Vid, char *Realm, char *Name, uid_t Vuid,
 	       int Priority, int Children, int Descendents)
 {
 
@@ -1346,7 +1342,7 @@ hdbent::hdbent(VolumeId Vid, char *Realm, char *Name, vuid_t Vuid,
 	rvmlib_set_range(name, len);
 	strcpy(name, Name);
     }
-    vuid = Vuid;
+    uid = Vuid;
     priority = Priority;
     expand_children = Children;
     expand_descendents = Descendents;
@@ -1369,7 +1365,7 @@ void hdbent::ResetTransient() {
     cdir.Realm = r->Id();
     cdir.Volume = vid;
     FID_MakeRoot(MakeViceFid(&cdir));
-    nc = new namectxt(&cdir, name, vuid, priority,
+    nc = new namectxt(&cdir, name, uid, priority,
 		       expand_children, expand_descendents);
     r->PutRef();
 }
@@ -1408,7 +1404,7 @@ void hdbent::operator delete(void *deadobj, size_t len){
 
 void hdbent::print(int afd)
 {
-    fdprint(afd, "<%x@%s, %s>, %d, %d%s\n", vid, realm, name, vuid, priority,
+    fdprint(afd, "<%x@%s, %s>, %d, %d%s\n", vid, realm, name, uid, priority,
 	     (expand_children ? ":c+" : expand_descendents ? ":d+" : ""));
 }
 
@@ -1421,19 +1417,19 @@ void hdbent::printsuspect(int afd, int verbosity) {
 
 /* Iterator through all entries. */
 hdb_iterator::hdb_iterator() : rec_ohashtab_iterator(HDB->htab) {
-    vuid = ALL_UIDS;
+    uid = ALL_UIDS;
 }
 
 
 /* Iterate through all entries belonging to a particular user. */
-hdb_iterator::hdb_iterator(vuid_t Vuid) : rec_ohashtab_iterator(HDB->htab) {
-    vuid = Vuid;
+hdb_iterator::hdb_iterator(uid_t Vuid) : rec_ohashtab_iterator(HDB->htab) {
+    uid = Vuid;
 }
 
 
 /* Iterator through all entries in a particular hash bucket (used for Find). */
 hdb_iterator::hdb_iterator(hdb_key *key) : rec_ohashtab_iterator(HDB->htab, key) {
-    vuid = ALL_UIDS;
+    uid = ALL_UIDS;
 }
 
 
@@ -1441,7 +1437,7 @@ hdbent *hdb_iterator::operator()() {
     rec_olink *o;
     while ((o = rec_ohashtab_iterator::operator()())) {
 	hdbent *h = strbase(hdbent, o, tbl_handle);
-	if (vuid == ALL_UIDS || vuid == h->vuid) return(h);
+	if (uid == ALL_UIDS || uid == h->uid) return(h);
     }
 
     return(0);
@@ -1561,16 +1557,16 @@ void *namectxt::operator new(size_t len) {
 }
 
 
-namectxt::namectxt(VenusFid *Cdir, char *Path, vuid_t Vuid,
-		    int Priority, int Children, int Descendents) {
-
+namectxt::namectxt(VenusFid *Cdir, char *Path, uid_t Vuid,
+		    int Priority, int Children, int Descendents)
+{
     LOG(10, ("namectxt::namectxt: (%s, %s), %d, %d\n",
 	      FID_(Cdir), Path, Vuid, Priority));
 
     cdir = *Cdir;
     path = Path;
 
-    vuid = Vuid;
+    uid = Vuid;
     priority = Priority;
     state = PeSuspect;
     inuse = 0;
@@ -1588,7 +1584,7 @@ namectxt::namectxt(VenusFid *Cdir, char *Path, vuid_t Vuid,
 	children = new dlist;
 	expander_fid = NullFid;
 	expander_vv = NullVV;
-	expander_dv = -1;
+	expander_dv = (unsigned long)-1;
     }
 
     parent = 0;
@@ -1606,10 +1602,10 @@ namectxt::namectxt(VenusFid *Cdir, char *Path, vuid_t Vuid,
 
 /* This constructor is called for meta-expanded contexts! */
 /* It should share code with the constructor for non-meta-expanded contexts! */
-namectxt::namectxt(namectxt *Parent, char *Component) {
-
+namectxt::namectxt(namectxt *Parent, char *Component)
+{
     LOG(10, ("namectxt::namectxt: (%s, %s/%s), %d, %d\n",
-	     FID_(&Parent->cdir), Parent->path, Component, Parent->vuid,
+	     FID_(&Parent->cdir), Parent->path, Component, Parent->uid,
 	     Parent->priority));
 
     cdir = Parent->cdir;
@@ -1618,7 +1614,7 @@ namectxt::namectxt(namectxt *Parent, char *Component) {
     strcat(path, "/");
     strcat(path, Component);
 
-    vuid = Parent->vuid;
+    uid = Parent->uid;
     priority = Parent->priority;
     state = PeSuspect;
     inuse = 0;
@@ -1636,7 +1632,7 @@ namectxt::namectxt(namectxt *Parent, char *Component) {
 	children = new dlist;
 	expander_fid = NullFid;
 	expander_vv = NullVV;
-	expander_dv = -1;
+	expander_dv = (unsigned long)-1;
     }
 
     parent = Parent;
@@ -1677,7 +1673,7 @@ namectxt::~namectxt() {
 #endif
 
     LOG(10, ("namectxt::~namectxt: (%s, %s), %d, %d\n",
-	     FID_(&cdir), path, vuid, priority));
+	     FID_(&cdir), path, uid, priority));
 
     /* Context must not be busy! */
     if (inuse)
@@ -1942,7 +1938,7 @@ void namectxt::KillChildren() {
 
     expander_fid = NullFid;
     expander_vv = NullVV;
-    expander_dv = -1;
+    expander_dv = (unsigned long)-1;
 }
 
 
@@ -1967,7 +1963,7 @@ void namectxt::Demote(int recursive) {
     /* force an expansion when this namectxt is examined next */
     expander_fid = NullFid;
     expander_vv = NullVV;
-    expander_dv = -1;
+    expander_dv = (unsigned long)-1;
 
     if (inuse)
 	return;
@@ -1989,7 +1985,8 @@ void namectxt::Demote(int recursive) {
 
 /* Name-context MUST be held upon entry! */
 /* Result is returned in u.u_error. */
-pestate namectxt::CheckExpansion() {
+pestate namectxt::CheckExpansion()
+{
     int iterations;
     vproc *vp = VprocSelf();
 
@@ -1997,7 +1994,7 @@ pestate namectxt::CheckExpansion() {
     for (iterations = 0; iterations < MAX_CE_ITERATIONS; iterations++) {
 	/* Set up uarea. */
 	vp->u.Init();
-	vp->u.u_uid = vuid;
+	vp->u.u_uid = uid;
 	vp->u.u_priority = FSDB->MakePri(0, priority);
 	vp->u.u_cdir = cdir;
 	vp->u.u_nc = this;
@@ -2147,6 +2144,7 @@ pestate namectxt::CheckExpansion() {
             break;
             
         default:
+	    next_state = PeInconsistent;
             CHOKE("namectxt::CheckExpansion: bogus return from vproc::namev (%d)",
                   vp->u.u_error);
     }
@@ -2408,9 +2406,10 @@ void namectxt::CheckComponent(fsobj *f) {
 }
 
 
-void namectxt::print(int fd, void *filter) {
-    fdprint(fd, "\tcdir = (%s), path = %s, vuid = %d, priority = %d (%d, %d)\n",
-	     FID_(&cdir), path, vuid, priority, depth, random);
+void namectxt::print(int fd, void *filter)
+{
+    fdprint(fd, "\tcdir = (%s), path = %s, uid = %d, priority = %d (%d, %d)\n",
+	     FID_(&cdir), path, uid, priority, depth, random);
     fdprint(fd, "\tstate = %s, flags = [%d %d %d %d %d %d]\n",
 	     PRINT_PESTATE(state), inuse, dying, demote_pending,
 	     meta_expanded, expand_children, expand_descendents);

@@ -77,10 +77,10 @@ const int DFLT_MAXFP = 3600;		/* Maximum Flush Period */
 const int UNSET_MAXFP = -1;
 const int DFLT_WITT = 60;		/* Worker-Idle time threshold */
 const int UNSET_WITT = -1;
-const int DFLT_MAXFS = 64 * 1024;	/* Maximum Flush-Buffer Size */
-const int UNSET_MAXFS =	-1;
-const int DFLT_MAXTS = 256 * 1024;	/* Maximum Truncate Size */
-const int UNSET_MAXTS = -1;
+const unsigned long DFLT_MAXFS = 64 * 1024;	/* Maximum Flush-Buffer Size */
+const unsigned long UNSET_MAXFS = (unsigned long)-1;
+const unsigned long DFLT_MAXTS = 256 * 1024;	/* Maximum Truncate Size */
+const unsigned long UNSET_MAXTS = (unsigned long)-1;
 
 const int RecovMagicNumber = 0x8675309;
 const int RecovVersionNumber = 34;	/* Update this when format changes. */
@@ -144,8 +144,8 @@ extern int CMFP;
 extern int DMFP;
 extern int WITT;
 extern int MAXFP;
-extern int MAXFS;
-extern int MAXTS;
+extern unsigned long MAXFS;
+extern unsigned long MAXTS;
 
 
 /*  *****  Functions  *****  */

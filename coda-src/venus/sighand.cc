@@ -161,7 +161,7 @@ static void SigControl(int sig)
         return;
     }
 
-    (void)fscanf(fp, "%79s", &command);
+    (void)fscanf(fp, "%79s", command);
 
     if (STREQ(command, "COPMODES")) {
 #if 0
@@ -219,7 +219,6 @@ static void SigControl(int sig)
     if (STREQ(command, "STATS"))
 	DumpState();
 
-Exit:
     if (fclose(fp) == EOF)
 	LOG(0, ("SigControl: fclose(%s) failed", VenusControlFile));
     if (unlink(VenusControlFile) < 0)

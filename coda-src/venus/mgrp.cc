@@ -153,13 +153,13 @@ int RepOpCommCtxt::AnyReturned(int code)
 
 
 
-mgrpent::mgrpent(vsgent *VSG, vuid_t vuid, RPC2_Handle mid, int authflag)
+mgrpent::mgrpent(vsgent *VSG, uid_t Uid, RPC2_Handle mid, int authflag)
 {
     LOG(1,("mgrpent::mgrpent %p, uid = %d, mid = %d, auth = %d\n",
-           this, vuid, mid, authflag));
+           this, uid, mid, authflag));
 
     /* These members are immutable. */
-    uid = vuid;
+    uid = Uid;
     memset(&McastInfo, 0, sizeof(RPC2_Multicast));
     McastInfo.Mgroup = mid;
     McastInfo.ExpandHandle = 0;
@@ -251,7 +251,6 @@ void mgrpent::Kill(int tellservers)
 int mgrpent::CreateMember(int idx)
 {
     struct in_addr hosts[VSG_MEMBERS];
-    int i;
 
     vsg->GetHosts(hosts);
 

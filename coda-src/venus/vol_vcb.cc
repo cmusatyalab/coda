@@ -86,7 +86,7 @@ int vdb::CallBackBreak(Volid *volid)
  * present) and get a callback.  If validating, and there are
  * other volumes that need validating, do them too.
  */
-int repvol::GetVolAttr(vuid_t vuid)
+int repvol::GetVolAttr(uid_t uid)
 {
     LOG(100, ("repvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
 
@@ -97,7 +97,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 
     /* Acquire an Mgroup. */
     mgrpent *m = 0;
-    code = GetMgrp(&m, vuid);
+    code = GetMgrp(&m, uid);
     if (code != 0) goto RepExit;
 
     long cbtemp; cbtemp = cbbreaks;
@@ -197,7 +197,6 @@ int repvol::GetVolAttr(vuid_t vuid)
 	     */
 	    repvol_iterator next;
 	    repvol *rv;
-            struct in_addr Hosts[VSG_MEMBERS], vHosts[VSG_MEMBERS];
 
 	    /* one of the following should be this volume. */
 	    while ((rv = next()) && (nVols < MAX_PIGGY_VALIDATIONS)) 
@@ -313,7 +312,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 			    while ((f = next())) 
 				if (f->IsDir()) {
 				    f->PromoteAcRights(ALL_UIDS);
-				    f->PromoteAcRights(vuid);
+				    f->PromoteAcRights(uid);
 			        }
 		        } 
 			break;

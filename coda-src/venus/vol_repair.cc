@@ -102,10 +102,10 @@ extern "C" {
 */
 /* AVSG is returned in rwvols. */
 /* LockUids and LockWSs parameters are deprecated! */
-int repvol::EnableRepair(vuid_t vuid, VolumeId *RWVols,
-                         vuid_t *LockUids, unsigned long *LockWSs)
+int repvol::EnableRepair(uid_t uid, VolumeId *RWVols,
+                         uid_t *LockUids, unsigned long *LockWSs)
 {
-    LOG(100, ("volent::EnableRepair: vol = %x, uid = %d\n", vid, vuid));
+    LOG(100, ("volent::EnableRepair: vol = %x, uid = %d\n", vid, uid));
     int code = 0, i;
 
     /* Place volume in "repair mode." */
@@ -113,7 +113,7 @@ int repvol::EnableRepair(vuid_t vuid, VolumeId *RWVols,
 	flags.repair_mode = 1;
 
     /* RWVols, LockUids, and LockWSs are OUT parameters. */
-    memset(LockUids, 0, VSG_MEMBERS * sizeof(vuid_t));
+    memset(LockUids, 0, VSG_MEMBERS * sizeof(uid_t));
     memset(LockWSs, 0, VSG_MEMBERS * sizeof(unsigned long));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
@@ -124,19 +124,19 @@ int repvol::EnableRepair(vuid_t vuid, VolumeId *RWVols,
 
 /* local-repair modification */
 /* Attempt the Repair. */
-int repvol::Repair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
+int repvol::Repair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 		    VolumeId *RWVols, int *ReturnCodes)
 {
     LOG(100, ("volent::Repair: fid = %s, file = %s, uid = %d\n",
-	       FID_(RepairFid), RepairFile, vuid));
+	       FID_(RepairFid), RepairFile, uid));
     switch (state) {
     case Hoarding:
-	return ConnectedRepair(RepairFid, RepairFile, vuid, RWVols, ReturnCodes);
+	return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
     case Logging:
 	if (1 /* to be replaced by a predicate for not being issued by ASR */)
-	    return ConnectedRepair(RepairFid, RepairFile, vuid, RWVols, ReturnCodes);
+	    return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
 	else
-	    return DisconnectedRepair(RepairFid, RepairFile, vuid, RWVols, ReturnCodes);
+	    return DisconnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
     case Emulating:
 	return ETIMEDOUT;
     case Resolving:
@@ -148,7 +148,7 @@ int repvol::Repair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 }
 
 /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
-static int GetRepairF(char *RepairFile, vuid_t vuid, fsobj **RepairF)
+static int GetRepairF(char *RepairFile, uid_t uid, fsobj **RepairF)
 {
     VenusFid RepairFileFid;
     char tmp;
@@ -165,7 +165,7 @@ static int GetRepairF(char *RepairFile, vuid_t vuid, fsobj **RepairF)
     Realm *realm = REALMDB->GetRealm(realmname);
     RepairFileFid.Realm = realm->Id();
 
-    code = FSDB->Get(RepairF, &RepairFileFid, vuid, RC_DATA);
+    code = FSDB->Get(RepairF, &RepairFileFid, uid, RC_DATA);
 
     realm->PutRef();
 
@@ -178,10 +178,10 @@ static int GetRepairF(char *RepairFile, vuid_t vuid, fsobj **RepairF)
     return 0;
 }
 
-int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
+int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 			    VolumeId *RWVols, int *ReturnCodes)
 {
-    int code = 0, i, j, fd, localFake = 0;
+    int code = 0, i, j, fd = -1, localFake = 0;
     int *LCarr = NULL; /* repLC, mvLC */
     fsobj *RepairF = NULL, *global = NULL, *local = NULL;
     VenusFid gfid, lfid, *rFid = NULL;
@@ -198,7 +198,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
     {
 	fsobj *f = NULL;
 
-	code = FSDB->Get(&f, RepairFid, vuid, RC_STATUS);
+	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS);
 	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
 	    if (code == 0) {
 		eprint("Repair: %s (%s) consistent", f->comp, FID_(RepairFid));
@@ -212,12 +212,12 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 	if ((code == 0) && FAKEROOTFID(*RepairFid)) {
 	    localFake = 1;
 	    VenusFid inc; /* Required for getting Lookup() to traverse mount points */
-	    code = f->Lookup(&global, &inc, "global", vuid, CLU_CASE_SENSITIVE);
+	    code = f->Lookup(&global, &inc, "global", uid, CLU_CASE_SENSITIVE);
 	    if (code != 0) {
 		FSDB->Put(&f);
 		return(code);
 	    }
-	    code = f->Lookup(&local, &inc, "local", vuid, CLU_CASE_SENSITIVE);
+	    code = f->Lookup(&local, &inc, "local", uid, CLU_CASE_SENSITIVE);
 	    if (code != 0) {
 		FSDB->Put(&global);
 		FSDB->Put(&f);
@@ -242,7 +242,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 	if (code != 0) { FSDB->Put(&local); FSDB->Put(&global); return(code); }
     }
 
-    code = GetRepairF(RepairFile, vuid, &RepairF);
+    code = GetRepairF(RepairFile, uid, &RepairF);
     if (code) {
 	FSDB->Put(&local);
 	FSDB->Put(&global);
@@ -257,7 +257,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
     int asy_resolve = 0;
 
     /* Acquire an Mgroup. */
-    code = GetMgrp(&m, vuid);
+    code = GetMgrp(&m, uid);
     if (code != 0) goto Exit;
 
     /* The COP1 call. */
@@ -275,7 +275,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 		rwfid.Volume = volreps[i]->GetVolumeId();
 		rwfid.Vnode = rFid->Vnode;
 		rwfid.Unique = rFid->Unique;
-		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)
+		if (FSDB->Get(&f, &rwfid, uid, RC_STATUS) != 0)
 		    continue;
 		RepairVVs[i] = &f->stat.VV;	/* XXX */
 		FSDB->Put(&f);
@@ -330,12 +330,12 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 	/* A little debugging help. */
 	if (LogLevel >= 1) {
 	    fprintf(logFile, "Repairing %s:\n", FID_(rFid));
-	    fprintf(logFile, "\tIV = %d, VT = %d, LC = %d, LE = %ld, DV = %d, DA = %d\n",
+	    fprintf(logFile, "\tIV = %ld, VT = %d, LC = %ld, LE = %ld, DV = %ld, DA = %ld\n",
 		    status.InterfaceVersion, status.VnodeType, status.LinkCount,
 		    status.Length, status.DataVersion, status.Date);
-	    fprintf(logFile, "\tAU = %d, OW = %d, CB = %d, MA = %d, AA = %d, MO = %d\n",
+	    fprintf(logFile, "\tAU = %ld, OW = %ld, CB = %d, MA = %d, AA = %d, MO = %ld\n",
 		    status.Author, status.Owner, status.CallBack,
-		    status.MyAccess, status.AnyAccess, status.Mode);
+		    (int)status.MyAccess, (int)status.AnyAccess, status.Mode);
 	    vv_t *tvvs[VSG_MEMBERS];
 	    memset((void *)tvvs, 0, VSG_MEMBERS * (int)sizeof(vv_t *));
 	    tvvs[0] = &status.VV;
@@ -364,7 +364,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 	 * Must do this here, since later would get errno 157 (Resource temporarily unavailable) */
 	if (ISDIR(*RepairFid)) 
 	{
-	    int rc, hcount;
+	    int hcount;
 	    struct repair *rep_ent;
 
 	    /* parse input file and obtain internal rep  */
@@ -390,8 +390,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 		    }
 		}
 
-		for (i = 0; i < l->repairCount; i++) {
-
+		for (unsigned int i = 0; i < l->repairCount; i++) {
 		    if ((rep_ent[i].opcode == REPAIR_REMOVEFSL)
 			|| (rep_ent[i].opcode == REPAIR_REMOVED)
 			|| (rep_ent[i].opcode == REPAIR_RENAME))
@@ -400,7 +399,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 			fsobj *e = NULL;
 
 			CODA_ASSERT(local != NULL);
-			code = local->Lookup(&e, NULL, rep_ent[i].name, vuid, CLU_CASE_SENSITIVE);
+			code = local->Lookup(&e, NULL, rep_ent[i].name, uid, CLU_CASE_SENSITIVE);
 			if (code != 0) {
 			    LOG(15, ("Repair: local(%s)->Lookup(%s) error", 
 				     FID_(&local->fid), rep_ent[i].name));
@@ -411,7 +410,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 			FSDB->Put(&e);
 			
 			if (rep_ent[i].opcode == REPAIR_RENAME) {
-			    code = local->Lookup(&e, NULL, rep_ent[i].newname, vuid, CLU_CASE_SENSITIVE);
+			    code = local->Lookup(&e, NULL, rep_ent[i].newname, uid, CLU_CASE_SENSITIVE);
 			    if (code != 0) {
 				LOG(15, ("Repair: (%s)->Lookup(%s) error", 
 					 FID_(&local->fid), rep_ent[i].newname));
@@ -500,14 +499,14 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 	      goto Exit;
 	    }
 
-	    for (i = 0; i < l->repairCount; i++) {
+	    for (unsigned int i = 0; i < l->repairCount; i++) {
 
 		switch (rep_ent[i].opcode) {
 
 		case REPAIR_REMOVEFSL: /* Remove file or (hard) link */
 		    Recov_BeginTrans();
 		    CML.cancelFreezes(1);
-		    code = LogRemove(modtime, vuid, rFid, rep_ent[i].name,
+		    code = LogRemove(modtime, uid, rFid, rep_ent[i].name,
 				     &(fidarr[i]), LCarr[i], UNSET_TID);
 		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
@@ -515,7 +514,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 		case REPAIR_REMOVED:   /* Remove dir */
 		    Recov_BeginTrans();
 		    CML.cancelFreezes(1);
-		    code = LogRmdir(modtime, vuid, rFid, rep_ent[i].name,
+		    code = LogRmdir(modtime, uid, rFid, rep_ent[i].name,
 				    &(fidarr[i]), UNSET_TID);
 		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
@@ -523,7 +522,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 		case REPAIR_SETMODE:
 		    Recov_BeginTrans();
 		    CML.cancelFreezes(1);
-		    code = LogChmod(modtime, vuid, rFid, 
+		    code = LogChmod(modtime, uid, rFid, 
 				    (RPC2_Unsigned)rep_ent[i].parms[0], UNSET_TID);
 		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
@@ -531,7 +530,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 		case REPAIR_SETOWNER: /* Have to be a sys administrator for this */
 		    Recov_BeginTrans();
 		    CML.cancelFreezes(1);
-		    code = LogChown(modtime, vuid, rFid, 
+		    code = LogChown(modtime, uid, rFid, 
 				    (UserId)rep_ent[i].parms[0], UNSET_TID);
 		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
@@ -539,7 +538,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 		case REPAIR_SETMTIME:
 		    Recov_BeginTrans();
 		    CML.cancelFreezes(1);
-		    code = LogUtimes(modtime, vuid, rFid, 
+		    code = LogUtimes(modtime, uid, rFid, 
 				     (Date_t)rep_ent[i].parms[0], UNSET_TID);
 		    CML.cancelFreezes(0);
 		    Recov_EndTrans(CMFP);
@@ -547,7 +546,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 		case REPAIR_RENAME:
 		    Recov_BeginTrans();
 		    CML.cancelFreezes(1);
-		    code = LogRename(modtime, vuid, rFid, rep_ent[i].name, 
+		    code = LogRename(modtime, uid, rFid, rep_ent[i].name, 
 				     &(fidarr[((2 * l->repairCount) + i)]), 
 				     rep_ent[i].name, &(fidarr[i]), 
 				     &(fidarr[(l->repairCount + i)]), 
@@ -588,8 +587,10 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
     (void)COP2(m, &sid, &UpdateSet, 1);
 
 Exit:
-    if (RepairF) RepairF->data.file->Close(fd);
-    else         close(fd);
+    if (fd != -1) {
+	if (RepairF) RepairF->data.file->Close(fd);
+	else         close(fd);
+    }
 
     if (m) m->Put();
     FSDB->Put(&local);
@@ -625,7 +626,7 @@ Exit:
 
 /* disablerepair - unset the volume from the repair state */
 int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
-			       vuid_t vuid, VolumeId *RWVols, int *ReturnCodes)
+			       uid_t uid, VolumeId *RWVols, int *ReturnCodes)
 {
     int code = 0, i;
     fsobj *RepairF = 0;
@@ -634,7 +635,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
     CODA_ASSERT(vp);
     
     LOG(10, ("volent::DisConnectedRepair: fid = (%s), file = %s, uid = %d\n",
-	     FID_(RepairFid), RepairFile, vuid));
+	     FID_(RepairFid), RepairFile, uid));
 
     VenusFid tpfid;
     tpfid.Realm = RepairFid->Realm;
@@ -655,7 +656,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
     /* Verify that RepairFid is inconsistent. */
     {
 	fsobj *f = 0;
-	code = FSDB->Get(&f, RepairFid, vuid, RC_STATUS);
+	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS);
 	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
 	    if (code == 0) {
 		eprint("DisconnectedRepair: %s (%s) consistent",
@@ -680,7 +681,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	}
 	/* check the parent's rights for write permission*/
 	fsobj *parentf = 0;
-	code = FSDB->Get(&parentf, &tpfid, vuid, RC_STATUS);
+	code = FSDB->Get(&parentf, &tpfid, uid, RC_STATUS);
 	if (code == 0) {
 	    code = parentf->Access(PRSFS_WRITE, W_OK, vp->u.u_uid);
 	    if (code) {
@@ -699,7 +700,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	FSDB->Put(&parentf);
     }
     LOG(100, ("DisconnectedRepair: going to check repair file %s\n", RepairFile));
-    code = GetRepairF(RepairFile, vuid, &RepairF);
+    code = GetRepairF(RepairFile, uid, &RepairF);
     if (code) return code;
 
     /* prepare to fake the call */
@@ -717,7 +718,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 		rwfid.Volume = volreps[i]->GetVolumeId();
 		rwfid.Vnode = RepairFid->Vnode;
 		rwfid.Unique = RepairFid->Unique;
-		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)
+		if (FSDB->Get(&f, &rwfid, uid, RC_STATUS) != 0)
 		    continue;
 		RepairVVs[i] = &f->stat.VV;	/* XXX */
 		if (tpfid.Vnode && f->pfid.Vnode) {
@@ -803,7 +804,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	LOG(100, ("DisconnectedRepair: Going to call LocalRepair(%s)\n",
 		  FID_(RepairFid)));
 	Recov_BeginTrans();
-	   code = LogRepair(Mtime, vuid, RepairFid, status.Length, status.Date,
+	   code = LogRepair(Mtime, uid, RepairFid, status.Length, status.Date,
 			    status.Owner, status.Mode);
 	   /*
 	    * LogRepair puts a ViceRepair_OP record into the CML and it
@@ -887,7 +888,7 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfi
 	rc = close(tgtfd);
 	CODA_ASSERT(rc == 0);
 
-	if (stbuf.st_size != status->Length) {
+	if ((unsigned long)stbuf.st_size != status->Length) {
 	    LOG(10, ("LocalRepair: Length mismatch - actual stored %u bytes, expected %u bytes\n",
 		     stbuf.st_size, status->Length));
 	    return(EIO); 	/* XXX - what else can we return? */
@@ -901,11 +902,11 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfi
     return(0);
 }    
 
-int repvol::DisableRepair(vuid_t vuid)
+int repvol::DisableRepair(uid_t uid)
 {
-    LOG(100, ("volent::DisableRepair: vol = %x, uid = %d\n", vid, vuid));
+    LOG(100, ("volent::DisableRepair: vol = %x, uid = %d\n", vid, uid));
 
-    if (IsUnderRepair(vuid))
+    if (IsUnderRepair(uid))
 	flags.repair_mode = 0;
     else
 	LOG(0, ("volent::DisableRepair: %x not under repair", vid));
@@ -914,18 +915,18 @@ int repvol::DisableRepair(vuid_t vuid)
 }
 
 
-/* If (vuid == ALL_UIDS) the enquiry is taken to be "does anyone on the WS have the volume under repair". */
-int repvol::IsUnderRepair(vuid_t vuid)
+/* If (uid == ALL_UIDS) the enquiry is taken to be "does anyone on the WS have the volume under repair". */
+int repvol::IsUnderRepair(uid_t uid)
 {
-    LOG(100, ("repvol::IsUnderRepair: vol = %x, vuid = %d\n", vid, vuid));
+    LOG(100, ("repvol::IsUnderRepair: vol = %x, uid = %d\n", vid, uid));
 
     return (flags.repair_mode);
 }
 
 /* Enable ASR invocation for this volume */
-int repvol::EnableASR(vuid_t vuid)
+int repvol::EnableASR(uid_t uid)
 {
-    LOG(100, ("repvol::EnableASR: vol = %x, uid = %d\n", vid, vuid));
+    LOG(100, ("repvol::EnableASR: vol = %x, uid = %d\n", vid, uid));
 
     /* Place volume in "repair mode." */
     if (flags.allow_asrinvocation != 1) {
@@ -936,9 +937,9 @@ int repvol::EnableASR(vuid_t vuid)
     return(0);
 }
 
-int repvol::DisableASR(vuid_t vuid)
+int repvol::DisableASR(uid_t uid)
 {
-    LOG(100, ("repvol::DisableASR: vol = %x, uid = %d\n", vid, vuid));
+    LOG(100, ("repvol::DisableASR: vol = %x, uid = %d\n", vid, uid));
 
     if (!IsASRAllowed()) {
 	LOG(100, ("volent::DisableASr: ASR for %x already disabled", vid));

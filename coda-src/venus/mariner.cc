@@ -258,7 +258,7 @@ void MarinerLog(const char *fmt, ...) {
 }
 
 /* This should be made an option to a more general logging facility! -JJK */
-void MarinerReport(VenusFid *fid, vuid_t vuid) {
+void MarinerReport(VenusFid *fid, uid_t uid) {
     int first = 1;
     char buf[MAXPATHLEN];
     int len;
@@ -266,10 +266,10 @@ void MarinerReport(VenusFid *fid, vuid_t vuid) {
     mariner_iterator next;
     mariner *m;
     while ((m = next()))
-	if (m->reporting && (m->vuid == ALL_UIDS || m->vuid == vuid)) {
+	if (m->reporting && (m->uid == ALL_UIDS || m->uid == uid)) {
 	    if (first) {
 		m->u.Init();
-		m->u.u_uid = vuid;
+		m->u.u_uid = uid;
 		len = MAXPATHLEN;
 		m->GetPath(fid, buf, &len);
 		if (m->u.u_error == 0) {
@@ -321,7 +321,7 @@ mariner::mariner(int afd) :
     dying = 0;
     logging = 0;
     reporting = 0;
-    vuid = ALL_UIDS;
+    uid = ALL_UIDS;
     fd = afd;
     memset(commbuf, 0, MWBUFSIZE);
     MarinerMask |= (1 << fd);
@@ -501,7 +501,7 @@ void mariner::main(void)
 	}
 	else if (STREQ(argv[0], "reporton")) {
 	    reporting = 1;
-	    vuid = (argc == 1 ? ALL_UIDS : atoi(argv[1]));
+	    uid = (argc == 1 ? ALL_UIDS : atoi(argv[1]));
 	}
 	else if (STREQ(argv[0], "reportoff")) {
 	    reporting = 0;

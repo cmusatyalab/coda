@@ -80,16 +80,16 @@ void VolDaemon(void)
     vproc *vp = VprocSelf();
     RegisterDaemon(VolDaemonInterval, &voldaemon_sync);
 
-    unsigned long curr_time = Vtime();
+    time_t curr_time = Vtime();
 
     /* Avoid checks on first firing! */
-    unsigned long LastGetDown = 0; /* except for GC'ing empty volumes */
-    unsigned long LastCOP2Check = curr_time;
-    unsigned long LastCheckPoint = curr_time;
-    unsigned long LastRPM = curr_time;
-    unsigned long LastLocalSubtree = curr_time;
-    unsigned long LastTrickleReintegrate = curr_time;
-    unsigned long LastWBPermitRequest = curr_time;
+    time_t LastGetDown = 0; /* except for GC'ing empty volumes */
+    time_t LastCOP2Check = curr_time;
+    time_t LastCheckPoint = curr_time;
+    time_t LastRPM = curr_time;
+    time_t LastLocalSubtree = curr_time;
+    time_t LastTrickleReintegrate = curr_time;
+    time_t LastWBPermitRequest = curr_time;
 
     for (;;) {
 	VprocWait(&voldaemon_sync);

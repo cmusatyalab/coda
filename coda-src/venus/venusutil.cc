@@ -789,7 +789,7 @@ char *lvlstr(LockLevel level) {
 }
 
 
-long Vtime() {
+time_t Vtime() {
     return(::time(0));
 }
 

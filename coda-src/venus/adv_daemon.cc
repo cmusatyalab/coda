@@ -62,7 +62,7 @@ void AdviceInit() {
 
   /* Start up the AM servers. */
   for (int i = 0; i < max_daemons; i++) 
-      adv_daemon *x = new adv_daemon;
+      new adv_daemon;
 
   LOG(100, ("L AdviceInit()\n"));
 }
@@ -151,8 +151,8 @@ long S_NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer use
   rc = adv_mon.NewConnection((char *)hostname, (int)port, (int)pgrp);
 
   if (rc == RPC2_SUCCESS) {
-    adv_mon.InitializeProgramLog((vuid_t)userId);
-    adv_mon.InitializeReplacementLog((vuid_t)userId);
+    adv_mon.InitializeProgramLog((uid_t)userId);
+    adv_mon.InitializeReplacementLog((uid_t)userId);
 
     *VenusMajorVersionNum = (RPC2_Integer)VenusMajorVersion;
     *VenusMinorVersionNum = (RPC2_Integer)VenusMinorVersion;
@@ -168,7 +168,7 @@ long S_ConnectionAlive(RPC2_Handle _cid, RPC2_Integer userId) {
 
 long S_RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, InterestValuePair events[]) {
   LOG(0, ("RegisterInterest\n"));
-  adv_mon.RegisterInterest((vuid_t)userId, numEvents, events);
+  adv_mon.RegisterInterest((uid_t)userId, numEvents, events);
   return RPC2_SUCCESS;
 }
 
@@ -242,10 +242,10 @@ long S_OutputUsageStatistics(RPC2_Handle _cid, RPC2_Integer userId, RPC2_String 
   userent *u;
   
   LOG(0, ("E OutputUsageStatistics\n"));
-  u = FindUser((vuid_t)userId);
+  u = FindUser((uid_t)userId);
   if (u == 0)
     return CAENOSUCHUSER;
-  u->OutputUsageStatistics((vuid_t)userId, (char *)pathname, (int)DisconnectionsSinceLastUse, (int)PercentDisconnectionsUsed, (int)TotalDisconnectionsUsed);
+  u->OutputUsageStatistics((uid_t)userId, (char *)pathname, (int)DisconnectionsSinceLastUse, (int)PercentDisconnectionsUsed, (int)TotalDisconnectionsUsed);
   LOG(0, ("L OutputUsageStatistics\n"));
   */
   return RPC2_SUCCESS;

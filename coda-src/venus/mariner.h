@@ -51,7 +51,7 @@ extern int MarinerMask;
 extern void MarinerInit();
 extern void MarinerMux(int);
 extern void MarinerLog(const char *, ...);
-extern void MarinerReport(VenusFid *, vuid_t);
+extern void MarinerReport(VenusFid *, uid_t);
 extern void PrintMariners();
 extern void PrintMariners(FILE *);
 extern void PrintMariners(int);
@@ -60,7 +60,7 @@ extern void PrintMariners(int);
 class mariner : public vproc {
   friend void MarinerInit();
   friend void MarinerMux(int);
-  friend void MarinerReport(VenusFid *, vuid_t);
+  friend void MarinerReport(VenusFid *, uid_t);
   friend void PrintMariners(int);
 
     static int tcp_muxfd;
@@ -71,7 +71,7 @@ class mariner : public vproc {
     unsigned dying : 1;
     unsigned logging : 1;	    /* for MarinerLog() */
     unsigned reporting : 1;	    /* for MarinerReport() */
-    vuid_t vuid;		    /* valid iff reporting = 1 */
+    uid_t uid;			    /* valid iff reporting = 1 */
     int fd;
     char commbuf[MWBUFSIZE];
 

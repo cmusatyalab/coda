@@ -88,8 +88,8 @@ int CMFP = UNSET_CMFP;
 int DMFP = UNSET_DMFP;
 int MAXFP = UNSET_MAXFP;
 int WITT = UNSET_WITT;
-int MAXFS = UNSET_MAXFS;
-int MAXTS = UNSET_MAXTS;
+unsigned long MAXFS = UNSET_MAXFS;
+unsigned long MAXTS = UNSET_MAXTS;
 
 #ifndef MAX
 #define MAX(a,b)  ( ((a) > (b)) ? (a) : (b) )
@@ -704,7 +704,7 @@ void RecovDaemon(void) {
 
 	/* First task is to get statistics. */
 	Recov_GetStatistics();
-	int WorkerIdleTime = GetWorkerIdleTime();
+	time_t WorkerIdleTime = GetWorkerIdleTime();
 
 	/* Consider truncating. */
 	unsigned long TruncateSize = RVM_OFFSET_TO_LENGTH(Recov_Statistics.log_written);

@@ -64,7 +64,7 @@ struct hdbd_msg : public olink {
     enum hdbd_request type;
     void *request;
     int result;
-    vuid_t local_id;
+    uid_t local_id;
 };
 
 
@@ -87,7 +87,7 @@ void HDBD_Init(void) {
 }
 
 long HDBD_GetNextHoardWalkTime() {
-  long currTime = Vtime();
+  time_t currTime = Vtime();
   LOG(0, ("HDBD_GetNextHoardWalkTime() returns %ld + %ld - %ld\n", 
 	  LastHdbWalk, (long)HdbWalkInterval, currTime));
   return(LastHdbWalk + (long)HdbWalkInterval - currTime);
@@ -109,7 +109,7 @@ LOG(0, ("HDBDaemon about to sleep on hdbdaemon_sync\n"));
 LOG(0, ("HDBDaemon just woke up\n"));
 
 	START_TIMING();
-	long curr_time = Vtime();
+	time_t curr_time = Vtime();
 
 	/* Handle requests BEFORE periodic events. */
 	HDBD_HandleRequests();

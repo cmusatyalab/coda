@@ -56,18 +56,6 @@ extern "C" {
 /* interfaces */
 #include <cml.h>
 
-/* ********** beginning of misc routines ********** */
-static int filecopy(int here, int there)
-{
-    register int kount;
-    char buffer[BUFSIZ];
-    kount = 0;
-    while (kount == 0 && (kount=read(here,buffer,BUFSIZ)) > 0)
-      kount -= write (there,buffer,kount);
-    return (kount ? -1 : 0);
-}
-/* ********** end of misc routines ********** */
-
 /* ********** beginning of cmlent methods ********** */
 /* must be called from within a transaction */
 void cmlent::TranslateFid(VenusFid *global, VenusFid *local)
@@ -245,7 +233,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
     
     /* decl of shared local variables */
     fsobj *ParentObj;
-    int rc;
+    int rc = 0;
 
     /* initialization */
     fsobj *GlobalObjs[3] = {NULL, NULL, NULL};
@@ -590,7 +578,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, GObj && LObj);
 	    LOG(100, ("cmlent::DoRepair: do chown on %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
-	    vuid_t NewOwner = LObj->stat.Owner; 		/* use local new owner */
+	    uid_t NewOwner = LObj->stat.Owner; 		/* use local new owner */
 	    GObj->stat.Owner = NewOwner; 	    		/* set for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1, 
 				       NewOwner, (unsigned short)-1,

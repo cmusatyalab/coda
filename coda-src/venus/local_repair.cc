@@ -114,7 +114,7 @@ void lrdb::BeginRepairSession(VenusFid *RootFid, int RepMode, char *msg)
     while ((vpt = next())) {
 	repvol *vol = vpt->GetVol();
 	VolumeId Vols[VSG_MEMBERS];
-	vuid_t LockUids[VSG_MEMBERS];
+	uid_t LockUids[VSG_MEMBERS];
 	unsigned long LockWSs[VSG_MEMBERS];
 	vol->EnableRepair(ALL_UIDS, Vols, LockUids, LockWSs);
     }

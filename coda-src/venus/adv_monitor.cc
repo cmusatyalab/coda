@@ -141,19 +141,19 @@ void adv_monitor::ServerBandwidthEstimate(char *name, long bandwidth) {
   LOG(10, ("L adv_monitor::ServerBandwidthEstimate()\n"));
 }
 
-int adv_monitor::RequestASRInvokation(repvol *vol, char *pathname, vuid_t vuid)
+int adv_monitor::RequestASRInvokation(repvol *vol, char *pathname, uid_t uid)
 {
   long rc;
   RPC2_Integer ASRid;
   RPC2_Integer ASRrc;
 
-  LOG(1, ("adv_monitor::RequestASRInvokation(%s, %d)\n", pathname, vuid));
+  LOG(1, ("adv_monitor::RequestASRInvokation(%s, %d)\n", pathname, uid));
   InterestID callType = InvokeASRID;
   if (!InterestArray[callType]) return(0);
 
   vol->lock_asr();
 #warning "ASR realm"
-  rc = C_InvokeASR(handle, (RPC2_String)pathname, vol->GetVolumeId(), vuid, &ASRid, &ASRrc);
+  rc = C_InvokeASR(handle, (RPC2_String)pathname, vol->GetVolumeId(), uid, &ASRid, &ASRrc);
   CheckError(rc, callType); /* resets connection and unlocks asr if RPC2 fails */
 
   if (rc == RPC2_SUCCESS) {
@@ -232,7 +232,7 @@ int adv_monitor::NewConnection(char *hostName, int portNumber, int pgrp) {
   return RPC2_SUCCESS;
 }
 
-int adv_monitor::RegisterInterest(vuid_t uid, long numEvents, InterestValuePair events[])
+int adv_monitor::RegisterInterest(uid_t uid, long numEvents, InterestValuePair events[])
 {
     char formatString[MAXEVENTLEN];
 
@@ -257,7 +257,7 @@ int adv_monitor::RegisterInterest(vuid_t uid, long numEvents, InterestValuePair 
     return(0);
 }
 
-void adv_monitor::InitializeProgramLog(vuid_t uid) {
+void adv_monitor::InitializeProgramLog(uid_t uid) {
     char UserSpoolDir[MAXPATHLEN];
 
     if (programFILE != NULL)
@@ -307,7 +307,7 @@ void adv_monitor::LogProgramAccess(int pid, int pgid, VenusFid *fid) {
     }
 }
 
-void adv_monitor::InitializeReplacementLog(vuid_t uid) {
+void adv_monitor::InitializeReplacementLog(uid_t uid) {
     char UserSpoolDir[MAXPATHLEN];
 
     if (replacementFILE != NULL) return;

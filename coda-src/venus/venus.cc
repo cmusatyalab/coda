@@ -88,7 +88,7 @@ char *realmtab;
 char *CacheDir;
 char *CachePrefix;
 int   CacheBlocks;
-vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
+uid_t PrimaryUser = UNSET_PRIMARYUSER;
 char *SpoolDir;
 char *VenusPidFile;
 char *VenusControlFile;

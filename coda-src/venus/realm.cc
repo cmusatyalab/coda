@@ -62,7 +62,6 @@ Realm::Realm(const char *realm_name)
 /* MUST be called from within a transaction */
 Realm::~Realm(void)
 {
-    struct dllist_head *p;
     VenusFid Fid;
     fsobj *f;
 
@@ -210,9 +209,8 @@ retry:
 void Realm::print(FILE *f)
 {
     struct coda_addrinfo *p;
-    int i = 0;
 
-    fprintf(f, "%08x realm '%s', refcount %d/%d\n", Id(), Name(),
+    fprintf(f, "%08x realm '%s', refcount %d/%d\n", (unsigned int)Id(), Name(),
 	    refcount, rec_refcount);
     for (p = rootservers; p; p = p->ai_next) {
 	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;

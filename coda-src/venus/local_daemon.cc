@@ -62,7 +62,7 @@ void LRDBDaemon(void)
 	VprocWait(&lrdaemon_sync);
 
 	START_TIMING();
-	long curr_time = Vtime();
+	time_t curr_time = Vtime();
 
 	/* periodic events */
 	if (curr_time - LastCheckSubtree >= CheckSubtreeInterval) {

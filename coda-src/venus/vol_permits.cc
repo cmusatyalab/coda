@@ -16,9 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /*
  *  Code relating to volume callbacks.
  */
@@ -60,7 +57,7 @@ extern "C" {
 
 /* ok, so this makes an RPC call to the server to try to get a permit;
    we return PermitSet if we successfully got one, otherwise NoPermit */
-int repvol::GetPermit(vuid_t vuid)
+int repvol::GetPermit(uid_t uid)
 {
     long permit = WB_DISABLED;
     int i,permits_recvd = 0;
@@ -79,7 +76,7 @@ int repvol::GetPermit(vuid_t vuid)
     /* Acquire an Mgroup. */
     
     mgrpent *m = 0;
-    code = GetMgrp(&m, vuid, 0);
+    code = GetMgrp(&m, uid, 0);
     if (code != 0) {
 	ClearPermit();
 	return VPStatus;
@@ -118,7 +115,7 @@ int repvol::GetPermit(vuid_t vuid)
     }
     else {                                /* need to return those we have */
 	LOG(1, ("repvol::GetPermit(): Have only %d of %d permits, returning others",permits_recvd,AVSGsize()));
-	ReturnPermit(vuid);
+	ReturnPermit(uid);
 	ClearPermit();
     }
     
@@ -132,10 +129,10 @@ void repvol::ClearPermit()
     LOG(1, ("repvol::ClearPermit(): hey, I just cleared a permit!\n"));
 }
 
-int repvol::ReturnPermit(vuid_t vuid)
+void repvol::ReturnPermit(uid_t uid)
 {	
     mgrpent   *m = 0;
-    int     code = GetMgrp(&m, vuid, 0);
+    int     code = GetMgrp(&m, uid, 0);
 
     ARG_MARSHALL(IN_MODE, VolumeId, vidvar,vid, VSG_MEMBERS);
     MULTI_START_MESSAGE(ViceRejectWBPermit_OP);

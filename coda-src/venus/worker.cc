@@ -155,14 +155,14 @@ msgent *FindMsg(olist& ol, u_long seq) {
 int MsgRead(msgent *m) 
 {
 #ifdef DJGPP
-	int cc = read_relay(m->msg_buf);
+	size_t cc = read_relay(m->msg_buf);
 
 #elif defined(__CYGWIN32__)
         DWORD size;  
-        int cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
+        size_t cc = read(worker::muxfd, (char *)&size, sizeof(size)); 
 	cc = read(worker::muxfd, m->msg_buf, (int)size);
 #else
-	int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
+	size_t cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
 #endif
 	if (cc < sizeof(struct coda_in_hdr)) 
 		return(-1);
@@ -171,7 +171,7 @@ int MsgRead(msgent *m)
 }
 
 
-int MsgWrite(char *buf, int size) 
+size_t MsgWrite(char *buf, int size) 
 {
 #ifdef DJGPP
 	 return write_relay(buf, size);
@@ -218,7 +218,7 @@ void testKernDevice()
 	return;
 #else
 	int fd = -1;
-	char *str, *p, *q;
+	char *str, *p, *q = NULL;
 	CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
 
 	for(p = strtok(p, ","); p && fd == -1; p = strtok(NULL, ",")) {
@@ -234,8 +234,10 @@ void testKernDevice()
 		   kernDevice);
 	    free(str);
 	    exit(-1);
-	} else
-	    kernDevice = strdup(q);
+	}
+
+	CODA_ASSERT(q);
+	kernDevice = strdup(q);
 	free(str);
 
 	/* Construct a purge message */
@@ -902,7 +904,7 @@ void WorkerMux(int mask) {
 }
 
 
-int GetWorkerIdleTime() {
+time_t GetWorkerIdleTime() {
     /* Return 0 if any call is in progress. */
     worker_iterator next;
     worker *w;
@@ -1042,7 +1044,7 @@ void worker::Resign(msgent *msg, int size) {
 }
 
 
-void worker::Return(msgent *msg, int size) {
+void worker::Return(msgent *msg, size_t size) {
     if (returned)
 	CHOKE("worker::Return: already returned!");
 
@@ -1065,7 +1067,7 @@ void worker::Return(msgent *msg, int size) {
 
     /* There is no reply to an interrupted operation. */
     if (!interrupted) {
-	int cc = MsgWrite(msg->msg_buf, size);
+	size_t cc = MsgWrite(msg->msg_buf, size);
 	int errn = errno;
 	if (cc != size) {
 	    eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
@@ -1093,10 +1095,10 @@ void worker::main(void)
     struct venus_cnode vparent;
     struct venus_cnode vtarget;
     CodaFid saveFid;
-    int     saveFlags;
+    int     saveFlags = 0;
     int     opcode;
     int     size;
-    int     openfd;
+    int     openfd = -1;
 
     for (;;) {
 	/* Wait for new request. */

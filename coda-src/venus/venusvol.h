@@ -152,11 +152,11 @@ class ClientModifyLog {
   friend class cmlent;
   friend class cml_iterator;
   friend class repvol;
-  friend class volent; /* ::Enter(int, vuid_t); */
-                       /* ::Exit(int, vuid_t) */
+  friend class volent; /* ::Enter(int, uid_t); */
+                       /* ::Exit(int, uid_t) */
 
     rec_dlist list;	 			/* link to cmlents */
-    /*T*/vuid_t	owner;				/* writer of all entries in Log */
+    /*T*/uid_t	owner;				/* writer of all entries in Log */
     /*T*/long entries;                          /* number of records in the CML */
     /*T*/long entriesHighWater;                 /* reset when count == zero */
     /*T*/long bytes;                            /* number of bytes used by CML */
@@ -209,7 +209,7 @@ class ClientModifyLog {
     long size();
     int count() { return list.count(); }
     long countHighWater() {return entriesHighWater;}
-    vuid_t Owner() { return owner; }
+    uid_t Owner() { return owner; }
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
@@ -271,7 +271,7 @@ class cmlent {
 	    VenusFid Fid;
 	    RPC2_Unsigned Length;
 	    /* T */ViceVersionVector VV;
-	    RPC2_Integer Offset;		/* for partial reintegration */
+	    RPC2_Unsigned Offset;		/* for partial reintegration */
 	    ViceReintHandle RHandle;
 	    struct in_addr ReintPH;		/* chosen primaryhost & index */
 	    int            ReintPHix;		/* for the partial reint. */
@@ -358,7 +358,7 @@ class cmlent {
 
   public:
     void *operator new(size_t);
-    cmlent(ClientModifyLog *, time_t, vuid_t, int, int ...);	/* local-repair modification */
+    cmlent(ClientModifyLog *, time_t, uid_t, int, int ...);	/* local-repair modification */
     void ResetTransient();
     ~cmlent();
     void operator delete(void *, size_t);
@@ -473,8 +473,8 @@ class vdb {
     int AllocatedMLEs;
 
     /* The hash tables for replicated volumes and volume replicas. */
-    rec_ohashtab repvol_hash;
     rec_ohashtab volrep_hash;
+    rec_ohashtab repvol_hash;
 
     /* The mle free list. */
     rec_dlist mlefreelist;
@@ -653,9 +653,9 @@ class volent {
     /* User-visible volume status. */
     int GetVolStat(VolumeStatus *, RPC2_BoundedBS *,
 		   VolumeStateType *, int *, int *,
-		    RPC2_BoundedBS *, RPC2_BoundedBS *, vuid_t, int local_only);
+		    RPC2_BoundedBS *, RPC2_BoundedBS *, uid_t, int local_only);
     int SetVolStat(VolumeStatus *, RPC2_BoundedBS *,
-		    RPC2_BoundedBS *, RPC2_BoundedBS *, vuid_t);
+		    RPC2_BoundedBS *, RPC2_BoundedBS *, uid_t);
 
     /* Utility routines. */
     void GetHosts(struct in_addr hosts[VSG_MEMBERS]);
@@ -712,7 +712,7 @@ class volrep : public volent {
     VolumeId ReplicatedVol() { return replicated; }
     int IsReadWriteReplica() { return (ReplicatedVol() != 0); }
 
-    int GetConn(connent **, vuid_t);
+    int GetConn(connent **, uid_t);
     void GetBandwidth(unsigned long *bw);
 
     void DownMember(struct in_addr *host);
@@ -791,7 +791,7 @@ class repvol : public volent {
     static unsigned int deallocs;
 #endif
 
-    int GetMgrp(mgrpent **, vuid_t, RPC2_CountedBS * =0);
+    int GetMgrp(mgrpent **, uid_t, RPC2_CountedBS * =0);
     void GetBandwidth(unsigned long *bw);
 
     void DownMember(struct in_addr *host);
@@ -805,7 +805,7 @@ class repvol : public volent {
     int Collate_COP2(mgrpent *, int);
 
     /* Allocation routines. */
-    int AllocFid(ViceDataType, VenusFid *, RPC2_Unsigned *, vuid_t, int = 0);
+    int AllocFid(ViceDataType, VenusFid *, RPC2_Unsigned *, uid_t, int = 0);
 
     /* Utility routines. */
     void GetHosts(struct in_addr hosts[VSG_MEMBERS]);
@@ -838,32 +838,32 @@ class repvol : public volent {
     void CancelStores(VenusFid *);
 #endif
     void RestoreObj(VenusFid *);
-    int	CheckPointMLEs(vuid_t, char *);
+    int	CheckPointMLEs(uid_t, char *);
     int LastMLETime(unsigned long *);
-    int PurgeMLEs(vuid_t);
+    int PurgeMLEs(uid_t);
     void ResetStats() { CML.ResetHighWater(); }
     int WriteDisconnect(unsigned =V_UNSETAGE, unsigned =V_UNSETREINTLIMIT);
     int WriteReconnect();
 
     /* local-repair modifications to the following methods */
     /* Modlog routines. */
-    int LogStore(time_t, vuid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogSetAttr(time_t, vuid_t, VenusFid *,
+    int LogStore(time_t, uid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
+    int LogSetAttr(time_t, uid_t, VenusFid *,
 		    RPC2_Unsigned, Date_t, UserId, RPC2_Unsigned, int = UNSET_TID);
-    int LogTruncate(time_t, vuid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogUtimes(time_t, vuid_t, VenusFid *, Date_t, int = UNSET_TID);
-    int LogChown(time_t, vuid_t, VenusFid *, UserId, int = UNSET_TID);
-    int LogChmod(time_t, vuid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogCreate(time_t, vuid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRemove(time_t, vuid_t, VenusFid *, char *, const VenusFid *, int, int = UNSET_TID);
-    int LogLink(time_t, vuid_t, VenusFid *, char *, VenusFid *, int = UNSET_TID);
-    int LogRename(time_t, vuid_t, VenusFid *, char *,
+    int LogTruncate(time_t, uid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
+    int LogUtimes(time_t, uid_t, VenusFid *, Date_t, int = UNSET_TID);
+    int LogChown(time_t, uid_t, VenusFid *, UserId, int = UNSET_TID);
+    int LogChmod(time_t, uid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
+    int LogCreate(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
+    int LogRemove(time_t, uid_t, VenusFid *, char *, const VenusFid *, int, int = UNSET_TID);
+    int LogLink(time_t, uid_t, VenusFid *, char *, VenusFid *, int = UNSET_TID);
+    int LogRename(time_t, uid_t, VenusFid *, char *,
 		   VenusFid *, char *, VenusFid *, const VenusFid *, int, int = UNSET_TID);
-    int LogMkdir(time_t, vuid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRmdir(time_t, vuid_t, VenusFid *, char *, const VenusFid *, int = UNSET_TID);
-    int LogSymlink(time_t, vuid_t, VenusFid *, char *,
+    int LogMkdir(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
+    int LogRmdir(time_t, uid_t, VenusFid *, char *, const VenusFid *, int = UNSET_TID);
+    int LogSymlink(time_t, uid_t, VenusFid *, char *,
 		    char *, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRepair(time_t, vuid_t, VenusFid *, RPC2_Unsigned,
+    int LogRepair(time_t, uid_t, VenusFid *, RPC2_Unsigned,
 		  Date_t, UserId, RPC2_Unsigned, int = UNSET_TID);
     /* local-repair modifications to the above methods */
 
@@ -877,22 +877,22 @@ class repvol : public volent {
     void CheckLocalSubtree();			/*U*/
 
     /* write-back routines */
-    int EnterWriteback(vuid_t vuid);
-    int LeaveWriteback(vuid_t vuid);
+    int EnterWriteback(uid_t uid);
+    int LeaveWriteback(uid_t uid);
     int StopWriteback(VenusFid *fid);
     int SyncCache(VenusFid * fid);
     int IsWritebacking() { return flags.writebacking; }
-    int GetPermit(vuid_t vuid);
-    int ReturnPermit(vuid_t vuid);
+    int GetPermit(uid_t uid);
+    void ReturnPermit(uid_t uid);
     int HavePermit() { return (VPStatus == PermitSet); }
     void ClearPermit();
 
     /* Repair routines. */
-    int EnableRepair(vuid_t, VolumeId *, vuid_t *, unsigned long *);
-    int DisableRepair(vuid_t);
-    int Repair(VenusFid *, char *, vuid_t, VolumeId *, int *);
-    int ConnectedRepair(VenusFid *, char *, vuid_t, VolumeId *, int *);
-    int DisconnectedRepair(VenusFid *, char *, vuid_t, VolumeId *, int *);
+    int EnableRepair(uid_t, VolumeId *, uid_t *, unsigned long *);
+    int DisableRepair(uid_t);
+    int Repair(VenusFid *, char *, uid_t, VolumeId *, int *);
+    int ConnectedRepair(VenusFid *, char *, uid_t, VolumeId *, int *);
+    int DisconnectedRepair(VenusFid *, char *, uid_t, VolumeId *, int *);
     int LocalRepair(fsobj *, ViceStatus *, char *fname, VenusFid *);
 
     /* Resolution routines */
@@ -913,7 +913,7 @@ class repvol : public volent {
     void ClearCOP2(RPC2_CountedBS *);
 
     /* Callback routines */
-    int GetVolAttr(vuid_t);
+    int GetVolAttr(uid_t);
     void CollateVCB(mgrpent *, RPC2_Integer *, CallBackStatus *);
     void PackVS(int, RPC2_CountedBS *);
     int HaveStamp() { return(VV_Cmp(&VVV, &NullVV) != VV_EQ); }
@@ -925,8 +925,8 @@ class repvol : public volent {
     int ValidateFSOs();
 
     /* ASR routines */
-    int EnableASR(vuid_t);
-    int DisableASR(vuid_t);
+    int EnableASR(uid_t);
+    int DisableASR(uid_t);
     int IsASRAllowed() { return flags.allow_asrinvocation; }
     void lock_asr();
     void unlock_asr();
@@ -935,7 +935,7 @@ class repvol : public volent {
     int asr_id() { return lc_asr; }
 
     /* Repair routines */
-    int IsUnderRepair(vuid_t);
+    int IsUnderRepair(uid_t);
 
     void print_repvol(int);
 };
@@ -1021,7 +1021,7 @@ extern void VolInit();
 extern int VOL_HashFN(void *);
 
 /* vol_COP2.c */
-const int COP2SIZE = 1024;
+const unsigned int COP2SIZE = 1024;
 
 /* vol_daemon.c */
 extern void VOLD_Init(void);

@@ -449,8 +449,8 @@ O_FreeLocks:
 		case VIOC_ENABLEREPAIR:
 		    {
 		    /* Try to enable target volume for repair by this user. */
-		    VolumeId  *RWVols   = (VolumeId *)data->out;
-		    vuid_t    *LockUids = (vuid_t *)&(RWVols[VSG_MEMBERS]);
+		    VolumeId  *RWVols  = (VolumeId *)data->out;
+		    uid_t    *LockUids = (uid_t *)&(RWVols[VSG_MEMBERS]);
 		    unsigned long *LockWSs =
 			(unsigned long *)&(LockUids[VSG_MEMBERS]);
 		    char      *endp     = (char *)&(LockWSs[VSG_MEMBERS]);
@@ -1394,14 +1394,14 @@ V_FreeLocks:
 		    {
 		    if (data->in_size != (int)sizeof(VenusFid))
 			{ u.u_error = EINVAL; break; }
-		    ViceFid *fid;
-		    memcpy(fid, data->in, sizeof(ViceFid));
+		    ViceFid fid;
+		    memcpy(&fid, data->in, sizeof(ViceFid));
 		    char *realmname = (char *)data->in + sizeof(ViceFid);
 		    Realm *realm = REALMDB->GetRealm(realmname);
 
 		    int	out_size = MAXPATHLEN;	    /* needed since data->out_size is a short! */
 		    VenusFid vfid;
-		    MakeVenusFid(&vfid, realm->Id(), fid);
+		    MakeVenusFid(&vfid, realm->Id(), &fid);
 
 		    GetPath(&vfid, (char *) data->out, &out_size, 0);
 

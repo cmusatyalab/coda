@@ -29,7 +29,7 @@ extern "C" {
 
 #include "venus.private.h"
 
-static void ValidateDir(char *dir, vuid_t owner, mode_t mode)
+static void ValidateDir(char *dir, uid_t owner, mode_t mode)
 {
     int code = 0;
     struct stat tstat;
@@ -51,11 +51,8 @@ static void ValidateDir(char *dir, vuid_t owner, mode_t mode)
         CODA_ASSERT(::chmod(dir, mode) == 0);
 }
 
-void MakeUserSpoolDir(char *usd, vuid_t owner)
+void MakeUserSpoolDir(char *usd, uid_t owner)
 {
-    int code = 0;
-    struct stat tstat;
-
     // Ensure that the spool directory exists...
     ValidateDir(SpoolDir, V_UID, 0755);
 
