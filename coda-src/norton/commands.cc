@@ -211,15 +211,13 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 #define BYTES_PER_LINE	16
 void examine(int argc, char *argv[])
 {
-    int  *base,
-	 *addr;
+    int *base, *addr;
     char *buf;
-    int len;
-    unsigned int i;
+    unsigned int len, i;
     
     if ((argc != 3) ||
-	(Parser_int(argv[1], (int *)&base) != 1) ||
-	(Parser_int(argv[2], &len) != 1)) {
+	(Parser_uint(argv[1], (unsigned int *)&base) != 1) ||
+	(Parser_uint(argv[2], &len) != 1)) {
 	fprintf(stderr, "Usage: examine <addr> <len>\n");
 	return;
     }
@@ -251,20 +249,20 @@ void examine(int argc, char *argv[])
 
 
 void set_debug(int argc, char *argv[]) {
-    int debug_level;
+    unsigned int debug_level;
     
     if ((argc != 3) ||
-	(Parser_int(argv[2], &debug_level) != 1)) {
+	(Parser_uint(argv[2], &debug_level) != 1)) {
 	fprintf(stderr, "Usage: set debug <debug_level>\n");
 	return;
     }
 
     norton_debug = debug_level;
-    printf("Debug level set to: %d\n", norton_debug);
+    printf("Debug level set to: %u\n", norton_debug);
 }
 
 void show_debug(int argc, char *argv[]) {
-    printf("Debug level: %d\n", norton_debug);
+    printf("Debug level: %u\n", norton_debug);
 }
 
 

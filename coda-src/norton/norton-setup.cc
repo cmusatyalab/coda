@@ -50,7 +50,7 @@ extern "C" {
 #define NUMBUFS 20
 #define VOLUMECACHESIZE 50
 
-int norton_debug = 0;
+unsigned int norton_debug = 0;
 int mapprivate = 0;
 
 struct camlib_recoverable_segment *camlibRecoverableSegment;

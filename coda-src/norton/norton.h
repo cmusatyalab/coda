@@ -25,7 +25,7 @@ listed in the file CREDITS.
 #include <camprivate.h>
 
 /* norton-setup.c */
-extern int norton_debug;
+extern unsigned int norton_debug;
 extern int mapprivate;
 extern void NortonInit(char *log_dev, char *data_dev, int data_len);
 
@@ -40,27 +40,27 @@ extern void set_debug(int, char **);
 extern void print_volume(VolHead *);
 extern void print_volume_details(VolHead *);
 extern void PrintVV(vv_t *);
-extern VolHead *GetVol(int);
+extern VolHead *GetVol(VolumeId);
 extern VolHead *GetVol(char *);
-extern int GetVolIndex(int);
+extern int GetVolIndex(VolumeId);
 extern void list_vols(int, char **);
 extern void list_vols();
 extern void show_volume(int, char **);
-extern void show_volume(int);
+extern void show_volume(VolumeId);
 extern void show_volume(char *);
 extern void show_volume_details(int, char **);
-extern void show_volume_details(int);
+extern void show_volume_details(VolumeId);
 extern void show_volume_details(char *);
 extern void show_index(int, char **);
-extern void show_index(int);
+extern void show_index(VolumeId);
 extern void show_index(char *);
 extern void sh_delete_volume(int, char **);
 extern void undelete_volume(int, char **);
 
 /* norton-vnode.c */
 extern void show_vnode(int, char **);
-extern void show_vnode(int, int, int);
-extern void show_vnode(int, int);
+extern void show_vnode(VolumeId, VnodeId, Unique_t);
+extern void show_vnode(VolumeId, Unique_t);
 extern void show_free(int, char **);
 extern void set_linkcount(int, char **);
 extern void PrintVnodeDiskObject(VnodeDiskObject *);
@@ -72,7 +72,7 @@ extern VolHead *VolByIndex(int);
 
 /* norton-dir.c */
 extern void show_dir(int, char **);
-extern void show_dir(int, int, int);
+extern void show_dir(VolumeId, VnodeId, Unique_t);
 extern void delete_name(int, char **);
 extern void sh_create_name(int, char **);
 

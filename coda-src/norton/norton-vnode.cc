@@ -55,46 +55,22 @@ void PrintVnodeDiskObject(VnodeDiskObject *vnode)
     }
     printf("\tcloned = %u\tmode = %o\tlinks = %u\n",
 	   vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("    length = %u\tunique = %u\tversion = %u\tinode = %u\n",
-	   vnode->length, vnode->uniquifier, vnode->dataVersion,
+    printf("    length = %u\tunique = %lu\tversion = %lu\tinode = %lu\n",
+	   (unsigned int)vnode->length, vnode->uniquifier, vnode->dataVersion,
 	   vnode->inodeNumber); 
     printf("    vv = ");
     PrintVV(&vnode->versionvector);
-    printf("    volindex = %d\tmodtime = %u\tauthor = %u\towner = %u\n",
+    printf("    volindex = %d\tmodtime = %lu\tauthor = %lu\towner = %lu\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner);
-    printf("    parent = 0x%x.0x%x\tmagic = 0x%x\n    servermodtime = %u\n",
-	   vnode->vparent, vnode->uparent, vnode->vnodeMagic,
+    printf("    parent = 0x%lx.0x%lx\tmagic = 0x%x\n    servermodtime = %lu\n",
+	   vnode->vparent, vnode->uparent, (unsigned int)vnode->vnodeMagic,
 	   vnode->serverModifyTime); 
 }
 
 
 
-void show_vnode(int argc, char *argv[]) {
-    int volid,
-	vnode,
-	unique;
-
-
-    if ((argc != 5) ||
-	(Parser_int(argv[2], &volid) != 1) ||
-	(Parser_int(argv[4], &unique) != 1)) {
-	fprintf(stderr, "Usage: show vnode <volid> [<vnode> | ?] <unique> \n");
-	return;
-    }
-
-    if (Parser_int(argv[3], &vnode) == 1) {
-	show_vnode(volid, vnode, unique);
-    }
-    else if (*argv[3] == '?') {
-	show_vnode(volid, unique);
-    }
-    else {
-	fprintf(stderr, "Usage: show vnode <volid> [<vnode> | ?] <unique> \n");
-    }
-}
-
-
-void show_vnode(int volid, int uniquifier) {
+void show_vnode(VolumeId volid, Unique_t uniquifier)
+{
     Error   error;
     VnodeId vnodeindex;
     int     vclass = vSmall;  /* HACK FIX THIS! */
@@ -116,13 +92,12 @@ void show_vnode(int volid, int uniquifier) {
     }
 	
     for (vnodeindex=0; vnodeindex < vol->data.nsmallLists; vnodeindex++) {
-	if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
-			 (Unique_t)uniquifier, vnode) < 0) {
+	if (ExtractVnode(&error, volindex, vclass, vnodeindex, uniquifier, vnode) < 0) {
 	    continue;
 	}
 	    
 
-	printf("    vnode number: 0x%x\tvnode index: 0x%x\n", 2*(vnodeindex+1), vnodeindex);
+	printf("    vnode number: 0x%lx\tvnode index: 0x%lx\n", 2*(vnodeindex+1), vnodeindex);
 	PrintVnodeDiskObject(vnode);
 	if (vnode->log) {
 	    printf("\n    Vnode Resolution Log:\n");
@@ -132,7 +107,8 @@ void show_vnode(int volid, int uniquifier) {
 }
 
 
-void show_vnode(int volid, int vnum, int uniquifier) {
+void show_vnode(VolumeId volid, VnodeId vnum, Unique_t uniquifier)
+{
     Error   error;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
@@ -147,20 +123,44 @@ void show_vnode(int volid, int vnum, int uniquifier) {
 	return;
     }
 
-    if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
-		     (Unique_t)uniquifier, vnode) < 0) {
+    if (ExtractVnode(&error, volindex, vclass, vnodeindex, uniquifier, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		uniquifier);
 	return;
     }
 
-    printf("    vnode number: 0x%x\tvnode index: 0x%x\n", vnum, vnodeindex);
+    printf("    vnode number: 0x%lx\tvnode index: 0x%lx\n", vnum, vnodeindex);
     PrintVnodeDiskObject(vnode);
     if (vnode->log) {
 	printf("\n    Vnode Resolution Log:\n");
 	PrintLog(vnode->log, stdout);
     }
 }
+
+void show_vnode(int argc, char *argv[])
+{
+    unsigned int volid,
+	vnode,
+	unique;
+
+    if ((argc != 5) ||
+	(Parser_uint(argv[2], &volid) != 1) ||
+	(Parser_uint(argv[4], &unique) != 1)) {
+	fprintf(stderr, "Usage: show vnode <volid> [<vnode> | ?] <unique> \n");
+	return;
+    }
+
+    if (Parser_uint(argv[3], &vnode) == 1) {
+	show_vnode((VolumeId)volid, (VnodeId)vnode, (Unique_t)unique);
+    }
+    else if (*argv[3] == '?') {
+	show_vnode((VolumeId)volid, (VnodeId)unique);
+    }
+    else {
+	fprintf(stderr, "Usage: show vnode <volid> [<vnode> | ?] <unique> \n");
+    }
+}
+
 
 
 void show_free(int argc, char *argv[])
@@ -252,8 +252,7 @@ setcount(int volid, int vnum, int unique, int count)
 
     rvmlib_begin_transaction(restore);
 	    
-    if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
-		     (Unique_t)unique, vnode) < 0) {
+    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x 0x%x 0x%x\n", volid, vnum,
 		unique);
 	rvmlib_abort(VFAIL);
@@ -262,8 +261,7 @@ setcount(int volid, int vnum, int unique, int count)
 
     vnode->linkCount = count;
 
-    error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
-			 (Unique_t)unique, vnode);
+    error = ReplaceVnode(volindex, vclass, vnodeindex, unique, vnode);
     if (error) {
 	fprintf(stderr, "ERROR: ReplaceVnode returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
@@ -280,16 +278,13 @@ setcount(int volid, int vnum, int unique, int count)
 
 void set_linkcount(int argc, char *argv[]) {
 
-    int volid,
-	vnode,
-	unique,
-	count;
+    unsigned int volid, vnode, unique, count;
 
     if ((argc != 6) ||
-	(Parser_int(argv[2], &volid) != 1) ||
-	(Parser_int(argv[3], &vnode) != 1) ||
-	(Parser_int(argv[4], &unique) != 1) ||
-	(Parser_int(argv[5], &count) != 1)) {
+	(Parser_uint(argv[2], &volid) != 1) ||
+	(Parser_uint(argv[3], &vnode) != 1) ||
+	(Parser_uint(argv[4], &unique) != 1) ||
+	(Parser_uint(argv[5], &count) != 1)) {
 	fprintf(stderr, "Usage: set linkcount <parent_volid> ");
 	fprintf(stderr, "<parent_vnode> <parent_unique> <count>\n"); 
 	return;
@@ -325,8 +320,7 @@ delete_smallvnode(int volid, int vnum, int unique)
 
     rvmlib_begin_transaction(restore)
 	    
-    if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
-		     (Unique_t)unique, vnode) < 0) {
+    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
 	rvmlib_abort(VFAIL);
@@ -334,8 +328,7 @@ delete_smallvnode(int volid, int vnum, int unique)
     }
 
 
-    if (error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
-			     (Unique_t)unique, vnode)) {
+    if (error = ReplaceVnode(volindex, vclass, vnodeindex, unique, vnode)) {
 	fprintf(stderr, "ERROR: ReplaceVnode returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;

@@ -56,7 +56,7 @@ struct NortonDirHandle {
 };
 
 
-static int testVnodeExists(int volid, int vnum, int unique)
+static int testVnodeExists(VolumeId volid, VnodeId vnum, Unique_t unique)
 {
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
@@ -68,8 +68,9 @@ static int testVnodeExists(int volid, int vnum, int unique)
     volindex = GetVolIndex(volid);
     if (volindex < 0) { return 0; }
 
-    if (ExtractVnode(&error, volindex, vclass, vnodeindex,
-		     (Unique_t)unique, vnode) < 0) { return 0; }
+    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
+	return 0;
+    }
 
     return 1;
 }
@@ -119,8 +120,7 @@ PDCEntry SetDirHandle(int volid, int vnum, int unique)
 	perror(buf);
     }
 
-    if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
-		     (Unique_t)unique, vnode) < 0) {
+    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
 	return 0;
@@ -132,28 +132,8 @@ PDCEntry SetDirHandle(int volid, int vnum, int unique)
     return dc;
 }
 
-
-
-void show_dir(int argc, char *argv[]) {
-    int volid,
-	vnode,
-	unique;
-
-
-    if ((argc != 5) ||
-	(Parser_int(argv[2], &volid) != 1) ||
-	(Parser_int(argv[3], &vnode) != 1) ||
-	(Parser_int(argv[4], &unique) != 1)) {
-	fprintf(stderr, "Usage: show directory <volid> <vnode> <unique> \n");
-	return;
-    }
-
-    show_dir(volid, vnode, unique);
-}
-
-
 void 
-show_dir(int volid, int vnum, int unique) 
+show_dir(VolumeId volid, VnodeId vnum, Unique_t unique) 
 {
     PDCEntry dc;
     int     vclass = vnodeIdToClass(vnum);
@@ -176,12 +156,27 @@ show_dir(int volid, int vnum, int unique)
     DH_EnumerateDir(DC_DC2DH(dc), printentry, &volid);
 }
 
+void show_dir(int argc, char *argv[])
+{
+    unsigned int volid, vnode, unique;
+
+
+    if ((argc != 5) ||
+	(Parser_uint(argv[2], &volid) != 1) ||
+	(Parser_uint(argv[3], &vnode) != 1) ||
+	(Parser_uint(argv[4], &unique) != 1)) {
+	fprintf(stderr, "Usage: show directory <volid> <vnode> <unique> \n");
+	return;
+    }
+
+    show_dir((VolumeId)volid, (VnodeId)vnode, (Unique_t)unique);
+}
 
 
 // remove name from the given directory and mark its vnode in conflict
 // if flag not null, decrease linkCount of directory vnode
 static void 
-delete_name(int volid, int vnum, int unique, char *name, int flag) 
+delete_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name, int flag)
 {
 
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -215,8 +210,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
 
     rvmlib_begin_transaction(restore);
 	    
-    if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
-		     (Unique_t)unique, vnode) < 0) {
+    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x 0x%x 0x%x\n", volid, vnum,
 		unique);
 	rvmlib_abort(VFAIL);
@@ -250,8 +244,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     // mark the vnode with inconsistent flag
     SetIncon(vnode->versionvector);
 
-    error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
-			 (Unique_t)unique, vnode);
+    error = ReplaceVnode(volindex, vclass, vnodeindex, unique, vnode);
     if (error) {
 	fprintf(stderr, "ERROR: ReplaceVnode returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
@@ -267,18 +260,15 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
 }
 
 
-void delete_name(int argc, char *argv[]) {
-
-    int volid,
-	vnode,
-	unique,
-	flag = 0;
+void delete_name(int argc, char *argv[])
+{
+    unsigned int volid, vnode, unique, flag = 0;
 
     if ((argc != 7) ||
-	(Parser_int(argv[2], &volid) != 1) ||
-	(Parser_int(argv[3], &vnode) != 1) ||
-	(Parser_int(argv[4], &unique) != 1) ||
-	(Parser_int(argv[6], &flag) != 1)) {
+	(Parser_uint(argv[2], &volid) != 1) ||
+	(Parser_uint(argv[3], &vnode) != 1) ||
+	(Parser_uint(argv[4], &unique) != 1) ||
+	(Parser_uint(argv[6], &flag) != 1)) {
 	fprintf(stderr, "Usage: delete name <parent_volid> ");
 	fprintf(stderr, "<parent_vnode> <parent_unique> <name> <flag>\n"); 
 	return;
@@ -288,8 +278,8 @@ void delete_name(int argc, char *argv[]) {
 }
 
 static void 
-create_name(int volid, int vnum, int unique, char *name, int cvnum, 
-	    int cunique) 
+create_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name,
+	    VnodeId cvnum, Unique_t cunique) 
 {
     /* remove name from the given directory and mark its vnode in conflict */
     char buf[SIZEOF_LARGEDISKVNODE];
@@ -328,16 +318,14 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 
     rvmlib_begin_transaction(restore);
 	    
-    if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
-		     (Unique_t)unique, vnode) < 0) {
+    if (ExtractVnode(&error, volindex, vclass, vnodeindex, unique, vnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
 		unique);
 	rvmlib_abort(VFAIL);
 	return;
     }
 
-    if (ExtractVnode(&error, volindex, cvclass, (VnodeId)cvnodeindex,
-		     (Unique_t)cunique, cvnode) < 0) {
+    if (ExtractVnode(&error, volindex, cvclass, cvnodeindex, cunique, cvnode) < 0) {
 	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, cvnum,
 		cunique);
 	rvmlib_abort(VFAIL);
@@ -378,8 +366,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     // mark the vnode with inconsistent flag
     SetIncon(vnode->versionvector);
 
-    error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
-			 (Unique_t)unique, vnode);
+    error = ReplaceVnode(volindex, vclass, vnodeindex, unique, vnode);
     if (error) {
 	fprintf(stderr, "ReplaceVnode returns %ld, for parent, aborting\n", 
 		error);
@@ -387,8 +374,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 	return;
     }
 
-    error = ReplaceVnode(volindex, cvclass, (VnodeId)cvnodeindex,
-			 (Unique_t)cunique, cvnode);
+    error = ReplaceVnode(volindex, cvclass, cvnodeindex, cunique, cvnode);
     if (error) {
 	fprintf(stderr, "ReplaceVnode returns %ld, for child, abort\n", error);
 	rvmlib_abort(VFAIL);
@@ -402,17 +388,17 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     }
 }
 
-void sh_create_name(int argc, char **argv) {
-    int volid, vnode, unique;
-    int cvnode, cunique;
+void sh_create_name(int argc, char **argv)
+{
+    unsigned int volid, vnode, unique;
+    unsigned int cvnode, cunique;
     
-
     if ((argc != 8) ||
-	(Parser_int(argv[2], &volid) != 1) ||
-	(Parser_int(argv[3], &vnode) != 1) ||
-	(Parser_int(argv[4], &unique) != 1) ||
-	(Parser_int(argv[6], &cvnode) != 1) ||
-	(Parser_int(argv[7], &cunique) != 1))  {
+	(Parser_uint(argv[2], &volid) != 1) ||
+	(Parser_uint(argv[3], &vnode) != 1) ||
+	(Parser_uint(argv[4], &unique) != 1) ||
+	(Parser_uint(argv[6], &cvnode) != 1) ||
+	(Parser_uint(argv[7], &cunique) != 1))  {
 	fprintf(stderr, "Usage: create name <parent_volid> ");
 	fprintf(stderr, "<parent_vnode> <parent_unique> <name>");
 	fprintf(stderr, " <newvnode> <newunique>\n"); 

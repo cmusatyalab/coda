@@ -67,31 +67,29 @@ void PrintVV(vv_t *vv) {
 
 
 void print_volume(VolHead * vol) {
-    printf("    Id: 0x%x  \tName: %s \tParent: 0x%lx\n",
+    printf("    Id: 0x%lx  \tName: %s \tParent: 0x%lx\n",
 	   vol->header.id,
 	   vol->data.volumeInfo->name,
 	   vol->header.parent);
-    printf("    GoupId: 0x%lx \tPartition: %s\n",
+    printf("    GroupId: 0x%lx \tPartition: %s\n",
 	   vol->data.volumeInfo->groupId,
 	   vol->data.volumeInfo->partition);
     printf("    Version Vector: ");
     PrintVV(&vol->data.volumeInfo->versionvector);
     printf("\n    \t\tNumber vnodes	Number Lists	Lists\n");
     printf("    \t\t-------------	------------	----------\n");
-    printf("    small\t%13d\t%12d\t%p\n",
-	   vol->data.nsmallvnodes,
-	   vol->data.nsmallLists,
+    printf("    small\t%13u\t%12u\t%p\n",
+	   (unsigned int)vol->data.nsmallvnodes,
+	   (unsigned int)vol->data.nsmallLists,
 	   vol->data.smallVnodeLists);
-    printf("    large\t%13d\t%12d\t%p\n",
-	   vol->data.nlargevnodes,
-	   vol->data.nlargeLists,
+    printf("    large\t%13u\t%12u\t%p\n",
+	   (unsigned int)vol->data.nlargevnodes,
+	   (unsigned int)vol->data.nlargeLists,
 	   vol->data.largeVnodeLists);
 }
 
-
-
-
-void print_volume_details(VolHead *vol) {
+void print_volume_details(VolHead *vol)
+{
     int i;
     char buf[20];
     
@@ -186,7 +184,7 @@ VolHead *GetVol(char *name) {
 }
 
 
-VolHead *GetVol(int volid)
+VolHead *GetVol(VolumeId volid)
 {
     VolHead *vol;
     int	    i,
@@ -210,10 +208,10 @@ VolHead *GetVol(int volid)
 }
 
 
-int GetVolIndex(int volid) {
+int GetVolIndex(VolumeId volid)
+{
     VolHead	 *vol;
-    int		 i,
-		 maxid = GetMaxVolId();
+    int	 i, maxid = GetMaxVolId();
 
     /* Loop until we find the volume */
     for (i = 0; (i < maxid) && (i < MAXVOLS); i++) {
@@ -260,7 +258,7 @@ void list_vols() {
 	    continue;
 	}
 
-	printf("%6d 0x%8x 0x%8x ", i, header->id, header->parent);
+	printf("%6d 0x%8lx 0x%8lx ", i, header->id, header->parent);
 	switch (header->type) {
 	  case RWVOL: 	printf("rw\n"); 	break;
 	  case ROVOL: 	printf("ro\n"); 	break;
@@ -298,8 +296,9 @@ void show_all_volumes() {
     }
 }
 
-void show_volume(int argc, char *argv[]) {
-    int volid;
+void show_volume(int argc, char *argv[])
+{
+    unsigned int volid;
 
     if (argc != 3) {
 	fprintf(stderr, "Usage: show volume <volid> | <name> | *\n");
@@ -307,11 +306,12 @@ void show_volume(int argc, char *argv[]) {
     }
 
     if (!strcmp(argv[2], "*")) show_all_volumes();
-    else if (Parser_int(argv[2], &volid) == 1) show_volume(volid);
+    else if (Parser_uint(argv[2], &volid) == 1) show_volume(volid);
     else show_volume(argv[2]);
 }
 
-void show_volume(int volid) {
+void show_volume(VolumeId volid)
+{
     VolHead	 *vol;
 
     vol = GetVol(volid);
@@ -345,7 +345,7 @@ void delete_volume(VolHead *vol) {
 
 }
 
-void delete_volume_byid(int volid) 
+void delete_volume_byid(VolumeId volid) 
 {
     VolHead *vol = NULL;
 
@@ -353,7 +353,7 @@ void delete_volume_byid(int volid)
     if ( vol )
 	delete_volume(vol);
     else
-	printf("Unable to find volume %d\n", volid);
+	printf("Unable to find volume 0x%lx\n", volid);
 
 
 }
@@ -370,33 +370,21 @@ void delete_volume_byname(char *name) {
 
 void sh_delete_volume(int argc, char **argv)
 {
-    int volid;
+    unsigned int volid;
 
     if (argc != 3) {
 	fprintf(stderr, "Usage: delete volume  <name> | <volid>");
 	return;
     }
-    else if (Parser_int(argv[2], &volid) == 1) 
+    else if (Parser_uint(argv[2], &volid) == 1) 
 	delete_volume_byid(volid);
     else 
 	delete_volume_byname(argv[2]);
 }
 
 
-void show_volume_details(int argc, char *argv[]) {
-    int volid;
-
-    if (argc != 4) {
-	fprintf(stderr, "Usage: show volume details <volid> | <name>\n");
-	return;
-    }
-
-    if (Parser_int(argv[3], &volid) == 1) show_volume_details(volid);
-    else show_volume_details(argv[3]);
-}
-
-
-void show_volume_details(int volid) {
+void show_volume_details(VolumeId volid)
+{
     VolHead	*vol;
 
     vol = GetVol(volid);
@@ -405,7 +393,7 @@ void show_volume_details(int volid) {
 	print_volume(vol);
 	print_volume_details(vol);
     } else {
-	printf("Unable to find volume id 0x%x\n", volid);
+	printf("Unable to find volume id 0x%lx\n", volid);
     }
 }
 
@@ -423,22 +411,25 @@ void show_volume_details(char *name) {
     }
 }
 
+void show_volume_details(int argc, char *argv[])
+{
+    unsigned int volid;
 
-
-void show_index(int argc, char *argv[]) {
-    int volid;
-
-    if (argc != 3) {
-	fprintf(stderr, "Usage: show index <volid> | <name>\n");
+    if (argc != 4) {
+	fprintf(stderr, "Usage: show volume details <volid> | <name>\n");
 	return;
     }
 
-    if (Parser_int(argv[2], &volid) == 1) show_index(volid);
-    else show_index(argv[2]);
+    if (Parser_uint(argv[3], &volid) == 1)
+	show_volume_details((VolumeId)volid);
+    else
+	show_volume_details(argv[3]);
 }
 
 
-void show_index(int volid) {
+
+void show_index(VolumeId volid)
+{
     VolHead	 *vol;
     int		 i,
 		 maxid = GetMaxVolId();
@@ -457,11 +448,11 @@ void show_index(int volid) {
 	    continue;
 	}
 
-	printf("    Volume '0x%x' is at index %d\n", volid, i);
+	printf("    Volume '0x%lx' is at index %d\n", volid, i);
 	return;
     }
 
-    printf("Unable to find volume id 0x%x\n", volid);
+    printf("Unable to find volume id 0x%lx\n", volid);
 }
 
 
@@ -490,6 +481,22 @@ void show_index(char *name) {
     }
 
     printf("Unable to find volume named %s\n", name);
+}
+
+
+void show_index(int argc, char *argv[])
+{
+    unsigned int volid;
+
+    if (argc != 3) {
+	fprintf(stderr, "Usage: show index <volid> | <name>\n");
+	return;
+    }
+
+    if (Parser_uint(argv[2], &volid) == 1)
+	show_index((VolumeId)volid);
+    else
+	show_index(argv[2]);
 }
 
 
