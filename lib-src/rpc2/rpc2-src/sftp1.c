@@ -1146,7 +1146,17 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
 
 void sftp_FreeSEntry(struct SFTP_Entry *se)
 {
+    struct SL_Entry *sl;
     int i;
+
+    /* wake up and destroy any threads still waiting for incoming packets */
+    sl = se->Sleeper;
+    if (sl) {
+	se->WhoAmI = ERROR;
+	se->Sleeper = NULL;
+	rpc2_DeactivateSle(sl, TIMEOUT);
+	LWP_SignalProcess((char *)sl);
+    }
 
     sftp_vfclose(se);
     if (se->PiggySDesc) sftp_FreePiggySDesc(se);
