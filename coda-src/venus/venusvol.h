@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: venusvol.h,v 4.1 97/01/08 21:51:41 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/venusvol.h,v 4.2 1997/03/06 21:04:54 lily Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -926,6 +926,7 @@ class volent {
     void Resolve();
     void ResSubmit(char **, ViceFid *);
     int ResAwait(char *);
+    int RecResolve(connent *, ViceFid *);
 
     /* Repair routines. */
     int EnableRepair(vuid_t, VolumeId *, vuid_t *, unsigned long *);

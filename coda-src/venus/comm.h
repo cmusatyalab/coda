@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/comm.h,v 4.2 97/03/06 21:04:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/comm.h,v 4.3 1997/04/23 17:46:23 lily Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -672,7 +672,7 @@ extern struct CommQueueStruct CommQueue;
 	}\
     }\
     CommQueue.count[vp->lwpri]++;\
-    LOG(0, ("CommQueue: insert pri %d count = %d\n", \
+    LOG(10, ("CommQueue: insert pri %d count = %d\n", \
 	    vp->lwpri, CommQueue.count[vp->lwpri]));\
 }
 
@@ -680,7 +680,7 @@ extern struct CommQueueStruct CommQueue;
 {\
     vproc *vp = VprocSelf();\
     CommQueue.count[vp->lwpri]--;\
-    LOG(0, ("CommQueue: remove pri %d count = %d\n", \
+    LOG(10, ("CommQueue: remove pri %d count = %d\n", \
 	    vp->lwpri, CommQueue.count[vp->lwpri]));\
     VprocSignal(&CommQueue.sync);\
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: venusvol.cc,v 4.3 97/02/27 18:49:15 lily Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/venusvol.cc,v 4.4 1997/03/06 21:04:54 lily Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -288,8 +288,8 @@ int GetRootVolume() {
 	code = (int) ViceGetRootVolume(c->connid, &RVN);
 	UNI_END_MESSAGE(ViceGetRootVolume_OP);
 	MarinerLog("store::getrootvolume done\n");
-
 	code = c->CheckResult(code, 0);
+	LOG(10, ("GetRootVolume: received name: %s, code: %d\n", RVN.SeqBody, code));
 	UNI_RECORD_STATS(ViceGetRootVolume_OP);
 
 	PutConn(&c);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/sighand.cc,v 4.1 1997/01/08 21:51:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/sighand.cc,v 4.2 1997/02/26 16:03:23 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -155,9 +155,11 @@ PRIVATE void TRAP(int sig, int code, struct sigcontext *contextPtr) {
 
 
 PRIVATE void IOT(int sig, int code, struct sigcontext *contextPtr) {
+  /* linux gets this signal when it shouldn't */
+#ifndef __linux__
     if (!Profiling)
 	ToggleProfiling();
-
+#endif
     signal(SIGIOT, (void (*)(int))IOT);
 }
 

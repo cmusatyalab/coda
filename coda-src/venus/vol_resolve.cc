@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vol_resolve.cc,v 4.1 1997/01/08 21:51:49 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/vol_resolve.cc,v 4.2 1997/02/26 16:03:37 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -118,7 +118,7 @@ void volent::Resolve() {
 	    MarinerLog("store::Resolve (%x.%x.%x)\n",
 		       r->fid.Volume, r->fid.Vnode, r->fid.Unique);
 	    UNI_START_MESSAGE(ViceResolve_OP);
-	    code = (int)ViceResolve(c->connid, &r->fid);
+	    code = RecResolve(c, &r->fid);
 	    UNI_END_MESSAGE(ViceResolve_OP);
 	    MarinerLog("store::resolve done\n");
 
@@ -150,6 +150,46 @@ Exit:
     v->End_VFS();
     /* reset it, 'cause we can't leave errors just laying around */
     v->u.u_error = 0;
+}
+
+/* The recursive resolution operation, which allows ancestors to get
+   resolved first if the Vnode doesn't exist on all servers in the
+   VSG */
+int volent::RecResolve(connent *c, ViceFid *fid)
+{
+    int code;
+    fsobj *f;
+    ViceFid *pfid;
+
+    code = (int) ViceResolve(c->connid, fid);
+    /* done unless we want to retry the parent */
+    LOG(10,("RecResolve: first attempt for (0x%x.0x%x.0x%x) returns %d\n", fid->Volume, fid->Vnode, fid->Unique, code));
+    if ( code != VNOVNODE ) 
+        return code;
+
+    /* recursively try ancestors within the same volume */
+
+    f = FSDB->Find(fid);
+    if ( f == NULL ) 
+        return code;
+
+    pfid = &(f->pfid);
+    if ( ( ! FID_EQ(*pfid, NullFid)) && 
+	 (pfid->Volume == fid->Volume) 
+	 && (pfid->Vnode != fid->Vnode) ) {
+        code = RecResolve(c, pfid);
+	LOG(10,("RecResolve: recursive call for (0x%x.0x%x.0x%x) returns %d\n", pfid->Volume, pfid->Vnode, pfid->Unique, code));
+    } else {
+        return code;
+    }
+    
+    /* if parent was resolved successfully, retry child */
+    if ( code == 0 ) {
+        code = (int) ViceResolve(c->connid, fid);
+        LOG(10,("RecResolve: final attempt for (0x%x.0x%x.0x%x) returns %d\n", fid->Volume, fid->Vnode, fid->Unique, code)); 
+    }
+
+    return code;
 }
 
 
