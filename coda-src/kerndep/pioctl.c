@@ -137,27 +137,32 @@ int pioctl(const char *path, unsigned long com,
     struct PioctlData data;
     void *send_data;
     int code, res = 0, size;
-    int hdev=NULL;
-    int bytesReturned;
+    HANDLE hdev = NULL;
+    DWORD bytesReturned;
     char *s;
     void *outbuf;
     short newlength;
     unsigned long cmd;   
 
+#ifdef DJGPP
     /* Must change the size field of the command to match 
        that of the new structure. */
     cmd = (com & ~(PIOCPARM_MASK << 16)); /* mask out size  */
     size = ((com >> 16) & PIOCPARM_MASK) + sizeof(char *) + sizeof(int);
     cmd	|= (size & PIOCPARM_MASK) << 16;  /* or in corrected size */
+#endif
 
     s = index(path, ':');
     if (s) path = s+1;
 
-    printf("path : %s\n", path);
+    printf("pioctl: path = '%s'\n", path);
    
     data.path = path;
     data.follow = follow;
     data.vi = *vidata;
+#ifdef __CYGWIN32__
+    data.cmd = cmd;
+#endif
 
     /* outbuf uses the outbuffer of IOControl to pass in the pioctl cmd */
     /* we can't override the vidata outbuffer, because this might contain data */
@@ -175,6 +180,9 @@ int pioctl(const char *path, unsigned long com,
     /* outbuf contains pioctl command and will be used for return values */
     
 #ifdef __CYGWIN32__
+
+    printf ("pioctl: size = %d, cmd = 0x%x, in_size = %d, out_size = %d\n",
+	    size, cmd, data.vi.in_size, data.vi.out_size);
 
     hdev = CreateFile("\\\\.\\CODADEV", 0, 0, NULL, OPEN_EXISTING, FILE_FLAG_DELETE_ON_CLOSE, NULL);
     if (hdev == INVALID_HANDLE_VALUE){
