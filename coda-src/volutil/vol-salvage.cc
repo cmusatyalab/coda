@@ -1257,6 +1257,7 @@ int InSkipVolumeList(VolumeId v, VolumeId *vl, int nvols)
 static void SanityCheckFreeLists() {
     int i,j;
     char zerobuf[SIZEOF_LARGEDISKVNODE];
+    rvm_return_t rvmstatus = RVM_SUCCESS;
     VnodeDiskObject *zerovn = (VnodeDiskObject *) zerobuf;
     memset((void *)zerovn, 0, SIZEOF_LARGEDISKVNODE);
     
@@ -1277,11 +1278,25 @@ static void SanityCheckFreeLists() {
 	    }
     }
     
+rescan:
     for (i = 0; i < SRV_RVM(LargeVnodeIndex); i++) {
-	if (memcmp((const void *)SRV_RVM(LargeVnodeFreeList[i]), (const void *) zerovn,
-		 SIZEOF_LARGEDISKVNODE) != 0) {
+	if (memcmp(SRV_RVM(LargeVnodeFreeList[i]), zerovn,
+		   SIZEOF_LARGEDISKVNODE) != 0) {
 	    VLog(0, "Large Free Vnode at index %d not zero!", i);
 	    CODA_ASSERT(0);
+
+	    VLog(0, "Removing used Vnode from the freelist!!!!!!");
+	    rvmlib_begin_transaction(1);
+	    /* If we're not the last entry, overwrite with the last entry */
+	    if (i != SRV_RVM(LargeVnodeIndex))
+		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[i]), SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]));
+
+	    /* And now we can clear the tail of the freelist */
+	    RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), NULL);
+	    RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex), SRV_RVM(LargeVnodeIndex) - 1);
+	    rvmlib_end_transaction(no_flush, &rvmstatus);
+	    /* restart the whole scan */
+	    goto rescan;
 	}
 	
 	for (j = i + 1; j < SRV_RVM(LargeVnodeIndex); j++)

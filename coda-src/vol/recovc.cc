@@ -135,9 +135,6 @@ int coda_init()
 {
     VnodeDiskObject *svnodes[SMALLFREESIZE];
     VnodeDiskObject *lvnodes[LARGEFREESIZE];
-    char buf1[SIZEOF_SMALLDISKVNODE];
-    char buf2[SIZEOF_LARGEDISKVNODE];
-    VnodeDiskObject *zerovnode;
     rvm_return_t status = RVM_SUCCESS;
     int i = 0;
 
@@ -170,21 +167,19 @@ int coda_init()
 
     /* allocate vnodediskobject structures to fill the large and small */
     /* vnode free lists, and set freelist pointers */
-    zerovnode = (VnodeDiskObject *)buf1;
-    memset((void *)zerovnode, 0, sizeof(buf1));
     for(i = 0; i < SMALLFREESIZE; i++) {
 	    svnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
-	    rvmlib_modify_bytes(svnodes[i], zerovnode, sizeof(buf1));
+	    rvmlib_set_range(svnodes[i], SIZEOF_SMALLDISKVNODE);
+	    memset(svnodes[i], 0, SIZEOF_SMALLDISKVNODE);
     }
     rvmlib_modify_bytes(SRV_RVM(SmallVnodeFreeList), svnodes, sizeof(svnodes));
     RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex), SMALLFREESIZE - 1);
     VLog(29, "Storing SmallVnodeIndex = %d", SRV_RVM(SmallVnodeIndex));
 
-    zerovnode = (VnodeDiskObject *)buf2;
-    memset((void *)zerovnode, 0, sizeof(buf2));
     for(i = 0; i < LARGEFREESIZE; i++) {
 	    lvnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
-	    rvmlib_modify_bytes(lvnodes[i], zerovnode, sizeof(buf2));
+	    rvmlib_set_range(lvnodes[i], SIZEOF_LARGEDISKVNODE);
+	    memset(lvnodes[i], 0, SIZEOF_LARGEDISKVNODE);
     }
     rvmlib_modify_bytes(SRV_RVM(LargeVnodeFreeList), lvnodes, sizeof(lvnodes));
     RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex), LARGEFREESIZE - 1);
@@ -199,7 +194,8 @@ int coda_init()
 
 /* check the info in the VolumeData structure for validity, */
 /* mainly to check for existence of VolumeDiskData */
-void CheckVolData(Error *ec, int volindex) {
+void CheckVolData(Error *ec, int volindex)
+{
     VolumeData *data;
     VolumeId maxid;
     *ec = 0;
@@ -218,15 +214,16 @@ void CheckVolData(Error *ec, int volindex) {
 	LogMsg(0, VolDebugLevel, stdout,  "CheckVolumeData: bogus VolumeDiskData for volume %d, index %d!",
 	    SRV_RVM(VolumeList[volindex]).header.id, volindex);
     CODA_ASSERT(data->smallVnodeLists != NULL);
-    CODA_ASSERT(data->largeVnodeLists!= NULL);
+    CODA_ASSERT(data->largeVnodeLists != NULL);
 }    
 
 
 /* Returns the number of vnode slots available in the given class in the */
 /* specified volume, or -1 if the volume index is invalid */
-int ActiveVnodes(int volindex, int vclass) {
+int ActiveVnodes(int volindex, int vclass)
+{
     bit32 vnodes;
-    VolumeId maxid = 0;
+    VolumeId maxid;
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering ActiveVnodes for index %d, vclass = %d",
 						volindex, vclass);
@@ -236,16 +233,10 @@ int ActiveVnodes(int volindex, int vclass) {
 	return(-1);	// invalid volume index
     }
 
-    switch(vclass) {
-	case vSmall:
-		    vnodes = SRV_RVM(VolumeList[volindex]).data.nsmallLists;
-		    break;
-	case vLarge:
-		    vnodes = SRV_RVM(VolumeList[volindex]).data.nlargeLists;
-		    break;
-	default:
-		    LogMsg(0, VolDebugLevel, stdout,  "ActiveVnodes: bogus vnode type %d", vclass);
-		    return(-1);	    // invalid vnode type
+    if (vclass == vSmall) {
+	vnodes = SRV_RVM(VolumeList[volindex]).data.nsmallLists;
+    } else {
+	vnodes = SRV_RVM(VolumeList[volindex]).data.nlargeLists;
     }
 
     return ((int)vnodes);
@@ -253,28 +244,22 @@ int ActiveVnodes(int volindex, int vclass) {
 
 /* Retruns the number of vnode slots in the array that */
 /* are actually in use */
-int AllocatedVnodes(int volindex, int vclass) {
-    bit32 vnodes = 0;
-    VolumeId maxid = 0;
+int AllocatedVnodes(int volindex, int vclass)
+{
+    bit32 vnodes;
+    VolumeId maxid;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering AllocatedVnodes for index %d, vclass %d", 
-					    volindex, vclass);
+    LogMsg(9, VolDebugLevel, stdout,  "Entering AllocatedVnodes for index %d, vclass %d", volindex, vclass);
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "AllocatedVnodes: bogus volume index %d", volindex);
 	return(-1);	// invalid volume index
     }
 
-    switch(vclass) {
-	case vSmall:
-		    vnodes = SRV_RVM(VolumeList[volindex]).data.nsmallvnodes;
-		    break;
-	case vLarge:
-		    vnodes = SRV_RVM(VolumeList[volindex]).data.nlargevnodes;
-		    break;
-	default:
-		    LogMsg(0, VolDebugLevel, stdout,  "AllocatedVnodes: bogus vnode type %d", vclass);
-		    return(-1);	    // invalid vnode type
+    if (vclass == vSmall) {
+	vnodes = SRV_RVM(VolumeList[volindex]).data.nsmallvnodes;
+    } else {
+	vnodes = SRV_RVM(VolumeList[volindex]).data.nlargevnodes;
     }
 
     return ((int)vnodes);
@@ -282,7 +267,8 @@ int AllocatedVnodes(int volindex, int vclass) {
 
 /* Return the name of the physical partition containing the specified volume's */
 /* data inodes. ec is set if the volume is not found */
-void GetVolPartition(Error *ec, VolumeId volid, int myind, char partition[]) {
+void GetVolPartition(Error *ec, VolumeId volid, int myind, char partition[])
+{
     VolumeDiskData *voldata;
 
     *ec = 0;
@@ -303,7 +289,8 @@ void GetVolPartition(Error *ec, VolumeId volid, int myind, char partition[]) {
 /* on this server. Returns -1 if no more volumes can be allocated */
 /* With recoverable storage, the check for server number can be left */
 /* out, since that was basically a check for corrupted files. */
-VolumeId VAllocateVolumeId(Error *ec) {
+VolumeId VAllocateVolumeId(Error *ec)
+{
     int status = 0;	    /* transaction status variable */
     
     LogMsg(9, VolDebugLevel, stdout,  "Entering VAllocateVolumeId()");
@@ -335,7 +322,8 @@ VolumeId VGetMaxVolumeId()
  * Force a new volume MaxVolId.  Return 0 an error occurs or if the new 
  * volume id is lower than the current MaxVolId, otherwise, return 1.
  */
-void VSetMaxVolumeId(VolumeId newid) {
+void VSetMaxVolumeId(VolumeId newid)
+{
     LogMsg(9, VolDebugLevel, stdout,  "Entering VSetMaxVolumeId ()");
 
     RVMLIB_MODIFY(SRV_RVM(MaxVolId), newid);
@@ -376,7 +364,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize)
     newsize = newBMsize << 3;   // multiply by 8 since newBMsize is in bytes
     newsize += grow - (newsize % grow); /* align */
 
-    /* If the array is already big enough we can return early */
+    /* If the array is already big enough, we can return early */
     if (*size > newsize) return;
 
     LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing %s list from %d to %d for volume 0x%x", name, *size, newsize, volid);
@@ -404,7 +392,8 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize)
 }
 
 /* Lookup volume disk info for specified volume */
-void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol) {
+void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
+{
     VolumeId maxid = 0;
     *ec = 0;
 
@@ -418,8 +407,8 @@ void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol) {
     }
 
 
-    memcpy((void *)vol, (void *)SRV_RVM(VolumeList[volindex]).data.volumeInfo, 
-	    sizeof(VolumeDiskData));
+    memcpy(vol, SRV_RVM(VolumeList[volindex]).data.volumeInfo, 
+	   sizeof(VolumeDiskData));
     if (vol->stamp.magic != VOLUMEINFOMAGIC ||
 		    vol->stamp.version != VOLUMEINFOVERSION) {
 	LogMsg(0, VolDebugLevel, stdout,  "ExtractVolDiskInfo: bogus version stamp!");
@@ -434,7 +423,7 @@ void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol) {
 /* if Uniquifier parameter is 0 then check if entire slot is empty */
 int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u)
 {
-    VolumeId maxid = 0;
+    VolumeId maxid;
     rec_smolist *vlist;
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
