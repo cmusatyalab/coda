@@ -56,7 +56,7 @@ struct lwp_forkinfo {
 /* mutexes to block concurrent threads & various run queues */
 static pthread_mutex_t run_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t run_cond = PTHREAD_COND_INITIALIZER;
-PROCESS lwp_cpptr = NULL; /* the currently running LWP thread */
+PROCESS lwp_cpptr = NULL; /* the current non-concurrent process */
 
 /* Short explanation of the scheduling
  * 
@@ -89,40 +89,46 @@ PROCESS lwp_cpptr = NULL; /* the currently running LWP thread */
 
 /*-------------BEGIN SCHEDULER CODE------------*/
 
-static int lwp_waiting;
+#ifdef _POSIX_PRIORITY_SCHEDULING
+#include <sched.h>
+#else
+#include <sys/select.h>
+static struct timeval poll_timeout;
+#endif
 
-int lwp_threads_waiting(void)
+static void _yield(void)
 {
-    int ret;
-
-    pthread_mutex_lock(&run_mutex);
-    ret = lwp_waiting;
     pthread_mutex_unlock(&run_mutex);
 
-    return ret;
+#ifdef _POSIX_PRIORITY_SCHEDULING
+    sched_yield();
+#else
+    select(0, NULL, NULL, NULL, &poll_timeout);
+#endif
+
+    pthread_mutex_lock(&run_mutex);
 }
+
+int lwp_waiting;
 
 static void _SCHEDULE(PROCESS pid, int leave)
 {
-    /* only signal if we are the running LWP */
-    if (pid == lwp_cpptr) {
+    /* only signal if we are the current LWP, or when there are none */
+    if (pid == lwp_cpptr || !lwp_cpptr) {
 	lwp_cpptr = NULL;
+	pthread_cond_signal(&run_cond);
+	/* Give others a chance to join the fun */
 	if (lwp_waiting)
-		pthread_cond_signal(&run_cond);
+	    _yield();
     }
 
-    if (leave) return;
-
-/* if there already is a running LWP, or others are waiting we should block */
-    if (lwp_cpptr || lwp_waiting) {
-	    lwp_waiting++;
-	    /* block at least once to give others a chance to run */
-	    do {
-		    pthread_cond_wait(&run_cond, &run_mutex);
-	    } while (lwp_cpptr);
-	    lwp_waiting--;
+    if (!leave) {
+	lwp_waiting++;
+	while (lwp_cpptr)
+	    pthread_cond_wait(&run_cond, &run_mutex);
+	lwp_cpptr = pid;
+	lwp_waiting--;
     }
-    lwp_cpptr = pid;
 }
 
 void lwp_JOIN(PROCESS pid)
