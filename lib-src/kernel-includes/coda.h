@@ -168,7 +168,18 @@ typedef unsigned int	   u_int32_t;
 #define C_A_X_OK    1               /* Test for execute permission.  */
 #define C_A_F_OK    0               /* Test for existence.  */
 
-
+#if defined(sun)
+#define _VENUS_DIRENT_T_ 1
+struct venus_dirent {
+        unsigned long	d_fileno;		/* file number of entry */
+        unsigned short	d_reclen;		/* length of this record */
+        unsigned short	d_namlen;		/* length of string in d_name */
+        char		d_name[CODA_MAXNAMLEN + 1];/* name must be no longer than this */
+};
+#undef DIRSIZ
+#define DIRSIZ(dp)      ((sizeof (struct venus_dirent) - (CODA_MAXNAMLEN+1)) + \
+                         (((dp)->d_namlen+1 + 3) &~ 3))
+#endif
 
 #ifndef _VENUS_DIRENT_T_
 #define _VENUS_DIRENT_T_ 1

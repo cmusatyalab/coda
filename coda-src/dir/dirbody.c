@@ -349,7 +349,9 @@ static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId 
         fid_NFidV2Fid(&ep->fid, vol, &fid);
 	
 	vd->d_fileno = coda_f2i(&fid);
+#ifdef CDT_UNKNOWN
 	vd->d_type = 0;
+#endif
 	vd->d_namlen = strlen(ep->name);
 	strcpy(vd->d_name, ep->name);
 	vd->d_reclen = DIRSIZ(vd);

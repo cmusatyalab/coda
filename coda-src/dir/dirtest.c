@@ -142,8 +142,13 @@ void dt_init(int argc, char **argv)
 
 void printit(struct venus_dirent *de)
 {
+#ifdef CDT_UNKNOWN
 	fprintf(stdout, "fileno: %ld, reclen %hd, type %i, namelen: %d, name: \n%*s\n",
 		de->d_fileno, de->d_reclen, de->d_type, de->d_namlen, de->d_namlen, de->d_name);
+#else
+	fprintf(stdout, "fileno: %ld, reclen %hd, namelen: %d, name: \n%*s\n",
+		de->d_fileno, de->d_reclen, de->d_namlen, de->d_namlen, de->d_name);
+#endif
 }
 
 void dt_vdir(int argc, char **argv)
