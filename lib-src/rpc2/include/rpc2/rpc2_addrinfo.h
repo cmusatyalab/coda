@@ -49,7 +49,6 @@ const char *RPC2_gai_strerror(int errcode);
 #define RPC2_AI_PASSIVE	      0x0001
 #define RPC2_AI_CANONNAME     0x0002
 #define RPC2_AI_NUMERICHOST   0x0004
-#define RPC2_AI_RES_SRV       0x8000
 
 /* errorcodes returned by RPC2_getaddrinfo */
 #define RPC2_EAI_BADFLAGS   -1
