@@ -556,12 +556,16 @@ void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode) {
 #ifdef	TIMING
     gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
 #endif	TIMING
-		   
-    /* Attempt to enter the volume. */
-    u.u_error = u.u_vol->Enter(u.u_volmode, CRTORUID(u.u_cred));
+
+    /* Kick out non-ASR processes if an ASR is running */
+    if (u.u_vol->asr_running() && (u.u_pgid != u.u_vol->asr_id()))
+      u.u_error = EAGAIN;
+    else /* Attempt to enter the volume. */
+      u.u_error = u.u_vol->Enter(u.u_volmode, CRTORUID(u.u_cred));
+
     if (u.u_error) VDB->Put(&u.u_vol);
-    vsr *vsr;
-		   
+
+    vsr *vsr;		   
     if (u.u_vol != 0 && !FID_VolIsFake(u.u_vol->vid)) {
         if (type == VPT_HDBDaemon)
 	    vsr = u.u_vol->GetVSR(HOARD_UID);
@@ -607,8 +611,7 @@ void vproc::End_VFS(int *retryp) {
     /* This is the set of errors we may retry. */
     if ( u.u_error != ETIMEDOUT &&
 	 u.u_error != EWOULDBLOCK &&
-	 u.u_error != ERETRY &&
-	 u.u_error != EASRSTARTED)
+	 u.u_error != ERETRY )
 	goto Exit;
 
     /* Now safe to return if interrupted. */
@@ -650,7 +653,7 @@ void vproc::End_VFS(int *retryp) {
 	    }
 	    eprint("Volume %s busy, waiting", u.u_vol->name);
 	    struct timeval delay;
-	    delay.tv_sec = 20;		/* XXX */
+	    delay.tv_sec = 15;		/* XXX */
 	    delay.tv_usec = 0;
 	    VprocSleep(&delay);
 	    }
@@ -674,7 +677,7 @@ void vproc::End_VFS(int *retryp) {
 	    /* Perhaps exponential back-off would be good here? */
 	    /* Could also/instead wait for relevant event to happen! */
 	    struct timeval delay;
-	    delay.tv_sec = 20;		/* XXX */
+	    delay.tv_sec = 15;		/* XXX */
 	    delay.tv_usec = 0;
 	    VprocSleep(&delay);
 
@@ -682,36 +685,6 @@ void vproc::End_VFS(int *retryp) {
 		{ u.u_error = EINTR; goto Exit; }
 	    }
 	    break;
-
-        case EASRSTARTED:
-            {   // wait for jumper to finish and ask for application to retry
-                extern int ASRinProgress;
-                if (ASRinProgress) {
-                  LOG(1, ("VFS_End: Block waiting for ASR\n"));
-                  VprocWait((char*)&ASRinProgress);
-                  LOG(1, ("VFS_End: Woken up by ASR Result\n"));
-                  extern int ASRresult;
-                  if (ASRresult) { // ASR failed
-                     LOG(1, ("VFS_End: ASR returned %d\n", ASRresult));
-                     u.u_error = EINCONS;
-                     goto Exit;
-				 }
-                  else {
-                    // ASR succeeded
-                    u.u_retrycnt++;
-                    LOG(1, ("VFS_End: ASR finished successfully\n"));
-                    LOG(1, ("VFS_End: retries = %d\n", u.u_retrycnt));
-                    // Fall through so call will be retried
-		    }
-                }
-                else {
-                  // ASR was not started
-                  LOG(1, ("VFS_END: ASR not started\n"));
-                  u.u_error = EINCONS; // XXX - Puneet
-                  goto Exit;
-                }
-	      }
-            break;
 
 	default:
 	    CODA_ASSERT(0);

@@ -41,7 +41,7 @@ extern "C" {
 
 /* from venus */
 #include "advice.h"
-#include "advice_daemon.h"
+#include "adv_daemon.h"
 #include "comm.h"
 #include "fso.h"
 #include "hdb.h"
@@ -361,8 +361,8 @@ static void ParseCmdline(int argc, char **argv) {
 		mrpc2_timeflag = 0;
 	    else if (STREQ(argv[i], "-SearchForNOreFind"))
 	        SearchForNOreFind = 1;
-	    else if (STREQ(argv[i], "-noadvice"))
-	        AdviceEnabled = 0;
+	    else if (STREQ(argv[i], "-noskk"))
+	        SkkEnabled = 0;
 	    else if (STREQ(argv[i], "-noasr"))
 	        ASRallowed = 0;
 	    else if (STREQ(argv[i], "-novcb"))
