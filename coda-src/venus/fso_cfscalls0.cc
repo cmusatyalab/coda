@@ -684,9 +684,9 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 					FAVs[i].Fid.Vnode, FAVs[i].Fid.Unique));
 				
 				if (REPLACEABLE(pobj) && !BUSY(pobj)) {
-					Recov_BeginTrans();
-					pobj->Kill(0);
-					Recov_EndTrans(MAXFP);
+				    Recov_BeginTrans();
+				    pobj->Kill(0);
+				    Recov_EndTrans(MAXFP);
 				} else
 				    pobj->Demote();
 

@@ -2192,6 +2192,7 @@ int FailDisconnect(int nservers, struct in_addr *hostids)
 		filter.lenmax = 65535;
 		filter.factor = 0;
 		filter.speed = 0;
+		filter.latency = 0;
 
 		for (int i = 0; i < 2; i++) {
 		    if (i == 0) side = sendSide;

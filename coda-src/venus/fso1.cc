@@ -377,7 +377,7 @@ fsobj::~fsobj() {
 
     /* Return component string to heap. */
     rvmlib_rec_free(comp);
-
+    comp = NULL;
 }
 
 void fsobj::operator delete(void *deadobj, size_t len) {
