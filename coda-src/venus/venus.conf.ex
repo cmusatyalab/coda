@@ -164,3 +164,10 @@ cacheblocks=100000
 # 
 #masquerade=0
 
+#
+# On NT with Cygwin, venus names are different than the NT real names.
+# Venus names are relative to the root of the cygwin tree.  Replace
+# the C:/cygwin with the actual root directory of your cygwin installation.
+# Do not remove the /??/ part of the prefix.
+#
+#cache_prefix=/??/C:/cygwin

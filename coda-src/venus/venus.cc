@@ -81,6 +81,7 @@ char *venusRoot;
 char *kernDevice;
 char *fsname;
 char *CacheDir;
+char *CachePrefix;
 int   CacheBlocks;
 char *RootVolName;
 vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
@@ -420,6 +421,12 @@ static void DefaultCmdlineParms()
     CONF_STR(RootVolName,       "rootvolume",    NULL);
     CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");
     CONF_STR(VenusDataDevice,   "rvm_data",      "/usr/coda/DATA");
+
+#if defined(__CYGWIN32__)
+    CONF_STR(CachePrefix,	"cache_prefix",	 "/??/C:/cygwin");
+#else
+    CachePrefix = "";
+#endif
 
     CONF_INT(DontUseRVM,	"dontuservm",	 0);
     {

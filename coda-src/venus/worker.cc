@@ -1333,9 +1333,8 @@ void worker::main(void)
 
                     char *begin = (char *)(&out->coda_open_by_path.path + 1);
                     out->coda_open_by_path.path = begin - (char *)out;
-                    sprintf(begin, "%s%s/%s", CF_PREFIX, CacheDir, 
+                    sprintf(begin, "%s%s/%s", CachePrefix, CacheDir, 
                             vtarget.c_cfname);
-                    LOG(100, ("CODA_OPEN_BY_PATH: returning %s", begin));
 #if defined(DJGPP) || defined(__CYGWIN32__)
                     slash = begin;
                     for (slash = begin ; *slash ; slash++ ) {
@@ -1345,6 +1344,8 @@ void worker::main(void)
 #endif
                     size = sizeof (struct coda_open_by_path_out) + 
                         strlen(begin) + 1;
+                    LOG(100, ("CODA_OPEN_BY_PATH: returning '%s', size=%d\n",
+			      begin, size));
 		}
 		break;
 		}

@@ -92,12 +92,6 @@ extern "C" {
 #define	DFLT_CD	"/usr/coda/venus.cache"	    /* cache directory */
 #endif
 
-#if defined(__CYGWIN32__)
-#define CF_PREFIX "/DosDevices/"
-#else
-#define CF_PREFIX ""
-#endif
-
 const int MIN_CB = 2048;
 #define UNSET_PRIMARYUSER 0		    /* primary user of this machine */
 
@@ -335,6 +329,7 @@ extern char *venusRoot;
 extern char *kernDevice;
 extern char *fsname;
 extern char *CacheDir;
+extern char *CachePrefix;
 extern int CacheBlocks;
 extern char *SpoolDir;
 extern char *RootVolName;
