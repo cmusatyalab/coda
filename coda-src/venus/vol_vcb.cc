@@ -62,12 +62,13 @@ int vcbbreaks = 0;	/* count of broken volume callbacks */
 char VCBEnabled = 1;	/* use VCBs by default */
 
 
-int vdb::CallBackBreak(VolumeId vid) {
+int vdb::CallBackBreak(VolumeId vid)
+{
     int rc = 0;
     volent *v = VDB->Find(vid);
 
     if (v && v->IsReplicated() &&
-        (rc = v->CallBackBreak()))
+        (rc = ((repvol *)v)->CallBackBreak()))
 	vcbbreaks++;    
 
     return(rc);
@@ -81,7 +82,7 @@ int vdb::CallBackBreak(VolumeId vid) {
  */
 int repvol::GetVolAttr(vuid_t vuid)
 {
-    LOG(100, ("volent::GetVolAttr: %s, vid = 0x%x\n", name, vid));
+    LOG(100, ("repvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
 
     VOL_ASSERT(this, (state == Hoarding || state == Logging));
 
@@ -289,17 +290,17 @@ int repvol::GetVolAttr(vuid_t vuid)
 	    for (i = 0; i < numVFlags; i++)  /* look up the object */
 		if ((v = VDB->Find(VidList[i].Vid))) {
                     CODA_ASSERT(v->IsReplicated());
-
-		    fso_vol_iterator next(NL, (repvol *)v);
+                    repvol *vp = (repvol *)v;
+		    fso_vol_iterator next(NL, vp);
 		    fsobj *f;
-		    vcbevent ve(((repvol *)v)->fso_list->count());
+		    vcbevent ve(vp->fso_list->count());
 
 		    switch (VFlags[i]) {
 		    case 1:  /* OK, callback */
 			if (cbtemp == cbbreaks) {
 			    LOG(1000, ("volent::GetVolAttr: vid 0x%x valid\n",
-                                       v->GetVid()));
-	                    v->SetCallBack();
+                                       vp->GetVid()));
+	                    vp->SetCallBack();
 
 			    /* validate cached access rights for the caller */
 			    while ((f = next())) 
@@ -308,24 +309,24 @@ int repvol::GetVolAttr(vuid_t vuid)
 				    f->PromoteAcRights(vuid);
 			        }
 			    
-			    ReportVCBEvent(Validate, v->GetVid(), &ve);
+			    ReportVCBEvent(Validate, vp->GetVid(), &ve);
 		        } 
 			break;
 		    case 0:  /* OK, no callback */
 			LOG(0, ("volent::GetVolAttr: vid 0x%x valid, no "
-                                "callback\n", v->GetVid()));
-			v->ClearCallBack();
+                                "callback\n", vp->GetVid()));
+			vp->ClearCallBack();
 			break;
 		    default:  /* not OK */
 			LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n",
-                                v->GetVid()));
-			v->ClearCallBack();
+                                vp->GetVid()));
+			vp->ClearCallBack();
 			Recov_BeginTrans();
-			    RVMLIB_REC_OBJECT(((repvol *)v)->VVV);
-			    ((repvol *)v)->VVV = NullVV;   
+			    RVMLIB_REC_OBJECT(vp->VVV);
+			    vp->VVV = NullVV;   
 			Recov_EndTrans(MAXFP);
 
-			ReportVCBEvent(FailedValidate, v->GetVid(), &ve);
+			ReportVCBEvent(FailedValidate, vp->GetVid(), &ve);
 
 			break;
 		    }
@@ -413,11 +414,12 @@ void repvol::CollateVCB(mgrpent *m, RPC2_Integer *sbufs, CallBackStatus *cbufs)
  *   unless the target fid is known, because this routine calls
  *   fsdb::Get on potentially everything.
  */
-int volent::ValidateFSOs() {
+int repvol::ValidateFSOs()
+{
     fsobj *f;
     int code = 0;
 
-    LOG(100, ("volent::ValidateFSOs: vid = 0x%x\n", vid));
+    LOG(100, ("repvol::ValidateFSOs: vid = 0x%x\n", vid));
 
     vproc *vp = VprocSelf();
     fso_vol_iterator next(NL, this);
@@ -671,7 +673,7 @@ void InitVCBData(VolumeId vid) {
     if (!vol) CHOKE("InitVCBData: Can't find volume 0x%x!", vid);
 
     vp->ve = new vcbevent(vol->fso_list->count());
-}    
+}
 
 
 /* add data fields in vcb data block. */
@@ -747,7 +749,7 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve)
 	    v->data.Breaks++;
 	    v->data.BreakObjs += ve->nobjs;
 	    v->data.BreakVolOnly += ve->volonly;
-	    CODA_ASSERT(vol && vol->IsReplicated());
+            CODA_ASSERT(vol->IsReplicated());
 	    v->data.BreakRefs += ((repvol *)vol)->VCBHits;
 	    ((repvol *)vol)->VCBHits = 0;
 	    break;
@@ -755,7 +757,7 @@ void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve)
 	case Clear:
 	    v->data.Clears++;
 	    v->data.ClearObjs += ve->nobjs;
-	    CODA_ASSERT(vol && vol->IsReplicated());
+            CODA_ASSERT(vol->IsReplicated());
 	    v->data.ClearRefs += ((repvol *)vol)->VCBHits;
 	    ((repvol *)vol)->VCBHits = 0;
 	    break;

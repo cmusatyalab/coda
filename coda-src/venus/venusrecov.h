@@ -41,12 +41,8 @@ extern "C" {
 }
 #endif __cplusplus
 
-
 /* from venus */
 #include "venus.private.h"
-#include "venusvm.h"
-
-
 
 /* Forward declarations. */
 struct RecovVenusGlobals;
@@ -103,10 +99,6 @@ struct RecovVenusGlobals {
     vdb	*recov_VDB;		    /* Volume database */
     hdb	*recov_HDB;		    /* Hoard database */
     lrdb *recov_LRDB;		    /* Local repair database */
-    /*udb *recov_UDB;*/		    /* User database */
-    /*vmdb *recov_VMDB;*/	    /* Vmon database */
-    vmselist recov_VMSE;            /* Vmon session data
-				       NOTE: not a pointer */
     vcbdb *recov_VCBDB;		    /* VCB usage data */
 
     char *recov_HeapAddr;	    /* Base of recoverable heap */

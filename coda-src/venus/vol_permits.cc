@@ -58,15 +58,9 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-void volent::SetPermit()
-{
-    VPStatus = PermitSet;
-    LOG(1, ("volent::SetPermit(): hey, i just set a permit!\n"));
-}
-
 /* ok, so this makes an RPC call to the server to try to get a permit;
    we return PermitSet if we successfully got one, otherwise NoPermit */
-int volent::GetPermit(vuid_t vuid)
+int repvol::GetPermit(vuid_t vuid)
 {
     long permit = WB_DISABLED;
     int i,permits_recvd = 0;
@@ -106,24 +100,23 @@ int volent::GetPermit(vuid_t vuid)
 
     for (i=0;i<VSG_MEMBERS;i++) {
 	ARG_UNMARSHALL(permitvar, permit, i);  /* do this for each copy */
-	LOG(1, ("volent::GetPermit(): %d replied to ViceGetWBPermit with %d:%d\n",i,m->rocc.retcodes[i],permit));
+	LOG(1, ("repvol::GetPermit(): %d replied to ViceGetWBPermit with %d:%d\n",i,m->rocc.retcodes[i],permit));
 
 	if (permit == WB_PERMIT_GRANTED)
 	    permits_recvd++;
 
     }
     
-    if (permits_recvd == AvsgSize()) {       /* we have all permits   */
-	LOG(1, ("volent::GetPermit(): Got all permits."));
-	SetPermit();
-
+    if (permits_recvd == AVSGsize()) {       /* we have all permits   */
+	LOG(1, ("repvol::GetPermit(): Got all permits."));
+        VPStatus = PermitSet;
     }
     else if (permits_recvd == 0) {              /* we don't have any     */
-	LOG(1, ("volent::GetPermit(): Don't have any permits, doing nothing"));
+	LOG(1, ("repvol::GetPermit(): Don't have any permits, doing nothing"));
 	ClearPermit();
     }
     else {                                /* need to return those we have */
-	LOG(1, ("volent::GetPermit(): Have only %d of %d permits, returning others",permits_recvd,AvsgSize()));
+	LOG(1, ("repvol::GetPermit(): Have only %d of %d permits, returning others",permits_recvd,AVSGsize()));
 	ReturnPermit(vuid);
 	ClearPermit();
     }
@@ -131,24 +124,15 @@ int volent::GetPermit(vuid_t vuid)
     return VPStatus;
 }
 
-void volent::ClearPermit()
+void repvol::ClearPermit()
 {
     VPStatus = NoPermit;
 
-    LOG(1, ("volent::ClearPermit(): hey, I just cleared a permit!\n"));
-    
+    LOG(1, ("repvol::ClearPermit(): hey, I just cleared a permit!\n"));
 }
 
-int volent::PermitBreak()
-{
-    VPStatus = NoPermit;
-
-    Reintegrate();
-}
-
-int volent::ReturnPermit(vuid_t vuid)
+int repvol::ReturnPermit(vuid_t vuid)
 {	
-    
     mgrpent   *m = 0;
     int     code = GetMgrp(&m, vuid, 0);
 
@@ -160,6 +144,5 @@ int volent::ReturnPermit(vuid_t vuid)
 				vid);
     MULTI_END_MESSAGE(ViceRejectWBPermit_OP);
     MULTI_RECORD_STATS(ViceRejectWBPermit_OP);	    
-
 }
-    
+

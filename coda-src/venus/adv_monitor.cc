@@ -141,7 +141,8 @@ void adv_monitor::ServerBandwidthEstimate(char *name, long bandwidth) {
   LOG(10, ("L adv_monitor::ServerBandwidthEstimate()\n"));
 }
 
-int adv_monitor::RequestASRInvokation(volent *vol, char *pathname, vuid_t vuid) {
+int adv_monitor::RequestASRInvokation(repvol *vol, char *pathname, vuid_t vuid)
+{
   long rc;
   RPC2_Integer ASRid;
   RPC2_Integer ASRrc;
@@ -440,8 +441,8 @@ void adv_monitor::Reset(int init) {
   replacementFILE = NULL;
 
   if (!init) { /* clear all asr_running flags */
-    vol_iterator next;
-    volent *v;
+    repvol_iterator next;
+    repvol *v;
     while ((v = next())) {
       if (v->asr_running())
 	v->unlock_asr();

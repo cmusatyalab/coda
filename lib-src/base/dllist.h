@@ -35,6 +35,9 @@ struct dllist_head {
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
 
+#define list_for_each(ptr, head) \
+        for (ptr = (head).next; ptr != &(head); ptr = ptr->next)
+
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus

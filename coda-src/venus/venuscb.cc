@@ -218,7 +218,8 @@ long CallBack(RPC2_Handle RPCid, ViceFid *fid) {
 }
 
 
-long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
+long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
+{
     srvent *s = FindServerByCBCid(RPCid);
     LOG(1, ("CallBackFetch: host = %s, fid = (%x.%x.%x)\n",
 	     s->name, Fid->Volume, Fid->Vnode, Fid->Unique));
@@ -293,7 +294,9 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 
 	LOG(100, ("CallBackFetch: transferred %d bytes\n",
 		  sid.Value.SmartFTPD.BytesTransferred));
-	f->vol->BytesBackFetched += sid.Value.SmartFTPD.BytesTransferred;
+        if (f->vol->IsReplicated())
+            ((repvol *)f->vol)->BytesBackFetched +=
+                sid.Value.SmartFTPD.BytesTransferred;
     }
 
 GetLost:

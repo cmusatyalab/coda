@@ -42,7 +42,7 @@ extern "C" {
 
 
 /* must be called from within a transaction */
-void volent::TranslateCMLFid(ViceFid *global, ViceFid *local)
+void repvol::TranslateCMLFid(ViceFid *global, ViceFid *local)
 {
     VOL_ASSERT(this, global && local);
     LOG(100, ("volent::TranslateCMLFid: global = 0x%x.%x.%x local = 0x%x.%x.%x\n",
@@ -57,7 +57,7 @@ void volent::TranslateCMLFid(ViceFid *global, ViceFid *local)
 }
 
 /* must not be called from within a transaction */
-void volent::ClearRepairCML()
+void repvol::ClearRepairCML()
 {
     Recov_BeginTrans();
     rec_dlist_iterator next(CML.list);
@@ -78,7 +78,7 @@ void volent::ClearRepairCML()
 }
 
 /* must not be called from within a transaction */
-int volent::GetReintId()
+int repvol::GetReintId()
 {
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(reint_id_gen);
@@ -89,8 +89,8 @@ int volent::GetReintId()
 
 
 /* need not be called from within a transaction */
-void volent::CheckTransition()
-{	
+void repvol::CheckTransition()
+{
     /*
      * this method is called when this volume just went 
      * through GlobalReintegrate(). If its CML is cleared,
@@ -107,7 +107,7 @@ void volent::CheckTransition()
 }
 
 /* must not be called from within a transaction */
-void volent::IncAbort(int tid)
+void repvol::IncAbort(int tid)
 {
     CML.IncAbort(tid);
     if (CML.count() == 0)
@@ -115,7 +115,7 @@ void volent::IncAbort(int tid)
 }
 
 /* need not be called from within a transaction */
-int volent::ContainUnrepairedCML()
+int repvol::ContainUnrepairedCML()
 {
     cml_iterator next(CML, CommitOrder);
     cmlent *m;
@@ -134,7 +134,7 @@ int volent::ContainUnrepairedCML()
   END_HTML
 */
 /* must not be called from within a transaction */
-void volent::CheckLocalSubtree()
+void repvol::CheckLocalSubtree()
 {
     /* try to unset the has_local_subtree bit if possible */
     if (!flags.has_local_subtree) return;
@@ -154,7 +154,7 @@ void volent::CheckLocalSubtree()
 	}
     }
     if (!contain_local_obj) {
-	LOG(0, ("volent::CheckLocalSubtree: (%s)reset has_local_subtree flag!\n", name));
+	LOG(0, ("repvol::CheckLocalSubtree: (%s)reset has_local_subtree flag!\n", name));
 	Recov_BeginTrans();
 	       RVMLIB_REC_OBJECT(flags);
 	       flags.has_local_subtree = 0;

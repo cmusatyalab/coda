@@ -88,7 +88,8 @@ int LogOpts = 1;	/* perform log optimizations? */
 
 /*  *****  Client Modify Log Basic Routines  *****  */
 
-void ClientModifyLog::ResetTransient() {
+void ClientModifyLog::ResetTransient()
+{
     owner = UNSET_UID;
     entries = count();
     entriesHighWater = entries;
@@ -97,8 +98,7 @@ void ClientModifyLog::ResetTransient() {
 
     if (count() > 0) {
 	/* Schedule a transition (to Reintegrating or Emulating) if log is non-empty. */
-	volent *vol = strbase(volent, this, CML);
-	vol->flags.transition_pending = 1;
+	strbase(repvol, this, CML)->flags.transition_pending = 1;
 
 	/* Set owner. */
 	cml_iterator next(*this, CommitOrder);
@@ -119,7 +119,8 @@ void ClientModifyLog::ResetTransient() {
 
 
 /* MUST be called from within transaction! */
-void ClientModifyLog::Clear() {
+void ClientModifyLog::Clear()
+{
     rec_dlink *d;
 
     while ((d = list.first()))
@@ -212,7 +213,8 @@ void ClientModifyLog::ClearPending() {
  * Scans the log, cancelling stores for open-for-write files. 
  * Note it might delete a record out from under itself.
  */
-void ClientModifyLog::CancelStores() {
+void ClientModifyLog::CancelStores()
+{
     cmlent *m, *n;
     cml_iterator next(*this, CommitOrder);
 
@@ -288,7 +290,7 @@ void cmlent::Thaw()
  */
 void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 {
-    volent *vol = strbase(volent, this, CML);
+    repvol *vol = strbase(repvol, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
     unsigned long cur_reintegration_time = 0, this_time;
@@ -353,12 +355,10 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
  */
 cmlent *ClientModifyLog::GetFatHead(int tid)
 {
-    volent *vol = strbase(volent, this, CML);
+    repvol *vol = strbase(repvol, this, CML);
     cmlent *m;
     cml_iterator next(*this, CommitOrder);
     unsigned long bw; /* bandwidth in bytes/sec */
-
-    if (!vol->IsReplicated()) return NULL;
 
     /* Get the first entry in the CML */
     m = next();
@@ -405,8 +405,9 @@ cmlent *ClientModifyLog::GetFatHead(int tid)
  * If the index is -1, something really bad happened.
  * in that case mark 'em all.
  */
-void ClientModifyLog::MarkFailedMLE(int ix) {
-    volent *vol = strbase(volent, this, CML);
+void ClientModifyLog::MarkFailedMLE(int ix)
+{
+    repvol *vol = strbase(repvol, this, CML);
     int i = 0;
 
     cml_iterator next(*this);
@@ -422,8 +423,9 @@ void ClientModifyLog::MarkFailedMLE(int ix) {
  * Mark the record with the matching storeid-uniquifier
  * as already having been committed at the server.
  */
-void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier) {
-    volent *vol = strbase(volent, this, CML);
+void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier)
+{
+    repvol *vol = strbase(repvol, this, CML);
 
     cml_iterator next(*this);
     cmlent *m;
@@ -434,17 +436,17 @@ void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier) {
 }
 
 /*
-  BEGIN_HTML
-  <a name="failedmle"><strong> the entry point of handling reintegration failure or local-global conflicts </strong></a>
-  END_HTML
+  failedmle - the entry point of handling reintegration failure or
+  local-global conflicts
 */
 /* 
  * Handle a non-retryable failure.  The offending record
  * was marked and may or may not still be there. 
  * Note that an abort may delete a record out from under us.
  */
-void ClientModifyLog::HandleFailedMLE() {
-    volent *vol = strbase(volent, this, CML);
+void ClientModifyLog::HandleFailedMLE()
+{
+    repvol *vol = strbase(repvol, this, CML);
     cmlent *m, *n;
     cml_iterator next(*this, CommitOrder);
 
@@ -482,7 +484,8 @@ void ClientModifyLog::HandleFailedMLE() {
 }
 
 
-void ClientModifyLog::print(int fd) {
+void ClientModifyLog::print(int fd)
+{
     fdprint(fd, "\tClientModifyLog: owner = %d, count = %d\n",
 	     owner, count());
 
@@ -541,7 +544,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
     flags.cancellation_pending = 0;
     log->list.append(&handle);
 
-    volent *vol = strbase(volent, log, CML);
+    repvol *vol = strbase(repvol, log, CML);
     sid = vol->GenerateStoreId();
     time = Mtime;
     uid = vuid;
@@ -1039,15 +1042,17 @@ void cmlent::print(int afd) {
 
 /*  *****  Client Modify Log Emulation Routines  *****  */
 
-/* There is a log routine corresponding to each of the (normal) mutating Vice operations, */
-/* {Store, Truncate, Utimes, Chown, Chmod, Create, Remove, Link, Rename, Mkdir, Rmdir, Symlink}. */
-/* Note that the only failure mode for these routines is log space exhausted (ENOSPC). */
-/* Each of these routines MUST be called from within transaction! */
+/* There is a log routine corresponding to each of the (normal) mutating Vice
+ * operations, {Store, Truncate, Utimes, Chown, Chmod, Create, Remove, Link,
+ * Rename, Mkdir, Rmdir, Symlink}. Note that the only failure mode for these
+ * routines is log space exhausted (ENOSPC). Each of these routines MUST be
+ * called from within transaction! */
 
 /* local-repair modification */
-int volent::LogStore(time_t Mtime, vuid_t vuid,
-		      ViceFid *Fid, RPC2_Unsigned NewLength, int tid) {
-    LOG(1, ("volent::LogStore: %d, %d, (%x.%x.%x), %d %d\n",
+int repvol::LogStore(time_t Mtime, vuid_t vuid, ViceFid *Fid, RPC2_Unsigned
+                     NewLength, int tid)
+{
+    LOG(1, ("repvol::LogStore: %d, %d, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewLength, tid));
 
     if (LogOpts) {
@@ -1086,9 +1091,10 @@ int volent::LogStore(time_t Mtime, vuid_t vuid,
 
 
 /* local-repair modification */
-int volent::LogSetAttr(time_t Mtime, vuid_t vuid, ViceFid *Fid,
-			RPC2_Unsigned NewLength, Date_t NewDate,
-			UserId NewOwner, RPC2_Unsigned NewMode, int tid) {
+int repvol::LogSetAttr(time_t Mtime, vuid_t vuid, ViceFid *Fid, RPC2_Unsigned
+                       NewLength, Date_t NewDate, UserId NewOwner,
+                       RPC2_Unsigned NewMode, int tid)
+{
     /* Record a separate log entry for each attribute that is being set. */
     if (NewLength != (RPC2_Unsigned)-1) {
 	int code = LogTruncate(Mtime, vuid, Fid, NewLength, tid);
@@ -1112,9 +1118,10 @@ int volent::LogSetAttr(time_t Mtime, vuid_t vuid, ViceFid *Fid,
 
 
 /* local-repair modification */
-int volent::LogTruncate(time_t Mtime, vuid_t vuid,
-			 ViceFid *Fid, RPC2_Unsigned NewLength, int tid) {
-    LOG(1, ("volent::LogTruncate: %d, %d, (%x.%x.%x), %d %d\n",
+int repvol::LogTruncate(time_t Mtime, vuid_t vuid, ViceFid *Fid, RPC2_Unsigned
+                        NewLength, int tid)
+{
+    LOG(1, ("repvol::LogTruncate: %d, %d, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewLength, tid));
 
     /* Treat truncates as stores for now. -JJK */
@@ -1123,9 +1130,10 @@ int volent::LogTruncate(time_t Mtime, vuid_t vuid,
 
 
 /* local-repair modification */
-int volent::LogUtimes(time_t Mtime, vuid_t vuid,
-		       ViceFid *Fid, Date_t NewDate, int tid) {
-    LOG(1, ("volent::LogUtimes: %d, %d, (%x.%x.%x), %d %d\n",
+int repvol::LogUtimes(time_t Mtime, vuid_t vuid, ViceFid *Fid, Date_t NewDate,
+                      int tid)
+{
+    LOG(1, ("repvol::LogUtimes: %d, %d, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewDate, tid));
 
     if (LogOpts) {
@@ -1150,9 +1158,10 @@ int volent::LogUtimes(time_t Mtime, vuid_t vuid,
 
 
 /* local-repair modification */
-int volent::LogChown(time_t Mtime, vuid_t vuid,
-		      ViceFid *Fid, UserId NewOwner, int tid) {
-    LOG(1, ("volent::LogChown: %d, %d, (%x.%x.%x), %d %d\n",
+int repvol::LogChown(time_t Mtime, vuid_t vuid, ViceFid *Fid, UserId NewOwner,
+                     int tid)
+{
+    LOG(1, ("repvol::LogChown: %d, %d, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewOwner, tid));
 
     if (LogOpts) {
@@ -1177,9 +1186,10 @@ int volent::LogChown(time_t Mtime, vuid_t vuid,
 
 
 /* local-repair modification */
-int volent::LogChmod(time_t Mtime, vuid_t vuid,
-		      ViceFid *Fid, RPC2_Unsigned NewMode, int tid) {
-    LOG(1, ("volent::LogChmod: %d, %d, (%x.%x.%x), %o %d\n",
+int repvol::LogChmod(time_t Mtime, vuid_t vuid, ViceFid *Fid,
+                     RPC2_Unsigned NewMode, int tid)
+{
+    LOG(1, ("repvol::LogChmod: %d, %d, (%x.%x.%x), %o %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewMode, tid));
 
     if (LogOpts) {
@@ -1212,9 +1222,10 @@ int volent::LogChmod(time_t Mtime, vuid_t vuid,
 
 
 /* local-repair modification */
-int volent::LogCreate(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		       char *Name, ViceFid *CFid, RPC2_Unsigned Mode, int tid) {
-    LOG(1, ("volent::LogCreate: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %o %d\n",
+int repvol::LogCreate(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
+                      ViceFid *CFid, RPC2_Unsigned Mode, int tid)
+{
+    LOG(1, ("repvol::LogCreate: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %o %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
@@ -1225,9 +1236,10 @@ int volent::LogCreate(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 
 
 /* local-repair modification */
-int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		       char *Name, ViceFid *CFid, int LinkCount, int tid) {
-    LOG(1, ("volent::LogRemove: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %d %d\n",
+int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
+                      ViceFid *CFid, int LinkCount, int tid)
+{
+    LOG(1, ("repvol::LogRemove: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, LinkCount, tid));
 
@@ -1254,8 +1266,6 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 		    if (m->IsFrozen())
 			CreateReintegrating = 1;
                 }    
-
-		
 /*
 		if (ObjectCreated) {
 		    int code = LogUtimes(Mtime, vuid, PFid, Mtime);
@@ -1304,7 +1314,7 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	    if (ObjectCreated && !CreateReintegrating) {
 		int size = (int) (sizeof(cmlent) + strlen(Name));    
 
-		LOG(0/*10*/, ("volent::LogRemove: record cancelled, %s, size = %d\n", 
+		LOG(0/*10*/, ("repvol::LogRemove: record cancelled, %s, size = %d\n", 
 				Name, size));
 		CML.cancellations.other_count++;
 		CML.cancellations.other_size += size;
@@ -1325,9 +1335,9 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 
 
 /* local-repair modification */
-int volent::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		     char *Name, ViceFid *CFid, int tid) {
-    LOG(1, ("volent::LogLink: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
+int repvol::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
+                    ViceFid *CFid, int tid) {
+    LOG(1, ("repvol::LogLink: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, tid));
 
@@ -1338,9 +1348,10 @@ int volent::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 
 
 /* local-repair modification */
-int volent::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
-		       char *OldName, ViceFid *TPFid, char *NewName,
-		       ViceFid *SFid, ViceFid *TFid, int LinkCount, int tid) {
+int repvol::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
+                      char *OldName, ViceFid *TPFid, char *NewName,
+                      ViceFid *SFid, ViceFid *TFid, int LinkCount, int tid)
+{
     /* Record "target remove" as a separate log entry. */
     if (!FID_EQ(TFid, &NullFid)) {
 	int code;
@@ -1352,7 +1363,7 @@ int volent::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
 
     }
 
-    LOG(1, ("volent::LogRename: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
+    LOG(1, ("repvol::LogRename: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
 	     Mtime, vuid, SPFid->Volume, SPFid->Vnode, SPFid->Unique,
 	     OldName, TPFid->Volume, TPFid->Vnode, TPFid->Unique,
 	     NewName, SFid->Volume, SFid->Vnode, SFid->Unique, tid));
@@ -1364,9 +1375,10 @@ int volent::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
 
 
 /* local-repair modification */
-int volent::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		      char *Name, ViceFid *CFid, RPC2_Unsigned Mode, int tid) {
-    LOG(1, ("volent::LogMkdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %o %d\n",
+int repvol::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
+                     ViceFid *CFid, RPC2_Unsigned Mode, int tid)
+{
+    LOG(1, ("repvol::LogMkdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %o %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
@@ -1377,9 +1389,9 @@ int volent::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 
 
 /* local-repair modification */
-int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		      char *Name, ViceFid *CFid, int tid) {
-    LOG(1, ("volent::LogRmdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
+int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
+                     ViceFid *CFid, int tid) {
+    LOG(1, ("repvol::LogRmdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, tid));
 
@@ -1421,7 +1433,6 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 		    }
 		}
 	    }
-
 /*
 	    if (ObjectCreated && !DependentChildren) {
 		int code = LogUtimes(Mtime, vuid, PFid, Mtime);
@@ -1471,7 +1482,7 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	if (ObjectCreated && !DependentChildren && !CreateReintegrating) {
 	    int size = (int) (sizeof(cmlent) + strlen(Name));    
 
-	    LOG(0/*10*/, ("volent::LogRmdir: record cancelled, %s, size = %d\n", 
+	    LOG(0/*10*/, ("repvol::LogRmdir: record cancelled, %s, size = %d\n", 
 				Name, size));
 
 	    CML.cancellations.other_count++;
@@ -1492,10 +1503,11 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 
 
 /* local-repair modification */
-int volent::LogSymlink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-			char *OldName, char *NewName, 
-			ViceFid *CFid, RPC2_Unsigned Mode, int tid) {
-    LOG(1, ("volent::LogSymlink: %d, %d, (%x.%x.%x), %s, %s, (%x.%x.%x), %o %d\n",
+int repvol::LogSymlink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
+                       char *OldName, char *NewName, ViceFid *CFid,
+                       RPC2_Unsigned Mode, int tid)
+{
+    LOG(1, ("repvol::LogSymlink: %d, %d, (%x.%x.%x), %s, %s, (%x.%x.%x), %o %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     OldName, NewName, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
@@ -1505,10 +1517,11 @@ int volent::LogSymlink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 }
 
 /* local-repair modification */
-int volent::LogRepair(time_t Mtime, vuid_t vuid, ViceFid *Fid,
-		      RPC2_Unsigned Length, Date_t Date, UserId Owner,
-		      RPC2_Unsigned Mode, int tid) {
-    LOG(1, ("volent::LogRepair: %d %d (%x.%x.%x) attrs [%u %d %u %o] %d\n",
+int repvol::LogRepair(time_t Mtime, vuid_t vuid, ViceFid *Fid,
+                      RPC2_Unsigned Length, Date_t Date, UserId Owner,
+                      RPC2_Unsigned Mode, int tid)
+{
+    LOG(1, ("repvol::LogRepair: %d %d (%x.%x.%x) attrs [%u %d %u %o] %d\n",
 	    Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, Length,
 	    Date, Owner, Mode, tid));
     cmlent *repair_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Repair_OP, tid,
@@ -1520,8 +1533,9 @@ int volent::LogRepair(time_t Mtime, vuid_t vuid, ViceFid *Fid,
  * cancel all stores corresponding to the given Fid.
  * MUST NOT be called from within transaction! 
  */
-void volent::CancelStores(ViceFid *Fid) {
-    LOG(1, ("volent::CancelStores: (%x.%x.%x)\n",
+void repvol::CancelStores(ViceFid *Fid)
+{
+    LOG(1, ("repvol::CancelStores: (%x.%x.%x)\n",
 	    Fid->Volume, Fid->Vnode, Fid->Unique));
 
     /* this routine should be called at startup only */
@@ -1555,7 +1569,8 @@ void volent::CancelStores(ViceFid *Fid) {
 
 /* restore ``old values'' for attributes in fsobj. */
 /* call from within a transaction. */
-void volent::RestoreObj(ViceFid *Fid) {
+void repvol::RestoreObj(ViceFid *Fid)
+{
     fsobj *f = FSDB->Find(Fid);
 
     /* Length attribute. */
@@ -1679,8 +1694,8 @@ cmlent *ClientModifyLog::UtimesWriter(ViceFid *Fid) {
 /* local-repair modification */
 /* MUST be called from within transaction! */
 /* returns 1 if record was actually removed from log, 0 if not. */
-int cmlent::cancel() {
-    volent *vol = strbase(volent, log, CML);
+int cmlent::cancel()
+{
     time_t curTime = Vtime();
 
     if (flags.to_be_repaired) {
@@ -1830,13 +1845,13 @@ int cmlent::cancel() {
 	    if (!FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid)) {
 		cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rename.TPFid);
 		CODA_ASSERT(m != 0);
+#if 0
 		if (m != this) {
 		    /* Don't get uptight if this can't be done! */
-/*
-		    volent *vol = strbase(volent, log, CML);
+		    repvol *vol = strbase(repvol, log, CML);
 		    (void)vol->LogUtimes(time, (vuid_t) uid, &u.u_rename.TPFid, time);
-*/
 		}
+#endif
 	    }
 	    }
 	    break;
@@ -1894,16 +1909,18 @@ int cmlent::cancel() {
 	log->cancellations.other_count++;
 	log->cancellations.other_size += bytes();
     }
+
+    repvol *vol = strbase(repvol, log, CML);
     vol->RecordsCancelled++;
     delete this;
 
+#if 0
     if (DoUtimes) {
-/*
 	int code = vol->LogUtimes(UtimesMtime, UtimesVuid, &UtimesFid, UtimesMtime);
 	CODA_ASSERT(code == 0);
         vol->RecordsCancelled--;
-*/
     }
+#endif
     return 1;
 }
 
@@ -1912,9 +1929,10 @@ int cmlent::cancel() {
  * If this record is a store corresponding to an open-for-write file,
  * cancel it and restore the object's attributes to their old values.
  */
-int cmlent::cancelstore() {
+int cmlent::cancelstore()
+{
     int cancelled = 0;
-    volent *vol = strbase(volent, log, CML);
+    repvol *vol = strbase(repvol, log, CML);
 
     if (opcode == OLDCML_NewStore_OP) {
 	dlink *d = fid_bindings->first();   /* and only */
@@ -1938,8 +1956,9 @@ int cmlent::cancelstore() {
 
 /* must not be called from within a transaction */
 /* Add timing and statistics gathering! */
-int ClientModifyLog::IncReallocFids(int tid) {
-    volent *vol = strbase(volent, this, CML);
+int ClientModifyLog::IncReallocFids(int tid)
+{
+    repvol *vol = strbase(repvol, this, CML);
     LOG(1, ("ClientModifyLog::IncReallocFids: (%s) and tid = %d\n", 
 	    vol->name, tid));
 
@@ -1967,8 +1986,9 @@ void ClientModifyLog::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 
 
 /* need not be called from within a transaction */
-void ClientModifyLog::IncThread(int tid) {
-    volent *vol = strbase(volent, this, CML);
+void ClientModifyLog::IncThread(int tid)
+{
+    repvol *vol = strbase(repvol, this, CML);
     LOG(1, ("ClientModifyLog::IncThread: (%s) tid = %d\n", 
 	    vol->name, tid));
 
@@ -2032,7 +2052,7 @@ int ClientModifyLog::OutOfOrder(int tid)
 /* Caller is responsible for deallocating buffer! */
 void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid)
 {
-    volent *vol = strbase(volent, this, CML);
+    repvol *vol = strbase(repvol, this, CML);
     LOG(1, ("ClientModifyLog::IncPack: (%s) and tid = %d\n", vol->name, tid));
 
     /* Compute size of buffer needed. */
@@ -2071,8 +2091,7 @@ void ClientModifyLog::IncPack(char **bufp, int *bufsizep, int tid)
 int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 			  int outoforder)
 {
-    volent *vol = strbase(volent, this, CML);
-    CODA_ASSERT(vol->IsReplicated());
+    repvol *vol = strbase(repvol, this, CML);
     int code = 0;
     unsigned int i = 0;
     mgrpent *m = 0;
@@ -2323,7 +2342,7 @@ Exit:
 /* MUST NOT be called from within transaction! */
 void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
 {
-    volent *vol = strbase(volent, this, CML);
+    repvol *vol = strbase(repvol, this, CML);
     LOG(1, ("ClientModifyLog::IncCommit: (%s) tid = %d\n", 
 	    vol->name, Tid));
 
@@ -2361,8 +2380,7 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
 /* Must NOT be called from within transaction! */
 int cmlent::realloc() 
 {
-    volent *vol = strbase(volent, log, CML);
-    CODA_ASSERT(vol->IsReplicated());
+    repvol *vol = strbase(repvol, log, CML);
     int code = 0;
 
     ViceFid OldFid;
@@ -2516,7 +2534,7 @@ void cmlent::thread() {
 	fsobj *f = FSDB->Find(fidp);
 	if (f == 0) {
 	    print(logFile);
-	    (strbase(volent, log, CML))->print(logFile);
+	    (strbase(repvol, log, CML))->print(logFile);
 	    CHOKE("cmlent::thread: can't find (%x.%x.%x)",
 		fidp->Volume, fidp->Vnode, fidp->Unique);
 	}
@@ -2886,8 +2904,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 {
     LOG(1, ("cmlent::commit: (%d)\n", tid));
 
-    volent *vol = strbase(volent, log, CML);
-    CODA_ASSERT(vol->IsReplicated());
+    repvol *vol = strbase(repvol, log, CML);
     vol->RecordsCommitted++;
 
     /* 
@@ -2976,8 +2993,7 @@ int cmlent::DoneSending()
 
 int cmlent::GetReintegrationHandle()
 {
-    volent *vol = strbase(volent, log, CML);
-    CODA_ASSERT(vol->IsReplicated());
+    repvol *vol = strbase(repvol, log, CML);
     int code = 0;
     mgrpent *m = 0;
     int ph_ix;
@@ -3039,8 +3055,7 @@ Exit:
 
 int cmlent::ValidateReintegrationHandle()
 {
-    volent *vol = strbase(volent, log, CML);
-    CODA_ASSERT(vol->IsReplicated());
+    repvol *vol = strbase(repvol, log, CML);
     int code = 0;
     connent *c = 0;
     RPC2_Unsigned Offset = (unsigned long)-1;
@@ -3082,10 +3097,10 @@ Exit:
 }
 
 
-int cmlent::WriteReintegrationHandle() {
+int cmlent::WriteReintegrationHandle()
+{
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
-    volent *vol = strbase(volent, log, CML);
-    CODA_ASSERT(vol->IsReplicated());
+    repvol *vol = strbase(repvol, log, CML);
     int code = 0, fd = -1;
     connent *c = 0;
     fsobj *f = NULL;
@@ -3181,8 +3196,7 @@ int cmlent::WriteReintegrationHandle() {
 int cmlent::CloseReintegrationHandle(char *buf, int bufsize, 
 				     ViceVersionVector *UpdateSet)
 {
-    volent *vol = strbase(volent, log, CML);
-    CODA_ASSERT(vol->IsReplicated());
+    repvol *vol = strbase(repvol, log, CML);
     int code = 0;
     connent *c = 0;
     
@@ -3208,23 +3222,6 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     RPC2_CountedBS empty_PiggyBS;
     empty_PiggyBS.SeqLen = 0;
     empty_PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
-
-#if 0
-    /* We do not piggy the COP2 entries in PiggyBS when talking to only a
-     * single server _as a result of weak connectivity_. We could do an
-     * explicit COP2 call here to ship the PiggyBS array. Or simply ignore
-     * them, so they will eventually be sent automatically or piggied on the
-     * next multirpc. --JH */
-
-    mgrpent *m = 0;
-
-    /* Acquire an Mgroup. */
-    code = vol->GetMgrp(&m, log->owner, (PIGGYCOP2 ? &PiggyBS : 0));
-    if (code != 0) goto Exit;
-
-    vol->COP2(m, &PiggyBS);
-    PutMgrp(&m);
-#endif
 
     /* Get a connection to the server. */
     code = ::GetConn(&c, &u.u_store.ReintPH, log->owner, 0);
@@ -3481,7 +3478,7 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 }
 
 
-int volent::CheckPointMLEs(vuid_t vuid, char *ckpdir) 
+int repvol::CheckPointMLEs(vuid_t vuid, char *ckpdir) 
 {
     if (CML.count() == 0)
 	return(ENOENT);
@@ -3498,12 +3495,13 @@ int volent::CheckPointMLEs(vuid_t vuid, char *ckpdir)
 
 
 /* MUST NOT be called from within transaction! */
-int volent::PurgeMLEs(vuid_t vuid) {
+int repvol::PurgeMLEs(vuid_t vuid)
+{
     if (CML.count() == 0)
 	return(ENOENT);
     if (CML.owner != vuid && vuid != V_UID)
 	return(EACCES);
-    if (IsReintegrating())
+    if (IsReplicated() && ((repvol *)this)->IsReintegrating())
       return EACCES;
 
     if (LRDB->repair_root_fid && LRDB->repair_root_fid->Volume == vid)
@@ -3635,7 +3633,8 @@ int volent::PurgeMLEs(vuid_t vuid) {
 }
 
 
-int volent::LastMLETime(unsigned long *time) {
+int repvol::LastMLETime(unsigned long *time)
+{
     if (CML.count() == 0)
 	return(ENOENT);
 
@@ -3647,8 +3646,9 @@ int volent::LastMLETime(unsigned long *time) {
 
 
 /* Returns {0, ENOSPC}. */
-int ClientModifyLog::CheckPoint(char *ckpdir) {
-    volent *vol = strbase(volent, this, CML);
+int ClientModifyLog::CheckPoint(char *ckpdir)
+{
+    repvol *vol = strbase(repvol, this, CML);
     LOG(1, ("ClientModifyLog::CheckPoint: (%s), cdir = %s\n",
 	     vol->name, (ckpdir ? ckpdir : "")));
 
@@ -3778,8 +3778,9 @@ int ClientModifyLog::CheckPoint(char *ckpdir) {
 
 /* Invalidate the fsobj's following unsuccessful reintegration. */
 /* MUST NOT be called from within transaction! */
-void ClientModifyLog::IncAbort(int Tid) {
-    volent *vol = strbase(volent, this, CML);
+void ClientModifyLog::IncAbort(int Tid)
+{
+    repvol *vol = strbase(repvol, this, CML);
     LOG(0, ("ClientModifyLog::IncAbort: (%s) and tid = %d\n", vol->name, Tid));
     /* eprint("IncAbort CML for %s and tid %d\n", vol->name, Tid); */
 
@@ -4014,8 +4015,9 @@ static int WriteTrailer(FILE *fp) {
 
 
 /* MUST be called from within transaction! */
-void cmlent::abort() {
-    volent *vol = strbase(volent, log, CML);
+void cmlent::abort()
+{
+    repvol *vol = strbase(repvol, log, CML);
     vol->RecordsAborted++;
 
     /* Step 1:  CODA_ASSERT that there are no edges emanating from this record. */
@@ -4045,7 +4047,8 @@ void cmlent::abort() {
 /*  *****  Routines for Maintaining fsobj <--> cmlent Bindings  *****  */
 
 /* MUST be called from within transaction! */
-void ClientModifyLog::AttachFidBindings() {
+void ClientModifyLog::AttachFidBindings()
+{
     cml_iterator next(*this);
     cmlent *m;
     while ((m = next()))
@@ -4054,7 +4057,8 @@ void ClientModifyLog::AttachFidBindings() {
 
 
 /* MUST be called from within transaction! */
-void cmlent::AttachFidBindings() {
+void cmlent::AttachFidBindings()
+{
     ViceFid *fids[3];
     ViceVersionVector *vvs[3];
     GetVVandFids(vvs, fids);
@@ -4066,7 +4070,7 @@ void cmlent::AttachFidBindings() {
 	fsobj *f = FSDB->Find(fidp);
 	if (f == 0) {
 	    print(logFile);
-	    (strbase(volent, log, CML))->print(logFile);
+	    (strbase(repvol, log, CML))->print(logFile);
 	    CHOKE("cmlent::AttachFidBindings: can't find (%x.%x.%x)",
 		fidp->Volume, fidp->Vnode, fidp->Unique);
 	}
@@ -4084,7 +4088,8 @@ void cmlent::AttachFidBindings() {
 }
 
 
-void cmlent::DetachFidBindings() {
+void cmlent::DetachFidBindings()
+{
     if (fid_bindings == 0) return;
 
     dlink *d;
@@ -4099,7 +4104,8 @@ void cmlent::DetachFidBindings() {
     fid_bindings = 0;
 }
 
-void cmlent::writeops(FILE *fp) {
+void cmlent::writeops(FILE *fp)
+{
     char path[MAXPATHLEN], path2[MAXPATHLEN];
     char msg[2 * MAXPATHLEN + 100]; 	// this is enough for writing one entry
 
@@ -4174,9 +4180,10 @@ void cmlent::writeops(FILE *fp) {
 
 
 /* this routine determines if a cmlent is old enough to reintegrate. */
-int cmlent::Aged() {
+int cmlent::Aged()
+{
     int oldenough = 0;
-    volent *vol = strbase(volent, log, CML);
+    repvol *vol = strbase(repvol, log, CML);
 
     time_t curTime = Vtime();
     if ((curTime - time) >= vol->AgeLimit)
@@ -4202,22 +4209,22 @@ unsigned long cmlent::ReintTime(unsigned long bw) {
 	time = time * 1000.0/ (double) bw;
     }
 
-    LOG(0, ("cmlent::ReintTime: bandwidth = %d bytes/sec, time = %d msec\n",
+    LOG(10, ("cmlent::ReintTime: bandwidth = %d bytes/sec, time = %d msec\n",
 	    bw, (unsigned long) time));
-    if (LogLevel >= 0/*10*/) print(logFile);
+    if (LogLevel >= 10) print(logFile);
 
     return((unsigned long) time);
 }
 
 
-unsigned long cmlent::ReintAmount() {
-    volent *vol = strbase(volent, log, CML);
+unsigned long cmlent::ReintAmount()
+{
+    repvol *vol = strbase(repvol, log, CML);
     int amount, offset;
     unsigned long bw;	/* bandwidth, in bytes/sec */
 
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
-    if (!vol->IsReplicated()) return 0;
     /* 
      * try to get a dynamic bw estimate.  If that doesn't
      * work, fall back on the static estimate.
@@ -4240,7 +4247,7 @@ unsigned long cmlent::ReintAmount() {
 /* reintegrating --> frozen */
 int cmlent::IsReintegrating() 
 {
-    volent *vol = strbase(volent, log, CML);
+    repvol *vol = strbase(repvol, log, CML);
 
     if (vol->flags.reintegrating && IsFrozen() &&
 	(tid != UNSET_TID) && (tid == vol->cur_reint_tid))

@@ -345,7 +345,6 @@ extern char *VenusLogFile;
 extern char *MarinerSocketPath;
 extern int   mariner_tcp_enable;
 extern int   allow_reattach;
-extern int   Venus_Initialized;
 
 /* spool.cc */
 extern void MakeUserSpoolDir(char *, vuid_t);

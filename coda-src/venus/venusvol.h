@@ -53,7 +53,6 @@ extern "C" {
 
 /* from vol */
 #include <voldefs.h>
-#define	RWRVOL	(REPVOL	+ 1)		/* Should be in voldefs.h!  -JJK */
 
 /* from venus */
 #include "comm.h"
@@ -70,12 +69,9 @@ class connent;		/* needed because of circular includes! */
 class mgrpent;
 class vdb;
 class volent;
-class vol_iterator;
 class cop2ent;
 class resent;
-class vsr;
 class vcbdent;
-class rwsent;
 
 /* volume pgid locking type */
 /* Was: EXCLUSIVE, *SHARED*: name clash on Solaris */
@@ -98,7 +94,6 @@ enum VolLockType { EX_VOL_LK, SH_VOL_LK };
 const int VDB_MagicNumber = 6820348;
 const int VDB_NBUCKETS = 512;
 const int VOLENT_MagicNumber = 3614246;
-const int VOLENTMaxFreeEntries = 8;
 const int MLENT_MagicNumber = 5214113;
 const int MLENTMaxFreeEntries = 32;
 
@@ -112,9 +107,6 @@ const unsigned V_DEFAULTAGE = 60;		/* in SECONDS */
 const unsigned V_UNSETAGE = (unsigned)-1;	/* huge */
 const unsigned V_DEFAULTREINTLIMIT = 30000;	/* in MILLESECONDS */
 const unsigned V_UNSETREINTLIMIT = (unsigned)-1;/* huge */
-
-const int VSR_FLUSH_HARD = 1;
-const int VSR_FLUSH_NOT_HARD = 0;
 
 #define VCBDB	(rvg->recov_VCBDB)
 const int VCBDB_MagicNumber = 3433089;
@@ -166,7 +158,9 @@ class cmlstats {
 class ClientModifyLog {
   friend class cmlent;
   friend class cml_iterator;
-  friend class volent;
+  friend class repvol;
+  friend class volent; /* ::Enter(int, vuid_t); */
+                       /* ::Exit(int, vuid_t) */
 
     rec_dlist list;	 			/* link to cmlents */
     /*T*/vuid_t	owner;				/* writer of all entries in Log */
@@ -183,8 +177,8 @@ class ClientModifyLog {
 
   public:
     ClientModifyLog() { ResetTransient(); }  /* MUST be called within transaction! */
+    ~ClientModifyLog() { CODA_ASSERT(count() == 0); } /* MUST be called within transaction! */
     void ResetTransient();
-    virtual ~ClientModifyLog() { CODA_ASSERT(count() == 0); } /* MUST be called within transaction! */
     void ResetHighWater() { entriesHighWater = entries; bytesHighWater = bytes; }
     void Clear();
 
@@ -258,6 +252,7 @@ class cmlent {
   friend class ClientModifyLog;
   friend class cml_iterator;
   friend class volent;
+  friend class repvol;
   friend class fsobj;
   friend int PathAltered(ViceFid *, char *, ClientModifyLog *, cmlent *);
 
@@ -576,9 +571,10 @@ class vdb {
   friend void VOLD_Init(void);
   friend void VolDaemon(void);
   friend class cmlent;
-  friend class volent;
-  friend class vol_iterator;
+  friend class volrep; /* for hashtab insert/remove */
+  friend class repvol; /* for hashtab insert/remove */
   friend class repvol_iterator;
+  friend class volrep_iterator;
   friend class fsobj;
   friend void RecovInit();
 
@@ -588,8 +584,9 @@ class vdb {
     int MaxMLEs;            /* Limit on number of MLE's over _all_ volumes */
     int AllocatedMLEs;
 
-    /* The hash table. */
-    rec_ohashtab htab;
+    /* The hash tables for replicated volumes and volume replicas. */
+    rec_ohashtab repvol_hash;
+    rec_ohashtab volrep_hash;
 
     /* The mle free list. */
     rec_dlist mlefreelist;
@@ -608,7 +605,6 @@ class vdb {
     void GetDown();
     void FlushCOP2();
     void WriteBack();
-    void FlushVSR();
     void CheckPoint(unsigned long);
     void CheckReintegratePending();
     void CheckLocalSubtree();
@@ -619,7 +615,6 @@ class vdb {
     int Get(volent **, VolumeId);
     int Get(volent **, char *);
     void Put(volent **);
-    void FlushVolume();
 
     void DownEvent(struct in_addr *host);
     void UpEvent(struct in_addr *host);
@@ -635,13 +630,12 @@ class vdb {
     int CallBackBreak(VolumeId);
     void TakeTransition();	/* also a daemon function */
 
-    void SaveCacheInfo(VolumeId, int, int, int);
-
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
     void print(int, int =0);
 
     void ListCache(FILE *, int long_format=1, unsigned int valid=3);
+    void MgrpPrint(int fd);
 };
 
 
@@ -659,7 +653,6 @@ struct VolFlags {
     /*T*/unsigned demotion_pending : 1;
     /*T*/unsigned valid : 1;			/* not used yet */
     /*T*/unsigned online : 1;			/* not used yet */
-    /*T*/unsigned usecallback : 1;		/* should be deprecated? */
     unsigned logv : 1;				/* log mutations, allow fetches */
     unsigned allow_asrinvocation : 1;		/* asr's allowed in this volume */
     unsigned asr_running : 1;                   /* only 1 ASR allowed per volume at a time */
@@ -675,7 +668,11 @@ struct VolFlags {
     /*T*/unsigned sync_reintegrate_done :1;     /* synchronous reintegration done */
     /*T*/unsigned autowriteback :1;             /* auto try to get wb permit */
     /*T*/unsigned staylogging : 1;              /* keep logging after |cml| == 0*/
-    unsigned reserved : 13;
+    unsigned replicated : 1;                    /* is this a replicated vol or
+                                                   a volume replica */
+    unsigned readonly : 1;                      /* is this a readonly (backup)
+                                                   volume replica */
+    unsigned reserved : 11;
 };
 
 
@@ -702,94 +699,32 @@ class repvol;
 /* local-repair modification */
 /* A volume entry. */
 class volent {
-  friend class ClientModifyLog;
-  friend class cmlent;
-  friend class vdb;
-  friend class vol_iterator;
-  friend class repvol_iterator;
   friend class fsdb;
   friend class fsobj;
-  friend class fso_vol_iterator;
   friend class userent;
-  friend class vproc;
-  friend void VolInit();
-  friend void Reintegrate(volent *);
-  friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
-  friend void InitVCBData(VolumeId);
+  friend class vdb;
+  friend class fso_vol_iterator;
+  friend class repvol_iterator;
+  friend class volrep_iterator;
+  friend class vproc;                /* flags.autowriteback */
+  friend void Reintegrate(repvol *); /* flags.sync_reintegrate */
+  friend void InitVCBData(VolumeId); /* fso_list->count() */
 
     int MagicNumber;
 
-    rec_olink handle;				/* link for htab */
-
     /* State information. */
-    /*T*/short observer_count;
-    /*T*/short mutator_count;
     /*T*/short waiter_count;
-    /*T*/short resolver_count;
-    /*T*/short shrd_count;		/* for volume pgid locking */
     /*T*/short excl_count;		/* for volume pgid locking */
     /*T*/int excl_pgid;			/* pgid for the exclusive lock holder */
-    int reint_id_gen;                   /* reintegration id generator */
-    int cur_reint_tid;			/* tid of reintegration in progress, if any */
-    int lc_asr;                         /* last/current ASR run for this volume */
-    /* Reintegration stuff. */
-    struct Lock CML_lock;		/* for checkpoint/mutator synchronization */
-    unsigned AgeLimit;			/* min age of log records in SECONDS */
-    unsigned ReintLimit;		/* work limit, in MILLESECONDS */
-    Unique_t FidUnique;
-    RPC2_Unsigned SidUnique;
-    /*T*/int OpenAndDirtyCount;
-    // The next four are now transient - bnoble
-    /*T*/int RecordsCancelled;
-    /*T*/int RecordsCommitted;
-    /*T*/int RecordsAborted;
-    /*T*/int FidsRealloced;
-    /*T*/long BytesBackFetched;
 
-    /*T*/PermitStatus VPStatus;   /* do we have a volume permit? */
-
-    /* VSR (Vmon Session Record) stuff. */
-    /*T*/olist *vsr_list;
-    /*T*/VmonSessionId VsrUnique;
-    /*T*/VmonAVSG AVSG;
-
-    /* Cache statistics fields have been removed.  The statistics are stored in the VSR. */
-    /* If maintaining these statistics in the VSR is too slow, we'll have to go back to  */
-    /* storing transient values here.  However, this makes the statistics less accurate  */
-    /* since all user accesses are counted here and then reported once for each user.    */
-
-    /* Advice stuff. */
-    /* save stuff from the previous session for reporting to the advice monitor -- gross! */
-    long DisconnectionTime;
-    long DiscoRefCounter;     /* value of FSDB->RefCounter at disconnection */
-
-    /*T*/int saved_uid;
-    /*T*/int saved_hits;
-    /*T*/int saved_misses;
-    
     /* Local synchronization state. */
     /*T*/char vol_sync;
-    /*T*/int refcnt;			/* count of fsobj's plus active threads */
+    /*T*/int refcnt;		/* count of fsobj's plus active threads */
    
-    /* Read/Write Sharing Stats */
-    long current_disc_time;		/* disconnection time for the current period */
-    long current_reco_time;		/* reconnection time for the current period */
-    short current_rws_cnt;		/* read/write sharing count */
-    short current_disc_read_cnt;	/* disconnected read count */
-    rec_dlist rwsq;			/* a queue of read/write sharing stats to be reported */
-
-    /* WriteBack Caching */
-    cmlent * reintegrate_until;
-
     /* Constructors, destructors, and private utility routines. */
     volent(volent&) { abort(); }    		/* not supported! */
     void *operator new(size_t);
     int operator=(volent&) { abort(); return(0); }/* not supported! */
-    virtual void Recover() { return; }
-    void InitStatsVSR(vsr *);
-    void UpdateStatsVSR(vsr *);
-    ViceVolumeType VolStatType(void);
-    virtual void ResetTransient() { abort(); }
 
   protected:
     char name[V_MAXVOLNAMELEN];
@@ -797,15 +732,23 @@ class volent {
     VolFlags flags;
     /*T*/VolumeStateType state;
 
+    rec_olink handle;			/* link for repvol_hash/volrep_hash */
+
     /* Fso's. */
     /*T*/olist *fso_list;
 
-    ClientModifyLog CML;
+    /* State information. */
+    /*T*/short mutator_count;
+    /*T*/short observer_count;
+    /*T*/short resolver_count;
+    /*T*/short shrd_count;		/* for volume pgid locking */
+    /*T*/int lc_asr;            /* last/current ASR run for this volume */
 
     void operator delete(void *, size_t);
     volent(VolumeId vid, char *name);
     ~volent();
     void ResetVolTransients();
+    ViceVolumeType VolStatType(void);
 
   public:
     /* Volume synchronization. */
@@ -814,29 +757,11 @@ class volent {
     int Enter(int, vuid_t);
     void Exit(int, vuid_t);
     void TakeTransition();
-    virtual int GetConn(connent **, vuid_t);
-    virtual int GetMgrp(mgrpent **, vuid_t, RPC2_CountedBS * =0) { abort(); return(0); }
-    virtual void KillMgrpMember(struct in_addr *);
-    virtual void GetBandwidth(unsigned long *bw);
-    void DownMember(long);
-    void UpMember(long);
-    void WeakMember();
-    void StrongMember();
-    void ResetStats() { CML.ResetHighWater(); }
     void Wait();
     void Signal();
     void Lock(VolLockType, int = 0);		
     void UnLock(VolLockType);		  
     int Collate(connent *, int code, int TranslateEINCOMP = 1);
-    int Collate_NonMutating(mgrpent *, int);
-    int Collate_COP1(mgrpent *, int, ViceVersionVector *);
-    int Collate_Reintegrate(mgrpent *, int, ViceVersionVector *);
-    int Collate_COP2(mgrpent *, int);
-
-    /* Allocation routines. */
-    ViceFid GenerateLocalFid(ViceDataType);
-    ViceFid GenerateFakeFid();
-    ViceStoreId GenerateStoreId();
 
     /* User-visible volume status. */
     int GetVolStat(VolumeStatus *, RPC2_BoundedBS *,
@@ -844,6 +769,176 @@ class volent {
 		    RPC2_BoundedBS *, RPC2_BoundedBS *, vuid_t);
     int SetVolStat(VolumeStatus *, RPC2_BoundedBS *,
 		    RPC2_BoundedBS *, RPC2_BoundedBS *, vuid_t);
+
+    /* Utility routines. */
+    void GetHosts(struct in_addr hosts[VSG_MEMBERS]);
+    int AVSGsize();
+    int IsBackup() { return (!flags.replicated && flags.readonly); }
+    int IsReplicated() { return flags.replicated; }
+    int IsReadWriteReplica();
+    int IsHoarding() { return (state == Hoarding); }
+    int IsDisconnected() { return (state == Emulating); }
+    int IsWriteDisconnected() { return (state == Logging); }
+    int IsWeaklyConnected() { return flags.weaklyconnected; }
+    int IsFake() { return FID_VolIsFake(vid); }
+    void GetMountPath(char *, int =1);
+    void GetBandwidth(unsigned long *bw);
+
+    /* local-repair addition */
+    VolumeId GetVid() { return vid; }           /*N*/
+    const char *GetName() { return name; }      /*N*/
+
+    void print() { print(stdout); }
+    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
+    void print(int);
+
+    void ListCache(FILE *, int long_format=1, unsigned int valid=3);
+};
+
+/* A volume replica entry. */
+class volrep : public volent {
+    friend class vdb;
+    friend void VolInit(void);
+
+    VolumeId replicated;        /* replicated `parent' volume */
+    struct in_addr host;        /* server that has this volume */
+    
+    /* not yet used */
+/*T*/struct dllist_head vollist; /* list of volumes on a srvent */
+
+    volrep(VolumeId vid, char *name, struct in_addr *addr, int readonly,
+           VolumeId parent=0);
+    ~volrep();
+    void ResetTransient();
+
+  public:
+    VolumeId ReplicatedVol() { return replicated; }
+    int IsReadWriteReplica() { return (ReplicatedVol() != 0); }
+
+    int GetConn(connent **, vuid_t);
+    void KillMgrpMember(struct in_addr *);
+    void GetBandwidth(unsigned long *bw);
+
+    void DownMember();
+    void UpMember();
+    void WeakMember();
+    void StrongMember();
+
+    /* Utility routines. */
+    void Host(struct in_addr *addr) { *addr = host; }
+    int IsAvailable();
+    int IsHostedBy(const struct in_addr *addr)
+        { return (addr->s_addr == host.s_addr); }
+
+    void print_volrep(int);
+};
+
+/* A replicated volume entry. */
+class repvol : public volent {
+    friend class ClientModifyLog;
+    friend class cmlent;
+    friend class fsobj;
+    friend class vdb;
+    friend class volent; /* CML_Lock */
+    friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
+    friend void Resolve(volent *);
+    friend void ReportVCBEvent(VCBEventType, VolumeId, vcbevent *);
+    friend void VolInit(void);
+
+    volrep *vsg[VSG_MEMBERS];      /* underlying volume replicas */
+/*T*/struct dllist_head mgrpents;  /* list of mgrpents for this volume */
+
+    /* Preallocated Fids. */
+    FidRange FileFids;
+    FidRange DirFids;
+    FidRange SymlinkFids;
+
+    /* Reintegration stuff. */
+    ClientModifyLog CML;
+    struct Lock CML_lock;               /* for synchronization */
+
+    unsigned AgeLimit;			/* min age of log records in SECONDS */
+    unsigned ReintLimit;		/* work limit, in MILLISECONDS */
+    Unique_t FidUnique;
+    RPC2_Unsigned SidUnique;
+    int reint_id_gen;                   /* reintegration id generator */
+    /*T*/int cur_reint_tid;             /* tid of reintegration in progress */
+    /*T*/int RecordsCancelled;
+    /*T*/int RecordsCommitted;
+    /*T*/int RecordsAborted;
+    /*T*/int FidsRealloced;
+    /*T*/long BytesBackFetched;
+    /*?*/cmlent * reintegrate_until;    /* WriteBack Caching */
+
+    /* Resolution stuff. */
+    /*T*/olist *res_list;
+
+    /* COP2 stuff. */
+    /*T*/dlist *cop2_list;
+
+    /* Callback stuff */
+    /*T*/CallBackStatus VCBStatus;      /* do we have a volume callback? */
+    /*T*/int VCBHits;			/* # references hitting this callback */
+    ViceVersionVector VVV;              /* (maximal) volume version vector */
+
+    /*T*/PermitStatus VPStatus;   /* do we have a volume permit? */
+
+    repvol(VolumeId vid, char *name, volrep *vsg[VSG_MEMBERS]);
+    ~repvol();
+    void ResetTransient();
+    void MgrpPrint(int fd);
+
+  public:
+    int GetMgrp(mgrpent **, vuid_t, RPC2_CountedBS * =0);
+    void KillMgrpMember(struct in_addr *);
+    void KillUserMgrps(vuid_t);
+    void GetBandwidth(unsigned long *bw);
+
+    void DownMember();
+    void UpMember();
+    void WeakMember();
+    void StrongMember();
+
+    int Collate_NonMutating(mgrpent *, int);
+    int Collate_COP1(mgrpent *, int, ViceVersionVector *);
+    int Collate_Reintegrate(mgrpent *, int, ViceVersionVector *);
+    int Collate_COP2(mgrpent *, int);
+
+    /* Allocation routines. */
+    int AllocFid(ViceDataType, ViceFid *, RPC2_Unsigned *, vuid_t, int = 0);
+
+    /* Utility routines. */
+    void GetHosts(struct in_addr hosts[VSG_MEMBERS]);
+    int AVSGsize();
+    int WeakVSGSize();
+    int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
+
+    /* Allocation routines. */
+    ViceFid GenerateLocalFid(ViceDataType);
+    ViceFid GenerateFakeFid();
+    ViceStoreId GenerateStoreId();
+
+    /* Reintegration routines. */
+    void Reintegrate();
+    int IncReintegrate(int);
+    int PartialReintegrate(int);
+    void SetReintegratePending();
+    void CheckReintegratePending();
+    void ClearReintegratePending();
+    int IsReintegrating() { return flags.reintegrating; }
+    int ReadyToReintegrate();
+    int GetReintId();                           /*U*/
+    void CheckTransition();                     /*N*/
+    void IncAbort(int);                         /*U*/
+
+    void CancelStores(ViceFid *);
+    void RestoreObj(ViceFid *);
+    int	CheckPointMLEs(vuid_t, char *);
+    int LastMLETime(unsigned long *);
+    int PurgeMLEs(vuid_t);
+    void ResetStats() { CML.ResetHighWater(); }
+    int WriteDisconnect(unsigned =V_UNSETAGE, unsigned =V_UNSETREINTLIMIT);
+    int WriteReconnect();
 
     /* local-repair modifications to the following methods */
     /* Modlog routines. */
@@ -867,49 +962,14 @@ class volent {
 		  Date_t, UserId, RPC2_Unsigned, int = UNSET_TID);
     /* local-repair modifications to the above methods */
 
-    void CancelStores(ViceFid *);
-    void RestoreObj(ViceFid *);
-    int	CheckPointMLEs(vuid_t, char *);
-    int LastMLETime(unsigned long *);
-    int PurgeMLEs(vuid_t);
-    int WriteDisconnect(unsigned =V_UNSETAGE, unsigned =V_UNSETREINTLIMIT);
-    int WriteReconnect();
 
-    /* Reintegration routines. */
-    void Reintegrate();
-    int IncReintegrate(int);
-    int PartialReintegrate(int);
-    void SetReintegratePending();
-    void CheckReintegratePending();
-    void ClearReintegratePending();
-    int IsReintegrating() { return flags.reintegrating; }
-    int ReadyToReintegrate();
-
-    /* Repair routines */
-    int IsUnderRepair(vuid_t);
-
-    /* ASR routines */
-    int EnableASR(vuid_t);
-    int DisableASR(vuid_t);
-    int IsASRAllowed();
-    void lock_asr();
-    void unlock_asr();
-    int asr_running();
-    void asr_id(int);
-    int asr_id();
-
-    /* Callback routines */
-    virtual int CallBackBreak() { abort(); return(0); }
-    virtual void ClearCallBack() { return; }
-    virtual void CollateVCB(mgrpent *, RPC2_Integer *, CallBackStatus *) { abort(); }
-    virtual int GetVolAttr(vuid_t) { abort(); return(0); }
-    virtual int HaveCallBack() { return(0); }
-    virtual int HaveStamp() { abort(); return(0); }
-    virtual void PackVS(int, RPC2_CountedBS *) { abort(); }
-    virtual void SetCallBack() { abort(); }
-    virtual int WantCallBack() { abort(); }
-    void UseCallBack(int);
-    int ValidateFSOs();
+    /* local-repair */
+    void TranslateCMLFid(ViceFid *, ViceFid *); /*T*/
+    void ClearRepairCML();                      /*U*/
+    ClientModifyLog *GetCML() { return &CML; }  /*N*/
+    int ContainUnrepairedCML();			/*N*/
+    int HasLocalSubtree() { return flags.has_local_subtree; }
+    void CheckLocalSubtree();			/*U*/
 
     /* write-back routines */
     int EnterWriteback(vuid_t vuid);
@@ -917,178 +977,10 @@ class volent {
     int StopWriteback(ViceFid *fid);
     int SyncCache(ViceFid * fid);
     int IsWritebacking() { return flags.writebacking; }
-    void SetPermit();
     int GetPermit(vuid_t vuid);
     int ReturnPermit(vuid_t vuid);
     int HavePermit() { return (VPStatus == PermitSet); }
     void ClearPermit();
-    int PermitBreak();
-
-    /* VSR routines. */
-    vsr *GetVSR(vuid_t);
-    void PutVSR(vsr *);
-    void FlushVSRs(int);
-
-    /* Resolution routines */
-    virtual void Resolve() { abort(); }
-    virtual int ResListCount() { return(0); }
-    virtual void ResSubmit(char **, ViceFid *) { abort(); }
-
-    /* COP2 routines. */
-    virtual void AddCOP2(ViceStoreId *, ViceVersionVector *) { abort(); }
-    virtual void ClearCOP2(RPC2_CountedBS *) { abort(); }
-    virtual int COP2(mgrpent *, RPC2_CountedBS *) { abort(); }
-    virtual int COP2(mgrpent *, ViceStoreId *, ViceVersionVector *) { abort(); }
-    virtual int FlushCOP2(time_t =0) { abort(); }
-
-    /* Allocation routines. */
-    virtual int AllocFid(ViceDataType, ViceFid *, RPC2_Unsigned *, vuid_t, int =0) { abort(); return(0); }
-
-    /* Utility routines. */
-    virtual void GetHosts(struct in_addr hosts[VSG_MEMBERS]) { abort(); }
-    virtual unsigned long GetAVSG(struct in_addr hosts[VSG_MEMBERS])
-        { abort(); return 0; }
-    int AvsgSize();
-    virtual int WeakVSGSize() { abort(); return 0; }
-    virtual int IsBackup() { abort(); return 0; }
-    virtual int IsReplicated() { abort(); return 0; }
-    virtual int IsReadWriteReplica() { abort(); return 0; }
-    virtual int IsHostedBy(const struct in_addr *addr) { abort(); return 0; }
-    int IsHoarding() { return (state == Hoarding); }
-    int IsDisconnected() { return (state == Emulating); }
-    int IsWriteDisconnected() { return (state == Logging); }
-    int IsWeaklyConnected() { return flags.weaklyconnected; }
-    int IsFake() { return FID_VolIsFake(vid); }
-    void GetMountPath(char *, int =1);
-
-    /* local-repair addition */
-    void IncAbort(int);                         /*U*/
-    void CheckTransition();                     /*N*/
-    void TranslateCMLFid(ViceFid *, ViceFid *); /*T*/
-    void ClearRepairCML();                      /*U*/
-    int GetReintId();                           /*U*/
-    VolumeId GetVid() { return vid; }           /*N*/
-    const char *GetName() { return name; }      /*N*/
-    ClientModifyLog *GetCML() { return &CML; }  /*N*/
-    int ContainUnrepairedCML();			/*N*/
-    int HasLocalSubtree() { return flags.has_local_subtree; }
-    void CheckLocalSubtree();			/*U*/
-    virtual VolumeId ReplicatedVol() { abort(); return(0); }
-
-    /* advice addition */
-    /* void DisconnectedCacheMiss(vproc *, vuid_t, ViceFid *, char *);
-     * void TriggerReconnectionQuestionnaire();
-     * void NotifyStateChange(); */
-    void GetVolInfoForAdvice(int *, int *);
-    void SetDisconnectionTime();
-    void UnsetDisconnectionTime();
-    long GetDisconnectionTime() { return(DisconnectionTime); }
-    void SetDiscoRefCounter();
-    void UnsetDiscoRefCounter();
-    long GetDiscoRefCounter() { return(DiscoRefCounter); }
-    void SaveCacheInfo(int, int, int);
-    void GetCacheInfo(int, int *, int *);
-
-    void print() { print(stdout); }
-    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
-    void print(int);
-    virtual void print2(int) { abort(); }
-
-    void ListCache(FILE *, int long_format=1, unsigned int valid=3);
-
-    /* Read/Write Sharing Stats */
-    void RwStatUp();
-    void RwStatDown();
-    rec_dlist *GetRwQueue();
-};
-
-/* A volume replica entry. */
-class volrep : public volent {
-    friend class vdb;
-
-    VolumeId replicated;        /* replicated `parent' volume */
-    struct in_addr host;        /* server that has this volume */
-    unsigned int rovol : 1;     /* readwrite or readonly */
-    
-    /* not yet used */
-/*T*/struct dllist_head vollist; /* list of volumes on a srvent */
-
-    volrep(VolumeId vid, char *name, struct in_addr *addr, int readonly,
-           VolumeId parent=0);
-    ~volrep();
-    void ResetTransient();
-    void Recover() { return; }
-
-  public:
-    VolumeId ReplicatedVol() { return(replicated); }
-
-    int GetConn(connent **, vuid_t);
-    void KillMgrpMember(struct in_addr *);
-    void GetBandwidth(unsigned long *bw);
-
-    /* Utility routines. */
-    void Host(struct in_addr *addr) { *addr = host; }
-    void GetHosts(struct in_addr addrs[VSG_MEMBERS]);
-    unsigned long GetAVSG(struct in_addr addrs[VSG_MEMBERS]);
-    int WeakVSGSize() { return 0; }
-    int IsBackup() { return rovol; }
-    int IsReplicated() { return 0; }
-    int IsReadWriteReplica() { return (replicated != 0); }
-    int IsHostedBy(const struct in_addr *addr)
-        { return (addr->s_addr == host.s_addr); }
-
-    void print2(int);
-};
-
-/* A replicated volume entry. */
-class repvol : public volent {
-    friend class vdb;
-    friend class fsobj;
-    friend void Resolve(volent *);
-    friend int GetMgrp(mgrpent **mpp, repvol *vp, vuid_t vuid);
-    friend void ReportVCBEvent(VCBEventType, VolumeId, vcbevent *);
-
-    volrep *vsg[VSG_MEMBERS];      /* underlying volume replicas */
-/*T*/struct dllist_head mgrpents;  /* list of mgrpents for this volume */
-
-    /* Preallocated Fids. */
-    FidRange FileFids;
-    FidRange DirFids;
-    FidRange SymlinkFids;
-
-    /* Resolution stuff. */
-    /*T*/olist *res_list;
-
-    /* COP2 stuff. */
-    /*T*/dlist *cop2_list;
-
-    /* Callback stuff */
-    /*T*/CallBackStatus VCBStatus;      /* do we have a volume callback? */
-    /*T*/int VCBHits;			/* # references hitting this callback */
-    ViceVersionVector VVV;              /* (maximal) volume version vector */
-
-    repvol(VolumeId vid, char *name, volrep *vsg[VSG_MEMBERS]);
-    ~repvol();
-    void ResetTransient();
-    void Recover();
-
-  public:
-    int GetMgrp(mgrpent **, vuid_t, RPC2_CountedBS * =0);
-    void KillMgrpMember(struct in_addr *);
-    void KillUserMgrps(vuid_t);
-    void GetBandwidth(unsigned long *bw);
-
-    /* Allocation routines. */
-    int AllocFid(ViceDataType, ViceFid *, RPC2_Unsigned *, vuid_t, int);
-
-    /* Utility routines. */
-    void GetHosts(struct in_addr hosts[VSG_MEMBERS]);
-    unsigned long GetAVSG(struct in_addr hosts[VSG_MEMBERS]);
-    int WeakVSGSize();
-    int IsBackup() { return 0; }
-    int IsReplicated() { return 1; }
-    int IsReadWriteReplica() { return 0; }
-    int IsHostedBy(const struct in_addr *addr);
 
     /* Repair routines. */
     int EnableRepair(vuid_t, VolumeId *, vuid_t *, unsigned long *);
@@ -1125,14 +1017,22 @@ class repvol : public volent {
     void ClearCallBack();
     void SetCallBack();
     int WantCallBack();
+    int ValidateFSOs();
 
-    void print2(int);
-};
+    /* ASR routines */
+    int EnableASR(vuid_t);
+    int DisableASR(vuid_t);
+    int IsASRAllowed() { return flags.allow_asrinvocation; }
+    void lock_asr();
+    void unlock_asr();
+    int asr_running() { return flags.asr_running; }
+    void asr_id(int);
+    int asr_id() { return lc_asr; }
 
-class vol_iterator : public rec_ohashtab_iterator {
-  public:
-    vol_iterator(void * =(void *)-1);
-    volent *operator()();
+    /* Repair routines */
+    int IsUnderRepair(vuid_t);
+
+    void print_repvol(int);
 };
 
 class repvol_iterator : public rec_ohashtab_iterator {
@@ -1140,6 +1040,13 @@ class repvol_iterator : public rec_ohashtab_iterator {
     repvol_iterator(void * =(void *)-1);
     repvol *operator()();
 };
+
+class volrep_iterator : public rec_ohashtab_iterator {
+  public:
+    volrep_iterator(void * =(void *)-1);
+    volrep *operator()();
+};
+
 /* Entries representing pending COP2 events. */
 class cop2ent : public dlink {
   friend class repvol;
@@ -1152,7 +1059,7 @@ class cop2ent : public dlink {
     cop2ent(ViceStoreId *, ViceVersionVector *);
     cop2ent(cop2ent&);		/* not supported! */
     int operator=(cop2ent&);	/* not supported! */
-    virtual ~cop2ent();
+    ~cop2ent();
     void operator delete(void *, size_t);
 
   public:
@@ -1180,7 +1087,7 @@ class resent : public olink {
     resent(ViceFid *);
     resent(resent&);		/* not supported! */
     int operator=(resent&);	/* not supported! */
-    virtual ~resent();
+    ~resent();
 
     void HandleResult(int);
 
@@ -1193,50 +1100,6 @@ class resent : public olink {
     void print();
     void print(FILE *);
     void print(int);
-};
-
-
-/* Volume session records (statistics gathering). */
-class vsr : public olink {
-  friend class volent;
-  friend void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vuid, enum CacheType datatype, enum CacheEvent event, unsigned long blocks);
-
-    vuid_t uid;
-    RPC2_Unsigned starttime;
-    RPC2_Unsigned endtime;
-    RPC2_Unsigned cetime;
-    VmonSessionEventArray events;
-    SessionStatistics stats;
-    SessionStatistics initstats;
-    CacheStatistics cachestats;
-
-  public:
-#ifdef	VENUSDEBUG
-    static int allocs;
-    static int deallocs;
-#endif	VENUSDEBUG
-
-    vsr(vuid_t);
-    vsr(vsr&);			/* not supported! */
-    int operator=(vsr&);	/* not supported! */
-    virtual ~vsr();
-
-    void RecordEvent(int, int, RPC2_Unsigned);
-
-    void print();
-    void print(FILE *);
-    void print(int);
-};
-
-class rwsent : public rec_dlink {
-public:
-    short sharing_count;
-    short disc_read_count;
-    int   disc_duration;
-    void *operator new(size_t);
-    rwsent(short, short, int);
-    ~rwsent();
-    void operator delete(void *, size_t);
 };
 
 /*  *****  Variables  *****  */
@@ -1260,7 +1123,7 @@ const int COP2SIZE = 1024;
 extern void VOLD_Init(void);
 
 /* vol_reintegrate.c */
-extern void Reintegrate(volent *);
+extern void Reintegrate(repvol *);
 
 /* vol_resolve.c */
 extern void Resolve(volent *);

@@ -578,10 +578,6 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 			/* don't know the component name */
 	if (f == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE, NBLOCKS(sizeof(fsobj)));
-	    volent *v;
-	    if (VDB->Get(&v, RepairFid->Volume) == 0) {
-		VmonUpdateSession(vp, RepairFid, f /*NULL*/, v, vuid, ATTR, NOSPACE, NBLOCKS((int)sizeof(fsobj)));
-	    }
 	    code = ENOSPC;
 	    goto Exit; 
 	}
@@ -657,8 +653,8 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
 	int srcfd = open(fname, O_RDONLY | O_BINARY, V_MODE);
 	CODA_ASSERT(srcfd);
 	LOG(100, ("LocalRepair: Going to open %s\n", f->data.file->Name()));
-	int tgtfd = open(f->data.file->Name(),
-			 O_WRONLY | O_TRUNC | O_BINARY, V_MODE);
+        int tgtfd = open(f->data.file->Name(), O_WRONLY|O_TRUNC|O_BINARY,
+                         V_MODE);
 	CODA_ASSERT(tgtfd>0);
 	int rc;
 	struct stat stbuf;
@@ -703,18 +699,17 @@ int repvol::DisableRepair(vuid_t vuid)
 
 
 /* If (vuid == ALL_UIDS) the enquiry is taken to be "does anyone on the WS have the volume under repair". */
-int volent::IsUnderRepair(vuid_t vuid)
+int repvol::IsUnderRepair(vuid_t vuid)
 {
-    LOG(100, ("volent::IsUnderRepair: vol = %x, vuid = %d\n", vid, vuid));
+    LOG(100, ("repvol::IsUnderRepair: vol = %x, vuid = %d\n", vid, vuid));
 
-    return (IsReplicated() && flags.repair_mode);
+    return (flags.repair_mode);
 }
 
 /* Enable ASR invocation for this volume */
-int volent::EnableASR(vuid_t vuid) {
-    LOG(100, ("volent::EnableASR: vol = %x, uid = %d\n", vid, vuid));
-
-    if (!IsReplicated()) return(EINVAL);
+int repvol::EnableASR(vuid_t vuid)
+{
+    LOG(100, ("repvol::EnableASR: vol = %x, uid = %d\n", vid, vuid));
 
     /* Place volume in "repair mode." */
     if (flags.allow_asrinvocation != 1) {
@@ -725,10 +720,10 @@ int volent::EnableASR(vuid_t vuid) {
     return(0);
 }
 
-int volent::DisableASR(vuid_t vuid) {
-    LOG(100, ("volent::DisableASR: vol = %x, uid = %d\n", vid, vuid));
+int repvol::DisableASR(vuid_t vuid)
+{
+    LOG(100, ("repvol::DisableASR: vol = %x, uid = %d\n", vid, vuid));
 
-    if (!IsReplicated()) return(EINVAL);
     if (!IsASRAllowed()) {
 	LOG(100, ("volent::DisableASr: ASR for %x already disabled", vid));
     }
@@ -741,28 +736,19 @@ int volent::DisableASR(vuid_t vuid) {
     return(0);
 }
 
-int volent::IsASRAllowed() {
-    LOG(100, ("volent::IsASRAllowed: vol = %x\n", vid));
-
-    return (IsReplicated() && flags.allow_asrinvocation);
-}
-
-void volent::lock_asr() {
+void repvol::lock_asr()
+{
     CODA_ASSERT(flags.asr_running == 0);
     flags.asr_running = 1;
 }
 
-void volent::unlock_asr() {
+void repvol::unlock_asr() {
     CODA_ASSERT(flags.asr_running == 1);
     flags.asr_running = 0;
 }
 
-int volent::asr_running() { return(flags.asr_running); }
-
-void volent::asr_id(int id) {
+void repvol::asr_id(int id) {
     CODA_ASSERT(flags.asr_running == 1);
     lc_asr = id;
 }
-
-int volent::asr_id() { return(lc_asr); }
 

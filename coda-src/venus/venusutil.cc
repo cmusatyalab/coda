@@ -73,7 +73,6 @@ extern "C" {
 #include "venusioctl.h"
 #include "venusrecov.h"
 #include "venusstats.h"
-#include "venusvm.h"
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
@@ -197,9 +196,6 @@ void choke(char *file, int line, char *fmt ...) {
 	/* Dump system state to the log. */
 	DumpState();
 
-	/* Flush session record to RVM. */
-	VDB->FlushVolume();
-
 	/* Force meta-data changes to disk. */
 	RecovFlush(1);
 	RecovTerminate();
@@ -282,14 +278,13 @@ void VenusPrint(int fd, int argc, char **argv) {
     if (userp || allp)    UserPrint(fd);
     if (serverp || allp)  ServerPrint(fd);
     if (connp || allp)    ConnPrint(fd);
-    if (mgrpp || allp)    MgrpPrint(fd);
+    if (mgrpp || allp)    VDB->MgrpPrint(fd);
     if (volumep || allp)  if (RecovInited && VDB) VDB->print(fd);
     if (fsop || allp)     if (RecovInited && FSDB) FSDB->print(fd);
     if (fsosump && !allp) if (RecovInited && FSDB) FSDB->print(fd, 1);
     if (vfsp || allp)     VFSPrint(fd);
     if (rpcp || allp)     RPCPrint(fd);
     if (hdbp || allp)     if (RecovInited && HDB) HDB->print(fd);
-    if (vmonp || allp)    VmonPrint(fd);
     if (mallocp || allp)  MallocPrint(fd);
     if (lrdbp || allp)    if (RecovInited && LRDB) LRDB->print(fd);
     if (vcbdbp || allp)   if (RecovInited && VCBDB) VCBDB->print(fd);
@@ -712,13 +707,10 @@ void MallocPrint(int fd)
 	     (resent::allocs - resent::deallocs) * sizeof(resent));
     fdprint(fd, "cop2ent: %d, %d, %d\n", cop2ent::allocs, cop2ent::deallocs,
 	     (cop2ent::allocs - cop2ent::deallocs) * sizeof(cop2ent));
-    fdprint(fd, "vsr: %d, %d, %d\n", vsr::allocs, vsr::deallocs,
-	     (vsr::allocs - vsr::deallocs) * sizeof(vsr));
     fdprint(fd, "msgent: %d, %d, %d\n", msgent::allocs, msgent::deallocs,
 	     (msgent::allocs - msgent::deallocs) * sizeof(msgent));
     fdprint(fd, "vnode: %d, %d, %d\n", vnode_allocs, vnode_deallocs,
 	     (vnode_allocs - vnode_deallocs) * sizeof(struct venus_cnode));
-    VmonPrint(fd);
 #endif	VENUSDEBUG
 }
 

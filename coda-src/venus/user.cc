@@ -257,7 +257,7 @@ LOG(100, ("SetTokens calling Reset\n"));
     repvol_iterator next;
     repvol *v;
     while ((v = next()))
-	if (v->IsDisconnected() && v->CML.Owner() == uid) {
+	if (v->IsDisconnected() && v->GetCML()->Owner() == uid) {
 	    v->flags.transition_pending = 1;
 	    v->ClearReintegratePending();
 	}

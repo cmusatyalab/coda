@@ -502,226 +502,6 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
 
 #define FSOBJSIZE NBLOCKS(sizeof(fsobj))
 
-/* Session-level STATS:                                                      *
- *                                                                           *
- * Session-level statistics are kept only for HIT, MISS and NOSPACE events.  *
- * For the purposes of these statistics, TIMEOUT and FAILURE events are      *
- * counted as MISS events.  No other events are recorded at the session      *
- * level.  Other events are recorded at the fsdb level.                      *
- *                                                                           *
- * Session-level statistics are stored at the volume-level.  Thus, if the    *
- * volent is NULL, we have nowhere to store the data.  In this situation, we *
- * store the data in the FSDB (in VolumeLevelMiss, since we assume this      *
- * situation will only occur for disconnected misses on uncached volumes).   *
- *                                                                           *
- * The Cache Statistics are maintained in the volent on a session basis.     *
- *                                                                           *
- * This routine MUST NOT be called from within a transaction!                */
-void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vuid, enum CacheType datatype, enum CacheEvent event, unsigned long blocks) {
-    vsr *record;
-    int hoardstatus;
-
-    /* Return if we're not maintaining reference statistics */
-    int reference = (vp->u.u_flags & REFERENCE);
-    if (!reference)
-        return;
-
-    /* Return if this is the hoard thread */
-    CODA_ASSERT(vp != NULL);
-    if (vp->type == VPT_HDBDaemon)
-        return;
-
-    /* Return if this thread is associated with the advice monitor */
-    if (adv_mon.skkPgid(vp->u.u_pgid)) return;
-
-    /* Return if this is for a Local volume */
-    if (FID_VolIsFake(key->Volume)) return;
-
-    /* Validate params */
-    CODA_ASSERT((datatype == ATTR) || (datatype == DATA));
-    CODA_ASSERT((event >= HIT) && (event <= FAILURE));
- 
-    /* Okay, let's get on with the *real* reason we're here... */
-    LOG(100, ("VmonUpdateSession:  key=(%x.%x.%x), vp->type=%d, vuid=%d, datatype=%d, event=%d, blocks=%d)\n", key->Volume, key->Vnode, key->Unique, vp->type, vuid, datatype, event, blocks));
-
-    /* Do the easy stuff first */
-    if (datatype == ATTR) {
-        CacheStats *c = (ISDIR(*key) ? &(FSDB->DirAttrStats) : &(FSDB->FileAttrStats));
-        UpdateCacheStats(c, event, blocks);
-    }
-    else {
-        CacheStats *c = (ISDIR(*key) ? &(FSDB->DirDataStats) : &(FSDB->FileDataStats));
-        UpdateCacheStats(c, event, blocks);
-    }
-
-    /* If the volume is NULL, then                                                  *
-     * we count these statistics against the fsdb rather than the individual volume */
-    if (vol == NULL) {
-	LOG(100, ("VmonUpdateSession:  vol == NULL\n"));
-        CODA_ASSERT((event == MISS) || (event == TIMEOUT) || (event == FAILURE));
-        Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(FSDB->VolumeLevelMiss);
-	FSDB->VolumeLevelMiss++;
-        Recov_EndTrans(0);       
-        return;
-    } 
-
-    /* Get this user's session record */
-    record = vol->GetVSR(vuid);
-    CODA_ASSERT(record->cetime == 0);
-    LOG(100, ("VmonUpdateSession:  starttime = %d\n",record->starttime));
-
-    /* Determine hoardstatus:  1 if hoardable; 0 if not; -1 if unknown */
-    if (f) {
-        if (HOARDABLE(f))
-            hoardstatus = 1;                                  /* OBJ has a hoard priority! */
-        else if (IndigentCount == 0)
-            hoardstatus = 0;          /* OBJ has no hoard priority; all namectxts expanded */
-        else
-            hoardstatus = -1;        /* OBJ has no hoard priority; some namectxts indigent */
-    }
-    else 
-            hoardstatus = -1;
-    CODA_ASSERT((hoardstatus >= -1) && (hoardstatus <= 1));
-
-    /* Update the the appropriate event */
-    switch (hoardstatus) {
-        case Hoard:
-            switch (datatype) {
-                case ATTR:
-                    switch (event) {
-                        case HIT:
-                            record->cachestats.HoardAttrHit.Count +=1;
-                            record->cachestats.HoardAttrHit.Blocks += blocks;
-                            break;
-                        case MISS:
-                        case TIMEOUT:
-                        case FAILURE:
-                            record->cachestats.HoardAttrMiss.Count++;
-                            record->cachestats.HoardAttrMiss.Blocks += blocks;
-                            break;
-                        case NOSPACE:
-                            record->cachestats.HoardAttrNoSpace.Count++;
-                            record->cachestats.HoardAttrNoSpace.Blocks += blocks;
-                            break;
-                        default: 
-                            break;
-                    }
-                    break;
-                case DATA:
-                    switch (event) {
-                        case HIT:
-                            record->cachestats.HoardDataHit.Count++;
-                            record->cachestats.HoardDataHit.Blocks += blocks;
-                            break;
-                        case MISS:
-                        case TIMEOUT:
-                        case FAILURE:
-                            record->cachestats.HoardDataMiss.Count++;
-                            record->cachestats.HoardDataMiss.Blocks += blocks;
-                            break;
-                        case NOSPACE:
-                            record->cachestats.HoardDataNoSpace.Count++;
-                            record->cachestats.HoardDataNoSpace.Blocks += blocks;
-                            break;
-                        default: 
-                            break;
-                    }
-                    break;
-            }
-            break;
-        case NonHoard:
-            switch (datatype) {
-                case ATTR:
-                    switch (event) {
-                        case HIT:
-                            record->cachestats.NonHoardAttrHit.Count++;
-                            record->cachestats.NonHoardAttrHit.Blocks += blocks;
-                            break;
-                        case MISS:
-                        case TIMEOUT:
-                        case FAILURE:
-                            record->cachestats.NonHoardAttrMiss.Count++;
-                            record->cachestats.NonHoardAttrMiss.Blocks += blocks;
-                            break;
-                        case NOSPACE:
-                            record->cachestats.NonHoardAttrNoSpace.Count++;
-                            record->cachestats.NonHoardAttrNoSpace.Blocks += blocks;
-                            break;
-                        default: 
-                            break;
-                    }
-                    break;
-                case DATA:
-                    switch (event) {
-                        case HIT:
-                            record->cachestats.NonHoardDataHit.Count++;
-                            record->cachestats.NonHoardDataHit.Blocks += blocks;
-                            break;
-                        case MISS:
-                        case TIMEOUT:
-                        case FAILURE:
-                            record->cachestats.NonHoardDataMiss.Count++;
-                            record->cachestats.NonHoardDataMiss.Blocks += blocks;
-                            break;
-                        case NOSPACE:
-                            record->cachestats.NonHoardDataNoSpace.Count++;
-                            record->cachestats.NonHoardDataNoSpace.Blocks += blocks;
-                            break;
-                        default: 
-                            break;
-                    }
-                    break;
-            }
-            break;
-        case UnknownHoard:
-            switch (datatype) {
-                case ATTR:
-                    switch (event) {
-                        case HIT:
-                            record->cachestats.UnknownHoardAttrHit.Count++;
-                            record->cachestats.UnknownHoardAttrHit.Blocks += blocks;
-                            break;
-                        case MISS:
-                        case TIMEOUT:
-                        case FAILURE:
-                            record->cachestats.UnknownHoardAttrMiss.Count++;
-                            record->cachestats.UnknownHoardAttrMiss.Blocks += blocks;
-                            break;
-                        case NOSPACE:
-                            record->cachestats.UnknownHoardAttrNoSpace.Count++;
-                            record->cachestats.UnknownHoardAttrNoSpace.Blocks += blocks;
-                            break;
-                        default: 
-                            break;
-                    }
-                    break;
-                case DATA:
-                    switch (event) {
-                        case HIT:
-                            record->cachestats.UnknownHoardDataHit.Count++;
-                            record->cachestats.UnknownHoardDataHit.Blocks += blocks;
-                            break;
-                        case MISS:
-                        case TIMEOUT:
-                        case FAILURE:
-                            record->cachestats.UnknownHoardDataMiss.Count++;
-                            record->cachestats.UnknownHoardDataMiss.Blocks += blocks;
-                            break;
-                        case NOSPACE:
-                            record->cachestats.UnknownHoardDataNoSpace.Count++;
-                            record->cachestats.UnknownHoardDataNoSpace.Blocks += blocks;
-                            break;
-                        default: 
-                            break;
-                    }
-                    break;
-            }
-            break;
-    }
-}
-
-
 /* local-repair modification */
 /* argument "rcode" added for local-repair */
 /* MUST NOT be called from within transaction! */
@@ -743,7 +523,9 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
 
     { 	/* a special check for accessing already localized object */
 	volent *vol = VDB->Find(key->Volume);
-	if (vol && !vol->IsUnderRepair(ALL_UIDS) && vol->HasLocalSubtree()) {
+	if (vol && vol->IsReplicated() &&
+            !((repvol *)vol)->IsUnderRepair(ALL_UIDS) &&
+            ((repvol *)vol)->HasLocalSubtree()) {
 	    lgm_iterator next(LRDB->local_global_map);
 	    lgment *lgm;
 	    ViceFid *gfid;
@@ -828,8 +610,6 @@ RestartFind:
         volent *v = 0;
         if (VDB->Get(&v, key->Volume) != 0) {
             LOG(100, ("Volume not cached and we couldn't get it...\n"));
-            DisconnectedCacheMiss(vp, vuid, key, comp);
-            VmonUpdateSession(vp, key, f /* NULL */, v /* NULL */, vuid, ATTR, TIMEOUT, FSOBJSIZE);
             return(ETIMEDOUT);
         }
 
@@ -842,8 +622,6 @@ RestartFind:
         /* Cut-out early if volume is disconnected! */
         if (v->state != Hoarding && v->state != Logging) {
             LOG(100, ("Volume disconnected and file not cached!\n"));
-            /* v->DisconnectedCacheMiss(vp, vuid, key, comp); */
-            VmonUpdateSession(vp, key, f /* NULL */, v, vuid, ATTR, TIMEOUT, FSOBJSIZE);
             VDB->Put(&v);
             return(ETIMEDOUT);
         }
@@ -851,7 +629,6 @@ RestartFind:
 	/* Attempt the create. */
 	f = Create(key, RD, vp->u.u_priority, comp);
 	if (f == NULL) {
-            VmonUpdateSession(vp, key, f /*NULL*/, v, vuid, ATTR, NOSPACE, FSOBJSIZE);
 	    VDB->Put(&v);
 	    return(ENOSPC);
 	}
@@ -865,7 +642,6 @@ RestartFind:
 	    if (f->Fakeify()) {
 		LOG(0, ("fsdb::Get: can't transform %s (%x.%x.%x) into fake mt pt\n",
 			f->comp, f->fid.Volume, f->fid.Vnode, f->fid.Unique));
-                VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, FAILURE, FSOBJSIZE);
 		Recov_BeginTrans();
 		f->Kill();
 		Recov_EndTrans(MAXFP);
@@ -915,13 +691,7 @@ RestartFind:
     }
 
     /* Consider fetching status and/or data. */
-    if (!getdata && STATUSVALID(f)) 
-        VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, HIT, FSOBJSIZE);
-    else if (getdata && DATAVALID(f)) {
-        VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, HIT, FSOBJSIZE);
-        VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, HIT, BLOCKS(f));
-    }
-    else {	    /* (!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f)) */
+    if ((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f))) {
 	/* Note that we CANNOT fetch, and must use whatever status/data we have, if : */
 	/*     - the file is being exec'ed (or the VM system refuses to release its pages) */
 	/*     - the file is open for write */
@@ -934,9 +704,7 @@ RestartFind:
 	    /* Fetch status-only if we don't have any or if it is suspect. We
 	     * do this even if we want data and we don't have any so that we
 	     * ALWAYS know how many blocks to allocate when fetching data. */
-	    if (STATUSVALID(f)) 
-                VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, HIT, FSOBJSIZE);
-	    else { 
+	    if (!STATUSVALID(f)) {
 		code = f->GetAttr(vuid);
 
 		if (rcode) *rcode = code;	/* added for local-repair */
@@ -988,10 +756,8 @@ RestartFind:
 		       the Put wouldn't, we're hosed!  We'll most likely
 		       get a "Create: key found" fatal error. */
 		    f = Create(key, RD, vp->u.u_priority, comp);
-		    if (f == NULL) {
-                        VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, NOSPACE, FSOBJSIZE);
+		    if (!f)
 			return(ENOSPC);
-		    }
 
 		    /* 
 		     * Transform object into fake directory.  If that doesn't work,
@@ -1003,8 +769,7 @@ RestartFind:
 		    eprint("%s (%x.%x.%x) inconsistent!",
 			   f->comp, f->fid.Volume, f->fid.Vnode, f->fid.Unique);
 		    f->PromoteLock();
-		    if (f->Fakeify())  {
-                        VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, FAILURE, FSOBJSIZE);
+		    if (f->Fakeify()) {
 			Recov_BeginTrans();
 			f->Kill();
 			Recov_EndTrans(MAXFP);
@@ -1014,185 +779,161 @@ RestartFind:
 		}
 
 		if (code != 0) {
-                    enum CacheEvent event;
-                    event = (code == ERETRY ? RETRY : code == ETIMEDOUT ? TIMEOUT : FAILURE);
-                    VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, event, FSOBJSIZE);
-                    if (code == ETIMEDOUT) {
+                    if (code == ETIMEDOUT)
                       LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
-                      f->DisconnectedCacheMiss(vp, vuid, comp);
-                    }
+
 		    Put(&f);
 		    return(code);
 		}
-
-                VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, MISS, FSOBJSIZE);
 	   } 
 
 	    /* If we want data and we don't have any then fetch new stuff. */
 	    /* we have to re-check FETCHABLE because it may have changed as
 	       a result of the inconsistent object manipulation above. */
-	    if (getdata && FETCHABLE(f)) {
-		if (HAVEALLDATA(f)) {
-		    /* If we have data at this point, it MUST be valid! */
-                    VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, HIT, BLOCKS(f));
-		}
-		else {
-		  /* Turn off advice effects for the time being  -Remi 
-		     CacheMissAdvice advice = CoerceToMiss; */
-		  CacheMissAdvice advice = FetchFromServers;
+	    if (getdata && FETCHABLE(f) && !HAVEALLDATA(f)) {
+                /* Turn off advice effects for the time being  -Remi 
+                   CacheMissAdvice advice = CoerceToMiss; */
+                CacheMissAdvice advice = FetchFromServers;
 
-   		    if (f->vol->IsWeaklyConnected()) {
-			char pathname[MAXPATHLEN];
-			int hoard_priority = 0;
+                if (f->vol->IsWeaklyConnected()) {
+                    char pathname[MAXPATHLEN];
+                    int hoard_priority = 0;
 
-			f->GetPath(pathname);
-			if (f->HoardPri > 0)
-			    hoard_priority = f->HoardPri;
-			else
-			    hoard_priority = HDB->GetSuspectPriority(f->fid.Volume, pathname, vuid);
+                    f->GetPath(pathname);
+                    if (f->HoardPri > 0)
+                        hoard_priority = f->HoardPri;
+                    else
+                        hoard_priority = HDB->GetSuspectPriority(f->fid.Volume, pathname, vuid);
 
- 			int estimatedCost = f->EstimatedFetchCost();
-		        /* If the fetch will take too long, coerce the request into a miss */
-		        if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
-			    advice = f->WeaklyConnectedCacheMiss(vp, vuid);
-			    if (advice == CoerceToMiss) {
- 			        /* Should we record this as a MISS with Vmon? */
-			        Put(&f);
-			        LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
-				  comp, key->Volume, key->Vnode, key->Unique, estimatedCost));
-			        MarinerLog("Weak Miss Coersion on %s <%x,%x,%x>\n",
-				           comp, key->Volume, key->Vnode, key->Unique);
-			        return(EFBIG);
-			    }
-		        }
-			/* Otherwise, let fsdb::Get go ahead and fetch the object */
-		    }
-
-		    int nblocks = BLOCKS(f);
-
-		    /* If we haven't got any data yet, allocate enough for the
-		     * whole file. When we have a partial file, we should
-		     * already have reserved enough blocks. */
-		    if (f->IsFile() && !HAVEDATA(f)) {
-			code = AllocBlocks(vp->u.u_priority, nblocks);
-			if (code != 0) {
-                            VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, NOSPACE, nblocks);
-			    Put(&f);
-			    return(code);
-			}
-		    }
-
-		    /* Make cache misses non-transparent. */
-		    if (advice == CoerceToMiss)
-		        advice = f->ReadDisconnectedCacheMiss(vp, vuid);
-		    switch (advice) {
-		        case FetchFromServers:
-                            LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
-                            break;
-		        case CoerceToMiss:
-			    LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tReturn code:  EFBIG\n", 
-				   comp, key->Volume, key->Vnode, key->Unique));
-		            MarinerLog("Read Disconnected Miss Coersion on %s <%x,%x,%x>\n",
-				       comp, key->Volume, key->Vnode, key->Unique);
-			    /* We have to release any previously allocated
-			     * cachespace */
-			    FreeBlocks(-nblocks);
-			    Put(&f);
-			    return(ETIMEDOUT);
-		        default:
-			    LOG(0, ("The advice was Unrecognized --> Fetching anyway.\n"));
-			    break;
+                    int estimatedCost = f->EstimatedFetchCost();
+                    /* If the fetch will take too long, coerce the request into a miss */
+                    if (f->PredetermineFetchState(estimatedCost, hoard_priority) != 1) {
+                        advice = f->WeaklyConnectedCacheMiss(vp, vuid);
+                        if (advice == CoerceToMiss) {
+                            Put(&f);
+                            LOG(0, ("Weak Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tEstimated Fetch Cost:  %d seconds\n\tReturn code:  EFBIG\n", 
+                                    comp, key->Volume, key->Vnode, key->Unique, estimatedCost));
+                            MarinerLog("Weak Miss Coersion on %s <%x,%x,%x>\n",
+                                       comp, key->Volume, key->Vnode, key->Unique);
+                            return(EFBIG);
+                        }
                     }
+                    /* Otherwise, let fsdb::Get go ahead and fetch the object */
+                }
 
-		    /* compensate # blocks for the amount we already have.
-		     * (only used for vmon statistical stuff later on, but
-		     * the fetch will modify f->cf.ValidData) */
-		    nblocks -= NBLOCKS(f->cf.ValidData());
+                int nblocks = BLOCKS(f);
 
-		    /* Let fsobj::Fetch go ahead and fetch the object */
-		    code = f->Fetch(vuid);
+                /* If we haven't got any data yet, allocate enough for the
+                 * whole file. When we have a partial file, we should
+                 * already have reserved enough blocks. */
+                if (f->IsFile() && !HAVEDATA(f)) {
+                    code = AllocBlocks(vp->u.u_priority, nblocks);
+                    if (code != 0) {
+                        Put(&f);
+                        return(code);
+                    }
+                }
 
-		    /* Restart operation in case of inconsistency. */
-		    if (code == EINCONS)
-			code = ERETRY;
+                /* Make cache misses non-transparent. */
+                if (advice == CoerceToMiss)
+                    advice = f->ReadDisconnectedCacheMiss(vp, vuid);
+                switch (advice) {
+                case FetchFromServers:
+                    LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
+                    break;
+                case CoerceToMiss:
+                    LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tReturn code:  EFBIG\n", 
+                            comp, key->Volume, key->Vnode, key->Unique));
+                    MarinerLog("Read Disconnected Miss Coersion on %s <%x,%x,%x>\n",
+                               comp, key->Volume, key->Vnode, key->Unique);
+                    /* We have to release any previously allocated
+                     * cachespace */
+                    FreeBlocks(-nblocks);
+                    Put(&f);
+                    return(ETIMEDOUT);
+                default:
+                    LOG(0, ("The advice was Unrecognized --> Fetching anyway.\n"));
+                    break;
+                }
 
-		    if (code != 0) {
-                        enum CacheEvent event;
-                        event = (code == ERETRY ? RETRY : code == ETIMEDOUT ? TIMEOUT : FAILURE);
-                        VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, event, nblocks);
-                        if (code == ETIMEDOUT) 
-                            f->DisconnectedCacheMiss(vp, vuid, comp);
-			Put(&f);
-			return(code);
-		    }
+                /* compensate # blocks for the amount we already have.
+                 * (only used for vmon statistical stuff later on, but
+                 * the fetch will modify f->cf.ValidData) */
+                nblocks -= NBLOCKS(f->cf.ValidData());
 
-                    VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, MISS, nblocks);
-		}
+                /* Let fsobj::Fetch go ahead and fetch the object */
+                code = f->Fetch(vuid);
+
+                /* Restart operation in case of inconsistency. */
+                if (code == EINCONS)
+                    code = ERETRY;
+
+                if (code != 0) {
+                    Put(&f);
+                    return(code);
+                }
 	    }
 
 	    f->DemoteLock();
 	} else {	/* !FETCHABLE(f) */
-	    if (HOARDING(f) || LOGGING(f) ||
-		(EMULATING(f) && f->vol->IsReplicated())) {
-		if (HAVESTATUS(f)) {
-                    VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, HIT, FSOBJSIZE); /* sort of...*/
-		    /*
-		     * Unfortunately, trying to limit access to stale STATUS won't work because 
-		     * in order to gracefully recover from the active reference to a now 
-		     * inconsistent object, we have to be able to close the object.  In order 
-		     * to close the object, we have to be able to get the STATUS of the object...  
-		     * I guess we allow full access to the stale STATUS, but log that we did so.
-		     *
-		     *   if (DYING(f)) {
-		     *     LOG(0, ("Active reference prevents refetching object!  Providing limited access to stale status!\n"));
-		     *     *f_addr = f;
-		     *     Put(&f);
-		     *     return(ETOOMANYREFS);
-		     *   }
-		     */
-		    if (DYING(f)) 
-		      LOG(0, ("Active reference prevents refetching object!  Allowing access to stale status! (key = <%x.%x.%x>)\n", key->Volume, key->Vnode, key->Unique));
-		    else if (!STATUSVALID(f))
-		      LOG(0, ("Allowing access to stale status! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
-		}
-		else {
-                    f->DisconnectedCacheMiss(vp, vuid, comp);
-                    VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, TIMEOUT, FSOBJSIZE);
-                    Put(&f);
-                    return(ETIMEDOUT);
-		}
-
-		if (getdata) {
-		    if (DYING(f)) { 
-		      LOG(0, ("Active reference prevents refetching object!  Disallowing access to stale data! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
-		      Put(&f);
-		      return(ETOOMANYREFS);
-		    } 
-		    if (HAVEALLDATA(f)) {
-                        VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, HIT, BLOCKS(f)); /* sort of... */
-			if (!DATAVALID(f))
-			    LOG(0, ("Allowing access to stale data! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
-		    }
-		    else {
-                        f->DisconnectedCacheMiss(vp, vuid, comp); 
-                        VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, TIMEOUT, BLOCKS(f));
-			Put(&f);
-			return(ETIMEDOUT);
-		    }
-		}
-	    }
-	    else {
+            if (!HOARDING(f) && !LOGGING(f) && !EMULATING(f)) /* = Resolving */
+            {
                 LOG(100, ("(MARIA) TIMEOUT after something...\n"));
-                f->DisconnectedCacheMiss(vp, vuid, comp);
-                VmonUpdateSession(vp, key, f, f->vol, vuid, ATTR, TIMEOUT, FSOBJSIZE);
                 Put(&f);
                 return(ETIMEDOUT);
 	    }
+
+            if (!HAVESTATUS(f)) {
+                Put(&f);
+                return(ETIMEDOUT);
+            }
+
+            /*
+             * Unfortunately, trying to limit access to stale STATUS
+             * won't work because in order to gracefully recover from
+             * the active reference to a now inconsistent object, we
+             * have to be able to close the object.  In order to close
+             * the object, we have to be able to get the STATUS of the
+             * object...  I guess we allow full access to the stale
+             * STATUS, but log that we did so.
+             *
+             *   if (DYING(f)) {
+             *     LOG(0, ("Active reference prevents refetching object!  Providing limited access to stale status!\n"));
+             *     *f_addr = f;
+             *     Put(&f);
+             *     return(ETOOMANYREFS);
+             *   }
+             */
+            if (DYING(f)) 
+                LOG(0, ("Active reference prevents refetching object! "
+                        "Allowing access to stale status! (key = <%x.%x.%x>)\n",
+                        key->Volume, key->Vnode, key->Unique));
+
+            else if (!STATUSVALID(f))
+                LOG(0, ("Allowing access to stale status! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
+
+            if (getdata) {
+                if (DYING(f)) { 
+                    LOG(0, ("Active reference prevents refetching object!  Disallowing access to stale data! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
+                    Put(&f);
+                    return(ETOOMANYREFS);
+                } 
+                if (!HAVEALLDATA(f)) {
+                    Put(&f);
+                    return(ETIMEDOUT);
+                }
+
+                if (!DATAVALID(f))
+                    LOG(0, ("Allowing access to stale data! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
+            }
 	}
     }
 
     /* Finalize handling of fake objects. */
-    if (!GetInconsistent && f->IsFake() && !(f->vol)->IsUnderRepair(vuid)) {
+    if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated() &&
+        !((repvol *)f->vol)->IsUnderRepair(vuid))
+    {
+        repvol *v = (repvol *)f->vol;
         LOG(1, ("(Puneet)fsdb::Get:Volume (%u) NOT under repair and IsFake(%x.%x.%x)\n",
 		vuid, f->fid.Volume, f->fid.Vnode, f->fid.Unique));
         char path[MAXPATHLEN];
@@ -1206,12 +947,12 @@ RestartFind:
         struct timeval tv;
         gettimeofday(&tv, 0);
         int ASRInvokable = (SkkEnabled && ASRallowed && (vp->type == VPT_Worker) &&
-			    (f->vol->IsASRAllowed()) && (!(f->vol->asr_running())) &&
+                            v->IsASRAllowed() && !v->asr_running() &&
                             ((tv.tv_sec - f->lastresolved) > ASR_INTERVAL) &&
-			    (!adv_mon.skkPgid(vp->u.u_pgid)) && (adv_mon.ConnValid()));
-	if ((f->vol->asr_running()) && (vp->u.u_pgid != f->vol->asr_id()))
+			    !adv_mon.skkPgid(vp->u.u_pgid) && adv_mon.ConnValid());
+	if (v->asr_running() && vp->u.u_pgid != v->asr_id())
 	  code = EAGAIN; /* bounce out anything which tries to hold kernel locks while repairing */
-        else if (ASRInvokable && (!adv_mon.RequestASRInvokation(f->vol, path, vuid))) {
+        else if (ASRInvokable && (!adv_mon.RequestASRInvokation(v, path, vuid))) {
                 gettimeofday(&tv, 0);
                 f->lastresolved = tv.tv_sec;
                 code = ERETRY; /* tell application to retry so that kernel locks get released */
@@ -1721,147 +1462,6 @@ void fsdb::ChangeDiskUsage(int delta_blocks) {
     LOG(10, ("fsdb::ChangeDiskUsage: %d blocks\n", delta_blocks));
 
     blocks += delta_blocks;
-}
-
-
-/* fsobj and volent are both missing */
-void fsdb::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, ViceFid *fid, char *comp) {
-
-    /* If advice not enabled, simply return */
-    if (!SkkEnabled) {
-        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT enabled.\n"));
-        return;
-    }
-
-    /* Check that:                                                     *
-     *     (a) the request did NOT originate from the Hoard Daemon     *
-     *     (b) the request did NOT originate from that AdviceMonitor,  *
-     * and (c) the user is running an AdviceMonitor,                   */
-    CODA_ASSERT(vp != NULL);
-    if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
-        return;
-    }
-    if (adv_mon.skkPgid(vp->u.u_pgid)) {
-        LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
-        return;
-    }
-    if (!(adv_mon.ConnValid())) {
-        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
-        return;
-    }
-
-    LOG(100, ("ADVSKK STATS:  DMQ volent is NULL.\n"));
-    /*    adv_mon.VolumeNull(); */
-
-    /* Make the request */
-    LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
-    /* adv_mon.RequestDisconnectedQuestionnaire(fid, comp, vp->u.u_pid, Vtime()); */
-    return;
-}
-
-void fsdb::UpdateDisconnectedUseStatistics(volent *v) {
-
-    CODA_ASSERT(v);
-
-    // Verify that this disconnected session is eligible.  A disconnected
-    // session is eligible if there have been references to any object
-    // in any volume since this volume became disconnected.  If this
-    // disconnected session is not eligible, we don't want to update the
-    // statistics.  (Also sanity check the disconnected reference counter.)
-    CODA_ASSERT(v->DiscoRefCounter <= RefCounter);
-    if (v->DiscoRefCounter == RefCounter)
-        return;
-
-  {
-    LOG(3, ("Locking UPGRADE:  Please add write locks\n"));
-
-    // This code modifies data structures in the fsobj so we should
-    // iterator through the volume's fsobjs grabbing a write lock for
-    // the object on which we're currently working.
-    //
-    // Assuming that the iterator automatically read locks objects it needs,
-    // we just need to promote that lock to a write lock and demote the
-    // lock when we're done changing it (as indicated below).
-
-    fso_vol_iterator next(NL, v);
-    fsobj *f;
-    while ((f = next())) {
-        CODA_ASSERT(f);
-	CODA_ASSERT(f->vol == v);
-
-	// Promote f to write-lock here.
-
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(f->DisconnectionsSinceUse);
-	if (LastRef[f->ix] > v->DiscoRefCounter) {
-	        // This object was used during the disconnected session
-	        f->DisconnectionsUsed++;
-	        f->DisconnectionsSinceUse = 0;
-	} else {
-	        // This object was not used during the disconnected session
-	        RVMLIB_REC_OBJECT(f->DisconnectionsUnused);
-	        f->DisconnectionsUnused++;
-		f->DisconnectionsSinceUse++;
-	}
-	Recov_EndTrans(MAXFP);
-
-	// Demote f back to read-lock here.
-    }
-  }
-}
-
-void fsdb::OutputDisconnectedUseStatistics(char *StatisticsFileName, int discosSinceLastUse, int percentDiscosUsed, int totalDiscosUsed) {
-    FILE *StatsFILE;
-    int totalUse;
-    double percentUse;
-
-    StatsFILE = fopen(StatisticsFileName, "w");
-    CODA_ASSERT(StatsFILE != NULL);
-
-    LOG(3, ("Locking UPGRADE:  Please add read locks\n"));
-
-    // This code reads every fsobj in the fsdb.  The iterator
-    // should read lock the objects as it iterates through them.
-
-    VprocYield();
-  {
-    fsobj *f;
-    fso_iterator next(NL);
-
-    fprintf(StatsFILE, "<FID> priority discosSinceLastUse discosUsed discosUnused \n");
-
-    while ((f = next())) {
-      CODA_ASSERT(f);
-
-      totalUse = f->DisconnectionsUsed + f->DisconnectionsUnused;
-      LOG(0, ("%d + %d = %d\n", 
-	      f->DisconnectionsUsed, f->DisconnectionsUnused, totalUse));
-
-      if (totalUse == 0)
-	percentUse = (double)0;
-      else
-	percentUse = (double)(f->DisconnectionsUsed * (double)100) / (double)totalUse;
-      LOG(0, ("totalUse = %d ; percentUse = %g\n", totalUse, percentUse));
-
-      if (
-	  (f->DisconnectionsSinceUse > discosSinceLastUse) ||
-	  ((percentUse < percentDiscosUsed) && (totalUse >= totalDiscosUsed))
-	  ) {
-	fprintf(StatsFILE, "%s %d %ld %ld %ld\n", 
-		FID_(&f->fid),
-		f->HoardPri,
-		f->DisconnectionsSinceUse, 
-		f->DisconnectionsUsed,
-		f->DisconnectionsUnused);
-      }
-    }
-  }
-    VprocYield();
-
-    fflush(StatsFILE);
-    fclose(StatsFILE);
-    return;
 }
 
 void fsdb::print(int fd, int SummaryOnly) {

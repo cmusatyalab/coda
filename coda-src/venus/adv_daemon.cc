@@ -262,20 +262,21 @@ long S_ResultOfASR(RPC2_Handle _cid, VolumeId vid, RPC2_Integer ASRid, RPC2_Inte
   LOG(0, ("ResultOfASR: VID = %d, ASRid = %d, result = %d\n", vid, ASRid, result));
 
   vol = VDB->Find(vid);
-  CODA_ASSERT(vol != NULL);
+  CODA_ASSERT(vol && vol->IsReplicated());
+  repvol *vp = (repvol *)vol;
 
   /* check return from ASR is pending */
-  if (!(vol->asr_running())) {
+  if (!(vp->asr_running())) {
     LOG(0, ("ResultOfASR: No pending ASR\n"));
     return (CAENOASR);
   }
   /* check ASRid matches pid of finished ASR */
-  if (ASRid != vol->asr_id()) {
+  if (ASRid != vp->asr_id()) {
     LOG(0, ("ResultOfASR: Got result from unexpected ASR!\n"));
     return (CAEUNEXPECTEDASR);
   }
   /* unlock the volume */
-  vol->unlock_asr();
+  vp->unlock_asr();
 
   return RPC2_SUCCESS;
 }

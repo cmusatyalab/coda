@@ -25,7 +25,6 @@ listed in the file CREDITS.
  *      2. Ensuring that the volume cache does not exceed its resource limits
  *      3. Sending batched COP2 messages to the AVSG
  *      4. Triggering write-back of modified volumes upon reconnection (aka reintegration).
- *      5. Flushing Volume Session Records (VSRs).
  *
  *     Note that COP2 messages are piggybacked on normal CFS calls whenever possible.
  */
@@ -60,7 +59,6 @@ static const int VolumeCheckInterval = 120 * 60;
 static const int VolGetDownInterval = 5 * 60;
 static const int COP2CheckInterval = 5;
 static const int COP2Window = 10;
-static const int VolFlushVSRsInterval = 240 * 60;
 static const int VolCheckPointInterval = 10 * 60;
 static	const int UserRPMInterval = 15 * 60;  
 static const int LocalSubtreeCheckInterval = 10 * 60;
@@ -117,15 +115,6 @@ void VolDaemon(void)
 		VDB->FlushCOP2();
 	    }
 
-#if 0
-	    /* Flush Volume Session Records (VSRs). */
-	    if (curr_time - LastFlushVSRs >= VolFlushVSRsInterval) {
-		LastFlushVSRs = curr_time;
-
-		VDB->FlushVSR();
-	    }
-#endif
-
 	    /* Checkpoint modify logs if necessary. */
 	    if (curr_time - LastCheckPoint >= VolCheckPointInterval) {
 		LastCheckPoint = curr_time;
@@ -172,14 +161,16 @@ void VolDaemon(void)
 
 
 /* local-repair modification */
-void vdb::GetDown() {
+void vdb::GetDown()
+{
     LOG(100, ("vdb::GetDown: \n"));
 
+#if 0
     /* We need to GC unreferenced volume entries when some reasonable threshold is passed. */
     /* The threshold is assumed to be high enough that it will almost never be hit. */
     /* Therefore, we don't do anything special to prioritize the set of candidate entries. */
 #define	VOLThreshold	(CacheFiles >> 2)
-    if (VDB->htab.count() >= VOLThreshold) {
+    if (VDB->volrep_hash.count() + VDB->repvol_hash.count() >= VOLThreshold) {
 	vol_iterator next;
 	volent *v;
 	int readahead = 0;
@@ -204,6 +195,7 @@ void vdb::GetDown() {
     /* likely that if the bound is reached then we have a programming error.  Thus, we panic in such event. */
     if (VDB->htab.count() >= CacheFiles)
 	CHOKE("vdb::GetDown: volume entries >= CacheFiles");
+#endif
 }
 
 
@@ -237,9 +229,10 @@ void vdb::TakeTransition()
     LOG(100, ("vdb::TakeTransition: \n"));
 
     /* For each volume. */
-    vol_iterator vnext;
+    repvol_iterator rvnext;
+    volrep_iterator vrnext;
     volent *v;
-    while ((v = vnext())) {
+    while ((v = rvnext()) || (v = vrnext())) {
 	if (v->IsFake()) continue;
 
 	LOG(1000, ("vdb::TakeTransition: checking %s\n", v->name));
@@ -248,19 +241,6 @@ void vdb::TakeTransition()
 	}
     }
 }
-
-/* local-repair modification */
-void vdb::FlushVSR()
-{
-    LOG(100, ("vdb::FlushVSR: \n"));
-
-    /* For each volume. */
-    vol_iterator vnext;
-    volent *v;
-    while ((v = vnext()))
-	v->FlushVSRs(VSR_FLUSH_NOT_HARD);
-}
-
 
 /* local-repair modification */
 /* 
@@ -272,8 +252,8 @@ void vdb::CheckPoint(unsigned long curr_time)
     LOG(100, ("vdb::CheckPoint: \n"));
 
     /* For each volume. */
-    vol_iterator vnext;
-    volent *v;
+    repvol_iterator vnext;
+    repvol *v;
 
     while ((v = vnext())) {
 	unsigned long lmTime= 0;
@@ -303,8 +283,8 @@ void vdb::CheckReintegratePending()
     LOG(100, ("vdb::CheckReintegratePending: \n"));
 
     /* For each volume. */
-    vol_iterator vnext;
-    volent *v;
+    repvol_iterator vnext;
+    repvol *v;
     while ((v = vnext()))
 	v->CheckReintegratePending();
 }
@@ -312,16 +292,16 @@ void vdb::CheckReintegratePending()
 
 void vdb::CheckLocalSubtree()
 {
-    vol_iterator next;
-    volent *v;
+    repvol_iterator next;
+    repvol *v;
     while ((v = next()))
         v->CheckLocalSubtree();
 }
 
 void vdb::AutoRequestWBPermit()
 {
-    vol_iterator next;
-    volent *v;
+    repvol_iterator next;
+    repvol *v;
     vproc *vp = VprocSelf();
     vuid_t vuid = CRTORUID(vp->u.u_cred); 
     /* XXX SSS replace this with something useful */
@@ -338,12 +318,10 @@ void TrickleReintegrate()
     LOG(100, ("TrickleReintegrate(): \n"));
     
     /* For each volume. */
-    vol_iterator vnext;
-    volent *v;
+    repvol_iterator vnext;
+    repvol *v;
 
     while ((v = vnext())) {
-	if (v->IsFake()) continue;
-
 	LOG(1000, ("TrickleReintegrate: checking %s\n", v->GetName()));
 	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
 	    /* force a connectivity check? */

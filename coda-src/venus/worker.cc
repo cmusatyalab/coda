@@ -1192,7 +1192,6 @@ void worker::main(void)
                     Resign(msg, (int)sizeof(struct coda_ioctl_out) + data.out_size);
 
                     LOG(0, ("TERM: Venus exiting\n"));
-                    VDB->FlushVolume();
                     RecovFlush(1);
                     RecovTerminate();
                     VFSUnmount();

@@ -79,7 +79,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "user.h"
 #include "venus.private.h"
 #include "venusrecov.h"
-#include "venusvm.h"
 #include "venusvol.h"
 #include "vproc.h"
 #include "adv_monitor.h"
@@ -1205,10 +1204,10 @@ void srvent::Reset()
 
     /* Kill all indirect connections to this server. */
     {
-	vol_iterator next;
-	volent *v;
+	volrep_iterator next;
+	volrep *v;
 	while ((v = next())) {
-            if (v->IsReadWriteReplica() && v->IsHostedBy(&host))
+            if (v->IsHostedBy(&host))
                 v->KillMgrpMember(&host);
         }
     }
@@ -1530,35 +1529,7 @@ void PutMgrp(mgrpent **mpp)
 }
 
 
-void MgrpPrint() {
-    MgrpPrint(stdout);
-}
-
-
-void MgrpPrint(FILE *fp) {
-    fflush(fp);
-    MgrpPrint(fileno(fp));
-}
-
-
-void MgrpPrint(int fd) {
-#warning "MgrpPrint missing"
-#if 0
-    if (mgrpent::mgrptab == 0) return;
-
-    fdprint(fd, "Mgroups: count = %d\n", mgrpent::mgrptab->count());
-
-    /* Iterate through the individual entries. */
-    mgrp_iterator next;
-    mgrpent *m;
-    while ((m = next())) m->print(fd);
-
-    fdprint(fd, "\n");
-#endif
-}
-
-
-mgrpent::mgrpent(volent *vol, vuid_t vuid, RPC2_Handle mid, int authflag)
+mgrpent::mgrpent(repvol *vol, vuid_t vuid, RPC2_Handle mid, int authflag)
 {
     LOG(1,("mgrpent::mgrpent volumeid = %#08x, uid = %d, mid = %d, auth = %d\n",
            vol->GetVid(), vuid, mid, authflag));

@@ -128,9 +128,10 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -138,14 +139,14 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
-	    vol->PackVS(m->nhosts, &OldVS);
+	    vp->PackVS(m->nhosts, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
@@ -167,18 +168,18 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceVRemove_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Remove() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -197,17 +198,17 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
-		    vol->ResSubmit(0, &fid);
-		    vol->ResSubmit(0, &target_fso->fid);
+		    vp->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &target_fso->fid);
 		}
 		break;
 
@@ -270,8 +271,9 @@ int fsobj::DisconnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *targ
     }
 
     Recov_BeginTrans();
-    code = vol->LogRemove(Mtime, vuid, &fid, name, &target_fso->fid, 
-			  target_fso->stat.LinkCount, Tid);
+    code = ((repvol *)vol)->LogRemove(Mtime, vuid, &fid, name,
+                                      &target_fso->fid,
+                                      target_fso->stat.LinkCount, Tid);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
@@ -368,9 +370,10 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -378,14 +381,14 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vol->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, source_statusvar, source_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -406,18 +409,18 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceVLink_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Link() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -436,17 +439,17 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
-		    vol->ResSubmit(0, &fid);
-		    vol->ResSubmit(0, &source_fso->fid);
+		    vp->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &source_fso->fid);
 		}
 		break;
 
@@ -510,7 +513,8 @@ int fsobj::DisconnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source
     }
 
     Recov_BeginTrans();
-    code = vol->LogLink(Mtime, vuid, &fid, name, &source_fso->fid, Tid);
+    code = ((repvol *)vol)->LogLink(Mtime, vuid, &fid, name, &source_fso->fid,
+                                    Tid);
     
     if (code == 0)
 	    /* This MUST update second-class state! */
@@ -678,9 +682,10 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -688,14 +693,14 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vol->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, t_parent_statusvar, t_parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, s_parent_statusvar, s_parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, source_statusvar, source_status, VSG_MEMBERS);
@@ -719,18 +724,18 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceVRename_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Rename() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -755,21 +760,21 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		    if (!SameParent)
-			vol->ResSubmit(0, &s_parent_fso->fid);
-		    vol->ResSubmit(0, &s_fso->fid);
+			vp->ResSubmit(0, &s_parent_fso->fid);
+		    vp->ResSubmit(0, &s_fso->fid);
 		    if (TargetExists)
-			vol->ResSubmit(0, &t_fso->fid);
+			vp->ResSubmit(0, &t_fso->fid);
 		}
 		break;
 
@@ -843,10 +848,11 @@ int fsobj::DisconnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso, ch
     }
 
     Recov_BeginTrans();
-    code = vol->LogRename(Mtime, vuid, &s_parent_fso->fid, s_name,
-			  &fid, t_name, &s_fso->fid,
-			  (TargetExists ? &t_fso->fid : &NullFid),
-			  (TargetExists ? t_fso->stat.LinkCount : 0), Tid);
+    code = ((repvol *)vol)->LogRename(Mtime, vuid, &s_parent_fso->fid, s_name,
+                                      &fid, t_name, &s_fso->fid,
+                                      (TargetExists ? &t_fso->fid : &NullFid),
+                                      (TargetExists ? t_fso->stat.LinkCount:0),
+                                      Tid);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
@@ -976,9 +982,10 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Allocate a fid for the new object. */
-	code = vol->AllocFid(Directory, &target_fid, &AllocHost, vuid);
+	code = vp->AllocFid(Directory, &target_fid, &AllocHost, vuid);
 	if (code != 0) goto RepExit;
 
 	/* Allocate the fsobj. */
@@ -993,7 +1000,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 			 NBLOCKS(sizeof(fsobj)));
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -1001,11 +1008,11 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
- 	    vol->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, target_fidvar, target_fid, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
@@ -1027,18 +1034,18 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceVMakeDir_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Mkdir() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -1054,26 +1061,24 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	UpdateStatus(&parent_status, &UpdateSet, vuid);
 	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->vol->flags.usecallback &&
-	    target_status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
+	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
 	if (ASYNCCOP2) target_fso->ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		    if (target_fso != 0)
-			vol->ResSubmit(0, &target_fso->fid);
+			vp->ResSubmit(0, &target_fso->fid);
 		}
 		break;
 
@@ -1128,9 +1133,7 @@ RepExit:
 	UpdateStatus(&parent_status, 0, vuid);
 	target_fso->UpdateStatus(&target_status, 0, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->vol->flags.usecallback &&
-	    target_status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
+	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
 
 NonRepExit:
@@ -1170,7 +1173,7 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char
     
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
-    code = vol->AllocFid(Directory, &target_fid, &AllocHost, vuid);
+    code = ((repvol *)vol)->AllocFid(Directory, &target_fid, &AllocHost, vuid);
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
@@ -1185,7 +1188,8 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = vol->LogMkdir(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
+    code = ((repvol *)vol)->LogMkdir(Mtime, vuid, &fid, name,
+                                     &target_fso->fid, Mode, Tid);
 
     if (code == 0) {
 	    /* This MUST update second-class state! */
@@ -1308,9 +1312,10 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -1318,14 +1323,14 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vol->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -1345,18 +1350,18 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceVRemoveDir_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Rmdir() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -1375,17 +1380,17 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
-		    vol->ResSubmit(0, &fid);
-		    vol->ResSubmit(0, &target_fso->fid);
+		    vp->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &target_fso->fid);
 		}
 		break;
 
@@ -1448,7 +1453,8 @@ int fsobj::DisconnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *targe
     }
 
     Recov_BeginTrans();
-    code = vol->LogRmdir(Mtime, vuid, &fid, name, &target_fso->fid, Tid);
+    code = ((repvol *)vol)->LogRmdir(Mtime, vuid, &fid, name,
+                                     &target_fso->fid, Tid);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
@@ -1570,9 +1576,10 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Allocate a fid for the new object. */
-	code = vol->AllocFid(SymbolicLink, &target_fid, &AllocHost, vuid);
+	code = vp->AllocFid(SymbolicLink, &target_fid, &AllocHost, vuid);
 	if (code != 0) goto RepExit;
 
 	/* Allocate the fsobj. */
@@ -1587,7 +1594,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 			 NBLOCKS(sizeof(fsobj)));
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -1595,11 +1602,11 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
- 	    vol->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, target_fidvar, target_fid, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
@@ -1621,18 +1628,18 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceVSymLink_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Mkdir() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -1648,26 +1655,24 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	UpdateStatus(&parent_status, &UpdateSet, vuid);
 	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->vol->flags.usecallback &&
-	    target_status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
+	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
 	if (ASYNCCOP2) target_fso->ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		    if (target_fso != 0)
-			vol->ResSubmit(0, &target_fso->fid);
+			vp->ResSubmit(0, &target_fso->fid);
 		}
 		break;
 
@@ -1723,9 +1728,7 @@ RepExit:
 	UpdateStatus(&parent_status, 0, vuid);
 	target_fso->UpdateStatus(&target_status, 0, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->vol->flags.usecallback &&
-	    target_status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
+	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
 
 NonRepExit:
@@ -1766,7 +1769,7 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
-    code = vol->AllocFid(SymbolicLink, &target_fid, &AllocHost, vuid);
+    code = ((repvol *)vol)->AllocFid(SymbolicLink, &target_fid, &AllocHost, vuid);
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
@@ -1781,8 +1784,8 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = vol->LogSymlink(Mtime, vuid, &fid, name,
-			   contents, &target_fso->fid, Mode, Tid);
+    code = ((repvol *)vol)->LogSymlink(Mtime, vuid, &fid, name, contents,
+                                       &target_fso->fid, Mode, Tid);
     
     if (code == 0) {
 	    /* This MUST update second-class state! */
@@ -1869,9 +1872,10 @@ int fsobj::SetVV(ViceVersionVector *newvv, vuid_t vuid) {
 
 	if (vol->IsReplicated()) {
 	    mgrpent *m = 0;
+            repvol *vp = (repvol *)vol;
 
 	    /* Acquire an Mgroup. */
-	    code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	    code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	    if (code != 0) goto RepExit;
 
 	    /* The SetVV call. */
@@ -1887,13 +1891,13 @@ int fsobj::SetVV(ViceVersionVector *newvv, vuid_t vuid) {
 		CFSOP_POSTLUDE("store::setvv done\n");
 
 		/* Collate responses from individual servers and decide what to do next. */
-		code = vol->Collate_COP2(m, code);
+		code = vp->Collate_COP2(m, code);
 		MULTI_RECORD_STATS(ViceSetVV_OP);
 		if (code != 0) goto RepExit;
 
 		/* Finalize COP2 Piggybacking. */
 		if (PIGGYCOP2)
-		    vol->ClearCOP2(&PiggyBS);
+		    vp->ClearCOP2(&PiggyBS);
 	    }
 
 	    /* Do op locally. */

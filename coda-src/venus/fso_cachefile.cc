@@ -195,7 +195,7 @@ int CacheFile::Copy(char *destname, ino_t *ino, int recovering = 0)
         LOG(0, ("CacheFile::Copy: could not make path for %s\n", name));
 	return -1;
     }
-    if ((tfd = ::open(destname, O_RDWR | O_CREAT | O_TRUNC| O_BINARY, V_MODE)) < 0) {
+    if ((tfd = ::open(destname, O_RDWR|O_CREAT|O_TRUNC|O_BINARY, V_MODE)) < 0) {
 	LOG(0, ("CacheFile::Copy: open failed (%d)\n", errno));
 	return -1;
     }

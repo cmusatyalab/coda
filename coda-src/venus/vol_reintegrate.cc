@@ -75,11 +75,11 @@ extern "C" {
 
 
 /* must not be called from within a transaction */
-void volent::Reintegrate()
+void repvol::Reintegrate()
 {
     userent *u;
 
-    LOG(0, ("volent::Reintegrate\n"));
+    LOG(0, ("repvol::Reintegrate\n"));
 
     /* 
      * this flag keeps multiple reintegrators from interfering with
@@ -214,7 +214,8 @@ void volent::Reintegrate()
  */
 
 /* must not be called from within a transaction */
-int volent::IncReintegrate(int tid) {
+int repvol::IncReintegrate(int tid)
+{
     LOG(0, ("volent::IncReintegrate: (%s, %d) vuid = %d\n",
 	    name, tid, CML.owner));
     /* check if transaction "tid" has any cmlent objects */
@@ -426,7 +427,8 @@ extern struct timeval *VprocRetryBeta;
  * Reintegrate some portion of the store record at the head
  * of the log.
  */
-int volent::PartialReintegrate(int tid) {
+int repvol::PartialReintegrate(int tid)
+{
     cmlent *m;
     int code = 0;
     ViceVersionVector UpdateSet;
@@ -553,7 +555,8 @@ CheckResult:
  * determine if a volume has updates that may be reintegrated,
  * and return the number. humongous predicate check here.  
  */
-int volent::ReadyToReintegrate() {
+int repvol::ReadyToReintegrate()
+{
     int ready = 0;
     userent *u = 0;
 
@@ -585,7 +588,7 @@ int volent::ReadyToReintegrate() {
 int cmlent::ReintReady()
 {
     /* check volume state */
-    volent *vol = strbase(volent, log, CML);
+    repvol *vol = strbase(repvol, log, CML);
     if (!(vol->IsWriteDisconnected())) {
 	LOG(100, ("cmlent::ReintReady: not write-disconnected\n"));
 	return 0;
@@ -649,7 +652,7 @@ static const int ReintegratorPriority = LWP_NORMAL_PRIORITY-2;
 
 /* local-repair modification */
 class reintegrator : public vproc {
-  friend void Reintegrate(volent *);
+  friend void Reintegrate(repvol *);
 
     static olist freelist;
     olink handle;
@@ -670,7 +673,8 @@ olist reintegrator::freelist;
 /* This is the entry point for reintegration. */
 /* It finds a free reintegrator (or creates a new one), 
    sets up its context, and gives it a poke. */
-void Reintegrate(volent *v) {
+void Reintegrate(repvol *v)
+{
     if (v->flags.sync_reintegrate) {
 	LOG(0,("Reintegrate synchronously\n\n"));
 	v->Reintegrate();
@@ -746,7 +750,7 @@ void reintegrator::main(void)
 	if (!u.u_vol) CHOKE("reintegrator::main: no volume!");
 
 	/* Do the reintegration. */
-	u.u_vol->Reintegrate();
+	((repvol *)u.u_vol)->Reintegrate();
 	seq++;
 	idle = 1;
 

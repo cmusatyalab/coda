@@ -78,9 +78,6 @@ extern void ConnPrint(int);
 extern void ServerPrint();
 extern void ServerPrint(FILE *);
 extern void ServerPrint(int);
-extern void MgrpPrint();
-extern void MgrpPrint(FILE *);
-extern void MgrpPrint(int);
 
 extern unsigned long WCThresh;
 
@@ -356,9 +353,7 @@ class mgrpent {
   friend void CommInit();
   friend void Mgrp_Wait();
   friend void Mgrp_Signal();
-  friend int GetMgrp(mgrpent **, repvol *, vuid_t);
   friend void PutMgrp(mgrpent **);
-  friend void MgrpPrint(int);
   friend class mgrp_iterator;
   friend class fsobj;
   friend class volent;
@@ -384,7 +379,7 @@ class mgrpent {
     RepOpCommCtxt rocc;
 
     /* Constructors, destructors, and private utility routines. */
-    mgrpent(volent *, vuid_t, RPC2_Handle, int);
+    mgrpent(repvol *, vuid_t, RPC2_Handle, int);
     mgrpent(mgrpent&) { abort(); }	/* not supported! */
     int operator=(mgrpent&) { abort(); return(0); }	/* not supported! */
     ~mgrpent();

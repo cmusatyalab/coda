@@ -81,7 +81,7 @@ class adv_monitor {
     void ServerConnectionWeak(char *);
     void ServerConnectionStrong(char *);
     void ServerBandwidthEstimate(char *, long);
-    int RequestASRInvokation(volent *vol, char *pathname, vuid_t vuid);
+    int RequestASRInvokation(repvol *vol, char *pathname, vuid_t vuid);
 
     /* Log stuff */
     void InitializeProgramLog(vuid_t vuid);

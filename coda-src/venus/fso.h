@@ -135,7 +135,6 @@ class fsdb {
   friend void RecovInit();
   friend class volent;
   friend class repvol;
-  friend void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vuid, enum CacheType datatype, enum CacheEvent event, unsigned long blocks);
 
     int MagicNumber;
     int DataVersion;
@@ -242,13 +241,6 @@ class fsdb {
     int MarginPri()
       { return(marginpri); }
 
-    void SetDiscoRefCounter();
-    void UnsetDiscoRefCounter();
-
-    void DisconnectedCacheMiss(vproc *, vuid_t, ViceFid *, char *);
-    void UpdateDisconnectedUseStatistics(volent *);
-    void OutputDisconnectedUseStatistics(char *, int, int, int);
-
     void GetStats(int *fa, int *fo, int *ba, int *bo) 
       { *fa = MaxFiles; *fo = htab.count(); *ba = MaxBlocks; *bo = blocks; }
 
@@ -353,18 +345,14 @@ struct AcRights	{
 };
 
 struct FsoFlags {
-    unsigned unused : 4;
+    /*T*/unsigned random : 16;			/* help balance binary-search trees */
     unsigned fake : 1;				/* is this object fake? (c.f. repair) */
     unsigned owrite : 1;			/* file open for write? */
-    unsigned fetching :	1;			/* fetch in progress? */
-    /*T*/unsigned replaceable : 1;		/* is this object replaceable? */
-    /*T*/unsigned era : 1;			/* early returns allowed? */
     unsigned dirty : 1;				/* is this object dirty? */
-    /*T*/unsigned ckmtpt : 1;			/* mount point needs checked? */
     unsigned local: 1;				/* local fake fid */
-    unsigned discread : 1;			/* read during the last disconnection */
-    /*T*/unsigned random : 16;			/* help balance binary-search trees */
-    unsigned padding : 3;
+    /*T*/unsigned ckmtpt : 1;			/* mount point needs checked? */
+    /*T*/unsigned fetching : 1;			/* fetch in progress? */
+    unsigned padding : 10;
 };
 
 enum MountStatus {  NORMAL,
@@ -415,7 +403,6 @@ class fsobj {
   friend class hdb;
   friend class lrdb;
   friend void RecoverPathName(char *, ViceFid *, ClientModifyLog *, cmlent *);
-  friend void VmonUpdateSession(vproc *, ViceFid *, fsobj *, volent *, vuid_t, enum CacheType, enum CacheEvent, unsigned long);
 
     int MagicNumber;
 
@@ -490,11 +477,6 @@ class fsobj {
     CacheEventRecord cachehit;                  /* cache reference count */
     CacheEventRecord cachemiss;                 /* cache miss count */
     CacheEventRecord cachenospace;              /* cache no space */
-
-    // Disconnected Use Statistics
-    long DisconnectionsSinceUse;
-    long DisconnectionsUsed;
-    long DisconnectionsUnused;
 
     // for asr invocation
     /*T*/long lastresolved;			// time when object was last resolved
@@ -578,7 +560,6 @@ class fsobj {
     /* advice routines */
     CacheMissAdvice ReadDisconnectedCacheMiss(vproc *, vuid_t);
     CacheMissAdvice WeaklyConnectedCacheMiss(vproc *, vuid_t);
-    void DisconnectedCacheMiss(vproc *, vuid_t, char *);
 
     /* MLE Linkage. */
     void AttachMleBinding(binding *);
@@ -793,6 +774,7 @@ extern void FSOD_Init(void);
 #define	HOARDING(f)	((f)->vol->state == Hoarding)
 #define	EMULATING(f)	((f)->vol->state == Emulating)
 #define LOGGING(f)      ((f)->vol->state == Logging)
+#define RESOLVING(f)    ((f)->vol->state == Resolving)
 #define	DIRTY(f)	((f)->flags.dirty)
 #define	HAVESTATUS(f)	((f)->state != FsoRunt)
 #define	STATUSVALID(f)	((f)->IsValid(RC_STATUS))
@@ -816,7 +798,8 @@ extern void FSOD_Init(void);
 			  (LOGGING(f) && !DIRTY(f))) &&\
 			 (!HAVESTATUS(f) ||\
 			  (!WRITING(f) && !EXECUTING(f))))
-#define	REPLACEABLE(f)	((f)->flags.replaceable)
+/* we are replaceable whenever we are linked into FSDB->prioq */
+#define	REPLACEABLE(f)	((f)->prio_handle.tree() != 0)
 #define	GCABLE(f)	(DYING(f) && !DIRTY(f) && !BUSY(f))
 #define	FLUSHABLE(f)	(((DYING(f) && !DIRTY(f)) ||\
 			 REPLACEABLE(f)) && !BUSY(f))

@@ -194,12 +194,6 @@ void CheckVRDB() {
 }
 
 
-int XlateVid(VolumeId *vidp) {
-    int count, pos;
-    return(XlateVid(vidp, &count, &pos));
-}
-
-
 int XlateVid(VolumeId *vidp, int *count, int *pos) 
 {
     vrent *vre = VRDB.find(*vidp);
@@ -211,8 +205,8 @@ int XlateVid(VolumeId *vidp, int *count, int *pos)
 
 
     *vidp = vre->ServerVolnum[ix];
-    *count = vre->nServers;
-    *pos = ix;
+    if (count) *count = vre->nServers;
+    if (pos)   *pos = ix;
     return(1);
 }
 
@@ -237,7 +231,7 @@ vrent::vrent() {
     memset(key, 0, sizeof(key));
     volnum = 0;
     nServers = 0;
-    memset((void *)ServerVolnum, 0, sizeof(ServerVolnum));
+    memset(ServerVolnum, 0, sizeof(ServerVolnum));
     addr = 0;
 }
 
@@ -246,7 +240,7 @@ vrent::vrent(vrent& vre) {
     strcpy(key, vre.key);
     volnum = vre.volnum;
     nServers = vre.nServers;
-    memmove((void *) ServerVolnum, (const void *)vre.ServerVolnum, sizeof(ServerVolnum));
+    memcpy(ServerVolnum, vre.ServerVolnum, sizeof(ServerVolnum));
     addr = vre.addr;
 }
 
@@ -262,11 +256,10 @@ vrent::~vrent() {
 
 
 void vrent::GetHosts(unsigned long *Hosts) {
-    memset((void *)Hosts, 0, VSG_MEMBERS * sizeof(unsigned long));
+    memset(Hosts, 0, VSG_MEMBERS * sizeof(unsigned long));
 
     for (int i = 0; i < nServers; i++)
 	Hosts[i] = VolToHostAddr(ServerVolnum[i]);
-
 }
 
 
@@ -352,14 +345,18 @@ void vrent::Canonicalize() {
 	CODA_ASSERT(j < nServers);
 	ServerVolnum[j] = CopySrvVolNum[i];
     }
-    char buf[512], *c;
-    c = buf;
-    for (i = 0; i < VSG_MEMBERS; i++) {
-	sprintf(c, "0x%lx ", ServerVolnum[i]);
-	c += strlen(c);
+
+    /* When debug is turned up, print the canonicalized list of volumes */
+    if (VolDebugLevel >= 10) {
+        char buf[512], *c;
+        c = buf;
+        for (i = 0; i < VSG_MEMBERS; i++) {
+            sprintf(c, "0x%lx ", ServerVolnum[i]);
+            c += strlen(c);
+        }
+        LogMsg(10, VolDebugLevel, stdout, 
+               "vrent:: canonicalize volumeids are : %s\n", buf);
     }
-    LogMsg(10, VolDebugLevel, stdout, 
-	   "vrent:: canonicalize volumeids are : %s\n", buf);
 }
 void vrent::hton() {
     /* we won't translate the key on the hopes that strings take care of themselves */

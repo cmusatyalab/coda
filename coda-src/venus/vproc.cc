@@ -553,20 +553,13 @@ void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode)
 #endif	TIMING
 
     /* Kick out non-ASR processes if an ASR is running */
-    if (u.u_vol->asr_running() && (u.u_pgid != u.u_vol->asr_id()))
+    if (u.u_vol->IsReplicated() && ((repvol *)u.u_vol)->asr_running() &&
+        (u.u_pgid != ((repvol *)u.u_vol)->asr_id()))
       u.u_error = EAGAIN;
     else /* Attempt to enter the volume. */
       u.u_error = u.u_vol->Enter(u.u_volmode, CRTORUID(u.u_cred));
 
     if (u.u_error) VDB->Put(&u.u_vol);
-    vsr *vsr;
-		   
-    if (u.u_vol != 0 && !u.u_vol->IsFake()) {
-        if (type == VPT_HDBDaemon)
-	    vsr = u.u_vol->GetVSR(HOARD_UID);
-	else
-	    vsr = u.u_vol->GetVSR(CRTORUID(u.u_cred));
-    }
 }
 
 
@@ -647,7 +640,7 @@ void vproc::End_VFS(int *retryp) {
 		eprint("MaxWouldBlock exceeded...returning EWOULDBLOCK");
 		goto Exit;
 	    }
-	    eprint("Volume %s busy, waiting", u.u_vol->name);
+	    eprint("Volume %s busy, waiting", u.u_vol->GetName());
 	    struct timeval delay;
 	    delay.tv_sec = 15;		/* XXX */
 	    delay.tv_usec = 0;
@@ -716,17 +709,6 @@ Exit:
 	    t->timeout++;
 	else
 	    t->failure++;
-
-	/* Update VSR statistics too! */
-	vsr *vsr;
-	if (u.u_vol != 0 && (!retryp || *retryp == 0) && !u.u_vol->IsFake()) {
-	    if (type == VPT_HDBDaemon)
-		vsr = u.u_vol->GetVSR(HOARD_UID);
-	    else
-		vsr = u.u_vol->GetVSR(CRTORUID(u.u_cred));
-	    vsr->RecordEvent(u.u_vfsop, u.u_error, (RPC2_Unsigned)elapsed);
-	    u.u_vol->PutVSR(vsr);
-	}
     }
 
     VDB->Put(&u.u_vol);

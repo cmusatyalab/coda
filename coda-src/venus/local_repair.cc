@@ -170,7 +170,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;
 		while ((vpt = next())) {
-		    volent *vol = vpt->GetVol();
+		    repvol *vol = vpt->GetVol();
 		    OBJ_ASSERT(this, vol);
 		    LOG(100, ("lrdb::EndRepairSession: reintegrate mutation for volume %x\n",
 			      vol->GetVid()));
@@ -183,7 +183,8 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 			    m->Freeze();
 			Recov_EndTrans(MAXFP);
 		    }
-		    rc = vol->IncReintegrate(repair_session_tid);
+		    CODA_ASSERT(vol->IsReplicated());
+		    rc = ((repvol *)vol)->IncReintegrate(repair_session_tid);
 		    {	/* collect mutation stats */
 			cml_iterator next(*(vol->GetCML()), CommitOrder);
 			cmlent *m;
@@ -202,7 +203,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;	
 		while ((vpt = next())) {
-		    volent *vol = vpt->GetVol();
+		    repvol *vol = vpt->GetVol();
 		    OBJ_ASSERT(this, vol);
 		    vol->IncAbort(repair_session_tid);
 		}
@@ -498,7 +499,7 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 
 	    {	/* built repair_vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
-		OBJ_ASSERT(this, Vol != NULL && Vol->IsReplicated());
+                CODA_ASSERT(Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;
@@ -602,7 +603,7 @@ void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 
 	    {	/* built vol_list */
 		volent *Vol = VDB->Find(GFid->Volume);
-		OBJ_ASSERT(this, Vol != NULL && Vol->IsReplicated());
+                CODA_ASSERT(Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(vol_list);
 		vptent *vpt;

@@ -606,10 +606,16 @@ OI_FreeLocks:
 		    cp += sizeof(VolumeStatus);
 
 		    /* Volume name. */
-		    char name[32];
+                    char name[32];
+#if 0 /* Avoid setting the volumename, otherwise cfs setquota renames all
+         volume replicas to that of their replicated parent. This might
+         confuse ViceGetVolumeInfo and leads to subtle corruption. --JH */
 		    unsigned long namelen = strlen(cp) + 1;
 		    if (namelen > 32) { u.u_error = EINVAL; break; }
 		    strcpy(name, cp);
+#else
+                    unsigned long namelen = 0;
+#endif
 		    RPC2_BoundedBS Name;
 		    Name.SeqBody = (RPC2_ByteSeq)name;
 		    Name.MaxSeqLen = 32;
@@ -638,13 +644,6 @@ OI_FreeLocks:
 		    MOTD.SeqLen = motdlen;
 
 		    /* Send the volume status to the server(s). */
-		    {
-			/* Hack!  Implement the "usecallback" toggle this cheap and dirty way! */
-			if (STREQ(offlinemsg, "usecallback=1"))
-			    { v->UseCallBack(1); break; }
-			if (STREQ(offlinemsg, "usecallback=0"))
-			    { v->UseCallBack(0); break; }
-		    }
 		    u.u_error = v->SetVolStat(&volstat, &Name, &OfflineMsg,
 					      &MOTD, CRTORUID(u.u_cred));
 		    if (u.u_error) break;
@@ -666,11 +665,10 @@ OI_FreeLocks:
 
 		case VIOCWHEREIS:
 		    {
-		    /* Extract the host array from the vsgent or volent as appropriate. */
-		    v->GetHosts((struct in_addr *)data->out);
-
-		    data->out_size = VSG_MEMBERS * sizeof(struct in_addr);
-		    break;
+                        /* Extract the host array from the vsgent or volent as appropriate. */
+                        v->GetHosts((struct in_addr *)data->out);
+                        data->out_size = VSG_MEMBERS * sizeof(struct in_addr);
+                        break;
 		    }
 
 		case VIOC_FLUSHVOLUME:
@@ -712,11 +710,10 @@ OI_FreeLocks:
 #define	ReturnCodes ((int *)(RWVols + VSG_MEMBERS))
 #define	endp	    ((char *)(ReturnCodes + VSG_MEMBERS))
 		    data->out_size = (endp - startp);
+                    u.u_error = EOPNOTSUPP;
                     if (v->IsReplicated())
                         u.u_error = ((repvol *)v)->Repair(fid, RepairFile,
                                        CRTORUID(u.u_cred), RWVols, ReturnCodes);
-                    else
-                        u.u_error = EOPNOTSUPP;
 
  	            LOG(0, ("MARIA: VIOC_REPAIR calls volent::Repair which returns %d\n",u.u_error));
 		    /* We don't have the object so can't provide a pathname
@@ -766,13 +763,17 @@ OI_FreeLocks:
 		case VIOC_CHECKPOINTML:
 		    {
 		    char *ckpdir = (data->in_size == 0 ? 0 : (char *) data->in);
-		    u.u_error = v->CheckPointMLEs(CRTORUID(u.u_cred), ckpdir);
+                    u.u_error = EOPNOTSUPP;
+                    if (v->IsReplicated())
+                        u.u_error = ((repvol *)v)->CheckPointMLEs(CRTORUID(u.u_cred), ckpdir);
 		    break;
 		    }
 
 		case VIOC_PURGEML:
 		    {
-		    u.u_error = v->PurgeMLEs(CRTORUID(u.u_cred));
+                    u.u_error = EOPNOTSUPP;
+                    if (v->IsReplicated())
+                        u.u_error = ((repvol *)v)->PurgeMLEs(CRTORUID(u.u_cred));
 		    break;
 		    }
      	        case VIOC_BEGINML:
@@ -785,9 +786,11 @@ OI_FreeLocks:
 		    char *startp = (char *) data->in;
 #define agep ((unsigned *)(startp))
 #define timep ((unsigned *)(agep + 1))
-		    u.u_error = v->WriteDisconnect(*agep, *timep); 
+                    u.u_error = EOPNOTSUPP;
+                    if (v->IsReplicated())
+                        u.u_error = ((repvol *)v)->WriteDisconnect(*agep, *timep); 
 		    if (u.u_error == 0) 
-			eprint("Logging updates to volume %s", v->name);
+			eprint("Logging updates to volume %s", v->GetName());
 
 		    break;
 		    }
@@ -797,70 +800,89 @@ OI_FreeLocks:
 		     * Stop logging mutations to this volume, and
 		     * schedule it for reintegration if appropriate.
 		     */
-		    u.u_error = v->WriteReconnect();    
+                    u.u_error = EOPNOTSUPP;
+                    if (v->IsReplicated())
+                        u.u_error = ((repvol *)v)->WriteReconnect();    
 		    if (u.u_error == 0) 
 			eprint("Propagating updates to volume %s (|CML| = %d)", 
-			       v->name, v->CML.count());
+			       v->GetName(), ((repvol *)v)->GetCML()->count());
 		    break;
 		    }
 	      case VIOC_ENABLEASR:
 		    {			
-			u.u_error = v->EnableASR(CRTORUID(u.u_cred));
+                        u.u_error = EOPNOTSUPP;
+                        if (v->IsReplicated())
+                            u.u_error = ((repvol *)v)->EnableASR(CRTORUID(u.u_cred));
 			break;
 		    }
 	      case VIOC_DISABLEASR:
 		    {
-			u.u_error = v->DisableASR(CRTORUID(u.u_cred));
+                        u.u_error = EOPNOTSUPP;
+                        if (v->IsReplicated())
+                            u.u_error = ((repvol *)v)->DisableASR(CRTORUID(u.u_cred));
 			break;
 		    }
               case VIOC_BEGINWB:
 		    {  
 		      /* request writeback caching from the server ! */
-		      u.u_error = v->EnterWriteback(CRTORUID(u.u_cred));
+                        u.u_error = EOPNOTSUPP;
+                        if (v->IsReplicated())
+                            u.u_error = ((repvol *)v)->EnterWriteback(CRTORUID(u.u_cred));
 		      break;
 		    }
  	      case VIOC_AUTOWB:
 		    {
-			u.u_error = 0;
-			v->flags.autowriteback= !v->flags.autowriteback;
-			if (!v->flags.autowriteback) {
-			    eprint("Auto Writeback on volume %s is now disabled",v->name);
-			    /* first we need to not be an observer on the volume! 
-			       (massive kluge! -leg, 5/9/99) */
-			    v->Exit(volmode, CRTORUID(u.u_cred));
-			    entered = 0;
-			    u.u_error = v->LeaveWriteback(CRTORUID(u.u_cred));
-			    //  if (u.u_error == 0)
-			    //	u.u_error = WB_DISABLED;
-			}
-			else {
-			    eprint("Auto Writeback on volume %s is now enabled",v->name);
-			    u.u_error = v->EnterWriteback(CRTORUID(u.u_cred));
-			    //if (u.u_error == 0)
-			    //	u.u_error = WB_PERMIT_GRANTED;
-			}
+                        u.u_error = EOPNOTSUPP;
+                        if (v->IsReplicated()) {
+                            v->flags.autowriteback = !v->flags.autowriteback;
+                            eprint("Auto Writeback on volume %s is now %s",
+                                   v->GetName(), v->flags.autowriteback ?
+                                   "enabled" : "disabled");
+
+                            if (!v->flags.autowriteback) {
+                                /* first we need to not be an observer on the
+                                 * volume! (massive kluge! -leg, 5/9/99) */
+                                v->Exit(volmode, CRTORUID(u.u_cred));
+                                entered = 0;
+                                u.u_error = ((repvol *)v)->LeaveWriteback(CRTORUID(u.u_cred));
+                                //  if (u.u_error == 0)
+                                //	u.u_error = WB_DISABLED;
+                            }
+                            else {
+                                u.u_error = ((repvol *)v)->EnterWriteback(CRTORUID(u.u_cred));
+                                //if (u.u_error == 0)
+                                //	u.u_error = WB_PERMIT_GRANTED;
+                            }
+                        }
 		    }
    	      case VIOC_STATUSWB:
 	      {
 		  int *cp = (int *)data->out;
-		  *cp = v->IsWritebacking();
+                  *cp = 0;
+                  if (v->IsReplicated())
+                      *cp = ((repvol *)v)->IsWritebacking();
 		  data->out_size = sizeof(int);
 		  break;
 	      }
-   	      case VIOC_ENDWB:
-		  {
-		  /* first we need to not be an observer on the volume! 
-		     (massive kluge! -leg, 5/9/99) */
-		      v->flags.autowriteback = 0;
-		      v->Exit(volmode, CRTORUID(u.u_cred));
-		      entered = 0;
-		      /* now we'll leave writeback mode */
-		      v->flags.autowriteback = 0;
-		      u.u_error = v->LeaveWriteback(CRTORUID(u.u_cred));
-		      break;
-		  }
+              case VIOC_ENDWB:
+              {
+                  u.u_error = EOPNOTSUPP;
+                  if (v->IsReplicated()) {
+                      /* first we need to not be an observer on the volume! 
+                         (massive kluge! -leg, 5/9/99) */
+                      v->flags.autowriteback = 0;
+                      v->Exit(volmode, CRTORUID(u.u_cred));
+                      entered = 0;
+                      /* now we'll leave writeback mode */
+                      v->flags.autowriteback = 0;
+                      u.u_error = ((repvol *)v)->LeaveWriteback(CRTORUID(u.u_cred));
+                      break;
+                  }
+              }
 	      case VIOC_SYNCCACHE:
-		  {
+              {
+                  u.u_error = EOPNOTSUPP;
+                  if (v->IsReplicated()) {
 		      int old_wb_flag = 0;
 
 		      v->Exit(volmode, CRTORUID(u.u_cred));
@@ -868,10 +890,11 @@ OI_FreeLocks:
 		      old_wb_flag = v->flags.writebackreint;
 		      v->flags.writebackreint = 1;
 
-		      u.u_error = v->SyncCache(NULL);
+		      u.u_error = ((repvol *)v)->SyncCache(NULL);
 
 		      v->flags.writebackreint = old_wb_flag;
 		  }
+              }
 	    }
 
 V_FreeLocks:
@@ -882,12 +905,7 @@ V_FreeLocks:
 	    gettimeofday(&u.u_tv2, 0);
 	    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 #endif      TIMING
- 	    /* Hack to include this as an ioctl request in the proper vsr. */
-	    if (!v->IsFake()) {
-		vsr *vsr = v->GetVSR(CRTORUID(u.u_cred));
-		vsr->RecordEvent(CODA_IOCTL,  u.u_error, (RPC2_Unsigned) elapsed);
-		v->PutVSR(vsr);
-	    }
+
 	    VDB->Put(&v);
 	    }
 	    if (u.u_error == ERETRY)

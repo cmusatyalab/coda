@@ -168,12 +168,12 @@ long RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
 
     LOG(1, ("RevokeWBPermit(): Vid = %d\n", Vid));
 
-    if (Vid == 0)
-	return 0;		// shafeeq wants to know if i'm alive
+    if (!Vid) return 0;
 
-    if (VDB->Get(&v, Vid) == 0) {
-	v->StopWriteback(NULL);
-    }
+    v = VDB->Find(Vid);
+    if (v && v->IsReplicated())
+	((repvol *)v)->StopWriteback(NULL);
+
     return 0;
 }
 

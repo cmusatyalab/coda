@@ -516,7 +516,7 @@ static int brave(int slot)
 static void CheckServers(int argc, char *argv[], int opslot)
 {
     int rc, i; 
-    unsigned long *downsrvarray;
+    struct in_addr *downsrvarray;
     char *insrv=0;
     struct ViceIoctl vio;
 
@@ -556,25 +556,17 @@ static void CheckServers(int argc, char *argv[], int opslot)
 
     /* See if there are any dead servers */
     if (insrv) free(insrv); /* free insrv only if it was alloc before */
-    downsrvarray = (unsigned long *) piobuf;
-    if (downsrvarray[0] == 0) {printf("All servers up\n"); return;}
+    downsrvarray = (struct in_addr *) piobuf;
+    if (downsrvarray[0].s_addr == 0) {printf("All servers up\n"); return;}
 
     /* Print out names of dead servers */
     printf("These servers still down: ");
-    for (i = 0; downsrvarray[i] != 0; i++) {
-        long a;
-        struct in_addr b;
+    for (i = 0; downsrvarray[i].s_addr != 0; i++) {
         struct hostent *hent;
 
-        if (downsrvarray[i] == 0) break;
-
-        hent = gethostbyaddr((char *)&downsrvarray[i], (int) sizeof(long), AF_INET);
+        hent = gethostbyaddr((char *)&downsrvarray[i], sizeof(long), AF_INET);
         if (hent) printf("  %s", hent->h_name);
-        else {
-            /* a may have been clobbered by gethostbyaddr() */
-            b = *(struct in_addr *)&downsrvarray[i];
-            printf("  %s", inet_ntoa(b));
-        }
+        else      printf("  %s", inet_ntoa(downsrvarray[i]));
     }
     printf("\n");
 }

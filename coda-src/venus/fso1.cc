@@ -169,22 +169,19 @@ void fsobj::ResetPersistent() {
     ClearAcRights(ALL_UIDS);
     flags.fake = 0;
     flags.owrite = 0;
-    flags.fetching = 0;
     flags.dirty = 0;
     flags.local = 0;
-    flags.discread = 0;	    /* Read/Write Sharing Stat Collection */
     mvstat = NORMAL;
     pfid = NullFid;
     CleanStat.Length = (unsigned long)-1;
     CleanStat.Date = (Date_t)-1;
     data.havedata = 0;
-    DisconnectionsSinceUse = 0;
-    DisconnectionsUnused = 0;
 }
 
 /* local-repair modification */
 /* Needn't be called from within transaction. */
-void fsobj::ResetTransient() {
+void fsobj::ResetTransient()
+{
     /* Sanity checks. */
     if (MagicNumber != FSO_MagicNumber)
 	{ print(logFile); CHOKE("fsobj::ResetTransient: bogus MagicNumber"); }
@@ -202,9 +199,8 @@ void fsobj::ResetTransient() {
     }
     ClearRcRights();
     DemoteAcRights(ALL_UIDS);
-    flags.replaceable = 0;
-    flags.era = 1;
     flags.ckmtpt = 0;
+    flags.fetching = 0;
     flags.random = ::random();
 
     memset((void *)&u, 0, (int)sizeof(u));
@@ -865,13 +861,6 @@ void fsobj::SetRcRights(int rights)
 
     LOG(100, ("fsobj::SetRcRights: (%s), rights = %d\n", FID_(&fid), rights));
 
-    if (flags.discread) {
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(flags);
-	flags.discread = 0;
-	Recov_EndTrans(MAXFP);
-    }
-
     /* There is a problem if the rights are set that we have valid data,
      * but we actually don't have data yet. */
     FSO_ASSERT(this, !(rights & RC_DATA) ||
@@ -913,8 +902,11 @@ int fsobj::IsValid(int rcrights) {
 
     /* Now if we still have the volume callback, we can't lose.
      * also update VCB statistics -- valid due to VCB */
-    if (vol->HaveCallBack()) {
-        ((repvol *)vol)->VCBHits++;
+    if (!vol->IsReplicated()) return 0;
+
+    repvol *vp = (repvol *)vol;
+    if (vp->HaveCallBack()) {
+        vp->VCBHits++;
         return 1;
     }
 
@@ -1487,9 +1479,6 @@ void fsobj::EnableReplacement() {
 	return;
     }
 */
-    if ((!REPLACEABLE(this) && prio_handle.tree() != 0) ||
-	 (REPLACEABLE(this) && prio_handle.tree() != FSDB->prioq))
-	{ print(logFile); CHOKE("fsobj::EnableReplacement: state != link"); }
 #endif	VENUSDEBUG
 
     /* Already replaceable? */
@@ -1515,7 +1504,6 @@ void fsobj::EnableReplacement() {
 #endif	VENUSDEBUG
 
     FSDB->prioq->insert(&prio_handle);
-    flags.replaceable = 1;
 
 #ifdef	VENUSDEBUG
     if (LogLevel >= 10000 && !(FSDB->prioq->IsOrdered()))
@@ -1535,9 +1523,6 @@ void fsobj::DisableReplacement() {
 	return;
     }
 */
-    if ((!REPLACEABLE(this) && prio_handle.tree() != 0) ||
-	 (REPLACEABLE(this) && prio_handle.tree() != FSDB->prioq))
-	{ print(logFile); CHOKE("fsobj::DisableReplacement: state != link"); }
 #endif	VENUSDEBUG
 
     /* Already not replaceable? */
@@ -1552,7 +1537,6 @@ void fsobj::DisableReplacement() {
 	FSDB->prioq->print(logFile);
 #endif	VENUSDEBUG
 
-    flags.replaceable = 0;
     if (FSDB->prioq->remove(&prio_handle) != &prio_handle)
 	{ print(logFile); CHOKE("fsobj::DisableReplacement: prioq remove"); }
 
@@ -1861,57 +1845,6 @@ CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid)
     return(advice);
 }
 
-void fsobj::DisconnectedCacheMiss(vproc *vp, vuid_t vuid, char *comp)
-{
-    char pathname[MAXPATHLEN];
-
-    /* If advice not enabled, simply return */
-    if (!SkkEnabled) {
-        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT enabled.\n"));
-        return;
-    }
-
-    /* Check that:                                                     *
-     *     (a) the request did NOT originate from the Hoard Daemon     *
-     *     (b) the request did NOT originate from that AdviceMonitor,  *
-     *     (c) the user is running an AdviceMonitor,                   *
-     * and (d) the volent is non-NULL.                                 */
-    CODA_ASSERT(vp != NULL);
-    if (vp->type == VPT_HDBDaemon) {
-	LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
-        return;
-    }
-    if (adv_mon.skkPgid(vp->u.u_pgid)) {
-        LOG(100, ("ADVSKK STATS:  DMQ Advice inappropriate.\n"));
-        return;
-    }
-    if (!(adv_mon.ConnValid())) {
-        LOG(100, ("ADVSKK STATS:  DMQ Advice NOT valid. (uid = %d)\n", vuid));
-        return;
-    }
-    if (vol == NULL) {
-        LOG(100, ("ADVSKK STATS:  DMQ volent is NULL.\n"));
-        return;
-    }
-
-    /* Get the pathname */
-    GetPath(pathname, 1);
-
-    if (comp) {
-        strcat(pathname, "/");
-	strcat(pathname,comp);
-    }
-
-    /* Make the request */
-    /*
-    LOG(100, ("Requesting Disconnected CacheMiss Questionnaire...1\n"));
-    adv_mon.RequestDisconnectedQuestionnaire(&fid, pathname, vp->u.u_pid, vol->GetDisconnectionTime());
-    */
-}
-
-
-
-
 /*  *****  MLE Linkage  *****  */
 
 /* MUST be called from within transaction! */
@@ -1973,11 +1906,13 @@ void fsobj::DetachMleBinding(binding *b) {
 
 
 /* MUST NOT be called from within transaction! */
-void fsobj::CancelStores() {
+void fsobj::CancelStores()
+{
     if (!DIRTY(this))
 	{ print(logFile); CHOKE("fsobj::CancelStores: !DIRTY"); }
 
-    vol->CancelStores(&fid);
+    CODA_ASSERT(vol->IsReplicated());
+    ((repvol *)vol)->CancelStores(&fid);
 }
 
 
@@ -2082,6 +2017,9 @@ int fsobj::Fakeify()
     if (!IsRoot())  // If we're not the root, pf != 0
 	    pf->AttachChild(this);
 
+    CODA_ASSERT(vol->IsReplicated());
+    repvol *vp = (repvol *)vol;
+
     struct in_addr volumehosts[VSG_MEMBERS];
     srvent *s;
     int i;
@@ -2139,8 +2077,6 @@ int fsobj::Fakeify()
 
 		    /* the normal fake link */
 		    /* get the volumeid corresponding to the server name */
-                    FSO_ASSERT(this, vol->IsReplicated());
-                    repvol *vp = (repvol *)vol;
 		    for (i = 0; i < VSG_MEMBERS; i++) {
                         if (!vp->vsg[i]) continue;
                         vp->vsg[i]->Host(&host);
@@ -2189,7 +2125,7 @@ int fsobj::Fakeify()
 	    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(this));
 
 	    /* Make entries for each of the rw-replicas. */
-	    vol->GetHosts(volumehosts);
+	    vp->GetHosts(volumehosts);
 	    for (i = 0; i < VSG_MEMBERS; i++) {
 		if (!volumehosts[i].s_addr) continue;
 		srvent *s;
@@ -2199,7 +2135,7 @@ int fsobj::Fakeify()
 		    sprintf(Name, "%s", s->name);
 		else
 		    sprintf(Name, "%08lx", volumehosts[i]);
-		ViceFid FakeFid = vol->GenerateFakeFid();
+		ViceFid FakeFid = vp->GenerateFakeFid();
 		LOG(1, ("fsobj::Fakeify: new entry (%s, %s)\n",
 			Name, FID_(&FakeFid)));
 		dir_Create(Name, &FakeFid);
@@ -2347,7 +2283,7 @@ void fsobj::ReturnEarly() {
 	case CODA_CLOSE:
 	    {
 	    /* Don't return early here if we already did so in a callback handler! */
-	    if (!(flags.era && FID_EQ(&w->StoreFid, &NullFid)))
+	    if (!FID_EQ(&w->StoreFid, &NullFid))
 		w->Return(0);
 	    break;
 	    }
@@ -2549,11 +2485,11 @@ void fsobj::print(int fdes) {
 		    SpecificUser[i].inuse, SpecificUser[i].valid);
 	fdprint(fdes, " }\n");
     }
-    fdprint(fdes, "\tvoltype = [%d %d %d], ucb = %d, fake = %d, fetching = %d local = %d\n",
+    fdprint(fdes, "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d\n",
 	     vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-	     vol->flags.usecallback, flags.fake, flags.fetching, flags.local);
-    fdprint(fdes, "\trep = %d, data = %d, owrite = %d, era = %d, dirty = %d, shadow = %d\n",
-	     flags.replaceable, HAVEDATA(this), flags.owrite, flags.era, flags.dirty,
+	     flags.fake, flags.fetching, flags.local);
+    fdprint(fdes, "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d\n",
+	     REPLACEABLE(this), HAVEDATA(this), flags.owrite, flags.dirty,
 	     shadow != 0);
 
     /* < mvstat [rootfid | mtptfid] > */
@@ -2583,9 +2519,6 @@ void fsobj::print(int fdes) {
       }
 
     }
-
-    fdprint(fdes, "\tDisconnectionStatistics:  Used = %d - Unused = %d - SinceLastUse = %d\n",
-	    DisconnectionsUsed, DisconnectionsUnused, DisconnectionsSinceUse);
 
     /* < mle_bindings, CleanStat > */
     fdprint(fdes, "\tmle_bindings = (%x, %d), cleanstat = [%d, %d]\n",
@@ -2618,7 +2551,6 @@ void fsobj::print(int fdes) {
 	     readers, writers, refcnt,
 	     (openers - Writers - Execers), Writers, Execers);
     fdprint(fdes, "\tlastresolved = %u\n", lastresolved);
-    fdprint(fdes, "\tdiscread = %d\n", flags.discread);
 }
 
 void fsobj::ListCache(FILE *fp, int long_format, unsigned int valid)

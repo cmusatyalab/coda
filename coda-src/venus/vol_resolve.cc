@@ -373,10 +373,10 @@ void resolver::main()
 	VprocWait((char *)this);
 	if (idle) CHOKE("resolver::main: signalled but not dispatched!");
 	if (!u.u_vol) CHOKE("resolver::main: no volume!");
-        CODA_ASSERT(u.u_vol->IsReplicated());
 
 	/* Do the resolve. */
-	u.u_vol->Resolve();
+        CODA_ASSERT(u.u_vol->IsReplicated());
+	((repvol *)u.u_vol)->Resolve();
 
 	seq++;
 

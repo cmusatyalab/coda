@@ -18,19 +18,18 @@ Coda are listed in the file CREDITS.
 
 #include "copyfile.h"
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 /* Copies file open for reading on file descriptor infd
  *     to file open for writing on file descriptor outfd.
- * Closes both file descriptors before exiting.
  * Returns -1 on error, 0 on success.
  */
 int copyfile(int infd, int outfd)
 {
     char databuf[BUF_SIZE];
     int cnt, ret;
-
-    /* truncate output file */
-    if (ftruncate(outfd, 0) < 0)
-	return(-1);
 
     while ((cnt = read(infd, databuf, BUF_SIZE)) > 0) {
 	ret = write(outfd, databuf, cnt);
@@ -50,7 +49,7 @@ int copyfile_byname(const char *in, const char *out)
     if ((infd = open(in, O_RDONLY)) < 0)
 	return -1;
 
-    if ((outfd = open(out, O_WRONLY|O_CREAT)) < 0)
+    if ((outfd = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY)) < 0)
 	goto err_exit;
     outopen = 1;
 

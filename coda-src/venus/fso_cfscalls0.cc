@@ -224,9 +224,10 @@ int fsobj::Fetch(vuid_t vuid) {
     if (vol->IsReplicated()) {
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP:Fetch call. */
@@ -257,7 +258,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    /* Collate responses from individual servers and decide what to do
 	     * next. */
-	    code = vol->Collate_NonMutating(m, code);
+	    code = vp->Collate_NonMutating(m, code);
 	    MULTI_RECORD_STATS(ViceFetch_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 
@@ -271,7 +272,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Collect the OUT VVs in an array so that they can be checked. */
 	    vv_t *vv_ptrs[VSG_MEMBERS];
@@ -337,7 +338,7 @@ RepExit:
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		break;
 
 	    case ETIMEDOUT:
@@ -406,9 +407,7 @@ NonRepExit:
         data.file->Close(fd);
 
     if (code == 0) {
-	if (vol->flags.usecallback &&
-	    status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
+	if (status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    SetRcRights(RC_STATUS | RC_DATA);
 
 	/* Note the presence of data. */
@@ -522,6 +521,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
     if (vol->IsReplicated()) {
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/*
 	 * these fields are for tracking vcb acquisition.  Since we
@@ -531,7 +531,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 	int nchecked = 0, nfailed = 0;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	nchecked++;  /* we're going to check at least the primary fid */
@@ -616,7 +616,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		CFSOP_POSTLUDE("fetch::ValidateAttrs done\n");
 
 		/* Collate */
-		code = vol->Collate_NonMutating(m, code);
+		code = vp->Collate_NonMutating(m, code);
 		MULTI_RECORD_STATS(ViceValidateAttrs_OP);
 
 		if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
@@ -662,7 +662,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 					  pobj->comp, FAVs[i].Fid.Volume, 
 					  FAVs[i].Fid.Vnode, FAVs[i].Fid.Unique));
 
-				if (vol->flags.usecallback && cbtemp == cbbreaks) {
+				if (cbtemp == cbbreaks) {
 				    if (!HAVEALLDATA(pobj))
 					pobj->SetRcRights(RC_STATUS);
 				    else
@@ -682,18 +682,6 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 					pobj->comp, FAVs[i].Fid.Volume, 
 					FAVs[i].Fid.Vnode, FAVs[i].Fid.Unique));
 				
-				/* Read/Write Sharing Stat Collection */
-				if (pobj->flags.discread) {
-				    Recov_BeginTrans();
-				    RVMLIB_REC_OBJECT(vol->current_rws_cnt);
-				    vol->current_rws_cnt++;
-				    RVMLIB_REC_OBJECT(vol->current_disc_read_cnt);
-				    vol->current_disc_read_cnt++;
-				    RVMLIB_REC_OBJECT(pobj->flags);
-				    pobj->flags.discread = 0;
-				    Recov_EndTrans(MAXFP);
-				}
-
 				if (REPLACEABLE(pobj) && !BUSY(pobj)) {
 					Recov_BeginTrans();
 					pobj->Kill(0);
@@ -739,7 +727,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
 		    /* Collate responses from individual servers and decide
 		     * what to do next. */
-		    code = vol->Collate_NonMutating(m, code);
+		    code = vp->Collate_NonMutating(m, code);
 		    MULTI_RECORD_STATS(ViceGetACL_OP);
 		} else {
 		    MULTI_START_MESSAGE(ViceGetAttr_OP);
@@ -753,7 +741,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
 		    /* Collate responses from individual servers and decide
 		     * what to do next. */
-		    code = vol->Collate_NonMutating(m, code);
+		    code = vp->Collate_NonMutating(m, code);
 		    MULTI_RECORD_STATS(ViceGetAttr_OP);
 		}
 
@@ -765,7 +753,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Collect the OUT VVs in an array so that they can be checked. */
 	    vv_t *vv_ptrs[VSG_MEMBERS];
@@ -837,9 +825,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
     	    }
 	}
 
-	if (vol->flags.usecallback &&
-	    status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks &&
+	if (status.CallBack == CallBackSet && cbtemp == cbbreaks &&
 	    !asy_resolve)
 	{
 	    if (!HAVEALLDATA(this))
@@ -861,23 +847,14 @@ RepExit:
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		break;
 
 	    case ESYNRESOLVE:
-		vol->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
+		vp->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
 		break;
 
 	    case EINCONS:
-		/* Read/Write Sharing Stat Collection */
-		if (flags.discread) {
-		    Recov_BeginTrans();
-		    RVMLIB_REC_OBJECT(vol->current_rws_cnt);
-		    vol->current_rws_cnt++;
-		    RVMLIB_REC_OBJECT(flags);
-		    flags.discread = 0;
-		    Recov_EndTrans(MAXFP);
-		}
 		Recov_BeginTrans();
 		Kill();
 		Recov_EndTrans(CMFP);
@@ -963,9 +940,7 @@ RepExit:
 	    }
 	}
 
-	if (vol->flags.usecallback &&
-	    status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
+	if (status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	{
 	    if (!HAVEALLDATA(this))
 		SetRcRights(RC_STATUS);
@@ -982,15 +957,6 @@ NonRepExit:
     }
 
     if (code != 0) {
-	/* Read/Write Sharing Stat Collection */
-	if (flags.discread) {
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(vol->current_rws_cnt);
-	    vol->current_rws_cnt++;
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.discread = 0;
-	    Recov_EndTrans(MAXFP);
-	}
 	Recov_BeginTrans();
 	/* Demote or discard existing status. */
 	if (HAVESTATUS(this) && code != ENOENT)
@@ -1098,9 +1064,10 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -1108,14 +1075,14 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
-	    vol->PackVS(m->nhosts, &OldVS);
+	    vp->PackVS(m->nhosts, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
@@ -1137,18 +1104,18 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceStore_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Store() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -1174,26 +1141,26 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    (void)vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		break;
 
 	    default:
 		/* Simulate a disconnection, to be followed by reconnection/reintegration. */
 		Recov_BeginTrans();
-		code = vol->LogStore(Mtime, vuid, &fid, NewLength);
+		code = vp->LogStore(Mtime, vuid, &fid, NewLength);
 
 		if (code == 0) {
 			LocalStore(Mtime, NewLength);
-			vol->flags.transition_pending = 1;
+			vp->flags.transition_pending = 1;
 		}
 		Recov_EndTrans(DMFP);
 		break;
@@ -1258,7 +1225,7 @@ int fsobj::DisconnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
     Recov_BeginTrans();
 	/* Failure to log a store would be most unpleasant for the user! */
 	/* Probably we should try to guarantee that it never happens (e.g., by reserving a record at open). */
-    code = vol->LogStore(Mtime, vuid, &fid, NewLength, Tid);
+    code = ((repvol *)vol)->LogStore(Mtime, vuid, &fid, NewLength, Tid);
     
     if (code == 0)
 	    LocalStore(Mtime, NewLength);
@@ -1389,9 +1356,10 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -1399,13 +1367,13 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
-	    vol->PackVS(m->nhosts, &OldVS);
+	    vp->PackVS(m->nhosts, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -1427,7 +1395,7 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 		free(OldVS.SeqBody);
 		/* Collate responses from individual servers and decide what to
 		 * do next. */
-		code = vol->Collate_COP1(m, code, &UpdateSet);
+		code = vp->Collate_COP1(m, code, &UpdateSet);
 		MULTI_RECORD_STATS(ViceSetACL_OP);
 	    } else {
 		MULTI_START_MESSAGE(ViceSetAttr_OP);
@@ -1443,7 +1411,7 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 		free(OldVS.SeqBody);
 		/* Collate responses from individual servers and decide what to
 		 * do next. */
-		code = vol->Collate_COP1(m, code, &UpdateSet);
+		code = vp->Collate_COP1(m, code, &UpdateSet);
 		MULTI_RECORD_STATS(ViceSetAttr_OP);
 	    }
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
@@ -1451,11 +1419,11 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::SetAttr()
 	     * call! -JJK */
@@ -1474,16 +1442,16 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		break;
 
 	    case ETIMEDOUT:
@@ -1551,8 +1519,10 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLengt
 
     Recov_BeginTrans();
     RPC2_Integer tNewMode =	(short)NewMode;	    /* sign-extend!!! */
-    code = vol->LogSetAttr(Mtime, vuid, &fid, NewLength, NewDate, NewOwner, 
-			   (RPC2_Unsigned)tNewMode, Tid);
+
+    CODA_ASSERT(vol->IsReplicated());
+    code = ((repvol *)vol)->LogSetAttr(Mtime, vuid, &fid, NewLength, NewDate,
+                                        NewOwner, (RPC2_Unsigned)tNewMode, Tid);
     if (code == 0)
 	    LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
     Recov_EndTrans(DMFP);
@@ -1739,9 +1709,10 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Allocate a fid for the new object. */
-	code = vol->AllocFid(File, &target_fid, &AllocHost, vuid);
+	code = vp->AllocFid(File, &target_fid, &AllocHost, vuid);
 	if (code != 0) goto RepExit;
 
 	/* Allocate the fsobj. */
@@ -1756,7 +1727,7 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 			 NBLOCKS(sizeof(fsobj)));
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -1764,11 +1735,11 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    vol->PackVS(m->nhosts, &OldVS);
+	    vp->PackVS(m->nhosts, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, target_fidvar, target_fid, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
@@ -1791,18 +1762,18 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceVCreate_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Create() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -1818,26 +1789,24 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	UpdateStatus(&parent_status, &UpdateSet, vuid);
 	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->vol->flags.usecallback &&
-	    target_status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
+	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
 	if (ASYNCCOP2) target_fso->ReturnEarly();
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve) {
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		    if (target_fso != 0)
-			vol->ResSubmit(0, &target_fso->fid);
+			vp->ResSubmit(0, &target_fso->fid);
 		}
 		break;
 
@@ -1892,9 +1861,7 @@ RepExit:
 	UpdateStatus(&parent_status, 0, vuid);
 	target_fso->UpdateStatus(&target_status, 0, vuid);
 	Recov_EndTrans(CMFP);
-	if (target_fso->vol->flags.usecallback &&
-	    target_status.CallBack == CallBackSet &&
-	    cbtemp == cbbreaks)
+	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
 
 NonRepExit:
@@ -1934,7 +1901,7 @@ int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
-    code = vol->AllocFid(File, &target_fid, &AllocHost, vuid);
+    code = ((repvol *)vol)->AllocFid(File, &target_fid, &AllocHost, vuid);
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
@@ -1949,7 +1916,7 @@ int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = vol->LogCreate(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
+    code = ((repvol *)vol)->LogCreate(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
 
     if (code == 0) {
 	    /* This MUST update second-class state! */

@@ -117,14 +117,6 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 	    goto Exit;
    }
 
-    /* Read/Write Sharing Stat Collection */
-    if (EMULATING(this) && !flags.discread) {
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(flags);
-	flags.discread = 1;
-	Recov_EndTrans(MAXFP);
-      } 
-
     /* If object is directory make sure Unix-format contents are valid. */
     if (IsDir()) {
 	if (data.dir->udcf == 0) {
@@ -295,7 +287,7 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 	/* Attempt the Store. */
 	vproc *v = VprocSelf();
 	if (v->type == VPT_Worker)
-	    if (flags.era) ((worker *)v)->StoreFid = fid;
+	    ((worker *)v)->StoreFid = fid;
 	code = Store(NewLength, NewDate, vuid);
 	if (v->type == VPT_Worker)
 	    ((worker *)v)->StoreFid = NullFid;
@@ -545,7 +537,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	     * destroyed the object and RecResolve won't work. That is why we
 	     * submit this directory for resolution as well. -JH */
 	    if (code == ESYNRESOLVE && vol->IsReplicated())
-		vol->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
+		((repvol *)vol)->ResSubmit(&((VprocSelf())->u.u_resblk), &fid);
 
 	    return(code);
 	}

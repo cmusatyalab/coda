@@ -54,10 +54,8 @@ extern "C" {
 #include "venuscb.h"
 #include "venuswb.h"
 #include "venusrecov.h"
-#include "venusvm.h"
 #include "venusvol.h"
 #include "vproc.h"
-#include "vstab.h"
 #include "worker.h"
 #include "coda_assert.h"
 #include "codaconf.h"
@@ -76,9 +74,8 @@ ViceFid	rootfid;
 long rootnodeid;
 int CleanShutDown;
 int SearchForNOreFind;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
-int Venus_Initialized;
 
-/* Command-line/vstab parameters. */
+/* Command-line/venus.conf parameters. */
 char *consoleFile;
 char *venusRoot;
 char *kernDevice;
@@ -134,7 +131,7 @@ int main(int argc, char **argv) {
     coda_assert_cleanup = VFSUnmount;
 
     ParseCmdline(argc, argv);
-    DefaultCmdlineParms();   /* read vstab and /etc/coda/venus.conf */
+    DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
 
     /* open the console file and print vital info */
     freopen(consoleFile, "w", stderr);
@@ -178,7 +175,6 @@ int main(int argc, char **argv) {
     VolInit();      /* init VDB, daemon */
     FSOInit();      /* allocate FSDB if necessary, recover FSOs, start FSO daemon */
     HDB_Init();     /* allocate HDB if necessary, scan entries, start the HDB daemon */
-    VmonInit();     /* set up Vmon and start Vmon daemon */
     MarinerInit();  /* set up mariner socket */
     WorkerInit();   /* open kernel device */
     CallBackInit(); /* set up callback subsystem and create callback server threads */
@@ -204,7 +200,6 @@ int main(int argc, char **argv) {
 #endif
 
     UnsetInitFile();
-    Venus_Initialized = 1;
     eprint("Venus starting...");
 
     /* Act as message-multiplexor/daemon-dispatcher. */
@@ -231,7 +226,6 @@ int main(int argc, char **argv) {
 
     LOG(0, ("Venus exiting\n"));
 
-    VDB->FlushVolume();
     RecovFlush(1);
     RecovTerminate();
     VFSUnmount();
@@ -318,10 +312,6 @@ static void ParseCmdline(int argc, char **argv) {
 		i++, sftp_ackpoint = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-ps"))           /* sftp packet size */
 		i++, sftp_packetsize = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-mondhost"))
-		i++, VmonHost = argv[i];
-	    else if (STREQ(argv[i], "-mondportal"))
-		i++, VmonPort = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-init"))        /* brain wipe rvm */
 		InitMetaData = 1;
 	    else if (STREQ(argv[i], "-rvmt"))

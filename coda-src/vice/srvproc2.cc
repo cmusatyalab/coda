@@ -245,7 +245,7 @@ long FS_ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *In
     
     vre = VRDB.find((char *)VolName);
     if (!vre) {
-	VolumeId Vid = atoi((char *)VolName);
+	VolumeId Vid = strtol((char *)VolName, NULL, 0);
 	if (Vid != 0) vre = VRDB.find(Vid);
     }
     if (vre)

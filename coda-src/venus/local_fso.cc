@@ -124,9 +124,10 @@ int fsobj::RepairStore()
 	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
-	code = vol->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
+	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
@@ -134,14 +135,14 @@ int fsobj::RepairStore()
 	vv_t UpdateSet;
 
 	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
+	sid = vp->GenerateStoreId();
 	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph;
             ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
 
- 	    vol->PackVS(m->nhosts, &OldVS);
+ 	    vp->PackVS(m->nhosts, &OldVS);
 
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
@@ -163,18 +164,18 @@ int fsobj::RepairStore()
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
 	    MULTI_RECORD_STATS(ViceStore_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
 	    /* Collate volume callback information */
 	    if (cbtemp == cbbreaks)
-		vol->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
+		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
 
 	    /* Finalize COP2 Piggybacking. */
 	    if (PIGGYCOP2)
-		vol->ClearCOP2(&PiggyBS);
+		vp->ClearCOP2(&PiggyBS);
 
 	    /* Manually compute the OUT parameters from the mgrpent::Store() call! -JJK */
 	    int dh_ix; dh_ix = -1;
@@ -200,16 +201,16 @@ int fsobj::RepairStore()
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vp->AddCOP2(&sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    vp->COP2(m, &sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
-		    vol->ResSubmit(0, &fid);
+		    vp->ResSubmit(0, &fid);
 		break;
 
 	    default:
@@ -823,7 +824,8 @@ int fsobj::ReplaceLocalFakeFid()
 	/* globally replace the global-fid with the local-fid */
 	FSO_ASSERT(this, FSDB->TranslateFid(&GlobalFid, &LocalFid) == 0);
 	LRDB->TranslateFid(&GlobalFid, &LocalFid);
-	obj->vol->TranslateCMLFid(&GlobalFid, &LocalFid);
+        CODA_ASSERT(obj->vol->IsReplicated());
+	((repvol *)obj->vol)->TranslateCMLFid(&GlobalFid, &LocalFid);
 	obj->SetLocalObj();
 	Recov_EndTrans(MAXFP);
 	if (HAVEALLDATA(obj) && !DYING(obj))
@@ -922,15 +924,16 @@ int fsobj::LocalFakeify()
     ViceFid FakeRootFid, LocalChildFid, GlobalChildFid;
     RPC2_Unsigned AllocHost = 0;
     CODA_ASSERT(vol->IsReplicated());
-    code = vol->AllocFid(Directory, &FakeRootFid, &AllocHost,V_UID);
+    repvol *rv = (repvol *)vol;
+    code = rv->AllocFid(Directory, &FakeRootFid, &AllocHost,V_UID);
     if (code != 0) {
 	LOG(0, ("fsobj::LocalFakeify: can not alloc fid for the root object\n"));
 	return code;
     }
 
     Recov_BeginTrans();
-    GlobalChildFid = vol->GenerateFakeFid();
-    LocalChildFid = vol->GenerateFakeFid();
+    GlobalChildFid = rv->GenerateFakeFid();
+    LocalChildFid = rv->GenerateFakeFid();
     Recov_EndTrans(MAXFP);
 
     vproc *vp = VprocSelf();
@@ -1061,15 +1064,16 @@ int fsobj::LocalFakeifyRoot()
     ViceFid FakeRootFid, LocalChildFid, GlobalChildFid;
     RPC2_Unsigned AllocHost = 0;
     CODA_ASSERT(vol->IsReplicated());
-    code = vol->AllocFid(Directory, &FakeRootFid, &AllocHost,V_UID);
+    repvol *rv = (repvol *)vol;
+    code = rv->AllocFid(Directory, &FakeRootFid, &AllocHost,V_UID);
     if (code != 0) {
 	LOG(0, ("fsobj::LocalFakeifyRoot: can not alloc fid for root object\n"));
 	return code;
     }
 
     Recov_BeginTrans();
-    GlobalChildFid = vol->GenerateFakeFid();
-    LocalChildFid = vol->GenerateFakeFid();
+    GlobalChildFid = rv->GenerateFakeFid();
+    LocalChildFid = rv->GenerateFakeFid();
     Recov_EndTrans(MAXFP);
 
     FakeRootFid.Volume = pf->fid.Volume;

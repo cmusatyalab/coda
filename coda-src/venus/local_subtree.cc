@@ -1258,11 +1258,10 @@ void LRInit()
 	}
 
 	{   /* GC local-repair mutations (if any) */
-	    vol_iterator next;
-	    volent *vol;
-	    while ((vol = next())) {
-		vol->ClearRepairCML();
-	    }
+	    repvol_iterator next;
+	    repvol *v;
+	    while ((v = next()))
+		v->ClearRepairCML();
 	}
     }
 
