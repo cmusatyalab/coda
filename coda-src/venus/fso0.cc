@@ -143,9 +143,6 @@ void FSOInit() {
 	int nentries;
 	char *cwd,*abspath,*eos;
 	struct stat statbuf;
-	abspath = strncpy(abspath,cwd,MAXPATHLEN);
-	abspath = strncat(abspath,"/",2);
-	eos = abspath + strlen(abspath) + 1;
 
 	nentries = scandir(".", &namelist, 0, 0) ;
 	if (nentries < 0) CHOKE("FSOInit: scandir");
@@ -153,6 +150,10 @@ void FSOInit() {
 	cwd = getwd(NULL);
 	abspath = (char*)malloc(sizeof(char)*MAXPATHLEN);
 	CODA_ASSERT(abspath != NULL);
+
+	abspath = strncpy(abspath,cwd,MAXPATHLEN);
+	abspath = strncat(abspath,"/",2);
+	eos = abspath + strlen(abspath) + 1;
 
 	/* Examine each entry and decide to keep or delete it */
 	for (i = 0; i < nentries; i++) {
