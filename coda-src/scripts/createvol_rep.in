@@ -96,7 +96,6 @@ echo Servers are \($SERVERS\)
 NSERVERS=`echo $SERVERS | wc -w` 
 
 
-
 # Validate the server list
 if [ $NSERVERS -eq 0 -o  $NSERVERS -gt $MAXSERVERS ]; then
 	echo Specify 1 - $MAXSERVERS servers
@@ -120,8 +119,17 @@ for SERVER in $SERVERS ; do
 	      sed -e "s/^P//g" > /tmp/cvr.$$  
 	np=`cat /tmp/cvr.$$ | wc -w`
 	if [ $np -eq 0 ]; then
-	    echo Found no partitions for server $SERVER.
-	    exit 1
+	    volutil -h $SERVER getvolumelist /tmp/vollist.$$
+	    cat /tmp/vollist.$$ >> ${vicedir}/vol/BigVolumeList
+	    rm -f /tmp/vollist.$$
+	    grep "^P"  ${vicedir}/vol/BigVolumeList | \
+	        awk "/ H$SERVER[\. ]/ "'{print $1}' | \
+	        sed -e "s/^P//g" > /tmp/cvr.$$  
+	    np=`cat /tmp/cvr.$$ | wc -w`
+	    if [ $np -eq 0 ]; then
+		echo Found no partitions for server $SERVER.
+		exit 1
+	    fi
 	fi 
         if [ $# -eq 2 ]; then
 	    if [ $np -gt 1 ]; then
@@ -132,8 +140,16 @@ for SERVER in $SERVERS ; do
 	    PART="$PART"`cat /tmp/cvr.$$`" "
 	else
 	    if ! grep "^$PARTITION\$" /tmp/cvr.$$ > /dev/null ; then
-		echo Partition $PARTITION not found on server $SERVER.
-		exit 1;
+		volutil -h $SERVER getvolumelist /tmp/vollist.$$
+		cat /tmp/vollist.$$ >> ${vicedir}/vol/BigVolumeList
+		rm -f /tmp/vollist.$$
+		grep "^P"  ${vicedir}/vol/BigVolumeList | \
+		    awk "/ H$SERVER[\. ]/ "'{print $1}' | \
+		    sed -e "s/^P//g" > /tmp/cvr.$$  
+		if ! grep "^$PARTITION\$" /tmp/cvr.$$ > /dev/null ; then
+		    echo Partition $PARTITION not found on server $SERVER.
+		    exit 1;
+		fi
 	    fi
 	fi
 done
