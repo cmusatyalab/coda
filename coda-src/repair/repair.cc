@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.cc,v 4.5 1997/12/23 17:19:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/repair.cc,v 4.6 1998/01/04 14:58:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,12 +95,14 @@ struct stat doInputStatBuf;
 PRIVATE void	SetDefaultPaths();
 PRIVATE int	compareVV(int, char **, struct repvol *);
 PRIVATE void	GetArgs(int argc, char *argv[]);
-PRIVATE	int	getcompareargs(int, char **, char *, char *);
+PRIVATE	int	getcompareargs(int, char **, char *, char *, 
+			       char **, char **, char **, char **);
 PRIVATE int	getremoveargs(int, char **, char *);
 PRIVATE void	getremovelists(int, resreplica *, struct listhdr **);
 PRIVATE int	getrepairargs(int, char **, char *, char *, char *);
 PRIVATE int	makedff(char *extfile, char *intfile);
-PRIVATE int	doCompare(int, struct repvol *, char **, char *, char *, ViceFid *);
+PRIVATE int	doCompare(int, struct repvol *, char **, char *, char *, 
+			  ViceFid *, char *, char *, char *, char *);
 PRIVATE int	compareStatus(int, resreplica *);
 PRIVATE int	compareQuotas(int , char **);
 PRIVATE int 	compareOwner(int, resreplica *);
@@ -162,21 +164,20 @@ main(int argc, char *argv[])
 	printf("The help directory \"%s\" is not accessible\n", HELPDIR);
     } */
 
-    /* print a message indicating basic repair methodology */
-    printf(INITHELPMSG);
-
-    /* warn user if no tokens are found */
-    if (GetTokens()) {
-	printf("\n\n\nWARNING: YOU DON'T HAVE TOKENS.  "
-	       "YOU MIGHT WANT TO AUTHENTICATE FIRST\n\n");
-    }
     /* Sit in command loop */
-    if ( argc == 3 ) {
-	    beginRepair(1, &argv[1]);
-	    compareDirs(1, &argv[2]);
-	    doRepair(1, &argv[2]);
+    if ( argc >= 3 ) {
+	    beginRepair(2, &argv[0]);
+	    compareDirs(argc - 1 , &argv[1]);
+	    doRepair(3, &argv[0]);
 	    quit(0, NULL);
     } else if ( argc != 3 ) {
+	    printf(INITHELPMSG);
+
+	    /* warn user if no tokens are found */
+	    if (GetTokens()) {
+		    printf("\n\n\nWARNING: YOU DON'T HAVE TOKENS.  "
+			   "YOU MIGHT WANT TO AUTHENTICATE FIRST\n\n");
+    }
 	    GetArgs(argc, argv);
 	    Parser_init("repair > ", list);
 	    Parser_commands();
@@ -427,6 +428,12 @@ void compareDirs(int largc, char **largv)
     ViceFid confFid;
     vv_t    confvv;
     struct stat buf;
+    char *user;
+    char *rights;
+    char *owner;
+    char *mode;
+
+    user = rights = owner = mode = NULL;
 
     switch (session) {
     case LOCAL_GLOBAL:
@@ -438,7 +445,8 @@ void compareDirs(int largc, char **largv)
     }
 
     /* Obtain parameters from user */
-    rc = getcompareargs(largc, largv, uconflictpath, filepath);
+    rc = getcompareargs(largc, largv, uconflictpath, filepath, 
+			&user, &rights, &owner, &mode);
     if (rc < 0) return;
 
     /* Is this the leftmost element in conflict? */
@@ -485,7 +493,8 @@ void compareDirs(int largc, char **largv)
     
   redocompare:
     /* do the compare */
-    rc = doCompare(nreplicas, repv, names, filepath, prefix, &confFid);
+    rc = doCompare(nreplicas, repv, names, filepath, prefix, &confFid, 
+		   user, rights, owner, mode);
     if (!rc)
 	printf("No conflicts detected \n");
     else if (rc > 0)
@@ -542,6 +551,12 @@ void clearInc(int largc, char **largv)
     int	    sizeOfPath;
     char    **names;
     int	    nreplicas;
+    char *user;
+    char *rights;
+    char *owner;
+    char *mode;
+
+    user = rights = owner = mode = NULL;
 
     if (!allowclear) {
 	printf("Clear Inconsistency: This command is obsolete.");
@@ -587,7 +602,8 @@ void clearInc(int largc, char **largv)
     confFid.Vnode = 0;	// set the fid to 0.0 so docompare will not check quotas
     confFid.Unique = 0; 
     /* do the compare */
-    if (!doCompare(nreplicas, repv, names, "/dev/null", prefix, &confFid)){
+    if (!doCompare(nreplicas, repv, names, "/dev/null", prefix, &confFid,
+		   user, rights, owner, mode)){
 	ViceFid Fid[MAXHOSTS];
 	vv_t vv[MAXHOSTS];
 	struct ViceIoctl vioc;
@@ -663,6 +679,12 @@ void removeInc(int largc, char **largv)
     struct stat buf;
     FILE *file;
     enum {FIXDIR, FIXFILE, UNKNOWN} fixtype;
+    char *user;
+    char *rights;
+    char *owner;
+    char *mode;
+
+    user = rights = owner = mode = NULL;
 
     switch (session) {
     case NOT_IN_SESSION:
@@ -829,7 +851,9 @@ void removeInc(int largc, char **largv)
 		    // object is still inconsistent ... try to clear inconsistency
 		    // confFid is 0.0 so that doCompare will not check quotas
 		    confFid.Volume = confFid.Vnode = confFid.Unique = 0;
-		    if (!doCompare(nreplicas, repv, names, "/dev/null", prefix, &confFid)){
+		    if (!doCompare(nreplicas, repv, names, "/dev/null", 
+				   prefix, &confFid, user, rights, 
+				   owner, mode)){
 			ViceFid Fid[MAXHOSTS];
 			vv_t vv[MAXHOSTS];
 			struct ViceIoctl vioc;
@@ -1066,29 +1090,41 @@ PRIVATE int getrepairargs(int largc, char **largv, char *conflictpath,
 }
 
 
-PRIVATE	int getcompareargs(int largc, char **largv, char *reppath, char *filepath)
+PRIVATE	int getcompareargs(int largc, char **largv, char *reppath, 
+			   char *filepath,  char **user, char **rights, 
+			   char **owner, char **mode)
 {
-	switch ( largc ) {
-#if 0
-	case 1 : 
-		Parser_getstr("Pathname of Object in conflict?", 
-			      doRepDefault, reppath, MAXPATHLEN);
-		Parser_getstr("Fix file?", "/tmp/fix", filepath, MAXPATHLEN);
-		break;
-	case 3 :
-		strncpy(reppath, largv[1], MAXPATHLEN);
-		strncpy(filepath, largv[2], MAXPATHLEN);
-		break ; 
-#endif
-	case 1 : 
-		Parser_getstr("Fix file?", "/tmp/fix", filepath, MAXPATHLEN);
-		break;
-	case 2 :
-		strncpy(filepath, largv[1], MAXPATHLEN);
-		break ; 
-	default :
-		printf("%s { <fixfile> }\n", largv[0]);
-		return(-1);
+	int j;
+	if (largc == 1 ) 
+		goto exit;
+	
+	strncpy(filepath, largv[1], MAXPATHLEN);
+	
+	*user = NULL;
+	*rights = NULL;
+	*owner = NULL;
+	*mode = NULL;
+
+	for ( j = 2; j < largc ; j++ ) {
+		if ( strcmp(largv[j], "-acl") == 0 ) {
+			if ( largc < j+3 ) 
+				goto exit;
+			*user = largv[j+1];
+			*rights = largv[j+2];
+			j = j + 2;
+		}
+		if ( strcmp(largv[j], "-owner") == 0 ) {
+			if ( largc < j+2 ) 
+				goto exit;
+			*owner = largv[j+1];
+			j = j+1;
+		}
+		if ( strcmp(largv[j], "-mode") == 0) {
+			if ( largc < j+2 ) 
+				goto exit;
+			*mode = largv[j+1];
+			j = j+1;
+		}
 	}
 
 	while (*filepath && (strncmp(filepath, "/coda", 5) == 0)) {
@@ -1100,6 +1136,10 @@ PRIVATE	int getcompareargs(int largc, char **largv, char *reppath, char *filepat
 	strncpy(reppath, doRepDefault, MAXPATHLEN);
 	strncpy(compDirDefault, filepath, MAXPATHLEN);
 	return 0;
+
+exit :
+	printf("%s  <fixfile> { -acl user rights } { -owner uid} {-mode mode}\n", largv[0]);
+	return(-1);
 }
 
 PRIVATE int getremoveargs(int largc, char **largv, char *uconfpath)
@@ -1120,7 +1160,8 @@ PRIVATE int getremoveargs(int largc, char **largv, char *uconfpath)
 
 
 PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names, 
-		      char *filepath, char *volmtpt, ViceFid *incfid)
+		      char *filepath, char *volmtpt, ViceFid *incfid,
+		      char *user, char *rights, char *owner, char *mode)
 {
     resreplica *dirs;
     struct  listhdr *k;
@@ -1128,6 +1169,7 @@ PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names,
     unsigned long j;
     FILE *file;
     struct rwvol *rwv;
+    int setmode = 0, setacl = 0, setowner = 0;
 
     switch (session) {
     case LOCAL_GLOBAL:
@@ -1163,6 +1205,31 @@ PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names,
     }
     int rc = dirresolve(nreplicas, dirs, NULL, &k, volmtpt);
 
+    if (compareAcl(nreplicas, dirs)){
+	nConflicts ++;
+	if ( user && rights ) {
+		printf("Acls will be set to %s %s.\n", user, rights);
+		setacl = 1;
+	} else
+		printf("Acls differ: Please repair manually using setacl <user> <rights>\n");
+    }
+    if (compareStatus(nreplicas, dirs)){
+	nConflicts++;
+	if ( mode ) {
+		printf("Modebits will be set to %s.\n", mode);
+		setmode = 1;
+	} else 
+		printf("Modebits differ - a repair should set the bits\n");
+    }
+    if (compareOwner(nreplicas, dirs)) {
+	nConflicts++;
+	if ( owner ) {
+		printf("owner uid will be set to %s\n", owner);
+		setowner = 1;
+	} else 
+		printf("Owner differs: Please repair manually using setowner <uid>\n");
+    }
+
     for (i = 0; i < nreplicas; i++){
 	/* find the server name */
 	{
@@ -1174,7 +1241,17 @@ PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names,
 	fprintf(file,"\nreplica %s %lx \n", rwv->srvname, k[i].replicaId);
 	for (j = 0; j < k[i].repairCount; j++)
 	    repair_printline(&(k[i].repairList[j]), file);
+	if ( setacl ) {
+		fprintf(file, "\tsetacl %s %s\n", user, rights);
+	}
+	if ( setmode ) {
+		fprintf(file, "\tsetmode %s\n", mode);
+	}		
+	if ( setowner ) {
+		fprintf(file, "\tsetowner %s\n", owner);
+	}
     }
+
     if (file != stdout) {
 	fclose(file);
 	if (compOutputFile[0]) {
@@ -1185,18 +1262,8 @@ PRIVATE int doCompare(int nreplicas, struct repvol *repv, char **names,
 	    }
 	}
     }
-    if (compareAcl(nreplicas, dirs)){
-	nConflicts ++;
-	printf("Acls differ: Please repair manually using setacl <user> <rights>\n");
-    }
-    if (compareStatus(nreplicas, dirs)){
-	nConflicts++;
-	printf("Modebits differ - a repair should set the bits\n");
-    }
-    if (compareOwner(nreplicas, dirs)) {
-	nConflicts++;
-	printf("Owner differs: Please repair manually using setowner <uid>\n");
-    }
+
+
     if (compareVV(nreplicas, names, repv)) {
 	if (!nConflicts) {
 	    // warn the user if no conflicts were detected otherwise
@@ -1309,6 +1376,8 @@ PRIVATE int compareAcl(int nreplicas, resreplica *dirs)
     }
     return 0;
 }
+
+
 PRIVATE int compareVV(int nreplicas, char **names, struct repvol *repv) 
 {
     vv_t vv[MAXHOSTS];
@@ -1387,7 +1456,7 @@ PRIVATE int makedff(char *extfile, char *intfile /* OUT */)
     }
 
 PRIVATE void GetArgs(int argc, char *argv[])
-    {
+{
     int i;
 
     for (i = 1; i < argc; i++)
@@ -1397,20 +1466,10 @@ PRIVATE void GetArgs(int argc, char *argv[])
 	    repair_DebugFlag = 1;
 	    continue;
 	    }
-	if (strcmp(argv[i], "-nsr") == 0)
-	    {
-		printf("Old-style repair is no longer supported\n");
-		goto BadArgs;
-	    }
 	if (strcmp(argv[i], "-allowclear") == 0)
 	    {
 		allowclear = 1;
 		continue;
-	    }
-        if (strcmp(argv[i], "-allowfilerepair") == 0) 
-	    {
-		printf("the -allowfilerepair flag is no longer supported\n");
-		goto BadArgs;
 	    }
 	goto BadArgs;
 	}
@@ -1419,7 +1478,7 @@ PRIVATE void GetArgs(int argc, char *argv[])
 BadArgs:
     printf("Usage: repair [-d]\n");
     exit(-1);
-    }
+}
 
 
 PRIVATE void SetDefaultPaths()
