@@ -164,14 +164,17 @@ void writebackserver::main(void)
 
 long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
 {
+    RPC2_PeerInfo thePeer;
     volent *v;
     Volid vid;
 
     LOG(1, ("RevokeWBPermit(): Vid = %d\n", Vid));
 
-    srvent *s = FindServerByCBCid(RPCid);
+    RPC2_GetPeerInfo(RPCid, &thePeer);
+    srvent *s = FindServer(&thePeer.RemoteHost.Value.InetAddress);
+
     if (!s) {
-	LOG(0, ("Callback from unknown host?\n"));
+	LOG(0, ("RevokeWBPermit from unknown host?\n"));
 	return 0;
     }
 
