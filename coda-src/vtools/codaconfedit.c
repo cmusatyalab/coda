@@ -154,13 +154,12 @@ int main(int argc, char **argv)
     FAILIF(argc < 2, "Usage: %s <conffile> [<variable> [<value>]]\n", argv[0]);
 
     conffile = codaconf_file(argv[1]);
-    if (!conffile && argc < 3) {
-	fprintf(stdout, "/dev/null");
-	fprintf(stderr, "Configuration file '%s' not found\n", argv[1]);
-	exit(-1);
-    }
 
     if (argc < 3) {
+	if (!conffile) {
+	    fprintf(stdout, "/dev/null\n");
+	    exit(-1);
+	}
 	fprintf(stdout, "%s\n", conffile);
 	exit(0);
     }

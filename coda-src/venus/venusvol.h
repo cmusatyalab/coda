@@ -815,6 +815,7 @@ class repvol : public volent {
     int WeakVSGSize();
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
     void SetStagingServer(struct in_addr *srvr);
+    void Reconfigure(void);
 
     /* Allocation routines. */
     ViceFid GenerateLocalFid(ViceDataType);

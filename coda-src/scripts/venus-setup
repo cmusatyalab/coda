@@ -49,8 +49,8 @@ fi
 #restart=0
 #[ ! -f /etc/coda/venus.conf ] && restart=1
 
-codaconfedit venus.conf rootservers "$SERVERS"
-codaconfedit venus.conf cacheblocks "$CACHESIZE"
+codaconfedit venus.conf rootservers $SERVERS
+codaconfedit venus.conf cacheblocks $CACHESIZE
 
 #if [ $restart = 1 ] ; then
 #    echo "We just created an initial configuration file /etc/coda/venus.conf"

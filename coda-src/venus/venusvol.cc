@@ -420,22 +420,70 @@ static int GetVolReps(VolumeInfo *volinfo, volrep *volreps[VSG_MEMBERS])
     return err;
 }
 
+void repvol::Reconfigure(void)
+{
+    struct in_addr hosts[VSG_MEMBERS];
+
+    CODA_ASSERT(vsg);
+
+    /* disconnect existing mgrps */
+    vsg->Put();
+    vsg = NULL;
+
+    /* and force a cache-revalidation */
+    flags.transition_pending = 1;
+    flags.demotion_pending = 1;
+
+    /* reattach the replicated volume to it's new vsg */
+    GetHosts(hosts);
+    vsg = VSGDB->GetVSG(hosts);
+}
+
 /* MUST NOT be called from within transaction! */
 volent *vdb::Create(VolumeInfo *volinfo, char *volname)
 {
     volent *v = 0;
+    repvol *vp;
+    volrep *volreps[VSG_MEMBERS];
+    int i, err;
 
     /* Check whether the key is already in the database. */
     if ((v = Find(volinfo->Vid))) {
-/*	{ v->print(logFile); CHOKE("vdb::Create: key exists"); }*/
-	eprint("reinstalling volume %s (%s)", v->GetName(), volname);
-
 	Recov_BeginTrans();
-	rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
-	strcpy(v->name, volname);
+	if (strncmp(v->name, volname, V_MAXVOLNAMELEN) != 0) {
+	    eprint("reinstalling volume %s (%s)", v->GetName(), volname);
+
+	    rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
+	    strcpy(v->name, volname);
+	}
 
         /* add code to support growing/shrinking VSG's for replicated volumes
          * and moving volume replicas between hosts */
+	/* this might just do the trick for replicated volumes */
+	if (volinfo->Type == REPVOL) {
+	    vp = (repvol *)v;
+	    err = GetVolReps(volinfo, volreps);
+	    if (!err) {
+		for (i = 0; i < VSG_MEMBERS; i++) {
+		    /* did the volume replica change? */
+		    if (vp->volreps[i] != volreps[i]) {
+			eprint("VSG change for volume %s [%d] %x -> %x",
+			       v->GetName(), i, vp->volreps[i], volreps[i]);
+
+			RVMLIB_REC_OBJECT(*vp->volreps[i]);
+
+			VDB->Put((volent **)&vp->volreps[i]);
+			vp->volreps[i] = volreps[i];
+			volreps[i] = NULL;
+
+			vp->Reconfigure();
+		    }
+		}
+	    }
+	    /* put whatever volumes were unchanged */
+	    for (i = 0; i < VSG_MEMBERS; i++)
+		VDB->Put((volent **)&volreps[i]);
+	}
 
 	Recov_EndTrans(0);
 
@@ -446,10 +494,6 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname)
     switch(volinfo->Type) {
     case REPVOL:
         {
-        repvol *vp;
-        volrep *volreps[VSG_MEMBERS];
-        int i, err;
-
         err = GetVolReps(volinfo, volreps);
         if (!err) {
             /* instantiate the new replicated volume */
@@ -461,7 +505,7 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname)
         /* we can safely put the replicas as the new repvol has grabbed
          * refcounts on all of them */
         for (i = 0; i < VSG_MEMBERS; i++)
-            if (volreps[i]) VDB->Put((volent **)&volreps[i]);
+	    VDB->Put((volent **)&volreps[i]);
         break;
         }
 
@@ -514,6 +558,8 @@ int vdb::Get(volent **vpp, VolumeId vid)
     char volname[20];
 
 #if 1 /* XXX change this to hex after 5.3.9 servers are deployed */
+      /* doesn't work as VLDB entries are still hashed by the old
+       * volume-id representation */
     sprintf(volname, "%lu", vid);
 #else
     sprintf(volname, "%#08lx", vid);
@@ -565,36 +611,39 @@ int vdb::Get(volent **vpp, char *volname)
 	if (v) goto Exit;
 	return(ETIMEDOUT);
     }
-    if (v) {
-	if (v->GetVid() == volinfo.Vid) {
-	    /* Mapping unchanged. */
-	    /* Should we see whether any other info has changed (e.g., VSG)?. */
+    if (v && v->GetVid() != volinfo.Vid) {
+	eprint("Mapping changed for volume %s (%x --> %x)",
+	       volname, v->GetVid(), volinfo.Vid);
 
-            /* add code to support growing/shrinking VSG's for replicated
-             * volumes and moving volume replicas between hosts */
-	    goto Exit;
-	}
-	else {
-	    eprint("Mapping changed for volume %s (%x --> %x)",
-		   volname, v->GetVid(), volinfo.Vid);
+	/* Put a (unique) fakename in the old volent. */
+	char fakename[V_MAXVOLNAMELEN];
+	sprintf(fakename, "%lu", v->GetVid());
+	CODA_ASSERT(Find(fakename) == 0);
+	Recov_BeginTrans();
+	rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
+	strcpy(v->name, fakename);
+	Recov_EndTrans(MAXFP);
 
-	    /* Put a (unique) fakename in the old volent. */
-	    char fakename[V_MAXVOLNAMELEN];
-	    sprintf(fakename, "%lu", v->GetVid());
-	    CODA_ASSERT(Find(fakename) == 0);
-	    Recov_BeginTrans();
-		rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
-		strcpy(v->name, fakename);
-	    Recov_EndTrans(MAXFP);
+	/* Should we flush the old volent? */
 
-	    /* Should we flush the old volent? */
+	/* Invalidate HDB entries bound to the volname. XXX */
 
-	    /* Invalidate HDB entries bound to the volname. XXX */
-
-	    /* Forget about the old volent now. */
-	    v = 0;
-	}
+	/* Forget about the old volent for now, it should disappear
+	 * 'gracefully' once all it's FSO's have been recycled. */
     }
+#if 0
+    /* VDB->Create will do the right thing when the volume already exists and
+     * the VSG has changed */
+    if (v && v->GetVid() == volinfo.Vid) {
+	/* Mapping unchanged. */
+	/* Should we see whether any other info has changed (e.g., VSG)?. */
+
+	/* add code to support growing/shrinking VSG's for replicated
+	 * volumes and moving volume replicas between hosts */
+	goto Exit;
+    }
+#endif
+    //VDB->Put(&v);
 
     /* Attempt the create. */
     v = Create(&volinfo, volname);
@@ -2193,13 +2242,6 @@ void repvol::SetStagingServer(struct in_addr *srvr)
     VolumeInfo StagingVol;
     char stagingname[V_MAXVOLNAMELEN];
 
-    /* Disconnect existing mgrps and force a cache-revalidation */
-    vsg->Put();
-    vsg = NULL;
-
-    flags.transition_pending = 1;
-    flags.demotion_pending = 1;
-
     if (ro_replica)
 	VDB->Put((volent **)&ro_replica);
 
@@ -2230,12 +2272,8 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 	}
     }
 
-    /* reattach the replicated volume to the vsg */
-    {
-	struct in_addr hosts[VSG_MEMBERS];
-	GetHosts(hosts);
-	vsg = VSGDB->GetVSG(hosts);
-    }
+    /* disconnect mgrps, force cache revalidation and attach to new vsg */
+    Reconfigure();
 }
 
 int repvol::Collate_NonMutating(mgrpent *m, int code)
