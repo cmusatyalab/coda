@@ -60,10 +60,10 @@ CFLAGS += -DCODAAUTH
 # non- Dos stuff
 #
 
+ifeq ($(SHORTSYS),djgpp)
 EXECUTABLES = $(CLOG)
-
-ifneq ($(SHORTSYS),djgpp)
-EXECUTABLES = $(AUTH2) initpw $(AU) cpasswd ctokens cunlog
+else
+EXECUTABLES = $(CLOG) $(AUTH2) initpw $(AU) cpasswd ctokens cunlog
 CBINS       = $(CLOG) cpasswd ctokens cunlog
 
 CSBINS      = $(AU)
