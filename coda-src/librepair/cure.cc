@@ -46,7 +46,6 @@ extern "C" {
 
 #include "repio.h"
 #include "resolve.h"
-extern int IsCreatedEarlier(struct listhdr **, int, long, long);
 
 #define FidEq(a, b) \
 (((a).Vnode == (b).Vnode) && \
