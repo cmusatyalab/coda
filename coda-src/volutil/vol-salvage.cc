@@ -72,6 +72,10 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/time.h>
 
+#ifdef sun
+#include "sunflock.h"
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
 

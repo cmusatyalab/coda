@@ -33,6 +33,11 @@ extern "C" {
 #include <util.h>
 #include <rvmlib.h>
 
+#ifdef sun
+extern int sys_nerr;
+extern char **sys_errlist;
+#endif
+
 #include <volutil.h>
 #ifdef __cplusplus
 }

@@ -49,6 +49,10 @@ SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libvolutil.a libvolserv.a
 HEADERS     = volutil.private.h
 
+ifeq ($(SYS),sol2)
+LIBFIXUP += -R/usr/ucblib -L/usr/ucblib -lucb
+endif
+
 VLIBS =	${LIBVOL} \
 	${LIBVV} \
 	$(LIBVICEDEP)\
@@ -62,8 +66,9 @@ VLIBS =	${LIBVOL} \
 	${LIBOLDLWP} \
 	${LIBSYSENT} \
 	${LIBMACH}  \
-	${LIBBASE}\
-	${LIBREADLINE} \
+	${LIBBASE}
+
+LIBS=	${LIBREADLINE} \
 	$(LIBUTIL) \
 	$(LIBCOMPAT) \
 	$(LIBTERMCAP) \
@@ -104,6 +109,7 @@ VOLUTILOBJS = \
 	vol-rvmtrunc.o\
 	${LOCALOBJS}
 
+
 VOLCLIENTOBJS = volclient.o 
 
 OBJS =		${VOLUTILOBJS} ${VOLCLIENTOBJS}
@@ -119,18 +125,18 @@ local.a: ${LOCALOBJS}
 
 
 volutil:    ${VOLCLIENTOBJS} ${VLIBS}
-	${CXX} $(LIBFLAGS) ${VOLCLIENTOBJS} ${VLIBS} -o volutil
+	${CXX} $(LIBFLAGS) ${VOLCLIENTOBJS} ${VLIBS} ${LIBS} -o volutil
 
 merge:	merge.o dumpstream.o dumpstuff.o ${VLIBS}
-	$(CXX) $(LIBFLAGS) merge.o dumpstream.o dumpstuff.o ${VLIBS} -o merge
+	$(CXX) $(LIBFLAGS) merge.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o merge
 
 backup: backup.o ${VLIBS}
-	$(CXX) $(LIBFLAGS) backup.o ${VLIBS} -lm -o backup
+	$(CXX) $(LIBFLAGS) backup.o ${VLIBS} ${LIBS} -lm -o backup
 
 readdump: readdump.o dumpstream.o dumpstuff.o ${VLIBS}
-	$(CXX) $(LIBFLAGS) readdump.o dumpstream.o dumpstuff.o ${VLIBS} -o readdump
+	$(CXX) $(LIBFLAGS) readdump.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o readdump
 
-parserecdump: parserecdump.o ${VLIBS}
-	$(CXX) $(LIBFLAGS) parserecdump.o ${VLIBS} -o parserecdump
+parserecdump: parserecdump.o ${VLIBS} 
+	$(CXX) $(LIBFLAGS) parserecdump.o ${VLIBS} ${LIBS} -o parserecdump
 
 
