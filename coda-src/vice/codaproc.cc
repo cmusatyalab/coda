@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.18 1998/11/02 16:46:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.19 1998/11/11 15:59:04 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -179,7 +179,7 @@ static void COP2Update(Volume *, Vnode *, ViceVersionVector *, vmindex * =NULL);
   ViceProbe: Empty routine - simply return the probe 
 */
 
-long ViceProbe(RPC2_Handle cid, RPC2_CountedBS *Vids, RPC2_CountedBS *VVs) 
+long FS_ViceProbe(RPC2_Handle cid, RPC2_CountedBS *Vids, RPC2_CountedBS *VVs) 
 {
     int errorCode = 0;
 
@@ -195,7 +195,7 @@ const int MaxFidAlloc = 32;
 /*
   ViceAllocFids: Allocated a range of fids
 */
-long ViceAllocFids(RPC2_Handle cid, VolumeId Vid,
+long FS_ViceAllocFids(RPC2_Handle cid, VolumeId Vid,
 		    ViceDataType Type, ViceFidRange *Range,
 		    RPC2_Unsigned AllocHost, RPC2_CountedBS *PiggyBS) {
     long errorCode = 0;
@@ -210,7 +210,7 @@ START_TIMING(AllocFids_Total);
 
     /* Validate parameters. */
     {
-	if ((PiggyBS->SeqLen > 0) && (errorCode = ViceCOP2(cid, PiggyBS)))
+	if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(cid, PiggyBS)))
 	    goto FreeLocks;
 
 	/* Retrieve the client handle. */
@@ -276,7 +276,7 @@ static const int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionV
 /*
   ViceCOP2: Update the VV that was modified during the first phase (COP1)
 */
-long ViceCOP2(RPC2_Handle cid, RPC2_CountedBS *PiggyBS) 
+long FS_ViceCOP2(RPC2_Handle cid, RPC2_CountedBS *PiggyBS) 
 {
     int errorCode = 0;
     char *cp = (char *)PiggyBS->SeqBody;
@@ -289,7 +289,7 @@ long ViceCOP2(RPC2_Handle cid, RPC2_CountedBS *PiggyBS)
 
     count = PiggyBS->SeqLen / COP2EntrySize;
     
-    SLog(1, "ViceCOP2: about to process %d entries", count);
+    SLog(1, "FS_ViceCOP2: about to process %d entries", count);
 
     for (i = 0; i < count ; i++) {
 	ViceStoreId sid;
@@ -301,7 +301,7 @@ long ViceCOP2(RPC2_Handle cid, RPC2_CountedBS *PiggyBS)
 	(void)InternalCOP2(cid, &sid, &vv);
     }
 
-    SLog(1, "ViceCOP2: returning success.");
+    SLog(1, "FS_ViceCOP2: returning success.");
 
 
 Exit:
@@ -311,7 +311,7 @@ Exit:
 /*
   ViceResolve: Resolve the diverging replicas of an object
 */
-long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
+long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
     int errorCode = 0;
     Volume *volptr = 0;	    /* the volume ptr */
     Vnode *vptr = 0;	    /* the vnode ptr */
@@ -404,8 +404,8 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 	    SLog(9,  "ViceResolve: Going to call Dirresolve");
 	    switch (reson) {
 	    case VMRES:
-		    resError = DirResolve(mgrp, Fid, VVvar_ptrs, 
-					  (int *)logsizesvar_bufs);
+		    errorCode = EOPNOTSUPP;
+		    goto UnlockExit;
 		    break;
 		    
 	    case RVMRES: 
@@ -472,7 +472,7 @@ void ForceUnlockVol(VolumeId Vid) {/* Vid is the rw id */
   END_HTML
 */
 // THIS CODE IS NEEDED TO DO A CLEARINC FROM THE REPAIR TOOL FOR QUOTA REPAIRS
-long ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_CountedBS *PiggyBS)
+long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_CountedBS *PiggyBS)
 {
     Vnode *vptr = 0;
     Volume *volptr = 0;
@@ -488,7 +488,7 @@ long ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Counte
 	return(EINVAL);	
 
     if (!client) return EINVAL;
-    if ((PiggyBS->SeqLen > 0) && (errorCode = ViceCOP2(cid, PiggyBS)))
+    if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(cid, PiggyBS)))
 	goto FreeLocks;
     if (errorCode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0, 0)){
 	SLog(0,  "ViceSetVV: Error %d in GetFsObj", errorCode);
@@ -528,7 +528,7 @@ FreeLocks:
 /*
   ViceRepair: Manually resolve the object
 */
-long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
+long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 		 ViceStoreId *StoreId,  SE_Descriptor *BD)
 {
     Volume  *volptr = 0;	    	/* pointer to the volume */
@@ -673,33 +673,6 @@ long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
 
-    // spool repair log record 
-    vmresolutionOn = V_VMResOn(volptr);
-    if (AllowResolution && vmresolutionOn) {
-	/* For directory repair append log record */
-	if (!FRep) {
-	    SLog(9,  "ViceRepair: Spooling Repair Log Record");
-	    int ind;
-	    ind = InitVMLogRecord(V_volumeindex(volptr), &ov->fid, 
-				  StoreId, ViceRepair_OP, 0);
-	    sle *SLE = new sle(ind);
-	    ov->sl.append(SLE);
-	}
-	/* do we have to establish callback now? */
-	
-	/* delete log records for all children deleted during repair */
-	if (!FRep && !errorCode) {
-	    dlist_iterator next(*vlist);
-	    vle *v;
-	    while (v = (vle *)next()) {
-		if (v->vptr && 
-		    v->vptr->delete_me &&
-		    v->vptr->disk.type == vDirectory) 
-		    PurgeLog(volindex, v->vptr->vnodeNumber, 
-			     v->vptr->disk.uniquifier);
-	    }
-	}
-    }
     if (AllowResolution && V_RVMResOn(volptr)) {
 	// append a new log record 
 	if (!FRep) {
@@ -741,10 +714,8 @@ FreeLocks:
 }
 
 /*
-  BEGIN_HTML
-  <a name="PerformFileRepair"> <strong> Perform the actions for
-  reparing a file object </strong></a> 
-  END_HTML
+  PerformFileRepair: Perform the actions for
+  reparing a file object
 */
 static int PerformFileRepair(vle *ov, Volume *volptr, VolumeId VSGVolnum, 
 			      ViceStatus *status, ViceStoreId *StoreId, 
@@ -1594,14 +1565,6 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		// make sure a repair record gets spooled for both parents
 		// the ov's repair record gets spooled at the end 
 		if (tdv != ov) {
-		    if (AllowResolution && V_VMResOn(volptr)) {
-			SLog(9,  "ViceRepair: Spooling Repair Log Record");
-			int ind;
-			ind = InitVMLogRecord(V_volumeindex(volptr), &tdv->fid, 
-					      StoreId, ViceRepair_OP, 0);
-			sle *SLE = new sle(ind);
-			tdv->sl.append(SLE);
-		    }
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			SLog(0, 
 			       "PerformRepair: Spooling Repair(rename - target) Log Record");
@@ -1615,14 +1578,6 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		    }
 		}
 		if (sdv != ov) {
-		    if (AllowResolution && V_VMResOn(volptr)) {
-			SLog(9,  "ViceRepair: Spooling Repair Log Record");
-			int ind;
-			ind = InitVMLogRecord(V_volumeindex(volptr), &sdv->fid, 
-					      StoreId, ViceRepair_OP, 0);
-			sle *SLE = new sle(ind);
-			sdv->sl.append(SLE);
-		    }
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			SLog(0, 
 			       "PerformRepair: Spooling Repair(rename - source) Log Record");
@@ -2112,31 +2067,6 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 			nblocks = (int)-nBlocks(cv->vptr->disk.length);
 			CODA_ASSERT(AdjustDiskUsage(pkdparm->volptr, nblocks) == 0);
 			*(pkdparm->blocks) += nblocks;
-			if (AllowResolution && V_VMResOn(pkdparm->volptr)) {
-				//spool log record for resolution 
-				if (pkdparm->IsResolve) {
-					// find log record for original remove operation - extract storeid
-					ViceStoreId stid;
-					GetRemoteRemoveStoreId(&stid, pkdparm->hvlog, pkdparm->srvrid,
-							       &pFid, &cFid, name);
-					CODA_ASSERT(stid.Host != 0);
-		    
-					VNResLog *vnlog;
-					pdlist *pl = GetResLogList(cv->vptr->disk.vol_index, vnode, 
-								   unique, &vnlog);
-					CODA_ASSERT(pl != NULL);
-					int ind;
-					ind = InitVMLogRecord(V_volumeindex(pkdparm->volptr),
-							      &pv->fid, &stid, ResolveViceRemoveDir_OP, 
-							      name, vnode, unique, (int)(pl->head),
-							      pl->cnt + cv->sl.count(), &(vnlog->LCP),
-							      &cv->vptr->disk.versionvector.StoreId);
-					SLog(9,  "TreeRemove: Spooling Log Record for removing dir %s",
-					       name);
-					sle *SLE = new sle(ind);
-					pv->sl.append(SLE);
-				}
-			}
 	    if (AllowResolution && V_RVMResOn(pkdparm->volptr)) {
 		//spool log record for resolution 
 		if (pkdparm->IsResolve) {
@@ -2181,25 +2111,6 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		*(pkdparm->blocks) += nblocks;
 		cv->f_sinode = cv->vptr->disk.inodeNumber;
 		cv->vptr->disk.inodeNumber = 0;
-	    }
-	    if (AllowResolution && V_VMResOn(pkdparm->volptr)) {
-		if (pkdparm->IsResolve) {
-		    /* find log record for original remove operation - extract storeid*/
-		    ViceStoreId stid;
-		    GetRemoteRemoveStoreId(&stid, pkdparm->hvlog, pkdparm->srvrid,
-					   &pFid, &cFid, name);
-		    CODA_ASSERT(stid.Host != 0);
-		    int ind;
-		    ind = InitVMLogRecord(V_volumeindex(pkdparm->volptr),
-					  &pv->fid, &stid, 
-					  ResolveViceRemove_OP,
-					  name, vnode, unique, 
-					  &cv->vptr->disk.versionvector);
-		    SLog(9,  "TreeRemove: Spooling Log Record for removing file %s",
-			    name);
-		    sle *SLE = new sle(ind);
-		    pv->sl.append(SLE);
-		}
 	    }
 	    if (AllowResolution && V_RVMResOn(pkdparm->volptr)) {
 		//spool log record for resolution 
@@ -2467,12 +2378,6 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
 		    SLog(2, "Incomplete host set in COP2.\n");
 		    break;
 	    }
-	if (i == VSG_MEMBERS && AllowResolution && V_VMResOn(volptr)) {
-	    /* update set has 1 for all hosts */
-	    extern void TruncResLog(int, VnodeId, Unique_t);
-	    TruncResLog(vptr->disk.vol_index, vptr->vnodeNumber, 
-			vptr->disk.uniquifier);
-	}
 
 	if (i == VSG_MEMBERS && AllowResolution && V_RVMResOn(volptr) 
 	    && freed_indices) 
@@ -2549,7 +2454,7 @@ void PollAndYield() {
   volume, and establish a volume callback on it</strong></a> 
   END_HTML
 */
-long ViceGetVolVS(RPC2_Handle cid, VolumeId Vid, RPC2_Integer *VS,
+long FS_ViceGetVolVS(RPC2_Handle cid, VolumeId Vid, RPC2_Integer *VS,
 		  CallBackStatus *CBStatus)
 {
     long errorCode = 0;
@@ -2671,7 +2576,7 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
   a callback was established for it.</strong></a> 
   END_HTML
 */
-long ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
+long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 		      ViceVolumeIdStruct Vids[], RPC2_CountedBS *VSBS,
 		      RPC2_CountedBS *VFlagBS)
 {

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/Makefile.in,v 4.10 1998/09/15 14:28:08 jaharkes Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/Makefile.in,v 4.11 1998/09/29 16:38:29 braam Exp $";
 
 
 # 
@@ -93,6 +93,7 @@ objects=srvproc.o	\
 	clientproc.o	\
 	vicecb.o	\
 	smon.o		\
+	obsolete.o      \
 	ViceErrorMsg.o	
 
 codasrv: ${objects} srv.o dummyplumber.o ${CLIBS}

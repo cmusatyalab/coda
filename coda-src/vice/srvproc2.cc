@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.18 1998/10/21 22:05:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.19 1998/11/02 16:46:46 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -136,10 +136,10 @@ static void PrintUnusedComplaint(RPC2_Handle, RPC2_Integer, char *);
 /*
   ViceConnectFS: Client request to connect to file server
 */ 
-long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, 
+long FS_ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, 
 		   ViceClient *ClientId)
 {
-	SLog(1, "ViceConnectFS (version %d) for user %s at %s.%s",
+	SLog(1, "FS_ViceConnectFS (version %d) for user %s at %s.%s",
 	     ViceVersion, ClientId->UserName, ClientId->WorkStationName, 
 	     ClientId->VenusName);
 
@@ -169,7 +169,7 @@ long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 		CLIENT_CleanUpHost(client->VenusId);
 
 
-	LogMsg(2, SrvDebugLevel, stdout, "ViceConnectFS returns %s", 
+	SLog(2, "FS_ViceConnectFS returns %s", 
 	       ViceErrorMsg((int) errorCode));
 
 	return(errorCode);
@@ -179,12 +179,12 @@ long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 /*
   ViceDisconnectFS: Client request for termination
 */
-long ViceDisconnectFS(RPC2_Handle RPCid)
+long FS_ViceDisconnectFS(RPC2_Handle RPCid)
 {
     ClientEntry * client;
     long   errorCode;
 
-    LogMsg(1, SrvDebugLevel, stdout, "ViceDisconnectFS");
+    SLog(1, "ViceDisconnectFS");
     errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
 
     if (!errorCode && client) {
@@ -193,11 +193,11 @@ long ViceDisconnectFS(RPC2_Handle RPCid)
 	ReleaseWriteLock(&client->VenusId->lock);
     }
     else {
-	LogMsg(0, SrvDebugLevel, stdout, "GetPrivate failed in Disconnect rc = %d, client = %d",
+	SLog(0, "GetPrivate failed in Disconnect rc = %d, client = %d",
 		errorCode, client);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceDisconnectFS returns success");
+    SLog(2, "ViceDisconnectFS returns success");
     return(0);
 }
 
@@ -205,7 +205,7 @@ long ViceDisconnectFS(RPC2_Handle RPCid)
 /*
 ViceGetStatistics: Used by filestats to get general file server statistics
 */
-long ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
+long FS_ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
 {
     int     errorCode;		/* return code for caller */
 #ifdef PERFORMANCE 
@@ -216,7 +216,7 @@ long ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
     time_value_t    utval, stval;
 #endif PERFORMANCE
 
-    LogMsg(3, SrvDebugLevel, stdout, "ViceGetStatistics Received");
+    SLog(3, "ViceGetStatistics Received");
 
     errorCode = 0;
 
@@ -233,7 +233,7 @@ long ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
     t_info = &b_info;
     for (i = 0; i < thread_count; i++){
 	if (thread_info(thread_list[i], THREAD_BASIC_INFO, (thread_info_t)t_info, &info_cnt) != KERN_SUCCESS)
-	    LogMsg(1, SrvDebugLevel, stdout, "Couldn't get info for thread %d", i);
+	    SLog(1, "Couldn't get info for thread %d", i);
 	else{
 	    time_value_add(&utval, &(t_info->user_time));
 	    time_value_add(&stval, &(t_info->system_time));
@@ -245,7 +245,7 @@ long ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
     
 #endif PERFORMANCE
 
-    LogMsg(3, SrvDebugLevel, stdout, "ViceGetStatistics returns %s", ViceErrorMsg(errorCode));
+    SLog(3, "ViceGetStatistics returns %s", ViceErrorMsg(errorCode));
     return(errorCode);
 }
 
@@ -255,7 +255,7 @@ static const int RCBEntrySize = (int) sizeof(ViceFid);
 /*
   ViceRemoveCallBack: Deletes callback for a fid
 */
-long ViceRemoveCallBack(RPC2_Handle RPCid, RPC2_CountedBS *RCBBS) 
+long FS_ViceRemoveCallBack(RPC2_Handle RPCid, RPC2_CountedBS *RCBBS) 
 {
     int errorCode = 0;
     char *cp = (char *)RCBBS->SeqBody;
@@ -281,16 +281,16 @@ static long InternalRemoveCallBack(RPC2_Handle RPCid, ViceFid *fid)
 
     errorCode = 0;
     
-    LogMsg(1, SrvDebugLevel, stdout,"ViceRemoveCallBack Fid = %u.%d.%d",
+    SLog(1,"ViceRemoveCallBack Fid = %u.%d.%d",
 	    fid->Volume, fid->Vnode, fid->Unique);
 
     errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
     if(!errorCode && client)
 	DeleteCallBack(client->VenusId, fid);
     else
-	LogMsg(0, SrvDebugLevel, stdout, "Client pointer zero in ViceRemoveCallBack");
+	SLog(0, "Client pointer zero in ViceRemoveCallBack");
     
-    LogMsg(2, SrvDebugLevel, stdout,"ViceRemoveCallBack returns %s", ViceErrorMsg((int) errorCode));
+    SLog(2,"ViceRemoveCallBack returns %s", ViceErrorMsg((int) errorCode));
     return(errorCode);
 }
 
@@ -298,9 +298,9 @@ static long InternalRemoveCallBack(RPC2_Handle RPCid, ViceFid *fid)
 /*
   ViceGetVolumeInfo: Used to get information about a particular volume
 */
-long ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *Info)
+long FS_ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *Info)
 {
-    LogMsg(1, SrvDebugLevel, stdout,"ViceGetVolumeInfo volume = %s", VolName);
+    SLog(1,"ViceGetVolumeInfo volume = %s", VolName);
 
     int	errorCode = 0;	    /* error code */
     vrent *vre;
@@ -327,7 +327,7 @@ long ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *Info)
 	}
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceGetVolumeInfo returns %s, Volume %u, type %x, servers %x %x %x %x...",
+    SLog(2, "ViceGetVolumeInfo returns %s, Volume %u, type %x, servers %x %x %x %x...",
 	    ViceErrorMsg(errorCode), Info->Vid, Info->Type,
 	    Info->Server0, Info->Server1, Info->Server2, Info->Server3);
     return(errorCode);
@@ -337,7 +337,7 @@ long ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *Info)
 /*
   ViceGetVolumeStatus: Get the status of a particular volume
 */
-long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd, RPC2_Unsigned PrimaryHost)
+long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd, RPC2_Unsigned PrimaryHost)
 {
     Vnode * vptr;		/* vnode of the new file */
     ViceFid vfid;		/* fid of new file */
@@ -356,7 +356,7 @@ long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
     volptr = 0;
     VolumeId VSGVolnum = vid;
 
-    LogMsg(1, SrvDebugLevel, stdout,"GetVolumeStatus for volume %u",vid);
+    SLog(1,"GetVolumeStatus for volume %u",vid);
 
     if (vid == 0) {
 	errorCode = EINVAL;
@@ -364,16 +364,16 @@ long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
     }
 
     if (XlateVid(&vid)) {
-	LogMsg(1, SrvDebugLevel, stdout, "XlateVid: %u --> %u", VSGVolnum, vid);
+	SLog(1, "XlateVid: %u --> %u", VSGVolnum, vid);
 	if (PrimaryHost == 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Translated VSG but PrimaryHost == 0");
+	    SLog(0, "Translated VSG but PrimaryHost == 0");
 	    errorCode =	EINVAL;	    /* ??? -JJK */
 	    goto Final;
 	}
     }
     else {
 	if (PrimaryHost != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Failed to translate VSG but PrimaryHost != 0");
+	    SLog(0, "Failed to translate VSG but PrimaryHost != 0");
 	    errorCode =	EINVAL;	    /* ??? -JJK */
 	    goto Final;
 	}
@@ -402,7 +402,7 @@ long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
 
     if(!client) {
 	errorCode = EFAULT;
-	LogMsg(0, SrvDebugLevel, stdout, "Client pointer zero in GetVolumeStatus");
+	SLog(0, "Client pointer zero in GetVolumeStatus");
 	goto Final;
     }
 
@@ -422,9 +422,9 @@ long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
     }
     PutVolObj(&volptr, VOL_NO_LOCK, 0);
 
-    LogMsg(2, SrvDebugLevel, stdout,"GetVolumeStatus returns %s", ViceErrorMsg((int) errorCode));
+    SLog(2,"GetVolumeStatus returns %s", ViceErrorMsg((int) errorCode));
     if(!errorCode) {
-	LogMsg(5, SrvDebugLevel, stdout,"Name = %s, Motd = %s, offMsg = %s",
+	SLog(5,"Name = %s, Motd = %s, offMsg = %s",
 		name->SeqBody, motd->SeqBody, offlineMsg->SeqBody);
 	PrintVolumeStatus(status);
     }
@@ -456,7 +456,7 @@ void PerformSetQuota(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr, Vn
   <a name="ViceSetVolumeStatus"><strong>Set the status(e.g. quota) for a volume </strong></a> 
   END_HTML
 */
-long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd, RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId, RPC2_CountedBS *PiggyCOP2)
+long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd, RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId, RPC2_CountedBS *PiggyCOP2)
 {
     ViceFid vfid;		/* fid of new file */
     long   errorCode;		/* error code */
@@ -477,8 +477,8 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
     volptr = 0;
     VolumeId VSGVolnum = vid;
 
-    LogMsg(1, SrvDebugLevel, stdout,"ViceSetVolumeStatus for volume %u", vid);
-    LogMsg(5, SrvDebugLevel, stdout,"Min = %d Max = %d, Name = %d.%d %s, Offline Msg = %d.%d.%s, motd = %d.%d.%s",
+    SLog(1,"ViceSetVolumeStatus for volume %u", vid);
+    SLog(5,"Min = %d Max = %d, Name = %d.%d %s, Offline Msg = %d.%d.%s, motd = %d.%d.%s",
 	    status->MinQuota, status->MaxQuota,
 	    name->MaxSeqLen, name->SeqLen, name->SeqBody,
 	    offlineMsg->MaxSeqLen, offlineMsg->SeqLen, offlineMsg->SeqBody,
@@ -518,7 +518,7 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
     vfid.Unique = 1;
 
     if (errorCode = GetVolObj(vid, &volptr, VOL_EXCL_LOCK, 0, 1 /* check this */)) {
-	LogMsg(0, SrvDebugLevel, stdout, "Error locking volume in ViceSetVolumeStatus: %s", ViceErrorMsg((int) errorCode));
+	SLog(0, "Error locking volume in ViceSetVolumeStatus: %s", ViceErrorMsg((int) errorCode));
 	goto Final ;
     }
 
@@ -533,7 +533,7 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
 
     if(!client) {
 	errorCode = EFAULT;
-	LogMsg(0, SrvDebugLevel, stdout, "Client pointer is zero in ViceSetVolumeStatus");
+	SLog(0, "Client pointer is zero in ViceSetVolumeStatus");
 	goto Final;
     }
 
@@ -567,13 +567,13 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
     // Only spool a log entry if the quota was set.
     if (AllowResolution && V_RVMResOn(volptr) && oldquota > -1) 
 	if (ReplicatedOp && !errorCode) {
-	    LogMsg(1, SrvDebugLevel, stdout, 
+	    SLog(1, 
 		   "ViceSetVolumeStatus: About to spool log record, oldquota = %d, new quota = %d\n",
 		   oldquota, status->MaxQuota);
 	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId,
 					     ViceSetVolumeStatus_OP, oldquota,
 					     status->MaxQuota))
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceSetVolumeStatus: Error %d during SpoolVMLogRecord\n",
 		       errorCode);
 	}
@@ -585,9 +585,9 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
 
     PutObjects((int) errorCode, volptr, VOL_EXCL_LOCK, vlist, 0, 1, TRUE);
 
-    LogMsg(2, SrvDebugLevel, stdout,"ViceSetVolumeStatus returns %s", ViceErrorMsg((int) errorCode));
+    SLog(2,"ViceSetVolumeStatus returns %s", ViceErrorMsg((int) errorCode));
     if(!errorCode) {
-	LogMsg(5, SrvDebugLevel, stdout,"Name = %s, Motd = %s, offMsg = %s",
+	SLog(5,"Name = %s, Motd = %s, offMsg = %s",
 		name->SeqBody, motd->SeqBody, offlineMsg->SeqBody);
 	PrintVolumeStatus(status);
     }
@@ -600,7 +600,7 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
   ViceGetRootVolume: Return the name of the root volume
   (corresponding to /coda)
 */
-long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
+long FS_ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 {
     int   errorCode;		/* error code */
     int     fd;
@@ -608,7 +608,7 @@ long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 
     errorCode = 0;
 
-    LogMsg(1, SrvDebugLevel, stdout, "ViceGetRootVolume");
+    SLog(1, "ViceGetRootVolume");
 
     fd = open("/vice/db/ROOTVOLUME", O_RDONLY, 0666);
     if (fd <= 0) {
@@ -627,16 +627,16 @@ long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 #if 0
     /* almost right: sadly we need to check the VRDB instead */
     if ( VLDBLookup(volume->SeqBody) == NULL ) {
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    SLog(0, 
 		   "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
 		   volume->SeqBody);
-	    LogMsg(0, SrvDebugLevel, stderr, 
+	    SLog(0, SrvDebugLevel, stderr, 
 		   "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
 		   volume->SeqBody);
 	    errorCode = VNOVOL;
     }
 #endif
-    LogMsg(2, SrvDebugLevel, stdout, 
+    SLog(2, 
 	   "ViceGetRootVolume returns %s, Volume = %s",
 	   ViceErrorMsg(errorCode), volume->SeqBody);
 
@@ -646,7 +646,7 @@ long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 
 /* ViceSetRootVolume: Set the /vicde/db/ROOTVOLUME file to contain the
   name of the new root volume */
-long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
+long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 {
     long   errorCode;		/* error code */
     ClientEntry * client;	/* pointer to client entry */
@@ -654,14 +654,14 @@ long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 
     errorCode = 0;
 
-    LogMsg(1, SrvDebugLevel, stdout,"ViceSetRootVolume to %s",volume);
+    SLog(1,"ViceSetRootVolume to %s",volume);
 
     if((errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client)) != RPC2_SUCCESS)
 	goto Final;
 
     if(!client) {
 	errorCode = EFAULT;
-	LogMsg(0, SrvDebugLevel, stdout, "Client pointer is zero in SetRootVolume");
+	SLog(0, "Client pointer is zero in SetRootVolume");
 	goto Final;
     }
 
@@ -680,7 +680,7 @@ long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 
  Final:
 
-    LogMsg (2, SrvDebugLevel, stdout, "ViceSetRootVolume returns %s", ViceErrorMsg((int) errorCode));
+    SLog (2, "ViceSetRootVolume returns %s", ViceErrorMsg((int) errorCode));
     return(errorCode);
 }
 
@@ -689,7 +689,7 @@ long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
   ViceGetTime: Returns time of day (a time ping)
 */
 
-long ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds, 
+long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds, 
 		 RPC2_Integer *useconds)
 {
 	struct timeval tpl;
@@ -743,7 +743,7 @@ long ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 ViceNewConnection: Called after a new bind request is received.
 */
 
-long ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set, RPC2_Integer sl,
+long FS_ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set, RPC2_Integer sl,
 			 RPC2_Integer et, RPC2_Integer at, RPC2_CountedBS *cid)
 {
     ClientEntry *client = 0;
@@ -758,7 +758,7 @@ long ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set, RPC2_Integer sl,
 	    strcpy(user, NEWCONNECT);
     } else {
 	bcopy(cid->SeqBody, (char *)&st, (int)cid->SeqLen);
-	LogMsg(1, SrvDebugLevel, stdout, "Authorized Connection for uid %d, Start %d, end %d, time %d",
+	SLog(1, "Authorized Connection for uid %d, Start %d, end %d, time %d",
 		st.ViceId, st.BeginTimestamp, st.EndTimestamp, time(0));
 	if (AL_IdToName((int) st.ViceId, user))
 	    strcpy(user, "System:AnyUser");
@@ -890,7 +890,7 @@ int GetEtherStats()
     if (!etherFD) {
 	etherFD = socket(AF_INET, SOCK_DGRAM, 0);
 	if (etherFD <= 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Open for Socket failed with %s", ViceErrorMsg(errno));
+	    SLog(0, "Open for Socket failed with %s", ViceErrorMsg(errno));
 	    etherFD = 0;
 	    supported = 0;
 	    return(-1);
@@ -900,7 +900,7 @@ int GetEtherStats()
     ifr.ifr_cptr = (char *) & ether;
     rc = ioctl(etherFD, SIOCQTRAFFIC, &ifr);
     if (rc) {
-	LogMsg(0, SrvDebugLevel, stdout, "IOCTL for SIOCQTRAFFIC not supported");
+	SLog(0, "IOCTL for SIOCQTRAFFIC not supported");
 	close(etherFD);
 	supported = 0;
 	return(-1);
@@ -1062,13 +1062,13 @@ static void SetSystemStats(ViceStatistics *stats)
     if(kmem == 0) {
 	nlist("/vmunix", RawStats);
 	if(RawStats[0].n_type == 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Could not get a namelist from VMUNIX");
+	    SLog(0, "Could not get a namelist from VMUNIX");
 	    kmem = -1;
 	    return;
 	}
 	kmem = open("/dev/kmem",0,0);
 	if (kmem <= 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Could not open /dev/kmem");
+	    SLog(0, "Could not open /dev/kmem");
 	    kmem = -1;
 	    return;
 	}
@@ -1120,12 +1120,12 @@ static void SetSystemStats(ViceStatistics *stats)
 
 static void PrintVolumeStatus(VolumeStatus *status)
 {
-    LogMsg(5, SrvDebugLevel, stdout,"Volume header contains:");
-    LogMsg(5, SrvDebugLevel, stdout,"Vid = %u, Parent = %u, Online = %d, InService = %d, Blessed = %d, NeedsSalvage = %d",
+    SLog(5,"Volume header contains:");
+    SLog(5,"Vid = %u, Parent = %u, Online = %d, InService = %d, Blessed = %d, NeedsSalvage = %d",
 	    status->Vid, status->ParentId, status->Online, status->InService,
 	    status->Blessed, status->NeedsSalvage);
-    LogMsg(5, SrvDebugLevel, stdout,"MinQuota = %d, MaxQuota = %d", status->MinQuota, status->MaxQuota);
-    LogMsg(5, SrvDebugLevel, stdout,"Type = %d, BlocksInUse = %d, PartBlocksAvail = %d, PartMaxBlocks = %d",
+    SLog(5,"MinQuota = %d, MaxQuota = %d", status->MinQuota, status->MaxQuota);
+    SLog(5,"Type = %d, BlocksInUse = %d, PartBlocksAvail = %d, PartMaxBlocks = %d",
 	    status->Type, status->BlocksInUse, status->PartBlocksAvail, status->PartMaxBlocks);
 }
 
@@ -1135,12 +1135,12 @@ static void PrintVolumeStatus(VolumeStatus *status)
   <a name="ViceEnableGroup"><strong>Used to enable an authentication group</strong></a>
   END_HTML
 */
-long ViceEnableGroup(RPC2_Handle cid, RPC2_String GroupName)
+long FS_ViceEnableGroup(RPC2_Handle cid, RPC2_String GroupName)
     {
     int gid;
     ClientEntry *client;
 
-    LogMsg(1, SrvDebugLevel, stdout,"ViceEnableGroup GroupName = %s", GroupName);
+    SLog(1,"ViceEnableGroup GroupName = %s", GroupName);
 
     if (AL_NameToId((char *)GroupName, &gid) < 0) return(EINVAL);
     if (RPC2_GetPrivatePointer(cid, (char **)&client) != RPC2_SUCCESS) return (EINVAL);
@@ -1155,12 +1155,12 @@ long ViceEnableGroup(RPC2_Handle cid, RPC2_String GroupName)
   <a name="ViceDisableGroup"><strong>Used to disable an authentication group</strong></a>
   END_HTML
 */
-long ViceDisableGroup(RPC2_Handle cid, RPC2_String GroupName)
+long FS_ViceDisableGroup(RPC2_Handle cid, RPC2_String GroupName)
     {
     int gid;
     ClientEntry *client;
 
-    LogMsg(1, SrvDebugLevel, stdout,"ViceDisableGroup GroupName = %s", GroupName);
+    SLog(1,"ViceDisableGroup GroupName = %s", GroupName);
 
     if (AL_NameToId((char *)GroupName, &gid) < 0) return(EINVAL);
     if (RPC2_GetPrivatePointer(cid, (char **)&client) != RPC2_SUCCESS) return (EINVAL);
@@ -1173,110 +1173,12 @@ long ViceDisableGroup(RPC2_Handle cid, RPC2_String GroupName)
 /*
   ViceNewConnectFS: Called by client (userent::Connect) after connection setup
 */
-long ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *ClientId)
+long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, 
+			 ViceClient *ClientId)
 {
-    return(ViceConnectFS(RPCid, ViceVersion, ClientId));
+    return(FS_ViceConnectFS(RPCid, ViceVersion, ClientId));
 }
 
-
-/* stubs for obsolete calls */
-
-long ViceUnused1(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused1_OP, "ViceStore");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused2(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused2_OP, "ViceUnused1");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused3(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused3_OP, "ViceSetLock");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused4(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused4_OP, "ViceReleaseLock");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused5(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused5_OP, "ViceGetMessage");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused6(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused6_OP, "ViceUnused2");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused7(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused7_OP, "ViceAllocFid");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused8(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused8_OP, "ViceLockVol");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused9(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused9_OP, "ViceUnlockVol");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused10(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused10_OP, "ViceReintegrate");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused11(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused11_OP, "ViceNewReintegrate");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused12(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused12_OP, "ViceGetVolVV");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused13(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused13_OP, "ViceVStore");
-    return(RPC2_INVALIDOPCODE);
-}
-
-
-long ViceUnused14(RPC2_Handle RPCid)
-{
-    PrintUnusedComplaint(RPCid, ViceUnused13_OP, "ViceVReintegrate");
-    return(RPC2_INVALIDOPCODE);
-}
 
 
 static void PrintUnusedComplaint(RPC2_Handle RPCid, RPC2_Integer Opcode, char *OldName) {
@@ -1285,7 +1187,7 @@ static void PrintUnusedComplaint(RPC2_Handle RPCid, RPC2_Integer Opcode, char *O
 
     (void) RPC2_GetPrivatePointer(RPCid, (char **)&client);
 
-    LogMsg(0, SrvDebugLevel, stdout, "Obsolete request %d (%s) on cid %d for %s at %s",
+    SLog(0, "Obsolete request %d (%s) on cid %d for %s at %s",
 	   Opcode, OldName, RPCid, client ? client->UserName:"???",
 	   (client && client->VenusId) ? client->VenusId->HostName:"???");
 }

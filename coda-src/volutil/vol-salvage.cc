@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.22 1998/10/29 15:29:05 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.23 1998/11/02 16:47:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -946,7 +946,8 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 		CODA_ASSERT(vnode->inodeNumber != 0);
 		if (vnode->inodeNumber == NEWVNODEINODE){
 		    /* delete the vnode */
-		    VLog(0, "DistilVnodeEssence: Found a Directory vnode %d that has a special inode ... deleting vnode ",
+		    VLog(0, "DistilVnodeEssence: Found a Directory"
+			 "vnode %d that has a special inode ... deleting vnode ",
 			vnodeIndex);
 		    vip->nAllocatedVnodes--;
 		    vip->volumeBlockCount -= vep->blockCount;

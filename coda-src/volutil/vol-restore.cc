@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.12 98/11/02 16:47:14 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.13 1998/11/24 15:35:00 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -284,6 +284,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
 	if (error) {
 	    VLog(0, "Unable to allocate volume id; restore aborted");
 	    rvmlib_abort(VFAIL);
+	    goto error;
 	}
     }
     /* NOTE:  Do NOT set the parentId of restore RO volumes to the ORIGINAL
@@ -306,6 +307,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
     }
 
     RVMLIB_END_TRANSACTION(flush, &status)
+	    error:
     if (status == 0)
 	VLog(9, "restore createvol of %#x completed successfully", *volid);
     else {

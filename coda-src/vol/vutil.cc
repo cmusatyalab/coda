@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.cc,v 4.7 1998/10/09 21:57:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.cc,v 4.8 1998/11/02 16:46:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -97,7 +97,9 @@ extern "C" {
 
 /* Note:  the volume creation functions herein leave the destroyMe flag in the
    volume header ON:  this means that the volumes will not be attached by the
-   file server and WILL BE DESTROYED the next time a system salvage is performed */
+   file server and WILL BE DESTROYED the next time a system salvage 
+   is performed 
+*/ 
 
 /* This must be called from within a transaction! */
 /* VolumeId parentId; Should be the same as volumeId if volume is
@@ -114,21 +116,20 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
 
     /* is the partition name short enough */
     if ( strlen(partition) > VPARTSIZE) {
-        LogMsg(0, SrvDebugLevel, stdout, 
-	       "VCreateVolume: partition name %s too long. Bailing out.\n", 
+        SLog(0, "VCreateVolume: partition name %s too long. Bailing out.\n", 
 	       partition);
 	*ec = ENAMETOOLONG;
 	return NULL;
     }
 
-    /* let's see if the partition is there before locking it; if lock fails, we die */
+    /* let's see if the partition is there before locking it; 
+       if lock fails, we die */
     dp = DP_Get(partition);
     if ( dp == NULL ) {
-        LogMsg(0, SrvDebugLevel, stdout, 
-	       "VCreateVolume: Cannot find partition %s. Bailing out.\n", 
-	       partition);
-	*ec = ENXIO;
-	return NULL;
+	    SLog(0, "VCreateVolume: Cannot find partition %s. Bailing out.\n", 
+		 partition);
+	    *ec = ENXIO;
+	    return NULL;
     }
     DP_LockPartition(partition);
 
@@ -136,7 +137,8 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     bzero((char *)&vol, sizeof (vol));
     vol.id = volumeId;
     vol.parentId = parentId;
-    vol.groupId = groupId;	// This is always NULL unless volume is replicated.
+    // This is always NULL unless volume is replicated.
+    vol.groupId = groupId;
     sprintf(vol.partition, partition, strlen(partition) + 1);
     vol.destroyMe = DESTROY_ME;
     vol.copyDate = time(0);	/* The only date which really means when this
@@ -149,6 +151,7 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
 	vol.ResOn = RVMRES;
 	vol.maxlogentries = rvmlogsize;
     }
+
     /* set up volume header info */
     bzero((char *)&tempHeader, sizeof (tempHeader));
     tempHeader.id = vol.id;

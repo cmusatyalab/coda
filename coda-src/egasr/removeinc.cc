@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.7 1998/10/07 20:29:43 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.8 1998/11/02 16:44:42 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -120,7 +120,9 @@ void main(int argc, char **argv)
     
 	// get fid and make sure it is a file
 	if (ISDIR(fid.Vnode)) {
-		fprintf(stderr, "%s is a directory - must be removed manually\n", argv[1]);
+		fprintf(stderr, 
+			"%s is a directory - must be removed manually\n", 
+			argv[1]);
 		exit(-1);
 	}
 	

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.12 1998/11/02 16:46:41 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.13 1998/11/11 15:59:05 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -268,20 +268,20 @@ static int ValidateRHandle(VolumeId, int, ViceReintHandle[], ViceReintHandle **)
   ViceVIncReintegrate: Reintegrate disconnected mutations 
   in an incremental fashion
 */
-long ViceVIncReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer *Index,
+long FS_ViceVIncReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer *Index,
 			 RPC2_Integer LogSize, RPC2_CountedBS *OldVS, 
 			 RPC2_Integer *NewVS, CallBackStatus *VCBStatus, 
 			 RPC2_CountedBS *PiggyBS, SE_Descriptor *BD) 
 {
 
-	return(ViceReintegrate(RPCid, Vid, LogSize, Index, 0, NULL, NULL,
+	return(FS_ViceReintegrate(RPCid, Vid, LogSize, Index, 0, NULL, NULL,
 			       OldVS, NewVS, VCBStatus, PiggyBS, BD));
 }
 
 /*
   ViceReintegrate: Reintegrate disconnected mutations
 */
-long ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
+long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 		     RPC2_Integer *Index, RPC2_Integer MaxDirs, 
 		     RPC2_Integer *NumDirs, ViceFid StaleDirs[],
 		     RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
@@ -303,7 +303,7 @@ long ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 
 
 	/* Phase 0. */
-	if ((PiggyBS->SeqLen > 0) && (errorCode = ViceCOP2(RPCid, PiggyBS))) {
+	if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(RPCid, PiggyBS))) {
 		if (Index) 
 			*Index = -1;
 		goto FreeLocks;
@@ -349,7 +349,7 @@ long ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
   ViceOpenReintHandle:  get a handle to store new data for
   an upcoming reintegration call
 */
-long ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid, 
+long FS_ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid, 
 			 ViceReintHandle *RHandle)
 {
     int errorCode = 0;		/* return code for caller */
@@ -394,7 +394,7 @@ FreeLocks:
   transferred file for an upcoming reintegration.  Now returns a byte offset, 
   but could be expanded to handle negotiation.
 */
-long ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
+long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 			  RPC2_Integer numHandles, ViceReintHandle RHandle[], 
 			  RPC2_Unsigned *Length)
 {
@@ -448,7 +448,7 @@ long ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
   ViceSendReintFragment:  append file data corresponding to the 
   handle for  an upcoming reintegration.
 */
-long ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
+long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
 			   RPC2_Integer numHandles, ViceReintHandle RHandle[], 
 			   RPC2_Unsigned Length, SE_Descriptor *BD)
 {
@@ -541,7 +541,7 @@ long ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
   to the reintegration handle.  This corresponds to the reintegration of
   a single store record.
 */
-long ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize, 
+long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize, 
 			  RPC2_Integer numHandles, ViceReintHandle RHandle[], 
 			  RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
 			  CallBackStatus *VCBStatus,
@@ -559,7 +559,7 @@ long ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
     SLog(0/*1*/, "ViceCloseReintHandle for volume 0x%x", Vid);
 
     /* Phase 0. */
-    if ((PiggyBS->SeqLen > 0) && (errorCode = ViceCOP2(RPCid, PiggyBS))) 
+    if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(RPCid, PiggyBS))) 
 	goto FreeLocks;
 
     if (errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle))
@@ -1300,7 +1300,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
     }
 
     /* NormalVCmp routine depends on resolution! */
-    if (AllowResolution && (V_VMResOn(volptr) || V_RVMResOn(volptr)))
+    if (AllowResolution && V_RVMResOn(volptr))
 	NormalVCmp = ReintNormalVCmp;
     else
 	NormalVCmp = ReintNormalVCmpNoRes;
@@ -1407,10 +1407,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 								     0, 0)) {
 				goto Exit;
 			    }
-			    // Make sure log is non-empty
-			    if (v->vptr->disk.type == vDirectory &&
-				AllowResolution && V_VMResOn(volptr)) 
-				MakeLogNonEmpty(v->vptr);
 
 			    /* Perform. */
 			    // if (r->u.u_store.Status.Length != v->vptr->disk.length)
@@ -1425,18 +1421,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 					      r->u.u_store.Mask, &r->sid, &c_inode);
 			    ReintPrelimCOP(v, &r->u.u_store.Status.VV.StoreId,
 					   &r->sid, volptr);
-			    if (v->vptr->disk.type == vDirectory &&
-				AllowResolution && V_VMResOn(volptr)) {
-				int opcode = (v->d_needsres)
-				  ? ResolveViceNewStore_OP
-				  : ViceNewStore_OP;
-				v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
-								     &v->fid, &r->sid,
-								     opcode, STATUSStore,
-								     r->u.u_store.Status.Owner, 
-								     r->u.u_store.Status.Mode,
-								     r->u.u_store.Mask)));
-			    }
 
 			    if (v->vptr->disk.type == vDirectory &&
 				AllowResolution && V_RVMResOn(volptr)) {
@@ -1519,10 +1503,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			if ( errorCode )
 				goto Exit;
 			
-			/* make resolution log non-empty if necessary */
-			if (AllowResolution && V_VMResOn(volptr)) 
-			    MakeLogNonEmpty(parent_v->vptr);
-			
 			/* directory concurrency check */
 			if (VV_Cmp(&Vnode_vv(parent_v->vptr), 
 				   &r->u.u_create.DirStatus.VV) != VV_EQ)
@@ -1538,17 +1518,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				       &r->sid, volptr);
 			ReintPrelimCOP(child_v, &r->u.u_create.Status.VV.StoreId,
 				       &r->sid, volptr);
-			if (AllowResolution && V_VMResOn(volptr)) {
-			    int opcode = (parent_v->d_needsres)
-				? ResolveViceCreate_OP
-				    : ViceCreate_OP;
-			    parent_v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
-									&parent_v->fid, &r->sid,
-									opcode,
-									r->u.u_create.Name,
-									r->u.u_create.Fid.Vnode,
-									r->u.u_create.Fid.Unique)));
-			}
+
 			if (AllowResolution && V_RVMResOn(volptr)) {
 			    int opcode = (parent_v->d_needsres)
 				? ResolveViceCreate_OP
@@ -1590,10 +1560,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							  0, 0))
 			goto Exit;
 
-		    // make resolution log non-empty if necessary 
-		    if (AllowResolution && V_VMResOn(volptr)) 
-			MakeLogNonEmpty(parent_v->vptr);
-
 		    /* directory concurrency check */
 		    if (VV_Cmp(&Vnode_vv(parent_v->vptr), 
 			       &r->u.u_remove.DirStatus.VV) != VV_EQ)
@@ -1610,19 +1576,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				   &r->sid, volptr);
 		    ReintPrelimCOP(child_v, &r->u.u_remove.Status.VV.StoreId,
 				   &r->sid, volptr);
-		    if (AllowResolution && V_VMResOn(volptr)) {
-			int opcode = (parent_v->d_needsres)
-			  ? ResolveViceRemove_OP
-			  : ViceRemove_OP;
-			ViceVersionVector *ghostVV = &Vnode_vv(child_v->vptr);	/* ??? -JJK */
-			parent_v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
-								    &parent_v->fid, &r->sid,
-								    opcode,
-								    r->u.u_remove.Name,
-								    r->u.u_remove.TgtFid.Vnode,
-								    r->u.u_remove.TgtFid.Unique,
-								    ghostVV)));
-		    }
+
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceRemove_OP
@@ -1676,10 +1630,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							0, 0))
 			goto Exit;
 
-		    // make resolution log non-empty if necessary 
-		    if (AllowResolution && V_VMResOn(volptr)) 
-			MakeLogNonEmpty(parent_v->vptr);
-
 		    /* directory concurrency check */
 		    if (VV_Cmp(&Vnode_vv(parent_v->vptr), 
 			       &r->u.u_link.DirStatus.VV) != VV_EQ)
@@ -1695,17 +1645,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				   &r->sid, volptr);
 		    ReintPrelimCOP(child_v, &r->u.u_link.Status.VV.StoreId,
 				   &r->sid, volptr);
-		    if (AllowResolution && V_VMResOn(volptr)) {
-			int opcode = (parent_v->d_needsres)
-			  ? ResolveViceLink_OP
-			  : ViceLink_OP;
-			parent_v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
-								    &parent_v->fid, &r->sid,
-								    opcode,
-								    r->u.u_link.Name,
-								    r->u.u_link.Fid.Vnode,
-								    r->u.u_link.Fid.Unique)));
-		    }
+
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceLink_OP
@@ -1773,12 +1713,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							  0, 0, 0, 0, 0, 0, 1, 0, vlist))
 			goto Exit;
 
-		    // make resolution log non-empty if necessary 
-		    if (AllowResolution && V_VMResOn(volptr)) {
-			MakeLogNonEmpty(sd_v->vptr);
-			if (!SameParent) MakeLogNonEmpty(td_v->vptr);
-		    }
-
 		    /* directory concurrency checks */
 		    if (VV_Cmp(&Vnode_vv(sd_v->vptr), 
 			       &r->u.u_rename.OldDirStatus.VV) != VV_EQ)
@@ -1811,7 +1745,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (TargetExists)
 			ReintPrelimCOP(t_v, &r->u.u_rename.TgtStatus.VV.StoreId,
 				       &r->sid, volptr);
-		    if (AllowResolution && (V_VMResOn(volptr) || V_RVMResOn(volptr))) {
+		    if (AllowResolution && V_RVMResOn(volptr)) {
 			if (!SameParent) {
 			    /* SpoolRenameLogRecord() only allows one opcode, so we must */
 			    /* coerce "non-resolve-needing" parent to "resolve-needing"! */
@@ -1826,24 +1760,19 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			int td_opcode = (td_v->d_needsres)
 			  ? ResolveViceRename_OP
 			  : ViceRename_OP;
-			if (V_VMResOn(volptr))
-			    SpoolRenameLogRecord(sd_opcode, /*td_opcode, */s_v, t_v, sd_v,
-						 td_v, volptr, (char *)r->u.u_rename.OldName,
-						 (char *)r->u.u_rename.NewName, &r->sid);
-			else {
-			    // rvm resolution is on 
-			    if (errorCode = SpoolRenameLogRecord((int) sd_opcode, (dlist *) vlist, 
-								 (Vnode *)s_v->vptr,(Vnode *)( t_v ? t_v->vptr : NULL) ,
-								 (Vnode *)sd_v->vptr, (Vnode *)td_v->vptr, (Volume *) volptr, 
-								 (char *)r->u.u_rename.OldName,
-								 (char *)r->u.u_rename.NewName, 
-								(ViceStoreId *) &r->sid)) {
+			// rvm resolution is on 
+			if (errorCode = SpoolRenameLogRecord((int) sd_opcode, (dlist *) vlist, 
+							     (Vnode *)s_v->vptr,(Vnode *)( t_v ? t_v->vptr : NULL) ,
+							     (Vnode *)sd_v->vptr, (Vnode *)td_v->vptr, (Volume *) volptr, 
+							     (char *)r->u.u_rename.OldName,
+							     (char *)r->u.u_rename.NewName, 
+							     (ViceStoreId *) &r->sid)) {
 				SLog(0, "Reint: Error %d during spool log record for rename\n",
-				       errorCode);
+				     errorCode);
 				goto Exit;
 			    }
-			}
 		    }
+
 		    if (TargetExists && t_v->vptr->delete_me) {
 			int deltablocks = -nBlocks(t_v->vptr->disk.length);
 			if (errorCode = AdjustDiskUsage(volptr, deltablocks))
@@ -1875,10 +1804,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							 0, 0))
 			goto Exit;
 
-		    // make resolution log non-empty if necessary 
-		    if (AllowResolution && V_VMResOn(volptr)) 
-			MakeLogNonEmpty(parent_v->vptr);
-		    
 		    /* directory concurrency check */
 		    if (VV_Cmp(&Vnode_vv(parent_v->vptr), 
 			       &r->u.u_mkdir.DirStatus.VV) != VV_EQ)
@@ -1894,23 +1819,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				   &r->sid, volptr);
 		    ReintPrelimCOP(child_v, &r->u.u_mkdir.Status.VV.StoreId,
 				   &r->sid, volptr);
-		    if (AllowResolution && V_VMResOn(volptr)) {
-			int p_opcode = (parent_v->d_needsres)
-			  ? ResolveViceMakeDir_OP
-			  : ViceMakeDir_OP;
-			int c_opcode = ViceMakeDir_OP;
-			parent_v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
-								    &parent_v->fid, &r->sid,
-								    p_opcode,
-								    (char *)r->u.u_mkdir.Name,
-								    r->u.u_mkdir.NewDid.Vnode,
-								    r->u.u_mkdir.NewDid.Unique)));
-			child_v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
-								   &child_v->fid, &r->sid,
-								   c_opcode, ".",
-								   r->u.u_mkdir.NewDid.Vnode,
-								   r->u.u_mkdir.NewDid.Unique)));
-		    }
 
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int p_opcode = (parent_v->d_needsres)
@@ -1965,10 +1873,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							 0, 0))
 			goto Exit;
 
-		    // make resolution log non-empty if necessary 
-		    if (AllowResolution && V_VMResOn(volptr)) 
-			MakeLogNonEmpty(parent_v->vptr);
-
 		    /* directory concurrency check */
 		    if (VV_Cmp(&Vnode_vv(parent_v->vptr), 
 			       &r->u.u_rmdir.Status.VV) != VV_EQ)
@@ -1985,26 +1889,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				   &r->sid, volptr);
 		    ReintPrelimCOP(child_v, &r->u.u_rmdir.TgtStatus.VV.StoreId,
 				   &r->sid, volptr);
-		    if (AllowResolution && V_VMResOn(volptr)) {
-			int opcode = (parent_v->d_needsres)
-			  ? ResolveViceRemoveDir_OP
-			  : ViceRemoveDir_OP;
-			VNResLog *vnlog;
-			pdlist *pl = GetResLogList(child_v->vptr->disk.vol_index,
-						   child_v->fid.Vnode, child_v->fid.Unique, &vnlog);
-			CODA_ASSERT(pl != NULL);
-			ViceStoreId *ghostSid =	&(Vnode_vv(child_v->vptr).StoreId); /* ??? -JJK */
-			parent_v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
-								    &parent_v->fid, &r->sid,
-								    opcode,
-								    (char *)r->u.u_rmdir.Name,
-								    r->u.u_rmdir.TgtFid.Vnode,
-								    r->u.u_rmdir.TgtFid.Unique,
-								    (int)pl->head,
-								    pl->cnt + child_v->sl.count(),
-								    &vnlog->LCP,
-								    ghostSid)));
-		    }
+
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceRemoveDir_OP
@@ -2049,10 +1934,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							   0, 0))
 			goto Exit;
 
-		    /* make resolution log non-empty if necessary */
-		    if (AllowResolution && V_VMResOn(volptr)) 
-			MakeLogNonEmpty(parent_v->vptr);
-
 		    /* directory concurrency check */
 		    if (VV_Cmp(&Vnode_vv(parent_v->vptr), 
 			       &r->u.u_symlink.DirStatus.VV) != VV_EQ)
@@ -2078,17 +1959,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				   &r->sid, volptr);
 		    ReintPrelimCOP(child_v, &r->u.u_symlink.Status.VV.StoreId,
 				   &r->sid, volptr);
-		    if (AllowResolution && V_VMResOn(volptr)) {
-			int opcode = (parent_v->d_needsres)
-			  ? ResolveViceSymLink_OP
-			  : ViceSymLink_OP;
-			parent_v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr),
-								    &parent_v->fid, &r->sid,
-								    opcode,
-								    r->u.u_symlink.NewName,
-								    r->u.u_symlink.Fid.Vnode,
-								    r->u.u_symlink.Fid.Unique)));
-		    }
+
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceSymLink_OP
@@ -2525,8 +2396,8 @@ static void ReintPrelimCOP(vle *v, ViceStoreId *OldSid,
 	   stamped with unique Sid at end! */
 
 	if (!SID_EQ(Vnode_vv(v->vptr).StoreId, *OldSid)) {
-		CODA_ASSERT(v->vptr->disk.type == vDirectory && AllowResolution && 
-		       (V_VMResOn(volptr) || V_RVMResOn(volptr)));
+		CODA_ASSERT(v->vptr->disk.type == vDirectory 
+			    && AllowResolution && V_RVMResOn(volptr));
 		v->d_needsres = 1;
 	}
 	
@@ -2539,8 +2410,7 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	ViceStoreId *FinalSid;
 	ViceStoreId UniqueSid;
 	if (v->vptr->disk.type == vDirectory && v->d_needsres) {
-		CODA_ASSERT(AllowResolution && 
-		       (V_VMResOn(volptr) || V_RVMResOn(volptr)));
+		CODA_ASSERT(AllowResolution && V_RVMResOn(volptr));
 		AllocStoreId(&UniqueSid);
 		FinalSid = &UniqueSid;
 		MakeLogNonEmpty(v->vptr);
@@ -2559,11 +2429,7 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	   works correctly. 
 	*/
 	if (v->vptr->disk.type == vDirectory && v->d_needsres) {
-		CODA_ASSERT(AllowResolution && 
-		       (V_VMResOn(volptr) || V_RVMResOn(volptr)));
-		if (V_VMResOn(volptr))
-			v->sl.append(new sle(InitVMLogRecord(V_volumeindex(volptr), &v->fid,
-							     FinalSid, ResolveNULL_OP, 0)));
+		CODA_ASSERT(AllowResolution && V_RVMResOn(volptr));
 		if (V_RVMResOn(volptr))
 			CODA_ASSERT(SpoolVMLogRecord(v, volptr, FinalSid, ResolveNULL_OP, 0) == 0);
 	}

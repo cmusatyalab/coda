@@ -742,7 +742,7 @@ else
   cat > conftest.$ac_ext <<EOF
 #line 744 "configure"
 #include "confdefs.h"
-#include "coda_assert.h"
+#include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
@@ -759,7 +759,7 @@ else
   cat > conftest.$ac_ext <<EOF
 #line 761 "configure"
 #include "confdefs.h"
-#include "coda_assert.h"
+#include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
@@ -1537,6 +1537,7 @@ coda-src/rpc2/Makefile
 coda-src/portmapper/Makefile 
 coda-src/util/Makefile 
 coda-src/libal/Makefile 
+coda-src/libal/Makefile 
 coda-src/rp2gen/Makefile 
 coda-src/pdbstuff/Makefile 
 coda-src/blurb/Makefile 
@@ -1704,6 +1705,7 @@ coda-src/dir/Makefile
 coda-src/rpc2/Makefile 
 coda-src/portmapper/Makefile 
 coda-src/util/Makefile 
+coda-src/libal/Makefile 
 coda-src/libal/Makefile 
 coda-src/rp2gen/Makefile 
 coda-src/pdbstuff/Makefile 

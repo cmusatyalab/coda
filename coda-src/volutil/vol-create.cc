@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.10 1998/10/30 18:30:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.11 1998/11/02 16:47:08 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -113,115 +113,119 @@ static int ViceCreateRoot(Volume *vp);
 */
 
 long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
-		 RPC2_String formal_volname, VolumeId *volid, RPC2_Integer repvol,
+		 RPC2_String formal_volname, VolumeId *volid, 
+		 RPC2_Integer repvol,
 		 VolumeId grpId) 
 {
-    VolumeId volumeId = 0;
-    VolumeId parentId = 0;
-    Volume *vp = NULL;
-    int status = 0;    /* transaction status variable */
-    int rc = 0;
-    int volidx;
-    ProgramType *pt;
-    int resflag = RVMRES;
+	VolumeId volumeId = 0;
+	VolumeId parentId = 0;
+	Volume *vp = NULL;
+	int status = 0;    /* transaction status variable */
+	int rc = 0;
+	int volidx;
+	ProgramType *pt;
+	int resflag = RVMRES;
 
-    /* To keep C++ 2.0 happy */
-    char *partition = (char *)formal_partition;
-    char *volname = (char *)formal_volname;    
+	/* To keep C++ 2.0 happy */
+	char *partition = (char *)formal_partition;
+	char *volname = (char *)formal_volname;    
 
-    error = 0;
+	error = 0;
 
-    CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
-    LogMsg(9, VolDebugLevel, stdout,
-	   "Entering S_VolCreate: rpcid = %d, partition = %s, volname = %s,"
-	   " volumeid = %x, repvol = %d, grpid = %x",
-	   rpcid, partition, volname, volid ? *volid : 0, repvol, grpId);
-    RVMLIB_BEGIN_TRANSACTION(restore)
+	VLog(9, "Entering S_VolCreate: rpcid = %d, partition = %s," 
+	     "volname = %s, volumeid = %x, repvol = %d, grpid = %x",
+	     rpcid, partition, volname, volid ? *volid : 0, repvol, grpId);
+	RVMLIB_BEGIN_TRANSACTION(restore);
 
-    rc = VInitVolUtil(volumeUtility);
-    if (rc != 0) {
-	    rvmlib_abort(rc);
-	    status = rc;
-	    goto exit;
-    }
+	rc = VInitVolUtil(volumeUtility);
+	if (rc != 0) {
+		rvmlib_abort(rc);
+		status = rc;
+		goto exit;
+	}
 
-    /* Use a new volumeId only if the user didn't specify any */
-    if (!volid  || !(*volid) )
-	    volumeId = VAllocateVolumeId(&error);
-    else {
-	    volumeId = *volid;
-	    /* check that volume id is legal */
-	    if (volumeId > VGetMaxVolumeId()) {
-		    SLog(0, "Warning: %x is > MaxVolID; setting MaxVolID to %x\n",
-			 volumeId, volumeId);
-		    VSetMaxVolumeId(volumeId);
-	    }
-    }
-    LogMsg(9, VolDebugLevel, stdout,
-	   "VolCreate: VAllocateVolumeId returns %x", volumeId);
-    if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "Unable to allocate a volume number; volume not created");
-	rvmlib_abort(VNOVOL);
-	status = VNOVOL;
-	goto exit;
-    }
+	/* Use a new volumeId only if the user didn't specify any */
+	if (!volid  || !(*volid) )
+		volumeId = VAllocateVolumeId(&error);
+	else {
+		volumeId = *volid;
+		/* check that volume id is legal */
+		if (volumeId > VGetMaxVolumeId()) {
+			SLog(0, "Warning: %x is > MaxVolID; setting MaxVolID to %x\n",
+			     volumeId, volumeId);
+			VSetMaxVolumeId(volumeId);
+		}
+	}
+	VLog(9, "VolCreate: VAllocateVolumeId returns %x", volumeId);
+	if (error) {
+		VLog(0, "Unable to allocate a volume number; not created");
+		rvmlib_abort(VNOVOL);
+		status = VNOVOL;
+		goto exit;
+	}
 
-    parentId = volumeId;    // we are creating a readwrite (or replicated) volume
+	/* we are creating a readwrite (or replicated) volume */
+	parentId = volumeId;    
 
-    if (repvol && grpId == 0) {
-        LogMsg(0, VolDebugLevel, stdout, "S_VolCreate: can't create replicated volume without group id");
-	rvmlib_abort(VFAIL);
-	status = VFAIL;
-	goto exit;
-    }
+	if (repvol && grpId == 0) {
+		VLog(0, "S_VolCreate: can't create replicated volume without group id");
+		rvmlib_abort(VFAIL);
+		status = VFAIL;
+		goto exit;
+	}
 
     /* If we are creating a replicated volume, pass along group id */
-    vp = VCreateVolume(&error, partition, volumeId, parentId, repvol?grpId:0, readwriteVolume, repvol? resflag : 0);
-    if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "Unable to create the volume; aborted");
-	rvmlib_abort(VNOVOL);
-	status = VNOVOL;
-	goto exit;
-    }
-    V_uniquifier(vp) = 1;
-    V_creationDate(vp) = V_copyDate(vp);
-    V_inService(vp) = V_blessed(vp) = 1;
-    V_type(vp) = readwriteVolume;
-    AssignVolumeName(&V_disk(vp), volname, 0);
+	vp = VCreateVolume(&error, partition, volumeId, parentId, 
+			   repvol?grpId:0, readwriteVolume, 
+			   repvol? resflag : 0);
+	if (error) {
+		VLog(0, "Unable to create the volume; aborted");
+		rvmlib_abort(VNOVOL);
+		status = VNOVOL;
+		goto exit;
+	}
+	V_uniquifier(vp) = 1;
+	V_creationDate(vp) = V_copyDate(vp);
+	V_inService(vp) = V_blessed(vp) = 1;
+	V_type(vp) = readwriteVolume;
+	AssignVolumeName(&V_disk(vp), volname, 0);
 
-/* could probably begin transaction here instead of at beginning */
-/* must include both ViceCreateRoot and VUpdateVolume for vv atomicity */
-    ViceCreateRoot(vp);
-    V_destroyMe(vp) = V_needsSalvaged(vp) = 0;
-    V_linkcount(vp) = 1;
-    volidx = V_volumeindex(vp);
-    VUpdateVolume(&error, vp);
-    VDetachVolume(&error, vp);	/* Allow file server to grab it */
-    CODA_ASSERT(error == 0);
-    RVMLIB_END_TRANSACTION(flush, &(status));
+	/* could probably begin transaction here instead of at beginning */
+	/* must include both ViceCreateRoot and 
+	   VUpdateVolume for vv atomicity */
+	ViceCreateRoot(vp);
+	V_destroyMe(vp) = V_needsSalvaged(vp) = 0;
+	V_linkcount(vp) = 1;
+	volidx = V_volumeindex(vp);
+	VUpdateVolume(&error, vp);
+	VDetachVolume(&error, vp);	/* Allow file server to grab it */
+	CODA_ASSERT(error == 0);
+	RVMLIB_END_TRANSACTION(flush, &(status));
  exit: 
 
-    /* to make sure that rvm records are getting flushed - to find this bug */
-    CODA_ASSERT(rvm_flush() == RVM_SUCCESS);
-    VDisconnectFS();
-    if (status == 0) {
-	LogMsg(0, VolDebugLevel, stdout, "create: volume %x (%s) created", volumeId, volname);
-	*volid = volumeId;	    /* set value of out parameter */
-	if (SRV_RVM(VolumeList[volidx]).data.volumeInfo)
-	    if (SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries)
-	        LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx,
-						 SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries);
-	    else
-	        LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx, MAXLOGSIZE);
-	else
-	    CODA_ASSERT(0);
-    }
-    else {
-	LogMsg(0, VolDebugLevel, stdout, "create: volume creation failed for volume %x", volumeId);
-	LogMsg(0, VolDebugLevel, stdout, "status = (%d) ", status);
-    }
-    return(status?status:rc);
+	/* to make sure that rvm records are getting flushed 
+	   - to find this bug */
+	CODA_ASSERT(rvm_flush() == RVM_SUCCESS);
+	VDisconnectFS();
+	if (status == 0) {
+		VLog(0, "create: volume %x (%s) created", volumeId, volname);
+		*volid = volumeId;	    /* set value of out parameter */
+		if (SRV_RVM(VolumeList[volidx]).data.volumeInfo)
+			if (SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries)
+				LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx,
+							       SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries);
+			else
+				LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx, MAXLOGSIZE);
+		else
+			CODA_ASSERT(0);
+	}
+	else {
+		VLog(0, "create: volume creation failed for volume %x", volumeId);
+		VLog(0, "status = (%d) ", status);
+	}
+	return(status?status:rc);
 }
 
 /* Adapted from the file server; create a root directory for */
@@ -246,8 +250,7 @@ static int ViceCreateRoot(Volume *vp)
     dir = VN_SetDirHandle(vn);
 
     did.Vnode = (VnodeId)bitNumberToVnodeNumber(0, vLarge);
-    LogMsg(29, VolDebugLevel, stdout, 
-	   "ViceCreateRoot: did.Vnode = %d", did.Vnode);
+    VLog(29, "ViceCreateRoot: did.Vnode = %d", did.Vnode);
     did.Unique = 1;
 
     /* set up the physical directory */
@@ -303,7 +306,7 @@ static int ViceCreateRoot(Volume *vp)
     /* create the resolution log for this vnode if rvm resolution is
        turned on */
     if (AllowResolution && V_RVMResOn(vp)) {
-	LogMsg(0, SrvDebugLevel, stdout, "Creating new log for root vnode\n");
+	VLog(0, "Creating new log for root vnode\n");
 	CreateRootLog(vp, vn);
 	vnode->log = VnLog(vn);
     }

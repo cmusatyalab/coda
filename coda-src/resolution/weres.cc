@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.5 1998/10/21 22:05:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.6 1998/11/02 16:45:12 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,43 +61,6 @@ extern "C" {
 #include <resutil.h>
 #include <res.h>
 
-int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
-	  res_mgrpent *mgrp, unsigned long *hosts) 
-{
-    
-    int errorcode = 0;
-
-    SLog(9,  "Entering WERes %s", FID_(Fid));
-
-    /* force a new vv */
-    {
-	ViceVersionVector newvv;
-	GetMaxVV(&newvv, VV, -1);
-
-	// Get ResStatus if necessary 
-	ViceStatus vstatus;
-	if (rstatusp) {
-	    unsigned long succflags[VSG_MEMBERS];
-	    CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, 
-			  succflags);
-	    GetResStatus(succflags, rstatusp, &vstatus);
-	}
-	else bzero((void *)&vstatus, (int) sizeof(ViceStatus));	// for now send a zeroed vstatus.
-	// rpc2 doesn\'t like a NULL being passed as an IN parameter 
-	MRPC_MakeMulti(ForceDirVV_OP, ForceDirVV_PTR, VSG_MEMBERS, 
-		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-		       mgrp->rrcc.MIp, 0, 0, Fid, &newvv, /* rstatusp ? &vstatus : NULL*/ &vstatus);
-	SLog(9,  "WERes returned from ForceVV");
-    }
-
-    /* coerce rpc errors as timeouts - check ret codes */
-    {
-	mgrp->CheckResult();
-	errorcode = (int) CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				  mgrp->rrcc.hosts, hosts);
-    }
-    return(errorcode);
-}
 
 
 /* subordinate end of Weakly Equal resolution -

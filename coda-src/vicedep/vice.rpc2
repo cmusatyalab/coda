@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vice.rpc2,v 4.4 1998/08/05 23:50:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vice.rpc2,v 4.5 1998/08/26 21:16:56 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -55,6 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 %}
 
+server prefix "FS";
 
 Subsystem "srv" 1 1;
 

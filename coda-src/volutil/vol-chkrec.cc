@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-chkrec.cc,v 4.4 1998/09/29 16:38:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-chkrec.cc,v 4.5 1998/11/02 16:47:06 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -96,10 +96,10 @@ long S_VolChkRec(RPC2_Handle rpcid, VolumeId volid)
     long rc = 0;
     ProgramType *pt;
 
-    LogMsg(9, VolDebugLevel, stdout, "Checking lwp rock in S_VolChkRec");
+    VLog(9, "Checking lwp rock in S_VolChkRec");
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VolChkRec()");
+    VLog(9, "Entering VolChkRec()");
     RVMLIB_BEGIN_TRANSACTION(restore)
     VInitVolUtil(volumeUtility);
     if (volid){
@@ -157,27 +157,27 @@ static int ChkRecSeg(int volindex)
     vol = &(SRV_RVM(VolumeList[volindex]));
     voldata = &(vol->data);
     if (voldata->volumeInfo && ChkRecAddr((char *)(voldata->volumeInfo)) == -1){
-	LogMsg(0, VolDebugLevel, stdout, "ChkRecSeg: Disk Data for volume index %d is corrupted", volindex);
+	VLog(0, "ChkRecSeg: Disk Data for volume index %d is corrupted", volindex);
 	rc = -1;
     }
     if (voldata->volumeInfo && ChkRecObj((char *)(voldata->volumeInfo), sizeof(VolumeDiskData)) == -1){
-	LogMsg(0, VolDebugLevel, stdout, "ChkRecSeg: VolumeInfo object 0x%x for index %d is corrupt",
+	VLog(0, "ChkRecSeg: VolumeInfo object 0x%x for index %d is corrupt",
 	    voldata->volumeInfo, volindex);
 	rc = -1;
     }
     if (voldata->smallVnodeList && ChkRecAddr((char *)voldata->smallVnodeList) == -1){
-	LogMsg(0, VolDebugLevel, stdout, "ChkRecSeg: Small Vnode List for volume index %d is corrupted", volindex);
+	VLog(0, "ChkRecSeg: Small Vnode List for volume index %d is corrupted", volindex);
 	rc = -1;
     }
     if (voldata->largeVnodeList && ChkRecAddr((char *)voldata->largeVnodeList) == -1){
-	LogMsg(0, VolDebugLevel, stdout, "ChkRecSeg: Large Vnode List for volume index %d is corrupted", volindex);
+	VLog(0, "ChkRecSeg: Large Vnode List for volume index %d is corrupted", volindex);
 	rc = -1;
     }
     for (int i = 0; i < voldata->smallListSize; i++){
 	/* check vnode recoverable storage */
 	if (voldata->smallVnodeList[i]){
 	    if (ChkRecAddr((char *)(voldata->smallVnodeList[i])) == -1){
-		LogMsg(0, VolDebugLevel, stdout, "ChkRecSeg: SmallVnode %d for volume index %d is corrupt", i, volindex);
+		VLog(0, "ChkRecSeg: SmallVnode %d for volume index %d is corrupt", i, volindex);
 		rc = -1;
 	    }
 	}
@@ -186,7 +186,7 @@ static int ChkRecSeg(int volindex)
 	/* check vnode recoverable storage */
 	if (voldata->largeVnodeList[i]){
 	    if (ChkRecAddr((char *)(voldata->largeVnodeList[i])) == -1){
-		LogMsg(0, VolDebugLevel, stdout, "ChkRecSeg: LargeVnode %d for volume index %d is corrupt", i, volindex);
+		VLog(0, "ChkRecSeg: LargeVnode %d for volume index %d is corrupt", i, volindex);
 		rc = -1;
 	    }
 	}
@@ -209,14 +209,14 @@ static int ChkRecAddr(char *address)
 				   sizeof(rcv_heap_header_t));
     if (((u_int) hPtr < camlibRecSegLow)
 	 || ((u_int) hPtr > camlibRecSegHigh)){
-	LogMsg(0, VolDebugLevel, stdout, "ChkRecAddr: Address 0x%x out of Recoverable heap range", 
+	VLog(0, "ChkRecAddr: Address 0x%x out of Recoverable heap range", 
 	    address);
 	return -1;
     }
     free_list_ptr = (char *) (hPtr->fl);
     if ((free_list_ptr < (char *) rcv_heap_free_list)
 	 || (free_list_ptr > (char *) (rcv_heap_free_list + NBUCKETS - 1))){
-	LogMsg(0, VolDebugLevel, stdout, "ChkRecAddr: Invalid Header for 0x%x", address);
+	VLog(0, "ChkRecAddr: Invalid Header for 0x%x", address);
 	return -1;
     }
     
@@ -228,8 +228,8 @@ static int ChkRecObj(char *address, int length)
     if (((u_int) (address) < camlibRecSegLow)				    
 	 || (((u_int) (address) + (length)) > camlibRecSegHigh)
 	 || (((u_int) (length)) == 0)){
-	LogMsg(0, VolDebugLevel, stdout, "ChkRecObj: Bad Address 0x%x for object - cant fit in camlib segment;", address);
-	LogMsg(0, VolDebugLevel, stdout, "ChkRecObj: High = 0x%x, Low = 0x%x, length = %d",
+	VLog(0, "ChkRecObj: Bad Address 0x%x for object - cant fit in camlib segment;", address);
+	VLog(0, "ChkRecObj: High = 0x%x, Low = 0x%x, length = %d",
 	    camlibRecSegLow, camlibRecSegHigh, length);
 	return -1;
     }

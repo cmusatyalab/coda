@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.21 1998/11/04 10:28:27 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.22 1998/11/11 15:59:06 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -134,14 +134,14 @@ extern void ChangeDiskUsage(Volume *, int);
 extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
 
 /* These should be RPC routines. */
-extern long ViceGetAttr(RPC2_Handle, ViceFid *, int,
+extern long FS_ViceGetAttr(RPC2_Handle, ViceFid *, int,
 			 ViceStatus *, RPC2_Unsigned, RPC2_CountedBS *);
-extern long ViceGetACL(RPC2_Handle, ViceFid *, int, RPC2_BoundedBS *,
+extern long FS_ViceGetACL(RPC2_Handle, ViceFid *, int, RPC2_BoundedBS *,
 			ViceStatus *, RPC2_Unsigned, RPC2_CountedBS *);
-extern long ViceSetACL(RPC2_Handle, ViceFid *, RPC2_CountedBS *, ViceStatus *,
+extern long FS_ViceSetACL(RPC2_Handle, ViceFid *, RPC2_CountedBS *, ViceStatus *,
 			RPC2_Unsigned, ViceStoreId *, RPC2_CountedBS *,
 			RPC2_Integer *, CallBackStatus *, RPC2_CountedBS *);
-extern long ViceNewSetAttr(RPC2_Handle, ViceFid *, ViceStatus *, RPC2_Integer,
+extern long FS_ViceNewSetAttr(RPC2_Handle, ViceFid *, ViceStatus *, RPC2_Integer,
 			   RPC2_Unsigned, ViceStoreId *, RPC2_CountedBS *, 
 			   RPC2_Integer *, CallBackStatus *, RPC2_CountedBS *);
 
@@ -192,7 +192,7 @@ extern void PollAndYield();
 /*
   ViceFetch":Fetch a file or directory
 */
-long ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
+long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
 		ViceFetchType Request, RPC2_BoundedBS *AccessList,
 		ViceStatus *Status, RPC2_Unsigned PrimaryHost,
 		RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
@@ -201,9 +201,9 @@ long ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
     if (Request == FetchNoData || Request == FetchNoDataRepair) {
 	int inconok = (Request == FetchNoDataRepair);
 	if (AccessList->MaxSeqLen == 0)
-	    return(ViceGetAttr(RPCid, Fid, inconok, Status, PrimaryHost, PiggyBS));
+	    return(FS_ViceGetAttr(RPCid, Fid, inconok, Status, PrimaryHost, PiggyBS));
 	else
-	    return(ViceGetACL(RPCid, Fid, inconok, AccessList, Status, PrimaryHost, PiggyBS));
+	    return(FS_ViceGetACL(RPCid, Fid, inconok, AccessList, Status, PrimaryHost, PiggyBS));
     }
 
     int errorCode = 0;		/* return code to caller */
@@ -317,7 +317,7 @@ END_TIMING(Fetch_Total);
 /*
  ViceGetAttr: Fetch the attributes for a file/directory
 */
-long ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, 
+long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, 
 		 int InconOK, ViceStatus *Status, 
 		 RPC2_Unsigned PrimaryHost, 
 		 RPC2_CountedBS *PiggyBS)
@@ -405,7 +405,7 @@ END_TIMING(GetAttr_Total);
 /*
   ViceValidateAttrs: A batched version of GetAttr
 */
-long ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
+long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
 		       ViceFid *PrimaryFid, ViceStatus *Status, 
 		       RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
 		       RPC2_CountedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
@@ -428,7 +428,7 @@ START_TIMING(ViceValidateAttrs_Total);
 
     /* Do a real getattr for primary fid. */
     {
-	if (errorCode = ViceGetAttr(RPCid, PrimaryFid, 0, Status, 
+	if (errorCode = FS_ViceGetAttr(RPCid, PrimaryFid, 0, Status, 
 				    PrimaryHost, PiggyBS))
 		goto Exit;
     }
@@ -534,7 +534,7 @@ END_TIMING(ViceValidateAttrs_Total);
 /*
   ViceGetACL: Fetch the acl of a directory
 */
-long ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, int InconOK, RPC2_BoundedBS *AccessList,
+long FS_ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, int InconOK, RPC2_BoundedBS *AccessList,
 		 ViceStatus *Status, RPC2_Unsigned PrimaryHost, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
@@ -595,11 +595,9 @@ END_TIMING(GetACL_Total);
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceNewVStore"><strong>Store a file or directory</strong></a> 
-  END_HTML
+  ViceNewVStore: Store a file or directory
 */
-long ViceNewVStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
+long FS_ViceNewVStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
 		   RPC2_CountedBS *AccessList, ViceStatus *Status,
 		   RPC2_Integer Length, RPC2_Integer Mask,
 		   RPC2_Unsigned PrimaryHost,
@@ -609,10 +607,10 @@ long ViceNewVStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
 {
     /* We should have separate RPC routines for these two! */
     if (Request == StoreStatus)
-	return(ViceNewSetAttr(RPCid, Fid, Status, Mask, PrimaryHost, StoreId, 
+	return(FS_ViceNewSetAttr(RPCid, Fid, Status, Mask, PrimaryHost, StoreId, 
 			      OldVS, NewVS, VCBStatus, PiggyBS));
     if (Request == StoreNeither)
-	return(ViceSetACL(RPCid, Fid, AccessList, Status, PrimaryHost, 
+	return(FS_ViceSetACL(RPCid, Fid, AccessList, Status, PrimaryHost, 
 			  StoreId, OldVS, NewVS, VCBStatus, PiggyBS));
 
     int errorCode = 0;		/* return code for caller */
@@ -746,12 +744,9 @@ END_TIMING(Store_Total);
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceNewStore"><strong>Obsoleted by ViceNewVStore</strong></a> 
-  <a href="#ViceNewVStore"><strong>ViceNewVStore</strong></a>
-  END_HTML
+  ViceNewStore: Obsoleted by ViceNewVStore
 */
-long ViceNewStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
+long FS_ViceNewStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
 		  RPC2_CountedBS *AccessList, ViceStatus *Status,
 		  RPC2_Integer Length, RPC2_Integer Mask,
 		  RPC2_Unsigned PrimaryHost,
@@ -764,18 +759,17 @@ long ViceNewStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
 	OldVS.SeqLen = 0;
 	OldVS.SeqBody = 0;
 
-	return(ViceNewVStore(RPCid, Fid, Request, AccessList, Status,
+	CODA_ASSERT(0);
+	return(FS_ViceNewVStore(RPCid, Fid, Request, AccessList, Status,
 			     Length, Mask, PrimaryHost, StoreId, &OldVS, &NewVS,
 			     &VCBStatus, PiggyBS, BD));
 }
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceNewSetAttr"><strong>Set attributes of an object?</strong></a> 
-  END_HTML
+  ViceNewSetAttr: Set attributes of an object
 */
-long ViceNewSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
+long FS_ViceNewSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
 		    RPC2_Integer Mask, RPC2_Unsigned PrimaryHost,		    
 		    ViceStoreId *StoreId, 
 		    RPC2_CountedBS *OldVS, RPC2_Integer *NewVS,
@@ -834,10 +828,6 @@ START_TIMING(SetAttr_Total);
 	    goto FreeLocks;
     }
 
-    /* Make sure resolution log is not empty */
-    if (AllowResolution && V_VMResOn(volptr) &&
-	ReplicatedOp && v->vptr->disk.type == vDirectory) 
-	MakeLogNonEmpty(v->vptr);
 
     /* Perform operation. */
     {
@@ -872,18 +862,6 @@ START_TIMING(SetAttr_Total);
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
 
-    if (AllowResolution && V_VMResOn(volptr)) {
-	/* Create Log Record */
-	if (ReplicatedOp && !errorCode &&
-	    v->vptr->disk.type == vDirectory) {
-	    int ind = InitVMLogRecord(V_volumeindex(volptr),
-				      Fid, StoreId, ViceNewStore_OP,
-				      STATUSStore, Status->Owner,
-				      Status->Mode, Mask);
-	    sle *SLE = new sle(ind);
-	    v->sl.append(SLE);
-	}
-    }
     if (AllowResolution && V_RVMResOn(volptr)) {
 	if (ReplicatedOp && !errorCode &&
 	    v->vptr->disk.type == vDirectory) {
@@ -923,7 +901,7 @@ END_TIMING(SetAttr_Total);
   <a name="ViceSetACL"><strong>Set the Access Control List for a directory</strong></a> 
   END_HTML
 */
-long ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
+long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
 		 ViceStatus *Status, RPC2_Unsigned PrimaryHost,
 		 ViceStoreId *StoreId, 
 		 RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
@@ -966,10 +944,6 @@ START_TIMING(SetACL_Total);
 	    goto FreeLocks;
     }
 
-    /* make sure resolution log is non-empty */
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	MakeLogNonEmpty(v->vptr);
-
     /* Perform operation. */
     {
 	if (ReplicatedOp)
@@ -980,16 +954,6 @@ START_TIMING(SetACL_Total);
 	SetStatus(v->vptr, Status, rights, anyrights);
 	if (ReplicatedOp)
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
-    }
-
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) {
-	/* Create log entry for resolution logs in vm only */
-	int ind;
-	ind = InitVMLogRecord(V_volumeindex(volptr),
-			      Fid, StoreId, ViceNewStore_OP, 
-			      ACLStore, newACL);
-	sle *SLE = new sle(ind);
-	v->sl.append(SLE);
     }
 
     if (AllowResolution && V_RVMResOn(volptr)) 
@@ -1022,31 +986,11 @@ END_TIMING(SetACL_Total);
     return(errorCode);
 }
 
-/*
-ViceCreate: Obsoleted by ViceVCreate
-*/
-long ViceCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
-		RPC2_String Name, ViceStatus *Status, ViceFid *Fid,
-		ViceStatus *DirStatus, RPC2_Unsigned PrimaryHost,
-		ViceStoreId *StoreId, RPC2_CountedBS *PiggyBS)
-{
-	/* fake out other parameters to VStore */
-	CallBackStatus VCBStatus = NoCallBack;
-	RPC2_Integer NewVS = 0;
-	RPC2_CountedBS OldVS;
-	OldVS.SeqLen = 0;
-	OldVS.SeqBody = 0;
-
-	return(ViceVCreate(RPCid, Did, BidFid, Name, Status, Fid,
-			   DirStatus, PrimaryHost, StoreId, 
-			  &OldVS, &NewVS, &VCBStatus, PiggyBS));
-}
-
 
 /*
   ViceVCreate: Create an object with given name in its parent's directory
 */
-long ViceVCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
+long FS_ViceVCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
 		RPC2_String Name, ViceStatus *Status, ViceFid *Fid,
 		ViceStatus *DirStatus, RPC2_Unsigned PrimaryHost,
 		ViceStoreId *StoreId, RPC2_CountedBS *OldVS,
@@ -1138,10 +1082,6 @@ START_TIMING(Create_Total);
 	    goto FreeLocks;
     }
 
-    /* make sure resolution log is non-empty */
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	MakeLogNonEmpty(pv->vptr);
-
     /* Perform operation. */
     {
 	int tblocks = 0;
@@ -1163,20 +1103,6 @@ START_TIMING(Create_Total);
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
 
-    if (AllowResolution && V_VMResOn(volptr)) {
-	/* Create Log Record */
-	if (ReplicatedOp) {
-	    int ind;
-	    ind = InitVMLogRecord(V_volumeindex(volptr),
-				 Did, StoreId,  ViceCreate_OP, 
-				 Name, Fid->Vnode, Fid->Unique);
-	    sle *SLE = new sle(ind);
-	    pv->sl.append(SLE);
-	}
-    }
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
     if (AllowResolution && V_RVMResOn(volptr)) 
 	/* Create Log Record */
 	if (ReplicatedOp && !errorCode) 
@@ -1187,9 +1113,6 @@ START_TIMING(Create_Total);
 		SLog(0, 
 		       "ViceCreate: Error %d during SpoolVMLogRecord\n",
 		       errorCode);
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
 
   FreeLocks:
     /* Put objects. */
@@ -1216,29 +1139,11 @@ END_TIMING(Create_Total);
 }
 
 
-/*
-  ViceRemove: Obsoleted by ViceVRemove
-*/
-long ViceRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
-		 ViceStatus *DirStatus, ViceStatus *Status,
-		 RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId,
-		 RPC2_CountedBS *PiggyBS)
-{
-	CallBackStatus VCBStatus = NoCallBack;
-	RPC2_Integer NewVS = 0;
-	RPC2_CountedBS OldVS;
-	OldVS.SeqLen = 0;
-	OldVS.SeqBody = 0;
-
-	return(ViceVRemove(RPCid, Did, Name, DirStatus, Status, PrimaryHost, 
-			   StoreId, &OldVS, &NewVS, &VCBStatus, PiggyBS));
-}
-
 
 /*
   ViceVRemove: Delete an object and its name
 */
-long ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
+long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		ViceStatus *DirStatus, ViceStatus *Status,
 		RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId,
 		RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
@@ -1308,9 +1213,6 @@ long ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	    goto FreeLocks;
     }
 
-    /* make sure resolution log is non-empty */
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	    MakeLogNonEmpty(pv->vptr);
 
     /* Perform operation. */
     {
@@ -1336,22 +1238,6 @@ long ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
 
-    if (AllowResolution && V_VMResOn(volptr)) {
-	/* Create Log Record */
-	    if (ReplicatedOp) {
-		    ViceVersionVector ghostVV = cv->vptr->disk.versionvector;
-		    int ind;
-		    ind = InitVMLogRecord(V_volumeindex(volptr),
-					  Did, StoreId, ViceRemove_OP,
-					  Name, Fid.Vnode, Fid.Unique, &ghostVV);
-		    sle *SLE = new sle(ind);
-		    pv->sl.append(SLE);
-	    }
-    }
-
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
     if (AllowResolution && V_RVMResOn(volptr)) 
 	    if (ReplicatedOp && !errorCode) {
 		    ViceVersionVector ghostVV = cv->vptr->disk.versionvector;	    
@@ -1361,9 +1247,6 @@ long ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		SLog(0, "ViceRemove: error %d during SpoolVMLogRecord\n",
 		       errorCode);
 	}
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
 
 FreeLocks:
     /* Put objects. */
@@ -1389,30 +1272,11 @@ END_TIMING(Remove_Total);
 }
 
 
-/*
-  ViceLink: Obsoleted by ViceVLink
-*/
-long ViceLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
-	       ViceFid *Fid, ViceStatus *Status, ViceStatus *DirStatus,
-	       RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId,
-	       RPC2_CountedBS *PiggyBS)
-{
-	CallBackStatus VCBStatus = NoCallBack;
-	RPC2_Integer NewVS = 0;
-	RPC2_CountedBS OldVS;
-	OldVS.SeqLen = 0;
-	OldVS.SeqBody = 0;
-
-	return(ViceVLink(RPCid, Did, Name, Fid, Status, DirStatus,
-			 PrimaryHost, StoreId, &OldVS, &NewVS, 
-			 &VCBStatus, PiggyBS));
-}
-
 
 /*
 ViceVLink: Create a new name for an already existing file
 */
-long ViceVLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
+long FS_ViceVLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	       ViceFid *Fid, ViceStatus *Status, ViceStatus *DirStatus,
 	       RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId,
 	       RPC2_CountedBS *OldVS, RPC2_Integer *NewVS, 
@@ -1486,10 +1350,6 @@ START_TIMING(Link_Total);
 	    goto FreeLocks;
     }
 
-    /* make sure resolution log is non-empty */
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	MakeLogNonEmpty(pv->vptr);
-
     /* Perform operation. */
     {
 	if (ReplicatedOp)
@@ -1503,21 +1363,7 @@ START_TIMING(Link_Total);
 	if (ReplicatedOp)
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
-    if (AllowResolution && V_VMResOn(volptr)) {
-	/* spool log record */
-	if (ReplicatedOp) {
-	    int ind;
-	    ind = InitVMLogRecord(V_volumeindex(volptr), Did, 
-				 StoreId, ViceLink_OP, 
-				 Name, Fid->Vnode, Fid->Unique);
-	    CODA_ASSERT(ind != -1);
-	    sle *SLE = new sle(ind);
-	    pv->sl.append(SLE);
-	}
-    }
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
+
     if (AllowResolution && V_RVMResOn(volptr)) 
 	if (ReplicatedOp && !errorCode) {
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
@@ -1527,9 +1373,6 @@ START_TIMING(Link_Total);
 		       "ViceLink: Error %d during SpoolVMLogRecord\n",
 		       errorCode);
 	}
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
 
 FreeLocks:
     /* Put objects. */
@@ -1556,30 +1399,9 @@ END_TIMING(Link_Total);
 
 
 /*
-ViceRename: Obsoleted by ViceVRename
-*/
-long ViceRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
-		 ViceFid *NewDid, RPC2_String NewName, ViceStatus *OldDirStatus,
-		 ViceStatus *NewDirStatus, ViceStatus *SrcStatus,
-		 ViceStatus *TgtStatus, RPC2_Unsigned PrimaryHost,
-		 ViceStoreId *StoreId, RPC2_CountedBS *PiggyBS)
-{
-	CallBackStatus VCBStatus = NoCallBack;
-	RPC2_Integer NewVS = 0;
-	RPC2_CountedBS OldVS;
-	OldVS.SeqLen = 0;
-	OldVS.SeqBody = 0;
-
-	return(ViceVRename(RPCid, OldDid, OldName, NewDid, NewName, 
-			   OldDirStatus, NewDirStatus, SrcStatus,
-			   TgtStatus, PrimaryHost, StoreId, &OldVS,
-			   &NewVS, &VCBStatus, PiggyBS));
-}
-
-/*
   ViceVRename: rename a file or directory
 */
-long ViceVRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
+long FS_ViceVRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
 		 ViceFid *NewDid, RPC2_String NewName, ViceStatus *OldDirStatus,
 		 ViceStatus *NewDirStatus, ViceStatus *SrcStatus,
 		 ViceStatus *TgtStatus, RPC2_Unsigned PrimaryHost,
@@ -1727,11 +1549,6 @@ START_TIMING(Rename_Total);
 	    goto FreeLocks;
     }
 
-    /* make sure resolution logs are non-empty */
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) {
-	if (tpv->vptr) MakeLogNonEmpty(tpv->vptr);
-	if (spv->vptr) MakeLogNonEmpty(spv->vptr);
-    }
     /* Perform operation. */
     {
 	if (ReplicatedOp)
@@ -1765,28 +1582,13 @@ START_TIMING(Rename_Total);
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
 
-    /* spool log record - one for src and one for target if different */
-    if (AllowResolution && V_VMResOn(volptr)) {
-	if (ReplicatedOp) 
-	    SpoolRenameLogRecord(ViceRename_OP, sv, tv, spv, tpv, volptr,
-				 (char *)OldName, (char *)NewName, StoreId);
-    }
-
     /* spool rename log record for recoverable rvm logs */
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
     if (AllowResolution && V_RVMResOn(volptr) && ReplicatedOp && !errorCode) 
 	errorCode = SpoolRenameLogRecord((int) ViceRename_OP,(dlist *)  vlist, sv->vptr, 
 					 (Vnode *)(tv ? tv->vptr : NULL), spv->vptr, 
 					 tpv->vptr, 
 					 volptr, (char *)OldName, 
 					 (char *)NewName, StoreId);
-
-
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
 
 FreeLocks: 
     /* Put objects. */
@@ -1811,28 +1613,9 @@ END_TIMING(Rename_Total);
 }
 
 /*
-  ViceMakeDir: see  ViceVMakeDir
-*/
-long ViceMakeDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
-		  ViceStatus *Status, ViceFid *NewDid, ViceStatus *DirStatus,
-		  RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId,
-		  RPC2_CountedBS *PiggyBS)
-{
-	CallBackStatus VCBStatus = NoCallBack;
-	RPC2_Integer NewVS = 0;
-	RPC2_CountedBS OldVS;
-	OldVS.SeqLen = 0;
-	OldVS.SeqBody = 0;
-
-	return(ViceVMakeDir(RPCid, Did, Name, Status, NewDid, DirStatus,
-			    PrimaryHost, StoreId, &OldVS, &NewVS,
-			    &VCBStatus, PiggyBS));
-}
-
-/*
   ViceVMakeDir: Make a new directory
 */
-long ViceVMakeDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
+long FS_ViceVMakeDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		  ViceStatus *Status, ViceFid *NewDid, ViceStatus *DirStatus,
 		  RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId,
 		  RPC2_CountedBS *OldVS,
@@ -1918,10 +1701,6 @@ START_TIMING(MakeDir_Total);
 	    goto FreeLocks;
     }
 
-    /* make sure resolution log is non-empty */
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	MakeLogNonEmpty(pv->vptr);
-
     /* Perform operation. */
     {
 	int tblocks = 0;
@@ -1945,29 +1724,7 @@ START_TIMING(MakeDir_Total);
 	if ( errorCode == 0 )
 		CODA_ASSERT(DC_Dirty(cv->vptr->dh));
 
-    if (AllowResolution && V_VMResOn(volptr)) {
-	/* Create Log Record */
-	if (ReplicatedOp) {
-	    int ind;
-	    ind = InitVMLogRecord(V_volumeindex(volptr),
-				  Did, StoreId, ViceMakeDir_OP, 
-				  (char *)Name, NewDid->Vnode, NewDid->Unique);
-	    sle *SLE = new sle(ind);
-	    pv->sl.append(SLE);
-	if ( errorCode == 0 )
-		CODA_ASSERT(DC_Dirty(cv->vptr->dh));
 
-	    /* spool a record for child too */
-	    ind = InitVMLogRecord(V_volumeindex(volptr),
-				 NewDid, StoreId, ViceMakeDir_OP, 
-				 ".", NewDid->Vnode, NewDid->Unique);
-	    SLE = new sle(ind);
-	    cv->sl.append(SLE);
-	}
-    }
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
     if (AllowResolution && V_RVMResOn(volptr)) 
 	if (ReplicatedOp && !errorCode) {
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
@@ -1989,9 +1746,6 @@ START_TIMING(MakeDir_Total);
 		       "ViceMakeDir: Error %d during SpoolVMLogRecord for child\n",
 		       errorCode);
 	}
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
     
 
 FreeLocks: 
@@ -2019,33 +1773,11 @@ END_TIMING(MakeDir_Total);
     return(errorCode);
 }
 
-/*
-  BEGIN_HTML
-  <a name="ViceRemoveDir"><strong>Obsoleted by ViceVRemoveDir</strong></a> 
-  <a href="#ViceVRemoveDir"><strong>ViceVRemoveDir</strong></a>
-  END_HTML
-*/
-long ViceRemoveDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
-		    ViceStatus *DirStatus, ViceStatus *Status,
-		    RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId,
-		    RPC2_CountedBS *PiggyBS)
-{
-	CallBackStatus VCBStatus = NoCallBack;
-	RPC2_Integer NewVS = 0;
-	RPC2_CountedBS OldVS;
-	OldVS.SeqLen = 0;
-	OldVS.SeqBody = 0;
-
-	return(ViceVRemoveDir(RPCid, Did, Name, DirStatus, Status,
-			      PrimaryHost, StoreId, &OldVS, &NewVS,
-			      &VCBStatus, PiggyBS));
-}
-
 
 /*
   ViceVRemoveDir: Delete an empty directory
 */
-long ViceVRemoveDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
+long FS_ViceVRemoveDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		    ViceStatus *DirStatus, ViceStatus *Status,
 		    RPC2_Unsigned PrimaryHost, ViceStoreId *StoreId,
 		    RPC2_CountedBS *OldVS,
@@ -2121,10 +1853,6 @@ START_TIMING(RemoveDir_Total);
 		goto FreeLocks;
     }
 
-    /* make sure resolution log is non-empty */
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	    MakeLogNonEmpty(pv->vptr);
-
     /* Perform operation. */
     {
 	if (ReplicatedOp)
@@ -2148,29 +1876,6 @@ START_TIMING(RemoveDir_Total);
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
 
-    if (AllowResolution && V_VMResOn(volptr)) {
-	if (ReplicatedOp) {
-	    /* THIS SHOULD GO WHEN dir logs headers are in vnodes */
-	    VNResLog *vnlog;
-	    ViceStoreId ghostsid;
-	    pdlist *pl = GetResLogList(cv->vptr->disk.vol_index, 
-				       ChildDid.Vnode, ChildDid.Unique, 
-				       &vnlog);
-	    CODA_ASSERT(pl != NULL);
-	    ghostsid = cv->vptr->disk.versionvector.StoreId;
-	    int ind;
-	    ind = InitVMLogRecord(V_volumeindex(volptr),
-				 Did, StoreId, ViceRemoveDir_OP,
-				 (char *)Name, ChildDid.Vnode, ChildDid.Unique, 
-				 pl->head, pl->count(), &(vnlog->LCP),
-				 &ghostsid);
-	    sle *SLE = new sle(ind);
-	    pv->sl.append(SLE);
-	}
-    }
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
     if (AllowResolution && V_RVMResOn(volptr)) {
 	if (ReplicatedOp) 
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
@@ -2182,9 +1887,6 @@ START_TIMING(RemoveDir_Total);
 		       "ViceRemoveDir: error %d in SpoolVMLogRecord\n",
 		       errorCode);
     }
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
 
 FreeLocks: 
     /* Put objects. */
@@ -2209,35 +1911,11 @@ END_TIMING(RemoveDir_Total);
     return(errorCode);
 }
 
-/*
-  BEGIN_HTML
-  <a name="ViceSymLink"><strong>Obsoleted by ViceVSymLink</strong></a> 
-  <a href="#ViceVSymLink"><strong>ViceVSymLink</strong></a>
-  END_HTML
-*/
-long ViceSymLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String NewName,
-		 RPC2_String OldName, ViceFid *Fid, ViceStatus *Status,
-		 ViceStatus *DirStatus, RPC2_Unsigned PrimaryHost,
-		 ViceStoreId *StoreId, RPC2_CountedBS *PiggyBS)
-{
-	CallBackStatus VCBStatus = NoCallBack;
-	RPC2_Integer NewVS = 0;
-	RPC2_CountedBS OldVS;
-	OldVS.SeqLen = 0;
-	OldVS.SeqBody = 0;
-
-	return(ViceVSymLink(RPCid, Did, NewName, OldName, Fid,
-			    Status, DirStatus, PrimaryHost, StoreId,
-			    &OldVS, &NewVS, &VCBStatus, PiggyBS));
-}
-
 
 /*
-  BEGIN_HTML
-  <a name="ViceVSymLink"><strong>Create a symbolic link</strong></a> 
-  END_HTML
+  ViceVSymLink: Create a symbolic link
 */
-long ViceVSymLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String NewName,
+long FS_ViceVSymLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String NewName,
 		  RPC2_String OldName, ViceFid *Fid, ViceStatus *Status,
 		  ViceStatus *DirStatus, RPC2_Unsigned PrimaryHost,
 		  ViceStoreId *StoreId,  RPC2_CountedBS *OldVS,
@@ -2328,10 +2006,6 @@ START_TIMING(SymLink_Total);
 	    goto FreeLocks;
     }
 
-    /* make sure resolution log is non-empty */
-    if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	MakeLogNonEmpty(pv->vptr);
-
     /* Perform operation. */
     {
 	cv->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
@@ -2361,20 +2035,6 @@ START_TIMING(SymLink_Total);
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
 
-    if (AllowResolution && V_VMResOn(volptr)) {
-	/* Create Log Record */
-	if (ReplicatedOp) {
-	    int ind;
-	    ind = InitVMLogRecord(V_volumeindex(volptr),
-				  Did, StoreId, ViceSymLink_OP,
-				  (char *)NewName, Fid->Vnode, Fid->Unique);
-	    sle *SLE = new sle(ind);
-	    pv->sl.append(SLE);
-	}
-    }
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
     if (AllowResolution && V_RVMResOn(volptr)) {
 	/* Create Log Record */
 	if (ReplicatedOp) 
@@ -2386,9 +2046,6 @@ START_TIMING(SymLink_Total);
 		       "ViceSymLink: Error %d in SpoolVMLogRecord\n",
 		       errorCode);
     }
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(SpoolVMLogRecord);
-#endif _TIMECALLS_    
     
 FreeLocks: 
     /* Put objects. */
@@ -2883,7 +2540,7 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
 
     /* 1. Apply PiggyBacked COP2 operations. */
     if (ReplicatedOp)
-	if ((PiggyBS) && (PiggyBS->SeqLen > 0) && (errorCode = (int)ViceCOP2(RPCid, PiggyBS)))
+	if ((PiggyBS) && (PiggyBS->SeqLen > 0) && (errorCode = (int)FS_ViceCOP2(RPCid, PiggyBS)))
 	    return(errorCode);
 
     /* 2. Map RPC handle to client structure. */
@@ -4016,25 +3673,30 @@ void PerformFetch(ClientEntry *client, Volume *volptr, Vnode *vptr) {
 }
 
 
-int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, Volume *volptr, Vnode *vptr) {
+int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, 
+		      Volume *volptr, Vnode *vptr) 
+{
     int errorCode = 0;
     ViceFid Fid;
     Fid.Volume = V_id(volptr);
     Fid.Vnode = vptr->vnodeNumber;
     Fid.Unique = vptr->disk.uniquifier;
     RPC2_Integer Length = vptr->disk.length;
+    PDirHandle dh;
     PDirHeader buf = 0;
     int size = 0;
     int i;
-START_TIMING(Fetch_Xfer);
 
     /* If fetching a directory first copy contents from rvm to a temp buffer. */
     if (vptr->disk.type == vDirectory){
-	CODA_ASSERT(vptr->disk.inodeNumber != 0);
-	buf = DI_DiToDh((DirInode *)(vptr->disk.inodeNumber));
-	size = DIR_Length(buf);
-	SLog(9, "FetchBulkTransfer: wrote directory contents %s (size %d )into buf", 
-	     FID_(&Fid), size);
+	    dh = VN_SetDirHandle(vptr);
+	    CODA_ASSERT(dh);
+	    
+	    buf = DH_Data(dh);
+	    size = DH_Length(dh);
+	    SLog(9, "FetchBulkTransfer: wrote directory contents" 
+		 "%s (size %d )into buf", 
+		 FID_(&Fid), size);
     }
 
     /* Do the bulk transfer. */
@@ -4053,14 +3715,12 @@ START_TIMING(Fetch_Xfer);
 		sid.Value.SmartFTPD.Tag = FILEBYINODE;
 		sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
 		sid.Value.SmartFTPD.FileInfo.ByInode.Inode = vptr->disk.inodeNumber;
-	    }
-	    else {
+	    } else {
 		sid.Value.SmartFTPD.Tag = FILEBYNAME;
 		sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0;
 		strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName, "/dev/null");
 	    }
-	}
-	else {
+	} else {
 	    /* if it is a directory get the contents from the temp file */
 	    sid.Value.SmartFTPD.Tag = FILEINVM;
 	    sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = size;
@@ -4135,9 +3795,8 @@ START_TIMING(Fetch_Xfer);
     }
 
 Exit:
-    if (vptr->disk.type == vDirectory && buf != 0)
-	free(buf);
-END_TIMING(Fetch_Xfer);
+    if (vptr->disk.type == vDirectory)
+	    VN_PutDirHandle(vptr);
     return(errorCode);
 }
 
@@ -4983,30 +4642,8 @@ START_TIMING(PutObjects_Transaction);
 			}
 		    }
 		    
-
-		    if (AllowResolution && volptr && V_VMResOn(volptr)) {
-			/* Log mutation into volume log */
-			olist_iterator next(v->sl);
-			sle *SLE;
-			int volindex = V_volumeindex(volptr);
-			while(SLE = (sle *)next()) {
-			    if (!errorCode) {
-				SLog(49, "PutObjects: Appending log record");
-				AppendRVMLogRecord(v->vptr, SLE->rec_index);	
-			    }
-			    else {
-				char *rle = (char *)LogStore[volindex]->IndexToAddr(SLE->rec_index);
-				LogStore[volindex]->FreeMem(rle);
-			    }
-			    SLE->rec_index = -1;
-			}
-			
-		    }
 		    if (AllowResolution && volptr && 
 			V_RVMResOn(volptr) && (v->vptr->disk.type == vDirectory)) {
-#ifdef _TIMEPUTOBJS_
-    START_NSC_TIMING(PutObjects_RVM);
-#endif _TIMEPUTOBJS_
 			// make sure log header exists 
 			if (!errorCode && !VnLog(v->vptr))
 			    CreateResLog(volptr, v->vptr);
@@ -5042,9 +4679,6 @@ START_TIMING(PutObjects_Transaction);
 			    }
 			}
 
-#ifdef _TIMEPUTOBJS_
-    END_NSC_TIMING(PutObjects_RVM);
-#endif _TIMEPUTOBJS_
 		    }
 
 

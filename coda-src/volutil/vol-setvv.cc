@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setvv.cc,v 4.7 1998/08/31 12:23:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setvv.cc,v 4.8 1998/11/02 16:47:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,14 +47,8 @@ extern "C" {
 #include <sys/stat.h>
 #include <stdio.h>
 #include <sys/file.h>
-
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <lwp.h>
 #include <lock.h>
@@ -77,19 +71,15 @@ extern "C" {
 #include <vutil.h>
 #include <srv.h>
 
-#if	0
-#undef CODA_ASSERT
-#undef _ASSERT_H_
-#endif
-#include <util.h>
 
 
 /*
-  BEGIN_HTML
-  <a name="S_VolSetVV"><strong>Set the version vector for a given object </strong></a> 
-  END_HTML
+  S_VolSetVV: Set the version vector for a given object
 */
-long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vnodeid, RPC2_Unsigned unique,  ViceVersionVector *vv){
+long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, 
+		RPC2_Unsigned vnodeid, RPC2_Unsigned unique,  
+		ViceVersionVector *vv)
+{
 
     Volume *vp;
     Vnode *vnp;
@@ -98,38 +88,42 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
     long rc = 0;
     ProgramType *pt;
     ViceFid fid; 
-
+    int ix;
+    vrent *vre;
     /* To keep C++ 2.0 happy */
     VolumeId volid = (VolumeId)formal_volid;
 
-    LogMsg(9, VolDebugLevel, stdout, "Checking lwp rock in S_VolSetVV");
+    VLog(9, "Checking lwp rock in S_VolSetVV");
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VolSetVV(%d, %u, %u)", rpcid, volid, vnodeid);
+    VLog(9, "Entering VolSetVV(%d, %u, %u)", rpcid, volid, vnodeid);
     VolumeId tmpvolid = volid;
     if (!XlateVid(&tmpvolid)){
-	LogMsg(0, VolDebugLevel, stdout, "S_VolSetVV Couldn't translate VSG ");
+	VLog(0, "S_VolSetVV Couldn't translate VSG ");
 	tmpvolid = volid;
     }
 
     RVMLIB_BEGIN_TRANSACTION(restore)
     VInitVolUtil(volumeUtility);
-/*    vp = VAttachVolume(&error, volid, V_READONLY); */
-    /* Ignoring the volume lock for now - assume this will be used in bad situations only*/
+    /*    vp = VAttachVolume(&error, volid, V_READONLY); */
+    /* Ignoring the volume lock for now - assume this will 
+       be used in bad situations only*/
     vp = VGetVolume(&error, tmpvolid);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolSetVV: failure attaching volume %d", tmpvolid);
+	VLog(0, "S_VolSetVV: failure attaching volume %d", tmpvolid);
 	if (error != VNOVOL) {
 	    VPutVolume(vp);
 	}
-        rvmlib_abort((int)error);
+        rvmlib_abort(error);
+	goto exit;
     }
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1);
     if (error && error != EIO) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolSetVV: VGetVnode failed with %d", error);
+	VLog(0, "S_VolSetVV: VGetVnode failed with %d", error);
 	VPutVolume(vp);
 	rvmlib_abort(VFAIL);
+	goto exit;
     }
 
     if (error && error == EIO) {
@@ -137,9 +131,9 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
 	vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1, 1);
 	CODA_ASSERT(IsBarren(vnp->disk.versionvector));
 	
-	LogMsg(0, SrvDebugLevel, stdout, "%x.%x.%x is barren - Debarrenizing it", 
+	VLog(0, SrvDebugLevel, stdout, "%x.%x.%x is barren - Debarrenizing it", 
 		V_id(vp), vnp->vnodeNumber, vnp->disk.uniquifier);
-	LogMsg(0, SrvDebugLevel, stdout, "Object will be inconsistent and input vector is ignored");
+	VLog(0, SrvDebugLevel, stdout, "Object will be inconsistent and input vector is ignored");
 
 	/* clear the barren flag - make sure object will be marked 
 	   inconsistent; create a new inode so salvager will not complain */
@@ -154,18 +148,18 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
 					(int)vnp->vnodeNumber,
 					(int)vnp->disk.uniquifier, 
 					(int)vnp->disk.dataVersion);
-    }
-    else 
+    } else 
 	bcopy((const void *)vv, (void *)&(Vnode_vv(vnp)), sizeof(ViceVersionVector));
 
     /* update volume version vector,  break callbacks */
-    vrent *vre = VRDB.find(V_groupId(vp));    /* Look up the VRDB entry. */
+    vre = VRDB.find(V_groupId(vp));    /* Look up the VRDB entry. */
     if (!vre) Die("S_VolSetVV: VSG not found!");
 
-    int ix = vre->index(ThisHostAddr);	    /* Look up the index of this host. */
+    ix = vre->index(ThisHostAddr);	    /* Look up the index of this host. */
     if (ix < 0) Die("S_VolSetVV: this host not found!");
 
-    ViceVersionVector UpdateSet = NullVV; /* Fashion an UpdateSet using just ThisHost. */
+    /* Fashion an UpdateSet using just ThisHost. */
+    ViceVersionVector UpdateSet = NullVV; 
     (&(UpdateSet.Versions.Site0))[ix] = 1;
     AddVVs(&V_versionvector(vp), &UpdateSet);
 
@@ -174,16 +168,20 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vno
 
     VPutVnode((Error *)&error, vnp);
     if (error){
-	LogMsg(0, VolDebugLevel, stdout, "S_VolSetVV: VPutVnode failed with %d", error);
+	VLog(0, "S_VolSetVV: VPutVnode failed with %d", error);
 	VPutVolume(vp);
 	rvmlib_abort(VFAIL);
+	goto exit;
     }
 
     VPutVolume(vp);
     RVMLIB_END_TRANSACTION(flush, &(status));
+
+ exit:
+
     VDisconnectFS();
     if (status)
-	LogMsg(0, VolDebugLevel, stdout, "S_VolSetVV failed with %d", status);
+	VLog(0, "S_VolSetVV failed with %d", status);
     return (status?status:rc);
 }
 

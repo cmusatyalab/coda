@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showvnode.cc,v 4.6 1998/09/29 16:38:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-showvnode.cc,v 4.7 1998/11/02 16:47:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -96,11 +96,12 @@ extern "C" {
 static FILE *infofile;
 
 /*
-  BEGIN_HTML
-  <a name="S_VolShowVnode"><strong>Print out the specified vnode</strong></a>
-  END_HTML
+  S_VolShowVnode: Print out the specified vnode
 */
-long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned vnodeid, RPC2_Unsigned unique, SE_Descriptor *formal_sed){
+long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, 
+		    RPC2_Unsigned vnodeid, RPC2_Unsigned unique, 
+		    SE_Descriptor *formal_sed)
+{
     Volume *vp;
     Vnode *vnp = 0;
     Error error;
@@ -113,10 +114,10 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned
     /* To keep C++ 2.0 happy */
     VolumeId volid = (VolumeId)formal_volid;
 
-    LogMsg(9, VolDebugLevel, stdout, "Checking lwp rock in S_VolShowVnode");
+    VLog(9, "Checking lwp rock in S_VolShowVnode");
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VolShowVnode(%d, 0x%x, 0x%x)", rpcid, volid, vnodeid);
+    VLog(9, "Entering VolShowVnode(%d, 0x%x, 0x%x)", rpcid, volid, vnodeid);
 
     /* first check if it is replicated */
     tmpvolid = volid;
@@ -128,18 +129,20 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned
 /*    vp = VAttachVolume(&error, volid, V_READONLY); */
     vp = VGetVolume(&error, volid);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolInfo: failure attaching volume %d", volid);
+	VLog(0, "S_VolInfo: failure attaching volume %d", volid);
 	if (error != VNOVOL) {
 	    VPutVolume(vp);
 	}
         rvmlib_abort(error);
+	goto exit;
     }
     /* VGetVnode moved from after VOffline to here 11/88 ***/
     vnp = VGetVnode(&error, vp, vnodeid, unique, READ_LOCK, 1, 1);
     if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolShowVnode: VGetVnode failed with %d", error);
+	VLog(0, "S_VolShowVnode: VGetVnode failed with %d", error);
 	VPutVolume(vp);
 	rvmlib_abort(VFAIL);
+	goto exit;
     }
 
     infofile = fopen(INFOFILE, "w");
@@ -176,25 +179,28 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid, RPC2_Unsigned
     sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0755;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
-	LogMsg(0, VolDebugLevel, stdout, "VolShowVnode: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
+	VLog(0, "VolShowVnode: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
 	rvmlib_abort(VFAIL);
+	goto exit;
     }
 
     if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
 		RPC2_ELIMIT) {
-	LogMsg(0, VolDebugLevel, stdout, "VolShowVnode: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
+	VLog(0, "VolShowVnode: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
 	rvmlib_abort(VFAIL);
     }
 
     RVMLIB_END_TRANSACTION(flush, &(status));
+ exit:
+
     if (vnp){
 	VPutVnode(&error, vnp);
 	if (error) 
-	    LogMsg(0, SrvDebugLevel, stdout, "S_VolShowVnode: Error occured while putting vnode ");
+	    VLog(0, "S_VolShowVnode: Error occured while putting vnode ");
     }
     VDisconnectFS();
     if (status)
-	LogMsg(0, VolDebugLevel, stdout, "S_VolShowVnode failed with %d", status);
+	VLog(0, "S_VolShowVnode failed with %d", status);
     return (status?status:rc);
 }
 
