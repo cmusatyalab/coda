@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.20 98/11/03 19:49:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.21 1998/11/04 10:28:27 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1283,7 +1283,7 @@ long ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		goto FreeLocks;
 
 	dh = VN_SetDirHandle(pv->vptr);
-	errorCode = DH_Lookup(dh, (char *)Name, &Fid);
+	errorCode = DH_Lookup(dh, (char *)Name, &Fid, CLU_CASE_SENSITIVE);
 	VN_PutDirHandle(pv->vptr);
 	if ( errorCode != 0) {
 		errorCode = ENOENT;
@@ -1666,7 +1666,8 @@ START_TIMING(Rename_Total);
 	}
 
 	/* This may violate locking protocol! -JJK */
-	if (DH_Lookup(sdh, (char *)OldName, &SrcFid) != 0) {
+
+	if (DH_Lookup(sdh, (char *)OldName, &SrcFid, CLU_CASE_SENSITIVE) != 0) {
 		VN_PutDirHandle(spv->vptr);
 		if ( tdh != sdh )
 			VN_PutDirHandle(tpv->vptr);
@@ -1684,7 +1685,8 @@ START_TIMING(Rename_Total);
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
-	errorCode = DH_Lookup(tdh, (char *)NewName, &TgtFid);
+
+	errorCode = DH_Lookup(tdh, (char *)NewName, &TgtFid, CLU_CASE_SENSITIVE);
 	if (errorCode == ENOENT ) {
 		errorCode = 0;
 	} else if ( errorCode ) {
@@ -2089,7 +2091,8 @@ START_TIMING(RemoveDir_Total);
 
 	/* This may violate locking protocol! -JJK */
 	dh = VN_SetDirHandle(pv->vptr);
-	errorCode = DH_Lookup(dh, (char *)Name, &ChildDid);
+
+	errorCode = DH_Lookup(dh, (char *)Name, &ChildDid, CLU_CASE_SENSITIVE);
 	VN_PutDirHandle(pv->vptr);
 	if ( errorCode != 0) {
 		errorCode = ENOENT;
@@ -3828,7 +3831,8 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 	PDirHandle dh;
 	dh = VN_SetDirHandle(*dirvptr);
 	ViceFid Fid;
-	if (DH_Lookup(dh, Name, &Fid) == 0) {
+
+	if (DH_Lookup(dh, Name, &Fid, CLU_CASE_SENSITIVE) == 0) {
 		SLog(0, "%s: %s already exists in %s", 
 		     ProcName, Name, FID_(&Did));
 		VN_PutDirHandle(*dirvptr);

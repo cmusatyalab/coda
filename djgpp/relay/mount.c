@@ -7,7 +7,7 @@ struct far_ptr {
   unsigned int offset; 
   unsigned short segment;
 };
-struct far_ptr mc_api = {0,0};
+struct far_ptr codadev_api = {0,0};
 
 int open_vxd(char *vxdname, struct far_ptr *api)
 {
@@ -29,12 +29,12 @@ int DeviceIoControl(int func, void *inBuf, int inCount,
 {
   unsigned int err;
 
-  if (mc_api.offset == 0)
+  if (codadev_api.offset == 0)
     return -1;
 
   asm ("lcall  %1"
        : "=a" (err)
-       : "m" (mc_api), "a" (func), "S" (inBuf), "b" (inCount),
+       : "m" (codadev_api), "a" (func), "S" (inBuf), "b" (inCount),
        "D" (outBuf), "c" (outCount), "d" (123456));
   if (err)
     printf ("DeviceIoControl %d: err %d\n", func, err);
@@ -59,8 +59,8 @@ main(int argc, char *argv[])
 
     printf ("Mounting on %c:\n", mountstring[0]);
 
-    if (!open_vxd("MC      ", &mc_api)) {
-	printf ("MC not there!\n");
+    if (!open_vxd("CODADEV ", &codadev_api)) {
+	printf ("CODADEV not there!\n");
 	exit (1);
     }
 

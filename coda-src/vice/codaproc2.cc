@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.11 1998/10/21 22:05:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.12 1998/11/02 16:46:41 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2425,10 +2425,11 @@ Exit:
 int LookupChild(Volume *volptr, Vnode *vptr, char *Name, ViceFid *Fid) 
 {
 	int errorCode = 0;
+
     	PDirHandle dh;
 
 	dh = DC_DC2DH(vptr->dh);
-	errorCode = DH_Lookup(dh, Name, Fid);
+	errorCode = DH_Lookup(dh, Name, Fid, CLU_CASE_SENSITIVE);
 	if ( errorCode != 0) {
 		errorCode = ENOENT;
 		goto Exit;

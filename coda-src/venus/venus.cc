@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.16 1998/10/21 22:05:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.17 1998/11/02 16:46:19 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -377,6 +377,7 @@ static void ParseCmdline(int argc, char **argv) {
 #ifdef DJGPP
      	    else if (STREQ(argv[i], "-child")) {
      	        IAmChild = 1;
+		InitMetaData = 1;
      	    }
 #endif
 	    else {

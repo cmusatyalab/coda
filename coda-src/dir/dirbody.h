@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/dirprivate.h,v 4.2 1998/09/07 15:57:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/dirbody.h,v 4.1 1998/10/09 21:57:33 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -103,7 +103,7 @@ extern int DirToNetBuf(long *, char *, int, int *);
 void DIR_CpyVol(struct ViceFid *target, struct ViceFid *source);
 int DIR_MakeDir(struct DirHeader **dir, struct DirFid *me, struct DirFid *parent);
 int DIR_LookupByFid(PDirHeader dhp, char *name, struct DirFid *fid);
-int DIR_Lookup(struct DirHeader *dir, char *entry, struct DirFid *fid);
+int DIR_Lookup(struct DirHeader *dir, char *entry, struct DirFid *fid, int flags);
 int DIR_EnumerateDir(struct DirHeader *dhp, 
 		     int (*hookproc)(struct DirEntry *de, void *hook), void *hook);
 int DIR_Create(struct DirHeader **dh, char *entry, struct DirFid *fid);

@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.2 1998/10/09 21:57:38 braam Exp $ */
+/* $Id: server.c,v 1.3 1998/10/13 14:22:52 rvb Exp $ */
 
 /* server.c -- receive incoming RPCs and perform appropriate activities */
 
@@ -19,6 +19,10 @@ int portmapper_is_local_connection(RPC2_Handle cid)
 	ip = ntohl(pi.RemoteHost.Value.InetAddress);
 
 	/* 127.0.0.1 */
+#ifdef __CYGWIN32__	
+       	return 1;
+#endif
+       
 	return (ip == 0x7F000001);
 }
 

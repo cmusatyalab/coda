@@ -10,36 +10,38 @@ echo "You need to give me a uid (not 0) and username (not root)"
 echo "for a Coda System:Administrator member on this server,"
 echo "(sort of a Coda super user)"
 echo
+ 
+until [ x$userid != x ]; do
+ 	echo -n "Enter the uid of this user: "
+ 	read userid
+ 	if [ x$userid = x ]; then
+ 	    echo "Nothing cannot be a Coda administrator"
+ 	    echo "Run vice-setup-user again"
+#	    exit 1
+ 	fi
+  
+ 	if [ x$userid = x0 ]; then
+ 	    echo "Root cannot be a Coda administrator"
+ 	    echo "Run vice-setup-user again"
+ 	    exit 1
+ 	fi
+done
 
-echo -n "Enter the uid of this user: "
-read userid
-
-if [ x$userid = x ]; then
-    echo "Nothing cannot be a Coda administrator"
-    echo "Run vice-setup-user again"
-    exit 1
-fi
-
-if [ x$userid = x0 ]; then
-    echo "Root cannot be a Coda administrator"
-    echo "Run vice-setup-user again"
-    exit 1
-fi
-
-echo -n "Enter the username of this user: "
-read username
-
-if [ x$username = x ]; then
-    echo "Nothing cannot be a Coda administrator"
-    echo "Run vice-setup-user again"
-    exit 1
-fi
-
-if [ x$username = xroot ]; then
-    echo "Root cannot be a Coda administrator"
-    echo "Run vice-setup-user again"
-    exit 1
-fi
+until [ x$username != x ]; do
+ 	echo -n "Enter the username of this user: "
+ 	read username
+ 	if [ x$username = x ]; then
+ 	    echo "Nothing cannot be a Coda administrator"
+ 	    echo "Run vice-setup-user again"
+#	    exit 1
+ 	fi
+ 
+ 	if [ x$username = xroot ]; then
+ 	    echo "Root cannot be a Coda administrator"
+ 	    echo "Run vice-setup-user again"
+ 	    exit 1
+ 	fi
+done
 
 echo "System:Administrators   -204    $username" > group.coda
 echo $username::$userid::Administrator:: > user.coda

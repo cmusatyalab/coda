@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.11 1998/09/23 20:26:27 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.12 1998/11/02 16:46:00 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -612,7 +612,7 @@ class fsobj {
     int dir_Length();
     void dir_Delete(char *);
     void dir_MakeDir();
-    int dir_Lookup(char *, ViceFid *);
+    int dir_Lookup(char *, ViceFid *, int);
     int dir_LookupByFid(char *, ViceFid *);
     void dir_Rebuild();
     int dir_IsEmpty();
@@ -687,7 +687,7 @@ class fsobj {
     int Close(int, int, vuid_t);
     /*    int RdWr(char *, enum uio_rw, int, int, int *, vuid_t); */
     int Access(long, int, vuid_t);
-    int Lookup(fsobj **, ViceFid *, char *, vuid_t);
+    int Lookup(fsobj **, ViceFid *, char *, vuid_t, int);
     int Readdir(char *, int, int, int *, vuid_t);
     int Readlink(char *, int, int *, vuid_t);
 

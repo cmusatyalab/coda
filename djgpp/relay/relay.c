@@ -103,11 +103,15 @@ printrequest (char *buffer)
     break;
   case CODA_MKDIR:
     printvfid (&in->coda_mkdir.VFid);
-    fprintf (file, "\"%s\" ", buffer = (int) in->coda_mkdir.name);
+    fprintf (file, "\"%s\" ", buffer + (int) in->coda_mkdir.name);
     break;
   case CODA_CLOSE:
     printvfid (&in->coda_close.VFid);
     fprintf (file, "(fl %d) ", in->coda_close.flags);
+    break;
+  case CODA_REMOVE:
+    printvfid (&in->coda_remove.VFid);
+    fprintf (file, "\"%s\" ", buffer + (int) in->coda_remove.name);
     break;
   }
   fprintf (file, "\n");
@@ -185,7 +189,7 @@ struct far_ptr {
   unsigned int offset; 
   unsigned short segment;
 };
-struct far_ptr mc_api = {0,0};
+struct far_ptr codadev_api = {0,0};
 
 int open_vxd(char *vxdname, struct far_ptr *api)
 {
@@ -207,12 +211,12 @@ int DeviceIoControl(int func, void *inBuf, int inCount,
 {
   unsigned int err;
 
-  if (mc_api.offset == 0)
+  if (codadev_api.offset == 0)
     return -1;
 
   asm ("lcall  %1"
        : "=a" (err)
-       : "m" (mc_api), "a" (func), "S" (inBuf), "b" (inCount),
+       : "m" (codadev_api), "a" (func), "S" (inBuf), "b" (inCount),
        "D" (outBuf), "c" (outCount), "d" (123456));
   if (err)
     fprintf (file, "DeviceIoControl %d: err %d\n", func, err);
@@ -247,9 +251,9 @@ main()
   union outputArgs *out = (union outputArgs *)buffer;
 
   file = fopen ("relay.log", "w+");
-  if (!file){
-    perror("file");
-    exit(1);
+    if (!file){
+     perror("file");
+     exit(1);
   }
 
   udpfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -266,8 +270,8 @@ main()
     exit (1);
   }
 
-  if (open_vxd("MC      ", &mc_api)) 
-    fprintf (file, "MC.VXD already loaded\n");
+  if (open_vxd("CODADEV ", &codadev_api)) 
+    fprintf (file, "CODADEV.VXD already loaded\n");
   else {
     int version;
     if (!open_vxdldr())
@@ -277,15 +281,15 @@ main()
       exit (1);
     }
     fprintf (file, "VXDLDR version %x\n", version);
-    if ((res = vxdldr_load_device("mc.vxd"))) {
-      fprintf (file, "cannot load MC: VXDLDR error %d\n", res);
+    if ((res = vxdldr_load_device("codadev.vxd"))) {
+      fprintf (file, "cannot load CODADEV: VXDLDR error %d\n", res);
       exit (1);
     }
-    if (!open_vxd("MC      ", &mc_api)) {
-      fprintf (file, "Loaded MC, but could not get api\n");
+    if (!open_vxd("CODADEV ", &codadev_api)) {
+      fprintf (file, "Loaded CODADEV, but could not get api\n");
       exit (1);
     }
-    fprintf (file, "Loaded MC.VXD\n");
+    fprintf (file, "Loaded CODADEV.VXD\n");
   }
 
   {
@@ -297,7 +301,7 @@ main()
       fprintf (file, "DeviceIoControl 1 failed: %d\n", res);
       exit(1);
     }
-    fprintf (file, "MC net ID %x, provider ID %x\n", calls[0], calls[1]);
+    fprintf (file, "CODADEV net ID %x, provider ID %x\n", calls[0], calls[1]);
   }
 
   mcfd = 10;
@@ -381,11 +385,11 @@ done:
   err = DeviceIoControl(10, &mcfd, sizeof(mcfd), NULL, 0);
   if (err) {
     printf ("Error in deallocateFD: %d\n", err);
-    printf ("will not unload MC\n");
+    printf ("will not unload CODADEV\n");
     exit (1);
   }
   do {
-    printf ("UNLOAD result %d\n", res = vxdldr_unload_device("MC"));
+    printf ("UNLOAD result %d\n", res = vxdldr_unload_device("CODADEV"));
   } while (res == 0);
 
 }

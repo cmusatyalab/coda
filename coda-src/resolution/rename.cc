@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rename.cc,v 4.6 1998/10/07 20:29:49 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/rename.cc,v 4.7 1998/11/02 16:45:31 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -273,7 +273,7 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
 	// check that source exists in same parent with same fid 
 	FormFid(SrcFid, V_id(volptr),  r->u.mv.svnode, r->u.mv.sunique);
 	odh = VN_SetDirHandle(opv->vptr);
-	if (DH_Lookup(odh, r->name1,&tmpFid) == 0) {
+	if (DH_Lookup(odh, r->name1,&tmpFid, CLU_CASE_SENSITIVE) == 0) {
 	    SrcNameExists = TRUE;
 	    tmpFid.Volume = SrcFid.Volume;
 	    SrcNameFidBindingOK = FID_EQ(&tmpFid, &SrcFid);
@@ -318,7 +318,7 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
 	    ViceFid tmpfid;
 	    tmpfid.Volume = V_id(volptr);
 	    ndh = VN_SetDirHandle (npv->vptr);
-	    if (DH_Lookup(ndh, r->name2, &tmpfid) == 0) {
+	    if (DH_Lookup(ndh, r->name2, &tmpfid, CLU_CASE_SENSITIVE) == 0) {
 		LogMsg(0, SrvDebugLevel, stdout,  
 		       "ChkResRenSem: Target name %s already exists wrongly",
 		       r->name2);
@@ -343,7 +343,7 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
 	    
 	    tmpFid.Volume = V_id(volptr);
 	    ndh = VN_SetDirHandle(npv->vptr);
-	    if (DH_Lookup(ndh, r->name2, &tmpFid) == 0) {
+	    if (DH_Lookup(ndh, r->name2, &tmpFid, CLU_CASE_SENSITIVE) == 0) {
 		TgtNameExists = TRUE;
 		TgtNameFidBindingOK = FID_EQ(&tmpFid, &TgtFid);
 	    }

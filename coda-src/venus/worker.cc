@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.26 1998/10/06 21:56:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.27 1998/11/02 16:46:34 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -117,6 +117,7 @@ const int WorkerStackSize = 131072;
 int MaxWorkers = UNSET_MAXWORKERS;
 int MaxPrefetchers = UNSET_MAXWORKERS;
 int KernelMask = 0;	/* subsystem is uninitialized until mask is non-zero */
+int kernel_version = 0;
 static int Mounted = 0;
 
 
@@ -487,24 +488,29 @@ int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
 }
 
 /* -------------------------------------------------- */
-
 void WorkerInit() {
     if (MaxWorkers == UNSET_MAXWORKERS)
-	MaxWorkers = DFLT_MAXWORKERS;
+        MaxWorkers = DFLT_MAXWORKERS;
 
     if (MaxPrefetchers == UNSET_MAXWORKERS)
-	MaxPrefetchers = DFLT_MAXPREFETCHERS;
+        MaxPrefetchers = DFLT_MAXPREFETCHERS;
     else
-	if (MaxPrefetchers > MaxWorkers) /* whoa */
-	    CHOKE("WorkerInit: MaxPrefetchers %d, MaxWorkers only %d!",
-		  MaxPrefetchers, MaxWorkers);
+        if (MaxPrefetchers > MaxWorkers) { /* whoa */
+            eprint("WorkerInit: MaxPrefetchers %d, MaxWorkers only %d!",
+                  MaxPrefetchers, MaxWorkers);
+            exit(-1);
+        }
 
 #if defined(DJGPP) || defined(__CYGWIN32__)
     worker::muxfd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (worker::muxfd < 0)
-	    CHOKE("WorkerInit: socket() returns %d", errno);
-    if (worker::muxfd >= NFDS)
-	    CHOKE("WorkerInit: worker::muxfd >= %d!", NFDS);
+    if (worker::muxfd < 0) {
+            eprint("WorkerInit: socket() returns %d", errno);
+            exit(-1);
+    }
+    if (worker::muxfd >= NFDS) {
+            eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
+            exit(-1);
+    }
 
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
 
@@ -512,16 +518,37 @@ void WorkerInit() {
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(8000);
-    if (::bind(worker::muxfd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-	    CHOKE("WorkerInit: bind() returns %d", errno);
+    if (::bind(worker::muxfd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+            eprint("WorkerInit: bind() returns %d", errno);
+            exit(-1);
+    }
 #else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
-    if (worker::muxfd < 0)
-	CHOKE("WorkerInit: open(%s, O_RDWR, 0) returns %d", kernDevice, errno);
-    if (worker::muxfd >= NFDS)
-	CHOKE("WorkerInit: worker::muxfd >= %d!", NFDS);
- #endif
+    if (worker::muxfd < 0) {
+        eprint("WorkerInit: open(%s, O_RDWR, 0) returns %d", kernDevice, errno);
+        exit(-1);
+    }
+    if (worker::muxfd >= NFDS) {
+        eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
+        exit(-1);
+    }
+#ifdef  __BSD44__
+    if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) < 0 ) {
+        eprint("WorkerInit errno %d: Version IOCTL FAILED!  Get a newer Kernel!"
+, errno);
+        exit(-1);
+    } switch (kernel_version) {
+        case 1:
+        case 2: /* luckily 1 & 2 are upwards compatible */
+            break;
+        default:
+        eprint("WorkerInit: Version Skew with kernel!  Get a newer kernel!");
+        eprint("WorkerInit: Kernel version is %d\n.", kernel_version);
+        exit(-1);
+    }
+#endif
+#endif
     /* Flush kernel cache(s). */
     k_Purge();
 
@@ -532,6 +559,7 @@ void WorkerInit() {
     worker::nprefetchers = 0;
     worker::lastresign = Vtime();
 }
+
 
 int WorkerCloseMuxfd() {
   int error;
@@ -1016,7 +1044,8 @@ void worker::main(void *parm) {
 		struct venus_cnode vparent;
 		MAKE_CNODE(vparent, in->coda_lookup.VFid, 0);
 		struct venus_cnode target;
-		lookup(&vparent, (char *)in + (int)in->coda_lookup.name, &target);
+
+		lookup(&vparent, (char *)in + (int)in->coda_lookup.name, &target, (int)in->coda_lookup.flags);
 
 		out->oh.result = u.u_error;
 		if (u.u_error == 0) {

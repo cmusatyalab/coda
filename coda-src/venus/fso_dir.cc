@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.12 1998/10/02 13:27:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.13 1998/11/02 16:46:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -174,7 +174,7 @@ void fsobj::dir_MakeDir()
 }
 
 
-int fsobj::dir_Lookup(char *Name, ViceFid *Fid) 
+int fsobj::dir_Lookup(char *Name, ViceFid *Fid, int flags) 
 {
 	
 	if (!HAVEDATA(this)) { 
@@ -182,7 +182,7 @@ int fsobj::dir_Lookup(char *Name, ViceFid *Fid)
 		CHOKE("fsobj::dir_Lookup: (%s) no data", Name); 
 	}
 
-	int code = DH_Lookup(&data.dir->dh, Name, Fid);
+	int code = DH_Lookup(&data.dir->dh, Name, Fid, flags);
 	if (code != 0) 
 		return(code);
 

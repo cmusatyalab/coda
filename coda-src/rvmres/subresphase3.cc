@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.9 1998/10/30 18:29:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.10 1998/11/02 16:45:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -614,7 +614,7 @@ static int NameExistsInParent(rsle *r, Vnode *pvptr) {
     if (name) {
 	PDirHandle dh;
 	dh = VN_SetDirHandle(pvptr);
-	if (DH_Lookup(dh, name, &nfid) == 0)
+	if (DH_Lookup(dh, name, &nfid, CLU_CASE_SENSITIVE) == 0)
 	    NameExists = TRUE;
     }
     SLog(39,  
@@ -656,7 +656,7 @@ static int IsNameFidBindingOK(rsle *r, Vnode *pvptr) {
     if (name) {
 	PDirHandle dh;
 	dh = VN_SetDirHandle(pvptr);
-	if ((DH_Lookup(dh, name, &nfid) == 0) &&
+	if ((DH_Lookup(dh, name, &nfid, CLU_CASE_SENSITIVE) == 0) &&
 	    (nfid.Vnode == cfid.Vnode) && (nfid.Unique == cfid.Unique))
 	    rc = TRUE;
     }

@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol_rep,v 4.8 98/09/14 21:50:02 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol_rep,v 4.9 1998/10/05 14:39:36 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 PATH=$PATH:/usr/local/sbin
@@ -109,14 +109,22 @@ if  [ $# = 3 ]; then
 	if  [ -e /vice/vol/maxgroupid ]; then
 		GROUPID=`cat /vice/vol/maxgroupid`
 
-		cat << EOF >/tmp/$$
+		case x`uname` in
+		    xCYGWIN32_NT)
+			HEXGROUPID=`printf %x $GROUPID`
+			;;
+		    x*)	
+			cat << EOF >/tmp/$$
 ibase = 10
 obase = 16
 $GROUPID
 EOF
-
-		HEXGROUPID=`bc </tmp/$$`
-		rm /tmp/$$
+			HEXGROUPID=`bc </tmp/$$`
+			rm /tmp/$$
+			;;
+	
+		esac	
+	
 		MAXGROUPID=`expr $GROUPID + 1`
 		echo $MAXGROUPID > /vice/vol/maxgroupid
 	else
@@ -208,5 +216,3 @@ if  [ x$_ans_ = xy -o x$_ans_ = xyes ]; then
     echo "echoing $HEXGROUPID        $_cycle_        $VOLNAME >>/vice/db/dumplist"
     echo "$HEXGROUPID        $_cycle_         $VOLNAME" >>/vice/db/dumplist
 fi
-
-

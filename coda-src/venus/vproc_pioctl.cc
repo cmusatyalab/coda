@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.12 1998/09/29 21:04:51 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.13 1998/11/02 16:46:33 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -233,7 +233,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    { u.u_error = ENOTDIR; break; }
 
 			/* Get the target object. */
-			u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred));
+			u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
 			if (u.u_error) break;
 
 			/* Verify that target is a mount point (either valid or dangling). */
@@ -281,7 +281,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    f = 0;		/* Fake a FSDB->Put(&f); */
 			}
 			else {
-			    u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred));
+			    u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
 			    if (u.u_error) { FSDB->Put(&target_fso); break; }
 			}
 

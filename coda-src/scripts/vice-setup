@@ -50,6 +50,8 @@ for which in auth2 volutil; do
 done
 echo tokens done!
 
+touch auth2.lock
+
 #
 # files file for update
 #
@@ -62,6 +64,7 @@ VLDB
 auth2.pw
 auth2.tk
 auth2.tk.BAK
+auth2.lock
 pro.db
 servers
 vice.pdb
@@ -89,8 +92,13 @@ echo lockfiles created.
 # adding stuff to /etc/services if needed
 #
 
-vice-setup-ports
-
+case x`uname`  in
+  xCYGWIN32_NT)
+    ;;
+  x*)
+    vice-setup-ports
+    ;;
+esac
 
 #
 # startup scripts

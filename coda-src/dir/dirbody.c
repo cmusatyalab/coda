@@ -69,7 +69,7 @@ static int dir_FindBlobs (struct DirHeader **dh, int nblobs);
 static int dir_AddPage (struct DirHeader **dir);
 static int dir_NameBlobs(char *);
 static struct DirEntry *dir_FindItem (struct DirHeader *dir,char *ename, 
-				       struct DirEntry **preventry, int *index);
+				       struct DirEntry **preventry, int *index, int flags);
 struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno);
 static void dir_FreeBlobs(struct DirHeader *dir, register int firstblob, int nblobs);
 static struct DirHeader *dir_Extend(struct DirHeader *olddirh, int in_rvm);
@@ -505,7 +505,7 @@ int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 		return ENAMETOOLONG;
     
 	/* First check if file already exists. */
-	ep = dir_FindItem(dir, entry, 0, 0);
+	ep = dir_FindItem(dir, entry, 0, 0, CLU_CASE_SENSITIVE);
 	if (ep) {
 		return EEXIST;
 	}
@@ -559,7 +559,7 @@ int DIR_Delete(struct DirHeader *dir, char *entry)
 	}
 
 
-	firstitem = dir_FindItem(dir, entry, &preventry, &index);
+	firstitem = dir_FindItem(dir, entry, &preventry, &index, CLU_CASE_SENSITIVE);
 	if ( !firstitem ) 
 		return ENOENT;
 
@@ -763,14 +763,14 @@ static void fid_NFidV2Fid(struct DirNFid *dnfid, VolumeId vol, struct ViceFid *f
    return 0 upon success
    return ENOENT upon failure
 */
-int DIR_Lookup (struct DirHeader *dir, char *entry, struct DirFid *fid)
+int DIR_Lookup (struct DirHeader *dir, char *entry, struct DirFid *fid, int flags)
 {
 	register struct DirEntry *de;
 
 	if ( !dir ) 
 		return ENOENT;
 
-	de = dir_FindItem(dir, entry, 0, 0);
+	de = dir_FindItem(dir, entry, 0, 0, flags);
 	if (de == 0) {
 		return ENOENT;
 	}
@@ -786,7 +786,7 @@ int dir_HkCompare(PDirEntry de, void *hook)
 	struct DirFid dfid;
 	int rc;
 	PDirHeader dh = (PDirHeader)hook;
-	rc = DIR_Lookup(dh, de->name, &dfid);
+	rc = DIR_Lookup(dh, de->name, &dfid, CLU_CASE_SENSITIVE);
 	if ( rc ) 
 		return rc;
 	if ( fid_FidEqNFid(&dfid, &de->fid) )
@@ -801,7 +801,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	int fd;
 	int len;
 	struct venus_dirent *vd;
-	int i;
+	int i, rc;
 	int num;
 	char *buf;
 	int offset = 0;
@@ -841,8 +841,9 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	vd->d_fileno = 0;
 	vd->d_reclen = len - offset + 1;
 
-#if DJGPP
+#ifdef DJGPP
 	rc  = write(fd, buf, len);
+	free(buf);
 	CODA_ASSERT(rc == len);
 #else 
 	CODA_ASSERT(munmap(buf, len) == 0);
@@ -977,112 +978,114 @@ int DIR_Hash (char *string)
    the delete code) in the hash chain.  If no entry is found a null
    pointer is returned instead. */
 static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename, 
-				       struct DirEntry **preventry, int *index)
+				       struct DirEntry **preventry, int *index, int flags)
 {
-	
-#ifdef DJGPP
-
-	int i;
 	int num;
 	char *p = NULL;
-	register struct DirEntry *ep;
+	register int i;	
+	register short blobno;
+	register struct DirEntry *tp;
 	register struct DirEntry *lp = NULL;	/* page of previous entry in chain */
 	char *name = strdup(ename);
 	int length = strlen(name);
 	char *name2 = NULL;
 	int length2 = 0;
 
-	if (!dir) 
-		return 0;
+	switch (flags) {
+	case CLU_CASE_INSENSITIVE:
+		if (!dir) 
+			return 0;
+		
+		/* lowercase name to look for */
+		for (p=name; p<name+length; p++){
+			if (isupper(*p))
+				*p += 'a' - 'A';
+		}
 
-	/* lowercase name to look for */
-	for (p=name; p<name+length; p++){
-		if (*p>='A' && *p<='Z')
-			*p += 'a' - 'A';
-	}
-
-	for(i=0;i<NHASH;i++) {
-		/* For each hash chain, enumerate everyone on the list. */
-		num = ntohs(dir->dirh_hashTable[i]);
-		while (num != 0) {
-			/* Walk down the hash table list. */
-			ep = dir_GetBlob(dir,num);
-			if (!ep) 
-				break;
+		for(i=0;i<NHASH;i++) {
+			/* For each hash chain, enumerate  the list. */
+			num = ntohs(dir->dirh_hashTable[i]);
+			while (num != 0) {
+				/* Walk down the hash table list. */
+				tp = dir_GetBlob(dir,num);
+				if (!tp) 
+					break;
 			
-			name2 = strdup(ep->name);
-			length2 = strlen(name2);
+				name2 = strdup(tp->name);
+				length2 = strlen(name2);
 
-			/* lowercase name2 */
-			for (p=name2; p<name2+length2; p++){
-				if (*p>='A' && *p<='Z')
-					*p += 'a' - 'A';
-			}
+				/* lowercase name2 */
+				for (p=name2; p<name2+length2; p++){
+					if (isupper(*p))
+						*p += 'a' - 'A';
+				}
 			
-			if (!strcmp(name2, name)){
+				if (!strcmp(name2, name)){
 				/* found */
+					if (preventry)
+						*preventry = lp;
+					if (index)
+						*index = num;
+
+					if (name2) 
+						free(name2);
+					if (name) 
+						free(name);	
+					strcpy(ename, tp->name);
+					return tp;
+				}
+
+				lp = tp;
+				num = ntohs(tp->next);
+				if (name2) free(name2);
+			}
+		}
+
+		if (name) free(name);
+		return 0;
+		break;
+
+	case CLU_CASE_SENSITIVE:
+	
+		if (!dir) 
+			return 0;
+	
+		i = DIR_Hash(ename);
+		blobno = ntohs(dir->dirh_hashTable[i]);
+
+		if (blobno == 0)
+			return 0;
+
+		tp = dir_GetBlob(dir,blobno);
+		lp = NULL;
+
+		/* walk the chain */
+		while(1) {
+			if (!strcmp(ename,tp->name)) {
 				if (preventry)
 					*preventry = lp;
 				if (index)
-					*index = num;
-
-				if (name2) 
-					free(name2);
-				if (name) 
-					free(name);	
-				strcpy(ename, ep->name);
-				return ep;
+					*index = blobno;
+				return tp;
 			}
+			lp = tp;
 
-			lp = ep;
-			num = ntohs(ep->next);
-			if (name2) free(name2);
+			/* The end of the line */
+			blobno = ntohs(tp->next);
+			if (blobno == 0) 
+				return 0;
+			tp = dir_GetBlob(dir,blobno);
+			if (!tp) 
+				return 0;
 		}
+		break;
+	default:
+		CODA_ASSERT(0);
 	}
 
-	if (name) free(name);
 	return 0;
-	
-#else
-	register int i;
-	register struct DirEntry *tp;
-	register struct DirEntry *lp;	/* page of previous entry in chain */
-	register short blobno;
-	
-	if (!dir) 
-		return 0;
-	
-	i = DIR_Hash(ename);
-	blobno = ntohs(dir->dirh_hashTable[i]);
-
-	if (blobno == 0)
-		return 0;
-
-	tp = dir_GetBlob(dir,blobno);
-	lp = NULL;
-
-	/* walk the chain */
-	while(1) {
-		if (!strcmp(ename,tp->name)) {
-			if (preventry)
-				*preventry = lp;
-			if (index)
-				*index = blobno;
-			return tp;
-		}
-		lp = tp;
-
-		/* The end of the line */
-		blobno = ntohs(tp->next);
-		if (blobno == 0) 
-			return 0;
-		tp = dir_GetBlob(dir,blobno);
-		if (!tp) 
-			return 0;
-	}
-#endif
-
 }
+
 
 int DIR_DirOK(PDirHeader pdh) 
 {

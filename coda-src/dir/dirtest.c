@@ -257,7 +257,7 @@ void dt_lookup(int argc, char **argv)
 		return ;
 	}
 
-	err = DH_Lookup(dh, argv[2], &vfid);
+	err = DH_Lookup(dh, argv[2], &vfid, CLU_CASE_SENSITIVE);
 	if ( err ) {
 		printf("DIR_Lookup failed\n");
 		return;

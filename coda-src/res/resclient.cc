@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.9 1998/10/30 18:29:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.10 1998/11/02 16:45:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1508,7 +1508,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		if (name) {
 		    PDirHandle dh;
 		    dh = VN_SetDirHandle(pv->vptr);
-		    if (DH_Lookup(dh, name, &nFid) == 0)
+		    if (DH_Lookup(dh, name, &nFid, CLU_CASE_SENSITIVE) == 0)
 			NameExists = TRUE;
 		    else 
 			NameExists = FALSE;
@@ -1952,7 +1952,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	
 	odh = VN_SetDirHandle(opv->vptr);
 	if (DH_Lookup(odh, rl->u.u_rename.rename_src.oldname, 
-		   &tmpFid) == 0) {
+		   &tmpFid, CLU_CASE_SENSITIVE) == 0) {
 	    SrcNameExists = TRUE;
 	    tmpFid.Volume = SrcFid.Volume;
 	    SrcNameFidBindingOK = FID_EQ(&tmpFid, &SrcFid);
@@ -2003,7 +2003,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    tmpfid.Volume = V_id(volptr);
 	    ndh = VN_SetDirHandle (npv->vptr);
 	    if (DH_Lookup(ndh, rl->u.u_rename.rename_tgt.newname, 
-		       &tmpfid) == 0) {
+		       &tmpfid, CLU_CASE_SENSITIVE) == 0) {
 		SLog(0,  "ChkResRenSem: Target name %s already exists wrongly",
 			rl->u.u_rename.rename_tgt.newname);
 		errorCode = EINCONS;
@@ -2027,7 +2027,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    tmpFid.Volume = V_id(volptr);
 	    ndh = VN_SetDirHandle(npv->vptr);
 	    if (DH_Lookup(ndh, rl->u.u_rename.rename_tgt.newname, 
-		       &tmpFid) == 0) {
+		       &tmpFid, CLU_CASE_SENSITIVE) == 0) {
 		TgtNameExists = TRUE;
 		TgtNameFidBindingOK = FID_EQ(&tmpFid, &TgtFid);
 	    }
@@ -2688,7 +2688,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 	PDirHandle dh;
 	ViceFid newfid;
 	dh = VN_SetDirHandle(pv->vptr);
-	if (DH_Lookup(dh, name, &newfid) == 0) {
+	if (DH_Lookup(dh, name, &newfid, CLU_CASE_SENSITIVE) == 0) {
 	    // parent has name 
 	    if ((newfid.Vnode == cFid->Vnode) && (newfid.Unique == cFid->Unique)){
 		cv = FindVLE(*vlist, cFid);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.9 1998/09/29 21:04:50 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.10 1998/11/02 16:46:32 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -147,7 +147,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 	}
 
 	/* Now lookup the object in the directory. */
-	lookup(&pvp, comp, &vp);
+	lookup(&pvp, comp, &vp, CLU_CASE_SENSITIVE);
 	if (u.u_error) goto Exit;
 
 	/* We have the new object.  The next action depends on what type of object it is. */

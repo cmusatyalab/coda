@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.9 1998/10/13 16:49:28 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.10 1998/11/02 16:46:13 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -421,7 +421,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	}
 
 	/* step 3: check mutation semantic integrity, only check name/name conflict here */
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_create.Name, &dummy) == 0) {
+	if (GlobalObjs[0]->dir_Lookup((char *)u.u_create.Name, &dummy, CLU_CASE_SENSITIVE) == 0) {
 	    GlobalObjs[0]->GetPath(GlobalPath, 1);
 	    sprintf(msg, "conflict: target %s/%s exist on servers", GlobalPath, (char *)u.u_create.Name);
 	    *mcode = MUTATION_NN_CONFLICT;
@@ -498,7 +498,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	}
 
 	/* step 3: check mutation semantic integrity: only check name/name conflict here */
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_link.Name, &dummy) == 0) {
+	if (GlobalObjs[0]->dir_Lookup((char *)u.u_link.Name, &dummy, CLU_CASE_SENSITIVE) == 0) {
 	    GlobalObjs[0]->GetPath(GlobalPath, 1);
 	    sprintf(msg, "conflict: target %s/%s exist on servers\n", GlobalPath, 
 		    (char *)u.u_link.Name);
@@ -546,7 +546,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	}
 
 	/* step 3: check mutation semantic integrity, only check name/name conflict here */
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_symlink.NewName, &dummy) == 0) {
+	if (GlobalObjs[0]->dir_Lookup((char *)u.u_symlink.NewName, &dummy, CLU_CASE_SENSITIVE) == 0) {
 	    GlobalObjs[0]->GetPath(GlobalPath, 1);
 	    sprintf(msg, "conflict: target %s/%s exist on servers", GlobalPath, (char *)u.u_symlink.NewName);
 	    *mcode = MUTATION_NN_CONFLICT;
@@ -593,7 +593,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	}
 
 	/* step 3: check mutation semantic integrity, only check name/name conflict here */
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_mkdir.Name, &dummy) == 0) {
+	if (GlobalObjs[0]->dir_Lookup((char *)u.u_mkdir.Name, &dummy, CLU_CASE_SENSITIVE) == 0) {
 	    GlobalObjs[0]->GetPath(GlobalPath, 1);
 	    sprintf(msg, "conflict: target %s/%s exist on servers", GlobalPath, (char *)u.u_mkdir.Name);
 	    *mcode = MUTATION_NN_CONFLICT;
@@ -868,7 +868,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	}
 
 	/* step 3: check mutation semantic integrity */
-	if (GlobalObjs[1]->dir_Lookup((char *)u.u_rename.NewName, &dummy) == 0) {
+	if (GlobalObjs[1]->dir_Lookup((char *)u.u_rename.NewName, &dummy, CLU_CASE_SENSITIVE) == 0) {
 	    GlobalObjs[1]->GetPath(GlobalPath, 1);
 	    sprintf(msg, "conflict: target %s/%s exist on servers\n", GlobalPath, 
 		    (char *)u.u_rename.NewName);
@@ -876,7 +876,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_FAILURE;
 	    break;
 	}
-	if (GlobalObjs[0]->dir_Lookup((char *)u.u_rename.OldName, &dummy) != 0) {
+	if (GlobalObjs[0]->dir_Lookup((char *)u.u_rename.OldName, &dummy, CLU_CASE_SENSITIVE) != 0) {
 	    GlobalObjs[0]->GetPath(GlobalPath, 1);
 	    sprintf(msg, "conflict: source %s/%s no longer exist on servers\n", GlobalPath, 
 		    (char *)u.u_rename.OldName);

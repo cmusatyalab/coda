@@ -60,7 +60,6 @@ extern "C" {
 #endif __cplusplus
 
 
-
 /*
  * LOCK support
  */ 
@@ -156,14 +155,14 @@ int DH_IsEmpty(PDirHandle dh)
 
 
 /* find fid given the name: called all over */
-int DH_Lookup(PDirHandle dh, char *entry, struct ViceFid *vfid)
+int DH_Lookup(PDirHandle dh, char *entry, struct ViceFid *vfid, int flags)
 {
 	int rc;
 	struct DirFid dfid;
 
 	DH_LockR(dh);
 
-	rc  = DIR_Lookup(dh->dh_data, entry, &dfid);
+	rc  = DIR_Lookup(dh->dh_data, entry, &dfid, flags);
 
 	DH_UnLockR(dh);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.23 1998/09/23 20:26:38 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.24 1998/10/01 22:21:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -240,7 +240,7 @@ class vproc : public olink {
     void getattr(struct venus_cnode *, struct coda_vattr *);
     void setattr(struct venus_cnode *, struct coda_vattr *);
     void access(struct venus_cnode *, int);
-    void lookup(struct venus_cnode *, char *, struct venus_cnode *);
+    void lookup(struct venus_cnode *, char *, struct venus_cnode *, int);
     void create(struct venus_cnode *, char *, struct coda_vattr *, int, 
 		int, struct venus_cnode *);
     void remove(struct venus_cnode *, char *);

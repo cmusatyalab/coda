@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.17 1998/10/30 18:29:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.18 1998/11/02 16:46:39 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1270,7 +1270,8 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		// get source vnode ptr
 		PDirHandle sdh;
 		sdh = VN_SetDirHandle(sdv->vptr);
-		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid) == 0);
+
+		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid, CLU_CASE_SENSITIVE) == 0);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
@@ -1279,7 +1280,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		PDirHandle tdh;
 		vle *tv = NULL;
 		tdh = VN_SetDirHandle(tdv->vptr);
-		if (DH_Lookup(tdh, repairent.newname, &tfid) == 0) {
+		if (DH_Lookup(tdh, repairent.newname, &tfid, CLU_CASE_SENSITIVE) == 0) {
 		    tfid.Volume = repairent.parms[0];
 		    tv = FindVLE(*vlist, &tfid);
 		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
@@ -1552,7 +1553,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		// get source vnode ptr
 		PDirHandle sdh;
 		sdh = VN_SetDirHandle(sdv->vptr);
-		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid) == 0);
+
+		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid, CLU_CASE_SENSITIVE) == 0);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
@@ -1561,7 +1563,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		PDirHandle tdh;
 		vle *tv = NULL;
 		tdh = VN_SetDirHandle(tdv->vptr);
-		if (DH_Lookup(tdh, repairent.newname, &tfid) == 0) {
+		if (DH_Lookup(tdh, repairent.newname, &tfid, CLU_CASE_SENSITIVE) == 0) {
 		    tfid.Volume = repairent.parms[0];
 		    tv = FindVLE(*vlist, &tfid);
 		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
@@ -1756,7 +1758,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			PDirHandle dh;
 			dh = VN_SetDirHandle(ov->vptr);
 			if (DH_Lookup(dh, repairent.name, 
-				   (struct ViceFid *)&(repairent.parms[0])) != 0) {
+				   (struct ViceFid *)&(repairent.parms[0]), CLU_CASE_SENSITIVE) != 0) {
 			    SLog(0,  "REMOVEFSL: No name %s in directory",
 				    repairent.name);
 			    return(ENOENT);
@@ -1770,7 +1772,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			PDirHandle dh;
 			dh = VN_SetDirHandle(ov->vptr);
 			if (DH_Lookup(dh, repairent.name, 
-				      (struct ViceFid *)&(repairent.parms[0])) != 0) {
+				      (struct ViceFid *)&(repairent.parms[0]), CLU_CASE_SENSITIVE) != 0) {
 			    SLog(0,  
 				   "REMOVED: No name %s in directory",
 				    repairent.name);

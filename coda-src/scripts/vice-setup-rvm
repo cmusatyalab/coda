@@ -83,12 +83,14 @@ echo
 echo "  --- log area: $log, size $logsize."
 echo "  --- data area: $data, size $datasize."
 echo
-echo -n "Proceed, and wipe out old data? [y/N] "
-answer=n
-read answer 
-if [  x$answer = xn -o x$answer = xno -o x$answer = xN -o x$answer = xNo ]; then
+until [ x$answer != x ]; do
+    echo -n "Proceed, and wipe out old data? [y/n] "
+    answer=n
+    read answer 
+    if [  x$answer = xn -o x$answer = xno -o x$answer = xN -o x$answer = xNo ]; then
 	exit 1    
-fi
+    fi
+done
 
 echo
 rvmutl > /dev/null  << EOF
