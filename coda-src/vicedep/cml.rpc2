@@ -1,0 +1,205 @@
+%{ /* BLURB lgpl
+
+                           Coda File System
+                              Release 5
+
+          Copyright (c) 1987-1999 Carnegie Mellon University
+                  Additional copyrights listed below
+
+This  code  is  distributed "AS IS" without warranty of any kind under
+the  terms of the  GNU  Library General Public Licence  Version 2,  as
+shown in the file LICENSE. The technical and financial contributors to
+Coda are listed in the file CREDITS.
+
+                        Additional copyrights
+
+#*/
+%}
+
+/* 
+ * Here we define the operations and arguments of operations that are packed
+ * into the CML. At the moment (Coda version 5.2) the client uses the OLDCML_*
+ * operations, which are protocol compatible with the obsoleted pre-5.2 Vice*
+ * operations. However, in the near future the servers should start supporting
+ * the more efficiently packed CML_* operations.
+ * 
+ * btw. we only use the generated header file.
+ */
+
+server prefix "FS";
+Subsystem "cml";
+
+#define SUBSYS_CML 1999
+
+/* please increment this number if you make an incompatible change! */
+#define CML_VERSION 1
+
+#include "vcrcommon.rpc2"
+
+typedef RPC2_Enum
+{
+	xStoreNeither = 0,
+	xStoreData = 1,
+	xStoreStatus = 2,
+	xStoreStatusData = 3
+}	OLDCML_StoreType;
+
+1: CML_Create	(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN ViceStatus Status,
+		 IN ViceFid Fid,
+		 IN ViceStatus DirStatus,
+		 IN ViceStoreId StoreId);
+
+2: CML_Remove	(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN ViceStatus DirStatus,
+		 IN ViceStatus Status,
+		 IN ViceStoreId StoreId);
+
+		 
+3: CML_Rename	(IN ViceFid OldDid,
+		 IN RPC2_String OldName,
+		 IN ViceFid NewDid,
+		 IN RPC2_String NewName,
+		 IN ViceStatus OldDirStatus,
+		 IN ViceStatus NewDirStatus,
+		 IN ViceStatus SrcStatus,
+		 IN ViceStatus TgtStatus,
+		 IN ViceStoreId StoreId);
+
+4: OLDCML_Remove(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN OUT ViceStatus DirStatus,
+		 IN OUT ViceStatus Status,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN ViceStoreId StoreId,
+		 IN RPC2_CountedBS PiggyCOP2);
+
+5: OLDCML_Create(IN ViceFid Did,
+		 IN ViceFid BidFid,
+		 IN RPC2_String Name,
+		 IN OUT ViceStatus Status,
+		 IN OUT ViceFid Fid,
+		 IN OUT ViceStatus DirStatus,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN ViceStoreId StoreId,
+		 IN RPC2_CountedBS PiggyCOP2);
+		 
+6: OLDCML_Rename(IN ViceFid OldDid,
+		 IN RPC2_String OldName,
+		 IN ViceFid NewDid,
+		 IN RPC2_String NewName,
+		 IN OUT ViceStatus OldDirStatus,
+		 IN OUT ViceStatus NewDirStatus,
+		 IN OUT ViceStatus SrcStatus,
+		 IN OUT ViceStatus TgtStatus,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN ViceStoreId StoreId,
+		 IN RPC2_CountedBS PiggyCOP2);
+
+7: OLDCML_SymLink(IN ViceFid Did,
+		 IN RPC2_String OldName,
+		 IN RPC2_String NewName,
+		 IN OUT ViceFid Fid,
+		 IN OUT ViceStatus Status,
+		 IN OUT ViceStatus DirStatus,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN ViceStoreId StoreId,
+		 IN RPC2_CountedBS PiggyCOP2);
+
+8: OLDCML_Link	(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN ViceFid Fid,
+		 IN OUT ViceStatus Status,
+		 IN OUT ViceStatus DirStatus,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN ViceStoreId StoreId,
+		 IN RPC2_CountedBS PiggyCOP2);
+
+9: OLDCML_MakeDir(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN OUT ViceStatus Status,
+		 IN OUT ViceFid NewDid,
+		 IN OUT ViceStatus DirStatus,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN ViceStoreId StoreId,
+		 IN RPC2_CountedBS PiggyCOP2);
+		 
+10: OLDCML_RemoveDir(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN OUT ViceStatus Status,
+		 IN OUT ViceStatus TgtStatus,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN ViceStoreId StoreId,
+		 IN RPC2_CountedBS PiggyCOP2);
+
+11: CML_Store	(IN ViceFid Fid,
+		 IN ViceStatus Status,
+		 IN RPC2_Integer Length,
+		 IN ViceStoreId StoreId);
+
+12: CML_Truncate(IN ViceFid Fid,
+		 IN RPC2_Integer Length,
+		 IN ViceStoreId StoreId);
+
+13: CML_Utimes	(IN ViceFid Fid,
+		 IN ViceStatus Status, /* MTime */
+		 IN ViceStoreId StoreId);
+
+14: CML_Chmod	(IN ViceFid Fid,
+		 IN ViceStatus Status, /* RPC2_Unsigned Mode */
+		 IN ViceStoreId StoreId);
+
+15: CML_Chown	(IN ViceFid Fid,
+		 IN ViceStatus Status, /* Owner */
+		 IN ViceStoreId StoreId);
+
+16: CML_SymLink	(IN ViceFid Did,
+		 IN RPC2_String OldName,
+		 IN RPC2_String NewName,
+		 IN ViceFid Fid,
+		 IN ViceStatus Status,
+		 IN ViceStatus DirStatus,
+		 IN ViceStoreId StoreId);
+
+17: CML_Link	(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN ViceFid Fid,
+		 IN ViceStatus Status,
+		 IN ViceStatus DirStatus,
+		 IN ViceStoreId StoreId);
+
+18: CML_MakeDir	(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN ViceStatus Status,
+		 IN ViceFid NewDid,
+		 IN ViceStatus DirStatus,
+		 IN ViceStoreId StoreId);
+		 
+19: CML_RemoveDir(IN ViceFid Did,
+		 IN RPC2_String Name,
+		 IN ViceStatus Status,
+		 IN ViceStatus TgtStatus,
+		 IN ViceStoreId StoreId);
+
+20: CML_Repair	(IN ViceFid Fid,
+		 IN ViceStatus status, 
+		 IN ViceStoreId StoreId);
+
+33: OLDCML_Repair(IN ViceFid Fid,
+		 IN OUT ViceStatus status, 
+		 IN ViceStoreId StoreId,
+		 IN OUT SE_Descriptor BD);
+
+52: OLDCML_NewStore(IN ViceFid Fid,
+		 IN OLDCML_StoreType Request,
+		 IN OUT RPC2_CountedBS AccessList,
+		 IN OUT ViceStatus Status,
+		 IN RPC2_Integer Length,
+		 IN RPC2_Integer Mask,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN ViceStoreId StoreId,
+		 IN RPC2_CountedBS PiggyCOP2,
+		 IN OUT SE_Descriptor BD);
+
