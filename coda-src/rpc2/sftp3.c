@@ -328,17 +328,11 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 				      sizeof(struct RPC2_PacketHeader));/*ack?*/
 #endif
 	    
-#if 1
-    if (pBuff->Header.SeqNumber == sEntry->RecvLastContig+1) 
-	/* This packet advances the left edge of the window. Save the
-	 * timestamp to echo in the next ack */
-	sEntry->TimeEcho = pBuff->Header.TimeStamp;
-#else
-    /* Keep track of the highest seen timestamp value, we use this when
-     * replying to the other side */
-    if (sEntry->TimeEcho < pBuff->Header.TimeStamp)
-	sEntry->TimeEcho = pBuff->Header.TimeStamp;
-#endif
+    /* If this packet advances the left edge of the window, save the
+     * timestamp to echo in the next ack. But otherwise avoid using an
+     * outdated timestamp */
+    sEntry->TimeEcho = (pBuff->Header.SeqNumber == sEntry->RecvLastContig+1) ?
+	pBuff->Header.TimeStamp : 0;
     
     sEntry->XferState = XferInProgress; /* this is how it gets turned on in Client for fetch */
     SETBIT(sEntry->RecvTheseBits, moffset);
@@ -360,7 +354,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 		if (TESTBIT(sEntry->RecvTheseBits, i)) {
 		    pb = sEntry->ThesePackets[PBUFF((sEntry->RecvLastContig + i))];
 		    if (pb->Header.TimeEcho >= pBuff->Header.TimeEcho) {
-			//&& !(pb->Header.SEFlags & SFTP_COUNTED)) {
+			//&& !(pb->Header.SEFlags & SFTP_COUNTED))
 			dataThisRound += pb->Prefix.LengthOfPacket;
 			pb->Header.SEFlags |= SFTP_COUNTED;
 		    }

@@ -313,7 +313,7 @@ static void ExaminePacket(RPC2_PacketBuffer *pb)
 
 /* Find a sleeping LWP to deal with this packet */
 static void ServerPacket(RPC2_PacketBuffer *whichPacket,
-			 struct SFTP_Entry *whichEntry)
+			 struct SFTP_Entry *sEntry)
 {
     struct SLSlot *sls;
 
@@ -322,13 +322,13 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
      * if no LWP yields control while its SLSlot state is TIMEOUT.  There
      * could be serious hard-to-find bugs if this assumption is violated. */
 
-    sls = whichEntry->Sleeper;
+    sls = sEntry->Sleeper;
     if (sls == NULL || (sls->State != S_WAITING && sls->State != S_TIMEOUT))
     {/* no one expects this packet; toss it out; NAK'ing may have race hazards */
 	if (whichPacket) BOGUS(whichPacket);
 	return;
     }
-    whichEntry->Sleeper = NULL;	/* no longer anyone waiting for a packet */
+    sEntry->Sleeper = NULL;	/* no longer anyone waiting for a packet */
     sls->State = S_ARRIVED;
     sls->Packet = whichPacket;
     REMOVETIMER(sls);
@@ -336,72 +336,71 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
 }
 
 
-static void ClientPacket(whichPacket, whichEntry)
-    RPC2_PacketBuffer *whichPacket;
-    struct SFTP_Entry *whichEntry;
-    {
+static void ClientPacket(RPC2_PacketBuffer *whichPacket,
+			 struct SFTP_Entry *sEntry)
+{
+    unsigned long bytes;
     /* Deal with this packet on Listener's thread of control */
 
     switch ((int) whichPacket->Header.Opcode)
-	{
-	case SFTP_NAK:
-	    CODA_ASSERT(FALSE);  /* should have been dealt with in ExaminePacket() */
-	    break;	    
-	    
-	case SFTP_ACK:
-	    /* Makes sense only if we are on source side */
-	    if (IsSource(whichEntry))
-	    {
-		if (sftp_AckArrived(whichPacket, whichEntry) < 0)
-		{
-		    SFSendNAK(whichPacket); /* NAK this packet */
-		    sftp_SetError(whichEntry, ERROR);
-		}
+    {
+    case SFTP_NAK:
+	CODA_ASSERT(FALSE);  /* should have been dealt with in ExaminePacket()*/
+	break;	    
+
+    case SFTP_ACK:
+	/* Makes sense only if we are on source side */
+	if (IsSource(sEntry)) {
+	    /* we need to get some indication of a retry interval, so that
+	     * AckArrived->SendStrategy->CheckWorried() can actually do
+	     * the right thing */
+
+	    /* estimated size of an sftp data transfer */
+	    bytes = ((sEntry->PacketSize+sizeof(struct RPC2_PacketHeader)) *
+		     sEntry->AckPoint) + sizeof(struct RPC2_PacketHeader);
+
+	    rpc2_RetryInterval(sEntry->HostInfo, bytes, 1,
+			       &sEntry->RInterval);
+
+	    if (sftp_AckArrived(whichPacket, sEntry) < 0) {
+		SFSendNAK(whichPacket); /* NAK this packet */
+		sftp_SetError(sEntry, ERROR);
 	    }
-	    else
-	    {
-		BOGUS(whichPacket);
-	    }
-	    break;
-	
-	case SFTP_DATA:
-	    /* Makes sense only if we are on sink side */
-	    if (IsSink(whichEntry))
-	    {
-		if (sftp_DataArrived(whichPacket, whichEntry) < 0)
-		{
-		    if (whichEntry->WhoAmI != DISKERROR)
-			sftp_SetError(whichEntry, ERROR);
-		    SFSendNAK(whichPacket); /* NAK this packet */
-		}
-	    }
-	    else
-	    {
-		BOGUS(whichPacket);
-	    }
-	    break;
-	
-	case SFTP_START:
-	    /* Makes sense only on client between file transfers */
-	    if (IsSource(whichEntry))
-	    {
-		if (sftp_StartArrived(whichPacket, whichEntry) < 0)
-		{
-		    SFSendNAK(whichPacket); /* NAK this packet */
-		    sftp_SetError(whichEntry, ERROR);
-		}
-	    }
-	    else
-	    {
-		BOGUS(whichPacket);
-	    }
-	    break;
-	
-	default:
+	} else {
 	    BOGUS(whichPacket);
-	    break;
 	}
+	break;
+
+    case SFTP_DATA:
+	/* Makes sense only if we are on sink side */
+	if (IsSink(sEntry)) {
+	    if (sftp_DataArrived(whichPacket, sEntry) < 0) {
+		if (sEntry->WhoAmI != DISKERROR)
+		    sftp_SetError(sEntry, ERROR);
+		SFSendNAK(whichPacket); /* NAK this packet */
+	    }
+	} else {
+	    BOGUS(whichPacket);
+	}
+	break;
+
+    case SFTP_START:
+	/* Makes sense only on client between file transfers */
+	if (IsSource(sEntry)) {
+	    if (sftp_StartArrived(whichPacket, sEntry) < 0) {
+		SFSendNAK(whichPacket); /* NAK this packet */
+		sftp_SetError(sEntry, ERROR);
+	    }
+	} else {
+	    BOGUS(whichPacket);
+	}
+	break;
+
+    default:
+	BOGUS(whichPacket);
+	break;
     }
+}
 
 
 static void SFSendNAK(RPC2_PacketBuffer *pb)

@@ -808,7 +808,7 @@ static long PutFile(struct SFTP_Entry *sEntry)
 
     /* estimated size of an sftp data transfer */
     bytes = ((sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
-	     sEntry->WindowSize) + sizeof(struct RPC2_PacketHeader);
+	     sEntry->AckPoint) + sizeof(struct RPC2_PacketHeader);
 
     while (sEntry->XferState == XferInProgress) {
 	for (i = 1; i <= sEntry->RetryCount; i++) {
