@@ -22,12 +22,6 @@ MANDIR = $(prefix)/man
 
 include $(MAKDIR)/Makeconf.$(SYS)
 
-##############################
-# tools
-##############################
-
-ALPHACI = $(TOPDIR)/tools/alphaci
-
 
 ##############################
 # VPATH
@@ -91,15 +85,15 @@ INCLFLAGS := -I- -I. $(SHADOWINCLS) -I$(INCLDIR) -I$(INCLSPECIAL) $(INCLFLAGS)
 INCLPATH  := .:$(SHADOWPATH):$(INCLDIR):$(INCLSPECIAL)
 endif
 DEPFLAG   := -MD
-MYFLAGS   :=
-# OPTFLAG   := -O
+#MYFLAGS   := -O -Wchar-subscripts -Wcomment -Wimplicit -Wparentheses -Wreturn-type -Wswitch -Wuninitialized  -Wreorder -W -Wtraditional -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align -Winline 
+OPTFLAG   := -g
 LIBFLAGS  :=
 AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
 CFLAGS	  := $(OPTFLAG) $(AFLAGS) -DPRIVATE=static
 CXXFLAGS  := $(CFLAGS)
 C++FLAGS  := $(CFLAGS)	# Mach uses c++ flags, not CXX
 
-RP2FLAGS  = -n -I . -I $(srcdir) -I $(INCLDIR)
+RP2FLAGS  = -n -e  -I . -I $(srcdir) -I $(INCLDIR)
 
 vpath %.h $(INCLPATH)
 vpath %.rpc2 $(INCLPATH)
