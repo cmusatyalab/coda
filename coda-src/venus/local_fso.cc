@@ -835,6 +835,7 @@ int fsobj::LocalFakeify()
 {
     LOG(100, ("fsobj::LocalFakeify: %s, %s\n", comp, FID_(&fid)));
     int code = 0;
+    fsobj *MtPt = NULL;
 
     /* 
      * step 0. purge kernel and scan FSDB to make sure child-parent
@@ -879,10 +880,15 @@ int fsobj::LocalFakeify()
 	}
     }
 
-    FSO_ASSERT(this, pf || (!pf && IsRoot()));
     if (!pf) {
+	if (!IsRoot() || !u.mtpoint || !u.mtpoint->pfso) {
+	    LOG(0, ("fsobj::LocalFakeify: can't find parent\n"));
+	    return ENOENT;
+	}
+
 	LOG(0, ("fsobj::LocalFakeify: mount-point\n"));
-	return LocalFakeifyRoot();
+	MtPt = u.mtpoint;
+	pf = MtPt->pfso;
     }
 
     /* 
@@ -896,6 +902,15 @@ int fsobj::LocalFakeify()
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	CHOKE("fsobj::LocalFakeify: replace local fake fid failed");
     }
+
+    if (MtPt) {
+	// Why do we do this only when we're messing around with a mountpoint?
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(vol->flags);
+	vol->flags.has_local_subtree = 1;
+	Recov_EndTrans(MAXFP);
+    }
+
     /* 
      * step 3. create a new object as FakeRoot with the newly generated 
      * FakeRootFid and make it a "fake directory" with two children named
@@ -915,6 +930,11 @@ int fsobj::LocalFakeify()
     Recov_BeginTrans();
     GlobalChildFid = rv->GenerateFakeFid();
     LocalChildFid = rv->GenerateFakeFid();
+
+    if (MtPt) {
+	FakeRootFid.Realm = GlobalChildFid.Realm = LocalChildFid.Realm = pf->fid.Realm;
+	FakeRootFid.Volume = GlobalChildFid.Volume = LocalChildFid.Volume = pf->fid.Volume;
+    }
     Recov_EndTrans(MAXFP);
 
     vproc *vp = VprocSelf();
@@ -930,20 +950,34 @@ int fsobj::LocalFakeify()
      * replace the (comp, GlobalRootFid) pair with the (comp, FakeRootFid)
      * pair in the parent directory structure. Note that "this" has become
      * the LocalRootFid's fsobj object.
+     *
+     * If we have a conflict on the volume root, we're actually replacing the
+     * mountlink in the parent volume.
      */
     RVMLIB_REC_OBJECT(*pf);
-    RVMLIB_REC_OBJECT(*this);
     RVMLIB_REC_OBJECT(*FakeRoot);	   
+    if (MtPt) {
+	RVMLIB_REC_OBJECT(*MtPt);
+    } else {
+	RVMLIB_REC_OBJECT(*this);
+    }
+
     pf->dir_Delete(comp);
     pf->dir_Create(comp, &FakeRootFid);
     /* 
      * note that "pf" may not always have "this" in its children list and we
      * need to test this before we call the DetachChild routine
      */
-    pf->DetachChild(this);
+    if (MtPt) {
+	pf->DetachChild(MtPt);
+	MtPt->pfso = NULL;
+	MtPt->pfid = NullFid;
+    } else {
+	pf->DetachChild(this);
+	this->pfso = NULL;
+	this->pfid = NullFid;
+    }
     pf->AttachChild(FakeRoot);
-    this->pfso = NULL;
-    this->pfid = NullFid;
     pf->RcRights = RC_DATA | RC_STATUS;		/* set RootParentObj in valid and non-mutatable status */
     pf->flags.local = 1;				/* it will be killed when repair is done */
     
@@ -970,7 +1004,7 @@ int fsobj::LocalFakeify()
 
     /* add an new entry to the LRDB maintained fid-map */
     LRDB->RFM_Insert(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,
-		     &GlobalChildFid, &LocalChildFid, comp);
+		     &GlobalChildFid, &LocalChildFid, comp, MtPt);
     Recov_EndTrans(MAXFP);
 
     FSDB->Put(&FakeRoot);
@@ -990,135 +1024,5 @@ void fsobj::UnsetLocalObj()
 {
     RVMLIB_REC_OBJECT(flags);
     flags.local = 0;
-}
-
-/*
-  BEGIN_HTML
-  <a name="rootfakeify"><strong> the fakeify process to create
-  representation for volume root object detected to be in local/global
-  conflict </strong></a>
-  END_HTML
-*/
-/* must not be called from within a transaction */
-/* this method will be called when the volume is exclusively locked */
-int fsobj::LocalFakeifyRoot()
-{   
-    fsobj *MtPt, *pf;
-
-    LOG(100, ("fsobj::LocalFakeifyRoot: %s, %s\n", comp, FID_(&fid)));
-
-    /* step 1: sanity checks */
-    if (!u.mtpoint || !u.mtpoint->pfso) {
-	LOG(100, ("fsobj::LocalFakeifyRoot: can not find parent\n"));
-	return ENOENT;
-    }
-
-    MtPt = u.mtpoint;
-    pf = MtPt->pfso;
-
-    /* 
-     * step 2. replace fid of objects in the subtree rooted at "this" 
-     * object with "local fake fid", and mark them RC valid as well.
-     */
-    int code = 0;
-    VenusFid GlobalRootFid;
-    memcpy(&GlobalRootFid, &fid, sizeof(VenusFid));
-
-    if ((code = ReplaceLocalFakeFid()) != 0) {
-	CHOKE("fsobj::LocalFakeifyRoot: replace local fake fid failed");
-    }
-
-    Recov_BeginTrans();
-    RVMLIB_REC_OBJECT(vol->flags);
-    vol->flags.has_local_subtree = 1;
-    Recov_EndTrans(MAXFP);
-
-    /* 
-     * step 3. create a new object as FakeRoot with the newly generated 
-     * FakeRootFid and make it a "fake directory" with two children named
-     * "local" and "global", which will later be used as the mountpoint
-     * pointing to the global and local subtrees.
-     */
-    VenusFid FakeRootFid, LocalChildFid, GlobalChildFid;
-    RPC2_Unsigned AllocHost = 0;
-    CODA_ASSERT(vol->IsReplicated());
-    repvol *rv = (repvol *)vol;
-    code = rv->AllocFid(Directory, &FakeRootFid, &AllocHost,V_UID);
-    if (code != 0) {
-	LOG(0, ("fsobj::LocalFakeifyRoot: can not alloc fid for root object\n"));
-	return code;
-    }
-
-    Recov_BeginTrans();
-    GlobalChildFid = rv->GenerateFakeFid();
-    LocalChildFid = rv->GenerateFakeFid();
-    Recov_EndTrans(MAXFP);
-
-    FakeRootFid.Realm = GlobalChildFid.Realm = LocalChildFid.Realm = pf->fid.Realm;
-    FakeRootFid.Volume = GlobalChildFid.Volume = LocalChildFid.Volume = pf->fid.Volume;
-    vproc *vp = VprocSelf();
-    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, vp->u.u_priority, comp);
-    if (NULL == FakeRoot) {
-	LOG(0, ("fsobj::LocalFakeifyRoot: can not create FakeRoot for %s\n",
-		FID_(&GlobalRootFid)));
-	return (ENOSPC);
-    }
-    LOG(100, ("fsobj::LocalFakeifyRoot: created a new fake-root node\n"));
-    Recov_BeginTrans();
-    /* 
-     * replace the (comp, MtPt->fid) pair with the (comp, FakeRootFid)
-     * pair in the parent directory structure. Note that "this" has become
-     * the LocalRootFid's fsobj object.
-     */
-    RVMLIB_REC_OBJECT(*pf);
-    RVMLIB_REC_OBJECT(*this);
-    RVMLIB_REC_OBJECT(*FakeRoot);	   
-    pf->dir_Delete(comp);
-    pf->dir_Create(comp, &FakeRootFid);
-    /* 
-     * note that "pf" may not always have "this" in its children list and we
-     * need to test this before we call the DetachChild routine
-     */
-    pf->DetachChild(MtPt);
-    pf->AttachChild(FakeRoot);
-    this->pfso = NULL;
-    this->pfid = NullFid;
-    MtPt->pfso = NULL;
-    MtPt->pfid = NullFid;
-    pf->RcRights = RC_DATA | RC_STATUS;	/* set RootParentObj in valid and non-mutatable status */
-    pf->flags.local = 1;			/* it will be killed when repair is done */
-
-    /* Initialize status for the new fake-dir object */
-    FakeRoot->flags.fake = 1;
-    FakeRoot->flags.local = 1;
-    FakeRoot->stat.DataVersion = 1;
-    FakeRoot->stat.Mode = 0444;
-    FakeRoot->stat.Owner = V_UID;
-    FakeRoot->stat.Length = 0;
-    FakeRoot->stat.Date = Vtime();
-    FakeRoot->stat.LinkCount = 2;
-    FakeRoot->stat.VnodeType = Directory;
-    FakeRoot->Matriculate();		/* need this ??? -luqi */
-    FakeRoot->pfid = pf->fid;
-    FakeRoot->pfso = pf;
-    /* Create the target directory. */
-    FakeRoot->dir_MakeDir();
-    FakeRoot->SetRcRights(RC_DATA | RC_STATUS);
-    
-    /* Create the "global" and "local" children. */
-    
-    FakeRoot->dir_Create("global", &GlobalChildFid);
-    FakeRoot->dir_Create("local", &LocalChildFid);
-    
-    /* add an new entry to the LRDB maintained fid-map */
-    rfment *rfm = new rfment(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,  
-			     &GlobalChildFid, &LocalChildFid, comp);
-    rfm->SetRootMtPt(MtPt);
-    LRDB->root_fid_map.insert(rfm);
-    Recov_EndTrans(MAXFP);
-
-    FSDB->Put(&FakeRoot);
-
-    return(0);
 }
 

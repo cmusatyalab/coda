@@ -362,7 +362,7 @@ int lrdb::RFM_IsLocalChild(VenusFid *Fid)
 /* must be called from within a transaction */
 void lrdb::RFM_Insert(VenusFid *FakeRootFid, VenusFid *GlobalRootFid, VenusFid *LocalRootFid, 
 		      VenusFid *RootParentFid, VenusFid *GlobalChildFid,
-		      VenusFid *LocalChildFid, char *Name)
+		      VenusFid *LocalChildFid, char *Name, fsobj *MtPt)
 {
     OBJ_ASSERT(this, FakeRootFid && GlobalRootFid && LocalRootFid && RootParentFid);
     OBJ_ASSERT(this, GlobalChildFid && LocalChildFid && Name);
@@ -376,6 +376,9 @@ void lrdb::RFM_Insert(VenusFid *FakeRootFid, VenusFid *GlobalRootFid, VenusFid *
     rfment *rfm = new rfment(FakeRootFid, GlobalRootFid, LocalRootFid, RootParentFid, 
 			     GlobalChildFid, LocalChildFid, Name);
     root_fid_map.insert(rfm);
+
+    if (MtPt)
+	rfm->SetRootMtPt(MtPt);
 }
 
 /* must be called from within a transaction */

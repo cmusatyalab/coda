@@ -103,7 +103,7 @@ public:
     int RFM_IsLocalChild(VenusFid *);						/*N*/
     void RFM_Remove(VenusFid *);							/*T*/
     void RFM_Insert(VenusFid *, VenusFid *, VenusFid *, VenusFid *,
-		    VenusFid*, VenusFid *, char *);				/*T*/
+		    VenusFid*, VenusFid *, char *Name, fsobj *MtPt);				/*T*/
     VenusFid GenerateLocalFakeFid(ViceDataType);					/*T*/
     VenusFid GenerateFakeLocalFid();						/*T*/
     void TranslateFid(VenusFid *, VenusFid *);					/*T*/
