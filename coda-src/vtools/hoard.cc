@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.6 1998/01/10 18:40:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.7 98/08/31 12:23:55 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -386,8 +386,8 @@ next_cmd:
 
 		/* Parse <volume-number> <hoard-filename>. */
 		/* Also record <fullname> for later meta-expansion. */
-		VolumeId volno, svollist[CFS_MAXSYMLINK];
-		char name[MAXPATHLEN], snamelist[CFS_MAXSYMLINK][MAXPATHLEN];
+		VolumeId volno, svollist[CODA_MAXSYMLINK];
+		char name[MAXPATHLEN], snamelist[CODA_MAXSYMLINK][MAXPATHLEN];
 		char fullname[MAXPATHLEN];
 		if (GetToken(cp, token, &cp) == NULL) {
 		    parse_error(line);
@@ -454,7 +454,7 @@ next_cmd:
 		    Add.append(new add_entry(volno, name, priority, attributes));
 
 		/* add symlink entries */
-		for (int i = 0; i < CFS_MAXSYMLINK; i++) 
+		for (int i = 0; i < CODA_MAXSYMLINK; i++) 
 		    if (svollist[i] != 0) {
 			DEBUG(printf("adding symlink entry <%x, %s>\n",	
 				     svollist[i], snamelist[i]));
@@ -727,7 +727,7 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 
     int ix = 0;
     if (svp) 
-	for (int i = 0; i < CFS_MAXSYMLINK; i++) {
+	for (int i = 0; i < CODA_MAXSYMLINK; i++) {
 	    svp[i] = 0;
 	    sname[i][0] = '\0';
 	}
