@@ -39,7 +39,10 @@ case ${host_alias} in
  ;;
 
 	*-*-freebsd3* )
-		sys=i386_fbsd3
+		case `objformat` in
+			aout) sys=i386_fbsd3 ;;
+			elf)  sys=i386_fbsd2 ;;
+		esac
 		vfsdir=bsd44
 		initsuffix=../etc
  ;;
