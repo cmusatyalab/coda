@@ -5,7 +5,7 @@
 #  recursively descend into subdirs and build targets
 ###############################################################
 
-all: $(SUBDIRS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)
+all: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS) $(SUBDIRS) mkdep
 
 ##################
 # build a single subdirectory
@@ -20,7 +20,7 @@ endif
 ###############################################################
 
 install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 hdrinstall bininstall scriptinstall libinstall
+	 hdrinstall bininstall scriptinstall libinstall mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    ${MAKE} -C $$d install; \
@@ -34,7 +34,7 @@ endif
 ###############################################################
 coda: Coda
 Coda: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 hdrinstall 
+	 hdrinstall mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    echo "----> Entering $$d"; \
@@ -173,6 +173,13 @@ realclean:
 	$(RM) hdrinstall libinstall bininstall scriptinstall
 	$(RM) *.l.c *.pt.c *.l.o *.pt.o
 
+#####################
+# dependency generation
+#####################
+mkdep:
+	@$(BINDIR)/md -o .depend -d -S $(INCLFLAGS) *.d
+
+
 ###############################################################
 # 			misc
 ###############################################################
@@ -190,6 +197,7 @@ showvar:
 	@echo  RP2GEN: $(RP2GEN)
 	@echo  SHADOWINCLS: $(SHADOWINCLS)
 	@echo  SHADOWRP2: $(SHADOWRP2)
+	@echo  INCLPATH: $(INCLPATH)	
 	@echo  VPATH: $(VPATH)
 	@echo  SHOB: $(SHOB) 
 	@echo  SECSRC: $(SECSRC) 
@@ -243,3 +251,9 @@ ifdef OVERRIDE
 include $(TOPOBJ)/Makeconf.override
 endif
 
+###############################################################
+# 		Finally ...
+#	suck down any dependencies we know about
+###############################################################
+
+-include .depend
