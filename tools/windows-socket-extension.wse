@@ -20,7 +20,7 @@ item: Global
   Patch Flags=0000000000000001
   Patch Threshold=85
   Patch Memory=4000
-  EXE Filename=windows-socket-extension.exe
+  EXE Filename=c:\wise-coda\sock\windows-socket-extension.exe
   FTP Cluster Size=20
   Per-User Version ID=1
   Dialogs Version=7
