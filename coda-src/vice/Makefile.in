@@ -42,7 +42,7 @@ VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-CXXFLAGS += -Wall  -DSYSCONFDIR=\"${sysconfdir}\"
+CXXFLAGS += -Wall -DSYSCONFDIR=\"${sysconfdir}\"
 EXECUTABLES = codasrv printvrdb
 SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libviceerror.a

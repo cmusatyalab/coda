@@ -147,7 +147,6 @@ int AllowResolution = 0;	// default 1, controls directory resolution
 int comparedirreps = 0;		// default 1 
 int pathtiming = 0;		// default 0 
 int pollandyield = 0;		// default 1 
-int OptimizeStore = 0;		// default 0
 int MapPrivate = 0;		// default 0
 
 
@@ -262,7 +261,6 @@ static int pushlog();
 
 static int ReadConfigFile(void);
 static int ParseArgs(int, char **);
-static void NewParms(int);
 static void InitServerKeys(char *, char *);
 static void DaemonizeSrv(void);
 static void InitializeServerRVM(char *name);
@@ -369,7 +367,7 @@ int main(int argc, char *argv[])
 	SLog(0, "[-cp (connections in process)] [-cm (connections max)");
 	SLog(0, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
 	SLog(0, " [-nocmp] [-nopy] [-dumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
-	SLog(0, "[-nodebarrenize] [-optstore] [-dir workdir] [-srvhost host]");
+	SLog(0, "[-nodebarrenize] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-canonicalize] [-usenscclock]");
 	SLog(0, " [-nowriteback] [-mapprivate] [-zombify]");
 
@@ -384,7 +382,6 @@ int main(int argc, char *argv[])
 	exit(-1);
     }
 
-    NewParms(1);
     unlink("NEWSRV");
 
     freopen("SrvLog","a+",stdout);
@@ -1331,16 +1328,19 @@ static void FileMsg()
   END_HTML
 */
 void ViceTerminate()
-    {
+{
     ViceShutDown = 1;
     SLog(0, "Shutdown received");
-    }
+}
 
 
 static int ReadConfigFile(void)
 {
     char confname[80];
     int  datalen = 0;
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
 
     /* Load configuration file. */
     sprintf (confname, "%s.conf", serverconf);
@@ -1355,7 +1355,6 @@ static int ReadConfigFile(void)
     CONF_INT(AllowResolution,	"resolution",	   1); 
     CONF_INT(comparedirreps,	"comparedirreps",  1); 
     CONF_INT(pollandyield,	"pollandyield",    1); 
-    CONF_INT(OptimizeStore,	"optstore",	   0); 
     CONF_INT(pathtiming,	"pathtiming",	   1);
     CONF_INT(MapPrivate,	"mapprivate",	   0);
 
@@ -1389,7 +1388,7 @@ static int ReadConfigFile(void)
         CONF_INT(datalen,	   "rvm_data_length", 0);
         CONF_STR(srvhost,  	   "hostname",	       NULL);
     }
-    if (ServerNum && (srvhost == NULL || *srvhost == 0)) {
+    if (ServerNumber && (srvhost == NULL || *srvhost == 0)) {
         SLog(0, "Multiple servers specified, must specify hostname.\n");
         exit(-1);
     }
@@ -1611,10 +1610,6 @@ static int ParseArgs(int argc, char *argv[])
 		NoWritebackConn = 1;
 	    }
 	else 
-	    if (!strcmp(argv[i], "-optstore")) {
-		OptimizeStore = 1;
-	    }
-	else 
 	    if (!strcmp(argv[i], "-mapprivate")) {
 		MapPrivate = 1;
 	    }
@@ -1628,69 +1623,8 @@ static int ParseArgs(int argc, char *argv[])
     return(0);
 }
 
-
-#define MAXPARMS 15
-static void NewParms(int initializing)
-{
-    static struct stat sbuf;
-    register int      i, fd;
-    char   * parms;
-    char   * argv[MAXPARMS];
-    register int      argc;
-
-    if(!(stat("parms",&sbuf))) {
-	parms = (char *)malloc((unsigned)sbuf.st_size);
-/*	if(parms <= 0) return; */
-	if(parms == 0) return;
-	fd = open("parms", O_RDONLY, 0666);
-	if(fd <= 0) {
-	    SLog(0, "Open for parms failed with %s", (char *) ViceErrorMsg(errno));
-	    return;
-	}
-
-	i = read(fd, parms, (int)sbuf.st_size);
-	close(fd);
-	if(i != sbuf.st_size) {
-	    if (i < 0 )
-		SLog(0, "Read on parms failed with %s", (char *) ViceErrorMsg(errno));
-	    else
-		SLog(0, "Read on parms failed should have got %d bytes but read %d",
-			(char *) sbuf.st_size, (char *) i);
-	    free(parms);
-	    return;
-	}
-
-	for(i = 0;i < MAXPARMS; argv[i++] = 0 );
-	
-	for(argc = i = 0; i < sbuf.st_size; i++) {
-	    if((*(parms + i) != ' ') && (*(parms + i) != '\n')){
-		if(argv[argc] == 0) argv[argc] = (parms+i);
-	    }
-	    else {
-		*(parms + i) = '\0';
-		if(argv[argc] != 0) {
-		    if(++argc == MAXPARMS) break;
-		}
-		while((*(parms + i + 1) == ' ') || (*(parms + i + 1) == '\n')) i++;
-	    }
-	}
-	if(ParseArgs(argc, argv) == 0)
-	    SLog(0, "Change parameters to:");
-	else
-	    SLog(0, "Invalid parameter in:");
-	for(i = 0; i < argc; i++) {
-	    SLog(0, " %s", argv[i]);
-	}
-	SLog(0,"");
-	free(parms);
-    }
-    else
-	if(!initializing)
-	    SLog(0, "Received request to change parms but no parms file exists");
-}
-
-/*char	* fkey1;		 name of file that contains key1 (normally KEY1) */
-/*char	* fkey2;		 name of file that contains key2 (normally KEY2  */
+/* char	* fkey1;	 name of file that contains key1 (normally KEY1) */
+/* char	* fkey2;	 name of file that contains key2 (normally KEY2) */
 static void InitServerKeys(char *fkey1, char *fkey2)
 {
     FILE                * tf;

@@ -620,16 +620,6 @@ START_TIMING(Store_Total);
 	    goto FreeLocks;
 	deltablocks = tblocks;
 
-	extern int OptimizeStore;
-	if (OptimizeStore) {
-	    //This is a signal to Venus to go ahead and let the close complete 
-	    ViceFid VSGFid;
-	    VSGFid.Volume = VSGVolnum;
-	    VSGFid.Vnode = Fid->Vnode;
-	    VSGFid.Unique = Fid->Unique;
-	    (void)CallBackReceivedStore(client->VenusId->id, &VSGFid);
-	}
-	
 	v->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
 			      (int) v->vptr->vnodeNumber,
 			      (int) v->vptr->disk.uniquifier,

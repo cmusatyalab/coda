@@ -34,7 +34,7 @@ extern "C" {
 extern vle *FindVLE(dlist& dl, ViceFid *fid);
 
 int AllowResolution = 1;
-int nodumpvm = 0;
+int DumpVM = 0;
 int large = 500;
 int small = 500;
 

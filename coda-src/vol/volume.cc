@@ -608,7 +608,7 @@ static void VAppendVolume(Volume *vp)
     fclose(file);
 }
 
-extern int nodumpvm;
+extern int DumpVM;
 extern rvm_offset_t _Rvm_DataLength;
 extern long rds_rvmsize;
 extern char *rds_startaddr;
@@ -670,7 +670,7 @@ void VShutdown() {
     }
 
     /* dump vm to a file so we can check for a recovery bug. */
-    if (!nodumpvm) {
+    if (DumpVM) {
 	/* check to see if there are any outstanding transactions. */
 	if (RvmType == RAWIO || RvmType == UFS) {
 	    rvm_options_t curopts;
@@ -701,7 +701,7 @@ void VShutdown() {
 	}
 
 	dumpvm();
-    }    
+    }
     VLog(0, "VShutdown:  complete.");
 }
 
