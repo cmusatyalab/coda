@@ -244,7 +244,11 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 
     /* Try to get an accurate arrival time estimate for this packet */
     /* This ioctl might be used on linux systems only, but you never know */
-#if defined(SIOCGSTAMP)
+#if 0 // defined(SIOCGSTAMP)
+/* Very nice for accurate network RTT estimates, but we don't measure the time
+ * it takes for the server to wake up and send back the response. i.e. The
+ * client will end up assuming the server is faster than it really is so I've
+ * disabled this code -JH */
     rc = ioctl(whichSocket, SIOCGSTAMP, &whichBuff->Prefix.RecvStamp);
     if (rc < 0)
 #endif

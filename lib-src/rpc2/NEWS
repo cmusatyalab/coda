@@ -2,6 +2,8 @@ New in 1.13:
 
 * Fixed crash when an expired connection receives a NAK.
 * Increased lower bound on retransmission time to 300ms.
+* Removed Linux specific optimization in processing time calculation which
+  made RPC2 clients assume a server can respond faster than it actually does.
 
 New in 1.12:
 
