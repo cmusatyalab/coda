@@ -23,7 +23,7 @@
 #include <linux/types.h>
 #include <linux/fs.h>
 #else 
-#include <vnode.h>
+#include <coda_vnode.h>
 #endif KERNEL
 
 
