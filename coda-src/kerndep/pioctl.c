@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/kerndep/pioctl.c,v 4.2 1997/02/26 16:02:40 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/kerndep/pioctl.c,v 4.3 1997/12/01 17:27:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,10 +61,10 @@ int pioctl(const char *path, unsigned long com,
 
     /* Must change the size field of the command to match 
        that of the new structure. */
-    unsigned long cmd = (com & ~(IOCPARM_MASK << 16)); /* mask out size  */
-    int	size = ((com >> 16) & IOCPARM_MASK) + sizeof(char *) + sizeof(int);
+    unsigned long cmd = (com & ~(PIOCPARM_MASK << 16)); /* mask out size  */
+    int	size = ((com >> 16) & PIOCPARM_MASK) + sizeof(char *) + sizeof(int);
 
-    cmd	|= (size & IOCPARM_MASK) << 16;  /* or in corrected size */
+    cmd	|= (size & PIOCPARM_MASK) << 16;  /* or in corrected size */
 
     data.path = path;
     data.follow = follow;

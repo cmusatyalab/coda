@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.10 97/12/10 22:10:43 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.11 1997/12/16 16:08:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -124,16 +124,6 @@ extern "C" {
 /* Temporary!  Move to cnode.h. -JJK */
 #define	C_INCON	0x2
 
-/* From <vfs/vnode.h>.  Not otherwise defined since conditionalized by KERNEL. -JJK */
-#ifndef __FreeBSD__
-#define IO_UNIT		0x01		/* do io as atomic unit for VOP_RDWR */
-#define IO_APPEND	0x02		/* append write for VOP_RDWR */
-#define IO_SYNC		0x04		/* sync io for VOP_RDWR */
-#ifndef	__linux__
-#define IO_NDELAY	0x08		/* non-blocking i/o for fifos */
-#endif 
-#endif
-
 
 /* ***** VFS Operations  ***** */
 
@@ -159,7 +149,7 @@ void vproc::root(struct venus_vnode **vpp) {
     LOG(1, ("vproc::root\n"));
 
     /* Set OUT parameter. */
-    MAKE_VNODE(*vpp, rootfid, VCDIR);
+    MAKE_VNODE(*vpp, rootfid, C_VDIR);
 }
 
 
@@ -198,7 +188,7 @@ void vproc::vget(struct venus_vnode **vpp, struct cfid *cfidp) {
 		u.u_error = 0;
 
 		/* Set OUT parameter according to "fake" vnode. */
-		MAKE_VNODE(*vpp, cfidp->cfid_fid, VCLNK);
+		MAKE_VNODE(*vpp, cfidp->cfid_fid, C_VLNK);
 		VTOC(*vpp)->c_flags |= C_INCON;
 	    }
 
@@ -232,10 +222,10 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
 
     /* Expand the flags argument into some useful predicates. */
 
-    int readp =  (flags & C_READ)  != 0;
-    int writep = (flags & C_WRITE) != 0;
-    int truncp = (flags & C_TRUNC) != 0;
-    int exclp =  (flags & C_EXCL)  != 0;
+    int readp =  (flags & C_O_READ)  != 0;
+    int writep = (flags & C_O_WRITE) != 0;
+    int truncp = (flags & C_O_TRUNC) != 0;
+    int exclp =  (flags & C_O_EXCL)  != 0;
     int	execp =	0;	    /* With VFS we're no longer told of execs! -JJK */
 
     fsobj *f = 0;
@@ -257,7 +247,7 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
 	/* Verify that we have the necessary permission. */
 	if (readp) {
 	    long rights = f->IsFile() ? PRSFS_READ : PRSFS_LOOKUP;
-	    int modes = f->IsFile() ? R_OK : 0;
+	    int modes = f->IsFile() ? C_A_R_OK : 0;
 	    u.u_error = f->Access(rights, modes, CRTORUID(u.u_cred));
 	    if (u.u_error) goto FreeLocks;
 	}
@@ -271,7 +261,7 @@ void vproc::open(struct venus_vnode **vpp, int flags) {
 	    long rights = (truncp
 			   ? (long)PRSFS_WRITE
 			   : (long)(PRSFS_WRITE | PRSFS_INSERT));
-	    u.u_error = f->Access(rights, W_OK, CRTORUID(u.u_cred));
+	    u.u_error = f->Access(rights, C_A_W_OK, CRTORUID(u.u_cred));
 	    if (u.u_error) goto FreeLocks;
 	}
 
@@ -301,7 +291,7 @@ void vproc::close(struct venus_vnode *vp, int flags) {
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, flags));
 
     /* Expand the flags argument into some useful predicates. */
-    int writep = (flags & (C_WRITE | C_TRUNC)) != 0;
+    int writep = (flags & (C_O_WRITE | C_O_TRUNC)) != 0;
     int	execp =	0;	    /* ??? -JJK */
 
     fsobj *f = 0;
@@ -341,73 +331,6 @@ FreeLocks:
     }
 }
 
-
-void vproc::rdwr(struct venus_vnode *vp, struct uio *uiop,
-		  enum uio_rw rwflag, int ioflag) {
-    struct venus_cnode *cp = VTOC(vp);
-
-    LOG(1, ("vproc::rdwr: fid = (%x.%x.%x), rwflag = %d, ioflag = %d\n",
-	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, rwflag, ioflag));
-
-    int offset = (int) uiop->uio_offset;
-    char *buf = uiop->uio_iov->iov_base;
-    int len = uiop->uio_iov->iov_len;
-    int cc = 0;
-
-    if (len > V_BLKSIZE)
-	{ u.u_error = EINVAL; return; }
-
-    fsobj *f = 0;
-
-    /* Sanity checks. */
-    if (rwflag != UIO_READ && rwflag != UIO_WRITE)
-	Choke("vproc::rdwr: rwflag bogus (%d)", rwflag);
-    if (rwflag == UIO_READ && uiop->uio_resid == 0)
-	return;
-    if (((int)uiop->uio_offset < 0 ||
-	  (int)(uiop->uio_offset + uiop->uio_resid) < 0))
-	{ u.u_error = EINVAL; return; }
-    if (uiop->uio_resid == 0)
-	return;
-
-    for (;;) {
-	Begin_VFS(cp->c_fid.Volume, (int)VFSOP_RDWR,
-		  rwflag == UIO_WRITE ? VM_MUTATING : VM_OBSERVING);
-	if (u.u_error) break;
-
-	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_DATA);
-	if (u.u_error) goto FreeLocks;
-
-	/* Verify that it is a file. */
-	if (!f->IsFile())
-	    { u.u_error = EISDIR; goto FreeLocks; }
-
-	/* Adjust offset in the case of append. */
-	if ((ioflag & IO_APPEND) && (rwflag == UIO_WRITE)) {
-	    struct coda_vattr va;
-	    va_init(&va);
-	    f->GetVattr(&va);
-	    offset = (int) va.va_size;
-	}
-
-	/* Do the operation. */
-	u.u_error = f->RdWr(buf, rwflag, offset, len, &cc, CRTORUID(u.u_cred));
-	if (u.u_error) goto FreeLocks;
-	uiop->uio_resid -= cc;
-
-FreeLocks:
-	FSDB->Put(&f);
-	int retry_call = 0;
-	End_VFS(&retry_call);
-	if (!retry_call) break;
-    }
-
-    if (u.u_error == EINCONS) {
-	u.u_error = EBADF;	    /* XXX -JJK */
-	k_Purge(&cp->c_fid, 1);
-    }
-}
 
 
 void vproc::ioctl(struct venus_vnode *vp, unsigned int com,
@@ -471,15 +394,10 @@ FreeLocks:
 
 	/* Make a "fake" vattr block for the inconsistent object. */
 	va_init(vap);
-#ifndef __linux__
-	vap->va_mode = 0444 | FTTOVT(SymbolicLink);
-#else
 	vap->va_mode = 0444;
 	vap->va_type = FTTOVT(SymbolicLink);
-#endif
 	vap->va_uid = (short)V_UID;
 	vap->va_gid = (short)V_GID;
-	vap->va_fsid = 1;
 	vap->va_nlink = 1;
 	vap->va_size = 27;  /* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
 	vap->va_blocksize = V_BLKSIZE;
@@ -489,13 +407,7 @@ FreeLocks:
 	vap->va_mtime = vap->va_atime;
 	vap->va_ctime = vap->va_atime;
 	vap->va_rdev = 1;
-
-#ifdef __MACH__
-	vap->va_blocks = NBLOCKS(vap->va_size) << 1;    /* 512 byte units! */
-#endif /* __MACH__ */
-#ifdef __BSD44__
 	vap->va_bytes = vap->va_size;
-#endif /* __BSD44__ */
     }
 }
 
@@ -518,21 +430,15 @@ void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
      * BSD44 supports chflags, which sets the va_flags field of 
      * the vattr.  Coda doesn't support these flags, but we will
      * allow calls that clear the field.  
-     * 
-     * Note that even though a vattr that includes this field is 
-     * defined for mach in venus_vnode.h, the definition it picks 
-     * up is the native one from mach_vnode.h.
      */
     /* Cannot set these attributes. */
-    if ( (vap->va_fsid != VA_IGNORE_FSID) ||
+    if (/* (vap->va_fsid != VA_IGNORE_FSID) || */
 	 (VA_ID(vap) != VA_IGNORE_ID) ||
 	 (vap->va_nlink != VA_IGNORE_NLINK) ||
 	 (vap->va_blocksize != VA_IGNORE_BLOCKSIZE) ||
 	 (vap->va_rdev != VA_IGNORE_RDEV) ||
-#ifdef __BSD44__
 	 (vap->va_flags != VA_IGNORE_FLAGS &&
 	     vap->va_flags != 0) ||
-#endif /* __BSD44__ */
 	 (VA_STORAGE(vap) != VA_IGNORE_STORAGE) )
 	{ u.u_error = EINVAL; return; }
 
@@ -541,9 +447,7 @@ void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
 	 (vap->va_uid == VA_IGNORE_UID) &&
 	 (vap->va_gid == VA_IGNORE_GID) &&
 	 (vap->va_size == VA_IGNORE_SIZE) &&
-#ifdef __BSD44__
 	 (vap->va_flags == VA_IGNORE_FLAGS) &&
-#endif /* __BSD44__ */
 	 (VA_ATIME_1(vap) == VA_IGNORE_TIME1) &&
 	 (VA_MTIME_1(vap) == VA_IGNORE_TIME1) &&
 	 (VA_CTIME_1(vap) == VA_IGNORE_TIME1) )
@@ -580,22 +484,14 @@ void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
 		if (u.u_error) goto FreeLocks;
 	    }
 	    /* gid should be V_GID for chown requests, VA_IGNORE_GID otherwise */
-#if	0
-	    /* whose idea was this anyways? */
-	    if (vap->va_gid != VA_IGNORE_GID &&	vap->va_gid != V_GID) {
-		u.u_error = EACCES;
-		goto FreeLocks;
-	    }
-#else
 	    if (vap->va_gid != VA_IGNORE_GID)
 	        vap->va_gid = V_GID;
-#endif
 	    /* truncate, ftruncate */
 	    if (vap->va_size != VA_IGNORE_SIZE) {
 		if (!f->IsFile())
 		    { u.u_error = EISDIR; goto FreeLocks; }
 
-		u.u_error = f->Access((long)PRSFS_WRITE, W_OK, CRTORUID(u.u_cred));
+		u.u_error = f->Access((long)PRSFS_WRITE, C_A_W_OK, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
 
@@ -723,7 +619,7 @@ void vproc::lookup(struct venus_vnode *dvp, char *name, struct venus_vnode **vpp
 		    u.u_error = 0;
 
 		    /* Set OUT parameter according to "fake" vnode. */
-		    MAKE_VNODE(*vpp, inc_fid, VCLNK);
+		    MAKE_VNODE(*vpp, inc_fid, C_VLNK);
 		    VTOC(*vpp)->c_flags |= C_INCON;
 		}
 
@@ -768,8 +664,8 @@ void vproc::create(struct venus_vnode *dvp, char *name, struct coda_vattr *vap,
     *vpp = 0;
 
     /* Expand the flags into some useful predicates. */
-    int readp = (mode & VREAD) != 0;
-    int writep = (mode & VWRITE) != 0;
+    int readp = (mode & C_M_READ) != 0;
+    int writep = (mode & C_M_WRITE) != 0;
     int truncp = (vap->va_size == 0);
     int exclp = excl;
 
@@ -811,11 +707,11 @@ void vproc::create(struct venus_vnode *dvp, char *name, struct coda_vattr *vap,
 
 	    /* Verify that we have the necessary permissions. */
 	    if (readp) {
-		u.u_error = target_fso->Access((long)PRSFS_READ, R_OK, CRTORUID(u.u_cred));
+		u.u_error = target_fso->Access((long)PRSFS_READ, C_A_R_OK, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
 	    if (writep || truncp) {
-		u.u_error = target_fso->Access((long)PRSFS_WRITE, W_OK, CRTORUID(u.u_cred));
+		u.u_error = target_fso->Access((long)PRSFS_WRITE, C_A_W_OK, CRTORUID(u.u_cred));
 		if (u.u_error) goto FreeLocks;
 	    }
 
@@ -855,7 +751,7 @@ void vproc::create(struct venus_vnode *dvp, char *name, struct coda_vattr *vap,
 
 	/* Set OUT parameters. */
 	target_fso->GetVattr(vap);
-	MAKE_VNODE(*vpp, target_fso->fid, VCREG);
+	MAKE_VNODE(*vpp, target_fso->fid, C_VREG);
 	VTOC(*vpp)->c_device = FSDB->device;
 	VTOC(*vpp)->c_inode = target_fso->data.file->Inode();
 
@@ -1281,7 +1177,7 @@ void vproc::mkdir(struct venus_vnode *dvp, char *name,
 	/* Set OUT parameter. */
 	target_fso->GetVattr(vap);
 	if (u.u_error) goto FreeLocks;
-	MAKE_VNODE(*vpp, target_fso->fid, VCDIR);
+	MAKE_VNODE(*vpp, target_fso->fid, C_VDIR);
 
 FreeLocks:
 	FSDB->Put(&parent_fso);

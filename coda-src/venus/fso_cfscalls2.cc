@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.6 97/12/01 17:27:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.7 1997/12/16 16:08:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -440,9 +440,9 @@ int fsobj::Access(long rights, int modes, vuid_t vuid) {
 	/* Check mode bits if necessary. */
 	/* Special case if file is "virgin" and this user is the creator. */
 	if (code == 0 && !(IsVirgin() && stat.Owner == vuid))
-	    if (((modes & X_OK) != 0 && (stat.Mode & OWNEREXEC) == 0) ||
-		((modes & W_OK) != 0 && (stat.Mode & OWNERWRITE) == 0) ||
-		((modes & R_OK) != 0 && (stat.Mode & OWNERREAD) == 0))
+	    if (((modes & C_A_X_OK) != 0 && (stat.Mode & OWNEREXEC) == 0) ||
+		((modes & C_A_W_OK) != 0 && (stat.Mode & OWNERWRITE) == 0) ||
+		((modes & C_A_R_OK) != 0 && (stat.Mode & OWNERREAD) == 0))
 		code = EACCES;
 
 	return(code);

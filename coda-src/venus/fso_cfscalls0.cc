@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.5 1997/06/19 17:13:44 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.6 1997/12/01 17:27:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1516,9 +1516,9 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
 	      comp, vuid));
 
     if (LogLevel >= 1000) {
-	dprint("\tmode = %#o, uid = %d, gid = %d, fsid = %d, rdev = %d\n",
+	dprint("\tmode = %#o, uid = %d, gid = %d, rdev = %d\n",
 	       vap->va_mode, vap->va_uid, vap->va_gid,
-	       vap->va_fsid, vap->va_rdev);
+	       vap->va_rdev);
 	dprint("\tid = %d, nlink = %d, size = %d, blocksize = %d, storage = %d\n",
 	       VA_ID(vap), vap->va_nlink, vap->va_size,
 	       vap->va_blocksize, VA_STORAGE(vap));

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.3 97/12/10 22:10:42 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.4 1997/12/16 16:08:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -712,7 +712,7 @@ O_FreeLocks:
 		    int nHosts = 0;
 		    for (i = 0; i < MAXHOSTS; i++)
 			if (Hosts[i] != 0) nHosts++;
-		    if (nHosts * (int)sizeof(ViceStatistics) > VC_DATASIZE)
+		    if (nHosts * (int)sizeof(ViceStatistics) > VC_MAXDATASIZE)
 			{ u.u_error = EINVAL; break; }
 
 		    /* Get statistics from each host. */
@@ -1011,7 +1011,7 @@ V_FreeLocks:
 
 		case VIOC_GETVENUSSTATS:
 		    {
-		    if (sizeof(VenusStatistics) > VC_DATASIZE)
+		    if (sizeof(VenusStatistics) > VC_MAXDATASIZE)
 			{ u.u_error = EINVAL; break; }
 
 		    VenusStatistics *Stats = (VenusStatistics *)data->out;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.7 97/12/10 16:10:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.8 1997/12/10 22:10:40 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -135,13 +135,6 @@ const int RETRY_LIMIT = 10;
 
 
 /* *****  Exported types  ***** */
-#if 0
-#define  MAXFIDSZ 16
-struct fid {
-        u_short         fid_len;                /* length of data in bytes */
-        char            fid_data[MAXFIDSZ];     /* data (variable length) */
-};
-#endif
 struct cfid {
     u_short     cfid_len;
     u_short     cfid_fill;
@@ -338,10 +331,10 @@ extern long FidToNodeid(ViceFid *);
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
 
-#define	FTTOVT(ft)	((ft) == (int)File ? VCREG :\
-			 (ft) == (int)Directory ? VCDIR :\
-			 (ft) == (int)SymbolicLink ? VCLNK :\
-			 VCREG)
+#define	FTTOVT(ft)	((ft) == (int)File ? C_VREG :\
+			 (ft) == (int)Directory ? C_VDIR :\
+			 (ft) == (int)SymbolicLink ? C_VLNK :\
+			 C_VREG)
 
 #define	VFSOP_UNSET	-1
 #define	VFSOP_MOUNT	/*CFS_MOUNT*/VFSOP_UNSET

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.4 1997/12/01 17:28:17 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.5 1997/12/10 22:10:44 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -157,7 +157,7 @@ msgent *FindMsg(olist& ol, u_long seq) {
 
 int MsgRead(msgent *m) {
     int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
-    if (cc < VC_IN_NO_DATA) return(-1);
+    if (cc < sizeof(struct cfs_in_hdr)) return(-1);
 
     return(0);
 }
@@ -227,9 +227,7 @@ void VFSMount() {
     if (Simulating) return;
 
     /* Linux Coda filesystems are mounted by hand through forking since they need venus. XXX eliminate zombie */ 
-#ifdef __linux__
-
-#else
+#ifndef __linux__
     /* Silently unmount the root node in case an earlier venus exited without successfully unmounting. */
     syscall(SYS_unmount, venusRoot);
     switch(errno) {
@@ -280,6 +278,16 @@ void VFSMount() {
     }
 #endif /* __BSD44__ */
 #ifdef __linux__
+    {
+	struct sigaction sa;
+	sa.sa_handler = SIG_IGN;
+	sigemptyset(&(sa.sa_mask));
+	sa.sa_flags = 0;
+	if ( sigaction(SIGCHLD, &sa, NULL) ) {
+	    eprint("Cannot set signal handler for SIGCHLD");
+	    assert(0);
+	}
+    }
     if ( fork() == 0 ) {
       int error;
       /* child only makes a system call and should not hang on to 
@@ -966,7 +974,7 @@ void worker::main(void *parm) {
 
 	    case CFS_IOCTL:
 		{
-		char outbuf[VC_DATASIZE];
+		char outbuf[VC_MAXDATASIZE];
 		struct ViceIoctl data;
 		data.in = (char *)in + (int)in->cfs_ioctl.data;
 		data.in_size = 0;
@@ -1033,7 +1041,7 @@ void worker::main(void *parm) {
 		if (u.u_error == 0) {
 		    out->cfs_lookup.VFid = VTOC(target)->c_fid;
 		    out->cfs_lookup.vtype = VN_TYPE(target);
-		    if (out->cfs_lookup.vtype == VCLNK &&
+		    if (out->cfs_lookup.vtype == C_VLNK &&
 			VTOC(target)->c_flags & C_INCON)
 			    out->cfs_lookup.vtype |= CFS_NOCACHE;
 		    DISCARD_VNODE(target);
@@ -1073,19 +1081,6 @@ void worker::main(void *parm) {
 		break;
 		}
 
-
-#ifdef __MACH__
-#ifdef undef /* doesn't even seem to work on i386_mach  (Satya, 8/20/96) */
-/* Don't want to deal with porting this code to BSD44 just yet (Satya, 8/16/96) */
-	    case ODY_PREFETCH: 
-		/* A prefetch (for SETS) is similar to open, but the cache container file
-		 * is opened with the IPREFETCH flag set to tell the kernel to treat its data
-		 * differently than a demand fetch. We achieve this by setting a flag in
-		 * the vproc, and clearing it when we are done. 
-		 */
-#endif undef
-#endif /* __MACH__ */
-		
 	    case CFS_OPEN:
 		{
 		GOTTA_BE_ME(in);
@@ -1098,25 +1093,11 @@ void worker::main(void *parm) {
 		 */
 		ViceFid saveFid = in->cfs_open.VFid;
 		int saveFlags = in->cfs_open.flags;
-
-#ifdef __MACH__
-#ifdef undef /* doesn't even seem to work on i386_mach  (Satya, 8/20/96) */
-		if (in->ih.opcode == ODY_PREFETCH)
-		    (VprocSelf())->prefetch = 1;
-#endif undef
-#endif /* __MACH__ */
 		
 		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->cfs_open.VFid, 0);
 		struct venus_cnode *cp = VTOC(vtarget);
 		open(&vtarget, in->cfs_open.flags);
-
-#ifdef __MACH__
-#ifdef undef /* doesn't even seem to work on i386_mach  (Satya, 8/20/96) */
-		if (in->ih.opcode == ODY_PREFETCH)
-		    (VprocSelf())->prefetch = 0;
-#endif undef
-#endif /* __MACH__ */
 		
 		if (u.u_error == 0) {
 		    MarinerReport(&cp->c_fid, CRTORUID(u.u_cred));
@@ -1155,44 +1136,6 @@ void worker::main(void *parm) {
 		    DispatchWorker(fm);
 		}
 
-		break;
-		}
-
-	    case CFS_RDWR:				
-		{
-		GOTTA_BE_ME(in);
-
-		LOG(100, ("CFS_RDWR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_rdwr.VFid, 0);
-		struct iovec aiov;
-
-		/* For writes, data is in buf. For reads, place data at end of out parms */
-		if (in->cfs_rdwr.rwflag == UIO_WRITE)
-		    aiov.iov_base = (char *)in + (int)in->cfs_rdwr.data;
-		else 
-		    aiov.iov_base = (char *)in + sizeof (struct cfs_rdwr_out); 
-		aiov.iov_len = in->cfs_rdwr.count;
-		struct uio auio;
-		auio.uio_iov = &aiov;
-		auio.uio_iovcnt = 1;
-		auio.uio_offset = in->cfs_rdwr.offset;
-		auio.uio_resid = in->cfs_rdwr.count;
-		vproc::rdwr(vtarget, &auio, (enum uio_rw)in->cfs_rdwr.rwflag,
-			    in->cfs_rdwr.ioflag);
-		DISCARD_VNODE(vtarget);
-
-		out->oh.result = u.u_error;
-		out->cfs_rdwr.rwflag = in->cfs_rdwr.rwflag;
-		out->cfs_rdwr.count = in->cfs_rdwr.count - auio.uio_resid;
-
-		/* Tricky here. Leave the data where it was on the way up.
-		 * Assumes input args > output args, which is true now -- DCS
-		 */
-		out->cfs_rdwr.data = (char *)sizeof (struct cfs_rdwr_out);	/* Its offset */
-		/* Already wrote the data to the right place! */
-		Resign(msg, sizeof (struct cfs_rdwr_out) + out->cfs_rdwr.count);
 		break;
 		}
 
@@ -1382,7 +1325,7 @@ void worker::main(void *parm) {
 		if (u.u_error == 0) {
 		    out->cfs_vget.VFid = VTOC(target)->c_fid;
 		    out->cfs_vget.vtype = VN_TYPE(target);
-		    if (out->cfs_vget.vtype == VCLNK && VTOC(target)->c_flags & C_INCON)
+		    if (out->cfs_vget.vtype == C_VLNK && VTOC(target)->c_flags & C_INCON)
 			out->cfs_vget.vtype |= CFS_NOCACHE;
 		    DISCARD_VNODE(target);
 		    target = 0;
