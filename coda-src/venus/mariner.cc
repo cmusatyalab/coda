@@ -105,7 +105,7 @@ void MarinerInit() {
 
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(int));
     
-    if (bind(sock, (struct sockaddr *)&s_un, sizeof(s_un)) < 0) {
+    if (bind(sock, (struct sockaddr *)&s_un, (socklen_t) sizeof(s_un)) < 0) {
         eprint("MarinerInit: socket bind failed", errno);
         close(sock);
         goto Next;
@@ -147,7 +147,7 @@ Next:
         sin.sin_family = AF_INET;
         sin.sin_addr.s_addr = INADDR_ANY;
         sin.sin_port = serventp->s_port;
-        if (bind(sock, (struct sockaddr *)&sin, (int) sizeof(sin)) < 0) {
+        if (bind(sock, (struct sockaddr *)&sin, (socklen_t) sizeof(sin)) < 0) {
             eprint("MarinerInit: bind failed (%d)", errno);
             close(sock);
             goto Done;
@@ -179,13 +179,13 @@ void MarinerMux(int mask) {
     /* Handle any new "Mariner Connect" requests. */
     if      (mariner::tcp_muxfd != -1 && (mask & (1 << mariner::tcp_muxfd))) {
         struct sockaddr_in sin;
-        u_int32_t sinlen = sizeof(struct sockaddr_in);
+        socklen_t sinlen = sizeof(struct sockaddr_in);
 	newfd = ::accept(mariner::tcp_muxfd, (sockaddr *)&sin, &sinlen);
     }
 #ifdef HAVE_SYS_UN_H
     else if (mariner::unix_muxfd != -1 && (mask & (1 << mariner::unix_muxfd))) {
         struct sockaddr_un s_un;
-        u_int32_t sunlen = sizeof(struct sockaddr_un);
+        socklen_t sunlen = sizeof(struct sockaddr_un);
 	newfd = ::accept(mariner::unix_muxfd, (sockaddr *)&s_un, &sunlen);
     }
 #endif

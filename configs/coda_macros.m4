@@ -45,6 +45,27 @@ AC_DEFUN(CODA_PROG_NATIVECC,
 	NATIVECC=${CC}
     fi)
 
+dnl Check for typedefs in unusual headers
+dnl Most of this function is identical to AC_CHECK_TYPE in autoconf-2.13
+AC_DEFUN(CODA_CHECK_TYPE,
+[AC_REQUIRE([AC_HEADER_STDC])dnl
+AC_MSG_CHECKING(for $1)
+AC_CACHE_VAL(ac_cv_type_$1,
+[AC_EGREP_CPP(dnl
+changequote(<<,>>)dnl
+<<(^|[^a-zA-Z_0-9])$1[^a-zA-Z_0-9]>>dnl
+changequote([,]), [#include <sys/types.h>
+#if STDC_HEADERS
+#include <stdlib.h>
+#include <stddef.h>
+#endif
+#include <$3>], ac_cv_type_$1=yes, ac_cv_type_$1=no)])dnl
+AC_MSG_RESULT($ac_cv_type_$1)
+if test $ac_cv_type_$1 = no; then
+  AC_DEFINE($1, $2)
+fi
+])
+
 dnl Check which lib provides termcap functionality
 AC_SUBST(LIBTERMCAP)
 AC_DEFUN(CODA_CHECK_LIBTERMCAP,
@@ -258,4 +279,4 @@ AC_DEFUN(CODA_FIND_LIBLWP,
           LDFLAGS="${LDFLAGS} -L${coda_cv_lwppath}/lib"
           ;;
   esac])
-   
+

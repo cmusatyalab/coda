@@ -15,6 +15,9 @@
 /* Define if the `setpgrp' function takes no argument.  */
 #undef SETPGRP_VOID
 
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
 /* Define if you have the getpagesize function.  */
 #undef HAVE_GETPAGESIZE
 
@@ -119,4 +122,7 @@
 
 /* Define if you have d_reclen in struct dirent (and don't have scandir) */
 #undef DIRENT_HAVE_D_RECLEN
+
+/* Definition for socklen_t if the type is missing*/
+#undef socklen_t
 
