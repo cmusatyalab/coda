@@ -148,7 +148,7 @@ int Krb4GetSecret(char *hostname, char **identity, int *ilen,
 {
     int rc;
     rc = do_GetSecret(hostname, identity, ilen, secret, slen);
-    if (!interactive) return rc;
+    if (!rc || !interactive) return rc;
 
     krb_fork_kinit(kerberos4kinit);
     return do_GetSecret(hostname, identity, ilen, secret, slen);
