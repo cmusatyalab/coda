@@ -1147,7 +1147,7 @@ rvm_tid_t *rvm_copy_tid(rvm_tid)
 /* RVM User enumeration type print name support */
 static char *return_codes[(long)rvm_last_code-(long)rvm_first_code-1] =
     {
-    "RVM_EINIT","RVM_EINTERNAL","RVM_EIO","RVM_ELOG",
+    "RVM_EINIT","RVM_EINTERNAL","RVM_EIO","RVM_EPLACEHOLDER","RVM_ELOG",
     "RVM_ELOG_VERSION_SKEW","RVM_EMODE","RVM_ENAME_TOO_LONG",
     "RVM_ENO_MEMORY","RVM_ENOT_MAPPED","RVM_EOFFSET",
     "RVM_EOPTIONS","RVM_EOVERLAP","RVM_EPAGER","RVM_ERANGE",
