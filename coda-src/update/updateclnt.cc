@@ -137,12 +137,14 @@ static int reps = 6;
 static struct timeval  tp;
 static struct timezone tsp;
 
-static char s_hostname[100];
+static char **hostlist;		/* List of hosts to notify of changes. */
 static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
 static int   nservers = 0;
+
+static RPC2_Unsigned timestamp = 0;  /* last transfered time. */
 
 int main(int argc, char **argv)
 {
@@ -173,11 +175,13 @@ int main(int argc, char **argv)
 	    host[strlen(host)-1] = '\0';
     }
 
-    LogMsg(1, SrvDebugLevel, stdout, "Using host '%s' for updatesrv\n",
+    LogMsg(1, SrvDebugLevel, stdout, "Using host '%s' for updatesrv.\n",
 	   host);
 
     CheckLibStructure();
 
+    LogMsg(2, SrvDebugLevel, stdout, "Changing to directory %s.\n",
+	   vice_sharedfile(NULL));
     rc = chdir(vice_sharedfile(NULL));
     if ( rc ) {
         snprintf(errmsg, MAXPATHLEN, "Cannot cd to %s", vice_sharedfile(NULL));
@@ -186,9 +190,6 @@ int main(int argc, char **argv)
     }
 
     UtilDetach();
-
-    gethostname(s_hostname, sizeof(s_hostname) -1);
-    CODA_ASSERT(s_hostname != NULL);
 
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
@@ -242,29 +243,36 @@ int main(int argc, char **argv)
 
 	/* Checking "db" relative to updatesrv working directory. */
 	if (CheckDir("db", 0644)) {
-	    operatorSecs = 0;	/* if something changed time has elapsed */
-	    /* XXXX check for multiple servers */
-	    /* signal file server to check data bases */
-	    file = fopen(vice_file("srv/pid"), "r");
-	    if (file == NULL) {
-		LogMsg(0, SrvDebugLevel, stdout, 
-		       "Fopen failed for file server pid file with %s\n",
-		       ViceErrorMsg(errno));
-	    } else {
-		RPC2_Handle rpcid;
-		if (U_BindToServer(s_hostname, &rpcid) == RPC2_SUCCESS) {
-		    if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
-			LogMsg(0, SrvDebugLevel, stdout, 
-			       "Notifying fileserver of database updates\n");
-		    } else {
-			LogMsg(0, SrvDebugLevel, stdout, 
-			       "VolUpdateDB failed\n");
-		    }
-		} else {
+	    operatorSecs = 0;  /* if something changed time has elapsed */
+	    for (int i=0; i<nservers; i++) {
+	        if (nservers != 1)
+		    vice_dir_init (vicedir, i+1);
+		/* signal file server to check data bases */
+		file = fopen(vice_file("srv/pid"), "r");
+		if (file == NULL) {
 		    LogMsg(0, SrvDebugLevel, stdout, 
-			   "Bind to server for database update failed\n");
+			   "Fopen failed for file %s with %s\n",
+			   vice_file("srv/pid"),
+			   ViceErrorMsg(errno));
+		} else {
+		    RPC2_Handle rpcid;
+		    if (U_BindToServer(hostlist[i], &rpcid) == RPC2_SUCCESS) {
+		        if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
+			    LogMsg(0, SrvDebugLevel, stdout, 
+			         "Notifying server %s of database updates\n",
+				 hostlist[i]);
+			} else {
+			    LogMsg(0, SrvDebugLevel, stdout, 
+				   "VolUpdateDB failed for host %s\n",
+				   hostlist[i]);
+			}
+		    } else {
+		        LogMsg(0, SrvDebugLevel, stdout, 
+			     "Bind to server %s for database update failed\n",
+			     hostlist[i]);
+		    }
+		    RPC2_Unbind(rpcid);
 		}
-		RPC2_Unbind(rpcid);
 	    }
 	}
 	if (operatorSecs > 0) {
@@ -338,6 +346,28 @@ ReadConfigFile()
     CONF_INT(nservers,		"numservers", 	   1); 
 
     vice_dir_init(vicedir, 0);
+
+    /* Host name list from multiple configs. */
+    hostlist = (char **)malloc(sizeof(char *)*nservers);
+    if (nservers == 1) {
+        hostlist[0] = new char[256];
+	hostname(hostlist[0]);
+    }
+    else {
+        for (int i = 0; i<nservers; i++) {
+	    hostlist[i] = (char *)malloc(sizeof(char)*256);
+	    sprintf (confname, "%s_%d.conf", serverconf, i+1);
+	    (void) conf_init(confname);
+	    CONF_STR(hostlist[i],  "hostname",  "");
+	    if (hostlist[i][0] == '\0') {
+	        LogMsg(0, SrvDebugLevel, stdout,
+		       "No host name for server %d.\n",
+		       i+1);
+		exit(1);
+	    }
+	}
+    }
+
 }
 
 static void CheckLibStructure()
@@ -349,13 +379,13 @@ static void CheckLibStructure()
 	mkdir(vice_sharedfile(NULL),0755);
 	mkdir(vice_sharedfile("db"),0755);
 	mkdir(vice_sharedfile("misc"),0755);
-
-	if (nservers == 1) {
+	
+	for (int i=1; i<=nservers; i++) {
+	    if (nservers != 1)
+	        vice_dir_init (vicedir, i);
 	    mkdir(vice_file("srv"),0755);
 	    mkdir(vice_file("vol"),0755);
 	    mkdir(vice_file("spool"),0755);
-	} else {
-	    printf ("Multiple servers not yet supported.\n");
 	}
     }
     else {
@@ -363,7 +393,9 @@ static void CheckLibStructure()
 	    printf("Creating %s\n", vice_sharedfile("db"));
 	    mkdir(vice_sharedfile("db"),0755);
 	}
-	if  (nservers == 1) {
+	for (int i=1; i<=nservers; i++) {
+	    if (nservers != 1)
+	        vice_dir_init (vicedir, i);
 	    if ((stat(vice_file("srv"),&lbuf)) && (errno == ENOENT)) {
 	        printf("Creating %s\n",vice_file("srv"));
 		mkdir(vice_file("srv"),0755);
@@ -376,8 +408,6 @@ static void CheckLibStructure()
 	      printf("Creating %s\n",vice_file("spool"));
 	      mkdir(vice_file("spool"),0755);
 	    }
-	} else {
-	    printf ("Multiple servers not yet supported.\n");
 	}
     }
 }
@@ -468,7 +498,7 @@ static int CheckFile(char *fileName, int mode)
     long     rc;
     SE_Descriptor sed;
 
-    LogMsg(1, SrvDebugLevel, stdout, "Checking file %s\n", fileName); 
+    LogMsg(1, SrvDebugLevel, stdout, "Checking file %s", fileName); 
 
     if (stat(fileName, &buff)) {
 	time = 0;
@@ -527,10 +557,14 @@ static int CheckFile(char *fileName, int mode)
 	if (((buff.st_mode & S_IFMT) == S_IFREG) || (time == 0)) {
 	    unlink(oldname);
 	    if ((time != 0) && (rename(fileName, oldname))) {
-		LogMsg(0, SrvDebugLevel, stdout, "rename %s to %s failed: %s\n", fileName, oldname, ViceErrorMsg(errno));
+		LogMsg(0, SrvDebugLevel, stdout,
+		       "rename %s to %s failed: %s\n", fileName, oldname,
+		       ViceErrorMsg(errno));
 	    }
 	    if (rename(tmpname, fileName)) {
-		LogMsg(0, SrvDebugLevel, stdout, "rename %s to %s failed: %s\n", tmpname, fileName, ViceErrorMsg(errno));
+		LogMsg(0, SrvDebugLevel, stdout,
+		       "rename %s to %s failed: %s\n", tmpname, fileName,
+		       ViceErrorMsg(errno));
 	    }
 	}
 	chmod(fileName, mode);
@@ -540,7 +574,11 @@ static int CheckFile(char *fileName, int mode)
     }
     else {
         unlink(tmpname);
-	rc = 0;
+        if (newtime > timestamp && (buff.st_mode & S_IFMT) == S_IFREG) {
+	    timestamp = newtime;
+	    rc = NEEDNEW;
+	} else
+	   rc = 0;
     }
 
     return(rc);

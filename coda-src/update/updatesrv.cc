@@ -469,6 +469,8 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
     LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d",
 	    name, Time);
 
+    *NewTime = 0;
+
     if (!AccessAllowed((char *)name)) {
         LogMsg(0, SrvDebugLevel, stdout, "Access denied to file %s.",
 	       (char *)FileName);
@@ -477,7 +479,6 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
     }
 
     if (stat(name, &buff)) {
-	*NewTime = 0;
 	goto Final;
     }
     *NewTime = buff.st_mtime;
