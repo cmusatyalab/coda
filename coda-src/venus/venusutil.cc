@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venusutil.cc,v 1.2 1996/11/24 21:11:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/venusutil.cc,v 4.1 1997/01/08 21:51:39 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -862,29 +862,26 @@ void StatsInit() {
 }
 
 
-/* The logic below seems warped, do I understand that we need 
-   a three processor machine with a mips, sparc and a sun??
-   pjb
-   */
 void ProfInit() {
-#ifndef	__linux__
-#if !defined(mips) && !defined(sparc) && !defined(sun4)
-    moncontrol(0);   /* not available on mips, sun/sparc */
-#endif
-#endif
+    LOG(0, ("ProfInit(): profiling is broken; fix it!"));
+    return;
+#if undef 
+    /* This code used to work once upon a time */
+    moncontrol(0);
     if (ProfBoot) ToggleProfiling();
+#endif /* undef */
 }
 
 
 void ToggleProfiling() {
+    LOG(0, ("ToggleProfiling(): profiling is broken; fix it!"));
+    return;
+#ifdef undef
+    /* This is the code that used to work */
     Profiling = 1 - Profiling;
-#ifndef	__linux__
-#if !defined(mips) && !defined(sparc) && !defined(sun4)
     moncontrol(Profiling);
-#endif
-#endif
-
     LOG(0, ("Profiling is now %s\n", Profiling ? "on" : "off"));
+#endif /* undef */
 }
 
 void ToggleMallocTrace() {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso1.cc,v 1.3 1996/11/24 20:54:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/fso1.cc,v 4.1 1997/01/08 21:51:24 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2173,25 +2173,39 @@ void fsobj::UnLock(LockLevel level) {
 
 void fsobj::GetVattr(struct vattr *vap) {
     /* Most attributes are derived from the VenusStat structure. */
-#ifdef LINUX /* FOr now */
+#if defined(__linux__) || defined(__NetBSD__)
     vap->va_type = FTTOVT(stat.VnodeType);
     vap->va_mode = stat.Mode ;
 #else 
     vap->va_mode = stat.Mode | FTTOVT(stat.VnodeType);
-#endif
+#endif /* __linux__ || __NetBSD__ */
+
+#ifdef __NetBSD__
+    vap->va_uid = (uid_t) stat.Owner;
+    vap->va_gid = (gid_t)V_GID;
+#else
     vap->va_uid = (short)stat.Owner;
     vap->va_gid = (short)V_GID;
+#endif /* __NetBSD__ */
     vap->va_fsid = 1;
     VA_ID(vap) = (IsRoot() && u.mtpoint && !IsVenusRoot())
 		       ? FidToNodeid(&u.mtpoint->fid)
 		       : FidToNodeid(&fid);
     vap->va_nlink = stat.LinkCount;
+#ifdef __NetBSD__
+    vap->va_size = (u_quad_t) stat.Length;
+#else 
     vap->va_size = stat.Length;
+#endif /* __NetBSD__ */
     vap->va_blocksize = V_BLKSIZE;
-    VA_ATIME_1(vap) = stat.Date;
-    VA_ATIME_2(vap) = 0;
-    vap->va_mtime = vap->va_atime;
-    vap->va_ctime = vap->va_atime;
+#ifdef __NetBSD__
+    VA_MTIME_1(vap) = (time_t)stat.Date;
+#else
+    VA_MTIME_1(vap) = stat.Date;
+#endif /* __NetBSD__ */
+    VA_MTIME_2(vap) = 0;
+    vap->va_atime = vap->va_mtime;
+    vap->va_ctime = vap->va_mtime;
     vap->va_rdev = 1;
 #ifdef __MACH__
     vap->va_blocks = NBLOCKS(vap->va_size) << 1;    /* 512 byte units! */
@@ -2206,10 +2220,10 @@ void fsobj::GetVattr(struct vattr *vap) {
 	cf.Stat(&tstat);
 
 	vap->va_size = tstat.st_size;
-	VA_ATIME_1(vap) = tstat.st_mtime;
-	VA_ATIME_2(vap) = 0;
-	vap->va_mtime = vap->va_atime;
-	vap->va_ctime = vap->va_atime;
+	VA_MTIME_1(vap) = tstat.st_mtime;
+	VA_MTIME_2(vap) = 0;
+	vap->va_atime = vap->va_mtime;
+	vap->va_ctime = vap->va_mtime;
     }
 
     if (LogLevel >= 1000) {

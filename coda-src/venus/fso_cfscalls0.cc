@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso_cfscalls0.cc,v 1.2 1996/11/24 20:57:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/fso_cfscalls0.cc,v 4.1 1997/01/08 21:51:26 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -94,7 +94,6 @@ extern "C" {
 
 /*  *****  Fetch  *****  */
 
-/* local-repair modification */
 int fsobj::Fetch(vuid_t vuid) {
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", comp, vuid));
 
@@ -487,7 +486,6 @@ NonRepExit:
 
 /*  *****  GetAttr/GetAcl  *****  */
 
-/* local-repair modification */
 int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
     LOG(10, ("fsobj::GetAttr: (%s), uid = %d\n", comp, vuid));
 
@@ -1224,7 +1222,6 @@ NonRepExit:
     return(code);
 }
 
-/* local-repair modification */
 int fsobj::DisconnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength, int Tid) {
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
@@ -1248,7 +1245,6 @@ Exit:
     return(code);
 }
 
-/* local-repair modifcation */
 int fsobj::Store(unsigned long NewLength, Date_t Mtime, vuid_t vuid) {
     LOG(10, ("fsobj::Store: (%s), uid = %d\n",
 	      comp, vuid));
@@ -1305,7 +1301,6 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
     }
 }
 
-/* local-repair modification */
 int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 			     Date_t NewDate, vuid_t NewOwner, unsigned short NewMode,
 			     RPC2_CountedBS *acl) {
@@ -1492,7 +1487,6 @@ NonRepExit:
     return(code);
 }
 
-/* local-repair modification */
 int fsobj::DisconnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength, Date_t NewDate, 
 			       vuid_t NewOwner, unsigned short NewMode, int Tid) {
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
@@ -1510,7 +1504,6 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLengt
     return(code);
 }
 
-/* local-repair modification */
 int fsobj::SetAttr(struct vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
     LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n",
 	      comp, vuid));
@@ -1528,13 +1521,13 @@ int fsobj::SetAttr(struct vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
 	       VA_CTIME_1(vap), VA_CTIME_2(vap));
     }
 
-    unsigned long NewLength = (vap->va_size != (u_long)-1 && vap->va_size < stat.Length)
+    unsigned long NewLength = (vap->va_size != VA_IGNORE_SIZE && vap->va_size < stat.Length)
       ? vap->va_size : (unsigned long)-1;
-    Date_t NewDate = (VA_MTIME_1(vap) != (long)-1 && VA_MTIME_1(vap) != stat.Date)
+    Date_t NewDate = (VA_MTIME_1(vap) != VA_IGNORE_TIME1 && VA_MTIME_1(vap) != stat.Date)
       ? VA_MTIME_1(vap) : (Date_t)-1;
-    vuid_t NewOwner = (vap->va_uid != (short)-1 && vap->va_uid != stat.Owner)
+    vuid_t NewOwner = (vap->va_uid != VA_IGNORE_UID && vap->va_uid != stat.Owner)
       ? vap->va_uid : (vuid_t)-1;
-    unsigned short NewMode = (vap->va_mode != (u_short)-1 && (vap->va_mode & 0777) != stat.Mode)
+    unsigned short NewMode = (vap->va_mode != VA_IGNORE_MODE && (vap->va_mode & 0777) != stat.Mode)
       ? (vap->va_mode & 0777) : (unsigned short)-1;
 
     /* Only update cache file when truncating and open for write! */
@@ -1856,7 +1849,6 @@ NonRepExit:
     return(code);
 }
 
-/* local-repair modification */
 int fsobj::DisconnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char *name, 
 			      unsigned short Mode, int target_pri, int Tid) {
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
@@ -1918,7 +1910,6 @@ Exit:
 }
 
 
-/* local-repair modification */
 /* Returns target object write-locked (on success). */
 int fsobj::Create(char *name, fsobj **target_fso_addr,
 		   vuid_t vuid, unsigned short Mode, int target_pri) {
