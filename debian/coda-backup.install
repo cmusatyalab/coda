@@ -1,0 +1,6 @@
+debian/tmp/usr/sbin/backup.sh
+debian/tmp/usr/sbin/tape.pl
+debian/tmp/usr/sbin/parserecdump
+debian/tmp/usr/sbin/backup
+debian/tmp/usr/sbin/readdump
+debian/tmp/usr/sbin/merge

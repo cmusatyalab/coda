@@ -1,0 +1,2 @@
+alias char-major-67 coda
+alias /dev/coda* coda

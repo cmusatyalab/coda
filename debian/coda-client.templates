@@ -27,7 +27,6 @@ Description: Amount of diskspace used for caching.
 Template: coda/cfs0
 Type: note
 Description: /dev/cfs0 missing
- You do not yet have /dev/cfs0. After the installation is completed, please
- run 'cd /dev ; ./MAKEDEV cfs0' to create it.
- If that fails use 'mknod /dev/cfs0 c 67 0' to create the device by hand.
+ You do not yet have /dev/cfs0. I will try to create it for you. If that
+ fails use 'mknod /dev/cfs0 c 67 0' to create the device by hand.
 

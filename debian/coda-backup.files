@@ -1,6 +1,0 @@
-usr/sbin/backup.sh
-usr/sbin/tape.pl
-usr/sbin/parserecdump
-usr/sbin/backup
-usr/sbin/readdump
-usr/sbin/merge

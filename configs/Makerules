@@ -179,7 +179,7 @@ endif
 c_man_install: $(CMANPAGES)
 ifdef CMANPAGES
 	for page in $(CMANPAGES) ; do \
-	    sect=`echo $$page | cut -d. -f2` ; \
+	    sect=`echo $$page | sed 's/.*\\.//'` ;\
 	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $$page ; \
 	done
 endif
@@ -187,7 +187,7 @@ endif
 s_man_install: $(SMANPAGES)
 ifdef SMANPAGES
 	for page in $(SMANPAGES) ; do \
-	    sect=`echo $$page | cut -d. -f2` ; \
+	    sect=`echo $$page | sed 's/.*\\.//'` ; \
 	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $$page ; \
 	done
 endif
@@ -235,7 +235,7 @@ ifdef SUBDIRS
 endif
 
 realclean:
-	-$(RM) *.o *.a  *.d core
+	-$(RM) *.o *.a  *.d core manpage.links manpage.refs
 	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c *.print.c $(RP2HEADERS)
 	-$(RM) $(EXECUTABLES) $(MANPAGES) $(LIBRARIES) $(TESTS) $(EXTRACLEAN)
 	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \

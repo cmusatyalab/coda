@@ -2,8 +2,8 @@ Source: coda
 Section: net
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
-Standards-Version: 3.0.1
-Build-Depends: debhelper (>= 1.1.17), dpkg-dev, gcc, g++, liblwp-dev, librpc2-dev, librvm-dev, rvm-tools, libreadline4-dev, libncurses5-dev, flex, bison | byacc
+Standards-Version: 3.6.1
+Build-Depends: debhelper (>= 4), g++, liblwp-dev, librpc2-dev, librvm-dev, rvm-tools, libreadline4-dev, libncurses5-dev, flex, bison | byacc, docbook-utils | docbook-to-man
 
 Package: coda-client
 Architecture: arm i386 m68k powerpc sparc
