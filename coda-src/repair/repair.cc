@@ -90,8 +90,10 @@ int main(int argc, char **argv)
     }
     else if ( argc != 3 ) {
 	printf(INITHELPMSG);
+#if 0
 	if (GetTokens()) /* warn user if no tokens are found */
 	    fprintf(stderr, "\n\n\nWARNING: YOU DON'T HAVE TOKENS.  YOU MIGHT WANT TO AUTHENTICATE FIRST\n\n\a");
+#endif
 	GetArgs(argc, argv);
 	Parser_init("repair > ", list);
 	Parser_commands();
