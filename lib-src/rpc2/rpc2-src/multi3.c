@@ -845,13 +845,20 @@ int XlateMcastPacket(RPC2_PacketBuffer *pb)
     if (h_Flags & RPC2_RETRY) return(TRUE);	/* pass the packet untranslated */
 
     /* Lookup the multicast connection handle. */
-    assert(h_RemoteHandle != 0);	/* would be a multicast Bind request! */
-    assert(h_LocalHandle == 0);	/* extra sanity check */
+    if (h_RemoteHandle == 0 || h_LocalHandle != 0) {
+	BOGUS(pb);
+	return FALSE;
+    }
     me = rpc2_GetMgrp(pb->Prefix.PeerAddr, h_RemoteHandle, SERVER);
     if (me == NULL) {BOGUS(pb); return(FALSE);}
+
     assert(TestRole(me, SERVER));	/* redundant check */
     ce = me->conn;
-    assert(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
+    if (!ce || ce->Mgrp != me) {
+	BOGUS(pb);
+	return FALSE;
+    }
+    assert(TestRole(ce, SERVER));
 
     /* Drop ANY multicast packet that is out of the ordinary. */
     /* I suspect that only the checks on the me state and the me sequence
