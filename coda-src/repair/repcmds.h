@@ -85,27 +85,26 @@ struct volrep {
     char compname[MAXNAMLEN]; /* component name corresponding to this rw id */
 };
 
-extern int  repair_DebugFlag;
-
 /* Non-interactive repair calls */
 extern int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize);
 extern int ClearInc(struct repvol *repv, char *msg, int msgsize);
+extern int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights, 
+		       char *owner, char *mode, char *msg, int msgsize);
 extern int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize);
+extern int DoRepair(struct repvol *repv, char *ufixpath, char *msg, int msgsize);
 extern int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize);
 extern int RemoveInc(struct repvol *repv, char *msg, int msgsize);
 
 /* Volume data structure manipulation routines -- rvol.cc */
 extern int  repair_cleanup(struct repvol *repv);
-extern struct repvol *repair_findrep(VolumeId vid);
+extern int  repair_countRWReplicas (struct repvol *repv);
 extern void repair_finish(struct repvol *repv);
-extern int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv);
-extern int  repair_linkrep(struct repvol *repv);
+extern int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
 extern int  repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize);
 extern int  repair_newrep(char *reppath, struct repvol **repv, char *msg, int msgsize);
-extern int  repair_unlinkrep(struct repvol *repv);
-extern int  srvstr(char *rwpath, char *retbuf, int size);
 
 /* Path processing routines -- path.cc */
+extern int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
 extern int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid);
 extern int  repair_inconflict(char *name, ViceFid *conflictfid);
 extern int  repair_isleftmost(char *path, char *realpath, int len);
@@ -125,4 +124,4 @@ do {						\
     snprintf(str, len, ##msg);			\
 } while (0)
 
-#endif
+#endif /* _REPCMDS_H_ */

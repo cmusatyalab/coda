@@ -39,39 +39,40 @@ extern struct repvol *RepairVol; /* volume under repair */
 extern int allowclear, interactive, repair_DebugFlag, session;
 
 void GetArgs(int argc, char *argv[]);
+int  getcompareargs(int, char **, char **, char **, char **, char **, char **);
+int  getrepairargs(int, char **, char *);
+int  GetTokens(void);
 void INT(int, int, struct sigcontext *);
 
 /* User-visible parser commands (possibly interactive) */
 void rep_BeginRepair     (int argc, char **largv);
-extern void rep_CheckLocal      (int argc, char **largv);
+void rep_CheckLocal      (int argc, char **largv);
 void rep_ClearInc        (int argc, char **largv);
-extern void rep_CompareDirs     (int argc, char **largv);
-extern void rep_DiscardLocal    (int argc, char **largv);
+void rep_CompareDirs     (int argc, char **largv);
+void rep_DiscardLocal    (int argc, char **largv);
 void rep_DiscardAllLocal (int argc, char **largv);
-extern void rep_DoRepair        (int argc, char **largv);
+void rep_DoRepair        (int argc, char **largv);
 void rep_EndRepair       (int argc, char **largv);
 void rep_Exit            (int argc, char **largv);
 void rep_Help            (int argc, char **largv);
-extern void rep_ListLocal       (int argc, char **largv);
-extern void rep_PreserveLocal   (int argc, char **largv);
-extern void rep_PreserveAllLocal(int argc, char **largv);
+void rep_ListLocal       (int argc, char **largv);
+void rep_PreserveLocal   (int argc, char **largv);
+void rep_PreserveAllLocal(int argc, char **largv);
 void rep_RemoveInc       (int argc, char **largv);
-extern void rep_SetGlobalView   (int argc, char **largv);
-extern void rep_SetLocalView    (int argc, char **largv);
-extern void rep_SetMixedView    (int argc, char **largv);
+void rep_SetGlobalView   (int argc, char **largv);
+void rep_SetLocalView    (int argc, char **largv);
+void rep_SetMixedView    (int argc, char **largv);
 
-/* Volume data structure manipulation routines -- rvol.cc */
-extern int  repair_cleanup(struct repvol *repv);
-extern int  repair_countRWReplicas (struct repvol *repv);
-extern void repair_finish(struct repvol *repv);
-extern int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv);
-extern int  repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize);
-extern int  repair_newrep(VolumeId vid, char *mnt, struct repvol **repv);
+#define INITHELPMSG 	\
+"This repair tool can be used to manually repair server/server \n\
+or local/global conflicts on files and directories. \n\
+You will first need to do a \"beginrepair\" to start a repair\n\
+session where messages about the nature of the conflict and\n\
+the commands that should be used to repair the conflict will\n\
+be displayed. Help message on individual commands can also be\n\
+obtained by using the \"help\" facility. Finally, you can use the\n\
+\"endrepair\" or \"quit\" to terminate the current repair session.\n"
 
-/* Path processing routines -- path.cc */
-extern int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid);
-extern int  repair_inconflict(char *name, ViceFid *conflictfid);
-extern int  repair_isleftmost(char *path, char *realpath, int len);
-extern void repair_perror(char *op, char *path, int e);
+#define ISDIR(vnode) ((vnode) & 1)  /* directory vnodes are odd */
 
 #endif

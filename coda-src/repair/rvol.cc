@@ -30,7 +30,10 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include "repair.h"
+#include "repcmds.h"
+
+static int srvstr(char *rwpath, char *retbuf, int size);
+static int volstat(char *path, char *space, int size);
 
 /* Assumes pathname refers to a conflict
  * Allocates new repvol and returns it in repv
@@ -66,16 +69,6 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
     sprintf((*repv)->vname, "%#lx", vid);   /* GETVOLSTAT doesn't work on rep vols, 
 					     * so just use hex version of volid */
     return(0);
-}
-
-int volstat(char *path, char *space, int size) {
-    struct ViceIoctl vioc;
-    memset(space, 0, size);
-    vioc.in = NULL;
-    vioc.in_size = 0;
-    vioc.out = space;
-    vioc.out_size = size;
-    return(pioctl(path, VIOCGETVOLSTAT, &vioc, 1));
 }
 
 /* rwarray:	non-zero elements specify volids of replicas
@@ -254,7 +247,7 @@ void repair_finish(struct repvol *repv) {
 /* fills in retbuf with string identifying the server housing replica 
  * retbuf contains error message if pioctl (or something else) fails
  * returns 0 on success, -1 on failure */    
-int srvstr(char *rwpath, char *retbuf, int size) {
+static int srvstr(char *rwpath, char *retbuf, int size) {
     struct ViceIoctl vioc;
     struct hostent *thp;
     char junk[DEF_BUF];
@@ -279,4 +272,14 @@ int srvstr(char *rwpath, char *retbuf, int size) {
     if (thp != NULL) snprintf(retbuf, size, "%s", thp->h_name);
     else snprintf(retbuf, size, "%08lx", hosts[1]);
     return(0);
+}
+
+static int volstat(char *path, char *space, int size) {
+    struct ViceIoctl vioc;
+    memset(space, 0, size);
+    vioc.in = NULL;
+    vioc.in_size = 0;
+    vioc.out = space;
+    vioc.out_size = size;
+    return(pioctl(path, VIOCGETVOLSTAT, &vioc, 1));
 }
