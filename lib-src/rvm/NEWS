@@ -1,7 +1,0 @@
-New in 1.0:
-
-* Extracted RVM out of the main Coda source tree.
-* Using an automake/autoconf/libtool build environment.
-* Creating shared libraries.
-* Fixed some bugs in the testprograms.
-* Reduced rvm locking overhead by about 50%.
