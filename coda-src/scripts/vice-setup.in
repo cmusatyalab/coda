@@ -26,22 +26,84 @@ echon() {
 }
 
 #
+# arguments
+#
+if [ $# = 2 ] ; then
+    if [ x$1 != x-n -o x$2 != x`expr $2 + 0 2>/dev/null` ] ; then
+        echo "Usage: $0 [-n number-of-server-processes]"
+        exit 1
+    fi
+    numservers=$2
+else
+    if [ $# != 0 ] ; then
+        echo "Usage: $0 [-n numer-of-server-processes]"
+        exit 1
+    else
+        numservers=1
+    fi
+fi
+
+#
+# Greeting!
+#
+
+echo "Welcome to the Coda Server Setup script!"
+echo
+
+#
+# Ask about scm first!
+# 
+
+isscm=N
+yesno=""
+until [ "x$yesno" != x ]; do
+   echon 'Is this the master server, aka the SCM machine? (y/n) '
+   read yesno
+done
+if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
+   isscm=Y
+fi
+
+if [ $isscm = N ]; then
+    until [ "x$scmhost" != x ]; do
+	echon "Enter the hostname of the SCM machine : "
+	read scmhost
+    done
+
+    if ! updatefetch -h $scmhost -r servers -l /tmp/Coda.servers ; then
+	echo "Could not contact SCM.  Rerun when SCM is up.";
+	rm /tmp/Coda.servers
+	exit 1;
+    fi
+    
+fi
+
+#
 # initial information
 #
 prefix=@prefix@
 conf=@sysconfdir@/server.conf
 
 if [ -f $conf ] ; then
-  echo "You already have a file $conf!"
-  echo "Continuning will remove that file."
-  echon "Do you want to continue? [no] "
-  yesno=""
-  read yesno
-  if [ x$yesno = x -o \( x$yesno != xyes -a x$yesno != xy \) ] ; then
-    echo "Not configuring a coda server!"
-    exit 1
-  fi
-  rm -f $conf
+    yesno=""
+    echo "You already have a file $conf!"
+    echo "Continuning will remove that file."
+    while [ x$yesno = x ]; do
+	echon "Do you want to continue? [yes/no] "
+	read yesno
+	if [ x$yesno = xno -o x$yesno = xNO ] ; then
+	    echo "Not configuring a coda server!"
+	    exit 1
+	fi
+	if [ x$yesno != xyes -a x$yesno != xYES ] ; then
+	    yesno=""
+	    echo "Please answer yes or no."
+	fi
+    done
+    if ! rm $conf ; then
+	echo "Could not remove $conf.  Exiting."
+	exit 1
+    fi
 fi
 
 #
@@ -58,9 +120,18 @@ if [ x$yesno = x -o x$yesno = xyes -o x$yesno = xy ] ; then
   mkdir -p @sysconfdir@ 2>/dev/null
 else
   mkconf=0
+  if [ $numservers != 1 ]; then
+    echo "This script can not setup multiple servers without using $conf."
+    exit 1
+  fi
 fi
 
-echon "What is the root directory for your coda server(s)? [/vice] "
+if [ $numservers = 1 ]; then
+  echon "What is the root directory for your coda server? [/vice] "
+else
+  echon "What is the root directory for your coda servers? [/vice] "
+fi
+vicedir=""
 read vicedir
 
 if [ x$vicedir = x ] ; then
@@ -69,6 +140,7 @@ fi
 
 if [ $mkconf = 1 ] ; then
    echo "vicedir=$vicedir" >> $conf
+   echo "numservers=$numservers" >> $conf
 fi
 
 if [ ! -d $vicedir ]; then
@@ -77,22 +149,90 @@ fi
 
 cd $vicedir
 
-for i in backup db srv vol misc auth2 ; do
-    if [ ! -d $i ]; then
-       mkdir $i
-    fi
-done
+if [ $numservers = 1 ]; then
 
-if [ ! -d vol/remote ]; then
-    mkdir vol/remote
+    for i in backup db srv vol misc auth2 ; do
+        if [ ! -d $i ]; then
+            mkdir $i
+        fi
+    done
+
+    echo Directories under $vicedir are set up.
+    echo
+
+    #
+    # populating ${vicedir}/vol
+    #
+
+    echo
+    echo Populating ${vicedir}/vol...
+    cd ${vicedir}/vol
+    touch fs.lock
+    touch volutil.lock
+    mkdir remote
+    echo lockfiles created.
+
+else
+
+    if [ $mkconf -eq 0 ]; then
+	echo "These scripts require server .conf files with multiple servers."
+	echo "Rerun $0 and ask for .conf files to be created."
+	exit 1
+    fi
+
+    for i in db misc auth2 ; do
+        if [ ! -d $i ]; then
+            mkdir $i
+        fi
+    done
+
+    n=1
+    while [ $n -le $numservers ]; do
+
+	echo
+        dir=${vicedir}/server_$n
+	hostname=""
+	while [ x$hostname = x ]; do
+	    echon "Hostname for server $n: "
+	    read hostname
+	done
+	echo "hostname=$hostname" > @prefix@/etc/coda/server_$n.conf
+	echo Creating $dir and subdirectories.
+	mkdir $dir
+        for i in backup srv vol vol/remote ; do
+            if [ ! -d $dir/$i ]; then
+                mkdir $dir/$i
+            fi
+        done
+
+	#
+	# populating ${dir}/vol
+	#
+
+	echo Populating ${dir}/vol...
+
+	cd ${dir}/vol
+	touch fs.lock
+	touch volutil.lock
+	mkdir remote
+	echo lockfiles created in ${dir}/vol.
+
+	n=`expr $n + 1`
+    done
 fi
 
-echo Directories under $vicedir are set up.
-echo
+#
+# Setup .../db
+#
+cd ${vicedir}/db
+
+# Save some config information for update.
+echo numservers=$numservers > srv.info
 
 #
 # tokens
 #
+echo
 echo Setting up tokens for authentication.
 
 cd ${vicedir}/db
@@ -119,7 +259,7 @@ touch auth2.lock
 #
 
 echo
-echo Setting up the file list for update
+echo Setting up the file list for update client
 cat > ${vicedir}/db/files <<EOF
 ROOTVOLUME
 VLDB
@@ -141,17 +281,6 @@ EOF
 echo filelist for update ready. 
 
 #
-# populating ${vicedir}/vol
-#
-
-echo
-echo Populating ${vicedir}/vol...
-cd ${vicedir}/vol
-touch fs.lock
-touch volutil.lock
-echo lockfiles created.
-
-#
 # adding stuff to /etc/services if needed
 #
 
@@ -168,14 +297,8 @@ esac
 #
 # startup scripts
 #
-CODABASE=
 case "x`uname`" in
   x*BSD)
-	CODABASE=@prefix@
-	;;
-esac
-
-if [ x$CODABASE != x ]; then
     yesno=""
     until [ x$yesno != x ]; do
 	echon 'Do you want to start the server at boot time? (y/n) '
@@ -183,13 +306,16 @@ if [ x$CODABASE != x ]; then
     done
     if [ "x$yesno" = xy  -o  "x$yesno" = xyes -o "x$yesno" = xY ]; then
 	touch ${vicedir}/srv/STARTFROMBOOT
-	grep "${CODABASE}/etc/rc.vice" /etc/rc.local > /dev/null 2>&1
+	grep "@prefix@/etc/rc.vice" /etc/rc.local > /dev/null 2>&1
 	if [ $? != 0 ]; then 
-	    echo "if [ -x ${CODABASE}/etc/rc.vice ]; then ${CODABASE}/etc/rc.vice start ; fi" >> /etc/rc.local 
+	    echo "if [ -x @prefix@/etc/rc.vice ]; then @prefix@/etc/rc.vice start ; fi" >> /etc/rc.local 
 	fi
 	echo "Startup scripts now installed."
+    else
+        echo "You will have to start your coda server by hand."
     fi
-fi
+    ;;
+esac
 
 #
 # ${vicedir}/hostname 
@@ -215,25 +341,16 @@ fi
 # end of common setup area, now specialize to scm or non scm
 # 
 
-isscm=N
-yesno=""
-until [ "x$yesno" != x ]; do
-   echon 'Is this the master server, aka the SCM machine? (y/n) '
-   read yesno
-done
-if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
-   isscm=Y
-   echo  "Now installing files specific to the SCM..."
-else
-   echo  "Now installing things specific to non-SCM machines..."
-fi
-
 
 if [ $isscm = Y ]; then
-    vice-setup-scm
-    vice-setup-user
-    vice-setup-rvm
-    vice-setup-srvdir
+    echo  "Now installing files specific to the SCM..."
+    cp ${vicedir}/db/files ${vicedir}/db/files.export
+    if ! ( vice-setup-scm && vice-setup-user && vice-setup-rvm && \
+           vice-setup-srvdir ) ; then
+	echo "Your coda server is not completely setup.  You will need"
+	echo "set it up by hand or fix the problems and rerun $0."
+	exit 1
+    fi
     RV=`cat ${vicedir}/db/ROOTVOLUME`
     DP=`cat ${vicedir}/db/vicetab | awk '{print $2}' | head -n 1`
     echo "Congratulations: your configuration is ready...and now"
@@ -242,12 +359,25 @@ if [ $isscm = Y ]; then
     echo " - start rpc2portmap as: rpc2portmap"
     echo " - start updateclnt as:  updateclnt -h $hn -q coda_udpsrv"
     echo " - start updatesrv as: updatesrv -p ${vicedir}/db"
-    echo " - start the fileserver: startserver &"
-    echo " - wait until the server is up: tail -f ${vicedir}/srv/SrvLog"
+
+    if [ $numservers = 1 ]; then    
+	echo " - start the fileserver: startserver &"
+	echo " - wait until the server is up: tail -f ${vicedir}/srv/SrvLog"
+    else
+	echo " - start your fileservers as:"
+	n=1
+	while [ $n -le $numservers ]; do
+ 	    echo "        startserver -n $n &"
+	    n=`expr $n + 1`
+	done
+	echo " - wait until server 1 is up: tail -f ${vicedir}/server_1/srv/SrvLog"
+    fi
+
     echo " - create your root volume: createvol_rep $RV E0000100 $DP"
     echo " - setup a client: venus-setup $hn 20000"
     echo " - start venus: venus"
     echo " - enjoy Coda."
+    echo " - for more information see http://www.coda.cs.cmu.edu."
 
     exit 0 
 fi
@@ -256,16 +386,41 @@ fi
 # specifics for non SCM servers only 
 # 
 
-until [ "x$scmhost" != x ]; do
-    echon "Enter the hostname of the SCM machine : "
-    read scmhost
-done
+echo  "Now installing things specific to non-SCM machines..."
+
 echo "$scmhost" > ${vicedir}/db/scm
+touch ${vicedir}/db/files.export
 
-vice-setup-rvm
-vice-setup-srvdir
+if ! ( vice-setup-rvm && vice-setup-srvdir ) ;  then
+    echo "Your coda server is not completely setup.  You will need"
+    echo "set it up by hand or fix the problems and rerun $0."
+    exit 1
+fi
 
+scm=`cat ${vicedir}/db/scm`
 echo "You have set up " `cat ${vicedir}/hostname`
-echo "Your scm is " `cat ${vicedir}/db/scm`
+echo "Your SCM is $scm" 
 echo "Other config files will be fetched from the SCM by updateclnt."
+echo
+echo "To finish your server setup you should"
+echo
+echo " start the auth2 server as: auth2"
+echo " start rpc2portmap as: rpc2portmap"
+echo " start updateclnt as:  updateclnt -h $scm -q coda_udpsrv"
+echo " start updatesrv as: updatesrv -p ${vicedir}/db"
+echo
+#echo " On the SCM ($scm) run: new_server $bn"
+#echo
+#echon "Now you can " 
+#echo
+#if [ $numservers = 1 ]; then    
+#    echo " start the fileserver: startserver &"
+#else
+#    echo " start your fileservers as:
+#    n=1
+#    while [ $n -le $numservers ]; do
+#	echo "        startserver -n $n &"
+#	n=`expr $n + 1`
+#    done
+#fi
 

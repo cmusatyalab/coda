@@ -26,7 +26,7 @@ echon() {
 }
 
 # exit if errors
-set -e
+set -e 1
 
 #
 # Configuration
@@ -35,9 +35,8 @@ prefix=@prefix@
 conf=@sysconfdir@/server.conf
 if [ -f ${conf} ] ; then
   . ${conf}
-  haveconf=1
 else
-  haveconf=0
+  numservers=1
 fi
 
 if [ x${vicedir} = x ] ; then
@@ -45,7 +44,11 @@ if [ x${vicedir} = x ] ; then
 fi
 
 # current first maximum replicated volume id
-cd ${vicedir}/vol
+if [ $numservers -gt 1 ]; then
+    cd ${vicedir}/server_1/vol
+else
+    cd ${vicedir}/vol
+fi
 echo 2130706432 > maxgroupid
 
 #
@@ -66,14 +69,32 @@ if [ x$bn = x ]; then
 fi
 cd ${vicedir}/db
 
-until [ "x$id" != x ]; do
-   echo 'Enter an id for this server.'
-   echo 'The serverid should be a number between 0 and 255 *avoid 0, 127, and
-255*'
-   echon 'serverid: '
-   read id
-done
-echo "$bn		$id" >> servers
+if [ $numservers -eq 1 ]; then
+    id=""
+    until [ "x$id" != x ]; do
+	echo "Enter an id for the SCM server. (hostname $bn)"
+	echo "The serverid is a unique number between 0 and 255."
+	echo "You shoule avoid 0, 127, and 255."
+	echon "serverid: "
+	read id
+    done
+    echo "$bn		$id" >> servers
+else 
+    n=1;
+    while [ $n -le $numservers ]; do
+        . @prefix@/etc/coda/server_$n.conf
+        id=""
+	until [ "x$id" != x ]; do
+	    echo "Enter an id for server number $n. ($hostname)"
+	    echo "The serverid is a unique number between 0 and 255."
+	    echo "You shoule avoid 0, 127, and 255."
+	    echon "serverid: "
+	    read id
+	done
+	echo "$hostname		$id" >> servers
+	n=`expr $n + 1`
+    done
+fi  
 echo done!
 
 #
@@ -87,6 +108,10 @@ echo $bn > ${vicedir}/db/scm
 echo "Initializing the VSGDB to contain the SCM as E0000100"
 echo E0000100 $bn > ${vicedir}/db/VSGDB
 echo ${vicedir}/db/VSGDB set up
+if [ $numservers -gt 1 ]; then
+    echo "You will need to edit ${vicedir}/db/VSGDB to make more"
+    echo "volume storage groups that include other servers than the SCM."
+fi
 
 id=""
 echo
@@ -100,4 +125,6 @@ echo $id > ${vicedir}/db/ROOTVOLUME
 echo
 echo
 
-
+#
+# Add information for other servers on this machine
+#

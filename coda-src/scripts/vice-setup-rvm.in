@@ -38,6 +38,7 @@ if [ -f ${conf} ] ; then
   haveconf=1
 else
   haveconf=0
+  numservers=1
 fi
 
 if [ x${vicedir} = x ] ; then
@@ -57,8 +58,8 @@ fi
 
 
 echo
-echo You need a small log disk partition, preferrably on a disk by itself.
-echo You need a metadata partition of approx 4% of you filespace.
+echo A server needs a small log disk partition, preferrably on a disk by
+echo itself. It also needs a metadata partition of approx 4% of you filespace.
 echo 
 echo For trial purposes you may give oridnary files instead of raw
 echo partitions. Keep all size small if you do this. 
@@ -72,6 +73,11 @@ echo
 echo WARNING: these choices are not easy to change once you are up and running.
 echo
 
+if [ $numservers -gt 1 ]; then
+  echo For multiple servers on the same machine, you will need to specify a log
+  echo partition and a metadata partition for each server you plan to run.
+fi
+
 yesno=""
 until [ "x$yesno" != x ]; do
    echon "Are you ready to set up RVM? [yes/no] "
@@ -81,150 +87,202 @@ if [ "x$yesno" = xyes -o "x$yesno" = xy -o "x$yesno" = xy ]; then
     echo ""
 else
     echo "Run vice-setup-rvm when you are ready!"
-    exit 
+    exit 1
 fi
 
 #
-# we need a size and partition for the log.
+# Do the following for each server ...
 #
-until [ "x$log" != x ]; do
-   echon "What is your log partition? "
-   read log
-done
 
-until [ "x$logsize" != x ]; do
+n=1
+while [ $n -le $numservers ]; do
+
+    if [ $numservers -gt 1 ]; then
+        conf=@sysconfdir@/server_$n.conf
+	if [ -f $conf ]; then
+	    . $conf
+	fi
+	if [ x$hostname != x ]; then
+            echo "Configuring for server $n ($hostname)."
+	else
+	    echo "Configuring for server $n."
+	    hostname=""
+	    while [ x$hostname = x ]; do
+	        echon "What is the hostname for server $n? "
+		read hostname
+            done
+	    echo "hostname=$hostname" >> $conf
+	fi
+    fi
+
+    #
+    # we need a size and partition for the log.
+    #
+    log=""
+    until [ "x$log" != x ]; do
+        echon "What is your log partition? "
+	read log
+    done
+
+    logsize=""
+    until [ "x$logsize" != x ]; do
+        echo
+	echo "The log size must be smaller than you log partition.  We"
+	echo "recommend not more than 30M log size, and 2M is a good choice."
+	echon "What is your log size? (enter as e.g. '2M') "
+	read logsize
+	echo
+    done
+
+    data=""
+    until [ x$data != x ]; do
+        echon "What is your data partition (or file)? "
+	read data
+    done
+
+    datasize=""
+    until [ x$datasize != x ]; do
+	echo
+	echo  "The data size must be approx 4% of you server file space.  We"
+	echo  "have templates for servers of approx: 500M, 1G, 2.2G, 3.3G, 8G"
+	echo  "(you can store less, but not more on such servers)."
+	echo  "The corresponding data sizes are  22M, 44M, 90M, 130M, 315M." 
+	echo  "(use 315M only on very fast machines)"
+	echo  "Pick one of the defaults, otherwise I will bail out"
+	echo
+	echo "What is the size of you data partition (or file)"
+	echon "[22M,44M, 90M, 130M, 200M, 315M]: "
+	read datasize 
+
+	case $datasize in 
+	    22[mM] | 44[mM] | 90[mM] | 130[mM] | 200[mM] | 315[mM] )
+	        ;;
+	    500[mM] | 1[gG] )
+		echo Your size is an experimental size.  Be warned!
+		;;
+	    * )
+		echo "You have selected an unsupported size, are you sure"
+		echon "you want this size?  (yes/no) "
+		yesno=
+ 		read yesno
+		if [ x$yesno != xyes ]; then
+		    datasize=""
+		fi
+		;; 
+	esac
+    done
+
+    echo 
+    echo --------------------------------------------------------
+    echo WARNING: DATA and LOG  partitions are about to be wiped.
+    echo --------------------------------------------------------
     echo
-    echo  "The log size must be smaller than you log partition."
-    echo  "We recommend not more than 30M log size, and 2M is a good choice."
-    echon "What is your log size? (enter as e.g. '2M') "
-    read logsize
+    echo "  --- log area: $log, size $logsize."
+    echo "  --- data area: $data, size $datasize."
     echo
-done
+    answer=""
+    until [ "x$answer" != x ]; do
+	echon "Proceed, and wipe out old data? [y/n] "
+	answer=n
+	read answer 
+    done
+    if [ "x$answer" = xn -o "x$answer" = xno -o "x$answer" = xN -o \
+ 	 "x$answer" = xNo ]; then
+	exit 1    
+    fi
 
-until [ "x$data" != x ]; do
-   echon "What is your data partition (or file)? "
-   read data
-done
-
-until [ "x$datasize" != x ]; do
     echo
-    echo  "The data size must be approx 4% of you server file space."
-    echo  "We have templates for servers of approx: 500M, 1G, 2.2G, 3.3G, 8G"
-    echo  "(you can store less, but not more on such servers)."
-    echo  "The corresponding data sizes are  22M, 44M, 90M, 130M, 315M." 
-    echo  "(use 315M only on very fast machines)"
-    echo  "Pick one of the defaults, otherwise I will bail out"
-    echo
-    echo "What is the size of you data partition (or file)"
-    echon "[22M,44M, 90M, 130M, 200M, 315M]: "
-    read datasize 
-done
-
-
-echo 
-echo --------------------------------------------------------
-echo WARNING: DATA and LOG  partitions are about to be wiped.
-echo --------------------------------------------------------
-echo
-echo "  --- log area: $log, size $logsize."
-echo "  --- data area: $data, size $datasize."
-echo
-until [ "x$answer" != x ]; do
-    echon "Proceed, and wipe out old data? [y/n] "
-    answer=n
-    read answer 
-done
-if [ "x$answer" = xn -o "x$answer" = xno -o "x$answer" = xN -o "x$answer" = xNo ]; then
-    exit 1    
-fi
-
-echo
-@RVMUTL@ > /dev/null  << EOF
+    @RVMUTL@ > /dev/null  << EOF
 i $log $logsize
 q
 EOF
 
-echo
-if [ $? != 0 ]; then
-    echo Error in rvmutl. Exiting.
-    exit 1
-fi
+    echo
+    if [ $? != 0 ]; then
+	echo Error in rvmutl. Exiting.
+	exit 1
+    fi
 
-echo LOG file has been initialized!
+    echo LOG file has been initialized!
+    
+    echo
 
-echo
+    case "$datasize" in 
+	22[mM] )
+	    dsparm=23068672 # was 20480000
+	    heapsize=0x1200000
+	    ;;
+	44[mM] )
+	    dsparm=46137344 # was 39690240
+	    heapsize=0x2400000
+	    ;;
+	90[mM] )
+	    dsparm=94371840 # was 79380480
+	    heapsize=0x4a00000
+	    ;;
+	130[mM] )
+	    dsparm=136314880 # was 119070700
+	    heapsize=0x7000000
+	    ;;
+	200[mM] )
+	    dsparm=209715200
+	    heapsize=0xb000000
+	    ;;
+	315[mM] )
+	    dsparm=330301440
+	    heapsize=0x13000000
+	    ;;
+	500[mM] )
+	    dsparm=524288000
+	    heapsize=0x1e000000
+	    ;;
+	1[gG] )
+	    dsparam=1073741824
+	    heapsize=0x3FF00000
+	    ;;
+	* )
+	    echo "You have chosen a data size that is not supported by this"
+	    echo "coda server setup procedure. Read rdsinit(8) and rdsinit" 
+	    echo "to configure your data area.  After configuring the RVM data"
+ 	    echo "area you also need to create the configuraton files:"
+	    echo "    a file ${vicedir}/srv.conf containing:"
+	    echo
+	    echo "    -rvm $log $data <size of rvm data in bytes>"
+	    echo
+	    echo "Press return to continue"
+	    read ok
+	    exit 1
+	    ;; 
+    esac
 
-case "$datasize" in 
-    22[mM] )
- 	dsparm=23068672 # was 20480000
- 	heapsize=0x1200000
- 	;;
-    44[mM] )
- 	dsparm=46137344 # was 39690240
- 	heapsize=0x2400000
- 	;;
-    90[mM] )
- 	dsparm=94371840 # was 79380480
- 	heapsize=0x4a00000
- 	;;
-    130[mM] )
- 	dsparm=136314880 # was 119070700
- 	heapsize=0x7000000
- 	;;
-    200[mM] )
- 	dsparm=209715200
- 	heapsize=0xb000000
- 	;;
-    315[mM] )
- 	dsparm=330301440
- 	heapsize=0x13000000
- 	;;
-    500[mM] )
-	dsparm=524288000
-	heapsize=0x1e000000
-	;;
-    1[gG] )
-        dsparam=1073741824
-	heapsize=0x3FF00000
-	;;
-    * )
-	echo 'Read rdsinit(8) and rdsinit to configure your data area.'
-	echo 'After configuring the RVM data area you also need to create'
-	echo 'a file ${vicedir}/srv.conf containing:'
-	echo
-	echo "-rvm $log $data <size of rvm data in bytes>"
-	echo
-	echo 'Press return to continue'
-	read ok
-	exit 
-        ;; 
-esac
+    rvmstart=0x50000000
+    staticsize=0x100000
+    nlists=80
+    chunk=32
 
-rvmstart=0x50000000
-staticsize=0x100000
-nlists=80
-chunk=32
+    parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
 
-parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
+    if [ ${haveconf} = 1 ] ; then
+	echo "rvm_log=$log" >> ${conf}
+	echo "rvm_data=$data" >> ${conf}
+	echo "rvm_data_length=$dsparm" >> ${conf}
+    else
+	echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
+    fi
 
-if [ ${haveconf} = 1 ] ; then
-  echo "rvm_log=$log" >> ${conf}
-  echo "rvm_data=$data" >> ${conf}
-  echo "rvm_data_length=$dsparm" >> ${conf}
-  # hostname ....
-else
-  echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
-fi
+    echo
+    echo "Rdsinit will initialize data and log."
+    echo "This takes a while."
+    @RDSINIT@ -f $log $data $parms
 
-echo
-echo Rdsinit will initialize data and log.
-echo This takes a while. 
-@RDSINIT@ -f $log $data $parms
+    if [ $? != 0 ]; then
+	echo Error in rdsinit. Exiting.
+	exit 1
+    fi
 
-if [ $? != 0 ]; then
-    echo Error in rdsinit. Exiting.
-    exit 1
-fi
+    n=`expr $n + 1`
+    echo
+done
 
 echo RVM setup is done!
 echo 

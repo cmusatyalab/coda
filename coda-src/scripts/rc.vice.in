@@ -11,11 +11,15 @@
 prefix=@prefix@
 vicedir=
 if [ -f @sysconfdir@/server.conf ] ; then
-. @sysconfdir@/server.conf
+    . @sysconfdir@/server.conf
 fi
 
 if [ x${vicedir} = x ]; then
-  vicedir=/vice
+    vicedir=/vice
+fi
+
+if [ x${numservers} = x ]; then
+    numservers=1
 fi
 
 VICE=${vicedir}
@@ -31,16 +35,19 @@ AUTH2=${CODABASE}/sbin/auth2
 
 if [ -x ${CODABASE}/sbin/kauth2 ] ; then
     AUTH2=${CODABASE}/sbin/kauth2
+# should be set in the server.conf file.
     FLAGS="-realm CS.CMU.EDU"
 fi
 
-[ -x ${AUTH2} ] || exit 1
-[ -x ${CODABASE}/sbin/rpc2portmap ] || exit 1
-[ -x ${CODABASE}/sbin/updatesrv ] || exit 1
-[ -x ${CODABASE}/sbin/updateclnt ] || exit 1
-[ -x ${CODABASE}/sbin/codasrv ] || exit 1
-[ -x ${CODABASE}/sbin/startserver ] || exit 1
-[ -x ${CODABASE}/sbin/volutil ] || exit 1
+if [ ! -x ${AUTH2} -o ! -x ${CODABASE}/sbin/rpc2portmap \
+	-o ! -x ${CODABASE}/sbin/updatesrv \
+	-o ! -x ${CODABASE}/sbin/updateclnt \
+	-o ! -x ${CODABASE}/sbin/codasrv \
+	-o ! -x ${CODABASE}/sbin/startserver \
+	-o ! -x ${CODABASE}/sbin/volutil ]; then
+    echo $0: Incomplete Coda server installation.  Server start aborted.
+    exit 1
+fi
 
 echon() {
     if [ "`echo -n`" ] ; then
@@ -53,54 +60,74 @@ echon() {
 # See how we were called.
 case "$1" in
   start)
-	# start auth2 & update stuff: first the scm case
-    	echon "Starting Coda Services: "
-	if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
- 		${AUTH2} ${FLAGS} &
-		echon " auth2"
+    # start auth2 & update stuff: first the scm case
+    echon "Starting Coda Services: "
+    if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
+ 	${AUTH2} ${FLAGS} &
+	echon " auth2"
 		
-	else 	# for non-scm machines.
-		${AUTH2} ${FLAGS} -chk &
-		echon " auth2(ro)"
-	fi
+    else 	# for non-scm machines.
+	${AUTH2} ${FLAGS} -chk &
+	echon " auth2(ro)"
+    fi
 
-	# update srv and updatemon run on all servers
-	rpc2portmap &
-        echon " rpc2portmap"
+    # update srv and updatemon run on all servers
+    rpc2portmap &
+    echon " rpc2portmap"
 
-	updateclnt -h `cat ${VICE}/db/scm`  -q coda_udpsrv &
-	echon " updateclnt"
+    updateclnt -h `cat ${VICE}/db/scm`  -q coda_udpsrv &
+    echon " updateclnt"
 
-	updatesrv -p ${VICE}/db &
-	echon " updatesrv"
-        echo '.'	# Done With Coda Serivces
+    updatesrv -p ${VICE}/db &
+    echon " updatesrv"
+    echo '.'	# Done With Coda Serivces
 
-	# now the server
-	echon "Starting Coda:"
+    # now the server
+    echon "Starting Coda:"
+    if [ $numservers -eq 1 ]; then 
 	if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
-	      	rm -f $VICESRV/pid
-		startserver &
-		echo " codasrv."
+	    rm -f $VICESRV/pid
+	    startserver &
+	    echo " codasrv."
 	else
-		echo "`date`: srv not started." >> ${VICE}/srv/SrvErr
-		echo "missing STARTFROMBOOT or CRASH." >> ${VICE}/srv/SrvErr
+	    echo "`date`: srv not started." >> ${VICESRV}/SrvErr
+	    echo "missing STARTFROMBOOT or CRASH." >> ${VICESRV}/SrvErr
 	fi
-	;;
+    else
+	n=1
+	while [ $n -le $numservers ]; do
+	    VICESRV=${vicedir}/server_$n/srv
+	    if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
+		rm -f $VICESRV/pid
+		startserver &
+		echon " codasrv(-n $n)"
+	    else
+		echo "`date`: srv not started." >> ${VICESRV}/SrvErr
+		echo "missing STARTFROMBOOT or CRASH." >> ${VICESRV}/SrvErr
+	    fi
+	    n=`expr $n + 1`
+	done
+	echo "."
+    fi
+    ;;
+
   stop)
-	# Normal Coda FS shutdown:
-	# if pid file doesn't exist, it isn't likely that srv is running.
-	echon "Shutting down Coda: "
-	if [ -f ${VICESRV}/pid ]; then
-	      	volutil shutdown
-		echon "$0: sleeping 30 secs to let srv shutdown..."
-		sleep 30
-		echo "..done"
-	fi
-	echo '.'
-	;;
+    # Normal Coda FS shutdown:
+    # if pid file doesn't exist, it isn't likely that srv is running.
+    echon "Shutting down Coda: "
+    if [ -f ${VICESRV}/pid ]; then
+	volutil shutdown
+	echon "$0: sleeping 30 secs to let srv shutdown..."
+	sleep 30
+	echo "..done"
+    fi
+    echo '.'
+    ;;
+
   *)
-	echo "Usage: $0 {start|stop}"
-	exit 1
+    echo "Usage: $0 {start|stop}"
+    exit 1
+
 esac
 
 exit 0
