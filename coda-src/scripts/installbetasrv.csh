@@ -30,52 +30,17 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /home/braam/src/coda-src/scripts/RCS/installbetasrv.csh,v 1.2 1996/11/24 18:50:16 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/installbetasrv.csh,v 4.1 1997/01/08 21:50:50 rvb Exp $";
 #endif /*_BLURB_*/
 
 
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 3.1
-#
-#          Copyright (c) 1987-1995 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /home/braam/src/coda-src/scripts/RCS/installbetasrv.csh,v 1.2 1996/11/24 18:50:16 braam Exp $";
-#endif /*_BLURB_*/
 
-
-if ($#argv != 2) then
-    echo "Usage: $0 <Source Client Host> <Beta-base directory>"
+if ($#argv != 1) then
+    echo "Usage: $0  <Beta-base directory>"
     exit 1
 endif 
 
-set SRCHOST=$1
-set BaseDir=/../$1/$2
+set BaseDir=$1
 set SRVPIDFILE = "/vice/srv/pid"
 
 set SCMBINS=(purgevol purgevol_rep createvol createvol_rep bldvldb.sh)
@@ -120,7 +85,7 @@ echo ""
 echo -n "copying special binaries(RVM): "
 foreach f ($SPCLBINS ) 
     echo -n $f " "
-    copy $BaseDir/BIN-SPECIAL/$f bin
+    copy $BaseDir/bin/$f bin
 end
 
 echo ""
