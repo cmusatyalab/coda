@@ -193,7 +193,6 @@ struct SFTP_Entry		/* per-connection data structure */
     RPC2_Handle LocalHandle;	/* which RPC2 conn on this side do I
 				   correspond to? */
     RPC2_PeerInfo  PInfo;	/* all the RPC info  about the other side */
-    RPC2_PortIdent PeerPort;	/* SFTP port on the other side */
     struct timeval LastWord;	/* Last time we received something on this SE */
     struct HEntry *HostInfo;	/* Connection-independent host info. set by
 				   ExaminePacket on client side (if
@@ -341,17 +340,14 @@ struct SLSlot		/* pointed to by rock in current LWP */
 		x->TChain = NULL;\
 		}
 
-extern PROCESS sftp_ListenerPID;	/* pid of listener */
+extern PROCESS sftp_TimerPID;	/* pid of sftp timeout handler */
 extern struct TM_Elem *sftp_Chain;	/* head of linked list of all sleeping LWPs waiting for a packet or a timeout */
-extern long sftp_Socket;		/* for all SFTP traffic */
-extern RPC2_PortIdent sftp_Port;
 extern long SFTP_DebugLevel;
 
 
 
-long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket);
 int  sftp_XmitPacket(struct SFTP_Entry *sentry, RPC2_PacketBuffer *pb);
-void sftp_Listener(void);
+void sftp_Timer(void);
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb);
 
 #define IsSource(sfe)\
@@ -448,7 +444,7 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whic
 long sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
 int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize, long maxSize);
 void sftp_SetError(struct SFTP_Entry *s, enum SFState e);
-int sftp_MorePackets(int *rpc2, int *sftp);
+int sftp_MorePackets(void);
 
 
 extern long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,

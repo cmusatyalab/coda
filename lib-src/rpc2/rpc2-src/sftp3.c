@@ -75,9 +75,7 @@ long SFTP_MaxPackets;
 
 /* long SFTP_DebugLevel; */	/* defined to RPC2_DebugLevel for now */
 struct TM_Elem *sftp_Chain;
-long sftp_Socket;
-RPC2_PortIdent sftp_Port;
-PROCESS sftp_ListenerPID;
+PROCESS sftp_TimerPID;
 long sftp_PacketsInUse;
 
 long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,
@@ -956,7 +954,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
     RPC2_PacketBuffer *pb;
     long i, j;
     unsigned long now;
-    int x, y, dont_ackme;
+    int dont_ackme;
 
     if (sEntry->ReadAheadCount == 0)
 	{/* Nothing to send; but caller expects need ack limit to be set */
@@ -964,10 +962,10 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	return(0);
 	}
 
-    /* try to avoid generating an ack when there might be ack packets queued up
-     * already and we're not sending a full window's worth */
+    /* try to avoid generating data when there might be ack packets queued up
+     * already and we're not about to send a full window's worth */
     dont_ackme = (sEntry->ReadAheadCount < sEntry->SendAhead) &&
-	sftp_MorePackets(&x, &y);
+	sftp_MorePackets();
 	
     /* j is the packet to be acked */
     if (sEntry->AckPoint > sEntry->ReadAheadCount)

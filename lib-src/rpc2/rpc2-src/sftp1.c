@@ -98,35 +98,18 @@ static long MakeBigEnough();
 
 long SFTP_Init()
 {
-#warning "what to do here, maybe we should just drop the sftp listener"
     char *sname;
-    struct RPC2_addrinfo *sftp_localaddr;
-    int error;
     
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
     /* initialize the sftp timer chain */
     TM_Init(&sftp_Chain);
 
-    if (sftp_Port.Tag)
-    {
-	sftp_localaddr = rpc2_resolve(NULL, &sftp_Port);
-	if (!sftp_localaddr)
-	    return RPC2_FAIL;
-
-        /* Create socket for SFTP packets */
-	/* XXX we only bind to the first one that binds successfully */
-        error = rpc2_CreateIPSocket(&sftp_Socket, sftp_localaddr, &sftp_Port);
-	RPC2_freeaddrinfo(sftp_localaddr);
-
-	if (error)
-	    return RPC2_FAIL;
-    }
-
-    /* Create SFTP listener process */
-    sname = "sftp_Listener";
-    LWP_CreateProcess((PFIC)sftp_Listener, 16384, LWP_NORMAL_PRIORITY,
-		      sname, sname, &sftp_ListenerPID);
+    /* Create SFTP listener process, which doesn't really listen anymore.
+     * It deals with retransmission timeouts and such. */
+    sname = "sftp_Timer";
+    LWP_CreateProcess((PFIC)sftp_Timer, 16384, LWP_NORMAL_PRIORITY,
+		      sname, sname, &sftp_TimerPID);
 
     sftp_InitTrace();
 
@@ -174,7 +157,6 @@ void SFTP_Activate(initPtr)
 	SFTP_DoPiggy = initPtr->DoPiggy;
 	SFTP_DupThreshold = initPtr->DupThreshold;
 	SFTP_MaxPackets = initPtr->MaxPackets;
-	sftp_Port = initPtr->Port;			/* structure assignment */
 	}
     assert(SFTP_SendAhead <= 16);	/* 'cause of readv() bogosity */
 
@@ -701,16 +683,7 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
 
     if (se == NULL) return(RPC2_NOCONNECTION);
 
-    /* 
-     * There may still be no host info.  If not, see if some of
-     * the right type has appeared since the bind.
-     */
-    if (!se->HostInfo) { 
-	assert(se->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
-	se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
-    }
     assert(se->HostInfo);
-	
     *HPtr = se->HostInfo;
     return(RPC2_SUCCESS);
     }
@@ -970,7 +943,7 @@ static void AddTimerEntry(whichElem)
     mytime = whichElem->TotalTime.tv_sec*1000000 + whichElem->TotalTime.tv_usec;
     t = TM_GetEarliest(sftp_Chain);
     if (t == NULL || (t->TimeLeft.tv_sec*1000000 + t->TimeLeft.tv_usec) > mytime)
-	IOMGR_Cancel(sftp_ListenerPID);
+	IOMGR_Cancel(sftp_TimerPID);
     TM_Insert(sftp_Chain, whichElem);
     }
 
@@ -1099,8 +1072,11 @@ int sftp_AppendParmsToPacket(struct SFTP_Entry *sEntry,
        Returns 0 on success, -1 on failure */
 {
     struct SFTP_Parms sp;
+    RPC2_PortIdent nullport;
+    nullport.Tag = 0;
+    nullport.Value.InetPortNumber = 0;
 
-    sp.Port = sftp_Port;	/* structure assignment */
+    sp.Port = nullport;	/* structure assignment */
     sp.Port.Tag = (PortTag)htonl(sp.Port.Tag);
     sp.WindowSize = htonl(sEntry->WindowSize);
     sp.SendAhead = htonl(sEntry->SendAhead);
@@ -1136,19 +1112,6 @@ int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
     /* We copy out the data physically:
        else structure alignment problem on IBM-RTs */
     memcpy(&sp, &whichP->Body[whichP->Header.BodyLength - sizeof(struct SFTP_Parms)], sizeof(struct SFTP_Parms));
-
-    sEntry->PeerPort = sp.Port;
-    sEntry->PeerPort.Tag = (PortTag)ntohl(sp.Port.Tag);
-
-    if (sEntry->WhoAmI == SFSERVER)
-    {
-	/* Set up host/port linkage. */
-	assert(sEntry->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
-	sEntry->HostInfo =rpc2_GetHost(sEntry->PInfo.RemoteHost.Value.AddrInfo);
-	assert(sEntry->HostInfo);
-    }
-    else
-	assert(sEntry->WhoAmI == SFCLIENT);
 
     sp.WindowSize = ntohl(sp.WindowSize);
     sp.SendAhead = ntohl(sp.SendAhead);

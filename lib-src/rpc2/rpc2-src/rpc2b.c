@@ -328,6 +328,11 @@ long RPC2_FreeBuffer(INOUT RPC2_PacketBuffer **BuffPtr)
 
     assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
+    if ((*BuffPtr)->Prefix.PeerAddr) {
+	RPC2_freeaddrinfo((*BuffPtr)->Prefix.PeerAddr);
+	(*BuffPtr)->Prefix.PeerAddr = NULL;
+    }
+
     switch((int) (*BuffPtr)->Prefix.BufferSize)
 	{
 	case SMALLPACKET:

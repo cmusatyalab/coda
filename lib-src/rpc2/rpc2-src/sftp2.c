@@ -63,7 +63,6 @@ extern int errno;
 static void ClientPacket();
 static void ServerPacket();
 static void SFSendNAK(RPC2_PacketBuffer *pb);
-static void sftp_ProcessPackets();
 static void ScanTimerQ();
 static int AwaitEvent();
 
@@ -74,13 +73,11 @@ static int AwaitEvent();
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #endif
 
-void sftp_Listener(void)
-{/* LWP that listens for SFTP packets */
+void sftp_Timer(void)
+{/* LWP that deals with timeouts for SFTP packets */
     while (TRUE) {
 	ScanTimerQ();	/* wakeup all LWPs with expired timer entries */
-
-	if (AwaitEvent() > 0) /* any packets available? */
-	    sftp_ProcessPackets();
+	AwaitEvent();
     }
 }
 
@@ -88,13 +85,9 @@ void sftp_Listener(void)
 void SFTP_DispatchProcess(void)
     {
     struct timeval tv;
-    int rpc2, sftp;
 
-    while (sftp_MorePackets(&rpc2, &sftp))
-	{
-	if (rpc2) rpc2_ProcessPackets();
-	if (sftp) sftp_ProcessPackets();
-	}
+    while (sftp_MorePackets())
+	rpc2_ProcessPackets();
 
     /* keep current time from being too inaccurate */
     (void) FT_GetTimeOfDay(&tv, (struct timezone *) 0);
@@ -105,33 +98,6 @@ void SFTP_DispatchProcess(void)
 
     LWP_DispatchProcess();
     }
-
-static void sftp_ProcessPackets()
-{
-    RPC2_PacketBuffer *pb;
-    int rc;
-
-    /* A packet has arrived: read it in  */
-    assert(sftp_Port.Tag);
-
-    SFTP_AllocBuffer(SFTP_MAXBODYSIZE, &pb);
-    rc = sftp_RecvPacket(sftp_Socket, pb);
-    if (rc < 0) {
-	/* If errno = 0, libfail killed the packet.
-	   else packet greater than RPC2_MAXPACKETSIZE */
-	if (errno != 0) BOGUS(pb);
-	return;
-    }
-
-    if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader)) {
-        /* avoid memory reference errors */
-        BOGUS(pb);
-        return;
-    }
-
-    /* Go look at this packet */
-    sftp_ExaminePacket(pb);
-}
 
 static void ScanTimerQ()
     {
@@ -153,76 +119,63 @@ static void ScanTimerQ()
 
 /* This function is only called by SFTP_DispatchProcess, which is not called
  * by the sftp code itself */
-int sftp_MorePackets(int *rpc2, int *sftp)
+int sftp_MorePackets(void)
 {
 /* This ioctl peeks into the socket's receive queue, and reports the amount
  * of data ready to be read. Linux officially uses TIOCINQ, but it's an alias
  * for FIONREAD, so this should work too. --JH */
 #if defined(FIONREAD)
-    int ready_rpc2 = 0, ready_sftp = 0;
+    int ready_rpc2 = 0;
 
-    *rpc2 = ioctl(rpc2_RequestSocket, FIONREAD, &ready_rpc2) == 0 && ready_rpc2 != 0;
-    *sftp = sftp_Port.Tag && ioctl(sftp_Socket, FIONREAD, &ready_sftp) == 0 && ready_sftp != 0;
+    if (ioctl(rpc2_RequestSocket, FIONREAD, &ready_rpc2) == 0)
+	return ready_rpc2 != 0;
     
-    return (*rpc2 || *sftp);
+    return 0;
 #else
-    int nfds;
     fd_set rmask;
     struct timeval tv;
 
     FD_ZERO(&rmask);
     FD_SET(rpc2_RequestSocket, &rmask);
 
-    if (sftp_Port.Tag) {
-        FD_SET(sftp_Socket, &rmask);
-        nfds = MAX(sftp_Socket, rpc2_RequestSocket) + 1;
-    } else
-        nfds = rpc2_RequestSocket + 1;
-
     tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
     /* We use select rather than IOMGR_Select to avoid overheads. This is
      * acceptable only because we are doing a polling select */
-    if (select(nfds, &rmask, NULL, NULL, &tv) > 0)
-    {
-	*rpc2 = FD_ISSET(rpc2_RequestSocket, &rmask);
-	*sftp = sftp_Port.Tag && FD_ISSET(sftp_Socket, &rmask);
-	return(TRUE);
-    }
-    else return(FALSE);
+    if (select(rpc2_RequestSocket + 1, &rmask, NULL, NULL, &tv) > 0)
+	return FD_ISSET(rpc2_RequestSocket, &rmask);
+
+    return(0);
 #endif
 }
 
 static int AwaitEvent()
-    /* Awaits for a packet or earliest timeout and returns code from IOMGR_Select() */
+    /* Awaits for earliest timeout and returns code from IOMGR_Select() */
 {
-    fd_set rmask;
     struct timeval *tvp;
     struct TM_Elem *t;
-    int nfds = 0, rc;
     
-    /* wait for packet or earliest timeout */
+    /* wait for earliest timeout */
     t = TM_GetEarliest(sftp_Chain);
     if (t == NULL) tvp = NULL;
     else tvp = &t->TimeLeft;
 
-    FD_ZERO(&rmask);
-
-    if (sftp_Port.Tag) {
-	FD_SET(sftp_Socket, &rmask);
-	nfds = sftp_Socket + 1;
-    }
-
-    /* Only place where sftp_Listener() gives up control */
-    rc = IOMGR_Select(nfds, &rmask, NULL, NULL, tvp);
-    return(rc);
+    return IOMGR_Select(0, NULL, NULL, NULL, tvp);
 }
-
 
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
 {
     struct SFTP_Entry	*sfp;
     struct CEntry	*ce;
     int			 iamserver;
+
+    /* collect statistics */
+    if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
+	sftp_MRecvd.Total++;
+	sftp_MRecvd.Bytes += pb->Prefix.LengthOfPacket;
+    } else {
+	sftp_Recvd.Total++;
+	sftp_Recvd.Bytes += pb->Prefix.LengthOfPacket;
+    }
 
     /* SFTPVERSION must match or we have no hope at all. */
     if (ntohl(pb->Header.ProtoVersion) != SFTPVERSION)
@@ -275,16 +228,12 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     }
 
     /* SANITY CHECK: validate socket-level and connection-level host values. */
-#warning "need PeerAddr -> PeerHost"
-#if 0
-    if (rpc2_HostIdentEqual(&pb->Prefix.PeerHost, &sfp->PInfo.RemoteHost) == FALSE)
-	/* Can't compare ports, since SFTP socket is not RPC socket */
+    if (!RPC2_cmpaddrinfo(sfp->HostInfo->Addr, pb->Prefix.PeerAddr))
     {
 	SFSendNAK(pb); /* NAK this packet */
 	BOGUS(pb);
 	return;
     }
-#endif
 	    
     /* SANITY CHECK: make sure this pertains to the current RPC call. */
     if (pb->Header.ThisRPCCall != sfp->ThisRPCCall)
@@ -297,13 +246,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     /* Client records SFTP port here since we may need to use it before we record other parms. */
     if (sfp->GotParms == FALSE && sfp->WhoAmI == SFCLIENT)
     {
-	/* Simply copying the port we got the packet from might interfere with
-	 * masquerading. Hopefully we'll get the SFTP parameters if the client
-	 * uses an older version of SFTP, otherwise he'll miss some messages */
-	//sfp->PeerPort = pb->Prefix.PeerPort;
-	sfp->PeerPort.Tag = 0;
 	sfp->HostInfo = ce->HostInfo;		/* Set up host/port linkage. */
-
 	/* Can't set GotParms to TRUE yet; must pluck off other parms. */
     }
 
@@ -345,7 +288,7 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
     sls->State = S_ARRIVED;
     sls->Packet = whichPacket;
     REMOVETIMER(sls);
-    LWP_NoYieldSignal((char *)sls);
+    LWP_SignalProcess((char *)sls);
 }
 
 
@@ -444,18 +387,12 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     /* All other fields are irrelevant in a NAK packet */
     rpc2_htonp(nakpb);
 
-    /* XXX hack so we can use sftp_XmitPacket */
-    rpc2_splitaddrinfo(&fake_se.PInfo.RemoteHost, &fake_se.PInfo.RemotePort,
-		       pb->Prefix.PeerAddr);
-
-    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
-     * IPv4 address. Convert it back to the more useful RPC2_addrinfo... */
-    rpc2_simplifyHost(&fake_se.PInfo.RemoteHost, &fake_se.PInfo.RemotePort);
+    /* add a reference to the addrinfo in a fake_se */
+    fake_se.HostInfo = rpc2_GetHost(pb->Prefix.PeerAddr);
 
     sftp_XmitPacket(&fake_se, nakpb);    /* ignore return code */
-    SFTP_FreeBuffer(&nakpb);
 
-    assert(fake_se.PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
-    RPC2_freeaddrinfo(fake_se.PInfo.RemoteHost.Value.AddrInfo);
+    rpc2_FreeHost(&fake_se.HostInfo);
+    SFTP_FreeBuffer(&nakpb);
 }
 
