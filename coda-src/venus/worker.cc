@@ -93,6 +93,9 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
+#include "nt_util.h"
+
+
 extern int venus_relay_addr;
 /* Temporary!  Move to cnode.h. -JJK */
 #define	C_INCON	0x2
@@ -155,10 +158,14 @@ int MsgRead(msgent *m)
 	int cc = read_relay(m->msg_buf);
 
 #elif defined(__CYGWIN32__)
+#ifdef NEW_NT_IPC
+	int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
+#else
         struct sockaddr_in addr;
 	int len = sizeof(addr);
 	int cc = ::recvfrom(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE),
 			    0, (struct sockaddr *) &addr, &len);
+#endif 
 #else
 	int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
 #endif
@@ -174,6 +181,9 @@ int MsgWrite(char *buf, int size)
 #ifdef DJGPP
 	 return write_relay(buf, size);
 #elif defined(__CYGWIN32__)
+#ifdef NEW_NT_IPC
+	 return nt_msg_write(buf, size);
+#else
          struct sockaddr_in addr;
 
          addr.sin_family = AF_INET;
@@ -181,6 +191,7 @@ int MsgWrite(char *buf, int size)
          addr.sin_addr.s_addr = htonl(venus_relay_addr);
          return ::sendto(worker::muxfd, buf, size, 0, 
 			 (struct sockaddr *) &addr, sizeof(addr));
+#endif
 #else 
 	return write(worker::muxfd, buf, size);
 #endif
@@ -447,6 +458,12 @@ void VFSMount()
     }
 #endif
 
+#ifdef __CYGWIN32__
+    /* Mount by starting another thread. */
+    eprint ("Mounting on %s", venusRoot);
+    nt_mount (venusRoot);
+#endif
+
     Mounted = 1;
 }
 
@@ -558,6 +575,12 @@ void VFSUnmount()
       sync();
     }
 #endif
+
+#ifdef __CYGWIN32__
+    eprint ("Unmounting %s", venusRoot);
+    nt_umount (venusRoot);
+#endif
+
 
 }
 
@@ -718,6 +741,16 @@ void WorkerInit()
     worker::muxfd = MCFD;
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
 #elif defined(__CYGWIN32__)
+#ifdef NEW_NT_IPC 
+    int sd[2];
+    if (socketpair(AF_LOCAL, SOCK_STREAM, 0, sd)) {
+	    eprint("WorkerInit: socketpair() returns %d", errno);
+	    exit(-1);
+    }
+    worker::muxfd = sd[0];
+    nt_initialize_ipc (sd[1]);
+    dprint("WorkerInit: muxfd = %d", worker::muxfd);
+#else
     worker::muxfd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (worker::muxfd < 0) {
             eprint("WorkerInit: socket() returns %d", errno);
@@ -735,7 +768,7 @@ void WorkerInit()
 	     exit(-1);
 	 }
     }
-
+#endif
 #else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
@@ -1270,7 +1303,7 @@ void worker::main(void)
 
 	    case CODA_OPEN:
 		{
-		LOG(100, ("CODA_OPEN: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_OPEN: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid)); 
                 /* Remember some info for dealing with interrupted open calls */
                 saveFid = in->coda_open.VFid;
                 saveFlags = in->coda_open.flags;
@@ -1314,7 +1347,7 @@ void worker::main(void)
 
 	    case CODA_OPEN_BY_PATH:
 		{
-		LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
+		LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid)); 
 #if defined(DJGPP) || defined(__CYGWIN32__)
 		char *slash;
 #endif
