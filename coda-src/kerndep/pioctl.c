@@ -271,9 +271,7 @@ int pioctl(const char *path, unsigned long com,
     data.follow = follow;
     data.vi = *vidata;
 
-    code = _pioctl(path, cmd, &data);
-    if (code && errno == ENOTTY)
-        code = _pioctl(CTL_FILE, cmd, &data);
+    code = _pioctl(CTL_FILE, cmd, &data);
 
     /* Return result of ioctl. */
     return(code);
