@@ -19,6 +19,10 @@ listed in the file CREDITS.
 #ifndef CODA_DB_H
 #define CODA_DB_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifdef HAVE_NDBM
 #include <ndbm.h>
 #elif defined(HAVE_DB1_DB_H)

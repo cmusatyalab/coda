@@ -19,6 +19,10 @@ Coda are listed in the file CREDITS.
 #ifndef CODA_WAIT_H
 #define CODA_WAIT_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 /* Header files and macros for a common denominator in wait and friends */
 
 #include <sys/types.h>

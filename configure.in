@@ -1,6 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(coda-src/librepair/resolve.h)
+AC_PREREQ(2.50)
+AC_INIT
+AC_CONFIG_SRCDIR(coda-src/librepair/resolve.h)
 AC_CONFIG_HEADER(config.h)
 
 dnl For some reason the default prefix was set to NONE on Solaris.
@@ -9,6 +11,11 @@ AC_PREFIX_DEFAULT(/usr/local)
 AC_CONFIG_AUX_DIR(configs)
 dnl Set up the environment for djgpp/cygwin cross compilation.
 sinclude(configs/coda_cross.m4)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_CXX
+
 dnl Load the CODA_ tests.
 sinclude(configs/coda_macros.m4)
 
@@ -20,9 +27,6 @@ CODA_OPTION_CRYPTO
 CODA_OPTION_LIBRARY(krb4)
 CODA_OPTION_LIBRARY(krb5)
 
-dnl Checks for programs.
-AC_PROG_CC
-AC_PROG_CXX
 CODA_PROG_NATIVECC
 
 dnl Now we can derive things like systype/cputype/initdir

@@ -925,7 +925,7 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 		if ((int)vnode->inodeNumber == NEWVNODEINODE){
 		    /* delete the vnode */
 		    VLog(0, "DistilVnodeEssence: Found a Directory"
-			 "vnode %d that has a special inode ... deleting vnode ",
+			 "vnode %lx that has a special inode ... deleting vnode ",
 			vnodeIndex);
 		    vip->nAllocatedVnodes--;
 		    vip->volumeBlockCount -= vep->blockCount;

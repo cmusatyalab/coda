@@ -19,6 +19,10 @@ Coda are listed in the file CREDITS.
 #ifndef CODA_STRING_H
 #define CODA_STRING_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <string.h>
 #ifdef HAVE_BCOPY_IN_STRINGS_H
 /* bcopy et al are in strings.h on Solaris */

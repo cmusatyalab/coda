@@ -124,8 +124,8 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, uid_t uid)
             RVMLIB_REC_OBJECT(cf);
 	    data.dir->udcf = &cf;
             data.dir->udcf->Create();
+	    data.dir->udcfvalid = 0;
 	    Recov_EndTrans(MAXFP);
-	    FSO_ASSERT(this, data.dir->udcfvalid == 0);
 	}
 
 	/* Recompute udir contents if necessary. */
