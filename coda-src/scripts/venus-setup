@@ -134,10 +134,6 @@ if [ $OS = CYGWI ]; then
   codaconfedit venus.conf mountpoint $MOUNTPOINT:
   codaconfedit venus.conf cache_prefix /??/`mount | grep ' / ' | cut -d' ' -f1 | tr \\\\\\\\ /`
 
-  # now set up venus as a service
-
-  /usr/local/sbin/venus -install
-
 else
 
   makedir 755 $mountpoint
