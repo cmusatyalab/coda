@@ -807,7 +807,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 {
 
 	/* Handle invalidation requests. */
-          if ( !sb ) { 
+          if ( !sb || !sb->s_root || !sb->s_root->d_inode) { 
 	          printk("coda_downcall: opcode %d, no sb!\n", opcode);
 		  return 0; 
 	  }
