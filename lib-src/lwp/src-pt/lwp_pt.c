@@ -116,11 +116,13 @@ static void _SCHEDULE(PROCESS pid, int leave)
 /* if there already is a running LWP, or others are waiting we should block */
     if (lwp_cpptr || lwp_waiting) {
 	    lwp_waiting++;
+	    pid->waiting = 1;
 	    /* block at least once to give others a chance to run */
 	    do {
 		    pthread_cond_wait(&run_cond, &run_mutex);
 	    } while (lwp_cpptr);
 	    lwp_waiting--;
+	    pid->waiting = 0;
     }
     lwp_cpptr = pid;
 }
@@ -139,14 +141,13 @@ void lwp_JOIN(PROCESS pid)
 
 void lwp_LEAVE(PROCESS pid)
 {
+    if (!pid->concurrent) {
+	pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
+	pthread_mutex_lock(&run_mutex);
+	_SCHEDULE(pid, 1);
+	pthread_cleanup_pop(1);
+    }
     pthread_testcancel();
-    if (pid->concurrent)
-	return;
-
-    pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
-    pthread_mutex_lock(&run_mutex);
-    _SCHEDULE(pid, 1);
-    pthread_cleanup_pop(1);
 }
 
 /*-------------END SCHEDULER CODE------------*/
@@ -158,17 +159,26 @@ static void lwp_cleanup_process(void *data)
 {
     PROCESS pid = (PROCESS)data;
 
-    /* we need the run_mutex to fiddle around with the process list */
+    /* now we need the run_mutex to fiddle around with the process list */
     pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
     pthread_mutex_lock(&run_mutex);
     {
+	if (pid->waiting)
+	    lwp_waiting--;
+
+	if (pid == lwp_cpptr) {
+	    lwp_cpptr = NULL;
+	    pid->waiting = 1;
+	}
+
+	if (pid->waiting && !lwp_cpptr)
+	    pthread_cond_signal(&run_cond);
+
 	list_del(&pid->list);
-	if (!pid->concurrent)
-	    _SCHEDULE(pid, 1);
     }
     pthread_cleanup_pop(1);
 
-    /* ok, we're safe, now start cleaning up */
+    /* ok, we're safe, start cleaning up */
     sem_destroy(&pid->waitq);
     pthread_cond_destroy(&pid->event);
 
@@ -340,12 +350,10 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 static void _LWP_DestroyProcess (PROCESS pid)
 {
     pthread_cancel(pid->thread);
-#if 0
     if (pid->waitcnt) {
 	pid->waitcnt = 0;
 	pthread_cond_signal(&pid->event);
     }
-#endif
 }
 
 int LWP_DestroyProcess (PROCESS pid)
@@ -378,9 +386,11 @@ int LWP_TerminateProcessSupport()
 
     /* Threads should be cancelled by now, we just have to wait for them to
      * terminate. */
-    while(!list_empty(&lwp_list))
+    while(!list_empty(&lwp_list)) {
+	pthread_mutex_unlock(&run_mutex);
+	pthread_mutex_lock(&run_mutex);
 	_SCHEDULE(this, 0);
-
+    }
     pthread_mutex_unlock(&run_mutex);
 
     /* We can start cleaning. */
@@ -457,7 +467,7 @@ int LWP_INTERNALSIGNAL(void *event, int yield)
 		signalled = 1;
 	    }
 	}
-	if (signalled && yield && !this->concurrent)
+	if ((signalled || yield) && !this->concurrent)
 	    _SCHEDULE(this, 0);
     }
     pthread_cleanup_pop(1);

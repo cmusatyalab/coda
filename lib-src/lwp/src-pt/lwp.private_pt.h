@@ -35,6 +35,7 @@ struct lwp_pcb {
     struct list_head list;              /* list of all threads */
 
     int              concurrent;
+    int              waiting;
     int              priority;
 
     char	     name[32];          /* ASCII name */
