@@ -303,7 +303,7 @@ struct RPC2_addrinfo *U_GetAuthServers(const char *realm, const char *host)
 	return GetAuthServers(realm);
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family   = PF_INET;
+    hints.ai_family   = PF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_protocol = IPPROTO_UDP;
 
