@@ -42,6 +42,9 @@ Pittsburgh, PA.
 	-- SFTP Globals and routines common to sftp1.c and sftp2.c
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <stdio.h>
 #include <fcntl.h>

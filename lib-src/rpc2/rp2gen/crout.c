@@ -1172,8 +1172,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    if (who == RP2_SERVER && mode != IN_MODE) {
 		fprintf(where, "    %s%sMaxSeqLen = ntohl(*(RPC2_Integer *) %s);\n",
 			name, select, ptr);
-	    } else if (who == RP2_SERVER)
-		fprintf(where, "    %s%sMaxSeqLen = 0;\n", name, select);
+	    }
 	    inc4(ptr, where);	/* Skip maximum length */
 
 	    if ((who == RP2_CLIENT && mode != IN_MODE) ||
@@ -1181,16 +1180,19 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    {
 		fprintf(where, "    %s%sSeqLen = ntohl(*(RPC2_Integer *) %s);\n",
 			name, select, ptr);
-		fprintf(where, "    if (%s%sSeqLen > %s%sMaxSeqLen) {\n"
-			BUFFEROVERFLOW "    }\n", name,select, name,select);
-		fprintf(where, "    if ( (char *)%s + _PAD(%s%sSeqLen) > _EOB) {\n"
-			BUFFEROVERFLOW
-			"    }\n", ptr,name,select);
 	    } else if (who == RP2_SERVER)
 		fprintf(where, "    %s%sSeqLen = 0;\n", name, select);
 	    inc4(ptr, where); /* skip packed sequence length */
 
-            buffer_checked = 1;
+	    if (who == RP2_SERVER && mode == IN_MODE)
+		fprintf(where, "    %s%sMaxSeqLen = %s%sSeqLen;\n", name, select, name, select);
+	    else
+		fprintf(where, "    if (%s%sSeqLen > %s%sMaxSeqLen) {\n"
+			BUFFEROVERFLOW "    }\n", name,select, name,select);
+	    fprintf(where, "    if ( (char *)%s + _PAD(%s%sSeqLen) > _EOB) {\n"
+		    BUFFEROVERFLOW "    }\n", ptr,name,select);
+
+	    buffer_checked = 1;
 	    if (who == RP2_CLIENT) {
 		if (mode != IN_MODE) {
 		    fprintf(where, "    memcpy((char *)%s%sSeqBody, (char *)%s, (long)%s%sSeqLen);\n",

@@ -465,7 +465,7 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 				(*_ptr)++;
 				(void) strcpy((RPC2_Byte *)(*_ptr), arg->string);
 			      }
-			      *(RPC2_Byte *)((*_ptr)+_length) = '\0';
+			      ((RPC2_Byte *)(*_ptr))[_length] = '\0';
 #if SIZE == 4
 			      (*_ptr) += (_PAD(_length+1) >> 2);
 			      /* (*_ptr) += ((a_types->size) >> 2) - 1; */
