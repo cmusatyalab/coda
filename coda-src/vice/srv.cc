@@ -115,6 +115,7 @@ extern int Fcon_Init();
 #include <rescomm.h>
 #include <lockqueue.h>
 #include "coppend.h"
+#include "daemonizer.h"
 
 
 /* *****  Exported variables  ***** */
@@ -246,7 +247,7 @@ static void ShutDown();
 static int ReadConfigFile(void);
 static int ParseArgs(int, char **);
 static void InitServerKeys(char *, char *);
-static void DaemonizeSrv(void);
+static int DaemonizeSrv(char *pidfile);
 static void InitializeServerRVM(char *name);
 
 #ifdef RVMTESTING
@@ -326,13 +327,14 @@ int main(int argc, char *argv[])
 {
     char    sname[20];
     int     i;
-    FILE   *file;
     struct stat buff;
     PROCESS parentPid, serverPid, resPid, smonPid, resworkerPid;
     RPC2_PortIdent port1, *portlist[1];
     RPC2_SubsysIdent server;
     SFTP_Initializer sei;
     ProgramType *pt;
+    int parent = -1;
+    char *pidfile;
 
     coda_assert_action = CODA_ASSERT_EXIT;
 
@@ -355,6 +357,9 @@ int main(int argc, char *argv[])
 
     (void)ReadConfigFile();
 
+    pidfile = vice_file("srv/pid");
+    parent = DaemonizeSrv(pidfile);
+
     if(chdir(vice_file("srv"))) {
 	SLog(0, "could not cd to %s - exiting", vice_file("srv"));
 	exit(-1);
@@ -363,7 +368,6 @@ int main(int argc, char *argv[])
     unlink("NEWSRV");
 
     SwapLog();
-    DaemonizeSrv();
 
     /* CamHistoInit(); */	
     /* Initialize CamHisto package */
@@ -479,10 +483,6 @@ int main(int argc, char *argv[])
 
     FileMsg();
 
-
-    CODA_ASSERT(file = fopen("pid","w"));
-    fprintf(file,"%d",(int)getpid());
-    fclose(file);
     /* Init per LWP process functions */
     for(i=0;i<MAXLWP;i++)
 	LastOp[i] = StackAllocated[i] = StackUsed[i] = 0;
@@ -586,6 +586,9 @@ int main(int argc, char *argv[])
     TM_GetTimeOfDay(&tp, &tsp);
     SLog(0,"File Server started %s", ctime((const time_t *)&tp.tv_sec));
     StartTime = (unsigned int)tp.tv_sec;
+
+    gogogo(parent);
+
     CODA_ASSERT(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
     exit(0);
 }
@@ -1611,40 +1614,24 @@ void Die(char *msg)
 }
 
 
-static void DaemonizeSrv() { 
-    int  rc; 
+static int DaemonizeSrv(char *pidfile)
+{ 
+    int parent = -1; 
+
+    if (SrvDebugLevel == 0)
+	parent = daemonize(pidfile);
+
    /* Set DATA segment limit to maximum allowable. */
 #ifndef __CYGWIN32__
-    struct rlimit rl;
-    if (getrlimit(RLIMIT_DATA, &rl) < 0) {
-        perror("getrlimit"); exit(-1);
-    }
-    rl.rlim_cur = rl.rlim_max;
-    SLog(0, 
-	   "Resource limit on data size are set to %d\n", rl.rlim_cur);
-    if (setrlimit(RLIMIT_DATA, &rl) < 0) {
-	perror("setrlimit"); exit(-1); 
-    }
-#endif
-    /* the forking code doesn't work well with our "startserver" script. 
-       reactivate this when that silly thing is gone */
-#if 0 
-    child = fork();
-    
-    if ( child < 0 ) { 
-	fprintf(stderr, "Cannot fork: exiting.\n");
-	exit(1);
-    }
-
-    if ( child != 0 ) /* parent */
-	exit(0); 
-#endif 
-
-    rc = setsid();
-#if 0
-    if ( rc < 0 ) {
-	fprintf(stderr, "Error detaching from terminal.\n");
-	exit(1);
+    {
+	struct rlimit rl;
+	if (getrlimit(RLIMIT_DATA, &rl) < 0) {
+	    perror("getrlimit"); exit(-1);
+	}
+	rl.rlim_cur = rl.rlim_max;
+	if (setrlimit(RLIMIT_DATA, &rl) < 0) {
+	    perror("setrlimit"); exit(-1); 
+	}
     }
 #endif
 
@@ -1665,6 +1652,7 @@ static void DaemonizeSrv() {
 #else
     signal(SIGBUS,  (void (*)(int))zombie);
 #endif
+    return parent;
 }
 
 static void InitializeServerRVM(char *name)
