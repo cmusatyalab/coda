@@ -4,7 +4,7 @@
 # Configuration directories:
 # 
 
-echo Setting up config files \(under /vice\).
+echo 'Setting up config files (under /vice).'
 
 if [ ! -d /vice ]; then
     mkdir /vice
@@ -153,10 +153,10 @@ done
 
 
 if [ $isscm = Y ]; then
-    vice-scm-setup
-    vice-user-setup
-    vice-rvmsetup
-    vice-srvdirsetup
+    vice-setup-scm
+    vice-setup-user
+    vice-setup-rvm
+    vice-setup-srvdir
     exit 0 
 fi
 
@@ -172,8 +172,8 @@ until [ x$scmhost != x ]; do
     fi
 done
 
-vice-rvmsetup
-vice-srvdirsetup
+vice-setup-rvm
+vice-setup-srvdir
 
 echo "You have set up " `cat /.hostname`
 echo "Your scm is " `cat /.scm`

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.14 1998/01/13 00:22:58 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.15 1998/01/14 15:11:46 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -43,7 +43,7 @@ VENUS-SCRIPTS = vutil volmunge venus-setup
 VOL-SCRIPTS	= createvol createvol_rep purgevol purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver
 REINIT-SCRIPTS	= partial-reinit.sh reinit.sh recreatevol recreatevol_rep
-VICE-SETUP      = vice-rvmsetup vice-killvolumes vice-makerootvol vice-server-setup vice-srvdirsetup vice-user-setup vice-install vice-scm-setup
+VICE-SETUP      = vice-setup vice-setup-rvm  vice-setup-scm vice-setup-srvdir vice-setup-user vice-install vice-killvolumes
 
 BACKUP-SCRIPTS	= backup.sh tape.pl
 INIT-SCRIPTS    = venus.init vice.init
