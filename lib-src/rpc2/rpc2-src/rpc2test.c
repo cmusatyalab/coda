@@ -90,7 +90,7 @@ static long rpc2rc;
 static long ListenerBody(char *listenerName);
 static long WorkerBody(char *workerName);
 static long ClientBody(char *clientName);
-static long GetPasswd(RPC2_Integer AuthenticationType, RPC2_CountedBS *Who,
+static long GetPasswd(RPC2_Integer *AuthenticationType, RPC2_CountedBS *Who,
 		      RPC2_EncryptionKey Key1, RPC2_EncryptionKey Key2);
 static void GetVar(long *gVar, char *gPrompt);
 static void GetStringVar(char *gSVar, char *gPrompt);
@@ -706,7 +706,7 @@ static struct Password {
 };
 
 
-static long GetPasswd(RPC2_Integer AuthenticationType, RPC2_CountedBS *Who,
+static long GetPasswd(RPC2_Integer *AuthenticationType, RPC2_CountedBS *Who,
 		      RPC2_EncryptionKey Key1, RPC2_EncryptionKey Key2)
 {
     long i;

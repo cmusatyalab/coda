@@ -665,7 +665,7 @@ extern long rpc2_AllocBuffer (long MinBodySize, RPC2_PacketBuffer **BufferPtr, c
 extern long RPC2_FreeBuffer (RPC2_PacketBuffer **Buffer);
 extern long RPC2_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Reply);
 
-typedef long RPC2_GetKeys_func(RPC2_Integer AuthenticationType,
+typedef long RPC2_GetKeys_func(RPC2_Integer *AuthenticationType,
 			       RPC2_CountedBS *cident,
 			       RPC2_EncryptionKey SharedSecret,
 			       RPC2_EncryptionKey sessionkey);

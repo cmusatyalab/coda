@@ -308,8 +308,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     {
         RPC2_EncryptionKey SharedSecret;
         /* Abort if we cannot get `keys' for a NULL client */
-        if (GetKeys && (*GetKeys)(AuthenticationType, NULL, SharedSecret,
-                                  ce->SessionKey) != 0)
+        if (GetKeys && GetKeys(&AuthenticationType, NULL, SharedSecret,
+			       ce->SessionKey) != 0)
 	{
             RejectBind(ce, (long) sizeof(struct Init2Body), (long) RPC2_INIT2);
             rc = RPC2_NOTAUTHENTICATED;
@@ -1228,10 +1228,10 @@ static int ServerHandShake(IN struct CEntry *ce,
     long saveYRandom, rc;
 
     /* Abort if we cannot get keys or if bogus encryption type specified */
-    if (KeyProc == NULL
-    	|| (*KeyProc)(authenticationtype, cident, SharedSecret, ce->SessionKey) != 0
-    	||  (ce->EncryptionType & emask) == 0 	/* unsupported or unknown encryption type */
-	||  MORETHANONEBITSET(ce->EncryptionType))
+    if (!KeyProc ||
+	KeyProc(&authenticationtype, cident, SharedSecret, ce->SessionKey) ||
+	(ce->EncryptionType & emask) == 0 ||	/* unsupported or unknown encryption type */
+	MORETHANONEBITSET(ce->EncryptionType))
 	{
 	RejectBind(ce, (long) sizeof(struct Init2Body), (long) RPC2_INIT2);
 	return(RPC2_NOTAUTHENTICATED);
