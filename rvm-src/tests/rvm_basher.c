@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_basher.c,v 1.1 94/07/30 23:17:02 bnoble Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/tests/RCS/rvm_basher.c,v 1.1 1996/11/22 19:17:25 braam Exp braam $";
 #endif _BLURB_
 
 /*
@@ -68,8 +68,8 @@ static char *rcsid = "$Header: rvm_basher.c,v 1.1 94/07/30 23:17:02 bnoble Exp $
 #endif VERSION_TEST
 
 #ifndef RVM_USELWP
-/* XXX bogus by Eric to get compile */
-#include "cthreads.h"
+/* XXX bogus by Eric and Peter to get compile */
+#include <dummy_cthreads.h>
 
 /* define types symbolically to permit use of non-Cthread thread support */
 #define RVM_MUTEX       struct mutex
