@@ -422,25 +422,16 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	/* Permission checks. */
 	{
 	    /* chmod, fchmod */
-	    if (vap->va_mode != VA_IGNORE_MODE) {
-		    if ( vap->va_mode & S_ISUID )
-			    /* XXXX totally wrong: 
-			       here a test for membership of 
-			       System:Adminstrators of the euid
-			       is what we want. 
-			       
-			       For now we will ask the fileserver to
-			       enforce that.
-			    */
-			    u.u_error = f->Access((long)PRSFS_ADMINISTER, 
-						  0, CRTORUID(u.u_cred));
-		            
-		    else
-			    u.u_error = f->Access((long)PRSFS_WRITE, 0, 
-						  CRTORUID(u.u_cred));
-		    if (u.u_error) 
-			    goto FreeLocks;
-	    }
+            if (vap->va_mode != VA_IGNORE_MODE) {
+                /* setuid is not desirable on a distributed fs. Use a link to
+                 * a local binary to preserve local policies */
+                if (S_ISREG(vap->va_mode) &&
+                    vap->va_mode & (S_ISUID | S_ISGID))
+                {
+                    u.u_error = EPERM;
+                    goto FreeLocks;
+                }
+            }
 
 	    /* chown, fchown */
 	    if (vap->va_uid != VA_IGNORE_UID) {

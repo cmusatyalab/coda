@@ -2212,7 +2212,10 @@ void fsobj::UnLock(LockLevel level) {
 void fsobj::GetVattr(struct coda_vattr *vap) {
     /* Most attributes are derived from the VenusStat structure. */
     vap->va_type = FTTOVT(stat.VnodeType);
-    vap->va_mode = stat.Mode ;
+    vap->va_mode = stat.Mode;
+
+    if (S_ISREG(stat.Mode)) /* strip the setuid bits on files! */
+        vap->va_mode &= ~(S_ISUID | S_ISGID);
 
     vap->va_uid = (uid_t) stat.Owner;
     vap->va_gid = (vgid_t)V_GID;

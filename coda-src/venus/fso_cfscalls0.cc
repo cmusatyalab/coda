@@ -1551,9 +1551,12 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
         if (vap->va_uid != VA_IGNORE_UID && vap->va_uid != stat.Owner)
 		NewOwner = vap->va_uid;
 
-	if ((vap->va_mode != VA_IGNORE_MODE) && 
-	    ((vap->va_mode & 04777) != stat.Mode) )
-		NewMode= (vap->va_mode & 04777);
+	if (vap->va_mode != VA_IGNORE_MODE) {
+            /* Only retain the actual user/group/other permission bits */
+            vap->va_mode &= (S_IRWXU | S_IRWXG | S_IRWXO);
+            if (vap->va_mode != stat.Mode)
+                NewMode= vap->va_mode;
+        }
 
 	/* Only update cache file when truncating and open for write! */
 	if (NewLength != (unsigned long)-1 && WRITING(this)) {
