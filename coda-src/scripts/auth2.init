@@ -13,7 +13,6 @@
 # Source function library if we are a System V type OS using SYSV init.
 # Otherwise, we are probably a BSD like OS.
 
-LOCKDIR=/var/lock/subsys
 PIDDIR=/vice/auth2
 DBDIR=/vice/db
 
@@ -21,49 +20,67 @@ PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
 
 [ -d $PIDDIR ] || exit 0
-[ -d $LOCKDIR ] || exit 0
 
-
-if [ -f /usr/sbin/auth2 ]; then
-    AUTH2=/usr/sbin/auth2
-elif [ -f /usr/sbin/kauth2 ]; then
-    AUTH2=/usr/sbin/kauth2
-else
+for dir in /usr/sbin /usr/local/sbin ; do
+    for auth in kauth2 auth2 ; do
+	if [ -f $dir/$auth ] ; then
+	    AUTH2=$dir/$auth
+	    break 2
+	fi
+    done
+done
+if [ -z "$AUTH2" ] ; then
     exit 0
 fi
 
+if [ "`cat /vice/hostname`" != "`cat /vice/db/scm`" ]; then
+    FLAGS="$FLAGS -chk "
+fi
+
+
+if [ `uname` = 'SunOS' ] ; then
+    LOCKFILE=$PIDDIR/auth2.init.lock
+else
+    # redhat and debian?
+    LOCKDIR=/var/lock/subsys
+    [ -d $LOCKDIR ] || exit 0
+    LOCKFILE=$LOCKDIR/auth2.init
+fi
+
+echon() {
+    if [ "`echo -n`" ] ; then
+        echo "$@"\c
+    else
+        echo -n "$@"
+    fi
+}
 
 # See how we were called.
 case "$1" in
   start)
-	# auth2
-	if [ ! -f $LOCKDIR/auth2.init ]; then
-		touch $LOCKDIR/auth2.init
-		if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
-		    ${AUTH2} ${FLAGS}&
-		    echo  "${AUTH2}"
-		else 	# for non-scm machines.
-		    ${AUTH2} ${FLAGS} -chk &
-		    echo "${AUTH2} -chk,"
-		fi
+        echon "Starting auth2: "
+	if [ ! -f $LOCKFILE ]; then
+		touch $LOCKFILE
+		${AUTH2} ${FLAGS} &
+		echon "${AUTH2} ${FLAGS}"
 	else
 		echo "auth2: already locked."
 		exit 1
 	fi
+	echo "done."
 	;;
   stop)
+        echon "Stopping auth2: "
 	if [ -f $PIDDIR/pid ]; then
 		kill -9 `cat $PIDDIR/pid`
 	fi
-	rm -f $LOCKDIR/auth2.init
-
+	rm -f $LOCKFILE
+	echo "done."
 	;;
 
  restart)
-        echo -n "Restarting auth2: "
         $0 stop
         $0 start
-        echo "done."
         ;;
 
   *)

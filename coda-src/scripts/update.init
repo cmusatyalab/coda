@@ -20,66 +20,75 @@ DBDIR=/vice/db
 PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
 
-[ -f /usr/sbin/updatesrv ] || exit 0
-[ -f /usr/sbin/updateclnt ] || exit 0
+[ -f /usr/sbin/updatesrv ]  || [ -f /usr/local/sbin/updatesrv ]  || exit 0
+[ -f /usr/sbin/updateclnt ] || [ -f /usr/local/sbin/updateclnt ] || exit 0
 [ -d $PIDDIR ] || exit 0
-[ -d $LOCKDIR ] || exit 0
+
+if [ `uname` = 'SunOS' ] ; then
+    LOCKFILE=$PIDDIR/update.init.lock
+else
+    # redhat and debian?
+    LOCKDIR=/var/lock/subsys
+    [ -d $LOCKDIR ] || exit 0
+    LOCKFILE=$LOCKDIR/update.init
+fi
+
+echon() {
+    if [ "`echo -n`" ] ; then
+        echo "$@"\c
+    else
+        echo -n "$@"
+    fi
+}
+
 
 # See how we were called.
 case "$1" in
   start)
+	echon "Starting coda update servers: "
 	# rpc2portmap
-	if [ ! -f $LOCKDIR/rpc2portmap.init ]; then
-		touch $LOCKDIR/rpc2portmap.init
-		rpc2portmap &
-		echo "rpc2portmap"
-	else
-		echo "rpc2portmap: already locked."
+	if [ -f $LOCKFILE ]; then
+		echo "already locked."
 		exit 1
 	fi
 
-	# updatesrv
-	if [ ! -f $LOCKDIR/updatesrv.init ]; then
-		touch $LOCKDIR/updatesrv.init
-		updatesrv -p $DBDIR &
-		echo "updatesrv"
-	else
-		echo "updatesrv: already locked."
-		exit 1
-	fi
+	echon "rpc2portmap "
+	rpc2portmap &
 
-	# updateclnt
-	if [ ! -f $LOCKDIR/updateclnt.init ]; then
-		touch $LOCKDIR/updateclnt.init
-		updateclnt  -h `cat $DBDIR/scm`  -q coda_udpsrv &
-		echo "updateclnt"
-	else
-		echo "updateclnt: already locked."
-		exit 1
-	fi
+	echon "updatesrv "
+	updatesrv -p $DBDIR &
+
+	echon "updateclnt "
+	updateclnt  -h `cat $DBDIR/scm`  -q coda_udpsrv &
+
+	echo "done."
 	;;
   stop)
-        killall -9 rpc2portmap
-	rm -f $LOCKDIR/rpc2portmap.init
+	echon "Stopping coda update servers "
+	echon "rpc2portmap "
+	if [ `uname` = 'SunOS' ] ; then
+	    pkill -9 rpc2portmap
+	else
+	    killall -9 rpc2portmap
+	fi
     
 	if [ -f $PIDDIR/updatesrv.pid ]; then
-		kill -9 `cat $PIDDIR/updatesrv.pid`
+	    echon "updatesrv "
+	    kill -9 `cat $PIDDIR/updatesrv.pid`
 	fi
-	rm -f $LOCKDIR/updatesrv.init
 
 	if [ -f $PIDDIR/updateclnt.pid ]; then
-		kill -9 `cat $PIDDIR/updateclnt.pid`
+	    echon "updateclnt "
+	    kill -9 `cat $PIDDIR/updateclnt.pid`
 	fi
-	rm -f $LOCKDIR/updateclnt.init
+	rm -f $LOCKFILE
+	echo "done."
 	;;
 
  restart)
-        echo -n "Restarting auth2: "
         $0 stop
         $0 start
-        echo "done."
         ;;
-
 
   *)
 	echo "Usage: $0 {start|stop|restart}"

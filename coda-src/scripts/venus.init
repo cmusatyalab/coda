@@ -21,41 +21,61 @@ PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
 
 [ -f /usr/sbin/venus ] || exit 0
-[ -d $LOCKDIR ] || exit 0 
 [ -d $CACHEDIR ] || exit 0 
 [ -d $ETCDIR ] || exit 0
+
+if [ `uname` = 'SunOS' ] ; then
+    LOCKFILE=$PIDDIR/venus.init.lock
+else
+    # redhat and debian?
+    LOCKDIR=/var/lock/subsys
+    [ -d $LOCKDIR ] || exit 0
+    LOCKFILE=$LOCKDIR/venus.init
+fi
+
+echon() {
+    if [ "`echo -n`" ] ; then
+        echo "$@"\c
+    else
+        echo -n "$@"
+    fi
+}
+
 
 # See how we were called.
 case "$1" in
   start)
-	if [ ! -f $LOCKDIR/venus.init ]; then
-		touch $LOCKDIR/venus.init
+	echon "Starting venus: "
+	if [ ! -f $LOCKFILE ]; then
+		touch $LOCKFILE
 		venus &
-		echo started: venus
 	else
-		echo "venus: already locked."
+		echo "already locked."
 		exit 0
 	fi
+	echo "done."
 	;;
   stop)
+	echon "Shutting down venus: "
 	if [ -f $PIDDIR/pid ]; then
 		
 		kill -TERM `cat $PIDDIR/pid`
 		umount /coda
 	fi
-	rm -f $LOCKDIR/venus.init
+	rm -f $LOCKFILE
+	echo "done."
 
 	;;
 
   hardstop)
+	echon "Killing venus: "
 	if [ -f $PIDDIR/pid ]; then
 		
-		kill -KILL `cat $PIDDIR/pid`
+		kill -9 `cat $PIDDIR/pid`
 		umount /coda
-		echo stopped: venus
 	fi
-	rm -f $LOCKDIR/venus.init
-
+	rm -f $LOCKFILE
+	echo "done."
 	;;
 
 
