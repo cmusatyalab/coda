@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.cc,v 4.7 1998/10/21 22:06:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.cc,v 4.8 1998/11/02 16:46:50 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -535,9 +535,9 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 		vnp = vcp->lruHead->lruPrev;
 		if ( vnp->dh ) {
 			SLog(0, "VGetVnode: DROPPING dh of vn %x un %x"
-			     "count %d\n",
+			     "total count %d, dh_refc: %d\n",
 			     vnp->vnodeNumber, vnp->disk.uniquifier, 
-			     DC_Count(vnp->dh));
+			     DC_Count(vnp->dh), vnp->dh_refc);
 			VN_DropDirHandle(vnp);
 		}
 

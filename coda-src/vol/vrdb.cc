@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.cc,v 4.6 1998/11/30 11:39:43 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vrdb.cc,v 4.7 1998/12/02 22:07:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -217,7 +217,8 @@ int XlateVid(VolumeId *vidp) {
 }
 
 
-int XlateVid(VolumeId *vidp, int *count, int *pos) {
+int XlateVid(VolumeId *vidp, int *count, int *pos) 
+{
     vrent *vre = VRDB.find(*vidp);
     if (!vre) return(0);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.h,v 4.4 1998/08/26 21:22:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.h,v 4.5 1998/10/21 22:06:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -180,6 +180,7 @@ typedef struct Vnode {
     struct Volume
 		*volumePtr;	/* Pointer to the volume containing this file*/
     PDCEntry    dh;             /* Directory cache handle (used for dirs) */
+    int         dh_refc;        /* Refcount of this vnode to dh */
     byte	nUsers;		/* Number of lwp's who have done a VGetVnode */
     bit16	cacheCheck;	/* Must equal the value in the volume Header
     				   for the cache entry to be valid */
