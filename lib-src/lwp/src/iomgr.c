@@ -318,8 +318,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
  * queue, also, don't signal selector while request in queue, since
  * selector free's request.  */
 
-static void IOMGR(dummy)
-    char *dummy;
+static void IOMGR(char *dummy)
 {
 
     for (;;) {

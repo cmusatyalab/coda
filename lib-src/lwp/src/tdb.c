@@ -57,7 +57,7 @@ int Global;
 char	c, d;
 PROCESS	A_pid, B_pid, C_pid;
 
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     int a;
     char b;
@@ -72,6 +72,7 @@ void main(int argc, char **argv)
     LWP_CreateProcess((PFI)procC, 2048, LWP_NORMAL_PRIORITY, NULL, "procC", &C_pid);
     printf("Main thread returned from creating procC  \n");
     LWP_WaitProcess(&b);
+    exit(0);
 }
 
 int procA(int dummy)

@@ -36,9 +36,13 @@ if test ${build} != ${target} ; then
     AS="gnuwin32as"
     NM="gnuwin32nm"
 
-    dnl -liberty is for insque(), remque()
-    LDFLAGS="-L/usr/gnuwin32/lib -liberty"
+    LDFLAGS="-L/usr/gnuwin32/lib"
     ;;
  esac
 fi])
+
+AC_DEFUN(CODA_PATCH_LIBTOOL,
+[if test ${build} != ${target} ; then
+  patch < ${srcdir}/libtool.patch
+ fi])
 

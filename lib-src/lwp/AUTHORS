@@ -1,0 +1,10 @@
+
+  The original design and implementation of LWP was done by Larry Raper.
+
+  The first versions of LWP were operational in early 1984. Since then
+  LWP has been and is being used by several groups both inside and
+  outside Carnegie Mellon University. This makes it somewhat difficult
+  to create a consistent list of others who have contributed, ported,
+  and patched their way through LWP over the years. It would probably
+  make a nice project for a history grad student.
+

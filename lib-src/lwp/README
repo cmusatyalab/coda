@@ -1,0 +1,424 @@
+This README consists of LWP related parts taken from,
+
+  RPC2 User Guide and Reference Manual
+  M. Satyanarayanan (Editor) Richard Draves, James Kistler,
+  Anders Klemets, Qi Lu, Lily Mummert, David Nichols, Larry
+  Raper, Gowthami Rajendran, Jonathan Rosenberg, Ellen Siegel
+
+So occasional references to RPC2 can be safely ignored.
+
+Jan
+
+
+LWP, a coroutine-based lightweight process package.
+===================================================
+
+  RPC2 runs on LWP, a lightweight process package that allows multiple
+  non-preemptive threads of control to coexist within one Unix process.
+  RPC2 and LWP run entirely at user-level on the Unix 4.3BSD interface;
+  no kernel changes are necessary.
+
+  The first versions of LWP and RPC2 were operational in early 1984 and
+  mid-1985 respectively.  The design of LWP predates that of the
+  Cthreads package in Mach.  LWP and Cthreads are conceptually similar,
+  but differ substantially in the details. We have successfully emulated
+  all of LWP on top of the preemptive and nonpre- emptive versions of
+  Cthreads, and a subset of the non-preemptive version of Cthreads on
+  top of LWP.
+
+  Both LWP and RPC2 have evolved over time, resulting in increased
+  functionality and robustness.  They have also been ported to a wide
+  variety of machine architectures, such as IBM-RTs, MIPS, Sun2, Sun3,
+  Sparc, and i386, as well as variants of the Unix operating systems
+  such as Mach, SunOS and AIX. Whenever there has been choice between
+  portability and machine-specific performance, we have always favored
+  portability.
+
+
+Credits
+-------
+
+  The original design and implementation of LWP was done by Larry Raper.
+  Its documentation descends from a manual by Jonathan Rosenberg and
+  Larry Raper, later extended by David Nichols and M. Satyanarayanan.
+  Richard Draves, Qi Lu, Anders Klemets and Gowthami Rajendran helped in
+  revising and improving this document.
+
+
+The Basic LWP Package
+=====================
+
+  The LWP package implements primitive functions providing basic
+  facilities that enable procedures written in C, to proceed in an
+  unsynchronized fashion.  These separate threads of control may
+  effectively progress in parallel, and more or less independently of
+  each other.  This facility is meant to be general purpose with a heavy
+  emphasis on simplicity.  Interprocess communication facilities can be
+  built on top of this basic mechanism, and, in fact, many different IPC
+  mechanisms could be implemented.  The RPC2 remote procedure call
+  package (also described in this manual) is one such IPC mechanism.
+
+  The LWP package makes the following key design choices:
+
+  o  The package should be small and fast;
+  o  All processes are assumed to be trustworthy -- processes are not
+     protected from each others actions;
+  o  There is no time slicing or preemption -- the processor must be
+     yielded explicitly.
+
+  In order to set up the environment needed by the lightweight process
+  support, a one-time invocation of the LWP_Init function must precede
+  the use of the facilities described here.  The initialization function
+  carves an initial process out of the currently executing C procedure.
+  The process id of this initial process is returned as the result of
+  the LWP_Init function.  For symmetry a LWP_TerminateProcessSupport
+  function may be used explicitly to release any storage allocated by
+  its initial counterpart.  If used, it must be issued from the process
+  created by the LWP_Init function.
+
+  Upon completion of any of the lightweight process functions, an
+  integer value is returned to indicate whether any error conditions
+  were encountered.
+
+  Macros, typedefs, and manifest constants for error codes needed by the
+  lightweight process mechanism reside in the file <lwp.h>.  A process
+  is identified by an object of type PROCESS, which is defined in the
+  include file.
+
+  The process model supported by the operations described here is based
+  on a non-preemptive priority dispatching scheme. (A priority is an
+  integer in the range [0..LWP_MAX_PRIORITY], where 0 is the lowest
+  priority.)  Once a given lightweight process is selected and
+  dispatched, it remains in control until it voluntarily relinquishes
+  its claim on the CPU.  Relinquishment may be either explicit
+  (LWP_DispatchProcess) or implicit (through the use of certain other
+  LWP operations).  In general, all LWP operations that may cause a
+  higher priority process to become ready for dispatching, preempt the
+  process requesting the service.  When this occurs, the priority
+  dispatching mechanism takes over and dispatches the highest priority
+  process automatically.  Services in this category (where the scheduler
+  is guaranteed to be invoked in the absence of errors) are
+
+  o  LWP_CreateProcess
+  o  LWP_WaitProcess
+  o  LWP_MwaitProcess
+  o  LWP_SignalProcess
+  o  LWP_DispatchProcess
+  o  LWP_DestroyProcess
+
+  The following services are guaranteed not to cause preemption (and so
+  may be issued with no fear of losing control to another lightweight
+  process):
+
+  o  LWP_Init
+  o  LWP_NoYieldSignal
+  o  LWP_CurrentProcess
+  o  LWP_StackUsed
+  o  LWP_NewRock
+  o  LWP_GetRock
+
+  The symbol LWP_NORMAL_PRIORITY provides a good default value to use
+  for process priorities.
+
+
+A Simple Example
+---------------
+
+  #include <lwp.h>
+
+  static void read_process (int *id)
+  {
+      LWP_DispatchProcess ();             /* Just relinquish control for now */
+
+      for (;;) {
+          /* Wait until there is something in the queue */
+          while (empty(q)) LWP_WaitProcess (q);
+          /* Process queue entry */
+          LWP_DispatchProcess ();
+     }
+  }
+
+  static void write_process (void)
+  {
+      ...
+
+      /* Loop & write data to queue */
+      for (mesg=messages; *mesg!=0; mesg++) {
+          insert (q, *mesg);
+          LWP_SignalProcess (q);
+      }
+  }
+
+  int main (int argc, char **argv)
+  {
+      PROCESS *id;
+
+      LWP_Init (LWP_VERSION, 0, &id);
+      /* Now create readers */
+      for (i=0; i < nreaders; i++)
+          LWP_CreateProcess (read_process, STACK_SIZE, 0, i, "Reader",
+                             &readers[i]);
+      LWP_CreateProcess (write_process, STACK_SIZE, 1, 0, "Writer", &writer);
+      /* Wait for processes to terminate */
+      LWP_WaitProcess (&done);
+      for (i=nreaders-1; i>=0; i--) LWP_DestroyProcess (readers[i]);
+  }
+
+
+The Lock Package
+================
+
+  The lock package contains a number of routines and macros that allow C
+  programs that utilize the LWP abstraction to place read and write
+  locks on data structures shared by several light-weight processes.
+  Like the LWP package, the lock package was written with simplicity in
+  mind -- there is no protection inherent in the model.
+
+  In order to use the locking mechanism for an object, an object of type
+  struct Lock must be associated with the object.  After being
+  initialized, with a call to Lock_Init, the lock is used in
+  invocations of the macros ObtainReadLock, ObtainWriteLock,
+  ReleaseReadLock and ReleaseWriteLock.
+
+  The semantics of a lock is such that any number of readers may hold a
+  lock.  But only a single writer (and no readers) may hold the clock at
+  any time.  The lock package guarantees fairness: each reader and
+  writer will eventually have a chance to obtain a given lock.  However,
+  this fairness is only guaranteed if the priorities of the competing
+  processes are identical.  Note that no ordering is guaranteed by the
+  package.
+
+  In addition, it is illegal for a process to request a particular lock
+  more than once, without first releasing it.  Failure to obey this
+  restriction may cause deadlock.
+
+Key Design Choices
+------------------
+
+  o  The package must be simple and fast: in the case that a lock can be
+     obtained immediately, it should require a minimum of instructions;
+  o  All the processes using a lock are trustworthy;
+  o  The lock routines ignore priorities;
+
+
+A Simple Example
+----------------
+
+  #include "lock.h"
+
+  struct Vnode { ...  struct Lock lock;   /* Used to lock this vnode */ ...  };
+
+  #define READ    0
+  #define WRITE   1
+
+  struct Vnode *get_vnode (char *name, int how)
+  {
+      struct Vnode *v;
+
+      v = lookup (name);
+      if (how == READ)
+          ObtainReadLock (&v->lock);
+      else
+          ObtainWriteLock (&v->lock);
+  }
+
+
+The IOMGR Package
+=================
+
+  The IOMGR package allows light-weight processes to wait on various
+  Unix events.  IOMGR_Select allows a light-weight process to wait on
+  the same set of events that the Unix select call waits on.  The
+  parameters to these routines are the same.  IOMGR_Select puts the
+  caller to sleep until no user processes are active.  At this time the
+  IOMGR process, which runs at the lowest priority, wakes up and
+  coaleses all of the select request together.  It then performs a
+  single select and wakes up all processes affected by the result.
+
+  The IOMGR_Signal call allows a light-weight process to wait on
+  delivery of a Unix signal.  The IOMGR installs a signal handler to
+  catch all deliveries of the Unix signal.  This signal handler posts
+  information about the signal delivery to a global data structure.  The
+  next time that the IOMGR process runs, it delivers the signal to any
+  waiting light-weight processes.
+
+Key Design Choices
+------------------
+
+  o  The meanings of the parameters to IOMGR_Select, both before and
+     after the call, should be identical to those of the Unix select;
+  o  A blocking select should only be done if no other processes are
+     runnable.
+
+
+A Simple Example
+----------------
+
+       void rpc2_SocketListener ()
+       {
+           int ReadfdMask, WritefdMask, ExceptfdMask, rc;
+           struct timeval *tvp;
+
+           while (TRUE) {
+               . . .
+               ExceptfdMask = ReadfdMask = (1 << rpc2_RequestSocket);
+               WritefdMask = 0;
+               rc = IOMGR_Select (8*sizeof(int), &ReadfdMask,
+                                  &WritefdMask, &ExceptfdMask, tvp);
+
+               switch (rc) {
+                   case 0:     /* timeout */
+                           continue;   /* main while loop */
+
+                   case -1:    /* error */
+                           SystemError ("IOMGR_Select");
+                           exit (-1);
+
+                   case 1:     /* packet on rpc2_RequestSocket */
+                           . . . process packet . . .
+                           break;
+
+                   default:    /* should never occur */
+               }
+           }
+       }
+
+
+The Timer Package
+=================
+
+  The timer package contains a number of routines that assist in
+  manipulating lists of objects of type struct TM_Elem.  TM_Elems
+  (timers) are assigned a timeout value by the user and inserted in a
+  package-maintained list.  The time remaining to timeout for each timer
+  is kept up to date by the package under user control.  There are
+  routines to remove a timer from its list, to return an expired timer
+  from a list and to return the next timer to expire.  This specialized
+  package is currently used by the IOMGR package and by the
+  implementation of RPC2.  A timer is used commonly by inserting a field
+  of type struct TM_Elem into a structure.  After inserting the desired
+  timeout value the structure is inserted into a list, by means of its
+  timer field.
+
+
+A Simple Example
+----------------
+
+       static struct TM_Elem *requests;
+
+       ...
+
+           TM_Init (&requests);        /* Initialize timer list */
+           ...
+           for (;;) {
+               TM_Rescan (requests);   /* Update the timers */
+               expired = TM_GetExpired (requests);
+               if (expired == 0) break;
+               ... process expired element ...
+           }
+
+
+The Preemption Package
+======================
+
+  The preemption package provides a mechanism by which control can pass
+  between light-weight processes without the need for explicit calls to
+  LWP_DispatchProcess.  This effect is achieved by periodically
+  interrupting the normal flow of control to check if other (higher
+  priority) procesess are ready to run.
+
+  The package makes use of the interval timer facilities provided by
+  4.2BSD, and so will cause programs that make their own use of these
+  facilities to malfunction.  In particular, use of alarm (3) or
+  explicit handling of SIGALRM is disallowed.  Also, calls to sleep (3)
+  may return prematurely.
+
+  Care should be taken that routines are re-entrant where necessary.  In
+  particular, note that stdio (3) is not re-entrant in general, and
+  hence light-weight processes performing I/O on the same FILE structure
+  may function incorrectly.
+
+
+Key Design Choices
+------------------
+
+  o  The package should not affect the nonpreemptive scheduling
+     behaviour of processes which do not use it;
+  o  It must be simple and fast, with a minimum of extra system
+     overhead;
+  o  It must support nested critical regions;
+  o  Processes using the package are assumed to be co-operating.
+
+
+A Simple Example
+----------------
+
+  #include <sys/time.h>
+  #include "preempt.h"
+
+  ...
+
+  struct timeval tv;
+
+  LWP_Init (LWP_VERSION, ... );
+  tv.tv_sec = 10;
+  tv.tv_usec = 0;
+  PRE_InitPreempt (&tv);
+  PRE_PreemptMe ();
+
+  ...
+
+  PRE_BeginCritical ();
+
+  ...
+
+  PRE_EndCritical ();
+
+  ...
+
+  PRE_EndPreempt ();
+
+
+The Fast Time Package
+=====================
+
+  The Fast Time package allows the caller to find out the current time
+  of day without incurring the expense of a kernel call.  It works by
+  mapping the page of the kernel that has the kernels time-of-day
+  variable and examining it directly.  Currently, this package only
+  works on Suns.  You may call the routines on other machines, but they
+  will run more slowly.
+
+  The initialization routine for this package is fairly expensive since
+  it does a lookup of a kernel symbol via nlist ().  If you have a
+  program which runs for only a short time, you may wish to call
+  FT_Init with the notReally parameter true to prevent the lookup from
+  taking place.  This is useful if you are using another package that
+  uses Fast Time (such as RPC2).
+
+
+Some design considerations for LWP programming
+==============================================
+
+  Clients and servers are each assumed to be Unix processes using the
+  LWP package. RPC2 will not work independently of the LWP package.  The
+  LWP package makes it possible for a single Unix process to contain
+  multiple threads of control (LWPs). An RPC call is synchronous with
+  respect to an individual LWP, but it does not block the encapsulating
+  Unix process.  Although LWPs are non-preemptive, RPC2 internally
+  yields control when an LWP is blocked awaiting a request or reply.
+  Thus more than one LWP can be concurrently making RPC requests. There
+  is no a priori binding of RPC connections to LWPs, or LWPs to
+  subsystems within a client or server. Thus RPC connections, LWPs and
+  subsystems are completely orthogonal concepts.
+
+  Since LWPs are non-preemptive, a long-running computation by an LWP
+  will prevent the RPC2 code from getting a chance to run.  This will
+  typically manifest itself as a timeout by the client on the RPC in
+  progress.  To avoid this, the long running computation should
+  periodically invoke IOMGR_Poll followed by LWP_DispatchProcess.
+
+  For similar reasons, Unix system calls such as read (2), sleep (3),
+  and select (2) that may block for a long time should be avoided.
+  Instead, use IOMGR_Select.
+

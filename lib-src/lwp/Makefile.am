@@ -23,11 +23,13 @@ endif
 
 SUBDIRS = include src $(EXTRA)
 
-EXTRA_DIST = acinclude.m4 bootstrap.sh configure
+EXTRA_DIST = acinclude.m4 bootstrap.sh configure libtool.patch \
+    pkgs/lwp.spec.in pkgs/lwp-nt.spec.in
 
-MAINTAINERCLEANFILES = AUTHORS ChangeLog INSTALL Makefile.in NEWS \
-    README aclocal.m4 config.guess config.h.in config.sub configure \
-    install-sh libtool ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
+MAINTAINERCLEANFILES = ChangeLog INSTALL Makefile.in aclocal.m4 config.guess \
+    config.h.in config.sub configure install-sh libtool ltconfig ltmain.sh \
+    missing mkinstalldirs stamp-h.in
 
 dist-hook:
 	if [ -x /afs/cs ] ; then cp /afs/cs/project/coda-src/cvs/CVSROOT/ChangeLog.lwp ChangeLog ; fi
+
