@@ -327,11 +327,11 @@ void VSetMaxVolumeId(VolumeId newid)
  */
 void GrowVnodes(VolumeId volid, int vclass, short newBMsize) 
 {
-    rec_smolist *newvlist, **vlist;
+    rec_smolist *newvlist;
     int myind;
     char *name;
     unsigned int grow;
-    bit32 newsize, *size;
+    bit32 newsize, size;
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering GrowVnodes for volid %x, vclass %d", volid, vclass);
 
@@ -342,44 +342,61 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize)
 
     if (vclass == vSmall) {
 	name = "Small";
-	vlist = &SRV_RVM(VolumeList[myind]).data.smallVnodeLists;
-	size = &SRV_RVM(VolumeList[myind]).data.nsmallLists;
+	size = SRV_RVM(VolumeList[myind]).data.nsmallLists;
 	grow = SMALLGROWSIZE;
     } else {
 	name = "Large";
-	vlist = &SRV_RVM(VolumeList[myind]).data.largeVnodeLists;
-	size = &SRV_RVM(VolumeList[myind]).data.nlargeLists;
+	size = SRV_RVM(VolumeList[myind]).data.nlargeLists;
 	grow = LARGEGROWSIZE;
     }
 
     newsize = newBMsize << 3;   // multiply by 8 since newBMsize is in bytes
-    newsize += grow - (newsize % grow); /* align */
+
+    /* align to next multiple of 'grow' */
+    newsize += grow - 1;
+    newsize -= newsize % grow;
 
     /* If the array is already big enough, we can return early */
-    if (*size > newsize) return;
+    if (size >= newsize) return;
 
-    LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing %s list from %d to %d for volume 0x%x", name, *size, newsize, volid);
+    LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing %s list from %d to %d for volume 0x%x", name, size, newsize, volid);
 
     /* create a new larger list and zero out its tail */
     newvlist = (rec_smolist *)rvmlib_rec_malloc(sizeof(rec_smolist) * newsize);
 
     { /* clear the tail of the new list */
-	void *tail = &(newvlist[*size]);
-	int len = sizeof(rec_smolist) * (newsize - *size);
+	void *tail = &(newvlist[size]);
+	int len = sizeof(rec_smolist) * (newsize - size);
 
 	rvmlib_set_range(tail, len);
 	memset(tail, 0, len);
     }
 
-    /* copy the existing vnode pointers into the new list */
-    rvmlib_modify_bytes(newvlist, *vlist, *size * sizeof(rec_smolist));
+    if (vclass == vSmall) {
+	/* copy the existing vnode pointers into the new list */
+	rvmlib_modify_bytes(newvlist,
+	    SRV_RVM(VolumeList[myind]).data.smallVnodeLists,
+	    SRV_RVM(VolumeList[myind]).data.nsmallLists * sizeof(rec_smolist));
 
-    /* free the old list */
-    rvmlib_rec_free((char *)*vlist);
+	/* free the old list */
+	rvmlib_rec_free(SRV_RVM(VolumeList[myind]).data.smallVnodeLists);
 
-    /* copy pointer and size of the new list to RVM */
-    RVMLIB_MODIFY(*vlist, newvlist);
-    RVMLIB_MODIFY(*size, newsize);
+	/* copy pointer and size of the new list to RVM */
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.smallVnodeLists,newvlist);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.nsmallLists, newsize);
+    } else {
+	/* copy the existing vnode pointers into the new list */
+	rvmlib_modify_bytes(newvlist,
+	    SRV_RVM(VolumeList[myind]).data.largeVnodeLists,
+	    SRV_RVM(VolumeList[myind]).data.nlargeLists * sizeof(rec_smolist));
+
+	/* free the old list */
+	rvmlib_rec_free(SRV_RVM(VolumeList[myind]).data.largeVnodeLists);
+
+	/* copy pointer and size of the new list to RVM */
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.largeVnodeLists,newvlist);
+	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.nlargeLists, newsize);
+    }
 }
 
 /* Lookup volume disk info for specified volume */

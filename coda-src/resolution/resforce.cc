@@ -64,9 +64,9 @@ extern "C" {
 #define	EMPTYDIRBLOCKS	    2
 
 extern void ChangeDiskUsage(Volume *, int);
-extern int FetchFileByName(RPC2_Handle, char *, ClientEntry *);
+extern int FetchFileByFD(RPC2_Handle, int fd, ClientEntry *);
 
-static int GetOpList(char *, olist *);
+static int GetOpList(int fd, olist *);
 static int ObtainDirOps(PDirEntry, void *);
 static int ForceDir(vle *, Volume *, VolumeId , olist *, dlist *, int *);
 static int CheckForceDirSemantics(olist *, Volume *, Vnode *);
@@ -200,8 +200,8 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *pv = 0;
     int deltablocks = 0;
-    char *filename = NULL;
-    char buf[20];
+    FILE *fp = NULL;
+    int fd = -1;
 
     SLog(9,  "RS_DoForceDirOps: Enter Fid %s", FID_(Fid));
 
@@ -245,20 +245,27 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 
     /* fetch dir op file */
     {
-	strcpy(buf, "/tmp/dodir.XXXXXXX");
-	filename = mktemp(buf);
-	errorCode = FetchFileByName(RPCid, filename, NULL);
+	fp = tmpfile();
+	if (!fp) {
+	    SLog(0,  "RS_DoForceDirOps: Error %d creating tmpfile", errno);
+	    errorCode = EIO;
+	    goto FreeLocks;
+	}
+	fd = fileno(fp);
+	errorCode = FetchFileByFD(RPCid, fd, NULL);
 	if (errorCode) {
 	    SLog(0,  "RS_DoForceDirOps: Error %d in fetching op file", errorCode);
 	    goto FreeLocks;
 	}
     }
 
+    lseek(fd, 0, SEEK_SET);
+
     /* parse list of operations */
     {
-	SLog(19,  "RS_DoForceDirOps: going to parse file %s", filename);
+	SLog(19,  "RS_DoForceDirOps: going to parse oplist");
 	forceList = new olist;
-	if (GetOpList(filename, forceList) != 0) {
+	if (GetOpList(fd, forceList) != 0) {
 	    SLog(0,  "RS_DoForceDirOps: error during GetOpList");
 	    errorCode = EINVAL;
 	    *rstatus = RES_BADOPLIST;
@@ -311,6 +318,9 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     }
 	
   FreeLocks:
+    if (fp)
+	fclose(fp);
+
     if (forceList){
 	olink *p;
 	while((p = forceList->get()))
@@ -322,9 +332,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	     dirvptr->disk.owner);
     }
     PutObjects(errorCode, volptr, NO_LOCK, vlist, deltablocks, 1);
-    if (filename && unlink(filename) == -1) 
-	SLog(0,  "RS_DoForceDirOps: Error %d occured unlinking %s",
-		filename);    
+
     return(errorCode);
 }
 
@@ -337,9 +345,8 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
     Volume *volptr = 0;
     long errorcode = 0;
     SE_Descriptor sid;
-    int fd = 0;
-    char buf[20];
-    char *filename = 0;
+    FILE *fp = NULL;
+    int fd = -1;
     PDirHandle dir;
     struct getdiropParm gdop;
     diroplink *dop;
@@ -373,22 +380,21 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
     DH_EnumerateDir(dir, ObtainDirOps, (void *) &gdop);
     VN_PutDirHandle(vptr);
     /* open file to store directory ops */
-    strcpy(buf, "/tmp/dirop.XXXXXXX");
-    filename = mktemp(buf);
-    fd = open(filename, O_RDWR | O_TRUNC | O_CREAT, 0777);
-    if (fd < 0) {
-	SLog(0,  "RS_GetForceDirOps: Error creating file %s",
-		filename);
+    fp = tmpfile();
+    if (!fp) {
+	SLog(0,  "RS_GetForceDirOps: Error creating tmpfile %d", errno);
 	errorcode = EIO;
 	goto FreeLocks;
     }
+    fd = fileno(fp);
     while((dop = (diroplink *) gdop.oplist->get())){
 	dop->hton();
 	CODA_ASSERT(dop->write(fd) == 0);
 	delete dop;
     }
     delete gdop.oplist;
-    close(fd);
+
+    lseek(fd, 0, SEEK_SET);
     
     /* set up vicestatus */
     SetStatus(vptr, status, 0, 0);
@@ -402,10 +408,8 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
     memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    sid.Value.SmartFTPD.Tag = FILEBYNAME;
-    sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0777;
-    strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName, 
-	   filename);
+    sid.Value.SmartFTPD.Tag = FILEBYFD;
+    sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd; 
     if ((errorcode = RPC2_InitSideEffect(RPCid, &sid))
 	<= RPC2_ELIMIT) {
 	SLog(0, "RS_GetForceDirOps: InitSideEffect failed %d", errorcode);
@@ -423,14 +427,15 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
   FreeLocks:
     /* release lock on vnode and put the volume */
     Error filecode = 0;
+    if (fp)
+	fclose(fp);
+
     if (vptr) {
 	VPutVnode(&filecode, vptr);
 	CODA_ASSERT(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    if (filename && unlink(filename) == -1) 
-	SLog(0,  "RS_GetForceDirOps: Error %d occured unlinking %s",
-		filename);    
+
     SLog(9,  "RS_GetDirOps: returns %d", errorcode);
     return(errorcode);
 }
@@ -494,13 +499,10 @@ int ObtainDirOps(PDirEntry de, void *data)
 }
 
 /* opens the file <filename> and returns the list of dir operations in List */
-int GetOpList(char *filename, olist *List) 
+int GetOpList(int fd, olist *List) 
 {
-    SLog(49, "In GetOpList: Filename (%s), List(0x%x)",
-	    filename, List);
-    int fd = ::open(filename, O_RDONLY, 0644);
-    if (fd < 0) return(-1);
-    diroplink	*direntry = (diroplink *)malloc(sizeof(diroplink));
+    SLog(49, "In GetOpList: List(0x%x)", List);
+    diroplink *direntry = (diroplink *)malloc(sizeof(diroplink));
     long error;
 
     while((error = ::read(fd, direntry, 
@@ -511,7 +513,7 @@ int GetOpList(char *filename, olist *List)
 	List->append(newlink);
     }
     free(direntry);
-    close(fd);
+
     SLog(49,  "GetOpList: returns(%d)", error == 0 ? 0 : -1);
     if (error == 0) return(0);
     else return(-1);
