@@ -66,7 +66,6 @@ typedef struct {
     int DumpFd;			/* fd to which to flush or VolId if using RPC */
     unsigned long nbytes;	/* Count of total bytes transferred. */
     unsigned long secs;		/* Elapsed time for transfers -- not whole op */
-    RPC2_Integer Incremental;
 } DumpBuffer_t;
 #define VOLID DumpFd		/* Overload this field if using newstyle dump */
     
