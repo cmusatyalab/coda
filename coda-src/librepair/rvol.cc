@@ -228,18 +228,17 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 }
 
 /* Frees all data structures associated with repv. */
-void repair_finish(struct repvol *repv) {
-    struct volrep *rwv, *next;
+void repair_finish(struct repvol *repv)
+{
+    struct volrep *rwv;
 
     if (repv == NULL) {
 	printf("Error:  trying to free null repvol\n");
 	exit(2);
     }
-    rwv = repv->rwhead;
-    while (rwv)	{
-	next = rwv->next;
+    while ((rwv = repv->rwhead) != NULL) {
+	repv->rwhead = rwv->next;
 	free(rwv);
-	rwv = next;
     }
     free(repv);
 }
