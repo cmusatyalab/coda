@@ -40,6 +40,7 @@ Pittsburgh, PA.
 
 #include <netinet/in.h>
 #include <signal.h>
+#include "rpc2.h"
 #include "coda_assert.h"
 #include "dllist.h"
 
@@ -486,8 +487,10 @@ struct HEntry *rpc2_FindHEAddr(struct in_addr *whichHost);
 struct HEntry *rpc2_GetHost(RPC2_HostIdent *host);
 struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host);
 void rpc2_FreeHost(struct HEntry **whichHost);
-void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log);
-int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry);
+void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
+		     NetLogEntryType type);
+int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
+		       NetLogEntryType type);
 void rpc2_ClearHostLog(struct HEntry *whichHost);
 void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
 			  RPC2_Unsigned Bytes);

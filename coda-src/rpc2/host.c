@@ -184,27 +184,28 @@ void rpc2_FreeHost(struct HEntry **whichHost)
 }
 
 
-void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log)
+void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
+		     NetLogEntryType type)
 {
 	unsigned long quantum = 0;
-	unsigned wontexceed = RPC2_MAXLOGLENGTH;  /* as many as we can return */
-	int head, tail, ix;
+	unsigned int tail, ix, left = log->NumEntries;
 	
 	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
 
 	/* figure out how many entries to send back */
-	if (wontexceed > log->NumEntries) 
-		wontexceed = log->NumEntries;  		/* asked for less */
-	if (wontexceed > whichHost->NumEntries)
-		wontexceed = whichHost->NumEntries;	/* we have less */
-	if (wontexceed == 0) return; 	/* don't touch anything */
+	if (left > RPC2_MAXLOGLENGTH)     left = RPC2_MAXLOGLENGTH;
+	if (left > whichHost->NumEntries) left = whichHost->NumEntries;
+				    	  /* we have less */
+	if (left == 0) return; 	/* don't touch anything */
 	
-	head = whichHost->NumEntries - wontexceed;
 	tail = whichHost->NumEntries - 1;	
 	
 	/* walk back through log and copy them out */
-	while (tail >= head) {
+	while (left--) {
 		ix = tail & (RPC2_MAXLOGLENGTH-1);
+
+		if (whichHost->Log[ix].Type != type) continue;
+
 		log->Entries[log->ValidEntries++] = whichHost->Log[ix];
 		switch(whichHost->Log[ix].Tag)  {
 		case RPC2_MEASURED_NLE:
@@ -233,7 +234,8 @@ void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log)
  * assumes the variable length part of the record  has been 
  * constructed elsewhere. 
  */
-int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry)
+int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry,
+		       NetLogEntryType type)
 {
 	unsigned long ix = whichHost->NumEntries & (RPC2_MAXLOGLENGTH-1);
 
@@ -242,6 +244,7 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry)
 	if (!GOOD_NLE(entry)) 
 		return(0);
 
+	entry->Type = type;
 	whichHost->Log[ix] = *entry;	/* structure assignment */
 	
 	FT_GetTimeOfDay(&(whichHost->Log[ix].TimeStamp),
@@ -299,15 +302,21 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     /* calculate an estimated rtt */
     eRTT = (host->RTT >> RPC2_RTT_SHIFT) + (host->RTTVar >> RPC2_RTTVAR_SHIFT);
 
-    if (elapsed_us > eRTT &&
-	Bytes >= 512) /* HACK! only use measurements from `larger' packets */
+    if (elapsed_us > eRTT)
     {
 	eU  = elapsed_us - eRTT;
 
 	/* eBW = ( eU * 1000 ) / Bytes ; */
 	eBW = ((eU << 7) / Bytes) << 3;
 
-	eBW -= (host->BW >> RPC2_BW_SHIFT);
+	/* This is a hack to compensate for slow WinNT servers */
+	/* HACK! to avoid small packets with unusually long RTT's to have a
+	 * negative effect on the BW estimate, we avoid using measurements
+	 * from small packets with a BW smaller than 1/2 the estimated BW */
+	if (eBW < (host->BW >> (RPC2_BW_SHIFT + 1)) && Bytes < 512) eBW = 0;
+	else eBW -= (host->BW >> RPC2_BW_SHIFT);
+	/* HACK! */
+
 	host->BW += eBW;
 
 	if (eBW < 0) eBW = -eBW;
@@ -321,8 +330,6 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     host->BWVar += eBW;
 
     /* get a new RTT estimate in elapsed_us */
-    eL = 0;
-
     /* from here on eBW contains a lower estimate on the effective
      * bandwidth, eRTT will contain a updated RTT estimate */
     eBW = (host->BW >> RPC2_BW_SHIFT) +
@@ -331,11 +338,21 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
     /* eU = ( eBW * Bytes ) / 1000 ; */
     eU = ((eBW >> 3) * Bytes) >> 7;
 
-    if (elapsed_us > eU)
-	eL = elapsed_us - eU;
+    if (elapsed_us > eU) eL = elapsed_us - eU;
+    else		 eL = 0;
 
     /* the RTT & RTT variance are shifted analogous to Jacobson's
      * article in SIGCOMM'88 */
+
+    /* This is a hack to compensate for some SFTP error */
+    /* HACK! to avoid odd measurement with unusually long RTT's to have a
+     * negative effect on the estimate, we avoid using measurements
+     * which are more than 2x the current estimate */
+    /* there is something very wrong with the SFTP measurements....
+     * it looks like somewhere milliseconds are mistaken for seconds */
+    if (eL > host->RTT >> (RPC2_RTT_SHIFT - 1)) eL = 0;
+    else eL -= (host->RTT >> RPC2_RTT_SHIFT);
+    /* HACK! */
 
     eL -= (host->RTT >> RPC2_RTT_SHIFT);
     host->RTT += eL;

@@ -246,7 +246,7 @@ void sftp_UpdateBW(RPC2_PacketBuffer *pb, unsigned long bytes,
     entry.Value.Measured.Conn = sEntry->LocalHandle;
     entry.Value.Measured.Bytes = bytes;
     entry.Value.Measured.ElapsedTime = obs;
-    (void) rpc2_AppendHostLog(sEntry->HostInfo, &entry);
+    (void) rpc2_AppendHostLog(sEntry->HostInfo, &entry, SE_MEASUREMENT);
     say(0/*4*/, SFTP_DebugLevel, "sftp_UpdateBW: conn 0x%lx, %ld bytes, %ld ms\n", 
 				  sEntry->LocalHandle, bytes, obs);
 }

@@ -213,9 +213,10 @@ static int AwaitEvent()
 
 
 static void ExaminePacket(RPC2_PacketBuffer *pb)
-    {
+{
     struct SFTP_Entry	*sfp;
     struct CEntry	*ce;
+    int			 iamserver;
 
     /* SFTPVERSION must match or we have no hope at all. */
     if (ntohl(pb->Header.ProtoVersion) != SFTPVERSION)
@@ -251,13 +252,21 @@ static void ExaminePacket(RPC2_PacketBuffer *pb)
 
     /* Drop NAK's. */
     if (pb->Header.Opcode == SFTP_NAK)
-	{
+    {
 	sftp_Recvd.Naks++;
 	say(0, SFTP_DebugLevel, "SFTP_NAK received\n");
+
+	/* sfp->WhoAmI is set to ERROR by sftp_SetError */
+	iamserver = (sfp->WhoAmI == SFSERVER);
+
 	sftp_SetError(sfp, ERROR);
 	SFTP_FreeBuffer(&pb);
+
+	/* When we are the SFSERVER, tell the blocked thread about the
+	 * failure now, instead of having it wait for a full timeout. */
+	if (iamserver) ServerPacket(NULL, sfp);
 	return;	
-	}
+    }
 
     /* SANITY CHECK: validate socket-level and connection-level host values. */
     if (rpc2_HostIdentEqual(&pb->Prefix.PeerHost, &sfp->PInfo.RemoteHost) == FALSE)
@@ -270,11 +279,11 @@ static void ExaminePacket(RPC2_PacketBuffer *pb)
 	    
     /* SANITY CHECK: make sure this pertains to the current RPC call. */
     if (pb->Header.ThisRPCCall != sfp->ThisRPCCall)
-	{
+    {
 	say(0, SFTP_DebugLevel, "Old SFTP packet RPC %ld, expecting RPC %ld\n", pb->Header.ThisRPCCall, sfp->ThisRPCCall);
 	SFTP_FreeBuffer(&pb);
 	return;
-	}
+    }
 
     /* Client records SFTP port here since we may need to use it before we record other parms. */
     if (sfp->GotParms == FALSE && sfp->WhoAmI == SFCLIENT)
@@ -298,34 +307,33 @@ static void ExaminePacket(RPC2_PacketBuffer *pb)
     /* Go handle the packet appropriately. */
     sftp_TraceStatus(sfp, 2, __LINE__);
     if (sfp->WhoAmI == SFSERVER) ServerPacket(pb, sfp);
-    else ClientPacket(pb, sfp);
-    }
+    else			 ClientPacket(pb, sfp);
+}
 
 
-static void ServerPacket(whichPacket, whichEntry)
-    RPC2_PacketBuffer *whichPacket;
-    struct SFTP_Entry *whichEntry;
-    /* Find a sleeping LWP to deal with this packet */
-    {
+/* Find a sleeping LWP to deal with this packet */
+static void ServerPacket(RPC2_PacketBuffer *whichPacket,
+			 struct SFTP_Entry *whichEntry)
+{
     struct SLSlot *sls;
 
-    /* WARNING: we are assuming state TIMEOUT is essentially the same as state WAITING from the point of
-	of view of the test below; this will be true if no LWP yields control while its SLSlot state is
-	TIMEOUT.  There could be serious hard-to-find bugs if this assumption is violated.
-    */
+    /* WARNING: we are assuming state TIMEOUT is essentially the same as state
+     * WAITING from the point of of view of the test below; this will be true
+     * if no LWP yields control while its SLSlot state is TIMEOUT.  There
+     * could be serious hard-to-find bugs if this assumption is violated. */
 
     sls = whichEntry->Sleeper;
     if (sls == NULL || (sls->State != S_WAITING && sls->State != S_TIMEOUT))
-	{/* no one expects this packet; toss it out; NAK'ing may have race hazards */
-	BOGUS(whichPacket);
+    {/* no one expects this packet; toss it out; NAK'ing may have race hazards */
+	if (whichPacket) BOGUS(whichPacket);
 	return;
-	}
+    }
     whichEntry->Sleeper = NULL;	/* no longer anyone waiting for a packet */
     sls->State = S_ARRIVED;
     sls->Packet = whichPacket;
     REMOVETIMER(sls);
     LWP_NoYieldSignal((char *)sls);
-    }
+}
 
 
 static void ClientPacket(whichPacket, whichEntry)

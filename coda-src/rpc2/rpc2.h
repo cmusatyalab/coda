@@ -599,6 +599,8 @@ typedef
 typedef enum {RPC2_UNSET_NLE = 0, RPC2_MEASURED_NLE = 1, 
 		  RPC2_STATIC_NLE = 2} NetLogTag;
 
+typedef enum {RPC2_MEASUREMENT = 0, SE_MEASUREMENT = 1} NetLogEntryType;
+
 typedef
     struct
         {
@@ -621,6 +623,7 @@ typedef
 	        Static;
             }
 	    Value;
+	NetLogEntryType Type;
         }
     RPC2_NetLogEntry;
 

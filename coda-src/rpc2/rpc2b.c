@@ -682,7 +682,7 @@ long RPC2_GetNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
 
     /* first get the latency obs from the RPC layer */
     if (RPCLog && ceaddr->HostInfo)
-	rpc2_GetHostLog(ceaddr->HostInfo, RPCLog);
+	rpc2_GetHostLog(ceaddr->HostInfo, RPCLog, RPC2_MEASUREMENT);
     
     /* then get bandwidth obs from side effect layer */
     /* need a side effect call for getting the host info ptr */
@@ -694,7 +694,7 @@ long RPC2_GetNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
 	if ((rc = (*ceaddr->SEProcs->SE_GetHostInfo)(Conn, &he)) != RPC2_SUCCESS)
 	    rpc2_Quit(rc);
 
-	if (he) rpc2_GetHostLog(he, SELog);
+	if (he) rpc2_GetHostLog(he, SELog, SE_MEASUREMENT);
     }
     
     rpc2_Quit(RPC2_SUCCESS);
@@ -734,7 +734,8 @@ long RPC2_PutNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
     /* first the rpc layer */
     if (RPCLog && ceaddr->HostInfo)
 	for (i = 0; i < RPCLog->NumEntries; i++) {
-	    if (!rpc2_AppendHostLog(ceaddr->HostInfo, &RPCLog->Entries[i]))
+	    if (!rpc2_AppendHostLog(ceaddr->HostInfo, &RPCLog->Entries[i],
+				    RPC2_MEASUREMENT))
 		return(RPC2_FAIL);
 	    RPCLog->ValidEntries++;
 	}
@@ -750,7 +751,7 @@ long RPC2_PutNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
 
 	if (he) 
 	    for (i = 0; i < SELog->NumEntries; i++) {
-		if (!rpc2_AppendHostLog(he, &SELog->Entries[i]))
+		if (!rpc2_AppendHostLog(he, &SELog->Entries[i], SE_MEASUREMENT))
 		    return(RPC2_FAIL);
 		SELog->ValidEntries++;
 	    }
@@ -965,7 +966,7 @@ void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
     entry.Value.Measured.Bytes = ceaddr->reqsize; //-2*sizeof(struct RPC2_PacketHeader);
     entry.Value.Measured.ElapsedTime = obs;
     entry.Value.Measured.Conn = ceaddr->UniqueCID;
-    (void) rpc2_AppendHostLog(ceaddr->HostInfo, &entry);
+    (void) rpc2_AppendHostLog(ceaddr->HostInfo, &entry, RPC2_MEASUREMENT);
 
     /* smooth observation if we have a bandwidth estimate */
     if (rpc2_Bandwidth) rpc2_ResetObs(&obs, ceaddr);
