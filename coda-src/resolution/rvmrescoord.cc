@@ -67,7 +67,7 @@ static int AlreadyIncGroup(ViceVersionVector **, int);
 static void AllocateBufs(res_mgrpent *, char **, int *);
 static void DeAllocateBufs(char **);
 static char *ConcatLogs(res_mgrpent *, char **, RPC2_Integer *, RPC2_Integer *, int *, int *);
-static int ResolveInc(res_mgrpent *, ViceFid *, ViceVersionVector **);
+int ResolveInc(res_mgrpent *, ViceFid *, ViceVersionVector **);
 static int CompareDirContents(SE_Descriptor *, ViceFid *);
 static int CompareDirStatus(ViceStatus *, res_mgrpent *, ViceVersionVector **);
 static void DumpDirContents(SE_Descriptor *, ViceFid *);
@@ -663,7 +663,8 @@ static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
 #endif
 #define PAGESIZE 2048
 
-static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup) {
+int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup)
+{
     SE_Descriptor sid;
     char *dirbufs[VSG_MEMBERS];
     int dirlength = MAXPAGES * PAGESIZE + VAclSize(foo);
@@ -682,7 +683,6 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGro
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid);
-	return(EINCONS);
     }
     
     // set up buffers to get dir contents & status blocks

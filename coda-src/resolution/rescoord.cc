@@ -60,9 +60,8 @@ extern "C" {
 timing_path *tpinfo = 0;
 timing_path *FileresTPinfo = 0; 
 
-/* private routines */
-static int AlreadyIncGroup(ViceVersionVector **VV, int nvvs);
-
+/* function from rvmrescoord.cc */
+int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup);
 
 /* two VV's are weakly equal if they have the same store-id: 
    this means that the files are identical, but the COP2 never made 
@@ -160,6 +159,7 @@ static int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid,
 	return(error);
 }
 
+
 long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV) 
 {
 	int reserror = 1;
@@ -178,6 +178,7 @@ long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 	/* check if any object already inc */
 	if (AlreadyIncGroup(VV, VSG_MEMBERS)) {
 		SLog(0,  "OldDirResolve: Group already inconsistent");
+		reserror = ResolveInc(mgrp, Fid, VV);
 		goto Exit;
 	}
 
