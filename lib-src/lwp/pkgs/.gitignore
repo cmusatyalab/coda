@@ -3,3 +3,4 @@ Makefile.in
 lwp.spec
 lwp-nt.spec
 lwp-dos.spec
+lwp-win95.spec
