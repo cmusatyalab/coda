@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/altest.cc,v 4.3 1998/01/10 18:37:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/altest.c,v 4.1 1998/04/14 20:51:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,10 +107,10 @@ struct slot
 
 struct slot Vec[SLOTTYPES][SLOTMAX];
 
-PRIVATE void Op_1(), Op_2(), Op_3(), Op_4(), Op_5(), Op_6();
-PRIVATE int AskSlot(IN int VecType, IN char *Prompt);
-PRIVATE int NewSlot(IN int VecType);
-PRIVATE int GetInputOutput(OUT FILE **infile, OUT FILE **outfile);
+static void Op_1(), Op_2(), Op_3(), Op_4(), Op_5(), Op_6();
+static int AskSlot(IN int VecType, IN char *Prompt);
+static int NewSlot(IN int VecType);
+static int GetInputOutput(OUT FILE **infile, OUT FILE **outfile);
 
 
 int main(int argc, char *argv[])
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
 	}
     }
 
-PRIVATE void Op_1()		/* Name-Id Translation */
+static void Op_1()		/* Name-Id Translation */
     {
     int MinorOp, Id;
     char Name[PRS_MAXNAMELEN];
@@ -234,7 +234,7 @@ PRIVATE void Op_1()		/* Name-Id Translation */
 			
     }
 
-PRIVATE void Op_2()		/* Alist: New, Free, Fill, Print, Externalize, hton, ntoh */
+static void Op_2()		/* Alist: New, Free, Fill, Print, Externalize, hton, ntoh */
     {
     int MinorOp;
 
@@ -370,7 +370,7 @@ PRIVATE void Op_2()		/* Alist: New, Free, Fill, Print, Externalize, hton, ntoh *
 	}
     }
 
-PRIVATE void Op_3()		/* ExternalAlist:   New, Free, Fill, Print, Internalize, hton, ntoh */
+static void Op_3()		/* ExternalAlist:   New, Free, Fill, Print, Internalize, hton, ntoh */
     {
     int MinorOp;
     
@@ -491,7 +491,7 @@ PRIVATE void Op_3()		/* ExternalAlist:   New, Free, Fill, Print, Internalize, ht
 	}
     }
 
-PRIVATE void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh, Enable, Disable */
+static void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh, Enable, Disable */
     {
     int MinorOp;
 
@@ -621,7 +621,7 @@ PRIVATE void Op_4()		/* InternalCPS: New, Free, Get, Print, hton, ntoh, Enable, 
 
     }
 
-PRIVATE void Op_5()		/* ExternalCPS:  New, Free, Get, Print, hton, ntoh */
+static void Op_5()		/* ExternalCPS:  New, Free, Get, Print, hton, ntoh */
     {
     int MinorOp;
 
@@ -696,7 +696,7 @@ PRIVATE void Op_5()		/* ExternalCPS:  New, Free, Get, Print, hton, ntoh */
 	}
     }
 
-PRIVATE void Op_6()		/* Miscellaneous:  CheckRights */
+static void Op_6()		/* Miscellaneous:  CheckRights */
     {
     int MinorOp;
 
@@ -747,7 +747,7 @@ PRIVATE void Op_6()		/* Miscellaneous:  CheckRights */
 	}
     }
 
-PRIVATE int AskSlot(IN int VecType, IN char *Prompt)
+static int AskSlot(IN int VecType, IN char *Prompt)
     {
     int w;
     printf("%s", Prompt);
@@ -760,7 +760,7 @@ PRIVATE int AskSlot(IN int VecType, IN char *Prompt)
 
     }
 
-PRIVATE int NewSlot(IN int VecType)
+static int NewSlot(IN int VecType)
     {
     int i;
     for (i = 0; i < SLOTMAX; i++)
@@ -772,7 +772,7 @@ PRIVATE int NewSlot(IN int VecType)
     return(i);
     }
 
-PRIVATE int GetInputOutput(OUT FILE **infile, OUT FILE **outfile)
+static int GetInputOutput(OUT FILE **infile, OUT FILE **outfile)
     {
     char filename[100];
     printf("Filename: ");

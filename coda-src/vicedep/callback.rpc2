@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/callback.rpc2,v 4.2 1998/04/14 21:02:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/callback.rpc2,v 4.3 1998/08/05 23:50:26 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -68,9 +68,9 @@ CallBackConnect (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS ClientIdent)
 		 NEW_CONNECTION;
 
-CallBack	(IN ViceFid Fid);
+1: CallBack	(IN ViceFid Fid);
 
-CallBackFetch	(IN ViceFid Fid,
+2: CallBackFetch	(IN ViceFid Fid,
 		 IN OUT SE_Descriptor BD);
 
-CallBackReceivedStore (IN ViceFid Fid);
+3: CallBackReceivedStore (IN ViceFid Fid);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/res.rpc2,v 4.1 1997/01/08 21:52:04 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/res.rpc2,v 4.2 1998/08/05 23:50:27 braam Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -93,7 +93,7 @@ typedef RPC2_Enum
 	ResStoreData = 1
 }	ResStoreType;
 
-COP2		(IN ViceStoreId StoreId,
+1: COP2		(IN ViceStoreId StoreId,
 		 IN ViceVersionVector UpdateSet);
 
 NewConnection	(IN RPC2_Integer SideEffectType,
@@ -103,7 +103,7 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS ClientIdent)
                  NEW_CONNECTION;
 
-ForceFile   	(IN ViceFid Fid,
+2: ForceFile   	(IN ViceFid Fid,
 		 IN ResStoreType Request,
 		 IN RPC2_Integer Length,
 		 IN ViceVersionVector VV,
@@ -111,85 +111,85 @@ ForceFile   	(IN ViceFid Fid,
 		 IN OUT SE_Descriptor BD);
 
 /* VV should be punted since it is available in ViceStatus */
-LockAndFetch	(IN ViceFid Fid, 
+3: LockAndFetch	(IN ViceFid Fid, 
 		 IN ResFetchType Request, 
 		 OUT ViceVersionVector VV,
 		 OUT ResStatus rstatus, 
 		 OUT RPC2_Integer logsize,
 		 OUT ResPathElem path[]);
 
-UnlockVol   	(IN VolumeId Vid);
+4: UnlockVol   	(IN VolumeId Vid);
 
-MarkInc     	(IN ViceFid Fid);
+5: MarkInc     	(IN ViceFid Fid);
 
-FetchFile	(IN ViceFid Fid, 
+6: FetchFile	(IN ViceFid Fid, 
 		 IN RPC2_Unsigned PrimaryHost,
 		 OUT ResStatus Status,
 		 IN OUT SE_Descriptor BD);
 
-ForceDirVV	(IN ViceFid Fid,
+7: ForceDirVV	(IN ViceFid Fid,
 		 IN ViceVersionVector VV,
 		 IN ViceStatus status);
 
-DoForceDirOps	(IN ViceFid Fid,
+8: DoForceDirOps	(IN ViceFid Fid,
 		 IN ViceStatus status,
 		 IN OUT RPC2_CountedBS AccessList,
 		 OUT RPC2_Integer rstatus,
 		 IN OUT SE_Descriptor sed);
 
-GetForceDirOps  (IN ViceFid Fid,
+9: GetForceDirOps  (IN ViceFid Fid,
 		 OUT ViceStatus status, 
 		 IN OUT RPC2_CountedBS AccessList,
 		 IN OUT SE_Descriptor sed);
 
-FetchLog	(IN ViceFid Fid,
+10: FetchLog	(IN ViceFid Fid,
 		 OUT RPC2_Integer logsize,
 		 IN OUT SE_Descriptor sed);
 
-DirResPhase2	(IN ViceFid Fid,
+11: DirResPhase2	(IN ViceFid Fid,
 		 IN ViceStoreId logid,
 		 OUT ViceStatus status,
 		 IN RPC2_BoundedBS pbinc);
 
-DirResPhase1	(IN ViceFid Fid, 
+12: DirResPhase1	(IN ViceFid Fid, 
 		 IN RPC2_Integer size,
 		 IN OUT ViceStatus status,
 		 IN OUT RPC2_BoundedBS piggyinc,
 		 IN OUT SE_Descriptor sed);
 
-DirResPhase3	(IN ViceFid Fid,
+13: DirResPhase3	(IN ViceFid Fid,
 		 IN ViceVersionVector UpdateSet,
 		 IN OUT SE_Descriptor sed);
 
 /* New calls with logs in rvm */
 /* reuse DirResPhase2 and DirResPhase3 */
-ResPhase2       (IN ViceFid Fid,
+14: ResPhase2       (IN ViceFid Fid,
 		 OUT RPC2_Integer logsize,
 		 OUT RPC2_Integer nentries,
 		 IN OUT SE_Descriptor sed);
 		 
-ResPhase3       (IN ViceFid Fid,
+15: ResPhase3       (IN ViceFid Fid,
 		 IN RPC2_Integer size,
 		 IN RPC2_Integer totalentries,
 		 IN OUT ViceStatus vstatus,
 		 IN OUT RPC2_BoundedBS piggyinc,
 		 IN OUT SE_Descriptor sed);
 
-ResPhase34      (IN ViceFid Fid,
+16: ResPhase34      (IN ViceFid Fid,
 		 IN ViceStoreId logid,
 		 OUT ViceStatus status,
 		 IN RPC2_BoundedBS pbinc);
 
 /* same as DirResPhase3 above */
-ResPhase4	(IN ViceFid Fid,
+17: ResPhase4	(IN ViceFid Fid,
 		 IN ViceVersionVector UpdateSet,
 		 IN OUT SE_Descriptor sed);
 
-FetchDirContents (IN ViceFid fid,
+18: FetchDirContents (IN ViceFid fid,
 		  OUT RPC2_Integer length,
 		  OUT ViceStatus statu,
 		  IN OUT SE_Descriptor sed);
 
-ClearIncon      (IN ViceFid Fid,
+19: ClearIncon      (IN ViceFid Fid,
 		 IN ViceVersionVector VV);
 		 

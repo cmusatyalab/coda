@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.2 1997/10/23 19:25:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.3 1998/03/06 20:21:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -119,17 +119,6 @@ extern void ViceTerminate();
 
 #define	STREQ(a, b) (strcmp((a), (b)) == 0)
 #define	STRNEQ(a, b, n) (strncmp((a), (b), (n)) == 0)
-
-#define FID_EQ(a, b)\
-    ((a).Volume == (b).Volume && (a).Vnode == (b).Vnode && (a).Unique == (b).Unique)
-
-#define FID_LT(a, b)\
-    /* Assumes that ((a).Volume == (b).Volume)! */\
-    ((((a).Vnode) < ((b).Vnode)) || ((a).Vnode == (b).Vnode && ((a).Unique) < ((b).Unique)))
-
-#define FID_LTE(a, b)\
-    /* Assumes that ((a).Volume == (b).Volume)! */\
-    ((((a).Vnode) < ((b).Vnode)) || ((a).Vnode == (b).Vnode && ((a).Unique) <= ((b).Unique)))
 
 #define	SID_EQ(a, b)	((a).Host == (b).Host && (a).Uniquifier == (b).Uniquifier)
 
@@ -349,8 +338,5 @@ extern int AllowResolution;
 
 /* coppend.c */
 extern void AddToCopPendingTable(ViceStoreId *, ViceFid *);
-
-// volutil
-extern void SetDirHandle(DirHandle *, Vnode *);
 
 #endif	not _VICE_SRV_H_

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.3 1998/01/10 18:37:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.4 1998/08/05 23:49:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ extern void htonFF(FailFilter *);
 
 /* Hooks into network package */
 extern int (*Fail_SendPredicate)(), (*Fail_RecvPredicate)();
-PRIVATE int StdSendPredicate(), StdRecvPredicate();
+static int StdSendPredicate(), StdRecvPredicate();
 
 /* Hooks for user customization
 
@@ -87,13 +87,13 @@ int (*Fail_UserSendPredicate)(), (*Fail_UserRecvPredicate)();
 
 /* Our globals */
 
-PRIVATE char clientName[MAXNAMELEN];
+static char clientName[MAXNAMELEN];
 /* numFilters and theFilters for sendSide and recvSide */
-PRIVATE int numFilters[2];
-PRIVATE FailFilter *theFilters[2];
-PRIVATE int *theQueues[2];
+static int numFilters[2];
+static FailFilter *theFilters[2];
+static int *theQueues[2];
 
-PRIVATE int FilterID = 1;
+static int FilterID = 1;
 
 #ifdef DEBUG_FAIL
 #define TEMPDEBUG(msg) \
@@ -102,7 +102,7 @@ PRIVATE int FilterID = 1;
 #define TEMPDEBUG(msg)
 #endif DEBUG_FAIL
 
-PRIVATE PrintFilter(f)
+static PrintFilter(f)
 register FailFilter *f;
 {
     printf("\tip %d.%d.%d.%d color %d len %d-%d factor %d speed %d\n",
@@ -110,7 +110,7 @@ register FailFilter *f;
 	   f->lenmax, f->factor, f->speed);
 }
 
-PRIVATE PrintFilters()
+static PrintFilters()
 {
     int side, which;
 
@@ -416,7 +416,7 @@ FailFilterSide side;
 
 /* Determine whether a packet matches a filter */
 
-PRIVATE int PacketMatch(filter, ip1, ip2, ip3, ip4, color, length)
+static int PacketMatch(filter, ip1, ip2, ip3, ip4, color, length)
 FailFilter *filter;
 unsigned char ip1, ip2, ip3, ip4, color;
 int length;
@@ -439,7 +439,7 @@ DBG(("PacketMatch: %s\n", result ? "yes" : "no"))
 
 /* Determine whether to drop a packet based on its filter factor */
 
-PRIVATE int FlipCoin(factor)
+static int FlipCoin(factor)
 int factor;
 {
     long random();
@@ -450,7 +450,7 @@ int factor;
 
 /* Standard packet filters */
 
-PRIVATE int StdSendPredicate(ip1, ip2, ip3, ip4, color, pb, addr, sock)
+static int StdSendPredicate(ip1, ip2, ip3, ip4, color, pb, addr, sock)
 unsigned char ip1, ip2, ip3, ip4, color;
 RPC2_PacketBuffer *pb;
 struct sockaddr_in *addr;
@@ -492,7 +492,7 @@ DBG(("StdSendPredicate: ip %d.%d.%d.%d color %d len %d\n",
     return action;
 }
 
-PRIVATE int StdRecvPredicate(ip1, ip2, ip3, ip4, color, pb)
+static int StdRecvPredicate(ip1, ip2, ip3, ip4, color, pb)
 unsigned char ip1, ip2, ip3, ip4, color;
 RPC2_PacketBuffer *pb;
 /* we also have addr and sock, but we're ignoring them */
