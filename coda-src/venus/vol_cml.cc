@@ -3863,12 +3863,8 @@ void cmlent::AttachFidBindings()
     GetAllFids(fids);
 
     for (int i = 0; i < 3; i++) {
-	VenusFid *fidp = fids[i], *local;
+	VenusFid *fidp = fids[i];
 	if (fidp == 0) break;
-
-	local = LRDB->LGM_LookupLocal(fidp);
-	if (local)
-	    fidp = local;
 
 	fsobj *f = FSDB->Find(fidp);
 	if (f == 0) {

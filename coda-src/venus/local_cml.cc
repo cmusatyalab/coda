@@ -524,7 +524,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    /* copy the local-obj cache file into the global-obj cache */
 	    LObj->data.file->Copy(GObj->data.file);
 
-	    /* set the local-obj length to the global-obj length */
+	    /* set the global-obj length to the local-obj length */
 	    GObj->stat.Length = LObj->stat.Length;
 	    code = GObj->RepairStore();
 	    GObj->GetPath(GlobalPath, 1);
