@@ -941,8 +941,7 @@ void fsobj::SetAcRights(uid_t uid, long my_rights, long any_rights)
     AnyUser.valid = 1;
 
     /* Don't record my_rights if we're not really authenticated! */
-    userent *ue;
-    GetUser(&ue, vol->realm, uid);
+    userent *ue = vol->realm->GetUser(uid);
     int tokensvalid = ue->TokensValid();
     PutUser(&ue);
     if (!tokensvalid) return;
@@ -999,8 +998,7 @@ void fsobj::PromoteAcRights(uid_t uid)
 	 */
 	for (int i = 0; i < CPSIZE; i++)
 	    if (SpecificUser[i].inuse && !SpecificUser[i].valid) {
-		userent *ue;
-		GetUser(&ue, vol->realm, SpecificUser[i].uid);
+		userent *ue = vol->realm->GetUser(SpecificUser[i].uid);
 		int tokensvalid = ue->TokensValid();
 		PutUser(&ue);
 		if (tokensvalid) SpecificUser[i].valid = 1;
@@ -1012,8 +1010,7 @@ void fsobj::PromoteAcRights(uid_t uid)
 	 * he goes disconnected, he may have access to files he 
 	 * otherwise wouldn't have because he lost tokens.
 	 */
-	userent *ue;
-	GetUser(&ue, vol->realm, uid);
+	userent *ue = vol->realm->GetUser(uid);
 	int tokensvalid = ue->TokensValid();
 	PutUser(&ue);
 	if (!tokensvalid) return;

@@ -79,27 +79,39 @@ void UserInit() {
     USERD_Init();
 }
 
-void GetUser(userent **upp, Realm *realm, uid_t uid)
+userent *Realm::GetUser(uid_t uid)
 {
-    LOG(100, ("GetUser: uid = %x.%d\n", realm, uid));
+    LOG(100, ("Realm::GetUser local uid '%d' for realm '%s'\n", uid, name));
 
     user_iterator next;
     userent *u;
 
     while ((u = next())) {
-	if (realm == u->realm && uid == u->uid)
-	    break;
+	if (Id() == u->realmid && uid == u->GetUid())
+	    return u;
     }
+    return system_anyuser;
+}
 
-    if (!u) {
+int Realm::NewUserToken(uid_t uid, SecretToken *secretp, ClearToken *clearp)
+{
+    LOG(100, ("Realm::NewUserToken local uid '%d' for realm '%s'\n", uid,name));
+    userent *u = GetUser(uid);
+    int ret;
+
+    if (u == system_anyuser) {
+	PutUser(&u);
+
 	/* Create a new entry and initialize it. */
-	u = new userent(realm, uid);
-
-	/* Stick it in the table. */
+	u = new userent(Id(), uid);
 	userent::usertab->insert(&u->tblhandle);
     }
 
-    *upp = u;
+    ret = u->SetTokens(secretp, clearp);
+
+    PutUser(&u);
+
+    return ret ? 0 : EPERM;
 }
 
 void PutUser(userent **upp)
@@ -208,12 +220,11 @@ int ConsoleUser(uid_t user)
 #endif
 }
 
-userent::userent(Realm *r, uid_t userid)
+userent::userent(RealmId rid, uid_t userid)
 {
     LOG(100, ("userent::userent: uid = %d\n", userid));
 
-    r->GetRef();
-    realm = r;
+    realmid = rid;
     uid = userid;
     tokensvalid = 0;
     told_you_so = 0;
@@ -232,7 +243,6 @@ int userent::operator=(userent& u) { abort(); return(0); }
 userent::~userent() {
     LOG(100, ("userent::~userent: uid = %d\n", uid));
     Invalidate();
-    realm->PutRef();
 }
 
 long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
@@ -240,6 +250,13 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
 
     if (uid == V_UID) {
 	eprint("root acquiring Coda tokens!");
+    }
+
+    if (!tokensvalid) {
+	Realm *realm = REALMDB->GetRealm(realmid);
+	/* grab an extra reference that is kept until the token invalidation */
+	realm->GetRef();
+	realm->PutRef();
     }
 
     /* N.B. Using direct assignment to the Token structs rather than the bcopys (now memcpy) doesn't seem to work! XXXX Bogus comment? Phil Nelson*/
@@ -307,6 +324,13 @@ void userent::CheckTokenExpiry() {
 void userent::Invalidate() {
     LOG(100, ("userent::Invalidate: uid = %d, tokensvalid = %d\n",
 	    uid, tokensvalid));
+
+    if (!tokensvalid)
+	return;
+
+    Realm *realm = REALMDB->GetRealm(realmid);
+    realm->PutRef(); /* one because we had a token */
+    realm->PutRef(); /* one to compensate for the GetRealm reference */
 
     /* Security is not having to say you're sorry. */
     tokensvalid = 0;
@@ -545,6 +569,10 @@ int userent::GetWaitForever() {
 void userent::SetWaitForever(int state) {
     LOG(1, ("userent::SetWaitForever: uid = %d, old_state = %d, new_state = %d\n",
 	     uid, waitforever, state));
+
+    /* Don't allow someone to set the waitforever behaviour for system_anyuser
+     * because it is shared among all anonymous users */
+    if (!tokensvalid) return;
 
     if (state == waitforever) return;
 

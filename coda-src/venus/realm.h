@@ -22,9 +22,11 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <rvmlib.h>
 #include <coda_assert.h>
+#include <auth2.h>
 #include "venusfid.h"
 
 class connent;
+class userent;
 
 class Realm {
     friend class RealmDB;
@@ -57,6 +59,9 @@ public:
     /* MUST NOT be called from within a transaction */
     int GetAdmConn(connent **cpp); /*N*/
 
+    userent *GetUser(uid_t uid);
+    int NewUserToken(uid_t uid, SecretToken *secretp, ClearToken *clearp);
+
     void print(FILE *f);
 
 private:
@@ -66,6 +71,7 @@ private:
 
 /*T*/unsigned int refcount;
 /*T*/struct RPC2_addrinfo *rootservers;
+/*T*/userent *system_anyuser;
 };
 
 #endif /* _REALM_H_ */

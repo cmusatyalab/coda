@@ -36,6 +36,7 @@ extern "C" {
 #include "realm.h"
 #include "realmdb.h"
 #include "comm.h"
+#include "user.h"
 #include "parse_realms.h"
 #include "rec_dllist.h"
 
@@ -50,13 +51,17 @@ Realm::Realm(const char *realm_name)
     rvmlib_set_range(name, len);
     strcpy(name, realm_name);
 
-    RVMLIB_REC_OBJECT(rec_refcount);
-    rec_refcount = 0;
-
     rec_list_head_init(&realms);
 
-    rootservers = NULL;
+    RVMLIB_REC_OBJECT(rec_refcount);
+    /* we need a reference to prevent suicide in ResetTransient */
+    rec_refcount = 1;
+
+    ResetTransient();
+
+    /* and set the correct refcounts for the new object */
     refcount = 1;
+    rec_refcount = 0;
 }
 
 /* MUST be called from within a transaction */
@@ -76,6 +81,8 @@ Realm::~Realm(void)
     }
     rvmlib_rec_free(name); 
 
+    delete system_anyuser;
+
     /* kill the fake object that represents our mountlink */
     Fid.Realm = LocalRealm->Id();
     Fid.Volume = FakeRootVolumeId;
@@ -91,6 +98,7 @@ void Realm::ResetTransient(void)
 {
     rootservers = NULL;
     refcount = 0;
+    system_anyuser = new userent(Id(), (uid_t)-1);
 
     if (rvmlib_in_transaction() && !rec_refcount)
 	delete this;
@@ -166,6 +174,7 @@ retry:
 
 	s = ::GetServer(&sin->sin_addr, Id());
 	code = s->GetConn(cpp, V_UID);
+	PutServer(&s);
 	switch(code) {
 	case ERETRY:
 	    tryagain = 1;

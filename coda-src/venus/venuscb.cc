@@ -324,7 +324,7 @@ long VENUS_CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
     RPC2_PeerInfo thePeer;
     RPC2_GetPeerInfo(RPCid, &thePeer);
     if (thePeer.RemoteHost.Tag != RPC2_HOSTBYINETADDR ||
-	 thePeer.RemotePort.Tag != RPC2_PORTBYINETNUMBER)
+	thePeer.RemotePort.Tag != RPC2_PORTBYINETNUMBER)
 	CHOKE("CallBackConnect: getpeerinfo returned bogus type!");
 
     LOG(100, ("CallBackConnect: host = %s, port = %d\n",
@@ -336,13 +336,13 @@ long VENUS_CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
      * server may be "calling-back" as a result of a bind by a PREVIOUS Venus
      * incarnation at this client! */
     srvent *s = FindServer(&thePeer.RemoteHost.Value.InetAddress);
-    if (s) {
-	s->GetRef();
-	LOG(1, ("CallBackConnect: host = %s\n", s->name));
-	MarinerLog("callback::NewConnection %s\n", s->name);
-	s->ServerUp(RPCid);
-	PutServer(&s);
-    }
+    if (!s) return 0;
+
+    s->GetRef();
+    LOG(1, ("CallBackConnect: host = %s\n", s->name));
+    MarinerLog("callback::NewConnection %s\n", s->name);
+    s->ServerUp(RPCid);
+    PutServer(&s);
 
     return(0);
 }

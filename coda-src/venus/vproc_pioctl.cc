@@ -1155,14 +1155,9 @@ V_FreeLocks:
 			*clearlen != (int)sizeof(ClearToken))
 			{ u.u_error = EINVAL; break; }
 */
-		    userent *ue;
-		    Realm *realm;
-		    realm = REALMDB->GetRealm(realmp);
-		    GetUser(&ue, realm, u.u_uid);
-		    u.u_error = 0;
-		    if (!ue->SetTokens(secretp, clearp))
-			u.u_error = EPERM;
-		    PutUser(&ue);
+		    Realm *realm = REALMDB->GetRealm(realmp);
+
+		    u.u_error = realm->NewUserToken(u.u_uid, secretp, clearp);
 		    if (!u.u_error) {
 			connent *c = NULL;
 			/* attempt to trigger resolution */
@@ -1187,11 +1182,9 @@ V_FreeLocks:
 #define clearlen ((long *)(secretp + 1))
 #define clearp ((ClearToken *)(clearlen + 1))
 #define endp ((char *)(clearp + 1)) 
-		    userent *ue;
-		    Realm *realm;
-		    realm = REALMDB->GetRealm(data->in);
-		    GetUser(&ue, realm, u.u_uid);	   
-		    u.u_error = (int) ue->GetTokens(secretp, clearp);
+		    Realm *realm = REALMDB->GetRealm(data->in);
+		    userent *ue = realm->GetUser(u.u_uid);	   
+		    u.u_error = ue->GetTokens(secretp, clearp);
 		    PutUser(&ue);
 		    realm->PutRef();
 		    if (u.u_error) break;
@@ -1209,9 +1202,8 @@ V_FreeLocks:
 
 		case VIOCUNLOG:
 		    {
-		    userent *ue;
 		    Realm *realm = REALMDB->GetRealm(data->in);
-		    GetUser(&ue, realm, u.u_uid);
+		    userent *ue = realm->GetUser(u.u_uid);
 		    ue->Invalidate();
 		    PutUser(&ue);
 		    realm->PutRef();
@@ -1394,9 +1386,8 @@ V_FreeLocks:
 		     * cooperation with the kernel, which I don't want to mess
 		     * with now.  So instead, we will set it on a per-user
 		     * basis (at least for now). */
-		    userent *ue;
 		    Realm *realm = REALMDB->GetRealm((char *)data->in+sizeof(int));
-		    GetUser(&ue, realm, u.u_uid);
+		    userent *ue = realm->GetUser(u.u_uid);
 		    ue->SetWaitForever(on);
 		    PutUser(&ue);
 		    realm->PutRef();

@@ -516,18 +516,22 @@ srvent *FindServerByCBCid(RPC2_Handle connid)
 }
 
 
-srvent *GetServer(struct in_addr *host, RealmId realm)
+srvent *GetServer(struct in_addr *host, RealmId realmid)
 {
     CODA_ASSERT(host && host->s_addr);
     LOG(100, ("GetServer: host = %s\n", inet_ntoa(*host)));
 
     srvent *s = FindServer(host);
     if (s) {
-        s->GetRef();
-	return s;
+	s->GetRef();
+	if (s->realmid == realmid)
+	    return s;
+
+	s->Reset();
+	PutServer(&s);
     }
 
-    s = new srvent(host, realm);
+    s = new srvent(host, realmid);
 
     srvent::srvtab->insert(&s->tblhandle);
 
@@ -930,7 +934,7 @@ srvent::srvent(struct in_addr *Host, RealmId realm)
     bwmax  = INIT_BW;
     lastobs.tv_sec = lastobs.tv_usec = 0;
     VGAPlusSHA_Supported = 0;  /* default is old-style server */
-    
+    refcount = 1;
 
 #ifdef	VENUSDEBUG
     allocs++;
@@ -977,9 +981,8 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, uid_t uid, int Force)
     /* Get the user entry and attempt to connect to it. */
     Xbinding = 1;
     {
-	userent *u = 0;
 	Realm *realm = REALMDB->GetRealm(realmid);
-	GetUser(&u, realm, uid);
+	userent *u = realm->GetUser(uid);
 	code = u->Connect(cidp, authp, &host);
 	PutUser(&u);
 	realm->PutRef();

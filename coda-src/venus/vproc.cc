@@ -685,8 +685,7 @@ void vproc::End_VFS(int *retryp) {
 	case ETIMEDOUT:
 	    /* Check whether user wants to wait on blocking events. */
 	    {
-	    userent *ue;
-	    GetUser(&ue, u.u_vol->realm, u.u_uid);
+	    userent *ue = u.u_vol->realm->GetUser(u.u_uid);
 	    int waitforever = ue->GetWaitForever();
 	    PutUser(&ue);
 	    if (!waitforever) goto Exit;

@@ -107,13 +107,11 @@ try_again:
     /* Try to connect to the VSG on behalf of the user. */
     {
         RPC2_Handle MgrpHandle = 0;
-        userent *u = NULL;
         struct in_addr mgrpaddr;
         mgrpaddr.s_addr = INADDR_ANY; /* Request to form an mgrp */
 
 	Realm *realm = REALMDB->GetRealm(realmid);
-	CODA_ASSERT(realm);
-        GetUser(&u, realm, uid);
+        userent *u = realm->GetUser(uid);
         code = u->Connect(&MgrpHandle, &auth, &mgrpaddr);
         PutUser(&u);
 	realm->PutRef();
@@ -231,7 +229,7 @@ vsgent *vsgdb::GetVSG(struct in_addr hosts[VSG_MEMBERS], RealmId realmid)
     /* search for a matching VSG */
     list_for_each(p, vsgents) {
         v = list_entry_plusplus(p, vsgent, vsgs);
-        if (v->CmpHosts(hosts)) {
+        if (realmid == v->realmid && v->CmpHosts(hosts)) {
             v->GetRef();
             return v;
         }

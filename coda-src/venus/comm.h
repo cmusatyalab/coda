@@ -198,9 +198,9 @@ class srvent : private RefCountedObject {
   friend void CommInit();
   friend void Srvr_Wait();
   friend void Srvr_Signal();
-  friend srvent *FindServer(struct in_addr *);
+  friend srvent *FindServer(struct in_addr *host);
   friend srvent *FindServerByCBCid(RPC2_Handle);
-  friend srvent *GetServer(struct in_addr *, RealmId realm);
+  friend srvent *GetServer(struct in_addr *host, RealmId realmid);
   friend void PutServer(srvent **);
   friend void ProbeServers(int);
   friend void ServerProbe(long *, long *);
@@ -216,6 +216,7 @@ class srvent : private RefCountedObject {
   friend long VENUS_CallBack(RPC2_Handle, ViceFid *);
   friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
   friend long VENUS_CallBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
+  friend long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid);
   friend long WriteBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
   friend int FailDisconnect(int, struct in_addr *);
   friend int FailReconnect(int, struct in_addr *);
@@ -238,6 +239,7 @@ class srvent : private RefCountedObject {
     olink tblhandle;
     char *name;
     struct in_addr host;
+    RealmId realmid;
     RPC2_Handle	connid;		/* The callback connid. */
     unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
@@ -248,7 +250,7 @@ class srvent : private RefCountedObject {
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
-    srvent(struct in_addr *host, RealmId realm);
+    srvent(struct in_addr *host, RealmId realmid);
     srvent(srvent&) { abort(); }	/* not supported! */
     int operator=(srvent&) { abort(); return(0); }	/* not supported! */
     ~srvent();
@@ -259,7 +261,6 @@ class srvent : private RefCountedObject {
     static int allocs;
     static int deallocs;
 #endif
-    RealmId realmid;
 
 /* VGAPlusSHA_Supported is for temporary use, during transition from use of
    ViceGetAttr() to ViceGetAttrPlusSHA(); distinguishes old-style servers
@@ -344,9 +345,9 @@ void Conn_Signal();
 void PutConn(connent **);
 void Srvr_Wait();
 void Srvr_Signal();
-srvent *FindServer(struct in_addr *);
+srvent *FindServer(struct in_addr *host);
 srvent *FindServerByCBCid(RPC2_Handle);
-srvent *GetServer(struct in_addr *, RealmId);
+srvent *GetServer(struct in_addr *host, RealmId realmid);
 void PutServer(srvent **);
 void ProbeServers(int);
 void DoProbes(int, struct in_addr *);

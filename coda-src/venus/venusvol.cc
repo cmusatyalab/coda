@@ -1359,8 +1359,7 @@ void volent::TakeTransition()
      * 3. We force "zombie" volumes to emulation state until they are
      *    un-zombied. */
     if (nextstate == Logging && rv->GetCML()->count() > 0) {
-	userent *u = 0;
-	GetUser(&u, rv->realm, rv->GetCML()->Owner());
+	userent *u = rv->realm->GetUser(rv->GetCML()->Owner());
 	if (!u->TokensValid()) {
 	    rv->SetReintegratePending();
 	    nextstate = Emulating;
@@ -1684,8 +1683,7 @@ void repvol::SetReintegratePending() {
 void repvol::ClearReintegratePending() {
     flags.reintegratepending = 0;
     /* if (SkkEnabled) {
-     *    userent *u;
-     *    GetUser(&u, realm, CML.owner);
+     *    userent *u = realm->GetUser(CML.owner);
      *    CODA_ASSERT(u != NULL);
      *    u->NotifyReintegrationEnabled(name);
      * } */
@@ -1696,8 +1694,7 @@ void repvol::CheckReintegratePending() {
     if (flags.reintegratepending && CML.count() > 0) {
         eprint("Reintegrate %s pending tokens for uid = %d", name, CML.owner);
 	/* if (SkkEnabled) {
-         *    userent *u;
-         *    GetUser(&u, realm, CML.owner);
+         *    userent *u = realm->GetUser(CML.owner);
          *    CODA_ASSERT(u != NULL);
          *    u->NotifyReintegrationPending(name);
 	 * } */
