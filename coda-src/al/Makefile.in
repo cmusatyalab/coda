@@ -51,6 +51,6 @@ altest: altest.o libal.a $(LIBUTIL) $(HFILES)
 	$(CC) ${LIBFLAGS} altest.o libal.a $(LGDBM) -lgdbm $(LIBUTIL) $(LIBBASE) -o altest
 
 pdbtool: pdbtool.o libal.a 
-	$(CC) ${LIBFLAGS} pdbtool.o libal.a -lgdbm $(LIBBASE) $(LIBREADLINE) -o pdbtool
+	$(CC) ${LIBFLAGS} pdbtool.o libal.a $(LGDBM) -lgdbm $(LIBBASE) $(LIBREADLINE) -o pdbtool
 
 include $(MAKDIR)/configs/Makerules
