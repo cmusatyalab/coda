@@ -34,7 +34,7 @@
  * SUCH DAMAGE.
  *
  *	from: @(#)SYS.h	5.5 (Berkeley) 5/7/91
- *	$Id: SYS.h,v 4.1 1997/01/08 21:53:16 rvb Exp $
+ *	$Id: SYS.h,v 4.3 1997/02/26 17:53:01 rvb Exp $
  */
 
 #ifdef	__NetBSD__

@@ -32,7 +32,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  @NTT_COPY_RIGHT_HI@
  FreeBSD specific defs. Mostly same as NetBSD.h comes with Coda.
- $Id: cfs_FreeBSD.h,v 1.3 1997/02/17 01:56:18 inamura Exp $
+ $Id: cfs_FreeBSD.h,v 4.1 1997/02/26 16:56:59 rvb Exp $
 */
 /* cfs_plat.h: platform-specific support for the CFS driver */
 

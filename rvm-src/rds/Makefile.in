@@ -41,7 +41,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: Makefile.in,v 4.1 97/01/08 21:54:25 rvb Exp $
+# rcsid = $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rds/Attic/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $
 #
 
 #   	RDS Makefile: depends on csmake.
