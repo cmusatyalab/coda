@@ -146,6 +146,9 @@ static inline ino_t coda_f2i(struct ViceFid *fid)
               return 0;
       }
 }
+#ifndef _LINUX_POSIX_TYPES_H
+#define u_int32_t unsigned int
+#endif
 
 
 #ifndef _VUID_T_
