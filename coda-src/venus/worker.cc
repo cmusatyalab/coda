@@ -94,8 +94,6 @@ extern int venus_relay_addr;
 /* Temporary!  Move to cnode.h. -JJK */
 #define	C_INCON	0x2
 
-int global_kernfd;
-
 /* static class members */
 int worker::muxfd;
 int worker::nworkers;
@@ -688,7 +686,6 @@ void WorkerInit() {
         exit(-1);
     }
 #endif
-    global_kernfd = worker::muxfd;
 
     if (worker::muxfd >= NFDS) {
         eprint("WorkerInit: worker::muxfd >= %d!", NFDS);

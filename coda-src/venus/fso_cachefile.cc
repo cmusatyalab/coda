@@ -313,26 +313,7 @@ int CacheFile::Open(fsobj *fso, int flags)
     union outputArgs msg;
 
     fd = ::open(name, flags, V_MODE);
-    if (fd == -1) return -1;
     
-#if 0 /* experimental code for linux-2.3, probably not needed anymore */
-    if (HAVE.coda_openfid) {
-        msg.oh.opcode = CODA_MAKE_CINODE;
-        msg.oh.unique = 0;
-        fso->GetFid(&msg.coda_make_cinode.CodaFid);
-        fso->GetVattr(&msg.coda_make_cinode.attr);
-        msg.coda_make_cinode.fd = fd;
-        
-        /* Send the message. */
-        if (write(global_kernfd, (char *)&msg, sizeof(msg)) != sizeof(msg)) {
-            LOG(0, ("coda_openfid: message write fails: errno %d", errno));
-            /* Possibly an inode collision happened, which means that we
-             * cannot wrap this file. But, userspace cannot get this inode at
-             * the moment either. So we optimistically ignore the error. */
-        }
-    }
-#endif
-
     return fd;
 }
 
