@@ -2532,13 +2532,6 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
     VFlagBS->SeqLen = 0;
     memset(VFlagBS->SeqBody, 0, VFlagBS->MaxSeqLen);
 
-    if (VSBS->SeqLen < (numVids * VSG_MEMBERS * sizeof(RPC2_Unsigned))) {
-	    SLog(0, "Wrong input buffer while validating volumes: "
-		 "SeqLen %d, should be %d", VSBS->SeqLen,
-		 numVids * VSG_MEMBERS * sizeof(RPC2_Unsigned));
-	    return(EINVAL);
-    }
-
     if (VFlagBS->MaxSeqLen < numVids) {
 	    SLog(0, "Wrong output buffer while validating volumes: "
 		 "MaxSeqLen %d, should be %d", VFlagBS->MaxSeqLen, numVids);
@@ -2554,13 +2547,13 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
     /* check the piggybacked volumes */
 
     for (int i = 0; i < numVids; i++) {
-	int error, index, ix;
+	int error, index, ix, count;
 	Volume *volptr;
 	VolumeId rwVid;
 	RPC2_Integer myVS;
 
     	rwVid = Vids[i].Vid;
-	if (!XlateVid(&rwVid, NULL, &ix)) {
+	if (!XlateVid(&rwVid, &count, &ix)) {
 	    SLog(1, "ValidateVolumes: Couldn't translate VSG %x", 
 		   Vids[i].Vid);
 	    goto InvalidVolume;
@@ -2582,7 +2575,12 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 	VPutVolume(volptr);
 
 	/* check the version stamp in our slot in the vector */
-	index = i * VSG_MEMBERS + ix;
+	index = i * count + ix;
+	if (VSBS->SeqLen < ((index+1) * sizeof(RPC2_Unsigned))) {
+	    SLog(9, "ValidateVolumes: short input");
+	    goto InvalidVolume;
+	}
+
 	if ((long)ntohl(((RPC2_Unsigned *) VSBS->SeqBody)[index]) == myVS) {
 	    SLog(8, "ValidateVolumes: 0x%x ok, adding callback", 
 		   Vids[i].Vid);
