@@ -21,10 +21,10 @@ LIBTERMCAP    = /usr/lib/libtermcap.a
 #for advice_srv
 LIBKVM        = /usr/lib/libkvm.a
 ifeq ($(host),i386-unknown-netbsd1.2)
-INCGDBM       = -I/usr/local/include
+INCGDBM       = -I/usr/include -I/usr/local/include
 LGDBM         = -L/usr/local/lib
 else
-INCGDBM       = -I/usr/pkg/include -I/usr/local/include
+INCGDBM       = -I/usr/include -I/usr/pkg/include -I/usr/local/include
 LGDBM         = -L/usr/pkg/lib -L/usr/local/lib
 endif
 

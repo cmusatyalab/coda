@@ -31,7 +31,7 @@ ifneq ($(SHORTSYS),djgpp)
 TESTS	    = altest
 endif
 
-CFLAGS += -Wall
+CFLAGS += -Wall $(INCGDBM)
 
 ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = pdbtool altest
@@ -48,7 +48,7 @@ HFILES = al.h prs.h pdb.h pdbarray.h
 libal.a:  pdbdb.o pdbpack.o alprocs.o pdb.o pdbdb.o pdbpack.o pdbprofile.o pdbarray.o 
 
 altest: altest.o libal.a $(LIBUTIL) $(HFILES)
-	$(CC) ${LIBFLAGS} altest.o libal.a -lgdbm $(LIBUTIL) $(LIBBASE) -o altest
+	$(CC) ${LIBFLAGS} altest.o libal.a $(LGDBM) -lgdbm $(LIBUTIL) $(LIBBASE) -o altest
 
 pdbtool: pdbtool.o libal.a 
 	$(CC) ${LIBFLAGS} pdbtool.o libal.a -lgdbm $(LIBBASE) $(LIBREADLINE) -o pdbtool

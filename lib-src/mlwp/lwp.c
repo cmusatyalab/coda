@@ -538,7 +538,9 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 
     PROCESS temp, temp2;
     char *stackptr;
+#if defined(__linux__) || defined(__BSD44__)
     int pagesize;
+#endif
 
     lwpdebug(0, "Entered LWP_CreateProcess");
     /* Throw away all dead process control blocks */

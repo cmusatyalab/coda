@@ -174,7 +174,7 @@ void CommInit() {
 
     /* Hostid is needed for storeid generation. */
 #ifdef DJGPP
-    myHostId = 0x12345678;
+    myHostId = __djgpp_get_my_host(); /* this needs MYHOST in the cwd */
 #else
     myHostId = gethostid();
 #endif
