@@ -221,7 +221,7 @@ void testKernDevice()
 {
 #if defined(DJGPP) || defined(__CYGWIN32__)
 	return;
-#endif
+#else
 	int fd = -1;
 	char *str, *p, *q;
 	CODA_ASSERT((str = p = strdup(kernDevice)) != NULL);
@@ -258,10 +258,11 @@ void testKernDevice()
 
 	/* Close the kernel device. */
 	if (close(fd) < 0) {
-	    eprint("close(%s) of /dev/cfs0 failed (%d), exiting",
+	    eprint("close of %s failed (%d), exiting",
 		   kernDevice, errno);
 	    exit(-1);
 	}
+#endif
 }
 
 void VFSMount()
@@ -435,17 +436,6 @@ void VFSMount()
 	    close_relay();
 	    exit(0);
     }
-#endif
-
-#ifdef __CYGWIN32__
-    DWORD d;
-    eprint ("Mounting on %s ... ", venusRoot);
-    d = DefineDosDevice(DDD_RAW_TARGET_PATH, venusRoot, "\\Device\\codadev");
-    if ( d == 0 ) {
-        eprint ("Mount failed");
-        exit(0);
-    }
-    eprint ("Mount OK");
 #endif
 
     Mounted = 1;
