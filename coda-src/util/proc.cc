@@ -101,6 +101,7 @@ char *getcommandname(int pid) {
     cmdFile = fopen(path, "r");
     sprintf(format, "%%%ds", BUFSIZ);
     fscanf(cmdFile, format, CommandString);
+    fclose(cmdFile);
     return(CommandString);
 }
 /* __linux__ */
