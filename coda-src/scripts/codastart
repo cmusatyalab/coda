@@ -1,6 +1,12 @@
 #!/bin/sh
-auth2
-rpc2portmap
-updateclnt -h `grep '' /vice/db/scm` -q coda_udpsrv
-updatesrv -p /vice/db
+if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]
+then
+    rpc2portmap &
+    updatesrv &
+    auth2 &
+else
+    auth2 -chk &
+fi
+updateclnt -h `grep '' /vice/db/scm` &
 startserver &
+
