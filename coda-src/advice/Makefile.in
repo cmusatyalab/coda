@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.10 1998/01/09 13:43:42 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.11 98/01/12 23:35:10 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -38,7 +38,8 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-EXECUTABLES = advice_srv
+EXECUTABLES = advice_srv 
+LIBRARIES = libadvice.a libfakeadvice.a
 CBINS      = $(EXECUTABLES)
 
 # HEADERS     = advice_srv.h console_handler.h counters.h data.h filecopy.h globals.h helpers.h conversions.h miss.h mybstree.h rpc_setup.h volent.h
@@ -85,10 +86,14 @@ replacementlog.o: replacementlog.cc
 fake_rpc_setup.o: rpc_setup.cc
 	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/rpc_setup.cc -o fake_rpc_setup.o
 
-advice_srv: $(LIBS) libadvice.a advice_srv.o
+advice_srv: advice_srv.h $(LIBS) libadvice.a advice_srv.o
 	$(CXX) $(LIBFLAGS) advice_srv.o libadvice.a $(LIBS) $(OTHERLIBS) -o advice_srv
 
+advice_srv.h: advice_srv.h.in translate.sed
+	sed -f translate.sed $< > $@
 
+translate.sed: Makefile
+	echo "s%+GUIDIR+%${LIBEXECDIR}%g" >> $@
 
 # Dependencies
 

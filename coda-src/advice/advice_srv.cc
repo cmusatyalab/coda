@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.5 1997/12/16 22:50:03 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.6 98/01/10 18:36:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -124,7 +124,6 @@ int CHILDresult = -1;
 void PrintMissList(char *filename);
 void InitMissQueue();
 void InitVDB();
-int SetupDefaultAdviceRequests();
 int GetAdvice(char *);
 void Shutdown(int);
 void Child(int);
@@ -214,12 +213,11 @@ main(int argc, char *argv[])
   DaemonExpiry.tv_usec = 0;
   if (LogLevel==1000) RPC2_DebugLevel = 1000;
   for ( ; ; ) {
-//    if (WeLostTheConnection)
-//      exit(0);
 
     // Wait for a request
     rc = RPC2_GetRequest(&reqfilter, &cid, &reqbuffer, &DaemonExpiry, NULL, (long)NULL, NULL) ;
     if (rc == RPC2_TIMEOUT) {
+printf("RPC2_GetRequest got a timeout\n");
       // Fire daemons that are ready to run. 
       DispatchDaemons();
 
@@ -347,162 +345,6 @@ void WorkerHandler() {
         }
     }
 }
-
-
-/******************************************************
- ***********  RPC2 Initialization Routines  ***********
- ******************************************************/
-
-SetupDefaultAdviceRequests() {
-}
-
-#ifdef 0
-{
-    InterestValuePair interests[4];
-    int numInterests = 4;
-    long rc;
-
-    LogMsg(100,LogLevel,LogFile, "E SetupDefaultAdviceRequests");
-
-    interests[0].interest = ReconnectionEvent;
-    interests[1].interest = ReintegrationPending;
-    interests[2].interest = DisconnectedCacheMiss;
-    interests[3].interest = WeaklyConnectedCacheMiss;
-    for (int i=0; i<numInterests; i++) {
-        interests[i].argument = 0;
-        interests[i].value = 1;
-    }
-    ObtainWriteLock(&VenusLock);
-    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
-    ReleaseWriteLock(&VenusLock);
-    if (rc != RPC2_SUCCESS) {
-	    LogMsg(0,LogLevel,LogFile, "SetupDefaultAdviceRequests call failed\n");
-    }
-    LogMsg(100,LogLevel,LogFile, "L SetupDefaultAdviceRequests");
-}
-
-SolicitAdviceOnNextHoardWalk() {
-    InterestValuePair interests[1];
-    int numInterests = 1;
-    long rc;
-
-    LogMsg(100,LogLevel,LogFile, "E SolicitAdviceOnNextHoardWalk");
-
-    interests[0].interest = HoardWalk;
-    interests[0].argument = 0;
-    interests[0].value = 1;
-
-    ObtainWriteLock(&VenusLock);
-    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
-    ReleaseWriteLock(&VenusLock);
-    if (rc != RPC2_SUCCESS) {
-	    LogMsg(0,LogLevel,LogFile, "SolicitHoardWalkAdvice call failed\n");
-    }
-    LogMsg(100,LogLevel,LogFile, "L SolicitAdviceOnNextHoardWalk");
-}
-
-
-
-UnsolicitAdviceOnNextHoardWalk() {
-    InterestValuePair interests[1];
-    int numInterests = 1;
-    long rc;
-
-    LogMsg(100,LogLevel,LogFile, "E UnsolicitAdviceOnNextHoardWalk");
-
-    interests[0].interest = HoardWalk;
-    interests[0].argument = 0;
-    interests[0].value = 0;
-
-    ObtainWriteLock(&VenusLock);
-    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
-    ReleaseWriteLock(&VenusLock);
-    if (rc != RPC2_SUCCESS) {
-	LogMsg(0,LogLevel,LogFile, "UnsolicitHoardWalkAdvice call failed\n");
-    }
-    LogMsg(100,LogLevel,LogFile, "L UnsolicitAdviceOnNextHoardWalk");
-}
-
-SolicitWeakMissAdvice() {
-    InterestValuePair interests[1];
-    int numInterests = 1;
-    long rc;
-
-    LogMsg(100,LogLevel,LogFile, "E SolicitWeakMissAdvice");
-
-    interests[0].interest = WeaklyConnectedCacheMiss;
-    interests[0].argument = 0;
-    interests[0].value = 1;
-
-    ObtainWriteLock(&VenusLock);
-    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
-    ReleaseWriteLock(&VenusLock);
-    if (rc != RPC2_SUCCESS) {
-	    LogMsg(0,LogLevel,LogFile, "SolicitWeakMissAdvice call failed\n");
-    }
-    LogMsg(100,LogLevel,LogFile, "L SolicitWeakMissAdvice");
-}
-
-UnsolicitWeakMissAdvice() {
-    InterestValuePair interests[1];
-    int numInterests = 1;
-    long rc;
-
-    LogMsg(100,LogLevel,LogFile, "E UnsolicitWeakMissAdvice");
-
-    interests[0].interest = WeaklyConnectedCacheMiss;
-    interests[0].argument = 0;
-    interests[0].value = 0;
-
-    ObtainWriteLock(&VenusLock);
-    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
-    ReleaseWriteLock(&VenusLock);
-    if (rc != RPC2_SUCCESS) {
-	    LogMsg(0,LogLevel,LogFile, "UnsolicitWeakMissAdvice call failed\n");
-    }
-    LogMsg(100,LogLevel,LogFile, "L UnsolicitWeakMissAdvice");
-}
-
-SolicitDiscoMissQs() {
-    InterestValuePair interests[1];
-    int numInterests = 1;
-    long rc;
-
-    LogMsg(100,LogLevel,LogFile, "E SolicitDiscoMissQs");
-
-    interests[0].interest = DisconnectedCacheMiss;
-    interests[0].argument = 0;
-    interests[0].value = 1;
-
-    ObtainWriteLock(&VenusLock);
-    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
-    ReleaseWriteLock(&VenusLock);
-    if (rc != RPC2_SUCCESS) {
-	    LogMsg(0,LogLevel,LogFile, "SolicitDiscoMissQs call failed (rc=%d)",rc);
-    }
-    LogMsg(100,LogLevel,LogFile, "L SolicitDiscoMissQs");
-}
-
-UnsolicitDiscoMissQs() {
-    InterestValuePair interests[1];
-    int numInterests = 1;
-    long rc;
-
-    LogMsg(100,LogLevel,LogFile, "E UnsolicitDiscoMissQs");
-
-    interests[0].interest = DisconnectedCacheMiss;
-    interests[0].argument = 0;
-    interests[0].value = 0;
-
-    ObtainWriteLock(&VenusLock);
-    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
-    ReleaseWriteLock(&VenusLock);
-    if (rc != RPC2_SUCCESS) {
-	    LogMsg(0,LogLevel,LogFile, "UnsolicitDiscoMissQs call failed\n");
-    }
-    LogMsg(100,LogLevel,LogFile, "L UnsolicitDiscoMissQs");
-}
-#endif
 
 
 /*********************************************************
@@ -671,15 +513,15 @@ void CodaConsoleHandler(char *c) {
   fflush(stdout);
   Yield();
 
-  SetupDefaultAdviceRequests();
-
   LogMsg(100,LogLevel,LogFile, "UserEventHandler: Waiting...");
 
 
   while (1) {
     // Wait for and handle user events 
     assert(LWP_GetRock(42, &rock) == LWP_SUCCESS);
+  printf("CodaConsole: Waiting for userSync\n");
     assert(LWP_WaitProcess(&userSync) == LWP_SUCCESS);
+  printf("CodaConsole: Received userSync\n");
 
     // Handle user event
 

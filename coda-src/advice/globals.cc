@@ -169,8 +169,8 @@ void InitiateNewUser()
 /* Initialization Routines */
 
 void InitLogFile() {
-    /* LogFileName: 
-         /coda/usr/<username>/.questionnaires/<HOSTNAME>_<PID>_<DATE:TIME>/advice.log  */
+  // LogFileName: 
+  //    /coda/usr/<username>/.questionnaires/<HOSTNAME>_<PID>_<DATE:TIME>/advice.log  
     snprintf(LogFileName, MAXPATHLEN, "%s/advice.log", WorkingDir);
 
     LogFile = fopen(LogFileName, "a");
@@ -190,8 +190,8 @@ void InitLogFile() {
 }
 
 void InitEventFile() {
-    /* EventFileName:
-       /coda/usr/<username>/.questionnaires/<HOSTNAME>_<PID>_<DATE:TIME>/advice.event  */
+  // EventFileName:
+  //   /coda/usr/<username>/.questionnaires/<HOSTNAME>_<PID>_<DATE:TIME>/advice.event  
     snprintf(EventFileName, MAXPATHLEN, "%s/advice.event", WorkingDir);
 
     EventFile = fopen(EventFileName, "a");

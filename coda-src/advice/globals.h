@@ -10,9 +10,9 @@
 #define TK "/usr/local/lib/tk4.0"
 #define TIX "/usrl/ocal/lib/tix4.1"
 #else
-#define TCL "/usr/lib/tcl7.4"
-#define TK "/usr/lib/tk4.0"
-#define TIX "/usr/lib/tix4.0"
+#define TCL "/usr/lib/tcl8.0"
+#define TK "/usr/lib/tk8.0"
+#define TIX "/usr/lib/tix4.1.8.0"
 #endif /* __linux__ */
 
 

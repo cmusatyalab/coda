@@ -105,7 +105,9 @@ RPC2_Handle connect_to_machine(char *machine_name)
   bp.SideEffectType = (int)NULL;
   bp.ClientIdent = NULL;
   bp.SharedSecret = NULL;
+  fprintf(stderr, "Returning Binding..."); fflush(stderr);
   rc = RPC2_NewBinding(&hid, &pid, &sid, &bp, &cid);
+  fprintf(stderr, "Done.\n"); fflush(stderr);
   if (rc != RPC2_SUCCESS) {
       char msg[16];
 

@@ -54,6 +54,7 @@ extern "C" {
 extern int CheckClient(char *, char *);
 
 extern char **environ;
+extern int errno;
 
 char *ReadFromConsole(int block);
 
@@ -100,41 +101,32 @@ void InitializeCodaConsole() {
     toCONSOLE = fdopen(toConsole[1], "w");
     fromCONSOLE = fdopen(toAdviceSrv[0], "r");
 
-    rc = fcntl(fileno(fromCONSOLE), F_SETFL, O_NONBLOCK);
-    if (rc == -1) {
-      printf("ERROR setting input fromCONSOLE as non-blocking\n"); fflush(stdout); exit(-1);
-    }
-    //sleep(5);
-    //    sprintf(msg, "source %s\n", CODACONSOLE);
-    //printf("Sending: %s\n", msg);
-    //fflush(stdout);
-    //    SendToConsole(msg);
-
   } else {  /* child -- CodaConsole */
     FILE *fromADSRV;
     FILE *toADSRV;
     int newIn, newOut;
 
-    setenv("TCL_LIBRARY", TCL, 1);
-    setenv("TK_LIBRARY", TK, 1);
-    setenv("TIX_LIBRARY", TIX, 1);
-
-    /* Close the CodaConsole's stdin and redirect it to come from the toConsole[0] file descriptor */
+    // Close the CodaConsole's stdin
+    // Redirect it to come from the toConsole[0] file descriptor
     fclose(stdin);
     newIn = dup(toConsole[0]); 
     assert(newIn == 0);
 
+    // Close the CodaConsole's stdout
+    // Redirect it to the toAdviceSrv[1] file descriptor
     fclose(stdout);
     newOut = dup(toAdviceSrv[1]);
     assert(newOut == 1);
 
+    // Setup the arguments to the call
     args[0] = CODACONSOLEOUT;
     args[1] = NULL;
 
-    if (execve(CODACONSOLEOUT, args, environ)) {
-      printf("ERROR exec'ing child\n"); 
-      fflush(stdout); 
-      exit(-1);
+    if (execlp(CODACONSOLEOUT, CODACONSOLEOUT, NULL)) {
+      fprintf(stderr, "ERROR exec'ing %s (errno=%d)\n", CODACONSOLEOUT, errno); 
+      fflush(stderr); 
+      chdir(TMPDIR);
+      abort();
     }
   }
 }
@@ -143,11 +135,7 @@ void SendToConsole(char *msg) {
     int rc;
 
     rc = fprintf(toCONSOLE, "%s", msg);
-#ifdef __MACH__
-    assert(rc == 0);
-#else
     assert(rc == strlen(msg));
-#endif /* __MACH__*/
 
     rc = fflush(toCONSOLE);
     assert(rc == 0);
@@ -161,29 +149,40 @@ char *ReadFromConsole(int block) {
     static char inputline[BUFSIZ];
     char *rc;
     int returncode;
-    int rdfds = fileno(fromCONSOLE);
+    int rdfds;
+    int consolefd;
+    int ConsoleMask = 0;
+    struct timeval BogusExpiry = {5, 0};
+
+    consolefd = fileno(fromCONSOLE);
+    ConsoleMask |= (1 << consolefd);
     
     // Check that we haven't reached the end of file.
     if (feof(fromCONSOLE) == 1) {
-	    /*      fprintf(stderr, "ReadFromConsole:  Encountered EOF!\n");
+      fprintf(stderr, "ReadFromConsole:  Encountered EOF!\n");
       fflush(stderr); 
-      exit(-1); */
-	    strncpy(inputline, "", strlen(inputline));
-	    return(inputline);
+      exit(-1);
     }
-    
 
     do {
-        // N.B. fromCONSOLE has been fctl'd to be non-blocking!
-        rc = fgets(inputline, BUFSIZ, fromCONSOLE);
-	IOMGR_Poll();
-        LWP_DispatchProcess();  // Yield while we wait for input
+        rc = NULL;
+	rdfds = ConsoleMask;
+
+        fprintf(stderr,"IOMGR_Select'ing\n"); fflush(stderr);
+        if (IOMGR_Select(32, &rdfds, 0, 0, &BogusExpiry) > 0) {
+	  if (rdfds & ConsoleMask) {
+	    fprintf(stderr,"IOMGR_Select says ready\n"); fflush(stderr);
+	    rc = fgets(inputline, BUFSIZ, fromCONSOLE);
+	    fprintf(stderr, "fgets: %s\n", inputline); fflush(stderr);
+	  } 
+	}
     } while ((block == 1) && (rc == NULL));                   /* end do */
 
     if (rc == NULL) {
       assert(block == 0);
       return(NULL);
     } else {
+      fprintf(stderr, "ReadFromConsole: inputline=%s\n", inputline); fflush(stderr);
       return(inputline);
     }
 }
@@ -648,6 +647,7 @@ void ProcessInputFromConsole() {
 	  int RVMAllocated, RVMOccupied;
 
 	  ObtainWriteLock(&VenusLock);
+fprintf(stderr, "getting cache statistics from venus\n"); fflush(stderr);
 	  rc = C_GetCacheStatistics(VenusCID, 
 				    (RPC2_Integer *)&FilesAllocated,
 				    (RPC2_Integer *)&FilesOccupied,
@@ -655,7 +655,12 @@ void ProcessInputFromConsole() {
 				    (RPC2_Integer *)&BlocksOccupied,
 				    (RPC2_Integer *)&RVMAllocated,
 				    (RPC2_Integer *)&RVMOccupied);
+fprintf(stderr, "got those stats\n"); fflush(stderr);
 	  ReleaseWriteLock(&VenusLock);
+	  if (rc != RPC2_SUCCESS) {
+	    fprintf(stderr, "rc = %d\n", rc); 
+	    fflush(stderr);
+	  }
 	  assert(rc == RPC2_SUCCESS);
 
 	  // Send the information to CodaConsole
@@ -669,12 +674,20 @@ void ProcessInputFromConsole() {
 			   strlen("GetUsageStats")) == 0) {
 	   long rc;
 	   char filename[MAXPATHLEN];
+           int sinceLastUse, percentUsed, totalUsed;
+
+           assert(sscanf(rfc, "GetUsageStats %d %d %d\n", &sinceLastUse, &percentUsed, &totalUsed) == 3);
 
 	   snprintf(filename, MAXPATHLEN, "/tmp/usage_statistics");
 	   unlink(filename);
 
 	   ObtainWriteLock(&VenusLock);
-	   rc = C_OutputUsageStatistics(VenusCID, (RPC2_Integer)uid, (RPC2_String)filename);
+           rc = C_OutputUsageStatistics(VenusCID, 
+					(RPC2_Integer)uid, 
+					(RPC2_String)filename, 
+					(RPC2_Integer) sinceLastUse, 
+					(RPC2_Integer) percentUsed, 
+					(RPC2_Integer) totalUsed);
 	   ReleaseWriteLock(&VenusLock);
 	   assert(rc == RPC2_SUCCESS);
 
