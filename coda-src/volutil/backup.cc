@@ -761,7 +761,7 @@ int main(int argc, char **argv) {
 
 
     strftime(today, sizeof(today), "%d%b%Y", localtime(&now));
-    if (dumpdir) {	/* User specified a dump directory! */
+    if (dumpdir[0]) {	/* User specified a dump directory! */
 	if (chdir(dumpdir) != 0) {
 	    perror("Set dump directory.");
 	    exit(-1);
