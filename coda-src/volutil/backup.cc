@@ -78,7 +78,6 @@ extern "C" {
 #include <vsg.h>
 #include <vutil.h>
 #include <codaconf.h>
-#include <coda_config.h>
 #include <vice_file.h>
 #include <getsecret.h>
 
@@ -153,7 +152,6 @@ typedef struct volinfo {
     repinfo_t *replicas;
 } volinfo_t;
 
-char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 char *vicedir = NULL;
 
 
@@ -175,14 +173,8 @@ static void unlockReplicas(volinfo_t *vol);
 void
 ReadConfigFile()
 {
-    char    confname[MAXPATHLEN];
-
-    /* don't complain if config files are missing */
-    codaconf_quiet = 1;
-
     /* Load configuration file to get vice dir. */
-    sprintf (confname, "%s.conf", serverconf);
-    (void) conf_init(confname);
+    codaconf_init("server");
 
     CONF_STR(vicedir,		"vicedir",	   "/vice");
 

@@ -74,7 +74,6 @@ extern "C" {
 
 #include <util.h>
 #include <codaconf.h>
-#include <coda_config.h>
 #include "auth2.h"
 #undef VIRTUE
 #undef VICE
@@ -182,7 +181,7 @@ int U_DeleteLocalTokens()
 
 static void GetPathName()
 {
-    conf_init(SYSCONFDIR "/venus.conf");
+    codaconf_init("venus");
     CONF_STR(pName, "mountpoint", DFLT_MNT);
 }
 

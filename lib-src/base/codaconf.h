@@ -40,6 +40,14 @@ void conf_free(void);
 /* helpers */
 #include "coda_string.h"
 
+/* codaconf_init searches all directories specified by the environment variable
+ * CODACONFPATH for 'basename'.conf and calls conf_init on the first file found.
+ *
+ * If the CODACONFPATH is not present the search defaults to,
+ *	@sysconfdir@:/usr/local/etc/coda:/etc/coda
+ */
+int codaconf_init(const char *basename);
+
 #define CONF_STR(var, key, defval) \
     if (var == NULL || *var == '\0') { var = conf_lookup(key, defval); }
 #define CONF_INT(var, key, defval) \

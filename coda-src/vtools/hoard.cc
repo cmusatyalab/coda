@@ -62,7 +62,6 @@ extern FILE *_findiop();
 #include <vice.h>
 #include <hdb.h>
 #include <codaconf.h>
-#include <coda_config.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -223,7 +222,7 @@ main(int argc, char *argv[]) {
     olist Disable;
     ParseHoardCommands(fp, Clear, Add, Delete, List, Walk, Verify, Enable, Disable);
 
-    conf_init(SYSCONFDIR "/venus.conf");
+    codaconf_init("venus");
     CONF_STR(mountpoint, "mountpoint", "/coda");
 
     /* Execute each list.  N.B. The execution order is significant. */

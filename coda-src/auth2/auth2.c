@@ -83,10 +83,8 @@ extern "C" {
 #endif	/* CODAAUTH */
 
 #include <codaconf.h>
-#include <coda_config.h>
 #include <vice_file.h>
 
-static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
 
 extern int AL_DebugLevel;
@@ -135,14 +133,8 @@ static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
 void
 ReadConfigFile()
 {
-    char    confname[MAXPATHLEN];
-
-    /* don't complain if config files are missing */
-    codaconf_quiet = 1;
-
     /* Load configuration file to get vice dir. */
-    sprintf (confname, "%s.conf", serverconf);
-    (void) conf_init(confname);
+    codaconf_init("server");
 
     CONF_STR(vicedir,		"vicedir",	   "/vice");
 

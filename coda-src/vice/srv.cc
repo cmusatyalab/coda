@@ -70,7 +70,6 @@ extern "C" {
 #include "scandir.h"
 #include "codaconf.h"
 
-#include <coda_config.h>
 #include <ports.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
@@ -174,8 +173,6 @@ int thread_count;
 
 static int ServerNumber = 0;	/* 0 => single server,
 				   1,2,3 => number in multi server */
-
-static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 
 /* File server parameters.   Defaults set by ReadConfigFile. */
 
@@ -1334,12 +1331,11 @@ static int ReadConfigFile(void)
     codaconf_quiet = 1;
 
     /* Load configuration file. */
-    sprintf (confname, "%s.conf", serverconf);
-    (void) conf_init(confname);
+    codaconf_init("server");
 
     /* Load server specific configuration file */
-    sprintf (confname, "%s_%d.conf", serverconf, ServerNumber);
-    multconf = !conf_init(confname);
+    sprintf (confname, "server_%d", ServerNumber);
+    multconf = codaconf_init(confname);
 
     /* srv.cc defined values ... */
     CONF_INT(Authenticate,	"authenticate",	   1); 

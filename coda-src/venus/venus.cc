@@ -65,8 +65,6 @@ extern "C" {
 #define main venus_main
 #endif
 
-#include <coda_config.h>
-
 /* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
 #ifndef INADDR_LOOPBACK
 #define INADDR_LOOPBACK 0x7f000001
@@ -121,8 +119,6 @@ static void SetRlimits();
 extern int testKernDevice();
 
 struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
-
-static char *venusdotconf = SYSCONFDIR "/venus.conf";
 
 /* *****  venus.c  ***** */
 
@@ -255,9 +251,7 @@ int main(int argc, char **argv) {
 static void ParseCmdline(int argc, char **argv) {
       for(int i = 1; i < argc; i++)
   	if (argv[i][0] == '-') {
- 	    if (STREQ(argv[i], "-conffile")) {/* default /etc/coda/venus.conf */
- 		i++, venusdotconf = argv[i];
-	    } else if (STREQ(argv[i], "-relay")) {   /* default is 127.0.0.1 */
+	    if (STREQ(argv[i], "-relay")) {   /* default is 127.0.0.1 */
  		i++;
 		inet_aton(argv[i], &venus_relay_addr);
  	    } else if (STREQ(argv[i], "-k"))         /* default is /dev/cfs0 */
@@ -416,8 +410,8 @@ static void DefaultCmdlineParms()
 {
     int DontUseRVM = 0;
 
-    /* Load the venusdotconf file */
-    conf_init(venusdotconf);
+    /* Load the "venus.conf" configuration file */
+    codaconf_init("venus");
 
     CONF_INT(CacheBlocks,       "cacheblocks",   40000);
     CONF_STR(CacheDir,          "cachedir",      DFLT_CD);

@@ -47,7 +47,6 @@ extern "C" {
 #endif
 
 #include <codaconf.h>
-#include <coda_config.h>
 
 const char MarinerService[] = "venus";
 
@@ -117,7 +116,7 @@ int Bind(const char *service, const char *host) {
         char *MarinerSocketPath;
         
         codaconf_quiet = 1;
-        conf_init(SYSCONFDIR "/venus.conf");
+        codaconf_init("venus");
         MarinerSocketPath = conf_lookup("marinersocket",
                                         "/usr/coda/spool/mariner"); 
         memset(&s_un, 0, sizeof(s_un));

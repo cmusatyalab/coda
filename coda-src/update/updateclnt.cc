@@ -94,7 +94,6 @@ int utimes(const char *, const struct timeval *);
 
 #include <volutil.h>
 #include <codaconf.h>
-#include <coda_config.h>
 #include <vice_file.h>
 #include "update.h"
 #include "getsecret.h"
@@ -141,7 +140,6 @@ static struct timezone tsp;
 static char **hostlist;		/* List of hosts to notify of changes. */
 static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
-static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
 static int   nservers = 0;
 
@@ -334,14 +332,8 @@ static void ProcessArgs(int argc, char **argv)
 static void
 ReadConfigFile()
 {
-    char    confname[MAXPATHLEN];
-
-    /* don't complain if config files are missing */
-    codaconf_quiet = 1;
-
     /* Load configuration file to get vice dir. */
-    sprintf (confname, "%s.conf", serverconf);
-    (void) conf_init(confname);
+    codaconf_init("server");
 
     CONF_STR(vicedir,		"vicedir",	   "/vice");
     CONF_INT(nservers,		"numservers", 	   1); 
@@ -355,11 +347,12 @@ ReadConfigFile()
 	hostname(hostlist[0]);
     }
     else {
+	char confname[80];
         for (int i = 0; i<nservers; i++) {
 	    hostlist[i] = new char[256];
 	    hostlist[i][0] = '\0';
-	    sprintf (confname, "%s_%d.conf", serverconf, i+1);
-	    (void) conf_init(confname);
+	    sprintf (confname, "server_%d", i+1);
+	    codaconf_init(confname);
 	    CONF_STR(hostlist[i],  "hostname",  "");
 	    if (hostlist[i][0] == '\0') {
 	        LogMsg(0, SrvDebugLevel, stdout,

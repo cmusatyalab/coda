@@ -127,6 +127,8 @@ void rvmlib_end_transaction(int flush_mode, rvm_return_t *statusp)
 			CODA_ASSERT(_status == 0);
 		} else
 			_status = rvm_end_transaction(_rvm_data->tid, flush);
+			if (_status == RVM_ETOO_BIG)
+			    RVMLIB_ASSERT("RVM log is not big enough for transaction, going down");
 			CODA_ASSERT(_status == 0);
 	}
 

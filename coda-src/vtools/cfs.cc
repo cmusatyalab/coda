@@ -59,8 +59,8 @@ extern "C" {
 #include <prs.h>
 #include <writeback.h>
 #include <codaconf.h>
-#include <coda_config.h>
 #include <inconsist.h>
+#include <coda_config.h>
 
 /* From venusvol.h.  A volume is in exactly one of these states. */
 typedef enum {	Hoarding,
@@ -477,7 +477,7 @@ int main(int argc, char *argv[])
 	    exit(0);
     }
 
-    conf_init(SYSCONFDIR "/venus.conf");
+    codaconf_init("venus");
     CONF_STR(mountpoint, "mountpoint", "/coda");
 
     /* invoke the handler */

@@ -78,7 +78,6 @@ extern "C" {
 #endif
 
 #include <codaconf.h>
-#include <coda_config.h>
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -423,7 +422,7 @@ static void GetAuthServers(void)
     memset((char *)lHosts, 0, sizeof(lHosts));
     numHosts = 0; 
 
-    conf_init(SYSCONFDIR "/venus.conf");
+    codaconf_init("venus");
     CONF_STR(host, "authservers", NULL);
     CONF_STR(host, "rootservers", NULL);
 

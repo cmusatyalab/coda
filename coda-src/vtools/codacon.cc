@@ -41,7 +41,6 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <codaconf.h>
-#include <coda_config.h>
 
 #ifdef __cplusplus
 }
@@ -111,8 +110,7 @@ int Bind(const char *service, const char *host) {
         struct sockaddr_un s_un;
         char *MarinerSocketPath;
         
-        codaconf_quiet = 1;
-        conf_init(SYSCONFDIR "/venus.conf");
+        codaconf_init("venus");
         MarinerSocketPath = conf_lookup("marinersocket",
                                         "/usr/coda/spool/mariner"); 
         memset(&s_un, 0, sizeof(s_un));

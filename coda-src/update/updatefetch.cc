@@ -57,7 +57,6 @@ extern "C" {
 
 #include <util.h>
 #include <codaconf.h>
-#include <coda_config.h>
 #include <vice_file.h>
 #include "update.h"
 #include "getsecret.h"
@@ -81,21 +80,14 @@ static struct timezone tsp; */
 
 static char s_hostname[100];
 
-static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
 static int   nservers = 0;
 
 static void
 ReadConfigFile()
 {
-    char    confname[MAXPATHLEN];
-
-    /* don't complain if config files are missing */
-    codaconf_quiet = 1;
-
     /* Load configuration file to get vice dir. */
-    sprintf (confname, "%s.conf", serverconf);
-    (void) conf_init(confname);
+    codaconf_init("server");
 
     CONF_STR(vicedir,		"vicedir",	   "/vice");
     CONF_INT(nservers,		"numservers", 	   1); 

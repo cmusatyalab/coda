@@ -42,11 +42,8 @@ listed in the file CREDITS.
 #include <coda_assert.h>
 #include <codaconf.h>
 #include <vice_file.h>
-#include <coda_config.h>
 
-static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
-
 
 /* Check if correct number of arguments,Too Few=1,Too Many=2,Just Right=0 */
 int check_args_num(int argc,int n){
@@ -811,14 +808,8 @@ command_t pdbcmds[] =
 void
 ReadConfigFile()
 {
-    char    confname[MAXPATHLEN];
-
-    /* don't complain if config files are missing */
-    codaconf_quiet = 1;
-
-    /* Load configuration file to get vice dir. */
-    sprintf (confname, "%s.conf", serverconf);
-    (void) conf_init(confname);
+    /* Load server.conf configuration file to get vice dir. */
+    codaconf_init("server");
 
     CONF_STR(vicedir,		"vicedir",	   "/vice");
 

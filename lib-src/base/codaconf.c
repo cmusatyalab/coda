@@ -29,6 +29,9 @@ Coda are listed in the file CREDITS.
 #undef CONFDEBUG
 #undef CONFWRITE
 
+/* default configuration file search path used by codaconf_init */
+const char *default_codaconfpath="SYSCONFDIR:/usr/local/etc/coda:/etc/coda";
+
 /* buffer to read lines of config data */
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
@@ -204,6 +207,53 @@ int conf_init(char *cf)
 
     return(0);
 }
+
+/* codaconf_init searches all directories specified by the environment variable
+ * CODACONFPATH for 'basename'.conf and calls conf_init on the first file found.
+ *
+ * If the CODACONFPATH is not present the search defaults to,
+ *	@sysconfdir@:/usr/local/etc/coda:/etc/coda
+ */
+int codaconf_init(const char *basename)
+{
+    const char *codaconfpath, *end;
+    char conffile[MAXPATHLEN+1];
+    int found = 0, pathlen, baselen = strlen(basename);
+
+    int quiet_saved = codaconf_quiet; codaconf_quiet = 1;
+
+    codaconfpath = getenv("CODACONFPATH");
+    if (!codaconfpath)
+	codaconfpath = default_codaconfpath;
+
+    while(!found) {
+	end = strchr(codaconfpath, ':');
+	if (!end)
+	    pathlen = strlen(codaconfpath);
+	else
+	    pathlen = end - codaconfpath;
+
+	if (pathlen + baselen + 7 <= MAXPATHLEN) {
+	    memcpy(conffile, codaconfpath, pathlen);
+
+	    if (conffile[pathlen-1] != '/')
+		conffile[pathlen++] = '/';
+
+	    memcpy(conffile + pathlen, basename, baselen);
+	    memcpy(conffile + pathlen + baselen, ".conf", 6);
+
+	    /* we're done as soon as we managed to load a configuration file */
+	    if (conf_init(conffile) != -1)
+		found = 1;
+	}
+
+	if (!end) break;
+	codaconfpath = end + 1;
+    }
+    codaconf_quiet = quiet_saved;
+    return found ? 0 : -1;
+}
+
 
 /* conf_lookup returns the value associated with name, or NULL on error. */
 char *conf_lookup(char *name, char *defaultvalue)

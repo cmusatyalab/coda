@@ -35,8 +35,9 @@ ifneq ($(SHORTSYS),djgpp)
 OBJECTS += parser.o
 endif
 
-CFLAGS+=$(INCREADLINE)
+CFLAGS+=$(INCREADLINE) -DSYSCONFDIR=@sysconfdir@
 
 libbase.a: $(OBJECTS)
 
 include $(TOPDIR)/configs/Makerules
+

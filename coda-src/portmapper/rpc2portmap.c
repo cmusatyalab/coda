@@ -33,7 +33,6 @@ listed in the file CREDITS.
 #include "map.h"
 #include "codaconf.h"
 #include "vice_file.h"
-#include <coda_config.h>
 
 #ifdef __CYGWIN32__
 extern char *optarg;
@@ -42,7 +41,6 @@ extern char *optarg;
 FILE *portmaplog = NULL;
 #define PORTMAPLOG vice_sharedfile("misc/portmaplog")
 
-static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
 
 void InitRPC2(void)
@@ -73,14 +71,8 @@ void InitRPC2(void)
 void
 ReadConfigFile()
 {
-    char confname[MAXPATHLEN];
-
-    /* don't complain if config files are missing */
-    codaconf_quiet = 1;
-
     /* Load configuration file to get vice dir. */
-    sprintf (confname, "%s.conf", serverconf);
-    (void) conf_init(confname);
+    codaconf_init("server");
 
     CONF_STR(vicedir,		"vicedir",	   "/vice");
 
