@@ -242,17 +242,18 @@ void rpc2_ReapDeadConns(void)
 
 	now = time(NULL);
 
-	next = (struct CEntry *)(rpc2_ConnList->NextEntry);
+	ce = (struct CEntry *)(rpc2_ConnList);
+	if (!ce) return;
 
-	while(next != (struct CEntry *)rpc2_ConnList) {
-		ce = next; next = ce->NextEntry;
-		
+	next = ce->NextEntry;
+	while(rpc2_ConnList && next != (struct CEntry *)rpc2_ConnList) {
 		if (!ce->PrivatePtr &&
 		    ce->LastRef + RPC2_DEAD_CONN_TIMEOUT < now) {
 			say(0, RPC2_DebugLevel, "Reaping dead connection %ld\n",
 			    ce->UniqueCID);
 			RPC2_Unbind(ce->UniqueCID);
 		}
+		ce = next; next = ce->NextEntry;
 	}
 }
 
