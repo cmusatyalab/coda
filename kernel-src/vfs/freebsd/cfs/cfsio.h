@@ -13,7 +13,13 @@
 
 /* 
  * HISTORY
- * $Log: cfsio.h,v $
+ * $Log:	cfsio.h,v $
+ * Revision 1.2.38.1  97/12/16  12:40:22  rvb
+ * Sync with 1.3
+ * 
+ * Revision 1.2  96/01/02  16:57:15  bnoble
+ * Added support for Coda MiniCache and raw inode calls (final commit)
+ * 
  * Revision 1.1.2.1  1995/12/20 01:57:42  bnoble
  * Added CFS-specific files
  *
@@ -65,17 +71,15 @@
 #define CFSSTATS      _IO('c', 2)                      /* Collect stats */
 #define CFSPRINT      _IO('c', 3)                      /* Print Cache */
 #define CFSTEST       _IO('c', 4)                      /* Print Cache */
-#define ODYBIND	     _IOW('c', 5, struct ody_bind )    /* Bind a name to a FS */
 #else /* sys/ioctl.h puts the quotes on */
 #define CFSRESIZE    _IOW(c, 1, struct cfs_resize )  /* Resize CFS NameCache */
 #define CFSSTATS      _IO(c, 2)                      /* Collect stats */
 #define CFSPRINT      _IO(c, 3)                      /* Print Cache */
+
 #define CFSTEST       _IO(c, 4)                      /* Print Cache */
-#define ODYBIND	     _IOW(c, 5, struct ody_bind )    /* Bind a name to a FS */
 #endif __STDC__
 
 
 struct cfs_resize { int hashsize, heapsize; };
-struct ody_bind { int size; char *name; };
 
 #endif !_CFSIO_H_

@@ -24,6 +24,33 @@
 /*
  * HISTORY
  * $Log:	cfs_psdev.c,v $
+ * Revision 1.5.2.8  98/01/23  11:21:04  rvb
+ * Sync with 2.2.5
+ * 
+ * Revision 1.5.2.7  98/01/22  22:22:21  rvb
+ * sync 1.2 and 1.3
+ * 
+ * Revision 1.5.2.6  98/01/22  13:11:24  rvb
+ * Move makecfsnode ctlfid later so vfsp is known; work on ^c and ^z
+ * 
+ * Revision 1.5.2.5  97/12/16  22:01:27  rvb
+ * Oops add cfs_subr.h cfs_venus.h; sync with peter
+ * 
+ * Revision 1.5.2.4  97/12/16  12:40:05  rvb
+ * Sync with 1.3
+ * 
+ * Revision 1.5.2.3  97/12/10  14:08:24  rvb
+ * Fix O_ flags; check result in cfscall
+ * 
+ * Revision 1.5.2.2  97/12/10  11:40:24  rvb
+ * No more ody
+ * 
+ * Revision 1.5.2.1  97/12/06  17:41:20  rvb
+ * Sync with peters coda.h
+ * 
+ * Revision 1.5  97/12/05  10:39:16  rvb
+ * Read CHANGES
+ * 
  * Revision 1.4.18.9  97/12/05  08:58:07  rvb
  * peter found this one
  * 
@@ -79,16 +106,20 @@ extern int cfsnc_initialized;    /* Set if cache has been initialized */
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/malloc.h>
+#include <sys/proc.h>
+#include <sys/mount.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
+#ifdef	NetBSD1_3
+#include <sys/poll.h>
+#endif
 #include <sys/select.h>
 
-#include <cfs/cfs.h>
-#include <cfs/cfsk.h>
+#include <cfs/coda.h>
 #include <cfs/cnode.h>
+#include <cfs/cfsnc.h>
 #include <cfs/cfsio.h>
 
-struct vnode *cfs_ctlvp = 0;
 int cfs_psdev_print_entry = 0;
 
 #ifdef __GNUC__
@@ -98,6 +129,32 @@ int cfs_psdev_print_entry = 0;
 #define ENTRY
 #endif 
 
+void vcfsattach(int n);
+int vc_nb_open(dev_t dev, int flag, int mode, struct proc *p);
+int vc_nb_close (dev_t dev, int flag, int mode, struct proc *p);
+int vc_nb_read(dev_t dev, struct uio *uiop, int flag);
+int vc_nb_write(dev_t dev, struct uio *uiop, int flag);
+int vc_nb_ioctl(dev_t dev, int cmd, caddr_t addr, int flag, struct proc *p);
+#ifdef	NetBSD1_3
+int vc_nb_poll(dev_t dev, int events, struct proc *p);
+#else
+int vc_nb_select(dev_t dev, int flag, struct proc *p);
+#endif
+
+struct vmsg {
+    struct queue vm_chain;
+    caddr_t	 vm_data;
+    u_short	 vm_flags;
+    u_short      vm_inSize;	/* Size is at most 5000 bytes */
+    u_short	 vm_outSize;
+    u_short	 vm_opcode; 	/* copied from data to save ptr lookup */
+    int		 vm_unique;
+    caddr_t	 vm_sleep;	/* Not used by Mach. */
+};
+
+#define	VM_READ	    1
+#define	VM_WRITE    2
+#define	VM_INTR	    4
 
 /* vcfsattach: do nothing */
 void
@@ -117,8 +174,6 @@ vc_nb_open(dev, flag, mode, p)
     struct proc *p;             /* NetBSD only */
 {
     register struct vcomm *vcp;
-    struct ody_mntinfo *op;
-    struct cnode       *cp;
     
     ENTRY;
 
@@ -128,36 +183,20 @@ vc_nb_open(dev, flag, mode, p)
     if (!cfsnc_initialized)
 	cfsnc_init();
     
-    if (cfs_ctlvp == 0) {
-	ViceFid ctlfid;
-	
-	ctlfid.Volume = CTL_VOL;
-	ctlfid.Vnode = CTL_VNO;
-	ctlfid.Unique = CTL_UNI;
-	
-	
-	cp = makecfsnode(&ctlfid, 0, VCHR);
-	cfs_ctlvp = CTOV(cp);
-    }
-    
     vcp = &cfs_mnttbl[minor(dev)].mi_vcomm;
     if (VC_OPEN(vcp))
 	return(EBUSY);
     
-    /* Make first 4 bytes be zero */
-    cfs_mnttbl[minor(dev)].mi_name = (char *)0;
     bzero(&(vcp->vc_selproc), sizeof (struct selinfo));
     INIT_QUEUE(vcp->vc_requests);
     INIT_QUEUE(vcp->vc_replys);
     MARK_VC_OPEN(vcp);
     
-    cfs_mnttbl[minor(dev)].mi_vfschain.vfsp = NULL;
-    cfs_mnttbl[minor(dev)].mi_vfschain.rootvp = NULL;
-    cfs_mnttbl[minor(dev)].mi_vfschain.next = NULL;
+    cfs_mnttbl[minor(dev)].mi_vfsp = NULL;
+    cfs_mnttbl[minor(dev)].mi_rootvp = NULL;
 
     return(0);
 }
-
 
 int 
 vc_nb_close (dev, flag, mode, p)    
@@ -166,26 +205,21 @@ vc_nb_close (dev, flag, mode, p)
     int          mode;     
     struct proc *p;
 {
-    register struct vcomm *	vcp;
+    register struct vcomm *vcp;
     register struct vmsg *vmp;
-    struct ody_mntinfo *op;
+    struct cfs_mntinfo *mi;
     int                 err;
 	
     ENTRY;
 
     if (minor(dev) >= NVCFS || minor(dev) < 0)
 	return(ENXIO);
-    
-    vcp = &cfs_mnttbl[minor(dev)].mi_vcomm;
+
+    mi = &cfs_mnttbl[minor(dev)];
+    vcp = &(mi->mi_vcomm);
     
     if (!VC_OPEN(vcp))
 	panic("vcclose: not open");
-    
-    if (cfs_mnttbl[minor(dev)].mi_name) {
-	CFS_FREE(cfs_mnttbl[minor(dev)].mi_name,
-		 strlen(cfs_mnttbl[minor(dev)].mi_name));
-	cfs_mnttbl[minor(dev)].mi_name = 0;
-    }
     
     /* prevent future operations on this vfs from succeeding by auto-
      * unmounting any vfs mounted via this device. This frees user or
@@ -193,21 +227,14 @@ vc_nb_close (dev, flag, mode, p)
      * Put this before WAKEUPs to avoid queuing new messages between
      * the WAKEUP and the unmount (which can happen if we're unlucky)
      */
-    for (op = &cfs_mnttbl[minor(dev)].mi_vfschain; op ; op = op->next) {
-	if (op->rootvp) {
-	    /* Let unmount know this is for real */
-	    VTOC(op->rootvp)->c_flags |= C_UNMOUNTING;
-	    cfs_unmounting(op->vfsp);
-	    err = dounmount(op->vfsp, flag, p);
-	    if (err)
-		myprintf(("Error %d unmounting vfs in vcclose(%d)\n", 
-			  err, minor(dev)));
-	} else {
-	    /* Should only be null if no mount has happened. */
-	    if (op != &cfs_mnttbl[minor(dev)].mi_vfschain) 
-		myprintf(("Help! assertion failed in vcwrite\n"));
-	    
-	}
+    if (mi->mi_rootvp) {
+	/* Let unmount know this is for real */
+	VTOC(mi->mi_rootvp)->c_flags |= C_UNMOUNTING;
+	cfs_unmounting(mi->mi_vfsp);
+	err = dounmount(mi->mi_vfsp, flag, p);
+	if (err)
+	    myprintf(("Error %d unmounting vfs in vcclose(%d)\n", 
+		      err, minor(dev)));
     }
     
     /* Wakeup clients so they can return. */
@@ -236,7 +263,6 @@ vc_nb_close (dev, flag, mode, p)
     MARK_VC_CLOSED(vcp);
     return 0;
 }
-
 
 int 
 vc_nb_read(dev, uiop, flag)   
@@ -325,7 +351,7 @@ vc_nb_write(dev, uiop, flag)
     seq = buf[1];
 	
     if (cfsdebug)
-	myprintf(("vcwrite got a call for %d.%d\n", opcode, seq));
+	myprintf(("vcwrite got a call for %ld.%ld\n", opcode, seq));
     
     if (DOWNCALL(opcode)) {
 	union outputArgs pbuf;
@@ -334,7 +360,7 @@ vc_nb_write(dev, uiop, flag)
 	uiop->uio_rw = UIO_WRITE;
 	error = uiomove((caddr_t)&pbuf.cfs_purgeuser.oh.result, sizeof(pbuf) - (sizeof(int)*2), uiop);
 	if (error) {
-	    myprintf(("vcwrite: error (%d) on uiomove (Op %d seq %d)\n", 
+	    myprintf(("vcwrite: error (%d) on uiomove (Op %ld seq %ld)\n", 
 		      error, opcode, seq));
 	    return(EINVAL);
 	    }
@@ -352,7 +378,7 @@ vc_nb_write(dev, uiop, flag)
     
     if (EOQ(vmp, vcp->vc_replys)) {
 	if (cfsdebug)
-	    myprintf(("vcwrite: msg (%d, %d) not found\n", opcode, seq));
+	    myprintf(("vcwrite: msg (%ld, %ld) not found\n", opcode, seq));
 	
 	return(ESRCH);
 	}
@@ -376,7 +402,7 @@ vc_nb_write(dev, uiop, flag)
     uiop->uio_rw = UIO_WRITE;
     error = uiomove((caddr_t) &out->result, vmp->vm_outSize - (sizeof(int) * 2), uiop);
     if (error) {
-	myprintf(("vcwrite: error (%d) on uiomove (op %d seq %d)\n", 
+	myprintf(("vcwrite: error (%d) on uiomove (op %ld seq %ld)\n", 
 		  error, opcode, seq));
 	return(EINVAL);
     }
@@ -424,41 +450,48 @@ vc_nb_ioctl(dev, cmd, addr, flag, p)
 	    return(ENODEV);
 	}
 	break;
-    case ODYBIND:
-	/* Bind a name to our device. Used to allow more than one kind of FS */
-	if (cfs_mnttbl[minor(dev)].mi_name) {
-	    if (cfsdebug)
-		myprintf(("ODYBIND: dev %d already has name %s\n", minor(dev),
-			  cfs_mnttbl[minor(dev)].mi_name));
-	    return(EBUSY);	/* Some name already used. */
-	} else {
-	    struct ody_bind *data = (struct ody_bind *)addr;
-	    char *name;
-	    
-	    CFS_ALLOC(name, char *, (data->size));
-	    copyin(data->name, name, data->size);
-	    
-	    if (cfsdebug)
-		myprintf(("ODYBIND: binding %s to dev %d\n", 
-			  name, minor(dev)));
-	    
-	    cfs_mnttbl[minor(dev)].mi_name = name;
-	    return(0);
-	}
-	break;
     default :
 	return(EINVAL);
 	break;
     }
 }
 
+#ifdef	NetBSD1_3
+int
+vc_nb_poll(dev, events, p)         
+    dev_t         dev;    
+    int           events;   
+    struct proc  *p;
+{
+    register struct vcomm *vcp;
+    int event_msk = 0;
+
+    ENTRY;
+    
+    if (minor(dev) >= NVCFS || minor(dev) < 0)
+	return(ENXIO);
+    
+    vcp = &cfs_mnttbl[minor(dev)].mi_vcomm;
+    
+    event_msk = events & (POLLIN|POLLRDNORM);
+    if (!event_msk)
+	return(0);
+    
+    if (!EMPTY(vcp->vc_requests))
+	return(events & (POLLIN|POLLRDNORM));
+
+    selrecord(p, &(vcp->vc_selproc));
+    
+    return(0);
+}
+#else
 int
 vc_nb_select(dev, flag, p)         
     dev_t         dev;    
     int           flag;   
     struct proc  *p;
 {
-    register struct vcomm *	vcp;
+    register struct vcomm *vcp;
     
     ENTRY;
     
@@ -477,7 +510,7 @@ vc_nb_select(dev, flag, p)
     
     return(0);
 }
-
+#endif
 
 /*
  * Statistics
@@ -504,7 +537,10 @@ cfscall(mntinfo, inSize, outSize, buffer)
 	struct vcomm *vcp;
 	struct vmsg *vmp;
 	int error;
-
+#if	0
+	struct proc *p = curproc;
+	int i;
+#endif
 	if (mntinfo == NULL) {
 	    /* Unlikely, but could be a race condition with a dying warden */
 	    return ENODEV;
@@ -548,8 +584,28 @@ cfscall(mntinfo, inSize, outSize, buffer)
 	 * ENODEV.  */
 
 	/* Ignore return, We have to check anyway */
-	tsleep(&vmp->vm_sleep, (cfscall_sleep|cfs_pcatch), "cfscall", 0);
-
+#if	1
+	(void) tsleep(&vmp->vm_sleep, cfscall_sleep, "cfscall", 0);
+#else
+	/* This is work in progress.  Setting cfs_pcatch lets tsleep reawaken
+	   on a ^c or ^z.  The problem is that emacs sets certain interrupts
+	   as SA_RESTART.  This means that we should exit sleep handle the
+	   "signal" and then go to sleep again.  Mostly this is done by letting
+	   the syscall complete and be restarted.  We are not idempotent and 
+	   can not do this.  A better solution is necessary.
+	 */
+	i = 0;
+	do {
+	    error = tsleep(&vmp->vm_sleep, (cfscall_sleep|cfs_pcatch), "cfscall", 0);
+	    if (error != 0)
+		    printf("tsleep returns %d, cnt %d\n", error, i);
+	    else if (p->p_siglist) {
+		    printf("tsleep 0, siglist = %x, sigmask = %x, mask %x\n",
+			    p->p_siglist, p->p_sigmask,
+			    p->p_siglist & ~p->p_sigmask);
+	    }
+	} while (error && i++ < 10);
+#endif
 	if (VC_OPEN(vcp)) {	/* Venus is still alive */
  	/* Op went through, interrupt or not... */
 	    if (vmp->vm_flags & VM_WRITE) {
@@ -582,14 +638,14 @@ cfscall(mntinfo, inSize, outSize, buffer)
 		
 		CFS_ALLOC(svmp, struct vmsg *, sizeof (struct vmsg));
 
-		CFS_ALLOC((svmp->vm_data), char *, VC_IN_NO_DATA);
+		CFS_ALLOC((svmp->vm_data), char *, sizeof (struct cfs_in_hdr));
 		dog = (struct cfs_in_hdr *)svmp->vm_data;
 		
 		svmp->vm_flags = 0;
 		dog->opcode = svmp->vm_opcode = CFS_SIGNAL;
 		dog->unique = svmp->vm_unique = vmp->vm_unique;
-		svmp->vm_inSize = VC_IN_NO_DATA;
-		svmp->vm_outSize = VC_IN_NO_DATA;
+		svmp->vm_inSize = sizeof (struct cfs_in_hdr);
+/*??? rvb */	svmp->vm_outSize = sizeof (struct cfs_in_hdr);
 		
 		if (cfsdebug)
 		    myprintf(("cfscall: enqueing signal msg (%d, %d)\n",
@@ -610,5 +666,8 @@ cfscall(mntinfo, inSize, outSize, buffer)
 	}
 
 	CFS_FREE(vmp, sizeof(struct vmsg));
+
+	if (!error)
+		error = ((struct cfs_out_hdr *)buffer)->result;
 	return(error);
 }

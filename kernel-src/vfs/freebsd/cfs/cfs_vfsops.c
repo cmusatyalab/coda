@@ -14,6 +14,27 @@
 /*
  * HISTORY
  * $Log:	cfs_vfsops.c,v $
+ * Revision 1.6.2.6  98/01/23  11:21:07  rvb
+ * Sync with 2.2.5
+ * 
+ * Revision 1.6.2.5  98/01/22  13:05:33  rvb
+ * Move makecfsnode ctlfid later so vfsp is known
+ * 
+ * Revision 1.6.2.4  97/12/19  14:26:05  rvb
+ * session id
+ * 
+ * Revision 1.6.2.3  97/12/16  12:40:11  rvb
+ * Sync with 1.3
+ * 
+ * Revision 1.6.2.2  97/12/10  11:40:25  rvb
+ * No more ody
+ * 
+ * Revision 1.6.2.1  97/12/06  17:41:24  rvb
+ * Sync with peters coda.h
+ * 
+ * Revision 1.6  97/12/05  10:39:21  rvb
+ * Read CHANGES
+ * 
  * Revision 1.5.14.8  97/11/24  15:44:46  rvb
  * Final cfs_venus.c w/o macros, but one locking bug
  * 
@@ -106,19 +127,20 @@
 #include <sys/namei.h>
 #include <sys/mount.h>
 #include <sys/proc.h>
-/* for VN_RDEV */
-#include <miscfs/specfs/specdev.h>
+#include <sys/select.h>
 
-#include <cfs/cfs.h>
-#include <cfs/cfsk.h>
+#include <cfs/coda.h>
 #include <cfs/cnode.h>
 #include <cfs/cfs_vfsops.h>
-#include <cfs/cfs_opstats.h>
+#include <cfs/cfs_venus.h>
+#include <cfs/cfs_subr.h>
+#include <cfs/coda_opstats.h>
+/* for VN_RDEV */
+#include <miscfs/specfs/specdev.h>
 
 int cfsdebug = 0;
 
 int cfs_vfsop_print_entry = 0;
-
 #ifdef __GNUC__
 #define ENTRY    \
     if(cfs_vfsop_print_entry) myprintf(("Entered %s\n",__FUNCTION__))
@@ -127,6 +149,7 @@ int cfs_vfsop_print_entry = 0;
 #endif 
 
 
+struct vnode *cfs_ctlvp;
 struct cfs_mntinfo cfs_mnttbl[NVCFS]; /* indexed by minor device number */
 
 /* structure to keep statistics of internally generated/satisfied calls */
@@ -140,12 +163,12 @@ struct cfs_op_stats cfs_vfsopstats[CFS_VFSOPS_SIZE];
 
 extern int cfsnc_initialized;     /* Set if cache has been initialized */
 extern int vc_nb_open __P((dev_t, int, int, struct proc *));
+#ifdef	__NetBSD__
 extern struct cdevsw cdevsw[];    /* For sanity check in cfs_mount */
-
-
+#endif
 /* NetBSD interface to statfs */
-int cfs_nb_statfs    __P((struct mount *, struct statfs *, struct proc *));
 
+#ifdef	__NetBSD__
 struct vfsops cfs_vfsops = {
     MOUNT_CFS,
     cfs_mount,
@@ -161,10 +184,34 @@ struct vfsops cfs_vfsops = {
 	eopnotsupp,
     (int (*) (struct vnode *, struct fid *)) eopnotsupp,
     cfs_init,
+#ifdef	NetBSD1_3
+    (int (*)(void)) eopnotsupp,
+#endif
     0
 };
+#elif	defined(__FreeBSD__)
+struct vfsops cfs_vfsops = {
+    cfs_mount,
+    cfs_start,
+    cfs_unmount,
+    cfs_root,
+    cfs_quotactl,
+    cfs_nb_statfs,
+    cfs_sync,
+    cfs_vget,
+    (int (*) (struct mount *, struct fid *, struct mbuf *, struct vnode **,
+	      int *, struct ucred **))
+	eopnotsupp,
+    (int (*) (struct vnode *, struct fid *)) eopnotsupp,
+    cfs_init,
+};
 
-cfs_vfsopstats_init()
+#include <sys/kernel.h>
+VFS_SET(cfs_vfsops, cfs, MOUNT_CFS, VFCF_NETWORK);
+#endif
+
+int
+cfs_vfsopstats_init(void)
 {
 	register int i;
 	
@@ -178,19 +225,25 @@ cfs_vfsopstats_init()
 	
 	return 0;
 }
-	
+
 
 /*
  * cfs mount vfsop
  * Set up mount info record and attach it to vfs struct.
  */
 /*ARGSUSED*/
+int
 cfs_mount(vfsp, path, data, ndp, p)
-    struct mount *vfsp;           /* Allocated and initialized by mount(2) */
-    char *path;            /* path covered: ignored by the fs-layer */
-    caddr_t data;          /* Need to define a data type for this in netbsd? */
-    struct nameidata *ndp; /* Clobber this to lookup the device name */
-    struct proc *p;        /* The ever-famous proc pointer */
+    struct mount *vfsp;		/* Allocated and initialized by mount(2) */
+#ifdef	NetBSD1_3
+    const char *path;		/* path covered: ignored by the fs-layer */
+    void *data;			/* Need to define a data type for this in netbsd? */
+#else
+    char *path;			/* path covered: ignored by the fs-layer */
+    caddr_t data;		/* Need to define a data type for this in netbsd? */
+#endif
+    struct nameidata *ndp;	/* Clobber this to lookup the device name */
+    struct proc *p;		/* The ever-famous proc pointer */
 {
     struct vnode *dvp;
     struct cnode *cp;
@@ -198,15 +251,13 @@ cfs_mount(vfsp, path, data, ndp, p)
     struct cfs_mntinfo *mi;
     struct vnode *rootvp;
     ViceFid rootfid;
+    ViceFid ctlfid;
     int error;
 
     ENTRY;
 
     cfs_vfsopstats_init();
     cfs_vnodeopstats_init();
-    if (!cfsnc_initialized) {
-	cfsnc_init();
-    }
     
     MARK_ENTRY(CFS_MOUNT_STATS);
     if (CFS_MOUNTED(vfsp)) {
@@ -235,11 +286,16 @@ cfs_mount(vfsp, path, data, ndp, p)
 	MARK_INT_FAIL(CFS_MOUNT_STATS);
 	return(ENXIO);
     }
-    
+
     /*
      * See if the device table matches our expectations.
      */
-    if (cdevsw[major(dev)].d_open != vc_nb_open) {
+#ifdef	__NetBSD__
+    if (cdevsw[major(dev)].d_open != vc_nb_open)
+#elif	defined(__FreeBSD__)
+    if (cdevsw[major(dev)]->d_open != vc_nb_open)
+#endif
+    {
 	MARK_INT_FAIL(CFS_MOUNT_STATS);
 	return(ENXIO);
     }
@@ -259,14 +315,18 @@ cfs_mount(vfsp, path, data, ndp, p)
 	return(ENODEV);
     }
     
-    mi->mi_refct = 0;
-    
     /* No initialization (here) of mi_vcomm! */
     vfsp->mnt_data = (qaddr_t)mi;
+#ifdef	__NetBSD__
     vfsp->mnt_stat.f_fsid.val[0] = 0;
     vfsp->mnt_stat.f_fsid.val[1] = makefstype(MOUNT_CFS);
-    mi->mi_vfschain.vfsp = vfsp;
-    mi->mi_vfschain.next = NULL;
+#elif	defined(__FreeBSD__)
+    /* Seems a bit overkill, since usualy /coda is the only mount point
+     * for cfs.
+     */
+    getnewfsid (vfsp, MOUNT_CFS);
+#endif
+    mi->mi_vfsp = vfsp;
     
     /*
      * Make a root vnode to placate the Vnode interface, but don't
@@ -279,13 +339,27 @@ cfs_mount(vfsp, path, data, ndp, p)
     cp = makecfsnode(&rootfid, vfsp, VDIR);
     rootvp = CTOV(cp);
     rootvp->v_flag |= VROOT;
-    
+	
+    ctlfid.Volume = CTL_VOL;
+    ctlfid.Vnode = CTL_VNO;
+    ctlfid.Unique = CTL_UNI;
+    cp = makecfsnode(&ctlfid, vfsp, VCHR);
+    cfs_ctlvp = CTOV(cp);
+
     /* Add vfs and rootvp to chain of vfs hanging off mntinfo */
-    ADD_VFS_TO_MNTINFO(mi, vfsp, rootvp);
+    mi->mi_vfsp = vfsp;
+    mi->mi_rootvp = rootvp;
     
     /* set filesystem block size */
     vfsp->mnt_stat.f_bsize = 8192;	    /* XXX -JJK */
-    
+#ifdef	 __FreeBSD__
+    /* Set f_iosize.  XXX -- inamura@isl.ntt.co.jp. 
+       For vnode_pager_haspage() references. The value should be obtained 
+       from underlying UFS. */
+    /* Checked UFS. iosize is set as 8192 */
+    vfsp->mnt_stat.f_iosize = 8192;
+#endif
+
     /* error is currently guaranteed to be zero, but in case some
        code changes... */
     CFSDEBUG(1,
@@ -315,7 +389,6 @@ cfs_unmount(vfsp, mntflags, p)
     struct proc *p;
 {
     struct cfs_mntinfo *mi = vftomi(vfsp);
-    struct ody_mntinfo *op, *pre;
     int active, error = 0;
     
     ENTRY;
@@ -325,59 +398,48 @@ cfs_unmount(vfsp, mntflags, p)
 	return(EINVAL);
     }
     
-    if (mi->mi_refct == 0) {
-	/* Someone already unmounted this device. */
-	myprintf(("Ackk! unmount called on ody-style vfsp!\n"));
-	return EINVAL;
-    }
-    
-    for (pre = NULL, op = &mi->mi_vfschain; op; pre = op, op = op->next) {
-	if (op->vfsp == vfsp) {	/* We found the victim */
-	    if (!IS_UNMOUNTING(VTOC(op->rootvp)))
-		return (EBUSY); 	/* Venus is still running */
-	    
-#ifdef	DEBUG
-	    printf("cfs_unmount: ROOT: vp %x, cp %x\n", op->rootvp, VTOC(op->rootvp));
-#endif
-	    vrele(op->rootvp);
+    if (mi->mi_vfsp == vfsp) {	/* We found the victim */
+	if (!IS_UNMOUNTING(VTOC(mi->mi_rootvp)))
+	    return (EBUSY); 	/* Venus is still running */
 
-	    active = cfs_kill(vfsp, NOT_DOWNCALL);
-		
-	    error = vflush(op->vfsp, NULLVP, FORCECLOSE);
-	    printf("cfs_unmount: active = %d, vflush active %d\n", active, error);
-	    error = 0;
-	    
-	    /* I'm going to take this out to allow lookups to go through. I'm
-	     * not sure it's important anyway. -- DCS 2/2/94
-	     */
-	    /* vfsp->VFS_DATA = NULL; */
-	    
-	    /* Remove the vfs from our list of valid coda-like vfs */
-	    if (pre) {
-		pre->next = op->next;
-		CFS_FREE(op, sizeof(struct ody_mntinfo));
-	    } else
-		if (mi->mi_vfschain.next) {
-		    mi->mi_vfschain.vfsp = (mi->mi_vfschain.next)->vfsp;
-		    mi->mi_vfschain.rootvp = (mi->mi_vfschain.next)->rootvp;
-		    mi->mi_vfschain.next = (mi->mi_vfschain.next)->next;
-		} else {
-			/* No more vfsp's to hold onto */
-		    mi->mi_vfschain.vfsp = NULL;
-		    mi->mi_vfschain.rootvp = NULL;
-		}
-	    
-	    if (error)
-		MARK_INT_FAIL(CFS_UMOUNT_STATS);
-	    else
-		MARK_INT_SAT(CFS_UMOUNT_STATS);
-	    
-	    return(error);
-	}
+#ifdef	DEBUG
+	printf("cfs_unmount: ROOT: vp %p, cp %p\n", mi->mi_rootvp, VTOC(mi->mi_rootvp));
+#endif
+	vrele(mi->mi_rootvp);
+
+	active = cfs_kill(vfsp, NOT_DOWNCALL);
+#ifdef	NetBSD1_3
+	if ((error = vfs_busy(mi->mi_vfsp)) == 0) {
+		error = vflush(mi->mi_vfsp, NULLVP, FORCECLOSE);
+		printf("cfs_unmount: active = %d, vflush active %d\n", active, error);
+		error = 0;
+	} else {
+		printf("cfs_unmount: busy\n");
+	} 
+#else
+	active = cfs_kill(vfsp, NOT_DOWNCALL);
+
+	error = vflush(mi->mi_vfsp, NULLVP, FORCECLOSE);
+	printf("cfs_unmount: active = %d, vflush active %d\n", active, error);
+	error = 0;
+#endif
+	/* I'm going to take this out to allow lookups to go through. I'm
+	 * not sure it's important anyway. -- DCS 2/2/94
+	 */
+	/* vfsp->VFS_DATA = NULL; */
+
+	/* No more vfsp's to hold onto */
+	mi->mi_vfsp = NULL;
+	mi->mi_rootvp = NULL;
+
+	if (error)
+	    MARK_INT_FAIL(CFS_UMOUNT_STATS);
+	else
+	    MARK_INT_SAT(CFS_UMOUNT_STATS);
+
+	return(error);
     }
-    
-    MARK_INT_FAIL(CFS_UMOUNT_STATS);
-    return(EINVAL);
+    return (EINVAL);
 }
 
 /*
@@ -389,8 +451,7 @@ cfs_root(vfsp, vpp)
 	struct vnode **vpp;
 {
     struct cfs_mntinfo *mi = vftomi(vfsp);
-    struct ody_mntinfo *op;
-    struct vnode *rvp, **result;
+    struct vnode **result;
     int error;
     struct proc *p = curproc;    /* XXX - bnoble */
     ViceFid VFid;
@@ -399,31 +460,20 @@ cfs_root(vfsp, vpp)
     MARK_ENTRY(CFS_ROOT_STATS);
     result = NULL;
     
-    for (op = &mi->mi_vfschain; op; op = op->next) {
-	/* Look for a match between vfsp and op->vfsp */
-	if (vfsp == op->vfsp) {
-	    if ((VTOC(op->rootvp)->c_fid.Volume != 0) ||
-		(VTOC(op->rootvp)->c_fid.Vnode != 0) ||
-		(VTOC(op->rootvp)->c_fid.Unique != 0))
-		{ /* Found valid root. */
-		    *vpp = op->rootvp;
-		    /* On Mach, this is vref.  On NetBSD, VOP_LOCK */
-		    vref(*vpp);
-		    VOP_LOCK(*vpp);
-		    MARK_INT_SAT(CFS_ROOT_STATS);
-		    return(0);
-		}
-	    else	/* Found the vfs, but the vnode not inited yet. */
-		break;
-	}
+    if (vfsp == mi->mi_vfsp) {
+	if ((VTOC(mi->mi_rootvp)->c_fid.Volume != 0) ||
+	    (VTOC(mi->mi_rootvp)->c_fid.Vnode != 0) ||
+	    (VTOC(mi->mi_rootvp)->c_fid.Unique != 0))
+	    { /* Found valid root. */
+		*vpp = mi->mi_rootvp;
+		/* On Mach, this is vref.  On NetBSD, VOP_LOCK */
+		vref(*vpp);
+		VOP_LOCK(*vpp);
+		MARK_INT_SAT(CFS_ROOT_STATS);
+		return(0);
+	    }
     }
 
-    if (op == NULL) {
-	/* Huh, didn't find the vfsp. Noone called cfs_mount? Should
-           we panic? */
-	return (EINVAL);
-    }
-    
     error = venus_root(vftomi(vfsp), p->p_cred->pc_ucred, p, &VFid);
 
     if (!error) {
@@ -431,11 +481,11 @@ cfs_root(vfsp, vpp)
 	 * Save the new rootfid in the cnode, and rehash the cnode into the
 	 * cnode hash with the new fid key.
 	 */
-	cfs_unsave(VTOC(op->rootvp));
-	VTOC(op->rootvp)->c_fid = VFid;
-	cfs_save(VTOC(op->rootvp));
+	cfs_unsave(VTOC(mi->mi_rootvp));
+	VTOC(mi->mi_rootvp)->c_fid = VFid;
+	cfs_save(VTOC(mi->mi_rootvp));
 
-	*vpp = op->rootvp;
+	*vpp = mi->mi_rootvp;
 	vref(*vpp);
 	VOP_LOCK(*vpp);
 	MARK_INT_SAT(CFS_ROOT_STATS);
@@ -450,7 +500,7 @@ cfs_root(vfsp, vpp)
 	 * successful CFS_ROOT call is done. All vnode operations 
 	 * will fail.
 	 */
-	*vpp = op->rootvp;
+	*vpp = mi->mi_rootvp;
 	vref(*vpp);
 	VOP_LOCK(*vpp);
 	MARK_INT_FAIL(CFS_ROOT_STATS);
@@ -500,7 +550,11 @@ cfs_nb_statfs(vfsp, sbp, p)
     	#define NB_SFS_SIZ 0x895440
      */
     /* Note: Normal fs's have a bsize of 0x400 == 1024 */
+#ifdef	__NetBSD__
     sbp->f_type = 0;
+#elif	defined(__FreeBSD__)
+    sbp->f_type = MOUNT_CFS;
+#endif
     sbp->f_bsize = 8192; /* XXX */
     sbp->f_iosize = 8192; /* XXX */
 #define NB_SFS_SIZ 0x8AB75D
@@ -510,7 +564,9 @@ cfs_nb_statfs(vfsp, sbp, p)
     sbp->f_files = NB_SFS_SIZ;
     sbp->f_ffree = NB_SFS_SIZ;
     bcopy((caddr_t)&(vfsp->mnt_stat.f_fsid), (caddr_t)&(sbp->f_fsid), sizeof (fsid_t));
+#ifdef	__NetBSD__
     strncpy(sbp->f_fstypename, MOUNT_CFS, MFSNAMELEN-1);
+#endif
     strcpy(sbp->f_mntonname, "/coda");
     strcpy(sbp->f_mntfromname, "CFS");
 /*  MARK_INT_SAT(CFS_STATFS_STATS); */
@@ -582,7 +638,7 @@ cfs_fhtovp(vfsp, fhp, nam, vpp, exflagsp, creadanonp)
 	    *vpp = (struct vnode *)0;
     } else {
 	CFSDEBUG(CFS_VGET, 
-		 myprintf(("vget: vol %u vno %d uni %d type %d result %d\n",
+		 myprintf(("vget: vol %lx vno %lx uni %lx type %d result %d\n",
 			VFid.Volume, VFid.Vnode, VFid.Unique, vtype, error)); )
 	    
 	cp = makecfsnode(&VFid, vfsp, vtype);
@@ -599,12 +655,21 @@ cfs_vptofh(vnp, fidp)
     ENTRY;
     return (EOPNOTSUPP);
 }
- 
+
+#ifdef	__NetBSD__ 
 void
-cfs_init()
+cfs_init(void)
 {
     ENTRY;
 }
+#elif	defined(__FreeBSD__)
+int
+cfs_init(void)
+{
+    ENTRY;
+    return 0;
+}
+#endif
 
 /*
  * To allow for greater ease of use, some vnodes may be orphaned when
@@ -612,24 +677,14 @@ cfs_init()
  * through, but without propagating ophan-ness.  So this function will
  * get a new vnode for the file from the current run of Venus.  */
  
-int getNewVnode(vpp)
+int
+getNewVnode(vpp)
      struct vnode **vpp;
 {
-    struct ody_mntinfo *op;
     struct cfid cfid;
     struct cfs_mntinfo *mi = vftomi((*vpp)->v_mount);
     
     ENTRY;
-
-    for (op = &mi->mi_vfschain; op; op = op->next) {
-	/* Look for a match between vfsp and op->vfsp */
-	if ((*vpp)->v_mount == op->vfsp) {
-	    break;
-	}
-    }
-
-    if (op)
-	return EINVAL;
 
     cfid.cfid_len = (short)sizeof(ViceFid);
     cfid.cfid_fid = VTOC(*vpp)->c_fid;	/* Structure assignment. */
@@ -638,9 +693,9 @@ int getNewVnode(vpp)
     /* We're guessing that if set, the 1st element on the list is a
      * valid vnode to use. If not, return ENODEV as venus is dead.
      */
-    if (mi->mi_vfschain.vfsp == NULL)
+    if (mi->mi_vfsp == NULL)
 	return ENODEV;
     
-    return cfs_fhtovp(mi->mi_vfschain.vfsp, (struct fid*)&cfid, NULL, vpp,
+    return cfs_fhtovp(mi->mi_vfsp, (struct fid*)&cfid, NULL, vpp,
 		      NULL, NULL);
 }

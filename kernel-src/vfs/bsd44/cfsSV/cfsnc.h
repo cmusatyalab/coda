@@ -14,6 +14,12 @@
 /* 
  * HISTORY
  * $Log:	cfsnc.h,v $
+ * Revision 1.4.2.1  97/12/16  12:40:23  rvb
+ * Sync with 1.3
+ * 
+ * Revision 1.4  97/12/05  10:39:29  rvb
+ * Read CHANGES
+ * 
  * Revision 1.3.4.3  97/11/24  15:44:51  rvb
  * Final cfs_venus.c w/o macros, but one locking bug
  * 
@@ -158,20 +164,21 @@ struct cfshash {		/* Start of Hash chain */
 #define CFSNC_DEBUG(N, STMT)     { if (cfsnc_debug & (1 <<N)) { STMT } }
 
 /* Prototypes of functions exported within cfs */
-extern void cfsnc_init();
-extern void cfsnc_enter(struct cnode *, char *, int, struct ucred *, struct cnode *);
-extern struct cnode *cfsnc_lookup(struct cnode *, char *, int, struct ucred *);
+extern void cfsnc_init(void);
+extern void cfsnc_enter(struct cnode *, const char *, int, struct ucred *, struct cnode *);
+extern struct cnode *cfsnc_lookup(struct cnode *, const char *, int, struct ucred *);
 
 extern void cfsnc_zapParentfid(ViceFid *, enum dc_status);
 extern void cfsnc_zapfid(ViceFid *, enum dc_status);
 extern void cfsnc_zapvnode(ViceFid *, struct ucred *, enum dc_status);
-extern void cfsnc_zapfile(struct cnode *, char *, int);
-extern void cfsnc_purge_user(struct ucred *, enum dc_status);
-
+extern void cfsnc_zapfile(struct cnode *, const char *, int);
+extern void cfsnc_purge_user(vuid_t, enum dc_status);
 extern void cfsnc_flush(enum dc_status);
-extern void print_cfsnc();
-extern void cfsnc_gather_stats();
+
+extern void print_cfsnc(void);
+extern void cfsnc_gather_stats(void);
 extern int  cfsnc_resize(int, int, enum dc_status);
+extern void cfsnc_name(struct cnode *cp);
 
 /*
  * Structure to contain statistics on the cache usage
@@ -212,4 +219,4 @@ struct cfsnc_statistics {
 #define CFSNC_PRINTCFSNC	((u_long) 12)
 #define CFSNC_PRINTSTATS	((u_long) 13)
 
-#endif _CFSNC_HEADER_
+#endif /* _CFSNC_HEADER_ */

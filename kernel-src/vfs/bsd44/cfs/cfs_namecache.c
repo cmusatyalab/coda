@@ -29,7 +29,6 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/netbsd/cvs/src/sys/cfs/cfs_namecache.c,v 1.5.4.7 97/11/25 08:08:43 rvb Exp $";
 #endif /*_BLURB_*/
 
 /* 
@@ -48,6 +47,21 @@ static char *rcsid = "$Header: /afs/cs/project/netbsd/cvs/src/sys/cfs/cfs_nameca
 /*
  * HISTORY
  * $Log:	cfs_namecache.c,v $
+ * Revision 1.6.2.4  98/01/23  11:21:02  rvb
+ * Sync with 2.2.5
+ * 
+ * Revision 1.6.2.3  97/12/16  12:40:03  rvb
+ * Sync with 1.3
+ * 
+ * Revision 1.6.2.2  97/12/09  16:07:10  rvb
+ * Sync with vfs/include/coda.h
+ * 
+ * Revision 1.6.2.1  97/12/06  17:41:18  rvb
+ * Sync with peters coda.h
+ * 
+ * Revision 1.6  97/12/05  10:39:13  rvb
+ * Read CHANGES
+ * 
  * Revision 1.5.4.7  97/11/25  08:08:43  rvb
  * cfs_venus ... done; until cred/vattr change
  * 
@@ -176,16 +190,22 @@ static char *rcsid = "$Header: /afs/cs/project/netbsd/cvs/src/sys/cfs/cfs_nameca
 #include <sys/malloc.h>
 #include <sys/select.h>
 
-#include <cfs/cfs.h>
-#include <cfs/cfsk.h>
+#include <cfs/coda.h>
 #include <cfs/cnode.h>
 #include <cfs/cfsnc.h>
 
-#ifdef __NetBSD__
+#if defined(__NetBSD__) || defined(__FreeBSD__)
 #ifndef insque
 #include <sys/systm.h>
 #endif /* insque */
-#endif /* __NetBSD__ */
+#endif /* __NetBSD__ || defined(__FreeBSD__) */
+
+#ifdef	__FreeBSD__
+#include <vm/vm.h>
+#include <vm/vm_object.h>
+#endif
+
+__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.6.2.4 98/01/23 11:21:02 rvb Exp $");
 
 /* 
  * Declaration of the name cache data structure.
@@ -211,6 +231,12 @@ int cfsnc_debug = 0;
 /*
  * Entry points for the CFS Name Cache
  */
+static struct cfscache *
+cfsnc_find(struct cnode *dcp, const char *name, int namelen,
+	struct ucred *cred, int hash);
+static void
+cfsnc_remove(struct cfscache *cncp, enum dc_status dcstat);
+
 
 /*  
  * Initialize the cache, the LRU structure and the Hash structure(s)
@@ -222,7 +248,7 @@ int cfsnc_debug = 0;
 int cfsnc_initialized = 0;      /* Initially the cache has not been initialized */
 
 void
-cfsnc_init()
+cfsnc_init(void)
 {
     int i;
 
@@ -255,12 +281,10 @@ cfsnc_init()
  * Auxillary routines -- shouldn't be entry points
  */
 
-static int cred_debug =0;
-
 static struct cfscache *
 cfsnc_find(dcp, name, namelen, cred, hash)
 	struct cnode *dcp;
-	char *name;
+	const char *name;
 	int namelen;
 	struct ucred *cred;
 	int hash;
@@ -273,7 +297,7 @@ cfsnc_find(dcp, name, namelen, cred, hash)
 	int count = 1;
 
 	CFSNC_DEBUG(CFSNC_FIND, 
-		    myprintf(("cfsnc_find(dcp 0x%x, name %s, len %d, cred 0x%x, hash %d\n",
+		    myprintf(("cfsnc_find(dcp %p, name %s, len %d, cred %p, hash %d\n",
 			   dcp, name, namelen, cred, hash));)
 
 	for (cncp = cfsnchash[hash].hash_next; 
@@ -290,7 +314,7 @@ cfsnc_find(dcp, name, namelen, cred, hash)
 	    }
 #ifdef	DEBUG
 	    else if (CFS_NAMEMATCH(cncp, name, namelen, dcp)) {
-	    	printf("cfsnc_find: name %s, new cred = %x, cred = %x\n",
+	    	printf("cfsnc_find: name %s, new cred = %p, cred = %p\n",
 			name, cred, cncp->cred);
 		printf("nref %d, nuid %d, ngid %d // oref %d, ocred %d, ogid %d\n",
 			cred->cr_ref, cred->cr_uid, cred->cr_gid,
@@ -311,7 +335,7 @@ cfsnc_find(dcp, name, namelen, cred, hash)
 void
 cfsnc_enter(dcp, name, namelen, cred, cp)
     struct cnode *dcp;
-    char *name;
+    const char *name;
     int namelen;
     struct ucred *cred;
     struct cnode *cp;
@@ -323,7 +347,7 @@ cfsnc_enter(dcp, name, namelen, cred, cp)
 	return;
     
     CFSNC_DEBUG(CFSNC_ENTER, 
-		myprintf(("Enter: dcp 0x%x cp 0x%x name %s cred 0x%x \n",
+		myprintf(("Enter: dcp %p cp %p name %s cred %p \n",
 		       dcp, cp, name, cred)); )
 	
     if (namelen > CFSNC_NAMELEN) {
@@ -389,7 +413,7 @@ cfsnc_enter(dcp, name, namelen, cred, cp)
 struct cnode *
 cfsnc_lookup(dcp, name, namelen, cred)
 	struct cnode *dcp;
-	char *name;
+	const char *name;
 	int namelen;
 	struct ucred *cred;
 {
@@ -430,7 +454,7 @@ cfsnc_lookup(dcp, name, namelen, cred)
 	CFSNC_HSHINS(cncp, &cfsnchash[hash]);
 
 	CFSNC_DEBUG(CFSNC_LOOKUP, 
-		printf("lookup: dcp 0x%x, name %s, cred 0x%x = cp 0x%x\n",
+		printf("lookup: dcp %p, name %s, cred %p = cp %p\n",
 			dcp, name, cred, cncp->cp); )
 
 	return(cncp->cp);
@@ -447,7 +471,7 @@ cfsnc_remove(cncp, dcstat)
 	 * place it at the head of the lru list.
 	 */
         CFSNC_DEBUG(CFSNC_REMOVE,
-		    myprintf(("cfsnc_remove %s from parent %x.%x.%x\n",
+		    myprintf(("cfsnc_remove %s from parent %lx.%lx.%lx\n",
 			   cncp->name, (cncp->dcp)->c_fid.Volume,
 			   (cncp->dcp)->c_fid.Vnode, (cncp->dcp)->c_fid.Unique));)
 
@@ -464,6 +488,11 @@ cfsnc_remove(cncp, dcstat)
 	}
 	vrele(CTOV(cncp->cp)); 
 
+#ifdef	__MAYBE_FreeBSD__
+	if ((CTOV(cncp->cp)->v_object) && 
+	    (OBJ_DEAD == (CTOV(cncp->cp))->v_object->flags))
+	   CTOV(cncp->cp)->v_object = NULL;
+#endif
 	crfree(cncp->cred); 
 	bzero(DATA_PART(cncp),DATA_SIZE);
 
@@ -493,7 +522,7 @@ cfsnc_zapParentfid(fid, dcstat)
 		return;
 
 	CFSNC_DEBUG(CFSNC_ZAPPFID, 
-		myprintf(("ZapParent: fid 0x%x, 0x%x, 0x%x \n",
+		myprintf(("ZapParent: fid 0x%lx, 0x%lx, 0x%lx \n",
 			fid->Volume, fid->Vnode, fid->Unique)); )
 
 	cfsnc_stat.zapPfids++;
@@ -538,7 +567,7 @@ cfsnc_zapfid(fid, dcstat)
 		return;
 
 	CFSNC_DEBUG(CFSNC_ZAPFID, 
-		myprintf(("Zapfid: fid 0x%x, 0x%x, 0x%x \n",
+		myprintf(("Zapfid: fid 0x%lx, 0x%lx, 0x%lx \n",
 			fid->Volume, fid->Vnode, fid->Unique)); )
 
 	cfsnc_stat.zapFids++;
@@ -575,7 +604,7 @@ cfsnc_zapvnode(fid, cred, dcstat)
 		return;
 
 	CFSNC_DEBUG(CFSNC_ZAPVNODE, 
-		myprintf(("Zapvnode: fid 0x%x, 0x%x, 0x%x cred 0x%x\n",
+		myprintf(("Zapvnode: fid 0x%lx, 0x%lx, 0x%lx cred %p\n",
 			  fid->Volume, fid->Vnode, fid->Unique, cred)); )
 
 }
@@ -586,7 +615,7 @@ cfsnc_zapvnode(fid, cred, dcstat)
 void
 cfsnc_zapfile(dcp, name, namelen)
 	struct cnode *dcp;
-	char *name;
+	const char *name;
 	int namelen;
 {
 	/* use the hash function to locate the file, then zap all
@@ -599,7 +628,7 @@ cfsnc_zapfile(dcp, name, namelen)
 		return;
 
 	CFSNC_DEBUG(CFSNC_ZAPFILE, 
-		myprintf(("Zapfile: dcp 0x%x name %s \n",
+		myprintf(("Zapfile: dcp %p name %s \n",
 			  dcp, name)); )
 
 	if (namelen > CFSNC_NAMELEN) {
@@ -614,7 +643,8 @@ cfsnc_zapfile(dcp, name, namelen)
 
 	while (cncp) {
 	  cfsnchash[hash].length--;                 /* Used for tuning */
-	  cfsnc_remove(cncp);
+/* 1.3 */
+	  cfsnc_remove(cncp, NOT_DOWNCALL);
 	  cncp = cfsnc_find(dcp, name, namelen, 0, hash);
 	}
 }
@@ -624,8 +654,8 @@ cfsnc_zapfile(dcp, name, namelen)
  * A user is determined by his/her effective user id (id_uid).
  */
 void
-cfsnc_purge_user(cred, dcstat)
-	struct ucred    *cred;
+cfsnc_purge_user(uid, dcstat)
+	vuid_t	uid;
 	enum dc_status  dcstat;
 {
 	/* 
@@ -643,7 +673,7 @@ cfsnc_purge_user(cred, dcstat)
 		return;
 
 	CFSNC_DEBUG(CFSNC_PURGEUSER, 
-		myprintf(("ZapDude: uid 0x%x\n",cred->cr_uid)); )
+		myprintf(("ZapDude: uid %lx\n", uid)); )
 	cfsnc_stat.zapUsers++;
 
 	for (cncp = CFSNC_LRUGET(cfsnc_lru);
@@ -652,7 +682,7 @@ cfsnc_purge_user(cred, dcstat)
 		ncncp = CFSNC_LRUGET(*cncp);
 
 		if ((CFSNC_VALID(cncp)) &&
-		   ((cncp->cred)->cr_uid == cred->cr_uid)) {
+		   ((cncp->cred)->cr_uid == uid)) {
 		        /* Seems really ugly, but we have to decrement the appropriate
 			   hash bucket length here, so we have to find the hash bucket
 			   */
@@ -702,10 +732,10 @@ cfsnc_flush(dcstat)
 				cncp->dcp->c_flags |= C_PURGING;
 			}
 			vrele(CTOV(cncp->dcp)); 
-			if (!ISDIR(cncp->cp->c_fid) && (CTOV(cncp->cp)->v_flag & VTEXT)) {
+			if (CTOV(cncp->cp)->v_flag & VTEXT) {
 			    if (cfs_vmflush(cncp->cp))
 				CFSDEBUG(CFS_FLUSH, 
-					 myprintf(("cfsnc_flush: (%x.%x.%x) busy\n", cncp->cp->c_fid.Volume, cncp->cp->c_fid.Vnode, cncp->cp->c_fid.Unique)); )
+					 myprintf(("cfsnc_flush: (%lx.%lx.%lx) busy\n", cncp->cp->c_fid.Volume, cncp->cp->c_fid.Vnode, cncp->cp->c_fid.Unique)); )
 			}
 
 			if ((dcstat == IS_DOWNCALL) 
@@ -732,7 +762,7 @@ cfsnc_flush(dcstat)
  * This routine should print out all the hash chains to the console.
  */
 void
-print_cfsnc()
+print_cfsnc(void)
 {
 	int hash;
 	struct cfscache *cncp;
@@ -743,15 +773,15 @@ print_cfsnc()
 		for (cncp = cfsnchash[hash].hash_next; 
 		     cncp != (struct cfscache *)&cfsnchash[hash];
 		     cncp = cncp->hash_next) {
-			myprintf(("cp 0x%x dcp 0x%x cred 0x%x name %s\n",
-				  (int)cncp->cp, (int)cncp->dcp,
-				  (int)cncp->cred, cncp->name));
+			myprintf(("cp %p dcp %p cred %p name %s\n",
+				  cncp->cp, cncp->dcp,
+				  cncp->cred, cncp->name));
 		     }
 	}
 }
 
 void
-cfsnc_gather_stats()
+cfsnc_gather_stats(void)
 {
     int i, max = 0, sum = 0, temp, zeros = 0, ave, n;
 
@@ -823,6 +853,8 @@ cfsnc_resize(hashsize, heapsize, dcstat)
 
 #define DEBUG
 #ifdef	DEBUG
+char cfsnc_name_buf[CFS_MAXNAMLEN+1];
+
 void
 cfsnc_name(struct cnode *cp)
 {
@@ -838,8 +870,10 @@ cfsnc_name(struct cnode *cp)
 		     cncp = ncncp) {
 			ncncp = cncp->hash_next;
 			if (cncp->cp == cp) {
-				printf(" is %s (%x,%x)@%x,",
-					cncp->name, cncp->cp, cncp->dcp, cncp);
+				bcopy(cncp->name, cfsnc_name_buf, cncp->namelen);
+				cfsnc_name_buf[cncp->namelen] = 0;
+				printf(" is %s (%p,%p)@%p",
+					cfsnc_name_buf, cncp->cp, cncp->dcp, cncp);
 			}
 
 		}

@@ -9,6 +9,12 @@
 /*
  * HISTORY
  * $Log:	pioctl.h,v $
+ * Revision 1.3.2.1  97/12/06  17:41:29  rvb
+ * Sync with peters coda.h
+ * 
+ * Revision 1.3  97/12/05  10:39:31  rvb
+ * Read CHANGES
+ * 
  * Revision 1.2.34.2  97/11/13  22:03:06  rvb
  * pass2 cfs_NetBSD.h mt
  * 
@@ -48,12 +54,6 @@
 
 #ifndef	_SYS_PIOCTL_H_
 #define _SYS_PIOCTL_H_
-
-struct ViceIoctl {
-	caddr_t in, out;	/* Data to be transferred in, or out */
-	short in_size;		/* Size of input buffer <= 2K */
-	short out_size;		/* Maximum size of output buffer, <= 2K */
-};
 
 /* The 2K limits above are a consequence of the size of the kernel buffer
    used to buffer requests from the user to venus--2*MAXPATHLEN.

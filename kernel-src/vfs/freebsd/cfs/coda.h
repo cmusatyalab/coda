@@ -1,173 +1,177 @@
-/* 
- * Mach Operating System
- * Copyright (c) 1990 Carnegie-Mellon University
- * Copyright (c) 1989 Carnegie-Mellon University
- * All rights reserved.  The CMU software License Agreement specifies
- * the terms and conditions for use and redistribution.
- */
 
 /*
- * This code was written for the Coda file system at Carnegie Mellon
- * University.  Contributers include David Steere, James Kistler,
- * M. Satyanarayanan, and Brian Noble.  
+ *
+ * Based on cfs.h from Mach, but revamped for increased simplicity.
+ * Linux modifications by Peter Braam, Aug 1996
  */
 
-/* 
- * HISTORY
- * $Log:	cfs.h,v $
- * Revision 1.5.18.4  97/11/26  15:28:55  rvb
- * Cant make downcall pbuf == union cfs_downcalls yet
- * 
- * Revision 1.5.18.3  97/11/24  15:44:42  rvb
- * Final cfs_venus.c w/o macros, but one locking bug
- * 
- * Revision 1.5.18.2  97/11/13  22:02:55  rvb
- * pass2 cfs_NetBSD.h mt
- * 
- * Revision 1.5.18.1  97/11/12  12:09:32  rvb
- * reorg pass1
- * 
- * Revision 1.5  96/12/12  22:10:54  bnoble
- * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
- * 
- * Revision 1.4  1996/12/05 16:20:04  bnoble
- * Minor debugging aids
- *
- * Revision 1.3  1996/11/08 18:06:05  bnoble
- * Minor changes in vnode operation signature, VOP_UPDATE signature, and
- * some newly defined bits in the include files.
- *
- * Revision 1.2  1996/01/02 16:56:31  bnoble
- * Added support for Coda MiniCache and raw inode calls (final commit)
- *
- * Revision 1.1.2.1  1995/12/20 01:56:51  bnoble
- * Added CFS-specific files
- *
- * 
- * Revision 3.1  1995/03/04  19:08:16  bnoble
- * Bump to major revision 3 to prepare for NetBSD port
- *
- * Revision 2.8  1995/02/17  18:21:41  dcs
- * Small change. Assume venus is only interested in specifying the size
- * of things it is writing to kernel (i.e. "out" direction)
- *
- * Revision 2.7  95/02/17  16:25:07  dcs
- * These versions represent several changes:
- * 1. Allow venus to restart even if outstanding references exist.
- * 2. Have only one ctlvp per client, as opposed to one per mounted cfs device.d
- * 3. Allow ody_expand to return many members, not just one.
- * 
- * Revision 2.6  94/11/17  10:13:48  dcs
- * Small incremental changes to cfs_mach.c and cfs.h
- * 
- * Revision 2.5  94/10/18  10:46:26  dcs
- * Satya didn't like the name of 'sets/mach.h'
- * 
- * Revision 2.4  94/10/14  09:57:33  dcs
- * Made changes 'cause sun4s have braindead compilers
- * 
- * Revision 2.3  94/10/12  16:45:57  dcs
- * Cleaned kernel/venus interface by removing XDR junk, plus
- * so cleanup to allow this code to be more easily ported.
- * 
- * Revision 1.3  93/12/17  01:33:41  luqi
- * Changes made for kernel to pass process info to Venus:
- * 
- * (1) in file cfs.h
- * add process id and process group id in most of the cfs argument types.
- * 
- * (2) in file cfs_vnodeops.c
- * add process info passing in most of the cfs vnode operations.
- * 
- * (3) in file cfs_xdr.c
- * expand xdr routines according changes in (1). 
- * add variable pass_process_info to allow venus for kernel version checking.
- * 
- * Revision 1.2  92/10/27  17:58:20  lily
- * merge kernel/latest and alpha/src/cfs
- * 
- * Revision 2.3  92/09/30  14:16:11  mja
- * 	Reorganized procedure declarations, so that "arg" parameters could be 
- * 	fully specified.
- * 	[91/07/23            jjk]
- * 
- * 	Substituted rvb's history blurb so that we agree with Mach 2.5 sources.
- * 	[91/02/09 	     jjk]
- * 
- * 	Added contributors blurb.
- * 	[90/12/13            jjk]
- * 
- * Revision 2.2  90/07/05  11:26:23  mrt
- * 	Changed message size back to 4k. Also changed VC_MAXDATASIZE to reflect
- * 	the xdr implementation of treating shorts (2 bytes) as longs (4 bytes).
- * 	[90/05/23            dcs]
- * 
- * 	Added constants to support READDIR, IOCTL, and RDWR messages 
- * 	in an effort to compensate for the VFS exec bogusity.
- * 	[90/05/23            dcs]
- * 
- * 	Created for the Coda File System.
- * 	[90/05/23            dcs]
- * 
- * Revision 1.6  90/05/31  17:01:05  dcs
- * Prepare for merge with facilities kernel.
- * 
- * 
- */
 #ifndef _CFS_HEADER_
 #define _CFS_HEADER_
 
-/* 
- * Sigh, rp2gen can't deal with #defines, so I can't use this test to
- * define ViceFid here, where it should be defined. Sigh.  This needs
- * to be before the #include of OS-specific headers, 'cause it is used
- * there.
- */
-#include <sys/types.h>
-#include <sys/vnode.h>
-#include <sys/ucred.h>
 
-#define CodaCred ucred
 
-#ifdef _KERNEL
-#ifndef	VICEFID_DEFINED
-#define	VICEFID_DEFINED	1
-typedef u_long VolumeId;
-typedef u_long VnodeId;
-typedef u_long Unique;
-typedef struct ViceFid {
-    VolumeId Volume;
-    VnodeId Vnode;
-    Unique Unique;
-} ViceFid;
-#endif	/* not VICEFID_DEFINED */
-#endif  /* _KERNEL */
-
-/*
- * cfid structure:
- * This overlays the fid structure (see vfs.h)
- */
-struct cfid {
-    u_short	cfid_len;
-    u_short     padding;
-    ViceFid	cfid_fid;
-};
-
+/* Catch new _KERNEL defn for NetBSD */
 #ifdef __NetBSD__
-#include <cfs/cfs_NetBSD.h>
-#endif /* __NetBSD__ */
+#include <sys/types.h>
+#endif 
+
+#if defined(__linux__) || defined(__CYGWIN32__)
+#define cdev_t u_quad_t
+#if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
+#define _UQUAD_T_ 1
+typedef unsigned long long u_quad_t;
+#endif 
+#else
+#define cdev_t dev_t
+#endif
+
+#ifdef __CYGWIN32__
+typedef unsigned char u_int8_t;
+struct timespec {
+        time_t  tv_sec;         /* seconds */
+        long    tv_nsec;        /* nanoseconds */
+};
+#endif
+
 
 /*
  * Cfs constants
  */
-#define CFS_MAXNAMLEN 256
-#define CFS_MAXPATHLEN MAXPATHLEN
-#define CFS_MAXARRAYSIZE 8192
+#define CFS_MAXNAMLEN   255
+#define CFS_MAXPATHLEN  1024
+#define CFS_MAXSYMLINK  10
+
+/* these are Coda's version of O_RDONLY etc combinations
+ * to deal with VFS open modes
+ */
+#define	C_O_READ	0x001
+#define	C_O_WRITE       0x002
+#define C_O_TRUNC       0x010
+#define C_O_EXCL	0x100
+
+/* these are to find mode bits in Venus */ 
+#define C_M_READ  00400
+#define C_M_WRITE 00200
+
+/* for access Venus will use */
+#define C_A_R_OK    4               /* Test for read permission.  */
+#define C_A_W_OK    2               /* Test for write permission.  */
+#define C_A_X_OK    1               /* Test for execute permission.  */
+#define C_A_F_OK    0               /* Test for existence.  */
+
+
+
+#ifndef _VENUS_DIRENT_T_
+#define _VENUS_DIRENT_T_ 1
+struct venus_dirent {
+        unsigned long	d_fileno;		/* file number of entry */
+        unsigned short	d_reclen;		/* length of this record */
+        char 		d_type;			/* file type, see below */
+        char		d_namlen;		/* length of string in d_name */
+        char		d_name[CFS_MAXNAMLEN + 1];/* name must be no longer than this */
+};
+#undef DIRSIZ
+#define DIRSIZ(dp)      ((sizeof (struct venus_dirent) - (CFS_MAXNAMLEN+1)) + \
+                         (((dp)->d_namlen+1 + 3) &~ 3))
 
 /*
-#define CFS_MOUNT	((u_long) 1)
-#define CFS_UNMOUNT	((u_long) 2)
-*/
+ * File types
+ */
+#define	CDT_UNKNOWN	 0
+#define	CDT_FIFO		 1
+#define	CDT_CHR		 2
+#define	CDT_DIR		 4
+#define	CDT_BLK		 6
+#define	CDT_REG		 8
+#define	CDT_LNK		10
+#define	CDT_SOCK		12
+#define	CDT_WHT		14
+
+/*
+ * Convert between stat structure types and directory types.
+ */
+#define	IFTOCDT(mode)	(((mode) & 0170000) >> 12)
+#define	CDTTOIF(dirtype)	((dirtype) << 12)
+
+#endif
+
+#ifndef	_FID_T_
+#define _FID_T_	1
+typedef u_long VolumeId;
+typedef u_long VnodeId;
+typedef u_long Unique_t;
+typedef u_long FileVersion;
+#endif 
+
+#ifndef	_VICEFID_T_
+#define _VICEFID_T_	1
+typedef struct ViceFid {
+    VolumeId Volume;
+    VnodeId Vnode;
+    Unique_t Unique;
+} ViceFid;
+#endif	/* VICEFID */
+
+static inline ino_t coda_f2i(struct ViceFid *fid)
+{
+      if ( fid ) {
+              return (fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
+      } else { 
+              return 0;
+      }
+}
+
+
+#ifndef _VUID_T_
+#define _VUID_T_
+typedef u_long vuid_t;
+typedef u_long vgid_t;
+#endif /*_VUID_T_ */
+
+#ifndef _CODACRED_T_
+#define _CODACRED_T_
+struct coda_cred {
+    vuid_t cr_uid, cr_euid, cr_suid, cr_fsuid; /* Real, efftve, set, fs uid*/
+#if	defined(__NetBSD__) || defined(__FreeBSD__)
+    vgid_t cr_groupid, cr_egid, cr_sgid, cr_fsgid; /* same for groups */
+#else
+    vgid_t cr_gid,     cr_egid, cr_sgid, cr_fsgid; /* same for groups */
+#endif
+};
+#endif 
+
+#ifndef _VENUS_VATTR_T_
+#define _VENUS_VATTR_T_
+/*
+ * Vnode types.  VNON means no type.
+ */
+enum coda_vtype	{ C_VNON, C_VREG, C_VDIR, C_VBLK, C_VCHR, C_VLNK, C_VSOCK, C_VFIFO, C_VBAD };
+
+struct coda_vattr {
+	enum coda_vtype	va_type;	/* vnode type (for create) */
+	u_short		va_mode;	/* files access mode and type */
+	short		va_nlink;	/* number of references to file */
+	vuid_t		va_uid;		/* owner user id */
+	vgid_t		va_gid;		/* owner group id */
+	long		va_fileid;	/* file id */
+	u_quad_t	va_size;	/* file size in bytes */
+	long		va_blocksize;	/* blocksize preferred for i/o */
+	struct timespec	va_atime;	/* time of last access */
+	struct timespec	va_mtime;	/* time of last modification */
+	struct timespec	va_ctime;	/* time file changed */
+	u_long		va_gen;		/* generation number of file */
+	u_long		va_flags;	/* flags defined for file */
+	cdev_t	        va_rdev;	/* device special file represents */
+	u_quad_t	va_bytes;	/* bytes of disk space held by file */
+	u_quad_t	va_filerev;	/* file modification number */
+};
+
+#endif 
+
+/*
+ * Kernel <--> Venus communications.
+ */
+
 #define CFS_ROOT	((u_long) 2)
 #define CFS_SYNC	((u_long) 3)
 #define CFS_OPEN	((u_long) 4)
@@ -188,8 +192,8 @@ struct cfid {
 #define CFS_READLINK	((u_long) 19)
 #define CFS_FSYNC	((u_long) 20)
 #define CFS_INACTIVE	((u_long) 21)
-#define	CFS_VGET	((u_long) 22)
-#define	CFS_SIGNAL	((u_long) 23)
+#define CFS_VGET	((u_long) 22)
+#define CFS_SIGNAL	((u_long) 23)
 #define CFS_REPLACE	((u_long) 24)
 #define CFS_FLUSH       ((u_long) 25)
 #define CFS_PURGEUSER   ((u_long) 26)
@@ -197,146 +201,352 @@ struct cfid {
 #define CFS_ZAPDIR      ((u_long) 28)
 #define CFS_ZAPVNODE    ((u_long) 29)
 #define CFS_PURGEFID    ((u_long) 30)
-#define DOWNCALL(opcode) (opcode >= CFS_REPLACE && opcode <= CFS_PURGEFID)
-#define	CFS_RDWR	((u_long) 31)
-#define ODY_MOUNT	((u_long) 32) /* Don't use DEBUG, it uses these as bits */
-#define ODY_LOOKUP	((u_long) 33)
-#define ODY_EXPAND	((u_long) 34)
-/* #define	CFS_INVALIDATE	((u_long) 35) Is this used anywhere? */
-#define CFS_NCALLS 35
+#define CFS_NCALLS 31
 
+#define DOWNCALL(opcode) (opcode >= CFS_REPLACE && opcode <= CFS_PURGEFID)
+
+#define VC_MAXDATASIZE	    8192
+#define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
+                            VC_MAXDATASIZE  
+
+
+
+/*
+ *        Venus <-> Coda  RPC arguments
+ */
 struct cfs_in_hdr {
     unsigned long opcode;
     unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
     u_short pid;		    /* Common to all */
     u_short pgid;		    /* Common to all */
-    struct CodaCred cred;	    /* Common to all */
+    u_short sid;                    /* Common to all */
+    struct coda_cred cred;	    /* Common to all */
 };
 
-union inputArgs {
-    /* Nothing needed for cfs_root */
-    /* Nothing needed for cfs_sync */
-    struct cfs_open_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	int	flags;
-    } cfs_open;
-    struct cfs_close_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	int	flags;
-    } cfs_close;
-    struct cfs_ioctl_in {
-	struct cfs_in_hdr ih;
-	ViceFid VFid;
-	int	cmd;
-	int	len;
-	int	rwflag;
-	char *data;			/* Place holder for data. */
-    } cfs_ioctl;
-    struct cfs_getattr_in {
-	struct cfs_in_hdr ih;
-	ViceFid VFid;
-    } cfs_getattr;
-    struct cfs_setattr_in {
-	struct cfs_in_hdr ih;
-	ViceFid VFid;
-	struct vattr attr;
-    } cfs_setattr;
-    struct cfs_access_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	int	flags;
-    } cfs_access;
-    struct  cfs_lookup_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	char        *name;		/* Place holder for data. */
-    } cfs_lookup;
-    struct cfs_create_in {
-	struct cfs_in_hdr ih;
-	ViceFid VFid;
-	struct vattr attr;
-	int excl;
-	int mode;
-	char	*name;		/* Place holder for data. */
-    } cfs_create;
-    struct cfs_remove_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	char	*name;		/* Place holder for data. */
-    } cfs_remove;
-    struct cfs_link_in {
-	struct cfs_in_hdr ih;
-	ViceFid sourceFid;          /* cnode to link *to* */
-	ViceFid destFid;            /* Directory in which to place link */
-	char	*tname;		/* Place holder for data. */
-    } cfs_link;
-    struct cfs_rename_in {
-	struct cfs_in_hdr ih;
-	ViceFid	sourceFid;
-	char	*srcname;
-	ViceFid destFid;
-	char	*destname;
-    } cfs_rename;
-    struct cfs_mkdir_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	struct vattr attr;
-	char	*name;		/* Place holder for data. */
-    } cfs_mkdir;
-    struct cfs_rmdir_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	char	*name;		/* Place holder for data. */
-    } cfs_rmdir;
-    struct cfs_readdir_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	int	count;
-	int	offset;
-    } cfs_readdir;
-    struct cfs_symlink_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;          /* Directory to put symlink in */
-	char	*srcname;
-	struct vattr attr;
-	char	*tname;
-    } cfs_symlink;
-    struct cfs_readlink_in {
-	struct cfs_in_hdr ih;
-	ViceFid VFid;
-    } cfs_readlink;
-    struct cfs_fsync_in {
-	struct cfs_in_hdr ih;
-	ViceFid VFid;
-    } cfs_fsync;
-    struct cfs_inactive_in {
-	struct cfs_in_hdr ih;
-	ViceFid VFid;
-    } cfs_inactive;
-    struct cfs_vget_in {
-	struct cfs_in_hdr ih;
-	ViceFid VFid;
-    } cfs_vget;
-    /* CFS_SIGNAL is out-of-band, doesn't need data. */
-    /* CFS_INVALIDATE is a venus->kernel call */
-    /* CFS_FLUSH is a venus->kernel call */
-    /* CFS_PURGEUSER is a venus->kernel call */
-    /* CFS_ZAPFILE is a venus->kernel call */
-    /* CFS_ZAPDIR is a venus->kernel call */	
-    /* CFS_ZAPVNODE is a venus->kernel call */	
-    /* CFS_PURGEFID is a venus->kernel call */	
-    struct cfs_rdwr_in {
-	struct cfs_in_hdr ih;
-	ViceFid	VFid;
-	int	rwflag;
-	int	count;
-	int	offset;
-	int	ioflag;
-	caddr_t	data;		/* Place holder for data. */	
-    } cfs_rdwr;
-    /* CFS_REPLACE is a venus->kernel call */	
+/* Really important that opcode and unique are 1st two fields! */
+struct cfs_out_hdr {
+    unsigned long opcode;
+    unsigned long unique;	
+    unsigned long result;
+};
+
+/* cfs_root: NO_IN */
+struct cfs_root_out {
+    struct cfs_out_hdr oh;
+    ViceFid VFid;
+};
+
+struct cfs_root_in {
+    struct cfs_in_hdr in;
+};
+
+/* cfs_sync: */
+/* Nothing needed for cfs_sync */
+
+/* cfs_open: */
+struct cfs_open_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int	flags;
+};
+
+struct cfs_open_out {
+    struct cfs_out_hdr oh;
+    cdev_t	dev;
+    ino_t	inode;
+};
+
+
+/* cfs_close: */
+struct cfs_close_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int	flags;
+};
+
+struct cfs_close_out {
+    struct cfs_out_hdr out;
+};
+
+/* cfs_ioctl: */
+struct cfs_ioctl_in {
+    struct cfs_in_hdr ih;
+    ViceFid VFid;
+    int	cmd;
+    int	len;
+    int	rwflag;
+    char *data;			/* Place holder for data. */
+};
+
+struct cfs_ioctl_out {
+    struct cfs_out_hdr oh;
+    int	len;
+    caddr_t	data;		/* Place holder for data. */
+};
+
+
+/* cfs_getattr: */
+struct cfs_getattr_in {
+    struct cfs_in_hdr ih;
+    ViceFid VFid;
+};
+
+struct cfs_getattr_out {
+    struct cfs_out_hdr oh;
+    struct coda_vattr attr;
+};
+
+
+/* cfs_setattr: NO_OUT */
+struct cfs_setattr_in {
+    struct cfs_in_hdr ih;
+    ViceFid VFid;
+    struct coda_vattr attr;
+};
+
+struct cfs_setattr_out {
+    struct cfs_out_hdr out;
+};
+
+/* cfs_access: NO_OUT */
+struct cfs_access_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int	flags;
+};
+
+struct cfs_access_out {
+    struct cfs_out_hdr out;
+};
+
+/* cfs_lookup: */
+struct  cfs_lookup_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int         name;		/* Place holder for data. */
+};
+
+struct cfs_lookup_out {
+    struct cfs_out_hdr oh;
+    ViceFid VFid;
+    int	vtype;
+};
+
+
+/* cfs_create: */
+struct cfs_create_in {
+    struct cfs_in_hdr ih;
+    ViceFid VFid;
+    struct coda_vattr attr;
+    int excl;
+    int mode;
+    int 	name;		/* Place holder for data. */
+};
+
+struct cfs_create_out {
+    struct cfs_out_hdr oh;
+    ViceFid VFid;
+    struct coda_vattr attr;
+};
+
+
+/* cfs_remove: NO_OUT */
+struct cfs_remove_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int name;		/* Place holder for data. */
+};
+
+struct cfs_remove_out {
+    struct cfs_out_hdr out;
+};
+
+/* cfs_link: NO_OUT */
+struct cfs_link_in {
+    struct cfs_in_hdr ih;
+    ViceFid sourceFid;          /* cnode to link *to* */
+    ViceFid destFid;            /* Directory in which to place link */
+    int tname;		/* Place holder for data. */
+};
+
+struct cfs_link_out {
+    struct cfs_out_hdr out;
+};
+
+
+/* cfs_rename: NO_OUT */
+struct cfs_rename_in {
+    struct cfs_in_hdr ih;
+    ViceFid	sourceFid;
+    int 	srcname;
+    ViceFid destFid;
+    int 	destname;
+};
+
+struct cfs_rename_out {
+    struct cfs_out_hdr out;
+};
+
+/* cfs_mkdir: */
+struct cfs_mkdir_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    struct coda_vattr attr;
+    int	   name;		/* Place holder for data. */
+};
+
+struct cfs_mkdir_out {
+    struct cfs_out_hdr oh;
+    ViceFid VFid;
+    struct coda_vattr attr;
+};
+
+
+/* cfs_rmdir: NO_OUT */
+struct cfs_rmdir_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int name;		/* Place holder for data. */
+};
+
+struct cfs_rmdir_out {
+    struct cfs_out_hdr out;
+};
+
+/* cfs_readdir: */
+struct cfs_readdir_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int	count;
+    int	offset;
+};
+
+struct cfs_readdir_out {
+    struct cfs_out_hdr oh;
+    int	size;
+    caddr_t	data;		/* Place holder for data. */
+};
+
+/* cfs_symlink: NO_OUT */
+struct cfs_symlink_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;          /* Directory to put symlink in */
+    int srcname;
+    struct coda_vattr attr;
+    int tname;
+};
+
+struct cfs_symlink_out {
+    struct cfs_out_hdr out;
+};
+
+/* cfs_readlink: */
+struct cfs_readlink_in {
+    struct cfs_in_hdr ih;
+    ViceFid VFid;
+};
+
+struct cfs_readlink_out {
+    struct cfs_out_hdr oh;
+    int	count;
+    caddr_t	data;		/* Place holder for data. */
+};
+
+
+/* cfs_fsync: NO_OUT */
+struct cfs_fsync_in {
+    struct cfs_in_hdr ih;
+    ViceFid VFid;
+};
+
+struct cfs_fsync_out {
+    struct cfs_out_hdr out;
+};
+
+/* cfs_inactive: NO_OUT */
+struct cfs_inactive_in {
+    struct cfs_in_hdr ih;
+    ViceFid VFid;
+};
+
+/* cfs_vget: */
+struct cfs_vget_in {
+    struct cfs_in_hdr ih;
+    ViceFid VFid;
+};
+
+struct cfs_vget_out {
+    struct cfs_out_hdr oh;
+    ViceFid VFid;
+    int	vtype;
+};
+
+
+/* CFS_SIGNAL is out-of-band, doesn't need data. */
+/* CFS_INVALIDATE is a venus->kernel call */
+/* CFS_FLUSH is a venus->kernel call */
+
+/* cfs_purgeuser: */
+/* CFS_PURGEUSER is a venus->kernel call */
+struct cfs_purgeuser_out {
+    struct cfs_out_hdr oh;
+    struct coda_cred cred;
+};
+
+/* cfs_zapfile: */
+/* CFS_ZAPFILE is a venus->kernel call */
+struct cfs_zapfile_out {  
+    struct cfs_out_hdr oh;
+    ViceFid CodaFid;
+};
+
+/* cfs_zapdir: */
+/* CFS_ZAPDIR is a venus->kernel call */	
+struct cfs_zapdir_out {	  
+    struct cfs_out_hdr oh;
+    ViceFid CodaFid;
+};
+
+/* cfs_zapnode: */
+/* CFS_ZAPVNODE is a venus->kernel call */	
+struct cfs_zapvnode_out { 
+    struct cfs_out_hdr oh;
+    struct coda_cred cred;
+    ViceFid VFid;
+};
+
+/* cfs_purgefid: */
+/* CFS_PURGEFID is a venus->kernel call */	
+struct cfs_purgefid_out { 
+    struct cfs_out_hdr oh;
+    ViceFid CodaFid;
+};
+
+/* cfs_rdwr: */
+struct cfs_rdwr_in {
+    struct cfs_in_hdr ih;
+    ViceFid	VFid;
+    int	rwflag;
+    int	count;
+    int	offset;
+    int	ioflag;
+    caddr_t	data;		/* Place holder for data. */	
+};
+
+struct cfs_rdwr_out {
+    struct cfs_out_hdr oh;
+    int	rwflag;
+    int	count;
+    caddr_t	data;	/* Place holder for data. */
+};
+
+
+/* cfs_replace: */
+/* CFS_REPLACE is a venus->kernel call */	
+struct cfs_replace_out { /* cfs_replace is a venus->kernel call */
+    struct cfs_out_hdr oh;
+    ViceFid NewFid;
+    ViceFid OldFid;
 };
 
 /* 
@@ -346,118 +556,49 @@ union inputArgs {
  */
 #define CFS_NOCACHE          0x80000000
 
-#define INIT_OUT(out, opcode, result) \
-    out->opcode = (opcode); out->result = (result);
-
-/* Used to structure buffer in ody_expand_out */
-/* the link in LinkT is just the 1st 4 characters of the actual link */
-typedef struct linktype {
-    int next;		/* Offset into buffer of next element */
-    char link[sizeof(char *)];	/* Place holder for data */
-} linkT;
-
-/* Really important that opcode and unique are 1st two fields! */
-struct cfs_out_hdr {
-    unsigned long opcode;
-    unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
-    unsigned long result;
+union inputArgs {
+    struct cfs_in_hdr ih;		/* NB: every struct below begins with an ih */
+    struct cfs_open_in cfs_open;
+    struct cfs_close_in cfs_close;
+    struct cfs_ioctl_in cfs_ioctl;
+    struct cfs_getattr_in cfs_getattr;
+    struct cfs_setattr_in cfs_setattr;
+    struct cfs_access_in cfs_access;
+    struct cfs_lookup_in cfs_lookup;
+    struct cfs_create_in cfs_create;
+    struct cfs_remove_in cfs_remove;
+    struct cfs_link_in cfs_link;
+    struct cfs_rename_in cfs_rename;
+    struct cfs_mkdir_in cfs_mkdir;
+    struct cfs_rmdir_in cfs_rmdir;
+    struct cfs_readdir_in cfs_readdir;
+    struct cfs_symlink_in cfs_symlink;
+    struct cfs_readlink_in cfs_readlink;
+    struct cfs_fsync_in cfs_fsync;
+    struct cfs_inactive_in cfs_inactive;
+    struct cfs_vget_in cfs_vget;
+    struct cfs_rdwr_in cfs_rdwr;
 };
 
 union outputArgs {
-    struct cfs_root_out {
-	struct cfs_out_hdr oh;
-	ViceFid VFid;
-    } cfs_root;
-    /* Nothing needed for cfs_sync */
-    struct cfs_open_out {
-	struct cfs_out_hdr oh;
-	dev_t	dev;
-	ino_t	inode;
-    } cfs_open;
-    /* Nothing needed for cfs_close */
-    struct cfs_ioctl_out {
-	struct cfs_out_hdr oh;
-	int	len;
-	caddr_t	data;		/* Place holder for data. */
-    } cfs_ioctl;
-    struct cfs_getattr_out {
-	struct cfs_out_hdr oh;
-	struct vattr attr;
-    } cfs_getattr;
-    /* Nothing needed for cfs_setattr */
-    /* Nothing needed for cfs_access */
-    struct cfs_lookup_out {
-	struct cfs_out_hdr oh;
-	ViceFid VFid;
-	int	vtype;
-    } cfs_lookup;
-    struct cfs_create_out {
-	struct cfs_out_hdr oh;
-	ViceFid VFid;
-	struct vattr attr;
-    } cfs_create;
-    /* Nothing needed for cfs_remove */
-    /* Nothing needed for cfs_link */
-    /* Nothing needed for cfs_rename */
-    struct cfs_mkdir_out {
-	struct cfs_out_hdr oh;
-	ViceFid VFid;
-	struct vattr attr;
-    } cfs_mkdir;
-    /* Nothing needed for cfs_rmdir */
-    struct cfs_readdir_out {
-	struct cfs_out_hdr oh;
-	int	size;
-	caddr_t	data;		/* Place holder for data. */
-    } cfs_readdir;
-    /* Nothing needed for cfs_symlink */
-    struct cfs_readlink_out {
-	struct cfs_out_hdr oh;
-	int	count;
-	caddr_t	data;		/* Place holder for data. */
-    } cfs_readlink;
-    /* Nothing needed for cfs_fsync */
-    /* Nothing needed for cfs_inactive */
-    struct cfs_vget_out {
-	struct cfs_out_hdr oh;
-	ViceFid VFid;
-	int	vtype;
-    } cfs_vget;
-    /* CFS_SIGNAL is out-of-band, doesn't need data. */
-    /* CFS_INVALIDATE is a venus->kernel call */
-    /* CFS_FLUSH is a venus->kernel call */
-    struct cfs_purgeuser_out {/* CFS_PURGEUSER is a venus->kernel call */
-	struct cfs_out_hdr oh;
-	struct CodaCred cred;
-    } cfs_purgeuser;
-    struct cfs_zapfile_out {  /* CFS_ZAPFILE is a venus->kernel call */
-	struct cfs_out_hdr oh;
-	ViceFid CodaFid;
-    } cfs_zapfile;
-    struct cfs_zapdir_out {	  /* CFS_ZAPDIR is a venus->kernel call */
-	struct cfs_out_hdr oh;
-	ViceFid CodaFid;
-    } cfs_zapdir;
-    struct cfs_zapvnode_out { /* CFS_ZAPVNODE is a venus->kernel call */
-	struct cfs_out_hdr oh;
-	struct CodaCred cred;
-	ViceFid VFid;
-    } cfs_zapvnode;
-    struct cfs_purgefid_out { /* CFS_PURGEFID is a venus->kernel call */	
-	struct cfs_out_hdr oh;
-	ViceFid CodaFid;
-    } cfs_purgefid;
-    struct cfs_rdwr_out {
-	struct cfs_out_hdr oh;
-	int	rwflag;
-	int	count;
-	caddr_t	data;	/* Place holder for data. */
-    } cfs_rdwr;
-    struct cfs_replace_out { /* cfs_replace is a venus->kernel call */
-	struct cfs_out_hdr oh;
-	ViceFid NewFid;
-	ViceFid OldFid;
-    } cfs_replace;
+    struct cfs_out_hdr oh;		/* NB: every struct below begins with an oh */
+    struct cfs_root_out cfs_root;
+    struct cfs_open_out cfs_open;
+    struct cfs_ioctl_out cfs_ioctl;
+    struct cfs_getattr_out cfs_getattr;
+    struct cfs_lookup_out cfs_lookup;
+    struct cfs_create_out cfs_create;
+    struct cfs_mkdir_out cfs_mkdir;
+    struct cfs_readdir_out cfs_readdir;
+    struct cfs_readlink_out cfs_readlink;
+    struct cfs_vget_out cfs_vget;
+    struct cfs_purgeuser_out cfs_purgeuser;
+    struct cfs_zapfile_out cfs_zapfile;
+    struct cfs_zapdir_out cfs_zapdir;
+    struct cfs_zapvnode_out cfs_zapvnode;
+    struct cfs_purgefid_out cfs_purgefid;
+    struct cfs_rdwr_out cfs_rdwr;
+    struct cfs_replace_out cfs_replace;
 };    
 
 union cfs_downcalls {
@@ -471,159 +612,35 @@ union cfs_downcalls {
     struct cfs_replace_out replace;
 };
 
-union cfs_root {
-    struct cfs_in_hdr in;
-    struct cfs_root_out out;
-};
 
-union cfs_open {
-    struct cfs_open_in in;
-    struct cfs_open_out out;
-};
-
-union cfs_close {
-    struct cfs_close_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_ioctl {
-    struct cfs_ioctl_in in;
-    struct cfs_ioctl_out out;
-};
-
-union cfs_getattr {
-    struct cfs_getattr_in in;
-    struct cfs_getattr_out out;
-};
-
-union cfs_setattr {
-    struct cfs_setattr_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_access {
-    struct cfs_access_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_lookup {
-    struct cfs_lookup_in in;
-    struct cfs_lookup_out out;
-};
-
-union cfs_create {
-    struct cfs_create_in in;
-    struct cfs_create_out out;
-};
-
-union cfs_remove {
-    struct cfs_remove_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_link {
-    struct cfs_link_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_rename {
-    struct cfs_rename_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_mkdir {
-    struct cfs_mkdir_in in;
-    struct cfs_mkdir_out out;
-};
-
-union cfs_rmdir {
-    struct cfs_rmdir_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_readdir {
-    struct cfs_readdir_in in;
-    struct cfs_readdir_out out;
-};
-
-union cfs_symlink {
-    struct cfs_symlink_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_readlink {
-    struct cfs_readlink_in in;
-    struct cfs_readlink_out out;
-};
-
-union cfs_fsync {
-    struct cfs_fsync_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_inactive {
-    struct cfs_inactive_in in;
-    struct cfs_out_hdr out;
-};
-
-union cfs_vget {
-    struct cfs_vget_in in;
-    struct cfs_vget_out out;
-};
-
-	/* CFS_SIGNAL is out-of-band, doesn't need data. */
-	/* CFS_INVALIDATE is a venus->kernel call */
-	/* CFS_FLUSH is a venus->kernel call */
-	/* CFS_PURGEUSER is a venus->kernel call */
-	/* CFS_ZAPFILE is a venus->kernel call */
-	/* CFS_ZAPDIR is a venus->kernel call */	
-	/* CFS_ZAPVNODE is a venus->kernel call */	
-	/* CFS_PURGEFID is a venus->kernel call */	
-
-union cfs_rdwr {
-    struct cfs_rdwr_in in;
-    struct cfs_rdwr_out out;
-};
-
-	/* CFS_REPLACE is a venus->kernel call */	
-
-    
 /*
- * Kernel <--> Venus communications.
+ * Used for identifying usage of "Control" and pioctls
  */
 
-/* Put a cap on the size of messages. Some upcalls pass dynamic
- * amounts of data.  These macros cap that amount, and define the size
- * of the headers for the upcalls and returns.  
- */
-#define	VC_IN_NO_DATA	    sizeof (struct cfs_in_hdr)
-#define	VC_OUT_NO_DATA	    sizeof (struct cfs_out_hdr)
+#define PIOCPARM_MASK 0x0000ffff
+struct ViceIoctl {
+        caddr_t in, out;        /* Data to be transferred in, or out */
+        short in_size;          /* Size of input buffer <= 2K */
+        short out_size;         /* Maximum size of output buffer, <= 2K */
+};
 
-#define VC_INSIZE(member)   ((int) sizeof (struct member))
-#define VC_OUTSIZE(member)  ((int) sizeof (struct member))
-
-/* This one's for venus, since C++ doesn't know what struct foo means. */
-#define VC_SIZE(Thing, Member)   (VC_OUT_NO_DATA                    \
-                                  + (int)sizeof((Thing)->d.Member))
-
-#define VC_BIGGER_OF_IN_OR_OUT  (sizeof(union outputArgs)   \
-                                  > sizeof(union inputArgs) \
-                                ? sizeof(union outputArgs)  \
-                                : sizeof(union inputArgs))
-
-#define VC_DATASIZE	    8192
-#define	VC_MAXMSGSIZE	    (VC_DATASIZE + VC_BIGGER_OF_IN_OR_OUT)
-
+struct PioctlData {
+        const char *path;
+        int follow;
+        struct ViceIoctl vi;
+};
 
 #define	CFS_CONTROL		".CONTROL"
+#define CFS_CONTROLLEN           8
 #define	CTL_VOL			-1
 #define	CTL_VNO			-1
 #define	CTL_UNI			-1
+#define CTL_INO                 -1
+#define	CTL_FILE		"/coda/.CONTROL"
+
 
 #define	IS_CTL_FID(fidp)	((fidp)->Volume == CTL_VOL &&\
 				 (fidp)->Vnode == CTL_VNO &&\
 				 (fidp)->Unique == CTL_UNI)
+#endif 
 
-#define	ISDIR(fid)		((fid).Vnode & 0x1)
-
-#endif !_CFS_HEADER_
