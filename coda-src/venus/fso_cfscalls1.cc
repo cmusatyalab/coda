@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  *    CFS calls1.
@@ -29,9 +23,9 @@ listed in the file CREDITS.
  *    ToDo:
  *       1. All mutating Vice calls should have the following IN arguments:
  *            NewSid, NewMutator (implicit from connection), NewMtime, 
- *            OldVV and DataVersion (for each object), NewStatus (for each object)
+ *            OldVV and DataVersion (for each object), NewStatus (for each
+ *            object)
  */
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,7 +58,8 @@ extern "C" {
 /*  *****  Remove  *****  */
 
 /* MUST be called from within transaction! */
-void fsobj::LocalRemove(Date_t Mtime, char *name, fsobj *target_fso) {
+void fsobj::LocalRemove(Date_t Mtime, char *name, fsobj *target_fso)
+{
     /* Update parent status. */
     {
 	/* Delete the target name from the directory. */
@@ -95,8 +90,9 @@ void fsobj::LocalRemove(Date_t Mtime, char *name, fsobj *target_fso) {
     }
 }
 
-
-int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_fso) {
+int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name,
+                           fsobj *target_fso, ViceStoreId *sid)
+{
     FSO_ASSERT(this, HOARDING(this));
 
     int code = 0;
@@ -125,7 +121,6 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
-	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -136,10 +131,6 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
-
-	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
-	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -157,7 +148,7 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 				  VSG_MEMBERS, m->rocc.handles,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
 				  &fid, name, parent_statusvar_ptrs,
-				  target_statusvar_ptrs, ph, &sid,
+				  target_statusvar_ptrs, ph, sid,
 				  &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
 				  &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVRemove_OP);
@@ -195,9 +186,9 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vol->AddCOP2(sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    (void)vol->COP2(m, sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
@@ -222,7 +213,6 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceRemove */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -230,7 +220,7 @@ RepExit:
 	CFSOP_PRELUDE("store::Remove %-30s\n", name, target_fso->fid);
 	UNI_START_MESSAGE(ViceVRemove_OP);
 	code = (int) ViceVRemove(c->connid, &fid, (RPC2_String)name, 
-				 &parent_status, &target_status, 0, &Dummy, 
+				 &parent_status, &target_status, 0, sid, 
 				 &OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVRemove_OP);
 	CFSOP_POSTLUDE("store::remove done\n");
@@ -256,7 +246,9 @@ NonRepExit:
 
 
 /* local-repair modification */
-int fsobj::DisconnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_fso, int Tid) {
+int fsobj::DisconnectedRemove(Date_t Mtime, vuid_t vuid, char *name,
+                              fsobj *target_fso, int Tid, ViceStoreId *sid)
+{
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -268,7 +260,7 @@ int fsobj::DisconnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *targ
 
     Recov_BeginTrans();
     code = vol->LogRemove(Mtime, vuid, &fid, name, &target_fso->fid, 
-			  target_fso->stat.LinkCount, Tid);
+			  target_fso->stat.LinkCount, sid, Tid);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
@@ -281,7 +273,8 @@ Exit:
 
 
 /* local-repair modification */
-int fsobj::Remove(char *name, fsobj *target_fso, vuid_t vuid) {
+int fsobj::Remove(char *name, fsobj *target_fso, vuid_t vuid)
+{
     LOG(10, ("fsobj::Remove: (%s, %s), uid = %d\n",
 	      comp, name, vuid));
 
@@ -290,11 +283,16 @@ int fsobj::Remove(char *name, fsobj *target_fso, vuid_t vuid) {
 
     int conn, tid;
     GetOperationState(&conn, &tid);
+
+    Recov_BeginTrans();
+    ViceStoreId sid = vol->GenerateStoreId();
+    Recov_EndTrans(MAXFP);
+
     if (conn == 0) {
-	code = DisconnectedRemove(Mtime, vuid, name, target_fso, tid);
+	code = DisconnectedRemove(Mtime, vuid, name, target_fso, tid, &sid);
     }
     else {
-	code = ConnectedRemove(Mtime, vuid, name, target_fso);
+	code = ConnectedRemove(Mtime, vuid, name, target_fso, &sid);
     }
 
     if (code != 0) {
@@ -308,7 +306,8 @@ int fsobj::Remove(char *name, fsobj *target_fso, vuid_t vuid) {
 /*  *****  Link  *****  */
 
 /* MUST be called from within transaction! */
-void fsobj::LocalLink(Date_t Mtime, char *name, fsobj *source_fso) {
+void fsobj::LocalLink(Date_t Mtime, char *name, fsobj *source_fso)
+{
     /* Update parent status. */
     {
 	/* Add the new <name, fid> to the directory. */
@@ -333,7 +332,9 @@ void fsobj::LocalLink(Date_t Mtime, char *name, fsobj *source_fso) {
 }
 
 
-int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fso) {
+int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name,
+                         fsobj *source_fso, ViceStoreId *sid)
+{
     FSO_ASSERT(this, HOARDING(this));
 
     int code = 0;
@@ -362,7 +363,6 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
-	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -373,10 +373,6 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
-
-	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
-	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -394,7 +390,7 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
 				  &fid, name, &source_fso->fid,
 				  source_statusvar_ptrs, parent_statusvar_ptrs,
-				  ph, &sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
+				  ph, sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
 				  &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVLink_OP);
 	    CFSOP_POSTLUDE("store::link done\n");
@@ -431,9 +427,9 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vol->AddCOP2(sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    (void)vol->COP2(m, sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
@@ -458,17 +454,16 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceLink */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
 	CFSOP_PRELUDE("store::Link %-30s\n", name, source_fso->fid);
 	UNI_START_MESSAGE(ViceVLink_OP);
-	code = (int) ViceVLink(c->connid, &fid, (RPC2_String)name,
-			      &source_fso->fid, &source_status,
-			      &parent_status, 0, &Dummy, 
-			      &OldVS, &VS, &VCBStatus, &PiggyBS);
+        code = (int) ViceVLink(c->connid, &fid, (RPC2_String)name,
+                               &source_fso->fid, &source_status,
+                               &parent_status, 0, sid, &OldVS, &VS,
+                               &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVLink_OP);
 	CFSOP_POSTLUDE("store::link done\n");
 
@@ -493,7 +488,9 @@ NonRepExit:
 
 
 /* local-repair modification */
-int fsobj::DisconnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fso, int Tid) {
+int fsobj::DisconnectedLink(Date_t Mtime, vuid_t vuid, char *name,
+                            fsobj *source_fso, int Tid, ViceStoreId *sid)
+{
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -504,7 +501,7 @@ int fsobj::DisconnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source
     }
 
     Recov_BeginTrans();
-    code = vol->LogLink(Mtime, vuid, &fid, name, &source_fso->fid, Tid);
+    code = vol->LogLink(Mtime, vuid, &fid, name, &source_fso->fid, sid, Tid);
     
     if (code == 0)
 	    /* This MUST update second-class state! */
@@ -517,7 +514,8 @@ Exit:
 
 
 /* local-repair modification */
-int fsobj::Link(char *name, fsobj *source_fso, vuid_t vuid) {
+int fsobj::Link(char *name, fsobj *source_fso, vuid_t vuid)
+{
     LOG(10, ("fsobj::Link: (%s/%s, %s), uid = %d\n",
 	      comp, source_fso->comp, name, vuid));
 
@@ -526,11 +524,16 @@ int fsobj::Link(char *name, fsobj *source_fso, vuid_t vuid) {
 
     int conn, tid;
     GetOperationState(&conn, &tid);
+
+    Recov_BeginTrans();
+    ViceStoreId sid = vol->GenerateStoreId();
+    Recov_EndTrans(MAXFP);
+
     if (conn == 0) {
-	code = DisconnectedLink(Mtime, vuid, name, source_fso, tid);
+	code = DisconnectedLink(Mtime, vuid, name, source_fso, tid, &sid);
     }
     else {
-	code = ConnectedLink(Mtime, vuid, name, source_fso);
+	code = ConnectedLink(Mtime, vuid, name, source_fso, &sid);
     }
 
     if (code != 0) {
@@ -545,7 +548,8 @@ int fsobj::Link(char *name, fsobj *source_fso, vuid_t vuid) {
 
 /* MUST be called from within transaction! */
 void fsobj::LocalRename(Date_t Mtime, fsobj *s_parent_fso, char *s_name,
-			 fsobj *s_fso, char *t_name, fsobj *t_fso) {
+			 fsobj *s_fso, char *t_name, fsobj *t_fso)
+{
     int SameParent = (s_parent_fso == this);
     int TargetExists = (t_fso != 0);
 
@@ -635,7 +639,9 @@ void fsobj::LocalRename(Date_t Mtime, fsobj *s_parent_fso, char *s_name,
 
 
 int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
-			    char *s_name, fsobj *s_fso, char *t_name, fsobj *t_fso) {
+			    char *s_name, fsobj *s_fso, char *t_name,
+                            fsobj *t_fso, ViceStoreId *sid)
+{
     FSO_ASSERT(this, HOARDING(this));
 
     int code = 0;
@@ -670,7 +676,6 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
-	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -681,10 +686,6 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
-
-	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
-	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -705,7 +706,7 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 				  &s_parent_fso->fid, s_name, &fid, t_name,
 				  s_parent_statusvar_ptrs, t_parent_statusvar_ptrs,
 				  source_statusvar_ptrs, target_statusvar_ptrs,
-				  ph, &sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
+				  ph, sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
 				  &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVRename_OP);
 	    CFSOP_POSTLUDE("store::rename done\n");
@@ -748,9 +749,9 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vol->AddCOP2(sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    (void)vol->COP2(m, sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
@@ -779,7 +780,6 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceRename */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -789,7 +789,7 @@ RepExit:
 	code = (int) ViceVRename(c->connid, &s_parent_fso->fid, 
 				(RPC2_String)s_name, &fid, (RPC2_String)t_name,
 				&s_parent_status, &t_parent_status,
-				&source_status, &target_status, 0, &Dummy,
+				&source_status, &target_status, 0, sid,
 				&OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVRename_OP);
 	CFSOP_POSTLUDE("store::rename done\n");
@@ -822,8 +822,11 @@ NonRepExit:
 
 
 /* local-repair modification */
-int fsobj::DisconnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso, char *s_name, 
-			      fsobj *s_fso, char *t_name, fsobj *t_fso, int Tid) {
+int fsobj::DisconnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
+                              char *s_name, fsobj *s_fso, char *t_name, fsobj
+                              *t_fso, int Tid,
+                              ViceStoreId *Xsid, ViceStoreId *sid)
+{
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -835,10 +838,11 @@ int fsobj::DisconnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso, ch
     }
 
     Recov_BeginTrans();
-    code = vol->LogRename(Mtime, vuid, &s_parent_fso->fid, s_name,
-			  &fid, t_name, &s_fso->fid,
-			  (TargetExists ? &t_fso->fid : &NullFid),
-			  (TargetExists ? t_fso->stat.LinkCount : 0), Tid);
+    code = vol->LogRename(Mtime, vuid, &s_parent_fso->fid, s_name, &fid,
+                          t_name, &s_fso->fid,
+                          (TargetExists ? &t_fso->fid : &NullFid),
+                          (TargetExists ? t_fso->stat.LinkCount : 0),
+                          Xsid, sid, Tid);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
@@ -852,7 +856,8 @@ Exit:
 
 /* local-repair modification */
 int fsobj::Rename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso,
-		   char *t_name, fsobj *t_fso, vuid_t vuid) {
+		   char *t_name, fsobj *t_fso, vuid_t vuid)
+{
     LOG(10, ("fsobj::Rename : (%s/%s, %s/%s), uid = %d\n",
 	      (s_parent_fso ? s_parent_fso->comp : comp),
 	      s_name, comp, t_name, vuid));
@@ -865,13 +870,21 @@ int fsobj::Rename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso,
 
     int conn, tid;
     GetOperationState(&conn, &tid);
+
+    /* a disconnected rename is possibly 2 operations, so we get 2 sid's */
+    ViceStoreId Xsid, sid;
+    Recov_BeginTrans();
+    Xsid = vol->GenerateStoreId();
+    sid = vol->GenerateStoreId();
+    Recov_EndTrans(MAXFP);
+
     if (conn == 0) {
 	code = DisconnectedRename(Mtime, vuid, s_parent_fso, s_name, s_fso, 
-				  t_name, t_fso, tid);
+				  t_name, t_fso, tid, &Xsid, &sid);
     }
     else {
-	code = ConnectedRename(Mtime, vuid, s_parent_fso,
-			       s_name, s_fso, t_name, t_fso);
+        code = ConnectedRename(Mtime, vuid, s_parent_fso, s_name, s_fso,
+                               t_name, t_fso, &sid);
     }
 
     if (code != 0) {
@@ -888,7 +901,8 @@ int fsobj::Rename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso,
 
 /* MUST be called from within transaction! */
 void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
-			vuid_t Owner, unsigned short Mode) {
+			vuid_t Owner, unsigned short Mode)
+{
     /* Update parent status. */
     {
 	/* Add the new <name, fid> to the directory. */
@@ -932,7 +946,9 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 
 
 int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
-			   char *name, unsigned short Mode, int target_pri) {
+			   char *name, unsigned short Mode, int target_pri,
+                           ViceStoreId *sid)
+{
     FSO_ASSERT(this, HOARDING(this));
 
     int code = 0;
@@ -966,7 +982,6 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
-	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -992,10 +1007,6 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
-
-	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
-	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
  	    vol->PackVS(m->nhosts, &OldVS);
@@ -1013,7 +1024,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 					m->rocc.retcodes, m->rocc.MIp, 0, 0,
 					&fid, name, target_statusvar_ptrs,
 					target_fidvar_ptrs, parent_statusvar_ptrs,
-					AllocHost, &sid, &OldVS, VSvar_ptrs, 
+					AllocHost, sid, &OldVS, VSvar_ptrs, 
 					VCBStatusvar_ptrs, &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVMakeDir_OP);
 	    CFSOP_POSTLUDE("store::mkdir done\n");
@@ -1055,9 +1066,9 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vol->AddCOP2(sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    (void)vol->COP2(m, sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
@@ -1083,7 +1094,6 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceMakeDir */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -1093,7 +1103,7 @@ RepExit:
 	UNI_START_MESSAGE(ViceVMakeDir_OP);
 	code = (int) ViceVMakeDir(c->connid, &fid, (RPC2_String) name,
 				  &target_status, &target_fid,
-				  &parent_status, 0, &Dummy, 
+				  &parent_status, 0, sid, 
 				  &OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVMakeDir_OP);
 	CFSOP_POSTLUDE("store::mkdir done\n");
@@ -1146,8 +1156,10 @@ NonRepExit:
 
 
 /* local-repair modification */
-int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char *name, 
-			     unsigned short Mode, int target_pri, int Tid) {
+int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
+                             char *name, unsigned short Mode, int target_pri,
+                             int Tid, ViceStoreId *sid)
+{
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -1177,7 +1189,8 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = vol->LogMkdir(Mtime, vuid, &fid, name, &target_fso->fid, Mode, Tid);
+    code = vol->LogMkdir(Mtime, vuid, &fid, name, &target_fso->fid, Mode, sid,
+                         Tid);
 
     if (code == 0) {
 	    /* This MUST update second-class state! */
@@ -1210,7 +1223,8 @@ Exit:
 /* local-repair modification */
 /* Returns target object write-locked (on success). */
 int fsobj::Mkdir(char *name, fsobj **target_fso_addr,
-		  vuid_t vuid, unsigned short Mode, int target_pri) {
+		  vuid_t vuid, unsigned short Mode, int target_pri)
+{
     LOG(10, ("fsobj::Mkdir: (%s, %s, %d), uid = %d\n",
 	      comp, name, target_pri, vuid));
 
@@ -1220,13 +1234,18 @@ int fsobj::Mkdir(char *name, fsobj **target_fso_addr,
 
     int conn, tid;
     GetOperationState(&conn, &tid);
+
+    Recov_BeginTrans();
+    ViceStoreId sid = vol->GenerateStoreId();
+    Recov_EndTrans(MAXFP);
+
     if (conn == 0) {
 	code = DisconnectedMkdir(Mtime, vuid, target_fso_addr,
-				 name, Mode, target_pri, tid);
+				 name, Mode, target_pri, tid, &sid);
     }
     else {
 	code = ConnectedMkdir(Mtime, vuid, target_fso_addr,
-			      name, Mode, target_pri);
+			      name, Mode, target_pri, &sid);
     }
 
     if (code != 0) {
@@ -1239,7 +1258,8 @@ int fsobj::Mkdir(char *name, fsobj **target_fso_addr,
 /*  *****  Rmdir  *****  */
 
 /* MUST be called from within transaction! */
-void fsobj::LocalRmdir(Date_t Mtime, char *name, fsobj *target_fso) {
+void fsobj::LocalRmdir(Date_t Mtime, char *name, fsobj *target_fso)
+{
     /* Update parent status. */
     {
 	/* Delete the target name from the directory.. */
@@ -1268,7 +1288,9 @@ void fsobj::LocalRmdir(Date_t Mtime, char *name, fsobj *target_fso) {
 }
 
 
-int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_fso) {
+int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name,
+                          fsobj *target_fso, ViceStoreId *sid)
+{
     FSO_ASSERT(this, HOARDING(this));
 
     int code = 0;
@@ -1297,7 +1319,6 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
-	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -1308,10 +1329,6 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
-
-	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
-	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -1328,7 +1345,7 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 				  VSG_MEMBERS, m->rocc.handles,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
 				  &fid, name, parent_statusvar_ptrs,
-				  target_statusvar_ptrs, ph, &sid, 
+				  target_statusvar_ptrs, ph, sid, 
 				  &OldVS, VSvar_ptrs, VCBStatusvar_ptrs, &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVRemoveDir_OP);
 	    CFSOP_POSTLUDE("store::rmdir done\n");
@@ -1365,9 +1382,9 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vol->AddCOP2(sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    (void)vol->COP2(m, sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
@@ -1392,7 +1409,6 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceRemoveDir */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -1400,7 +1416,7 @@ RepExit:
 	CFSOP_PRELUDE("store::Rmdir %-30s\n", name, target_fso->fid);
 	UNI_START_MESSAGE(ViceVRemoveDir_OP);
 	code = (int) ViceVRemoveDir(c->connid, &fid, (RPC2_String)name,
-				   &parent_status, &target_status, 0, &Dummy,
+				   &parent_status, &target_status, 0, sid,
 				   &OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVRemoveDir_OP);
 	CFSOP_POSTLUDE("store::rmdir done\n");
@@ -1426,7 +1442,9 @@ NonRepExit:
 
 
 /* local-repair modification */
-int fsobj::DisconnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_fso, int Tid) {
+int fsobj::DisconnectedRmdir(Date_t Mtime, vuid_t vuid, char *name,
+                             fsobj *target_fso, int Tid, ViceStoreId *sid)
+{
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -1437,7 +1455,7 @@ int fsobj::DisconnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *targe
     }
 
     Recov_BeginTrans();
-    code = vol->LogRmdir(Mtime, vuid, &fid, name, &target_fso->fid, Tid);
+    code = vol->LogRmdir(Mtime, vuid, &fid, name, &target_fso->fid, sid, Tid);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
@@ -1450,7 +1468,8 @@ Exit:
 
 
 /* local-repair modification */
-int fsobj::Rmdir(char *name, fsobj *target_fso, vuid_t vuid) {
+int fsobj::Rmdir(char *name, fsobj *target_fso, vuid_t vuid)
+{
     LOG(10, ("fsobj::Rmdir: (%s, %s), uid = %d\n",
 	      comp, name, vuid));
 
@@ -1459,11 +1478,16 @@ int fsobj::Rmdir(char *name, fsobj *target_fso, vuid_t vuid) {
 
     int conn, tid;
     GetOperationState(&conn, &tid);
+
+    Recov_BeginTrans();
+    ViceStoreId sid = vol->GenerateStoreId();
+    Recov_EndTrans(MAXFP);
+
     if (conn == 0) {
-	code = DisconnectedRmdir(Mtime, vuid, name, target_fso, tid);
+	code = DisconnectedRmdir(Mtime, vuid, name, target_fso, tid, &sid);
     }
     else {
-	code = ConnectedRmdir(Mtime, vuid, name, target_fso);
+	code = ConnectedRmdir(Mtime, vuid, name, target_fso, &sid);
     }
 
     if (code != 0) {
@@ -1478,7 +1502,8 @@ int fsobj::Rmdir(char *name, fsobj *target_fso, vuid_t vuid) {
 
 /* MUST be called from within transaction! */
 void fsobj::LocalSymlink(Date_t Mtime, fsobj *target_fso, char *name,
-			  char *contents, vuid_t Owner, unsigned short Mode) {
+			  char *contents, vuid_t Owner, unsigned short Mode)
+{
     /* Update parent status. */
     {
 	/* Add the new <name, fid> to the directory. */
@@ -1521,8 +1546,9 @@ void fsobj::LocalSymlink(Date_t Mtime, fsobj *target_fso, char *name,
 
 
 int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
-			     char *name, char *contents,
-			     unsigned short Mode, int target_pri) {
+			     char *name, char *contents, unsigned short Mode,
+                             int target_pri, ViceStoreId *sid)
+{
     FSO_ASSERT(this, HOARDING(this));
 
     int code = 0;
@@ -1556,7 +1582,6 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     OldVS.SeqBody = 0;
 
     if (flags.replicated) {
-	ViceStoreId sid;
 	mgrpent *m = 0;
 	int asy_resolve = 0;
 
@@ -1582,10 +1607,6 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
-
-	Recov_BeginTrans();
-	sid = vol->GenerateStoreId();
-	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
  	    vol->PackVS(m->nhosts, &OldVS);
@@ -1603,7 +1624,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
 				  &fid, name, contents,
 				  target_fidvar_ptrs, target_statusvar_ptrs,
-				  parent_statusvar_ptrs, AllocHost, &sid,
+				  parent_statusvar_ptrs, AllocHost, sid,
 				  &OldVS, VSvar_ptrs, VCBStatusvar_ptrs, &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVSymLink_OP);
 	    CFSOP_POSTLUDE("store::symlink done\n");
@@ -1645,9 +1666,9 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
 	/* Send the COP2 message or add an entry for piggybacking. */
 	if (PIGGYCOP2)
-	    vol->AddCOP2(&sid, &UpdateSet);
+	    vol->AddCOP2(sid, &UpdateSet);
 	else
-	    (void)vol->COP2(m, &sid, &UpdateSet);
+	    (void)vol->COP2(m, sid, &UpdateSet);
 
 RepExit:
 	PutMgrp(&m);
@@ -1673,7 +1694,6 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;                   /* Need an address for ViceSymLink */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
@@ -1684,7 +1704,7 @@ RepExit:
 	code = (int) ViceVSymLink(c->connid, &fid, (RPC2_String)name, 
 				  (RPC2_String)contents, 
 				  &target_fid, &target_status,
-				  &parent_status, 0, &Dummy, 
+				  &parent_status, 0, sid, 
 				  &OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVSymLink_OP);
 	CFSOP_POSTLUDE("store::symlink done\n");
@@ -1739,7 +1759,8 @@ NonRepExit:
 /* local-repair modification */
 int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 			       char *name, char *contents, unsigned short Mode, 
-			       int target_pri, int Tid) {
+			       int target_pri, int Tid, ViceStoreId *sid)
+{
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
@@ -1769,8 +1790,8 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = vol->LogSymlink(Mtime, vuid, &fid, name,
-			   contents, &target_fso->fid, Mode, Tid);
+    code = vol->LogSymlink(Mtime, vuid, &fid, name, contents,
+                           &target_fso->fid, Mode, sid, Tid);
     
     if (code == 0) {
 	    /* This MUST update second-class state! */
@@ -1802,7 +1823,8 @@ Exit:
 
 /* local-repair modification */
 int fsobj::Symlink(char *s_name, char *t_name,
-		    vuid_t vuid, unsigned short Mode, int target_pri) {
+		    vuid_t vuid, unsigned short Mode, int target_pri)
+{
     LOG(10, ("fsobj::Symlink: (%s, %s, %s, %d), uid = %d\n",
 	      comp, s_name, t_name, target_pri, vuid));
 
@@ -1812,13 +1834,18 @@ int fsobj::Symlink(char *s_name, char *t_name,
 
     int conn, tid;
     GetOperationState(&conn, &tid);
+
+    Recov_BeginTrans();
+    ViceStoreId sid = vol->GenerateStoreId();
+    Recov_EndTrans(MAXFP);
+
     if (conn == 0) {
-	code = DisconnectedSymlink(Mtime, vuid, &target_fso, t_name, s_name, Mode, 
-				   target_pri, tid);
+        code = DisconnectedSymlink(Mtime, vuid, &target_fso, t_name, s_name,
+                                   Mode, target_pri, tid, &sid);
     }
     else {
-	code = ConnectedSymlink(Mtime, vuid, &target_fso,
-				t_name, s_name, Mode, target_pri);
+        code = ConnectedSymlink(Mtime, vuid, &target_fso, t_name, s_name,
+                                Mode, target_pri, &sid);
     }
 
     if (code == 0) {

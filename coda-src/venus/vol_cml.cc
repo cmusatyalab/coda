@@ -613,8 +613,9 @@ void *cmlent::operator new(size_t len) {
 
 
 /* MUST be called from within transaction! */
-cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid ...) {
-
+cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op,
+               ViceStoreId *Sid, int Tid ...)
+{
     LOG(1, ("cmlent::cmlent(...)\n"));
     RVMLIB_REC_OBJECT(*this);
 
@@ -627,7 +628,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
     log->list.append(&handle);
 
     volent *vol = strbase(volent, log, CML);
-    sid = vol->GenerateStoreId();
+    sid = *Sid;
     time = Mtime;
     uid = vuid;
 
@@ -1124,8 +1125,9 @@ void cmlent::print(int afd) {
 /* Each of these routines MUST be called from within transaction! */
 
 /* local-repair modification */
-int volent::LogStore(time_t Mtime, vuid_t vuid,
-		      ViceFid *Fid, RPC2_Unsigned NewLength, int tid) {
+int volent::LogStore(time_t Mtime, vuid_t vuid, ViceFid *Fid,
+                     RPC2_Unsigned NewLength, ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogStore: %d, %d, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewLength, tid));
 
@@ -1158,8 +1160,9 @@ int volent::LogStore(time_t Mtime, vuid_t vuid,
 	    }
 	} while (cancellation);
     }
-
-    cmlent *store_mle = new cmlent(&CML, Mtime, vuid, OLDCML_NewStore_OP, tid, Fid, NewLength);
+    
+    cmlent *store_mle = new cmlent(&CML, Mtime, vuid, OLDCML_NewStore_OP, sid,
+                                   tid, Fid, NewLength);
     return(store_mle == 0 ? ENOSPC : 0);
 }
 
@@ -1167,22 +1170,31 @@ int volent::LogStore(time_t Mtime, vuid_t vuid,
 /* local-repair modification */
 int volent::LogSetAttr(time_t Mtime, vuid_t vuid, ViceFid *Fid,
 			RPC2_Unsigned NewLength, Date_t NewDate,
-			UserId NewOwner, RPC2_Unsigned NewMode, int tid) {
+			UserId NewOwner, RPC2_Unsigned NewMode, int tid)
+{
+    ViceStoreId sid;
+    int code;
+
     /* Record a separate log entry for each attribute that is being set. */
+    /* They all need a new unique storeid */
     if (NewLength != (RPC2_Unsigned)-1) {
-	int code = LogTruncate(Mtime, vuid, Fid, NewLength, tid);
+	sid = GenerateStoreId();
+	code = LogTruncate(Mtime, vuid, Fid, NewLength, &sid, tid);
 	if (code != 0) return(code);
     }
     if (NewDate != (Date_t)-1) {
-	int code = LogUtimes(Mtime, vuid, Fid, NewDate, tid);
+	sid = GenerateStoreId();
+	code = LogUtimes(Mtime, vuid, Fid, NewDate, &sid, tid);
 	if (code != 0) return(code);
     }
     if (NewOwner != (UserId)-1) {
-	int code = LogChown(Mtime, vuid, Fid, NewOwner, tid);
+	sid = GenerateStoreId();
+	code = LogChown(Mtime, vuid, Fid, NewOwner, &sid, tid);
 	if (code != 0) return(code);
     }
     if (NewMode != (RPC2_Unsigned)-1) {
-	int code = LogChmod(Mtime, vuid, Fid, NewMode, tid);
+	sid = GenerateStoreId();
+	code = LogChmod(Mtime, vuid, Fid, NewMode, &sid, tid);
 	if (code != 0) return(code);
     }
 
@@ -1191,19 +1203,21 @@ int volent::LogSetAttr(time_t Mtime, vuid_t vuid, ViceFid *Fid,
 
 
 /* local-repair modification */
-int volent::LogTruncate(time_t Mtime, vuid_t vuid,
-			 ViceFid *Fid, RPC2_Unsigned NewLength, int tid) {
+int volent::LogTruncate(time_t Mtime, vuid_t vuid, ViceFid *Fid,
+                        RPC2_Unsigned NewLength, ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogTruncate: %d, %d, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewLength, tid));
 
     /* Treat truncates as stores for now. -JJK */
-    return(LogStore(Mtime, vuid, Fid, NewLength, tid));
+    return(LogStore(Mtime, vuid, Fid, NewLength, sid, tid));
 }
 
 
 /* local-repair modification */
-int volent::LogUtimes(time_t Mtime, vuid_t vuid,
-		       ViceFid *Fid, Date_t NewDate, int tid) {
+int volent::LogUtimes(time_t Mtime, vuid_t vuid, ViceFid *Fid, Date_t NewDate,
+                      ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogUtimes: %d, %d, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewDate, tid));
 
@@ -1223,14 +1237,16 @@ int volent::LogUtimes(time_t Mtime, vuid_t vuid,
 	} while (cancellation);
     }
 
-    cmlent *utimes_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Utimes_OP, tid, Fid, NewDate);
+    cmlent *utimes_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Utimes_OP, sid,
+                                    tid, Fid, NewDate);
     return(utimes_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
-int volent::LogChown(time_t Mtime, vuid_t vuid,
-		      ViceFid *Fid, UserId NewOwner, int tid) {
+int volent::LogChown(time_t Mtime, vuid_t vuid, ViceFid *Fid, UserId NewOwner,
+                     ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogChown: %d, %d, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewOwner, tid));
 
@@ -1250,14 +1266,16 @@ int volent::LogChown(time_t Mtime, vuid_t vuid,
 	} while (cancellation);
     }
 
-    cmlent *chown_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Chown_OP, tid, Fid, NewOwner);
+    cmlent *chown_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Chown_OP, sid,
+                                   tid, Fid, NewOwner);
     return(chown_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
-int volent::LogChmod(time_t Mtime, vuid_t vuid,
-		      ViceFid *Fid, RPC2_Unsigned NewMode, int tid) {
+int volent::LogChmod(time_t Mtime, vuid_t vuid, ViceFid *Fid,
+                     RPC2_Unsigned NewMode, ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogChmod: %d, %d, (%x.%x.%x), %o %d\n",
 	     Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, NewMode, tid));
 
@@ -1285,27 +1303,32 @@ int volent::LogChmod(time_t Mtime, vuid_t vuid,
 	} while (cancellation);
     }
 
-    cmlent *chmod_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Chmod_OP, tid, Fid, NewMode);
+    cmlent *chmod_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Chmod_OP, sid,
+                                   tid, Fid, NewMode);
     return(chmod_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
 int volent::LogCreate(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		       char *Name, ViceFid *CFid, RPC2_Unsigned Mode, int tid) {
+		       char *Name, ViceFid *CFid, RPC2_Unsigned Mode,
+                       ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogCreate: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %o %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
-    cmlent *create_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Create_OP, tid,
-				     PFid, Name, CFid, Mode);
+    cmlent *create_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Create_OP, sid,
+                                    tid, PFid, Name, CFid, Mode);
     return(create_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
 int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		       char *Name, ViceFid *CFid, int LinkCount, int tid) {
+		       char *Name, ViceFid *CFid, int LinkCount,
+                       ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogRemove: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %d %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, LinkCount, tid));
@@ -1337,7 +1360,7 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 		
 /*
 		if (ObjectCreated) {
-		    int code = LogUtimes(Mtime, vuid, PFid, Mtime);
+		    int code = LogUtimes(Mtime, vuid, PFid, Mtime, Xsid);
 		    if (code != 0) return(code);
 		}
 */
@@ -1392,8 +1415,8 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	}
     }
 
-    cmlent *unlink_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Remove_OP, tid,
-				     PFid, Name, CFid, LinkCount);
+    cmlent *unlink_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Remove_OP, sid,
+                                    tid, PFid, Name, CFid, LinkCount);
     if (ObjectCreated && unlink_mle) {	/* must be reintegrating */
 	RVMLIB_REC_OBJECT(unlink_mle->flags);
 	unlink_mle->flags.cancellation_pending = 1;    
@@ -1404,14 +1427,15 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 
 
 /* local-repair modification */
-int volent::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		     char *Name, ViceFid *CFid, int tid) {
+int volent::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
+                    ViceFid *CFid, ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogLink: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, tid));
 
-    cmlent *link_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Link_OP, tid,
-				   PFid, Name, CFid);
+    cmlent *link_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Link_OP, sid, tid,
+                                  PFid, Name, CFid);
     return(link_mle == 0 ? ENOSPC : 0);
 }
 
@@ -1419,14 +1443,17 @@ int volent::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 /* local-repair modification */
 int volent::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
 		       char *OldName, ViceFid *TPFid, char *NewName,
-		       ViceFid *SFid, ViceFid *TFid, int LinkCount, int tid) {
+		       ViceFid *SFid, ViceFid *TFid, int LinkCount,
+                       ViceStoreId *Xsid, ViceStoreId *sid, int tid)
+{
     /* Record "target remove" as a separate log entry. */
     if (!FID_EQ(TFid, &NullFid)) {
 	int code;
 	if (ISDIR(*SFid))
-	    code = LogRmdir(Mtime, vuid, TPFid, NewName, TFid, tid);
+	    code = LogRmdir(Mtime, vuid, TPFid, NewName, TFid, Xsid, tid);
 	else
-	    code = LogRemove(Mtime, vuid, TPFid, NewName, TFid, LinkCount, tid);
+	    code = LogRemove(Mtime, vuid, TPFid, NewName, TFid, LinkCount,
+                             Xsid, tid);
 	if (code != 0) return(code);
 
     }
@@ -1436,28 +1463,31 @@ int volent::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
 	     OldName, TPFid->Volume, TPFid->Vnode, TPFid->Unique,
 	     NewName, SFid->Volume, SFid->Vnode, SFid->Unique, tid));
 
-    cmlent *rename_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Rename_OP, tid,
-				     SPFid, OldName, TPFid, NewName, SFid);
+    cmlent *rename_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Rename_OP, sid,
+                                    tid, SPFid, OldName, TPFid, NewName, SFid);
     return(rename_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
-int volent::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		      char *Name, ViceFid *CFid, RPC2_Unsigned Mode, int tid) {
+int volent::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
+                     ViceFid *CFid, RPC2_Unsigned Mode, ViceStoreId *sid,
+                     int tid)
+{
     LOG(1, ("volent::LogMkdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x), %o %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
-    cmlent *mkdir_mle = new cmlent(&CML, Mtime, vuid, OLDCML_MakeDir_OP, tid,
-				    PFid, Name, CFid, Mode);
+    cmlent *mkdir_mle = new cmlent(&CML, Mtime, vuid, OLDCML_MakeDir_OP, sid,
+                                   tid, PFid, Name, CFid, Mode);
     return(mkdir_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
 int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-		      char *Name, ViceFid *CFid, int tid) {
+		      char *Name, ViceFid *CFid, ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogRmdir: %d, %d, (%x.%x.%x), %s, (%x.%x.%x) %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, tid));
@@ -1503,7 +1533,7 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 
 /*
 	    if (ObjectCreated && !DependentChildren) {
-		int code = LogUtimes(Mtime, vuid, PFid, Mtime);
+		int code = LogUtimes(Mtime, vuid, PFid, Mtime, Xsid);
 		if (code != 0) return(code);
 	    }
 */
@@ -1559,8 +1589,8 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	}
     }
 
-    cmlent *rmdir_mle = new cmlent(&CML, Mtime, vuid, OLDCML_RemoveDir_OP, tid,
-				    PFid, Name, CFid);
+    cmlent *rmdir_mle = new cmlent(&CML, Mtime, vuid, OLDCML_RemoveDir_OP,
+                                   sid, tid, PFid, Name, CFid);
 
     if (ObjectCreated && !DependentChildren && rmdir_mle) {
 	RVMLIB_REC_OBJECT(rmdir_mle->flags);
@@ -1572,26 +1602,28 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 
 /* local-repair modification */
 int volent::LogSymlink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
-			char *OldName, char *NewName, 
-			ViceFid *CFid, RPC2_Unsigned Mode, int tid) {
+                       char *OldName, char *NewName, ViceFid *CFid,
+                       RPC2_Unsigned Mode, ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogSymlink: %d, %d, (%x.%x.%x), %s, %s, (%x.%x.%x), %o %d\n",
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     OldName, NewName, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
-    cmlent *symlink_mle = new cmlent(&CML, Mtime, vuid, OLDCML_SymLink_OP, tid,
-				      PFid, OldName, NewName, CFid, Mode);
+    cmlent *symlink_mle = new cmlent(&CML, Mtime, vuid, OLDCML_SymLink_OP, sid,
+                                     tid, PFid, OldName, NewName, CFid, Mode);
     return(symlink_mle == 0 ? ENOSPC : 0);
 }
 
 /* local-repair modification */
 int volent::LogRepair(time_t Mtime, vuid_t vuid, ViceFid *Fid,
 		      RPC2_Unsigned Length, Date_t Date, UserId Owner,
-		      RPC2_Unsigned Mode, int tid) {
+		      RPC2_Unsigned Mode, ViceStoreId *sid, int tid)
+{
     LOG(1, ("volent::LogRepair: %d %d (%x.%x.%x) attrs [%u %d %u %o] %d\n",
 	    Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, Length,
 	    Date, Owner, Mode, tid));
-    cmlent *repair_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Repair_OP, tid,
-				    Fid, Length, Date, Owner, Mode, tid);
+    cmlent *repair_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Repair_OP, sid,
+                                    tid, Fid, Length, Date, Owner, Mode, tid);
     return(repair_mle == 0 ? ENOSPC : 0);
 }
 

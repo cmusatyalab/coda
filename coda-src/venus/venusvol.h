@@ -376,7 +376,8 @@ class cmlent {
 
   public:
     void *operator new(size_t);
-    cmlent(ClientModifyLog *, time_t, vuid_t, int, int ...);	/* local-repair modification */
+    /* local-repair modification */
+    cmlent(ClientModifyLog *, time_t, vuid_t, int, ViceStoreId *sid, int ...);
     void ResetTransient();
     ~cmlent();
     void operator delete(void *, size_t);
@@ -865,24 +866,35 @@ class volent {
 
     /* local-repair modifications to the following methods */
     /* Modlog routines. */
-    int LogStore(time_t, vuid_t, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogSetAttr(time_t, vuid_t, ViceFid *,
-		    RPC2_Unsigned, Date_t, UserId, RPC2_Unsigned, int = UNSET_TID);
-    int LogTruncate(time_t, vuid_t, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogUtimes(time_t, vuid_t, ViceFid *, Date_t, int = UNSET_TID);
-    int LogChown(time_t, vuid_t, ViceFid *, UserId, int = UNSET_TID);
-    int LogChmod(time_t, vuid_t, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogCreate(time_t, vuid_t, ViceFid *, char *, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRemove(time_t, vuid_t, ViceFid *, char *, ViceFid *, int, int = UNSET_TID);
-    int LogLink(time_t, vuid_t, ViceFid *, char *, ViceFid *, int = UNSET_TID);
-    int LogRename(time_t, vuid_t, ViceFid *, char *,
-		   ViceFid *, char *, ViceFid *, ViceFid *, int, int = UNSET_TID);
-    int LogMkdir(time_t, vuid_t, ViceFid *, char *, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRmdir(time_t, vuid_t, ViceFid *, char *, ViceFid *, int = UNSET_TID);
-    int LogSymlink(time_t, vuid_t, ViceFid *, char *,
-		    char *, ViceFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRepair(time_t, vuid_t, ViceFid *, RPC2_Unsigned,
-		  Date_t, UserId, RPC2_Unsigned, int = UNSET_TID);
+    int LogStore(time_t, vuid_t, ViceFid *, RPC2_Unsigned, ViceStoreId *sid,
+                 int = UNSET_TID);
+    int LogSetAttr(time_t, vuid_t, ViceFid *, RPC2_Unsigned, Date_t, UserId,
+                   RPC2_Unsigned, int = UNSET_TID);
+    int LogTruncate(time_t, vuid_t, ViceFid *, RPC2_Unsigned, ViceStoreId *sid,
+                    int = UNSET_TID);
+    int LogUtimes(time_t, vuid_t, ViceFid *, Date_t, ViceStoreId *sid,
+                  int = UNSET_TID);
+    int LogChown(time_t, vuid_t, ViceFid *, UserId, ViceStoreId *sid,
+                 int = UNSET_TID);
+    int LogChmod(time_t, vuid_t, ViceFid *, RPC2_Unsigned, ViceStoreId *sid,
+                 int = UNSET_TID);
+    int LogCreate(time_t, vuid_t, ViceFid *, char *, ViceFid *, RPC2_Unsigned,
+                  ViceStoreId *sid, int = UNSET_TID);
+    int LogRemove(time_t, vuid_t, ViceFid *, char *, ViceFid *, int,
+                  ViceStoreId *sid, int = UNSET_TID);
+    int LogLink(time_t, vuid_t, ViceFid *, char *, ViceFid *, ViceStoreId *sid,
+                int = UNSET_TID);
+    int LogRename(time_t, vuid_t, ViceFid *, char *, ViceFid *, char *,
+                  ViceFid *, ViceFid *, int, ViceStoreId *Xsid,
+                  ViceStoreId *sid, int = UNSET_TID);
+    int LogMkdir(time_t, vuid_t, ViceFid *, char *, ViceFid *, RPC2_Unsigned,
+                 ViceStoreId *sid, int = UNSET_TID);
+    int LogRmdir(time_t, vuid_t, ViceFid *, char *, ViceFid *, ViceStoreId *sid,
+                 int = UNSET_TID);
+    int LogSymlink(time_t, vuid_t, ViceFid *, char *, char *, ViceFid *,
+                   RPC2_Unsigned, ViceStoreId *sid, int = UNSET_TID);
+    int LogRepair(time_t, vuid_t, ViceFid *, RPC2_Unsigned, Date_t, UserId,
+                  RPC2_Unsigned, ViceStoreId *sid, int = UNSET_TID);
     /* local-repair modifications to the above methods */
 
     void CancelStores(ViceFid *);
@@ -913,8 +925,10 @@ class volent {
     int EnableRepair(vuid_t, VolumeId *, vuid_t *, unsigned long *);
     int DisableRepair(vuid_t);
     int Repair(ViceFid *, char *, vuid_t, VolumeId *, int *);
-    int ConnectedRepair(ViceFid *, char *, vuid_t, VolumeId *, int *);
-    int DisconnectedRepair(ViceFid *, char *, vuid_t, VolumeId *, int *);
+    int ConnectedRepair(ViceFid *, char *, vuid_t, VolumeId *, int *,
+                        ViceStoreId *sid);
+    int DisconnectedRepair(ViceFid *, char *, vuid_t, VolumeId *, int *,
+                           ViceStoreId *sid);
     int LocalRepair(fsobj *, ViceStatus *, char *fname, ViceFid *);
     int IsUnderRepair(vuid_t);
 

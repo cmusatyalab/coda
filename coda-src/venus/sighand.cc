@@ -126,7 +126,7 @@ void SigInit() {
     signal(SIGXCPU, (void (*)(int))XCPU);	/* dump state */
     signal(SIGXFSZ, (void (*)(int))XFSZ);	/* initialize statistics */
     signal(SIGVTALRM, (void (*)(int))VTALRM);	/* swap log */
-    signal(SIGUSR1, (void (*)(int))USR1);	/* set {COPmode, Mcast, DebugLevel} */
+//    signal(SIGUSR1, (void (*)(int))USR1);	/* set {COPmode, Mcast, DebugLevel} */
 #endif
 
 #ifdef __CYWIN32__
