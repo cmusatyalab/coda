@@ -23,7 +23,7 @@ listed in the file CREDITS.
 #ifdef __BSD44__
 #include <sys/types.h>
 #endif
-#if !defined(CYGWIN32) & !defined(DJGPP)
+#if !defined(__CYGWIN32__) && !defined(DJGPP)
 #include <arpa/nameser.h>
 #endif
 #include <netinet/in.h>
