@@ -1,3 +1,8 @@
+New in 1.6:
+
+* Merged debian packaging files.
+* Using same version number for all libraries.
+
 New in 1.5:
 
 * Removed signal based preemption code.

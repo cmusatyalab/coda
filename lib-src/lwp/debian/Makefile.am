@@ -17,18 +17,8 @@
 #                            none currently
 #*/
 
-if build_pthread
-EXTRA = src-pt
-endif
+EXTRADIST = changelog control copyright dirs docs liblwp2.docs liblwp2.files \
+    liblwp2.postinst liblwp2.prerm postinst prerm rules watch
 
-SUBDIRS = include src $(EXTRA) pkgs debian
-
-EXTRA_DIST = PORTING acinclude.m4 bootstrap.sh configure
-
-MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 config.guess \
-    config.h.in config.sub configure install-sh libtool ltconfig ltmain.sh \
-    missing mkinstalldirs stamp-h.in
-
-dist-hook:
-	if [ -x /afs/cs ] ; then cp /afs/cs/project/coda-src/cvs/CVSROOT/ChangeLog.lwp ChangeLog ; fi
+MAINTAINERCLEANFILES = Makefile.in
 

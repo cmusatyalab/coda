@@ -1,5 +1,6 @@
 Makefile
 Makefile.in
+pkg-bsd.sh
 lwp.spec
 lwp-nt.spec
 lwp-dos.spec
