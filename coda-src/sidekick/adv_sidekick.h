@@ -55,7 +55,7 @@ extern "C" {
 #include "venusioctl.h"
 
 #define ASRARGS 7 /* XXX - maximum number of arguments to an ASR */
-#define ASRLOGDIR "/tmp/.asrlogs"
+#define ASRLOGDIR "/tmp/asrlogs"
 #define DEF_LOGFILE "/usr/coda/etc/skk.log"
 #define DEF_ROCK 1
 #define DSTACK 65536
@@ -63,8 +63,8 @@ extern "C" {
 #define HOMEDIR_PREFIX "/coda/usr/"
 #define INTEREST_FILE SYSCONFDIR "/skk.interests"
 
-extern int table(int, int, char *, int, int);
-extern int ffilecopy(FILE*, FILE*);
+int table(int, int, char *, int, int);
+int ffilecopy(FILE*, FILE*);
 
 extern FILE *logfile;
 extern int err, reqcnt;

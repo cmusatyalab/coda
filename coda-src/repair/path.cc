@@ -76,7 +76,7 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
 		} 
 		else {
 		    strerr(msg, msgsize, "Object not in conflict");
-		    break;
+		    goto Exit;
 		}
 	    }
 	    *cdr = 0; /* clobber slash */
@@ -93,8 +93,8 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
 	    if (readlink(car, symbuf, MAXPATHLEN) > 0) {
 		if (++symlinks >= CODA_MAXSYMLINKS) {
 		    errno = ELOOP;
-		    strerr(msg, msgsize, "%s: %s", path, strerror(errno));
-		    break;
+		    strerr(msg, msgsize, "%s: %s", path, strerror(errno));	
+		    goto Exit;
 		}
 		strcat(symbuf, "/");
 		strcat(symbuf, cdr);
@@ -105,7 +105,7 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
 	    /* cd to next component */
 	    if (chdir(car) < 0) {
 		strerr(msg, msgsize, "%s: %s", repair_abspath(tmp, MAXPATHLEN, car), strerror(errno));
-		break;
+		goto Exit;
 	    }
 
 	    /* Phew! Traversed another component! */
@@ -113,6 +113,7 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
 	    *(cdr-1) = '/'; /* Restore clobbered slash */
 	}
     }
+ Exit:
     CODA_ASSERT(!chdir(here)); /* XXXX */
     return(-1);
 }

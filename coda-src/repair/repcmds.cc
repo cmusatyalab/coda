@@ -18,18 +18,15 @@ listed in the file CREDITS.
 
 #include "repcmds.h"
 
-static int  compareAcl(int, resreplica *);
-static int  compareOwner(int, resreplica *);
-static int  compareQuotas(int , char **);
-static int  compareStatus(int, resreplica *);
-static int  compareVV(int, char **, struct repvol *);
-static int  doCompare(int, struct repvol *, char **, char *, char *, ViceFid *, char *, char *, char *, char *);
-static int  dorep(struct repvol *repv, char *path, char *buf, int len);
-static int  findtype(struct repvol *);
-static void getremovelists(int, resreplica *, struct listhdr **);
-static int  getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize);
-static int  makedff(char *extfile, char *intfile);
-static void printAcl(struct Acl *);
+int  compareAcl(int, resreplica *);
+int  compareOwner(int, resreplica *);
+int  compareQuotas(int , char **);
+int  compareStatus(int, resreplica *);
+int  compareVV(int, char **, struct repvol *);
+int  findtype(struct repvol *);
+void getremovelists(int, resreplica *, struct listhdr **);
+int  getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize);
+void printAcl(struct Acl *);
 
 /* Assumes pathname is the path of a conflict
  * Fills in repv with repvol created in beginning repair
@@ -57,7 +54,7 @@ int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize) {
 	if (errno == EWOULDBLOCK)
 	    strerr(msg, msgsize, "Repair in progress on volume at \"%s\"", (*repv)->mnt);
 	else 
-	    strerr(msg, msgsize, "ENABLEREPAIR %s: %s", (*repv)->mnt, strerror(errno));
+	    strerr(msg, msgsize, "ENABLEREPAIR %s: %s", (*repv)->rodir, strerror(errno));
 	repair_finish(*repv);
 	return(-1);
     }
@@ -134,8 +131,7 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize) {
     confFid.Volume = repv->vid;
     confFid.Vnode = confFid.Unique = 0;
     /* do the compare */
-    if (!doCompare(nreplicas, repv, names, "/dev/null", 
-		   repv->mnt, &confFid, user, rights, owner, mode)) {
+    if (!CompareDirs(repv, "/dev/null", user, rights, owner, mode, msgbuf, sizeof(msgbuf))) {
 	/* XXXX if a get fid is done between two setvv's resolve might get called 
 	   - therefore get the vv for each replica  before doing the setvv */
 	for (i = 0; i < nreplicas; i++) {
@@ -177,6 +173,10 @@ int ClearInc(struct repvol *repv, char *msg, int msgsize) {
     return(-1);
 }
 
+/* Does the compare on repv, and writes to fixfile
+ * Returns number of conflicts on success, -1 on error and fills in msg if non-NULL 
+ * Returns -2 if there are name/name conflicts (in which case the caller
+ * should DoRepair to fix them and then do CompareDirs again) */
 int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights, 
 		char *owner, char *mode, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], space[DEF_BUF], tmppath[MAXPATHLEN];
@@ -184,58 +184,142 @@ int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights,
     ViceFid confFid;
     vv_t confvv;
     struct ViceIoctl vioc;
-    struct stat buf;
+    struct stat sbuf;
     char **names;
-    int rc, i, nreps;
+    int ret, rc, i, nreps, nConflicts = 0, setmode = 0, setacl = 0, setowner = 0;
+    unsigned long j;
+    resreplica *dirs;
+    struct volrep *rwv;
+    struct  listhdr *k;
+    FILE *file;
 
     if (repair_getfid(repv->rodir, &confFid, &confvv, msgbuf, sizeof(msgbuf))) {
 	strerr(msg, msgsize, "repair_getfid(%s): %s", repv->rodir, msgbuf);
 	return(-1);
     }
+
     if (!ISDIR(confFid.Vnode) || !(repv->dirconf)) {
 	strerr(msg, msgsize, "Compare can only be performed on directory replicas");
 	return(-1);
     }
 
-    /* get replica names for doCompare */
     if ((nreps = getVolrepNames(repv, &names, msgbuf, sizeof(msgbuf))) <= 0) {
 	strerr(msg, msgsize, "Error getting replica names: %s", msgbuf);
 	return(-1);
     }
+ 
+    /* begin old "doCompare" */
 
- redocompare:
-    /* do the compare */
-    rc = doCompare(nreps, repv, names, fixfile, repv->mnt, &confFid, user, rights, owner, mode);
-    if (rc == 0) printf("No conflicts detected \n");
-    else if (rc > 0) printf("Operations to resolve conflicts are in %s\n", fixfile);	
-    else if (rc == NNCONFLICTS) {
-	if (Parser_getbool("Do you want to repair the name/name conflicts", 1)) {
-	    /* repair the name/name conflicts */
-	    rc = makedff(fixfile, tmppath);
-	    rc = dorep(repv, tmppath, NULL, 0);
-	    if (!rc) { 
-		/* name/name conflicts were repaired 
-		 * if that was the only thing wrong, then the object is not inconsistent anymore.
-		 * try to stat the individual replica - if it fails then just exit */
-		if (stat(names[0], &buf)) {
-		    /* object doesn't exist anymore */
-		    printf("The directory was repaired and is no longer inconsistent\n");
-		    printf("You can quit now :-)\n");
-		    goto Exit;
-		}
-		else /* the object is still there so the dir is still inconsistent */
-		    goto redocompare;
-	    }
-	    else  {
-		printf("Couldn't remove name/name conflicts successfully");
-		printf(" - Try another compare\n");
-	    }
+    if (nreps == 1) {
+	strerr(msg, msgsize, "Only one replica, nothing to compare");
+	goto Cleanup;
+    }
+
+    /* Open the fixfile */
+    if (!strcmp(fixfile, "stdout")) file = stdout;
+    else if (!strcmp(fixfile, "stderr")) file = stderr;
+    else {
+	if ((file = fopen(fixfile, "w")) == NULL) {
+	    strerr(msg, msgsize, "Could not open file %s for writing: %s", fixfile, strerror(errno));
+	    goto Cleanup;
 	}
     }
- Exit:
-    /* free the malloced space */
+
+    /* Set the global RepVolume to the volume we are repairing */
+    RepVolume = repv->vid;
+
+    if (getunixdirreps(nreps, names, &dirs)) {
+	strerr(msg, msgsize, "Could not get replica information");
+	goto Cleanup;
+    }
+
+    /* Do the resolve! */
+    ret = dirresolve(nreps, dirs, NULL, &k, repv->mnt);
+
+    if (compareAcl(nreps, dirs)){
+	nConflicts++;
+	if ( user && rights ) {
+	    printf("Acls will be set to %s %s.\n", user, rights);
+	    setacl = 1;
+	} 
+	else printf("Acls differ: Please repair manually using setacl <user> <rights>\n");
+    }
+
+    if (compareStatus(nreps, dirs)){
+	nConflicts++;
+	if ( mode ) {
+	    printf("Modebits will be set to %s.\n", mode);
+	    setmode = 1;
+	} 
+	else printf("Modebits differ - a repair should set the bits\n");
+    }
+
+    if (compareOwner(nreps, dirs)) {
+	nConflicts++;
+	if ( owner ) {
+	    printf("owner uid will be set to %s\n", owner);
+	    setowner = 1;
+	} 
+	else printf("Owner differs: Please repair manually using setowner <uid>\n");
+    }
+
+
+    for (i = 0; i < nreps; i++) {
+	/* find the server name */
+	{
+	    rwv = repv->rwhead;
+	    while (rwv && k[i].replicaId != rwv->vid)
+		rwv = rwv->next;
+	    CODA_ASSERT(k[i].replicaId == rwv->vid);
+	}
+	fprintf(file,"\nreplica %s %lx \n", rwv->srvname, k[i].replicaId);
+	for (j = 0; j < k[i].repairCount; j++)
+	    repair_printline(&(k[i].repairList[j]), file);
+	if ( setacl )
+	    fprintf(file, "\tsetacl %s %s\n", user, rights);
+	if ( setmode )
+	    fprintf(file, "\tsetmode %s\n", mode);
+	if ( setowner )
+	    fprintf(file, "\tsetowner %s\n", owner);
+    }
+
+    /* Close the fixfile */
+    if ((file != stdout) && (file != stderr))
+	fclose(file);
+
+    if (compareVV(nreps, names, repv)) {
+	if (!nConflicts) {
+	    // warn the user if no conflicts were detected otherwise
+	    printf("The fix file may be empty but .... \n"
+		   "You still need a dorepair because the "
+		   "Version state is different\n");
+	}
+	nConflicts++;
+    }
+
+    if ((confFid.Vnode == 1) && (confFid.Unique == 1) &&
+	(compareQuotas(nreps, names))) {
+	nConflicts++;
+	printf("Your volume quota is different on the various replicas\n");
+	printf("You SHOULD talk to one of the system administrators soon\n");
+    }
+
+    /* clean up the malloced memory */
+    resClean(nreps, dirs, k);
     for (i = 0; i < nreps; i++) freeif(names[i]);
     free(names);
+
+    if (ret == NNCONFLICTS) {
+      strerr(msg, msgsize, "Name/name conflicts still exist");
+      return(-2);
+    }
+    return(nConflicts);
+    
+   Cleanup:
+    resClean(nreps, dirs, k);
+    for (i = 0; i < nreps; i++) freeif(names[i]);
+    free(names);
+    return(-1);
 }
 
 /* Discards all local mutations to volume under repair
@@ -261,14 +345,25 @@ int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize) {
     return(rc);
 }
 
-/* Performs the repair on repv using fixfile at ufixpath
+/* Does a repair on repv using fixfile at ufixpath
+ * Fprints results to res if non-NULL
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
-int DoRepair(struct repvol *repv, char *ufixpath, char *msg, int msgsize) {
+int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgsize) {
     char space[DEF_BUF], fixpath[MAXPATHLEN];
     VolumeId *vids;
+    struct volrep *rwv;
     long *rcodes;
     int i, rc;
-    struct volrep *rwv;
+
+    if (repv == NULL) {
+      strerr(msg, msgsize, "NULL repv");
+      return(-1);
+    }
+
+    if (repv->local) {
+      strerr(msg, msgsize, "Not a server/server conflict");
+      return(-1);
+    }
 
     if (repv->dirconf) { /* directory conflict */
 	if (makedff(ufixpath, fixpath) < 0) { /* Create internal form of fix file */
@@ -285,27 +380,29 @@ int DoRepair(struct repvol *repv, char *ufixpath, char *msg, int msgsize) {
 	return(-1);
     }
 
-    vids = (VolumeId *)space;
-    rcodes = (long *)(((long *)space) + MAXHOSTS);
-
-    for (rwv = repv->rwhead; rwv != NULL; rwv = rwv->next) {
-	for (i = 0; ((i < MAXHOSTS) && (vids[i] != rwv->vid)); i++);
-	if  (i < MAXHOSTS) {
-	    printf("Repair actions performed on %s have %s",
-		   rwv->srvname, rcodes[i] ? "failed" : "succeeded");
-	    if (rcodes[i]) {
-		printf(" (%ld).\n", rcodes[i]); 
-		printf("Possible causes: disconnection, lack of authentication, lack of server space\n");
-		printf("Fix file contains operations that are in conflict against the server replica.\n");
+    /* Print out the results of VIOC_REPAIR pioctl */
+    if (res != NULL) {
+	vids = (VolumeId *)space;
+	rcodes = (long *)(((long *)space) + MAXHOSTS);
+	for (rwv = repv->rwhead; rwv != NULL; rwv = rwv->next) {
+	    for (i = 0; ((i < MAXHOSTS) && (vids[i] != rwv->vid)); i++);
+	    if  (i < MAXHOSTS) {
+		fprintf(res, "Repair actions performed on %s have %s",
+			rwv->srvname, rcodes[i] ? "failed" : "succeeded");
+		if (rcodes[i]) {
+		    fprintf(res, " (%ld).\n%s%s", rcodes[i], 
+			    "Possible causes: disconnection, lack of authentication, lack of server space\n",
+			    "Fix file contains operations that are in conflict against the server replica.\n");
+		}
+		else fprintf(res, ".\n");
+		vids[i] = 0;
 	    }
-	    else printf(".\n");
-	    vids[i] = 0;
+	    else fprintf(res, "No return code for actions performed on %s! (vid 0x%lx)\n", rwv->srvname, rwv->vid);
 	}
-	else printf("No return code for actions performed on %s! (vid 0x%lx)\n", rwv->srvname, rwv->vid);
+	for (i = 0; (i < MAXHOSTS); i++)
+	    if (vids[i]) fprintf(res, "Return code %d for unexpected vid 0x%lx!\n", rcodes[i], vids[i]);
     }
-    for (i = 0; (i < MAXHOSTS); i++)
-	if (vids[i]) printf("Return code %d for unexpected vid 0x%lx!\n", rcodes[i], vids[i]);
-
+    
     /* Clean up */
     if (repv->dirconf) unlink(fixpath); /* ignore rc */
     return(0);
@@ -392,7 +489,7 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize) {
 	    strerr(msg, msgsize, "REPAIR %s: %s", repv->rodir, strerror(errno));
 	    unlink(tmppath); /* Clean up */
 	    goto Error;
-	}    
+	}
 	unlink(tmppath); /* Clean up */
 
 	/* clear the inconsistency if needed and possible */ 
@@ -436,7 +533,7 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize) {
     return(rc);
 }
 
-static int compareAcl(int nreplicas, resreplica *dirs) {
+int compareAcl(int nreplicas, resreplica *dirs) {
     int i, j;
     struct Acl *al0, *ali;
     al0 = dirs[0].al;
@@ -462,7 +559,7 @@ static int compareAcl(int nreplicas, resreplica *dirs) {
     return 0;
 }
 
-static int compareOwner(int nreplicas, resreplica *dirs) {
+int compareOwner(int nreplicas, resreplica *dirs) {
     int i;
     for (i = 1; i < nreplicas; i++) {
 	if (dirs[i].owner != dirs[0].owner)
@@ -471,7 +568,7 @@ static int compareOwner(int nreplicas, resreplica *dirs) {
     return 0;
 }
 
-static int compareQuotas(int nreplicas, char **names) {
+int compareQuotas(int nreplicas, char **names) {
     if (nreplicas <= 1) {
 	printf("Comparing Quotas: Not enough replicas to compare\n");
 	return 0;
@@ -498,7 +595,7 @@ static int compareQuotas(int nreplicas, char **names) {
 
 	/* Do the pioctl */
 	rc = pioctl(names[i], VIOCGETVOLSTAT, &vio, 1);
-	if (rc <0) {fflush(stdout); perror(names[i]); return(1);}
+	if (rc < 0) {fflush(stdout); perror(names[i]); return(1);}
 	/* Get pointers to output fields */
 	vs = (VolumeStatus *)piobuf;
 	if ((vs->MinQuota !=  minquota0) || (vs->MaxQuota != maxquota0)) 
@@ -507,7 +604,7 @@ static int compareQuotas(int nreplicas, char **names) {
     return 0;
 }
 
-static int compareStatus(int nreplicas, resreplica *dirs) {
+int compareStatus(int nreplicas, resreplica *dirs) {
     int i;
     for (i = 1; i < nreplicas; i++) {
 	if (dirs[i].modebits != dirs[0].modebits)
@@ -541,119 +638,10 @@ int compareVV(int nreplicas, char **names, struct repvol *repv) {
     return(0);
 }
 
-static int doCompare(int nreplicas, struct repvol *repv, char **names, char *filepath, char *volmtpt, 
-		     ViceFid *incfid, char *user, char *rights, char *owner, char *mode) {
-    char compOutputFile[MAXPATHLEN];
-    struct stat sbuf;
-    resreplica *dirs;
-    struct  listhdr *k;
-    int i, setmode = 0, setacl = 0, setowner = 0;
-    unsigned long j;
-    FILE *file;
-    struct volrep *rwv;
-
-    if (nreplicas == 1) {
-	printf("DoCompare: Since there is only one replica, nothing to compare\n");
-	return(0);
-    }
-    compOutputFile[0] = '\0';
-    if (!strcmp(filepath, "stdout"))
-	file = stdout;
-    else {
-	file = fopen(filepath, "w");
-	if (!file) {
-	    printf("Couldn't open file %s for writing\n", filepath);
-	    return(-2);
-	}
-	if (strcmp(filepath, "/dev/null"))
-	    sprintf(compOutputFile, "%s", filepath);
-    }
-    /* set the global RepVolume to the volume we are repairing */
-    RepVolume = repv->vid;
-    
-    if (getunixdirreps(nreplicas, names, &dirs)) {
-	printf("compare failed because of failure in getting needed replica information\n");
-	return -1;
-    }
-    int rc = dirresolve(nreplicas, dirs, NULL, &k, volmtpt);
-
-    if (compareAcl(nreplicas, dirs)){
-	nConflicts ++;
-	if ( user && rights ) {
-	    printf("Acls will be set to %s %s.\n", user, rights);
-	    setacl = 1;
-	} 
-	else printf("Acls differ: Please repair manually using setacl <user> <rights>\n");
-    }
-    if (compareStatus(nreplicas, dirs)){
-	nConflicts++;
-	if ( mode ) {
-	    printf("Modebits will be set to %s.\n", mode);
-	    setmode = 1;
-	} 
-	else printf("Modebits differ - a repair should set the bits\n");
-    }
-    if (compareOwner(nreplicas, dirs)) {
-	nConflicts++;
-	if ( owner ) {
-	    printf("owner uid will be set to %s\n", owner);
-	    setowner = 1;
-	} 
-	else printf("Owner differs: Please repair manually using setowner <uid>\n");
-    }
-
-    for (i = 0; i < nreplicas; i++){
-	/* find the server name */
-	{
-	    rwv = repv->rwhead;
-	    while (rwv && k[i].replicaId != rwv->vid)
-		rwv = rwv->next;
-	    CODA_ASSERT(k[i].replicaId == rwv->vid);
-	}
-	fprintf(file,"\nreplica %s %lx \n", rwv->srvname, k[i].replicaId);
-	for (j = 0; j < k[i].repairCount; j++)
-	    repair_printline(&(k[i].repairList[j]), file);
-	if ( setacl )
-	    fprintf(file, "\tsetacl %s %s\n", user, rights);
-	if ( setmode )
-	    fprintf(file, "\tsetmode %s\n", mode);
-	if ( setowner )
-	    fprintf(file, "\tsetowner %s\n", owner);
-    }
-
-    if (file != stdout) {
-	fclose(file);
-	if (compOutputFile[0]) {
-	    // save the information about the compare file produced
-	    if (stat(compOutputFile, &sbuf)) {
-		printf("Stat of %s failed\n", compOutputFile);
-		compOutputFile[0] = '\0';
-	    }
-	}
-    }
-
-    if (compareVV(nreplicas, names, repv)) {
-	if (!nConflicts) {
-	    // warn the user if no conflicts were detected otherwise
-	    printf("The fix file may be empty but .... \n"
-		   "You still need a dorepair because the "
-		   "Version state is different\n");
-	}
-	nConflicts++;
-    }
-    if ((incfid->Vnode == 1) && (incfid->Unique == 1) &&
-	(compareQuotas(nreplicas, names))) {
-	nConflicts++;
-	printf("Your volume quota is different on the various replicas\n");
-	printf("You SHOULD talk to one of the system administrators soon\n");
-    }
-    /* clean up the malloced memory */
-    resClean(nreplicas, dirs, k);
-    if (rc == NNCONFLICTS) return(NNCONFLICTS);
-    return(nConflicts);
-}
-
-static int dorep(struct repvol *repv, char *path, char *buf, int len) {
+/* Basically just nice padding for the VIOC_REPAIR pioctl.
+ * Calls the pioctl, and passes back results in buf if non-NULL
+ * Returns the pioctl return code */
+int dorep(struct repvol *repv, char *fixpath, char *buf, int len) {
     char space[DEF_BUF];
     struct ViceIoctl vioc;
     int rc;
@@ -662,8 +650,8 @@ static int dorep(struct repvol *repv, char *path, char *buf, int len) {
 	buf = space;
 	len = sizeof(space);
     }
-    vioc.in = path;
-    vioc.in_size = strlen(path) + 1;
+    vioc.in = fixpath;
+    vioc.in_size = strlen(fixpath) + 1;
     vioc.out = buf;
     vioc.out_size = len;
     memset(buf, 0, len);
@@ -675,7 +663,7 @@ static int dorep(struct repvol *repv, char *path, char *buf, int len) {
  *    (must be true if this is a leftmost conflict)
  * Fills in dirconf field in repv
  * Returns 0 on success, -1 on failure */
-static int findtype(struct repvol *repv) {
+int findtype(struct repvol *repv) {
     char tmppath[MAXPATHLEN];
     struct stat sbuf;
     struct volrep *tmp;
@@ -699,7 +687,7 @@ static int findtype(struct repvol *repv) {
     return(0);
 }
 
-static void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **repairlist) {
+void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **repairlist) {
     struct repair rep;
     resdir_entry *rde;
     int i, j;
@@ -709,9 +697,9 @@ static void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **rep
     for ( i = 0 ; i < nreplicas; i++) {
 	for ( j = 0; j < dirs[i].nentries; j++) {
 	    rde = &(direntriesarr[dirs[i].entry1 + j]);
-	    if (ISDIR(rde->vno)) 
+	    if (ISDIR(rde->vno))
 		rep.opcode = REPAIR_REMOVED;
-	    else 
+	    else
 		rep.opcode = REPAIR_REMOVEFSL;
 	    strcpy(&(rep.name[0]), &(rde->name[0]));
 	    rep.parms[0] = 0;
@@ -724,7 +712,7 @@ static void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **rep
 
 /* Allocates and returns an array of replica names (complete paths) in ***names
  * Returns number of replicas in array on success, -1 on failure (after cleaning up) */
-static int getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize) {
+int getVolrepNames(struct repvol *repv, char ***names, char *msg, int msgsize) {
     struct volrep *rwv;
     int i, nreps, len;
 
@@ -747,21 +735,20 @@ static int getVolrepNames(struct repvol *repv, char ***names, char *msg, int msg
 	    for (i = 0; i < nreps; nreps++) freeif((*names)[i]);
 	    free(*names);
 	    strerr(msg, msgsize, "Malloc failed");
-	    return(-1);      
+	    return(-1);
 	}
 
 	if (repv->dirconf) sprintf((*names)[i], "%s/%s/", repv->rodir, rwv->compname);
-	else sprintf((*names)[i], "%s/%s" , repv->rodir, rwv->compname);	
+	else sprintf((*names)[i], "%s/%s" , repv->rodir, rwv->compname);
     }
 
     return (nreps);
 }
 
 /* extfile: external (ASCII) rep
-   intfile: internal (binary) rep
-   Returns 0 on success, -1 on failures
-*/
-static int makedff(char *extfile, char *intfile /* OUT */) {
+ * intfile: internal (binary) rep
+ * Returns 0 on success, -1 on error */
+int makedff(char *extfile, char *intfile /* OUT */) {
     struct listhdr *hl;
     int hlc, rc;
 
@@ -781,7 +768,7 @@ static int makedff(char *extfile, char *intfile /* OUT */) {
     return(0);
 }
 
-static void printAcl(struct Acl *acl) {
+void printAcl(struct Acl *acl) {
     int i;
     
     printf("There are %d plus entries\n", acl->nplus);

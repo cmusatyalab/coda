@@ -29,13 +29,6 @@ RPC2_Handle cid;
 SE_Descriptor *se = NULL;
 struct pnode *phead = NULL;
 
-/* chop me */
-int session = 0;
-#define NOT_IN_SESSION 0
-#define	LOCAL_GLOBAL   1
-#define SERVER_SERVER  2
-/* chop me */
-
 int main(int argc, char **argv) {
     RPC2_RequestFilter reqfilter;
     RPC2_PacketBuffer *reqbuffer;
@@ -150,15 +143,16 @@ RPC2_Handle contact_venus(const char *hostname) {
 }
 
 int executor(char *pathname, int vuid, int req_no) {
-    char asr[MAXPATHLEN], asrlog[MAXPATHLEN], parent[MAXPATHLEN], conf[MAXPATHLEN], fixed[MAXPATHLEN];
-    char hd[MAXPATHLEN];
-    char space[DEF_BUF], svuid[32];
-    char *zargs[ASRARGS];  /* asr, fixed, lgrep, ssrep1, ssrep2, ssrep3, NULL */
+    char space[DEF_BUF];
+    char asr[MAXPATHLEN], asrlog[MAXPATHLEN], conf[MAXPATHLEN];
+    char fixed[MAXPATHLEN], parent[MAXPATHLEN], hd[MAXPATHLEN];
+    VolumeId vid;
     struct stat sbuf;
+    char svuid[32];
+    char *zargs[ASRARGS];  /* asr, fixed, lgrep, ssrep1, ssrep2, ssrep3, NULL */
     int ret, pid, status, i;
     struct repvol *repv;
     struct volrep *volr;
-    VolumeId vid;
 
     if ((ret = get_homedir(vuid, hd)) < 0)
 	quit("Could not get home directory");
@@ -190,26 +184,14 @@ int executor(char *pathname, int vuid, int req_no) {
     if ((ret = BeginRepair(pathname, &repv, space, sizeof(space))) < 0)
 	quit("%s\nCould not begin repair session", space);
 
-    else if (repv->local) { /* local/global conflict */
-	/* get replica name arguments -- XXXX */
-	if ((zargs[2] = (char *)malloc((strlen(repv->rodir) + strlen("local") + 2) * sizeof(char))) == NULL)
+    /* get replica name arguments */
+    for (volr = repv->rwhead, i = 2; volr != NULL; volr = volr->next, i++) {
+	if ((zargs[i] = (char *)malloc((strlen(repv->rodir) + strlen(volr->compname) + 2) * sizeof(char))) == NULL)
 	    quit("Malloc failed");
-	sprintf(zargs[2], "%s/%s", repv->rodir, "local");
-	if ((zargs[3] = (char *)malloc((strlen(repv->rodir) + strlen("global") + 2) * sizeof(char))) == NULL)
-	    quit("Malloc failed");
-	sprintf(zargs[3], "%s/%s", repv->rodir, "global");
-	zargs[4] = NULL;
+	sprintf(zargs[i], "%s/%s", repv->rodir, volr->compname);
     }
-    else { /* server/server conflict */
-	/* get replica name arguments */
-	for (volr = repv->rwhead, i = 2; volr != NULL; volr = volr->next, i++) {
-	    if ((zargs[i] = (char *)malloc((strlen(repv->rodir) + strlen(volr->compname) + 2) * sizeof(char))) == NULL)
-		quit("Malloc failed");
-	    sprintf(zargs[i], "%s/%s", repv->rodir, volr->compname);
-	}
-	zargs[i] = NULL;
-	if (i >= ASRARGS) quit("It shouldn't be possible to have %d arguments", i);
-    }
+    if (i >= ASRARGS) quit("It shouldn't be possible to have %d arguments", i);
+    zargs[i] = NULL;
 
     /* create "fixed" file (which ASR will write to) */
     sprintf(fixed, "%s/fixed.%d.XXXXXX", FIXEDDIR, req_no);

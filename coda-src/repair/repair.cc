@@ -80,9 +80,9 @@ main(int argc, char **argv) {
 
     /* Sit in command loop */
     if ( argc >= 3 ) {
-	rep_BeginRepair(2, &argv[0]);
-	rep_CompareDirs(argc - 1 , &argv[1]);
-	rep_DoRepair(3, &argv[0]);
+	rep_BeginRepair(2, &(argv[0]));
+	rep_CompareDirs(argc - 1 , &(argv[1]));
+	rep_DoRepair(2, &(argv[1]));
 	rep_Exit(0, NULL);
     }
     else if ( argc != 3 ) {
@@ -174,6 +174,7 @@ int getrepairargs(int largc, char **largv, char *fixpath) {
 	fprintf(stderr, "%s is in /coda and cannot be used as the fix file\n", fixpath);
 	return(-1); 
     }
+    strncpy(cfix, fixpath, sizeof(cfix));
     return(0);
 }
 
@@ -289,6 +290,7 @@ void rep_ClearInc(int largc, char **largv) {
 void rep_CompareDirs(int largc, char **largv) {
     char msgbuf[DEF_BUF];
     char *fixfile = NULL, *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL;
+    int ret;
 
     switch (session) {
     case LOCAL_GLOBAL:
@@ -305,8 +307,15 @@ void rep_CompareDirs(int largc, char **largv) {
     if (getcompareargs(largc, largv, &fixfile, &user, &rights, &owner, &mode) < 0)
 	return;
 
-    if (CompareDirs(RepairVol, fixfile, user, rights, owner, mode, msgbuf, sizeof(msgbuf)) < 0)
-	fprintf(stderr, "%s\ncomparedirs failed\n", msgbuf);
+    if ((ret = CompareDirs(RepairVol, fixfile, user, rights, owner, mode, msgbuf, sizeof(msgbuf))) < 0) {
+	if (ret == -2) {
+	    if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) < 0)
+		fprintf(stderr, "%s\nError removing name/name conflicts\n", msgbuf);
+	    else if (CompareDirs(RepairVol, fixfile, user, rights, owner, mode, msgbuf, sizeof(msgbuf)) < 0)
+		fprintf(stderr, "%s\ncomparedirs failed\n", msgbuf);
+	}
+	else fprintf(stderr, "%s\ncomparedirs failed\n", msgbuf);
+    }
 }
 
 void rep_DiscardAllLocal(int largc, char **largv) {
@@ -357,6 +366,10 @@ void rep_DiscardLocal(int largc, char **largv) {
 
 void rep_DoRepair(int largc, char **largv) {
     char msgbuf[DEF_BUF], ufixpath[MAXPATHLEN];
+    VolumeId *vids;
+    struct volrep *rwv;
+    long *rcodes;
+    int i, rc;
 
     switch (session) {
     case LOCAL_GLOBAL:
@@ -372,8 +385,8 @@ void rep_DoRepair(int largc, char **largv) {
     /* Obtain parameters and confirmation from user */
     if (getrepairargs(largc, largv, ufixpath) < 0) return;
 
-    if (DoRepair(RepairVol, ufixpath, msgbuf, sizeof(msgbuf)) < 0)
-	fprintf(stderr, "%s\ndorepair failed\n", msgbuf);
+    if (DoRepair(RepairVol, ufixpath, stdout, msgbuf, sizeof(msgbuf)) < 0)
+      fprintf(stderr, "%s\nRepair failed.\n", msgbuf);
 }
 
 void rep_EndRepair(int largc, char **largv) {

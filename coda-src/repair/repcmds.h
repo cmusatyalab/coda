@@ -86,28 +86,32 @@ struct volrep {
 };
 
 /* Non-interactive repair calls */
-extern int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize);
-extern int ClearInc(struct repvol *repv, char *msg, int msgsize);
-extern int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights, 
-		       char *owner, char *mode, char *msg, int msgsize);
-extern int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize);
-extern int DoRepair(struct repvol *repv, char *ufixpath, char *msg, int msgsize);
-extern int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize);
-extern int RemoveInc(struct repvol *repv, char *msg, int msgsize);
+int BeginRepair(char *pathname, struct repvol **repv, char *msg, int msgsize);
+int ClearInc(struct repvol *repv, char *msg, int msgsize);
+int CompareDirs(struct repvol *repv, char *fixfile, char *user, char *rights, 
+		char *owner, char *mode, char *msg, int msgsize);
+int DiscardAllLocal(struct repvol *repv, char *msg, int msgsize);
+int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgsize);
+int EndRepair(struct repvol *repv, int commit, char *msg, int msgsize);
+int RemoveInc(struct repvol *repv, char *msg, int msgsize);
+
+/* Other utility functions */
+int dorep(struct repvol *repv, char *fixpath, char *buf, int len);
+int makedff(char *extfile, char *intfile);
 
 /* Volume data structure manipulation routines -- rvol.cc */
-extern int  repair_cleanup(struct repvol *repv);
-extern int  repair_countRWReplicas (struct repvol *repv);
-extern void repair_finish(struct repvol *repv);
-extern int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
-extern int  repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize);
-extern int  repair_newrep(char *reppath, struct repvol **repv, char *msg, int msgsize);
+int  repair_cleanup(struct repvol *repv);
+int  repair_countRWReplicas (struct repvol *repv);
+void repair_finish(struct repvol *repv);
+int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
+int  repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize);
+int  repair_newrep(char *reppath, struct repvol **repv, char *msg, int msgsize);
 
 /* Path processing routines -- path.cc */
-extern int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
-extern int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, char *msg, int msgsize);
-extern int  repair_inconflict(char *name, ViceFid *conflictfid);
-extern int  repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsize);
+int  repair_getfid(char *path, ViceFid *outfid, ViceVersionVector *outvv, char *msg, int msgsize);
+int  repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid, char *msg, int msgsize);
+int  repair_inconflict(char *name, ViceFid *conflictfid);
+int  repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsize);
 
 #define freeif(pointer)				\
 do {						\
