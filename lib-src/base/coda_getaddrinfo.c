@@ -37,11 +37,13 @@ Coda are listed in the file CREDITS.
 #endif
 
 #include <sys/types.h>
-#include <netinet/in.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
