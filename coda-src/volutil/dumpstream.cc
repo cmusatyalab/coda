@@ -48,6 +48,7 @@ extern "C" {
 #include <dump.h>
 #include "dumpstream.h"
 #include <util.h>
+#include <coda_largefile.h>
 
 /*************************** From readstuff.c */
 
@@ -558,28 +559,28 @@ int dumpstream::readDirectory(PDirInode *dip){
 /*
  * fseek to offset and read in the Vnode there. Assume IndexType is set correctly.
  */
-int dumpstream::getVnode(int vnum, long unique, long Offset, VnodeDiskObject *vdo)
+int dumpstream::getVnode(int vnum, long unique, off_t offset, VnodeDiskObject *vdo)
 {
-    LogMsg(10, VolDebugLevel, stdout, "getVnode: vnum %d unique %d Offset %x Stream %s", vnum, unique, Offset, name);
+    LogMsg(10, VolDebugLevel, stdout, "getVnode: vnum %d unique %d offset %x Stream %s", vnum, unique, offset, name);
 
     if (name[0] == 0) {
       /* we are using stdin; seek() doesn't work */
       errno = EINVAL;
       return(-1);
     }
-    fseek(stream, Offset, 0);	/* Should I calculate the relative? */
+    fseeko(stream, offset, 0);	/* Should I calculate the relative? */
 
     int deleted;
-    long offset;
+    off_t pos;
     VnodeId vnodeNumber;
 
-    int result = getNextVnode(vdo, &vnodeNumber, &deleted, &offset);
+    int result = getNextVnode(vdo, &vnodeNumber, &deleted, &pos);
 
     if (result)
 	return result;
     
-    LogMsg(10, VolDebugLevel, stdout, "getVnode after getNextVnode: (%d, %d, %x)", vnodeNumber, deleted, offset);
-    CODA_ASSERT(Offset == offset);
+    LogMsg(10, VolDebugLevel, stdout, "getVnode after getNextVnode: (%x, %d, %lx)", vnodeNumber, deleted, pos);
+    CODA_ASSERT(offset == pos);
 
     CODA_ASSERT(((unsigned int)vnum) == vnodeNumber);	/* They'd better match! */
     CODA_ASSERT(unique == (long)vdo->uniquifier);
@@ -591,13 +592,13 @@ int dumpstream::getVnode(int vnum, long unique, long Offset, VnodeDiskObject *vd
  * Handle the file or directory data associated with Vnodes transparently.
  */
 
-int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber, int *deleted, long *offset)
+int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber, int *deleted, off_t *offset)
 {
     *deleted = 0;
     /* Skip over whatever garbage exists on the stream (remains of last vnode) */
     skip_vnode_garbage();
 
-    *offset = ftell(stream);
+    *offset = ftello(stream);
     /* Now we'd better either be reading a valid or a null Vnode */
     int tag = fgetc(stream); 
     if (tag == D_NULLVNODE){

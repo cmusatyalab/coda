@@ -98,6 +98,8 @@ OBJS =		${VOLUTILOBJS} ${VOLCLIENTOBJS}
 
 include $(TOPDIR)/configs/Makerules
 
+CXXFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+
 libvolutil.a:	${VOLUTILOBJS} 
 libvolserv.a:   volutil.o
 

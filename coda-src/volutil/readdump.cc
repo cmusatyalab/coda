@@ -312,7 +312,7 @@ void setIndex(int largc, char **largv) {
 	char buf[SIZEOF_LARGEDISKVNODE];
 	VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
 	VnodeId vn;
-	long offset;
+	off_t offset;
 	int del, count = 0;
 
 	while (DumpStream->getNextVnode(vnode, &vn, &del, &offset) != -1) {
@@ -353,7 +353,7 @@ void skipVnodes(int largc, char **largv) {
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     VnodeId vnum;
-    long offset;
+    off_t offset;
     int del;
     
     for (long i = 0; i < n; i++) {
@@ -394,7 +394,7 @@ void showVnodeDiskObject(int largc, char **largv)
     char buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     VnodeId vnum;
-    long offset;
+    off_t offset;
     int del;
     if (DumpStream->getNextVnode(vnode, &vnum, &del, &offset)) {
 	printf("Not positioned at a vnode, perhaps no more vNodes\n");

@@ -52,7 +52,8 @@ extern "C" {
 #include "dumpstream.h"
 
 typedef struct entry {
-    long unique, offset;
+    long unique;
+    off_t offset;
     dumpstream *dump;
     struct entry *next;
 } ventry;
@@ -209,7 +210,7 @@ static void BuildTable(dumpstream *dump, vtable *table)
     CODA_ASSERT(table->table != NULL);
     memset((void *)table->table, 0, sizeof(ventry*) * table->nslots);
     for (int i = 0; i < table->nvnodes; i++) {
-	long offset;
+	off_t offset;
 	int deleted;
 	if (dump->getNextVnode(vdo, &vnodeNumber, &deleted, &offset) == -1) {
 	    LogMsg(0, VolDebugLevel, stderr, "ERROR -- Failed to get a vnode!");
@@ -263,7 +264,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
     }
 
     int deleted;
-    long offset;
+    off_t offset;
     while (dump->getNextVnode(vdo, &vnodeNumber, &deleted, &offset) != -1) {
 	int vnum = vnodeIdToBitNumber(vnodeNumber);
 	CODA_ASSERT(vnum >= 0);

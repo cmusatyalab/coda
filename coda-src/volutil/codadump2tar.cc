@@ -436,7 +436,7 @@ void ProcessDirectory()
   char tmpbuf[SIZEOF_LARGEDISKVNODE];
   VnodeDiskObject *vdo = (VnodeDiskObject *)&tmpbuf;
 
-  long offset= 0;
+  off_t offset = 0;
   int rc, deleted;
   VnodeId vn;
 
@@ -626,7 +626,7 @@ void ProcessFileOrSymlink() {
 
   VnodeDiskObject smallv;  /* can be local 'cause no ACL */
 
-  long offset= 0;
+  off_t offset = 0;
   int rc, deleted;
   VnodeId vn;
   DumpObject *dobj;

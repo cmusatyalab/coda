@@ -23,6 +23,11 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
+/* Enable 64-bit file offsets */
+/* eventually this should be used everywhere */
+#define _LARGEFILE_SOURCE 1
+#define _FILE_OFFSET_BITS 64
+
 #include <lwp/lwp.h>		/* Include all files referenced herein */
 #include <lwp/lock.h>
 #include <voltypes.h>
@@ -48,8 +53,8 @@ class dumpstream {
     int getDumpHeader(struct DumpHeader *);
     int getVolDiskData(VolumeDiskData *);
     int getVnodeIndex(VnodeClass, long *, long *);
-    int getNextVnode(VnodeDiskObject *, VnodeId *, int *, long *);
-    int getVnode(int vnum, long unique, long offset, VnodeDiskObject *vdo);
+    int getNextVnode(VnodeDiskObject *, VnodeId *, int *, off_t *offset);
+    int getVnode(int vnum, long unique, off_t offset, VnodeDiskObject *vdo);
     int copyVnodeData(DumpBuffer_t *);		/* Copy entire vnode into DumpFd*/
     int EndOfDump();				/* See if ENDDUMP is present */
     void setIndex(VnodeClass);
