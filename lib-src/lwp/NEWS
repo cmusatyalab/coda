@@ -1,3 +1,7 @@
+New in 1.9:
+
+* autoconf 2.5x.
+
 New in 1.8:
 
 * gcc-3.0 compilation (trailing garbage after #endif).
