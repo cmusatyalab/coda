@@ -22,7 +22,6 @@ dnl Checks for programs.
 AC_PROG_CC
 CODA_PROG_NATIVECC
 AC_PROG_CPP
-AC_PROG_RANLIB
 AC_CHECK_PROG(AR, ar, ar)
 export AR
 AM_PROG_LEX
