@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/libcs/RCS/libcs.h,v 4.1 1997/01/08 21:53:57 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/libcs/libcs.h,v 4.2 1997/02/26 16:04:55 rvb Exp $";
 #endif /*_BLURB_*/
 
 #ifndef	_LIBCS_H_
@@ -154,7 +154,6 @@ extern struct passwd *getpwwho __P((const char *));
 extern struct passwd *getpwambig __P((void));
 
 /*  CMU time additions */
-extern time_t gtime __P((const struct tm *));
 extern time_t atot __P((const char *));
 extern char *fdate __P((char *, const char *, const struct tm *));
 extern int parsedate __P((const char *, struct tm *, int, int, int));
