@@ -101,8 +101,8 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
 	/* return garbage in VV */
 	return 0;
     }
-    memmove((void *) Fid, (void *)buf, sizeof(ViceFid));
-    memmove((void *)VV, (char *)buf+sizeof(ViceFid), sizeof(ViceVersionVector));
+    memcpy((void *) Fid, (void *)buf, sizeof(ViceFid));
+    memcpy((void *)VV, (char *)buf+sizeof(ViceFid), sizeof(ViceVersionVector));
     return 0;
 }
 
@@ -222,16 +222,18 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 	  return -1;
       } 
 
-      for (count = 0, dp = readdir(dirp); dp != NULL; dp = readdir(dirp)){
-	  char *path;
+      for (count = 0, dp = readdir(dirp); dp != NULL; dp = readdir(dirp))
+      {
+          char *path;
 
-	  if (!strcmp(".", dp->d_name) || !strcmp("..", dp->d_name))
-	      continue;
-	  path = (char *)malloc(strlen(names[j]) + strlen(dp->d_name) + 5);
-	  strcpy(path, names[j]);
-	  strcat(path, dp->d_name);
-	  if (res_getfid(path, &Fid, &VV)) return -1;
-
+          if (!strcmp(".", dp->d_name) || !strcmp("..", dp->d_name))
+              continue;
+          path = (char *)malloc(strlen(names[j]) + strlen(dp->d_name) + 5);
+          strcpy(path, names[j]);
+          strcat(path, dp->d_name);
+          if (res_getfid(path, &Fid, &VV))
+              continue;
+    
 	  /* get index of direntry */
 	  i = nextindex();
 	  if (Fid.Vnode != 1 || Fid.Unique != 1) {
