@@ -44,20 +44,19 @@ Pittsburgh, PA.
 \*******************************************************************/
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include "rp2.h"
 
-no_storage(proc)
-    char *proc;
+void no_storage(char *proc)
 {
     printf("[RP2GEN: Out of storage in routine %s]\n", proc);
     exit(1);
 }
 
-char *copy(s)
-    char *s;
+char *copy(char *s)
 {
-    register char *new;
-    register int32_t len;
+    char *new;
+    int32_t len;
 
     len = strlen(s) + 1;
     new = (char *) malloc(len);
@@ -91,7 +90,7 @@ PROC *get_head()
 RPC2_TYPE *rpc2_enum_type(values)
     ENUM **values;
 {
-    register RPC2_TYPE *type;
+    RPC2_TYPE *type;
 
     type = (RPC2_TYPE *) malloc(sizeof(RPC2_TYPE));
     if (type == NIL) no_storage("rpc2_enum_type");
@@ -103,7 +102,7 @@ RPC2_TYPE *rpc2_enum_type(values)
 RPC2_TYPE *rpc2_struct_type(struct_fields)
     VAR **struct_fields;
 {
-    register RPC2_TYPE *type;
+    RPC2_TYPE *type;
 
     type = (RPC2_TYPE *) malloc(sizeof(RPC2_TYPE));
     if (type == NIL) no_storage("rpc2_struct_type");
@@ -115,7 +114,7 @@ RPC2_TYPE *rpc2_struct_type(struct_fields)
 RPC2_TYPE *rpc2_simple_type(tag)
     TYPE_TAG tag;
 {
-    register RPC2_TYPE *type;
+    RPC2_TYPE *type;
 
     type = (RPC2_TYPE *) malloc(sizeof(RPC2_TYPE));
     if (type == NIL) no_storage("rpc2_simple_type");
@@ -123,8 +122,7 @@ RPC2_TYPE *rpc2_simple_type(tag)
     return type;
 }
 
-print_var(v)
-    register VAR *v;
+void print_var(VAR *v)
 {
     switch (v->mode) {
 	case NO_MODE:		break;
@@ -139,11 +137,8 @@ print_var(v)
     }
     printf("%s %s", v->type->name, v->name);
 }
-
-VAR *make_var(name, mode, type)
-    char *name;
-    MODE mode;
-    ENTRY *type;
+
+VAR *make_var(char *name, MODE mode, ENTRY *type)
 {
     VAR *var;
 
@@ -173,7 +168,7 @@ ENTRY *make_entry(type, defined)
 ENUM *make_enum(name, rep)
     char *name, *rep;
 {
-    register ENUM *e;
+    ENUM *e;
 
     e = (ENUM *) malloc(sizeof(ENUM));
     if (e == NIL) no_storage("make_enum");
@@ -207,11 +202,11 @@ PROC *make_proc(opnum, name, formals, timeout, new_connection)
 PROC *check_proc(proc)
     PROC *proc;
 {
-    register VAR **formals;
+    VAR **formals;
 
     /* Look for <= 1 RPC2_BulkDescriptor parameter */
     for (formals=proc->formals; *formals!=NIL; formals++)
-	if ((*formals)->type->type->tag == RPC2_BULKDESCRIPTOR_TAG)
+	if ((*formals)->type->type->tag == RPC2_BULKDESCRIPTOR_TAG) {
 	    if (proc->bd != NIL) {
 		printf("RP2GEN: too many bulk descriptors to proc: %s\n", proc->name);
 		exit(1);
@@ -220,14 +215,15 @@ PROC *check_proc(proc)
 		    printf("RP2GEN: usage for RPC2_BulkDescriptor must be IN OUT: %s\n", (*formals)->name);
 		proc -> bd = *formals;
 	    }
+	}
     return proc;
 }
 
 char *concat(s1, s2)
     char *s1, *s2;
 {
-    register char *new;
-    register int32_t len1, len2;
+    char *new;
+    int32_t len1, len2;
 
     len1 = strlen(s1);
     len2 = strlen(s2);
@@ -242,7 +238,7 @@ char *concat(s1, s2)
 char *concat3elem(s1, s2, s3)
     char *s1, *s2, *s3;
 {
-    register char *new, *temp;
+    char *new, *temp;
 
     temp = concat(s1, s2);
     new = concat(temp, s3);
@@ -253,9 +249,9 @@ char *concat3elem(s1, s2, s3)
 char *coda_rp2_basename(name)
     char *name;
 {
-    register char *p, *l, *r;
-    register int32_t len;
-    register char *base;
+    char *p, *l, *r;
+    int32_t len;
+    char *base;
 
     /* Save pointer to left end  -- i.e., last '/' */
     l = name - 1;
@@ -283,11 +279,9 @@ char *coda_rp2_basename(name)
 
 char *date()
 {
-    extern long time();
-    extern char *ctime();
     long clock;
 
-    clock = time(0);
+    clock = time(NULL);
     return ctime(&clock);
 }
 

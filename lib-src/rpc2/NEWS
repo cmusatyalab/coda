@@ -12,6 +12,7 @@ New in 1.13:
 * Added delayed acks, when an RPC2 operation on the server is taking more than
   200ms, an unsolicited RPC2_BUSY is sent back to the client to avoid
   unnecessary retransmissions of the request.
+* Applied rp2gen patch from Jeff Bachtel.
 
 New in 1.12:
 

@@ -50,7 +50,7 @@ extern ENTRY *make_entry(), *find();
 extern ENUM *make_enum();
 extern VAR *make_var();
 extern PROC *make_proc(), *check_proc();
-extern enter();
+extern void enter();
 extern char *concat();
 extern struct subsystem subsystem;
 extern void no_storage(char *);
@@ -298,7 +298,7 @@ define			: DEFINE IDENTIFIER NUMBER
 
 typedef			: TYPEDEF rpc2_type IDENTIFIER array_spec ';'
 					{
-					    extern spit_type();
+					    extern void spit_type();
 					    $2 -> name = $3;
 					    $2 -> bound = $4;
 					    if ($2->bound != NIL && $2->type->tag != RPC2_BYTE_TAG) {

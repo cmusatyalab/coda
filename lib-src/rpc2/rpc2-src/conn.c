@@ -45,6 +45,7 @@ Pittsburgh, PA.
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <time.h>
 #include <assert.h>
 #include "rpc2.private.h"
 

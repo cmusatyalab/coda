@@ -40,6 +40,7 @@ Pittsburgh, PA.
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/param.h>
+#include <time.h>
 #include <unistd.h>
 #include "rp2.h"
 
@@ -51,8 +52,8 @@ static void badargs(void);
 extern char *coda_rp2_basename(char * name);
 extern rp2_bool include2(char *name, char *proc);
 
-extern no_storage();
-extern init_lex(), init_table(), yyparse();
+extern void no_storage();
+extern void init_lex(), init_table(), yyparse();
 
 struct subsystem subsystem;	/* Holds global subsystem information */
 char *server_prefix, *client_prefix;
@@ -107,7 +108,7 @@ char **cpatharray;  /* array of strings indicating search paths for
                   included files (defined by -I flag) */
 int32_t  cpathcnt; /* no of elements in cpath, initially 0 */
 
-unsigned versionnumber;	/* used to check version */
+time_t versionnumber;	/* used to check version */
 
 /* forward decls */
 static int32_t GetArgs();
@@ -343,27 +344,27 @@ static int32_t header(f, prefix)
 * 			     *
 \****************************/
 
-static int cant_happen(type, who, where)
+static void cant_happen(type, who, where)
     ENTRY *type;
     WHO who;
     FILE *where;
 {
     puts("RP2GEN [can't happen]: no specified language");
     abort();
-    return(0);
+    return;
 }
 
-extern cinclude(), cdefine(), ctype(), cproc(), copcodes();
+extern void cinclude(), cdefine(), ctype(), cproc(), copcodes();
 
-static int no_support();
+static void no_support();
 
 static struct {
     char	*name;		/* Name for printing */
-    int32_t		(*include)();	/* Routine for outputting include to file */
-    int32_t		(*define)();	/* Routine for outputting define to file */
-    int32_t		(*type)();	/* Routine for outputting type to file */
-    int32_t		(*proc)();	/* Routine for outputting procedure to file */
-    int32_t		(*op_codes)();	/* Routine for generating op codes in .h file */
+    void	(*include)();	/* Routine for outputting include to file */
+    void	(*define)();	/* Routine for outputting define to file */
+    void	(*type)();	/* Routine for outputting type to file */
+    void	(*proc)();	/* Routine for outputting procedure to file */
+    void	(*op_codes)();	/* Routine for generating op codes in .h file */
 } lang_struct[] = {
 
 	/* NONE */	{ "N/A",	cant_happen,	cant_happen,	cant_happen,	cant_happen,	cant_happen	},
@@ -373,14 +374,14 @@ static struct {
 
 };
 
-static int no_support(type, who, where)
+static void no_support(type, who, where)
     ENTRY *type;
     WHO who;
     FILE *where;
 {
   printf("RP2GEN: no language support for %s\n", 
   lang_struct[(int32_t) clanguage].name);
-    exit(1);
+  exit(1);
 }
 
 void spit_type(type)
@@ -426,12 +427,13 @@ static int32_t do_procs()
     /* Do language-independent checks */
     seen_new_connection = RP2_FALSE;
     for (proc=head; proc!=NIL; proc=proc->thread) {
-	if (proc->new_connection)
+	if (proc->new_connection) {
 	    if (seen_new_connection) {
 		puts("RP2GEN: too many NEW_CONNECTION procedures specified");
 		exit(1);
 	    } else
 		seen_new_connection = RP2_TRUE;
+	}
     }
 
     /* Generate op codes in .h file */

@@ -144,9 +144,9 @@ static void init_stubspecial()
     }
 }
 
-init_table()
+void init_table(void)
 {
-    register int i;
+    int i;
 
     for (i=0; i<SYMTAB_SIZE; i++) table[i] = NIL;
 
@@ -186,10 +186,9 @@ ENTRY *find(name)
     return NIL;
 }
 
-enter(e)
-    register ENTRY *e;
+void enter(ENTRY *e)
 {
-    register int index;
+    int index;
 
     if (find(e->name) != NIL) {
 	printf("RP2GEN: duplicate identifier: %s, ignoring\n", e->name);

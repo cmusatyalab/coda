@@ -55,6 +55,7 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/time.h>
+#include <time.h>
 #include <errno.h>
 #include <assert.h>
 #include <sys/file.h>
@@ -532,13 +533,13 @@ long RPC2_DumpState(DumpFile, Verbosity)
     {/* NOTE: not surrounded by rpc2_Enter() and rpc2_Quit() */
 
 #ifdef RPC2DEBUG
-    long when = rpc2_time();
+    time_t when = rpc2_time();
     char where[100];
     
     if (DumpFile == NULL) 
 	    DumpFile = stdout;	/* it's ok, call-by-value */
     gethostname(where, sizeof(where));
-    fprintf(DumpFile, "\n\n\t\t\tRPC2 Runtime State on %s at %s\n", where, ctime((time_t *)&when));
+    fprintf(DumpFile, "\n\n\t\t\tRPC2 Runtime State on %s at %s\n", where, ctime(&when));
     fprintf(DumpFile, "rpc2_ConnCreationCount = %ld  rpc2_ConnCount = %ld  rpc2_ConnFreeCount = %ld\n",
     	rpc2_ConnCreationCount, rpc2_ConnCount, rpc2_ConnFreeCount);
     fprintf(DumpFile, "rpc2_PBCount = %ld  rpc2_PBHoldCount = %ld  rpc2_PBFreezeCount = %ld\n", rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount);

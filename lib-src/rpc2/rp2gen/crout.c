@@ -44,6 +44,7 @@ Pittsburgh, PA.
 *								    *
 \*******************************************************************/
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <sys/param.h>
@@ -58,42 +59,42 @@ Pittsburgh, PA.
 
 static int buffer_checked = 0;
 
-static dump_procs(PROC *head, FILE *where);
-static print_type(RPC2_TYPE *t, FILE *where, char *name);
-static print_var(VAR *v, FILE *where);
-static locals(FILE *where);
-static common(FILE *where);
-static client_procs(PROC *head, FILE *where);
-static one_client_proc(PROC *proc, FILE *where);
-static spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header);
-static for_limit(VAR *parm, WHO who, FILE *where);
-static spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *where);
+static void dump_procs(PROC *head, FILE *where);
+static void print_type(RPC2_TYPE *t, FILE *where, char *name);
+static void print_var(VAR *v, FILE *where);
+static void locals(FILE *where);
+static void common(FILE *where);
+static void client_procs(PROC *head, FILE *where);
+static void one_client_proc(PROC *proc, FILE *where);
+static void spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header);
+static void for_limit(VAR *parm, WHO who, FILE *where);
+static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *where);
 static char *field_name(VAR *parm, char *prefix);
 static char *field_name2(VAR *parm, char *prefix, char *suffix);
-static array_print_size(WHO who, VAR *parm, char *prefix, FILE *where);
-static print_size(WHO who, VAR *parm, char *prefix, FILE *where);
-static inc(char *what, char *by, FILE *where);
-static inc4(char *what, FILE *where);
-static set_timeout(PROC *proc, FILE *where);
-static pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where);
-static unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where);
-static server_procs(PROC *head, FILE *where);
-static check_new_connection(PROC *proc);
-static one_server_proc(PROC *proc, FILE *where);
-static free_boundedbs(VAR *parm, FILE *where);
-static alloc_dynamicarray(VAR *parm, WHO who, FILE *where);
-static free_dynamicarray(VAR *parm, FILE *where);
-static pass_parm(VAR *parm, FILE *where);
-static execute(PROC *head, FILE *where);
-static multi_procs(PROC *head, FILE *where);
-static pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t arg);
-static do_struct(VAR **fields, int32_t proc, int32_t arg, int32_t level, int32_t cur_struct, FILE *where);
-static macro_define(FILE *where);
-static version_check(FILE *where);
-static declare_CallCount(PROC *head, FILE *where);
-static declare_MultiCall(PROC *head, FILE *where);
-static declare_LogFunction(PROC *head, FILE *where);
-static print_stubpredefined(FILE *where);
+static void array_print_size(WHO who, VAR *parm, char *prefix, FILE *where);
+static void print_size(WHO who, VAR *parm, char *prefix, FILE *where);
+static void inc(char *what, char *by, FILE *where);
+static void inc4(char *what, FILE *where);
+static void set_timeout(PROC *proc, FILE *where);
+static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where);
+static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where);
+static void server_procs(PROC *head, FILE *where);
+static void check_new_connection(PROC *proc);
+static void one_server_proc(PROC *proc, FILE *where);
+static void free_boundedbs(VAR *parm, FILE *where);
+static void alloc_dynamicarray(VAR *parm, WHO who, FILE *where);
+static void free_dynamicarray(VAR *parm, FILE *where);
+static void pass_parm(VAR *parm, FILE *where);
+static void execute(PROC *head, FILE *where);
+static void multi_procs(PROC *head, FILE *where);
+static void pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t arg);
+static void do_struct(VAR **fields, int32_t proc, int32_t arg, int32_t level, int32_t cur_struct, FILE *where);
+static void macro_define(FILE *where);
+static void version_check(FILE *where);
+static void declare_CallCount(PROC *head, FILE *where);
+static void declare_MultiCall(PROC *head, FILE *where);
+static void declare_LogFunction(PROC *head, FILE *where);
+static void print_stubpredefined(FILE *where);
 
 extern char *concat(), *concat3elem(), *server_prefix, *client_prefix;;
 extern rp2_bool testing;
@@ -130,10 +131,7 @@ char *MultiTypes[] = {	"RPC2_INTEGER_TAG",
 			"RPC2_DOUBLE_TAG"
 };
 
-cinclude(filename, who, where)
-    char *filename;
-    WHO who;
-    FILE *where;
+void cinclude(char *filename, WHO who, FILE *where)
 {
     char ifdefname[MAXPATHLEN+1], spitname[MAXPATHLEN+1];
     char *p, *s;
@@ -163,18 +161,13 @@ cinclude(filename, who, where)
     fprintf(where, "#include \"%s\"\n", spitname);
     fprintf(where, "#endif /* %s */\n", ifdefname);
 }
-
-cdefine(id, value, who, where)
-    char *id, *value;
-    WHO who;
-    FILE *where;
+
+void cdefine(char *id, char *value, WHO who, FILE *where)
 {
     fprintf(where, "#define %s\t%s\n", id, value);
 }
-ctype(e, who, where)
-    register ENTRY *e;
-    WHO who;
-    register FILE *where;
+
+void ctype(ENTRY *e, WHO who, FILE *where)
 {
     fprintf(where, "\ntypedef ");
     if (e->defined != NIL)
@@ -201,10 +194,8 @@ static rp2_bool legal_struct_fields[] = {
 	/* RPC2_Double */		RP2_TRUE
 };
 
-static print_type(t, where, name)
-    RPC2_TYPE *t;
-    register FILE *where;
-    char *name;	    /* used to label struct typedefs */
+static void print_type(RPC2_TYPE *t, FILE *where, char *name)
+/* used to label struct typedefs */
 {
     switch (t->tag) {
 	case RPC2_INTEGER_TAG:
@@ -218,7 +209,7 @@ static print_type(t, where, name)
 	case RPC2_DOUBLE_TAG: printf("RP2GEN [can't happen]: impossible type in PRINT_TYPE: %d\n", t->tag);
 					abort();
 	case RPC2_STRUCT_TAG:		{
-					    register VAR **v;
+					    VAR **v;
 					    fprintf(where, "struct %s {\n", name);
 					    for (v=t->fields.struct_fields; *v!=NIL; v++) {
 						if (!legal_struct_fields[(int32_t) (*v)->type->type->tag]) {
@@ -233,8 +224,8 @@ static print_type(t, where, name)
 					}
 					break;
 	case RPC2_ENUM_TAG:		{
-					    register ENUM **id;
-					    register rp2_bool first;
+					    ENUM **id;
+					    rp2_bool first;
 					    fputs("enum{", where);
 					    for (id=t->fields.values, first=RP2_TRUE; *id!=NIL; id++) {
 						if (!first)
@@ -252,21 +243,16 @@ static print_type(t, where, name)
     }
 }
 
-static print_var(v, where)
-    register VAR *v;
-    FILE *where;
+static void print_var(VAR *v, FILE *where)
 {
     fprintf(where, "%s %s", v->type->name, v->name);
 }
-
-copcodes(head, who, where)
-    register PROC *head;
-    WHO who;
-    register FILE *where;
+
+void copcodes(PROC *head, WHO who, FILE *where)
 {
     int32_t next_opnum; /* op code number to use if one not explicitly specified */
-    register char *args, *def;
-    register VAR **var;
+    char *args, *def;
+    VAR **var;
     char msg[100];
 
 
@@ -378,7 +364,7 @@ copcodes(head, who, where)
 }
 
 cproc(head, who, where)
-    register PROC *head;
+    PROC *head;
     WHO who;
     FILE *where;
 {
@@ -412,17 +398,14 @@ static char timestart[] = "_timestart";
 static char timeend[] = "_timeend";
 
 
-static locals(where)
-    FILE *where;
+static void locals(FILE *where)
 {
     fprintf(where, "    RPC2_Byte *%s;\n", ptr);
     fprintf(where, "    long %s, %s, %s;\n", length, rpc2val, code);
     fprintf(where, "    RPC2_PacketBuffer *%s;\n", rspbuffer);
-
 }
 
-static common(where)
-    register FILE *where;
+static void common(FILE *where)
 {
 	fputs("\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n", where);
 	fputs("\n#include <sys/types.h>\n#include <netinet/in.h>\n#include <sys/time.h>\n", where);
@@ -433,9 +416,7 @@ static common(where)
     fputs("\n#define _PAD(n)\t((((n)-1) | 3) + 1)\n", where);
 }
 
-static client_procs(head, where)
-    PROC *head;
-    FILE *where;
+static void client_procs(PROC *head, FILE *where)
 {
     /* Generate preliminary stuff */
     common(where);
@@ -451,12 +432,10 @@ static client_procs(head, where)
 	if (!head->new_connection) one_client_proc(head, where);
 }
 
-static one_client_proc(proc, where)
-    register PROC *proc;
-    register FILE *where;
+static void one_client_proc(PROC *proc, FILE *where)
 {
-    register VAR **parm;
-    register rp2_bool in_parms, out_parms;
+    VAR **parm;
+    rp2_bool in_parms, out_parms;
 
     /* Output name */
     fputs("\nlong ", where);
@@ -533,14 +512,11 @@ static int32_t deref_table[][4] = {
 	/* RPC2_Double */	{	-2,	0,	1,	1 }
 };
 
-static spit_parm(parm, who, where, header)
-    VAR *parm;
-    WHO who;
-    FILE *where;
-    rp2_bool header;    /* type info for c++ header? */
+static void spit_parm(VAR *parm, WHO who, FILE *where, rp2_bool header)
+/* type info for c++ header? */
 {
-    register ENTRY *type;
-    register int32_t levels;
+    ENTRY *type;
+    int32_t levels;
 
     if (!header)    /* output mode info for parm lists */
 	fprintf(where, "    /*%s*/\t", mode_names[(int32_t) parm->mode]);
@@ -579,12 +555,9 @@ static spit_parm(parm, who, where, header)
     }
 }
 
-static for_limit(parm, who, where)
-    VAR *parm;
-    WHO who;
-    register FILE *where;
+static void for_limit(VAR *parm, WHO who, FILE *where)
 {
-    register int32_t levels;
+    int32_t levels;
 
     /* Output appropriate levels of referencing */
     levels = deref_table[(int32_t)RPC2_INTEGER_TAG][(int32_t) parm->mode];
@@ -603,13 +576,10 @@ static for_limit(parm, who, where)
 }
 
 
-static spit_body(proc, in_parms, out_parms, where)
-    register PROC *proc;
-    rp2_bool in_parms, out_parms;
-    register FILE *where;
+static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *where)
 {
-    register VAR **parm;
-    register rp2_bool first, array_parms;
+    VAR **parm;
+    rp2_bool first, array_parms;
     char *has_bd;
 
     /* Declare locals */
@@ -787,22 +757,18 @@ static char *field_name2(parm, prefix, suffix)
     return result;
 }
 
-static array_print_size(who, parm, prefix, where)
-    WHO who;
-    register VAR *parm;
-    register char *prefix;
-    FILE *where;
+static void array_print_size(WHO who, VAR *parm, char *prefix, FILE *where)
 {
-    register char *name, *suffix;
-    register MODE mode;
+    char *name, *suffix;
+    MODE mode;
 
     mode = parm->mode;
     suffix = concat3elem("[", iterate, "]");
     switch (parm->type->type->tag) {
 	case RPC2_STRUCT_TAG:		if (parm->array != NIL) { /* Array Type */
-					    register VAR **field;
-					    register rp2_bool first;
-					    register char *newprefix;
+					    VAR **field;
+					    rp2_bool first;
+					    char *newprefix;
 					/*  newprefix = (who == SERVER
 								? concat(prefix, concat(parm->name, concat(suffix, ".")))
 								: field_name2(parm, prefix, suffix));
@@ -823,13 +789,9 @@ static array_print_size(who, parm, prefix, where)
     free(suffix);
 }
 
-static print_size(who, parm, prefix, where)
-    WHO who;
-    register VAR *parm;
-    register char *prefix;
-    FILE *where;
+static void print_size(WHO who, VAR *parm, char *prefix, FILE *where)
 {
-    register char *name, *select;
+    char *name, *select;
 
     name = concat(prefix, parm->name);
 /*  In addition to the following check, mode should be examined       */
@@ -873,9 +835,9 @@ static print_size(who, parm, prefix, where)
 	case RPC2_ENCRYPTIONKEY_TAG:	fputs("_PAD(RPC2_KEYSIZE)", where);
 					break;
 	case RPC2_STRUCT_TAG:		if (parm->array == NIL) { /* NOT Array Type */
-					    register VAR **field;
-					    register rp2_bool first;
-					    register char *newprefix;
+					    VAR **field;
+					    rp2_bool first;
+					    char *newprefix;
 /*	How could this ever have worked?    newprefix = field_name(parm, prefix); */
 					    newprefix = (who == SERVER
 								? concat(prefix, concat(parm->name, "."))
@@ -895,16 +857,12 @@ static print_size(who, parm, prefix, where)
     free(name);
 }
 
-static inc(what, by, where)
-    char *what, *by;
-    FILE *where;
+static void inc(char *what, char *by, FILE *where)
 {
     fprintf(where, "    %s += _PAD(%s);\n", what, by);
 }
 
-static inc4(what, where)
-    char *what;
-    FILE *where;
+static void inc4(char *what, FILE *where)
 {
     fprintf(where, "    %s += 4;\n", what);
 }
@@ -927,9 +885,7 @@ static checkbuffer(where, what, size)
         buffer_checked = 1;
 }
 
-static set_timeout(proc, where)
-    PROC *proc;
-    register FILE *where;
+static void set_timeout(PROC *proc, FILE *where)
 {
     if (proc->timeout == NIL && !subsystem.timeout != NIL) {
 	fprintf(where, "%s = 0;\n", timeout);
@@ -946,15 +902,11 @@ static set_timeout(proc, where)
     fprintf(where, "; %s.tv_usec = 0; %s = &%s;\n", timeoutval, timeout, timeoutval);
 }
 
-static pack(who, parm, prefix, ptr, where)
-    WHO who;
-    register VAR *parm;
-    register char *prefix, *ptr;
-    register FILE *where;
+static void pack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 {
     extern char *concat();
-    register char *name, *select, *suffix;
-    register MODE mode;
+    char *name, *select, *suffix;
+    MODE mode;
 
     name = concat(prefix, parm->name);
     mode = parm -> mode;
@@ -1044,8 +996,8 @@ static pack(who, parm, prefix, ptr, where)
 	    fputs(";\n", where);
 	    break;
     case RPC2_STRUCT_TAG:		{
-	    register VAR **field;
-	    register char *newprefix;
+	    VAR **field;
+	    char *newprefix;
 
 	    /* Dynamic arrays are taken care of here. */
 	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
@@ -1090,14 +1042,10 @@ static pack(who, parm, prefix, ptr, where)
     free(suffix);
 }
 
-static unpack(who, parm, prefix, ptr, where)
-    WHO who;
-    register VAR *parm;
-    register char *prefix, *ptr;
-    register FILE *where;
-{
-    register char *name, *select, *suffix;
-    register MODE mode;
+static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
+ {
+    char *name, *select, *suffix;
+    MODE mode;
 
     name = concat(prefix, parm->name);
     mode = parm -> mode;
@@ -1238,8 +1186,8 @@ static unpack(who, parm, prefix, ptr, where)
 	    }
     case RPC2_BULKDESCRIPTOR_TAG:	break;
     case RPC2_STRUCT_TAG:		{
-	    register VAR **field;
-	    register char *newprefix;
+	    VAR **field;
+	    char *newprefix;
 	    
 	    /* Dynamic arrays are taken care of here. */
 	    /* If parm->array isn't NULL, this struct is used as DYNArray. */
@@ -1283,11 +1231,9 @@ static unpack(who, parm, prefix, ptr, where)
 }
 
 
-static server_procs(head, where)
-    PROC *head;
-    FILE *where;
+static void server_procs(PROC *head, FILE *where)
 {
-    register PROC *proc;
+    PROC *proc;
 
     /* Preliminary stuff */
     common(where);
@@ -1302,11 +1248,10 @@ static server_procs(head, where)
     execute(head, where);
 }
 
-static check_new_connection(proc)
-    PROC *proc;
+static void check_new_connection(PROC *proc)
 {
-    register VAR **formals;
-    register int32_t len;
+    VAR **formals;
+    int32_t len;
 
     /* Warn if timeout override specified */
     if (proc->timeout != NIL) puts("RP2GEN [warning]: TIMEOUT ignored on NEW CONNECTION procedure");
@@ -1325,12 +1270,10 @@ static check_new_connection(proc)
     }
 }
 
-static one_server_proc(proc, where)
-    register PROC *proc;
-    register FILE *where;
+static void one_server_proc(PROC *proc, FILE *where)
 {
     static char ptr[] = "_ptr";
-    register VAR **formals;
+    VAR **formals;
     rp2_bool first, in_parms, out_parms, array_parms;
 
     /* If NEW CONNECTION proc, check parameters */
@@ -1486,19 +1429,14 @@ static one_server_proc(proc, where)
     fputs("}\n", where);
 }
 
-static free_boundedbs(parm, where)
-    register VAR *parm;
-    FILE *where;
+static void free_boundedbs(VAR *parm, FILE *where)
 {
     fprintf(where, "    if (%s.SeqBody != 0) free((char *)%s.SeqBody);\n", parm->name, parm->name);
 }
 
-static alloc_dynamicarray(parm, who, where)
-    register VAR *parm;
-    WHO who;
-    FILE *where;
+static void alloc_dynamicarray(VAR *parm, WHO who, FILE *where)
 {
-    register MODE mode;
+    MODE mode;
 
     mode = parm -> mode;
     /* parm->arraymax is used without any modification.                 *
@@ -1512,18 +1450,14 @@ static alloc_dynamicarray(parm, who, where)
     fprintf(where, "\n        if (%s == NULL) return 0;\n    }\n", parm->name);
 }
 
-static free_dynamicarray(parm, where)
-    register VAR *parm;
-    FILE *where;
+static void free_dynamicarray(VAR *parm, FILE *where)
 {
     fprintf(where, "    if (%s != NULL) free((char *)%s);\n", parm->name, parm->name);
 }
 
-static pass_parm(parm, where)
-    register VAR *parm;
-    register FILE *where;
+static void pass_parm(VAR *parm, FILE *where)
 {
-    register MODE mode;
+    MODE mode;
 
     mode = parm -> mode;
     switch (parm->type->type->tag) {
@@ -1554,9 +1488,7 @@ static pass_parm(parm, where)
     }
 }
 
-static execute(head, where)
-    register PROC *head;
-    register FILE *where;
+static void execute(PROC *head, FILE *where)
 {
 #if	__GNUC__ < 2
     extern int32_t strlen();
@@ -1619,8 +1551,8 @@ static execute(head, where)
 
 /* spit out code to pretty print packets in tcpdump */
 static print_dump(head, where)
-    register PROC *head;
-    register FILE *where;
+    PROC *head;
+    FILE *where;
 {
 #if	__GNUC__ < 2
     extern int32_t strlen();
@@ -1653,7 +1585,7 @@ static print_dump(head, where)
     fputs("}\n", where);
 }
 
-static dump_procs(PROC *head, FILE *where)
+static void dump_procs(PROC *head, FILE *where)
 {
     /* Preliminary stuff */
     common(where); 
@@ -1664,13 +1596,11 @@ static dump_procs(PROC *head, FILE *where)
 }
 
 
-static multi_procs(head, where)
-    PROC *head;
-    FILE *where;
+static void multi_procs(PROC *head, FILE *where)
 {
-    register PROC *proc;     /* temp for iteration to create arg descriptors */
-    register VAR **var;
-    register char *args;
+    PROC *proc;     /* temp for iteration to create arg descriptors */
+    VAR **var;
+    char *args;
     char *subname;
     int32_t arg = 1;	     /* argument number in order of appearance */
 
@@ -1713,11 +1643,7 @@ static multi_procs(head, where)
 }
 
 
-static pr_size(parm, where, TOP, proc, arg)
-    register VAR *parm;
-    register FILE *where;
-    rp2_bool TOP;
-    int32_t proc, arg;
+static void pr_size(VAR *parm, FILE *where, rp2_bool TOP, int32_t proc, int32_t arg)
 {
     switch (parm->type->type->tag) {
 	case RPC2_BYTE_TAG:		/* Check for array */
@@ -1763,10 +1689,7 @@ static pr_size(parm, where, TOP, proc, arg)
 }
 
 
-static do_struct(fields, proc, arg, level, cur_struct, where)
- register VAR **fields;
- int32_t proc, arg, level, cur_struct;
- FILE *where;
+static void do_struct(VAR **fields, int32_t proc, int32_t arg, int32_t level, int32_t cur_struct, FILE *where)
  {
    VAR **field;
    int32_t structs = 0;
@@ -1793,8 +1716,7 @@ static do_struct(fields, proc, arg, level, cur_struct, where)
    fprintf(where, "\t\t{%s}\n\t};\n", MultiModes[4]);
  }
 
-static macro_define(where)
- FILE *where;
+static void macro_define(FILE *where)
 {
     char *subname;
     subname = subsystem.subsystem_name;
@@ -1803,8 +1725,7 @@ static macro_define(where)
     fprintf(where, "\n#define %s_HEAD_VERSION\t%d\n", subname, versionnumber);
 }
 
-static version_check(where)
- FILE *where;
+static void version_check(FILE *where)
 {
    fprintf(where, "\n\n#if (%s_HEAD_VERSION != %d)", subsystem.subsystem_name, versionnumber);
    fputs("\n; char *NOTE[] = ", where);
@@ -1815,9 +1736,7 @@ static version_check(where)
 }
 
 
-static declare_CallCount(head, where)
- PROC *head;
- FILE *where;
+static void declare_CallCount(PROC *head, FILE *where)
 {
    int i, last_op = -1;
    fprintf(where, "\nlong %s_ElapseSwitch = 0;\n", subsystem.subsystem_name);
@@ -1847,9 +1766,7 @@ static declare_CallCount(head, where)
 
 }
 
-static declare_MultiCall(head, where)
- PROC *head;
- FILE *where;
+static void declare_MultiCall(PROC *head, FILE *where)
 {
    PROC *threads;
    int   i, last_op = -1;
@@ -1896,9 +1813,7 @@ static declare_MultiCall(head, where)
 
 }
 
-static declare_LogFunction(head, where)
- PROC *head;
- FILE *where;
+static void declare_LogFunction(PROC *head, FILE *where)
 {
     char *array;
     char *work;
@@ -1950,8 +1865,7 @@ static declare_LogFunction(head, where)
 
 }
 
-static print_stubpredefined(where)
- FILE *where;    
+static void print_stubpredefined(FILE *where)
 {
     ENTRY *entryp;
     STUBELEM *sp; /* struct point */

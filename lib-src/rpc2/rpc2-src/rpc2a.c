@@ -938,7 +938,7 @@ long RPC2_Unbind(RPC2_Handle whichConn)
 }
 
 
-int rpc2_time()
+time_t rpc2_time()
 {
     return FT_ApproxTime();
 }

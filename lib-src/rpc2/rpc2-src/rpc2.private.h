@@ -531,7 +531,7 @@ long rpc2_TrueRandom();
 void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce);
 void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
 
-int rpc2_time();
+time_t rpc2_time();
 long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
 
 void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, 

@@ -41,6 +41,7 @@ Pittsburgh, PA.
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <string.h>
 #include "rp2.h"
 #include "rp2gen_parser.h"
 
@@ -92,8 +93,7 @@ do {                                                           \
  * happen with POSIX.
  */
 #undef unput
-static unput(c)
-    char c;
+static void unput(char c)
 {
     if (c == '\0') return;
 
@@ -226,7 +226,7 @@ SPACE		[ \t\014]
 
 %%
 
-ConsumeComment()
+void ConsumeComment(void)
 {
     /* terminated only by a star slash */
     char c, d;		/* d: most recent; c: last but one */
@@ -242,7 +242,7 @@ ConsumeComment()
     }
 }
 
-IncludeVerbatim()
+void IncludeVerbatim(void)
 {
     /* terminated only by a %} */
     register char c, d;		/* d: most recent; c: last but one */
@@ -289,7 +289,6 @@ static FILE *inc_open(name)
     char *name;
 {
     FILE *f;
-    char **d;
 
     /* 1st try name without any qualification */
     f = fopen(name, "r");
@@ -409,21 +408,19 @@ int yywrap()
     return 0;
 }
 
-yyerror(s)
-    char *s;
+void yyerror(char *s)
 {
     printf("FATAL ERROR, line %d: %s\n", line, s);
     exit(1);
 }
 
-yywarn(s)
-    char *s;
+void yywarn(char *s)
 {
     printf("WARNING, line %d: %s\n", line, s);
     return(0);
 }
 
-init_lex()
+void init_lex(void)
 {
     file = NIL;		/* Indicate no input file yet */
     line = 1;

@@ -162,7 +162,6 @@ void RPC2_DispatchProcess()
 
 void rpc2_ProcessPackets()
 {
-	struct CEntry *ce = NULL;
 	RPC2_PacketBuffer *pb = NULL;
         unsigned int i, ProtoVersion;
 	
