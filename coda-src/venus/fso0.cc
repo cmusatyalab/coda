@@ -1049,8 +1049,7 @@ RestartFind:
 			/* Otherwise, let fsdb::Get go ahead and fetch the object */
 		    }
 
-		    int nblocks;
-		    nblocks = (int) BLOCKS(f) - NBLOCKS(f->stat.GotThisData);
+		    int nblocks = BLOCKS(f);
 
 		    if (f->IsFile() && !HAVEDATA(f)) {
 			code = AllocBlocks(vp->u.u_priority, nblocks);
@@ -1079,6 +1078,12 @@ RestartFind:
 			    LOG(0, ("The advice was Unrecognized --> Fetching anyway.\n"));
 			    break;
                     }
+
+		    /* compensate # blocks for the amount we already have.
+		     * (only used for vmon statistical stuff later on, but
+		     * the fetch will modify f->stat.GotThisData) */
+		    nblocks -= NBLOCKS(f->stat.GotThisData);
+
 		    /* Let fsdb::Get go ahead and fetch the object */
 
 		    code = f->Fetch(vuid);

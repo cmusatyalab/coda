@@ -60,11 +60,11 @@ LIBVOLOBJS= dirvnode.o cvnode.o volume.o vutil.o vldb.o fssync.o \
 
 libvol.a: ${LIBVOLOBJS}
 
-testvsg: testvsg.o vsg.o $(LIBUTIL)
-	${CXX} ${LIBFLAGS} testvsg.o vsg.o $(LIBUTIL) -o testvsg
+testvsg: testvsg.o vsg.o $(LIBUTIL) $(LIBFIXUP)
+	${CXX} ${LIBFLAGS} testvsg.o vsg.o $(LIBUTIL) $(LIBFIXUP) -o testvsg
 
-testvrdb: testvrdb.o vrdb.o $(LIBUTIL)
-	${CXX} ${LIBFLAGS} testvrdb.o vrdb.o $(LIBUTIL) -o testvrdb
+testvrdb: testvrdb.o vrdb.o $(LIBUTIL) $(LIBFIXUP)
+	${CXX} ${LIBFLAGS} testvrdb.o vrdb.o $(LIBUTIL) $(LIBFIXUP) -o testvrdb
 
 
 include $(TOPDIR)/configs/Makerules

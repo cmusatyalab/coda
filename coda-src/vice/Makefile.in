@@ -71,7 +71,7 @@ CLIBS =	$(LIBVOLSERV)  \
 	$(LIBBASE)	\
 	$(LIBKVM)	\
 	$(LIBMACH)	\
-	$(LIBCOMPAT)	
+	$(LIBCOMPAT)
 
 objects=srvproc.o	\
 	srvproc2.o	\
@@ -83,11 +83,11 @@ objects=srvproc.o	\
 	smon.o		\
 	ViceErrorMsg.o	
 
-codasrv: ${objects} srv.o dummyplumber.o ${CLIBS}
-	$(CXX) $(LIBFLAGS)  srv.o ${objects} dummyplumber.o ${CLIBS} $(LGDBM) -lgdbm -lm -o codasrv
+codasrv: ${objects} srv.o dummyplumber.o ${CLIBS} $(LIBFIXUP)
+	$(CXX) $(LIBFLAGS) srv.o ${objects} dummyplumber.o ${CLIBS} $(LGDBM) -lgdbm -lm $(LIBFIXUP) -o codasrv
 
-printvrdb: printvrdb.o
-	$(CXX) ${LIBFLAGS} printvrdb.o -o printvrdb
+printvrdb: printvrdb.o $(LIBFIXUP)
+	$(CXX) ${LIBFLAGS} printvrdb.o $(LIBFIXUP) -o printvrdb
 
 libviceerror.a: ViceErrorMsg.o
 

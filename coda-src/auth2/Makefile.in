@@ -96,22 +96,22 @@ libauth2.a: $(LIBAUTH2OBJS)
 libauser.a: $(LIBAUSEROBJS)
 
 $(AUTH2): auth2.o libauth2.a $(LIBS)
-	$(CC) $(LIBFLAGS) auth2.o libauth2.a $(LIBS) $(LIBKRBS) $(LGDBM) -lgdbm -o $(AUTH2)
+	$(CC) $(LIBFLAGS) auth2.o libauth2.a $(LIBS) $(LIBKRBS) $(LGDBM) -lgdbm $(LIBFIXUP) -o $(AUTH2)
 
 initpw: initpw.o $(LIBS)
-	$(CC) $(LIBFLAGS) initpw.o $(LIBS) -o initpw
+	$(CC) $(LIBFLAGS) initpw.o $(LIBS) $(LIBFIXUP) -o initpw
 
 $(AU): au.o libauser.a $(LIBS)
-	$(CC) $(LIBFLAGS) au.o libauser.a $(LIBS) $(LIBKRBS) -o $(AU)
+	$(CC) $(LIBFLAGS) au.o libauser.a $(LIBS) $(LIBKRBS) $(LIBFIXUP) -o $(AU)
 
 $(CLOG): clog.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) clog.o libauser.a ${LIBS} $(LIBKRBS) -o $(CLOG)
+	${CC} $(LIBFLAGS) clog.o libauser.a ${LIBS} $(LIBKRBS) $(LIBFIXUP) -o $(CLOG)
 
 cunlog: cunlog.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) cunlog.o libauser.a ${LIBS} -o cunlog
+	${CC} $(LIBFLAGS) cunlog.o libauser.a ${LIBS} $(LIBFIXUP) -o cunlog
 
 cpasswd: cpasswd.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) cpasswd.o  libauser.a ${LIBS} ${LIBKRBS} -o cpasswd
+	${CC} $(LIBFLAGS) cpasswd.o  libauser.a ${LIBS} ${LIBKRBS} $(LIBFIXUP) -o cpasswd
 
 ctokens: ctokens.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) ctokens.o libauser.a ${LIBS} -o ctokens
+	${CC} $(LIBFLAGS) ctokens.o libauser.a ${LIBS} $(LIBFIXUP) -o ctokens

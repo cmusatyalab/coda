@@ -690,7 +690,6 @@ int fsobj::Flush() {
 	LOG(10, ("fsobj::Flush: (%x.%x.%x) !FLUSHABLE\n",
 		 fid.Volume, fid.Vnode, fid.Unique));
 	Demote();
-	k_Purge(&fid, 1);	/* Just in case Demote() didn't do it! -JJK */
 	return(EMFILE);
     }
 

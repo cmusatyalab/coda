@@ -590,7 +590,6 @@ printf("Ending %d\n", *level);
 
     (*level)--;
 }
-
 #endif 
 
 int f_list_coda_inodes(struct DiskPartition *dp, char *resultFile,

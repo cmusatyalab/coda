@@ -58,10 +58,10 @@ common_objects = norton-setup.o commands.o norton-volume.o \
 norton_objs =	norton.o ${common_objects}
 reinit_objs =	norton-reinit.o ${common_objects}
 
-norton: ${norton_objs} ${NLIBS}
-	$(CXX) $(LIBFLAGS) ${norton_objs} ${NLIBS} $(LGDBM) -lgdbm -o norton
+norton: ${norton_objs} ${NLIBS} ${LIBFIXUP}
+	$(CXX) $(LIBFLAGS) ${norton_objs} ${NLIBS} $(LGDBM) -lgdbm ${LIBFIXUP} -o norton
 
-norton-reinit: ${reinit_objs} ${NLIBS}
-	$(CXX) $(LIBFLAGS) ${reinit_objs} ${NLIBS} $(LGDBM) -lgdbm -o norton-reinit
+norton-reinit: ${reinit_objs} ${NLIBS} ${LIBFIXUP}
+	$(CXX) $(LIBFLAGS) ${reinit_objs} ${NLIBS} $(LGDBM) -lgdbm ${LIBFIXUP} -o norton-reinit
 
 include $(TOPDIR)/configs/Makerules

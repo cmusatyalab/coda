@@ -41,10 +41,10 @@ LIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(L
 libpartition.a: $(LIBOBS)
 
 makeftree: makeftree.o $(LIBS)
-	$(CC) -o makeftree makeftree.o $(LIBS) $(LIBMATH)
+	$(CC) -o makeftree makeftree.o $(LIBS) $(LIBMATH) $(LIBFIXUP)
 
 inoder: inoder.o $(LIBOBS)
-	$(CC) -o inoder inoder.o $(LIBS) $(LIBMATH)
+	$(CC) -o inoder inoder.o $(LIBS) $(LIBMATH) $(LIBFIXUP)
 
 
 include $(TOPDIR)/configs/Makerules

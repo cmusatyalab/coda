@@ -30,7 +30,7 @@ LIBOBJ = rds_coalesce.o rds_free.o rds_init.o rds_malloc.o rds_prealloc.o \
        rds_split.o rds_stats.o rds_start.o rds_util.o rds_zap.o 
 
 OBJ = rdsinit.o
-RDSINIT_LIBS = $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBCOMPAT) $(LIBTHREADS) $(LIBBASE)
+RDSINIT_LIBS = $(LIBSEG) $(LIBRVM) $(LIBOLDLWP) $(LIBCOMPAT) $(LIBTHREADS) $(LIBBASE) $(LIBFIXUP)
 
 
 HERE := $(shell basename `pwd`)

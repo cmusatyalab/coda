@@ -6,7 +6,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
     int res;
     
-    res = gettimeofday(tv, tz);
+    res = _gettimeofday(tv, tz);
     time(&tv->tv_sec);
 
     return res;

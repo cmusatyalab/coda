@@ -38,17 +38,17 @@ RESLIBOBJS = logalloc.o pdlist.o remotelog.o resclient.o lockqueue.o\
 libreslib.a:	${RESLIBOBJS}
 
 # Test programs
-resc: resc.o  vice.client.o callback.server.o $(RESC_LIBS)
-	$(CXX) $(LIBFLAGS) resc.o vice.client.o callback.server.o $(RESC_LIBS) -o resc
+resc: resc.o  vice.client.o callback.server.o $(RESC_LIBS) ${LIBFIXUP}
+	$(CXX) $(LIBFLAGS) resc.o vice.client.o callback.server.o $(RESC_LIBS) ${LIBFIXUP} -o resc
 
-testpdlist: testpdlist.o pdlist.o logalloc.o $(LIBUTIL)
-	$(CXX) $(LIBFLAGS) testpdlist.o pdlist.o logalloc.o ${LIBUTIL} -o testpdlist
+testpdlist: testpdlist.o pdlist.o logalloc.o $(LIBUTIL) ${LIBFIXUP}
+	$(CXX) $(LIBFLAGS) testpdlist.o pdlist.o logalloc.o ${LIBUTIL} ${LIBFIXUP} -o testpdlist
 
-test: test.o logalloc.o ${LIBUTIL}
-	$(CXX) $(LIBFLAGS) test.o logalloc.o ${LIBUTIL} -o test
+test: test.o logalloc.o ${LIBUTIL} ${LIBFIXUP}
+	$(CXX) $(LIBFLAGS) test.o logalloc.o ${LIBUTIL} ${LIBFIXUP} -o test
 
-timetest: timetest.o timing.o ${LIBUTIL}
-	$(CXX) $(LIBFLAGS) timetest.o timing.o ${LIBUTIL} -o timetest
+timetest: timetest.o timing.o ${LIBUTIL} ${LIBFIXUP}
+	$(CXX) $(LIBFLAGS) timetest.o timing.o ${LIBUTIL} ${LIBFIXUP} -o timetest
 
 
 ${RESLIBOBJS}: ${HEADERS}

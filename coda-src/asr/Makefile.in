@@ -44,7 +44,7 @@ OBJECTS = resolver_parser.o resolver_lexer.o ruletypes.o resolver.o wildmat.o pa
 include $(TOPDIR)/configs/Makerules
 
 parser: ${OBJECTS} $(LIBS)
-	$(CXX) $(LIBFLAGS) ${OBJECTS} $(LIBS) $(LEXLIB) -o parser
+	$(CXX) $(LIBFLAGS) ${OBJECTS} $(LIBS) $(LEXLIB) $(LIBFIXUP) -o parser
 
 # YYuck!  I don't know how to tell yyac to deliver a .cc extension  GRRR..(pjb)
 resolver_parser.o: resolver_parser.c

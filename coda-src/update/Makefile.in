@@ -66,7 +66,8 @@ LIBS=	${LIBVICEERROR}\
 	$(LIBTHREADS)\
 	$(LIBMACH)\
 	$(LIBCOMPAT)\
-	$(LIBBASE)
+	$(LIBBASE)\
+	$(LIBFIXUP)
 
 include $(TOPDIR)/configs/Makerules
 

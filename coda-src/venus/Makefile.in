@@ -52,7 +52,8 @@ LIBS=	$(LIBUTIL)\
 	$(LIBRPC2)\
 	$(LIBSE)\
 	$(LIBKVM)\
-	$(LIBBASE)
+	$(LIBBASE)\
+	$(LIBFIXUP)
 
 HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
 
