@@ -597,21 +597,31 @@ void tool_export(int argc, char *argv[])
 void tool_import(int argc, char *argv[])
 {
     FILE *userfile, *groupfile;
-    char user[64], group[64], owner_and_members[1024];
-    char *owner, *member, *s, *strtokarg = NULL;
+    char user[64], group[64], owner[64], member[64], *s;
     int32_t user_id, group_id, owner_id, member_id, create_id;
     int rc;
 
     if (check_args_num(argc, 3)) {
-	printf("Usage: import <userfile> <groupfile>\n");
+	fprintf(stderr, "Usage: import <userfile> <groupfile>\n");
+	return;
+    }
+
+    userfile = fopen(argv[1], "r");
+    if (!userfile) {
+	fprintf(stderr, "Can't open userfile '%s'\n", argv[1]);
+	return;
+    }
+
+    groupfile = fopen(argv[2], "r");
+    if (!groupfile) {
+	fprintf(stderr, "Can't open groupfile '%s'\n", argv[2]);
 	return;
     }
 
     /* recreate all users */
-    userfile = fopen(argv[1], "r");
     while(1) {
 	rc = fscanf(userfile, "%[^:]:%*[^:]:%d:%*[^\n]\n", user, &user_id);
-	if (rc < 0) break;
+	if (rc != 2) break;
 
 	if (user_id == 0) {
 	    printf("Userid 0 must be avoided, skipping entry for %s\n", user);
@@ -638,11 +648,10 @@ void tool_import(int argc, char *argv[])
     fclose(userfile);
     
     /* recreate groups */
-    groupfile = fopen(argv[2], "r");
     while (1) {
-	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%[^\n]\n",
-		    group, &group_id, owner_and_members);
-	if (rc < 0) break;
+	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%[^,\n]%*[^\n]\n",
+		    group, &group_id, owner);
+	if (rc != 3) break;
 
 	if (group_id == 0) {
 	    printf("Groupid 0 must be avoided, skipping entry for %s\n",
@@ -653,13 +662,11 @@ void tool_import(int argc, char *argv[])
 	/* restore the :'s in the group name */
 	s = group; while ((s = strchr(s, '%')) != NULL) *s = ':';
 
-	owner = strtok(owner_and_members, ",");
-
 	/* negate positive group ids, Coda groups are negative numbers */
 	if (group_id > 0) {
 	    group_id = -group_id;
 	    /* assuming this is the /etc/group file, force owner to System */
-	    owner = "System";
+	    strcpy(owner, "System");
 	}
 
 	/* create group */
@@ -689,9 +696,8 @@ void tool_import(int argc, char *argv[])
      * why we needed to create all the groups first */
     rewind(groupfile);
     while (1) {
-	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:%[^\n]\n",
-		    group, &group_id, owner_and_members);
-	if (rc < 0) break;
+	rc = fscanf(groupfile, "%[^:]:%*[^:]:%d:", group, &group_id);
+	if (rc != 2) break;
 
 	if (group_id == 0) continue;
 
@@ -700,16 +706,14 @@ void tool_import(int argc, char *argv[])
 
 	if (group_id > 0) {
 	    group_id = -group_id;
-	    strtokarg = owner_and_members;
 	} else {
 	    /* skip the owner when the group_id is negative */
-	    (void)strtok(owner_and_members, ",");
+	    fscanf(groupfile, "%[^,\n]%*[,]", owner);
 	}
 
 	/* add group members */
 	printf("Adding members to %s\n\t", group);
-	while ((member = strtok(strtokarg, ",")) != NULL) {
-	    strtokarg = NULL;
+	while (fscanf(groupfile, "%[^,\n]%*[,]", member) == 1) {
 	    /* restore the :'s in the name */
 	    s = member; while ((s = strchr(s, '%')) != NULL) *s = ':';
 
@@ -722,6 +726,7 @@ void tool_import(int argc, char *argv[])
 	    PDB_addToGroup(member_id, group_id);
 	    printf(" %s", member);
 	}
+	fgetc(groupfile); /* eat the '\n' */
 	printf("\n");
     }   
     fclose(groupfile);
