@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfsk.h,v 1.8 1998/08/18 16:31:48 rvb Exp $ */
+/* $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/netbsd/cfs/Attic/cfsk.h,v 1.9 1998/08/18 17:05:23 rvb Exp $ */
 
 /* Macros to manipulate the queue */
 #ifndef INIT_QUEUE
