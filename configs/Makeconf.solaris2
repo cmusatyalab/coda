@@ -17,7 +17,7 @@ LIBDL	      = -ldl
 LIBREADLINE   = -L/usr/local/lib -R/usr/local/lib -lreadline
 INCREADLINE   = -I/usr/local/include/readline
 #for rvm
-LIBTHREADS    = $(TOPDIR)/lib-src/mlwp/liboldlwp.a
+LIBTHREADS    = $(TOPOBJ)/lib-src/mlwp/liboldlwp.a
 LIBMACH       = 
 #for advice_srv
 #LIBKVM        = /usr/lib/libkvm.a

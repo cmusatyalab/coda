@@ -21,6 +21,7 @@ case ${target} in
 		case ${host_cpu} in
 			i*6 )   arch=i386 ;;
 			sparc ) arch=sparc ;;
+			arm32 ) arch=arm32 ;;
 		esac
 		vfsdir=bsd44
 		os=`uname -r`
