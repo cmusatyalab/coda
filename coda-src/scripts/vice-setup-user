@@ -44,6 +44,12 @@ echo "You need to give me a uid (not 0 or 1) and username (not root)"
 echo "for a Coda System:Administrator member on this server,"
 echo "(sort of a Coda super user)"
 echo
+echo "I will create the initial administrative user with Coda password"
+echo "\"changeme\". This user/password is only for authenticating with"
+echo "Coda and not for logging into your system (i.e. we don't use"
+echo "/etc/passwd authentication for Coda)"
+echo
+
  
 userid=
 until [ "x$userid" != x ]; do
@@ -98,7 +104,4 @@ rm pdbsetup
 echo "$userid	changeme	admin user" > passwd.coda
 initpw -k "drseuss " < passwd.coda > auth2.pw
 rm passwd.coda )
-
-echo "An initial administrative user $username (id $userid)"
-echo "with Coda password \"changeme\" now exists."
 
