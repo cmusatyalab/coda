@@ -6,6 +6,7 @@ usr/bin/norton
 usr/bin/norton-reinit
 usr/bin/reinit
 usr/bin/rpc2ping
+usr/bin/rvmsizer
 usr/bin/smon2
 usr/sbin/coda-server-logrotate
 usr/sbin/startserver

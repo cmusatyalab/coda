@@ -219,6 +219,7 @@ exit 0
 /usr/bin/norton-reinit
 /usr/bin/reinit
 /usr/bin/rpc2ping
+/usr/bin/rvmsizer
 /usr/bin/smon2
 /etc/rc.d/init.d/codasrv.init
 /etc/rc.d/init.d/auth2.init
