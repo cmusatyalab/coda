@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.10 1998/12/05 16:49:13 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.11 98/12/08 15:10:23 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,6 +68,7 @@ extern "C" {
 #include <se.h>
 #include <timer.h>
 #include <sftp.h>
+#include <signal.h>
 
 #include "vice.h"
 
@@ -134,7 +135,6 @@ struct printvals
 WINDOW *curWin;  /* where cursor sits */
 #define HOME() wmove(curWin, 0, 0); wclear(curWin); wrefresh(curWin);
 
-
 static void GetArgs(int argc, char *argv[]);
 static void InitRPC();
 static void DrawCaptions();
@@ -156,9 +156,25 @@ char Dummy; /* dummy variable for LWP_WaitProcess() */
 void print_stats(struct ViceStatistics *stats);
 #endif
 
+void
+cleanup_and_go(int ignored)
+{
+    endwin();
+    exit(0);
+}
+
 main(int argc, char *argv[])
     {
     int i;
+
+    /* lets try to leave the tty sane */
+    signal(SIGINT,  cleanup_and_go);
+#if 0
+    signal(SIGKILL, cleanup_and_go);
+    signal(SIGTERM, cleanup_and_go);
+    signal(SIGSEGV, cleanup_and_go);
+    signal(SIGBUS,  cleanup_and_go);
+#endif
     
 #ifdef	DEBUG
     dbg = fopen("/tmp/cmon_dbg", "w");
@@ -174,14 +190,14 @@ main(int argc, char *argv[])
     }
 #endif
 
+    initscr();
+    curWin = newwin(1, 1, 0, 0);
+    DrawCaptions();
+
     MonBirthTime = time(0);
     GetArgs(argc, argv);
     InitRPC();
     rpc2_logfile = dbg;
-
-    initscr();
-    curWin = newwin(1, 1, 0, 0);
-    DrawCaptions();
 
     LWP_CreateProcess((PFIC)kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", (PROCESS *)&i);
     for (i = 0; i < SrvCount; i++)
@@ -190,6 +206,7 @@ main(int argc, char *argv[])
 	}
     
     LWP_WaitProcess(&Dummy); /* wait for Godot */
+    cleanup_and_go(0);
     }
 
 static void srvlwp(int slot)
@@ -361,7 +378,7 @@ static void GetArgs(int argc, char *argv[])
 
 BadArgs:
     printf("Usage: cmon [-a] [-c] [-t probeinterval] server1[:hz1] server2[:hz2] ...\n");
-    exit(-1);
+    cleanup_and_go(0);
     }
 
 
@@ -693,7 +710,6 @@ static char *ShortDiskName(char *s)
 	}
     return(sdn);
     }
-
 
 #ifdef	DEBUG
 void
