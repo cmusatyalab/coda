@@ -1088,6 +1088,8 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
     bw     = INIT_BW;
     bwmax  = INIT_BW;
     lastobs.tv_sec = lastobs.tv_usec = 0;
+    VGAPlusSHA_Supported = 0;  /* default is old-style server */
+    
 
 #ifdef	VENUSDEBUG
     allocs++;

@@ -12,7 +12,6 @@ file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
                         Additional copyrights
-
 #*/
 
 /*

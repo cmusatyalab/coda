@@ -6,6 +6,7 @@
 
 # 11/18/96 Created, Josh Raiff
 # 11/19/96 Modified, Peter Braam
+# 01/03/03 Added libcrypto and liblka, Satya
 
 
 #########################################################
@@ -75,6 +76,7 @@ LIBFAIL   := -lfail
 
 LIBMATH	    := -lm
 LIBREADLINE := -lreadline
+LIBCRYPTO   := -lcrypto
 
 # -- CODA --
 LIBAL        := ../al/libal.a
@@ -84,6 +86,7 @@ LIBBASE      := $(TOPOBJ)/lib-src/base/libbase.a
 LIBDIRLIB    := ../dir/libcodadir.a
 LIBDS        := ../ds/libds.a
 LIBKERNDEP   := ../kerndep/libkerndep.a   # --- (pioctl, setpag)
+LIBLKA       := ../lka/liblka.a
 LIBPARTITION := ../partition/libpartition.a
 LIBPORTMAP   := ../portmapper/libportmap.a
 LIBREPIO     := ../librepair/librepio.a
@@ -96,6 +99,7 @@ LIBVOL       := ../vol/libvol.a
 LIBVOLUTIL   := ../volutil/libvolutil.a
 LIBVOLSERV   := ../volutil/libvolserv.a
 LIBVV        := ../vv/libvv.a
+
 
 
 ##############################

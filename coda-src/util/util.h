@@ -118,5 +118,3 @@ long int gethostid(void);
 }
 #endif
 
-
-

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -12,7 +12,7 @@ file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
                         Additional copyrights
-                           none currently
+              Copyright (c) 2002-2003 Intel Corporation
 
 #*/
 
@@ -83,7 +83,7 @@ NOTE: This is a brand new cfs; it has been written from scratch
 
 #define PERROR(desc) do { fflush(stdout); perror(desc); } while(0)
 
-#define PIOBUFSIZE 2048  /* max size of pioctl buffer */
+#define PIOBUFSIZE CFS_PIOBUFSIZE  /* max size of pioctl buffer */
 
 char piobuf[PIOBUFSIZE];
 
@@ -132,6 +132,7 @@ static void Help(int, char **, int);
 static void ListACL(int, char **, int);
 static void ListCache(int, char **, int);
 static void ListVolume(int, char **, int);
+static void LookAside(int, char **, int);
 static void LsMount(int, char**, int);
 static void MkMount(int, char**, int);
 static void PurgeML(int, char**, int);
@@ -288,6 +289,11 @@ struct command cmdarray[] =
         {"listvol", "lv", ListVolume, 
             "cfs listvol <dir> [<dir> <dir> ...]",
             "Display volume status",
+            NULL
+        },
+        {"lookaside", "lka", LookAside, 
+	 "cfs lookaside [--clear] +/-<db1> +/-<db2> +/-<db3> ....\n       cfs lookaside --list\n",
+            "Add, remove or list cache lookaside databases",
             NULL
         },
         {"lsmount", NULL, LsMount, 
@@ -1858,6 +1864,37 @@ static void ListVolume(int argc, char *argv[], int opslot)
 
     }
 
+
+static void LookAside(int argc, char *argv[], int opslot)
+    {
+    int i, rc, spaceleft;
+    struct ViceIoctl vio;
+
+    if (argc < 3) {
+        printf("Usage: %s\n", cmdarray[opslot].usetxt);
+        exit(-1);
+    }
+
+    /* Create a command string of all text after "cfs lka" */
+    memset(piobuf, 0, PIOBUFSIZE);
+    spaceleft = PIOBUFSIZE - 1; /* don't forget string terminator */
+    for (i = 2; i < argc; i++) {
+      strncat(piobuf, " ", spaceleft--); /* nop if piobuf full */
+      strncat(piobuf, argv[i], spaceleft); /* nop if piobuf full */
+      spaceleft -= strlen(argv[i]);
+    }
+    
+    /* Pass the command string to the lka module */
+        vio.in = piobuf;
+        vio.in_size = strlen(piobuf) + 1;
+        vio.out = piobuf;
+        vio.out_size = PIOBUFSIZE;
+
+        rc = pioctl(mountpoint, VIOC_LOOKASIDE, &vio, 0);
+        if (rc < 0) { PERROR("VIOC_LOOKASIDE"); return;}
+
+	if (piobuf[0]) printf("%s", piobuf); /* result of lka command */
+    }
 
 static void LsMount (int argc, char *argv[], int opslot)
     /* This code will not detect a mount point where the root

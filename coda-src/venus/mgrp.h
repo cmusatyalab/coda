@@ -56,6 +56,9 @@ class RepOpCommCtxt {
     ~RepOpCommCtxt() {}
 
     int AnyReturned(int code);
+    int AllReplicasSupportSHA(); /* non-zero (true) iff all up replicas
+				    support ViceGetAttrPlusSHA() */
+
 
     void print(FILE *f) { fprintf(f, "%p : HowMany = %d\n", this, HowMany); }
     void print() { print(stdout); }

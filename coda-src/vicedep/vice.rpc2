@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -12,7 +12,7 @@ shown in the file LICENSE. The technical and financial contributors to
 Coda are listed in the file CREDITS.
 
                         Additional copyrights
-
+              Copyright (c) 2002-2003 Intel Corporation
 #*/
 
 /*
@@ -241,6 +241,12 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		   IN RPC2_CountedBS ClientIdent)
 		   NEW_CONNECTION;
 
+/* Replace ViceGetAttr() by ViceGetAttrPlusSHA() at the
+   earliest opportunity.  Call below (opcode 1) should 
+   be removed permanently.  No need to change ViceFetch() 
+   (opcode 3) --- since Venus is getting the entire file,
+   it can compute the SHA itself.  (Satya 12/02) */
+
 1: ViceGetAttr	(IN ViceFid Fid,
 		 IN RPC2_Unsigned InconOK,
 		 OUT ViceStatus Status,
@@ -346,6 +352,8 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		   IN OUT ViceFidRange Range,
 		   IN RPC2_Unsigned AllocHost,
 		   IN RPC2_CountedBS PiggyCOP2);
+
+/* Obsolete: replace with ViceValidateAttrsPlusSHA() (Satya, 12/02) */
 
 38: ViceValidateAttrs (IN RPC2_Unsigned PrimaryHost,
 		       IN ViceFid PrimaryFid,
@@ -493,3 +501,38 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		      IN ViceFid Fid);
 
 62: ViceRejectWBPermit (IN VolumeId Vid);
+
+
+/* ViceGetAttrPlusSHA() should completely replace ViceGetAttr().
+   If NeedSHA is non-zero, server returns SHA value (if known) in SHAval.
+   A server can always return a SHAval value of zero if it can't/won't 
+   compute/obtain the SHA of the object.   If NeedSHA is zero, server
+   does not attempt to find SHA.  In that case, SHAval is ignored
+   and this call is identical to original ViceGetAttr().
+
+   Note: SHAval should really just be a simple 20-byte OUT array;
+   it is a BoundedBS of IN OUT mode only because rp2gen packing/unpacking
+   is flaky for arrays and I don't have the time to fix it.
+   
+(Satya 12/02) */
+
+63: ViceGetAttrPlusSHA (IN ViceFid Fid,
+		 IN RPC2_Unsigned InconOK,
+		 OUT ViceStatus Status,
+		 IN  RPC2_Unsigned NeedSHA,
+		 IN OUT RPC2_BoundedBS SHAval,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_CountedBS PiggyCOP2);
+
+
+/* Same comments as for ViceGetAttrPlusSHA() above */
+
+64: ViceValidateAttrsPlusSHA (IN RPC2_Unsigned PrimaryHost,
+		       IN ViceFid PrimaryFid,
+		       IN OUT ViceStatus PrimaryStatus,
+		       IN RPC2_Unsigned NeedSHA,
+		       IN OUT RPC2_BoundedBS SHAval,
+		       IN ViceFidAndVV Piggies[], 
+		       IN OUT RPC2_BoundedBS VFlagBS,
+		       IN RPC2_CountedBS PiggyCOP2);
+

@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -12,7 +12,7 @@ file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
                         Additional copyrights
-
+              Copyright (c) 2002-2003 Intel Corporation
 #*/
 
 /*
@@ -79,6 +79,9 @@ extern "C" {
 #include <callback.h>
 #include <vice.h>
 #include <cml.h>
+
+#include <openssl/sha.h>
+#include <lka.h>
 
 #ifdef __cplusplus
 }
@@ -265,11 +268,33 @@ END_TIMING(Fetch_Total);
 }
 
 /*
+ OBSOLETE:  Delete code once old clients are gone (Satya, 12/02)
+
  ViceGetAttr: Fetch the attributes for a file/directory
 */
 long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
 		    ViceStatus *Status, RPC2_Unsigned PrimaryHost,
 		    RPC2_CountedBS *PiggyBS)
+{
+  RPC2_BoundedBS dummysha ={0,0,0};
+  long rc = 0;
+
+  rc = FS_ViceGetAttrPlusSHA(RPCid, Fid, InconOK, Status, 0, &dummysha,
+			     PrimaryHost, PiggyBS);
+  return(rc);
+}
+
+
+/* ViceGetAttrPlusSHA() is a replacement for ViceGetAttr().  It does
+   everything that ViceGetAttr() does and, in addition, returns the SHA
+   value of the object.   Original is retained temporarily for upward 
+   compatibility with  old clients.  Delete ViceGetAttr() as soon
+   as possible. (Satya, 12/02)
+*/
+
+long FS_ViceGetAttrPlusSHA(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
+		    ViceStatus *Status, RPC2_Unsigned NeedSHA, RPC2_BoundedBS *MySHA,
+		    RPC2_Unsigned PrimaryHost,RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
     Volume *volptr = 0;		/* pointer to the volume */
@@ -284,7 +309,7 @@ long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
 
 START_TIMING(GetAttr_Total);
 
-    SLog(1, "ViceGetAttr: Fid = %s, Repair = %d", FID_(Fid), InconOK);
+    SLog(1, "ViceGetAttrPlusSHA: Fid = %s, Repair = %d", FID_(Fid), InconOK);
 
     /* Validate parameters. */
     {
@@ -337,17 +362,68 @@ START_TIMING(GetAttr_Total);
 						   VSGVolnum);
     }
 
+    /* Obtain SHA if requested.  For now, we simplify the code by
+       (a) re-computing SHA each time, and (b) only computing SHA for
+       files.  Assumption (a) is wasteful of server CPU cycles, but 
+       avoids changes to RVM data layout on servers.  A better approach
+       would be to compute the SHA of a file lazily (i.e., on first 
+       ViceGetAttrPlusSHA() for it) and then saving it in persistent state.
+       A server could also check its CPU load and decline to compute
+       the SHA if too heavily loaded.  Assumption (b) is less clear.
+       Directories aren't usually that big, so there may not be much
+       savings from avoiding their transmission.  Code below
+       will get more complex since directory state will have to be
+       copied from RVM (as in ViceFetch()).  But some directories can
+       get large, so using SHA might be reasonable.  (Satya, 12/02)
+    */
+    if (NeedSHA) {
+      int fd;
+      memset(MySHA->SeqBody, 0, MySHA->MaxSeqLen); /* set to "unknown" */ 
+      MySHA->SeqLen = MySHA->MaxSeqLen;
+
+      if (v->vptr->disk.type == vFile) {
+	fd = iopen(V_device(volptr), v->vptr->disk.inodeNumber, O_RDONLY);
+	SLog(-1, "ViceGetAttrPlusSHA: Fid = 0x%x.%x.%x   f_inode=0x%x  fd=%d ", 
+	      Fid->Volume, Fid->Vnode, Fid->Unique, v->vptr->disk.inodeNumber, fd);
+	if (fd >= 0) {
+	  ComputeViceSHA(fd, MySHA);
+       	  close(fd);
+
+	  char printbuf[60]; 
+	  ViceSHAtoHex(MySHA, printbuf, sizeof(printbuf));
+	  SLog(1, "MySHA = %s\n.",printbuf);
+	  }
+	}
+    }
+
 FreeLocks:
     /* Put objects. */
     {
 	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
-    SLog(2, "ViceGetAttr returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceGetAttrPlusSHA returns %s", ViceErrorMsg(errorCode));
 END_TIMING(GetAttr_Total);
     return(errorCode);
+
 }
 
+
+/* Obsolete version of ViceValidateAttrsPlusSHA() */
+
+long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
+		       ViceFid *PrimaryFid, ViceStatus *Status, 
+		       RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
+		       RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
+{
+  RPC2_BoundedBS dummysha ={0,0,0};
+  long rc = 0;
+
+  rc = FS_ViceValidateAttrsPlusSHA(RPCid, PrimaryHost, PrimaryFid, Status,
+		   0, &dummysha, NumPiggyFids, Piggies,VFlagBS, PiggyBS);
+  return(rc);
+
+}
 
 /* 
  * assumes fids are given in order. a return of 1 in flags means that the 
@@ -355,12 +431,13 @@ END_TIMING(GetAttr_Total);
  */
 
 /*
-  ViceValidateAttrs: A batched version of GetAttr
+  ViceValidateAttrsPlusSHA: A batched version of GetAttrPlusSHA
 */
-long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
-		       ViceFid *PrimaryFid, ViceStatus *Status, 
-		       RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
-		       RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
+long FS_ViceValidateAttrsPlusSHA(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
+			  ViceFid *PrimaryFid, ViceStatus *Status, 
+        		  RPC2_Unsigned NeedSHA, RPC2_BoundedBS *MySHA,
+			  RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
+			  RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
 {
     long errorCode = 0;		/* return code to caller */
     VolumeId VSGVolnum = PrimaryFid->Volume;
@@ -377,7 +454,7 @@ long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
     char why_failed[25] = "";
 
 START_TIMING(ViceValidateAttrs_Total);
-    SLog(1, "ViceValidateAttrs: Fid = %s, %d piggy fids", 
+    SLog(-1, "ViceValidateAttrs: Fid = %s, %d piggy fids", 
 	 FID_(PrimaryFid), NumPiggyFids);
 
     VFlagBS->SeqLen = 0;
@@ -385,8 +462,8 @@ START_TIMING(ViceValidateAttrs_Total);
 
     /* Do a real getattr for primary fid. */
     {
-	if ((errorCode = FS_ViceGetAttr(RPCid, PrimaryFid, 0, Status,
-					PrimaryHost, PiggyBS)))
+	if ((errorCode = FS_ViceGetAttrPlusSHA(RPCid, PrimaryFid, 0, Status,
+					NeedSHA, MySHA, PrimaryHost, PiggyBS)))
 		goto Exit;
     }
  	

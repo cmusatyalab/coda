@@ -3,7 +3,7 @@
                            Coda File System
                               Release 5
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -12,7 +12,7 @@ file  LICENSE.  The  technical and financial  contributors to Coda are
 listed in the file CREDITS.
 
                         Additional copyrights
-                           none currently
+              Copyright (c) 2002-2003 Intel Corporation
 
 #*/
 
@@ -42,6 +42,7 @@ extern "C" {
 #include <rpc2/se.h>
 /* interfaces */
 #include <vice.h>
+#include <lka.h>
 
 #ifdef __cplusplus
 }
@@ -92,6 +93,7 @@ void fsobj::FetchProgressIndicator(long offset)
 
 int fsobj::Fetch(vuid_t vuid) {
     int fd = -1;
+    int lka_successful = 0; /* true iff lookaside was successful */
 
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", comp, vuid));
 
@@ -130,6 +132,65 @@ int fsobj::Fetch(vuid_t vuid) {
     sprintf(prel_str, "fetch::Fetch %%s [%ld]\n", BLOCKS(this));
     int inconok = !vol->IsReplicated();
 
+    /* (Satya, 1/03)
+       Do lookaside to see if fetch can be short-cirucited.
+       Assumptions for lookaside:
+         (a) we are operating normally (not in a repair)
+         (b) we have valid status
+         (c) file is a plain file (not sym link, directory, etc.)
+	 (d) non-zero SHA
+
+       (a) and (b) were  verified in Sanity Checks above;
+       (c) and (d) verified below; check for replicated volume 
+         further ensures we never do lookaside during repair
+
+       SHA value is obtained initially from fsobj and used for lookaside;
+       If lookaside fails and a real fetch has to be done, we conservatively
+       clear this SHA value first;   this causes the fsobj's VenusSHA 
+       to also be cleared by call to UpdateStatusPlusSHA() at end;  but who 
+       cares, since we have the actual data and could always recompute
+       SHA from container before a future Venus cache replacement of the fsobj
+    */
+    RPC2_BoundedBS mysha; 
+    RPC2_Byte shabuf[SHA_DIGEST_LENGTH];
+    memcpy(shabuf, VenusSHA, SHA_DIGEST_LENGTH);
+    mysha.SeqBody = shabuf;
+    mysha.SeqLen = mysha.MaxSeqLen = SHA_DIGEST_LENGTH;
+
+    if (vol->IsReplicated() && (stat.VnodeType == File)	&& !IsZeroSHA(&mysha)) {
+      char emsg[256];
+      
+      Recov_BeginTrans();
+      RVMLIB_REC_OBJECT(data);
+      RVMLIB_REC_OBJECT(cf);
+
+      /* create container file if needed */
+      if (!HAVEDATA(this)) {
+	data.file = &cf;
+	data.file->Create(stat.Length);
+      }
+      
+      memset(emsg, 0, sizeof(emsg));
+      lka_successful = LookAsideAndFillContainer(&mysha, cf.name, stat.Length, 
+						 venusRoot, emsg, sizeof(emsg)-1);
+      if (emsg[0])
+	LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.name, emsg));
+
+      if (lka_successful) {
+	LOG(0, ("Lookaside of %s succeeded!\n", cf.name));
+	data.file->SetLength(stat.Length);
+	cf.SetValidData(cf.length); 
+        SetRcRights(RC_DATA | RC_STATUS); /* we now have the data */
+	code = 0; /* success */
+      }
+      else {
+	memset(shabuf, 0, SHA_DIGEST_LENGTH); /* paranoia */
+      }
+
+      Recov_EndTrans(CMFP);
+      if (lka_successful) goto RepExit; /* else continue with real fetch */
+    }
+
     /* Status parameters. */
     ViceStatus status;
     memset((void *)&status, 0, (int)sizeof(ViceStatus));
@@ -143,9 +204,9 @@ int fsobj::Fetch(vuid_t vuid) {
     /* Set up the SE descriptor. */
     SE_Descriptor dummysed;
     memset(&dummysed, 0, sizeof(SE_Descriptor));
-    SE_Descriptor *sed = 0;
+    SE_Descriptor *sed; sed = 0;
 
-    long offset = IsFile() ? cf.ValidData() : 0;
+    long offset; offset = IsFile() ? cf.ValidData() : 0;
     GotThisData = 0;
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
@@ -229,12 +290,12 @@ int fsobj::Fetch(vuid_t vuid) {
 	Recov_EndTrans(CMFP);
     }
 
-    long cbtemp = cbbreaks;
+    long cbtemp; cbtemp = cbbreaks;
 
     if (vol->IsReplicated()) {
-	mgrpent *m = 0;
-	int asy_resolve = 0;
-        repvol *vp = (repvol *)vol;
+        mgrpent *m; m = 0;
+	int asy_resolve; asy_resolve = 0;
+        repvol *vp; vp = (repvol *)vol;
 
 	/* Acquire an Mgroup. */
 	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
@@ -340,16 +401,19 @@ int fsobj::Fetch(vuid_t vuid) {
 	    code = EAGAIN;
 
 	Recov_BeginTrans();
-	UpdateStatus(&status, vuid);
+	UpdateStatusAndSHA(&status, vuid, &mysha); /* CAVEAT: zero SHA being set */
 	Recov_EndTrans(CMFP);
 
 RepExit:
-	if (m) m->Put();
-	switch(code) {
+	if (!lka_successful) {
+	  /* We got here after a real Fetch() rather than a lookaside;
+	     Perform post-fetch cleanup */
+	  if (m) m->Put(); 
+	  switch(code) {
 	    case 0:
-		if (asy_resolve)
-		    vp->ResSubmit(0, &fid);
-		break;
+	      if (asy_resolve)
+		vp->ResSubmit(0, &fid);
+	      break;
 
 	    case ETIMEDOUT:
 	    case ESYNRESOLVE:
@@ -359,7 +423,9 @@ RepExit:
 
 	    default:
 		break;
+	  }
 	}
+
     }
     else {
 	/* Acquire a Connection. */
@@ -406,7 +472,7 @@ RepExit:
 	}
 
 	Recov_BeginTrans();
-	UpdateStatus(&status, vuid);
+	UpdateStatusAndSHA(&status, vuid, &mysha); /* CAVEAT: zero SHA being set */
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -522,6 +588,15 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
     /* Status parameters. */
     ViceStatus status;
 
+    /* SHA value (not always used) */
+    RPC2_BoundedBS mysha; 
+    RPC2_Byte shabuf[SHA_DIGEST_LENGTH];
+    memset(shabuf, 0, SHA_DIGEST_LENGTH); /* zero sha is always safe*/
+    mysha.SeqBody = shabuf;
+    mysha.MaxSeqLen = SHA_DIGEST_LENGTH;
+    mysha.SeqLen = SHA_DIGEST_LENGTH; 
+
+
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];
     RPC2_CountedBS PiggyBS;
@@ -540,6 +615,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 	 */
 	int nchecked = 0, nfailed = 0;
 	long cbtemp = cbbreaks;
+	char val_prel_str[256];
+
 
 	/* Acquire an Mgroup. */
 	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
@@ -558,6 +635,9 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl,
 			    VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
+ 
+	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, myshavar, mysha, VSG_MEMBERS, SHA_DIGEST_LENGTH);
+
 
 	    if (HAVESTATUS(this) && !getacl) {
 		ViceFidAndVV FAVs[MAX_PIGGY_VALIDATIONS];    
@@ -612,23 +692,48 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
 				VSG_MEMBERS, VENUS_MAXBSLEN);
 
-		/* make the RPC */
-		char val_prel_str[256];
-		sprintf(val_prel_str, "fetch::ValidateAttrs %%s [%d]\n", numPiggyFids);
-		CFSOP_PRELUDE(val_prel_str, comp, fid);
-		MULTI_START_MESSAGE(ViceValidateAttrs_OP);
-		code = (int) MRPC_MakeMulti(ViceValidateAttrs_OP,
+		/* make the RPC: use ViceValidateAttrs() (obsolete) or
+                     ViceValidateAttrsPlusSHA() (preferred) */
+
+		/* Get rid of ViceValidateAttrs() branch below when all servers 
+		     have been upgraded to handle ViceValidateAttrsPlusSHA() (Satya 1/03) */
+
+		if (m->rocc.AllReplicasSupportSHA()) {
+		  sprintf(val_prel_str, "fetch::ValidateAttrsPlusSHA %%s(0x%x.%x.%x) [%d]\n", fid.Volume, fid.Vnode, fid.Unique, numPiggyFids);
+		  CFSOP_PRELUDE(val_prel_str, comp, fid);
+		  MULTI_START_MESSAGE(ViceValidateAttrsPlusSHA_OP);
+		  code = (int) MRPC_MakeMulti(ViceValidateAttrsPlusSHA_OP,
+					    ViceValidateAttrsPlusSHA_PTR, VSG_MEMBERS,
+					    m->rocc.handles, m->rocc.retcodes,
+					    m->rocc.MIp, 0, 0, ph, &fid,
+					    statusvar_ptrs, 1, myshavar_ptrs,
+					      numPiggyFids, FAVs,
+					    VFlagvar_ptrs, &PiggyBS);
+		  MULTI_END_MESSAGE(ViceValidateAttrsPlusSHA_OP);
+		  CFSOP_POSTLUDE("fetch::ValidateAttrsPlusSHA done\n");
+
+		  /* Collate */
+		  code = vp->Collate_NonMutating(m, code);
+		  MULTI_RECORD_STATS(ViceValidateAttrsPlusSHA_OP);
+		}
+		else {
+		  sprintf(val_prel_str, "fetch::ValidateAttrs %%s [%d]\n", numPiggyFids);
+		  CFSOP_PRELUDE(val_prel_str, comp, fid);
+
+		  MULTI_START_MESSAGE(ViceValidateAttrs_OP);
+		  code = (int) MRPC_MakeMulti(ViceValidateAttrs_OP,
 					    ViceValidateAttrs_PTR, VSG_MEMBERS,
 					    m->rocc.handles, m->rocc.retcodes,
 					    m->rocc.MIp, 0, 0, ph, &fid,
 					    statusvar_ptrs, numPiggyFids, FAVs,
 					    VFlagvar_ptrs, &PiggyBS);
-		MULTI_END_MESSAGE(ViceValidateAttrs_OP);
-		CFSOP_POSTLUDE("fetch::ValidateAttrs done\n");
+		  MULTI_END_MESSAGE(ViceValidateAttrs_OP);
+		  CFSOP_POSTLUDE("fetch::ValidateAttrs done\n");
 
-		/* Collate */
-		code = vp->Collate_NonMutating(m, code);
-		MULTI_RECORD_STATS(ViceValidateAttrs_OP);
+		  /* Collate */
+		  code = vp->Collate_NonMutating(m, code);
+		  MULTI_RECORD_STATS(ViceValidateAttrs_OP);
+		}
 
 		if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 		else if (code == 0 || code == ERETRY) {
@@ -730,6 +835,13 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		/* The COP:Fetch call. */
 		CFSOP_PRELUDE(prel_str, comp, fid);
 		if (getacl) {
+		  /* Note: this will cause SHA for this fso to be set to zero
+		     because we haven't created a ViceGetACLPlusSHA().  This is
+		     probably ok since the only use of this call is for "cfs getacl..."
+		     If this proves unacceptable, we'll need to treat the
+		     ViceGetACL branch of this code just like ViceValidateAttrs()
+		     and ViceGetAttr() branches.   (Satya, 1/03) */
+
 		    MULTI_START_MESSAGE(ViceGetACL_OP);
 		    code = (int)MRPC_MakeMulti(ViceGetACL_OP, ViceGetACL_PTR,
 					       VSG_MEMBERS, m->rocc.handles,
@@ -745,6 +857,35 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		    code = vp->Collate_NonMutating(m, code);
 		    MULTI_RECORD_STATS(ViceGetACL_OP);
 		} else {
+
+		  /* get attributes from replicated servers; decide to use
+                     ViceGetAttr() (obsolete) or
+                     ViceGetAttrPlusSHA() (preferred) */
+
+
+		  /* Get rid of ViceGetAttr() branch below when all servers 
+		     have been upgraded to handle ViceGetAttrPlusSHA() (Satya 1/03) */
+
+		  if (m->rocc.AllReplicasSupportSHA()) {
+
+		    LOG(0, ("fsobj::GetAttr: ViceGetAttrPlusSHA(0x%x.%x.%x)\n", fid.Volume, fid.Vnode, fid.Unique));
+		    MULTI_START_MESSAGE(ViceGetAttrPlusSHA_OP);
+		    code = (int)MRPC_MakeMulti(ViceGetAttrPlusSHA_OP, ViceGetAttrPlusSHA_PTR,
+					       VSG_MEMBERS, m->rocc.handles,
+					       m->rocc.retcodes, m->rocc.MIp,
+					       0, 0, &fid, inconok,
+					       statusvar_ptrs, 
+					       1, myshavar_ptrs, ph, &PiggyBS);
+		    MULTI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
+		    CFSOP_POSTLUDE(post_str);
+
+		    /* Collate responses from individual servers and decide
+		     * what to do next. */
+		    code = vp->Collate_NonMutating(m, code);
+		    MULTI_RECORD_STATS(ViceGetAttrPlusSHA_OP);
+		  }
+		  else {
+		    LOG(0, ("fsobj::GetAttr: ViceGetAttr()\n"));
 		    MULTI_START_MESSAGE(ViceGetAttr_OP);
 		    code = (int)MRPC_MakeMulti(ViceGetAttr_OP, ViceGetAttr_PTR,
 					       VSG_MEMBERS, m->rocc.handles,
@@ -758,6 +899,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		     * what to do next. */
 		    code = vp->Collate_NonMutating(m, code);
 		    MULTI_RECORD_STATS(ViceGetAttr_OP);
+		  }
+
 		}
 
 		if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
@@ -793,6 +936,13 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		ARG_UNMARSHALL_BS(aclvar, *acl, dh_ix);
 	    }
 	    ARG_UNMARSHALL(statusvar, status, dh_ix);
+
+            ARG_UNMARSHALL_BS(myshavar, mysha, dh_ix);
+
+	    char printbuf[60];
+	    ViceSHAtoHex(&mysha, printbuf, sizeof(printbuf));
+	    LOG(-1, ("mysha(%d, %d) = %s\n.", mysha.MaxSeqLen, mysha.SeqLen, printbuf));
+
 
 	    /* Handle successful validation of fake directory! */
 	    if (IsFakeDir()) {
@@ -850,7 +1000,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 	}
 
 	Recov_BeginTrans();
-	UpdateStatus(&status, vuid);
+	UpdateStatusAndSHA(&status, vuid, &mysha); /* Caveat: mysha will be a zero
+						      SHA if GetACL branch is used */
 	Recov_EndTrans(CMFP);
 
 RepExit:
@@ -963,7 +1114,7 @@ RepExit:
 	}
 
 	Recov_BeginTrans();
-	UpdateStatus(&status, vuid);
+	UpdateStatusAndSHA(&status, vuid, &mysha); /* SHA remains zero in non-rep case */
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1147,7 +1298,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatus(&status, &UpdateSet, vuid);
+	UpdateStatusAndClearSHA(&status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -1209,7 +1360,7 @@ RepExit:
 	/* Do Store locally. */
 	Recov_BeginTrans();
 	LocalStore(Mtime, NewLength);
-	UpdateStatus(&status, 0, vuid);
+	UpdateStatusAndClearSHA(&status, 0, vuid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1445,7 +1596,7 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	Recov_BeginTrans();
 	if (!setacl)
 		LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
-	UpdateStatus(&status, &UpdateSet, vuid);
+	UpdateStatusAndClearSHA(&status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
 
@@ -1507,7 +1658,7 @@ RepExit:
 	Recov_BeginTrans();
 	if (!setacl)
 		LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
-	UpdateStatus(&status, 0, vuid);
+	UpdateStatusAndClearSHA(&status, 0, vuid);
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -1796,8 +1947,8 @@ int fsobj::ConnectedCreate(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	/* Do Create locally. */
 	Recov_BeginTrans();
 	LocalCreate(Mtime, target_fso, name, vuid, Mode);
-	UpdateStatus(&parent_status, &UpdateSet, vuid);
-	target_fso->UpdateStatus(&target_status, &UpdateSet, vuid);
+	UpdateStatusAndClearSHA(&parent_status, &UpdateSet, vuid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, &UpdateSet, vuid);
 	Recov_EndTrans(CMFP);
 	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
@@ -1865,8 +2016,8 @@ RepExit:
 	/* Do Create locally. */
 	Recov_BeginTrans();
 	LocalCreate(Mtime, target_fso, name, vuid, Mode);
-	UpdateStatus(&parent_status, 0, vuid);
-	target_fso->UpdateStatus(&target_status, 0, vuid);
+	UpdateStatusAndClearSHA(&parent_status, 0, vuid);
+	target_fso->UpdateStatusAndClearSHA(&target_status, 0, vuid);
 	Recov_EndTrans(CMFP);
 	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    target_fso->SetRcRights(RC_STATUS | RC_DATA);

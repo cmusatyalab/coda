@@ -151,6 +151,22 @@ int RepOpCommCtxt::AnyReturned(int code)
     return(0);
 }
 
+int RepOpCommCtxt::AllReplicasSupportSHA(){
+  /* Returns nonzero if all active replicas support SHA, zero otherwise */
+
+   LOG(100, ("RepOpCommCtxt::AllReplicasSupportSHA(): %p\n", this));
+
+   for (int i = 0; i < VSG_MEMBERS; i++) {
+     srvent *s;
+
+     if (!hosts[i].s_addr) continue;
+     s = FindServer(&hosts[i]);
+     if (!s) return(0); /* unknown weirdness */
+     if (!s->VGAPlusSHA_Supported) return (0); 
+   }
+   return(1); /* every active host supports SHA! */
+}
+
 
 
 mgrpent::mgrpent(vsgent *VSG, vuid_t vuid, RPC2_Handle mid, int authflag)
@@ -388,6 +404,9 @@ void mgrpent::PutHostSet()
 	if (rocc.dying[i])
             KillMember(&rocc.hosts[i], 0);
 }
+
+
+
 
 /* Translate RPC and Volume errors, and update server state. */
 void mgrpent::CheckResult()

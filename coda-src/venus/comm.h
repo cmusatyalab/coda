@@ -193,6 +193,7 @@ class conn_iterator : public olist_iterator {
     connent *operator()();
 };
 
+
 class srvent : private RefCountedObject {
   friend void CommInit();
   friend void Srvr_Wait();
@@ -256,6 +257,14 @@ class srvent : private RefCountedObject {
     static int allocs;
     static int deallocs;
 #endif
+
+/* VGAPlusSHA_Supported is for temporary use, during transition from use of
+   ViceGetAttr() to ViceGetAttrPlusSHA(); distinguishes old-style servers
+   from new-style ones; allows Venus to remember status of server discovered
+   on ConnectFS(). Eliminate once support for old servers can go  (Satya, 12/02) */
+
+    unsigned VGAPlusSHA_Supported:1;  /* does server export ViceGetAttrPlusSHA()? */
+
     int GetConn(connent **c, vuid_t vuid, int force =0);
 
     int GetStatistics(ViceStatistics *);
