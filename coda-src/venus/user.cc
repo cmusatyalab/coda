@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.9 1998/08/05 23:50:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.10 1998/08/26 21:24:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -265,8 +265,7 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
     LOG(100, ("userent::SetTokens: uid = %d\n", uid));
 
     if (uid == V_UID) {
-	eprint("root cannot acquire Coda tokens!");
-	return(0);
+	eprint("root acquiring Coda tokens!");
     }
 
     /* N.B. Using direct assignment to the Token structs rather than the bcopys doesn't seem to work! */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.17 1998/09/23 18:47:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.18 1998/09/29 16:38:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -443,6 +443,14 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	    /* chmod, fchmod */
 	    if (vap->va_mode != VA_IGNORE_MODE) {
 		    if ( vap->va_mode & S_ISUID ) 
+			    /* XXXX totally wrong: 
+			       here a test for membership of 
+			       System:Adminstrators of the euid
+			       is what we want. 
+			       
+			       For now we will ask the fileserver to
+			       enforce that.
+			    */
 			    u.u_error = f->Access((long)PRSFS_ADMINISTER, 
 						  0, CRTORUID(u.u_cred));
 		    else

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/libal/prs_fs.h,v 1.1 1996/11/22 19:08:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/prs_fs.h,v 4.1 1997/01/08 21:49:47 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,5 +70,6 @@ the possessor the corresponding privileges on ALL files in that directory
 #define PRSFS_DELETE          16 /*Remove files*/
 #define PRSFS_LOCK            32 /*Read-lock files*/
 #define PRSFS_ADMINISTER      64 /*Set access list of directory*/
+#define PRSFS_ALL            127
 
 #endif

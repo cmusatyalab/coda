@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.5 1998/04/14 21:00:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.6 1998/08/31 12:23:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,7 +78,8 @@ extern "C" {
 
 #include <vice.h>
 #include <volutil.h>
-
+#include <prs_fs.h>
+#include <prs.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -252,11 +253,13 @@ static int ViceCreateRoot(Volume *vp)
     ACL = VVnodeDiskACL(vnode);
     ACL->MySize = sizeof(AL_AccessList);
     ACL->Version = AL_ALISTVERSION;
-    ACL->TotalNoOfEntries = 1;
-    ACL->PlusEntriesInUse = 1;
+    ACL->TotalNoOfEntries = 2;
+    ACL->PlusEntriesInUse = 2;
     ACL->MinusEntriesInUse = 0;
-    ACL->ActualEntries[0].Id = -101;
-    ACL->ActualEntries[0].Rights = 127;
+    ACL->ActualEntries[0].Id = PRS_SYSTEMADMINID;
+    ACL->ActualEntries[0].Rights = PRSFS_ALL;
+    ACL->ActualEntries[1].Id = PRS_ANYUSERID;
+    ACL->ActualEntries[1].Rights = PRSFS_READ | PRSFS_LOOKUP;
 
     /* set up vnode info */
     vnode->type = vDirectory;
