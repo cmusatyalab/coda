@@ -65,12 +65,21 @@ if [ -f ${vicedir}/srv.conf ]; then
 fi
 
 echo
-echo A server needs a small log disk partition, preferrably on a disk by
-echo itself. It also needs a metadata partition of approx 4% of you filespace.
+echo A server needs a small log file or disk partition, preferrably on a
+echo disk by itself. It also needs a metadata file or partition of approx
+echo 4% of your filespace.
 echo 
-echo For trial purposes you may give oridnary files instead of raw
-echo partitions. Keep all size small if you do this. 
-echo Production servers will want partitions for speed.
+echo Raw partitions have advantages because we can write to the disk
+echo faster, but we have to load a copy of the complete RVM data
+echo partition into memory. With files we can use a private mmap, which
+echo reduces memory pressure and speeds up server startup by several
+echo orders of magnitude.
+echo
+echo Servers with a smaller dataset but heavy write activity will
+echo probably benefit from partitions. Mostly read-only servers with a
+echo large dataset will definitely benefit from an RVM data file. Nobody
+echo has really measured where the breakeven point is, so I cannot
+echo really give any hard numbers.
 echo
 echo     -------------------------------------------------------
 echo     WARNING: you are going to play with your partitions now. 
@@ -165,6 +174,10 @@ while [ $n -le $numservers ]; do
 	echo  "The corresponding data sizes are  22M, 44M, 90M, 130M, 315M." 
 	echo  "Pick one of the defaults, otherwise I will bail out"
 	echo
+	echo  "Remember that RVM data will have to be mmapped or loaded"
+	echo  "into memory, so if anything fails with an error like"
+	echo  "RVM_EINTERNAL you might have to add more swap space."
+	echo
 	echo "What is the size of you data partition (or file)"
 	echon "[22M, 44M, 90M, 130M, 200M, 315M]: "
 	read datasize 
@@ -249,7 +262,7 @@ EOF
 	    ;;
 	200[mM] )
 	    dsparm=209715200
-	    heapsize=0xb000000
+	    heapsize=0xc000000
 	    ;;
 	315[mM] )
 	    dsparm=330301440

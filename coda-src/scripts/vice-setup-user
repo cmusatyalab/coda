@@ -98,5 +98,5 @@ initpw -k "drseuss " < passwd.coda > auth2.pw
 rm passwd.coda
 
 echo "An initial administrative user $username (id $userid)"
-echo "with Coda password "changeme" now exists."
+echo "with Coda password \"changeme\" now exists."
 
