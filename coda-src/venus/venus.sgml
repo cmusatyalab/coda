@@ -235,7 +235,7 @@
 	</listitem>
 	</varlistentry>
 
-	<varlistenty>
+	<varlistentry>
 	<term><option>-init</option></term>
 	<listitem>
 	    <para>Initializes (i.e., clears) file, volume, and VSG caches.
@@ -284,10 +284,8 @@
 	<varlistentry>
 	<term><option>-vld</option></term>
 	<listitem>
-	    <para>Location of the venus log file or partition.
-	    </para>
+	    <para>Location of the venus log file or partition.</para>
 	    <para>Default: <emphasis>/usr/coda/LOG</emphasis></para>
-	    </para>
 	</listitem>
 	</varlistentry>
 
@@ -301,8 +299,7 @@
 	<varlistentry>
 	<term><option>-vdd</option></term>
 	<listitem>
-	    <para>Location of the venus data file or partition.
-	    </para>
+	    <para>Location of the venus data file or partition.</para>
 	    <para>Default: <emphasis>/usr/coda/DATA</emphasis></para>
 	</listitem>
 	</varlistentry>
@@ -359,10 +356,8 @@
 	<varlistentry>
 	<term><option>mount point</option></term>
 	<listitem>
-	    <para>Directory to serve as the mount point for Coda.
-	    </para>
+	    <para>Directory to serve as the mount point for Coda.</para>
 	    <para>Default: <emphasis>/coda</emphasis></para>
-	    </para>
 	</listitem>
 	</varlistentry>
     </variablelist>

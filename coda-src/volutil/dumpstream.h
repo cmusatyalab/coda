@@ -43,15 +43,23 @@ class dumpstream {
 	
   public:
     dumpstream(char *);
+    ~dumpstream();
+    int isopen(); /* 1 if dumpstream is open; 0 otherwise */
     int getDumpHeader(struct DumpHeader *);
     int getVolDiskData(VolumeDiskData *);
     int getVnodeIndex(VnodeClass, long *, long *);
-    int getNextVnode(VnodeDiskObject *, long *, int *, long *);
+    int getNextVnode(VnodeDiskObject *, VnodeId *, int *, long *);
     int getVnode(int vnum, long unique, long offset, VnodeDiskObject *vdo);
     int copyVnodeData(DumpBuffer_t *);		/* Copy entire vnode into DumpFd*/
     int EndOfDump();				/* See if ENDDUMP is present */
     void setIndex(VnodeClass);
+    int readDirectory(PDirInode *);
+    int CopyBytesToMemory(char *, int); 
+    int CopyBytesToFile(FILE *, int); 
 };
+
+/* Debugging routine: prints dump header on specified output file */
+void PrintDumpHeader(FILE *, struct DumpHeader *);
 
 #endif /* _DUMPSTREAM_H_ */
 

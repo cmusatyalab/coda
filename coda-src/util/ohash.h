@@ -76,6 +76,11 @@ class ohashtab {
     virtual void print();
     virtual void print(FILE *);
     virtual void print(int);
+
+    /* find object with matching tag in a hash table;
+       return NULL if no such object; key and tag are separate because
+       hash buckets may use different field from tag (Satya, May04) */
+    olink *FindObject(void *key, void *tag, otagcompare_t cmpfn);
 };
 
 

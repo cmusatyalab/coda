@@ -44,10 +44,7 @@ extern "C" {
 #include <vcrcommon.h>
 #include <cvnode.h>
 #include <volume.h>
-#ifdef PAGESIZE
-#undef PAGESIZE
-#endif
-#define PAGESIZE 2048	/* This is a problem, but can't inherit dirvnode.h */
+#include <codadir.h>
 #include <dump.h>
 #include "dumpstream.h"
 #include <util.h>
@@ -192,15 +189,35 @@ long WriteDump(RPC2_Handle _cid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes, RP
 
 dumpstream::dumpstream(char *filename)
 {
+  stream = 0; /* default is failure */
+  memset(name, 0, sizeof(name));  /* clear name */
+
+/* allow use of null or empty filename to mean stdin; operations involving
+     seeks() won't work in that case */
+  if ((filename == NULL) || (filename[0] == 0)) {
+    stream = stdin;
+  }
+  else {
     stream = fopen(filename, "r");
     if (stream == NULL) {
 	LogMsg(0, VolDebugLevel, stderr, "Can't open dump file %s", filename);
 	exit(-1);
     }
-    strncpy(name, filename, MAXSTRLEN);
-    name[MAXSTRLEN - 1] = (char)0;	/* Ensure last char is null */
-    IndexType = -1;
+    strncpy(name, filename, (sizeof(name)-1));
+  }
+
+  IndexType = -1;
 }       
+
+dumpstream::~dumpstream(){
+  fclose(stream);
+  memset(name, 0, sizeof(name));
+}
+
+int dumpstream::isopen(){
+  if (stream) return (1);
+  else return(0);
+}
 
 int dumpstream::getDumpHeader(struct DumpHeader *hp)
 {
@@ -449,7 +466,7 @@ int dumpstream::skip_vnode_garbage()
 
     if (tag == D_DIRPAGES) {
 	long npages;
-	int size = PAGESIZE;
+	int size = DIR_PAGESIZE;
 
 	CODA_ASSERT (IndexType == vLarge);
 	LogMsg(10, VolDebugLevel, stdout, "SkipVnodeData: Skipping dirpages for %s", name);
@@ -488,16 +505,74 @@ int dumpstream::skip_vnode_garbage()
     return 0;
 }
 
+/* next byte should be a D_DIRPAGES; reads the directory pages and
+   constructs in VM a directory representation that can be used by the
+   routines in the coddir module 
+
+   Returns 0 on success, -1 on failure of any kind */
+
+int dumpstream::readDirectory(PDirInode *dip){
+
+    int nexttag; 
+
+
+    if (IndexType != vLarge) {
+      LogMsg(0, VolDebugLevel, stderr, "dumpstream::readDirectory() called when IndexType is %d instead of vLarge", IndexType);
+      return(-1);
+    }
+    
+    nexttag = fgetc(stream);
+    if (nexttag != D_DIRPAGES) {
+      LogMsg(0, VolDebugLevel, stderr, "dumpstream::readDirectory()found tag %c when expecting D_DIRPAGES", nexttag);
+	return(-1);
+    }
+
+    /* Find out how many dir pages there are */
+    unsigned int npages = 0; 
+    if (!GetInt32(stream, &npages)) return -1;
+
+    /* create directory inode for that many pages */
+    *dip = (DirInode *)malloc(sizeof(DirInode));
+    CODA_ASSERT (*dip); /* malloc better not fail! */
+    memset((void *)*dip, 0, sizeof(DirInode)); /* zeroize */
+
+    /* Read the dir pages in */
+    for (unsigned int i = 0; i < npages; i++){
+      
+      (*dip)->di_pages[i] = malloc(DIR_PAGESIZE);
+      CODA_ASSERT((*dip)->di_pages[i]); /* malloc better not fail! */
+
+      nexttag = fgetc(stream);
+      if (nexttag != 'P'){
+	LogMsg(0, VolDebugLevel, stderr, "dumpstream::readDirectory: Dir page does not have a P tag");
+	return -1;
+      }
+      if (!GetByteString(stream, (byte *) (*dip)->di_pages[i], DIR_PAGESIZE)) {
+	LogMsg(0, VolDebugLevel, stderr, "dumpstream::readDirectory: read of dir page #%d of %d pages failed", i, npages);
+	return -1;
+      }
+    }    
+    return 0;
+}
+
 /*
  * fseek to offset and read in the Vnode there. Assume IndexType is set correctly.
  */
 int dumpstream::getVnode(int vnum, long unique, long Offset, VnodeDiskObject *vdo)
 {
     LogMsg(10, VolDebugLevel, stdout, "getVnode: vnum %d unique %d Offset %x Stream %s", vnum, unique, Offset, name);
+
+    if (name[0] == 0) {
+      /* we are using stdin; seek() doesn't work */
+      errno = EINVAL;
+      return(-1);
+    }
     fseek(stream, Offset, 0);	/* Should I calculate the relative? */
 
     int deleted;
-    long vnodeNumber, offset;
+    long offset;
+    VnodeId vnodeNumber;
+
     int result = getNextVnode(vdo, &vnodeNumber, &deleted, &offset);
 
     if (result)
@@ -506,7 +581,7 @@ int dumpstream::getVnode(int vnum, long unique, long Offset, VnodeDiskObject *vd
     LogMsg(10, VolDebugLevel, stdout, "getVnode after getNextVnode: (%d, %d, %x)", vnodeNumber, deleted, offset);
     CODA_ASSERT(Offset == offset);
 
-    CODA_ASSERT(vnum == vnodeNumber);	/* They'd better match! */
+    CODA_ASSERT(((unsigned int)vnum) == vnodeNumber);	/* They'd better match! */
     CODA_ASSERT(unique == (long)vdo->uniquifier);
     return 0;
 }
@@ -516,7 +591,7 @@ int dumpstream::getVnode(int vnum, long unique, long Offset, VnodeDiskObject *vd
  * Handle the file or directory data associated with Vnodes transparently.
  */
 
-int dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *deleted, long *offset)
+int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber, int *deleted, long *offset)
 {
     *deleted = 0;
     /* Skip over whatever garbage exists on the stream (remains of last vnode) */
@@ -543,9 +618,12 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, long *vnodeNumber, int *dele
     }
 
     LogMsg(10, VolDebugLevel, stdout, "GetNextVnode: Real Vnode found! ");
-    if (!GetInt32(stream, (unsigned int *)vnodeNumber) ||
-	!GetInt32(stream, (unsigned int *)&vdop->uniquifier))
+    unsigned int temp1, temp2;
+    if (!GetInt32(stream, &temp1) ||
+	!GetInt32(stream, &temp2))
 	return -1;
+    *vnodeNumber = temp1; /* type convert to VnodeId */
+    vdop->uniquifier = temp2;
     LogMsg(10, VolDebugLevel, stdout, "%d", *vnodeNumber);
 
     while ((tag = fgetc(stream)) > D_MAX && tag != EOF) {
@@ -606,14 +684,14 @@ int
 dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 {
     int tag = fgetc(stream);
-    char buf[PAGESIZE];
+    char buf[DIR_PAGESIZE];
     int nbytes;
 
     LogMsg(10, VolDebugLevel, stdout, "Copy:%s type %x", (IndexType == vLarge?"Large":"Small"), tag);
     if (IndexType == vLarge) {
 	CODA_ASSERT(tag == D_DIRPAGES); /* Do something similar for dirpages. */
 
-	/* We get a number of pages, pages are PAGESIZE bytes long. */
+	/* We get a number of pages, pages are DIR_PAGESIZE bytes long. */
 	long num_pages;
 	
 	if (!GetInt32(stream, (unsigned int *)&num_pages))
@@ -621,25 +699,25 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 
 	DumpInt32(dbuf, D_DIRPAGES, num_pages);
 
-	for (int i = 0; i < num_pages; i++) { /* copy PAGESIZE bytes to output. */
+	for (int i = 0; i < num_pages; i++) { /* copy DIR_PAGESIZE bytes to output. */
 	    tag = fgetc(stream);
 	    if (tag != 'P'){
 		LogMsg(0, VolDebugLevel, stderr, "Restore: Dir page does not have a P tag");
 		return -1;
 	    }
 	    LogMsg(10, VolDebugLevel, stdout, "copying one page for %s", name);
-	    if (fread(buf, PAGESIZE, 1, stream) != 1) {
+	    if (fread(buf, DIR_PAGESIZE, 1, stream) != 1) {
 		LogMsg(0, VolDebugLevel, stderr, "Error reading dump file %s.", name);
 		return -1;
 	    }
-	    DumpByteString(dbuf, (byte)'P', (byte *)buf, PAGESIZE);
+	    DumpByteString(dbuf, (byte)'P', (byte *)buf, DIR_PAGESIZE);
 	}
     } else if (IndexType == vSmall) {
 	/* May not have a file associated with this vnode? don't think so...*/
 	CODA_ASSERT(tag == D_FILEDATA);
 
 	/* First need to output the tag and the length */
-	long filesize, size = PAGESIZE;
+	long filesize, size = DIR_PAGESIZE;
 	if (!GetInt32(stream, (unsigned int *)&filesize)) 
 	    return -1;
 	byte *p;
@@ -662,4 +740,106 @@ void dumpstream::setIndex(VnodeClass vclass)
 {
     CODA_ASSERT((vclass == vLarge) || (vclass == vSmall));
     IndexType = vclass;
+}
+
+/* Copy nbytes of file data at current position in dumpstream to membuf;
+   assume membuf is big enough; return 0 on success, -1 on failure */
+int dumpstream::CopyBytesToMemory(char *membuf, int nbytes) {
+  int rc, blobsize, tag;
+
+  /* File data in dumpstream is preceded by tag and size */
+  tag = fgetc(stream); 
+  if (tag != D_FILEDATA) {
+    LogMsg(0, VolDebugLevel, stderr, "Error reading tag from dump file");
+    return(-1);
+  }
+
+  rc = GetInt32(stream, (unsigned int *)&blobsize);
+  if (!rc) {
+    LogMsg(0, VolDebugLevel, stderr, "Error reading blob size from dump file");
+    return(-1);
+  }
+
+  if (blobsize != nbytes) {
+    LogMsg(0, VolDebugLevel, stderr, "Size mismatch: expected %d, found %d",
+	   nbytes, blobsize);
+    return(-1);
+  }
+
+  rc = fread(membuf, nbytes, 1, stream);
+  if (rc != 1) {
+    LogMsg(0, VolDebugLevel, stderr, "Error reading blob data from dump file");
+    return(-1);
+  }
+  return(0);
+}
+
+/* Copy nbytes of file data at current position in dumpstream to outfile in
+   512-byte records.  Last block is padded to 512 bytes.
+   Returns 0 on success, -1 on failure 
+*/
+int dumpstream::CopyBytesToFile(FILE *outfile, int nbytes) {
+  int rc, bytesleft, blobsize, tag;
+  char buf[512];
+
+  /* File data in dumpstream is preceded by tag and size */
+  tag = fgetc(stream); 
+  if (tag != D_FILEDATA) {
+    LogMsg(0, VolDebugLevel, stderr, "Error reading tag from dump file");
+    return(-1);
+  }
+
+  rc = GetInt32(stream, (unsigned int *)&blobsize);
+  if (!rc) {
+    LogMsg(0, VolDebugLevel, stderr, "Error reading blob size from dump file");
+    return(-1);
+  }
+
+  if (blobsize != nbytes) {
+    LogMsg(0, VolDebugLevel, stderr, "Size mismatch: expected %d, found %d",
+	   nbytes, blobsize);
+    return(-1);
+  }
+
+  for (bytesleft = nbytes; bytesleft >= 512; bytesleft -= 512) {
+    rc = fread(buf, 512, 1, stream);
+    if (rc != 1) {
+      LogMsg(0, VolDebugLevel, stderr, "Error reading dump file %s", name);
+      return(-1);
+    }
+    rc = fwrite(buf, 512, 1, outfile);
+    if (rc != 1) {
+      LogMsg(0, VolDebugLevel, stderr, "Error writing tar file");
+      return(-1);
+    }
+
+  }
+
+  if (bytesleft) { /* last record! */
+    memset(buf, 0, 512);  /* pad with zeros */
+
+    rc = fread(buf, bytesleft, 1, stream);
+    if (rc != 1) {
+      LogMsg(0, VolDebugLevel, stderr, "Error reading dump file %s", name);
+      return(-1);
+    }
+
+    rc = fwrite(buf, 512, 1, outfile);
+    if (rc != 1) {
+      LogMsg(0, VolDebugLevel, stderr, "Error writing tar file.");
+      return(-1);
+    }
+  }
+
+  return(0); /* done! */
+}
+
+
+void PrintDumpHeader(FILE * outfile, struct DumpHeader *dh) {
+    fprintf(outfile, "Volume id = 0x%08lx, Volume name = '%s'\n", 
+	 dh->volumeId, dh->volumeName);
+    fprintf(outfile, "Parent id = 0x%08lx  Timestamp = %s", 
+	 dh->parentId, ctime((time_t *)&dh->backupDate));
+    fprintf(outfile, "Dump uniquifiers: oldest = 0x%08x   latest = 0x%08x\n",
+	 dh->oldest, dh->latest);
 }

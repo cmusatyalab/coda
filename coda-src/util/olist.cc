@@ -206,6 +206,19 @@ void olist::print(int fd) {
 }
 
 
+/* return pointer to matching object in olist, or NULL */
+
+olink *olist::FindObject(void *tag, otagcompare_t cmpfn) {
+    olist_iterator nextobj(*this);
+    olink *ol;
+    while ((ol = nextobj())){
+      if (ol->otagmatch(tag, cmpfn)) return (ol);  /* found it! */
+    }
+    return(0); /* no matching object */
+}
+
+
+
 olist_iterator::olist_iterator(olist& l) {
     clist = &l;
     clink = (olink *)-1;
@@ -250,6 +263,12 @@ olink *olist_iterator::operator()() {
 
 }
 
+/* reset internal state */
+void olist_iterator::reset() {
+    clink = (olink *)-1;
+    nlink = (olink *)-1;
+}
+
 
 olink::olink() {
     next = 0;
@@ -288,3 +307,15 @@ void olink::print(int fd) {
 	    this, this->next);
     write(fd, buf, strlen(buf));
 }
+
+
+/* test an object of arbitrary class derived from olink for matching tag;
+   return 1 if tag matches, 0 otherwise */
+int olink::otagmatch(void *testtag, otagcompare_t cmpfn ){
+  int result = 0;
+
+  result = (*cmpfn)(this, testtag); 
+  return(result);
+}
+
+

@@ -44,13 +44,13 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = volutil parserecdump backup readdump merge
+EXECUTABLES = volutil parserecdump backup readdump merge codadump2tar
 SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libvolutil.a libvolserv.a
 HEADERS     = volutil.private.h
 
 DEPLIBS := ${LIBVOL} ${LIBVV} $(LIBVICEDEP) ${LIBPARTITION} ${LIBUTIL} \
-	   ${LIBSYSENT} ${LIBBASE}
+	${LIBSYSENT} ${LIBBASE} ${LIBRVM}
 
 LIBS := ${DEPLIBS} ${LIBRDSLWP} ${LIBSEG} ${LIBRVMLWP} ${LIBSE} ${LIBRPC2} \
 	${LIBLWP} ${LIBREADLINE} $(LIBTERMCAP) $(LIBCRYPTO) $(LIBS)
@@ -119,5 +119,8 @@ readdump: readdump.o dumpstream.o dumpstuff.o ${DEPLIBS}
 
 parserecdump: parserecdump.o ${DEPLIBS} 
 	$(CXX) $(LDFLAGS) parserecdump.o ${LIBS} -o parserecdump
+
+codadump2tar: codadump2tar.o dumpstream.o dumpstuff.o ${LIBDIRLIB} ${DEPLIBS}
+	$(CXX) $(LDFLAGS) codadump2tar.o dumpstream.o dumpstuff.o ${LIBDIRLIB} ${LIBS} -o codadump2tar
 
 

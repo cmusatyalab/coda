@@ -215,5 +215,8 @@ void VN_CopyOnWrite(struct Vnode *vptr);
 void VN_VN2Fid(struct Vnode *, struct Volume *, struct ViceFid *);
 void VN_VN2PFid(struct Vnode *, struct Volume *, struct ViceFid *);
 
+/* make this debugging print routine visible everywhere (Satya 5/04) */
+void PrintVnodeDiskObject(FILE *, VnodeDiskObject *, VnodeId);
+
 #endif /* _CVNODE_H_ */
 

@@ -227,6 +227,9 @@ typedef struct VolumeDiskData {
     
 } VolumeDiskData;
 
+/* Debugging routine (Satya, May 2004) (vol-debug.c) */
+void PrintVolumeDiskData (FILE *, VolumeDiskData *);
+
 
 /**************************************/
 /* Memory resident volume information */

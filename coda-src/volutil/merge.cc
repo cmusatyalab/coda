@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 
 static void BuildTable(dumpstream *dump, vtable *table)
 {
-    long vnodeNumber;
+    VnodeId vnodeNumber;
     char *buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)buf;
 
@@ -242,7 +242,8 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 {
     char *buf[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)buf;
-    long nvnodes, nslots, vnodeNumber;
+    long nvnodes, nslots;
+    VnodeId vnodeNumber;
 
     if (dump->getVnodeIndex(vclass, &nvnodes, &nslots) == -1) 
 	exit(-1); /* Already printed out an error */

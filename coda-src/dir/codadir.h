@@ -65,7 +65,10 @@ struct DirEntry    {
     char length;	/* currently unused */
     short next;
     struct DirNFid fid;
-    char name[16];
+    char name[16];   /* 16 is deceiving; actual name[] arrays
+			have extra blobs appended to make name[]
+			as long as needed  (Satya, May 04) */
+			
 };
 
 int DIR_Init(int data_loc);

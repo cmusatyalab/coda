@@ -49,6 +49,10 @@ class olist;
 class olist_iterator;
 class olink;
 
+/* function to examine tag value in object derived from olink;
+   returns 1 on match and 0 on mismatch (Satya, May04) */
+typedef   int (*otagcompare_t)(void *tag, void *object);
+
 
 class olist {
   friend class olist_iterator;
@@ -71,6 +75,10 @@ class olist {
     virtual void print();
     virtual void print(FILE *);
     virtual void print(int);
+
+    /* find object with matching tag in olist of objects derived from olink;
+       return NULL if no such object;  cmpfn() knows field to examine in object */
+    olink *FindObject(void *tag, otagcompare_t cmpfn);
 };
 
 
@@ -83,6 +91,7 @@ class olist_iterator {
     olink *operator()();    // return next object or 0
                             // Support safe deletion of currently
                             // returned entry.  See dlist.h also.
+    void reset();           // allow re-use of iterator (Satya, 5/04)
 };
 
 
@@ -98,6 +107,14 @@ class olink {		    // objects are derived from this class
     virtual void print();
     virtual void print(FILE *);
     virtual void print(int);
+
+    /* Tag matching function for classes derviced from olink;
+       Given pointer to a tag and a compare function, otagmatch() returns 0 or 1 
+       Allows generalization of classes olist and ohash to test for
+        presence of object with an arbitrary tag, rather than just 
+          match on object pointer */
+    int otagmatch (void *otag, otagcompare_t cmpfn);
+
 };
 
 #endif /* _UTIL_LIST_H_ */

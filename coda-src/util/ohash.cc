@@ -158,6 +158,15 @@ int ohashtab::IsMember(void *key, olink *p) {
     return(a[bucket].IsMember(p));
 }
 
+olink *ohashtab::FindObject(void *key, void *tag, otagcompare_t cmpfn) {
+    int bucket;
+    olink *obj;
+
+    bucket = hfn(key) & (sz - 1);
+    obj = a[bucket].FindObject(tag, cmpfn);
+    return(obj);
+}
+
 
 int ohashtab::bucket(void *key) {
     return(hfn(key) & (sz - 1));

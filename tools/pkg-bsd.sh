@@ -226,6 +226,7 @@ sbin/backup
 sbin/backup.sh
 sbin/bldvldb.sh
 sbin/codaconfedit
+sbin/codadump2tar
 sbin/codasrv
 sbin/createvol_rep
 sbin/initpw

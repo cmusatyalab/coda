@@ -31,6 +31,7 @@ usr/sbin/initpw
 usr/sbin/volutil
 usr/sbin/codasrv
 usr/sbin/printvrdb
+usr/sbin/codadump2tar
 usr/share/man/man5/passwd.coda.5
 usr/share/man/man5/vicetab.5
 usr/share/man/man8/auth2.8

@@ -89,7 +89,6 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 static void moveHash(Vnode *vnp, bit32 newHash);
 static void StickOnLruChain(Vnode *vnp, struct VnodeClassInfo *vcp);
 
-static void printvn(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber);
 /* There are two separate vnode queue types defined here:
  * Each hash conflict chain -- is singly linked, with a single head
  * pointer. New entries are added at the beginning. Old
@@ -450,7 +449,7 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	vcp->allocs++;
 	LogMsg(19, VolDebugLevel, stdout,  "VAllocVnode: printing vnode %x after allocation:", vnode);
 	if (VolDebugLevel >= 19)
-		printvn(stdout, &vnp->disk, vnode);
+		PrintVnodeDiskObject(stdout, &vnp->disk, vnode);
 	
 	return(vnp);
 }
@@ -862,16 +861,4 @@ void VN_VN2PFid(Vnode *vptr, Volume *volptr, ViceFid *fid)
 
 
 
-/* temporary debugging stuff */
-
-static void printvn(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber)
-{
-    fprintf(outfile, "Vnode %lu.%lu.%lu, cloned = %u, length = %lu, inode = %lu\n",
-        vnodeNumber, vnode->uniquifier, vnode->dataVersion, vnode->cloned,
-	vnode->length, vnode->inodeNumber);
-    fprintf(outfile, "link count = %u, type = %u, volume index = %d\n", vnode->linkCount, vnode->type, vnode->vol_index);
-    fprintf(outfile, "parent = %lx.%lx\n", vnode->vparent, vnode->uparent);
-    PrintVV(outfile, &(vnode->versionvector));
-    return;
-}
 

@@ -199,6 +199,7 @@ exit 0
 /usr/sbin/auth2
 /usr/sbin/bldvldb.sh
 /usr/sbin/codaconfedit
+/usr/sbin/codadump2tar
 /usr/sbin/codasrv
 /usr/sbin/codastart
 /usr/sbin/coda-server-logrotate
