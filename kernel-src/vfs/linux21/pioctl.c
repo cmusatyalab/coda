@@ -123,7 +123,7 @@ static int coda_pioctl(struct inode * inode, struct file * filp,
 	        target_de = lnamei(data.path);
 	}
 		
-	if ( PTR_ERR(target_de) == -ENOENT ) {
+	if ( IS_ERR(target_de) ) {
                 CDEBUG(D_PIOCTL, "error: lookup fails.\n");
 		return PTR_ERR(target_de);
         } else {
