@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.3 1997/04/25 18:51:32 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.4 1997/10/23 18:53:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,10 +65,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "lwp.camelot.h"
 #endif OLDLWP
 
-/* Forward declare of QUEUE defined later in this file to keep gcc quiet. */
-struct QUEUE;
 
-#ifdef	__linux__
 #define  ON	    1
 #define  OFF	    0
 #define  READY	    2
@@ -86,29 +83,35 @@ struct QUEUE;
 #define FALSE 0
 #endif  TRUE
 
-
-
 struct QUEUE {
     PROCESS	head;
     int		count;
 } runnable[MAX_PRIORITIES], blocked;
-#endif
+
+/* Invariant for OLDLWP runnable queues: The head of each queue points
+to the currently running process if it is in that queue, or it points
+to the next process in that queue that should run. */
+
+#ifdef OLDLWP
+/* Macro to force a re-schedule.  Strange name is historical */
+#define Set_LWP_RC() savecontext(Dispatcher, &lwp_cpptr->context, NULL)
+#endif OLDLWP
 
 /* internal procedure declarations */
-PRIVATE void lwpremove C_ARGS((register PROCESS p, register struct QUEUE *q));
-PRIVATE void lwpinsert C_ARGS((register PROCESS p, register struct QUEUE *q));
-PRIVATE void lwpmove C_ARGS((PROCESS p, struct QUEUE *from, struct QUEUE *to));
-PRIVATE void Dispatcher C_ARGS(());
-PRIVATE void Initialize_PCB C_ARGS((PROCESS temp, int priority, char *stack, int stacksize, PFIC ep, char *parm, char *name));
-PRIVATE int  Internal_Signal C_ARGS((register char *event));
-PRIVATE void Abort_LWP C_ARGS((char *msg));
-PRIVATE void Exit_LWP C_ARGS(());
-PRIVATE void Dump_One_Process C_ARGS((PROCESS pid));
-PRIVATE void Dump_Processes C_ARGS(());
-PRIVATE void purge_dead_pcbs C_ARGS(());
-PRIVATE void Delete_PCB C_ARGS((register PROCESS pid));
-PRIVATE void Free_PCB C_ARGS((PROCESS pid));
-PRIVATE void Dispose_of_Dead_PCB C_ARGS((PROCESS cur));
+PRIVATE void lwpremove(register PROCESS p, register struct QUEUE *q);
+PRIVATE void lwpinsert(register PROCESS p, register struct QUEUE *q);
+PRIVATE void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to);
+PRIVATE void Dispatcher();
+PRIVATE void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, PFIC ep, char *parm, char *name);
+PRIVATE int  Internal_Signal(register char *event);
+PRIVATE void Abort_LWP(char *msg);
+PRIVATE void Exit_LWP();
+PRIVATE void Dump_One_Process (PROCESS pid);
+PRIVATE void Dump_Processes ();
+PRIVATE void purge_dead_pcbs();
+PRIVATE void Delete_PCB(register PROCESS pid);
+PRIVATE void Free_PCB(PROCESS pid);
+PRIVATE void Dispose_of_Dead_PCB(PROCESS cur);
 
 #ifdef OLDLWP
 PRIVATE void Create_Process_Part2 C_ARGS(());
@@ -122,42 +125,6 @@ PRIVATE void Cal_Highest_runnable_priority C_ARGS(());
 PRIVATE int InitializeProcessSupport C_ARGS((int, PROCESS *));
 #endif OLDLWP
 
-#ifndef	__linux__
-#define  ON	    1
-#define  OFF	    0
-#define  READY	    2
-#define  WAITING    3
-#define  DESTROYED  4
-#define  QWAITING   5
-#define  MAXINT     (~(1<<((sizeof(int)*8)-1)))
-#define  MINSTACK   44
-#define  MAX(a,b)   ((a) > (b) ? (a) : (b))
-#define	 LWPANCHOR  (*lwp_init)
-#define	 MAX_PRIORITIES	(LWP_MAX_PRIORITY+1)
-
-#ifndef TRUE
-#define TRUE 1
-#define FALSE 0
-#endif  TRUE
-
-
-
-struct QUEUE {
-    PROCESS	head;
-    int		count;
-} runnable[MAX_PRIORITIES], blocked;
-#endif
-
-#ifdef OLDLWP
-/* Invariant for runnable queues: The head of each queue points to the currently 
-running process if it is in that queue, or it points to the next process in that
-queue that should run. */
-#endif OLDLWP
-
-#ifdef OLDLWP
-/* Macro to force a re-schedule.  Strange name is historical */
-#define Set_LWP_RC() savecontext(Dispatcher, &lwp_cpptr->context, NULL)
-#endif OLDLWP
 
 /*----------------------------------------*/
 /* Globals identical in  OLD and NEW lwps */
@@ -173,10 +140,10 @@ struct timeval last_context_switch;	/* used to find out how long a lwp was runni
 struct timeval cont_sw_threshold;	/* how long a lwp is allowed to run */
 PROCESS cont_sw_id;			/* id of thread setting the last_context_switch time */
 
-/* The global Highest_runnable_priority  is only needed in NEW lwp.  But it gets
-    set within a for_all_elts() instance in InternalSignal().  Causes Sun's CPP to 
-    choke.  Hence not placed under #ifdef OLDLWP.  
-*/
+/* The global Highest_runnable_priority is only needed in NEW lwp.
+    But it gets set within a for_all_elts() instance in
+    InternalSignal().  Causes Sun's CPP to choke.  Hence not placed
+    under #ifdef OLDLWP.  */
 int	Highest_runnable_priority;	/* global variable for max priority */
 struct timeval run_wait_threshold;
 
@@ -284,14 +251,12 @@ int LWP_TerminateProcessSupport()       /* terminate all LWP support */
 
 
 
-int LWP_GetRock(Tag, Value)
-    int Tag;
-    char **Value;
+int LWP_GetRock(int Tag, char **Value)
 {
     /* Obtains the pointer Value associated with the rock Tag of this LWP.
        Returns:
-            LWP_SUCCESS         if specified rock exists and Value has been filled
-            LWP_EBADROCK        rock specified does not exist
+            LWP_SUCCESS    if specified rock exists and Value has been filled
+            LWP_EBADROCK   rock specified does not exist
     */
     register int i;
     register struct rock *ra;
@@ -359,9 +324,7 @@ int LWP_CurrentProcess(PROCESS *pid)
 }
 
 
-int LWP_GetProcessPriority(pid, priority)
-    PROCESS pid;
-    int *priority;
+int LWP_GetProcessPriority(PROCESS pid, int *priority)
 {
     lwpdebug(0, ("Entered Get_Process_Priority"))
     if (lwp_init) {
@@ -371,8 +334,7 @@ int LWP_GetProcessPriority(pid, priority)
 	return LWP_EINIT;
 }
 
-int LWP_WaitProcess(event)
-    char *event;
+int LWP_WaitProcess(char *event)
 {
     char *tempev[2];
 
@@ -383,8 +345,7 @@ int LWP_WaitProcess(event)
     return LWP_MwaitProcess(1, tempev);
 }
 
-PRIVATE void Delete_PCB(pid)
-	register PROCESS pid;
+PRIVATE void Delete_PCB(register PROCESS pid)
 {
     lwpdebug(0, ("Entered Delete_PCB"))
     lwpremove(pid, (pid->blockflag || pid->status==WAITING || pid->status==DESTROYED
@@ -1339,11 +1300,7 @@ PRIVATE void Initialize_PCB(temp, priority, stack, stacksize, ep, parm, name)
     temp -> misc = NULL;	/* currently unused */
     temp -> next = NULL;
     temp -> prev = NULL;
-#ifdef __linux__
     temp -> rused = 0;
-#else
-    temp -> rused = NULL;
-#endif
     temp -> level = 1;		/* non-preemptable */
     timerclear(&temp->lastReady);
 
