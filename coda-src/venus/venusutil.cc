@@ -274,14 +274,16 @@ void VenusPrint(int fd, int argc, char **argv) {
     }
 
     fdprint(fd, "*****  VenusPrint  *****\n\n");
-    FILE *f = fdopen(fd, "a");
+    FILE *f = fdopen(dup(fd), "a");
+    if (serverp || allp)  ServerPrint(f);
+    if (mgrpp || allp)    VSGDB->print(f);
+    fclose(f);
+
     if (rusagep || allp)  RusagePrint(fd);
     if (recovp || allp)   if (RecovInited) RecovPrint(fd);
     if (vprocp || allp)   PrintVprocs(fd);
     if (userp || allp)    UserPrint(fd);
-    if (serverp || allp)  ServerPrint(f);
     if (connp || allp)    ConnPrint(fd);
-    if (mgrpp || allp)    VSGDB->print(f);
     if (volumep || allp)  if (RecovInited && VDB) VDB->print(fd);
     if (fsop || allp)     if (RecovInited && FSDB) FSDB->print(fd);
     if (fsosump && !allp) if (RecovInited && FSDB) FSDB->print(fd, 1);
