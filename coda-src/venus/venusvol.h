@@ -1055,7 +1055,7 @@ extern int PathAltered(ViceFid *, char *, ClientModifyLog *, cmlent *);
 			    (op) == OLDCML_Repair_OP ? "Repair" :\
 			    "???")
 
-#define FAKEROOTFID(fid) (((fid).Vnode == 0xffffffff) && ((fid).Unique == 0x80000))
+#define FAKEROOTFID(fid) ((fid).Vnode == 0xffffffff)/* && ((fid).Unique == 0x80000)) */
 
 
 #endif	not _VENUS_VOLUME_H_

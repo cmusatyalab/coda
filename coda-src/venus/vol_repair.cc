@@ -162,7 +162,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
     /* Verify that RepairFid is inconsistent. */
     {
-	fsobj *f = 0;
+	fsobj *f = NULL;
 
 	code = FSDB->Get(&f, RepairFid, vuid, RC_STATUS);
 	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
@@ -177,8 +177,11 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
 	/* Check for local repair expansion */
 	if ((code == 0) && FAKEROOTFID(*RepairFid)) {
-	    fsobj *g;
-	    f->Lookup(&g, NULL, "global", vuid, CLU_CASE_SENSITIVE);
+	    fsobj *g = NULL;
+	    ViceFid inc; /* Required for getting Lookup() to traverse mount points */
+	    f->Lookup(&g, &inc, "global", vuid, CLU_CASE_SENSITIVE);
+	    LOG(100, ("Local-Repair expansion, got (%x.%x.%x) inc (%x.%x.%x)\n", 
+		      g->fid.Volume, g->fid.Vnode, g->fid.Unique, inc.Volume, inc.Vnode, inc.Unique));
 	    gfid = g->fid;
 	    rFid = &gfid;
 	}
@@ -199,7 +202,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     {
 	ViceFid RepairFileFid;
 	if (sscanf(RepairFile, "@%lx.%lx.%lx", &RepairFileFid.Volume,
-		   &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
+	   &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
 	    code = FSDB->Get(&RepairF, &RepairFileFid, vuid, RC_DATA);
 	    if (code != 0) return(code);
 

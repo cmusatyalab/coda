@@ -330,22 +330,13 @@ void rep_CompareDirs(int largc, char **largv) {
     while ((ret = CompareDirs(RepairVol, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
 	if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) < 0)
 	    break;
+	if (session == LOCAL_GLOBAL) {
+	    rep_PreserveAllLocal(0, NULL);
+	    return;
+	}
     }
     if (ret < 0)
 	fprintf(stderr, "%s\n%s failed\n", msgbuf, ((ret == -2) ? "dorepair" : "comparedirs"));
-    
-    if ((session == LOCAL_GLOBAL) && (ret == 0)) {
-	vioc.out = space;
-	vioc.out_size = DEF_BUF;
-	sprintf(buf, "%d", REP_CMD_PRESERVE_ALL);
-	vioc.in = buf;
-	vioc.in_size = (short) strlen(buf) + 1;
-
-	ret = pioctl("/coda", VIOC_REP_CMD, &vioc, 0);
-	if (ret < 0) perror("VIOC_REP_CMD(REP_CMD_PRESERVE_ALL)");
-	printf("%s\n", vioc.out);
-	fflush(stdout);
-    }
 }
 
 void rep_DiscardAllLocal(int largc, char **largv) {
