@@ -214,8 +214,7 @@ cfs_nb_statfs(vfsp, sbp, p)
     sbp->f_type = 0;
     sbp->f_bsize = 8192; /* XXX */
     sbp->f_iosize = 8192; /* XXX */
-/* #define NB_SFS_SIZ 0x895440 */
-    #define NB_SFS_SIZ 0x8ab75d
+#define NB_SFS_SIZ 0x895440
     sbp->f_blocks = NB_SFS_SIZ;
     sbp->f_bfree = NB_SFS_SIZ;
     sbp->f_bavail = NB_SFS_SIZ;
@@ -643,9 +642,9 @@ cfs_nb_link(v)
  exit:
 
     if (ap->a_vp != ap->a_dvp) {
-	VOP_UNLOCK(ap->a_dvp);
+	VOP_UNLOCK(ap->a_vp);
     }
-    vput(ap->a_vp);
+    vput(ap->a_dvp);
 
     /* Drop the name buffer if we don't need to SAVESTART */
     if ((cnp->cn_flags & SAVESTART) == 0) {
