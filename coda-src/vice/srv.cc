@@ -67,7 +67,6 @@ extern "C" {
 #include <stdlib.h>
 #include <unistd.h>
 #include "coda_flock.h"
-#include "scandir.h"
 #include "codaconf.h"
 
 #include <ports.h>
@@ -242,7 +241,6 @@ static void FileMsg();
 static void SetDebug();
 static void ResetDebug();
 static void ShutDown();
-static int pushlog();
 
 static int ReadConfigFile(void);
 static int ParseArgs(int, char **);
@@ -368,8 +366,6 @@ int main(int argc, char *argv[])
 
     unlink("NEWSRV");
 
-    freopen("SrvLog","a+",stdout);
-    freopen("SrvErr","a+",stderr);
     SwapLog();
     DaemonizeSrv();
 
@@ -1206,8 +1202,10 @@ void rds_printer(char *fmt ...)
 }
 
 /*
-SwapLog: Move the current /"vicedir"/srv/SrvLog file out of the way. 
-*/
+ * SwapLog: Reopen the /"vicedir"/srv/SrvLog and SrvErr files. If some other
+ * process such as logrotate has moved the old logfile aside we'll start
+ * writing to a new logfile.
+ */
 void SwapLog()
 {
     struct timeval tp;
@@ -1217,89 +1215,18 @@ void SwapLog()
 	SLog(0, "Could not cd to %s; not swapping logs", vice_file("srv"));
 	return;
     }
-    if (pushlog() != 0){
-	SLog(0, 0, stderr, 
-	       "Log file names out of order or malformed; not swapping logs");
-	return;
-    }
 
     SLog(0, "Starting new SrvLog file");
-    freopen("SrvLog","a+",stdout);
+    freopen("SrvLog", "a+", stdout);
+    freopen("SrvErr", "a+", stderr);
     
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
     SLog(0, "New SrvLog started at %s", ctime((const time_t *)&tp.tv_sec));
 }
 
-/* Filter for scandir(); eliminates all but names of form "SrvLog-" */
-static int xselect(struct dirent *d) {
-    if (strncmp(d->d_name, "SrvLog-", sizeof("SrvLog-")-1)) 
-	return(0); 
-    else 
-	return(1);    
-}
-
-/*	Descending order comparator func for qsort() invoked by scandir().
-	All inputs assumed to be of the form "SrvLog-...." 
-	Returns -ve if d1 > d2 
-	        +ve if d1 < d2
-		0  if d1 == d2
-*/
-static int compar(struct dirent **dp1, struct dirent **dp2) { 
-    struct dirent *d1, *d2;
-
-    d1 = *dp1;
-    d2 = *dp2;    
-
-    
-    /* Length comparison ensures SrvLog-10 > SrvLog-1 (for example) */
-    if (strlen(d1->d_name) > strlen(d2->d_name)) return(-1);
-    if (strlen(d1->d_name) < strlen(d2->d_name)) return(1);
-
-    /* Order lexically if equal lengths */
-    return(-strcmp(d1->d_name, d2->d_name));
-}
-
-/* Finds the highest index of SrvLog, SrvLog-1, SrvLog-2, ...SrvLog-N.
-   Then "pushes" them, resulting in SrvLog-1, SrvLog-2,....SrvLog-(N+1).
-   All work is done in the current directory.
-*/
-static int pushlog()
-{ 
-#ifndef __CYGWIN32__
-    int i, count = 0;
-    char buf[100], buf2[100]; /* can't believe there will be more logs! */
-    struct dirent **namelist = NULL;
-
-    count = scandir(".", &namelist, (int (*)(const dirent *)) xselect,
-		    (int (*)(const void *, const void *)) compar);
-    /* It is safe now to blindly rename */
-    for (i = 0; i < count; i++) {
-	sprintf(buf, "SrvLog-%d", count-i);
-	if (strcmp(namelist[i]->d_name, buf) != 0) 
-	    continue;
-	sprintf(buf2, "SrvLog-%d", count-i+1);	
-	if (rename(buf, buf2)) {
-	    perror(buf); 
-	    return(-1);
-	}
-    }
-    /* Clean up storage malloc'ed by scandir() */
-    for (i = 0; i < count; i++) free(namelist[i]);
-    free(namelist);
-    
-    /* Rename SrvLog itself */
-    if (rename("SrvLog", "SrvLog-1")) {
-	perror("SrvLog"); 
-	return(-1);
-    }
-#endif	
-    return(0);
-}
-
-
 static void FileMsg()
-    {
+{
     int srvpid;
     
     srvpid = getpid();
@@ -1739,19 +1666,19 @@ static void DaemonizeSrv() {
 #ifndef __CYGWIN32__
     signal(SIGWINCH, (void (*)(int))SetDebug);
 #endif
-    signal(SIGHUP,  SIG_IGN);
+    signal(SIGHUP,  (void (*)(int))SwapLog);
+
     /* Signals that are zombied allow debugging via gdb */
     signal(SIGTRAP, (void (*)(int))zombie);
     signal(SIGILL,  (void (*)(int))zombie);
     signal(SIGFPE,  (void (*)(int))zombie);
+    signal(SIGSEGV, (void (*)(int))zombie);
 
 #ifdef	RVMTESTING
     signal(SIGBUS, (void (*)(int))my_sigBus); /* Defined in util/rvmtesting.c */
 #else
     signal(SIGBUS,  (void (*)(int))zombie);
 #endif
-
-    signal(SIGSEGV, (void (*)(int))zombie);
 }
 
 static void InitializeServerRVM(char *name)

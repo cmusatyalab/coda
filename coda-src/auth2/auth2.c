@@ -90,9 +90,8 @@ static char *vicedir = NULL;
 
 extern int AL_DebugLevel;
 
-
 static void InitGlobals(int argc, char **argv);
-static void InitLog();
+static void ReopenLog();
 static void InitSignals();
 static void ResetDebug();
 static void SetDebug();
@@ -100,7 +99,6 @@ static void CheckSignal();
 static void Terminate();
 static void InitRPC();
 static void HandleRPCError(int rCode, RPC2_Handle connId);
-static void InitAl();
 static void CheckTokenKey();
 long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);	/* multiplex to other functions */
 
@@ -111,15 +109,8 @@ int GetViceId(RPC2_CountedBS *cIdent);	/* must be post-name conversion */
 RPC2_EncryptionKey TokenKey;	/* Used for encrypting server tokens;
 				    modified by SetKeys() routine; changed periodically  */
 int TokenTime = 0;	/* last modified time on TokenKey file	*/
-int AuthTime = 0;	/* last modified time for PDB		*/
 static char *Auth2TKFile = NULL;	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
-
-#ifdef HAVE_NDBM
-#define CODADB vice_sharedfile("db/prot_users.dir")
-#else
-#define CODADB vice_sharedfile("db/prot_users.db")
-#endif
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
 static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
@@ -141,7 +132,6 @@ int main(int argc, char **argv)
     RPC2_PacketBuffer *reqbuffer;
     RPC2_Handle cid;
     register int rc;
-    struct stat buff;
     char errmsg[MAXPATHLEN];
 
     ReadConfigFile();
@@ -157,10 +147,19 @@ int main(int argc, char **argv)
     InitGlobals(argc, argv);
     if ( ! AuthDebugLevel ) 
 	    UtilDetach();
-    InitLog();
+
+    ReopenLog();
+
+    printf("Starting  Auth Server......\n");
+    fflush(stdout);
+
     InitSignals();
     InitRPC();
-    InitAl();
+
+    if ((rc = AL_Initialize(AL_VERSION)) != 0) {
+	LogMsg(-1, 0, stdout, "AL_Initialize failed with %d", rc);
+	exit(-1);
+    }
 
 #ifdef CODAAUTH
     InitPW(PWFIRSTTIME);
@@ -184,14 +183,6 @@ int main(int argc, char **argv)
 	if (rc < RPC2_WLIMIT) {
 		HandleRPCError(rc, cid);
 		continue;
-	}
-
-	if(stat(CODADB, &buff)) {
-	    printf("stat for prot_users.db failed\n");
-	    fflush(stdout);
-	} else {
-	    if(AuthTime != buff.st_mtime)
-		InitAl();
 	}
 
         { /* drop unauthenticated requests on the floor */
@@ -289,24 +280,22 @@ static void InitGlobals(int argc, char **argv)
 }
 
 
-static void InitLog()
-    {
+static void ReopenLog()
+{
     if (DoRedirectLog)
 	{
 	freopen("AuthLog","a+",stdout);
 	freopen("AuthLog","a+",stderr);
-	}
-
-    printf("Starting  Auth Server......\n");
-    fflush(stdout);
     }
+}
 
 
 static void InitSignals()
     {
     FILE *file;
-    (void) signal(SIGHUP, (void (*)(int))ResetDebug);
+    (void) signal(SIGHUP, (void (*)(int))ReopenLog);
     (void) signal(SIGUSR1, (void (*)(int))SetDebug);
+    (void) signal(SIGUSR2, (void (*)(int))ResetDebug);
 #ifndef __CYGWIN32__
     (void) signal(SIGXCPU, (void (*)(int))CheckSignal);
 #endif
@@ -382,20 +371,6 @@ static void HandleRPCError(int rCode, RPC2_Handle connId)
     fprintf(stderr, "auth2: %s", RPC2_ErrorMsg(rCode));
     if (rCode < RPC2_FLIMIT && connId != 0) RPC2_Unbind(connId);
     }
-
-
-static void InitAl()
-{
-    RPC2_Integer rc;
-    struct stat buff;
-
-    if ((rc = AL_Initialize(AL_VERSION)) != 0) {
-	LogMsg(-1, 0, stdout, "AL_Initialize failed with %d", rc);
-	exit(-1);
-    }
-    CODA_ASSERT(stat(CODADB, &buff) == 0);
-    AuthTime = buff.st_mtime;
-}
 
 
 static void CheckTokenKey()

@@ -179,27 +179,6 @@ AC_DEFUN(CODA_CHECK_KERBEROS,
     fi
    fi])
 
-dnl check whether we have scandir
-AC_DEFUN(CODA_CHECK_DIRENT, 
-  AC_CACHE_CHECK(for d_namlen in dirent, fu_cv_lib_c_dirent_d_namlen,
-    [AC_TRY_COMPILE([#include <dirent.h>],
-       [ struct dirent d; int n; n = (int) d.d_namlen; ],
-       fu_cv_lib_c_dirent_d_namlen=yes,
-       fu_cv_lib_c_dirent_d_namlen=no)])
-  if test $fu_cv_lib_c_dirent_d_namlen = yes; then
-    AC_DEFINE(DIRENT_HAVE_D_NAMLEN, 1,
-      [Define if you have d_namlen in struct dirent])
-  fi
-  AC_CACHE_CHECK(for d_reclen in dirent, fu_cv_lib_c_dirent_d_reclen,
-    [AC_TRY_COMPILE([#include <dirent.h>],
-       [ struct dirent d; int n; n = (int) d.d_reclen; ],
-       fu_cv_lib_c_dirent_d_reclen=yes,
-       fu_cv_lib_c_dirent_d_reclen=no)])
-  if test $fu_cv_lib_c_dirent_d_reclen = yes; then
-    AC_DEFINE(DIRENT_HAVE_D_RECLEN, 1,
-      [Define if you have d_reclen in struct dirent])
-  fi)
-
 dnl ---------------------------------------------
 dnl Accept user defined path leading to libraries and headers.
 

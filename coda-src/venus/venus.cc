@@ -142,7 +142,7 @@ int main(int argc, char **argv)
     DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
 
     /* open the console file and print vital info */
-    freopen(consoleFile, "w", stderr);
+    freopen(consoleFile, "a+", stderr);
     fprintf(stderr, "Coda Venus, version %d.%d.%d\n",
              VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
     fflush(stderr);

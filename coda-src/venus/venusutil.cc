@@ -444,18 +444,9 @@ int binaryfloor(int n) {
 }
 
 
-void LogInit() {
-    char *oldLog = (char *)malloc(strlen(VenusLogFile) + 5);
-    CODA_ASSERT(oldLog != NULL);
-
-    strcpy(oldLog, VenusLogFile);
-    strcat(oldLog, ".old");
-
-    rename(VenusLogFile, oldLog);
-
-    free(oldLog);
-
-    logFile = fopen(VenusLogFile, "a");
+void LogInit()
+{
+    logFile = fopen(VenusLogFile, "a+");
     if (logFile == NULL)
 	{ eprint("LogInit failed"); exit(-1); }
     LogInited = 1;
@@ -745,30 +736,20 @@ void rds_printer(char *fmt ...) {
   LOG(0, (fmt));
 }
 
-void SwapLog() {
+void SwapLog()
+{
     struct timeval now;
     gettimeofday(&now, 0);
 
-    char *oldLog = (char *)malloc(strlen(VenusLogFile) + 5);
-    CODA_ASSERT(oldLog != NULL);
+    freopen(VenusLogFile, "a+", logFile);
+    freopen(consoleFile, "a+", stderr);
 
-    strcpy(oldLog, VenusLogFile);
-    strcat(oldLog, ".old");
-
-    LOG(0, ("Moving %s to %s at %s\n",
-	     VenusLogFile, oldLog, ctime((time_t *)&now.tv_sec)));
-    fflush(logFile);
-
-    rename(VenusLogFile, oldLog);
-
-    free(oldLog);
-
-    freopen(VenusLogFile, "a", logFile);
     LOG(0, ("New Logfile started at %s", ctime((time_t *)&now.tv_sec)));
 }
 
 
-char *lvlstr(LockLevel level) {
+char *lvlstr(LockLevel level)
+{
     switch(level) {
 	case NL:
 	    return("NL");

@@ -339,6 +339,7 @@ extern uid_t PrimaryUser;
 extern char *VenusPidFile;
 extern char *VenusControlFile;
 extern char *VenusLogFile;
+extern char *consoleFile;
 extern char *MarinerSocketPath;
 extern int   mariner_tcp_enable;
 extern int   allow_reattach;
