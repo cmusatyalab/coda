@@ -94,8 +94,6 @@ int venus_access(struct super_block *sb, struct ViceFid *fid, int mask);
 int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
 		 unsigned int cmd, struct PioctlData *data);
 int coda_downcall(int opcode, union outputArgs *out, struct super_block *sb);
-int coda_upcall(struct coda_sb_info *mntinfo, int inSize, 
-		int *outSize, union inputArgs *buffer);
 int venus_fsync(struct super_block *sb, struct ViceFid *fid);
 
 

@@ -23,6 +23,7 @@
 #include <linux/coda_fs_i.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cache.h>
+#include <linux/coda_proc.h>
 
 /* file operations */
 static int coda_readpage(struct file *file, struct page * page);
@@ -83,6 +84,7 @@ static int coda_readpage(struct file * coda_file, struct page * page)
         struct coda_inode_info *cii;
 
         ENTRY;
+	coda_vfs_stat.readpage++;
         
         cii = ITOC(coda_inode);
 
@@ -108,6 +110,8 @@ static int coda_file_mmap(struct file * file, struct vm_area_struct * vma)
         struct coda_inode_info *cii;
 	int res;
 
+	coda_vfs_stat.file_mmap++;
+
         ENTRY;
 	cii = ITOC(file->f_dentry->d_inode);
 	cii->c_mmcount++;
@@ -126,7 +130,9 @@ static ssize_t coda_file_read(struct file *coda_file, char *buff,
         struct file  cont_file;
 	struct dentry cont_dentry;
         int result = 0;
-        ENTRY;
+
+	ENTRY;
+	coda_vfs_stat.file_read++;
 
         cnp = ITOC(coda_inode);
         CHECK_CNODE(cnp);
@@ -167,6 +173,7 @@ static ssize_t coda_file_write(struct file *coda_file, const char *buff,
         int result = 0;
 
         ENTRY;
+	coda_vfs_stat.file_write++;
 
         cnp = ITOC(coda_inode);
         CHECK_CNODE(cnp);
@@ -205,6 +212,7 @@ int coda_fsync(struct file *coda_file, struct dentry *coda_dentry)
 	struct dentry cont_dentry;
         int result = 0;
         ENTRY;
+	coda_vfs_stat.fsync++;
 
 	if (!(S_ISREG(coda_inode->i_mode) || S_ISDIR(coda_inode->i_mode) ||
 	      S_ISLNK(coda_inode->i_mode)))

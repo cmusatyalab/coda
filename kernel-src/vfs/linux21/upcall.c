@@ -37,6 +37,11 @@
 #include <linux/coda_psdev.h>
 #include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
+#include <linux/coda_proc.h> 
+
+
+static int  coda_upcall(struct coda_sb_info *mntinfo, int inSize, int *outSize, 
+		       union inputArgs *buffer);
 
 #define UPARG(op)\
 do {\
@@ -68,10 +73,11 @@ int venus_rootfid(struct super_block *sb, ViceFid *fidp)
         union inputArgs *inp;
         union outputArgs *outp;
         int insize, outsize, error;
-ENTRY;
+	ENTRY;
 
         insize = SIZE(root);
         UPARG(CFS_ROOT);
+
 	error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
 	
 	if (error) {
@@ -92,7 +98,7 @@ int venus_getattr(struct super_block *sb, struct ViceFid *fid,
 {
         union inputArgs *inp;
         union outputArgs *outp;
-        int insize, outsize, error;
+	        int insize, outsize, error;
 ENTRY;
         insize = SIZE(getattr); 
 	UPARG(CFS_GETATTR);
@@ -458,8 +464,8 @@ int venus_symlink(struct super_block *sb, struct ViceFid *fid,
 int venus_fsync(struct super_block *sb, struct ViceFid *fid)
 {
         union inputArgs *inp;
-        union outputArgs *outp;
-        int insize, outsize, error;
+        union outputArgs *outp; 
+	int insize, outsize, error;
 	
 	insize=SIZE(fsync);
 	UPARG(CFS_FSYNC);
@@ -476,8 +482,8 @@ int venus_fsync(struct super_block *sb, struct ViceFid *fid)
 int venus_access(struct super_block *sb, struct ViceFid *fid, int mask)
 {
         union inputArgs *inp;
-        union outputArgs *outp;
-        int insize, outsize, error;
+        union outputArgs *outp; 
+	int insize, outsize, error;
 
 	insize = SIZE(access);
 	UPARG(CFS_ACCESS);
@@ -497,8 +503,8 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
 		 unsigned int cmd, struct PioctlData *data)
 {
         union inputArgs *inp;
-        union outputArgs *outp;
-        int insize, outsize, error;
+        union outputArgs *outp;  
+	int insize, outsize, error;
 	int iocsize;
 
 	insize = VC_MAXMSGSIZE;
@@ -583,11 +589,13 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
  * reply and return Venus' error, also POSITIVE. 
  * 
  */
-static inline void coda_waitfor_upcall(struct vmsg *vmp)
+static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
 {
 	struct wait_queue	wait = { current, NULL };
+	unsigned long posttime;
 
 	vmp->vm_posttime = jiffies;
+	posttime = jiffies;
 
 	add_wait_queue(&vmp->vm_sleep, &wait);
 	for (;;) {
@@ -616,13 +624,17 @@ static inline void coda_waitfor_upcall(struct vmsg *vmp)
 	remove_wait_queue(&vmp->vm_sleep, &wait);
 	current->state = TASK_RUNNING;
 
-	return;
+	CDEBUG(D_SPECIAL, "posttime: %ld, returned: %ld\n", posttime, jiffies-posttime);
+	return 	(jiffies - posttime);
+
 }
 
 
-int coda_upcall(struct coda_sb_info *sbi, int inSize, int *outSize, 
+static int coda_upcall(struct coda_sb_info *sbi, 
+		int inSize, int *outSize, 
 		union inputArgs *buffer) 
 {
+	unsigned long runtime; 
 	struct vcomm *vcommp;
 	union outputArgs *out;
 	struct vmsg *vmp;
@@ -635,7 +647,6 @@ ENTRY;
 	}
 	vcommp = sbi->sbi_vcomm;
 
-	clstats(((union inputArgs *)buffer)->ih.opcode);
 
 	if (!vcomm_open(vcommp))
                 return(ENODEV);
@@ -670,7 +681,8 @@ ENTRY;
 	 * ENODEV.  */
 
 	/* Go to sleep.  Wake up on signals only after the timeout. */
-	coda_waitfor_upcall(vmp);
+	runtime = coda_waitfor_upcall(vmp);
+	coda_upcall_stats(((union inputArgs *)buffer)->ih.opcode, runtime);
 
 	CDEBUG(D_TIMING, "opc: %d time: %ld uniq: %d size: %d\n",
 	       vmp->vm_opcode, jiffies - vmp->vm_posttime, 

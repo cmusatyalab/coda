@@ -161,9 +161,6 @@ static void coda_put_super(struct super_block *sb)
 
         ENTRY;
 
-        lock_super(sb);
-
-        sb->s_dev = 0;
 	coda_cache_clear_all(sb);
 	sb_info = coda_sbp(sb);
 	sb_info->sbi_vcomm->vc_inuse = 0;
@@ -171,7 +168,6 @@ static void coda_put_super(struct super_block *sb)
 	printk("Coda: Bye bye.\n");
 	memset(sb_info, 0, sizeof(* sb_info));
 
-        unlock_super(sb);
         MOD_DEC_USE_COUNT;
 	EXIT;
 }

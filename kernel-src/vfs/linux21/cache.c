@@ -32,9 +32,6 @@ static void coda_cache_create(struct inode *inode, int mask);
 static struct coda_cache * coda_cache_find(struct inode *inode);
 
 
-/* Keep various stats */
-struct cfsnc_statistics cfsnc_stat;
-
 /* insert a acl-cache entry in sb list */
 static void coda_ccinsert(struct coda_cache *el, struct super_block *sb)
 {
@@ -295,41 +292,3 @@ void coda_flag_inode(struct inode *inode, int flag)
 
 
 
-int
-cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, int dummy)
-{
-        int len=0;
-        off_t begin;
-	
-	/* 	cfsnc_gather_stats(); */
-
-	/* this works as long as we are below 1024 characters! */    
-	len += sprintf(buffer,"Coda minicache statistics\n\n");
-	len += sprintf(buffer+len, "cfsnc_hits : %d\n", cfsnc_stat.hits);
-	len += sprintf(buffer+len, "cfsnc_misses : %d\n", cfsnc_stat.misses);
-	len += sprintf(buffer+len, "cfsnc_enters : %d\n", cfsnc_stat.enters);
-	len += sprintf(buffer+len, "cfsnc_dbl_enters : %d\n", cfsnc_stat.dbl_enters);
-	len += sprintf(buffer+len, "cfsnc_long_name_enters : %d\n", cfsnc_stat.long_name_enters);
-	len += sprintf(buffer+len, "cfsnc_long_name_lookups : %d\n", cfsnc_stat.long_name_lookups);
-	len += sprintf(buffer+len, "cfsnc_long_remove : %d\n", cfsnc_stat.long_remove);
-	len += sprintf(buffer+len, "cfsnc_lru_rm : %d\n", cfsnc_stat.lru_rm);
-	len += sprintf(buffer+len, "cfsnc_zapPfids : %d\n", cfsnc_stat.zapPfids);
-	len += sprintf(buffer+len, "cfsnc_zapFids : %d\n", cfsnc_stat.zapFids);
-	len += sprintf(buffer+len, "cfsnc_zapFile : %d\n", cfsnc_stat.zapFile);
-	len += sprintf(buffer+len, "cfsnc_zapUsers : %d\n", cfsnc_stat.zapUsers);
-	len += sprintf(buffer+len, "cfsnc_Flushes : %d\n", cfsnc_stat.Flushes);
-	len += sprintf(buffer+len, "cfsnc_SumLen : %d\n", cfsnc_stat.Sum_bucket_len);
-	len += sprintf(buffer+len, "cfsnc_Sum2Len : %d\n", cfsnc_stat.Sum2_bucket_len);
-	len += sprintf(buffer+len,  "cfsnc_# 0 len : %d\n", cfsnc_stat.Num_zero_len);
-	len += sprintf(buffer+len,  "cfsnc_MaxLen : %d\n", cfsnc_stat.Max_bucket_len);
-	len += sprintf(buffer+len,  "cfsnc_SearchLen : %d\n", cfsnc_stat.Search_len);
-       	begin =  offset;
-       	*start = buffer + begin;
-       	len -= begin;
-	
-        if(len>length)
-                len = length;
-	if (len< 0)
-		len = 0;
-        return len;
-} 

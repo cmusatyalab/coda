@@ -23,6 +23,7 @@
 #include <linux/coda_psdev.h>
 #include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
+#include <linux/coda_proc.h>
 
 /* dir inode-ops */
 static int coda_create(struct inode *dir, struct dentry *new, int mode);
@@ -179,6 +180,8 @@ int coda_permission(struct inode *inode, int mask)
         int error;
  
         ENTRY;
+	coda_vfs_stat.permission++;
+	coda_permission_stat.count++;
 
         if ( mask == 0 ) {
                 EXIT;
@@ -187,6 +190,7 @@ int coda_permission(struct inode *inode, int mask)
 
 	if ( coda_access_cache == 1 ) {
 		if ( coda_cache_check(inode, mask) ) {
+			coda_permission_stat.hit_count++;
 			return 0; 
 		}
 	}
@@ -220,6 +224,8 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
 	struct inode *result = NULL;
 	struct ViceFid newfid;
 	struct coda_vattr attrs;
+
+	coda_vfs_stat.create++;
 
 	CDEBUG(D_INODE, "name: %s, length %d, mode %o\n",name, length, mode);
 
@@ -273,6 +279,8 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
 	int error;
 	struct ViceFid newfid;
 
+
+	coda_vfs_stat.mkdir++;
 
 	if (!dir || !S_ISDIR(dir->i_mode)) {
 		printk("coda_mkdir: inode is NULL or not a directory\n");
@@ -329,6 +337,7 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 	int error;
 
         ENTRY;
+	coda_vfs_stat.link++;
 
 	if (coda_isroot(dir_inode) && coda_iscontrol(name, len))
 		return -EPERM;
@@ -373,6 +382,7 @@ static int coda_symlink(struct inode *dir_inode, struct dentry *de,
         int error=0;
         
         ENTRY;
+	coda_vfs_stat.symlink++;
 
 	if (coda_isroot(dir_inode) && coda_iscontrol(name, len))
 		return -EPERM;
@@ -414,6 +424,7 @@ int coda_unlink(struct inode *dir, struct dentry *de)
 	int len = de->d_name.len;
 
 	ENTRY;
+	coda_vfs_stat.unlink++;
 
         dircnp = ITOC(dir);
         CHECK_CNODE(dircnp);
@@ -445,6 +456,8 @@ int coda_rmdir(struct inode *dir, struct dentry *de)
 	const char *name = de->d_name.name;
 	int len = de->d_name.len;
         int error, rehash = 0;
+
+	coda_vfs_stat.rmdir++;
 
 	if (!dir || !S_ISDIR(dir->i_mode)) {
 		printk("coda_rmdir: inode is NULL or not a directory\n");
@@ -502,6 +515,8 @@ static int coda_rename(struct inode *old_dir, struct dentry *old_dentry,
         struct coda_inode_info *new_cnp, *old_cnp;
         int error, rehash = 0, update = 1;
 ENTRY;
+	coda_vfs_stat.rename++;
+
         old_cnp = ITOC(old_dir);
         CHECK_CNODE(old_cnp);
         new_cnp = ITOC(new_dir);
@@ -565,6 +580,7 @@ int coda_readdir(struct file *file, void *dirent,  filldir_t filldir)
 	struct inode *inode=file->f_dentry->d_inode;
 
         ENTRY;
+	coda_vfs_stat.readdir++;
 
         if (!inode || !inode->i_sb || !S_ISDIR(inode->i_mode)) {
                 printk("coda_readdir: inode is NULL or not a directory\n");
@@ -606,6 +622,7 @@ int coda_open(struct inode *i, struct file *f)
 	unsigned short coda_flags = coda_flags_to_cflags(flags);
 
         ENTRY;
+	coda_vfs_stat.open++;
         
         CDEBUG(D_SPECIAL, "OPEN inode number: %ld, flags %o.\n", 
 	       f->f_dentry->d_inode->i_ino, flags);
@@ -659,6 +676,7 @@ int coda_release(struct inode *i, struct file *f)
 	unsigned short cflags = coda_flags_to_cflags(flags);
 
         ENTRY;
+	coda_vfs_stat.release++;
 
         cnp =ITOC(i);
         CHECK_CNODE(cnp);

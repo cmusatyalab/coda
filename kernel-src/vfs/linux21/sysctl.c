@@ -26,7 +26,7 @@
 #include <linux/coda_fs_i.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cache.h>
-#include <linux/coda_sysctl.h>
+#include <linux/coda_proc.h>
 extern int coda_debug;
 /* extern int cfsnc_use; */
 extern int coda_print_entry;
@@ -47,6 +47,10 @@ struct ctl_table_header *fs_table_header, *coda_table_header;
 #define CODA_TIMEOUT    3       /* timeout on upcalls to become intrble */
 #define CODA_MC         4       /* use/do not use the access cache */
 #define CODA_HARD       5       /* mount type "hard" or "soft" */
+#define CODA_VFS 	 6       /* vfs statistics */
+#define CODA_UPCALL 	 7       /* upcall statistics */
+#define CODA_PERMISSION	 8       /* permission statistics */
+#define CODA_CACHE_INV 	 9       /* cache invalidation statistics */
 
 
 
@@ -56,6 +60,10 @@ static ctl_table coda_table[] = {
  	{CODA_MC, "accesscache", &coda_access_cache, sizeof(int), 0644, NULL, &coda_dointvec}, 
  	{CODA_TIMEOUT, "timeout", &coda_timeout, sizeof(int), 0644, NULL, &coda_dointvec},
  	{CODA_HARD, "hard", &coda_hard, sizeof(int), 0644, NULL, &coda_dointvec},
+ 	{CODA_VFS, "vfs_stats", NULL, 0, 0644, NULL, &do_reset_coda_vfs_stats},
+ 	{CODA_UPCALL, "upcall_stats", NULL, 0, 0644, NULL, &do_reset_coda_upcall_stats},
+ 	{CODA_PERMISSION, "permission_stats", NULL, 0, 0644, NULL, &do_reset_coda_permission_stats},
+ 	{CODA_CACHE_INV, "cache_inv_stats", NULL, 0, 0644, NULL, &do_reset_coda_cache_inv_stats},
 	{ 0 }
 };
 

@@ -23,6 +23,7 @@
 #include <linux/coda_psdev.h>
 #include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
+#include <linux/coda_proc.h>
 
 static int coda_readlink(struct dentry *de, char *buffer, int length);
 static struct dentry *coda_follow_link(struct dentry *, struct dentry *);
@@ -60,7 +61,7 @@ static int coda_readlink(struct dentry *de, char *buffer, int length)
         ENTRY;
 
         cp = ITOC(inode);
-        CHECK_CNODE(cp);
+	coda_vfs_stat.readlink++;
 
         /* the maximum length we receive is len */
         if ( length > CFS_MAXPATHLEN ) 
@@ -93,11 +94,11 @@ static struct dentry *coda_follow_link(struct dentry *de,
 	unsigned int len;
 	char mem[CFS_MAXPATHLEN];
 	char *path;
-ENTRY;
+	ENTRY;
 	CDEBUG(D_INODE, "(%x/%ld)\n", inode->i_dev, inode->i_ino);
 	
         cnp = ITOC(inode);
-        CHECK_CNODE(cnp);
+	coda_vfs_stat.follow_link++;
 
 	len = CFS_MAXPATHLEN;
 	error = venus_readlink(inode->i_sb, &(cnp->c_fid), mem, &len);

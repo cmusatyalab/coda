@@ -44,7 +44,7 @@
 #include <linux/coda_fs_i.h>
 #include <linux/coda_psdev.h>
 #include <linux/coda_cache.h>
-#include <linux/coda_sysctl.h>
+#include <linux/coda_proc.h>
 
 
 /*
@@ -401,18 +401,105 @@ static struct file_operations coda_psdev_fops = {
 
 #ifdef CONFIG_PROC_FS
 
-struct proc_dir_entry proc_coda = {
-        0, 4, "coda",
-        S_IFDIR | S_IRUGO | S_IXUGO | S_IWUSR, 2, 0, 0,
-        0, &proc_net_inode_operations,
-
+struct proc_dir_entry proc_sys_root = {
+        PROC_SYS, 3, "sys",                     /* inode, name */
+        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,   /* mode, nlink, uid, gid */
+        0, &proc_dir_inode_operations,          /* size, ops */
+        NULL, NULL,                             /* get_info, fill_inode */
+        NULL,                                   /* next */
+        NULL, NULL                              /* parent, subdir */
 };
 
+struct proc_dir_entry proc_fs_coda = {
+        PROC_FS_CODA, 4, "coda",
+        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,
+        0, &proc_dir_inode_operations,
+	NULL, NULL,
+	NULL,
+	NULL, NULL
+};
+
+struct proc_dir_entry proc_sys_coda = {
+        0, 4, "coda",
+        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,
+        0, &proc_dir_inode_operations,
+	NULL, NULL,
+	NULL,
+	NULL, NULL
+};
+
+struct proc_dir_entry proc_fs = {
+        PROC_FS, 2, "fs",
+        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,
+        0, &proc_dir_inode_operations,
+	NULL, NULL,
+	NULL,
+	NULL, NULL
+};
+
+#if 0
 struct proc_dir_entry proc_coda_ncstats =  {
                 0 , 12, "coda-ncstats",
                 S_IFREG | S_IRUGO, 1, 0, 0,
                 0, &proc_net_inode_operations,
                 cfsnc_nc_info
+        };
+#endif
+
+struct proc_dir_entry proc_coda_vfs =  {
+                PROC_VFS_STATS , 9, "vfs_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_vfs_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_vfs_control =  {
+                0 , 9, "vfs_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_vfs_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_upcall =  {
+                PROC_UPCALL_STATS , 12, "upcall_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_upcall_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_upcall_control =  {
+                0 , 12, "upcall_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_upcall_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_permission =  {
+                PROC_PERMISSION_STATS , 16, "permission_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_permission_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_permission_control =  {
+                0 , 16, "permission_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_permission_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_cache_inv =  {
+                PROC_CACHE_INV_STATS , 15, "cache_inv_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_cache_inv_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_cache_inv_control =  {
+                0 , 15, "cache_inv_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_cache_inv_stats_get_info
         };
 
 #endif
@@ -429,9 +516,27 @@ int init_coda_psdev(void)
 	memset(coda_super_info, 0, sizeof(coda_super_info));
 	memset(&coda_callstats, 0, sizeof(coda_callstats));
 
+	reset_coda_vfs_stats();
+	reset_coda_upcall_stats();
+	reset_coda_permission_stats();
+	reset_coda_cache_inv_stats();
+
 #ifdef CONFIG_PROC_FS
-	proc_register(&proc_root,&proc_coda);
-	proc_register(&proc_coda, &proc_coda_ncstats);
+	proc_register(&proc_root,&proc_fs);
+	proc_register(&proc_fs,&proc_fs_coda);
+	proc_register(&proc_fs_coda,&proc_coda_vfs);
+	proc_register(&proc_fs_coda,&proc_coda_upcall);
+	proc_register(&proc_fs_coda,&proc_coda_permission);
+	proc_register(&proc_fs_coda,&proc_coda_cache_inv);
+#if 0
+	proc_register(&proc_fs_coda, &proc_coda_ncstats);
+#endif
+	proc_register(&proc_sys_root,&proc_sys_coda);
+	proc_register(&proc_sys_coda,&proc_coda_vfs_control);
+	proc_register(&proc_sys_coda,&proc_coda_upcall_control);
+	proc_register(&proc_sys_coda,&proc_coda_permission_control);
+	proc_register(&proc_sys_coda,&proc_coda_cache_inv_control);
+
 	coda_sysctl_init();
 #endif 
 	return 0;
@@ -476,8 +581,22 @@ void cleanup_module(void)
 
 #if CONFIG_PROC_FS
         coda_sysctl_clean();
-        proc_unregister(&proc_coda, proc_coda_ncstats.low_ino);
-	proc_unregister(&proc_root, proc_coda.low_ino);
+
+        proc_unregister(&proc_sys_coda, proc_coda_cache_inv_control.low_ino);
+        proc_unregister(&proc_sys_coda, proc_coda_permission_control.low_ino);
+        proc_unregister(&proc_sys_coda, proc_coda_upcall_control.low_ino);
+	proc_unregister(&proc_sys_coda,proc_coda_vfs_control.low_ino);
+	proc_unregister(&proc_sys_root, proc_sys_coda.low_ino);
+
+#if 0
+	proc_unregister(&proc_fs_coda, proc_coda_ncstats.low_ino);
+#endif
+        proc_unregister(&proc_fs_coda, proc_coda_cache_inv.low_ino);
+        proc_unregister(&proc_fs_coda, proc_coda_permission.low_ino);
+        proc_unregister(&proc_fs_coda, proc_coda_upcall.low_ino);
+        proc_unregister(&proc_fs_coda, proc_coda_vfs.low_ino);
+	proc_unregister(&proc_fs, proc_fs_coda.low_ino);
+	proc_unregister(&proc_root, proc_fs.low_ino);
 #endif 
 }
 
