@@ -155,8 +155,6 @@ typedef void (*PROC_V_UL)(unsigned long);
 #define	STREQ(a, b) (strcmp((a), (b)) == 0)
 #define	STRNEQ(a, b, n) (strncmp((a), (b), (n)) == 0)
 #define	NBLOCKS(bytes)	((bytes + 1023) >> 10)
-#define	LOGFILE	    "venus.log"
-#define	LOGFILE_OLD "venus.log.old"
 
 /* Flags for the various vproc/fsobj name/object lookup routines. */
 #define	FOLLOW_SYMLINKS	0x1	    /* should lookup follow symlinks for last component? */
@@ -363,6 +361,7 @@ extern char *RootVolName;
 extern vuid_t PrimaryUser;
 extern char *VenusPidFile;
 extern char *VenusControlFile;
+extern char *VenusLogFile;
 
 /* spool.cc */
 extern void SpoolInit();

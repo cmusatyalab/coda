@@ -468,9 +468,17 @@ int binaryfloor(int n) {
 
 
 void LogInit() {
-    rename(LOGFILE, LOGFILE_OLD);
+    char *oldLog = (char *)malloc(strlen(VenusLogFile) + 5);
+    CODA_ASSERT(oldLog != NULL);
 
-    logFile = fopen(LOGFILE, "w+");
+    strcpy(oldLog, VenusLogFile);
+    strcat(oldLog, ".old");
+
+    rename(VenusLogFile, oldLog);
+
+    free(oldLog);
+
+    logFile = fopen(VenusLogFile, "a");
     if (logFile == NULL)
 	{ eprint("LogInit failed"); exit(-1); }
     LogInited = 1;
@@ -479,7 +487,7 @@ void LogInit() {
 
     struct timeval now;
     gettimeofday(&now, 0);
-    LOG(0, ("LOGFILE initialized with LogLevel = %d at %s\n",
+    LOG(0, ("Logfile initialized with LogLevel = %d at %s\n",
 	    LogLevel, ctime((time_t *)&now.tv_sec)));
 }
 
@@ -806,18 +814,23 @@ void rds_printer(char *fmt ...) {
 void SwapLog() {
     struct timeval now;
     gettimeofday(&now, 0);
+
+    char *oldLog = (char *)malloc(strlen(VenusLogFile) + 5);
+    CODA_ASSERT(oldLog != NULL);
+
+    strcpy(oldLog, VenusLogFile);
+    strcat(oldLog, ".old");
+
     LOG(0, ("Moving %s to %s at %s\n",
-	     LOGFILE, LOGFILE_OLD, ctime((time_t *)&now.tv_sec)));
+	     VenusLogFile, oldLog, ctime((time_t *)&now.tv_sec)));
     fflush(logFile);
 
-    if (rename(LOGFILE, LOGFILE_OLD) < 0) {
-	eprint("rename(%s, %s) failed (%d)\n",
-	       LOGFILE, LOGFILE_OLD, errno);
-	return;
-    }
+    rename(VenusLogFile, oldLog);
 
-    freopen(LOGFILE, "a+", logFile);
-    LOG(0, ("New LOGFILE started at %s", ctime((time_t *)&now.tv_sec)));
+    free(oldLog);
+
+    freopen(VenusLogFile, "a", logFile);
+    LOG(0, ("New Logfile started at %s", ctime((time_t *)&now.tv_sec)));
 }
 
 

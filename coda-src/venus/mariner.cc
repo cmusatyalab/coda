@@ -174,20 +174,22 @@ void MarinerMux(int mask) {
 }
 
 
-void MarinerLog(char *fmt ...) {
+void MarinerLog(const char *fmt, ...) {
     va_list ap;
     char buf[180];
+    int len;
+    mariner_iterator next;
+    mariner *m;
 
     va_start(ap, fmt);
     vsnprintf(buf, 180, fmt, ap);
     va_end(ap);
 
-    int len = (int) strlen(buf);
+    len = (int) strlen(buf);
 
-    mariner_iterator next;
-    mariner *m;
     while ((m = next()))
-	if (m->logging) ::write(m->fd, buf, len);
+	if (m->IsLogging())
+	    m->write(buf, len);
 }
 
 /* This should be made an option to a more general logging facility! -JJK */
@@ -305,12 +307,12 @@ int mariner::Read() {
 
 
 /* Duplicates fdprint(). */
-int mariner::Write(char *fmt ...) {
+int mariner::Write(const char *fmt, ...) {
     va_list ap;
-    char buf[120];
+    char buf[180];
 
     va_start(ap, fmt);
-    vsprintf(buf, fmt, ap);
+    vsnprintf(buf, 180, fmt, ap);
     va_end(ap);
 
     int len = (int)strlen(buf);

@@ -640,9 +640,9 @@ void RecovFlush(int Force) {
     int FlushCount = (int)Recov_Statistics.n_no_flush;
     unsigned long FlushSize = RVM_OFFSET_TO_LENGTH(Recov_Statistics.no_flush_length);
 
-    char *reason = (Force) ? "F" :
-      (Recov_TimeToFlush <= 0) ? "T" :
-      (FlushSize >= MAXFS) ? "S" : "I";
+    const char *reason = (Force) ? "F" :
+	(Recov_TimeToFlush <= 0) ? "T" :
+	    (FlushSize >= MAXFS) ? "S" : "I";
 
     Recov_TimeToFlush = MAXFP;
     if (FlushSize == 0) return;
@@ -668,8 +668,8 @@ void RecovTruncate(int Force) {
       (int)Recov_Statistics.n_no_flush_commit;
     unsigned long TruncateSize = RVM_OFFSET_TO_LENGTH(Recov_Statistics.log_written);
 
-    char *reason = (Force) ? "F" :
-      (TruncateSize >= MAXTS) ? "S" : "I";
+    const char *reason = (Force) ? "F" :
+	 (TruncateSize >= MAXTS) ? "S" : "I";
 
     if (TruncateSize == 0) return;
 

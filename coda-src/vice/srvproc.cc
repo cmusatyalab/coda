@@ -3253,7 +3253,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 				  VCP VCmpProc, ViceStatus *dirstatus,
 				  ViceStatus *status, Rights *rights, Rights *anyrights, 
 				 int MakeProtChecks) {
-    char *ProcName = (type == vFile)
+    const char *ProcName = (type == vFile)
       ? "CheckCreateOrLinkSemantics"
       : (type == vDirectory)
       ? "CheckMkdirSemantics"
@@ -3391,7 +3391,7 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 			       VCP VCmpProc, ViceStatus *dirstatus,
 			       ViceStatus *status, Rights *rights, Rights *anyrights,
 			       int MakeProtChecks) {
-    char *ProcName = (type == vDirectory)
+    const char *ProcName = (type == vDirectory)
       ? "CheckRmdirSemantics"
       : "CheckRemoveSemantics";
     int errorCode = 0;

@@ -86,6 +86,7 @@ vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
 char *SpoolDir = UNSET_SPOOLDIR;
 char *VenusPidFile = NULL;
 char *VenusControlFile = NULL;
+char *VenusLogFile = NULL;
 
 /* *****  Private constants  ***** */
 
@@ -492,6 +493,16 @@ static void DefaultCmdlineParms()
 	    VenusControlFile=(char*)malloc(strlen(CacheDir)+strlen(CTRLFILE)+1);
 	    strcpy(VenusControlFile, CacheDir);
 	    strcat(VenusControlFile, CTRLFILE);
+	}
+    }
+
+    CONF_STR(VenusLogFile, "logfile", NULL);
+    {
+#define LOGFILE "/venus.log"
+	if (!VenusLogFile) {
+	    VenusLogFile=(char*)malloc(strlen(CacheDir)+strlen(LOGFILE)+1);
+	    strcpy(VenusLogFile, CacheDir);
+	    strcat(VenusLogFile, LOGFILE);
 	}
     }
 

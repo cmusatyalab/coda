@@ -498,8 +498,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
     int code = 0;
     int getacl = (acl != 0);
     int inconok = flags.rwreplica;
-    char *prel_str = getacl ? "fetch::GetACL %s\n" : "fetch::GetAttr %s\n";
-    char *post_str = getacl ? "fetch::GetACL done\n" : "fetch::GetAttr done\n";
+    const char *prel_str=getacl?"fetch::GetACL %s\n"  :"fetch::GetAttr %s\n";
+    const char *post_str=getacl?"fetch::GetACL done\n":"fetch::GetAttr done\n";
 
     /* Dummy argument for ACL */
     RPC2_BoundedBS dummybs;
@@ -1344,8 +1344,8 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 
     int code = 0;
     int setacl = (acl != 0);
-    char *prel_str = setacl ? "store::SetAcl %s\n" : "store::SetAttr %s\n";
-    char *post_str = setacl ? "store::setacl done\n" : "store::setattr done\n";
+    const char *prel_str=setacl?"store::setacl %s\n"  :"store::setattr %s\n";
+    const char *post_str=setacl?"store::setacl done\n":"store::setattr done\n";
 
     RPC2_Integer Mask = 0; 
 

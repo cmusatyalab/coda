@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  *
  *    Specification of the Venus File-System Object (fso) abstraction.

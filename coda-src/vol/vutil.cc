@@ -173,12 +173,12 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     return (VAttachVolumeById(ec, partition, volumeId, V_SECRETLY));
 }
 
-void AssignVolumeName(register VolumeDiskData *vol, char *name, char *ext)
+void AssignVolumeName(VolumeDiskData *vol, char *name, const char *ext)
 {
-    register char *dot;
+    char *dot;
     strncpy(vol->name, name, VNAMESIZE-1);
     vol->name[VNAMESIZE-1] = '\0';
-    dot = (char *) rindex(vol->name, '.');
+    dot = strrchr(vol->name, '.');
     if (dot && (strcmp(dot,".backup") == 0 || strcmp(dot, ".readonly") == 0 || 
       strcmp(dot, ".restored") == 0))
         *dot = 0;

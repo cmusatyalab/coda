@@ -2394,12 +2394,12 @@ void namectxt::getpath(char *buf) {
 }
 
 
-#define PUTMSG(reason, include_modifier) {\
+#define PUTMSG(reason, include_modifier) do {\
 	getpath(fullpath);\
-	fdprint(fd, "%25s  %s ", reason, fullpath, modifier);\
-	if (include_modifier) fdprint(fd, "%s\n", modifier);\
+	fdprint(fd, "%25s  %s", reason, fullpath);\
+	if (include_modifier) fdprint(fd, " %s\n", modifier);\
 	else fdprint(fd, "\n");\
-}
+} while(0);
 
 void namectxt::printsuspect(int fd, int verbosity) {
     /* verbosity = 0		silence except for errors
@@ -2407,7 +2407,8 @@ void namectxt::printsuspect(int fd, int verbosity) {
        100 < verbosity		errors and confirmation of all expanded items
     */
     char fullpath[MAXPATHLEN+1];
-    char *modifier = expand_descendents ? "d+" : (expand_children ? "c+" : "  ");
+    const char *modifier = expand_descendents ? "d+" :
+			  (expand_children    ? "c+" : "  ");
 
     /* Deal with this node first */
     dlink *d = expansion.last();

@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /*
  *
  * Specification of the Venus Mariner facility.
@@ -57,7 +50,7 @@ extern int MarinerMask;
 
 extern void MarinerInit();
 extern void MarinerMux(int);
-extern void MarinerLog(char * ...);
+extern void MarinerLog(const char *, ...);
 extern void MarinerReport(ViceFid *, vuid_t);
 extern void PrintMariners();
 extern void PrintMariners(FILE *);
@@ -67,7 +60,6 @@ extern void PrintMariners(int);
 class mariner : public vproc {
   friend void MarinerInit();
   friend void MarinerMux(int);
-  friend void MarinerLog(char * ...);
   friend void MarinerReport(ViceFid *, vuid_t);
   friend void PrintMariners(int);
 
@@ -87,7 +79,7 @@ class mariner : public vproc {
     virtual ~mariner();
 
     int Read();
-    int Write(char * ...);
+    int Write(const char *buf, ...);
     void AwaitRequest();
     void Resign(int);
     void PathStat(char *);
@@ -96,6 +88,10 @@ class mariner : public vproc {
 
   protected:
     virtual void main(void);
+
+  public:
+    int IsLogging(void)		  { return logging; }
+    int write(char *buf, int len) { ::write(fd, buf, len); }
 };
 
 

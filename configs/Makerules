@@ -113,9 +113,9 @@ endif
 c_conf_install: $(CCONFFILES)
 ifdef CCONFFILES
 	if test $(sysconfdir) = /etc/coda ; then \
-	    $(TOPDIR)/tools/our-install 755 $(prefix)/..$(sysconfdir) $? ; \
+	    $(TOPDIR)/tools/our-install 644 $(prefix)/..$(sysconfdir) $? ; \
 	else \
-	    $(TOPDIR)/tools/our-install 755 $(sysconfdir) $? ; \
+	    $(TOPDIR)/tools/our-install 644 $(sysconfdir) $? ; \
 	fi
 endif
 
