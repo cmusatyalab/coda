@@ -139,6 +139,7 @@ typedef void *register_t;
 
 FILE *lwp_logfile = NULL;
 char    lwp_debug;
+FILE   *lwp_logfile;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
 int lwp_nextindex;			/* Next lwp index to assign */
@@ -196,6 +197,7 @@ stackinfo     *vminfo[MAXTHREADS];
 		body\
 	    }\
 	}
+
 
 
 /* removes PROCESS p from a QUEUE pointed at by q */
@@ -474,7 +476,7 @@ static void CheckWorkTime(PROCESS currentThread, PROCESS nextThread)
 	    struct tm *lt = localtime((const time_t *)&current.tv_sec);
 	    fprintf(stderr, "[ %02d:%02d:%02d ] ***LWP %s(%p) took too much cpu %d secs %6d usecs\n", 
 		    lt->tm_hour, lt->tm_min, lt->tm_sec, 
-		    currentThread->name, currentThread, worktime.tv_sec, worktime.tv_usec);
+		    currentThread->name, currentThread, (int)worktime.tv_sec, (int)worktime.tv_usec);
 	    fflush(stderr);	    
 	}
 	last_context_switch.tv_sec = current.tv_sec;
@@ -508,7 +510,7 @@ static void CheckRunWaitTime(PROCESS thread)
 	struct tm *lt = localtime((const time_t *)&current.tv_sec);
 	fprintf(stderr, "[ %02d:%02d:%02d ] ***LWP %s(%p) run-wait too long %d secs %6d usecs\n", 
 		lt->tm_hour, lt->tm_min, lt->tm_sec, 
-		thread->name, thread, waittime.tv_sec, waittime.tv_usec);
+		thread->name, thread, (int)waittime.tv_sec, (int)waittime.tv_usec);
 	fflush(stderr);	    
     }
     timerclear(&thread->lastReady);
@@ -1146,14 +1148,13 @@ struct regfile {
     register_t   eax;
 };
 
-PRIVATE void Trace_Swapped_Stack(top, fp, depth, name)
+static void Trace_Swapped_Stack(top, fp, depth, name)
     caddr_t top;
     FILE    *fp;
     int     depth;
     char    *name;
 {
     struct regfile  reg;
-    register_t      tmp;
     register_t      ip;
     register_t      esp;
     
@@ -1190,17 +1191,17 @@ PRIVATE void Trace_Swapped_Stack(top, fp, depth, name)
 #endif
 
 
-PRIVATE void Dump_One_Process(pid, fp, dofree)
+static void Dump_One_Process(pid, fp, dofree)
     PROCESS pid;
     FILE    *fp;
     int     dofree;
 {
     int i;
 
-    fprintf(fp,"***LWP: Process Control Block at 0x%x\n", pid);
+    fprintf(fp,"***LWP: Process Control Block at 0x%p\n", pid);
     fprintf(fp,"***LWP: Name: %s\n", pid->name);
     if (pid->ep != NULL)
-	fprintf(fp,"***LWP: Initial entry point: 0x%x\n", pid->ep);
+	fprintf(fp,"***LWP: Initial entry point: 0x%p\n", pid->ep);
     if (pid->blockflag) fprintf(fp,"BLOCKED and ");
     switch (pid->status) {
 	case READY:	fprintf(fp,"READY");     break;
@@ -1209,12 +1210,12 @@ PRIVATE void Dump_One_Process(pid, fp, dofree)
 	default:	fprintf(fp,"unknown");
 	}
     fprintf(fp, "\n");
-    fprintf(fp,"***LWP: Priority: %d \tInitial parameter: 0x%x\n",
+    fprintf(fp,"***LWP: Priority: %d \tInitial parameter: 0x%p\n",
 	    pid->priority, pid->parm);
 
 #ifdef OLDLWP
     if (pid->stacksize != 0) {
-	fprintf(fp,"***LWP:  Stacksize: %d \tStack base address: 0x%x\n",
+	fprintf(fp,"***LWP:  Stacksize: %d \tStack base address: 0x%p\n",
 		pid->stacksize, pid->stack);
 	fprintf(fp,"***LWP: HWM stack usage: ");
 	fprintf(fp,"%d\n", Stack_Used(pid->stack,pid->stacksize));
@@ -1222,7 +1223,7 @@ PRIVATE void Dump_One_Process(pid, fp, dofree)
 	    free (pid->stack);
 	    }
 	}
-    fprintf(fp,"***LWP: Current Stack Pointer: 0x%x\n", pid->context.topstack);
+    fprintf(fp,"***LWP: Current Stack Pointer: 0x%p\n", pid->context.topstack);
 #endif OLDLWP
 
     /* Add others here as needed */
@@ -1239,7 +1240,7 @@ PRIVATE void Dump_One_Process(pid, fp, dofree)
 	fprintf(fp,"***LWP: Number of events outstanding: %d\n", pid->waitcnt);
 	fprintf(fp,"***LWP: Event id list:");
 	for (i=0;i<pid->eventcnt;i++)
-	    fprintf(fp," 0x%x", pid->eventlist[i]);
+	    fprintf(fp," 0x%p", pid->eventlist[i]);
 	fprintf(fp,"\n");
     }
     if (pid->wakevent>0)

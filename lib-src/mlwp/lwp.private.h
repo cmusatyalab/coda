@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.private.h,v 4.2 1998/04/14 20:42:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.private.h,v 4.3 1998/05/15 01:29:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -138,8 +138,9 @@ extern char PRE_Block;			/* used in preemption control (in preempt.c) */
 
 #ifdef OLDLWP
 /* Routines in process.s */
-extern savecontext (PFV whichroutine, struct lwp_context *context, char *whichstack);
-extern returnto (struct lwp_context *context);
+
+extern int savecontext (PFV whichroutine, struct lwp_context *context, char *whichstack);
+extern int returnto (struct lwp_context *context);
 #endif OLDLWP
 
 /* Debugging macro */

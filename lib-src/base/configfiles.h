@@ -4,6 +4,7 @@ typedef union config_val {
 	char *s;
 } *pconfig_val;
 
+/* one entry */
 typedef struct config_entry {
 	char *ent_key;
 	union config_val ent_value;
@@ -13,12 +14,24 @@ typedef struct config_entry {
 /* flags for entries. */
 #define CONFIG_SET 0x1 /* set if entry was set */
 #define CONFIG_MALLOCED 0x2 /* set if entry has malloced string storage */
+#define CONFIG_MANDATORY 0x1000
 
-/* null terminated list of keys */
 typedef struct config_table {
+	char *tbl_name;
 	pconfig_entry tbl_entries;
-	char *tbl_file;          /* source of the values */
 } *pconfig_table;
+
+/* null terminated list of tablenames */
+typedef struct config_rsr {
+	char *cfg_tablename;
+	pconfig_table cfg_stringtablep;
+	pconfig_table cfg_consttablep;
+} *pconfig_rsr;
+
+typedef struct config_prog {
+	char *cfg_file;          /* source of the values */
+	pconfig_rsr *cfg_resources;
+} *pconfig_cfg;
 
 #define CFG_CONST 1
 #define CFG_STRING 0
@@ -29,4 +42,4 @@ int config_set_string(char *key, char *value, struct config_table *table);
 int config_set_const(char *key, int value, struct config_table *table);
 char *config_get_name(char *key, struct config_table *table);
 int config_get_const(char *key, struct config_table *table, int *result);
-int config_next(char *line, char **key, char **val);
+int config_next(char *line, char **key, char **val, char **rsr);

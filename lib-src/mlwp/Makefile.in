@@ -1,6 +1,6 @@
 # TARGETS:
 #	install:
-#		lock.h lwp.h lwp.camelot.h preempt.h timer.h cargs.h ->$(INCLSPECIAL)
+#		lock.h lwp.h preempt.h timer.h cargs.h ->$(INCLSPECIAL)
 #		liboldlwp.a -> $(LIBSPECIAL)
 #		test rw -> $(BINDIR)
 #	 all:
@@ -36,7 +36,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/Makefile.in,v 4.4 1997/12/02 16:40:49 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/Makefile.in,v 4.5 1998/05/15 01:23:54 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -48,11 +48,10 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-# presto changeo!
-SHOB_LIB_DIR := $(SHOB_LIB_SPECIAL)
+CFLAGS += -Wall 
 
 LIBRARIES = liboldlwp.a
-HEADERS   = lock.h lwp.h lwp.camelot.h preempt.h timer.h cargs.h
+HEADERS   = lock.h lwp.h preempt.h timer.h cargs.h
 TESTS     = test rw  # tdb doesn't work yet
 
 OLD_LIBS = liboldlwp.a $(LIBCOMPAT) 

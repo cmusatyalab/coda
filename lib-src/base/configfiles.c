@@ -6,6 +6,8 @@
 
 #include "configfiles.h"
 
+
+
 struct config_entry client_const[] = {
 	{"cachefiles", CF 5000, 1},
 	{"avgcachefilesize", CF 3, 1},
@@ -57,6 +59,7 @@ struct config_table *config_setup_table(pconfig_table table, pconfig_entry entri
 	int rc = 0;
 	char *key;
 	char *val;
+	char *rsr;
 	int ent;
 	int lineno = 0;
 	
@@ -80,7 +83,7 @@ struct config_table *config_setup_table(pconfig_table table, pconfig_entry entri
 			break;
 
 		/* printf("NOW doing: %s\n", theline); */
-		rc = config_next(line, &key, &val);
+		rc = config_next(line, &key, &val, &rsr);
 
 		/* line contains nothing useful */
 		if (rc == 0)
@@ -124,8 +127,8 @@ struct config_table *config_setup_table(pconfig_table table, pconfig_entry entri
 }
 
 
-/* return -1 on failure or the index of the key */
-int config_find_key(char *key, pconfig_table table)
+/* return NULL on failure or the entry on success */
+struct config_entry *config_find_entry(char *key, pconfig_table table)
 {
 	int j;
 	struct config_entry *entries;
@@ -145,9 +148,9 @@ int config_find_key(char *key, pconfig_table table)
 
 	/* found ? */
 	if ( entries[j].ent_key == NULL ) 
-		return -1;
+		return NULL;
 	else 
-		return j;
+		return &(entries[j]);
 }
 
 	
@@ -234,8 +237,9 @@ int config_get_const(char *key, struct config_table *table, int *result)
    1 if a key was found, but no value
    -1 if an equality sign if found but no key
    -2 if a key is found but no equality sign
-   2 if a key and value was found */
-int config_next(char *line, char **key, char **val)
+   2 if a key and value was found
+   3 if a resource, value and key was found */
+int config_next(char *line, char **key, char **val, char **rsr)
 {
 	int rc=0;
 	char *hash;
@@ -308,7 +312,15 @@ void config_print_string(struct config_table *table, FILE *file)
 
 
 	
+pconfig_rsr *rsr = {
+	{ "", client_strings, client_constants }, 
+	{ "server", server_strings, server_constants },
+	{ NULL , NULL, NULL }
+};
 
+struct config_prog conf = {
+	NULL,
+}
 
 int main(int argc, char **argv)
 {

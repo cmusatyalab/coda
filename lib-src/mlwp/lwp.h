@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.h,v 4.3 1998/04/14 20:42:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.h,v 4.4 1998/05/27 20:30:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 #ifndef LWP_INCLUDED
 #define LWP_INCLUDED
-
 #include <sys/time.h>
 #include <stdio.h>
 
@@ -135,6 +134,7 @@ extern int LWP_CreateProcess (PFIC ep, int stacksize, int priority, char *parm,
 			     char *name, PROCESS *pid);
 extern int LWP_CurrentProcess (PROCESS *pid);
 PROCESS LWP_ThisProcess();
+extern void LWP_SetLog(FILE *, int );
 extern int LWP_DestroyProcess (PROCESS pid);
 extern int LWP_DispatchProcess();
 extern int LWP_GetProcessPriority (PROCESS pid, int *priority);

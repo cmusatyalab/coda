@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/mlwp/timer.h,v 1.1 1996/11/22 19:18:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/timer.h,v 4.1 1997/01/08 21:54:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,7 +63,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 struct TM_Elem {
     struct TM_Elem	*Next;		/* filled by package */
     struct TM_Elem	*Prev;		/* filled by package */
-    struct timeval	TotalTime;	/* filled in by caller -- modified by package */
+    struct timeval	TotalTime;	/* filled in by caller; 
+					   changed to expiration by package */
     struct timeval	TimeLeft;	/* filled by package */
     char		*BackPointer;	/* filled by caller, not interpreted by package */
 };

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/timer.c,v 4.3 98/04/14 20:42:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/timer.c,v 4.5 1998/06/24 18:47:54 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,13 +57,15 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 #include <sys/time.h>
 #include <stdlib.h>
+#ifdef __linux__
+#include <search.h>
+#endif
 #define _TIMER_IMPL_
 #include "lwp.h"
 #include "lwp.private.h"
 #include "timer.h"
 
 typedef unsigned char bool;
-#define NIL	0
 
 #define expiration TotalTime
 
@@ -140,7 +142,7 @@ int TM_Init(list)
 	globalInitDone = 1;
     }
     *list = new_elem();
-    if (*list == NIL)
+    if (*list == NULL)
 	return -1;
     else {
 	(*list) -> Next = *list;
@@ -149,7 +151,7 @@ int TM_Init(list)
 	(*list) -> TotalTime.tv_usec = 0;
 	(*list) -> TimeLeft.tv_sec = 0;
 	(*list) -> TimeLeft.tv_usec = 0;
-	(*list) -> BackPointer = NIL;
+	(*list) -> BackPointer = NULL;
 
 	return 0;
     }
@@ -158,11 +160,11 @@ int TM_Init(list)
 int TM_Final(list)
     register struct TM_Elem **list;
 {
-    if (list == NIL || *list == NIL)
+    if (list == NULL || *list == NULL)
 	return -1;
     else {
 	free((char *)*list);
-	*list = NIL;
+	*list = NULL;
 	return 0;
     }
 }
@@ -189,7 +191,7 @@ void TM_Insert(tlistPtr, elem)
     /* Finite timeout, set expiration time */
     FT_AGetTimeOfDay(&elem->expiration, 0);
     add(&elem->expiration, &elem->TimeLeft);
-    next = NIL;
+    next = NULL;
     FOR_ALL_ELTS(p, tlistPtr, {
 	if (blocking(p) || !(elem->TimeLeft.tv_sec > p->TimeLeft.tv_sec ||
 	    (elem->TimeLeft.tv_sec == p->TimeLeft.tv_sec && elem->TimeLeft.tv_usec >= p->TimeLeft.tv_usec))
@@ -199,7 +201,7 @@ void TM_Insert(tlistPtr, elem)
 	}
      })
 
-    if (next == NIL) next = tlistPtr;
+    if (next == NULL) next = tlistPtr;
     insque((struct qelem *)elem, (struct qelem *)(next->Prev));
 }
 
@@ -250,7 +252,7 @@ struct TM_Elem *TM_GetExpired(tlist)
 	    (0 > e->TimeLeft.tv_sec || (0 == e->TimeLeft.tv_sec && 0 >= e->TimeLeft.tv_usec)))
 		return e;
     })
-    return NIL;
+    return NULL;
 }
     
 /*
@@ -265,5 +267,5 @@ struct TM_Elem *TM_GetEarliest(tlist)
     register struct TM_Elem *e;
 
     e = tlist -> Next;
-    return (e == tlist ? NIL : e);
+    return (e == tlist ? NULL : e);
 }

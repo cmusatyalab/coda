@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.11 98/06/16 21:01:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.13 1998/06/24 18:47:52 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-
+#include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <stdlib.h>
@@ -68,7 +68,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "lwp.private.h"
 #include "timer.h"
 
-#define NIL	0
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
@@ -116,52 +115,49 @@ struct IoRequest {
 
 extern int errno;
 
-PRIVATE long openMask;			/* mask of open files on an IOMGR abort */
-PRIVATE long sigsHandled;		/* sigmask(signo) is on if we handle signo */
-PRIVATE int anySigsDelivered;		/* true if any have been delivered. */
-PRIVATE struct sigaction oldVecs[NSIG];	/* the old signal vectors */
-PRIVATE char *sigEvents[NSIG];		/* the event to do an LWP signal on */
-PRIVATE int sigDelivered[NSIG];		/* True for signals delivered so far.
-					   This is an int array to make sure there
-					   are no conflicts when trying to write it */
+static long openMask;			/* mask of open files on an IOMGR abort */
+static long sigsHandled;		/* sigmask(signo) is on if we handle signo */
+static int anySigsDelivered;		/* true if any have been delivered. */
+static struct sigaction oldVecs[NSIG];	/* the old signal vectors */
+static char *sigEvents[NSIG];		/* the event to do an LWP signal on */
+static int sigDelivered[NSIG];		/* True for signals delivered
+					   so far.  This is an int
+					   array to make sure there
+					   are no conflicts when
+					   trying to write it */
 /* software 'signals' */
 #define NSOFTSIG		4
-PRIVATE PFIC sigProc[NSOFTSIG];
-PRIVATE char *sigRock[NSOFTSIG];
+static PFIC sigProc[NSOFTSIG];
+static char *sigRock[NSOFTSIG];
 
 
-PRIVATE struct IoRequest *iorFreeList = 0;
+static struct IoRequest *iorFreeList = 0;
 
-PRIVATE struct TM_Elem *Requests;	/* List of requests */
-PRIVATE struct timeval iomgr_timeout;	/* global so signal handler can zap it */
+static struct TM_Elem *Requests;	/* List of requests */
+static struct timeval iomgr_timeout;	/* global so signal handler can zap it */
 
 #define FreeRequest(x) ((x)->result = (int) iorFreeList, iorFreeList = (x))
 
 /* function & procedure declarations */
-PRIVATE struct IoRequest *NewRequest();
-PRIVATE int IOMGR_CheckSignals C_ARGS(());
-PRIVATE int IOMGR_CheckTimeouts C_ARGS(());
-PRIVATE int IOMGR_CheckDescriptors C_ARGS((int PollingCheck));
-PRIVATE void IOMGR C_ARGS((char *dummy));
-PRIVATE int SignalIO C_ARGS((int fds, register int readfds, register int writefds, register int exceptfds));
-PRIVATE int SignalTimeout C_ARGS((int fds, register struct timeval *timeout));
-#ifdef	__STDC__
-#define SigHandlerType void
-#else
-#define SigHandlerType int
-#endif
-PRIVATE SigHandlerType SigHandler C_ARGS((int signo));
-PRIVATE int SignalSignals ();
+static struct IoRequest *NewRequest();
+static int IOMGR_CheckSignals ();
+static int IOMGR_CheckTimeouts ();
+static int IOMGR_CheckDescriptors(int PollingCheck);
+static void IOMGR(char *dummy);
+static int SignalIO (int fds, register int readfds, register int writefds, register int exceptfds);
+static int SignalTimeout(int fds, register struct timeval *timeout);
+static int SignalSignals ();
 
 
-
-PRIVATE struct IoRequest *NewRequest()
+static struct IoRequest *NewRequest()
 {
 
     register struct IoRequest *request;
 
-    if (request=iorFreeList) iorFreeList = (struct IoRequest *) (request->result);
-    else request = (struct IoRequest *) malloc(sizeof(struct IoRequest));
+    if ((request=iorFreeList)) 
+	    iorFreeList = (struct IoRequest *) (request->result);
+    else 
+	    request = (struct IoRequest *) malloc(sizeof(struct IoRequest));
     return request;
 }
 
@@ -181,17 +177,15 @@ PRIVATE struct IoRequest *NewRequest()
  */
 
 /* Return value indicates whether anyone was signalled. */
-PRIVATE int IOMGR_CheckSignals() 
-{
-	if (!anySigsDelivered) 
-		return(FALSE);
-	
-	return(SignalSignals());
+static int IOMGR_CheckSignals() {
+    if (!anySigsDelivered) return(FALSE);
+
+    return(SignalSignals());
 }
 
 
 /* Return value indicates whether anyone timed-out (and was woken-up). */
-PRIVATE int IOMGR_CheckTimeouts() 
+static int IOMGR_CheckTimeouts()
 {
     int woke_someone = FALSE;
 
@@ -199,7 +193,7 @@ PRIVATE int IOMGR_CheckTimeouts()
     for (;;) {
 	register struct IoRequest *req;
 	struct TM_Elem *expired = TM_GetExpired(Requests);
-	if (expired == NIL) break;
+	if (expired == NULL) break;
 
 	woke_someone = TRUE;
 	req = (struct IoRequest *) expired -> BackPointer;
@@ -219,8 +213,7 @@ PRIVATE int IOMGR_CheckTimeouts()
 /* Return value indicates whether anyone was woken up. */
 /* N.B.  Special return value of -1 indicates a signal was delivered
    prior to the select. */
-PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
-    int PollingCheck;
+static int IOMGR_CheckDescriptors(int PollingCheck)
 {
     int fds;
     int readfds, writefds, exceptfds;
@@ -228,7 +221,8 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
     struct timeval timeout, tmp_timeout, junk;
 
     earliest = TM_GetEarliest(Requests);
-    if (earliest == NIL) return(0);
+    if (earliest == NULL) 
+	    return(0);
 
     /* Merge active descriptors. */
     readfds = 0;
@@ -244,16 +238,15 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
 
     /* Set timeout for select syscall. */
     if (PollingCheck) {
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 0;
-    }
-    else
-	timeout = earliest -> TimeLeft;
+	    timeout.tv_sec = 0;
+	    timeout.tv_usec = 0;
+    }    else
+	    timeout = earliest -> TimeLeft;
     iomgr_timeout = timeout;
     if (timeout.tv_sec == -1 && timeout.tv_usec == -1) {
-	/* infinite, sort of */
-	iomgr_timeout.tv_sec = 100000000;
-	iomgr_timeout.tv_usec = 0;
+	    /* infinite, sort of */
+	    iomgr_timeout.tv_sec = 100000000;
+	    iomgr_timeout.tv_usec = 0;
     }
 
     /* Check one last time for a signal delivery.  If one comes after
@@ -268,9 +261,9 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
     if (anySigsDelivered) 
 	    return(-1);
 
-    /* Do the select.  It runs much faster if 0's are passed instead of &0s! */
     lwpdebug(0, "[select(%d, 0x%x, 0x%x, 0x%x, <%d, %d>)]\n",
-		  MAX_FDS, readfds, writefds, exceptfds, timeout.tv_sec, timeout.tv_usec);
+		  MAX_FDS, readfds, writefds, exceptfds, (int)timeout.tv_sec, 
+		 (int)timeout.tv_usec);
 
     if (iomgr_timeout.tv_sec != 0 || iomgr_timeout.tv_usec != 0)  {
 	/* this is a non polling select 
@@ -281,10 +274,11 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
 
     /* Linux adheres to Posix standard for select and sets
        iomgr_timeout to 0; this needs to be reset before we proceed,
-       otherwise SignalTimeout never gets called.  Since Linux
-    select changes the timeout, we must not pass iomgr_timeout. 
-    if we did, the changes the signal handler may make to this
-    variable will always be lost, since select resets the variable upon return. */
+       otherwise SignalTimeout never gets called.  Since Linux select
+       changes the timeout, we must not pass iomgr_timeout.  if we
+       did, the changes the signal handler may make to this variable
+       will always be lost, since select resets the variable upon
+       return. */
 
     tmp_timeout = iomgr_timeout;
     fds = select(MAX_FDS, (fd_set *)(readfds ? &readfds : 0), 
@@ -337,7 +331,7 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
  * queue, also, don't signal selector while request in queue, since
  * selector free's request.  */
 
-PRIVATE void IOMGR(dummy)
+static void IOMGR(dummy)
     char *dummy;
 {
 
@@ -380,7 +374,7 @@ PRIVATE void IOMGR(dummy)
 * 			 *
 \************************/
 
-PRIVATE int SignalIO(fds, readfds, writefds, exceptfds)
+static int SignalIO(fds, readfds, writefds, exceptfds)
     int fds;
     register int readfds;
     register int writefds;
@@ -411,7 +405,7 @@ PRIVATE int SignalIO(fds, readfds, writefds, exceptfds)
     return(woke_someone);
 }
 
-PRIVATE int SignalTimeout(fds, timeout)
+static int SignalTimeout(fds, timeout)
     int fds;
     register struct timeval *timeout;
 {
@@ -441,7 +435,7 @@ PRIVATE int SignalTimeout(fds, timeout)
 *  signalling routines, above).			      *
 *						      *
 \*****************************************************/
-PRIVATE SigHandlerType SigHandler (int signo)
+static void SigHandler (int signo)
 {
 
 	if (badsig(signo) || (sigsHandled & mysigmask(signo)) == 0)
@@ -455,7 +449,7 @@ PRIVATE SigHandlerType SigHandler (int signo)
 
 /* Alright, this is the signal signalling routine.  It delivers LWP signals
    to LWPs waiting on Unix signals. NOW ALSO CAN YIELD!! */
-PRIVATE int SignalSignals ()
+static int SignalSignals ()
 {
 
     int gotone = FALSE;
@@ -467,7 +461,7 @@ PRIVATE int SignalSignals ()
     /* handle software signals */
     for (i=0; i < NSOFTSIG; i++) {
 	PROCESS *pid;
-	if (p=sigProc[i]) /* This yields!!! */
+	if ((p=sigProc[i])) /* This yields!!! */
 	    LWP_CreateProcess(p, STACK_SIZE, LWP_NORMAL_PRIORITY, sigRock[i],
 		"SignalHandler", pid);
 	sigProc[i] = 0;
@@ -491,7 +485,7 @@ PRIVATE int SignalSignals ()
 
 
 /* Keep IOMGR process id */
-PRIVATE PROCESS IOMGR_Id = NIL;
+static PROCESS IOMGR_Id = NULL;
 
 int IOMGR_SoftSig(aproc, arock)
     PFIC aproc;
@@ -516,10 +510,9 @@ int IOMGR_SoftSig(aproc, arock)
 int IOMGR_Initialize()
 {
     extern int TM_Init C_ARGS((register struct TM_Elem **list));
-    PROCESS pid;
 
     /* If lready initialized, just return */
-    if (IOMGR_Id != NIL) return LWP_SUCCESS;
+    if (IOMGR_Id != NULL) return LWP_SUCCESS;
 
     /* Initialize request lists */
     if (TM_Init(&Requests) < 0) return -1;
@@ -540,7 +533,7 @@ int IOMGR_Finalize()
     Purge(Requests)
     TM_Final(&Requests);
     status = LWP_DestroyProcess(IOMGR_Id);
-    IOMGR_Id = NIL;
+    IOMGR_Id = NULL;
     return status;
 }
 
@@ -586,7 +579,7 @@ int IOMGR_Select(fds, readfds, writefds, exceptfds, timeout)
     int result;
 
     /* See if polling request. If so, handle right here */
-    if (timeout != NIL && timeout->tv_sec == 0 && timeout->tv_usec == 0) {
+    if (timeout != NULL && timeout->tv_sec == 0 && timeout->tv_usec == 0) {
 	int nfds;
 	lwpdebug(0, "[Polling SELECT]");
 	nfds = select(MAX_FDS, (fd_set *)readfds, (fd_set *)writefds, (fd_set *)exceptfds, timeout);
@@ -595,14 +588,14 @@ int IOMGR_Select(fds, readfds, writefds, exceptfds, timeout)
 
     /* Construct request block & insert */
     request = NewRequest();
-    request -> readfds = (readfds != NIL ? *readfds : 0);
-    request -> writefds = (writefds != NIL ? *writefds : 0);
-    request -> exceptfds = (exceptfds != NIL ? *exceptfds : 0);
-    if (timeout == NIL) {
-	request -> timeout.TotalTime.tv_sec = -1;
-	request -> timeout.TotalTime.tv_usec = -1;
+    request -> readfds = (readfds != NULL ? *readfds : 0);
+    request -> writefds = (writefds != NULL ? *writefds : 0);
+    request -> exceptfds = (exceptfds != NULL ? *exceptfds : 0);
+    if (timeout == NULL) {
+	    request -> timeout.TotalTime.tv_sec = -1;
+	    request -> timeout.TotalTime.tv_usec = -1;
     } else
-	request -> timeout.TotalTime = *timeout;
+	    request -> timeout.TotalTime = *timeout;
 
     request -> timeout.BackPointer = (char *) request;
 
@@ -615,64 +608,61 @@ int IOMGR_Select(fds, readfds, writefds, exceptfds, timeout)
     LWP_QWait();
 
     /* Update parameters & return */
-    if (readfds != NIL) *readfds = request -> readfds;
-    if (writefds != NIL) *writefds = request -> writefds;
-    if (exceptfds != NIL) *exceptfds = request -> exceptfds;
+    if (readfds != NULL) *readfds = request -> readfds;
+    if (writefds != NULL) *writefds = request -> writefds;
+    if (exceptfds != NULL) *exceptfds = request -> exceptfds;
     result = request -> result;
     FreeRequest(request);
     return (result > 1 ? 1 : result);
 }
 
-int IOMGR_Cancel(pid)
-    register PROCESS pid;
+int IOMGR_Cancel(PROCESS pid)
 {
 
-    register struct IoRequest *request;
+	register struct IoRequest *request;
 
-    if ((request = pid->iomgrRequest) == 0) return -1;	/* Pid not found */
+	if ((request = pid->iomgrRequest) == 0) 
+		return -1;
 
-    request -> readfds = 0;
-    request -> writefds = 0;
-    request -> exceptfds = 0;
-    request -> result = -2;
-    TM_Remove(Requests, &request->timeout);
-    LWP_QSignal(request->pid);
-    pid->iomgrRequest = 0;
+	request -> readfds = 0;
+	request -> writefds = 0;
+	request -> exceptfds = 0;
+	request -> result = -2;
+	TM_Remove(Requests, &request->timeout);
+	LWP_QSignal(request->pid);
+	pid->iomgrRequest = 0;
 
-    return 0;
+	return 0;
 }
 
 /* Cause delivery of signal signo to result in a LWP_SignalProcess of
    event. */
-int IOMGR_Signal (signo, event)
-    int signo;
-    char *event;
+int IOMGR_Signal (int signo, char *event)
 {
 
-    struct sigaction sv;
+	struct sigaction sv;
 
-    if (badsig(signo))
-	return LWP_EBADSIG;
-    if (event == NIL)
-	return LWP_EBADEVENT;
-    sv.sa_handler = SigHandler;
-    sigfillset(&sv.sa_mask);
-    sv.sa_flags = 0;
-    sigsHandled |= mysigmask(signo);
-    sigEvents[signo] = event;
-    sigDelivered[signo] = FALSE;
-    if (sigaction (signo, &sv, &oldVecs[signo]) == -1)
-	return LWP_ESYSTEM;
-    return LWP_SUCCESS;
+	if (badsig(signo))
+		return LWP_EBADSIG;
+	if (event == NULL)
+		return LWP_EBADEVENT;
+	sv.sa_handler = SigHandler;
+	sigfillset(&sv.sa_mask);
+	sv.sa_flags = 0;
+	sigsHandled |= mysigmask(signo);
+	sigEvents[signo] = event;
+	sigDelivered[signo] = FALSE;
+	if (sigaction (signo, &sv, &oldVecs[signo]) == -1)
+		return LWP_ESYSTEM;
+	return LWP_SUCCESS;
 }
 
 /* Stop handling occurances of signo. */
-int IOMGR_CancelSignal (signo)
-    int signo;
+int IOMGR_CancelSignal (int signo)
 {
-    if (badsig(signo) || (sigsHandled & mysigmask(signo)) == 0)
-	return LWP_EBADSIG;
-    sigaction (signo, &oldVecs[signo], (struct sigaction *)0);
-    sigsHandled &= ~mysigmask(signo);
-    return LWP_SUCCESS;
+	if (badsig(signo) || (sigsHandled & mysigmask(signo)) == 0)
+		return LWP_EBADSIG;
+	sigaction (signo, &oldVecs[signo], (struct sigaction *)0);
+	sigsHandled &= ~mysigmask(signo);
+	return LWP_SUCCESS;
 }
