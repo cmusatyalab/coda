@@ -250,7 +250,7 @@ void fsobj::dir_TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 	if (FID_EQ(OldFid, NewFid)) 
 		return;
 
-	Name = (char *)malloc(CODA_MAXNAMLEN);
+	Name = (char *)malloc(CODA_MAXNAMLEN+1);
 	CODA_ASSERT(Name);
 
 	while ( !dir_LookupByFid(Name, OldFid) ) {

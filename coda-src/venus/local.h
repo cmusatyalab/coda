@@ -41,9 +41,6 @@ void LRDBDaemon(void);/*N*/ /* used to be member of class lrdb (Satya 3/31/95) *
 
 
 #define LRDB	(rvg->recov_LRDB)
-#ifndef MAXNAMELEN
-#define MAXNAMELEN 255
-#endif
 
 /* lrdb - the definition of lrdb (local repair database) */
 /* 
@@ -246,7 +243,7 @@ public:
 */
 class vdirent : public dlink {
     VenusFid fid;
-    char name[MAXNAMELEN];
+    char name[CODA_MAXNAMLEN+1];
 public:
     vdirent(VenusFid *, char *);
     ~vdirent();

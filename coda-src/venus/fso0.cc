@@ -504,7 +504,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
     int getdata = (rights & RC_DATA);
 
     LOG(100, ("fsdb::Get-mre: key = (%s), uid = %d, rights = %d, comp = %s\n",
-	       FID_(key), uid, rights, (comp ? comp : "")));
+	       FID_(key), uid, rights, comp));
 
     { 	/* a special check for accessing already localized object */
 	volent *vol = VDB->Find(MakeVolid(key));
@@ -628,7 +628,7 @@ RestartFind:
 	if (FID_IsLocalFake(key) || FID_IsFakeRoot(MakeViceFid(key))) {
 	    if (f->Fakeify()) {
 		LOG(0, ("fsdb::Get: can't transform %s (%s) into fake mt pt\n",
-			f->comp, FID_(&f->fid)));
+			f->GetComp(), FID_(&f->fid)));
 		Recov_BeginTrans();
 		f->Kill();
 		Recov_EndTrans(MAXFP);
@@ -664,14 +664,9 @@ RestartFind:
 	f->Lock(RD);
 
 	/* Update component. */
-	if (comp && comp[0] != '\0' && !STREQ(comp, ".") && !STREQ(comp, "..") && (!f->comp || !STREQ(comp, f->comp))) {
-		Recov_BeginTrans();
-		RVMLIB_REC_OBJECT(f->comp);
-		if (f->comp)
-		    rvmlib_rec_free(f->comp);
-		f->comp = rvmlib_rec_strdup(comp);
-		Recov_EndTrans(MAXFP);
-	}
+	if (comp && comp[0] != '\0' &&
+	    !STREQ(comp, ".") && !STREQ(comp, "..") && !STREQ(comp, f->comp))
+	    f->SetComp(comp);
     }
 
     /* Consider fetching status and/or data. */
@@ -754,7 +749,7 @@ RestartFind:
 		     * the object here, otherwise Venus will think it is
 		     * "matriculating" and wait (forever) for it to finish.
 		     */
-		    eprint("%s (%s) inconsistent!", f->comp, FID_(&f->fid));
+		    eprint("%s (%s) inconsistent!", f->GetComp(), FID_(&f->fid));
 		    if (f->Fakeify()) {
 			Recov_BeginTrans();
 			f->Kill();
@@ -1298,7 +1293,7 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	/* Reclaim fso and data. */
 	MarinerLog("cache::Replace [%s] %s [%d, %d]\n",
 		   (HAVEDATA(f) ? "status/data" : "status"),
-		   f->comp, f->priority, NBLOCKS(f->cf.Length()));
+		   f->GetComp(), f->priority, NBLOCKS(f->cf.Length()));
 	UpdateCacheStats((f->IsDir() ? &DirAttrStats : &FileAttrStats),
 			 REPLACE, NBLOCKS(sizeof(fsobj)));
 	if (HAVEDATA(f))
@@ -1430,7 +1425,7 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 
 	/* Reclaim data.  Return if we've got enough. */
 	MarinerLog("cache::Replace [data] %s [%d, %d]\n",
-		   f->comp, f->priority, ufs_blocks);
+		   f->GetComp(), f->priority, ufs_blocks);
 	UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			 REPLACE, BLOCKS(f));
 

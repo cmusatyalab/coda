@@ -132,8 +132,7 @@ fsobj::fsobj(VenusFid *key, char *name) : cf() {
     RVMLIB_REC_OBJECT(*this);
     ResetPersistent();
     fid = *key;
-    if (name)
-	comp = rvmlib_rec_strdup(name);
+    SetComp(name);
     if (FID_IsVolRoot(&fid))
 	mvstat = ROOT;
     ResetTransient();
@@ -450,7 +449,7 @@ void fsobj::Recover()
 	    int idx = 0;
 
 	    do {
-		snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,comp,idx++);
+		snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,GetComp(),idx++);
 	    } while (::access(spoolfile, F_OK) == 0 || errno != ENOENT); 
 
 	    data.file->Copy(spoolfile, NULL, 1);
@@ -1186,7 +1185,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
     fsobj *mf = rf->u.mtpoint;
     if (mf != 0) {
 	    if (mf == this) {
-		    eprint("TryToCover: re-mounting (%s) on (%s)", tvol->name, comp);
+		    eprint("TryToCover: re-mounting (%s) on (%s)", tvol->name, GetComp());
 		    UncoverMtPt();
 	    } else {
 		    if (mf->u.root != rf)
@@ -2015,18 +2014,17 @@ int fsobj::Fakeify()
 	    }
 	    LOG(10, ("fsobj::Fakeify: created fake codaroot directory\n"));
 	} else {
-	    char *realm = comp;
 
 	    stat.Mode = 0644;
 	    stat.LinkCount = 1;
 	    stat.VnodeType = SymbolicLink;
 
 	    /* "#@RRRRRRRRR." */
-	    if (!comp) realm = "";
-	    stat.Length = strlen(realm) + 3;
+	    /* realm = comp */
+	    stat.Length = strlen(comp) + 3;
 	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
 	    rvmlib_set_range(data.symlink, stat.Length+1);
-	    sprintf(data.symlink, "#@%s.", realm);
+	    sprintf(data.symlink, "#@%s.", comp);
 
 	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
 
@@ -2445,7 +2443,7 @@ void fsobj::GetPath(char *buf, int scope)
 	strcpy(buf, "???");
 
     strcat(buf, "/");
-    strcat(buf, comp ? comp : "(unknown)");
+    strcat(buf, comp);
 }
 
 

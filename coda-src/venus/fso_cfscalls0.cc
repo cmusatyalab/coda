@@ -86,7 +86,7 @@ void fsobj::FetchProgressIndicator(unsigned long offset)
     }
 
     if (last != curr)
-	MarinerLog("progress::fetching (%s) %lu%%\n", comp, curr);
+	MarinerLog("progress::fetching (%s) %lu%%\n", GetComp(), curr);
 
     GotThisData = (unsigned long)offset;
 }
@@ -183,7 +183,7 @@ int fsobj::Fetch(uid_t uid)
 {
     int fd = -1;
 
-    LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", comp, uid));
+    LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", GetComp(), uid));
 
     CODA_ASSERT(!IsLocalObj());
 
@@ -542,7 +542,7 @@ NonRepExit:
 
 int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 {
-    LOG(10, ("fsobj::GetAttr: (%s), uid = %d\n", comp, uid));
+    LOG(10, ("fsobj::GetAttr: (%s), uid = %d\n", GetComp(), uid));
 
     CODA_ASSERT(!IsLocalObj());
 
@@ -757,7 +757,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 			    }
 
 		    LOG(10, ("fsobj::GetAttr: ValidateAttrs (%s), %d fids sent, %d checked\n",
-			      comp, numPiggyFids, numVFlags));
+			      GetComp(), numPiggyFids, numVFlags));
 
 		    nchecked += numPiggyFids;
 		    /* 
@@ -777,7 +777,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 			if (pobj) {
 			    if (VFlags[i] && HAVESTATUS(pobj)) {
 				LOG(1000, ("fsobj::GetAttr: ValidateAttrs (%s), fid (%s) valid\n",
-					  pobj->comp, FID_(&FAVs[i].Fid)));
+					  pobj->GetComp(), FID_(&FAVs[i].Fid)));
 				/* callbacks broken during validation make
 				 * any positive return codes suspect. */
 				if (cbtemp != cbbreaks) continue;
@@ -797,7 +797,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 			    } else {
 				/* invalidate status (and data) for this object */
 				LOG(1, ("fsobj::GetAttr: ValidateAttrs (%s), fid (%s) validation failed\n",
-					pobj->comp, FID_(&FAVs[i].Fid)));
+					pobj->GetComp(), FID_(&FAVs[i].Fid)));
 				
 				if (REPLACEABLE(pobj) && !BUSY(pobj)) {
 				    Recov_BeginTrans();
@@ -1172,7 +1172,7 @@ NonRepExit:
 
 int fsobj::GetACL(RPC2_BoundedBS *acl, uid_t uid)
 {
-    LOG(10, ("fsobj::GetACL: (%s), uid = %d\n", comp, uid));
+    LOG(10, ("fsobj::GetACL: (%s), uid = %d\n", GetComp(), uid));
 
     if (!HOARDING(this) && !LOGGING(this)) {
 	FSO_ASSERT(this, EMULATING(this));
@@ -1441,7 +1441,7 @@ Exit:
 
 int fsobj::Store(unsigned long NewLength, Date_t Mtime, uid_t uid)
 {
-    LOG(10, ("fsobj::Store: (%s), uid = %d\n", comp, uid));
+    LOG(10, ("fsobj::Store: (%s), uid = %d\n", GetComp(), uid));
 
     int code = 0;
 
@@ -1743,7 +1743,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid, RPC2_CountedBS *acl)
 	unsigned short NewMode = VA_IGNORE_MODE;
 
 
-	LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n", comp, uid));
+	LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n", GetComp(), uid));
 	VPROC_printvattr(vap);
     
 	if ( vap->va_size != VA_IGNORE_SIZE ) 
@@ -1813,7 +1813,7 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid, RPC2_CountedBS *acl)
 
 int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
-    LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", comp, uid));
+    LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
 
     if (!HOARDING(this)) {
 	FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
@@ -2168,7 +2168,7 @@ int fsobj::Create(char *name, fsobj **target_fso_addr,
 		   uid_t uid, unsigned short Mode, int target_pri)
 {
     LOG(10, ("fsobj::Create: (%s, %s, %d), uid = %d\n",
-	      comp, name, target_pri, uid));
+	      GetComp(), name, target_pri, uid));
 
     int code = 0;
     Date_t Mtime = Vtime();

@@ -2879,18 +2879,9 @@ int cmlent::WriteReintegrationHandle()
 	}
 
 	/* Notify Codacon */
-	{
-	    char *comp = f->comp;
-	    char buf[CODA_MAXNAMLEN];
-	    if (comp[0] == '\0') {
-		sprintf(buf, "%s", FID_(&f->fid));
-		comp = buf;
-	    }
-
-	    MarinerLog("store::SendReintFragment %s, %s [%d] (%d/%d)\n", 
-		       vol->name, comp, NBLOCKS(length), 
-		       u.u_store.Offset, u.u_store.Length);
-	}
+	MarinerLog("store::SendReintFragment %s, %s [%d] (%d/%d)\n", 
+		   vol->name, f->GetComp(), NBLOCKS(length), 
+		   u.u_store.Offset, u.u_store.Length);
 
 	/* Make the RPC call. */
 	UNI_START_MESSAGE(ViceSendReintFragment_OP);

@@ -75,7 +75,7 @@ extern "C" {
 int fsobj::Open(int writep, int truncp, venus_cnode *cp, uid_t uid) 
 {
     LOG(10, ("fsobj::Open: (%s, %d, %d), uid = %d\n",
-	      comp, writep, truncp, uid));
+	      GetComp(), writep, truncp, uid));
 
     if (cp) {
 	    cp->c_device = 0;
@@ -209,7 +209,7 @@ Exit:
 /* We CANNOT return ERETRY from this routine! */
 int fsobj::Sync(uid_t uid) 
 {
-    LOG(10, ("fsobj::Sync: (%s), uid = %d\n", comp, uid));
+    LOG(10, ("fsobj::Sync: (%s), uid = %d\n", GetComp(), uid));
 
     int code = 0;
 
@@ -257,7 +257,7 @@ int fsobj::Sync(uid_t uid)
     if (v->type == VPT_Worker)
         ((worker *)v)->StoreFid = NullFid;
     if (code) {
-        eprint("failed to store %s on server", comp);
+        eprint("failed to store %s on server", GetComp());
         switch (code) {
         case ENOSPC: eprint("server partition full"); break;
         case EDQUOT: eprint("over your disk quota"); break;
@@ -275,7 +275,7 @@ int fsobj::Sync(uid_t uid)
 /* We CANNOT return ERETRY from this routine! */
 void fsobj::Release(int writep)
 {
-    LOG(10, ("fsobj::Release: (%s, %d)\n", comp, writep));
+    LOG(10, ("fsobj::Release: (%s, %d)\n", GetComp(), writep));
 
     FSO_ASSERT(this, openers != 0);
 
@@ -332,7 +332,7 @@ int fsobj::Close(int writep, uid_t uid)
 int fsobj::Access(long rights, int modes, uid_t uid) 
 {
     LOG(10, ("fsobj::Access : (%s, %d, %d), uid = %d\n",
-	      comp, rights, modes, uid));
+	      GetComp(), rights, modes, uid));
 
     int code = 0;
 
@@ -469,7 +469,7 @@ int fsobj::Access(long rights, int modes, uid_t uid)
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
 int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t uid, int flags)
 {
-    LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n", comp, name, uid));
+    LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n", GetComp(), name, uid));
 
     /* We're screwed if (name == "." or ".."). -JJK */
     CODA_ASSERT(!STREQ(name, ".") && !STREQ(name, ".."));
@@ -598,7 +598,7 @@ done:
 int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
 {
     LOG(10, ("fsobj::Readlink : (%s, %x, %d, %x), uid = %d\n",
-	      comp, buf, len, cc, uid));
+	      GetComp(), buf, len, cc, uid));
 
     if (!HAVEALLDATA(this))
 	{ print(logFile); CHOKE("fsobj::Readlink: called without data"); }

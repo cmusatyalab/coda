@@ -83,7 +83,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
     u.u_flags = flags;
     struct venus_cnode pvp;
     struct venus_cnode vp;
-    char comp[CODA_MAXNAMLEN];
+    char comp[CODA_MAXNAMLEN+1];
     comp[0] = '\0';
     char workingpath[CODA_MAXPATHLEN+1];
     strncpy(workingpath, path, CODA_MAXPATHLEN);
@@ -308,7 +308,7 @@ void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath)
 	if (u.u_error) goto FreeLocks;
 
 	if (have_last) {
-	    char comp[CODA_MAXNAMLEN];
+	    char comp[CODA_MAXNAMLEN+1];
 	    u.u_error = f->dir_LookupByFid(comp, &last);
 	    if (u.u_error) goto FreeLocks;
 

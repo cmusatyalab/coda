@@ -280,8 +280,7 @@ Exit:
 /* local-repair modification */
 int fsobj::Remove(char *name, fsobj *target_fso, uid_t uid)
 {
-    LOG(10, ("fsobj::Remove: (%s, %s), uid = %d\n",
-	      comp, name, uid));
+    LOG(10, ("fsobj::Remove: (%s, %s), uid = %d\n", GetComp(), name, uid));
 
     int code = 0;
     Date_t Mtime = Vtime();
@@ -522,7 +521,7 @@ Exit:
 int fsobj::Link(char *name, fsobj *source_fso, uid_t uid)
 {
     LOG(10, ("fsobj::Link: (%s/%s, %s), uid = %d\n",
-	      comp, source_fso->comp, name, uid));
+	      GetComp(), source_fso->comp, name, uid));
 
     int code = 0;
     Date_t Mtime = Vtime();
@@ -620,11 +619,8 @@ void fsobj::LocalRename(Date_t Mtime, fsobj *s_parent_fso, char *s_name,
 	}
 
 	/* Update the source status to reflect the rename and possible create/delete. */
-	if (!STREQ(s_fso->comp, t_name)) {
-	    RVMLIB_REC_OBJECT(s_fso->comp);
-	    rvmlib_rec_free(s_fso->comp);
-	    s_fso->comp = rvmlib_rec_strdup(t_name);
-	}
+	if (t_name && !STREQ(s_fso->comp, t_name))
+	    s_fso->SetComp(t_name);
 	s_fso->DetachHdbBindings();
 /*    s_fso->stat.DataVersion++;*/
 	if (!SameParent)
@@ -861,8 +857,8 @@ int fsobj::Rename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso,
 		   char *t_name, fsobj *t_fso, uid_t uid)
 {
     LOG(10, ("fsobj::Rename : (%s/%s, %s/%s), uid = %d\n",
-	      (s_parent_fso ? s_parent_fso->comp : comp),
-	      s_name, comp, t_name, uid));
+	      (s_parent_fso ? s_parent_fso->GetComp() : GetComp()),
+	      s_name, GetComp(), t_name, uid));
 
     int code = 0;
     Date_t Mtime = Vtime();
@@ -1220,7 +1216,7 @@ int fsobj::Mkdir(char *name, fsobj **target_fso_addr,
 		  uid_t uid, unsigned short Mode, int target_pri)
 {
     LOG(10, ("fsobj::Mkdir: (%s, %s, %d), uid = %d\n",
-	      comp, name, target_pri, uid));
+	      GetComp(), name, target_pri, uid));
 
     int code = 0;
     Date_t Mtime = Vtime();
@@ -1464,7 +1460,7 @@ Exit:
 /* local-repair modification */
 int fsobj::Rmdir(char *name, fsobj *target_fso, uid_t uid)
 {
-    LOG(10, ("fsobj::Rmdir: (%s, %s), uid = %d\n", comp, name, uid));
+    LOG(10, ("fsobj::Rmdir: (%s, %s), uid = %d\n", GetComp(), name, uid));
 
     int code = 0;
     Date_t Mtime = Vtime();
@@ -1818,7 +1814,7 @@ int fsobj::Symlink(char *s_name, char *t_name, uid_t uid, unsigned short Mode,
 		   int target_pri)
 {
     LOG(10, ("fsobj::Symlink: (%s, %s, %s, %d), uid = %d\n",
-	      comp, s_name, t_name, target_pri, uid));
+	      GetComp(), s_name, t_name, target_pri, uid));
 
     int code = 0;
     Date_t Mtime = Vtime();
@@ -1853,7 +1849,7 @@ int fsobj::Symlink(char *s_name, char *t_name, uid_t uid, unsigned short Mode,
 int fsobj::SetVV(ViceVersionVector *newvv, uid_t uid)
 {
     LOG(10, ("fsobj::SetVV: (%s), uid = %d\n",
-	      comp, uid));
+	      GetComp(), uid));
 
     int code = 0;
 

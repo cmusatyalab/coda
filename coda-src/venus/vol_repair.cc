@@ -201,7 +201,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS);
 	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
 	    if (code == 0) {
-		eprint("Repair: %s (%s) consistent", f->comp, FID_(RepairFid));
+		eprint("Repair: %s (%s) consistent", f->GetComp(), FID_(RepairFid));
 		code = EINVAL;	    /* XXX -JJK */
 	    }
 	    FSDB->Put(&f);
@@ -660,7 +660,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
 	    if (code == 0) {
 		eprint("DisconnectedRepair: %s (%s) consistent",
-		       f->comp, FID_(RepairFid));
+		       f->GetComp(), FID_(RepairFid));
 		code = EINVAL;	    /* XXX */
 	    }
 	    FSDB->Put(&f);

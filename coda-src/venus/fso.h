@@ -225,8 +225,8 @@ class fsdb {
   public:
     fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
-    int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights, char *comp=0,
-	    int *rcode=0, int GetInconsistent=0);
+    int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights, char *comp=NULL,
+	    int *rcode=NULL, int GetInconsistent=0);
     void Put(fsobj **);
     void Flush();
     void Flush(Volid *);
@@ -709,6 +709,7 @@ class fsobj {
     void GetOperationState(int *, int *);                       /*N*/
     cmlent *FinalCmlent(int);                                   /*N*/
     void SetComp(char *);                                       /*U*/
+    const char *GetComp(void);
     void SetLocalObj();						/*T*/
     void UnsetLocalObj();					/*T*/
     int IsLocalObj() { return flags.local; }			/*N*/
@@ -813,9 +814,10 @@ extern void FSOD_Init(void);
 
 #define	CFSOP_PRELUDE(str, comp, fid)\
 {\
-    char buf[256];\
-    if (comp) strcpy(buf, (comp));\
-    else sprintf(buf, "%s", FID_(&(fid)));\
+    char buf[CODA_MAXNAMLEN+1];\
+    if (comp && comp[0] != '\0')\
+	 strcpy(buf, comp);\
+    else sprintf(buf, "%s", FID_(&fid));\
     MarinerLog((str), buf);\
 }
 #define	CFSOP_POSTLUDE(str)\

@@ -258,15 +258,8 @@ long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
     }
 
     /* Notify Codacon. */
-    {
-	char *comp = f->comp;
-	char buf[CODA_MAXNAMLEN];
-	if (comp[0] == '\0') {
-	    sprintf(buf, "%s", FID_(&f->fid));
-	    comp = buf;
-	}
-	MarinerLog("callback::BackFetch %s, %s [%d]\n", s->name, comp, BLOCKS(f));
-    }
+    MarinerLog("callback::BackFetch %s, %s [%d]\n",
+	       s->name, f->GetComp(), BLOCKS(f));
 
     /* Do the transfer. */
     {

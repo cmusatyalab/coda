@@ -2430,8 +2430,8 @@ void namectxt::print(int fd, void *filter)
             if (((namectxt *)(b->binder))->path)
                 fdprint(fd, "\t\tnamectxt.path = %s\n", ((namectxt *)(b->binder))->path);
         }
-	if (b->bindee && ((fsobj *)(b->bindee))->comp)
-	    fdprint(fd, "\t\tfsobj.comp = %s\n",((fsobj *)(b->bindee))->comp);
+	if (b->bindee)
+	    fdprint(fd, "\t\tfsobj.comp = %s\n",((fsobj *)(b->bindee))->GetComp());
       }
     }
 }

@@ -544,12 +544,20 @@ void fsobj::LocalToMixed(VenusFid *FakeRootFid, VenusFid *LocalChildFid, char *N
 /* must not be called from within a transaction */
 void fsobj::SetComp(char *name)
 {
-    FSO_ASSERT(this, name != NULL);
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(comp);
     if (comp) rvmlib_rec_free(comp);
-    comp = rvmlib_rec_strdup(name);
+    if (name && name[0] != '\0')
+	 comp = rvmlib_rec_strdup(name);
+    else comp = rvmlib_rec_strdup("");
     Recov_EndTrans(MAXFP);
+}
+
+const char *fsobj::GetComp(void)
+{
+    if (comp && comp[0] != '\0')
+	 return comp;
+    else return FID_(&fid);
 }
 
 /* must not be called from within a transaction */

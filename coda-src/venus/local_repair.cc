@@ -848,7 +848,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
     }
 
     /* step 2.2: second pass--going up and set "comp" and children link for the ancestors */
-    char comp[MAXNAMELEN];
+    char comp[CODA_MAXNAMLEN+1];
     OBJ = *global;
     while (count >= 0) {
 	if (RFM_IsGlobalRoot(&OBJ->fid))
