@@ -57,13 +57,11 @@ listed in the file CREDITS.
 
 #include "vice.h"
 
-typedef enum {DEAD, NEWBORN, ALIVE} SrvState;
-
 struct server
 {
     int pid; /* process id of lwp for this server */
     char *srvname;
-    SrvState state;
+    RPC2_Handle cid;
     int  old;
     long binds;  /* since starting of monitor */
     long probe;  /* time when server was last probed */
@@ -77,61 +75,64 @@ int SrvCount = 0; /* how many servers */
 
 /* how often to probe servers, in seconds */
 int probeinterval = 300;
-FILE *rrdtool;
 
-char Dummy; /* dummy variable for LWP_WaitProcess() */
+/* single shot, or continuous operation */
+int loop = 1;
+
+/* needed to signal the main thread when we're done */
+PROCESS parent;
 
 static void RRDCreate(struct server *s)
 {
-    fprintf(rrdtool, "create %s.rrd ", s->srvname);
+    printf("create %s.rrd ", s->srvname);
     
-    fprintf(rrdtool, "DS:conns:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:nrpcs:COUNTER:600:0:100000 ");
-    fprintf(rrdtool, "DS:ftotl:COUNTER:600:0:100000 ");
-    fprintf(rrdtool, "DS:fdata:COUNTER:600:0:100000 ");
-    fprintf(rrdtool, "DS:fsize:COUNTER:600:U:5000000 ");
-    fprintf(rrdtool, "DS:frate:GAUGE:600:0:U:5000000 ");
-    fprintf(rrdtool, "DS:stotl:COUNTER:600:0:100000 ");
-    fprintf(rrdtool, "DS:sdata:COUNTER:600:U:100000 ");
-    fprintf(rrdtool, "DS:ssize:COUNTER:600:U:5000000 ");
-    fprintf(rrdtool, "DS:srate:GAUGE:600:0:U:5000000 ");
-    fprintf(rrdtool, "DS:rbsnd:COUNTER:600:U:5000000 ");
-    fprintf(rrdtool, "DS:rbrcv:COUNTER:600:U:5000000 ");
-    fprintf(rrdtool, "DS:rpsnd:COUNTER:600:0:100000 ");
-    fprintf(rrdtool, "DS:rprcv:COUNTER:600:0:100000 ");
-    fprintf(rrdtool, "DS:rplst:COUNTER:600:0:100000 ");
-    fprintf(rrdtool, "DS:rperr:COUNTER:600:0:100000 ");
-    fprintf(rrdtool, "DS:sscpu:COUNTER:600:0:2000 ");
-    fprintf(rrdtool, "DS:sucpu:COUNTER:600:0:2000 ");
-    fprintf(rrdtool, "DS:sncpu:COUNTER:600:0:2000 ");
-    fprintf(rrdtool, "DS:sicpu:COUNTER:600:0:2000 ");
-    fprintf(rrdtool, "DS:totio:COUNTER:600:U:100000 ");
-    fprintf(rrdtool, "DS:vmuse:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:vmmax:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:eerrs:COUNTER:600:0:1000000 ");
-    fprintf(rrdtool, "DS:epsnd:COUNTER:600:0:1000000 ");
-    fprintf(rrdtool, "DS:ecols:COUNTER:600:0:1000000 ");
-    fprintf(rrdtool, "DS:eprcv:COUNTER:600:0:1000000 ");
-    fprintf(rrdtool, "DS:ebsnd:COUNTER:600:0:13000000 ");
-    fprintf(rrdtool, "DS:ebrcv:COUNTER:600:0:13000000 ");
-    fprintf(rrdtool, "DS:vmsiz:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:clnts:GAUGE:600:0:10000 ");
-    fprintf(rrdtool, "DS:aclnt:GAUGE:600:0:10000 ");
-    fprintf(rrdtool, "DS:mnflt:COUNTER:600:U:1000000 ");
-    fprintf(rrdtool, "DS:mjflt:COUNTER:600:U:1000000 ");
-    fprintf(rrdtool, "DS:nswap:COUNTER:600:U:1000000 ");
-    fprintf(rrdtool, "DS:utime:COUNTER:600:U:100 ");
-    fprintf(rrdtool, "DS:stime:COUNTER:600:U:100 ");
-    fprintf(rrdtool, "DS:vmrss:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:vmdat:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:d1avl:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:d1tot:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:d2avl:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:d2tot:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:d3avl:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:d3tot:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:d4avl:GAUGE:600:0:U ");
-    fprintf(rrdtool, "DS:d4tot:GAUGE:600:0:U ");
+    puts("DS:conns:GAUGE:600:0:U "
+	 "DS:nrpcs:COUNTER:600:0:100000 "
+	 "DS:ftotl:COUNTER:600:0:100000 "
+	 "DS:fdata:COUNTER:600:0:100000 "
+	 "DS:fsize:COUNTER:600:U:5000000 "
+	 "DS:frate:GAUGE:600:0:U:5000000 "
+	 "DS:stotl:COUNTER:600:0:100000 "
+	 "DS:sdata:COUNTER:600:U:100000 "
+	 "DS:ssize:COUNTER:600:U:5000000 "
+	 "DS:srate:GAUGE:600:0:U:5000000 "
+	 "DS:rbsnd:COUNTER:600:U:5000000 "
+	 "DS:rbrcv:COUNTER:600:U:5000000 "
+	 "DS:rpsnd:COUNTER:600:0:100000 "
+	 "DS:rprcv:COUNTER:600:0:100000 "
+	 "DS:rplst:COUNTER:600:0:100000 "
+	 "DS:rperr:COUNTER:600:0:100000 "
+	 "DS:sscpu:COUNTER:600:0:2000 "
+	 "DS:sucpu:COUNTER:600:0:2000 "
+	 "DS:sncpu:COUNTER:600:0:2000 "
+	 "DS:sicpu:COUNTER:600:0:2000 "
+	 "DS:totio:COUNTER:600:U:100000 "
+	 "DS:vmuse:GAUGE:600:0:U "
+	 "DS:vmmax:GAUGE:600:0:U "
+	 "DS:eerrs:COUNTER:600:0:1000000 "
+	 "DS:epsnd:COUNTER:600:0:1000000 "
+	 "DS:ecols:COUNTER:600:0:1000000 "
+	 "DS:eprcv:COUNTER:600:0:1000000 "
+	 "DS:ebsnd:COUNTER:600:0:13000000 "
+	 "DS:ebrcv:COUNTER:600:0:13000000 "
+	 "DS:vmsiz:GAUGE:600:0:U "
+	 "DS:clnts:GAUGE:600:0:10000 "
+	 "DS:aclnt:GAUGE:600:0:10000 "
+	 "DS:mnflt:COUNTER:600:U:1000000 "
+	 "DS:mjflt:COUNTER:600:U:1000000 "
+	 "DS:nswap:COUNTER:600:U:1000000 "
+	 "DS:utime:COUNTER:600:U:100 "
+	 "DS:stime:COUNTER:600:U:100 "
+	 "DS:vmrss:GAUGE:600:0:U "
+	 "DS:vmdat:GAUGE:600:0:U "
+	 "DS:d1avl:GAUGE:600:0:U "
+	 "DS:d1tot:GAUGE:600:0:U "
+	 "DS:d2avl:GAUGE:600:0:U "
+	 "DS:d2tot:GAUGE:600:0:U "
+	 "DS:d3avl:GAUGE:600:0:U "
+	 "DS:d3tot:GAUGE:600:0:U "
+	 "DS:d4avl:GAUGE:600:0:U "
+	 "DS:d4tot:GAUGE:600:0:U "
 
     /* store averages & maximum values */
     /* 600 5-minute samples   (+/- 2 days)  */
@@ -139,60 +140,59 @@ static void RRDCreate(struct server *s)
     /* 600 2-hour averages    (+/- 2 months) */
     /* 732 1-day averages     (+/- 2 years)  */
 
-    fprintf(rrdtool, "RRA:AVERAGE:0.5:1:600 ");
-    fprintf(rrdtool, "RRA:AVERAGE:0.5:6:600 ");
-    fprintf(rrdtool, "RRA:AVERAGE:0.5:24:600 ");
-    fprintf(rrdtool, "RRA:AVERAGE:0.5:288:732 ");
-    fprintf(rrdtool, "RRA:MAX:0.5:1:600 ");
-    fprintf(rrdtool, "RRA:MAX:0.5:6:600 ");
-    fprintf(rrdtool, "RRA:MAX:0.5:24:600 ");
-    fprintf(rrdtool, "RRA:MAX:0.5:288:732 ");
+	 "RRA:AVERAGE:0.5:1:600 "
+	 "RRA:AVERAGE:0.5:6:600 "
+	 "RRA:AVERAGE:0.5:24:600 "
+	 "RRA:AVERAGE:0.5:288:732 "
+	 "RRA:MAX:0.5:1:600 "
+	 "RRA:MAX:0.5:6:600 "
+	 "RRA:MAX:0.5:24:600 "
+	 "RRA:MAX:0.5:288:732 ");
 
-    fprintf(rrdtool, "\n");
-    fflush(rrdtool);
+    fflush(stdout);
 }
 
 static void RRDUpdate(struct server *s)
 {
-    fprintf(rrdtool, "update %s.rrd %lu:%lu:", s->srvname,
-            s->vs.CurrentTime, s->vs.CurrentConnections);
+    printf("update %s.rrd %lu:%lu:", s->srvname,
+           s->vs.CurrentTime, s->vs.CurrentConnections);
 
-    fprintf(rrdtool, "%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
-	    s->vs.TotalViceCalls, s->vs.TotalFetches, s->vs.FetchDatas,
-	    s->vs.FetchedBytes, s->vs.FetchDataRate, s->vs.TotalStores,
-	    s->vs.StoreDatas, s->vs.StoredBytes, s->vs.StoreDataRate);
+    printf("%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
+           s->vs.TotalViceCalls, s->vs.TotalFetches, s->vs.FetchDatas,
+           s->vs.FetchedBytes, s->vs.FetchDataRate, s->vs.TotalStores,
+           s->vs.StoreDatas, s->vs.StoredBytes, s->vs.StoreDataRate);
 
-    fprintf(rrdtool, "%lu:%lu:%lu:%lu:%lu:%lu:",
-            s->vs.TotalRPCBytesSent, s->vs.TotalRPCBytesReceived,
-            s->vs.TotalRPCPacketsSent, s->vs.TotalRPCPacketsReceived,
-            s->vs.TotalRPCPacketsLost, s->vs.TotalRPCBogusPackets);
+    printf("%lu:%lu:%lu:%lu:%lu:%lu:",
+           s->vs.TotalRPCBytesSent, s->vs.TotalRPCBytesReceived,
+           s->vs.TotalRPCPacketsSent, s->vs.TotalRPCPacketsReceived,
+           s->vs.TotalRPCPacketsLost, s->vs.TotalRPCBogusPackets);
 
-    fprintf(rrdtool, "%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
-            s->vs.SystemCPU, s->vs.UserCPU, s->vs.NiceCPU, s->vs.IdleCPU,
-            s->vs.TotalIO, s->vs.ActiveVM, s->vs.TotalVM);
+    printf("%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
+           s->vs.SystemCPU, s->vs.UserCPU, s->vs.NiceCPU, s->vs.IdleCPU,
+           s->vs.TotalIO, s->vs.ActiveVM, s->vs.TotalVM);
 
-    fprintf(rrdtool, "%lu:%lu:%lu:%lu:%lu:%lu:",
-            s->vs.EtherNetTotalErrors, s->vs.EtherNetTotalWrites,
-            s->vs.EtherNetTotalInterupts, s->vs.EtherNetGoodReads,
-            s->vs.EtherNetTotalBytesWritten, s->vs.EtherNetTotalBytesRead);
+    printf("%lu:%lu:%lu:%lu:%lu:%lu:",
+           s->vs.EtherNetTotalErrors, s->vs.EtherNetTotalWrites,
+           s->vs.EtherNetTotalInterupts, s->vs.EtherNetGoodReads,
+           s->vs.EtherNetTotalBytesWritten, s->vs.EtherNetTotalBytesRead);
 
-    fprintf(rrdtool, "%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
-            s->vs.ProcessSize, s->vs.WorkStations, s->vs.ActiveWorkStations,
-            s->vs.MinFlt, s->vs.MajFlt, s->vs.NSwaps, s->vs.UsrTime,
-            s->vs.SysTime, s->vs.VmRSS, s->vs.VmData);
+    printf("%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
+           s->vs.ProcessSize, s->vs.WorkStations, s->vs.ActiveWorkStations,
+           s->vs.MinFlt, s->vs.MajFlt, s->vs.NSwaps, s->vs.UsrTime,
+           s->vs.SysTime, s->vs.VmRSS, s->vs.VmData);
 
-    fprintf(rrdtool, "%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu",
-            s->vs.Disk1.Name ? s->vs.Disk1.BlocksAvailable : 0,
-            s->vs.Disk1.Name ? s->vs.Disk1.TotalBlocks : 0,
-            s->vs.Disk2.Name ? s->vs.Disk2.BlocksAvailable : 0,
-            s->vs.Disk2.Name ? s->vs.Disk2.TotalBlocks : 0,
-            s->vs.Disk3.Name ? s->vs.Disk3.BlocksAvailable : 0,
-            s->vs.Disk3.Name ? s->vs.Disk3.TotalBlocks : 0,
-            s->vs.Disk4.Name ? s->vs.Disk4.BlocksAvailable : 0,
-            s->vs.Disk4.Name ? s->vs.Disk4.TotalBlocks : 0);
+    printf("%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu",
+           s->vs.Disk1.Name ? s->vs.Disk1.BlocksAvailable : 0,
+           s->vs.Disk1.Name ? s->vs.Disk1.TotalBlocks : 0,
+           s->vs.Disk2.Name ? s->vs.Disk2.BlocksAvailable : 0,
+           s->vs.Disk2.Name ? s->vs.Disk2.TotalBlocks : 0,
+           s->vs.Disk3.Name ? s->vs.Disk3.BlocksAvailable : 0,
+           s->vs.Disk3.Name ? s->vs.Disk3.TotalBlocks : 0,
+           s->vs.Disk4.Name ? s->vs.Disk4.BlocksAvailable : 0,
+           s->vs.Disk4.Name ? s->vs.Disk4.TotalBlocks : 0);
 
-    fprintf(rrdtool, "\n");
-    fflush(rrdtool);
+    printf("\n");
+    fflush(stdout);
 }
 
 static int ValidServer(char *s)
@@ -215,23 +215,26 @@ static void GetArgs(int argc, char *argv[])
 {
     extern char *optarg;
     extern int optind;
-    int c, next;
+    int c, next, usage = 0;
 
-    while ((c = getopt(argc, argv, "t:")) != EOF) {
+    while ((c = getopt(argc, argv, "t:1")) != EOF) {
 	switch(c) {
 	case 't':
 	    probeinterval = atoi(optarg);
 	    break;
 
+	case '1':
+	    loop = 0;
+	    break;
+
 	default:
-	    optind = argc;
+	    usage = 1;
 	    break;
 	}
     }
 
-    if (argc == optind) {
-	fprintf(stderr, "Usage: %s [-t probeinterval] server [server]*\n",
-		argv[0]);
+    if (usage) {
+	fprintf(stderr, "Usage: %s [-1] [-t probeinterval] server [server]* | rrdtool -\n", argv[0]);
 	exit(0);
     }
 
@@ -254,20 +257,21 @@ static void GetArgs(int argc, char *argv[])
 	SrvCount++;
     }
 
-    return;
+    if (!SrvCount) {
+	fprintf(stderr, "no servers specified\n");
+	exit(-1);
+    }
 }
 
-
-static void InitRPC()
+static void InitRPC(void)
 {
     RPC2_Options options;
-    PROCESS pid;
     int rc;
     SFTP_Initializer sei;
     struct timeval tv;
 
     /* Init RPC2 */
-    rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid);
+    rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &parent);
     if (rc != LWP_SUCCESS) {
 	fprintf(stderr, "LWP_Init() failed\n");
 	exit(-1);
@@ -285,77 +289,87 @@ static void InitRPC()
 }
 
 
+static void DoProbe(struct server *srv)
+{
+    int rc;
+
+    srv->probe = time(0);
+    if (!srv->cid)
+    {
+	RPC2_HostIdent hi;
+	RPC2_PortIdent pi;
+	RPC2_SubsysIdent si;
+	RPC2_BindParms bparms;
+
+	hi.Tag = RPC2_HOSTBYNAME;
+	strcpy(hi.Value.Name, srv->srvname);
+	pi.Tag = RPC2_PORTBYNAME;
+	strcpy(pi.Value.Name, "codasrv");
+	si.Tag = RPC2_SUBSYSBYID;
+	si.Value.SubsysId= SUBSYS_SRV;
+
+	bparms.SideEffectType = 0;
+	bparms.SecurityLevel = RPC2_OPENKIMONO;
+	bparms.ClientIdent = 0;
+
+	rc = (int) RPC2_NewBinding(&hi, &pi, &si, &bparms, &srv->cid);
+	if (rc == RPC2_SUCCESS)
+	    srv->binds++;
+	else
+	    srv->cid = 0;
+    }
+
+    if (!srv->cid)
+	return;
+
+    /* Keeping backward compatibility is a crime to humanity, but kind
+     * of useful when you want to log data from both the 5.2.x and the
+     * 5.3.x servers, at least the structure is still the same... */
+retry:
+    if (srv->old) rc = (int) ViceGetOldStatistics(srv->cid, &srv->vs);
+    else          rc = (int) ViceGetStatistics(srv->cid, &srv->vs);
+
+    if (rc != RPC2_SUCCESS) {
+	if (rc == RPC2_INVALIDOPCODE && !srv->old) {
+	    srv->old = 1;
+	    goto retry; /* retry the sample */
+	}
+	RPC2_Unbind(srv->cid);
+	srv->cid = 0;
+    } else
+	srv->succ = srv->probe; /* ignoring RPC call delays */
+}
+
+static void DoSleep(struct server *srv)
+{
+    struct timeval NextProbe = { 60, 0 };
+
+    /* Compensate the waiting time for the time it took to do the RPC */
+    if (srv->succ == srv->probe)
+	NextProbe.tv_sec = (srv->probe + probeinterval) - time(0);
+
+    if (NextProbe.tv_sec > 0)
+	IOMGR_Select(0, 0, 0, 0, &NextProbe);  /* sleep */
+}
+
 static void srvlwp(int slot)
 {
-    struct server *moi;
-    RPC2_HostIdent hi;
-    RPC2_PortIdent pi;
-    RPC2_SubsysIdent si;
-    RPC2_Handle cid;
-    int rc;
-    struct timeval NextProbe;
+    srv[slot].cid = 0;
+    srv[slot].old = 0;
 
-    moi = &srv[slot];
-
-    hi.Tag = RPC2_HOSTBYNAME;
-    strcpy(hi.Value.Name, moi->srvname);
-    pi.Tag = RPC2_PORTBYNAME;
-    strcpy(pi.Value.Name, "codasrv");
-    si.Tag = RPC2_SUBSYSBYID;
-    si.Value.SubsysId= SUBSYS_SRV;
-
-    moi->state = DEAD;
     while (1)
     {
-        if (moi->state == NEWBORN) moi->state = ALIVE;
-        moi->probe = time(0);
-        if (moi->state == DEAD)
-        {
-            RPC2_BindParms bparms;
+	DoProbe(&srv[slot]);
 
-            bparms.SideEffectType = 0;
-            bparms.SecurityLevel = RPC2_OPENKIMONO;
-            bparms.ClientIdent = 0;
+	if (srv[slot].cid)
+	    RRDUpdate(&srv[slot]);
 
-            rc = (int) RPC2_NewBinding(&hi, &pi, &si, &bparms, &cid);
-            if (rc == RPC2_SUCCESS)
-            {
-                moi->state = NEWBORN;
-                moi->binds++;
-            }
-        }
+	if (!loop) break;
 
-        if (!(moi->state == DEAD))
-        {
-	    /* Keeping backward compatibility is a crime to humanity, but kind
-	     * of useful when you want to log data from both the 5.2.x and the
-	     * 5.3.x servers, at least the structure is still the same... */
-	    if (moi->old) rc = (int) ViceGetOldStatistics(cid, &moi->vs);
-	    else          rc = (int) ViceGetStatistics(cid, &moi->vs);
-
-            if (rc != RPC2_SUCCESS) {
-		if (rc == RPC2_INVALIDOPCODE && !moi->old) {
-		    moi->old = 1;
-		    continue; /* reattempt the sample */
-		}
-                moi->state = DEAD;
-                moi->succ = 0;
-                RPC2_Unbind(cid);
-            } else
-                moi->succ = moi->probe; /* ignoring RPC call delays */
-        }
-
-	if (moi->state != DEAD) {
-	    RRDUpdate(moi);
-	}
-
-	/* Compensate the waiting time for the time it took to do the RPC */
-	NextProbe.tv_sec = moi->succ ?
-	    (moi->probe + probeinterval) - time(0) : 45;
-        NextProbe.tv_usec = 0;
-        if (NextProbe.tv_sec > 0)
-            IOMGR_Select(32, 0, 0, 0, &NextProbe);  /* sleep */
+	DoSleep(&srv[slot]);
     }
+    SrvCount--;
+    LWP_QSignal(parent);
 }
 
 int main(int argc, char *argv[])
@@ -365,8 +379,6 @@ int main(int argc, char *argv[])
 
     GetArgs(argc, argv);
     
-    rrdtool = stdout; /* popen("rrdtool -", "w"); */
-
     /* create missing rrd databases */
     for (i = 0; i < SrvCount; i++) {
 	sprintf(buf, "%s.rrd", srv[i].srvname);
@@ -384,7 +396,10 @@ int main(int argc, char *argv[])
                           (PROCESS *)&srv[i].pid);
     }
 
-    LWP_WaitProcess(&Dummy); /* wait for Godot */
+    /* QSignal/QWait doesn't actually queue anything so we still have to rely
+     * on a counter to catch possibly missed events */
+    while (SrvCount)
+	LWP_QWait();
     
     exit(0);
 }
