@@ -1161,7 +1161,7 @@ static int AskOnline(VolumeId volumeId)
     return (0);
 }
 
-#ifndef NDEBUG
+#ifdef UNUSED
 /* Prints out a list of all inodes into the Log */
 static void PrintInodeList()
 {

@@ -542,7 +542,7 @@ long S_AuthNewConn(RPC2_Handle cid, RPC2_Integer seType, RPC2_Integer secLevel, 
 long S_AuthQuit(RPC2_Handle cid)
     {
     struct UserInfo *ui;
-    RPC2_GetPrivatePointer(cid, (char **)&ui);
+    RPC2_GetPrivatePointer(cid, (void *)&ui);
     if (ui)
 	ui->HasQuit = TRUE;
     return(0);
@@ -555,7 +555,7 @@ long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est, ClearToken *cTok
     struct UserInfo *ui;
     SecretToken sToken;
 
-    RPC2_GetPrivatePointer(cid, (char **)&ui);
+    RPC2_GetPrivatePointer(cid, (void *)&ui);
     if (!ui || ui->HasQuit == TRUE) return(AUTH_FAILED);
     ui->LastUsed = time(0);
 
@@ -647,7 +647,7 @@ long S_AuthDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
 		return(AUTH_READONLY);
 	
 	/* make sure it's a system administrator */
-	RPC2_GetPrivatePointer(cid, (char **)&ui);
+	RPC2_GetPrivatePointer(cid, (void *)&ui);
 	if (!ui || ui->HasQuit == TRUE) 
 		return(AUTH_FAILED);
 	ui->LastUsed = time(0);

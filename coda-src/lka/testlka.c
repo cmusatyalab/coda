@@ -43,17 +43,14 @@ int main(int argc, char **argv)
   int rc, fd, cfd;
   char testfile[MAXPATHLEN];
   unsigned char testsha[SHA_DIGEST_LENGTH];
-  char container[30], shaprintbuf[2*SHA_DIGEST_LENGTH+1]; 
+  char container[MAXPATHLEN], shaprintbuf[2*SHA_DIGEST_LENGTH+1]; 
   
-  strcpy(container, "/tmp/testlka.XXXXXX");
-  mktemp(container);
-
   switch (argc) {
   case 2:
     rc = LKParseAndExecute(argv[1], em, emlen);
     if (em[0]) printf(em); /* hopefully useful msg */
     if (!rc) exit(-1); 
-    else break;
+    break;
 
   default:
     printf ("Usage: testlka <quoted command string for cfs lka>\n");
@@ -67,7 +64,7 @@ int main(int argc, char **argv)
     if (!strcmp(testfile, ".")) goto Quit;
 
     /* find SHA of testfile */
-    fd = open (testfile,O_RDONLY, 0);
+    fd = open (testfile, O_RDONLY, 0);
     if (fd < 0) {
       printf("%s: %s\n", testfile, strerror(errno));
       continue;
@@ -81,7 +78,8 @@ int main(int argc, char **argv)
 
     /* see if we can find this SHA in lookaside databases */
 
-    cfd = open(container, O_CREAT|O_TRUNC|O_WRONLY, 0644); /* create file */
+    strcpy(container, "/tmp/testlka.XXXXXX");
+    cfd = mkstemp(container);
     if (cfd < 0) {
 	printf("Can't create %s: %s\n", container, strerror(errno));
 	exit(-1);
@@ -90,19 +88,16 @@ int main(int argc, char **argv)
     memset(em, 0, emlen); /* null message is default */
     if (LookAsideAndFillContainer(testsha, cfd, -1, 0, em, emlen)){
       printf("Found match: %s\n", em);
-      close(cfd);
-      continue;
     }
     else {
       if (em[0]) printf("LookAsideAndFillContainer: %s\n", em);
       else printf("sigh....no luck\n");
-      close(cfd);
-      continue;
     }
+    close(cfd);
+    unlink(container);
   }
 
 Quit:
-  unlink(container);
   exit(0);
 }
 

@@ -585,6 +585,7 @@ static int ReadVolVnodes(int fd, Volume *vp, int ResOn) {
 }
 
 
+#ifdef UNUSED
 static void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex)
 {
     // This turns out to be a global since its static, but if the
@@ -600,6 +601,7 @@ static void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex)
     vp->header = &header;
     vp->vol_index = volindex;
 }
+#endif
 
 // Can't re-use code in vol-salvage since this comes from command line.
 static void GetSkipVols(int num, VolumeId *ids, char *vol_nums[]) {

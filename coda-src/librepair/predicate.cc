@@ -47,7 +47,7 @@ static int Equal (resdir_entry **deGroup, int nDirEntries)
 {
     int i;
     for (i = 1; i < nDirEntries; i++){
-	if (memcmp((const void *)&(deGroup[i]->VV.StoreId), (const void *)&(deGroup[0]->VV.StoreId), sizeof(ViceStoreId)))
+	if (memcmp(&(deGroup[i]->VV.StoreId), &(deGroup[0]->VV.StoreId), sizeof(ViceStoreId)) != 0)
 	    return 0;
 	if (VV_Cmp(&(deGroup[i]->VV), &(deGroup[0]->VV)))
 	    return 0;
@@ -59,6 +59,7 @@ static int Equal (resdir_entry **deGroup, int nDirEntries)
     return 1;
 }
 
+#ifdef UNUSED
 static void PrintArgs (char *name, resdir_entry **deGroup, int nDirEntries)
 {
     printf("Predicate %s : %d entries \n", name, nDirEntries);
@@ -67,6 +68,7 @@ static void PrintArgs (char *name, resdir_entry **deGroup, int nDirEntries)
 	printf("replica %d; name %s\n", deGroup[i]->replicaid, deGroup[i]->name);
     printf("***********************");
 }
+#endif
 
 /* The following predicates return TRUE (1) or FALSE (0) */
 static int ObjectOK (int nreplicas, resreplica *dirs,resdir_entry **deGroup, int nDirEntries, char *realm)

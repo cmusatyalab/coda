@@ -467,7 +467,7 @@ static int lockReplicas(volinfo_t *vol)
     return 0;
 }
 
-#ifndef NDEBUG
+#ifdef UNUSED
 /*
  * Unlock all the replicas of a volume. We dont care if one fails, just report
  * it.

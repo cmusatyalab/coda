@@ -678,7 +678,7 @@ static void ClearPriorities(int argc, char *argv[], int opslot)
     if (rc < 0) { PERROR("  VIOC_CLEARPRIORITIES"); exit(-1); }
 }
 
-#ifndef NDEBUG
+#ifdef UNUSED
 static void Compress(int argc, char *argv[], int opslot)
 {
     int i, rc; 
@@ -2308,7 +2308,7 @@ static void SetQuota    (int argc, char *argv[], int opslot)
     }
 }
 
-#ifndef NDEBUG
+#ifdef UNUSED
 static void Slow(int argc, char *argv[], int opslot) 
 {
     int rc;
@@ -2385,7 +2385,7 @@ static void TruncateLog(int argc, char *argv[], int opslot)
 }
 
 
-#ifndef NDEBUG
+#ifdef UNUSED
 static void Uncompress(int argc, char *argv[], int opslot)
 {
     int i, rc; 

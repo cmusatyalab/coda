@@ -83,12 +83,10 @@ struct DirSummary {
     Unique_t  	uparent;
 };
 
-
 /* routines that get summaries */
 static int GetInodeSummary(char *fspath, char *path, 
-			    VolumeId singleVolumeNumber);
+			   VolumeId singleVolumeNumber);
 static int GetVolumeSummary(VolumeId singleVolumeNumber);
-static void DistilVnodeEssence(VnodeClass vclass, Inode indexInode);
 
 /* the checking routines */
 static int SalvageFileSys(char *path, VolumeId singleVolumeNumber);
@@ -107,7 +105,6 @@ static int DestroyBadVolumes();
 
 
 /* misc routines */
-extern long time(long *);
 int OnlyOneVolume(struct ViceInodeInfo *, VolumeId);
 int InSkipVolumeList(VolumeId, VolumeId *, int);
 static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t);
@@ -116,8 +113,4 @@ static int AskOnline(VolumeId volumeId);
 static void release_locks(int);
 static void GetSkipVolumeNumbers();
 static void zero_globals();
-
-#ifndef NDEBUG
-static void PrintInodeList(void);
-#endif
 

@@ -48,7 +48,7 @@ void rvmlib_init_threaddata(rvm_perthread_t *rvmptt)
 rvm_perthread_t *rvmlib_thread_data() 
 {
 	rvm_perthread_t *data = 0;
-	int lwprc = LWP_GetRock(RVM_THREAD_DATA_ROCK_TAG, (char **)&data);
+	int lwprc = LWP_GetRock(RVM_THREAD_DATA_ROCK_TAG, (void *)&data);
 	if (lwprc != LWP_SUCCESS)
 	/*RVMLIB_ASSERT("thread_data: LWP_GetRock failed");*/
 		return(0);
