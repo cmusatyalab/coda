@@ -193,6 +193,7 @@ bin/spy
 bin/xaskuser
 bin/xfrepair
 etc/coda/venus.conf.ex
+etc/coda/sidekick.intr.ex
 EOF
     fi
 

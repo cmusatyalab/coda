@@ -1,3 +1,28 @@
+2000-09-29    <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.9 =========
+        * Some createvol_rep fixes when new servers are added (Phil Nelson).
+        * Improved recycling of client connections on the servers, fixes
+          client connectivity and minor race problems.
+        * Cleanup of the SpoolVMLogRecord code in the server.
+        * Replaced the advice_daemon with a rewritten daemon the `sidekick'
+          for triggering ASR's (Rimas Svarcas).
+        * Venus didn't get shutdown properly on Redhat Linux.
+        * --without-openssl configure flag to avoid linking with libssl.
+        * Extensive cleanups and improvement for the repair related code
+          (Rimas Svarcas).
+        * Fixed updateclnt/srv directory skew which prevented files to be
+          propagated from the SCM to the other servers.
+        * Large restructuring of venus's volume handling code.
+        * Chown used to fail on newly created files.
+        * Updates to compile with current cygwin32 compiler (Phil Nelson).
+        * Removed VMon, rws, VSR statistics gathering related code.
+        * Blocked setuid bits.
+        * Fixed venus -rvmt 3 (no-RVM operation), added dontuservm as a
+          parameter in venus.conf.
+        * Turning off resolution in createvol.rep for singly-replicated
+          volumes.
+        * Venus now properly reclaims unused empty volumes from RVM.
+
 2000-06-22    <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.8 =========
 	* volutil restore bugfix (Ulrich Kahn).
