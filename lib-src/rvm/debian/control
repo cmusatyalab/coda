@@ -1,7 +1,7 @@
 Source: rvm
 Section: devel
 Priority: optional
-Maintainer: Jan Harkes <jaharkes@motet.coda.cs.cmu.edu>
+Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
 Standards-Version: 3.0.1
 Build-Depends: debhelper, dpkg-dev, gcc, liblwp-dev
 

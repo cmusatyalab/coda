@@ -18,16 +18,20 @@ listed in the file CREDITS.
 #ifndef CODA_MMAP_ANON_H
 #define CODA_MMAP_ANON_H
 
-#ifdef MAP_ANON
-#define mmap_anon(raddrptr, addrptr, len, prot)	{ raddrptr = mmap(addrptr, len, prot, (MAP_PRIVATE | MAP_ANON), -1, 0); }
-#else
-#define mmap_anon(raddrptr, addrptr, len, prot)	{ int fd; \
-						  if ((fd = open("/dev/zero", O_RDWR)) == -1) \
-						      raddrptr = (char *)-1; \
-						  else { \
-						      raddrptr = mmap(addrptr, len, prot, (MAP_PRIVATE | (addrptr ? MAP_FIXED : 0)), fd, 0); \
-						      (void) close(fd); \
-						  } \
-						}
+#include <unistd.h>
+#include <sys/mman.h>
+
+#ifndef MAP_ANON
+#define MAP_ANON 0
 #endif
-#endif
+
+#define mmap_anon(raddrptr, addrptr, len, prot) do { \
+    int fd = -1, flags = MAP_ANON | MAP_PRIVATE; \
+    if (addrptr) flags |= MAP_FIXED; \
+    if (!MAP_ANON) fd = open("/dev/zero", O_RDWR); \
+    raddrptr = mmap((char *)addrptr, len, prot, flags, fd, 0); \
+    if (fd != -1) close(fd); \
+} while(0);
+
+#endif /* CODA_MMAP_ANON_H */
+

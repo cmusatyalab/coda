@@ -17,7 +17,7 @@
 #                            none currently
 #*/
 
-SUBDIRS = include rvm seg rds tests pkgs
+SUBDIRS = include rvm seg rds tests pkgs debian
 
 EXTRA_DIST = bootstrap.sh configure
 
