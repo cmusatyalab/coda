@@ -952,12 +952,18 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
     RPC2_PacketBuffer *pb;
     long i, j;
     unsigned long now;
+    bool x, y, dont_ackme;
 
     if (sEntry->ReadAheadCount == 0)
 	{/* Nothing to send; but caller expects need ack limit to be set */
 	sEntry->SendAckLimit = sEntry->SendMostRecent;
 	return(0);
 	}
+
+    /* try to avoid generating an ack when there might be ack packets queued up
+     * already and we're not sending a full window's worth */
+    dont_ackme = (sEntry->ReadAheadCount < sEntry->SendAhead) &&
+	sftp_MorePackets(&x, &y);
 	
     /* j is the packet to be acked */
     if (sEntry->AckPoint > sEntry->ReadAheadCount)
@@ -968,7 +974,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry)
 	{
 	sEntry->SendMostRecent++;
 	pb = sEntry->ThesePackets[PBUFF((sEntry->SendMostRecent))];
-	if (sEntry->SendMostRecent == j)
+	if (!dont_ackme && sEntry->SendMostRecent == j)
 	    {/* Middle packet: demand ack */
 	    sEntry->SendAckLimit = sEntry->SendMostRecent;
 	    pb->Header.Flags = ntohl(pb->Header.Flags);

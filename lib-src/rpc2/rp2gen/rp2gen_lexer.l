@@ -51,7 +51,7 @@ extern FILE *file, *hfile;
 extern char *file_name;
 int line;
 
-static rp2_bool included();
+rp2_bool included();
 static void include();
 static void ConsumeComment(void);
 static void IncludeVerbatim(void);
@@ -247,15 +247,20 @@ void ConsumeComment(void)
 void IncludeVerbatim(void)
 {
     /* terminated only by a %} */
-    register char c, d;		/* d: most recent; c: last but one */
+    char c, d;		/* d: most recent; c: last but one */
     d = '\0';
     for (;;) {
 	c = d;
 	d = input();
 	if (d == 0)    break;		/* eof */
 	if (d == '\n') line++;
-	if ((c == '%') && (d == '}'))   {fprintf(hfile, "\n"); break;}
-	if (c != '\0') fprintf(hfile, "%c", c);
+	if ((c == '%') && (d == '}')) {
+	    if (!included())
+		fprintf(hfile, "\n");
+	    break;
+	}
+	if (c != '\0' && !included())
+	    fprintf(hfile, "%c", c);
     }
 }
 
@@ -282,7 +287,7 @@ static struct {
 \**********************************************/
 
 
-static rp2_bool included()
+rp2_bool included()
 {
     return include_stack.include_top > 0;
 }
@@ -359,7 +364,7 @@ static void include()
     name[i] = '\0';
 
     /* See if too many include files */
-    if (include_stack.include_top >= MAX_INCLUDE_FILES) {
+    if (include_stack.include_top == MAX_INCLUDE_FILES-1) {
 	printf("ERROR: include file %s  nested too deep\n", name);
 	exit(-1);
     }
@@ -391,7 +396,8 @@ static void include()
 	}
 
     /* Include the file now and in the generated header  */
-    spit_include(name); /* should we be using fullname here? debatable! */
+    if (!included())
+	spit_include(name); /* should we be using fullname here? debatable! */
     include2(fullname, "INCLUDE");
 }
 

@@ -448,6 +448,7 @@ long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whic
 long sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
 int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize, long maxSize);
 void sftp_SetError(struct SFTP_Entry *s, enum SFState e);
+bool sftp_MorePackets(bool *rpc2, bool *sftp);
 
 
 extern long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,

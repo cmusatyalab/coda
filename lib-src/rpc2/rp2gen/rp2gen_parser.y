@@ -363,6 +363,7 @@ field			: type_name identifier_list ';'
 
 identifier_list		: identifier_list2
 					{ $$ = make_id_array(); }
+			;
 
 identifier_list2	: IDENTIFIER ',' identifier_list2
 					{
@@ -510,6 +511,7 @@ timeout_override	: TIMEOUT '(' DefinedNumber ')'
 					{ $$ = $3; }
 			| empty
 					{ $$ = NIL; }
+			;
 
 new_connection		: NEW_CONNECTION
 					{ $$ = RP2_TRUE; }

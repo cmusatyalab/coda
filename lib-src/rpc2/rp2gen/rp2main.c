@@ -379,9 +379,9 @@ static void no_support(type, who, where)
     WHO who;
     FILE *where;
 {
-  printf("RP2GEN: no language support for %s\n", 
-  lang_struct[(int32_t) clanguage].name);
-  exit(1);
+    printf("RP2GEN: no language support for %s\n", 
+	   lang_struct[(int32_t) clanguage].name);
+    exit(1);
 }
 
 void spit_type(type)
