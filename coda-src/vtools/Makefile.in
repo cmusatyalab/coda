@@ -33,31 +33,33 @@ endif
 
 CBINS       = $(EXECUTABLES)
 
-CMON_LIBS   =  $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBOLDLWP) $(LIBCURSES) $(LIBCOMPAT) $(LIBBASE) $(LIBFIXUP)
-CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE) $(LIBFIXUP)
-HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE) $(LIBFIXUP)
+CMON_LIBS   =  $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBOLDLWP) $(LIBCOMPAT) $(LIBBASE)
+CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
+HOARD_LIBS  = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
+STD_LIBS = $(LIBCURSES) $(LIBCOMPAT) $(LIBFIXUP)
+
 
 CXXFLAGS := $(CXXFLAGS) -UVENUS
 
 include $(TOPDIR)/configs/Makerules
 
 cmon: cmon.o $(CMON_LIBS)
-	$(CXX) $(LIBFLAGS) cmon.o $(CMON_LIBS) -o cmon
+	$(CXX) $(LIBFLAGS) cmon.o $(CMON_LIBS) $(STD_LIBS) -o cmon
 
 codacon:    codacon.o
-	$(CXX) $(LIBFLAGS) -o codacon codacon.o
+	$(CXX) $(LIBFLAGS) $(LIBFIXUP) -o codacon codacon.o
 
 cfs:  cfs.o $(CFS_LIBS)
-	$(CXX) $(LIBFLAGS) cfs.o $(CFS_LIBS) -o cfs
+	$(CXX) $(LIBFLAGS) cfs.o $(CFS_LIBS) $(STD_LIBS) -o cfs
 
 hoard: hoard.o $(HOARD_LIBS)
-	$(CXX) $(LIBFLAGS) hoard.o $(HOARD_LIBS) -o hoard
+	$(CXX) $(LIBFLAGS) hoard.o $(HOARD_LIBS) $(STD_LIBS) -o hoard
 
 spy: spy.o
-	$(CXX) $(LIBFLAGS) spy.o -o spy
+	$(CXX) $(LIBFLAGS) $(LIBFIXUP) spy.o -o spy
 
 replay: replay.o
-	$(CXX) $(LIBFLAGS) replay.o -o replay
+	$(CXX) $(LIBFLAGS) $(LIBFIXUP) replay.o -o replay
 
 # up is broken on the pmax because a.out.h seems incomplete
 # fix if up is really needed (Satya 3/23/92)

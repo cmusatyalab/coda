@@ -37,7 +37,11 @@ extern "C" {
 #include <sys/file.h>
 #include <sys/stat.h>
 
+#ifdef sun
+#include "/usr/ucbinclude/sys/wait.h"
+#else
 #include <sys/wait.h>
+#endif
 #include <ctype.h>
 #include <errno.h>
 extern FILE *_findiop();
@@ -56,6 +60,10 @@ extern FILE *_findiop();
 #include <venusioctl.h>
 #include <vice.h>
 #include <hdb.h>
+
+#ifdef sun
+extern char *sys_errlist[];
+#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
