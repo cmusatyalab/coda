@@ -1,0 +1,9 @@
+#!/bin/sh
+
+if [ x$1 = x ]; then
+	echo "Usage coda-resize 10000*hash + size (hash and size not odd!)"
+	exit 1
+fi
+
+echo $1 > /proc/sys/coda/resize
+ls -ld /coda/. >& /dev/null

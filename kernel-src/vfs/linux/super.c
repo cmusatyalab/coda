@@ -29,8 +29,11 @@
 #include <super.h>
 #include <cfs.h>
 #include <cnode.h>
+#include <namecache.h>
 
-
+/* exported variables */
+struct super_block *coda_super_block = NULL;
+extern struct coda_sb_info coda_super_info;
 
 /* VFS super_block ops */
 void print_vattr( struct vattr *attr );
@@ -44,12 +47,11 @@ static void coda_put_super(struct super_block *);
 
 /* helper functions */
 void coda_load_creds(struct CodaCred *cred);
-extern inline struct vcomm *coda_inode_vcomm(struct inode *inode);
+extern inline struct vcomm *coda_psdev_vcomm(struct inode *inode);
 extern int coda_upcall(struct coda_sb_info *csbp, int inSize, int *outSize, caddr_t *buffer );
-extern struct inode *coda_cinode_make(ViceFid *fid, struct super_block *sb);
-extern int coda_cnode_free(struct cnode *cnp);
+extern struct inode *coda_cnode_make(ViceFid *fid, struct super_block *sb);
 extern struct cnode *coda_cnode_alloc(void);
-extern void coda_cinode_free(struct coda_inode *);
+extern void coda_cnode_free(struct cnode *);
 static int coda_get_rootfid(struct super_block *sb, ViceFid *fidp);
 static int coda_get_psdev(void *, struct inode **);
 static void coda_vattr_to_iattr(struct inode *, struct vattr *);
@@ -64,8 +66,7 @@ extern struct inode_operations coda_dir_inode_operations;
 extern struct inode_operations coda_ioctl_inode_operations;
 extern struct inode_operations coda_symlink_inode_operations;
 
-
-
+/* exported operations */
 struct super_operations coda_super_operations =
 {
 	coda_read_inode,        /* read_inode */
@@ -88,28 +89,28 @@ static int coda_get_psdev(void *data, struct inode **res_dev)
 ENTRY;
         error = namei((char *) *psdev_path, &psdev);
         if (error) {
-          DEBUG("namei error %d for %d\n", error, (int) psdev_path);
+          CDEBUG(D_SUPER, "namei error %d for %d\n", error, (int) psdev_path);
           goto error;
         }
         
 
         if (!S_ISCHR(psdev->i_mode)) {
-          DEBUG("not a character device\n");
+          CDEBUG(D_SUPER, "not a character device\n");
           goto error;
         }
         
         if (MAJOR(psdev->i_rdev) != CODA_PSDEV_MAJOR) {
-          DEBUG("device %d not a Coda PSDEV device\n", MAJOR(psdev->i_rdev));
+          CDEBUG(D_SUPER, "device %d not a Coda PSDEV device\n", MAJOR(psdev->i_rdev));
           goto error;
         }
 
         if (MINOR(psdev->i_rdev) >= MAX_CODADEVS) { 
-          DEBUG("minor %d not an allocated Coda PSDEV\n", psdev->i_rdev);
+          CDEBUG(D_SUPER, "minor %d not an allocated Coda PSDEV\n", psdev->i_rdev);
           goto error;
         }
 
         if (psdev->i_count < 2) {
-          DEBUG("device not open (i_count = %d)\n", psdev->i_count);
+          CDEBUG(D_SUPER, "device not open (i_count = %d)\n", psdev->i_count);
           goto error;
         }
         
@@ -132,48 +133,33 @@ static struct super_block *
 coda_read_super(struct super_block *sb, void *data, int silent)
 {
         struct inode *psdev = 0, *root = 0; 
-        struct coda_sb_info *sb_info = 0;
-	struct vcomm *vcp;
         ViceFid fid;
 	kdev_t dev = sb->s_dev;
         int error;
 
 ENTRY;
-
-   
-#if 0
-        MOD_INC_USE_COUNT; /* XXXX */
-#endif   
+        MOD_INC_USE_COUNT; 
         if (coda_get_psdev (data, &psdev))
-          goto error;
-  
-        sb_info = (struct coda_sb_info *) kmalloc(sizeof(struct coda_sb_info),
-                                                  GFP_KERNEL);
-
-        if (!sb_info) {
-          DEBUG("out of memory for sb_info\n");
-          goto error;
-        }
-	/* printk("coda_read_super: sb_info at %d.\n", (int) sb_info); */
+                goto error;
+ 
         lock_super(sb);
 
-        coda_sbp(sb) = sb_info;
-        sb_info->s_psdev = psdev;
-	vcp = coda_inode_vcomm(psdev);
-	sb_info->mi_vcomm = vcp;
+        coda_sbp(sb) = &coda_super_info;
+        coda_super_info.s_psdev = psdev;
         sb->s_blocksize = 1024;	/* smbfs knows what to do? */
         sb->s_blocksize_bits = 10;
         sb->s_magic = CODA_SUPER_MAGIC;
         sb->s_dev = dev;
         sb->s_op = &coda_super_operations;
 
-        /* XXXXXX
+        
         if (!cfsnc_initialized) {
+#if 0
           cfs_vfsopstats_init();
           cfs_vnodeopstats_init();
-          cfsnc_init();
+	  cfsnc_init(); /* moved to psdev.c in open */
+#endif
         }
-        */
 
         /* Make a root cnode.
            read_inode will recognize that this is the root inode and not
@@ -184,7 +170,6 @@ ENTRY;
         fid.Vnode = 0;
         fid.Unique = 0;
 
-	/* printk("coda_read_super: root->i_ino: %ld\n", root->i_ino); */
 	/* get root fid from Venus: this needs the root inode */
 	error = coda_get_rootfid(sb, &fid);
 	if ( error ) {
@@ -195,32 +180,31 @@ ENTRY;
 
          printk("coda_read_super: rootfid is (%ld, %ld, %ld)\n", fid.Volume, fid.Vnode, fid.Unique); 
 
-        root = coda_cinode_make(&fid, sb);
+        root = coda_cnode_make(&fid, sb);
         
         if (!root) {
-          DEBUG("iget root inode failed\n");
+          CDEBUG(D_SUPER, "iget root inode failed\n");
           unlock_super(sb);
           goto error;
         }
+ CDEBUG(D_SUPER, "coda_read_super: root->i_ino: %ld, dev %d\n", root->i_ino,root->i_dev); 
+	coda_super_info.mi_rootvp = root;
 
         sb->s_mounted = root;
-	unlock_super(sb);
+	coda_super_block = sb;
 
+	unlock_super(sb);
         return sb;
 EXIT;  
 error:
 
-#if 0
-	/*        MOD_DEC_USE_COUNT;*/
-#endif
+	MOD_DEC_USE_COUNT;
         if (root) {
                 iput(root);
-                coda_cinode_free(ITOCI(root));
+                coda_cnode_free(ITOC(root));
         }
-        if (sb_info)
-          kfree(sb_info);
         if (psdev)
-          iput(psdev);
+                iput(psdev);
         sb->s_dev = 0;
         return NULL;
 }
@@ -231,10 +215,10 @@ coda_fetch_inode (struct inode *inode, struct vattr *attr)
         struct cnode *cp;
         int ino, error=0;
 ENTRY;
-        DEBUG("reading for ino: %ld\n", inode->i_ino);
+        CDEBUG(D_SUPER, "reading for ino: %ld\n", inode->i_ino);
         ino = inode->i_ino;
         if (!ino)
-                panic("coda_fetch_inode: inode called with i_ino = 0\n");
+                coda_panic("coda_fetch_inode: inode called with i_ino = 0\n");
 
         inode->i_op = NULL;
         inode->i_mode = 0;
@@ -265,7 +249,7 @@ ENTRY;
                 return -1; /* XXXX what to return */
         }
 
-        if (coda_debug) print_vattr(attr);
+        if (coda_debug & D_SUPER ) print_vattr(attr);
         coda_vattr_to_iattr(inode, attr);
 
         if (error) {
@@ -278,7 +262,7 @@ ENTRY;
                    immediately to get rid of it, we hope.  Maybe next time
                    getattr will succeed.
                    XXX: Ask Linus about this race condition.  */
-                DEBUG("getattr failed");
+                CDEBUG(D_SUPER, "getattr failed");
         }
 
         if (S_ISREG(inode->i_mode))
@@ -309,7 +293,7 @@ ENTRY;
 	INIT_IN(inp, CFS_ROOT)
 
 	size = VC_OUTSIZE(cfs_root_out);
-	DEBUG("about to make upcall.\n");
+	CDEBUG(D_SUPER, "about to make upcall.\n");
 
 	error = coda_upcall(coda_sbp(sb), VC_IN_NO_DATA, &size, (caddr_t *) inp);
 
@@ -326,7 +310,7 @@ ENTRY;
 	
 	if ( !error ) {
 	        *fidp = (ViceFid) outp->d.cfs_root.VFid;
-		DEBUG("VolumeId: %ld, VnodeId: %ld.\n",fidp->Volume, fidp->Vnode);
+		CDEBUG(D_SUPER, "VolumeId: %ld, VnodeId: %ld.\n",fidp->Volume, fidp->Vnode);
 	}
 
 
@@ -366,7 +350,7 @@ ENTRY;
 	} else {
 	        error = outp->result;
                 if (error) {
-		        DEBUG ("result: %ld\n", outp->result); 
+		        CDEBUG(D_SUPER, "result: %ld\n", outp->result); 
 		        goto exit;
 		}
         }
@@ -400,30 +384,30 @@ static void coda_put_super(struct super_block *sb)
 	sb_info = coda_sbp(sb);
 	iput(sb_info->s_psdev);
 
-        kfree(coda_sbp(sb));
+	coda_super_block = NULL;
 
         unlock_super(sb);
+        MOD_DEC_USE_COUNT;
 EXIT;
-/*        MOD_DEC_USE_COUNT;*/
 }
 
 static void coda_put_inode(struct inode *inode)
 {
-        struct coda_inode *cinode;
+        struct cnode *cnp;
         struct inode *open_inode;
 
         ENTRY;
-        DEBUG(" inode->ino: %ld\n", inode->i_ino);        
+        CDEBUG(D_SUPER, " inode->ino: %ld\n", inode->i_ino);        
 
-        cinode = ITOCI(inode);
-        open_inode = cinode->ci_cnode.c_ovp;
+        cnp = ITOC(inode);
+        open_inode = cnp->c_ovp;
 
         if ( open_inode ) {
-                DEBUG("PUT cached file: ino %ld count %d.\n",  open_inode->i_ino,  open_inode->i_count);
-                cinode->ci_cnode.c_ovp = NULL;
+                CDEBUG(D_SUPER, "PUT cached file: ino %ld count %d.\n",  open_inode->i_ino,  open_inode->i_count);
+                cnp->c_ovp = NULL;
                 iput( open_inode );
         }
-        coda_cinode_free(cinode);
+        coda_cnode_free(cnp);
 
         clear_inode(inode);
 EXIT;
@@ -456,12 +440,9 @@ ENTRY;
         inp->d.cfs_setattr.VFid = cnp->c_fid;
         coda_iattr_to_vattr(iattr, &vattr);
         vattr.va_type = VNON; /* cannot set type */
-	DEBUG("vattr.va_mode %o\n", vattr.va_mode);
+	CDEBUG(D_SUPER, "vattr.va_mode %o\n", vattr.va_mode);
 	inp->d.cfs_setattr.attr = vattr;
         size = VC_INSIZE(cfs_setattr_in);
-
-        
-
 
         error = coda_upcall(coda_sbp(inode->i_sb), size, &size, 
                             (caddr_t *) inp);
@@ -472,13 +453,14 @@ ENTRY;
 	} else {
 	        error = out->result;
 		if ( error ) {
-		        DEBUG("venus returned  %d\n", error);
+		        CDEBUG(D_SUPER, "venus returned  %d\n", error);
 			goto exit;
 		}
         }
+	cfsnc_zapfid(&(cnp->c_fid));
         
 exit: 
-        DEBUG(" result %ld\n", out->result); 
+        CDEBUG(D_SUPER, " result %ld\n", out->result); 
 	EXIT;
         if ( inp ) CODA_FREE(inp, buffer_size);
         return -error;
@@ -490,9 +472,6 @@ static void coda_vattr_to_iattr(struct inode *inode, struct vattr *attr)
         /* inode's i_dev, i_flags, i_ino are set by iget 
            XXX: is this all we need ??
            */
-
-        
-        inode->i_mode &= ~S_IFMT;  /* clear type bits */
         switch (attr->va_type) {
         case VNON:
                 inode->i_mode |= 0;
@@ -509,8 +488,6 @@ static void coda_vattr_to_iattr(struct inode *inode, struct vattr *attr)
         default:
                 inode->i_mode |= 0;
         }
-
-
 
         inode->i_mode |= attr->va_mode & ~S_IFMT;
         inode->i_uid = (uid_t) attr->va_uid;
@@ -659,6 +636,7 @@ print_vattr( attr )
 struct file_system_type coda_fs_type = {
   coda_read_super, "coda", 0, NULL
 };
+
 
 
 int init_coda_fs(void)

@@ -13,7 +13,7 @@
 #include <asm/segment.h>
 #include <linux/string.h>
 
-
+#include "namecache.h"
 #include "cfs.h"
 #include "cnode.h"
 #include "super.h"
@@ -102,8 +102,8 @@ coda_open(struct inode *i, struct file *f)
         unsigned short flags = f->f_flags;
 
         ENTRY;
-
-        DEBUG("OPEN inode number: %ld, flags %o.\n", f->f_inode->i_ino, flags);
+        
+        CDEBUG(D_SPECIAL, "OPEN inode number: %ld, flags %o.\n", f->f_inode->i_ino, flags);
 
         if ( flags & O_CREAT ) {
                 flags &= ~O_EXCL; /* taken care of by coda_create ?? */
@@ -131,7 +131,7 @@ coda_open(struct inode *i, struct file *f)
         if (!error) {
                 error = out->result;
                 if (error) {
-                        DEBUG("venus: dev %d, inode %ld, out->result %d\n",
+                        CDEBUG(D_FILE, "venus: dev %d, inode %ld, out->result %d\n",
                               out->d.cfs_open.dev,
                               out->d.cfs_open.inode, error);
                         goto exit;
@@ -144,7 +144,7 @@ coda_open(struct inode *i, struct file *f)
         }
 
         /* coda_upcall returns ino number of cached object, get inode */
-        DEBUG("cache file dev %d, ino %ld\n", out->d.cfs_open.dev, 
+        CDEBUG(D_FILE, "cache file dev %d, ino %ld\n", out->d.cfs_open.dev, 
               out->d.cfs_open.inode);
 
         if ( ! cnp->c_ovp ) {
@@ -156,17 +156,18 @@ coda_open(struct inode *i, struct file *f)
                         if (cont_inode) iput(cont_inode);
                         goto exit;
                 } 
-                DEBUG("GRAB: coda_inode_grab: ino %ld\n", cont_inode->i_ino);
+                CDEBUG(D_FILE, "GRAB: coda_inode_grab: ino %ld\n", cont_inode->i_ino);
                 cnp->c_ovp = cont_inode; 
         } 
 
         cnp->c_ocount++;
 
-        /* if opened for writing flush attribute cache ??? XXX Why pjb */
+        /* if opened for writing flush cache entry. 
         if ( flags & FWRITE ) {
                 cnp->c_owrite++;
                 cnp->c_flags &= ~C_VATTR;
-        }
+        } should not be necessary.
+        */
         
         cnp->c_device = out->d.cfs_open.dev;
         cnp->c_inode  = out->d.cfs_open.inode;
@@ -175,9 +176,9 @@ coda_open(struct inode *i, struct file *f)
 exit:
         if (inp) 
                 CODA_FREE(inp, sizeof(struct inputArgs));
-        DEBUG("result %d, coda i->i_count is %d for ino %ld\n", 
+        CDEBUG(D_FILE, "result %d, coda i->i_count is %d for ino %ld\n", 
               error, i->i_count, i->i_ino);
-        DEBUG("cache ino: %ld, count %d\n", cnp->c_ovp->i_ino, cnp->c_ovp->i_count);
+        CDEBUG(D_FILE, "cache ino: %ld, count %d\n", cnp->c_ovp->i_ino, cnp->c_ovp->i_count);
         EXIT;
         return -error;
 
@@ -193,7 +194,7 @@ coda_ioctl_open(struct inode *i, struct file *f)
 
         ENTRY;
 
-        DEBUG("File inode number: %ld\n", f->f_inode->i_ino);
+        CDEBUG(D_FILE, "File inode number: %ld\n", f->f_inode->i_ino);
 
         cnp = ITOC(i);
         CHECK_CNODE(cnp);
@@ -220,7 +221,7 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         char *buf = NULL;
         struct inode *target_inode;
         struct cnode *cnp;
-    DEBUG("pioclt-debugging\n");
+    CDEBUG(D_FILE, "pioclt-debugging\n");
         ENTRY;
     
         /* get the arguments from user space */
@@ -230,7 +231,7 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
                 return error;
         }
         memcpy_fromfs(&iap, (int *) arg, sizeof(struct a));
-    DEBUG("pioclt-debugging\n");
+    CDEBUG(D_FILE, "pioclt-debugging\n");
        
         /* 
          *  Look up the pathname. Note that the pathname is in 
@@ -243,21 +244,21 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         /* XXXX what about this symlink business XXXX */ 
         error = namei(iap.path, &target_inode);
         if (error) {
-                DEBUG("error: lookup returns %d\n",error);
+                CDEBUG(D_FILE, "error: lookup returns %d\n",error);
                 return(error);
         }
-    DEBUG("pioclt-debugging\n");
+    CDEBUG(D_FILE, "pioclt-debugging\n");
         cnp = ITOC(target_inode);
         CHECK_CNODE(cnp);
 
-        DEBUG("operating on inode %ld\n", target_inode->i_ino);
+        CDEBUG(D_FILE, "operating on inode %ld\n", target_inode->i_ino);
 
         /* build packet for Venus */
         if (iap.vidata.in_size > VC_DATASIZE) {
                 iput(target_inode);
                 return(-EINVAL);
         }
-    DEBUG("pioclt-debugging\n");
+    CDEBUG(D_FILE, "pioclt-debugging\n");
     
         CODA_ALLOC(buf, char *, VC_MAXMSGSIZE);
         
@@ -267,7 +268,7 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         coda_load_creds(&(in->cred));
 
         in->d.cfs_ioctl.VFid = cnp->c_fid;
-    DEBUG("pioclt-debugging\n");
+    CDEBUG(D_FILE, "pioclt-debugging\n");
     
         /* Command was mutated by increasing its size field to reflect the  
          * path and follow args. We need to subtract that out before sending
@@ -280,7 +281,7 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         /* in->d.cfs_ioctl.rwflag = flag; */
         in->d.cfs_ioctl.len = iap.vidata.in_size;
         in->d.cfs_ioctl.data = (char *)(VC_INSIZE(cfs_ioctl_in));
-    DEBUG("pioclt-debugging\n");
+    CDEBUG(D_FILE, "pioclt-debugging\n");
      
         /* get the data out of user space */
         error = verify_area(VERIFY_READ, iap.vidata.in, iap.vidata.in_size);
@@ -292,13 +293,13 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         }
         memcpy_fromfs((char*)in + (int)in->d.cfs_ioctl.data,
                       iap.vidata.in, iap.vidata.in_size);
-        DEBUG("pioclt-debugging\n");
+        CDEBUG(D_FILE, "pioclt-debugging\n");
         
         size = VC_MAXMSGSIZE;
         error = coda_upcall(coda_sbp(inode->i_sb),
                             VC_INSIZE(cfs_ioctl_in) + iap.vidata.in_size, 
                             &size, buf);
-        DEBUG("pioclt-debugging\n");
+        CDEBUG(D_FILE, "pioclt-debugging\n");
         
         if (!error) {
                 error = -out->result;
@@ -312,11 +313,11 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
                 goto exit;
         }
 
-        DEBUG("pioclt-debugging\n");
+        CDEBUG(D_FILE, "pioclt-debugging\n");
         
 	/* Copy out the OUT buffer. */
         if (out->d.cfs_ioctl.len > iap.vidata.out_size) {
-                DEBUG("return len %d <= request len %d\n",
+                CDEBUG(D_FILE, "return len %d <= request len %d\n",
                       out->d.cfs_ioctl.len, 
                       iap.vidata.out_size);
                 error = -EINVAL;
@@ -388,7 +389,7 @@ coda_release(struct inode *i, struct file *f)
         cnp =ITOC(i);
         CHECK_CNODE(cnp);
 
-        DEBUG ("RELEASE coda (ino %ld, ct %d) cache (ino %ld, ct %d)",
+        CDEBUG(D_FILE,  "RELEASE coda (ino %ld, ct %d) cache (ino %ld, ct %d)",
                i->i_ino, i->i_count, (cnp->c_ovp ? cnp->c_ovp->i_ino : 0),
                (cnp->c_ovp ? cnp->c_ovp->i_count : -99));
 
@@ -398,21 +399,15 @@ coda_release(struct inode *i, struct file *f)
                 return ;
         }
 
-        /* the control file will have NULL c_ovp */
-        /* XXXXX count on ovp should always be 1, and put to 0
-         * at iput time by coda_put_inode */
+/* XXX Control file ? */
+        /* even when c_ocount=0 we cannot put c_ovp to
+         * NULL since the file may be mmapped.
+	 * See code in inode.c (coda_put_inode) for
+         * further handling of close.
+	 */
 
-        /*  if ( cnp->c_ovp ) iput(cnp->c_ovp); */
-
-        /* XXXX this is causing grief with executables XXX !!! */
-#if 0
-        if (--cnp->c_ocount == 0) {
-                cnp->c_ovp = NULL;
-        }
-#else
         --cnp->c_ocount;
-#endif
-        /* write flag? How? */
+
         if (flags & FWRITE) {
                 --cnp->c_owrite;
         }
@@ -433,7 +428,7 @@ coda_release(struct inode *i, struct file *f)
                 error = out->result;
 
         if (inp) CODA_FREE(inp, sizeof(struct inputArgs));
-        DEBUG("result: %d\n", error);
+        CDEBUG(D_FILE, "result: %d\n", error);
         return ;
 }
 
@@ -469,24 +464,24 @@ coda_file_read(struct inode *coda_inode, struct file *coda_file,
                    loading pages of executables etc. My impression is that
                    linux has a file pointer open in all these cases. So 
                    let's try this for now. Perhaps we need to contact Venus. */
-                DEBUG("cached inode is 0!\n");
+                CDEBUG(D_FILE, "cached inode is 0!\n");
                 return 0; /* ??? */
         }
 
         coda_prepare_openfile(coda_inode, coda_file, cont_inode, &open_file);
 
         if ( ! open_file.f_op ) { 
-                DEBUG("cached file has not file operations.\n");
+                CDEBUG(D_FILE, "cached file has not file operations.\n");
                 return 0;
         }
 
         if ( ! open_file.f_op->read ) {
-                DEBUG("read not supported by cache file file operations.\n" );
+                CDEBUG(D_FILE, "read not supported by cache file file operations.\n" );
                 return 0;
         }
          
         result = open_file.f_op->read(cont_inode, &open_file , buff, count);
-        DEBUG(" result %d, count %d, position: %ld\n", result, count, open_file.f_pos);
+        CDEBUG(D_FILE, " result %d, count %d, position: %d\n", result, count, (int)open_file.f_pos);
 
 
         coda_restore_codafile(coda_inode, coda_file, cont_inode, &open_file);
@@ -514,8 +509,6 @@ coda_file_write(struct inode *coda_inode, struct file *coda_file,
              return -ENODEV;
         }
 
-        /* control object */
-
         cont_inode = cnp->c_ovp;
 
         if ( cont_inode == NULL ) {
@@ -526,25 +519,26 @@ coda_file_write(struct inode *coda_inode, struct file *coda_file,
                    loading pages of executables etc. My impression is that
                    linux has a file pointer open in all these cases. So 
                    let's try this for now. Perhaps we need to contact Venus. */
-                DEBUG("cached inode is 0!\n");
-                return 0; /* ??? */
+                printk("coda_file_write: cached inode is 0!\n");
+                return -1; 
         }
 
         coda_prepare_openfile(coda_inode, coda_file, cont_inode, &cont_file);
 
         if ( ! cont_file.f_op ) { 
-                DEBUG("cached file has not file operations.\n");
+                printk("coda_file_write: container file has no file ops.\n");
                 return 0;
         }
 
-        if ( ! cont_file.f_op->read ) {
-                DEBUG("read not supported by cache file file operations.\n" );
+        if ( ! cont_file.f_op->write ) {
+                printk("coda_file_write: write not supported by container.\n" );
                 return 0;
         }
          
+        /*        cnp->c_flags &= ~C_VATTR; */
         result = cont_file.f_op->write(cont_inode, &cont_file , buff, count);
         coda_restore_codafile(coda_inode, coda_file, cont_inode, &cont_file);
-        
+
         return result;
 }
                 
@@ -570,6 +564,7 @@ coda_restore_codafile(struct inode *coda_inode, struct file *coda_file,
                       struct inode *open_inode, struct file *open_file)
 {
         coda_file->f_pos = open_file->f_pos;
+	coda_inode->i_size = open_inode->i_size;
         return;
 }
 
@@ -599,7 +594,7 @@ coda_readdir(struct inode *inode, struct file *file,
         /* control stuff */
 
         if ( !cnp->c_ovp ) {
-                DEBUG("open inode pointer = NULL.\n");
+                CDEBUG(D_FILE, "open inode pointer = NULL.\n");
                 return -ENODEV;
         }
         
@@ -677,7 +672,7 @@ coda_venus_readdir(struct inode *inode, struct file *filp, void *getdent,
         /* Parse and write into user space. Filldir tells us when done! */
         offset = filp->f_pos;
         pos = 0;
-        DEBUG("offset %d, count %d.\n", offset, count);
+        CDEBUG(D_FILE, "offset %d, count %d.\n", offset, count);
 
         while ( pos + string_offset < result ) {
                 vdirent = (struct venus_dirent *) (buff + pos);
@@ -704,12 +699,12 @@ coda_venus_readdir(struct inode *inode, struct file *filp, void *getdent,
 
                         error = verify_area(VERIFY_WRITE, dents_callback->current_dir, count);
                         if (error) {
-                                DEBUG("verify area fails!!!\n");
+                                CDEBUG(D_FILE, "verify area fails!!!\n");
                                 goto exit;
                         }
 
                       errfill = filldir(dents_callback,  name, namlen, offs, ino); 
-DEBUG("ino %d, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, offset %d, count %d.\n", vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, debug, (u_int) offs, dents_callback->count);
+CDEBUG(D_FILE, "ino %d, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, offset %d, count %d.\n", vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, debug, (u_int) offs, dents_callback->count);
 
 		      /* errfill means no space for filling in this round */
                       if ( errfill < 0 ) break;

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ x$1 = x ]; then
+	echo "Usage coda-trace {1,0} (on/off)"
+	exit 1
+fi
+
+echo $1 > /proc/sys/coda/printentry

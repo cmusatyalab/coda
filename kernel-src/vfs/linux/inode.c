@@ -16,6 +16,7 @@
 #include <cfs.h>
 #include <cnode.h>
 #include <super.h>
+#include "namecache.h"
 
 /* prototypes */
 static int coda_create(struct inode *dir, const char *name, int len, int mode,
@@ -44,7 +45,7 @@ static int coda_readpage(struct inode *inode, struct page *page);
 /* external routines */
 void coda_load_creds(struct CodaCred *cred);
 extern int coda_upcall(struct coda_sb_info *, int insize, int *outsize, caddr_t buffer);
-extern struct inode *coda_cinode_make(ViceFid *, struct super_block *);
+extern struct inode *coda_cnode_make(ViceFid *, struct super_block *);
 
 /* external data structures */
 extern struct file_operations coda_file_operations;
@@ -52,6 +53,7 @@ extern struct file_operations coda_dir_operations;
 extern struct file_operations coda_ioctl_operations;
 extern int coda_debug;
 extern int coda_print_entry;
+extern int coda_access_cache;
 
 
 /* exported from this file */
@@ -160,7 +162,7 @@ static int coda_create(struct inode *dir, const char *name, int length, int mode
 ENTRY;
         *result = NULL;
         
-        DEBUG("name: %s, length %d, mode %o\n", name, length, mode);
+        CDEBUG(D_INODE, "name: %s, length %d, mode %o\n", name, length, mode);
 
         if (!dir || !S_ISDIR(dir->i_mode)) {
                 printk("coda_create: inode is null or not a directory\n");
@@ -177,10 +179,9 @@ ENTRY;
                 return -ENODEV; 
         }
 
-        /* CONTROL OBJECT ?? */
 
         if ( length > CFS_MAXNAMLEN ) {
-                DEBUG("name too long: create, %lx,%lx,%lx(%s)\n", 
+                printk("name too long: create, %lx,%lx,%lx(%s)\n", 
                       dircnp->c_fid.Volume, 
                       dircnp->c_fid.Vnode, 
                       dircnp->c_fid.Unique, name);
@@ -206,7 +207,7 @@ ENTRY;
 
         size = payload_offset + length + 1;
 #if 0
-DEBUG("total size passed to upcall: %d, string: %s, length: %d, offset %d\n", size,  (char *)in + payload_offset, length, payload_offset );
+CDEBUG(D_INODE, "total size passed to upcall: %d, string: %s, length: %d, offset %d\n", size,  (char *)in + payload_offset, length, payload_offset );
 #endif
 
         error = coda_upcall(coda_sbp(dir->i_sb), size, &size, buf);
@@ -215,15 +216,15 @@ DEBUG("total size passed to upcall: %d, string: %s, length: %d, offset %d\n", si
                 error = out->result;
 
         if (!error) {
-                newi = coda_cinode_make( &out->d.cfs_create.VFid
+                newi = coda_cnode_make( &out->d.cfs_create.VFid
                                        , dir->i_sb);
                 *result = newi;
-                
-                /* invalidate the directory cnode's attributes */
-                dircnp->c_flags &= ~C_VATTR;
 
+                /* invalidate the directory cnode's attributes */
+ /*                dircnp->c_flags &= ~C_VATTR;
+                cfsnc_zapfid(&(dircnp->c_fid)); */
         } else {
-                DEBUG("create: (%lx.%lx.%lx), result %ld\n",
+                CDEBUG(D_INODE, "create: (%lx.%lx.%lx), result %ld\n",
                       out->d.cfs_create.VFid.Volume,
                       out->d.cfs_create.VFid.Vnode,
                       out->d.cfs_create.VFid.Unique,
@@ -249,7 +250,7 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
 	int payload_offset, size;
 	
         ENTRY;
-        
+        CDEBUG(D_INODE, "name %s, len %d\n", name, length);
 	if (!dir || !S_ISDIR(dir->i_mode)) {
                 printk("coda_lookup: inode is NULL or not a directory.\n");
                 iput(dir);
@@ -259,7 +260,7 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
 	dircnp = ITOC(dir);
 	CHECK_CNODE(dircnp);
 	
-	DEBUG("lookup: %s in %ld.%ld.%ld\n", name, dircnp->c_fid.Volume,
+	CDEBUG(D_INODE, "lookup: %s in %ld.%ld.%ld\n", name, dircnp->c_fid.Volume,
               dircnp->c_fid.Vnode, dircnp->c_fid.Unique);
 
 
@@ -269,7 +270,7 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
                 savedcnp = dircnp;
                 /* error = coda_cnode_getnew(&(CTOI(dircnp))); */
                 error = 1;
-                DEBUG("cannot deal with dying inodes yet\n.");
+                CDEBUG(D_INODE, "cannot deal with dying inodes yet\n.");
                 return -ENODEV;
 	}
 
@@ -284,7 +285,7 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
                 ctl_fid.Vnode = CTL_VNO;
                 ctl_fid.Unique = CTL_UNI;
                 
-                *res_inode = coda_cinode_make(&ctl_fid, dir->i_sb);
+                *res_inode = coda_cnode_make(&ctl_fid, dir->i_sb);
                 (*res_inode)->i_op = &coda_ioctl_inode_operations;
                 (*res_inode)->i_mode = 00444;
 
@@ -294,7 +295,16 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
         }
 
         /* name cache */
-
+	if ( (savedcnp = cfsnc_lookup(dircnp, name, length)) != NULL ) {
+		CHECK_CNODE(savedcnp);
+		*res_inode = CTOI(savedcnp);
+		iget((*res_inode)->i_sb, (*res_inode)->i_ino);
+		iput(dir);
+		CDEBUG(D_INODE, "cache hit for ino: %ld, count: %d!\n",(*res_inode)->i_ino, (*res_inode)->i_count);
+		return 0;
+	}
+	CDEBUG(D_INODE, "name not found in cache!\n");
+		
         /* name not cached */
         CODA_ALLOC(buf, char *, (VC_INSIZE(cfs_lookup_in) + CFS_MAXNAMLEN +1));
         in = (struct inputArgs *)buf;
@@ -309,7 +319,7 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
         in->d.cfs_lookup.name = (char *) payload_offset;
 
         if ( length > CFS_MAXNAMLEN ) {
-                DEBUG("name too long: lookup, %lx,%lx,%lx(%s)\n", 
+                CDEBUG(D_INODE, "name too long: lookup, %lx,%lx,%lx(%s)\n", 
                       dircnp->c_fid.Volume, 
                       dircnp->c_fid.Vnode, 
                       dircnp->c_fid.Unique, name);
@@ -327,28 +337,33 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
         if (!error) {
 	  error =out->result;
         } else {
-	  DEBUG("upcall returns error: %d\n", error);
+	  CDEBUG(D_INODE, "upcall returns error: %d\n", error);
 	  *res_inode = (struct inode *) NULL;
 	  goto exit;
 	}
 
         if ( error) {
-                DEBUG("venus returns error for %lx.%lx.%lx(%s)%d\n",
+                CDEBUG(D_INODE, "venus returns error for %lx.%lx.%lx(%s)%d\n",
                       dircnp->c_fid.Volume, 
                       dircnp->c_fid.Vnode, 
                       dircnp->c_fid.Unique, 
                       name, error);
                 *res_inode = (struct inode *) NULL;
         } else {
-                DEBUG("lookup: vol %lx vno %lx uni %lx type %o result %ld\n",
+                CDEBUG(D_INODE, "lookup: vol %lx vno %lx uni %lx type %o result %ld\n",
                       out->d.cfs_lookup.VFid.Volume, 
                       out->d.cfs_lookup.VFid.Vnode,
                       out->d.cfs_lookup.VFid.Unique,
                       out->d.cfs_lookup.vtype,
                       out->result);
 
-                *res_inode = coda_cinode_make(&out->d.cfs_lookup.VFid, 
+                *res_inode = coda_cnode_make(&out->d.cfs_lookup.VFid, 
                                              dir->i_sb);
+		savedcnp = ITOC(*res_inode);
+		CHECK_CNODE(savedcnp);
+		CDEBUG(D_INODE, "ABOUT to enter into cache.\n");
+		cfsnc_enter(dircnp, name, length, savedcnp);
+		CDEBUG(D_INODE, "entered in cache\n");
 		if (buf) 
 		  CODA_FREE(buf, (VC_INSIZE(cfs_lookup_in) + 
 				  CFS_MAXNAMLEN + 1));
@@ -373,7 +388,7 @@ coda_unlink(struct inode *dir_inode, const char *name, int length)
         struct cnode *dircnp;
         struct inputArgs *inp;
         struct outputArgs *out;
-	int payload_offset;
+        int payload_offset;
         int result = 0, s;
         char *buff = NULL;
 
@@ -381,7 +396,7 @@ coda_unlink(struct inode *dir_inode, const char *name, int length)
         dircnp = ITOC(dir_inode);
         CHECK_CNODE(dircnp);
 
-        DEBUG(" %s in %ld.%ld.%ld, ino %ld\n", name , dircnp->c_fid.Volume, 
+        CDEBUG(D_INODE, " %s in %ld.%ld.%ld, ino %ld\n", name , dircnp->c_fid.Volume, 
               dircnp->c_fid.Vnode, dircnp->c_fid.Unique, dir_inode->i_ino);
 
         if ( IS_DYING(dircnp) ) {
@@ -391,7 +406,8 @@ coda_unlink(struct inode *dir_inode, const char *name, int length)
                 return -ENODEV;
         }
 
-        dircnp->c_flags &= ~C_VATTR;
+        /* this file should no longer be in the namecache! */
+        cfsnc_zapfile(dircnp, (const char *)name, length);
 
         /* control object */
         
@@ -403,7 +419,7 @@ coda_unlink(struct inode *dir_inode, const char *name, int length)
         inp->d.cfs_remove.VFid = dircnp->c_fid;
         coda_load_creds(&(inp->cred));
 
-	payload_offset = VC_INSIZE(cfs_remove_in); 
+        payload_offset = VC_INSIZE(cfs_remove_in); 
         inp->d.cfs_remove.name = (char *)(payload_offset);
 
         /* Venus must get null terminated string */
@@ -415,19 +431,18 @@ coda_unlink(struct inode *dir_inode, const char *name, int length)
         result = coda_upcall(coda_sbp(dir_inode->i_sb), s, &s, (char *)inp);
 
         if ( result ) {
-	       printk("coda_unlink: upcall error: %d\n", result);
-	       goto exit;
-	} else {
-	      result = -out->result;
-	      if ( result ) {
-		      printk("coda_unlink: Venus returns error: %d\n", result);
-		      goto exit;
-	      }
-	}
+            printk("coda_unlink: upcall error: %d\n", result);
+            goto exit;
+        } else {
+            result = -out->result;
+            if ( result ) {
+                goto exit;
+            }
+        }
         
 exit:
         if (buff) CODA_FREE(buff, CFS_MAXNAMLEN + sizeof(struct inputArgs));
-        DEBUG("returned %d\n", result);
+        CDEBUG(D_INODE, "returned %d\n", result);
         iput(dir_inode);
         EXIT;
         return result;
@@ -471,9 +486,9 @@ coda_mkdir(struct inode *dir_inode, const char *name, int length, int mode)
         ENTRY;
 
         dircnp = ITOC(dir_inode);
-        DEBUG("before checking cnode\n");
+        CDEBUG(D_INODE, "before checking cnode\n");
         CHECK_CNODE(dircnp);
-        DEBUG("after check cnode\n");
+        CDEBUG(D_INODE, "after check cnode\n");
 
         if ( IS_DYING(dircnp) ) {
                 COMPLAIN_BITTERLY(mkdir, dircnp->c_fid);
@@ -481,34 +496,34 @@ coda_mkdir(struct inode *dir_inode, const char *name, int length, int mode)
                 return -ENODEV;
         }
 
-   DEBUG("after is dying\n");
+   CDEBUG(D_INODE, "after is dying\n");
         if ( length > CFS_MAXNAMLEN ) {
                 iput(dir_inode);
                 return -EPERM;
         }
-    DEBUG("after is namelen\n");
+    CDEBUG(D_INODE, "after is namelen\n");
         payload_offset = VC_INSIZE(cfs_mkdir_in);
         CODA_ALLOC(buffer, char *, CFS_MAXNAMLEN + payload_offset);
-    DEBUG("after alloc, payload offset %d alloced %d, length %d.\n", payload_offset, payload_offset + CFS_MAXNAMLEN, length);
+    CDEBUG(D_INODE, "after alloc, payload offset %d alloced %d, length %d.\n", payload_offset, payload_offset + CFS_MAXNAMLEN, length);
 
         inp = (struct inputArgs *) buffer;
         out = (struct outputArgs *) buffer;
         INIT_IN(inp, CFS_MKDIR);
-    DEBUG("after init in\n");        
+    CDEBUG(D_INODE, "after init in\n");        
         coda_load_creds(&(inp->cred));
-    DEBUG("after coda creads\n");
+    CDEBUG(D_INODE, "after coda creads\n");
         inp->d.cfs_mkdir.VFid = dircnp->c_fid;
         attrs.va_mode = mode;
-    DEBUG("before assigning attrs\n");
+    CDEBUG(D_INODE, "before assigning attrs\n");
         inp->d.cfs_mkdir.attr = attrs;
-    DEBUG("after assigning attrs\n");
+    CDEBUG(D_INODE, "after assigning attrs\n");
         inp->d.cfs_mkdir.name = (char *) payload_offset;
 
         /* Venus must get null terminated string */
         memcpy((char *)inp + payload_offset, name, length);
-    DEBUG("after memcpy\n");
+    CDEBUG(D_INODE, "after memcpy\n");
         *((char *)inp + payload_offset + length) = '\0';
-    DEBUG("after assigning 0\n");
+    CDEBUG(D_INODE, "after assigning 0\n");
         size = payload_offset + length + 1;
         
         error = coda_upcall(coda_sbp(dir_inode->i_sb), size, &size, 
@@ -518,14 +533,13 @@ coda_mkdir(struct inode *dir_inode, const char *name, int length, int mode)
                 error = out->result;
         }
         if ( error ) {
-                DEBUG("returned error %d\n", error);
+                CDEBUG(D_INODE, "returned error %d\n", error);
                 if (buffer) CODA_FREE(buffer, CFS_MAXNAMLEN + payload_offset); 
                 iput(dir_inode);
                 return -error;
         }
          
-        dircnp->c_flags &= ~C_VATTR;
-        DEBUG("mkdir: (%ld.%ld.%ld) result %ld\n",
+        CDEBUG(D_INODE, "mkdir: (%ld.%ld.%ld) result %ld\n",
               out->d.cfs_mkdir.VFid.Volume,
               out->d.cfs_mkdir.VFid.Vnode,
               out->d.cfs_mkdir.VFid.Unique,
@@ -534,10 +548,10 @@ coda_mkdir(struct inode *dir_inode, const char *name, int length, int mode)
         if (buffer) CODA_FREE(buffer, CFS_MAXNAMLEN + 
                               VC_INSIZE(cfs_mkdir_in)); 
         
-        DEBUG("before final iput\n");
+        CDEBUG(D_INODE, "before final iput\n");
         iput(dir_inode);
 EXIT;
-        DEBUG("exiting.\n");
+        CDEBUG(D_INODE, "exiting.\n");
         return -error;
                 
 }
@@ -561,8 +575,13 @@ ENTRY;
                 return -ENODEV;
         }
 
-        size = strlen(name) + 1;
+
+        /* this directory name should no longer be in the namecache */
+        cfsnc_zapfile(dircnp, (const char *)name, length);
+
+        size = length + 1;
         if ( size > CFS_MAXNAMLEN ) {
+                printk("coda_rmdir: name too long.\n");
                 iput(dir_inode);
                 return -EPERM;
         }
@@ -588,16 +607,14 @@ ENTRY;
                 error = out->result;
         }
         if ( error ) {
-                DEBUG("returned error %d\n", error);
+                CDEBUG(D_INODE, "returned error %d\n", error);
                 if (buffer) CODA_FREE(buffer, CFS_MAXNAMLEN + 
                                       VC_INSIZE(cfs_rmdir_in)); 
                 iput(dir_inode);
                 return error;
         }
          
-        dircnp->c_flags &= ~C_VATTR;
-
-        DEBUG(" result %ld\n", out->result); 
+        CDEBUG(D_INODE, " result %ld\n", out->result); 
 EXIT;
         if (buffer) CODA_FREE(buffer, CFS_MAXNAMLEN + 
                               VC_INSIZE(cfs_rmdir_in)); 
@@ -623,7 +640,7 @@ ENTRY;
         new_cnp = ITOC(new_inode);
         CHECK_CNODE(new_cnp);
 
-        DEBUG("old: %s, (%d length, %d strlen), new: %s (%d length, %d strlen).\n", old_name, old_length, strlen(old_name), new_name, new_length, strlen(new_name));
+        CDEBUG(D_INODE, "old: %s, (%d length, %d strlen), new: %s (%d length, %d strlen).\n", old_name, old_length, strlen(old_name), new_name, new_length, strlen(new_name));
 
         if ( IS_DYING(old_cnp) || IS_DYING(new_cnp)) {
                 COMPLAIN_BITTERLY(rename, old_cnp->c_fid);
@@ -633,8 +650,8 @@ ENTRY;
                 return -ENODEV;
         }
 
-        old_cnp->c_flags &= ~C_VATTR;
-        new_cnp->c_flags &= ~C_VATTR;
+        /* the old file should go from the namecache */
+        cfsnc_zapfile(old_cnp, (const char *)old_name, old_length);
 
         buffer_size = 2*CFS_MAXNAMLEN + VC_INSIZE(cfs_rename_in) +8;
         CODA_ALLOC(buffer, char *, buffer_size);
@@ -678,9 +695,9 @@ ENTRY;
         *((char *)inp + size + new_length) = '\0';
 
         size += s;
-        DEBUG("destname in packet: %s\n", 
+        CDEBUG(D_INODE, "destname in packet: %s\n", 
               (char *)inp + (int) inp->d.cfs_rename.destname);
-        DEBUG("size %d\n", size);
+        CDEBUG(D_INODE, "size %d\n", size);
         error = coda_upcall(coda_sbp(old_inode->i_sb), buffer_size, &size, 
                             (char *) inp);
         
@@ -688,14 +705,14 @@ ENTRY;
                 error = out->result;
         }
         if ( error ) {
-                DEBUG("returned error %d\n", error);
+                CDEBUG(D_INODE, "returned error %d\n", error);
                 if (buffer) CODA_FREE(buffer, buffer_size);
                 iput(old_inode);
                 iput(new_inode);
                 return error;
         }
          
-        DEBUG(" result %ld\n", out->result); 
+        CDEBUG(D_INODE, " result %ld\n", out->result); 
 
         if (buffer) CODA_FREE(buffer, buffer_size);
         iput(old_inode);
@@ -724,9 +741,9 @@ coda_link(struct inode *old_inode, struct inode *dir_inode,
         old_cnp = ITOC(old_inode);
         CHECK_CNODE(old_cnp);
 
-	DEBUG("old: fid: (%ld.%ld.%ld)\n",  old_cnp->c_fid.Volume, 
+	CDEBUG(D_INODE, "old: fid: (%ld.%ld.%ld)\n",  old_cnp->c_fid.Volume, 
                old_cnp->c_fid.Vnode, old_cnp->c_fid.Unique);
-	DEBUG("directory: fid: (%ld.%ld.%ld)\n", dir_cnp->c_fid.Volume, 
+	CDEBUG(D_INODE, "directory: fid: (%ld.%ld.%ld)\n", dir_cnp->c_fid.Volume, 
                dir_cnp->c_fid.Vnode, dir_cnp->c_fid.Unique);
 
         if ( length > CFS_MAXNAMLEN ) {
@@ -772,18 +789,11 @@ coda_link(struct inode *old_inode, struct inode *dir_inode,
                 printk("coda_link: upcall error: %d\n", error);
         }
 
-        /* 
-         *  Invalidate the parent's attr cache, 
-         *  the modification time has changed 
-         */
-        dir_cnp->c_flags &= ~C_VATTR;
-        old_cnp->c_flags &= ~C_VATTR;
-        
         if (error) { 
                 printk("coda_unlink: venus returns error: %d\n", error);
         }
 
-        DEBUG("link result %d\n",error);
+        CDEBUG(D_INODE, "link result %d\n",error);
         iput(dir_inode);
         iput(old_inode);
         if (buff) CODA_FREE(buff, CFS_MAXNAMLEN + sizeof(struct inputArgs));
@@ -799,7 +809,7 @@ coda_symlink(struct inode *dir_inode, const char *name, int namelen,
              const char *symname)
 {
 
-        char *buff=NULL; /*[sizeof(struct inputArgs) + CFS_MAXPATHLEN + CFS_MAXNAMLEN + 8];*/
+        char *buff=NULL;
         struct inputArgs *inp;
         struct outputArgs *out;
         struct cnode *dir_cnp = ITOC(dir_inode);	
@@ -818,6 +828,7 @@ coda_symlink(struct inode *dir_inode, const char *name, int namelen,
          * allocate space for regular input, 
          * plus 1 path and 1 name, plus padding 
          */        
+        /*[sizeof(struct inputArgs) + CFS_MAXPATHLEN + CFS_MAXNAMLEN + 8] ???*/
         CODA_ALLOC(buff, char *, sizeof(struct inputArgs) + CFS_MAXPATHLEN 
                   + CFS_MAXNAMLEN + 8);
         inp = (struct inputArgs *)buff;
@@ -832,7 +843,7 @@ coda_symlink(struct inode *dir_inode, const char *name, int namelen,
         inp->d.cfs_symlink.srcname =(char*) payload_offset;
     
         strsize = strlen(symname);
-        DEBUG("symname: %s, length: %d\n", symname, strsize);
+        CDEBUG(D_INODE, "symname: %s, length: %d\n", symname, strsize);
         s = ( strsize  & ~0x3 ) + 4; /* Round up to word boundary. */
         if (s > CFS_MAXPATHLEN) {
                 printk("coda_symlink: name too long.\n");
@@ -862,13 +873,6 @@ coda_symlink(struct inode *dir_inode, const char *name, int namelen,
         } else {
                 printk("coda_symlink: coda_upcall returns error: %d.\n", error);
         }
-    
-        /* 
-         * Invalidate the parent's attr cache, 
-         * the modification time has changed 
-         */
-
-        dir_cnp->c_flags &= ~C_VATTR;
         
 exit:    
         iput(dir_inode);
@@ -876,7 +880,7 @@ exit:
                 CODA_FREE(buff, sizeof(struct inputArgs) + CFS_MAXPATHLEN 
                          + CFS_MAXNAMLEN + 8);
         }
-        DEBUG("in symlink result %d\n",error);
+        CDEBUG(D_INODE, "in symlink result %d\n",error);
         EXIT;
         return(-error);
 }
@@ -890,13 +894,27 @@ coda_permission(struct inode *inode, int mask)
         struct outputArgs *outp;
         int size;
         int error;
-    
+        int mode = inode->i_mode;
+ 
         ENTRY;
 
         if ( mask == 0 ) {
                 EXIT;
                 return 0;
         }
+
+        /* we should be able to trust what is in the mode
+           although Venus should be told to return the 
+           correct modes to the kernel */
+        if ( coda_access_cache == 1 ) { 
+            if (current->fsuid == inode->i_uid)
+                mode >>= 6;
+        	else if (in_group_p(inode->i_gid))
+                mode >>= 3;
+        	if (((mode & mask & 0007) == mask) )
+                return 0;
+	}
+
 
         cp = ITOC(inode);
         CHECK_CNODE(cp);
@@ -915,7 +933,7 @@ coda_permission(struct inode *inode, int mask)
         inp->d.cfs_access.VFid = cp->c_fid;
         inp->d.cfs_access.flags = mask << 6;
 
-        DEBUG("mask is %o\n", mask);
+        CDEBUG(D_INODE, "mask is %o\n", mask);
 
         size = VC_OUT_NO_DATA;
         coda_load_creds(&(inp->cred));    
@@ -929,7 +947,7 @@ coda_permission(struct inode *inode, int mask)
                 printk("coda_permission: coda upcall returned error %d\n", error);
         }
 
-        DEBUG("returning %d\n", -error);
+        CDEBUG(D_INODE, "returning %d\n", -error);
         if (inp) CODA_FREE(inp, sizeof(struct inputArgs));
         EXIT;
         return -error; 
@@ -958,7 +976,7 @@ coda_readlink(struct inode *inode, char *buffer, int length)
         }
 
         memcpy_tofs(buffer, namebuf, buflen);
-        DEBUG("result %s\n", namebuf);
+        CDEBUG(D_INODE, "result %s\n", namebuf);
         result = buflen -1;
 
 exit:
@@ -1020,7 +1038,7 @@ coda_getlink(struct inode *inode, char **buffer, int *length)
         }
         
         retlen = out->d.cfs_readlink.count;
-        CODA_ALLOC(*buffer, char *, retlen);
+        CODA_ALLOC(*buffer, char *, retlen+1);
         if ( ! *buffer ) {
                 printk("coda_getlink: no memory.\n");
                 error = ENOMEM;
@@ -1035,7 +1053,7 @@ coda_getlink(struct inode *inode, char **buffer, int *length)
 
 exit:        
         if (buf) CODA_FREE(buf, CFS_MAXPATHLEN + VC_INSIZE(cfs_readlink_in));
-        DEBUG(" result %d\n",error);
+        CDEBUG(D_INODE, " result %d\n",error);
         iput(inode);
         EXIT;
         return -error;
@@ -1050,31 +1068,31 @@ coda_follow_link(struct inode * dir, struct inode * inode,
         char *link = NULL;
         int length;
 
-	*res_inode = NULL;
+        *res_inode = NULL;
 
         ENTRY;
-	if (!dir) {
-		dir = current->fs->root;
-		dir->i_count++;
-	}
-	if (!inode) {
-		iput (dir);
-		return -ENOENT;
-	}
-	if (!S_ISLNK(inode->i_mode)) {
-		iput (dir);
-		*res_inode = inode;
-		return 0;
-	}
-	if (current->link_count > 5) {
-		iput (dir);
-		iput (inode);
-		return -ELOOP;
-	}
-
+        if (!dir) {
+            dir = current->fs->root;
+            dir->i_count++;
+        }
+        if (!inode) {
+            iput (dir);
+            return -ENOENT;
+        }
+        if (!S_ISLNK(inode->i_mode)) {
+            iput (dir);
+            *res_inode = inode;
+            return 0;
+        }
+        if (current->link_count > 5) {
+            iput (dir);
+            iput (inode);
+            return -ELOOP;
+        }
+        
         /* do the readlink to get the path */
         error = coda_getlink(inode, &link, &length); 
-        DEBUG("coda_getlink returned %d\n", error);
+        CDEBUG(D_INODE, "coda_getlink returned %d\n", error);
         if (error) {
                 iput(dir);
                 printk("coda_follow_link: coda_getlink error.\n");
@@ -1082,11 +1100,11 @@ coda_follow_link(struct inode * dir, struct inode * inode,
         }
 
         current->link_count++;
-	error = open_namei (link, flag, mode, res_inode, dir);
-	current->link_count--;
+        error = open_namei (link, flag, mode, res_inode, dir);
+        current->link_count--;
 
 exit:
-	/* iput (inode);  */
+        /* iput (inode);  */
         if ( link && length > 0 ) CODA_FREE(link, length);
         EXIT;
         return error;
@@ -1105,13 +1123,13 @@ int coda_readpage(struct inode * inode, struct page * page)
         CHECK_CNODE(cnp);
 
         if ( ! cnp->c_ovp ) {
-                printk("coda_readpage: no open inode for ino %ld\n", inode->i_ino);
+            printk("coda_readpage: no open inode for ino %ld\n", inode->i_ino);
                 return -ENXIO;
         }
 
         open_inode = cnp->c_ovp;
 
-        DEBUG("coda ino: %ld, cached ino %ld, page offset: %lx\n", inode->i_ino, open_inode->i_ino, page->offset);
+        CDEBUG(D_INODE, "coda ino: %ld, cached ino %ld, page offset: %lx\n", inode->i_ino, open_inode->i_ino, page->offset);
 
         generic_readpage(open_inode, page);
         EXIT;

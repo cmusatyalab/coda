@@ -94,9 +94,10 @@
 #include "cfs.h"
 #include "cnode.h"
 #include "super.h"
+#include "namecache.h"
 
-struct cnode *coda_cnode_find (ViceFid *fid);
-struct vcomm *coda_inode_vcomm(struct inode *psdev);
+
+struct vcomm *coda_psdev_vcomm(struct inode *psdev);
 int coda_downcall(int opcode, struct outputArgs *out);
 int coda_upcall(struct coda_sb_info *mntinfo, int inSize,int *outSize, caddr_t buffer);
 
@@ -136,7 +137,7 @@ int coda_upcall(mntinfo, inSize, outSize, buffer)
          /* Unlikely, but could be a race condition with a dying warden */
                 return ENODEV;
 	}
-	vcommp = coda_inode_vcomm(mntinfo->s_psdev);
+	vcommp = coda_psdev_vcomm(mntinfo->s_psdev);
 	/*
 	cfs_clstat.ncalls++;
 	cfs_clstat.reqs[((struct inputArgs *)buffer)->opcode]++;
@@ -161,7 +162,7 @@ int coda_upcall(mntinfo, inSize, outSize, buffer)
 	/* Append msg to request queue and poke Venus. */
 
 	INSQUE(vmp->vm_chain, vcommp->vc_requests);
-DEBUG("about to wake up Venus and sleep for (process, opc, uniq) =(%d, %d.%d)\n", current->pid, vmp->vm_opcode, vmp->vm_unique);
+CDEBUG(D_UPCALL, "about to wake up Venus and sleep for (process, opc, uniq) =(%d, %d.%d)\n", current->pid, vmp->vm_opcode, vmp->vm_unique);
 
 	SELWAKEUP(vcommp->vc_selproc);
 	/* We can be interrupted while we wait for Venus to process
@@ -177,7 +178,7 @@ DEBUG("about to wake up Venus and sleep for (process, opc, uniq) =(%d, %d.%d)\n"
 
 
 	SLEEP(&vmp->vm_sleep);
-DEBUG("process %d woken up by Venus.\n", current->pid);
+CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 	if (VC_OPEN(vcommp)) {	/* Venus is still alive */
  	/* Op went through, interrupt or not... */
 	    if (vmp->vm_flags & VM_WRITE) {
@@ -187,9 +188,8 @@ DEBUG("process %d woken up by Venus.\n", current->pid);
 
 	    else if (!(vmp->vm_flags & VM_READ)) { 
 		/* Interrupted before venus read it. */
-		if (coda_debug)
-		    myprintf(("interrupted before read: op  %d.%d, flags = %x\n",
-			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags));
+		    CDEBUG(D_UPCALL, "interrupted before read: op  %d.%d, flags = %x\n",
+			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 		REMQUE(vmp->vm_chain);
 		error = EINTR;
 	    }
@@ -201,9 +201,8 @@ DEBUG("process %d woken up by Venus.\n", current->pid);
 		struct inputArgs *dog;
 		struct vmsg *svmp;
 		
-		if (coda_debug)
-		    myprintf(("Sending Venus a signal:  op = %d.%d, flags = %x\n",
-			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags));
+		    CDEBUG(D_UPCALL, "Sending Venus a signal:  op = %d.%d, flags = %x\n",
+			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 		
 		REMQUE(vmp->vm_chain);
 		error = EINTR;
@@ -219,9 +218,8 @@ DEBUG("process %d woken up by Venus.\n", current->pid);
 		svmp->vm_inSize = VC_IN_NO_DATA;
 		svmp->vm_outSize = VC_IN_NO_DATA;
 		
-		if (coda_debug)
-		    myprintf(("coda_upcall: enqueing signal msg (%d, %d)\n",
-			   svmp->vm_opcode, svmp->vm_unique));
+		    CDEBUG(D_UPCALL, "coda_upcall: enqueing signal msg (%d, %d)\n",
+			   svmp->vm_opcode, svmp->vm_unique);
 		
 		/* insert at head of queue! */
 		INSQUE(svmp->vm_chain, vcommp->vc_requests);
@@ -230,9 +228,8 @@ DEBUG("process %d woken up by Venus.\n", current->pid);
 	}
 
 	else {	/* If venus died (!VC_OPEN(vcommp)) */
-	    if (coda_debug)
-		myprintf(("vcclose woke op %d.%d flags %d\n",
-		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags));
+		CDEBUG(D_UPCALL, "vcclose woke op %d.%d flags %d\n",
+		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
 	    
 	    if (!vmp->vm_flags & VM_WRITE)
 		error = ENODEV;
@@ -246,25 +243,27 @@ DEBUG("process %d woken up by Venus.\n", current->pid);
 
 
 /*
- * There are 6 cases where invalidations occur. The semantics of each
+ * There are 7 cases where invalidations occur. The semantics of each
  * is listed here.
  *
  * CFS_FLUSH     -- flush all entries from the name cache and the cnode cache.
  * CFS_PURGEUSER -- flush all entries from the name cache for a specific user
  *                  This call is a result of token expiration.
+ *                  Linux does a cfsnc_flush since cred's are not maintained.
  *
- * The next two are the result of callbacks on a file or directory.
+ * The next arise as the result of callbacks on a file or directory.
  * CFS_ZAPDIR    -- flush the attributes for the dir from its cnode.
  *                  Zap all children of this directory from the namecache.
- * CFS_ZAPFILE   -- flush the attributes for a file.
+ * CFS_ZAPFILE   -- flush the cached attributes for a file.
+ * CFS_ZAPVNODE  -- in linux the same as zap file (no creds).
  *
- * The fifth is a result of Venus detecting an inconsistent file.
+ * The next is a result of Venus detecting an inconsistent file.
  * CFS_PURGEFID  -- flush the attribute for the file
  *                  If it is a dir (odd vnode), purge its 
  *                  children from the namecache
  *                  remove the file from the namecache.
  *
- * The sixth allows Venus to replace local fids with global ones
+ * The last  allows Venus to replace local fids with global ones
  * during reintegration.
  *
  * CFS_REPLACE -- replace one ViceFid with another throughout the name cache 
@@ -279,101 +278,55 @@ int coda_downcall(opcode, out)
     
     /* Handle invalidate requests. */
     switch (opcode) {
-
       case CFS_FLUSH : {
+	cfsnc_flush();
 	return(0);
       }
-	
       case CFS_PURGEUSER : {
+	cfsnc_flush();
 	return(0);
       }
-
-	
       case CFS_ZAPDIR : {
-	  struct cnode *cp;
-	  cp = coda_cnode_find(&(out->d.cfs_zapdir.CodaFid));
-	  if (cp != NULL) {
-	      VN_HOLD(CTOV(cp));
-	      
-	      cp->c_flags &= ~C_VATTR;
-              /*
-	      cfsnc_zapParentfid(&out->d.cfs_zapdir.CodaFid);     
-	      
-	      CFSDEBUG(CFS_ZAPDIR, myprintf(("zapdir: fid = (%x.%x.%x), 
-                                          refcnt = %d\n",cp->c_fid.Volume, 
-					     cp->c_fid.Vnode, 
-					     cp->c_fid.Unique, 
-					     CNODE_COUNT(cp) - 1));)
-					     */
-		  VN_RELE(CTOV(cp));
-	  }
-	  
-	  return(0);
+	      ViceFid *fid = &out->d.cfs_zapdir.CodaFid;
+	      cfsnc_zapfid(fid);
+	      cfsnc_zapParentfid(fid);     
+	      CDEBUG(D_UPCALL, "zapdir: fid = (%lx.%lx.%lx), \n",fid->Volume, 
+					  fid->Vnode, 
+					  fid->Unique);
+	      return(0);
       }
-	
       case CFS_ZAPVNODE : {
         /*
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_ZAPVNODE]++;
 	  */
-        /*
-	  cfsnc_zapvnode(&out->d.cfs_zapvnode.VFid, &out->d.cfs_zapvnode.cred);
-          */
+	  cfsnc_zapfid(&out->d.cfs_zapvnode.VFid);
 	  return(0);
       }	
-	
+      case CFS_ZAPFILE : {
+	  cfsnc_zapfid(&out->d.cfs_zapfile.CodaFid);
+	  return 0;
+      }
       case CFS_PURGEFID : {
-	  struct cnode *cp;
-	  int error = 0;
+	      ViceFid *fid = &out->d.cfs_purgefid.CodaFid;
 	  /*
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_PURGEFID]++;
 	  */
-	  cp = coda_cnode_find(&out->d.cfs_purgefid.CodaFid);
-	  if (cp != NULL) {
-	      VN_HOLD(CTOV(cp));
-	      /*
-	      if (S_IFDIR(out->d.cfs_purgefid.CodaFid.Vnode)) { 
-		  cfsnc_zapParentfid(&out->d.cfs_purgefid.CodaFid);     
-	      }
-	      */
-	      cp->c_flags &= ~C_VATTR;
-              /*
-	      cfsnc_zapfid(&out->d.cfs_purgefid.CodaFid);
-
-              */
-#if 0
-#ifdef	__linux__
-	      if (!(S_ISDIR(out->d.cfs_purgefid.CodaFid.Vnode->i_mode)) ) {
-#else
-	      if (!(ODD(out->d.cfs_purgefid.CodaFid.Vnode)) 
-		  && (CTOV(cp)->v_flag & VTEXT)) {
-#endif
-		/*
-		  error = cfs_vmflush(cp);     */
-	      }
-#endif
-	      /*
-	      CFSDEBUG(CFS_PURGEFID, myprintf(("purgefid: fid = (%x.%x.%x), 
-                                            refcnt = %d, error = %d\n",
-                                            cp->c_fid.Volume, cp->c_fid.Vnode,
-                                            cp->c_fid.Unique, 
-					    CNODE_COUNT(cp) - 1, error));)
-					    */
-		  VN_RELE(CTOV(cp));
-	  }
-	  return(error);
+	      cfsnc_zapfid(fid);
+	      cfsnc_zapParentfid(fid);     
+	      CDEBUG(D_UPCALL, "purgefid: fid = (%lx.%lx.%lx)\n", 
+                                            fid->Volume, fid->Vnode,
+                                            fid->Unique);
+	      return 0;
       }
-
       case CFS_REPLACE : {
         /*
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_REPLACE]++;
 	  */
-        /*
 	  cfsnc_replace(&out->d.cfs_replace.OldFid, 
 			&out->d.cfs_replace.NewFid);
-                        */
 	  return (0);
       }			   
     }

@@ -62,9 +62,13 @@
 #include <linux/fcntl.h>
 #include <linux/delay.h>
 #include <linux/skbuff.h>
+#include <linux/proc_fs.h>
 
 
 #include <psdev.h>
+#include "super.h"
+#include "namecache.h"
+#include "sysctl.h"
 #include <cfs.h>
 #include <cnode.h>
 
@@ -78,8 +82,9 @@
 /*
  *      Debugging aids
  */
-int coda_debug =1;
-int coda_print_entry = 1; 
+int coda_debug =0;
+int coda_print_entry = 0; 
+int coda_access_cache = 1;
 
 
 /* 
@@ -88,38 +93,34 @@ int coda_print_entry = 1;
 extern struct file_system_type coda_fs_type;
 extern int coda_downcall(int opcode, struct outputArgs *out);
 extern int init_coda_fs(void);
-
+extern int cfsnc_get_info(char *buffer, char **start, off_t offset, int length, int dummy);
+extern int cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, int dummy);
 
 /*
- * Initialize the mnttbl. indexed by minor device number 
- */ 
+ * globals
+ */
+struct coda_sb_info coda_super_info;
 
-struct cfs_mntinfo cfs_mnttbl[MAX_CODADEVS]; 
-
-
-inline struct vcomm *coda_inode_vcomm(struct inode *inode) 
+inline struct vcomm *coda_psdev_vcomm(struct inode *inode) 
 {
-       unsigned int minor = MINOR(inode->i_rdev);
-#if 0
-       DEBUG("ino is %ld.\n", inode->i_ino);
-#endif
-       if (minor >= MAX_CODADEVS)
-               return 0;
-
-       return &cfs_mnttbl[minor].mi_vcomm;
+	/*
+	 * at some future point, we may want different inodes
+	 * coming from different minor numbers to use
+	 * different coda_sb_info's (for odyssey eg).
+	 * Right now we don't use the argument.
+	 */
+	
+	return &(coda_super_info.mi_vcomm);
 }
 
 /*
  * Device operations
  */
 
-
 static int coda_psdev_select(struct inode *inode, struct file *file, 
                           int sel_type, select_table * wait)
 {
-        struct vcomm *vcp = coda_inode_vcomm(inode);
-
-        /* messes up the log	ENTRY;  */
+        struct vcomm *vcp = coda_psdev_vcomm(inode);
 
         if (!vcp)
               return -ENXIO;
@@ -132,7 +133,7 @@ static int coda_psdev_select(struct inode *inode, struct file *file,
     
         select_wait(&vcp->vc_selproc, wait);
     
-        return(0);
+        return 0;
 }
 
 
@@ -140,24 +141,21 @@ static int coda_psdev_select(struct inode *inode, struct file *file,
  *	Receive a message written by Venus to the psdev
  */
  
-static int coda_psdev_write(struct inode * inode, struct file * file, const char * buf, int count)
+static int coda_psdev_write(struct inode *inode, struct file *file, const char *buf, int count)
 {
-        struct vcomm *vcp = coda_inode_vcomm(inode);
+        struct vcomm *vcp = coda_psdev_vcomm(inode);
         struct vmsg *vmp;
         struct outputArgs *out;
-	int error=0;
+	int error = 0;
         u_long seq;
         u_long opcode;
         u_long opcodebuf[2];
-
-        /* ENTRY; */
         
         if (!vcp)
               return -ENXIO;
 
         /* Peek at the opcode, unique id */
-        memcpy_fromfs (opcodebuf, buf, 2 * sizeof(int));
-	/*        count -= 2 * sizeof(u_long);*/
+        memcpy_fromfs(opcodebuf, buf, 2 * sizeof(u_long));
         buf += 2 * sizeof(u_long);
     
         opcode = opcodebuf[0];
@@ -236,16 +234,13 @@ DEBUG("memcpy_fromfs: previously attemted %d, now %d ", vmp->vm_outSize - (sizeo
 
 static int coda_psdev_read(struct inode * inode, struct file * file, char * buf, int count)
 {
-        unsigned int minor = MINOR(inode->i_rdev);
-        struct vcomm *vcp = coda_inode_vcomm(inode);
+        struct vcomm *vcp = coda_psdev_vcomm(inode);
         struct vmsg *vmp;
 #if 0 
         DEBUG("process %d\n", current->pid);
 #endif 
         if (!vcp)
               return -ENXIO;
-        
-        vcp = &cfs_mnttbl[minor].mi_vcomm;
         
         /* Get message at head of request queue. */
         if (EMPTY(vcp->vc_requests)) {
@@ -269,15 +264,14 @@ static int coda_psdev_read(struct inode * inode, struct file * file, char * buf,
         
 #ifdef DIAGNOSTIC    
         if (vmp->vm_chain.forw == 0 || vmp->vm_chain.back == 0)
-              panic("coda_psdev_read: bad chain");
+              coda_panic("coda_psdev_read: bad chain");
 #endif
 
         /* If request was a signal, free up the message and don't
            enqueue it in the reply queue. */
         if (vmp->vm_opcode == CFS_SIGNAL) {
-              if (coda_debug)
-                    myprintf(("vcread: signal msg (%d, %d)\n", 
-                              vmp->vm_opcode, vmp->vm_unique));
+                    CDEBUG(D_PSDEV, "vcread: signal msg (%d, %d)\n", 
+                              vmp->vm_opcode, vmp->vm_unique);
               CODA_FREE((caddr_t)vmp->vm_data, (u_int)VC_IN_NO_DATA);
               CODA_FREE((caddr_t)vmp, (u_int)sizeof(struct vmsg));
               return count;
@@ -300,59 +294,38 @@ static int coda_psdev_lseek(struct inode * inode, struct file * file,
 
 static int coda_psdev_open(struct inode * inode, struct file * file)
 {
-        register struct vcomm *vcp = coda_inode_vcomm(inode);
-        unsigned int       minor = MINOR(inode->i_rdev);
+        register struct vcomm *vcp = NULL;
 
         ENTRY;
         
+	vcp = coda_psdev_vcomm(inode);
+
         if (!vcp)
               return -ENODEV;
         
-
-        /* zero the mount information at this minor XXXXXXX*/ 
-        /*        if (VC_OPEN(vcp))
-              return -EBUSY; */
-        
         MOD_INC_USE_COUNT;
-	
-        /* Make first 4 bytes be zero */
-        cfs_mnttbl[minor].mi_name = (char *)0;
 
         INIT_QUEUE(vcp->vc_requests);
-	DEBUG("init queue: vcp->vc_requests at %d\n", (int) &(vcp->vc_requests));
         INIT_QUEUE(vcp->vc_replies);
-    
-        cfs_mnttbl[minor].mi_vfschain.vfsp = NULL;
-        cfs_mnttbl[minor].mi_vfschain.rootvp = NULL;
-        cfs_mnttbl[minor].mi_vfschain.next = NULL;
-    
+	DEBUG("init queue: vcp->vc_requests at %d\n", (int) &(vcp->vc_requests));
+	cfsnc_init();
+	DEBUG("Name cache initialized.\n");
         return 0;
 }
 
 
 static void coda_psdev_release(struct inode * inode, struct file * file)
 {
-        unsigned int minor = MINOR(inode->i_rdev);
         struct vcomm *vcp;
         struct vmsg *vmp;
-        struct ody_mntinfo *op;
 
         ENTRY;
 
-        if (minor < 0 || minor >= MAX_CODADEVS)
-              return;
-
-        vcp = &cfs_mnttbl[minor].mi_vcomm;
+        vcp = coda_psdev_vcomm(inode);
         
         if (!VC_OPEN(vcp)) {
-              printk("vcclose: not open");
+              printk("psdev_release: not open");
               return;
-        }
-    
-        if (cfs_mnttbl[minor].mi_name) {
-              CODA_FREE(cfs_mnttbl[minor].mi_name,
-                       strlen(cfs_mnttbl[minor].mi_name));
-              cfs_mnttbl[minor].mi_name = 0;
         }
     
         /* prevent future operations on this vfs from succeeding by auto-
@@ -361,24 +334,20 @@ static void coda_psdev_release(struct inode * inode, struct file * file)
          * Put this before WAKEUPs to avoid queuing new messages between
          * the WAKEUP and the unmount (which can happen if we're unlucky)
          */
-        for (op = &cfs_mnttbl[minor].mi_vfschain; op ; op = op->next) {
-                if (op->rootvp) {
-                        struct cnode *cnp = ITOC(op->rootvp);
-                        /* Let unmount know this is for real */
-                        cnp->c_flags |= C_DYING;
-#if 0
-                        XXXXX
-                                err = DOUNMOUNT(op->vfsp);
-                    if (err)
-                          myprintf(("Error %d unmounting vfs in vcclose(%d)\n", 
-                                    err, minor));
-#endif
-              } else {
-                    /* Should only be null if no mount has happened. */
-                    if (op != &cfs_mnttbl[minor].mi_vfschain) 
-                          myprintf(("Help! assertion failed in vcwrite\n"));
-              }
+	
+	/* flush the name cache so that we can unmount */
+	DEBUG("Flushing the cache.\n");
+	cfsnc_flush();
+	cfsnc_use = 0;
+	DEBUG("Done.\n");
+	
+        if (coda_super_info.mi_rootvp) {
+                struct cnode *cnp = ITOC(coda_super_info.mi_rootvp);
+                /* Let unmount know this is for real */
+                cnp->c_flags |= C_DYING;
+		/* XXX Could we force an unmount here? */
         }
+	
     
         /* Wakeup clients so they can return. */
         for (vmp = (struct vmsg *)GETNEXT(vcp->vc_requests);
@@ -402,7 +371,7 @@ static void coda_psdev_release(struct inode * inode, struct file * file)
         }
         
         MARK_VC_CLOSED(vcp);
-        
+	cfsnc_use = 1;
         MOD_DEC_USE_COUNT;
 }
 
@@ -432,14 +401,38 @@ int init_coda_psdev(void)
 
 #ifdef MODULE
 
+struct proc_dir_entry proc_coda = {
+        0, 4, "coda",
+        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,
+        0, &proc_net_inode_operations,
+        NULL, NULL,
+        NULL,
+        NULL, NULL      
+};
+
+struct proc_dir_entry proc_coda_cache =  {
+                0 , 10, "coda-cache",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                cfsnc_get_info
+        };
+
+struct proc_dir_entry proc_coda_ncstats =  {
+                0 , 12, "coda-ncstats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                cfsnc_nc_info
+        };
+
 int init_module(void)
 {
   int status;
   printk(KERN_INFO "Coda Kernel/User communications module 0.04\n");
-
+  proc_register_dynamic( &proc_root, &proc_coda);
+  proc_register_dynamic (&proc_net, &proc_coda_cache);
+  proc_register_dynamic (&proc_net, &proc_coda_ncstats);
+  coda_sysctl_init();
   init_coda_psdev();
-  
-
   
   if ((status = init_coda_fs()) == 0)
     register_symtab(0);
@@ -462,7 +455,10 @@ void cleanup_module(void)
         if ( (err = unregister_filesystem(&coda_fs_type)) != 0 ) {
                 printk("coda: failed to unregister filesystem\n");
         }
-
+        coda_sysctl_clean();
+	proc_unregister(&proc_root, proc_coda.low_ino);
+        proc_unregister(&proc_net, proc_coda_cache.low_ino);
+        proc_unregister(&proc_net, proc_coda_ncstats.low_ino);
 }
 
 #endif

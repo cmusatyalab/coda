@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo 1 > /proc/sys/coda/flushme
+ls -ld /coda/. >& /dev/null
+
