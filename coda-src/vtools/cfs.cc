@@ -1867,6 +1867,24 @@ static void LookAside(int argc, char *argv[], int opslot)
 	if (piobuf[0]) printf("%s", piobuf); /* result of lka command */
     }
 
+static char *myrealpath(const char *path, char *buf, size_t size)
+{
+    char curdir[MAXPATHLEN+1], *s;
+    int rc;
+
+    s = getcwd(curdir, sizeof(curdir));
+    if (!s) return NULL;
+
+    rc = chdir(path);
+    if (rc < 0) return NULL;
+
+    s = getcwd(buf, size);
+
+    chdir(curdir);
+    return s;
+}
+
+
 static void LsMount (int argc, char *argv[], int opslot)
     /* This code will not detect a mount point where the root
        directory of the mounted volume denies permission for
@@ -1875,7 +1893,7 @@ static void LsMount (int argc, char *argv[], int opslot)
     {
     int i, rc, w; 
     struct ViceIoctl vio;
-    char part1[MAXPATHLEN], part2[MAXPATHLEN];
+    char path[MAXPATHLEN+1], tail[MAXNAMLEN+1];
     char *s;
     struct stat stbuf;
 
@@ -1911,28 +1929,27 @@ static void LsMount (int argc, char *argv[], int opslot)
 
 
         /* Next see if you can chdir to the target */
-        rc = chdir(argv[i]);
-        if (rc < 0)
-            {
-            if (errno == ENOTDIR) {printf("Not a mount point\n"); continue;}
-            else { PERROR("chdir"); continue; }
-            }
+	s = myrealpath(argv[i], path, sizeof(path));
+        if (rc < 0) {
+            if (errno == ENOTDIR)
+		fprintf(stderr, "%s - Not a mount point\n", argv[i]);
+            else
+		PERROR("realpath");
+	    continue;
+	}
 
-        /* We are in a directory, possibly the root of a volume */
-        s = getcwd(part1, MAXPATHLEN);
-        if (s == 0) { PERROR("getcwd"); continue; }
-        /* there must be a slash in what getcwd() returns */
-        s = rindex(part1, '/');
+        /* there must be a slash in what myrealpath() returns */
+        s = rindex(path, '/');
         *s = 0; /* lop off last component */
-        strcpy(part2, s+1); /* and copy it */
+        strncpy(tail, s+1, sizeof(tail)); /* and copy it */
 
         /* Ask Venus if this is a mount point */
-        vio.in = part2;
-        vio.in_size = (int) strlen(part2)+1;
+        vio.in = tail;
+        vio.in_size = (int) strlen(tail)+1;
         vio.out = piobuf;
         vio.out_size = CFS_PIOBUFSIZE;
         memset(piobuf, 0, CFS_PIOBUFSIZE);
-        rc = pioctl(part1, _VICEIOCTL(_VIOC_AFS_STAT_MT_PT), &vio, 0);
+        rc = pioctl(path, _VICEIOCTL(_VIOC_AFS_STAT_MT_PT), &vio, 0);
         if (rc < 0)
             {
             if (errno == EINVAL || errno == ENOTDIR) {printf("Not a mount point\n"); continue;}
