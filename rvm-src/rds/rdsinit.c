@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rds/RCS/rdsinit.c,v 4.2 1997/02/26 16:05:01 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rdsinit.c,v 4.3 1997/04/01 01:57:17 clement Exp $";
 #endif _BLURB_
 
 
@@ -43,6 +43,8 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rd
  * the log.
  */
 
+#include <assert.h>
+#include <setjmp.h>
 #include <stdlib.h>
 #include <sys/file.h>
 #include <sys/types.h>
@@ -58,6 +60,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rd
 #endif
 #include <rvm.h>
 #include <rvm_segment.h>
+#include <rvm_segment_private.h>
 #include <rds.h>
 
 #ifdef __STDC__
@@ -73,188 +76,326 @@ PollAndYield() {
 
 extern int          errno;              /* kernel error number */
 
-#define UP 101
-#define DOWN 102
-PRIVATE round_to_multiple(pval, n, dir)
-     long *pval;
-     long n;
-     int dir;
+enum round_dir { UP, DOWN, NO_ROUND };
+
+jmp_buf jmpbuf_quit;
+
+char *usage[]={
+"Usage: rdsinit [-f] log data_seg [ datalen saddr hlen slen nl chunk ] \n",
+"  where\n",
+"    -f       supplied parameter are firm, do not ask for confirm\n",
+"    log      is the name of log file/device\n",
+"    data_seg is the name of data segment file/device\n",
+"    datalen  gives the length of data segment\n",
+"    saddr    is the starting address of rvm\n",
+"    hlen     is the heap length\n",
+"    slen     is the static length\n",
+"    nl       is the number of free list used by RDS\n",
+"    chunk    is the chunksize\n",
+""
+};
+
+PRIVATE char *welcome[]={
+"\n",
+"============================================================\n",
+"  Getting parameters for RDS\n",
+"============================================================\n",
+""
+};
+
+char *explain_datalen[]={
+"1) length of data segment file/device\n",
+"   There will be two regions in the segment:\n",
+"   one is for the heap, the other is for the static.\n",
+"   Some extra space (usually one page) will also \n", 
+"   be needed for the segment header.\n",
+"   Length of data segment must be a multiple of pagesize.\n",
+"   Please make sure you have enough space in your disk.\n",
+""
+};
+
+char *explain_saddr[]={
+"2) starting address of rvm\n",
+"   This is where heap and static will be mapped into virtual memory, it\n",
+"   must be larger than the largest possible break point of your\n",
+"   application, and it should not be in conflict other use of vm (such as\n",
+"   shared libraries).  Also, it must be on a page boundary\n", 
+"   (In CMU, we use 0x20000000 (536870912) with Linux and BSD44,\n",
+"   0x70000000 (1879048192) with Mach and BSD44 without problem.)\n",
+""
+};
+
+char *explain_hlen[]={
+"3) heap length\n",
+"   It is the size of the dynamic heap to be managed by RDS,\n",
+"   it must be an integral multiple of pagesize.\n",
+""
+};
+
+char *explain_slen[]={
+"4) static length\n",
+"   It is the size of the statically allocated location to be\n",
+"   managed by your application.\n",
+"   It must be an integral multiple of pagesize.\n",
+""
+};
+
+char *explain_nl[]={
+"5) nlists\n",
+"   It is the number of free list used by RDS.\n",
+"   (nlist=100 is a reasonable choice.)\n",
+""
+};
+
+char *explain_chunk[]={
+"6) chunksize\n",
+"   The free list are maintained in sizes of one chunk to n chunk,\n",
+"   where n is the number of free lists.\n",
+"   It must be an integral multiple of sizeof(char *) of your system,\n",
+"   and must at least be RDS_MIN_CHUNK_SIZE.\n", 
+"   (chunksize=32 is a reasonable choice.)\n",
+""
+};
+
+PRIVATE void print_msg(msg)
+     char **msg;
 {
-  long rem;
-  if ((rem = *pval % n) != 0) {
-    printf("Umn... your input is not a multiple of %d\n", n);
-    if (dir==UP)
-      *pval += n-rem; /* round up to next integral multiple*/
-    else if (dir==DOWN)
-      *pval -= rem;   /* round down */
-    else { /* this should not happen */
-      printf("rdsinit: round_to_multi(): internal prog. error\n");
-      exit(-1);
-    }
-    printf(" I'll round it %s to %s integral multiple which is %d (0x%x)\n",
-	   (dir==UP ? "up" : "down"), (dir==UP ? "next" : "prev"), 
-           *pval, *pval);
-  }
+    int i=0;
+    while (msg[i][0] != '\0')
+	printf("%s", msg[i++]);
 }
 
-PRIVATE get_dev_size(devName, plength)
-     char *devName;
-     long *plength;
+PRIVATE int round_to_multiple(val, n, dir)
+     long           val;
+     long           n;
+     enum round_dir dir;
 {
-  char string[80], *sptr;
-  int paraOK=0;
-  long rem;
-  do {
-      printf("\n============================================================\n");
-      printf("0) length of data file/dev\n");
-      printf("   Data file/dev (%s) is the segment to be mapped by rvm.  \n", devName);
-      printf("   There will be two regions in the segment:\n");
-      printf("   one is for the heap, the other is for the static.\n");
-      printf("   One more extra page (pagesize=%d) will also \n", RVM_PAGE_SIZE);
-      printf("   be needed for the segment header.\n");
-      printf("   Length of data file/dev must be a multiple of pagesize.\n");
-      printf("   Please make sure you have enough space in your disk.\n");
-      printf("   =====> please enter the length, you may enter either decimal\n");
-      printf("          or hex value (in the latter case, precede the number by 0x).\n");
-      printf("          length: ");
-      fgets(string,80,stdin);
+    long rem;
+
+    if (dir==NO_ROUND || n==0)		/* don't round */
+	return(val);
     
-      sptr = string;
-      if ((*sptr == '0') && (*(++sptr) == 'x'))
-	  sscanf(string, "0x%lx", plength);
-      else
-	  *plength = atoi(string);
-      
-      if ((rem = *plength % RVM_PAGE_SIZE) != 0) {
-	printf("Umn... your length is not a multiple of %d\n", RVM_PAGE_SIZE);
-	*plength += RVM_PAGE_SIZE-rem; /* round up to next integral multiple*/
-	printf(" I'll round it up to next integral multiple which is %d (0x%x)\n"
-	       , *plength, *plength);
-      }
+    if ((rem = val % n) != 0) { /* need round up/down */
+	if (dir==UP)
+	    return ( val + n -rem );
+	else if (dir==DOWN)
+	    return ( val - rem );
+    } else
+	return( val );
 
-      printf("\nThe data file/dev (%s) will be of length %d (0x%x)\n", devName, *plength, *plength);
-      printf("Do you agree ? (y|n) ");	
-      fgets(string,80,stdin);
-      if (strcmp(string,"y\n") == 0 || strcmp(string,"Y\n") == 0
-          || strcmp(string, "\n") == 0 )
-	  paraOK = 1;
-    } while (!paraOK);
 }
 
-PRIVATE get_valid_parm(argc, argv, length, pstatic_addr, phlen, pslen, pnlists,pchunksize)
-    int argc;
-    char **argv;
-    long length;
-    char **pstatic_addr;
-    int *phlen;
-    int *pslen;
-    int *pnlists;
-    int *pchunksize;
+
+PRIVATE int confirm_rounded_value(pvalue, base, unit, round_dir, min)
+     unsigned long  *pvalue;
+     int            base;
+     int            unit;
+     enum round_dir round_dir;
+     int            min;
+{
+    char          string[120];
+    unsigned long t1=0, t2=0;	/* temporary values */
+    
+    if (base == 16) {
+	snprintf(string, 120, "0x%x (in decimal %u)", *pvalue, *pvalue);
+    } else if (base == 10) {
+	snprintf(string, 120, "%d (in hex 0x%x)", *pvalue, *pvalue);
+    } else if (base == 8) {
+	snprintf(string, 120, "0%o (in decimal %u)", *pvalue, *pvalue);
+    } else {
+	assert(0);		/* illegal base value */
+    }
+
+    printf("   ====> You have entered %s. ", string);
+
+    if (*pvalue<min) {
+	printf("\n");
+	printf("         Umm... minimum is %d (in hex 0x%x) ",
+	       min, min);
+        t1 = min;
+    } else {
+	t1 = *pvalue;
+    }
+    
+    t2 = round_to_multiple(t1, unit, round_dir);
+
+    if (t2 != t1) {
+    	if (base == 16) {
+    	    snprintf(string, 120, "0x%x (in decimal %u)", t2, t2);
+    	} else if (base == 10) {
+    	    snprintf(string, 120, "%d (in hex 0x%x)", t2, t2);
+    	} else if (base == 8) {
+    	    snprintf(string, 120, "0%o (in decimal %u)", t2, t2);
+    	} else {
+    	    assert(0);		/* illegal base value */
+    	}
+
+	printf("\n");
+        printf("         Umm... not a multiple of %d.  I need to round it\n",
+	       unit);
+        printf("         %s to %s. ",
+               (round_dir == UP ? "up" : "down"), string);
+
+    }
+    printf("Accept ? (y|n|q) ");
+    fgets(string, 120, stdin);
+    if (strcmp(string,"y\n") == 0 || strcmp(string,"Y\n") == 0
+	  || strcmp(string, "\n") == 0 ) {
+	*pvalue = t2;
+	return 1;		/* confirmed */
+    } else if (strcmp(string,"q\n")==0 || strcmp(string, "Q\n")==0)
+	longjmp(jmpbuf_quit, 1); /* quit */
+    else			/* all other cases: re-enter */
+	return 0;		/* not confirmed */
+}
+
+/* determine if the numeric string is in hex, octal or decimal notation */
+PRIVATE int find_base(string)
+     char *string;
+{
+    if (string[0] == '0')
+	return ( string[1]=='x' ? 16 : 8 );
+    else
+	return 10;
+}
+		
+
+PRIVATE int get_valid_parm(argc, argv, pdatalen,
+			   pstatic_addr, phlen, pslen,
+			   pnlists,pchunksize,firm)
+     int          argc;
+     char         **argv;
+     long         *pdatalen;
+     char         **pstatic_addr;
+     unsigned int *phlen;
+     unsigned int *pslen;
+     unsigned int *pnlists;
+     unsigned int *pchunksize;
+     int          firm;
 {
     char string[80];
-    int paraOK;
-    paraOK = 0;
+    int  paraOK=0;
+    int  para_given=0;
+    int  base;
+
+    if ( argc == 9 ) {
+	/* accept the 6 parameter as cmd-line argument */
+	*pdatalen       = strtoul(argv[3], NULL, 0);
+	*pstatic_addr = (char *)strtoul(argv[4], NULL, 0);
+	*phlen        = strtoul(argv[5], NULL, 0);
+	*pslen        = strtoul(argv[6], NULL, 0);
+	*pnlists      = strtoul(argv[7], NULL, 0);
+	*pchunksize   = strtoul(argv[8], NULL, 0);
+	    
+	para_given = 1;
+	if (firm)
+	    return;		/* no need to get confirm from user */
+    }
+
+    /* looping to get parameters from user interactively, and confirm */
     do {
-	if ( argc == 8 ) {
-	  /* accept the 5 parameter as cmd-line argument */
-	  /* Usage: rdsinit <log-file> <data-file> <a> <h> <s> <n> <c> */
-	  strncpy(string,argv[3],80);
-	  sscanf(string, "%x", (int *)pstatic_addr);
-	  strncpy(string,argv[4],80);
-	  sscanf(string, "%x", phlen);
-	  strncpy(string, argv[5],80);
-	  sscanf(string, "%x", pslen);
-	  strncpy(string, argv[6],80);
-	  *pnlists = atoi(string);
-	  strncpy(string, argv[7],80);
-	  *pchunksize = atoi(string);
-	  argc -=5;
-	} else {
-	  printf("\n");
-	  printf("============================================================\n");
-	  printf("  Getting parameters for RDS\n");
-	  printf("  (Your data file/dev is of length 0x%x (%d))\n", length, length);
-	  printf("============================================================\n");
-	  printf("1) starting address of rvm\n");
-	  printf("   This is where heap and static will be mapped into virtual memory,\n");
-	  printf("   it must be larger than the largest possible break point of your application,\n");
-	  printf("   and it should not be in conflict other use of vm (such as shared libraries).\n");
-	  printf("   It must be on a page boundary (pagesize=0x%x)\n", RVM_PAGE_SIZE);   
-	  printf("   (In CMU, we use 0x20000000 (536870912) with Linux and BSD44,\n");
-	  printf("   0x70000000 (1879048192) with Mach and BSD44 without problem.)\n");
+	if (para_given) {
+	    para_given = 0;	/* skip the first time of asking */
+	    goto confirm;
+	}
+	print_msg(welcome);
+	print_msg(explain_datalen);
+        do {
+            printf("   ==> please enter length of data segment:");
+    	    fgets(string,80,stdin);
+    	    base = find_base(string);
+    	    *pdatalen = strtoul(string, NULL, 0);
+	} while (!confirm_rounded_value(pdatalen, base, RVM_PAGE_SIZE, UP,
+					3*RVM_PAGE_SIZE));
 
+	print_msg(explain_saddr);
+        do {
+            printf("   ==> please enter starting address of rvm: ");
+	    fgets(string,80,stdin);
+	    base = find_base(string);
+	    *pstatic_addr = (char *)strtoul(string, NULL, 0);
+        } while (!confirm_rounded_value(pstatic_addr, base, RVM_PAGE_SIZE,UP,
+					0x4000000)); 
+				/* note 0x4000000 is just a very loose lower
+				*  bound.  Actual number should be much
+				*  larger (and system-dependent)
+				*/
+    get_heap_n_static:
+	print_msg(explain_hlen);
+        do {
+            printf("   ==> please enter the heap length: ");
+	    fgets(string,80,stdin);
+	    base = find_base(string);
+	    *phlen = strtoul(string, NULL, 0);
+        } while (!confirm_rounded_value(phlen, base, RVM_PAGE_SIZE, UP,
+					RVM_PAGE_SIZE));
 
-	  printf("   =====> please enter a hex value for starting address of rvm: 0x");
-	  fgets(string,80,stdin);
-	  sscanf(string, "%x", (int *)pstatic_addr);
-	  round_to_multiple(pstatic_addr, RVM_PAGE_SIZE, UP);
-	get_heap_n_static:
-	  printf("2) heap len\n");
-	  printf("   It is the size of the dynamic heap to be managed by RDS,\n");
-	  printf("   it must be an integral multiple of pagesize.\n");
-	  printf("   =====> please enter a hex value for heap len: 0x");
-	  fgets(string,80,stdin);
-	  sscanf(string, "%X", phlen);
-	  round_to_multiple(phlen, RVM_PAGE_SIZE, UP);
-	  printf("3) static len\n");
-	  printf("   It is the size of the statically allocated location to be\n");
-	  printf("   managed by your application.\n");
-	  printf("   It must be an integral multiple of pagesize.\n");
-	  printf("   =====> please enter a hex value for static len: 0x");
-	  fgets(string,80,stdin);
-	  sscanf(string, "%X", pslen);
-	  round_to_multiple(pslen, RVM_PAGE_SIZE, UP);
+        print_msg(explain_slen);
+        do {
+            printf("   ==> please enter the static length: ");
+	    fgets(string,80,stdin);
+            base = find_base(string);
+	    *pslen = strtoul(string, NULL, 0);
+	} while (!confirm_rounded_value(pslen, base, RVM_PAGE_SIZE, UP,
+					RVM_PAGE_SIZE));
 
-	  /* note: strictly speaking RVM_PAGE_SIZE should read
-	   * RVM_SEGMENT_HDR_SIZE, but I don't want to include rvm_segment_private.h
-	   */
-	  if (length<*phlen+*pslen+RVM_PAGE_SIZE) {
-	    printf("\n\nSorry ! your heap len + static len is too large !\n");
+	if (*pdatalen<*phlen+*pslen+RVM_SEGMENT_HDR_SIZE) {
+	    printf("\n");
+	    printf("   Sorry ! your heap len + static len is too large !\n");
 	    printf("   their sum must be less than 0x%x (%d)\n", 
-		   length-RVM_PAGE_SIZE, length-RVM_PAGE_SIZE);
+		   *pdatalen-RVM_PAGE_SIZE, *pdatalen-RVM_SEGMENT_HDR_SIZE);
 	    printf("   please re-enter\n\n");
 	    goto get_heap_n_static;
-	  }
+	}
 
-	  printf("4) nlists\n");
-	  printf("   It is the number of free list used by RDS.\n");
-	  printf("   (nlist=100 is a reasonable choice.)\n");
-	  printf("   =====> please enter a decimal value for nlists: ");
-	  fgets(string,80,stdin);
-	  *pnlists = atoi(string);
-	get_chunksize:
-	  printf("5) chunksize\n");
-	  printf("   The free list are maintained in sizes of one chunk to n chunk,\n");
-	  printf("   where n is the number of free lists.\n");
-	  printf("   It must be an integral multiple of %d\n", sizeof(char *));
-	  printf("   and must at least be RDS_MIN_CHUNK_SIZE.\n"); /* I don't what it is, either */
-	  printf("   (chunksize=32 is a reasonable choice.)\n");
-	  printf("   =====> please enter a decimal value for chunksize: ");
-	  fgets(string,80,stdin);
-	  *pchunksize = atoi(string);
-	  if ( (*pchunksize % sizeof(char *)) != 0 ) {
-	    printf("\n\nSorry ! chunksize must be an integral multiple of %d\n", sizeof(char *));
-	    printf("   please re-enter\n\n");
-	    goto get_chunksize;
-	  }
+	print_msg(explain_nl);
+        do {
+            printf("   ==> please enter a decimal value for nlists: ");
+	    fgets(string,80,stdin);
+	    base = find_base(string);
+	    *pnlists = strtoul(string, NULL, 0);
+        } while (!confirm_rounded_value(pnlists, base, 0, NO_ROUND,
+					1));
 
-        }
-	printf("\nWith a data file/device of length 0x%x (%d)\n", length, length);
-	printf("The following parameters are chosen:\n");
-	printf("  starting address of rvm: %#10x (%10d)\n", *pstatic_addr, *pstatic_addr);
-	printf("                 heap len: %#10x (%10d)\n", *phlen, *phlen);
-	printf("               static len: %#10x (%10d)\n", *pslen, *pslen);
-	printf("                   nlists: %#10x (%10d)\n", *pnlists, *pnlists);
-	printf("               chunk size: %#10x (%10d)\n", *pchunksize, *pchunksize);
-	printf("Do you agree with those parameters ? (y|n) ");
+	print_msg(explain_chunk);
+        do {
+            printf("   ==> please enter a decimal value for chunksize: ");
+	    fgets(string,80,stdin);
+	    base = find_base(string);
+	    *pchunksize = strtoul(string, NULL, 0);
+	} while (!confirm_rounded_value(pchunksize, base, sizeof(char *), UP,
+					32));
+
+    confirm:
+	printf("\n");
+        printf("The following parameters are chosen:\n");
+        printf("   length of data segment: %#10x (%10d)\n",
+	       *pdatalen, *pdatalen);
+        printf("  starting address of rvm: %#10x (%10d)\n",
+	       *pstatic_addr, *pstatic_addr);
+        printf("                 heap len: %#10x (%10d)\n",
+	       *phlen, *phlen);
+        printf("               static len: %#10x (%10d)\n",
+	       *pslen, *pslen);
+        printf("                   nlists: %#10x (%10d)\n",
+	       *pnlists, *pnlists);
+        printf("               chunk size: %#10x (%10d)\n",
+	       *pchunksize, *pchunksize);
+        printf("Do you agree with these parameters ? (y|n|q) ");
 	fgets(string,80,stdin);
 	if (strcmp(string,"y\n") == 0 || strcmp(string,"Y\n") == 0
 	    || strcmp(string, "\n") == 0 )
-	  paraOK = 1;
+	    paraOK = 1;
+	else if (strcmp(string,"q\n") == 0 || strcmp(string,"Q\n") == 0)
+	    longjmp(jmpbuf_quit,1);
     } while (!paraOK);
     return;
 }
 
+
+
+extern char *ortarg;
+extern int optind, opterr, optopt;
 
 
 int main(argc, argv)
@@ -264,22 +405,40 @@ int main(argc, argv)
     rvm_options_t       *options;       /* options descriptor ptr */
     rvm_return_t	ret;
     int err, fd, i;
-    char string[80], *static_addr, *sptr, buf[4096];
-    int slen, hlen, nlists, chunksize;
+    char string[80], *static_addr=NULL, *sptr, buf[4096];
+    char *logName, *dataName;
+    unsigned int slen=0, hlen=0, nlists=0, chunksize=0;
     rvm_offset_t DataLen;
-    struct stat sbuf;
-    long length;
+    long         datalen=0;
+    int firm=0, opt_unknown=0;
+    int c, arg_used=0;
 
-    if (argc !=3 && argc !=8) {
-	printf("Usage: %s log data [ saddr(h) hlen(h) slen(h) nl(d) chunk(d) ]\n", argv[0]);
-	printf("         (h) parameter in hexidecimal\n");
-	printf("         (d) parameter in decimal\n");
+    /* first check if we have -l and -c options */
+    while ( (c = getopt(argc, argv, "f")) != EOF ) {	
+	switch (c) {
+	case 'f':
+	    firm = 1;
+	    arg_used ++;
+	    break;
+	default:
+	    opt_unknown = 1;
+	    break;
+	}
+    }
+    argc -= arg_used;
+    argv += arg_used;
+	    
+    if ((argc !=3 && argc !=9) || opt_unknown) {
+	print_msg(usage);
 	exit(-1);
     }
 
+    logName = argv[1];
+    dataName = argv[2];
+
     /* initialized RVM */
     options = rvm_malloc_options();
-    options->log_dev = argv[1];
+    options->log_dev = logName;
 	      
     ret = RVM_INIT(options);
     if  (ret != RVM_SUCCESS) {
@@ -288,55 +447,32 @@ int main(argc, argv)
     } else
 	printf("rvm_initialize succeeded.\n");
 
-    /* get data file charateristics, size */
-    errno = 0;
-    if (stat(argv[2], &sbuf) < 0)
-        sbuf.st_mode = 0;
-    switch (sbuf.st_mode & S_IFMT) {
-  case S_IFSOCK:
-  case S_IFDIR:
-  case S_IFLNK:
-/* LINUX use the same block device for raw control */
-#ifndef LINUX
-  case S_IFBLK: 
-#endif
-    printf("?  Illegal file type!\n");
-    exit(-1);
-    
-/* LINUX use the same block device for raw control */
-#ifdef LINUX
-  case S_IFBLK:
-#endif
-  case S_IFCHR:
-  get_size:
-    get_dev_size(argv[2], &length);
-    DataLen = RVM_MK_OFFSET(0, length);
-    break;
-    
-  case S_IFREG:		/* Normal files. */
-    length = sbuf.st_size;	
-    if (length == 0) goto get_size;
-    DataLen = RVM_MK_OFFSET(0, sbuf.st_size);
-    break;
-  default:
-    if (errno == ENOENT) goto get_size; /* must create file */
-    printf("?  Error getting status for %s, errno = %d\n",
-            argv[2],errno);
-    exit(-1);
+    if (setjmp(jmpbuf_quit) != 0) {
+        printf("rdsinit quit.  No permanent change is made\n");
+        exit(-1);
     }
 
-    fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 00644);
+    ret = get_valid_parm(argc, argv, &datalen,
+			 &static_addr, &hlen, &slen, &nlists, &chunksize,
+			 firm);
+    if (ret < 0) {
+	printf("? invalid rdsinit parameters\n");
+        printf("rdsinit quit.  No permanent change is made\n");
+	exit(-1);
+    }
+
+    fd = open(dataName, O_WRONLY | O_CREAT | O_TRUNC, 00644);
     if (fd < 0) {
-	printf("?  Couldn't truncate %s.\n", argv[2]);
+	printf("?  Couldn't truncate %s.\n", dataName);
 	exit(-1);
     }
 
     printf("Going to initialize data file to zero, could take awhile.\n");
     lseek(fd, 0, 0);
     BZERO(buf, 4096);
-    for (i = 0; i < length; i+= 4096) {
+    for (i = 0; i < datalen; i+= 4096) {
 	if (write(fd, buf, 4096) != 4096) {
-	    printf("?  Couldn't write to %s.\n", argv[2]);
+	    printf("?  Couldn't write to %s.\n", dataName);
 	    exit(-1);
 	}
     }
@@ -345,9 +481,9 @@ int main(argc, argv)
     close(fd);
 
 
-    get_valid_parm(argc, argv, length, &static_addr, &hlen, &slen, &nlists, &chunksize);
-
-    rds_zap_heap(argv[2], DataLen, static_addr, slen, hlen, nlists, chunksize, &err);
+    DataLen = RVM_MK_OFFSET(0, datalen);
+    rds_zap_heap(dataName, DataLen, static_addr, slen, hlen, nlists,
+		 chunksize, &err);
     if (err == SUCCESS)
 	printf("rds_zap_heap completed successfully.\n");
     else
