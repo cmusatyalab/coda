@@ -9,12 +9,18 @@ Some quick notes related to porting LWP to new platforms.
 	memory mapped files, the process stack, the process text and data
 	segments etc.
 
-Shared libraries are tested to work for i386, mips, and sparc platforms. They
-might work for all platforms. The common problem is that either entry into
-savecontext or when savecontext calls back to the C-code, a segfault occurs.
-This is caused by mixing of PIC with non-PIC (position independent code).
+Shared libraries are tested to work for i386, mips, sparc, and alpha
+platforms.
 
-If 'testlwp-static 1' works, but 'testlwp 1' does not, check gcc -S output
-for: "void call(void (*fn)(void)) { fn() };", and fiddle a bit with the
-process.S assembly.
+The common problem is that either entry into savecontext or savecontext
+calling back to the C-code generates a segfault. This is caused by mixing
+of PIC with non-PIC (position independent code). When 'testlwp-static 1'
+works fine, but 'testlwp 1' does not, check the assembly output generated
+for the following C-code to see where the process.S assembly might break the
+C-procedure calling convention for position independent code.
+
+-call.c-------------------------------------
+/* gcc -S -DPIC -fPIC -c call.c -o call.s */
+void call(void (*fn)(void)) { fn() };
+--------------------------------------------
 

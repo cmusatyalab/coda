@@ -20,15 +20,15 @@ AC_CANONICAL_SYSTEM
 host=${target}
 program_prefix=
 
-dnl Shared libraries work for i386, mips, and sparc platforms. They might
-dnl work for all platforms. If not, check gcc -S output for:
-dnl "void call(void (*fn)(void)) { fn() };"
+dnl Shared libraries work for i386, mips, sparc, and alpha platforms. They
+dnl might work for all platforms. If not, read the PORTING document.
 
+dnl When cross-compiling, pick the right compiler toolchain.
 if test ${build} != ${host} ; then
   case ${host} in
    i*86-pc-msdos )
     dnl no shared libs for dos
-    enable_shared= no
+    enable_shared=no
 
     if ${dosmmap} ; then 
       CC="dos-gcc -bmmap"	
