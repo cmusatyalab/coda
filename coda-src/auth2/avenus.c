@@ -187,6 +187,7 @@ static void GetPathName()
     int		len;
     char	* area;
     struct	stat	buff;
+    int		plen;
 
 #if defined(DJGPP) || defined(__CYGWIN32__) /* hack for now until better solution for all pioctl using programs */
     pName = "/coda";
@@ -199,8 +200,10 @@ static void GetPathName()
 	    if(area) {
 		len = read(fd, area, buff.st_size);
 		if(len == buff.st_size) {
-		    pName = malloc(index(area, ':') - area);
-		    strncpy(pName,area,index(area,':')-area);
+		    plen = index(area, ':') - area;
+		    pName = malloc(plen+1);
+		    strncpy(pName,area,plen);
+		    pName[plen] = 0;
 		}
 		free(area);
 	    }
