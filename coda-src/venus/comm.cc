@@ -161,20 +161,9 @@ void CommInit() {
     RPC2_Perror = 0;
 
     /* Port initialization. */
-    struct servent *s;
     RPC2_PortIdent port1;
     port1.Tag = RPC2_PORTBYINETNUMBER;
-
-    if (masquerade) {
-        port1.Value.InetPortNumber = htons(masquerade_port);
-    } else {
-        s = getservbyname("venus", "udp");
-        if (s) port1.Value.InetPortNumber = s->s_port;
-        else {
-	    eprint("getservbyname(venus,udp) failed, using 2430/udp");
-	    port1.Value.InetPortNumber = htons(2430);
-	}
-    }
+    port1.Value.InetPortNumber = htons(masquerade_port);
 
     /* SFTP initialization. */
     SFTP_Initializer sei;
@@ -184,19 +173,7 @@ void CommInit() {
     sei.AckPoint = sftp_ackpoint;
     sei.PacketSize = sftp_packetsize;
     sei.EnforceQuota = 1;
-
     sei.Port.Tag = (enum PortTag)0;
-    if (!masquerade) {
-        sei.Port.Tag = RPC2_PORTBYINETNUMBER;
-
-        s = getservbyname("venus-se", "udp");
-        if (s) sei.Port.Value.InetPortNumber = s->s_port;
-        else {
-	    eprint("getservbyname(venus-se,udp) failed, using 2431/udp");
-	    sei.Port.Value.InetPortNumber = htons(2431);
-	}
-    }
-
     SFTP_Activate(&sei);
 
     /* RPC2 initialization. */

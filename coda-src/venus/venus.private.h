@@ -343,7 +343,6 @@ extern char *consoleFile;
 extern char *MarinerSocketPath;
 extern int   mariner_tcp_enable;
 extern int   allow_reattach;
-extern int   masquerade;
 extern int   masquerade_port;
 extern int   PiggyValidations;
 extern int   T1Interval;
