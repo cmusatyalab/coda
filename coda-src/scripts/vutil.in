@@ -23,7 +23,7 @@ run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 
 # and override the defaults using the values from venus.conf
 prefix=@prefix@
-source @sysconfdir@/venus.conf
+[ -f @sysconfdir@/venus.conf ] && source @sysconfdir@/venus.conf
 
 prog=$0
 kill=/bin/kill

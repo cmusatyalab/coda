@@ -3755,9 +3755,14 @@ int ClientModifyLog::CheckPoint(char *ckpdir) {
 	/* Substitute |'s in mount path for /'s. */
 	/* Of course, we're assuming that | is never legitimately used in a mount path! */
 	for (char *cp = mountpath; *cp; cp++)
-	    if (*cp == '/') *cp = '|';
+	    if (*cp == '/') *cp = '_';
     }
-    strncat(ckpname, mountpath, CODA_MAXNAMLEN - (int) strlen(vol->name) - 1 - 1);
+    strncat(ckpname, mountpath, CODA_MAXNAMLEN - (int) strlen(vol->name) - 2);
+    {
+	/* remove other characters with sideeffects from the name */
+	for (char *cp = ckpname; *cp; cp++)
+	    if (*cp == ':') *cp = '_';
+    }
     (void) strcpy(lname, ckpname);
     (void) strcat(ckpname, ".tar");
     (void) strcat(lname, ".cml");

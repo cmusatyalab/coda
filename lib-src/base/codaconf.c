@@ -177,7 +177,8 @@ int conf_init(char *cf)
 
     conf = fopen(cf, "r");
     if (!conf) {
-        fprintf(stderr, "Cannot find configuration file '%s'\n", conffile);
+	fprintf(stderr, "Cannot read configuration file '%s', "
+			"will use default values.\n", conffile);
         return(-1);
     }
     
