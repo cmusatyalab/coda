@@ -2694,7 +2694,7 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	    }
 	}
 	else {
-	    if (SystemUser(client)) {
+	    if (!SystemUser(client)) {
 		/* System users are subject to no further permission checks. */
 		/* Other users require WRITE permission for file, */
 		/* INSERT | DELETE for directories. */
