@@ -164,9 +164,6 @@ int sftp_MorePackets(int *rpc2, int *sftp)
     *rpc2 = ioctl(rpc2_RequestSocket, FIONREAD, &ready_rpc2) == 0 && ready_rpc2 != 0;
     *sftp = sftp_Port.Tag && ioctl(sftp_Socket, FIONREAD, &ready_sftp) == 0 && ready_sftp != 0;
     
-    fprintf(stderr, "sftp_MorePackets: rpc2 %d, sftp %d\n",
-	    ready_rpc2, ready_sftp);
-
     return (*rpc2 || *sftp);
 #else
     int nfds;
