@@ -326,9 +326,6 @@ void Resolve(volent *v)
 
     /* Set up context for resolver. */
     r->u.Init();
-#ifdef __BSD44__
-    r->u.u_cred.cr_uid = V_UID;
-#endif /* __BSD44__ */
     r->u.u_vol = v;
     v->hold();			    /* vproc::End_VFS() will do release */
 

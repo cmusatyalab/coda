@@ -691,9 +691,6 @@ void Reintegrate(repvol *v)
 	
 	/* Set up context for reintegrator. */
 	r->u.Init();
-#ifdef __BSD44__
-	r->u.u_cred.cr_uid = v->CML.Owner();
-#endif /* __BSD44__ */
 	r->u.u_vol = v;
 	v->hold();		    /* vproc::End_VFS() will do release */
 	
