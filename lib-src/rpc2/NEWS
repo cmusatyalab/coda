@@ -1,3 +1,7 @@
+New in 1.10:
+
+* Fixed crash in SendResponse when request decoding has failed.
+
 New in 1.9:
 
 * Corrected errors in libfail's delay filter code.

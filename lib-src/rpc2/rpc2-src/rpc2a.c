@@ -154,10 +154,6 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
     say(0, RPC2_DebugLevel, "RPC2_SendResponse()\n");
     assert(!Reply || Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
-#ifdef RPC2DEBUG
-    TR_SENDRESPONSE();
-#endif RPC2DEBUG
-
     /* Perform sanity checks */
     ceaddr = rpc2_GetConn(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
@@ -169,6 +165,10 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 
     /* return if we have no reply to send */
     if (!Reply) rpc2_Quit(RPC2_FAIL);
+
+#ifdef RPC2DEBUG
+    TR_SENDRESPONSE();
+#endif RPC2DEBUG
 
     preply = Reply;	/* side effect routine usually does not reallocate
 			 * packet. preply will be the packet actually sent
