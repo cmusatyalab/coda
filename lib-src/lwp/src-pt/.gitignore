@@ -2,8 +2,8 @@ Makefile
 Makefile.in
 cswitch_pt
 liblwp_pt.la
-lwptest_pt
-lwptest-static_pt
+testlwp_pt
+testlwp-static_pt
 rw_pt
 tdb_pt
 *.lo

@@ -2,8 +2,8 @@ Makefile
 Makefile.in
 cswitch
 liblwp.la
-lwptest
-lwptest-static
+testlwp
+testlwp-static
 process.s
 rw
 tdb

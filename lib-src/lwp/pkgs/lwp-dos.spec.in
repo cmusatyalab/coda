@@ -1,4 +1,4 @@
-Summary: LWP thread library
+Summary: LWP thread library development files (cross-compilation with djgpp)
 Name: @PACKAGE@-djgpp
 Version: @VERSION@
 Release: 1
@@ -7,18 +7,12 @@ Copyright: LGPL
 BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
 Group: Development/Libraries
 %description
-The LWP userspace threads library. The LWP threads library is used by the Coda
-distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP (remote
-procedure call library)
-
-%package dev
-Summary: LWP thread library development files
-Group: Development/Libraries
-%description dev
 Headers and static libraries for developing programs using the LWP userspace
 threads library. The LWP threads library is used by the Coda distributed
 filesystem, RVM (a persistent VM library), and RPC2/SFTP (a remote procedure
 call library)
+These files are have been compiled with and for the djgpp + djgpp-win95ext
+dpmi target cross compilation tools as packaged on the Coda ftp site.
 
 %changelog
 * Mon Oct 25 1999 Jan Harkes <jaharkes@cs.cmu.edu>
@@ -28,23 +22,23 @@ call library)
 %setup -n @PACKAGE@-@VERSION@
 
 %build
-./configure --prefix=/usr/djgpp --target=dos
+./configure --prefix=/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1 --target=dos
 make
 
 %install
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
-make prefix=$RPM_BUILD_ROOT/usr/djgpp install
+make prefix=$RPM_BUILD_ROOT/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1 install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files dev
-/usr/djgpp/lib/liblwp.la
-/usr/djgpp/lib/liblwp.a
-%dir /usr/djgpp/include/lwp
-/usr/djgpp/include/lwp/lock.h
-/usr/djgpp/include/lwp/lwp.h
-/usr/djgpp/include/lwp/preempt.h
-/usr/djgpp/include/lwp/timer.h
+%files
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/liblwp.la
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/lib/liblwp.a
+%dir /usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/lock.h
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/lwp.h
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/preempt.h
+/usr/lib/gcc-lib/i386-go32w95mmap-msdos/2.7.2.1/include/lwp/timer.h
 
