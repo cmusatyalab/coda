@@ -514,18 +514,19 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 			      }
 			      else if (mode == IN_MODE) {
 			        _length = (*arg->bbs).SeqLen;
+			        ((*_ptr)++)->integer = htonl(_length); /* pack an 'unused' MaxSeqLen */
 			        ((*_ptr)++)->integer = htonl(_length);
-			        memcpy(*_ptr, (*arg->bbs).SeqBody, _length);
+				memcpy(*_ptr, (*arg->bbs).SeqBody, _length);
 			      }
 			      else if (mode == IN_OUT_MODE) {
 			        ((*_ptr)++)->integer = htonl((*arg->bbsp)->MaxSeqLen);
 			        _length = (*arg->bbsp)->SeqLen;
 			        ((*_ptr)++)->integer = htonl(_length);
-			        memcpy(*_ptr, (*arg->bbsp)->SeqBody, _length);
+				memcpy(*_ptr, (*arg->bbsp)->SeqBody, _length);
 			      }
 			      else { /* OUT_MODE */
 			        ((*_ptr)++)->integer = htonl((*arg->bbsp)->MaxSeqLen);
-			        _length = 0;
+			        ((*_ptr)++)->integer = _length = 0; /* pack 'unused' SeqLen */
 			      }
 			      (*_ptr) += (_PAD(_length) / SIZE);
 			      /* (*_ptr) += (a_types->size / SIZE) - 2; */
@@ -717,8 +718,8 @@ int get_len(ARG **a_types, PARM **args, MODE mode)
 			} else if (mode == IN_OUT_MODE)
 			  return((*a_types)->size = 2*SIZE+_PAD((*(*args)->bbsp)->SeqLen));
 			else if (mode == IN_MODE)
-			  return((*a_types)->size = SIZE+_PAD((*(*args)->bbs).SeqLen));
-			else return((*a_types)->size = SIZE); /* OUT_MODE */
+			  return((*a_types)->size = 2*SIZE+_PAD((*(*args)->bbs).SeqLen));
+			else return((*a_types)->size = 2*SIZE); /* OUT_MODE */
 	case RPC2_BULKDESCRIPTOR_TAG:	
 	case RPC2_ENCRYPTIONKEY_TAG:
 			return((*a_types)->size);
@@ -864,6 +865,7 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 		case RPC2_BOUNDEDBS_TAG:
 				if (mode == OUT_MODE || mode == IN_OUT_MODE) {
 				  RPC2_Integer _length;
+				  (*_ptr)++; /* ignore received MaxSeqLen */
 				  _length = ntohl((*_ptr)->integer);
 				  (*_ptr)++;
 				  args->bbsp[offset]->SeqLen = _length;
