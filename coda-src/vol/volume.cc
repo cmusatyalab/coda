@@ -246,7 +246,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
     InitVolTable(HASHTABLESIZE);
 
     /* Initialize the volume hash tables */
-    bzero((void *)VolumeHashTable, sizeof(VolumeHashTable));
+    memset((void *)VolumeHashTable, 0, sizeof(VolumeHashTable));
     
     VInitVnodes(vLarge, nLargeVnodes);
     VInitVnodes(vSmall, nSmallVnodes);
@@ -428,7 +428,7 @@ void VInitServerList(char *host)
 	    } else {
 		long netaddress;
 		CODA_ASSERT(hostent->h_length == 4);
-		bcopy((char *)hostent->h_addr, (char *)&netaddress, 4);
+		memmove((char *)&netaddress, (char *)hostent->h_addr, 4);
 		HostAddress[sid] = ntohl(netaddress);
 	    }
 	}
@@ -450,7 +450,7 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
     VLog(9, "Entering VGetVolumeInfo, key = %s", key);
 
     *ec = 0;
-    bzero((void *)info, sizeof(VolumeInfo));
+    memset((void *)info, 0, sizeof(VolumeInfo));
     vldp = VLDBLookup(key);
     if (vldp == NULL) {
 	*ec = VNOVOL;
@@ -1250,7 +1250,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
 	    index->bitmapSize, newsize);
 	index->bitmap = (byte *)realloc(index->bitmap, newsize);
 	CODA_ASSERT(index->bitmap != NULL);
-	bzero(index->bitmap + index->bitmapSize, growsize);
+	memset(index->bitmap + index->bitmapSize, 0, growsize);
 	index->bitmapSize = newsize;
 
 	bp = index->bitmap + index->bitmapOffset;
@@ -1307,7 +1307,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index, VnodeId v
 	    index->bitmapSize, newsize);
 	index->bitmap = (byte *)realloc(index->bitmap, newsize);
 	CODA_ASSERT(index->bitmap != NULL);
-	bzero(index->bitmap + index->bitmapSize, growsize);
+	memset(index->bitmap + index->bitmapSize, 0, growsize);
 	index->bitmapSize = newsize;
 
 	cbp = index->bitmap + (cbn / 8);
@@ -1426,7 +1426,7 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
 	VLog(9, "GetBitmap: allocating bitmap of %d bytes; array size %d",
 	     vip->bitmapSize, slots);
 	CODA_ASSERT(vip->bitmap != NULL);
-	bzero(vip->bitmap, vip->bitmapSize);
+	memset(vip->bitmap, 0, vip->bitmapSize);
 	vip->bitmapOffset = 0;
 	if ((vip->bitmapSize << 3) > slots) {
 		VLog(1, "GetBitmap: bitmapSize = %d bits, only %d array slots",
