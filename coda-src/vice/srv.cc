@@ -306,18 +306,13 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	    dumpvm(); /* sanity check rvm recovery. */
     }
     
-    SLog(0, "Becoming a zombie now ........");
-    SLog(0, "You may use gdb to attach to %d", getpid());
-    {
-	int      living_dead = 1;
-	sigset_t mask;
+    if (coda_assert_action == CODA_ASSERT_SLEEP) {
+	SLog(0, "Becoming a zombie now ........");
+	SLog(0, "You may use gdb to attach to %d", getpid());
+    } else
+	SLog(0, "Committing suicide now ........");
 
-	sigemptyset(&mask);
-	CODA_ASSERT(0);
-	while (living_dead) {
-	    sigsuspend(&mask); /* pending gdb attach */
-	}
-    }
+    CODA_ASSERT(0);
 }
 
 
