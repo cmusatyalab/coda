@@ -38,14 +38,14 @@ extern "C" {
 #include <stdlib.h>
 #include <fcntl.h>
 
-int mkpath (const char *name, mode_t mode);
-
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 /* interfaces */
 #include <vice.h>
+
+#include <mkpath.h>
 
 /* from venus */
 #include "fso.h"

@@ -50,6 +50,7 @@ listed in the file CREDITS.
 #include "vicetab.h"
 #include "inodeops.h"
 #include "partition.h"
+#include "mkpath.h"
 
 static int f_init (union PartitionData **data, Partent partent, Device *dev);
 static int f_iopen(struct DiskPartition *, Inode inode_number, int flag);
