@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: vcrcommon.rpc2,v 1.1 96/11/22 13:30:19 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vicedep/RCS/vcrcommon.rpc2,v 1.1 1996/11/22 19:09:35 braam Exp braam $";
 #endif /*_BLURB_*/
 
 /*
@@ -70,7 +70,8 @@ typedef RPC2_Unsigned	Unique_t;
 %{
 #ifndef _VUID_T_
 #define _VUID_T_
-typedef unsigned int	vuid_t; /* moved here from venus/venus.private.h  (Satya 3/23/92) */
+typedef unsigned int vuid_t;
+typedef unsigned int vgid_t;
 #endif _VUID_T_
 %}
 
