@@ -3,7 +3,9 @@ Compiling with Kerberos.
 Before you can compile with kerberos support you must do the
 following:
 
-1. Get the file krbsupport.c. Place it in coda-src/auth2.
+1. Get the file krbsupport.c from
+http://andrew2.andrew.cmu.edu/dist/
+Place it in coda-src/auth2.
 
 2. Edit Makeconf.  Set KERBEROS to yes, and select one or both of
 KERBEROS{4,5} to be yes as well. (If you don't want it comment the

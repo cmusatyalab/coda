@@ -8,6 +8,7 @@
 	* port numbers changed to IANA assigned numbers
 	* update uses the portmapper (since it has no port anymore)
 	* crud removed from several directories
+	* norton: you can now create and remove names in directories.
 
 
 1998-07-23    <jaharkes@telos.odyssey.cs.cmu.edu>

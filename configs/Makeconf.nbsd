@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.21 98/01/28 22:44:13 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.22.4.1 1998/05/15 16:51:02 braam Exp $";
 # 
 
 # the following may need editing depending on your preferences
@@ -57,6 +57,9 @@ else
 INCGDBM       = -I/usr/pkg/include -I/usr/local/include
 LGDBM         = -L/usr/pkg/lib -L/usr/local/lib
 endif
+
+KRBINCLFLAGS  = -I/usr/athena/include -I/usr/include/kerberosIV
+LIBKRBS       =    /usr/athena/lib/libkrb4.a /usr/athena/lib/libkrb5.a /usr/athena/lib/libcrypto.a /usr/athena/lib/libcom_err.a  /usr/athena/lib/libdes425.a /usr/athena/lib/libkrb524.a
 
 LIBMATH       = -lm
 GUIDIR        = /usr/lib/coda
