@@ -30,6 +30,9 @@
  *	/usr/cs/include).
  *
  * $Log: md.c,v $
+ * Revision 4.6  1999/01/22 00:10:20  jaharkes
+ * These changes went into stable, just keeping HEAD in sync.
+ *
  * Revision 4.5  1998/10/07 20:29:37  rvb
  * Flush sys/dir.h where possible; Fix process.s
  *
