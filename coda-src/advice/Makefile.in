@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.8 1997/12/18 22:59:42 mre Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.9 97/12/19 17:19:42 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -79,9 +79,11 @@ libadvice.a: ${AOBJS} ${REALRPCSETUP}
 
 libfakeadvice.a: ${AOBJS} ${FAKERPCSETUP}
 
+replacementlog.o: replacementlog.cc
+	$(CXX) $(CFLAGS) $(INCGDBM) -c $<
+
 fake_rpc_setup.o: rpc_setup.cc
 	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/rpc_setup.cc -o fake_rpc_setup.o
-	
 
 advice_srv: $(LIBS) $(OTHERLIBS) libadvice.a advice_srv.o
 	$(CXX) $(LIBFLAGS) advice_srv.o libadvice.a $(LIBS) $(OTHERLIBS) -o advice_srv

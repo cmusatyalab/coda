@@ -58,6 +58,7 @@ void resetpid() {
 
 // This is the NetBSD way to do this.
 char* getcommandname(int pid) {
+#ifndef	__FreeBSD__
     kvm_t *KVM;
     struct kinfo_proc *proc_info;
     int num_procs;
@@ -77,6 +78,11 @@ char* getcommandname(int pid) {
     else
       strncpy(CommandString, proc_info->kp_proc.p_comm, MAXPATHLEN);
     return(CommandString);
+#else
+strncpy(CommandString, "unknown", strlen("unknown"));
+return CommandString;
+#endif
+
 }
 /* __BSD44__ */
 

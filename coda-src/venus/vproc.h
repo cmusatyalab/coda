@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.11 1998/01/04 16:23:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.12 98/01/04 16:52:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,13 +57,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#ifdef __FreeBSD__
-# define KERNEL 1
-# include <sys/uio.h>
-# undef  KERNEL
-#else 
 #include <sys/uio.h>
-#endif /* __FreeBSD__ */
 
 #ifdef __NetBSD__
 #define __attribute__(x)    /* dummied out because of machine/segments.h */
@@ -73,10 +67,21 @@ extern "C" {
 #include <sys/user.h>
 #endif /* __NetBSD__ */
 
-#ifdef	__linux__
 #include <sys/uio.h>
+
+#ifdef	__linux__
         /* hmm we need this, so let's define it. Where is it in BSD anyway? */
 enum  uio_rw { UIO_READ, UIO_WRITE };
+
+#ifndef MAX
+#define MAX(a,b)   ( (a) > (b) ? (a) : (b))
+#endif	/*MAX*/
+#ifndef MIN
+#define MIN(a,b)   ( (a) < (b) ? (a) : (b))
+#endif	/*MIN*/
+#endif	/*__linux__*/
+
+#ifndef	UIO_MAXIOV
 struct uio {
         struct  iovec *uio_iov;
         int     uio_iovcnt;
@@ -84,15 +89,7 @@ struct uio {
         int     uio_resid;
         enum    uio_rw uio_rw;
 };
-
-#ifndef MAX
-#define MAX(a,b)   ( (a) > (b) ? (a) : (b))
 #endif
-#ifndef MIN
-#define MIN(a,b)   ( (a) < (b) ? (a) : (b))
-#endif
-
-#endif	/* __linux__ */
 
 #include <cfs/coda.h>
 

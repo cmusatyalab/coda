@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.4 97/12/01 17:27:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.5 97/12/16 16:08:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -106,6 +106,9 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
+#ifdef	__FreeBSD__
+#undef cr_gid
+#endif
 
 
 int HDBEs = UNSET_HDBE;

@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_fbsd2,v 4.3 1997/09/26 16:43:35 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_fbsd2,v 4.4 97/11/18 13:28:19 braam Exp $";
 # 
 
 MACHINE_FLAGS = -D__BSD44__
@@ -47,11 +47,16 @@ INCREADLINE   = -I/usr/include/readline
 LIBTHREADS    =
 LIBMACH       = 
 
-BINDIR := $(exec_prefix)/bin
-SBINDIR := $(exec_prefix)/bin
-MANDIR := $(exec_prefix)/man
-
-# XXX 
-LIBSPECIAL := .
-INCLSPECIAL := .
-LIBDIR := .
+#for advice_srv
+LIBKVM        = /usr/lib/libkvm.a
+INCGDBM       = -I/usr/local/include
+LIBGDBM       = /usr/local/lib/libgdbm.a
+LIBTIX        = /coda/misc/tcl/@sys/beta/lib/libtix4.0.a
+INCTIX	      = /coda/misc/tcl/@sys/beta/include
+LIBTK         = /coda/misc/tcl/@sys/beta/lib/libtk4.0.a
+INCTK	      = /coda/misc/tcl/@sys/beta/include
+LIBTCL        = /coda/misc/tcl/@sys/beta/lib/libtcl7.4.a
+INCTCL	      = /coda/misc/tcl/@sys/beta/include
+LIBMATH       = -lm
+LIBX11        = /usr/X11R6/lib/libX11.a
+INCX11	      = /usr/X11R6/include
