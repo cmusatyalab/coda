@@ -189,6 +189,7 @@ static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 
 static char *vicedir = NULL;	// default "/vice"
 static char *srvhost = NULL;	// default NULL
+static char myname[256];	// place to store srvhost chars
 
 static int trace = 0;		// default 0 
 static int SrvWindowSize = 0;	// default 32
@@ -375,6 +376,10 @@ int main(int argc, char *argv[])
     }
 
     (void)ReadConfigFile();
+
+    if (srvhost == NULL) {
+        srvhost = hostname(myname);
+    }
 
     if(chdir(vice_file("srv"))) {
 	SLog(0, "could not cd to %s - exiting", vice_file("srv"));
