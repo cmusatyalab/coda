@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.15 1998/08/23 16:46:31 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.16 1998/08/31 12:23:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -145,44 +145,44 @@ static void PrintUnusedComplaint(RPC2_Handle, RPC2_Integer, char *);
 */ 
 long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *ClientId)
 {
-    LogMsg(1, SrvDebugLevel, stdout, "ViceConnectFS (version %d) for user %s at %s.%s",
-	    ViceVersion, ClientId->UserName, ClientId->WorkStationName, ClientId->VenusName);
+	SLog(1, "ViceConnectFS (version %d) for user %s at %s.%s",
+	     ViceVersion, ClientId->UserName, ClientId->WorkStationName, 
+	     ClientId->VenusName);
 
-    long errorCode;
-    ClientEntry *client = NULL;
+	long errorCode;
+	ClientEntry *client = NULL;
+	
+	errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
 
-    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
-
-    if (!client) 
-	LogMsg(0, SrvDebugLevel, stdout, "No client structure built by ViceNewConnection");
-
-    if (!errorCode && client) {
-	/* set up a callback channel if there isn't one for this host */
-	if (client->VenusId->id == 0) 
-		errorCode = CLIENT_MakeCallBackConn(client);
-	else {
-		errorCode = CallBack(client->VenusId->id, &NullFid);
-		if ( errorCode  != RPC2_SUCCESS ) {
-			/* XXX tear down naked connection */
+	if (!client) 
+		SLog(0, "No client structure built by ViceNewConnection");
+	
+	if (!errorCode && client) {
+		/* set up a callback channel 
+		   if there isn't one for this host */
+		if (client->VenusId->id == 0) 
 			errorCode = CLIENT_MakeCallBackConn(client);
-		}
-	}			
-    }
-    if (errorCode)
-	    CLIENT_CleanUpHost(client->VenusId);
+		else {
+			errorCode = CallBack(client->VenusId->id, &NullFid);
+			if ( errorCode  != RPC2_SUCCESS ) {
+				/* XXX tear down naked connection */
+				errorCode = CLIENT_MakeCallBackConn(client);
+			}
+		}			
+	}
+	if (errorCode)
+		CLIENT_CleanUpHost(client->VenusId);
 
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceConnectFS returns %s", 
-	   ViceErrorMsg((int) errorCode));
+	LogMsg(2, SrvDebugLevel, stdout, "ViceConnectFS returns %s", 
+	       ViceErrorMsg((int) errorCode));
 
-    return(errorCode);
+	return(errorCode);
 }
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceDisconnectFS"><strong>Client request for termination</strong></a> 
-  END_HTML
+  ViceDisconnectFS: Client request for termination
 */
 long ViceDisconnectFS(RPC2_Handle RPCid)
 {
@@ -208,10 +208,7 @@ long ViceDisconnectFS(RPC2_Handle RPCid)
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceGetStatistics"><strong>Used by filestats to get general file server
-  statistics</strong></a> 
-  END_HTML
+ViceGetStatistics: Used by filestats to get general file server statistics
 */
 long ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
 {
@@ -261,9 +258,7 @@ long ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
 static const int RCBEntrySize = (int) sizeof(ViceFid);
 
 /*
-  BEGIN_HTML
-  <a name="ViceRemoveCallBack"><strong>Deletes callback for a fid</strong></a> 
-  END_HTML
+  ViceRemoveCallBack: Deletes callback for a fid
 */
 long ViceRemoveCallBack(RPC2_Handle RPCid, RPC2_CountedBS *RCBBS) 
 {
@@ -306,9 +301,7 @@ static long InternalRemoveCallBack(RPC2_Handle RPCid, ViceFid *fid)
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceGetVolumeInfo"><strong>Used to get information about a particular volume </strong></a> 
-  END_HTML
+  ViceGetVolumeInfo: Used to get information about a particular volume
 */
 long ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *Info)
 {
@@ -347,9 +340,7 @@ long ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *Info)
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceGetVolumeStatus"><strong>Get the status of a particular volume</strong></a> 
-  END_HTML
+  ViceGetVolumeStatus: Get the status of a particular volume
 */
 long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, RPC2_BoundedBS *name, RPC2_BoundedBS *offlineMsg, RPC2_BoundedBS *motd, RPC2_Unsigned PrimaryHost)
 {
@@ -698,12 +689,11 @@ long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceGetTime"><strong>Returns time of day (a time ping) </strong></a> 
-  END_HTML
+  ViceGetTime: Returns time of day (a time ping)
 */
 
-long ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds, RPC2_Integer *useconds)
+long ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds, 
+		 RPC2_Integer *useconds)
 {
     struct timeval tpl;
     struct timezone tspl;
