@@ -45,6 +45,7 @@ static int coda_readdir(struct file *file, void *dirent, filldir_t filldir);
 /* dentry ops */
 static int coda_dentry_revalidate(struct dentry *de);
 static void coda_dentry_delete(struct dentry *);
+
 /* support routines */
 static int coda_venus_readdir(struct file *filp, void *dirent, 
 			      filldir_t filldir);
@@ -53,7 +54,6 @@ static int coda_refresh_inode(struct dentry *dentry);
 
 int coda_crossvol_rename = 0;
 int coda_hasmknod = 0;
-
 
 struct dentry_operations coda_dentry_operations =
 {
@@ -490,7 +490,7 @@ static int coda_symlink(struct inode *dir_inode, struct dentry *de,
 /* destruction routines: unlink, rmdir */
 int coda_unlink(struct inode *dir, struct dentry *de)
 {
-        struct coda_inode_info *dircnp;
+        struct coda_inode_info *dircnp = ITOC(dir);
         int error;
 	const char *name = de->d_name.name;
 	int len = de->d_name.len;
@@ -498,13 +498,8 @@ int coda_unlink(struct inode *dir, struct dentry *de)
 	ENTRY;
 	coda_vfs_stat.unlink++;
 
-        dircnp = ITOC(dir);
-        CHECK_CNODE(dircnp);
-
-        CDEBUG(D_INODE, " %s in %s, ino %ld\n", name , 
+        CDEBUG(D_INODE, " %s in %s, dirino %ld\n", name , 
 	       coda_f2s(&(dircnp->c_fid)), dir->i_ino);
-
-        /* this file should no longer be in the namecache! */
 
         error = venus_remove(dir->i_sb, &(dircnp->c_fid), name, len);
 
