@@ -195,8 +195,6 @@ int main(int argc, char **argv) {
     return(0); /* to pacify g++ */
 }
 
-int IAmChild = 0;
-
 int getip(char *addr)
 {
 	int ip;
@@ -358,12 +356,6 @@ static void ParseCmdline(int argc, char **argv) {
 	    else if (STREQ(argv[i], "-spooldir")) {
 	        i++, SpoolDir = argv[i];
 	    }
-#ifdef DJGPP
-     	    else if (STREQ(argv[i], "-child")) {
-     	        IAmChild = 1;
-		InitMetaData = 1;
-     	    }
-#endif
 	    else {
 		eprint("bad command line option %-4s", argv[i]);
 		exit(-1);

@@ -339,8 +339,6 @@ static void Recov_CheckParms() {
     }
 }
 
-extern int IAmChild;
-
 static void Recov_InitRVM() {
 
     rvm_init_options(&Recov_Options);
