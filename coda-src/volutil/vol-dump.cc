@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.11 $
+#define RCSVERSION $Revision: 4.12 $
 
 /* vol-dump.c */
 
@@ -132,7 +132,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     int status = 0;
     Error error;
     ProgramType *pt;
-    DumpBuffer_t *dbuf;
+    DumpBuffer_t *dbuf = NULL;
     char *DumpBuf = 0;
     RPC2_HostIdent hid;
     RPC2_PortIdent pid;
