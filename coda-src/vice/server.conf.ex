@@ -105,9 +105,16 @@ trace=100
 #windowsize=32
 #zombify=0
 
+#
+# Kerberos 4/5 settings.
+# These can also be placed in the "auth2.conf" file.
+#
 #kerberos4service="host"
 #kerberos4realm=
-#kerberos5service="host"
+
+# kerberos5service contains "%s" which will be substituted with a hostname,
+# for a usual DCE setup it would be "hosts/%s/self
+#kerberos5service="host/%s"
 #kerberos5realm=
 #kerberos5keytab=
 

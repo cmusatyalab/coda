@@ -38,7 +38,8 @@ extern "C" {
 
 /* The following can be specified/overridden using /etc/coda/auth.conf */
 static char *kerberos5kinit;   /* client only, defaults to "kinit" */
-static char *kerberos5service; /* both, defaults to "host" */
+static char *kerberos5service; /* both, defaults to "host/%s" */
+/* MUST contain "%s", for usual DCE setup it would be "host/%s/self" */
 static char *kerberos5realm;   /* both, defaults to krb5_default_realm() */
 static char *kerberos5keytab;  /* server only */
 
@@ -53,7 +54,7 @@ static int Krb5CommonInit(void)
     codaconf_init("venus.conf");
     codaconf_init("vice.conf");
     codaconf_init("auth2.conf");
-    CONF_STR(kerberos5service, "kerberos5service", "host");
+    CONF_STR(kerberos5service, "kerberos5service", "host/%s");
 
     /* initialize Kerberos 5 contex */
     krc = krb5_init_context(&krb5context);
@@ -74,7 +75,7 @@ int Krb5ClientInit(void)
     return 0;
 }
 
-/* pin@math.chalmers.se, we have to use construct our own full principal name
+/* pin@math.chalmers.se, we have to construct our own full principal name
  * and use krb5_parse_name instead of krb5_sname_to_princ to allow for
  * multilevel principals. */
 /* Either succeeds or exits the application */
@@ -84,6 +85,7 @@ static void get_principal(char *hostname, krb5_principal *principal)
     char **realm_list;
     char *host = NULL;
     char *principalname = NULL;
+    int i, n, servicelen, havepct;
 
     host = krb_canonicalize_host(hostname);
     if (!host) {
@@ -98,15 +100,31 @@ static void get_principal(char *hostname, krb5_principal *principal)
 	exit(-1);
     }
 
-    principalname = malloc(strlen(kerberos5service) + strlen(host) +
-			   strlen(realm_list[0]) + 3);
+    servicelen = strlen(kerberos5service);
+    principalname = malloc(servicelen + strlen(host) +
+			   strlen(realm_list[0]) + 2 - 2);
+		    /* +2 is for '@' and '\0' */
+		    /* -2 is for "%s" */
+
     if (!principalname) {
 	fprintf(stderr, "krb5.c: failed to allocate space for principalname\n");
 	exit(-1);
     }
 
-    sprintf(principalname, "%s/%s@%s", kerberos5service, host,
-	    realm_list[0]);
+    /* make sure we have only a single '%s' substitution */
+    havepct = 0;
+    for (i = 0; i < servicelen; i++) {
+	if (kerberos5service[i] != '%') continue;
+	havepct++;
+	if (kerberos5service[i+1] != 's') break;
+    }
+    if (havepct != 1 && i != servicelen) {
+	fprintf(stderr, "Badly formatted kerberos5service, need exactly one '%%s' subsitition\n");
+	exit(-1);
+    }
+
+    n = sprintf(principalname, kerberos5service, host);
+    sprintf(principalname + n, "@%s", realm_list[0]);
 
     krc = krb5_parse_name(krb5context, principalname, principal);
     if (krc) {
