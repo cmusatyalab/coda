@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/mlwp/RCS/lwp.c,v 4.1 1997/01/08 21:54:12 rvb Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/src/lib-src/mlwp/RCS/lwp.c,v 4.2 97/02/26 16:04:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1212,7 +1212,8 @@ PRIVATE void Dispatcher()		/* Lightweight process dispatcher */
     if (PRE_Block != 1) Abort_LWP("PRE_Block not 1");
 
     old_cpptr = lwp_cpptr;
-    gettimeofday(&old_cpptr->lastReady, 0);	/* back in queue */
+    if (old_cpptr)
+        gettimeofday(&old_cpptr->lastReady, 0);	/* back in queue */
     lwp_cpptr = runnable[i].head;
     Cont_Sws++; /* number of context switches, for statistics */
 
