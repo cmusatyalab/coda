@@ -64,12 +64,12 @@
 #include <linux/skbuff.h>
 #include <linux/proc_fs.h>
 
-
-#include <psdev.h>
+#include <linux/coda.h>
+#include "cfs_linux.h"
+#include "psdev.h"
 #include "super.h"
 #include "namecache.h"
 #include "sysctl.h"
-#include <cfs.h>
 #include <cnode.h>
 
 

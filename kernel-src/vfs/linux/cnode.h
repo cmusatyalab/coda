@@ -69,45 +69,10 @@
 
 #include <sys/types.h>
 
-#ifdef	KERNEL
-
-
 #define CODA_CNODE_MAGIC        0x47114711
 
 /* kernel definition of ViceFid */
-#ifndef	VICEFID_DEFINED
-#define	VICEFID_DEFINED	1
 
-typedef u_long VolumeId;
-typedef u_long VnodeId;
-typedef u_long Unique;
-
-typedef struct ViceFid {
-    VolumeId Volume;
-    VnodeId Vnode;
-    Unique Unique;
-} ViceFid;
-
-#endif	not VICEFID_DEFINED
-#endif	KERNEL
-
-#ifdef	__MACH__
-#include <vfs/vfs.h>
-#include <vfs/vnode.h>
-#endif
-#ifdef __BSD44__
-#include <sys/mount.h>
-#endif
-#if 0
-/*
- * Cnode lookup stuff.
- * NOTE: CNODE_CACHESIZE must be a power of 2 for cfshash to work!
- */
-#define CNODE_CACHESIZE 512
-#define cnode_hash(fid) \
-    (((fid)->Volume + (fid)->Vnode) & (CNODE_CACHESIZE-1))
-
-#endif
 /* defintion of cnode, which combines ViceFid with inode information */
 
 struct cnode {
@@ -128,7 +93,7 @@ struct cnode {
         struct inode    *c_psdev;    /*psdev associated with this filesystem*/
         u_short	        c_ocount;    /* count of openers */
         u_short         c_owrite;    /* count of open for write */
-        struct vattr    c_vattr;     /* attributes */
+        struct coda_vattr c_vattr;     /* attributes */
         char            *c_symlink;  /* pointer to symbolic link */
         u_short         c_symlen;    /* length of symbolic link */
         struct cnode    *c_next;     /* next cnode in the cache */

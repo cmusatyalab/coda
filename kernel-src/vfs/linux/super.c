@@ -24,10 +24,10 @@
 #include <linux/string.h>
 #include <asm/segment.h>
 
-
+#include <linux/coda.h>
+#include <cfs_linux.h>
 #include <psdev.h>
 #include <super.h>
-#include <cfs.h>
 #include <cnode.h>
 #include <namecache.h>
 
@@ -36,10 +36,10 @@ struct super_block *coda_super_block = NULL;
 extern struct coda_sb_info coda_super_info;
 
 /* VFS super_block ops */
-void print_vattr( struct vattr *attr );
+void print_vattr( struct coda_vattr *attr );
 static struct super_block *coda_read_super(struct super_block *, void *, int);
 static void coda_read_inode(struct inode *);
-int coda_fetch_inode(struct inode *, struct vattr *);
+int coda_fetch_inode(struct inode *, struct coda_vattr *);
 static int  coda_notify_change(struct inode *inode, struct iattr *attr);
 static void coda_put_inode(struct inode *);
 static void coda_put_super(struct super_block *);
@@ -56,8 +56,8 @@ extern struct cnode *coda_cnode_alloc(void);
 extern void coda_cnode_free(struct cnode *);
 static int coda_get_rootfid(struct super_block *sb, ViceFid *fidp);
 static int coda_get_psdev(void *, struct inode **);
-static void coda_vattr_to_iattr(struct inode *, struct vattr *);
-static void coda_iattr_to_vattr(struct iattr *, struct vattr *);
+static void coda_vattr_to_iattr(struct inode *, struct coda_vattr *);
+static void coda_iattr_to_vattr(struct iattr *, struct coda_vattr *);
 
 extern int cfsnc_initialized;
 extern int coda_debug;
@@ -196,7 +196,7 @@ exit:
 }
 
 int 
-coda_fetch_inode (struct inode *inode, struct vattr *attr)
+coda_fetch_inode (struct inode *inode, struct coda_vattr *attr)
 {
         struct cnode *cp;
         int ino, error=0;
@@ -306,7 +306,7 @@ ENTRY;
 }
 
 int
-coda_getvattr(struct ViceFid *fid, struct vattr *attr, struct coda_sb_info *coda_sbp)
+coda_getvattr(struct ViceFid *fid, struct coda_vattr *attr, struct coda_sb_info *coda_sbp)
 {
         struct inputArgs *inp;
         struct outputArgs *outp;
@@ -341,7 +341,7 @@ ENTRY;
 		}
         }
 
-	*attr = (struct vattr) outp->d.cfs_getattr.attr;
+	*attr = (struct coda_vattr) outp->d.cfs_getattr.attr;
 
 exit:
         if (inp) CODA_FREE(inp, sizeof(struct inputArgs));
@@ -408,7 +408,7 @@ static int
 coda_notify_change(struct inode *inode, struct iattr *iattr)
 {
         struct cnode *cnp;
-        struct vattr vattr;
+        struct coda_vattr vattr;
         struct inputArgs *inp;
         struct outputArgs *out;
         int error, size, buffer_size;
@@ -461,7 +461,7 @@ exit:
 
 }
 
-static void coda_vattr_to_iattr(struct inode *inode, struct vattr *attr)
+static void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
 {
         /* inode's i_dev, i_flags, i_ino are set by iget 
            XXX: is this all we need ??
@@ -508,7 +508,7 @@ static void coda_vattr_to_iattr(struct inode *inode, struct vattr *attr)
  */
 
 void
-coda_iattr_to_vattr(struct iattr *iattr, struct vattr *vattr)
+coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
 {
         umode_t mode;
         unsigned int valid;
@@ -573,7 +573,7 @@ coda_iattr_to_vattr(struct iattr *iattr, struct vattr *vattr)
 
 void
 print_vattr( attr )
-	struct vattr *attr;
+	struct coda_vattr *attr;
 {
     char *typestr;
 

@@ -13,7 +13,9 @@
 #include <asm/segment.h>
 #include <linux/string.h>
 
-#include <cfs.h>
+#include <linux/coda.h>
+#include <cfs_linux.h>
+#include <psdev.h>
 #include <cnode.h>
 #include <super.h>
 #include "namecache.h"
@@ -481,7 +483,7 @@ int
 coda_mkdir(struct inode *dir_inode, const char *name, int length, int mode)
 {
         struct cnode *dircnp;
-        struct vattr attrs;
+        struct coda_vattr attrs;
         char * buffer;
         struct inputArgs *inp;
         struct outputArgs *out;

@@ -15,10 +15,12 @@
 #include <linux/string.h>
 
 #include "namecache.h"
-#include "cfs.h"
+
+#include "linux/coda.h"
+#include <cfs_linux.h>
+#include <psdev.h>
 #include "cnode.h"
 #include "super.h"
-#include "vioctl.h"
 
 /* prototypes */
 /* dir ops */

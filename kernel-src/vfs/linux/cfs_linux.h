@@ -7,13 +7,11 @@
 #ifndef _LINUX_CODA_FS
 #define _LINUX_CODA_FS
 
-
 /*
  * kernel includes are clearly platform dependent 
  * 
  * however, Venus builds its own VFS interface, modeled on BSD44 
  */
-#ifdef KERNEL
 #include <linux/kernel.h>
 #include <linux/param.h>
 #include <linux/sched.h> 
@@ -23,33 +21,10 @@
 #include <linux/types.h>
 #include <linux/fs.h>
 
-#else 
-#include <venus_vnode.h>
-#endif KERNEL
-
-
 /* directory entries; should go somewhere else XXX */
-#ifdef KERNEL
-#ifdef	__linux__
 #define u_int32_t   unsigned int
 #define u_int16_t   unsigned short
 #define u_int8_t    char
-#endif
-
-struct venus_dirent {
-        u_int32_t d_fileno;             /* file number of entry */
-        u_int16_t d_reclen;             /* length of this record */
-        u_int8_t  d_type;               /* file type, see below */
-        u_int8_t  d_namlen;             /* length of string in d_name */
-#ifdef _POSIX_SOURCE
-        char    d_name[255 + 1];        /* name must be no longer than this */
-#else
-#define MAXNAMLEN       255
-        char    d_name[MAXNAMLEN + 1];  /* name must be no longer than this */
-#endif
-};
-
-#endif kernel
 
 
 /* debugging aids */
@@ -107,7 +82,6 @@ do {                                                           \
  */
 
 #define GLOBAL_PROC current
-#define GLOBAL_CRED 
 
 /*
  * Mach flags/types that are missing 
@@ -155,31 +129,58 @@ do {                                                                  \
 
 typedef struct inode *C_VNODE_T;
 #define LINKS  struct cnode *c_next     /* needed in cnode.h */
-#ifdef KERNEL
-#define v_count i_count
-#define v_flag  i_flags
-#define v_next  i_next
-#endif
+
 #define ITOV(ip) 
 #define VTOI(vp) 
 #define vm_info_init(a) 
 #define VM_INFO_NULL NULL
 #define inode_uncache_try(a) ETXTBSY
 
-#ifdef KERNEL
 #define CTOV(the_cp)        CTOI((the_cp))
 #define VTOC(vp)        ITOC(vp)
-#else 
-#define    CTOV(cp)        ((struct vnode *)((cp)->c_vnode))
-#define    VTOC(vp)        ((struct cnode *)(vp)->v_data)
-#endif KERNEL
 #define CNODE_NEXT(cp)  ((cp)->c_next)
 
 /* ioctl stuff */
 /* this needs to be sorted out XXXX */ 
-#ifdef	__linux__
-#define IOCPARM_MASK 0x0000ffff
-#endif 
+
+/*
+ * Macros to manipulate the queue 
+ */
+
+
+/* circular queues */
+
+struct queue {
+    struct queue *forw, *back;
+};
+
+#define INIT_QUEUE(head)                     \
+do {                                         \
+    (head).forw = (struct queue *)&(head);   \
+    (head).back = (struct queue *)&(head);   \
+} while (0)
+
+#define GETNEXT(head) (head).forw
+
+#define EMPTY(head) ((head).forw == &(head))
+
+#define EOQ(el, head) ((struct queue *)(el) == (struct queue *)&(head))
+
+#define INSQUE(el, head)                             \
+do {                                                 \
+	(el).forw = ((head).back)->forw;             \
+	(el).back = (head).back;                     \
+	((head).back)->forw = (struct queue *)&(el); \
+	(head).back = (struct queue *)&(el);         \
+} while (0)
+
+#define REMQUE(el)                         \
+do {                                       \
+	((el).forw)->back = (el).back;     \
+	(el).back->forw = (el).forw;       \
+}  while (0)
+
+
 
 
 /*
@@ -190,7 +191,7 @@ typedef struct inode *C_VNODE_T;
 struct cfid {
     u_short	cfid_len;
     u_short     padding;
-    ViceFid	cfid_fid;
+    struct ViceFid	cfid_fid;
 };
 
 #define MAXSYMLINKS 16
@@ -217,10 +218,6 @@ do {                                                                      \
 #define crfree(cred) CODA_FREE( (cred), sizeof(struct ucred))
 
 
-#ifdef KERNEL
-enum vtype      { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VFIFO, VBAD };
-#define VTEXT           0  /* XXX what on earth is going on? */
-#endif KERNEL
 
 /*  */
 #define VN_HOLD(ip) iget(coda_super_block, (ip)->i_ino); 
@@ -239,64 +236,13 @@ enum vtype      { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VFIFO, VBAD };
  *  perhaps too little:
  */
 
-#ifndef _VUID_T_
-#define _VUID_T_
-typedef unsigned int vuid_t;
-typedef unsigned int vgid_t;
-#endif _VUID_T
-
-#ifdef KERNEL
 
 /* Venus - Kernel communication macros */
-
-#define HANDLE_ERROR( errorp, out, label)  \
-if ( coda_upcallerror( errorp, out, __FUNCTION__) ) goto label ; 
-
 
 
 
 #define DIRBLKSIZ 1024  /*  from BSD44 1.2 dirent.h */
 
-
-#if 0
-struct timespec {
-        long       ts_sec;
-        long       ts_nsec;
-};
-#endif
-
-#define u_quad_t u_long
-
-#ifndef _VUID_T_
-#define _VUID_T_
-typedef unsigned int vuid_t;
-typedef unsigned int vgid_t;
-#endif _VUID_T_
-
-struct vattr {
-        enum vtype      va_type;        /* vnode type (for create) */
-        u_short         va_mode;        /* files access mode and type */
-        short           va_nlink;       /* number of references to file */
-        vuid_t           va_uid;         /* owner user id */
-        vgid_t           va_gid;         /* owner group id */
-        long            va_fsid;        /* file system id (dev for now) */
-        long            va_fileid;      /* file id */
-        u_quad_t        va_size;        /* file size in bytes */
-        long            va_blocksize;   /* blocksize preferred for i/o */
-        struct timespec va_atime;       /* time of last access */
-        struct timespec va_mtime;       /* time of last modification */
-        struct timespec va_ctime;       /* time file changed */
-        u_long          va_gen;         /* generation number of file */
-        u_long          va_flags;       /* flags defined for file */
-        dev_t           va_rdev;        /* device the special file represents */
-        u_quad_t        va_bytes;       /* bytes of disk space held by file */
-        u_quad_t        va_filerev;     /* file modification number */
-        u_int           va_vaflags;     /* operations flags, see below */
-        long            va_spare;       /* remain quad aligned */
-};
-
-
-#endif
 
 #define Process_pid    current->pid
 #define Process_pgid   current->gid
@@ -304,11 +250,6 @@ struct vattr {
 /* Linux in-lines protection stuff, no struct identity */
 /* Should this be os specific? */
 #define NGROUPS 32
-struct CodaCred {
-    vuid_t cr_uid, cr_euid, cr_suid, cr_fsuid; /* Real, efftve, set, fs uid*/
-    vgid_t cr_gid, cr_egid, cr_sgid, cr_fsgid; /* same for groups */
-    vgid_t cr_groups[NGROUPS];	      /* Group membership for caller */
-};
 /* #define ucred CodaCred */
 
 
@@ -317,9 +258,7 @@ struct CodaCred {
 #define MAXPATHLEN PATH_MAX
 
 /* I need os-specific macros for sleep/wakeup. */
-#define SELPROC struct wait_queue * 
-#define CONDITION struct wait_queue *
-#define SELWAKEUP(proc) if (proc) wake_up_interruptible(&(SELPROC)(proc));
+#define SELWAKEUP(proc) if (proc) wake_up_interruptible(&(struct wait_queue *)(proc));
 #define WAKEUP(cond) wake_up_interruptible((cond));
 #define SLEEP(cond)  interruptible_sleep_on((cond));
 

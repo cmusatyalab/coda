@@ -13,7 +13,7 @@ HEADERS     =
 OBJS        =  psdev.o cnode.o super.o inode.o file.o comm.o namecache.o sysctl.o 
 
 DEFINES =  -DMODULE  -DMODVERSIONS -Wstrict-prototypes -Wall -O2
-INCL    =  -I. -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
+INCL    =  -I../common -I. -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
 CFLAGS  := -D__KERNEL__ $(INCL)   $(DEFINES)  $(CFLAGS)
 
 

@@ -60,7 +60,7 @@
 #ifndef _CFSNC_HEADER_
 #define _CFSNC_HEADER_
 
-#include "cfs.h"
+#include "linux/coda.h"
 #include "cnode.h"
 
 

@@ -5,7 +5,7 @@
 #define CODA_SUPER_MAGIC	0x73757245
 
 
-#include "cfs.h"
+#include "linux/coda.h"
 
 struct coda_sb_info
 {

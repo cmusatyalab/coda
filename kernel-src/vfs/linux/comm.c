@@ -91,9 +91,21 @@
 
 /* @(#)cfs_subr.c	1.5 87/09/14 3.2/4.3CFSSRC */
 
-#include "cfs.h"
+
+#include <linux/sched.h>
+#include <linux/lp.h>
+#include <linux/malloc.h>
+#include <linux/ioport.h>
+#include <linux/fcntl.h>
+#include <linux/delay.h>
+#include <linux/skbuff.h>
+#include <linux/proc_fs.h>
+
+#include "linux/coda.h"
+#include "cfs_linux.h"
+#include "psdev.h"
 #include "cnode.h"
-#include "super.h"
+#include "super.h" 
 #include "namecache.h"
 
 

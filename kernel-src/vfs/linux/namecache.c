@@ -37,7 +37,7 @@
  * Add a new CFS_REPLACE call to allow venus to replace a ViceFid in the
  * mini-cache. 
  * 
- * In "cfs.h":
+ * In "linux/coda.h":
  * Add CFS_REPLACE decl.
  * 
  * In "cfs_namecache.c":
@@ -106,7 +106,8 @@
 #include <asm/segment.h>
 #include <linux/string.h>
 
-#include "cfs.h"
+#include "linux/coda.h"
+#include "cfs_linux.h"
 #include "cnode.h"
 #include "namecache.h"
 
@@ -183,7 +184,7 @@ static inline int
 nchash(const char *name, int namelen, struct cnode *cp)
 {
     return ((name[0] + name[namelen-1] + 
-             namelen + (int)(CTOV(cp)->i_ino)) & (cfsnc_hashsize-1));   
+             namelen + (int)(CTOI(cp)->i_ino)) & (cfsnc_hashsize-1));   
 }
 
 /* matching function */
@@ -262,8 +263,8 @@ cfsnc_find(struct cnode *dcp, const char * name, int namelen, int hash)
 		cfsnc_stat.Search_len += count;
 		CDEBUG(D_CACHE, "dcp 0x%x,found.\n", (int) dcp);
 		if ( namelen == 2 && name[0]=='.' && name[1]=='.' ) {
-CDEBUG(D_CACHE, "HIT: name %s, ino %ld, pino %ld\n", pname, CTOV(dcp)->i_ino,
-       CTOV(cncp->cp)->i_ino);
+CDEBUG(D_CACHE, "HIT: name %s, ino %ld, pino %ld\n", pname, CTOI(dcp)->i_ino,
+       CTOI(cncp->cp)->i_ino);
 		}
 		return(cncp);
 			
@@ -288,8 +289,8 @@ cfsnc_remove(struct cfscache *cncp)
   	hashrem(cncp);
 	hashnull(cncp);		/* have it be a null chain */
 
-	VN_RELE(CTOV(cncp->dcp));
-	VN_RELE(CTOV(cncp->cp)); 
+	VN_RELE(CTOI(cncp->dcp));
+	VN_RELE(CTOI(cncp->cp)); 
 	/* crfree(cncp->cred);  */
 
 	memset(DATA_PART(cncp), 0 ,DATA_SIZE);
@@ -387,15 +388,15 @@ cfsnc_enter(struct cnode *dcp, register const char *name, int namelen, struct cn
 	cfsnchash[nchash(cncp->name, cncp->namelen, cncp->dcp)].length--;
 	cfsnc_stat.lru_rm++;	/* zapped a valid entry */
 	hashrem(cncp);
-	VN_RELE(CTOV(cncp->dcp));
-	VN_RELE(CTOV(cncp->cp));
+	VN_RELE(CTOI(cncp->dcp));
+	VN_RELE(CTOI(cncp->cp));
 	/* crfree(cncp->cred); */
     }
     /*
      * Put a hold on the current vnodes and fill in the cache entry.
      */
-    VN_HOLD(CTOV(cp));
-    VN_HOLD(CTOV(dcp));
+    VN_HOLD(CTOI(cp));
+    VN_HOLD(CTOI(dcp));
     /* XXXX crhold(cred); */
     cncp->dcp = dcp;
     cncp->cp = cp;
@@ -670,8 +671,8 @@ cfsnc_flush(void)
 		if ( CFSNC_VALID(cncp) ) {
 			hashrem(cncp);	/* only zero valid nodes */
 			hashnull(cncp);
-			VN_RELE(CTOV(cncp->dcp));  
-			VN_RELE(CTOV(cncp->cp));  
+			VN_RELE(CTOI(cncp->dcp));  
+			VN_RELE(CTOI(cncp->cp));  
 			/* crfree(cncp->cred);  */
 			memset(DATA_PART(cncp), 0, DATA_SIZE);
 		}

@@ -2,15 +2,25 @@
    Peter Braam, Sep 1996.
    */
 
+#include <linux/sched.h>
+#include <linux/lp.h>
+#include <linux/malloc.h>
+#include <linux/ioport.h>
+#include <linux/fcntl.h>
+#include <linux/delay.h>
+#include <linux/skbuff.h>
+#include <linux/proc_fs.h>
 
-#include "cfs.h"
+#include "linux/coda.h"
+#include "cfs_linux.h"
+#include "psdev.h"
 #include "cnode.h"
 #include "super.h" 
 
 extern int coda_debug;
 extern int coda_print_entry;
-extern int coda_fetch_inode(struct inode *inode, struct vattr *attr);
-extern int coda_getvattr(ViceFid *, struct vattr *, struct coda_sb_info *); 
+extern int coda_fetch_inode(struct inode *inode, struct coda_vattr *attr);
+extern int coda_getvattr(ViceFid *, struct coda_vattr *, struct coda_sb_info *); 
 
 /* cnode.c */
 struct cnode *coda_cnode_alloc(void);
@@ -50,7 +60,7 @@ int
 coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 {
         struct cnode *cnp;
-        struct vattr attr;
+        struct coda_vattr attr;
         int error;
 	ino_t ino;
         

@@ -6,6 +6,34 @@
 /* #define MAX_QBYTES    32768   * Maximum bytes in the queue * */
 
 #include <linux/config.h>
+struct vcomm {
+	u_long		vc_seq;
+	struct wait_queue * 		vc_selproc;
+	struct queue	vc_requests;
+	struct queue	vc_replies;
+};
+
+#define	VC_OPEN(vcp)	    ((vcp)->vc_requests.forw != NULL)
+#define MARK_VC_CLOSED(vcp) (vcp)->vc_requests.forw = NULL;
+
+extern int cfsnc_use;
+
+struct vmsg {
+    struct queue vm_chain;
+    caddr_t	 vm_data;
+    u_short	 vm_flags;
+    u_short      vm_inSize;	/* Size is at most 5000 bytes */
+    u_short	 vm_outSize;
+    u_short	 vm_opcode; 	/* copied from data to save ptr lookup */
+    int		 vm_unique;
+    struct wait_queue *	 vm_sleep;	/* Not used by Mach. */
+};
+
+
+#define INIT_IN(in, op) \
+	  (in)->opcode = (op); \
+	  (in)->pid = Process_pid; \
+          (in)->pgid = Process_pgid; 
 
 
 extern void coda_psdev_detach(int unit);
