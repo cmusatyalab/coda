@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda_opstats.h,v 1.3 98/01/23 11:53:53 rvb Exp $");
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.9 1998/08/18 16:31:39 rvb Exp $ */
 
 
 /* 
@@ -45,7 +45,10 @@ __RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cod
 
 /*
  * HISTORY
- * $Log:	cfs_namecache.c,v $
+ * $Log: cfs_namecache.c,v $
+ * Revision 1.9  1998/08/18 16:31:39  rvb
+ * Sync the code for NetBSD -current; test on 1.3 later
+ *
  * Revision 1.8  98/01/31  20:53:10  rvb
  * First version that works on FreeBSD 2.2.5
  * 
@@ -210,7 +213,7 @@ __RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cod
 #include <vm/vm_object.h>
 #endif
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.8 98/01/31 20:53:10 rvb Exp $");
+__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.9 1998/08/18 16:31:39 rvb Exp $");
 
 /* 
  * Declaration of the name cache data structure.

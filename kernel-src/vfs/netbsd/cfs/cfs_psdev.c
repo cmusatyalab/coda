@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda_opstats.h,v 1.3 98/01/23 11:53:53 rvb Exp $");
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_psdev.c,v 1.7 1998/08/18 16:31:41 rvb Exp $ */
 
 #define CTL_C
 /* 
@@ -56,6 +56,9 @@ __RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cod
 /*
  * HISTORY
  * $Log: cfs_psdev.c,v $
+ * Revision 1.7  1998/08/18 16:31:41  rvb
+ * Sync the code for NetBSD -current; test on 1.3 later
+ *
  * Revision 1.8  1998/06/09 23:30:42  rvb
  * Try to allow ^C -- take 1
  *

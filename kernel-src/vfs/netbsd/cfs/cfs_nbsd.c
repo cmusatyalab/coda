@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda_opstats.h,v 1.3 98/01/23 11:53:53 rvb Exp $");
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_nbsd.c,v 1.19 1998/08/18 16:31:40 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -45,7 +45,10 @@ __RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cod
 
 /* 
  * HISTORY
- * $Log:	cfs_nbsd.c,v $
+ * $Log: cfs_nbsd.c,v $
+ * Revision 1.19  1998/08/18 16:31:40  rvb
+ * Sync the code for NetBSD -current; test on 1.3 later
+ *
  * Revision 1.18  98/01/23  11:53:40  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
