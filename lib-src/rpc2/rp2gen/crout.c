@@ -1087,7 +1087,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 	    inc4(ptr, where);
 	    fprintf(where, "    if (%s + _PAD(%s) > _EOB)\n" BUFFEROVERFLOW,
 		    ptr, length);
-	    fprintf(where, "    if (*(%s+%s - 1) != '\0')\n" BUFFEROVERFLOW,
+	    fprintf(where, "    if (*(%s+%s - 1) != '\\0')\n" BUFFEROVERFLOW,
 		    ptr, length);
             buffer_checked = 1;
 	    /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
@@ -1195,7 +1195,6 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 			fprintf(where, "    if (");
 			for_limit(parm, who, where);
 			fprintf(where, " > ");
-			for_limit(parm, who, where);
 			fprintf(where, "%s)\n" BUFFEROVERFLOW, parm->arraymax);
 		    }
 		    fprintf(where, "    for(%s = 0; %s < ", iterate, iterate);
