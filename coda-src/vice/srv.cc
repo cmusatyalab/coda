@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.9 1998/01/10 18:39:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.10 1998/01/12 23:35:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -204,7 +204,7 @@ PRIVATE int Statistics;
 PRIVATE int debuglevel = 0;
 PRIVATE int lwps = 6;
 PRIVATE	int buffs = 100;	/* formerly 200 */
-int stack = 64;
+int stack = 96;
 PRIVATE int cbwait = 300;
 PRIVATE int chk = 30;
 /* PRIVATE int ProcSize = 0; */
