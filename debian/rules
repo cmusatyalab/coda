@@ -18,6 +18,10 @@ export DH_OPTIONS
 DEB_BUILD_GNU_TYPE=$(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 DEB_HOST_GNU_TYPE=$(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 
+ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+CFLAGS = -g
+endif
+
 build: build-stamp
 build-stamp:
 	dh_testdir
@@ -103,7 +107,9 @@ binary-arch: build install
 #	dh_undocumented
 	dh_installmodules
 	dh_installchangelogs ChangeLog
+ifeq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 	dh_strip
+endif
 	dh_link
 	dh_compress
 	dh_fixperms

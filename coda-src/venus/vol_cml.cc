@@ -3465,7 +3465,7 @@ int cmlent::CloseReintegrationHandle(char *buf, int bufsize,
     UNI_END_MESSAGE(ViceCloseReintHandle_OP);
     MarinerLog("store::closereinthandle done\n");
 
-    code = vol->Collate(c, code);
+    code = vol->Collate(c, code, 0);
     UNI_RECORD_STATS(ViceCloseReintHandle_OP);
 
     if (code != 0) goto Exit;

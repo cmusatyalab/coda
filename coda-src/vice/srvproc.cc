@@ -401,7 +401,7 @@ START_TIMING(ViceValidateAttrs_Total);
     /* now check piggyback fids */
     for (i = 0; i < NumPiggyFids; i++) {
 
-	if (&Piggies[i].Fid.Volume != VSGVolnum) {
+	if (Piggies[i].Fid.Volume != VSGVolnum) {
 	    strcpy(why_failed, "Wrong Volume Id");
 	    goto InvalidObj;
 	}
