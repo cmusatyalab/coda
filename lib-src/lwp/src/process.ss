@@ -657,13 +657,24 @@ SYMB(returnto)
 		
 #endif /* __ns32k__ */
 
-#ifdef __arm32__
+#if defined(__arm32__) || defined(__arm__)
+
+#ifdef	__linux__
+
+#include <linux/linkage.h>	
+#define SYMB(name)  ENTRY(name)
+#define EXT(x) SYMBOL_NAME(x)
+
+#else
+
 #ifdef __STDC__	
 #define SYMB(x)  _##x:
 #define EXT(x)	_##x
 #else
 #define SYMB(x)  _/**/x:
 #define EXT(x)	_/**/x
+#endif
+
 #endif
 
 /* register definitions */
@@ -682,8 +693,8 @@ pc	.req	r15
 
 /* Arguments appear as:  f in r0, area1 in r1, newsp in r2 */
 
-	.globl  _PRE_Block
-	.globl	_abort
+	.globl  EXT(PRE_Block)
+	.globl	EXT(abort)
 	.text
 	.align	0
 	.globl	EXT(savecontext)
@@ -707,9 +718,9 @@ SYMB(savecontext)
 	mov	pc, r0
 
 /*	should never get here ... */
-	bl	_abort
+	bl	EXT(abort)
 
-L1:	.word _PRE_Block		
+L1:	.word EXT(PRE_Block)		
 	
 /*
   returnto(area2)
@@ -731,7 +742,7 @@ SYMB(returnto)
 	@ return from function call
 	ldmea	fp, {fp, sp, pc}
 	
-#endif /* __arm32__ */
+#endif /* __arm32__ or __arm__ */
 
 #if defined(__powerpc__)
 

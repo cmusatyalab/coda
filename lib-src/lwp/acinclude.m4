@@ -10,6 +10,7 @@ AC_DEFUN(CODA_SETUP_BUILD,
 case ${target} in
   djgpp | win95 | dos )  target=i386-pc-msdos ;;
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
+  arm ) target=arm-unknown-linux-gnuelf ;;
 esac
 
 AC_CANONICAL_SYSTEM
@@ -67,6 +68,14 @@ if test ${build} != ${host} ; then
     dnl We need these to get a dll built
     libtool_flags="--enable-win32-dll"
     LIBTOOL_LDFLAGS="-no-undefined"
+    ;;
+   arm-unknown-linux-gnuelf )
+    CC="arm-unknown-linuxelf-gcc"
+    AR="arm-unknown-linuxelf-ar"
+    RANLIB="arm-unknown-linuxelf-ranlib"
+    AS="arm-unknown-linuxelf-as"
+    NM="arm-unknown-linuxelf-nm"
+    OBJDUMP="arm-unknown-linuxelf-objdump"
     ;;
  esac
 fi])
