@@ -35,7 +35,6 @@ usage ()
     echo ${prog} cs 
     echo ${prog} d debug_level 
     echo ${prog} "m {0,2,3,6,7}"
-    echo ${prog} "mc {0,1} "
     echo ${prog} "p {0,1} "
     echo ${prog} shutdown 
     echo ${prog} stats 
@@ -84,13 +83,6 @@ case $par in
 	d )
 	    if [ x$2 = x ]; then  usage ; fi
 	    echo "DEBUG $2 $3 $4" > ${run_control_file}
-	    ${kill} -HUP ${vpid}
-	    ;;
-
-	mc )
-	    # seems to be not implemented/activated in venus.
-	    if  [ x$2 != x0 -a x$2 != x1 ]; then usage ; fi
-	    echo "MCAST $2" > ${run_control_file}
 	    ${kill} -HUP ${vpid}
 	    ;;
 
