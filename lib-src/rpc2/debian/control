@@ -3,7 +3,7 @@ Section: devel
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
 Standards-Version: 3.0.1
-Build-Depends: debhelper, dpkg-dev, gcc, liblwp-dev
+Build-Depends: debhelper, dpkg-dev, gcc, liblwp-dev, flex, bison
 
 Package: librpc2-dev
 Architecture: arm i386 m68k powerpc sparc
