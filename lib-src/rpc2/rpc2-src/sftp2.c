@@ -185,6 +185,7 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     /* SANITY CHECK: validate socket-level and connection-level host values. */
     if (!RPC2_cmpaddrinfo(sfp->HostInfo->Addr, pb->Prefix.PeerAddr))
     {
+	say(0, SFTP_DebugLevel, "Received SFTP packet from unexpected host\n");
 	SFSendNAK(pb); /* NAK this packet */
 	BOGUS(pb);
 	return;
