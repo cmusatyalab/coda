@@ -92,9 +92,8 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag,
 	volptr->header->diskstuff.ResOn = 0;
 	VLog(0, "S_VolSetLogParms: res flag on volume 0x%x set to %d (resolution disabled)", Vid, OnFlag);
 	break;
-    case VMRES:
-	VLog(0, "S_VolSetLogParms: VM resolution no longer supported (volume %lx)", Vid);
     default:
+	VLog(0, "S_VolSetLogParms: VM resolution no longer supported use reson 4 or reson 0");
 	VPutVolume(volptr);
 	return EINVAL;
     }

@@ -67,22 +67,22 @@ void PrintVV(vv_t *vv) {
 
 
 void print_volume(VolHead * vol) {
-    printf("    Id: 0x%x  \tName: %s \tParent: 0x%x\n",
+    printf("    Id: 0x%x  \tName: %s \tParent: 0x%lx\n",
 	   vol->header.id,
 	   vol->data.volumeInfo->name,
 	   vol->header.parent);
-    printf("    GoupId: 0x%x \tPartition: %s\n",
+    printf("    GoupId: 0x%lx \tPartition: %s\n",
 	   vol->data.volumeInfo->groupId,
 	   vol->data.volumeInfo->partition);
     printf("    Version Vector: ");
     PrintVV(&vol->data.volumeInfo->versionvector);
     printf("\n    \t\tNumber vnodes	Number Lists	Lists\n");
     printf("    \t\t-------------	------------	----------\n");
-    printf("    small\t%13d\t%12d\t0x%8x\n",
+    printf("    small\t%13d\t%12d\t%p\n",
 	   vol->data.nsmallvnodes,
 	   vol->data.nsmallLists,
 	   vol->data.smallVnodeLists);
-    printf("    large\t%13d\t%12d\t0x%8x\n",
+    printf("    large\t%13d\t%12d\t%p\n",
 	   vol->data.nlargevnodes,
 	   vol->data.nlargeLists,
 	   vol->data.largeVnodeLists);
@@ -101,7 +101,7 @@ void print_volume_details(VolHead *vol) {
 	   vol->data.volumeInfo->inService ? "TRUE" : "FALSE",
 	   vol->data.volumeInfo->blessed ? "TRUE" : "FALSE",
 	   vol->data.volumeInfo->needsSalvaged ? "TRUE" : "FALSE");
-    printf("    Uniquifier: 0x%x\t", vol->data.volumeInfo->uniquifier);
+    printf("    Uniquifier: 0x%lx\t", vol->data.volumeInfo->uniquifier);
     printf("type: ");
     switch (vol->data.volumeInfo->type) {
       case RWVOL: 	printf("rw\n"); 	break;
@@ -110,7 +110,7 @@ void print_volume_details(VolHead *vol) {
       case REPVOL:	printf("rep\n"); 	break;
       default:	printf("*** UNKNOWN ***\n");
     }
-    printf("    Clone: 0x%x\tbackupId: 0x%x\trestoredFromId: 0x%x\n", 
+    printf("    Clone: 0x%lx\tbackupId: 0x%lx\trestoredFromId: 0x%lx\n", 
 	   vol->data.volumeInfo->cloneId,
 	   vol->data.volumeInfo->backupId,
 	   vol->data.volumeInfo->restoredFromId);

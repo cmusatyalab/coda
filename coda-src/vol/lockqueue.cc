@@ -80,8 +80,8 @@ lqman::lqman(char *n)
 
 lqman::~lqman()
 {
-    delete name;
     LWP_DestroyProcess((PROCESS) pid);
+    delete [] name;
 }
 
 int lqman::func(void)

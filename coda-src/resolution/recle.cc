@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -272,6 +268,7 @@ char *recle::DumpToBuf(int *bufsize)
     *lastlong = DUMP_ENTRY_END_STAMP;
     return(buf);
 }
+
 void recle::print() {
     print(stdout);
 }

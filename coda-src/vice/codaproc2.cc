@@ -1048,13 +1048,13 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
     }
 
 Exit:
-    if (rfile) delete rfile;
+    if (rfile) delete [] rfile;
     if (Index) *Index = (RPC2_Integer) index;
     SLog(10,  "ValidateReintegrateParms: returning %s", ViceErrorMsg(errorCode));
 END_TIMING(Reintegrate_ValidateParms);
 
-    if (OldName) delete OldName;
-    if (NewName) delete NewName;
+    if (OldName) delete [] OldName;
+    if (NewName) delete [] NewName;
 
     return(errorCode);
 }

@@ -299,7 +299,7 @@ int repvol::IncReintegrate(int tid)
 	{
 CheckResult:
 	    START_TIMING();
-	    if (buf != 0) delete buf;
+	    if (buf) delete [] buf;
 
 	    switch(code) {
 	    case 0 : 

@@ -400,7 +400,7 @@ srvent::srvent(unsigned long Host) {
 }
 
 srvent::~srvent() {
-    delete name;
+    delete [] name;
 }
 
 int srvent::Connect(RPC2_Handle *cidp, int Force) {

@@ -377,11 +377,13 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
     if (vol->replication <= 1) return 0;
 #endif
 
-    /* Don't spool when resolution has been forced off */
-    if (!AllowResolution) return 0;
-
     /* Don't spool when resolution has been turned off for this volume */
-    if (!V_RVMResOn(vol)) {
+    /* No need to print an error message, assume the user knows what he was
+     * doing when turning off resolution for a specific volume. */
+    if (!V_RVMResOn(vol)) return 0;
+
+    /* Don't spool when resolution has been forced off */
+    if (!AllowResolution) {
 	SLog(0,"Caution, replicated volume 0x%lx, resolution is turned off.\n",
 	     V_id(vol));
 	return 0;

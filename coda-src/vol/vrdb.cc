@@ -67,7 +67,7 @@ vrtab::vrtab(char *n) : ohashtab(VRTABHASHSIZE, vrtabHashfn),
 
 
 vrtab::~vrtab() {
-    delete name;
+    delete [] name;
 }
 
 

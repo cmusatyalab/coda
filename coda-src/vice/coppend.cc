@@ -133,7 +133,7 @@ cpman::cpman(char *n): objects(COPHASHSIZE, coppendhashfn) {
 }
 
 cpman::~cpman() {
-    delete name;
+    delete [] name;
     LWP_DestroyProcess((PROCESS) pid);
 }
 

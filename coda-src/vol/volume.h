@@ -39,8 +39,7 @@ Pittsburgh, PA.
 
 #ifndef VOLUME_INCLUDED
 #define VOLUME_INCLUDED 1
-/* #include <recov_vollog.h>
- */
+
 #include <recov_vollog.h>
 #include <vice.h>
 #include <dllist.h>
@@ -54,7 +53,7 @@ Pittsburgh, PA.
 #define FSTAG	84597		/* Unique tag for fileserver lwp rocks */
 
 /* volume flags indicating which type of resolution is turned on */
-#define VMRES	1
+//#define VMRES	1
 #define RVMRES	4
 
 typedef bit32				FileOffset; /* Offset in this file */
@@ -376,13 +375,6 @@ struct volHeader {
 #define V_RVMResOn(vp)		((vp)->header->diskstuff.ResOn & RVMRES)
 #define V_VolLog(vp)		((vp)->header->diskstuff.log)
 #define V_WriteBackEnable(vp)   ((vp)->header->diskstuff.WriteBackEnable)
-
-/* File offset computations.  The offset values in the volume header are
-   computed with these macros -- when the file is written only!! */
-#define VOLUME_MOUNT_TABLE_OFFSET(Volume)	(sizeof (VolumeDiskData))
-#define VOLUME_BITMAP_OFFSET(Volume)	\
-	(sizeof (VolumeDiskData) + (Volume)->disk.mountTableSize)
-
 
 extern char *ThisHost;		/* This machine's hostname */
 extern int ThisServerId;	/* this server id, as found in

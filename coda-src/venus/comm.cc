@@ -1010,7 +1010,7 @@ srvent::~srvent()
 
     srvent::srvtab->remove(&tblhandle);
 
-    delete name;
+    delete [] name;
 
     int code = (int) RPC2_Unbind(connid);
     LOG(1, ("srvent::~srvent: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));

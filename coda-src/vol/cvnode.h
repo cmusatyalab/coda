@@ -185,11 +185,6 @@ typedef struct Vnode {
 	((AL_AccessList *) (((byte *)(v))+SIZEOF_SMALLDISKVNODE))
 #define  VVnodeACL(vnp) (VVnodeDiskACL(&(vnp)->disk))
 
-/* note that there is currently room between the end of the 
-small vnode and the ACL because 
-SIZOEOF_SMALLDISKVNODE > sizeof(VnodeDiskData)
-*/
-
 #define VAclSize(vnp)		(SIZEOF_LARGEVNODE - SIZEOF_SMALLVNODE)
 #define VAclDiskSize(v)		(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)
 #define VnLog(vnp)		((vnp)->disk.log)

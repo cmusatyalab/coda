@@ -1682,7 +1682,7 @@ namectxt::~namectxt() {
     /* Path was allocated in ctor (and hence only requires free'ing here) if context was meta_expanded. */
     if (meta_expanded) {
 	MetaNameCtxts--;
-	delete path;
+	delete [] path;
     }
 
     /* Dequeue from appropriate priority queue. */

@@ -452,6 +452,8 @@ vproc::~vproc() {
 
     if (LWP_DestroyProcess((PROCESS)lwpid) != LWP_SUCCESS)
 	CHOKE("vproc::~vproc: LWP_DestroyProcess failed");
+
+    delete [] name;
 }
 
 /* local-repair modification */
