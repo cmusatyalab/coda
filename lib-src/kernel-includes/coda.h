@@ -113,10 +113,10 @@ typedef unsigned long long u_quad_t;
 #endif
 
 #ifdef __CYGWIN32__
-struct timespec {
-        time_t  tv_sec;         /* seconds */
-        long    tv_nsec;        /* nanoseconds */
-};
+// struct timespec {
+//        time_t  tv_sec;         /* seconds */
+//        long    tv_nsec;        /* nanoseconds */
+// };
 #endif
 
 /* Solaris Definitions */
