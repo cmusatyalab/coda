@@ -250,15 +250,17 @@ dnl ---------------------------------------------
 dnl Search for an installed lwp library
 
 AC_DEFUN(CODA_FIND_LIBLWP,
-  [AC_CACHE_CHECK(location of liblwp, coda_cv_lwppath,
-   [saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
-    coda_cv_lwppath=none ; LIBS="-llwp"
-    for path in ${prefix} /usr /usr/local /usr/pkg ; do
-      LDFLAGS="${LDFLAGS} -L${path}/lib"
-      AC_TRY_LINK([], [int main(){return 0;}],
-	          [coda_cv_lwppath=${path} ; break])
-    done
-    LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"])
+ [AC_CACHE_CHECK(location of liblwp, coda_cv_lwppath,
+  [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
+   coda_cv_lwppath=none ; LIBS="-llwp"
+   for path in ${prefix} /usr /usr/local /usr/pkg ; do
+     CFLAGS="${CFLAGS} -I${path}/lib"
+     LDFLAGS="${LDFLAGS} -L${path}/lib"
+     AC_TRY_LINK([#include <lwp/lwp.h>], [LWP_Init(0,0,0)],
+		 [coda_cv_lwppath=${path} ; break])
+   done
+   CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"
+  ])
   case $coda_cv_lwppath in
     none) AC_MSG_ERROR("Cannot determine the location of liblwp")
           ;;
