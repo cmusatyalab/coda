@@ -14,7 +14,7 @@
 # Otherwise, we are probably a BSD like OS.
 
 LOCKDIR=/var/lock/subsys
-PIDDIR=/vice/srv
+PIDDIR=/vice/misc
 DBDIR=/vice/db
 
 PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH

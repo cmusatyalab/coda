@@ -65,7 +65,9 @@ extern long int volUtil_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*, SE_Descr
 static void InitServer();
 static void VolUtilLWP(int *);
 /* RPC key lookup routine */
-static long VolGetKey(RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
+static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cident,
+		      RPC2_EncryptionKey sharedsecret,
+		      RPC2_EncryptionKey sessionkey);
 
 static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
@@ -163,7 +165,10 @@ static void InitServer() {
     CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
     }
 
-static long VolGetKey(RPC2_CountedBS *cid, RPC2_EncryptionKey id, RPC2_EncryptionKey skey) {
+static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cid,
+		      RPC2_EncryptionKey id,
+		      RPC2_EncryptionKey skey)
+{
     char name[32];
 
     sprintf(name, "%s", VolName);
