@@ -111,8 +111,5 @@ extern int AL_EnableGroup(int gid, PRS_InternalCPS *ICPS);
 int CmpPlus(AL_AccessEntry *a, AL_AccessEntry *b);
 int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
 
-#define PDB_AUXDB "aux.pdb"
-#define PDB_MAINDB "main.pdb"
-
 #endif
 

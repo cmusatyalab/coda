@@ -33,10 +33,13 @@ endif
 
 CFLAGS += -Wall
 
+ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = pdbtool altest
-CSBIN       = $(EXECUTABLES)
+SSBINS      = pdbtool
 LIBRARIES   = libal.a
+endif
 HEADERS	    = al.h prs.h
+
 
 NO_LEX = yes
 
@@ -45,9 +48,9 @@ HFILES = al.h prs.h pdb.h pdbarray.h
 libal.a:  pdbdb.o pdbpack.o alprocs.o pdb.o pdbdb.o pdbpack.o pdbprofile.o pdbarray.o 
 
 altest: altest.o libal.a $(LIBUTIL) $(HFILES)
-	$(CC) ${LIBFLAGS} altest.o libal.a -lgdbm $(LIBUTIL) $(LIBBASE) $(LGDBM)-lgdbm  -o altest
+	$(CC) ${LIBFLAGS} altest.o libal.a -lgdbm $(LIBUTIL) $(LIBBASE) -o altest
 
-pdbtool: pdbtool.o libal.a
-	$(CC) ${LIBFLAGS} pdbtool.o libal.a -lgdbm $(LIBREADLINE) $(LIBBASE) $(LGDBM) -lgdbm -o pdbtool
+pdbtool: pdbtool.o libal.a 
+	$(CC) ${LIBFLAGS} pdbtool.o libal.a -lgdbm $(LIBBASE) $(LIBREADLINE) -o pdbtool
 
 include $(MAKDIR)/configs/Makerules

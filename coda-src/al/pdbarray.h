@@ -34,6 +34,10 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <sys/types.h>
 
+#ifdef DJGPP
+#define int32_t int
+#endif
+
 typedef struct pdb_array {
 	int32_t size,memsize;
 	int32_t *data;
