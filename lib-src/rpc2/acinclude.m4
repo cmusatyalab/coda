@@ -6,7 +6,10 @@ dnl test the cross compilation platform and adjust default settings
 AC_DEFUN(CODA_SETUP_BUILD,
 [AC_SUBST(LIBTOOL_LDFLAGS)
 case ${target} in
-  djgpp | win95 | dos )  target=i386-pc-msdos ;;
+  djgpp | dos )  target=i386-pc-msdos 
+		 dosmmap=false ;;
+  win95 | win98 ) target=i386-pc-msdos
+		  dosmmap=true ;;
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
 esac
 AC_CANONICAL_SYSTEM
@@ -17,8 +20,13 @@ if test ${build} != ${target} ; then
    i386-pc-msdos )
     dnl shared libraries don't work here
     AM_DISABLE_SHARED
-    CC="dos-gcc -bmmap"
-    CXX="dos-gcc -bmmap"
+    if ${dosmmap} ; then
+      CC="dos-gcc -bmmap"
+      CXX="dos-gcc -bmmap"
+    else
+      CC="dos-gcc -bw95"
+      CXX="dos-gcc -bw95" 
+    fi
     AR="dos-ar"
     RANLIB="true"
     AS="dos-as"
