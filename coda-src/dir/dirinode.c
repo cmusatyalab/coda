@@ -32,12 +32,12 @@ PDirHeader DI_DiToDh(PDirInode pdi)
 }
 
 /* copy a dir handle to a directory inode; create latter if needed */
-PDirInode DI_DhToDi(PDCEntry pdce, PDirInode pdi)
+void DI_DhToDi(PDCEntry pdce)
 {
 	PDirHandle pdh = DC_DC2DH(pdce);
 	int pages;
 	int i;
-	PDirInode lpdi;
+	PDirInode pdi = DC_DC2DI(pdce);
 
 	DIR_intrans();
 
@@ -45,34 +45,33 @@ PDirInode DI_DhToDi(PDCEntry pdce, PDirInode pdi)
 	pages = DH_Length(pdh)/DIR_PAGESIZE;
 
 	if (pdi == NULL) {
-		lpdi = (PDirInode) rvmlib_rec_malloc(sizeof(*lpdi));
-		assert(lpdi);
-		bzero((char *)lpdi, sizeof(*lpdi));
-	} else {
-		lpdi = pdi;
-	}
+		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(*pdi));
+		assert(pdi);
+		bzero((char *)pdi, sizeof(*pdi));
+		DC_SetDI(pdce, pdi);
+	} 
 
-	rvmlib_set_range(lpdi, sizeof(*lpdi));
-	lpdi->di_refcount = DC_Refcount(pdce);
+	rvmlib_set_range(pdi, sizeof(*pdi));
+	pdi->di_refcount = DC_Refcount(pdce);
 	
 	/* copy pages to the dir inode */
 	for ( i=0 ; i<pages ; i++) {
-		if ( lpdi->di_pages[i] == 0 ) {
-			lpdi->di_pages[i] = rvmlib_rec_malloc(DIR_PAGESIZE);
-			assert(lpdi->di_pages[i]); 
+		if ( pdi->di_pages[i] == 0 ) {
+			pdi->di_pages[i] = rvmlib_rec_malloc(DIR_PAGESIZE);
+			assert(pdi->di_pages[i]); 
 		}
-		rvmlib_set_range(lpdi->di_pages[i], DIR_PAGESIZE);
+		rvmlib_set_range(pdi->di_pages[i], DIR_PAGESIZE);
 		bcopy((const void *)DIR_Page(pdh->dh_data, i), 
-		      lpdi->di_pages[i], DIR_PAGESIZE);
+		      pdi->di_pages[i], DIR_PAGESIZE);
 	}
 
 	/* free pages which have disappeared */
 	for (i=pages ; i<DIR_MAXPAGES ; i++) {
-		if (lpdi->di_pages[i])
-			rvmlib_rec_free(lpdi->di_pages);
+		if (pdi->di_pages[i])
+			rvmlib_rec_free(pdi->di_pages);
 	}
 
-	return lpdi; 
+	return ;
 }
 
 /* reduce the refcount of the directory, delete it when it falls to 0 */

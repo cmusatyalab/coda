@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.4 1998/08/26 21:16:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.5 1998/10/09 21:57:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -296,7 +296,7 @@ extern void Die(char *);
 /* srv.c */
 extern void SetStatus(Vnode *, ViceStatus *, Rights, Rights);
 extern int GetRights (PRS_InternalCPS *, AL_AccessList *, int, Rights *, Rights *);
-extern int GetFsObj(ViceFid *, Volume **, Vnode **, int, int, int , int);
+extern int GetFsObj(ViceFid *, Volume **, Vnode **, int, int, int , int, int);
 extern int SystemUser(ClientEntry *);
 extern int AdjustDiskUsage(Volume *, int);
 extern void ChangeDiskUsage(Volume *, int);

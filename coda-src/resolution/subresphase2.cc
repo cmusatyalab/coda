@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase2.cc,v 4.3 1998/01/10 18:38:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase2.cc,v 4.4 1998/08/31 12:23:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -93,7 +93,8 @@ long RS_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     // get objects 
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, NO_LOCK, 0, 0))
+	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
+				 NO_LOCK, 0, 0, 0))
 	    goto Exit;
     }
     // Check Phase2 Semantics 

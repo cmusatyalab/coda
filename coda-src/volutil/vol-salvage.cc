@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.19 1998/10/07 20:30:00 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.20 1998/10/09 21:57:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -955,7 +955,7 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 		assert(vnode->inodeNumber != 0);
 		if (vnode->inodeNumber == NEWVNODEINODE){
 		    /* delete the vnode */
-		    LogMsg(0, VolDebugLevel, stdout, "DistilVnodeEssence: Found a Directory vnode %d that has a special inode ... deleting vnode ",
+		    VLog(0, "DistilVnodeEssence: Found a Directory vnode %d that has a special inode ... deleting vnode ",
 			vnodeIndex);
 		    vip->nAllocatedVnodes--;
 		    vip->volumeBlockCount -= vep->blockCount;
@@ -1032,7 +1032,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	    DH_EnumerateDir(DC_DC2DH(dir.dirCache), JudgeEntry, (void *)&dir);
 	    /* XXX We could call DC_Put here equally well and 
 	       retain some cache */
-	    DC_Drop(dir.dirCache);
+	    DC_Put(dir.dirCache);
 	    VLog(9, "DCC: Finished checking directory(%#x.%x.%x)",
 		   vsp->header.id, dir.vnodeNumber, dir.unique);
 

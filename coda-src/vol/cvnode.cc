@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.cc,v 4.5 1998/03/06 20:21:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.cc,v 4.6 1998/08/26 21:22:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -472,7 +472,8 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
       vnode.  int ignoreBarren TRUE (non-zero) iff it is ok for barren
       flag to be set in vnode */
 Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
-		  Unique_t unq, int locktype, int ignoreIncon, int ignoreBarren)
+		  Unique_t unq, int locktype, int ignoreIncon, 
+		 int ignoreBarren)
 
 {
 	register Vnode *vnp;
@@ -532,6 +533,13 @@ Vnode *VGetVnode(Error *ec, Volume *vp, VnodeId vnodeNumber,
 			GrowVnLRUCache(vclass, vclass == vSmall ? small : large);
 		}
 		vnp = vcp->lruHead->lruPrev;
+		if ( vnp->dh ) {
+			SLog(0, "VGetVnode: DROPPING dh of vn %x un %x"
+			     "count %d\n",
+			     vnp->vnodeNumber, vnp->disk.uniquifier, 
+			     DC_Count(vnp->dh));
+			VN_DropDirHandle(vnp);
+		}
 
 		/* Read vnode from volume index */
 		vindex v_index(V_id(vp), vclass, vp->device, vcp->diskSize);
@@ -723,7 +731,7 @@ void VPutVnode(Error *ec,register Vnode *vnp)
 	   be postponed, by clearing it when we reuse a Vnode from the LRU) */
 	if (vnp->nUsers-- == 1) {
 		StickOnLruChain(vnp,vcp);
-		VN_PutDirHandle(vnp);
+		/* VN_PutDirHandle(vnp);  */
 	}
 	vnp->delete_me = 0;
 	if (writeLocked)

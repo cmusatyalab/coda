@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.6 1998/08/31 12:23:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.7 1998/10/08 17:25:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -176,13 +176,13 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     int volindex = -1;
     char *logbuf = 0;
     
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering RS_FetchLog(%x.%x.%x)",
+    SLog(9,  "Entering RS_FetchLog(%x.%x.%x)",
 	   Fid->Volume, Fid->Vnode, Fid->Unique);
     PROBE(tpinfo, CFETCHLOGBEGIN)
 	/* Validate the fid */
 	{
 	    if (!XlateVid(&Fid->Volume)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchLog: Couldn't Xlate VSG %x",
+		SLog(0,  "RS_FetchLog: Couldn't Xlate VSG %x",
 		       Fid->Volume);
 		errorCode = EINVAL;
 		goto Exit;
@@ -192,8 +192,8 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     /* get the object */
     {
 	if (errorCode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK,
-				 NO_LOCK, 0, 0)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchLog: Error %d in getobj", errorCode);
+				 NO_LOCK, 0, 0, 0)) {
+	    SLog(0,  "RS_FetchLog: Error %d in getobj", errorCode);
 	    errorCode = EINVAL;
 	    goto Exit;
 	}
@@ -208,7 +208,7 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     
     /* get log */
     {
-	LogMsg(9, SrvDebugLevel, stdout,  "RS_FetchLog: Getting log ");
+	SLog(9,  "RS_FetchLog: Getting log ");
 	
 	/* make sure log is not empty - after a crash it is empty */
 	{
@@ -235,7 +235,7 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
 	logbuf = FlattenLocalRMTLElist(&localloglist, (int *)size);
 	PurgeLocalRMTLElist(&localloglist);
 	if (!logbuf) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchLog: Log is empty");
+	    SLog(0,  "RS_FetchLog: Log is empty");
 	    errorCode = EINVAL;
 	    goto Exit;
 	}
@@ -244,7 +244,7 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     PollAndYield();
     /* ship the log */
     {
-	LogMsg(9, SrvDebugLevel, stdout,  "RS_FetchLog: Shipping log ");
+	SLog(9,  "RS_FetchLog: Shipping log ");
 	bzero((void *)&sid, (int)sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -258,14 +258,14 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
 	
 	if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) 
 	   <= RPC2_ELIMIT) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchLog: InitSE failed (%d), (%x.%x.%x)",
+	    SLog(0,  "RS_FetchLog: InitSE failed (%d), (%x.%x.%x)",
 		   errorCode, Fid->Volume, Fid->Vnode, Fid->Unique);
 	    goto Exit;
 	}
 	
 	if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
 	    <= RPC2_ELIMIT) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchLog: CheckSE failed (%d), (%x.%x.%x)",
+	    SLog(0,  "RS_FetchLog: CheckSE failed (%d), (%x.%x.%x)",
 		   errorCode, Fid->Volume, Fid->Vnode, Fid->Unique);
 	    if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 	    goto Exit;
@@ -283,7 +283,7 @@ long RS_FetchLog(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
 	    PutVolObj(&volptr, NO_LOCK);
 	if (logbuf)
 	    delete[] logbuf;
-	LogMsg(9, SrvDebugLevel, stdout,  "RS_FetchLog: returns %d", errorCode);
+	SLog(9,  "RS_FetchLog: returns %d", errorCode);
 	PROBE(tpinfo, CFETCHLOGEND);
 	return(errorCode);
     }
@@ -335,14 +335,14 @@ long RS_DirResPhase1(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 	
 	if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) 
      <= RPC2_ELIMIT) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchLog: InitSE failed (%d), (%x.%x.%x)",
+	    SLog(0,  "RS_FetchLog: InitSE failed (%d), (%x.%x.%x)",
 	    errorCode, Fid->Volume, Fid->Vnode, Fid->Unique);
 	    goto Exit;
 	}
 
 if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
      <= RPC2_ELIMIT) {
-    LogMsg(0, SrvDebugLevel, stdout,  "FetchBulkTransfer: CheckSE failed (%d), (%x.%x.%x)",
+    SLog(0,  "FetchBulkTransfer: CheckSE failed (%d), (%x.%x.%x)",
     errorCode, Fid->Volume, Fid->Vnode, Fid->Unique);
     if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
     goto Exit;
@@ -363,7 +363,7 @@ PROBE(tpinfo, COMPOPSBEGIN);
 /* compute partial ops/compensation operations list */
 {
     if (errorCode = ComputeCompOps(hvlog, Fid, &CompList, &nCompOps)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_DirResPhase1 - Error %d in ComputeCompOps",
+	SLog(0,  "RS_DirResPhase1 - Error %d in ComputeCompOps",
 	       errorCode);
 	goto Exit;
     }
@@ -380,7 +380,7 @@ PollAndYield();
     vlist = new dlist((CFN) VLECmp);
     if (errorCode = GetResObjs(CompList, nCompOps, Fid, 
 			       &volptr, vlist)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_DirResPhase1 Error %d in Getting objs",
+	SLog(0,  "RS_DirResPhase1 Error %d in Getting objs",
 	       errorCode);
 	goto Exit;
     }
@@ -394,7 +394,7 @@ PollAndYield();
     if (errorCode = CheckSemPerformRes(CompList, nCompOps, volptr, 
 				       Fid, vlist, hvlog, inclist, 
 				       &nblocks)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_DirResPhase1 Error %d during CheckSemPerformRes",
+	SLog(0,  "RS_DirResPhase1 Error %d during CheckSemPerformRes",
 	       errorCode);
 	goto Exit;
     }
@@ -412,7 +412,7 @@ PollAndYield();
 	/* check if new vv is legal */
 	int res = VV_Cmp_IgnoreInc(&Vnode_vv(ov->vptr), &DiffVV);
 	if (res != VV_EQ && res != VV_SUB) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_DirResPhase 1: %x.%x VV's are in conflict",
+	    SLog(0,  "RS_DirResPhase 1: %x.%x VV's are in conflict",
 		   ov->vptr->vnodeNumber, ov->vptr->disk.uniquifier);
 	    assert(0);
 	}
@@ -475,7 +475,7 @@ PollAndYield();
 	/* vlist & volptr cleaned up in PutObjects */
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "RS_DirResPhase1 - returning %d", errorCode);
+    SLog(9,  "RS_DirResPhase1 - returning %d", errorCode);
     PROBE(tpinfo, CPHASE1END);
     return(errorCode);
 }
@@ -492,7 +492,7 @@ long RS_DirResPhase2(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     
     {
 	if (!XlateVid(&Fid->Volume)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
+	    SLog(0,  
 		   "DirResPhase2: Coudnt Xlate VSG %x", Fid->Volume);
 	    PROBE(tpinfo, CPHASE2END);
 	    return(EINVAL);
@@ -509,7 +509,7 @@ long RS_DirResPhase2(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
 	vlist = new dlist((CFN) VLECmp);
 	
 	if (errorCode = GetPhase2Objects(Fid, vlist, inclist, &volptr)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "DirResPhase2: Error getting objects");
+	    SLog(0,  "DirResPhase2: Error getting objects");
 	    goto Exit;
 	}
     }
@@ -518,7 +518,7 @@ long RS_DirResPhase2(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     {
 	if (errorCode = CreateResPhase2Objects(Fid, vlist, inclist, volptr, 
 					       VSGVolnum, &blocks)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "DirResPhase2: Error %d in create objects",
+	    SLog(0,  "DirResPhase2: Error %d in create objects",
 		   errorCode);
 	    goto Exit;
 	}
@@ -595,7 +595,7 @@ long RS_DirResPhase2(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     // clean up 
     if (inclist) CleanIncList(inclist);
     
-    LogMsg(9, SrvDebugLevel, stdout,  "DirResPhase2 returns %d", errorCode);
+    SLog(9,  "DirResPhase2 returns %d", errorCode);
     PROBE(tpinfo, CPHASE2END);
     return(errorCode);
 }
@@ -614,7 +614,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     
     {
 	if (!XlateVid(&Fid->Volume)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
+	    SLog(0,  
 		   "DirResPhase3: Coudnt Xlate VSG %x", Fid->Volume);
 	    PROBE(tpinfo, CPHASE3END);
 	    return(EINVAL);
@@ -623,8 +623,10 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     /* get objects */
     {
 	ov = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &ov->vptr, WRITE_LOCK, NO_LOCK, 0, 0)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  
+	if ( ISDIR(*Fid) )
+		ov->d_inodemod = 1;
+	if (errorCode = GetFsObj(Fid, &volptr, &ov->vptr, WRITE_LOCK, NO_LOCK, 0, 0, ov->d_inodemod)) {
+	    SLog(0,  
 		   "DirResPhase3: Error %d getting object %x.%x",
 		   errorCode, Fid->Vnode, Fid->Unique);
 	    goto Exit;
@@ -639,7 +641,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
     
     /* if phase1 was successful update vv */
-    LogMsg(9, SrvDebugLevel, stdout,  "DirResPhase3: Going to update vv");
+    SLog(9,  "DirResPhase3: Going to update vv");
     
     if ((&(VV->Versions.Site0))[ix] && COP2Pending(ov->vptr->disk.versionvector)) {
         ov->vptr->disk.versionvector.StoreId = VV->StoreId;
@@ -649,16 +651,16 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	(&(VV->Versions.Site0))[ix] = 1;
 	
 	// add a log entry that will be common for all hosts participating in this res
-	LogMsg(0, SrvDebugLevel, stdout, "Going to check if logentry must be spooled\n");
+	SLog(0, "Going to check if logentry must be spooled\n");
 	if (V_RVMResOn(volptr)) {
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    SLog(0, 
 		   "Going to spool log entry for phase3\n");
 	    assert(SpoolVMLogRecord(vlist, ov->vptr, volptr, &(VV->StoreId), ResolveNULL_OP, 0) == 0);
 	}
     }
     /* truncate log if success everywhere in phase 1 */
     {
-	LogMsg(9, SrvDebugLevel, stdout,  
+	SLog(9,  
 	       "DirResPhase3: Going to check if truncate log possible");
 	unsigned long Hosts[VSG_MEMBERS];
 	int i = 0;
@@ -672,7 +674,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		break;
 	if (i == VSG_MEMBERS) {
 	    /* update set has 1 for all hosts */
-	    LogMsg(9, SrvDebugLevel, stdout,  
+	    SLog(9,  
 		   "OldDirResPhase3: Success everywhere - truncating log");
 	    if (AllowResolution && V_VMResOn(volptr)) 
 		TruncResLog(V_volumeindex(volptr), Fid->Vnode, Fid->Unique);
@@ -686,7 +688,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	PDirHandle dh;
 	int size = 0;
 	dh = VN_SetDirHandle(ov->vptr);
-	LogMsg(9, SrvDebugLevel, stdout,  "RS_DirResPhase3: Shipping dir contents ");
+	SLog(9,  "RS_DirResPhase3: Shipping dir contents ");
 	SE_Descriptor sid;
 	bzero((void *)&sid, (int) sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
@@ -701,14 +703,14 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	
 	if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) 
 	   <= RPC2_ELIMIT) {
-		LogMsg(0, SrvDebugLevel, stdout,  
+		SLog(0,  
 		       "RS_DirResPhase3:  InitSE failed (%d)", errorCode);
 		goto Exit;
 	}
 	
 	if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
 	    <= RPC2_ELIMIT) {
-		LogMsg(0, SrvDebugLevel, stdout,  
+		SLog(0,  
 		       "RS_DirResPhase3: CheckSE failed (%d)", errorCode);
 		if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 		goto Exit;
@@ -717,7 +719,7 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
   Exit:
     PutObjects((int)errorCode, volptr, NO_LOCK, vlist, 0, 1);
-    LogMsg(9, SrvDebugLevel, stdout,  "DirResPhase3 returns %d", errorCode);
+    SLog(9,  "DirResPhase3 returns %d", errorCode);
     PROBE(tpinfo, CPHASE3END);
     return(errorCode);
 }
@@ -735,7 +737,7 @@ static rlent *FindRmtPartialOps(int nrmtentries, rlent *RmtLog,
     
     rlent **RmtLogPtrs = 0;
     
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering FindRmtPartialOps()");
+    SLog(9,  "Entering FindRmtPartialOps()");
     /* sort rmt log entries */
     {
 	int i = 0;
@@ -745,14 +747,14 @@ static rlent *FindRmtPartialOps(int nrmtentries, rlent *RmtLog,
 	    RmtLogPtrs[i] = &(RmtLog[i]);
 	qsort(RmtLogPtrs, nrmtentries, sizeof(rlent *),
 	      (int (*)(const void *, const void *))CmpLogEntries);
-	LogMsg(39, SrvDebugLevel, stdout,  "Sorted Remote operations are:");
+	SLog(39,  "Sorted Remote operations are:");
 	if (SrvDebugLevel >= 39) {
 	    for (i = 0; i < nrmtentries; i++) 
 		RmtLogPtrs[i]->print();
 	}
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  
+    SLog(9,  
 	   "FindRmtPartialOps: Going to find common point with remote log");
     rlent *LatestCommonEntry = 0;
     /* find the Common point with the remote log */
@@ -764,14 +766,14 @@ static rlent *FindRmtPartialOps(int nrmtentries, rlent *RmtLog,
 	    ViceStoreId lstid = SortedLocalLog[lindex]->storeid;
 	    ViceStoreId	rstid = RmtLogPtrs[rindex]->storeid;
 	    int cmpresult = CompareStoreId(&lstid, &rstid);
-	    LogMsg(39, SrvDebugLevel, stdout,  "cmpresult = %d; lindex = %d,rindex = %d", 
+	    SLog(39,  "cmpresult = %d; lindex = %d,rindex = %d", 
 		   cmpresult, lindex, rindex);
 	    while (cmpresult > 0 && rindex < (nrmtentries - 1)) {
 		rindex ++;
 		rstid = RmtLogPtrs[rindex]->storeid;
 		cmpresult = CompareStoreId(&lstid, &rstid);
 	    }
-	    LogMsg(39, SrvDebugLevel, stdout,  
+	    SLog(39,  
 		   "After WHILE: cmpresult = %d, LatestCommonEntry(%x.%x)",
 		   cmpresult, LatestCommonEntry ? LatestCommonEntry->storeid.Host:0,
 		   LatestCommonEntry ? LatestCommonEntry->storeid.Uniquifier:0);
@@ -789,7 +791,7 @@ static rlent *FindRmtPartialOps(int nrmtentries, rlent *RmtLog,
 		    /* REMOVE THIS AFTER LOGS ARE IN RVM */
 		    LatestCommonEntry = RmtLogPtrs[rindex];
 	    }
-	    LogMsg(39, SrvDebugLevel, stdout,  "After IF LCE = %x.%x",
+	    SLog(39,  "After IF LCE = %x.%x",
 		   LatestCommonEntry ? LatestCommonEntry->storeid.Host:0,
 		   LatestCommonEntry ? LatestCommonEntry->storeid.Uniquifier:0);
 	}
@@ -822,8 +824,8 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
     
     *complistsize = 0;
     
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering CreateCompList()");
-    LogMsg(9, SrvDebugLevel, stdout,  "CreateCompList: %d local entries", nlentries);
+    SLog(9,  "Entering CreateCompList()");
+    SLog(9,  "CreateCompList: %d local entries", nlentries);
     /* get all the partial ops together */
     {	
 	totalops = 0;
@@ -832,7 +834,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
 		totalops += sizes[i];
 	if (totalops <= 0) return(0);
 	opsptrs = (rlent **)malloc(sizeof(rlent *) * totalops);
-	LogMsg(39, SrvDebugLevel, stdout,  "CreateCompList: %d totalops ", totalops);
+	SLog(39,  "CreateCompList: %d totalops ", totalops);
 	int index = 0;
       { /* drop scope for int i below; to avoid identifier clash */
 	for (int i = 0; i < nhosts; i++) 
@@ -843,18 +845,18 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
       } /* drop scope for int i above; to avoid identifier clash */
     }	
     /* sort the ops */
-    LogMsg(39, SrvDebugLevel, stdout,  "CreateCompList: Sorting all ops lists");
+    SLog(39,  "CreateCompList: Sorting all ops lists");
     qsort(opsptrs, totalops, sizeof(rlent *), 
 	(int (*)(const void *, const void *)) CmpLogEntries);
     {
-	LogMsg(39, SrvDebugLevel, stdout,  
+	SLog(39,  
 	       "CreateCompList: Sorted List of all partial remote ops:");
 	if (SrvDebugLevel >= 39) 
 	    for (int i = 0; i < totalops; i++) 
 		opsptrs[i]->print();
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "CreateCompList: Deleting redundant entries");
+    SLog(9,  "CreateCompList: Deleting redundant entries");
     
     VnodeId	tmpdvnode = 0;
     /* delete duplicate entries */
@@ -867,7 +869,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
 	*complistsize = 1;
 	for (int i = 1; i < totalops; i++) {
 	    if (SID_EQ(opsptrs[i]->storeid, prevstoreid)) {
-		LogMsg(39, SrvDebugLevel, stdout,  "CreateCompList: Deleting Entry %d (%x.%x) same as previous",
+		SLog(39,  "CreateCompList: Deleting Entry %d (%x.%x) same as previous",
 			i, prevstoreid.Host, prevstoreid.Uniquifier);
 		opsptrs[i] = 0;
 	    }
@@ -875,7 +877,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
 		prevstoreid = opsptrs[i]->storeid;
 		assert(tmpdvnode == opsptrs[i]->dvnode);
 		
-		LogMsg(39, SrvDebugLevel, stdout,  "CreateCompList: Keeping entry %d (%x.%x)",
+		SLog(39,  "CreateCompList: Keeping entry %d (%x.%x)",
 			i, prevstoreid.Host, prevstoreid.Uniquifier);
 		opsptrs[i]->dvnode = KEEPFLAG;
 		*complistsize += 1;
@@ -884,7 +886,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
     }
     
     {
-	LogMsg(39, SrvDebugLevel, stdout,  "Sorted List of non duplicate entries");
+	SLog(39,  "Sorted List of non duplicate entries");
 	if (SrvDebugLevel >= 39) 
 	    for (int i = 0; i < totalops; i++) {
 		if (opsptrs[i])
@@ -892,41 +894,41 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
 	    }
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "CreateCompList: Deleting local ops");
+    SLog(9,  "CreateCompList: Deleting local ops");
     /* delete entries also in local log */
     {	int i, j;
 	int res = -1;
 	for (i = 0, j = 0; i < totalops && j < nlentries; i++) {
 	    if (opsptrs[i]) {
-		LogMsg(39, SrvDebugLevel, stdout,  
+		SLog(39,  
 		       "CreateCompList: Looking at totallog ptr %d", i);
 		while ((j < nlentries) &&
 		       (res = CompareStoreId(&(opsptrs[i]->storeid),
 					     &(sortedLlog[j]->storeid)))
 		       > 0)
 		    j++;
-		LogMsg(39, SrvDebugLevel, stdout,  
+		SLog(39,  
 		       "After Scanning over local entries j = %d", j);
 		if (res == 0) {
-		    LogMsg(39, SrvDebugLevel, stdout,  "Found a match between local entry %d and total entry %d",
+		    SLog(39,  "Found a match between local entry %d and total entry %d",
 			    j, i);
 		    assert(opsptrs[i]->dvnode == KEEPFLAG);
 		    opsptrs[i]->dvnode = tmpdvnode;
-		    LogMsg(39, SrvDebugLevel, stdout,  "Deleting Entry:");
+		    SLog(39,  "Deleting Entry:");
 		    if (SrvDebugLevel >= 39) 
 			opsptrs[i]->print();
 		    opsptrs[i] = 0;
 		    *complistsize -= 1;
 		}
 		else if (j >= nlentries) {
-		    LogMsg(39, SrvDebugLevel, stdout,  "Processed all local entries ");
+		    SLog(39,  "Processed all local entries ");
 		    break;
 		}
 	    }
 	}
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "CreateCompList: mallocing compensation list");
+    SLog(9,  "CreateCompList: mallocing compensation list");
     /* copy unique log records into a buffer */
     if (*complistsize > 0) {
 	complist = (rlent *)malloc(sizeof(rlent) * *complistsize);
@@ -936,7 +938,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
 	    for (int j = 0; j < sizes[i]; j++) {
 		rlent *tmprle = partialops[i] + j;
 		if (tmprle->dvnode == KEEPFLAG) {
-		    LogMsg(39, SrvDebugLevel, stdout,  
+		    SLog(39,  
 			   "Copying record with id %x.%x into comp list",
 			    tmprle->storeid.Host, tmprle->storeid.Uniquifier);
 		    tmprle->dvnode = tmpdvnode;
@@ -952,7 +954,7 @@ static rlent *CreateCompList(int *sizes, rlent **partialops,
     /* clean up */
     if (opsptrs) free(opsptrs);
     
-    LogMsg(9, SrvDebugLevel, stdout,  
+    SLog(9,  
 	   "CreateCompList: List has %d entries", *complistsize);
     return(complist);
 }
@@ -965,7 +967,7 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
     rlent **sortedLlog = 0;
     long errorCode = 0;
     
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering ComputeCompOps(): (%x.%x.%x)",
+    SLog(9,  "Entering ComputeCompOps(): (%x.%x.%x)",
 	    Fid->Volume, Fid->Vnode, Fid->Unique);
     *CompOps = 0;
     *nCompOps = 0;
@@ -975,7 +977,7 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
     {
 	he *localHost = FindHE(AllHostsList, ThisHostAddr);
 	if (!localHost) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "ComputeCompOps: Couldnt find list for host %x",
+	    SLog(0,  "ComputeCompOps: Couldnt find list for host %x",
 		    ThisHostAddr);
 	    errorCode = EINVAL;
 	    goto Exit;
@@ -983,14 +985,14 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
 	llrmtle = FindRMTLE(&localHost->vlist, Fid->Vnode, 
 			    Fid->Unique);
 	if (!llrmtle) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "ComputeCompOps: Couldnt find local log for(%x.%x)",
+	    SLog(0,  "ComputeCompOps: Couldnt find local log for(%x.%x)",
 		    Fid->Vnode, Fid->Unique);
 	    errorCode = EINVAL;
 	    goto Exit;
 	}
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "ComputeCompOps: Sorting local Log ");
+    SLog(9,  "ComputeCompOps: Sorting local Log ");
     /* sort local log */
     {
 	nlentries = llrmtle->u.remote.nentries;
@@ -1001,14 +1003,14 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
 	qsort(sortedLlog, nlentries, sizeof(rlent *), 
 	      	(int (*)(const void *, const void *)) CmpLogEntries);
 	
-	LogMsg(39, SrvDebugLevel, stdout,  "Sorted Local Log has %d entries :", nlentries);
+	SLog(39,  "Sorted Local Log has %d entries :", nlentries);
 	if (SrvDebugLevel > 39) {
 	    for (int i = 0; i < nlentries; i++) 
 		(*sortedLlog)[i].print();
 	}
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "ComputeCompOps: Computing partial ops for rmt sites");
+    SLog(9,  "ComputeCompOps: Computing partial ops for rmt sites");
     int npartialops[VSG_MEMBERS];
     rlent *partialops[VSG_MEMBERS];
     /* compute partial ops */
@@ -1035,24 +1037,24 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
 							  sortedLlog,
 							  &npartialops[index]);
 		    if (!partialops[index]) {
-			LogMsg(0, SrvDebugLevel, stdout,  "Couldnt get common point with site %x",
+			SLog(0,  "Couldnt get common point with site %x",
 				HE->hid);
 			/* print local and remote logs */
-			LogMsg(0, SrvDebugLevel, stdout,  "Local log contains:");
+			SLog(0,  "Local log contains:");
 			for (int i = 0; i < nlentries; i++)
 			    (*sortedLlog)[i].print();
 			errorCode = EINVAL;
 			goto Exit;
 		    }
 		    
-		    LogMsg(39, SrvDebugLevel, stdout,  "Partial ops for site %d are:", index);
+		    SLog(39,  "Partial ops for site %d are:", index);
 		    if (SrvDebugLevel >= 39) {
 			for (int j = 0; j < npartialops[index]; j++) 
 			    (partialops[index])[j].print();
 		    }
 		    
 		}
-		LogMsg(9, SrvDebugLevel, stdout,  "ComputeCompOps: Found partial ops for site %d",
+		SLog(9,  "ComputeCompOps: Found partial ops for site %d",
 			index);
 		index++;
 	    }
@@ -1060,14 +1062,14 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
 	}
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "ComputeCompOps: merging partial ops ");
+    SLog(9,  "ComputeCompOps: merging partial ops ");
     /* Combine partial ops and remove duplicates */
     *CompOps = CreateCompList(npartialops, partialops, 
 			      AllHostsList->count(), nCompOps,
 			      nlentries, sortedLlog);
     
     /* print compensation operations */
-    LogMsg(39, SrvDebugLevel, stdout,  "%d Compensating operations for resolve are :", *nCompOps);
+    SLog(39,  "%d Compensating operations for resolve are :", *nCompOps);
     {
 	extern int SrvDebugLevel;
 	if (SrvDebugLevel >= 39) {
@@ -1081,7 +1083,7 @@ static int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
   Exit:
     /* clean up */
     if (sortedLlog) free(sortedLlog);
-    LogMsg(9, SrvDebugLevel, stdout,  "ComputeCompOps: returns %d", errorCode);
+    SLog(9,  "ComputeCompOps: returns %d", errorCode);
     return(errorCode);
 }
 
@@ -1123,33 +1125,32 @@ static void PreProcessCompOps(rlent *rlog, int nrents) {
 }
 
 static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid, 
-		       Volume **volptr, dlist *vlist) {
-    
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering GetResObjs(%x.%x.%x)",
-	    Fid->Volume, Fid->Vnode, Fid->Unique);
-    
+		       Volume **volptr, dlist *vlist) 
+{
     long errorCode = 0;
     Vnode *vptr = 0;
+    
+    SLog(9, "Entering GetResObjs %S", FID_(Fid));
     
     /* translate fid */
     {
 	if (!XlateVid(&Fid->Volume)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "GetResObjs: Coudnt Xlate VSG %x", Fid->Volume);
+	    SLog(0, "GetResObjs: Couldn't Xlate VSG %x", Fid->Volume);
 	    return(EINVAL);
 	}
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "GetResObjs: Getting parent dir(%x.%x)",
-	    Fid->Vnode, Fid->Unique);
+    SLog(9, "GetResObjs: Getting parent dir %s", FID_(Fid));
     /* get  parent directory first  */
     {
-	if (errorCode = GetFsObj(Fid, volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0)) 
-	    goto Exit;
 	AddVLE(*vlist, Fid);
+	if (errorCode = GetFsObj(Fid, volptr, &vptr, READ_LOCK, 
+				 NO_LOCK, 0, 0, 0)) 
+		goto Exit;
     }
     
     
-    LogMsg(9, SrvDebugLevel, stdout,  "GetResObjs: Gathering Fids for children");
+    SLog(9,  "GetResObjs: Gathering Fids for children");
     /* gather all the fids for children into vlist */
     {
 	int count = 0;
@@ -1274,7 +1275,7 @@ static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
 			    AddVLE(*vlist, &rntgtFid);
 			else {
 			    if (errorCode = GetSubTree(&rntgtFid, *volptr, vlist)){
-				LogMsg(0, SrvDebugLevel, stdout,  "GetResObjs: error %d getting subtree",
+				SLog(0,  "GetResObjs: error %d getting subtree",
 					errorCode);
 				goto Exit;
 			    }
@@ -1373,7 +1374,7 @@ static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
 	}
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "GetResObjs: Putting back parent vnode ");
+    SLog(9,  "GetResObjs: Putting back parent vnode ");
     /* put back parent directory's vnode */
     {
 	if (vptr) {
@@ -1389,10 +1390,12 @@ static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
 	dlist_iterator next(*vlist);
 	vle *v;
 	while (v = (vle *)next()) {
-	    LogMsg(9, SrvDebugLevel, stdout,  "GetResObjects: acquiring (%x.%x.%x)",
-		    v->fid.Volume, v->fid.Vnode, v->fid.Unique);
+	    SLog(9,  "GetResObjects: acquiring %s", FID_(&v->fid));
+	    if ( ISDIR(v->fid) )
+		    v->d_inodemod = 1;
 	    if (errorCode = GetFsObj(&v->fid, volptr, &v->vptr, 
-				     WRITE_LOCK, NO_LOCK, 1, 0))
+				     WRITE_LOCK, 
+				     NO_LOCK, 1, 0, v->d_inodemod))
 		goto Exit;
 	    count++;
 	    if ((count && Yield_GetResObjMask) == 0)
@@ -1402,14 +1405,14 @@ static int GetResObjs(rlent *rlog, int nrentries, ViceFid *Fid,
     
   Exit:
     if (vptr) {
-	LogMsg(9, SrvDebugLevel, stdout,  "GetResObjs: ERROR condition - Putting back parent");
+	SLog(9,  "GetResObjs: ERROR condition - Putting back parent");
 	Error error = 0;
 	VPutVnode(&error, vptr);
 	assert(error == 0);
 	vptr = 0;
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "GetResObjs: returning(%d)", errorCode);
+    SLog(9,  "GetResObjs: returning(%d)", errorCode);
     return(errorCode);
 }
 
@@ -1438,7 +1441,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
     *nblocks = 0;
     int *result = 0;
 
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering CheckSemPerformRes()");
+    SLog(9,  "Entering CheckSemPerformRes()");
     
     if (nrents) {
 	result = (int *)malloc(sizeof(int) * nrents);
@@ -1462,17 +1465,17 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 	
 	VolumeId VSGVolnum = V_id(volptr);
 	if (!ReverseXlateVid(&VSGVolnum)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckSemPerformRes: Couldnt RevXlateVid %x",
+	    SLog(0,  "CheckSemPerformRes: Couldnt RevXlateVid %x",
 		    VSGVolnum);
 	    errorCode = EINVAL;
 	    goto Exit;
 	}
 	
-	LogMsg(39, SrvDebugLevel, stdout,  "CheckSemPerformRes: Looking at %d comp ops",
+	SLog(39,  "CheckSemPerformRes: Looking at %d comp ops",
 		nrents);
 	for (int i = 0; i < nrents; i++) {
 	    if (SrvDebugLevel >= 39) {
-		LogMsg(39, SrvDebugLevel, stdout,  "Printing %d Compensating Operation:", i);
+		SLog(39,  "Printing %d Compensating Operation:", i);
 		rlog[i].print();
 	    }
 	    /* yield every nth record */
@@ -1489,7 +1492,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		errorCode = ResolveRename(&rlog[i], volptr, VSGVolnum, dFid, 
 					  vlist, hvlog, inclist, &tblocks);
 		if (errorCode) {
-		    LogMsg(0, SrvDebugLevel, stdout,  "CheckSemPeformRes: Error %d from Resolve Rename",
+		    SLog(0,  "CheckSemPeformRes: Error %d from Resolve Rename",
 			    errorCode);
 		    goto Exit;
 		}
@@ -1511,7 +1514,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 			NameExists = FALSE;
 		}
 		nFid.Volume = dFid->Volume;
-		LogMsg(39, SrvDebugLevel, stdout,  "CheckSemPerformRes: NameExists = %d", NameExists);
+		SLog(39,  "CheckSemPerformRes: NameExists = %d", NameExists);
 	    }
 	    
 	    /* check if object exists */
@@ -1533,7 +1536,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		    if ((cv->vptr->disk.vparent != dFid->Vnode) ||
 			(cv->vptr->disk.uparent != dFid->Unique))
 			ParentPtrOk = FALSE;
-		LogMsg(39, SrvDebugLevel, stdout,  "CheckSemPerformRes: OE = %d, PPOK = %d",
+		SLog(39,  "CheckSemPerformRes: OE = %d, PPOK = %d",
 			ObjExists, ParentPtrOk);
 	    }
 	    
@@ -1543,7 +1546,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		if (name) {
 		    if (strlen(name) == DIROPNAMESIZE - 1) {
 			result[i] = MARKPARENTINC;
-			LogMsg(0, SrvDebugLevel, stdout,  "Marking parend Inc.- name %s too long", 
+			SLog(0,  "Marking parend Inc.- name %s too long", 
 				name);
 		    }
 		}
@@ -1556,15 +1559,15 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		vle *pv, *cv; 		
 		switch (result[i]) {
 		  case PERFORMOP:
-		    LogMsg(9, SrvDebugLevel, stdout,  "CheckSemPerformRes: Going to Perform Op");
+		    SLog(9,  "CheckSemPerformRes: Going to Perform Op");
 		    errorCode = PerformResOp(&rlog[i], vlist, hvlog, pv, 
 					     volptr, VSGVolnum, &tblocks);
 		    break;
 		  case NULLOP:
-		    LogMsg(9, SrvDebugLevel, stdout,  "CheckSemPerformRes: NULL Operation - ignore");
+		    SLog(9,  "CheckSemPerformRes: NULL Operation - ignore");
 		    continue;
 		  case MARKPARENTINC:
-		    LogMsg(9, SrvDebugLevel, stdout,  "CheckSemPerformRes: Marking Parent Inc");
+		    SLog(9,  "CheckSemPerformRes: Marking Parent Inc");
 		    pv = FindVLE(*vlist, dFid);
 		    assert(pv);
 		    assert(pv->vptr);
@@ -1573,10 +1576,10 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 			   dFid->Vnode, dFid->Unique, (long)vDirectory);
 		    break;
 		  case MARKOBJINC:
-		    LogMsg(9, SrvDebugLevel, stdout,  "CheckSemPerformRes: Marking Object Inc");
+		    SLog(9,  "CheckSemPerformRes: Marking Object Inc");
 		    cv = FindVLE(*vlist, &cFid);
 		    if (!cv || !cv->vptr) {
-			LogMsg(0, SrvDebugLevel, stdout,  "MARKOBJINC: couldnt get obj(%x.%x)vnode pointer",
+			SLog(0,  "MARKOBJINC: couldnt get obj(%x.%x)vnode pointer",
 				cFid.Vnode, cFid.Unique);
 			errorCode = EINVAL;
 		    }
@@ -1590,7 +1593,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		    break;
 		  case CREATEINCOBJ:
 		    /* xxx BE CAREFUL WITH CHILD FID AND RENAMES */
-		    LogMsg(9, SrvDebugLevel, stdout,  "CheckSemPerformRes: Creating Inc Object");
+		    SLog(9,  "CheckSemPerformRes: Creating Inc Object");
 		    ExtractChildFidFromRLE(&rlog[i], &cFid);
 		    cFid.Volume = V_id(volptr);
 		    name = ExtractNameFromRLE(&rlog[i]);
@@ -1610,7 +1613,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 		    }
 		    break;
 		  default:
-		    LogMsg(0, SrvDebugLevel, stdout,  "Illegal result from CheckValidityResOP");
+		    SLog(0,  "Illegal result from CheckValidityResOP");
 		    assert(0);
 		}
 		*nblocks += tblocks;
@@ -1620,7 +1623,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 	}
     }
   Exit:
-    LogMsg(9, SrvDebugLevel, stdout,  "CheckSemPerformRes: returning %d", errorCode);
+    SLog(9,  "CheckSemPerformRes: returning %d", errorCode);
     if (result) free(result);
     return(errorCode);
 }
@@ -1647,7 +1650,7 @@ static int CheckValidityResOp(rlent *rle, int NE,
     switch(rle->opcode) {
       case ViceNewStore_OP:
       case ResolveViceNewStore_OP:
-	LogMsg(0, SrvDebugLevel, stdout,  "CheckValidityResOp: Got a Store operation in comp op");
+	SLog(0,  "CheckValidityResOp: Got a Store operation in comp op");
 	return(MARKPARENTINC);
       case ResolveViceRemove_OP:
       case ViceRemove_OP:
@@ -1808,7 +1811,7 @@ static int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum,
     vle *sdv = 0;
     vle *tdv = 0;
     
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering ResolveRename for (%x.%x.%x)", dFid->Volume,
+    SLog(9,  "Entering ResolveRename for (%x.%x.%x)", dFid->Volume,
 	    dFid->Vnode, dFid->Unique);
     if ((rl->u.u_rename.OtherDirV != rl->dvnode) ||
 	(rl->u.u_rename.OtherDirU != rl->dunique)) {
@@ -1848,7 +1851,7 @@ static int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum,
 			     &rl->storeid);
     }
     if (errorCode && errorCode == EINCONS) {
-	LogMsg(0, SrvDebugLevel, stdout,  "Incorrect Res Rename: src = %s (%x.%x), tgt = %s (%x.%x)s",
+	SLog(0,  "Incorrect Res Rename: src = %s (%x.%x), tgt = %s (%x.%x)s",
 		rl->u.u_rename.rename_src.oldname, 
 		rl->u.u_rename.rename_src.cvnode,
 		rl->u.u_rename.rename_src.cunique, 
@@ -1879,7 +1882,7 @@ static int ResolveRename(rlent *rl, Volume *volptr, VolumeId VSGVolnum,
 	errorCode = 0;
     }
     
-    LogMsg(9, SrvDebugLevel, stdout,  "ResolveRename returning %d", errorCode);
+    SLog(9,  "ResolveRename returning %d", errorCode);
     return(errorCode);
 }
 
@@ -1888,7 +1891,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 					vle **srcv, vle **tgtv, vle **srcdv, 
 					vle **tgtdv,olist *hvlog, dlist *inclist, 
 					dlist *newinclist, int *blocks) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering CheckResolveRenameSemantics");
+    SLog(9,  "Entering CheckResolveRenameSemantics");
     if (SrvDebugLevel > 9) 
 	rl->print();
     *srcv = *tgtv = *srcdv = *tgtdv = 0;
@@ -1923,14 +1926,14 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	}
 	opv = FindVLE(*vlist, &OldDid);
 	if (!opv || !opv->vptr) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Old Dir(%x.%x.%x) doesnt exist",
+	    SLog(0,  "ChkResRenSem: Old Dir(%x.%x.%x) doesnt exist",
 		    OldDid.Volume, OldDid.Vnode, OldDid.Unique);
 	    return(EINVAL);
 	}
 	if (!FID_EQ(&OldDid, &NewDid)) {
 	    npv = FindVLE(*vlist, &NewDid);
 	    if (!npv || !npv->vptr) {
-		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: New Dir(%x.%x.%x) doesnt exist",
+		SLog(0,  "ChkResRenSem: New Dir(%x.%x.%x) doesnt exist",
 			NewDid.Volume, NewDid.Vnode, NewDid.Unique);
 		return(EINVAL);
 	    }
@@ -1965,7 +1968,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    SrcParentPtrOK = FID_EQ(&spFid, &OldDid);
 	    if (!SrcParentPtrOK) {
 		/* set child's parent to be marked inc */
-		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Parent(%x.%x) on src vnode(%x.%x) not same as parent %x.%x",
+		SLog(0,  "ChkResRenSem: Parent(%x.%x) on src vnode(%x.%x) not same as parent %x.%x",
 			spFid.Vnode, spFid.Unique, SrcFid.Vnode, 
 			SrcFid.Unique, OldDid.Vnode, OldDid.Unique);
 		vle *spv = FindVLE(*vlist, &spFid);
@@ -1982,10 +1985,10 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	}
 	if (!SrcNameExists || !SrcNameFidBindingOK || 
 	    !SrcObjExists || !SrcParentPtrOK) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem Src: NE = %d FBindOK = %d OE = %d PPOK = %d",
+	    SLog(0,  "ChkResRenSem Src: NE = %d FBindOK = %d OE = %d PPOK = %d",
 		    SrcNameExists, SrcNameFidBindingOK, SrcObjExists, 
 		    SrcParentPtrOK);
-	    LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Marking both Old(%x.%x) and New dirs(%x.%x) inc",
+	    SLog(0,  "ChkResRenSem: Marking both Old(%x.%x) and New dirs(%x.%x) inc",
 		    OldDid.Vnode, OldDid.Unique, NewDid.Vnode, NewDid.Unique);
 	    errorCode = EINCONS;
 	    goto Exit;
@@ -2001,7 +2004,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    ndh = VN_SetDirHandle (npv->vptr);
 	    if (DH_Lookup(ndh, rl->u.u_rename.rename_tgt.newname, 
 		       &tmpfid) == 0) {
-		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Target name %s already exists wrongly",
+		SLog(0,  "ChkResRenSem: Target name %s already exists wrongly",
 			rl->u.u_rename.rename_tgt.newname);
 		errorCode = EINCONS;
 		goto Exit;
@@ -2037,9 +2040,9 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 		tpFid.Unique = tv->vptr->disk.uparent;
 		TgtParentPtrOK = FID_EQ(&tpFid, &NewDid);
 		if (!TgtParentPtrOK) {
-		    LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Parent(%x.%x) on tgtvnode(%x.%x)",	
+		    SLog(0,  "ChkResRenSem: Parent(%x.%x) on tgtvnode(%x.%x)",	
 			    tpFid.Vnode, tpFid.Unique, TgtFid.Vnode, TgtFid.Unique);
-		    LogMsg(0, SrvDebugLevel, stdout,  "    doesn't match Target Dir %x.%x",
+		    SLog(0,  "    doesn't match Target Dir %x.%x",
 			    NewDid.Vnode, NewDid.Unique);
 		    vle *tpv = FindVLE(*vlist, &tpFid);
 		    if (tpv && tpv->vptr) {
@@ -2055,10 +2058,10 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	    }
 	    if (!TgtNameExists || !TgtNameFidBindingOK || 
 		!TgtObjExists || !TgtParentPtrOK) {
-		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Tgt NE %d FBindOK %d OE %d PPOK %d",
+		SLog(0,  "ChkResRenSem: Tgt NE %d FBindOK %d OE %d PPOK %d",
 			TgtNameExists, TgtNameFidBindingOK, 
 			TgtObjExists, TgtParentPtrOK);
-		LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Marking both Old(%x.%x) and New dirs(%x.%x) inc",
+		SLog(0,  "ChkResRenSem: Marking both Old(%x.%x) and New dirs(%x.%x) inc",
 			OldDid.Vnode, OldDid.Unique, NewDid.Vnode, NewDid.Unique);
 		errorCode = EINCONS;
 		goto Exit;
@@ -2071,7 +2074,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 		    int res = VV_Cmp(&Vnode_vv(tv->vptr), 
 				     &(rl->u.u_rename.rename_tgt.TgtGhost.TgtGhostVV));
 		    if (res != VV_EQ && res != VV_SUB) {
-			LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: RUConflict on target %x.%x",
+			SLog(0,  "ChkResRenSem: RUConflict on target %x.%x",
 				TgtFid.Vnode, TgtFid.Unique);
 			errorCode = EINCONS;
 			goto Exit;
@@ -2081,7 +2084,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 		    RUParm rup(vlist, hvlog, rl->serverid, V_id(volptr));
 		    DirRUConf(&rup, rl->u.u_rename.rename_tgt.newname, 
 			      TgtFid.Vnode, TgtFid.Unique);
-		    LogMsg(9, SrvDebugLevel, stdout,  "ChkResRenSem: DirRUConf returns %d",
+		    SLog(9,  "ChkResRenSem: DirRUConf returns %d",
 			    rup.rcode);
 		    if (rup.rcode) {
 			AddILE(*newinclist, rl->u.u_rename.rename_tgt.newname,
@@ -2105,7 +2108,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 					 NULL, NULL, NULL, NULL, 
 					 NULL, NULL, NULL, NULL, 
 					 NULL, NULL, 0, 1)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "ChkResRenSem: Error %d from vicerenamechksemantics ",
+	SLog(0,  "ChkResRenSem: Error %d from vicerenamechksemantics ",
 		errorCode);
 	errorCode = EINCONS;
     }
@@ -2139,7 +2142,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
 	*srcdv = opv;
 	*tgtdv = npv;
     }
-    LogMsg(9, SrvDebugLevel, stdout,  "ChkResRenSem: returns %d", errorCode);
+    SLog(9,  "ChkResRenSem: returns %d", errorCode);
     return(errorCode);
 }
 /* CleanRenameTarget
@@ -2147,7 +2150,7 @@ static int CheckResolveRenameSemantics(rlent *rl, Volume *volptr,
  */
 static int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
 			      VolumeId VSGVolnum, olist *hvlog, int *blocks) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering CleanRenameTarget");
+    SLog(9,  "Entering CleanRenameTarget");
     if (!rl->u.u_rename.rename_tgt.tgtexisted)
 	return(0);
     ViceFid tFid;
@@ -2158,7 +2161,7 @@ static int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
     if (!ISDIR(tFid)) return(0);
     vle *tv = FindVLE(*vlist, &tFid);
     if (!tv || !tv->vptr) {
-	LogMsg(0, SrvDebugLevel, stdout,  "CleanRenameTarget: Couldn't find target(%x.%x) obj in vlist",
+	SLog(0,  "CleanRenameTarget: Couldn't find target(%x.%x) obj in vlist",
 		tFid.Vnode, tFid.Unique);
 	return(0);
     }
@@ -2166,7 +2169,7 @@ static int CleanRenameTarget(rlent *rl, dlist *vlist, Volume *volptr,
     PDirHandle	tdh;
     tdh = VN_SetDirHandle(tv->vptr);
     if (DH_IsEmpty(tdh)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "CleanRenameTarget: Target %x.%x is already empty",
+	SLog(0,  "CleanRenameTarget: Target %x.%x is already empty",
 		tFid.Vnode, tFid.Unique);
 	return(0);
     }
@@ -2302,7 +2305,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 			 VolumeId VSGVolnum, 
 			 int *blocks) {
     
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering PerformResOp: %s ", 
+    SLog(9,  "Entering PerformResOp: %s ", 
 	    PRINTOPCODE(r->opcode));
     long errorCode = 0;
     *blocks = 0;
@@ -2322,7 +2325,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
       case ResolveViceRemove_OP:
       case ViceRemove_OP:
 	{
-	    LogMsg(9, SrvDebugLevel, stdout,  "PerformResOP: Removing child %s(%x.%x)",
+	    SLog(9,  "PerformResOP: Removing child %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = FindVLE(*vlist, &cFid);
 	    assert(cv);
@@ -2345,7 +2348,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    }
 	    /* spool log record */
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "PerformResOp: Spooling log record Remove(%s)",
+		SLog(9,  "PerformResOp: Spooling log record Remove(%s)",
 			name);
 		int ind;
 		ind = InitVMLogRecord(V_volumeindex(volptr), 
@@ -2362,7 +2365,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
       case ResolveViceCreate_OP:
       case ViceCreate_OP:
 	{
-	    LogMsg(9, SrvDebugLevel, stdout,  "PerformResOP: creating child %s(%x.%x)",
+	    SLog(9,  "PerformResOP: creating child %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    /* create the vnode */
 	    vle *cv = AddVLE(*vlist, &cFid);
@@ -2370,7 +2373,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
 				       &pv->fid, pv->vptr->disk.owner,
 				       1, blocks)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "PerformResOP: Error %d in AllocVnode",
+		SLog(0,  "PerformResOP: Error %d in AllocVnode",
 			errorCode);
 		return(errorCode);
 	    }
@@ -2391,7 +2394,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    
 	    /* append log record */
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "PerformResOp: Spooling log record Create(%s)",
+		SLog(9,  "PerformResOp: Spooling log record Create(%s)",
 			name);
 		int ind;
 		ind = InitVMLogRecord(V_volumeindex(volptr), &pv->fid, &r->storeid,
@@ -2409,7 +2412,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
       case ResolveViceSymLink_OP:
       case ViceSymLink_OP:
 	{
-	    LogMsg(9, SrvDebugLevel, stdout,  "PerformResOP: Creating SymLink %s(%x.%x)",
+	    SLog(9,  "PerformResOP: Creating SymLink %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    /* create the vnode */
 	    vle *cv = AddVLE(*vlist, &cFid);
@@ -2417,7 +2420,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid,
 				       &pv->fid, pv->vptr->disk.owner,
 				       1, blocks)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "PerformResOP: Error %d in AllocVnode(symlink)",
+		SLog(0,  "PerformResOP: Error %d in AllocVnode(symlink)",
 			errorCode);
 		return(errorCode);
 	    }
@@ -2440,7 +2443,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    
 	    /* append log record */
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "PerformResOp: Spooling log record SymLink(%s)",
+		SLog(9,  "PerformResOp: Spooling log record SymLink(%s)",
 			name);
 		int ind;
 		ind = InitVMLogRecord(V_volumeindex(volptr), &pv->fid, &r->storeid,
@@ -2454,11 +2457,11 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
       case ResolveViceLink_OP:
       case ViceLink_OP:
 	{
-	    LogMsg(9, SrvDebugLevel, stdout,  "PerformResOP: Creating Link %s(%x.%x)",
+	    SLog(9,  "PerformResOP: Creating Link %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = FindVLE(*vlist, &cFid);
 	    if (!cv || !cv->vptr) {
-		LogMsg(0, SrvDebugLevel, stdout,  "PerformResOp: CreateL %x.%x doesnt exist",
+		SLog(0,  "PerformResOp: CreateL %x.%x doesnt exist",
 			cFid.Vnode, cFid.Unique);
 		return(EINVAL);
 	    }
@@ -2471,7 +2474,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 			blocks);
 	    /* spool log record */
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "PerformResOp: Spooling log record Link(%s)",
+		SLog(9,  "PerformResOp: Spooling log record Link(%s)",
 			name);
 		int ind;
 		ind = InitVMLogRecord(V_volumeindex(volptr), &pv->fid, &r->storeid,
@@ -2485,7 +2488,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
       case ResolveViceMakeDir_OP:
       case ViceMakeDir_OP:
 	{
-	    LogMsg(9, SrvDebugLevel, stdout,  "PerformResOP: MakeDir %s(%x.%x)",
+	    SLog(9,  "PerformResOP: MakeDir %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = AddVLE(*vlist, &cFid);
 	    assert(!cv->vptr);
@@ -2494,7 +2497,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 				       &cFid, &pv->fid, 
 				       pv->vptr->disk.owner,
 				       1, blocks)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "PerformResOP: Error %d in AllocV(mkdir)",
+		SLog(0,  "PerformResOP: Error %d in AllocV(mkdir)",
 			errorCode);
 		return(errorCode);
 	    }
@@ -2511,7 +2514,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    /* spool log record - NOTE: FOR MKDIR SPOOL A REGULAR MKDIR RECORD 
 	       NOT A ResolveMkdir RECORD */
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "PerformResOp: Spooling log record MkDir(%s)",
+		SLog(9,  "PerformResOp: Spooling log record MkDir(%s)",
 			name);
 		int ind;
 		ind = InitVMLogRecord(V_volumeindex(volptr), &pv->fid, 
@@ -2532,7 +2535,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
       case ResolveViceRemoveDir_OP:
       case ViceRemoveDir_OP:
 	{
-	    LogMsg(9, SrvDebugLevel, stdout,  "PerformResOP: Removing child dir %s(%x.%x)",
+	    SLog(9,  "PerformResOP: Removing child dir %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = FindVLE(*vlist, &cFid);
 	    assert(cv);
@@ -2569,7 +2572,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 
 	    /* spool log record - should have spooled records recursively */
 	    {	
-		LogMsg(9, SrvDebugLevel, stdout,  "PerformResOp: Spooling Log Record RmDir(%s)",
+		SLog(9,  "PerformResOp: Spooling Log Record RmDir(%s)",
 			name);
 		VNResLog *vnlog;
 		pdlist *pl = GetResLogList(cv->vptr->disk.vol_index,
@@ -2589,12 +2592,12 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	}
 	break;
       default:
-	LogMsg(0, SrvDebugLevel, stdout,  "Illegal Opcode for performresop %d", r->opcode);
+	SLog(0,  "Illegal Opcode for performresop %d", r->opcode);
 	assert(0);
 	break;
     }
 
-    LogMsg(9, SrvDebugLevel, stdout,  "PerformResOp: Returns %d", errorCode);
+    SLog(9,  "PerformResOp: Returns %d", errorCode);
     return(errorCode);
 }
 
@@ -2665,7 +2668,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
     vle *cv = 0;
     *blocks = 0;
     long errorCode = 0;
-    LogMsg(9, SrvDebugLevel, stdout,
+    SLog(9,
 	   "CreateIncObject: Entering (parent %x.%x child %x.%x name %s type %d)",
 	   dFid->Vnode, dFid->Unique, cFid->Vnode, cFid->Unique, name, vntype);
 
@@ -2673,7 +2676,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
     {
 	pv = FindVLE(*vlist, dFid);
 	if (!pv || !pv->vptr) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "CreateIncObject: Parent(%x.%x) doesnt exist!", 
+	    SLog(0,  "CreateIncObject: Parent(%x.%x) doesnt exist!", 
 		    dFid->Vnode, dFid->Unique);
 	    return(EINVAL);
 	}
@@ -2691,16 +2694,16 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		assert(cv); 
 		assert(cv->vptr);
 		assert((cv->vptr->disk.linkCount > 0) && !cv->vptr->delete_me);
-		LogMsg(9, SrvDebugLevel, stdout,  "CreateIncObj Child (%x.%x)already exists",
+		SLog(9,  "CreateIncObj Child (%x.%x)already exists",
 		       cFid->Vnode, cFid->Unique);
 		return(0);
 	    }
 	    else {
 		// parent has name but different object 
-		LogMsg(0, SrvDebugLevel, stdout,  
+		SLog(0,  
 		       "CreateIncObject: Parent %x.%x already has name %s",
 		       dFid->Vnode, dFid->Unique, name);
-		LogMsg(0, SrvDebugLevel, stdout,  
+		SLog(0,  
 		       "              with fid %x.%x - cant create %x.%x",
 		       newfid.Vnode, newfid.Unique, cFid->Vnode, cFid->Unique);
 		return(EINVAL);
@@ -2713,7 +2716,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		// object exists 
 		if ((cv->vptr->disk.vparent != dFid->Vnode) || 
 		    (cv->vptr->disk.uparent != dFid->Unique)) {
-		    LogMsg(0, SrvDebugLevel, stdout,  
+		    SLog(0,  
 			   "CreateIncObject: Object %x.%x already exists in %x.%x !",
 			    cFid->Vnode, cFid->Unique, cv->vptr->disk.vparent, 
 			    cv->vptr->disk.uparent);
@@ -2723,7 +2726,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		// object exists in same diretory with different name
 		if (vntype != vFile) {
 		    // cannot create link to object 
-		    LogMsg(0, SrvDebugLevel, stdout, 
+		    SLog(0, 
 			   "CreateIncObject: Object %x.%x already exists in %x.%x !",
 			    cFid->Vnode, cFid->Unique, dFid->Vnode, dFid->Unique);
 		    return(EINVAL);
@@ -2733,14 +2736,14 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		assert(vntype == vFile);
 		VolumeId VSGVolnum = V_id(vp);
 		if (!ReverseXlateVid(&VSGVolnum)) {
-		    LogMsg(0, SrvDebugLevel, stdout,  "CreateIncObject: Couldnt RevXlateVid %x",
+		    SLog(0,  "CreateIncObject: Couldnt RevXlateVid %x",
 			    VSGVolnum);
 		    return(EINVAL);
 		}
 		if (errorCode = 
 		    CheckLinkSemantics(NULL, &pv->vptr, &cv->vptr, name, &vp, 
 				       0, NULL, NULL, NULL, NULL, NULL, 0)) {
-		    LogMsg(0, SrvDebugLevel, stdout,  "CreateObjToMarkInc: Error 0x%x to create link %s",
+		    SLog(0,  "CreateObjToMarkInc: Error 0x%x to create link %s",
 			    errorCode, name);
 		    return(errorCode);
 		}
@@ -2750,7 +2753,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 			    name, time(0), 0, &stid, &pv->d_cinode, blocks);
 		if (cv->vptr->delete_me) {
 		    /* it was deleted before the link was done */
-		    LogMsg(0, SrvDebugLevel, stdout,  "Undeleting Vnode %s (%x.%x)",
+		    SLog(0,  "Undeleting Vnode %s (%x.%x)",
 			    name, cFid->Vnode, cFid->Unique);
 		    assert(cv->vptr->disk.linkCount);
 		    cv->vptr->delete_me = 0;
@@ -2768,7 +2771,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    cv->f_sinode = 0;
 		    /* append log record */	
 		    if (AllowResolution && V_VMResOn(vp)) {
-			LogMsg(9, SrvDebugLevel, stdout,  
+			SLog(9,  
 			       "CreateIncObj: Spooling log record Create(%s)",
 			       name);
 			int ind;
@@ -2783,7 +2786,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 			if (errorCode = SpoolVMLogRecord(vlist, pv->vptr, 
 							 vp, &stid, ResolveViceCreate_OP, 
 							 name, cFid->Vnode, cFid->Unique))
-			    LogMsg(0, SrvDebugLevel, stdout, 
+			    SLog(0, 
 				   "CreateObjToMarkInc: Error %d during SpoolVMLogRecord\n",
 				   errorCode);
 		    }
@@ -2800,7 +2803,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 	    if (errorCode = AllocVnode(&cv->vptr, vp, (ViceDataType)vntype,
 				       cFid, dFid, pv->vptr->disk.owner,
 				       1, &tblocks)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "CreateIncObj: Error %d in AllocVnode",
+		SLog(0,  "CreateIncObj: Error %d in AllocVnode",
 			errorCode);
 		return(errorCode);
 	    }
@@ -2810,7 +2813,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 	    {
 		VolumeId VSGVolnum = V_id(vp);
 		if (!ReverseXlateVid(&VSGVolnum)) {
-		    LogMsg(0, SrvDebugLevel, stdout,  "CreateIncObject: Couldnt RevXlateVid %x",
+		    SLog(0,  "CreateIncObject: Couldnt RevXlateVid %x",
 			    VSGVolnum);
 		    return(EINVAL);
 		}
@@ -2822,7 +2825,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 							 &cv->vptr, name, &vp, 
 							 0, NULL, NULL, NULL, 
 							 NULL, NULL, 0)) {
-			LogMsg(0, SrvDebugLevel, stdout,  "Error %d in CheckCreateSem(%x.%x %s)", 
+			SLog(0,  "Error %d in CheckCreateSem(%x.%x %s)", 
 				errorCode, cFid->Vnode, cFid->Unique, name);
 			return(errorCode);
 		    }
@@ -2853,7 +2856,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 			if (errorCode = SpoolVMLogRecord(vlist, pv->vptr, vp, 
 							 &stid, ResolveViceCreate_OP, 
 							 name, cFid->Vnode, cFid->Unique))
-			    LogMsg(0, SrvDebugLevel, stdout, 
+			    SLog(0, 
 				   "CreateObjToMarkInc: Error %d during SpoolVMLogRecord\n",
 				   errorCode);
 
@@ -2864,7 +2867,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 							  &cv->vptr, name, &vp,
 							  0, NULL, NULL, NULL,
 							  NULL, NULL, 0)) {
-			LogMsg(0, SrvDebugLevel, stdout,  "Error %d in CheckSymlinkSem(%x.%x %s)",
+			SLog(0,  "Error %d in CheckSymlinkSem(%x.%x %s)",
 				errorCode, cFid->Vnode, cFid->Unique, name);
 			return(errorCode);
 		    }
@@ -2896,7 +2899,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 							 &stid, 
 							 ResolveViceSymLink_OP, 
 							 name, cFid->Vnode, cFid->Unique)) 
-			    LogMsg(0, SrvDebugLevel, stdout, 
+			    SLog(0, 
 				   "CreateObjToMarkInc(symlink): Error %d in SpoolVMLogRecord\n",
 				   errorCode);
 		    }
@@ -2907,7 +2910,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 							&cv->vptr, name, &vp,
 							0, NULL, NULL, NULL, 
 							NULL, NULL, 0)) {
-			LogMsg(0, SrvDebugLevel, stdout,  "Error %d in CheckMkdirSem(%x.%x %s)",
+			SLog(0,  "Error %d in CheckMkdirSem(%x.%x %s)",
 				errorCode, cFid->Vnode, cFid->Unique, name);
 			return(errorCode);
 		    }
@@ -2936,7 +2939,7 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 			if (errorCode = SpoolVMLogRecord(vlist, pv->vptr, vp, &stid,
 							 ResolveViceMakeDir_OP, name, 
 							 cFid->Vnode, cFid->Unique)) 
-			    LogMsg(0, SrvDebugLevel, stdout, 
+			    SLog(0, 
 				   "CreateObjToMarkInc(Mkdir): Error %d during SpoolVMLogRecord for parent\n",
 				   errorCode);
 		    }
@@ -2948,13 +2951,14 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 }
 
 int GetPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
-			     Volume **volptr) {
+			     Volume **volptr) 
+{
     long errorCode = 0;
     
     /* get volume */
     if (errorCode = GetVolObj(pfid->Volume, volptr, 
 			      VOL_NO_LOCK, 0, 0)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "GetPhase2Objects: Error %d in Getting volume (Parent)",
+	SLog(0,  "GetPhase2Objects: Error %d in Getting volume (Parent)",
 		errorCode);
 	return(errorCode);
     }
@@ -2964,7 +2968,7 @@ int GetPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
 			 vnodeIdToBitNumber(pfid->Vnode), pfid->Unique, NULL))
 	    AddVLE(*vlist, pfid);
 	else {
-	    LogMsg(0, SrvDebugLevel, stdout,  "GetPhase2Objects: Parent (%x.%x) is missing",
+	    SLog(0,  "GetPhase2Objects: Parent (%x.%x) is missing",
 		    pfid->Vnode, pfid->Unique);
 	    return(EINVAL);
 	}
@@ -3022,18 +3026,18 @@ int GetPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
 		count++;
 		if ((count & Yield_GetP2Obj_Mask) == 0)
 		    PollAndYield();
-		LogMsg(9, SrvDebugLevel, stdout,  "GetPhase2Objects: acquiring (%x.%x.%x)",
+		SLog(9,  "GetPhase2Objects: acquiring (%x.%x.%x)",
 			v->fid.Volume, v->fid.Vnode, v->fid.Unique);
 		if (errorCode = GetFsObj(&v->fid, volptr, &v->vptr, 
-					 WRITE_LOCK, NO_LOCK, 1, 0)) {
-		    LogMsg(0, SrvDebugLevel, stdout,  "GetPhase2Objects: Error %d in getting object %x.%x",
+					 WRITE_LOCK, NO_LOCK, 1, 0, 0)) {
+		    SLog(0,  "GetPhase2Objects: Error %d in getting object %x.%x",
 			    errorCode, v->fid.Vnode, v->fid.Unique);
 		    return(errorCode);
 		}
 	    }
 	}
     }
-    LogMsg(9, SrvDebugLevel, stdout,  "GetPhase2Objects: returns %d");
+    SLog(9,  "GetPhase2Objects: returns %d");
     return(0);
 }
 
@@ -3072,7 +3076,7 @@ int CreateResPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
 	    PollAndYield();
 	if (tmperrorCode = (int)CreateObjToMarkInc(volptr, &ipfid, &ofid, il->name, 
 					      il->type, vlist, &tblocks)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "CreateResPhase2Obj: Error %d in creating %x.%x %s in %x.%x",
+	    SLog(0,  "CreateResPhase2Obj: Error %d in creating %x.%x %s in %x.%x",
 		    errorCode, ofid.Vnode, ofid.Unique, il->name, ipfid.Vnode, 
 		    ipfid.Unique);
 	    if (!errorCode) errorCode = tmperrorCode;
@@ -3080,7 +3084,7 @@ int CreateResPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
 	else 
 	    *blocks += tblocks;
     }
-    LogMsg(9, SrvDebugLevel, stdout,  "CreateResPhase2Objects: returns %d", errorCode);
+    SLog(9,  "CreateResPhase2Objects: returns %d", errorCode);
     return(errorCode);
 }
     
@@ -3100,7 +3104,7 @@ int CreateResPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
 static RUConflict(rlent *r, dlist *vlist, olist *hvlog, 
 		   ViceFid *dFid) {
 
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering RUConflict for %x.%x",
+    SLog(9,  "Entering RUConflict for %x.%x",
 	    dFid->Vnode, dFid->Unique);
     ViceFid cFid;
     vle *cv = 0;
@@ -3136,12 +3140,12 @@ static RUConflict(rlent *r, dlist *vlist, olist *hvlog,
 	    int res = VV_Cmp(&Vnode_vv(cv->vptr), 
 			    &(r->u.u_remove.cvv));
 	    if (res == VV_EQ || res == VV_SUB) {
-		LogMsg(9, SrvDebugLevel, stdout,  "RUConflict: no R/U conflict for %x.%x",
+		SLog(9,  "RUConflict: no R/U conflict for %x.%x",
 			dFid->Vnode, dFid->Unique);
 		return(0);
 	    }
 	    else {
-		LogMsg(9, SrvDebugLevel, stdout,  "RUConflict: R/U conflict for %x.%x",
+		SLog(9,  "RUConflict: R/U conflict for %x.%x",
 			dFid->Vnode, dFid->Unique);
 		return(1);
 	    }
@@ -3153,7 +3157,7 @@ static RUConflict(rlent *r, dlist *vlist, olist *hvlog,
 	RUParm rup(vlist, hvlog, r->serverid, dFid->Volume);
 	DirRUConf(&rup, r->u.u_removedir.name, cFid.Vnode, 
 		  cFid.Unique);
-	LogMsg(9, SrvDebugLevel, stdout,  "RUConflict: DirRUConflict returns %d",
+	SLog(9,  "RUConflict: DirRUConflict returns %d",
 		rup.rcode);
 	return(rup.rcode);
     }
@@ -3163,7 +3167,7 @@ static RUConflict(rlent *r, dlist *vlist, olist *hvlog,
 
 void GetRemoteRemoveStoreId(ViceStoreId *stid, olist *hvlog, unsigned long serverid, 
 			    ViceFid *pFid, ViceFid *cFid, char *cname) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering GetRemoteRemoveStoreId: Parent = %x.%x; Child = %x.%x %s",
+    SLog(9,  "Entering GetRemoteRemoveStoreId: Parent = %x.%x; Child = %x.%x %s",
 	    pFid->Vnode, pFid->Unique, cFid->Vnode, cFid->Unique, cname);
     int i = 0;
 
@@ -3171,13 +3175,13 @@ void GetRemoteRemoveStoreId(ViceStoreId *stid, olist *hvlog, unsigned long serve
     stid->Uniquifier = 0;
     he *rhe = FindHE(hvlog, serverid);
     if (!rhe) {
-	LogMsg(0, SrvDebugLevel, stdout,  "GetRemoteRemoveStoreId: Couldnt get host list for host %x",
+	SLog(0,  "GetRemoteRemoveStoreId: Couldnt get host list for host %x",
 		serverid);
 	return;
     }
     rmtle *r = FindRMTLE(&rhe->vlist, pFid->Vnode, pFid->Unique);
     if (!r) {
-	LogMsg(0, SrvDebugLevel, stdout,  "GetRemoteRemoveStoreId: Couldnt get remote parent's log %x.%x",
+	SLog(0,  "GetRemoteRemoveStoreId: Couldnt get remote parent's log %x.%x",
 		pFid->Vnode, pFid->Unique);
 	return;
     }
@@ -3202,9 +3206,9 @@ void GetRemoteRemoveStoreId(ViceStoreId *stid, olist *hvlog, unsigned long serve
 
     }
     if (i == r->u.remote.nentries) 
-	LogMsg(0, SrvDebugLevel, stdout,  "GetRemoteRemoveStoreId: Couldnt find remove entry for %x.%x",
+	SLog(0,  "GetRemoteRemoveStoreId: Couldnt find remove entry for %x.%x",
 		cFid->Vnode, cFid->Unique);
-    LogMsg(9, SrvDebugLevel, stdout,  "GetRemoteRemoveStoreId : returning storeid = %x.%x",
+    SLog(9,  "GetRemoteRemoveStoreId : returning storeid = %x.%x",
 	    stid->Host, stid->Uniquifier);
 }
 /* DirRUConf:
@@ -3310,7 +3314,7 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
 	    rmtle *r = FindRMTLE(&rhe->vlist, cFid.Vnode, cFid.Unique);
 	    if (!r) {
 		/* object didnt exist to be removed */
-		LogMsg(0, SrvDebugLevel, stdout, "DirRUConflict: %x.%x doesnt exist in rmt log",
+		SLog(0, "DirRUConflict: %x.%x doesnt exist in rmt log",
 			cFid.Vnode, cFid.Unique);
 		rup->rcode = 1;
 		return(1);
@@ -3346,7 +3350,7 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
 		    break;
 		}
 	    if (i < 0 || !lastrle) {
-		LogMsg(0, SrvDebugLevel, stdout,  "DirRUConflict: Last log entry for %x.%x doesnt exist in rmt log",
+		SLog(0,  "DirRUConflict: Last log entry for %x.%x doesnt exist in rmt log",
 			cFid.Vnode, cFid.Unique);
 		rup->rcode = 1;
 		return(1);
@@ -3376,6 +3380,7 @@ int GetNameInParent(Vnode *vptr, dlist *vlist, Volume *volptr, char *name)
 {
 	long errorCode = 0;
 	PDirHandle dh;
+	int rc;
 	ViceFid pFid;
 	ViceFid Fid;
 	
@@ -3393,7 +3398,7 @@ int GetNameInParent(Vnode *vptr, dlist *vlist, Volume *volptr, char *name)
 		/* THE LOCK NEED NOT BE WRITE_LOCK - PARANOIA FOR OTHER OPS
 		   TOUCHING THIS VNODE */
 		errorCode = GetFsObj(&pFid, &volptr, &pv->vptr, WRITE_LOCK, 
-				     NO_LOCK, 1, 0);
+				     NO_LOCK, 1, 0, 0);
 		if (errorCode) {
 			SLog(0, "GetNameInParent for %s: Error %d getting parent %s",
 			     FID_(&pFid), errorCode, FID_2(&Fid));
@@ -3404,7 +3409,9 @@ int GetNameInParent(Vnode *vptr, dlist *vlist, Volume *volptr, char *name)
 	}
 	
 	dh = VN_SetDirHandle(pv->vptr);
-	return ! DH_LookupByFid(dh, name, &Fid);
+	rc = DH_LookupByFid(dh, name, &Fid);
+	VN_PutDirHandle(pv->vptr);
+	return ! rc;
 }
 
 static char *ExtractNameFromRLE(rlent *a) 

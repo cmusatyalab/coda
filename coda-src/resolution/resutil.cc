@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.5 1998/08/05 23:49:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.6 1998/08/31 12:23:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -86,31 +86,32 @@ long RS_NewConnection(RPC2_Handle RPCid, RPC2_Integer set,
 }
 
 /* Mark an object inconsistent */
-long RS_MarkInc(RPC2_Handle RPCid, ViceFid *Fid) {
+long RS_MarkInc(RPC2_Handle RPCid, ViceFid *Fid) 
+{
     Volume *volptr = 0;
     Vnode *vptr = 0;
     int errorcode = 0;
     int status = 0;
     
-    LogMsg(9, SrvDebugLevel, stdout,  "ResMarkInc: Fid = (%x.%x.%x)", Fid->Volume, 
-	     Fid->Vnode, Fid->Unique);
+    SLog(9,  "ResMarkInc: Fid = (%x.%x.%x)", FID_(Fid));
     /* Fetch the object and mark inconsistent */
     if (!XlateVid(&Fid->Volume)){
-	LogMsg(0, SrvDebugLevel, stdout,  "ResMarkInc: XlateVid(%x) failed", Fid->Volume);
+	SLog(0,  "ResMarkInc: XlateVid(%x) failed", Fid->Volume);
 	errorcode = EINVAL;
 	goto FreeLocks;
     }
-    LogMsg(9, SrvDebugLevel, stdout,  "ResMarkInc: Going to Fetch Object");
-    errorcode = GetFsObj((ViceFid*)Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0);
+    SLog(9,  "ResMarkInc: Going to Fetch Object");
+    errorcode = GetFsObj((ViceFid*)Fid, &volptr, &vptr, 
+			 WRITE_LOCK, NO_LOCK, 0, 0, 0);
     if (errorcode) goto FreeLocks;
     /* Should be checking if the volume is locked by the coordinator */
     /* Force Inconsistency for now */
-    LogMsg(9, SrvDebugLevel, stdout,  "ResMarkInc: Marking object inconsistent");
+    SLog(9,  "ResMarkInc: Marking object inconsistent");
     SetIncon(vptr->disk.versionvector);
 
 FreeLocks:
     RVMLIB_BEGIN_TRANSACTION(restore)
-    LogMsg(9, SrvDebugLevel, stdout,  "ResMarkInc: Putting back vnode and volume");
+    SLog(9,  "ResMarkInc: Putting back vnode and volume");
     if (vptr){
 	Error fileCode = 0;
 	VPutVnode(&fileCode, vptr);
@@ -118,7 +119,7 @@ FreeLocks:
     }
     PutVolObj(&volptr, NO_LOCK);
     RVMLIB_END_TRANSACTION(flush, &(status));
-    LogMsg(2, SrvDebugLevel, stdout,  "ResMarkInc returns code %d", errorcode);
+    SLog(2,  "ResMarkInc returns code %d", errorcode);
     return(errorcode);
 }
 
@@ -145,10 +146,10 @@ long CheckRetCodes(unsigned long *rc, unsigned long *rh,
 	    error = rc[i];
 	    addr.s_addr = rh[i];
 #ifndef __CYGWIN32__
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
+	    SLog(0,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
 		   inet_ntoa(addr), rc[i]);
 #else
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
+	    SLog(0,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
 		   rh[i], rc[i]);
 #endif
 	}
@@ -173,10 +174,10 @@ long CheckResRetCodes(unsigned long *rc, unsigned long *rh,
 	    error = rc[i];
 	    addr.s_addr = rh[i];
 #ifndef __CYGWIN32__
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
+	    SLog(0,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
 		   inet_ntoa(addr), rc[i]);
 #else
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
+	    SLog(0,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
 		   rh[i], rc[i]);
 #endif
 	}
@@ -198,8 +199,8 @@ ilink *AddILE(dlist &dl, char *name, long vnode, long unique, long pvnode,
 	il = NULL;
     }
     else {
-	LogMsg(39, SrvDebugLevel, stdout,  "AddILE: Adding new inc entry to dlist:");
-	LogMsg(39, SrvDebugLevel, stdout,  "%s (%x.%x) child of (%x.%x),  type = %d",
+	SLog(39,  "AddILE: Adding new inc entry to dlist:");
+	SLog(39,  "%s (%x.%x) child of (%x.%x),  type = %d",
 		name, vnode, unique, pvnode, punique, type);
 	dl.insert(il);	
     }
@@ -274,8 +275,8 @@ void ParseIncBSEntry(char **c, char **name, long *vn, long *unique,
 void AllocIncBSEntry(RPC2_BoundedBS *bbs, char *name, ViceFid *Fid, 
 		     ViceFid *pFid, long type) {
     
-    LogMsg(39, SrvDebugLevel, stdout,  "Allocating inc entry for:");
-    LogMsg(39, SrvDebugLevel, stdout,  "Entry: %s (%x.%x) child of %x.%x type %d",
+    SLog(39,  "Allocating inc entry for:");
+    SLog(39,  "Entry: %s (%x.%x) child of %x.%x type %d",
 	    name, Fid->Vnode, Fid->Unique, pFid->Vnode, pFid->Unique, type);
     char *c = ((char *)bbs->SeqBody) + bbs->SeqLen;
     int namelength = strlen(name) + 1;
@@ -283,7 +284,7 @@ void AllocIncBSEntry(RPC2_BoundedBS *bbs, char *name, ViceFid *Fid,
     if (modlength = (namelength % sizeof(long))) 
 	namelength += sizeof(long) - modlength;
     if ((bbs->SeqLen + namelength + SIZEOF_INCFID) > bbs->MaxSeqLen) {
-	LogMsg(0, SrvDebugLevel, stdout,  "AllocIncPBEntry: NO MORE SPACE IN BUFFER");
+	SLog(0,  "AllocIncPBEntry: NO MORE SPACE IN BUFFER");
 	assert(0);
     }
     long *l = (long *)c;
@@ -317,7 +318,7 @@ int CompareIlinkEntry(ilink *i, ilink *j) {
 /* ************ respath functions************* */
 long GetPath(ViceFid *fid, int maxcomponents, 
 	     int *ncomponents, ResPathElem *components) {
-    LogMsg(2, SrvDebugLevel, stdout, "Entering GetPath for 0x%x.%x\n", 
+    SLog(2, "Entering GetPath for 0x%x.%x\n", 
 	   fid->Vnode, fid->Unique);
     olist plist;	/* list of parent fids */
     long errorcode = 0;
@@ -335,7 +336,7 @@ long GetPath(ViceFid *fid, int maxcomponents,
     /* get status of all the objects on path from volume root */
     while (!errorcode && tmpfid.Vnode != 0 && tmpfid.Unique != 0) {
 	if (errorcode = GetFsObj(&tmpfid, &volptr, &vptr, 
-				 READ_LOCK, VOL_NO_LOCK, 1, 0))
+				 READ_LOCK, VOL_NO_LOCK, 1, 0, 0))
 	    break;
 	
 	ResStatus rs;
@@ -358,13 +359,13 @@ long GetPath(ViceFid *fid, int maxcomponents,
     if (!errorcode) {
 	*ncomponents = plist.count();
 	if (*ncomponents >= maxcomponents) {
-	    LogMsg(0, SrvDebugLevel, stdout,
+	    SLog(0,
 		   "GetPath: Too many levels in tree - need bigger array\n");
 	    *ncomponents = 0;
 	    errorcode = ENOSPC;
 	}
 	else 
-	    LogMsg(2, SrvDebugLevel, stdout, 
+	    SLog(2, 
 		   "GetPath: going to compress %d entries\n",
 		   *ncomponents);
 	bzero((void *)components, sizeof(ResPathElem) * *ncomponents);
@@ -375,7 +376,7 @@ long GetPath(ViceFid *fid, int maxcomponents,
 	    components[i].un = r->unique;
 	    components[i].vv = r->vv;
 	    components[i].st = r->st;
-	    LogMsg(2, SrvDebugLevel, stdout,
+	    SLog(2,
 		   "GetPath: Entry %d 0x%x.%x storeid 0x%x.%x\n",
 		   i, components[i].vn, components[i].un, 
 		   components[i].vv.StoreId.Host, 
@@ -393,7 +394,7 @@ long GetPath(ViceFid *fid, int maxcomponents,
     if (volptr) 
 	PutVolObj(&volptr, VOL_NO_LOCK);
     
-    LogMsg(2, SrvDebugLevel, stdout, 
+    SLog(2, 
 	   "GetPath returns %d\n", errorcode);
     return(errorcode);
 }
@@ -458,7 +459,7 @@ static void GetUnEqResStatus(int *sizes, ResPathElem **paths,
 int ComparePath(int nreplicas, int *nentries, ResPathElem **paths) {
     for (int i = 1; i < nreplicas; i++) 
 	if (nentries[i]  != nentries[0]) {
-	    LogMsg(2, SrvDebugLevel, stdout, 
+	    SLog(2, 
 		   "ComparePath: nentries do not match at [0]=%d, [%d]=%d\n",
 		   nentries[0], i, nentries[i]);
 	    return(-1);
@@ -469,7 +470,7 @@ int ComparePath(int nreplicas, int *nentries, ResPathElem **paths) {
     for (int i = 1; i < nreplicas; i++) 
 	for (int j = 0; j < nentries[i] - 1; j++) 
 	    if (CmpComponent(&paths[i][j], &paths[0][j])) {
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "Component %d for %d and 0 do not match\n",
 		       j, i);
 		return(-1);
@@ -482,7 +483,7 @@ int ComparePath(int nreplicas, int *nentries, ResPathElem **paths) {
     for (int i = 1; i < nreplicas; i++) {
 	if ((paths[0][lastindex].vn != paths[i][lastindex].vn) ||
 	    (paths[0][lastindex].un != paths[i][lastindex].un)) {
-	    LogMsg(0, SrvDebugLevel, stdout,
+	    SLog(0,
 		   "Fids of last component for path %d do not match with path 0\n",
 		   i);
 	    return(-1);

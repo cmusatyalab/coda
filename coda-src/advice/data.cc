@@ -159,7 +159,8 @@ void CreateREADMEFile(char *dirname) {
   chmod(readmePathname, 00444 /* world readable */);
 }
 
-void SetAccessLists(char *dirname, char *username) {
+void SetAccessLists(char *dirname, char *username) 
+{
   char commandName[MAXPATHLEN];
 
   /* Set the access lists correctly to give the user limited access */

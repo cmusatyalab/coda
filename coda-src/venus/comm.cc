@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.22 98/09/23 20:26:25 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.23 1998/10/13 16:49:27 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1396,7 +1396,7 @@ long srvent::GetBandwidth(long *Bandwidth) {
     long oldbw = bw;
     float b;
 
-    LOG(100, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
+    LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
 	      name, lastobs.tv_sec, lastobs.tv_usec));
     
     *Bandwidth = UNSET_BW;
@@ -1467,7 +1467,7 @@ long srvent::GetBandwidth(long *Bandwidth) {
 	}
 
     /* update last observation time */
-    if (Log.ValidEntries > 0) 
+    if (newEntries > 0) 
 	lastobs = Log.Entries[0].TimeStamp; 
 
     /* 
@@ -1491,7 +1491,7 @@ long srvent::GetBandwidth(long *Bandwidth) {
 	MarinerLog("connection::bandwidth %s %d\n", name, bw);
         NotifyUsersOfServerBandwidthEvent(name,*Bandwidth);
     }
-    LOG(100, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
+    LOG(1, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
 	      name, *Bandwidth));
     return(0);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recov_vollog.cc,v 4.5 1998/08/31 12:23:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/recov_vollog.cc,v 4.6 1998/10/05 17:15:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -205,11 +205,11 @@ void recov_vol_log::PrintUnreachableRecords(bitmap *shadowbm) {
 	int recovvalue = recov_inuse.Value(i);
 	if (recovvalue != shadowvalue) {
 	    if (shadowvalue) 
-		LogMsg(0, SrvDebugLevel, stdout,
+		SLog(0,
 		       "Log rec at index %d is allocated in vm but not in RVM .... BAD BAD\n",
 		       i);
 	    else {
-		LogMsg(0, SrvDebugLevel, stdout,
+		SLog(0,
 		       "Log rec at index %d is unreachable\n",i);
 		recle *r = (recle *)IndexToAddr(i);
 		assert(r);
@@ -263,7 +263,7 @@ int recov_vol_log::AllocRecord(int *index, int *seqno) {
     *seqno = -1;
     *index = vm_inuse->GetFreeIndex();
     if (*index == -1) { //no space available 
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "AllocRecord: No space left in volume log.\n");
 	return(ENOSPC);
     }
@@ -292,7 +292,7 @@ int recov_vol_log::AllocRecord(int *index, int *seqno) {
 	Increase_rec_max_seqno();	/* transaction executed */
     
     *seqno = ++max_seqno;
-    LogMsg(10, SrvDebugLevel, stdout,
+    SLog(10,
 	   "AllocRecord: returning index %d seqno %d\n", 
 	   *index, *seqno);
     return(0);
@@ -300,16 +300,16 @@ int recov_vol_log::AllocRecord(int *index, int *seqno) {
 
 // not called within a transaction 
 void recov_vol_log::DeallocRecord(int index) {
-    LogMsg(10, SrvDebugLevel, stdout,
+    SLog(10,
 	   "Entering recov_vol_log::DeallocRecord(%d)\n", index);
     if (recov_inuse.Value(index)) {	// the rvm record better not be allocated
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "recov_vol_log::DeallocRecord(%d): recov bitmap says record allocated\n",
 	       index);
 	assert(0);
     }
     if (!vm_inuse->Value(index)) {
-	LogMsg(10, SrvDebugLevel, stdout, 
+	SLog(10, 
 	       "recov_vol_log::DeallocRecord(%d) is already deallocated\n", 
 	       index);
     }
@@ -327,7 +327,7 @@ recle *recov_vol_log::RecovPutRecord(int index) {
     /* return pointer to log record */
     recle *l = (recle *)IndexToAddr(index);
     if (!l) {
-	LogMsg(10, SrvDebugLevel, stdout, "RecovPutRecord: Growing Log\n");
+	SLog(10, "RecovPutRecord: Growing Log\n");
 	Grow(index);
 	l = (recle *)IndexToAddr(index);
     }
@@ -373,7 +373,7 @@ void recov_vol_log::purge() {
 void recov_vol_log::SalvageLog(bitmap *shadowbm) {
     // check that shadow bitmap is same as recovered bitmap
     if (recov_inuse != *shadowbm) {
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "recov_vol_log::SalvageLog: bitmaps are not equal\n");
 	PrintUnreachableRecords(shadowbm);
 	return;
@@ -399,7 +399,7 @@ void recov_vol_log::SalvageLog(bitmap *shadowbm) {
 	}
 	if (!recsusedinblock) {
 	    // free up block
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    SLog(0, 
 		   "recov_vol_log::SalvageLog: Block %d could be freed\n",
 		   i);
 	    FreeBlock(i);
@@ -454,7 +454,7 @@ recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different)
 {
 
     if ((!different) && (wrapvn != -1) && (wrapun != -1)) {
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "ChooseWrapAroundVnode: returning same vnode 0x%x.%x in vol 0x%x\n", wrapvn, wrapun, V_id(vol));
 	return(0);
     }
@@ -484,7 +484,7 @@ recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different)
 	    for (int j = 0; j < LOGRECORD_BLOCKSIZE; j++) {
 		if ((r[j].dvnode == wrapvn) && 
 		    (r[j].dunique == wrapun)) {
-		    LogMsg(9, SrvDebugLevel, stdout,
+		    SLog(9,
 			   "ChooseWrapAroundVnode: Starting at index i = %d j = %d\n",
 			   i, j + 1);
 		    startindex = j + 1;
@@ -498,7 +498,7 @@ recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different)
 		if (different) {
 		    if ((wrapvn == r[j].dvnode) &&
 			(wrapun == r[j].dunique)) {
-			LogMsg(0, SrvDebugLevel, stdout,
+			SLog(0,
 			       "ChooseWrapAroundVnode:Skipping over %x.%x \n",
 			       wrapvn, wrapun);
 			continue;
@@ -520,7 +520,7 @@ recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different)
 	    }
 	}
     }
-    LogMsg(0, SrvDebugLevel, stdout,
+    SLog(0,
 	   "ChooseWrapAroundVnode: No vnodes to choose from - returns ENOSPC\n");
     return(ENOSPC);
 }
@@ -545,8 +545,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
     for (i = 0; i < 32 ; i++) {
 	// chose an object whose log must be wrapped around
 	if (ChooseWrapAroundVnode(volptr, different)) {
-	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "AllocViaWrapAround: No vnodes whose logs can be reused\n");
+	    SLog(0, "AllocViaWrapAround: No vnodes whose logs can be reused\n");
 	    break;
 	}
 	different = 0;
@@ -559,7 +558,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    if (vlist) {
 		vle *v = FindVLE(*vlist, &fid);
 		if (v) {
-		    LogMsg(0, SrvDebugLevel, stdout,
+		    SLog(0,
 			   "AllocViaWrapAround: Obj 0x%x.%x is being mod - try again\n",
 			   wrapvn, wrapun);
 		    different = 1;
@@ -568,8 +567,8 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    }
 	}
 		    
-	if (errorcode = GetFsObj(&fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 1)) {
-	    LogMsg(0, SrvDebugLevel, stdout,
+	if (errorcode = GetFsObj(&fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 1, 0)) {
+	    SLog(0,
 		   "AllocViaWrapAround: Couldnt get object 0x%x.%x\n",
 		   wrapvn, wrapun);
 	    different = 1;
@@ -579,7 +578,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	assert(vptr);
 	assert(VnLog(vptr));
 	if (VnLog(vptr)->count() <= 1)  {
-	    LogMsg(0, SrvDebugLevel, stdout,
+	    SLog(0,
 		   "AllocViaWrapAround: 0x%x.%x has only single vnode on list\n",
 		   wrapvn, wrapun);
 	    RVMLIB_BEGIN_TRANSACTION(restore);
@@ -598,7 +597,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	{
 	    // remove this entry from the list
 	    // check the entry has no ptrs for other log records embedded
-	    LogMsg(0, SrvDebugLevel, stdout,
+	    SLog(0,
 		   "AllocViaWrapAround: Reclaiming first log rec of 0x%x.%x\n\n",
 		   wrapvn, wrapun);
 	    assert(!rvmlib_in_transaction());
@@ -635,8 +634,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
     }
 
     if (*index == -1) {
-	LogMsg(0, SrvDebugLevel, stdout,
-	       "AllocViaWrapAround: Gave up at %d iterations\n", i);
+	SLog(0, "AllocViaWrapAround: Gave up at %d iterations\n", i);
 	return(ENOSPC);
     }
 

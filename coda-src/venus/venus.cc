@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.14 1998/09/23 20:26:33 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.15 1998/09/25 19:09:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -121,7 +121,7 @@ int venus_relay_addr = 0x7f000001;
 /* local-repair modification */
 int main(int argc, char **argv) {
     /* Print to the console -- important during reboot. */
-#ifndef DJGPP
+#if ! defined(__CYGWIN32__) && ! defined(DJGPP)
     freopen("/dev/console", "w", stderr);
 #endif
     fprintf(stderr, "Coda Venus, version %d.%d (%d)\n\r",

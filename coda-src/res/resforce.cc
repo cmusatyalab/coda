@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.7 1998/04/14 21:08:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.8 1998/08/31 12:23:20 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,7 +90,7 @@ static int CheckForceDirSemantics(olist *, Volume *, Vnode *);
 void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 		 ViceFid *Fid) {
 
-    LogMsg(9, SrvDebugLevel, stdout,  "UpdateRunts: Entered for Fid(%x.%x.%x)",
+    SLog(9,  "UpdateRunts: Entered for Fid(%x.%x.%x)",
 	    Fid->Volume, Fid->Vnode, Fid->Unique);
     int runtexists = 0;
     int isrunt[VSG_MEMBERS];
@@ -104,16 +104,16 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
     {
 	runtexists = RuntExists(VV, VSG_MEMBERS, isrunt, &nonruntdir);
 	if (!runtexists) {
-	    LogMsg(9, SrvDebugLevel, stdout,  "UpdateRunts: no runt exists");
+	    SLog(9,  "UpdateRunts: no runt exists");
 	    return;
 	}
 	if (nonruntdir == -1) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "UpdateRunts: No non-runt directory available ");
+	    SLog(0,  "UpdateRunts: No non-runt directory available ");
 	    return;
 	}
     }
 
-    LogMsg(9, SrvDebugLevel, stdout,  "UpdateRunts runtexists = %d", runtexists);
+    SLog(9,  "UpdateRunts runtexists = %d", runtexists);
 
     /* fetch directory ops from the non-runt site */
     {
@@ -131,7 +131,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	mktemp(filename);
 	strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
 	       filename);
-	LogMsg(9, SrvDebugLevel, stdout,  "UpdateRunts: Going to GetForceDirOps");
+	SLog(9,  "UpdateRunts: Going to GetForceDirOps");
 	if (Res_GetForceDirOps(mgrp->rrcc.handles[nonruntdir], Fid, &vstatus,
 			       &al, &sid)) {
 	    unlink(filename);
@@ -140,7 +140,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
     }
     /* force directory ops onto runt sites */
     {
-	LogMsg(9, SrvDebugLevel, stdout,  "UpdateRunts: Forcing Directories onto runts");
+	SLog(9,  "UpdateRunts: Forcing Directories onto runts");
 	int forceError;
 	SE_Descriptor	sid;
 
@@ -155,7 +155,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, alvar, al, VSG_MEMBERS, (SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE));
 	ARG_MARSHALL(OUT_MODE, RPC2_Integer, forceErrorvar, forceError, VSG_MEMBERS);
 	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "UpdateRunts: Owner is %d\n", vstatus.Owner);
 	/* SHOULD PROBABLY BLACK OUT NON RUNT OBJECTS FOR M-RPC */
 	MRPC_MakeMulti(DoForceDirOps_OP, DoForceDirOps_PTR,
@@ -171,13 +171,13 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	for (int i = 0; i < VSG_MEMBERS; i++)
 	    if (VV[i] && isrunt[i]) {
 		if (mgrp->rrcc.retcodes[i] == 0){
-		    LogMsg(9, SrvDebugLevel, stdout,  "UpdateRunts: Succesfully forced runt %d", 
+		    SLog(9,  "UpdateRunts: Succesfully forced runt %d", 
 			    i);
 		    /* update the vv[i] slot */
 		    *(VV[i]) = vstatus.VV;
 		}
 		else 
-		    LogMsg(0, SrvDebugLevel, stdout,  "UpdateRunts: Error %d from force[%d]", 
+		    SLog(0,  "UpdateRunts: Error %d from force[%d]", 
 			    mgrp->rrcc.retcodes[i], i);
 	    }
     }
@@ -211,17 +211,15 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     char *filename = NULL;
     char buf[20];
 
-    LogMsg(9, SrvDebugLevel, stdout,  "RS_DoForceDirOps: Enter Fid(%x.%x.%x)",
-	    Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(9,  "RS_DoForceDirOps: Enter Fid %s", FID_(Fid));
 
     conninfo *cip = GetConnectionInfo(RPCid);
     if (cip == NULL){
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_DoForceDirOps: Couldnt get conninfo ");
+	SLog(0,  "RS_DoForceDirOps %s: Couldnt get conninfo", FID_(Fid));
 	return(EINVAL);
     }    
     if (!XlateVid(&Fid->Volume)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_DoForceDirOps: Couldnt Xlate VSG %x",
-		Fid->Volume);
+	SLog(0,  "RS_DoForceDirOps: Couldnt Xlate VSG %x", Fid->Volume);
 	*rstatus = EINVAL;
 	return(EINVAL);
     }
@@ -229,7 +227,9 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     /* get objects */
     {
 	pv = AddVLE(*vlist, Fid);
-	if (errorCode =GetFsObj(Fid, &volptr, &pv->vptr, WRITE_LOCK, NO_LOCK, 0, 0)) {
+	pv->d_inodemod = 1;
+	if (errorCode =GetFsObj(Fid, &volptr, &pv->vptr, 
+				WRITE_LOCK, NO_LOCK, 0, 0, pv->d_inodemod)) {
 	    *rstatus = EINVAL;
 	    goto FreeLocks;
 	}
@@ -238,7 +238,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     
     /* make sure volume is locked by coordinator */
     if (V_VolLock(volptr).IPAddress != cip->GetRemoteHost()) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_DoForceDirOps: Volume not locked by coordinator");
+	SLog(0,  "RS_DoForceDirOps: Volume not locked by coordinator");
 	errorCode = EWOULDBLOCK;
 	goto FreeLocks;
     }
@@ -246,7 +246,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	/* only allowed to force over a runt object */
 	errorCode = EINVAL;
 	*rstatus = RES_NOTRUNT;
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_DoForceDirOps: Object being force (%x.%x.%x) not a runt ",
+	SLog(0,  "RS_DoForceDirOps: Object being force (%x.%x.%x) not a runt ",
 		Fid->Volume, Fid->Vnode, Fid->Unique);
 	goto FreeLocks;
     }
@@ -257,17 +257,17 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	filename = mktemp(buf);
 	errorCode = FetchFileByName(RPCid, filename, NULL);
 	if (errorCode) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_DoForceDirOps: Error %d in fetching op file", errorCode);
+	    SLog(0,  "RS_DoForceDirOps: Error %d in fetching op file", errorCode);
 	    goto FreeLocks;
 	}
     }
 
     /* parse list of operations */
     {
-	LogMsg(19, SrvDebugLevel, stdout,  "RS_DoForceDirOps: going to parse file %s", filename);
+	SLog(19,  "RS_DoForceDirOps: going to parse file %s", filename);
 	forceList = new olist;
 	if (GetOpList(filename, forceList) != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_DoForceDirOps: error during GetOpList");
+	    SLog(0,  "RS_DoForceDirOps: error during GetOpList");
 	    errorCode = EINVAL;
 	    *rstatus = RES_BADOPLIST;
 	    goto FreeLocks;
@@ -277,7 +277,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     /* do semantic checking */
     {
 	if (errorCode = CheckForceDirSemantics(forceList, volptr, dirvptr)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_DoForceDirOps: error %d during Sem Checking");
+	    SLog(0,  "RS_DoForceDirOps: error %d during Sem Checking");
 	    *rstatus = EINVAL;
 	    goto FreeLocks;
 	}
@@ -295,16 +295,16 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	CodaBreakCallBack(0, Fid, VSGVolnum);
     }
 
-    LogMsg(0, SrvDebugLevel, stdout,
+    SLog(0,
 	   "RS_DoForceDirOps: Owner just before forcing dir contents is %d\n",
 	   dirvptr->disk.owner);
     /* do the actual directory ops */
     {
-	LogMsg(9, SrvDebugLevel, stdout,  "RS_DoForceDirOps: Going to force directory(%x.%x.%x)",
+	SLog(9,  "RS_DoForceDirOps: Going to force directory(%x.%x.%x)",
 		repvolid, dirvptr->vnodeNumber, dirvptr->disk.uniquifier);
 	if (errorCode = ForceDir(pv, volptr, repvolid, forceList, 
 				 vlist, &deltablocks)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "Error %d in ForceDir", errorCode);
+	    SLog(0,  "Error %d in ForceDir", errorCode);
 	    *rstatus = EINVAL;
 	    goto FreeLocks;
 	}
@@ -314,7 +314,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 
     /* spool resolution log record */
     if (AllowResolution && V_VMResOn(volptr)) {
-	LogMsg(29, SrvDebugLevel, stdout,  
+	SLog(29,  
 	       "RS_DoForceDirOps: Going to spool log record \n");
 	int ind;
 	ind = InitVMLogRecord(V_volumeindex(volptr), &pv->fid, 
@@ -324,11 +324,11 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	pv->sl.append(SLE);
     }
     if (AllowResolution && V_RVMResOn(volptr) && !errorCode) {
-	LogMsg(9, SrvDebugLevel, stdout,  
+	SLog(9,  
 	       "RS_DoForceDirOps: Going to spool recoverable log record \n");
 	if (errorCode = SpoolVMLogRecord(vlist, pv->vptr, volptr, 
 					 &status->VV.StoreId, ResolveNULL_OP, 0)) 
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    SLog(0, 
 		   "RS_DoForceDirOps: Error %d during SpoolVMLogRecord\n", 
 		   errorCode);
     }
@@ -340,12 +340,12 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	    delete p;
 	delete forceList;
     }
-    LogMsg(0, SrvDebugLevel, stdout,
+    SLog(0,
 	   "RS_DoForceDirOps: Owner just before commiting is %d\n",
 	   dirvptr->disk.owner);
     PutObjects(errorCode, volptr, NO_LOCK, vlist, deltablocks, 1);
     if (filename && unlink(filename) == -1) 
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_DoForceDirOps: Error %d occured unlinking %s",
+	SLog(0,  "RS_DoForceDirOps: Error %d occured unlinking %s",
 		filename);    
     return(errorCode);
 }
@@ -370,12 +370,12 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     diroplink *dop;
 
     if (!XlateVid(&Fid->Volume)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_GetForceDirOps: Couldnt Xlate VSG %x",
+	SLog(0,  "RS_GetForceDirOps: Couldnt Xlate VSG %x",
 		Fid->Volume);
 	return(EINVAL);
     }
-    if (errorcode =GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_GetForceDirOps:GetFsObj returns error %d",
+    if (errorcode =GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0)) {
+	SLog(0,  "RS_GetForceDirOps:GetFsObj returns error %d",
 		errorcode);
 	errorcode = EINVAL;
 	goto FreeLocks;
@@ -386,13 +386,13 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     gdop.volptr = volptr;
     gdop.oplist = new olist();
     DH_EnumerateDir(dir, ObtainDirOps, (void *) &gdop);
-
+    VN_PutDirHandle(vptr);
     /* open file to store directory ops */
     strcpy(buf, "/tmp/dirop.XXXXXXX");
     filename = mktemp(buf);
     fd = open(filename, O_RDWR | O_TRUNC | O_CREAT, 0777);
     if (fd < 0) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_GetForceDirOps: Error creating file %s",
+	SLog(0,  "RS_GetForceDirOps: Error creating file %s",
 		filename);
 	errorcode = EIO;
 	goto FreeLocks;
@@ -432,7 +432,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     if ((errorcode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
 	<= RPC2_ELIMIT) {
 	if (errorcode == RPC2_SEFAIL1) errorcode = EIO;
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_GetForceDirOps: CheckSideEffect failed %d",
+	SLog(0,  "RS_GetForceDirOps: CheckSideEffect failed %d",
 		errorcode);
 	goto FreeLocks;
     }
@@ -445,9 +445,9 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     }
     PutVolObj(&volptr, NO_LOCK);
     if (filename && unlink(filename) == -1) 
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_GetForceDirOps: Error %d occured unlinking %s",
+	SLog(0,  "RS_GetForceDirOps: Error %d occured unlinking %s",
 		filename);    
-    LogMsg(9, SrvDebugLevel, stdout,  "RS_GetDirOps: returns %d", errorcode);
+    SLog(9,  "RS_GetDirOps: returns %d", errorcode);
     return(errorcode);
 }
 
@@ -462,7 +462,7 @@ int ObtainDirOps(PDirEntry de, void *data)
     FID_NFid2Int(&de->fid, &vnode, &unique);
 
     dirop_t op;
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering ObtainDirOps for %s(%x.%x)",
+    SLog(9,  "Entering ObtainDirOps for %s(%x.%x)",
 	    name, vnode, unique);
     /* skip over "." and ".." entries */
     if (!strcmp(".", name) || !strcmp("..", name)) return(0);
@@ -473,7 +473,7 @@ int ObtainDirOps(PDirEntry de, void *data)
     Fid.Volume = V_id(gdop->volptr);
     Fid.Vnode = vnode;
     Fid.Unique = unique;
-    assert(GetFsObj(&Fid, &(gdop->volptr), &vptr, READ_LOCK, NO_LOCK, 1, 1) == 0);
+    assert(GetFsObj(&Fid, &(gdop->volptr), &vptr, READ_LOCK, NO_LOCK, 1, 1, 0) == 0);
     
     if (vptr->disk.type == vDirectory)
 	op = CreateD;
@@ -511,7 +511,7 @@ int ObtainDirOps(PDirEntry de, void *data)
 
 /* opens the file <filename> and returns the list of dir operations in List */
 int GetOpList(char *filename, olist *List) {
-    LogMsg(49, SrvDebugLevel, stdout, "In GetOpList: Filename (%s), List(0x%x)",
+    SLog(49, "In GetOpList: Filename (%s), List(0x%x)",
 	    filename, List);
     int fd = ::open(filename, O_RDONLY, 0644);
     if (fd < 0) return(-1);
@@ -527,14 +527,14 @@ int GetOpList(char *filename, olist *List) {
     }
     free(direntry);
     close(fd);
-    LogMsg(49, SrvDebugLevel, stdout,  "GetOpList: returns(%d)", error == 0 ? 0 : -1);
+    SLog(49,  "GetOpList: returns(%d)", error == 0 ? 0 : -1);
     if (error == 0) return(0);
     else return(-1);
 }
 
 /* check semantics for force dir */
 static int CheckForceDirSemantics(olist *flist, Volume *volptr, Vnode *dirvptr) {
-    LogMsg(19, SrvDebugLevel, stdout,  "Entering CheckForceDirSemantics %x.%x", dirvptr->vnodeNumber, 
+    SLog(19,  "Entering CheckForceDirSemantics %x.%x", dirvptr->vnodeNumber, 
 	    dirvptr->disk.uniquifier);
     int deltablocks = 0;
     int volindex = V_volumeindex(volptr);
@@ -565,7 +565,7 @@ static int CheckForceDirSemantics(olist *flist, Volume *volptr, Vnode *dirvptr) 
 		return(EINVAL);
 	    break;
 	  default:
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckForceDirSemantics: Illegal op %d", p->op);
+	    SLog(0,  "CheckForceDirSemantics: Illegal op %d", p->op);
 	    return(EINVAL);
 	}
     /* check if there is enough disk space */
@@ -575,7 +575,7 @@ static int CheckForceDirSemantics(olist *flist, Volume *volptr, Vnode *dirvptr) 
 	    return(errorCode);
     }
 
-    LogMsg(19, SrvDebugLevel, stdout,  "CheckForceDirSemantics: Returning 0");
+    SLog(19,  "CheckForceDirSemantics: Returning 0");
     return(0);
 }
 
@@ -584,7 +584,7 @@ static int CheckForceDirSemantics(olist *flist, Volume *volptr, Vnode *dirvptr) 
  */
 int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid, 
 	     olist *forceList, dlist *vlist, int *deltablocks) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering ForceDir(%x.%x.%x)", 
+    SLog(9,  "Entering ForceDir(%x.%x.%x)", 
 	    repvolid, pv->vptr->vnodeNumber, pv->vptr->disk.uniquifier);
     diroplink *p;
     ViceFid parentFid;
@@ -607,7 +607,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	switch(p->op) {
 	  case CreateD:
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "ForceDir: CreateD: %x.%x.%x %s",
+		SLog(9,  "ForceDir: CreateD: %x.%x.%x %s",
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
@@ -626,7 +626,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	    break;
 	  case CreateF:
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "ForceDir: CreateF: %x.%x.%x %s",
+		SLog(9,  "ForceDir: CreateF: %x.%x.%x %s",
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
@@ -654,7 +654,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	    break;
 	  case CreateL:
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "ForceDir: CreateL: %x.%x.%x %s",
+		SLog(9,  "ForceDir: CreateL: %x.%x.%x %s",
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);    
 		int tblocks = 0;
 		vle *cv = FindVLE(*vlist, &cFid);
@@ -669,7 +669,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	    break;
 	  case CreateS:
 	    {
-		LogMsg(9, SrvDebugLevel, stdout,  "ForceDir: CreateS: %x.%x.%x %s",
+		SLog(9,  "ForceDir: CreateS: %x.%x.%x %s",
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
@@ -697,7 +697,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	    }
 	    break;
 	  default:
-	    LogMsg(0, SrvDebugLevel, stdout,  "ForceDir: Illegal opcode %d", p->op);
+	    SLog(0,  "ForceDir: Illegal opcode %d", p->op);
 	    return(EINVAL);
 	}
     }
@@ -734,13 +734,13 @@ int RuntExists(ViceVersionVector **VV, int maxvvs, int *isrunt,
     for (int i = 0; i < maxvvs; i++) {
 	if (VV[i]){
 	    if (IsRunt(VV[i])) {
-		LogMsg(19, SrvDebugLevel, stdout,  "UpdateRunt: VV[%d] is a runt VV", i);
+		SLog(19,  "UpdateRunt: VV[%d] is a runt VV", i);
 		runtexists = 1;
 		isrunt[i] = 1;
 		/* could break here */
 	    }
 	    else {
-		LogMsg(19, SrvDebugLevel, stdout,  "UpdateRunt: VV[%d] is not a runt", i);
+		SLog(19,  "UpdateRunt: VV[%d] is not a runt", i);
 		if (*NonRuntIndex == -1)
 		    *NonRuntIndex = i;
 	    }

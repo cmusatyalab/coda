@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/path.cc,v 4.9 1998/09/15 22:57:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/path.cc,v 4.10 1998/10/07 20:29:45 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -194,6 +194,7 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid)
     char buf[MAXPATHLEN];
     VolumeId currvid, oldvid;
     char *slash;
+    char *tail; 
     int rc;
 
     DEBUG(("repair_getmnt(%s...)\n", realpath));
@@ -204,57 +205,69 @@ int repair_getmnt(char *realpath, char *prefix, char *suffix, VolumeId *vid)
     
     /* obtain volume id of last component */
     rc = repair_getvid(buf, &currvid);
-    if (rc < 0) return(-1);
+    if (rc < 0) 
+	    return(-1);
     
 
     /* Work backwards, shrinking realpath and testing if we have
-       crossed a mount point */
+       crossed a mount point -- invariant:
+        - when leaving slash points to charactar before the suffix,
+	which is the relative path withoin the volume, of the
+         object in conflict 
+        -  will always point at starting char of suffix
+    */
+
+    tail = buf + strlen(buf); 
     slash = buf + strlen(buf); /* points at trailing null */
+    oldvid = currvid;
     while (1) {
-	    /* INV: chars at and to right of slash have been examined
-	       none to left have */
-	    char *oldslash = slash;
-	    oldvid = currvid;
-	    
+
 	    /* break the string and find nex right slash */
-	    *oldslash = 0; 
 	    slash = strrchr(buf, '/'); 
-	    *oldslash = '/';
 	    /* abs path ==> '/' guaranteed */
 	    assert(slash);
 
-	    if (slash == buf) break; /* ate whole path up */
-	    *slash = 0;  
-
-	    rc = repair_getvid(buf, &currvid);
-	    if (rc < 0) {
-		    if (errno == EINVAL) break; /* crossed out of Coda */
-		    perror(buf);  /* a real error */
-		    return(-1); 
+	    /* possibility 1: ate whole path up */
+	    if (slash == buf) {
+		    break; 
 	    }
+
+	    *slash = '\0';
+	    rc = repair_getvid(buf, &currvid);
 	    *slash = '/';  /* restore the nuked component */
 
-	    DEBUG(("oldvid = %ld   currvid = %ld\n", oldvid, currvid));
-	    /* crossed an internal Coda mount point */
+	    /* possibility 2: crossed out of Coda */
+	    if (rc < 0) {
+		    /* not in Coda probably */
+		    if (errno == EINVAL) {
+			    break; 
+		    }
+		    /* this is an unacceptable error */
+		    perror("repair_getvid");
+		    return -1;
+	    }
+
+	    /* possibility 3: crossed an internal Coda mount point */
 	    if (oldvid != currvid) {
 		    /* restore slash to previous value and break */
-		    slash = oldslash; 
-		    *slash = 0;  
 		    break;
 	    }
+
+	    /* possibility 4: we are still in the same volume */
+	    *slash = '\0';
+	    /* restore the previous null */
+	    if ( *tail != '\0' )
+		    *(tail - 1) = '/';
+	    tail = slash + 1;
     }
 
     /* set OUT parameters */
     if (prefix) 
 	    strcpy(prefix, buf);  /* this gives us the mount point */
-    if (suffix) {
-	    if (strlen(buf) == strlen(realpath))
-		*suffix = 0;  /* realpath is the root of a volume */
-	else 
-		strcpy(suffix, buf+strlen(buf)+1); 
-    }
     if (vid) 
 	    *vid = oldvid;
+    if (suffix )
+	    strcpy(suffix, tail); 
 
     return(0);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.16 1998/08/31 12:23:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.17 1998/09/03 21:36:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,13 +70,6 @@ extern "C" {
 #include <net/if.h>
 #ifdef __linux__
 #include <linux/if_ether.h>
-#endif
-#ifdef __MACH__
-#include <netinet/if_ether.h>
-#include <nlist.h>
-/* nlist.h defines this function but it isnt getting included because it is
-   guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
-extern int nlist(const char*, struct nlist[]);
 #endif
 
 #include <strings.h>
@@ -143,7 +136,8 @@ static void PrintUnusedComplaint(RPC2_Handle, RPC2_Integer, char *);
 /*
   ViceConnectFS: Client request to connect to file server
 */ 
-long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *ClientId)
+long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, 
+		   ViceClient *ClientId)
 {
 	SLog(1, "ViceConnectFS (version %d) for user %s at %s.%s",
 	     ViceVersion, ClientId->UserName, ClientId->WorkStationName, 
@@ -160,9 +154,10 @@ long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *Cli
 	if (!errorCode && client) {
 		/* set up a callback channel 
 		   if there isn't one for this host */
-		if (client->VenusId->id == 0) 
+		if (client->VenusId->id == 0) {
+			SLog(0, "Building callback conn.");
 			errorCode = CLIENT_MakeCallBackConn(client);
-		else {
+		} else {
 			errorCode = CallBack(client->VenusId->id, &NullFid);
 			if ( errorCode  != RPC2_SUCCESS ) {
 				/* XXX tear down naked connection */
@@ -395,7 +390,8 @@ long ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
     vfid.Unique = 1;
 
     // get the root vnode even if it is inconsistent
-    if (errorCode = GetFsObj(&vfid, &volptr, &vptr, READ_LOCK, VOL_NO_LOCK, 1, 0)) {
+    if (errorCode = GetFsObj(&vfid, &volptr, &vptr, 
+			     READ_LOCK, VOL_NO_LOCK, 1, 0, 0)) {
 	goto Final;
     }
 
@@ -528,7 +524,8 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
 
 
     v = AddVLE(*vlist, &vfid);
-    if (errorCode = GetFsObj(&vfid, &volptr, &v->vptr, READ_LOCK, VOL_NO_LOCK, 0, 0)) {
+    if (errorCode = GetFsObj(&vfid, &volptr, &v->vptr, READ_LOCK, 
+			     VOL_NO_LOCK, 0, 0, 0)) {
 	goto Final;
     }
 
@@ -695,15 +692,50 @@ long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 long ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds, 
 		 RPC2_Integer *useconds)
 {
-    struct timeval tpl;
-    struct timezone tspl;
+	struct timeval tpl;
+	struct timezone tspl;
+	ClientEntry *client = NULL;
+	long errorCode;
 
-    LogMsg(1, SrvDebugLevel, stdout, "Received GetTime");
-    TM_GetTimeOfDay(&tpl,&tspl);
-    *seconds = tpl.tv_sec;
-    *useconds = tpl.tv_usec;
-    LogMsg(2, SrvDebugLevel, stdout, "GetTime returns %d, %d", *seconds, *useconds);
-    return(0);
+	TM_GetTimeOfDay(&tpl,&tspl);
+	*seconds = tpl.tv_sec;
+	*useconds = tpl.tv_usec;
+
+	errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+
+	if (!client) { 
+		SLog(0, "No client structure built by ViceNewConnection");
+		return ENOTCONN;
+	}
+
+	SLog(1, "ViceGetTime for user %s at %s on conn %d.",
+	     client->UserName, client->VenusId->HostName, RPCid);
+	
+	if (!errorCode && client) {
+		/* set up a callback channel 
+		   if there isn't one for this host */
+		if (client->VenusId->id == 0) {
+			SLog(0, "GetTime: Building callback conn to %s.",
+			     client->VenusId->HostName);
+			errorCode = CLIENT_MakeCallBackConn(client);
+		} else {
+			errorCode = CallBack(client->VenusId->id, &NullFid);
+			if ( errorCode  != RPC2_SUCCESS ) {
+				SLog(0, "GetTime: ReBuilding callback conn for %s",
+				     client->VenusId->HostName);
+				/* XXX tear down naked connection */
+				errorCode = CLIENT_MakeCallBackConn(client);
+			}
+		}			
+	}
+
+	if (errorCode)
+		CLIENT_CleanUpHost(client->VenusId);
+
+	SLog(2, "GetTime returns %d, %d, errorCode %d", 
+	     *seconds, *useconds, errorCode);
+	
+	return(errorCode);
 }
 
 

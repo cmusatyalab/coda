@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.h,v 4.3 1997/10/23 19:25:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/cvnode.h,v 4.4 1998/08/26 21:22:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -226,6 +226,9 @@ int VN_DCommit(Vnode *vnp);
 int VN_DAbort(Vnode *vnp);
 PDirHandle VN_SetDirHandle(struct Vnode *vn);
 void VN_PutDirHandle(struct Vnode *vn);
+void VN_DropDirHandle(struct Vnode *vn);
+void VN_CopyOnWrite(struct Vnode *vptr);
+
 void VN_VN2Fid(struct Vnode *, struct Volume *, struct ViceFid *);
 void VN_VN2PFid(struct Vnode *, struct Volume *, struct ViceFid *);
 

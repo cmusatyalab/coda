@@ -101,11 +101,11 @@ int VN_DCommit(Vnode *vnp)
 		DLog(29, "VN_DCommit: Commiting pages for dir vnode = %d", 
 			vnp->vnodeNumber);
 		/* copy the VM pages into RVM */
-		pdi = DI_DhToDi(pdce, pdi);
-		assert(pdi);
+		DI_DhToDi(pdce);
+		assert(DC_DC2DI(pdce));
 		/* rehash just in case it is new */
-		DC_Commit(pdce);
-		vnp->disk.inodeNumber = (long unsigned int) pdi;
+		DC_Rehash(pdce);
+		vnp->disk.inodeNumber = (long unsigned int) DC_DC2DI(pdce);
 	}
 	return 0;
 }
@@ -137,11 +137,28 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 {
 	PDCEntry pdce = NULL;
 
-	if ( vn->disk.inodeNumber == 0 )
+	/* three cases:
+	   - new not previously seen 
+	   - not new, already in RVM
+            - new, not yet in RVM, still on the new_list
+	*/
+
+	if ( vn->disk.inodeNumber == 0 && vn->dh == 0 ) {  
 		pdce = DC_New();
-	else
+		SLog(0, "VN_GetDirHandle NEW Vnode %#x Uniq %#x cnt %d\n",
+		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
+		vn->dh = pdce;
+	} else if ( vn->disk.inodeNumber ) {
 		pdce = DC_Get((PDirInode)vn->disk.inodeNumber);
-	vn->dh = pdce;
+		SLog(0, "VN_GetDirHandle for Vnode %#x Uniq %#x cnt %d\n",
+		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
+		vn->dh = pdce;
+	} else {
+		pdce = vn->dh;
+		DC_IncCount(pdce);
+		SLog(0, "VN_GetDirHandle NEW-seen Vnode %#x Uniq %#x cnt %d\n",
+		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
+	}
 
 	return DC_DC2DH(pdce);
 }
@@ -151,16 +168,53 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
  */
 void VN_PutDirHandle(struct Vnode *vn)
 {
-	if (vn->dh) 
+
+	assert(vn->dh);
+
+	if (vn->dh) {
+		SLog(0, "VN_PutDirHandle for Vnode %x Unique %x: count %d\n",
+		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(vn->dh)-1);
 		DC_Put(vn->dh);
-	vn->dh = NULL;
+		assert(DC_Count(vn->dh) >= 0);
+	}
 }
 
 /* Drop DirHandle */
 void VN_DropDirHandle(struct Vnode *vn)
 {
-	if (vn->dh) 
+	if (vn->dh) {
+		SLog(0, "VN_DropDirHandle for Vnode %x Unique %x: count %d\n",
+		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(vn->dh));
 		DC_Drop(vn->dh);
+	}
 	vn->dh = NULL;
 }
 
+/*
+   - directories: set the disk.inode field to 0 and 
+     create a dcentry with the _old_ contents. 
+     NOTE: afterwards the vptr->dh  will have VM data, 
+     but no RVM data.
+     new one is committed.
+*/
+void VN_CopyOnWrite(struct Vnode *vptr)
+{
+		PDCEntry pdce = DC_New();
+		PDirHeader pdirh;
+		
+		assert(pdce);
+		assert(vptr->disk.inodeNumber != 0);
+		pdirh = DI_DiToDh((PDirInode)vptr->disk.inodeNumber);
+		assert(pdirh);
+		DC_SetDirh(pdce, pdirh);
+		DC_SetCowpdi(pdce, (PDirInode)vptr->disk.inodeNumber);
+		DC_SetDirty(pdce, 1);
+		SLog(0, "CopyOnWrite: New dce= %p new dirheader = %p", 
+		     (void *) pdce, (void *) pdirh);
+		vptr->disk.inodeNumber = 0;
+		vptr->disk.cloned = 0;
+		if ( vptr->dh ) 
+			VN_PutDirHandle(vptr);
+		vptr->dh = pdce;
+
+}

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resfile.cc,v 4.5 1998/01/10 18:38:17 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/resfile.cc,v 4.6 1998/08/31 12:23:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -173,7 +173,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 	       implement the uni-connection groups  --- PUNEET */
 	    if (errorcode = Res_FetchFile(mgrp->rrcc.handles[dix], Fid, 
 					  mgrp->rrcc.hosts[dix], &Status, &sid)){
-		LogMsg(0, SrvDebugLevel, stdout,  "FileResolve: Error %d in fetchfile", 
+		SLog(0,  "FileResolve: Error %d in fetchfile", 
 			errorcode);
 		assert(dix != -1);
 		goto EndFileResolve;
@@ -188,7 +188,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 	    assert(stat(filename, &buf) == 0);
 	    int length = buf.st_size;
 	    sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
-	    LogMsg(9, SrvDebugLevel, stdout,  "FileResolve: Going to force file");
+	    SLog(9,  "FileResolve: Going to force file");
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
 	    {	/* 
 		 * find the dominant set, and omit the file transfer to hosts
@@ -199,7 +199,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 		 */
 		int HowMany = 0;
 		assert(VV_Check(&HowMany, VV, 0) || IsWeaklyEqual(VV, VSG_MEMBERS));
-		LogMsg(0, SrvDebugLevel, stdout, "FileResolve: %d dominant copies",
+		SLog(0, "FileResolve: %d dominant copies",
 		       HowMany);
 		for (int i = 0; i < VSG_MEMBERS; i++) 
 		    if (VV[i]) sidvar_bufs[i].Tag = OMITSE;
@@ -210,7 +210,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 			   mgrp->rrcc.MIp, 0, 0, Fid, ResStoreData, 
 			   length, &newvv, &Status, sidvar_bufs);
 	    
-	    LogMsg(9, SrvDebugLevel, stdout,  "FileResolve: Returned from ForceFile");
+	    SLog(9,  "FileResolve: Returned from ForceFile");
 	    /* coerce rpc errors as timeouts */
 	    mgrp->CheckResult();
 	    /* collect replies and do cop2 */
@@ -237,7 +237,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 EndFileResolve:
     unlink(filename);
     if (errorcode) {
-	LogMsg(0, SrvDebugLevel, stdout,  "FileResolve: Marking object 0x%x.%x.%x inconsistent",
+	SLog(0,  "FileResolve: Marking object 0x%x.%x.%x inconsistent",
 		Fid->Volume, Fid->Vnode, Fid->Unique);
 	/* inconsistency - mark it and return */
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
@@ -263,21 +263,21 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     int errorcode = 0;
     Inode tmpinode = 0;
 
-    LogMsg(9, SrvDebugLevel, stdout,  "RS_FetchFile(%x.%x.%x %x)", Fid->Volume,
+    SLog(9,  "RS_FetchFile(%x.%x.%x %x)", Fid->Volume,
 	     Fid->Vnode, Fid->Unique, PrimaryHost);
 
-    LogMsg(9, SrvDebugLevel, stdout,  "RS_FetchFile ThisHostAddr = %x", ThisHostAddr);
+    SLog(9,  "RS_FetchFile ThisHostAddr = %x", ThisHostAddr);
     if (PrimaryHost != ThisHostAddr) return 0;
     assert(!ISDIR(*Fid));
     if (!XlateVid(&Fid->Volume)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchFile: Couldnt xlate vid %x", Fid->Volume);
+	SLog(0,  "RS_FetchFile: Couldnt xlate vid %x", Fid->Volume);
 	return(EINVAL);
     }
     
     /* no need for access checks for resolution subsystem */
-    if (errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0)){
+    if (errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0)){
 	errorcode = EINVAL;
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchFile Error in GetFsObj %d", errorcode);
+	SLog(0,  "RS_FetchFile Error in GetFsObj %d", errorcode);
 	goto FreeLocks;
     }
 
@@ -298,7 +298,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     }
     
     if ((errorcode = RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchFile: InitSideEffect failed %d", 
+	SLog(0,  "RS_FetchFile: InitSideEffect failed %d", 
 		errorcode);
 	errorcode = EINVAL;
 	goto FreeLocks;
@@ -306,7 +306,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
 
     if ((errorcode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT) {
 	if (errorcode == RPC2_SEFAIL1) errorcode = EIO;
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_FetchFile: CheckSideEffect failed %d",
+	SLog(0,  "RS_FetchFile: CheckSideEffect failed %d",
 		errorcode);
 	goto FreeLocks;
     }
@@ -316,7 +316,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
 FreeLocks:
     if (vptr){
 	if (tmpinode){
-	    LogMsg(9, SrvDebugLevel, stdout,  "RS_FetchFile: Getting rid of tmp inode");
+	    SLog(9,  "RS_FetchFile: Getting rid of tmp inode");
 	    assert(!(idec(V_device(volptr), tmpinode,
 			  V_parentId(volptr))));
 	}
@@ -325,7 +325,7 @@ FreeLocks:
 	assert(filecode == 0);
     }
     PutVolObj(&volptr, NO_LOCK);
-    LogMsg(9, SrvDebugLevel, stdout,  "RS_FetchFile Returns %d", errorcode);
+    SLog(9,  "RS_FetchFile Returns %d", errorcode);
     return(errorcode);
 }
 
@@ -350,25 +350,25 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
     assert(Request == ResStoreData);
     conninfo *cip = GetConnectionInfo(RPCid);
     if (cip == NULL){
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceFile: Couldnt get conninfo ");
+	SLog(0,  "RS_ForceFile: Couldnt get conninfo ");
 	return(EINVAL);
     }
     if (!XlateVid(&Fid->Volume)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceFile: Couldnt Xlate VSG %x", 
+	SLog(0,  "RS_ForceFile: Couldnt Xlate VSG %x", 
 		Fid->Volume);
 	return(EINVAL);
     }
     
     /* get object */
-    if (errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0)){
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceFile: GetFsObj returns error %d", errorcode);
+    if (errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0, 0)){
+	SLog(0,  "RS_ForceFile: GetFsObj returns error %d", errorcode);
 	errorcode = EINVAL;
 	goto FreeLocks;
     }
 
     /* make sure Volume is locked by coordinator */
     if (V_VolLock(volptr).IPAddress != cip->GetRemoteHost()) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceFile: Volume not locked by coordinator");
+	SLog(0,  "RS_ForceFile: Volume not locked by coordinator");
 	errorcode = EINVAL;
 	goto FreeLocks;
     }
@@ -385,7 +385,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	}
 	else {
 	    errorcode = EINCOMPATIBLE;
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceFile: Version Vectors are inconsistent");
+	    SLog(0,  "RS_ForceFile: Version Vectors are inconsistent");
 	    goto FreeLocks;
 	}
     }
@@ -403,7 +403,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 
 	/* adjust the disk block count by the difference in the files */
 	if(errorcode = AdjustDiskUsage(volptr, (nBlocks(Length) - nBlocks(vptr->disk.length)))) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceFile: Error %d in AdjustDiskUsage", errorcode);
+	    SLog(0,  "RS_ForceFile: Error %d in AdjustDiskUsage", errorcode);
 	    goto FreeLocks;
 	}
 
@@ -420,24 +420,24 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = newinode;
 	    if ((errorcode = RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
 		ChangeDiskUsage(volptr, (nBlocks(vptr->disk.length)-nBlocks(Length)));
-		LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceFile Error in InitSideEffect %d", errorcode);
+		SLog(0,  "RS_ForceFile Error in InitSideEffect %d", errorcode);
 		goto FreeLocks;
 	    }
 	    if ((errorcode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT) {
 		if (errorcode == RPC2_SEFAIL1) errorcode = EIO;
 		ChangeDiskUsage(volptr, (nBlocks(vptr->disk.length) - nBlocks(Length)));
-		LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceFile: Error %d in CheckSideEffect", 
+		SLog(0,  "RS_ForceFile: Error %d in CheckSideEffect", 
 			errorcode);
 		goto FreeLocks;
 	    }
 
-	    LogMsg(9, SrvDebugLevel, stdout,  "RS_ForceFile: Transferred %d bytes", 
+	    SLog(9,  "RS_ForceFile: Transferred %d bytes", 
 		    sid.Value.SmartFTPD.BytesTransferred);
 	}
 	/* do disk inode stuff */
 	{
 	    if (nBlocks(Length) != nBlocks(sid.Value.SmartFTPD.BytesTransferred)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "Len from res coordinator(%d) != len transfered(%d) for fid %x.%x.%x", 
+		SLog(0,  "Len from res coordinator(%d) != len transfered(%d) for fid %x.%x.%x", 
 			Length, sid.Value.SmartFTPD.BytesTransferred,
 			Fid->Volume, Fid->Vnode, Fid->Unique);
 		errorcode = EIO;
@@ -446,7 +446,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	    }
 
 	    if (vptr->disk.inodeNumber != 0) {
-		LogMsg(9, SrvDebugLevel, stdout,  "RS_ForceFile: Blowing away old inode %x", 
+		SLog(9,  "RS_ForceFile: Blowing away old inode %x", 
 			vptr->disk.inodeNumber);
 		oldinode = vptr->disk.inodeNumber;
 	    }
@@ -503,7 +503,7 @@ FreeLocks:
     assert(status == 0);
     if (oldinode && device && parentId)
 	assert(!(idec(device, oldinode, parentId)));
-    LogMsg(9, SrvDebugLevel, stdout,  "RS_ForceFile returns %d", errorcode);
+    SLog(9,  "RS_ForceFile returns %d", errorcode);
     return(errorcode);
 }
 
@@ -562,13 +562,13 @@ static void UpdateStats(ViceFid *Fid, fileresstats *frstats) {
 		V_VolLog(volptr)->vmrstats->update(frstats);
 	}
 	else { 
-	    LogMsg(0, SrvDebugLevel, stdout,
+	    SLog(0,
 	       "UpdateStats: couldn't get vol obj 0x%x\n", vid);
 	    volptr = 0;
 	}
     }
     else 
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "UpdateStats: couldn't Xlate Fid 0x%x\n", vid);
     if (volptr) 
 	PutVolObj(&volptr, VOL_NO_LOCK, 0);

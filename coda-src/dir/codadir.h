@@ -194,8 +194,9 @@ struct DirInode {
 };
 typedef struct DirInode *PDirInode;
 
+void DC_SetDI(PDCEntry pdce, PDirInode pdi);
 PDirHeader DI_DiToDh(PDirInode pdi);
-PDirInode DI_DhToDi(PDCEntry pdce, PDirInode pdi);
+void DI_DhToDi(PDCEntry pdce);
 void DI_Copy(PDirInode oldinode, PDirInode *newinode);
 void DI_Dec(PDirInode pdi);
 void DI_Inc(PDirInode pdi);
@@ -205,12 +206,14 @@ void *DI_Page(PDirInode, int);
 void DI_VMCopy(PDirInode oldinode, PDirInode *newinode);
 void DI_VMFree(PDirInode pdi);
 void DI_VMDec(PDirInode pdi);
+void DC_IncCount(PDCEntry pdce);
 
 /* dir handle cache */
 PDirInode DC_DC2DI(PDCEntry pdce);
 int DC_Refcount(PDCEntry);
 void DC_Put(PDCEntry);
 void DC_Drop(PDCEntry);
+int DC_Count(PDCEntry pdce) ;
 void DC_SetDirh(PDCEntry pdce, PDirHeader pdh);
 PDirInode DC_Cowpdi(PDCEntry);
 void DC_SetCowpdi(PDCEntry, PDirInode);
@@ -219,7 +222,7 @@ void DC_SetDirty(PDCEntry, int);
 PDCEntry DC_Get(PDirInode);
 PDCEntry DC_New();
 PDirHandle DC_DC2DH(PDCEntry);
-void DC_Commit(PDCEntry);
+void DC_Rehash(PDCEntry);
 void DC_HashInit();
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.3 1998/01/10 18:37:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/weres.cc,v 4.4 1998/08/31 12:23:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,12 +62,12 @@ extern "C" {
 #include <res.h>
 
 int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
-	  res_mgrpent *mgrp, unsigned long *hosts) {
+	  res_mgrpent *mgrp, unsigned long *hosts) 
+{
     
     int errorcode = 0;
 
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering WERes(0x%x.%x.%x)",
-	    Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(9,  "Entering WERes %s", FID_(Fid));
 
     /* force a new vv */
     {
@@ -87,7 +87,7 @@ int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
 	MRPC_MakeMulti(ForceDirVV_OP, ForceDirVV_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid, &newvv, /* rstatusp ? &vstatus : NULL*/ &vstatus);
-	LogMsg(9, SrvDebugLevel, stdout,  "WERes returned from ForceVV");
+	SLog(9,  "WERes returned from ForceVV");
     }
 
     /* coerce rpc errors as timeouts - check ret codes */
@@ -103,7 +103,9 @@ int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
 /* subordinate end of Weakly Equal resolution -
  *	each subordinate forces a  new vector passed to it
  */
-long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV, ViceStatus *statusp) {
+long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV, 
+		ViceStatus *statusp) 
+{
 
     int res = 0;
     Vnode *vptr = 0;
@@ -113,35 +115,38 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV, ViceStat
     ViceVersionVector *DiffVV = 0;
     int errorcode = 0;
     conninfo *cip = GetConnectionInfo(RPCid);
+
     if (cip == NULL){
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceVV: Couldnt get conninfo ");
+	SLog(0,  "RS_ForceVV: Couldnt get conninfo ");
 	return(EINVAL);
     }
 
     if (!XlateVid(&Fid->Volume)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceVV: Couldnt Xlate VSG %x",
+	SLog(0,  "RS_ForceVV: Couldnt Xlate VSG %x",
 		Fid->Volume);
 	return(EINVAL);
     }
     
     /* get the object */
-    if (errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceVV: GetFsObj returns error %d", errorcode);
+    if (errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0, 0)) {
+	SLog(0,  "RS_ForceVV: GetFsObj returns error %d for %s", 
+	     errorcode, FID_(Fid));
 	errorcode = EINVAL;
 	goto FreeLocks;
     }
     
     /* make sure volume is locked by coordinator */
     if (V_VolLock(volptr).IPAddress != cip->GetRemoteHost()) {
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceVV: Volume not locked by coordinator");
+	SLog(0,  "RS_ForceVV: Volume of %s not locked by coordinator",
+	     FID_(Fid));
 	errorcode = EWOULDBLOCK;
 	goto FreeLocks;
     }
 
-    LogMsg(9, SrvDebugLevel, stdout,  "ForceVV: vector passed in is :");
+    SLog(9,  "ForceVV: vector passed in is :");
     if (SrvDebugLevel >= 9)
 	PrintVV(stdout, VV);
-    LogMsg(9, SrvDebugLevel, stdout,  "ForceVV: vector in the vnode is :");
+    SLog(9,  "ForceVV: vector in the vnode is :");
     if (SrvDebugLevel >= 9)
 	PrintVV(stdout, &Vnode_vv(vptr));
     
@@ -159,16 +164,16 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV, ViceStat
 	}
 	else {
 	    errorcode = EINCOMPATIBLE;
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceVV: Version Vectors are inconsistent");
-	    LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceVV: Vectors are: ");
-	    LogMsg(0, SrvDebugLevel, stdout,  "[%d %d %d %d %d %d %d %d][0x%x.%x][%d]",
+	    SLog(0,  "RS_ForceVV: Version Vectors are inconsistent");
+	    SLog(0,  "RS_ForceVV: Vectors are: ");
+	    SLog(0,  "[%d %d %d %d %d %d %d %d][0x%x.%x][%d]",
 		    Vnode_vv(vptr).Versions.Site0, Vnode_vv(vptr).Versions.Site1,
 		    Vnode_vv(vptr).Versions.Site2, Vnode_vv(vptr).Versions.Site3,
 		    Vnode_vv(vptr).Versions.Site4, Vnode_vv(vptr).Versions.Site5,
 		    Vnode_vv(vptr).Versions.Site6, Vnode_vv(vptr).Versions.Site7,
 		    Vnode_vv(vptr).StoreId.Host, Vnode_vv(vptr).StoreId.Uniquifier, 
 		    Vnode_vv(vptr).Flags);
-	    LogMsg(0, SrvDebugLevel, stdout,  "[%d %d %d %d %d %d %d %d][0x%x.%x][%d]",
+	    SLog(0,  "[%d %d %d %d %d %d %d %d][0x%x.%x][%d]",
 		    VV->Versions.Site0, VV->Versions.Site1,
 		    VV->Versions.Site2, VV->Versions.Site3,
 		    VV->Versions.Site4, VV->Versions.Site5,
@@ -180,11 +185,12 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV, ViceStat
 	}
     }
     else 
-	LogMsg(0, SrvDebugLevel, stdout,  "RS_ForceVV: Forcing the old version vector!!!!!!!!");
+	SLog(0,  "RS_ForceVV: Forcing the old version vector on %s.",
+	     FID_(Fid));
     
     /* if cop pending flag is set for this vnode, then clear it */
     if (COP2Pending(Vnode_vv(vptr))) {
-	LogMsg(9, SrvDebugLevel, stdout,  "ForceVV: Clearing COP2 pending flag ");
+	SLog(9,  "ForceVV: Clearing COP2 pending flag ");
 	ClearCOP2Pending(Vnode_vv(vptr));
     }
 
@@ -210,6 +216,6 @@ FreeLocks:
     }
     PutVolObj(&volptr, NO_LOCK);
     RVMLIB_END_TRANSACTION(flush, &(status));
-    LogMsg(9, SrvDebugLevel, stdout,  "RS_ForceVV returns %d", errorcode);
+    SLog(9,  "RS_ForceVV returns %d", errorcode);
     return(errorcode);
 }

@@ -73,11 +73,12 @@ static PDCEntry dc_GetFree()
 		list_del(&pdce->dc_hash);
 
 		/* clean it up before use */
-		pdce->dc_count = 0;
-		pdce->dc_refcount = 0;
+		if ( DH_Data(&pdce->dc_dh) )
+			DH_FreeData(&pdce->dc_dh);
+		bzero(pdce, sizeof(*pdce));
+		list_head_init(&pdce->dc_list);
+		list_head_init(&pdce->dc_hash);
 		DH_Init(&pdce->dc_dh);
-		pdce->dc_pdi = NULL;
-		pdce->dc_cowpdi = NULL;
 	}
 	ReleaseWriteLock(&dlock);
 	if ( pdce ) 
@@ -143,17 +144,16 @@ PDCEntry DC_Get(PDirInode pdi)
 
 /* Commit a DirInode - if new move it from the dnewlist to the hash list */
 /* called by VN_DCommit when the RVM Dir Inode for mkdir is created */
-void DC_Commit(PDCEntry pdce)
+void DC_Rehash(PDCEntry pdce)
 {
-	PDirHandle dh = DC_DC2DH(pdce);
 	int hash;
 
-	assert(dh);
-
-	pdce = list_entry(dh, struct DCEntry, dc_dh);
+	assert(pdce);
 
 	hash = DC_Hash(pdce->dc_pdi);
+
 	ObtainWriteLock(&dlock); 
+
 	list_del(&pdce->dc_hash);
 	list_add(&pdce->dc_hash, &dcache[hash]);
 	ReleaseWriteLock(&dlock);
@@ -195,13 +195,25 @@ void DC_Put(PDCEntry pdce)
 	ObtainWriteLock(&dlock); 
 
 	if ( pdce->dc_count == 1 ) {
-		list_add(dfreelist.prev, &pdce->dc_list);
+		list_add(&pdce->dc_list, dfreelist.prev);
 	} 
 	pdce->dc_count--;
 
 	ReleaseWriteLock(&dlock);
 	return;
 }
+
+int DC_Count(PDCEntry pdce) 
+{
+	return pdce->dc_count;
+}
+
+void DC_IncCount(PDCEntry pdce) 
+{
+	pdce->dc_count++;
+}
+
+
 
 /* called by ViceMakedir */
 PDCEntry DC_New()
@@ -213,6 +225,7 @@ PDCEntry DC_New()
 	pdce->dc_count = 1;
 	pdce->dc_pdi = NULL;
 	pdce->dc_refcount = 1;
+	DC_SetDirty(pdce, 1);
 	list_add(&pdce->dc_hash, &dnewlist);
 
 	ReleaseWriteLock(&dlock);
@@ -245,6 +258,12 @@ void DC_SetDirh(PDCEntry pdce, PDirHeader pdh)
 	pdce->dc_dh.dh_data = pdh;
 }
 
+void DC_SetDI(PDCEntry pdce, PDirInode pdi)
+{
+	assert(pdce);
+	pdce->dc_pdi = pdi;
+}
+
 
 void DC_SetCowpdi(PDCEntry pdce, PDirInode pdi)
 {
@@ -268,10 +287,8 @@ void DC_SetDirty(PDCEntry pdce, int flag)
 
 int DC_Dirty(PDCEntry pdce)
 {
-	if ( !pdce ) 
-		return 0;
-	else
-		return pdce->dc_dh.dh_dirty;
+	assert(pdce);
+	return pdce->dc_dh.dh_dirty;
 }
 		
 

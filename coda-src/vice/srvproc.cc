@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.13 1998/09/29 16:38:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.14 1998/10/09 21:57:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -220,8 +220,8 @@ long ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
     vle *av;
 
 START_TIMING(Fetch_Total);
-    LogMsg(1, SrvDebugLevel, stdout, "ViceFetch: Fid = (%x.%x.%x), Repair = %d",
-	     Fid->Volume, Fid->Vnode, Fid->Unique, (Request == FetchDataRepair));
+    SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), 
+	 (Request == FetchDataRepair));
 
     /* Validate parameters. */
     {
@@ -240,20 +240,20 @@ START_TIMING(Fetch_Total);
 		break;
 
 	    default:
-		LogMsg(0, SrvDebugLevel, stdout, "ViceFetch: illegal type %d", Request);
+		SLog(0, "ViceFetch: illegal type %d", Request);
 		errorCode = EINVAL;
 		goto FreeLocks;
 	}
 
 	/* Deprecated/Inapplicable parameters. */
 	if (!FID_EQ(&NullFid, BidFid)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceFetch: non-Null BidFid (%x.%x.%x)",
+	    SLog(0, "ViceFetch: non-Null BidFid (%x.%x.%x)",
 		    BidFid->Volume, BidFid->Vnode, BidFid->Unique);
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
 	if (AccessList->MaxSeqLen != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceFetch: ACL != 0");
+	    SLog(0, "ViceFetch: ACL != 0");
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
@@ -262,20 +262,20 @@ START_TIMING(Fetch_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, NO_LOCK, inconok, 0))
+	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
+				 NO_LOCK, inconok, 0, 0))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	if (v->vptr->disk.type == vDirectory) {
 	    av = v;
-	}
-	else {
+	} else {
 	    ViceFid pFid;
-	    pFid.Volume = Fid->Volume;
-	    pFid.Vnode = v->vptr->disk.vparent;
-	    pFid.Unique = v->vptr->disk.uparent;
+
+	    VN_VN2PFid(v->vptr, volptr, &pFid);
 	    av = AddVLE(*vlist, &pFid);
-	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, inconok, 0))
+	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, 
+				     NO_LOCK, inconok, 0, 0))
 		goto FreeLocks;
 	}
     }
@@ -308,7 +308,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceFetch returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceFetch returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Fetch_Total);
     return(errorCode);
 }
@@ -317,8 +317,10 @@ END_TIMING(Fetch_Total);
 /*
  ViceGetAttr: Fetch the attributes for a file/directory
 */
-long ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, int InconOK,
-		  ViceStatus *Status, RPC2_Unsigned PrimaryHost, RPC2_CountedBS *PiggyBS)
+long ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, 
+		 int InconOK, ViceStatus *Status, 
+		 RPC2_Unsigned PrimaryHost, 
+		 RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
     Error fileCode = 0;		/* return code to do writes */
@@ -333,32 +335,32 @@ long ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, int InconOK,
     vle *av = 0;
 
 START_TIMING(GetAttr_Total);
-    LogMsg(1, SrvDebugLevel, stdout, "ViceGetAttr: Fid = (%x.%x.%x), Repair = %d",
-	     Fid->Volume, Fid->Vnode, Fid->Unique, InconOK);
+    SLog(1, "ViceGetAttr: Fid = %s, Repair = %d", FID_(Fid), InconOK);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Fid->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
+				      &Fid->Volume, PiggyBS))
 	    goto FreeLocks;
     }
 
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, NO_LOCK, InconOK, 0))
+	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
+				 NO_LOCK, InconOK, 0, 0))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	if (v->vptr->disk.type == vDirectory) {
 	    av = v;
-	}
-	else {
+	} else {
 	    ViceFid pFid;
-	    pFid.Volume = Fid->Volume;
-	    pFid.Vnode = v->vptr->disk.vparent;
-	    pFid.Unique = v->vptr->disk.uparent;
+
+	    VN_VN2PFid(v->vptr, volptr, &pFid);
 	    av = AddVLE(*vlist, &pFid);
-	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, InconOK, 0))
+	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
+				     READ_LOCK, NO_LOCK, InconOK, 0, 0))
 		goto FreeLocks;
 	}
     }
@@ -379,7 +381,8 @@ START_TIMING(GetAttr_Total);
 	if(VolumeWriteable(volptr))
 	    /* Until CVVV probes? -JJK */
 	    if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) 
-		Status->CallBack = CodaAddCallBack(client->VenusId, Fid, VSGVolnum);
+		Status->CallBack = CodaAddCallBack(client->VenusId, Fid, 
+						   VSGVolnum);
     }
 
 FreeLocks:
@@ -388,7 +391,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceGetAttr returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceGetAttr returns %s", ViceErrorMsg(errorCode));
 END_TIMING(GetAttr_Total);
     return(errorCode);
 }
@@ -425,7 +428,8 @@ START_TIMING(ViceValidateAttrs_Total);
 
     /* Do a real getattr for primary fid. */
     {
-	if (errorCode = ViceGetAttr(RPCid, PrimaryFid, 0, Status, PrimaryHost, PiggyBS))
+	if (errorCode = ViceGetAttr(RPCid, PrimaryFid, 0, Status, 
+				    PrimaryHost, PiggyBS))
 		goto Exit;
     }
 
@@ -457,7 +461,7 @@ START_TIMING(ViceValidateAttrs_Total);
 	{
 	    v = AddVLE(*vlist, &Piggies[i].Fid);
 	    if (iErrorCode = GetFsObj(&Piggies[i].Fid, &volptr, 
-				      &v->vptr, READ_LOCK, NO_LOCK, 0, 0))
+				      &v->vptr, READ_LOCK, NO_LOCK, 0, 0, 0))
 		goto InvalidObj;
 
 	    /* This may violate locking protocol! -JJK */
@@ -470,7 +474,7 @@ START_TIMING(ViceValidateAttrs_Total);
 		pFid.Unique = v->vptr->disk.uparent;
 		av = AddVLE(*vlist, &pFid);
 		if (iErrorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
-					  READ_LOCK, NO_LOCK, 0, 0))
+					  READ_LOCK, NO_LOCK, 0, 0, 0))
 		    goto InvalidObj;
 
 	    }
@@ -501,7 +505,7 @@ START_TIMING(ViceValidateAttrs_Total);
 						    VSGVolnum);
 		    }
 
-		    LogMsg(8, SrvDebugLevel, stdout, "ViceValidateAttrs: (%x.%x.%x) ok",
+		    SLog(8, "ViceValidateAttrs: (%x.%x.%x) ok",
 			   Piggies[i].Fid.Volume, 
 			   Piggies[i].Fid.Vnode, 
 			   Piggies[i].Fid.Unique);
@@ -509,7 +513,7 @@ START_TIMING(ViceValidateAttrs_Total);
 	    }
 
 InvalidObj:
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceValidateAttrs: (%x.%x.%x) failed!",
+	    SLog(0, "ViceValidateAttrs: (%x.%x.%x) failed!",
 		   Piggies[i].Fid.Volume, Piggies[i].Fid.Vnode, 
 		   Piggies[i].Fid.Unique);
 	}
@@ -521,7 +525,7 @@ InvalidObj:
     }
 
 Exit:
-    LogMsg(2, SrvDebugLevel, stdout, "ViceValidateAttrs returns %s, %d piggy fids checked", 
+    SLog(2, "ViceValidateAttrs returns %s, %d piggy fids checked", 
 	   ViceErrorMsg((int)errorCode), VFlagBS->SeqLen);
 END_TIMING(ViceValidateAttrs_Total);
     return(errorCode);
@@ -546,7 +550,7 @@ long ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, int InconOK, RPC2_BoundedBS *Ac
     vle *v = 0;
 
 START_TIMING(GetACL_Total);
-    LogMsg(1, SrvDebugLevel, stdout, "ViceGetACL: Fid = (%x.%x.%x), Repair = %d",
+    SLog(1, "ViceGetACL: Fid = (%x.%x.%x), Repair = %d",
 	     Fid->Volume, Fid->Vnode, Fid->Unique, InconOK);
 
     /* Validate parameters. */
@@ -558,7 +562,7 @@ START_TIMING(GetACL_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, NO_LOCK, InconOK, 0))
+	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, NO_LOCK, InconOK, 0, 0))
 	    goto FreeLocks;
     }
 
@@ -584,7 +588,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceGetACL returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceGetACL returns %s", ViceErrorMsg(errorCode));
 END_TIMING(GetACL_Total);
     return(errorCode);
 }
@@ -625,7 +629,7 @@ long ViceNewVStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
     vle *av = 0;
 
 START_TIMING(Store_Total);
-    LogMsg(1, SrvDebugLevel, stdout, "ViceNewVStore: Fid = (%x.%x.%x)",
+    SLog(1, "ViceNewVStore: Fid = (%x.%x.%x)",
 	     Fid->Volume, Fid->Vnode, Fid->Unique);
 
     /* Validate parameters. */
@@ -644,14 +648,14 @@ START_TIMING(Store_Total);
 		break;
 
 	    default:
-		LogMsg(0, SrvDebugLevel, stdout, "ViceNewVStore: illegal type %d", Request);
+		SLog(0, "ViceNewVStore: illegal type %d", Request);
 		errorCode = EINVAL;
 		goto FreeLocks;
 	}
 
 	/* Deprecated/Inapplicable parameters. */
 	if (AccessList->SeqLen != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceNewVStore: !StoreNeither && SeqLen != 0");
+	    SLog(0, "ViceNewVStore: !StoreNeither && SeqLen != 0");
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
@@ -660,7 +664,7 @@ START_TIMING(Store_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
@@ -669,7 +673,7 @@ START_TIMING(Store_Total);
 	pFid.Vnode = v->vptr->disk.vparent;
 	pFid.Unique = v->vptr->disk.uparent;
 	av = AddVLE(*vlist, &pFid);
-	if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0))
+	if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0, 0))
 	    goto FreeLocks;
     }
 
@@ -735,7 +739,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceNewVStore returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceNewVStore returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Store_Total);
     return(errorCode);
 }
@@ -791,7 +795,7 @@ long ViceNewSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
     vle *av = 0;
 
 START_TIMING(SetAttr_Total);
-    LogMsg(1, SrvDebugLevel, stdout, "ViceNewSetAttr: Fid = (%x.%x.%x)",
+    SLog(1, "ViceNewSetAttr: Fid = (%x.%x.%x)",
 	     Fid->Volume, Fid->Vnode, Fid->Unique);
 
     /* Validate parameters. */
@@ -803,20 +807,19 @@ START_TIMING(SetAttr_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	if (v->vptr->disk.type == vDirectory) {
 	    av = v;
-	}
-	else {
+	} else {
 	    ViceFid pFid;
 	    pFid.Volume = Fid->Volume;
 	    pFid.Vnode = v->vptr->disk.vparent;
 	    pFid.Unique = v->vptr->disk.uparent;
 	    av = AddVLE(*vlist, &pFid);
-	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0))
+	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0, 0))
 		goto FreeLocks;
 	}
     }
@@ -884,16 +887,15 @@ START_TIMING(SetAttr_Total);
     if (AllowResolution && V_RVMResOn(volptr)) {
 	if (ReplicatedOp && !errorCode &&
 	    v->vptr->disk.type == vDirectory) {
-	    LogMsg(0, SrvDebugLevel, stdout,
-		   "Going to spool store log record %u %u %u %u\n",
+	    SLog(0, "Going to spool store log record %u %u %u %u\n",
 		   Status->Owner, Status->Mode, Status->Author, Status->Date);
 	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
 					     ViceNewStore_OP, STSTORE, 
 					     Status->Owner, Status->Mode,
 					     Status->Author, Status->Date,
 					     Mask, &Status->VV)) 
-		LogMsg(0, SrvDebugLevel, stdout, 
-		       "ViceNewSetAttr: Error %d during SpoolVMLogRecord\n", errorCode);
+		SLog(0, "ViceNewSetAttr: Error %d during SpoolVMLogRecord\n", 
+		     errorCode);
 	}
     }
 
@@ -911,7 +913,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceNewSetAttr returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceNewSetAttr returns %s", ViceErrorMsg(errorCode));
 END_TIMING(SetAttr_Total);
     return(errorCode);
 }
@@ -940,7 +942,7 @@ long ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
     vle *v = 0;
 
 START_TIMING(SetACL_Total);
-    LogMsg(1, SrvDebugLevel, stdout, "ViceSetACL: Fid = (%x.%x.%x)",
+    SLog(1, "ViceSetACL: Fid = (%x.%x.%x)",
 	     Fid->Volume, Fid->Vnode, Fid->Unique);
 
     /* Validate parameters. */
@@ -952,7 +954,7 @@ START_TIMING(SetACL_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
 	    goto FreeLocks;
     }
 
@@ -995,7 +997,7 @@ START_TIMING(SetACL_Total);
 	    assert(v->vptr->disk.type == vDirectory);
 	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
 					     ViceNewStore_OP, ACLSTORE, newACL)) 
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceSetACL: error %d during SpoolVMLogRecord\n", errorCode);
 	}
 
@@ -1015,16 +1017,13 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, 0, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceSetACL returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceSetACL returns %s", ViceErrorMsg(errorCode));
 END_TIMING(SetACL_Total);
     return(errorCode);
 }
 
 /*
-  BEGIN_HTML
-  <a name="ViceCreate"><strong>Obsoleted by ViceVCreate</strong></a> 
-  <a href="#ViceVCreate"><strong>ViceVCreate</strong></a>
-  END_HTML
+ViceCreate: Obsoleted by ViceVCreate
 */
 long ViceCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
 		RPC2_String Name, ViceStatus *Status, ViceFid *Fid,
@@ -1045,9 +1044,7 @@ long ViceCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceVCreate"><strong>Create an object with given name in its parent's directory</strong></a> 
-  END_HTML
+  ViceVCreate: Create an object with given name in its parent's directory
 */
 long ViceVCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
 		RPC2_String Name, ViceStatus *Status, ViceFid *Fid,
@@ -1073,18 +1070,18 @@ START_TIMING(Create_Total);
 #ifdef _TIMECALLS_
     START_NSC_TIMING(Create_Total);
 #endif _TIMECALLS_
-    LogMsg(1, SrvDebugLevel, stdout,"ViceCreate: (%x.%x.%x), %s",
-	    Did->Volume, Did->Vnode, Did->Unique, Name);
+    SLog(1, "ViceCreate: %s, %s", FID_(Did), Name);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
+				      &Did->Volume, PiggyBS))
 	    goto FreeLocks;
 
 	if (ReplicatedOp) {
 	    /* Child/Parent volume match. */
 	    if (Fid->Volume != VSGVolnum) {
-		LogMsg(0, SrvDebugLevel, stdout, "ViceCreate: ChildVol (%x) != ParentVol (%x)",
+		SLog(0, "ViceCreate: ChildVol (%x) != ParentVol (%x)",
 			Fid->Volume, VSGVolnum);
 		errorCode = EXDEV;
 		goto FreeLocks;
@@ -1094,7 +1091,7 @@ START_TIMING(Create_Total);
 
 	/* Sanity. */
 	if (FID_EQ(Did, Fid)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceCreate: Did = Fid (%x.%x.%x)",
+	    SLog(0, "ViceCreate: Did = Fid (%x.%x.%x)",
 		    Did->Volume, Did->Vnode, Did->Unique);
 	    errorCode = EINVAL;
 	    goto FreeLocks;
@@ -1102,7 +1099,7 @@ START_TIMING(Create_Total);
 
 	/* Deprecated/Inapplicable parameters. */
 	if (!FID_EQ(&NullFid, BidFid)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceCreate: non-Null BidFid (%x.%x.%x)",
+	    SLog(0, "ViceCreate: non-Null BidFid (%x.%x.%x)",
 		    BidFid->Volume, BidFid->Vnode, BidFid->Unique);
 	    errorCode = EINVAL;
 	    goto FreeLocks;
@@ -1112,12 +1109,16 @@ START_TIMING(Create_Total);
     /* Get objects. */
     {
 	pv = AddVLE(*vlist, Did);
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	pv->d_inodemod = 1;
+	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
+				 pv->d_inodemod))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	Vnode *vptr = 0;
-	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vFile, Fid, Did,
+	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vFile, 
+				   Fid, Did,
 				   client->Id, PrimaryHost, &deltablocks)) {
 	    assert(vptr == 0);
 	    goto FreeLocks;
@@ -1128,9 +1129,12 @@ START_TIMING(Create_Total);
 
     /* Check semantics. */
     {
-	if (errorCode = CheckCreateSemantics(client, &pv->vptr, &cv->vptr, (char *)Name,
-					      &volptr, ReplicatedOp, NormalVCmp,
-					      DirStatus, Status, &rights, &anyrights, 1))
+	if (errorCode = CheckCreateSemantics(client, &pv->vptr, &cv->vptr, 
+					     (char *)Name,
+					     &volptr, ReplicatedOp, 
+					     NormalVCmp,
+					     DirStatus, Status, 
+					     &rights, &anyrights, 1))
 	    goto FreeLocks;
     }
 
@@ -1144,7 +1148,8 @@ START_TIMING(Create_Total);
 
 	if (ReplicatedOp)
 	    GetMyVS(volptr, OldVS, NewVS);
-	PerformCreate(client, VSGVolnum, volptr, pv->vptr, cv->vptr, (char *)Name,
+	PerformCreate(client, VSGVolnum, volptr, pv->vptr, cv->vptr, 
+		      (char *)Name,
 		      DirStatus->Date, Status->Mode, ReplicatedOp, StoreId, 
 		      &pv->d_cinode, &tblocks, NewVS);
 	deltablocks += tblocks;
@@ -1179,7 +1184,7 @@ START_TIMING(Create_Total);
 					     ViceCreate_OP, 
 					     Name, Fid->Vnode, Fid->Unique, 
 					     client?client->Id:0))
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceCreate: Error %d during SpoolVMLogRecord\n",
 		       errorCode);
 #ifdef _TIMECALLS_
@@ -1200,7 +1205,7 @@ START_TIMING(Create_Total);
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout,"ViceCreate returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceCreate returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Create_Total);
 #ifdef _TIMECALLS_
     END_NSC_TIMING(Create_Total);
@@ -1212,8 +1217,7 @@ END_TIMING(Create_Total);
 
 
 /*
-  <a name="ViceRemove"><strong>Obsoleted by ViceVRemove</strong></a> 
-  <a href="#ViceVRemove"><strong>ViceVRemove</strong></a>
+  ViceRemove: Obsoleted by ViceVRemove
 */
 long ViceRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		 ViceStatus *DirStatus, ViceStatus *Status,
@@ -1259,12 +1263,12 @@ long ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     START_NSC_TIMING(Remove_Total);
 #endif _TIMECALLS_
 
-    LogMsg(1, SrvDebugLevel, stdout, "ViceRemove: (%x.%x.%x), %s",
-	    Did->Volume, Did->Vnode, Did->Unique, Name);
+    SLog(1, "ViceRemove: %s, %s", FID_(Did), Name);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
+				      &Did->Volume, PiggyBS))
 	    goto FreeLocks;
     }
 
@@ -1272,32 +1276,41 @@ long ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     {
 	PDirHandle dh;
 	pv = AddVLE(*vlist, Did);
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
-	    goto FreeLocks;
+	pv->d_inodemod = 1;
+	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
+				 pv->d_inodemod))
+		goto FreeLocks;
+
+	dh = VN_SetDirHandle(pv->vptr);
+	errorCode = DH_Lookup(dh, (char *)Name, &Fid);
+	VN_PutDirHandle(pv->vptr);
+	if ( errorCode != 0) {
+		errorCode = ENOENT;
+		goto FreeLocks;
+	}
 
 	/* This may violate locking protocol! -JJK */
-	dh = VN_SetDirHandle(pv->vptr);
-	if (DH_Lookup(dh, (char *)Name, &Fid) != 0) {
-	    errorCode = ENOENT;
-	    goto FreeLocks;
-	}
 	FID_CpyVol(&Fid, Did);
 	cv = AddVLE(*vlist, &Fid);
-	if (errorCode = GetFsObj(&Fid, &volptr, &cv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	if (errorCode = GetFsObj(&Fid, &volptr, &cv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
 	    goto FreeLocks;
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckRemoveSemantics(client, &pv->vptr, &cv->vptr, (char *)Name,
-					      &volptr, ReplicatedOp, NormalVCmp,
-					      DirStatus, Status, &rights, &anyrights, 1))
+	if (errorCode = CheckRemoveSemantics(client, &pv->vptr, &cv->vptr, 
+					     (char *)Name,
+					     &volptr, ReplicatedOp, NormalVCmp,
+					     DirStatus, Status, &rights, 
+					     &anyrights, 1))
 	    goto FreeLocks;
     }
 
     /* make sure resolution log is non-empty */
     if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	MakeLogNonEmpty(pv->vptr);
+	    MakeLogNonEmpty(pv->vptr);
 
     /* Perform operation. */
     {
@@ -1366,7 +1379,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceRemove returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceRemove returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Remove_Total);
 #ifdef _TIMECALLS_
     END_NSC_TIMING(Remove_Total);
@@ -1377,10 +1390,7 @@ END_TIMING(Remove_Total);
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceLink"><strong>Obsoleted by ViceVLink</strong></a> 
-  <a href="#ViceVLink"><strong>ViceVLink</strong></a>
-  END_HTML
+  ViceLink: Obsoleted by ViceVLink
 */
 long ViceLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	       ViceFid *Fid, ViceStatus *Status, ViceStatus *DirStatus,
@@ -1400,9 +1410,7 @@ long ViceLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceVLink"><strong>Create a new name for an already existing file </strong></a> 
-  END_HTML
+ViceVLink: Create a new name for an already existing file
 */
 long ViceVLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	       ViceFid *Fid, ViceStatus *Status, ViceStatus *DirStatus,
@@ -1428,9 +1436,7 @@ START_TIMING(Link_Total);
     START_NSC_TIMING(Link_Total);
 #endif _TIMECALLS_
     
-    LogMsg(1, SrvDebugLevel, stdout,"ViceLink: (%x.%x.%x), %s --> (%x.%x.%x)",
-	    Did->Volume, Did->Vnode, Did->Unique, Name,
-	    Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(1, "ViceLink: %s, %s --> %s", FID_(Did), Name, FID_2(Fid));
 
     /* Validate parameters. */
     {
@@ -1439,7 +1445,7 @@ START_TIMING(Link_Total);
 
 	/* Volume match. */
 	if (Fid->Volume != VSGVolnum) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceLink: ChildVol (%x) != ParentVol (%x)",
+	    SLog(0, "ViceLink: ChildVol (%x) != ParentVol (%x)",
 		    Fid->Volume, VSGVolnum);
 	    errorCode = EXDEV;
 	    goto FreeLocks;
@@ -1449,7 +1455,7 @@ START_TIMING(Link_Total);
 
 	/* Sanity. */
 	if (FID_EQ(Did, Fid)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceLink: Did = Fid (%x.%x.%x)",
+	    SLog(0, "ViceLink: Did = Fid (%x.%x.%x)",
 		    Did->Volume, Did->Vnode, Did->Unique);
 	    errorCode = EINVAL;
 	    goto FreeLocks;
@@ -1459,12 +1465,16 @@ START_TIMING(Link_Total);
     /* Get objects. */
     {
 	pv = AddVLE(*vlist, Did);
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	pv->d_inodemod = 1;
+	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 	
+				 pv->d_inodemod))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	cv = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &cv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	if (errorCode = GetFsObj(Fid, &volptr, &cv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
 	    goto FreeLocks;
     }
 
@@ -1513,7 +1523,7 @@ START_TIMING(Link_Total);
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
 					     ViceLink_OP, (char *)Name, Fid->Vnode, Fid->Unique, 
 					     &(Vnode_vv(cv->vptr))))
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceLink: Error %d during SpoolVMLogRecord\n",
 		       errorCode);
 	}
@@ -1535,7 +1545,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout,"ViceLink returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceLink returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Link_Total);
 #ifdef _TIMECALLS_
     END_NSC_TIMING(Link_Total);
@@ -1546,10 +1556,7 @@ END_TIMING(Link_Total);
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceRename"><strong>Obsoleted by ViceVRename</strong></a> 
-  <a href="#ViceVRename"><strong>ViceVRename</strong></a>
-  END_HTML
+ViceRename: Obsoleted by ViceVRename
 */
 long ViceRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
 		 ViceFid *NewDid, RPC2_String NewName, ViceStatus *OldDirStatus,
@@ -1570,9 +1577,7 @@ long ViceRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
 }
 
 /*
-  BEGIN_HTML
-  <a name="ViceVRename"><strong>Rename a file or directory</strong></a> 
-  END_HTML
+  ViceVRename: rename a file or directory
 */
 long ViceVRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
 		 ViceFid *NewDid, RPC2_String NewName, ViceStatus *OldDirStatus,
@@ -1605,13 +1610,12 @@ long ViceVRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
     vle *tpv = 0;
     vle *sv = 0;
     vle *tv = 0;
-
 START_TIMING(Rename_Total);
 #ifdef _TIMECALLS_
     START_NSC_TIMING(Rename_Total);
 #endif _TIMECALLS_
     
-    LogMsg(1, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), %s --> (%x.%x.%x), %s",
+    SLog(1, "ViceRename: (%x.%x.%x), %s --> (%x.%x.%x), %s",
 	    OldDid->Volume, OldDid->Vnode, OldDid->Unique, OldName,
 	    NewDid->Volume, NewDid->Vnode, NewDid->Unique, NewName);
 
@@ -1622,7 +1626,7 @@ START_TIMING(Rename_Total);
 
 	/* Volume match. */
 	if (NewDid->Volume != VSGVolnum) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceRename: TgtVol (%x) != SrcVol (%x)",
+	    SLog(0, "ViceRename: TgtVol (%x) != SrcVol (%x)",
 		    NewDid->Volume, VSGVolnum);
 	    errorCode = EXDEV;
 	    goto FreeLocks;
@@ -1633,114 +1637,92 @@ START_TIMING(Rename_Total);
 
     /* Get objects. */
     {
+	PDirHandle sdh;
+	PDirHandle tdh;
+
 	spv = AddVLE(*vlist, OldDid);
-	if (errorCode = GetFsObj(OldDid, &volptr, &spv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	spv->d_inodemod = 1;
+	if (errorCode = GetFsObj(OldDid, &volptr, &spv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
+				 spv->d_inodemod))
 	    goto FreeLocks;
+	sdh = DC_DC2DH(spv->vptr->dh);
 
 	/* This may violate locking protocol! -JJK */
 	if (SameParent) {
 	    tpv = spv;
-	}
-	else {
+	    tdh = sdh;
+	} else {
 	    tpv = AddVLE(*vlist, NewDid);
-	    if (errorCode = GetFsObj(NewDid, &volptr, &tpv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
-		goto FreeLocks;
+	    tpv->d_inodemod = 1;
+	    errorCode = GetFsObj(NewDid, &volptr, &tpv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 	    
+				 tpv->d_inodemod);
+	    if (errorCode) {
+		    VN_PutDirHandle(spv->vptr);
+		    goto FreeLocks;
+	    }
+	    tdh = DC_DC2DH(tpv->vptr->dh);
 	}
 
 	/* This may violate locking protocol! -JJK */
-	PDirHandle sdh;
-	sdh = VN_SetDirHandle(spv->vptr);
 	if (DH_Lookup(sdh, (char *)OldName, &SrcFid) != 0) {
-	    errorCode = ENOENT;
-	    goto FreeLocks;
+		VN_PutDirHandle(spv->vptr);
+		if ( tdh != sdh )
+			VN_PutDirHandle(tpv->vptr);
+		errorCode = ENOENT;
+		goto FreeLocks;
 	}
+
 	FID_CpyVol(&SrcFid, OldDid);
 	sv = AddVLE(*vlist, &SrcFid);
-	if (errorCode = GetFsObj(&SrcFid, &volptr, &sv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	if ( ISDIR(SrcFid) )
+		sv->d_inodemod = 1;
+	if (errorCode = GetFsObj(&SrcFid, &volptr, &sv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
+				 sv->d_inodemod))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
-	PDirHandle tdh;
-	tdh = VN_SetDirHandle(tpv->vptr);
-	if (errorCode = DH_Lookup(tdh, (char *)NewName, &TgtFid)) {
-	    if (errorCode != ENOENT)
+	errorCode = DH_Lookup(tdh, (char *)NewName, &TgtFid);
+	if (errorCode == ENOENT ) {
+		errorCode = 0;
+	} else if ( errorCode ) {
+		VN_PutDirHandle(tpv->vptr);
+		if ( tdh != sdh )
+			VN_PutDirHandle(spv->vptr);
+		if ( sv->vptr->disk.type = vDirectory )
+			VN_PutDirHandle(sv->vptr);
 		goto FreeLocks;
-
-	    errorCode = 0;
 	} else {
 		FID_CpyVol(&TgtFid, NewDid);
 		tv = AddVLE(*vlist, &TgtFid);
-		if (errorCode = GetFsObj(&TgtFid, &volptr, &tv->vptr, WRITE_LOCK, 
-					 SHARED_LOCK, 0, 0))
+		if ( ISDIR(TgtFid) )
+			tv->d_inodemod = 1;
+		if (errorCode = GetFsObj(&TgtFid, &volptr, &tv->vptr, 
+					 WRITE_LOCK, 
+					 SHARED_LOCK, 0, 0,
+					 tv->d_inodemod))
 			goto FreeLocks;
 	}
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckRenameSemantics(client, &spv->vptr, &tpv->vptr, &sv->vptr,
-					      (char *)OldName, (tv ? &tv->vptr : 0), (char *)NewName,
-					      &volptr, ReplicatedOp, NormalVCmp, OldDirStatus,
-					      NewDirStatus, SrcStatus, TgtStatus,
-					      &sp_rights, &sp_anyrights, &tp_rights,
-					      &tp_anyrights, &s_rights, &s_anyrights, 1, 0))
+	if (errorCode = CheckRenameSemantics(client, &spv->vptr, &tpv->vptr, 
+					     &sv->vptr,
+					     (char *)OldName, 
+					     (tv ? &tv->vptr : 0), 
+					     (char *)NewName,
+					     &volptr, ReplicatedOp, 
+					     NormalVCmp, OldDirStatus,
+					     NewDirStatus, SrcStatus, 
+					     TgtStatus,
+					     &sp_rights, &sp_anyrights, 
+					     &tp_rights,
+					     &tp_anyrights, &s_rights, 
+					     &s_anyrights, 1, 0))
 	    goto FreeLocks;
-/*
-	LogMsg(0, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), [%d %d %d %d %d %d %d %d] : [%d %d %d %d %d %d %d %d]",
-		V_id(volptr), spv->vptr->vnodeNumber, spv->vptr->disk.uniquifier,
-		(Vnode_vv(spv->vptr)).Versions.Site0, (Vnode_vv(spv->vptr)).Versions.Site1,
-		(Vnode_vv(spv->vptr)).Versions.Site2, (Vnode_vv(spv->vptr)).Versions.Site3,
-		(Vnode_vv(spv->vptr)).Versions.Site4, (Vnode_vv(spv->vptr)).Versions.Site5,
-		(Vnode_vv(spv->vptr)).Versions.Site6, (Vnode_vv(spv->vptr)).Versions.Site7,
-		OldDirStatus->VV.Versions.Site0, OldDirStatus->VV.Versions.Site1,
-		OldDirStatus->VV.Versions.Site2, OldDirStatus->VV.Versions.Site3,
-		OldDirStatus->VV.Versions.Site4, OldDirStatus->VV.Versions.Site5,
-		OldDirStatus->VV.Versions.Site6, OldDirStatus->VV.Versions.Site7);
-	LogMsg(0, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), [%d %d %d %d %d %d %d %d] : [%d %d %d %d %d %d %d %d]",
-		V_id(volptr), tpv->vptr->vnodeNumber, tpv->vptr->disk.uniquifier,
-		(Vnode_vv(tpv->vptr)).Versions.Site0, (Vnode_vv(tpv->vptr)).Versions.Site1,
-		(Vnode_vv(tpv->vptr)).Versions.Site2, (Vnode_vv(tpv->vptr)).Versions.Site3,
-		(Vnode_vv(tpv->vptr)).Versions.Site4, (Vnode_vv(tpv->vptr)).Versions.Site5,
-		(Vnode_vv(tpv->vptr)).Versions.Site6, (Vnode_vv(tpv->vptr)).Versions.Site7,
-		NewDirStatus->VV.Versions.Site0, NewDirStatus->VV.Versions.Site1,
-		NewDirStatus->VV.Versions.Site2, NewDirStatus->VV.Versions.Site3,
-		NewDirStatus->VV.Versions.Site4, NewDirStatus->VV.Versions.Site5,
-		NewDirStatus->VV.Versions.Site6, NewDirStatus->VV.Versions.Site7);
-	LogMsg(0, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), [%d %d %d %d %d %d %d %d] : [%d %d %d %d %d %d %d %d]",
-		V_id(volptr), sv->vptr->vnodeNumber, sv->vptr->disk.uniquifier,
-		(Vnode_vv(sv->vptr)).Versions.Site0, (Vnode_vv(sv->vptr)).Versions.Site1,
-		(Vnode_vv(sv->vptr)).Versions.Site2, (Vnode_vv(sv->vptr)).Versions.Site3,
-		(Vnode_vv(sv->vptr)).Versions.Site4, (Vnode_vv(sv->vptr)).Versions.Site5,
-		(Vnode_vv(sv->vptr)).Versions.Site6, (Vnode_vv(sv->vptr)).Versions.Site7,
-		SrcStatus->VV.Versions.Site0, SrcStatus->VV.Versions.Site1,
-		SrcStatus->VV.Versions.Site2, SrcStatus->VV.Versions.Site3,
-		SrcStatus->VV.Versions.Site4, SrcStatus->VV.Versions.Site5,
-		SrcStatus->VV.Versions.Site6, SrcStatus->VV.Versions.Site7);
-	if (tv)
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), [%d %d %d %d %d %d %d %d] : [%d %d %d %d %d %d %d %d]",
-		    V_id(volptr), tv->vptr->vnodeNumber, tv->vptr->disk.uniquifier,
-		    (Vnode_vv(tv->vptr)).Versions.Site0, (Vnode_vv(tv->vptr)).Versions.Site1,
-		    (Vnode_vv(tv->vptr)).Versions.Site2, (Vnode_vv(tv->vptr)).Versions.Site3,
-		    (Vnode_vv(tv->vptr)).Versions.Site4, (Vnode_vv(tv->vptr)).Versions.Site5,
-		    (Vnode_vv(tv->vptr)).Versions.Site6, (Vnode_vv(tv->vptr)).Versions.Site7,
-		    TgtStatus->VV.Versions.Site0, TgtStatus->VV.Versions.Site1,
-		    TgtStatus->VV.Versions.Site2, TgtStatus->VV.Versions.Site3,
-		    TgtStatus->VV.Versions.Site4, TgtStatus->VV.Versions.Site5,
-		    TgtStatus->VV.Versions.Site6, TgtStatus->VV.Versions.Site7);
-	LogMsg(0, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), %d : %d",
-		V_id(volptr), spv->vptr->vnodeNumber, spv->vptr->disk.uniquifier,
-		spv->vptr->disk.dataVersion, OldDirStatus->DataVersion);
-	LogMsg(0, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), %d : %d",
-		V_id(volptr), tpv->vptr->vnodeNumber, tpv->vptr->disk.uniquifier,
-		tpv->vptr->disk.dataVersion, NewDirStatus->DataVersion);
-	LogMsg(0, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), %d : %d",
-		V_id(volptr), sv->vptr->vnodeNumber, sv->vptr->disk.uniquifier,
-		sv->vptr->disk.dataVersion, SrcStatus->DataVersion);
-	if (tv)
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceRename: (%x.%x.%x), %d : %d",
-		    V_id(volptr), tv->vptr->vnodeNumber, tv->vptr->disk.uniquifier,
-		    tv->vptr->disk.dataVersion, TgtStatus->DataVersion);
-*/
     }
 
     /* make sure resolution logs are non-empty */
@@ -1748,25 +1730,26 @@ START_TIMING(Rename_Total);
 	if (tpv->vptr) MakeLogNonEmpty(tpv->vptr);
 	if (spv->vptr) MakeLogNonEmpty(spv->vptr);
     }
-
     /* Perform operation. */
     {
 	if (ReplicatedOp)
-	    GetMyVS(volptr, OldVS, NewVS);
-	PerformRename(client, VSGVolnum, volptr, spv->vptr, tpv->vptr, sv->vptr,
-		      (tv ? tv->vptr : 0), (char *)OldName, (char *)NewName, OldDirStatus->Date,
-		      ReplicatedOp, StoreId, &spv->d_cinode, &tpv->d_cinode, &sv->d_cinode, NULL,
+		GetMyVS(volptr, OldVS, NewVS);
+	PerformRename(client, VSGVolnum, volptr, spv->vptr, tpv->vptr, 
+		      sv->vptr, (tv ? tv->vptr : 0), (char *)OldName, 
+		      (char *)NewName, OldDirStatus->Date,
+		      ReplicatedOp, StoreId, &spv->d_cinode, 
+		      &tpv->d_cinode, &sv->d_cinode, NULL,
 		      NewVS);
 	if (tv && tv->vptr->delete_me) {
-	    int tblocks = (int) -nBlocks(tv->vptr->disk.length);
-	    if (errorCode = AdjustDiskUsage(volptr, tblocks))
-		goto FreeLocks;
-	    deltablocks = tblocks;
-
-	    if (tv->vptr->disk.type != vDirectory) {
-		tv->f_sinode = tv->vptr->disk.inodeNumber;
-		tv->vptr->disk.inodeNumber = 0;
-	    }
+		int tblocks = (int) -nBlocks(tv->vptr->disk.length);
+		if (errorCode = AdjustDiskUsage(volptr, tblocks))
+			goto FreeLocks;
+		deltablocks = tblocks;
+		
+		if (tv->vptr->disk.type != vDirectory) {
+			tv->f_sinode = tv->vptr->disk.inodeNumber;
+			tv->vptr->disk.inodeNumber = 0;
+		}
 	}
 
 	SetStatus(spv->vptr, OldDirStatus, sp_rights, sp_anyrights);
@@ -1817,15 +1800,13 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceRename returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceRename returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Rename_Total);
 #ifdef _TIMECALLS_
     END_NSC_TIMING(Rename_Total);
 #endif _TIMECALLS_
-
     return(errorCode);
 }
-
 
 /*
   ViceMakeDir: see  ViceVMakeDir
@@ -1873,8 +1854,7 @@ START_TIMING(MakeDir_Total);
 #ifdef _TIMECALLS_
     START_NSC_TIMING(MakeDir_Total);
 #endif _TIMECALLS_
-    LogMsg(1, SrvDebugLevel, stdout,"ViceMakeDir: (%x.%x.%x), %s",
-	    Did->Volume, Did->Vnode, Did->Unique, Name);
+    SLog(1, "ViceMakeDir: %s, %s", FID_(Did), Name);
     
     /* Validate parameters. */
     {
@@ -1884,7 +1864,7 @@ START_TIMING(MakeDir_Total);
 	/* Child/Parent volume match. */
 	if (ReplicatedOp) {
 	    if (NewDid->Volume != VSGVolnum) {
-		LogMsg(0, SrvDebugLevel, stdout, "ViceMakeDir: ChildVol (%x) != ParentVol (%x)",
+		SLog(0, "ViceMakeDir: ChildVol (%x) != ParentVol (%x)",
 			NewDid->Volume, VSGVolnum);
 		errorCode = EXDEV;
 		goto FreeLocks;
@@ -1903,19 +1883,26 @@ START_TIMING(MakeDir_Total);
     /* Get objects. */
     {
 	pv = AddVLE(*vlist, Did);
-	errorCode = GetFsObj(Did, &volptr, &pv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0);
+	pv->d_inodemod = 1;
+	errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+			     WRITE_LOCK, SHARED_LOCK, 0, 0,
+			     pv->d_inodemod);
 	if (errorCode)
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	Vnode *vptr = 0;
-	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vDirectory, NewDid,
-				   Did, client->Id, PrimaryHost, &deltablocks)) {
+	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vDirectory, 
+				   NewDid,
+				   Did, client->Id, PrimaryHost, 
+				   &deltablocks)) {
 	    assert(vptr == 0);
 	    goto FreeLocks;
 	}
 	cv = AddVLE(*vlist, NewDid);
 	cv->vptr = vptr;
+	/* mark the new directory pages as dirty */
+	cv->d_inodemod = 1;
     }
 
     /* Check semantics. */
@@ -1943,6 +1930,8 @@ START_TIMING(MakeDir_Total);
 	deltablocks += tblocks;
 	SetStatus(pv->vptr, DirStatus, rights, anyrights);
 	SetStatus(cv->vptr, Status, rights, anyrights);
+	if ( errorCode == 0 )
+		assert(DC_Dirty(cv->vptr->dh));
 
 	/* Until CVVV probes? -JJK */
 	if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) 
@@ -1950,6 +1939,8 @@ START_TIMING(MakeDir_Total);
 	if (ReplicatedOp)
 	    SetVSStatus(client, volptr, NewVS, VCBStatus);
     }
+	if ( errorCode == 0 )
+		assert(DC_Dirty(cv->vptr->dh));
 
     if (AllowResolution && V_VMResOn(volptr)) {
 	/* Create Log Record */
@@ -1960,6 +1951,8 @@ START_TIMING(MakeDir_Total);
 				  (char *)Name, NewDid->Vnode, NewDid->Unique);
 	    sle *SLE = new sle(ind);
 	    pv->sl.append(SLE);
+	if ( errorCode == 0 )
+		assert(DC_Dirty(cv->vptr->dh));
 
 	    /* spool a record for child too */
 	    ind = InitVMLogRecord(V_volumeindex(volptr),
@@ -1978,16 +1971,18 @@ START_TIMING(MakeDir_Total);
 					     ViceMakeDir_OP, Name, 
 					     NewDid->Vnode, NewDid->Unique, 
 					     client?client->Id:0)) 
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceMakeDir: Error %d during SpoolVMLogRecord for parent\n",
 		       errorCode);
 	    // spool child's log record 
+	    if ( errorCode == 0 )
+		    assert(DC_Dirty(cv->vptr->dh));
 	    if (!errorCode && (errorCode = SpoolVMLogRecord(vlist, cv, volptr, StoreId, 
 							    ViceMakeDir_OP, ".",
 							    NewDid->Vnode, 
 							    NewDid->Unique,
 							    client?client->Id:0)))
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceMakeDir: Error %d during SpoolVMLogRecord for child\n",
 		       errorCode);
 	}
@@ -2006,11 +2001,12 @@ FreeLocks:
 		delete cpe;
 	    }
 	}
-
+	if ( errorCode == 0 )
+		assert(DC_Dirty(cv->vptr->dh));
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout,"ViceMakeDir returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceMakeDir returns %s", ViceErrorMsg(errorCode));
 END_TIMING(MakeDir_Total);
 #ifdef _TIMECALLS_
     END_NSC_TIMING(MakeDir_Total);
@@ -2071,58 +2067,71 @@ START_TIMING(RemoveDir_Total);
 #ifdef _TIMECALLS_
     START_NSC_TIMING(RemoveDir_Total)
 #endif _TIMECALLS_
-    LogMsg(1, SrvDebugLevel, stdout, "ViceRemoveDir: (%x.%x.%x), %s",
-	     Did->Volume, Did->Vnode, Did->Unique, Name);
+	    SLog(1, "ViceRemoveDir: %s, %s", FID_(Did), Name);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
+				      &Did->Volume, PiggyBS))
 	    goto FreeLocks;
     }
 
     /* Get objects. */
     {
+	PDirHandle dh;
 	pv = AddVLE(*vlist, Did);
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	pv->d_inodemod = 1;
+	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0,
+				 pv->d_inodemod))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
-	PDirHandle dh;
 	dh = VN_SetDirHandle(pv->vptr);
-	if (DH_Lookup(dh, (char *)Name, &ChildDid) != 0) {
-	    errorCode = ENOENT;
-	    goto FreeLocks;
+	errorCode = DH_Lookup(dh, (char *)Name, &ChildDid);
+	VN_PutDirHandle(pv->vptr);
+	if ( errorCode != 0) {
+		errorCode = ENOENT;
+		goto FreeLocks;
 	}
+
 	FID_CpyVol(&ChildDid, Did);
 	cv = AddVLE(*vlist, &ChildDid);
-	if (errorCode = GetFsObj(&ChildDid, &volptr, &cv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
-	    goto FreeLocks;
+	cv->d_inodemod = 1;
+	if (errorCode = GetFsObj(&ChildDid, &volptr, &cv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
+				 cv->d_inodemod)) {
+		VN_PutDirHandle(pv->vptr);
+		goto FreeLocks;
+	}
+
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckRmdirSemantics(client, &pv->vptr, &cv->vptr, (char *)Name,
-					     &volptr, ReplicatedOp, NormalVCmp,
-					     DirStatus, Status, &rights, &anyrights, 1))
-	    goto FreeLocks;
+	if (errorCode = CheckRmdirSemantics(client, &pv->vptr, &cv->vptr, 
+					    (char *)Name,
+					    &volptr, ReplicatedOp, NormalVCmp,
+					    DirStatus, Status, 
+					    &rights, &anyrights, 1))
+		goto FreeLocks;
     }
 
     /* make sure resolution log is non-empty */
     if (AllowResolution && V_VMResOn(volptr) && ReplicatedOp) 
-	MakeLogNonEmpty(pv->vptr);
+	    MakeLogNonEmpty(pv->vptr);
 
     /* Perform operation. */
     {
 	if (ReplicatedOp)
-	    GetMyVS(volptr, OldVS, NewVS);
-	PerformRmdir(client, VSGVolnum, volptr, pv->vptr, cv->vptr, (char *)Name,
-		      DirStatus->Date, ReplicatedOp, StoreId, &pv->d_cinode, 
+		GetMyVS(volptr, OldVS, NewVS);
+	PerformRmdir(client, VSGVolnum, volptr, pv->vptr, cv->vptr, 
+		     (char *)Name,
+		     DirStatus->Date, ReplicatedOp, StoreId, &pv->d_cinode, 
 		     &deltablocks, NewVS);
 	{
 	    assert(cv->vptr->delete_me);
 	    /* note that the directories are modified */
-	    cv->d_inodemod = 1;
-	    pv->d_inodemod = 1;
 	    int tblocks = (int) -nBlocks(cv->vptr->disk.length);
 	    if (errorCode = AdjustDiskUsage(volptr, tblocks))
 		goto FreeLocks;
@@ -2165,7 +2174,7 @@ START_TIMING(RemoveDir_Total);
 					     ChildDid.Vnode, ChildDid.Unique, 
 					     VnLog(cv->vptr), &(Vnode_vv(cv->vptr).StoreId),
 					     &(Vnode_vv(cv->vptr).StoreId)))
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceRemoveDir: error %d in SpoolVMLogRecord\n",
 		       errorCode);
     }
@@ -2187,7 +2196,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout,"ViceRemoveDir returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceRemoveDir returns %s", ViceErrorMsg(errorCode));
 END_TIMING(RemoveDir_Total);
 #ifdef _TIMECALLS_
     END_NSC_TIMING(RemoveDir_Total);
@@ -2256,7 +2265,7 @@ START_TIMING(SymLink_Total);
     START_NSC_TIMING(SymLink_Total);
 #endif _TIMECALLS_
 
-    LogMsg(1, SrvDebugLevel, stdout, "ViceSymLink: (%x.%x.%x), %s --> %s",
+    SLog(1, "ViceSymLink: (%x.%x.%x), %s --> %s",
 	    Did->Volume, Did->Vnode, Did->Unique, NewName, OldName);
 
     /* Validate parameters. */
@@ -2267,7 +2276,7 @@ START_TIMING(SymLink_Total);
 	/* Child/Parent volume match. */
 	if (ReplicatedOp) {
 	    if (Fid->Volume != VSGVolnum) {
-		LogMsg(0, SrvDebugLevel, stdout, "ViceSymLink: ChildVol (%x) != ParentVol (%x)",
+		SLog(0, "ViceSymLink: ChildVol (%x) != ParentVol (%x)",
 			Fid->Volume, VSGVolnum);
 		errorCode = EXDEV;
 		goto FreeLocks;
@@ -2277,7 +2286,7 @@ START_TIMING(SymLink_Total);
 
 	/* Sanity. */
 	if (FID_EQ(Did, Fid)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "ViceSymLink: Did = Fid (%x.%x.%x)",
+	    SLog(0, "ViceSymLink: Did = Fid (%x.%x.%x)",
 		    Did->Volume, Did->Vnode, Did->Unique);
 	    errorCode = EINVAL;
 	    goto FreeLocks;
@@ -2287,12 +2296,16 @@ START_TIMING(SymLink_Total);
     /* Get objects. */
     {
 	pv = AddVLE(*vlist, Did);
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	pv->d_inodemod = 1;
+	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
+				 pv->d_inodemod))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	Vnode *vptr = 0;
-	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vSymlink, Fid, Did,
+	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vSymlink, 
+				   Fid, Did,
 				   client->Id, PrimaryHost, &deltablocks)) {
 	    assert(vptr == 0);
 	    goto FreeLocks;
@@ -2303,9 +2316,11 @@ START_TIMING(SymLink_Total);
 
     /* Check semantics. */
     {
-	if (errorCode = CheckSymlinkSemantics(client, &pv->vptr, &cv->vptr, (char *)NewName,
-					       &volptr, ReplicatedOp, NormalVCmp,
-					       DirStatus, Status, &rights, &anyrights, 1))
+	if (errorCode = CheckSymlinkSemantics(client, &pv->vptr, &cv->vptr, 
+					      (char *)NewName,
+					      &volptr, ReplicatedOp, 
+					      NormalVCmp, DirStatus, Status, 
+					      &rights, &anyrights, 1))
 	    goto FreeLocks;
     }
 
@@ -2363,7 +2378,7 @@ START_TIMING(SymLink_Total);
 					     ViceSymLink_OP, 
 					     NewName, Fid->Vnode, Fid->Unique,
 					     client?client->Id:0)) 
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceSymLink: Error %d in SpoolVMLogRecord\n",
 		       errorCode);
     }
@@ -2385,7 +2400,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceSymLink returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceSymLink returns %s", ViceErrorMsg(errorCode));
 END_TIMING(SymLink_Total);
 #ifdef _TIMECALLS_
     END_NSC_TIMING(SymLink_Total);
@@ -2443,11 +2458,11 @@ int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
 
     if (anyid == -1) {
 	if (AL_NameToId("anyuser", &anyid) != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout,"UserID anyuser not known");
+	    SLog(0, "UserID anyuser not known");
 	    anyid = 0;
 	} else {
 	    if (AL_GetInternalCPS(anyid, &anyCPS) != 0) {
-		LogMsg(0, SrvDebugLevel, stdout,"UserID anyuser no CPS");
+		SLog(0, "UserID anyuser no CPS");
 		anyid = 0;
 	    }
 	}
@@ -2455,7 +2470,7 @@ int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
 
     if (anyid != 0) {
 	    if (AL_CheckRights(ACL, anyCPS, (int *)anyrights) != 0) {
-		    LogMsg(0, SrvDebugLevel, stdout,"CheckRights failed");
+		    SLog(0, "CheckRights failed");
 		    anyrights = 0;
 	}
     } else {
@@ -2469,9 +2484,9 @@ int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
 }
 
 /*
-  BEGIN_HTML
-  <a name="GrabFsObj"><strong>Get a pointer to (and lock) a particular volume and vnode </strong></a> 
-  END_HTML
+
+  GrabFsObj Get a pointer to (and lock) a particular volume and vnode
+
 */
 static int GrabFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr, 
 		      int lock, int ignoreIncon, int VolumeLock) 
@@ -2493,7 +2508,8 @@ static int GrabFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
 	if (*vptr == 0) {
 		int errorCode = 0;
 		*vptr = VGetVnode((Error *)&errorCode, *volptr, 
-				  fid->Vnode, fid->Unique, lock, ignoreIncon, 0);
+				  fid->Vnode, fid->Unique, lock, 
+				  ignoreIncon, 0);
 		if (errorCode) {
 			SLog(1, "GrabFsObj: VGetVnode error %s", ViceErrorMsg(errorCode));
 			if (GotVolume){
@@ -2509,7 +2525,8 @@ static int GrabFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
 		SLog(0, "GrabFsObj, uniquifier mismatch, disk = %x, fid = %x",
 		     (*vptr)->disk.uniquifier, fid->Unique);
 		if (GotVolume){
-			SLog(0, "GrabFsObj: Releasing volume 0x%x", V_id(*volptr));
+			SLog(0, "GrabFsObj: Releasing volume 0x%x", 
+			     V_id(*volptr));
 			PutVolObj(volptr, VolumeLock, 0);
 		}
 		return(EINVAL);
@@ -2522,19 +2539,32 @@ static int GrabFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
 /* Formerly CheckVnode(). */
 /* ignoreBQ parameter is obsolete - not used any longer */
 /*
-  GetFsObj: Get a filesystem object</strong></a> 
+  GetFsObj: Get a filesystem object
 */
 int GetFsObj(ViceFid *fid, Volume **volptr, Vnode **vptr,
-	     int lock, int VolumeLock, int ignoreIncon, int ignoreBQ) 
+	     int lock, int VolumeLock, int ignoreIncon, int ignoreBQ, 
+	     int getdirhandle) 
 {
 	int errorCode;
+	PDirHandle pdh = NULL;
+
 	/* Sanity check the Fid. */
 	if (fid->Volume == 0 || fid->Vnode == 0 || fid->Unique == 0)
 	    return(EINVAL);
 
 	/* Grab the volume and vnode with the appropriate lock. */
-	errorCode = GrabFsObj(fid, volptr, vptr, lock, ignoreIncon, VolumeLock);
-	return errorCode;
+	errorCode = GrabFsObj(fid, volptr, vptr, lock, ignoreIncon, 
+			      VolumeLock);
+
+	if ( errorCode )
+		return errorCode;
+
+	if ( ISDIR(*fid) && getdirhandle ) {
+		pdh = VN_SetDirHandle(*vptr);
+		if ( !pdh )
+			return ENOENT;
+	}
+	return 0;
 }
 
 int GetVolObj(VolumeId Vid, Volume **volptr, 
@@ -2546,7 +2576,8 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
 
     *volptr = VGetVolume((Error *)&errorCode, Vid);
     if (errorCode) {
-	    SLog(0, "GetVolObj: VGetVolume(%x) error %s", Vid, ViceErrorMsg(errorCode));
+	    SLog(0, "GetVolObj: VGetVolume(%x) error %s", 
+		 Vid, ViceErrorMsg(errorCode));
 	    goto FreeLocks;
     }
 
@@ -2593,9 +2624,7 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
 }
 
 /*
-  BEGIN_HTML
-  <a name="PutVolObj"><strong>Unlock a volume</strong></a> 
-  END_HTML
+  PutVolObj: Unlock a volume
 */
 void PutVolObj(Volume **volptr, int LockLevel, int Dequeue)
 {
@@ -2604,14 +2633,14 @@ void PutVolObj(Volume **volptr, int LockLevel, int Dequeue)
       case VOL_NO_LOCK:
 	break;
       case VOL_SHARED_LOCK:
-	LogMsg(9, SrvDebugLevel, stdout, "PutVolObj: One less locker");
+	SLog(9, "PutVolObj: One less locker");
 	ReleaseReadLock(&(V_VolLock(*volptr).VolumeLock));
 	break;
       case VOL_EXCL_LOCK:
 	if (Dequeue) {
 	    lqent *lqep = LockQueueMan->findanddeq(V_id(*volptr));
 	    if (!lqep) 
-		LogMsg(0, SrvDebugLevel, stdout, "PutVolObj: Couldn't find entry %x on lock queue", 
+		SLog(0, "PutVolObj: Couldn't find entry %x on lock queue", 
 			V_id(*volptr));
 	    else {
 		LockQueueMan->remove(lqep);
@@ -2727,11 +2756,7 @@ int CheckReadMode(ClientEntry *client, Vnode *vptr)
 
 
 /* CopyOnWrite: copy out the inode for a cloned Vnode
-   - directories: set the disk.inode field to 0 and 
-     create a dcentry with the _old_ contents. 
-     NOTE: afterwards the vptr->dh  will have VM data, 
-     but no RVM data.
-     new one is committed.
+   - directories: see dirvnode.cc
    - files: copy the file: the current way is disastrous.
      XXXXXXX
 */
@@ -2744,25 +2769,10 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 	char   * buff;
 
 	if (vptr->disk.type == vDirectory) {
+
 		SLog(0, "CopyOnWrite: Copying directory vnode = %d", 
 		     vptr->vnodeNumber);
-		PDCEntry pdce = DC_New();
-		PDirHeader pdirh;
-		
-		assert(pdce);
-		assert(vptr->disk.inodeNumber != 0);
-		pdirh = DI_DiToDh((PDirInode)vptr->disk.inodeNumber);
-		assert(pdirh);
-		DC_SetDirh(pdce, pdirh);
-		DC_SetCowpdi(pdce, (PDirInode)vptr->disk.inodeNumber);
-		DC_SetDirty(pdce, 1);
-		SLog(0, "CopyOnWrite: New dce= %p new dirheader = %p", 
-		     (void *) pdce, (void *) pdirh);
-		vptr->disk.inodeNumber = 0;
-		vptr->disk.cloned = 0;
-		if ( vptr->dh ) 
-			VN_PutDirHandle(vptr);
-		vptr->dh = pdce;
+		VN_CopyOnWrite(vptr);
 
 	} else {
 		SLog(0, "CopyOnWrite: Copying inode for files (vnode%d)", 
@@ -2817,16 +2827,16 @@ int AdjustDiskUsage(Volume *volptr, int length)
     if(rc) {
 	VAdjustDiskUsage((Error *)&nc, volptr, -length);
 	if(rc == ENOSPC) {
-	    LogMsg(0, SrvDebugLevel, stdout,"Partition %s that contains volume %u is full",
+	    SLog(0, "Partition %s that contains volume %u is full",
 		    volptr->partition->name, V_id(volptr));
 	    return(rc);
 	}
 	if(rc == EDQUOT) {
-	    LogMsg(0, SrvDebugLevel, stdout,"Volume %u (%s) is full",
-		    V_id(volptr), V_name(volptr));
+	    SLog(0, "Volume %u (%s) is full", V_id(volptr), V_name(volptr));
 	    return(rc);
 	}
-	LogMsg(0, SrvDebugLevel, stdout,"Got error return %s from VAdjustDiskUsage",ViceErrorMsg(rc));
+	SLog(0, "Got error return %s from VAdjustDiskUsage",
+	     ViceErrorMsg(rc));
 	return(rc);
     }
     return(0);
@@ -2838,12 +2848,12 @@ int CheckDiskUsage(Volume *volptr, int length)
     VCheckDiskUsage((Error *)&rc, volptr, length);
     if (rc == 0) return 0;
     if (rc == ENOSPC){
-	LogMsg(0, SrvDebugLevel, stdout,"Partition %s that contains volume %u is full",
+	SLog(0, "Partition %s that contains volume %u is full",
 		    volptr->partition->name, V_id(volptr));
 	return (rc);
     }
     else {
-	LogMsg(0, SrvDebugLevel, stdout, "Volume %u (%s) is full",
+	SLog(0, "Volume %u (%s) is full",
 		    V_id(volptr), V_name(volptr));
 	return(rc);
     }
@@ -2873,11 +2883,11 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
 
     /* 2. Map RPC handle to client structure. */
     if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)client)) != RPC2_SUCCESS) {
-	LogMsg(0, SrvDebugLevel, stdout, "ValidateParms: GetPrivatePointer failed (%d)", errorCode);
+	SLog(0, "ValidateParms: GetPrivatePointer failed (%d)", errorCode);
 	return(errorCode);
     }
     if (*client == 0 || (*client)->DoUnbind) {
-	LogMsg(0, SrvDebugLevel, stdout, "ValidateParms: GetPrivatePointer --> Null client");
+	SLog(0, "ValidateParms: GetPrivatePointer --> Null client");
 	return(EINVAL);
     }
 
@@ -2885,10 +2895,10 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
     if (ReplicatedOp) {
 	VolumeId GroupVid = *Vidp;
 	if (!XlateVid(Vidp)) {
-	    LogMsg(1, SrvDebugLevel, stdout, "ValidateParms: failed to translate VSG %x", GroupVid);
+	    SLog(1, "ValidateParms: failed to translate VSG %x", GroupVid);
 	    return(EINVAL);
 	}
-	LogMsg(10, SrvDebugLevel, stdout, "ValidateParms: %x --> %x", GroupVid, *Vidp);
+	SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
     }
 
     return(0);
@@ -2905,7 +2915,7 @@ int AllocVnode(Vnode **vptr, Volume *volptr, ViceDataType vtype, ViceFid *Fid,
     *blocks = 0;
 
 START_TIMING(AllocVnode_Total);
-    LogMsg(10, SrvDebugLevel, stdout, "AllocVnode: Fid = (%x.%x.%x), type = %d, pFid = (%x.%x.%x), Owner = %d",
+    SLog(10, "AllocVnode: Fid = (%x.%x.%x), type = %d, pFid = (%x.%x.%x), Owner = %d",
 	     Fid->Volume, Fid->Vnode, Fid->Unique, vtype,
 	     pFid->Volume, pFid->Vnode, pFid->Unique, ClientId);
 
@@ -2923,7 +2933,7 @@ START_TIMING(AllocVnode_Total);
       : EMPTYSYMLINKBLOCKS;
     if (ReplicatedOp) {
 	if (AllocHost == ThisHostAddr) {
-	    if (errorCode = GetFsObj(Fid, &volptr, vptr, WRITE_LOCK, SHARED_LOCK, 0, 0))
+	    if (errorCode = GetFsObj(Fid, &volptr, vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
 		goto FreeLocks;
 	}
 	else {
@@ -2970,7 +2980,7 @@ FreeLocks:
     if (errorCode) {
 	if (*blocks != 0) {
 	    if (AdjustDiskUsage(volptr, -(*blocks)) != 0)
-		LogMsg(0, SrvDebugLevel, stdout, "AllocVnode: AdjustDiskUsage(%x, %d) failed",
+		SLog(0, "AllocVnode: AdjustDiskUsage(%x, %d) failed",
 			V_id(volptr), -(*blocks));
 
 	    *blocks = 0;
@@ -2988,7 +2998,7 @@ END_TIMING(AllocVnode_Transaction);
 	}
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "AllocVnode returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "AllocVnode returns %s", ViceErrorMsg(errorCode));
 END_TIMING(AllocVnode_Total);
     return(errorCode);
 }
@@ -3031,7 +3041,7 @@ int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	if (SystemUser(client)) {
 	    if (((*vptr)->disk.type == vDirectory && !(*rights & PRSFS_LOOKUP)) ||
 		((*vptr)->disk.type != vDirectory && !(*rights & PRSFS_READ))) {
-		LogMsg(1, SrvDebugLevel, stdout, "CheckFetchSemantics: rights violation (%x : %x) (%x.%x.%x)",
+		SLog(1, "CheckFetchSemantics: rights violation (%x : %x) (%x.%x.%x)",
 			*rights, *anyrights,
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EACCES);
@@ -3039,7 +3049,7 @@ int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
 	    if (!IsOwner && (*vptr)->disk.type == vFile) {
 		if (CheckReadMode(client, *vptr)) {
-		    LogMsg(1, SrvDebugLevel, stdout, "CheckFetchSemantics: mode-bits violation (%x.%x.%x)",
+		    SLog(1, "CheckFetchSemantics: mode-bits violation (%x.%x.%x)",
 			    Fid.Volume, Fid.Vnode, Fid.Unique);
 		    return(EACCES);
 		}
@@ -3052,12 +3062,12 @@ int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
 
 int CheckGetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
-			   Volume **volptr, Rights *rights, Rights *anyrights) {
+			   Volume **volptr, Rights *rights, Rights *anyrights)
+{
     int errorCode = 0;
     ViceFid Fid;
-    Fid.Volume = V_id(*volptr);
-    Fid.Vnode = (*vptr)->vnodeNumber;
-    Fid.Unique = (*vptr)->disk.uniquifier;
+
+    VN_VN2Fid(*vptr, *volptr, &Fid);
 
     /* Concurrency-control checks. */
     {
@@ -3103,12 +3113,12 @@ int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
     /* Integrity checks. */
     {
 	if ((*vptr)->disk.type != vDirectory) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckGetACLSemantics: non-directory (%x.%x.%x)",
+	    SLog(0, "CheckGetACLSemantics: non-directory (%x.%x.%x)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(ENOTDIR);
 	}
 	if (AccessList->MaxSeqLen == 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckGetACLSemantics: zero-len ACL (%x.%x.%x)",
+	    SLog(0, "CheckGetACLSemantics: zero-len ACL (%x.%x.%x)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(EINVAL);
 	}
@@ -3129,12 +3139,12 @@ int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
 	assert(AL_Externalize(aCL, (AL_ExternalAccessList *)eACL) == 0);
 	int eACLlen = (int)(strlen((char *)*eACL) + 1);
 	if (eACLlen > AccessList->MaxSeqLen) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckGetACLSemantics: eACLlen (%d) > ACL->MaxSeqLen (%d) (%x.%x.%x)",
+	    SLog(0, "CheckGetACLSemantics: eACLlen (%d) > ACL->MaxSeqLen (%d) (%x.%x.%x)",
 		    eACLlen, AccessList->MaxSeqLen,
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(E2BIG);
 	}
-	LogMsg(10, SrvDebugLevel, stdout, "CheckGetACLSemantics: ACL is:\n%s", *eACL);
+	SLog(10, "CheckGetACLSemantics: ACL is:\n%s", *eACL);
     }
 
     return(0);
@@ -3158,7 +3168,7 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
 	if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckStoreSemantics: (%x.%x.%x), VCP error (%d)",
+	    SLog(0, "CheckStoreSemantics: (%x.%x.%x), VCP error (%d)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 	    return(errorCode);
 	}
@@ -3167,7 +3177,7 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     /* Integrity checks. */
     {
 	if ((*vptr)->disk.type != vFile) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckStoreSemantics: (%x.%x.%x) not a file",
+	    SLog(0, "CheckStoreSemantics: (%x.%x.%x) not a file",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(EISDIR);
 	}
@@ -3187,7 +3197,7 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
 	/* WRITE permission (normally) required. */
 	if (!(*rights & PRSFS_WRITE) && !(IsOwner && Virginal)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckStoreSemantics: rights violation (%x : %x) (%x.%x.%x)",
+	    SLog(0, "CheckStoreSemantics: rights violation (%x : %x) (%x.%x.%x)",
 		    *rights, *anyrights, Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(EACCES);
 	}
@@ -3221,7 +3231,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
 	if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: (%x.%x.%x), VCP error (%d)",
+	    SLog(0, "CheckNewSetAttrSemantics: (%x.%x.%x), VCP error (%d)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 	    return(errorCode);
 	}
@@ -3231,12 +3241,12 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     {
 	if (truncp) { 
 	    if ((*vptr)->disk.type != vFile) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: non-file truncate (%x.%x.%x)",
+		SLog(0, "CheckNewSetAttrSemantics: non-file truncate (%x.%x.%x)",
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EISDIR);
 	    }
 	    if (Length > (*vptr)->disk.length) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: truncate length bad (%x.%x.%x)",
+		SLog(0, "CheckNewSetAttrSemantics: truncate length bad (%x.%x.%x)",
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EINVAL);
 	    }
@@ -3244,7 +3254,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
 	/* just log a message if nothing is changing - don't be paranoid about returning an error */
 	if (chmodp + chownp + truncp + utimesp == 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: no attr set (%x.%x.%x)",
+	    SLog(0, "CheckNewSetAttrSemantics: no attr set (%x.%x.%x)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	}
     }
@@ -3264,7 +3274,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	if (IsOwner && Virginal) {
 	    /* Bypass protection checks on first store after a create EXCEPT for chowns. */
 	    if (chownp) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: owner chown'ing virgin (%x.%x.%x)",
+		SLog(0, "CheckNewSetAttrSemantics: owner chown'ing virgin (%x.%x.%x)",
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EACCES);
 	    }
@@ -3276,7 +3286,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		/* INSERT | DELETE for directories. */
 		if ((*vptr)->disk.type == vDirectory) {
 		    if (!(*rights & (PRSFS_INSERT | PRSFS_DELETE))) {
-			LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
+			SLog(0, "CheckNewSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
 				*rights, *anyrights,
 				Fid.Volume, Fid.Vnode, Fid.Unique);
 			return(EACCES);
@@ -3284,7 +3294,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		}
 		else {
 		    if (!(*rights & PRSFS_WRITE)) {
-			LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
+			SLog(0, "CheckNewSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
 				*rights, *anyrights,
 				Fid.Volume, Fid.Vnode, Fid.Unique);
 			return(EACCES);
@@ -3296,13 +3306,13 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		}
 
 		if (chownp && !IsOwner) {
-		    LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: non-owner chown'ing (%x.%x.%x)",
+		    SLog(0, "CheckNewSetAttrSemantics: non-owner chown'ing (%x.%x.%x)",
 			    Fid.Volume, Fid.Vnode, Fid.Unique);
 		    return(EACCES);
 		}
 
 		if (truncp && CheckWriteMode(client, (*vptr)) != 0) {
-		    LogMsg(0, SrvDebugLevel, stdout, "CheckNewSetAttrSemantics: truncating (%x.%x.%x)",
+		    SLog(0, "CheckNewSetAttrSemantics: truncating (%x.%x.%x)",
 			    Fid.Volume, Fid.Vnode, Fid.Unique);
 		    return(EACCES);
 		}
@@ -3335,7 +3345,7 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
 	if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckSetACLSemantics: (%x.%x.%x), VCP error (%d)",
+	    SLog(0, "CheckSetACLSemantics: (%x.%x.%x), VCP error (%d)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 	    return(errorCode);
 	}
@@ -3344,12 +3354,12 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
     /* Integrity checks. */
     {
 	if ((*vptr)->disk.type != vDirectory) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckSetACLSemantics: non-directory (%x.%x.%x)",
+	    SLog(0, "CheckSetACLSemantics: non-directory (%x.%x.%x)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(ENOTDIR);
 	}
 	if (AccessList->SeqLen == 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckSetACLSemantics: zero-len ACL (%x.%x.%x)",
+	    SLog(0, "CheckSetACLSemantics: zero-len ACL (%x.%x.%x)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(EINVAL);
 	}
@@ -3369,18 +3379,18 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 
 	/* ADMINISTER permission (normally) required. */
 	if (!(*rights & PRSFS_ADMINISTER) && !IsOwner && SystemUser(client)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckSetACLSemantics: rights violation (%x : %x) (%x.%x.%x)",
+	    SLog(0, "CheckSetACLSemantics: rights violation (%x : %x) (%x.%x.%x)",
 		    *rights, *anyrights,
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(EACCES);
 	}
 	if (AL_Internalize((AL_ExternalAccessList) AccessList->SeqBody, newACL) != 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckSetACLSemantics: ACL internalize failed (%x.%x.%x)",
+	    SLog(0, "CheckSetACLSemantics: ACL internalize failed (%x.%x.%x)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(EINVAL);
 	}
 	if ((*newACL)->MySize + 4 > aCLSize) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckSetACLSemantics: ACL too big (%x.%x.%x)",
+	    SLog(0, "CheckSetACLSemantics: ACL too big (%x.%x.%x)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	    return(E2BIG);
 	}
@@ -3429,20 +3439,24 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 			 dlist *vlist) {
     int errorCode = 0;
     ViceFid SDid;			/* Source directory */
+    ViceFid TDid;			/* Target directory */
+    ViceFid SFid;			/* Source object */
+    ViceFid TFid;			/* Target object (if it exists) */
+
     SDid.Volume = V_id(*volptr);
     SDid.Vnode = (*s_dirvptr)->vnodeNumber;
     SDid.Unique = (*s_dirvptr)->disk.uniquifier;
-    ViceFid TDid;			/* Target directory */
+
     TDid.Volume = V_id(*volptr);
     TDid.Vnode = (*t_dirvptr)->vnodeNumber;
     TDid.Unique = (*t_dirvptr)->disk.uniquifier;
+
     int SameParent = (FID_EQ(&SDid, &TDid));
-    ViceFid SFid;			/* Source object */
     SFid.Volume = V_id(*volptr);
     SFid.Vnode = (*s_vptr)->vnodeNumber;
     SFid.Unique = (*s_vptr)->disk.uniquifier;
+
     int TargetExists = (t_vptr != 0);
-    ViceFid TFid;			/* Target object (if it exists) */
     if (TargetExists) {
 	TFid.Volume = V_id(*volptr);
 	TFid.Vnode = (*t_vptr)->vnodeNumber;
@@ -3461,7 +3475,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*s_dirvptr) : (void *)&(*s_dirvptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&s_dirstatus->VV : (void *)&s_dirstatus->DataVersion);
 	    if (errorCode = VCmpProc(ReplicatedOp, (*s_dirvptr)->disk.type, arg1, arg2)) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
+		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
 			SDid.Volume, SDid.Vnode, SDid.Unique, errorCode);
 		return(errorCode);
 	    }
@@ -3473,7 +3487,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*t_dirvptr) : (void *)&(*t_dirvptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&t_dirstatus->VV : (void *)&t_dirstatus->DataVersion);
 	    if (errorCode = VCmpProc(ReplicatedOp, (*t_dirvptr)->disk.type, arg1, arg2)) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
+		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
 			TDid.Volume, TDid.Vnode, TDid.Unique, errorCode);
 		return(errorCode);
 	    }
@@ -3484,7 +3498,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*s_vptr) : (void *)&(*s_vptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&s_status->VV : (void *)&s_status->DataVersion);
 	    if (errorCode = VCmpProc(ReplicatedOp, (*s_vptr)->disk.type, arg1, arg2)) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
+		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
 			SFid.Volume, SFid.Vnode, SFid.Unique, errorCode);
 		return(errorCode);
 	    }
@@ -3495,7 +3509,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*t_vptr) : (void *)&(*t_vptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&t_status->VV : (void *)&t_status->DataVersion);
 	    if (errorCode = VCmpProc(ReplicatedOp, (*t_vptr)->disk.type, arg1, arg2)) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
+		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
 			TFid.Volume, TFid.Vnode, TFid.Unique, errorCode);
 		return(errorCode);
 	    }
@@ -3507,29 +3521,28 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	/* Source, Target directories. */
 	if ((*s_dirvptr)->disk.type != vDirectory ||
 	    (*t_dirvptr)->disk.type != vDirectory) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: not directory (%x.%x.%x) (%x.%x.%x)", 
-		    SDid.Volume, SDid.Vnode, SDid.Unique,
-		    TDid.Volume, TDid.Vnode, TDid.Unique);
+	    SLog(0, "CheckRenameSemantics: not directory src: %s tgt: %s", 
+		    FID_(&SDid), FID_2(&TDid));
 	    return(ENOTDIR);
 	}
 
 	/* Source object. */
 	{
 	    if (STREQ(OldName, ".") || STREQ(OldName, "..")) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: illegal old-name (%s)", OldName);
+		SLog(0, "CheckRenameSemantics: illegal old-name (%s)", OldName);
 		return(EINVAL);
 	    }
 
 	    if ((*s_vptr)->disk.vparent != SDid.Vnode ||
 		(*s_vptr)->disk.uparent != SDid.Unique) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: source (%x.%x.%x) not in parent (%x.%x.%x)", 
+		SLog(0, "CheckRenameSemantics: source (%x.%x.%x) not in parent (%x.%x.%x)", 
 			SFid.Volume, SFid.Vnode, SFid.Unique,
 			SDid.Volume, SDid.Vnode, SDid.Unique);
 		return(EINVAL);
 	    }
 
 	    if (FID_EQ(&SDid, &SFid) || FID_EQ(&TDid, &SFid)) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: (%x.%x.%x) (%x.%x.%x) (%x.%x.%x) (%x.%x.%x)", 
+		SLog(0, "CheckRenameSemantics: (%x.%x.%x) (%x.%x.%x) (%x.%x.%x) (%x.%x.%x)", 
 			SDid.Volume, SDid.Vnode, SDid.Unique,
 			TDid.Volume, TDid.Vnode, TDid.Unique,
 			SFid.Volume, SFid.Vnode, SFid.Unique,
@@ -3539,7 +3552,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 	    /* Cannot allow rename out of a directory if file has multiple links! */
 	    if (!SameParent && (*s_vptr)->disk.type == vFile && (*s_vptr)->disk.linkCount > 1) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: !SameParent and multiple links (%x.%x.%x)",   SFid.Volume, SFid.Vnode, SFid.Unique);
+		SLog(0, "CheckRenameSemantics: !SameParent and multiple links (%x.%x.%x)",   SFid.Volume, SFid.Vnode, SFid.Unique);
 		return(EXDEV);
 	    }
 	}
@@ -3547,21 +3560,21 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	/* Target object. */
 	{
 	    if (STREQ(NewName, ".") || STREQ(NewName, "..")) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: illegal new-name (%s)", NewName);
+		SLog(0, "CheckRenameSemantics: illegal new-name (%s)", NewName);
 		return(EINVAL);
 	    }
 
 	    if (TargetExists) {
 		if ((*t_vptr)->disk.vparent != TDid.Vnode ||
 		    (*t_vptr)->disk.uparent != TDid.Unique) {
-		    LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: target (%x.%x.%x) not in parent (%x.%x.%x)", 
+		    SLog(0, "CheckRenameSemantics: target (%x.%x.%x) not in parent (%x.%x.%x)", 
 			    TFid.Volume, TFid.Vnode, TFid.Unique,
 			    TDid.Volume, TDid.Vnode, TDid.Unique);
 		    return(EINVAL);
 		}
 
 		if (FID_EQ(&SDid, &TFid) || FID_EQ(&TDid, &TFid) || FID_EQ(&SFid, &TFid)) {
-		    LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: (%x.%x.%x) (%x.%x.%x) (%x.%x.%x) (%x.%x.%x)", 
+		    SLog(0, "CheckRenameSemantics: (%x.%x.%x) (%x.%x.%x) (%x.%x.%x) (%x.%x.%x)", 
 			    SDid.Volume, SDid.Vnode, SDid.Unique,
 			    TDid.Volume, TDid.Vnode, TDid.Unique,
 			    SFid.Volume, SFid.Vnode, SFid.Unique,
@@ -3571,24 +3584,26 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 		if ((*t_vptr)->disk.type == vDirectory) {
 		    if((*s_vptr)->disk.type != vDirectory) {
-			LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: target is dir, source is not");
+			SLog(0, "CheckRenameSemantics: target is dir, source is not");
 			return(ENOTDIR);
 		    }
 
 		    PDirHandle dh;
 		    dh = VN_SetDirHandle(*t_vptr);
 		    if (!DH_IsEmpty(dh)) {
-			LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: target (%x.%x.%x) not empty", 
-				TFid.Volume, TFid.Vnode, TFid.Unique);
+			SLog(0, "CheckRenameSemantics: target %s not empty", 
+			     FID_(&TFid));
 			if (!IgnoreTargetNonEmpty) {
-			    LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: Ignoring Non-Empty target directory");
+			    SLog(0, "CheckRenameSemantics: Ignoring Non-Empty target directory");
+			    VN_PutDirHandle(*t_vptr);
 			    return(ENOTEMPTY);	
 			}
 		    }
+		    VN_PutDirHandle(*t_vptr);
 		}
 		else {
 		    if((*s_vptr)->disk.type == vDirectory) {
-			LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: source is dir, target is not");
+			SLog(0, "CheckRenameSemantics: source is dir, target is not");
 			return(EISDIR);
 		    }
 		}
@@ -3613,7 +3628,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 		if (FID_EQ(&TestFid, &SFid) || FID_EQ(&TestFid, &TDid) ||
 		    (TargetExists && FID_EQ(&TestFid, &TFid))) {
-		    LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: loop detected");
+		    SLog(0, "CheckRenameSemantics: loop detected");
 		    return(ELOOP);
 		}
 
@@ -3638,7 +3653,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 			 * no need to call VPutVnode in that case.  If the vnode
 			 * is not on the vlist, return rather than be antisocial.
 			 */
-			LogMsg(0, SrvDebugLevel, stdout, 
+			SLog(0, 
 			       "CheckRenameSemantics: avoiding deadlock on %x.%x.%x",
 			       V_id(*volptr), TestFid.Vnode, TestFid.Unique);
 			if (vlist) {
@@ -3670,7 +3685,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	    assert(GetRights(client->CPS, aCL, aCLSize, sd_rights, sd_anyrights) == 0);
 
 	    if (!(*sd_rights & PRSFS_DELETE)) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: sd rights violation (%x : %x) (%x.%x.%x)", 
+		SLog(0, "CheckRenameSemantics: sd rights violation (%x : %x) (%x.%x.%x)", 
 			*sd_rights, *sd_anyrights, SDid.Volume, SDid.Vnode, SDid.Unique);
 		return(EACCES);
 	    }
@@ -3688,7 +3703,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 	    if (!(*td_rights & PRSFS_INSERT) ||
 		(TargetExists && !(*td_rights & PRSFS_DELETE))) {
-		LogMsg(0, SrvDebugLevel, stdout, "CheckRenameSemantics: td rights violation (%x : %x) (%x.%x.%x)", 
+		SLog(0, "CheckRenameSemantics: td rights violation (%x : %x) (%x.%x.%x)", 
 			*td_rights, *td_anyrights, TDid.Volume, TDid.Vnode, TDid.Unique);
 		return(EACCES);
 	    }
@@ -3743,10 +3758,8 @@ int CheckSymlinkSemantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr, ch
 }
 
 /*
-  BEGIN_HTML
-  <a name="Check_CLMS_Semantics"><strong>Make semantic checks for the create, link,
-  mkdir and symlink requests. </a>
-  END_HTML 
+  Check_CLMS_Semantics: Make semantic checks for the create, link,
+  mkdir and symlink requests.
 */
 
 /* {vptr,status} may be Null for {Create,Mkdir,Symlink}. */
@@ -3779,7 +3792,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*dirvptr) : (void *)&(*dirvptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)&dirstatus->VV : (void *)&dirstatus->DataVersion);
 	if (errorCode = VCmpProc(ReplicatedOp, (*dirvptr)->disk.type, arg1, arg2)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: (%x.%x.%x), VCP error (%d)",
+	    SLog(0, "%s: (%x.%x.%x), VCP error (%d)",
 		    ProcName, Did.Volume, Did.Vnode, Did.Unique, errorCode);
 	    return(errorCode);
 	}
@@ -3788,7 +3801,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&status->VV : (void *)&status->DataVersion);
 	    if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
-		LogMsg(0, SrvDebugLevel, stdout, "%s: (%x.%x.%x), VCP error (%d)",
+		SLog(0, "%s: (%x.%x.%x), VCP error (%d)",
 			ProcName, Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 		return(errorCode);
 	    }
@@ -3798,13 +3811,13 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
     /* Integrity checks. */
     {
 	if ((*dirvptr)->disk.type != vDirectory){
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: (%x.%x.%x) not a directory",
+	    SLog(0, "%s: (%x.%x.%x) not a directory",
 		    ProcName, Did.Volume, Did.Vnode, Did.Unique);
 	    return(ENOTDIR);
 	}
 
 	if (STREQ(Name, ".") || STREQ(Name, "..")) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: illegal name (%s)",
+	    SLog(0, "%s: illegal name (%s)",
 		    ProcName, Name);
 	    return(EINVAL);
 	}
@@ -3812,19 +3825,20 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 	PDirHandle dh;
 	dh = VN_SetDirHandle(*dirvptr);
 	ViceFid Fid;
-	if (DH_Lookup(dh, (char *)Name, &Fid) == 0) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: %s already exists in (%x.%x.%x)",
-		    ProcName, Name, Did.Volume, Did.Vnode, Did.Unique);
-	    return(EEXIST);
+	if (DH_Lookup(dh, Name, &Fid) == 0) {
+		SLog(0, "%s: %s already exists in %s", 
+		     ProcName, Name, FID_(&Did));
+		VN_PutDirHandle(*dirvptr);
+		return(EEXIST);
 	}
-	LogMsg(9, SrvDebugLevel, stdout, "%s: Lookup of %s in (%x.%x.%x) failed",
-		ProcName, Name, Did.Volume, Did.Vnode, Did.Unique);
+	VN_PutDirHandle(*dirvptr);
+	SLog(9, "%s: Lookup of %s in %s failed", ProcName, Name,  FID_(&Did));
 
 	if (vptr != 0) {
 	    switch(type) {
 		case vFile:
 		    if ((*vptr)->disk.type != vFile) {
-			LogMsg(0, SrvDebugLevel, stdout, "%s: (%x.%x.%x) not a file", 
+			SLog(0, "%s: (%x.%x.%x) not a file", 
 				ProcName, Fid.Volume, Fid.Vnode, Fid.Unique);
 			return(EISDIR);
 		    }
@@ -3832,15 +3846,14 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 
 		case vDirectory:
 		    if ((*vptr)->disk.type != vDirectory) {
-			LogMsg(0, SrvDebugLevel, stdout, "%s: (%x.%x.%x) not a directory", 
-				ProcName, Fid.Volume, Fid.Vnode, Fid.Unique);
+			SLog(0, "%s: %s not a dir", ProcName, FID_(&Fid));
 			return(ENOTDIR);
 		    }
 		    break;
 
 		case vSymlink:
 		    if ((*vptr)->disk.type != vSymlink) {
-			LogMsg(0, SrvDebugLevel, stdout, "%s: (%x.%x.%x) not a symlink", 
+			SLog(0, "%s: (%x.%x.%x) not a symlink", 
 				ProcName, Fid.Volume, Fid.Vnode, Fid.Unique);
 			return(EISDIR);
 		    }
@@ -3851,7 +3864,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 	    }
 
 	    if (((*vptr)->disk.vparent != Did.Vnode) || ((*vptr)->disk.uparent != Did.Unique)){
-		LogMsg(0, SrvDebugLevel, stdout, "%s: cross-directory link (%x.%x.%x), (%x.%x.%x)",
+		SLog(0, "%s: cross-directory link (%x.%x.%x), (%x.%x.%x)",
 			ProcName, Did.Volume, Did.Vnode, Did.Unique,
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EXDEV);
@@ -3862,14 +3875,14 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
     /* Protection checks. */
     if (MakeProtChecks) {
 	/* Get the access list. */
-	LogMsg(9, SrvDebugLevel, stdout, "%s: Going to get acl (%x.%x.%x)",
+	SLog(9, "%s: Going to get acl (%x.%x.%x)",
 		ProcName, Did.Volume, Did.Vnode, Did.Unique);
 	AL_AccessList *aCL = 0;
 	int aCLSize = 0;
 	SetAccessList(*dirvptr, aCL, aCLSize);
 
 	/* Get this client's rights. */
-	LogMsg(9, SrvDebugLevel, stdout, "%s: Going to get rights (%x.%x.%x)",
+	SLog(9, "%s: Going to get rights (%x.%x.%x)",
 		ProcName, Did.Volume, Did.Vnode, Did.Unique);
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
@@ -3877,7 +3890,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 
 	/* INSERT permission required. */
 	if (!(*rights & PRSFS_INSERT)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: rights violation (%x : %x) (%x.%x.%x)",
+	    SLog(0, "%s: rights violation (%x : %x) (%x.%x.%x)",
 		    ProcName, *rights, *anyrights, Did.Volume, Did.Vnode, Did.Unique);
 	    return(EACCES);
 	}
@@ -3897,13 +3910,10 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
       : "CheckRemoveSemantics";
     int errorCode = 0;
     ViceFid Did;
-    Did.Volume = V_id(*volptr);
-    Did.Vnode = (*dirvptr)->vnodeNumber;
-    Did.Unique = (*dirvptr)->disk.uniquifier;
     ViceFid Fid;
-    Fid.Volume = V_id(*volptr);
-    Fid.Vnode = (*vptr)->vnodeNumber;
-    Fid.Unique = (*vptr)->disk.uniquifier;
+
+    VN_VN2Fid(*dirvptr, *volptr, &Did);
+    VN_VN2Fid(*vptr, *volptr, &Fid);
 
     /* Concurrency-control checks. */
     if (VCmpProc) {
@@ -3912,17 +3922,17 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 
 	arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*dirvptr) : (void *)&(*dirvptr)->disk.dataVersion);
 	arg2 = (ReplicatedOp ? (void *)&dirstatus->VV : (void *)&dirstatus->DataVersion);
-	if (errorCode = VCmpProc(ReplicatedOp, (*dirvptr)->disk.type, arg1, arg2)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: (%x.%x.%x), VCP error (%d)",
-		    ProcName, Did.Volume, Did.Vnode, Did.Unique, errorCode);
-	    return(errorCode);
+	if (errorCode = VCmpProc(ReplicatedOp, (*dirvptr)->disk.type, 
+				 arg1, arg2)) {
+		SLog(0, "%s: %s, VCP error (%d)", ProcName, 
+		     FID_(&Did), errorCode);
+		return(errorCode);
 	}
 
 	arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	arg2 = (ReplicatedOp ? (void *)&status->VV : (void *)&status->DataVersion);
 	if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: (%x.%x.%x), VCP error (%d)",
-		    ProcName, Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
+	    SLog(0, "%s: %s, VCP error (%d)", ProcName, FID_(&Fid), errorCode);
 	    return(errorCode);
 	}
     }
@@ -3930,43 +3940,43 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
     /* Integrity checks. */
     {
 	if ((*dirvptr)->disk.type != vDirectory) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: parent (%x.%x.%x) not a directory", 
+	    SLog(0, "%s: parent (%x.%x.%x) not a directory", 
 		    ProcName, Did.Volume, Did.Vnode, Did.Unique);
 	    return(ENOTDIR);
 	}
 
 	if (STREQ(Name, ".") || STREQ(Name, "..")) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: illegal name (%s)",
+	    SLog(0, "%s: illegal name (%s)",
 		    ProcName, Name);
 	    return(EINVAL);
 	}
 
-	if ((*vptr)->disk.vparent != Did.Vnode || (*vptr)->disk.uparent != Did.Unique) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: child (%x.%x.%x) not in parent (%x.%x.%x)", 
-		    ProcName, Fid.Volume, Fid.Vnode, Fid.Unique,
-		    Did.Volume, Did.Vnode, Did.Unique);
-	    return(EINVAL);
+	if ((*vptr)->disk.vparent != Did.Vnode || 
+	    (*vptr)->disk.uparent != Did.Unique) {
+		SLog(0, "%s: child %s not in parent %s", ProcName, 
+		     FID_(&Fid), FID_2(&Did));
+		return(EINVAL);
 	}
 
 	if ((type == vDirectory) && ((*vptr)->disk.type != vDirectory)){
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: child (%x.%x.%x) not a directory", 
-		    ProcName, Fid.Volume, Fid.Vnode, Fid.Unique);
-	    return(ENOTDIR);
+		SLog(0, "%s: child %s not a directory", ProcName, FID_(&Fid));
+		return(ENOTDIR);
 	}
 	if ((type != vDirectory) && ((*vptr)->disk.type == vDirectory)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: child (%x.%x.%x) is a directory", 
-		    ProcName, Fid.Volume, Fid.Vnode, Fid.Unique); 
-	    return(EISDIR);
+		SLog(0, "%s: child %s is a directory", ProcName, FID_(&Fid));
+		return(EISDIR);
 	}
 
 	if (type == vDirectory && VCmpProc != 0) {
-	    PDirHandle dh;
-	    dh = VN_SetDirHandle(*vptr);
-	    if (!DH_IsEmpty(dh)) {
-		LogMsg(0, SrvDebugLevel, stdout, "%s: child (%x.%x.%x) not empty ",
-			ProcName, Fid.Volume, Fid.Vnode, Fid.Unique);
-		return(ENOTEMPTY);
-	    }
+		PDirHandle dh;
+		dh = VN_SetDirHandle(*vptr);
+		if (!DH_IsEmpty(dh)) {
+			SLog(0, "%s: child %s not empty ", ProcName, 
+			     FID_(&Fid));
+			VN_PutDirHandle(*vptr);
+			return(ENOTEMPTY);
+		}
+		VN_PutDirHandle(*vptr);
 	}
     }
 
@@ -3984,7 +3994,7 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 
 	/* DELETE permission required. */
 	if (!(*rights & PRSFS_DELETE)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "%s: rights violation (%x : %x) (%x.%x.%x)", 
+	    SLog(0, "%s: rights violation (%x : %x) (%x.%x.%x)", 
 		    ProcName, *rights, *anyrights, Did.Volume, Did.Vnode, Did.Unique);
 	    return(EACCES);
 	}
@@ -4053,35 +4063,35 @@ START_TIMING(Fetch_Xfer);
 	}
 	
 	/* debugging purposes */
-	LogMsg(9, SrvDebugLevel, stdout, "FetchBulkTransfer: Printing se descriptor:");
+	SLog(9, "FetchBulkTransfer: Printing se descriptor:");
 	switch (sid.Value.SmartFTPD.Tag) {
 	    case FILEBYINODE:
-		LogMsg(9, SrvDebugLevel, stdout, "Tag = FILEBYINODE, device = %u, inode = %u",
+		SLog(9, "Tag = FILEBYINODE, device = %u, inode = %u",
 			sid.Value.SmartFTPD.FileInfo.ByInode.Device,
 			sid.Value.SmartFTPD.FileInfo.ByInode.Inode);
 		break;
 	    case FILEBYNAME:
-		LogMsg(9, SrvDebugLevel, stdout, "Tag = FILEBYNAME, LocalFileName = %s",
+		SLog(9, "Tag = FILEBYNAME, LocalFileName = %s",
 			sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName);
 		break;
 	    case FILEINVM:
-		LogMsg(9, SrvDebugLevel, stdout, "Tag = FILEINVM, len = %d buf = %x",
+		SLog(9, "Tag = FILEINVM, len = %d buf = %x",
 			sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen,
 			sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody);
 		break;
 	    default:
-		LogMsg(9, SrvDebugLevel, stdout, "BOGUS TAG");
+		SLog(9, "BOGUS TAG");
 		assert(0);
 		break;
 	}
 	if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
-	    LogMsg(0, SrvDebugLevel, stdout, "FetchBulkTransfer: InitSE failed (%d), (%x.%x.%x)",
+	    SLog(0, "FetchBulkTransfer: InitSE failed (%d), (%x.%x.%x)",
 		    errorCode, Fid.Volume, Fid.Vnode, Fid.Unique);
 	    goto Exit;
 	}
 
 	if ((errorCode = (int) RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT) {
-	    LogMsg(0, SrvDebugLevel, stdout, "FetchBulkTransfer: CheckSE failed (%d), (%x.%x.%x)",
+	    SLog(0, "FetchBulkTransfer: CheckSE failed (%d), (%x.%x.%x)",
 		    errorCode, Fid.Volume, Fid.Vnode, Fid.Unique);
 	    if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 	    goto Exit;
@@ -4113,7 +4123,7 @@ START_TIMING(Fetch_Xfer);
 	else
 	    Counters[FETCHD5]++;
 
-	LogMsg(2, SrvDebugLevel, stdout, "FetchBulkTransfer: transferred %d bytes (%x.%x.%x)",
+	SLog(2, "FetchBulkTransfer: transferred %d bytes (%x.%x.%x)",
 		Length, Fid.Volume, Fid.Vnode, Fid.Unique);
     }
 
@@ -4138,7 +4148,7 @@ int FetchFileByName(RPC2_Handle RPCid, char *name, ClientEntry *client) {
     sid.Value.SmartFTPD.hashmark = 0;
     if ((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid))
 	<= RPC2_ELIMIT) {
-	LogMsg(0, SrvDebugLevel, stdout, "FetchFileByName: InitSideEffect failed %d", 
+	SLog(0, "FetchFileByName: InitSideEffect failed %d", 
 		errorCode);
 	return(errorCode);
     }
@@ -4146,7 +4156,7 @@ int FetchFileByName(RPC2_Handle RPCid, char *name, ClientEntry *client) {
     if ((errorCode = (int) RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
 	<= RPC2_ELIMIT) {
 	if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
-	LogMsg(0, SrvDebugLevel, stdout, "FetchFileByName: CheckSideEffect failed %d",
+	SLog(0, "FetchFileByName: CheckSideEffect failed %d",
 		errorCode);
 	return(errorCode);
     }    
@@ -4219,13 +4229,13 @@ START_TIMING(Store_Xfer);
 	sid.Value.SmartFTPD.FileInfo.ByInode.Inode = newinode;
 
 	if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
-	    LogMsg(0, SrvDebugLevel, stdout, "StoreBulkTransfer: InitSE failed (%d), (%x.%x.%x)",
+	    SLog(0, "StoreBulkTransfer: InitSE failed (%d), (%x.%x.%x)",
 		    errorCode, Fid.Volume, Fid.Vnode, Fid.Unique);
 	    goto Exit;
 	}
 
 	if ((errorCode = (int) RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT) {
-	    LogMsg(0, SrvDebugLevel, stdout, "StoreBulkTransfer: CheckSE failed (%d), (%x.%x.%x)",
+	    SLog(0, "StoreBulkTransfer: CheckSE failed (%d), (%x.%x.%x)",
 		    errorCode, Fid.Volume, Fid.Vnode, Fid.Unique);
 	    if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 	    goto Exit;
@@ -4233,7 +4243,7 @@ START_TIMING(Store_Xfer);
 
 	RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
 	if (Length != -1 && Length != len) {
-	    LogMsg(0, SrvDebugLevel, stdout, "StoreBulkTransfer: length discrepancy (%d : %d), (%x.%x.%x), %s %s.%d",
+	    SLog(0, "StoreBulkTransfer: length discrepancy (%d : %d), (%x.%x.%x), %s %s.%d",
 		    Length, len, Fid.Volume, Fid.Vnode, Fid.Unique,
 		    client->UserName, client->VenusId->HostName, client->VenusId->port);
 	    errorCode = EINVAL;
@@ -4257,7 +4267,7 @@ START_TIMING(Store_Xfer);
 	else
 	    Counters[STORED5]++;
 
-	LogMsg(2, SrvDebugLevel, stdout, "StoreBulkTransfer: transferred %d bytes (%x.%x.%x)",
+	SLog(2, "StoreBulkTransfer: transferred %d bytes (%x.%x.%x)",
 		Length, Fid.Volume, Fid.Vnode, Fid.Unique);
     }
 
@@ -4455,7 +4465,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     sd_vptr->disk.length = sd_newlength;
 
     /*XXXXX this seems against unix semantics: the target should only 
-     be removed if it is a directory. Probably the client's kernel
+     be removed if it is not a directory. Probably the client's kernel
     will protect us, but it is worrying*/
     /* Remove the target name from its parent (if it exists). */
     if (TargetExists) {
@@ -4467,7 +4477,8 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	assert(DH_Delete(td_dh, NewName) == 0);
 
 	int td_newlength = DH_Length(td_dh);
-	int td_newblocks = (int) (nBlocks(td_newlength) - nBlocks(td_vptr->disk.length));
+	int td_newblocks = (int) (nBlocks(td_newlength) - 
+				  nBlocks(td_vptr->disk.length));
 	if(td_newblocks != 0) {
 	    ChangeDiskUsage(volptr, td_newblocks);
 	    if (nblocks) *nblocks += td_newblocks;
@@ -4478,7 +4489,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	if (t_vptr->disk.type == vDirectory) {
 	    PDirHandle t_dh;
 	    t_dh = VN_SetDirHandle(t_vptr);
-	    DC_Put(t_vptr->dh);
+	    DC_Drop(t_vptr->dh);
 	}
     }
 
@@ -4508,6 +4519,13 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	}
 	s_vptr->disk.length = s_newlength;
     }
+
+    if (s_vptr->disk.type == vDirectory) 
+	    VN_PutDirHandle(s_vptr);
+
+    VN_PutDirHandle(sd_vptr);
+    if ( !SameParent ) 
+	    VN_PutDirHandle(td_vptr);
 
     /* Update source parent vnode. */
     sd_vptr->disk.unixModifyTime = Mtime;
@@ -4603,13 +4621,9 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
     int error;
     *nblocks = 0;
     ViceFid Did;
-    Did.Volume = V_id(volptr);
-    Did.Vnode = dirvptr->vnodeNumber;
-    Did.Unique = dirvptr->disk.uniquifier;
     ViceFid Fid;
-    Fid.Volume = V_id(volptr);
-    Fid.Vnode = vptr->vnodeNumber;
-    Fid.Unique = vptr->disk.uniquifier;
+    VN_VN2Fid(vptr, volptr, &Fid);
+    VN_VN2Fid(dirvptr, volptr, &Did);
 
     /* Break callback promises. */
     CodaBreakCallBack((client ? client->VenusId : 0), &Did, VSGVolnum);
@@ -4629,11 +4643,12 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
     /* Add the name to the parent. */
     error = DH_Create(dh, Name, &Fid);
     if ( error ) {
-	    eprint("Create returns %d on %s (Fid %x, %x, %x)",
-		   error, Name, Fid.Volume, Fid.Vnode, Fid.Unique);
+	    eprint("Create returns %d on %s %s", error, Name, FID_(&Fid));
+	    VN_PutDirHandle(dirvptr);
 	    assert(0);
     }
     int newlength = DH_Length(dh);
+    VN_PutDirHandle(dirvptr);
     int newblocks = (int) (nBlocks(newlength) - nBlocks(dirvptr->disk.length));
     if(newblocks != 0) {
 	ChangeDiskUsage(volptr, newblocks);
@@ -4674,15 +4689,15 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	case ViceMakeDir_OP:
 	    {
 		    PDirHandle cdh;
-		    PDCEntry pdce;
 		    vptr->disk.inodeNumber = 0;
+		    vptr->dh = 0;
+		    assert(vptr->changed);
 
 		    /* Create the child directory. */
-		    pdce = DC_New();
-		    assert(pdce);
-		    cdh = DC_DC2DH(pdce);
+		    cdh = VN_SetDirHandle(vptr);
+		    assert(cdh);
 		    assert(DH_MakeDir(cdh, &Fid, &Did) == 0);
-		    vptr->dh = pdce;
+		    assert(DC_Dirty(vptr->dh));
 
 		    vptr->disk.linkCount = 2;
 		    vptr->disk.length = DH_Length(cdh);
@@ -4771,6 +4786,7 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     /* Remove the name from the directory. */
     assert(DH_Delete(pDir, Name) == 0);
     int newlength = DH_Length(pDir);
+    VN_PutDirHandle(dirvptr);
     int newblocks = (int) (nBlocks(newlength) - nBlocks(dirvptr->disk.length));
     if(newblocks != 0) {
 	ChangeDiskUsage(volptr, newblocks);
@@ -4787,11 +4803,12 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     if (ReplicatedOp) 
 	NewCOP1Update(volptr, dirvptr, StoreId, vsptr);
 
-    /* Flush directory pages for deleted child. */
+    /* PARANOIA: Flush directory pages for deleted child. */
     if (vptr->disk.type == vDirectory) {
 	PDirHandle cDir;
 	cDir = VN_SetDirHandle(vptr);
-	DC_Put(vptr->dh);
+	DH_FreeData(cDir);
+	VN_PutDirHandle(vptr);
     }
 
     /* Update the child vnode. */
@@ -4888,7 +4905,7 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel,
         /* Back out new disk allocation on failure. */
         if (errorCode && volptr)
 	        if (blocks != 0 && AdjustDiskUsage(volptr, -blocks) != 0)
-	                LogMsg(0, SrvDebugLevel, stdout, 
+	                SLog(0, 
                                "PutObjects: AdjustDiskUsage(%x, %d) failed", 
                                V_id(volptr), -blocks);
 
@@ -4923,23 +4940,37 @@ START_TIMING(PutObjects_Transaction);
 			    PollAndYield();
 		    }
 		    /* Directory pages.  Be careful with cloned directories! */
-		    if (v->vptr->disk.type == vDirectory &&
-		        DC_Dirty(v->vptr->dh)) {
-			    if (errorCode == 0) {
+                    SLog(10, "--PO: %s", FID_(&v->fid));
+                    if (v->vptr->disk.type == vDirectory ) {
+                       /* sanitry */
+                       if ( v->d_inodemod ) {
+                            assert(v->vptr->dh);
+                            SLog(10, "--PO: %s dirty %d", 
+			      FID_(&v->fid), DC_Dirty(v->vptr->dh));
+                       }
+                       if ( v->vptr->dh && DC_Dirty(v->vptr->dh)) {
+                            assert(v->d_inodemod);
+		       }
+                       if (v->d_inodemod && DC_Dirty(v->vptr->dh)) {
+                            if (errorCode == 0) {
 				    /* Dec the Cow */
 				    PDCEntry pdce = v->vptr->dh;
 				    if (DC_Cowpdi(pdce)) {
 					    DI_Dec(DC_Cowpdi(pdce));
 					    DC_SetCowpdi(pdce, NULL);
 				    }
-				    if ( v->vptr->dh )
-					    assert(VN_DCommit(v->vptr) == 0);
+                                    assert(VN_DCommit(v->vptr) == 0);
 			    } else {
-				    if ( v->vptr->dh )
-					    assert(VN_DAbort(v->vptr) == 0);
+				    assert(VN_DAbort(v->vptr) == 0);
 			    }
 			    DC_SetDirty(v->vptr->dh, 0);
+                            SLog(0, "--DC: %s ct: %d\n", 
+				 FID_(&v->fid), DC_Count(v->vptr->dh));
+                       }
+		       if ( v->d_inodemod ) 
+			    VN_PutDirHandle(v->vptr);
 		    }
+		    
 
 		    if (AllowResolution && volptr && V_VMResOn(volptr)) {
 			/* Log mutation into volume log */
@@ -4948,7 +4979,7 @@ START_TIMING(PutObjects_Transaction);
 			int volindex = V_volumeindex(volptr);
 			while(SLE = (sle *)next()) {
 			    if (!errorCode) {
-				LogMsg(49, SrvDebugLevel, stdout, "PutObjects: Appending log record");
+				SLog(49, "PutObjects: Appending log record");
 				AppendRVMLogRecord(v->vptr, SLE->rec_index);	
 			    }
 			    else {
@@ -4974,7 +5005,7 @@ START_TIMING(PutObjects_Transaction);
 			int volindex = V_volumeindex(volptr);
 			while(vmle = (rsle *)next()) {
 			    if (!errorCode) {
-				LogMsg(9, SrvDebugLevel, stdout, 
+				SLog(9, 
 				       "PutObjects: Appending recoverable log record");
 				if (SrvDebugLevel > 39) vmle->print();
 				vmle->CommitInRVM(volptr, v->vptr);
@@ -5089,13 +5120,13 @@ START_TIMING(PutObjects_Inodes);
 		    if (v->f_sinode)
 			assert(idec((int) device, (int) v->f_sinode, parentId) == 0);
 		    if (v->f_tinode) {
-			LogMsg(3, SrvDebugLevel, stdout, "PutObjects: truncating (%x.%x.%x, %d, %d)",
+			SLog(3, "PutObjects: truncating (%x.%x.%x, %d, %d)",
 				v->fid.Volume, v->fid.Vnode, v->fid.Unique,
 				v->f_tinode, v->f_tlength);
 
 			int fd;
 			if ((fd = iopen((int) device, (int) v->f_tinode, O_RDWR)) < 0) {
-			    LogMsg(0, SrvDebugLevel, stdout, "PutObjects: iopen(%d, %d) failed (%d)",
+			    SLog(0, "PutObjects: iopen(%d, %d) failed (%d)",
 				    device, v->f_tinode, errno);
 			    assert(0);
 			}
@@ -5130,6 +5161,6 @@ START_TIMING(PutObjects_Inodes);
 #endif _TIMEPUTOBJS_    
 END_TIMING(PutObjects_Inodes);
 
-    LogMsg(10, SrvDebugLevel, stdout, "PutObjects: returning %s", ViceErrorMsg(0));
+    SLog(10, "PutObjects: returning %s", ViceErrorMsg(0));
 }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.10 1998/09/15 22:57:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.11 1998/09/29 16:38:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -195,8 +195,7 @@ void CLIENT_Delete(ClientEntry *clientPtr)
     if(clientPtr->LastOp) {
 	    clientPtr->DoUnbind = 1;
     } else {
-	    LogMsg(0, SrvDebugLevel, stdout,  
-		   "Unbinding RPC2 connection %d", clientPtr->RPCid);
+	    SLog(0, "Unbinding RPC2 connection %d", clientPtr->RPCid);
 
 	    RPC2_Unbind(clientPtr->RPCid);
 	    clientPtr->RPCid = 0;
@@ -342,8 +341,9 @@ void CLIENT_CallBackCheck()
 	    ObtainWriteLock(&hostTable[i].lock);
 	    long rc = CallBack(hostTable[i].id, &NullFid);
 	    if (rc <= RPC2_ELIMIT) {
-		LogMsg(0, SrvDebugLevel, stdout,  "Callback failed %s for ws %s, portal %d",
-			ViceErrorMsg((int) rc), hostTable[i].HostName, hostTable[i].port);
+		SLog(0, "Callback failed %s for ws %s, portal %d",
+		     ViceErrorMsg((int) rc), hostTable[i].HostName, 
+		     hostTable[i].port);
 		CLIENT_CleanUpHost(&hostTable[i]);
 	    }
 	    ReleaseWriteLock(&hostTable[i].lock);
@@ -354,13 +354,12 @@ void CLIENT_CallBackCheck()
 
 void CLIENT_CleanUpHost(HostTable *ht) 
 {
-    LogMsg(1, SrvDebugLevel, stdout,  "Cleaning up a HostTable for %s.%d",
-	     ht->HostName, ht->port);
+    SLog(1, "Cleaning up a HostTable for %s.%d", ht->HostName, ht->port);
 
     if (ht->id) {
 	client_RemoveClients(ht);		/* remove any connections for this Venus */
 	DeleteVenus(ht);		/* remove all callback entries	*/
-	LogMsg(1, SrvDebugLevel, stdout,  "Unbinding RPC2 connection %d", ht->id);
+	SLog(1, "Unbinding RPC2 connection %d", ht->id);
 	RPC2_Unbind(ht->id);
 	ht->id = 0;
 	ht->FirstClient = 0;
@@ -373,7 +372,7 @@ static void client_RemoveClients(HostTable *ht)
     for (ClientEntry *cp = ht->FirstClient; cp; cp = ht->FirstClient) {
 	CLIENT_Delete(cp);
 	if(cp == ht->FirstClient) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "RemoveClients got a failure from DeleteClient");
+	    SLog(0, "RemoveClients got a failure from DeleteClient");
 	    break;
 	}
     }
@@ -395,11 +394,11 @@ void CLIENT_PrintClients()
     struct timeval tp;
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
-    LogMsg(1, SrvDebugLevel, stdout,  "List of active users at %s", ctime(&tp.tv_sec));
+    SLog(1, "List of active users at %s", ctime(&tp.tv_sec));
 
     for(int i = 0; i < maxHost; i++) {
 	for(ClientEntry *cp = hostTable[i].FirstClient; cp; cp=cp->NextClient) {
-	    LogMsg(1, SrvDebugLevel, stdout,  "user = %s at %s.%d cid %d security level %s",
+	    SLog(1, "user = %s at %s.%d cid %d security level %s",
 		   cp->UserName, hostTable[i].HostName, hostTable[i].port, 
 		   cp->RPCid, client_SLDecode(cp->SecurityLevel));
 	}
@@ -418,8 +417,7 @@ static void client_SetUserName(ClientEntry *client)
 	/* Translate the name to a proper Id. */
 	if (AL_NameToId(name, (int *)&(client->Id)) != 0) {
 		if(!STREQ(client->UserName, "NEWCONNECT"))
-			LogMsg(0, SrvDebugLevel, stdout,  
-			       "User id %s unknown", client->UserName);
+			SLog(0, "User id %s unknown", client->UserName);
 		assert(AL_NameToId("System:AnyUser", 
 				   (int *)&(client->Id)) == 0);
 	}

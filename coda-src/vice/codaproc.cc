@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.12 1998/09/29 16:38:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.13 1998/10/09 21:57:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -179,21 +179,21 @@ static void COP2Update(Volume *, Vnode *, ViceVersionVector *, vmindex * =NULL);
   ViceProbe: Empty routine - simply return the probe 
 */
 
-long ViceProbe(RPC2_Handle cid, RPC2_CountedBS *Vids, RPC2_CountedBS *VVs) {
+long ViceProbe(RPC2_Handle cid, RPC2_CountedBS *Vids, RPC2_CountedBS *VVs) 
+{
     int errorCode = 0;
+
+    VVs->SeqLen = 0;
 
     LogMsg(1, SrvDebugLevel, stdout,  "ViceProbe, ");
 
     return(errorCode);
 }
 
-
 const int MaxFidAlloc = 32;
 
 /*
-  BEGIN_HTML
-  <a name="ViceAllocFids"><strong>Allocated a range of fids</tt></strong></a> 
-  END_HTML
+  ViceAllocFids: Allocated a range of fids
 */
 long ViceAllocFids(RPC2_Handle cid, VolumeId Vid,
 		    ViceDataType Type, ViceFidRange *Range,
@@ -474,7 +474,7 @@ long ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Counte
     if (!client) return EINVAL;
     if ((PiggyBS->SeqLen > 0) && (errorCode = ViceCOP2(cid, PiggyBS)))
 	goto FreeLocks;
-    if (errorCode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0)){
+    if (errorCode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0, 0)){
 	LogMsg(0, SrvDebugLevel, stdout,  "ViceSetVV: Error %d in GetFsObj", errorCode);
 	goto FreeLocks;
     }
@@ -555,9 +555,13 @@ long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	   but vnode with a  READLOCK because later on we 
 	   will get it with a WRITELOCK */
 	ov = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &ov->vptr, 
-				 READ_LOCK, SHARED_LOCK, 1, 0))
-	    goto FreeLocks;
+	if ( ISDIR(*Fid) ) 
+		ov->d_inodemod = 1;
+	errorCode = GetFsObj(Fid, &volptr, &ov->vptr, 
+			     READ_LOCK, SHARED_LOCK, 
+			     1, 0, ov->d_inodemod);
+	if ( errorCode ) 
+		goto FreeLocks;
 	
 	volindex = V_volumeindex(volptr);
 	if (ov->vptr->disk.type == vFile ||
@@ -1691,16 +1695,16 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 	    pFid.Vnode = ov->vptr->disk.vparent;
 	    pFid.Unique = ov->vptr->disk.uparent;
 	    AddVLE(*vlist, &pFid);
-	}
-	else {
+	} else {
 	    VolumeId vid = V_id(volptr);
 	    /* parse list and insert fids into vlist */
 	    for (int i = 0; i < repCount; i++) {
 		struct repair repairent;
 		repairent = repList[i];
-		if (ISCREATE(repairent.opcode) || (repairent.opcode == REPAIR_RENAME)){
-		    if (!XlateVid((VolumeId *) &(repairent.parms[0]))){
-			LogMsg(0, SrvDebugLevel, stdout,  "GetRepairObjects: Couldnt translate VSG ");
+		if (ISCREATE(repairent.opcode) || 
+		    (repairent.opcode == REPAIR_RENAME)){
+			if (!XlateVid((VolumeId *) &(repairent.parms[0]))){
+				SLog(0,  "GetRepairObjects: Couldnt translate VSG ");
 			return(EINVAL);
 		    }
 		    if (vid != repairent.parms[0]) {
@@ -1815,7 +1819,8 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 	    LogMsg(10, SrvDebugLevel, stdout,  "GetRepairObjects: acquiring (%x.%x.%x)",
 		    v->fid.Volume, v->fid.Vnode, v->fid.Unique);
 	    if (errorCode = GetFsObj(&v->fid, &volptr, &v->vptr, 
-				     WRITE_LOCK, SHARED_LOCK, 1, 0))
+				     WRITE_LOCK, SHARED_LOCK, 1, 0, 
+				     v->d_inodemod))
 		return(errorCode);
 	}	
     }
@@ -1837,7 +1842,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     /* get root vnode */
     {
 	if (errorCode = GetFsObj(fid, &volptr, &vptr,
-				 READ_LOCK, NO_LOCK, 1, 0)) 
+				 READ_LOCK, NO_LOCK, 1, 0, 0)) 
 	    goto Exit;
 	
 	assert(vptr->disk.type == vDirectory);
@@ -1849,7 +1854,9 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
 	dh = VN_SetDirHandle(vptr);
 	
 	if (!DH_IsEmpty(dh))
-	    DH_EnumerateDir(dh, (int (*) (PDirEntry, void *))getFids, (void *)tmplist);
+	    DH_EnumerateDir(dh, (int (*) (PDirEntry, void *))getFids, 
+			    (void *)tmplist);
+	VN_PutDirHandle(vptr);
     }
     
     /* put root's vnode */
@@ -2256,7 +2263,7 @@ START_TIMING(COP2_Total);
 	/* No need to lock the volume, because this doesnt change the file structure */
 	for (i = 0; i < nfids; i++) {
 	    errorCode = GetFsObj(&cpe->fids[i], &volptr, &vptrs[i], WRITE_LOCK, 
-				 NO_LOCK, 1, 1);
+				 NO_LOCK, 1, 1, 0);
 	    /* Don't complain about vnodes that were deleted by COP1 */
 	    if (errorCode == VNOVNODE)
 		errorCode = 0;
