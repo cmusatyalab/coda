@@ -58,6 +58,7 @@ extern "C" {
 }
 #endif
 
+#include <parse_realms.h>
 
 
 int main(int argc, char *argv[])
@@ -65,6 +66,13 @@ int main(int argc, char *argv[])
     ClearToken clear;
     EncryptedSecretToken secret;
     int rc;
+    char *realm = "", *p = NULL;
+
+    if (argc == 2) {
+	SplitRealmFromName(argv[1], &p);
+	if (p) realm = p;
+    }
+
 
     /* Header. */
     fprintf(stdout, "\nToken held by the Cache Manager:\n\n");
@@ -75,7 +83,7 @@ int main(int argc, char *argv[])
 #endif
 
     /* Get the tokens.  */
-    rc = U_GetLocalTokens(&clear, secret);
+    rc = U_GetLocalTokens(&clear, secret, realm);
     if (rc < 0) {
 #ifdef __CYGWIN32__
 	if ((rc * (-1)) == ENOTCONN)
@@ -93,7 +101,7 @@ int main(int argc, char *argv[])
 	exit(-1);
     }
 
-    fprintf(stdout, "Coda user id: %lu\n", clear.ViceId);
+    fprintf(stdout, "Coda user id: %lu @%s\n", clear.ViceId, realm);
 
     /* Check for expiration. */
     if (clear.EndTimestamp <= time(0))
@@ -104,3 +112,4 @@ int main(int argc, char *argv[])
 
     return(0);
 }
+

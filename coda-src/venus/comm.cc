@@ -1040,7 +1040,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force)
     Xbinding = 1;
     {
 	userent *u = 0;
-	GetUser(&u, vuid);
+	GetUser(&u, realmid, vuid);
 	code = u->Connect(cidp, authp, &host);
 	PutUser(&u);
     }

@@ -91,9 +91,13 @@ void repvol::Reintegrate()
     if (IsReintegrating())
 	return;
 
-    GetUser(&u, CML.owner);
+#if 0
+    GetUser(&u, GetRealmId(), CML.owner);
     CODA_ASSERT(u != NULL);
     /* if (SkkEnabled) u->NotifyReintegrationActive(name); */
+    PutUser(&u);
+#endif
+
     flags.reintegrating = 1;
 
     /* enter the volume */
@@ -565,7 +569,7 @@ int repvol::ReadyToReintegrate()
     int ready = 0;
     userent *u = 0;
 
-    GetUser(&u, CML.owner);	/* if the CML is non-empty, u != 0 */
+    GetUser(&u, GetRealmId(), CML.owner); /* if the CML is non-empty, u != 0 */
     /* 
      * we're a bit draconian about ASRs.  We want to avoid reintegrating
      * while an ASR is in progress, because the ASR uses the write

@@ -924,7 +924,7 @@ void fsobj::SetAcRights(vuid_t vuid, long my_rights, long any_rights) {
 
     /* Don't record my_rights if we're not really authenticated! */
     userent *ue;
-    GetUser(&ue, vuid);
+    GetUser(&ue, vol->GetRealmId(), vuid);
     int tokensvalid = ue->TokensValid();
     PutUser(&ue);
     if (!tokensvalid) return;
@@ -980,7 +980,7 @@ void fsobj::PromoteAcRights(vuid_t vuid) {
 	for (int i = 0; i < CPSIZE; i++)
 	    if (SpecificUser[i].inuse && !SpecificUser[i].valid) {
 		userent *ue;
-		GetUser(&ue, SpecificUser[i].uid);
+		GetUser(&ue, vol->GetRealmId(), SpecificUser[i].uid);
 		int tokensvalid = ue->TokensValid();
 		PutUser(&ue);
 		if (tokensvalid) SpecificUser[i].valid = 1;
@@ -993,7 +993,7 @@ void fsobj::PromoteAcRights(vuid_t vuid) {
 	 * otherwise wouldn't have because he lost tokens.
 	 */
 	userent *ue;
-	GetUser(&ue, vuid);
+	GetUser(&ue, vol->GetRealmId(), vuid);
 	int tokensvalid = ue->TokensValid();
 	PutUser(&ue);
 	if (!tokensvalid) return;

@@ -101,41 +101,11 @@ Server *Realm::GetServer(struct in_addr *host)
     return s;
 }
 
-#if 0
-volent *Realm::GetVolume(const char *volname)
-{
-    volent *v;
-
-    VDB->Get(&v, volname);
-
-    list_for_each(p, repvols) {
-	v = list_entry(p, volent, volumes);
-	if (strcmp(v->volname, volname) == 0) {
-	    v->GetRef();
-	    return v;
-	}
-    }
-    list_for_each(p, volreps) {
-	v = list_entry(p, volent, volumes);
-	if (strcmp(v->volname, volname) == 0) {
-	    v->GetRef();
-	    return v;
-	}
-    }
-
-    Recov_BeginTrans();
-    v = new volent(volname, &volumes);
-    Recov_EndTrans(0);
-
-    return v;
-}
-#endif
-
 void Realm::print(FILE *f)
 {
     int i = 0;
 
-    fprintf(f, "%08x realm '%s'\n", Id(), Name());
+    fprintf(f, "%08x realm '%s', refcount %d\n", Id(), Name(), refcount);
     while(rootservers && rootservers[i].s_addr != INADDR_ANY)
 	fprintf(f, "\t%s\n", inet_ntoa(rootservers[i++])); 
 

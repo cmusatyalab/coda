@@ -66,6 +66,7 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h" 
 #include "adv_daemon.h"
+#include "realmdb.h"
 
 
 /* local-repair modification */
@@ -1018,12 +1019,16 @@ V_FreeLocks:
 		case VIOC_GET_MT_PT:
 	            {
 		      /* Get mount point pathname */
-		      if (data->in_size != (int)sizeof(VolumeId)) {
+		      if (data->in_size < (int)sizeof(VolumeId) + 1) {
 			u.u_error = EINVAL; break;
 		      }
 		      Volid volid;
-#warning "need realm here"
-		      volid.Realm = 0;
+
+		      Realm *r = REALMDB->GetRealm((char *)data->in +
+						   sizeof(VolumeId));
+		      volid.Realm = r->Id();
+		      r->PutRef();
+
 		      volid.Volume = *(VolumeId *)data->in;
 		      volent *vv = VDB->Find(&volid);
 		      if (!vv) {
@@ -1051,23 +1056,25 @@ V_FreeLocks:
 #define secretp ((SecretToken *)(secretlen + 1))
 #define clearlen ((long *)(secretp + 1))
 #define clearp ((ClearToken *)(clearlen + 1))
-#define endp ((char *)(clearp + 1))
+#define realmp ((char *)(clearp + 1))
 /*
 		    if (*secretlen != (int)sizeof(SecretToken) ||
 			*clearlen != (int)sizeof(ClearToken))
 			{ u.u_error = EINVAL; break; }
 */
+		    Realm *r = REALMDB->GetRealm(realmp);
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));
+		    GetUser(&ue, r->Id(), CRTORUID(u.u_cred));
 		    u.u_error = ue->SetTokens(secretp, clearp)
 		      ? 0
 		      : EPERM;
 		    PutUser(&ue);
+		    r->PutRef();
 #undef	secretlen
 #undef	secretp
 #undef	clearlen
 #undef	clearp
-#undef	endp
+#undef	realmp
 
 		    break;
 		    }
@@ -1081,10 +1088,12 @@ V_FreeLocks:
 #define clearlen ((long *)(secretp + 1))
 #define clearp ((ClearToken *)(clearlen + 1))
 #define endp ((char *)(clearp + 1)) 
+		    Realm *r = REALMDB->GetRealm(data->in);
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));	   
+		    GetUser(&ue, r->Id(), CRTORUID(u.u_cred));	   
 		    u.u_error = (int) ue->GetTokens(secretp, clearp);
-		    PutUser(&ue);		   	
+		    PutUser(&ue);
+		    r->PutRef();
 		    if (u.u_error) break;
 
 		    *secretlen = (int)sizeof(SecretToken);
@@ -1100,10 +1109,12 @@ V_FreeLocks:
 
 		case VIOCUNLOG:
 		    {
+		    Realm *r = REALMDB->GetRealm(data->in);
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));
+		    GetUser(&ue, r->Id(), CRTORUID(u.u_cred));
 		    ue->Invalidate();
 		    PutUser(&ue);
+		    r->PutRef();
 
 		    break;
 		    }
@@ -1276,15 +1287,19 @@ V_FreeLocks:
 		case VIOC_WAITFOREVER:
 		    {
 		    int on;
-		    memmove((void *) &on, (const void *)data->in, (int)sizeof(int));
+		    memcpy(&on, data->in, sizeof(int));
 
-		    /* We would like "waitforever" behavior to be settable on a per-process group basis. */
-		    /* However, this would require cooperation with the kernel, which I don't want to */
-		    /* mess with now.  So instead, we will set it on a per-user basis (at least for now). */
+		    /* We would like "waitforever" behavior to be settable on a
+		     * per-process group basis. However, this would require
+		     * cooperation with the kernel, which I don't want to mess
+		     * with now.  So instead, we will set it on a per-user
+		     * basis (at least for now). */
+		    Realm *r = REALMDB->GetRealm((char *)data->in+sizeof(int));
 		    userent *ue;
-		    GetUser(&ue, CRTORUID(u.u_cred));
+		    GetUser(&ue, r->Id(), CRTORUID(u.u_cred));
 		    ue->SetWaitForever(on);
 		    PutUser(&ue);
+		    r->PutRef();
 
 		    break;
 		    }

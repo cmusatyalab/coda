@@ -296,7 +296,7 @@ int GetRootVolName(Realm *realm, char buf[V_MAXVOLNAMELEN])
     }
 
     /* Make the RPC call. */
-    MarinerLog("store::GetRootVolume %s\n", realm->Name());
+    MarinerLog("store::GetRootVolume @%s\n", realm->Name());
     UNI_START_MESSAGE(ViceGetRootVolume_OP);
     code = (int) ViceGetRootVolume(c->connid, &RVN);
     UNI_END_MESSAGE(ViceGetRootVolume_OP);
@@ -670,7 +670,7 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
 	if (code != 0) break;
 
 	/* Make the RPC call. */
-	MarinerLog("store::GetVolumeInfo %s\n", volname);
+	MarinerLog("store::GetVolumeInfo %s@%s\n", volname, realm->Name());
 	UNI_START_MESSAGE(ViceGetVolumeInfo_OP);
 	code = (int) ViceGetVolumeInfo(c->connid, (RPC2_String)volname, &volinfo);
 	UNI_END_MESSAGE(ViceGetVolumeInfo_OP);
@@ -1381,7 +1381,7 @@ void volent::TakeTransition()
      *    un-zombied. */
     if (nextstate == Logging && rv->GetCML()->count() > 0) {
 	userent *u = 0;
-	GetUser(&u, rv->GetCML()->Owner());
+	GetUser(&u, rv->GetRealmId(), rv->GetCML()->Owner());
 	if (!u->TokensValid()) {
 	    rv->SetReintegratePending();
 	    nextstate = Emulating;
@@ -2792,7 +2792,8 @@ void volent::GetMountPath(char *buf, int ok_to_assert)
 
 void volent::print(int afd)
 {
-    fdprint(afd, "%#08x : %-16s : vol = %x\n", (long)this, name, vid);
+    fdprint(afd, "%#08x : %-16s : vol = %x @%s\n", (long)this, name, vid,
+	    realm->Name());
 
     fdprint(afd, "\trefcnt = %d, fsos = %d, logv = %d, weak = %d\n",
 	    refcnt, fso_list->count(), flags.logv, flags.weaklyconnected);

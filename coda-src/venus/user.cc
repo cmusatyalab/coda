@@ -77,27 +77,30 @@ void UserInit() {
     USERD_Init();
 }
 
-userent *FindUser(vuid_t vuid) {
+userent *FindUser(RealmId realm, vuid_t vuid)
+{
     user_iterator next;
     userent *u;
 
     while ((u = next()))
-	if (u->uid == vuid) return(u);
+	if (realm == u->realmid && vuid == u->uid)
+	    return(u);
 
     return(NULL);
 }
 
-void GetUser(userent **upp, vuid_t vuid) {
-    LOG(100, ("GetUser: uid = %d\n", vuid));
+void GetUser(userent **upp, RealmId realm, vuid_t vuid)
+{
+    LOG(100, ("GetUser: uid = %x.%d\n", realm, vuid));
 
-    userent *u = FindUser(vuid);
+    userent *u = FindUser(realm, vuid);
     if (u) {
 	*upp = u;
 	return;
     }
 
     /* Create a new entry and initialize it. */
-    u = new userent(vuid);
+    u = new userent(realm, vuid);
 
     /* Stick it in the table. */
     userent::usertab->insert(&u->tblhandle);
@@ -105,9 +108,9 @@ void GetUser(userent **upp, vuid_t vuid) {
     *upp = u;
 }
 
-void PutUser(userent **upp) {
+void PutUser(userent **upp)
+{
     LOG(100, ("PutUser: \n"));
-
 }
 
 void UserPrint() {
@@ -136,8 +139,8 @@ void UserPrint(int fd) {
  *    logged into the console, or 
  *    the primary user of this machine (as defined by a run-time switch).
  */
-int AuthorizedUser(vuid_t thisUser) {
-
+int AuthorizedUser(vuid_t thisUser)
+{
     /* If this user is the primary user of this machine, then this user is
      * authorized */
     if (PrimaryUser != UNSET_PRIMARYUSER) {
@@ -211,9 +214,11 @@ int ConsoleUser(vuid_t user)
 #endif
 }
 
-userent::userent(vuid_t userid) {
+userent::userent(RealmId realm, vuid_t userid)
+{
     LOG(100, ("userent::userent: uid = %d\n", userid));
 
+    realmid = realm;
     uid = userid;
     tokensvalid = 0;
     told_you_so = 0;

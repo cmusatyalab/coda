@@ -45,7 +45,6 @@ public:
     int GetAdmConn(connent **cpp);
 
     Server *GetServer(struct in_addr *ipv4addr);
-//    volent *GetVolume(const char *volname);
 
     const char *Name(void) { return name; }
     const RealmId Id(void) { return (RealmId)this; }

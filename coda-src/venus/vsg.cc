@@ -110,7 +110,7 @@ try_again:
         struct in_addr mgrpaddr;
         mgrpaddr.s_addr = INADDR_ANY; /* Request to form an mgrp */
 
-        GetUser(&u, vuid);
+        GetUser(&u, realm, vuid);
         code = u->Connect(&MgrpHandle, &auth, &mgrpaddr);
         PutUser(&u);
 

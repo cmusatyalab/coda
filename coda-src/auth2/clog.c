@@ -71,6 +71,8 @@ extern "C" {
 }
 #endif
 
+#include <parse_realms.h>
+
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
@@ -95,11 +97,13 @@ int main(int argc, char **argv)
     struct passwd	    *pw;
     char *hostname=NULL;
     char *username=NULL;
+    char *realm="";
     long rc;
     int i;
     int testing = 0;
     char *tofile   = NULL;
     char *fromfile = NULL;
+    char buf[16];
 
 /* Make intelligent default decisions, depending on how we were built..
 		-- Troy <hozer@drgw.net> */
@@ -166,7 +170,21 @@ int main(int argc, char **argv)
 		    hostname = argv[i];
 		    i++;
 	    } else if ( i == argc-1 ) {
-                    username = argv[i];
+		    char *tmp1, *tmp2 = NULL;
+                    tmp1 = argv[i];
+		    SplitRealmFromName(tmp1, &tmp2);
+		    if (tmp1[0] != '\0')
+			username = tmp1;
+		    if (tmp2) {
+			struct in_addr *servers;
+			realm = tmp2;
+			servers = GetRealmServers(realm);
+			if (servers) {
+			    sprintf(buf, "%s", inet_ntoa(servers[0]));
+			    hostname = buf;
+			    free(servers);
+			}
+		    }
                     i++;
 	    }
 	    /* still coming: 
@@ -213,22 +231,21 @@ int main(int argc, char **argv)
         WriteTokenToFile(tofile, &cToken, sToken);
     }
 
-    if(U_SetLocalTokens(0, &cToken, sToken))
+    if(U_SetLocalTokens(0, &cToken, sToken, realm))
 	printf("Local login only, could not contact venus\n");
     
     if (testing) {
 	    printf("Getting tokens back from venus\n");
-	    if (U_GetLocalTokens(&testCTok, testSTok) < 0)
+	    if (U_GetLocalTokens(&testCTok, testSTok, realm) < 0)
 		    perror("U_GetLocalTokens");
 	    
 	    printf("Comparing clear token\n");
-	    if(memcmp((char *)&cToken,(char *)&testCTok,sizeof(ClearToken)) != 0) {
+	    if(memcmp(&cToken, &testCTok, sizeof(ClearToken)) != 0) {
 		    printf("Bad ClearToken\n");
 	    }
 	    printf("Comparing secret token\n");
-	    if(memcmp((char *)sToken,(char *)testSTok,
-		    sizeof(EncryptedSecretToken)) != 0) {
-	    printf("Bad SecretToken\n");
+	    if(memcmp(sToken, testSTok, sizeof(EncryptedSecretToken)) != 0) {
+		printf("Bad SecretToken\n");
 	    }
 
 	    fprintf(stderr,"net order:\n");		
@@ -247,3 +264,4 @@ int main(int argc, char **argv)
     }
     return 0;
 }
+

@@ -214,7 +214,7 @@ int getrepairargs(int largc, char **largv, char *fixpath)
 int GetTokens() {
     ClearToken clear;
     EncryptedSecretToken secret;
-    return (U_GetLocalTokens(&clear, secret));
+    return (U_GetLocalTokens(&clear, secret, ""));
 }
 
 void INT(int, int, struct sigcontext *) {

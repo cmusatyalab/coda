@@ -54,11 +54,18 @@ extern "C" {
 }
 #endif
 
-
+#include <parse_realms.h>
 
 
 int main(int argc, char **argv)
 {
-    U_DeleteLocalTokens();
+    char *realm = "", *p = NULL;
+
+    if (argc == 2) {
+	SplitRealmFromName(argv[1], &p);
+	if (p) realm = p;
+    }
+
+    U_DeleteLocalTokens(realm);
     exit(0);
 }

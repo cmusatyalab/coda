@@ -729,15 +729,17 @@ retry_vdbget:
 		if (rcode) *rcode = code;	/* added for local-repair */
 		/* Conjure a fake directory to represent an inconsistent object. */
 		if (code == EINCONS) { 
+		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%s>)\n", 
+			    FID_(key)));
+#if 0
 		    userent *u;
 		    char path[MAXPATHLEN];
 		    
 		    f->GetPath(path,1);
-		    GetUser(&u, vuid);
+		    GetUser(&u, f->vol->GetRealmId(), vuid);
 		    CODA_ASSERT(u != NULL);
+		    PutUser(&u);
 
-		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%s>)\n", 
-			    FID_(key)));
 		    /* We notify all users that objects are in conflict because
 		     * it is often the case that uid=-1, so we notify nobody.
 		     * It'd be better if we could notify the user whose
@@ -746,6 +748,7 @@ retry_vdbget:
 		     * be the hoard daemon.  Notifying everyone seems to be a
 		     * reasonable alternative, if not terribly satisfying. */
 		    /* NotifyUsersObjectInConflict(path, key); */
+#endif
 
 		    k_Purge(&f->fid, 1);
                     if (f->refcnt > 1) {
@@ -965,8 +968,10 @@ retry_vdbget:
 
         /* object is inconsistent - try running the ASR */
         /* check that ASR time interval has expired */
+#if 0
         userent *u;
-        GetUser(&u, vuid);
+        GetUser(&u, f->vol->GetRealmId(), vuid);
+#endif
         struct timeval tv;
         gettimeofday(&tv, 0);
         int ASRInvokable = (SkkEnabled && ASRallowed && (vp->type == VPT_Worker) &&
