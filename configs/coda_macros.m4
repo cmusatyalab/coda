@@ -257,6 +257,9 @@ AC_DEFUN(CODA_OPTION_SUBSYS,
     [ pfx="`(cd ${withval} ; pwd)`"
       CPPFLAGS="${CPPFLAGS} -I${pfx}/include"
       LDFLAGS="${LDFLAGS} -L${pfx}/lib"
+      if test x$RFLAG != x ; then
+	LDFLAGS="${LDFLAGS} -R${pfx}/lib"
+      fi
       PATH="${PATH}:${pfx}/bin:${pfx}/sbin"])
     ])
 
@@ -270,7 +273,7 @@ AC_DEFUN(CODA_OPTION_LIBRARY,
     [ pfx="`(cd ${withval} ; pwd)`"
       LDFLAGS="${LDFLAGS} -L${pfx}"
       if test x$RFLAG != x ; then
-            LDFLAGS="${LDFLAGS} -R${coda_cv_path_$1}/lib "
+            LDFLAGS="${LDFLAGS} -R${pfx}"
       fi]) ])
 
 AC_DEFUN(CODA_OPTION_CRYPTO,
@@ -288,8 +291,8 @@ AC_DEFUN(CODA_FIND_LIB,
    coda_cv_path_$1=none ; LIBS="-l$1 $4"
    for path in default /usr /usr/local /usr/pkg ${prefix} ; do
      if test ${path} != default ; then
-       CFLAGS="-I${path}/include ${CFLAGS}"
-       LDFLAGS="-L${path}/lib ${LDFLAGS}"
+       CFLAGS="${CFLAGS} -I${path}/include"
+       LDFLAGS="${LDFLAGS} -L${path}/lib"
      fi
      AC_TRY_LINK([$2], [$3], [coda_cv_path_$1=${path} ; break])
      CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}"
