@@ -136,7 +136,6 @@ class fsdb {
   friend void RecovInit();
   friend class volent;
   friend class repvol;
-  friend class RealmDB; // RebuildRoot();
 
     int MagicNumber;
     int DataVersion;
@@ -404,7 +403,7 @@ class fsobj {
   friend class mgrpent;
   friend class hdb;
   friend class lrdb;
-  friend class RealmDB; /* RebuildRoot */
+  friend class Realm; /* ~Realm */
   friend void RecoverPathName(char *, VenusFid *, ClientModifyLog *, cmlent *);
 
     int MagicNumber;

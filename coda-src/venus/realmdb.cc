@@ -49,6 +49,8 @@ void RealmDB::ResetTransient(void)
 	realm->ResetTransient();
     }
 
+    LocalRealm = GetRealm(LOCALREALM);
+
     list_for_each(p, realms)
 	nrealms++;
 
@@ -109,40 +111,6 @@ void RealmDB::GetDown(void)
     }
 }
 
-void RealmDB::RebuildRoot(void)
-{
-    struct dllist_head *p;
-    Realm *realm;
-    VenusFid Fid;
-    fsobj *f;
-
-    Fid.Realm = LocalRealm->Id();
-    Fid.Volume = FakeRootVolumeId;
-    Fid.Vnode = 1;
-    Fid.Unique = 1;
-
-    f = FSDB->Find(&Fid);
-    if (!f) return;
-
-    Fid.Vnode = 0xfffffffc;
-
-    f->Lock(WR);
-    f->DiscardData();
-    if (f->cf.Length()) {
-	FSDB->FreeBlocks(NBLOCKS(f->cf.Length()));
-	f->cf.Reset();
-    }
-    f->dir_MakeDir();
-    
-    list_for_each(p, realms) {
-	realm = list_entry(p, Realm, realms);
-	Fid.Unique = realm->Id();
-	f->dir_Create((char *)realm->Name(), &Fid);
-    }
-
-    f->UnLock(WR);
-}
-
 void RealmDB::print(FILE *f)
 {
     struct dllist_head *p;
@@ -168,8 +136,6 @@ void RealmDBInit(void)
 	Recov_EndTrans(0);
     }
     REALMDB->ResetTransient();
-
-    LocalRealm = REALMDB->GetRealm(LOCALREALM);
 }
 
 int FID_IsLocalFake(VenusFid *fid)

@@ -63,7 +63,9 @@ public:
     void ResetTransient(void)
     {
 	refcount = 0;
-	/* no RVM references anymore, delayed destruction */
+	/* no RVM references anymore, delayed destruction. Only works right
+	 * when this is a virtual function, but we have a problem storing C++
+	 * objects with virtual functions in RVM */
 	if (!rec_refcount)
 	    delete this;
     }

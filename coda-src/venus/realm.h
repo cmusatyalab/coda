@@ -39,6 +39,28 @@ public:
     const RealmId Id(void) { return (RealmId)this; }
     void print(FILE *f);
 
+    /* RVM and virtual methods == bang, so we have to do some things here */
+    void Rec_PutRef(void) {
+	CODA_ASSERT(rec_refcount);
+	RVMLIB_REC_OBJECT(rec_refcount);
+	rec_refcount--;
+	if (!refcount && !rec_refcount)
+	    delete this;
+    }
+    void PutRef(void)
+    {
+	CODA_ASSERT(refcount);
+	refcount--;
+	/*
+	 * Only destroy the object if we happen to be in a transaction,
+	 * otherwise we'll destroy ourselves later during ResetTransient,
+	 * or when a reference is regained and then dropped in a transaction.
+	 */
+	if (rvmlib_in_transaction()) {
+	    if (!refcount && !rec_refcount)
+		delete this;
+	}
+    }
 private:
     char *name;
     struct dllist_head realms;

@@ -537,23 +537,11 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
 		if (name[0] == '#')
 		    return ENOENT;
 
-		// Get the realm. If it doesn't resolve, it doesn't exist
+		// Try to get and mount the realm.
 		realm = REALMDB->GetRealm(name);
-		if (!realm->rootservers) {
-		    Recov_BeginTrans();
-		    realm->PutRef();
-		    Recov_EndTrans(DMFP);
-		    return ENOENT;
-		}
-
 		target_fid = fid;
 		target_fid.Vnode = 0xfffffffc;
 		target_fid.Unique = realm->Id();
-
-		/* Found a new realm, we should add this realm as a direntry */
-		Recov_BeginTrans();
-		dir_Create(name, &target_fid);
-		Recov_EndTrans(CMFP);
 	    }
 	}
     }

@@ -44,8 +44,6 @@ public:
 
     void GetDown(void);
 
-    void RebuildRoot(void);
-
     void print(FILE *f);
     void print(void) { print(stdout); }
 

@@ -2125,7 +2125,7 @@ int fsobj::Fakeify()
 		    LinkFid.Volume, LinkFid.Vnode, LinkFid.Unique, realmname);
 	}
 
-	LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
+	LOG(0, ("fsobj::Fakeify: making %s a symlink %s\n",
 		  FID_(&fid), data.symlink));
 
 	UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));

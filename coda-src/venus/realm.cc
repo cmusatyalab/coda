@@ -53,13 +53,7 @@ Realm::Realm(const char *realm_name)
 
     rootservers = NULL;
 
-    if (strcmp(name, LOCALREALM) != 0) {
-	GetRealmServers(name, "codasrv", &rootservers);
-	if (rootservers)
-	    eprint("Created realm '%s'", name);
-	else
-	    eprint("Failed to find servers for realm '%s'", name);
-    }
+    eprint("Created realm '%s'", name);
 }
 
 void Realm::ResetTransient(void)
@@ -67,14 +61,20 @@ void Realm::ResetTransient(void)
     rootservers = NULL;
 
     /* this might destroy the object, so it has to be called last */
-    PersistentObject::ResetTransient();
+    /* Dang, only works right when it is a virtual function, but we have a
+     * problem storing C++ objects with virtual functions in RVM */
+    //PersistentObject::ResetTransient();
+    
+    refcount = 0;
 }
 
 Realm::~Realm(void)
 {
     struct dllist_head *p;
-    eprint("Removing realm %s", name);
-
+    VenusFid Fid;
+    fsobj *f;
+    eprint("Removing realm '%s'", name);
+    
     rec_list_del(&realms);
     if (rootservers) {
 	coda_freeaddrinfo(rootservers);
@@ -82,7 +82,14 @@ Realm::~Realm(void)
     }
     rvmlib_rec_free(name); 
 
-    REALMDB->RebuildRoot();
+    Fid.Realm = LocalRealm->Id();
+    Fid.Volume = FakeRootVolumeId;
+
+    /* kill the fake object that represented our mountlink */
+    Fid.Vnode = 0xfffffffc;
+    Fid.Unique = Id();
+    f = FSDB->Find(&Fid);
+    if (f) f->Kill();
 }
 
 void Realm::print(FILE *f)
@@ -103,7 +110,8 @@ int Realm::GetAdmConn(connent **cpp)
 {
     struct coda_addrinfo *p;
     int code = 0;
-    int tryagain;
+    int tryagain = 0;
+    int unknown = !rootservers;
 
     LOG(100, ("GetAdmConn: \n"));
 
@@ -113,11 +121,14 @@ int Realm::GetAdmConn(connent **cpp)
     *cpp = 0;
 
 retry:
-    tryagain = 1;
     if (!rootservers)
 	GetRealmServers(name, "codasrv", &rootservers);
-    else
+    else {
 	coda_reorder_addrs(&rootservers);
+	/* our cached addresses might be stale, re-resolve if we can't reach
+	 * any of the servers */
+	tryagain = 1;
+    }
 
     if (!rootservers)
 	return ETIMEDOUT;
@@ -136,6 +147,23 @@ retry:
 
 	case 0:
 	case EINTR:
+	    /* We might have discovered a new realm */
+	    if (unknown) {
+		VenusFid Fid;
+		fsobj *f;
+
+		Fid.Realm = LocalRealm->Id();
+		Fid.Volume = FakeRootVolumeId;
+		Fid.Vnode = 1;
+		Fid.Unique = 1;
+
+		f = FSDB->Find(&Fid);
+		if (f) {
+		    Recov_BeginTrans();
+		    f->Kill();
+		    Recov_EndTrans(MAXFP);
+		}
+	    }
 	    return code;
 
 	default:

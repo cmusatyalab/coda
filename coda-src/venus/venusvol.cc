@@ -286,7 +286,7 @@ static int GetRootVolume(Realm *realm, char buf[V_MAXVOLNAMELEN])
 	LOG(100, ("GetRootVolume: can't get admin connection for realm %s!\n",
 		  realm->Name()));
 	RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
-	return ENOENT;
+	return code;
     }
 
     /* Make the RPC call. */
