@@ -15,6 +15,9 @@
 /*
  * HISTORY
  * $Log:	cfs_vnodeops.c,v $
+ * Revision 1.7  98/01/31  20:53:15  rvb
+ * First version that works on FreeBSD 2.2.5
+ * 
  * Revision 1.6  98/01/23  11:53:47  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
@@ -170,7 +173,6 @@
 #include <sys/mount.h>
 #include <sys/proc.h>
 #include <sys/select.h>
-#include <ufs/ifs/ifs.h>
 #ifdef	__NetBSD__
 #include <sys/user.h>
 #endif

@@ -14,6 +14,9 @@
 /* 
  * HISTORY
  * $Log:	cnode.h,v $
+ * Revision 1.6  98/01/31  20:53:19  rvb
+ * First version that works on FreeBSD 2.2.5
+ * 
  * Revision 1.5  98/01/23  11:53:51  rvb
  * Bring RVB_CFS1_1 to HEAD
  * 
@@ -249,6 +252,8 @@ int  cfs_vmflush(struct cnode *cp);
 struct cnode *makecfsnode(ViceFid *fid, struct mount *vfsp, short type);
 int cfs_vnodeopstats_init(void);
 
+/* cfs_vfsops.h */
+struct mount *devtomp(dev_t dev);
 
 #ifndef	NetBSD1_3
 #define __RCSID(x) static char *rcsid = x

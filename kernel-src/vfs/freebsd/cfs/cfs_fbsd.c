@@ -9,12 +9,19 @@
 #endif
 #include <sys/conf.h>
 
-
 /* 
- * Using the reserved device number for local use as a free slot. 
- * (see /usr/src/sys/i386/i386/conf.c)
- */
-#define VC_DEV_NO      20
+   From: "Jordan K. Hubbard" <jkh@time.cdrom.com>
+   Subject: Re: New 3.0 SNAPshot CDROM about ready for production.. 
+   To: "Robert.V.Baron" <rvb@GLUCK.CODA.CS.CMU.EDU>
+   Date: Fri, 20 Feb 1998 15:57:01 -0800
+
+   > Also I need a character device major number. (and might want to reserve
+   > a block of 10 syscalls.)
+
+   Just one char device number?  No block devices?  Very well, cdev 93 is yours!
+*/
+
+#define VC_DEV_NO      93
 
 /* Type of device methods. */
 #define D_OPEN_T    d_open_t
