@@ -874,7 +874,9 @@ long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
 		continue;
 	    }
 
-	    ai = RPC2_allocaddrinfo((struct sockaddr *)&bindaddr, blen);
+	    ai = RPC2_allocaddrinfo((struct sockaddr *)&bindaddr, blen,
+				    addr->ai_socktype, addr->ai_protocol);
+	    assert(ai != NULL);
 	    rpc2_splitaddrinfo(NULL, Port, ai);
 	    RPC2_freeaddrinfo(ai);
 

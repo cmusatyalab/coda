@@ -92,6 +92,7 @@ static int addrinfo_init(int family, const void *addr, short port,
 			 const struct RPC2_addrinfo *hints,
 			 struct RPC2_addrinfo **res)
 {
+    int socktype = SOCK_STREAM, protocol = IPPROTO_TCP;
     struct sockaddr_storage ss;
     struct RPC2_addrinfo *ai;
     int addrlen = 0;
@@ -122,17 +123,15 @@ static int addrinfo_init(int family, const void *addr, short port,
 	return RPC2_EAI_FAMILY;
     }
 
-    ai = RPC2_allocaddrinfo((struct sockaddr *)&ss, addrlen);
+    if (hints) {
+	socktype = hints->ai_socktype;
+	protocol = hints->ai_protocol;
+    }
+
+    ai = RPC2_allocaddrinfo((struct sockaddr *)&ss, addrlen,
+			    socktype, protocol);
     if (!ai)
 	return RPC2_EAI_MEMORY;
-
-    if (hints) {
-	ai->ai_socktype = hints->ai_socktype;
-	ai->ai_protocol = hints->ai_protocol;
-    } else {
-	ai->ai_socktype = SOCK_STREAM;
-	ai->ai_protocol = IPPROTO_TCP;
-    }
 
     ai->ai_next = *res;
     *res = ai;
@@ -197,7 +196,8 @@ v6_not_found:
 /* exported helper functions */
 
 struct RPC2_addrinfo *RPC2_allocaddrinfo(const struct sockaddr *addr,
-					 size_t addrlen)
+					 size_t addrlen, int socktype,
+					 int protocol)
 {
     struct RPC2_addrinfo *ai =
 	(struct RPC2_addrinfo *)malloc(sizeof(*ai) + addrlen);
@@ -207,8 +207,10 @@ struct RPC2_addrinfo *RPC2_allocaddrinfo(const struct sockaddr *addr,
     memset(ai, 0, sizeof(*ai));
 
     ai->ai_family = addr->sa_family;
-    ai->ai_addr = (struct sockaddr *)&(ai[1]);
+    ai->ai_socktype = socktype;
+    ai->ai_protocol = protocol;
     ai->ai_addrlen = addrlen;
+    ai->ai_addr = (struct sockaddr *)&(ai[1]);
     memcpy(ai->ai_addr, addr, addrlen);
     return ai;
 }
@@ -221,7 +223,8 @@ struct RPC2_addrinfo *RPC2_copyaddrinfo(const struct RPC2_addrinfo *ai)
     /* this loop probably a bit uglier than it should be because I'm
      * trying to keep the same order */
     while (src) {
-        cur = RPC2_allocaddrinfo(src->ai_addr, src->ai_addrlen);
+        cur = RPC2_allocaddrinfo(src->ai_addr, src->ai_addrlen,
+				 src->ai_socktype, src->ai_protocol);
         if (!cur) {
             RPC2_freeaddrinfo(head);
             head = NULL;
@@ -230,18 +233,15 @@ struct RPC2_addrinfo *RPC2_copyaddrinfo(const struct RPC2_addrinfo *ai)
         }
 
         /* copy the guts of the addrinfo structure */
-        cur->ai_flags    = src->ai_flags;
-        cur->ai_socktype = src->ai_socktype;
-        cur->ai_protocol = src->ai_protocol;
+        cur->ai_flags = src->ai_flags;
         if (src->ai_canonname)
             cur->ai_canonname = strdup(src->ai_canonname);
         cur->ai_next = NULL;
 
         /* link into the previously allocated addrinfo */
         if (prev)
-            prev->ai_next = cur;
-        else
-            head = cur;
+             prev->ai_next = cur;
+        else head = cur;
 
         prev = cur;
         src = src->ai_next;
@@ -326,16 +326,15 @@ int RPC2_getaddrinfo(const char *node, const char *service,
     head = ai;
     new = &list;
     while (ai) {
-	*new = RPC2_allocaddrinfo(ai->ai_addr, ai->ai_addrlen);
+	*new = RPC2_allocaddrinfo(ai->ai_addr, ai->ai_addrlen,
+				  ai->ai_socktype, ai->ai_protocol);
 	if (!*new) {
 	    RPC2_freeaddrinfo(list);
 	    list = NULL;
 	    break;
 	}
 
-	(*new)->ai_flags    = ai->ai_flags;
-	(*new)->ai_socktype = ai->ai_socktype;
-	(*new)->ai_protocol = ai->ai_protocol;
+	(*new)->ai_flags = ai->ai_flags;
 	if (ai->ai_canonname)
 	    (*new)->ai_canonname = strdup(ai->ai_canonname);
 
@@ -545,6 +544,7 @@ void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
 void rpc2_simplifyHost(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
 {
     struct sockaddr_in sin;
+    struct RPC2_addrinfo *ai;
 
     if (Host->Tag == RPC2_HOSTBYADDRINFO)
         return;
@@ -573,8 +573,11 @@ void rpc2_simplifyHost(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
         }
     }
 
+    ai = RPC2_allocaddrinfo((struct sockaddr *)&sin, sizeof(sin),
+			    SOCK_DGRAM, IPPROTO_UDP);
+    assert(ai != NULL);
+
     Host->Tag = RPC2_HOSTBYADDRINFO;
-    Host->Value.AddrInfo =
-        RPC2_allocaddrinfo((struct sockaddr *)&sin, sizeof(sin));
+    Host->Value.AddrInfo = ai;
 }
 

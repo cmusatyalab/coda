@@ -67,7 +67,8 @@ const char *RPC2_gai_strerror(int errcode);
 /* copyaddrinfo is in my opinion missing from the getaddrinfo suite */
 /* cmpaddrinfo tests whether 'host' matches any of the entries in 'node' */
 struct RPC2_addrinfo *RPC2_allocaddrinfo(const struct sockaddr *addr,
-					 size_t addrlen);
+					 size_t addrlen, int socktype,
+					 int protocol);
 struct RPC2_addrinfo *RPC2_copyaddrinfo(const struct RPC2_addrinfo *node);
 int RPC2_cmpaddrinfo(const struct RPC2_addrinfo *node,
 		     const struct RPC2_addrinfo *host);

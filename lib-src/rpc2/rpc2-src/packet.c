@@ -191,7 +191,8 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     }
 
     whichBuff->Prefix.PeerAddr =
-	RPC2_allocaddrinfo((struct sockaddr *)&sa, fromlen);
+	RPC2_allocaddrinfo((struct sockaddr *)&sa, fromlen,
+			   SOCK_DGRAM, IPPROTO_UDP);
 
     TR_RECV();
 
