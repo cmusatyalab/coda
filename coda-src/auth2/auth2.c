@@ -111,6 +111,9 @@ static int AUTime = 0;			/* used to tell if binaries have changed */
 #ifdef KERBEROS5
 static char *krb5_keytab_file = NULL;
 #endif  /* KERBEROS5 */
+#if defined(KERBEROS4) || defined(KERBEROS5)
+static char *krb_realm = NULL;
+#endif
 
 #ifdef HAVE_NDBM
 #define CODADB "/vice/db/prot_users.dir"
@@ -146,8 +149,12 @@ int main(int argc, char **argv)
     InitPW(PWFIRSTTIME);
 #endif	/* CODAAUTH */
 
+#ifdef KERBEROS4
+    Krb4Init(krb_realm);
+#endif
+
 #ifdef KERBEROS5
-    Krb5Init(krb5_keytab_file);
+    Krb5Init(krb_realm, krb5_keytab_file);
 #endif
     
     LogMsg(-1, 0, stdout, "Server successfully started\n");
@@ -223,13 +230,15 @@ static void InitGlobals(int argc, char **argv)
 	    krb5_keytab_file = argv[++i];
 	    continue;
 	    }
+#endif  /* KERBEROS5 */
 
+#if defined(KERBEROS4) || defined(KERBEROS5)
 	if (strcmp(argv[i], "-realm") == 0 && i < argc - 1)
 	    {
-	    krb5_realm = argv[++i];
+	    krb_realm = argv[++i];
 	    continue;
 	    }
-#endif  /* KERBEROS5 */
+#endif
 
 	if (strcmp(argv[i], "-tk") == 0 && i < argc - 1)
 	    {
@@ -424,20 +433,16 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 			/* just a reserved constant, thanks */
 				return -1;
 
-		case	AUTH_METHOD_KERBEROS4:
 #ifdef KERBEROS4
+		case	AUTH_METHOD_KERBEROS4:
 				returnval = Krb4GetKeys(cIdent, hKey, sKey);
 				break;
-#else	/* KERBEROS4 */
-				return -1;
 #endif	/* KERBEROS4 */
 
-		case	AUTH_METHOD_KERBEROS5:
 #ifdef KERBEROS5
+		case	AUTH_METHOD_KERBEROS5:
 				returnval = Krb5GetKeys(cIdent, hKey, sKey);
 				break;
-#else	/* KERBEROS5 */
-				return -1;
 #endif
 
 		default:
