@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: ilib.s,v 3.3 96/08/01 10:49:54 satya Exp $";
+static char *rcsid = "$Header: /home/braam/src/kernel-src/ifs/mach/RCS/ilib.s,v 1.1 1996/11/22 13:39:40 raiff Exp braam $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -130,7 +130,11 @@ SYSCALL(idec)
 #include <sys/syscall.h>
 #include <machine/asm.h>
 #ifndef __NetBSD__
-#define SYSCALL(x)	ENTRY(x); movl	$SYS_/**/x, %eax; SVC; jb LCL(cerror)
+#ifdef __STDC__
+#define SYSCALL(x)	ENTRY(x); movl	$SYS_ ## x, %eax; SVC; jb LCL(cerror)
+#else
+#define SYSCALL(x)	ENTRY(x); movl	$(SYS_/**/x), %eax; SVC; jb LCL(cerror)
+#endif
 #else	__NetBSD__
 #include "netbsdasm.h"	
 #endif	__NetBSD__
