@@ -20,13 +20,15 @@ fi
 # set up a symlink if needed
 
 if [  -e $srvdir -a ! -d $srvdir ]; then
-   echo $srvdir exists, but is not a directory. Exiting.
-   exit 1
+    echo $srvdir exists, but is not a directory. Exiting.
+    echo Run vice-setup-srvdir to repeat this step.
+    exit 1
 fi
 
 if [ -d $srvdir -a -e $srvdir/FTREEDB ]; then
-   echo "An FTREEDB exists in $srvdir.  Clean up first and rerun $0"
-   exit 1
+    echo "An FTREEDB exists in $srvdir.  Clean up first and rerun $0"
+    echo "You may also want to clean up /vice/db/vicetab"
+    exit 1
 fi
 
 mkdir $srvdir

@@ -55,11 +55,7 @@ until [ x$id != x ]; do
 	echo $id > /vice/db/ROOTVOLUME
    fi
 done
-echo done!
-echo 
-echo "** When srv, updatesrv and updateclnt are running, "
-echo "** and you have a data partition PART (such as /vicepa) issue "
-echo "** the command createvol $id  scm-hostname PART"
+echo
 echo
 
 

@@ -1,4 +1,4 @@
-#!/bin/csh -f
+#! /bin/sh
 #ifndef _BLURB_
 #define _BLURB_
 #/*
@@ -30,29 +30,36 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol_rep,v 4.6 1998/05/27 20:29:16 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol_rep,v 4.7 98/07/01 10:35:24 jaharkes Exp $";
 #endif /*_BLURB_*/
+
+PATH=$PATH:/usr/local/sbin
+export PATH
+
+[ -f /vice/hostname ] ||  exit 1
+[ -f /vice/db/scm ] ||  exit 1
+
 
 
 # Parge arguments
-if ($#argv != 3 && $#argv != 4) then
+if  [ $# != 3 -a $# != 4 ]; then
 	echo "bad args:  createvol_rep <volname> <vsgaddr> <partition-name> [<groupid>]"
 	exit
-endif
+fi
 
 # Ensure that this is the SCM
-if (`cat /vice/hostname` != `cat /vice/db/scm`) then
-	echo This must be run from the scm (`cat /vice/db/scm`)
-	exit
-endif
+if [ `cat /vice/hostname` != `cat /vice/db/scm` ]; then
+	echo "This must be run from the scm (`cat /vice/db/scm`)"
+	exit 1
+fi
 
 # Initialize local variables
-set VOLNAME=$1
-set SERVERS=()
-set NSERVERS=0
-set MAXSERVERS=8
-set PARTITION=$3
-set VSGADDR=$2
+VOLNAME=$1
+SERVERS=()
+NSERVERS=0
+MAXSERVERS=8
+PARTITION=$3
+VSGADDR=$2
 
 #
 # Create these files if they don't already exist.
@@ -60,38 +67,47 @@ touch /vice/vol/AllVolumes
 touch /vice/vol/VRList
 
 # Validate the <volname> parameter
-if ($VOLNAME == `awk ' $1 ~ /^'$1'$/  {print $1}' /vice/vol/AllVolumes` ||\
-    $VOLNAME == `awk ' $1 ~ /^'$1'$/  {print $1}' /vice/vol/VRList`) then
-	echo Volume $VOLNAME already exists
-	exit
-endif
+if  [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' /vice/vol/AllVolumes` ]; then
+    echo "$VOLNAME exists as a non replicated volume in /vice/vol/AllVolumes"
+    exit 1
+fi
+
+if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'\.[0-7]$/  {print $1}' /vice/vol/AllVolumes` ]; then
+    echo "$VOLNAME exists as a replica in /vice/vol/AllVolumes"
+    exit 1
+fi
+
+if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' /vice/vol/VRList` ]; then
+	echo "Volume $VOLNAME already exists in /vice/vol/VRList"
+	exit 1
+fi
 
 # Derive the server list from the <vsgaddr> parameter
-set SERVERS=`awk '$1 ~ /^'$VSGADDR'$/ {print $2, $3, $4, $5, $6, $7, $8, $9}' /vice/db/VSGDB`
+SERVERS=`awk '$1 ~ /^'$VSGADDR'$/ {print $2, $3, $4, $5, $6, $7, $8, $9}' /vice/db/VSGDB`
 echo Servers are \($SERVERS\)
-set NSERVERS=$#SERVERS
+NSERVERS=`echo $SERVERS | wc -w` 
 
 
 
 # Validate the server list
-if ($NSERVERS == 0 || $NSERVERS > $MAXSERVERS) then
+if [ $NSERVERS -eq 0 -o  $NSERVERS -gt $MAXSERVERS ]; then
 	echo Specify 1 - $MAXSERVERS servers
-	exit
-endif
-set N=0
-foreach SERVER ($SERVERS)
+	exit 1
+fi 
+
+
+for SERVER in $SERVERS ; do
 	grep $SERVER /vice/db/servers > /dev/null 
-	if ( $? != 0 ) then
+	if [ $? != 0 ];  then
 		echo Server $SERVER not in servers file
-		exit
-	endif
-	@ N++
-end
+		exit 1
+	fi
+done
 
 # Allocate a new groupid if necessary
-if ($#argv == 3) then
-	if (-e /vice/vol/maxgroupid) then
-		set GROUPID=`cat /vice/vol/maxgroupid`
+if  [ $# = 3 ]; then
+	if  [ -e /vice/vol/maxgroupid ]; then
+		GROUPID=`cat /vice/vol/maxgroupid`
 
 		cat << EOF >/tmp/$$
 ibase = 10
@@ -99,88 +115,98 @@ obase = 16
 $GROUPID
 EOF
 
-		set HEXGROUPID = `bc </tmp/$$`
+		HEXGROUPID=`bc </tmp/$$`
 		rm /tmp/$$
-		@ MAXGROUPID = $GROUPID + 1
+		MAXGROUPID=`expr $GROUPID + 1`
 		echo $MAXGROUPID > /vice/vol/maxgroupid
 	else
 		echo /vice/vol/maxgroupid not found
-		exit
-	endif
+		exit 1
+	fi
 else
-	set HEXGROUPID=$4
-endif
+	HEXGROUPID=$4
+fi
 
 
 echo HexGroupId is $HEXGROUPID
 
+
 # Create the new volumes
-set N=0
-foreach SERVER ($SERVERS)
+N=0
+for  SERVER in $SERVERS ; do
 	echo "creating volume" $VOLNAME.$N on $SERVER
 	volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID
-	if ( $status != 0 ) then 
+	if [ $? != 0 ]; then 
 		echo "Failure to make volume on $SERVER!. Abort.".
 		exit 1
-	endif
-	@ N++
-end
+	fi
+	N=`expr $N + 1`
+done
 
 # Rebuild the VLDB
 bldvldb.sh $SERVERS
 
 # Update the VRList and rebuild the VRDB
-set ENTRY=($VOLNAME $HEXGROUPID $NSERVERS 0 0 0 0 0 0 0 0 $VSGADDR)
-set N=0
-foreach SERVER ($SERVERS)
-	@ IX = $N + 4
-	set ENTRY[$IX]=`awk ' $1 ~/'$VOLNAME.$N'$/  {print $2}' /vice/vol/AllVolumes`
-	@ N++
-end
+ENTRY="$VOLNAME $HEXGROUPID $NSERVERS"
+N=0
+for SERVER  in $SERVERS ; do
+
+	VOLN=`awk ' $1 ~/'$VOLNAME.$N'$/  {print $2}' /vice/vol/AllVolumes`
+	ENTRY="$ENTRY $VOLN"
+	N=`expr $N + 1`
+done 
+
+# add nulentries and VSGDB to entry
+while true  ; do
+        if [ $N -eq 8 ]; then
+	    break
+	fi
+        ENTRY="$ENTRY 0"
+	N=`expr $N + 1`
+done
+
+ENTRY="$ENTRY $VSGADDR"
+
 echo "<echo $ENTRY >> /vice/vol/VRList>"
 echo $ENTRY >> /vice/vol/VRList
 volutil makevrdb /vice/vol/VRList
 
 echo -n "Do you wish this volume to be Backed Up (y/n)? [n] "
 
-set _ans_ = "$<"
+read _ans_
 
-if ("$_ans_" =~ [Yy] || "$_ans_" =~ [Yy][Ee][Ss]) then
+if  [ x$_ans_ = xy -o x$_ans_ = xyes ]; then
     echo -n "Day to take full dumps: [Mon] "
 
-    set day = "$<"
+    read day
 
-    if ("$day" == "") set day = "Mon"	
+    if [ x"$day" = x"" ]; then 
+	day="Mon"	
+    fi
 
-    switch ("$day")
-	case [Ss][Uu][Nn]*:
-	    set _cycle_ = "FIIIIII"
-	    breaksw
-	case [Mm][Oo][Nn]*:
-	    set _cycle_ = "IFIIIII"
-	    breaksw
-	case [Tt][Uu][Ee]*:
-	    set _cycle_ = "IIFIIII"
-	    breaksw
-	case [Ww][Ee][Dd]*:
-	    set _cycle_ = "IIIFIII"
-	    breaksw
-	case [Tt][Hh][Uu]*:
-	    set _cycle_ = "IIIIFII"
-	    breaksw
-	case [Ff][Rr][Ii]*:
-	    set _cycle_ = "IIIIIFI"
-	    breaksw
-	case [Ss][Aa][Tt]*:
-	    set _cycle_ = "IIIIIIF"
-	    breaksw
-	default:
+    case $day in 
+       [Ss][Uu][Nn]*)
+	    _cycle_="FIIIIII" ;;
+	[Mm][Oo][Nn]*)
+	    _cycle_="IFIIIII" ;;
+	[Tt][Uu][Ee]*)
+	    _cycle_="IIFIIII" ;;
+	[Ww][Ee][Dd]*)
+	    _cycle_="IIIFIII" ;;
+	[Tt][Hh][Uu]*)
+	    _cycle_="IIIIFII" ;;
+	[Ff][Rr][Ii]*)
+	    _cycle_="IIIIIFI" ;;
+	[Ss][Aa][Tt]*)
+	    _cycle_="IIIIIIF" ;;
+	*) 
             echo "$day" is not a valid day, not adding $VOLNAME to backup list.
-	    breaksw
-    endsw
+	    exit 
+	    ;;
+    esac
 
     echo "echoing $HEXGROUPID        $_cycle_        $VOLNAME >>/vice/db/dumplist"
     echo "$HEXGROUPID        $_cycle_         $VOLNAME" >>/vice/db/dumplist
-endif
+fi
 
 
