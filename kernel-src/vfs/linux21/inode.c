@@ -36,7 +36,6 @@
 #include <linux/coda_fs_i.h>
 #include <linux/coda_cache.h>
 
-
 /* VFS super_block ops */
 static struct super_block *coda_read_super(struct super_block *, void *, int);
 static void coda_read_inode(struct inode *);
@@ -46,11 +45,6 @@ static void coda_delete_inode(struct inode *);
 static void coda_put_super(struct super_block *);
 static int coda_statfs(struct super_block *sb, struct statfs *buf, 
 		       int bufsiz);
-
-/* helper functions */
-static struct vcomm *coda_psinode2vcomm(struct inode *inode);
-static int coda_get_psdev(void *, struct inode **);
-static struct coda_sb_info *coda_psinode2sbi(struct inode *inode);
 
 /* exported operations */
 struct super_operations coda_super_operations =
@@ -66,12 +60,6 @@ struct super_operations coda_super_operations =
 	NULL			/* remount_fs */
 };
 
-/*
- * globals
- */
-struct coda_sb_info coda_super_info[MAX_CODADEVS];
-
-
 static struct super_block * coda_read_super(struct super_block *sb, 
 					    void *data, int silent)
 {
@@ -84,18 +72,16 @@ static struct super_block * coda_read_super(struct super_block *sb,
 
 	ENTRY;
         MOD_INC_USE_COUNT; 
-        if (coda_get_psdev(data, &psdev))
-                goto error;
 
-        vc = coda_psinode2vcomm(psdev);
-        if ( !vc )
-	        goto error;
-	vc->vc_sb = sb;
-	vc->vc_inuse = 1;
+        vc = &coda_upc_comm;
+	sbi = &coda_super_info;
 
-	sbi = coda_psinode2sbi(psdev);
-	if ( !sbi )
-	        goto error;
+        if ( sbi->sbi_sb ) {
+		printk("Already mounted\n");
+		return NULL;
+	}
+
+	sbi->sbi_sb = sb;
         sbi->sbi_psdev = psdev;
 	sbi->sbi_vcomm = vc;
 	INIT_LIST_HEAD(&(sbi->sbi_cchead));
@@ -137,16 +123,13 @@ static struct super_block * coda_read_super(struct super_block *sb,
 	EXIT;  
         return sb;
 
-error:
-EXIT;  
+ error:
+	EXIT;  
 	MOD_DEC_USE_COUNT;
 	if (sbi) {
 		sbi->sbi_vcomm = NULL;
 		sbi->sbi_root = NULL;
-	}
-	if ( vc ) {
-		vc->vc_sb = NULL;
-		vc->vc_inuse = 0;
+		sbi->sbi_sb = NULL;
 	}
         if (root) {
                 iput(root);
@@ -166,7 +149,7 @@ static void coda_put_super(struct super_block *sb)
 	coda_cache_clear_all(sb);
 	sb_info = coda_sbp(sb);
 	sb_info->sbi_vcomm->vc_inuse = 0;
-	sb_info->sbi_vcomm->vc_sb = NULL;
+	coda_super_info.sbi_sb = NULL;
 	printk("Coda: Bye bye.\n");
 	memset(sb_info, 0, sizeof(* sb_info));
 
@@ -288,80 +271,5 @@ int init_coda_fs(void)
 	return register_filesystem(&coda_fs_type);
 }
 
-/* MODULE stuff is in psdev.c */
 
-/*  helpers */
-static struct vcomm *coda_psinode2vcomm(struct inode *inode) 
-{
-        
-	unsigned int minor = MINOR(inode->i_rdev);
-	CDEBUG(D_PSDEV,"minor %d\n", minor);
-	if ( minor < MAX_CODADEVS ) 
-	      return &(psdev_vcomm[minor]);
-	else
-	      return NULL;
-}
 
-static struct coda_sb_info *coda_psinode2sbi(struct inode *inode) 
-{
-	unsigned int minor = MINOR(inode->i_rdev);
-
-	CDEBUG(D_PSDEV,"minor %d\n", minor);
-	if ( (minor >= 0) && (minor < MAX_CODADEVS)) 
-	        return &(coda_super_info[minor]);
-	else
-	        return NULL;
-}
-
-/* name lookup for psdev passed in by mount */
-static int coda_get_psdev(void *data, struct inode **res_dev)
-{
-        char **psdev_path;
-        struct inode *psdev = 0;
-	struct dentry *ent=NULL;
-
- 
-	if ( ! data ) { 
-		printk("coda_get_psdev: no data!\n");
-		return 1;
-	} 
-
-	psdev_path = data;
-        ent = namei((char *) *psdev_path);
-        if (IS_ERR(ent)) {
-		printk("namei error %ld for %d\n", PTR_ERR(ent), 
-		       (int) psdev_path);
-		return 1;
-        }
-	psdev = ent->d_inode;
-
-        if (!S_ISCHR(psdev->i_mode)) {
-		printk("not a character device\n");
-		return 1;
-        }
-	CDEBUG(D_PSDEV,"major %d, minor %d, count %d\n", 
-	       MAJOR(psdev->i_rdev), 
-	       MINOR(psdev->i_rdev), psdev->i_count);
-        
-        if (MAJOR(psdev->i_rdev) != CODA_PSDEV_MAJOR) {
-		printk("device %d not a Coda PSDEV device\n", 
-		       MAJOR(psdev->i_rdev));
-		return 1;
-        }
-
-        if (MINOR(psdev->i_rdev) >= MAX_CODADEVS) { 
-		printk("minor %d not an allocated Coda PSDEV\n", 
-		       psdev->i_rdev);
-		return 1;
-        }
-
-        if (psdev->i_count < 1) {
-		printk("coda device minor %d not open (i_count = %d)\n", 
-		       MINOR(psdev->i_rdev), psdev->i_count);
-		return 1;
-        }
-        
-        *res_dev = psdev;
-	EXIT;  
-        return 0;
-}

@@ -586,15 +586,15 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
  * 
  */
 
-static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
+static inline unsigned long coda_waitfor_upcall(struct upc_req *vmp)
 {
 	struct wait_queue	wait = { current, NULL };
 	unsigned long posttime;
 
-	vmp->vm_posttime = jiffies;
+	vmp->uc_posttime = jiffies;
 	posttime = jiffies;
 
-	add_wait_queue(&vmp->vm_sleep, &wait);
+	add_wait_queue(&vmp->uc_sleep, &wait);
 	for (;;) {
 		if ( coda_hard == 0 ) 
 			current->state = TASK_INTERRUPTIBLE;
@@ -602,7 +602,7 @@ static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
 			current->state = TASK_UNINTERRUPTIBLE;
 
 		/* got a reply */
-		if ( vmp->vm_flags & VM_WRITE )
+		if ( vmp->uc_flags & REQ_WRITE )
 			break;
 
 		if ( !coda_hard && signal_pending(current) ) {
@@ -612,13 +612,13 @@ static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
 				break;
 			/* signal is present: after timeout always return 
 			   really smart idea, probably useless ... */
-			if ( jiffies - vmp->vm_posttime > coda_timeout * HZ )
+			if ( jiffies - vmp->uc_posttime > coda_timeout * HZ )
 				break; 
 		}
 		schedule();
 
 	}
-	remove_wait_queue(&vmp->vm_sleep, &wait);
+	remove_wait_queue(&vmp->uc_sleep, &wait);
 	current->state = TASK_RUNNING;
 
 	CDEBUG(D_SPECIAL, "posttime: %ld, returned: %ld\n", posttime, jiffies-posttime);
@@ -644,38 +644,35 @@ static int coda_upcall(struct coda_sb_info *sbi,
 	unsigned long runtime; 
 	struct vcomm *vcommp;
 	union outputArgs *out;
-	struct vmsg *vmp;
+	struct upc_req *vmp;
 	int error = 0;
 
 ENTRY;
 
-	if (sbi->sbi_vcomm == NULL) {
-                return -ENODEV;
-	}
-	vcommp = sbi->sbi_vcomm;
-
-
-	if (!vcomm_open(vcommp))
+	vcommp = &coda_upc_comm;
+	if ( !vcommp->vc_pid ) {
+		printk("No pseudo device in upcall comms at %p\n", vcommp);
                 return -ENXIO;
+	}
 
 	/* Format the request message. */
-	CODA_ALLOC(vmp,struct vmsg *,sizeof(struct vmsg));
-	vmp->vm_data = (void *)buffer;
-	vmp->vm_flags = 0;
-	vmp->vm_inSize = inSize;
-	vmp->vm_outSize = *outSize ? *outSize : inSize;
-	vmp->vm_opcode = ((union inputArgs *)buffer)->ih.opcode;
-	vmp->vm_unique = ++vcommp->vc_seq;
-        vmp->vm_sleep = NULL;
+	CODA_ALLOC(vmp,struct upc_req *,sizeof(struct upc_req));
+	vmp->uc_data = (void *)buffer;
+	vmp->uc_flags = 0;
+	vmp->uc_inSize = inSize;
+	vmp->uc_outSize = *outSize ? *outSize : inSize;
+	vmp->uc_opcode = ((union inputArgs *)buffer)->ih.opcode;
+	vmp->uc_unique = ++vcommp->vc_seq;
+        vmp->uc_sleep = NULL;
 	
 	/* Fill in the common input args. */
-	((union inputArgs *)buffer)->ih.unique = vmp->vm_unique;
+	((union inputArgs *)buffer)->ih.unique = vmp->uc_unique;
 
 	/* Append msg to pending queue and poke Venus. */
-	coda_q_insert(&(vmp->vm_chain), &(vcommp->vc_pending));
+	list_add(&(vmp->uc_chain), vcommp->vc_pending.prev);
 	CDEBUG(D_UPCALL, 
 	       "Proc %d wake Venus for(opc,uniq) =(%d,%d) msg at %x.zzz.\n",
-	       current->pid, vmp->vm_opcode, vmp->vm_unique, (int)vmp);
+	       current->pid, vmp->uc_opcode, vmp->uc_unique, (int)vmp);
 
 	wake_up_interruptible(&vcommp->vc_waitq);
 	/* We can be interrupted while we wait for Venus to process
@@ -692,15 +689,15 @@ ENTRY;
 	coda_upcall_stats(((union inputArgs *)buffer)->ih.opcode, runtime);
 
 	CDEBUG(D_TIMING, "opc: %d time: %ld uniq: %d size: %d\n",
-	       vmp->vm_opcode, jiffies - vmp->vm_posttime, 
-	       vmp->vm_unique, vmp->vm_outSize);
+	       vmp->uc_opcode, jiffies - vmp->uc_posttime, 
+	       vmp->uc_unique, vmp->uc_outSize);
 	CDEBUG(D_UPCALL, 
 	       "..process %d woken up by Venus for vmp at 0x%x, data at %x\n", 
-	       current->pid, (int)vmp, (int)vmp->vm_data);
-	if (vcomm_open(vcommp)) {      /* i.e. Venus is still alive */
+	       current->pid, (int)vmp, (int)vmp->uc_data);
+	if (vcommp->vc_pid) {      /* i.e. Venus is still alive */
 	    /* Op went through, interrupt or not... */
-	    if (vmp->vm_flags & VM_WRITE) {
-		out = (union outputArgs *)vmp->vm_data;
+	    if (vmp->uc_flags & REQ_WRITE) {
+		out = (union outputArgs *)vmp->uc_data;
 		/* here we map positive Venus errors to kernel errors */
 		if ( out->oh.result < 0 ) {
 			printk("Tell Peter: Venus returns negative error %ld, for oc %ld!\n",
@@ -711,49 +708,49 @@ ENTRY;
 		CDEBUG(D_UPCALL, 
 		       "upcall: (u,o,r) (%ld, %ld, %ld) out at %p\n", 
 		       out->oh.unique, out->oh.opcode, out->oh.result, out);
-		*outSize = vmp->vm_outSize;
+		*outSize = vmp->uc_outSize;
 		goto exit;
 	    }
-	    if ( !(vmp->vm_flags & VM_READ) && signal_pending(current)) { 
+	    if ( !(vmp->uc_flags & REQ_READ) && signal_pending(current)) { 
 		/* Interrupted before venus read it. */
 		CDEBUG(D_UPCALL, 
 		       "Interrupted before read:(op,un) (%d.%d), flags = %x\n",
-		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
-		coda_q_remove(&(vmp->vm_chain));
+		       vmp->uc_opcode, vmp->uc_unique, vmp->uc_flags);
+		list_del(&(vmp->uc_chain));
 		/* perhaps the best way to convince the app to
 		   give up? */
 		error = -EINTR;
 		goto exit;
 	    } 
-	    if ( (vmp->vm_flags & VM_READ) && signal_pending(current) ) {
+	    if ( (vmp->uc_flags & REQ_READ) && signal_pending(current) ) {
 		    /* interrupted after Venus did its read, send signal */
 		    union inputArgs *dog;
-		    struct vmsg *svmp;
+		    struct upc_req *svmp;
 		    
 		    CDEBUG(D_UPCALL, 
 			   "Sending Venus a signal: op = %d.%d, flags = %x\n",
-			   vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
+			   vmp->uc_opcode, vmp->uc_unique, vmp->uc_flags);
 		    
-		    coda_q_remove(&(vmp->vm_chain));
+		    list_del(&(vmp->uc_chain));
 		    error = -EINTR;
-		    CODA_ALLOC(svmp, struct vmsg *, sizeof (struct vmsg));
-		    CODA_ALLOC((svmp->vm_data), char *, sizeof(struct coda_in_hdr));
+		    CODA_ALLOC(svmp, struct upc_req *, sizeof (struct upc_req));
+		    CODA_ALLOC((svmp->uc_data), char *, sizeof(struct coda_in_hdr));
 		    
-		    dog = (union inputArgs *)svmp->vm_data;
+		    dog = (union inputArgs *)svmp->uc_data;
 		    dog->ih.opcode = CODA_SIGNAL;
-		    dog->ih.unique = vmp->vm_unique;
+		    dog->ih.unique = vmp->uc_unique;
 		    
-		    svmp->vm_flags = 0;
-		    svmp->vm_opcode = dog->ih.opcode;
-		    svmp->vm_unique = dog->ih.unique;
-		    svmp->vm_inSize = sizeof(struct coda_in_hdr);
-		    svmp->vm_outSize = sizeof(struct coda_in_hdr);
+		    svmp->uc_flags = 0;
+		    svmp->uc_opcode = dog->ih.opcode;
+		    svmp->uc_unique = dog->ih.unique;
+		    svmp->uc_inSize = sizeof(struct coda_in_hdr);
+		    svmp->uc_outSize = sizeof(struct coda_in_hdr);
 		    CDEBUG(D_UPCALL, 
 			   "coda_upcall: enqueing signal msg (%d, %d)\n",
-			   svmp->vm_opcode, svmp->vm_unique);
+			   svmp->uc_opcode, svmp->uc_unique);
 		    
 		    /* insert at head of queue! */
-		    coda_q_insert(&(svmp->vm_chain), vcommp->vc_pending.forw);
+		    list_add(&(svmp->uc_chain), &vcommp->vc_pending);
 		    wake_up_interruptible(&vcommp->vc_waitq);
 	    } else {
 		    printk("Coda: Strange interruption..\n");
@@ -761,12 +758,12 @@ ENTRY;
 	    }
 	} else {	/* If venus died i.e. !VC_OPEN(vcommp) */
 	        printk("coda_upcall: Venus dead on (op,un) (%d.%d) flags %d\n",
-		       vmp->vm_opcode, vmp->vm_unique, vmp->vm_flags);
+		       vmp->uc_opcode, vmp->uc_unique, vmp->uc_flags);
 		error = -ENODEV;
 	}
 
  exit:
-	CODA_FREE(vmp, sizeof(struct vmsg));
+	CODA_FREE(vmp, sizeof(struct upc_req));
 	if (error) 
 	        badclstats();
 	return error;

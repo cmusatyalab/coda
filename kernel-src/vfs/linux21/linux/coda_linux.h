@@ -74,6 +74,10 @@ int coda_inode_grab(dev_t dev, ino_t ino, struct inode **ind);
 void coda_purge_children(struct inode *);
 void coda_purge_dentries(struct inode *);
 
+/* sysctl.h */
+void coda_sysctl_init(void);
+void coda_sysctl_clean(void);
+
 
 /* debugging masks */
 #define D_SUPER     1   /* print results returned by Venus */ 

@@ -33,12 +33,12 @@ struct coda_inode_info {
 };
 
 /* flags */
-#define C_VATTR       0x1         /* Validity of vattr in the cnode */
-#define C_SYMLINK     0x2         /* Validity of symlink pointer in the cnode */
-#define C_DYING       0x4	  /* Set for outstanding cnodes from venus (which died) */
-#define C_PURGE      0x8
+#define C_VATTR       0x1   /* Validity of vattr in inode */
+#define C_PURGE       0x8
 #define C_ZAPDIR      0x10
+#define C_DYING       0x4   /* from venus (which died) */
 #define C_INITED      0x20
+#define C_FLUSH       0x2   /* used after a flush */
 
 int coda_cnode_make(struct inode **, struct ViceFid *, struct super_block *);
 int coda_cnode_makectl(struct inode **inode, struct super_block *sb);

@@ -202,7 +202,6 @@ int coda_permission(struct inode *inode, int mask)
 	}
 
         cp = ITOC(inode);
-        CHECK_CNODE(cp);
 
         CDEBUG(D_INODE, "mask is %o\n", mask);
         error = venus_access(inode->i_sb, &(cp->c_fid), mask);
@@ -245,7 +244,6 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
 		return -EPERM;
 
 	dircnp = ITOC(dir);
-        CHECK_CNODE(dircnp);
 
         if ( length > CODA_MAXNAMLEN ) {
 		printk("name too long: create, %s(%s)\n", 
@@ -302,7 +300,6 @@ static int coda_mknod(struct inode *dir, struct dentry *de, int mode, int rdev)
 		return -EPERM;
 
 	dircnp = ITOC(dir);
-        CHECK_CNODE(dircnp);
 
         if ( length > CODA_MAXNAMLEN ) {
 		printk("name too long: mknod, %s(%s)\n", 
@@ -358,7 +355,6 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
 		return -EPERM;
 
         dircnp = ITOC(dir);
-        CHECK_CNODE(dircnp);
 
 	CDEBUG(D_INODE, "mkdir %s (len %d) in %s, mode %o.\n", 
 	       name, len, coda_f2s(&(dircnp->c_fid)), mode);
@@ -408,7 +404,6 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 
         dir_cnp = ITOC(dir_inode);
         cnp = ITOC(inode);
-        CHECK_CNODE(cnp);
 
 	CDEBUG(D_INODE, "old: fid: %s\n", coda_f2s(&(cnp->c_fid)));
 	CDEBUG(D_INODE, "directory: %s\n", coda_f2s(&(dir_cnp->c_fid)));
@@ -426,8 +421,9 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 		++inode->i_count;
 		d_instantiate(de, inode);
 		inode->i_nlink++;
-	} else {
+	} else  {
 		d_drop(de);
+		return error;
 	}
 
         CDEBUG(D_INODE, "link result %d\n",error);
@@ -465,10 +461,10 @@ static int coda_symlink(struct inode *dir_inode, struct dentry *de,
 	 * an inode for the entry we have to drop it. 
 	 */
 	d_drop(de);
-
 	error = venus_symlink(dir_inode->i_sb, &(dir_cnp->c_fid), name, len, 
 			      symname, symlen);
 
+	/* mtime is no good anymore */
 	if ( !error ) {
 		dir_cnp->c_flags |= C_VATTR;
 	}
@@ -493,16 +489,14 @@ int coda_unlink(struct inode *dir, struct dentry *de)
 	       coda_f2s(&(dircnp->c_fid)), dir->i_ino);
 
         error = venus_remove(dir->i_sb, &(dircnp->c_fid), name, len);
-
         if ( error ) {
                 CDEBUG(D_INODE, "upc returned error %d\n", error);
                 return error;
         }
 
-        /* cache management */
+        /* cache management: mtime has changed, ask Venus */
 	dircnp->c_flags |= C_VATTR;
 	de->d_inode->i_nlink--;
-
 	d_delete(de);
 
         return 0;
@@ -513,7 +507,7 @@ int coda_rmdir(struct inode *dir, struct dentry *de)
         struct coda_inode_info *dircnp;
 	const char *name = de->d_name.name;
 	int len = de->d_name.len;
-        int error, rehash = 0;
+        int error;
 
 	ENTRY;
 	coda_vfs_stat.rmdir++;
@@ -523,30 +517,12 @@ int coda_rmdir(struct inode *dir, struct dentry *de)
 		return -ENOENT;
 	}
         dircnp = ITOC(dir);
-        CHECK_CNODE(dircnp);
 
 	if (len > CODA_MAXNAMLEN)
 		return -ENAMETOOLONG;
 
-	error = -EBUSY;
-	if (de->d_count > 1) {
-		/* Attempt to shrink child dentries ... */
-		shrink_dcache_parent(de);
-		if (de->d_count > 1)
-			return error;
-	}
-	/* Drop the dentry to force a new lookup */
-	if (!list_empty(&de->d_hash)) {
-		d_drop(de);
-		rehash = 1;
-	}
-
-	/* update i_nlink and free the inode before unlinking;
-	   if rmdir fails a new lookup set i_nlink right.*/
-	if (de->d_inode->i_nlink)
-		de->d_inode->i_nlink --;
-	d_delete(de);
-
+	if (!list_empty(&de->d_hash))
+		return -EBUSY;
 	error = venus_rmdir(dir->i_sb, &(dircnp->c_fid), name, len);
 
         if ( error ) {
@@ -554,9 +530,8 @@ int coda_rmdir(struct inode *dir, struct dentry *de)
                 return error;
         }
 
-	if (rehash)
-		d_add(de, NULL);
-	/* XXX how can mtime be set? */
+	if (de->d_inode->i_nlink)
+		de->d_inode->i_nlink --;
 
         return 0;
 }

@@ -5,8 +5,11 @@
  * 
  * Carnegie Mellon encourages users to contribute improvements to
  * the Coda project. Contact Peter Braam (coda@cs.cmu.edu).
+ * 
+ * CODA operation statistics
+ * (c) March, 1998 Zhanyong Wan <zhanyong.wan@yale.edu>
+ *
  */
-/* sysctl entries for Coda! */
 
 #include <linux/sched.h>
 #include <linux/mm.h>
@@ -27,19 +30,9 @@
 #include <linux/coda_psdev.h>
 #include <linux/coda_cache.h>
 #include <linux/coda_proc.h>
-extern int coda_debug;
-/* extern int cfsnc_use; */
-extern int coda_print_entry;
-/* extern int cfsnc_flushme; */
-extern int cfsnc_procsize;
-/* extern void cfsnc_flush(void); */
-void coda_sysctl_init(void);
-void coda_sysctl_clean(void);
 
-int coda_dointvec(ctl_table *table, int write, struct file *filp,
-                  void *buffer, size_t *lenp);
+static struct ctl_table_header *fs_table_header;
 
-struct ctl_table_header *fs_table_header, *coda_table_header;
 #define FS_CODA         1       /* Coda file system */
 
 #define CODA_DEBUG  	 1	 /* control debugging */
@@ -52,14 +45,12 @@ struct ctl_table_header *fs_table_header, *coda_table_header;
 #define CODA_PERMISSION	 8       /* permission statistics */
 #define CODA_CACHE_INV 	 9       /* cache invalidation statistics */
 
-
-
 static ctl_table coda_table[] = {
-	{CODA_DEBUG, "debug", &coda_debug, sizeof(int), 0644, NULL, &coda_dointvec},
-	{CODA_ENTRY, "printentry", &coda_print_entry, sizeof(int), 0644, NULL, &coda_dointvec},
- 	{CODA_MC, "accesscache", &coda_access_cache, sizeof(int), 0644, NULL, &coda_dointvec}, 
- 	{CODA_TIMEOUT, "timeout", &coda_timeout, sizeof(int), 0644, NULL, &coda_dointvec},
- 	{CODA_HARD, "hard", &coda_hard, sizeof(int), 0644, NULL, &coda_dointvec},
+	{CODA_DEBUG, "debug", &coda_debug, sizeof(int), 0644, NULL, &proc_dointvec},
+	{CODA_ENTRY, "printentry", &coda_print_entry, sizeof(int), 0644, NULL, &proc_dointvec},
+ 	{CODA_MC, "accesscache", &coda_access_cache, sizeof(int), 0644, NULL, &proc_dointvec}, 
+ 	{CODA_TIMEOUT, "timeout", &coda_timeout, sizeof(int), 0644, NULL, &proc_dointvec},
+ 	{CODA_HARD, "hard", &coda_hard, sizeof(int), 0644, NULL, &proc_dointvec},
  	{CODA_VFS, "vfs_stats", NULL, 0, 0644, NULL, &do_reset_coda_vfs_stats},
  	{CODA_UPCALL, "upcall_stats", NULL, 0, 0644, NULL, &do_reset_coda_upcall_stats},
  	{CODA_PERMISSION, "permission_stats", NULL, 0, 0644, NULL, &do_reset_coda_permission_stats},
@@ -67,114 +58,478 @@ static ctl_table coda_table[] = {
 	{ 0 }
 };
 
-
 static ctl_table fs_table[] = {
        {FS_CODA, "coda",    NULL, 0, 0555, coda_table},
        {0}
 };
 
+struct coda_vfs_stats		coda_vfs_stat;
+struct coda_permission_stats	coda_permission_stat;
+struct coda_cache_inv_stats	coda_cache_inv_stat;
+struct coda_upcall_stats_entry  coda_upcall_stat[CODA_NCALLS];
+struct coda_upcallstats         coda_callstats;
+
+/* keep this in sync with coda.h! */
+char *coda_upcall_names[] = {
+	"totals      ",   /*  0 */
+	"noop        ",   /*  1 */
+	"root        ",   /*  2 */
+	"sync        ",   /*  3 */
+	"open        ",   /*  4 */
+	"close       ",   /*  5 */
+	"ioctl       ",   /*  6 */
+	"getattr     ",   /*  7 */
+	"setattr     ",   /*  8 */
+	"access      ",   /*  9 */
+	"lookup      ",   /* 10 */
+	"create      ",   /* 11 */
+	"remove      ",   /* 12 */
+	"link        ",   /* 13 */
+	"rename      ",   /* 14 */
+	"mkdir       ",   /* 15 */
+	"rmdir       ",   /* 16 */
+	"readdir     ",   /* 17 */
+	"symlink     ",   /* 18 */
+	"readlink    ",   /* 19 */
+	"fsync       ",   /* 20 */
+	"inactive    ",   /* 21 */
+	"vget        ",   /* 22 */
+	"signal      ",   /* 23 */
+	"replace     ",   /* 24 */
+	"flush       ",   /* 25 */
+	"purgeuser   ",   /* 26 */
+	"zapfile     ",   /* 27 */
+	"zapdir      ",   /* 28 */
+	"zapvnode    ",   /* 28 */
+	"purgefid    ",   /* 30 */
+	"open_by_path"    /* 31 */
+};
+
+
+void reset_coda_vfs_stats( void )
+{
+	memset( &coda_vfs_stat, 0, sizeof( coda_vfs_stat ) );
+}
+
+void reset_coda_upcall_stats( void )
+{
+	memset( &coda_upcall_stat, 0, sizeof( coda_upcall_stat ) );
+}
+
+void reset_coda_permission_stats( void )
+{
+	memset( &coda_permission_stat, 0, sizeof( coda_permission_stat ) );
+}
+
+void reset_coda_cache_inv_stats( void )
+{
+	memset( &coda_cache_inv_stat, 0, sizeof( coda_cache_inv_stat ) );
+}
+
+
+void do_time_stats( struct coda_upcall_stats_entry * pentry, 
+		    unsigned long runtime )
+{
+	
+	unsigned long time = runtime * 1000 /HZ;	/* time in ms */
+	CDEBUG(D_SPECIAL, "time: %ld\n", time);
+
+	if ( pentry->count == 0 ) {
+		pentry->time_sum = pentry->time_squared_sum = 0;
+	}
+	
+	pentry->count++;
+	pentry->time_sum += time;
+	pentry->time_squared_sum += time*time;
+}
+
+
+
+void coda_upcall_stats(int opcode, long unsigned runtime) 
+{
+	struct coda_upcall_stats_entry * pentry;
+	
+	if ( opcode < 0 || opcode > CODA_NCALLS - 1) {
+		printk("Nasty opcode %d passed to coda_upcall_stats\n",
+		       opcode);
+		return;
+	}
+		
+	pentry = &coda_upcall_stat[opcode];
+	do_time_stats(pentry, runtime);
+
+        /* fill in the totals */
+	pentry = &coda_upcall_stat[0];
+	do_time_stats(pentry, runtime);
+
+}
+
+unsigned long get_time_average( const struct coda_upcall_stats_entry * pentry )
+{
+	return ( pentry->count == 0 ) ? 0 : pentry->time_sum / pentry->count;
+}
+
+static inline unsigned long absolute( unsigned long x )
+{
+	return x >= 0 ? x : -x;
+}
+
+static unsigned long sqr_root( unsigned long x )
+{
+	unsigned long y = x, r;
+	int n_bit = 0;
+  
+	if ( x == 0 )
+		return 0;
+	if ( x < 0)
+		x = -x;
+
+	while ( y ) {
+		y >>= 1;
+		n_bit++;
+	}
+  
+	r = 1 << (n_bit/2);
+  
+	while ( 1 ) {
+		r = (r + x/r)/2;
+		if ( r*r <= x && x < (r+1)*(r+1) )
+			break;
+	}
+  
+	return r;
+}
+
+unsigned long get_time_std_deviation( const struct coda_upcall_stats_entry * pentry )
+{
+	unsigned long time_avg;
+  
+	if ( pentry->count <= 1 )
+		return 0;
+  
+	time_avg = get_time_average( pentry );
+	return 
+	        sqr_root( (pentry->time_squared_sum / pentry->count) - 
+			    time_avg * time_avg );
+}
+
+int do_reset_coda_vfs_stats( ctl_table * table, int write, struct file * filp,
+			     void * buffer, size_t * lenp )
+{
+	if ( write ) {
+		reset_coda_vfs_stats();
+	}
+  
+	*lenp = 0;
+	return 0;
+}
+
+int do_reset_coda_upcall_stats( ctl_table * table, int write, 
+				struct file * filp, void * buffer, 
+				size_t * lenp )
+{
+	if ( write ) {
+		reset_coda_upcall_stats();
+	}
+  
+	*lenp = 0;
+	return 0;
+}
+
+int do_reset_coda_permission_stats( ctl_table * table, int write, 
+				    struct file * filp, void * buffer, 
+				    size_t * lenp )
+{
+	if ( write ) {
+		reset_coda_permission_stats();
+	}
+  
+	*lenp = 0;
+	return 0;
+}
+
+int do_reset_coda_cache_inv_stats( ctl_table * table, int write, 
+				   struct file * filp, void * buffer, 
+				   size_t * lenp )
+{
+	if ( write ) {
+		reset_coda_cache_inv_stats();
+	}
+  
+	*lenp = 0;
+	return 0;
+}
+
+int coda_vfs_stats_get_info( char * buffer, char ** start, off_t offset,
+			     int length, int dummy )
+{
+	int len=0;
+	off_t begin;
+	struct coda_vfs_stats * ps = & coda_vfs_stat;
+  
+  /* this works as long as we are below 1024 characters! */
+	len += sprintf( buffer,
+			"Coda VFS statistics\n"
+			"===================\n\n"
+			"File Operations:\n"
+			"\tfile_read\t%9d\n"
+			"\tfile_write\t%9d\n"
+			"\tfile_mmap\t%9d\n"
+			"\topen\t\t%9d\n"
+			"\trelase\t\t%9d\n"
+			"\tfsync\t\t%9d\n\n"
+			"Dir Operations:\n"
+			"\treaddir\t\t%9d\n\n"
+			"Inode Operations\n"
+			"\tcreate\t\t%9d\n"
+			"\tlookup\t\t%9d\n"
+			"\tlink\t\t%9d\n"
+			"\tunlink\t\t%9d\n"
+			"\tsymlink\t\t%9d\n"
+			"\tmkdir\t\t%9d\n"
+			"\trmdir\t\t%9d\n"
+			"\trename\t\t%9d\n"
+			"\tpermission\t%9d\n"
+			"\treadpage\t%9d\n",
+
+			/* file operations */
+			ps->file_read,
+			ps->file_write,
+			ps->file_mmap,
+			ps->open,
+			ps->release,
+			ps->fsync,
+
+			/* dir operations */
+			ps->readdir,
+		  
+			/* inode operations */
+			ps->create,
+			ps->lookup,
+			ps->link,
+			ps->unlink,
+			ps->symlink,
+			ps->mkdir,
+			ps->rmdir,
+			ps->rename,
+			ps->permission,
+			ps->readpage );
+  
+	begin = offset;
+	*start = buffer + begin;
+	len -= begin;
+
+	if ( len > length )
+		len = length;
+	if ( len < 0 )
+		len = 0;
+
+	return len;
+}
+
+int coda_upcall_stats_get_info( char * buffer, char ** start, off_t offset,
+				int length, int dummy )
+{
+	int len=0;
+	int i;
+	off_t begin;
+	off_t pos = 0;
+	char tmpbuf[80];
+	int tmplen = 0;
+
+	ENTRY;
+	/* this works as long as we are below 1024 characters! */
+	if ( offset < 80 ) 
+		len += sprintf( buffer,"%-79s\n",	"Coda upcall statistics");
+	if ( offset < 160) 
+		len += sprintf( buffer + len,"%-79s\n",	"======================");
+	if ( offset < 240) 
+		len += sprintf( buffer + len,"%-79s\n",	"upcall\t\t    count\tavg time(ms)\tstd deviation(ms)");
+	if ( offset < 320) 
+		len += sprintf( buffer + len,"%-79s\n",	"------\t\t    -----\t------------\t-----------------");
+	pos = 320; 
+	for ( i = 0 ; i < CODA_NCALLS ; i++ ) {
+		tmplen += sprintf(tmpbuf,"%s\t%9d\t%10ld\t%10ld", 
+				  coda_upcall_names[i],
+				  coda_upcall_stat[i].count, 
+				  get_time_average(&coda_upcall_stat[i]),
+				  coda_upcall_stat[i].time_squared_sum);
+		pos += 80;
+		if ( pos < offset ) 
+			continue; 
+		len += sprintf(buffer + len, "%-79s\n", tmpbuf);
+		if ( len >= length ) 
+			break; 
+	}
+  
+	begin = len- (pos - offset);
+	*start = buffer + begin;
+	len -= begin;
+
+	if ( len > length )
+		len = length;
+	if ( len < 0 )
+		len = 0;
+	EXIT;
+	return len;
+}
+
+int coda_permission_stats_get_info( char * buffer, char ** start, off_t offset,
+				    int length, int dummy )
+{
+	int len=0;
+	off_t begin;
+	struct coda_permission_stats * ps = & coda_permission_stat;
+  
+	/* this works as long as we are below 1024 characters! */
+	len += sprintf( buffer,
+			"Coda permission statistics\n"
+			"==========================\n\n"
+			"count\t\t%9d\n"
+			"hit count\t%9d\n",
+
+			ps->count,
+			ps->hit_count );
+  
+	begin = offset;
+	*start = buffer + begin;
+	len -= begin;
+
+	if ( len > length )
+		len = length;
+	if ( len < 0 )
+		len = 0;
+
+	return len;
+}
+
+int coda_cache_inv_stats_get_info( char * buffer, char ** start, off_t offset,
+				   int length, int dummy )
+{
+	int len=0;
+	off_t begin;
+	struct coda_cache_inv_stats * ps = & coda_cache_inv_stat;
+  
+	/* this works as long as we are below 1024 characters! */
+	len += sprintf( buffer,
+			"Coda cache invalidation statistics\n"
+			"==================================\n\n"
+			"flush\t\t%9d\n"
+			"purge user\t%9d\n"
+			"zap_dir\t\t%9d\n"
+			"zap_file\t%9d\n"
+			"zap_vnode\t%9d\n"
+			"purge_fid\t%9d\n"
+			"replace\t\t%9d\n",
+			ps->flush,
+			ps->purge_user,
+			ps->zap_dir,
+			ps->zap_file,
+			ps->zap_vnode,
+			ps->purge_fid,
+			ps->replace );
+  
+	begin = offset;
+	*start = buffer + begin;
+	len -= begin;
+
+	if ( len > length )
+		len = length;
+	if ( len < 0 )
+		len = 0;
+
+	return len;
+}
+
+
+#ifdef CONFIG_PROC_FS
+
+/*
+ target directory structure:
+   /proc/fs  (see linux/fs/proc/root.c)
+   /proc/fs/coda
+   /proc/fs/coda/{vfs_stats,
+
+*/
+
+struct proc_dir_entry proc_fs_coda = {
+        PROC_FS_CODA, 4, "coda",
+        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,
+        0, &proc_dir_inode_operations,
+	NULL, NULL,
+	NULL,
+	NULL, NULL
+};
+
+struct proc_dir_entry proc_coda_vfs =  {
+                PROC_VFS_STATS , 9, "vfs_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_vfs_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_upcall =  {
+                PROC_UPCALL_STATS , 12, "upcall_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_upcall_stats_get_info
+        };
+
+struct proc_dir_entry proc_coda_permission =  {
+                PROC_PERMISSION_STATS , 16, "permission_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_permission_stats_get_info
+        };
+
+
+struct proc_dir_entry proc_coda_cache_inv =  {
+                PROC_CACHE_INV_STATS , 15, "cache_inv_stats",
+                S_IFREG | S_IRUGO, 1, 0, 0,
+                0, &proc_net_inode_operations,
+                coda_cache_inv_stats_get_info
+        };
+
+#endif
 
 
 void coda_sysctl_init()
 {
-	fs_table_header = register_sysctl_table(fs_table, 0);
-/*	coda_table_header = register_sysctl_table(coda_table, 0);*/
+	memset(&coda_callstats, 0, sizeof(coda_callstats));
+	reset_coda_vfs_stats();
+	reset_coda_upcall_stats();
+	reset_coda_permission_stats();
+	reset_coda_cache_inv_stats();
+
+#ifdef CONFIG_PROC_FS
+	proc_register(&proc_root_fs,&proc_fs_coda);
+	proc_register(&proc_fs_coda,&proc_coda_vfs);
+	proc_register(&proc_fs_coda,&proc_coda_upcall);
+	proc_register(&proc_fs_coda,&proc_coda_permission);
+	proc_register(&proc_fs_coda,&proc_coda_cache_inv);
+#endif
+
+#ifdef CONFIG_SYSCTL
+	if ( !fs_table_header )
+		fs_table_header = register_sysctl_table(fs_table, 0);
+#endif 
 }
 
-void coda_sysctl_clean() {
-	/*unregister_sysctl_table(coda_table_header);*/
-	unregister_sysctl_table(fs_table_header);
-}
-
-int coda_dointvec(ctl_table *table, int write, struct file *filp,
-                  void *buffer, size_t *lenp)
+void coda_sysctl_clean() 
 {
-        int *i, vleft, first=1, len, left, neg, val;
-        #define TMPBUFLEN 20
-        char buf[TMPBUFLEN], *p;
-        
-        if (!table->data || !table->maxlen || !*lenp ||
-            (filp->f_pos && !write)) {
-                *lenp = 0;
-                return 0;
-        }
-        
-        i = (int *) table->data;
-        vleft = table->maxlen / sizeof(int);
-        left = *lenp;
-        
-        for (; left && vleft--; i++, first=0) {
-                if (write) {
-		        while (left) {
-			        char c;
-				if(get_user(c,(char *) buffer))
-					return -EFAULT;
-				if (!isspace(c))
-					break;
-				left--;
-				((char *) buffer)++;
-			}
-                        if (!left)
-                                break;
-                        neg = 0;
-                        len = left;
-                        if (len > TMPBUFLEN-1)
-                                len = TMPBUFLEN-1;
-                        if (copy_from_user(buf, buffer, len))
-			        return -EFAULT;
-                        buf[len] = 0;
-                        p = buf;
-                        if (*p == '-' && left > 1) {
-                                neg = 1;
-                                left--, p++;
-                        }
-                        if (*p < '0' || *p > '9')
-                                break;
-                        val = simple_strtoul(p, &p, 0);
-                        len = p-buf;
-                        if ((len < left) && *p && !isspace(*p))
-                                break;
-                        if (neg)
-                                val = -val;
-                        buffer += len;
-                        left -= len;
-                        *i = val;
-                } else {
-                        p = buf;
-                        if (!first)
-                                *p++ = '\t';
-                        sprintf(p, "%d", *i);
-                        len = strlen(buf);
-                        if (len > left)
-                                len = left;
-                        if (copy_to_user(buffer, buf, len))
-			    return -EFAULT;
-                        left -= len;
-                        buffer += len;
-                }
-        }
 
-        if (!write && !first && left) {
-                if(put_user('\n', (char *) buffer))
-		        return -EFAULT;
-                left--, buffer++;
-        }
-        if (write) {
-                p = (char *) buffer;
-                while (left) {
-			char c;
-			if(get_user(c, p++))
-				return -EFAULT;
-			if (!isspace(c))
-				break;
-			left--;
-		}
-        }
-        if (write && first)
-                return -EINVAL;
-        *lenp -= left;
-        filp->f_pos += *lenp;
-        return 0;
+#ifdef CONFIG_SYSCTL
+	if ( fs_table_header ) {
+		unregister_sysctl_table(fs_table_header);
+		fs_table_header = 0;
+	}
+#endif
+
+#if CONFIG_PROC_FS
+        proc_unregister(&proc_fs_coda, proc_coda_cache_inv.low_ino);
+        proc_unregister(&proc_fs_coda, proc_coda_permission.low_ino);
+        proc_unregister(&proc_fs_coda, proc_coda_upcall.low_ino);
+        proc_unregister(&proc_fs_coda, proc_coda_vfs.low_ino);
+	proc_unregister(&proc_root_fs, proc_fs_coda.low_ino);
+#endif 
 }
-
-

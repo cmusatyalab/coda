@@ -4,16 +4,8 @@
 #define CODA_PSDEV_MAJOR 67
 #define MAX_CODADEVS  5	   /* how many do we allow */
 
-extern struct vcomm psdev_vcomm[];
-
-/* queue stuff; the rest is static to psdev.c */
-struct queue {
-    struct queue *forw, *back;
-};
-void coda_q_insert(struct queue *el, struct queue *q);
-void coda_q_remove(struct queue *q);
-
-
+extern struct vcomm coda_upc_comm;
+extern struct coda_sb_info coda_super_info;
 #define CODA_SUPER_MAGIC	0x73757245
 
 struct coda_sb_info
@@ -23,6 +15,7 @@ struct coda_sb_info
 	int                 sbi_refct;
 	struct vcomm *      sbi_vcomm;
 	struct inode *      sbi_root;
+	struct super_block *sbi_sb;
 	struct list_head    sbi_cchead;
 	struct list_head    sbi_volroothead;
 };
@@ -31,21 +24,12 @@ struct coda_sb_info
 struct vcomm {
 	u_long		    vc_seq;
 	struct wait_queue  *vc_waitq; /* Venus wait queue */
-	struct queue	    vc_pending;
-	struct queue	    vc_processing;
-	struct super_block *vc_sb;
+	struct list_head    vc_pending;
+	struct list_head    vc_processing;
 	int                 vc_inuse;
+	pid_t               vc_pid;   /* Venus pid */
 };
 
-static inline int vcomm_open(struct vcomm *vcp)
-{
-        return ((vcp)->vc_pending.forw != NULL);
-}
-
-static inline void mark_vcomm_closed(struct vcomm *vcp)
-{
-        (vcp)->vc_pending.forw = NULL;
-}
 
 static inline struct coda_sb_info *coda_sbp(struct super_block *sb)
 {
@@ -101,17 +85,21 @@ int venus_fsync(struct super_block *sb, struct ViceFid *fid);
 /* messages between coda filesystem in kernel and Venus */
 extern int coda_hard;
 extern unsigned long coda_timeout;
-struct vmsg {
-	struct queue        vm_chain;
-	caddr_t	        vm_data;
-	u_short	        vm_flags;
-	u_short             vm_inSize;  /* Size is at most 5000 bytes */
-	u_short	        vm_outSize;
-	u_short	        vm_opcode;  /* copied from data to save lookup */
-	int		        vm_unique;
-	struct wait_queue  *vm_sleep;   /* process' wait queue */
-	unsigned long       vm_posttime;
+struct upc_req {
+	struct list_head    uc_chain;
+	caddr_t	            uc_data;
+	u_short	            uc_flags;
+	u_short             uc_inSize;  /* Size is at most 5000 bytes */
+	u_short	            uc_outSize;
+	u_short	            uc_opcode;  /* copied from data to save lookup */
+	int		    uc_unique;
+	struct wait_queue  *uc_sleep;   /* process' wait queue */
+	unsigned long       uc_posttime;
 };
+
+#define REQ_ASYNC  0x1
+#define REQ_READ   0x2
+#define REQ_WRITE  0x4
 
 
 /*
