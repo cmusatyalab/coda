@@ -309,7 +309,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	if (((pBuff->Header.Flags & SFTP_ACKME) && sEntry->WhoAmI == SFCLIENT)
 	    || sEntry->DupsSinceAck > sEntry->DupThreshold) {
 	    /* we already saw this packet, so this must be considered
-	     * as a retransmission. --JH */
+	     * as a retransmission. -JH */
 	    sEntry->Retransmitting = TRUE;
 	    if (sftp_SendAck(sEntry) < 0) {SFTP_FreeBuffer(&pBuff); return(-1);}
 	    /* we need write here 'cause we may not flush buffers otherwise */
@@ -331,16 +331,11 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    
     sEntry->RecvSinceAck++;
 
-    /* If this packet advances the left edge of the window, save the
-     * timestamp to echo in the next ack. But otherwise avoid using an
-     * outdated timestamp */
-#if 0
-    sEntry->TimeEcho = (pBuff->Header.SeqNumber == sEntry->RecvLastContig+1) ?
-	pBuff->Header.TimeStamp : 0;
-#else
+    /* I thought we needed: (pBuff->Header.TimeStamp > sEntry->TimeEcho), but
+     * then the TimeEcho returned on the next ack doesn't encompass the amount
+     * of data the source sent between the previous ack and this one. -JH */
     if (pBuff->Header.SeqNumber == sEntry->RecvLastContig+1)
 	sEntry->TimeEcho = pBuff->Header.TimeStamp;
-#endif
     
     sEntry->XferState = XferInProgress; /* this is how it gets turned on in Client for fetch */
     SETBIT(sEntry->RecvTheseBits, moffset);
@@ -384,7 +379,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     /* we haven't sent an ack for a while, but did see a lot of data packets
      * flying by? Send a gratitious ack reply */
     if ((pBuff->Header.Flags & SFTP_ACKME) ||
-	(sEntry->RecvSinceAck > sEntry->WindowSize)) {
+	(sEntry->RecvSinceAck >= sEntry->WindowSize)) {
 	if (sftp_SendAck(sEntry) < 0) 
 	    return(-1);
 	if (sftp_WriteStrategy(sEntry) < 0)
@@ -429,32 +424,32 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
     iovlen = 0;
     mcastlen = 0;
     bytesnow = 0;
-    for (i = 1; i < MAXOPACKETS+1; i++)
-	if (!TESTBIT(sEntry->RecvTheseBits, i)) break;
-	else {
-	    long x;
+    for (i = 1; i < MAXOPACKETS+1; i++) {
+	long x;
 
-	    pb = sEntry->ThesePackets[PBUFF((sEntry->RecvLastContig + i))];
-	    iovarray[i-1].iov_base = (caddr_t)pb->Body;
-	    
-	    x = sEntry->SDesc->Value.SmartFTPD.BytesTransferred + bytesnow;
-	    if (SFTP_EnforceQuota && 
-		sEntry->SDesc->Value.SmartFTPD.ByteQuota > 0 && 
-		(x + pb->Header.BodyLength) > 
-		sEntry->SDesc->Value.SmartFTPD.ByteQuota) {
-		sEntry->SDesc->Value.SmartFTPD.QuotaExceeded = 1;
-		iovarray[i-1].iov_len = 
-		    sEntry->SDesc->Value.SmartFTPD.ByteQuota - x; 
-		/* may result in 0 len for trailing packets after the
-		   one exceeding the quota */
-	    } else 
-		iovarray[i-1].iov_len = pb->Header.BodyLength;
+	if (!TESTBIT(sEntry->RecvTheseBits, i)) break; 
 
-	    bytesnow += iovarray[i-1].iov_len;
-	    iovlen++;
-	    if (pb->Header.Flags & RPC2_MULTICAST) 
-		mcastlen++;
-	}
+	pb = sEntry->ThesePackets[PBUFF((sEntry->RecvLastContig + i))];
+	iovarray[i-1].iov_base = (caddr_t)pb->Body;
+
+	x = sEntry->SDesc->Value.SmartFTPD.BytesTransferred + bytesnow;
+	if (SFTP_EnforceQuota && 
+	    sEntry->SDesc->Value.SmartFTPD.ByteQuota > 0 && 
+	    (x + pb->Header.BodyLength) > 
+	    sEntry->SDesc->Value.SmartFTPD.ByteQuota) {
+	    sEntry->SDesc->Value.SmartFTPD.QuotaExceeded = 1;
+	    iovarray[i-1].iov_len = 
+		sEntry->SDesc->Value.SmartFTPD.ByteQuota - x; 
+	    /* may result in 0 len for trailing packets after the
+	       one exceeding the quota */
+	} else 
+	    iovarray[i-1].iov_len = pb->Header.BodyLength;
+
+	bytesnow += iovarray[i-1].iov_len;
+	iovlen++;
+	if (pb->Header.Flags & RPC2_MULTICAST) 
+	    mcastlen++;
+    }
     if (iovlen == 0) 
 	return(0);  /* 0-length initial run of packets */
     
@@ -540,10 +535,11 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
     sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
     sEntry->RecvSinceAck = 0;
 
-    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu}\n",
+    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu} %lu\n",
 	    (unsigned long)ntohl(pb->Header.SeqNumber), 
 	    (unsigned long)ntohl(pb->Header.TimeStamp),
-	    (unsigned long)ntohl(pb->Header.TimeEcho));
+	    (unsigned long)ntohl(pb->Header.TimeEcho),
+	    (unsigned long)ntohl(pb->Header.GotEmAll));
     SFTP_FreeBuffer(&pb);
     return(0);
 }
@@ -562,8 +558,9 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
     sftp_ackr++;
     sftp_Recvd.Acks++;
-    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu}\n", pBuff->Header.SeqNumber, 
-				  pBuff->Header.TimeStamp, pBuff->Header.TimeEcho);
+    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu} %lu\n",
+	pBuff->Header.SeqNumber, pBuff->Header.TimeStamp,
+	pBuff->Header.TimeEcho, pBuff->Header.GotEmAll);
 
     /* calculate length of initial run of acked packets */
     prun = pBuff->Header.GotEmAll - sEntry->SendLastContig;
@@ -749,40 +746,36 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
      * SendLastContig+1.  */
     if (!winopen)
     {
-	/* Window is closed: try to send first unacked packet */
-	/* Do not send the first unacked packet if there are no worried
-	 * packets yet. Wait until we actually have a real reason to start
-	 * retrying. The packet should _not_ be sent unless it is in the
-	 * worried set.  We are guaranteed forward progress because the
-	 * retransmission timer will expire eventually, and the packet
-	 * will be placed in the worried set. */
+	/* Window is closed: try to send any worried packets */
 	sftp_windowfulls++;
+#if 0
+	if (ResendWorried(sEntry, TRUE) < 0) return(-1);
+#else
+	/* Assuming we don't lose packets that much, sending only the first
+	 * unacked is marginally faster. -JH */
 	if (sEntry->SendWorriedLimit > sEntry->SendLastContig)
+	{
 	    if (SendFirstUnacked(sEntry, TRUE) < 0) return(-1);
+	}
+#endif
     }
     else
     {/* Window is open: be more ambitious */
 	if (sEntry->ReadAheadCount > 0)
 	{
-#if 0
-	    /* Pessimistic view, we might have lost all packets. Retransmit
-	     * everything in the worried set. When the RTT estimates are
-	     * correct, we will not push too many packets on the network, as
-	     * then it takes more time for a packet to get `worried'. --JH */
-	    if (ResendWorried(sEntry, FALSE) < 0) return(-1);
-#else
-	    /* Try to be optimistic, we really don't lose that many packets,
-	     * and retransmissions on a slow link only result in an ever
-	     * present set of worried packets --JH */
+	    /* If we're starting to get worried about packets, send the first
+	     * unacknowledged packet in the worried set. If that doesn't fix
+	     * it, we will hit the end of the send window, and start sending
+	     * the complete worried set anyways. -JH */
 	    if (sEntry->SendWorriedLimit > sEntry->SendLastContig)
 	    {
 		if (SendFirstUnacked(sEntry, FALSE) < 0) return(-1);
 	    }
-#endif
 	    if (SendSendAhead(sEntry) < 0) return(-1);  /* may close window */
 	}
 	else
 	{
+	    /* Hit EOF, try to flush the last packets to the other side. */
 	    if (ResendWorried(sEntry, TRUE) < 0) return(-1);
 	}
     }
@@ -802,7 +795,6 @@ static void CheckWorried(struct SFTP_Entry *sEntry)
 	sEntry->SendWorriedLimit = sEntry->SendLastContig;
     
     TVTOTS(&sEntry->RInterval, rexmit);
-    //rexmit <<= 1;
     now = rpc2_TVTOTS(&sEntry->LastSS);
     for (i = sEntry->SendAckLimit; i > sEntry->SendWorriedLimit; i--) {
 	if (TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))
@@ -847,8 +839,9 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
 
     /* Now send them out */
     for (i = sEntry->SendLastContig+1; i <= sEntry->SendWorriedLimit; i++)
+    {
 	if (!TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))
-	    {
+	{
 	    pb = sEntry->ThesePackets[PBUFF(i)];
 	    pb->Header.Flags = ntohl(pb->Header.Flags);
 	    if (pb->Header.Flags & SFTP_ACKME) sftp_ackslost++;
@@ -892,7 +885,8 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast)
 		    (unsigned long)ntohl(pb->Header.TimeStamp), 
 		    (unsigned long)ntohl(pb->Header.TimeEcho));
 	    sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
-	    }
+	}
+    }
 
     return(0);
 }
@@ -1453,7 +1447,7 @@ void sftp_vfclose(SE_Descriptor *sdesc, int openfd)
     if (sdesc && MEMFILE(sdesc)) return;
     if (sdesc && sdesc->Value.SmartFTPD.Tag == FILEBYFD) return;
     if (openfd == -1)
-    { /* we might have closed this fd when CheckSE fails. --JH */
+    { /* we might have closed this fd when CheckSE fails. -JH */
 	say(0, SFTP_DebugLevel, "sftp_vfclose: fd was already closed.\n");
 	return;
     }

@@ -424,8 +424,8 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned Bytes, int *retry,
 	      ce->MaxRetryInterval.tv_usec;
 
 	for (i = ce->Retry_N; i > *retry; i--) {
-	    if (rtt < rto) break;
 	    rtt >>= 1;
+	    if (rtt < rto) break;
 	}
 	*retry = i;
 	if (rtt > rto) rto = rtt;

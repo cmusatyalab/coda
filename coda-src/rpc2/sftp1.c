@@ -622,10 +622,8 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
     }
 
 
-long SFTP_GetTime(IN ConnHandle, INOUT Time) 
-    RPC2_Handle ConnHandle;
-    struct timeval *Time;
-    {
+long SFTP_GetTime(IN RPC2_Handle ConnHandle, INOUT struct timeval *Time) 
+{
     struct SFTP_Entry *se;
     long rc;
 
@@ -641,9 +639,13 @@ long SFTP_GetTime(IN ConnHandle, INOUT Time)
 
     if (se == NULL || se->HostInfo == NULL) return(RPC2_NOCONNECTION);
 
+    /* Only report timestamps when there is an active sftp transfer */
+    if (se->XferState != XferInProgress)
+	return(RPC2_NOCONNECTION);
+
     *Time = se->LastWord;
     return(RPC2_SUCCESS);
-    }
+}
 
 
 long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr) 
