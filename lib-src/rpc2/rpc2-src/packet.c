@@ -567,54 +567,43 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 
 
 /* For converting packet headers to/from network order */
-/* For optimization reasons, only do this for machines where the host order
- * does not equal the net order.
- */
 void rpc2_htonp(RPC2_PacketBuffer *p)
-    {
-#if	defined(vax) || defined(mips) || defined(i386) || defined(arm32) || defined(ns32k) || defined(__arm32__) || defined(arm)
-    p->Header.ProtoVersion = htonl(p->Header.ProtoVersion);
-    p->Header.RemoteHandle = htonl(p->Header.RemoteHandle);
-    p->Header.LocalHandle = htonl(p->Header.LocalHandle);
-    p->Header.Flags = htonl(p->Header.Flags);
-    p->Header.BodyLength = htonl(p->Header.BodyLength);
-    p->Header.SeqNumber = htonl(p->Header.SeqNumber);
-    p->Header.Opcode = htonl(p->Header.Opcode);
-    p->Header.SEFlags = htonl(p->Header.SEFlags);
-    p->Header.SEDataOffset = htonl(p->Header.SEDataOffset);
-    p->Header.SubsysId = htonl(p->Header.SubsysId);
-    p->Header.ReturnCode = htonl(p->Header.ReturnCode);
-    p->Header.Lamport = htonl(p->Header.Lamport);
-    p->Header.Uniquefier = htonl(p->Header.Uniquefier);
-    p->Header.TimeStamp = htonl(p->Header.TimeStamp);
-    p->Header.BindTime = htonl(p->Header.BindTime);
-#endif
-    }
-
-/* For optimization reasons, only do this for machines where the host order
- * does not equal the net order.
- */
+{
+	p->Header.ProtoVersion = htonl(p->Header.ProtoVersion);
+	p->Header.RemoteHandle = htonl(p->Header.RemoteHandle);
+	p->Header.LocalHandle = htonl(p->Header.LocalHandle);
+	p->Header.Flags = htonl(p->Header.Flags);
+	p->Header.BodyLength = htonl(p->Header.BodyLength);
+	p->Header.SeqNumber = htonl(p->Header.SeqNumber);
+	p->Header.Opcode = htonl(p->Header.Opcode);
+	p->Header.SEFlags = htonl(p->Header.SEFlags);
+	p->Header.SEDataOffset = htonl(p->Header.SEDataOffset);
+	p->Header.SubsysId = htonl(p->Header.SubsysId);
+	p->Header.ReturnCode = htonl(p->Header.ReturnCode);
+	p->Header.Lamport = htonl(p->Header.Lamport);
+	p->Header.Uniquefier = htonl(p->Header.Uniquefier);
+	p->Header.TimeStamp = htonl(p->Header.TimeStamp);
+	p->Header.BindTime = htonl(p->Header.BindTime);
+}
 
 void rpc2_ntohp(RPC2_PacketBuffer *p)
-    {
-#if	defined(vax) || defined(mips) || defined(i386) || defined(arm32) || defined(ns32k) || defined(__arm32__) || defined (arm)
-    p->Header.ProtoVersion = ntohl(p->Header.ProtoVersion);
-    p->Header.RemoteHandle = ntohl(p->Header.RemoteHandle);
-    p->Header.LocalHandle = ntohl(p->Header.LocalHandle);
-    p->Header.Flags = ntohl(p->Header.Flags);
-    p->Header.BodyLength = ntohl(p->Header.BodyLength);
-    p->Header.SeqNumber = ntohl(p->Header.SeqNumber);
-    p->Header.Opcode = ntohl(p->Header.Opcode);
-    p->Header.SEFlags = ntohl(p->Header.SEFlags);
-    p->Header.SEDataOffset = ntohl(p->Header.SEDataOffset);
-    p->Header.SubsysId = ntohl(p->Header.SubsysId);
-    p->Header.ReturnCode = ntohl(p->Header.ReturnCode);
-    p->Header.Lamport = ntohl(p->Header.Lamport);
-    p->Header.Uniquefier = ntohl(p->Header.Uniquefier);
-    p->Header.TimeStamp = ntohl(p->Header.TimeStamp);
-    p->Header.BindTime = ntohl(p->Header.BindTime);
-#endif
-    }
+{
+	p->Header.ProtoVersion = ntohl(p->Header.ProtoVersion);
+	p->Header.RemoteHandle = ntohl(p->Header.RemoteHandle);
+	p->Header.LocalHandle = ntohl(p->Header.LocalHandle);
+	p->Header.Flags = ntohl(p->Header.Flags);
+	p->Header.BodyLength = ntohl(p->Header.BodyLength);
+	p->Header.SeqNumber = ntohl(p->Header.SeqNumber);
+	p->Header.Opcode = ntohl(p->Header.Opcode);
+	p->Header.SEFlags = ntohl(p->Header.SEFlags);
+	p->Header.SEDataOffset = ntohl(p->Header.SEDataOffset);
+	p->Header.SubsysId = ntohl(p->Header.SubsysId);
+	p->Header.ReturnCode = ntohl(p->Header.ReturnCode);
+	p->Header.Lamport = ntohl(p->Header.Lamport);
+	p->Header.Uniquefier = ntohl(p->Header.Uniquefier);
+	p->Header.TimeStamp = ntohl(p->Header.TimeStamp);
+	p->Header.BindTime = ntohl(p->Header.BindTime);
+}
 
 void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 {
