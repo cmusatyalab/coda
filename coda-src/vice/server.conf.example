@@ -1,0 +1,78 @@
+# This is an example server.conf file ... and documents all options
+# configurable in the server.conf file.
+# Default values are left commented.
+
+# Number of server processes running on this machine.
+# numservers=1
+
+# Prefix of server information tree
+# vicedir=/vice
+
+# Should the server use private mmaps for RVM
+# mapprivate=0
+
+# RVM parameters (possibly per server)
+
+# For a single server on a machine use:
+rvm_log=
+rvm_data=
+rvm_data_length=
+# hostname=
+
+# For multiple servers:  Define the above 4 in a file: server_X.conf
+# for a server run with the parameter "-n X" or define the following
+# for each X
+# rvm_log_X=
+# rvm_data_X=
+# rvm_data_length_X=
+# hostname_X=
+
+# The advantage of using server_X.conf files is that other parameters
+# besides the rvm parameters can be defined for each server.  All
+# servers should have the same vicedir.  server.conf will be read first
+# and then the server_X.conf file will be read.  Any definition in
+# server_X.conf will override a definition of the same variable in the
+# server.conf file.  e.g.  mapprivate=1 in server.conf, mapprivate=0
+# in server_2.conf will have the server started with "-n 2" use
+# anonymous mapping while the "default" action is to run with private
+# mapping.
+
+
+# Other "Standard" parameters as set by startserver script.  Defaults
+# commented out if default is different than startserver script.
+
+# -trunc command line parameter 
+# rvmtruncate=0
+rvmtruncate=5
+
+# trace=0	
+trace=100
+
+# Other parameters that can be set. (Names should be the same as command
+# line parameters.  See documentation for codasrv.)
+
+# does not include the vicedir prefix.
+#vicetab=db/vicetab
+
+#authenticate=1
+#buffs=100
+#cbwait=240
+#chk=30
+#comparedirreps=1
+#dumpvm=0
+#forcesalvage=1
+#large=500
+#lwps=6
+#nodebarrenize=0
+#nowriteback=0
+#pollandyield=1
+#pathtiming=1
+#resolution=1
+#retrycnt=4
+#salvageonshutdown=0
+#sendahead=8
+#small=500
+#stack=96
+#timeout=15
+#windowsize=32
+#zombify=0

@@ -1337,6 +1337,8 @@ static int ReadConfigFile(void)
     char confname[80];
     int  datalen = 0;
     int  multconf;
+    int  zombify;
+    int  numservers;
 
     /* don't complain if config files are missing */
     codaconf_quiet = 1;
@@ -1379,7 +1381,12 @@ static int ReadConfigFile(void)
     CONF_INT(SalvageOnShutdown,	"salvageonshutdown", 0);
     CONF_INT(DumpVM,		"dumpvm",	   0);
 
-    /* Rvm parameters */
+    /* Server numbers and  Rvm parameters */
+    CONF_INT(numservers,      "numservers",	   1);
+    if (numservers > 1 && ServerNumber == 0) {
+        SLog(0, "Configuration error, server number 0 with multiple servers");
+	exit(-1);
+    }
     CONF_INT(_Rvm_Truncate, 	"rvmtruncate",	   0);
 
     if (RvmType == UNSET) {
@@ -1406,6 +1413,7 @@ static int ReadConfigFile(void)
         SLog(0, "Multiple servers specified, must specify hostname.\n");
         exit(-1);
     }
+
     if (datalen != 0) {
         _Rvm_DataLength = RVM_MK_OFFSET(0, datalen);
 	RvmType = RAWIO;
@@ -1425,10 +1433,14 @@ static int ReadConfigFile(void)
 
     CONF_INT(nodebarrenize,   "nodebarrenize",	   0);
     CONF_INT(NoWritebackConn, "nowriteback",	   0);
+    CONF_INT(zombify,	      "zombify",	   0);
+    if (zombify)
+        coda_assert_action = CODA_ASSERT_SLEEP;
     CONF_STR(vicetab,	      "vicetab",	   NULL);
     if (!vicetab) {
         vicetab = strdup(vice_sharedfile("db/vicetab"));
     }
+    
 
     return 0;
 }
