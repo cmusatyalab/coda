@@ -30,6 +30,7 @@ listed in the file CREDITS.
 #include <signal.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include "rvm_private.h"
 #ifdef RVM_LOG_TAIL_BUG
 #include <rvmtesting.h>

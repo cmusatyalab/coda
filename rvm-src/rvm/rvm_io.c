@@ -22,6 +22,7 @@ Coda are listed in the file CREDITS.
 *
 */
 
+#include <fcntl.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/uio.h>

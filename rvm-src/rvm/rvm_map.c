@@ -27,6 +27,7 @@ Coda are listed in the file CREDITS.
 #else
 #include <libc.h>
 #endif
+#include <fcntl.h>
 #include <sys/file.h>
 #if defined(__linux__) && defined(sparc)
 #include <asm/page.h>
@@ -322,7 +323,7 @@ char *page_alloc(len)
     rvm_length_t    len;
     {
     char           *vmaddr;
-
+    /* printf ("page_alloc(%ul)\n", len); */
 #ifdef __CYGWIN32__
     {
       HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
@@ -333,8 +334,19 @@ char *page_alloc(len)
       CloseHandle(hMap);
     }
 #else
+#ifdef sun
+    { int fd;
+      if ((fd = open("/dev/zero", O_RDWR)) == -1)
+	vmaddr = (char *)-1;
+      else {
+	vmaddr = mmap(0, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+	(void) close(fd);
+      }
+    }
+#else
     vmaddr = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE,
 		  -1, 0);
+#endif
 #endif
     if (vmaddr == (char *)-1) 
         {

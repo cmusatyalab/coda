@@ -33,6 +33,7 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <rvm.h>
 #include <rvm_segment.h>
 #include <rvm_segment_private.h>

@@ -18,6 +18,7 @@ Coda are listed in the file CREDITS.
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <rvm.h>
 #include "rvm_segment.h"
 
@@ -100,8 +101,20 @@ allocate_vm(addr, length)
       CloseHandle(hMap);
     }
 #else
+#ifdef sun
+    { int fd;
+      if ((fd = open("/dev/zero", O_RDWR)) == -1)
+	*addr = (char *)-1;
+      else {
+	*addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
+		     (MAP_PRIVATE | (*addr ? MAP_FIXED : 0)) , fd, 0);
+	(void) close(fd);
+      }
+    }
+#else
     *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE), 
 		 (MAP_PRIVATE | MAP_ANON), -1, 0);
+#endif
 #endif
 
     if (*addr == (char*)-1) {

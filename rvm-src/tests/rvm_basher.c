@@ -81,6 +81,10 @@ extern const char *const sys_errlist[]; /* XXX JET MUCKING */
 #endif
 #endif
 
+#ifdef sun
+extern char *sys_errlist[]; /* XXX Is it there? */
+#endif
+
 extern int sys_nerr;
 
 extern rvm_region_def_t *RegionDefs;    /* hooks to rds */
@@ -1661,7 +1665,8 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
 #endif /* VERSION_TEST */
                     {"",(key_id_t)NULL} /* end mark, do not delete */
                     };
-void main(argc, argv)
+
+int main(argc, argv)
     int argc;
     char **argv;
     {
@@ -1932,6 +1937,13 @@ void main(argc, argv)
         break;
         }
 
+    /* Check for good data. */
+    if (RVM_OFFSET_TO_LENGTH(DataLen) < max_moby_size)
+      {
+	fprintf (stderr, "Basher: Maximum big modification range size too big.\n");
+	exit(-1);
+      }
+
     /* set LWP options */
 #ifdef RVM_USELWP
 #ifdef HAS_PLUMBER
@@ -2051,5 +2063,6 @@ void main(argc, argv)
 	printf("? rvm_terminate failed, code: %s\n",rvm_return(ret));
         CODA_ASSERT(rvm_false);
         }
-    exit(0);
+    return 0;
     }
+

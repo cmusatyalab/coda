@@ -34,6 +34,9 @@ Coda are listed in the file CREDITS.
 /*
  * Mutex objects.
  */
+#ifdef sun
+#define mutex ct_mutex
+#endif
 typedef struct mutex { int x; } *mutex_t;
 
 #define	MUTEX_INITIALIZER	{0}
