@@ -28,23 +28,17 @@ listed in the file CREDITS.
 #include <coda_assert.h>
 #include "vice_file.h"
 
-static char *vicedir = NULL;
-static char *serverdir = NULL;
+static char vicedir[MAXPATHLEN];
+static char serverdir[MAXPATHLEN];
 
 void
 vice_dir_init (char *dirname, int serverno)
 {
-	if (!vicedir) 
-		vicedir = (char *)malloc(MAXPATHLEN);
-	CODA_ASSERT(vicedir);
 	strncpy(vicedir, dirname, MAXPATHLEN);
 	if (serverno != 0) {
-	    if (!serverdir) 
-	        serverdir = (char *)malloc(MAXPATHLEN);
-	    CODA_ASSERT(serverdir);
 	    snprintf(serverdir, MAXPATHLEN, "%s/server_%d", vicedir, serverno);
 	} else {
-	    serverdir = vicedir;
+	    strncpy(serverdir,vicedir);
 	}
 }
 
