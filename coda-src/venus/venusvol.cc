@@ -585,7 +585,7 @@ int vdb::Get(volent **vpp, char *volname)
     v = Create(&volinfo, volname);
 
     if (!v) {
-	LOG(0, ("vdb::Get: Create (%x, %s) failed", volinfo.Vid, volname));
+	LOG(0, ("vdb::Get: Create (%x, %s) failed\n", volinfo.Vid, volname));
 	*vpp = NULL;
 	return EIO;
     }
@@ -2297,6 +2297,14 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 
     ro_replica = (volrep *)VDB->Create(&StagingVol, stagingname);
     if (ro_replica) ro_replica->hold();
+
+    /* fake a CB-connection */
+    {
+	srvent *s;
+	GetServer(&s, srvr);
+	if (s) s->connid = 666;
+	PutServer(&s);
+    }
 }
 
 int repvol::Collate_NonMutating(mgrpent *m, int code)

@@ -226,6 +226,7 @@ class srvent {
   friend class userent;
   friend class vproc;
   friend class fsobj;
+  friend void repvol::SetStagingServer(struct in_addr *srvr);
 
     /* The server list. */
     static olist *srvtab;
