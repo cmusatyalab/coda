@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.3 1998/04/14 21:06:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.4 98/06/07 20:14:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -598,6 +598,8 @@ void DoBinding(RPC2_Handle *cid)
 	bparms.EncryptionType = RPC2_XOR;
 	bparms.SharedSecret = (RPC2_EncryptionKey *)ekey;
 	}
+
+    bparms.AuthenticationType = 0;	/* server doesn't care */
 
     if (WhatHappened(RPC2_NewBinding(&hid, &sid, &ssid, &bparms, cid),
             "NewBinding") < RPC2_ELIMIT)

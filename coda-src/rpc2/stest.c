@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.5 98/08/26 17:08:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.6 98/09/15 14:28:02 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,7 +73,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "test.h"
 
 #define SUBSYS_SRV 1001
-#define STESTSTACK 0x10000
+#define STESTSTACK 0x18000
 extern etext();
 extern long RPC2_Perror;
 extern long RPC2_DebugLevel;
@@ -197,7 +197,9 @@ void HandleRequests(lwp)
     }
 }
 
-long FindKey(IN ClientIdent, OUT IdentKey, OUT SessionKey)
+long FindKey(IN authenticationtype, IN ClientIdent, OUT IdentKey,
+	     OUT SessionKey)
+    RPC2_Integer authenticationtype;
     RPC2_CountedBS *ClientIdent;
     RPC2_EncryptionKey IdentKey;
     RPC2_EncryptionKey SessionKey;
