@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/vproc.h,v 1.1 1996/11/22 19:12:01 braam Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-nbsd-port/coda-4.0.1/OBJS/coda-src/venus/RCS/vproc.h,v 1.2 1996/11/25 17:50:14 braam Exp satya $";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,14 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/uio.h>
+
+#ifdef __NetBSD__
+#define __attribute__(x)    /* dummied out because of machine/segments.h */
 #include <sys/user.h>
+#undef __attribute__
+#else
+#include <sys/user.h>
+#endif __NetBSD__
 
 #ifdef __MACH__
 /* Pick up private versions of vnode headers from vicedep */
@@ -67,8 +74,8 @@ extern "C" {
 
 #ifdef __NetBSD__
 /* Pick up system versions of vnode headers from /usr/include */
-#include <sys/mount.h>
-#include <sys/vnode.h>
+/* #include <sys/mount.h> (Satya, 11/25/96) */
+#include "venus_vnode.h"
 #endif __NetBSD__
 
 #ifdef LINUX
@@ -460,18 +467,16 @@ extern int vnode_deallocs;
 #define VA_CTIME_2(va)	(va)->va_ctime.tv_sec
 #endif __MACH__
 
-#if 0
 #ifdef __NetBSD__ 
 #define VA_ID(va)	(va)->va_fileid
 #define VA_STORAGE(va)	(va)->va_bytes
-#define VA_MTIME_1(va)	(va)->va_mtime.ts_sec
-#define VA_MTIME_2(va)	(va)->va_mtime.ts_nsec
-#define VA_ATIME_1(va)	(va)->va_atime.ts_sec
-#define VA_ATIME_2(va)	(va)->va_atime.ts_nsec
-#define VA_CTIME_1(va)	(va)->va_ctime.ts_sec
-#define VA_CTIME_2(va)	(va)->va_ctime.ts_nsec
+#define VA_MTIME_1(va)	(va)->va_mtime.tv_sec
+#define VA_MTIME_2(va)	(va)->va_mtime.tv_nsec
+#define VA_ATIME_1(va)	(va)->va_atime.tv_sec
+#define VA_ATIME_2(va)	(va)->va_atime.tv_nsec
+#define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
+#define VA_CTIME_2(va)	(va)->va_ctime.tv_nsec
 #endif __NetBSD__
-#endif
 
 
 #ifdef LINUX
