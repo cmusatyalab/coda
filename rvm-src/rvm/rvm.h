@@ -89,40 +89,36 @@ typedef enum
 rvm_mode_t;
 
 /*  Function return codes:  rvm_return_t */
-typedef enum {
-	RVM_SUCCESS = 0,          /* success return code */
-
-	rvm_first_code = 199,     /* internal use only */
-
-	RVM_EINIT,                /* RVM not initialized */
-	RVM_EINTERNAL,            /* internal error, see rvm_errmsg */
-	RVM_EIO,                  /* I/O error, see errno */
-	RVM_ELOG,                 /* invalid log device */
-	RVM_ELOG_VERSION_SKEW,    /* RVM log format version skew */
-	RVM_EMODE,                /* invalid transaction begin/end mode */
-	RVM_ENAME_TOO_LONG,       /* device name longer than 1023 chars */
-	RVM_ENO_MEMORY,           /* heap exhausted */
-	RVM_ENOT_MAPPED,          /* designated region not mapped */
-	RVM_EOFFSET,              /* invalid segment offset */
-	RVM_EOPTIONS,             /* invalid options record or pointer */
-	RVM_EOVERLAP,             /* region overlaps existing seg mapping */
-	RVM_EPAGER,               /* invalid external pager */
-	RVM_ERANGE,               /* invalid virtual memory address */
-	RVM_EREGION,              /* invalid region descriptor or pointer */
-	RVM_EREGION_DEF,          /* invalid region definition descriptor */
-	RVM_ESRC,                 /* invalid address range for new values */
-	RVM_ESTATISTICS,          /* invalid statistics record */
-	RVM_ESTAT_VERSION_SKEW,   /* RVM statistics format version skew */
-	RVM_ETERMINATED,          /* terminated by error already reported */
-	RVM_ETHREADS,             /* illegal C Thread library */
-	RVM_ETID,                 /* invalid transaction identifier or ptr */
-	RVM_ETOO_BIG,             /* internal resouces exceeded */
-	RVM_EUNCOMMIT,            /* uncommitted transaction(s) pending */
-	RVM_EVERSION_SKEW,        /* RVM library version skew */
-	RVM_EVM_OVERLAP,          /* region overlaps existing vm mapping */
-
-	rvm_last_code             /* internal use only */
-} rvm_return_t;
+typedef int  rvm_return_t;
+#define 	RVM_SUCCESS     0  /* success return code */
+#define rvm_first_code  199        /* internal use only */
+#define RVM_EINIT       200        /* RVM not initialized */
+#define RVM_EINTERNAL   201        /* internal error, see rvm_errmsg */
+#define RVM_EIO         202        /* I/O error, see errno */
+#define RVM_ELOG        204        /* invalid log device */
+#define RVM_ELOG_VERSION_SKEW 205  /* RVM log format version skew */
+#define RVM_EMODE 206              /* invalid transaction begin/end mode */
+#define RVM_ENAME_TOO_LONG 207     /* device name longer than 1023 chars */
+#define RVM_ENO_MEMORY 208         /* heap exhausted */
+#define RVM_ENOT_MAPPED  209       /* designated region not mapped */
+#define RVM_EOFFSET 210            /* invalid segment offset */
+#define RVM_EOPTIONS 211           /* invalid options record or pointer */
+#define RVM_EOVERLAP 212           /* region overlaps existing seg mapping */
+#define RVM_EPAGER 213             /* invalid external pager */
+#define RVM_ERANGE 214             /* invalid virtual memory address */
+#define RVM_EREGION 215            /* invalid region descriptor or pointer */
+#define RVM_EREGION_DEF 216        /* invalid region definition descriptor */
+#define RVM_ESRC 217               /* invalid address range for new values */
+#define RVM_ESTATISTICS 218        /* invalid statistics record */
+#define RVM_ESTAT_VERSION_SKEW 219 /* RVM statistics format version skew */
+#define RVM_ETERMINATED 220        /* terminated by error already reported */
+#define RVM_ETHREADS 221           /* illegal C Thread library */
+#define RVM_ETID 222               /* invalid transaction identifier or ptr */
+#define RVM_ETOO_BIG 223           /* internal resouces exceeded */
+#define RVM_EUNCOMMIT 224          /* uncommitted transaction(s) pending */
+#define RVM_EVERSION_SKEW 225      /* RVM library version skew */
+#define RVM_EVM_OVERLAP 226        /* region overlaps existing vm mapping */
+#define rvm_last_code  227         /* internal use only */
 
 /* Enumeration type print name functions */
 extern char *rvm_return(rvm_return_t code);
