@@ -503,6 +503,7 @@ void rpc2_FreeConn(), rpc2_SetConnError();
 struct CEntry *rpc2_AllocConn();
 struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *peeraddr,
 				     RPC2_Integer whichUnique);
+struct CEntry *__rpc2_GetConn(RPC2_Handle handle); /* doesn't bump lastref */
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
 void rpc2_ReapDeadConns(void);
 void rpc2_IncrementSeqNumber(struct CEntry *);

@@ -916,7 +916,7 @@ long RPC2_Unbind(RPC2_Handle whichConn)
 	rpc2_Enter();
 	rpc2_Unbinds++;
 
-	ce = rpc2_GetConn(whichConn);
+	ce = __rpc2_GetConn(whichConn);
 	if (ce == NULL) 
 		rpc2_Quit(RPC2_NOCONNECTION);
 	if (TestState(ce, CLIENT, ~(C_THINK|C_HARDERROR)) ||

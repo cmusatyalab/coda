@@ -81,7 +81,7 @@ int rpc2_InitConn(void)
 /* Returns pointer to the connection data structure corresponding to
    whichHandle.  Returns NULL if whichHandle does not refer to an
    existing connection.  */
-struct CEntry *rpc2_GetConn(RPC2_Handle handle)
+struct CEntry *__rpc2_GetConn(RPC2_Handle handle)
 {
     long                i;
     struct dllist_head *ptr;
@@ -100,19 +100,32 @@ struct CEntry *rpc2_GetConn(RPC2_Handle handle)
         assert(ceaddr->MagicNumber == OBJ_CENTRY);
 
         if (ceaddr->UniqueCID == handle) 
-        {
-            /* we are likely to see more lookups for this CEntry, so put it at
-             * the front of the chain */
-            list_del(ptr); list_add(ptr, &HashTable[i]);
-
-	    /* keep the grim reaper out */
-	    ceaddr->LastRef = time(NULL);
-            return (ceaddr);
-        }
+	    return ceaddr;
     }
     return (NULL);
 }
 
+static void __rehash_ce(struct CEntry *ce)
+{
+    long i = ce->UniqueCID & (HASHLENGTH-1);	
+    list_del(&ce->Chain);
+    list_add(&ce->Chain, &HashTable[i]);
+
+    /* keep the grim reaper out */
+    ce->LastRef = time(NULL);
+}
+
+struct CEntry *rpc2_GetConn(RPC2_Handle handle)
+{
+    struct CEntry *ceaddr = __rpc2_GetConn(handle);
+
+    /* we are likely to see more lookups for this CEntry, so put it at
+     * the front of the hash lookup chain */
+    if (ceaddr)
+	__rehash_ce(ceaddr);
+
+    return (ceaddr);
+}
 
 /* Allocates a new handle corresponding to ceaddr, and sets the
    UniqueCID field of ceaddr. */
@@ -138,7 +151,7 @@ static void Uniquefy(IN struct CEntry *ceaddr)
 	if (handle <= 0)
 	    continue;
 
-	if (rpc2_GetConn(handle) == NULL)
+	if (__rpc2_GetConn(handle) == NULL)
 	    break;
     }
 
@@ -233,7 +246,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     RPC2_PacketBuffer *pb;
     struct CEntry *ce;
 
-    ce = rpc2_GetConn(whichConn);
+    ce = __rpc2_GetConn(whichConn);
     assert(ce && ce->MagicNumber == OBJ_CENTRY);
     rpc2_FreeConns++;
 
@@ -443,8 +456,7 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique)
 	    say(0, RPC2_DebugLevel,
 		"Match after searching %d connection entries\n", j);
 	    /* and put the CE at the head of it's hashbucket */
-	    i = ce->UniqueCID & (HASHLENGTH-1);	
-	    list_del(&ce->Chain); list_add(&ce->Chain, &HashTable[i]);
+	    __rehash_ce(ce);
 	    return(ce);
 	}
     }

@@ -186,7 +186,7 @@ void rpc2_FreeSle(INOUT struct SL_Entry **sl)
     assert(tsl->MagicNumber == OBJ_SLENTRY);
 
     if (tsl->Conn != 0) {
-	ce = rpc2_GetConn(tsl->Conn);
+	ce = __rpc2_GetConn(tsl->Conn);
 	if (ce) ce->MySl = NULL;
     }
 
