@@ -108,6 +108,15 @@ typedef unsigned long long u_quad_t;
 #define cdev_t dev_t
 #endif
 
+/* Solaris Definitions */
+#if defined(sun)
+#include <sys/types.h>
+#include <sys/time.h>
+typedef unsigned long long u_quad_t;
+#define __BIT_TYPES_DEFINED__
+typedef unsigned int       u_int32_t;
+#endif
+
 #ifdef __CYGWIN32__
 struct timespec {
         time_t  tv_sec;         /* seconds */
