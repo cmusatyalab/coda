@@ -19,6 +19,7 @@ case "$1" in
     ;;
 
     upgrade|abort-upgrade)
+	umount /coda 2> /dev/null || true
     ;;
 
     *)

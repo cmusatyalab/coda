@@ -17,6 +17,7 @@ case "$1" in
     ;;
   stop)
     start-stop-daemon --stop --verbose --exec $DAEMON
+    umount /coda
     ;;
   #reload)
     #
@@ -35,6 +36,7 @@ case "$1" in
   # just the same as "restart".
   #
     start-stop-daemon --stop --verbose --exec $DAEMON
+    umount /coda
     sleep 1
     start-stop-daemon --start --verbose --background --exec $DAEMON
     ;;
