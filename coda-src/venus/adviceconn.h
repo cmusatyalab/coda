@@ -67,7 +67,7 @@ typedef struct {
 class adviceconn {
     friend class userent;
     friend class fsobj;
-    friend int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp, int *rcode);
+    friend int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp, int *rcode, int GetInconstent);
 
     struct Lock userLock;  /* Lock indicates outstanding request to user */
 

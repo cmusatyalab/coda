@@ -577,7 +577,7 @@ main(int argc, char *argv[])
 #endif
     StartTime = (unsigned int)tp.tv_sec;
     CODA_ASSERT(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
-
+    exit(0);
 }
 
 

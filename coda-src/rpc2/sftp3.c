@@ -328,11 +328,18 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 				      sizeof(struct RPC2_PacketHeader));/*ack?*/
 #endif
 	    
+    sEntry->RecvSinceAck++;
+
     /* If this packet advances the left edge of the window, save the
      * timestamp to echo in the next ack. But otherwise avoid using an
      * outdated timestamp */
+#if 0
     sEntry->TimeEcho = (pBuff->Header.SeqNumber == sEntry->RecvLastContig+1) ?
 	pBuff->Header.TimeStamp : 0;
+#else
+    if (pBuff->Header.SeqNumber == sEntry->RecvLastContig+1)
+	sEntry->TimeEcho = pBuff->Header.TimeStamp;
+#endif
     
     sEntry->XferState = XferInProgress; /* this is how it gets turned on in Client for fetch */
     SETBIT(sEntry->RecvTheseBits, moffset);
@@ -342,6 +349,8 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	sEntry->RecvMostRecent = pBuff->Header.SeqNumber;
     j = PBUFF(pBuff->Header.SeqNumber);
     sEntry->ThesePackets[j] = pBuff;
+
+    /* ackme flag is set? */
     if (pBuff->Header.Flags & SFTP_ACKME) {
 	if (pBuff->Header.TimeEcho) {
 	    /* update bandwidth estimate.  pBuff->Header.TimeEcho is the 
@@ -368,7 +377,15 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    rpc2_RetryInterval(sEntry->HostInfo, dataThisRound, 1,
 			       &sEntry->RInterval);
 	}
+	if (sftp_SendAck(sEntry) < 0) 
+	    return(-1);
+	if (sftp_WriteStrategy(sEntry) < 0)
+	    return(-1);	    /* may modify RecvLastContig and RecvTheseBits */
+    }
 
+    /* we haven't sent an ack for a while, but did see a lot of data packets
+     * flying by? Send a gratitious ack reply */
+    if (sEntry->RecvSinceAck > (sEntry->AckPoint + (sEntry->AckPoint >> 2))) {
 	if (sftp_SendAck(sEntry) < 0) 
 	    return(-1);
 	if (sftp_WriteStrategy(sEntry) < 0)
@@ -486,6 +503,7 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
     
     sftp_acks++;
     sftp_Sent.Acks++;
+
     SFTP_AllocBuffer(0, &pb);
     sftp_InitPacket(pb, sEntry, 0);
     pb->Header.SeqNumber = ++(sEntry->CtrlSeqNumber);
@@ -521,6 +539,8 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
     B_CopyToPacket(btemp, pb);
     rpc2_htonp(pb);
     sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
+    sEntry->RecvSinceAck = 0;
+
     say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu}\n",
 	    (unsigned long)ntohl(pb->Header.SeqNumber), 
 	    (unsigned long)ntohl(pb->Header.TimeStamp),
@@ -739,15 +759,13 @@ int sftp_SendStrategy(struct SFTP_Entry *sEntry)
 	 * will be placed in the worried set. */
 	sftp_windowfulls++;
 	if (sEntry->SendWorriedLimit > sEntry->SendLastContig)
-	{
 	    if (SendFirstUnacked(sEntry, TRUE) < 0) return(-1);
-	}
     }
     else
     {/* Window is open: be more ambitious */
 	if (sEntry->ReadAheadCount > 0)
 	{
-#if 0
+#if 1
 	    /* Pessimistic view, we might have lost all packets. Retransmit
 	     * everything in the worried set. When the RTT estimates are
 	     * correct, we will not push too many packets on the network, as
@@ -779,28 +797,31 @@ static void CheckWorried(struct SFTP_Entry *sEntry)
 {
     long i, rexmit;
     unsigned long now, then;
-    
+    RPC2_PacketBuffer *thePacket;
+
     if (sEntry->SendWorriedLimit < sEntry->SendLastContig)
 	sEntry->SendWorriedLimit = sEntry->SendLastContig;
     
     TVTOTS(&sEntry->RInterval, rexmit);
     now = rpc2_TVTOTS(&sEntry->LastSS);
-    for (i = sEntry->SendAckLimit; i > sEntry->SendWorriedLimit; i--) 
-	if (!TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig)) {
-	    /* check the timestamp and see if a timeout interval has
-               occurred since */
-	    RPC2_PacketBuffer *thePacket;
+    for (i = sEntry->SendAckLimit; i > sEntry->SendWorriedLimit; i--) {
+	if (TESTBIT(sEntry->SendTheseBits, i - sEntry->SendLastContig))
+	    continue;
 
-	    thePacket = sEntry->ThesePackets[PBUFF(i)];
-	    if (thePacket) {
-		then = ntohl(thePacket->Header.TimeStamp);
-		if ((now > then) && (now - then) > rexmit) {
-			say(4, SFTP_DebugLevel, "Worried packet %ld, sent %lu, (%lu msec ago)\n",
-					 i, then, (now-then));
-			break;
-		}
+	/* check the timestamp and see if a timeout interval has
+	   occurred, if so let's start thinking about retransmitting
+	   the packet */
+	thePacket = sEntry->ThesePackets[PBUFF(i)];
+	if (thePacket) {
+	    then = ntohl(thePacket->Header.TimeStamp);
+	    if ((now > then) && (now - then) > rexmit) {
+		say(4, SFTP_DebugLevel,
+		    "Worried packet %ld, sent %lu, (%lu msec ago)\n",
+		    i, then, (now-then));
+		break;
 	    }
 	}
+    }
     sEntry->SendWorriedLimit = i;
     say(/*9*/4, SFTP_DebugLevel, "LastContig = %ld, Worried = %ld, AckLimit = %ld, MostRecent = %ld\n",
 				  sEntry->SendLastContig, sEntry->SendWorriedLimit, sEntry->SendAckLimit, sEntry->SendMostRecent);
@@ -1177,6 +1198,7 @@ int sftp_SendStart(struct SFTP_Entry *sEntry)
     sftp_InitPacket(pb, sEntry, 0);
     pb->Header.SeqNumber = ++(sEntry->CtrlSeqNumber);
     pb->Header.Opcode = SFTP_START;
+
     now = rpc2_MakeTimeStamp();
     pb->Header.TimeStamp = now;
 #ifdef VERY_FAST_SERVERS

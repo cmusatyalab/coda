@@ -711,7 +711,7 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
 
 
 /* local-repair modification */
-/* last argument "rcode" added for local-repair */
+/* argument "rcode" added for local-repair */
 /* MUST NOT be called from within transaction! */
 /* Returns object READ-locked on success. */
 /* 
@@ -721,7 +721,7 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
  * poor user can do about it.
  */
 int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
-	      char *comp, int *rcode)
+	      char *comp, int *rcode, int GetInconsistent)
 {
     CODA_ASSERT(rights != 0);
     int getdata = (rights & RC_DATA);
@@ -1171,7 +1171,7 @@ RestartFind:
     }
 
     /* Finalize handling of fake objects. */
-    if (f->IsFake() && !(f->vol)->IsUnderRepair(vuid)) {
+    if (!GetInconsistent && f->IsFake() && !(f->vol)->IsUnderRepair(vuid)) {
         LOG(1, ("(Puneet)fsdb::Get:Volume (%u) NOT under repair and IsFake(%x.%x.%x)\n",
 		vuid, f->fid.Volume, f->fid.Vnode, f->fid.Unique));
         char path[MAXPATHLEN];

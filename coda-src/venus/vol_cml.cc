@@ -451,13 +451,14 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs) {
 cmlent *ClientModifyLog::GetFatHead(int tid) {
     volent *vol = strbase(volent, this, CML);
     cmlent *m;
+    cml_iterator next(*this, CommitOrder);
     unsigned long bw; /* bandwidth in bytes/sec */
 
     /* get the current bandwidth estimate */
     vol->vsg->GetBandwidth(&bw);
 
     /* Get the first entry in the CML */
-    m = (cmlent *)list.first();
+    m = next();
 
     /* The head of the CML must exists, be a store operation and ready
      * for reintegration. */

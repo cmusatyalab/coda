@@ -134,7 +134,6 @@ static void WaitForever(int, char**, int);
 static void WhereIs(int, char**, int);
 static void WriteDisconnect(int, char**, int);
 static void WriteReconnect(int, char**, int);
-static int IsObjInc(char *, ViceFid *);
 
 static void At_SYS(int, char **, int);
 static void At_CPU(int, char **, int);
@@ -184,19 +183,9 @@ struct command cmdarray[] =
             "Clear short-term priorities (DANGEROUS)",
             "important files may be lost, if disconnected"
         },
-        {"compress", NULL, Compress, 
-            "cfs compress <file> [<file> <file> ...]",
-            "Compress cached files",
-            NULL
-        },
         {"disableasr", "dasr", DisableASR,
             "cfs disableasr <dir/file>",
             "Disable ASR execution in object's volume",
-            NULL
-        },
-        {"disconnect", NULL, Disconnect, 
-            "cfs disconnect <servernames>",
-            "Partition from file servers (A LITTLE RISKY)",
             NULL
         },
         {"enableasr", "easr", EnableASR,
@@ -249,13 +238,11 @@ struct command cmdarray[] =
             "Map path to fid",
             NULL
         },
-
         {"getpath", "gp", GetPath, 
             "cfs getpath <fid> [<fid> <fid> ...]",
             "Map fid to volume-relative path",
             NULL
         },
-
         {"getmountpoint", "gmt", GetMountPoint, 
             "cfs getmountpoint <volid> [<volid> <volid> ...]",
             "Get mount point pathname for specified volume",
@@ -297,11 +284,6 @@ struct command cmdarray[] =
             "Purge volume modify log (DANGEROUS)",
             "will destroy all changes made while disconnected"
         },
-        {"reconnect", NULL, Reconnect, 
-            "cfs reconnect <servernames>",
-            "Heal partition to servers from cfs disconnect",
-            NULL
-        },
         {"replayclosure", "rc", ReplayClosure, 
             "cfs replayclosure [-i] [-r] [<closure> <closure> ...]",
             "Replay reintegration closure",
@@ -327,19 +309,9 @@ struct command cmdarray[] =
             "Set volume status ",
             NULL
         },
-        {"slow", NULL, Slow, 
-            "cfs slow <speed (bps)>",
-            "Set network speed",
-            NULL
-        },
         {"truncatelog", "tl", TruncateLog, 
             "cfs truncatelog",
             "Truncate the RVM log at this instant",
-            NULL
-        },
-        {"uncompress", NULL, Uncompress, 
-            "cfs uncompress <file> [<file> <file> ...]",
-            "Uncompress cached files",
             NULL
         },
         {"unloadkernel", "uk", UnloadKernel,
@@ -357,6 +329,16 @@ struct command cmdarray[] =
             "List location of object",
             NULL
         },
+        {"disconnect", NULL, Disconnect, 
+            "cfs disconnect <servernames>",
+            "Partition from file servers (A LITTLE RISKY)",
+            NULL
+        },
+        {"reconnect", NULL, Reconnect, 
+            "cfs reconnect <servernames>",
+            "Heal partition to servers from cfs disconnect",
+            NULL
+        },
         {"writedisconnect", "wd", WriteDisconnect, 
             "cfs writedisconnect [-age <sec>] [<dir> <dir> <dir> ...]",
             "Write disconnect all volumes, or volumes specified",
@@ -367,6 +349,23 @@ struct command cmdarray[] =
             "Write connect all volumes, or volumes specified",
             NULL
         }
+#if 0 /* disabled these until the compression/filcon stuff works --JH */
+        {"slow", NULL, Slow, 
+            "cfs slow <speed (bps)>",
+            "Set network speed",
+            NULL
+        },
+        {"compress", NULL, Compress, 
+            "cfs compress <file> [<file> <file> ...]",
+            "Compress cached files",
+            NULL
+        },
+        {"uncompress", NULL, Uncompress, 
+            "cfs uncompress <file> [<file> <file> ...]",
+            "Uncompress cached files",
+            NULL
+        },
+#endif
     };
 
 /* Number of commands in cmdarray */
@@ -1014,10 +1013,17 @@ static void BeginRepair(int argc, char *argv[], int opslot)
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
     }
-    if (!IsObjInc(argv[2], &fid)) {
-        printf("%s isn't inconsistent\n", argv[2]);
-        exit(-1);
-    }  
+
+#if defined(DJGPP) || defined(__CYGWIN32__)
+    /* test if the filename ends in ".$cf" */
+    int len = strlen(argv[2]);
+    if (len >= 4 && (argv[2][len-3] == '$' && argv[2][len-2] == 'c' &&
+		     argv[2][len-1] == 'f' && argv[2][len-4] == '.')) {
+	/* if so, strip the '.$cf'. Otherwise venus doesn't understand what
+	 * file we're talking about */
+	 argv[2][len-4] = '\0';
+    }
+#endif
 
     vio.in_size = 1 + (int) strlen(argv[2]);
     vio.in = argv[2];
@@ -1026,8 +1032,16 @@ static void BeginRepair(int argc, char *argv[], int opslot)
     bzero(piobuf, PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_ENABLEREPAIR, &vio, 0);
-    if (rc < 0){fflush(stdout); perror("VIOC_ENABLEREPAIR"); exit(-1);}
+    if (rc < 0) {
+	if (errno == EOPNOTSUPP)
+	    printf("%s isn't inconsistent\n", argv[2]);
+	else
+	    perror("VIOC_ENABLEREPAIR");
+
+	exit(-1);
+    }
 }
+
 static void DisableASR(int argc, char *argv[], int opslot)
 {
     struct ViceIoctl vio;
@@ -1136,14 +1150,7 @@ static int pioctl_GetFid(char *path, ViceFid *fid, ViceVersionVector *vv)
 
     if (rc < 0) return rc;
 
-    /* Got the fid!  Note that objects in conflict are trivial to find
-       the fid for: just look at the dangling sym link value.  So we don't
-       go to any trouble to find the fid if the object is in conflict.
-       
-       If it only were possible to have dangling symlinks on windows9x...
-       I've split this function out of GetFid so that we can use it for
-       getting the fids of objects in conflict as well. --JH
-     */
+    /* Got the fid! */
     if (fid) memcpy(fid, &out.fid, sizeof(ViceFid));
     if (vv)  memcpy(vv,  &out.vv,  sizeof(ViceVersionVector));
 
@@ -2385,62 +2392,6 @@ static int getlongest(int argc, char *argv[])
         }
     return(max);
     }
-
-
-static int IsObjInc(char *name, ViceFid *fid) {
-    int rc;
-    char symval[MAXPATHLEN];
-    struct stat statbuf;
-    ViceFid chk;
-
-    memset(fid, 0, sizeof(ViceFid));
-
-    printf("IsObjInc 1\n");
-
-#if defined(DJGPP) || defined(__CYGWIN32__)
-    /* test if the filename ends in ".$cf" */
-    printf("IsObjInc 2\n");
-    char *tail = strrchr(name, '.');
-    if (!tail || strcmp(tail, ".$cf") != 0){
-	    printf("not tail or not in conflict\n");
-	    return(0);
-    }
-
-    /* and strip the '.$cf', which is both a nice and a nasty side effect
-     * of this function!!! */
-    *tail = '\0';
-#else
-    rc = stat(name, &statbuf);
-    if ((rc == 0) || (rc == ENOENT)) return(0);
-
-    /* test if it is a symlink */
-    symval[0] = 0;
-    rc = readlink(name, symval, MAXPATHLEN);
-    if (rc < 0) return(0);
-
-    /* it's a sym link, alright  */
-    if (symval[0] == '@') 
-        sscanf(symval, "@%x.%x.%x", &chk.Volume, &chk.Vnode, &chk.Unique);
-#endif
-    printf("IsObjInc 3 %s\n", name);
-    rc = pioctl_GetFid(name, fid, NULL);
-
-#if !defined(DJGPP) && !defined(__CYGWIN32__)
-    /* warn if the symlink and getfid info are not the same */
-    if (fid->Volume != chk.Volume ||
-        fid->Vnode  != chk.Vnode ||
-        fid->Unique != chk.Unique)
-        fprintf(stderr, "Warning: %s getfid != readlink info", name);
-#endif
-
-    if (rc < 0) {
-	    printf("rc = %i\n", rc);
-	    return(0);
-    }
-
-    return(1);
-}
-
 
 /* *** CODE STATUS ****
 

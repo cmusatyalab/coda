@@ -285,6 +285,7 @@ struct SFTP_Entry		/* per-connection data structure */
     long RecvLastContig;	/* Most recent data packet up to which I no longer maintain state */
     long RecvMostRecent;	/* Highest numbered data packet seen so far */
     long DupsSinceAck;		/* Duplicates seen since the last ack I sent */
+    long RecvSinceAck;		/* Packets received since the last ack I sent */
 
     unsigned long RequestTime;  /* arrival time of packet, to correct RTT
 				   estimates for processing time */

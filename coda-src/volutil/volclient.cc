@@ -599,7 +599,6 @@ static void VolDumpLWP(struct rockInfo *rock)
     register long rc;
     
     RPC2_SubsysIdent subsysid;
-    FILE *tokfile;
 
     /* Hide the dumpfile name under a rock for later retrieval. */
     CODA_ASSERT(LWP_NewRock(ROCKTAG, (char *)rock) == LWP_SUCCESS);

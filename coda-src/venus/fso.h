@@ -225,7 +225,9 @@ class fsdb {
 
   public:
     fsobj *Find(ViceFid *);
-    int Get(fsobj **, ViceFid *, vuid_t, int, char * =0, int * =0); /* last arg added for local repair */
+    /* rcode arg added for local repair */
+    int Get(fsobj **fso, ViceFid *fid, vuid_t vuid, int rights, char *comp=0,
+	    int *rcode=0, int GetInconsistent=0);
     void Put(fsobj **);
     void Flush();
     void Flush(VolumeId);

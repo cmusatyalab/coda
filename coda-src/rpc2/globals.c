@@ -67,7 +67,7 @@ PROCESS rpc2_SocketListenerPID=NULL;
 
 struct timeval rpc2_InitTime;
 
-long Retry_N;	                /* total number of retries -- see packet.c */
+long Retry_N;			/* total number of retries -- see packet.c */
 struct timeval *Retry_Beta;	/* array of timeout intervals */
 struct timeval SaveResponse;    /* 2*Beta0: lifetime of saved response packet */
 long rpc2_Bandwidth = 10485760; /* bandwidth hint supplied externally */
@@ -115,7 +115,7 @@ long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
 
-char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.3 1998/11/24 15:34:34 jaharkes Exp $";
+char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.4 1998/12/21 22:26:43 jaharkes Exp $";
 
 long rpc2_errno;
 

@@ -81,7 +81,6 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 	case VIOCPREFETCH:
 	case VIOC_AFS_DELETE_MT_PT:
 	case VIOC_AFS_STAT_MT_PT:
-	case VIOC_GETFID:
         case VIOC_GETPFID:
 	case VIOC_SETVV:
 	    {
@@ -94,19 +93,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 		if (u.u_error) break;
 
 		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
-
-		/* allow the VIOC_GETFID to succeed on inconsistent objects */
-		if (u.u_error == EINCONS && com == VIOC_GETFID) {
-		    memcpy((char*)data->out, fid, sizeof(ViceFid));
-		    memset((char*)data->out + sizeof(ViceFid), 0,
-			   sizeof(ViceVersionVector));
-		    data->out_size = sizeof(ViceFid)+sizeof(ViceVersionVector);
-		    u.u_error = 0;
-		    goto O_FreeLocks;
-		}
-
-		if (u.u_error)
-		    goto O_FreeLocks;
+		if (u.u_error) goto O_FreeLocks;
 
 		switch(com) {
 		    case VIOCSETAL:
@@ -298,42 +285,6 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
-		    case VIOC_GETFID:
-			{
-			if (data->in_size != 0 && data->in_size != (int)sizeof(int))
-			    { u.u_error = EINVAL; break; }
-			if (data->in_size == (int)sizeof(int)) {
-			    /* Backup and use volroot's mount point if directed. */
-			    int backup;
-			    bcopy((const void *)data->in, (void *) &backup, (int)sizeof(int));
-			    if (backup) {
-				if (f->fid.Volume == rootfid.Volume ||
-				    (!FID_IsVolRoot(&f->fid)) ||
-				    f->u.mtpoint == 0)
-				    { u.u_error = EINVAL; break; }
-
-				ViceFid mtptfid = f->u.mtpoint->fid;
-				FSDB->Put(&f);
-				u.u_error = FSDB->Get(&f, &mtptfid,
-						      CRTORUID(u.u_cred), RC_STATUS);
-				if (u.u_error) break;
-			    }
-			}
-
-			char *cp = (char *)data->out;
-
-			/* Copy out the fid. */
-			bcopy((const void *)&f->fid, (void *) cp, (int)sizeof(ViceFid));
-			cp += sizeof(ViceFid);
-
-			/* Copy out the VV.  This will be garbage unless the object is replicated! */
-			bcopy((const void *)&f->stat.VV, (void *) cp, (int)sizeof(ViceVersionVector));
-			cp += sizeof(ViceVersionVector);
-
-			data->out_size = (cp - data->out);
-			break;
-			}
-
 		    case VIOC_GETPFID:
 			{
 			if (data->in_size != (int)sizeof(ViceFid))
@@ -374,7 +325,6 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 		}
-
 O_FreeLocks:
 		FSDB->Put(&f);
 		int retry_call = 0;
@@ -384,27 +334,107 @@ O_FreeLocks:
 	    }
 	    return;
 
-        /* flushasr always fails to "Get" an object since it is inconsistent */
-	/* therefore, we do a Find to get the pointer as opposed to the normal */
-	/* object pioctls that Get the object */
+	/* Object-based. Allowing access to inconsistent objects. */
+	case VIOC_ENABLEREPAIR:
         case VIOC_FLUSHASR:
+	case VIOC_GETFID:
 	    {
-		fsobj *f = FSDB->Find(fid);	/* note that find does no locking */
-		if (f) {
+	    fsobj *f = 0;
+
+	    for (;;) {
+		Begin_VFS(fid->Volume, CODA_IOCTL, VM_OBSERVING);
+		if (u.u_error) break;
+
+		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS,
+				      NULL, NULL, 1);
+		if (u.u_error) goto OI_FreeLocks;
+
+		switch(com) {
+		case VIOC_ENABLEREPAIR:
+		    {
+		    /* Try to enable target volume for repair by this user. */
+		    VolumeId  *RWVols   = (VolumeId *)data->out;
+		    vuid_t    *LockUids = (vuid_t *)&(RWVols[MAXHOSTS]);
+		    unsigned long *LockWSs =
+			(unsigned long *)&(LockUids[MAXHOSTS]);
+		    char      *endp     = (char *)&(LockWSs[MAXHOSTS]);
+
+		    /* actually EnableRepair operates on the volume, but we
+		     * also check if the object is really inconsistent */
+		    if (!f->IsFake()) u.u_error = EOPNOTSUPP;
+		    else u.u_error = f->vol->EnableRepair(CRTORUID(u.u_cred),
+						    RWVols, LockUids, LockWSs);
+
+		    data->out_size = (endp - data->out);
+
+		    /* Make sure the kernel drops the symlink */
+		    (void)k_Purge(fid, 1);
+		    break;
+		    }
+
+		case VIOC_FLUSHASR:
+		    /* This function used to be built around FSDB->Find, which
+		     * did no locking. Now we use FSDB->Get, which does do
+		     * locking. Hopefully this is better, and nothing breaks.
+		     * --JH */
+		    {
 		    /* ASR flush operation allowed only for files */
 		    LOG(100, ("Going to reset lastresolved time for %x.%x.%x\n",
 			      fid->Volume, fid->Vnode, fid->Unique));
 		    u.u_error = f->SetLastResolved(0);
+		    break;
+		    }
+
+		case VIOC_GETFID:
+		    {
+		    if (!(data->in_size == 0 || data->in_size == sizeof(int))) {
+			u.u_error = EINVAL;
+			break;
+		    }
+		    /* Backup and use volroot's mount point if directed. */
+		    if (data->in_size == sizeof(int) && *(int *)data->in != 0) {
+			if (f->fid.Volume == rootfid.Volume ||
+			    !FID_IsVolRoot(&f->fid) || f->u.mtpoint == 0) {
+			    u.u_error = EINVAL;
+			    break;
+			}
+
+			ViceFid mtptfid = f->u.mtpoint->fid;
+			FSDB->Put(&f);
+			u.u_error = FSDB->Get(&f, &mtptfid, CRTORUID(u.u_cred),
+					      RC_STATUS, NULL, NULL, 1);
+			if (u.u_error) break;
+		    }
+
+		    char *cp = (char *)data->out;
+
+		    /* Copy out the fid. */
+		    memcpy(cp, &f->fid, sizeof(ViceFid));
+		    cp += sizeof(ViceFid);
+
+		    /* Copy out the VV. This will be garbage unless the
+		     * object is replicated! */
+		    memcpy(cp, &f->stat.VV, sizeof(ViceVersionVector));
+		    cp += sizeof(ViceVersionVector);
+
+		    data->out_size = (cp - data->out);
+		    break;
+		    }
 		}
+OI_FreeLocks:
+		FSDB->Put(&f);
+		int retry_call = 0;
+		End_VFS(&retry_call);
+		if (!retry_call) break;
+	    }
 	    }
 	    return;
-	    
+
 	/* Volume-based. */
 	case VIOCGETVOLSTAT:
 	case VIOCSETVOLSTAT:
 	case VIOCWHEREIS:
 	case VIOC_FLUSHVOLUME:
-	case VIOC_ENABLEREPAIR:
 	case VIOC_DISABLEREPAIR:
 	case VIOC_REPAIR:
 	case VIOC_GETSERVERSTATS:
@@ -422,9 +452,11 @@ O_FreeLocks:
 	    volent *v = 0;
 	    if ((u.u_error = VDB->Get(&v, fid->Volume)) != 0) break;
 
-	    int volmode = ((com == VIOC_REPAIR || com == VIOC_PURGEML) ? VM_MUTATING : VM_OBSERVING);
+	    int volmode = ((com == VIOC_REPAIR || com == VIOC_PURGEML) ?
+			   VM_MUTATING : VM_OBSERVING);
 	    int entered = 0;
-	    if ((u.u_error = v->Enter(volmode, CRTORUID(u.u_cred))) != 0) goto V_FreeLocks;
+	    if ((u.u_error = v->Enter(volmode, CRTORUID(u.u_cred))) != 0)
+		goto V_FreeLocks;
 	    entered = 1;
 
 	    switch(com) {
@@ -609,36 +641,6 @@ O_FreeLocks:
 		    break;
 		    }
 
-/*
-  BEGIN_HTML
-  <a name="beginrepair"><strong> beginrepair handler </strong></a>
-  END_HTML
-*/
-		case VIOC_ENABLEREPAIR:
-		    {
-		    /* Try to enable target volume for repair by this user. */
-#define	startp	    (data->out)
-#define	RWVols	    ((VolumeId *)(startp))
-#define	LockUids    ((vuid_t *)(RWVols + MAXHOSTS))
-#define	LockWSs	    ((unsigned long *)(LockUids + MAXHOSTS))
-#define	endp	    ((char *)(LockWSs + MAXHOSTS))
-		    u.u_error = v->EnableRepair(CRTORUID(u.u_cred), RWVols,
-					 	LockUids, LockWSs);
-		    data->out_size = (endp - startp);
-#undef	startp
-#undef	RWVols
-#undef	LockUids
-#undef	LockWSs
-#undef	endp
-		    /* Make sure the kernel drops the symlink */
-		    (void)k_Purge(fid, 1);
-		    break;
-		    }
-/*
-  BEGIN_HTML
-  <a name="quit"><strong> quit handler </strong></a>
-  END_HTML
-*/
 		case VIOC_DISABLEREPAIR:
 		    {
 		    /* Disable repair of target volume by this user. */

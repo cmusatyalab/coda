@@ -1616,7 +1616,7 @@ void beginRepair(int largc, char **largv)
     vioc.in_size = 0;
     vioc.out = space;
     bzero(space, (int)sizeof(space));
-    rc = pioctl(prefix, VIOC_ENABLEREPAIR, &vioc, 0);
+    rc = pioctl(reppath, VIOC_ENABLEREPAIR, &vioc, 0);
     if (rc < 0)
 	{
 	if (errno == EWOULDBLOCK)

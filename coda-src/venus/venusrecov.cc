@@ -46,6 +46,10 @@ extern "C" {
 
 #include <sys/mman.h>
 
+/* function defined in rpc2.private.h, which we need to seed the random
+ * number generator, _before_ we create a new VenusGenId. */
+void rpc2_InitRandom();
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -110,7 +114,6 @@ static const char *VM_RDSADDR = (char *)0x03000000;
 #ifdef __CYGWIN32__
 #include <windows.h>
 #endif
-
 
 /*  *****  Private Variables  *****  */
 
@@ -209,6 +212,9 @@ void RecovInit() {
 	rvg->recov_MagicNumber = RecovMagicNumber;
 	rvg->recov_VersionNumber = RecovVersionNumber;
 	rvg->recov_LastInit = Vtime();
+
+	/* We need to initialize the random number generator before first use */
+	rpc2_InitRandom();
 	VenusGenID = rpc2_NextRandom(NULL);
 
 	RecovInited = 1;
@@ -563,6 +569,9 @@ static void Recov_InitSeg()
 		rvg->recov_HeapAddr = Recov_RdsAddr;
 		rvg->recov_HeapLength = (unsigned int)Recov_RdsLength;
 		
+		/* We need to initialize the random number generator before
+		 * first use */
+		rpc2_InitRandom();
 		VenusGenID = rpc2_NextRandom(NULL);
 
 		/* Initialize the recoverable heap. */

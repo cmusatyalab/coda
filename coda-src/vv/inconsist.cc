@@ -266,7 +266,7 @@ void InvalidateVV(vv_t *v) {
 void GetMaxVV(vv_t *newvv, vv_t **vvgroup, int domindex)
 {
     int i, j;
-    bzero((const void *)newvv, sizeof(ViceVersionVector));
+    memset(newvv, 0, sizeof(ViceVersionVector));
     for (i = 0; i < VSG_MEMBERS; i++) {
 	/* compute max of VV[][i] */
 	long max = 0;
