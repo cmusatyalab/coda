@@ -34,10 +34,6 @@ struct lwp_pcb {
     pthread_t        thread;            /* thread id */
     struct list_head list;              /* list of all threads */
 
-    struct list_head runq;
-    pthread_cond_t   run_cond;
-    struct list_head lockq;
-    pthread_cond_t   lock_cond;
     int              concurrent;
     int              priority;
 
@@ -51,14 +47,13 @@ struct lwp_pcb {
     struct rock rock[MAXROCKS];         /* and the rocks themselves */
     
     sem_t          waitq;               /* used by QWait/QSignal */
+
     pthread_cond_t event;               /* used by INTERNALSIGNAL/MWait */
     int            eventcnt;            /* # of events in the evlist */
     int            waitcnt;             /* # of events we wait for */
     int            evsize;              /* size of the evlist */
-    char         **evlist;              /* list of event we wait for */
+    char         **evlist;              /* list of events we wait for */
 };
-
-extern struct list_head lwp_runq;
 
 void lwp_JOIN(PROCESS pid);
 void lwp_LEAVE(PROCESS pid);
@@ -75,3 +70,4 @@ extern FILE *lwp_logfile;
          fflush(lwp_logfile); } } while(0);
 
 #endif /* _LWP_PRIVATE_H_ */
+

@@ -74,16 +74,12 @@ void Lock_ReleaseW (struct Lock *);
 #else /* _REENTRANT || _THREAD_SAFE */
 #include <pthread.h>
 
-struct list_head {
-    struct list_head *next, *prev;
-};
-
 struct Lock {
     char             initialized;
     char             readers;
     PROCESS          excl;
     pthread_mutex_t  access;
-    struct list_head pending;
+    pthread_cond_t   wakeup;
 };
 #endif /* _REENTRANT || _THREAD_SAFE */
 

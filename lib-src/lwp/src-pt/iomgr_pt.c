@@ -72,7 +72,8 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 /* ofcourse not to be confused with poll(2) :( */
 int IOMGR_Poll(void)
 {
-    return !list_empty(&lwp_runq);
+//    return !list_empty(&lwp_runq);
+    return 1;
 }
 
 int IOMGR_Cancel (PROCESS pid)

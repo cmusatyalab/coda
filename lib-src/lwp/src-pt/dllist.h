@@ -21,13 +21,9 @@ Coda are listed in the file CREDITS.
 
 /* based on linux kernel code lists. */
 
-/* struct list_head is defined in <lwp/lock.h> */
-#include <lwp/lock.h>
-#if 0
 struct list_head {
 	struct list_head *next, *prev;
 };
-#endif
 
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
