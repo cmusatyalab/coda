@@ -174,9 +174,9 @@ int vindex_iterator::operator()(VnodeDiskObject *vnode) {
 	    if (vdo->type == vNull)
 		continue;
 	    else if(v_ind->vtype == vSmall)
-		memmove((void *)vnode, (const void *)vdo, SIZEOF_SMALLDISKVNODE);
+		memcpy((void *)vnode, (const void *)vdo, SIZEOF_SMALLDISKVNODE);
 	    else if(v_ind->vtype == vLarge)
-		memmove((void *)vnode, (const void *)vdo, SIZEOF_LARGEDISKVNODE);
+		memcpy((void *)vnode, (const void *)vdo, SIZEOF_LARGEDISKVNODE);
 	    else
 		LogMsg(0, 0, stdout, "vindex_iterator::operator() bad vnode type %d", v_ind->vtype);
 
