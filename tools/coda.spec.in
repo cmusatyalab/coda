@@ -108,7 +108,7 @@ chown -R root.root $RPM_BUILD_ROOT
 rm -rf $RPM_BUILD_ROOT
 
 %pre client
-grep /coda /proc/mounts > /dev/null 2>&1
+grep "^coda" /proc/mounts > /dev/null 2>&1
 if [ $? = 0 ]; then
 	echo "*** Coda is mounted: cannot install ***"
 	exit 1
@@ -117,7 +117,7 @@ else
 fi
 
 %preun client
-grep /coda /proc/mounts > /dev/null 2>&1
+grep "^coda" /proc/mounts > /dev/null 2>&1
 if [ $? = 0 ]; then
 	echo "*** Coda is mounted: cannot uninstall ***"
 	exit 1
@@ -197,6 +197,9 @@ tar zxf coda-@VERSION@.tgz
 /usr/bin/removeinc
 /usr/bin/xfrepair
 /usr/bin/xaskuser
+/usr/bin/logbandwidth
+/usr/bin/logcmls
+/usr/bin/logreintegration
 /usr/sbin/volmunge
 /usr/lib/coda/Advice.tcl
 /usr/lib/coda/CodaConsole
@@ -233,7 +236,6 @@ tar zxf coda-@VERSION@.tgz
 /usr/sbin/rdsinit
 /usr/sbin/startserver
 /usr/sbin/partial-reinit.sh
-/usr/sbin/createvol
 /usr/sbin/createvol_rep
 /usr/sbin/purgevol
 /usr/sbin/purgevol_rep

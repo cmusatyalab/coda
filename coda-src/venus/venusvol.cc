@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.13 98/09/29 16:38:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.14 98/09/29 21:04:46 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -803,9 +803,12 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     ReintLimit = V_UNSETREINTLIMIT;
     DiscoRefCounter = -1;
 
-    /* this store uniqifier should also survive shutdowns, because the
-       server remembers the last sid we successfully reintegrated. It
-       is thus no longer a transient.-- JH */
+    /* The uniqifiers should also survive shutdowns, f.i. the server
+       remembers the last sid we successfully reintegrated. And in
+       disconnected mode the unique fids map to unique inodes. The
+       1<<19 shift is to avoid collisions with inodes derived from
+       non-local generated fids -- JH */
+    FidUnique = 1 << 19;
     SidUnique = Vtime();
 
     ResetTransient();
@@ -858,7 +861,6 @@ void volent::ResetTransient() {
 
     CML.ResetTransient();
     Lock_Init(&CML_lock);
-    FidUnique = 1 << 19; /* trust me, I know what I'm doing --JH */
     OpenAndDirtyCount = 0;
     // Added 8/23/92 by bnoble - now transient
     RecordsCancelled = 0;
@@ -2176,7 +2178,10 @@ ViceFid volent::GenerateLocalFid(ViceDataType fidtype) {
     else 
 	    FID_MakeDiscoFile(&fid, vid, FidUnique);
 
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(FidUnique);
     FidUnique++;
+    Recov_EndTrans(MAXFP);
 
     return(fid);
 }
@@ -2184,10 +2189,15 @@ ViceFid volent::GenerateLocalFid(ViceDataType fidtype) {
 
 ViceFid volent::GenerateFakeFid() 
 {
-	ViceFid fid;
-	FID_MakeSubtreeRoot(&fid, vid, FidUnique);
-	FidUnique++;
-	return(fid);
+    ViceFid fid;
+    FID_MakeSubtreeRoot(&fid, vid, FidUnique);
+
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(FidUnique);
+    FidUnique++;
+    Recov_EndTrans(MAXFP);
+
+    return(fid);
 }
 
 /* This function is called from multiple places outside of a transaction,

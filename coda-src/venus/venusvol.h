@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.h,v 4.6 98/09/23 20:26:36 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.h,v 4.7 98/09/29 21:04:47 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -774,7 +774,7 @@ class volent {
     struct Lock CML_lock;		/* for checkpoint/mutator synchronization */
     unsigned AgeLimit;			/* min age of log records in SECONDS */
     unsigned ReintLimit;		/* work limit, in MILLESECONDS */
-    /*T*/Unique_t FidUnique;
+    Unique_t FidUnique;
     RPC2_Unsigned SidUnique;
     /*T*/int OpenAndDirtyCount;
     // The next four are now transient - bnoble
