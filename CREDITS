@@ -106,9 +106,12 @@ here is the list:
 
    Peter Braam (1996-now)     Linux port including Linux minicache;
 			      restructuring  to  use
-                              GNU build environment
+                              GNU build environment, partition system,
+			      numerous bug fixes
 
    Yui-wah Lee (1996-now)     Linux port 
+	
+   Elliot Lee  (1997-now)     Sparc Linux port, glibc port.
 
 Work on Coda has been supported by many funding agencies and
 corporations over its history.  The contributors include: National

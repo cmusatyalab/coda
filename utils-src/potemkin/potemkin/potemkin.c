@@ -416,8 +416,8 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
     vbuf->va_gid = sbuf->st_gid;
     /* vbuf->va_fileid = fep->fid.Vnode; */
     /* va_fileid has to be the vnode number of the cache file.  Sorry. */
-    /*    vbuf->va_fileid = sbuf->st_ino; */
-    vbuf->va_fileid = coda_f2i(&(fep->fid));
+    vbuf->va_fileid = sbuf->st_ino;
+    /*    vbuf->va_fileid = coda_f2i(&(fep->fid)); */
     vbuf->va_size = sbuf->st_size;
     vbuf->va_blocksize = V_BLKSIZE;
 #ifdef __linux__
@@ -1118,7 +1118,7 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
 	(vap->va_mode == (u_short)-1) &&
 	(vap->va_uid == (uid_t)-1) &&
 	(vap->va_gid == (gid_t)-1) &&
-	(vap->va_size == (off_t)-1) &&
+	(vap->va_size == (size_t)-1) &&
 	(vap->va_atime.tv_sec == (long)-1) &&
 	(vap->va_mtime.tv_sec == (long)-1) &&
 	(vap->va_ctime.tv_sec == (long)-1))
@@ -1128,12 +1128,12 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
     }
 
     if ((vap->va_type != C_VNON) ||
-	(vap->va_fileid != (long)-1) ||
-	(vap->va_gen != (long)-1) ||
-	(vap->va_bytes != (long)-1) ||
-	(vap->va_nlink != (short)-1) ||
-	(vap->va_blocksize != (long)-1) ||
-	(vap->va_rdev != (dev_t)-1))
+	(vap->va_fileid != -1) ||
+	(vap->va_gen != -1) ||
+	(vap->va_bytes != -1) ||
+	(vap->va_nlink != -1) ||
+	(vap->va_blocksize != -1) ||
+	(vap->va_rdev != -1))
     {
 	out->oh.result = EINVAL;
 	goto earlyexit;

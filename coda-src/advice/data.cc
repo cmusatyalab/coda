@@ -6,6 +6,7 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/dir.h>
+#include <sys/time.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>

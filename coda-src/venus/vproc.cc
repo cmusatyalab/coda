@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.10 97/12/18 23:44:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.11 1997/12/19 11:20:35 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -880,6 +880,10 @@ long FidToNodeid(ViceFid *fid) {
 #endif 
 
 #ifdef __linux__
+    if (fid->Vnode == ROOT_VNODE && fid->Unique == ROOT_UNIQUE) {
+	LOG(0, ("FidToNodeid: called for volume root (%x)!!!\n", 
+		fid->Volume));
+    }
     return coda_f2i(fid);
 #endif
 }

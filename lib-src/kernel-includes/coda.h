@@ -16,10 +16,13 @@
 #endif 
 
 #ifdef __linux__
+#define cdev_t u_quad_t
 #if !defined(_UQUAD_T_) && (!defined(__GLIBC__) || __GLIBC__ < 2)
 #define _UQUAD_T_ 1
 typedef unsigned long long u_quad_t;
 #endif 
+#else
+#define cdev_t dev_t
 #endif
 
 
@@ -146,7 +149,7 @@ struct coda_vattr {
 	struct timespec	va_ctime;	/* time file changed */
 	u_long		va_gen;		/* generation number of file */
 	u_long		va_flags;	/* flags defined for file */
-	dev_t		va_rdev;	/* device the special file represents */
+	cdev_t	        va_rdev;	/* device special file represents */
 	u_quad_t	va_bytes;	/* bytes of disk space held by file */
 	u_quad_t	va_filerev;	/* file modification number */
 };
@@ -237,7 +240,7 @@ struct cfs_open_in {
 
 struct cfs_open_out {
     struct cfs_out_hdr oh;
-    dev_t	dev;
+    cdev_t	dev;
     ino_t	inode;
 };
 

@@ -55,6 +55,7 @@ do {                                                           \
 #define ATTR_FORCE	512	/* Not a change, but a change it */
 #define ATTR_ATTR_FLAG	1024
 #define MS_MGC_VAL 0xC0ED0000	/* magic flag number to indicate "new" flags */
+#define umode_t int
 struct iattr {
 	unsigned int	ia_valid;
 	umode_t		ia_mode;
@@ -66,7 +67,10 @@ struct iattr {
 	time_t		ia_ctime;
 	unsigned int	ia_attr_flags;
 };
+
 static void coda_iattr_to_vattr(struct iattr *, struct coda_vattr *);
+
+
 #define sigcontext sigaction
 #define MOUNT_CFS 0
 #define d_namlen d_reclen
