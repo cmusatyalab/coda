@@ -145,7 +145,8 @@ main(int argc, char **argv) {
 	  }
 	    break;
 	  case 'i': {
-	      printf("Rereading the data base from /vice/vol/VRList");
+	      printf("Rereading the data base from %s",
+		     vice_file("vol/VRList"));
 	      BuildVRDB();
 	      CheckVRDB();
 	  }
