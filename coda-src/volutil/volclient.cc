@@ -413,7 +413,10 @@ static void salvage(void)
     char *path = NULL;
 
     if (these_args < 3) {
-	fprintf(stderr, "Usage: volutil salvage [-d][-f][-i] partition [rw-vol number]\n");
+	fprintf(stderr, "Usage: volutil salvage [-d][-f][-i] partition "
+			"[rw-vol number]\n"
+			"The salvage option to volutil doesn't work right. "
+			"Please don't try it.\n");
 	exit(-1);
     }
     these_args--; this_argp++;
