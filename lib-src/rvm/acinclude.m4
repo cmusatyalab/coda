@@ -3,7 +3,7 @@ dnl ---------------------------------------------
 dnl translate easy to remember target names into recognizable gnu variants and
 dnl test the cross compilation platform and adjust default settings
 
-AC_DEFUN(CODA_SETUP_BUILD,
+AC_DEFUN([CODA_SETUP_BUILD],
 [AC_SUBST(LIBTOOL_LDFLAGS)
 case ${host_alias} in
   djgpp | win95 | dos )  host_alias=i386-pc-msdos ;;
@@ -66,7 +66,7 @@ fi])
 dnl ---------------------------------------------
 dnl Specify paths to the lwp includes and libraries
 
-AC_DEFUN(CODA_OPTION_LWP,
+AC_DEFUN([CODA_OPTION_LWP],
  [AC_ARG_WITH(lwp-includes,
     [  --with-lwp-includes     Location of the the lwp include files],
     [ CPPFLAGS="${CPPFLAGS} -I`(cd ${withval} ; pwd)`" ])
@@ -83,7 +83,7 @@ dnl ---------------------------------------------
 dnl Search for an installed library in:
 dnl      /usr/lib /usr/local/lib /usr/pkg/lib ${prefix}/lib
 
-AC_DEFUN(CODA_FIND_LIB,
+AC_DEFUN([CODA_FIND_LIB],
  [AC_CACHE_CHECK(location of lib$1, coda_cv_path_$1,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
    coda_cv_path_$1=none ; LIBS="-l$1"
@@ -116,7 +116,7 @@ AC_SUBST(LINUX_VERSION)
 AC_SUBST(DLL_VERSION)
 AC_SUBST(FREEBSD_VERSION)
 AC_SUBST(GENERIC_VERSION)
-AC_DEFUN(CODA_LIBRARY_VERSION,
+AC_DEFUN([CODA_LIBRARY_VERSION],
   [LIBTOOL_VERSION="$2:$1:$3"; major=`expr $2 - $3`
    LINUX_VERSION="$major.$3.$1"
    DLL_VERSION="$major-$3-$1"
