@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.22 98/09/29 16:38:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.23 1998/09/29 21:04:51 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -274,15 +274,7 @@ void VFSMount() {
     /* Issue the VFS mount request. */
 
 #ifdef __BSD44__
-#ifndef	MOUNT_CFS
-    /* for FreeBSD
- - Add line below into /usr/include/sys/mount.h. Don't forget to adjust
-		MOUNT_MAXTYPE.
-	# define MOUNT_CFS	old MOUNT_MAXTYPE +1
-	In #define INITMOUNTNAMES,
-	        "cfs",          /* 19 or so MOUNT_CFS */
-#endif
-    if (mount(MOUNT_CFS, venusRoot, 0, kernDevice) < 0) {
+    if (mount("coda", venusRoot, 0, kernDevice) < 0) {
 	eprint("mount(%s, %s) failed (%d), exiting",
 	       kernDevice, venusRoot, errno);
 	exit(-1);
