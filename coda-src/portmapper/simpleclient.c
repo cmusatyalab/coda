@@ -1,5 +1,5 @@
 /*
- *      $Id: simpleclient.c,v 1.1 1998/04/14 20:54:07 braam Exp $   
+ *      $Id: simpleclient.c,v 1.2 98/08/05 23:49:33 braam Exp $   
  */
 
 /* Simple client to excercise the RPC2 procedure calls */
@@ -34,7 +34,7 @@ void main(void)
 	RPC2_CountedBS cident;
 	long	rc;
 	RPC2_Handle	cid;
-	int	port;
+	RPC2_Integer	port;
 	struct timeval	timeout;
 
 	PROCESS mylpid;
@@ -70,7 +70,7 @@ void main(void)
 
 	rc = portmapper_client_lookup_pbynvp(cid, "hithereservice", 0, 17, &port);
 
-	fprintf(stderr, "After initial lookup, rc=%ld, port=%d\n", rc, port);
+	fprintf(stderr, "After initial lookup, rc=%ld, port=%ld\n", rc, port);
 
 	/* register the port */
 	rc = portmapper_client_register_excl(cid, "scraw", 0, 17, 12345);
@@ -79,7 +79,7 @@ void main(void)
 
 	rc = portmapper_client_lookup_pbynvp(cid, "scraw", 0, 17, &port);
 
-	fprintf(stderr, "After second lookup, rc=%ld, port=%d\n", rc, port);
+	fprintf(stderr, "After second lookup, rc=%ld, port=%ld\n", rc, port);
 
 	rc = portmapper_client_delete(cid, "scraw", 0, 17);
 
@@ -99,5 +99,5 @@ void main(void)
 
 	rc= portmapper_client_lookup_pbynvp(cid, "scraw", 0, 17, &port);
 
-	fprintf(stderr, "After third lookup, rc=%ld, port=%d\n", rc, port);
+	fprintf(stderr, "After third lookup, rc=%ld, port=%ld\n", rc, port);
 }
