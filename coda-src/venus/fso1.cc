@@ -601,7 +601,7 @@ void fsobj::Matriculate() {
 /* Need not be called from within transaction. */
 /* Call with object write-locked. */
 /* CallBack handler calls this with NoLock (to avoid deadlock)! -JJK */
-void fsobj::Demote(int TellServers) 
+void fsobj::Demote(void)
 {
     if (!HAVESTATUS(this) || DYING(this)) return;
     if (flags.readonly || IsMtPt() || IsFakeMTLink()) return;

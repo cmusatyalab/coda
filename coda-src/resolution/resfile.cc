@@ -196,18 +196,6 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 				      mgrp->rrcc.hosts, hosts);
 	    mgrp->GetHostSet(hosts);
 	    PROBE(FileresTPinfo, COORDENDFORCEFILE);
-	    /* do cop2 */
-	    if (!errorcode){
-		ViceVersionVector UpdateSet;
-		bzero((void *)&UpdateSet, sizeof(ViceVersionVector));
-		for (int i = 0; i < VSG_MEMBERS; i++)
-		    if (hosts[i])
-			(&(UpdateSet.Versions.Site0))[i] = 1;
-		ViceStoreId stid = newvv.StoreId;
-		MRPC_MakeMulti(COP2_OP, COP2_PTR, VSG_MEMBERS, 
-			       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-			       mgrp->rrcc.MIp, 0, 0, &stid,&UpdateSet);
-	    }
 	}
     }
 
@@ -452,17 +440,9 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	if (DiffVV != 0) {
 	    AddVVs(&Vnode_vv(vptr), DiffVV);
 	    AddVVs(&V_versionvector(volptr), DiffVV);
+	    Vnode_vv(vptr).StoreId = VV->StoreId;
 	}
     }
-    NewCOP1Update(volptr, vptr, &(VV->StoreId));
-    
-    /* await COP2 from coordinator */
-#define	MAXFIDS	4
-    ViceFid fids[MAXFIDS];
-    bzero((void *)fids, MAXFIDS * sizeof(ViceFid));
-    fids[0] = *Fid;
-    AddToCopPendingTable(&(VV->StoreId), fids);
-#undef MAXFIDS 
 
 FreeLocks:
     if (fd != -1) close(fd);

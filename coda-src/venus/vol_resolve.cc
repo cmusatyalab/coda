@@ -66,6 +66,7 @@ void volent::Resolve() {
     LOG(0, ("volent::Resolve: %s\n", name));
     MarinerLog("resolve::%s\n", name);
 
+    fsobj *f;
     int code = 0;
     vproc *v = VprocSelf();
 
@@ -107,10 +108,13 @@ void volent::Resolve() {
 	    UNI_RECORD_STATS(ViceResolve_OP);
 	}
 
+	/* Demote the object (if cached) */
+	f = FSDB->Find(&r->fid);
+	if (f) f->Demote();
+
 	if (code == VNOVNODE) {
-	    fsobj *f = FSDB->Find(&r->fid);
 	    ViceFid *pfid;
-	    if ( f ) {
+	    if (f) {
 		pfid = &(f->pfid);
 		if ( ( ! FID_EQ(pfid, &NullFid)) && 
 		     (pfid->Volume == r->fid.Volume) 

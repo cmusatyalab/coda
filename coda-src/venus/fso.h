@@ -517,7 +517,7 @@ class fsobj {
 
     /* General status. */
     void Matriculate();
-    void Demote(int =1);
+    void Demote(void);
     void Kill(int =1);
     void GC();
     int Flush();

@@ -1421,20 +1421,16 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 
 
 /* Called in event of callback message from server. */
-/* We assume this means that object IS INVALID, and therefore kill it */
-/* (unless object is not replaceable, in which case we only demote it). */
-/* Perhaps there should be a "MUTATED" parameter in the RPC from the server. -JJK */
+/* We assume this means that the object needs to be revalidated on the next
+ * access and remove the callback status flags (Demote it). -JH
+/* Perhaps there should be a "MUTATED" parameter in the RPC from the server.
+ * -JJK */
 int fsdb::CallBackBreak(ViceFid *fid) {
 
     fsobj *f = FSDB->Find(fid);
-    if (f == 0 || !HAVESTATUS(f)) return(0);
+    if (!f || !HAVESTATUS(f)) return(0);
 
-    if (REPLACEABLE(f) && !BUSY(f)) {
-	    Recov_BeginTrans();
-	    f->Kill(0);
-	    Recov_EndTrans(CMFP);
-    }  else
-	    f->Demote(0);
+    f->Demote();
 
     return(1);
 }

@@ -695,7 +695,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 					pobj->Kill(0);
 					Recov_EndTrans(MAXFP);
 				} else
-				    pobj->Demote(0);
+				    pobj->Demote();
 
 				nfailed++;	
 				/* 
@@ -814,7 +814,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 			   l[5], l[6], l[7], l[8], l[9], l[10]);
 		}
 
-		Demote(0);
+		Demote();
 		nfailed++;
 
 		/* If we have data, it is stale and must be discarded. */

@@ -963,7 +963,7 @@ int volent::Enter(int mode, vuid_t vuid) {
  	fso_vol_iterator next(NL, this);
 	fsobj *f;
 	while ((f = next()))
-	    f->Demote(0);
+	    f->Demote();
 
 	just_transitioned = 1;
     } 
@@ -1154,7 +1154,7 @@ void volent::Exit(int mode, vuid_t vuid) {
 	fso_vol_iterator next(NL, this);
 	fsobj *f;
 	while ((f = next()))
-	    f->Demote(0);
+	    f->Demote();
     }
 
     /* Step 2 is to "exit" this volume. */
