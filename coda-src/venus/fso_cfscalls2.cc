@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.12 1998/08/26 21:24:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.13 1998/08/27 19:40:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -514,34 +514,15 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 
 /* Embed the processor/system name in the code for @cputype/@sys expansion. */
 
-#ifdef __MACH__
-#if defined(romp) || defined(ibm032) || defined(ibmrt)
-static char cputype[] = "ibm032";
-static char systype[] = "rt_mach";
-#endif
-#ifdef vax
-static char cputype [] = "vax";
-static char systype [] = "vax_mach";
-#endif
-#if defined(sun3) || defined(sun)
-static char cputype [] = "sun3";
-static char systype [] = "sun3_mach";
-#endif
-#ifdef mips
-static char cputype [] = "pmax";
-static char systype [] = "pmax_mach";
-#endif
-#ifdef i386
-static char cputype [] = "i386";
-static char systype [] = "i386_mach";
-#endif
-#endif /* __MACH__ */
-
 #ifdef __NetBSD__
 #ifdef i386
 static char cputype [] = "i386";
 static char systype [] = "i386_nbsd1";
 #endif /* i386 */
+#ifdef arm32
+static char cputype [] = "arm32";
+static char systype [] = "arm32_nbsd1";
+#endif
 #endif /* __NetBSD__ */
 
 #ifdef __FreeBSD__
