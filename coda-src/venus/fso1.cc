@@ -411,7 +411,8 @@ void fsobj::operator delete(void *deadobj, size_t len) {
 
 /* local-repair modification */
 /* MUST NOT be called from within transaction. */
-void fsobj::Recover() {
+void fsobj::Recover()
+{
     /* Validate state. */
     switch(state) {
 	case FsoRunt:
@@ -460,7 +461,18 @@ void fsobj::Recover() {
     /* Files that were open for write must be "closed" and discarded. */
     if (flags.owrite != 0) {
 	FSO_ASSERT(this, HAVEDATA(this));
-	eprint("\t(%s, %s) discarding owrite object", comp, FID_(&fid));
+	eprint("\t(%s, %s) found owrite object, discarding", comp, FID_(&fid));
+	if (IsFile()) {
+	    char spoolfile[MAXPATHLEN];
+
+	    do {
+		int idx = 0;
+		snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,comp,idx++);
+	    } while (::access(spoolfile, F_OK) == 0 || errno != ENOENT); 
+
+	    data.file->Copy(spoolfile);
+	    eprint("\t(lost file data backed up to %s)", spoolfile);
+	}
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(flags);
 	flags.owrite = 0;

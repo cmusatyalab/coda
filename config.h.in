@@ -18,11 +18,20 @@
 /* Define if you have the getpagesize function.  */
 #undef HAVE_GETPAGESIZE
 
+/* Define if you have the inet_aton function.  */
+#undef HAVE_INET_ATON
+
+/* Define if you have the inet_ntoa function.  */
+#undef HAVE_INET_NTOA
+
 /* Define if you have the select function.  */
 #undef HAVE_SELECT
 
 /* Define if you have the setpgrp function.  */
 #undef HAVE_SETPGRP
+
+/* Define if you have the snprintf function.  */
+#undef HAVE_SNPRINTF
 
 /* Define if you have the statfs function.  */
 #undef HAVE_STATFS
@@ -84,9 +93,6 @@
 /* Define if you have the c library (-lc).  */
 #undef HAVE_LIBC
 
-/* Define if you have the nsl library (-lnsl).  */
-#undef HAVE_LIBNSL
-
 /* Define if your libdb is 1.85 */
 #undef HAVE_DB_185_H
 
@@ -113,10 +119,4 @@
 
 /* Define if you have d_reclen in struct dirent (and don't have scandir) */
 #undef DIRENT_HAVE_D_RECLEN
-
-/* Define if you have inet_aton library call */
-#undef HAVE_INET_ATON
-
-/* Define if you have inet_ntoa library call */
-#undef HAVE_INET_NTOA
 

@@ -30,9 +30,6 @@ extern "C" {
 
 #include "venus.private.h"
 
-extern char *SpoolDir;
-
-
 void SpoolInit() {
     int code = 0;
     struct stat tstat;

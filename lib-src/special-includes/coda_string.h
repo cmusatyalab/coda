@@ -30,4 +30,10 @@ Coda are listed in the file CREDITS.
     ((err >= 0 && err < sys_nerr) ? sys_errlist[err] : "Unknown errorcode")
 #endif
 
+#ifndef HAVE_SNPRINTF
+/* yeah, sprintf is not as safe, but snprintf is prety much included on all
+ * platforms anyway. */
+#define snprintf(str, size, format...) sprintf(str, ## format);
+#endif
+
 #endif

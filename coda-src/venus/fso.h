@@ -297,7 +297,8 @@ class CacheFile {
 
     void Validate();
     void Reset();
-    int  Copy(CacheFile *);
+    int  Copy(CacheFile *destination);
+    int  Copy(char *destname, ino_t *ino = NULL);
 
     void IncRef() { refcnt++; } /* creation already does an implicit incref */
     int  DecRef();             /* returns refcnt, unlinks if refcnt becomes 0 */

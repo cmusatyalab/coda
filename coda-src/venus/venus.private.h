@@ -341,6 +341,7 @@ extern char *kernDevice;
 extern char *fsname;
 extern char *CacheDir;
 extern int CacheBlocks;
+extern char *SpoolDir;
 extern char *RootVolName;
 extern vuid_t PrimaryUser;
 extern char *VenusPidFile;

@@ -29,9 +29,3 @@
 /* Define if you have d_reclen in struct dirent (and don't have scandir) */
 #undef DIRENT_HAVE_D_RECLEN
 
-/* Define if you have inet_aton library call */
-#undef HAVE_INET_ATON
-
-/* Define if you have inet_ntoa library call */
-#undef HAVE_INET_NTOA
-

@@ -55,7 +55,7 @@ extern "C" {
 /* Pre-allocation routine. */
 /* MUST be called from within transaction! */
 CacheFile::CacheFile(int i) {
-    CODA_ASSERT(this	!= 0);
+    CODA_ASSERT(this != 0);
 
     /* Assume caller has done RVMLIB_REC_OBJECT! */
 /*    RVMLIB_REC_OBJECT(*this);*/
@@ -159,22 +159,36 @@ void CacheFile::ResetContainer() {
     }
 }
 
-
 /* 
  * copies a cache file, data and attributes, to a new one.  
  */
 int CacheFile::Copy(CacheFile *destination)
 {
+    ino_t ino;
+
     LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s, %d, %d/%d\n",
-	      name, inode, validdata, length,
-	      destination->name, destination->inode, destination->validdata,
-	      destination->length));
+	      name, inode, validdata, length, destination->name,
+	      destination->inode, destination->validdata, destination->length));
+
+    Copy(destination->name, &ino);
+
+    destination->inode  = ino;
+    destination->length = length;
+    destination->validdata = validdata;
+
+    return 0;
+}
+
+int CacheFile::Copy(char *destname, ino_t *ino)
+{
+    LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s\n",
+	      name, inode, validdata, length, destname));
 
     int tfd, ffd, n;
     struct stat tstat;
     char buf[DIR_PAGESIZE];
 
-    if ((tfd = ::open(destination->name, O_RDWR | O_CREAT | O_TRUNC| O_BINARY, V_MODE)) < 0) {
+    if ((tfd = ::open(destname, O_RDWR | O_CREAT | O_TRUNC| O_BINARY, V_MODE)) < 0) {
 	LOG(0, ("CacheFile::Copy: open failed (%d)", errno));
 	return -1;
     }
@@ -182,7 +196,7 @@ int CacheFile::Copy(CacheFile *destination)
     if (::fchmod(tfd, V_MODE) < 0)
 	CHOKE("CacheFile::Copy: fchmod failed (%d)", errno);
 #ifdef __CYGWIN32__
-    if (::chown(destination->name, (uid_t)V_UID, (gid_t)V_GID) < 0)
+    if (::chown(destname->name, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	CHOKE("CacheFile::ResetCopy: fchown failed (%d)", errno);
 #else
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
@@ -211,10 +225,6 @@ int CacheFile::Copy(CacheFile *destination)
 	CHOKE("CacheFile::Copy: source close failed (%d)", errno);
     
     CODA_ASSERT((off_t)length == tstat.st_size);
-
-    destination->inode  = tstat.st_ino;
-    destination->length = length;
-    destination->validdata = validdata;
 
     return 0;
 }
