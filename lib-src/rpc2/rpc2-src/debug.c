@@ -61,8 +61,9 @@ char *rpc2_timestring(void)
 	if ( rc ) {
 		return "BADTIME";
 	} else {
+		time_t sec = t.tv_sec;
 		strftime(mytime, sizeof(mytime), "%H:%M:%S", 
-			 localtime(&t.tv_sec));
+			 localtime(&sec));
 		mytime[8] = 0;
 		return mytime;
 	}
