@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.4 1998/04/14 21:07:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.5 98/05/07 17:23:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -174,9 +174,9 @@ void SFTP_Activate(initPtr)
     size = sizeof(struct SE_Definition)*SE_DefCount;
     if (SE_DefSpecs == NULL)
 	/* The realloc() on the romp dumps core if SE_DefSpecs is NULL */
-	assert((SE_DefSpecs = (struct SE_Definition *)malloc(size)) != NULL)
+	assert((SE_DefSpecs = (struct SE_Definition *)malloc(size)) != NULL);
     else
-	assert((SE_DefSpecs = (struct SE_Definition *)realloc(SE_DefSpecs, size)) != NULL)
+	assert((SE_DefSpecs = (struct SE_Definition *)realloc(SE_DefSpecs, size)) != NULL);
 
     /* Add this side effect's info to last entry in table */
     sed = &SE_DefSpecs[SE_DefCount-1];
