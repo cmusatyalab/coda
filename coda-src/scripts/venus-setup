@@ -172,6 +172,12 @@ if [ X$OS = XLinux -a ! -f /etc/debian_version ]; then
         echo 'alias char-major-67 coda' >> $MODULES
         echo 'alias /dev/coda coda' >> $MODULES
     fi
+    if [ -d /etc/devfs ] ; then
+    	if ! grep cfs0 /etc/devfs/devices > /dev/null; then
+	    echo "cfs0 c 67 0 root root 0200" >> /etc/devfs/devices
+	    /etc/init.d/devfsd restart
+	fi
+    fi
     /sbin/depmod -a
 fi
 
