@@ -21,8 +21,6 @@ SBINDIR:=$(sbindir)
 INITDIR:=$(prefix)/$(initsuffix)
 MANDIR:=$(mandir)
 
-RP2GEN := rp2gen
-
 -include $(TOPDIR)/configs/Makeconf.$(SYS)
 
 ##############################
