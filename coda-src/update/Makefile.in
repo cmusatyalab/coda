@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.3 97/01/29 18:11:19 lily Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda/coda-4.0.1/coda-src/update/RCS/Makefile.in,v 4.4 97/04/29 21:27:25 rvb Exp Locker: rvb $";
 
 
 # 
@@ -60,8 +60,11 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 EXECUTABLES = updatemon updatesrv updateclnt
-HEADERS	    = update.h update.rpc2
 SSBINS      = $(EXECUTABLES)
+HEADERS     = ${RP2FILES} ${RP2HEADERS}
+
+RP2FILES    = update.rpc2
+RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 LIBS=	${LIBVICEERROR}\
 	${LIBUTIL}\

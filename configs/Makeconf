@@ -95,6 +95,7 @@ C++FLAGS  := $(CFLAGS)	# Mach uses c++ flags, not CXX
 RP2FLAGS  = -n -I . -I $(srcdir) -I $(INCLDIR)
 
 vpath %.h $(INCLPATH)
+vpath %.rpc2 $(INCLPATH)
 ##############################
 # Library definitions
 ##############################
@@ -159,8 +160,6 @@ VOLUTIL_RPC2 = ../vicedep/volutil.rpc2
 RES_RPC2 = ../vicedep/res.rpc2
 ADMON_RPC2 = ../vicedep/admon.rpc2
 ADSRV_RPC2 = ../vicedep/adsrv.rpc2
-	# needed to pick up "shared" rpc2's
-vpath %.rpc2 $(SHADOWRP2)
 
 else
 ##############################
@@ -230,9 +229,6 @@ VOLUTIL_RPC2 = $(INCLDIR)/volutil.rpc2
 RES_RPC2 = $(INCLDIR)/res.rpc2
 ADMON_RPC2 = $(INCLDIR)/admon.rpc2
 ADSRV_RPC2 = $(INCLDIR)/adsrv.rpc2
-
-	# needed to pick up "shared" rpc2's
-vpath %.rpc2 $(INCLDIR)
 
 endif
 

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:49:35 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda/coda-4.0.1/coda-src/fail/RCS/Makefile.in,v 4.2 97/04/29 21:27:25 rvb Exp Locker: rvb $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -41,7 +41,7 @@ EXECUTABLES = ttyfcon partition heal slow
 CBINS       = $(EXECUTABLES)
 SBINS       = $(EXECUTABLES)
 LIBRARIES   = libfail.a
-HEADERS     = fail.h fcon.h fcon.rpc2
+HEADERS     = ${RP2FILES} fail.h ${RP2HEADERS}
 
 RP2FILES    = fcon.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
