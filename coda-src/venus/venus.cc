@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
     for (;;) {
 	/* Wait for a message or daemon expiry. */
 	fd_set rfds;
-	int maxfd = KernelFD;
+	int maxfd = KernelFD+1;
 
 	FD_ZERO(&rfds);
 	FD_SET(KernelFD, &rfds);
