@@ -36,6 +36,13 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
 make prefix=$RPM_BUILD_ROOT/usr/gnuwin32 install
 
+rm -f /tmp/@PACKAGE@-@VERSION@.zip
+mkdir -p $RPM_BUILD_ROOT/win-bins
+mv $RPM_BUILD_ROOT/usr/gnuwin32/lib/liblwp-1-0-0.dll $RPM_BUILD_ROOT/win-bins
+cd $RPM_BUILD_ROOT/win-bins
+/usr/bin/gnuwin32strip liblwp-1-0-0.dll
+zip /tmp/@PACKAGE@-@VERSION@.zip *
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
