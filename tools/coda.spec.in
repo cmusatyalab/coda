@@ -3,7 +3,7 @@ Name: @CODA@
 Version: @CVER@
 Release: @REL@
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-@VERSION@.tgz
-Requires: bc, rvm-tools
+Requires: bc
 Copyright: GPL
 BuildRoot: /usr/src/redhat/BUILD/coda-build
 Group: Networking/Daemons
@@ -114,8 +114,8 @@ else
 fi
 	
 %post client
-if [ ! -e /usr/coda/etc/vstab ]; then 
-	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 40000
+if [ ! -e /etc/coda/venus.conf ]; then 
+	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 100000
 fi
 
 /sbin/chkconfig --add venus.init
@@ -139,9 +139,10 @@ fi
 %dir /usr/coda
 %dir /usr/coda/etc
 %dir /usr/coda/venus.cache
-/etc/rc.d/init.d/venus.init
 %dir /coda
 %verify() /coda/NOT_REALLY_CODA
+/etc/coda/venus.conf.ex
+/etc/rc.d/init.d/venus.init
 /usr/sbin/@AU@
 /usr/sbin/venus
 /usr/sbin/venus-setup
@@ -168,7 +169,6 @@ fi
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
-/etc/coda/venus.conf.ex
 /usr/lib/coda/Advice.tcl
 /usr/lib/coda/CodaConsole
 /usr/lib/coda/Consider.tcl
