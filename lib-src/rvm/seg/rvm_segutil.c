@@ -100,14 +100,20 @@ allocate_vm(addr, length)
 #ifdef HAVE_MMAP
     mmap_anon(*addr, *addr, length, (PROT_READ | PROT_WRITE));
 #else
-    {
+    { 
       HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
                                       PAGE_READWRITE, 0, length, NULL);
       if (hMap == NULL)
           return(RVM_EINTERNAL);
       *addr = MapViewOfFileEx(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0, *addr);
-      if (*addr == NULL)
+      if (*addr == NULL) {
+#if 0
+	  DWORD errnum;
+	  errnum = GetLastError();
+	  printf ("allocate_vm: errnum = %d\n", errnum);
+#endif
           *addr = (char *)-1;
+      }
       CloseHandle(hMap);
     }
 #endif
