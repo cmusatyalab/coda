@@ -4,7 +4,6 @@ Name: @CODA@
 Version: @CVER@
 Release: @REL@
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda-src/coda-@CVER@.tgz
-Source1: venus.init
 Requires: bc
 Copyright: CMU
 BuildRoot: /usr/src/redhat/BUILD/coda-build
@@ -97,11 +96,6 @@ mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 
 make GFLAG="" client-install
 make GFLAG=""  server-install
-
-
-install -m755 $RPM_SOURCE_DIR/venus.init \
-	$RPM_BUILD_ROOT/etc/rc.d/init.d/venus.init
-
 
 # cp kernel-src/vfs/linux@KV@/coda.o $RPM_BUILD_ROOT/lib/modules/@KVER@/fs/coda.o
 
