@@ -147,7 +147,7 @@ static void Recov_CreateSeg();
 static void Recov_LoadSeg();
 static void Recov_InitSeg();
 static void Recov_GetStatistics();
-static void Recov_AllocateVM(char **, unsigned long);
+static void Recov_AllocateVM(void **, unsigned long);
 static void Recov_DeallocateVM(char *, unsigned long);
 
 /* Crude formula for estimating recoverable data requirements! */
@@ -479,12 +479,12 @@ static void Recov_CreateSeg() {
 
     /* Region 0 is the block of recoverable Venus globals. */
     rvm_offset_t rvg_offset; RVM_ZERO_OFFSET(rvg_offset);
-    Recov_AllocateVM(&Recov_RvgAddr, (unsigned long)Recov_RvgLength);
+    Recov_AllocateVM((void**)&Recov_RvgAddr, (unsigned long)Recov_RvgLength);
     RVM_INIT_REGION(regions[0], rvg_offset, Recov_RvgLength, Recov_RvgAddr);
 
     /* Region 1 is the recoverable heap. */
     rvm_offset_t rds_offset = RVM_ADD_LENGTH_TO_OFFSET(rvg_offset, Recov_RvgLength);
-    Recov_AllocateVM(&Recov_RdsAddr, (unsigned long)Recov_RdsLength);
+    Recov_AllocateVM((void**)&Recov_RdsAddr, (unsigned long)Recov_RdsLength);
     RVM_INIT_REGION(regions[1], rds_offset, Recov_RdsLength, Recov_RdsAddr);
 
     LOG(10, ("Recov_CreateSeg: RVG = (%x, %x), RDS = (%x, %x)\n",
@@ -769,9 +769,9 @@ void RecovPrint(int fd) {
 
 /*  *****  VM Allocation/Deallocation  *****  */
 
-static void Recov_AllocateVM(char **addr, unsigned long length) 
+static void Recov_AllocateVM(void **addr, unsigned long length) 
 {
-    char *requested_addr = *addr;
+    void *requested_addr = *addr;
 #ifdef HAVE_MMAP
     mmap_anon(*addr, *addr, length, (PROT_READ | PROT_WRITE));
 #else
@@ -782,12 +782,12 @@ static void Recov_AllocateVM(char **addr, unsigned long length)
           return(RVM_EINTERNAL);
       *addr = MapViewOfFileEx(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0, *addr);
       if (*addr == NULL)
-          *addr = (char *)-1;
+          *addr = (void *)-1;
       CloseHandle(hMap);
     }
 #endif
  
-    if (*addr == (char *)-1) {
+    if (*addr == (void *)-1) {
 	if (errno == ENOMEM)
 	    CHOKE("Recov_AllocateVM: mmap(%x, %x, ...) out of memory", requested_addr, length);
 	else

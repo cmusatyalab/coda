@@ -686,7 +686,7 @@ void dt_mdir(int argc, char **argv)
 {
 	rvm_return_t status;
 	int err;
-	PDirHandle dh;
+	PDirHandle dh = NULL;
 	int i = 0;
 	struct DirFid me, parent;
 	struct ViceFid vme, vparent;

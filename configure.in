@@ -50,7 +50,6 @@ dnl Checks for structures.
 dnl Checks for compiler characteristics.
 CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
-CODA_CXX_FEATURE_TEST(permissive, -fpermissive)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strerror select statfs setpgrp)

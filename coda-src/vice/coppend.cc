@@ -118,11 +118,16 @@ int coppendhashfn(void *a) {
     return(sid->Host + sid->Uniquifier);
 }
 
+int cpman_func(cpman *cpman)
+{
+    return cpman->func(0);
+}
+
 cpman::cpman(char *n): objects(COPHASHSIZE, coppendhashfn) {
     name = new char[strlen(n) + 1];
     strcpy(name, n);
     Lock_Init(&lock);
-    LWP_CreateProcess((PFIC)&cpman::func, cpman_stacksize, LWP_NORMAL_PRIORITY,
+    LWP_CreateProcess((PFIC)&cpman_func, cpman_stacksize, LWP_NORMAL_PRIORITY,
 		       (char *)this, name, (PROCESS *)&pid);
 }
 
