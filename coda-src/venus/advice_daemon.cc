@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.3 98/01/26 21:31:33 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.4 1998/02/26 11:53:22 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,14 +48,15 @@ extern "C" {
 /* from rvm */
 #include <rds.h>
 
+/* interfaces */
+#include <adsrv.h>
+#include <admon.h>
+
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-/* interfaces */
-#include <adsrv.h>
-#include <admon.h>
 
 /* from venus */
 #include "tallyent.h"

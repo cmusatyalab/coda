@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.11 1998/01/26 21:31:38 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.12 1998/03/06 20:20:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,14 +90,15 @@ extern int Fcon_Init();
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
 extern void SFTP_Activate (SFTP_Initializer *initPtr);
 
+/* interfaces */
+#include <vice.h>
+#include <adsrv.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 
-/* interfaces */
-#include <vice.h>
-#include <adsrv.h>
 
 /* from vol */
 #include <errors.h>
@@ -285,13 +286,10 @@ void CommInit() {
 	SFTP_Activate(&sei);
 
 	/* RPC2 initialization. */
-	RPC2_PortalIdent *portallist[1];
-	portallist[0] = &portal1;
-		
 	struct timeval tv;
 	tv.tv_sec = rpc2_timeout;
 	tv.tv_usec = 0;
-	if (RPC2_Init(RPC2_VERSION, 0, portallist, 1, rpc2_retries, &tv) != RPC2_SUCCESS)
+	if (RPC2_Init(RPC2_VERSION, 0, &portal1, rpc2_retries, &tv) != RPC2_SUCCESS)
 	    Choke("CommInit: RPC2_Init failed");
 
 	/* Failure package initialization. */

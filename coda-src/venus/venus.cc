@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.9 1998/01/10 18:39:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.10 1998/03/06 20:20:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -156,6 +156,8 @@ int main(int argc, char **argv) {
      */
     VprocInit();    /* init LWP/IOMGR support */
     LogInit();      /* move old Venus log and create a new one */
+    LWP_SetLog(logFile, lwp_debug);
+    RPC2_SetLog(logFile, RPC2_DebugLevel);
     SpoolInit();    /* make sure the spooling directory exists */
     DaemonInit();   /* before any Daemons initialize and after LogInit */
     ProfInit();
@@ -243,6 +245,9 @@ PRIVATE void ParseCmdline(int argc, char **argv) {
 		i++;
 		RPC2_DebugLevel = atoi(argv[i]);
 		RPC2_Trace = 1;
+	    } else if (STREQ(argv[i], "-lwpdebug")) {    /* debugging */
+		i++;
+		lwp_debug =atoi(argv[i]);
 	    } else if (STREQ(argv[i], "-p"))     /* profiling */
 		ProfBoot = 1;
 	     else if (STREQ(argv[i], "-rdstrace"))     /* RDS heap tracing */

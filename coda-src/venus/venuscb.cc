@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.3 1997/12/01 17:28:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.4 1998/01/10 18:39:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -72,13 +72,13 @@ extern "C" {
 #include <se.h>
 
 extern void rpc2_PrintSEDesc(SE_Descriptor *, FILE *);
+/* interfaces */
+#include <callback.h>
+#include <vice.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
-/* interfaces */
-#include <callback.h>
-#include <vice.h>
 
 /* from venus */
 #include "comm.h"
@@ -103,8 +103,8 @@ void CallBackInit() {
 
     /* Export the service. */
     RPC2_SubsysIdent server;
-    server.Tag = RPC2_SUBSYSBYNAME;
-    strcpy(server.Value.Name, CBSubsys);
+    server.Tag = RPC2_SUBSYSBYID;
+    server.Value.SubsysId = SUBSYS_CB;
     if (RPC2_Export(&server) != RPC2_SUCCESS)
 	Choke("CallBackInit: RPC2_Export failed");
 
@@ -120,7 +120,7 @@ callbackserver::callbackserver() :
 
     filter.FromWhom = ONESUBSYS;
     filter.OldOrNew = OLDORNEW;
-    filter.ConnOrSubsys.SubsysId = getsubsysbyname((char *)CBSubsys);
+    filter.ConnOrSubsys.SubsysId = SUBSYS_CB;
     handle = 0;
     packet = 0;
 

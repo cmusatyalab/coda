@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.14 1997/12/16 22:48:56 mre Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.15 1998/01/10 18:38:35 braam Exp $";
 
 
 # 
@@ -67,10 +67,7 @@ HEADERS	    = advice.h hdb.h newplumb.h venus_vnode.h
 #CFLAGS = $(CFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG -DRVM_USELWP
 #CFLAGS = $(CFLAGS) -DVENUS -DTIMING -DVENUSDEBUG -DRVM_USELWP 
 
-CXXFLAGS := $(CXXFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG \
-	    -DRVM_USELWP 
-
-# Conditional definition of MACHLIBS for BSD44 port (Satya, 8/16/96)
+CXXFLAGS := $(CXXFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG -DRVM_USELWP 
 
 LIBS=	$(LIBUTIL)\
 	$(LIBCODARDS)\
@@ -89,11 +86,6 @@ LIBS=	$(LIBUTIL)\
 	$(LIBSE)\
 	$(LIBKVM)
 
-RP2FILES= $(INCLDIR)/vice.rpc2 $(INCLDIR)/mond.rpc2 	$(INCLDIR)/admon.rpc2\
- $(INCLDIR)/adsrv.rpc2 $(INCLDIR)/callback.rpc2 $(INCLDIR)/fcon.rpc2
-
-RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
-
 HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h simulate.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
 
 
@@ -108,149 +100,11 @@ venus.plumber:  ${VOBJS} $(LIBPLUMBER) $(LIBS) libfaketrace.a
 	$(CXX) $(LIBFLAGS) ${VOBJS} $(LIBPLUMBER) $(LIBS) libfaketrace.a -lm -lsys -o venus.plumber
 
 
-advice.o: advice.cc advice.h adviceconn.h $(RP2FILES)
-
-advice_daemon.o: advice_daemon.cc  adviceconn.h $(RP2FILES)
-
-binding.o: binding.cc binding.h
-
-comm.o: comm.cc comm.h venus.private.h fso.h mariner.h simulate.h\
-	user.h vproc.h venusvm.h venusvol.h worker.h $(HFILES) 
-
-comm_daemon.o: comm_daemon.cc comm.h venus.private.h venusrecov.h\
-	vproc.h simulate.h $(HFILES)
-
-daemon.o: daemon.cc vproc.h venus.private.h  $(HFILES)
-
-fso0.o: fso0.cc advice.h advice_daemon.h comm.h fso.h\
-	hdb.h local.h mariner.h simulate.h user.h venus.private.h\
-	venusvol.h vproc.h worker.h $(HFILES)
-
-fso1.o: fso1.cc advice.h comm.h fso.h local.h mariner.h simulate.h user.h \
-	venusrecov.h venus.private.h venusvol.h vproc.h worker.h \
-	$(INCLDIR)/venusioctl.h   $(HFILES)
-
-fso_cachefile.o: fso_cachefile.cc fso.h venus.private.h $(HFILES)
-
-fso_cfscalls0.o: fso.h fso_cfscalls0.cc venus.private.h comm.h\
-	mariner.h venuscb.h vproc.h venusvol.h worker.h   $(HFILES)
-
-fso_cfscalls1.o: fso.h fso_cfscalls1.cc venus.private.h comm.h\
-	mariner.h venuscb.h vproc.h venusvol.h worker.h   $(HFILES)
-
-fso_cfscalls2.o: fso.h fso_cfscalls2.cc venus.private.h local.h comm.h\
-	mariner.h venuscb.h vproc.h venusvol.h worker.h   $(HFILES)
-
-fso_daemon.o: fso.h fso_daemon.cc venus.private.h mariner.h simulate.h\
-	vproc.h $(HFILES)
-
-fso_dir.o: fso.h fso_dir.cc venus.private.h local.h\
-	venusrecov.h simulate.h $(HFILES)
-
-hdb.o: hdb.cc advice_daemon.h adviceconn.h advice.h fso.h hdb.h \
-	mariner.h simulate.h user.h venus.private.h venusrecov.h \
-	vproc.h venusvol.h worker.h  $(HFILES)
-
-hdb_daemon.o: hdb_daemon.cc hdb.h venus.private.h vproc.h $(HFILES)
-
-local_cml.o: local.h venus.private.h fso.h venusvol.h vproc.h $(HFILES)
-
-local_daemon.o: local.h venus.private.h venusrecov.h vproc.h $(HFILES)
-
-local_fso.o: local.h venuscb.h venusrecov.h venusvol.h venus.private.h\
-	fso.h $(HFILES)
-
-local_repair.o: local.h venusvol.h venus.private.h fso.h vproc.h $(HFILES)
-
-local_subtree.o: local.h venusrecov.h fso.h venusvol.h $(HFILES)
-
-local_vol.o: local.h venusvol.h $(HFILES)
-
-mariner.o: mariner.cc mariner.h venus.private.h comm.h fso.h simulate.h\
-	user.h venuscb.h vproc.h venusvol.h worker.h $(HFILES)
-
-venusrecov.o: venusrecov.cc venusrecov.h venus.private.h local.h\
-	fso.h hdb.h mariner.h worker.h $(HFILES)
-
-sighand.o: sighand.cc sighand.h venus.private.h advice_daemon.h \
-	comm.h venusrecov.h worker.h mariner.h $(HFILES)
-
-simulate.o: simulate.cc simulate.h venus.private.h fso.h venusrecov.h\
-	vproc.h $(HFILES)
-
-spool.o: spool.cc
-
-tallyent.o: tallyent.cc tallyent.h $(HFILES)
-
-user.o: user.cc user.h venus.private.h comm.h hdb.h mariner.h\
-	worker.h $(HFILES)
-
-venusutil.o: venusutil.cc venus.private.h comm.h fso.h hdb.h mariner.h\
-	venusrecov.h simulate.h user.h venuscb.h venusrecov.h\
-	venusstats.h venusvm.h vproc.h venusvol.h worker.h   $(HFILES)
-
-venus.o: venus.cc venus.private.h local.h fso.h comm.h hdb.h mariner.h\
-	simulate.h vproc.h venusvol.h vstab.h sighand.h user.h\
-	venuscb.h venusvm.h worker.h advice.h advice_daemon.h \
-	venusrecov.h $(HFILES)
-
-venuscb.o: venuscb.cc comm.h mariner.h venuscb.h venus.private.h $(HFILES)
-
-venusvm.o: venusvm.cc venusvm.h venus.private.h $(RP2FILES)\
-	mariner.h simulate.h vproc.h venusrecov.h $(HFILES)
-
-venusvol.o: venusvol.cc venusvol.h venus.private.h local.h comm.h\
-	fso.h mariner.h venusrecov.h simulate.h user.h\
-	vproc.h venuscb.h $(HFILES)
-
-vol_cml.o: vol_cml.cc advice.h comm.h fso.h local.h mariner.h venuscb.h \
-        venus.private.h venusvol.h vproc.h $(HFILES)
-
-vol_daemon.o: vol_daemon.cc venusvol.h venus.private.h local.h \
-	simulate.h vproc.h $(HFILES)
-
-vol_reintegrate.o: vol_reintegrate.cc venusvol.h comm.h fso.h mariner.h \
-	venus.private.h  vproc.h user.h local.h advice_daemon.h $(HFILES) $(RP2FILES)
-
-vol_repair.o: vol_repair.cc venusvol.h venus.private.h local.h\
-	comm.h fso.h mariner.h vproc.h worker.h $(HFILES)
-
-vol_resolve.o: vol_resolve.cc venusvol.h venus.private.h comm.h\
-	fso.h mariner.h vproc.h $(HFILES)
-
-vol_vcb.o: vol_vcb.cc venusvol.h venus.private.h comm.h fso.h\
-	mariner.h venuscb.h vproc.h $(HFILES)
-
-vol_vsr.o: vol_vsr.cc venusvol.h venus.private.h venusvm.h\
-	mariner.h local.h $(HFILES) $(RP2FILES)
-
-vol_COP2.o: vol_COP2.cc venusvol.h venus.private.h comm.h\
-	mariner.h $(HFILES)
-
-vproc.o: vproc.cc vproc.h venus.private.h local.h venusrecov.h\
-	user.h venusvol.h 
-
-vproc_pathname.o: vproc.h vproc_pathname.cc venus.private.h\
-	venusrecov.h venusvol.h
-
-vproc_pioctl.o: vproc_pioctl.cc comm.h vproc.h venus.private.h local.h \
-	vproc.h fso.h hdb.h user.h venusstats.h venusvol.h worker.h \
-	$(INCLDIR)/venusioctl.h $(HFILES)
-
-vproc_vfscalls.o: vproc.h vproc_vfscalls.cc venus.private.h vproc.h\
-	fso.h hdb.h local.h worker.h  
-
-worker.o: worker.cc worker.h venus.private.h comm.h fso.h mariner.h\
-	simulate.h venuscb.h venusstats.h venusvol.h vproc.h\
-	 worker.h   $(HFILES)
 
 # (Satya, 8/16/96): this is a temporary hack to build a dummy libtrace.a for BSD44;
-# All the routines are dummies;  copy libfaketrace.a to include-special
-# The rules below must use gcc; CC has been changed to g++ in this file.  
-libfaketrace.a:	 faketrace.o
+# All the routines are dummies
 
-faketrace.o: faketrace.c
-	$(CC) $(CFLAGS) -c $<
+libfaketrace.a:	 faketrace.o
 
 testjmp: testjmp.cc
 	$(CXX) $(CXXFLAGS) -o testjmp testjmp.cc
