@@ -1,3 +1,17 @@
+1999-01-19    <jaharkes@cs.cmu.edu>
+
+        * Stop trying to make a Makefile in coda-src/al.
+	* Dangling else bug in rpc2/multi3.c (Laszlo Vecsey)
+	* Getservbyname in newer glibc's can't handle NULL args. (Laszlo Vecsey)
+
+1999-01-18    <jaharkes@cs.cmu.edu>
+
+	* Our Win95 inet_aton function didn't return an error when it was
+	  given an invalid IP address.
+	* Fixed a bug in auth2/auser.c, FQDN got mistaken for an IP-address.
+	  (Amazingly quick bugreporting kudo's to Robert Watson, Elliot Lee,
+	  and Mathew Monroe)
+
 1999-01-13    <jaharkes@cs.cmu.edu>
 
 	* ======== Release 5.0.0 =========

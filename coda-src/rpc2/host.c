@@ -441,7 +441,6 @@ int RPC2_GetLastObs(RPC2_Handle handle, struct timeval *tv)
 }
 
 #if defined(DJGPP) || defined(__CYGWIN32__) 
-
 int inet_aton(const char *str, struct in_addr *out)
 {
         unsigned long l;
@@ -449,27 +448,29 @@ int inet_aton(const char *str, struct in_addr *out)
         int i;
 
         l = 0;
-        for (i = 0; i < 4; i++) 
+        for (i = 0; *str && i < 4; i++) 
         {
-                l <<= 8;
-                if (*str != '\0') 
-                {
-                        val = 0;
-                        while (*str != '\0' && *str != '.') 
-                        {
-                                val *= 10;
-                                val += *str - '0';
-                                str++;
-                        }
-                        l |= val;
-                        if (*str != '\0') 
-                                str++;
-                }
+		l <<= 8;
+		val = 0;
+		while (*str >= '0' && *str <= '9') 
+		{
+		    val *= 10;
+		    val += *str - '0';
+		    str++;
+		}
+		if (*str)
+		{
+		    if (*str != '.') break;
+		    str++;
+		}
+		if (val > 255) break;
+		l |= val;
         }
-        out->s_addr = htonl(l);
-        return(0);
-}
+	if (*str || i != 4) return(0);
 
+        out->s_addr = htonl(l);
+        return(1);
+}
 #endif
 
 #ifdef DJGPP
@@ -483,5 +484,4 @@ char *inet_ntoa(struct in_addr in)
                 (p[0] & 255), (p[1] & 255), (p[2] & 255), (p[3] & 255));
         return(buff);
 }
-
 #endif
