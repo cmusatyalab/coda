@@ -404,14 +404,6 @@ NonRepExit:
         data.file->Close();
 
     if (code == 0) {
-	/* Read/Write Sharing Stat Collection */
-	if (flags.discread) {	
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.discread = 0;
-	    Recov_EndTrans(MAXFP);
-	}
-
 	if (flags.usecallback &&
 	    status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
@@ -667,14 +659,6 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 					  pobj->comp, FAVs[i].Fid.Volume, 
 					  FAVs[i].Fid.Vnode, FAVs[i].Fid.Unique));
 
-				/* Read/Write Sharing Stat Collection */
-				if (pobj->flags.discread) {
-				    Recov_BeginTrans();
-				    RVMLIB_REC_OBJECT(pobj->flags);
-				    pobj->flags.discread = 0;
-				    Recov_EndTrans(MAXFP);
-				}
-
 				if (flags.usecallback && (cbtemp == cbbreaks)) {
 				    if (!HAVEALLDATA(pobj))
 					pobj->SetRcRights(RC_STATUS);
@@ -850,18 +834,6 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
     	    }
 	}
 
-	/* Read/Write Sharing Stat Collection */
-	if (flags.discread) {	
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(flags);
-	    flags.discread = 0;
-	    Recov_EndTrans(MAXFP);
-	}
-
-	Recov_BeginTrans();
-	UpdateStatus(&status, vuid);
-	Recov_EndTrans(CMFP);
-
 	if (flags.usecallback &&
 	    status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks &&
@@ -872,6 +844,10 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 	    else
 		SetRcRights(RC_STATUS | RC_DATA);
 	}
+
+	Recov_BeginTrans();
+	UpdateStatus(&status, vuid);
+	Recov_EndTrans(CMFP);
 
 RepExit:
 	PutMgrp(&m);
@@ -895,6 +871,8 @@ RepExit:
 		    Recov_BeginTrans();
 		    RVMLIB_REC_OBJECT(vol->current_rws_cnt);
 		    vol->current_rws_cnt++;
+		    RVMLIB_REC_OBJECT(flags);
+		    flags.discread = 0;
 		    Recov_EndTrans(MAXFP);
 		}
 		Recov_BeginTrans();
@@ -981,18 +959,6 @@ RepExit:
 	    }
 	}
 
-	Recov_BeginTrans();
-	UpdateStatus(&status, vuid);
-	Recov_EndTrans(CMFP);
-
-	/* Read/Write Sharing Stat Collection */
-	if (flags.discread) {	
-		Recov_BeginTrans();
-		RVMLIB_REC_OBJECT(flags);
-		flags.discread = 0;
-		Recov_EndTrans(MAXFP);
-	}
-
 	if (flags.usecallback &&
 	    status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
@@ -1002,6 +968,10 @@ RepExit:
 	    else
 		SetRcRights(RC_STATUS | RC_DATA);
 	}
+
+	Recov_BeginTrans();
+	UpdateStatus(&status, vuid);
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
 	PutConn(&c);
@@ -1013,6 +983,8 @@ NonRepExit:
 	    Recov_BeginTrans();
 	    RVMLIB_REC_OBJECT(vol->current_rws_cnt);
 	    vol->current_rws_cnt++;
+	    RVMLIB_REC_OBJECT(flags);
+	    flags.discread = 0;
 	    Recov_EndTrans(MAXFP);
 	}
 	Recov_BeginTrans();
