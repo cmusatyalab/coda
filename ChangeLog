@@ -1,4 +1,5 @@
 1999-12-31    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.3.4 =========
 	* Recursive (blocked) RPC2 calls were never woken, was a cause for
 	  a deadlock in the server to client callbacks.
 	* Moved the mariner port to a unix domain socket.
@@ -20,6 +21,7 @@
 	* Fixed losing files (and possible crash) during venus startup after a
 	  file was opened for writing during reintegration (shadowing).
 	* Fixed losing filedata when a file gets shadowed twice. 
+	* Didn't resolve the directory owner when doing log based resolution.
 
 1999-10-21    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.3.3 =========

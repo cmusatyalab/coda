@@ -658,8 +658,9 @@ void VShutdown() {
 		VLog(0, "VShutdown: Error %d getting volume %x!",error,p->hashid);
 		rvmlib_abort(-1);
 	    }
-	    VLog(0, "VShutdown: Taking volume %s(0x%x) offline...",
-		V_name(vp), V_id(vp));
+	    else
+		VLog(0, "VShutdown: Taking volume %s(0x%x) offline...",
+		     V_name(vp), V_id(vp));
 	    if (vp)
 	        VOffline(vp, "File server was shut down");
 	    VLog(0, "... Done");

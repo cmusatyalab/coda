@@ -80,8 +80,6 @@ extern "C" {
 #endif __cplusplus
 
 /* interfaces */
-#include <vproc.h>
-
 /* from vicedep */
 #include <venusioctl.h>
 

@@ -240,6 +240,8 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			f->PromoteLock();
 			target_fso->PromoteLock();
 			u.u_error = f->Remove((char *)(char *) data->in, target_fso, CRTORUID(u.u_cred));
+			k_Purge(&target_fso->fid, 1);
+
 
 			FSDB->Put(&target_fso);
 			break;

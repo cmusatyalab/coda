@@ -176,14 +176,13 @@ void ClientModifyLog::CancelPending() {
 	    cmlent *m;
 
 	    while ((m = next())) {
-		    if (m->IsFrozen())
-			    m->Thaw();
-
-		    if (m->flags.cancellation_pending) {
-			    CODA_ASSERT(m->cancel());
-			    cancellation = 1;
-			    break;
-		    }
+		if (m->flags.cancellation_pending) {
+		    m->Thaw();
+		
+		    CODA_ASSERT(m->cancel());
+		    cancellation = 1;
+		    break;
+		}
 	    }
 
     } while (cancellation);
@@ -225,9 +224,13 @@ void ClientModifyLog::CancelStores() {
     }
 }
 
+/* MUST be called from within a transaction */
 int cmlent::Freeze()
 {
     int err;
+
+    /* already frozen, nothing to do */
+    if (flags.frozen) return 0;
 
     if (opcode == OLDCML_NewStore_OP)
     {
@@ -251,8 +254,11 @@ int cmlent::Freeze()
     return 0;
 }
 
+/* MUST be called from within a transaction */
 void cmlent::Thaw()
 {
+    if (!IsFrozen()) return;
+
     if (opcode == OLDCML_NewStore_OP)
     {
 	/* make sure there is only one object of the store */    
@@ -368,10 +374,20 @@ cmlent *ClientModifyLog::GetFatHead(int tid) {
         /*
          * Don't use the settid call because it is transactional.
          * Here the tid is transient.
-         * We also do not mark it frozen here because the partial file
-         * transfer protocol checks the status of the object after a failure.
          */
         m->tid = tid;
+
+	/* 
+	 * freeze the record to prevent cancellation.  Note that
+	 * reintegrating --> frozen, but the converse is not true.
+	 * Records are frozen until the outcome of a reintegration
+	 * is known; this may span multiple reintegration attempts
+	 * and different transactions.
+	 */
+	Recov_BeginTrans();
+	CODA_ASSERT(m->Freeze() == 0);
+	Recov_EndTrans(MAXFP);
+
         return(m);
     }
 
@@ -722,7 +738,7 @@ cmlent::~cmlent() {
     long thisBytes = bytes();
 
     /* or should we assert on this cmlent not being frozen? -JH */
-    if (IsFrozen()) Thaw();
+    Thaw();
 
     /* Detach from fsobj's. */
     DetachFidBindings();

@@ -59,6 +59,7 @@ extern "C" {
 #include <prs.h>
 #include <writeback.h>
 #include <codaconf.h>
+#include <inconsist.h>
 
 /* get the platform dependent @sys/@cpu expansions */
 #include <coda_expansion.h>
@@ -125,6 +126,7 @@ static void FlushObject(int, char**, int);
 static void FlushVolume(int, char**, int);
 static void FlushASR(int, char**, int); 
 static void GetFid(int, char**, int);
+static void MarkFidIncon(int, char**, int);
 static void GetPath(int, char**, int);
 static void GetMountPoint(int, char**, int);
 static void Help(int, char **, int);
@@ -292,6 +294,11 @@ struct command cmdarray[] =
             "cfs lsmount <dir> [<dir> <dir> ...]",
             "List mount point",
             NULL
+        },
+        {"markincon", NULL, MarkFidIncon, 
+            "cfs markincon <path> [<path> <path> ...]",
+            "Mark object in conflict",
+            "this meddles with the version vector and can trash the object"
         },
         {"mkmount", "mkm", MkMount, 
             "cfs mkmount <directory> <volume name>",
@@ -1249,6 +1256,63 @@ static void GetFid(int argc, char *argv[], int opslot)
         }
     
     }
+
+static int pioctl_SetVV(char *path, ViceVersionVector *vv)
+{
+    struct ViceIoctl vio;
+    int              rc;
+
+    vio.in = (char *)vv;
+    vio.in_size = sizeof(ViceVersionVector);
+    vio.out = 0;
+    vio.out_size = 0;
+
+#if defined(DJGPP) || defined(__CYGWIN32__)
+    rc = pioctl(path, 8974, &vio, 0);
+#else
+    rc = pioctl(path, VIOC_SETVV, &vio, 0);
+#endif
+    return rc;
+}
+
+static void MarkFidIncon(int argc, char *argv[], int opslot)
+{
+    int i, rc, w;
+    ViceFid fid;
+    ViceVersionVector vv;
+    char buf[100];
+
+    if (argc < 3)
+    {
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
+    }
+
+    w = getlongest(argc, argv);
+
+    for (i = 2; i < argc; i++)
+    {
+	/* echo input if more than one fid */
+	if (argc > 3) printf("%s\n", argv[i]);
+
+	/* Validate next fid */
+	if (pioctl_GetFid(argv[i], &fid, &vv) < 0)
+	{
+	    fflush(stdout);
+	    perror("VIOC_GETFID");
+	    continue;
+	}
+
+	SetIncon(vv);
+
+	if (pioctl_SetVV(argv[i], &vv) < 0)
+	{
+	    fflush(stdout);
+	    perror("VIOC_SETVV");
+	    continue;
+	}
+    }
+}
 
 static void GetPath(int argc, char *argv[], int opslot)
     {
