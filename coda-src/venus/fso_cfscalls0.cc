@@ -91,6 +91,93 @@ void fsobj::FetchProgressIndicator(unsigned long offset)
     GotThisData = (unsigned long)offset;
 }
 
+/* MUST be called from within a transaction */
+int fsobj::GetContainerFD(void)
+{
+    FSO_ASSERT(this, IsFile());
+
+    RVMLIB_REC_OBJECT(data.file);
+
+    /* create a sparse file of the desired size */
+    if (!HAVEDATA(this)) {
+	RVMLIB_REC_OBJECT(cf);
+	data.file = &cf;
+	data.file->Create(stat.Length);
+    }
+
+    /* and open the containerfile */
+    return data.file->Open(O_WRONLY);
+}
+
+int fsobj::LookAside(void)
+{
+    long cbtemp = cbbreaks;
+    int fd = -1, lka_successful = 0;
+    char emsg[256];
+
+    CODA_ASSERT(!IsLocalObj() && !IsFake());
+    CODA_ASSERT(HAVESTATUS(this) && !HAVEALLDATA(this));
+
+    if (!IsFile() || IsZeroSHA(VenusSHA))
+	return 0;
+
+    /* (Satya, 1/03)
+       Do lookaside to see if fetch can be short-circuited.
+       Assumptions for lookaside:
+       (a) we are operating normally (not in a repair)
+       (b) we have valid status
+       (c) file is a plain file (not sym link, directory, etc.)
+       (d) non-zero SHA
+
+       These were all verified in Sanity Checks above;
+       Check for replicated volume further ensures we never
+       do lookaside during repair
+
+       SHA value is obtained initially from fsobj and used for lookaside.
+     */
+
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(flags);
+    flags.fetching = 1;
+    fd = GetContainerFD();
+    Recov_EndTrans(CMFP);
+
+    if (fd != -1) {
+	memset(emsg, 0, sizeof(emsg));
+
+	lka_successful = LookAsideAndFillContainer(VenusSHA, fd,
+						   stat.Length, venusRoot,
+						   emsg, sizeof(emsg)-1);
+	data.file->Close(fd);
+
+	if (emsg[0])
+	    LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.Name(), emsg));
+
+	if (lka_successful)
+	    LOG(0, ("Lookaside of %s succeeded!\n", cf.Name()));
+    }
+
+    /* Note that the container file now has all the data we expected */
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(flags);
+    flags.fetching = 0;
+
+    if (lka_successful) {
+	data.file->SetLength(stat.Length);
+	cf.SetValidData(cf.Length()); 
+    }
+    Recov_EndTrans(CMFP);
+
+    /* If we received any callbacks during the lookaside, the validity of the
+     * found data is suspect and we shouldn't set the status to valid */
+    if (lka_successful && cbtemp == cbbreaks)
+	SetRcRights(RC_DATA | RC_STATUS); /* we now have the data */
+
+    /* we're done, skip out of here */
+    return lka_successful;
+}
+
+
 int fsobj::Fetch(uid_t uid)
 {
     int fd = -1;
@@ -158,17 +245,9 @@ int fsobj::Fetch(uid_t uid)
 	    sei->ByteQuota = -1;
 	    switch(stat.VnodeType) {
 		case File:
-		    RVMLIB_REC_OBJECT(data.file);
-                    
-		    /* create a sparse file of the desired size */
-                    if (!HAVEDATA(this)) {
-                        RVMLIB_REC_OBJECT(cf);
-                        data.file = &cf;
-                        data.file->Create(stat.Length);
-                    }
-
                     /* and open the containerfile */
-		    fd = data.file->Open(O_WRONLY);
+		    fd = GetContainerFD();
+		    CODA_ASSERT(fd != -1);
 
 		    sei->Tag = FILEBYFD;
 		    sei->FileInfo.ByFD.fd = fd;
@@ -221,46 +300,6 @@ int fsobj::Fetch(uid_t uid)
     }
 
     long cbtemp = cbbreaks;
-
-    /* (Satya, 1/03)
-       Do lookaside to see if fetch can be short-cirucited.
-       Assumptions for lookaside:
-       (a) we are operating normally (not in a repair)
-       (b) we have valid status
-       (c) file is a plain file (not sym link, directory, etc.)
-       (d) non-zero SHA
-
-       (a) and (b) were  verified in Sanity Checks above;
-       (c) and (d) verified below; check for replicated volume 
-       further ensures we never do lookaside during repair
-
-       SHA value is obtained initially from fsobj and used for lookaside.
-     */
-    if (IsFile() && !IsZeroSHA(VenusSHA)) {
-	int lka_successful;
-	char emsg[256];
-	memset(emsg, 0, sizeof(emsg));
-
-	lka_successful = LookAsideAndFillContainer(VenusSHA, fd,
-						   stat.Length, venusRoot,
-						   emsg, sizeof(emsg)-1);
-	if (emsg[0])
-	    LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.Name(), emsg));
-
-	if (lka_successful) {
-	    LOG(0, ("Lookaside of %s succeeded!\n", cf.Name()));
-	    Recov_BeginTrans();
-	    data.file->SetLength(stat.Length);
-	    cf.SetValidData(cf.Length()); 
-	    SetRcRights(RC_DATA | RC_STATUS); /* we now have the data */
-	    code = 0; /* success */
-	    Recov_EndTrans(CMFP);
-
-	    /* we're done, skip out of here */
-	    goto SHAExit;
-	}
-	/* else continue with real fetch */
-    }
 
     if (vol->IsReplicated()) {
         mgrpent *m = 0;
@@ -445,21 +484,18 @@ NonRepExit:
 	PutConn(&c);
     }
 
-SHAExit:
-	/* nothing left to do */;
-    
     if (fd != -1)
         data.file->Close(fd);
+
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(flags);
+    flags.fetching = 0;
 
     if (code == 0) {
 	if (status.CallBack == CallBackSet && cbtemp == cbbreaks)
 	    SetRcRights(RC_STATUS | RC_DATA);
 
 	/* Note the presence of data. */
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(flags);
-	flags.fetching = 0;
-
 	switch(stat.VnodeType) {
 	case File:
 		/* File is already `truncated' to the correct length */
@@ -476,7 +512,6 @@ SHAExit:
 	case Invalid:
 		FSO_ASSERT(this, 0);
 	}
-	Recov_EndTrans(CMFP);
     }
     else {
        /* 
@@ -484,10 +519,6 @@ SHAExit:
 	* file length so that DiscardData releases the correct
 	* number of blocks (i.e., the number allocated in fsdb::Get).
 	*/
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(flags);
-	flags.fetching = 0;
-
 	/* when the server responds with EAGAIN, the VersionVector was
 	 * changed, so this should effectively be handled like a failed
 	 * validation, and we can throw away the data */
@@ -500,8 +531,8 @@ SHAExit:
 	
 	/* Demote existing status. */
 	Demote();
-	Recov_EndTrans(CMFP);
     }
+    Recov_EndTrans(CMFP);
     return(code);
 }
 

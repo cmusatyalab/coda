@@ -850,8 +850,12 @@ RestartFind:
                  * the fetch will modify f->cf.ValidData) */
                 nblocks -= NBLOCKS(f->cf.ValidData());
 
-                /* Let fsobj::Fetch go ahead and fetch the object */
-                code = f->Fetch(uid);
+		code = 0;
+		/* first try the LookAside cache */
+		if (!f->LookAside()) {
+		    /* Let fsobj::Fetch go ahead and fetch the object */
+		    code = f->Fetch(uid);
+		}
 
                 /* Restart operation in case of inconsistency. */
                 if (code == EINCONS)
@@ -910,9 +914,19 @@ RestartFind:
                     Put(&f);
                     return(ETOOMANYREFS);
                 } 
+
                 if (!HAVEALLDATA(f)) {
-                    Put(&f);
-                    return(ETIMEDOUT);
+		    int found;
+
+		    /* try the lookaside cache */
+		    f->PromoteLock();
+		    found = f->LookAside();
+		    f->DemoteLock();
+
+		    if (!found) {
+			Put(&f);
+			return(ETIMEDOUT);
+		    }
                 }
 
                 if (!DATAVALID(f))

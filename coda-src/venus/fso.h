@@ -639,6 +639,8 @@ class fsobj {
 			  char *, unsigned short, int);
     int DisconnectedSymlink(Date_t, uid_t, fsobj **, char *,
 			     char *, unsigned short, int, int);
+    int GetContainerFD(void);
+    int LookAside(void);
 
   public:
     /* The public CFS interface (Vice portion). */
