@@ -49,7 +49,6 @@ extern "C" {
 /* interfaces */
 #include <vice.h>
 
-
 #ifdef __cplusplus
 }
 #endif
@@ -78,10 +77,6 @@ extern "C" {
 #include "vproc.h"
 #include "vsg.h"
 #include "worker.h"
-
-#ifdef __CYGWIN32__
-
-#endif
 
 
 /* *****  Exported variables  ***** */
