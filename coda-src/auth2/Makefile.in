@@ -42,7 +42,6 @@ endif
 
 ifneq ($(LIBKRB4)$(LIBKRB5),)
 AUTHCOMMON += krbcommon.o
-LIBKRBS += $(LIBCRYPTO)
 endif
 
 LIBAUTH2OBJS=auth2.server.o avice.o pwsupport.o $(AUTHCOMMON)
@@ -64,7 +63,7 @@ endif
 RP2HEADERS  = auth2.h
 
 DEPLIBS = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
-LIBS := $(LIBRPC2) $(LIBLWP) $(LIBS)
+LIBS := $(LIBRPC2) $(LIBLWP) $(LIBCRYPTO) $(LIBS)
 
 LIBRARIES   = libauth2.a libauser.a
 HEADERS     = avenus.h avice.h

@@ -222,9 +222,9 @@ enum LockLevel { NL, RD, SH, WR };
 #define	SubTimes(end, start) (0.0)
 #define START_TIMING()
 #define END_TIMING()\
-    float elapsed; elapsed = 0.0;\
-    float elapsed_ru_utime; elapsed_ru_utime = 0.0;\
-    float elapsed_ru_stime; elapsed_ru_stime = 0.0;
+    float elapsed = 0.0;\
+    float elapsed_ru_utime = 0.0;\
+    float elapsed_ru_stime = 0.0;
 #endif /* !TIMING */
 
 

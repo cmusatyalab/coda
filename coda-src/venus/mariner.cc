@@ -74,21 +74,19 @@ const int MarinerStackSize = 65536;
 const int MaxMariners = 25;
 const char MarinerService[] = "venus";
 const char MarinerProto[] = "tcp";
-int MarinerMask = 0;
+fd_set MarinerMask;
+int MarinerMaxFD = -1;
 
 
-int mariner::tcp_muxfd;
-int mariner::unix_muxfd;
+int mariner::tcp_muxfd = -1;
+int mariner::unix_muxfd = -1;
 int mariner::nmariners;
 
 void MarinerInit() {
     int sock, opt = 1; 
 
-    MarinerMask = 0;
+    FD_ZERO(&MarinerMask);
     mariner::nmariners = 0;
-
-    mariner::tcp_muxfd  = -1;
-    mariner::unix_muxfd = -1;
 
 #ifdef HAVE_SYS_UN_H
     /* use unix domain sockets wherever available */
@@ -170,25 +168,32 @@ Next:
     }
 Done:
     /* Allows the MessageMux to distribute incoming messages to us. */
-    if (mariner::tcp_muxfd != -1)  MarinerMask |= (1 << mariner::tcp_muxfd);
-    if (mariner::unix_muxfd != -1) MarinerMask |= (1 << mariner::unix_muxfd);
+    if (mariner::tcp_muxfd != -1)
+	FD_SET(mariner::tcp_muxfd, &MarinerMask);
+    if (mariner::tcp_muxfd > MarinerMaxFD)
+	MarinerMaxFD = mariner::tcp_muxfd;
+
+    if (mariner::unix_muxfd != -1)
+	FD_SET(mariner::unix_muxfd, &MarinerMask);
+    if (mariner::unix_muxfd > MarinerMaxFD)
+	MarinerMaxFD = mariner::unix_muxfd;
 }
 
 
-void MarinerMux(int mask)
+void MarinerMux(fd_set *mask)
 {
     int newfd = -1;
 
     LOG(100, ("MarinerMux: mask = %#08x\n", mask));
 
     /* Handle any new "Mariner Connect" requests. */
-    if      (mariner::tcp_muxfd != -1 && (mask & (1 << mariner::tcp_muxfd))) {
+    if (mariner::tcp_muxfd != -1 && FD_ISSET(mariner::tcp_muxfd, mask)) {
         struct sockaddr_in sin;
         socklen_t sinlen = sizeof(struct sockaddr_in);
 	newfd = ::accept(mariner::tcp_muxfd, (sockaddr *)&sin, &sinlen);
     }
 #ifdef HAVE_SYS_UN_H
-    else if (mariner::unix_muxfd != -1 && (mask & (1 << mariner::unix_muxfd))) {
+    else if (mariner::unix_muxfd != -1 && FD_ISSET(mariner::unix_muxfd, mask)) {
         struct sockaddr_un s_un;
         socklen_t sunlen = sizeof(struct sockaddr_un);
 	newfd = ::accept(mariner::unix_muxfd, (sockaddr *)&s_un, &sunlen);
@@ -199,9 +204,9 @@ void MarinerMux(int mask)
         ::close(newfd);
     else if (mariner::nmariners >= MaxMariners)
         ::close(newfd);
-    else if (newfd > 0) {
+    else if (newfd >= 0) {
 #ifndef DJGPP
-        if (::fcntl(newfd, F_SETFL, O_NDELAY) < 0) {
+        if (::fcntl(newfd, F_SETFL, O_NONBLOCK) < 0) {
             eprint("MarinerMux: fcntl failed (%d)", errno);
             ::close(newfd);
         }
@@ -213,8 +218,6 @@ void MarinerMux(int mask)
 #endif
         else new mariner(newfd);
     }
-//  else
-//      eprint("MarinerMux: accept failed (%d)", errno);
 
     /* Dispatch mariners which have pending requests, and kill dying mariners. */
     mariner_iterator next;
@@ -224,7 +227,7 @@ void MarinerMux(int mask)
 	    delete m;
 	    continue;
 	}
-	if (mask & (1 << m->fd)) {
+	if (FD_ISSET(m->fd, mask)) {
 	    m->DataReady = 1;
 	    if (m->idle) {
 		if (m->Read() < 0) {
@@ -324,7 +327,10 @@ mariner::mariner(int afd) :
     uid = ALL_UIDS;
     fd = afd;
     memset(commbuf, 0, MWBUFSIZE);
-    MarinerMask |= (1 << fd);
+
+    FD_SET(fd, &MarinerMask);
+    if (fd > MarinerMaxFD)
+	MarinerMaxFD = fd;
 
     /* Poke main procedure. */
     start_thread();
@@ -349,7 +355,7 @@ mariner::~mariner() {
     nmariners--;	/* Ought to be a lock protecting this! -JJK */
 
     if (fd) ::close(fd);
-    MarinerMask &= ~(1 << fd);
+    FD_CLR(fd, &MarinerMask);
 }
 
 

@@ -206,16 +206,26 @@ int main(int argc, char **argv) {
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
 	/* Wait for a message or daemon expiry. */
-	int rdfds = (KernelMask | MarinerMask);
+	fd_set rfds;
+	int maxfd = KernelFD;
 
-	if (VprocSelect(sizeof(int) * 8, &rdfds, 0, 0, &DaemonExpiry) > 0) {
+	FD_ZERO(&rfds);
+	FD_SET(KernelFD, &rfds);
+
+	for (int fd = 0; fd <= MarinerMaxFD; fd++)
+	    if (FD_ISSET(fd, &MarinerMask))
+		FD_SET(fd, &rfds);
+
+	if (MarinerMaxFD > maxfd)
+	    maxfd = MarinerMaxFD;
+
+	if (VprocSelect(maxfd, &rfds, 0, 0, &DaemonExpiry) > 0) {
 	    /* Handle mariner request(s). */
-	    if (rdfds & MarinerMask)
-		MarinerMux(rdfds);
+	    MarinerMux(&rfds);
 
 	    /* Handle worker request. */
-	    if (rdfds & KernelMask)
-		WorkerMux(rdfds);
+	    if (FD_ISSET(KernelFD, &rfds))
+		WorkerMux(&rfds);
 	}
 	/* set in sighand.cc whenever we want to perform a clean shutdown */
 	if (TerminateVenus)

@@ -118,7 +118,7 @@ const int WorkerStackSize = 131072;
 
 int MaxWorkers = UNSET_MAXWORKERS;
 int MaxPrefetchers = UNSET_MAXWORKERS;
-int KernelMask = 0;	/* subsystem is uninitialized until mask is non-zero */
+int KernelFD = -1;	/* subsystem is uninitialized until fd is not -1 */
 int kernel_version = 0;
 static int Mounted = 0;
 
@@ -146,7 +146,7 @@ msgent *FindMsg(olist& ol, u_long seq) {
     msg_iterator next(ol);
     msgent *m;
     while ((m = next()))
-	if (((union inputArgs *)m->msg_buf)->ih.unique == seq) return(m);
+	if (((union inputArgs *)&m->msg_buf)->ih.unique == seq) return(m);
 
     return(0);
 }
@@ -242,6 +242,7 @@ void testKernDevice()
 
 	/* Construct a purge message */
 	union outputArgs msg;
+	memset(&msg, 0, sizeof(msg));
 
 	msg.oh.opcode = CODA_FLUSH;
 	msg.oh.unique = 0;
@@ -497,7 +498,7 @@ void VFSUnmount()
     eprint (res == 0 ? "Kernel module unloaded" :
 	               "Kernel module could not be unloaded");
 
-    if (res == 0) KernelMask = 0;	
+    if (res == 0) KernelFD = -1;	
 
     return;
 #endif
@@ -587,12 +588,13 @@ void VFSUnmount()
 int k_Purge() {
     size_t size;
 
-    if (KernelMask == 0) return(1);
+    if (KernelFD == -1) return(1);
 
     LOG(1, ("k_Purge: Flush\n"));
 
     /* Construct a purge message. */
     union outputArgs msg;
+    memset(&msg, 0, sizeof(msg));
     
     msg.oh.opcode = CODA_FLUSH;
     msg.oh.unique = 0;
@@ -612,7 +614,7 @@ int k_Purge() {
 int k_Purge(VenusFid *fid, int severely) {
     size_t size;
 
-    if (KernelMask == 0) return(1);
+    if (KernelFD == -1) return(1);
 
     LOG(100, ("k_Purge: fid = (%s), severely = %d\n", FID_(fid), severely));
 
@@ -620,6 +622,7 @@ int k_Purge(VenusFid *fid, int severely) {
 
     /* Setup message. */
     union outputArgs msg;
+    memset(&msg, 0, sizeof(msg));
 
     if (severely) {
 	msg.coda_purgefid.oh.opcode = CODA_PURGEFID;
@@ -665,12 +668,14 @@ int k_Purge(uid_t uid)
 {
     size_t size;
 
-    if (KernelMask == 0) return(1);
+    if (KernelFD == -1) return(1);
 
     LOG(1, ("k_Purge: uid = %d\n", uid));
 
     /* Message prefix. */
     union outputArgs msg;
+    memset(&msg, 0, sizeof(msg));
+
     msg.coda_purgeuser.oh.unique = 0;
     msg.coda_purgeuser.oh.opcode = CODA_PURGEUSER;
 
@@ -689,7 +694,7 @@ int k_Purge(uid_t uid)
 }
 
 int k_Replace(VenusFid *fid_1, VenusFid *fid_2) {
-    if (KernelMask == 0) return(1);
+    if (KernelFD == -1) return(1);
 
     if (!fid_1 || !fid_2)
 	CHOKE("k_Replace: nil fids");
@@ -784,7 +789,7 @@ void WorkerInit()
     k_Purge();
 
     /* Allows the MessageMux to distribute incoming messages to us. */
-    KernelMask |= (1 << worker::muxfd);
+    KernelFD = worker::muxfd;
 
     worker::nworkers = 0;
     worker::nprefetchers = 0;
@@ -796,10 +801,10 @@ int WorkerCloseMuxfd()
 {
     int ret = 0;
 
-    if (KernelMask)
+    if (KernelFD)
 	ret = close(worker::muxfd);
 
-    worker::muxfd = KernelMask = 0;
+    worker::muxfd = KernelFD = -1;
 
     return ret;
 }
@@ -830,7 +835,7 @@ worker *GetIdleWorker() {
 
 int IsAPrefetch(msgent *m) {
     /* determines if a message is a prefetch request */
-    union inputArgs *in = (union inputArgs *)m->msg_buf;
+    union inputArgs *in = (union inputArgs *)&m->msg_buf;
     
     if (in->ih.opcode != CODA_IOCTL)
 	return(0);
@@ -840,7 +845,7 @@ int IsAPrefetch(msgent *m) {
 
 void DispatchWorker(msgent *m) {
     /* We filter out signals (i.e., interrupts) before passing messages on to workers. */
-    union inputArgs *in = (union inputArgs *)m->msg_buf;
+    union inputArgs *in = (union inputArgs *)&m->msg_buf;
     
     if (in->ih.opcode == CODA_SIGNAL) {
 	eprint("DispatchWorker: signal received (seq = %d)", in->ih.unique);
@@ -901,9 +906,8 @@ void DispatchWorker(msgent *m) {
 }
 
 
-void WorkerMux(int mask) {
-    if (!(mask & KernelMask)) return;
-
+void WorkerMux(fd_set *mask)
+{
     /* Get a free buffer and read a message from the kernel into it. */
     msgent *fm = (msgent *)worker::FreeMsgs.get();
     if (!fm) fm = new msgent;
@@ -1015,7 +1019,7 @@ void worker::AwaitRequest() {
 	LOG(1000, ("worker::AwaitRequest: dequeuing message\n"));
 	ActiveMsgs.append(m);
 	msg = m;
-	opcode = (int) ((union inputArgs *)m->msg_buf)->ih.opcode;
+	opcode = (int) ((union inputArgs *)&m->msg_buf)->ih.opcode;
 	idle = 0;
 	return;
     }
@@ -1027,8 +1031,8 @@ void worker::AwaitRequest() {
 /* Called by workers after completing a service request. */
 void worker::Resign(msgent *msg, int size) {
     if (returned) {
-	char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
-	char *retstr = VenusRetStr((int) ((union outputArgs *)msg->msg_buf)->oh.result);
+	char *opstr = VenusOpStr((int) ((union outputArgs*)&msg->msg_buf)->oh.opcode);
+	char *retstr = VenusRetStr((int) ((union outputArgs *)&msg->msg_buf)->oh.result);
 	
 #ifdef TIMING
 	float elapsed;
@@ -1040,8 +1044,8 @@ void worker::Resign(msgent *msg, int size) {
 #endif
     }
     else {
-	if (((union outputArgs *)msg->msg_buf)->oh.result == EINCONS) {
-/*	    ((union outputArgs *)msg->msg_buf)->oh.result = ENOENT;*/
+	if (((union outputArgs *)&msg->msg_buf)->oh.result == EINCONS) {
+/*	    ((union outputArgs *)&msg->msg_buf)->oh.result = ENOENT;*/
 	    CHOKE("worker::Resign: result == EINCONS");
 	}
 
@@ -1061,8 +1065,8 @@ void worker::Return(msgent *msg, size_t size) {
     if (returned)
 	CHOKE("worker::Return: already returned!");
 
-    char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
-    char *retstr = VenusRetStr((int) ((union outputArgs*)msg->msg_buf)->oh.result);
+    char *opstr = VenusOpStr((int) ((union outputArgs*)&msg->msg_buf)->oh.opcode);
+    char *retstr = VenusRetStr((int) ((union outputArgs*)&msg->msg_buf)->oh.result);
 
 #ifdef	TIMING
     float elapsed;
@@ -1084,8 +1088,8 @@ void worker::Return(msgent *msg, size_t size) {
 	int errn = errno;
 	if (cc != size) {
 	    eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
-		   errno, ((union outputArgs*)msg->msg_buf)->oh.opcode,
-		   ((union outputArgs*)msg->msg_buf)->oh.unique, cc, size);  
+		   errno, ((union outputArgs*)&msg->msg_buf)->oh.opcode,
+		   ((union outputArgs*)&msg->msg_buf)->oh.unique, cc, size);  
 
 	    /* Guard against a race in which the kernel is signalling us, but we entered this */
 	    /* block before the signal reached us.  In this case the error code from the MsgWrite */
@@ -1099,7 +1103,7 @@ void worker::Return(msgent *msg, size_t size) {
 }
 
 void worker::Return(int code) {
-    ((union outputArgs*)msg->msg_buf)->oh.result = code; 
+    ((union outputArgs*)&msg->msg_buf)->oh.result = code; 
     Return(msg, (int)sizeof (struct coda_out_hdr));
 }
 
@@ -1121,8 +1125,8 @@ void worker::main(void)
 	if (idle) CHOKE("Worker: signalled but not dispatched!");
 	if (!msg) CHOKE("Worker: no message!");
 
-	union inputArgs *in = (union inputArgs *)msg->msg_buf;
-	union outputArgs *out = (union outputArgs *)msg->msg_buf;
+	union inputArgs *in = (union inputArgs *)&msg->msg_buf;
+	union outputArgs *out = (union outputArgs *)&msg->msg_buf;
 	
         /* we reinitialize these on every loop */
         size = sizeof(struct coda_out_hdr);
@@ -1497,7 +1501,7 @@ void worker::main(void)
                 /* Fashion a CLOSE message. */
                 msgent *fm = (msgent *)worker::FreeMsgs.get();
                 if (!fm) fm = new msgent;
-                union inputArgs *dog = (union inputArgs *)fm->msg_buf;
+                union inputArgs *dog = (union inputArgs *)&fm->msg_buf;
 
                 dog->coda_close.ih.unique = (u_long)-1;
                 dog->coda_close.ih.opcode = CODA_CLOSE;

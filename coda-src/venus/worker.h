@@ -77,7 +77,7 @@ class msgent : public olink {
   friend int k_Purge(uid_t);
   friend int k_Replace(VenusFid *, VenusFid *);
   friend class fsobj;
-  friend void WorkerMux(int);
+  friend void WorkerMux(fd_set *mask);
 
     char msg_buf[VC_MAXMSGSIZE];
     msgent();
@@ -102,7 +102,7 @@ class worker : public vproc {
   friend worker *FindWorker(u_long);
   friend worker *GetIdleWorker();
   friend void DispatchWorker(msgent *);
-  friend void WorkerMux(int);
+  friend void WorkerMux(fd_set *mask);
   friend time_t GetWorkerIdleTime();
   friend void PrintWorkers(int);
   friend int MsgRead(msgent *);
@@ -150,7 +150,7 @@ class worker_iterator : public vproc_iterator {
 
 extern int MaxWorkers;
 extern int MaxPrefetchers;
-extern int KernelMask;
+extern int KernelFD;
 
 
 extern msgent *FindMsg(olist&, u_long);
@@ -167,7 +167,7 @@ extern void WorkerInit();
 extern worker *FindWorker(u_long);
 extern worker *GetIdleWorker();
 extern void DispatchWorker(msgent *);
-extern void WorkerMux(int);
+extern void WorkerMux(fd_set *mask);
 extern time_t GetWorkerIdleTime(void);
 extern void PrintWorkers();
 extern void PrintWorkers(FILE *);

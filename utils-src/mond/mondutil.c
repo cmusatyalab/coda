@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/mondutil.c,v 3.3 98/09/07 15:57:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/mondutil.c,v 3.4 1998/11/30 11:39:59 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,6 +45,7 @@ extern "C" {
 #include <signal.h>
 #include <stdio.h>
 #include <mach.h>
+#include <errno.h>
 #include "lwp.h"
 #include "rpc2.h"
 #include "lock.h"
@@ -220,7 +221,6 @@ static void TermSignal() {
 
 static void ChildSignal() {
     /* just wait on it and bail */
-    extern int errno;
     union wait status;
     int pid;
     pid = wait3(&status,WNOHANG,0);

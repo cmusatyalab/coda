@@ -252,7 +252,7 @@ void VprocYield() {
 }
 
 
-int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds,
+int VprocSelect(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 		struct timeval *timeout) {
 #ifdef VENUSDEBUG
     {
@@ -263,8 +263,7 @@ int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds,
     }
 #endif
 
-    return(IOMGR_Select(nfds, (fd_set *)readfds, (fd_set *)writefds,
-			(fd_set *)exceptfds, timeout));
+    return(IOMGR_Select(nfds, readfds, writefds, exceptfds, timeout));
 }
 
 

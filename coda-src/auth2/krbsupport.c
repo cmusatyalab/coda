@@ -53,8 +53,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-extern int h_errno;
-
 #define min(x, y) (x > y ? y : x)
 
 extern int GetViceId(RPC2_CountedBS *cIdent);

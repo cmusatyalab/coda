@@ -50,8 +50,6 @@ Pittsburgh, PA.
 #define FALSE	0
 #endif
 
-extern int errno;
-
 typedef unsigned long bit32;	/* Unsigned, 32 bits */
 typedef unsigned short bit16;	/* Unsigned, 16 bits */
 typedef unsigned char byte;	/* Unsigned, 8 bits */

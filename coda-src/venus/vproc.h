@@ -291,7 +291,7 @@ extern void VprocMwait(int, char **);
 extern void VprocSignal(char *, int=0);
 extern void VprocSleep(struct timeval *);
 extern void VprocYield();
-extern int VprocSelect(int, int *, int *, int *, struct timeval *);
+extern int VprocSelect(int, fd_set *, fd_set *, fd_set *, struct timeval *);
 extern void VprocSetRetry(int =-1, struct timeval * =0);
 extern int VprocIdle();
 extern int VprocInterrupted();
@@ -323,7 +323,7 @@ struct venus_cnode {
 	VenusFid	    c_fid;	/* file handle */
 	dev_t	    c_device;	/* associated vnode device */
 	ino_t	    c_inode;	/* associated vnode inode */
-	char        c_cfname[CNODE_CFNAME_LEN]; /* container file name */
+	char        c_cfname[CNODE_CFNAME_LEN+1]; /* container file name */
 	int         c_type;
 };
 

@@ -178,7 +178,7 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, uid_t uid)
 
 	    cp->c_device = FSDB->device;
 	    cp->c_inode = container->Inode();
-	    strncpy(cp->c_cfname, container->Name(), CNODE_CFNAME_LEN);
+	    strncpy(cp->c_cfname, container->Name(), CNODE_CFNAME_LEN-1);
     }
 
 Exit:

@@ -46,10 +46,11 @@ extern "C" {
 
 const int MWBUFSIZE = 80;
 
-extern int MarinerMask;
+extern fd_set MarinerMask;
+extern int MarinerMaxFD;
 
 extern void MarinerInit();
-extern void MarinerMux(int);
+extern void MarinerMux(fd_set *mask);
 extern void MarinerLog(const char *, ...);
 extern void MarinerReport(VenusFid *, uid_t);
 extern void PrintMariners();
@@ -59,7 +60,7 @@ extern void PrintMariners(int);
 
 class mariner : public vproc {
   friend void MarinerInit();
-  friend void MarinerMux(int);
+  friend void MarinerMux(fd_set *mask);
   friend void MarinerReport(VenusFid *, uid_t);
   friend void PrintMariners(int);
 

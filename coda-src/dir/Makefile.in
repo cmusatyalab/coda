@@ -41,7 +41,7 @@ libcodadir.a:  $(OBJS)
 
 DEPLIBS = libcodadir.a $(LIBUTIL) $(LIBBASE)
 LIBS := $(DEPLIBS) $(LIBRDS) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBLWP) \
-    $(LIBREADLINE) $(LIBTERMCAP) $(LIBS)
+    $(LIBCRYPTO) $(LIBREADLINE) $(LIBTERMCAP) $(LIBS)
 
 dirtest: dirtest.o $(DEPLIBS)
 	$(CC) -o dirtest $(LDFLAGS) dirtest.o $(LIBS)
