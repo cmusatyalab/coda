@@ -12,3 +12,5 @@ echo admin::500::Administrator:: > passwd.coda
 pwd2pdb -p passwd.coda -g group.coda > vice.pdb
 pcfgen vice.pdb
 
+#echo "500	changeme	admin user" > users.file
+#initpw -k "drseussw " < users.file > auth2.pw
