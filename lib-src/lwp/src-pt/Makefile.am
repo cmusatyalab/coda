@@ -20,14 +20,19 @@
 
 VPATH=$(srcdir):$(top_srcdir)/src
 
-lib_LTLIBRARIES = liblwp_pt.la
+if build_pthread
+BUILD_LIB = liblwp_pt.la
+BUILD_BIN = cswitch_pt testlwp_pt testlwp-static_pt tdb_pt rw_pt
+endif
+
+lib_LTLIBRARIES = $(BUILD_LIB)
 INCLUDES = -I$(top_srcdir)/include -D_REENTRANT
 liblwp_pt_la_SOURCES = iomgr_pt.c lock_pt.c lwp_pt.c preempt_pt.c \
     lwp.private_pt.h dllist.h
 liblwp_pt_la_LIBADD = fasttime_pt.lo timer_pt.lo
 liblwp_pt_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBPTHREAD)
 
-noinst_PROGRAMS = cswitch_pt testlwp_pt testlwp-static_pt tdb_pt rw_pt
+noinst_PROGRAMS = $(BUILD_BIN)
 cswitch_pt_SOURCES =
 cswitch_pt_LDADD = cswitch_pt.o liblwp_pt.la
 testlwp_pt_SOURCES =

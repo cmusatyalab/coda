@@ -17,7 +17,7 @@
 #                            none currently
 #*/
 
-EXTRADIST = changelog control copyright dirs docs liblwp2.docs liblwp2.files \
+EXTRA_DIST = changelog control copyright dirs docs liblwp2.docs liblwp2.files \
     liblwp2.postinst liblwp2.prerm postinst prerm rules watch
 
 MAINTAINERCLEANFILES = Makefile.in

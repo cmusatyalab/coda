@@ -17,11 +17,7 @@
 #                            none currently
 #*/
 
-if build_pthread
-EXTRA = src-pt
-endif
-
-SUBDIRS = include src $(EXTRA) pkgs debian
+SUBDIRS = include src src-pt pkgs debian
 
 EXTRA_DIST = PORTING acinclude.m4 bootstrap.sh configure
 
