@@ -8,7 +8,7 @@ Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-%{version}.tar.gz
 Requires: bc
 Copyright: GPL
 BuildRoot: /usr/src/redhat/BUILD/coda-build
-BuildRequires: db4-devel libtermcap-devel lwp-devel ncurses-devel rpc2-devel rvm-devel
+BuildRequires: libtermcap-devel lwp-devel ncurses-devel rpc2-devel rvm-devel
 Group: Networking/Daemons
 %description
 Source package for the Coda filesystem.  Three packages are provided by
