@@ -2,6 +2,7 @@ ChangeLog
 Makefile
 Makefile.in
 aclocal.m4
+compile
 config.cache
 config.guess
 config.h
@@ -10,7 +11,9 @@ config.log
 config.status
 config.sub
 configure
+depcomp
 install-sh
+install-stamp
 libtool
 ltconfig
 ltmain.sh
