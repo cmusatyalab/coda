@@ -388,9 +388,9 @@ rvm_length_t check_sum(nvaddr,len)
     length = (ALIGNED_LEN(nvaddr,len)/sizeof(rvm_length_t)) - 1;
 
     /* process boundary words */
-    chk_sum = zero_pad_word(*base,nvaddr,rvm_true);
+    chk_sum = zero_pad(*base,nvaddr,rvm_true);
     if (length >= 2)
-        chk_sum += zero_pad_word(base[length--],&nvaddr[len-1],rvm_false);
+        chk_sum += zero_pad(base[length--],&nvaddr[len-1],rvm_false);
     if (length <= 1) return chk_sum;
 
     /* form check sum of remaining full words */
@@ -408,6 +408,7 @@ rvm_bool_t test_chk_sum(block)
     chksum = check_sum(block->ptr,block->size);
     if (chksum != block->chksum)
         {
+	fprintf(stderr, "chktst %p, %ld\n", block->ptr, chksum);
         printf("\n?  Block checksum doesn't match\n");
         CODA_ASSERT(rvm_false);
         }
@@ -423,6 +424,15 @@ block_t *pick_random()
     /* exit if list empty */
     if (alloc_list.list.length == 0)
         return NULL;
+
+#if 0
+    /* check checksums of all blocks on the list */
+    block = (block_t *)alloc_list.nextentry;
+    for (i = alloc_list.list.length; i > 0;i--) {
+        block = (block_t *)block->links.nextentry;
+	test_chk_sum(block);
+    }
+#endif
 
     /* pick a random block */
     block = (block_t *)alloc_list.nextentry;
@@ -666,8 +676,7 @@ void do_trans(block,range_list,do_flush,id)
         for (i=0; i<block->size; i++)
             if (save_area[i] != block->ptr[i])
                 {
-                printf("\n%d: modified region improperly restored by abort\n",
-                       id);
+                printf("\n%d: modified region improperly restored by abort %p[%d]\n", id, block->ptr, i);
                 CODA_ASSERT(rvm_false);
                 }
         free(save_area);

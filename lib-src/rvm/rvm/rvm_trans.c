@@ -558,7 +558,7 @@ static rvm_return_t save_nv(range)
         range_len = RANGE_LEN(range);
         if (range->data == NULL)
             {
-            range->data = malloc(range_len);
+            range->data = calloc(1, range_len);
             if (range->data == NULL) return RVM_ENO_MEMORY;
             range->nvaddr = range->data;
             range->data_len = range_len;
@@ -684,7 +684,7 @@ static rvm_return_t merge_tid(q_tid,tid,new_range)
         free(new_range->data);
     data_off = RVM_OFFSET_TO_LENGTH(new_range->nv.offset);
     new_range->data_len = ALIGNED_LEN(data_off,new_range->nv.length);
-    if ((new_range->data=malloc(new_range->data_len)) == NULL)
+    if ((new_range->data=calloc(1, new_range->data_len)) == NULL)
         return RVM_ENO_MEMORY;
     new_range->nvaddr = new_range->data;
 

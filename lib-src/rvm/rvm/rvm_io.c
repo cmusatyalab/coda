@@ -33,6 +33,10 @@ Coda are listed in the file CREDITS.
 #include <stdlib.h>
 #include "rvm_private.h"
 
+#ifndef UIO_MAXIOV 
+#define UIO_MAXIOV 16
+#endif
+
 /* global variables */
 device_t            *rvm_errdev;        /* last device to have error */
 int                 rvm_ioerrno=0;      /* also save the errno for I/O error */
@@ -350,13 +354,14 @@ static long gather_write_file(dev,offset,wrt_len)
 
     /* do gather write in groups of 16 for Unix */
     if (!(rvm_utlsw && rvm_no_update))
-        while (dev->iov_cnt != 0)
+        while (dev->iov_cnt)
             {
-            if (dev->iov_cnt > 16) count = 16;
-            else count = dev->iov_cnt;
+            if (dev->iov_cnt > UIO_MAXIOV)
+		count = UIO_MAXIOV;
+            else
+		count = dev->iov_cnt;
 
-            retval = writev((int)dev->handle,
-                            (struct iovec *)&dev->iov[iov_index],count);
+            retval = writev(dev->handle, (struct iovec *)&dev->iov[iov_index], count);
             if (retval < 0)
                 {
                 rvm_errdev = dev;

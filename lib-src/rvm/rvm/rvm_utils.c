@@ -425,6 +425,8 @@ region_t *make_region()
     region = (region_t *)alloc_list_entry(region_id);
     if (region != NULL)
         {
+	BZERO((char *)region, sizeof(region_t));
+        region->links.struct_id = region_id;
         init_rw_lock(&region->region_lock);
         mutex_init(&region->count_lock);
         }
@@ -720,7 +722,7 @@ log_special_t *make_log_special(special_id,length)
 
         /* buffer allocation */
         if ((length=ROUND_TO_LENGTH(length)) != 0)
-            if ((buf = malloc((unsigned)length)) == NULL)
+            if ((buf = calloc(1, (unsigned)length)) == NULL)
                 {
                 free_list_entry((list_entry_t *)special);
                 return NULL;

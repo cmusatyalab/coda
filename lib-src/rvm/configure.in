@@ -1,9 +1,10 @@
 dnl Process this file with autoconf to produce a configure script
 
 dnl Initialization
+AC_PREREQ(2.50)
 AC_INIT(rvm/rvm_private.h)
 CODA_SETUP_BUILD
-AM_INIT_AUTOMAKE(rvm, 1.6)
+AM_INIT_AUTOMAKE(rvm, 1.7)
 AM_CONFIG_HEADER(config.h)
 
 dnl For library version updates, follow these steps in order.
