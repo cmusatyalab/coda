@@ -221,6 +221,7 @@ int main(int argc, char **argv)
 #ifdef __CYGWIN32__
     username = getlogin();	 
 #else if !defined(DJGPP)
+    chdir("c:\\usr\coda\\bin");
     pw = getpwuid (getuid ());
     if (pw) {
         username=pw->pw_name;
