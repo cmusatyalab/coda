@@ -288,14 +288,14 @@ void GetMaxVV(vv_t *newvv, vv_t **vvgroup, int domindex)
 	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (vvgroup[i]) break;
 	if (i < VSG_MEMBERS) 
-	    bcopy((const void *)&(vvgroup[i]->StoreId), (void *)&(newvv->StoreId),
+	    memmove((void *)&(newvv->StoreId), (const void *)&(vvgroup[i]->StoreId),
 		  sizeof(ViceStoreId));
 	break;
     case -2:
 	/* do nothing */
 	break;
     default:
-	bcopy((const void *)&(vvgroup[domindex]->StoreId), (void *)&(newvv->StoreId),
+	memmove((void *)&(newvv->StoreId), (const void *)&(vvgroup[domindex]->StoreId),
 	      sizeof(ViceStoreId));
     }
 }
