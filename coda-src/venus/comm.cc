@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: comm.cc,v 1.1 96/11/22 19:10:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2815,8 +2815,8 @@ int FailDisconnect(int nservers, unsigned long *hostids)
 		filter.factor = 0;
 		filter.speed = 0;
 
-		for (int i = 0; i < 2; i++) {
-		    if (i == 0) side = sendSide;
+		for (int lx = 0; lx < 2; lx++) {
+		    if (lx == 0) side = sendSide;
 		    else side = recvSide;
 
 		    /* 
