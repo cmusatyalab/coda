@@ -64,7 +64,7 @@ VOLNAME="$1"
 # Hmm, we sometimes need to use the volumename in regular expressions
 # As a result we can't use a lot of special characters, but having at
 # least '/' would be nice.
-_VOLNAME=`echo ${VOLNAME} | sed 's&/&\/&g'`
+_VOLNAME=`echo ${VOLNAME} | sed 's&/&\\\/&g'`
 
 #
 # Create these files if they don't already exist.
