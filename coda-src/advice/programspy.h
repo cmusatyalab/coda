@@ -28,7 +28,7 @@ class progent {
   public:
     progent(char *Program);
     progent(progent&);
-    operator=(progent&);
+    int operator=(progent&);
     ~progent();
 
     void print(FILE *f);
@@ -45,7 +45,7 @@ class dataent {
   public:
     dataent(VolumeId vol);
     dataent(dataent&);
-    operator=(dataent&);
+    int operator=(dataent&);
     ~dataent();
 
     void print(FILE *f);

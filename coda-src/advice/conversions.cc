@@ -22,6 +22,7 @@ extern "C" {
 
 #include "coda_assert.h"
 #include <strings.h>
+#include <string.h>
 
 #ifdef __cplusplus
 }

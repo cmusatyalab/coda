@@ -137,7 +137,7 @@ static int ReadVolDiskData(int fd, VolumeDiskData *data, int *adm_limit){
 }
 
 
-static int DumpResLog(int fd, struct VolumeData *voldata, struct
+static int DumpResLog(int fd, struct VolumeData *voldata,
 		       VnodeDiskObject *vnode) {
     Volume    vol, *vp;		// We need to fake out the DumpLog routine
     volHeader vh;
@@ -316,7 +316,7 @@ static int ReadResLog(int fd, Volume *vp, Vnode *vnp) {
 static int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
 			  VnodeClass vclass) {
     char   buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *) buf;
     int    nvnodes,
 	   vnode_index,
 	   vnode_num;
@@ -422,7 +422,7 @@ int CopyDirInode(DirInode *oldinode, DirInode **newinode)
 
 static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
     char   buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *) buf;
     Vnode 	*vnp;
     int 	nvnodes;
     VnodeId 	vnode_num;

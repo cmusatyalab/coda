@@ -60,7 +60,7 @@ class vvent_iterator {
 
 extern int  ValidListVVHeader(FILE *, register Volume *, int *);
 extern void DumpListVVHeader(int, register Volume *vp, int Incremental, int);
-extern void ListVV(int fd, int vnode, struct VnodeDiskObject *vnp);
+extern void ListVV(int fd, int vnode, VnodeDiskObject *vnp);
 extern void getlistfilename(char *, VolumeId, VolumeId, char *);
 
 #endif  _VVLIST_H_

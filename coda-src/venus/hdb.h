@@ -373,7 +373,7 @@ class namectxt {
     namectxt(ViceFid *, char *, vuid_t, int, int, int);
     namectxt(namectxt *, char *);
     namectxt(namectxt&);		/* not supported! */
-    operator=(namectxt&);		/* not supported! */
+    int operator=(namectxt&);		/* not supported! */
     ~namectxt();
     void operator delete(void *, size_t);
 

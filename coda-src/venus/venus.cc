@@ -96,7 +96,7 @@ static void CheckInitFile();
 static void UnsetInitFile();
 static void SetRlimits();
 /* **** defined in worker.c **** */
-extern testKernDevice();
+extern int testKernDevice();
 
 int venus_relay_addr = INADDR_LOOPBACK;
 

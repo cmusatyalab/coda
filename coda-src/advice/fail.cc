@@ -38,6 +38,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <string.h>
 #include <unistd.h>
 #include <ports.h>
 
@@ -80,7 +81,7 @@ void Quit();
 
 int maxFilterID = 999;
 
-iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
+int iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
 
 void InitFail() {
     InitRPC();

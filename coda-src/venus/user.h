@@ -91,7 +91,7 @@ class userent {
     /* Constructors, destructors, and private utility routines. */
     userent(vuid_t);
     userent(userent&);	    /* not supported! */
-    operator=(userent&);    /* not supported! */
+    int operator=(userent&);    /* not supported! */
     ~userent();
 
   public:

@@ -73,7 +73,7 @@ ohashtab::ohashtab(ohashtab& ht) {
 }
 
 
-ohashtab::operator=(ohashtab& ht) {
+int ohashtab::operator=(ohashtab& ht) {
     abort();
     return(0);	/* to keep C++ happy !! */
 }

@@ -504,7 +504,7 @@ class fsobj {
     void ResetPersistent();
     void ResetTransient();
     fsobj(fsobj&) { abort(); }                          /* not supported! */
-    operator=(fsobj&) { abort(); return(0); }           /* not supported! */
+    int operator=(fsobj&) { abort(); return(0); }           /* not supported! */
     ~fsobj();
     void Recover();
 

@@ -109,7 +109,7 @@ void DumpListVVHeader(int VVListFd,register Volume *vp,int Incremental,int uniqu
 }
 
 /* Output the VV for a vnode to a file. */
-void ListVV(int fd, int vnode, struct VnodeDiskObject *vnp)
+void ListVV(int fd, int vnode, VnodeDiskObject *vnp)
 {
     char buffer[LISTLINESIZE];
     ViceVersionVector *vv = (ViceVersionVector *)(&(vnp->versionvector));

@@ -44,6 +44,7 @@ extern "C" {
 #include <netdb.h>
 #include <netinet/in.h>
 #include <strings.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <rpc2.h>
 #include <inodeops.h>

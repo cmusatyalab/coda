@@ -30,6 +30,7 @@ extern "C" {
 #include <stdlib.h>
 #include <sys/param.h>
 #include <strings.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>    

@@ -76,7 +76,7 @@ class rec_bstree {
     void Init(RBSTCFN);
     void SetCmpFn(RBSTCFN);
     void ClearStatistics();
-    operator=(rec_bstree&);				/* not supported! */
+    int operator=(rec_bstree&);				/* not supported! */
     void DeInit();
 
     void insert(rec_bsnode *);				/* insert in sorted order */
@@ -106,7 +106,7 @@ class rec_bsnode {
     rec_bsnode();
     void Init();
     rec_bsnode(rec_bsnode&);				/* not supported! */
-    operator=(rec_bsnode&);				/* not supported! */
+    int operator=(rec_bsnode&);				/* not supported! */
 /*
     ~rec_bsnode();
     void DeInit();

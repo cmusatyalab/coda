@@ -29,8 +29,8 @@ listed in the file CREDITS.
 
 // assumes c++
 
-extern newSetCheckLevel(int);
-extern newPlumber(FILE *);
+extern int newSetCheckLevel(int);
+extern int newPlumber(FILE *);
 
 #endif _NEWPLUMB_H_
 

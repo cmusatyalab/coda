@@ -42,7 +42,7 @@ class TreeRmBlk {
     int	*blocks;
 
   TreeRmBlk(){ }
-  init(ClientEntry *cl, VolumeId vnum, Volume *vptr, ViceStatus *st,
+  int init(ClientEntry *cl, VolumeId vnum, Volume *vptr, ViceStatus *st,
 		  ViceStoreId *stid, dlist *vl, int resolve, olist *logtree, 
 		  unsigned long svid, int *blks) {
       client = cl;

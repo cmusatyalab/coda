@@ -30,6 +30,7 @@ extern "C" {
 #include <stdlib.h>
 #include <errno.h>
 #include <strings.h>
+#include <string.h>
 
 #ifdef __cplusplus
 }

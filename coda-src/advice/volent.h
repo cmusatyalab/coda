@@ -32,9 +32,9 @@ class volent {
  public:
     volent(char *Name, VolumeId id, VolumeStates theState);
     volent(volent&);
-    operator=(volent&);
+    int operator=(volent&);
     ~volent();
-    setState(VolumeStates newState);
+    int setState(VolumeStates newState);
     char *VolumeStateString();
     void print(FILE *f);
 };

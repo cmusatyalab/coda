@@ -41,6 +41,7 @@ extern "C" {
 #include <sys/param.h>
 
 #include <strings.h>
+#include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>

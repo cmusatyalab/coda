@@ -1382,7 +1382,7 @@ int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd)
 	length = stbuf.st_size;
 	}
 
-    /* When we try to tranfer too much, return a value so that we avoid
+    /* When we try to transfer too much, return a value so that we avoid
      * piggybacking */
     if (SFTP_EnforceQuota && sdesc->Value.SmartFTPD.ByteQuota > 0 && 
 	length > sdesc->Value.SmartFTPD.ByteQuota)

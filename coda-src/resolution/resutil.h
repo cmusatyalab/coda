@@ -173,7 +173,7 @@ struct respath : public olink {
     ~respath() {
 
     }
-    init(long vn, long unq, ViceVersionVector *v, ResStatus *s) {
+    int init(long vn, long unq, ViceVersionVector *v, ResStatus *s) {
 	vnode = vn;
 	unique = unq;
 	vv = *v;

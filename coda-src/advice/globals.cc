@@ -28,6 +28,7 @@ extern "C" {
 #include <time.h>
 #include <stdio.h>
 #include <strings.h>
+#include <string.h>
 #include <errno.h>
 #include <stdlib.h>
 

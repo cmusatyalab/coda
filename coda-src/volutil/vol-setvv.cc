@@ -77,6 +77,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     vrent *vre;
     /* To keep C++ 2.0 happy */
     VolumeId volid = (VolumeId)formal_volid;
+    ViceVersionVector UpdateSet;
 
     VLog(9, "Checking lwp rock in S_VolSetVV");
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
@@ -144,7 +145,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     if (ix < 0) Die("S_VolSetVV: this host not found!");
 
     /* Fashion an UpdateSet using just ThisHost. */
-    ViceVersionVector UpdateSet = NullVV; 
+    UpdateSet = NullVV; 
     (&(UpdateSet.Versions.Site0))[ix] = 1;
     AddVVs(&V_versionvector(vp), &UpdateSet);
 

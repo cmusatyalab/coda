@@ -52,13 +52,13 @@ char GhostDB[MAXPATHLEN];
 struct Lock GhostLock;
 
 
-MakeDatum(char *string, DBT *element) {
+int MakeDatum(char *string, DBT *element) {
     element->data = string;
     element->size = strlen(string) + 1;
 }
 
 
-StoreDatum(DB *db, DBT *key, DBT *content) {
+int StoreDatum(DB *db, DBT *key, DBT *content) {
     int rc; 
 
     rc = db->put(db, key, content, 0);
@@ -76,7 +76,7 @@ StoreDatum(DB *db, DBT *key, DBT *content) {
     return(0);
 }
 
-GetDatum(DB *db, DBT *key, int *status, int *data) {
+int GetDatum(DB *db, DBT *key, int *status, int *data) {
   DBT content;
   int rc;
 
@@ -85,7 +85,7 @@ GetDatum(DB *db, DBT *key, int *status, int *data) {
 
   rc = db->get(db, key, &content, 0);
   if (rc == RET_SUCCESS) {
-      int rc = sscanf(content.data, "%d %d", status, data);
+      int rc = sscanf((char*)content.data, "%d %d", status, data);
       CODA_ASSERT(rc == 2);
       // free(content.data);
   }
@@ -201,7 +201,7 @@ void PrintGhostDB() {
   printf("\n\nPrinting the database:\n");
   rc = db->seq(db, &key, &content, R_FIRST);
   while (rc == RET_SUCCESS) {
-    rc = sscanf(content.data, "%d %d", &status, &data);
+    rc = sscanf((char*)content.data, "%d %d", &status, &data);
     CODA_ASSERT(rc == 2);
 
     printf("  key=%s content = <%d, %d>\n",key.data, status, data);
@@ -234,7 +234,7 @@ void OutputReplacementStatistics() {
 
   rc = db->seq(db, &key, &content, R_FIRST);
   while (rc == RET_SUCCESS) {
-    rc = sscanf(content.data, "%d %d", &status, &data);
+    rc = sscanf((char*)content.data, "%d %d", &status, &data);
     CODA_ASSERT(rc == 2);
 
     if ((status >= MAXSTATUSREPLACEMENTS) || (data >= MAXDATAREPLACEMENTS))
@@ -249,7 +249,7 @@ void OutputReplacementStatistics() {
   ReleaseReadLock(&GhostLock);
 }
 
-Find(char *path) {
+int Find(char *path) {
   DB *db;
   DBT key;
   int oldStatus, oldData;

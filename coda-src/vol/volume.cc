@@ -1430,7 +1430,7 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
 	register struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
 	register struct vnodeIndex *vip = &vp->vnIndex[vclass];
 	char bigbuf[SIZEOF_LARGEDISKVNODE];
-	struct VnodeDiskObject *vnode;
+	VnodeDiskObject *vnode;
 	register Unique_t unique = 0;
 	int bitNumber = 0;
 

@@ -176,7 +176,7 @@ class connent {
     /* Constructors, destructors, and private utility routines. */
     connent(unsigned long, vuid_t, RPC2_Handle, int);
     connent(connent&) { abort(); }	/* not supported! */
-    operator=(connent&) { abort(); return(0); }	/* not supported! */
+    int operator=(connent&) { abort(); return(0); }	/* not supported! */
     ~connent();
 
   public:
@@ -269,7 +269,7 @@ class srvent {
     /* Constructors, destructors, and private utility routines. */
     srvent(unsigned long host, int isrootserver);
     srvent(srvent&) { abort(); }	/* not supported! */
-    operator=(srvent&) { abort(); return(0); }	/* not supported! */
+    int operator=(srvent&) { abort(); return(0); }	/* not supported! */
     ~srvent();
 
   public:
@@ -360,7 +360,7 @@ class RepOpCommCtxt {
   public:
     RepOpCommCtxt();
     RepOpCommCtxt(RepOpCommCtxt&) { abort(); }  /* not supported! */
-    operator=(RepOpCommCtxt&) { abort(); return(0); }	    /* not supported! */
+    int operator=(RepOpCommCtxt&) { abort(); return(0); }	    /* not supported! */
     ~RepOpCommCtxt() {}
 
     void print() { print(stdout); }
@@ -405,7 +405,7 @@ class mgrpent {
     /* Constructors, destructors, and private utility routines. */
     mgrpent(unsigned long, vuid_t, RPC2_Handle, int);
     mgrpent(mgrpent&) { abort(); }	/* not supported! */
-    operator=(mgrpent&) { abort(); return(0); }	/* not supported! */
+    int operator=(mgrpent&) { abort(); return(0); }	/* not supported! */
     ~mgrpent();
 
   public:
@@ -523,7 +523,7 @@ class vsgent {
     vsgent(int, unsigned long, unsigned long *);
     void ResetTransient();
     vsgent(vsgent&) { abort(); }	/* not supported! */
-    operator=(vsgent&) { abort(); return(0); }	/* not supported! */
+    int operator=(vsgent&) { abort(); return(0); }	/* not supported! */
     ~vsgent();
     void hold();
     void release();

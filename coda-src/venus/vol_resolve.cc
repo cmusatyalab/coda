@@ -316,7 +316,7 @@ class resolver : public vproc {
 
     resolver();
     resolver(resolver&);	/* not supported! */
-    operator=(resolver&);	/* not supported! */
+    int operator=(resolver&);	/* not supported! */
     ~resolver();
 
   public:

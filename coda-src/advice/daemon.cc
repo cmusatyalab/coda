@@ -73,7 +73,7 @@ void RegisterDaemon(unsigned long interval, char *sync) {
     tp->TotalTime.tv_sec = interval;
     tp->TotalTime.tv_usec = 0;
 
-    struct DaemonInfo *dp = new DaemonInfo;
+    DaemonInfo *dp = new DaemonInfo;
     CODA_ASSERT(dp != NULL);
     dp->interval = interval;
     dp->sync = sync;
@@ -98,7 +98,7 @@ void InitOneADay() {
     tp->TotalTime.tv_sec = midnight - curr_time;       /* time until then */
     tp->TotalTime.tv_usec = 0;
 
-    struct DaemonInfo *dp = new DaemonInfo;
+    DaemonInfo *dp = new DaemonInfo;
     CODA_ASSERT(dp != NULL);
     dp->interval = SECSPERDAY;
     dp->sync = NULL;
@@ -122,14 +122,14 @@ void DispatchDaemons() {
             TM_Remove(DaemonList, tp);
 
 	    CODA_ASSERT(tp != NULL);
-	    CODA_ASSERT((struct DaemonInfo *)tp->BackPointer != NULL);
+	    CODA_ASSERT((DaemonInfo *)tp->BackPointer != NULL);
 
-            tp->TotalTime.tv_sec = ((struct DaemonInfo *)tp->BackPointer)->interval;
+            tp->TotalTime.tv_sec = ((DaemonInfo *)tp->BackPointer)->interval;
             tp->TotalTime.tv_usec = 0;
             TM_Insert(DaemonList, tp);
 
-            if (((struct DaemonInfo *)tp->BackPointer)->sync) {
-	        LWP_SignalProcess(((struct DaemonInfo *)tp->BackPointer)->sync);
+            if (((DaemonInfo *)tp->BackPointer)->sync) {
+	        LWP_SignalProcess(((DaemonInfo *)tp->BackPointer)->sync);
 	    } else   /* once a day task */
 	        LogMsg(0,LogLevel,LogFile, "At the tone the time will be %s", ctime((long *)&curr_time));
     }

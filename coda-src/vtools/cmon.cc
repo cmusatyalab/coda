@@ -126,8 +126,8 @@ static void PrintServer(struct server *);
 static void cbserver();
 static void srvlwp(int);
 static void kbdlwp(char *);
-static CmpDisk(ViceDisk **, ViceDisk **);
-static ValidServer(char *);
+static int CmpDisk(ViceDisk **, ViceDisk **);
+static int ValidServer(char *);
 static void ComputePV(struct server *s, struct printvals *pv);
 static char *ShortDiskName(char *s);
 
@@ -646,7 +646,7 @@ static void ComputePV(struct server *s, struct printvals *pv)
 	}
     }
 
-CmpDisk(ViceDisk **d1, ViceDisk **d2)
+int CmpDisk(ViceDisk **d1, ViceDisk **d2)
     /* comparison yields disks in descending order of utilization
        null name ==> lowest utilization */
     {
@@ -663,7 +663,7 @@ CmpDisk(ViceDisk **d1, ViceDisk **d2)
     return(0);
     }
 
-static ValidServer(char *s)
+static int ValidServer(char *s)
     {
     struct hostent *he;
     

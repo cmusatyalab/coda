@@ -324,7 +324,7 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 
 /* The real stuff! */
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     char    sname[20];
     int     i;
@@ -1258,7 +1258,7 @@ static int pushlog() {
     char buf[100], buf2[100]; /* can't believe there will be more logs! */
     struct dirent **namelist;
 #ifndef __CYGWIN32__
-   count = scandir(".", &namelist, xselect, compar);
+   count = scandir(".", &namelist, (int (*)(const dirent *)) xselect, (int (*)(const void *, const void *)) compar);
     /* It is safe now to blindly rename */
     for (i = 0; i < count; i++) {
 	sprintf(buf, "SrvLog-%d", count-i);

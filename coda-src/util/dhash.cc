@@ -74,7 +74,7 @@ dhashtab::dhashtab(dhashtab& ht) {
 }
 
 
-dhashtab::operator=(dhashtab& ht) {
+int dhashtab::operator=(dhashtab& ht) {
     abort();
     return(0); /* to keep C++ happy !! */
 }

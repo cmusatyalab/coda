@@ -4042,7 +4042,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
     /*XXXXX this seems against unix semantics: the target should only 
      be removed if it is not a directory. Probably the client's kernel
-    will protect us, but it is worrying*/
+    will protect us, but it is worrying */
     /* Remove the target name from its parent (if it exists). */
     if (TargetExists) {
 	/* Remove the name. */

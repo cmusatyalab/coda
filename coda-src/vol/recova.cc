@@ -257,7 +257,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 {
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     char zerobuf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
+    VnodeDiskObject *zerovn = (VnodeDiskObject *) zerobuf;
     struct VolumeData *vdata;
     rec_smolist *vnlist;
     rvm_return_t status = RVM_SUCCESS;

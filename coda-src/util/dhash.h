@@ -61,7 +61,7 @@ class dhashtab {
   public:
     dhashtab(int, int (*)(void *), CFN);
     dhashtab(dhashtab&);	    // not supported!
-    operator=(dhashtab&);	    // not supported!
+    int operator=(dhashtab&);	    // not supported!
     virtual ~dhashtab();
     void insert(void *,	dlink *);   // add in sorted order of list 
     void prepend(void *, dlink *);  // add at head of list 

@@ -66,7 +66,7 @@ class bstree {
   public:
     bstree(BSTCFN);
     bstree(bstree&);				/* not supported! */
-    operator=(bstree&);				/* not supported! */
+    int operator=(bstree&);			/* not supported! */
     virtual ~bstree();
 
     void insert(bsnode *);			/* insert in sorted order */
@@ -96,7 +96,7 @@ class bsnode {
   public:
     bsnode();
     bsnode(bsnode&);				/* not supported! */
-    operator=(bsnode&);				/* not supported! */
+    int operator=(bsnode&);			/* not supported! */
     virtual ~bsnode();
 
     bstree *tree();

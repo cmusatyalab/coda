@@ -35,6 +35,7 @@ extern "C" {
 #include <errno.h>
 #include <stdio.h>
 #include <strings.h>
+#include <string.h>
 
 #include <lwp.h>
 #include <rpc2.h>

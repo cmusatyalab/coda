@@ -166,7 +166,7 @@ void show_vnode(int volid, int vnum, int uniquifier) {
 
 
 void show_free(int argc, char *argv[]) {
-    struct VnodeDiskObject **free_list;
+    VnodeDiskObject **free_list;
     int	nvnodes,
 	i;
     
@@ -205,7 +205,7 @@ setcount(int volid, int vnum, int unique, int count)
 {
 
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     struct ViceFid fid;
     Error   error;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
@@ -280,7 +280,7 @@ static void
 delete_smallvnode(int volid, int vnum, int unique)
 {
     char buf[SIZEOF_SMALLDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     Error   error;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);

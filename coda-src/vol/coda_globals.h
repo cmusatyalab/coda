@@ -53,8 +53,8 @@ struct camlib_recoverable_segment {
 
 	/* Free list for VnodeDiskObject structures; prevents excessive */
 	/* malloc/free calls */
-	struct VnodeDiskObject    *SmallVnodeFreeList[SMALLFREESIZE];
-	struct VnodeDiskObject    *LargeVnodeFreeList[LARGEFREESIZE];
+	VnodeDiskObject    *SmallVnodeFreeList[SMALLFREESIZE];
+	VnodeDiskObject    *LargeVnodeFreeList[LARGEFREESIZE];
 
 	/* pointer to last index in free list containing available */
 	/* vnodediskdata object */

@@ -73,7 +73,7 @@ rec_olist::rec_olist(rec_olist& ol) {
     abort();
 }
 
-rec_olist::operator=(rec_olist& ol) {
+int rec_olist::operator=(rec_olist& ol) {
     abort();
     return(0); /* keep C++ happy */
 }
@@ -265,7 +265,7 @@ rec_olink::rec_olink(rec_olink& ol) {
 }
 
 
-rec_olink::operator=(rec_olink& ol) {
+int rec_olink::operator=(rec_olink& ol) {
     abort();
     return(0); /* keep C++ happy */
 }

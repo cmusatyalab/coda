@@ -198,7 +198,7 @@ class vproc : public olink {
     struct vcbevent *ve;
 
     vproc(char *, PROCBODY, vproctype, int =VPROC_DEFAULT_STACK_SIZE, int =LWP_NORMAL_PRIORITY);
-    operator=(vproc&);	/* not supported! */
+    int operator=(vproc&);	/* not supported! */
     virtual ~vproc();
 
     /* Volume-level concurrency control. */

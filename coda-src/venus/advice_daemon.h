@@ -58,7 +58,7 @@ class adviceserver : public vproc {
 
   adviceserver();
   adviceserver(adviceserver&);    /* not supported! */
-  operator=(adviceserver&);       /* not supported! */
+  int operator=(adviceserver&);       /* not supported! */
   ~adviceserver();
 
  public:

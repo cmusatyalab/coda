@@ -63,7 +63,7 @@ class binding {
 
     binding();
     binding(binding& b) { abort(); }	/* not supported! */
-    operator=(binding&) { abort(); }	/* not supported! */
+    int operator=(binding&) { abort(); }	/* not supported! */
     ~binding();
 
     void IncrRefCount() { referenceCount++; }

@@ -76,7 +76,7 @@ volent::volent(volent& i) {
     abort();
 }
 
-volent::operator=(volent& i) {
+int volent::operator=(volent& i) {
     abort();
     return(0);
 }

@@ -217,7 +217,7 @@ static int ViceCreateRoot(Volume *vp)
     AL_AccessList * ACL;
     ViceFid	did;
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *) buf;
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vLarge];
     char buf3[sizeof(Vnode)];
     Vnode *vn = (Vnode *)buf3;

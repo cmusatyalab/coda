@@ -99,7 +99,7 @@ rec_dhashtab::rec_dhashtab(rec_dhashtab& ht) {
     abort();
 }
 
-rec_dhashtab::operator=(rec_dhashtab& ht) {
+int rec_dhashtab::operator=(rec_dhashtab& ht) {
     abort();
     return(0); /* keep C++ happy */
 }

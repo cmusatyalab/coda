@@ -22,6 +22,6 @@ listed in the file CREDITS.
  * access to information relating to the fields of a structure
  */
 
-#define fldoff(str, fld)        ((int)&(((struct str *)0)->fld))
-#define fldsiz(str, fld)        (sizeof(((struct str *)0)->fld))
-#define strbase(str, ptr, fld)  ((struct str *)((char *)(ptr)-fldoff(str, fld)))
+#define fldoff(str, fld)        ((int)&(((str *)0)->fld))
+#define fldsiz(str, fld)        (sizeof(((str *)0)->fld))
+#define strbase(str, ptr, fld)  ((str *)((char *)(ptr)-fldoff(str, fld)))

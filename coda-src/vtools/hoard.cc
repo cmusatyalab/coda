@@ -604,7 +604,7 @@ static char *my_fgets(char *s, int n, FILE *iop) {
     DEBUG(printf("my_fgets: cnt = %d, ptr = %x, base = %x, bufsiz = %d, flag = %d, file = %d\n",
 		  iop->_cnt, iop->_ptr, iop->_base, iop->_bufsiz, iop->_flag, iop->_file);)
 */
-    register c;
+    register int c;
     register char *cs;
 
     cs = s;

@@ -35,6 +35,7 @@ extern "C" {
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/file.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 }

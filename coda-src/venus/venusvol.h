@@ -822,7 +822,7 @@ class volent {
     volent(VolumeInfo *, char *);
     void ResetTransient();
     volent(volent&) { abort(); }    		/* not supported! */
-    operator=(volent&) { abort(); return(0); }	/* not supported! */
+    int operator=(volent&) { abort(); return(0); }	/* not supported! */
     ~volent();
     void operator delete(void *, size_t);
     void Recover();
@@ -1036,7 +1036,7 @@ class cop2ent : public dlink {
     void *operator new(size_t);
     cop2ent(ViceStoreId *, ViceVersionVector *);
     cop2ent(cop2ent&);		/* not supported! */
-    operator=(cop2ent&);	/* not supported! */
+    int operator=(cop2ent&);	/* not supported! */
     virtual ~cop2ent();
     void operator delete(void *, size_t);
 
@@ -1064,7 +1064,7 @@ class resent : public olink {
 
     resent(ViceFid *);
     resent(resent&);		/* not supported! */
-    operator=(resent&);		/* not supported! */
+    int operator=(resent&);	/* not supported! */
     virtual ~resent();
 
     void HandleResult(int);
@@ -1103,7 +1103,7 @@ class vsr : public olink {
 
     vsr(vuid_t);
     vsr(vsr&);			/* not supported! */
-    operator=(vsr&);		/* not supported! */
+    int operator=(vsr&);	/* not supported! */
     virtual ~vsr();
 
     void RecordEvent(int, int, RPC2_Unsigned);

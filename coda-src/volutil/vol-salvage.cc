@@ -537,7 +537,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 
     VLog(9, "Entering VnodeInodeCheck()");    
     char buf[SIZEOF_SMALLDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     int vnodeIndex = 0;
     int nVnodes = 0;
     vindex v_index(vsp->header.id, vSmall, fileSysDevice, SIZEOF_SMALLDISKVNODE);
@@ -869,7 +869,7 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
     register struct VnodeInfo *vip = &vnodeInfo[vclass];
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *) buf;
     vindex v_index(volid, vclass, fileSysDevice, vcp->diskSize);
     vindex_iterator vnext(v_index);
 
@@ -1245,7 +1245,7 @@ int InSkipVolumeList(VolumeId v, VolumeId *vl, int nvols)
 static void SanityCheckFreeLists() {
     int i,j;
     char zerobuf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *zerovn = (struct VnodeDiskObject *) zerobuf;
+    VnodeDiskObject *zerovn = (VnodeDiskObject *) zerobuf;
     bzero((void *)zerovn, SIZEOF_LARGEDISKVNODE);
     
     VLog(0, "SanityCheckFreeLists: Checking RVM Vnode Free lists.");

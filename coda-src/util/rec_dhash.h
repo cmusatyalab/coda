@@ -69,7 +69,7 @@ class rec_dhashtab {
     rec_dhashtab(int, RHFN, RCFN =0);
     rec_dhashtab(rec_dhashtab&);    // not supported!
     void Init(int, RHFN, RCFN); 
-    operator=(rec_dhashtab&);	    // not supported!
+    int operator=(rec_dhashtab&);   // not supported!
     ~rec_dhashtab();
     void DeInit();
     void SetHFn(RHFN); 

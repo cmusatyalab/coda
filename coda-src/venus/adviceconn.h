@@ -104,7 +104,7 @@ class adviceconn {
 
     adviceconn();
     adviceconn(adviceconn&);     /* not supported! */
-    operator=(adviceconn&);      /* not supported! */
+    int operator=(adviceconn&);      /* not supported! */
     ~adviceconn();
 
   public:

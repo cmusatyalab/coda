@@ -81,7 +81,7 @@ miss::miss(miss& m) {
     abort();
 }
 
-miss::operator=(miss& m) {
+int miss::operator=(miss& m) {
     abort();
     return(0);
 }

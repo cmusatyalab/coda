@@ -109,7 +109,7 @@ bstree::bstree(bstree& bst) {
 }
 
 
-bstree::operator=(bstree& bst) {
+int bstree::operator=(bstree& bst) {
     abort();
     return(0); /* keep C++ happy */
 }
@@ -384,7 +384,7 @@ bsnode::bsnode(bsnode& b) {
 }
 
 
-bsnode::operator=(bsnode& b) {
+int bsnode::operator=(bsnode& b) {
     abort();
     return(0); /* keep C++ happy */
 }

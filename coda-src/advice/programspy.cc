@@ -301,7 +301,7 @@ progent::progent(progent& i) {
     abort();
 }
 
-progent::operator=(progent& i) {
+int progent::operator=(progent& i) {
     abort();
     return(0);
 }
@@ -468,7 +468,7 @@ dataent::dataent(dataent& i) {
     abort();
 }
 
-dataent::operator=(dataent& i) {
+int dataent::operator=(dataent& i) {
     abort();
     return(0);
 }

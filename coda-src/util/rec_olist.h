@@ -67,7 +67,7 @@ class rec_olist {
     rec_olist();
     rec_olist(rec_olist&);			    /* not supported! */
     void Init();
-    operator=(rec_olist&);			    /* not supported! */
+    int operator=(rec_olist&);			    /* not supported! */
     ~rec_olist();
     void DeInit();
 
@@ -106,7 +106,7 @@ class rec_olink	{				    /* objects are derived from this class */
     rec_olink();
     void Init();
     rec_olink(rec_olink&);			    /* not supported! */
-    operator=(rec_olink&);			    /* not supported! */
+    int operator=(rec_olink&);			    /* not supported! */
 /*
     ~rec_olink();
     void DeInit();

@@ -22,7 +22,7 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-extern print_heap();
+extern int print_heap();
     
 #ifdef __cplusplus
 }

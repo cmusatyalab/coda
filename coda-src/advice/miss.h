@@ -29,7 +29,7 @@ class miss {
   public:
     miss(char *Path, char *Program);
     miss(miss&);                         /* not supported! */
-    operator=(miss&);                    /* not supported! */
+    int operator=(miss&);                    /* not supported! */
     ~miss();
     void print(FILE *f);
 };

@@ -26,6 +26,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <string.h>
 #include "coda_assert.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -597,7 +598,7 @@ static void CheckPointML(int argc, char* argv[], int opslot)
     }
 
 
-static dirincoda(char *path)
+static int dirincoda(char *path)
     /*  Returns TRUE iff
             (a) path is a directory
             (b) you can cd to it right now (implying no intervening dangling sym links)

@@ -107,7 +107,7 @@ class rec_smolist_iterator {
 class rec_smolink {		    
   friend class rec_smolist;
   friend class rec_smolist_iterator;
-  friend void main(int , char **);
+  friend int main(int , char **);
     rec_smolink *next;
   public:
     rec_smolink();

@@ -46,7 +46,7 @@ class tallyent {
  public:
    tallyent(int priority, vuid_t vuid, int blocks, TallyStatus status);
    tallyent(tallyent&);
-   operator=(tallyent&);
+   int operator=(tallyent&);
    ~tallyent();
 };
 

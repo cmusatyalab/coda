@@ -65,7 +65,7 @@ olist::olist(olist& ol) {
 }
 
 
-olist::operator=(olist& ol) {
+int olist::operator=(olist& ol) {
     abort();
     return(0);  /* to keep C++ happy!! */
 }
@@ -268,7 +268,7 @@ olink::olink(olink& ol) {
 }
 
 
-olink::operator=(olink& ol) {
+int olink::operator=(olink& ol) {
     abort();
     return(0);  /* to keep C++ happy!! */
 }

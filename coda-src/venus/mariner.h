@@ -83,7 +83,7 @@ class mariner : public vproc {
     char commbuf[MWBUFSIZE];
 
     mariner(int);
-    operator=(mariner&);    /* not supported! */
+    int operator=(mariner&);    /* not supported! */
     virtual ~mariner();
 
     int Read();

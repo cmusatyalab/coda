@@ -112,7 +112,7 @@ rec_ohashtab::rec_ohashtab(rec_ohashtab& ht) {
 }
 
 
-rec_ohashtab::operator=(rec_ohashtab& ht) {
+int rec_ohashtab::operator=(rec_ohashtab& ht) {
     abort();
     return(0); /* keep C++ happy */
 }

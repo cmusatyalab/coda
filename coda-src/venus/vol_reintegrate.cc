@@ -660,7 +660,7 @@ class reintegrator : public vproc {
 
     reintegrator();
     reintegrator(reintegrator&);			/* not supported! */
-    operator=(reintegrator&) { abort();	return(0); }	/* not supported! */
+    int operator=(reintegrator&) { abort();	return(0); }	/* not supported! */
     ~reintegrator();
 
   public:

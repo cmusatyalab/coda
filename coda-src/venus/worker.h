@@ -128,7 +128,7 @@ class worker : public vproc {
   public:
     worker();
     worker(worker&);	    /* not supported! */
-    operator=(worker&);	    /* not supported! */
+    int operator=(worker&);	    /* not supported! */
     virtual ~worker();
 
     void AwaitRequest();

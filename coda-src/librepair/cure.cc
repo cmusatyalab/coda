@@ -35,6 +35,7 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/param.h>

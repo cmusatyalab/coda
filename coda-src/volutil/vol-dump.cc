@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.14 $
+#define RCSVERSION $Revision: 4.15 $
 
 /* vol-dump.c */
 
@@ -105,7 +105,7 @@ static int DumpVnodeIndex(DumpBuffer_t *, Volume *, VnodeClass,
 			  RPC2_Unsigned);
 static int DumpDumpHeader(DumpBuffer_t *, Volume *, RPC2_Unsigned, long);
 static int DumpVolumeDiskData(DumpBuffer_t *, register VolumeDiskData *);
-static int DumpVnodeDiskObject(DumpBuffer_t *, struct VnodeDiskObject *, 
+static int DumpVnodeDiskObject(DumpBuffer_t *, VnodeDiskObject *, 
 			       int );
 Device DumpDev;   /* Device the volume being dumped resides on */
 
@@ -360,7 +360,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 {
     register struct VnodeClassInfo *vcp;
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode;
+    VnodeDiskObject *vnode;
     bit32	nLists, nVnodes;
     
     SLog(9, "Entering DumpVnodeIndex()");
@@ -491,7 +491,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	SLog(9, "Beginning Full dump of vnodes.");
 	int count = 0;
 
-	vnode = (struct VnodeDiskObject *) buf;
+	vnode = (VnodeDiskObject *) buf;
 	for( int vnodeIndex = 0;
 	     nVnodes && ((vnodeIndex = vnext(vnode)) != -1);
 	     nVnodes--, count++) {
@@ -518,7 +518,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
     return 0;
 }
 
-static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, struct VnodeDiskObject *v, int vnodeNumber)
+static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v, int vnodeNumber)
 {
     int fd;
     int i;

@@ -30,6 +30,7 @@ extern "C" {
 #include <sys/param.h>
 #include <netinet/in.h>
 #include <strings.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <setjmp.h>
 #include <unistd.h>

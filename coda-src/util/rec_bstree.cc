@@ -163,7 +163,7 @@ rec_bstree::rec_bstree(rec_bstree& bst) {
 }
 
 
-rec_bstree::operator=(rec_bstree& bst) {
+int rec_bstree::operator=(rec_bstree& bst) {
     abort();
     return(0); /* keep C++ happy */
 }
@@ -448,7 +448,7 @@ rec_bsnode::rec_bsnode(rec_bsnode& b) {
 }
 
 
-rec_bsnode::operator=(rec_bsnode& b) {
+int rec_bsnode::operator=(rec_bsnode& b) {
     abort();
     return(0); /* keep C++ happy */
 }

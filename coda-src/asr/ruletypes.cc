@@ -34,6 +34,7 @@ extern "C" {
 
 #include <sys/wait.h>
 #include <strings.h>
+#include <string.h>
 #include "coda_assert.h"
 #include <errno.h>
 #include <venusioctl.h>

@@ -58,7 +58,7 @@ class callbackserver : public vproc {
 
     callbackserver();
     callbackserver(callbackserver&);	/* not supported! */
-    operator=(callbackserver&);		/* not supported! */
+    int operator=(callbackserver&);		/* not supported! */
     ~callbackserver();
 
   public:

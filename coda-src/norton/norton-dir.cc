@@ -57,7 +57,7 @@ struct NortonDirHandle {
 static int testVnodeExists(int volid, int vnum, int unique)
 {
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
     int     volindex;
@@ -90,7 +90,7 @@ PDCEntry SetDirHandle(int volid, int vnum, int unique)
 { 
 	PDCEntry dc;
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     VolHead *vol;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
@@ -183,7 +183,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
 {
 
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
     PDirHandle pdh;
     PDCEntry dc;
     PDirInode pdi;
@@ -292,8 +292,8 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     /* remove name from the given directory and mark its vnode in conflict */
     char buf[SIZEOF_LARGEDISKVNODE];
     char cbuf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
-    struct VnodeDiskObject *cvnode = (struct VnodeDiskObject *)cbuf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *)buf;
+    VnodeDiskObject *cvnode = (VnodeDiskObject *)cbuf;
     PDirHandle pdh;
     PDCEntry dc;
     PDirInode pdi;

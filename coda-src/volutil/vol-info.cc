@@ -230,7 +230,7 @@ static void printvns(Volume *vp, VnodeClass vclass)
 {
     register struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
     char buf[SIZEOF_LARGEDISKVNODE];
-    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
+    VnodeDiskObject *vnode = (VnodeDiskObject *) buf;
     register int vnodeIndex;
 
     vindex v_index(V_id(vp), vclass, V_device(vp), vcp->diskSize);

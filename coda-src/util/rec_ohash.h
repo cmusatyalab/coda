@@ -68,7 +68,7 @@ class rec_ohashtab {
     rec_ohashtab(int, RHFN);
     rec_ohashtab(rec_ohashtab&);			// not supported! 
     void Init(int, RHFN);
-    operator=(rec_ohashtab&);				/* not supported! */
+    int operator=(rec_ohashtab&);			/* not supported! */
     ~rec_ohashtab();
     void DeInit();
     void SetHFn(RHFN); 
