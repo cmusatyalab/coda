@@ -42,6 +42,10 @@ extern "C" {
 #include <copyfile.h>
 #include "lka.h"
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 
 static dlist lkdbchain; /* doubly-linked list of lookaside databases;
 			  each item in list is of class lkdb */
@@ -52,8 +56,9 @@ static void RemoveAll(); /* forward ref */
 static void ListAll(char *, int); /* forward ref */
 
 
-int LookAsideAndFillContainer (RPC2_BoundedBS *fsha, char *containerfile, 
-       int expectedlength, char *codaprefix, char *emsgbuf, int emsgbuflen) {
+int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd, 
+       int expectedlength, char *codaprefix, char *emsgbuf, int emsgbuflen)
+{
 
 /* LookAsideAndFillContainer() takes the SHA of an object and sees if
    it is able to find its contents via lookaside.  If successful, it 
@@ -79,11 +84,7 @@ int LookAsideAndFillContainer (RPC2_BoundedBS *fsha, char *containerfile,
    in particular, it is NOT guaranteed to be restored to original value
 */
 
-  if (fsha->SeqLen != SHA_DIGEST_LENGTH) {
-    snprintf(emsgbuf, emsgbuflen, "Bogus sha length: %d", fsha->SeqLen);
-    return (0);
-  }
-  else *emsgbuf = 0; /* null message, anticipating success */
+  emsgbuf[0] = '\0'; /* null message, anticipating success */
 
   if (lkdbchain.count() == 0) return(0); /* no lookaside dbs */
 
@@ -97,12 +98,12 @@ int LookAsideAndFillContainer (RPC2_BoundedBS *fsha, char *containerfile,
   while ((dbp = (lkdb *)nextdb())) {
     /* check next lkdb for sha value */
     dbp->attempts++;
-    if (dbp->GetFilenameFromSHA(fsha, hitpathname, sizeof(hitpathname),
+    if (dbp->GetFilenameFromSHA(sha, hitpathname, sizeof(hitpathname),
 				emsgbuf, emsgbuflen))
       goto FoundSHA; /* success! */
     if (*emsgbuf) return(0); /* error in GetFilenameFromSHA() */
   }
-  return(0); /* fsha not in any of the lkdb's */
+  return(0); /* sha not in any of the lkdb's */
 
  FoundSHA: ;/* found the sha in the lkdb pointed to by dbp */
   dbp->hits++;
@@ -129,46 +130,39 @@ int LookAsideAndFillContainer (RPC2_BoundedBS *fsha, char *containerfile,
     return(0);
   }
 
+  int err, hfd = open(hitpathname, O_RDONLY | O_BINARY);
   /* Copy to container file and validate SHA (just to be safe) */
-  if (copyfile_byname(hitpathname, containerfile) < 0) {
-    snprintf(emsgbuf, emsgbuflen, "filecopy_byname(%s, %s): %s", 
-	     hitpathname, containerfile, strerror(errno));
-    return(0); /* weird failure during copy */
-  }
+  err = copyfile(hfd, cfd);
+  close(hfd);
 
-  int cfd = open(containerfile, O_RDONLY, 0);
-  if (cfd < 0) {
-    snprintf(emsgbuf, emsgbuflen, "%s: %s", containerfile, strerror(errno));
-    return(0);
+  if (err < 0) {
+    snprintf(emsgbuf, emsgbuflen, "copyfile(%s): %s", 
+	     hitpathname, strerror(errno));
+    return(0); /* weird failure during copy */
   }
 
   if (expectedlength >= 0) { /* verify length if specified */
     struct stat cfstat;
     if (fstat(cfd, &cfstat) < 0) {
-      snprintf(emsgbuf, emsgbuflen, "%s: %s", containerfile, strerror(errno));
-      close (cfd); return(0);
+      snprintf(emsgbuf, emsgbuflen, "lookaside: stat %s", strerror(errno));
+      return(0);
     }
     if (cfstat.st_size != expectedlength) {
-      snprintf(emsgbuf, emsgbuflen, "%s: length mismatch (%d instead of %d)", 
-	       containerfile, cfstat.st_size, expectedlength);
-      close (cfd); return(0);
+      snprintf(emsgbuf, emsgbuflen, "lookaside: length mismatch (%d instead of %d)", 
+	       cfstat.st_size, expectedlength);
+      return(0);
     }
   }
 
-  RPC2_BoundedBS csha;
   unsigned char cshabuf[SHA_DIGEST_LENGTH];
-  csha.MaxSeqLen = SHA_DIGEST_LENGTH;
-  csha.SeqLen = 0;
-  csha.SeqBody = cshabuf;
 
-  if (!ComputeViceSHA(cfd, &csha)) {
-    snprintf(emsgbuf, emsgbuflen, "%s: can't compute SHA", containerfile);
-    close(cfd); return(0);    
+  lseek(cfd, 0, SEEK_SET);
+  if (!ComputeViceSHA(cfd, cshabuf)) {
+    snprintf(emsgbuf, emsgbuflen, "lookaside: can't compute SHA");
+    return(0);    
   }
-  else close(cfd);
 
-
-  if (memcmp(csha.SeqBody, fsha->SeqBody, SHA_DIGEST_LENGTH)) {
+  if (memcmp(cshabuf, sha, SHA_DIGEST_LENGTH)) {
     snprintf(emsgbuf, emsgbuflen, "%s: mismatch on SHA verification", hitpathname);
     dbp->shafails++;
     return(0);    
@@ -300,9 +294,10 @@ BadDescriptorRecord:
     return(0);
 }
 
-int lkdb::GetFilenameFromSHA(RPC2_BoundedBS *xsha, char *hitpath,
-			     int hitpathlen, char *emsgbuf, int emsgbuflen){
-
+int lkdb::GetFilenameFromSHA(unsigned char xsha[SHA_DIGEST_LENGTH],
+			     char *hitpath, int hitpathlen,
+			     char *emsgbuf, int emsgbuflen)
+{
 /* GetFilenameFromSHA() probes this db for key xsha;  if successful,
    copies the value corresponding  to this key into the buffer hitpath.
    This value is the the pathname of a file whose SHA is xsha.
@@ -313,8 +308,8 @@ int lkdb::GetFilenameFromSHA(RPC2_BoundedBS *xsha, char *hitpath,
 
   DBT key, value;
 
-  key.data = xsha->SeqBody;
-  key.size = xsha->SeqLen; 
+  key.data = xsha;
+  key.size = SHA_DIGEST_LENGTH;
 
   int dbrc = (dbh->get)(dbh, &key, &value, 0);
 

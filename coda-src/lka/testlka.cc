@@ -47,22 +47,11 @@ main(int argc, char **argv) {
 
   int rc;
   char testfile[MAXPATHLEN];
-  unsigned char shabuf[SHA_DIGEST_LENGTH];
-  RPC2_BoundedBS testsha;
+  unsigned char testsha[SHA_DIGEST_LENGTH];
   char container[30], shaprintbuf[60]; 
   
-  testsha.SeqBody = shabuf;
-  testsha.MaxSeqLen = SHA_DIGEST_LENGTH;
-  testsha.SeqLen = SHA_DIGEST_LENGTH;
-
   strcpy(container, "/tmp/testlka.XXXXXX");
   mktemp(container);
-  int cfd = open(container, O_CREAT|O_TRUNC|O_WRONLY, 0644); /* create file */
-  if (cfd < 0) {
-    printf("Can't create %s: %s\n", container, strerror(errno));
-    exit(-1);
-  }
-  else close(cfd);
 
   switch (argc) {
   case 2:
@@ -88,26 +77,35 @@ main(int argc, char **argv) {
       printf("%s: %s\n", testfile, strerror(errno));
       continue;
     }
-    if (!ComputeViceSHA(fd, &testsha)) {
+    if (!ComputeViceSHA(fd, testsha)) {
       printf("%s: can't compute SHA", testfile);
-      close(fd); continue;    
-    }
-    else {
-      ViceSHAtoHex(&testsha, shaprintbuf, sizeof(shaprintbuf));
-      printf("SHA = %s\n", shaprintbuf);
       close(fd);
+      continue;    
     }
+
+    close(fd);
+
+    ViceSHAtoHex(testsha, shaprintbuf, sizeof(shaprintbuf));
+    printf("SHA = %s\n", shaprintbuf);
 
     /* see if we can find this SHA in lookaside databases */
 
+    int cfd = open(container, O_CREAT|O_TRUNC|O_WRONLY, 0644); /* create file */
+    if (cfd < 0) {
+	printf("Can't create %s: %s\n", container, strerror(errno));
+	exit(-1);
+    }
+
     memset(em, 0, emlen); /* null message is default */
-    if (LookAsideAndFillContainer(&testsha, container, -1, 0, em, emlen)){
+    if (LookAsideAndFillContainer(testsha, cfd, -1, 0, em, emlen)){
       printf("Found match: %s\n", em);
+      close(cfd);
       continue;
     }
     else {
       if (em[0]) printf("LookAsideAndFillContainer: %s\n", em);
       else printf("sigh....no luck\n");
+      close(cfd);
       continue;
     }
   }

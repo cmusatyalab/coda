@@ -91,9 +91,9 @@ void fsobj::FetchProgressIndicator(long offset)
     GotThisData = (unsigned long)offset;
 }
 
-int fsobj::Fetch(vuid_t vuid) {
+int fsobj::Fetch(vuid_t vuid)
+{
     int fd = -1;
-    int lka_successful = 0; /* true iff lookaside was successful */
 
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", comp, vuid));
 
@@ -132,65 +132,6 @@ int fsobj::Fetch(vuid_t vuid) {
     sprintf(prel_str, "fetch::Fetch %%s [%ld]\n", BLOCKS(this));
     int inconok = !vol->IsReplicated();
 
-    /* (Satya, 1/03)
-       Do lookaside to see if fetch can be short-cirucited.
-       Assumptions for lookaside:
-         (a) we are operating normally (not in a repair)
-         (b) we have valid status
-         (c) file is a plain file (not sym link, directory, etc.)
-	 (d) non-zero SHA
-
-       (a) and (b) were  verified in Sanity Checks above;
-       (c) and (d) verified below; check for replicated volume 
-         further ensures we never do lookaside during repair
-
-       SHA value is obtained initially from fsobj and used for lookaside;
-       If lookaside fails and a real fetch has to be done, we conservatively
-       clear this SHA value first;   this causes the fsobj's VenusSHA 
-       to also be cleared by call to UpdateStatusPlusSHA() at end;  but who 
-       cares, since we have the actual data and could always recompute
-       SHA from container before a future Venus cache replacement of the fsobj
-    */
-    RPC2_BoundedBS mysha; 
-    RPC2_Byte shabuf[SHA_DIGEST_LENGTH];
-    memcpy(shabuf, VenusSHA, SHA_DIGEST_LENGTH);
-    mysha.SeqBody = shabuf;
-    mysha.SeqLen = mysha.MaxSeqLen = SHA_DIGEST_LENGTH;
-
-    if (vol->IsReplicated() && (stat.VnodeType == File)	&& !IsZeroSHA(&mysha)) {
-      char emsg[256];
-      
-      Recov_BeginTrans();
-      RVMLIB_REC_OBJECT(data);
-      RVMLIB_REC_OBJECT(cf);
-
-      /* create container file if needed */
-      if (!HAVEDATA(this)) {
-	data.file = &cf;
-	data.file->Create(stat.Length);
-      }
-      
-      memset(emsg, 0, sizeof(emsg));
-      lka_successful = LookAsideAndFillContainer(&mysha, cf.Name(), stat.Length, 
-						 venusRoot, emsg, sizeof(emsg)-1);
-      if (emsg[0])
-	LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.Name(), emsg));
-
-      if (lka_successful) {
-	LOG(0, ("Lookaside of %s succeeded!\n", cf.Name()));
-	data.file->SetLength(stat.Length);
-	cf.SetValidData(cf.Length()); 
-        SetRcRights(RC_DATA | RC_STATUS); /* we now have the data */
-	code = 0; /* success */
-      }
-      else {
-	memset(shabuf, 0, SHA_DIGEST_LENGTH); /* paranoia */
-      }
-
-      Recov_EndTrans(CMFP);
-      if (lka_successful) goto RepExit; /* else continue with real fetch */
-    }
-
     /* Status parameters. */
     ViceStatus status;
     memset((void *)&status, 0, (int)sizeof(ViceStatus));
@@ -204,9 +145,9 @@ int fsobj::Fetch(vuid_t vuid) {
     /* Set up the SE descriptor. */
     SE_Descriptor dummysed;
     memset(&dummysed, 0, sizeof(SE_Descriptor));
-    SE_Descriptor *sed; sed = 0;
+    SE_Descriptor *sed = &dummysed;
 
-    long offset; offset = IsFile() ? cf.ValidData() : 0;
+    long offset = IsFile() ? cf.ValidData() : 0;
     GotThisData = 0;
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
@@ -215,7 +156,6 @@ int fsobj::Fetch(vuid_t vuid) {
 	    RVMLIB_REC_OBJECT(flags);
 	    flags.fetching = 1;
 
-	    sed = &dummysed;
 	    sed->Tag = SMARTFTP;
 
 	    sed->XferCB = FetchProgressIndicator_stub;
@@ -290,12 +230,57 @@ int fsobj::Fetch(vuid_t vuid) {
 	Recov_EndTrans(CMFP);
     }
 
-    long cbtemp; cbtemp = cbbreaks;
+    long cbtemp = cbbreaks;
 
     if (vol->IsReplicated()) {
-        mgrpent *m; m = 0;
-	int asy_resolve; asy_resolve = 0;
-        repvol *vp; vp = (repvol *)vol;
+        mgrpent *m = 0;
+	int asy_resolve = 0;
+        repvol *vp = (repvol *)vol;
+
+	/* (Satya, 1/03)
+	Do lookaside to see if fetch can be short-cirucited.
+	Assumptions for lookaside:
+	    (a) we are operating normally (not in a repair)
+	    (b) we have valid status
+	    (c) file is a plain file (not sym link, directory, etc.)
+	    (d) non-zero SHA
+
+	(a) and (b) were  verified in Sanity Checks above;
+	(c) and (d) verified below; check for replicated volume 
+	    further ensures we never do lookaside during repair
+
+	SHA value is obtained initially from fsobj and used for lookaside;
+	If lookaside fails and a real fetch has to be done, we conservatively
+	clear this SHA value first;   this causes the fsobj's VenusSHA 
+	to also be cleared by call to UpdateStatusPlusSHA() at end;  but who 
+	cares, since we have the actual data and could always recompute
+	SHA from container before a future Venus cache replacement of the fsobj
+	*/
+	if (IsFile() && !IsZeroSHA(VenusSHA)) {
+	    int lka_successful;
+	    char emsg[256];
+	    memset(emsg, 0, sizeof(emsg));
+
+	    lka_successful = LookAsideAndFillContainer(VenusSHA, fd,
+						       stat.Length, venusRoot,
+						       emsg, sizeof(emsg)-1);
+	    if (emsg[0])
+		LOG(0, ("LookAsideAndFillContainer(%s): %s\n", cf.Name(), emsg));
+
+	    if (lka_successful) {
+		LOG(0, ("Lookaside of %s succeeded!\n", cf.Name()));
+		Recov_BeginTrans();
+		data.file->SetLength(stat.Length);
+		cf.SetValidData(cf.Length()); 
+		SetRcRights(RC_DATA | RC_STATUS); /* we now have the data */
+		code = 0; /* success */
+		Recov_EndTrans(CMFP);
+
+		/* we're done, skip out of here */
+		goto SHAExit;
+	    }
+	    /* else continue with real fetch */
+	}
 
 	/* Acquire an Mgroup. */
 	code = vp->GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
@@ -396,36 +381,33 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	/* Directories might have different sizes on different servers. We
 	 * _have_ to discard the data, and start over again if we fetched a
-	 * different size than expected the wrong one. */
+	 * different size than expected. */
 	if (!IsFile() && stat.Length != status.Length)
 	    code = EAGAIN;
 
 	Recov_BeginTrans();
-	UpdateStatusAndSHA(&status, vuid, &mysha); /* CAVEAT: zero SHA being set */
+	UpdateStatusAndSHA(&status, vuid, NULL); /* CAVEAT: zero SHA being set */
 	Recov_EndTrans(CMFP);
 
 RepExit:
-	if (!lka_successful) {
-	  /* We got here after a real Fetch() rather than a lookaside;
-	     Perform post-fetch cleanup */
-	  if (m) m->Put(); 
-	  switch(code) {
-	    case 0:
-	      if (asy_resolve)
+	if (m) m->Put(); 
+	switch(code) {
+	case 0:
+	    if (asy_resolve)
 		vp->ResSubmit(0, &fid);
-	      break;
+	    break;
 
-	    case ETIMEDOUT:
-	    case ESYNRESOLVE:
-	    case EINCONS:
-		code = ERETRY;
-		break;
+	case ETIMEDOUT:
+	case ESYNRESOLVE:
+	case EINCONS:
+	    code = ERETRY;
+	    break;
 
-	    default:
-		break;
-	  }
+	default:
+	    break;
 	}
-
+SHAExit:
+	/* nothing left to do */;
     }
     else {
 	/* Acquire a Connection. */
@@ -472,7 +454,7 @@ RepExit:
 	}
 
 	Recov_BeginTrans();
-	UpdateStatusAndSHA(&status, vuid, &mysha); /* CAVEAT: zero SHA being set */
+	UpdateStatusAndSHA(&status, vuid, NULL); /* CAVEAT: zero SHA being set */
 	Recov_EndTrans(CMFP);
 
 NonRepExit:
@@ -590,11 +572,9 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
     /* SHA value (not always used) */
     RPC2_BoundedBS mysha; 
-    RPC2_Byte shabuf[SHA_DIGEST_LENGTH];
-    memset(shabuf, 0, SHA_DIGEST_LENGTH); /* zero sha is always safe*/
-    mysha.SeqBody = shabuf;
+    mysha.SeqBody = VenusSHA;
     mysha.MaxSeqLen = SHA_DIGEST_LENGTH;
-    mysha.SeqLen = SHA_DIGEST_LENGTH; 
+    mysha.SeqLen = 0; 
 
 
     /* COP2 Piggybacking. */
@@ -636,7 +616,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 			    VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
  
-	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, myshavar, mysha, VSG_MEMBERS, SHA_DIGEST_LENGTH);
+	    ARG_MARSHALL_BS(OUT_MODE, RPC2_BoundedBS, myshavar, mysha, VSG_MEMBERS, SHA_DIGEST_LENGTH);
 
 
 	    if (HAVESTATUS(this) && !getacl) {
@@ -685,12 +665,12 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		char VFlags[MAX_PIGGY_VALIDATIONS];
 		RPC2_BoundedBS VFlagBS;
 
-		VFlagBS.MaxSeqLen = numPiggyFids;
+		VFlagBS.MaxSeqLen = MAX_PIGGY_VALIDATIONS;
 		VFlagBS.SeqLen  = 0;
 		VFlagBS.SeqBody = (RPC2_ByteSeq)VFlags;
 
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
-				VSG_MEMBERS, VENUS_MAXBSLEN);
+				VSG_MEMBERS, MAX_PIGGY_VALIDATIONS);
 
 		/* make the RPC: use ViceValidateAttrs() (obsolete) or
                      ViceValidateAttrsPlusSHA() (preferred) */
@@ -706,7 +686,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 					    ViceValidateAttrsPlusSHA_PTR, VSG_MEMBERS,
 					    m->rocc.handles, m->rocc.retcodes,
 					    m->rocc.MIp, 0, 0, ph, &fid,
-					    statusvar_ptrs, 1, myshavar_ptrs,
+					    statusvar_ptrs, myshavar_ptrs,
 					      numPiggyFids, FAVs,
 					    VFlagvar_ptrs, &PiggyBS);
 		  MULTI_END_MESSAGE(ViceValidateAttrsPlusSHA_OP);
@@ -840,7 +820,12 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 		     probably ok since the only use of this call is for "cfs getacl..."
 		     If this proves unacceptable, we'll need to treat the
 		     ViceGetACL branch of this code just like ViceValidateAttrs()
-		     and ViceGetAttr() branches.   (Satya, 1/03) */
+		     and ViceGetAttr() branches.   (Satya, 1/03)
+		   
+		     Side note: ACL's only exist for directory objects, and
+		     lookaside only works for file objects, so it really
+		     shouldn't matter right now -JH.
+		   */
 
 		    MULTI_START_MESSAGE(ViceGetACL_OP);
 		    code = (int)MRPC_MakeMulti(ViceGetACL_OP, ViceGetACL_PTR,
@@ -874,8 +859,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 					       VSG_MEMBERS, m->rocc.handles,
 					       m->rocc.retcodes, m->rocc.MIp,
 					       0, 0, &fid, inconok,
-					       statusvar_ptrs, 
-					       1, myshavar_ptrs, ph, &PiggyBS);
+					       statusvar_ptrs, myshavar_ptrs,
+					       ph, &PiggyBS);
 		    MULTI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
 		    CFSOP_POSTLUDE(post_str);
 
@@ -939,9 +924,11 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
             ARG_UNMARSHALL_BS(myshavar, mysha, dh_ix);
 
-	    char printbuf[60];
-	    ViceSHAtoHex(&mysha, printbuf, sizeof(printbuf));
-	    LOG(-1, ("mysha(%d, %d) = %s\n.", mysha.MaxSeqLen, mysha.SeqLen, printbuf));
+	    if (mysha.SeqLen == SHA_DIGEST_LENGTH) {
+		char printbuf[3*SHA_DIGEST_LENGTH+1];
+		ViceSHAtoHex(mysha.SeqBody, printbuf, sizeof(printbuf));
+		LOG(-1, ("mysha(%d, %d) = %s\n.", mysha.MaxSeqLen, mysha.SeqLen, printbuf));
+	    }
 
 
 	    /* Handle successful validation of fake directory! */
@@ -1000,8 +987,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 	}
 
 	Recov_BeginTrans();
-	UpdateStatusAndSHA(&status, vuid, &mysha); /* Caveat: mysha will be a zero
-						      SHA if GetACL branch is used */
+	UpdateStatusAndSHA(&status, vuid, &mysha);
 	Recov_EndTrans(CMFP);
 
 RepExit:

@@ -431,8 +431,7 @@ class fsobj {
     AcRights AnyUser;				/* access control rights: any user */
     AcRights SpecificUser[CPSIZE];		/* access control rights: specific users */
     FsoFlags flags;				/* some of these are transient */
-    unsigned char *VenusSHA[SHA_DIGEST_LENGTH]; /* if non-zero, the saved SHA of the file; used by lookaside code;
-						   valid iff fsobj's status is valid */
+    unsigned char VenusSHA[SHA_DIGEST_LENGTH]; /* if non-zero, the saved SHA of the file; used by lookaside code; */
 
     /* Mount state. */
     MountStatus	mvstat;				/* { NORMAL, MOUNTPOINT, ROOT } */

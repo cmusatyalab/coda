@@ -83,9 +83,7 @@ NOTE: This is a brand new cfs; it has been written from scratch
 
 #define PERROR(desc) do { fflush(stdout); perror(desc); } while(0)
 
-#define PIOBUFSIZE CFS_PIOBUFSIZE  /* max size of pioctl buffer */
-
-char piobuf[PIOBUFSIZE];
+char piobuf[CFS_PIOBUFSIZE];
 
 char *mountpoint = NULL;
 
@@ -555,7 +553,7 @@ static void CheckServers(int argc, char *argv[], int opslot)
     vio.in = 0;
     vio.in_size = 0;
     vio.out = piobuf;
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
 
     /* pack server host ids, if any */
     /* format of vio.in is #servers, hostid, hostid, ... */
@@ -660,7 +658,7 @@ static int dirincoda(char *path)
     vio.in = 0;
     vio.in_size = 0;
     vio.out = piobuf;
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
     rc = pioctl(buf, VIOC_GETFID, &vio, 0);
     return(rc == 0);
     }
@@ -999,7 +997,7 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
     vio.in = 0;
     vio.in_size = 0;
     vio.out = piobuf;
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
     rc = pioctl(volrootpath, VIOCGETVOLSTAT, &vio, 1);
     if (rc) { PERROR(volrootpath); return(0);}
 
@@ -1014,7 +1012,7 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
     vio.in = 0;
     vio.in_size = 0;
     vio.out = piobuf;
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
     rc = pioctl(volrootpath, VIOC_GETFID, &vio, 1);
     if (rc) { PERROR(volrootpath); return(0);}
     fid = (ViceFid *)piobuf;
@@ -1133,9 +1131,9 @@ static void BeginRepair(int argc, char *argv[], int opslot)
 
     vio.in_size = 1 + (int) strlen(argv[2]);
     vio.in = argv[2];
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
     vio.out = piobuf;
-    memset(piobuf, 0, PIOBUFSIZE);
+    memset(piobuf, 0, CFS_PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_ENABLEREPAIR, &vio, 0);
     if (rc < 0) {
@@ -1160,9 +1158,9 @@ static void DisableASR(int argc, char *argv[], int opslot)
     }
     vio.in_size = 1 + (int) strlen(argv[2]);
     vio.in = argv[2];
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
     vio.out = piobuf;
-    memset(piobuf, 0, PIOBUFSIZE);
+    memset(piobuf, 0, CFS_PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_DISABLEASR, &vio, 0);
     if (rc < 0) { PERROR("VIOC_DISABLEASR"); exit(-1); }
@@ -1179,9 +1177,9 @@ static void EnableASR(int argc, char *argv[], int opslot)
     }
     vio.in_size = 1 + (int) strlen(argv[2]);
     vio.in = argv[2];
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
     vio.out = piobuf;
-    memset(piobuf, 0, PIOBUFSIZE);
+    memset(piobuf, 0, CFS_PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_ENABLEASR, &vio, 0);
     if (rc < 0) { PERROR("VIOC_ENABLEASR"); exit(-1); }
@@ -1198,9 +1196,9 @@ static void EndRepair(int argc, char *argv[], int opslot)
 
     vio.in_size = 1 + (int) strlen(argv[2]);
     vio.in = argv[2];
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
     vio.out = piobuf;
-    memset(piobuf, 0, PIOBUFSIZE);
+    memset(piobuf, 0, CFS_PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_DISABLEREPAIR, &vio, 0);
     if (rc < 0) { PERROR("VIOC_DISABLEREPAIR"); exit(-1);}
@@ -1224,8 +1222,8 @@ static void FlushASR(int argc, char *argv[], int opslot) {
         vio.in = 0;
         vio.in_size = 0;
         vio.out = piobuf;
-        vio.out_size = PIOBUFSIZE;
-        memset(piobuf, 0, PIOBUFSIZE);
+        vio.out_size = CFS_PIOBUFSIZE;
+        memset(piobuf, 0, CFS_PIOBUFSIZE);
 
         rc = pioctl(argv[i], VIOC_FLUSHASR, &vio, 0);
         if (rc < 0) { PERROR("VIOC_FLUSHASR"); continue; }
@@ -1378,7 +1376,7 @@ static void GetPath(int argc, char *argv[], int opslot)
         vio.in = (char *)&fid;
         vio.in_size = (int) sizeof(ViceFid);
         vio.out = piobuf;
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
         rc = pioctl(mountpoint, VIOC_GETPATH, &vio, 0);
         if (rc < 0) { PERROR("VIOC_GETPATH"); continue; }
         printf("\t%s\n", vio.out);
@@ -1430,7 +1428,7 @@ static void ListACL(int argc, char *argv[], int opslot)
         {
         vio.in = 0;
         vio.in_size = 0;
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
         vio.out = piobuf;
         rc = pioctl(argv[i], VIOCGETAL, &vio, 1);
         if (rc < 0) { PERROR(argv[i]); continue; }
@@ -1598,7 +1596,7 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
     vio.in = (char *)&vol_id;
     vio.in_size = (int) sizeof(VolumeId);
     vio.out = piobuf;
-    vio.out_size = PIOBUFSIZE;
+    vio.out_size = CFS_PIOBUFSIZE;
 
     /* Do the pioctl */
     rc = pioctl(mountpoint, VIOC_GET_MT_PT, &vio, 1);
@@ -1691,8 +1689,8 @@ static void ListCache(int argc, char *argv[], int opslot)
         vio.in = (char *)&vol_id;
         vio.in_size = (int) sizeof(VolumeId);
         vio.out = piobuf;
-        vio.out_size = PIOBUFSIZE;
-        memset(piobuf, 0, PIOBUFSIZE);      
+        vio.out_size = CFS_PIOBUFSIZE;
+        memset(piobuf, 0, CFS_PIOBUFSIZE);      
 
         /* Do the pioctl getting mount point pathname */
         rc = pioctl(mountpoint, VIOC_GET_MT_PT, &vio, 1);
@@ -1706,9 +1704,9 @@ static void ListCache(int argc, char *argv[], int opslot)
       data.valid = valid;
       vio.in = (char *)&data;
       vio.in_size = (int) sizeof(struct listcache_in);
-      vio.out_size = PIOBUFSIZE;
+      vio.out_size = CFS_PIOBUFSIZE;
       vio.out = piobuf;
-      memset(piobuf, 0, PIOBUFSIZE);
+      memset(piobuf, 0, CFS_PIOBUFSIZE);
 
       /* Do the pioctl */
       if (vol_id)       /* VolumeId is specified. */
@@ -1727,9 +1725,9 @@ static void ListCache(int argc, char *argv[], int opslot)
       vio.in = (char *)&data;
       vio.in_size = (int) sizeof(struct listcache_in);
 
-      vio.out_size = PIOBUFSIZE;
+      vio.out_size = CFS_PIOBUFSIZE;
       vio.out = piobuf;
-      memset(piobuf, 0, PIOBUFSIZE);
+      memset(piobuf, 0, CFS_PIOBUFSIZE);
       /* Do the pioctl */
       rc = pioctl(mountpoint, VIOC_LISTCACHE, &vio, 1);
       if (rc < 0) { PERROR("Failed in ListCache."); exit(-1); }
@@ -1803,7 +1801,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
         /* Set up parms to pioctl */
         vio.in = (char *)&local_only;
         vio.in_size = sizeof(int);
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
         vio.out = piobuf;
 
         /* Do the pioctl */
@@ -1876,8 +1874,8 @@ static void LookAside(int argc, char *argv[], int opslot)
     }
 
     /* Create a command string of all text after "cfs lka" */
-    memset(piobuf, 0, PIOBUFSIZE);
-    spaceleft = PIOBUFSIZE - 1; /* don't forget string terminator */
+    memset(piobuf, 0, CFS_PIOBUFSIZE);
+    spaceleft = CFS_PIOBUFSIZE - 1; /* don't forget string terminator */
     for (i = 2; i < argc; i++) {
       strncat(piobuf, " ", spaceleft--); /* nop if piobuf full */
       strncat(piobuf, argv[i], spaceleft); /* nop if piobuf full */
@@ -1888,7 +1886,7 @@ static void LookAside(int argc, char *argv[], int opslot)
         vio.in = piobuf;
         vio.in_size = strlen(piobuf) + 1;
         vio.out = piobuf;
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
 
         rc = pioctl(mountpoint, VIOC_LOOKASIDE, &vio, 0);
         if (rc < 0) { PERROR("VIOC_LOOKASIDE"); return;}
@@ -1959,8 +1957,8 @@ static void LsMount (int argc, char *argv[], int opslot)
         vio.in = part2;
         vio.in_size = (int) strlen(part2)+1;
         vio.out = piobuf;
-        vio.out_size = PIOBUFSIZE;
-        memset(piobuf, 0, PIOBUFSIZE);
+        vio.out_size = CFS_PIOBUFSIZE;
+        memset(piobuf, 0, CFS_PIOBUFSIZE);
         rc = pioctl(part1, VIOC_AFS_STAT_MT_PT, &vio, 0);
         if (rc < 0)
             {
@@ -2188,7 +2186,7 @@ static void SetACL (int argc, char *argv[], int opslot)
         {
         vio.in = 0;
         vio.in_size = 0;
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
         vio.out = piobuf;
         rc = pioctl(dir, VIOCGETAL, &vio, 1);
         if (rc <0) { PERROR(dir); exit(-1); }
@@ -2298,7 +2296,7 @@ static void SetQuota    (int argc, char *argv[], int opslot)
         /* Set up parms to pioctl */
         vio.in = 0;
         vio.in_size = 0;
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
         vio.out = piobuf;
 
         /* Do the pioctl */
@@ -2312,9 +2310,9 @@ static void SetQuota    (int argc, char *argv[], int opslot)
         vs->MaxQuota = atoi(argv[i+1]);
         printf("New value of vs->MaxQuota will be set to %lu\n", vs->MaxQuota);
 
-        vio.in_size  = PIOBUFSIZE;
+        vio.in_size  = CFS_PIOBUFSIZE;
         vio.in       = piobuf;
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
         vio.out      = piobuf;
 
         rc = pioctl(argv[i], VIOCSETVOLSTAT, &vio, 1);
@@ -2461,7 +2459,7 @@ static void WhereIs (int argc, char *argv[], int opslot)
         /* Set up parms to pioctl */
         vio.in = 0;
         vio.in_size = 0;
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
         vio.out = piobuf;
 
         /* Do the pioctl */
@@ -2673,7 +2671,7 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
     else {   /* test CML entries remaining by doing a ListVolume*/
 	vio.in = 0;
         vio.in_size = 0;
-        vio.out_size = PIOBUFSIZE;
+        vio.out_size = CFS_PIOBUFSIZE;
         vio.out = piobuf;
 
         /* Do the pioctl */

@@ -510,7 +510,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	  dummyPiggyBS.SeqLen = 0;
 	  dummyPiggyBS.SeqBody = (RPC2_ByteSeq)dummyPiggyData;
 
-	  shacode = (int) ViceGetAttrPlusSHA(*cid, &bogusfid, 0, &dummystatus, 1, &dummysha, 0, &dummyPiggyBS);
+	  shacode = (int) ViceGetAttrPlusSHA(*cid, &bogusfid, 0, &dummystatus, &dummysha, 0, &dummyPiggyBS);
 
 	  UNI_END_MESSAGE(ViceGetAttrPlusSHA_OP);
 	  UNI_RECORD_STATS(ViceGetAttrPlusSHA_OP);

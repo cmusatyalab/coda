@@ -163,7 +163,6 @@ int WalkTree(char *troot, DB *dbhandle) {
   FTSENT *nextf; /* next element in tree */
   FTS *fth; /* open handle for fts() routines */
   char *path_argv[2];
-  RPC2_BoundedBS mysha;
   unsigned char shabuf[SHA_DIGEST_LENGTH];
   int troot_strlen; /* save length of troot in this */
 
@@ -181,16 +180,13 @@ int WalkTree(char *troot, DB *dbhandle) {
     if (nextf->fts_info != FTS_F) continue; /* skip all but plain files */
 
     /* compute the SHA of this file */
-    mysha.SeqBody = shabuf; 
-    mysha.MaxSeqLen = mysha.SeqLen = SHA_DIGEST_LENGTH;
-
     int myfd = open(nextf->fts_name, O_RDONLY, 0);
     if (myfd < 0) {
       printf("Skipping %s: %s\n", nextf->fts_path, strerror(errno));
       continue;
     }
 
-    if (!ComputeViceSHA(myfd, &mysha)) {
+    if (!ComputeViceSHA(myfd, shabuf)) {
       printf("%s: can't compute SHA\n", nextf->fts_name);
       close(myfd); rc = -1; goto WalkDone;
     }
@@ -225,7 +221,7 @@ int WalkTree(char *troot, DB *dbhandle) {
     NumEntries++;
     if (VerboseFlag) {
       char temp[3*SHA_DIGEST_LENGTH];
-      ViceSHAtoHex(&mysha, temp, sizeof(temp));
+      ViceSHAtoHex(shabuf, temp, sizeof(temp));
       printf("Entry %05d:  %s  %s\n", NumEntries, temp, dd.data);
     }
     else {

@@ -504,11 +504,10 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 
 
 /* ViceGetAttrPlusSHA() should completely replace ViceGetAttr().
-   If NeedSHA is non-zero, server returns SHA value (if known) in SHAval.
-   A server can always return a SHAval value of zero if it can't/won't 
-   compute/obtain the SHA of the object.   If NeedSHA is zero, server
-   does not attempt to find SHA.  In that case, SHAval is ignored
-   and this call is identical to original ViceGetAttr().
+   If SHAVal->MaxSeqLen is non-zero, server returns SHA value (if known) in
+   SHAval. A server can always return a SHAval value of zero (or set
+   SHAval->SeqLen to 0) if it can't/won't compute/obtain the SHA of the
+   object.
 
    Note: SHAval should really just be a simple 20-byte OUT array;
    it is a BoundedBS of IN OUT mode only because rp2gen packing/unpacking
@@ -519,8 +518,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 63: ViceGetAttrPlusSHA (IN ViceFid Fid,
 		 IN RPC2_Unsigned InconOK,
 		 OUT ViceStatus Status,
-		 IN  RPC2_Unsigned NeedSHA,
-		 IN OUT RPC2_BoundedBS SHAval,
+		 OUT RPC2_BoundedBS SHAval,
 		 IN RPC2_Unsigned PrimaryHost,
 		 IN RPC2_CountedBS PiggyCOP2);
 
@@ -530,8 +528,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 64: ViceValidateAttrsPlusSHA (IN RPC2_Unsigned PrimaryHost,
 		       IN ViceFid PrimaryFid,
 		       IN OUT ViceStatus PrimaryStatus,
-		       IN RPC2_Unsigned NeedSHA,
-		       IN OUT RPC2_BoundedBS SHAval,
+		       OUT RPC2_BoundedBS SHAval,
 		       IN ViceFidAndVV Piggies[], 
 		       IN OUT RPC2_BoundedBS VFlagBS,
 		       IN RPC2_CountedBS PiggyCOP2);

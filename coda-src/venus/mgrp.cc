@@ -161,12 +161,10 @@ int RepOpCommCtxt::AllReplicasSupportSHA(){
 
      if (!hosts[i].s_addr) continue;
      s = FindServer(&hosts[i]);
-     if (!s) return(0); /* unknown weirdness */
-     if (!s->VGAPlusSHA_Supported) return (0); 
+     if (!s || !s->VGAPlusSHA_Supported) return (0); 
    }
    return(1); /* every active host supports SHA! */
 }
-
 
 
 mgrpent::mgrpent(vsgent *VSG, vuid_t vuid, RPC2_Handle mid, int authflag)

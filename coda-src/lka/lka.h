@@ -34,16 +34,19 @@ extern "C" {
 
 
   /* "helper" routines in shaprocs.cc */
-extern void ViceSHAtoHex (RPC2_BoundedBS *, char *, int); 
+void ViceSHAtoHex (unsigned char sha[SHA_DIGEST_LENGTH],
+		   char *buf, int buflen); 
 
-extern int ComputeViceSHA(int, RPC2_BoundedBS *);
+int ComputeViceSHA(int cfd, unsigned char sha[SHA_DIGEST_LENGTH]);
 
-extern int IsZeroSHA(RPC2_BoundedBS *);
+int IsZeroSHA(unsigned char sha[SHA_DIGEST_LENGTH]);
 
   /* "core" routines in lka.cc called by venus */
-extern int LookAsideAndFillContainer (RPC2_BoundedBS *, char *, int, char *, char *, int);
+int LookAsideAndFillContainer(unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
+			      int length, char *venusRoot,
+			      char *emsg, int emsglen);
 
-extern int LKParseAndExecute(char *, char *, int);
+int LKParseAndExecute(char *in, char *out, int len);
 
 
 #ifdef __cplusplus
@@ -51,8 +54,6 @@ extern int LKParseAndExecute(char *, char *, int);
 #endif
 
 #include <dlist.h>
-
-
 
 /* lkdb is an entry defining a lookaside database;
    Venus has a doubly linked list of these entries  */
@@ -75,7 +76,7 @@ class lkdb: public dlink {
   
 
   int BindDB(char *, char *, int);
-  int GetFilenameFromSHA(RPC2_BoundedBS *, char *, int, char *, int);
+  int GetFilenameFromSHA(unsigned char sha[SHA_DIGEST_LENGTH], char *, int, char *, int);
 
   /* Constructor and destructor */
   lkdb();
