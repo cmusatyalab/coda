@@ -113,7 +113,7 @@ void print_VolHead(struct VolHead *VolHead, int volindex)
 {
     printf("    VolHead VolumeList[%d]:\n", volindex);
     if (VolHead->header.stamp.magic != 0 ) {
-	printf("\t\tversion stamp = %lx, %lu\n", VolHead->header.stamp.magic,
+	printf("\t\tversion stamp = %x, %u\n", VolHead->header.stamp.magic,
 					    VolHead->header.stamp.version);
     }
     printf("\t\tid = %lx\n\t\tparentid = %lx\n\t\ttype = %u\n", VolHead->header.id,
@@ -130,7 +130,7 @@ void print_VolData(struct VolumeData *data)
 	print_VolumeDiskData(data->volumeInfo);
     }
 
-    printf("\t\tsmallvnodes = %lu\n\t\tsmallListSize = %lu\n", data->nsmallvnodes, data->nsmallLists);
+    printf("\t\tsmallvnodes = %u\n\t\tsmallListSize = %u\n", data->nsmallvnodes, data->nsmallLists);
     printf("\t\trec_smolist *smallVnodeList = %p\n", data->smallVnodeLists);
     if (data->smallVnodeLists != NULL) {
 	rec_smolist *p;
@@ -151,7 +151,7 @@ void print_VolData(struct VolumeData *data)
     }
     printf("\n");
 
-    printf("\t\tlargevnodes = %lu\n\t\tlargeListSize = %lu\n", data->nlargevnodes, data->nlargeLists);
+    printf("\t\tlargevnodes = %u\n\t\tlargeListSize = %u\n", data->nlargevnodes, data->nlargeLists);
     printf("\t\tVnodeDiskObject **largeVnodeList = %p\n", data->largeVnodeLists);
     if (data->largeVnodeLists != NULL) {
 	rec_smolist *p;
@@ -180,12 +180,12 @@ void print_VnodeDiskObject(VnodeDiskObject *vnode)
 	return;
     printf("\t\t\ttype = %u\n\t\t\tcloned = %u\n\t\t\tmode = %o\n\t\t\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("\t\t\tlength = %lu\n\t\t\tunique = %lu\n\t\t\tversion = %lu\n\t\t\tinode = %lu\n",
+    printf("\t\t\tlength = %u\n\t\t\tunique = %lu\n\t\t\tversion = %lu\n\t\t\tinode = %u\n",
 	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->inodeNumber);
     PrintVersionVector(vnode->versionvector, "\t\t\t");
     printf("\t\t\tvolindex = %d\n\t\t\tmodtime = %lu\n\t\t\tauthor = %lu\n\t\t\towner = %lu\n\t\t\tparent = %lx.%lx\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);
-    printf("\t\t\tmagic = %lx\n\t\t\tservermodtime = %lu\n",
+    printf("\t\t\tmagic = %x\n\t\t\tservermodtime = %lu\n",
 	vnode->vnodeMagic, vnode->serverModifyTime);
 }
 
@@ -198,12 +198,12 @@ static void PrintVersionVector(vv_t vv, char *indent) {
 void print_VolumeDiskData(VolumeDiskData *ddata)
 {
     int i = 0;
-    printf("\t\t\tversion stamp = %lx, %lu\n", ddata->stamp.magic, ddata->stamp.version);
+    printf("\t\t\tversion stamp = %x, %u\n", ddata->stamp.magic, ddata->stamp.version);
     printf("\t\t\tid = %lx\n\t\t\tpartition = %s\n\t\t\tname = %s\n\t\t\tinUse = %u\n\t\t\tinService = %u\n",
 	    ddata->id, ddata->partition, ddata->name, ddata->inUse, ddata->inService);
 
     if (ddata->stamp.magic != 0) {
-	printf("\t\t\tblessed = %u\n\t\t\tneedsSalvaged = %u\n\t\t\tuniquifier= %lu\n\t\t\ttype = %d\n",
+	printf("\t\t\tblessed = %u\n\t\t\tneedsSalvaged = %u\n\t\t\tuniquifier= %u\n\t\t\ttype = %d\n",
 	    ddata->blessed, ddata->needsSalvaged, ddata->uniquifier, ddata->type);
 	printf("\t\t\tparentId = %lx\n\t\t\tgrpId = %lx\n\t\t\tcloneId = %lx\n\t\t\tbackupId = %lx\n\t\t\trestoreFromId = %lx\n",
 	    ddata->parentId, ddata->groupId, ddata->cloneId, ddata->backupId, ddata->restoredFromId);
@@ -213,15 +213,15 @@ void print_VolumeDiskData(VolumeDiskData *ddata)
     }
     printf("\t\t\t");
     for (i = 0; i < 3; i++) {
-	printf("reserved1[%d] = %lu, ", i, ddata->reserved1[i]);
+	printf("reserved1[%d] = %u, ", i, ddata->reserved1[i]);
     }
     printf("\n\t\t\t");
     for (i = 3; i < 6; i++) {
-	printf("reserved1[%d] = %lu, ", i, ddata->reserved1[i]);
+	printf("reserved1[%d] = %u, ", i, ddata->reserved1[i]);
     }
     printf("\n");
 
-    printf("\t\t\tmaxquota = %d\n\t\t\tminquota = %d\n\t\t\tmaxfiles = %d\n\t\t\tacctNum = %lu\n\t\t\towner = %lu\n",
+    printf("\t\t\tmaxquota = %d\n\t\t\tminquota = %d\n\t\t\tmaxfiles = %d\n\t\t\tacctNum = %u\n\t\t\towner = %u\n",
 	ddata->maxquota, ddata->minquota, ddata->maxfiles, ddata->accountNumber, ddata->owner);
     printf("\t\t\t");
     for (i = 0; i < 3; i++) {
@@ -277,15 +277,15 @@ void print_VolumeDiskData(VolumeDiskData *ddata)
     printf("\t\t\tbackupDate = %lu\n\t\t\tcopyDate = %lu\n", ddata->backupDate, ddata->copyDate);
     printf("\t\t\t");
     for (i = 0; i < 3; i++) {
-	printf("reserved4[%d] = %ld, ", i, ddata->reserved4[i]);
+	printf("reserved4[%d] = %u, ", i, ddata->reserved4[i]);
     }
     printf("\n\t\t\t");
     for (i = 3; i < 6; i++) {
-	printf("reserved4[%d] = %ld, ", i, ddata->reserved4[i]);
+	printf("reserved4[%d] = %u, ", i, ddata->reserved4[i]);
     }
     printf("\n\t\t\t");
     for (i = 6; i < 8; i++) {
-	printf("reserved4[%d] = %ld, ", i, ddata->reserved4[i]);
+	printf("reserved4[%d] = %u, ", i, ddata->reserved4[i]);
     }
     printf("\n");
     printf("\t\t\tofflineMessage = %s\n", ddata->offlineMessage);
@@ -305,7 +305,7 @@ void PrintCamVnode(int level, int volindex, int vclass, VnodeId vnodeindex,
     
     rc = ExtractVnode(&ec, volindex, vclass, vnodeindex, unq, vnode);
     if (ec != 0) {
-	printf("Error %ld from ExtractVnode; aborting vnode dump\n", ec);
+	printf("Error %u from ExtractVnode; aborting vnode dump\n", ec);
 	return;
     }
     printf("Printing %s vnode %lu, (index %ld) from volume %u\n",
