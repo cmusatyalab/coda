@@ -2356,8 +2356,7 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
     vap->va_bytes = NBLOCKS_BYTES(vap->va_size);
 
     /* We don't keep track of atime/ctime, so keep them identical to mtime */
-    vap->va_atime = vap->va_mtime;
-    vap->va_ctime = vap->va_mtime;
+    vap->va_atime = vap->va_ctime = vap->va_mtime;
 
     VPROC_printvattr(vap);
 }

@@ -331,8 +331,8 @@ FreeLocks:
 	va_init(vap);
 	vap->va_mode = 0444;
 	vap->va_type = FTTOVT(SymbolicLink);
-	vap->va_uid = (short)V_UID;
-	vap->va_gid = (short)V_GID;
+	vap->va_uid = V_UID;
+	vap->va_gid = V_GID;
 	vap->va_nlink = 1;
 
 	/* @XXXXXXXX.YYYYYYYY.ZZZZZZZZ. */
@@ -369,35 +369,39 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
      * allow calls that clear the field.  
      */
     /* Cannot set these attributes. */
-    if ( (vap->va_fileid != VA_IGNORE_ID) ||
-	 (vap->va_nlink != VA_IGNORE_NLINK) ||
-	 (vap->va_blocksize != VA_IGNORE_BLOCKSIZE) ||
-	 (vap->va_rdev != VA_IGNORE_RDEV) ||
-	 (vap->va_flags != VA_IGNORE_FLAGS && vap->va_flags != 0) ||
-	  (vap->va_bytes != VA_IGNORE_STORAGE) ) {
+    if (vap->va_fileid != VA_IGNORE_ID ||
+	vap->va_nlink != VA_IGNORE_NLINK ||
+	vap->va_blocksize != VA_IGNORE_BLOCKSIZE ||
+	vap->va_rdev != VA_IGNORE_RDEV ||
+	(vap->va_flags != VA_IGNORE_FLAGS && vap->va_flags != 0) ||
+	vap->va_bytes != VA_IGNORE_STORAGE)
+    {
 	    u.u_error = EINVAL; 
 	    return; 
     }
 
     /* Should be setting at least one of these. */
-    if ( (vap->va_mode == VA_IGNORE_MODE) &&
-	 (vap->va_uid == VA_IGNORE_UID) &&
-	 (vap->va_gid == VA_IGNORE_GID) &&
-	 (vap->va_size == VA_IGNORE_SIZE) &&
-	 (vap->va_flags == VA_IGNORE_FLAGS) &&
-	 (vap->va_atime.tv_sec == VA_IGNORE_TIME1) &&
-	 (vap->va_mtime.tv_sec == VA_IGNORE_TIME1) &&
-	 (vap->va_ctime.tv_sec == VA_IGNORE_TIME1) )
-
-	CHOKE("vproc::setattr: no attributes specified");
+    if (vap->va_mode == VA_IGNORE_MODE &&
+	vap->va_uid == VA_IGNORE_UID &&
+	vap->va_size == VA_IGNORE_SIZE &&
+	// We don't actually do anything with these attributes, just ignore...
+	//vap->va_gid == VA_IGNORE_GID &&
+	//vap->va_flags == VA_IGNORE_FLAGS &&
+	//vap->va_atime.tv_sec == VA_IGNORE_TIME1 &&
+	//vap->va_ctime.tv_sec == VA_IGNORE_TIME1 &&
+	vap->va_mtime.tv_sec == VA_IGNORE_TIME1)
+    {
+	u.u_error = 0;
+	return;
+    }
 
     for (;;) {
 	Begin_VFS(&cp->c_fid, CODA_SETATTR);
 	if (u.u_error) break;
 
-	/* If we are truncating a file to any non-zero size we NEED the data */
 	rcrights = RC_STATUS;
 
+	/* If we are truncating a file to any non-zero size we NEED the data */
 	/* va_size is unsigned long long, so we cannot use a > 0 test */
 	if (vap->va_size != 0 && vap->va_size != VA_IGNORE_SIZE)
 	    rcrights |= RC_DATA;
@@ -445,10 +449,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 		u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
-	    /* gid should be V_GID for chown requests, 
-	       VA_IGNORE_GID otherwise */
-	    if (vap->va_gid != VA_IGNORE_GID)
-	        vap->va_gid = V_GID;
+
 	    /* truncate, ftruncate */
 	    if (vap->va_size != VA_IGNORE_SIZE) {
 		if (!f->IsFile()) {
@@ -462,9 +463,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	    }
 
 	    /* utimes */
-	    if ( (vap->va_atime.tv_sec != VA_IGNORE_TIME1) ||
-		 (vap->va_mtime.tv_sec != VA_IGNORE_TIME1) ||
-		 (vap->va_ctime.tv_sec != VA_IGNORE_TIME1) ) {
+	    if (vap->va_mtime.tv_sec != VA_IGNORE_TIME1) {
 		    u.u_error = f->Access((long)PRSFS_WRITE, 0, u.u_uid);
 		    if (u.u_error) goto FreeLocks;
 	    }
