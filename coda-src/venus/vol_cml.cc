@@ -3827,8 +3827,12 @@ void cmlent::AttachFidBindings()
     GetVVandFids(vvs, fids);
 
     for (int i = 0; i < 3; i++) {
-	ViceFid *fidp = fids[i];
+	ViceFid *fidp = fids[i], *local;
 	if (fidp == 0) break;
+
+	local = LRDB->LGM_LookupLocal(fidp);
+	if (local)
+	    fidp = local;
 
 	fsobj *f = FSDB->Find(fidp);
 	if (f == 0) {
