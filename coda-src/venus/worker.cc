@@ -754,9 +754,10 @@ void WorkerInit()
 #if defined(__BSD44__) || defined(__linux__)
     if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) >= 0 ) {
         switch (kernel_version) {
-        case 2: /* luckily 1 & 2 are upwards compatible */
-        case 1:
+        case 3:
             break;
+        case 2: /* 1 & 2 are upwards compatible, but 3 introduced the realms */
+        case 1:
         default:
             eprint("WorkerInit: Version Skew with kernel! Get a newer kernel!");
             eprint("WorkerInit: Kernel version is %d\n.", kernel_version);

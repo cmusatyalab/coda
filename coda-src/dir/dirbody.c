@@ -345,7 +345,7 @@ int dir_PrintChar(char *addr, int nbits, char *buff)
 static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId vol, RealmId realm)
 {
 	ViceFid vfid;
-	CodaFid kfid;
+	struct CodaFid kfid;
 	
 	CODA_ASSERT(ep && vd);
 

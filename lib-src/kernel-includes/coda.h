@@ -210,15 +210,16 @@ struct venus_dirent {
 
 #endif
 
-typedef struct {
+struct CodaFid {
     u_int32_t opaque[4];
-} CodaFid;
+}; 
 
 
-static __inline__ ino_t coda_f2i(CodaFid *fid)
+static __inline__ ino_t coda_f2i(struct CodaFid *fid)
 {
 	if (!fid) return 0; 
-	return (fid->opaque[1] + (fid->opaque[2]<<10) + (fid->opaque[3]<<20));
+	return (fid->opaque[3] ^ (fid->opaque[2]<<10) ^ (fid->opaque[1]<<20) ^
+		fid->opaque[0]);
 }
 	
 
@@ -293,9 +294,11 @@ struct coda_statfs {
 #define CODA_RESOLVE     32
 #define CODA_REINTEGRATE 33
 #define CODA_STATFS	 34
-#define CODA_NCALLS 35
+#define CODA_STORE	 35
+#define CODA_RELEASE	 36
+#define CODA_NCALLS 37
 
-#define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID) 
+#define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID)
 
 #define VC_MAXDATASIZE	    8192
 #define VC_MAXMSGSIZE      sizeof(union inputArgs)+sizeof(union outputArgs) +\
@@ -306,8 +309,9 @@ struct coda_statfs {
 #if 0
 #define CODA_KERNEL_VERSION 0 /* don't care about kernel version number */
 #define CODA_KERNEL_VERSION 1 /* The old venus 4.6 compatible interface */
-#endif
 #define CODA_KERNEL_VERSION 2 /* venus_lookup gets an extra parameter */
+#endif
+#define CODA_KERNEL_VERSION 3 /* 128-bit file identifiers */
 
 /*
  *        Venus <-> Coda  RPC arguments
@@ -315,9 +319,9 @@ struct coda_statfs {
 struct coda_in_hdr {
     u_int32_t opcode;
     u_int32_t unique;	    /* Keep multiple outstanding msgs distinct */
-    pid_t pid;		    /* Common to all */
-    pid_t pgid;		    /* Common to all */
-    uid_t uid;		    /* Common to all */
+    pid_t pid;
+    pid_t pgid;
+    uid_t uid;
 };
 
 /* Really important that opcode and unique are 1st two fields! */
@@ -330,7 +334,7 @@ struct coda_out_hdr {
 /* coda_root: NO_IN */
 struct coda_root_out {
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 struct coda_root_in {
@@ -340,7 +344,7 @@ struct coda_root_in {
 /* coda_open: */
 struct coda_open_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid	Fid;
     int	flags;
 };
 
@@ -351,10 +355,32 @@ struct coda_open_out {
 };
 
 
+/* coda_store: */
+struct coda_store_in {
+    struct coda_in_hdr ih;
+    struct CodaFid	Fid;
+    int	flags;
+};
+
+struct coda_store_out {
+    struct coda_out_hdr out;
+};
+
+/* coda_release: */
+struct coda_release_in {
+    struct coda_in_hdr ih;
+    struct CodaFid	Fid;
+    int	flags;
+};
+
+struct coda_release_out {
+    struct coda_out_hdr out;
+};
+
 /* coda_close: */
 struct coda_close_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid	Fid;
     int	flags;
 };
 
@@ -365,7 +391,7 @@ struct coda_close_out {
 /* coda_ioctl: */
 struct coda_ioctl_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid Fid;
     int	cmd;
     int	len;
     int	rwflag;
@@ -382,7 +408,7 @@ struct coda_ioctl_out {
 /* coda_getattr: */
 struct coda_getattr_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 struct coda_getattr_out {
@@ -394,7 +420,7 @@ struct coda_getattr_out {
 /* coda_setattr: NO_OUT */
 struct coda_setattr_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid Fid;
     struct coda_vattr attr;
 };
 
@@ -405,7 +431,7 @@ struct coda_setattr_out {
 /* coda_access: NO_OUT */
 struct coda_access_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid	Fid;
     int	flags;
 };
 
@@ -421,14 +447,14 @@ struct coda_access_out {
 /* coda_lookup: */
 struct  coda_lookup_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid	Fid;
     int         name;		/* Place holder for data. */
     int         flags;	
 };
 
 struct coda_lookup_out {
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
     int	vtype;
 };
 
@@ -436,7 +462,7 @@ struct coda_lookup_out {
 /* coda_create: */
 struct coda_create_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid Fid;
     struct coda_vattr attr;
     int excl;
     int mode;
@@ -445,7 +471,7 @@ struct coda_create_in {
 
 struct coda_create_out {
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
     struct coda_vattr attr;
 };
 
@@ -453,7 +479,7 @@ struct coda_create_out {
 /* coda_remove: NO_OUT */
 struct coda_remove_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid	Fid;
     int name;		/* Place holder for data. */
 };
 
@@ -464,8 +490,8 @@ struct coda_remove_out {
 /* coda_link: NO_OUT */
 struct coda_link_in {
     struct coda_in_hdr ih;
-    CodaFid sourceFid;          /* cnode to link *to* */
-    CodaFid destFid;            /* Directory in which to place link */
+    struct CodaFid sourceFid;          /* cnode to link *to* */
+    struct CodaFid destFid;            /* Directory in which to place link */
     int tname;		/* Place holder for data. */
 };
 
@@ -477,9 +503,9 @@ struct coda_link_out {
 /* coda_rename: NO_OUT */
 struct coda_rename_in {
     struct coda_in_hdr ih;
-    CodaFid sourceFid;
+    struct CodaFid	sourceFid;
     int 	srcname;
-    CodaFid destFid;
+    struct CodaFid destFid;
     int 	destname;
 };
 
@@ -490,14 +516,14 @@ struct coda_rename_out {
 /* coda_mkdir: */
 struct coda_mkdir_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid	Fid;
     struct coda_vattr attr;
     int	   name;		/* Place holder for data. */
 };
 
 struct coda_mkdir_out {
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
     struct coda_vattr attr;
 };
 
@@ -505,7 +531,7 @@ struct coda_mkdir_out {
 /* coda_rmdir: NO_OUT */
 struct coda_rmdir_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid	Fid;
     int name;		/* Place holder for data. */
 };
 
@@ -516,7 +542,7 @@ struct coda_rmdir_out {
 /* coda_readdir: */
 struct coda_readdir_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid Fid;
     int	count;
     int	offset;
 };
@@ -530,7 +556,7 @@ struct coda_readdir_out {
 /* coda_symlink: NO_OUT */
 struct coda_symlink_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;          /* Directory to put symlink in */
+    struct CodaFid	Fid;          /* Directory to put symlink in */
     int srcname;
     struct coda_vattr attr;
     int tname;
@@ -543,7 +569,7 @@ struct coda_symlink_out {
 /* coda_readlink: */
 struct coda_readlink_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 struct coda_readlink_out {
@@ -556,7 +582,7 @@ struct coda_readlink_out {
 /* coda_fsync: NO_OUT */
 struct coda_fsync_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 struct coda_fsync_out {
@@ -566,12 +592,12 @@ struct coda_fsync_out {
 /* coda_vget: */
 struct coda_vget_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 struct coda_vget_out {
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
     int	vtype;
 };
 
@@ -584,62 +610,65 @@ struct coda_vget_out {
 /* CODA_PURGEUSER is a venus->kernel call */
 struct coda_purgeuser_out {
     struct coda_out_hdr oh;
-    uid_t		uid;
+    uid_t uid;
 };
 
 /* coda_zapfile: */
 /* CODA_ZAPFILE is a venus->kernel call */
 struct coda_zapfile_out {  
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 /* coda_zapdir: */
 /* CODA_ZAPDIR is a venus->kernel call */	
 struct coda_zapdir_out {	  
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 /* coda_zapnode: */
 /* CODA_ZAPVNODE is a venus->kernel call */	
 struct coda_zapvnode_out { 
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 /* coda_purgefid: */
 /* CODA_PURGEFID is a venus->kernel call */	
 struct coda_purgefid_out { 
     struct coda_out_hdr oh;
-    CodaFid Fid;
+    struct CodaFid Fid;
 };
 
 /* coda_replace: */
 /* CODA_REPLACE is a venus->kernel call */	
 struct coda_replace_out { /* coda_replace is a venus->kernel call */
     struct coda_out_hdr oh;
-    CodaFid NewFid;
-    CodaFid OldFid;
+    struct CodaFid NewFid;
+    struct CodaFid OldFid;
 };
 
 /* coda_open_by_fd: */
 struct coda_open_by_fd_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
-    int	flags;
+    struct CodaFid    Fid;
+    int        flags;
 };
 
 struct coda_open_by_fd_out {
     struct coda_out_hdr oh;
     int fd;
-    struct file *fh;
+
+#ifdef __KERNEL__
+    struct file *fh; /* not passed from userspace but used in-kernel only */
+#endif
 };
 
 /* coda_open_by_path: */
 struct coda_open_by_path_in {
     struct coda_in_hdr ih;
-    CodaFid Fid;
+    struct CodaFid	Fid;
     int	flags;
 };
 
@@ -668,6 +697,8 @@ struct coda_statfs_out {
 union inputArgs {
     struct coda_in_hdr ih;		/* NB: every struct below begins with an ih */
     struct coda_open_in coda_open;
+    struct coda_store_in coda_store;
+    struct coda_release_in coda_release;
     struct coda_close_in coda_close;
     struct coda_ioctl_in coda_ioctl;
     struct coda_getattr_in coda_getattr;
@@ -753,10 +784,9 @@ struct PioctlData {
 #define CTL_INO                 -1
 #define	CTL_FILE		"/coda/.CONTROL"
 
-
-#define	IS_CTL_FID(fidp)	((fidp)->Volume == CTL_VOL &&\
-				 (fidp)->Vnode == CTL_VNO &&\
-				 (fidp)->Unique == CTL_UNI)
+#define	IS_CTL_FID(fidp)	((fidp)->opaque[1] == CTL_VOL &&\
+				 (fidp)->opaque[2] == CTL_VNO &&\
+				 (fidp)->opaque[3] == CTL_UNI)
 
 /* Data passed to mount */
 

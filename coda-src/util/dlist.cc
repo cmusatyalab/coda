@@ -206,7 +206,7 @@ dlink *dlist::get(DlGetType type)
 void dlist::clear() 
 {
     dlink *p;
-    while(p = get()) ;
+    while ((p = get())) ;
     if (cnt != 0) abort();
 /*	{ print(logFile); Die("dlist::clear: cnt != 0 after gets"); }*/
 }
@@ -220,7 +220,7 @@ int dlist::count() {
 int dlist::IsMember(dlink *p) {
     dlist_iterator next(*this);
     dlink *dl;
-    while (dl = next()) {
+    while ((dl = next())) {
 	int res = (CmpFn ? CmpFn(dl, p) : !(dl == p));
 	if (res == 0) return(1);
 
@@ -244,14 +244,13 @@ void dlist::print(FILE *fp) {
 void dlist::print(int fd) {
     /* first print out the dlist header */
     char buf[80];
-    sprintf(buf, "%#08x : Default Dlist : count = %d\n",
-	     (long)this, cnt);
+    sprintf(buf, "%p : Default Dlist : count = %d\n", this, cnt);
     write(fd, buf, strlen(buf));
 
     /* then print out all of the olinks */
     dlist_iterator next(*this);
     dlink *p;
-    while(p = next()) p->print(fd);
+    while((p = next())) p->print(fd);
 }
 
 dlist_iterator::dlist_iterator(dlist& l, DlIterOrder Order) 
@@ -318,7 +317,7 @@ void dlink::print(FILE *fp) {
 
 void dlink::print(int fd) {
     char buf[80];
-    sprintf(buf, "%#08x : Default Dlink : prev = %x, next = %x\n",
-	     (long)this, prev, next);
+    sprintf(buf, "%p : Default Dlink : prev = %p, next = %p\n",
+	    this, prev, next);
     write(fd, buf, strlen(buf));
 }

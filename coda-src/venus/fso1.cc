@@ -2352,7 +2352,7 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
         vap->va_mode &= ~(S_ISUID | S_ISGID);
 
     vap->va_uid = (uid_t) stat.Owner;
-    vap->va_gid = (vgid_t)V_GID;
+    vap->va_gid = V_GID;
 
     vap->va_fileid = (IsRoot() && u.mtpoint && !IsVenusRoot())
 		       ? FidToNodeid(&u.mtpoint->fid)

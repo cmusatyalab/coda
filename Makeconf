@@ -71,7 +71,7 @@ LIBRVMLWP := -lrvmlwp
 LIBRDSLWP := -lrdslwp
 LIBRPC2   := -lrpc2
 LIBSE     := -lse
-LIBFAIL   := -lfail
+LIBFAIL   := # -lfail
 
 LIBMATH	    := -lm
 LIBREADLINE := -lreadline

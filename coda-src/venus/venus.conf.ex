@@ -2,6 +2,15 @@
 # client. Most of the things specified here can be overridden by
 # command-line flags.
 
+# venus.conf.ex contains an entry for each configuration statement
+# allowed in venus.conf.  Each statement is explained, and is then
+# presented, commented out, with its default value.  Thus, if this 
+# file is used as venus.conf, the behavior of venus will be the same
+# as with no config file.  Further, uncommenting any of these
+# statements in a venus.conf should have no effect.  It is suggested  
+# that a venus.conf be created if needed, and that it contain only
+# statements that differ from default values.
+
 #
 # What is the default realm, this is only used by clog/ctokens etc.
 #

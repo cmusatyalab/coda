@@ -271,9 +271,9 @@ void VenusPrint(int fd, int argc, char **argv) {
 
     fdprint(fd, "*****  VenusPrint  *****\n\n");
     FILE *f = fdopen(dup(fd), "a");
-    if (allp)		  REALMDB->print(f);
+    if (allp) REALMDB->print(f);
     if (serverp || allp)  ServerPrint(f);
-    if (mgrpp || allp)    VSGDB->print(f);
+    if ((mgrpp || allp) && VSGDB) VSGDB->print(f);
     fclose(f);
 
     if (rusagep || allp)  RusagePrint(fd);

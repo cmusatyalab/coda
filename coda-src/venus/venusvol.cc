@@ -595,9 +595,9 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 	f->GetPath(volname, PATH_REALM);
     }
 
-    /* hopefully temporary hack, we need to modify the server to return the
-     * actual rootvolume information when they are queried for an empty name */ 
-    if (volname[0] == '\0')
+    /* "special" case? not everybody wants to use the pathname based volume
+     * name mapping and uses a rootvolume named "/" */
+    if (volname[0] == '\0' || (volname[0] == '/' && volname[1] == '\0'))
 	code = GetRootVolume(realm, &volinfoname);
     if (code || !volinfoname)
 	volinfoname = strdup(volname);

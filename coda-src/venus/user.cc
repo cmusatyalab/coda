@@ -326,7 +326,7 @@ LOG(100, ("E userent::Reset()\n"));
     FSDB->ResetUser(uid);
 
     /* Invalidate kernel data for the user. */
-    k_Purge((uid_t) uid);
+    k_Purge(uid);
 LOG(100, ("After k_Purge in userent::Reset\n"));
 
     /* Demote HDB bindings for the user. */

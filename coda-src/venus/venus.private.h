@@ -102,9 +102,9 @@ const int FREE_FACTOR = 16;
 /*  *****  Manifest constants for Venus.  *****  */
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
 #ifdef DJGPP
-const uid_t V_UID = 500;    /* UID that the venus process runs under. */
+const uid_t V_UID = (uid_t)500;    /* UID that the venus process runs under. */
 #else
-const uid_t V_UID = 0;	    /* UID that the venus process runs under. */
+const uid_t V_UID = (uid_t)0;	    /* UID that the venus process runs under. */
 #endif
 /* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
    negative number (-2) means its unsigned long representation is huge

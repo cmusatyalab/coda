@@ -209,10 +209,12 @@ void CommInit() {
     if (RPC2_Init(RPC2_VERSION, 0, &port1, rpc2_retries, &tv) != RPC2_SUCCESS)
 	CHOKE("CommInit: RPC2_Init failed");
 
+#ifdef USE_FAIL_FILTERS
     /* Failure package initialization. */
     memset((void *)FailFilterInfo, 0, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
     Fail_Initialize("venus", 0);
     Fcon_Init();
+#endif
 
     /* Fire up the probe daemon. */
     PROD_Init();
@@ -1359,6 +1361,22 @@ srvent *srv_iterator::operator()() {
 }
 
 
+#ifndef USE_FAIL_FILTERS
+int FailDisconnect(int nservers, struct in_addr *hostids)
+{
+    return -1;
+}
+
+int FailReconnect(int nservers, struct in_addr *hostids)
+{
+    return -1;
+}
+
+int FailSlow(unsigned *speedp)
+{
+    return -1;
+}
+#else
 /* *****  Fail library manipulations ***** */
 
 /* 
@@ -1485,4 +1503,5 @@ int FailSlow(unsigned *speedp) {
 
     return(-1);
 }
+#endif
 
