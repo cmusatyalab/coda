@@ -260,7 +260,7 @@ void VFSMount() {
     /* Linux Coda filesystems are mounted by hand through forking since they need venus. XXX eliminate zombie */ 
 #ifdef __BSD44__
     /* Silently unmount the root node in case an earlier venus exited without successfully unmounting. */
-    syscall(SYS_unmount, venusRoot);
+    unmount(venusRoot,0);
     switch(errno) {
 	case 0:
 	    eprint("unmount(%s) succeeded, continuing", venusRoot);
@@ -479,7 +479,7 @@ void VFSUnmount()
        nail us. */
 #ifndef	__BSD44__
     /* Issue the VFS unmount request. */
-    if(syscall(SYS_unmount, venusRoot) < 0) {
+    if(unmount(venusRoot,0) < 0) {
 	eprint("vfsunmount(%s) failed (%d)", venusRoot, errno);
 	return;
     }
