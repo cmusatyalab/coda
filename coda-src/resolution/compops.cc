@@ -74,7 +74,7 @@ arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid)
     // Extract local log 
     {
 	llog = ExtractLog(AllLogs, ThisHostAddr, Fid);
-	CODA_ASSERT(llog);
+	if (!llog) return NULL;
 	sllog = SortLog(llog);
 	LogMsg(10, SrvDebugLevel, stdout,
 	       "***** Local Log is \n");
