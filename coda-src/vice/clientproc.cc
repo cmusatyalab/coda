@@ -290,6 +290,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
 
     CODA_ASSERT(Client);
     HostEntry = Client->VenusId;
+
     ObtainWriteLock(&HostEntry->lock);
 
     /* Check if another thread already set up the connection while we were
@@ -329,14 +330,16 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     }
 
 exit_makecallbackconn:
+    ReleaseWriteLock(&HostEntry->lock);
+    
+    /* CLIENT_CleanUpHost will re-obtain the exclusive lock on the HostEntry
+     * before destroying any connections */
     if (errorCode <= RPC2_ELIMIT)
 	CLIENT_CleanUpHost(HostEntry);
 
     if (HostEntry->id == 0) 
 	    errorCode = EPIPE;  /* don't return an RPC2 error */
 
-    ReleaseWriteLock(&HostEntry->lock);
-    
     return((int) errorCode);
 }
 
@@ -346,6 +349,7 @@ void CLIENT_CallBackCheck()
     dllist_head *head, *curr, *next;
     ClientEntry *cp;
     int		 i;
+    long	 rc;
 
     time_t now = time(0);
     time_t checktime = now - (5 * 60);
@@ -354,18 +358,22 @@ void CLIENT_CallBackCheck()
     for (i = 0; i < maxHost; i++) {
 	if (hostTable[i].id) {
 	    if ((time_t)hostTable[i].LastCall < checktime) {
-		ObtainWriteLock(&hostTable[i].lock);
-		/* recheck, the connection may have been destroyed */
-		if (hostTable[i].id != 0) {
-		    long rc = CallBack(hostTable[i].id, &NullFid);
-		    if (rc <= RPC2_ELIMIT) {
-			SLog(0, "Callback failed %s for ws %s, port %d",
-			     ViceErrorMsg((int) rc), hostTable[i].HostName, 
-			     ntohs(hostTable[i].port));
-			CLIENT_CleanUpHost(&hostTable[i]);
-		    }
+		ObtainReadLock(&hostTable[i].lock);
+		/* recheck, the connection may have been destroyed while
+		 * waiting for the lock */
+		if (hostTable[i].id)
+		     rc = CallBack(hostTable[i].id, &NullFid);
+		else rc = RPC2_ABANDONED;
+
+		ReleaseReadLock(&hostTable[i].lock);
+
+		if (rc <= RPC2_ELIMIT) {
+		    SLog(0, "Callback failed %s for ws %s, port %d",
+			 ViceErrorMsg((int) rc), hostTable[i].HostName, 
+			 ntohs(hostTable[i].port));
+
+		    CLIENT_CleanUpHost(&hostTable[i]);
 		}
-		ReleaseWriteLock(&hostTable[i].lock);
 	    }
 	} else {
 	    /* Clean up client structures that never obtained a callback
@@ -389,6 +397,7 @@ void CLIENT_CallBackCheck()
 void CLIENT_CleanUpHost(HostTable *ht) 
 {
     SLog(1, "Cleaning up a HostTable for %s.%d", ht->HostName, ntohs(ht->port));
+    ObtainWriteLock(&ht->lock);
 
     client_RemoveClients(ht);	/* remove any connections for this Venus */
     /* XXX clean up writeback connections XXX */
@@ -398,6 +407,8 @@ void CLIENT_CleanUpHost(HostTable *ht)
 	RPC2_Unbind(ht->id);
 	ht->id = 0;
     }
+
+    ReleaseWriteLock(&ht->lock);
 }
 
 

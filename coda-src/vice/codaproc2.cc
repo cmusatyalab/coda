@@ -1262,6 +1262,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
     int errorCode = 0;
     Volume *volptr = 0;
     VCP VCmp = (VCP)0;
+    HostTable *he;
     int index;
 
     /* Get a no-lock reference to the volume for use in this routine (only). */
@@ -1962,6 +1963,15 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
     }
     SLog(1, "Starting  BulkTransfers for %#x", Vid);
 
+    /* Make sure we don't get killed by accident */
+    he = client->VenusId;
+    ObtainReadLock(&he->lock);
+    if (!he || he->id == 0) {
+	errorCode = RPC2_FAIL;	/* ??? -JJK */
+	index = -1;
+	goto LockExit;
+    }
+
     /* Now do bulk transfers. */
     {
 	dlist_iterator next(*rlog);
@@ -1995,12 +2005,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			/* Don't fetch intermediate versions. */
 			break;
 		    }
-		    RPC2_Handle CBCid = client->VenusId->id;
-		    if (CBCid == 0) {
-			errorCode = RPC2_FAIL;	/* ??? -JJK */
-                        index = -1;
-			goto Exit;
-		    }
+
 		    SE_Descriptor sid;
 		    memset(&sid, 0, sizeof(SE_Descriptor));
 		    sid.Tag = client->SEType;
@@ -2011,31 +2016,38 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    sid.Value.SmartFTPD.ByteQuota = r->u.u_store.Length;
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = v->f_finode;
-		    if ((errorCode = CallBackFetch(CBCid, &r->u.u_store.UntranslatedFid, &sid))) {
-			HostTable *he = CLIENT_FindHostEntry(CBCid);
-			if ( he && errorCode < RPC2_ELIMIT ) {
-			    ObtainWriteLock(&he->lock);
-			    CLIENT_CleanUpHost(he);
-			    ReleaseWriteLock(&he->lock);
-			}
 
+		    errorCode = CallBackFetch(he->id,
+					      &r->u.u_store.UntranslatedFid,
+					      &sid);
+
+		    if ( errorCode < RPC2_ELIMIT ) {
+			/* We have to release the lock, because
+			 * CLIENT_CleanUpHost wants to grab an exclusive lock */
+			ReleaseReadLock(&he->lock);
+			CLIENT_CleanUpHost(he);
 			index = -1;
 			goto Exit;
 		    }
+
+		    if (errorCode) {
+			index = -1;
+			goto LockExit;
+		    }
+
 		    RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
 		    if (r->u.u_store.Length != len) {
-			SLog(0,  "CBFetch: length discrepancy (%d : %d), (%x.%x.%x), %s %s.%d",
-				r->u.u_store.Length, len,
-				v->fid.Volume, v->fid.Vnode, v->fid.Unique,
+			SLog(0,  "CBFetch: length discrepancy (%d : %d), (%s), %s %s.%d",
+				r->u.u_store.Length, len, FID_(&v->fid),
 				client->UserName, client->VenusId->HostName,
 				client->VenusId->port);
 			errorCode = EINVAL;
                         index = -1;
-			goto Exit;
+			goto LockExit;
 		    }
 
-		    SLog(2,  "CBFetch: transferred %d bytes (%x.%x.%x)",
-			    r->u.u_store.Length, v->fid.Volume, v->fid.Vnode, v->fid.Unique);
+		    SLog(2,  "CBFetch: transferred %d bytes (%s)",
+			    r->u.u_store.Length, FID_(&v->fid));
 		    }
 		    break;
 
@@ -2045,9 +2057,11 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 	}
     }
 
-Exit:
-    
+    /* If we still have the hosttable entry locked, release it now */
+LockExit:
+    ReleaseReadLock(&he->lock);
 
+Exit:
     if (Index)  
 	    *Index = (RPC2_Integer) index;
     PutVolObj(&volptr, VOL_NO_LOCK);
