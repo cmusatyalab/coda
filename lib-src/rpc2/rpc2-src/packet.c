@@ -82,9 +82,9 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
 	return 0;
 
     struct sockaddr_in *sin =(struct sockaddr_in *)addr->ai_addr;
-    unsigned char *addr = (unsigned char *)&sin->sin_addr;
+    unsigned char *inaddr = (unsigned char *)&sin->sin_addr;
 
-    ip1 = addr[0]; ip2 = addr[1]; ip3 = addr[2]; ip4 = addr[3]; 
+    ip1 = inaddr[0]; ip2 = inaddr[1]; ip3 = inaddr[2]; ip4 = inaddr[3]; 
 
     ntohPktColor(pb);
     color = GetPktColor(pb);
@@ -105,9 +105,9 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
     if (RPC2_DebugLevel > 9)
 	{
 	fprintf(rpc2_logfile, "\t");
-	rpc2_printaddrinfo(addr, 0);
+	rpc2_printaddrinfo(addr, rpc2_logfile);
 	fprintf(rpc2_logfile, "\n");
-	rpc2_PrintPacketHeader(whichPB, 0);
+	rpc2_PrintPacketHeader(whichPB, rpc2_logfile);
 	}
 #endif
 

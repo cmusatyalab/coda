@@ -80,8 +80,22 @@ of the Coda License.
    We hash on the low bytes of the host address (in network order) */
  
 #define HOSTHASHBUCKETS 64
-/* try to grab the low-order 8 bits, assuming all are stored big endian */
-#define HASHHOST(h) (((h)->ai_addr->sa_data[(h)->ai_addrlen-1]) & (HOSTHASHBUCKETS-1))
+/* try to grab the low-order bits, assuming all are stored big endian */
+int HASHHOST(struct RPC2_addrinfo *ai)
+{
+    int lsb = 0;
+    switch(ai->ai_family) {
+    case PF_INET:
+	lsb = ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr;
+	break;
+
+    case PF_INET6:
+	lsb = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr.in6_u.u6_addr32[3];
+	break;
+    }
+    return lsb & (HOSTHASHBUCKETS-1);
+}
+
 static struct HEntry **HostHashTable;	/* malloc'ed hash table static size */
 
 void rpc2_InitHost()

@@ -47,31 +47,34 @@ const char *RPC2_gai_strerror(int errcode)
 void RPC2_formataddrinfo(struct RPC2_addrinfo *ai, char *buf, size_t buflen)
 {
     int n, port = 0;
+    void *addr = NULL;
 
     if (!ai) {
 	strncpy(buf, "(no addrinfo)", buflen-1);
 	buf[buflen-1] = '\0';
 	return;
     }
+    switch (ai->ai_family) {
+    case PF_INET:
+	addr = &((struct sockaddr_in *)ai->ai_addr)->sin_addr;
+	port = ((struct sockaddr_in *)ai->ai_addr)->sin_port;
+	break;
+    case PF_INET6:
+	addr = &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr;
+	port = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port; break;
+    default: break;
+    }
 
     if (ai->ai_canonname)
 	strncpy(buf, ai->ai_canonname, buflen-1);
 
-    else if (!inet_ntop(ai->ai_family, ai->ai_addr, buf, buflen))
+    else if (!addr || !inet_ntop(ai->ai_family, addr, buf, buflen))
 	strncpy(buf, "(untranslatable)", buflen-1);
 
     n = strlen(buf);
-    if (n < buflen - 3) {
-	switch (ai->ai_family) {
-	case PF_INET:
-	    port = ((struct sockaddr_in *)ai->ai_addr)->sin_port; break;
-	case PF_INET6:
-	    port = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port; break;
-	default: break;
-	}
-	if (port)
-	    snprintf(&buf[n], buflen - n,":%u", port);
-    }
+    if (port && n < buflen - 3)
+	snprintf(&buf[n], buflen - n,":%u", ntohs(port));
+
     buf[buflen-1] = '\0';
 }
 
@@ -259,6 +262,7 @@ void rpc2_simplifyHost(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
 
     assert(Host->Tag == RPC2_HOSTBYINETADDR);
     memset(&sin, 0, sizeof(sin));
+    sin.sin_family = PF_INET;
     sin.sin_addr = Host->Value.InetAddress;
 
     if (Port) {

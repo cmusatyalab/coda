@@ -715,7 +715,7 @@ static long mrpc_SendPacketsReliably(
     memset(Reply, 0, sizeof(char *) * HowMany);
 
     timestamp = rpc2_MakeTimeStamp();
-    say(9, RPC2_DebugLevel, "Sending initial packets at time %ld\n", timestamp);
+    say(9, RPC2_DebugLevel, "Sending initial packets at time %lu\n", timestamp);
 
     /* Do an initial send of packets on all good connections */
     /* for estimating the effiency of the calculation */

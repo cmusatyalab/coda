@@ -79,7 +79,20 @@ static RPC2_Handle	LastMgrpidAllocated;
 #define	LISTENERALLOCSIZE   8		    /* malloc/realloc granularity */
 
 /* try to grab the low-order 8 bits, assuming all are stored big endian */
-#define HASHMGRP(ai) (((ai)->ai_addr->sa_data[(ai)->ai_addrlen-1]) & (MGRPHASHLENGTH-1))
+int HASHMGRP(struct RPC2_addrinfo *ai, int id)
+{
+    int lsb = 0;
+    switch(ai->ai_family) {
+    case PF_INET:
+	lsb = ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr;
+	break;
+
+    case PF_INET6:
+	lsb = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr.in6_u.u6_addr32[3];
+	break;
+    }
+    return (id ^ lsb) & (MGRPHASHLENGTH-1);
+}
 
 /* Initialize the multicast group data structures; all this requires
    is zeroing the hash table. */
@@ -100,7 +113,7 @@ static struct bucket *rpc2_GetBucket(struct RPC2_addrinfo *addr,
 
     if (addr) {
 	assert(addr->ai_next == NULL);
-	index = HASHMGRP(addr);
+	index = HASHMGRP(addr, mgrpid);
     }
     say(9, RPC2_DebugLevel, "bucket = %d, count = %d\n", index, MgrpHashTable[index].count);
     return(&MgrpHashTable[index]);

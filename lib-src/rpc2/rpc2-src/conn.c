@@ -139,7 +139,7 @@ static void Uniquefy(IN struct CEntry *ceaddr)
         handle = rpc2_NextRandom(NULL);
 
 	/* skip the handles which have special meaning */
-	if (handle == 0 || handle == -1)
+	if (handle <= 0)
 	    continue;
     }
     while(rpc2_GetConn(handle) != NULL);
