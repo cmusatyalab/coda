@@ -215,17 +215,18 @@ void CommInit() {
     RPC2_Perror = 0;
 
     /* Port initialization. */
-    struct servent *s = getservbyname("venus", "udp");
-    if (s == 0) 
-	CHOKE("CommInit: getservbyname failed; check /etc/services");
     RPC2_PortIdent port1;
     port1.Tag = RPC2_PORTBYINETNUMBER;
-    port1.Value.InetPortNumber = s->s_port;
+
+    struct servent *s = getservbyname("venus", "udp");
+    if (s != 0)
+	port1.Value.InetPortNumber = s->s_port;
+    else {
+	eprint("getservbyname(venus,udp) failed, using 2430/udp\n");
+	port1.Value.InetPortNumber = htonl(2430);
+    }
 
     /* SFTP initialization. */
-    s = getservbyname("venus-se", "udp");
-    if (s == 0) 
-	CHOKE("CommInit: getservbyname failed; check /etc/services");
     SFTP_Initializer sei;
     SFTP_SetDefaults(&sei);
     sei.WindowSize = sftp_windowsize;
@@ -234,7 +235,13 @@ void CommInit() {
     sei.PacketSize = sftp_packetsize;
     sei.EnforceQuota = 1;
     sei.Port.Tag = RPC2_PORTBYINETNUMBER;
-    sei.Port.Value.InetPortNumber = s->s_port;
+    s = getservbyname("venus-se", "udp");
+    if (s != 0) 
+	sei.Port.Value.InetPortNumber = s->s_port;
+    else {
+	eprint("getservbyname(venus-se,udp) failed, using 2431/udp\n");
+	port1.Value.InetPortNumber = htonl(2431);
+    }
 
     SFTP_Activate(&sei);
 
