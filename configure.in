@@ -6,6 +6,9 @@ AC_INIT(Coda, 6.0.6, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_SRCDIR(coda-src/librepair/resolve.h)
 AC_CONFIG_HEADER(config.h)
 
+CONFIG_DATE=`date +"%a, %d %b %Y %T %z"`
+AC_SUBST(CONFIG_DATE, "$CONFIG_DATE", [Date when configure was last run])
+
 dnl For some reason the default prefix was set to NONE on Solaris.
 AC_PREFIX_DEFAULT(/usr/local)
 
@@ -140,6 +143,7 @@ fi
 AC_PROG_MAKE_SET
 AC_OUTPUT(Makefile Makeconf.setup coda_config.h
 configs/Makefile 
+debian/changelog
 lib-src/Makefile 
 lib-src/base/Makefile
 lib-src/kernel-includes/Makefile 
