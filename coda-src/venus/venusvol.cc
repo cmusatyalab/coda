@@ -838,7 +838,7 @@ void volent::ResetVolTransients()
     flags.repair_mode = 0;		    /* normal mode */
     flags.resolve_me = 0;
     flags.weaklyconnected = 0;
-    flags.available = 0;
+    flags.available = 1;
 
     fso_list = new olist;
 
@@ -2200,8 +2200,8 @@ int repvol::AVSGsize(void)
     int avsgsize = 0;
     
     for (int i = 0; i < VSG_MEMBERS; i++)
-        if (vsg[i])
-            avsgsize += vsg[i]->IsAvailable();
+        if (vsg[i] && vsg[i]->IsAvailable())
+            avsgsize++;
 
     return avsgsize;
 }
@@ -2636,7 +2636,6 @@ void volent::print(int afd)
 
 void volrep::print_volrep(int afd)
 {
-
     fdprint(afd, "\thost: %s, available %d", inet_ntoa(host), flags.available);
     fdprint(afd, "replicated parent volume = %x\n", replicated);
 }
