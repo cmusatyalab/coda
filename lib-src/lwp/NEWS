@@ -4,6 +4,7 @@ New in 1.5:
 * Removed all access to global variables from assembly code.
 * Moved process.ss to process.S, to use correct compilation flags.
 * Ported to NetBSD-mips.
+* Fixed shared library problems for mips and sparc (and arm?).
 
 New in 1.4:
 

@@ -87,7 +87,7 @@ function MakeMakefile () {
 DISTNAME=	lwp-@VERSION@
 PKGNAME=	lwp-@VERSION@
 CATEGORIES=	devel
-MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/coda/src/
+MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/lwp/src/
 EXTRACT_SUFX=	.tar.gz
 
 MAINTAINER=	coda@cs.cmu.edu

@@ -20,26 +20,9 @@ AC_CANONICAL_SYSTEM
 host=${target}
 program_prefix=
 
-dnl shared libs don't work on most platforms due to non-PIC code in process.s
-case ${host} in
-   *sun-solaris* )
-    echo "Setting special conditions for Solaris"
-    AFLAGS="-traditional"
-
-    if [ ${host_cpu} != i386 ] ; then
-	enable_shared= no
-    fi
-    ;;
-   i*86-* )
-    dnl Shared libs seem to work for i386-based platforms
-    ;;
-   mips*-* )
-    dnl Shared libs seem to work for mips-based platforms
-    ;;
-   * )
-    enable_shared= no
-    ;;
-esac
+dnl Shared libraries work for i386, mips, and sparc platforms. They might
+dnl work for all platforms. If not, check gcc -S output for:
+dnl "void call(void (*fn)(void)) { fn() };"
 
 if test ${build} != ${host} ; then
   case ${host} in

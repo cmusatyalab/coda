@@ -135,12 +135,17 @@ _returnto:
 #define ST_FLUSH_WINDOWS T_FLUSHWIN
 #endif /* __NetBSD__ */
 #else
-#ifdef sun	
-/* Solaris */
+#ifdef sun /* Solaris */
 #define NAME(x) x
 #define FUNCTION  #function
 #define _ASM
+#if 0 /* cpp doesn't always seem to like sys/asm_linkage.h */
 #include <sys/asm_linkage.h>
+#else
+#include <sys/stack.h>
+#include <sys/trap.h>
+#define ENTRY(x) .type x,FUNCTION; .global x; x:
+#endif
 #else	
 #include <sun4/asm_linkage.h>
 #include <sun4/trap.h>
@@ -165,8 +170,9 @@ ENTRY(savecontext)
 	and	%i2, -STACK_ALIGN, %o0
 	sub	%o0, SA(MINFRAME), %sp
 1:
-	call	.ptr_call, 0
-	mov	%i0, %g1
+	mov     %i0, %l0
+	call    %l0, 0
+	nop
 	unimp	0
 	
 ENTRY(returnto)
@@ -176,16 +182,6 @@ ENTRY(returnto)
 	ld	[%sp + MINFRAME + SAVED_PC], %o7
 	retl
 	restore
-
-#if defined(__linux__) || defined(__NetBSD__) || defined(sun)
-#if defined(__linux__) || defined(sun)
-ENTRY(.ptr_call)
-#else  /* __NetBSD__ */
-ASENTRY(.ptr_call)
-#endif /* __NetBSD__ */
-	jmp %g1
-	nop
-#endif
 #endif
 
 #ifdef ibm032
