@@ -309,7 +309,7 @@ EOF
 	    ;; 
     esac
 
-    rvmstart=0x60000000
+    rvmstart=0x50000000
     staticsize=0x100000
     nlists=80
     chunk=32

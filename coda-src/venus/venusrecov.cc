@@ -100,12 +100,10 @@ unsigned long MAXTS = UNSET_MAXTS;
 #if defined(NetBSD1_3) || defined(__NetBSD_Version__) || defined(__OpenBSD__) \
  || defined(__linux__) || defined(__CYGWIN32__) || defined(__FreeBSD_version)  \
  || (defined(__APPLE__) && defined(__MACH__))
-static const char *VM_RVMADDR = (char *)0x60000000;
+static const char *VM_RVMADDR = (char *)0x50000000;
 
 /* Pretty much every platform seems to be able to handle 0x50000000 as the RVM
- * start address without a problem. However we noticed that a RedHat-9 compiled
- * binary on Fedora Core 2 had it's shared libraries loaded at 0x55000000. So
- * to be on the safe side we bump up the start address by another 256MB.
+ * start address without a problem.
  *
  * Sun/solaris could probably use it as well. I do wonder why sparc-linux is
  * using such an unusual RVM start address. djgpp (win95) is the most likely
