@@ -2456,7 +2456,7 @@ void fsobj::GetPath(char *buf, int scope)
 	strcpy(buf, "???");
 
     strcat(buf, "/");
-    strcat(buf, comp);
+    strcat(buf, comp ? comp : "(unknown)");
 }
 
 
