@@ -2006,7 +2006,7 @@ int fsobj::Fakeify()
 	    /* Laboriously scan database to find our parent! */
 	    struct dllist_head *p;
 	    list_for_each(p, vol->fso_list) {
-		fsobj *pf = list_entry_plusplus(p, fsobj, vol_handle);
+		pf = list_entry_plusplus(p, fsobj, vol_handle);
 
 		if (!pf->IsDir() || pf->IsMtPt()) continue;
 		if (!HAVEALLDATA(pf)) continue;
