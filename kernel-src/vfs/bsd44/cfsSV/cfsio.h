@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfsio.h,v 1.4 1998/08/18 16:31:47 rvb Exp $ */
+/* $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/bsd44/cfsSV/Attic/cfsio.h,v 1.5 1998/08/18 17:05:23 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -45,6 +45,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /* 
  * HISTORY
  * $Log: cfsio.h,v $
+ * Revision 1.5  1998/08/18 17:05:23  rvb
+ * Don't use __RCSID now
+ *
  * Revision 1.4  1998/08/18 16:31:47  rvb
  * Sync the code for NetBSD -current; test on 1.3 later
  *
