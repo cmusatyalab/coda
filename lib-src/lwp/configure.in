@@ -34,7 +34,6 @@ dnl Checks for compiler characteristics.
 
 dnl Checks for library functions.
 AC_FUNC_MMAP
-CODA_FUNC_INSQUE
 
 dnl Checks for system services.
 AC_CYGWIN

@@ -24,7 +24,7 @@ liblwp_la_SOURCES = fasttime.c iomgr.c lock.c lwp.c preempt.c timer.c \
     process.ss lwp.private.h
 liblwp_la_LIBADD = process.lo
 liblwp_la_CFLAGS = -DLWP_DEBUG
-liblwp_la_LDFLAGS = -version-info 1:0:0
+liblwp_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS)
 
 noinst_PROGRAMS = cswitch test test-static tdb rw
 LDADD = liblwp.la

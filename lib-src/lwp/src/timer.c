@@ -158,7 +158,13 @@ void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
 
     /* Special case -- infinite timeout */
     if (blocking(elem)) {
-	insque((struct qelem *)elem, (struct qelem *)(tlistPtr->Prev));
+	/* Removed dependency for some systems on libiberty/libcompat by simply
+	 * expanding the implementation of insque here.
+	 * insque((struct qelem *)elem, (struct qelem *)(tlistPtr->Prev)); */
+	elem->Prev = tlistPtr->Prev;
+	elem->Next = tlistPtr;
+	tlistPtr->Prev->Next = elem;
+	tlistPtr->Prev = elem;
 	return;
     }
 
@@ -176,18 +182,26 @@ void TM_Insert(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
      })
 
     if (next == NULL) next = tlistPtr;
-    insque((struct qelem *)elem, (struct qelem *)(next->Prev));
+
+    /* insque((struct qelem *)elem, (struct qelem *)(next->Prev)); */
+    elem->Prev = next->Prev;
+    elem->Next = next;
+    next->Prev->Next = elem;
+    next->Prev = elem;
 }
 
 /*
-    Removes elem from the timer list in which it is located (presumably the one pointed
-    to by *tlistPtr).
+    Removes elem from the timer list in which it is located (presumably the one
+    pointed to by *tlistPtr).
 */
 void TM_Remove(struct TM_Elem *tlistPtr, struct TM_Elem *elem)
 {
-  remque((struct qelem *)elem);
+    /* remque((struct qelem *)elem); */
+    elem->Prev->Next = elem->Next;
+    elem->Next->Prev = elem->Prev;
+    elem->Prev = elem->Next = elem;
 }
-
+
 /*
     Walks through the specified list and updates the TimeLeft fields in it.
     Returns number of expired elements in the list.

@@ -4,7 +4,8 @@ dnl translate easy to remember target names into recognizable gnu variants and
 dnl test the cross compilation platform and adjust default settings
 
 AC_DEFUN(CODA_SETUP_BUILD,
-[case ${target} in
+[AC_SUBST(LIBTOOL_LDFLAGS)
+case ${target} in
   djgpp | win95 | dos )  target=i386-pc-msdos ;;
   cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
 esac
@@ -26,8 +27,6 @@ if test ${build} != ${target} ; then
     ac_cv_func_mmap_fixed_mapped=yes
     ;;
    i386-pc-cygwin )
-    dnl shared libraries don't work here
-dnl    AM_DISABLE_SHARED
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
     host=i386-pc-cygwin
     CC="gnuwin32gcc -D__CYGWIN32__"
@@ -40,13 +39,11 @@ dnl    AM_DISABLE_SHARED
     OBJDUMP="gnuwin32objdump"
 
     LDFLAGS="-L/usr/gnuwin32/lib"
+
+    dnl We seem to need these to get a dll built
+    libtool_flags="--enable-win32-dll"
+    LIBTOOL_LDFLAGS="-no-undefined"
     ;;
  esac
 fi])
 
-AC_DEFUN(CODA_FUNC_INSQUE,
-[AC_CHECK_FUNC(insque,,
-  [AC_CHECK_LIB(iberty, insque,,
-    [AC_CHECK_LIB(bfd, insque,,
-      [AC_CHECK_LIB(compat, insque)
-])])])])
