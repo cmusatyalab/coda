@@ -133,10 +133,10 @@ endif
 
 s_conf_install: $(SCONFFILES)
 ifdef SCONFFILES
-	if test $(sysconfdir) = /etc/coda ; then
-	    $(TOPDIR)/tools/our-install 755 $(prefix)/..$(sysconfdir) $?
-	else
-	    $(TOPDIR)/tools/our-install 755 $(sysconfdir) $?
+	if test $(sysconfdir) = /etc/coda ; then \
+	    $(TOPDIR)/tools/our-install 644 $(prefix)/..$(sysconfdir) $? ; \
+	else \
+	    $(TOPDIR)/tools/our-install 644 $(sysconfdir) $? ; \
 	fi
 endif
 
