@@ -1,4 +1,4 @@
-#!/usr/coda/etc/wish -f
+#!/bin/sh
 # The next line restarts using wish\
 exec /coda/misc/tcl/@sys/beta/bin/wish  "$0" "$@"
 #ifndef _BLURB_
@@ -32,7 +32,7 @@ exec /coda/misc/tcl/@sys/beta/bin/wish  "$0" "$@"
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/reconnection,v 1.1 1996/11/22 19:12:31 braam Exp braam $";
+#static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/reconnection,v 1.2 1996/11/24 21:42:11 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
