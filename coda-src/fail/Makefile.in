@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.4 1997/12/02 16:39:33 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/Makefile.in,v 4.5 1997/12/23 17:19:21 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -37,7 +37,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-EXECUTABLES = ttyfcon partition heal slow isolate join clear list
+EXECUTABLES = filcon
 CBINS       = $(EXECUTABLES)
 SBINS       = $(EXECUTABLES)
 LIBRARIES   = libfail.a
@@ -47,54 +47,23 @@ RP2FILES    = fcon.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 # sadly this is not C++ so rp2gen needs different flags.
-RP2FLAGS:=
-
-#LIBS = ${LIBRPC2} ${LIBSE} ${LIBOLDLWP} ${LIBCS} ${LIBCOMPAT} -lm
+RP2FLAGS:= -e 
 
 LIBS = ${LIBRPC2} ${LIBSE} ${LIBOLDLWP} ${LIBUTIL} ${LIBCOMPAT} \
        ${LIBREADLINE} -ltermcap
 
 # No longer of interest: tvclient tvserver ftclient ftserver 
-OBJS = fcon.client.o fcon.server.o filtutil.o fcon.o fail.o delay.o 
+OBJS = fcon.client.o fcon.server.o filtutil.o fcon.o fail.o delay.o clear.o isolate.o list.o join.o slow.o heal.o partition.o newpartition.o
 
 libfail.a: ${OBJS}
 
-ttyfcon: ttyfcon.o libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} ttyfcon.o libfail.a ${LIBS} -o ttyfcon
-
-#partition: partition.o libfail.a ${LIBS}
-#	${CC} ${LIBFLAGS} partition.o libfail.a ${LIBS} -o partition
-
-#heal:  heal.o libfail.a ${LIBS}
-#	${CC} ${LIBFLAGS} heal.o libfail.a ${LIBS} -o heal
-
-slow:  slow.o libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} slow.o libfail.a ${LIBS} -o slow
-
-clear:  clear.o  libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} clear.o  libfail.a ${LIBS} -o clear
-
-heal:  newheal.o libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} newheal.o  libfail.a ${LIBS} -o heal
-
-isolate:  isolate.o  libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} isolate.o  libfail.a ${LIBS} -o isolate
-
-join:  join.o  libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} join.o  libfail.a ${LIBS} -o join
-
-list:  list.o  libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} list.o  libfail.a ${LIBS} -o list
-
-partition:  newpartition.o  libfail.a ${LIBS}
-	${CC} ${LIBFLAGS} newpartition.o  libfail.a ${LIBS} -o partition
+filcon: filcon.o libfail.a ${LIBS}
+	${CC} ${LIBFLAGS} filcon.o libfail.a ${LIBS} -o filcon
 
 fcon.client.c: $(srcdir)/fcon.rpc2
 	${RP2GEN} ${RP2FLAGS} $<
 
-fail.o: fail.c fcon.h fail.h
 fcon.client.o: fcon.client.c
 fcon.server.o: fcon.server.c
-ttyfcon.o: ttyfcon.c fcon.h
 
 include $(MAKDIR)/configs/Makerules

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/newpartition.c,v 4.1 1997/12/23 17:19:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,11 +60,11 @@ void partition_targets(target_t target1, target_t target2)
     close_connection();
   }
 
-  destroy_filter(&partition);
+  destroy_filter(partition);
 }
 
 
-void main(int argc, char **argv)
+int partition(int argc, char **argv)
 {
   int num_targets;
   target_t target1, target2;

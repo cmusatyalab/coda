@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/ttyfcon.c,v 4.1 1997/01/08 21:49:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/ttyfcon.c,v 4.3 1997/12/23 17:19:35 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -91,13 +91,36 @@ command_t list[] = {
 #if 0
     {"replacefilter", cmdReplaceFilter, 0, "" },
 #endif
-    {"getfilters", cmdGetFilters, 0, "" },
-    {"purgeFilters", cmdPurgeFilters, 0, "" },
+    {"getfilters", cmdGetFilters, 0, "list filters at a client" },
+    {"purgeFilters", cmdPurgeFilters, 0, "remove filters at a client" },
     {"quit", Parser_exit, 0, "" },
     {"help", Parser_help, 0, "" },
     {"?", Parser_qhelp, 0, "" },
-    {"rpc2debug", SetRPC2Debug, 0, "" },
+    {"rpc2debug", SetRPC2Debug, 0, "set RPC2 debug value" },
     { 0, 0, 0, NULL }
+};
+
+
+int clear(int, char**);
+int flist(int, char **);
+int join(int, char **);
+int partition(int, char **);
+int oldpartition(int, char **);
+int partition(int, char **);
+int heal(int, char**);
+int slow(int, char**);
+int isolate(int, char**);
+
+argcmd_t argcmdlist[] = {
+	{"clear", clear, ""},
+	{"list", flist, ""},
+	{"isolate", isolate, ""},
+	{"join", join, ""},
+	{"oldpartition", oldpartition, ""},
+	{"partition", partition, ""},
+	{"slow", slow, ""},
+	{"heal", heal, ""},
+	{ 0, 0, 0}
 };
 
 int maxFilterID = 999;
@@ -109,9 +132,13 @@ iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */}
 
 main(int argc, char **argv)
 {
-    InitRPC();
-    Parser_init("ttyfcon> ", list);
-    Parser_commands();
+	if ( argc > 1 ) {
+		return Parser_execarg(argc-1, &argv[1], argcmdlist);
+	} else {
+		InitRPC();
+		Parser_init("ttyfcon> ", list);
+		Parser_commands();
+	}
 }
 
 int BreakupArgs(char *args, char **argv)
@@ -203,19 +230,6 @@ void AddClient(int argc, char **argv)
 }
 
 /* RPC2 stuff */
-InitRPC()
-{
-    PROCESS mylpid;
-    int rc;
-
-    assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
-
-    rc = RPC2_Init(RPC2_VERSION, 0, NULL, 0,  -1, NULL);
-    if (rc == RPC2_SUCCESS) return;
-    PrintError("InitRPC", rc);
-    if (rc < RPC2_ELIMIT) exit(-1);
-}
-
 
 int NewConn(char *hostname, short port, unsigned long *cid)
 {
@@ -656,12 +670,3 @@ void  SetRPC2Debug(int argc, char **argv)
     return;
 }
 
-/* Print an error msg.  Call perror if err = 0; otherwise call
-   RPC2_ErrorMsg(err). */
-PrintError(char *msg, int err)
-{
-    extern int errno;
-    
-    if (err == 0) perror(msg);
-    else printf("%s: %s\n", msg, RPC2_ErrorMsg(err));
-}

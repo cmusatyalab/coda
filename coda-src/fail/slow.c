@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/slow.c,v 4.1 1997/01/08 21:49:38 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/slow.c,v 4.2 1997/12/23 17:19:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,9 +56,7 @@ short port2 = 0;
 int speed1 = MAXNETSPEED;
 int speed2 = MAXNETSPEED;
 
-main(argc, argv)
-int argc;
-char **argv;
+int slow(int argc, char** argv)
 {
 	int i;
 	unsigned long cid1, cid2;
@@ -187,59 +185,6 @@ char **argv;
     }
 }
 		
-InitRPC()
-{
-	PROCESS mylpid;
-	int rc;
-
-	assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
-
-	rc = RPC2_Init(RPC2_VERSION, 0, NULL, 0,  -1, NULL);
-	if (rc == RPC2_SUCCESS) return;
-	PrintError("InitRPC", rc);
-	if (rc < RPC2_ELIMIT) exit(-1);
-}
-
-NewConn(hostname, port, cid)
-char *hostname;
-short port;
-unsigned long *cid;
-{
-	int rc;
-	RPC2_HostIdent hident;
-	RPC2_PortalIdent pident;
-	RPC2_SubsysIdent sident;
-	RPC2_BindParms bparms;
-
-	hident.Tag = RPC2_HOSTBYNAME;
-	strcpy(hident.Value.Name, hostname);
-    
-	sident.Value.SubsysId = FCONSUBSYSID;
-	sident.Tag = RPC2_SUBSYSBYID;
-
-	pident.Tag = RPC2_PORTALBYINETNUMBER;
-	pident.Value.InetPortNumber = htons(port);
-
-	bparms.SecurityLevel = RPC2_OPENKIMONO;
-	bparms.SharedSecret = NULL;
-	bparms.ClientIdent = NULL;
-	bparms.SideEffectType = 0;
-	bparms.Color = FAIL_IMMUNECOLOR;
-
-	rc = RPC2_NewBinding(&hident, &pident, &sident, &bparms, cid);
-
-	return rc;
-}
-
-void PrintError(msg, err)
-char *msg;
-int err;
-{
-	extern int errno;
-    
-	if (err == 0) perror(msg);
-	else printf("%s: %s\n", msg, RPC2_ErrorMsg(err));
-}
 
 void PrintUsage()
 {

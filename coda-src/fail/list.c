@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/list.c,v 4.1 1997/12/23 17:19:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ void list_targets(target_t *targets, int num_targets)
 }
 
 
-void main(int argc, char **argv)
+int flist(int argc, char **argv)
 {
   int num_targets;
   target_t *targets;

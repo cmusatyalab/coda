@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/isolate.c,v 4.1 1997/12/23 17:19:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,12 +63,12 @@ void isolate_targets(target_t *targets, int num_targets)
       close_connection();
     }
 
-  destroy_filter(&isolate);
-  destroy_filter(&server);
+  destroy_filter(isolate);
+  destroy_filter(server);
 }
 
 
-void main(int argc, char **argv)
+int isolate(int argc, char **argv)
 {
   int num_targets;
   target_t *targets;
