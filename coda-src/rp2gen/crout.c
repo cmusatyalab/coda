@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.9 1998/06/05 19:43:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.10 1998/06/06 00:34:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -993,7 +993,7 @@ static pack(who, parm, prefix, ptr, where)
 	    break;
     case RPC2_BYTE_TAG:		
 	    if (parm->type->bound != NIL) {
-		    checkbuffer(where,ptr,parm->type->bound);
+		    checkbuffer(where,ptr,atoi(parm->type->bound));
 		    fprintf(where, "    bcopy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, parm->type->bound);
 		    inc(ptr, parm->type->bound, where);
 	    } 
@@ -1134,7 +1134,7 @@ static unpack(who, parm, prefix, ptr, where)
 	    break;
     case RPC2_BYTE_TAG:
 	    if (parm->type->bound != NIL) {
-		    checkbuffer(where,ptr,parm->type->bound);
+		    checkbuffer(where,ptr,atoi(parm->type->bound));
 		    fputs("    ", where);
 		    fprintf(where, "bcopy((char *)%s, (char *)%s, (long)%s);\n", ptr, name, parm->type->bound);
 		    inc(ptr, parm->type->bound, where);
