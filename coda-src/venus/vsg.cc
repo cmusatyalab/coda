@@ -88,7 +88,7 @@ try_again:
 
     list_for_each(p, mgrpents) {
         *m = list_entry_plusplus(p, mgrpent, vsghandle);
-        if (uid != ANYUSER_UID && uid != (*m)->uid)
+        if (uid != (*m)->uid)
             continue;
 
         count++;
@@ -152,6 +152,9 @@ exit:
         (*m)->Put();
         *m = NULL;
     }
+
+    if (code == ERETRY)
+	goto try_again;
 
     return(code);
 }

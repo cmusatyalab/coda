@@ -354,22 +354,21 @@ int mgrpent::GetHostSet()
 
     LOG(100, ("mgrpent::GetHostSet: %p, uid = %d, mid = %d\n",
 	      this, uid, McastInfo.Mgroup));
-    int i;
+    int i, rc;
 
     /* Create members of the specified set which are not already in the
      * Mgroup. */
     for (i = 0; i < VSG_MEMBERS; i++) {
 	if (hosts[i].s_addr && !rocc.hosts[i].s_addr) {
-	    switch(CreateMember(i)) {
-		case EINTR:
-		    return(EINTR);
+	    rc = CreateMember(i);
+	    if (rc == EINTR)
+		return rc;
 
-		case EPERM:
-		    return(EPERM);
+	    if (rc == EPERM && authenticated)
+		return ERETRY;
 
-		default:
-		    break;
-	    }
+	    if (rc == EPERM)
+		return rc;
 	}
     }
 
