@@ -65,7 +65,6 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     int errorcode = 0;
     Volume *volptr = 0;
     Vnode *vptr = 0;
-    int ObtainedLock = 0;
     *logsize = 0;
     int nentries  = 0;
 
@@ -99,7 +98,6 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 		 errorcode, FID_(Fid));
 	    return errorcode;
     }
-    ObtainedLock = 1;
 
     /* this Vnode is obtained to get at its logs, and then put away */
     if ((errorcode = GetFsObj(Fid, &volptr, &vptr, 
@@ -110,8 +108,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
     // set out parameter 
-    memmove((void *)VV, (const void *)&(Vnode_vv(vptr)), 
-	    sizeof(ViceVersionVector));
+    memcpy(VV, &(Vnode_vv(vptr)), sizeof(ViceVersionVector));
     ObtainResStatus(rstatus, &(vptr->disk));
 
     /* set log size as the volume log size - 
@@ -143,13 +140,13 @@ FreeLocks:
 	    CODA_ASSERT(filecode == 0);
 	    vptr = 0;
     }
-    if (errorcode && volptr && ObtainedLock)
+    if (errorcode)
 	    /* volume locked but error occured later */
 	    /* release the lock */
 	    PutVolObj(&volptr, VOL_EXCL_LOCK, 1);
-    else if (volptr)
+    else
+            /* no errors, release the volume but keep the look */
 	    PutVolObj(&volptr, NO_LOCK);
-
 
     return(errorcode);
 }

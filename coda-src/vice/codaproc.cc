@@ -298,24 +298,22 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     VolumeId tmpvid = Fid->Volume;
     int j;
 
-    if ( Fid ) { 
-	    SLog(2,  "ViceResolve(%d, %s)", cid, FID_(Fid));
-	    VSGVolnum = Fid->Volume;
-    } else { 
+    if ( !Fid ) { 
 	    SLog(0, "ViceResolve: I was handed NULL Fid");
 	    CODA_ASSERT(0);
     }
 
-       
+    SLog(2,  "ViceResolve(%d, %s)", cid, FID_(Fid));
+    VSGVolnum = Fid->Volume;
+
     if (pathtiming && probingon && (!(ISDIR(*Fid)))) {
 	    FileresTPinfo = new timing_path(MAXPROBES);
 	    PROBE(FileresTPinfo, COORDSTARTVICERESOLVE);
     }
-    
 
     /* get a mgroup */
     unsigned long vsgaddr;
-    if (!(vsgaddr = XlateVidToVSG(Fid->Volume))){
+    if (!(vsgaddr = XlateVidToVSG(VSGVolnum))){
 	    errorCode = EINVAL;
 	    goto FreeGroups;
     }
@@ -343,7 +341,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 	    RPC2_Handle Handle = mgrp->rrcc.handles[j];
 	    RPC2_Integer rc; 
 
-	    if ( mgrp->rrcc.hosts[j] == 0 ) 
+	    if ( !mgrp->rrcc.hosts[j] ) 
 		    continue;
 
 	    rc = Res_LockAndFetch(Handle, Fid, FetchStatus, VVvar_ptrs[j],
@@ -352,7 +350,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     }
 				    
     // delete hosts from mgroup where rpc failed 
-    errorCode = mgrp->CheckResult();
+    (void)mgrp->CheckResult();
 
     // delete hosts from mgroup where rpc succeeded but call returned error 
     lockerror = CheckResRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
@@ -367,19 +365,12 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 
     if (ISDIR(*Fid)) {
 	    SLog(9,  "ViceResolve: Going to call DirResolve");
-	    switch (reson) {
-	    case VMRES:
-		    errorCode = EOPNOTSUPP;
-		    goto UnlockExit;
-		    break;
-		    
-	    case RVMRES: 
-		    resError = RecovDirResolve(mgrp, Fid, VVvar_ptrs, 
-					       rstatusvar_ptrs, 
-					       (int *)logsizesvar_bufs);
-		    break;
-	    default:
-		    resError = OldDirResolve(mgrp, Fid, VVvar_ptrs);
+	    if (reson) {
+                resError = RecovDirResolve(mgrp, Fid, VVvar_ptrs,
+                                           rstatusvar_ptrs,
+                                           (int *)logsizesvar_bufs);
+            } else {
+                resError = OldDirResolve(mgrp, Fid, VVvar_ptrs);
 	    }
     } else {
 	    SLog(9, "ViceResolve: Going to call Fileresolve");
@@ -392,21 +383,20 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     mgrp->GetHostSet(hosts);
     MRPC_MakeMulti(UnlockVol_OP, UnlockVol_PTR, VSG_MEMBERS, 
 		   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-		   mgrp->rrcc.MIp, 0, 0, 
-		   Fid->Volume);
+		   mgrp->rrcc.MIp, 0, 0, Fid->Volume);
 
  FreeGroups:
     if (mgrp)
 	PutResMgroup(&mgrp);
     PROBE(FileresTPinfo, COORDENDVICERESOLVE);
-    if (lockerror){
+    if (lockerror) {
 	    SLog(0,  "ViceResolve:Couldnt lock volume %x at all accessible servers",
 		 Fid->Volume);
 	if ( lockerror != VNOVNODE ) 
 	    lockerror = EWOULDBLOCK;
 	return(lockerror);
     }
-    if (errorCode){
+    if (errorCode) {
 	if (errorCode == ETIMEDOUT) 
 	    return(EWOULDBLOCK);
 	else
