@@ -105,7 +105,6 @@ dnl Checks for compiler characteristics.
 CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(check_new, -fcheck-new)
-CODA_DARWIN_BROKEN_CPP_WORKAROUND
 CODA_CHECK_PTR_TO_MEMBER
 
 dnl Checks for library functions.
