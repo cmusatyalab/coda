@@ -94,6 +94,7 @@ char *VenusControlFile;
 char *VenusLogFile;
 char *MarinerSocketPath;
 int masquerade;
+int masquerade_port;
 int PiggyValidations;
 
 
@@ -422,6 +423,7 @@ static void DefaultCmdlineParms()
     CONF_INT(MapPrivate,	"mapprivate",	 0);
     CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
     CONF_INT(masquerade,	"masquerade",	 0);
+    CONF_INT(masquerade_port,	"masquerade_port", 0);
     CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
     CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
     CONF_STR(fsname,            "rootservers",   "");

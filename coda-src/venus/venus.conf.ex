@@ -163,6 +163,12 @@ mapprivate=1
 masquerade=1
 
 #
+# Masquerade port, if masquerading bind the client to the specified port.
+# when masquerade_port=0, an arbitrary port is used.
+# 
+masquerade_port=0
+
+#
 # On NT with Cygwin, venus names are different than the NT real names.
 # Venus names are relative to the root of the cygwin tree.  Replace
 # the C:/cygwin with the actual root directory of your cygwin installation.
