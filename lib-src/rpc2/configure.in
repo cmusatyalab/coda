@@ -57,7 +57,7 @@ dnl Checks for header files.
 AC_CHECK_HEADERS(sys/stream.h arpa/inet.h netdb.h)
 
 dnl Checks for types.
-AC_CHECK_TYPES([struct sockaddr_storage, struct sockaddr_in6],,,
+AC_CHECK_TYPES([struct sockaddr_storage, struct sockaddr_in6, socklen_t],,,
     [#include <sys/types.h>
      #include <sys/socket.h>
      #include <netinet/in.h>])

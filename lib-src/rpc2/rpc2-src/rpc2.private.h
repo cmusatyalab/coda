@@ -40,6 +40,10 @@ Pittsburgh, PA.
 #ifndef _RPC2_PRIVATE_H_
 #define _RPC2_PRIVATE_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <netinet/in.h>
 #include <signal.h>
 #include <lwp/lwp.h>
@@ -68,6 +72,10 @@ struct sockaddr_in6 {
     u_int32_t sin6_flowinfo;
     struct in6_addr sin6_addr;
 };
+#endif
+
+#ifndef HAVE_SOCKLEN_T
+#define scocklen_t unsigned int
 #endif
 
 
