@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_utils.c,v 1.6 96/11/19 14:25:15 tilt Exp $";
+static char *rcsid = "$Header: /mnt/home/clement/newobj3/rvm-src/rvm/RCS/rvm_utils.c,v 1.1 1996/11/22 19:16:59 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -282,19 +282,21 @@ static void kill_list_entry(cell)
 static void free_list_entry(cell)
     register list_entry_t    *cell;
     {
+    int id_index;
     ASSERT(cell != NULL);
     ASSERT((((long)cell->struct_id>(long)struct_first_id) && 
            ((long)cell->struct_id<(long)struct_last_cache_id)));
 
 
-    CRITICAL(free_lists_locks[ID_INDEX(cell->struct_id)],
+    id_index = ID_INDEX(cell->struct_id);
+    CRITICAL(free_lists_locks[id_index],
         {                               /* begin free_list_lock crit sec */
-        if (max_alloc[ID_INDEX(cell->struct_id)] >
-            free_lists[ID_INDEX(cell->struct_id)].list.length)
+        if (max_alloc[id_index] >
+            free_lists[id_index].list.length)
             {
              /* move to appropriate free list */
             (void)move_list_entry(cell->list.name,
-                              &free_lists[ID_INDEX(cell->struct_id)],
+                              &free_lists[id_index],
                               cell);
             }
         else
