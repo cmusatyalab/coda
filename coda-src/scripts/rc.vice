@@ -1,0 +1,27 @@
+#!/bin/sh
+
+#
+#  startup routines for Coda file servers
+#
+
+BIN=/vice/bin
+
+if [ `cat /.hostname` = `cat /.scm` ]; then
+        if [ -f $BIN/authmon ]; then
+            $BIN/authmon &
+            echo 'Starting Authentication Server' >/dev/console
+        fi
+        if [ -f $BIN/updatemon ]; then
+            $BIN/updatemon -s -p /vice/db &
+            echo 'Starting Update Server for file server updates' >/dev/console
+        fi
+else
+        if [ -f $BIN/authmon ]; then
+            $BIN/authmon -chk &
+            echo 'Starting Authentication Server (read only)' >/dev/console
+        fi
+        if [ -f $BIN/updatemon ]; then
+            $BIN/updatemon -h `cat /.scm`  -q coda_udpsrv &
+            echo 'Starting Update Client for file server updates' >/dev/console
+        fi
+fi
