@@ -105,17 +105,20 @@ long SFTP_Init()
     
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
+    /* initialize the sftp timer chain */
+    TM_Init(&sftp_Chain);
+
     if (sftp_Port.Tag)
     {
         /* Create socket for SFTP packets */
         if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Port) != RPC2_SUCCESS)
             return(RPC2_FAIL);
-
-        /* Create SFTP listener process */
-        sname = "sftp_Listener";
-        LWP_CreateProcess((PFIC)sftp_Listener, 16384, LWP_NORMAL_PRIORITY,
-                          sname, sname, &sftp_ListenerPID);
     }
+
+    /* Create SFTP listener process */
+    sname = "sftp_Listener";
+    LWP_CreateProcess((PFIC)sftp_Listener, 16384, LWP_NORMAL_PRIORITY,
+		      sname, sname, &sftp_ListenerPID);
 
     sftp_InitTrace();
 

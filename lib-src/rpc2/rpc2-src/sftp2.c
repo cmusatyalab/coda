@@ -77,18 +77,12 @@ static int AwaitEvent();
 
 void sftp_Listener(void)
 {/* LWP that listens for SFTP packets */
-    
-    TM_Init(&sftp_Chain);
-
-    while (TRUE)
-	{
+    while (TRUE) {
 	ScanTimerQ();	/* wakeup all LWPs with expired timer entries */
 
-	if (AwaitEvent() <= 0)
-		continue; /* timeout or bogus wakeup */
-	
-	sftp_ProcessPackets();
-	}
+	if (AwaitEvent() > 0) /* any packets available? */
+	    sftp_ProcessPackets();
+    }
 }
 
 /* This function is not called by the sftp code itself */
@@ -208,18 +202,19 @@ static int AwaitEvent()
     fd_set rmask;
     struct timeval *tvp;
     struct TM_Elem *t;
-    int nfds, rc;
+    int nfds = 0, rc;
     
     /* wait for packet or earliest timeout */
     t = TM_GetEarliest(sftp_Chain);
     if (t == NULL) tvp = NULL;
     else tvp = &t->TimeLeft;
 
-    assert(sftp_Port.Tag);
-    
     FD_ZERO(&rmask);
-    FD_SET(sftp_Socket, &rmask);
-    nfds = sftp_Socket + 1;
+
+    if (sftp_Port.Tag) {
+	FD_SET(sftp_Socket, &rmask);
+	nfds = sftp_Socket + 1;
+    }
 
     /* Only place where sftp_Listener() gives up control */
     rc = IOMGR_Select(nfds, &rmask, NULL, NULL, tvp);
