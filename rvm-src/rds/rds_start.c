@@ -1,40 +1,20 @@
-#ifndef _BLURB_
-#define _BLURB_
-/*
+/* BLURB lgpl
 
-     RVM: an Experimental Recoverable Virtual Memory Package
-			Release 1.3
+                           Coda File System
+                              Release 5
 
-       Copyright (c) 1990-1994 Carnegie Mellon University
-                      All Rights Reserved.
+          Copyright (c) 1987-1999 Carnegie Mellon University
+                  Additional copyrights listed below
 
-Permission  to use, copy, modify and distribute this software and
-its documentation is hereby granted (including for commercial  or
-for-profit use), provided that both the copyright notice and this
-permission  notice  appear  in  all  copies  of   the   software,
-derivative  works or modified versions, and any portions thereof,
-and that both notices appear  in  supporting  documentation,  and
-that  credit  is  given  to  Carnegie  Mellon  University  in all
-publications reporting on direct or indirect use of this code  or
-its derivatives.
+This  code  is  distributed "AS IS" without warranty of any kind under
+the  terms of the  GNU  Library General Public Licence  Version 2,  as
+shown in the file LICENSE. The technical and financial contributors to
+Coda are listed in the file CREDITS.
 
-RVM  IS  AN  EXPERIMENTAL  SOFTWARE  PACKAGE AND IS KNOWN TO HAVE
-BUGS, SOME OF WHICH MAY  HAVE  SERIOUS  CONSEQUENCES.    CARNEGIE
-MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.
-CARNEGIE MELLON DISCLAIMS ANY  LIABILITY  OF  ANY  KIND  FOR  ANY
-DAMAGES  WHATSOEVER RESULTING DIRECTLY OR INDIRECTLY FROM THE USE
-OF THIS SOFTWARE OR OF ANY DERIVATIVE WORK.
+                        Additional copyrights
+                           none currently
 
-Carnegie Mellon encourages (but does not require) users  of  this
-software to return any improvements or extensions that they make,
-and to grant Carnegie Mellon the  rights  to  redistribute  these
-changes  without  encumbrance.   Such improvements and extensions
-should be returned to Software.Distribution@cs.cmu.edu.
-
-*/
-
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_start.c,v 4.1 1997/01/08 21:54:28 rvb Exp $";
-#endif _BLURB_
+#*/
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -1,17 +1,20 @@
-#ifndef _BLURB_
-#define _BLURB_
-/*
-                    RVM - Recoverable Virtual Memory
-                             Release 1.1
-                      School of Computer Science
-                      Carnegie Mellon University
-                          Copyright 1987-92
+/* BLURB lgpl
 
-Use of RVM outside Carnegie Mellon University requires a license.
-*/
+                           Coda File System
+                              Release 5
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_test.c,v 4.1 1997/01/08 21:54:29 rvb Exp $";
-#endif _BLURB_
+          Copyright (c) 1987-1999 Carnegie Mellon University
+                  Additional copyrights listed below
+
+This  code  is  distributed "AS IS" without warranty of any kind under
+the  terms of the  GNU  Library General Public Licence  Version 2,  as
+shown in the file LICENSE. The technical and financial contributors to
+Coda are listed in the file CREDITS.
+
+                        Additional copyrights
+                           none currently
+
+#*/
 
 
 

@@ -107,7 +107,8 @@ here is the list:
    Peter Braam (1996-now)     Linux port including Linux minicache;
 			      restructuring  to  use
                               GNU build environment, partition system,
-			      numerous bug fixes. Windows NT port.
+			      numerous bug fixes. Windows NT port. New
+			      directory handling.
 
    Yui-wah Lee (1996-now)     Linux port (rvm). Research on strong clients.
 	
@@ -115,11 +116,17 @@ here is the list:
 
    Michael Callahan (1996-now)Windows Client 95 port.
 
-   Robert Watson (1998-now)   Kerberos support (with Peter)
+   Robert Watson (1998-now)   Kerberos support and portmapper (with Peter).
    
-   Shafeeq Sinnamohideen (1998-now) RPC2 improvements
+   Shafeeq Sinnamohideen (1998-now) RPC2 improvements.
 
    Jan Harkes (1998-now)      Improvements to weak connectivity.
+			      Extensive changes and fixes throughout.
+
+   Mathew Monroe,	      PDB database.
+   John-Anthony Owens,
+   Samuel Ieong,
+   Rudi Seitz.
 
    
 Work on Coda has been supported by many funding agencies and

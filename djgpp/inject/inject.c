@@ -1,3 +1,9 @@
+/*
+   Copyright 1997-98 Michael Callahan
+   This program is free software.  You may copy it according
+   to the conditions of the GNU General Public License version 2.0
+   or later; see the file COPYING in the source directory.
+*/
 
 #include <unistd.h>
 #include <stdlib.h>

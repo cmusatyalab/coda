@@ -1,3 +1,21 @@
+/* BLURB lgpl
+
+                           Coda File System
+                              Release 5
+
+          Copyright (c) 1987-1999 Carnegie Mellon University
+                  Additional copyrights listed below
+
+This  code  is  distributed "AS IS" without warranty of any kind under
+the  terms of the  GNU  Library General Public Licence  Version 2,  as
+shown in the file LICENSE. The technical and financial contributors to
+Coda are listed in the file CREDITS.
+
+                        Additional copyrights
+                           none currently
+
+#*/
+
 /* 
  * Mach Operating System
  * Copyright (c) 1989 Carnegie-Mellon University
@@ -7,6 +25,9 @@
 /*
  * HISTORY
  * $Log: cthreads.h,v $
+ * Revision 4.1  1997/01/08 21:54:22  rvb
+ * r = 4.1; fix $ HEADERS
+ *
  * Revision 1.1  1996/11/22 19:19:06  braam
  * First Checkin (pre-release)
  *

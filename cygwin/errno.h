@@ -1,3 +1,10 @@
+/* errno.h
+   Copyright 1997-98 Michael Callahan
+   This program is free software.  You may copy it according
+   to the conditions of the GNU General Public License version 2.0
+   or later; see the file COPYING in the source directory.
+*/
+
 /* errno is not a global variable, because that would make using it
    non-reentrant.  Instead, its address is returned by the function
    __errno.  */
