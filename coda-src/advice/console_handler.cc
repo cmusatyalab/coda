@@ -172,7 +172,7 @@ char *ReadFromConsole(int block) {
         rc = NULL;
 	rdfds = ConsoleMask;
 
-	lrc = IOMGR_Select(32, &rdfds, 0, 0, NULL);
+	lrc = IOMGR_Select(8 * sizeof(int), (fd_set *)&rdfds, NULL, NULL, NULL);
 
 	if (lrc > 0) {
 	  if (rdfds & ConsoleMask) {

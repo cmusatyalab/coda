@@ -171,7 +171,8 @@ Done:
 }
 
 
-void MarinerMux(int mask) {
+void MarinerMux(int mask)
+{
     int newfd = -1;
 
     LOG(100, ("MarinerMux: mask = %#08x\n", mask));

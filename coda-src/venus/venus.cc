@@ -208,7 +208,8 @@ int main(int argc, char **argv) {
     for (;;) {
 	/* Wait for a message or daemon expiry. */
 	int rdfds = (KernelMask | MarinerMask);
-	if (VprocSelect(NFDS, &rdfds, 0, 0, &DaemonExpiry) > 0) {
+
+	if (VprocSelect(sizeof(int) * 8, &rdfds, 0, 0, &DaemonExpiry) > 0) {
 	    /* Handle mariner request(s). */
 	    if (rdfds & MarinerMask)
 		MarinerMux(rdfds);

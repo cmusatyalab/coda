@@ -275,7 +275,8 @@ static void kbdlwp(char *p)
 	{
 	FD_ZERO(&rset);
 	FD_SET(fileno(stdin), &rset);
-	rc = IOMGR_Select(32, (int *)&rset, 0, 0, 0); /* await activity */
+	/* await activity */
+	rc = IOMGR_Select(fileno(stdin) + 1, &rset, NULL, NULL, NULL);
 	if (rc < 0)
 	    {
 	    if (errno == EINTR) continue; /* signal occurred */

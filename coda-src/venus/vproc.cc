@@ -239,7 +239,7 @@ void VprocSleep(struct timeval *delay) {
     }
 #endif	VENUSDEBUG
 
-    IOMGR_Select(0, 0, 0, 0, delay);
+    IOMGR_Select(0, NULL, NULL, NULL, delay);
 }
 
 
@@ -264,7 +264,8 @@ void VprocYield() {
 }
 
 
-int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds, struct timeval *timeout) {
+int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds,
+		struct timeval *timeout) {
 #ifdef	VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
@@ -274,7 +275,8 @@ int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds, struct ti
     }
 #endif	VENUSDEBUG
 
-    return(IOMGR_Select(nfds, readfds, writefds, exceptfds, timeout));
+    return(IOMGR_Select(nfds, (fd_set *)readfds, (fd_set *)writefds,
+			(fd_set *)exceptfds, timeout));
 }
 
 
