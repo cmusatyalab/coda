@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/pdbstuff/RCS/pwd2pdb.cc,v 4.1 1997/01/08 21:49:54 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/pwd2pdb.cc,v 4.2 1997/02/26 16:02:47 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -170,20 +170,20 @@ void pwscan();
 
 int main(int argc, char *argv[])
     {
-    int pfd, gfd;	/* file desc's on password and group files */
+    int ufd, gfd;	/* file desc's on password and group files */
     register int i;
     struct timeval t;
 
     /* get command line args */
-    pfd = gfd = -1;
+    ufd = gfd = -1;
     for (i = 1; i < argc; i++)
 	{
 	if (strcmp(argv[i], "-x") == 0)
 	    {DebugLevel = 1; continue;}
-	if (strcmp(argv[i], "-p") == 0 && i < argc -1)
+	if (strcmp(argv[i], "-u") == 0 && i < argc -1)
 	    {
-	    pfd = open(argv[++i], O_RDONLY, 0);
-	    if (pfd < 0) {perror(argv[i]); exit(-1);}
+	    ufd = open(argv[++i], O_RDONLY, 0);
+	    if (ufd < 0) {perror(argv[i]); exit(-1);}
 	    else continue;
 	    }
 	if (strcmp(argv[i], "-g") == 0 && i < argc -1)
@@ -193,19 +193,19 @@ int main(int argc, char *argv[])
 	    else continue;
 	    }
 
-	printf("Usage: pwd2pdb -p passwdfile  [-g groupfile] [-x]\n");
+	printf("Usage: pwd2pdb -u usersfile  [-g groupfile] [-x]\n");
 	exit(-1);
 	}    
 
     /*  read input file in one fell swoop */
-    if (pfd < 0) {printf("No password file specified\n"); exit(-1);}
-    pwlen = read(pfd, pwbuf, PWSIZE);
+    if (ufd < 0) {printf("No users file specified\n"); exit(-1);}
+    pwlen = read(ufd, pwbuf, PWSIZE);
     if (pwlen >= PWSIZE)
     	{
-	printf("Password file too large; recompile with larger PWSIZE\n");
+	printf("Users file too large; recompile with larger PWSIZE\n");
 	exit(-1);	
 	}
-    else close(pfd);
+    else close(ufd);
 
     /* scan big buffer and chop into individual lines */
     pwscan();
@@ -218,8 +218,8 @@ int main(int argc, char *argv[])
     qsort((char *)pwarray, pwcount, sizeof(struct passwd), 
 	  (int (*)(const void *, const void *))pwcmp);
 
-    fprintf(stderr, "%d password entries found\n", pwcount);
-    close(pfd);
+    fprintf(stderr, "%d user entries found\n", pwcount);
+    close(ufd);
 
     /* Now process Group file */
 
@@ -266,11 +266,11 @@ int main(int argc, char *argv[])
     Preamble();
 
     gettimeofday(&t, 0);
-    printf("# Created from password file on %s\n", ctime((const long *)&t.tv_sec));
+    printf("# Created from users file on %s\n", ctime((const long *)&t.tv_sec));
     printf("# Highest UID in use = %d\n", pwarray[pwcount-1].pw_uid);
     printf("# Lowest GID  in use = %d\n\n", garray[gcount-1].g_id);
     
-    printf("####  User entries from password file begin here ####\n\n");
+    printf("####  User entries from users file begin here ####\n\n");
     for (i = 0; i < pwcount; i++)
 	PrintUserEntry(&pwarray[i], (i == 0) ? 0 : &pwarray[i-1]);
 
@@ -394,7 +394,7 @@ void PrintUserEntry(register struct passwd *pw, register struct passwd *prevpw)
 	{
 	printf("#  ENTRY WITH UID IDENTICAL TO PRECEDING ENTRY OMITTED: %s \n\n\n",
 		pw->pw_name);
-	fprintf(stderr, "Arrrrgggggggh..... password entries with same uid fields:\n");
+	fprintf(stderr, "Arrrrgggggggh..... user entries with same uid fields:\n");
 	fprintf(stderr, "\t\"%s\"\n", pw->rawentry);
 	fprintf(stderr,"\t\"%s\"\n", prevpw->rawentry);
 	return;	
@@ -525,7 +525,7 @@ void PrintGroupEntry(register struct group *ge, register struct group *prevge)
 
 
 void pwscan()
-    /* get pointers to beginning of each password entry */ 
+    /* get pointers to beginning of each users entry */ 
     {
     register int i;
     enum {EatNull, EatText, EndText} mystate;
@@ -546,7 +546,7 @@ void pwscan()
 		pwarray[pwcount++].rawentry = &pwbuf[i];
 		if (pwcount >= MAXPWENTS-1)
 		    {
-		    printf("Too many password entries; recompile with bigger MAXPWENTS\n");
+		    printf("Too many users entries; recompile with bigger MAXPWENTS\n");
 		    exit(-1);
 		    }
 		mystate = EatText;
