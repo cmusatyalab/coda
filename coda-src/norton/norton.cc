@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.cc,v 4.1 1997/01/08 21:49:52 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.cc,v 4.2 97/12/23 17:19:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -43,8 +43,8 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include "parser.h"
 #include "norton.h"
+#include "parser.h"
 
 void usage(char * name) {
     fprintf(stderr, "Usage: %s <log_device> <data_device> <length>\n",

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/ruletypes.h,v 4.1 1997/01/08 21:49:24 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/ruletypes.h,v 4.2 98/01/10 18:36:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,8 +65,8 @@ extern "C" {
 #include <inconsist.h>
 
 class objname_t : public olink {
-    char	dname[CFS_MAXPATHLEN];	/* dir name cannot have any * in it */
-    char 	fname[CFS_MAXNAMLEN];	/* file name can have *s */
+    char	dname[CODA_MAXPATHLEN];	/* dir name cannot have any * in it */
+    char 	fname[CODA_MAXNAMLEN];	/* file name can have *s */
   public:
     objname_t(char *);
     ~objname_t();
@@ -78,8 +78,8 @@ class objname_t : public olink {
 };
 
 class  depname_t : public olink {
-    char 	dname[CFS_MAXPATHLEN];
-    char	fname[CFS_MAXNAMLEN];
+    char 	dname[CODA_MAXPATHLEN];
+    char	fname[CODA_MAXNAMLEN];
     ViceFid 	fid; 			/* initialized only by application */
   public:
     depname_t(char *);
@@ -93,7 +93,7 @@ class  depname_t : public olink {
 #define ALLREPLICAS	9
 class arg_t {
 friend class command_t;
-    char name[CFS_MAXPATHLEN];
+    char name[CODA_MAXPATHLEN];
     int	replicaid;
   public:
     arg_t(char *);
@@ -109,8 +109,8 @@ friend class command_t;
 };
 
 class command_t : public olink {
-    char	cmddname[CFS_MAXPATHLEN];
-    char	cmdfname[CFS_MAXNAMLEN];
+    char	cmddname[CODA_MAXPATHLEN];
+    char	cmdfname[CODA_MAXNAMLEN];
     ViceFid	fid;
     int 	argc;
     arg_t	**arglist;
@@ -132,12 +132,12 @@ class rule_t : public olink {
     olist	deplist;
     olist	cmdlist;
     // the following are filled only after this rule is matched for an inc object
-    char	prefix[CFS_MAXNAMLEN];	// common prefix from obj name (eg. *.c)
+    char	prefix[CODA_MAXNAMLEN];	// common prefix from obj name (eg. *.c)
     char	*repnames[VSG_MEMBERS];	// canonical ordering of rep names
     int		nreplicas;		// number of replicas of the inc object
     ViceFid	incfid;			// fid of inc object causing the asr invocation
-    char 	idname[CFS_MAXPATHLEN];	// name of inc object 
-    char 	ifname[CFS_MAXNAMLEN];
+    char 	idname[CODA_MAXPATHLEN];	// name of inc object 
+    char 	ifname[CODA_MAXNAMLEN];
     int GetReplicaNames();		// gets name of individual replicas
     //int GetIFid();			// gets fid of inc. object 
   public:
