@@ -31,6 +31,7 @@
 #include <linux/proc_fs.h>
 #include <linux/vmalloc.h>
 #include <linux/fs.h>
+#include <linux/poll.h>
 #include <asm/io.h>
 #include <asm/segment.h>
 #include <asm/system.h>
@@ -45,6 +46,13 @@
 #include <linux/coda_sysctl.h>
 
 
+/*
+ * Where is the prototype?
+ */
+
+int proc_register_dynamic(struct proc_dir_entry * dir,
+			  struct proc_dir_entry * dp);
+
 /* 
  * Coda stuff
  */
@@ -55,7 +63,8 @@ extern int cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, i
 
 /* statistics */
 struct coda_upcallstats coda_callstats;
-
+int           coda_hard = 0;  /* introduces a timeout on upcalls */
+unsigned long coda_timeout = 10; /* .. secs, then signals will dequeue */
 extern struct coda_sb_info coda_super_info[MAX_CODADEVS];
 struct vcomm psdev_vcomm[MAX_CODADEVS];
 
@@ -228,7 +237,7 @@ static ssize_t coda_psdev_write(struct file *file, const char *buf,
 	       "Found! Count %d for (opc,uniq)=(%ld,%ld), vmsg at %x\n", 
 	        count, opcode, uniq, (int)&vmp);
 
-        wake_up_interruptible(&vmp->vm_sleep);
+        wake_up(&vmp->vm_sleep);
         return(count);  
 }
 
@@ -267,7 +276,7 @@ static ssize_t coda_psdev_read(struct file * file, char * buf,
 	        return -EFAULT;
         
         if (vmp->vm_chain.forw == 0 || vmp->vm_chain.back == 0)
-                coda_panic("coda_psdev_read: bad chain");
+                printk("coda_psdev_read: bad chain");
 
         /* If request was a signal, don't enqueue */
         if (vmp->vm_opcode == CFS_SIGNAL) {
@@ -300,15 +309,10 @@ static int coda_psdev_open(struct inode * inode, struct file * file)
 
 	memset(vcp, 0, sizeof(struct vcomm));
 	vcp->vc_inuse = 1;
-	printk("Inuse is now 1, welcome!\n");
-
-	/*   MOD_INC_USE_COUNT; */
+	MOD_INC_USE_COUNT;
 
         init_queue(&(vcp->vc_pending));
         init_queue(&(vcp->vc_processing));
-
-	/*	cfsnc_init(); */
-	CDEBUG(D_PSDEV, "Name cache initialized.\n");
 
 	memset(&coda_callstats, 0, sizeof(struct coda_upcallstats));
 	EXIT;
@@ -359,18 +363,17 @@ coda_psdev_release(struct inode * inode, struct file * file)
                     CODA_FREE(vmp, (u_int)sizeof(struct vmsg));
                     continue;
               }
-              wake_up_interruptible(&vmp->vm_sleep);
+              wake_up(&vmp->vm_sleep);
         }
         
         for (vmp = q_getnext(&(vcp->vc_processing));
              !q_end(vmp, &(vcp->vc_processing));
              vmp = q_getnext(&(vmp->vm_chain))) {
-	        wake_up_interruptible(&vmp->vm_sleep);
+	        wake_up(&vmp->vm_sleep);
         }
         
         mark_vcomm_closed(vcp);
-/* 	cfsnc_use = 0; */
-	/*        MOD_DEC_USE_COUNT; */
+	MOD_DEC_USE_COUNT;
 	EXIT;
 	return 0;
 }
@@ -398,17 +401,10 @@ static struct file_operations coda_psdev_fops = {
 
 struct proc_dir_entry proc_coda = {
         0, 4, "coda",
-        S_IFDIR | S_IRUGO | S_IXUGO, 2, 0, 0,
+        S_IFDIR | S_IRUGO | S_IXUGO | S_IWUSR, 2, 0, 0,
         0, &proc_net_inode_operations,
 
 };
-
-/* struct proc_dir_entry proc_coda_cache =  { */
-/*                 0 , 10, "coda-cache", */
-/*                 S_IFREG | S_IRUGO, 1, 0, 0, */
-/*                 0, &proc_net_inode_operations, */
-/*                 cfsnc_get_info */
-/*         }; */
 
 struct proc_dir_entry proc_coda_ncstats =  {
                 0 , 12, "coda-ncstats",
@@ -484,6 +480,4 @@ void cleanup_module(void)
 }
 
 #endif
-
-
 

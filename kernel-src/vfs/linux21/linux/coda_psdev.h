@@ -101,15 +101,18 @@ int venus_fsync(struct super_block *sb, struct ViceFid *fid);
 
 
 /* messages between coda filesystem in kernel and Venus */
+extern int coda_hard;
+extern unsigned long coda_timeout;
 struct vmsg {
-    struct queue        vm_chain;
-    caddr_t	        vm_data;
-    u_short	        vm_flags;
-    u_short             vm_inSize;  /* Size is at most 5000 bytes */
-    u_short	        vm_outSize;
-    u_short	        vm_opcode;  /* copied from data to save lookup */
-    int		        vm_unique;
-    struct wait_queue  *vm_sleep;   /* process' wait queue */
+	struct queue        vm_chain;
+	caddr_t	        vm_data;
+	u_short	        vm_flags;
+	u_short             vm_inSize;  /* Size is at most 5000 bytes */
+	u_short	        vm_outSize;
+	u_short	        vm_opcode;  /* copied from data to save lookup */
+	int		        vm_unique;
+	struct wait_queue  *vm_sleep;   /* process' wait queue */
+	unsigned long       vm_posttime;
 };
 
 

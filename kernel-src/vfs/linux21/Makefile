@@ -15,7 +15,11 @@ OBJS        =  psdev.o cache.o cnode.o super.o dir.o file.o upcall.o coda_linux.
 DEFINES =  -DMODULE  -DMODVERSIONS -Wstrict-prototypes -Wall -O2
 INCL    =  -I../common -I. -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
 CFLAGS  := -D__KERNEL__ $(INCL)   $(DEFINES)  $(CFLAGS)
+coda:	coda.o
+	echo  ""
 
+Coda: coda.o
+	echo ""
 
 coda.o: $(OBJS)
 	$(LD) -m "`ld --help | awk '/supported emulations/ {print $$4}'`" -r -o $@ $(OBJS)

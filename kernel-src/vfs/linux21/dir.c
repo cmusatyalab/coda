@@ -50,7 +50,7 @@ struct dentry_operations coda_dentry_operations =
 	NULL, /* revalidate */
 	NULL, /* hash */
 	NULL,
-	NULL
+	coda_dentry_delete
 };
 
 struct inode_operations coda_dir_inode_operations =
@@ -129,44 +129,23 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 	       coda_f2s(&dircnp->c_fid, str));
 
         /* control object, create inode on the fly */
-        if ( coda_isroot(dir) && (CFS_CONTROLLEN == length) && 
-	     (strncmp(name, CFS_CONTROL, CFS_CONTROLLEN) == 0) ) {
+        if (coda_isroot(dir) && coda_iscontrol(name, length)) {
 	        error = coda_cnode_makectl(&res_inode, dir->i_sb);
 		CDEBUG(D_SPECIAL, 
-		       "Lookup on CTL object; iput of ino %ld, count %d\n", 
+		       "Lookup on CTL object; dir ino %ld, count %d\n", 
 		       dir->i_ino, dir->i_count);
                 goto exit;
         }
 
-#if 0
-        /* do we have it already in name cache */
-	if ( (savedcnp = cfsnc_lookup(dircnp, name, length)) != NULL ) {
-		CHECK_CNODE(savedcnp);
-		res_inode = CTOI(savedcnp);
-		iget(res_inode->i_sb, res_inode->i_ino);
-		CDEBUG(D_INODE, "cache hit for ino: %ld, count: %d!\n",
-		       res_inode->i_ino, res_inode->i_count);
-		goto exit;
-	}
-	CDEBUG(D_INODE, "name not found in cache!\n");
-#endif
         /* name not cached */
         error = venus_lookup(dir->i_sb, &(dircnp->c_fid), 
-				(const char *)name, length, &type, &resfid);
+			     (const char *)name, length, &type, &resfid);
 
 	res_inode = NULL;
 	if (!error) {
 	    	error = coda_cnode_make(&res_inode, &resfid, dir->i_sb);
 		if (error)
 			return -EACCES;
-		/* put the thing in the name cache */
-#if 0
-		savedcnp = ITOC(res_inode);
-		CHECK_CNODE(savedcnp);
-		CDEBUG(D_INODE, "ABOUT to enter into cache.\n");
-		cfsnc_enter(dircnp, name, length, savedcnp);
-		CDEBUG(D_INODE, "entered in cache\n");
-#endif
 	} else if (error != -ENOENT) {
 	        CDEBUG(D_INODE, "error for %s(%s)%d\n",
 		       coda_f2s(&dircnp->c_fid, str), name, error);
@@ -240,6 +219,10 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
                 printk("coda_create: inode is null or not a directory\n");
                 return -ENOENT;
         }
+
+	if (coda_isroot(dir) && coda_iscontrol(name, length))
+		return -EPERM;
+
 	dircnp = ITOC(dir);
         CHECK_CNODE(dircnp);
 
@@ -290,11 +273,13 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
 		printk("coda_mkdir: inode is NULL or not a directory\n");
 		return -ENOENT;
 	}
-        dircnp = ITOC(dir);
-        CHECK_CNODE(dircnp);
-
         if ( len > CFS_MAXNAMLEN )
                 return -ENAMETOOLONG;
+	if (coda_isroot(dir) && coda_iscontrol(name, len))
+		return -EPERM;
+
+        dircnp = ITOC(dir);
+        CHECK_CNODE(dircnp);
 
 	CDEBUG(D_INODE, "mkdir %s (len %d) in %s, mode %o.\n", 
 	       name, len, coda_f2s(&(dircnp->c_fid), fidstr), mode);
@@ -336,6 +321,9 @@ static int coda_link(struct inode *inode, struct inode *dir_inode,
 
         ENTRY;
 
+	if (coda_isroot(dir_inode) && coda_iscontrol(name, len))
+		return -EPERM;
+
         dir_cnp = ITOC(dir_inode);
         CHECK_CNODE(dir_cnp);
         cnp = ITOC(inode);
@@ -368,9 +356,8 @@ static int coda_link(struct inode *inode, struct inode *dir_inode,
 }
 
 
-static int 
-coda_symlink(struct inode *dir_inode, struct dentry *de,
-             const char *symname)
+static int coda_symlink(struct inode *dir_inode, struct dentry *de,
+			const char *symname)
 {
         const char *name = de->d_name.name;
 	int len = de->d_name.len;
@@ -380,23 +367,23 @@ coda_symlink(struct inode *dir_inode, struct dentry *de,
         
         ENTRY;
 
-	error = -ENAMETOOLONG;
-	if ( len > CFS_MAXNAMLEN ) { 
-	        return error;
-	}
+	if (coda_isroot(dir_inode) && coda_iscontrol(name, len))
+		return -EPERM;
+
+	if ( len > CFS_MAXNAMLEN )
+                return -ENAMETOOLONG;
 
 	symlen = strlen(symname);
-	if ( symlen > CFS_MAXNAMLEN ) { 
-	        return error;
-	}
+	if ( symlen > CFS_MAXPATHLEN )
+                return -ENAMETOOLONG;
+
         CDEBUG(D_INODE, "symname: %s, length: %d\n", symname, symlen);
 
 	error = venus_symlink(dir_inode->i_sb, &(dir_cnp->c_fid), name, len, 
 			      symname, symlen);
 
-	if ( !error ) {
-	  d_drop(de);
-	}
+	if ( !error )
+		d_drop(de);
 
         CDEBUG(D_INODE, "in symlink result %d\n",error);
         EXIT;

@@ -7,8 +7,6 @@
  * to the Coda project. Contact Peter Braam <coda@cs.cmu.edu>.
  */
 
-/* revamped cnode.h file: platform dependent, kernel only! */
-
 
 #ifndef	_CNODE_H_
 #define	_CNODE_H_
@@ -37,12 +35,22 @@ struct cnode {
 #define C_ZAPFID      0x8
 #define C_ZAPDIR      0x10
 
-struct cnode *coda_cnode_alloc(void);
-void coda_cnode_free(struct cnode *cinode);
+void coda_cnode_free(struct cnode *);
 int coda_cnode_make(struct inode **, struct ViceFid *, struct super_block *);
-struct inode *coda_fid2inode(ViceFid *fid, struct super_block *sb);
 int coda_cnode_makectl(struct inode **inode, struct super_block *sb);
 struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb);
+
+/* inode to cnode */
+static inline struct cnode *ITOC(struct inode *inode)
+{
+	return ((struct cnode *)inode->u.generic_ip);
+}
+
+/* cnode to inode */
+static inline struct inode *CTOI(struct cnode *cnode)
+{
+	return (cnode->c_vnode);
+}
 
 #endif	
 

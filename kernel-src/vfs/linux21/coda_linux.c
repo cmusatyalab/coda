@@ -39,6 +39,14 @@ char * coda_f2s(ViceFid *f, char *s)
 	return s;
 }
 
+int coda_iscontrol(const char *name, size_t length)
+{
+	if ((CFS_CONTROLLEN == length) && 
+	    (strncmp(name, CFS_CONTROL, CFS_CONTROLLEN) == 0))
+		return 1;
+	return 0;
+}
+
 int coda_isroot(struct inode *i)
 {
     if ( i->i_sb->s_root->d_inode == i ) {

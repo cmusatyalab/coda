@@ -1,9 +1,11 @@
 /*
  * Super block/filesystem wide operations
  *
- * Peter J. Braam <braam@maths.ox.ac.uk>, 
- * Michael Callahan <callahan@maths.ox.ac.uk> Aug 1996
- * Rewritten for Linux 2.1.57 Peter Braam <braam@cs.cmu.edu>
+ * Copryright (C) 1996 Peter J. Braam <braam@maths.ox.ac.uk> and 
+ * Michael Callahan <callahan@maths.ox.ac.uk> 
+ * 
+ * Rewritten for Linux 2.1.?? Peter Braam <braam@cs.cmu.edu>
+ * Copyright (C) Carnegie Mellon University
  */
 
 #define __NO_VERSION__
@@ -46,27 +48,11 @@ static void coda_put_super(struct super_block *);
 static int coda_statfs(struct super_block *sb, struct statfs *buf, 
 		       int bufsiz);
 
-
 /* helper functions */
 static inline struct vcomm *coda_psinode2vcomm(struct inode *inode);
 static int coda_get_psdev(void *, struct inode **);
-int coda_fetch_inode(struct inode *, struct coda_vattr *);
+static struct coda_sb_info *coda_psinode2sbi(struct inode *inode);
 
-extern inline struct vcomm *coda_psdev_vcomm(struct inode *inode);
-extern int coda_cnode_make(struct inode **inode, ViceFid *fid, 
-			   struct super_block *sb);
-extern struct cnode *coda_cnode_alloc(void);
-extern void coda_cnode_free(struct cnode *);
-char *coda_f2s(struct ViceFid *, char *);
-
-extern int cfsnc_initialized;
-extern int coda_debug;
-extern int coda_print_entry;
-
-extern struct inode_operations coda_file_inode_operations;
-extern struct inode_operations coda_dir_inode_operations;
-extern struct inode_operations coda_ioctl_inode_operations;
-extern struct inode_operations coda_symlink_inode_operations;
 /* exported operations */
 struct super_operations coda_super_operations =
 {
@@ -87,7 +73,6 @@ struct super_operations coda_super_operations =
 struct coda_sb_info coda_super_info[MAX_CODADEVS];
 
 
-
 static struct super_block * coda_read_super(struct super_block *sb, 
 					    void *data, int silent)
 {
@@ -99,7 +84,7 @@ static struct super_block * coda_read_super(struct super_block *sb,
         int error;
 	char str[50];
 
-ENTRY;
+	ENTRY;
         MOD_INC_USE_COUNT; 
         if (coda_get_psdev(data, &psdev))
                 goto error;
@@ -119,7 +104,7 @@ ENTRY;
 
         lock_super(sb);
         sb->u.generic_sbp = sbi;
-        sb->s_blocksize = 1024;	/* XXXXX */
+        sb->s_blocksize = 1024;	/* XXXXX  what do we put here?? */
         sb->s_blocksize_bits = 10;
         sb->s_magic = CODA_SUPER_MAGIC;
         sb->s_dev = dev;
@@ -150,7 +135,7 @@ ENTRY;
 	sbi->sbi_root = root;
 	sb->s_root = d_alloc_root(root, NULL);
 	unlock_super(sb);
-EXIT;  
+	EXIT;  
         return sb;
 
 error:
@@ -172,7 +157,6 @@ EXIT;
         return NULL;
 }
 
-
 static void coda_put_super(struct super_block *sb)
 {
         struct coda_sb_info *sb_info;
@@ -190,7 +174,7 @@ static void coda_put_super(struct super_block *sb)
 
         unlock_super(sb);
         MOD_DEC_USE_COUNT;
-EXIT;
+	EXIT;
 }
 
 /* all filling in of inodes postponed until lookup */
@@ -198,7 +182,6 @@ static void coda_read_inode(struct inode *inode)
 {
 	ENTRY;
         inode->u.generic_ip = NULL;
-	EXIT;
 }
 
 static void coda_put_inode(struct inode *inode) 
@@ -222,13 +205,12 @@ static void coda_delete_inode(struct inode *inode)
 	}
 
         cnp = ITOC(inode);
-
         open_inode = cnp->c_ovp;
         if ( open_inode ) {
                 CDEBUG(D_SUPER, "DELINO cached file: ino %ld count %d.\n",  
 		       open_inode->i_ino,  open_inode->i_count);
                 cnp->c_ovp = NULL;
-                iput( open_inode );
+                iput(open_inode);
         }
 	
 	coda_cache_clear_cnp(cnp);
@@ -236,7 +218,7 @@ static void coda_delete_inode(struct inode *inode)
 	inode->u.generic_ip = NULL;
         coda_cnode_free(cnp);
         clear_inode(inode);
-EXIT;
+	EXIT;
 }
 
 static int  coda_notify_change(struct inode *inode, struct iattr *iattr)
@@ -244,7 +226,8 @@ static int  coda_notify_change(struct inode *inode, struct iattr *iattr)
         struct cnode *cnp;
         struct coda_vattr vattr;
         int error;
-ENTRY;
+	
+	ENTRY;
         memset(&vattr, 0, sizeof(vattr)); 
         cnp = ITOC(inode);
         CHECK_CNODE(cnp);
@@ -258,7 +241,6 @@ ENTRY;
         if ( !error ) {
 	        coda_vattr_to_iattr(inode, &vattr); 
 		coda_cache_clear_cnp(cnp);
-/* 		cfsnc_zapfid(&(cnp->c_fid)); */
         }
 	CDEBUG(D_SUPER, "inode.i_mode %o, error %d\n", 
 	       inode->i_mode, error);
@@ -267,13 +249,11 @@ ENTRY;
         return error;
 }
 
-/*  we need _something_ */
+/*  we need _something_ for this routine. Let's mimic AFS */
 static int coda_statfs(struct super_block *sb, struct statfs *buf, 
 		       int bufsiz)
 {
 	struct statfs tmp;
-
-#define NB_SFS_SIZ 0x895440
 
 	tmp.f_type = CODA_SUPER_MAGIC;
 	tmp.f_bsize = 1024;
@@ -290,11 +270,9 @@ static int coda_statfs(struct super_block *sb, struct statfs *buf,
 
 /* init_coda: used by filesystems.c to register coda */
 
-
 struct file_system_type coda_fs_type = {
    "coda", 0, coda_read_super, NULL
 };
-
 
 int init_coda_fs(void)
 {
@@ -303,85 +281,30 @@ int init_coda_fs(void)
 
 /* MODULE stuff is in psdev.c */
 
-/*   */
-int coda_fetch_inode (struct inode *inode, struct coda_vattr *attr)
-{
-        struct cnode *cp;
-        int ino, error=0;
-        CDEBUG(D_SUPER, "fetch for ino: %ld\n", inode->i_ino);
-
-        ino = inode->i_ino;
-        if (!ino)
-                printk("coda_fetch_inode: inode called with i_ino = 0 (don't worry)\n");
-
-        inode->i_op = NULL;
-        inode->i_mode = 0;
-
-        cp = ITOC(inode);
-        CHECK_CNODE(cp);
-
-        /* root inode  */
-        if (cp->c_fid.Volume == 0 &&
-            cp->c_fid.Vnode == 0 &&
-            cp->c_fid.Unique == 0) {
-	        inode->i_ino = 1;
-		inode->i_op = NULL;
-		return 0;
-        }
-        
-        if (IS_CTL_FID( &(cp->c_fid) )) {
-                /* This is the special magic control file.  
-		   Venus doesn't want
-                   to hear a GETATTR about this! */
-                inode->i_op = &coda_ioctl_inode_operations;
-                return 0;
-        }
-
-        if ( ! attr ) {
-                printk("coda_fetch_inode: called with NULL vattr, ino %ld\n",
-		       inode->i_ino);
-                return -1; /* XXX */
-        }
-
-        if (coda_debug & D_SUPER ) print_vattr(attr);
-        coda_vattr_to_iattr(inode, attr);
-
-        if (S_ISREG(inode->i_mode))
-                inode->i_op = &coda_file_inode_operations;
-        else if (S_ISDIR(inode->i_mode))
-                inode->i_op = &coda_dir_inode_operations;
-        else if (S_ISLNK(inode->i_mode))
-                inode->i_op = &coda_symlink_inode_operations;
-        else {
-                printk ("coda_read_inode: what kind of inode is this? i_mode = %o\n", inode->i_mode);
-                inode->i_op = NULL;
-        }
-        return error;
-}
-
-static inline struct vcomm *
-coda_psinode2vcomm(struct inode *inode) 
+/*  helpers */
+static inline struct vcomm *coda_psinode2vcomm(struct inode *inode) 
 {
         
 	unsigned int minor = MINOR(inode->i_rdev);
-CDEBUG(D_PSDEV,"minor %d\n", minor);
+	CDEBUG(D_PSDEV,"minor %d\n", minor);
 	if ( minor < MAX_CODADEVS ) 
 	      return &(psdev_vcomm[minor]);
 	else
 	      return NULL;
 }
 
-struct coda_sb_info *coda_psinode2sbi(struct inode *inode) 
+static struct coda_sb_info *coda_psinode2sbi(struct inode *inode) 
 {
 	unsigned int minor = MINOR(inode->i_rdev);
 
 	CDEBUG(D_PSDEV,"minor %d\n", minor);
-	if ( minor < MAX_CODADEVS ) 
+	if ( (minor >= 0) && (minor < MAX_CODADEVS)) 
 	        return &(coda_super_info[minor]);
 	else
 	        return NULL;
 }
 
+/* name lookup for psdev passed in by mount */
 static int coda_get_psdev(void *data, struct inode **res_dev)
 {
         char **psdev_path;
@@ -390,23 +313,22 @@ static int coda_get_psdev(void *data, struct inode **res_dev)
 
  
 	if ( ! data ) { 
-		printk("coda_read_super: no data!\n");
-		goto error;
-	} else {
-		psdev_path = data;
-	}
+		printk("coda_get_psdev: no data!\n");
+		return 1;
+	} 
+
+	psdev_path = data;
         ent = namei((char *) *psdev_path);
         if (IS_ERR(ent)) {
 		printk("namei error %ld for %d\n", PTR_ERR(ent), 
 		       (int) psdev_path);
-		goto error;
+		return 1;
         }
 	psdev = ent->d_inode;
-        
 
         if (!S_ISCHR(psdev->i_mode)) {
 		printk("not a character device\n");
-		goto error;
+		return 1;
         }
 	CDEBUG(D_PSDEV,"major %d, minor %d, count %d\n", 
 	       MAJOR(psdev->i_rdev), 
@@ -415,26 +337,22 @@ static int coda_get_psdev(void *data, struct inode **res_dev)
         if (MAJOR(psdev->i_rdev) != CODA_PSDEV_MAJOR) {
 		printk("device %d not a Coda PSDEV device\n", 
 		       MAJOR(psdev->i_rdev));
-		goto error;
+		return 1;
         }
 
         if (MINOR(psdev->i_rdev) >= MAX_CODADEVS) { 
 		printk("minor %d not an allocated Coda PSDEV\n", 
 		       psdev->i_rdev);
-		goto error;
+		return 1;
         }
 
         if (psdev->i_count < 1) {
 		printk("coda device minor %d not open (i_count = %d)\n", 
 		       MINOR(psdev->i_rdev), psdev->i_count);
-		goto error;
+		return 1;
         }
         
         *res_dev = psdev;
-
+	EXIT;  
         return 0;
-      
-EXIT;  
-error:
-        return 1;
 }

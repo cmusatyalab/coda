@@ -12,15 +12,12 @@
 
 extern int coda_debug;
 extern int coda_print_entry;
-extern int coda_fetch_inode(struct inode *inode, struct coda_vattr *attr);
 
 /* cnode.c */
-struct cnode *coda_cnode_alloc(void);
-void coda_cnode_free(struct cnode *);
-int  coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb);
+static struct cnode *coda_cnode_alloc(void);
 
 /* return pointer to new empty cnode */
-struct cnode *coda_cnode_alloc(void)
+static struct cnode *coda_cnode_alloc(void)
 {
         struct cnode *result = NULL;
 
@@ -42,6 +39,28 @@ void coda_cnode_free(struct cnode *cinode)
 }
 
               
+static void coda_fill_inode (struct inode *inode, struct coda_vattr *attr)
+{
+        CDEBUG(D_SUPER, "ino: %ld\n", inode->i_ino);
+
+        if (coda_debug & D_SUPER ) 
+		print_vattr(attr);
+
+        coda_vattr_to_iattr(inode, attr);
+
+        if (S_ISREG(inode->i_mode))
+                inode->i_op = &coda_file_inode_operations;
+        else if (S_ISDIR(inode->i_mode))
+                inode->i_op = &coda_dir_inode_operations;
+        else if (S_ISLNK(inode->i_mode))
+                inode->i_op = &coda_symlink_inode_operations;
+        else {
+                printk ("coda_read_inode: what's this? i_mode = %o\n", 
+			inode->i_mode);
+                inode->i_op = NULL;
+        }
+}
+
 /* this is effectively coda_iget:
    - get attributes (might be cached)
    - get the inode for the fid using vfs iget
@@ -99,15 +118,9 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 	}
 	CHECK_CNODE(cnp);
 
-	/* refresh the attributes */
-        error = coda_fetch_inode(*inode, &attr);
-        if ( error ) {
-                printk("coda_cnode_make: fetch_inode returned %d\n", error);
-		clear_inode(*inode);
-		coda_cnode_free(cnp);
-                return -error;
-        }
-		CDEBUG(D_CNODE, "Done linking: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x\n", (*inode)->i_ino, (int) (*inode), (int) cnp, (int)cnp->c_vnode);
+	/* fill in the inode attributes */
+        coda_fill_inode(*inode, &attr);
+	CDEBUG(D_CNODE, "Done linking: ino %ld,  at 0x%x with cnp 0x%x, cnp->c_vnode 0x%x\n", (*inode)->i_ino, (int) (*inode), (int) cnp, (int)cnp->c_vnode);
 
         EXIT;
         return 0;

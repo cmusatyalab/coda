@@ -583,6 +583,33 @@ int venus_pioctl(struct super_block *sb, struct ViceFid *fid,
  * reply and return Venus' error, also POSITIVE. 
  * 
  */
+static inline void coda_waitfor_upcall(struct vmsg *vmp)
+{
+	struct wait_queue	wait = { current, NULL };
+
+	vmp->vm_posttime = jiffies;
+
+	add_wait_queue(&vmp->vm_sleep, &wait);
+	for (;;) {
+		if ( coda_hard == 0 ) 
+			current->state = TASK_INTERRUPTIBLE;
+		else
+			current->state = TASK_UNINTERRUPTIBLE;
+
+		if ( vmp->vm_flags & VM_WRITE )
+			break;
+		if (signal_pending(current) &&
+		    (jiffies > vmp->vm_posttime + coda_timeout * HZ) )
+			break;
+		schedule();
+	}
+	remove_wait_queue(&vmp->vm_sleep, &wait);
+	current->state = TASK_RUNNING;
+
+	return;
+}
+
+
 int coda_upcall(struct coda_sb_info *sbi, int inSize, int *outSize, 
 		union inputArgs *buffer) 
 {
@@ -632,9 +659,12 @@ ENTRY;
 	 * was interrupted by a venus shutdown (psdev_close), return
 	 * ENODEV.  */
 
-	/* Ignore return, We have to check anyway */
-	interruptible_sleep_on(&vmp->vm_sleep);
+	/* Go to sleep.  Wake up on signals only after the timeout. */
+	coda_waitfor_upcall(vmp);
 
+	CDEBUG(D_TIMING, "opc: %d time: %ld uniq: %d size: %d\n",
+	       vmp->vm_opcode, jiffies - vmp->vm_posttime, 
+	       vmp->vm_unique, vmp->vm_outSize);
 	CDEBUG(D_UPCALL, 
 	       "..process %d woken up by Venus for vmp at 0x%x, data at %x\n", 
 	       current->pid, (int)vmp, (int)vmp->vm_data);
@@ -722,13 +752,11 @@ ENTRY;
  * CFS_ZAPDIR    -- flush the attributes for the dir from its cnode.
  *                  Zap all children of this directory from the namecache.
  * CFS_ZAPFILE   -- flush the cached attributes for a file.
- * CFS_ZAPVNODE  -- in linux the same as zap file (no creds).
+ * CFS_ZAPVNODE  -- intended to be a zapfile for just one cred. Not used?
  *
  * The next is a result of Venus detecting an inconsistent file.
  * CFS_PURGEFID  -- flush the attribute for the file
- *                  If it is a dir (odd vnode), purge its 
- *                  children from the namecache
- *                  remove the file from the namecache.
+ *                  purge it and its children from the dcache
  *
  * The last  allows Venus to replace local fids with global ones
  * during reintegration.

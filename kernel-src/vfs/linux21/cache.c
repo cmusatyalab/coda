@@ -23,7 +23,9 @@
 #include <linux/coda_psdev.h>
 #include <linux/coda_cnode.h>
 #include <linux/coda_namecache.h>
-struct cfsnc_statistics cfsnc_stat;	/* Keep various stats */
+
+/* Keep various stats */
+struct cfsnc_statistics cfsnc_stat;
 
 
 /* we need to call INIT_LIST_HEAD on cnp->c_cnhead and sbi->sbi_cchead */
@@ -207,9 +209,10 @@ void  coda_dentry_delete(struct dentry *dentry)
 	struct inode *inode = dentry->d_inode;
 	struct cnode *cnp;
 
-	if (inode) 
+	if (inode) { 
 		cnp = ITOC(inode);
-	else 
+		CHECK_CNODE(cnp);
+	} else 
 		return;
 
 	if (cnp->c_flags & C_ZAPFID )
@@ -223,7 +226,8 @@ void  coda_dentry_delete(struct dentry *dentry)
 	return;
 }
 		
-
+/* the dache will notice the flags and drop entries (possibly with
+   children) the moment they are no longer in use  */
 void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag)
 {
 	struct inode *inode = NULL;
@@ -247,36 +251,15 @@ void coda_zapfid(struct ViceFid *fid, struct super_block *sb, int flag)
 		return;
 	}
 	cnp = ITOC(inode);
-	
-	if ( cnp ) {
-		cnp->c_flags |= flag;
-		coda_cache_clear_cnp(cnp);
-	} else {
+	CHECK_CNODE(cnp);
+	if ( !cnp ) {
 		printk("coda_zapfid: no cnode!\n");
+		return;
 	}
+	cnp->c_flags |= flag;
+	coda_cache_clear_cnp(cnp);
 }
 		
-
-
-#if 0 
-
-void coda_cache_clean(struct super_block *sb)
-{
-	struct list_head *le, *lh;
-	struct coda_super_info *sbi = coda_sbp(sb);
-	struct coda_cache *cc;
-
-	if ( !sbi ) 
-		return;
-	lh = le = &sbi->sbi_cchead;
-	while ( ( le = le->next ) != lh ) {
-		cc = list_entry(le, struct coda_cache, cc_cclist);
-		coda_cnremove(cc);
-		coda_ccremove(cc);
-		CODA_FREE(cc, sizeof(*cc));
-	}
-}
-#endif
 
 int
 cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, int dummy)
@@ -284,36 +267,35 @@ cfsnc_nc_info(char *buffer, char **start, off_t offset, int length, int dummy)
         int len=0;
         off_t begin;
 	
-/* 	cfsnc_gather_stats(); */
+	/* 	cfsnc_gather_stats(); */
 
 	/* this works as long as we are below 1024 characters! */    
-    len += sprintf(buffer,"Coda minicache statistics\n\n");
-    len += sprintf(buffer+len, "cfsnc_hits : %d\n", cfsnc_stat.hits);
-    len += sprintf(buffer+len, "cfsnc_misses : %d\n", cfsnc_stat.misses);
-    len += sprintf(buffer+len, "cfsnc_enters : %d\n", cfsnc_stat.enters);
-    len += sprintf(buffer+len, "cfsnc_dbl_enters : %d\n", cfsnc_stat.dbl_enters);
-    len += sprintf(buffer+len, "cfsnc_long_name_enters : %d\n", cfsnc_stat.long_name_enters);
-    len += sprintf(buffer+len, "cfsnc_long_name_lookups : %d\n", cfsnc_stat.long_name_lookups);
-    len += sprintf(buffer+len, "cfsnc_long_remove : %d\n", cfsnc_stat.long_remove);
-    len += sprintf(buffer+len, "cfsnc_lru_rm : %d\n", cfsnc_stat.lru_rm);
-    len += sprintf(buffer+len, "cfsnc_zapPfids : %d\n", cfsnc_stat.zapPfids);
-    len += sprintf(buffer+len, "cfsnc_zapFids : %d\n", cfsnc_stat.zapFids);
-    len += sprintf(buffer+len, "cfsnc_zapFile : %d\n", cfsnc_stat.zapFile);
-    len += sprintf(buffer+len, "cfsnc_zapUsers : %d\n", cfsnc_stat.zapUsers);
-    len += sprintf(buffer+len, "cfsnc_Flushes : %d\n", cfsnc_stat.Flushes);
-    len += sprintf(buffer+len, "cfsnc_SumLen : %d\n", cfsnc_stat.Sum_bucket_len);
-    len += sprintf(buffer+len, "cfsnc_Sum2Len : %d\n", cfsnc_stat.Sum2_bucket_len);
-    len += sprintf(buffer+len,  "cfsnc_# 0 len : %d\n", cfsnc_stat.Num_zero_len);
-    len += sprintf(buffer+len,  "cfsnc_MaxLen : %d\n", cfsnc_stat.Max_bucket_len);
-    len += sprintf(buffer+len,  "cfsnc_SearchLen : %d\n", cfsnc_stat.Search_len);
+	len += sprintf(buffer,"Coda minicache statistics\n\n");
+	len += sprintf(buffer+len, "cfsnc_hits : %d\n", cfsnc_stat.hits);
+	len += sprintf(buffer+len, "cfsnc_misses : %d\n", cfsnc_stat.misses);
+	len += sprintf(buffer+len, "cfsnc_enters : %d\n", cfsnc_stat.enters);
+	len += sprintf(buffer+len, "cfsnc_dbl_enters : %d\n", cfsnc_stat.dbl_enters);
+	len += sprintf(buffer+len, "cfsnc_long_name_enters : %d\n", cfsnc_stat.long_name_enters);
+	len += sprintf(buffer+len, "cfsnc_long_name_lookups : %d\n", cfsnc_stat.long_name_lookups);
+	len += sprintf(buffer+len, "cfsnc_long_remove : %d\n", cfsnc_stat.long_remove);
+	len += sprintf(buffer+len, "cfsnc_lru_rm : %d\n", cfsnc_stat.lru_rm);
+	len += sprintf(buffer+len, "cfsnc_zapPfids : %d\n", cfsnc_stat.zapPfids);
+	len += sprintf(buffer+len, "cfsnc_zapFids : %d\n", cfsnc_stat.zapFids);
+	len += sprintf(buffer+len, "cfsnc_zapFile : %d\n", cfsnc_stat.zapFile);
+	len += sprintf(buffer+len, "cfsnc_zapUsers : %d\n", cfsnc_stat.zapUsers);
+	len += sprintf(buffer+len, "cfsnc_Flushes : %d\n", cfsnc_stat.Flushes);
+	len += sprintf(buffer+len, "cfsnc_SumLen : %d\n", cfsnc_stat.Sum_bucket_len);
+	len += sprintf(buffer+len, "cfsnc_Sum2Len : %d\n", cfsnc_stat.Sum2_bucket_len);
+	len += sprintf(buffer+len,  "cfsnc_# 0 len : %d\n", cfsnc_stat.Num_zero_len);
+	len += sprintf(buffer+len,  "cfsnc_MaxLen : %d\n", cfsnc_stat.Max_bucket_len);
+	len += sprintf(buffer+len,  "cfsnc_SearchLen : %d\n", cfsnc_stat.Search_len);
        	begin =  offset;
        	*start = buffer + begin;
        	len -= begin;
-
+	
         if(len>length)
                 len = length;
 	if (len< 0)
 		len = 0;
         return len;
 } 
-
