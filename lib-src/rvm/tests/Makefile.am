@@ -39,6 +39,6 @@ MAINTAINERCLEANFILES = Makefile.in
 
 rvm_basher.o: $(srcdir)/rvm_basher.c lwp_basher.o
 lwp_basher.o: $(srcdir)/rvm_basher.c 
-	$(COMPILE) -DRVM_USELWP -c $(srcdir)/rvm_basher.c && \
+	$(COMPILE) $(LWPFLAGS) -c $(srcdir)/rvm_basher.c && \
         mv rvm_basher.o lwp_basher.o
 
