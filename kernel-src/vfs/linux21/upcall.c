@@ -658,7 +658,7 @@ ENTRY;
 
 
 	if (!vcomm_open(vcommp))
-                return -EIO;
+                return -ENXIO;
 
 	/* Format the request message. */
 	CODA_ALLOC(vmp,struct vmsg *,sizeof(struct vmsg));
