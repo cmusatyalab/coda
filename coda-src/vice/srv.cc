@@ -214,7 +214,6 @@ static int Statistics;
 /* Camelot/RVM stuff. */
 struct camlib_recoverable_segment *camlibRecoverableSegment;
 
-extern int etext, edata;	/* Info to be used in creating rvm segment */
 /*static */char *_Rvm_Log_Device;
 /*static */char *_Rvm_Data_Device;
 /*static */rvm_offset_t _Rvm_DataLength;
@@ -418,10 +417,6 @@ int main(int argc, char *argv[])
     }
     VInitServerList(srvhost);	/* initialize server info for volume pkg */
 
-    /* Notify log of sizes of text and data regions. */
-#ifndef __CYGWIN32__
-    SLog(0, "Server etext 0x%x, edata 0x%x", &etext, &edata);
-#endif
     switch (RvmType) {
         case UFS	   :
  	case RAWIO     	   : SLog(0, "RvmType is Rvm"); break;

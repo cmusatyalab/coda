@@ -508,13 +508,6 @@ void RusagePrint(int afd) {
 	     ru.ru_minflt, ru.ru_majflt, ru.ru_nswap, ru.ru_inblock, ru.ru_oublock);
     fdprint(afd, "\tmsg = (%u, %u), sig = (%u), csw = (%u, %u)\n",
 	     ru.ru_msgsnd, ru.ru_msgrcv, ru.ru_nsignals, ru.ru_nvcsw, ru.ru_nivcsw);
-extern unsigned etext;
-extern unsigned edata;
-extern unsigned end;
-#if !defined(__CYGWIN32__) && !defined(sun)
-    fdprint(afd, "\tsegment sizes = (%#08x, %#08x, %#08x, %#08x)\n",
-	     etext, edata - etext, end - edata, (char *)sbrk(0) - end);
-#endif
 
     fdprint(afd, "\n");
 }
