@@ -123,7 +123,6 @@ int HashString(char *s, unsigned int size)
 	return ((sum % size) + 1);
 }
 
-
 void PrintTimeStamp(FILE *f)
     /* Prints current timestamp on f; 
        Keeps track of when last invocation was;
@@ -138,18 +137,41 @@ void PrintTimeStamp(FILE *f)
        seems overkill for now.
     */
 {
+    static char *day[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+#define NLOGS 5
+    /* these are used for keeping track of when we last logged a message */
+    static struct { FILE *file; int year; int yday; } logs[NLOGS];
+
     struct tm *t;
     time_t clock;
-    static int oldyear = -1, oldyday = -1; 
-    static char *day[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-    
+    int i, empty = NLOGS;
+
     time(&clock);
     t = localtime(&clock);
-    if ((t->tm_year > oldyear) || (t->tm_yday > oldyday))
-	fprintf(f, "\nDate: %3s %02d/%02d/%02d\n\n", day[t->tm_wday], t->tm_mon+1, t->tm_mday, t->tm_year);
+
+    /* try to find the last time we wrote to this log */
+    for (i = 0; i < NLOGS; i++) {
+	if (f == logs[i].file) break;
+	/* remember the first empty position we see */
+	if (empty == NLOGS && !logs[i].file)
+	    empty = i;
+    }
+    /* log entry not found? use the empty slot */
+    if (i == NLOGS) i = empty;
+
+    if (i != NLOGS &&
+	(t->tm_year > logs[i].year || t->tm_yday > logs[i].yday))
+    {
+	fprintf(f, "\nDate: %3s %02d/%02d/%02d\n\n",
+		day[t->tm_wday], t->tm_mon+1, t->tm_mday, t->tm_year);
+
+	/* remember when we were last called */
+	logs[i].file = f;
+	logs[i].year = t->tm_year;
+	logs[i].yday = t->tm_yday;
+    }
+
     fprintf(f, "%02d:%02d:%02d ", t->tm_hour, t->tm_min, t->tm_sec);    
-    oldyear = t->tm_year; /* remember when we were last called */
-    oldyday = t->tm_yday;
 }
 
 extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)

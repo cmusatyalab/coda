@@ -93,6 +93,9 @@ typedef struct {
  */
 class lrdb {
     struct Lock rfm_lock;		/* for synchronization on root_fid_map list */
+private:
+    int do_FindRepairObject(ViceFid *, fsobj **, fsobj **);
+
 public:
     void *operator new(size_t);							/*T*/
     lrdb();									/*T*/

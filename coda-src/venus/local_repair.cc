@@ -435,13 +435,15 @@ void lrdb::PreserveAllLocalMutation(char *msg)
 		    opmsg, current_search_cml->GetTid(), opcnt);
 	    return;
 	}
+	mcode = 0;
 	current_search_cml->CheckRepair(checkmsg, &mcode, &rcode);
 	if (rcode == REPAIR_FAILURE) {
 	    /* it is impossible to perform the orignial local mutation */	    
 	    sprintf(msg, "%d local mutation(s) redone in the global subtree\n %s\n can not re-do %s in the global replica", opcnt, checkmsg, opmsg);
 	    return;
 	}
-	if (!(rc = current_search_cml->DoRepair(msg, rcode))) {
+	/* mcode is left set when CheckRepair found a non-fatal error */
+	if (mcode || !(rc = current_search_cml->DoRepair(checkmsg, rcode))) {
 	    AdvanceCMLSearch();
 	    opcnt++;
 	} else {
@@ -752,13 +754,23 @@ void lrdb::DeLocalization()
 }
 
 /*
-  BEGIN_HTML
-  <a name="fetch"><strong> get both the local and global replicas of
-  the operands of the current mutation operation </strong></a>
-  END_HTML
+  get both the local and global replicas of the operands of the current
+  mutation operation
 */
+
 /* need not be called from within a transaction */
 int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
+{
+    int rc, i = 0;
+
+    do {
+	i++;
+	rc = do_FindRepairObject(fid, global, local);
+    } while((rc == ERETRY || rc == ESYNRESOLVE) && i <= 5);
+}
+
+/* need not be called from within a transaction */
+int lrdb::do_FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
 {
     OBJ_ASSERT(this, fid);
     vproc *vp = VprocSelf();

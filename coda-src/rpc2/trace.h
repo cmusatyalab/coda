@@ -454,15 +454,17 @@ struct TraceElem
 	{\
 	struct TraceElem *te;\
 	struct te_MSENDPACKETSRELIABLY *tea;\
+	int idx; \
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.MSendPacketsReliablyEntry;\
 	te->CallCode = MSENDPACKETSRELIABLY;\
 	strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);\
 	tea->HowMany = HowMany;\
-	tea->ConnArray0 = ConnArray[0];\
-	tea->ConnArray0_UniqueCID = (ConnArray[0]) ? (ConnArray[0])->UniqueCID: 0;\
-	tea->PacketArray0_Address = PacketArray[0];\
-	tea->PacketArray0 = *(PacketArray[0]);  /* structure assignment */\
+	for(idx = 0; !ConnHandleList[idx] && idx < HowMany; idx++)/*loop*/; \
+	tea->ConnArray0 = ConnArray[idx];\
+	tea->ConnArray0_UniqueCID = (ConnArray[idx])->UniqueCID;\
+	tea->PacketArray0_Address = PacketArray[idx];\
+	tea->PacketArray0 = *(PacketArray[idx]);  /* structure assignment */\
 	if (TimeOut == NULL) tea->IsNullTimeout = 1;\
 	else\
 	    {\

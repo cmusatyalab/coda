@@ -631,6 +631,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    case EIO:
 	    case ENOENT:
 		sprintf(msg, "conflict: remove target %s no longer exits on servers", LocalPath);
+		*rcode = 0; /* this is clearly a success */
 		break;
 	    case EINCONS:
 		sprintf(msg, "conflict: remove target %s in server/server conflict", LocalPath);
@@ -709,6 +710,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    case EIO:
 	    case ENOENT:
 		sprintf(msg, "conflict: rmdir target %s no longer exits on servers", LocalPath);
+		*rcode = 0; /* this is clearly a success */
 		break;
 	    case EINCONS:
 		sprintf(msg, "conflict: rmdir target %s in server/server conflict", LocalPath);
