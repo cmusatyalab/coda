@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.8 98/08/31 12:23:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.9 1998/11/24 15:35:01 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,9 +105,10 @@ int SrvCount = 0; /* how many servers */
 struct timeval ProbeInterval = {60, 0};  /* how often to probe servers, in seconds */
 
 int AbsFlag = 0; /* non-zero ==> print absolute values, not relative */
-
+int CpuFlag = 0; /* show relative cpu time usage among types */
 
 #define SRVCOLWIDTH 9  /* width of each server's window */
+#define SRVCOLDECML 999999
 #define FIRSTSRVCOL 7 /* index of first server's column */
 #define SDNLEN (SRVCOLWIDTH - 3)   /* length of short disk names */
 
@@ -117,6 +118,7 @@ struct printvals
     unsigned long cpu_sys;
     unsigned long cpu_user;
     unsigned long cpu_util;
+    unsigned long cpu_srv;
     unsigned long rpc_conn;
     unsigned long rpc_wkst;
     unsigned long rpc_call;
@@ -145,17 +147,39 @@ static ValidServer(char *);
 static void ComputePV(struct server *s, struct printvals *pv);
 static char *ShortDiskName(char *s);
 
+extern FILE *rpc2_logfile;
+FILE *dbg;
+
 char Dummy; /* dummy variable for LWP_WaitProcess() */
+
+#ifdef	DEBUG
+void print_stats(struct ViceStatistics *stats);
+#endif
 
 main(int argc, char *argv[])
     {
     int i;
     
+#ifdef	DEBUG
+    dbg = fopen("/tmp/cmon_dbg", "w");
+    if (dbg == NULL) {
+	fprintf(stderr, "cmon can not open /tmp/cmon_dbg\n");
+	exit(1);
+    }
+#else
+    dbg = fopen("/dev/null", "w");
+    if (dbg == NULL) {
+	fprintf(stderr, "cmon can not open /dev/null\n");
+	exit(1);
+    }
+#endif
+
     MonBirthTime = time(0);
     initscr();
     curWin = newwin(1, 1, 0, 0);
     GetArgs(argc, argv);
     InitRPC();
+    rpc2_logfile = dbg;
     DrawCaptions();
 
     LWP_CreateProcess((PFIC)kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", (PROCESS *)&i);
@@ -187,6 +211,9 @@ static void srvlwp(int slot)
     
     
     moi->state = DEAD;
+    /* Get this out quick so we don't have to wait for a
+       RPC2_NOBINDING to tell the user there is NO BINDING */
+    PrintServer(moi);
     while (1)
 	{
 	if (moi->state == NEWBORN) moi->state = ALIVE;
@@ -211,13 +238,20 @@ static void srvlwp(int slot)
 	    {
 	    moi->oldvs = moi->newvs;
 	    rc = (int) ViceGetStatistics(cid, &moi->newvs);
-	    if (rc != RPC2_SUCCESS)
-		{
+	    if (rc != RPC2_SUCCESS) {
 		moi->state = DEAD;
+		moi->succ = 0;
 		RPC2_Unbind(cid);
+	    } else {
+	        if (!moi->succ && moi->hz == 0) {
+		    if (moi->newvs.Spare4 != 0)
+		         moi->hz = moi->newvs.Spare4;
+		    else
+		         moi->hz = 1;
 		}
-	    else moi->succ = moi->probe; /* ignoring RPC call delays */
+	        moi->succ = moi->probe; /* ignoring RPC call delays */
 	    }
+	}
 
 
 	PrintServer(moi);
@@ -285,6 +319,12 @@ static void GetArgs(int argc, char *argv[])
 		continue;
 		}
 
+	    if (!(strcmp(argv[next], "-c")))
+		{
+		CpuFlag = 1;
+		continue;
+		}
+
 	    goto BadArgs;
 	    }
 	else
@@ -296,15 +336,19 @@ static void GetArgs(int argc, char *argv[])
 		}
 	    srv[SrvCount].srvname = argv[next];
 	    c = index(argv[next], ':');
-	    if (!c) goto BadArgs;
-	    *c = 0; /* so servername is null terminated */
-	    c++;
+	    if (c) {
+	        *c = 0; /* so servername is null terminated */
+	    }
 	    if (!ValidServer(srv[SrvCount].srvname))
 		{
 		printf("%s is not a valid server\n", srv[SrvCount].srvname);
 		exit(-1);
 		}
-	    srv[SrvCount].hz  = atoi(c);
+	    if (c) {
+	        c++;
+	        srv[SrvCount].hz  = atoi(c);
+	    } else 
+	        srv[SrvCount].hz  = 0; /* tmp */
 	    srv[SrvCount].win = newwin(24, SRVCOLWIDTH + 1, 0,
 		FIRSTSRVCOL + SrvCount*(SRVCOLWIDTH + 2));
 	    SrvCount++;
@@ -315,7 +359,7 @@ static void GetArgs(int argc, char *argv[])
     return;
 
 BadArgs:
-    printf("Usage: cmon [-a] [-t probeinterval] server1:hz1 server2:hz2 ...\n");
+    printf("Usage: cmon [-a] [-c] [-t probeinterval] server1[:hz1] server2[:hz2] ...\n");
     exit(-1);
     }
 
@@ -354,9 +398,16 @@ static void DrawCaptions()
     wprintw(w1, " succ\n");
     wprintw(w1, "   up\n");
     wprintw(w1, " bind\n");
+    if (CpuFlag)
+    wprintw(w1, "CPU %%\n");
+    else
     wprintw(w1, "CPU  \n");
     wprintw(w1, "  sys\n");
     wprintw(w1, " user\n");
+    if (CpuFlag) {
+    wprintw(w1, " idle\n");
+    wprintw(w1, "  srv\n");
+    } else
     wprintw(w1, " util\n");
     wprintw(w1, "RPC  \n");
     wprintw(w1, " conn\n");
@@ -366,7 +417,7 @@ static void DrawCaptions()
     wprintw(w1, "  pko\n");
     wprintw(w1, "  byi\n");
     wprintw(w1, "  byo\n");
-    wprintw(w1, "DSK  \n");
+    wprintw(w1, "DSK %%\n");
     wprintw(w1, " max1\n");
     wprintw(w1, " max2\n");
     wprintw(w1, " max3\n");
@@ -420,7 +471,7 @@ static void PrintServer(struct server *s)
     wprintw(w, "%*s\n", SRVCOLWIDTH, when(s->probe, s->probe));
     if (s->succ)
 	wprintw(w, "%*s\n", SRVCOLWIDTH, when(s->probe, s->succ));
-    else wprintw(w, "%*s\n", SRVCOLWIDTH, "***");
+    else wprintw(w, "%*s\n", SRVCOLWIDTH, "NoBinding");
 
     if (s->state == DEAD)
 	{
@@ -431,6 +482,8 @@ static void PrintServer(struct server *s)
 	QROWS(2);
 	wprintw(w, "\n");
 	QROWS(3);
+	if (CpuFlag)
+	QROWS(1);
 	wprintw(w, "\n");
 	/* QROWS(7) below causes term to go "beep beep..."
 	 Can't figure out why this fix works but it does! */
@@ -443,11 +496,17 @@ static void PrintServer(struct server *s)
 	}
     else
 	{
+
+#ifdef	DEBUG
+	print_stats(&s->newvs);
+#endif
 	ComputePV(s, &pv);
 
-#define WPRINT(x)\
+#define WPRINT(x) do {\
 	if (pv.x == 0xffffffff) wprintw(w, "%*s\n", SRVCOLWIDTH, "***");\
-	else wprintw(w, "%*lu\n", SRVCOLWIDTH, pv.x);
+	else if (pv.x > SRVCOLDECML) wprintw(w, "%*luM\n", SRVCOLWIDTH-1, pv.x/(SRVCOLDECML+1));\
+	else wprintw(w, "%*lu\n", SRVCOLWIDTH, pv.x);\
+} while (0)
 
 	wprintw(w, "%*s\n", SRVCOLWIDTH, when(s->probe, s->newvs.StartTime));
 	wprintw(w, "%*d\n", SRVCOLWIDTH, s->binds);
@@ -455,6 +514,8 @@ static void PrintServer(struct server *s)
 	WPRINT(cpu_sys);
 	WPRINT(cpu_user);
 	WPRINT(cpu_util);
+	if (CpuFlag)
+	WPRINT(cpu_srv);
 	wprintw(w, "\n");
 	WPRINT(rpc_conn);
 	WPRINT(rpc_wkst);
@@ -471,7 +532,7 @@ static void PrintServer(struct server *s)
 	    char buf[10];
 	    if (*pv.diskname[i] == 0)
 	    	{wprintw(w, "%*s\n", SRVCOLWIDTH, "***"); continue;}
-	    sprintf(buf,  "%s:%lu", pv.diskname[i], pv.diskutil[i]);
+	    sprintf(buf,  "%s:%2lu", pv.diskname[i], pv.diskutil[i]);
 	    wprintw(w, "%*s\n", SRVCOLWIDTH, buf);
 	    }
 	}
@@ -483,26 +544,43 @@ static void PrintServer(struct server *s)
 static void ComputePV(struct server *s, struct printvals *pv)
     {
     long t;
+    long total;
     ViceDisk *di[10];
     register int i;
 
     pv->rpc_conn = s->newvs.CurrentConnections;
     pv->rpc_wkst = s->newvs.WorkStations;
     
-    if (AbsFlag)
-	{
-	pv->cpu_sys = s->newvs.SystemCPU/s->hz;
-	pv->cpu_user = (s->newvs.UserCPU + s->newvs.NiceCPU)/s->hz;
-	t = pv->cpu_sys + pv->cpu_user;
-	pv->cpu_util = (int) (0.5 + 100.0*t/(t + s->newvs.IdleCPU/s->hz));
+    pv->cpu_sys = 0xffffffff;
+    pv->cpu_user = 0xffffffff;
+    pv->cpu_util = 0xffffffff;
+    pv->cpu_srv = 0xffffffff;
+    if (AbsFlag) {
+	if (CpuFlag) {
+	    total = (s->newvs.SystemCPU + s->newvs.UserCPU + s->newvs.IdleCPU);
+	    if (total) {
+		pv->cpu_sys = s->newvs.SystemCPU * 100 / total;
+		pv->cpu_user = (s->newvs.UserCPU + s->newvs.NiceCPU) * 100 / total;
+		/* really idle */
+		pv->cpu_util = (int)((float)s->newvs.IdleCPU * 100 / total);
+		pv->cpu_srv = ((s->newvs.Spare4+s->newvs.Spare5) * s->hz) /total;
+	    }
+	} else {
+	    pv->cpu_sys = s->newvs.SystemCPU/s->hz;
+	    pv->cpu_user = (s->newvs.UserCPU + s->newvs.NiceCPU)/s->hz;
+	    t = pv->cpu_sys + pv->cpu_user;
+	    total = (t + s->newvs.IdleCPU/s->hz);
+	    if (total)
+		pv->cpu_util = (int) (0.5 + 100.0*t/total);
+	    else
+		pv->cpu_util = 0;
+	}
 	pv->rpc_call = s->newvs.TotalViceCalls;
 	pv->rpc_pki = s->newvs.TotalRPCPacketsReceived;
 	pv->rpc_pko = s->newvs.TotalRPCPacketsSent;
 	pv->rpc_byi = s->newvs.TotalRPCBytesReceived;
 	pv->rpc_byo = s->newvs.TotalRPCBytesSent;
-	}
-    else
-	{
+    } else {
 	if (s->state == NEWBORN)
 	    {
 	    pv->cpu_sys = 0xffffffff;
@@ -513,14 +591,28 @@ static void ComputePV(struct server *s, struct printvals *pv)
 	    pv->rpc_pko = 0xffffffff;
 	    pv->rpc_byi = 0xffffffff;
 	    pv->rpc_byo = 0xffffffff;
-	    }
-	else
-	    {
+	} else {
 #define DIFF(x) (s->newvs.x - s->oldvs.x)
-	    pv->cpu_sys = DIFF(SystemCPU)/s->hz;
-	    pv->cpu_user = (DIFF(UserCPU) + DIFF(NiceCPU))/s->hz;
-	    t = pv->cpu_sys + pv->cpu_user;
-	    pv->cpu_util = (int) (0.5 + 100.0*t/(t + DIFF(IdleCPU)/s->hz));
+
+	    if (CpuFlag) {
+		total = DIFF(SystemCPU) + DIFF(UserCPU) + DIFF(IdleCPU);
+		if (total) {
+		    pv->cpu_sys = DIFF(SystemCPU) * 100 / total;
+		    pv->cpu_user = (DIFF(UserCPU) + DIFF(NiceCPU)) * 100 / total;
+		    /* really idle */
+		    pv->cpu_util = DIFF(IdleCPU) * 100 / total;
+		    pv->cpu_srv = ((DIFF(Spare4)+DIFF(Spare5)) * s->hz) /total;
+		}
+	    } else {
+		pv->cpu_sys = DIFF(SystemCPU)/s->hz;
+		pv->cpu_user = (DIFF(UserCPU) + DIFF(NiceCPU))/s->hz;
+		t = pv->cpu_sys + pv->cpu_user;
+		total = (t + DIFF(IdleCPU)/s->hz);
+		if (total)
+		    pv->cpu_util = (int) (0.5 + 100.0*t/total);
+		else
+		pv->cpu_util = 0;
+	    }
 	    pv->rpc_call = DIFF(TotalViceCalls);
 	    pv->rpc_pki = DIFF(TotalRPCPacketsReceived);
 	    pv->rpc_pko = DIFF(TotalRPCPacketsSent);
@@ -600,3 +692,40 @@ static char *ShortDiskName(char *s)
 	}
     return(sdn);
     }
+
+
+#ifdef	DEBUG
+void
+print_stats(struct ViceStatistics *stats)
+{
+    fprintf(dbg, "\n");
+    fprintf(dbg, "BootTime = %d, ", stats->BootTime);
+    fprintf(dbg, "CurrentTime = %d, ", stats->CurrentTime);
+    fprintf(dbg, "\n");
+
+    fprintf(dbg, "UserCPU = %d, ", stats->UserCPU);
+    fprintf(dbg, "SystemCPU = %d, ", stats->SystemCPU);
+    fprintf(dbg, "NiceCPU = %d, ", stats->NiceCPU);
+    fprintf(dbg, "IdleCPU = %d, ", stats->IdleCPU);
+    fprintf(dbg, "\n");
+
+    fprintf(dbg, "TotalIO = %d, ", stats->TotalIO);
+    fprintf(dbg, "ActiveVM = %d, ", stats->ActiveVM);
+    fprintf(dbg, "TotalVM = %d, ", stats->TotalVM);
+    fprintf(dbg, "ProcessSize = %d, ", stats->ProcessSize);
+    fprintf(dbg, "\n");
+
+    fprintf(dbg, "Spare1 = %d, ", stats->Spare1);
+    fprintf(dbg, "Spare2 = %d, ", stats->Spare2);
+    fprintf(dbg, "Spare3 = %d, ", stats->Spare3);
+    fprintf(dbg, "Spare4 = %d, ", stats->Spare4);
+    fprintf(dbg, "\n");
+
+    fprintf(dbg, "Spare5 = %d, ", stats->Spare5);
+    fprintf(dbg, "Spare6 = %d, ", stats->Spare6);
+    fprintf(dbg, "Spare7 = %d, ", stats->Spare7);
+    fprintf(dbg, "Spare8 = %d, ", stats->Spare8);
+    fprintf(dbg, "\n");
+    fflush(dbg);
+}
+#endif

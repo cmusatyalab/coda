@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.19 1998/11/02 16:46:46 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.20 1998/11/25 19:23:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1015,11 +1015,23 @@ static void SetVolumeStats(ViceStatistics *stats)
 	stats->Disk10.TotalBlocks = -1;
 }
 
-
-static void SetSystemStats(ViceStatistics *stats)
-{
 #ifdef __MACH__
-    struct	timeval	time;
+static struct nlist RawStats[] = 
+{
+#define CPTIME	0
+    {"_cp_time" },
+#define BOOT	1
+    {"_boottime" },
+#define DISK	2
+    {"_dk_xfer" },
+#define HZ	3
+    {"_hz" },
+#define PHZ	4
+    {"_phz" },
+    {0 },
+};
+static void SetSystemStats_mach(ViceStatistics *stats)
+{
     static	int	kmem = 0;
 /*  static	struct	mapent	*swapMap = 0;
     static	int	swapMapAddr = 0;
@@ -1033,27 +1045,6 @@ static void SetSystemStats(ViceStatistics *stats)
     long	busy[CPUSTATES];
     long	xfer[DK_NDRIVE];
     struct	timeval	bootTime;
-
-    stats->UserCPU = 0;
-    stats->SystemCPU = 0;
-    stats->NiceCPU = 0;
-    stats->IdleCPU = 0;
-    stats->BootTime = 0;
-    stats->TotalIO = 0;
-    stats->ActiveVM = 0;
-    stats->TotalVM = 0;
-    stats->ProcessSize = 0;
-    stats->Spare1 = 0;
-    stats->Spare2 = 0;
-    stats->Spare3 = 0;
-    stats->Spare4 = 0;
-    stats->Spare5 = 0;
-    stats->Spare6 = 0;
-    stats->Spare7 = 0;
-    stats->Spare8 = 0;
-    
-    TM_GetTimeOfDay(&time, 0);
-    stats->CurrentTime = time.tv_sec;
 
     if(kmem == -1) {
 	return;
@@ -1114,9 +1105,166 @@ static void SetSystemStats(ViceStatistics *stats)
     }
     stats->ProcessSize = sbrk(0) >> 10;
 */
-#endif  
 }
+#endif  
 
+#ifdef __BSD44__
+
+#ifdef	__NetBSD__
+#define KERNEL "/netbsd"
+#else	/* __FreeBSD__ */
+#define KERNEL "/kernel"
+#endif
+
+#include <kvm.h>
+#include <sys/dkstat.h>
+#include <limits.h>
+
+static struct nlist RawStats[] = 
+{
+#define CPTIME	0
+    {"_cp_time" },
+#define BOOT	1
+    {"_boottime" },
+#define HZ	2
+    {"_hz" },
+    /* if we ever cared ... */
+#define DISK	3
+    {"_disk_count" },
+#define DISKHD	4
+    {"_disklist" },
+    {0 },
+};
+
+static char kd_buf[_POSIX2_LINE_MAX];
+static void SetSystemStats_bsd44(ViceStatistics *stats)
+{
+    static	kvm_t	*kd = (kvm_t *) NULL;
+    static	int	kd_opened = 0;
+    register	int	i;
+    long	busy[CPUSTATES];
+    struct	timeval	bootTime;
+    int		dk_ndrive;
+    int		hz;
+
+    if (kd_opened == -1) {
+	return;
+    }
+    
+    if(kd_opened == 0) {
+	kd = kvm_openfiles(KERNEL, "/dev/mem", NULL, O_RDONLY, kd_buf);
+	if (kd == NULL) {
+	    LogMsg(0, SrvDebugLevel, stdout, "kvm_openfiles: %s", kd_buf);
+	    kd_opened = -1;
+	    return;
+	}
+	i = kvm_nlist(kd, RawStats);
+	if (i != 0) {
+	    LogMsg(0, SrvDebugLevel, stdout, "Could not nlist symbols from kernel: %s", kvm_geterr(kd));
+	    kd_opened = -1;
+	    return;
+	}
+	kd_opened=1;
+    }
+
+#define KVM_READ(kd, offset, buf, size) (kvm_read(kd, (u_long)RawStats[offset].n_value, buf, size) != size)
+
+    if (KVM_READ(kd, CPTIME, busy, sizeof busy)) {
+	LogMsg(0, SrvDebugLevel, stdout, "Could not read CPTIME data from kernel: %s", kvm_geterr(kd));
+	return;
+    }
+    stats->SystemCPU = busy[CP_SYS];
+    stats->UserCPU = busy[CP_USER];
+    stats->NiceCPU = busy[CP_NICE];
+    stats->IdleCPU = busy[CP_IDLE];
+
+    if (KVM_READ(kd, BOOT, &bootTime, sizeof (bootTime))) {
+	LogMsg(0, SrvDebugLevel, stdout, "Could not read BOOT data from kernel: %s", kvm_geterr(kd));
+	return;
+    }
+    stats->BootTime = bootTime.tv_sec;
+
+    if (KVM_READ(kd, HZ, &hz, sizeof (hz))) {
+	LogMsg(0, SrvDebugLevel, stdout, "Could not read HZ data from kernel: %s", kvm_geterr(kd));
+	return;
+    }
+    stats->Spare4 = hz;
+
+    if (KVM_READ(kd, DISK, &dk_ndrive, sizeof (dk_ndrive))) {
+	LogMsg(0, SrvDebugLevel, stdout, "Could not read DISK data from kernel: %s", kvm_geterr(kd));
+	return;
+    }
+#ifdef	__MACH__
+    At this point is we cared, we could follow the code in /usr/bin/cmstat/dkstats.c
+    and chase thru the chains of disks and get their statistics.  But cmon does not
+    print this; so why bother.
+#endif
+}
+#endif
+
+#ifdef __linux__
+static void SetSystemStats_linux(ViceStatistics *stats)
+{
+}
+#endif
+
+#include <sys/resource.h>
+static struct rusage resource;
+
+static void SetSystemStats(ViceStatistics *stats)
+{
+    struct timeval time;
+    struct timeval thistime;
+
+    stats->UserCPU = 0;
+    stats->SystemCPU = 0;
+    stats->NiceCPU = 0;
+    stats->IdleCPU = 0;
+    stats->BootTime = 0;
+    stats->TotalIO = 0;
+    stats->ActiveVM = 0;
+    stats->TotalVM = 0;
+    stats->ProcessSize = 0;
+    stats->Spare1 = 0;
+    stats->Spare2 = 0;
+    stats->Spare3 = 0;
+    stats->Spare4 = 0;
+    stats->Spare5 = 0;
+    stats->Spare6 = 0;
+    stats->Spare7 = 0;
+    stats->Spare8 = 0;
+    TM_GetTimeOfDay(&time, 0);
+    stats->CurrentTime = time.tv_sec;
+    
+    gettimeofday(&thistime, 0);
+    getrusage(RUSAGE_SELF, &resource);
+
+    /* leave Spare 1..3 will be used later */
+    /* keeping time 100's of seconds wraps in 497 days */
+    stats->Spare5   = resource.ru_utime.tv_sec * 100 + resource.ru_utime.tv_usec / 10000;
+    stats->Spare6   = resource.ru_stime.tv_sec * 100 + resource.ru_stime.tv_usec / 10000;
+
+#ifdef	SOMEDAY
+    stats->TotalVM = resource.ru_maxrss;
+    stats->ProcessSize = resource.ru_ixrss + resource.ru_idrss + resource.ru_isrss;
+    stats->TotalIO = resource.ru_inblock + resource.ru_oublock;
+    stats->ActiveVM = 0;
+
+    stats->Spare? = resource.ru_minflt;
+    stats->Spare? = resource.ru_majflt;
+    stats->Spare? = resource.ru_nswap;
+    stats->Spare? = resource.ru_nvcsw;
+    stats->Spare? = resource.ru_nivcsw;
+#endif
+
+#if	defined(__MACH__)
+    SetSystemStats_mach(*stats);
+#elif	defined(__BSD44__)
+    SetSystemStats_bsd44(stats);
+#elif	defined(__linux__)
+    SetSystemStats_linux(stats);
+#endif
+}
 
 static void PrintVolumeStatus(VolumeStatus *status)
 {
@@ -1178,7 +1326,6 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 {
     return(FS_ViceConnectFS(RPCid, ViceVersion, ClientId));
 }
-
 
 
 static void PrintUnusedComplaint(RPC2_Handle RPCid, RPC2_Integer Opcode, char *OldName) {
