@@ -34,7 +34,7 @@ HEADERS	     = rpc2.h se.h multi.h sftp.h rpc2.private.h errors.h errorsdefs.h
 CFLAGS := -Wall -DRPC2DEBUG -DERRORTR $(CFLAGS)
 AFLAGS := -DRPC2DEBUG $(AFLAGS)
 
-LIBS	= $(LIBLWP) $(LIBCOMPAT) $(LIBBASE) $(LIBFIXUP) $(LIBPTHREAD)
+LIBS	= $(LIBOLDLWP) $(LIBCOMPAT) $(LIBBASE) $(LIBFIXUP)
 
 HFILES	  = rpc2.h rpc2.private.h se.h cbuf.h trace.h multi.h 
 SEHFILES  = sftp.h
