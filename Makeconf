@@ -89,6 +89,9 @@ LIBBASE =$(TOPOBJ)/lib-src/base/libbase.a
 # -- LWP --
 LIBLWP = -llwp
 
+# -- READLINE --
+LIBREADLINE = -lreadline
+
 # -- RVM --
 LIBRVM= $(TOPOBJ)/rvm-src/rvm/librvm.a
 LIBRDS= $(TOPOBJ)/rvm-src/rds/librds.a	 		

@@ -8,8 +8,8 @@
 MACHINE_FLAGS := $(MACHINE_FLAGS) -D__BSD44__
 SHORTSYS      = bsd44
 LIBCOMPAT     = /usr/lib/libcompat.a
-LIBREADLINE   = /usr/pkg/lib/libreadline.a
-INCREADLINE   = -I/usr/pkg/include/readline
+#LIBREADLINE   = -lreadline
+#INCREADLINE   = -I/usr/pkg/include
 #for rvm
 LIBTHREADS    =
 #for advice_srv

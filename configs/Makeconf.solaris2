@@ -13,8 +13,8 @@ SHORTSYS      = solaris2
 LIBFIXUP      = -lsocket -lnsl 
 LIBDL	      = -ldl
 #
-LIBREADLINE   = -L/usr/local/lib -R/usr/local/lib -lreadline
-INCREADLINE   = -I/usr/local/include/readline
+#LIBREADLINE   = -L/usr/local/lib -R/usr/local/lib -lreadline
+#INCREADLINE   = -I/usr/local/include/readline
 #for rvm
 LIBTHREADS    = 
 LIBMACH       = 
@@ -27,3 +27,5 @@ LIBMACH       =
 LIBMATH       = -lm
 GUIDIR        = /usr/lib/coda
 INITDIR       = /etc/init.d
+
+LDFLAGS = -R/usr/local/lib

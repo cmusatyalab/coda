@@ -262,7 +262,7 @@ AC_DEFUN(CODA_FIND_LIBLWP,
  [AC_CACHE_CHECK(location of liblwp, coda_cv_lwppath,
   [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
    coda_cv_lwppath=none ; LIBS="-llwp"
-   for path in ${prefix} /usr /usr/local /usr/pkg ; do
+   for path in /usr/local /usr/pkg /usr ${prefix} ; do
      CFLAGS="${CFLAGS} -I${path}/include"
      LDFLAGS="${LDFLAGS} -L${path}/lib"
      AC_TRY_LINK([#include <lwp/lwp.h>], [LWP_Init(0,0,0)],
@@ -277,6 +277,32 @@ AC_DEFUN(CODA_FIND_LIBLWP,
     *)    CFLAGS="${CFLAGS} -I${coda_cv_lwppath}/include"
           CXXFLAGS="${CXXFLAGS} -I${coda_cv_lwppath}/include"
           LDFLAGS="${LDFLAGS} -L${coda_cv_lwppath}/lib"
+          ;;
+  esac])
+
+dnl ---------------------------------------------
+dnl Search for an installed readline library
+
+AC_DEFUN(CODA_FIND_READLINE,
+ [AC_CACHE_CHECK(location of libreadline, coda_readlinepath,
+  [saved_CFLAGS="${CFLAGS}" ; saved_LDFLAGS="${LDFLAGS}" ; saved_LIBS="${LIBS}"
+   coda_readlinepath=none ; LIBS="-lreadline"
+   for path in /usr/local /usr/pkg /usr ${prefix} ; do
+     CFLAGS="${CFLAGS} -I${path}/include"
+     LDFLAGS="${LDFLAGS} -L${path}/lib"
+     AC_TRY_COMPILE([#include <stdio.h>
+#include <readline/readline.h>], [readline((char *)0)],
+		 [coda_readlinepath=${path} ; break])
+   done
+   CFLAGS="${saved_CFLAGS}" ; LDFLAGS="${saved_LDFLAGS}" ; LIBS="${saved_LIBS}"
+  ])
+  case $coda_readlinepath in
+    none) AC_MSG_ERROR("Cannot determine the location of libreadline")
+          ;;
+    /usr) ;;
+    *)    CFLAGS="${CFLAGS} -I${coda_readlinepath}/include"
+          CXXFLAGS="${CXXFLAGS} -I${coda_readlinepath}/include"
+          LDFLAGS="${LDFLAGS} -L${coda_readlinepath}/lib"
           ;;
   esac])
 
