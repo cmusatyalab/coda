@@ -18,11 +18,16 @@ CACHESIZE=40000
 # SERVERS=testserver.coda.cs.cmu.edu
 
 CFSDEV=/dev/cfs0
-if [ x`uname` = xLinux ]; then
-  CFSMAJOR=67
-else
-  CFSMAJOR=46
-fi
+case `uname -sr` in
+	"NetBSD 1.2" )
+		CFSMAJOR=46 ;;
+	"NetBSD 1.3" )
+		CFSMAJOR=51 ;;
+	"FreeBSD 2.2.5-RELEASE" )
+		CFSMAJOR=20 ;;
+	*)
+		CFSMAJOR=67 ;;
+esac
 
 CFSMINOR=0
 CODAROOT=/coda
