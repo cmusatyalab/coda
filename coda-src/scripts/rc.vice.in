@@ -13,13 +13,8 @@ VICESRV=${VICE}/srv
 
 OSTYPE=`uname`
 
-if [ x${OSTYPE} = xNetBSD ]; then
-	CODABASE=/usr/pkg
-	PATH=/sbin:/usr/sbin:/usr/pkg/sbin:$PATH
-else	# Assume FreeBSD...
-	CODABASE=/usr/local
-	PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
-fi
+CODABASE=@prefix@
+PATH=/sbin:/usr/sbin:@prefix@/sbin:$PATH
 export PATH
 
 AUTH2=${CODABASE}/sbin/auth2
