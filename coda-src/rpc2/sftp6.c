@@ -50,6 +50,9 @@ Pittsburgh, PA.
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+#ifdef sun
+#include <sys/stream.h>
+#endif
 #include <sys/socketvar.h>
 #include <netinet/in.h>
 #include <netdb.h>

@@ -43,6 +43,9 @@ Pittsburgh, PA.
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#ifdef sun
+#include <sys/stream.h>
+#endif 
 #include <sys/socketvar.h>
 #include <sys/ioctl.h>
 #include <net/if.h>

@@ -505,7 +505,7 @@ int RPC2_GetLastObs(RPC2_Handle handle, struct timeval *tv)
     return(RPC2_SUCCESS);
 }
 
-#if defined(DJGPP) || defined(__CYGWIN32__) 
+#if defined(DJGPP) || defined(__CYGWIN32__) || defined(sun)
 int inet_aton(const char *str, struct in_addr *out)
 {
         unsigned long l;
