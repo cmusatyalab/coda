@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.1 1996/11/22 19:48:02 braam Exp braam $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-raiff/coda-objs/tools/RCS/alphaci,v 1.4 1996/12/06 14:15:18 raiff Exp raiff $";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.1 1996/11/22 19:48:02 braam Exp braam $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-raiff/coda-objs/tools/RCS/alphaci,v 1.4 1996/12/06 14:15:18 raiff Exp raiff $";
 #endif /*_BLURB_*/
 
 #############################################################################
@@ -154,7 +154,8 @@ set MODULE = `basename $MODULE`
 # Define files to be ignored
 set IGNORE_EXTNS = "CKP BAK"
 set IGNORE_TRAILERS = "~"
-set IGNORE_FULLNAMES = "RCS RCSMSG RCSMSG.old core"
+# Makefile and Makeconf* are not to be checked in, only check in the ".in" versions.
+set IGNORE_FULLNAMES = "RCS RCSMSG RCSMSG.old core Makefile Makeconf.local Makeconf.setup config.log config.cache config.status"
 
 # Obtain file names and decide which must be checked in
 set ALLFILES = "*"
@@ -228,12 +229,12 @@ if ($DOCHECKIN) then
   echo "  "
   echo "Checking in files into RCS ...."
   echo "  "
-  rcsci -u $CHECKIN_FILES < RCSMSG
+  ci -u $CHECKIN_FILES < RCSMSG
 
   echo "  "
-  echo "Checking out files into $SRCDIR/$MODULE"
+  echo "Checking out files into $SRCDIR"
   echo "  "
-  (cd $SRCDIR/$MODULE; rcsco $CHECKIN_FILES)
+  (cd $SRCDIR; co $CHECKIN_FILES)
 else
   echo "No files to checkin into RCS"
 endif
@@ -243,7 +244,7 @@ set CC2HTML = "/coda/project/coda/alpha/bin/c++2html"
 set HTMLDIR = "/coda/project/coda/alpha/coda-internals/src-html"
 set HTML_FILES = "Updated HTML files : "
 foreach i ($CHECKIN_FILES)
-	/bin/grep -l BEGIN_HTML $i > /dev/null
+	grep -l BEGIN_HTML $i > /dev/null
 	# Check whether HTML documents are needed for $i
 	if (! $status) then
 	   if (!(-d ${HTMLDIR}/$MODULE)) then 
@@ -268,9 +269,20 @@ if (-e RCSMSG) mv RCSMSG RCSMSG.old
 # This part is pretty CMU-SCS-specific and non-portable
 echo "Constructing message for changelog post ..."
 set HOST = `hostname`
-set CPUTYPE = `/etc/machine`
+if (-x /etc/machine) then
+  # Mach specific, once we drop Mach, we can go to uname on all platforms
+  set CPUTYPE = `/etc/machine`
+else
+  set CPUTYPE = `uname -m`
+endif
 
-echo "Posted by alphaci from $HOST" > /tmp/$$
+set OS=`uname`
+
+echo "Newsgroups: cmu.cs.proj.coda.changelog" > /tmp/$$
+echo "Subject: Installed $MODULE for ${CPUTYPE}_${OS}" >> /tmp/$$
+# Do not remove the following line.
+echo "" >> /tmp/$$		
+echo "Posted by alphaci from $HOST" >> /tmp/$$
 if ($DOCHECKIN) then
   echo "Files checked into RCS:     $CHECKIN_FILES" >> /tmp/$$
   echo "$HTML_FILES" >> /tmp/$$
@@ -280,5 +292,23 @@ else
   echo "No files checked into RCS" >> /tmp/$$
 endif
 
-post - -subject "Installed $MODULE for $CPUTYPE" cmu.cs.proj.coda.changelog < /tmp/$$
+# Noone puts inews in the same place.
+if (-e /usr/misc/bin/inews) then
+  set INEWS = /usr/misc/bin/inews
+else if (-e /usr/lib/news/inews) then
+  set INEWS = /usr/lib/news/inews
+else if (-e /usr/local/bin/inews) then
+  set INEWS = /usr/local/bin/inews
+else
+  # Couldn't find inews
+  cp /tmp/$$ /tmp/post.$$
+
+  echo "WARNING:  'inews' not found"
+  echo "WARNING:  No changelog post has been made"
+  echo "WARNING:  The post is in /tmp/post.$$"
+  echo "WARNING:  Changes have been checked in to rcs"
+endif
+
+${INEWS} -h /tmp/$$
+
 rm /tmp/$$
