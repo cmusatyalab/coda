@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.15 1998/08/26 21:24:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.16 1998/09/15 20:14:05 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,11 +75,6 @@ extern "C" {
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
-
-/*  *****  New error codes.  *****  */
-#if defined(__linux__) || defined(__BSD44__)
-#define ESUCCESS	0	/* MACH'ism, it appears */
-#endif /* __linux__ ||__BSD44__ */
 
 #define	EMULTRSLTS	ETOOMANYREFS	    /* external */
 #define	ESYNRESOLVE	155		    /* internal */

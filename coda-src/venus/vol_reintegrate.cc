@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.14 1998/08/26 21:24:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.15 1998/09/23 16:56:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -317,7 +317,7 @@ CheckResult:
 	    if (locked) CML.UnLockObjs(tid);
 
 	    switch(code) {
-	    case ESUCCESS:
+	    case 0 : 
 	    case EALREADY:
 		/* Commit logged mutations upon successful replay at server. */
 		CML.IncCommit(&UpdateSet, tid);
@@ -516,7 +516,7 @@ CheckResult:
      * out from under us.
      */
     switch (code) {
-    case ESUCCESS:
+    case 0:
     case EALREADY:
 	if (m->DoneSending()) {
 	    /* Commit logged mutations upon successful replay at server. */

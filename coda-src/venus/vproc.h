@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.20 1998/07/01 10:35:29 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.21 1998/09/23 16:56:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -345,10 +345,6 @@ extern long FidToNodeid(ViceFid *);
    too convoluted (Satya, 8/14/96) */
 extern int vnode_allocs;
 extern int vnode_deallocs;
-
-
-/* probably not used */
-#define   VTEXT           0x0002
 
 
 /* Venus cnodes are a small placeholder structure to pass arguments
