@@ -26,4 +26,4 @@ MAINTAINERCLEANFILES = AUTHORS ChangeLog Makefile.in README aclocal.m4 \
     ltconfig ltmain.sh missing mkinstalldirs stamp-h.in
 
 dist-hook:
-	if [ -x /afs/cs ] ; then cp /afs/cs/project/coda-src/cvs/CVSROOT/ChangeLog.rvm ChangeLog ; fi
+	if [ -x /afs/cs.cmu.edu ] ; then cp -f /afs/cs.cmu.edu/project/coda-src/cvs/CVSROOT/ChangeLog.rvm $(distdir)/ChangeLog ; fi

@@ -1,2 +1,2 @@
-usr/sbin/rvmutl
-usr/sbin/rdsinit
+debian/tmp/usr/sbin/rvmutl
+debian/tmp/usr/sbin/rdsinit
