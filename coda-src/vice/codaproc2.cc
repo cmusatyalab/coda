@@ -104,14 +104,14 @@ extern "C" {
 #endif
 
 #include <rpc2/multi.h>
-extern void unpack(ARG *, PARM *, PARM **, long);
-extern void unpack_struct(ARG *, PARM **, PARM **, long);
+extern void unpack(ARG *, PARM *, PARM **, char *_end, long);
+extern void unpack_struct(ARG *, PARM **, PARM **, char *_end, long);
 
 #ifdef __cplusplus
 }
 #endif
 
-static void RLE_Unpack(PARM **, ARG * ...);
+static void RLE_Unpack(PARM **, char *_end, ARG * ...);
 
 
 /*  *****  Reintegration Log  *****  */
@@ -558,6 +558,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	*volptr = 0;
 	char *rfile = NULL;
 	PARM *_ptr = 0;
+	char *_end;
 	int index;
 	char *OldName = NULL;
 	char *NewName = NULL;
@@ -636,7 +637,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
     }
 
     /* Allocate/unpack entries and append them to the RL. */
-    for (_ptr = (PARM *)rfile, index = 0; (char *)_ptr - rfile < rlen; index++) {
+    _end = rfile + rlen;
+    for (_ptr = (PARM *)rfile, index = 0; (char *)_ptr < _end; index++) {
 	RPC2_CountedBS DummyCBS;
 	DummyCBS.SeqLen = 0;
 	DummyCBS.SeqBody = 0;
@@ -668,7 +670,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	switch(r->opcode) {
 	    case OLDCML_Create_OP:
-		RLE_Unpack(&_ptr, OLDCML_Create_PTR, &r->Fid[0],
+		RLE_Unpack(&_ptr, _end, OLDCML_Create_PTR, &r->Fid[0],
 			   &DummyFid, NewName, &Status,
                            &r->Fid[1], &DirStatus, &DummyAllocHost,
 			   &r->sid, &DummyCBS);
@@ -686,7 +688,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_Link_OP:
-		RLE_Unpack(&_ptr, OLDCML_Link_PTR, &r->Fid[0], NewName,
+		RLE_Unpack(&_ptr, _end, OLDCML_Link_PTR, &r->Fid[0], NewName,
 			   &r->Fid[1], &Status, &DirStatus, &DummyPH,
                            &r->sid, &DummyCBS);
 
@@ -702,7 +704,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_MakeDir_OP:
-		RLE_Unpack(&_ptr, OLDCML_MakeDir_PTR, &r->Fid[0],
+		RLE_Unpack(&_ptr, _end, OLDCML_MakeDir_PTR, &r->Fid[0],
 			   NewName, &Status, &r->Fid[1], &DirStatus,
 			   &DummyAllocHost, &r->sid, &DummyCBS);
 
@@ -719,7 +721,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_SymLink_OP:
-		RLE_Unpack(&_ptr, OLDCML_SymLink_PTR, &r->Fid[0],
+		RLE_Unpack(&_ptr, _end, OLDCML_SymLink_PTR, &r->Fid[0],
 			   NewName, OldName,
 			   &r->Fid[1], &Status, &DirStatus,
                            &DummyAllocHost, &r->sid, &DummyCBS);
@@ -747,7 +749,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_Remove_OP:
-		RLE_Unpack(&_ptr, OLDCML_Remove_PTR, &r->Fid[0], OldName,
+		RLE_Unpack(&_ptr, _end, OLDCML_Remove_PTR, &r->Fid[0], OldName,
 			   &DirStatus, &Status, &DummyPH, &r->sid, &DummyCBS);
 
 		r->Name[0] = strdup(OldName);
@@ -762,7 +764,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_RemoveDir_OP:
-		RLE_Unpack(&_ptr, OLDCML_RemoveDir_PTR, &r->Fid[0], OldName,
+		RLE_Unpack(&_ptr, _end, OLDCML_RemoveDir_PTR, &r->Fid[0], OldName,
 			   &DirStatus, &Status, &DummyPH, &r->sid, &DummyCBS);
 
 		r->Name[0] = strdup(OldName);
@@ -780,7 +782,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	    	OLDCML_StoreType Request;
 	    	RPC2_Integer Length;
 	    	RPC2_Unsigned Mask;
-		RLE_Unpack(&_ptr, OLDCML_NewStore_PTR, &r->Fid[0],
+		RLE_Unpack(&_ptr, _end, OLDCML_NewStore_PTR, &r->Fid[0],
 			   &Request, &DummyCBS, &Status, &Length, &Mask,
 			   &DummyPH, &r->sid, &DummyCBS, 0);
 
@@ -821,7 +823,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case OLDCML_Rename_OP:
-		RLE_Unpack(&_ptr, OLDCML_Rename_PTR, &r->Fid[0], OldName,
+		RLE_Unpack(&_ptr, _end, OLDCML_Rename_PTR, &r->Fid[0], OldName,
 			   &r->Fid[1], NewName, &OldDirStatus,
 			   &DirStatus, &Status, &DummyStatus, &DummyPH,
                            &r->sid, &DummyCBS);
@@ -849,7 +851,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
             /* new, more efficient CML packing */
 
 	    case CML_Create_OP:
-		RLE_Unpack(&_ptr, CML_Create_PTR, &r->Fid[0], &r->VV,
+		RLE_Unpack(&_ptr, _end, CML_Create_PTR, &r->Fid[0], &r->VV,
 			   NewName, &r->u.u_create.Owner,
 			   &r->u.u_create.Mode, &r->Fid[1], &r->sid);
 
@@ -861,7 +863,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
                 break;
 
 	    case CML_Link_OP:
-		RLE_Unpack(&_ptr, CML_Link_PTR, &r->Fid[0], &r->VV[0],
+		RLE_Unpack(&_ptr, _end, CML_Link_PTR, &r->Fid[0], &r->VV[0],
 			   NewName, &r->Fid[1], &r->VV[1], &r->sid);
 
 		r->Name[0] = strdup(NewName);
@@ -872,7 +874,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case CML_MakeDir_OP:
-		RLE_Unpack(&_ptr, CML_MakeDir_PTR, &r->Fid[0], &r->VV[0],
+		RLE_Unpack(&_ptr, _end, CML_MakeDir_PTR, &r->Fid[0], &r->VV[0],
 			   NewName, &r->Fid[1], &r->u.u_mkdir.Owner,
                            &r->u.u_mkdir.Mode, &r->sid);
 
@@ -884,7 +886,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case CML_SymLink_OP:
-		RLE_Unpack(&_ptr, CML_SymLink_PTR, &r->Fid[0],
+		RLE_Unpack(&_ptr, _end, CML_SymLink_PTR, &r->Fid[0],
                            &r->VV[0], NewName, OldName, &r->Fid[1],
                            &r->u.u_symlink.Owner, &r->u.u_symlink.Mode,
                            &r->sid);
@@ -907,7 +909,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case CML_Remove_OP:
-		RLE_Unpack(&_ptr, CML_Remove_PTR, &r->Fid[0],
+		RLE_Unpack(&_ptr, _end, CML_Remove_PTR, &r->Fid[0],
 			   &r->VV[0], OldName, &r->VV[1], &r->sid);
 
 		r->Name[0] = strdup(OldName);
@@ -918,7 +920,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case CML_RemoveDir_OP:
-		RLE_Unpack(&_ptr, CML_RemoveDir_PTR, &r->Fid[0], &r->VV[0],
+		RLE_Unpack(&_ptr, _end, CML_RemoveDir_PTR, &r->Fid[0], &r->VV[0],
 			   OldName, &r->VV[1], &r->sid);
 
 		r->Name[0] = strdup(OldName);
@@ -929,7 +931,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case CML_Store_OP:
-		RLE_Unpack(&_ptr, CML_Store_PTR, &r->Fid[0],
+		RLE_Unpack(&_ptr, _end, CML_Store_PTR, &r->Fid[0],
 			   &r->VV[0], &r->u.u_store.Length,
 			   &r->sid);
 		r->u.u_store.UntranslatedFid = r->Fid[0];
@@ -937,22 +939,22 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		break;
 
 	    case CML_Utimes_OP:
-		RLE_Unpack(&_ptr, CML_Utimes_PTR, &r->Fid[0], &r->VV[0],
+		RLE_Unpack(&_ptr, _end, CML_Utimes_PTR, &r->Fid[0], &r->VV[0],
 			   &r->u.u_utimes.Date, &r->sid);
 		break;
 
 	    case CML_Chmod_OP:
-		RLE_Unpack(&_ptr, CML_Chmod_PTR, &r->Fid[0], &r->VV[0],
+		RLE_Unpack(&_ptr, _end, CML_Chmod_PTR, &r->Fid[0], &r->VV[0],
 			   &r->u.u_chmod.Mode, &r->sid);
 		break;
 
 	    case CML_Chown_OP:
-		RLE_Unpack(&_ptr, CML_Chown_PTR, &r->Fid[0], &r->VV[0],
+		RLE_Unpack(&_ptr, _end, CML_Chown_PTR, &r->Fid[0], &r->VV[0],
 			   &r->u.u_chown.Owner, &r->sid);
 		break;
 
 	    case CML_Rename_OP:
-                RLE_Unpack(&_ptr, CML_Rename_PTR,
+                RLE_Unpack(&_ptr, _end, CML_Rename_PTR,
 			   &r->Fid[0], &r->VV[0], OldName,
                            &r->Fid[1], &r->VV[1], NewName,
 			   &r->VV[2], &r->sid);
@@ -2440,7 +2442,7 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 
 /* Unpack a ReintegrationLog Entry. */
 /* Patterned after code in MRPC_MakeMulti(). */
-static void RLE_Unpack(PARM **ptr, ARG *ArgTypes ...) 
+static void RLE_Unpack(PARM **ptr, char *_end, ARG *ArgTypes ...) 
 {
 	SLog(100,  "RLE_Unpack: ptr = %x, ArgTypes = %x", ptr, ArgTypes);
 	
@@ -2474,14 +2476,14 @@ static void RLE_Unpack(PARM **ptr, ARG *ArgTypes ...)
 		
 		if (a_types->type == RPC2_STRUCT_TAG) {
 			PARM *str = (PARM *)xargs->structpp[0];
-			unpack_struct(a_types, &str, (PARM **)ptr, 0);
+			unpack_struct(a_types, &str, (PARM **)ptr, _end, 0);
 		}
 		else {
 			if (a_types->type == RPC2_STRING_TAG)
 				/* Temporary!  Fix an "extra dereference" bug in unpack!  -JJK */
-				unpack(a_types, (PARM *)&xargs, (PARM **)ptr, 0);
+				unpack(a_types, (PARM *)&xargs, (PARM **)ptr, _end, 0);
 			else
-				unpack(a_types, xargs, (PARM **)ptr, 0);
+				unpack(a_types, xargs, (PARM **)ptr, _end, 0);
 		}
 	}
 	
