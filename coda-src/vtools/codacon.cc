@@ -97,7 +97,7 @@ int Bind(const char *service, const char *host) {
         memcpy(hp->h_addr, (char *)&server.sin_addr, hp->h_length);
 	server.sin_family = hp->h_addrtype;
     } else {
-	server.sin_addr.s_addr = 0x7f000001;
+	server.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	server.sin_family = AF_INET;
     }
 
