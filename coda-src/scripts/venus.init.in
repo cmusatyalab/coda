@@ -7,7 +7,7 @@
 # Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
 #
 
-# chkconfig: 345 95 01
+# chkconfig: 345 97 01
 # description: The Coda cache manager.
 
 prefix=@prefix@
