@@ -16,7 +16,7 @@ AC_PATH_PROG(DF, df, "")
 AC_PATH_PROG(GREP, grep, "")
 AC_PATH_PROG(HOSTNAME, hostname, "")
 AC_PATH_PROG(PERL, perl, "")
-AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1], "")
+AC_PATH_PROGS(TIXWISH, [tixwish tixwish-tk4.1 tixwish4.1.8.0], "/usr/bin/tixwish")
 
 AC_CHECK_LIB(termcap, main)
 
