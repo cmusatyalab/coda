@@ -40,7 +40,7 @@ static void coda_fill_inode(struct inode *inode, struct coda_vattr *attr)
 	else if (S_ISSOCK(inode->i_mode))
 		inode->i_op = NULL;
         else {
-                printk ("coda_read_inode: what's this? i_mode = %o\n", 
+                printk ("coda_fill_inode: what's this? i_mode = %o\n", 
 			inode->i_mode);
                 inode->i_op = NULL;
         }
@@ -68,7 +68,8 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
 
 	error = venus_getattr(sb, fid, &attr);
 	if ( error ) {
-	    CDEBUG(D_CNODE, "coda_cnode_make: coda_getvattr returned %d for %s.\n", 
+	    CDEBUG(D_CNODE, 
+		   "coda_cnode_make: coda_getvattr returned %d for %s.\n", 
 		   error, coda_f2s(fid));
 	    *inode = NULL;
 	    return error;

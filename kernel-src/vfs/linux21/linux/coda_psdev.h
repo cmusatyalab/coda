@@ -67,7 +67,8 @@ int venus_setattr(struct super_block *, struct ViceFid *,
 int venus_lookup(struct super_block *sb, struct ViceFid *fid, 
 		    const char *name, int length, int *type, 
 		    struct ViceFid *resfid);
-int venus_release(struct super_block *sb, struct ViceFid *fid, int flags);
+int venus_release(struct super_block *sb, struct ViceFid *fid, int flags,
+		  struct coda_cred *);
 int venus_open(struct super_block *sb, struct ViceFid *fid,
 		  int flags, ino_t *ino, dev_t *dev);
 int venus_mkdir(struct super_block *sb, struct ViceFid *dirfid, 

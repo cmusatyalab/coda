@@ -119,13 +119,6 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 	size_t length = entry->d_name.len;
 	
         ENTRY;
-        CDEBUG(D_INODE, "name %s, len %d in ino %ld\n", 
-	       name, length, dir->i_ino);
-
-	if (!dir || !S_ISDIR(dir->i_mode)) {
-		printk("coda_lookup: inode is NULL or not a directory\n");
-		return -ENOTDIR;
-	}
 
 	dircnp = ITOC(dir);
 
@@ -134,9 +127,16 @@ static int coda_lookup(struct inode *dir, struct dentry *entry)
 		       coda_f2s(&dircnp->c_fid), length, name);
 		return -ENAMETOOLONG;
 	}
-	
-	CDEBUG(D_INODE, "lookup: %*s in %s\n", length, name, 
-	       coda_f2s(&dircnp->c_fid));
+
+
+	if (!dir || !S_ISDIR(dir->i_mode)) {
+		printk("coda_lookup: inode is NULL or not a directory\n");
+		return -ENOTDIR;
+	}
+
+
+        CDEBUG(D_INODE, "name %s, len %d in ino %ld, fid %s\n", 
+	       name, length, dir->i_ino, coda_f2s(&dircnp->c_fid));
 
         /* control object, create inode on the fly */
         if (coda_isroot(dir) && coda_iscontrol(name, length)) {
@@ -688,14 +688,16 @@ int coda_open(struct inode *i, struct file *f)
         struct inode *cont_inode = NULL;
         unsigned short flags = f->f_flags & (~O_EXCL);
 	unsigned short coda_flags = coda_flags_to_cflags(flags);
+	struct coda_cred *cred;
 
         ENTRY;
 	coda_vfs_stat.open++;
-        
+
         CDEBUG(D_SPECIAL, "OPEN inode number: %ld, count %d, flags %o.\n", 
 	       f->f_dentry->d_inode->i_ino, f->f_dentry->d_count, flags);
 
         cnp = ITOC(i);
+
 
 	error = venus_open(i->i_sb, &(cnp->c_fid), coda_flags, &ino, &dev); 
 	if (error) {
@@ -714,6 +716,10 @@ int coda_open(struct inode *i, struct file *f)
 			iput(cont_inode);
 		return error;
 	}
+
+	CODA_ALLOC(cred, struct coda_cred *, sizeof(*cred));
+	coda_load_creds(cred);
+	f->private_data = cred;
 
         if (  cnp->c_ovp ) {
 		iput(cnp->c_ovp);
@@ -737,9 +743,12 @@ int coda_release(struct inode *i, struct file *f)
         int error;
         unsigned short flags = (f->f_flags) & (~O_EXCL);
 	unsigned short cflags = coda_flags_to_cflags(flags);
+	struct coda_cred *cred;
 
         ENTRY;
 	coda_vfs_stat.release++;
+
+	cred = (struct coda_cred *)f->private_data;
 
         cnp =ITOC(i);
         CHECK_CNODE(cnp);
@@ -761,7 +770,10 @@ int coda_release(struct inode *i, struct file *f)
                 --cnp->c_owrite;
         }
 
-	error = venus_release(i->i_sb, &(cnp->c_fid), cflags);
+	error = venus_release(i->i_sb, &(cnp->c_fid), cflags, cred);
+
+	CODA_FREE(cred, sizeof(*cred));
+	f->private_data = NULL;
 
         CDEBUG(D_FILE, "coda_release: result: %d\n", error);
         return error;

@@ -168,7 +168,8 @@ int venus_lookup(struct super_block *sb, struct ViceFid *fid,
 }
 
 
-int venus_release(struct super_block *sb, struct ViceFid *fid, int flags)
+int venus_release(struct super_block *sb, struct ViceFid *fid, int flags,
+		  struct coda_cred *cred)
 {
         union inputArgs *inp;
         union outputArgs *outp;
@@ -176,7 +177,12 @@ int venus_release(struct super_block *sb, struct ViceFid *fid, int flags)
 	
 	insize = SIZE(close);
 	UPARG(CFS_CLOSE);
-
+	
+	if ( cred ) {
+		memcpy(&(inp->ih.cred), cred, sizeof(*cred));
+	} else 
+		printk("CODA: close without valid file creds.\n");
+	
         inp->cfs_close.VFid = *fid;
         inp->cfs_close.flags = flags;
 

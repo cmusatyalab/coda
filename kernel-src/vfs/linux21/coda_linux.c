@@ -144,6 +144,11 @@ unsigned short coda_flags_to_cflags(unsigned short flags)
 		coda_flags |= C_O_TRUNC;
 	}
 
+	if ( flags & O_CREAT )  { 
+		CDEBUG(D_FILE, "--> C_O_CREAT added\n");
+		coda_flags |= C_O_CREAT;
+	}
+
 	if ( flags & O_EXCL ) {
 		coda_flags |= C_O_EXCL;
 		CDEBUG(D_FILE, "--> C_O_EXCL added\n");
