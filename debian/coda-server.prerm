@@ -17,8 +17,8 @@ set -e
 
 case "$1" in
     remove|upgrade|deconfigure)
-	/etc/init.d/auth2.init stop
-	/etc/init.d/codasrv.init stop
+	/etc/init.d/auth2.init stop >&2
+	/etc/init.d/codasrv.init stop >&2
     ;;
 
     failed-upgrade)
