@@ -21,22 +21,25 @@ Coda are listed in the file CREDITS.
 #include "coda_string.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "codaconf.h"
 #include "coda_config.h"
 
 /* some hardcoded options, probably both undef'd for normal use      */
 /* CONFDEBUG: annoying debugging related messages                    */
-/* CONFWRITE: write unfound config entries to the last-read conffile */
 #undef CONFDEBUG
 #undef CONFWRITE
 
 /* default configuration file search path used by codaconf_init */
-const char *default_codaconfpath="SYSCONFDIR:/usr/local/etc/coda:/etc/coda";
+static const char *default_codaconfpath =
+	SYSCONFDIR ":/usr/local/etc/coda:/etc/coda";
 
 /* buffer to read lines of config data */
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
-static char conffile[MAXPATHLEN];
+static char conffile[MAXPATHLEN+1];
+
+/* this global is exported to surpress conf_init verbosity */
 int codaconf_quiet = 0;
 
 /* nobody outside of this file needs to be exposed to these structures. */
@@ -73,8 +76,8 @@ static item_t conf_add(string_t name, string_t value)
 /* Return the value associated with a name. */
 /* If value is specified and replace is true and the found entry is
  * replaced with the new value. If a value is given, the entry is not
- * found, and CONFWRITE is defined, the name=value pair is appended to
- * the last read configuration file. */
+ * found, and CONFWRITE is defined, the name=value pair is appended
+ * to the last read configuration file. */
 static item_t conf_find(string_t name, string_t value, int replace)
 {
     item_t cp;
@@ -97,7 +100,8 @@ static item_t conf_find(string_t name, string_t value, int replace)
 
 #ifdef CONFWRITE
     /* append the new value to the last read configuration file, but only if
-     * we are being called from conf_lookup (i.e. replace is false) */
+     * we are being called from conf_lookup (i.e. replace is false) and a
+     * default value was given */
     if (!replace) {
         conf = fopen(conffile, "a");
         if (conf) {
@@ -108,7 +112,7 @@ static item_t conf_find(string_t name, string_t value, int replace)
             fclose(conf);
         }
     }
-#endif /* CONFWRITE */
+#endif
 
     return(conf_add(name, value));
 }
@@ -177,16 +181,17 @@ int conf_init(char *cf)
     string_t name, value;
     item_t item;
 
-    /* remember the last read configuration file */
-    strcpy(conffile, cf);
-
     conf = fopen(cf, "r");
     if (!conf) {
         if (!codaconf_quiet)
             fprintf(stderr, "Cannot read configuration file '%s', "
-                    "will use default values.\n", conffile);
+                    "will use default values.\n", cf);
         return(-1);
     }
+
+    /* remember the last read configuration file */
+    if (cf != conffile)
+	strcpy(conffile, cf);
     
     while(fgets(line, MAXLINELEN, conf)) {
         lineno++;
@@ -209,52 +214,58 @@ int conf_init(char *cf)
     return(0);
 }
 
-/* codaconf_init searches all directories specified by the environment variable
- * CODACONFPATH for 'basename'.conf and calls conf_init on the first file found.
+/* codaconf_file searches all directories specified by the environment variable
+ * CODACONFPATH for 'confname'
  *
  * If the CODACONFPATH is not present the search defaults to,
  *	@sysconfdir@:/usr/local/etc/coda:/etc/coda
  */
-int codaconf_init(const char *basename)
+char *codaconf_file(const char *confname)
 {
     const char *codaconfpath, *end;
-    char conffile[MAXPATHLEN+1];
-    int found = 0, pathlen, baselen = strlen(basename);
-
-    int quiet_saved = codaconf_quiet; codaconf_quiet = 1;
+    int pathlen, filelen = strlen(confname);
 
     codaconfpath = getenv("CODACONFPATH");
     if (!codaconfpath)
 	codaconfpath = default_codaconfpath;
 
-    while(!found) {
+    while(1) {
 	end = strchr(codaconfpath, ':');
-	if (!end)
-	    pathlen = strlen(codaconfpath);
-	else
-	    pathlen = end - codaconfpath;
+	if (!end) pathlen = strlen(codaconfpath);
+	else	  pathlen = end - codaconfpath;
 
-	if (pathlen + baselen + 7 <= MAXPATHLEN) {
+	/* don't overflow the buffer */
+	if ((pathlen + filelen + 1) <= MAXPATHLEN) {
 	    memcpy(conffile, codaconfpath, pathlen);
 
+	    /* don't append an additional one if the path ends in a '/' */
 	    if (conffile[pathlen-1] != '/')
 		conffile[pathlen++] = '/';
 
-	    memcpy(conffile + pathlen, basename, baselen);
-	    memcpy(conffile + pathlen + baselen, ".conf", 6);
+	    strcpy(conffile + pathlen, confname);
 
-	    /* we're done as soon as we managed to load a configuration file */
-	    if (conf_init(conffile) != -1)
-		found = 1;
+	    /* we should be done as soon as we find a readable file */
+	    if (access(conffile, R_OK) == 0)
+		return conffile;
 	}
 
 	if (!end) break;
 	codaconfpath = end + 1;
     }
-    codaconf_quiet = quiet_saved;
-    return found ? 0 : -1;
+    return NULL;
 }
 
+/* codaconf_init tries to load the first file that matches 'confname' in
+ * CODACONFPATH */
+int codaconf_init(const char *confname)
+{
+    char *cf = codaconf_file(confname);
+
+    if (!cf || conf_init(cf) != 0)
+	return -1;
+
+    return 0;
+}
 
 /* conf_lookup returns the value associated with name, or NULL on error. */
 char *conf_lookup(char *name, char *defaultvalue)

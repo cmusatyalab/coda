@@ -99,9 +99,9 @@ void
 ReadConfigFile()
 {
     /* Load configuration file to get vice dir. */
-    codaconf_init("server");
+    codaconf_init("server.conf");
 
-    CONF_STR(vicedir,		"vicedir",	   "/vice");
+    CONF_STR(vicedir, "vicedir", "/vice");
 
     vice_dir_init(vicedir, 0);
 }

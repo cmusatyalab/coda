@@ -222,7 +222,7 @@ main(int argc, char *argv[]) {
     olist Disable;
     ParseHoardCommands(fp, Clear, Add, Delete, List, Walk, Verify, Enable, Disable);
 
-    codaconf_init("venus");
+    codaconf_init("venus.conf");
     CONF_STR(mountpoint, "mountpoint", "/coda");
 
     /* Execute each list.  N.B. The execution order is significant. */

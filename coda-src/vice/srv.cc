@@ -1327,14 +1327,11 @@ static int ReadConfigFile(void)
     int  zombify = 0;
     int  numservers = 0;
 
-    /* don't complain if config files are missing */
-    codaconf_quiet = 1;
-
     /* Load configuration file. */
-    codaconf_init("server");
+    codaconf_init("server.conf");
 
     /* Load server specific configuration file */
-    sprintf (confname, "server_%d", ServerNumber);
+    sprintf (confname, "server_%d.conf", ServerNumber);
     multconf = codaconf_init(confname);
 
     /* srv.cc defined values ... */

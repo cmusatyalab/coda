@@ -26,13 +26,16 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 LOGSCRIPTS = # logbandwidth logcmls logreintegration logprogress
-ifeq ($(SYS),cygwin32)
 EXECUTABLES = codacon cfs hoard spy coda_replay
-else
-EXECUTABLES = cmon codacon cfs hoard spy coda_replay $(LOGSCRIPTS)
+ifneq ($(SYS),cygwin32)
+EXECUTABLES += cmon $(LOGSCRIPTS)
 endif
 
-CBINS       = $(EXECUTABLES)
+CBINS  = $(EXECUTABLES)
+CSBINS = codaconfedit
+SSBINS = codaconfedit
+
+EXECUTABLES += codaconfedit
 
 CMON_LIBS   = $(LIBVICEDEP) $(LIBBASE)
 CFS_LIBS    = $(LIBKERNDEP) $(LIBUTIL) $(LIBBASE)
@@ -46,8 +49,11 @@ include $(TOPDIR)/configs/Makerules
 cmon: cmon.o $(CMON_LIBS)
 	$(CXX) $(LDFLAGS) cmon.o $(CMON_LIBS) $(LIBRPC2) $(LIBSE) $(LIBLWP) $(LIBCOMPAT) $(STD_LIBS) -o cmon
 
-codacon:    codacon.o
+codacon: codacon.o $(LIBBASE)
 	$(CXX) $(LDFLAGS) codacon.o $(LIBBASE) $(LIBS) -o codacon
+
+codaconfedit: codaconfedit.o $(LIBBASE)
+	$(CXX) $(LDFLAGS) codaconfedit.o $(LIBBASE) $(LIBS) -o codaconfedit
 
 cfs:  cfs.o $(CFS_LIBS)
 	$(CXX) $(LDFLAGS) cfs.o $(CFS_LIBS) $(STD_LIBS) -o cfs
@@ -55,7 +61,7 @@ cfs:  cfs.o $(CFS_LIBS)
 hoard: hoard.o $(HOARD_LIBS)
 	$(CXX) $(LDFLAGS) hoard.o $(HOARD_LIBS) $(STD_LIBS) -o hoard
 
-spy: spy.o
+spy: spy.o $(LIBBASE)
 	$(CXX) $(LDFLAGS) spy.o $(LIBBASE) $(LIBS) -o spy
 
 coda_replay: replay.o

@@ -25,13 +25,13 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf
 
-VENUS-SCRIPTS = vutil volmunge venus-setup codaconfedit coda-setup-ports
+VENUS-SCRIPTS = vutil volmunge venus-setup coda-setup-ports
 
 VOL-SCRIPTS	= createvol_rep purgevol purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver codastart
 REINIT-SCRIPTS	= partial-reinit.sh
 UPGRADE-SCRIPTS	= pwdtopdbtool.py
-VICE-SETUP      = vice-setup vice-setup-rvm vice-setup-scm vice-setup-srvdir vice-setup-user vice-killvolumes coda-setup-ports codaconfedit
+VICE-SETUP      = vice-setup vice-setup-rvm vice-setup-scm vice-setup-srvdir vice-setup-user vice-killvolumes coda-setup-ports
 
 BACKUP-SCRIPTS	= backup.sh tape.pl
 

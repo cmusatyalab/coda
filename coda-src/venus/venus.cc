@@ -411,7 +411,7 @@ static void DefaultCmdlineParms()
     int DontUseRVM = 0;
 
     /* Load the "venus.conf" configuration file */
-    codaconf_init("venus");
+    codaconf_init("venus.conf");
 
     CONF_INT(CacheBlocks,       "cacheblocks",   40000);
     CONF_STR(CacheDir,          "cachedir",      DFLT_CD);

@@ -477,7 +477,7 @@ int main(int argc, char *argv[])
 	    exit(0);
     }
 
-    codaconf_init("venus");
+    codaconf_init("venus.conf");
     CONF_STR(mountpoint, "mountpoint", "/coda");
 
     /* invoke the handler */

@@ -110,7 +110,7 @@ int Bind(const char *service, const char *host) {
         struct sockaddr_un s_un;
         char *MarinerSocketPath;
         
-        codaconf_init("venus");
+        codaconf_init("venus.conf");
         MarinerSocketPath = conf_lookup("marinersocket",
                                         "/usr/coda/spool/mariner"); 
         memset(&s_un, 0, sizeof(s_un));

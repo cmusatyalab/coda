@@ -23,13 +23,15 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif
 
+/* Useful globals,
+ * codaconf_quiet, make conf_init shut up about not finding the configuration
+ *		   file. */
+extern int codaconf_quiet;
+
 /* conf_init reads (or merges) the name=value tuples from the conffile. If a
  * name is seen multiple times, only the last value is remembered. Empty lines
  * and lines starting with '#' are ignored. */
 int conf_init(char *conffile);
-
-/* make conf_init shut up about not finding the configuration file */
-extern int codaconf_quiet;
 
 /* conf_lookup returns the value associated with name, or NULL on error. */
 char *conf_lookup(char *name, char *defaultvalue);
@@ -38,15 +40,19 @@ char *conf_lookup(char *name, char *defaultvalue);
 void conf_free(void);
 
 /* helpers */
-#include "coda_string.h"
 
-/* codaconf_init searches all directories specified by the environment variable
- * CODACONFPATH for 'basename'.conf and calls conf_init on the first file found.
+/* codaconf_file searches all directories specified by the environment variable
+ *		 CODACONFPATH for 'confname'.
+ * codaconf_init uses codaconf_file to find a configuration file and then calls
+ *		 conf_init on this file.
  *
  * If the CODACONFPATH is not present the search defaults to,
  *	@sysconfdir@:/usr/local/etc/coda:/etc/coda
  */
-int codaconf_init(const char *basename);
+int codaconf_init(const char *confname);
+char *codaconf_file(const char *confname);
+
+#include "coda_string.h"
 
 #define CONF_STR(var, key, defval) \
     if (var == NULL || *var == '\0') { var = conf_lookup(key, defval); }

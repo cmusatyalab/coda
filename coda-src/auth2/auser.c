@@ -422,7 +422,7 @@ static void GetAuthServers(void)
     memset((char *)lHosts, 0, sizeof(lHosts));
     numHosts = 0; 
 
-    codaconf_init("venus");
+    codaconf_init("venus.conf");
     CONF_STR(host, "authservers", NULL);
     CONF_STR(host, "rootservers", NULL);
 
