@@ -15,6 +15,10 @@
 /* 
  * HISTORY
  * $Log: cfs.h,v $
+ * Revision 1.3  1996/11/08 18:06:05  bnoble
+ * Minor changes in vnode operation signature, VOP_UPDATE signature, and
+ * some newly defined bits in the include files.
+ *
  * Revision 1.2  1996/01/02 16:56:31  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  *
@@ -653,6 +657,11 @@ extern int cfs_grab_vnode C_ARGS((dev_t, ino_t, struct vnode **));
  * Used to select debugging statements throughout the cfs code.
  */
 extern int cfsdebug;
+extern int cfsnc_debug;
+extern int cfs_vnop_print_entry;
+extern int cfs_psdev_print_entry;
+extern int cfs_vfsop_print_entry;
+
 #define CFSDBGMSK(N)            (1 << N)
 #define CFSDEBUG(N, STMT)       { if (cfsdebug & CFSDBGMSK(N)) { STMT } }
 
