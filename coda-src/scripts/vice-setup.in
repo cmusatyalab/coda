@@ -26,20 +26,57 @@ echon() {
 }
 
 #
+# initial information
+#
+
+conf=@prefix@/etc/coda/server.conf
+
+if [ -f $conf ] ; then
+  echo "You already have a file $conf!"
+  echo "Continuning will remove that file."
+  echon "Do you want to continue? [no] "
+  yesno=""
+  read yesno
+  if [ x$yesno = x -o (x$yesno != xyes -a x$yesno != xy) ] ; then
+    echo "Not configuring a coda server!"
+    exit -1
+  fi
+  rm -f $conf
+fi
+
+#
 # Configuration directories:
 # 
 
+echo 'Setting up config files for a coda server.'
 
-echo 'Setting up config files (under /vice).'
-
-
-if [ ! -d /vice ]; then
-    mkdir /vice
+echon "Do you want the file $conf created? [yes]"
+yesno=""
+read yesno
+if [ x$yesno = x -o x$yesno = xyes -o x$yesno = xy ] ; then
+  mkconf=1
+else
+  mkconf=0
 fi
 
-cd /vice
+echon "What is the root directory for your coda server(s)? [/vice] "
+read vicedir
 
-for i in backup db srv vol bin auth2 ; do
+if [ x$vicedir = x ] ; then
+   vicedir=/vice
+fi
+
+if [ $mkconf = 1 ] ; then
+   echo "vicedir=$vicedir" >> $conf
+fi
+
+if [ ! -d $vicedir ]; then
+    mkdir $vicedir
+fi
+
+cd $vicedir
+
+for i in backup db srv vol misc auth2 ; do
     if [ ! -d $i ]; then
        mkdir $i
     fi
@@ -49,7 +86,7 @@ if [ ! -d vol/remote ]; then
     mkdir vol/remote
 fi
 
-echo Directories under /vice are set up.
+echo Directories under $vicedir are set up.
 echo
 
 #
@@ -57,7 +94,7 @@ echo
 #
 echo Setting up tokens for authentication.
 
-cd /vice/db
+cd ${vicedir}/db
 
 for which in auth2 volutil; do
     token=""
@@ -82,7 +119,7 @@ touch auth2.lock
 
 echo
 echo Setting up the file list for update
-cat > /vice/db/files <<EOF
+cat > ${vicedir}/db/files <<EOF
 ROOTVOLUME
 VLDB
 auth2.pw
@@ -102,11 +139,12 @@ EOF
 echo filelist for update ready. 
 
 #
-# populating /vice/vol
+# populating ${vicedir}/vol
 #
 
 echo
-echo Populating /vice/vol...
+echo Populating ${vicedir}/vol...
+cd ${vicedir}/vol
 touch fs.lock
 touch volutil.lock
 echo lockfiles created.
@@ -130,11 +168,8 @@ esac
 #
 CODABASE=
 case "x`uname`" in
-  xNetBSD)
-	CODABASE=/usr/pkg
-	;;
-  xFreeBSD)
-	CODABASE=/usr/local
+  x*BSD)
+	CODABASE=@prefix@
 	;;
 esac
 
@@ -145,7 +180,7 @@ if [ x$CODABASE != x ]; then
 	read yesno
     done
     if [ "x$yesno" = xy  -o  "x$yesno" = xyes -o "x$yesno" = xY ]; then
-	touch /vice/srv/STARTFROMBOOT
+	touch ${vicedir}/srv/STARTFROMBOOT
 	grep "${CODABASE}/etc/rc.vice" /etc/rc.local > /dev/null 2>1
 	if [ $? != 0 ]; then 
 	    echo "if [ -x ${CODABASE}/etc/rc.vice ]; then ${CODABASE}/etc/rc.vice start ; fi" >> /etc/rc.local 
@@ -155,7 +190,7 @@ if [ x$CODABASE != x ]; then
 fi
 
 #
-# /vice/hostname 
+# ${vicedir}/hostname 
 # 
 hn=`hostname`
 bn=`echo $hn | cut -f 1 -d .`
@@ -164,7 +199,15 @@ if [ x$bn = x ]; then
     bn=$hn
 fi
 
-echo $bn > /vice/hostname
+echo $bn > ${vicedir}/hostname
+
+#
+# server.conf standard 
+#
+if [ $mkconf = 1 ] ; then
+    echo rvmtruncate=5 >> $conf
+    echo trace=100 >> $conf
+fi
 
 #
 # end of common setup area, now specialize to scm or non scm
@@ -189,16 +232,16 @@ if [ $isscm = Y ]; then
     vice-setup-user
     vice-setup-rvm
     vice-setup-srvdir
-    RV=`cat /vice/db/ROOTVOLUME`
-    DP=`cat /vice/db/vicetab | awk '{print $2}' | head -n 1`
+    RV=`cat ${vicedir}/db/ROOTVOLUME`
+    DP=`cat ${vicedir}/db/vicetab | awk '{print $2}' | head -n 1`
     echo "Congratulations: your configuration is ready...and now"
     echo "to get going do the following:"
     echo " - start the auth2 server as: auth2"
     echo " - start rpc2portmap as: rpc2portmap"
     echo " - start updateclnt as:  updateclnt -h $hn -q coda_udpsrv"
-    echo " - start updatesrv as: updatesrv -p /vice/db"
+    echo " - start updatesrv as: updatesrv -p ${vicedir}/db"
     echo " - start the fileserver: startserver &"
-    echo " - wait until the server is up: tail -f /vice/srv/SrvLog"
+    echo " - wait until the server is up: tail -f ${vicedir}/srv/SrvLog"
     echo " - create your root volume: createvol_rep $RV E0000100 $DP"
     echo " - setup a client: venus-setup $hn 20000"
     echo " - start venus: venus"
@@ -215,11 +258,11 @@ until [ "x$scmhost" != x ]; do
     echon "Enter the hostname of the SCM machine : "
     read scmhost
 done
-echo "$scmhost" > /vice/db/scm
+echo "$scmhost" > ${vicedir}/db/scm
 
 vice-setup-rvm
 vice-setup-srvdir
 
-echo "You have set up " `cat /vice/hostname`
-echo "Your scm is " `cat /vice/db/scm`
+echo "You have set up " `cat ${vicedir}/hostname`
+echo "Your scm is " `cat ${vicedir}/db/scm`
 echo "Other config files will be fetched from the SCM by updateclnt."
