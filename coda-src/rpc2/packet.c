@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.2 1998/04/14 21:07:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.3 98/07/09 11:01:50 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,8 +77,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 extern int errno;
 
-PRIVATE long DefaultRetryCount = 6;
-PRIVATE struct timeval DefaultRetryInterval = {60, 0};
+static long DefaultRetryCount = 6;
+static struct timeval DefaultRetryInterval = {60, 0};
 
 /* Hooks for failure emulation package (libfail)
 
@@ -90,7 +90,7 @@ PRIVATE struct timeval DefaultRetryInterval = {60, 0};
 int (*Fail_SendPredicate)() = NULL,
     (*Fail_RecvPredicate)() = NULL;
 
-PRIVATE long DontFailPacket(predicate, pb, addr, sock)
+static long DontFailPacket(predicate, pb, addr, sock)
     int (*predicate)();
     RPC2_PacketBuffer *pb;
     struct sockaddr_in *addr;
@@ -121,6 +121,8 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
     register RPC2_HostIdent *whichHost;
     register RPC2_PortalIdent *whichPortal;
 {
+    int n;
+
     say(0, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
 
 #ifdef RPC2DEBUG
@@ -169,9 +171,19 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
 
 	    if (DontFailPacket(Fail_SendPredicate, whichPB, &sa, whichSocket))
 		{
-		if (sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket, 0,
-		        (struct sockaddr *)&sa, sizeof(struct sockaddr_in)) 	
-			!= whichPB->Prefix.LengthOfPacket)
+		n = sendto(whichSocket, &whichPB->Header,
+			   whichPB->Prefix.LengthOfPacket, 0,
+			   (struct sockaddr *)&sa, sizeof(struct sockaddr_in));
+#ifdef __linux__
+		if ((n == -1) && (errno == ECONNREFUSED))
+		{
+		    n = sendto(whichSocket, &whichPB->Header,
+			       whichPB->Prefix.LengthOfPacket, 0,
+			       (struct sockaddr *)&sa,
+			       sizeof(struct sockaddr_in));
+		}
+#endif
+		if (n != whichPB->Prefix.LengthOfPacket)
 		    {
 		    char msg[100];
 		    (void) sprintf(msg, "socket %ld", whichSocket);
@@ -199,8 +211,6 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff,
     long rc, len;
     int fromlen;
     struct sockaddr_in sa;
-    int error = 0;
-    char errbuf[128];
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
     assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
@@ -210,7 +220,8 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff,
     
     /* WARNING: only Internet works; no warnings */
     fromlen = sizeof(sa);
-    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0, &sa, &fromlen);
+    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0,
+		  (struct sockaddr *) &sa, &fromlen);
 
     if (rc < 0) {
 	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
@@ -560,7 +571,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 void rpc2_htonp(p)
     RPC2_PacketBuffer *p;
     {
-#if	defined(vax) || defined(mips) || defined(i386)
+#if	defined(vax) || defined(mips) || defined(i386) || defined(arm32) || defined(ns32k)
     p->Header.ProtoVersion = htonl(p->Header.ProtoVersion);
     p->Header.RemoteHandle = htonl(p->Header.RemoteHandle);
     p->Header.LocalHandle = htonl(p->Header.LocalHandle);
@@ -586,7 +597,7 @@ void rpc2_htonp(p)
 void rpc2_ntohp(p)
     RPC2_PacketBuffer *p;
     {
-#if	defined(vax) || defined(mips) || defined(i386)
+#if	defined(vax) || defined(mips) || defined(i386) || defined(arm32) || defined(ns32k)
     p->Header.ProtoVersion = ntohl(p->Header.ProtoVersion);
     p->Header.RemoteHandle = ntohl(p->Header.RemoteHandle);
     p->Header.LocalHandle = ntohl(p->Header.LocalHandle);

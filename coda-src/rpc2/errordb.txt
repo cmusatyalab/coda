@@ -72,3 +72,4 @@ CELOOP, 62 , ELOOP, /* Too many levels of symbolic links */
 CENAMETOOLONG, 63 , ENAMETOOLONG, /* File name too long */
 CENOTEMPTY, 66 , ENOTEMPTY, /* Directory not empty */
 CEDQUOT, 69 , EDQUOT, /* Disc quota exceeded */
+CEVOLUME, 158, CEVOLUME, /* Volume error */

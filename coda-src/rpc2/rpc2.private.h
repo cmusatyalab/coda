@@ -107,7 +107,9 @@ OBJ_HENTRY = 48127
 #define TestState(e, role, smask)\
 	(TestRole(e, role) && ((e->State & 0x0000ffff) & (smask)))
 
-
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 /* Definitions for Flags field of connections */
 #define CE_OLDV  0x1  /* old version detected during bind */

@@ -29,10 +29,11 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filtutil.c,v 4.2 1998/04/14 20:58:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filtutil.c,v 4.3 98/08/05 23:49:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -200,9 +201,10 @@ int clear_filters()
 
       if (rc = PurgeFilters(cid, side)) {
         PrintError("Couldn't clear filters", rc);
-        return;
+        return 1;
       }
   }
+  return 0;
 }
 
 /* Lists all filters installed on the current target */
@@ -275,6 +277,7 @@ int show_filter(FailFilter filter)
     printf("%2d: host %s color %d len %d-%d prob %d speed %d\n", filter.id,
 	   buf, filter.color, filter.lenmin, filter.lenmax, filter.factor,
 	   filter.speed);
+    return 0;
 }
 
 
@@ -421,7 +424,7 @@ int open_connection(target_t target)
 
     if (rc != RPC2_SUCCESS) {
         PrintError("Can't bind", rc);
-        return;
+        return -1;
     }
     RPC2_SetColor(cid, FAIL_IMMUNECOLOR);
 

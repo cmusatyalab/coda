@@ -89,7 +89,8 @@ int StringContainsQuestions(char *path) {
     while (rc != NULL) {
         if (strncmp(rc, "???", 3) == 0)
 	    return(1);
-	rc = index(++rc, '?');
+	rc++;
+	rc = index(rc, '?');
     }
     return(0);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.3 1998/06/24 18:47:35 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.4 98/08/05 23:49:24 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -43,6 +43,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/f
 #include <assert.h>
 #include <sys/param.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <strings.h>
 #include <ctype.h>
 #include <netdb.h>
@@ -352,7 +353,7 @@ FailFilterSide getside()
     do {
 	printf("Side (in, out) ");
 	fflush(stdout);
-	gets(input);
+	fgets(input, 128, stdin);
 	p = input;
 	side = SideArg(&p);
     } while (side == noSide);
@@ -382,13 +383,15 @@ int getipaddr(int *ip1, int *ip2, int *ip3, int *ip4)
 	    if (*ip1 >= -1 && *ip1 <= 255 &&
 		*ip2 >= -1 && *ip2 <= 255 &&
 		*ip3 >= -1 && *ip3 <= 255 &&
-		*ip4 >= -1 && *ip4 <= 255) return;
+		*ip4 >= -1 && *ip4 <= 255) return -1;
 	    printf("Use numbers from -1 to 255 in IP addresses.\n");
 	    host = NULL;
 	}
     } while (host == NULL);
+    return -1;
 }
 
+int
 getcid(int ClientNumber)
 {
   ConnInfo *conn;
@@ -405,11 +408,9 @@ getcid(int ClientNumber)
     }
     conn = conn->next;
   }
-  if (conn == NULL)
-  {
-    printf("No client with number %d\n",ClientNumber);
-    return -1;
-  }
+
+  printf("No client with number %d\n",ClientNumber);
+  return -1;
 }
 
 /* insertfilter client side which hostname/ip1 ip2 ip3 ip4 color
@@ -586,7 +587,7 @@ void cmdPurgeFilters(int argc, char **argv)
     
 	printf("Side (in, out, both) ");
 	fflush(stdout);
-	gets(p);
+	fgets(p, 128, stdin);
 	if (!strncmp("out", p, 3) || !strncmp("send", p, 4))
 	    side = sendSide;
 	else if (!strncmp("in", p, 2) || !strncmp("rec", p, 3))

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.cc,v 4.7 1998/03/06 20:20:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.c,v 4.1 98/04/14 20:51:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -137,7 +137,7 @@ struct FreeList
     };
 
 
-PRIVATE struct FreeList AllFree;    /* Right now: a single free list for all entities; we may
+static struct FreeList AllFree;    /* Right now: a single free list for all entities; we may
 				    choose to have separate free lists later, if it appears
 				    beneficial */
 
@@ -145,9 +145,9 @@ PRIVATE struct FreeList AllFree;    /* Right now: a single free list for all ent
 
 
 int AL_MaxExtEntries = AL_MAXEXTENTRIES; /* Checked on AL_Internalize() and AL_Externalize() */
-PRIVATE char *AL_pdbFileName;	/* Name of protection database */
-PRIVATE char *AL_pcfFileName; 	/* Name of protection configuration file */
-PRIVATE struct stat PdbStatBuf;	/* Buffer for stat() of .pdb file at the most recent AL_Initialize() */
+static char *AL_pdbFileName;	/* Name of protection database */
+static char *AL_pcfFileName; 	/* Name of protection configuration file */
+static struct stat PdbStatBuf;	/* Buffer for stat() of .pdb file at the most recent AL_Initialize() */
 
 /* made the following non-private; used by ../vice/codaproc.c also */
 /* qsort() comparison routines */
@@ -156,10 +156,10 @@ int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
 int CmpInt(int *a, int *b);
 
 /* Other local routines */
-PRIVATE int GetFromList(INOUT struct FreeList *flist, OUT struct FreeListEntry **elem, IN int minsize);
-PRIVATE int AddToList(INOUT struct FreeList *flist, INOUT struct FreeListEntry *elem);
-PRIVATE int NameSearch(IN char *Name, OUT int *Id);
-PRIVATE void PrintTables();
+static int GetFromList(INOUT struct FreeList *flist, OUT struct FreeListEntry **elem, IN int minsize);
+static int AddToList(INOUT struct FreeList *flist, INOUT struct FreeListEntry *elem);
+static int NameSearch(IN char *Name, OUT int *Id);
+static void PrintTables();
 
 
 
@@ -718,7 +718,7 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
     return(0);
     }
 
-PRIVATE void PrintTables()
+static void PrintTables()
       {
 	  register int i;
 	for (i=0; i < 1+HighestUID; i++)
@@ -747,7 +747,7 @@ int AL_NameToId(IN char *Name, OUT int *Id)
     return(NameSearch(temp, Id));    
     }
 
-PRIVATE int NameSearch(char *Name, int *Id)
+static int NameSearch(char *Name, int *Id)
     {
     int Hi; 	/* Highest element that could match */
     int Lo;	/* Lowest element that could match */
@@ -926,7 +926,7 @@ int AL_IsAMember(int Id, PRS_InternalCPS *ICPS)
     return(-1);
     }
 
-PRIVATE int AddToList(INOUT struct FreeList *flist, INOUT struct FreeListEntry *elem)
+static int AddToList(INOUT struct FreeList *flist, INOUT struct FreeListEntry *elem)
     /* Adds elem to the freelist flist;  returns 0 */
     {
     if (flist->Head == NULL) flist->Head = flist->Tail = elem->NextEntry = elem;
@@ -939,7 +939,7 @@ PRIVATE int AddToList(INOUT struct FreeList *flist, INOUT struct FreeListEntry *
     return(0);    
     }
 
-PRIVATE int GetFromList(INOUT struct FreeList *flist, OUT struct FreeListEntry **elem, IN int minsize)
+static int GetFromList(INOUT struct FreeList *flist, OUT struct FreeListEntry **elem, IN int minsize)
     /*  Looks for an element whose Body is atleast minsize bytes in the freelist flist.
 	If found, unlinks it, puts its address in elem, and returns 0.
 	Else returns -1.    

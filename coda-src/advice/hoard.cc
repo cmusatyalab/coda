@@ -57,7 +57,7 @@ int AddElement(char *pathname, int priority, char meta) {
 /* Caller may ask for either "volume" or "full" canonicalization, or both. */
 /* "Volume" canonicalization splits the result into a <volid, canonical-name-from-volroot> pair. */
 /* Returns 1 on success, 0 on failure. */
-PRIVATE int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
+static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 			 VolumeId *svp, char (*sname)[MAXPATHLEN]) {
 
     LogMsg(100, LogLevel, LogFile, "Entering canonicalize (%s)\n", path);
@@ -222,7 +222,7 @@ done:
 /*     tail:  path from volume_root to working directory */
 /* The volume number is also returned. */
 /* The caller may pass in NULL for vp, head or both. */
-PRIVATE char *vol_getwd(VolumeId *vp, char *head, char *tail) {
+static char *vol_getwd(VolumeId *vp, char *head, char *tail) {
     if (vp) *vp = 0;
     tail[0] = '\0';
     if (head) head[0] = '\0';
@@ -290,7 +290,7 @@ PRIVATE char *vol_getwd(VolumeId *vp, char *head, char *tail) {
 }
 
 
-PRIVATE VolumeId GetVid(char *name) {
+static VolumeId GetVid(char *name) {
     LogMsg(100, LogLevel, LogFile, "Entering GetVid (%s)\n", name);
 
     VolumeId vid = 0;

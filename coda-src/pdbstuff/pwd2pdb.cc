@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/pwd2pdb.cc,v 4.4 1998/01/10 18:37:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/pwd2pdb.cc,v 4.5 98/03/06 20:20:20 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -284,6 +284,8 @@ int main(int argc, char *argv[])
     printf("########### EMPTY ENTRY:  leave this here!!! ##############\n");
     printf("\t\t;\n");
 
+    return 0;
+
     }
 	
 char *pwskip(register char *p, char t)
@@ -513,8 +515,8 @@ void PrintGroupEntry(register struct group *ge, register struct group *prevge)
     printf("%s:%s\t%d %d\n", ge->g_oname, ge->g_name, ge->g_id, ge->g_owner);
 
     str1[0] = str2[0] = str3[0] = 0;
-    printf("\t\t( )\n", str1);	/* fix later */
-    printf("\t\t( )\n", str2);	/* ditto */
+    printf("\t\t( )\n");	/* add str1 output later */
+    printf("\t\t( )\n");	/* add str2 output later */
     printf("\t\t( ");
     for (i = 0; i < ge->g_memcount; i++)
 	printf("%d ", ge->g_members[i]);

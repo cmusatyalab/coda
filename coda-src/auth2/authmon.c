@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/authmon.cc,v 4.4 1998/01/13 00:20:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/authmon.c,v 4.1 98/04/14 20:49:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,15 +92,15 @@ extern "C" {
 #include <util.h>
 
 int main(int argc, char **argv, char **envp);
-PRIVATE void InitGlobals(int argc, char **argv);
-PRIVATE void ShutDown();
-PRIVATE void Continue();
-PRIVATE void Pause();
+static void InitGlobals(int argc, char **argv);
+static void ShutDown();
+static void Continue();
+static void Pause();
 
-PRIVATE int ShutDownFlag = 0;	/* if 1 do not refork child; exit when child dies */
-PRIVATE int PauseFlag = 0;	/* if 1 do not fork child, but do not exit */
-PRIVATE char *AuthDir = "/vice/auth2";
-PRIVATE int DoFork = 1;
+static int ShutDownFlag = 0;	/* if 1 do not refork child; exit when child dies */
+static int PauseFlag = 0;	/* if 1 do not fork child, but do not exit */
+static char *AuthDir = "/vice/auth2";
+static int DoFork = 1;
 
 
 int main(int argc, char **argv, char **envp)
@@ -176,7 +176,7 @@ int main(int argc, char **argv, char **envp)
     }
 
 
-PRIVATE void InitGlobals(int argc, char **argv)
+static void InitGlobals(int argc, char **argv)
     /* Set globals from command line */
     {
     register int i;
@@ -230,21 +230,21 @@ PRIVATE void InitGlobals(int argc, char **argv)
     }
 
 
-PRIVATE void ShutDown()
+static void ShutDown()
     {
     LogMsg(-1, 0, stdout, "Auth Monitor received shutdown\n");
     ShutDownFlag = 1;
     }
 
 
-PRIVATE void Continue()
+static void Continue()
     {
     LogMsg(-1, 0, stdout, "Auth Monitor received continue\n");
     PauseFlag = 0;
     }
 
 
-PRIVATE void Pause()
+static void Pause()
     {
     LogMsg(-1, 0, stdout, "Auth Monitor received pause\n");
     PauseFlag = 1;

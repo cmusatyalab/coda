@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.6 1998/04/14 21:03:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.7 98/05/15 01:23:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -458,7 +458,7 @@ void adviceconn::RequestDisconnectedQuestionnaire(ViceFid *fid, char *pathname, 
   return;
 }
 
-#ifdef 0
+#if 0
 void adviceconn::NotifyHoarding(char *volname, VolumeId vid) {
   long rc;
 

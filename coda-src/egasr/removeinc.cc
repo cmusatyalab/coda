@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.3.8.1 1998/10/05 16:54:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/removeinc.cc,v 4.3.8.2 98/10/07 20:25:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,55 +105,56 @@ int IsObjInc(char *name, ViceFid *fid) {
     return(1);
 }
 
-void main(int argc, char **argv) {
-    if (argc != 2) {
-	fprintf(stderr, "Usage: %s <inc-file-name>\n", argv[0]);
-	exit(-1);
-    }
+void main(int argc, char **argv) 
+{
+	if (argc != 2) {
+		fprintf(stderr, "Usage: %s <inc-file-name>\n", argv[0]);
+		exit(-1);
+	}
     
-    //make sure object is inconsistent
-    ViceFid fid;
-    if (!IsObjInc(argv[1], &fid)) {
-	/* fprintf(stderr, "%s isn't inconsistent\n", argv[1]); */
-    }
+	//make sure object is inconsistent
+	ViceFid fid;
+	if (!IsObjInc(argv[1], &fid)) {
+		/* fprintf(stderr, "%s isn't inconsistent\n", argv[1]); */
+	}
     
-    // get fid and make sure it is a file
-    if (ISDIR(fid.Vnode)) {
-	fprintf(stderr, "%s is a directory - must be removed manually\n");
-	exit(-1);
-    }
+	// get fid and make sure it is a file
+	if (ISDIR(fid.Vnode)) {
+		fprintf(stderr, "%s is a directory - must be removed manually\n", argv[1]);
+		exit(-1);
+	}
+	
+	// create an empty file /tmp/REPAIR.XXXXXX
+	char tmpfname[80];
+	int fd;
+	strcpy(tmpfname, "/tmp/RMINC.XXXXXX");
+	if ((fd = mkstemp(tmpfname)) < 0) {
+		fprintf(stderr, "Couldn't create /tmp file\n");
+		exit(-1);
+	}
+	close(fd);
 
-    // create an empty file /tmp/REPAIR.XXXXXX
-    char tmpfname[80];
-    int fd;
-    strcpy(tmpfname, "/tmp/RMINC.XXXXXX");
-    if ((fd = mkstemp(tmpfname)) < 0) {
-	fprintf(stderr, "Couldn't create /tmp file\n");
-	exit(-1);
-    }
-    close(fd);
-
-    // dorepair on the fid with an empty file
-    struct ViceIoctl vioc;
-    char space[2048];
-    vioc.in_size = (short)(1+strlen(tmpfname)); 
-    vioc.in = tmpfname;
-    vioc.out_size = (short) sizeof(space);
-    vioc.out = space;
-    bzero(space, (int) sizeof(space));
-    int rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
-    if (rc < 0 && errno != ETOOMANYREFS) {
-	fprintf(stderr, "Error %d for repair\n", errno);
-	exit(-1);
-    }
-    unlink(tmpfname);
-
-    // remove the repaired file 
-    if (unlink(argv[1])) {
-	fprintf(stderr, "Couldn't remove %s\n", argv[1]);
-	exit(-1);
-    }
-    exit(0);
+	// dorepair on the fid with an empty file
+	struct ViceIoctl vioc;
+	char space[2048];
+	vioc.in_size = (short)(1+strlen(tmpfname)); 
+	vioc.in = tmpfname;
+	vioc.out_size = (short) sizeof(space);
+	vioc.out = space;
+	bzero(space, (int) sizeof(space));
+	int rc = pioctl(argv[1], VIOC_REPAIR, &vioc, 0);
+	if (rc < 0 && errno != ETOOMANYREFS) {
+		fprintf(stderr, "Error %d for repair\n", errno);
+		exit(-1);
+	}
+	unlink(tmpfname);
+	
+	// remove the repaired file 
+	if (unlink(argv[1])) {
+		fprintf(stderr, "Couldn't remove %s\n", argv[1]);
+		exit(-1);
+	}
+	exit(0);
 }
 
 

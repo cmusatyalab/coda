@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.3 1998/01/10 18:37:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.4 98/08/05 23:49:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,6 +45,8 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/f
 
  */
 
+#include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -69,7 +71,7 @@ extern void htonFF(FailFilter *);
 
 /* Hooks into network package */
 extern int (*Fail_SendPredicate)(), (*Fail_RecvPredicate)();
-PRIVATE int StdSendPredicate(), StdRecvPredicate();
+static int StdSendPredicate(), StdRecvPredicate();
 
 /* Hooks for user customization
 
@@ -87,13 +89,13 @@ int (*Fail_UserSendPredicate)(), (*Fail_UserRecvPredicate)();
 
 /* Our globals */
 
-PRIVATE char clientName[MAXNAMELEN];
+static char clientName[MAXNAMELEN];
 /* numFilters and theFilters for sendSide and recvSide */
-PRIVATE int numFilters[2];
-PRIVATE FailFilter *theFilters[2];
-PRIVATE int *theQueues[2];
+static int numFilters[2];
+static FailFilter *theFilters[2];
+static int *theQueues[2];
 
-PRIVATE int FilterID = 1;
+static int FilterID = 1;
 
 #ifdef DEBUG_FAIL
 #define TEMPDEBUG(msg) \
@@ -102,7 +104,7 @@ PRIVATE int FilterID = 1;
 #define TEMPDEBUG(msg)
 #endif DEBUG_FAIL
 
-PRIVATE PrintFilter(f)
+static PrintFilter(f)
 register FailFilter *f;
 {
     printf("\tip %d.%d.%d.%d color %d len %d-%d factor %d speed %d\n",
@@ -110,7 +112,7 @@ register FailFilter *f;
 	   f->lenmax, f->factor, f->speed);
 }
 
-PRIVATE PrintFilters()
+static PrintFilters()
 {
     int side, which;
 
@@ -261,7 +263,7 @@ int Fail_PurgeFilters(side)
 {
     switch (side) {
       case sendSide:
-	theFilters[(int)sendSide] = (FailFilter *)realloc(0);
+	theFilters[(int)sendSide] = (FailFilter *)NULL;
 	numFilters[(int)sendSide] = 0;
 #ifdef NOTDEF
 	for (i = 0; i < numFilters[(int)sendSide]; i++)
@@ -270,11 +272,11 @@ int Fail_PurgeFilters(side)
 			 filter->ip3, filter->ip4);
 		theQueues[(int)sendSide][i] = 0;
 #endif NOTDEF
-	theQueues[(int)sendSide] = (int *)realloc(0);
+	theQueues[(int)sendSide] = (int *)NULL;
 	break;
 
       case recvSide:
-	theFilters[(int)recvSide] = (FailFilter *)realloc(0);
+	theFilters[(int)recvSide] = (FailFilter *)NULL;
 	numFilters[(int)recvSide] = 0;
 #ifdef NOTDEF
 	for (i = 0; i < numFilters[(int)recvside]; i++)
@@ -283,13 +285,13 @@ int Fail_PurgeFilters(side)
 			 filter->ip3, filter->ip4);
 		theQueues[(int)recvside][i] = 0;
 #endif NOTDEF    
-	theQueues[(int)recvSide] = (int *)realloc(0);
+	theQueues[(int)recvSide] = (int *)NULL;
 	break;
 
       case noSide:
-	theFilters[(int)sendSide] = (FailFilter *)realloc(0);
+	theFilters[(int)sendSide] = (FailFilter *)NULL;
 	numFilters[(int)sendSide] = 0;
-	theFilters[(int)recvSide] = (FailFilter *)realloc(0);
+	theFilters[(int)recvSide] = (FailFilter *)NULL;
 	numFilters[(int)recvSide] = 0;
 #ifdef NOTDEF
 	for (i = 0; i < numFilters[(int)sendSide]; i++)
@@ -303,8 +305,8 @@ int Fail_PurgeFilters(side)
 			 filter->ip3, filter->ip4);
 		theQueues[(int)recvside][i] = 0;
 #endif NOTDEF
-	theQueues[(int)sendSide] = (int *)realloc(0);
-	theQueues[(int)recvSide] = (int *)realloc(0);
+	theQueues[(int)sendSide] = (int *)NULL;
+	theQueues[(int)recvSide] = (int *)NULL;
 	break;
 
       default: {
@@ -416,7 +418,7 @@ FailFilterSide side;
 
 /* Determine whether a packet matches a filter */
 
-PRIVATE int PacketMatch(filter, ip1, ip2, ip3, ip4, color, length)
+static int PacketMatch(filter, ip1, ip2, ip3, ip4, color, length)
 FailFilter *filter;
 unsigned char ip1, ip2, ip3, ip4, color;
 int length;
@@ -439,18 +441,16 @@ DBG(("PacketMatch: %s\n", result ? "yes" : "no"))
 
 /* Determine whether to drop a packet based on its filter factor */
 
-PRIVATE int FlipCoin(factor)
+static int FlipCoin(factor)
 int factor;
 {
-    long random();
-
     return ((random() % MAXPROBABILITY) < factor);
 }
 
 
 /* Standard packet filters */
 
-PRIVATE int StdSendPredicate(ip1, ip2, ip3, ip4, color, pb, addr, sock)
+static int StdSendPredicate(ip1, ip2, ip3, ip4, color, pb, addr, sock)
 unsigned char ip1, ip2, ip3, ip4, color;
 RPC2_PacketBuffer *pb;
 struct sockaddr_in *addr;
@@ -492,7 +492,7 @@ DBG(("StdSendPredicate: ip %d.%d.%d.%d color %d len %d\n",
     return action;
 }
 
-PRIVATE int StdRecvPredicate(ip1, ip2, ip3, ip4, color, pb)
+static int StdRecvPredicate(ip1, ip2, ip3, ip4, color, pb)
 unsigned char ip1, ip2, ip3, ip4, color;
 RPC2_PacketBuffer *pb;
 /* we also have addr and sock, but we're ignoring them */

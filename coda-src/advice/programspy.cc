@@ -53,7 +53,7 @@ char *GetFullPath(char *fidStr, char *path, int length) {
     rc = pioctl("/coda", VIOC_GETPATH, &vio, 0);
     if (rc < 0) {
       perror("  VIOC_GETPATH");
-      fprintf(stderr, "Path for fid=<%x.%x.%x>\n, fid.Volume, fid.Vnode, fid.Unique");
+      fprintf(stderr, "Path for fid=<%x.%x.%x>\n", fid.Volume, fid.Vnode, fid.Unique);
       return(NULL);
     }
 
@@ -77,7 +77,7 @@ char *GetFullPath(char *fidStr, char *path, int length) {
     return(path);
 }
 
-#ifdef 0
+#if 0
 
 int IncludeInProgramProfile(char *program, char *path, char *profileDir) {
     char profileName[MAXPATHLEN];

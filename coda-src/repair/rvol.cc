@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/rvol.cc,v 4.7 1998/01/10 18:37:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/rvol.cc,v 4.7.8.1 98/10/07 20:25:07 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,8 +82,8 @@ struct repvol *RepVolHead;
 static char compresult[2048];
 static char junk[2048];
 
-PRIVATE char *volstr(char *), *srvstr(char *, VolumeId);
-PRIVATE char *compstr(char *, VolumeId);
+static char *volstr(char *), *srvstr(char *, VolumeId);
+static char *compstr(char *, VolumeId);
 
 int repair_findrep(VolumeId vid, struct repvol **repv /* OUT */)
     /* Returns 0 and fills repv if an entry exists for rep vol vid.
@@ -222,7 +222,7 @@ int repair_countRWReplicas(struct repvol *repv)
 }
 
 
-PRIVATE char *volstr(char *path)
+static char *volstr(char *path)
     /* Returns a static string identifying volume name of path.
        String contains msg if pioctl fails */
 {
@@ -241,7 +241,7 @@ PRIVATE char *volstr(char *path)
 
 /* Returns a static string identifying servers with replicas of path
    String contains msg if pioctl fails */    
-PRIVATE char *srvstr(char *path, VolumeId rwid)
+static char *srvstr(char *path, VolumeId rwid)
 {
     struct ViceIoctl vioc;
     char junk[2048], tmp[64];

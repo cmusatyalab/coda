@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/mvdb.cc,v 4.3 1998/03/06 20:20:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/mvdb.cc,v 4.4 98/06/16 15:43:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,6 +74,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/file.h>
 #include <sys/param.h>
@@ -106,7 +107,7 @@ main(int argc, char *argv[])
     
     
     /* Obtain invocation options */
-    lockfile = (char *)getwd(ebuf);	/* lock the current directory by default */
+    lockfile = (char *)getcwd(ebuf, MAXPATHLEN);	/* lock the current directory by default */
     if (argc < 2) BadArgs();
 
     for (i = 1; i < argc; i++)

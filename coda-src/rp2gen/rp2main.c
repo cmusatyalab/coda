@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.3 1998/04/14 20:59:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.4 98/06/04 17:30:04 shafeeq Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,14 +56,13 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/param.h>
 #include "rp2.h"
 
 int32_t yydebug;
 
-#ifdef	__linux__
-extern char * basename(char * name);
-#endif
+extern char * coda_rp2_basename(char * name);
 
 extern no_storage();
 extern init_lex(), init_table(), yyparse();
@@ -72,7 +71,7 @@ struct subsystem subsystem;	/* Holds global subsystem information */
 char *server_prefix, *client_prefix;
 
 FILE *file;
-FILE *cfile, *sfile, *hfile, *mfile, *pfile;
+FILE *cfile = NULL, *sfile = NULL, *hfile = NULL, *mfile = NULL, *pfile = NULL;
 char *cfile_name, *sfile_name, *hfile_name, *mfile_name, *pfile_name;
 char *file_name;
 char define_name[MAXPATHLEN]; /* value of __XXX__ */
@@ -143,11 +142,23 @@ main(argc, argv)
     yyparse();
     do_procs();
 
-    fclose(cfile);
-    fclose(sfile);
-    h_hack_end(hfile);
-    fclose(hfile);
-    fclose(mfile);
+    if (cfile) {
+      fclose(cfile);
+      cfile = NULL;
+    }
+    if (sfile) {
+      fclose(sfile);
+      sfile = NULL;
+    }
+    if (hfile) {
+      h_hack_end(hfile);
+      fclose(hfile);
+      hfile = NULL;
+    }
+    if (mfile) {
+      fclose(mfile);
+      mfile = NULL;
+    }
 
     exit(0);
     }
@@ -225,7 +236,7 @@ static int32_t GetArgs(argc, argv)
     return(0);
     }
 
-extern char *basename(), *concat();
+extern char *coda_rp2_basename(), *concat();
 
 static int32_t SetupFiles()
     {
@@ -236,7 +247,7 @@ static int32_t SetupFiles()
     if (!include2(file_name, "INPUT")) exit(1);
 
     /* Get base name of input file */
-    base = basename(file_name);
+    base = coda_rp2_basename(file_name);
 
 
     if (hfile_name == NIL) hfile_name = concat(base, ".h");
@@ -285,6 +296,8 @@ static int32_t SetupFiles()
     if (pfile == NIL) {perror(pfile_name); exit(-1);}
 
     free(base);
+
+    return -1;
     }
 
 badargs()
@@ -307,7 +320,9 @@ static int32_t h_hack_begin(where, name)
 {
     register char *c;
 
-    strcpy(define_name, basename(name));
+    c = coda_rp2_basename(name);
+    strcpy(define_name, c);
+    free(c);
     for (c=define_name; *c!='\0'; c++)
 	if (*c == '.' || *c == '-')
 	    *c = '_';
@@ -315,12 +330,14 @@ static int32_t h_hack_begin(where, name)
 	    *c = uc(*c);
     fprintf(where, "\n#ifndef _%s_\n", define_name);
     fprintf(where, "#define _%s_\n", define_name);
+    return -1;
 }
 
 static int32_t h_hack_end(where)
     FILE *where;
     {
     fprintf(where, "\n#endif _%s_\n", define_name);
+    return -1;
     }
 
 static int32_t header(f, prefix)
@@ -331,6 +348,7 @@ static int32_t header(f, prefix)
 	file_name);
     fputs(prefix, f);
     fputc('\n', f);
+    return -1;
 }
 
 /****************************\
@@ -433,20 +451,22 @@ static int32_t do_procs()
 
     /* Generate client file */
     if (HeaderOnlyFlag)
-	    {fclose(cfile); unlink(cfile_name);}
+	    {if(cfile) { fclose(cfile); cfile = NULL; } unlink(cfile_name);}
     else (*lang_struct[(int32_t) clanguage].proc)(head, CLIENT, cfile);
 
     /* Generate server file */
     if (HeaderOnlyFlag)
-	    {fclose(sfile); unlink(sfile_name);}
+	    {if(sfile) { fclose(sfile); sfile = NULL; } unlink(sfile_name);}
     else (*lang_struct[(int32_t) slanguage].proc)(head, SERVER, sfile);
 
     /* Generate multi file */
     if (HeaderOnlyFlag)
-	    {fclose(mfile); unlink(mfile_name);}
+	    {if(mfile) { fclose(mfile); mfile = NULL; } unlink(mfile_name);}
     else (*lang_struct[(int32_t) mlanguage].proc)(head, MULTI, mfile);
     
     if (HeaderOnlyFlag)
-	    {fclose(pfile); unlink(pfile_name);}
+	    {if(pfile) { fclose(pfile); pfile = NULL; } unlink(pfile_name);}
     else (*lang_struct[(int32_t) slanguage].proc)(head, DUMP, pfile);
+
+    return -1;
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.8 1998/07/22 18:47:24 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.9 98/08/23 16:40:20 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,7 +105,8 @@ long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,
 struct sftpStats sftp_Sent, sftp_MSent;
 struct sftpStats sftp_Recvd, sftp_MRecvd;
 
-PRIVATE CheckWorried(), ResendWorried(), SendSendAhead(), WinIsOpen();
+static void CheckWorried();
+static int ResendWorried(), SendSendAhead(), WinIsOpen();
 
 #ifdef RPC2DEBUG
 #define BOGOSITY(se, pb)  (printf("SFTP bogosity:  file %s, line %d\n", __FILE__, __LINE__), PrintDb(se, pb))
@@ -156,6 +157,7 @@ int sftp_InitIO(register struct SFTP_Entry *sEntry)
 	omode = 0;
 	oflags = O_RDONLY;
     }
+    oflags != O_BINARY;
 
 
     switch(sftpd->Tag) {
@@ -321,7 +323,7 @@ void sftp_UpdateBW(RPC2_Unsigned tStamp, unsigned long bytes,
 
 /* -------------------- Sink Side Common Routines -------------------- */
 
-sftp_DataArrived(RPC2_PacketBuffer *pBuff, register struct SFTP_Entry *sEntry)
+int sftp_DataArrived(RPC2_PacketBuffer *pBuff, register struct SFTP_Entry *sEntry)
     /* Handles packet pBuff on a connection whose state is sEntry.
        Invokes write strategy routine on all packets that request ack.
        Sets XferState in sEntry to XferInProgress if this file
@@ -450,7 +452,7 @@ sftp_DataArrived(RPC2_PacketBuffer *pBuff, register struct SFTP_Entry *sEntry)
 }
 
 
-sftp_WriteStrategy(register struct SFTP_Entry *sEntry)
+int sftp_WriteStrategy(register struct SFTP_Entry *sEntry)
     /* Strategy routine to write packets to disk.  Defers write until
        a contiguous set of packets starting at RecvLastContig has been
        collected Writes them all out in one fell swoop, then bumps
@@ -526,7 +528,7 @@ sftp_WriteStrategy(register struct SFTP_Entry *sEntry)
 }
 
 
-sftp_SendAck(register struct SFTP_Entry *sEntry)
+int sftp_SendAck(register struct SFTP_Entry *sEntry)
     /* Send out an ack for the current state of sEntry.  The ack will
 	have GotEmAll as high as possible (leading 1's are gobbled)
 
@@ -574,7 +576,7 @@ sftp_SendAck(register struct SFTP_Entry *sEntry)
 
 /* -------------------- Source Side Common Routines -------------------- */
 
-sftp_AckArrived(pBuff, sEntry)
+int sftp_AckArrived(pBuff, sEntry)
     RPC2_PacketBuffer *pBuff;
     register struct SFTP_Entry *sEntry;
     /*
@@ -696,7 +698,7 @@ sftp_AckArrived(pBuff, sEntry)
     }
 
 
-sftp_SendStrategy(sEntry)
+int sftp_SendStrategy(sEntry)
     register struct SFTP_Entry *sEntry;
     /* Send packets out on connection whose state is in sEntry.
     Returns 0 if normal, -1 if fatal error of some kind occurred.
@@ -797,7 +799,7 @@ sftp_SendStrategy(sEntry)
     }
 
 
-PRIVATE CheckWorried(sEntry)
+static void CheckWorried(sEntry)
     register struct SFTP_Entry *sEntry;
     /* Check the packets from SendWorriedLimit to SendAckLimit, and
        see if we should be Worried about any of them.  */
@@ -831,7 +833,7 @@ PRIVATE CheckWorried(sEntry)
 				  sEntry->SendLastContig, sEntry->SendWorriedLimit, sEntry->SendAckLimit, sEntry->SendMostRecent);
     }
 
-PRIVATE ResendWorried(sEntry, ackLast)
+static int ResendWorried(sEntry, ackLast)
     register struct SFTP_Entry *sEntry;
     long ackLast;
     /* Resend worried set for sEntry.  Ack the last member of the set
@@ -890,7 +892,7 @@ PRIVATE ResendWorried(sEntry, ackLast)
     return(0);
     }
 
-SendFirstUnacked(sEntry)
+int SendFirstUnacked(sEntry)
     register struct SFTP_Entry *sEntry;
     {
     /* Note: it's better to resend the first unacked rather than last
@@ -931,7 +933,7 @@ SendFirstUnacked(sEntry)
     return(0);
     }
 
-PRIVATE SendSendAhead(sEntry)
+static int SendSendAhead(sEntry)
     register struct SFTP_Entry *sEntry;
     /* Send out SendAhead set, adds to the InTransit set and requests
        ack for AckPoint packet.  Caller should ensure that sending
@@ -1012,7 +1014,7 @@ PRIVATE SendSendAhead(sEntry)
     }
 
 
-sftp_ReadStrategy(sEntry)
+int sftp_ReadStrategy(sEntry)
     register struct SFTP_Entry *sEntry;
     /* On entry, assumes SendMostRecent is the last packet read so
        far.  Fills SendAhead buffers from disk in one fell swoop.  If
@@ -1149,7 +1151,7 @@ sftp_ReadStrategy(sEntry)
     }
 
 
-sftp_SendStart(sEntry)
+int sftp_SendStart(sEntry)
     register struct SFTP_Entry *sEntry;
     /*
     Sends out a start packet on sEntry.
@@ -1194,7 +1196,7 @@ sftp_SendStart(sEntry)
     }
 
 
-sftp_StartArrived(pBuff, sEntry)
+int sftp_StartArrived(pBuff, sEntry)
     RPC2_PacketBuffer *pBuff;
     register struct SFTP_Entry *sEntry;
     /* Returns 0 if normal, -1 if fatal error of some kind occurred. */
@@ -1249,7 +1251,7 @@ sftp_StartArrived(pBuff, sEntry)
     }
 
 
-sftp_SendTrigger(sEntry)
+int sftp_SendTrigger(sEntry)
     register struct SFTP_Entry *sEntry;
     {
     sftp_triggers++; 
@@ -1260,7 +1262,7 @@ sftp_SendTrigger(sEntry)
     }
 
 
-PRIVATE WinIsOpen(sEntry)
+static int WinIsOpen(sEntry)
     struct SFTP_Entry *sEntry;
     {
     if ((sEntry->SendAhead + sEntry->SendMostRecent - sEntry->SendLastContig) > sEntry->WindowSize)
@@ -1297,7 +1299,7 @@ void sftp_InitPacket(pb, sfe, bodylen)
 
 
 #ifdef RPC2DEBUG
-PrintDb(se, pb)
+void PrintDb(se, pb)
     struct SFTP_Entry *se;
     RPC2_PacketBuffer *pb;
     {
@@ -1338,7 +1340,7 @@ the file, and a file descriptor that is already open in the correct mode */
        ByteQuota if a quota has been specified.		- JH
        !!!!! BEWARE !!!!
     */
-sftp_piggybackfilesize(register SE_Descriptor *sdesc, long openfd)
+int sftp_piggybackfilesize(register SE_Descriptor *sdesc, long openfd)
     {
     struct stat stbuf;
     int length;
@@ -1362,7 +1364,7 @@ sftp_piggybackfilesize(register SE_Descriptor *sdesc, long openfd)
     return(length);
     }
 
-sftp_piggybackfileread(register SE_Descriptor *sdesc, long openfd, char *buf)
+int sftp_piggybackfileread(register SE_Descriptor *sdesc, long openfd, char *buf)
     /* Reads entire file defined by sdesc into buf using openfd
        openfd is ignored if sdesc refers to a vmfile
        Returns 0 on success, RPC2 error code (< 0) on failure
@@ -1421,7 +1423,7 @@ void sftp_vfclose(SE_Descriptor *sdesc, int openfd)
     close(openfd);    /* ignoring errors */
     }
 
-sftp_vfreadv(sdesc, openfd, iovarray, howMany)
+int sftp_vfreadv(sdesc, openfd, iovarray, howMany)
     register SE_Descriptor *sdesc;
     long openfd;  /* ignored if sdesc refers to a vm file */
     struct iovec iovarray[];
@@ -1463,7 +1465,7 @@ sftp_vfreadv(sdesc, openfd, iovarray, howMany)
     }
 
 
-sftp_vfwritev(sdesc, openfd, iovarray, howMany)
+int sftp_vfwritev(sdesc, openfd, iovarray, howMany)
     register SE_Descriptor *sdesc;
     long openfd; /* ignored if sdesc refers to a vm file */
     struct iovec *iovarray;

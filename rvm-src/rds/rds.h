@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds.h,v 1.1 96/11/22 13:39:49 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds.h,v 4.1 97/01/08 21:54:26 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -44,14 +44,6 @@ static char *rcsid = "$Header: rds.h,v 1.1 96/11/22 13:39:49 raiff Exp $";
 #define	_RDS_H_
 
 #include "rvm.h"
-
-#ifndef C_ARGS
-#if c_plusplus
-#define C_ARGS(arglist) arglist
-#else   c_plusplus
-#define C_ARGS(arglist) ()
-#endif  c_plusplus
-#endif  C_ARGS
 
 /* Error codes */
 
@@ -65,11 +57,10 @@ static char *rcsid = "$Header: rds.h,v 1.1 96/11/22 13:39:49 raiff Exp $";
 #define ECORRUPT            -7
 #define EFREED_TWICE        -8
 #define ENO_ROOM            -9
-
+
 /* Function definitions */
 
-extern int rds_zap_heap C_ARGS
-    ((
+extern int rds_zap_heap (
       char 	            *DevName,
       rvm_offset_t          DevLength,
       char                  *startAddr,
@@ -78,53 +69,47 @@ extern int rds_zap_heap C_ARGS
       unsigned long         nlists,
       unsigned long         chunkSize,
       int                   *err
-     ));
+     );
 
-extern int rds_init_heap C_ARGS
-    ((
+extern int rds_init_heap (
       char                  *base,
       rvm_length_t          length,
       unsigned long         chunkSize,
       unsigned long         nlists,
       rvm_tid_t             *tid,
       int                   *err
-    ));
+    );
 
-extern int rds_load_heap C_ARGS
-    ((
+extern int rds_load_heap (
       char                  *DevName,
       rvm_offset_t          DevLength,
       char                  **staticAddr,
       int                   *err
-    ));
+    );
 
-extern int rds_start_heap C_ARGS
-    ((
+extern int rds_start_heap (
       char                  *startAddr,
       int                   *err
-    ));
+    );
 
-extern int rds_prealloc C_ARGS
-    ((
+extern int rds_prealloc (
       unsigned long         size,
       unsigned long         nblocks,
       rvm_tid_t             *tid,
       int                   *err
-    ));
+    );
 
-extern char *rds_malloc C_ARGS
-    ((
+extern char *rds_malloc (
       unsigned long size,
       rvm_tid_t             *tid,
       int                   *err
-    ));
-
-extern int rds_free C_ARGS
-    ((
+    );
+
+extern int rds_free (
       char                  *addr,
       rvm_tid_t             *tid,
       int                   *err
-    ));
+    );
 
 /*
  * Because of bugs (see comment in rds_free.c) we don't actually want to free
@@ -141,18 +126,16 @@ typedef struct intlist {
 
 #define STARTSIZE 128                   /* Initial size of list, may grow over time */
 
-extern int rds_fake_free C_ARGS
-    ((
+extern int rds_fake_free (
       char                 *addr,
       intentionList_t      *list
-    ));
+    );
 
-extern int rds_do_free C_ARGS
-    ((
+extern int rds_do_free (
       intentionList_t       *list,
       rvm_mode_t            mode
-    ));
-
+    );
+
 /* Heap statistics reporting */
 typedef struct {
     unsigned            malloc;         /* Allocation requests */
@@ -170,15 +153,12 @@ typedef struct {
     unsigned            mallocbytes;    /* Bytes allocated */
 } rds_stats_t;
 
-extern rds_print_stats C_ARGS(());
-extern rds_clear_stats C_ARGS
-    ((
-      int                      *err
-    ));
-extern rds_get_stats   C_ARGS((rds_stats_t *stats));  
+extern rds_print_stats ();
+extern rds_clear_stats ( int *err);
+extern rds_get_stats   (rds_stats_t *stats);
 
-extern rds_trace_on    C_ARGS((void (*printer)(char *, ...)));
-extern rds_trace_off   C_ARGS(());
-extern rds_trace_dump_heap  C_ARGS(());
+extern rds_trace_on    (void (*printer)(char *, ...));
+extern rds_trace_off   ();
+extern rds_trace_dump_heap  ();
 
 #endif _RDS_H_

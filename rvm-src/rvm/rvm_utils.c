@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.7 1998/03/06 20:21:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.8 98/04/14 20:45:25 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -489,7 +489,7 @@ char *make_full_name(dev_str,dev_name,retval)
     if (dev_str[1] != ':')
 #endif
         {
-        if (getwd(wd_name) == 0)
+        if (getcwd(wd_name, sizeof(wd_name)) == 0)
             ASSERT(rvm_false);
         wd_len = strlen(wd_name);
         len += (wd_len+1);              /* one extra for '/' */

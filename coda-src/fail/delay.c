@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/delay.c,v 4.1 1997/01/08 21:49:36 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/delay.c,v 4.2 98/05/15 01:22:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,6 +41,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/d
  *           L. Mummert
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -76,8 +77,8 @@ struct {
     int size;
 } DelayQueues = {0,0,0};
 
-PRIVATE int Delay_LWP();
-PRIVATE void SubFromTime();
+static int Delay_LWP();
+static void SubFromTime();
 PROCESS DelayLWPPid;
 
 int Delay_Init()
@@ -91,6 +92,7 @@ int Delay_Init()
     DelayQueues.size = 4;	/* Good number to start with! */
     LWP_CreateProcess((PFIC) Delay_LWP, 4096, LWP_NORMAL_PRIORITY,
 		      "Delay_LWP", NULL, &DelayLWPPid);
+    return 0;
 }
 
 /* 
@@ -249,7 +251,7 @@ int MakeQueue(a, b, c, d)
 
 
 /* Decrement time fromp by amtp, return 0 if more time left, 1 otherwise */
-PRIVATE void SubFromTime(fromp, amtp)
+static void SubFromTime(fromp, amtp)
 struct timeval *fromp, *amtp;
 {
 	if (amtp->tv_usec > fromp->tv_usec) {
@@ -264,7 +266,7 @@ struct timeval *fromp, *amtp;
 }
 
 
-PRIVATE int Delay_LWP()
+static int Delay_LWP()
 {
     int i, j, socket;
     struct timeval timeToNext;

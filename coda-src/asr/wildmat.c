@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/asr/wildmat.c,v 1.1 1996/11/22 19:15:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/wildmat.c,v 4.1 97/01/08 21:49:24 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -108,10 +108,12 @@ DoMatch(register char *text, register char *p)
 	    if (reverse = p[1] == NEGATE_CLASS)
 		/* Inverted character class. */
 		p++;
-	    for (last = 0400, matched = FALSE; *++p && *p != ']'; last = *p)
+	    for (last = 0400, matched = FALSE; *p && *p != ']'; last = *p, p++)
+	    {
 		/* This next line requires a good C compiler. */
-		if (*p == '-' ? *text <= *++p && *text >= last : *text == *p)
+		if (*p == '-' ? (p++, *text <= *p && *text >= last) : *text == *p)
 		    matched = TRUE;
+	    }
 	    if (matched == reverse)
 		return FALSE;
 	    continue;
