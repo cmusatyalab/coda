@@ -43,6 +43,10 @@ extern "C" {
 #include <stdlib.h>
 #include <fcntl.h>
 
+#ifdef HAVE_OSRELDATE_H
+#include <osreldate.h>
+#endif
+
 /* from rvm */
 #include <rvm/rds.h>
 #include <rvm/rvm.h>
