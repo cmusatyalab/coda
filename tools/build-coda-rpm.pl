@@ -32,12 +32,10 @@ print "kernel: $kernel\n";
 
 $dir="$codaname-$kernel-$version-$rel";
 $specfile="/usr/src/redhat/SPECS/$dir.spec";
-$specin="/usr/src/redhat/SPECS/coda.spec.in";
 print "Will create specfile $specfile\n";
 
-open(FD, "<$specin");
 open(SPEC, ">$specfile");
-while ( <FD> ) {
+while ( <> ) {
     ~ s/\@REL\@/$rel/g;
     ~ s/\@CVER\@/$version/g;
     ~ s/\@KVER\@/$kernel/g;

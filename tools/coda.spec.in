@@ -52,6 +52,13 @@ This package contains the fileserver for the coda filesystem, as well as
 the volume utilities.  For highest performance you will need a modified
 kernel with inode system calls.
 
+%package backup-@LIBC@
+Summary: Coda backup coordinator
+Group: Networking/Daemons
+%description backup-@LIBC@
+This package contains the backup software for the coda filesystem, as
+well as the volume utilities.
+
 %changelog
 * Tue Dec 30 1997 Peter Braam <braam@cs.cmu.edu>
 - several changes: documentation separate
@@ -73,7 +80,7 @@ chown -R root.bin $RPM_BUILD_DIR/coda-@CVER@
 rm -rf $RPM_BUILD_DIR/obj-@CVER@
 mkdir $RPM_BUILD_DIR/obj-@CVER@
 cd $RPM_BUILD_DIR/obj-@CVER@
-../coda-@CVER@/configure --prefix=/usr
+../coda-@CVER@/configure --prefix=$RPM_BUILD_ROOT/usr
 make GFLAG="" coda
 
 %install
@@ -83,14 +90,12 @@ mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 	$RPM_BUILD_ROOT/usr/coda/etc $RPM_BUILD_ROOT/lib/modules/@KVER@/fs \
 	$RPM_BUILD_ROOT/coda $RPM_BUILD_ROOT/etc/rc.d/init.d\
 	$RPM_BUILD_ROOT/usr/man $RPM_BUILD_ROOT/$RPM_BUILD_DIR\
-	$RPM_BUILD_ROOT/usr/lib/coda
+	$RPM_BUILD_ROOT/usr/lib/coda $RPM_BUILD_ROOT/etc/rc.d/init.d
 
 # make prefix=$RPM_BUILD_ROOT/usr man-install
 
-make prefix=$RPM_BUILD_ROOT/usr exec_prefix=$RPM_BUILD_ROOT/usr GFLAG="" \
-	client-install
-make SBINDIR=$RPM_BUILD_ROOT/vice/bin BINDIR=$RPM_BUILD_ROOT/vice/bin  \
-	GFLAG=""  server-install
+make GFLAG="" client-install
+make GFLAG=""  server-install
 
 
 install -m755 $RPM_SOURCE_DIR/venus.init \
@@ -111,7 +116,8 @@ if [ X@DEBUG@ != X1 ]; then
 fi
 
 cd $RPM_BUILD_DIR
-tar zcf $RPM_BUILD_ROOT/$RPM_BUILD_DIR/coda-@CVER@.tgz coda-@CVER@
+cp $RPM_SOURCE_DIR/coda-@CVER@.tgz $RPM_BUILD_ROOT/$RPM_BUILD_DIR/coda-@CVER@.tgz
+chown -R root.root $RPM_BUILD_ROOT
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -143,7 +149,6 @@ tar zxf coda-@CVER@.tgz
 %dir /coda
 %verify() /coda/NOT_REALLY_CODA
 /usr/sbin/venus-setup
-/usr/sbin/newvenus
 /usr/sbin/vutil
 /usr/sbin/venus
 /usr/sbin/au
@@ -167,6 +172,7 @@ tar zxf coda-@CVER@.tgz
 /usr/bin/removeinc
 /usr/bin/xfrepair
 /usr/bin/xaskuser
+/usr/sbin/volmunge
 /usr/lib/coda/Advice.tcl            
 /usr/lib/coda/Consider.tcl          
 /usr/lib/coda/ConsiderAdding.tcl    
@@ -198,48 +204,56 @@ tar zxf coda-@CVER@.tgz
 /usr/lib/coda/Globals.tcl
 
 %files server-@LIBC@	
-/vice/bin/filcon
-/vice/bin/norton
-/vice/bin/norton-reinit
-/vice/bin/reinit
-/vice/bin/purgevol
-/vice/bin/purgevol_rep
-/vice/bin/bldvldb.sh
-/vice/bin/pwd2pdb
-/vice/bin/mvdb
-/vice/bin/auth2
-/vice/bin/authmon
-/vice/bin/initpw
-/vice/bin/volutil
-/vice/bin/parserecdump
-/vice/bin/backup
-/vice/bin/makeftree
-/vice/bin/readdump
-/vice/bin/merge
-/vice/bin/srv
-/vice/bin/printvrdb
-/vice/bin/updatemon
-/vice/bin/updatesrv
-/vice/bin/updateclnt
-/vice/bin/rvmutl
-/vice/bin/rdsinit
-/vice/bin/backup.sh
-/vice/bin/tape.pl
-/vice/bin/startserver
-/vice/bin/reinit.sh
-/vice/bin/recreatevol
-/vice/bin/recreatevol_rep
-/vice/bin/createvol
-/vice/bin/createvol_rep
-/vice/bin/createvol_rep_ss
-/vice/bin/rc.vice
-/vice/bin/vice-configs
-/vice/bin/vice-makerootvol
-/vice/bin/vice-rvmsetup
-/vice/bin/vice-server-setup
-/vice/bin/vice-scm-setup
-/vice/bin/vice-srvdirsetup
-/vice/bin/vice-user-setup
-/vice/bin/vice-killvolumes
-/vice/bin/pcfgen
+/usr/sbin/rvmutl
+/usr/sbin/rdsinit
+/usr/sbin/startserver
+/usr/sbin/partial-reinit.sh
+/usr/sbin/reinit.sh
+/usr/sbin/recreatevol
+/usr/sbin/recreatevol_rep
+/usr/sbin/createvol
+/usr/sbin/createvol_rep
+/usr/sbin/purgevol
+/usr/sbin/purgevol_rep
+/usr/sbin/bldvldb.sh
+/usr/sbin/vice-rvmsetup
+/usr/sbin/vice-killvolumes
+/usr/sbin/vice-makerootvol
+/usr/sbin/vice-server-setup
+/usr/sbin/vice-srvdirsetup
+/usr/sbin/vice-user-setup
+/usr/sbin/vice-install
+/usr/sbin/pcfgen
+/usr/sbin/pwd2pdb
+/usr/sbin/mvdb
+/usr/sbin/auth2
+/usr/sbin/authmon
+/usr/sbin/initpw
+/usr/sbin/volutil
+/usr/sbin/parserecdump
+/usr/sbin/srv
+/usr/sbin/printvrdb
+/usr/sbin/updatemon
+/usr/sbin/updatesrv
+/usr/sbin/updateclnt
+/usr/sbin/updfetch
+/usr/bin/filcon
+/usr/bin/norton
+/usr/bin/norton-reinit
+/usr/bin/reinit
+/etc/rc.d/init.d/vice.init
 
+%files backup-@LIBC@	
+/usr/sbin/backup.sh
+/usr/sbin/tape.pl
+/usr/sbin/auth2
+/usr/sbin/authmon
+/usr/sbin/volutil
+/usr/sbin/backup
+/usr/sbin/readdump
+/usr/sbin/merge
+/usr/sbin/updatemon
+/usr/sbin/updatesrv
+/usr/sbin/updateclnt
+/usr/sbin/updfetch
+/usr/bin/filcon

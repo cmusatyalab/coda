@@ -13,13 +13,15 @@ case ${host_alias} in
 
 	windows95 )
 		sys=win95
-
+		initsuffix=../../etc
  ;;
 	nt )
 		sys=cygwin32
+		initsuffix=../../etc
  ;;
 	cygwin32 )
 		sys=cygwin32
+		initsuffix=../../etc
  ;;
 
 	*-*-netbsd* )
@@ -27,11 +29,13 @@ case ${host_alias} in
 	    	sys=i386_nbsd1
 		vfsdir=bsd44
 		os=`uname -r`
+		initsuffix=../../etc
  ;;
 
 	*-*-freebsd* )
 		sys=i386_fbsd2
 		vfsdir=bsd44
+		initsuffix=../../etc
  ;;
 
 	*-*-linux-* )
@@ -48,6 +52,7 @@ case ${host_alias} in
 			2.1.* ) os=2.1 ; vfsdir=linux21 ;;
 			2.2.* )	os=2.2 ; vfsdir=linux21 ;;
 		esac
+		initsuffix=../etc/rc.d/init.d
  ;;
 esac
 AC_SUBST(shortsys)
@@ -55,3 +60,4 @@ AC_SUBST(sys)
 AC_SUBST(fullos)
 AC_SUBST(os)
 AC_SUBST(vfsdir)
+AC_SUBST(initsuffix)
