@@ -30,6 +30,7 @@ extern "C" {
 #include "coda_string.h"
 #include <sys/file.h>
 #include <struct.h>
+#include <partition.h>
 
 #ifdef __cplusplus
 }
@@ -46,6 +47,7 @@ extern "C" {
 #include <codadir.h>
 #include <camprivate.h>
 #include <coda_globals.h>
+#include <vice_file.h>
 
 #include <rvm/rvm.h>
 #include "norton.h"
@@ -655,6 +657,7 @@ static int load_server_state(char *dump_file) {
     Volume	   *vp;
     Error	   err;
     int 	   vol_type;
+    char	   myname[256];
     
     if ((dump_fd = open(dump_file, O_RDONLY, 0x600)) < 0) {
 	perror(dump_file);
@@ -662,6 +665,7 @@ static int load_server_state(char *dump_file) {
     }
 
     /* First thing, initiliaze the global server state */
+    DP_Init(vice_sharedfile("db/vicetab"), hostname(myname));
     coda_init();
     
     if (!ReadGlobalState(dump_fd)) {
@@ -895,6 +899,8 @@ int main(int argc, char * argv[]) {
 	rvm_data = argv[3];
 	data_len = atoi(argv[4]);
     }
+
+    vice_dir_init("/vice", 0);
     
     if (!strcmp(argv[5], "-dump")) {
 	if (argc > 8) {
