@@ -66,7 +66,7 @@ extern "C" {
 /* C-stub to jump into the c++ method without compiler warnings */
 static void FetchProgressIndicator_stub(void *up, unsigned int offset)
 {
-    ((fsobj *)up)->FetchProgressIndicator((long)offset);
+    ((fsobj *)up)->FetchProgressIndicator((unsigned long)offset);
 }
 
 void fsobj::FetchProgressIndicator(unsigned long offset)
@@ -74,13 +74,13 @@ void fsobj::FetchProgressIndicator(unsigned long offset)
     unsigned long last;
     unsigned long curr;
     
-    if (stat.Length == 0) return;
+    if (GotThisData >= stat.Length) last = 100;
+    else if (!GotThisData) last = 0;
+    else	           last = 100 / (stat.Length / GotThisData);
 
-    if (!GotThisData) last = 0;
-    else	      last = 100 / (stat.Length / GotThisData);
-
-    if (!offset) curr = 0;
-    else	 curr = 100 / (stat.Length / offset);
+    if (offset >= stat.Length) curr = 100;
+    else if (!offset) curr = 0;
+    else	      curr = 100 / (stat.Length / offset);
 
     if (last != curr)
 	MarinerLog("progress::fetching (%s) %lux\n", comp, curr);
