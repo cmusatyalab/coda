@@ -32,6 +32,8 @@ if [ x${vicedir} = x ]; then
   vicedir=/vice
 fi
 
+exec_prefix=${prefix}
+
 if [ -f ${vicedir}/srv/pid ]; then
     echo "Can't start file server, one is already running!"
     exit 1 
