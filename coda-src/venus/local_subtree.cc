@@ -485,7 +485,7 @@ ViceFid lrdb::GenerateLocalFakeFid(ViceDataType fidtype)
     ViceFid fid;
     RVMLIB_REC_OBJECT(local_fid_unique_gen);
     local_fid_unique_gen++;
-    if ( fidtype = Directory ) 
+    if ( fidtype == Directory ) 
 	    FID_MakeLocalDir(&fid, local_fid_unique_gen);
     else 
 	    FID_MakeLocalFile(&fid, local_fid_unique_gen);
