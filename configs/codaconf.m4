@@ -32,8 +32,14 @@ case ${host_alias} in
 		initsuffix=../etc
  ;;
 
-	*-*-freebsd* )
+	*-*-freebsd2* )
 		sys=i386_fbsd2
+		vfsdir=bsd44
+		initsuffix=../etc
+ ;;
+
+	*-*-freebsd3* )
+		sys=i386_fbsd3
 		vfsdir=bsd44
 		initsuffix=../etc
  ;;

@@ -22,9 +22,13 @@ CFSDEV=/dev/cfs0
 case `uname -sr` in
 	"NetBSD 1.2" )
 		CFSMAJOR=46 ;;
-	NetBSD\ 1.3* )
+	NetBSD\ 1.3 )
 		CFSMAJOR=51 ;;
-	FreeBSD\ 2.2* )
+	NetBSD\ 1.3.* )
+		CFSMAJOR=51 ;;
+	NetBSD\ 1.3* )
+		CFSMAJOR=60 ;;
+	FreeBSD* )
 		CFSMAJOR=93 ;;
 	*)
 		CFSMAJOR=67 ;;
