@@ -110,13 +110,10 @@ void vproc::root(struct venus_cnode *vpp) {
 
 void vproc::statfs(struct coda_statfs *sfs) {
     LOG(1, ("vproc::statfs\n"));
-#if 0
-    u.u_error = EOPNOTSUPP;
-#endif
 
     sfs->f_blocks  = CacheBlocks;
-    sfs->f_bfree   = FSDB->FreeBlockCount();
-    sfs->f_bavail  = sfs->f_bfree - FSDB->FreeBlockMargin;
+    sfs->f_bfree   = CacheBlocks - FSDB->DirtyBlockCount();
+    sfs->f_bavail  = FSDB->FreeBlockCount() - FSDB->FreeBlockMargin;
     sfs->f_files   = CacheFiles;
     sfs->f_ffree   = FSDB->FreeFsoCount();
 }
@@ -806,48 +803,67 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
     verifyname(toname, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
     if (u.u_error) return;
 
+    /* verify that the target parent is a directory */
+    if (ISDIR(dcp->c_fid))
+        { u.u_error = ENOTDIR; return; }
+
+    /* Verify that the source is a file. */
+    if (!ISDIR(scp->c_fid))
+	{ u.u_error = EISDIR; return; }
+
+    /* Verify that the source is in the same volume as the target parent. */
+    if (scp->c_fid.Volume != dcp->c_fid.Volume)
+        { u.u_error = EXDEV; return; }
+
+#if 0 /* not possible when source == file and target parent == dir. --JH */
     /* Another pathological case. */
     if (FID_EQ(&dcp->c_fid, &scp->c_fid))
 	{ u.u_error = EINVAL; return; }
+#endif
 
     for (;;) {
 	Begin_VFS(dcp->c_fid.Volume, CODA_LINK);
 	if (u.u_error) break;
 
-	/* Get the target parent and verify that it is a directory. */
-	u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred), RC_DATA);
-	if (u.u_error) goto FreeLocks;
-	if (!parent_fso->IsDir())
-	    { u.u_error = ENOTDIR; goto FreeLocks; }
+        /* Get the source and target objects in correct lock order */
+        if (FID_LT(scp->c_fid, dcp->c_fid)) {
+            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, CRTORUID(u.u_cred),
+                                  RC_STATUS);
+            if (u.u_error) goto FreeLocks;
 
-	/* Verify that the source is in the target parent. */
-	if (!parent_fso->dir_IsParent(&scp->c_fid)) {
-	    FSDB->Put(&parent_fso);
-	    u.u_error = FSDB->Get(&source_fso, &scp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
-	    if (u.u_error) goto FreeLocks;
+            u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred),
+                                  RC_DATA);
+            if (u.u_error) goto FreeLocks;
+        } else {
+            u.u_error = FSDB->Get(&parent_fso, &dcp->c_fid, CRTORUID(u.u_cred),
+                                  RC_DATA);
+            if (u.u_error) goto FreeLocks;
 
-	    /* Source exists, but it is not in the target parent. */
-	    u.u_error = EXDEV;
-	    goto FreeLocks;
-	}
+            u.u_error = FSDB->Get(&source_fso, &scp->c_fid, CRTORUID(u.u_cred),
+                                  RC_STATUS);
+            if (u.u_error) goto FreeLocks;
+        }
 
-	/* Get the source object. */
-	/* This violates locking protocol if FID_LT(scp->c_fid, dcp->c_fid)! -JJK */
-	u.u_error = FSDB->Get(&source_fso, &scp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
-	if (u.u_error) goto FreeLocks;
-
-	/* Verify that the source is a file. */
-	if (!source_fso->IsFile())
-	    { u.u_error = EISDIR; goto FreeLocks; }
-
+        /* Don't allow hardlinks across different directories */
+        if (!parent_fso->dir_IsParent(&scp->c_fid)) {
+            /* Source exists, but it is not in the target parent. */
+            u.u_error = EXDEV;
+            goto FreeLocks;
+        }
+                                                             
 	/* Verify that the target doesn't exist. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, toname, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, 0, toname,
+                                       CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
 	if (u.u_error == 0) { u.u_error = EEXIST; goto FreeLocks; }
 	if (u.u_error != ENOENT) goto FreeLocks;
 	u.u_error = 0;
 
-	/* Verify that we have insert permission. */
-	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, CRTORUID(u.u_cred));
+	/* Verify that we have insert permission on the target parent. */
+	u.u_error = parent_fso->Access((long)PRSFS_INSERT,0,CRTORUID(u.u_cred));
+	if (u.u_error) goto FreeLocks;
+
+	/* Verify that we have write permission on the source. */
+	u.u_error = source_fso->Access((long)PRSFS_WRITE,0,CRTORUID(u.u_cred));
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */

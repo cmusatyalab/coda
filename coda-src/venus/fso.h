@@ -210,6 +210,7 @@ class fsdb {
     void ReclaimFsos(int, int);
     void FreeFso(fsobj *);
     int FreeBlockCount();
+    int DirtyBlockCount();
     int AllocBlocks(int, int);
     int GrabFreeBlocks(int, int);
     void ReclaimBlocks(int, int);

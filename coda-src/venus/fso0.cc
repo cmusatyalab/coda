@@ -1592,6 +1592,20 @@ int fsdb::FreeBlockCount() {
     return(count);
 }
 
+int fsdb::DirtyBlockCount() {
+    unsigned int count = 0;
+
+    /* Count blocks belonging to non replaceable objects. */
+    fso_iterator next(NL);
+    fsobj *f;
+    while ((f = next())) {
+        if (!REPLACEABLE(f)) {
+	    count += BLOCKS(f);
+	}
+    }
+
+    return(count);
+}
 
 /* MUST NOT be called from within transaction! */
 int fsdb::AllocBlocks(int priority, int nblocks) {
