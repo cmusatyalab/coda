@@ -639,6 +639,7 @@ coda_venus_readdir(struct inode *inode, struct file *filp, void *getdent,
                    filldir_t filldir)
 {
         int result = 0,  offset, count, pos, error = 0;
+	int errfill;
         caddr_t buff = NULL;
         struct venus_dirent *vdirent;
         struct getdents_callback *dents_callback;
@@ -704,13 +705,14 @@ coda_venus_readdir(struct inode *inode, struct file *filp, void *getdent,
                         error = verify_area(VERIFY_WRITE, dents_callback->current_dir, count);
                         if (error) {
                                 DEBUG("verify area fails!!!\n");
-                                break;
+                                goto exit;
                         }
 
-                      error = filldir(dents_callback,  name, namlen, offs, ino); 
+                      errfill = filldir(dents_callback,  name, namlen, offs, ino); 
 DEBUG("ino %d, namlen %d, reclen %d, type %d, pos %d, string_offs %d, name %s, offset %d, count %d.\n", vdirent->d_fileno, vdirent->d_namlen, vdirent->d_reclen, vdirent->d_type, pos,  string_offset, debug, (u_int) offs, dents_callback->count);
 
-                      if ( error < 0 ) break;
+		      /* errfill means no space for filling in this round */
+                      if ( errfill < 0 ) break;
 
                 }
                 /* next one */
