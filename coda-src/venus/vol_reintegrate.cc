@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: vol_reintegrate.cc,v 4.3 97/02/27 18:49:15 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_reintegrate.cc,v 4.4 97/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -688,10 +688,17 @@ reintegrator::~reintegrator() {
  * main procedure for the constructor to poke it.  This handshake 
  * assumes that the new vproc has a thread priority greater than or
  * equal to its creator; only then does the a thread run when 
- * LWP_CreateProcess is called.  In this case, the newly-created
- * reintegrator runs only when its creator is suspended.
+ * LWP_CreateProcess is called.  If the creator has a higher 
+ * priority, the new reintegrator runs only when the creator is
+ * suspended.  Otherwise, the reintegrator will run when created.
+ * This can happen if a reintegrator creates another reintegrator.
+ * In this case, the yield below allows the creator to fill in
+ * the context.
  */
 void reintegrator::main(void *parm) {
+    /* Hack!  Vproc must yield before data members become valid! */
+    VprocYield();
+
     for (;;) {
 	if (idle) Choke("reintegrator::main: signalled but not dispatched!");
 	if (!u.u_vol) Choke("reintegrator::main: no volume!");

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/vol_cml.cc,v 4.3 97/02/27 18:49:15 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.4 97/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1644,6 +1644,10 @@ void volent::CancelStores(ViceFid *Fid) {
 	    }
 	} while (cancellation);
     , MAXFP)
+
+    /* we may have cancelled the last record. */
+    if (CML.count() == 0)
+        CML.owner = UNSET_UID;
 }
 
 
