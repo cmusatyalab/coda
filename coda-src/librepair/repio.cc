@@ -108,7 +108,7 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
     struct repair *r;
     int fd;
 
-    fd = open(fname, O_WRONLY | O_BINARY);
+    fd = open(fname, O_WRONLY|O_CREAT|O_EXCL|O_BINARY);
     if (fd < 0) {
 	perror(fname);
 	return -1;
