@@ -46,6 +46,10 @@ typedef struct fid_ent_s {
 #define SYS_STRING "dos"
 #endif
 
+#ifdef sun
+#define SYS_STRING "solaris"
+#endif
+
 #ifdef __STDC__
 #define CODA_ASSERT(b)                                           \
 do {                                                        \

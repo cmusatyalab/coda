@@ -28,6 +28,7 @@ listed in the file CREDITS.
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <fcntl.h>
 
 #if defined(DJGPP) || defined(__CYGWIN32__) || defined(__linux__)
 #include <sys/socket.h>
@@ -475,7 +476,7 @@ child_exists(char *path, char *name) {
     do {
 	dep = readdir(dirp);
 	if (dep 
-#ifndef __linux__
+#if !defined(__linux__) && !defined(sun)
 	    && (dep->d_namlen == length) 
 #endif
 	    && (!strcmp(dep->d_name, name)))
