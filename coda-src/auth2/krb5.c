@@ -32,6 +32,8 @@ extern "C" {
 #include <getsecret.h>
 #include "krbcommon.h"
 
+#include <ctype.h>
+
 #ifdef __cplusplus
 }
 #endif
@@ -91,6 +93,15 @@ static void get_principal(char *hostname, krb5_principal *principal)
     if (!host) {
 	fprintf(stderr, "krb5.c: krb_canonicalize_host failed\n");
 	exit(-1);
+    }
+
+    /* kerberos seems to be case-sensitive in it's tickets, but relies
+     * on case-insensitive names from DNS. This is a hack from Michael
+     * Tautschnig which canonicalizes the name we just got. */
+    if (host) {
+	n = strlen(host);
+	for (i = 0; i < n; i++)
+	    host[i] = toupper(host[i]);
     }
 
     /* what is the realm? */
