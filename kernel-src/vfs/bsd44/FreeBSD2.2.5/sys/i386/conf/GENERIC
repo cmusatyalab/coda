@@ -22,6 +22,7 @@ ident		GENERIC
 maxusers	10
 
 options		MATH_EMULATE		#Support for x87 emulation
+options 	DDB			#kernel debugger
 options		INET			#InterNETworking
 options		FFS			#Berkeley Fast Filesystem
 options		NFS			#Network Filesystem
