@@ -746,7 +746,7 @@ void DIR_Print(PDirHeader dir, FILE *f)
 	for ( i = 0; i < NHASH ; i++ ) {
 		num = ntohs(dir->dirh_hashTable[i]);
 		if ( num ) {
-			printf("Chain: %d\n", i);
+			fprintf(f, "Chain: %d\n", i);
 			DIR_PrintChain(dir, i, f);
 		}
 	}
