@@ -972,7 +972,6 @@ int fsobj::LocalFakeify()
     FakeRoot->stat.Date = Vtime();
     FakeRoot->stat.LinkCount = 2;
     FakeRoot->stat.VnodeType = Directory;
-    FakeRoot->Matriculate();		/* need this ??? -luqi */
     FakeRoot->pfid = pf->fid;
     FakeRoot->pfso = pf;
     /* Create the target directory. */
@@ -986,6 +985,8 @@ int fsobj::LocalFakeify()
     /* add an new entry to the LRDB maintained fid-map */
     LRDB->RFM_Insert(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,
 		     &GlobalChildFid, &LocalChildFid, comp, MtPt);
+
+    FakeRoot->Matriculate();		/* need this ??? -luqi */
     Recov_EndTrans(MAXFP);
 
     FSDB->Put(&FakeRoot);

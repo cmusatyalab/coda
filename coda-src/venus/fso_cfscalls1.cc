@@ -926,12 +926,12 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 	target_fso->stat.Mode = Mode;
 	target_fso->AnyUser = AnyUser;
 	memcpy(target_fso->SpecificUser, SpecificUser, (CPSIZE * sizeof(AcRights)));
-	target_fso->Matriculate();
 	target_fso->SetParent(fid.Vnode, fid.Unique);
 
 	/* Create the target directory. */
 	target_fso->dir_MakeDir();
 
+	target_fso->Matriculate();
 	target_fso->Reference();
 	target_fso->ComputePriority();
     }
