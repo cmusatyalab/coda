@@ -1,5 +1,7 @@
 New in 1.2:
 
+* Added rvm_release_segment() to libseg to free a loaded segment.
+* Cleaning up initialized memory mappings in rds_zap_heap.
 * Correctly linking librdslwp from the lwp compiled objects.
 * Updated package descriptions & building against lwp-1.5.
 

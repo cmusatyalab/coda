@@ -35,8 +35,8 @@ rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, ch
      unsigned long 	chunkSize;
      int		*err;
 {
-    rvm_region_def_t regions[2], *loadregions;
-    rvm_tid_t *tid;
+    rvm_region_def_t regions[2], *loadregions = NULL;
+    rvm_tid_t *tid = NULL;
     unsigned long n_loadregions;
     rvm_return_t rvmret;
     
@@ -65,43 +65,48 @@ rds_zap_heap(DevName, DevLength, startAddr, staticLength, heapLength, nlists, ch
     rvmret = rvm_load_segment(DevName, DevLength, NULL, &n_loadregions, &loadregions);
     if (rvmret != RVM_SUCCESS) {
 	(*err) = (int) rvmret;
-	return -1;
+        return -1;
     }
 
     /* Total sanity checks -- since we just created the segment */
     if (n_loadregions != 2) {
-	free(loadregions);
 	*err = EBAD_SEGMENT_HDR;
-	return -1;
+        rvm_release_segment(n_loadregions, &loadregions);
+        return -1;
     }
     
-    free(loadregions);
-
     /* Start a transaction to initialize the heap */
     tid = rvm_malloc_tid();
     rvmret = rvm_begin_transaction(tid, restore);
     if (rvmret != RVM_SUCCESS) {
 	(*err) = (int) rvmret;
-	rvm_free_tid(tid);
-	return -1;
+        rvm_free_tid(tid);
+        rvm_release_segment(n_loadregions, &loadregions);
+        return -1;
     }
 
     *err = SUCCESS; 		/* Initialize the error value */
     rds_init_heap(startAddr, heapLength, chunkSize, nlists, tid, err);
     if (*err != SUCCESS) {
 	rvm_abort_transaction(tid);
-	rvm_free_tid(tid);
-	return -1;
+        rvm_free_tid(tid);
+        rvm_release_segment(n_loadregions, &loadregions);
+        return -1;
     }
 
     rvmret = rvm_end_transaction(tid, no_flush);
     if (rvmret != RVM_SUCCESS) {
 	(*err) = (int) rvmret;
-	rvm_free_tid(tid);
-	return -1;
     }
 
     rvm_free_tid(tid);
-    *err = SUCCESS;
-    return 0;
+
+    /* Make sure the initialization has been committed to rvm data */
+    rvm_flush();
+    rvm_truncate();
+
+    rvm_release_segment(n_loadregions, &loadregions);
+
+    return (*err == SUCCESS ? 0 : -1);
 }
+

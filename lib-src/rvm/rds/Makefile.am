@@ -24,13 +24,13 @@ INCLUDES = -I$(top_srcdir)/include
 librds_la_SOURCES = rds_coalesce.c rds_free.c rds_init.c rds_malloc.c \
     rds_prealloc.c rds_split.c rds_stats.c rds_start.c rds_util.c rds_zap.c \
     rds_private.h
-librds_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS)
+librds_la_LDFLAGS = -version-info 1:2:0 $(LIBTOOL_LDFLAGS)
 
 librdslwp_la_SOURCES =
 librdslwp_la_LIBADD = rds_coalesce_lwp.lo rds_free_lwp.lo rds_init_lwp.lo rds_malloc_lwp.lo \
     rds_prealloc_lwp.lo rds_split_lwp.lo rds_stats_lwp.lo rds_start_lwp.lo rds_util_lwp.lo \
     rds_zap_lwp.lo
-librdslwp_la_LDFLAGS = -version-info 1:1:0 $(LIBTOOL_LDFLAGS) $(LIBLWP)
+librdslwp_la_LDFLAGS = -version-info 1:2:0 $(LIBTOOL_LDFLAGS) $(LIBLWP)
 
 sbin_PROGRAMS = rdsinit
 rdsinit_LDADD = librds.la $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la

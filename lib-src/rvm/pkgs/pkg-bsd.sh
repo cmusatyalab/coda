@@ -129,9 +129,9 @@ function MakePLIST () {
 @comment \$NetBSD\$
 lib/librvm.so.1.0
 lib/librvmlwp.so.1.0
-lib/libseg.so.1.0
-lib/librds.so.1.0
-lib/librdslwp.so.1.1
+lib/libseg.so.2.0
+lib/librds.so.1.2
+lib/librdslwp.so.1.2
 EOF
     else
 	cat > ${dst} << EOF
@@ -140,7 +140,7 @@ lib/librvm.so.1
 lib/librvmlwp.so
 lib/librvmlwp.so.1
 lib/libseg.so
-lib/libseg.so.1
+lib/libseg.so.2
 lib/librds.so
 lib/librds.so.1
 lib/librdslwp.so

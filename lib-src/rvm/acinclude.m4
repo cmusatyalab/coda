@@ -14,6 +14,10 @@ AC_CANONICAL_SYSTEM
 host=${target}
 program_prefix=
 if test ${build} != ${target} ; then
+  dnl We have to override some things the configure script tends to
+  dnl get wrong as it tests the build platform feature
+  ac_cv_func_mmap_fixed_mapped=yes
+
   case ${target} in
    i386-pc-msdos )
     dnl shared libraries don't work here
@@ -24,10 +28,6 @@ if test ${build} != ${target} ; then
     RANLIB="true"
     AS="dos-as"
     NM="dos-nm"
-
-    dnl We have to override some things the configure script tends to
-    dnl get wrong as it tests the build platform feature
-    ac_cv_func_mmap_fixed_mapped=yes
     ;;
    i386-pc-cygwin )
     dnl -D__CYGWIN32__ should be defined but sometimes isn't (wasn't?)
@@ -47,15 +47,23 @@ if test ${build} != ${target} ; then
     LIBTOOL_LDFLAGS="-no-undefined"
     ;;
    arm-unknown-linux-gnuelf )
-    CC="arm-unknown-linuxelf-gcc"
-    CFLAGS="-DHAVE_MMAP ${CFLAGS}"
-    AR="arm-unknown-linuxelf-ar"
-    RANLIB="arm-unknown-linuxelf-ranlib"
-    AS="arm-unknown-linuxelf-as"
-    NM="arm-unknown-linuxelf-nm"
-    OBJDUMP="arm-unknown-linuxelf-objdump"
+    CROSS_COMPILE="arm-unknown-linuxelf-"
     ;;
  esac
+fi
+if test "${CROSS_COMPILE}" ; then
+  CC=${CROSS_COMPILE}gcc
+  CXX=${CROSS_COMPILE}g++
+  CPP="${CC} -E"
+  AS=${CROSS_COMPILE}as
+  LD=${CROSS_COMPILE}ld
+  AR=${CROSS_COMPILE}ar
+  RANLIB=${CROSS_COMPILE}ranlib
+  NM=${CROSS_COMPILE}nm
+  OBJDUMP=${CROSS_COMPILE}objdump
+  DLLTOOL=${CROSS_COMPILE}dlltool
+
+  ac_cv_func_mmap_fixed_mapped=yes
 fi])
 
 dnl ---------------------------------------------

@@ -134,3 +134,4 @@ rvm_create_segment(DevName, DevLength, options, nregions, regionDefs)
     rvm_free_region(region);
     return err;
 }
+
