@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.5 1997/12/20 23:35:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.7 1998/08/31 12:23:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -119,47 +119,47 @@ struct command
 
 
 /* One handler routine for each opcode */
-PRIVATE void Bandwidth(int, char**, int);
-PRIVATE void BeginRepair(int, char**, int);
-PRIVATE void CheckServers(int, char**, int);
-PRIVATE void CheckPointML(int, char**, int);
-PRIVATE void CheckVolumes(int, char**, int);
-PRIVATE void ClearPriorities(int, char**, int);
-PRIVATE void Compress(int, char**, int);
-PRIVATE void Disconnect(int, char**, int);
-PRIVATE void DisableASR(int, char**, int);
-PRIVATE void EnableASR(int, char**, int); 
-PRIVATE void EndML(int, char**, int);
-PRIVATE void EndRepair(int, char**, int);
-PRIVATE void ExamineClosure(int, char**, int);
-PRIVATE void FlushCache(int, char**, int);
-PRIVATE void FlushObject(int, char**, int);
-PRIVATE void FlushVolume(int, char**, int);
-PRIVATE void FlushASR(int, char**, int); 
-PRIVATE void GetFid(int, char**, int);
-PRIVATE void GetPath(int, char**, int);
-PRIVATE void GetMountPoint(int, char**, int);
-PRIVATE void Help(int, char **, int);
-PRIVATE void ListACL(int, char **, int);
-PRIVATE void ListCache(int, char **, int);
-PRIVATE void ListVolume(int, char **, int);
-PRIVATE void LsMount(int, char**, int);
-PRIVATE void MkMount(int, char**, int);
-PRIVATE void PurgeML(int, char**, int);
-PRIVATE void ReplayClosure(int, char**, int);
-PRIVATE void Reconnect(int, char**, int);
-PRIVATE void RmMount(int, char**, int);
-PRIVATE void SetACL(int, char**, int);
-PRIVATE void SetQuota(int, char **, int);
-PRIVATE void SetVolume(int, char **, int);
-PRIVATE void Slow(int, char **, int);
-PRIVATE void TruncateLog(int, char **, int);
-PRIVATE void Uncompress(int, char**, int);
-PRIVATE void WaitForever(int, char**, int);
-PRIVATE void WhereIs(int, char**, int);
-PRIVATE void WriteDisconnect(int, char**, int);
-PRIVATE void WriteReconnect(int, char**, int);
-PRIVATE int IsObjInc(char *, ViceFid *);
+static void Bandwidth(int, char**, int);
+static void BeginRepair(int, char**, int);
+static void CheckServers(int, char**, int);
+static void CheckPointML(int, char**, int);
+static void CheckVolumes(int, char**, int);
+static void ClearPriorities(int, char**, int);
+static void Compress(int, char**, int);
+static void Disconnect(int, char**, int);
+static void DisableASR(int, char**, int);
+static void EnableASR(int, char**, int); 
+static void EndML(int, char**, int);
+static void EndRepair(int, char**, int);
+static void ExamineClosure(int, char**, int);
+static void FlushCache(int, char**, int);
+static void FlushObject(int, char**, int);
+static void FlushVolume(int, char**, int);
+static void FlushASR(int, char**, int); 
+static void GetFid(int, char**, int);
+static void GetPath(int, char**, int);
+static void GetMountPoint(int, char**, int);
+static void Help(int, char **, int);
+static void ListACL(int, char **, int);
+static void ListCache(int, char **, int);
+static void ListVolume(int, char **, int);
+static void LsMount(int, char**, int);
+static void MkMount(int, char**, int);
+static void PurgeML(int, char**, int);
+static void ReplayClosure(int, char**, int);
+static void Reconnect(int, char**, int);
+static void RmMount(int, char**, int);
+static void SetACL(int, char**, int);
+static void SetQuota(int, char **, int);
+static void SetVolume(int, char **, int);
+static void Slow(int, char **, int);
+static void TruncateLog(int, char **, int);
+static void Uncompress(int, char**, int);
+static void WaitForever(int, char**, int);
+static void WhereIs(int, char**, int);
+static void WriteDisconnect(int, char**, int);
+static void WriteReconnect(int, char**, int);
+static int IsObjInc(char *, ViceFid *);
 
 /*  Array with one entry per command.
     To add new ones, just insert new 6-tuple, and add handler routine to list above.
@@ -180,7 +180,7 @@ struct command cmdarray[] =
 	   "Expose replicas of inc. objects",
 	   NULL
      	},
-	{"checkservers", NULL, CheckServers, 
+	{"checkservers", "cs", CheckServers, 
 	    "cfs checkservers <servernames>",
 	    "Check up/down status of servers",
 	    NULL
@@ -395,18 +395,18 @@ enum closure_ops {CLO_EXAMINE, CLO_REPLAY};
 #define CLO_REMOVE	  0x4
 
 /* Type definitions for internal routines */
-PRIVATE int findslot(char *s);
-PRIVATE char *xlate_vvtype(ViceVolumeType vvt);
-PRIVATE int parseacl(char *s, struct acl *a);
-PRIVATE void translate(char *s, char oldc, char newc);
-PRIVATE void fillrights(int x, char *s);
-PRIVATE int getrights(char *s, int *x);
-PRIVATE int getlongest(int argc, char *argv[]);
-PRIVATE int dirincoda(char *);
-PRIVATE int brave(int);
-PRIVATE int doclosure(char *cloname, enum closure_ops opcode, int flags);
-PRIVATE int findclosures(char ***clist);
-PRIVATE int validateclosurespec(char *name, char *volname, char *volrootpath);
+static int findslot(char *s);
+static char *xlate_vvtype(ViceVolumeType vvt);
+static int parseacl(char *s, struct acl *a);
+static void translate(char *s, char oldc, char newc);
+static void fillrights(int x, char *s);
+static int getrights(char *s, int *x);
+static int getlongest(int argc, char *argv[]);
+static int dirincoda(char *);
+static int brave(int);
+static int doclosure(char *cloname, enum closure_ops opcode, int flags);
+static int findclosures(char ***clist);
+static int validateclosurespec(char *name, char *volname, char *volrootpath);
 
 
 main(int argc, char *argv[])
@@ -433,7 +433,7 @@ main(int argc, char *argv[])
     exit(-1);
     }
 
-PRIVATE int brave(int slot)
+static int brave(int slot)
     /* Warns user that an operation is dangerous and asks for confirmation.
        Returns TRUE if the user wants to go ahead, FALSE otherwise
     */
@@ -459,7 +459,7 @@ PRIVATE int brave(int slot)
 
 #define MAXHOSTS 8  /* from venus.private.h, should be in vice.h! */
 
-PRIVATE void CheckServers(int argc, char *argv[], int opslot)
+static void CheckServers(int argc, char *argv[], int opslot)
     {
     int rc, i; 
     unsigned long *downsrvarray;
@@ -528,7 +528,7 @@ PRIVATE void CheckServers(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void CheckPointML(int argc, char* argv[], int opslot)
+static void CheckPointML(int argc, char* argv[], int opslot)
     {
     int rc; 
     struct ViceIoctl vio;
@@ -564,7 +564,7 @@ PRIVATE void CheckPointML(int argc, char* argv[], int opslot)
     }
 
 
-PRIVATE dirincoda(char *path)
+static dirincoda(char *path)
     /*	Returns TRUE iff
 	    (a) path is a directory
 	    (b) you can cd to it right now (implying no intervening dangling sym links)
@@ -593,7 +593,7 @@ PRIVATE dirincoda(char *path)
     return(rc == 0);
     }
 
-PRIVATE void CheckVolumes(int argc, char *argv[], int opslot)
+static void CheckVolumes(int argc, char *argv[], int opslot)
     {
     int rc;
     struct ViceIoctl vio;
@@ -612,7 +612,7 @@ PRIVATE void CheckVolumes(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("  VIOC_VIOCCKBACK"); exit(-1);}
     }
 
-PRIVATE void ClearPriorities(int argc, char *argv[], int opslot)
+static void ClearPriorities(int argc, char *argv[], int opslot)
     {
     int rc;
     struct ViceIoctl vio;
@@ -631,7 +631,7 @@ PRIVATE void ClearPriorities(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("  VIOC_CLEARPRIORITIES"); exit(-1);}
     }
 
-PRIVATE void Compress(int argc, char *argv[], int opslot)
+static void Compress(int argc, char *argv[], int opslot)
     {
     int i, rc; 
     struct ViceIoctl vio;
@@ -655,7 +655,7 @@ PRIVATE void Compress(int argc, char *argv[], int opslot)
 	}
     }
 
-PRIVATE void Disconnect(int argc, char *argv[], int opslot)
+static void Disconnect(int argc, char *argv[], int opslot)
     {
     int rc;
     struct ViceIoctl vio;
@@ -699,7 +699,7 @@ PRIVATE void Disconnect(int argc, char *argv[], int opslot)
         free(insrv);
     }
 
-PRIVATE void ExamineClosure(int argc, char *argv[], int opslot)
+static void ExamineClosure(int argc, char *argv[], int opslot)
     {
     int rc, i, flags = 0;
     int first, last; /* indices of first & last closures in filenames[] */
@@ -740,7 +740,7 @@ PRIVATE void ExamineClosure(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE int doclosure(char *cloname, enum closure_ops opcode, int flags)
+static int doclosure(char *cloname, enum closure_ops opcode, int flags)
     /* Code adapted from JJK's original implementations of {Examine,Replay}Closure
        Performs specified operation on cloname and prints results on stdout
        Returns 0 on success or non-fatal error, -1 on fatal error */
@@ -809,7 +809,7 @@ PRIVATE int doclosure(char *cloname, enum closure_ops opcode, int flags)
     }
 
 
-PRIVATE int findclosures(char ***clist)
+static int findclosures(char ***clist)
     {/* Constructs an argv[]-like structure of closures in /usr/coda/spool/<uid>.
 	Return the # of closures found.
      */
@@ -851,7 +851,7 @@ PRIVATE int findclosures(char ***clist)
     }
 
 
-PRIVATE int validateclosurespec(char *name, char *volname, char *volrootpath)
+static int validateclosurespec(char *name, char *volname, char *volrootpath)
     {
     int rc;
     char *cp, *ap, *Volname;
@@ -926,7 +926,7 @@ PRIVATE int validateclosurespec(char *name, char *volname, char *volrootpath)
     return(1);
     }
 
-PRIVATE void FlushCache(int argc, char *argv[], int opslot)
+static void FlushCache(int argc, char *argv[], int opslot)
     {
     int rc;
     struct ViceIoctl vio;
@@ -945,7 +945,7 @@ PRIVATE void FlushCache(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("  VIOC_FLUSHCACHE"); exit(-1);}    
     }
 
-PRIVATE void FlushObject(int argc, char *argv[], int opslot)
+static void FlushObject(int argc, char *argv[], int opslot)
     {
     int i, w, rc;
     struct ViceIoctl vio;
@@ -979,7 +979,7 @@ PRIVATE void FlushObject(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void FlushVolume(int argc, char *argv[], int opslot)
+static void FlushVolume(int argc, char *argv[], int opslot)
     {
     int i, w, rc;
     struct ViceIoctl vio;
@@ -1005,7 +1005,7 @@ PRIVATE void FlushVolume(int argc, char *argv[], int opslot)
 	}
     }
 
-PRIVATE void BeginRepair(int argc, char *argv[], int opslot)
+static void BeginRepair(int argc, char *argv[], int opslot)
 {
     struct ViceIoctl vio;
     int rc;
@@ -1029,7 +1029,7 @@ PRIVATE void BeginRepair(int argc, char *argv[], int opslot)
     rc = pioctl(argv[2], VIOC_ENABLEREPAIR, &vio, 0);
     if (rc < 0){fflush(stdout); perror("VIOC_ENABLEREPAIR"); exit(-1);}
 }
-PRIVATE void DisableASR(int argc, char *argv[], int opslot)
+static void DisableASR(int argc, char *argv[], int opslot)
 {
     struct ViceIoctl vio;
     int rc;
@@ -1048,7 +1048,7 @@ PRIVATE void DisableASR(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("VIOC_DISABLEASR"); exit(-1);}
 }
 
-PRIVATE void EnableASR(int argc, char *argv[], int opslot)
+static void EnableASR(int argc, char *argv[], int opslot)
 {
     struct ViceIoctl vio;
     int rc;
@@ -1067,7 +1067,7 @@ PRIVATE void EnableASR(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("VIOC_ENABLEASR"); exit(-1);}
 }
 
-PRIVATE void EndRepair(int argc, char *argv[], int opslot) 
+static void EndRepair(int argc, char *argv[], int opslot) 
 {
     struct ViceIoctl vio;
     int rc;
@@ -1086,7 +1086,7 @@ PRIVATE void EndRepair(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("VIOC_DISABLEREPAIR"); exit(-1);}
 }
 
-PRIVATE void FlushASR(int argc, char *argv[], int opslot) {
+static void FlushASR(int argc, char *argv[], int opslot) {
     int i, rc, w;
     struct ViceIoctl vio;
 
@@ -1114,7 +1114,7 @@ PRIVATE void FlushASR(int argc, char *argv[], int opslot) {
 }
 
 
-PRIVATE void GetFid(int argc, char *argv[], int opslot)
+static void GetFid(int argc, char *argv[], int opslot)
     {
     int i, rc, w;
     ViceFid fid;
@@ -1165,7 +1165,7 @@ PRIVATE void GetFid(int argc, char *argv[], int opslot)
     
     }
 
-PRIVATE void GetPath(int argc, char *argv[], int opslot)
+static void GetPath(int argc, char *argv[], int opslot)
     {
     int i, rc, w;
     struct ViceIoctl vio;
@@ -1201,7 +1201,7 @@ PRIVATE void GetPath(int argc, char *argv[], int opslot)
     
     }
 
-PRIVATE void Help(int argc, char *argv[], int opslot)
+static void Help(int argc, char *argv[], int opslot)
     {
     int helpop; /* opcode for which help was requested */
     int i;
@@ -1228,7 +1228,7 @@ PRIVATE void Help(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void ListACL(int argc, char *argv[], int opslot)
+static void ListACL(int argc, char *argv[], int opslot)
     {
     int i, j, rc;
     struct ViceIoctl vio;
@@ -1272,7 +1272,7 @@ PRIVATE void ListACL(int argc, char *argv[], int opslot)
 	}
     }
 
-PRIVATE int parseacl(char *s, struct acl *a)
+static int parseacl(char *s, struct acl *a)
     /* 
 	*s is assumed to be output of GETACL pioctl 
 	Format:
@@ -1339,7 +1339,7 @@ PRIVATE int parseacl(char *s, struct acl *a)
     }
 
 
-PRIVATE void fillrights(int x, char *s)
+static void fillrights(int x, char *s)
     /* Fills s with string corr to rights specified in x */
     {
     *s = 0;
@@ -1352,7 +1352,7 @@ PRIVATE void fillrights(int x, char *s)
     if (x & PRSFS_ADMINISTER) strcat(s, "a");
     }
 
-PRIVATE int getrights(char *s, int *x)
+static int getrights(char *s, int *x)
     /* Sets x to rights specified in string s
        Returns 0 on success, -1 if s is bogus */
     {
@@ -1383,7 +1383,7 @@ PRIVATE int getrights(char *s, int *x)
     }
 
 
-PRIVATE void translate(char *s, char oldc, char newc)
+static void translate(char *s, char oldc, char newc)
     /* Changes every occurence of oldc to newc in s */
     {
     int i, size;
@@ -1393,7 +1393,7 @@ PRIVATE void translate(char *s, char oldc, char newc)
 	if (s[i] == oldc) s[i] = newc;
     }
 
-PRIVATE void GetMountPoint(int argc, char *argv[], int opslot)
+static void GetMountPoint(int argc, char *argv[], int opslot)
 {
   int i, rc;
   struct ViceIoctl vio;
@@ -1426,7 +1426,7 @@ PRIVATE void GetMountPoint(int argc, char *argv[], int opslot)
   }
 }
 
-PRIVATE void ListCache(int argc, char *argv[], int opslot)
+static void ListCache(int argc, char *argv[], int opslot)
 {
   int i, rc;
 
@@ -1580,7 +1580,7 @@ PRIVATE void ListCache(int argc, char *argv[], int opslot)
 }
 
 
-PRIVATE void ListVolume(int argc, char *argv[], int opslot)
+static void ListVolume(int argc, char *argv[], int opslot)
     {
     int i, rc;
     struct ViceIoctl vio;
@@ -1633,7 +1633,7 @@ PRIVATE void ListVolume(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void LsMount (int argc, char *argv[], int opslot)
+static void LsMount (int argc, char *argv[], int opslot)
     /* This code will not detect a mount point where the root
        directory of the mounted volume denies permission for
        a chdir().  Hopefully this will be a rare event.
@@ -1710,7 +1710,7 @@ PRIVATE void LsMount (int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void MkMount (int argc, char *argv[], int opslot)
+static void MkMount (int argc, char *argv[], int opslot)
     {
     int rc;
     char *vol, *dir;
@@ -1728,7 +1728,7 @@ PRIVATE void MkMount (int argc, char *argv[], int opslot)
     if (rc < 0) {fflush(stdout); perror(dir); exit(-1);}
     }
 
-PRIVATE void PurgeML(int argc, char *argv[], int opslot)
+static void PurgeML(int argc, char *argv[], int opslot)
     {
     int  rc;
     struct ViceIoctl vio;
@@ -1753,7 +1753,7 @@ PRIVATE void PurgeML(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void Reconnect(int argc, char *argv[], int opslot)
+static void Reconnect(int argc, char *argv[], int opslot)
     {
     int rc;
     struct ViceIoctl vio;
@@ -1797,7 +1797,7 @@ PRIVATE void Reconnect(int argc, char *argv[], int opslot)
         free(insrv);
     }
 
-PRIVATE void ReplayClosure(int argc, char *argv[], int opslot)
+static void ReplayClosure(int argc, char *argv[], int opslot)
     {
     int rc, i, flags = 0;
     int first, last; /* indices of first & last closures in filenames[] */
@@ -1833,7 +1833,7 @@ PRIVATE void ReplayClosure(int argc, char *argv[], int opslot)
 	}
     }
 
-PRIVATE void RmMount(int argc, char *argv[], int opslot)
+static void RmMount(int argc, char *argv[], int opslot)
     {
     int  i, rc, w;
     struct ViceIoctl vio;
@@ -1873,7 +1873,7 @@ PRIVATE void RmMount(int argc, char *argv[], int opslot)
 	}
     }
 
-PRIVATE void SetACL (int argc, char *argv[], int opslot)
+static void SetACL (int argc, char *argv[], int opslot)
     {
     int i = 2, clearflag = 0, minusflag = 0, rc;
     char *dir;
@@ -2001,10 +2001,10 @@ EntryDone:
     }
 
 
-PRIVATE void SetVolume	(int argc, char *argv[], int opslot) {printf("Not supported by Coda yet\n");}
+static void SetVolume	(int argc, char *argv[], int opslot) {printf("Not supported by Coda yet\n");}
 
 
-PRIVATE void SetQuota	(int argc, char *argv[], int opslot) 
+static void SetQuota	(int argc, char *argv[], int opslot) 
 {
     int i, rc;
     struct ViceIoctl vio;
@@ -2051,7 +2051,7 @@ PRIVATE void SetQuota	(int argc, char *argv[], int opslot)
 }
 
 
-PRIVATE void Slow(int argc, char *argv[], int opslot) 
+static void Slow(int argc, char *argv[], int opslot) 
     {
     int rc;
     struct ViceIoctl vio;
@@ -2072,7 +2072,7 @@ PRIVATE void Slow(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("  VIOC_SLOW"); exit(-1);}    
     }
 
-PRIVATE void Bandwidth(int argc, char *argv[], int opslot) 
+static void Bandwidth(int argc, char *argv[], int opslot) 
     {
     int rc;
     struct ViceIoctl vio;
@@ -2093,7 +2093,7 @@ PRIVATE void Bandwidth(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("  VIOC_BWHINT"); exit(-1);}    
     }
 
-PRIVATE void TruncateLog(int argc, char *argv[], int opslot)
+static void TruncateLog(int argc, char *argv[], int opslot)
     {
     int rc;
     struct ViceIoctl vio;
@@ -2113,7 +2113,7 @@ PRIVATE void TruncateLog(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void Uncompress(int argc, char *argv[], int opslot)
+static void Uncompress(int argc, char *argv[], int opslot)
     {
     int i, rc; 
     struct ViceIoctl vio;
@@ -2137,7 +2137,7 @@ PRIVATE void Uncompress(int argc, char *argv[], int opslot)
 	}
     }
 
-PRIVATE void WhereIs (int argc, char *argv[], int opslot)
+static void WhereIs (int argc, char *argv[], int opslot)
     {
     int rc, i, j, w;
     struct ViceIoctl vio;
@@ -2189,7 +2189,7 @@ PRIVATE void WhereIs (int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void WaitForever (int argc, char *argv[], int opslot)
+static void WaitForever (int argc, char *argv[], int opslot)
     {
     int rc, value = -1;
     struct ViceIoctl vio;
@@ -2215,7 +2215,7 @@ PRIVATE void WaitForever (int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void WriteDisconnect(int argc, char *argv[], int opslot)
+static void WriteDisconnect(int argc, char *argv[], int opslot)
     {
     int  i = 2, rc, w = 0;
     struct ViceIoctl vio;
@@ -2250,7 +2250,7 @@ PRIVATE void WriteDisconnect(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE void WriteReconnect(int argc, char *argv[], int opslot)
+static void WriteReconnect(int argc, char *argv[], int opslot)
     {
     int  i, w, rc;
     struct ViceIoctl vio;
@@ -2279,7 +2279,7 @@ PRIVATE void WriteReconnect(int argc, char *argv[], int opslot)
     }
 
 
-PRIVATE int findslot(char *s)
+static int findslot(char *s)
     /* Returns the index in cmdarray[] of opcode or abbreviation s;
        returns -1 if no such opcode */
     {
@@ -2294,7 +2294,7 @@ PRIVATE int findslot(char *s)
     return(-1);
     }
 
-PRIVATE char *xlate_vvtype(ViceVolumeType vvt)
+static char *xlate_vvtype(ViceVolumeType vvt)
     {
     switch(vvt)
 	{
@@ -2307,7 +2307,7 @@ PRIVATE char *xlate_vvtype(ViceVolumeType vvt)
     }
 
 
-PRIVATE int getlongest(int argc, char *argv[])
+static int getlongest(int argc, char *argv[])
     {/* Return length of longest argument; for use in aligning printf() output */
     int i, max, next;
 
@@ -2321,7 +2321,7 @@ PRIVATE int getlongest(int argc, char *argv[])
     }
 
 
-PRIVATE int IsObjInc(char *name, ViceFid *fid) {
+static int IsObjInc(char *name, ViceFid *fid) {
     int rc;
     char symval[MAXPATHLEN];
     struct stat statbuf;
