@@ -939,20 +939,29 @@ static int coda_refresh_inode(struct dentry *dentry)
 	}
 
 	/* this inode may be lost if:
-            - it's type changed
             - it's ino changed 
+	    - type changes must be permitted for repair and
+	      missing mount points.
 	*/
 	old_mode = inode->i_mode;
 	old_ino = inode->i_ino;
 	coda_vattr_to_iattr(inode, &attr);
 
-	if ((inode->i_ino != old_ino) ||
-	    ((old_mode & S_IFMT) != (inode->i_mode & S_IFMT))) {
+
+	if ((old_mode & S_IFMT) != (inode->i_mode & S_IFMT)) {
+		printk("Coda: inode %ld, fid %s changed type!\n",
+		       inode->i_ino, coda_f2s(&(cii->c_fid)));
+	}
+
+	/* the following can happen when a local fid is replaced 
+	   with a local one, here we lose and declar the inode bad */
+	if (inode->i_ino != old_ino) {
 		make_bad_inode(inode);
 		inode->i_mode = old_mode;
 		return -EIO;
 	}
 	
+
 	cii->c_flags &= ~C_VATTR;
 	return 0;
 }
