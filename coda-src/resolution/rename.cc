@@ -37,6 +37,7 @@ extern "C" {
 #include <olist.h>
 #include <dlist.h>
 #include <srv.h>
+#include <volume.h>
 #include <cvnode.h>
 #include <vcrcommon.h>
 #include <vlist.h>
