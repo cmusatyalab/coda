@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/rvmres/RCS/resfile.cc,v 1.4 1996/12/09 17:33:14 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/rvmres/RCS/resfile.cc,v 4.1 1997/01/08 21:50:38 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,6 +53,7 @@ extern "C" {
 
 #ifdef	__MACH__
 #include <libc.h>
+#include <sysent.h>
 #endif	/* __MACH__ */
 
 #if defined(__linux__) || defined(__NetBSD__)
@@ -62,17 +63,8 @@ extern "C" {
 
 #include <struct.h>
 
-#ifdef CAMELOT
-#include <cam/camelot_prefixed.h>
-#include <camlib/camlib_prefixed.h>
-#include <cam/_setjmp.h>
-#endif CAMELOT
-#if 0
-#include <cthreads.h>
-#else
 #include <dummy_cthreads.h>
-#endif
-
+#include <inodefs.h>
 #include <rpc2.h>
 #include <se.h>
 

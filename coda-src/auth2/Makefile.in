@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:44 raiff Exp $";
+# static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/auth2/RCS/Makefile.in,v 4.1 1997/01/08 21:49:24 rvb Exp $";
 
 # 
 #                          IBM COPYRIGHT NOTICE
@@ -66,7 +66,7 @@ LIBS=	${LIBRPC2}\
 	${LIBAL}\
 	${LIBOLDLWP}\
 	${LIBUTIL} \
-	${LIBCODASYS} \
+	${LIBKERNDEP} \
 	${LIBCOMPAT}
 
 libauth2.a: avice.o auser.o avenus.o auth2.server.o auth2.client.o

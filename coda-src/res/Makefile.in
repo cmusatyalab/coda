@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/res/RCS/Makefile.in,v 1.2 1996/12/09 21:47:49 braam Exp $";
+# static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/res/RCS/Makefile.in,v 4.1 1997/01/08 21:49:57 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -41,7 +41,7 @@ HEADERS	   =  rescomm.h logalloc.h pdlist.h remotelog.h resforce.h \
 RP2FILES   = $(VICE_RPC2) $(CALLBACK_RPC2) $(RES_RPC2)
 RP2HEADERS = $(notdir ${RP2FILES:.rpc2=.h})
 
-RESC_LIBS  = ${LIBCODASYS} ${LIBRPC2} ${LIBOLDLWP}
+RESC_LIBS  = ${LIBKERNDEP} ${LIBRPC2} ${LIBOLDLWP}
 
 RESLIBOBJS = logalloc.o pdlist.o remotelog.o resclient.o lockqueue.o\
              rescoord.o  resforce.o reslock.o reslog.o \
