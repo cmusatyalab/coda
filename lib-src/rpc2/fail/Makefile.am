@@ -28,7 +28,7 @@ bin_PROGRAMS = filcon
 
 libfail_la_SOURCES = filtutil.c fcon.c fail.c delay.c clear.c isolate.c \
     list.c join.c slow.c heal.c partition.c newpartition.c \
-    filtutil.h delay.h fail.h
+    filtutil.h delay.h fail.h ports.h
 libfail_la_LIBADD = fcon.client.lo fcon.server.lo
 libfail_la_LDFLAGS = -version-info 1:0:0
 
