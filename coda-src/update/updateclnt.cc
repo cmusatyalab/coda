@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.1 1997/01/08 21:51:00 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.2 1997/09/23 15:14:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -139,7 +139,7 @@ PRIVATE RPC2_Integer operatorUsecs = 0;
 
 PRIVATE RPC2_Handle con;
 PRIVATE char host[256];
-PRIVATE int waitinterval = 5*60;	/* 5 min */
+PRIVATE int waitinterval = 30;	/* 5 min */
 PRIVATE int reps = 6;
 PRIVATE char pname[20];
 
