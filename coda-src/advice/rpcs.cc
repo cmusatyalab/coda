@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.3 1997/12/30 18:10:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.4 98/04/14 20:58:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1206,7 +1206,7 @@ void InitReconFile(char *FileName, int venusmajor, int venusminor,
  ***************************  StopLight Support  ***************************
  ***************************************************************************/
 
-#ifdef 0
+#if 0
 
 long VSEmulating(RPC2_Handle _cid, RPC2_String VolumeName, VolumeId vid)
 {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp4.c,v 4.2 1998/04/14 21:07:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp4.c,v 4.3 98/08/26 17:08:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,7 +92,7 @@ struct TraceEntry
 struct CBUF_Header *TraceBuf;
 #endif RPC2DEBUG
 
-sftp_XmitPacket(whichSocket, whichPacket, whichHost, whichPortal)
+int sftp_XmitPacket(whichSocket, whichPacket, whichHost, whichPortal)
     long whichSocket;
     RPC2_PacketBuffer *whichPacket;
     RPC2_HostIdent *whichHost;
@@ -126,7 +126,7 @@ sftp_XmitPacket(whichSocket, whichPacket, whichHost, whichPortal)
     return(RPC2_SUCCESS);
     }
 
-sftp_RecvPacket(whichSocket, whichPacket, whichHost, whichPortal)
+long sftp_RecvPacket(whichSocket, whichPacket, whichHost, whichPortal)
     long whichSocket;
     RPC2_PacketBuffer *whichPacket;
     RPC2_HostIdent *whichHost;
@@ -165,7 +165,7 @@ sftp_RecvPacket(whichSocket, whichPacket, whichHost, whichPortal)
     return(rc);
     }
 
-sftp_TraceStatus(sEntry, filenum, linenum)
+void sftp_TraceStatus(sEntry, filenum, linenum)
     register struct SFTP_Entry *sEntry;
     int filenum;
     int linenum;
@@ -223,7 +223,7 @@ void sftp_TraceBogus(long filenum, long linenum)
 
 
 
-static PrintSFEntry(tEntry, tId, outFile)
+static void PrintSFEntry(tEntry, tId, outFile)
     struct TraceEntry *tEntry;
     long tId;
     FILE *outFile;    
@@ -262,7 +262,7 @@ static PrintSFEntry(tEntry, tId, outFile)
 #endif RPC2DEBUG
     }
 
-sftp_DumpTrace(fName)
+int sftp_DumpTrace(fName)
     char *fName;
     {
 #ifdef RPC2DEBUG

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/mkcall.c,v 1.1 1996/11/22 19:07:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/mkcall.c,v 4.1 97/01/08 21:50:23 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,4 +128,5 @@ mkcall(ClientHandler, ArgCount, HowMany, ConnList, offset, rpcval, args)
 		assert(ArgCount <= 12);
 	}
 	/*NOTREACHED*/
+        return -1;
 }

@@ -77,7 +77,7 @@ char *GetFullPath(char *fidStr, char *path, int length) {
     return(path);
 }
 
-#ifdef 0
+#if 0
 
 int IncludeInProgramProfile(char *program, char *path, char *profileDir) {
     char profileName[MAXPATHLEN];

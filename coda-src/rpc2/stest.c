@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.4 1998/06/16 15:43:10 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.5 98/08/26 17:08:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -102,7 +102,7 @@ long VMMaxFileSize; /* length of VMFileBuf, initially 0 */
 long VMCurrFileSize; /* number of useful bytes in VMFileBuf */
 char *VMFileBuf;    /* for FILEINVM transfers */
 
-main(argc, argv)
+void main(argc, argv)
     long argc;
     char *argv[];
 {

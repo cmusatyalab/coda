@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/dict.cc,v 4.3 1998/01/10 18:38:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/dict.cc,v 4.4 98/08/26 21:12:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -155,11 +155,11 @@ void assocrefs::Attach(assoc *Assoc, int ix) {
 
 	if (assocs == 0) {
 	    assocs = (assoc **)malloc(NewMax * sizeof(assoc *));
-	    bzero((void *)assocs, NewMax * sizeof(assoc *));
+	    bzero((char *)assocs, NewMax * sizeof(assoc *));
 	}
 	else {
 	    assocs = (assoc **)realloc(assocs, NewMax * sizeof(assoc *));
-	    bzero((void *)assocs + max - ActualGrowSize, ActualGrowSize * sizeof(assoc *));
+	    bzero((char *)assocs + max - ActualGrowSize, ActualGrowSize * sizeof(assoc *));
 	}
 
 	max = NewMax;

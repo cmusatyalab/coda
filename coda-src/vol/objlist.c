@@ -45,7 +45,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 int OBJ_Cmp(struct fsobj *a, struct fsobj *b) 
 {
-	assert(FID_VolEq(&a->fid, &b->fid));
+	assert(FID_VolEQ(&a->fid, &b->fid));
 	return FID_Cmp(&a->fid, &b-fid);
 }
 

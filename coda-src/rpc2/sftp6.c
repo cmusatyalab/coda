@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp6.c,v 4.2 1998/04/14 21:07:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp6.c,v 4.3 98/08/26 17:08:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -439,7 +439,7 @@ long SFTP_DeleteMgrp(IN MgroupHandle, IN ClientHost, IN ClientPortal, IN Role)
 
 /*------------------------------------------------------------------------------*/
 
-SFXlateMcastPacket(pb, whichHost, whichPortal)
+int SFXlateMcastPacket(pb, whichHost, whichPortal)
     RPC2_PacketBuffer	*pb;
     RPC2_HostIdent	*whichHost;
     RPC2_PortalIdent	*whichPortal;
@@ -508,7 +508,7 @@ SFXlateMcastPacket(pb, whichHost, whichPortal)
     }
 
 
-MC_CheckAckorNak(whichEntry)
+int MC_CheckAckorNak(whichEntry)
     struct SFTP_Entry	*whichEntry;
     {
     struct CEntry	*ce;
@@ -526,7 +526,7 @@ MC_CheckAckorNak(whichEntry)
     }
 
 
-MC_CheckStart(whichEntry)
+int MC_CheckStart(whichEntry)
     struct SFTP_Entry	*whichEntry;
     {
     struct CEntry	*ce, *thisce;
@@ -564,7 +564,7 @@ MC_CheckStart(whichEntry)
     }
 
 
-static MC_SendStrategy(me, mse)
+static int MC_SendStrategy(me, mse)
     struct MEntry	*me;
     struct SFTP_Entry	*mse;
     {
@@ -686,7 +686,7 @@ static MC_SendStrategy(me, mse)
     }
 
 
-static SDescCmp(desc1, desc2)
+static int SDescCmp(desc1, desc2)
     SE_Descriptor *desc1, *desc2;
     {
     struct SFTP_Descriptor *ftpd1 = &desc1->Value.SmartFTPD;
@@ -759,7 +759,7 @@ static void MC_AppendParmsToPacket(mse, sse, req)
     }
 
 
-static MC_ExtractParmsFromPacket(mse, sse, req)
+static int MC_ExtractParmsFromPacket(mse, sse, req)
     register struct SFTP_Entry *mse;
     register struct SFTP_Entry *sse;
     register RPC2_PacketBuffer *req;

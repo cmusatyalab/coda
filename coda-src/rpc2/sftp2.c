@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp2.c,v 4.2 1998/04/14 21:07:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp2.c,v 4.3 98/08/26 17:08:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -86,7 +86,8 @@ static void ExaminePacket();
 static void SFSendNAK();
 static void sftp_ProcessPackets();
 static bool sftp_MorePackets();
-static ScanTimerQ(), AwaitEvent(), hostcmp();
+static void ScanTimerQ();
+static int AwaitEvent(), hostcmp();
 
 #define NAKIT(se)\
     SFSendNAK((se)->PInfo.RemoteHandle, &((se)->PInfo.RemoteHost), &((se)->PeerPortal))
@@ -94,7 +95,7 @@ static ScanTimerQ(), AwaitEvent(), hostcmp();
 #define BOGUS(pb)\
     (sftp_TraceBogus(2, __LINE__), sftp_bogus++, SFTP_FreeBuffer(&pb))
 
-sftp_Listener()
+void sftp_Listener(void)
     {/* LWP that listens for SFTP packets */
     
     TM_Init(&sftp_Chain);
@@ -110,7 +111,7 @@ sftp_Listener()
 	}
     }
 
-SFTP_DispatchProcess()
+void SFTP_DispatchProcess(void)
     {
     struct timeval tv;
     bool rpc2, sftp;
@@ -158,7 +159,7 @@ static void sftp_ProcessPackets()
     ExaminePacket(pb, &rhost, &rportal);
 }
 
-static ScanTimerQ()
+static void ScanTimerQ()
     {
     register int i;
     register struct SLSlot *s;
@@ -196,7 +197,7 @@ bool *rpc2, *sftp;
     else return(FALSE);
     }
 
-static AwaitEvent()
+static int AwaitEvent()
     /* Awaits for a packet or earliest timeout and returns code from IOMGR_Select() */
     {
     int emask, rmask, wmask, rc;
@@ -225,7 +226,6 @@ static void ExaminePacket(whichPacket, whichHost, whichPortal)
     RPC2_PacketBuffer	*pb = whichPacket;
     struct SFTP_Entry	*sfp;
     struct CEntry	*ce;
-    struct HEntry 	*he;
 
     /* SFTPVERSION must match or we have no hope at all. */
     if (ntohl(pb->Header.ProtoVersion) != SFTPVERSION)
@@ -437,7 +437,7 @@ static void SFSendNAK(remoteHandle, whichHost, whichPortal)
     }
 
 
-static hostcmp(host1, host2)
+static int hostcmp(host1, host2)
     register RPC2_HostIdent *host1;
     register RPC2_HostIdent *host2;
     /* Returns TRUE iff host1 and host2 are the same. FALSE otherwise */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.14 1998/06/19 17:58:12 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.15 98/08/26 21:24:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -4034,7 +4034,7 @@ static int WriteData(FILE *wrfp, char *rdfn) {
 	char buf[TBLOCK];
 	int cc = fread(buf, (int) sizeof(char), TBLOCK, rdfp);
 	if (cc < TBLOCK)
-	    bzero((void *)buf + cc, TBLOCK - cc);
+	    bzero((char *)buf + cc, TBLOCK - cc);
 	if (fwrite(buf, TBLOCK, 1, wrfp) != 1) {
 	    LOG(0, ("WriteData: (%s) fwrite (%d)", rdfn, errno));
 	    code = (errno ? errno : ENOSPC);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi2.c,v 4.3 1998/04/14 21:07:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi2.c,v 4.4 98/08/26 17:08:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,6 +92,15 @@ supported by Transarc Corporation, Pittsburgh, PA.
 extern long HandleResult();
 long MRPC_UnpackMulti();
 
+int  get_len(ARG **a_types, PARM **args, MODE mode);
+void pack(ARG *a_types, PARM **args, PARM **_ptr);
+void pack_struct(ARG *a_types, PARM **args, PARM **ptr);
+int  get_arraylen_pack(ARG *a_types, PARM *args);
+void incr_struct_byte(ARG *a_types, PARM **args);
+void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset);
+void unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, long offset);
+void byte_pad(PARM **args);
+
 /*
     ServerOp	RP2Gen generated op code 
     ArgTypes	format of server arguments 
@@ -101,19 +110,15 @@ long MRPC_UnpackMulti();
     MCast	NULL if non-multicast; else points to multicast info
     HandleResult	user procedure to be called after each server return
     Timeout	user specified timeout
-    
 */
 long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 		    RPC2_Handle CIDList[], RPC2_Integer RCList[], RPC2_Multicast *MCast,
 		    long (*HandleResult)(), struct timeval *Timeout, ...)
-
-
 {
     RPC2_PacketBuffer *_reqbuffer;
     struct timeval;
-    PARM *args, *Arg1;
+    PARM *args;
     PARM *va_array;		/* a copy of those variable-length arguments */
-    PARM tmp_parm;
     PARM *_ptr;
     ARG *a_types;
     ARG_INFO arg_info;
@@ -352,9 +357,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 }
 
 /* Packs the given structure into the RequestBuffer (called recursively) */
-pack_struct(a_types, args, ptr)
-register ARG *a_types;
-register PARM **args, **ptr;
+void pack_struct(ARG *a_types, PARM **args, PARM **ptr)
 {
 	ARG *field;
 	PARM **strp, *str;
@@ -390,9 +393,7 @@ register PARM **args, **ptr;
 
 
 /* Packs the given type into the RequestBuffer */
-pack(a_types, args, _ptr)
-    register ARG *a_types;
-    register PARM **args, **_ptr;
+void pack(ARG *a_types, PARM **args, PARM **_ptr)
   {
     RPC2_Byte byte;
     long _length;
@@ -640,13 +641,17 @@ int struct_len(register ARG **a_types, register PARM **args)
  * received. MPRC_UnpackMulti and its associated procedures unpack the
  * RPC2 response buffer and call the client handler.  */
 
-long MRPC_UnpackMulti(HowMany, ConnHandleList, ArgInfo, rspbuffer, rpcval, offset)
-register int HowMany;		/* How many servers */
-RPC2_Handle ConnHandleList[];	/* list of connection ids */
-register ARG_INFO *ArgInfo;	/* server argument values and info */
-RPC2_PacketBuffer *rspbuffer;	/* rpc response buffer */
-long rpcval;			/* server return value */
-register long offset;		/* array index */
+/*
+ * HowMany		How many servers
+ * ConnHandleList	list of connection ids
+ * ArgInfo	        server argument values and info
+ * rspbuffer    	rpc response buffer
+ * rpcval		server return value
+ * offset		array index
+ */
+long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
+                      ARG_INFO *ArgInfo, RPC2_PacketBuffer *rspbuffer,
+                      long rpcval, long offset)
 {
     ARG *a_types;	/* holds ArgTypes */
     PARM *args;	/* holds Args */
@@ -696,10 +701,7 @@ register long offset;		/* array index */
  * defined in <subsys>.client.c by changing the value of the 'size' field. 
  */
 
-int get_len(a_types, args, mode)
-register ARG **a_types;
-register PARM **args;
-MODE mode;
+int get_len(ARG **a_types, PARM **args, MODE mode)
 {
     RPC2_CountedBS *cbsbodyp;
     RPC2_BoundedBS *bbsbodyp;
@@ -747,9 +749,7 @@ MODE mode;
 /* Returns an array size. It is assumed that an array size of an array is declared 
  * in front of array declaration.
  */
-int get_arraylen_pack(a_types, args)
-register ARG *a_types;
-register PARM *args;
+int get_arraylen_pack(ARG *a_types, PARM *args)
 {
     int arraysize;
     switch(a_types->type) {
@@ -768,9 +768,7 @@ register PARM *args;
     /*NOTREACHED*/
 }
 
-int get_arraylen_unpack(a_types, ptr)
-register ARG *a_types;
-register PARM *ptr;
+int get_arraylen_unpack(ARG *a_types, PARM *ptr)
 {
     switch(a_types->type) {
         case RPC2_INTEGER_TAG:
@@ -784,10 +782,7 @@ register PARM *ptr;
     /*NOTREACHED*/
 }
 
-unpack(a_types, args, _ptr, offset)
-register ARG *a_types;
-register PARM *args, **_ptr;
-register long offset;
+void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
   {
      int _length;
      RPC2_CountedBS *cbsbodyp;
@@ -924,10 +919,7 @@ register long offset;
   }
 
 
-unpack_struct(a_types, args, _ptr, offset)
-ARG *a_types;
-PARM **args, **_ptr;
-long offset;
+void unpack_struct(ARG *a_types, PARM **args, PARM **_ptr, long offset)
 {
     ARG *field;
     PARM **strp, *str;
@@ -988,9 +980,7 @@ long offset;
 }
 
 /* This should only be called for structure fields, never for top level arguments */
-incr_struct_byte(a_types, args)
-ARG *a_types;
-PARM **args;
+void incr_struct_byte(ARG *a_types, PARM **args)
   {
 	*(char **)args += (a_types->bound) ? (a_types->bound) : 1;
 	if (a_types[1].type == RPC2_BYTE_TAG) return;
@@ -998,8 +988,7 @@ PARM **args;
   }
 
 
-byte_pad(args)
-PARM **args;
+void byte_pad(PARM **args)
 {
 #ifdef sun
 				     *(char **) args = (char *)_PADWORD((int) *args);

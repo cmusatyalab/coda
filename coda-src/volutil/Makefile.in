@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/Makefile.in,v 4.9 1998/05/15 16:55:08 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/Makefile.in,v 4.10 98/08/31 12:23:42 braam Exp $";
 
 
 # 
@@ -152,7 +152,7 @@ backup: backup.o ${VLIBS}
 	$(CXX) $(LIBFLAGS) backup.o ${VLIBS} -lm -o backup
 
 readdump: readdump.o dumpstream.o dumpstuff.o ${VLIBS}
-	$(CXX) $(LIBFLAGS) readdump.o dumpstream.o dumpstuff.o ${VLIBS} -o readdump
+	$(CXX) $(LIBFLAGS) readdump.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBBASE} -o readdump
 
 parserecdump: parserecdump.o ${VLIBS}
 	$(CXX) $(LIBFLAGS) parserecdump.o ${VLIBS} -o parserecdump

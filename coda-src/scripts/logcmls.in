@@ -67,7 +67,7 @@ proc strip_title {text} {
 
 #########################################################################
 #
-# Codacon related stuff
+# Venus related stuff
 #
 proc updatestats {} {
   global input
@@ -77,7 +77,7 @@ proc updatestats {} {
   set n [ gets $input line ]
   if { $n == -1 } {
     if [ eof $input ] {
-      puts "Connection to codacon lost"
+      puts "Connection to venus lost"
       exit 0
     }
     return
@@ -87,10 +87,10 @@ proc updatestats {} {
 }
 
 #
-# connect to the codacon port
+# connect to the venus port
 #
-set input [ socket localhost codacon ]
-puts "Connected to codacon"
+set input [ socket localhost venus ]
+puts "Connected to venus"
 puts $input "set:fetch"
 flush $input
 

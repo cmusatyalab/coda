@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.2 1998/04/14 21:07:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.3 98/08/26 17:08:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,6 +62,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -881,7 +882,7 @@ bool XlateMcastPacket(pb, ThisHost, ThisPortal)
        be conservative for now. */
     if (TestState(me, SERVER, ~S_AWAITREQUEST) ||
         TestState(ce, SERVER, ~S_AWAITREQUEST) ||
-        h_Flags & RPC2_RETRY != 0) {BOGUS(pb); return(FALSE);}
+        (h_Flags & RPC2_RETRY) != 0) {BOGUS(pb); return(FALSE);}
 
     say(9, RPC2_DebugLevel, "Host = 0x%lx\tPortal = 0x%x\tMgrp = 0x%lx\n", ThisHost->Value.InetAddress, ThisPortal->Value.InetPortNumber, h_RemoteHandle);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.9 1998/08/26 17:08:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.10 98/09/02 21:00:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -975,7 +975,7 @@ static long MakeBigEnough(whichP, extraBytes, maxSize)
     }
 
 
-sftp_AppendFileToPacket(sEntry, whichP)
+long sftp_AppendFileToPacket(sEntry, whichP)
     register struct SFTP_Entry *sEntry;
     register RPC2_PacketBuffer **whichP;
     /* Tries to add a file to the end of whichP
@@ -1011,7 +1011,7 @@ sftp_AppendFileToPacket(sEntry, whichP)
     }
 
 
-sftp_ExtractFileFromPacket(sEntry, whichP)
+long sftp_ExtractFileFromPacket(sEntry, whichP)
     register struct SFTP_Entry *sEntry;
     register RPC2_PacketBuffer *whichP;
     /* Plucks off piggybacked file.
@@ -1031,7 +1031,7 @@ sftp_ExtractFileFromPacket(sEntry, whichP)
     }
 
 
-sftp_AppendParmsToPacket(sEntry, whichP)
+int sftp_AppendParmsToPacket(sEntry, whichP)
     register struct SFTP_Entry *sEntry;
     register RPC2_PacketBuffer **whichP;
     /* Clients append parms to RPC request packets,
@@ -1064,13 +1064,12 @@ sftp_AppendParmsToPacket(sEntry, whichP)
     }
 
 
-sftp_ExtractParmsFromPacket(sEntry, whichP)
+int sftp_ExtractParmsFromPacket(sEntry, whichP)
     register struct SFTP_Entry *sEntry;
     register RPC2_PacketBuffer *whichP;
     /* Plucks off piggybacked parms. Returns 0 on success, -1 on failure */
     {
     struct SFTP_Parms sp;
-    struct HEntry *he;
 
     if (whichP->Header.BodyLength - whichP->Header.SEDataOffset < sizeof(struct SFTP_Parms))
 	return(-1);
@@ -1264,13 +1263,14 @@ long SFTP_PrintSED(IN SDesc, IN outFile)
 	    break;
 			
 	case FILEINVM:
-	    fprintf(outFile, "Tag:    FILEINVM   SeqBody:  0x%lx    MaxSeqLen:    %ld    SeqLen: %ld\n", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen, sftpd->FileInfo.ByAddr.vmfile.SeqLen);
+	    fprintf(outFile, "Tag:    FILEINVM   SeqBody:  %p    MaxSeqLen:    %ld    SeqLen: %ld\n", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen, sftpd->FileInfo.ByAddr.vmfile.SeqLen);
 	    break;
 			
 	default:
 	    fprintf(outFile, "Tag: ???????\n");
 	    break;	
 	}
+    return 1;
     }
 
 

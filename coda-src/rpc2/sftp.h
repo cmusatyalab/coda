@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.7 98/08/17 17:26:50 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.8 98/08/23 16:40:20 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -355,7 +355,7 @@ extern long SFTP_DebugLevel;
 
 
 
-extern int sftp_Listener();
+extern void sftp_Listener();
 
 #define IsSource(sfe)\
     ((sfe->WhoAmI == SFCLIENT && sfe->SDesc && sfe->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER) ||\
@@ -445,8 +445,8 @@ extern void sftp_AllocPiggySDesc();
 extern void sftp_FreePiggySDesc();
 extern int sftp_AppendParmsToPacket();
 extern int sftp_ExtractParmsFromPacket();
-extern int sftp_AppendFileToPacket();
-extern int sftp_ExtractFileFromPacket();
+extern long sftp_AppendFileToPacket();
+extern long sftp_ExtractFileFromPacket();
 extern int sftp_AddPiggy();
 extern void sftp_SetError();
 

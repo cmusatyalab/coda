@@ -1,3 +1,15 @@
+1998-09-08    <jaharkes@cs.cmu.edu>
+
+	* Added Elliot Lee's patches for venus.
+
+1998-09-02    <jaharkes@cs.cmu.edu>
+
+        * ======== Release 4.6.5 =========
+        * `cfs cs' as an alias for cfs checkservers
+        * rpc2portmap & rc.vice updates for *BSD
+        * increased SFTP retries to avoid losing a connection during tranfers.
+
+
 1998-08-05    <braam@cs.cmu.edu>
 
 	* ======== Release 4.6.4 =========

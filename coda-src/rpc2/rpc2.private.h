@@ -581,10 +581,11 @@ extern FILE *rpc2_tracefile;
 extern char *rpc2_timestring();
 #ifdef RPC2DEBUG
 #define say(when, what, how...)\
+    do { \
 	if (when < what){fprintf(rpc2_logfile, "[%s]%s: \"%s\", line %d:    ",\
 		rpc2_timestring(), LWP_Name(), __FILE__, __LINE__);\
 			fprintf(rpc2_logfile, ## how);(void) fflush(rpc2_logfile);}\
-	else
+    } while(0);
 #else 
 #define say(when, what, how)	
 #endif RPC2DEBUG

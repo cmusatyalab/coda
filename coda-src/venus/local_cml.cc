@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.4 1998/03/06 20:20:45 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_cml.cc,v 4.5 98/08/26 21:24:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -197,15 +197,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_TARGET;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: store target no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: store target %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: store target in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: store target %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -224,7 +225,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	if (ParentObj->CheckAcRights(vuid, PRSFS_WRITE, 0) == EACCES) {
 	    LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
 	    ParentObj->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check falire on parent %s", GlobalPath);
+	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
 	    *mcode = MUTATION_ACL_FAILURE;
 	    *rcode = REPAIR_FAILURE;
 	    break;
@@ -245,15 +246,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_TARGET;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: utimes target no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: utimes target %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: utimes target in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: utimes target %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -272,7 +274,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	if (ParentObj->CheckAcRights(vuid, PRSFS_WRITE, 0) == EACCES) {
 	    LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
 	    ParentObj->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check falire on parent %s", GlobalPath);
+	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
 	    *mcode = MUTATION_ACL_FAILURE;
 	    *rcode = REPAIR_FAILURE;
 	    break;
@@ -293,15 +295,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_TARGET;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: chown target no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: chown target %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: chown target in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: chown target %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -320,7 +323,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	if (ParentObj->CheckAcRights(vuid, PRSFS_ADMINISTER, 0) == EACCES) {
 	    LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
 	    ParentObj->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check falire on parent %s", GlobalPath);
+	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
 	    *mcode = MUTATION_ACL_FAILURE;
 	    *rcode = REPAIR_FAILURE;
 	    break;
@@ -341,15 +344,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_TARGET;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: chmod target no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: chmod target %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: chmod target in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: chmod target %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -368,7 +372,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	if (ParentObj->CheckAcRights(vuid, PRSFS_WRITE, 0) == EACCES) {
 	    LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
 	    ParentObj->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check falire on parent %s", GlobalPath);
+	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
 	    *mcode = MUTATION_ACL_FAILURE;
 	    *rcode = REPAIR_FAILURE;
 	    break;
@@ -390,15 +394,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_PARENT;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: create parent no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: create parent %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: create parent in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: create parent %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -437,15 +442,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_PARENT;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: link parent no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: link parent %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: link parent in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: link parent %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -464,15 +470,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 		  fid->Volume, fid->Vnode, fid->Unique));
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[1], &LocalObjs[1]);
 	if (rc != 0) {
+	    LocalObjs[1]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_TARGET;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: link target no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: link target %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: link target in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: link target %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -490,7 +497,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step2: check mutation access rights */
 	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_INSERT, 0) == EACCES) {
 	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "conflict: acl check failure on parent %s\n", GlobalPath);
+	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
 	    *mcode = MUTATION_ACL_FAILURE;
 	    *rcode = REPAIR_FAILURE;
 	}
@@ -512,15 +519,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_PARENT;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: symlink parent no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: symlink parent %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: symlink parent in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: symlink parent %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -537,7 +545,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 2: check mutation access rights */
 	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_INSERT, 0) == EACCES) {
 	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "%s conflict: acl check failure on parent %s", GlobalPath);
+	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
 	    *mcode = MUTATION_ACL_FAILURE;
 	    *rcode = REPAIR_FAILURE;
 	}
@@ -558,15 +566,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_PARENT;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: mkdir parent no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: mkdir parent %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: mkdir parent in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: mkdir parent %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -583,7 +592,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 2: check mutation access rights */
 	if (GlobalObjs[0]->CheckAcRights(vuid, PRSFS_INSERT, 0) == EACCES) {
 	    GlobalObjs[0]->GetPath(GlobalPath, 1);
-	    sprintf(msg, "%s conflict: acl check failure on parent %s", GlobalPath);
+	    sprintf(msg, "conflict: acl check failure on parent %s", GlobalPath);
 	    *mcode = MUTATION_ACL_FAILURE;
 	    *rcode = REPAIR_FAILURE;
 	}
@@ -604,15 +613,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_PARENT;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: remove parent no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: remove parent %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: remove parent in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: remove parent %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -633,15 +643,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	OBJ_ASSERT(this, (LocalObjs[1] == NULL) || DYING(LocalObjs[1]) ||
 		         (LocalObjs[1]->stat.LinkCount > 0));
 	if (rc != 0) {
+	    LocalObjs[1]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_TARGET;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: remove target no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: remove target %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: remove target in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: remove target %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -680,15 +691,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_PARENT;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: rmdir parent no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: rmdir parent %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: rmdir parent in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: rmdir parent %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -709,15 +721,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[1], &LocalObjs[1]);
 	OBJ_ASSERT(this, (LocalObjs[1] == NULL) || DYING(LocalObjs[1]));
 	if (rc != 0) {
+	    LocalObjs[1]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_TARGET;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: rmdir target no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: rmdir target %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: rmdir target in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: rmdir target %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -764,15 +777,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	/* step 1: check mutation operand(s) */
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[0], &LocalObjs[0]);
 	if (rc != 0) {
+	    LocalObjs[0]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_PARENT;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: rename source parent no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: rename source parent %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: rename source parent in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: rename source parent %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -791,15 +805,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 		  fid->Volume, fid->Vnode, fid->Unique));
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[1], &LocalObjs[1]);
 	if (rc != 0) {
+	    LocalObjs[1]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_PARENT;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: rename target parent no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: rename target parent %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: rename target parent in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: rename target parent %s in server/server conflict", LocalPath);
 		break;
 	    case ESYNRESOLVE:
 	    case EASYRESOLVE:
@@ -818,15 +833,16 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 		  fid->Volume, fid->Vnode, fid->Unique));
 	rc = LRDB->FindRepairObject(fid, &GlobalObjs[2], &LocalObjs[2]);
 	if (rc != 0) {
+	    LocalObjs[2]->GetPath(LocalPath, 1);
 	    *mcode = MUTATION_MISS_TARGET;
 	    *rcode = REPAIR_FAILURE;
 	    switch (rc) {
 	    case EIO:
 	    case ENOENT:
-		sprintf(msg, "conflict: rename target no longer exits on servers", LocalPath);
+		sprintf(msg, "conflict: rename target %s no longer exits on servers", LocalPath);
 		break;
 	    case EINCONS:
-		sprintf(msg, "conflict: rename target in server/server conflict", LocalPath);
+		sprintf(msg, "conflict: rename target %s in server/server conflict", LocalPath);
 		break;
 	    default:
 	    case ESYNRESOLVE:
@@ -938,7 +954,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 		if (code == 0) {
 		    sprintf(msg, "overwrite %s with %s succeeded", GlobalPath, LocalPath);
 		} else {
-		    sprintf(msg, "overwrite %s with %s failed(%s)", GlobalPath, LocalPath, code);
+		    sprintf(msg, "overwrite %s with %s failed(%d)", GlobalPath, LocalPath, code);
 		}
 	    } else {
 		if (code == 0) {
@@ -968,7 +984,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    if (code == 0) {
 		sprintf(msg, "chmod %s succeeded", GlobalPath);
 	    } else {
-		sprintf(msg, "chmod %s failed(%d)", GlobalPath);
+		sprintf(msg, "chmod %s failed(%d)", GlobalPath, code);
 	    }
 	    break;
 	}
@@ -991,7 +1007,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    if (code == 0) {
 		sprintf(msg, "chown %s succeeded", GlobalPath);
 	    } else {
-		sprintf(msg, "chown %s failed(%d)", GlobalPath);
+		sprintf(msg, "chown %s failed(%d)", GlobalPath, code);
 	    }
 	    break;
 	}
@@ -1015,7 +1031,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    if (code == 0) {
 		sprintf(msg, "setattr %s succeeded", GlobalPath);
 	    } else {
-		sprintf(msg, "setattr %s failed(%d)", GlobalPath);
+		sprintf(msg, "setattr %s failed(%d)", GlobalPath, code);
 	    }
 	    break;
 	}
@@ -1353,7 +1369,7 @@ void cmlent::GetLocalOpMsg(char *msg)
 	{	ViceFid *fid = &u.u_repair.Fid;
 		LOG(0, ("cmlent::GetLocalOpMsg: Disconnected Repair on 0x%x.%x.%x\n",
 			fid->Volume, fid->Vnode, fid->Unique));
-		sprintf(msg, "disconnected repair on 0x%x.%x.%x",
+		sprintf(msg, "disconnected repair on 0x%lx.%lx.%lx",
  			fid->Volume, fid->Vnode, fid->Unique);
 		break;
         }
@@ -1631,7 +1647,7 @@ int ClientModifyLog::HaveElements(int Tid)
     /* check wether there is any cmlent that has tid equal to Tid */
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
-    while (m = next()) {
+    while ((m = next())) {
 	if (m->GetTid() == Tid)
 	  return 1;
     }
