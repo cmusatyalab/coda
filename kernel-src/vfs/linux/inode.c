@@ -652,6 +652,7 @@ ENTRY;
 
         /* the old file should go from the namecache */
         cfsnc_zapfile(old_cnp, (const char *)old_name, old_length);
+        cfsnc_zapfile(new_cnp, (const char *)new_name, new_length);
 
         buffer_size = 2*CFS_MAXNAMLEN + VC_INSIZE(cfs_rename_in) +8;
         CODA_ALLOC(buffer, char *, buffer_size);
