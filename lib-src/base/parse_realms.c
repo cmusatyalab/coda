@@ -120,7 +120,9 @@ void GetRealmServers(const char *name, const char *service,
 	{
 	    if (line[0] == '#') continue;
 
-	    if (strncmp(line, name, namelen) == 0 && isspace(line[namelen])) {
+	    if (strncmp(line, name, namelen) == 0 &&
+		(line[namelen] == '\0' || isspace(line[namelen])))
+	    {
 		ResolveRootServers(&line[namelen], service, &tmp);
 		found = 1;
 	    }

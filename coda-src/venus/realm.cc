@@ -57,8 +57,6 @@ Realm::Realm(const char *realm_name)
 
     rootservers = NULL;
     refcount = 1;
-
-    eprint("Created realm '%s'", name);
 }
 
 /* MUST be called from within a transaction */
@@ -70,10 +68,10 @@ Realm::~Realm(void)
 
     CODA_ASSERT(!rec_refcount && refcount <= 1);
 
-    eprint("Removing realm '%s'", name);
-    
     rec_list_del(&realms);
     if (rootservers) {
+	eprint("Removing realm '%s'", name);
+
 	coda_freeaddrinfo(rootservers);
 	rootservers = NULL;
     }
@@ -175,6 +173,8 @@ retry:
 		Realm *localrealm;
 		VenusFid Fid;
 		fsobj *f;
+
+		eprint("Resolved realm '%s'", name);
 
 		localrealm = REALMDB->GetRealm(LOCALREALM);
 		Fid.Realm = LocalRealm->Id();
