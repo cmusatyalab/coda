@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/ctokens.c,v 4.2 98/09/28 19:39:22 rnw Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/ctokens.c,v 4.3 98/09/28 19:59:40 rnw Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,13 +61,8 @@ extern "C" {
 
 #include <sys/types.h>
 #include <errno.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <stdio.h>
 #include "auth2.h"
 #include "avenus.h"

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/parsepdb.yacc,v 4.4 98/05/15 16:55:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/parsepdb.yacc,v 4.5 98/09/15 14:27:54 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,13 +63,8 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <errno.h>
 
 #ifdef __cplusplus

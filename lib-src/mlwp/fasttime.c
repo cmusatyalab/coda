@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/fasttime.c,v 4.3 1997/09/23 18:02:17 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/fasttime.c,v 4.4 98/04/14 20:42:20 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,18 +61,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/time.h>
 #include <sys/file.h>
 #include <sys/mman.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
-
-#if defined(__linux__) && defined(sparc)
-#include <asm/page.h>
-#define getpagesize() PAGE_SIZE
-#endif
 
 extern char *valloc ();
 int ft_debug;

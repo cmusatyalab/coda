@@ -29,18 +29,13 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/testmount.c,v 4.1 1997/01/08 21:52:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/testmount.c,v 4.2 97/02/26 16:03:55 rvb Exp $";
 #endif /*_BLURB_*/
 
 extern "C" {
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
+
 #include <unistd.h>
 #include <stdlib.h>
-#endif
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>

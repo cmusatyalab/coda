@@ -13,10 +13,6 @@ extern "C" {
 #include <errno.h>
 #include <stdlib.h>
 
-#ifdef __MACH__
-extern int getopt(int, char **, char *);
-#endif /* __MACH__ */
-
 #ifdef __cplusplus
 }
 #endif __cplusplus

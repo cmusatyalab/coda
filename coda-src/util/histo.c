@@ -29,25 +29,11 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/histo.c,v 4.4 1998/03/06 20:20:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/histo.c,v 4.5 98/11/02 16:45:45 rvb Exp $";
 #endif /*_BLURB_*/
 
-
-
-
-
-
-
-
-
 #include <stdio.h>
-#ifdef __MACH__
-#include <libc.h>
-#include <sysent.h>
-#endif /* __MACH__ */
-#ifdef __BSD44__
 #include <stdlib.h>
-#endif /* __BSD44__ */
 
 #include <math.h>
 #include "coda_assert.h"

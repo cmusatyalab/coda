@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm.h,v 4.3 1997/11/04 22:03:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm.h,v 4.4 98/08/26 15:40:13 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -68,10 +68,7 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #endif  /* c_plusplus || __STDC__ */
 #endif  /* C_ARGS */
 
-/* define bool, TRUE, and FALSE if libc.h hasn't been included
-   these definitions will not be repeated in libc.h if it is
-   included later.
-*/
+/* define bool, TRUE, and FALSE */
 
 #ifndef TRUE
 #define TRUE 1

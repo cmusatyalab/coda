@@ -7,17 +7,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-
-/* Mach definition differs from Linux and NetBSD...  Translate */
-#define O_NONBLOCK FNDELAY
-
-#else   /* __linux__ || __BSD44__ */
 #include <stdlib.h>
 #include <unistd.h>
-#endif
 
 #include <lwp.h>
 #include <rpc2.h>
@@ -107,11 +98,7 @@ void SendToDemo(char *msg) {
     int rc;
 
     rc = fprintf(toDEMO, "%s", msg);
- #ifdef __MACH__
-    CODA_ASSERT(rc == 0);
-#else
     CODA_ASSERT(rc == strlen(msg));
-#endif /* __MACH__*/
     rc = fflush(toDEMO);
     CODA_ASSERT(rc == 0);
 }

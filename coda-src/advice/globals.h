@@ -1,10 +1,4 @@
 /* Location of TCL/TK/TIX */
-#ifdef __MACH__
-#define TCL "/coda/misc/tcl/@sys/beta/lib/tcl7.4"
-#define TK "/coda/misc/tcl/@sys/beta/lib/tk4.0"
-#define TIX "/coda/misc/tcl/@sys/beta/lib/tix4.0"
-#endif /* __MACH__ */
-
 #ifdef __BSD44__
 #define TCL "/usr/local/lib/tcl7.4"
 #define TK "/usr/local/lib/tk4.0"

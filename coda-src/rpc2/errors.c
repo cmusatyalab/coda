@@ -26,13 +26,9 @@ Carnegie  Mellon  encourages  users  of  this  software  to return any
 improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
-#ifndef __MACH__
+
 #include <unistd.h>
 #include <stdlib.h>
-#else
-#include <libc.h>
-#endif
-
 #include <errors.h>
 #include <rpc2.h>
 

@@ -1,9 +1,5 @@
 #include <string.h>
-#ifndef __MACH__
 #include <stdlib.h>
-#else
-#include <libc.h>
-#endif
 #include <util.h>
 #include "vicetab.h"
 

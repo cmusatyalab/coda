@@ -17,10 +17,6 @@ extern "C" {
 #include <time.h>
 #include <unistd.h>
 
-#ifdef __MACH__
-extern int bzero(char *, int);
-#endif /* __MACH__ */
-
 #ifdef __cplusplus
 }
 #endif __cplusplus

@@ -8,13 +8,8 @@ extern "C" {
 #include <strings.h>
 #include <stdio.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <lwp.h>
 #include <rpc2.h>
 
