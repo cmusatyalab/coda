@@ -46,7 +46,6 @@ include $(TOPDIR)/Makeconf
 
 INCLPATH= .:$(srcdir)
 INCLFLAGS = -I. -I$(srcdir)
-CFLAGS := $(OPTFLAG) $(GFLAG) -MD -I. -I$(srcdir) -I$(srcdir)/../rpc2 -I../rpc2
 
 # All rpc2 files except for vcrcommon.rpc2 are listed in RP2FILES.
 # vcrcommon is special, as it only generates a header file and the link rule
