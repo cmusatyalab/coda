@@ -125,7 +125,7 @@ function MakePLIST () {
 	cat > ${dst} << EOF
 @comment \$NetBSD\$
 lib/libfail.so.1.0
-lib/librpc2.so.2.0
+lib/librpc2.so.2.1
 lib/libse.so.1.0
 EOF
     else

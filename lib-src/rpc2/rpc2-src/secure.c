@@ -212,6 +212,7 @@ void rpc2_ApplyE(RPC2_PacketBuffer *pb,     struct CEntry *ce)
 
 void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
+	if (!(ntohl(pb->Header.Flags) & RPC2_ENCRYPTED)) return;
 
 	switch((int)ce->SecurityLevel) {
 	case RPC2_HEADERSONLY:
@@ -226,9 +227,5 @@ void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			     ce->SessionKey, ce->EncryptionType);
 		return;
 	}
-
-        /* XXXXXXXXXXXXXXX this was at the beginning now moved 
-	 */
-	if (!(ntohl(pb->Header.Flags) & RPC2_ENCRYPTED)) 
-		return;
 }
+

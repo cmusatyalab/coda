@@ -191,6 +191,7 @@ struct CEntry *rpc2_AllocConn()
     list_head_init(&ce->Chain);
     ce->Flags = 0;
     ce->SecurityLevel = 0;
+    memset(&ce->SessionKey, 0, sizeof(RPC2_EncryptionKey));
     ce->EncryptionType = 0;
     ce->PeerHandle = 0;
     ce->PeerUnique = 0;
