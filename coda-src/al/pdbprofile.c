@@ -74,8 +74,6 @@ void PDB_writeProfile(PDB_HANDLE h, PDB_profile *r)
 	pdb_pack(r, &d);
 
 	PDB_db_write(h, r->id, r->name, d);
-
-	free(d);
 }
 
 

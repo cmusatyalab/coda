@@ -211,7 +211,7 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 	rc = gdbm_store(h->main, d, f, GDBM_REPLACE);
 	CODA_ASSERT(rc == 0);
 
-	free(ids);
+	free(f.dptr);
 }
 
 void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf)
@@ -242,6 +242,10 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf)
 		PDB_db_update_maxids(h, id, 0, PDB_MAXID_SET);
 	else
 		PDB_db_update_maxids(h, 0, id, PDB_MAXID_SET);
+
+	/* This frees the memory allocated in pdb_pack */
+	free(bufd->dptr);
+	free(bufd);
 }
 
 
@@ -251,6 +255,7 @@ void *PDB_db_read(PDB_HANDLE h, int32_t id, char *name)
 	datum *foundid;
 	int32_t realid;
 
+	/* The data allocated here is freed in pdb_unpack */
 	foundid = (datum *) malloc(sizeof(*foundid));
 	CODA_ASSERT(foundid);
 

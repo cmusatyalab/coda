@@ -75,6 +75,7 @@ void pdb_pack(PDB_profile *r, void **data)
 
 	CODA_ASSERT(off < 1024);
 	
+	/* The memory allocated here is freed in PDB_db_write */
 	d = malloc(sizeof(datum));
 	d->dptr = malloc(off * sizeof(int32_t));
 	memcpy(d->dptr, (char *) tmp,off * sizeof(int32_t));
@@ -91,6 +92,7 @@ void pdb_unpack(PDB_profile *r, void *data)
 
 	if(d->dsize == 0){
 		r->id = 0;
+		free(d);
 		return;
 	}
 	/* Unpack the id and name */
@@ -116,4 +118,8 @@ void pdb_unpack(PDB_profile *r, void *data)
 	off += pdb_array_unpack(&tmp[off],&(r->groups_or_members));
 
 	CODA_ASSERT(off < 1024);
+
+	/* Here we free the data allocated by PDB_db_read and gdbm_fetch */
+	free(d->dptr);
+	free(d);
 }

@@ -416,12 +416,7 @@ int PDB_nameInUse(char *name)
 
 	pdb_unpack(&p, r);
 
-	if(p.id == 0)
-		return 0;
-	else{
-		free(r);
-		return 1;
-	}
+	return (p.id != 0);
 }
 
 

@@ -45,6 +45,8 @@ NO_LEX = yes
 
 HFILES = al.h prs.h pdb.h pdbarray.h
 
+include $(MAKDIR)/configs/Makerules
+
 libal.a:  pdbdb.o pdbpack.o alprocs.o pdb.o pdbdb.o pdbpack.o pdbprofile.o pdbarray.o 
 
 altest: altest.o libal.a $(LIBUTIL) $(HFILES)
@@ -52,5 +54,3 @@ altest: altest.o libal.a $(LIBUTIL) $(HFILES)
 
 pdbtool: pdbtool.o libal.a 
 	$(CC) ${LIBFLAGS} pdbtool.o libal.a $(LGDBM) -lgdbm $(LIBBASE) $(LIBREADLINE) $(LIBTERMCAP) -o pdbtool
-
-include $(MAKDIR)/configs/Makerules
