@@ -77,7 +77,9 @@ function MakeMakefile () {
 @FreeBSD #
 
 DISTNAME=	coda-@VERSION@
-PKGNAME=	coda-@PKG@-@VERSION@
+@NetBSD PKGNAME=	coda-@PKG@-@VERSION@
+@FreeBSD PORTNAME=	coda-@PKG@
+@FreeBSD PORTVERSION=	@VERSION@
 CATEGORIES=	net
 MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/coda/src/
 EXTRACT_SUFX=	.tgz
