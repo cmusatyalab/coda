@@ -319,14 +319,15 @@ void mgrpent::KillMember(struct in_addr *host, int forcibly)
 	if (rocc.hosts[i].s_addr == host->s_addr)
             rocc.dying[i] = 1;
 
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        if (rocc.dying[i] && rocc.hosts[i].s_addr == rocc.primaryhost.s_addr)
+	    rocc.primaryhost.s_addr = 0;
+
     if (InUse() && !forcibly) return;
 
     /* now we can safely kill dying members */
     for (int i = 0; i < VSG_MEMBERS; i++) {
         if (rocc.dying[i]) {
-            if (rocc.hosts[i].s_addr == rocc.primaryhost.s_addr)
-                rocc.primaryhost.s_addr = 0;
-
             code = RPC2_RemoveFromMgrp(McastInfo.Mgroup, rocc.handles[i]);
 	    LOG(1, ("mgrpent::KillMember: RPC2_RemoveFromMgrp(%s, %d) -> %s\n",
                     inet_ntoa(rocc.hosts[i]), rocc.handles[i],
