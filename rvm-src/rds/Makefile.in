@@ -49,8 +49,8 @@ PRIVHEADERS = rds_private.h
 HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
 librds.a: $(LIBOBJ)
 
-rdsinit: $(OBJ)
-	$(CC) -o rdsinit $? librds.a $(RDSINIT_LIBS)
+rdsinit: $(OBJ) librds.a $(RDSINIT_LIBS)
+	$(CC) -o rdsinit $? 
 endif
 
 
