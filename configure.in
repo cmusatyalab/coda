@@ -94,6 +94,10 @@ dnl Checks for typedefs.
 AC_CHECK_TYPE(int32_t, int)
 AC_CHECK_TYPE(u_int32_t, unsigned int)
 CODA_CHECK_TYPE(socklen_t, int, sys/socket.h)
+AC_CHECK_TYPES([struct in6_addr],,,
+	       [#include <sys/types.h>
+		#include <sys/socket.h>
+		#include <netinet/in.h>])
 
 dnl Checks for structures.
 

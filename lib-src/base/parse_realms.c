@@ -25,12 +25,24 @@ Coda are listed in the file CREDITS.
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
+#endif
+
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
 
 #include <coda_config.h>
 #include "codaconf.h"
 #include "parse_realms.h"
+
+#ifndef HAVE_STRUCT_IN6_ADDR
+struct in6_addr {
+        u_int8_t u6_addr[16];
+};
+#endif
 
 #define MAXLINELEN 256
 static char line[MAXLINELEN];
@@ -133,7 +145,7 @@ void GetRealmServers(const char *name, const char *service,
 	struct RPC2_addrinfo hints;
 
 #ifdef PF_INET6
-	/* As we expect onlu FQDNs, the name should contain at least one '.'
+	/* As we expect only FQDNs, the name should contain at least one '.'
 	 * This also prevents lookups for accidentally mistyped paths as well
 	 * as things that the OS might look for like 'Recycle Bin'. */
 	char tmp[sizeof(struct in6_addr)];
