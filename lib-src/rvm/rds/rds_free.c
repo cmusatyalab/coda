@@ -121,6 +121,9 @@ rds_free(addr, tid, err)
 		put_block(bp, atid, err); /* Error is picked up below... */
 	    }
 	}
+	if (*err == SUCCESS)
+	    coalesce(atid, err);
+
 	if ((*err != SUCCESS) && (tid == NULL)) {
 	    rvm_abort_transaction(atid);
 	    rvm_free_tid(atid);
@@ -231,6 +234,9 @@ int rds_do_free(list, mode)
 		break;
 	}
 	
+	if (err == SUCCESS)
+	    coalesce(tid, &err);
+
 	RDS_LOG("rdstrace: end do_free\n");
 
 	if (err != SUCCESS) {

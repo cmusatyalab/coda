@@ -141,6 +141,9 @@ coalesce(tid, err)
 	    else {
 		fbp = fbp->next;
 	    }
+
+	    /* Yield to other threads, merging might take a while */
+	    cthread_yield();
 	}
     }
 
