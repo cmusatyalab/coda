@@ -29,7 +29,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.6 1998/01/10 18:40:41 braam Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/Makefile.in,v 4.8 1998/05/27 20:46:08 braam Exp $
 #
 
 
@@ -74,6 +74,9 @@ endif
 ifeq ($(RVMTARGET),lwp)
 CFLAGS += -DRVM_USELWP
 LIBRARIES = librdslwp.a
+
+%.o : $(srcdir)/../rds/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 librdslwp.a: $(LIBOBJ)
 endif

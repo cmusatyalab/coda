@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.15 1998/06/07 20:15:11 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.16 1998/06/07 20:18:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -906,17 +906,6 @@ void worker::main(void *parm) {
 		{
 		GOTTA_BE_ME(in);
 		LOG(100, ("CFS_ACCESS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-
-		/* Original code used to have a local declaration of a struct venus_cnode here.
-		   This avoided heap allocation and freeing, but only worked in Mach (because
-		   the cnode contains the vnode rather than the vnode being separately allocated).
-		   No choice in BSD44 but to use {MAKE,DISCARD}_VNODE.
-		   This hurts peformance because it adds 2 new's and 2 delete's for even
-		   the most trivial Venus request.   But it has the benefit of avoiding
-		   the use of CN_INIT() altogether, making the code easier to understand.
-		   This comment also applies to all the other arms of this switch.  
- 		   (Satya, 8/16/96)
-		*/
 		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->cfs_access.VFid, 0);
 		access(vtarget, in->cfs_access.flags);
