@@ -15,6 +15,7 @@
 
 LOCKDIR=/var/lock/subsys
 PIDDIR=/vice/misc
+SCMFILE=/vice/db/scm
 
 PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
@@ -60,7 +61,7 @@ case "$1" in
 	fi
 
 	echon "updateclnt "
-	updateclnt  -h `cat $DBDIR/scm` &
+	updateclnt  -h `cat $SCMFILE` &
 
 	echo "done."
 	;;

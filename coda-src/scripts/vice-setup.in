@@ -404,9 +404,9 @@ echo "Other config files will be fetched from the SCM by updateclnt."
 echo
 echo "To finish your server setup you should"
 echo
-echo " start the auth2 server as: auth2 -chk"
 echo " start rpc2portmap as: rpc2portmap"
 echo " start updateclnt as:  updateclnt -h $scm "
+echo " start the auth2 server as: auth2 -chk"
 echo
 #echo " On the SCM ($scm) run: new_server $bn"
 #echo
