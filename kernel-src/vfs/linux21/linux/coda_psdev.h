@@ -4,7 +4,7 @@
 #define CODA_PSDEV_MAJOR 67
 #define MAX_CODADEVS  5	   /* how many do we allow */
 
-extern struct vcomm coda_upc_comm;
+extern struct venus_comm coda_upc_comm;
 extern struct coda_sb_info coda_super_info;
 #define CODA_SUPER_MAGIC	0x73757245
 
@@ -13,7 +13,7 @@ struct coda_sb_info
 	struct inode *      sbi_psdev;     /* /dev/cfs? Venus/kernel device */
 	struct inode *      sbi_ctlcp;     /* control magic file */
 	int                 sbi_refct;
-	struct vcomm *      sbi_vcomm;
+	struct venus_comm *      sbi_vcomm;
 	struct inode *      sbi_root;
 	struct super_block *sbi_sb;
 	struct list_head    sbi_cchead;
@@ -21,7 +21,7 @@ struct coda_sb_info
 };
 
 /* communication pending/processing queues */
-struct vcomm {
+struct venus_comm {
 	u_long		    vc_seq;
 	struct wait_queue  *vc_waitq; /* Venus wait queue */
 	struct list_head    vc_pending;

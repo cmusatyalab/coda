@@ -65,7 +65,7 @@ static struct super_block * coda_read_super(struct super_block *sb,
 {
         struct inode *psdev = 0, *root = 0; 
 	struct coda_sb_info *sbi = NULL;
-	struct vcomm *vc = NULL;
+	struct venus_comm *vc = NULL;
         ViceFid fid;
 	kdev_t dev = sb->s_dev;
         int error;

@@ -311,6 +311,7 @@ void coda_flag_inode_children(struct inode *inode, int flag)
 	struct list_head *alias;
 	struct dentry *alias_de;
 
+	ENTRY;
 	if ( !inode ) 
 		return; 
 

@@ -59,7 +59,7 @@ int           coda_hard    = 0;  /* allows signals during upcalls */
 unsigned long coda_timeout = 30; /* .. secs, then signals will dequeue */
 
 struct coda_sb_info coda_super_info;
-struct vcomm coda_upc_comm;
+struct venus_comm coda_upc_comm;
 	
 /*
  * Device operations
@@ -67,7 +67,7 @@ struct vcomm coda_upc_comm;
 
 static unsigned int coda_psdev_poll(struct file *file, poll_table * wait)
 {
-        struct vcomm *vcp = &coda_upc_comm;
+        struct venus_comm *vcp = &coda_upc_comm;
 	unsigned int mask = POLLOUT | POLLWRNORM;
 
 	poll_wait(file, &(vcp->vc_waitq), wait);
@@ -85,7 +85,7 @@ static unsigned int coda_psdev_poll(struct file *file, poll_table * wait)
 static ssize_t coda_psdev_write(struct file *file, const char *buf, 
 				size_t count, loff_t *off)
 {
-        struct vcomm *vcp = &coda_upc_comm;
+        struct venus_comm *vcp = &coda_upc_comm;
         struct upc_req *req = NULL;
         struct upc_req *tmp;
 	struct list_head *lh;
@@ -95,7 +95,6 @@ static ssize_t coda_psdev_write(struct file *file, const char *buf,
 
 	if ( !coda_upc_comm.vc_pid ) 
 		return -EIO;
-CDEBUG(D_PSDEV, "**\n");
         /* Peek at the opcode, uniquefier */
 	if (copy_from_user(&hdr, buf, 2 * sizeof(u_long)))
 	        return -EFAULT;
@@ -107,7 +106,6 @@ CDEBUG(D_PSDEV, "**\n");
 		struct super_block *sb = NULL;
                 union outputArgs *dcbuf;
 		int size = sizeof(*dcbuf);
-CDEBUG(D_PSDEV, "**\n");
 
 		sb = coda_super_info.sbi_sb;
 		if ( !sb ) {
@@ -189,7 +187,7 @@ CDEBUG(D_PSDEV, "**\n");
 static ssize_t coda_psdev_read(struct file * file, char * buf, 
 			       size_t count, loff_t *off)
 {
-        struct vcomm *vcp = &coda_upc_comm;
+        struct venus_comm *vcp = &coda_upc_comm;
         struct upc_req *req;
 	int result = count ;
 
@@ -231,7 +229,7 @@ static ssize_t coda_psdev_read(struct file * file, char * buf,
 
 static int coda_psdev_open(struct inode * inode, struct file * file)
 {
-        struct vcomm *vcp = &coda_upc_comm;
+        struct venus_comm *vcp = &coda_upc_comm;
         ENTRY;
 	
 	/* first opener: must be lento. Initialize & take its pid */
@@ -268,7 +266,7 @@ static int coda_psdev_open(struct inode * inode, struct file * file)
 
 static int coda_psdev_release(struct inode * inode, struct file * file)
 {
-        struct vcomm *vcp = &coda_upc_comm;
+        struct venus_comm *vcp = &coda_upc_comm;
         struct upc_req *req;
 	struct list_head *lh, *next;
 	ENTRY;
