@@ -2685,6 +2685,11 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
+	case CML_Store_OP:
+	    RLE_Pack(_ptr, CML_Store_PTR, &u.u_store.Fid, &u.u_store.VV, time,
+		     u.u_store.Length, &sid);
+	    break;
+
 	case OLDCML_Utimes_OP:
 	    {
 	    ViceStatus Status;
@@ -2694,6 +2699,11 @@ void cmlent::pack(PARM **_ptr) {
 		     StoreStatus, &DummyCBS, &Status, 0, SET_TIME/* Mask */,
 		     0, &sid, &DummyCBS, 0);
 	    }
+	    break;
+
+	case CML_Utimes_OP:
+	    RLE_Pack(_ptr, CML_Utimes_PTR, &u.u_utimes.Fid, &u.u_utimes.VV,
+		     u.u_utimes.Date, &sid);
 	    break;
 
 	case OLDCML_Chown_OP:
@@ -2707,6 +2717,11 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
+	case CML_Chown_OP:
+	    RLE_Pack(_ptr, CML_Chown_PTR, &u.u_chown.Fid, &u.u_chown.VV,
+		     u.u_chown.Owner, &sid);
+	    break;
+
 	case OLDCML_Chmod_OP:
 	    {
 	    ViceStatus Status;
@@ -2716,6 +2731,11 @@ void cmlent::pack(PARM **_ptr) {
 		     StoreStatus, &DummyCBS, &Status, 0, SET_MODE/* Mask */,
 		     0, &sid, &DummyCBS, 0);
 	    }
+	    break;
+
+	case CML_Chmod_OP:
+	    RLE_Pack(_ptr, CML_Chmod_PTR, &u.u_chmod.Fid, &u.u_chmod.VV,
+		     u.u_chmod.Mode, &sid);
 	    break;
 
 	case OLDCML_Create_OP:
@@ -2737,6 +2757,12 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
+	case CML_Create_OP:
+	    RLE_Pack(_ptr, CML_Create_PTR, &u.u_create.PFid, &u.u_create.PVV,
+		     time, u.u_create.Name, time, uid, u.u_create.Mode,
+		     &u.u_create.CFid, &sid);
+	    break;
+
 	case OLDCML_Remove_OP:
 	    {
 	    ViceStatus PStatus;
@@ -2750,6 +2776,11 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
+	case CML_Remove_OP:
+	    RLE_Pack(_ptr, CML_Remove_PTR, &u.u_remove.PFid, &u.u_remove.PVV,
+		     time, u.u_remove.Name, &u.u_remove.CVV, &sid);
+	    break;
+
 	case OLDCML_Link_OP:
 	    {
 	    ViceStatus PStatus;
@@ -2761,6 +2792,11 @@ void cmlent::pack(PARM **_ptr) {
 		     u.u_link.Name, &u.u_link.CFid, &CStatus, &PStatus,
 		     0, &sid, &DummyCBS);
 	    }
+	    break;
+
+	case CML_Link_OP:
+	    RLE_Pack(_ptr, CML_Link_PTR, &u.u_link.PFid, &u.u_link.PVV, time,
+		     u.u_link.Name, &u.u_link.CFid, &u.u_link.CVV, &sid);
 	    break;
 
 	case OLDCML_Rename_OP:
@@ -2781,6 +2817,15 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
+	case CML_Rename_OP:
+	    ViceVersionVector TPVV =
+		FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid) ?
+		u.u_rename.SPVV : u.u_rename.TPVV;
+	    RLE_Pack(_ptr, CML_Rename_PTR, &u.u_rename.SPFid, &u.u_rename.SPVV,
+		     time, u.u_rename.OldName, &u.u_rename.TPFid, &TPVV,
+		     u.u_rename.NewName, &u.u_rename.SVV, &sid);
+	    break;
+
 	case OLDCML_MakeDir_OP:
 	    {
 	    ViceStatus PStatus;
@@ -2799,6 +2844,12 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
+	case CML_MakeDir_OP:
+	    RLE_Pack(_ptr, CML_MakeDir_PTR, &u.u_mkdir.PFid, &u.u_mkdir.PVV,
+		     time, u.u_mkdir.Name, &u.u_mkdir.CFid, time, uid,
+		     u.u_mkdir.Mode, &sid);
+	    break;
+
 	case OLDCML_RemoveDir_OP:
 	    {
 	    ViceStatus PStatus;
@@ -2809,6 +2860,11 @@ void cmlent::pack(PARM **_ptr) {
 	    RLE_Pack(_ptr, OLDCML_RemoveDir_PTR, &u.u_rmdir.PFid,
 		     u.u_rmdir.Name, &PStatus, &CStatus, 0, &sid, &DummyCBS);
 	    }
+	    break;
+
+	case CML_RemoveDir_OP:
+	    RLE_Pack(_ptr, CML_RemoveDir_PTR, &u.u_rmdir.PFid, &u.u_rmdir.PVV,
+		     time, u.u_rmdir.Name, &u.u_rmdir.CVV, &sid);
 	    break;
 
 	case OLDCML_SymLink_OP:
@@ -2830,6 +2886,13 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
+	case CML_SymLink_OP:
+	    RLE_Pack(_ptr, CML_SymLink_PTR, &u.u_symlink.PFid,
+		     &u.u_symlink.PVV, time, u.u_symlink.OldName,
+		     u.u_symlink.NewName, &u.u_symlink.CFid, time, uid,
+		     u.u_symlink.Mode, &sid);
+	    break;
+
         case OLDCML_Repair_OP:
 	    {
 		ViceStatus Status;
@@ -2840,6 +2903,12 @@ void cmlent::pack(PARM **_ptr) {
 		RLE_Pack(_ptr, OLDCML_Repair_PTR, &u.u_repair.Fid,
 			 &Status, &sid, 0);
 	    }
+	    break;
+
+	case CML_Repair_OP:
+	    RLE_Pack(_ptr, CML_Repair_PTR, &u.u_repair.Fid, u.u_repair.Length,
+		     u.u_repair.Date, u.u_repair.Owner, u.u_repair.Owner,
+		     u.u_repair.Mode, &sid);
 	    break;
 
 	default:

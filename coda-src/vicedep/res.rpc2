@@ -112,16 +112,16 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		 IN ViceVersionVector VV,
 		 IN ViceStatus status);
 
-8: DoForceDirOps	(IN ViceFid Fid,
-		 IN ViceStatus status,
-		 IN RPC2_CountedBS AccessList,
-		 OUT RPC2_Integer rstatus,
-		 IN OUT SE_Descriptor sed);
+8: DoForceDirOps (IN ViceFid Fid,
+		  IN ViceStatus status,
+		  IN RPC2_CountedBS AccessList,
+		  OUT RPC2_Integer rstatus,
+		  IN OUT SE_Descriptor sed);
 
-9: GetForceDirOps  (IN ViceFid Fid,
-		 OUT ViceStatus status, 
-		 IN OUT RPC2_CountedBS AccessList,
-		 IN OUT SE_Descriptor sed);
+9: GetForceDirOps (IN ViceFid Fid,
+		   OUT ViceStatus status, 
+		   IN OUT RPC2_BoundedBS AccessList,
+		   IN OUT SE_Descriptor sed);
 
 
 /* New calls with logs in rvm */

@@ -1084,9 +1084,9 @@ rfment *rfm_iterator::operator()()
 /* need not be called from within a transaction */
 vdirent::vdirent(VolumeId Volume, VnodeId Vnode, Unique_t Unique, char *Name)
 {
-    OBJ_ASSERT(this, name);
+    OBJ_ASSERT(this, Name);
     LOG(10, ("vdirent::vdirent: fid = 0x%x.%x.%x and name = %s\n",
-	     Volume, Vnode, Unique, name));
+	     Volume, Vnode, Unique, Name));
     fid.Volume = Volume;
     fid.Vnode = Vnode;
     fid.Unique = Unique;

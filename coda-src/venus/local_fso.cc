@@ -77,11 +77,6 @@ int fsobj::RepairStore()
     char prel_str[256];
     sprintf(prel_str, "store::Store %%s [%ld]\n", NBLOCKS(NewLength));
 
-    /* Dummy argument for ACL. */
-    RPC2_CountedBS dummybs;
-    dummybs.SeqLen = 0;
-    RPC2_CountedBS *acl = &dummybs;
-
     /* Status parameters. */
     ViceStatus status;
     VenusToViceStatus(&stat, &status);
@@ -142,10 +137,6 @@ int fsobj::RepairStore()
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
  	    vol->PackVS(m->nhosts, &OldVS);
 
-	    /* Shouldn't acl be IN rather than IN/OUT? -JJK */
-	    if (acl->SeqLen > VENUS_MAXBSLEN)
-		CHOKE("fsobj::Store: BS len too large (%d)", acl->SeqLen);
-	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -153,21 +144,21 @@ int fsobj::RepairStore()
 
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE(prel_str, comp, fid);
-	    MULTI_START_MESSAGE(ViceNewVStore_OP);
-	    code = (int) MRPC_MakeMulti(ViceNewVStore_OP, ViceNewVStore_PTR,
-					VSG_MEMBERS, m->rocc.handles,
-					m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					&fid, StoreStatusData, aclvar_ptrs,
-					statusvar_ptrs, NewLength, 0, /* NULL Mask */
-					ph, &sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
-					&PiggyBS, sedvar_bufs);
-	    MULTI_END_MESSAGE(ViceNewVStore_OP);
+	    MULTI_START_MESSAGE(ViceStore_OP);
+	    code = (int)MRPC_MakeMulti(ViceStore_OP, ViceStore_PTR,
+				       VSG_MEMBERS, m->rocc.handles,
+				       m->rocc.retcodes, m->rocc.MIp, 0, 0,
+				       &fid, statusvar_ptrs, NewLength, ph,
+				       &sid, &OldVS, VSvar_ptrs,
+				       VCBStatusvar_ptrs, &PiggyBS,
+				       sedvar_bufs);
+	    MULTI_END_MESSAGE(ViceStore_OP);
 	    CFSOP_POSTLUDE("store::store done\n");
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
 	    code = vol->Collate_COP1(m, code, &UpdateSet);
-	    MULTI_RECORD_STATS(ViceNewVStore_OP);
+	    MULTI_RECORD_STATS(ViceStore_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
@@ -228,17 +219,16 @@ RepExit:
 
 	/* Make the RPC call. */
 	CFSOP_PRELUDE(prel_str, comp, fid);
-	UNI_START_MESSAGE(ViceNewVStore_OP);
-	code = (int) ViceNewVStore(c->connid, &fid, StoreStatusData,
-				   acl, &status, NewLength, 0, /* Null Mask */
-				   0, &Dummy, &OldVS, &VS, &VCBStatus,
-				   &PiggyBS, sed);
-	UNI_END_MESSAGE(ViceNewVStore_OP);
+	UNI_START_MESSAGE(ViceStore_OP);
+	code = (int) ViceStore(c->connid, &fid, &status, NewLength, 0,
+				   &Dummy, &OldVS, &VS, &VCBStatus, &PiggyBS,
+				   sed);
+	UNI_END_MESSAGE(ViceStore_OP);
 	CFSOP_POSTLUDE("store::store done\n");
 
 	/* Examine the return code to decide what to do next. */
 	code = vol->Collate(c, code);
-	UNI_RECORD_STATS(ViceNewVStore_OP);
+	UNI_RECORD_STATS(ViceStore_OP);
 	if (code != 0) goto NonRepExit;
 
 	{
@@ -264,8 +254,9 @@ NonRepExit:
     return(code);
 }
 
-int fsobj::RepairSetAttr(unsigned long NewLength, Date_t NewDate, vuid_t NewOwner, 
-			 unsigned short NewMode, RPC2_CountedBS *acl) 
+int fsobj::RepairSetAttr(unsigned long NewLength, Date_t NewDate,
+			 vuid_t NewOwner, unsigned short NewMode,
+			 RPC2_CountedBS *acl) 
 {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();

@@ -147,26 +147,31 @@ int volent::GetVolAttr(vuid_t vuid) {
 	    ViceVolumeIdStruct VidList[PIGGY_VALIDATIONS];
 
 	    /* 
-	     * To minimize bandwidth, we should not send full version vectors to each server.  
-	     * We could send each server its version stamp, but that would be extremely messy for
-	     * multicast (which assumes the same message goes to all destinations).  We 
-	     * compromise by sending all the version stamps to each server.  If we had true 
-	     * multicast, this would be cheaper than sending a set of unicasts each
-	     * with a different version stamp. The array is a BS because there isn't a 
-	     * one to one correspondence between it and the volume ID list. Besides, 
-	     * I hate introducing those damn structures.
+	     * To minimize bandwidth, we should not send full version vectors
+	     * to each server.  We could send each server its version stamp,
+	     * but that would be extremely messy for multicast (which assumes
+	     * the same message goes to all destinations).  We compromise by
+	     * sending all the version stamps to each server.  If we had true
+	     * multicast, this would be cheaper than sending a set of unicasts
+	     * each with a different version stamp. The array is a BS because
+	     * there isn't a one to one correspondence between it and the
+	     * volume ID list. Besides, I hate introducing those damn
+	     * structures.
 	     */
 	    RPC2_CountedBS VSBS;
 	    VSBS.SeqLen = 0;
-	    VSBS.SeqBody = (RPC2_ByteSeq) malloc(PIGGY_VALIDATIONS * m->nhosts * sizeof(RPC2_Integer));
+	    VSBS.SeqBody = (RPC2_ByteSeq) malloc(PIGGY_VALIDATIONS * m->nhosts
+						 * sizeof(RPC2_Integer));
 
 	    /* 
-	     * this is a BS instead of an array because the RPC2 array implementation requires 
-	     * array elements to be structures. In the case of VFlags, that would be a real 
-	     * waste of space (which is going over the wire).
+	     * this is a BS instead of an array because the RPC2 array
+	     * implementation requires array elements to be structures. In the
+	     * case of VFlags, that would be a real waste of space (which is
+	     * going over the wire).
 	     */
 	    char VFlags[PIGGY_VALIDATIONS];
-	    RPC2_CountedBS VFlagBS;
+	    RPC2_BoundedBS VFlagBS;
+	    VFlagBS.MaxSeqLen = 0;
 	    VFlagBS.SeqLen = 0;
 	    VFlagBS.SeqBody = (RPC2_ByteSeq) VFlags;
 
@@ -178,15 +183,18 @@ int volent::GetVolAttr(vuid_t vuid) {
 	     * - want a volume callback (includes check for presence of one)
 	     * - have a non-null version vector for comparison
 	     *
-	     * Note that we may not pick up a volume for validation after a partition if the 
-	     * volume has not yet been demoted (i.e. the demotion_pending flag is set).  If 
-	     * the volume is awaiting demotion, it may appear to still have a callback when 
-	     * viewed "externally" as we do here. This does not violate correctness, because 
-	     * if an object is referenced in the volume the demotion will be taken first.  
+	     * Note that we may not pick up a volume for validation after a
+	     * partition if the volume has not yet been demoted (i.e. the
+	     * demotion_pending flag is set).  If the volume is awaiting
+	     * demotion, it may appear to still have a callback when viewed
+	     * "externally" as we do here. This does not violate correctness,
+	     * because if an object is referenced in the volume the demotion
+	     * will be taken first.  
 	     *
-	     * We do not bother checking the stamps for volumes not in the hoarding state;
-	     * when the transition is taken to the hoarding state the volume will be demoted
-	     * and the callback cleared anyway.
+	     * We do not bother checking the stamps for volumes not in the
+	     * hoarding state; when the transition is taken to the hoarding
+	     * state the volume will be demoted and the callback cleared
+	     * anyway.
 	     */
 	    vol_iterator next;
 	    volent *v;
@@ -221,9 +229,12 @@ int volent::GetVolAttr(vuid_t vuid) {
 	        goto RepExit;
             }
 
+	    VFlagBS.MaxSeqLen = nVols;
+
 	    LOG(100, ("volent::GetVolAttr: %s, sending %d version stamps\n", name, nVols));
 
-	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, VFlagvar, VFlagBS, VSG_MEMBERS, VENUS_MAXBSLEN);
+	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
+			    VSG_MEMBERS, VENUS_MAXBSLEN);
 
 	    /* Make the RPC call. */
 	    MarinerLog("store::ValidateVols %s [%d]\n", name, nVols);

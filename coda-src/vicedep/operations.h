@@ -33,9 +33,10 @@ extern int CheckGetACLSemantics(ClientEntry *, Vnode **, Volume **, Rights *,
 				 Rights *, RPC2_BoundedBS *, RPC2_String *);
 extern int CheckStoreSemantics(ClientEntry *, Vnode **, Vnode **, Volume **, int, VCP,
 				ViceVersionVector *, FileVersion, Rights *, Rights *);
-extern int CheckNewSetAttrSemantics(ClientEntry *, Vnode **, Vnode **, Volume **, int, VCP, 
-				    RPC2_Integer, Date_t, UserId, RPC2_Unsigned, RPC2_Integer, 
-				    ViceVersionVector *, FileVersion,  Rights *, Rights *);
+extern int CheckSetAttrSemantics(ClientEntry *, Vnode **, Vnode **, Volume **,
+				 int, VCP, RPC2_Integer, Date_t, UserId,
+				 RPC2_Unsigned, RPC2_Integer, ViceVersionVector
+				 *, FileVersion,  Rights *, Rights *);
 extern int CheckSetACLSemantics(ClientEntry *, Vnode **, Volume **, int, VCP,
 				  ViceVersionVector *, FileVersion, Rights *, Rights *,
 				  RPC2_CountedBS *, AL_AccessList **);
@@ -58,16 +59,16 @@ extern int CheckSymlinkSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volu
 				   ViceStatus *, ViceStatus *, Rights *, Rights *, int =1);
 extern void PerformFetch(ClientEntry *, Volume *, Vnode *);
 extern int FetchBulkTransfer(RPC2_Handle, ClientEntry *, Volume *, Vnode *,
-			     RPC2_Unsigned Offset, RPC2_Unsigned Quota,
-			     ViceVersionVector *VV);
+			     RPC2_Unsigned Offset, ViceVersionVector *VV);
 extern void PerformGetAttr(ClientEntry *, Volume *, Vnode *);
 extern void PerformGetACL(ClientEntry *, Volume *, Vnode *, RPC2_BoundedBS *, RPC2_String);
 extern void PerformStore(ClientEntry *, VolumeId, Volume *, Vnode *,
 			  Inode, int, RPC2_Integer, Date_t, ViceStoreId *, RPC2_Integer * =NULL);
 extern int StoreBulkTransfer(RPC2_Handle, ClientEntry *, Volume *, Vnode *, Inode, RPC2_Integer);
-extern void PerformNewSetAttr(ClientEntry *, VolumeId, Volume *, Vnode *, int, RPC2_Integer, 
-			        Date_t, UserId, RPC2_Unsigned, RPC2_Integer, ViceStoreId *, Inode *,
-				RPC2_Integer * =NULL);
+extern void PerformSetAttr(ClientEntry *, VolumeId, Volume *, Vnode *, int,
+			   RPC2_Integer, Date_t, UserId, RPC2_Unsigned,
+			   RPC2_Integer, ViceStoreId *, Inode *,
+			   RPC2_Integer * =NULL);
 extern void PerformSetACL(ClientEntry *, VolumeId, Volume *,
 			   Vnode *, int, ViceStoreId *, AL_AccessList *, RPC2_Integer * =NULL);
 extern void PerformCreate(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,

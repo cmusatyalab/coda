@@ -59,6 +59,7 @@ extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #include "vproc.h"
 #include "vstab.h"
 #include "worker.h"
+#include "coda_assert.h"
 
 /* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
 #ifndef INADDR_LOOPBACK
@@ -113,7 +114,7 @@ int main(int argc, char **argv) {
     fflush(stderr);
 
     coda_assert_action = CODA_ASSERT_SLEEP;
-    coda_assert_cleanup = WorkerCloseMuxfd;
+    coda_assert_cleanup = VFSUnmount;
 
     ParseCmdline(argc, argv);
     DefaultCmdlineParms();   /* read vstab */

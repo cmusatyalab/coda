@@ -95,7 +95,9 @@ class rec_smolist_iterator {
 	
   public:
     rec_smolist_iterator(rec_smolist&);
-    rec_smolink *operator()();	// return next object or 0
+    rec_smolink *operator()();  // return next object or 0
+                                // Support safe deletion of currently
+                                // returned entry.  See dlist.h also.
 };
 
 

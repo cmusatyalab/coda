@@ -924,7 +924,11 @@ void PrintCounters(FILE *fp)
     SLog(0, "NewConnectFS %d", Counters[NEWCONNECTFS]);
     SLog(0, "DisconnectFS %d", Counters[DISCONNECT]);
 
-    SLog(0, "Fetch %d", Counters[ViceNewFetch_OP]);
+    SLog(0, "GetAttr %d", Counters[GETATTR]);
+    SLog(0, "GetAcl %d", Counters[GETACL]);
+    SLog(0, "Fetch %d", Counters[FETCH]);
+    SLog(0, "SetAttr %d", Counters[SETATTR]);
+    SLog(0, "SetAcl %d", Counters[SETACL]);
     SLog(0, "Store %d", Counters[STORE]);
     SLog(0, "ValidateAttrs %d", Counters[VALIDATEATTRS]);
 
@@ -953,8 +957,17 @@ void PrintCounters(FILE *fp)
     SLog(0, "SetVV %d", Counters[SETVV]);
     SLog(0, "Reintegrate %d", Counters[REINTEGRATE]);
 
+    SLog(0, "OpenReintHandle %d", Counters[ViceOpenReintHandle_OP]); 
+    SLog(0, "QueryReintHandle %d", Counters[ViceQueryReintHandle_OP]); 
+    SLog(0, "SendReintFragment %d", Counters[ViceSendReintFragment_OP]); 
+    SLog(0, "CloseReintHandle %d", Counters[ViceCloseReintHandle_OP]); 
+
     SLog(0, "GetVolVS %d", Counters[GETVOLVS]);
     SLog(0, "ValidateVols %d", Counters[VALIDATEVOLS]);
+
+    SLog(0, "GetWBPermit %d", Counters[ViceGetWBPermit_OP]); 
+    SLog(0, "TossWBPermit %d", Counters[ViceTossWBPermit_OP]); 
+    SLog(0, "RejectWBPermit %d", Counters[ViceRejectWBPermit_OP]); 
 
     seconds = Counters[FETCHTIME]/1000;
     if(seconds <= 0) 

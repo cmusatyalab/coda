@@ -939,25 +939,26 @@ RestartFind:
 
 		    LOG(0, ("fsdb::Get: Object inconsistent. (key = <%x.%x.%x>)\n", 
 			    key->Volume, key->Vnode, key->Unique));
-		    /* We notify all users that objects are in conflict because it is
-		       often the case that uid=-1, so we notify nobody.  It'd be better
-		       if we could notify the user whose activities triggered this object
-		       to go inconsistent.  However, that person is difficult to determine
-		       and could be the hoard daemon.  Notifying everyone seems to be
-		       a reasonable alternative, if not terribly satisfying. */
+		    /* We notify all users that objects are in conflict because
+		     * it is often the case that uid=-1, so we notify nobody.
+		     * It'd be better if we could notify the user whose
+		     * activities triggered this object to go inconsistent.
+		     * However, that person is difficult to determine and could
+		     * be the hoard daemon.  Notifying everyone seems to be a
+		     * reasonable alternative, if not terribly satisfying. */
 		    NotifyUsersObjectInConflict(path, key);
 
 		    k_Purge(&f->fid, 1);
                     if (f->refcnt > 1) {
-		        /* 
-			 *  If refcnt is greater than 1, it means we aren't the only one
-			 *  with an active reference to this object.  If this is the case, 
-			 *  then the following Put cannot possibly clear all the references
-			 *  to this file.  If we were to go ahead and call the Create in
-			 *  this situation, we'd get a fatal error ("Create: key found").
-			 *  So, we return ETOOMANYREFS and put an informative message in the
-			 *  log rather than allowing the fatal error.
-			 */
+		        /* If refcnt is greater than 1, it means we aren't the
+			 * only one with an active reference to this object.
+			 * If this is the case, then the following Put cannot
+			 * possibly clear all the references to this file.  If
+			 * we were to go ahead and call the Create in this
+			 * situation, we'd get a fatal error ("Create: key
+			 * found"). So, we return ETOOMANYREFS and put an
+			 * informative message in the log rather than allowing
+			 * the fatal error. */
 			f->ClearRcRights();
 			Put(&f);
 			LOG(0, ("fsdb::Get: Object with active reference has gone inconsistent.\n\t Cannot conjure fake directory until object is inactive. (key =  <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));

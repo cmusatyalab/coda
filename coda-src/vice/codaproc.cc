@@ -2563,12 +2563,22 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
 */
 long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 		      ViceVolumeIdStruct Vids[], RPC2_CountedBS *VSBS,
-		      RPC2_CountedBS *VFlagBS)
+		      RPC2_BoundedBS *VFlagBS)
 {
     long errorCode = 0;
     ClientEntry *client = 0;
 
     SLog(1, "ViceValidateVols, (%d volumes)", numVids);
+
+    VFlagBS->SeqLen = 0;
+    memset(VFlagBS->SeqBody, 0, VFlagBS->MaxSeqLen);
+
+    if ( numVids > VFlagBS->MaxSeqLen ) {
+	    SLog(0, "Client sending wrong output buffer while validating"
+		 "volumes:MaxSeqLen %d, should be %d", 
+		 VFlagBS->MaxSeqLen, numVids);
+	    return(EINVAL);
+    }
 
     errorCode = RPC2_GetPrivatePointer(cid, (char **)&client);
     if(!client || errorCode) {
@@ -2577,10 +2587,6 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
     }
 
     /* check the piggybacked volumes */
-    VFlagBS->SeqLen = 0;
-    VFlagBS->SeqBody = (RPC2_ByteSeq) malloc((int) numVids);
-    bzero((char *) VFlagBS->SeqBody, (int) numVids);
-    VFlagBS->SeqLen = numVids;
 
     for (int i = 0; i < numVids; i++) {
 	int error, index, ix, count;
@@ -2631,6 +2637,7 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 	SLog(0, "ValidateVolumes: 0x%x failed!", Vids[i].Vid);
 	VFlagBS->SeqBody[i] = 255;
     }
+    VFlagBS->SeqLen = numVids;
 
     SLog(2, "ValidateVolumes returns %s\n", 
 	   ViceErrorMsg((int)errorCode));

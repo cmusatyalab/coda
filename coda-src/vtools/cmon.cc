@@ -565,7 +565,7 @@ static void ComputePV(struct server *s, struct printvals *pv)
 		pv->cpu_user = (s->newvs.UserCPU + s->newvs.NiceCPU) * 100 / total;
 		/* really idle */
 		pv->cpu_util = (int)((float)s->newvs.IdleCPU * 100 / total);
-		pv->cpu_srv = ((s->newvs.Spare4+s->newvs.Spare5) * s->hz) /total;
+		pv->cpu_srv = ((s->newvs.UsrTime+s->newvs.SysTime) * s->hz) /total;
 	    }
 	} else {
 	    pv->cpu_sys = s->newvs.SystemCPU/s->hz;
@@ -603,7 +603,7 @@ static void ComputePV(struct server *s, struct printvals *pv)
 		    pv->cpu_user = (DIFF(UserCPU) + DIFF(NiceCPU)) * 100 / total;
 		    /* really idle */
 		    pv->cpu_util = DIFF(IdleCPU) * 100 / total;
-		    pv->cpu_srv = ((DIFF(Spare4)+DIFF(Spare5)) * s->hz) /total;
+		    pv->cpu_srv = ((DIFF(UsrTime)+DIFF(SysTime)) * s->hz) /total;
 		}
 	    } else {
 		pv->cpu_sys = DIFF(SystemCPU)/s->hz;

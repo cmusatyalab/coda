@@ -1,0 +1,65 @@
+<HTML>
+<HEAD>
+<TITLE>Server statistics</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF">
+<FORM ACTION="http://telos.odyssey.cs.cmu.edu/cgi-bin/gensrvstats.py">
+<TABLE BORDER=0>
+<TR>
+    <TH>Servers</TH> <TH>Stats</TH> <TH>Logged period</TH>
+</TR><TR VALIGN="TOP">
+    <TD ROWSPAN=3>
+	<SELECT NAME="servers" MULTIPLE>
+	    <OPTION> verdi
+	    <OPTION> mozart
+	    <OPTION> marais
+	    <OPTION> vivaldi
+	    <OPTION> mahler
+	    <OPTION> viotti
+	    <OPTION> massenet
+	    <OPTION> strauss
+	    <OPTION> tye
+	    <OPTION> tallis
+	    <OPTION> haydn
+	    <OPTION> holst
+	</SELECT>
+    </TD><TD ROWSPAN=3>
+	<SELECT NAME="stats" MULTIPLE>
+	    <OPTION VALUE="clients"> Active Workstations
+	    <OPTION VALUE="conns"> RPC2 connections
+	    <OPTION VALUE="rpcbytes"> RPC2 bytes sent/received
+	    <OPTION VALUE="rpcpkts"> RPC2 pkts sent/received/lost/errs
+	    <OPTION VALUE="xferops"> RPC2 fetch/store operations
+	    <OPTION VALUE="xferbytes"> Bytes fetched/stored
+	    <OPTION VALUE="xferrates"> Fetch/store datarates
+
+	    <OPTION VALUE="cpu"> System CPU usage
+	    <OPTION VALUE="times"> Server CPU usage
+	    <OPTION VALUE="vmusage"> Server memory usage
+	    <OPTION VALUE="faults"> Minor/Mayor pagefaults
+	    <OPTION VALUE="ioops"> System IO activity
+	    <OPTION VALUE="disks"> Available diskspace
+	</SELECT>
+    </TD><TD>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="1h"> 1 hour<BR>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="2h"> 2 hours<BR>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="4h"> 4 hours<BR>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="8h"> 8 hours<BR>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="1d" CHECKED> 1 day<BR>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="2d"> 2 days<BR>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="w"> 1 week<BR>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="m"> 1 month<BR>
+	<INPUT TYPE="RADIO" NAME="period" VALUE="y"> 1 year
+    </TD>
+</TR>
+<TR><TD>
+    <INPUT TYPE="CHECKBOX" NAME="logscale"> logscale<BR>
+</TD></TR>
+<TR><TD VALIGN="BOTTOM">
+    <INPUT TYPE="RESET" VALUE="Clear">
+    <INPUT TYPE="SUBMIT" VALUE="Generate">
+</TD></TR>
+</TABLE>
+</FORM>
+</BODY>
+</HTML>

@@ -118,18 +118,6 @@ extern int CheckDiskUsage(Volume *, int);
 extern void ChangeDiskUsage(Volume *, int);
 extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
 
-/* These should be RPC routines. */
-extern long FS_ViceGetAttr(RPC2_Handle, ViceFid *, int,
-			 ViceStatus *, RPC2_Unsigned, RPC2_CountedBS *);
-extern long FS_ViceGetACL(RPC2_Handle, ViceFid *, int, RPC2_BoundedBS *,
-			ViceStatus *, RPC2_Unsigned, RPC2_CountedBS *);
-extern long FS_ViceSetACL(RPC2_Handle, ViceFid *, RPC2_CountedBS *, ViceStatus *,
-			RPC2_Unsigned, ViceStoreId *, RPC2_CountedBS *,
-			RPC2_Integer *, CallBackStatus *, RPC2_CountedBS *);
-extern long FS_ViceNewSetAttr(RPC2_Handle, ViceFid *, ViceStatus *, RPC2_Integer,
-			   RPC2_Unsigned, ViceStoreId *, RPC2_CountedBS *, 
-			   RPC2_Integer *, CallBackStatus *, RPC2_CountedBS *);
-
 /* *****  Private routines  ***** */
 
 static int GrabFsObj(ViceFid *, Volume **, Vnode **, int, int, int);
@@ -178,30 +166,18 @@ extern int CheckWriteBack(ViceFid * Fid, ClientEntry * client);
 
 
 /*
-  ViceNewFetch":Fetch a file or directory
+  ViceFetch: Fetch a file or directory
 */
-long FS_ViceNewFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
-		ViceFetchType Request, RPC2_BoundedBS *AccessList,
-		ViceStatus *Status, RPC2_Unsigned PrimaryHost,
-		RPC2_Unsigned Offset, RPC2_Unsigned Quota,
-		RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
+		  RPC2_Unsigned InconOK, ViceStatus *Status,
+		  RPC2_Unsigned PrimaryHost, RPC2_Unsigned Offset,
+		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
-
-    /* We should have separate RPC routines for these two! */
-    if (Request == FetchNoData || Request == FetchNoDataRepair) {
-	int inconok = (Request == FetchNoDataRepair);
-	if (AccessList->MaxSeqLen == 0)
-	    return(FS_ViceGetAttr(RPCid, Fid, inconok, Status, PrimaryHost, PiggyBS));
-	else
-	    return(FS_ViceGetACL(RPCid, Fid, inconok, AccessList, Status, PrimaryHost, PiggyBS));
-    }
-
     int errorCode = 0;		/* return code to caller */
     Volume *volptr = 0;		/* pointer to the volume */
     ClientEntry *client = 0;	/* pointer to the client data */
     Rights rights = 0;		/* rights for this user */
     Rights anyrights = 0;	/* rights for any user */
-    int inconok = 0;		/* flag to say whether Coda inconsistency is ok */
     VolumeId VSGVolnum = Fid->Volume;
     int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
@@ -209,8 +185,7 @@ long FS_ViceNewFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     vle *av;
 
 START_TIMING(Fetch_Total);
-    SLog(1, "ViceNewFetch: Fid = %s, Repair = %d", FID_(Fid), 
-	 (Request == FetchDataRepair));
+    SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), InconOK);
 
   
     /* Validate parameters. */
@@ -220,37 +195,13 @@ START_TIMING(Fetch_Total);
 	    goto FreeLocks;
 	
 	CheckWriteBack(Fid,client);
-
-	/* Request type. */
-	switch(Request) {
-	    case FetchNoData:
-	    case FetchData:
-		break;
-
-	    case FetchNoDataRepair:
-	    case FetchDataRepair:
-		inconok = 1;
-		break;
-
-	    default:
-		SLog(0, "ViceNewFetch: illegal type %d", Request);
-		errorCode = EINVAL;
-		goto FreeLocks;
-	}
-
-	/* Deprecated/Inapplicable parameters. */
-	if (AccessList->MaxSeqLen != 0) {
-	    SLog(0, "ViceNewFetch: ACL != 0");
-	    errorCode = EINVAL;
-	    goto FreeLocks;
-	}
     }
 
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
 	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
-				 NO_LOCK, inconok, 0, 0)))
+				 NO_LOCK, InconOK, 0, 0)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
@@ -262,7 +213,7 @@ START_TIMING(Fetch_Total);
 	    VN_VN2PFid(v->vptr, volptr, &pFid);
 	    av = AddVLE(*vlist, &pFid);
 	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, 
-				     NO_LOCK, inconok, 0, 0)))
+				     NO_LOCK, InconOK, 0, 0)))
 		goto FreeLocks;
 	}
     }
@@ -278,7 +229,7 @@ START_TIMING(Fetch_Total);
     {
 	if (!ReplicatedOp || PrimaryHost == ThisHostAddr)
 	    if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
-					      Offset, Quota, VV)))
+					      Offset, VV)))
 		goto FreeLocks;
 	PerformFetch(client, volptr, v->vptr);
 
@@ -296,32 +247,17 @@ FreeLocks:
 	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
-    SLog(2, "ViceNewFetch returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceFetch returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Fetch_Total);
     return(errorCode);
 }
 
-
-/*
-  ViceFetch":Fetch a file or directory
-*/
-long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
-		ViceFetchType Request, RPC2_BoundedBS *AccessList,
-		ViceStatus *Status, RPC2_Unsigned PrimaryHost,
-		RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
-{
-    return FS_ViceNewFetch(RPCid, Fid, NULL, Request, AccessList, Status,
-			   PrimaryHost, 0, 0, PiggyBS, BD);
-}
-
-
 /*
  ViceGetAttr: Fetch the attributes for a file/directory
 */
-long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, 
-		 int InconOK, ViceStatus *Status, 
-		 RPC2_Unsigned PrimaryHost, 
-		 RPC2_CountedBS *PiggyBS)
+long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
+		    ViceStatus *Status, RPC2_Unsigned PrimaryHost,
+		    RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
     Volume *volptr = 0;		/* pointer to the volume */
@@ -412,7 +348,7 @@ END_TIMING(GetAttr_Total);
 long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
 		       ViceFid *PrimaryFid, ViceStatus *Status, 
 		       RPC2_Integer NumPiggyFids, ViceFidAndVV Piggies[],
-		       RPC2_CountedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
+		       RPC2_BoundedBS *VFlagBS, RPC2_CountedBS *PiggyBS)
 {
     long errorCode = 0;		/* return code to caller */
     Volume *volptr = 0;		/* pointer to the volume */
@@ -430,22 +366,23 @@ START_TIMING(ViceValidateAttrs_Total);
     SLog(1, "ViceValidateAttrs: Fid = %s, %d piggy fids", 
 	 FID_(PrimaryFid), NumPiggyFids);
 
+    VFlagBS->SeqLen = 0;
+    memset(VFlagBS->SeqBody, 0, VFlagBS->MaxSeqLen);
+
     /* Do a real getattr for primary fid. */
     {
-	if ((errorCode = FS_ViceGetAttr(RPCid, PrimaryFid, 0, Status, 
-				    PrimaryHost, PiggyBS)))
+	if ((errorCode = FS_ViceGetAttr(RPCid, PrimaryFid, 0, Status,
+					PrimaryHost, PiggyBS)))
 		goto Exit;
     }
  	
-    if ( NumPiggyFids != VFlagBS->SeqLen ) {
+    if ( NumPiggyFids > VFlagBS->MaxSeqLen ) {
 	    SLog(0, "Client sending wrong output buffer while validating"
-		 ": %s; SeqLen %d, should be %d", 
-		 FID_(PrimaryFid), VFlagBS->SeqLen, NumPiggyFids);
+		 ": %s; MaxSeqLen %d, should be %d", 
+		 FID_(PrimaryFid), VFlagBS->MaxSeqLen, NumPiggyFids);
 	    errorCode = EINVAL;
 	    goto Exit;
     }
-
-    bzero((char *) VFlagBS->SeqBody, (int) NumPiggyFids);
 
     /* now check piggyback fids */
     for (i = 0; i < NumPiggyFids; i++) {
@@ -523,6 +460,7 @@ InvalidObj:
 		   Piggies[i].Fid.Unique);
 	}
     }
+    VFlagBS->SeqLen = NumPiggyFids;
 
     /* Put objects. */
     {
@@ -539,8 +477,9 @@ END_TIMING(ViceValidateAttrs_Total);
 /*
   ViceGetACL: Fetch the acl of a directory
 */
-long FS_ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, int InconOK, RPC2_BoundedBS *AccessList,
-		 ViceStatus *Status, RPC2_Unsigned PrimaryHost, RPC2_CountedBS *PiggyBS)
+long FS_ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
+		   RPC2_BoundedBS *AccessList, ViceStatus *Status,
+		   RPC2_Unsigned PrimaryHost, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
     Volume *volptr = 0;		/* pointer to the volume */
@@ -602,22 +541,13 @@ END_TIMING(GetACL_Total);
 /*
   ViceNewVStore: Store a file or directory
 */
-long FS_ViceNewVStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
-		   RPC2_CountedBS *AccessList, ViceStatus *Status,
-		   RPC2_Integer Length, RPC2_Integer Mask,
-		   RPC2_Unsigned PrimaryHost,
-		   ViceStoreId *StoreId, RPC2_CountedBS *OldVS, 
-		   RPC2_Integer *NewVS, CallBackStatus *VCBStatus,
-		   RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+long FS_ViceStore(RPC2_Handle RPCid, ViceFid *Fid,
+		  ViceStatus *Status, RPC2_Integer Length,
+		  RPC2_Unsigned PrimaryHost,
+		  ViceStoreId *StoreId, RPC2_CountedBS *OldVS, 
+		  RPC2_Integer *NewVS, CallBackStatus *VCBStatus,
+		  RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
-    /* We should have separate RPC routines for these two! */
-    if (Request == StoreStatus)
-	return(FS_ViceNewSetAttr(RPCid, Fid, Status, Mask, PrimaryHost, StoreId, 
-			      OldVS, NewVS, VCBStatus, PiggyBS));
-    if (Request == StoreNeither)
-	return(FS_ViceSetACL(RPCid, Fid, AccessList, Status, PrimaryHost, 
-			  StoreId, OldVS, NewVS, VCBStatus, PiggyBS));
-
     int errorCode = 0;		/* return code for caller */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
@@ -641,30 +571,6 @@ START_TIMING(Store_Total);
 	    goto FreeLocks;
     
 	CheckWriteBack(Fid,client);
-
-
-	/* Request type. */
-	switch(Request) {
-	    case StoreStatus:
-	    case StoreNeither:
-		CODA_ASSERT(FALSE);
-
-	    case StoreData:
-	    case StoreStatusData:
-		break;
-
-	    default:
-		SLog(0, "ViceNewVStore: illegal type %d", Request);
-		errorCode = EINVAL;
-		goto FreeLocks;
-	}
-
-	/* Deprecated/Inapplicable parameters. */
-	if (AccessList->SeqLen != 0) {
-	    SLog(0, "ViceNewVStore: !StoreNeither && SeqLen != 0");
-	    errorCode = EINVAL;
-	    goto FreeLocks;
-	}
     }
 
     /* Get objects. */
@@ -685,9 +591,10 @@ START_TIMING(Store_Total);
 
     /* Check semantics. */
     {
-	if ((errorCode = CheckStoreSemantics(client, &av->vptr, &v->vptr, &volptr,
-					    ReplicatedOp, StoreVCmp, &Status->VV,
-					    Status->DataVersion, &rights, &anyrights)))
+	if ((errorCode = CheckStoreSemantics(client, &av->vptr, &v->vptr,
+					     &volptr, ReplicatedOp, StoreVCmp,
+					     &Status->VV, Status->DataVersion,
+					     &rights, &anyrights)))
 	    goto FreeLocks;
     }
 
@@ -708,12 +615,14 @@ START_TIMING(Store_Total);
 	    (void)CallBackReceivedStore(client->VenusId->id, &VSGFid);
 	}
 	
-	v->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr), 
-			      (int) v->vptr->vnodeNumber, (int) v->vptr->disk.uniquifier, 
+	v->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr),
+			      (int) v->vptr->vnodeNumber,
+			      (int) v->vptr->disk.uniquifier,
 			      (int) v->vptr->disk.dataVersion + 1);
 	CODA_ASSERT(v->f_finode > (unsigned long) 0);
 
-	if ((errorCode = StoreBulkTransfer(RPCid, client, volptr, v->vptr, v->f_finode, Length)))
+	if ((errorCode = StoreBulkTransfer(RPCid, client, volptr, v->vptr,
+					   v->f_finode, Length)))
 	    goto FreeLocks;
 	v->f_sinode = v->vptr->disk.inodeNumber;
 	if (ReplicatedOp) {
@@ -749,10 +658,10 @@ END_TIMING(Store_Total);
 
 
 /*
-  ViceNewSetAttr: Set attributes of an object
+  ViceSetAttr: Set attributes of an object
 */
-long FS_ViceNewSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
-		    RPC2_Integer Mask, RPC2_Unsigned PrimaryHost,		    
+long FS_ViceSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
+		    RPC2_Integer Mask, RPC2_Unsigned PrimaryHost,
 		    ViceStoreId *StoreId, 
 		    RPC2_CountedBS *OldVS, RPC2_Integer *NewVS,
 		    CallBackStatus *VCBStatus, RPC2_CountedBS *PiggyBS)
@@ -770,7 +679,7 @@ long FS_ViceNewSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
     vle *av = 0;
 
 START_TIMING(SetAttr_Total);
-    SLog(1, "ViceNewSetAttr: Fid = (%x.%x.%x)",
+    SLog(1, "ViceSetAttr: Fid = (%x.%x.%x)",
 	     Fid->Volume, Fid->Vnode, Fid->Unique);
 
     /* Validate parameters. */
@@ -804,11 +713,13 @@ START_TIMING(SetAttr_Total);
 
     /* Check semantics. */
     {
-	if ((errorCode = CheckNewSetAttrSemantics(client, &av->vptr, &v->vptr, &volptr,
-						 ReplicatedOp, NormalVCmp, Status->Length,
-						 Status->Date, Status->Owner, Status->Mode,
-						 Mask, &Status->VV, Status->DataVersion,
-						 &rights, &anyrights)))
+	if ((errorCode = CheckSetAttrSemantics(client, &av->vptr, &v->vptr,
+					       &volptr, ReplicatedOp,
+					       NormalVCmp, Status->Length,
+					       Status->Date, Status->Owner,
+					       Status->Mode, Mask, &Status->VV,
+					       Status->DataVersion, &rights,
+					       &anyrights)))
 	    goto FreeLocks;
     }
 
@@ -828,9 +739,9 @@ START_TIMING(SetAttr_Total);
 	/* f_sinode will be non-zero on return if COW occurred! */
 	if (ReplicatedOp)
 	    GetMyVS(volptr, OldVS, NewVS);
-	PerformNewSetAttr(client, VSGVolnum, volptr, v->vptr, ReplicatedOp,
-	  	          Status->Length, Status->Date, Status->Owner,	
-		          Status->Mode, Mask, StoreId, &v->f_sinode, NewVS);
+	PerformSetAttr(client, VSGVolnum, volptr, v->vptr, ReplicatedOp,
+		       Status->Length, Status->Date, Status->Owner,
+		       Status->Mode, Mask, StoreId, &v->f_sinode, NewVS);
 	if (v->f_sinode != 0) {
 	    v->f_finode = v->vptr->disk.inodeNumber;
 	    truncp = 0;
@@ -856,7 +767,7 @@ START_TIMING(SetAttr_Total);
 					     Status->Owner, Status->Mode,
 					     Status->Author, Status->Date,
 					     Mask, &Status->VV)) )
-		SLog(0, "ViceNewSetAttr: Error %d during SpoolVMLogRecord\n", 
+		SLog(0, "ViceSetAttr: Error %d during SpoolVMLogRecord\n", 
 		     errorCode);
 	}
     }
@@ -875,7 +786,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    SLog(2, "ViceNewSetAttr returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceSetAttr returns %s", ViceErrorMsg(errorCode));
 END_TIMING(SetAttr_Total);
     return(errorCode);
 }
@@ -2769,13 +2680,14 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 }
 
 
-int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
-			     Volume **volptr, int ReplicatedOp, VCP VCmpProc,
-			     RPC2_Integer Length, Date_t Mtime,
-			     UserId Owner, RPC2_Unsigned Mode, 
-			     RPC2_Integer Mask,
-			     ViceVersionVector *VV, FileVersion DataVersion,
-			     Rights *rights, Rights *anyrights) {
+int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
+			  Volume **volptr, int ReplicatedOp, VCP VCmpProc,
+			  RPC2_Integer Length, Date_t Mtime,
+			  UserId Owner, RPC2_Unsigned Mode, 
+			  RPC2_Integer Mask,
+			  ViceVersionVector *VV, FileVersion DataVersion,
+			  Rights *rights, Rights *anyrights)
+{
     int errorCode = 0;
     ViceFid Fid;
     Fid.Volume = V_id(*volptr);
@@ -2793,7 +2705,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
 	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
-	    SLog(0, "CheckNewSetAttrSemantics: (%x.%x.%x), VCP error (%d)",
+	    SLog(0, "CheckSetAttrSemantics: (%x.%x.%x), VCP error (%d)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 	    return(errorCode);
 	}
@@ -2803,12 +2715,12 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     {
 	if (truncp) { 
 	    if ((*vptr)->disk.type != vFile) {
-		SLog(0, "CheckNewSetAttrSemantics: non-file truncate (%x.%x.%x)",
+		SLog(0, "CheckSetAttrSemantics: non-file truncate (%x.%x.%x)",
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EISDIR);
 	    }
 	    if (Length > (long)(*vptr)->disk.length) {
-		SLog(0, "CheckNewSetAttrSemantics: truncate length bad (%x.%x.%x)",
+		SLog(0, "CheckSetAttrSemantics: truncate length bad (%x.%x.%x)",
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EINVAL);
 	    }
@@ -2816,7 +2728,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
 	/* just log a message if nothing is changing - don't be paranoid about returning an error */
 	if (chmodp + chownp + truncp + utimesp == 0) {
-	    SLog(0, "CheckNewSetAttrSemantics: no attr set (%x.%x.%x)",
+	    SLog(0, "CheckSetAttrSemantics: no attr set (%x.%x.%x)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique);
 	}
     }
@@ -2836,7 +2748,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	if (IsOwner && Virginal) {
 	    /* Bypass protection checks on first store after a create EXCEPT for chowns. */
 	    if (chownp) {
-		SLog(0, "CheckNewSetAttrSemantics: owner chown'ing virgin (%x.%x.%x)",
+		SLog(0, "CheckSetAttrSemantics: owner chown'ing virgin (%x.%x.%x)",
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EACCES);
 	    }
@@ -2848,7 +2760,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		/* INSERT | DELETE for directories. */
 		if ((*vptr)->disk.type == vDirectory) {
 		    if (!(*rights & (PRSFS_INSERT | PRSFS_DELETE))) {
-			SLog(0, "CheckNewSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
+			SLog(0, "CheckSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
 				*rights, *anyrights,
 				Fid.Volume, Fid.Vnode, Fid.Unique);
 			return(EACCES);
@@ -2856,7 +2768,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		}
 		else {
 		    if (!(*rights & PRSFS_WRITE)) {
-			SLog(0, "CheckNewSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
+			SLog(0, "CheckSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
 				*rights, *anyrights,
 				Fid.Volume, Fid.Vnode, Fid.Unique);
 			return(EACCES);
@@ -2868,13 +2780,13 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		}
 
 		if (chownp && !IsOwner) {
-		    SLog(0, "CheckNewSetAttrSemantics: non-owner chown'ing (%x.%x.%x)",
+		    SLog(0, "CheckSetAttrSemantics: non-owner chown'ing (%x.%x.%x)",
 			    Fid.Volume, Fid.Vnode, Fid.Unique);
 		    return(EACCES);
 		}
 
 		if (truncp && CheckWriteMode(client, (*vptr)) != 0) {
-		    SLog(0, "CheckNewSetAttrSemantics: truncating (%x.%x.%x)",
+		    SLog(0, "CheckSetAttrSemantics: truncating (%x.%x.%x)",
 			    Fid.Volume, Fid.Vnode, Fid.Unique);
 		    return(EACCES);
 		}
@@ -3573,7 +3485,7 @@ void PerformFetch(ClientEntry *client, Volume *volptr, Vnode *vptr) {
 
 int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, 
 		      Volume *volptr, Vnode *vptr, RPC2_Unsigned Offset,
-		      RPC2_Unsigned Quota, ViceVersionVector *VV)
+		      ViceVersionVector *VV)
 {
     int errorCode = 0;
     ViceFid Fid;
@@ -3619,7 +3531,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.SeekOffset = Offset;
 	sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
-	sid.Value.SmartFTPD.ByteQuota = (Quota == 0) ? -1 : (long)Quota;
+	sid.Value.SmartFTPD.ByteQuota = -1;
 	if (vptr->disk.type != vDirectory) {
 	    if (vptr->disk.inodeNumber) {
 		sid.Value.SmartFTPD.Tag = FILEBYINODE;
@@ -3859,7 +3771,7 @@ END_TIMING(Store_Xfer);
 }
 
 
-void PerformNewSetAttr(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
+void PerformSetAttr(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 		       Vnode *vptr, int ReplicatedOp, RPC2_Integer Length,
 		       Date_t Mtime, UserId Owner, RPC2_Unsigned Mode,
 		       RPC2_Integer Mask, ViceStoreId *StoreId, Inode *CowInode,
@@ -4021,7 +3933,7 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 	    td_dh = sd_dh;
     }
 
-    PDirHandle s_dh;
+    PDirHandle s_dh = NULL;
     if (s_vptr->disk.type == vDirectory) {
 	    if ( s_vptr->disk.cloned) {
 		    *s_CowInode = (DirInode *)s_vptr->disk.inodeNumber;

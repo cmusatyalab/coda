@@ -80,6 +80,7 @@ class userent {
     olink tblhandle;
     vuid_t uid;
     int tokensvalid;
+    int told_you_so;
     SecretToken secret;
     ClearToken clear;
     int waitforever : 1;

@@ -77,7 +77,7 @@ static int maxHost = 0;
 
 /* *****  Private routines  ***** */
 
-static HostTable *client_GetVenusId(RPC2_Handle);
+static void client_GetVenusId(RPC2_Handle, ClientEntry *);
 static void client_RemoveClients(HostTable *);
 static char *client_SLDecode(RPC2_Integer);
 static void client_SetUserName(ClientEntry *);
@@ -119,7 +119,7 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
     *client = (ClientEntry *)malloc(sizeof(ClientEntry));
     CODA_ASSERT(*client);
     (*client)->RPCid = RPCid;
-    (*client)->NextClient = 0;
+    list_head_init(&(*client)->Clients);
     (*client)->DoUnbind = 0;
     (*client)->LastOp = 0;
     (*client)->SecurityLevel = sl;
@@ -127,7 +127,7 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
     if (st) memcpy(&(*client)->Token, st, sizeof(SecretToken));
     else    memset(&(*client)->Token, 0, sizeof(SecretToken));
 
-    (*client)->VenusId = client_GetVenusId(RPCid);
+    client_GetVenusId(RPCid, *client);
 
     /* Stash a reference to the new entry in the connection's private
        pointer. */
@@ -136,12 +136,6 @@ int CLIENT_Build(RPC2_Handle RPCid, char *User, RPC2_Integer sl,
 	    free(*client);
 	    return(errorCode);
     }
-
-    /* Link this client entry into the chain for the host. */
-    ObtainWriteLock(&((*client)->VenusId->lock));
-    (*client)->NextClient = (ClientEntry *)((*client)->VenusId->FirstClient);
-    (*client)->VenusId->FirstClient = *client;
-    ReleaseWriteLock(&((*client)->VenusId->lock));
 
     /* Get the id and then CPS for this client */
     client_SetUserName(*client);
@@ -168,21 +162,13 @@ void CLIENT_Delete(ClientEntry *clientPtr)
 	    return;
     }
 
-    if (clientPtr->VenusId && clientPtr->VenusId->FirstClient) {
-	    if (clientPtr->VenusId->FirstClient == clientPtr) {
-		    clientPtr->VenusId->FirstClient = clientPtr->NextClient;
-	} else {
-		for (ClientEntry *searchPtr = clientPtr->VenusId->FirstClient;
-		     searchPtr; searchPtr = searchPtr->NextClient)
-			if (searchPtr->NextClient == clientPtr)
-				searchPtr->NextClient = clientPtr->NextClient;
-	}
-    }
-
+    list_del(&clientPtr->Clients);
     CurrentConnections--;
 
     /* Free the ClientEntry. */
     RPC2_SetPrivatePointer(clientPtr->RPCid, (char *)0);
+
+    /* Delay destroying our own connection to the client */
     if(clientPtr->LastOp) {
 	    clientPtr->DoUnbind = 1;
     } else {
@@ -197,10 +183,9 @@ void CLIENT_Delete(ClientEntry *clientPtr)
 }
 
 
-static HostTable *client_GetVenusId(RPC2_Handle RPCid) 
+static void client_GetVenusId(RPC2_Handle RPCid, ClientEntry *client) 
 {
-	/* Look up the Peer info corresponding to the given RPC
-           handle. */
+	/* Look up the Peer info corresponding to the given RPC handle. */
 	RPC2_PeerInfo peer;
 	int i;
 
@@ -210,30 +195,48 @@ static HostTable *client_GetVenusId(RPC2_Handle RPCid)
 
 	/* Look for a corresponding host entry. */
 	for (i = 0; i < maxHost; i++)
-		if ((hostTable[i].host ==
-		     peer.RemoteHost.Value.InetAddress.s_addr) &&
-		    (hostTable[i].port ==
-		     peer.RemotePort.Value.InetPortNumber))
-			break;
+	  if ((hostTable[i].host == peer.RemoteHost.Value.InetAddress.s_addr) &&
+	      (hostTable[i].port == peer.RemotePort.Value.InetPortNumber))
+	      break;
+
+	if (i < maxHost)
+	    goto GotIt;
 	
-	/* Not found.  Make a new host entry. */
-	CODA_ASSERT(maxHost < MAXHOSTTABLEENTRIES-1);
+	/* Not found. Try to find an unused slot */
+	for (i = 0; i < maxHost; i++)
+	  if (hostTable[i].host == 0)
+	      break;
+
+	/* Not found. Add another entry to the hostTable */
 	if (i == maxHost) {
-		hostTable[i].host = peer.RemoteHost.Value.InetAddress.s_addr;
-		hostTable[i].port = peer.RemotePort.Value.InetPortNumber;
-		hostTable[i].FirstClient = 0;
-		hostTable[i].id = 0;
-		/* the funky redirection is to fool the C++ compiler into
-		 * converting the long into a struct. The correct solution is
-		 * typing  hostTable.host as struct in_addr!!! --JH */
-		sprintf(hostTable[i].HostName, "%s", inet_ntoa(*(struct in_addr*)&hostTable[i].host));
-		Lock_Init(&hostTable[i].lock);
-		hostTable[i].peer = peer;
-		list_head_init(&hostTable[i].WBconns);
-		maxHost++;
+	    CODA_ASSERT(maxHost < MAXHOSTTABLEENTRIES-1);
+	    maxHost++;
 	}
 
-	return(&hostTable[i]);
+	hostTable[i].host = peer.RemoteHost.Value.InetAddress.s_addr;
+	hostTable[i].port = peer.RemotePort.Value.InetPortNumber;
+	hostTable[i].id = 0;
+
+	/* the funky redirection is to fool the C++ compiler into
+	 * converting the long into a struct. The correct solution is
+	 * typing  hostTable.host as struct in_addr!!! --JH */
+	sprintf(hostTable[i].HostName, "%s",
+		inet_ntoa(*(struct in_addr*)&hostTable[i].host));
+
+	Lock_Init(&hostTable[i].lock);
+	list_head_init(&hostTable[i].WBconns);
+	list_head_init(&hostTable[i].Clients);
+
+	SLog(0, "client_GetVenusId: got new host %s:%d",
+	     hostTable[i].HostName, ntohs(hostTable[i].port));
+
+GotIt:
+	client->VenusId = &hostTable[i];
+
+	/* Link this client entry into the chain for the host. */
+	ObtainWriteLock(&hostTable[i].lock);
+	list_add(&client->Clients, &hostTable[i].Clients);
+	ReleaseWriteLock(&hostTable[i].lock);
 }
 
 
@@ -241,24 +244,15 @@ static HostTable *client_GetVenusId(RPC2_Handle RPCid)
 HostTable *CLIENT_FindHostEntry(RPC2_Handle CBCid) 
 {
     HostTable *he = NULL;
+    int i;
 
     /* Look for a corresponding host entry. */
-    for (int i = 0; i < maxHost; i++)
+    for (i = 0; i < maxHost; i++)
 	if (hostTable[i].id == CBCid) 
-	    he = &hostTable[i];
+	    break;
 
-    return(he);
-}
-
-/* look up a host entry given the (writeback) connection id */
-HostTable *CLIENT_FindWBHostEntry(RPC2_Handle WBCid) 
-{
-    HostTable *he = NULL;
-
-    /* Look for a corresponding host entry. */
-    for (int i = 0; i < maxHost; i++)
-	if (hostTable[i].id == WBCid) 
-	    he = &hostTable[i];
+    if (i < maxHost)
+	he = &hostTable[i];
 
     return(he);
 }
@@ -274,10 +268,11 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     RPC2_Handle callback_id;
     long	errorCode = RPC2_SUCCESS;
 
-    /* Look up the Peer info corresponding to the given RPC handle. */
-    CODA_ASSERT(RPC2_GetPeerInfo(Client->RPCid, &peer) == 0);
-    CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
-    CODA_ASSERT(peer.RemotePort.Tag == RPC2_PORTBYINETNUMBER);
+    /* Create peer info corresponding to the given Client structure. */
+    peer.RemoteHost.Tag			     = RPC2_HOSTBYINETADDR;
+    peer.RemoteHost.Value.InetAddress.s_addr = Client->VenusId->host;
+    peer.RemotePort.Tag			     = RPC2_PORTBYINETNUMBER;
+    peer.RemotePort.Value.InetPortNumber     = Client->VenusId->port;
 
     /* Subsystem identifier. */
     sid.Tag = RPC2_SUBSYSBYID;
@@ -303,9 +298,8 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
 	goto exit_makecallbackconn;
 
     /* Attempt the bind */
-    errorCode = RPC2_NewBinding(&peer.RemoteHost, 
-				     &peer.RemotePort, &sid, &bp, 
-				     &callback_id);
+    errorCode = RPC2_NewBinding(&peer.RemoteHost, &peer.RemotePort, &sid, &bp,
+				&callback_id);
 
     /* This should never happen, otherwise someone forgot to get the
      * HostEntry->lock! */
@@ -349,23 +343,41 @@ exit_makecallbackconn:
 
 void CLIENT_CallBackCheck() 
 {
-    struct timeval tp;
-    struct timezone tsp;
-    TM_GetTimeOfDay(&tp, &tsp);
-    unsigned int checktime = (unsigned int) tp.tv_sec - (5 * 60);
+    dllist_head *head, *curr, *next;
+    ClientEntry *cp;
+    int		 i;
 
-    for (int i = 0; i < maxHost; i++) {
-	if ((hostTable[i].id) && (hostTable[i].LastCall < checktime)) {
-	    ObtainWriteLock(&hostTable[i].lock);
-	    /* recheck, the connection may have been destroyed */
-	    if (hostTable[i].id != 0) {
-		long rc = CallBack(hostTable[i].id, &NullFid);
-		if (rc <= RPC2_ELIMIT) {
-		    SLog(0, "Callback failed %s for ws %s, port %d",
-			ViceErrorMsg((int) rc), hostTable[i].HostName, 
-			ntohs(hostTable[i].port));
-		    CLIENT_CleanUpHost(&hostTable[i]);
+    time_t now = time(0);
+    time_t checktime = now - (5 * 60);
+    time_t deadtime  = now - (15 * 60);
+
+    for (i = 0; i < maxHost; i++) {
+	if (hostTable[i].id) {
+	    if ((time_t)hostTable[i].LastCall < checktime) {
+		ObtainWriteLock(&hostTable[i].lock);
+		/* recheck, the connection may have been destroyed */
+		if (hostTable[i].id != 0) {
+		    long rc = CallBack(hostTable[i].id, &NullFid);
+		    if (rc <= RPC2_ELIMIT) {
+			SLog(0, "Callback failed %s for ws %s, port %d",
+			     ViceErrorMsg((int) rc), hostTable[i].HostName, 
+			     ntohs(hostTable[i].port));
+			CLIENT_CleanUpHost(&hostTable[i]);
+		    }
 		}
+		ReleaseWriteLock(&hostTable[i].lock);
+	    }
+	} else {
+	    /* Clean up client structures that never obtained a callback
+	     * connection, and have been quiet for more than 15 minutes */ 
+	    ObtainWriteLock(&hostTable[i].lock);
+	    head = &hostTable[i].Clients;
+	    for (curr = head->next; curr != head; curr = next) {
+		next = curr->next;
+		cp = list_entry(curr, ClientEntry, Clients);
+
+		if ((time_t)cp->LastCall < deadtime)
+		    CLIENT_Delete(cp);
 	    }
 	    ReleaseWriteLock(&hostTable[i].lock);
 	}
@@ -379,6 +391,7 @@ void CLIENT_CleanUpHost(HostTable *ht)
     SLog(1, "Cleaning up a HostTable for %s.%d", ht->HostName, ntohs(ht->port));
 
     client_RemoveClients(ht);	/* remove any connections for this Venus */
+    /* XXX clean up writeback connections XXX */
     DeleteVenus(ht);		/* remove all callback entries	*/
     if (ht->id) {
 	SLog(1, "Unbinding RPC2 connection %d", ht->id);
@@ -390,14 +403,20 @@ void CLIENT_CleanUpHost(HostTable *ht)
 
 static void client_RemoveClients(HostTable *ht) 
 {
-    for (ClientEntry *cp = ht->FirstClient; cp; cp = ht->FirstClient) {
+    dllist_head *head, *curr, *next;
+    ClientEntry *cp;
+
+    head = &ht->Clients;
+    for (curr = head->next; curr != head; curr = next) {
+	next = curr->next;
+	cp = list_entry(curr, ClientEntry, Clients);
+
 	CLIENT_Delete(cp);
-	if(cp == ht->FirstClient) {
+	if(next->prev == curr) {
 	    SLog(0, "RemoveClients got a failure from DeleteClient");
 	    break;
 	}
     }
-    ht->FirstClient = 0;
 }
 
 
@@ -417,9 +436,14 @@ void CLIENT_PrintClients()
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
     SLog(1, "List of active users at %s", ctime((const time_t *)&tp.tv_sec));
+    struct dllist_head *head, *curr;
+    ClientEntry *cp;
+    int i;
 
-    for(int i = 0; i < maxHost; i++) {
-	for(ClientEntry *cp = hostTable[i].FirstClient; cp; cp=cp->NextClient) {
+    for(i = 0; i < maxHost; i++) {
+	head = &hostTable[i].Clients;
+	for (curr = head->next; curr != head; curr = curr->next) {
+	    cp = list_entry(curr, ClientEntry, Clients);
 	    SLog(1, "user = %s at %s.%d cid %d security level %s",
 		 cp->UserName, hostTable[i].HostName, ntohs(hostTable[i].port), 
 		 cp->RPCid, client_SLDecode(cp->SecurityLevel));
@@ -452,31 +476,33 @@ static void client_SetUserName(ClientEntry *client)
 /* A workstation is active if it has received a call since time. */
 void CLIENT_GetWorkStats(int *num, int *active, unsigned int time) 
 {
-	*num = 0;
-	*active = 0;
-	
-	for(int i = 0; i < maxHost; i++)
-		if (hostTable[i].id != 0) {
-			(*num)++;
-			if (hostTable[i].ActiveCall > time) 
-				(*active)++;
-		}
-}
+    int i;
 
+    *num = 0;
+    *active = 0;
+
+    for(i = 0; i < maxHost; i++) {
+	if (hostTable[i].id != 0) {
+	    (*num)++;
+	    if (hostTable[i].ActiveCall > time) 
+		(*active)++;
+	}
+    }
+}
 
 int CLIENT_MakeWriteBackConn(HostTable * HostEntry) 
 {
 
-    RPC2_PeerInfo * peer;
+    RPC2_PeerInfo peer;
     RPC2_SubsysIdent sid;
     RPC2_CountedBS cbs;
     RPC2_BindParms bp;
 
-    /* Look up the Peer info corresponding to the given RPC handle. */
-    // CODA_ASSERT(RPC2_GetPeerInfo(Client->RPCid, &peer) == 0);
-    peer = &(HostEntry->peer);
-    CODA_ASSERT(peer->RemoteHost.Tag == RPC2_HOSTBYINETADDR);
-    CODA_ASSERT(peer->RemotePort.Tag == RPC2_PORTBYINETNUMBER);
+    /* Create peer info corresponding to the given Client structure. */
+    peer.RemoteHost.Tag			     = RPC2_HOSTBYINETADDR;
+    peer.RemoteHost.Value.InetAddress.s_addr = HostEntry->host;
+    peer.RemotePort.Tag			     = RPC2_PORTBYINETNUMBER;
+    peer.RemotePort.Value.InetPortNumber     = HostEntry->port;
 
     /* Subsystem identifier. */
     sid.Tag = RPC2_SUBSYSBYID;
@@ -503,32 +529,28 @@ int CLIENT_MakeWriteBackConn(HostTable * HostEntry)
     ObtainWriteLock(&HostEntry->lock);
 
     /* Attempt the bind. */
-    long errorCode = RPC2_NewBinding(&peer->RemoteHost, 
-				     &peer->RemotePort, &sid, &bp, 
-				     &newconn->id);
+    long errorCode = RPC2_NewBinding(&peer.RemoteHost, &peer.RemotePort, &sid,
+				     &bp, &newconn->id);
     if (errorCode > RPC2_ELIMIT) {
-	    if (errorCode != 0) {
+	    if (errorCode) {
 		    SLog(0, "RPC2_Bind to %s port %d for writeback got %s",
-			 HostEntry->HostName, ntohl(HostEntry->port), 
+			 HostEntry->HostName, ntohs(HostEntry->port), 
 			 ViceErrorMsg((int) errorCode));
  	    }
 
 	    /* Make a gratuitous probe of the writeback connection. */
 	    errorCode = RevokeWBPermit(newconn->id, 0);
-	    if (errorCode < 0) {
-		SLog(0, "Writeback message to %s port %d failed %s",
-		     HostEntry->HostName, ntohl(HostEntry->port), 
-		     ViceErrorMsg((int) errorCode));
-		newconn->id = 0;
-	    }
-	    else
+	    if (!errorCode) {
 		SLog(0, "Writeback message to %s port %d on conn %x succeeded",
-		     HostEntry->HostName, ntohl(HostEntry->port), newconn->id);
-    } else {
-	    SLog(0, "RPC2_Bind to %s port %d for writeback failed %s",
-		 HostEntry->HostName, ntohl(HostEntry->port), 
-		 ViceErrorMsg((int) errorCode));
-	    newconn->id = 0;
+		     HostEntry->HostName, ntohs(HostEntry->port), newconn->id);
+	    }
+    }
+    
+    if (errorCode) {
+	SLog(0, "RPC2_Bind to %s port %d for writeback failed %s",
+	     HostEntry->HostName, ntohs(HostEntry->port), 
+	     ViceErrorMsg((int) errorCode));
+	newconn->id = 0;
     }
 
     if (newconn->id == 0) {

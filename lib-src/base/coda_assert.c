@@ -21,7 +21,7 @@ Coda are listed in the file CREDITS.
 #include <unistd.h>
 #include "coda_assert.h"
 
-int (*coda_assert_cleanup)() = (int (*)()) 0;
+void (*coda_assert_cleanup)() = (void (*)()) 0;
 int   coda_assert_action = CODA_ASSERT_SLEEP;
 
 void
@@ -34,8 +34,7 @@ coda_assert(char *pred, char *file, int line)
 
     switch (coda_assert_action) {
     default:
-	fprintf(stderr,"coda_assert: bad coda_assert_action value %d, assuming CODA_ASSERT_SLEEP\n",
-		coda_assert_action);
+	fprintf(stderr,"coda_assert: bad coda_assert_action value %d, assuming CODA_ASSERT_SLEEP\n", coda_assert_action);
 	fflush(stderr);
 
     case CODA_ASSERT_SLEEP:

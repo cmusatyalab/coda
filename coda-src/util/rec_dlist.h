@@ -96,6 +96,9 @@ class rec_dlist_iterator {
   public:
     rec_dlist_iterator(rec_dlist&, DlIterOrder =DlAscending);
     rec_dlink *operator()();    // return next object or 0
+                                // Does *not* support safe deletion
+                                // of currently returned entry.  See the 
+                                // comment in dlist.h for more explanation.
 };
 
 class rec_dlink {		    /* objects are derived from this class */

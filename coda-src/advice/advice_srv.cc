@@ -486,9 +486,6 @@ void CodaConsoleHandler(char *c) {
 
   CODA_ASSERT(LWP_WaitProcess(&initialUserSync) == LWP_SUCCESS);
 
-  /* XXX hack XXX */
-#define CODACONSOLE "/usr/local/lib/coda/CodaConsole"
-
   sprintf(msg, "\tsource %s\n", CODACONSOLE);
   SendToConsole(msg);
   printf("Sending: %s\n", msg);

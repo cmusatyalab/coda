@@ -157,7 +157,7 @@ DP_InitPartition(Partent entry, struct inodeops *operations,
 struct DiskPartition *
 DP_Find(Device devno)
 {
-    struct DiskPartition *dp;
+    struct DiskPartition *dp = NULL;
     struct dllist_head *tmp;
 
     tmp = &DiskPartitionList;
@@ -196,7 +196,7 @@ DP_Get(char *name)
 
 
 void 
-DP_SetUsage(register struct DiskPartition *dp)
+DP_SetUsage(struct DiskPartition *dp)
 {
 #if defined(__CYGWIN32__) || defined(DJGPP) 
     dp->free = 10000000;  /* free blocks for non s-users */

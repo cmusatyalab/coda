@@ -97,20 +97,19 @@ int lqman::func(void *parm) {
 
 	{
 	    lq_iterator next(objects);
-	    lqent *lqe;
-	    int readahead = 0;
-	    while (readahead || (lqe = next())) {
-		readahead = 0;
-		LogMsg(0, SrvDebugLevel, stdout,  "LockQueue Manager: found entry for volume 0x%x", 
-			lqe->Vid);
-		if ((lqe->Time + LQTIMEOUT <= currtime) &&
-		    !lqe->deqing) {
+	    lqent *lqe, *next_lqe;
+
+	    next_lqe = next();
+	    while ((lqe = next_lqe) != NULL) {
+		next_lqe = next();
+		LogMsg(0, SrvDebugLevel, stdout,
+		       "LockQueue Manager: found entry for volume 0x%x",
+		       lqe->Vid);
+		if ((lqe->Time + LQTIMEOUT <= currtime) && !lqe->deqing) {
 		    printf("LQMan: Unlocking %lx\n", lqe->Vid);
-		    lqent *tmplqe = lqe;
-		    readahead = ((lqe = next()) != 0);
-		    objects.remove(tmplqe);
-		    ForceUnlockVol(tmplqe->Vid);
-		    delete tmplqe;
+		    objects.remove(lqe);
+		    ForceUnlockVol(lqe->Vid);
+		    delete lqe;
 		}
 	    }
 	}

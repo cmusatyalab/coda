@@ -74,7 +74,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
     int isrunt[VSG_MEMBERS];
     int nonruntdir;
     ViceStatus vstatus;
-    RPC2_CountedBS al;
+    RPC2_BoundedBS al;
     char buf[(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)];
     char filename[50];
 
@@ -97,7 +97,8 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
     {
 	SE_Descriptor	sid;
 	
-	al.SeqLen = (SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
+	al.MaxSeqLen = (SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
+	al.SeqLen  = 0;
 	al.SeqBody = (RPC2_ByteSeq)buf;
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
@@ -317,10 +318,8 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 
 /* Given the contents of a directory, derive the ops needed to force this
    directory onto a runt version */
-long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
-		       ViceStatus *status, 
-		       RPC2_CountedBS *AccessList,
-		       SE_Descriptor *BD) 
+long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
+		       RPC2_BoundedBS *AccessList, SE_Descriptor *BD) 
 {
     Vnode *vptr = 0;
     Volume *volptr = 0;
@@ -333,6 +332,14 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     struct getdiropParm gdop;
     diroplink *dop;
 
+    AccessList->SeqLen = 0;
+
+    if (!XlateVid(&Fid->Volume)) {
+	SLog(0,  "RS_GetForceDirOps: Couldnt Xlate VSG %x",
+		Fid->Volume);
+	return(EINVAL);
+    }
+
     if (!XlateVid(&Fid->Volume)) {
 	SLog(0,  "RS_GetForceDirOps: Couldnt Xlate VSG %x",
 		Fid->Volume);
@@ -341,6 +348,13 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     if ((errorcode =GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0))) {
 	SLog(0,  "RS_GetForceDirOps:GetFsObj returns error %d",
 		errorcode);
+	errorcode = EINVAL;
+	goto FreeLocks;
+    }
+
+    if (VAclSize(vptr) > AccessList->MaxSeqLen) {
+	SLog(0,  "RS_GetForceDirOps: VAclSize %d too big for the Accesslist %d",
+	     VAclSize(vptr), AccessList->MaxSeqLen);
 	errorcode = EINVAL;
 	goto FreeLocks;
     }

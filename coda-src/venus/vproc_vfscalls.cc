@@ -341,7 +341,9 @@ FreeLocks:
 
     if (u.u_error == EINCONS) {
 	u.u_error = 0;
-	k_Purge(&cp->c_fid, 1);
+	/* purging is not necessary here. Why would the kernel asking for the
+	 * attributes if it still considers them valid. */
+	/* k_Purge(&cp->c_fid, 1); */
 
 	/* Make a "fake" vattr block for the inconsistent object. */
 	va_init(vap);
@@ -375,6 +377,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
     LOG(1, ("vproc::setattr: fid = %s\n", FID_(&cp->c_fid)));
 
     fsobj *f = 0;
+    int rcrights;
 
     /* 
      * BSD44 supports chflags, which sets the va_flags field of 
@@ -408,8 +411,12 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	Begin_VFS(cp->c_fid.Volume, CODA_SETATTR);
 	if (u.u_error) break;
 
+	/* If we are truncating a file to any non-zero size we NEED the data */
+	rcrights = RC_STATUS;
+	if (vap->va_size > 0) rcrights |= RC_DATA;
+
 	/* Get the object. */
-	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
+	u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), rcrights);
 	if (u.u_error) goto FreeLocks;
 
 	/* Symbolic links are immutable. */
@@ -782,7 +789,7 @@ FreeLocks:
     }
 
     if (u.u_error == EINCONS) {
-	u.u_error = ENOENT;
+	u.u_error = EPERM;
 	k_Purge(&dcp->c_fid, 1);
     }
 }
@@ -1226,7 +1233,7 @@ FreeLocks:
     }
 
     if (u.u_error == EINCONS) {
-	u.u_error = ENOENT;
+	u.u_error = EPERM;
 	k_Purge(&dcp->c_fid, 1);
     }
 }

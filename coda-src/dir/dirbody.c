@@ -133,7 +133,7 @@ static int dir_NameBlobs (char *name)
 static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 {
 	register int i, j, k;
-	int failed;
+	int failed = 0;
 	int grown = 0;
 	struct PageHeader *pp;
 	

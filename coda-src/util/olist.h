@@ -81,6 +81,8 @@ class olist_iterator {
   public:
     olist_iterator(olist&);
     olink *operator()();    // return next object or 0
+                            // Support safe deletion of currently
+                            // returned entry.  See dlist.h also.
 };
 
 

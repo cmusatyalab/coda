@@ -105,6 +105,11 @@ int AuthTime = 0;	/* last modified time for PDB		*/
 static char *Auth2TKFile = "/vice/db/auth2.tk";	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
 
+#ifdef KERBEROS5
+static char *krb5_realm = NULL;
+static char *krb5_keytab_file = NULL;
+#endif  /* KERBEROS5 */
+
 #define CODADB "/vice/db/prot_users.db"
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
@@ -139,7 +144,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef KERBEROS5
-    Krb5Init();
+    Krb5Init(krb5_realm, krb5_keytab_file);
 #endif
     
     LogMsg(-1, 0, stdout, "Server successfully started\n");
@@ -208,6 +213,20 @@ static void InitGlobals(int argc, char **argv)
 	    continue;
 	    }
 #endif	/* PWDCODADB */
+
+#ifdef KERBEROS5
+	if (strcmp(argv[i], "-keytab") == 0 && i < argc - 1)
+	    {
+	    krb5_keytab_file = argv[++i];
+	    continue;
+	    }
+
+	if (strcmp(argv[i], "-realm") == 0 && i < argc - 1)
+	    {
+	    krb5_realm = argv[++i];
+	    continue;
+	    }
+#endif  /* KERBEROS5 */
 
 	if (strcmp(argv[i], "-tk") == 0 && i < argc - 1)
 	    {

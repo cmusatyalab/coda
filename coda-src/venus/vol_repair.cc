@@ -536,9 +536,9 @@ int volent::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	     Recov_EndTrans(MAXFP);
 
 	    if (f->refcnt > 1) {
-		/* Put isn't going to release the object so can't call create */
-		/* Instead of failing, put an informative message on console and */
-		/* ask user to retry */
+		/* Put isn't going to release the object so can't call create
+		 * Instead of failing, put an informative message on console
+		 * and ask user to retry */
 		f->ClearRcRights();
 		FSDB->Put(&f);
 		LOG(0, ("DisconnectedRepair: (%x.%x.%x) has active references - cannot repair\n",

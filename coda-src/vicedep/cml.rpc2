@@ -38,34 +38,38 @@ Subsystem "cml";
 
 typedef RPC2_Enum
 {
-	xStoreNeither = 0,
-	xStoreData = 1,
-	xStoreStatus = 2,
-	xStoreStatusData = 3
+	StoreNeither = 0,
+	StoreData = 1,
+	StoreStatus = 2,
+	StoreStatusData = 3
 }	OLDCML_StoreType;
 
 1: CML_Create	(IN ViceFid Did,
+		 IN ViceVersionVector pVV,
+		 IN Date_t pMTime,
 		 IN RPC2_String Name,
-		 IN ViceStatus Status,
+		 IN Date_t MTime,
+		 IN UserId Owner,
+		 IN RPC2_Unsigned Mode,
 		 IN ViceFid Fid,
-		 IN ViceStatus DirStatus,
 		 IN ViceStoreId StoreId);
 
 2: CML_Remove	(IN ViceFid Did,
 		 IN RPC2_String Name,
-		 IN ViceStatus DirStatus,
-		 IN ViceStatus Status,
+		 IN ViceVersionVector pVV,
+		 IN Date_t pMTime,
+		 IN ViceVersionVector VV,
 		 IN ViceStoreId StoreId);
 
 		 
 3: CML_Rename	(IN ViceFid OldDid,
+		 IN ViceVersionVector spVV,
+		 IN Date_t MTime,
 		 IN RPC2_String OldName,
 		 IN ViceFid NewDid,
+		 IN ViceVersionVector tpVV,
 		 IN RPC2_String NewName,
-		 IN ViceStatus OldDirStatus,
-		 IN ViceStatus NewDirStatus,
-		 IN ViceStatus SrcStatus,
-		 IN ViceStatus TgtStatus,
+		 IN ViceVersionVector sVV,
 		 IN ViceStoreId StoreId);
 
 4: OLDCML_Remove(IN ViceFid Did,
@@ -118,24 +122,25 @@ typedef RPC2_Enum
 		 IN RPC2_CountedBS PiggyCOP2);
 
 9: OLDCML_MakeDir(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceFid NewDid,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-		 
+		  IN RPC2_String Name,
+		  IN OUT ViceStatus Status,
+		  IN OUT ViceFid NewDid,
+		  IN OUT ViceStatus DirStatus,
+		  IN RPC2_Unsigned PrimaryHost,
+		  IN ViceStoreId StoreId,
+		  IN RPC2_CountedBS PiggyCOP2);
+
 10: OLDCML_RemoveDir(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus TgtStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
+		     IN RPC2_String Name,
+		     IN OUT ViceStatus Status,
+		     IN OUT ViceStatus TgtStatus,
+		     IN RPC2_Unsigned PrimaryHost,
+		     IN ViceStoreId StoreId,
+		     IN RPC2_CountedBS PiggyCOP2);
 
 11: CML_Store	(IN ViceFid Fid,
-		 IN ViceStatus Status,
+		 IN ViceVersionVector VV,
+		 IN Date_t time,
 		 IN RPC2_Integer Length,
 		 IN ViceStoreId StoreId);
 
@@ -144,62 +149,77 @@ typedef RPC2_Enum
 		 IN ViceStoreId StoreId);
 
 13: CML_Utimes	(IN ViceFid Fid,
-		 IN ViceStatus Status, /* MTime */
+		 IN ViceVersionVector VV,
+		 IN Date_t time,
 		 IN ViceStoreId StoreId);
 
 14: CML_Chmod	(IN ViceFid Fid,
-		 IN ViceStatus Status, /* RPC2_Unsigned Mode */
+		 IN ViceVersionVector VV,
+		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
 
 15: CML_Chown	(IN ViceFid Fid,
-		 IN ViceStatus Status, /* Owner */
+		 IN ViceVersionVector VV,
+		 IN UserId Owner,
 		 IN ViceStoreId StoreId);
 
 16: CML_SymLink	(IN ViceFid Did,
+		 IN ViceVersionVector pVV,
+		 IN Date_t pMTime,
 		 IN RPC2_String OldName,
 		 IN RPC2_String NewName,
 		 IN ViceFid Fid,
-		 IN ViceStatus Status,
-		 IN ViceStatus DirStatus,
+		 IN Date_t MTime,
+		 IN UserId Owner,
+		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
 
 17: CML_Link	(IN ViceFid Did,
+		 IN ViceVersionVector pVV,
+		 IN Date_t pMTime,
 		 IN RPC2_String Name,
 		 IN ViceFid Fid,
-		 IN ViceStatus Status,
-		 IN ViceStatus DirStatus,
+		 IN ViceVersionVector VV,
 		 IN ViceStoreId StoreId);
 
 18: CML_MakeDir	(IN ViceFid Did,
+		 IN ViceVersionVector pVV,
+		 IN Date_t pMTime,
 		 IN RPC2_String Name,
-		 IN ViceStatus Status,
 		 IN ViceFid NewDid,
-		 IN ViceStatus DirStatus,
+		 IN Date_t MTime,
+		 IN UserId Owner,
+		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
 		 
 19: CML_RemoveDir(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN ViceStatus Status,
-		 IN ViceStatus TgtStatus,
-		 IN ViceStoreId StoreId);
+		  IN ViceVersionVector pVV,
+		  IN Date_t pMTime,
+		  IN RPC2_String Name,
+		  IN ViceVersionVector VV,
+		  IN ViceStoreId StoreId);
 
 20: CML_Repair	(IN ViceFid Fid,
-		 IN ViceStatus status, 
+		 IN RPC2_Unsigned length, 
+		 IN Date_t mtime, 
+		 IN UserId Author, 
+		 IN UserId Owner, 
+		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
 
 33: OLDCML_Repair(IN ViceFid Fid,
-		 IN OUT ViceStatus status, 
-		 IN ViceStoreId StoreId,
-		 IN OUT SE_Descriptor BD);
+		  IN OUT ViceStatus status, 
+		  IN ViceStoreId StoreId,
+		  IN OUT SE_Descriptor BD);
 
 52: OLDCML_NewStore(IN ViceFid Fid,
-		 IN OLDCML_StoreType Request,
-		 IN OUT RPC2_CountedBS AccessList,
-		 IN OUT ViceStatus Status,
-		 IN RPC2_Integer Length,
-		 IN RPC2_Integer Mask,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2,
-		 IN OUT SE_Descriptor BD);
+		    IN OLDCML_StoreType Request,
+		    IN OUT RPC2_CountedBS AccessList,
+		    IN OUT ViceStatus Status,
+		    IN RPC2_Integer Length,
+		    IN RPC2_Integer Mask,
+		    IN RPC2_Unsigned PrimaryHost,
+		    IN ViceStoreId StoreId,
+		    IN RPC2_CountedBS PiggyCOP2,
+		    IN OUT SE_Descriptor BD);
 

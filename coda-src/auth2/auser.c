@@ -167,7 +167,7 @@ int U_Authenticate(char *hostname, int AuthenticationType, char *uName,
 	case AUTH_METHOD_KERBEROS5:
 #ifdef KERBEROS5
 
-		rc = Krb5Init();
+		rc = Krb5Init(NULL, NULL);
 
 		if ( rc != 0 ) {
 			fprintf(stderr, "Cannot initialize KRB5\n");
@@ -296,7 +296,7 @@ int U_BindToServer(char *DefAuthHost, RPC2_Integer AuthenticationType,
 	char    AuthHost[MAXHOSTNAMELEN];
 	int     i = 0;
 	int     rc;
-	int bound;
+	int bound = 0;
 
 	if ( DefAuthHost ) {
 		bound = TryBinding(AuthenticationType, uName, uNamelen, 

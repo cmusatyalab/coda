@@ -100,7 +100,7 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     *ec = 0;
 
     /* is the partition name short enough */
-    if ( strlen(partition) > VPARTSIZE) {
+    if ( strlen(partition) >= VPARTSIZE) {
         SLog(0, "VCreateVolume: partition name %s too long. Bailing out.\n", 
 	       partition);
 	*ec = ENAMETOOLONG;

@@ -16,8 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-//#define OLDFETCH
-
 /*
  *
  *    CFS calls0.
@@ -126,13 +124,7 @@ int fsobj::Fetch(vuid_t vuid) {
     int code = 0;
     char prel_str[256];
     sprintf(prel_str, "fetch::Fetch %%s [%ld]\n", BLOCKS(this));
-    ViceFetchType fetchtype = (flags.rwreplica ? FetchDataRepair : FetchData);
-
-    /* Dummy argument for ACL. */
-    RPC2_BoundedBS dummybs;
-    dummybs.MaxSeqLen = 0;
-    dummybs.SeqLen = 0;
-    RPC2_BoundedBS *acl = &dummybs;
+    int inconok = flags.rwreplica;
 
     /* Status parameters. */
     ViceStatus status;
@@ -236,9 +228,6 @@ int fsobj::Fetch(vuid_t vuid) {
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix;
 	    unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
-	    if (acl->MaxSeqLen > VENUS_MAXBSLEN)
-		CHOKE("fsobj::Fetch: BS len too large (%d)", acl->MaxSeqLen);
-	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
 	    {
@@ -249,13 +238,12 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE(prel_str, comp, fid);
-#ifdef OLDFETCH
 	    MULTI_START_MESSAGE(ViceFetch_OP);
 	    code = (int) MRPC_MakeMulti(ViceFetch_OP, ViceFetch_PTR,
 				  VSG_MEMBERS, m->rocc.handles,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  &fid, &NullFid, fetchtype, aclvar_ptrs,
-				  statusvar_ptrs, ph, &PiggyBS, sedvar_bufs);
+				  &fid, &stat.VV, inconok, statusvar_ptrs, ph,
+				  offset, &PiggyBS, sedvar_bufs);
 	    MULTI_END_MESSAGE(ViceFetch_OP);
 
 	    CFSOP_POSTLUDE("fetch::fetch done\n");
@@ -264,23 +252,6 @@ int fsobj::Fetch(vuid_t vuid) {
 	     * next. */
 	    code = vol->Collate_NonMutating(m, code);
 	    MULTI_RECORD_STATS(ViceFetch_OP);
-#else
-	    MULTI_START_MESSAGE(ViceNewFetch_OP);
-	    code = (int) MRPC_MakeMulti(ViceNewFetch_OP, ViceNewFetch_PTR,
-				  VSG_MEMBERS, m->rocc.handles,
-				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  &fid, &stat.VV, fetchtype, aclvar_ptrs,
-				  statusvar_ptrs, ph, offset, -1, &PiggyBS,
-				  sedvar_bufs);
-	    MULTI_END_MESSAGE(ViceNewFetch_OP);
-
-	    CFSOP_POSTLUDE("fetch::fetch done\n");
-
-	    /* Collate responses from individual servers and decide what to do
-	     * next. */
-	    code = vol->Collate_NonMutating(m, code);
-	    MULTI_RECORD_STATS(ViceNewFetch_OP);
-#endif
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 
 	    if (IsFile()) {
@@ -325,27 +296,6 @@ int fsobj::Fetch(vuid_t vuid) {
 			    bytes, (status.Length - offset)));
 		    code = ERETRY;
 		}
-
-#ifdef OLDFETCH
-		/* The following is needed until ViceFetch takes a version IN
-		 * parameter! */
-		if (NBLOCKS(bytes) != BLOCKS(this)) {
-		    LOG(0, ("fsobj::Fetch: nblocks changed during fetch (%d, %d)\n",
-			    NBLOCKS(bytes), BLOCKS(this)));
-		    /* 
-		     * for a directory, pages are allocated based on the
-		     * original status block.  If there is a mismatch, the new
-		     * data may be bogus, so we force a retry of the fetch.
-		     * We fall through the remainder of the replicated case to
-		     * install new status. Data is discarded just before
-		     * return.  It is possible for this case to recur; Venus
-		     * will return EWOULDBLOCK if it exhausts its retries.
-		     */
-		    if (IsFile()) 
-			FSDB->ChangeDiskUsage((int) (NBLOCKS(bytes) - BLOCKS(this)));
-		    else code = ERETRY;
-		}
-#endif
 	    }
 
 	    /* Handle failed validations. */
@@ -395,26 +345,15 @@ RepExit:
 
 	/* Make the RPC call. */
 	CFSOP_PRELUDE(prel_str, comp, fid);
-#ifdef OLDFETCH
 	UNI_START_MESSAGE(ViceFetch_OP);
-	code = (int) ViceFetch(c->connid, &fid, &NullFid, fetchtype,
-			 acl, &status, 0, &PiggyBS, sed);
+	code = (int) ViceFetch(c->connid, &fid, &stat.VV, inconok,
+				  &status, 0, offset, &PiggyBS, sed);
 	UNI_END_MESSAGE(ViceFetch_OP);
-#else
-	UNI_START_MESSAGE(ViceNewFetch_OP);
-	code = (int) ViceNewFetch(c->connid, &fid, &stat.VV, fetchtype,
-			 acl, &status, 0, offset, 0, &PiggyBS, sed);
-	UNI_END_MESSAGE(ViceNewFetch_OP);
-#endif
 	CFSOP_POSTLUDE("fetch::fetch done\n");
 
 	/* Examine the return code to decide what to do next. */
 	code = vol->Collate(c, code);
-#ifdef OLDFETCH
 	UNI_RECORD_STATS(ViceFetch_OP);
-#else
-	UNI_RECORD_STATS(ViceNewFetch_OP);
-#endif
 	if (IsFile()) {
 	    Recov_BeginTrans();
 	    cf.SetValidData(GotThisData);
@@ -432,17 +371,6 @@ RepExit:
 		        bytes, (status.Length - offset)));
 		code = ERETRY;
 	    }
-
-#ifdef OLDFETCH
-	    /* The following is needed until ViceFetch takes a version IN parameter! */
-	    if (NBLOCKS(bytes) != BLOCKS(this)) {
-		LOG(0, ("fsobj::Fetch: nblocks changed during fetch (%d, %d)\n",
-			NBLOCKS(bytes), BLOCKS(this)));
-		if (IsFile())
-		    FSDB->ChangeDiskUsage((int) (NBLOCKS(bytes) - BLOCKS(this)));
-		else code = ERETRY;
-	    }
-#endif
 	}
 
 	/* Handle failed validations. */
@@ -573,16 +501,15 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
     int code = 0;
     int getacl = (acl != 0);
-    char *prel_str = getacl ? "fetch::GetAcl %s\n" : "fetch::GetAttr %s\n";
-    char *post_str = getacl ? "fetch::getacl done\n" : "fetch::getattr done\n";
-    ViceFetchType fetchtype = (flags.rwreplica ? FetchNoDataRepair : FetchNoData);
+    int inconok = flags.rwreplica;
+    char *prel_str = getacl ? "fetch::GetACL %s\n" : "fetch::GetAttr %s\n";
+    char *post_str = getacl ? "fetch::GetACL done\n" : "fetch::GetAttr done\n";
 
-    /* Dummy argument for ACL. */
+    /* Dummy argument for ACL */
     RPC2_BoundedBS dummybs;
     dummybs.MaxSeqLen = 0;
     dummybs.SeqLen = 0;
-    if (!getacl)
-	acl = &dummybs;
+    if (!getacl) acl = &dummybs;
 
     /* Status parameters. */
     ViceStatus status;
@@ -618,9 +545,9 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
 	    /* unneccesary in validation case but it beats duplicating code. */
 	    if (acl->MaxSeqLen > VENUS_MAXBSLEN)
-		CHOKE("fsobj::Fetch: BS len too large (%d)", acl->MaxSeqLen);
-	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
-
+		CHOKE("fsobj::GetAttr: BS len too large (%d)", acl->MaxSeqLen);
+	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl,
+			    VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 
 	    if (HAVESTATUS(this) && !getacl) {
@@ -666,27 +593,26 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 		 * would be longword aligned. Ugh.
 		 */
 		char VFlags[PIGGY_VALIDATIONS];
-		RPC2_CountedBS VFlagBS;
+		RPC2_BoundedBS VFlagBS;
 
-		/* Temporary quickfix:
-		 * Although we are not sending anything, we need to give
-		 * the server enough space to jot down the returnvalues.
-		 *  -JH */
-		VFlagBS.SeqLen = numPiggyFids;
+		VFlagBS.MaxSeqLen = numPiggyFids;
+		VFlagBS.SeqLen  = 0;
 		VFlagBS.SeqBody = (RPC2_ByteSeq)VFlags;
 
-		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, VFlagvar, VFlagBS, VSG_MEMBERS, VENUS_MAXBSLEN);
+		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
+				VSG_MEMBERS, VENUS_MAXBSLEN);
 
 		/* make the RPC */
 		char val_prel_str[256];
 		sprintf(val_prel_str, "fetch::ValidateAttrs %%s [%d]\n", numPiggyFids);
 		CFSOP_PRELUDE(val_prel_str, comp, fid);
 		MULTI_START_MESSAGE(ViceValidateAttrs_OP);
-		code = (int) MRPC_MakeMulti(ViceValidateAttrs_OP, ViceValidateAttrs_PTR,
-					    VSG_MEMBERS, m->rocc.handles,
-					    m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					    ph, &fid, statusvar_ptrs, numPiggyFids, 
-					    FAVs, VFlagvar_ptrs, &PiggyBS);
+		code = (int) MRPC_MakeMulti(ViceValidateAttrs_OP,
+					    ViceValidateAttrs_PTR, VSG_MEMBERS,
+					    m->rocc.handles, m->rocc.retcodes,
+					    m->rocc.MIp, 0, 0, ph, &fid,
+					    statusvar_ptrs, numPiggyFids, FAVs,
+					    VFlagvar_ptrs, &PiggyBS);
 		MULTI_END_MESSAGE(ViceValidateAttrs_OP);
 		CFSOP_POSTLUDE("fetch::ValidateAttrs done\n");
 
@@ -811,18 +737,37 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 	    } else {
 		/* The COP:Fetch call. */
 		CFSOP_PRELUDE(prel_str, comp, fid);
-		MULTI_START_MESSAGE(ViceFetch_OP);
-		code = (int) MRPC_MakeMulti(ViceFetch_OP, ViceFetch_PTR,
-				      VSG_MEMBERS, m->rocc.handles,
-				      m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				      &fid, &NullFid, fetchtype, aclvar_ptrs,
-				      statusvar_ptrs, ph, &PiggyBS, 0);
-		MULTI_END_MESSAGE(ViceFetch_OP);
-		CFSOP_POSTLUDE(post_str);
+		if (getacl) {
+		    MULTI_START_MESSAGE(ViceGetACL_OP);
+		    code = (int)MRPC_MakeMulti(ViceGetACL_OP, ViceGetACL_PTR,
+					       VSG_MEMBERS, m->rocc.handles,
+					       m->rocc.retcodes, m->rocc.MIp,
+					       0, 0, &fid, inconok,
+					       aclvar_ptrs, statusvar_ptrs, ph,
+					       &PiggyBS);
+		    MULTI_END_MESSAGE(ViceGetACL_OP);
+		    CFSOP_POSTLUDE(post_str);
 
-		/* Collate responses from individual servers and decide what to do next. */
-		code = vol->Collate_NonMutating(m, code);
-		MULTI_RECORD_STATS(ViceFetch_OP);
+		    /* Collate responses from individual servers and decide
+		     * what to do next. */
+		    code = vol->Collate_NonMutating(m, code);
+		    MULTI_RECORD_STATS(ViceGetACL_OP);
+		} else {
+		    MULTI_START_MESSAGE(ViceGetAttr_OP);
+		    code = (int)MRPC_MakeMulti(ViceGetAttr_OP, ViceGetAttr_PTR,
+					       VSG_MEMBERS, m->rocc.handles,
+					       m->rocc.retcodes, m->rocc.MIp,
+					       0, 0, &fid, inconok,
+					       statusvar_ptrs, ph, &PiggyBS);
+		    MULTI_END_MESSAGE(ViceGetAttr_OP);
+		    CFSOP_POSTLUDE(post_str);
+
+		    /* Collate responses from individual servers and decide
+		     * what to do next. */
+		    code = vol->Collate_NonMutating(m, code);
+		    MULTI_RECORD_STATS(ViceGetAttr_OP);
+		}
+
 		if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 		if (code != 0) goto RepExit;
 	    }
@@ -979,8 +924,7 @@ RepExit:
 	    default:
 		break;
 	}
-    }
-    else {
+    } else {
 	/* Acquire a Connection. */
 	connent *c;
 	code = vol->GetConn(&c, vuid);
@@ -989,15 +933,27 @@ RepExit:
 	/* Make the RPC call. */
 	long cbtemp; cbtemp = cbbreaks;
 	CFSOP_PRELUDE(prel_str, comp, fid);
-	UNI_START_MESSAGE(ViceFetch_OP);
-	code = (int) ViceFetch(c->connid, &fid, &NullFid, fetchtype,
-			 acl, &status, 0, &PiggyBS, 0);
-	UNI_END_MESSAGE(ViceFetch_OP);
-	CFSOP_POSTLUDE(post_str);
+	if (getacl) {
+	    UNI_START_MESSAGE(ViceGetACL_OP);
+	    code = (int)ViceGetACL(c->connid, &fid, inconok, acl, &status, 0,
+				   &PiggyBS);
+	    UNI_END_MESSAGE(ViceGetACL_OP);
+	    CFSOP_POSTLUDE(post_str);
 
-	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
-	UNI_RECORD_STATS(ViceFetch_OP);
+	    /* Examine the return code to decide what to do next. */
+	    code = vol->Collate(c, code);
+	    UNI_RECORD_STATS(ViceGetACL_OP);
+	} else {
+	    UNI_START_MESSAGE(ViceGetAttr_OP);
+	    code = (int)ViceGetAttr(c->connid, &fid, inconok, &status, 0,
+				    &PiggyBS);
+	    UNI_END_MESSAGE(ViceGetAttr_OP);
+	    CFSOP_POSTLUDE(post_str);
+
+	    /* Examine the return code to decide what to do next. */
+	    code = vol->Collate(c, code);
+	    UNI_RECORD_STATS(ViceGetAttr_OP);
+	}
 	if (code != 0) goto NonRepExit;
 
 	/* Handle failed validations. */
@@ -1117,11 +1073,6 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
     char prel_str[256];
     sprintf(prel_str, "store::Store %%s [%ld]\n", NBLOCKS(NewLength));
 
-    /* Dummy argument for ACL. */
-    RPC2_CountedBS dummybs;
-    dummybs.SeqLen = 0;
-    RPC2_CountedBS *acl = &dummybs;
-
     /* Status parameters. */
     ViceStatus status;
     VenusToViceStatus(&stat, &status);
@@ -1182,10 +1133,6 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
 	    vol->PackVS(m->nhosts, &OldVS);
 
-	    /* Shouldn't acl be IN rather than IN/OUT? -JJK */
-	    if (acl->SeqLen > VENUS_MAXBSLEN)
-		CHOKE("fsobj::Store: BS len too large (%d)", acl->SeqLen);
-	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -1193,21 +1140,21 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE(prel_str, comp, fid);
-	    MULTI_START_MESSAGE(ViceNewVStore_OP);
-	    code = (int) MRPC_MakeMulti(ViceNewVStore_OP, ViceNewVStore_PTR,
-				  VSG_MEMBERS, m->rocc.handles,
-				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  &fid, StoreStatusData, aclvar_ptrs,
-				  statusvar_ptrs, NewLength, 0, /* NULL Mask */
-				  ph, &sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
-				  &PiggyBS, sedvar_bufs);
-	    MULTI_END_MESSAGE(ViceNewVStore_OP);
+	    MULTI_START_MESSAGE(ViceStore_OP);
+	    code = (int) MRPC_MakeMulti(ViceStore_OP, ViceStore_PTR,
+					VSG_MEMBERS, m->rocc.handles,
+					m->rocc.retcodes, m->rocc.MIp, 0, 0,
+					&fid, statusvar_ptrs, NewLength,
+					ph, &sid, &OldVS, VSvar_ptrs,
+					VCBStatusvar_ptrs, &PiggyBS,
+					sedvar_bufs);
+	    MULTI_END_MESSAGE(ViceStore_OP);
 	    CFSOP_POSTLUDE("store::store done\n");
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to do next. */
 	    code = vol->Collate_COP1(m, code, &UpdateSet);
-	    MULTI_RECORD_STATS(ViceNewVStore_OP);
+	    MULTI_RECORD_STATS(ViceStore_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
@@ -1271,23 +1218,21 @@ RepExit:
     else {
 	/* Acquire a Connection. */
 	connent *c;
-	ViceStoreId Dummy;              /* ViceStore needs an address for indirection */
+	ViceStoreId Dummy;     /* ViceStore needs an address for indirection */
 	code = vol->GetConn(&c, vuid);
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
 	CFSOP_PRELUDE(prel_str, comp, fid);
-	UNI_START_MESSAGE(ViceNewVStore_OP);
-	code = (int) ViceNewVStore(c->connid, &fid, StoreStatusData,
-				   acl, &status, NewLength, 0, /* Null Mask */
-				   0, &Dummy, &OldVS, &VS, &VCBStatus,
-				   &PiggyBS, sed);
-	UNI_END_MESSAGE(ViceNewVStore_OP);
+	UNI_START_MESSAGE(ViceStore_OP);
+	code = (int) ViceStore(c->connid, &fid, &status, NewLength, 0, &Dummy,
+			       &OldVS, &VS, &VCBStatus, &PiggyBS, sed);
+	UNI_END_MESSAGE(ViceStore_OP);
 	CFSOP_POSTLUDE("store::store done\n");
 
 	/* Examine the return code to decide what to do next. */
 	code = vol->Collate(c, code);
-	UNI_RECORD_STATS(ViceNewVStore_OP);
+	UNI_RECORD_STATS(ViceStore_OP);
 	if (code != 0) goto NonRepExit;
 
 	{
@@ -1375,7 +1320,7 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
     if (NewLength != (unsigned long)-1) {
         FSO_ASSERT(this, !WRITING(this));
 
-        if (HAVEALLDATA(this)) {
+        if (HAVEDATA(this)) {
             int delta_blocks = (int) (BLOCKS(this) - NBLOCKS(NewLength));
             if (delta_blocks < 0) {
                 eprint("LocalSetAttr: %d\n", delta_blocks);
@@ -1473,31 +1418,45 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
 	    vol->PackVS(m->nhosts, &OldVS);
 
-	    /* Shouldn't acl be IN rather than IN/OUT? -JJK */
-	    if (acl->SeqLen > VENUS_MAXBSLEN)
-		CHOKE("fsobj::Store: BS len too large (%d)", acl->SeqLen);
-	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS)
 
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE(prel_str, comp, fid);
-	    MULTI_START_MESSAGE(ViceNewVStore_OP);
-	    code = (int) MRPC_MakeMulti(ViceNewVStore_OP, ViceNewVStore_PTR,
-					VSG_MEMBERS, m->rocc.handles,
-					m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					&fid, (setacl ? StoreNeither : StoreStatus),
-					aclvar_ptrs, statusvar_ptrs, 0, Mask,
-					ph, &sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs, 
-					&PiggyBS, 0);
-	    MULTI_END_MESSAGE(ViceNewVStore_OP);
-	    CFSOP_POSTLUDE(post_str);
+	    if (setacl) {
+		MULTI_START_MESSAGE(ViceSetACL_OP);
+		code = (int)MRPC_MakeMulti(ViceSetACL_OP, ViceSetACL_PTR,
+					   VSG_MEMBERS, m->rocc.handles,
+					   m->rocc.retcodes, m->rocc.MIp, 0, 0,
+					   &fid, acl, statusvar_ptrs, ph, &sid,
+					   &OldVS, VSvar_ptrs,
+					   VCBStatusvar_ptrs, &PiggyBS);
+		MULTI_END_MESSAGE(ViceSetACL_OP);
+		CFSOP_POSTLUDE(post_str);
 
-	    free(OldVS.SeqBody);
-	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vol->Collate_COP1(m, code, &UpdateSet);
-	    MULTI_RECORD_STATS(ViceNewVStore_OP);
+		free(OldVS.SeqBody);
+		/* Collate responses from individual servers and decide what to
+		 * do next. */
+		code = vol->Collate_COP1(m, code, &UpdateSet);
+		MULTI_RECORD_STATS(ViceSetACL_OP);
+	    } else {
+		MULTI_START_MESSAGE(ViceSetAttr_OP);
+		code = (int)MRPC_MakeMulti(ViceSetAttr_OP, ViceSetAttr_PTR,
+					   VSG_MEMBERS, m->rocc.handles,
+					   m->rocc.retcodes, m->rocc.MIp, 0, 0,
+					   &fid, statusvar_ptrs, Mask, ph,
+					   &sid, &OldVS, VSvar_ptrs,
+					   VCBStatusvar_ptrs, &PiggyBS);
+		MULTI_END_MESSAGE(ViceSetAttr_OP);
+		CFSOP_POSTLUDE(post_str);
+
+		free(OldVS.SeqBody);
+		/* Collate responses from individual servers and decide what to
+		 * do next. */
+		code = vol->Collate_COP1(m, code, &UpdateSet);
+		MULTI_RECORD_STATS(ViceSetAttr_OP);
+	    }
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
@@ -1509,11 +1468,10 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLength,
 	    if (PIGGYCOP2)
 		vol->ClearCOP2(&PiggyBS);
 
-	    /* Manually compute the OUT parameters from the mgrpent::SetAttr() call! -JJK */
+	    /* Manually compute the OUT parameters from the mgrpent::SetAttr()
+	     * call! -JJK */
 	    int dh_ix; dh_ix = -1;
 	    (void)m->DHCheck(0, ph_ix, &dh_ix);
-	    if (setacl)
-		ARG_UNMARSHALL_BS(aclvar, *acl, dh_ix);
 	    ARG_UNMARSHALL(statusvar, status, dh_ix);
 	}
 
@@ -1558,17 +1516,27 @@ RepExit:
 
 	/* Make the RPC call. */
 	CFSOP_PRELUDE(prel_str, comp, fid);
-	UNI_START_MESSAGE(ViceNewVStore_OP);
-	code = (int) ViceNewVStore(c->connid, &fid, 
-				   (setacl ? StoreNeither : StoreStatus),
-				   acl, &status, 0, Mask, 0, &Dummy, 
-				   &OldVS, &VS, &VCBStatus, &PiggyBS, 0);
-	UNI_END_MESSAGE(ViceNewVStore_OP);
-	CFSOP_POSTLUDE("store::setattr done\n");
+	if (setacl) {
+	    UNI_START_MESSAGE(ViceSetACL_OP);
+	    code = (int) ViceSetACL(c->connid, &fid, acl, &status, 0, &Dummy,
+				    &OldVS, &VS, &VCBStatus, &PiggyBS);
+	    UNI_END_MESSAGE(ViceSetACL_OP);
+	    CFSOP_POSTLUDE("store::setacl done\n");
 
-	/* Examine the return code to decide what to do next. */
-	code = vol->Collate(c, code);
-	UNI_RECORD_STATS(ViceNewVStore_OP);
+	    /* Examine the return code to decide what to do next. */
+	    code = vol->Collate(c, code);
+	    UNI_RECORD_STATS(ViceSetACL_OP);
+	} else {
+	    UNI_START_MESSAGE(ViceSetAttr_OP);
+	    code = (int) ViceSetAttr(c->connid, &fid, &status, Mask, 0, &Dummy,
+				     &OldVS, &VS, &VCBStatus, &PiggyBS);
+	    UNI_END_MESSAGE(ViceSetAttr_OP);
+	    CFSOP_POSTLUDE("store::setattr done\n");
+
+	    /* Examine the return code to decide what to do next. */
+	    code = vol->Collate(c, code);
+	    UNI_RECORD_STATS(ViceSetAttr_OP);
+	}
 	if (code != 0) goto NonRepExit;
 
 	/* Do setattr locally. */
@@ -1627,12 +1595,27 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 	    ((vap->va_mode & 04777) != stat.Mode) )
 		NewMode= (vap->va_mode & 04777);
 
+	/* Cannot chown a file until the first store has been done! */
+	if (NewOwner != (vuid_t)-1 && IsFile() && IsVirgin()) {
+		return(EINVAL);
+	}
+
 	/* Only update cache file when truncating and open for write! */
 	if (NewLength != (unsigned long)-1 && WRITING(this)) {
 		Recov_BeginTrans();
 		data.file->Truncate((unsigned) NewLength);
 		Recov_EndTrans(MAXFP);
 		NewLength = (unsigned long)-1;
+	}
+
+	/* If we are truncating to zero length, we have valid data */
+	if (NewLength == 0) {
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(data.file);
+	    data.file = &cf;
+	    data.file->Truncate((unsigned) NewLength);
+	    Recov_EndTrans(MAXFP);
+	    SetRcRights(RC_STATUS | RC_DATA);
 	}
 	
 	/* Avoid performing action where possible. */
@@ -1641,11 +1624,6 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 		if (acl == 0) return(0);
 	} else {
 		FSO_ASSERT(this, acl == 0);
-	}
-
-	/* Cannot chown a file until the first store has been done! */
-	if (NewOwner != (vuid_t)-1 && IsFile() && IsVirgin()) {
-		return(EINVAL);
 	}
 
 	int code = 0;

@@ -2025,7 +2025,7 @@ static void pokexmem() {
 }
 
 static void setwb(RPC2_Integer wbflag) {
-    long Vid, backupVid;
+    long Vid;
 
     if (these_args != 3) {
 	printf("Usage: volutil [en,dis]ablewb volumeId\n");

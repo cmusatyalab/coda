@@ -46,7 +46,9 @@ class arrlist_iterator {
   public:
     arrlist_iterator(arrlist *);
     ~arrlist_iterator();
-    void *operator()();
+    void *operator()();         /* Does *not* support safe deletion of
+                                   currently returned entry.  See
+                                   dlist.h for more explanation */
 };
 
 #endif _ARRLIST_H_

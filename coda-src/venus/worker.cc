@@ -364,34 +364,32 @@ int VFSUnload()
 
 void VFSUnmount() 
 {
-	if (!Mounted) 
-		return;
-
 #ifdef DJGPP
-	int res = unmount_relay();
-	
-	if (res)
-		eprint ("Unmount OK");
-	else eprint ("Unmount failed");
+    int res;
+    
+    if (!Mounted) return;
 
-	res = close_relay();
-	if (res)
-		eprint ("Close relay OK");
-	else eprint ("Close relay failed");
+    res = unmount_relay();
+    eprint (res ? "Unmount OK" : "Unmount failed");
 
-	res = VFSUnload();
-	if (res == 0){
-		eprint("Kernel module unloaded");
-		KernelMask = 0;	
-	}
-	else eprint("Kernel module could not be unloaded");
-		
-	return;
+    res = close_relay();
+    eprint (res ? "Close relay OK" : "Close relay failed");
+
+    res = VFSUnload();
+    eprint (res == 0 ? "Kernel module unloaded" :
+	               "Kernel module could not be unloaded");
+
+    if (res == 0) KernelMask = 0;	
+
+    return;
 #endif
+    /* Purge the kernel cache so that all cnodes are (hopefully) released. */
+    k_Purge();
 
-    /* Purge the kernel cache so that all cnodes are (hopefully)
-       released. */
-	k_Purge();
+    WorkerCloseMuxfd();
+
+    if (!Mounted) return;
+
 #ifdef	__BSD44__
     /* For now we can not unmount, because an coda_root() upcall could
        nail us. */
@@ -552,25 +550,14 @@ void WorkerInit() {
 	    LOG(0, ("init_relay failed.\n"));
 	    exit(-1);
     }
-
     worker::muxfd = MCFD;
-    if (worker::muxfd >= NFDS) {
-            eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
-            exit(-1);
-    }
-
-    dprint("WorkerInit: muxfd = %d", worker::muxfd);   
+    dprint("WorkerInit: muxfd = %d", worker::muxfd);
 #elif defined(__CYGWIN32__)
     worker::muxfd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (worker::muxfd < 0) {
             eprint("WorkerInit: socket() returns %d", errno);
             exit(-1);
     }
-    if (worker::muxfd >= NFDS) {
-            eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
-            exit(-1);
-    }
-
     dprint("WorkerInit: muxfd = %d", worker::muxfd);
 #else 
     /* Open the communications channel. */
@@ -579,10 +566,13 @@ void WorkerInit() {
         eprint("WorkerInit: open(%s, O_RDWR, 0) returns %d", kernDevice, errno);
         exit(-1);
     }
+#endif
+
     if (worker::muxfd >= NFDS) {
         eprint("WorkerInit: worker::muxfd >= %d!", NFDS);
         exit(-1);
     }
+
 #ifdef  __BSD44__
     if (::ioctl(worker::muxfd, CIOC_KERNEL_VERSION, &kernel_version) < 0 ) {
         eprint("WorkerInit errno %d: Version IOCTL FAILED!  Get a newer Kernel!"
@@ -598,7 +588,7 @@ void WorkerInit() {
         exit(-1);
     }
 #endif
-#endif
+
     /* Flush kernel cache(s). */
     k_Purge();
 
@@ -611,8 +601,16 @@ void WorkerInit() {
 }
 
 
-int WorkerCloseMuxfd() {
-  return close(worker::muxfd);
+int WorkerCloseMuxfd()
+{
+    int ret = 0;
+
+    if (KernelMask)
+	ret = close(worker::muxfd);
+
+    worker::muxfd = KernelMask = 0;
+
+    return ret;
 }
 
 worker *FindWorker(u_long seq) {
@@ -1049,11 +1047,7 @@ void worker::main(void *parm) {
                     VDB->FlushVolume();
                     RecovFlush(1);
                     RecovTerminate();
-#ifdef	__NetBSD__
-                    WorkerCloseMuxfd();
-#else
                     VFSUnmount();
-#endif
                     (void)CheckAllocs("TERM");
                     fflush(logFile);
                     fflush(stderr);

@@ -1,3 +1,35 @@
+1999-08-13    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.3.0 =========
+	* Fixes for big-endian problems with rpc2portmapper. (Troy Benjegerdes)
+	* Fixed incorrect va_args usage on linux-PPC. (Troy Benjegerdes)
+	* Writeback caching. (Shafeeq Sinnamohideen & Larry Greenfield, based
+	  on an initial design and code from Lily Mummert & Peter Braam)
+	* Maxids command for pdbtool. (Greg Troxel)
+	* Fixed libpdb maxid updating, added import/export/source commands to
+	  pdbtool, pdbtool now also accept all commands on the commandline.
+	* Fixed bitvector addressing problems on big-endian machines.
+	* RPC2 updates.
+	* Shortened server backprobe interval to stay below the masquerading
+	  firewall timeout.
+	* Applied kerberos5 patch that add -realm and -keytab options to
+	  kauth2. (Nickolai Zeldovich)
+	* Added comments concerning safe-deletion of coda-list items. (Clement)
+	* Solaris patches, the server is working. (Phil Nelson) 
+	* Fixed directory refcounting during failed repair sessions.
+	* Avoid null-pointer deref when clients disappear from the network.
+	* Fixed pending CML count in 'cfs listvolume'.
+	* Corrected known CountedBS rpc2 memory leak & buffer overflow bugs.
+	* Solved the 'reintegration entries without data'-bug.
+	* Informing user of `imminent' loss of token, every 5 minutes during
+	  last hour.
+	* Filled in most of the blanks in ViceGetStatistics.
+	* Added smon2 an application to obtain server statistics for analysis.
+	  Uses rrdtool for the actual logging and graphing work.
+	* Corrected error returncode & error handling to disconnect clients
+	  that use an incompatible vice.rpc2 version.
+	* Fixed up memory leak resulting from dead/silent clients without
+	  callback connections (f.i. cmon).
+
 1999-06-25    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.2.7 =========
 	* Corrected token file decoding.

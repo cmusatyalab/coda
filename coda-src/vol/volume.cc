@@ -971,9 +971,9 @@ VAttachVolume(Error *ec, VolumeId volumeId, int mode)
 /* Get a pointer to an attached volume.  The pointer is returned regardless
    of whether or not the volume is in service or on/off line.  An error
    code, however, is returned with an indication of the volume's status */
-Volume *VGetVolume(Error *ec, register VolumeId volumeId)
+Volume *VGetVolume(Error *ec, VolumeId volumeId)
 {
-    register Volume *vp;
+    Volume *vp;
     ProgramType *pt;
     struct stat status;	/* temp debugging stuff */
     int headerExists = 0;
@@ -994,8 +994,9 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 	VolumeGets++;
 	VLog(19, "VGetVolume: nUsers == %d", vp->nUsers);
 	if (vp->nUsers == 0) {
+
 	    VLog(29, "VGetVolume: Calling AvailVolumeHeader()");
-	    if (AvailVolumeHeader(vp)){
+	    if (AvailVolumeHeader(vp)) {
 		VLog(29, "VGetVolume: Calling GetVolumeHeader()");
 		headerExists = GetVolumeHeader(vp);
 		VLog(29, "VGetVolume: Finished GetVolumeHeader()");
@@ -1003,9 +1004,9 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 		/* must wrap transaction around volume replacement */
 		rvm_return_t cstat;
 		VLog(29, "VGetVolume: Calling GetVolumeHeader()");
-		if (rvmlib_in_transaction()) 
+		if (rvmlib_in_transaction()) {
 		    headerExists = GetVolumeHeader(vp);
-		else {
+		} else {
 		    rvmlib_begin_transaction(restore);
 		    headerExists = GetVolumeHeader(vp);
 		    rvmlib_end_transaction(flush, &(cstat));
@@ -1016,6 +1017,7 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 		}
 		VLog(29, "VGetVolume: Finished GetVolumeHeader()");
 	    }
+
 	    if (!headerExists) {
 		VolumeReplacements++;
 		ExtractVolDiskInfo(ec, vp->vol_index, &V_disk(vp));
@@ -1709,9 +1711,9 @@ static int GetVolumeHeader(register Volume *vp)
 }
 
 /* see if there is a volHeader available */
-static int AvailVolumeHeader(register Volume *vp)
+static int AvailVolumeHeader(Volume *vp)
 {
-	register struct volHeader *hd;
+	struct volHeader *hd;
 
 	VLog(9, "Entering AvailVolumeHeader()");
 	if (vp->header != 0) {

@@ -821,12 +821,13 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
 void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet) {
     RVMLIB_REC_OBJECT(stat);
 
-    /* We're changing the length?
-     * Then the cached data is no longer useable! */
+    /* We're changing the length? 
+     * Then the cached data is probably no longer useable! But try to fix up
+     * the cachefile so that we can at least give a stale copy. */
     if (HAVEDATA(this) && stat.Length != vstat->Length) {
 	LOG(0, ("fsobj::ReplaceStatus: (%s), changed stat.length %d->%d\n",
 		FID_(&fid), stat.Length, vstat->Length));
-	DiscardData();
+	LocalSetAttr(-1, vstat->Length, -1, -1, -1);
 	SetRcRights(RC_STATUS);
     }
 
@@ -1098,6 +1099,10 @@ void fsobj::MakeDirty() {
     if (DIRTY(this)) return;
 
     LOG(1, ("fsobj::MakeDirty: (%s)\n", FID_(&fid)));
+
+    /* We must have data here */
+    /* Not really, we could have just created this object while disconnected */
+    /* CODA_ASSERT(HAVEALLDATA(this)); */
 
     RVMLIB_REC_OBJECT(flags);
     flags.dirty = 1;

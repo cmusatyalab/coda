@@ -48,7 +48,7 @@ extern char *ViceErrorMsg(int errorCode);
 %}
 
 /* please increment this number if you make an incompatible change! */
-#define VICE_VERSION 2
+#define VICE_VERSION 3
 
 #include "vcrcommon.rpc2"
 
@@ -76,51 +76,51 @@ typedef RPC2_Struct
 
 typedef RPC2_Struct
 {
-	RPC2_Unsigned	CurrentMsgNumber;
-	RPC2_Unsigned	OldestMsgNumber;
+	RPC2_Unsigned	Obsolete1;
+	RPC2_Unsigned	Obsolete2;
 	RPC2_Unsigned	CurrentTime;
 	RPC2_Unsigned	BootTime;
 	RPC2_Unsigned	StartTime;
-	RPC2_Integer	CurrentConnections;
+	RPC2_Unsigned	CurrentConnections;
 	RPC2_Unsigned	TotalViceCalls;
-	RPC2_Unsigned	TotalFetchs;
+	RPC2_Unsigned	TotalFetches;
 	RPC2_Unsigned	FetchDatas;
 	RPC2_Unsigned	FetchedBytes;
-	RPC2_Integer	FetchDataRate;
+	RPC2_Unsigned	FetchDataRate;
 	RPC2_Unsigned	TotalStores;
 	RPC2_Unsigned	StoreDatas;
 	RPC2_Unsigned	StoredBytes;
-	RPC2_Integer	StoreDataRate;
+	RPC2_Unsigned	StoreDataRate;
 	RPC2_Unsigned	TotalRPCBytesSent;
 	RPC2_Unsigned	TotalRPCBytesReceived;
 	RPC2_Unsigned	TotalRPCPacketsSent;
 	RPC2_Unsigned	TotalRPCPacketsReceived;
 	RPC2_Unsigned	TotalRPCPacketsLost;
 	RPC2_Unsigned	TotalRPCBogusPackets;
-	RPC2_Integer	SystemCPU;
-	RPC2_Integer	UserCPU;
-	RPC2_Integer	NiceCPU;
-	RPC2_Integer	IdleCPU;
-	RPC2_Integer	TotalIO;
-	RPC2_Integer	ActiveVM;
-	RPC2_Integer	TotalVM;
-	RPC2_Integer	EtherNetTotalErrors;
-	RPC2_Integer	EtherNetTotalWrites;
-	RPC2_Integer	EtherNetTotalInterupts;
-	RPC2_Integer	EtherNetGoodReads;
-	RPC2_Integer	EtherNetTotalBytesWritten;
-	RPC2_Integer	EtherNetTotalBytesRead;
-	RPC2_Integer	ProcessSize;
-	RPC2_Integer	WorkStations;
-	RPC2_Integer	ActiveWorkStations;
-	RPC2_Integer	Spare1;
-	RPC2_Integer	Spare2;
-	RPC2_Integer	Spare3;
-	RPC2_Integer	Spare4;
-	RPC2_Integer	Spare5;
-	RPC2_Integer	Spare6;
-	RPC2_Integer	Spare7;
-	RPC2_Integer	Spare8;
+	RPC2_Unsigned	SystemCPU;
+	RPC2_Unsigned	UserCPU;
+	RPC2_Unsigned	NiceCPU;
+	RPC2_Unsigned	IdleCPU;
+	RPC2_Unsigned	TotalIO;
+	RPC2_Unsigned	ActiveVM;
+	RPC2_Unsigned	TotalVM;
+	RPC2_Unsigned	EtherNetTotalErrors;
+	RPC2_Unsigned	EtherNetTotalWrites;
+	RPC2_Unsigned	EtherNetTotalInterupts;
+	RPC2_Unsigned	EtherNetGoodReads;
+	RPC2_Unsigned	EtherNetTotalBytesWritten;
+	RPC2_Unsigned	EtherNetTotalBytesRead;
+	RPC2_Unsigned	ProcessSize;
+	RPC2_Unsigned	WorkStations;
+	RPC2_Unsigned	ActiveWorkStations;
+	RPC2_Unsigned	MinFlt;
+	RPC2_Unsigned	MajFlt;
+	RPC2_Unsigned	NSwaps;
+	RPC2_Unsigned	Spare4;
+	RPC2_Unsigned	UsrTime;
+	RPC2_Unsigned	SysTime;
+	RPC2_Unsigned	VmRSS;
+	RPC2_Unsigned	VmData;
 	ViceDisk	Disk1;
 	ViceDisk	Disk2;
 	ViceDisk	Disk3;
@@ -186,22 +186,6 @@ typedef RPC2_Struct
 
 typedef	RPC2_Enum
 {
-	FetchNoData = 0,
-	FetchData = 1,
-	FetchNoDataRepair = 2,
-	FetchDataRepair = 3	
-}	ViceFetchType;
-
-typedef RPC2_Enum
-{
-	StoreNeither = 0,
-	StoreData = 1,
-	StoreStatus = 2,
-	StoreStatusData = 3
-}	ViceStoreType;
-
-typedef	RPC2_Enum
-{
 	LockRead = 0,
 	LockWrite = 1
 }	ViceLockType;
@@ -226,11 +210,14 @@ typedef RPC2_Struct
 	ViceVersionVector VV;
 }	ViceFidAndVV;
 
+typedef RPC2_Byte ViceUUID[16];
+
 typedef RPC2_Struct
 {
 	RPC2_String UserName;
 	RPC2_String WorkStationName;
 	RPC2_String VenusName;
+	ViceUUID    VenusUUID;
 }	ViceClient;
 
 /* needed to use arrays. */
@@ -254,26 +241,58 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		   IN RPC2_CountedBS ClientIdent)
 		   NEW_CONNECTION;
 
-2: ViceFetch	(IN ViceFid Fid,
-		 IN ViceFid BidFid,
-		 IN ViceFetchType Request,
+1: ViceGetAttr	(IN ViceFid Fid,
+		 IN RPC2_Unsigned InconOK,
+		 OUT ViceStatus Status,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_CountedBS PiggyCOP2);
+
+2: ViceGetACL	(IN ViceFid Fid,
+		 IN RPC2_Unsigned InconOK,
 		 IN OUT RPC2_BoundedBS AccessList,
 		 OUT ViceStatus Status,
 		 IN RPC2_Unsigned PrimaryHost,
-		 IN RPC2_CountedBS PiggyCOP2,
-		 IN OUT SE_Descriptor BD);
+		 IN RPC2_CountedBS PiggyCOP2);
 
-3: ViceNewFetch	(IN ViceFid Fid,
+3: ViceFetch	(IN ViceFid Fid,
 		 IN ViceVersionVector VV,
-		 IN ViceFetchType Request,
-		 IN OUT RPC2_BoundedBS AccessList,
+		 IN RPC2_Unsigned InconOK,
 		 OUT ViceStatus Status,
 		 IN RPC2_Unsigned PrimaryHost,
 		 IN RPC2_Unsigned Offset,
-		 IN RPC2_Unsigned Quota,
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
+4: ViceSetAttr (IN ViceFid Fid,
+		IN OUT ViceStatus Status,
+		IN RPC2_Integer Mask,
+		IN RPC2_Unsigned PrimaryHost,
+		IN ViceStoreId StoreId,
+		IN RPC2_CountedBS OldVS,
+		OUT RPC2_Integer NewVS,
+		OUT CallBackStatus VCBStatus,
+		IN RPC2_CountedBS PiggyCOP2);
+
+5: ViceSetACL (IN ViceFid Fid,
+	       IN RPC2_CountedBS AccessList,
+	       IN OUT ViceStatus Status,
+	       IN RPC2_Unsigned PrimaryHost,
+	       IN ViceStoreId StoreId,
+	       IN RPC2_CountedBS OldVS,
+	       OUT RPC2_Integer NewVS,
+	       OUT CallBackStatus VCBStatus,
+	       IN RPC2_CountedBS PiggyCOP2);
+
+6: ViceStore (IN ViceFid Fid,
+	      IN OUT ViceStatus Status,
+	      IN RPC2_Integer Length,
+	      IN RPC2_Unsigned PrimaryHost,
+	      IN ViceStoreId StoreId,
+	      IN RPC2_CountedBS OldVS,
+	      OUT RPC2_Integer NewVS,
+	      OUT CallBackStatus VCBStatus,
+	      IN RPC2_CountedBS PiggyCOP2,
+	      IN OUT SE_Descriptor BD);
 
 11: ViceRemoveCallBack (IN RPC2_CountedBS RCBBS);
 
@@ -282,20 +301,20 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 16: ViceSetRootVolume (IN RPC2_String Volume);
 
 17: ViceGetVolumeStatus (IN VolumeId Vid,
-		     IN OUT VolumeStatus Status,
-		     IN OUT RPC2_BoundedBS Name,
-		     IN OUT RPC2_BoundedBS OfflineMsg,
-		     IN OUT RPC2_BoundedBS MOTD,
-		     IN RPC2_Unsigned PrimaryHost);
+			 OUT VolumeStatus Status,
+			 IN OUT RPC2_BoundedBS Name,
+			 IN OUT RPC2_BoundedBS OfflineMsg,
+			 IN OUT RPC2_BoundedBS MOTD,
+			 IN RPC2_Unsigned PrimaryHost);
 
 18: ViceSetVolumeStatus (IN VolumeId Vid,
-		     IN OUT VolumeStatus Status,
-		     IN OUT RPC2_BoundedBS Name,
-		     IN OUT RPC2_BoundedBS OfflineMsg,
-		     IN OUT RPC2_BoundedBS MOTD,
-		     IN RPC2_Unsigned PrimaryHost,
-		     IN ViceStoreId StoreId,
-		     IN RPC2_CountedBS PiggyCOP2);
+			 IN OUT VolumeStatus Status,
+			 IN OUT RPC2_BoundedBS Name,
+			 IN OUT RPC2_BoundedBS OfflineMsg,
+			 IN OUT RPC2_BoundedBS MOTD,
+			 IN RPC2_Unsigned PrimaryHost,
+			 IN ViceStoreId StoreId,
+			 IN RPC2_CountedBS PiggyCOP2);
 	
 19: ViceDisconnectFS ();
 
@@ -304,51 +323,53 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 
 21: TokenExpired ();
 
-22: ViceGetStatistics (IN OUT ViceStatistics Statistics);
+22: ViceGetOldStatistics (IN OUT ViceStatistics Statistics);
+
+23: ViceGetStatistics (OUT ViceStatistics Statistics);
 
 24: ViceGetVolumeInfo (IN RPC2_String Vid,
-		   OUT VolumeInfo Info);
+		       OUT VolumeInfo Info);
 
 25: ViceEnableGroup (IN RPC2_String GroupName);
 
 26: ViceDisableGroup (IN RPC2_String GroupName);
 
-29: ViceCOP2	(IN RPC2_CountedBS COP2BS);
+29: ViceCOP2 (IN RPC2_CountedBS COP2BS);
 
 30: ViceResolve	(IN ViceFid Fid);
 
-33: ViceRepair	(IN ViceFid Fid,
-		 IN OUT ViceStatus status, 
-		 IN ViceStoreId StoreId,
-		 IN OUT SE_Descriptor BD);
+33: ViceRepair (IN ViceFid Fid,
+		IN OUT ViceStatus status, 
+		IN ViceStoreId StoreId,
+		IN OUT SE_Descriptor BD);
 
-34: ViceSetVV	(IN ViceFid Fid,
-		 IN ViceVersionVector VV,
-		 IN RPC2_CountedBS PiggyCOP2);
+34: ViceSetVV (IN ViceFid Fid,
+	       IN ViceVersionVector VV,
+	       IN RPC2_CountedBS PiggyCOP2);
 
-37: ViceAllocFids	(IN VolumeId Vid,
-		 IN ViceDataType Type,
-		 IN OUT ViceFidRange Range,
-		 IN RPC2_Unsigned AllocHost,
-		 IN RPC2_CountedBS PiggyCOP2);
+37: ViceAllocFids (IN VolumeId Vid,
+		   IN ViceDataType Type,
+		   IN OUT ViceFidRange Range,
+		   IN RPC2_Unsigned AllocHost,
+		   IN RPC2_CountedBS PiggyCOP2);
 
-38: ViceValidateAttrs(IN RPC2_Unsigned PrimaryHost,
-		  IN ViceFid PrimaryFid,
-		  IN OUT ViceStatus PrimaryStatus,
-		  IN ViceFidAndVV Piggies[], 
-		  IN OUT RPC2_CountedBS VFlagBS,
-		  IN RPC2_CountedBS PiggyCOP2);
+38: ViceValidateAttrs (IN RPC2_Unsigned PrimaryHost,
+		       IN ViceFid PrimaryFid,
+		       IN OUT ViceStatus PrimaryStatus,
+		       IN ViceFidAndVV Piggies[], 
+		       IN OUT RPC2_BoundedBS VFlagBS,
+		       IN RPC2_CountedBS PiggyCOP2);
 
 40: ViceNewConnectFS (IN RPC2_Unsigned ViceVersion,
-		  IN ViceClient ClientId);
+		      IN ViceClient ClientId);
 
-41: ViceGetVolVS	(IN VolumeId Vid,
-		 OUT RPC2_Integer VS,
-		 OUT CallBackStatus CBStatus);
+41: ViceGetVolVS (IN VolumeId Vid,
+		  OUT RPC2_Integer VS,
+		  OUT CallBackStatus CBStatus);
 
-42: ViceValidateVols(IN ViceVolumeIdStruct Vids[],
-		 IN RPC2_CountedBS VS,
-		 OUT RPC2_CountedBS VFlagBS);
+42: ViceValidateVols (IN ViceVolumeIdStruct Vids[],
+		      IN RPC2_CountedBS VS,
+		      IN OUT RPC2_BoundedBS VFlagBS);
 
 /* new update calls */
 45: ViceVRemove	(IN ViceFid Did,
@@ -390,105 +411,90 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 OUT CallBackStatus VCBStatus,
 		 IN RPC2_CountedBS PiggyCOP2);
 
-48: ViceVSymLink	(IN ViceFid Did,
-		 IN RPC2_String OldName,
-		 IN RPC2_String NewName,
-		 IN OUT ViceFid Fid,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS OldVS,
-		 OUT RPC2_Integer NewVS,
-		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2);
+48: ViceVSymLink (IN ViceFid Did,
+		  IN RPC2_String OldName,
+		  IN RPC2_String NewName,
+		  IN OUT ViceFid Fid,
+		  IN OUT ViceStatus Status,
+		  IN OUT ViceStatus DirStatus,
+		  IN RPC2_Unsigned PrimaryHost,
+		  IN ViceStoreId StoreId,
+		  IN RPC2_CountedBS OldVS,
+		  OUT RPC2_Integer NewVS,
+		  OUT CallBackStatus VCBStatus,
+		  IN RPC2_CountedBS PiggyCOP2);
 
-49: ViceVLink	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN ViceFid Fid,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS OldVS,
-		 OUT RPC2_Integer NewVS,
-		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2);
+49: ViceVLink (IN ViceFid Did,
+	       IN RPC2_String Name,
+	       IN ViceFid Fid,
+	       IN OUT ViceStatus Status,
+	       IN OUT ViceStatus DirStatus,
+	       IN RPC2_Unsigned PrimaryHost,
+	       IN ViceStoreId StoreId,
+	       IN RPC2_CountedBS OldVS,
+	       OUT RPC2_Integer NewVS,
+	       OUT CallBackStatus VCBStatus,
+	       IN RPC2_CountedBS PiggyCOP2);
 
-50: ViceVMakeDir	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceFid NewDid,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS OldVS,
-		 OUT RPC2_Integer NewVS,
-		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2);
+50: ViceVMakeDir (IN ViceFid Did,
+		  IN RPC2_String Name,
+		  IN OUT ViceStatus Status,
+		  IN OUT ViceFid NewDid,
+		  IN OUT ViceStatus DirStatus,
+		  IN RPC2_Unsigned PrimaryHost,
+		  IN ViceStoreId StoreId,
+		  IN RPC2_CountedBS OldVS,
+		  OUT RPC2_Integer NewVS,
+		  OUT CallBackStatus VCBStatus,
+		  IN RPC2_CountedBS PiggyCOP2);
 		 
-51: ViceVRemoveDir	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus TgtStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS OldVS,
-		 OUT RPC2_Integer NewVS,
-		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-53: ViceNewVStore	(IN ViceFid Fid,
-		 IN ViceStoreType Request,
-		 IN OUT RPC2_CountedBS AccessList,
-		 IN OUT ViceStatus Status,
-		 IN RPC2_Integer Length,
-		 IN RPC2_Integer Mask,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS OldVS,
-		 OUT RPC2_Integer NewVS,
-		 OUT CallBackStatus VCBStatus,
-		 IN RPC2_CountedBS PiggyCOP2,
-		 IN OUT SE_Descriptor BD);
-
+51: ViceVRemoveDir (IN ViceFid Did,
+		    IN RPC2_String Name,
+		    IN OUT ViceStatus Status,
+		    IN OUT ViceStatus TgtStatus,
+		    IN RPC2_Unsigned PrimaryHost,
+		    IN ViceStoreId StoreId,
+		    IN RPC2_CountedBS OldVS,
+		    OUT RPC2_Integer NewVS,
+		    OUT CallBackStatus VCBStatus,
+		    IN RPC2_CountedBS PiggyCOP2);
 
 55: ViceOpenReintHandle	(IN ViceFid Fid,
 			 OUT ViceReintHandle RHandle);
 
-56: ViceQueryReintHandle	(IN VolumeId Vid,
-			 IN ViceReintHandle RHandle[],
-			 OUT RPC2_Unsigned Length);
+56: ViceQueryReintHandle (IN VolumeId Vid,
+			  IN ViceReintHandle RHandle[],
+			  OUT RPC2_Unsigned Length);
 
-57: ViceSendReintFragment   (IN VolumeId Vid,
-			 IN ViceReintHandle RHandle[],
-			 IN RPC2_Unsigned Length,
-			 IN OUT SE_Descriptor BD);
+57: ViceSendReintFragment (IN VolumeId Vid,
+			   IN ViceReintHandle RHandle[],
+			   IN RPC2_Unsigned Length,
+			   IN OUT SE_Descriptor BD);
 
-58: ViceCloseReintHandle	(IN VolumeId Vid,
-			 IN RPC2_Integer LogSize,
-			 IN ViceReintHandle RHandle[],
-			 IN RPC2_CountedBS OldVS,
-			 OUT RPC2_Integer NewVS,
-			 OUT CallBackStatus VCBStatus,
-			 IN RPC2_CountedBS PiggyCOP2,
-		         IN OUT SE_Descriptor BD);
+58: ViceCloseReintHandle (IN VolumeId Vid,
+			  IN RPC2_Integer LogSize,
+			  IN ViceReintHandle RHandle[],
+			  IN RPC2_CountedBS OldVS,
+			  OUT RPC2_Integer NewVS,
+			  OUT CallBackStatus VCBStatus,
+			  IN RPC2_CountedBS PiggyCOP2,
+			  IN OUT SE_Descriptor BD);
 
-59: ViceReintegrate(IN VolumeId Vid,
-   	        IN RPC2_Integer LogSize,
-	        OUT RPC2_Integer Index,
-		OUT ViceFid StaleDirs[],
-		IN RPC2_CountedBS OldVS,
-		OUT RPC2_Integer NewVS,
-		OUT CallBackStatus VCBStatus,
-		IN RPC2_CountedBS PiggyCOP2,
-		IN OUT SE_Descriptor BD);
+59: ViceReintegrate (IN VolumeId Vid,
+		     IN RPC2_Integer LogSize,
+		     OUT RPC2_Integer Index,
+		     OUT ViceFid StaleDirs[],
+		     IN RPC2_CountedBS OldVS,
+		     OUT RPC2_Integer NewVS,
+		     OUT CallBackStatus VCBStatus,
+		     IN RPC2_CountedBS PiggyCOP2,
+		     IN OUT SE_Descriptor BD);
 
-60: ViceGetWBPermit(IN VolumeId Vid,
-		 IN ViceFid Fid,
-		 OUT RPC2_Integer Permit);
+60: ViceGetWBPermit (IN VolumeId Vid,
+		     IN ViceFid Fid,
+		     OUT RPC2_Integer Permit);
 
-61: ViceTossWBPermit(IN VolumeId Vid,
-		 IN ViceFid Fid);
+61: ViceTossWBPermit (IN VolumeId Vid,
+		      IN ViceFid Fid);
 
-62: ViceRejectWBPermit(IN VolumeId Vid);
+62: ViceRejectWBPermit (IN VolumeId Vid);

@@ -1,0 +1,145 @@
+What is smon2
+-------------
+
+The smon2 program polls a group of servers for statistical data. This
+data is written to the output in a format that can be piped into
+rrdtool. The rrdtool stores the data in a compact archive, and can be
+used to create graphs of the different stored values. For more
+information, and to obtain rrdtool have a look at
+http://www.caida.org/Tools/RRDTool/
+
+The archive files will be about 2MB per server, and will contain the
+following avarages & maxima for 46 values.
+
+600 datasamples every 5 minutes	    (+/- 2 days of measurements)
+600 averages+maxima over 30 minutes (+/- 2 weeks of measurements)
+600 averages+maxima over 2 hours    (+/- 2 months of measurements)
+732 averages+maxima over 24 hours   (+/- 2 years of measurements)
+
+Read the rrdtool documentation about how this works.
+
+
+Building and starting to gather data
+------------------------------------
+
+Get rrdtool, and build/install it on your system. Also if smon2 isn't
+built yet, go to $(topobj)/coda-src/smon2/ and type 'make'.
+
+Check whether smon2 works by running the program, and it should spit out
+the following lines (I've actually truncated them here). Type ^C to kill
+the program.
+
+    $ smon2 testserver
+    create testserver.rrd conns:GAUGE:600:0:U nrpcs:COUNTER:....
+    update testserver.rrd 934497493:4272:31630:930:4920:10045928:.....
+    ^C
+
+These lines are exactly what rrdtool likes to get, the first line creates a
+new archive named '<servername>.rrd' and sets up the fields/limits and how
+many samples at which resolution are stored. This is only done when smon2
+cannot stat() the file in the current directory. The second line updates
+archive with collected statistics.
+
+smon2 will automatically reconnect to dead servers & keeps writing
+updates every 5 minutes. You can start logging right away by running the
+following commandline in the directory where you want the archives to be
+located.
+
+    $ smon2 <server1> <server2> .... | rrdtool -
+
+The output you see is some verbosity of rrdtool. If you kill the
+program, or the machine is restarted the logging will stop. So it is
+probably smart to add a line to one of your system startup scripts to
+automatically resume logging when the gathering host is starting up.
+Remember to change to the right directory and to fork the command into
+the background.
+
+i.e. ( cd /path/to/logdir/ ; smon2 <servers> | rrdtool - > /dev/null 2>&1 ) &
+
+
+What data is logged into the rrd archives
+-----------------------------------------
+
+Well, here is the list
+
+conns:GAUGE
+    Number RPC2 connections.
+
+nrpcs:COUNTER
+    Total number of RPC2 calls.
+    
+ftotl:COUNTER fdata:COUNTER fsize:COUNTER frate:GAUGE
+    Total fetches (ViceFetch+GetAttr+GetACL), data fetches (ViceFetch),
+    amount of fetched data, and observed data-rate.
+
+stotl:COUNTER sdata:COUNTER ssize:COUNTER srate:GAUGE
+    Total stores (ViceStore+SetAttr+SetACL), data stores (ViceStore),
+    amount of stored data, and observed data-rate.
+
+rbsnd:COUNTER rbrcv:COUNTER
+    RPC2 bytes sent and received.
+
+rpsnd:COUNTER rprcv:COUNTER rplst:COUNTER rperr:COUNTER
+    RPC2 packets sent, received, lost, and dropped due to errors.
+
+sscpu:COUNTER sucpu:COUNTER sncpu:COUNTER sicpu:COUNTER
+    Global CPU usage counters: System, User, Nice, Idle.
+
+totio:COUNTER
+    Global disk-IO activity.
+
+vmuse:GAUGE vmmax:GAUGE
+    Used swapspace and maximum available swapspace. Currently no server
+    returns this information.
+
+eerrs:COUNTER epsnd:COUNTER ecols:COUNTER eprcv:COUNTER
+ebsnd:COUNTER ebrcv:COUNTER
+    Ethernet packet and byte statistics, no server actually returns this
+    information yet.
+
+clnts:GAUGE aclnt:GAUGE
+    Number of workstations with callback connections and the active
+    workstations (RPC2 operations within the last 15 minutes).
+
+mnflt:COUNTER mjflt:COUNTER nswap:COUNTER
+    Minor and major pagefaults.
+    Number of swapped pages.
+
+utime:COUNTER stime:COUNTER
+    Process user and system time (100s of a second).
+
+vmsiz:GAUGE vmrss:GAUGE vmdat:GAUGE
+    Process size, resident set size, and process data size. (Currently only
+    works on Linux)
+
+d1avl:GAUGE d1tot:GAUGE
+d2avl:GAUGE d2tot:GAUGE
+d3avl:GAUGE d3tot:GAUGE
+d4avl:GAUGE d4tot:GAUGE
+    Nth disk partition available and total number of blocks.
+
+
+Setting up the data graphing on a WWW server
+--------------------------------------------
+
+Install a webserver on the logging machine, put the server_stats.html
+file in the html-documents area, and place the gensrvstats.py script in
+the cgi-bin directory.
+
+You will have to modify the servernames in the server_stats.html file,
+and customize some of the paths at the top of the cgi-script. Also make
+sure that the servernames there are the same as the ones on the webpage.
+Yeah, gensrvstats should probably generate the html file when no
+arguments are given. I'll leave that up to someone else.
+
+LOGDIR  is the directory where the rrd-archives are stored.
+IMGDIR  should be a directory that the webserver exports.
+        (and world/httpd-writeable).
+IMGURL  is the relative or absolute URL that leads to the IMGDIR.
+RRDTOOL is the location of the rrdtool binary.
+
+For the rest, browse the code and the rrdtool documentation and play
+around with different colors/options/scaling factors etc.
+
+Have fun,
+    Jan

@@ -93,7 +93,10 @@ class rec_olist_iterator {
 
   public:
     rec_olist_iterator(rec_olist&);
-    rec_olink *operator()();			    /* return next object or 0 */
+    rec_olink *operator()();                        /* return next object or 0 */
+                                                    /* Support safe deletion 
+                                                     * of currently returned 
+                                                     * entry. See dlist.h also */
 };
 
 

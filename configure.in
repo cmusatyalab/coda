@@ -94,7 +94,8 @@ coda-src/partition/tests/Makefile
 coda-src/util/tests/Makefile 
 coda-src/venus/tests/Makefile  
 coda-src/advice/tests/Makefile 
-coda-src/guitools/tests/Makefile ,
+coda-src/guitools/tests/Makefile
+coda-src/smon2/Makefile ,
 mkdir -p rvm-src/rvmlwp 
 ln -sf ../rvm/Makefile rvm-src/rvmlwp/Makefile
 mkdir -p rvm-src/rdslwp

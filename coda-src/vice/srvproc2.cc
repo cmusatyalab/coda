@@ -104,10 +104,6 @@ unsigned int etherGoodReads = 0;
 unsigned int etherBytesRead = 0;
 unsigned int etherBytesWritten = 0;
 
-/* *****  Private variables  ***** */
-
-static unsigned Cont_Sws = 0;		/* Count context switches for LWP */
-
 /* *****  External routines ***** */
 extern int ValidateParms(RPC2_Handle, ClientEntry **, int *ReplicatedOp,
 			 VolumeId *, RPC2_CountedBS *, int *Nservers);
@@ -152,7 +148,7 @@ long FS_ViceDisconnectFS(RPC2_Handle RPCid)
   TokenExpired: When the server detects token expiry between GetRequest
     and srv_ExecuteRequest, it converts the Header.Opcode into
     TokenExpired. This routine then returns an appropriate error to the
-    client. (Ofcourse masochistic client may call this routines
+    client. (Ofcourse masochistic clients may call this routine
     themselves, and enjoy being thrown out :)
 */
 long FS_TokenExpired(RPC2_Handle RPCid)
@@ -160,56 +156,33 @@ long FS_TokenExpired(RPC2_Handle RPCid)
     SLog(100, "TokenExpired");
     FS_ViceDisconnectFS(RPCid);
 
-    return(ECONNRESET);
+    return(RPC2_FAIL);
 }
 
-/*
-ViceGetStatistics: Used by filestats to get general file server statistics
-*/
+long FS_ViceGetOldStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
+{
+    return(FS_ViceGetStatistics(RPCid, Statistics));
+}
+
+/* ViceGetStatistics: Used by filestats to get general file server statistics */
 long FS_ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
 {
     int     errorCode;		/* return code for caller */
-#ifdef PERFORMANCE 
-    int	    i;
-    struct  thread_basic_info	b_info;
-    thread_basic_info_t	t_info;
-    unsigned	int info_cnt = THREAD_BASIC_INFO_COUNT;
-    time_value_t    utval, stval;
-#endif PERFORMANCE
 
     SLog(3, "ViceGetStatistics Received");
 
     errorCode = 0;
 
+    memset(Statistics, 0, sizeof(ViceStatistics));
+
     SetViceStats(Statistics);
     SetRPCStats(Statistics);
     SetVolumeStats(Statistics);
     SetSystemStats(Statistics);
-    /* Set LWP statistics */
-    Statistics->Spare1 = Cont_Sws;
-#ifdef PERFORMANCE
-    /* get timing info from thread_info */
-    utval.seconds = utval.microseconds = 0;
-    stval.seconds = stval.microseconds = 0;
-    t_info = &b_info;
-    for (i = 0; i < thread_count; i++){
-	if (thread_info(thread_list[i], THREAD_BASIC_INFO, (thread_info_t)t_info, &info_cnt) != KERN_SUCCESS)
-	    SLog(1, "Couldn't get info for thread %d", i);
-	else{
-	    time_value_add(&utval, &(t_info->user_time));
-	    time_value_add(&stval, &(t_info->system_time));
-	}
-    }
-    /* Convert times to hertz */
-    Statistics->Spare2 = (int)(60 * utval.seconds) + (int)(6 * utval.microseconds/100000);
-    Statistics->Spare3 = (int)(60 * stval.seconds) + (int)(6 * stval.microseconds/100000);
-    
-#endif PERFORMANCE
 
     SLog(3, "ViceGetStatistics returns %s", ViceErrorMsg(errorCode));
     return(errorCode);
 }
-
 
 static const int RCBEntrySize = (int) sizeof(ViceFid);
 
@@ -774,29 +747,29 @@ static void SetViceStats(ViceStatistics *stats)
 {
     int	seconds;
 
-/*
-    stats->CurrentMsgNumber = MsgNumber;
-    stats->OldestMsgNumber = OldMsgNumber;
-*/
+    /* FetchDataRate & StoreDataRate have wrap-around problems */
+
     stats->StartTime = StartTime;
     stats->CurrentConnections = CurrentConnections;
     stats->TotalViceCalls = Counters[TOTAL];
-    stats->TotalFetchs = Counters[ViceFetch_OP];
-    stats->FetchDatas = Counters[FETCHDATAOP];
+
+    stats->TotalFetches = Counters[GETATTR]+Counters[GETACL]+Counters[FETCH];
+    stats->FetchDatas = Counters[FETCH];
     stats->FetchedBytes = Counters[FETCHDATA];
     seconds = Counters[FETCHTIME]/1000;
     if(seconds <= 0) seconds = 1;
     stats->FetchDataRate = Counters[FETCHDATA]/seconds;
-    stats->TotalStores = Counters[ViceNewVStore_OP];
-    stats->StoreDatas = Counters[STOREDATAOP];
+
+    stats->TotalStores = Counters[SETATTR]+Counters[SETACL]+Counters[STORE];
+    stats->StoreDatas = Counters[STORE];
     stats->StoredBytes = Counters[STOREDATA];
     seconds = Counters[STORETIME]/1000;
     if(seconds <= 0) seconds = 1;
     stats->StoreDataRate = Counters[STOREDATA]/seconds;
-/*    stats->ProcessSize = sbrk(0) >> 10; */
-    stats->ProcessSize = 0;
-    CLIENT_GetWorkStats((int *)&(stats->WorkStations),(int *)&(stats->ActiveWorkStations),
-	    (unsigned)(time(0)-15*60));
+
+    CLIENT_GetWorkStats((int *)&(stats->WorkStations),
+			(int *)&(stats->ActiveWorkStations),
+			(unsigned)(time(0)-15*60));
 }
 
 
@@ -847,7 +820,7 @@ static struct DiskPartition *get_part(struct dllist_head *hd)
 
 static void SetVolumeStats(ViceStatistics *stats)
 {
-	struct DiskPartition * part;
+	struct DiskPartition *part;
 	struct dllist_head *tmp;
 	struct ViceDisk *disk; 
 	int i;
@@ -858,14 +831,13 @@ static void SetVolumeStats(ViceStatistics *stats)
 		part = get_part(tmp);
 		/* beware: pointer arithmetic */
 		disk = &(stats->Disk1) + i;
+		memset(disk, 0, sizeof(struct ViceDisk));
 		if(part) {
 			disk->TotalBlocks = part->totalUsable;
 			disk->BlocksAvailable = part->free;
-			bzero(disk->Name, 32);
 			strncpy((char *)disk->Name, part->name, 32);
 			tmp = tmp->next;
-		} else
-			disk->TotalBlocks = -1;
+		}
 	}
 }
 
@@ -958,46 +930,65 @@ static void SetSystemStats_bsd44(ViceStatistics *stats)
 }
 #endif
 
+#ifdef __linux__
+/* Actually, most of these statistics could also be read from an snmp daemon
+ * running on the server host. */
+void SetSystemStats_linux(ViceStatistics *stats)
+{
+    unsigned long d1, d2, d3, d4;
+    static char   line[1024];
+    FILE *f;
+
+#define PARSELINE(file, pattern, args...) do { int i; \
+        for (i = 0; i < 16; i++) { \
+	    if (fscanf(file, pattern, ## args) != 0) break; \
+	    fgets(line, 1024, file); \
+	} } while(0);
+
+    f = fopen("/proc/stat", "r");
+    if (f) {
+	PARSELINE(f, "cpu %lu %lu %lu %lu", &stats->UserCPU, &stats->NiceCPU,
+		  &stats->SystemCPU, &stats->IdleCPU);
+	PARSELINE(f, "disk %lu %lu %lu %lu", &d1, &d2, &d3, &d4);
+	stats->TotalIO = d1 + d2 + d3 + d4;
+        PARSELINE(f, "btime %lu", &stats->BootTime);
+	fclose(f);
+    }
+
+    f = fopen("/proc/self/status", "r");
+    if (f) {
+	PARSELINE(f, "VmSize: %lu kB", &stats->ProcessSize);
+	PARSELINE(f, "VmRSS: %lu kB",  &stats->VmRSS);
+	PARSELINE(f, "VmData: %lu kB", &stats->VmData);
+	fclose(f);
+    }
+}
+#endif
 
 #include <sys/resource.h>
 static struct rusage resource;
 
 static void SetSystemStats(ViceStatistics *stats)
 {
-    struct timeval time;
-    struct timeval thistime;
-
-    stats->UserCPU = 0;
-    stats->SystemCPU = 0;
-    stats->NiceCPU = 0;
-    stats->IdleCPU = 0;
-    stats->BootTime = 0;
-    stats->TotalIO = 0;
-    stats->ActiveVM = 0;
-    stats->TotalVM = 0;
-    stats->ProcessSize = 0;
-    stats->Spare1 = 0;
-    stats->Spare2 = 0;
-    stats->Spare3 = 0;
-    stats->Spare4 = 0;
-    stats->Spare5 = 0;
-    stats->Spare6 = 0;
-    stats->Spare7 = 0;
-    stats->Spare8 = 0;
-    TM_GetTimeOfDay(&time, 0);
-    stats->CurrentTime = time.tv_sec;
+    stats->CurrentTime = time(0);
     
-    gettimeofday(&thistime, 0);
     getrusage(RUSAGE_SELF, &resource);
 
-    /* leave Spare 1..3 will be used later */
+    stats->MinFlt = resource.ru_minflt;
+    stats->MajFlt = resource.ru_majflt;
+    stats->NSwaps = resource.ru_nswap;
+
     /* keeping time 100's of seconds wraps in 497 days */
-    stats->Spare5   = resource.ru_utime.tv_sec * 100 + resource.ru_utime.tv_usec / 10000;
-    stats->Spare6   = resource.ru_stime.tv_sec * 100 + resource.ru_stime.tv_usec / 10000;
+    stats->UsrTime = (resource.ru_utime.tv_sec * 100 +
+		      resource.ru_utime.tv_usec / 10000);
+    stats->SysTime = (resource.ru_stime.tv_sec * 100 +
+		      resource.ru_stime.tv_usec / 10000);
 
-
-#if	defined(__BSD44__)
+#ifdef __BSD44__
     SetSystemStats_bsd44(stats);
+#endif
+#ifdef __linux__
+    SetSystemStats_linux(stats);
 #endif
 }
 
@@ -1071,7 +1062,12 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 
     if (errorCode || !client) {
         SLog(0, "No client structure built by ViceNewConnection");
-	return(ENOTCONN);
+	return(RPC2_FAIL);
+    }
+
+    if (ViceVersion != VICE_VERSION) {
+	CLIENT_CleanUpHost(client->VenusId);
+	return(RPC2_FAIL);
     }
 
     /* we need a lock, because we cannot do concurrent RPC2 calls on the same

@@ -127,8 +127,8 @@ struct RecovVenusGlobals {
      * protocol. So for now a random integer is used. */
 #define VenusGenID (*(unsigned int*)&rvg->recov_UUID)
 
-    /* At some point we should start using a real 128-bit UUID, and this space
-     * is reserved for that purpose */
+    /* This UUID should be stored in network byte order.
+     * "draft-leach-uuids-guids-01.txt". */
     unsigned char recov_UUID[16];
 
     int validate();

@@ -128,31 +128,30 @@ typedef struct WBConnEntry {
 
 typedef struct HostTable {
     RPC2_Handle id;			/* cid for call back connection	*/
-    struct dllist_head	WBconns;	/* must have at least one        */
+    struct dllist_head	WBconns;	/* must have at least one       */
+    struct dllist_head	Clients;	/* list of incoming rpc2 conns  */
     unsigned int	host;		/* IP address of host		*/
     unsigned int	port;		/* port address of host		*/
-    RPC2_PeerInfo       peer;           /* RPC2 peer info, for WB       */
     unsigned int	LastCall;	/* time of last call from host	*/
     unsigned int	ActiveCall;	/* time of any call but gettime	*/
-    struct ClientEntry	*FirstClient;	/* first connection from host	*/
     struct Lock		lock;		/* lock used for client sync	*/
     char HostName[MAXHOSTLENGTH];	/* name of workstation		*/
 }   HostTable;
 
 
 typedef struct ClientEntry {
-    RPC2_Handle		RPCid;			/* cid for connection	*/
-    PRS_InternalCPS	*CPS;			/* cps for authentication */
-    RPC2_Integer	Id;			/* Vice ID of user	*/
-    RPC2_Integer	SecurityLevel;		/* Security level of conn */
-    int			SEType;			/* Type of side effect */
-    unsigned int	LastCall;		/* time of last call	*/
-    HostTable		*VenusId;		/* ptr to host entry	*/
-    RPC2_Integer	LastOp;			/* op code of last call */
-    int			DoUnbind;		/* true if Unbind needed */
-    struct ClientEntry	*NextClient;		/* next entry for host	*/
-    char		UserName[MAXNAMELENGTH]; /* name of user	*/
-    SecretToken		Token;			/* the client's token */
+    RPC2_Handle		RPCid;			/* cid for connection      */
+    struct dllist_chain	Clients;		/* next incoming rpc2 conn */
+    PRS_InternalCPS	*CPS;			/* cps for authentication  */
+    RPC2_Integer	Id;			/* Vice ID of user	   */
+    RPC2_Integer	SecurityLevel;		/* Security level of conn  */
+    int			SEType;			/* Type of side effect	   */
+    unsigned int	LastCall;		/* time of last call	   */
+    HostTable		*VenusId;		/* ptr to host entry	   */
+    RPC2_Integer	LastOp;			/* op code of last call    */
+    int			DoUnbind;		/* true if Unbind needed   */
+    char		UserName[MAXNAMELENGTH]; /* name of user	   */
+    SecretToken		Token;			/* the client's token      */
 } ClientEntry;
 
 
@@ -172,8 +171,12 @@ typedef struct WBHolderEntry {
 #define TOTAL 0
 
 #define DISCONNECT ViceDisconnectFS_OP
-//#define FETCH ViceFetch_OP
-#define STORE ViceNewVStore_OP
+#define GETATTR ViceGetAttr_OP
+#define GETACL ViceGetACL_OP
+#define FETCH ViceFetch_OP
+#define SETATTR ViceSetAttr_OP
+#define SETACL ViceSetACL_OP
+#define STORE ViceStore_OP
 #define REMOVE ViceVRemove_OP
 #define CREATE ViceVCreate_OP
 #define RENAME ViceVRename_OP

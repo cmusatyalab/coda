@@ -342,12 +342,6 @@ int GetConn(connent **cpp, unsigned long host, vuid_t vuid, int Force) {
     /* Grab an existing connection if one is free. */
     /* Before creating a new connection, make sure the per-user limit is not exceeded. */
     for (;;) {
-	/* Make sure tokens are not expired. */
-	userent *u = 0;
-	GetUser(&u, vuid);
-	u->CheckTokenExpiry();
-	PutUser(&u);
-
 	/* Check whether there is already a free connection. */
 	struct ConnKey Key; Key.host = host; Key.vuid = vuid;
 	conn_iterator next(&Key);
@@ -542,10 +536,9 @@ int connent::CheckResult(int code, VolumeId vid) {
 		GetServer(&s, Host);
 		s->ServerError(&code);
 		PutServer(&s);
-
-		if (code == ETIMEDOUT || code == ERETRY) {
-		    dying = 1;
-		}
+	    }
+	    if (code == ETIMEDOUT || code == ERETRY) {
+		dying = 1;
 	    }
 	    break;
 
@@ -1138,7 +1131,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
 	}
     if (code == ETIMEDOUT) {
 	/* Not already considered down. */
-	if (connid != 0) {
+	if (!ServerIsDown()) {
 	    MarinerLog("connection::unreachable %s\n", name);
 	    Reset();
 	    VSGDB->DownEvent(host);
@@ -1491,12 +1484,6 @@ int GetMgrp(mgrpent **mpp, unsigned long VSGAddr, vuid_t vuid) {
     /* Grab an existing mgrp if one is free. */
     /* Before creating a new mgrp, make sure the per-user limit is not exceeded. */
     for (;;) {
-	/* Make sure tokens are not expired. */
-	userent *u = 0;
-	GetUser(&u, vuid);
-	u->CheckTokenExpiry();
-	PutUser(&u);
-
 	/* Check whether there is already a free mgroup. */
 	struct MgrpKey Key; Key.vsgaddr = VSGAddr; Key.vuid = vuid;
 	mgrp_iterator next(&Key);
@@ -1774,11 +1761,10 @@ void mgrpent::CheckResult() {
 		    GetServer(&s, rocc.hosts[i]);
 		    s->ServerError((int *)&rocc.retcodes[i]);
 		    PutServer(&s);
-
-		    /* Note that KillMember may zero rocc.hosts[i] !!! */
-		    if (rocc.retcodes[i] == ETIMEDOUT || rocc.retcodes[i] == ERETRY)
-			KillMember(rocc.hosts[i], 1);
 		}
+		/* Note that KillMember may zero rocc.hosts[i] !!! */
+		if (rocc.retcodes[i] == ETIMEDOUT || rocc.retcodes[i] == ERETRY)
+		    KillMember(rocc.hosts[i], 1);
 		break;
 
 	    case VBUSY:
@@ -1805,7 +1791,8 @@ void mgrpent::CheckResult() {
 	    case VNOSERVER:
 	    case VMOVED:
 	    case VFAIL:
-		eprint("mgrpent::CheckResult: illegal code (%d)", rocc.retcodes[i]);
+		eprint("mgrpent::CheckResult: illegal code (%d)",
+		       rocc.retcodes[i]);
 		rocc.retcodes[i] = EINVAL;
 		break;
 	}

@@ -229,6 +229,7 @@ userent::userent(vuid_t userid) {
 
     uid = userid;
     tokensvalid = 0;
+    told_you_so = 0;
     bzero((void *)&secret, (int) sizeof(SecretToken));
     bzero((void *)&clear, (int) sizeof(ClearToken));
     waitforever = 0;
@@ -311,16 +312,20 @@ int userent::TokensValid() {
 void userent::CheckTokenExpiry() {
     if (!tokensvalid) return;
 
-    time_t curr_time = Vtime();
+    time_t curr_time = Vtime(), timeleft;
 
-    /* 
-     * Add in CLOCK_SKEW when checking token expiry to 
-     * be conservative. Clocks of server and client machines
-     * may not be tightly synchronized.
-     */
-    if (curr_time + CLOCK_SKEW >= clear.EndTimestamp) {
-	eprint("Coda tokens for user %d expired", uid);
-	Invalidate();
+    /* We don't invalidate the tokens anymore. The server will disconnect us
+     * if we try to use an expired one, and we can continue accessing files
+     * during disconnections (when we cannot possibly obtain a new token)
+     * The only thing we do here is warn the user of the impending doom. --JH */
+
+    if (curr_time >= clear.EndTimestamp && !told_you_so) {
+	eprint("Coda token for user %d has expired", uid);
+	told_you_so = 1;
+	//Invalidate();
+    } else if (curr_time >= clear.EndTimestamp - 3600) {
+	timeleft = ((clear.EndTimestamp - curr_time) / 60) + 1;
+	eprint("Coda token for user %d will be rejected by the servers in +/- %d minutes", uid, timeleft);
     }
 }
 
@@ -331,10 +336,12 @@ void userent::Invalidate() {
 
     /* Security is not having to say you're sorry. */
     tokensvalid = 0;
+    told_you_so = 0;
     bzero((void *)&secret, (int) sizeof(SecretToken));
     bzero((void *)&clear, (int) sizeof(ClearToken));
 
-    /* Inform the user's CodaConsole */
+    /* Inform the user */
+    eprint("Coda token for user %d has been discarded", uid);
     admon.TokensExpired();
 
     Reset();
@@ -481,6 +488,10 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	vc.WorkStationName = (RPC2_String) myHostName;
 	vc.VenusName = (RPC2_String) "venus";
 
+	/* This UUID identifies this client during it's lifetime.
+	 * It is only reset when RVM is reinitialized */
+	memcpy(vc.VenusUUID, &VenusGenID, sizeof(ViceUUID));
+
 	char *sname = (FindServer(ntohl(hid.Value.InetAddress.s_addr)))->name;
 	LOG(1, ("userent::Connect: NewConnectFS(%s)\n", sname)); 
 	MarinerLog("fetch::NewConnectFS %s\n", sname);
@@ -582,11 +593,9 @@ static const int UserDaemonStackSize = 16384;
 
 static char userdaemon_sync;
 
-/* Disabled the user daemon. --JH
- * It used to force the token expiry, but that is now handled by the server */
 void USERD_Init() {
-    //(void)new vproc("UserDaemon", (PROCBODY)&UserDaemon,
-    //		     VPT_UserDaemon, UserDaemonStackSize);
+    (void)new vproc("UserDaemon", (PROCBODY)&UserDaemon,
+    		     VPT_UserDaemon, UserDaemonStackSize);
 }
 
 void UserDaemon() {

@@ -116,7 +116,7 @@ struct rle : public dlink {
     union {
 	struct {
 	    ViceFid Fid;
-	    ViceStoreType Request;
+	    OLDCML_StoreType Request;
 	    ViceStatus Status;
 	    RPC2_Integer Length;
 	    RPC2_Integer Mask;
@@ -1360,17 +1360,14 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				r->u.u_store.Status.Length = v->vptr->disk.length;
 
 			    /* Check. */
-			    if ((errorCode = CheckNewSetAttrSemantics(client, &a_v->vptr,
-								     &v->vptr, &volptr, 1,
-								     NormalVCmp,
-								     r->u.u_store.Status.Length,
-								     r->u.u_store.Status.Date,
-								     r->u.u_store.Status.Owner,
-								     r->u.u_store.Status.Mode,
-								     r->u.u_store.Mask,
-								     &r->u.u_store.Status.VV,
-								     r->u.u_store.Status.DataVersion,
-								     0, 0))) {
+			    if ((errorCode = CheckSetAttrSemantics(client,
+				    &a_v->vptr, &v->vptr, &volptr, 1,
+				    NormalVCmp, r->u.u_store.Status.Length,
+				    r->u.u_store.Status.Date,
+				    r->u.u_store.Status.Owner,
+				    r->u.u_store.Status.Mode,
+				    r->u.u_store.Mask, &r->u.u_store.Status.VV,
+				    r->u.u_store.Status.DataVersion, 0, 0))) {
 				goto Exit;
 			    }
 
@@ -1381,10 +1378,12 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			        truncp = 1;
 			    Inode c_inode = 0;
 			    HandleWeakEquality(volptr, v->vptr, &r->u.u_store.Status.VV);
-			    PerformNewSetAttr(client, VSGVolnum, volptr, v->vptr,
-					      0, r->u.u_store.Status.Length, r->Mtime,
-					      r->u.u_store.Status.Owner, r->u.u_store.Status.Mode,
-					      r->u.u_store.Mask, &r->sid, &c_inode);
+			    PerformSetAttr(client, VSGVolnum, volptr, v->vptr,
+					   0, r->u.u_store.Status.Length,
+					   r->Mtime, r->u.u_store.Status.Owner,
+					   r->u.u_store.Status.Mode,
+					   r->u.u_store.Mask, &r->sid,
+					   &c_inode);
 			    ReintPrelimCOP(v, &r->u.u_store.Status.VV.StoreId,
 					   &r->sid, volptr);
 
