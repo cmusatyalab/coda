@@ -1,3 +1,11 @@
+New in 1.8:
+
+* Corrected test for fdatasync.
+* Don't use locally defined extern int errno, but include <errno.h>.
+* Make sure we correctly zero out some memory before using it.
+* Pass an actual struct iov to readv/writev instead of a homegrown struct
+  that might not match what readv/writev are expecting.
+
 New in 1.7:
 
 * automake 2.5x.
