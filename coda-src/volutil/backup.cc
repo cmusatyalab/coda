@@ -79,10 +79,10 @@ extern "C" {
 #include <vutil.h>
 
 
-static char vkey[RPC2_KEYSIZE+1];    /* Encryption key for bind authentication */
-static int Timeout = 30;	      /* Default Timeout value in seconds. */
-static int Debug = 0;		      /* Global debugging flag */
-static int Naptime = 30;	      /* Sleep period for PollLWP */
+static RPC2_EncryptionKey vkey;    /* Encryption key for bind authentication */
+static int Timeout = 30;	   /* Default Timeout value in seconds. */
+static int Debug = 0;		   /* Global debugging flag */
+static int Naptime = 30;	   /* Sleep period for PollLWP */
 
 struct hostinfo {
     bit32      	address;  /* Assume host IP addresses are 32 bits */
@@ -1085,14 +1085,15 @@ static void V_InitRPC()
     long rc;
 
     /* store authentication key */
-    tokfile = fopen(TKFile, "r");
+    tokfile = fopen(VolTKFile, "r");
     if (!tokfile) {
 	char estring[80];
-	sprintf(estring, "Tokenfile %s", TKFile);
+	sprintf(estring, "Tokenfile %s", VolTKFile);
 	perror(estring);
 	exit(-1);
     }
-    fscanf(tokfile, "%s", vkey);
+    memset(vkey, 0, RPC2_KEYSIZE);
+    read(tokfile, vkey, RPC2_KEYSIZE);
     fclose(tokfile);
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
@@ -1233,11 +1234,6 @@ static void VolDumpLWP(struct rockInfo *rock)
     /* Hide the dumpfile name under a rock for later retrieval. */
     CODA_ASSERT(LWP_NewRock(ROCKTAG, (char *)rock) == LWP_SUCCESS);
     
-    /* get encryption key for authentication */
-    tokfile = fopen(TKFile, "r");
-    fscanf(tokfile, "%s", vkey);
-    fclose(tokfile);
-
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = VOLDUMP_SUBSYSTEMID;
     CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);

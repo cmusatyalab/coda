@@ -71,7 +71,7 @@ static char *pname = "coda_udpsrv";
 static struct timezone tsp; */
 
 static char s_hostname[100];
-static char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
+static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
 int main(int argc, char **argv)
 {
@@ -232,12 +232,13 @@ static void U_InitRPC()
     long rcode;
 
     /* store authentication key */
-    tokfile = fopen(TKFile, "r");
+    tokfile = fopen(VolTKFile, "r");
     if ( !tokfile ) {
-	    fprintf(stderr, "No tokenfile: %s\n", TKFile);
+	    fprintf(stderr, "No tokenfile: %s\n", VolTKFile);
 	    exit(1);
     }
-    fscanf(tokfile, "%s", vkey);
+    memset(vkey, 0, RPC2_KEYSIZE);
+    read(tokfile, vkey, RPC2_KEYSIZE);
     fclose(tokfile);
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);

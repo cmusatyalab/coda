@@ -66,7 +66,7 @@ extern "C" {
 #include <volume.h>
 #include "velapse.h"
 
-static char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
+static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 /* file variables for utils with file transfer */
 static char outfile[256];	// file name for requested info
 /* hack to make argc and argv visible to subroutines */
@@ -187,10 +187,6 @@ int main(int argc, char **argv) {
 	}
     }
     
-    CODA_ASSERT(s_hostname != NULL);
-    V_InitRPC(timeout);
-    V_BindToServer(s_hostname, &rpcid);
-
     if (argc < 2) {
         printf("Usage: volutil [-h hostname]  [-t timeout] <option>, where <option> is one of the following:\n");
 	printf("ancient, backup, create, create_rep, clone, dump, info, lock, ");
@@ -201,6 +197,10 @@ int main(int argc, char **argv) {
 	printf("getmaxvol, setmaxvol, peek, poke, peeks, pokes, peekx, pokex\n");
 	exit(-1);
     }
+
+    CODA_ASSERT(s_hostname != NULL);
+    V_InitRPC(timeout);
+    V_BindToServer(s_hostname, &rpcid);
 
     this_argp = argv;
     these_args = argc;
@@ -298,6 +298,7 @@ int main(int argc, char **argv) {
 	printf("peek, poke, peeks, pokes, peekx, togglemalloc, pokex\n");
 	exit(-1);
     }
+
     return 0;
 }
 
@@ -603,11 +604,6 @@ static void VolDumpLWP(struct rockInfo *rock)
     /* Hide the dumpfile name under a rock for later retrieval. */
     CODA_ASSERT(LWP_NewRock(ROCKTAG, (char *)rock) == LWP_SUCCESS);
     
-    /* get encryption key for authentication */
-    tokfile = fopen(TKFile, "r");
-    fscanf(tokfile, "%s", vkey);
-    fclose(tokfile);
-
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = VOLDUMP_SUBSYSTEMID;
     CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
@@ -2034,14 +2030,15 @@ static void V_InitRPC(int timeout)
     long rcode;
 
     /* store authentication key */
-    tokfile = fopen(TKFile, "r");
+    tokfile = fopen(VolTKFile, "r");
     if (!tokfile) {
 	char estring[80];
-	sprintf(estring, "Tokenfile %s", TKFile);
+	sprintf(estring, "Tokenfile %s", VolTKFile);
 	perror(estring);
 	exit(-1);
     }
-    fscanf(tokfile, "%s", vkey);
+    memset(vkey, 0, RPC2_KEYSIZE);
+    read(tokfile, vkey, RPC2_KEYSIZE);
     fclose(tokfile);
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);

@@ -73,7 +73,7 @@ static void VolUtilLWP(int *);
 /* RPC key lookup routine */
 static long VolGetKey(RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
 
-static char vkey[RPC2_KEYSIZE+1];	/* Encryption key for bind authentication */
+static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
 
 /*
@@ -159,8 +159,9 @@ static void InitServer() {
     FILE *tokfile;
 
     /* get encryption key for authentication */
-    tokfile = fopen(TKFile, "r");
-    fscanf(tokfile, "%s", vkey);
+    tokfile = fopen(VolTKFile, "r");
+    memset(vkey, 0, RPC2_KEYSIZE);
+    read(tokfile, vkey, RPC2_KEYSIZE);
     fclose(tokfile);
 
     subsysid.Tag = RPC2_SUBSYSBYID;

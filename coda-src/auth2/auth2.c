@@ -102,8 +102,7 @@ RPC2_EncryptionKey TokenKey;	/* Used for encrypting server tokens;
 				    modified by SetKeys() routine; changed periodically  */
 int TokenTime = 0;	/* last modified time on TokenKey file	*/
 int AuthTime = 0;	/* last modified time for PDB		*/
-/*char DefKey[RPC2_KEYSIZE] = {'\146','\154','\141','\155','\151','\156','\147','\157'}; */
-static char *TKFile = "/vice/db/auth2.tk";	/* name of token key file */
+static char *Auth2TKFile = "/vice/db/auth2.tk";	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
 
 #define CODADB "/vice/db/coda.db"
@@ -212,7 +211,7 @@ static void InitGlobals(int argc, char **argv)
 
 	if (strcmp(argv[i], "-tk") == 0 && i < argc - 1)
 	    {
-	    TKFile = argv[++i];
+	    Auth2TKFile = argv[++i];
 	    continue;
 	    }
 	    
@@ -229,14 +228,10 @@ static void InitGlobals(int argc, char **argv)
 	fprintf(stderr, "Usage: auth2 [-r] [-chk] [-x debuglevel] ");
 
 #ifdef CODAAUTH
-	fprintf(stderr, "[-p pwfile] ");
+	fprintf(stderr, "[-p pwfile] [-fk filekey] ");
 #endif	/* CODAAUTH */
 
 	fprintf(stderr, "[-tk tokenkey] ");
-
-#ifdef CODAAUTH
-	fprintf(stderr, "[-fk filekey] ");
-#endif	/* CODAAUTH */
 
 	fprintf(stderr, "\n");
 
@@ -362,24 +357,21 @@ static void CheckTokenKey()
     {
     struct stat statbuf;
     FILE *tf;
-    char mykey[RPC2_KEYSIZE+1];
 
-    memset(mykey, 0, RPC2_KEYSIZE+1);
-
-    if(stat(TKFile, &statbuf))
+    if(stat(Auth2TKFile, &statbuf))
 	{
 	perror("stat failed for token key file");
 	exit(-1);
 	}
     if(TokenTime != statbuf.st_mtime) 
 	{
-	if ((tf = fopen(TKFile, "r")) == NULL)
+	if ((tf = fopen(Auth2TKFile, "r")) == NULL)
 	    {
-	    perror(TKFile);
+	    perror(Auth2TKFile);
 	    exit(-1);
 	    }
-	fgets(mykey, RPC2_KEYSIZE+1, tf);
-	bcopy(mykey, TokenKey, RPC2_KEYSIZE);
+	memset(TokenKey, 0, RPC2_KEYSIZE);
+	read(tf, TokenKey, RPC2_KEYSIZE);
 	TokenTime = statbuf.st_mtime;
 	fclose(tf);
 	}

@@ -1544,24 +1544,18 @@ static void NewParms(int initializing)
 static void InitServerKeys(char *fkey1, char *fkey2)
 {
     FILE                * tf;
-    char                  inkey[RPC2_KEYSIZE+1];
     RPC2_EncryptionKey    ptrkey1;
     RPC2_EncryptionKey    ptrkey2;
     int                   NoKey1 = 1;
     int                   NoKey2 = 1;
-
-    /* paranoia: no trash in the keys */
-    bzero((char *)ptrkey1, RPC2_KEYSIZE);
-    bzero((char *)ptrkey2, RPC2_KEYSIZE);
 
     tf = fopen(fkey1, "r");
     if( tf == NULL ) {
 	perror("could not open key 1 file");
     } else {
 	NoKey1 = 0;
-	bzero(inkey, sizeof(inkey));
-	fgets(inkey, RPC2_KEYSIZE+1, tf);
-	bcopy(inkey, (char *)ptrkey1, RPC2_KEYSIZE);
+	memset(ptrkey1, 0, RPC2_KEYSIZE);
+	read(tf, ptrkey1, RPC2_KEYSIZE);
 	fclose(tf);
     }
 
@@ -1570,9 +1564,8 @@ static void InitServerKeys(char *fkey1, char *fkey2)
 	perror("could not open key 2 file");
     } else {
         NoKey2 = 0;
-	bzero(inkey, sizeof(inkey));
-	fgets(inkey, RPC2_KEYSIZE+1, tf);
-	bcopy(inkey, (char *)ptrkey2, RPC2_KEYSIZE);
+	memset(ptrkey2, 0, RPC2_KEYSIZE);
+	read(tf, ptrkey2, RPC2_KEYSIZE);
 	fclose(tf);
     }
 

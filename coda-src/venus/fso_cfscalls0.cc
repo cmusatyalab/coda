@@ -78,14 +78,14 @@ void fsobj::FetchProgressIndicator(long offset)
     else if (offset == 0)           { last = 100; curr = 0; }
     else {
 	last = (stat.GotThisData * 100) / stat.Length;
-	curr = (offset * 100) / stat.Length;
+	curr = ((unsigned long)offset * 100) / stat.Length;
     }
 
     if (last != curr) {
 	MarinerLog("progress::fetching (%s) %lux\n", comp, curr);
     }
 
-    stat.GotThisData = offset;
+    stat.GotThisData = (unsigned long)offset;
 }
 
 int fsobj::Fetch(vuid_t vuid) {
