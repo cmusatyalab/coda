@@ -319,9 +319,11 @@ void userent::CheckTokenExpiry() {
      * during disconnections (when we cannot possibly obtain a new token)
      * The only thing we do here is warn the user of the impending doom. --JH */
 
-    if (curr_time >= clear.EndTimestamp && !told_you_so) {
-	eprint("Coda token for user %d has expired", uid);
-	told_you_so = 1;
+    if (curr_time >= clear.EndTimestamp) {
+	if (!told_you_so) {
+	    eprint("Coda token for user %d has expired", uid);
+	    told_you_so = 1;
+	}
 	//Invalidate();
     } else if (curr_time >= clear.EndTimestamp - 3600) {
 	timeleft = ((clear.EndTimestamp - curr_time) / 60) + 1;

@@ -157,11 +157,12 @@ long CheckResRetCodes(unsigned long *rc, unsigned long *rh,
 	    if (rc[i] == ETIMEDOUT) 
 		    hosts[i] = 0;
 	    if (rh[i] && rc[i] && rc[i] != ETIMEDOUT) {
-		    /* non rpc error - drop this host too */
-		    hosts[i] = 0;
+		    /* non rpc error - drop this host too
+		     * except if it has a runt. */
+		    if (rc[i] != VNOVNODE) hosts[i] = 0;
 		    error = rc[i];
 		    addr.s_addr = ntohl(rh[i]);
-		    SLog(0,  "CheckRetCodes: server %s returned error %d)",
+		    SLog(0,  "CheckRetCodes: server %s returned error %d",
 			 inet_ntoa(addr), rc[i]);
 	    }
 	    if ( result == 0 || result == VNOVNODE )

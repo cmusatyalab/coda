@@ -4144,9 +4144,15 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
     if (vptr->disk.type == vDirectory)
 	dirvptr->disk.linkCount++;
     dirvptr->disk.length = newlength;
-    dirvptr->disk.unixModifyTime = Mtime;
-    dirvptr->disk.author = client ? client->Id : 0;
     dirvptr->disk.dataVersion++;
+
+    /* If we are called from resolution (client == NULL), the mtime and author
+     * fields are already set correctly */
+    if (client) {
+	dirvptr->disk.unixModifyTime = Mtime;
+	dirvptr->disk.author = client->Id;
+    }
+
     if (ReplicatedOp) 
 	NewCOP1Update(volptr, dirvptr, StoreId, vsptr);
 
@@ -4157,8 +4163,9 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	    vptr->disk.linkCount = 1;
 	    vptr->disk.length = 0;
 	    vptr->disk.unixModifyTime = Mtime;
-	    vptr->disk.author = client ? client->Id : 0;
-	    vptr->disk.owner = client ? client->Id : 0;
+	    /* If resolving, inherit from the parent */
+	    vptr->disk.author = client ? client->Id : dirvptr->disk.author;
+	    vptr->disk.owner = client ? client->Id : dirvptr->disk.author;
 	    vptr->disk.modeBits = Mode;
 	    vptr->disk.vparent = Did.Vnode;
 	    vptr->disk.uparent = Did.Unique;
@@ -4168,45 +4175,45 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 
 	case OLDCML_Link_OP:
 	    vptr->disk.linkCount++;
-	    vptr->disk.author = client ? client->Id : 0;
+	    /* If resolving, inherit from the parent */
+	    vptr->disk.author = client ? client->Id : dirvptr->disk.author;
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	    PDirHandle cdh;
+	    vptr->disk.inodeNumber = 0;
+	    vptr->dh = 0;
+	    CODA_ASSERT(vptr->changed);
+
+	    /* Create the child directory. */
+	    cdh = VN_SetDirHandle(vptr);
+	    CODA_ASSERT(cdh);
+	    CODA_ASSERT(DH_MakeDir(cdh, &Fid, &Did) == 0);
+	    CODA_ASSERT(DC_Dirty(vptr->dh));
+
+	    vptr->disk.linkCount = 2;
+	    vptr->disk.length = DH_Length(cdh);
+	    vptr->disk.unixModifyTime = Mtime;
+	    /* If resolving, inherit from the parent */
+	    vptr->disk.author = client ? client->Id : dirvptr->disk.author;
+	    vptr->disk.owner = client ? client->Id : dirvptr->disk.owner;
+	    vptr->disk.modeBits = Mode;
+	    vptr->disk.vparent = Did.Vnode;
+	    vptr->disk.uparent = Did.Unique;
+	    vptr->disk.dataVersion = 1;
+	    InitVV(&Vnode_vv(vptr));
+
+	    /* Child inherits access list. */
 	    {
-		    PDirHandle cdh;
-		    vptr->disk.inodeNumber = 0;
-		    vptr->dh = 0;
-		    CODA_ASSERT(vptr->changed);
+		AL_AccessList *aCL = 0;
+		int aCLSize = 0;
+		SetAccessList(dirvptr, aCL, aCLSize);
 
-		    /* Create the child directory. */
-		    cdh = VN_SetDirHandle(vptr);
-		    CODA_ASSERT(cdh);
-		    CODA_ASSERT(DH_MakeDir(cdh, &Fid, &Did) == 0);
-		    CODA_ASSERT(DC_Dirty(vptr->dh));
+		AL_AccessList *newACL = 0;
+		int newACLSize = 0;
+		SetAccessList(vptr, newACL, newACLSize);
 
-		    vptr->disk.linkCount = 2;
-		    vptr->disk.length = DH_Length(cdh);
-		    vptr->disk.unixModifyTime = Mtime;
-		    vptr->disk.author = client ? client->Id : 0;
-		    vptr->disk.owner = client ? client->Id : 0;
-		    vptr->disk.modeBits = Mode;
-		    vptr->disk.vparent = Did.Vnode;
-		    vptr->disk.uparent = Did.Unique;
-		    vptr->disk.dataVersion = 1;
-		    InitVV(&Vnode_vv(vptr));
-
-		    /* Child inherits access list. */
-		    {
-			    AL_AccessList *aCL = 0;
-			    int aCLSize = 0;
-			    SetAccessList(dirvptr, aCL, aCLSize);
-			    
-			    AL_AccessList *newACL = 0;
-			    int newACLSize = 0;
-			    SetAccessList(vptr, newACL, newACLSize);
-
-			    bcopy((char *)aCL, (char *)newACL, aCLSize);
-		    }
+		bcopy((char *)aCL, (char *)newACL, aCLSize);
 	    }
 	    break;
 
@@ -4215,8 +4222,9 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	    vptr->disk.linkCount = 1;
 	    vptr->disk.length = Length;
 	    vptr->disk.unixModifyTime = Mtime;
-	    vptr->disk.author = client ? client->Id : 0;
-	    vptr->disk.owner = client ? client->Id : 0;
+	    /* If resolving, inherit from the parent */
+	    vptr->disk.author = client ? client->Id : dirvptr->disk.author;
+	    vptr->disk.owner = client ? client->Id : dirvptr->disk.owner;
 	    vptr->disk.modeBits = Mode;
 	    vptr->disk.vparent = Did.Vnode;
 	    vptr->disk.uparent = Did.Unique;

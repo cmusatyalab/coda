@@ -285,7 +285,7 @@ sub Notify {
 
 sub Message {
     my $msg = @_[0];
-    open( CFD, "|". $message ) || die "Cannot open pipe to $notify\n";
+    open( CFD, "|". $message ) || die "Cannot open pipe to $message\n";
     print CFD $msg;
     close CFD;
     print "Message sent: @_";

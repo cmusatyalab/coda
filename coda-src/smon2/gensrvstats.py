@@ -171,7 +171,7 @@ timemap = {
 
 try:
     form = cgi.FieldStorage()
-    if not form.has_key("servers") and form.has_key("stats"):
+    if not form.has_key("servers") or not form.has_key("stats"):
 	raise hell
     
     servers = form["servers"]
