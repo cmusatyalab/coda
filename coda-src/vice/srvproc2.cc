@@ -117,49 +117,6 @@ static void PrintUnusedComplaint(RPC2_Handle, RPC2_Integer, char *);
 
 
 /*
-  ViceConnectFS: Client request to connect to file server
-*/ 
-long FS_ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, 
-		   ViceClient *ClientId)
-{
-	long errorCode;
-	ClientEntry *client = NULL;
-	
-	SLog(1, "FS_ViceConnectFS (version %d) for user %s at %s.%s",
-	     ViceVersion, ClientId->UserName, ClientId->WorkStationName, 
-	     ClientId->VenusName);
-
-	errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
-
-	if (!client) 
-		SLog(0, "No client structure built by ViceNewConnection");
-	
-	if (!errorCode && client) {
-		/* set up a callback channel 
-		   if there isn't one for this host */
-		if (client->VenusId->id == 0) {
-			SLog(0, "Building callback conn.");
-			errorCode = CLIENT_MakeCallBackConn(client);
-		} else {
-			errorCode = CallBack(client->VenusId->id, &NullFid);
-			if ( errorCode  != RPC2_SUCCESS ) {
-				/* XXX tear down naked connection */
-				errorCode = CLIENT_MakeCallBackConn(client);
-			}
-		}			
-	}
-	if (errorCode)
-		CLIENT_CleanUpHost(client->VenusId);
-
-
-	SLog(2, "FS_ViceConnectFS returns %s", 
-	       ViceErrorMsg((int) errorCode));
-
-	return(errorCode);
-}
-
-
-/*
   ViceDisconnectFS: Client request for termination
 */
 long FS_ViceDisconnectFS(RPC2_Handle RPCid)
@@ -805,7 +762,7 @@ static void SetViceStats(ViceStatistics *stats)
     seconds = Counters[FETCHTIME]/1000;
     if(seconds <= 0) seconds = 1;
     stats->FetchDataRate = Counters[FETCHDATA]/seconds;
-    stats->TotalStores = Counters[ViceNewStore_OP] + Counters[ViceNewVStore_OP];
+    stats->TotalStores = Counters[ViceNewVStore_OP];
     stats->StoreDatas = Counters[STOREDATAOP];
     stats->StoredBytes = Counters[STOREDATA];
     seconds = Counters[STORETIME]/1000;
@@ -1083,7 +1040,40 @@ long FS_ViceDisableGroup(RPC2_Handle cid, RPC2_String GroupName)
 long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, 
 			 ViceClient *ClientId)
 {
-    return(FS_ViceConnectFS(RPCid, ViceVersion, ClientId));
+    long errorCode;
+    ClientEntry *client = NULL;
+
+    SLog(1, "FS_ViceNewConnectFS (version %d) for user %s at %s.%s",
+         ViceVersion, ClientId->UserName, ClientId->WorkStationName, 
+         ClientId->VenusName);
+
+    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+
+    if (!client) 
+        SLog(0, "No client structure built by ViceNewConnection");
+
+    if (!errorCode && client) {
+        /* set up a callback channel 
+           if there isn't one for this host */
+        if (client->VenusId->id == 0) {
+            SLog(0, "Building callback conn.");
+            errorCode = CLIENT_MakeCallBackConn(client);
+        } else {
+            errorCode = CallBack(client->VenusId->id, &NullFid);
+            if ( errorCode  != RPC2_SUCCESS ) {
+                /* XXX tear down naked connection */
+                errorCode = CLIENT_MakeCallBackConn(client);
+            }
+        }			
+    }
+    if (errorCode)
+        CLIENT_CleanUpHost(client->VenusId);
+
+
+    SLog(2, "FS_ViceNewConnectFS returns %s", 
+         ViceErrorMsg((int) errorCode));
+
+    return(errorCode);
 }
 
 

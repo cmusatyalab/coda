@@ -258,5 +258,4 @@ void  UnboostSharedLock(struct Lock *lock)
 	if((lock)->wait_states)
 		Lock_ReleaseR(lock);
 }
-
-#endif 0
+#endif

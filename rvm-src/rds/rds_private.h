@@ -211,4 +211,4 @@ void coalesce();
     }
 #endif
 
-#endif _RDS_PRIVATE_H_
+#endif /* _RDS_PRIVATE_H_ */

@@ -66,7 +66,7 @@ rvm_return_t rvm_initialize(char *rvm_version, rvm_options_t *rvm_options)
 #ifdef RVM_USEPT
     /* have to init the init_lock */
     mutex_init(&init_lock);
-#endif RVM_USEPT
+#endif
     rvm_debug(0);                       /* only causes module loading */
     if (strcmp(rvm_version,RVM_VERSION) != 0)
         return RVM_EVERSION_SKEW;       /* version skew */

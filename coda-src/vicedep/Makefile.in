@@ -48,21 +48,15 @@ INCLPATH= .:$(srcdir)
 INCLFLAGS = -I. -I$(srcdir)
 CFLAGS := -g -MD -I. -I$(srcdir) -I$(srcdir)/../rpc2 -I$(srcdir)/../../lib-src/mlwp -I../rpc2
 
-
-
 RP2FILES = callback.rpc2 res.rpc2   vice.rpc2 volutil.rpc2 \
 	      voldump.rpc2 mond.rpc2 adsrv.rpc2 admon.rpc2
 RP2CLOBJ = $(notdir ${RP2FILES:.rpc2=.client.o})
 RP2SROBJ = $(notdir ${RP2FILES:.rpc2=.server.o})
-RP2MUOBJ = $(notdir ${RP2FILES:.rpc2=.multi.o})
-RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
+RP2MUOBJ = $(notdir ${RP2FILES:.rpc2=.multi.o}) cml.multi.o
+RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h}) cml.h
 HEADERS = venusioctl.h srv.h operations.h recov_vollog.h vcrcommon.h
-
-
 LIBRARIES = libvicedep.a
 
-all: 
+include $(TOPDIR)/configs/Makerules
 
 libvicedep.a: $(RP2CLOBJ) $(RP2SROBJ)  $(RP2MUOBJ)
-
-include $(TOPDIR)/configs/Makerules

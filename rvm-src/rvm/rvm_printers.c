@@ -64,7 +64,9 @@ static int pr_offset(offset,stream)
     return tot_chars;
     }
 
-/* print time value */
+
+#ifdef UNUSED_FUNCTIONS
+/* print time value */
 static int pr_timeval(out_stream,timestamp,usec)
     FILE            *out_stream;
     struct timeval  *timestamp;         /* timeval to print */
@@ -82,6 +84,8 @@ static int pr_timeval(out_stream,timestamp,usec)
 
     return err;
     }
+#endif
+
 /* histogram value printer -- handles placement of <= for definition values */
 static int pr_histo_val(out_stream,val,width,is_def,gtr,us)
     FILE            *out_stream;        /* target stream */
@@ -218,7 +222,7 @@ static rvm_return_t pr_trans_stats(stats,out_stream,n_trans,tot_trans)
     if (err == EOF) return RVM_EIO;
     err = fprintf(out_stream,
                   "  Unflushed transactions length:  %10ld\n",
-                  stats->no_flush_length);
+                  RVM_OFFSET_TO_LENGTH(stats->no_flush_length));
     if (err == EOF) return RVM_EIO;
     err = fprintf(out_stream,
                   "  Not committed:                  %10ld\n",

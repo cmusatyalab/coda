@@ -33,7 +33,7 @@ listed in the file CREDITS.
 #include "rvm_private.h"
 #ifdef RVM_LOG_TAIL_BUG
 #include <rvmtesting.h>
-#endif RVM_LOG_TAIL_BUG
+#endif
 
 #ifdef DJGPP
 #include <crt0.h>
@@ -277,6 +277,7 @@ static unsigned intval(c)
         return (unsigned)c - (unsigned)'a' + 10;
     }
 
+#ifdef UNUSED_FUNCTIONS
 /* character substitution: locate all occurances of c1, change to c2 */
 static void change_to(c1,c2,str)
     char            c1;                 /* target character */
@@ -292,6 +293,8 @@ static void change_to(c1,c2,str)
         i++;
         }
     }
+#endif
+
 /* similar to ANSI function, but returns base used */
 static unsigned long str2ul(str,ptr,base_used)
     char            *str;               /* ptr to conversion string */
@@ -1952,7 +1955,9 @@ static void print_hdr_type(out_stream,rec_hdr)
 	        (unsigned)rec_hdr->struct_id);
         }
     }    
-/* print record summary */
+
+#ifdef UNUSED_FUNCTIONS
+/* print record summary */
 static void print_rec_summary(out_stream,rec_hdr,cur_msg,direction,print)
     FILE            *out_stream;        /* output stream */
     rec_hdr_t       *rec_hdr;           /* generic record header */
@@ -1971,7 +1976,7 @@ static void print_rec_summary(out_stream,rec_hdr,cur_msg,direction,print)
     if (!chk_hdr_sequence(log,rec_hdr,direction))
 	fprintf(out_stream,"** Record number is out of sequence **\n");
 }
-    
+#endif
 /* record header printer */
 static void print_rec_hdr(out_stream,rec_hdr,cur_msg)
     FILE            *out_stream;        /* output stream */
@@ -2217,6 +2222,7 @@ static void print_cur_rec(out_stream,err_stream)
     print_rec(out_stream,err_stream,rec_hdr,NULL);
     }
 
+#ifdef UNUSED_FUNCTIONS
 /* Print a summary of the current log record: one line */
 static void print_cur_summary(out_stream,err_stream,direction,print)
     FILE            *out_stream;        /* output stream */
@@ -2232,6 +2238,7 @@ static void print_cur_summary(out_stream,err_stream,direction,print)
     /* print record */
     print_rec_summary(out_stream,rec_hdr,NULL,direction,print);
 }
+#endif
 /* log sub record printer */
 static void print_cur_sub_rec(out_stream,err_stream)
     FILE            *out_stream;        /* output stream */
@@ -4105,7 +4112,9 @@ static rvm_length_t get_file_length(out_stream,prompt)
 
     return log_len;
     }
-/* device length lookup */
+
+#ifdef UNUSED_FUNCTIONS
+/* device length lookup */
 static rvm_length_t get_dev_length(dev_name)
     char            *dev_name;           /* device name string */
     {
@@ -4117,6 +4126,7 @@ static rvm_length_t get_dev_length(dev_name)
 
     return log_len;
     }
+#endif
 /* init_log command support */
 static rvm_bool_t do_init_log()
     {
@@ -4331,7 +4341,7 @@ static rvm_bool_t do_find_hole()
 	rec_hdr = set_log_position();
 
 	/* Do something */
-	/*/* XXX ! */
+	/* XXX ! */
 	if (chk_sigint(stdout)) return rvm_true;
     }
     return rvm_true;
@@ -5063,7 +5073,9 @@ sig_exit:
     rvm_replay = rvm_false;
     return bool_ret;
     }
-/* re-write log buffer contents */
+
+#ifdef UNUSED_FUNCTIONS
+/* re-write log buffer contents */
 static rvm_bool_t do_write_log_buf()
     {
     long            retval;
@@ -5080,6 +5092,7 @@ static rvm_bool_t do_write_log_buf()
 
     return rvm_true;
     }
+#endif
 /* copy log file/partition to file/partition */
 static rvm_bool_t do_copy_log()
     {
@@ -5470,7 +5483,9 @@ static void do_commands(new_file)
         *cmd_cur = '\0';                /* force reading new line */
         }
     }
-/* command line working directory switch function */
+
+#ifdef UNUSED_FUNCTIONS
+/* command line working directory switch function */
 static rvm_bool_t do_wd_sw(argc,argv)
     int             argc;
     char            *argv[];
@@ -5484,6 +5499,7 @@ static rvm_bool_t do_wd_sw(argc,argv)
 
     return rvm_true;
     }
+#endif
 /* command line switches */
 
 #define MAX_CMD_SWS     32
@@ -5549,7 +5565,7 @@ int
     signal(SIGINT,sigint_handler);
 #ifdef RVM_LOG_TAIL_BUG
     signal(SIGBUS,my_sigBus__FiT1P10sigcontext);
-#endif RVM_LOG_TAIL_BUG
+#endif
     /* process command line switches */
     args = 1;
     do_cmd_switches(argc,argv);

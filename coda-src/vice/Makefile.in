@@ -81,7 +81,6 @@ objects=srvproc.o	\
 	clientproc.o	\
 	vicecb.o	\
 	smon.o		\
-	obsolete.o      \
 	ViceErrorMsg.o	
 
 codasrv: ${objects} srv.o dummyplumber.o ${CLIBS}

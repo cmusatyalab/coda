@@ -45,7 +45,7 @@ Pittsburgh, PA.
 
 char semaphore;
 
-void OtherProcess()
+void OtherProcess(void)
     {
     for(;;)
 	{

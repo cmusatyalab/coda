@@ -88,14 +88,14 @@ class rwsent;
 enum VolLockType { EXCLUSIVE, SHARED };
 
 /* XXX These should be in vice.h! */
-#define	ViceTruncate_OP	    100
-#define	ViceTruncate_PTR    ViceNewStore_PTR
-#define	ViceUtimes_OP	    101
-#define	ViceUtimes_PTR	    ViceNewStore_PTR
-#define	ViceChown_OP	    102
-#define	ViceChown_PTR	    ViceNewStore_PTR
-#define	ViceChmod_OP	    103
-#define	ViceChmod_PTR	    ViceNewStore_PTR
+#define	OLDCML_Truncate_OP	100
+#define	OLDCML_Truncate_PTR	OLDCML_NewStore_PTR
+#define	OLDCML_Utimes_OP	101
+#define	OLDCML_Utimes_PTR	OLDCML_NewStore_PTR
+#define	OLDCML_Chown_OP	        102
+#define	OLDCML_Chown_PTR	OLDCML_NewStore_PTR
+#define	OLDCML_Chmod_OP	        103
+#define	OLDCML_Chmod_PTR	OLDCML_NewStore_PTR
 
 
 /*  *****  Constants  *****  */
@@ -1160,19 +1160,19 @@ extern void ReportVCBEvent(VCBEventType, VolumeId, vcbevent * =NULL);
 				 (mode) & VM_MUTATING ? "Mutating" :\
 				 (mode) & VM_RESOLVING ? "Resolving" :\
 				 "???")
-#define	PRINT_MLETYPE(op) ((op) == ViceNewStore_OP ? "Store" :\
-			    (op) == ViceTruncate_OP ? "Truncate" :\
-			    (op) == ViceUtimes_OP ? "Utimes" :\
-			    (op) == ViceChown_OP ? "Chown" :\
-			    (op) == ViceChmod_OP ? "Chmod" :\
-			    (op) == ViceCreate_OP ? "Create" :\
-			    (op) == ViceRemove_OP ? "Remove" :\
-			    (op) == ViceLink_OP ? "Link" :\
-			    (op) == ViceRename_OP ? "Rename" :\
-			    (op) == ViceMakeDir_OP ? "Mkdir" :\
-			    (op) == ViceRemoveDir_OP ? "Rmdir" :\
-			    (op) == ViceSymLink_OP ? "Symlink" :\
-			    (op) == ViceRepair_OP ? "Repair" :\
+#define	PRINT_MLETYPE(op) ((op) == OLDCML_NewStore_OP ? "Store" :\
+			    (op) == OLDCML_Truncate_OP ? "Truncate" :\
+			    (op) == OLDCML_Utimes_OP ? "Utimes" :\
+			    (op) == OLDCML_Chown_OP ? "Chown" :\
+			    (op) == OLDCML_Chmod_OP ? "Chmod" :\
+			    (op) == OLDCML_Create_OP ? "Create" :\
+			    (op) == OLDCML_Remove_OP ? "Remove" :\
+			    (op) == OLDCML_Link_OP ? "Link" :\
+			    (op) == OLDCML_Rename_OP ? "Rename" :\
+			    (op) == OLDCML_MakeDir_OP ? "Mkdir" :\
+			    (op) == OLDCML_RemoveDir_OP ? "Rmdir" :\
+			    (op) == OLDCML_SymLink_OP ? "Symlink" :\
+			    (op) == OLDCML_Repair_OP ? "Repair" :\
 			    "???")
 
 

@@ -246,8 +246,12 @@ typedef RPC2_Struct
 }	ViceReintHandle;
 
 
-1: ViceConnectFS	(IN RPC2_Unsigned ViceVersion,
-		 In ViceClient ClientId);
+ViceNewConnection (IN RPC2_Integer SideEffectType,
+		   IN RPC2_Integer SecurityLevel,
+		   IN RPC2_Integer EncryptionType,
+   		   IN RPC2_Integer AuthType,
+		   IN RPC2_CountedBS ClientIdent)
+		   NEW_CONNECTION;
 
 2: ViceFetch	(IN ViceFid Fid,
 		 IN ViceFid BidFid,
@@ -258,84 +262,11 @@ typedef RPC2_Struct
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
-4: ViceRemove	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus DirStatus,
-		 IN OUT ViceStatus Status,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-5: ViceCreate	(IN ViceFid Did,
-		 IN ViceFid BidFid,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceFid Fid,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-		 
-6: ViceRename	(IN ViceFid OldDid,
-		 IN RPC2_String OldName,
-		 IN ViceFid NewDid,
-		 IN RPC2_String NewName,
-		 IN OUT ViceStatus OldDirStatus,
-		 IN OUT ViceStatus NewDirStatus,
-		 IN OUT ViceStatus SrcStatus,
-		 IN OUT ViceStatus TgtStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-7: ViceSymLink	(IN ViceFid Did,
-		 IN RPC2_String OldName,
-		 IN RPC2_String NewName,
-		 IN OUT ViceFid Fid,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-8: ViceLink	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN ViceFid Fid,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
-9: ViceMakeDir	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceFid NewDid,
-		 IN OUT ViceStatus DirStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-		 
-10: ViceRemoveDir	(IN ViceFid Did,
-		 IN RPC2_String Name,
-		 IN OUT ViceStatus Status,
-		 IN OUT ViceStatus TgtStatus,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2);
-
 11: ViceRemoveCallBack (IN RPC2_CountedBS RCBBS);
 
 15: ViceGetRootVolume (IN OUT RPC2_BoundedBS Volume);
 
 16: ViceSetRootVolume (IN RPC2_String Volume);
-
-ViceNewConnection (IN RPC2_Integer SideEffectType,
-		   IN RPC2_Integer SecurityLevel,
-		   IN RPC2_Integer EncryptionType,
-   		   IN RPC2_Integer AuthType,
-		   IN RPC2_CountedBS ClientIdent)
-		   NEW_CONNECTION;
 
 17: ViceGetVolumeStatus (IN VolumeId Vid,
 		     IN OUT VolumeStatus Status,
@@ -494,17 +425,6 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 OUT RPC2_Integer NewVS,
 		 OUT CallBackStatus VCBStatus,
 		 IN RPC2_CountedBS PiggyCOP2);
-
-52: ViceNewStore	(IN ViceFid Fid,
-		 IN ViceStoreType Request,
-		 IN OUT RPC2_CountedBS AccessList,
-		 IN OUT ViceStatus Status,
-		 IN RPC2_Integer Length,
-		 IN RPC2_Integer Mask,
-		 IN RPC2_Unsigned PrimaryHost,
-		 IN ViceStoreId StoreId,
-		 IN RPC2_CountedBS PiggyCOP2,
-		 IN OUT SE_Descriptor BD);
 
 53: ViceNewVStore	(IN ViceFid Fid,
 		 IN ViceStoreType Request,

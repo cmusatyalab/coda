@@ -46,6 +46,8 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 
+/* interfaces */
+#include <cml.h>
 
 /* ********** beginning of misc routines ********** */
 static int filecopy(int here, int there)
@@ -169,7 +171,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
     vuid_t vuid = CRTORUID(vp->u.u_cred);
     
     switch (opcode) {
-    case ViceNewStore_OP:
+    case OLDCML_NewStore_OP:
 	fid = &u.u_store.Fid;
 	LOG(100, ("cmlent::CheckRepair: Store on 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
 
@@ -218,7 +220,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_OVER_WRITE;
 	}
 	break;
-    case ViceUtimes_OP:
+    case OLDCML_Utimes_OP:
 	fid = &u.u_utimes.Fid;
 	LOG(100, ("cmlent::CheckRepair: Utimes on 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
 
@@ -267,7 +269,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_OVER_WRITE;
 	}
 	break;
-    case ViceChown_OP:
+    case OLDCML_Chown_OP:
 	fid = &u.u_chown.Fid;
 	LOG(100, ("cmlent::CheckRepair: Chown on 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
 
@@ -316,7 +318,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_OVER_WRITE;
 	}
 	break;
-    case ViceChmod_OP:
+    case OLDCML_Chmod_OP:
 	fid = &u.u_chmod.Fid;
 	LOG(100, ("cmlent::CheckRepair: Chmod on 0x%x.%x.%x\n", fid->Volume, fid->Vnode, fid->Unique));
 
@@ -365,7 +367,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_OVER_WRITE;
 	}
 	break;
-    case ViceCreate_OP:
+    case OLDCML_Create_OP:
 	fid = &u.u_create.PFid;
 	LOG(100, ("cmlent::CheckRepair: Create (%s) under 0x%x.%x.%x\n", (char *)u.u_create.Name,
 		  fid->Volume, fid->Vnode, fid->Unique));
@@ -412,7 +414,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_FAILURE;
 	}
 	break;
-    case ViceLink_OP:
+    case OLDCML_Link_OP:
 	/* we need to check both the parent and the child here */
 	fid = &u.u_link.PFid;
 	LOG(100, ("cmlent::CheckRepair: Link %s under 0x%x.%x.%x\n", (char *)u.u_link.Name,
@@ -490,7 +492,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_FAILURE;
 	}
 	break;	
-    case ViceSymLink_OP:
+    case OLDCML_SymLink_OP:
 	fid = &u.u_symlink.PFid;
 	LOG(100, ("cmlent::CheckRepair: Symlink (%s->%s) under 0x%x.%x.%x\n", (char *)u.u_symlink.NewName,
 		  (char *)u.u_symlink.OldName, fid->Volume, fid->Vnode, fid->Unique));
@@ -537,7 +539,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_FAILURE;
 	}
 	break;
-    case ViceMakeDir_OP:
+    case OLDCML_MakeDir_OP:
 	fid = &u.u_mkdir.PFid;
 	LOG(100, ("cmlent::CheckRepair: Mkdir (%s) under 0x%x.%x.%x\n", (char *)u.u_mkdir.Name,
 		  fid->Volume, fid->Vnode, fid->Unique));
@@ -584,7 +586,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_FAILURE;
 	}
 	break;
-    case ViceRemove_OP:
+    case OLDCML_Remove_OP:
 	fid = &u.u_remove.PFid;
 	LOG(100, ("cmlent::CheckRepair: Remove (%s) under 0x%x.%x.%x\n", (char *)u.u_remove.Name,
 		  fid->Volume, fid->Vnode, fid->Unique));
@@ -662,7 +664,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_FORCE_REMOVE;
 	}	
 	break;
-    case ViceRemoveDir_OP:
+    case OLDCML_RemoveDir_OP:
 	fid = &u.u_rmdir.PFid;
 	LOG(100, ("cmlent::CheckRepair: RemoveDir (%s) on 0x%x.%x.%x\n", (char *)u.u_rmdir.Name,
 		  fid->Volume, fid->Vnode, fid->Unique));
@@ -748,7 +750,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_FORCE_REMOVE;
 	}	
 	break;
-    case ViceRename_OP:
+    case OLDCML_Rename_OP:
 	fid = &u.u_rename.SPFid;
 	LOG(100, ("cmlent::CheckRepair: Rename (%s) from 0x%x.%x.%x\n", (char *)u.u_rename.OldName,
 		  fid->Volume, fid->Vnode, fid->Unique));
@@ -868,7 +870,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 	    *rcode = REPAIR_FAILURE;
 	}
 	break;
-    case ViceRepair_OP:
+    case OLDCML_Repair_OP:
 	fid = &u.u_repair.Fid;
 	LOG(0, ("cmlent::CheckRepair: Disconnected Repair on 0x%x.%x.%x\n",
 		fid->Volume, fid->Vnode, fid->Unique));
@@ -895,7 +897,7 @@ int cmlent::DoRepair(char *msg, int rcode)
     fsobj *GPObj, *LPObj;
     char GlobalPath[MAXPATHLEN], LocalPath[MAXPATHLEN];
     switch (opcode) {
-    case ViceNewStore_OP:
+    case OLDCML_NewStore_OP:
 	{  /* 
 	    * copy the cache file of the local object into the cache file 
 	    * file of the global, then s Store call on the global object.
@@ -943,7 +945,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceChmod_OP:
+    case OLDCML_Chmod_OP:
 	{   
 	    fid = &u.u_chmod.Fid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
@@ -967,7 +969,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceChown_OP:
+    case OLDCML_Chown_OP:
 	{   fid = &u.u_chown.Fid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -991,7 +993,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceUtimes_OP:
+    case OLDCML_Utimes_OP:
 	{   
 	    fid = &u.u_chown.Fid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
@@ -1015,7 +1017,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceCreate_OP:
+    case OLDCML_Create_OP:
 	{   /* do fid replacement after the creation succeeded. */
 	    fid = &u.u_create.PFid;
 	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
@@ -1047,7 +1049,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceLink_OP:
+    case OLDCML_Link_OP:
 	{   
 	    fid = &u.u_link.PFid;
 	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
@@ -1078,7 +1080,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceMakeDir_OP:
+    case OLDCML_MakeDir_OP:
 	{   
 	    fid = &u.u_link.PFid;
 	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
@@ -1110,7 +1112,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceSymLink_OP:
+    case OLDCML_SymLink_OP:
 	{   
 	    fid = &u.u_symlink.PFid;
 	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
@@ -1145,7 +1147,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceRemove_OP:
+    case OLDCML_Remove_OP:
 	{   
 	    fid = &u.u_remove.PFid;
 	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
@@ -1175,7 +1177,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceRemoveDir_OP:
+    case OLDCML_RemoveDir_OP:
 	{   
 	    fid = &u.u_rmdir.PFid;
 	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
@@ -1205,7 +1207,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceRename_OP:
+    case OLDCML_Rename_OP:
 	{   
 	    fsobj *GSPObj, *LSPObj;
 	    fsobj *GTPObj, *LTPObj;
@@ -1259,7 +1261,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    break;
 	}
-    case ViceRepair_OP:
+    case OLDCML_Repair_OP:
 	{
 	    fid = &u.u_repair.Fid;
 	    LOG(0, ("cmlent::DoRepair: Disconnected Repair on 0x%x.%x.%x\n",
@@ -1277,67 +1279,67 @@ void cmlent::GetLocalOpMsg(char *msg)
 {
     OBJ_ASSERT(this, msg);
     switch (opcode) {
-    case ViceNewStore_OP:
+    case OLDCML_NewStore_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_store.Fid, log, this);
 		sprintf(msg, "store %s", path);
 		break;
 	}
-    case ViceChmod_OP:
+    case OLDCML_Chmod_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_chmod.Fid, log, this);
 		sprintf(msg, "chmod %s", path);
 		break;
 	}
-    case ViceChown_OP:
+    case OLDCML_Chown_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_chown.Fid, log, this);
 		sprintf(msg, "chown %s", path);
 		break;
 	}
-    case ViceUtimes_OP:
+    case OLDCML_Utimes_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_utimes.Fid, log, this);
 		sprintf(msg, "setattr %s", path);
 		break;
 	}
-    case ViceCreate_OP:
+    case OLDCML_Create_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_create.CFid, log, this);
 		sprintf(msg, "create %s", path);
 		break;
 	}
-    case ViceLink_OP:
+    case OLDCML_Link_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_link.CFid, log, this);
 		sprintf(msg, "link %s", path);
 		break;
 	}
-    case ViceMakeDir_OP:
+    case OLDCML_MakeDir_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_mkdir.CFid, log, this);
 		sprintf(msg, "mkdir %s", path);
 		break;
 	}
-    case ViceSymLink_OP:
+    case OLDCML_SymLink_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_symlink.CFid, log, this);
 		sprintf(msg, "symlink %s --> %s", path, (char *)u.u_symlink.NewName);
 		break;
 	}
-    case ViceRemove_OP:
+    case OLDCML_Remove_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_remove.CFid, log, this);
 		sprintf(msg, "remove %s", path);
 		break;
 	}
-    case ViceRemoveDir_OP:
+    case OLDCML_RemoveDir_OP:
 	{	char path[MAXPATHLEN];
 		RecoverPathName(path, &u.u_rmdir.CFid, log, this);
 		sprintf(msg, "rmdir %s", path);
 		break;
 	}
-    case ViceRename_OP:
+    case OLDCML_Rename_OP:
 	{	char sppath[MAXPATHLEN];
 		char tppath[MAXPATHLEN];
 		RecoverPathName(sppath, &u.u_rename.SPFid, log, this);
@@ -1346,7 +1348,7 @@ void cmlent::GetLocalOpMsg(char *msg)
 			tppath, (char *)u.u_rename.NewName);
 		break;
 	}
-    case ViceRepair_OP:
+    case OLDCML_Repair_OP:
 	{	ViceFid *fid = &u.u_repair.Fid;
 		LOG(0, ("cmlent::GetLocalOpMsg: Disconnected Repair on 0x%x.%x.%x\n",
 			fid->Volume, fid->Vnode, fid->Unique));
@@ -1451,47 +1453,47 @@ void cmlent::GetVVandFids(ViceVersionVector *vvs[], ViceFid *fids[])
     fids[0] = 0; fids[1] = 0; fids[2] = 0;
     vvs[0] = 0; vvs[1] = 0; vvs[2] = 0;
     switch(opcode) {
-        case ViceNewStore_OP:
+        case OLDCML_NewStore_OP:
 	    fids[0] = &u.u_store.Fid;
 	    vvs[0] = &u.u_store.VV;
 	    break;
 
-	case ViceUtimes_OP:
+	case OLDCML_Utimes_OP:
 	    fids[0] = &u.u_utimes.Fid;
 	    vvs[0] = &u.u_utimes.VV;
 	    break;
 
-	case ViceChown_OP:
+	case OLDCML_Chown_OP:
 	    fids[0] = &u.u_chown.Fid;
 	    vvs[0] = &u.u_chown.VV;
 	    break;
 
-	case ViceChmod_OP:
+	case OLDCML_Chmod_OP:
 	    fids[0] = &u.u_chmod.Fid;
 	    vvs[0] = &u.u_chmod.VV;
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    fids[0] = &u.u_create.PFid;
 	    vvs[0] = &u.u_create.PVV;
 	    fids[1] = &u.u_create.CFid;
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    fids[0] = &u.u_remove.PFid;
 	    vvs[0] = &u.u_remove.PVV;
 	    fids[1] = &u.u_remove.CFid;
 	    vvs[1] = &u.u_remove.CVV;
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    fids[0] = &u.u_link.PFid;
 	    vvs[0] = &u.u_link.PVV;
 	    fids[1] = &u.u_link.CFid;
 	    vvs[1] = &u.u_link.CVV;
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    fids[0] = &u.u_rename.SPFid;
 	    vvs[0] = &u.u_rename.SPVV;
 	    fids[1] = &u.u_rename.SFid;
@@ -1502,26 +1504,26 @@ void cmlent::GetVVandFids(ViceVersionVector *vvs[], ViceFid *fids[])
 	    }
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    fids[0] = &u.u_mkdir.PFid;
 	    vvs[0] = &u.u_mkdir.PVV;
 	    fids[1] = &u.u_mkdir.CFid;
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    fids[0] = &u.u_rmdir.PFid;
 	    vvs[0] = &u.u_rmdir.PVV;
 	    fids[1] = &u.u_rmdir.CFid;
 	    vvs[1] = &u.u_rmdir.CVV;
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    fids[0] = &u.u_symlink.PFid;
 	    vvs[0] = &u.u_symlink.PVV;
 	    fids[1] = &u.u_symlink.CFid;
 	    break;
 
-        case ViceRepair_OP:
+        case OLDCML_Repair_OP:
 	    fids[0] = &u.u_repair.Fid;
 	    break;
 	default:
@@ -1534,59 +1536,59 @@ void cmlent::GetAllFids(ViceFid *fids[])
 {
     fids[0] = 0; fids[1] = 0; fids[2] = 0;
     switch(opcode) {
-        case ViceNewStore_OP:
+        case OLDCML_NewStore_OP:
 	    fids[0] = &u.u_store.Fid;
 	    break;
 
-	case ViceUtimes_OP:
+	case OLDCML_Utimes_OP:
 	    fids[0] = &u.u_utimes.Fid;
 	    break;
 
-	case ViceChown_OP:
+	case OLDCML_Chown_OP:
 	    fids[0] = &u.u_chown.Fid;
 	    break;
 
-	case ViceChmod_OP:
+	case OLDCML_Chmod_OP:
 	    fids[0] = &u.u_chmod.Fid;
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    fids[0] = &u.u_create.PFid;
 	    fids[1] = &u.u_create.CFid;
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    fids[0] = &u.u_remove.PFid;
 	    fids[1] = &u.u_remove.CFid;
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    fids[0] = &u.u_link.PFid;
 	    fids[1] = &u.u_link.CFid;
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    fids[0] = &u.u_rename.SPFid;
 	    fids[1] = &u.u_rename.SFid;
 	    fids[2] = &u.u_rename.TPFid;
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    fids[0] = &u.u_mkdir.PFid;
 	    fids[1] = &u.u_mkdir.CFid;
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    fids[0] = &u.u_rmdir.PFid;
 	    fids[1] = &u.u_rmdir.CFid;
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    fids[0] = &u.u_symlink.PFid;
 	    fids[1] = &u.u_symlink.CFid;
 	    break;
 
-        case ViceRepair_OP:
+        case OLDCML_Repair_OP:
 	    fids[0] = &u.u_repair.Fid;
 	    break;
 

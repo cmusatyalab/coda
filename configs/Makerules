@@ -5,7 +5,7 @@
 #  recursively descend into subdirs and build targets
 ###############################################################
 
-all: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS) $(SUBDIRS) mkdep
+all: $(RP2HEADERS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS) $(SUBDIRS) hdrinstall mkdep
 
 ##################
 # build a single subdirectory
@@ -221,6 +221,10 @@ show showvar:
 	@mkdir -p .depfiles
 	@mv $*.d .depfiles || true
 
+.cc.o:
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $<
+	@mkdir -p .depfiles
+	@mv $*.d .depfiles || true
 
 %.a:
 	$(AR) rv $@ $?

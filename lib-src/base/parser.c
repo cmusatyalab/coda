@@ -18,7 +18,7 @@ Coda are listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif /* __cplusplus */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +37,7 @@ extern void add_history(char *);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif /* __cplusplus */
 
 #include "parser.h"
 #define CMD_COMPLETE 0

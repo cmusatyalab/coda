@@ -143,7 +143,13 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
                 victim = fromptr->nextentry;
             CODA_ASSERT(!victim->is_hdr);
             CODA_ASSERT(victim->list.name == fromptr);
-            remque((void *)victim);             /* unlink from first list */
+            /* remque((void *)victim); */ /* unlink from first list */
+            if (victim->nextentry)
+                victim->nextentry->preventry = victim->preventry;
+            if (victim->preventry)
+                victim->preventry->nextentry = victim->nextentry;
+            victim->nextentry = victim->preventry = NULL;
+
             fromptr->list.length --;
             }
         }
@@ -159,7 +165,11 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
         CODA_ASSERT(toptr->is_hdr);
         CODA_ASSERT(victim->struct_id == toptr->struct_id);
         victim->list.name = toptr;
-        insque((void *)victim,(void *)toptr->preventry); /* insert at tail of second list */
+        /* insque((void *)victim,(void *)toptr->preventry); */ /* insert at tail of second list */
+        victim->nextentry = toptr->nextentry;
+        victim->preventry = toptr;
+        victim->nextentry->preventry = toptr->nextentry = victim;
+
         toptr->list.length ++;
         }
     else victim->list.name = NULL;
@@ -342,7 +352,7 @@ long init_unames()
 
     retval= gettimeofday(&new_uname,(struct timezone *)NULL);
     if ( retval ) {
-	    printf("init_unames: retval %d\n", retval);
+	    printf("init_unames: retval %ld\n", retval);
 	    perror("init_names:");
 	    return retval;
     }
@@ -1487,6 +1497,7 @@ static int get_depth(node,n_nodes)
         return lss_depth;
     }
 
+#ifdef UNUSED_FUNCTIONS
 /* Guaranteed to return 0, for now */
 static int chk_balance(tree)
     tree_root_t     *tree;              /* ptr to root of tree */
@@ -1497,6 +1508,8 @@ static int chk_balance(tree)
     CODA_ASSERT(n_nodes == tree->n_nodes);
     return 0;
     }
+#endif
+
 /* binary tree lookup -- returns ptr to node found (or NULL) */
 tree_node_t *tree_lookup(tree,node,cmp)
     tree_root_t     *tree;              /* root of tree */

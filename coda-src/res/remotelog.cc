@@ -56,7 +56,6 @@ extern "C" {
 #include "remotelog.h"
 #include "resutil.h"
 
-
 rmtle *FindRMTLE(olist *list, VnodeId vn, Unique_t un) {
     olist_iterator next(*list);
     rmtle *l;
@@ -196,59 +195,21 @@ olist *BuildRemoteRMTLElist(char *buf, int size) {
  *  Given an object id, build the local form of the 
  *  rmtle structure for all the deleted children's res log 
  */
-void GetRmSubTreeLocalRMTLE(int volindex, VnodeId vn, 
-			    Unique_t un, olist *list, pdlist *plist) {
-    pdlist *tmpPlist;
-    /* create a new list header to insert in the rm tree log */
-    {
-	/* get the res log for the vnode */
-	if (!plist) {
-	    VNResLog *rlog;
-	    plist = GetResLogList(volindex, vn, un, &rlog);
-	    if (plist == NULL)
-		return;
-	}
-	/* add log to list */
-	{
-	    tmpPlist = new pdlist(plist->offset, plist->storageMgr, 
-				  plist->cnt, plist->head);
-	    CODA_ASSERT(tmpPlist);
-	    AddLocalRMTLE(list, vn, un, tmpPlist);
-	}
+void GetRmSubTreeLocalRMTLE(int volindex, VnodeId vn, Unique_t un,
+                            olist *list, pdlist *plist)
+{
+    /* get the res log for the vnode */
+    if (!plist) {
+        VNResLog *rlog;
+        plist = GetResLogList(volindex, vn, un, &rlog);
+        if (plist == NULL)
+            return;
     }
 
-    /* add all removed childrens log to list */
-    {
-	pdlist_iterator next(*tmpPlist);
-	pdlink *pl;
-	while (pl = next()) {
-	    rlent *rl = strbase(rlent, pl, link);
-	    if ((rl->opcode == ViceRemoveDir_OP) || 
-		(rl->opcode == ResolveViceRemoveDir_OP)) 
-		GetRmSubTreeLocalRMTLE(volindex, 
-				       rl->u.u_removedir.cvnode,
-				       rl->u.u_removedir.cunique,
-				       list, plist->offset, plist->storageMgr,
-				       rl->u.u_removedir.count,
-				       rl->u.u_removedir.head);
-	    if ((rl->opcode == ViceRename_OP ||
-		rl->opcode == ResolveViceRename_OP) &&
-		rl->u.u_rename.rename_tgt.tgtexisted) {
-		ViceFid tgtFid;	
-		tgtFid.Vnode = rl->u.u_rename.rename_tgt.TgtVnode;
-		tgtFid.Unique = rl->u.u_rename.rename_tgt.TgtUnique;
-		if (ISDIR(tgtFid)) 
-		    GetRmSubTreeLocalRMTLE(volindex, 
-					   rl->u.u_rename.rename_tgt.TgtVnode,
-					   rl->u.u_rename.rename_tgt.TgtUnique,
-					   list, plist->offset, 
-					   plist->storageMgr, 
-					   rl->u.u_rename.rename_tgt.TgtGhost.TgtGhostLog.count,
-					   rl->u.u_rename.rename_tgt.TgtGhost.TgtGhostLog.head);
-	    }
-	}
-    }
+    GetRmSubTreeLocalRMTLE(volindex, vn, un, list, plist->offset,
+                           plist->storageMgr, plist->cnt, plist->head);
 }
+
 void GetRmSubTreeLocalRMTLE(int volindex, VnodeId vn, 
 			    Unique_t un, olist *list, int offset, PMemMgr *stmgr,
 			    int count, int head) {
@@ -267,7 +228,7 @@ void GetRmSubTreeLocalRMTLE(int volindex, VnodeId vn,
 	pdlink *pl;
 	while (pl = next()) {
 	    rlent *rl = strbase(rlent, pl, link);
-	    if ((rl->opcode == ViceRemoveDir_OP) ||
+	    if ((rl->opcode == RES_RemoveDir_OP) ||
 		(rl->opcode == ResolveViceRemoveDir_OP))
 		GetRmSubTreeLocalRMTLE(volindex, 
 				       rl->u.u_removedir.cvnode,
@@ -275,7 +236,7 @@ void GetRmSubTreeLocalRMTLE(int volindex, VnodeId vn,
 				       list, offset, stmgr, 
 				       rl->u.u_removedir.count,
 				       rl->u.u_removedir.head);
-	    if ((rl->opcode == ViceRename_OP ||
+	    if ((rl->opcode == RES_Rename_OP ||
 		rl->opcode == ResolveViceRename_OP) &&
 		rl->u.u_rename.rename_tgt.tgtexisted) {
 		ViceFid tgtFid;	

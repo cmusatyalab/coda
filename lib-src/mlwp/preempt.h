@@ -44,8 +44,6 @@ Pittsburgh, PA.
 #ifndef _LWPPREEMPT_ 
 #define _LWPPREEMPT_
 
-
-
 #define DEFAULTSLICE	10
 
 /* extern routine declarations */
@@ -56,4 +54,4 @@ extern void PRE_BeginCritical();
 extern void PRE_EndCritical();
 
 
-#endif _LWPPREEMPT_
+#endif /* _LWPPREEMPT_ */

@@ -119,7 +119,7 @@ _returnto:
 	unlk	a6
 	clrb	_PRE_Block
 	rts				| Return to previous process
-#endif sun3
+#endif /* sun3 */
 
 #if defined(sun4) || defined(sparc)
 #if defined(__linux__) || defined(__NetBSD__)
@@ -349,7 +349,7 @@ _returnto:
 #include <regdef.h>
 #ifndef s8
 #define s8	fp
-#endif  s8
+#endif /* s8 */
 
 #define regspace 9 * 4 + 4 + 6 * 8
 #define floats 0
@@ -419,7 +419,7 @@ returnto:
 	sb	$0, PRE_Block
 	j	ra
 	.end	returnto
-#endif mips
+#endif /* mips */
 
 #ifdef	i386
 		
@@ -730,7 +730,7 @@ SYMB(returnto)
 	
 #endif /* __arm32__ */
 
-#endif OLDLWP
+#endif /* OLDLWP */
 
 #if defined(__powerpc__)
 

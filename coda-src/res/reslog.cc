@@ -264,11 +264,11 @@ void iTruncResLog(int volindex, int vnodeindex, Unique_t u) {
     while ((pdl->count() > 1) &&
 	   (l = pdl->get())) {
 	rlent *rle = strbase(rlent, l, link);
-	if ((rle->opcode == ViceRemoveDir_OP)||
+	if ((rle->opcode == RES_RemoveDir_OP)||
 	    (rle->opcode == ResolveViceRemoveDir_OP))
 	    PurgeLog(volindex, rle->u.u_removedir.head, rle->u.u_removedir.count,
 		     fldoff(rlent, link));
-	if (((rle->opcode == ViceRename_OP) ||
+	if (((rle->opcode == RES_Rename_OP) ||
 	     (rle->opcode == ResolveViceRename_OP)) &&
 	    rle->u.u_rename.rename_tgt.tgtexisted) {
 	    ViceFid tfid;
@@ -306,11 +306,11 @@ void PurgeLog(int volindex, int head, int count, int offset) {
     pdlink	*l;
     while (l = plist.get()) {
 	rlent *rle = strbase(rlent, l, link);
-	if ((rle->opcode == ViceRemoveDir_OP) ||
+	if ((rle->opcode == RES_RemoveDir_OP) ||
 	    (rle->opcode == ResolveViceRemoveDir_OP))
 	    PurgeLog(volindex, rle->u.u_removedir.head,
 		     rle->u.u_removedir.count, fldoff(rlent, link));
-	if (((rle->opcode == ViceRename_OP) ||
+	if (((rle->opcode == RES_Rename_OP) ||
 	     (rle->opcode == ResolveViceRename_OP)) &&
 	    rle->u.u_rename.rename_tgt.tgtexisted) {
 	    ViceFid tfid;
@@ -343,11 +343,11 @@ void PurgeLog(int volindex, VnodeId vnode, Unique_t unq) {
 	pdlink *l;
 	while (l = pdl->get()) {
 	    rlent *rle = strbase(rlent, l, link);
-	    if ((rle->opcode == ViceRemoveDir_OP)||
+	    if ((rle->opcode == RES_RemoveDir_OP)||
 		(rle->opcode == ResolveViceRemoveDir_OP))
 		PurgeLog(volindex, rle->u.u_removedir.head, rle->u.u_removedir.count,
 			 fldoff(rlent, link));
-	    if (((rle->opcode == ViceRename_OP) ||
+	    if (((rle->opcode == RES_Rename_OP) ||
 		 (rle->opcode == ResolveViceRename_OP)) &&
 		rle->u.u_rename.rename_tgt.tgtexisted) {
 		ViceFid tfid;
@@ -439,11 +439,11 @@ int GetIndexViaWrapAround(PMemMgr *mmgr, int volindex) {
 	LogMsg(19, SrvDebugLevel, stdout,  "GetIndexViaWrapAround: after get count = %d",
 		loglist->count());	
 	rlent *rl = strbase(rlent, l, link);
-	if ((rl->opcode == ViceRemoveDir_OP) ||
+	if ((rl->opcode == RES_RemoveDir_OP) ||
 	    (rl->opcode == ResolveViceRemoveDir_OP))
 	    PurgeLog(volindex, rl->u.u_removedir.head, 
 		     rl->u.u_removedir.count, fldoff(rlent, link));
-	if (((rl->opcode == ViceRename_OP) ||
+	if (((rl->opcode == RES_Rename_OP) ||
 	     (rl->opcode == ResolveViceRename_OP)) &&
 	    rl->u.u_rename.rename_tgt.tgtexisted) {
 	    ViceFid tfid;
@@ -517,7 +517,7 @@ void PrintResLog(pdlist *p, FILE *fp) {
 	rlent *rl = strbase(rlent, pl, link);
 	rl->print(fp);
 	
-	if ((rl->opcode == ViceRemoveDir_OP) ||
+	if ((rl->opcode == RES_RemoveDir_OP) ||
 	    (rl->opcode == ResolveViceRemoveDir_OP)) {
 	    fprintf(fp, "##### Printing sub directory %s ######\n", 
 		    rl->u.u_removedir.name);
@@ -527,7 +527,7 @@ void PrintResLog(pdlist *p, FILE *fp) {
 	    fprintf(fp, "##### Finished printing sub directory %s #####\n",
 		    rl->u.u_removedir.name);
 	}
-	if (rl->opcode == ViceRename_OP ||
+	if (rl->opcode == RES_Rename_OP ||
 	    rl->opcode == ResolveViceRename_OP) {
 	    ViceFid fid;
 	    fid.Vnode = rl->u.u_rename.rename_src.cvnode;
@@ -559,7 +559,7 @@ void PrintResLog(int volindex, VnodeId vnode, Unique_t u, FILE *fp) {
 	    rlent *rl = strbase(rlent, pl, link);
 	    rl->print(fp);
 	    
-	    if ((rl->opcode == ViceRemoveDir_OP) ||
+	    if ((rl->opcode == RES_RemoveDir_OP) ||
 		(rl->opcode == ResolveViceRemoveDir_OP)) {
 		fprintf(fp, "##### Printing sub directory %s ######\n", 
 			rl->u.u_removedir.name);
@@ -569,7 +569,7 @@ void PrintResLog(int volindex, VnodeId vnode, Unique_t u, FILE *fp) {
 		fprintf(fp, "##### Finished printing sub directory %s #####\n",
 			rl->u.u_removedir.name);
 	    }
-	    if (rl->opcode == ViceRename_OP ||
+	    if (rl->opcode == RES_Rename_OP ||
 		rl->opcode == ResolveViceRename_OP) {
 		ViceFid fid;
 		fid.Vnode = rl->u.u_rename.rename_src.cvnode;
@@ -711,7 +711,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 
     switch(op) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	u.u_newstore.stType = va_arg(ap, unsigned int);
 	if (u.u_newstore.stType == ACLStore) {
 	    AL_AccessList *acl = va_arg(ap, AL_AccessList *);
@@ -731,7 +731,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 	break;
 
       case ResolveViceRemove_OP:
-      case ViceRemove_OP: /* removal of link */
+      case RES_Remove_OP: /* removal of link */
 	{
 	    char *c = va_arg(ap, char *);
 	    u.u_remove.name[DIROPNAMESIZE - 1] = '\0';
@@ -745,7 +745,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 	}
 	break;
       case ResolveViceCreate_OP:
-      case ViceCreate_OP: 
+      case RES_Create_OP: 
 	{
 	    char *c = va_arg(ap, char *);
 	    u.u_create.name[DIROPNAMESIZE - 1] = '\0';
@@ -758,7 +758,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 	}
 	break;
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	{
 	    u.u_rename.srctgt = va_arg(ap, unsigned int);
 	    char *c = va_arg(ap, char *);
@@ -802,7 +802,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 	}
 	break;
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    u.u_symlink.name[DIROPNAMESIZE - 1] = '\0';
@@ -815,7 +815,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 	}
 	break;
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    u.u_hardlink.name[DIROPNAMESIZE - 1] = '\0';
@@ -828,7 +828,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 	}
 	break;
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    u.u_makedir.name[DIROPNAMESIZE - 1] = '\0';
@@ -841,7 +841,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
 	}
 	break;
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    u.u_removedir.name[DIROPNAMESIZE - 1] = '\0';
@@ -863,7 +863,7 @@ int rlent::init(ViceFid *dirfid, ViceStoreId *vstid,
       case ResolveAfterCrash_OP:
 	LogMsg(9, SrvDebugLevel, stdout,  "rlent::init - Creating new log record after crash recovery");
 	break;
-      case ViceRepair_OP:
+      case RES_Repair_OP:
 	LogMsg(9, SrvDebugLevel, stdout,  "rlent::init - new repair log record ");
 	break;
       default:
@@ -884,7 +884,7 @@ void rlent::hton() {
     unsigned long t, nt;
     switch(op) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	nt = u.u_newstore.stType;
 	u.u_newstore.stType = htonl(nt);
 	if (nt == ACLStore) 
@@ -900,18 +900,18 @@ void rlent::hton() {
 	break;
 
       case ResolveViceRemove_OP:	
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	u.u_remove.cvnode = htonl(u.u_remove.cvnode);
 	u.u_remove.cunique = htonl(u.u_remove.cunique);
 	htonvv(&u.u_remove.cvv, &u.u_remove.cvv);
 	break;
       case  ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
 	u.u_create.cvnode = htonl(u.u_create.cvnode);
 	u.u_create.cunique = htonl(u.u_create.cunique);
 	break;
       case  ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	{
 	    unsigned long st = u.u_rename.srctgt;
 	    u.u_rename.srctgt = htonl(u.u_rename.srctgt);
@@ -938,22 +938,22 @@ void rlent::hton() {
 	}
 	break;
       case  ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	u.u_symlink.cvnode = htonl(u.u_symlink.cvnode);
 	u.u_symlink.cunique = htonl(u.u_symlink.cunique);
 	break;
       case  ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	u.u_hardlink.cvnode = htonl(u.u_hardlink.cvnode);
 	u.u_hardlink.cunique = htonl(u.u_hardlink.cunique);
 	break;
       case  ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	u.u_makedir.cvnode = htonl(u.u_makedir.cvnode);
 	u.u_makedir.cunique = htonl(u.u_makedir.cunique);
 	break;
       case  ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	u.u_removedir.cvnode = htonl(u.u_removedir.cvnode);
 	u.u_removedir.cunique = htonl(u.u_removedir.cunique);
 	u.u_removedir.head = (int) htonl(u.u_removedir.head);
@@ -975,7 +975,7 @@ void rlent::ntoh() {
     
     switch(opcode) {
       case  ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	u.u_newstore.stType = ntohl(u.u_newstore.stType);
 	if (u.u_newstore.stType == ACLStore)
 /*
@@ -990,18 +990,18 @@ void rlent::ntoh() {
 	break;
 
       case  ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	u.u_remove.cvnode = ntohl(u.u_remove.cvnode);
 	u.u_remove.cunique = ntohl(u.u_remove.cunique);
 	ntohvv(&u.u_remove.cvv, &u.u_remove.cvv);
 	break;
       case  ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
 	u.u_create.cvnode = ntohl(u.u_create.cvnode);
 	u.u_create.cunique = ntohl(u.u_create.cunique);
 	break;
       case  ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	{
 	    u.u_rename.srctgt = ntohl(u.u_rename.srctgt);
 	    u.u_rename.rename_src.cvnode = ntohl(u.u_rename.rename_src.cvnode);
@@ -1026,22 +1026,22 @@ void rlent::ntoh() {
 	}
 	break;
       case  ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	u.u_symlink.cvnode = ntohl(u.u_symlink.cvnode);
 	u.u_symlink.cunique = ntohl(u.u_symlink.cunique);
 	break;
       case  ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	u.u_hardlink.cvnode = ntohl(u.u_hardlink.cvnode);
 	u.u_hardlink.cunique = ntohl(u.u_hardlink.cunique);
 	break;
       case  ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	u.u_makedir.cvnode = ntohl(u.u_makedir.cvnode);
 	u.u_makedir.cunique = ntohl(u.u_makedir.cunique);
 	break;
       case  ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	u.u_removedir.cvnode = ntohl(u.u_removedir.cvnode);
 	u.u_removedir.cunique = ntohl(u.u_removedir.cunique);
 	u.u_removedir.head = (int) ntohl(u.u_removedir.head);
@@ -1074,7 +1074,7 @@ void rlent::print(int fd) {
     write(fd, buf, (int) strlen(buf));
 
     sprintf(buf, "Opcode: %s %s\n",
-	    PRINTOPCODE(opcode), (opcode == ViceRename_OP ? 
+	    PRINTOPCODE(opcode), (opcode == RES_Rename_OP ? 
 				  (u.u_rename.srctgt == SOURCE ? 
 				   "(src)":"(tgt)") : " "));
     write(fd, buf, (int) strlen(buf));
@@ -1082,7 +1082,7 @@ void rlent::print(int fd) {
     ViceVersionVector *vv;
     switch (opcode) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	if (u.u_newstore.stType == ACLStore) {
 	    AL_ExternalAccessList ea;
 /*
@@ -1101,7 +1101,7 @@ void rlent::print(int fd) {
 	break;
 
       case  ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	vv = &u.u_remove.cvv;
 	sprintf(buf, "Child: %s (%x.%x)[%d %d %d %d %d %d %d %d (%x.%x) (%d)]\n", 
 		u.u_remove.name, u.u_remove.cvnode, u.u_remove.cunique, 
@@ -1111,12 +1111,12 @@ void rlent::print(int fd) {
 		vv->StoreId.Uniquifier, vv->Flags);
 	break;
       case  ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
 	sprintf(buf, "Child: %s (%x.%x)\n",
 		u.u_create.name, u.u_create.cvnode, u.u_create.cunique);
 	break;
       case  ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	if (u.u_rename.srctgt == SOURCE)
 	    sprintf(buf, "SOURCE DIR: src child %s (%x.%x), \ntarget dir %x.%x\n",
 		    u.u_rename.rename_src.oldname, 
@@ -1162,22 +1162,22 @@ void rlent::print(int fd) {
 	    sprintf(buf, "Target Name: %s\n", u.u_rename.rename_tgt.newname);
 	break;
       case  ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	sprintf(buf, "Child: %s (%x.%x)\n",
 		u.u_symlink.name, u.u_symlink.cvnode, u.u_symlink.cunique);
 	break;
       case  ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	sprintf(buf, "Child: %s (%x.%x)\n",
 		u.u_hardlink.name, u.u_hardlink.cvnode, u.u_hardlink.cunique);
 	break;
       case  ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	sprintf(buf, "Child: %s (%x.%x)\n",
 		u.u_makedir.name, u.u_makedir.cvnode, u.u_makedir.cunique);
 	break;
       case  ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	sprintf(buf, "Child: %s (%x.%x)[%x.%x] LCP[%x.%x]\n",
 		u.u_removedir.name, u.u_removedir.cvnode,
 		u.u_removedir.cunique, u.u_removedir.csid.Host, 
@@ -1190,7 +1190,7 @@ void rlent::print(int fd) {
       case ResolveAfterCrash_OP:
 	sprintf(buf, "ResolveAfterCrash record\n");
 	break;
-      case ViceRepair_OP:
+      case RES_Repair_OP:
 	sprintf(buf, "ViceRepair record\n");
 	break;
       default:

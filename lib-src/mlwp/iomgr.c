@@ -53,7 +53,7 @@ Pittsburgh, PA.
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
-#endif  TRUE
+#endif
 
 #ifndef NSIG
 #define NSIG 8*sizeof(sigset_t)

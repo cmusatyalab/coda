@@ -46,7 +46,7 @@ Pittsburgh, PA.
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
-#endif  TRUE
+#endif
 
 
 /*
@@ -99,7 +99,7 @@ extern int lwp_overflowAction;
 /* Tells if stack size counting is enabled. */
 extern int lwp_stackUseEnabled;
 
-typedef int (*PFIC)(char *);
+typedef int (*PFIC)(void *);
 typedef void (*PFV)();
 
 
@@ -110,8 +110,8 @@ extern struct timeval cont_sw_threshold;  /* how long a lwp is allowed to run */
 extern struct timeval run_wait_threshold;
 
 #ifndef __cplusplus
-typedef int (*PFI) (char *);
-#endif  __cplusplus
+typedef int (*PFI) (void *);
+#endif
 
 
 void LWP_SetLog(FILE *file, int level);
@@ -127,8 +127,8 @@ extern void LWP_SetLog(FILE *, int );
 extern int LWP_DestroyProcess (PROCESS pid);
 extern int LWP_DispatchProcess();
 extern int LWP_GetProcessPriority (PROCESS pid, int *priority);
-extern int LWP_INTERNALSIGNAL (char *event, int yield);
-extern int LWP_WaitProcess (char *event);
+extern int LWP_INTERNALSIGNAL (void *event, int yield);
+extern int LWP_WaitProcess (void *event);
 extern int LWP_MwaitProcess (int wcount, char *evlist[]);
 extern int LWP_StackUsed (PROCESS pid, int *max, int *used); 
 extern int LWP_NewRock (int Tag, char *Value);

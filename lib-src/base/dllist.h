@@ -37,8 +37,8 @@ struct dllist_head {
 
 #endif
 
-inline int list_empty(struct dllist_head *head);
-inline void list_del(struct dllist_head *entry);
-inline void list_add(struct dllist_head *entry, struct dllist_head *head);
-inline void list_head_init(struct dllist_head *ptr);
+int list_empty(struct dllist_head *head);
+void list_del(struct dllist_head *entry);
+void list_add(struct dllist_head *entry, struct dllist_head *head);
+void list_head_init(struct dllist_head *ptr);
 

@@ -23,15 +23,15 @@ Coda are listed in the file CREDITS.
 
 #ifdef RVM_LWPPID
 extern PROCESS rvm_lwppid;
-#else  RVM_LWPPID
+#else /* !RVM_LWPPID */
 #define RVM_LWPPID
 PROCESS                     rvm_lwppid;     /* LWP process id */
-#endif RVM_LWPPID
+#endif /* !RVM_LWPPID */
 
 #ifndef MACRO_BEGIN
 #define MACRO_BEGIN			do {
 #define MACRO_END			} while(0)
-#endif MACRO_BEGIN
+#endif /* MACRO_BEGIN */
 
 #define STACKSIZE	1024 * 16
 #define BOGUSCODE 	(BOGUS_USE_OF_CTHREADS)  /* force compilation error */
@@ -91,10 +91,10 @@ PROCESS                     rvm_lwppid;     /* LWP process id */
                                          ReleaseWriteLock((m)); \
                                          printf("done\n"); \
                                         MACRO_END
-#else DEBUGRVM
+#else /* !DEBUGRVM */
 #define mutex_lock(m)			ObtainWriteLock((m))
 #define mutex_unlock(m)			ReleaseWriteLock((m))
-#endif
+#endif /* !DEBUGRVM */
 /* Unsupported cthread calls */
 
 #define	mutex_alloc()			BOGUSCODE

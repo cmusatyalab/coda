@@ -50,6 +50,7 @@ extern "C" {
 #include <rvmlib.h>
 #include <callback.h>
 #include <vice.h>
+#include <cml.h>
 
 #ifdef __cplusplus
 }
@@ -679,8 +680,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	SLog(100,  "ValidateReintegrateParms: [B] Op = %d, Mtime = %d",
 		r->opcode, r->Mtime);
 	switch(r->opcode) {
-	    case ViceNewStore_OP:
-		RLE_Unpack(0, 0, &_ptr, ViceNewStore_PTR, &r->u.u_store.Fid,
+	    case OLDCML_NewStore_OP:
+		RLE_Unpack(0, 0, &_ptr, OLDCML_NewStore_PTR, &r->u.u_store.Fid,
 			   &r->u.u_store.Request, &DummyCBS,
 			   &r->u.u_store.Status, &r->u.u_store.Length,
 			   &r->u.u_store.Mask, &DummyPH, 
@@ -706,11 +707,11 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		}
 		break;
 
-	    case ViceCreate_OP:
+	    case OLDCML_Create_OP:
 		{
 		ViceFid DummyFid;
 		r->u.u_create.Name = r->u.u_create.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, ViceCreate_PTR, &r->u.u_create.Did,
+		RLE_Unpack(0, 0, &_ptr, OLDCML_Create_PTR, &r->u.u_create.Did,
 			   &DummyFid, r->u.u_create.Name,
 			   &r->u.u_create.Status, &r->u.u_create.Fid,
 			   &r->u.u_create.DirStatus, &r->u.u_create.AllocHost,
@@ -718,50 +719,50 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		}
 		break;
 
-	    case ViceRemove_OP:
+	    case OLDCML_Remove_OP:
 		r->u.u_remove.Name = r->u.u_remove.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, ViceRemove_PTR, &r->u.u_remove.Did,
+		RLE_Unpack(0, 0, &_ptr, OLDCML_Remove_PTR, &r->u.u_remove.Did,
 			   r->u.u_remove.Name, &r->u.u_remove.DirStatus,
 			   &r->u.u_remove.Status, &DummyPH, &r->sid, &DummyCBS);
 		break;
 
-	    case ViceLink_OP:
+	    case OLDCML_Link_OP:
 		r->u.u_link.Name = r->u.u_link.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, ViceLink_PTR, &r->u.u_link.Did,
+		RLE_Unpack(0, 0, &_ptr, OLDCML_Link_PTR, &r->u.u_link.Did,
 			   r->u.u_link.Name, &r->u.u_link.Fid,
 			   &r->u.u_link.Status, &r->u.u_link.DirStatus,
 			   &DummyPH, &r->sid, &DummyCBS);
 		break;
 
-	    case ViceRename_OP:
+	    case OLDCML_Rename_OP:
 		r->u.u_rename.OldName = r->u.u_rename.OldNameBuf;
 		r->u.u_rename.NewName = r->u.u_rename.NewNameBuf;
-		RLE_Unpack(0, 0, &_ptr, ViceRename_PTR, &r->u.u_rename.OldDid,
+		RLE_Unpack(0, 0, &_ptr, OLDCML_Rename_PTR, &r->u.u_rename.OldDid,
 			   r->u.u_rename.OldName, &r->u.u_rename.NewDid,
 			   r->u.u_rename.NewName, &r->u.u_rename.OldDirStatus,
 			   &r->u.u_rename.NewDirStatus, &r->u.u_rename.SrcStatus,
 			   &r->u.u_rename.TgtStatus, &DummyPH, &r->sid, &DummyCBS);
 		break;
 
-	    case ViceMakeDir_OP:
+	    case OLDCML_MakeDir_OP:
 		r->u.u_mkdir.Name = r->u.u_mkdir.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, ViceMakeDir_PTR, &r->u.u_mkdir.Did,
+		RLE_Unpack(0, 0, &_ptr, OLDCML_MakeDir_PTR, &r->u.u_mkdir.Did,
 			   r->u.u_mkdir.Name, &r->u.u_mkdir.Status,
 			   &r->u.u_mkdir.NewDid, &r->u.u_mkdir.DirStatus,
 			   &r->u.u_mkdir.AllocHost, &r->sid, &DummyCBS);
 		break;
 
-	    case ViceRemoveDir_OP:
+	    case OLDCML_RemoveDir_OP:
 		r->u.u_rmdir.Name = r->u.u_rmdir.NameBuf;
-		RLE_Unpack(0, 0, &_ptr, ViceRemoveDir_PTR, &r->u.u_rmdir.Did,
+		RLE_Unpack(0, 0, &_ptr, OLDCML_RemoveDir_PTR, &r->u.u_rmdir.Did,
 			   r->u.u_rmdir.Name, &r->u.u_rmdir.Status,
 			   &r->u.u_rmdir.TgtStatus, &DummyPH, &r->sid, &DummyCBS);
 		break;
 
-	    case ViceSymLink_OP:
+	    case OLDCML_SymLink_OP:
 		r->u.u_symlink.NewName = r->u.u_symlink.NewNameBuf;
 		r->u.u_symlink.OldName = r->u.u_symlink.OldNameBuf;
-		RLE_Unpack(0, 0, &_ptr, ViceSymLink_PTR, &r->u.u_symlink.Did,
+		RLE_Unpack(0, 0, &_ptr, OLDCML_SymLink_PTR, &r->u.u_symlink.Did,
 			   r->u.u_symlink.NewName, r->u.u_symlink.OldName,
 			   &r->u.u_symlink.Fid, &r->u.u_symlink.Status,
 			   &r->u.u_symlink.DirStatus, &r->u.u_symlink.AllocHost,
@@ -794,7 +795,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	index = 0;
 	while (r = (rle *)next()) {
 	    switch(r->opcode) {
-		case ViceNewStore_OP:
+		case OLDCML_NewStore_OP:
 		    if (!XlateVid(&r->u.u_store.Fid.Volume) ||
 			r->u.u_store.Fid.Volume != *Vid) {
 			errorCode = EINVAL;
@@ -802,7 +803,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    }
 		    break;
 
-		case ViceCreate_OP:
+		case OLDCML_Create_OP:
 		    if (!XlateVid(&r->u.u_create.Did.Volume) ||
 			r->u.u_create.Did.Volume != *Vid) {
 			errorCode = EINVAL;
@@ -815,7 +816,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    }
 		    break;
 
-		case ViceRemove_OP:
+		case OLDCML_Remove_OP:
 		    if (!XlateVid(&r->u.u_remove.Did.Volume) ||
 			r->u.u_remove.Did.Volume != *Vid) {
 			errorCode = EINVAL;
@@ -823,7 +824,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    }
 		    break;
 
-		case ViceLink_OP:
+		case OLDCML_Link_OP:
 		    if (!XlateVid(&r->u.u_link.Did.Volume) ||
 			r->u.u_link.Did.Volume != *Vid) {
 			errorCode = EINVAL;
@@ -836,7 +837,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    }
 		    break;
 
-		case ViceRename_OP:
+		case OLDCML_Rename_OP:
 		    if (!XlateVid(&r->u.u_rename.OldDid.Volume) ||
 			r->u.u_rename.OldDid.Volume != *Vid) {
 			errorCode = EINVAL;
@@ -849,7 +850,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    }
 		    break;
 
-		case ViceMakeDir_OP:
+		case OLDCML_MakeDir_OP:
 		    if (!XlateVid(&r->u.u_mkdir.Did.Volume) ||
 			r->u.u_mkdir.Did.Volume != *Vid) {
 			errorCode = EINVAL;
@@ -862,7 +863,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    }
 		    break;
 
-		case ViceRemoveDir_OP:
+		case OLDCML_RemoveDir_OP:
 		    if (!XlateVid(&r->u.u_rmdir.Did.Volume) ||
 			r->u.u_rmdir.Did.Volume != *Vid) {
 			errorCode = EINVAL;
@@ -870,7 +871,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		    }
 		    break;
 
-		case ViceSymLink_OP:
+		case OLDCML_SymLink_OP:
 		    if (!XlateVid(&r->u.u_symlink.Did.Volume) ||
 			r->u.u_symlink.Did.Volume != *Vid) {
 			errorCode = EINVAL;
@@ -942,7 +943,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 		
 		rle *r;
 		r = (rle *)rlog->first();
-		CODA_ASSERT(r->opcode == ViceNewStore_OP &&
+		CODA_ASSERT(r->opcode == OLDCML_NewStore_OP &&
 		       (r->u.u_store.Request == StoreData || 
 			r->u.u_store.Request == StoreStatusData));
 	}
@@ -993,14 +994,14 @@ START_TIMING(Reintegrate_GetObjects);
         index = 0;
 	while (r = (rle *)next()) {
 	    switch(r->opcode) {
-	        case ViceNewStore_OP:
-		case ViceRemove_OP:
-		case ViceLink_OP:
-		case ViceRename_OP:
-		case ViceRemoveDir_OP:
+	        case OLDCML_NewStore_OP:
+		case OLDCML_Remove_OP:
+		case OLDCML_Link_OP:
+		case OLDCML_Rename_OP:
+		case OLDCML_RemoveDir_OP:
 		    continue;
 
-		case ViceCreate_OP:
+		case OLDCML_Create_OP:
 		    {
 		    int tblocks = 0;
 		    if (errorCode = AllocReintegrateVnode(&volptr, vlist,
@@ -1014,7 +1015,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceMakeDir_OP:
+		case OLDCML_MakeDir_OP:
 		    {
 		    int tblocks = 0;
 		    if (errorCode = AllocReintegrateVnode(&volptr, vlist,
@@ -1028,7 +1029,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceSymLink_OP:
+		case OLDCML_SymLink_OP:
 		    {
 		    int tblocks = 0;
 		    if (errorCode = AllocReintegrateVnode(&volptr, vlist,
@@ -1092,7 +1093,7 @@ START_TIMING(Reintegrate_GetObjects);
 	index = 0;
 	while (r = (rle *)next()) {
 	    switch(r->opcode) {
-		case ViceNewStore_OP:
+		case OLDCML_NewStore_OP:
 		    {
 		    vle *v = AddVLE(*vlist, &r->u.u_store.Fid);
 
@@ -1107,7 +1108,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceCreate_OP:
+		case OLDCML_Create_OP:
 		    {
 		    vle *v = AddVLE(*vlist, &r->u.u_create.Did);
 		    v->d_inodemod = 1;
@@ -1115,7 +1116,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceRemove_OP:
+		case OLDCML_Remove_OP:
 		    {
 		    vle *p_v = AddVLE(*vlist, &r->u.u_remove.Did);
 
@@ -1133,7 +1134,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceLink_OP:
+		case OLDCML_Link_OP:
 		    {
 		    vle *v = AddVLE(*vlist, &r->u.u_link.Did);
 		    v->d_reintupdate = 1;
@@ -1143,7 +1144,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceRename_OP:
+		case OLDCML_Rename_OP:
 		    {
 		    vle *sp_v = AddVLE(*vlist, &r->u.u_rename.OldDid);
 
@@ -1173,7 +1174,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceMakeDir_OP:
+		case OLDCML_MakeDir_OP:
 		    {
 		    vle *v = AddVLE(*vlist, &r->u.u_mkdir.Did);
 		    v->d_inodemod = 1;
@@ -1181,7 +1182,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceRemoveDir_OP:
+		case OLDCML_RemoveDir_OP:
 		    {
 		    vle *p_v = AddVLE(*vlist, &r->u.u_rmdir.Did);
 
@@ -1198,7 +1199,7 @@ START_TIMING(Reintegrate_GetObjects);
 		    }
 		    break;
 
-		case ViceSymLink_OP:
+		case OLDCML_SymLink_OP:
 		    {
 		    vle *v = AddVLE(*vlist, &r->u.u_symlink.Did);
 		    v->d_reintupdate = 1;
@@ -1302,7 +1303,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
         index = 0;
 	while (r = (rle *)next()) {
 	    switch(r->opcode) {
-		case ViceNewStore_OP:
+		case OLDCML_NewStore_OP:
 		    {
 		    vle *v = FindVLE(*vlist, &r->u.u_store.Fid);
 		    vle	*a_v = 0;	/* ACL object */
@@ -1412,7 +1413,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				AllowResolution && V_RVMResOn(volptr)) {
 				int opcode = (v->d_needsres)
 				  ? ResolveViceNewStore_OP
-				  : ViceNewStore_OP;
+				  : RES_NewStore_OP;
 				SLog(5, 
 				       "Spooling Reintegration newstore record \n");
 				if (errorCode = 
@@ -1461,7 +1462,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    }
 		    break;
 
-		case ViceCreate_OP:
+		case OLDCML_Create_OP:
 		    {
 			int deltablocks = 0;
 			
@@ -1508,7 +1509,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			if (AllowResolution && V_RVMResOn(volptr)) {
 			    int opcode = (parent_v->d_needsres)
 				? ResolveViceCreate_OP
-				    : ViceCreate_OP;
+				    : RES_Create_OP;
 			    if (errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							     &r->sid, opcode, 
 							     r->u.u_create.Name, 
@@ -1524,7 +1525,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    }
 		    break;
 		    
-		  case ViceRemove_OP:
+		  case OLDCML_Remove_OP:
 		    {
 		    /* Check. */
 		    vle *parent_v = FindVLE(*vlist, &r->u.u_remove.Did);
@@ -1566,7 +1567,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceRemove_OP
-			  : ViceRemove_OP;
+			  : RES_Remove_OP;
 			ViceVersionVector *ghostVV = &Vnode_vv(child_v->vptr);	/* ??? -JJK */
 			if (errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							 &r->sid, opcode, 
@@ -1600,7 +1601,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    }
 		    break;
 
-		case ViceLink_OP:
+		case OLDCML_Link_OP:
 		    {
 		    int deltablocks = 0;
 
@@ -1635,7 +1636,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceLink_OP
-			  : ViceLink_OP;
+			  : RES_Link_OP;
 			if (errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							 &r->sid, opcode, 
 							 r->u.u_link.Name, 
@@ -1651,7 +1652,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    }
 		    break;
 
-		case ViceRename_OP:
+		case OLDCML_Rename_OP:
 		    {
 		    /* Check. */
 		    vle *sd_v = FindVLE(*vlist, &r->u.u_rename.OldDid);
@@ -1742,10 +1743,10 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			}
 			int sd_opcode = (sd_v->d_needsres)
 			  ? ResolveViceRename_OP
-			  : ViceRename_OP;
+			  : RES_Rename_OP;
 			int td_opcode = (td_v->d_needsres)
 			  ? ResolveViceRename_OP
-			  : ViceRename_OP;
+			  : RES_Rename_OP;
 			// rvm resolution is on 
 			if (errorCode = SpoolRenameLogRecord((int) sd_opcode, (dlist *) vlist, 
 							     (Vnode *)s_v->vptr,(Vnode *)( t_v ? t_v->vptr : NULL) ,
@@ -1774,7 +1775,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    }
 		    break;
 
-		case ViceMakeDir_OP:
+		case OLDCML_MakeDir_OP:
 		    {
 		    int deltablocks = 0;
 
@@ -1809,8 +1810,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int p_opcode = (parent_v->d_needsres)
 			  ? ResolveViceMakeDir_OP
-			  : ViceMakeDir_OP;
-			int c_opcode = ViceMakeDir_OP;
+			  : RES_MakeDir_OP;
+			int c_opcode = RES_MakeDir_OP;
 			if (!errorCode) {
 			    if (errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							     &r->sid, p_opcode, 
@@ -1837,7 +1838,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    }
 		    break;
 
-		case ViceRemoveDir_OP:
+		case OLDCML_RemoveDir_OP:
 		    {
 		    /* Check. */
 		    vle *parent_v = FindVLE(*vlist, &r->u.u_rmdir.Did);
@@ -1879,7 +1880,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceRemoveDir_OP
-			  : ViceRemoveDir_OP;
+			  : RES_RemoveDir_OP;
 			if (errorCode = SpoolVMLogRecord(vlist, parent_v, 
 							 volptr, &r->sid, 
 							 opcode, 
@@ -1904,7 +1905,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    }
 		    break;
 
-		case ViceSymLink_OP:
+		case OLDCML_SymLink_OP:
 		    {
 		    int deltablocks = 0;
 
@@ -1949,7 +1950,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceSymLink_OP
-			  : ViceSymLink_OP;
+			  : RES_SymLink_OP;
 			if (errorCode = SpoolVMLogRecord(vlist, parent_v, 
 							 volptr, &r->sid,
 							 opcode, 
@@ -1987,16 +1988,16 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 	rle *r;
 	while (r = (rle *)next()) {
 	    switch(r->opcode) {
-		case ViceCreate_OP:
-		case ViceRemove_OP:
-		case ViceLink_OP:
-		case ViceRename_OP:
-		case ViceMakeDir_OP:
-		case ViceRemoveDir_OP:
-		case ViceSymLink_OP:
+		case OLDCML_Create_OP:
+		case OLDCML_Remove_OP:
+		case OLDCML_Link_OP:
+		case OLDCML_Rename_OP:
+		case OLDCML_MakeDir_OP:
+		case OLDCML_RemoveDir_OP:
+		case OLDCML_SymLink_OP:
 		    break;
 
-		case ViceNewStore_OP:
+		case OLDCML_NewStore_OP:
 		    {
 		    if (r->u.u_store.Request != StoreData &&
 			r->u.u_store.Request != StoreStatusData)

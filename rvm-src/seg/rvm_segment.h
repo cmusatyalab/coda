@@ -61,4 +61,4 @@ extern rvm_return_t rvm_load_segment (
     rvm_region_def_t    *regions[]      /* returned array of region descriptors */
     );
 
-#endif _RVM_SEGMENT_H_
+#endif /* _RVM_SEGMENT_H_ */

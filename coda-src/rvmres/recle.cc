@@ -75,7 +75,7 @@ void recle::InitFromsle(rsle *sl) {
     setquota_rle *sq;
     switch (opcode) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	if (sl->u.acl.type == ACLSTORE) {
 	    size = sizeof(aclstore);
 	    vle = new (size) recvarl(size);
@@ -96,7 +96,7 @@ void recle::InitFromsle(rsle *sl) {
 	break;
 
       case  ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
 	size = sizeof(create_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	CODA_ASSERT(vle);
@@ -106,7 +106,7 @@ void recle::InitFromsle(rsle *sl) {
 		sl->name1);
 	break;
       case  ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	size = sizeof(symlink_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	CODA_ASSERT(vle);
@@ -115,7 +115,7 @@ void recle::InitFromsle(rsle *sl) {
 	s->init(sl->u.slink.cvnode, sl->u.slink.cunique, sl->u.slink.owner, sl->name1);
 	break;
       case  ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	size = sizeof(link_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	CODA_ASSERT(vle);
@@ -124,7 +124,7 @@ void recle::InitFromsle(rsle *sl) {
 	l->init(sl->u.link.cvnode, sl->u.link.cunique, &sl->u.link.cvv, sl->name1);
 	break;
       case  ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	size = sizeof(mkdir_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	CODA_ASSERT(vle);
@@ -133,7 +133,7 @@ void recle::InitFromsle(rsle *sl) {
 	mk->init(sl->u.mkdir.cvnode, sl->u.mkdir.cunique, sl->u.mkdir.owner, sl->name1);
 	break;
       case  ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	size = sizeof(rm_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	CODA_ASSERT(vle);
@@ -142,7 +142,7 @@ void recle::InitFromsle(rsle *sl) {
 	rm->init(sl->u.rm.cvnode, sl->u.rm.cunique, &sl->u.rm.cvv, sl->name1);
 	break;	
       case  ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	size = sizeof(rmdir_rle) + strlen(sl->name1); // size of information; vle is 4 bytes more
 	vle = new (size) recvarl(size);
 	CODA_ASSERT(vle);
@@ -152,7 +152,7 @@ void recle::InitFromsle(rsle *sl) {
 		    &sl->u.rmdir.childLCP, &sl->u.rmdir.csid, sl->name1);
 	break;
       case  ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	size = sizeof(rename_rle) + strlen(sl->name1) + strlen(sl->name2) + 2;
 	vle = new (size) recvarl(size);
 	CODA_ASSERT(vle);
@@ -164,7 +164,7 @@ void recle::InitFromsle(rsle *sl) {
 		   &sl->u.mv.tvv, sl->u.mv.tlist);
 	break;
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
 	size = sizeof(setquota_rle);
 	vle = new (size) recvarl(size);
 	CODA_ASSERT(vle);
@@ -173,7 +173,7 @@ void recle::InitFromsle(rsle *sl) {
 	sq->init(sl->u.sq.oldquota, sl->u.sq.newquota);
 	break;
       case ResolveNULL_OP:
-      case ViceRepair_OP:
+      case RES_Repair_OP:
 	size = 0;	
 	vle = NULL;
 	break;
@@ -198,11 +198,11 @@ int recle::FreeVarl() {
 
 /* return pointer to list if this log entry has a pointer to a list of log entries */
 rec_dlist *recle::HasList() {
-    if ((opcode == ViceRemoveDir_OP) || (opcode == ResolveViceRemoveDir_OP)) {
+    if ((opcode == RES_RemoveDir_OP) || (opcode == ResolveViceRemoveDir_OP)) {
 	rmdir_rle *r = (rmdir_rle *)(&(vle->vfld[0]));
 	return(r->childlist);
     }
-    else if ((opcode == ViceRename_OP) || (opcode == ResolveViceRename_OP)) {
+    else if ((opcode == RES_Rename_OP) || (opcode == ResolveViceRename_OP)) {
 	rename_rle *mv = (rename_rle *)(&(vle->vfld[0]));
 	return(mv->tlist);
     }
@@ -302,7 +302,7 @@ void recle::print(int fd) {
 
     switch (opcode) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	acls = (aclstore *)&(vle->vfld[0]);
 	if (acls->type == ACLSTORE)
 	    acls->print(fd);
@@ -313,42 +313,42 @@ void recle::print(int fd) {
 	}
 	break;
       case  ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	rm = (rm_rle *)&(vle->vfld[0]);
 	rm->print(fd);
 	break;
       case  ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
 	c = (create_rle *)&(vle->vfld[0]);
 	c->print(fd);
 	break;
       case  ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	mv = (rename_rle *)&(vle->vfld[0]);
 	mv->print(fd);
 	break;
       case  ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	s = (symlink_rle *)&(vle->vfld[0]);
 	s->print(fd);
 	break;
       case  ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	l = (link_rle *)&(vle->vfld[0]);
 	l->print(fd);
 	break;
       case  ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	mkdir = (mkdir_rle *)&(vle->vfld[0]);
 	mkdir->print(fd);
 	break;
       case  ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	rmdir = (rmdir_rle *)&(vle->vfld[0]);
 	rmdir->print(fd);
 	break;
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
 	sq = (setquota_rle *)&(vle->vfld[0]);
 	sq->print(fd);
 	break;
@@ -356,7 +356,7 @@ void recle::print(int fd) {
 	sprintf(buf, "    ResolveNULL record\n");
 	write(fd, buf, (int) strlen(buf));
 	break;
-      case ViceRepair_OP:
+      case RES_Repair_OP:
 	sprintf(buf, "    ViceRepair record\n");
 	write(fd, buf, (int) strlen(buf));
 	break;

@@ -30,7 +30,7 @@ Coda are listed in the file CREDITS.
 /* turn on debuging for now */
 #ifndef DEBUG
 #define DEBUG 1
-#endif  DEBUG
+#endif
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -794,7 +794,7 @@ device_t;
 extern rvm_offset_t log_tail_shadow;
 extern rvm_bool_t   has_wrapped;
 #define RVM_ASSIGN_OFFSET(x,y)  (x) = (y)
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 
 typedef struct
     {
@@ -1749,4 +1749,4 @@ void rvm_debug();                       /* [rvm_debug] */
 /*  rvm_length_t    val; */
 
 
-#endif _RVM_PRIVATE_
+#endif /* _RVM_PRIVATE_ */

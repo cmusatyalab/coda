@@ -1,4 +1,3 @@
-
 /* BLURB gpl
 
                            Coda File System
@@ -899,12 +898,11 @@ void PrintCounters(FILE *fp)
     SLog(0,
 	   "Vice was last started at %s", ctime((long *)&StartTime));
 
-    SLog(0, "ConnectFS %d", Counters[CONNECT]);
     SLog(0, "NewConnectFS %d", Counters[NEWCONNECTFS]);
     SLog(0, "DisconnectFS %d", Counters[DISCONNECT]);
 
     SLog(0, "Fetch %d", Counters[ViceFetch_OP]);
-    SLog(0, "Store %d", Counters[ViceNewStore_OP] + Counters[ViceNewVStore_OP]);
+    SLog(0, "Store %d", Counters[STORE]);
     SLog(0, "ValidateAttrs %d", Counters[VALIDATEATTRS]);
 
     SLog(0, "Remove %d", Counters[REMOVE]);

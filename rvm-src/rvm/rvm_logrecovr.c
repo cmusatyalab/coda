@@ -30,7 +30,7 @@ Coda are listed in the file CREDITS.
 #ifdef RVM_LOG_TAIL_BUG
 #include <rvmtesting.h>
 extern unsigned long *ClobberAddress;
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 
 /* global variables */
 
@@ -125,7 +125,7 @@ rvm_return_t alloc_log_buf(log)
         return RVM_ENO_MEMORY;
     if ((tst_buf=page_alloc(log_buf->length)) == NULL)
         return RVM_ENO_MEMORY;
-#endif SPECIAL_DEBUG
+#endif /* SPECIAL_DEBUG */
     log_buf->buf_len = RVM_MK_OFFSET(0,log_buf->length);
 
     if ((log_buf->aux_buf=page_alloc(log_buf->aux_length)) == NULL)
@@ -354,7 +354,7 @@ int disk_buf_cmp(buf,disp)
 
     return -1;
     }
-#endif SPECIAL_DEBUG
+#endif /* SPECIAL_DEBUG */
 /* locate byte in buffer via gdb */
 int find_byte(chr,buf,disp,max_len)
     char            chr;
@@ -1262,17 +1262,17 @@ rvm_return_t locate_tail(log)
         {
 #ifdef RVM_LOG_TAIL_BUG
         unprotect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
 	CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
         status->log_tail = status->log_head;
 #ifdef RVM_LOG_TAIL_SHADOW
 	RVM_ASSIGN_OFFSET(log_tail_shadow,status->log_tail);
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 #ifdef RVM_LOG_TAIL_BUG
         protect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
         clear_log_status(log);
         goto exit;
         }
@@ -1378,17 +1378,17 @@ rvm_return_t locate_tail(log)
     /* tail found, update in-memory status */
 #ifdef RVM_LOG_TAIL_BUG
     unprotect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
     CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
     status->log_tail = tail;
 #ifdef RVM_LOG_TAIL_SHADOW
 	RVM_ASSIGN_OFFSET(log_tail_shadow,status->log_tail);
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 #ifdef RVM_LOG_TAIL_BUG
     protect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
     status->last_write = last_write;
     if (RVM_OFFSET_EQL(status->log_head,status->log_tail))
         clear_log_status(log);          /* log empty */
@@ -2867,9 +2867,9 @@ exit_crit_sec:;
     return retval;
     }
 /* truncation daemon */
-void log_daemon(log)
-    log_t           *log;               /* log descriptor */
+void log_daemon(void *arg)
     {
+    log_t           *log = arg;               /* log descriptor */
     log_daemon_t    *daemon = &log->daemon; /* deamon control descriptor */
     daemon_state_t  state;              /* daemon state code */
     rvm_return_t    retval;

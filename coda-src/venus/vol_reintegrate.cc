@@ -70,7 +70,9 @@ extern "C" {
 #endif __cplusplus
 
 /* interfaces */
-#include <vice.h>
+/* this is silly and only needed for an assertion in the PartialReintegrate
+ * function */
+#include <cml.h>
 
 /* from venus */
 #include "local.h"
@@ -437,7 +439,7 @@ int volent::PartialReintegrate(int tid) {
 	    name, tid, CML.owner));
 
     cmlent *m = CML.GetFatHead(tid);
-    CODA_ASSERT(m && m->opcode == ViceNewStore_OP);
+    CODA_ASSERT(m && m->opcode == OLDCML_NewStore_OP);
 
     int locked = 0;
     int code = 0;

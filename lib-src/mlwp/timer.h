@@ -76,4 +76,4 @@ extern int  TM_Rescan (struct TM_Elem *tlist);
 extern struct TM_Elem *TM_GetExpired (struct TM_Elem *tlist);
 extern struct TM_Elem *TM_GetEarliest (struct TM_Elem *tlist);
 
-#endif _LWPTIMER_
+#endif /* _LWPTIMER_ */

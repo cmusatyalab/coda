@@ -49,7 +49,7 @@ heap_header_t *RecoverableHeapStartAddress;
  */
 free_block_t *RecoverableHeapHighAddress;
 rvm_region_def_t *RegionDefs;
-long             NRegionDefs;
+unsigned long     NRegionDefs;
 rvm_bool_t       rds_testsw = rvm_false;   /* switch to allow special
                                               test modes */
 /*

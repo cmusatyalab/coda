@@ -155,10 +155,9 @@ typedef struct ClientEntry {
 #define MAXCNTRS (srvOPARRAYSIZE+17)
 #define TOTAL 0
 
-#define CONNECT ViceConnectFS_OP
 #define DISCONNECT ViceDisconnectFS_OP
 //#define FETCH ViceFetch_OP
-//#define STORE ViceStore_OP
+#define STORE ViceNewVStore_OP
 #define REMOVE ViceVRemove_OP
 #define CREATE ViceVCreate_OP
 #define RENAME ViceVRename_OP

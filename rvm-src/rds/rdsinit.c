@@ -173,11 +173,11 @@ static int confirm_rounded_value(pvalue, base, unit, round_dir, min)
     unsigned long t1=0, t2=0;	/* temporary values */
     
     if (base == 16) {
-	sprintf(string,  "0x%x (in decimal %u)", *pvalue, *pvalue);
+	sprintf(string,  "0x%lx (in decimal %lu)", *pvalue, *pvalue);
     } else if (base == 10) {
-	sprintf(string, "%d (in hex 0x%x)", *pvalue, *pvalue);
+	sprintf(string, "%ld (in hex 0x%lx)", *pvalue, *pvalue);
     } else if (base == 8) {
-	sprintf(string, "0%o (in decimal %u)", *pvalue, *pvalue);
+	sprintf(string, "0%lo (in decimal %lu)", *pvalue, *pvalue);
     } else {
 	CODA_ASSERT(0);		/* illegal base value */
     }
@@ -197,11 +197,11 @@ static int confirm_rounded_value(pvalue, base, unit, round_dir, min)
 
     if (t2 != t1) {
     	if (base == 16) {
-    	    sprintf(string, "0x%x (in decimal %u)", t2, t2);
+    	    sprintf(string, "0x%lx (in decimal %lu)", t2, t2);
     	} else if (base == 10) {
-    	    sprintf(string, "%d (in hex 0x%x)", t2, t2);
+    	    sprintf(string, "%ld (in hex 0x%lx)", t2, t2);
     	} else if (base == 8) {
-    	    sprintf(string, "0%o (in decimal %u)", t2, t2);
+    	    sprintf(string, "0%lo (in decimal %lu)", t2, t2);
     	} else {
     	    CODA_ASSERT(0);		/* illegal base value */
     	}
@@ -319,7 +319,7 @@ static int get_valid_parm(argc, argv, pdatalen,
 	if (*pdatalen<*phlen+*pslen+RVM_SEGMENT_HDR_SIZE) {
 	    printf("\n");
 	    printf("   Sorry ! your heap len + static len is too large !\n");
-	    printf("   their sum must be less than 0x%x (%d)\n", 
+	    printf("   their sum must be less than 0x%lx (%ld)\n", 
 		   *pdatalen-RVM_PAGE_SIZE, *pdatalen-RVM_SEGMENT_HDR_SIZE);
 	    printf("   please re-enter\n\n");
 	    goto get_heap_n_static;
@@ -346,10 +346,10 @@ static int get_valid_parm(argc, argv, pdatalen,
     confirm:
 	printf("\n");
         printf("The following parameters are chosen:\n");
-        printf("   length of data segment: %#10x (%10d)\n",
+        printf("   length of data segment: %#10lx (%10ld)\n",
 	       *pdatalen, *pdatalen);
-        printf("  starting address of rvm: %#10x (%10d)\n",
-	       *pstatic_addr, *pstatic_addr);
+        printf("  starting address of rvm: %#10lx (%10lu)\n",
+	       (unsigned long)*pstatic_addr, (unsigned long)*pstatic_addr);
         printf("                 heap len: %#10x (%10d)\n",
 	       *phlen, *phlen);
         printf("               static len: %#10x (%10d)\n",
@@ -382,7 +382,7 @@ int main(argc, argv)
     rvm_options_t       *options;       /* options descriptor ptr */
     rvm_return_t	ret;
     int err, fd, i;
-    char string[80], *static_addr=NULL, *sptr, buf[4096];
+    char *static_addr=NULL, buf[4096];
     char *logName, *dataName;
     unsigned int slen=0, hlen=0, nlists=0, chunksize=0;
     rvm_offset_t DataLen;

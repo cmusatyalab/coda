@@ -150,4 +150,4 @@ extern int rds_trace_dump_heap();
 } while (0) ;                            
 
 
-#endif _RDS_H_
+#endif /* _RDS_H_ */

@@ -334,9 +334,9 @@ void CreateRootLog(Volume *vol, Vnode *vptr) {
     stid.Host = Vnode_vv(vptr).StoreId.Host;
     stid.Uniquifier  = Vnode_vv(vptr).StoreId.Uniquifier;
     rsle sl(&stid, vptr->vnodeNumber, vptr->disk.uniquifier, 
-	    ViceMakeDir_OP, index, seqno);
+	    RES_MakeDir_OP, index, seqno);
     
-    sl.init(ViceMakeDir_OP, ".", vptr->vnodeNumber, vptr->disk.uniquifier);
+    sl.init(RES_MakeDir_OP, ".", vptr->vnodeNumber, vptr->disk.uniquifier);
     recle *rle = V_VolLog(vol)->RecovPutRecord(index);
     CODA_ASSERT(rle);
     

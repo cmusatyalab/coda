@@ -48,13 +48,13 @@ listed in the file CREDITS.
 
 #ifndef RVM_MAJOR_VERSION
 #define RVM_MAJOR_VERSION     1
-#endif  RVM_MAJOR_VERSION
+#endif /* RVM_MAJOR_VERSION */
 #ifndef RVM_MINOR_VERSION
 #define RVM_MINOR_VERSION     3
-#endif  RVM_MINOR_VERSION
+#endif /* RVM_MINOR_VERSION */
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
 #include "rvm_query.h"
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
 
 #ifndef RVM_USELWP
 /* XXX bogus by Eric and Peter to get compile */
@@ -66,9 +66,9 @@ listed in the file CREDITS.
 #define RVM_CONDITION	struct condition
 #define RVM_CONDITION_T	condition_t
 
-#else RVM_USELWP                        /* special thread support for Coda */
+#else /* RVM_USELWP */ /* special thread support for Coda */
 #include "rvm_lwp.h"
-#endif RVM_USELWP
+#endif /* RVM_USELWP */
 
 #if 0
 extern int errno;
@@ -91,7 +91,7 @@ extern void clear_free_lists();
 /* CODA_ASSERT that preserves stack */
 #ifdef CODA_ASSERT
 #undef CODA_ASSERT
-#endif CODA_ASSERT
+#endif
 #define CODA_ASSERT(ex) \
     { \
     if (!(ex)) \
@@ -567,7 +567,7 @@ void test_chk_range(tid,addr,len,id)
                id,rvm_return(ret));
         CODA_ASSERT(rvm_false);
         }
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
     }
 /* block modifier transaction */
 void do_trans(block,range_list,do_flush,id)
@@ -793,7 +793,7 @@ rvm_bool_t chk_vm()
     rvm_statistics_t *stats;
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     rvm_query_t     *query;
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
     rvm_return_t    retval;
     rvm_length_t    n_recs;
     rvm_length_t    tot_recs;
@@ -815,11 +815,11 @@ rvm_bool_t chk_vm()
                rvm_return(ret));
         CODA_ASSERT(rvm_false);
         }
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
     printf("\nChecking segment consistency...\n");
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     printf("  log head = %d\n",RVM_OFFSET_TO_LENGTH(query->log_head));
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
 
     /* check vm heap if required */
 #ifdef RVM_USELWP
@@ -827,7 +827,7 @@ rvm_bool_t chk_vm()
     if (chk_alloc != 0)
         CheckAllocs("Checking heap before truncation");
 #endif 
-#endif RVM_USELWP
+#endif /* RVM_USELWP */
 
     /* truncate to sync segement with vm */
     if ((ret=rvm_truncate()) != RVM_SUCCESS)
@@ -843,7 +843,7 @@ rvm_bool_t chk_vm()
     if (chk_alloc != 0)
         CheckAllocs("Checking heap after truncation");
 #endif
-#endif RVM_USELWP
+#endif /* RVM_USELWP */
 
     /* get current state */
     if ((retval=RVM_STATISTICS(stats)) != RVM_SUCCESS)
@@ -859,7 +859,7 @@ rvm_bool_t chk_vm()
                rvm_return(ret));
         CODA_ASSERT(rvm_false);
         }
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
 
     /* record log data */
     n_recs = stats->n_flush_commit + stats->n_no_flush_commit
@@ -873,7 +873,7 @@ rvm_bool_t chk_vm()
            query->n_nodes,query->max_depth);
 #else
     printf("  records written = %d\n",tot_recs);
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
 
     /* open segment file read-only */
 #ifdef DJGPP
@@ -912,7 +912,7 @@ rvm_bool_t chk_vm()
     rvm_free_statistics(stats);
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     rvm_free_query(query);
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
     return rvm_true;
     }
 rvm_bool_t chk_time()
@@ -1289,7 +1289,7 @@ void show_test_parms()
 
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     printf("  %% ranges to check:                        %d\n",chk_range_frac);
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
     printf("  %% transactions to abort:                  %d\n",abort_frac);
     printf("  %% transactions to commit with flush:      %d\n",flush_frac);
     printf("  %% transactions started with restore:      %d\n",restore_frac);
@@ -1333,7 +1333,7 @@ void show_test_parms()
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
     if ((optimizations & RVM_INCR_TRUNCATION) != 0)
         printf("incr_truncation ");
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
     printf("\n");
     printf("  RVM truncation threshold:                 %d%%\n",
            trunc_frac);
@@ -1342,7 +1342,7 @@ void show_test_parms()
            epoch_trunc_frac);
     printf("  RVM incremental truncation time slice:    %d msec.\n",
            incr_trunc_time);
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
     printf("  RVM recovery buffer length:               %d\n",rec_buf_len);
     printf("  RVM flush buffer length:                  %d\n",flush_buf_len);
     printf("  RVM max. read length:                     %d\n",max_read_len);
@@ -1477,7 +1477,7 @@ static str_name_entry_t flag_vec[MAX_FLAGS] = /* flag codes vector */
                     {"incr",INCR_KEY}, /* enable incr truncation */
                     {"incr_truncation",INCR_KEY}, /* enable incr truncation */
 
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
                     {"",(key_id_t)NULL} /* end mark, do not delete */
                     };
 /* set rvm_options flags */
@@ -1523,7 +1523,7 @@ static void set_flags()
 #if ((RVM_MAJOR_VERSION >= 2) && (RVM_MINOR_VERSION >= 0))
           case INCR_KEY:
             optimizations |= RVM_INCR_TRUNCATION;
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
             }
         }
     }
@@ -1551,9 +1551,9 @@ static void setup_plumber_file()
     else
         fclose(PlumberFile);
 #endif
-#else  RVM_USELWP
+#else /* RVM_USELWP */
     printf("W  Plumber not available with Cthreads\n");
-#endif RVM_USELWP
+#endif /* RVM_USELWP */
     }
 
 /* call function (to be used from GDB) */
@@ -1568,9 +1568,9 @@ void call_plumber()
     plumber(PlumberFile);
     fclose(PlumberFile);
 #endif
-#else  RVM_USELWP
+#else /* RVM_USELWP */
     printf("?  Plumber not available with Cthreads\n");
-#endif RVM_USELWP
+#endif /* RVM_USELWP */
     }
 /* print break point and limit */
 void show_break()
@@ -1658,10 +1658,10 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
                     {"chk_range_frac",CHK_RANGE_KEY}, /* set % of ranges to check */
                     {"no_yield",NO_YIELD_KEY}, /* set no yield mode */
                     {"vm_protect",VM_PROT_KEY}, /* setvm buffer protect mode */
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
                     {"",(key_id_t)NULL} /* end mark, do not delete */
                     };
-main(argc, argv)
+void main(argc, argv)
     int argc;
     char **argv;
     {
@@ -1728,7 +1728,7 @@ main(argc, argv)
     epoch_trunc_frac = EPOCH_TRUNCATE;
     incr_trunc_time = INCR_TRUNC_TIME;
     chk_range_frac = CHK_RANGE_DEFAULT;
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
 
     /* scan test commands */
     while (rvm_true)
@@ -1898,7 +1898,7 @@ main(argc, argv)
                                   "epoch truncation fraction",
                                   "?  Bad epoch truncation percentage");
             continue;
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
 
 /* LWP specific commands */
           case CHK_ALLOC_KEY:           /* get allocator check level */
@@ -1907,13 +1907,13 @@ main(argc, argv)
                                  "?  Bad allocation checker level");
 #ifndef RVM_USELWP
             printf("W  Allocation checking not available with Cthreads\n");
-#endif  RVM_USELWP
+#endif /* RVM_USELWP */
             continue;
           case PLUMBER_KEY:             /* open plumber file */
             setup_plumber_file();
 #ifndef RVM_USELWP
             printf("W  Allocation checking not available with Cthreads\n");
-#endif  RVM_USELWP
+#endif /* RVM_USELWP */
             continue;
 
           default:  CODA_ASSERT(rvm_false);
@@ -1937,7 +1937,7 @@ main(argc, argv)
 #ifdef HAS_PLUMBER
     SetMallocCheckLevel(chk_alloc);
 #endif
-#endif RVM_USELWP
+#endif /* RVM_USELWP */
     
     /* esatblish RVM options */
     options = rvm_malloc_options();
@@ -1960,7 +1960,7 @@ main(argc, argv)
         options->flags |= RVM_CHK_RANGE;
     if (vm_protect_sw)
         options->flags |= RVM_VM_PROTECT;
-#endif VERSION_TEST
+#endif /* VERSION_TEST */
     /* initialize RVM */
     ret = RVM_INIT(options);
     if  (ret != RVM_SUCCESS)

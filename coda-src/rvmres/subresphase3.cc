@@ -59,16 +59,16 @@ extern "C" {
 #include "rvmrestiming.h"
 #include "resstats.h"
 
-#define ISCREATEOP(a)		((a) == ViceCreate_OP || \
+#define ISCREATEOP(a)		((a) == RES_Create_OP || \
 				 (a) == ResolveViceCreate_OP || \
-				 (a) == ViceMakeDir_OP || \
+				 (a) == RES_MakeDir_OP || \
 				 (a) == ResolveViceMakeDir_OP ||\
-				 (a) == ViceSymLink_OP || \
+				 (a) == RES_SymLink_OP || \
 				 (a) == ResolveViceSymLink_OP)
 
-#define ISDELETEOP(a)		((a) == ViceRemove_OP || \
+#define ISDELETEOP(a)		((a) == RES_Remove_OP || \
 				 (a) == ResolveViceRemove_OP || \
-				 (a) == ViceRemoveDir_OP || \
+				 (a) == RES_RemoveDir_OP || \
 				 (a) == ResolveViceRemoveDir_OP)
 
 
@@ -470,32 +470,32 @@ static int GatherFids(dlist *vlist, Vnode *pvptr,
 	CODA_ASSERT(r->du == pvptr->disk.uniquifier);
 	switch(r->opcode) {
 	  case ResolveViceNewStore_OP:
-	  case ViceNewStore_OP:
+	  case RES_NewStore_OP:
           case ResolveViceSetVolumeStatus_OP:
-  	  case ViceSetVolumeStatus_OP:
+  	  case RES_SetVolumeStatus_OP:
 	  case ResolveNULL_OP:
 	    break;
 	  case ResolveViceRename_OP:
-	  case ViceRename_OP:
+	  case RES_Rename_OP:
 	    errorCode = AddRenameChildrenToList(vlist, volptr, pvptr, r);
 	    break;
 	  case ResolveViceRemove_OP:
-	  case ViceRemove_OP:
+	  case RES_Remove_OP:
 	  case ResolveViceCreate_OP:
-	  case ViceCreate_OP:
+	  case RES_Create_OP:
 	  case ResolveViceSymLink_OP:
-	  case ViceSymLink_OP:
+	  case RES_SymLink_OP:
 	  case ResolveViceLink_OP:
-	  case ViceLink_OP:
+	  case RES_Link_OP:
 	  case ResolveViceMakeDir_OP:
-	  case ViceMakeDir_OP:
+	  case RES_MakeDir_OP:
 	    ViceFid cfid;
 	    ExtractChildFidFromrsle(r, &cfid);
 	    errorCode = AddChildToList(vlist, volptr, pvptr, 
 				       cfid.Vnode, cfid.Unique);
 	    break;
 	  case ResolveViceRemoveDir_OP:
-	  case ViceRemoveDir_OP:
+	  case RES_RemoveDir_OP:
 	    errorCode = AddChildToList(vlist, volptr, pvptr, 
 				       r->u.rmdir.cvnode, 
 				       r->u.rmdir.cunique, 1);
@@ -565,7 +565,7 @@ static int CheckSemPerformRes(arrlist *ops, Volume *volptr,
 	    if (r->opcode == ResolveNULL_OP) continue;
 	    
 	    // handle renames separately
-	    if (r->opcode == ViceRename_OP || 
+	    if (r->opcode == RES_Rename_OP || 
 		r->opcode == ResolveViceRename_OP) {
 		if (!(errorCode = CheckAndPerformRename(r, volptr, VSGVolnum, dFid,
 							vlist, AllLogs, inclist, &tblocks)))
@@ -688,7 +688,7 @@ static int CheckValidityResOp(rsle *r, int NE,
     
     switch(r->opcode) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	if (r->u.newst.type != STSTORE) {
 	    CODA_ASSERT(r->u.newst.type == ACLSTORE);
 	    SLog(0,  
@@ -706,7 +706,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	}
 
       case ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	if (!NE) {
 	    if (OE) {
 		SLog(0,
@@ -764,7 +764,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	}
 	break;
       case ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
 	if (!NE) {
 	    if (OE) {
 		CODA_ASSERT(0);	/* site participated in create cant get create again */
@@ -786,11 +786,11 @@ static int CheckValidityResOp(rsle *r, int NE,
 	}
 	break;
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	CODA_ASSERT(0);
 	break;
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	if (!NE) {
 	    if (OE) {
 		CODA_ASSERT(0); 	
@@ -812,7 +812,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	}
 	break;
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	if (!NE) {
 	    if (OE) {
 		if (ParentPtrOk) 
@@ -874,7 +874,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	}
 	break;
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	if (!NE) {
 	    if (OE) {
 		CODA_ASSERT(0);	
@@ -897,7 +897,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	}
 	break;
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	if (!NE) {
 	    if (OE) {
 		if (ParentPtrOk) {
@@ -961,7 +961,7 @@ static int CheckValidityResOp(rsle *r, int NE,
 	break;
 
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
 	SLog(0, "Entering vicesetvolume_OP\n");
 	r->print();
 	if (V_maxquota(volptr) == r->u.sq.newquota) 
@@ -1077,7 +1077,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
     RPC2_Integer Mask;
     switch (r->opcode) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	if (r->u.newst.type != STSTORE) CODA_ASSERT(0);
 
 	// perform the store 
@@ -1109,7 +1109,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	break;	
 
       case ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	{
 	    SLog(9,  "PerformResOP: Removing child %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
@@ -1147,7 +1147,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	}
 	break;
       case ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
 	{
 	    SLog(9,  "PerformResOP: creating child %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
@@ -1186,11 +1186,11 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	}
 	break;
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	CODA_ASSERT(0);
 	break;
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	{
 	    SLog(9,  "PerformResOP: Creating SymLink %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
@@ -1237,7 +1237,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	}
 	break;
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	{
 	    SLog(9,  "PerformResOP: Creating Link %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
@@ -1270,7 +1270,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	}
 	break;
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	{
 	    SLog(9,  "PerformResOP: MakeDir %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
@@ -1313,10 +1313,10 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 		    SLog(0, 
 			   "PeformResOp(Mkdir): Error %d during SpoolVMLogRecord for parent\n",
 			   errorCode);
-		// spool a ViceMakeDir_OP record for child so that subsequent resolve can 
+		// spool a RES_MakeDir_OP record for child so that subsequent resolve can 
 		// find a common point 
 		if (!errorCode && (errorCode = SpoolVMLogRecord(vlist, cv, volptr, &r->storeid, 
-								ViceMakeDir_OP, ".",
+							 RES_MakeDir_OP, ".",
 								cFid.Vnode, 
 								cFid.Unique,
 								r->u.mkdir.owner)))
@@ -1327,7 +1327,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	}
 	break;
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	{
 	    SLog(9,  "PerformResOP: Removing child dir %s(%x.%x)",
 		   name, cFid.Vnode, cFid.Unique);
@@ -1381,7 +1381,7 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	}
 	break;
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
 	{
 	  SLog(9,  
 		 "PerformResOP: Resolving quota for volume 0x%x\n", 
@@ -1430,13 +1430,13 @@ ViceStoreId *GetRemoteRemoveStoreId(olist *AllLogs, unsigned long serverid,
 	olist_iterator next(*rmtloglist);
 	rsle *ep = NULL;
 	while (ep = (rsle *)next()) {
-	    if ((ep->opcode == ViceRemove_OP ||
+	    if ((ep->opcode == RES_Remove_OP ||
 		 ep->opcode == ResolveViceRemove_OP) &&
 		(ep->u.rm.cvnode == cFid->Vnode) &&
 		(ep->u.rm.cunique == cFid->Unique) &&
 		(!strcmp(ep->name1, cname)))
 		return(&ep->storeid);
-	    if ((ep->opcode == ViceRemoveDir_OP ||
+	    if ((ep->opcode == RES_RemoveDir_OP ||
 		 ep->opcode == ResolveViceRemoveDir_OP) &&
 		(ep->u.rmdir.cvnode == cFid->Vnode) &&
 		(ep->u.rmdir.cunique == cFid->Unique) &&
@@ -1573,32 +1573,32 @@ static int CmpFidOp(rsle **a, rsle **b) {
 	int ob = (int) ((*b)->opcode);
 	
 	switch(oa) {
-	  case ViceCreate_OP:
+	  case RES_Create_OP:
 	  case ResolveViceCreate_OP:
-	  case ViceMakeDir_OP:
+	  case RES_MakeDir_OP:
 	  case ResolveViceMakeDir_OP:
-	  case ViceSymLink_OP:
+	  case RES_SymLink_OP:
 	  case ResolveViceSymLink_OP:
 	    return(-1);
-	  case ViceRemove_OP:
+	  case RES_Remove_OP:
 	  case ResolveViceRemove_OP:
-	  case ViceRemoveDir_OP:
+	  case RES_RemoveDir_OP:
 	  case ResolveViceRemoveDir_OP:
 	    return(1);
 	  default:
 	    break;
 	}
 	switch(ob) {
-	  case ViceCreate_OP:
+	  case RES_Create_OP:
 	  case ResolveViceCreate_OP:
-	  case ViceMakeDir_OP:
+	  case RES_MakeDir_OP:
 	  case ResolveViceMakeDir_OP:
-	  case ViceSymLink_OP:
+	  case RES_SymLink_OP:
 	  case ResolveViceSymLink_OP:
 	    return(1);
-	  case ViceRemove_OP:
+	  case RES_Remove_OP:
 	  case ResolveViceRemove_OP:
-	  case ViceRemoveDir_OP:
+	  case RES_RemoveDir_OP:
 	  case ResolveViceRemoveDir_OP:
 	    return(-1);
 	  default:

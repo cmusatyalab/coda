@@ -139,7 +139,7 @@ static rvm_return_t write_log_wrap(log)
      * block.
      */
     has_wrapped = rvm_true;
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
     return update_log_tail(log,(rec_hdr_t *)wrap);
     }
 /* setup header for nv log entry */

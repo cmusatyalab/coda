@@ -56,6 +56,18 @@ class VNResLog;
 			      NAME BE 256 CHARS LONG */
 
 /* define opcodes for log records spooling */
+/* The weird numbering is for compatibility with pre-coda-5.2 servers */
+#define	RES_Remove_OP           4
+#define RES_Create_OP           5
+#define	RES_Rename_OP           6
+#define	RES_SymLink_OP          7
+#define	RES_Link_OP             8
+#define	RES_MakeDir_OP          9
+#define	RES_RemoveDir_OP        10
+#define RES_SetVolumeStatus_OP  18
+#define	RES_Repair_OP           33
+#define	RES_NewStore_OP         52
+
 #define	RESOLVE_OPERATION_BASE	128
 #define ResolveStoreAcl_OP	RESOLVE_OPERATION_BASE + 2
 #define	ResolveViceRemove_OP	RESOLVE_OPERATION_BASE + 3
@@ -83,28 +95,28 @@ class VNResLog;
 #define CREATEINCOBJ	4
 
 /* define correspondence between _OP and indexes for op-table */
-#define	ViceCreate_IDX			2	/* ViceCreate_OP */
+#define	RES_Create_IDX			2	/* RES_Create_OP */
 #define	ResolveViceCreate_IDX		3	/* ResolveViceCreate_OP */
-#define	ViceRemove_IDX			4	/* ViceRemove_OP */
+#define	RES_Remove_IDX			4	/* RES_Remove_OP */
 #define	ResolveViceRemove_IDX		5	/* ResolveViceRemove_OP */
-#define	ViceLink_IDX			6	/* ViceLink_OP */
+#define	RES_Link_IDX			6	/* RES_Link_OP */
 #define	ResolveViceLink_IDX		7	/* ResolveViceLink_OP */
-#define	ViceRename_IDX			8	/* ViceRename_OP */
+#define	RES_Rename_IDX			8	/* RES_Rename_OP */
 #define	ResolveViceRename_IDX		9	/* ResolveViceRename_OP */
-#define	ViceMakeDir_IDX			10	/* ViceMakeDir_OP */
+#define	RES_MakeDir_IDX			10	/* RES_MakeDir_OP */
 #define	ResolveViceMakeDir_IDX		11	/* ResolveViceMakeDir_OP */
-#define	ViceRemoveDir_IDX		12	/* ViceRemoveDir_OP */
+#define	RES_RemoveDir_IDX		12	/* RES_RemoveDir_OP */
 #define	ResolveViceRemoveDir_IDX	13	/* ResolveViceRemoveDir_OP */
-#define	ViceSymLink_IDX			14	/* ViceSymLink_OP */
+#define	RES_SymLink_IDX			14	/* RES_SymLink_OP */
 #define	ResolveViceSymLink_IDX		15	/* ResolveViceSymLink_OP */
 #define	ResolveNULL_IDX			16	/* ResolveNULL_OP */
 #define	ResolveAfterCrash_IDX		17	/* ResolveAfterCrash_OP */
-#define	ViceRepair_IDX			18	/* ViceRepair_OP */
+#define	RES_Repair_IDX			18	/* RES_Repair_OP */
 #define IllegalOP_IDX			19
 #define ResolveViceSetVolumeStatus_IDX  20      /* ResolveViceSetVolumeStatus_OP */
-#define ViceSetVolumeStatus_IDX         21      /* ViceSetVolumeStatus_OP */
+#define RES_SetVolumeStatus_IDX         21      /* RES_SetVolumeStatus_OP */
 
-#define ViceNewStore_IDX		22	/* ViceNewStore_OP */
+#define RES_NewStore_IDX		22	/* RES_NewStore_OP */
 #define ResolveViceNewStore_IDX		23	/* ResolveViceNewStore_OP */
 
 
@@ -226,50 +238,50 @@ class rlent {
     void print(int);
 };
 
-#define	PRINTOPCODE(op)    ((op) == ViceCreate_OP ? "Create" :\
+#define	PRINTOPCODE(op)    ((op) == RES_Create_OP ? "Create" :\
 			    (op) == ResolveViceCreate_OP ? "ResolveCreate" :\
-			    (op) == ViceRemove_OP ? "Remove" :\
+			    (op) == RES_Remove_OP ? "Remove" :\
 			    (op) == ResolveViceRemove_OP ? "ResolveRemove" :\
-			    (op) == ViceLink_OP ? "Link" :\
+			    (op) == RES_Link_OP ? "Link" :\
 			    (op) == ResolveViceLink_OP ? "ResolveLink" :\
-			    (op) == ViceRename_OP ? "Rename" :\
+			    (op) == RES_Rename_OP ? "Rename" :\
 			    (op) == ResolveViceRename_OP ? "ResolveRename" :\
-			    (op) == ViceMakeDir_OP ? "Mkdir" :\
+			    (op) == RES_MakeDir_OP ? "Mkdir" :\
 			    (op) == ResolveViceMakeDir_OP ? "ResolveMkdir" :\
-			    (op) == ViceRemoveDir_OP ? "Rmdir" :\
+			    (op) == RES_RemoveDir_OP ? "Rmdir" :\
 			    (op) == ResolveViceRemoveDir_OP ? "ResolveRmdir" :\
-			    (op) == ViceSymLink_OP ? "Symlink" :\
+			    (op) == RES_SymLink_OP ? "Symlink" :\
 			    (op) == ResolveViceSymLink_OP ? "ResolveSymlink" :\
 			    (op) == ResolveNULL_OP ? "ResolveNULL_OP" :\
-			    (op) == ViceRepair_OP ? "ViceRepair_OP" :\
+			    (op) == RES_Repair_OP ? "Repair_OP" :\
 			    (op) == ResolveViceSetVolumeStatus_OP ? "ResolveViceSetVolumeStatus_OP" :\
-			    (op) == ViceSetVolumeStatus_OP ? "ViceSetVolumeStatus_OP" :\
-			    (op) == ViceNewStore_OP ? "NewStore" :\
+			    (op) == RES_SetVolumeStatus_OP ? "SetVolumeStatus_OP" :\
+			    (op) == RES_NewStore_OP ? "NewStore" :\
 			    (op) == ResolveViceNewStore_OP ? "ResolveNewStore" :\
 			    "???")
 
 #define	GETOPINDEX(op) \
-     ((op) == ViceCreate_OP ?		ViceCreate_IDX :\
+     ((op) == RES_Create_OP ?	        RES_Create_IDX :\
       (op) == ResolveViceCreate_OP ?	ResolveViceCreate_IDX :\
-      (op) == ViceRemove_OP ?		ViceRemove_IDX :\
+      (op) == RES_Remove_OP ?	        RES_Remove_IDX :\
       (op) == ResolveViceRemove_OP ?	ResolveViceRemove_IDX :\
-      (op) == ViceLink_OP ?		ViceLink_IDX :\
+      (op) == RES_Link_OP ?		RES_Link_IDX :\
       (op) == ResolveViceLink_OP ?	ResolveViceLink_IDX :\
-      (op) == ViceRename_OP ?		ViceRename_IDX :\
+      (op) == RES_Rename_OP ?	        RES_Rename_IDX :\
       (op) == ResolveViceRename_OP ?	ResolveViceRename_IDX :\
-      (op) == ViceMakeDir_OP ?		ViceMakeDir_IDX :\
+      (op) == RES_MakeDir_OP ?	        RES_MakeDir_IDX :\
       (op) == ResolveViceMakeDir_OP ?	ResolveViceMakeDir_IDX :\
-      (op) == ViceRemoveDir_OP ?	ViceRemoveDir_IDX :\
+      (op) == RES_RemoveDir_OP ?	RES_RemoveDir_IDX :\
       (op) == ResolveViceRemoveDir_OP ?	ResolveViceRemoveDir_IDX :\
-      (op) == ViceSymLink_OP ?		ViceSymLink_IDX :\
+      (op) == RES_SymLink_OP ?	        RES_SymLink_IDX :\
       (op) == ResolveViceSymLink_OP ?	ResolveViceSymLink_IDX :\
       (op) == ResolveNULL_OP ?		ResolveNULL_IDX :\
       (op) == ResolveAfterCrash_OP ?	ResolveAfterCrash_IDX :\
-      (op) == ViceRepair_OP ?		ViceRepair_IDX :\
-      (op) == ViceSetVolumeStatus_OP ?  ViceSetVolumeStatus_IDX :\
+      (op) == RES_Repair_OP ?	        RES_Repair_IDX :\
+      (op) == RES_SetVolumeStatus_OP ?  RES_SetVolumeStatus_IDX :\
       (op) == ResolveViceSetVolumeStatus_OP ?  ResolveViceSetVolumeStatus_IDX :\
-      (op) == ViceNewStore_OP ? ViceNewStore_IDX:\
-      (op) == ResolveViceNewStore_OP ? ResolveViceNewStore_IDX:\
+      (op) == RES_NewStore_OP ?         RES_NewStore_IDX:\
+      (op) == ResolveViceNewStore_OP ?  ResolveViceNewStore_IDX:\
       IllegalOP_IDX)
 
 class VNResLog : public olink {

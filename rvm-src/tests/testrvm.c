@@ -116,7 +116,7 @@ rvm_bool_t get_ans(prompt,sense)
         c = getc(F);
         if (c == EOF)
             {
-            printf("\n? EOF encountered while reading %s; i = %d\n",
+            printf("\n? EOF encountered while reading %s; i = %ld\n",
                    filename,i);
             return rvm_false;
             }
@@ -129,8 +129,8 @@ rvm_bool_t get_ans(prompt,sense)
         if (test_data[i] != map_data[i])
             {
             printf("\n? Error: mapped data doesn't match %s:\n",filename);
-            printf("         map_data[%d] = 0%o\n",i,map_data[i]);
-            printf("         %s[%d] = 0%o\n",filename,i,test_data[i]);
+            printf("         map_data[%ld] = 0%o\n",i,map_data[i]);
+            printf("         %s[%ld] = 0%o\n",filename,i,test_data[i]);
             return rvm_false;
             }
         }
@@ -590,10 +590,9 @@ rvm_bool_t test_complex_range_commit(tid)
     }
 
 
-main()
+int main(void)
     {
     rvm_return_t        retval;         /* rvm return code */
-    long                i;              /* loop counter */
     rvm_bool_t          ans;            /* response */
     char                *map_test_file; /* file to test mapping against */
     rvm_offset_t        offset;         /* offset temporary */
@@ -658,11 +657,11 @@ main()
 
     printf("Basic mapping test:\n");
     printf("Pre-map region descriptor:\n");
-    printf("    region.vmaddr = %x\n",region->vmaddr);
-    printf("    region->length = %d\n",region->length);
-    printf("    region->offset.high = %x\n",
+    printf("    region.vmaddr = %p\n",region->vmaddr);
+    printf("    region->length = %ld\n",region->length);
+    printf("    region->offset.high = %lx\n",
            RVM_OFFSET_HIGH_BITS_TO_LENGTH(region->offset));
-    printf("    region->offset.low = %x\n",
+    printf("    region->offset.low = %lx\n",
            RVM_OFFSET_TO_LENGTH(region->offset));
     
     if ((retval=rvm_map(region,NULL)) != RVM_SUCCESS)
@@ -672,11 +671,11 @@ main()
         }
 
     printf("\nPost-map region descriptor:\n");
-    printf("    region.vmaddr = %x\n",region->vmaddr);
-    printf("    region->length = %d\n",region->length);
-    printf("    region->offset.high = %x\n",
+    printf("    region.vmaddr = %p\n",region->vmaddr);
+    printf("    region->length = %ld\n",region->length);
+    printf("    region->offset.high = %lx\n",
            RVM_OFFSET_HIGH_BITS_TO_LENGTH(region->offset));
-    printf("    region->offset.low = %x\n",
+    printf("    region->offset.low = %lx\n",
            RVM_OFFSET_TO_LENGTH(region->offset));
 
     map_data = region->vmaddr;

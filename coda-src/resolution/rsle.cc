@@ -97,7 +97,7 @@ void rsle::init(int op, va_list ap) {
     int sttype, newsttype;
     switch(op) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	newsttype = va_arg(ap, int);
 	if (newsttype == STSTORE) {
 	    UserId owner = va_arg(ap, UserId);
@@ -118,7 +118,7 @@ void rsle::init(int op, va_list ap) {
 	break;
 
       case ResolveViceCreate_OP:
-      case ViceCreate_OP: 
+      case RES_Create_OP: 
 	{
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
@@ -131,7 +131,7 @@ void rsle::init(int op, va_list ap) {
 	}
 	break;
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
@@ -144,7 +144,7 @@ void rsle::init(int op, va_list ap) {
 	}
 	break;
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
@@ -157,7 +157,7 @@ void rsle::init(int op, va_list ap) {
 	}
 	break;
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
@@ -170,7 +170,7 @@ void rsle::init(int op, va_list ap) {
 	}
 	break;
       case ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
@@ -183,7 +183,7 @@ void rsle::init(int op, va_list ap) {
 	}
 	break;
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	{
 	    char *c = va_arg(ap, char *);
 	    namesalloced = 1;
@@ -199,7 +199,7 @@ void rsle::init(int op, va_list ap) {
 	}
 	break;
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	{
 	    u.mv.type = (unsigned short)va_arg(ap, unsigned int);
 	    LogMsg(39, SrvDebugLevel, stdout, 
@@ -255,13 +255,13 @@ void rsle::init(int op, va_list ap) {
 	}
 	break;
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
 	u.sq.oldquota = va_arg(ap, int);
 	u.sq.newquota = va_arg(ap, int);
 	break;
       case ResolveNULL_OP:
 	break;
-      case ViceRepair_OP:
+      case RES_Repair_OP:
 	break;
       default:
 	LogMsg(0, SrvDebugLevel, stdout, "rsle::rsle Illegal opcode(%d)\n", op);
@@ -335,7 +335,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 
     switch (opcode) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	newstp = (newstore *)varp;
 	if (newstp->type == STSTORE) {
 	    u.newst.type  = newstp->type;
@@ -353,7 +353,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	}
 	break;
       case ResolveViceCreate_OP:
-      case ViceCreate_OP: 
+      case RES_Create_OP: 
 	{
 	    cp = (create_rle *)varp;
 	    u.create.cvnode = cp->cvnode;
@@ -364,7 +364,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	}
 	break;
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	{
 	    slp = (symlink_rle *)varp;
 	    u.slink.cvnode = slp->cvnode;
@@ -375,7 +375,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	}
 	break;
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	{
 	    lp = (link_rle *)varp;
 	    u.link.cvnode = lp->cvnode;
@@ -386,7 +386,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	}
 	break;
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	{
 	    mp = (mkdir_rle *)varp;
 	    u.mkdir.cvnode = mp->cvnode;
@@ -397,7 +397,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	}
 	break;
       case ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	{
 	    rp = (rm_rle *)varp;
 	    u.rm.cvnode = rp->cvnode;
@@ -408,7 +408,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	}
 	break;
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	{
 	    rdp = (rmdir_rle *)varp;
 	    u.rmdir.cvnode = rdp->cvnode;
@@ -421,7 +421,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	}
 	break;
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	{
 	    mvp = (rename_rle *)varp;
 	    u.mv.type = mvp->type;
@@ -440,14 +440,14 @@ void rsle::InitFromRecleBuf(char **buf) {
 	}
 	break;
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
         sq = (setquota_rle *)varp;
         u.sq.oldquota = sq->oldquota;
         u.sq.newquota = sq->newquota;
         break;
       case ResolveNULL_OP:
 	break;
-      case ViceRepair_OP:
+      case RES_Repair_OP:
 	break;
       default:
 	LogMsg(0, SrvDebugLevel, stdout, 
@@ -473,49 +473,49 @@ void rsle::print(int fd) {
     write(fd, buf, (int)strlen(buf));
     switch (opcode) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	if (u.newst.type == STSTORE) 
 	    u.newst.print(fd);
 	else 
 	    u.acl.print(fd);
 	break;
       case ResolveViceCreate_OP:
-      case ViceCreate_OP: 
+      case RES_Create_OP: 
 	u.create.print(fd);
 	break;
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	u.slink.print(fd);
 	break;
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	u.link.print(fd);
 	break;
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	u.mkdir.print(fd);
 	break;
       case ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	u.rm.print(fd);
 	break;
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	u.rmdir.print(fd);
 	break;
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	u.rm.print(fd);
 	break;
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
         u.sq.print(fd);
         break;
       case ResolveNULL_OP:
 	sprintf(buf, "ResolvNull record\n");
 	write(fd, buf, (int)strlen(buf));
 	break;
-      case ViceRepair_OP:
+      case RES_Repair_OP:
 	sprintf(buf, "ViceRepair record \n");
 	write(fd, buf, (int)strlen(buf));
 	break;
@@ -537,20 +537,20 @@ void rsle::print(int fd) {
 char *ExtractNameFromrsle(rsle *a) {
     switch((a)->opcode) {
       case ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
       case ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	return(a->name1);
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	if (a->u.mv.type == SOURCE) 
 	    return(a->name1);
 	else 
@@ -564,22 +564,22 @@ void ExtractChildFidFromrsle(rsle *a, ViceFid *fa) {
     fa->Vnode = fa->Unique = 0;
     switch((a)->opcode) {
       case ResolveViceNewStore_OP:
-      case ViceNewStore_OP:
+      case RES_NewStore_OP:
 	fa->Vnode = a->dvn;
 	fa->Unique = a->du;
 	break;
       case ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
 	fa->Vnode = a->u.rm.cvnode;
 	fa->Unique = a->u.rm.cunique;
 	break;
       case ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
 	fa->Vnode = a->u.create.cvnode;
 	fa->Unique = a->u.create.cunique;
 	break;
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	if (a->u.mv.type == SOURCE || 
 	    !a->u.mv.tvnode) {
 	    fa->Vnode = a->u.mv.svnode;
@@ -593,27 +593,27 @@ void ExtractChildFidFromrsle(rsle *a, ViceFid *fa) {
 	       " Fid 0x%x.%x", fa->Vnode, fa->Unique);
 	break;
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	fa->Vnode = a->u.slink.cvnode;
 	fa->Unique = a->u.slink.cunique;
 	break;
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	fa->Vnode = a->u.link.cvnode;
 	fa->Unique = a->u.link.cunique;
 	break;
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
 	fa->Vnode = a->u.mkdir.cvnode;
 	fa->Unique = a->u.mkdir.cunique;
 	break;
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
 	fa->Vnode = a->u.rmdir.cvnode;
 	fa->Unique = a->u.rmdir.cunique;
 	break;
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
       case ResolveNULL_OP:
 	fa->Vnode = a->dvn;		/* XXX hack! */
 	fa->Unique = a->du;		/* XXX hack! */
@@ -630,14 +630,14 @@ void ExtractChildFidFromrsle(rsle *a, ViceFid *fa) {
 int ExtractVNTypeFromrsle(rsle *a) {
     switch(a->opcode) {
       case ResolveViceRemove_OP:
-      case ViceRemove_OP:
+      case RES_Remove_OP:
       case ResolveViceCreate_OP:
-      case ViceCreate_OP:
+      case RES_Create_OP:
       case ResolveViceLink_OP:
-      case ViceLink_OP:
+      case RES_Link_OP:
 	return(vFile);
       case ResolveViceRename_OP:
-      case ViceRename_OP:
+      case RES_Rename_OP:
 	{
 	    ViceFid tgtFid;
 	    /* XXX BE CAREFUL WITH CHILD FIDS AND RENAMES */
@@ -649,14 +649,14 @@ int ExtractVNTypeFromrsle(rsle *a) {
 	}
 	break;
       case ResolveViceSymLink_OP:
-      case ViceSymLink_OP:
+      case RES_SymLink_OP:
 	return(vSymlink);
       case ResolveViceMakeDir_OP:
-      case ViceMakeDir_OP:
+      case RES_MakeDir_OP:
       case ResolveViceRemoveDir_OP:
-      case ViceRemoveDir_OP:
+      case RES_RemoveDir_OP:
       case ResolveViceSetVolumeStatus_OP:
-      case ViceSetVolumeStatus_OP:
+      case RES_SetVolumeStatus_OP:
 	return(vDirectory);
       default:
 	CODA_ASSERT(0);

@@ -21,6 +21,10 @@ Coda are listed in the file CREDITS.
 #include <rvm.h>
 #include "rvm_segment.h"
 
+/* from rvm_private.h */
+rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
+rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
+
 #ifdef __CYGWIN32__
 #include <windows.h>
 #endif

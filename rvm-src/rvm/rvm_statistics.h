@@ -200,4 +200,4 @@ extern rvm_return_t rvm_print_statistics(
     );
 
 
-#endif _RVM_STATISTICS_VERSION
+#endif /* _RVM_STATISTICS_VERSION */

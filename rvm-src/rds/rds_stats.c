@@ -176,20 +176,20 @@ void rds_trace_dump_free_lists()
       j++;
 
       if (i == RDS_MAXLIST) {
-	RDS_LOG("rdstrace: size %d count 1\n", fbp->size);
+	RDS_LOG("rdstrace: size %ld count 1\n", fbp->size);
       }
       
       if (fbp->type != FREE_GUARD)
 	RDS_LOG("rdstrace: Error!!! Bad lowguard on block\n");
       
       if ((*BLOCK_END(fbp)) != END_GUARD)
-	RDS_LOG("rdstrace: Error!!! Bad highguard, %x=%x\n",
+	RDS_LOG("rdstrace: Error!!! Bad highguard, %p=%x\n",
 			     BLOCK_END(fbp), *BLOCK_END(fbp));
       
       ptr = fbp->next;
       
       if (ptr && (ptr->prev != fbp))
-	RDS_LOG("rdstrace: Error!!! Bad chain link %x <-> %x\n",
+	RDS_LOG("rdstrace: Error!!! Bad chain link %p <-> %p\n",
 			     fbp, ptr);
       
       if (i != RDS_MAXLIST && fbp->size != i)
@@ -221,12 +221,12 @@ void rds_trace_dump_blocks()
       RDS_LOG("rdstrace: Error!!! Bad lowguard on block\n");
     
     if ((*BLOCK_END(fbp)) != END_GUARD)
-      RDS_LOG("rdstrace: Error!!! Bad highguard, %x=%x\n",
+      RDS_LOG("rdstrace: Error!!! Bad highguard, %p=%x\n",
 			   BLOCK_END(fbp), *BLOCK_END(fbp));
     
     next_fbp = NEXT_CONSECUTIVE_BLOCK(fbp);
     
-    RDS_LOG("rdstrace: addr %d size %d %s\n",
+    RDS_LOG("rdstrace: addr %p size %ld %s\n",
 			 fbp,
 			 fbp->size * RDS_CHUNK_SIZE,
 			 (fbp->type == FREE_GUARD ? "free":"alloc"));
@@ -264,11 +264,11 @@ rds_trace_dump_heap ()
     CRITICAL({
       RDS_LOG("rdstrace: start heap_dump\n");
       RDS_LOG("rdstrace: version_string %s\n", RDS_VERSION_STAMP);
-      RDS_LOG("rdstrace: heaplength %d\n", RDS_HEAPLENGTH);
-      RDS_LOG("rdstrace: chunk_size %d\n", RDS_CHUNK_SIZE);
-      RDS_LOG("rdstrace: nlists %d\n", RDS_NLISTS);
+      RDS_LOG("rdstrace: heaplength %ld\n", RDS_HEAPLENGTH);
+      RDS_LOG("rdstrace: chunk_size %ld\n", RDS_CHUNK_SIZE);
+      RDS_LOG("rdstrace: nlists %ld\n", RDS_NLISTS);
       rds_trace_dump_stats();
-      RDS_LOG("rdstrace: maxlist %d\n", RDS_MAXLIST);
+      RDS_LOG("rdstrace: maxlist %ld\n", RDS_MAXLIST);
       rds_trace_dump_free_lists();
       rds_trace_dump_blocks();
       RDS_LOG("rdstrace: stop heap_dump\n");

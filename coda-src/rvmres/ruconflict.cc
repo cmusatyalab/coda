@@ -70,11 +70,11 @@ int RUConflict(rsle *r, dlist *vlist, olist *AllLogs, ViceFid *dFid) {
     vle *cv = 0;
     int rtype = -1;
     
-    CODA_ASSERT((r->opcode == ViceRemove_OP) ||
+    CODA_ASSERT((r->opcode == RES_Remove_OP) ||
 	   (r->opcode == ResolveViceRemove_OP) ||
-	   (r->opcode == ViceRemoveDir_OP) ||
+	   (r->opcode == RES_RemoveDir_OP) ||
 	   (r->opcode == ResolveViceRemoveDir_OP));
-    if (r->opcode == ViceRemove_OP || r->opcode == ResolveViceRemove_OP)
+    if (r->opcode == RES_Remove_OP || r->opcode == ResolveViceRemove_OP)
 	rtype = FileRemove;
     else 
 	rtype = DirRemove;
@@ -204,7 +204,7 @@ static ViceVersionVector *FindDeletedFileVV(olist *AllLogs, unsigned long hostid
 	olist_iterator next(*rmtloglist);
 	rsle *ep = NULL;
 	while (ep = (rsle *)next()) {
-	    if ((ep->opcode == ViceRemove_OP ||
+	    if ((ep->opcode == RES_Remove_OP ||
 		 ep->opcode == ResolveViceRemove_OP) &&
 		(ep->u.rm.cvnode == filefid->Vnode) &&
 		(ep->u.rm.cunique == filefid->Unique) &&
@@ -212,7 +212,7 @@ static ViceVersionVector *FindDeletedFileVV(olist *AllLogs, unsigned long hostid
 		VV = &(ep->u.rm.cvv);
 		break;
 	    }
-	    if ((ep->opcode == ViceRename_OP ||
+	    if ((ep->opcode == RES_Rename_OP ||
 		 ep->opcode == ResolveViceRename_OP) &&
 		(ep->u.mv.tvnode) &&
 		(ep->u.mv.tvnode == filefid->Vnode) &&

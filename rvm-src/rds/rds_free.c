@@ -225,7 +225,7 @@ int rds_do_free(list, mode)
 	    RDS_STATS.freebytes   += bp->size * RDS_CHUNK_SIZE;
 	    RDS_STATS.mallocbytes -= bp->size * RDS_CHUNK_SIZE; 
 	    
-	    RDS_LOG("rdstrace: addr %p size %x\n",
+	    RDS_LOG("rdstrace: addr %p size %lx\n",
 				     USER_BLOCK(bp)  , bp->size * RDS_CHUNK_SIZE);
 
 	    /* Add the block to the approprite free list. */

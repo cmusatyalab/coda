@@ -55,4 +55,4 @@ typedef struct
     }
 rvm_segment_hdr_t;
 
-#endif  _RVM_SEGMENT_PRIVATE_H_
+#endif /* _RVM_SEGMENT_PRIVATE_H_ */

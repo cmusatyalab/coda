@@ -46,7 +46,6 @@ extern "C" {
 #include <rvm.h>
 #include "norton.h"
 
-
 void usage(char * name) {
     fprintf(stderr, "Usage: %s -rvm <log_device> <data_device> <length>\n", name);
     fprintf(stderr, "       [-dump <file> [skip <volid1> <volid2>...] | -load <file>]\n");
@@ -239,7 +238,7 @@ static int BuildResLog(Volume *vp, rec_dlist *log,
 	log->append(rle);
 	i++;
 	
-	if ((rle->opcode == ViceRemoveDir_OP) ||
+	if ((rle->opcode == RES_RemoveDir_OP) ||
 	    (rle->opcode == ResolveViceRemoveDir_OP)) {
 
 	    // Should I check that there is actually a list?

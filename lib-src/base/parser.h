@@ -75,4 +75,4 @@ int Parser_arg2int(const char *inp, long *result, int base);
 #endif
 
 
-#endif _PARSER_H_
+#endif /* _PARSER_H_ */

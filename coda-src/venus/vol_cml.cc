@@ -55,6 +55,7 @@ extern void pack(ARG *, PARM **, PARM **);
 extern void pack_struct(ARG *, PARM **, PARM **);
 /* interfaces */
 #include <vice.h>	
+#include <cml.h>	
 
 #ifdef __cplusplus
 }
@@ -140,7 +141,7 @@ void ClientModifyLog::IncGetStats(cmlstats& current, cmlstats& cancelled, int ti
     cmlent *m;
     while (m = next()) {
 	if (tid != UNSET_TID && m->GetTid() != tid) continue;
-	if (m->opcode == ViceNewStore_OP) {
+	if (m->opcode == OLDCML_NewStore_OP) {
 	    current.store_count++;
 	    current.store_size += m->bytes();
 	    current.store_contents_size += (float)m->u.u_store.Length;
@@ -178,7 +179,7 @@ void ClientModifyLog::LockObjs(int tid) {
     cmlent *m;
     while (m = next()) 
 	if (m->GetTid() == tid) 
-	    if (m->opcode == ViceNewStore_OP) {
+	    if (m->opcode == OLDCML_NewStore_OP) {
 		backFetchList[nFids++] = m->u.u_store.Fid;
 
                 if (nFids == max) {  /* get more space */
@@ -238,7 +239,7 @@ void ClientModifyLog::UnLockObjs(int tid) {
     cml_iterator next(*this);
     cmlent *m;
     while (m = next()) 
-	if ((m->GetTid() == tid) && (m->opcode == ViceNewStore_OP)) {
+	if ((m->GetTid() == tid) && (m->opcode == OLDCML_NewStore_OP)) {
 	    /* get the fso */
 	    dlink *d = m->fid_bindings->first();   /* and only */
 	    binding *b = strbase(binding, d, binder_handle);
@@ -253,7 +254,7 @@ void ClientModifyLog::UnLockObjs(int tid) {
 	    while(fd = next()) {
 		binding *fb = strbase(binding, fd, bindee_handle);
 		cmlent *fm = (cmlent *)fb->binder;
-		if ((fm->GetTid() == tid) && (fm->opcode == ViceNewStore_OP)) {
+		if ((fm->GetTid() == tid) && (fm->opcode == OLDCML_NewStore_OP)) {
 		    store_mle = fm;	/* first store record for this fso */
 		    break;	
 		}
@@ -266,7 +267,7 @@ void ClientModifyLog::UnLockObjs(int tid) {
 
 /* lock object of a store */
 void cmlent::LockObj() {
-    CODA_ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
     /* make sure there is only one object of the store */    
     CODA_ASSERT(fid_bindings->count() == 1); 
@@ -284,7 +285,7 @@ void cmlent::LockObj() {
 
 /* unlock object of a store */
 void cmlent::UnLockObj() {
-    CODA_ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
     /* make sure there is only one object of the store */    
     CODA_ASSERT(fid_bindings->count() == 1); 
@@ -455,7 +456,7 @@ cmlent *ClientModifyLog::GetFatHead(int tid) {
          * object after a failure.
          */
 
-        if (m->ReintReady() && !ASRinProgress && m->opcode == ViceNewStore_OP &&
+        if (m->ReintReady() && !ASRinProgress && m->opcode == OLDCML_NewStore_OP &&
             (m->ReintTime() > vol->ReintLimit)) {
             /* 
              * don't use the settid call because it is transactional.
@@ -621,49 +622,49 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
     va_list ap;
     va_start(ap, Tid);
     switch(op) {
-	case ViceNewStore_OP:
+	case OLDCML_NewStore_OP:
 	    u.u_store.Fid = *va_arg(ap, ViceFid *);
 	    u.u_store.Length = va_arg(ap, RPC2_Unsigned);
 	    bzero((void *)u.u_store.RHandle, (int) sizeof(ViceReintHandle)*VSG_MEMBERS);
 	    u.u_store.Offset = -1;
 	    break;
 
-	case ViceUtimes_OP:
+	case OLDCML_Utimes_OP:
 	    u.u_utimes.Fid = *va_arg(ap, ViceFid *);
 	    u.u_utimes.Date = va_arg(ap, Date_t);
 	    break;
 
-	case ViceChown_OP:
+	case OLDCML_Chown_OP:
 	    u.u_chown.Fid = *va_arg(ap, ViceFid *);
 	    u.u_chown.Owner = va_arg(ap, UserId);
 	    break;
 
-	case ViceChmod_OP:
+	case OLDCML_Chmod_OP:
 	    u.u_chmod.Fid = *va_arg(ap, ViceFid *);
 	    u.u_chmod.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    u.u_create.PFid = *va_arg(ap, ViceFid *);
 	    u.u_create.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
 	    u.u_create.CFid = *va_arg(ap, ViceFid *);
 	    u.u_create.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    u.u_remove.PFid = *va_arg(ap, ViceFid *);
 	    u.u_remove.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
 	    u.u_remove.CFid = *va_arg(ap, ViceFid *);
 	    u.u_remove.LinkCount = va_arg(ap, int);
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    u.u_link.PFid = *va_arg(ap, ViceFid *);
 	    u.u_link.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
 	    u.u_link.CFid = *va_arg(ap, ViceFid *);
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    u.u_rename.SPFid = *va_arg(ap, ViceFid *);
 	    u.u_rename.OldName = Copy_RPC2_String(va_arg(ap, RPC2_String));
 	    u.u_rename.TPFid = *va_arg(ap, ViceFid *);
@@ -671,20 +672,20 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    u.u_rename.SFid = *va_arg(ap, ViceFid *);
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    u.u_mkdir.PFid = *va_arg(ap, ViceFid *);
 	    u.u_mkdir.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
 	    u.u_mkdir.CFid = *va_arg(ap, ViceFid *);
 	    u.u_mkdir.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    u.u_rmdir.PFid = *va_arg(ap, ViceFid *);
 	    u.u_rmdir.Name = Copy_RPC2_String(va_arg(ap, RPC2_String));
 	    u.u_rmdir.CFid = *va_arg(ap, ViceFid *);
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    u.u_symlink.PFid = *va_arg(ap, ViceFid *);
 	    u.u_symlink.NewName = Copy_RPC2_String(va_arg(ap, RPC2_String));
 	    u.u_symlink.OldName = Copy_RPC2_String(va_arg(ap, RPC2_String));
@@ -692,7 +693,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    u.u_symlink.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
 
-	case ViceRepair_OP:
+	case OLDCML_Repair_OP:
 	    u.u_repair.Fid = *va_arg(ap, ViceFid *);
 	    u.u_repair.Length = va_arg(ap, RPC2_Unsigned);
 	    u.u_repair.Date = va_arg(ap, Date_t);
@@ -739,60 +740,60 @@ void cmlent::ResetTransient() {
     flags.committed = 0;
 
     switch(opcode) {
-	case ViceNewStore_OP:
+	case OLDCML_NewStore_OP:
 	    u.u_store.VV = NullVV;
 	    break;
 
-        case ViceTruncate_OP:
+        case OLDCML_Truncate_OP:
 	    u.u_truncate.VV = NullVV;
 	    break;
 
-	case ViceUtimes_OP:
+	case OLDCML_Utimes_OP:
 	    u.u_utimes.VV = NullVV;
 	    break;
 
-	case ViceChown_OP:
+	case OLDCML_Chown_OP:
 	    u.u_chown.VV = NullVV;
 	    break;
 
-	case ViceChmod_OP:
+	case OLDCML_Chmod_OP:
 	    u.u_chmod.VV = NullVV;
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    u.u_create.PVV = NullVV;
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    u.u_remove.PVV = NullVV;
 	    u.u_remove.CVV = NullVV;
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    u.u_link.PVV = NullVV;
 	    u.u_link.CVV = NullVV;
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    u.u_rename.SPVV = NullVV;
 	    u.u_rename.TPVV = NullVV;
 	    u.u_rename.SVV = NullVV;
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    u.u_mkdir.PVV = NullVV;
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    u.u_rmdir.PVV = NullVV;
 	    u.u_rmdir.CVV = NullVV;
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    u.u_symlink.PVV = NullVV;
 	    break;
 
-        case ViceRepair_OP:
+        case OLDCML_Repair_OP:
 	    u.u_repair.OVV = NullVV;
 	    break;
 
@@ -816,43 +817,43 @@ cmlent::~cmlent() {
 
     /* Free strings. */
     switch(opcode) {
-	case ViceNewStore_OP:
-	case ViceUtimes_OP:
-	case ViceChown_OP:
-	case ViceChmod_OP:
+	case OLDCML_NewStore_OP:
+	case OLDCML_Utimes_OP:
+	case OLDCML_Chown_OP:
+	case OLDCML_Chmod_OP:
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    Free_RPC2_String(u.u_create.Name);
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    Free_RPC2_String(u.u_remove.Name);
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    Free_RPC2_String(u.u_link.Name);
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    Free_RPC2_String(u.u_rename.OldName);
 	    Free_RPC2_String(u.u_rename.NewName);
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    Free_RPC2_String(u.u_mkdir.Name);
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    Free_RPC2_String(u.u_rmdir.Name);
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    Free_RPC2_String(u.u_symlink.OldName);
 	    Free_RPC2_String(u.u_symlink.NewName);
 	    break;
 
-        case ViceRepair_OP:
+        case OLDCML_Repair_OP:
 	    break;
 
 	default:
@@ -888,32 +889,32 @@ void cmlent::operator delete(void *deadobj, size_t len) {
 long cmlent::bytes() {
     long result = sizeof(*this);
     switch (opcode) {
-    case ViceNewStore_OP:
-    case ViceUtimes_OP:
-    case ViceChown_OP:
-    case ViceChmod_OP:
-    case ViceRepair_OP:
+    case OLDCML_NewStore_OP:
+    case OLDCML_Utimes_OP:
+    case OLDCML_Chown_OP:
+    case OLDCML_Chmod_OP:
+    case OLDCML_Repair_OP:
 	break;
-    case ViceCreate_OP:
+    case OLDCML_Create_OP:
 	result += strlen((char *)u.u_create.Name);
 	break;
-    case ViceRemove_OP:
+    case OLDCML_Remove_OP:
 	result += strlen((char *)u.u_remove.Name);
 	break;
-    case ViceLink_OP:
+    case OLDCML_Link_OP:
 	result += strlen((char *)u.u_link.Name);
 	break;
-    case ViceRename_OP:
+    case OLDCML_Rename_OP:
 	result += strlen((char *)u.u_rename.OldName)
                  +strlen((char *)u.u_rename.NewName);
 	break;
-    case ViceMakeDir_OP:
+    case OLDCML_MakeDir_OP:
 	result += strlen((char *)u.u_mkdir.Name);
 	break;
-    case ViceRemoveDir_OP:
+    case OLDCML_RemoveDir_OP:
 	result += strlen((char *)u.u_rmdir.Name);
 	break;
-    case ViceSymLink_OP:
+    case OLDCML_SymLink_OP:
 	result += strlen((char *)u.u_symlink.OldName)
 	         +strlen((char *)u.u_symlink.NewName);
 	break;
@@ -948,7 +949,7 @@ void cmlent::print(int afd) {
 	    flags.frozen, flags.cancellation_pending, flags.failed,
 	    flags.committed);
     switch(opcode) {
-	case ViceNewStore_OP:
+	case OLDCML_NewStore_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_store.Fid);
 	    fdprint(afd, ", length = %d\n", u.u_store.Length);
@@ -962,7 +963,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceUtimes_OP:
+	case OLDCML_Utimes_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_utimes.Fid);
 	    fdprint(afd, ", utimes = %d\n", u.u_utimes.Date);
@@ -971,7 +972,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceChown_OP:
+	case OLDCML_Chown_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_chown.Fid);
 	    fdprint(afd, ", chown = %d\n", u.u_chown.Owner);
@@ -980,7 +981,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceChmod_OP:
+	case OLDCML_Chmod_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_chmod.Fid);
 	    fdprint(afd, ", chmod = %o\n", u.u_chmod.Mode);
@@ -989,7 +990,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_create.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_create.Name);
@@ -1000,7 +1001,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_remove.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_remove.Name);
@@ -1014,7 +1015,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_link.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_link.Name);
@@ -1028,7 +1029,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    fdprint(afd, "\t\tspfid = ");
 	    PRINTFID(afd, u.u_rename.SPFid);
 	    fdprint(afd, ", sname = (%s)\n\t\ttpfid = ", u.u_rename.OldName);
@@ -1047,7 +1048,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_mkdir.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_mkdir.Name);
@@ -1058,7 +1059,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_rmdir.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_rmdir.Name);
@@ -1072,7 +1073,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_symlink.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_symlink.NewName);
@@ -1084,7 +1085,7 @@ void cmlent::print(int afd) {
 	    fdprint(afd, "\n");
 	    break;
 
-        case ViceRepair_OP:
+        case OLDCML_Repair_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_repair.Fid);
 	    fdprint(afd, ", Length = %u\n\t\tattrs=[%d %d %o]\n",
@@ -1126,17 +1127,17 @@ int volent::LogStore(time_t Mtime, vuid_t vuid,
 	    cmlent *m;
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
-		    case ViceNewStore_OP:
+		    case OLDCML_NewStore_OP:
 			if (chown_mle == 0) {
 			    cancellation = m->cancel();
 			}
 			break;
 
-		    case ViceUtimes_OP:
+		    case OLDCML_Utimes_OP:
 			cancellation = m->cancel();
 			break;
 
-		    case ViceChown_OP:
+		    case OLDCML_Chown_OP:
 			if (chown_mle == 0)
 			    chown_mle = m;
 			break;
@@ -1145,7 +1146,7 @@ int volent::LogStore(time_t Mtime, vuid_t vuid,
 	} while (cancellation);
     }
 
-    cmlent *store_mle = new cmlent(&CML, Mtime, vuid, ViceNewStore_OP, tid, Fid, NewLength);
+    cmlent *store_mle = new cmlent(&CML, Mtime, vuid, OLDCML_NewStore_OP, tid, Fid, NewLength);
     return(store_mle == 0 ? ENOSPC : 0);
 }
 
@@ -1201,7 +1202,7 @@ int volent::LogUtimes(time_t Mtime, vuid_t vuid,
 	    cmlent *m;
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
-		    case ViceUtimes_OP:
+		    case OLDCML_Utimes_OP:
 			cancellation = m->cancel();
 			break;
 		}
@@ -1209,7 +1210,7 @@ int volent::LogUtimes(time_t Mtime, vuid_t vuid,
 	} while (cancellation);
     }
 
-    cmlent *utimes_mle = new cmlent(&CML, Mtime, vuid, ViceUtimes_OP, tid, Fid, NewDate);
+    cmlent *utimes_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Utimes_OP, tid, Fid, NewDate);
     return(utimes_mle == 0 ? ENOSPC : 0);
 }
 
@@ -1228,7 +1229,7 @@ int volent::LogChown(time_t Mtime, vuid_t vuid,
 	    cmlent *m;
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
-		    case ViceChown_OP:
+		    case OLDCML_Chown_OP:
 			cancellation = m->cancel();
 			break;
 		}
@@ -1236,7 +1237,7 @@ int volent::LogChown(time_t Mtime, vuid_t vuid,
 	} while (cancellation);
     }
 
-    cmlent *chown_mle = new cmlent(&CML, Mtime, vuid, ViceChown_OP, tid, Fid, NewOwner);
+    cmlent *chown_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Chown_OP, tid, Fid, NewOwner);
     return(chown_mle == 0 ? ENOSPC : 0);
 }
 
@@ -1256,12 +1257,12 @@ int volent::LogChmod(time_t Mtime, vuid_t vuid,
 	    cmlent *m;
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
-		    case ViceNewStore_OP:
+		    case OLDCML_NewStore_OP:
 			if (store_mle == 0)
 			    store_mle = m;
 			break;
 
-		    case ViceChmod_OP:
+		    case OLDCML_Chmod_OP:
 			if (store_mle == 0) {
 			    cancellation = m->cancel();
 			}
@@ -1271,7 +1272,7 @@ int volent::LogChmod(time_t Mtime, vuid_t vuid,
 	} while (cancellation);
     }
 
-    cmlent *chmod_mle = new cmlent(&CML, Mtime, vuid, ViceChmod_OP, tid, Fid, NewMode);
+    cmlent *chmod_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Chmod_OP, tid, Fid, NewMode);
     return(chmod_mle == 0 ? ENOSPC : 0);
 }
 
@@ -1283,7 +1284,7 @@ int volent::LogCreate(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
-    cmlent *create_mle = new cmlent(&CML, Mtime, vuid, ViceCreate_OP, tid,
+    cmlent *create_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Create_OP, tid,
 				     PFid, Name, CFid, Mode);
     return(create_mle == 0 ? ENOSPC : 0);
 }
@@ -1313,7 +1314,8 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	    {
 		cml_iterator next(CML, CommitOrder, CFid);
 		cmlent *m = next();
-		if (m != 0 && (m->opcode == ViceCreate_OP || m->opcode == ViceSymLink_OP)) {
+		if (m != 0 && (m->opcode == OLDCML_Create_OP || m->opcode ==
+                               OLDCML_SymLink_OP)) {
 		    ObjectCreated = 1;
 		    if (m->IsFrozen())
 			CreateReintegrating = 1;
@@ -1335,18 +1337,18 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 		cmlent *m;
 		while (!cancellation && (m = next())) {
 		    switch(m->opcode) {
-			case ViceNewStore_OP:
-			case ViceUtimes_OP:
-			case ViceChown_OP:
-			case ViceChmod_OP:
+			case OLDCML_NewStore_OP:
+			case OLDCML_Utimes_OP:
+			case OLDCML_Chown_OP:
+			case OLDCML_Chmod_OP:
 			    cancellation = m->cancel();
 			    break;
 
-			case ViceCreate_OP:
-			case ViceRemove_OP:
-			case ViceLink_OP:
-			case ViceRename_OP:
-			case ViceSymLink_OP:
+			case OLDCML_Create_OP:
+			case OLDCML_Remove_OP:
+			case OLDCML_Link_OP:
+			case OLDCML_Rename_OP:
+			case OLDCML_SymLink_OP:
 			    if (ObjectCreated) {
 				if (CreateReintegrating) {
 				    RVMLIB_REC_OBJECT(m->flags);
@@ -1356,7 +1358,7 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 			    }
 			    break;
 
-		        case ViceRepair_OP:
+		        case OLDCML_Repair_OP:
 			    break;
 
 			default:
@@ -1377,7 +1379,7 @@ int volent::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	}
     }
 
-    cmlent *unlink_mle = new cmlent(&CML, Mtime, vuid, ViceRemove_OP, tid,
+    cmlent *unlink_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Remove_OP, tid,
 				     PFid, Name, CFid, LinkCount);
     if (ObjectCreated && unlink_mle) {	/* must be reintegrating */
 	RVMLIB_REC_OBJECT(unlink_mle->flags);
@@ -1395,7 +1397,7 @@ int volent::LogLink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, tid));
 
-    cmlent *link_mle = new cmlent(&CML, Mtime, vuid, ViceLink_OP, tid,
+    cmlent *link_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Link_OP, tid,
 				   PFid, Name, CFid);
     return(link_mle == 0 ? ENOSPC : 0);
 }
@@ -1421,7 +1423,7 @@ int volent::LogRename(time_t Mtime, vuid_t vuid, ViceFid *SPFid,
 	     OldName, TPFid->Volume, TPFid->Vnode, TPFid->Unique,
 	     NewName, SFid->Volume, SFid->Vnode, SFid->Unique, tid));
 
-    cmlent *rename_mle = new cmlent(&CML, Mtime, vuid, ViceRename_OP, tid,
+    cmlent *rename_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Rename_OP, tid,
 				     SPFid, OldName, TPFid, NewName, SFid);
     return(rename_mle == 0 ? ENOSPC : 0);
 }
@@ -1434,7 +1436,7 @@ int volent::LogMkdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     Name, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
-    cmlent *mkdir_mle = new cmlent(&CML, Mtime, vuid, ViceMakeDir_OP, tid,
+    cmlent *mkdir_mle = new cmlent(&CML, Mtime, vuid, OLDCML_MakeDir_OP, tid,
 				    PFid, Name, CFid, Mode);
     return(mkdir_mle == 0 ? ENOSPC : 0);
 }
@@ -1455,7 +1457,7 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	{
 	    cml_iterator next(CML, CommitOrder, CFid);
 	    cmlent *m = next();
-	    if (m != 0 && m->opcode == ViceMakeDir_OP) {
+	    if (m != 0 && m->opcode == OLDCML_MakeDir_OP) {
 		ObjectCreated = 1;
 		if (m->IsFrozen())
 		    CreateReintegrating = 1;
@@ -1465,20 +1467,20 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 		cmlent *m;
 		while ((m = next()) && !DependentChildren) {
 		    switch(m->opcode) {
-			case ViceCreate_OP:
-			case ViceRemove_OP:
-			case ViceLink_OP:
-			case ViceRemoveDir_OP:
-			case ViceSymLink_OP:
+			case OLDCML_Create_OP:
+			case OLDCML_Remove_OP:
+			case OLDCML_Link_OP:
+			case OLDCML_RemoveDir_OP:
+			case OLDCML_SymLink_OP:
 			    DependentChildren = 1;
 			    break;
 
-			case ViceRename_OP:
+			case OLDCML_Rename_OP:
 			    if (!FID_EQ(CFid, &m->u.u_rename.SFid))
 				DependentChildren = 1;
 			    break;
 
-			case ViceMakeDir_OP:
+			case OLDCML_MakeDir_OP:
 			    if (FID_EQ(CFid, &m->u.u_mkdir.PFid))
 				DependentChildren = 1;
 			    break;
@@ -1501,19 +1503,19 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	    cmlent *m;
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
-		    case ViceUtimes_OP:
-		    case ViceChown_OP:
-		    case ViceChmod_OP:
+		    case OLDCML_Utimes_OP:
+		    case OLDCML_Chown_OP:
+		    case OLDCML_Chmod_OP:
 			cancellation = m->cancel();
 			break;
 
-		    case ViceCreate_OP:
-		    case ViceRemove_OP:
-		    case ViceLink_OP:
-		    case ViceRename_OP:
-		    case ViceMakeDir_OP:
-		    case ViceRemoveDir_OP:
-		    case ViceSymLink_OP:
+		    case OLDCML_Create_OP:
+		    case OLDCML_Remove_OP:
+		    case OLDCML_Link_OP:
+		    case OLDCML_Rename_OP:
+		    case OLDCML_MakeDir_OP:
+		    case OLDCML_RemoveDir_OP:
+		    case OLDCML_SymLink_OP:
 			if (ObjectCreated && !DependentChildren) {
 			    if (CreateReintegrating) {
 				RVMLIB_REC_OBJECT(m->flags);
@@ -1523,7 +1525,7 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 			}
 			break;
 
-		    case ViceRepair_OP:
+		    case OLDCML_Repair_OP:
 			break;
 
 		    default:
@@ -1544,7 +1546,7 @@ int volent::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	}
     }
 
-    cmlent *rmdir_mle = new cmlent(&CML, Mtime, vuid, ViceRemoveDir_OP, tid,
+    cmlent *rmdir_mle = new cmlent(&CML, Mtime, vuid, OLDCML_RemoveDir_OP, tid,
 				    PFid, Name, CFid);
 
     if (ObjectCreated && !DependentChildren && rmdir_mle) {
@@ -1563,7 +1565,7 @@ int volent::LogSymlink(time_t Mtime, vuid_t vuid, ViceFid *PFid,
 	     Mtime, vuid, PFid->Volume, PFid->Vnode, PFid->Unique,
 	     OldName, NewName, CFid->Volume, CFid->Vnode, CFid->Unique, Mode, tid));
 
-    cmlent *symlink_mle = new cmlent(&CML, Mtime, vuid, ViceSymLink_OP, tid,
+    cmlent *symlink_mle = new cmlent(&CML, Mtime, vuid, OLDCML_SymLink_OP, tid,
 				      PFid, OldName, NewName, CFid, Mode);
     return(symlink_mle == 0 ? ENOSPC : 0);
 }
@@ -1575,7 +1577,7 @@ int volent::LogRepair(time_t Mtime, vuid_t vuid, ViceFid *Fid,
     LOG(1, ("volent::LogRepair: %d %d (%x.%x.%x) attrs [%u %d %u %o] %d\n",
 	    Mtime, vuid, Fid->Volume, Fid->Vnode, Fid->Unique, Length,
 	    Date, Owner, Mode, tid));
-    cmlent *repair_mle = new cmlent(&CML, Mtime, vuid, ViceRepair_OP, tid,
+    cmlent *repair_mle = new cmlent(&CML, Mtime, vuid, OLDCML_Repair_OP, tid,
 				    Fid, Length, Date, Owner, Mode, tid);
     return(repair_mle == 0 ? ENOSPC : 0);
 }
@@ -1598,7 +1600,7 @@ void volent::CancelStores(ViceFid *Fid) {
 	    cml_iterator next(CML, AbortOrder, Fid);
 	    cmlent *m;
 	    while (m = next()) {
-		if (m->opcode == ViceNewStore_OP && m->cancel()) {    
+		if (m->opcode == OLDCML_NewStore_OP && m->cancel()) {    
 		    cancellation = 1;
 		    /* 
 		     * Since cancelled store is not being overwritten, we
@@ -1631,7 +1633,7 @@ void volent::RestoreObj(ViceFid *Fid) {
     }
     else {
 	switch(lwriter->opcode) {
-	    case ViceNewStore_OP:
+	    case OLDCML_NewStore_OP:
 		Length = lwriter->u.u_store.Length;
 		break;
 
@@ -1653,19 +1655,19 @@ void volent::RestoreObj(ViceFid *Fid) {
     }
     else {
 	switch(uwriter->opcode) {
-	    case ViceNewStore_OP:
-	    case ViceCreate_OP:
-	    case ViceMakeDir_OP:
-	    case ViceSymLink_OP:
-	    case ViceRepair_OP:
-	    case ViceRemove_OP:
-	    case ViceLink_OP:
-	    case ViceRename_OP:
-	    case ViceRemoveDir_OP:
+	    case OLDCML_NewStore_OP:
+	    case OLDCML_Create_OP:
+	    case OLDCML_MakeDir_OP:
+	    case OLDCML_SymLink_OP:
+	    case OLDCML_Repair_OP:
+	    case OLDCML_Remove_OP:
+	    case OLDCML_Link_OP:
+	    case OLDCML_Rename_OP:
+	    case OLDCML_RemoveDir_OP:
 		Utimes = uwriter->time;
 		break;
 
-	    case ViceUtimes_OP:
+	    case OLDCML_Utimes_OP:
 		Utimes = uwriter->u.u_utimes.Date;
 		break;
 
@@ -1685,8 +1687,8 @@ cmlent *ClientModifyLog::LengthWriter(ViceFid *Fid) {
     cmlent *m;
     while (m = next()) {
 	switch(m->opcode) {
-	    case ViceNewStore_OP:
-	    case ViceRepair_OP:
+	    case OLDCML_NewStore_OP:
+	    case OLDCML_Repair_OP:
 		return(m);
 	}
     }
@@ -1701,31 +1703,31 @@ cmlent *ClientModifyLog::UtimesWriter(ViceFid *Fid) {
     cmlent *m;
     while (m = next()) {
 	switch(m->opcode) {
-	    case ViceNewStore_OP:
-	    case ViceUtimes_OP:
-	    case ViceCreate_OP:
-	    case ViceMakeDir_OP:
-	    case ViceSymLink_OP:
-	    case ViceRepair_OP:
+	    case OLDCML_NewStore_OP:
+	    case OLDCML_Utimes_OP:
+	    case OLDCML_Create_OP:
+	    case OLDCML_MakeDir_OP:
+	    case OLDCML_SymLink_OP:
+	    case OLDCML_Repair_OP:
 		return(m);
 
-	    case ViceRemove_OP:
+	    case OLDCML_Remove_OP:
 		if (FID_EQ(Fid, &m->u.u_remove.PFid))
 		    return(m);
 		break;
 
-	    case ViceLink_OP:
+	    case OLDCML_Link_OP:
 		if (FID_EQ(Fid, &m->u.u_link.PFid))
 		    return(m);
 		break;
 
-	    case ViceRename_OP:
+	    case OLDCML_Rename_OP:
 		if (FID_EQ(Fid, &m->u.u_rename.SPFid) ||
 		    FID_EQ(Fid, &m->u.u_rename.TPFid))
 		    return(m);
 		break;
 
-	    case ViceRemoveDir_OP:
+	    case OLDCML_RemoveDir_OP:
 		if (FID_EQ(Fid, &m->u.u_rmdir.PFid))
 		    return(m);
 		break;
@@ -1773,7 +1775,7 @@ int cmlent::cancel() {
     Date_t UtimesMtime;
 
     switch(opcode) {
-	case ViceNewStore_OP:
+	case OLDCML_NewStore_OP:
 	    {
 	    /* Cancelling store may permit cancellation of earlier chmod. */
 
@@ -1785,7 +1787,7 @@ int cmlent::cancel() {
 		cmlent *m;
 		while ((m = next()) && post_chmod_mle == 0)
 		    switch(m->opcode) {
-			case ViceChmod_OP:
+			case OLDCML_Chmod_OP:
 			    post_chmod_mle = m;
 			    break;
 		    }
@@ -1796,7 +1798,7 @@ int cmlent::cancel() {
 		cmlent *m;
 		while ((m = next()) && pre_chmod_mle == 0)
 		    switch(m->opcode) {
-			case ViceChmod_OP:
+			case OLDCML_Chmod_OP:
 			    pre_chmod_mle = m;
 			    break;
 		    }
@@ -1807,7 +1809,7 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-	case ViceChown_OP:
+	case OLDCML_Chown_OP:
 	    {
 	    /* Cancelling chown may permit cancellation of earlier store. */
 
@@ -1819,7 +1821,7 @@ int cmlent::cancel() {
 		cmlent *m;
 		while ((m = next()) && post_store_mle == 0)
 		    switch(m->opcode) {
-			case ViceNewStore_OP:
+			case OLDCML_NewStore_OP:
 			    post_store_mle = m;
 			    break;
 		    }
@@ -1830,7 +1832,7 @@ int cmlent::cancel() {
 		cmlent *m;
 		while ((m = next()) && pre_store_mle == 0)
 		    switch(m->opcode) {
-			case ViceNewStore_OP:
+			case OLDCML_NewStore_OP:
 			    pre_store_mle = m;
 			    break;
 		    }
@@ -1841,7 +1843,7 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_create.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1854,7 +1856,7 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_remove.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1867,7 +1869,7 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_link.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1880,7 +1882,7 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rename.SPFid);
 	    CODA_ASSERT(m != 0);
@@ -1905,7 +1907,7 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_mkdir.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1918,7 +1920,7 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rmdir.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1931,7 +1933,7 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_symlink.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1944,12 +1946,12 @@ int cmlent::cancel() {
 	    }
 	    break;
 
-        case ViceRepair_OP:
+        case OLDCML_Repair_OP:
 	    CODA_ASSERT(0);
 	    break;
     }
 
-    if (opcode == ViceNewStore_OP) {
+    if (opcode == OLDCML_NewStore_OP) {
 	log->cancellations.store_count++;
 	log->cancellations.store_size += bytes();
 	log->cancellations.store_contents_size += u.u_store.Length;
@@ -1980,7 +1982,7 @@ int cmlent::cancelstore() {
     int cancelled = 0;
     volent *vol = strbase(volent, log, CML);
 
-    if (opcode == ViceNewStore_OP) {
+    if (opcode == OLDCML_NewStore_OP) {
 	dlink *d = fid_bindings->first();   /* and only */
 	binding *b = strbase(binding, d, binder_handle);
 	fsobj *f = (fsobj *)b->bindee;
@@ -2390,21 +2392,21 @@ int cmlent::realloc()
     ViceDataType type;
     RPC2_Unsigned AllocHost;
     switch(opcode) {
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    if (!FID_IsLocalFile(&u.u_create.CFid))
 		goto Exit;
 	    OldFid = u.u_create.CFid;
 	    type = File;
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    if (!FID_IsLocalDir(&u.u_mkdir.CFid))
 		goto Exit;
 	    OldFid = u.u_mkdir.CFid;
 	    type = Directory;
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    if (!FID_IsLocalFile(&u.u_symlink.CFid))
 		goto Exit;
 	    OldFid = u.u_symlink.CFid;
@@ -2440,48 +2442,48 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
     int found = 0;		    /* sanity checking */
     RVMLIB_REC_OBJECT(u);
     switch(opcode) {
-	case ViceNewStore_OP:
+	case OLDCML_NewStore_OP:
 	    if (FID_EQ(&u.u_store.Fid, OldFid))
 	    { u.u_store.Fid = *NewFid; found = 1; }
 	    break;
 
-	case ViceUtimes_OP:
+	case OLDCML_Utimes_OP:
 	    if (FID_EQ(&u.u_utimes.Fid, OldFid))
 	    { u.u_utimes.Fid = *NewFid; found = 1; }
 	    break;
 
-	case ViceChown_OP:
+	case OLDCML_Chown_OP:
 	    if (FID_EQ(&u.u_chown.Fid, OldFid))
 	    { u.u_chown.Fid = *NewFid; found = 1; }
 	    break;
 
-	case ViceChmod_OP:
+	case OLDCML_Chmod_OP:
 	    if (FID_EQ(&u.u_chmod.Fid, OldFid))
 	    { u.u_chmod.Fid = *NewFid; found = 1; }
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    if (FID_EQ(&u.u_create.PFid, OldFid))
 	    { u.u_create.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_create.CFid, OldFid))
 	    { u.u_create.CFid = *NewFid; found = 1; }
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    if (FID_EQ(&u.u_remove.PFid, OldFid))
 	    { u.u_remove.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_remove.CFid, OldFid))
 	    { u.u_remove.CFid = *NewFid; found = 1; }
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    if (FID_EQ(&u.u_link.PFid, OldFid))
 	    { u.u_link.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_link.CFid, OldFid))
 	    { u.u_link.CFid = *NewFid; found = 1; }
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    if (FID_EQ(&u.u_rename.SPFid, OldFid))
 	    { u.u_rename.SPFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_rename.TPFid, OldFid))
@@ -2490,28 +2492,28 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 	    { u.u_rename.SFid = *NewFid; found = 1; }
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    if (FID_EQ(&u.u_mkdir.PFid, OldFid))
 	    { u.u_mkdir.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_mkdir.CFid, OldFid))
 	    { u.u_mkdir.CFid = *NewFid; found = 1; }
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    if (FID_EQ(&u.u_rmdir.PFid, OldFid))
 	    { u.u_rmdir.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_rmdir.CFid, OldFid))
 	    { u.u_rmdir.CFid = *NewFid; found = 1; }
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    if (FID_EQ(&u.u_symlink.PFid, OldFid))
 	    { u.u_symlink.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_symlink.CFid, OldFid))
 	    { u.u_symlink.CFid = *NewFid; found = 1; }
 	    break;
 
-        case ViceRepair_OP: /* Shouldn't be called for repair */ 
+        case OLDCML_Repair_OP: /* Shouldn't be called for repair */ 
 	default:
 	    CHOKE("cmlent::translatefid: bogus opcode (%d)", opcode);
     }
@@ -2567,65 +2569,65 @@ int cmlent::size()
     len	+= (int) sizeof(RPC2_Integer);	/* Leave room for opcode. */
     len	+= (int) sizeof(Date_t);		/* Leave room for modify time. */
     switch(opcode) {
-	case ViceNewStore_OP:
-	case ViceUtimes_OP:
-	case ViceChown_OP:
-	case ViceChmod_OP:
-	    len += RLE_Size(ViceNewStore_PTR, &NullFid,
+	case OLDCML_NewStore_OP:
+	case OLDCML_Utimes_OP:
+	case OLDCML_Chown_OP:
+	case OLDCML_Chmod_OP:
+	    len += RLE_Size(OLDCML_NewStore_PTR, &NullFid,
 			    0, &DummyCBS, &DummyStatus, 0, 0, /* account for Mask */
 			    0, &sid, &DummyCBS, 0);
 	    break;
 
-	case ViceCreate_OP:
-	    len += RLE_Size(ViceCreate_PTR, &u.u_create.PFid,
+	case OLDCML_Create_OP:
+	    len += RLE_Size(OLDCML_Create_PTR, &u.u_create.PFid,
 			    &NullFid, u.u_create.Name, &DummyStatus,
 			    &u.u_create.CFid, &DummyStatus,
 			    DummyAllocHost, &sid, &DummyCBS);
 	    break;
 
-	case ViceRemove_OP:
-	    len += RLE_Size(ViceRemove_PTR, &u.u_remove.PFid,
+	case OLDCML_Remove_OP:
+	    len += RLE_Size(OLDCML_Remove_PTR, &u.u_remove.PFid,
 			    u.u_remove.Name, &DummyStatus,
 			    &DummyStatus, 0, &sid, &DummyCBS);
 	    break;
 
-	case ViceLink_OP:
-	    len += RLE_Size(ViceLink_PTR, &u.u_link.PFid,
+	case OLDCML_Link_OP:
+	    len += RLE_Size(OLDCML_Link_PTR, &u.u_link.PFid,
 			    u.u_link.Name, &u.u_link.CFid,
 			    &DummyStatus, &DummyStatus,
 			    0, &sid, &DummyCBS);
 	    break;
 
-	case ViceRename_OP:
-	    len += RLE_Size(ViceRename_PTR, &u.u_rename.SPFid,
+	case OLDCML_Rename_OP:
+	    len += RLE_Size(OLDCML_Rename_PTR, &u.u_rename.SPFid,
 			    u.u_rename.OldName, &u.u_rename.TPFid,
 			    u.u_rename.NewName, &DummyStatus,
 			    &DummyStatus, &DummyStatus,
 			    &DummyStatus, 0, &sid, &DummyCBS);
 	    break;
 
-	case ViceMakeDir_OP:
-	    len += RLE_Size(ViceMakeDir_PTR, &u.u_mkdir.PFid,
+	case OLDCML_MakeDir_OP:
+	    len += RLE_Size(OLDCML_MakeDir_PTR, &u.u_mkdir.PFid,
 			    u.u_mkdir.Name, &DummyStatus,
 			    &u.u_mkdir.CFid, &DummyStatus,
 			    DummyAllocHost, &sid, &DummyCBS);
 	    break;
 
-	case ViceRemoveDir_OP:
-	    len += RLE_Size(ViceRemoveDir_PTR, &u.u_rmdir.PFid,
+	case OLDCML_RemoveDir_OP:
+	    len += RLE_Size(OLDCML_RemoveDir_PTR, &u.u_rmdir.PFid,
 			    u.u_rmdir.Name, &DummyStatus,
 			    &DummyStatus, 0, &sid, &DummyCBS);
 	    break;
 
-	case ViceSymLink_OP:
-	    len += RLE_Size(ViceSymLink_PTR, &u.u_symlink.PFid,
+	case OLDCML_SymLink_OP:
+	    len += RLE_Size(OLDCML_SymLink_PTR, &u.u_symlink.PFid,
 			    u.u_symlink.NewName, u.u_symlink.OldName,
 			    &u.u_symlink.CFid, &DummyStatus,
 			    &DummyStatus, DummyAllocHost, &sid, &DummyCBS);
 	    break;
 
-        case ViceRepair_OP:
-	    len += RLE_Size(ViceRepair_PTR, &u.u_repair.Fid,
+        case OLDCML_Repair_OP:
+	    len += RLE_Size(OLDCML_Repair_PTR, &u.u_repair.Fid,
 			    &DummyStatus, 0);
 	    break;
 
@@ -2652,57 +2654,58 @@ void cmlent::pack(PARM **_ptr) {
 
     /* Vice interface does not yet know about {Truncate, Utimes, Chown, Chmod}, */
     /* so we must make them look like (StatusOnly) Stores. XXX */
-    if (opcode == ViceUtimes_OP || opcode == ViceChown_OP || opcode == ViceChmod_OP)
-	*((RPC2_Integer *)(*_ptr)++) = htonl(ViceNewStore_OP);
+    if (opcode == OLDCML_Utimes_OP || opcode == OLDCML_Chown_OP || opcode ==
+        OLDCML_Chmod_OP)
+	*((RPC2_Integer *)(*_ptr)++) = htonl(OLDCML_NewStore_OP);
     else
 	*((RPC2_Integer *)(*_ptr)++) = htonl(opcode);	/* Stick in opcode. */
     *((Date_t	*)(*_ptr)++) = htonl(time);			/* Stick in modify time. */
     switch(opcode) {
-	case ViceNewStore_OP:
+	case OLDCML_NewStore_OP:
 	    {
 	    ViceStatus Status;
 	    Status.VV = u.u_store.VV;
 	    Status.Date = time;
-	    RLE_Pack(_ptr, ViceNewStore_PTR, &u.u_store.Fid,
+	    RLE_Pack(_ptr, OLDCML_NewStore_PTR, &u.u_store.Fid,
 		     StoreStatusData, &DummyCBS, &Status,
 		     u.u_store.Length, 0, 0/* Mask */, &sid, &DummyCBS, 0);
 	    }
 	    break;
 
-	case ViceUtimes_OP:
+	case OLDCML_Utimes_OP:
 	    {
 	    ViceStatus Status;
 	    Status.VV = u.u_utimes.VV;
 	    Status.Date = u.u_utimes.Date;
-	    RLE_Pack(_ptr, ViceUtimes_PTR, &u.u_utimes.Fid,
+	    RLE_Pack(_ptr, OLDCML_Utimes_PTR, &u.u_utimes.Fid,
 		     StoreStatus, &DummyCBS, &Status, 0, SET_TIME/* Mask */,
 		     0, &sid, &DummyCBS, 0);
 	    }
 	    break;
 
-	case ViceChown_OP:
+	case OLDCML_Chown_OP:
 	    {
 	    ViceStatus Status;
 	    Status.VV = u.u_chown.VV;
 	    Status.Owner = u.u_chown.Owner;
-	    RLE_Pack(_ptr, ViceChown_PTR, &u.u_chown.Fid,
+	    RLE_Pack(_ptr, OLDCML_Chown_PTR, &u.u_chown.Fid,
 		     StoreStatus, &DummyCBS, &Status, 0, SET_OWNER/* Mask */,
 		     0, &sid, &DummyCBS, 0);
 	    }
 	    break;
 
-	case ViceChmod_OP:
+	case OLDCML_Chmod_OP:
 	    {
 	    ViceStatus Status;
 	    Status.VV = u.u_chmod.VV;
 	    Status.Mode = u.u_chmod.Mode;
-	    RLE_Pack(_ptr, ViceChmod_PTR, &u.u_chmod.Fid,
+	    RLE_Pack(_ptr, OLDCML_Chmod_PTR, &u.u_chmod.Fid,
 		     StoreStatus, &DummyCBS, &Status, 0, SET_MODE/* Mask */,
 		     0, &sid, &DummyCBS, 0);
 	    }
 	    break;
 
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    {
 	    ViceStatus PStatus;
 	    PStatus.VV = u.u_create.PVV;
@@ -2714,40 +2717,40 @@ void cmlent::pack(PARM **_ptr) {
 	    CStatus.Date = time;
 	    CStatus.Owner = uid;
 	    CStatus.Mode = u.u_create.Mode;
-	    RLE_Pack(_ptr, ViceCreate_PTR, &u.u_create.PFid,
+	    RLE_Pack(_ptr, OLDCML_Create_PTR, &u.u_create.PFid,
 		     &NullFid, u.u_create.Name, &CStatus,
 		     &u.u_create.CFid, &PStatus, DummyAllocHost,
 		     &sid, &DummyCBS);
 	    }
 	    break;
 
-	case ViceRemove_OP:
+	case OLDCML_Remove_OP:
 	    {
 	    ViceStatus PStatus;
 	    PStatus.VV = u.u_remove.PVV;
 	    PStatus.Date = time;
 	    ViceStatus CStatus;
 	    CStatus.VV = u.u_remove.CVV;
-	    RLE_Pack(_ptr, ViceRemove_PTR, &u.u_remove.PFid,
+	    RLE_Pack(_ptr, OLDCML_Remove_PTR, &u.u_remove.PFid,
 		     u.u_remove.Name, &PStatus, &CStatus,
 		     0, &sid, &DummyCBS);
 	    }
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    {
 	    ViceStatus PStatus;
 	    PStatus.VV = u.u_link.PVV;
 	    PStatus.Date = time;
 	    ViceStatus CStatus;
 	    CStatus.VV = u.u_link.CVV;
-	    RLE_Pack(_ptr, ViceLink_PTR, &u.u_link.PFid,
+	    RLE_Pack(_ptr, OLDCML_Link_PTR, &u.u_link.PFid,
 		     u.u_link.Name, &u.u_link.CFid, &CStatus, &PStatus,
 		     0, &sid, &DummyCBS);
 	    }
 	    break;
 
-	case ViceRename_OP:
+	case OLDCML_Rename_OP:
 	    {
 	    ViceStatus SPStatus;
 	    SPStatus.VV = u.u_rename.SPVV;
@@ -2758,14 +2761,14 @@ void cmlent::pack(PARM **_ptr) {
 	    ViceStatus SStatus;
 	    SStatus.VV = u.u_rename.SVV;
 	    ViceStatus TStatus;
-	    RLE_Pack(_ptr, ViceRename_PTR, &u.u_rename.SPFid,
+	    RLE_Pack(_ptr, OLDCML_Rename_PTR, &u.u_rename.SPFid,
 		     u.u_rename.OldName, &u.u_rename.TPFid,
 		     u.u_rename.NewName, &SPStatus, &TPStatus,
 		     &SStatus, &TStatus, 0, &sid, &DummyCBS);
 	    }
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    {
 	    ViceStatus PStatus;
 	    PStatus.VV = u.u_mkdir.PVV;
@@ -2777,25 +2780,25 @@ void cmlent::pack(PARM **_ptr) {
 	    CStatus.Date = time;
 	    CStatus.Owner = uid;
 	    CStatus.Mode = u.u_mkdir.Mode;
-	    RLE_Pack(_ptr, ViceMakeDir_PTR, &u.u_mkdir.PFid,
+	    RLE_Pack(_ptr, OLDCML_MakeDir_PTR, &u.u_mkdir.PFid,
 		     u.u_mkdir.Name, &CStatus, &u.u_mkdir.CFid, &PStatus,
 		     DummyAllocHost, &sid, &DummyCBS);
 	    }
 	    break;
 
-	case ViceRemoveDir_OP:
+	case OLDCML_RemoveDir_OP:
 	    {
 	    ViceStatus PStatus;
 	    PStatus.VV = u.u_rmdir.PVV;
 	    PStatus.Date = time;
 	    ViceStatus CStatus;
 	    CStatus.VV = u.u_rmdir.CVV;
-	    RLE_Pack(_ptr, ViceRemoveDir_PTR, &u.u_rmdir.PFid,
+	    RLE_Pack(_ptr, OLDCML_RemoveDir_PTR, &u.u_rmdir.PFid,
 		     u.u_rmdir.Name, &PStatus, &CStatus, 0, &sid, &DummyCBS);
 	    }
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    {
 	    ViceStatus PStatus;
 	    PStatus.VV = u.u_symlink.PVV;
@@ -2807,21 +2810,21 @@ void cmlent::pack(PARM **_ptr) {
 	    CStatus.Date = time;
 	    CStatus.Owner = uid;
 	    CStatus.Mode = u.u_symlink.Mode;
-	    RLE_Pack(_ptr, ViceSymLink_PTR, &u.u_symlink.PFid,
+	    RLE_Pack(_ptr, OLDCML_SymLink_PTR, &u.u_symlink.PFid,
 		     u.u_symlink.NewName, u.u_symlink.OldName,
 		     &u.u_symlink.CFid, &CStatus, &PStatus,
 		     DummyAllocHost, &sid, &DummyCBS);
 	    }
 	    break;
 
-        case ViceRepair_OP:
+        case OLDCML_Repair_OP:
 	    {
 		ViceStatus Status;
 		Status.Length = u.u_repair.Length;
 		Status.Date = u.u_repair.Date;
 		Status.Author = Status.Owner = u.u_repair.Owner;
 		Status.Mode = u.u_repair.Mode;
-		RLE_Pack(_ptr, ViceRepair_PTR, &u.u_repair.Fid,
+		RLE_Pack(_ptr, OLDCML_Repair_PTR, &u.u_repair.Fid,
 			 &Status, &sid, 0);
 	    }
 	    break;
@@ -2865,8 +2868,8 @@ void cmlent::commit(ViceVersionVector *UpdateSet) {
 	     * if the final update removed the object, don't bother adding the
 	     * COP2, but do update the version vector as in connected mode.
 	     */
-	    if (!(opcode == ViceRemove_OP && FID_EQ(&u.u_remove.CFid, &f->fid)) &&
-		!(opcode == ViceRemoveDir_OP && FID_EQ(&u.u_rmdir.CFid, &f->fid)))
+	    if (!(opcode == OLDCML_Remove_OP && FID_EQ(&u.u_remove.CFid, &f->fid)) &&
+		!(opcode == OLDCML_RemoveDir_OP && FID_EQ(&u.u_rmdir.CFid, &f->fid)))
 		FinalMutationForAnyObject = 1;
 
 	    RVMLIB_REC_OBJECT(f->stat.VV);
@@ -2890,7 +2893,7 @@ void cmlent::commit(ViceVersionVector *UpdateSet) {
 int cmlent::HaveReintegrationHandle() {
     int haveit = 0;
 
-    if (opcode == ViceNewStore_OP)
+    if (opcode == OLDCML_NewStore_OP)
 	for (int i = 0; i < VSG_MEMBERS; i++) 
 	    if (u.u_store.RHandle[i].BirthTime)
 		haveit++;
@@ -2901,7 +2904,7 @@ int cmlent::HaveReintegrationHandle() {
 
 /* MUST NOT be called from within transaction! */
 void cmlent::ClearReintegrationHandle() {
-    CODA_ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
     Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(u);
@@ -3025,7 +3028,7 @@ Exit:
 
 
 int cmlent::WriteReintegrationHandle() {
-    CODA_ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
     volent *vol = strbase(volent, log, CML);
     int code = 0, bytes = 0;
@@ -3409,7 +3412,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
     }
 
     while (m) {
-	if (m->opcode == ViceRemove_OP && FID_EQ(&m->u.u_remove.CFid, cfid)) {
+	if (m->opcode == OLDCML_Remove_OP && FID_EQ(&m->u.u_remove.CFid, cfid)) {
 	    /* when the cfid is removed, prepend suffix and replace cfid with its father */
 	    if (suffix[0]) 
 	      sprintf(buf, "%s/%s", m->u.u_remove.Name, suffix);
@@ -3420,7 +3423,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    return 1;
 	}
 
-	if (m->opcode == ViceRemoveDir_OP && FID_EQ(&m->u.u_rmdir.CFid, cfid)) {
+	if (m->opcode == OLDCML_RemoveDir_OP && FID_EQ(&m->u.u_rmdir.CFid, cfid)) {
 	    /*
 	     * when the current fid(directory) is removed, prepend suffix
 	     * replace cfid with its father.
@@ -3434,7 +3437,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    return 1;
 	}
 
-	if (m->opcode == ViceRename_OP && FID_EQ(&m->u.u_rename.SFid, cfid)) {
+	if (m->opcode == OLDCML_Rename_OP && FID_EQ(&m->u.u_rename.SFid, cfid)) {
 	    /*
 	     * when the current fid is renamed, prepend the original name to
 	     * suffix and replace cfid with the original father fid.
@@ -3871,13 +3874,13 @@ int cmlent::checkpoint(FILE *fp) {
 
     hblock hdr; bzero((void *)&hdr, (int) sizeof(hblock));
     switch(opcode) {
-	case ViceNewStore_OP:
+	case OLDCML_NewStore_OP:
 	    {
 	    /* Only checkpoint LAST store! */
 	    {
 		cml_iterator next(*(ClientModifyLog *)log, AbortOrder, &u.u_store.Fid);
 		cmlent *m;
-		while ((m = next()) && m->opcode != ViceNewStore_OP)
+		while ((m = next()) && m->opcode != OLDCML_NewStore_OP)
 		    ;
 		CODA_ASSERT(m != 0);
 		if (m != this) break;
@@ -3924,7 +3927,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    }
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_mkdir.CFid);
 	    strcat(hdr.dbuf.name, "/");
@@ -3938,7 +3941,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    }
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_symlink.CFid);
 	    sprintf(hdr.dbuf.mode, "%6o ", 0755);
@@ -3952,7 +3955,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    }
 	    break;
 
-        case ViceRepair_OP:
+        case OLDCML_Repair_OP:
 	    eprint("Not checkpointing file (%x.%x.%x)that was repaired\n",
 		   u.u_repair.Fid.Volume, u.u_repair.Fid.Vnode, u.u_repair.Fid.Unique);
 	    break;
@@ -4121,64 +4124,64 @@ void cmlent::writeops(FILE *fp) {
     char msg[2 * MAXPATHLEN + 100]; 	// this is enough for writing one entry
 
     switch(opcode) {
-    case ViceNewStore_OP:
+    case OLDCML_NewStore_OP:
 	RecoverPathName(path, &u.u_store.Fid, log, this);
 	sprintf(msg, "Store \t%s (length = %d)", path, u.u_store.Length);
 	break;
 
-    case ViceUtimes_OP:
+    case OLDCML_Utimes_OP:
 	RecoverPathName(path, &u.u_utimes.Fid, log, this);
 	sprintf(msg, "Utime \t%s", path);
 	break;
 
-    case ViceChown_OP:
+    case OLDCML_Chown_OP:
 	RecoverPathName(path, &u.u_chown.Fid, log, this);
 	sprintf(msg, "Chown \t%s (owner = %d)", path, u.u_chown.Owner);
 	break;
 
-    case ViceChmod_OP:
+    case OLDCML_Chmod_OP:
 	RecoverPathName(path, &u.u_chmod.Fid, log, this);
 	sprintf(msg, "Chmod \t%s (mode = %o)", path, u.u_chmod.Mode);
 	break;
 
-    case ViceCreate_OP:
+    case OLDCML_Create_OP:
 	RecoverPathName(path, &u.u_create.CFid, log, this);
 	sprintf(msg, "Create \t%s", path);
 	break;
 
-    case ViceRemove_OP:
+    case OLDCML_Remove_OP:
 	RecoverPathName(path, &u.u_remove.CFid, log, this);
 	sprintf(msg, "Remove \t%s", path);
 	break;
 
-    case ViceLink_OP:
+    case OLDCML_Link_OP:
 	RecoverPathName(path, &u.u_link.CFid, log, this);
 	sprintf(msg, "Link \t%s to %s", path, u.u_link.Name);
 	break;
 
-    case ViceRename_OP:
+    case OLDCML_Rename_OP:
 	RecoverPathName(path, &u.u_rename.SPFid, log, this);
 	RecoverPathName(path2, &u.u_rename.TPFid, log, this);
 	sprintf(msg, "Rename \t%s/%s (to: %s/%s)", path, u.u_rename.OldName, path2,
 		u.u_rename.NewName);
 	break;
 
-    case ViceMakeDir_OP:
+    case OLDCML_MakeDir_OP:
 	RecoverPathName(path, &u.u_mkdir.CFid, log, this);
 	sprintf(msg, "Mkdir \t%s", path);
 	break;
 
-    case ViceRemoveDir_OP:
+    case OLDCML_RemoveDir_OP:
 	RecoverPathName(path, &u.u_rmdir.CFid, log, this);
 	sprintf(msg, "Rmdir \t%s", path);
 	break;
 
-    case ViceSymLink_OP:
+    case OLDCML_SymLink_OP:
 	RecoverPathName(path, &u.u_symlink.CFid, log, this);
 	sprintf(msg, "Symlink %s (--> %s)", path, u.u_symlink.OldName);
 	break;
 
-    case ViceRepair_OP:
+    case OLDCML_Repair_OP:
 	sprintf(msg, "Disconnected Repair by an ASR for 0x%x.%x.%x",
 		u.u_repair.Fid.Volume, u.u_repair.Fid.Vnode, u.u_repair.Fid.Unique);
 	break;
@@ -4220,7 +4223,7 @@ unsigned long cmlent::ReintTime() {
     vol->vsg->GetBandwidth(&bw);
     if (bw > 0) {
 	time = (double) size();
-	if (opcode == ViceNewStore_OP) 
+	if (opcode == OLDCML_NewStore_OP) 
 	    time += u.u_store.Length;  /* might be large */
 
 	time = time * 1000.0/ (double) bw;
@@ -4239,7 +4242,7 @@ unsigned long cmlent::ReintAmount() {
     int amount;
     long bw;	/* bandwidth, in bytes/sec */
 
-    CODA_ASSERT(opcode == ViceNewStore_OP);
+    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
     /* 
      * try to get a dynamic bw estimate.  If that doesn't
@@ -4333,59 +4336,59 @@ cmlent *cml_iterator::operator()() {
 	    binding *b = strbase(binding, d, bindee_handle);
 	    cmlent *m = (cmlent *)b->binder;
 	    switch(m->opcode) {
-		case ViceNewStore_OP:
+		case OLDCML_NewStore_OP:
 		    if (FID_EQ(&m->u.u_store.Fid, &fid)) return(m);
 		    break;
 
-		case ViceUtimes_OP:
+		case OLDCML_Utimes_OP:
 		    if (FID_EQ(&m->u.u_utimes.Fid, &fid)) return(m);
 		    break;
 
-		case ViceChown_OP:
+		case OLDCML_Chown_OP:
 		    if (FID_EQ(&m->u.u_chown.Fid, &fid)) return(m);
 		    break;
 
-		case ViceChmod_OP:
+		case OLDCML_Chmod_OP:
 		    if (FID_EQ(&m->u.u_chmod.Fid, &fid)) return(m);
 		    break;
 
-		case ViceCreate_OP:
+		case OLDCML_Create_OP:
 		    if (FID_EQ(&m->u.u_create.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_create.CFid, &fid)) return(m);
 		    break;
 
-		case ViceRemove_OP:
+		case OLDCML_Remove_OP:
 		    if (FID_EQ(&m->u.u_remove.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_remove.CFid, &fid)) return(m);
 		    break;
 
-		case ViceLink_OP:
+		case OLDCML_Link_OP:
 		    if (FID_EQ(&m->u.u_link.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_link.CFid, &fid)) return(m);
 		    break;
 
-		case ViceRename_OP:
+		case OLDCML_Rename_OP:
 		    if (FID_EQ(&m->u.u_rename.SPFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_rename.TPFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_rename.SFid, &fid)) return(m);
 		    break;
 
-		case ViceMakeDir_OP:
+		case OLDCML_MakeDir_OP:
 		    if (FID_EQ(&m->u.u_mkdir.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_mkdir.CFid, &fid)) return(m);
 		    break;
 
-		case ViceRemoveDir_OP:
+		case OLDCML_RemoveDir_OP:
 		    if (FID_EQ(&m->u.u_rmdir.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_rmdir.CFid, &fid)) return(m);
 		    break;
 
-		case ViceSymLink_OP:
+		case OLDCML_SymLink_OP:
 		    if (FID_EQ(&m->u.u_symlink.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_symlink.CFid, &fid)) return(m);
 		    break;
 
-	        case ViceRepair_OP:
+	        case OLDCML_Repair_OP:
 		    if (FID_EQ(&m->u.u_repair.Fid, &fid)) return(m);
 		    break;
 

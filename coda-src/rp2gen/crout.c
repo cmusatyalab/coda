@@ -642,7 +642,7 @@ static spit_body(proc, in_parms, out_parms, where)
     else fprintf(where, "    struct timeval %s, *%s;\n", timeoutval, timeout);
 
     /* note end of buffer */
-    fprintf(where, "    char *_EOB;\n");
+    fputs("    char *_EOB;\n", where);
     
     /* Generate code for START_ELAPSE */
     fprintf(where, "\n");
@@ -961,14 +961,18 @@ static pack(who, parm, prefix, ptr, where)
     suffix = concat3elem("[", iterate, "]");
     switch (parm->type->type->tag) {
     case RPC2_INTEGER_TAG:		
+#ifdef RP2GEN_DEBUG
 	    checkbuffer(where,ptr,4);
+#endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(", ptr);
 	    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s);\n", name);
 	    inc4(ptr, where);
 	    break;
     case RPC2_UNSIGNED_TAG:		
+#ifdef RP2GEN_DEBUG
 	    checkbuffer(where,ptr,4);
+#endif
 	    fprintf(where, "    *(RPC2_Unsigned *) %s = htonl(", ptr);
 	    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s);\n", name);
@@ -976,12 +980,16 @@ static pack(who, parm, prefix, ptr, where)
 	    break;
     case RPC2_BYTE_TAG:		
 	    if (parm->type->bound != NIL) {
+#ifdef RP2GEN_DEBUG
 		    checkbuffer(where,ptr,atoi(parm->type->bound));
+#endif
 		    fprintf(where, "    bcopy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, parm->type->bound);
 		    inc(ptr, parm->type->bound, where);
 	    } 
 	    else {
+#ifdef RP2GEN_DEBUG
 		    checkbuffer(where,ptr,4);
+#endif
 		    fprintf(where, "    *(RPC2_Byte *) %s = ", ptr);
 		    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 		    fprintf(where, "%s;\n", name);
@@ -989,14 +997,18 @@ static pack(who, parm, prefix, ptr, where)
 	    }
 	    break;
     case RPC2_ENUM_TAG:		
+#ifdef RP2GEN_DEBUG
 	    checkbuffer(where,ptr,4);
+#endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl((RPC2_Integer) ", ptr);
 	    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s);\n", name);
 	    inc4(ptr, where);
 	    break;
     case RPC2_DOUBLE_TAG:	
+#ifdef RP2GEN_DEBUG
 	    checkbuffer(where,ptr,8);
+#endif
 	    fprintf(where, "    *(RPC2_Double *) %s = ", ptr);
 	    if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 	    fprintf(where, "%s;\n", name);
@@ -1004,20 +1016,24 @@ static pack(who, parm, prefix, ptr, where)
 	    break;
     case RPC2_STRING_TAG:		
 	    fprintf(where, "    %s = strlen((char *)%s);\n", length, name);
+#ifdef RP2GEN_DEBUG
 	    fprintf(where, "    if ( (char *)%s + _PAD(%s+1) + 4 > _EOB) {\n"
 		    BUFFEROVERFLOW
 		    "    }\n", ptr,length);
+#endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s);\n", ptr, length);
 	    fprintf(where, "    strcpy((char *)(%s+4), (char *)%s);\n", ptr, name);
 	    fprintf(where, "    *(%s+4+%s) = '\\0';\n", ptr, length);
 	    fprintf(where, "    %s += 4 + _PAD(%s+1);\n", ptr, length);
 	    break;
     case RPC2_COUNTEDBS_TAG:	
+#ifdef RP2GEN_DEBUG
 	    fprintf(where, "    if ( (char *)%s +",ptr);
 	    print_size(who,parm,prefix,where);
 	    fprintf(where, "> _EOB) {\n"        
 		           BUFFEROVERFLOW
 		           "    }\n");
+#endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sSeqLen);\n",
 		    ptr, name, select);
 	    fprintf(where, "    bcopy((char *)%s%sSeqBody, (char *)(%s+4), (long)%s%sSeqLen);\n",
@@ -1027,11 +1043,13 @@ static pack(who, parm, prefix, ptr, where)
 	    fputs(";\n", where);
 	    break;
     case RPC2_BOUNDEDBS_TAG:
+#ifdef RP2GEN_DEBUG
 	    fprintf(where, "    if ( (char *)%s +",ptr);
 	    print_size(who,parm,prefix,where);
 	    fprintf(where, "> _EOB) {\n"        
 		           BUFFEROVERFLOW
 		           "    }\n");
+#endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sMaxSeqLen);\n",
 		    ptr, name, select);
 	    fprintf(where, "    *(RPC2_Integer *) (%s+4) = htonl(%s%sSeqLen);\n",
@@ -1071,8 +1089,10 @@ static pack(who, parm, prefix, ptr, where)
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG:	{
+#if RP2GEN_DEBUG
 	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE > _EOB)\n"
 		           "        return 0;\n",ptr);
+#endif
 	    fprintf(where, "    bcopy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, "RPC2_KEYSIZE");
 	    inc(ptr, "RPC2_KEYSIZE", where);
     }
@@ -1351,9 +1371,6 @@ static one_server_proc(proc, where)
     /* declare locals */
     locals(where);
 
-    /* note end of buffer */
-    fprintf(where, "    char *_EOB;\n");
-
     /* Declare parms */
     in_parms = RP2_FALSE;
     out_parms = RP2_FALSE;
@@ -1372,6 +1389,10 @@ static one_server_proc(proc, where)
 	    default:		printf("[RP2GEN (can't happen)]: unknown mode: %d\n", (*formals)->mode);
 	}
     }
+
+    /* note end of buffer */
+    if (in_parms || out_parms)
+        fputs("    char *_EOB;\n", where);
 
     if (array_parms) {
         fprintf(where, "    long %s;\n", iterate);
@@ -1637,7 +1658,7 @@ static print_dump(head, where)
 
      /* Add default arm */
     fputs("\tdefault:\n", where);
-    fprintf(where, "\t\tprintf(\"%s\",opcode);\n","%s");
+    fprintf(where, "\t\tprintf(\"%d\",opcode);\n","%s");
     /* Close off case */
     fputs("    }\n", where);
     /* Close off routine */

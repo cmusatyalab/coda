@@ -29,7 +29,7 @@ Coda are listed in the file CREDITS.
 #ifdef RVM_LOG_TAIL_BUG
 #include <rvmtesting.h>
 extern unsigned long *ClobberAddress;
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 
 /* global variables */
 
@@ -68,7 +68,7 @@ rvm_offset_t        last_log_tail;          /* last committed log tail value */
 rvm_bool_t          last_log_valid = rvm_false; /* validity of last_log_tail */
 rvm_bool_t          has_wrapped = rvm_false;    /* whether or not we wrapped */
 char *log_tail_shadow_in_object = "Compiled with a shadow log tail offset\n";
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 
 /* locals */
 
@@ -106,7 +106,7 @@ void enter_log(log)
     CODA_ASSERT(log != NULL);
 #ifdef RVM_LOG_TAIL_BUG
     CODA_ASSERT(default_log == NULL);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
     CRITICAL(log_root_lock,
         {
         (void)move_list_entry(NULL,(list_entry_t *)&log_root,
@@ -125,15 +125,15 @@ void enter_log(log)
 #endif	/* __MACH__ */
 #ifndef mips
     CODA_ASSERT(0);
-#endif mips
+#endif /* mips */
     ClobberAddress = &(default_log->status.log_tail.low);
     protect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
     RVM_ASSIGN_OFFSET(log_tail_shadow,default_log->status.log_tail);
     RVM_ASSIGN_OFFSET(last_log_tail,log_tail_shadow);
     last_log_valid = rvm_true;
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 
     }
 
@@ -180,7 +180,7 @@ static rvm_return_t fork_daemon(log)
         {
         daemon->state = rvm_idle;
         mutex_init(&daemon->lock);
-        daemon->thread = cthread_fork((void *)log_daemon,log);
+        daemon->thread = cthread_fork((PFIC)log_daemon,log);
         if (daemon->thread == (cthread_t)NULL)
             return RVM_ELOG;
         }
@@ -277,12 +277,12 @@ rvm_return_t close_log(log)
 #ifdef RVM_LOG_TAIL_BUG
 	unprotect_page__Fi(ClobberAddress);
 	ClobberAddress = 0;
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
 	RVM_ZERO_OFFSET(log_tail_shadow);
 	RVM_ZERO_OFFSET(last_log_tail);
 	last_log_valid = rvm_false;
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 	default_log = NULL;
     }
     /* kill unflushed log_special records */
@@ -601,17 +601,17 @@ rvm_return_t init_log_status(log)
     status->log_head = status->log_start;
 #ifdef RVM_LOG_TAIL_BUG
     unprotect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
     CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
     status->log_tail = status->log_start;
 #ifdef RVM_LOG_TAIL_SHADOW
 	RVM_ASSIGN_OFFSET(log_tail_shadow,status->log_tail);
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 #ifdef RVM_LOG_TAIL_BUG
     protect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
     RVM_ZERO_OFFSET(status->prev_log_head);
     RVM_ZERO_OFFSET(status->prev_log_tail);
 
@@ -754,7 +754,7 @@ rvm_return_t write_log_status(log,dev)
 	last_log_valid = rvm_true;
     }
     RVM_ASSIGN_OFFSET(last_log_tail,log->status.log_tail);
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
     if (dev == NULL) dev = &log->dev;
     (void) BZERO(status_io,LOG_DEV_STATUS_SIZE); /* clear buffer */
 
@@ -878,18 +878,18 @@ static rvm_bool_t chk_tail(log)
         CODA_ASSERT(temp == log->dev.io_length);
 #ifdef RVM_LOG_TAIL_BUG
 	unprotect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
     CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
         status->log_tail = RVM_ADD_LENGTH_TO_OFFSET(status->log_tail,
                                                     temp);
 #ifdef RVM_LOG_TAIL_SHADOW
 	RVM_ASSIGN_OFFSET(log_tail_shadow,status->log_tail);
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 #ifdef RVM_LOG_TAIL_BUG
 	protect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
         CODA_ASSERT(chk_tail(log));
 
         /* update unames if transaction */
@@ -913,17 +913,17 @@ static rvm_bool_t chk_tail(log)
         {
 #ifdef RVM_LOG_TAIL_BUG
         unprotect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
     CODA_ASSERT(RVM_OFFSET_EQL(log_tail_shadow,status->log_tail));
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
         status->log_tail = status->log_start;
 #ifdef RVM_LOG_TAIL_SHADOW
 	RVM_ASSIGN_OFFSET(log_tail_shadow,status->log_tail);
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
 #ifdef RVM_LOG_TAIL_BUG
         protect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
         log->dev.sync_offset = status->log_start;
         CODA_ASSERT(chk_tail(log));
         }
@@ -1079,10 +1079,10 @@ rvm_return_t rvm_create_log(rvm_options,log_len,mode)
     */
     ClobberAddress = &(log->status.log_tail.low);
     protect_page__Fi(ClobberAddress);
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
     RVM_ASSIGN_OFFSET(log_tail_shadow,log->status.log_tail);
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
     if (open_dev(&log->dev,O_WRONLY,mode) == 0) /* don't allow create yet */
         {
         retval = RVM_ELOG;              /* error -- file already exists */
@@ -1122,10 +1122,10 @@ err_exit:
     /* drop the "temporary" clobber address */
     unprotect_page__Fi(ClobberAddress);
     ClobberAddress = 0;
-#endif RVM_LOG_TAIL_BUG
+#endif /* RVM_LOG_TAIL_BUG */
 #ifdef RVM_LOG_TAIL_SHADOW
     RVM_ZERO_OFFSET(log_tail_shadow);
-#endif RVM_LOG_TAIL_SHADOW
+#endif /* RVM_LOG_TAIL_SHADOW */
     free_log(log);
 
     return retval;

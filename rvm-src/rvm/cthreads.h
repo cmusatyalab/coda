@@ -29,7 +29,7 @@ Coda are listed in the file CREDITS.
  * C Threads package initialization.
  */
 
-#define cthread_init()          0      /* nop */
+#define cthread_init()          {}      /* nop */
 
 /*
  * Mutex objects.
@@ -53,14 +53,14 @@ typedef struct condition { int x; } *condition_t;
 
 #define	CONDITION_INITIALIZER		{0}
 
-#define	condition_init(c)		0
-#define	condition_clear(c)		0
+#define	condition_init(c)		{}
+#define	condition_clear(c)		{}
 
-#define	condition_signal(c) 		0
+#define	condition_signal(c) 		{}
 
-#define	condition_broadcast(c)		0
+#define	condition_broadcast(c)		{}
 
-#define condition_wait(c,m)		1
+#define condition_wait(c,m)		{}
 
 /*
  * Threads.
@@ -79,7 +79,7 @@ typedef int cthread_t;
 
 #define cthread_join(t)			0
 
-#define cthread_yield()			0
+#define cthread_yield()			{}
 
 #define cthread_exit(result)		exit(result)
 
@@ -108,5 +108,5 @@ typedef int cthread_t;
 #define	cthread_data(t)			BOGUSCODE
 
 
-#endif	_CTHREADS_
+#endif /* _CTHREADS_ */
 

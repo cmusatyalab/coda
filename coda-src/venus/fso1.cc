@@ -50,7 +50,8 @@ extern "C" {
 #endif __cplusplus
 
 /* interfaces */
-#include <vice.h>
+/* this is silly and only needed for the IsVirgin/IsBackfetching tests! */
+#include <cml.h>
 
 /* cfs/{cfs,cnode}.h must follow vice.h */
 #ifdef __cplusplus
@@ -2451,7 +2452,7 @@ int fsobj::IsVirgin() {
 	    cml_iterator next(vol->CML, CommitOrder, &fid);
 	    cmlent *m;
 	    while (m = next())
-		if (m->opcode == ViceNewStore_OP)
+		if (m->opcode == OLDCML_NewStore_OP)
 		    break;
 	    if (m != 0) virginal = 0;
 	}
@@ -2469,7 +2470,7 @@ int fsobj::IsBackFetching() {
     cmlent *m;
 
     while (m = next()) 
-	if ((m->opcode == ViceNewStore_OP) && m->IsReintegrating()) 
+	if ((m->opcode == OLDCML_NewStore_OP) && m->IsReintegrating()) 
 	    return 1;
 
     return 0;

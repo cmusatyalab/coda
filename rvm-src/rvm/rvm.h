@@ -44,11 +44,11 @@ Coda are listed in the file CREDITS.
 
 #ifndef TRUE
 #define TRUE 1
-#endif  TRUE
+#endif
 
 #ifndef FALSE
 #define FALSE 0
-#endif  FALSE
+#endif
 
 /* RVM's use of false, true and bool causes trouble with versions of gcc
    above 2.6 or so; because of this, the names of RVM's definitions
@@ -465,4 +465,4 @@ extern rvm_length_t rvm_page_mask ();
 extern rvm_offset_t rvm_rnd_offset_up_to_page(rvm_offset_t *x);
 extern rvm_offset_t rvm_rnd_offset_dn_to_page(rvm_offset_t *x);
 
-#endif RVM_VERSION
+#endif /* RVM_VERSION */

@@ -85,7 +85,7 @@ static void lwpinsert(register PROCESS p, register struct QUEUE *q);
 static void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to);
 static void Dispatcher();
 static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, PFIC ep, char *parm, char *name);
-static int  Internal_Signal(char *event);
+static int  Internal_Signal(void *event);
 static void Abort_LWP(char *msg);
 static void Exit_LWP();
 static void Dump_One_Process (PROCESS pid, FILE *fp, int dofree);
@@ -328,7 +328,7 @@ int LWP_GetProcessPriority(PROCESS pid, int *priority)
 	return LWP_EINIT;
 }
 
-int LWP_WaitProcess(char *event)
+int LWP_WaitProcess(void *event)
 {
     char *tempev[2];
 
@@ -688,7 +688,7 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
 	return LWP_SUCCESS;
 }
 
-int LWP_INTERNALSIGNAL(char *event, int yield)
+int LWP_INTERNALSIGNAL(void *event, int yield)
 {
 	lwpdebug(0, "Entered LWP_SignalProcess");
 	if (lwp_init) {
@@ -1032,7 +1032,7 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 }
 
 
-static int Internal_Signal(char *event)
+static int Internal_Signal(void *event)
 {
     int rc = LWP_ENOWAIT;
     int i;

@@ -74,6 +74,7 @@ extern "C" {
 #include <al.h>
 #include <callback.h>
 #include <vice.h>
+#include <cml.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -731,29 +732,6 @@ END_TIMING(Store_Total);
 
 
 /*
-  ViceNewStore: Obsoleted by ViceNewVStore
-*/
-long FS_ViceNewStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
-		  RPC2_CountedBS *AccessList, ViceStatus *Status,
-		  RPC2_Integer Length, RPC2_Integer Mask,
-		  RPC2_Unsigned PrimaryHost,
-		  ViceStoreId *StoreId, RPC2_CountedBS *PiggyBS,
-		  SE_Descriptor *BD)
-{
-	CallBackStatus VCBStatus = NoCallBack;
-	RPC2_Integer NewVS = 0;
-	RPC2_CountedBS OldVS;
-	OldVS.SeqLen = 0;
-	OldVS.SeqBody = 0;
-
-	CODA_ASSERT(0);
-	return(FS_ViceNewVStore(RPCid, Fid, Request, AccessList, Status,
-			     Length, Mask, PrimaryHost, StoreId, &OldVS, &NewVS,
-			     &VCBStatus, PiggyBS, BD));
-}
-
-
-/*
   ViceNewSetAttr: Set attributes of an object
 */
 long FS_ViceNewSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
@@ -856,7 +834,7 @@ START_TIMING(SetAttr_Total);
 	    SLog(0, "Going to spool store log record %u %u %u %u\n",
 		   Status->Owner, Status->Mode, Status->Author, Status->Date);
 	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
-					     ViceNewStore_OP, STSTORE, 
+					     RES_NewStore_OP, STSTORE, 
 					     Status->Owner, Status->Mode,
 					     Status->Author, Status->Date,
 					     Mask, &Status->VV)) 
@@ -949,7 +927,7 @@ START_TIMING(SetACL_Total);
 	if (ReplicatedOp && !errorCode) {
 	    CODA_ASSERT(v->vptr->disk.type == vDirectory);
 	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
-					     ViceNewStore_OP, ACLSTORE, newACL)) 
+					     RES_NewStore_OP, ACLSTORE, newACL)) 
 		SLog(0, 
 		       "ViceSetACL: error %d during SpoolVMLogRecord\n", errorCode);
 	}
@@ -1095,7 +1073,7 @@ START_TIMING(Create_Total);
 	/* Create Log Record */
 	if (ReplicatedOp && !errorCode) 
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
-					     ViceCreate_OP, 
+					     RES_Create_OP, 
 					     Name, Fid->Vnode, Fid->Unique, 
 					     client?client->Id:0))
 		SLog(0, 
@@ -1229,7 +1207,7 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	    if (ReplicatedOp && !errorCode) {
 		    ViceVersionVector ghostVV = cv->vptr->disk.versionvector;	    
 		    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
-						     ViceRemove_OP, Name, Fid.Vnode, 
+						     RES_Remove_OP, Name, Fid.Vnode, 
 						     Fid.Unique, &ghostVV))
 		SLog(0, "ViceRemove: error %d during SpoolVMLogRecord\n",
 		       errorCode);
@@ -1354,7 +1332,7 @@ START_TIMING(Link_Total);
     if (AllowResolution && V_RVMResOn(volptr)) 
 	if (ReplicatedOp && !errorCode) {
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
-					     ViceLink_OP, (char *)Name, Fid->Vnode, Fid->Unique, 
+					     RES_Link_OP, (char *)Name, Fid->Vnode, Fid->Unique, 
 					     &(Vnode_vv(cv->vptr))))
 		SLog(0, 
 		       "ViceLink: Error %d during SpoolVMLogRecord\n",
@@ -1571,7 +1549,7 @@ START_TIMING(Rename_Total);
 
     /* spool rename log record for recoverable rvm logs */
     if (AllowResolution && V_RVMResOn(volptr) && ReplicatedOp && !errorCode) 
-	errorCode = SpoolRenameLogRecord((int) ViceRename_OP,(dlist *)  vlist, sv->vptr, 
+	errorCode = SpoolRenameLogRecord((int) RES_Rename_OP,(dlist *)  vlist, sv->vptr, 
 					 (Vnode *)(tv ? tv->vptr : NULL), spv->vptr, 
 					 tpv->vptr, 
 					 volptr, (char *)OldName, 
@@ -1715,7 +1693,7 @@ START_TIMING(MakeDir_Total);
     if (AllowResolution && V_RVMResOn(volptr)) 
 	if (ReplicatedOp && !errorCode) {
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
-					     ViceMakeDir_OP, Name, 
+					     RES_MakeDir_OP, Name, 
 					     NewDid->Vnode, NewDid->Unique, 
 					     client?client->Id:0)) 
 		SLog(0, "ViceMakeDir: Error %d during SpoolVMLogRecord for parent\n",
@@ -1724,7 +1702,7 @@ START_TIMING(MakeDir_Total);
 	    if ( errorCode == 0 )
 		    CODA_ASSERT(DC_Dirty(cv->vptr->dh));
 	    if (!errorCode && (errorCode = SpoolVMLogRecord(vlist, cv, volptr, StoreId, 
-							    ViceMakeDir_OP, ".",
+							    RES_MakeDir_OP, ".",
 							    NewDid->Vnode, 
 							    NewDid->Unique,
 							    client?client->Id:0)))
@@ -1864,7 +1842,7 @@ START_TIMING(RemoveDir_Total);
     if (AllowResolution && V_RVMResOn(volptr)) {
 	if (ReplicatedOp) 
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
-					     ViceRemoveDir_OP, Name, 
+					     RES_RemoveDir_OP, Name, 
 					     ChildDid.Vnode, ChildDid.Unique, 
 					     VnLog(cv->vptr), &(Vnode_vv(cv->vptr).StoreId),
 					     &(Vnode_vv(cv->vptr).StoreId)))
@@ -2024,7 +2002,7 @@ START_TIMING(SymLink_Total);
 	/* Create Log Record */
 	if (ReplicatedOp) 
 	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
-					     ViceSymLink_OP, 
+					     RES_SymLink_OP, 
 					     NewName, Fid->Vnode, Fid->Unique,
 					     client?client->Id:0)) 
 		SLog(0, 
@@ -4020,7 +3998,7 @@ void PerformCreate(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 		    Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime, RPC2_Unsigned Mode,
 		    int ReplicatedOp, ViceStoreId *StoreId, 
 		   DirInode **CowInode, int *blocks, RPC2_Integer *vsptr) {
-    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, ViceCreate_OP,
+    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, OLDCML_Create_OP,
 		  Name, 0, 0, Mtime, Mode, ReplicatedOp, StoreId, CowInode,
 		 blocks, vsptr);
 }
@@ -4039,7 +4017,7 @@ void PerformLink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 		  Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime,
 		  int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
 		 int *blocks, RPC2_Integer *vsptr) {
-    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, ViceLink_OP,
+    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, OLDCML_Link_OP,
 		  Name, 0, 0, Mtime, 0, ReplicatedOp, StoreId, CowInode, 
 		 blocks, vsptr);
 }
@@ -4241,7 +4219,7 @@ void PerformMkdir(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 		   Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime, RPC2_Unsigned Mode,
 		   int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
 		  int *blocks, RPC2_Integer *vsptr) {
-    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, ViceMakeDir_OP,
+    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, OLDCML_MakeDir_OP,
 		  Name, 0, 0, Mtime, Mode, ReplicatedOp, StoreId, CowInode,
 		 blocks, vsptr);
 }
@@ -4261,7 +4239,7 @@ void PerformSymlink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 		     RPC2_Unsigned Length, Date_t Mtime, RPC2_Unsigned Mode,
 		     int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
 		    int *blocks, RPC2_Integer *vsptr) {
-    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, ViceSymLink_OP,
+    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, OLDCML_SymLink_OP,
 		  Name, newinode, Length, Mtime, Mode, ReplicatedOp, StoreId, CowInode,
 		 blocks, vsptr);
 }
@@ -4288,7 +4266,7 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 
     /* Break callback promises. */
     CodaBreakCallBack((client ? client->VenusId : 0), &Did, VSGVolnum);
-    if (opcode == ViceLink_OP)
+    if (opcode == OLDCML_Link_OP)
 	    CodaBreakCallBack((client ? client->VenusId : 0), &Fid, VSGVolnum);
 
     /* CLMS invokes COW! */
@@ -4326,7 +4304,7 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 
     /* Initialize/Update the child vnode. */
     switch(opcode) {
-	case ViceCreate_OP:
+	case OLDCML_Create_OP:
 	    vptr->disk.inodeNumber = 0;
 	    vptr->disk.linkCount = 1;
 	    vptr->disk.length = 0;
@@ -4340,12 +4318,12 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	    InitVV(&Vnode_vv(vptr));
 	    break;
 
-	case ViceLink_OP:
+	case OLDCML_Link_OP:
 	    vptr->disk.linkCount++;
 	    vptr->disk.author = client ? client->Id : 0;
 	    break;
 
-	case ViceMakeDir_OP:
+	case OLDCML_MakeDir_OP:
 	    {
 		    PDirHandle cdh;
 		    vptr->disk.inodeNumber = 0;
@@ -4384,7 +4362,7 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	    }
 	    break;
 
-	case ViceSymLink_OP:
+	case OLDCML_SymLink_OP:
 	    vptr->disk.inodeNumber = newinode;
 	    vptr->disk.linkCount = 1;
 	    vptr->disk.length = Length;

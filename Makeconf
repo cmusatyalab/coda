@@ -146,5 +146,3 @@ VOLUTIL_RPC2 = ../vicedep/volutil.rpc2
 RES_RPC2 = ../vicedep/res.rpc2
 ADMON_RPC2 = ../vicedep/admon.rpc2
 ADSRV_RPC2 = ../vicedep/adsrv.rpc2
-
-all: coda

@@ -101,5 +101,5 @@ typedef int cthread_t;
 #define	cthread_data(t)			BOGUSCODE
 
 
-#endif	_CTHREADS_
+#endif /* _CTHREADS_ */
 

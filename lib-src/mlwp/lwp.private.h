@@ -68,8 +68,8 @@ struct lwp_context {    /* saved context for dispatcher */
     char *topstack;     /* ptr to top of process stack */
 };
 #define STACK_PAD 4
-#endif defined(__powerpc__)
-#endif OLDLWP
+#endif /* !defined(__powerpc__) */
+#endif /* OLDLWP */
 
 struct rock
     {/* to hide things associated with this LWP under */
@@ -94,7 +94,7 @@ struct lwp_pcb {			/* process control block */
   char		*stack;			/* ptr to process stack */
   int		stacksize;		/* size of stack */
   long		stackcheck;		/* first word of stack for overflow checking */
-  int		(*ep)(char *);	/* initial entry point */
+  int		(*ep)(void *);	/* initial entry point */
   char		*parm;			/* initial parm for process */
   int		rused;			/* no of rocks presently in use */
   struct rock	rlist[MAXROCKS];	/* set of rocks to hide things under */
@@ -107,10 +107,10 @@ struct lwp_pcb {			/* process control block */
 
 #ifdef OLDLWP
   struct lwp_context context;		/* saved context for next dispatch */
-#else OLDLWP
+#else /* !OLDLWP */
   struct mutex  m;			/* mutex for the condition that process waits on */
   struct condition c;			/* condition that process waits on */
-#endif OLDLWP
+#endif /* !OLDLWP */
   };
 
 extern int lwp_nextindex;                      /* Next lwp index to assign */
@@ -136,7 +136,7 @@ extern int  PRE_Block;
 
 extern int savecontext (PFV whichroutine, struct lwp_context *context, char *whichstack);
 extern int returnto (struct lwp_context *context);
-#endif OLDLWP
+#endif
 
 /* Debugging macro */
 #ifdef LWPDEBUG
@@ -148,8 +148,8 @@ extern FILE *lwp_logfile;
 	     fprintf(lwp_logfile, "\n");\
 	     fflush(lwp_logfile);\
 	 }
-#else LWPDEBUG
+#else /* !LWPDEBUG */
 #define lwpdebug(level, msg)
-#endif LWPDEBUG
+#endif /* !LWPDEBUG */
 
-#endif _LWP_PRIVATE_
+#endif /* _LWP_PRIVATE_ */
