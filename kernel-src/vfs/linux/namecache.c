@@ -183,14 +183,20 @@ static inline int
 nchash(const char *name, int namelen, struct cnode *cp)
 {
     return ((name[0] + name[namelen-1] + 
-             namelen + (int)(cp)) & (cfsnc_hashsize-1));   
+             namelen + (int)(CTOV(cp)->i_ino)) & (cfsnc_hashsize-1));   
 }
 
 /* matching function */
 static inline int ncmatch(struct cfscache *cp, const char *name, int namelen,
                           struct cnode *dcp)
 {
-    return 	((namelen == cp->namelen) && (dcp == cp->dcp) && 
+    if ( !dcp || !cp || !cp->dcp ) {
+	    printk("**ncmath NULL: dcp 0x%x, cp 0x%x, cp->dcp 0x%x\n", 
+		   dcp, cp, cp->dcp);
+	    return 0;
+    }
+    return 	((namelen == cp->namelen) && 
+		 (dcp == cp->dcp) && 
 		 (memcmp(cp->name,name,namelen) == 0));
 }
 
@@ -238,9 +244,13 @@ cfsnc_find(struct cnode *dcp, const char * name, int namelen, int hash)
 	 */
 	register struct cfscache *cncp;
 	int count = 1;
+	char pname[CFS_MAXNAMLEN];
+
+	memcpy(pname, name, namelen);
+	pname[namelen] = '\0';
 
 	CDEBUG(D_CACHE, "dcp 0x%x, name %s, len %d, hash %d\n",
-			   (int)dcp, name, namelen, hash);
+			   (int)dcp, pname, namelen, hash);
 
 	for (cncp  = cfsnchash[hash].hash_next; 
 	     cncp != (struct cfscache *)&cfsnchash[hash];
@@ -251,6 +261,10 @@ cfsnc_find(struct cnode *dcp, const char * name, int namelen, int hash)
 	    { 
 		cfsnc_stat.Search_len += count;
 		CDEBUG(D_CACHE, "dcp 0x%x,found.\n", (int) dcp);
+		if ( namelen == 2 && name[0]=='.' && name[1]=='.' ) {
+printk("HIT: name %s, ino %ld, pino %ld\n", pname, CTOV(dcp)->i_ino,
+       CTOV(cncp->cp)->i_ino);
+		}
 		return(cncp);
 			
 	    }
@@ -274,13 +288,13 @@ cfsnc_remove(struct cfscache *cncp)
   	hashrem(cncp);
 	hashnull(cncp);		/* have it be a null chain */
 
-	/* VN_RELE(CTOV(cncp->dcp));  */
+	VN_RELE(CTOV(cncp->dcp));
 	VN_RELE(CTOV(cncp->cp)); 
 	/* crfree(cncp->cred);  */
 
 	memset(DATA_PART(cncp), 0 ,DATA_SIZE);
 	cncp->cp = NULL;
-	cncp->dcp = (struct cnode *) 0;
+	cncp->dcp = NULL;
 
 	/* Put the null entry just after the least-recently-used entry */
 	lrurem(cncp);
@@ -367,21 +381,21 @@ cfsnc_enter(struct cnode *dcp, register const char *name, int namelen, struct cn
     lrurem(cncp);	/* remove it from the lists */
     
     /* if cncp is on hash list remove it */
-    if ( cncp->dcp != (struct cnode *) 0 ) {
+    if ( CFSNC_VALID(cncp) ) {
 	/* We have to decrement the appropriate hash bucket length
 	   here, so we have to find the hash bucket */
 	cfsnchash[nchash(cncp->name, cncp->namelen, cncp->dcp)].length--;
 	cfsnc_stat.lru_rm++;	/* zapped a valid entry */
 	hashrem(cncp);
+	VN_RELE(CTOV(cncp->dcp));
 	VN_RELE(CTOV(cncp->cp));
-	/* VN_RELE(CTOV(cncp->dcp));  */
 	/* crfree(cncp->cred); */
     }
     /*
      * Put a hold on the current vnodes and fill in the cache entry.
      */
     VN_HOLD(CTOV(cp));
-    /* VN_HOLD(CTOV(dcp)); */
+    VN_HOLD(CTOV(dcp));
     /* XXXX crhold(cred); */
     cncp->dcp = dcp;
     cncp->cp = cp;
@@ -436,7 +450,7 @@ cfsnc_lookup(struct cnode *dcp, register const char *name, int namelen)
 		return((struct cnode *) 0);
 
 	if (namelen > CFSNC_NAMELEN) {
-        CDEBUG(D_CACHE,"long name lookup %s\n",name);
+	        CDEBUG(D_CACHE,"long name lookup %s\n",name);
 		cfsnc_stat.long_name_lookups++;		/* record stats */
 		return((struct cnode *) 0);
 	}
@@ -589,7 +603,7 @@ cfsnc_zapfile(struct cnode *dcp, register const char *name, int length)
  */
 
 void
-cfsnc_purge_user(struct ucred *cred)
+cfsnc_purge_user(struct CodaCred *cred)
 {
 	/* I think the best approach is to go through the entire cache
 	   via HASH or whatever and zap all entries which match the
@@ -653,9 +667,10 @@ cfsnc_flush(void)
 	for (cncp = cfsnc_lru.lru_next;
 	     cncp != (struct cfscache *) &cfsnc_lru;
 	     cncp = cncp->lru_next) {
-		if ( cncp->cp ) {
+		if ( CFSNC_VALID(cncp) ) {
 			hashrem(cncp);	/* only zero valid nodes */
 			hashnull(cncp);
+			VN_RELE(CTOV(cncp->dcp));  
 			VN_RELE(CTOV(cncp->cp));  
 			/* crfree(cncp->cred);  */
 			memset(DATA_PART(cncp), 0, DATA_SIZE);

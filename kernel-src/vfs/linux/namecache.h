@@ -78,9 +78,9 @@
 struct cfscache {	
 	struct cfscache	*hash_next,*hash_prev;	/* Hash list */
 	struct cfscache	*lru_next, *lru_prev;	/* LRU list */
-	struct cnode	*cp;			/* vnode of the file */
+	struct cnode	*cp;			/* cnode of the file */
 	struct cnode	*dcp;			/* parent's cnode */
-	struct ucred	*cred;			/* user credentials */
+	struct CodaCred	*cred;			/* user credentials */
 	char		name[CFSNC_NAMELEN];	/* segment name */
 	int		namelen;		/* length of name */
 };
@@ -94,7 +94,7 @@ struct cnode *cfsnc_lookup(struct cnode *dcp, register const char *name, int nam
 void cfsnc_zapParentfid(ViceFid *fid);
 void cfsnc_zapfid(ViceFid *fid);
 void cfsnc_zapfile(struct cnode *dcp, register const char *name, int length);
-void cfsnc_purge_user(struct ucred *cred);
+void cfsnc_purge_user(struct CodaCred *cred);
 void cfsnc_flush(void);
 void cfsnc_replace(ViceFid *f1, ViceFid *f2);
 void print_cfsnc(void);
