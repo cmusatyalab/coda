@@ -199,7 +199,7 @@ static bool sftp_MorePackets(bool *rpc2, bool *sftp)
 static int AwaitEvent()
     /* Awaits for a packet or earliest timeout and returns code from IOMGR_Select() */
 {
-    fd_set emask, rmask;
+    fd_set rmask;
     struct timeval *tvp;
     struct TM_Elem *t;
     int nfds, rc;
@@ -210,13 +210,11 @@ static int AwaitEvent()
     else tvp = &t->TimeLeft;
     
     FD_ZERO(&rmask);
-    FD_ZERO(&emask);
     FD_SET(sftp_Socket, &rmask);
-    FD_SET(sftp_Socket, &emask);
     nfds = sftp_Socket + 1;
 
     /* Only place where sftp_Listener() gives up control */
-    rc = IOMGR_Select(nfds, &rmask, NULL, &emask, tvp);
+    rc = IOMGR_Select(nfds, &rmask, NULL, NULL, tvp);
     return(rc);
 }
 

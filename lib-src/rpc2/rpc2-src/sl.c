@@ -227,7 +227,7 @@ void rpc2_ExpireEvents()
 static bool MorePackets()
 {
 	struct timeval tv;
-	fd_set rmask, emask;
+	fd_set rmask;
 	int maxfd;
 	
 /* This ioctl peeks into the socket's receive queue, and reports the amount
@@ -240,15 +240,13 @@ static bool MorePackets()
 #endif
 	tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
 	FD_ZERO(&rmask);
-	FD_ZERO(&emask);
 	FD_SET(rpc2_RequestSocket, &rmask);
-	FD_SET(rpc2_RequestSocket, &emask);
 	maxfd = rpc2_RequestSocket + 1;
 
 	/* We use select rather than IOMGR_Select to avoid
     	overheads. This is acceptable only because we are doing a
     	polling select */
-	if (select(maxfd, &rmask, NULL, &emask, &tv) > 0) 
+	if (select(maxfd, &rmask, NULL, NULL, &tv) > 0) 
 		return(TRUE);
 	else 
 		return(FALSE);
@@ -261,7 +259,7 @@ static bool PacketCame()
 {
 	struct TM_Elem *t;
 	struct timeval *tvp;
-	fd_set rmask, emask;
+	fd_set rmask;
 	int nfds;
 
 	/* Obtain earliest event */
@@ -272,12 +270,10 @@ static bool PacketCame()
 	/* Yield control */
 	say(999, RPC2_DebugLevel, "About to enter IOMGR_Select()\n");
 	FD_ZERO(&rmask);
-	FD_ZERO(&emask);
 	FD_SET(rpc2_RequestSocket, &rmask);
-	FD_SET(rpc2_RequestSocket, &emask);
 	nfds = rpc2_RequestSocket + 1;
 
-	if (IOMGR_Select(nfds, &rmask, NULL, &emask, tvp) == 1) 
+	if (IOMGR_Select(nfds, &rmask, NULL, NULL, tvp)) 
 		return(TRUE);
 	else 
 		return(FALSE);

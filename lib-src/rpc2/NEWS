@@ -1,3 +1,8 @@
+New in 1.7:
+
+* Don't let socketlistener select on errors when it is unwilling to handle
+  the case when there is an error on the filedescriptors.
+
 New in 1.6:
 
 * Fixed the binding to specific addresses by using RPC2_setip before
