@@ -65,6 +65,7 @@ struct DirEntry    {
     char name[16];
 };
 
+int DIR_Init(int data_loc);
 
 /* DH interface */
 void DH_LockW(PDirHandle dh);
