@@ -2211,14 +2211,7 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
 		       : FidToNodeid(&fid);
 
     vap->va_nlink = stat.LinkCount;
-    vap->va_size = (u_quad_t) stat.Length;
     vap->va_blocksize = V_BLKSIZE;
-    vap->va_mtime.tv_sec = (time_t)stat.Date;
-    vap->va_mtime.tv_nsec = 0;
-
-    vap->va_atime = vap->va_mtime;
-    vap->va_ctime.tv_sec = 0;
-    vap->va_ctime.tv_nsec = 0;
     vap->va_flags = 0;
     vap->va_rdev = 1;
     vap->va_bytes = vap->va_size;
@@ -2232,10 +2225,17 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
 	vap->va_size = tstat.st_size;
 	vap->va_mtime.tv_sec = tstat.st_mtime;
 	vap->va_mtime.tv_nsec = 0;
-	vap->va_atime = vap->va_mtime;
-	vap->va_ctime.tv_sec = 0;
-	vap->va_ctime.tv_nsec = 0;
     }
+    else
+    {
+	vap->va_size = (u_quad_t) stat.Length;
+	vap->va_mtime.tv_sec = (time_t)stat.Date;
+	vap->va_mtime.tv_nsec = 0;
+    }
+
+    /* We don't keep track of atime/ctime, so keep them identical to mtime */
+    vap->va_atime = vap->va_mtime;
+    vap->va_ctime = vap->va_mtime;
 
     VPROC_printvattr(vap);
 }
