@@ -381,6 +381,7 @@ struct command cmdarray[] =
             "Write connect all volumes, or volumes specified",
             NULL
         },
+#if 0
 	{"wbstart", NULL, WriteBackStart,
 	    "cfs wbstart <dir> [<dir> <dir> ...]",
             "Enable write-back caching on volumes specified",
@@ -396,7 +397,7 @@ struct command cmdarray[] =
 	    "Toggle auto write-back cache requesting on volumes specified",
 	    NULL
 	},
-
+#endif
 	{"forcereintegrate", "fr", ForceReintegrate,
 	    "cfs forcereintegrate <dir> [<dir> <dir> ...]",
 	    "Force modifications in a disconnected volume to the server",
