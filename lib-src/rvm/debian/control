@@ -1,0 +1,48 @@
+Source: rvm
+Section: devel
+Priority: optional
+Maintainer: Jan Harkes <jaharkes@motet.coda.cs.cmu.edu>
+Standards-Version: 3.0.1
+Build-Depends: debhelper, dpkg-dev, gcc, liblwp-dev
+
+Package: librvm-dev
+Architecture: alpha arm i386 m68k powerpc sparc
+Depends: librvm1 (= ${Source-Version}), libc6-dev
+Description: Recoverable Virtual Memory, development files
+ Recoverable Virtual Memory provides easy to use persistent storage
+ with transactional properties for applications. It was developed at
+ CMU for the Coda distributed filesystem.
+ .
+ This package contains the headers and libraries required to build
+ applications that use RVM.
+ .
+ For more information see http://www.coda.cs.cmu.edu/
+
+Package: librvm1
+Architecture: alpha arm i386 m68k powerpc sparc
+Depends: ${shlibs:Depends}
+Suggests: rvm-tools
+Description: Recoverable Virtual Memory
+ Recoverable Virtual Memory provides easy to use persistent storage
+ with transactional properties for applications. It was developed at
+ CMU for the Coda distributed filesystem.
+ .
+ This package contains the runtime libraries required to run applications
+ that use RVM.
+ .
+ For more information see http://www.coda.cs.cmu.edu/
+
+Package: rvm-tools
+Architecture: alpha arm i386 m68k powerpc sparc
+Depends: librvm1
+Description: Recoverable Virtual Memory, support tools
+ Recoverable Virtual Memory provides easy to use persistent storage
+ with transactional properties for applications. It was developed at
+ CMU for the Coda distributed filesystem.
+ .
+ This package contains the runtime libraries required to initialize and
+ manage RVM files. Some application already know how to initialize rvm
+ segments themselves and do not need these additional tools.
+ .
+ For more information see http://www.coda.cs.cmu.edu/
+
