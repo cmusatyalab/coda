@@ -26,5 +26,5 @@ MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 config.guess \
     missing mkinstalldirs stamp-h.in
 
 dist-hook:
-	if [ -x /afs/cs ] ; then cp /afs/cs/project/coda-src/cvs/CVSROOT/ChangeLog.lwp ChangeLog ; fi
+	if [ -x /afs/cs.cmu.edu ] ; then cp -f /afs/cs.cmu.edu/project/coda-src/cvs/CVSROOT/ChangeLog.lwp $(distdir)/ChangeLog ; fi
 
