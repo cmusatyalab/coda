@@ -379,6 +379,18 @@ void tool_compact(int argc,char *argv[]){
 	PDB_db_close(h);
 }
 
+/* SHOW MAXIDS */
+void tool_get_maxids(int argc,char *argv[]){
+      PDB_HANDLE h;
+      int maxuid, maxgid;
+      if(check_args_num(argc,1)){
+              printf("Usage: get_maxids\n");
+      }
+      h = PDB_db_open(O_RDWR);
+      PDB_db_maxids(h, &maxuid, &maxgid);
+      PDB_db_close(h);
+      printf("maxuid %d maxgid %d\n", maxuid, maxgid);
+}
 
 /* SET MAXIDS */
 void tool_maxids(int argc,char *argv[]){
@@ -443,6 +455,7 @@ void tool_help(int argc, char *argv[]){
 	printf("cm\tcompact the database (RARE)\n");
 	printf("ci\tchange the Id of a new user or group\n");
 	printf("cn\tchange the Name of a user\n");
+	printf("ids\tget the database maxids\n");
 	printf("maxids\tset the database maxids\n");
 	printf("u\tupdate an id\n");
 }
@@ -465,6 +478,7 @@ command_t pdbcmds[] =
 	{"ci", tool_changeId, 0, "change the Id of a user or group"},
 	{"cn", tool_changeName, 0, "change the Name of a user"},
 	{"u", tool_update, 0, "update an id"},
+	{"ids", tool_get_maxids, 0, "get the database maxids"},
 	{"maxids", tool_maxids, 0, "set the database maxids"},
 	{"help", tool_help, 0, "print help on commands"},
 	{"quit", Parser_exit, 0, "get me out of here"},
