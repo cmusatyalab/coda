@@ -58,13 +58,14 @@ void base64_decode(FILE *in, char **out, int *len)
     *len = 24; *out = malloc(*len);
 
     while((c = fgetc(in)) != EOF) {
-        if (c == '\n') continue;
+        if (c == '\n' || c == '\r') continue;
         if (c != '=') {
             if      (c >= 'A' && c <= 'Z') c =  c - 'A';
             else if (c >= 'a' && c <= 'z') c = (c - 'a') + 26;
             else if (c >= '0' && c <= '9') c = (c - '0') + 52;
             else if (c == '+')             c = 62;
             else if (c == '/')             c = 63;
+	    else continue;
             val = val | (c << s);
         } else
             done = (s / 6) + 1;
