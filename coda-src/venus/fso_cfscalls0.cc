@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso_cfscalls0.cc,v 1.1 1996/11/22 19:12:04 braam Exp braam $";
+static char *rcsid = "$Header: fso_cfscalls0.cc,v 1.2 96/11/24 20:57:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -244,11 +244,10 @@ int fsobj::Fetch(vuid_t vuid) {
 	    ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, aclvar, *acl, VSG_MEMBERS, VENUS_MAXBSLEN);
 	    ARG_MARSHALL(OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
-	    {
-		/* Omit Side-Effect for all hosts EXCEPT the primary. */
-		for (int i = 0; i < VSG_MEMBERS; i++)
-		    if (i != ph_ix) sedvar_bufs[i].Tag = OMITSE;
-	    }
+
+	    /* Omit Side-Effect for all hosts EXCEPT the primary. */
+	    for (i = 0; i < VSG_MEMBERS; i++)
+		if (i != ph_ix) sedvar_bufs[i].Tag = OMITSE;
 
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE(prel_str, comp, fid);
@@ -273,7 +272,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    /* Collect the OUT VVs in an array so that they can be checked. */
 	    vv_t *vv_ptrs[VSG_MEMBERS];
-	    for (int i = 0; i < VSG_MEMBERS; i++)
+	    for (i = 0; i < VSG_MEMBERS; i++)
 		vv_ptrs[i] = &((statusvar_ptrs[i])->VV);
 
 	    /* Check the version vectors for consistency. */
@@ -774,7 +773,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 
 	    /* Collect the OUT VVs in an array so that they can be checked. */
 	    vv_t *vv_ptrs[VSG_MEMBERS];
-	    for (int i = 0; i < VSG_MEMBERS; i++)
+	    for (i = 0; i < VSG_MEMBERS; i++)
 		vv_ptrs[i] = &((statusvar_ptrs[i])->VV);
 
 	    /* Check the version vectors for consistency. */
