@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/venus.private.h,v 4.6 1997/02/27 18:49:15 lily Exp clement $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/venus.private.h,v 4.7 1997/06/10 22:22:50 clement Exp clement $";
 #endif /*_BLURB_*/
 
 
@@ -127,7 +127,10 @@ const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered 
 /* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
 const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
 
-#if defined(__BSD44__) || defined(__linux__)
+#ifdef __MACH__
+/* On Mach and other systems with 16-bit gids, the -2 value gives a gid of 65534 */
+const vgid_t V_GID = (vgid_t)-2;    /* GID that the venus process runs under. */
+#else
 /* Group id fields are 32 bits in BSD44 (not 16 bits); the use of a small 
    negative number (-2) means its unsigned long representation is huge
    (4294967294).  This causes the "ar" program to screw up because it
@@ -136,10 +139,7 @@ const vuid_t V_UID = (vuid_t)0;	    /* UID that the venus process runs under. */
    unsigned int which is 32-bit, so we also need to hardcode the number
    here.  (Clement 6/10/97) */
 const vuid_t V_GID = (vuid_t)65534;    /* GID that the venus process runs under. */
-#else
-/* On Mach and other systems with 16-bit gids, the -2 value gives a gid of 65534 */
-const vgid_t V_GID = (vgid_t)-2;    /* GID that the venus process runs under. */
-#endif /* __BSD44__ */
+#endif 
 const vuid_t ALL_UIDS = (vuid_t)-1;
 const vuid_t HOARD_UID = (vuid_t)-2; /* uid of hoard daemon */
 const vuid_t UNSET_UID = (vuid_t)-666; /* beastly but recognizable */
