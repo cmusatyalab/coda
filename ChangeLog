@@ -13,6 +13,8 @@
 	* Nice GUI frontend on Windows for starting/stopping venus.
 	  (Michael Callahan and Marc Schnieder)
 	* Fixed @sys/@cpu expansions in venus, and allow setuid bits.
+	* Added @sys/@cpu commands to cfs to show the `current' expansion.
+	* Normal symlinks were sometimes mistaken for inconsistent objects.
 	* Many more cleanups and bugfixes.
 
 1999-02-25    <jaharkes@cs.cmu.edu>
