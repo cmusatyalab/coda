@@ -106,7 +106,7 @@ int U_Authenticate(const char *realm, const int AuthenticationType,
 		   const char *uName, const int uNamelen,
 		   OUT ClearToken *cToken, 
 		   OUT EncryptedSecretToken sToken, 
-		   const int passwdpipe, const int interactive )
+		   const int verbose, const int interactive )
 {
 	RPC2_Handle	RPCid;
 	int		rc;
@@ -118,7 +118,7 @@ int U_Authenticate(const char *realm, const int AuthenticationType,
 
 	switch(AuthenticationType) {
 	case AUTH_METHOD_CODAUSERNAME:
-		if (passwdpipe) {
+		if (!verbose) {
 			fgets(passwd, sizeof(passwd), stdin);
 			rc = strlen(passwd);
 			if ( passwd[rc-1] == '\n' )

@@ -81,16 +81,17 @@ extern "C" {
 void printusage(void)
 {
 		    fprintf(stderr,
-                            "Usage clog [-pipe] [-test] [-host authserver]"
-                            "[{-kerberos4,-kerberos5,-coda}]\n\t"
-                            "[-tofile <file>] [-fromfile <file>] [username]\n");
+                            "Usage clog [-q] [-test] [-h authserver]"
+                            "\t[{-kerberos4,-kerberos5,-coda}]\n"
+                            "\t[-tofile <file>] [-fromfile <file>]\n"
+			    "\t[-as username] [Coda username]\n");
 }
 
 int main(int argc, char **argv)
 {
     EncryptedSecretToken    sToken;
     RPC2_Integer            authmethod = AUTH_METHOD_CODAUSERNAME;
-    int                     passwdpipe = 0;
+    int                     verbose = 1;
     int                     interactive = 1;
     ClearToken		    cToken;
     EncryptedSecretToken    testSTok;
@@ -103,6 +104,7 @@ int main(int argc, char **argv)
     int testing = 0;
     char *tofile   = NULL;
     char *fromfile = NULL;
+    char *runas = NULL;
 
 /* Make intelligent default decisions, depending on how we were built..
 		-- Troy <hozer@drgw.net> */
@@ -133,8 +135,12 @@ int main(int argc, char **argv)
 	    } else if ( strcmp(argv[i], "-nokinit") == 0 ) {
 		    interactive = 0;
 		    i++;
+	    }  else if ( strcmp(argv[i], "-q") == 0 ) {
+		    verbose = 0;
+		    i++;
 	    }  else if ( strcmp(argv[i], "-pipe") == 0 ) {
-		    passwdpipe =1;
+		    /* obsolete option -pipe used to mainly reduce verbosity */
+		    verbose = 0;
 		    i++;
 	    }  else if ( strcmp(argv[i], "-tofile") == 0 ) {
 		    i++;
@@ -152,7 +158,7 @@ int main(int argc, char **argv)
 			    exit(1);
 		    }
                     fromfile = argv[i++];
-	    } else if ( strcmp(argv[i], "-host") == 0) {
+	    } else if ( strncmp(argv[i], "-h", 2) == 0) {
 		    i++;
 		    if (i >= argc) {
 			    fprintf(stderr, "Missing host\n");
@@ -160,6 +166,15 @@ int main(int argc, char **argv)
 			    exit(1);
 		    }
 		    hostname = argv[i];
+		    i++;
+	    }  else if ( strcmp(argv[i], "-as") == 0 ) {
+		    i++;
+		    if (i >= argc) {
+			    fprintf(stderr, "Missing -as username\n");
+			    printusage();
+			    exit(1);
+		    }
+		    runas = argv[i];
 		    i++;
 	    } else if ( i == argc-1 ) {
                     username = argv[i];
@@ -177,8 +192,16 @@ int main(int argc, char **argv)
 	    }
 
     }
+
+#ifndef __CYGWIN32__
+    if (runas) {
+	struct passwd *pw = getpwnam(runas);
+	if (pw) 
+	    setuid(pw->pw_uid);
+    }
+#endif
     
-    if (!username) {
+    if (!username || *username == '\0') {
 #ifdef __CYGWIN32__
 	username = getlogin();	 
 #else
@@ -200,9 +223,9 @@ int main(int argc, char **argv)
 	    exit (1);
     }
 
-    if (!isatty(0)) passwdpipe = 1;
+    if (!isatty(0)) verbose = 0;
 
-    if (passwdpipe == 0)
+    if (verbose)
 	printf("username: %s@%s\n", username, realm);
 
     U_InitRPC();
@@ -211,7 +234,7 @@ int main(int argc, char **argv)
         ReadTokenFromFile(fromfile, &cToken, sToken);
     } else {
         rc = U_Authenticate(hostname ? hostname : realm, authmethod, username, 
-                            strlen(username)+1, &cToken, sToken, passwdpipe, 
+                            strlen(username)+1, &cToken, sToken, verbose, 
                             interactive);
         if (rc != 0) {
             fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
@@ -222,9 +245,8 @@ int main(int argc, char **argv)
     if (testing)
 	    printf ("Sending token to venus\n");
 
-    if (tofile) {
+    if (tofile)
         WriteTokenToFile(tofile, &cToken, sToken);
-    }
 
     if(U_SetLocalTokens(0, &cToken, sToken, realm))
 	printf("Local login only, could not contact venus\n");
