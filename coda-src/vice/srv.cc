@@ -146,6 +146,7 @@ int pollandyield = 1;
 int probingon = 0;
 int optimizationson = 0;
 int OptimizeStore = 0;
+int MapPrivate = 0;
 int MaxVols = MAXVOLS;          /* so we can use it in vicecb.c. yuck. */
 
 extern rvm_length_t rvm_test;
@@ -356,7 +357,7 @@ int main(int argc, char *argv[])
 	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
 	SLog(0, "[-debarrenize] [-optstore] [-dir workdir] [-srvhost host]");
 	SLog(0, " [-rvmopt] [-newchecklevel checklevel] [-canonicalize] [-usenscclock");
-	SLog(0, " [-nowriteback]");
+	SLog(0, " [-nowriteback] [-mapprivate]");
 
 	exit(-1);
     }
@@ -1519,6 +1520,10 @@ static int ParseArgs(int argc, char *argv[])
 		extern int OptimizeStore;
 		OptimizeStore = 1;
 	    }
+	else 
+	    if (!strcmp(argv[i], "-mapprivate")) {
+		MapPrivate = 1;
+	    }
 	else {
 	    return(-1);
 	}
@@ -1719,12 +1724,14 @@ static void InitializeServerRVM(char *name)
 /*	setrlimit(RLIMIT_STACK, &stackLimit);*/	/* Set stack growth limit */ 
 #endif
 	options->log_dev = _Rvm_Log_Device;				    
-	options->flags = optimizationson; 				    
-	if (prottrunc)							    
-	   options->truncate = 0;					    
-	else if (_Rvm_Truncate > 0 && _Rvm_Truncate < 100) {		    
-	    SLog(0, 
-		   "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
+	options->flags = optimizationson;
+	if (MapPrivate)
+	  options->flags |= RVM_MAP_PRIVATE;
+	if (prottrunc)
+	    options->truncate = 0;
+	else if (_Rvm_Truncate > 0 && _Rvm_Truncate < 100) {
+	    SLog(0,
+		 "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
 	    options->truncate = _Rvm_Truncate;				    
 	}
 #if	defined(__NetBSD_Version__) && (__NetBSD_Version__ >= 104000000)
