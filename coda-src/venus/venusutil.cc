@@ -60,10 +60,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-
-/* from plumber (include-special) */
-#include <newplumb.h>
-
 /* from util */
 #include <util.h>
 
@@ -218,9 +214,6 @@ void choke(char *file, int line, char *fmt ...) {
 
 	/* Unmount if possible. */
 	VFSUnmount();
-
-	/* Make a final check for arena corruption. */
-	(void)CheckAllocs("CHOKE");
     }
 
     if (LogInited)
@@ -345,7 +338,6 @@ char *IoctlOpStr(int opcode) {
 	case VIOCCKSERV:	    return("Check Servers");
 	case VIOCCKBACK:	    return("Check Backups");
 	case VIOCCKCONN:	    return("Check Conn");
-	case VIOCGETTIME:	    return("Get Time");
 	case VIOCWHEREIS:	    return("Whereis");
 	case VIOCPREFETCH:	    return("Prefetch");
 	case VIOCNOP:		    return("NOP");
@@ -712,22 +704,8 @@ void SubCSSs(RPCPktStatistics *cs1, RPCPktStatistics *cs2) {
 }
 
 
-void MallocPrint(int fd) {
-    int dfd = ::dup(fd);
-    CODA_ASSERT(dfd >= 0);
-    LOG(/*100*/0, ("MallocPrint: fd = %d, dfd = %d\n", fd, dfd));
-    FILE *fp = fdopen(dfd, "a");
-    CODA_ASSERT(fp != NULL);
-	
-    MallocStats("", fp);
-    plumber(fp);
-    /* the new plumber is broken */
-/*    newPlumber(fp); */
-
-/*    CODA_ASSERT(fclose(fp) != EOF);*/
-    if (fclose(fp) == EOF)
-	LOG(0, ("MallocPrint: fclose failed!\n"));
-
+void MallocPrint(int fd)
+{
 #ifdef	VENUSDEBUG
     fdprint(fd, "connent: %d, %d, %d\n", connent::allocs, connent::deallocs,
 	     (connent::allocs - connent::deallocs) * sizeof(connent));
@@ -852,30 +830,6 @@ char *lvlstr(LockLevel level) {
 	    CHOKE("Illegal lock level!");
 	    return (0); /* dummy to pacify g++ */
     }
-}
-
-
-int GetTime(long *secs, long *usecs) {
-    LOG(100, ("GetTime: \n"));
-
-    int code = 0;
-
-    connent *c = 0;
-    code = GetAdmConn(&c);
-    if (code != 0) goto Exit;
-
-    /* Make the RPC call. */
-    MarinerLog("fetch::GetTime (%#x)\n", c->Host);
-    UNI_START_MESSAGE(ViceGetTime_OP);
-    code = (int) ViceGetTime(c->connid, (RPC2_Unsigned *)secs, (RPC2_Integer *)usecs);
-    UNI_END_MESSAGE(ViceGetTime_OP);
-    MarinerLog("fetch::gettime done\n");
-    code = c->CheckResult(code, 0);
-    UNI_RECORD_STATS(ViceGetTime_OP);
-
-Exit:
-    PutConn(&c);
-    return(0);
 }
 
 

@@ -79,7 +79,6 @@ extern "C" {
 #define	VIOCCKSERV		_VICEIOCTL(10)	/* Check that servers are up */
 #define	VIOCCKBACK		_VICEIOCTL(11)	/* Check backup volume mappings */
 #define	VIOCCKCONN		_VICEIOCTL(12)	/* Check connections for a user */
-#define	VIOCGETTIME		_VICEIOCTL(13)	/* Do a vice gettime for performance testing */
 #define	VIOCWHEREIS		_VICEIOCTL(14)	/* Find out where a volume is located */
 #define	VIOCPREFETCH		_VICEIOCTL(15)	/* Prefetch a file */
 #define	VIOCNOP			_VICEIOCTL(16)	/* Do nothing (more preformance) */

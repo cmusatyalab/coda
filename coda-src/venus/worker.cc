@@ -1168,7 +1168,6 @@ void worker::main(void)
                     RecovFlush(1);
                     RecovTerminate();
                     VFSUnmount();
-                    (void)CheckAllocs("TERM");
                     fflush(logFile);
                     fflush(stderr);
                     

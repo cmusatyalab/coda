@@ -70,8 +70,8 @@ LIBS += -R/usr/ucblib -L/usr/ucblib -lucb
 endif
 
 
-codasrv: ${objects} srv.o dummyplumber.o ${DEPLIBS}
-	$(CXX) $(LDFLAGS) srv.o ${objects} dummyplumber.o ${LIBS} -o codasrv
+codasrv: ${objects} srv.o ${DEPLIBS}
+	$(CXX) $(LDFLAGS) srv.o ${objects} ${LIBS} -o codasrv
 
 printvrdb: printvrdb.o 
 	$(CXX) ${LDFLAGS} printvrdb.o $(LIBFIXUP) -o printvrdb

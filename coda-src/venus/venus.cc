@@ -234,7 +234,6 @@ int main(int argc, char **argv) {
     RecovFlush(1);
     RecovTerminate();
     VFSUnmount();
-    (void)CheckAllocs("TERM");
     fflush(logFile);
     fflush(stderr);
 

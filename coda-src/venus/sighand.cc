@@ -257,7 +257,6 @@ static void SigExit(int sig)
     RecovFlush(1);
     RecovTerminate();
     VFSUnmount();
-    (void)CheckAllocs("TERM");
     fflush(logFile);
     fflush(stderr);
     exit(0);

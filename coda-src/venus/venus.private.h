@@ -361,18 +361,4 @@ extern int   mariner_tcp_enable;
 extern void SpoolInit();
 extern void MakeUserSpoolDir(char *, vuid_t);
 
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-extern void MallocStats(char *, FILE *);
-extern long CheckAllocs(char *);
-extern void plumber(FILE *);
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
-
-
 #endif not _VENUS_PRIVATE_H_

@@ -122,7 +122,6 @@ extern "C" {
 #include <rescomm.h>
 #include <lockqueue.h>
 #include <vsg.h>
-#include <newplumb.h>
 #include "coppend.h"
 
 
@@ -358,7 +357,7 @@ int main(int argc, char *argv[])
 	SLog(0, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
 	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
 	SLog(0, "[-debarrenize] [-optstore] [-dir workdir] [-srvhost host]");
-	SLog(0, " [-rvmopt] [-newchecklevel checklevel] [-canonicalize] [-usenscclock");
+	SLog(0, " [-rvmopt] [-canonicalize] [-usenscclock]");
 	SLog(0, " [-nowriteback] [-mapprivate] [-zombify]");
 
 	exit(-1);
@@ -1424,11 +1423,6 @@ static int ParseArgs(int argc, char *argv[])
 	else 
 	    if (!strcmp(argv[i], "-rvmopt")) 
 		optimizationson = RVM_COALESCE_RANGES;
-	else 
-	    if (!strcmp(argv[i], "-newchecklevel")) {
-		int newchklevel = atoi(argv[++i]);
-		newSetCheckLevel(newchklevel);
-	    }
 	else 
 	    if (!strcmp(argv[i], "-prottrunc")) {
 		prottrunc = TRUE;

@@ -879,7 +879,6 @@ V_FreeLocks:
 	case VIOCUNLOG:
 	case VIOCCKSERV:
 	case VIOCCKBACK:
-	case VIOCGETTIME:
 	case VIOC_VENUSLOG:
 	case VIOC_GETVENUSSTATS:
 	case VIOC_FLUSHCACHE:
@@ -1054,14 +1053,6 @@ V_FreeLocks:
 		    {
 /*		    VDB->CheckVolumes();*/
 		    FSDB->InvalidateMtPts();
-
-		    break;
-		    }
-
-		case VIOCGETTIME:
-		    {
-		    long secs, usecs;
-		    u.u_error = GetTime(&secs, &usecs);
 
 		    break;
 		    }
