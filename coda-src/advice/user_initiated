@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/user_initiated,v 1.1 1996/11/22 19:12:27 braam Exp braam $";
+#static char *rcsid = "$Header: user_initiated,v 1.2 96/11/24 21:43:52 mre Locked $";
 #endif /*_BLURB_*/
 
 
@@ -228,7 +228,7 @@ proc CreateMenuBar {} {
 		.mbar.weakmiss {left} 
 
 
-	tk_menuBar .mbar .mbar.monitors .mbar.variables .mbar.weakmiss
+	#tk_menuBar .mbar .mbar.monitors .mbar.variables .mbar.weakmiss
 	focus .mbar
 
 }
