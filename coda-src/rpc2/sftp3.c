@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.5 1998/04/14 21:07:05 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.6 1998/05/07 17:23:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1328,24 +1328,40 @@ the file, and a file descriptor that is already open in the correct mode */
     /* Returns length of file sdesc using openfd
        openfd is ignored if sdesc refers to a vmfile
        Returns RPC2 error code (< 0)  on failure
+
+       !!!!! BEWARE !!!!
+       This function is only used by the ftp_AppendFileToPacket and
+       SFTP_CheckSE functions (directly and through sftp_piggybackreadfile),
+       to check whether the first CLIENTTOSERVER or SERVERTOCLIENT packet is
+       able to send the file as well. It returns the filesize _limited to_
+       ByteQuota if a quota has been specified.		- JH
+       !!!!! BEWARE !!!!
     */
-sftp_vfsize(register SE_Descriptor *sdesc, long openfd)
+sftp_piggybackfilesize(register SE_Descriptor *sdesc, long openfd)
     {
     struct stat stbuf;
+    int length;
 
     if (MEMFILE(sdesc))
 	{
-	return(sdesc->Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen);
+	length = sdesc->Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
 	}
     else
 	{
 	if (fstat(openfd, &stbuf) < 0)
 	    return(RPC2_SEFAIL4);
-	else return(stbuf.st_size);
+
+	length = stbuf.st_size;
 	}
+
+    if (SFTP_EnforceQuota && sdesc->Value.SmartFTPD.ByteQuota > 0 && 
+	length > sdesc->Value.SmartFTPD.ByteQuota)
+	return(sdesc->Value.SmartFTPD.ByteQuota);
+
+    return(length);
     }
 
-sftp_vfreadfile(register SE_Descriptor *sdesc, long openfd, char *buf)
+sftp_piggybackfileread(register SE_Descriptor *sdesc, long openfd, char *buf)
     /* Reads entire file defined by sdesc into buf using openfd
        openfd is ignored if sdesc refers to a vmfile
        Returns 0 on success, RPC2 error code (< 0) on failure
@@ -1357,11 +1373,11 @@ sftp_vfreadfile(register SE_Descriptor *sdesc, long openfd, char *buf)
     if (MEMFILE(sdesc))
 	{
 	p = &sdesc->Value.SmartFTPD.FileInfo.ByAddr;
-	bcopy(p->vmfile.SeqBody, buf, p->vmfile.SeqLen);
+	bcopy(p->vmfile.SeqBody, buf, sftp_piggybackfilesize(sdesc, openfd));
 	}
     else
 	{
-	if (read(openfd, buf, sftp_vfsize(sdesc, openfd)) < 0)
+	if (read(openfd, buf, sftp_piggybackfilesize(sdesc, openfd)) < 0)
 	    return(RPC2_SEFAIL4);
 	}
     return(0);

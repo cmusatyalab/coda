@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.5 98/05/07 17:23:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.6 1998/06/02 11:19:40 kwalker Exp $";
 #endif /*_BLURB_*/
 
 
@@ -527,7 +527,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 	    break;
 
 	case SERVERTOCLIENT:
-	    flen = sftp_vfsize(se->SDesc, se->openfd);
+	    flen = sftp_piggybackfilesize(se->SDesc, se->openfd);
 	    if (SFTP_DoPiggy == FALSE
 		|| ((Flags & SE_AWAITREMOTESTATUS) != 0)
 		|| (flen >= SFTP_MAXBODYSIZE))
@@ -543,7 +543,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 
 		sftp_AllocPiggySDesc(se, flen, SERVERTOCLIENT);
 		p = &se->PiggySDesc->Value.SmartFTPD.FileInfo.ByAddr;	    
-		rc = sftp_vfreadfile(se->SDesc, se->openfd, p->vmfile.SeqBody);
+		rc = sftp_piggybackfileread(se->SDesc, se->openfd, p->vmfile.SeqBody);
 		if (rc < 0)
 		    {
 		    sftp_SetError(se, DISKERROR);
@@ -981,7 +981,7 @@ sftp_AppendFileToPacket(sEntry, whichP)
     static char GlobalJunk[SFTP_MAXBODYSIZE];	/* buffer for read();
 				    avoids huge local on my stack */
     
-    filelen = sftp_vfsize(sEntry->SDesc, sEntry->openfd);
+    filelen = sftp_piggybackfilesize(sEntry->SDesc, sEntry->openfd);
     if (filelen < 0) return(-1);
 
     /* now check if there is space in the packet */
@@ -992,7 +992,7 @@ sftp_AppendFileToPacket(sEntry, whichP)
     if (filelen > maxbytes) return(-2);
 
     /* enough space: append the file! */
-    rc = sftp_vfreadfile(sEntry->SDesc, sEntry->openfd, GlobalJunk);
+    rc = sftp_piggybackfileread(sEntry->SDesc, sEntry->openfd, GlobalJunk);
     if (rc < 0) return(-1);
     assert(!sftp_AddPiggy(whichP, GlobalJunk, filelen, SFTP_MAXPACKETSIZE));
     sEntry->HitEOF = TRUE;
