@@ -398,7 +398,7 @@ echo
 echo " start updateclnt as:  updateclnt -h $scm "
 echo " start the auth2 server as: auth2 -chk"
 echo
-echo "After that, there is still some configuration needed on the SCM before
+echo "After that, there is still some configuration needed on the SCM before"
 echo "this server can be started."
 echo
 echo "An entry for this host is needed in /vice/db/servers"
