@@ -1,11 +1,14 @@
+%define version @VERSION@
+%define debug @DEBUG@
 Summary: Coda distributed filesystem
 Name: @CODA@
-Version: @CVER@
+Version: %{version}
 Release: @REL@
-Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-@VERSION@.tar.gz
+Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-%{version}.tar.gz
 Requires: bc
 Copyright: GPL
 BuildRoot: /usr/src/redhat/BUILD/coda-build
+BuildRequires: db4-devel libtermcap-devel lwp-devel ncurses-devel rpc2-devel rvm-devel
 Group: Networking/Daemons
 %description
 Source package for the Coda filesystem.  Three packages are provided by
@@ -43,12 +46,14 @@ This package contains the backup software for the coda filesystem, as
 well as the volume utilities.
 
 %changelog
+* Sun Jan 19 2003 Rafael Jesus Alcantara Perez <rafa@dedalo.ws>
+- Initial attempt for making the RPM packages from CVS with KERBEROS support.
 * Sun Jun 21 1998 Peter Braam <braam@cs.cmu.edu>
 - get rid of the kernel package. This needs interaction during the build.
 - no more separate libc, glibc packages
 * Tue Dec 30 1997 Peter Braam <braam@cs.cmu.edu>
 - several changes: documentation separate
-- use variables: @KVER@=`uname -r`, @CVER@=coda version
+- use variables: (at)KVER(at)=`uname -r`, (at)CVER(at)=coda version
 * Mon Jun 02 1997 Peter Braam <braam@cs.cmu.edu>
 - small changes to Elliots improvements.
 - some of his ideas are now in the scripts
@@ -59,18 +64,25 @@ well as the volume utilities.
 - Added initscript for venus
 	
 %prep
-%setup -n coda-@VERSION@
+%setup -n coda-%{version}
 
 %build
-chown -R root.bin $RPM_BUILD_DIR/coda-@VERSION@
-rm -rf $RPM_BUILD_DIR/obj-@VERSION@
-mkdir $RPM_BUILD_DIR/obj-@VERSION@
-cd $RPM_BUILD_DIR/obj-@VERSION@
-$RPM_BUILD_DIR/coda-@VERSION@/configure --prefix=/usr
+chown -R root.bin $RPM_BUILD_DIR/coda-%{version}
+cd $RPM_BUILD_DIR/coda-%{version}
+[ -x configure ] || ./bootstrap.sh
+rm -rf $RPM_BUILD_DIR/obj-%{version}
+mkdir $RPM_BUILD_DIR/obj-%{version}
+cd $RPM_BUILD_DIR/obj-%{version}
+$RPM_BUILD_DIR/coda-%{version}/configure --prefix=/usr
+#  --with-crypto \
+#  --with-krb4-includes=/usr/kerberos/include/kerberosIV \
+#  --with-krb4-libraries=/usr/kerberos/lib \
+#  --with-krb5-includes=/usr/kerberos/include \
+#  --with-krb5-libraries=/usr/kerberos/lib
 make
 
 %install
-cd $RPM_BUILD_DIR/obj-@VERSION@
+cd $RPM_BUILD_DIR/obj-%{version}
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 	$RPM_BUILD_ROOT/usr/coda/etc \
@@ -84,7 +96,7 @@ touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
 
 
 # for non debuging versions
-if [ X@DEBUG@ != X1 ]; then
+if [ X%{debug} != X1 ]; then
    strip $RPM_BUILD_ROOT/usr/bin/* $RPM_BUILD_ROOT/vice/bin/* $RPM_BUILD_ROOT/usr/sbin/* || :
 fi
 
@@ -92,7 +104,7 @@ chown -R root.root $RPM_BUILD_ROOT
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-rm -rf $RPM_BUILD_DIR/obj-@VERSION@
+rm -rf $RPM_BUILD_DIR/obj-%{version}
 
 %pre client
 grep "^coda" /proc/mounts > /dev/null 2>&1
@@ -103,15 +115,6 @@ else
 	exit 0
 fi
 
-%preun client
-grep "^coda" /proc/mounts > /dev/null 2>&1
-if [ $? = 0 ]; then
-	echo "*** Coda is mounted: cannot uninstall ***"
-	exit 1
-else
-	exit 0
-fi
-	
 %post client
 if [ -e /usr/coda/venus.cache/pid ]; then 
     rm -f /usr/coda/venus.cache/pid
@@ -124,19 +127,24 @@ if [ ! -e /dev/cfs0 ]; then
 fi
 /sbin/chkconfig --add venus.init
 
-%postun client
+%preun client
+grep "^coda" /proc/mounts > /dev/null 2>&1
+if [ $? = 0 ]; then
+	echo "*** Coda is mounted: cannot uninstall ***"
+	exit 1
+fi
 /sbin/chkconfig --del venus.init
+exit 0
 
 %post server
 /sbin/chkconfig --add update.init
 /sbin/chkconfig --add auth2.init
 /sbin/chkconfig --add codasrv.init
 
-%postun server
+%preun server
 /sbin/chkconfig --del update.init
 /sbin/chkconfig --del auth2.init
 /sbin/chkconfig --del codasrv.init
-
 
 %files client
 %dir /usr/coda
@@ -147,7 +155,7 @@ fi
 /etc/coda/venus.conf.ex
 /etc/coda/sidekick.intr.ex
 /etc/rc.d/init.d/venus.init
-/usr/sbin/@AU@
+/usr/sbin/au
 /usr/sbin/sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/coda-setup-ports
@@ -156,7 +164,7 @@ fi
 /usr/sbin/volmunge
 /usr/sbin/vutil
 /usr/bin/cfs
-/usr/bin/@CLOG@
+/usr/bin/clog
 /usr/bin/cmon
 /usr/bin/codacon
 /usr/bin/cpasswd
@@ -174,7 +182,7 @@ fi
 
 %files server	
 /etc/coda/server.conf.ex
-/usr/sbin/@AUTH2@
+/usr/sbin/auth2
 /usr/sbin/bldvldb.sh
 /usr/sbin/codaconfedit
 /usr/sbin/codasrv
