@@ -79,7 +79,7 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb,
     te->ph = pb->Header;	/* structure assignment */
 #endif
 
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, sEntry->HostInfo->Addr, confirm);
+    rpc2_XmitPacket(pb, sEntry->HostInfo->Addr, confirm);
 
     if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
 	rpc2_MSent.Total--;

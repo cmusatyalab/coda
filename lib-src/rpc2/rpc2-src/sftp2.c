@@ -72,11 +72,12 @@ static void SFSendNAK(RPC2_PacketBuffer *pb);
 
 /* This function is not called by the sftp code itself */
 void SFTP_DispatchProcess(void)
-    {
+{
     struct timeval tv;
+    int fd;
 
-    while (sftp_MorePackets())
-	rpc2_ProcessPackets();
+    while ((fd = rpc2_MorePackets()) != -1)
+	rpc2_ProcessPackets(fd);
 
     /* keep current time from being too inaccurate */
     (void) FT_GetTimeOfDay(&tv, (struct timezone *) 0);
@@ -84,37 +85,6 @@ void SFTP_DispatchProcess(void)
     /* also check for timed-out events, using current time */
     rpc2_ExpireEvents();
     LWP_DispatchProcess();
-    }
-
-/* This function is only called by SFTP_DispatchProcess, which is not called
- * by the sftp code itself */
-int sftp_MorePackets(void)
-{
-/* This ioctl peeks into the socket's receive queue, and reports the amount
- * of data ready to be read. Linux officially uses TIOCINQ, but it's an alias
- * for FIONREAD, so this should work too. --JH */
-#if defined(FIONREAD)
-    int ready_rpc2 = 0;
-
-    if (ioctl(rpc2_RequestSocket, FIONREAD, &ready_rpc2) == 0)
-	return ready_rpc2 != 0;
-    
-    return 0;
-#else
-    fd_set rmask;
-    struct timeval tv;
-
-    FD_ZERO(&rmask);
-    FD_SET(rpc2_RequestSocket, &rmask);
-
-    tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
-    /* We use select rather than IOMGR_Select to avoid overheads. This is
-     * acceptable only because we are doing a polling select */
-    if (select(rpc2_RequestSocket + 1, &rmask, NULL, NULL, &tv) > 0)
-	return FD_ISSET(rpc2_RequestSocket, &rmask);
-
-    return(0);
-#endif
 }
 
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb)

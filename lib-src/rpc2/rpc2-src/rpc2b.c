@@ -76,8 +76,9 @@ long RPC2_Init(char *VId,		/* magic version string */
 	       )
 {
     char *c;
-    long rc, i, ctpid;
+    long i, ctpid;
     struct RPC2_addrinfo *rpc2_localaddr;
+    long rc1 = RPC2_NOCONNECTION, rc2, rc;
 
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
@@ -108,11 +109,16 @@ long RPC2_Init(char *VId,		/* magic version string */
 	rpc2_Quit(RPC2_FAIL);
     }
     
-    /* XXX we only bind to the first one that binds successfully */
-    rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, rpc2_localaddr,
+#ifdef PF_INET6
+    rc1 = rpc2_CreateIPSocket(PF_INET6, &rpc2_v6RequestSocket, rpc2_localaddr,
+			     &rpc2_LocalPort);
+#endif
+    rc2 = rpc2_CreateIPSocket(PF_INET, &rpc2_v4RequestSocket, rpc2_localaddr,
 			     &rpc2_LocalPort);
     RPC2_freeaddrinfo(rpc2_localaddr);
 
+    /* rc should probably be the most 'positive' result of the two */
+    rc = (rc1 > rc2) ? rc1 : rc2;
     if (rc < RPC2_ELIMIT) {
 	say(-1, RPC2_DebugLevel, "RPC2_Init(): Couldn't create socket\n");
 	rpc2_Quit(rc);
@@ -827,12 +833,15 @@ long RPC2_ClearNetInfo(IN Conn)
     
 /* adding this arg in theory allows me to specify whether to
    create a v4 or v6 socket.  Simpler way to do this? */
-long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
+long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 			 RPC2_PortIdent *Port)
 {
     int err = RPC2_FAIL;
 
     for (; addr; addr = addr->ai_next) {
+	if (af != PF_UNSPEC && af != addr->ai_family)
+	    continue;
+
 	/* Allocate socket */
 	*svar = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 	if (*svar < 0) {

@@ -71,13 +71,13 @@ void rpc2_IncrementSeqNumber();
 static void DelayedAck(struct SL_Entry *sle);
 int XlateMcastPacket(RPC2_PacketBuffer *pb);
 void HandleInitMulticast();
-void rpc2_ProcessPackets();
+void rpc2_ProcessPackets(int fd);
 void rpc2_ExpireEvents();
 
-static RPC2_PacketBuffer *PullPacket(), *ShrinkPacket();
+static RPC2_PacketBuffer *PullPacket(int fd), *ShrinkPacket();
 static struct CEntry *MakeConn(), *FindOrNak();
 static struct SL_Entry *FindRecipient();
-static int BogusSl(), MorePackets(), PacketCame();
+static int BogusSl(), PacketCame(void);
 static void
 	    Tell(), HandleSLPacket(), DecodePacket(),
 	    HandleCurrentReply(),
@@ -118,34 +118,37 @@ void SL_RegisterHandler(unsigned int pv, void (*handler)(RPC2_PacketBuffer *pb))
     nPacketHandlers++;
 }
 
-void rpc2_SocketListener()
+void rpc2_SocketListener(void)
 {
-	/* just once, at RPC2_Init time, to be nice */
-	LWP_DispatchProcess();  
+    int fd;
+
+    /* just once, at RPC2_Init time, to be nice */
+    LWP_DispatchProcess();  
 
     /* The funny if-do construct  below assures the following:
        1. All packets in the socket buffer are processed before expiring events
        2. The number of select() system calls is kept to bare minimum
     */
-	while(TRUE) {
-		if (!MorePackets()) {
-			do {
-				rpc2_ExpireEvents();
-			} while (!PacketCame());
-		}
-		
-		rpc2_ProcessPackets();
+    while(TRUE) {
+	fd = rpc2_MorePackets();
+	if (fd == -1) {
+	    do {
+		rpc2_ExpireEvents();
+		fd = PacketCame();
+	    } while (fd == -1);
 	}
-	return;
-    
+
+	rpc2_ProcessPackets(fd);
+    }
 }
 
 void RPC2_DispatchProcess()
 {
 	struct timeval tv;
+	int fd;
 
-	while (MorePackets()) {
-		rpc2_ProcessPackets();
+	while ((fd = rpc2_MorePackets()) != -1) {
+	    rpc2_ProcessPackets(fd);
 	}
 
 	/* keep current time from being too inaccurate */
@@ -159,14 +162,14 @@ void RPC2_DispatchProcess()
 }
 
 
-void rpc2_ProcessPackets()
+void rpc2_ProcessPackets(int fd)
 {
 	RPC2_PacketBuffer *pb = NULL;
         unsigned int i, ProtoVersion;
 	
 	/* We are guaranteed that there is a packet in the socket
            buffer at this point */
-	pb = PullPacket();
+	pb = PullPacket(fd);
 	if (pb == NULL) 
 		return;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
@@ -272,62 +275,109 @@ void rpc2_ExpireEvents()
 }
 
 
-static int MorePackets()
+int rpc2_MorePackets(void)
 {
-	struct timeval tv;
-	fd_set rmask;
-	int maxfd;
-	
-/* This ioctl peeks into the socket's receive queue, and reports the amount
- * of data ready to be read. Linux officially uses TIOCINQ, but it's an alias
- * for FIONREAD, so this should work too. --JH */
+    struct timeval tv;
+    fd_set rmask;
+    int maxfd;
+
+    /* This ioctl peeks into the socket's receive queue, and reports the amount
+     * of data ready to be read. Linux officially uses TIOCINQ, but it's an alias
+     * for FIONREAD, so this should work too. --JH */
 #if defined(FIONREAD)
-	int amount_ready = 0;
-	if (ioctl(rpc2_RequestSocket, FIONREAD, &amount_ready) == 0)
-	    return (amount_ready != 0);
+    int checked = 0, amount_ready = 0;
+
+    if (rpc2_v4RequestSocket != -1 &&
+	ioctl(rpc2_v4RequestSocket, FIONREAD, &amount_ready) == 0)
+    {
+	checked = 1;
+	if (amount_ready != 0)
+	    return rpc2_v4RequestSocket;
+    }
+
+    if (rpc2_v6RequestSocket != -1 &&
+	ioctl(rpc2_v6RequestSocket, FIONREAD, &amount_ready) == 0)
+    {
+	checked = 1;
+	if (amount_ready != 0)
+	    return rpc2_v6RequestSocket;
+    }
+    /* if the ioctl worked on a socket, we know that there probably isn't
+     * any data waiting for us */
+    if (checked)
+	return -1;
 #endif
-	tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
-	FD_ZERO(&rmask);
-	FD_SET(rpc2_RequestSocket, &rmask);
-	maxfd = rpc2_RequestSocket + 1;
+    tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
+    FD_ZERO(&rmask);
 
-	/* We use select rather than IOMGR_Select to avoid
-    	overheads. This is acceptable only because we are doing a
-    	polling select */
-	if (select(maxfd, &rmask, NULL, NULL, &tv) > 0) 
-		return(TRUE);
-	else 
-		return(FALSE);
+    if (rpc2_v4RequestSocket != -1)
+	FD_SET(rpc2_v4RequestSocket, &rmask);
+
+    if (rpc2_v6RequestSocket != -1)
+	FD_SET(rpc2_v6RequestSocket, &rmask);
+
+    maxfd = rpc2_v4RequestSocket + 1;
+    if (rpc2_v6RequestSocket >= maxfd)
+	maxfd = rpc2_v6RequestSocket + 1;
+
+    /* We use select rather than IOMGR_Select to avoid
+       overheads. This is acceptable only because we are doing a
+       polling select */
+    if (select(maxfd, &rmask, NULL, NULL, &tv) > 0) {
+	if (rpc2_v4RequestSocket != -1 &&
+	    FD_ISSET(rpc2_v4RequestSocket, &rmask))
+	    return rpc2_v4RequestSocket;
+
+	if (rpc2_v6RequestSocket != -1 &&
+	    FD_ISSET(rpc2_v6RequestSocket, &rmask))
+	    return rpc2_v6RequestSocket;
+    }
+    return -1;
 }
 
 
-static int PacketCame()
-    /*  Await the earliest future event or a packet.
-    	Returns TRUE if packet came, FALSE if earliest event expired */
+/*  Await the earliest future event or a packet.
+    Returns active fd if packet came, -1 if earliest event expired */
+static int PacketCame(void)
 {
-	struct TM_Elem *t;
-	struct timeval *tvp;
-	fd_set rmask;
-	int nfds;
+    struct TM_Elem *t;
+    struct timeval *tvp;
+    fd_set rmask;
+    int nfds;
 
-	/* Obtain earliest event */
-	t = TM_GetEarliest(rpc2_TimerQueue);
-	if (t == NULL) tvp = NULL;
-	else	       tvp = &t->TimeLeft;
-    
-	/* Yield control */
-	say(999, RPC2_DebugLevel, "About to enter IOMGR_Select()\n");
-	FD_ZERO(&rmask);
-	FD_SET(rpc2_RequestSocket, &rmask);
-	nfds = rpc2_RequestSocket + 1;
+    /* Obtain earliest event */
+    t = TM_GetEarliest(rpc2_TimerQueue);
+    if (t == NULL) tvp = NULL;
+    else	       tvp = &t->TimeLeft;
 
-	if (IOMGR_Select(nfds, &rmask, NULL, NULL, tvp) > 0) 
-		return(TRUE);
-	else 
-		return(FALSE);
+    /* Yield control */
+    say(999, RPC2_DebugLevel, "About to enter IOMGR_Select()\n");
+    FD_ZERO(&rmask);
+
+    if (rpc2_v4RequestSocket != -1)
+	FD_SET(rpc2_v4RequestSocket, &rmask);
+
+    if (rpc2_v6RequestSocket != -1)
+	FD_SET(rpc2_v6RequestSocket, &rmask);
+
+    nfds = rpc2_v4RequestSocket + 1;
+    if (rpc2_v6RequestSocket >= nfds)
+	nfds = rpc2_v6RequestSocket + 1;
+
+    if (IOMGR_Select(nfds, &rmask, NULL, NULL, tvp) > 0) {
+	if (rpc2_v4RequestSocket != -1 &&
+	    FD_ISSET(rpc2_v4RequestSocket, &rmask))
+	    return rpc2_v4RequestSocket;
+
+	if (rpc2_v6RequestSocket != -1 &&
+	    FD_ISSET(rpc2_v6RequestSocket, &rmask))
+	    return rpc2_v6RequestSocket;
+
+    }
+    return(-1);
 }
 
-static RPC2_PacketBuffer *PullPacket()
+static RPC2_PacketBuffer *PullPacket(int fd)
 {
 	RPC2_PacketBuffer *pb = NULL;
 
@@ -335,7 +385,7 @@ static RPC2_PacketBuffer *PullPacket()
 	if ( !pb ) 
 		assert(0);
 	assert(pb->Prefix.Qname == &rpc2_PBList);
-	if (rpc2_RecvPacket(rpc2_RequestSocket, pb) < 0) {
+	if (rpc2_RecvPacket(fd, pb) < 0) {
 		say(9, RPC2_DebugLevel, "Recv error, ignoring.\n");
 		RPC2_FreeBuffer(&pb);
 		return(NULL);
@@ -703,7 +753,7 @@ static void SendBusy(struct CEntry *ce, int doEncrypt)
     rpc2_htonp(pb);
     if (doEncrypt) rpc2_ApplyE(pb, ce);
 
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, ce->HostInfo->Addr, 1);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
     RPC2_FreeBuffer(&pb);
 }
 
@@ -947,8 +997,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		/* Case (3): The Init2 must have been dropped; resend it */
 		say(0, RPC2_DebugLevel, "Resending Init2 0x%lx\n",  ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
-		rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket, 
-				ce->HostInfo->Addr, 1);
+		rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		RPC2_FreeBuffer(&pb);
 		return;
 	}
@@ -1015,8 +1064,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		if (ce->HeldPacket != NULL) {
 			/* My Init4 must have got lost; resend it */
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);    
-			rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket,
-					ce->HostInfo->Addr, 1);
+			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		}  else 
 			say(0, RPC2_DebugLevel, "Bogus Init3\n");
 		/* Throw packet away anyway */
@@ -1069,7 +1117,7 @@ static void SendNak(RPC2_PacketBuffer *pb)
 	nakpb->Header.Opcode = RPC2_NAKED;
 
 	rpc2_htonp(nakpb);
-	rpc2_XmitPacket(rpc2_RequestSocket, nakpb, pb->Prefix.PeerAddr, 1);
+	rpc2_XmitPacket(nakpb, pb->Prefix.PeerAddr, 1);
 	RPC2_FreeBuffer(&nakpb);
 	rpc2_Sent.Naks++;
 }
@@ -1171,8 +1219,7 @@ static void HandleOldRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 	if (ce->HeldPacket != NULL) {
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
-			rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket,
-					ce->HostInfo->Addr, 1);
+			rpc2_XmitPacket(ce->HeldPacket, ce->HostInfo->Addr, 1);
 		}
 	RPC2_FreeBuffer(&pb);
 }

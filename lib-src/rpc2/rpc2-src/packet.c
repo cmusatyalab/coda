@@ -100,10 +100,9 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
     return drop;
 }
 
-void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
-		     IN struct RPC2_addrinfo *addr, int confirm)
+void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *addr, int confirm)
 {
-    int n, flags = 0;
+    int whichSocket, n, flags = 0;
 
     say(0, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
 
@@ -133,6 +132,15 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 	rpc2_Sent.Total++;
 	rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
     }
+
+    whichSocket = rpc2_v6RequestSocket;
+
+    if (whichSocket == -1 ||
+	(rpc2_v4RequestSocket != -1 && addr->ai_family == PF_INET))
+	whichSocket = rpc2_v4RequestSocket;
+
+    if (whichSocket == -1)
+	return; // RPC2_NOCONNECTION
 
     if (FailPacket(Fail_SendPredicate, whichPB, addr, whichSocket))
 	return;
@@ -476,7 +484,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     say(9, RPC2_DebugLevel, "Sending try at %d on 0x%lx (timeout %ld.%06ld)\n", 
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
-    rpc2_XmitPacket(rpc2_RequestSocket, Packet, Conn->HostInfo->Addr, 0);
+    rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
@@ -534,8 +542,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		rpc2_Sent.Retries += 1;
-		rpc2_XmitPacket(rpc2_RequestSocket, Packet,
-				Conn->HostInfo->Addr, 0);
+		rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
 		break;	/* switch */
 		
 	    default: assert(FALSE);

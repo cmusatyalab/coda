@@ -447,7 +447,8 @@ extern long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
 
 /*------------- Miscellaneous  global data  ------------*/
 extern int rpc2_ipv6ready; /* can userspace handle IPv6 addresses */
-extern long rpc2_RequestSocket;	/* fd of RPC socket  */
+extern int rpc2_v4RequestSocket; /* fd of RPC socket  */
+extern int rpc2_v6RequestSocket; /* fd of RPC socket  */
 				/* we may need more when we deal with many domains */
 extern struct TM_Elem *rpc2_TimerQueue;
 extern struct CBUF_Header *rpc2_TraceBuffHeader;
@@ -471,14 +472,14 @@ void FreeHeld(struct SL_Entry *sle);
 
 /* Socket creation */
 
-long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
-			 RPC2_PortIdent *Port);
+long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr, RPC2_PortIdent *Port);
 
 /* Packet  routines */
 long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
-void rpc2_XmitPacket(long whichSocket, RPC2_PacketBuffer *whichPB,
+void rpc2_XmitPacket(RPC2_PacketBuffer *whichPB,
 		     struct RPC2_addrinfo *addr, int confirm);
 void rpc2_InitPacket();
+int rpc2_MorePackets(void);
 long rpc2_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichBuff);
 void rpc2_htonp(RPC2_PacketBuffer *p);
 void rpc2_ntohp(RPC2_PacketBuffer *p);

@@ -814,7 +814,7 @@ void HandleInitMulticast(RPC2_PacketBuffer *pb, struct CEntry *ce)
     rpc2_ApplyE(pb, ce);
 
     say(9, RPC2_DebugLevel, "Sending InitMulticast reply\n");
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, ce->HostInfo->Addr, 1);
+    rpc2_XmitPacket(pb, ce->HostInfo->Addr, 1);
 
     /* Save reply for retransmission. */
     SavePacketForRetry(pb, ce);        

@@ -984,7 +984,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry, int worried)
     /* try to avoid generating data when there might be ack packets queued up
      * already and we're not about to send a full window's worth */
     dont_ackme = worried || (sEntry->ReadAheadCount < sEntry->SendAhead) &&
-	sftp_MorePackets();
+	(rpc2_MorePackets() != -1);
 	
     /* j is the packet to be acked */
     if (sEntry->AckPoint > sEntry->ReadAheadCount)
