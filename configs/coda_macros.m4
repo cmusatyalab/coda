@@ -270,7 +270,22 @@ AC_DEFUN(CODA_FIND_LIB,
 	  ;;
     *)    CFLAGS="-I${coda_cv_path_$1}/include ${CFLAGS}"
           CXXFLAGS="-I${coda_cv_path_$1}/include ${CXXFLAGS}"
-          LDFLAGS="-L${coda_cv_path_$1}/lib ${LDFLAGS}"
+          LDFLAGS="${LDFLAGS} -L${coda_cv_path_$1}/lib" 
+	  if test x$RFLAG != x ; then
+            LDFLAGS="${LDFLAGS} -R${coda_cv_path_$1}/lib "
+	  fi
           ;;
   esac])
+
+AC_DEFUN(CODA_RFLAG,
+  [ dnl put in standard -R flag if needed
+    if test x${RFLAG} != x ; then
+      if test x${libdir} != xNONE ; then
+        LDFLAGS="${LDFLAGS} -R${libdir}"
+      elif test x${prefix} != xNONE ; then
+        LDFLAGS="${LDFLAGS} -R${prefix}/lib"
+      else 
+        LDFLAGS="${LDFLAGS} -R${ac_default_prefix}/lib"
+      fi
+    fi])
 

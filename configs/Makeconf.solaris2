@@ -17,6 +17,3 @@ LIBDL	      = -ldl
 LIBMATH       = -lm
 GUIDIR        = /usr/lib/coda
 INITDIR       = /etc/init.d
-
-LDFLAGS = -R/usr/local/lib
-

@@ -72,3 +72,18 @@ AC_SUBST(cputype)
 AC_SUBST(shortsys)
 AC_SUBST(systype)
 
+dnl -- should we add -R flags to LDFLAGS?
+
+echo -n "Checking whether ld needs the -R flag... "
+case ${shortsys} in
+	nbsd ) if test x`echo __ELF__ | gcc -E - | grep ELF` != x__ELF__ ; then
+		   RFLAG=1
+	       fi;;
+	solaris2 ) RFLAG=1 ;;
+esac
+
+if test x${RFLAG} != x ; then
+	echo yes
+else
+	echo no
+fi
