@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_daemon.cc,v 4.1 1997/01/08 21:51:48 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_daemon.cc,v 4.3 98/06/19 16:32:00 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,7 +75,9 @@ extern "C" {
 #include "vproc.h"
 
 
-PRIVATE const int VolDaemonStackSize =  0xc000;
+PRIVATE const int VolDaemonStackSize =  0xffff; /* 64k stack, because of all
+						   the MAXPATHLEN stuff in
+						   vdb::CheckPoint. JH */
 PRIVATE const int VolDaemonInterval = 5;
 PRIVATE const int VolumeCheckInterval = 120 * 60;
 PRIVATE const int VolGetDownInterval = 5 * 60;
