@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/timer.c,v 4.2 1998/01/10 18:40:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/timer.c,v 4.3 1998/04/14 20:42:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,7 +61,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "lwp.h"
 #include "lwp.private.h"
 #include "timer.h"
-
+#include <assert.h>
 typedef unsigned char bool;
 #define NIL	0
 
@@ -176,7 +176,7 @@ void TM_Insert(tlistPtr, elem)
     struct TM_Elem *elem;
 {
     register struct TM_Elem *next;
-
+    assert(tlistPtr);
     /* TimeLeft must be set for function IOMGR with infinite timeouts */
     elem -> TimeLeft = elem -> TotalTime;
 
