@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.3 1997/05/21 23:23:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.4 1997/12/01 17:28:17 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -149,7 +149,7 @@ msgent *FindMsg(olist& ol, u_long seq) {
     msg_iterator next(ol);
     msgent *m;
     while (m = next())
-	if (((struct inputArgs *)m->msg_buf)->unique == seq) return(m);
+	if (((union inputArgs *)m->msg_buf)->ih.unique == seq) return(m);
 
     return(0);
 }
@@ -204,10 +204,10 @@ void testKernDevice() {
 	}
 
 	/* Construct a purge message */
-	struct outputArgs msg;
+	union outputArgs msg;
 
-	msg.opcode = CFS_FLUSH;
-	msg.unique = 0;
+	msg.oh.opcode = CFS_FLUSH;
+	msg.oh.unique = 0;
 
 	/* Send the message. */
 	if (write(fd, (char *)&msg, (int)sizeof(u_long) * 2) != sizeof(u_long) * 2) {
@@ -350,10 +350,10 @@ int k_Purge() {
     LOG(1, ("k_Purge: Flush\n"));
 
     /* Construct a purge message. */
-    struct outputArgs msg;
+    union outputArgs msg;
     
-    msg.opcode = CFS_FLUSH;
-    msg.unique = 0;
+    msg.oh.opcode = CFS_FLUSH;
+    msg.oh.unique = 0;
     
     /* Send the message. */
     if (MsgWrite((char *)&msg, (int)sizeof(u_long) * 2) != (int)sizeof(u_long)*2)
@@ -377,39 +377,39 @@ int k_Purge(ViceFid *fid, int severely) {
     int retcode = 0;
 
     /* Setup message. */
-    struct outputArgs msg;
+    union outputArgs msg;
 
     if (severely) {
-	msg.opcode = CFS_PURGEFID;
-	msg.unique = 0;
-	msg.d.cfs_purgefid.CodaFid = *fid;
+	msg.cfs_purgefid.oh.opcode = CFS_PURGEFID;
+	msg.cfs_purgefid.oh.unique = 0;
+	msg.cfs_purgefid.CodaFid = *fid;
     } else if (ISDIR(*fid)) {
-	msg.opcode = CFS_ZAPDIR;
-	msg.unique = 0;
-	msg.d.cfs_zapdir.CodaFid = *fid;
+	msg.cfs_zapdir.oh.opcode = CFS_ZAPDIR;
+	msg.cfs_zapdir.oh.unique = 0;
+	msg.cfs_zapdir.CodaFid = *fid;
     } else {
-	msg.opcode = CFS_ZAPFILE;
-	msg.unique = 0;
-	msg.d.cfs_zapfile.CodaFid = *fid;
+	msg.cfs_zapfile.oh.opcode = CFS_ZAPFILE;
+	msg.cfs_zapfile.oh.unique = 0;
+	msg.cfs_zapfile.CodaFid = *fid;
     }	
 
     /* Send the message. */
-    if (MsgWrite((char *)&msg, (int) sizeof(struct outputArgs)) != (int) sizeof(struct outputArgs)) {
+    if (MsgWrite((char *)&msg, (int) sizeof(union outputArgs)) != (int) sizeof(union outputArgs)) {
 	retcode = errno;
 	if (retcode != ETXTBSY)
 	    Choke("k_Purge: %s, message write returns %d", 
-	      msg.opcode == CFS_PURGEFID ? "CFS_PURGEFID" :
-	      msg.opcode == CFS_ZAPFILE ? "CFS_ZAPFILE" : "CFS_ZAPDIR", retcode);
+	      msg.oh.opcode == CFS_PURGEFID ? "CFS_PURGEFID" :
+	      msg.oh.opcode == CFS_ZAPFILE ? "CFS_ZAPFILE" : "CFS_ZAPDIR", retcode);
     }
 
     LOG(100, ("k_Purge: %s, returns %d\n", 
-	      msg.opcode == CFS_PURGEFID ? "CFS_PURGEFID" :
-	      msg.opcode == CFS_ZAPFILE ? "CFS_ZAPFILE" : "CFS_ZAPDIR", retcode));
+	      msg.oh.opcode == CFS_PURGEFID ? "CFS_PURGEFID" :
+	      msg.oh.opcode == CFS_ZAPFILE ? "CFS_ZAPFILE" : "CFS_ZAPDIR", retcode));
     if (retcode == 0) {
-	VFSStats.VFSOps[msg.opcode].success++;
+	VFSStats.VFSOps[msg.oh.opcode].success++;
     }
     else {
-	VFSStats.VFSOps[msg.opcode].failure++;
+	VFSStats.VFSOps[msg.oh.opcode].failure++;
     }
 
     return(retcode == 0);
@@ -424,16 +424,16 @@ int k_Purge(vuid_t vuid) {
     LOG(1, ("k_Purge: vuid = %d\n", vuid));
 
     /* Message prefix. */
-    struct outputArgs msg;
-    msg.unique = 0;
-    msg.opcode = CFS_PURGEUSER;
+    union outputArgs msg;
+    msg.cfs_purgeuser.oh.unique = 0;
+    msg.cfs_purgeuser.oh.opcode = CFS_PURGEUSER;
 
     /* Message data. */
-    bzero(&msg.d.cfs_purgeuser.cred, (int) sizeof(struct CodaCred));
-    msg.d.cfs_purgeuser.cred.cr_uid = vuid;
+    bzero(&msg.cfs_purgeuser.cred, (int) sizeof(struct coda_cred));
+    msg.cfs_purgeuser.cred.cr_uid = vuid;
 
     /* Send the message. */
-    if (MsgWrite((char *)&msg, (int) sizeof(struct outputArgs)) != (int) sizeof(struct outputArgs))
+    if (MsgWrite((char *)&msg, (int) sizeof(union outputArgs)) != (int) sizeof(union outputArgs))
 	Choke("k_Purge: PurgeUser, message write");
 
     LOG(1, ("k_Purge: PurgeUser, returns 0\n"));
@@ -455,15 +455,15 @@ int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
 	    fid_2->Vnode, fid_2->Unique));
 
     /* Message prefix. */
-    struct outputArgs msg;
-    msg.unique = 0;
-    msg.opcode = CFS_REPLACE;
+    struct cfs_replace_out msg;
+    msg.oh.unique = 0;
+    msg.oh.opcode = CFS_REPLACE;
 
-    msg.d.cfs_replace.OldFid = *fid_1;
-    msg.d.cfs_replace.NewFid = *fid_2;
+    msg.OldFid = *fid_1;
+    msg.NewFid = *fid_2;
 	
     /* Send the message. */
-    if (MsgWrite((char *)&msg, VC_SIZE(&msg, cfs_replace)) != VC_SIZE(&msg, cfs_replace))
+    if (MsgWrite((char *)&msg, sizeof (struct cfs_replace_out)) != sizeof (struct cfs_replace_out))
 	Choke("k_Replace: message write");
 
     LOG(0, ("k_Replace: returns 0\n"));
@@ -518,7 +518,7 @@ worker *FindWorker(u_long seq) {
     worker_iterator next;
     worker *w;
     while (w = next())
-	if (w->msg && ((struct inputArgs *)w->msg)->unique == seq) return(w);
+	if (w->msg && ((union inputArgs *)w->msg)->ih.unique == seq) return(w);
 
     return(0);
 }
@@ -540,22 +540,22 @@ worker *GetIdleWorker() {
 
 int IsAPrefetch(msgent *m) {
     /* determines if a message is a prefetch request */
-    struct inputArgs *in = (struct inputArgs *)m->msg_buf;
+    union inputArgs *in = (union inputArgs *)m->msg_buf;
     
-    if (in->opcode != CFS_IOCTL)
+    if (in->ih.opcode != CFS_IOCTL)
 	return(0);
 
-    return (in->d.cfs_ioctl.cmd == VIOCPREFETCH);
+    return (in->cfs_ioctl.cmd == VIOCPREFETCH);
 }
 
 void DispatchWorker(msgent *m) {
     /* We filter out signals (i.e., interrupts) before passing messages on to workers. */
-    struct inputArgs *in = (struct inputArgs *)m->msg_buf;
+    union inputArgs *in = (union inputArgs *)m->msg_buf;
     
-    if (in->opcode == CFS_SIGNAL) {
-	eprint("DispatchWorker: signal received (seq = %d)", in->unique);
+    if (in->ih.opcode == CFS_SIGNAL) {
+	eprint("DispatchWorker: signal received (seq = %d)", in->ih.unique);
 
-	worker *signallee = FindWorker(in->unique);
+	worker *signallee = FindWorker(in->ih.unique);
 	if (signallee) {
 	    if (!signallee->returned) {
 		LOG(1, ("DispatchWorker: signalled worker %x\n", signallee));
@@ -569,7 +569,7 @@ void DispatchWorker(msgent *m) {
 	    }
 	}
 	else {
-	    msgent *qm = FindMsg(worker::QueuedMsgs, in->unique);
+	    msgent *qm = FindMsg(worker::QueuedMsgs, in->ih.unique);
 	    if (qm) {
 		LOG(1, ("DispatchWorker: signalled queued msg\n"));
 		worker::QueuedMsgs.remove(qm);
@@ -599,7 +599,7 @@ void DispatchWorker(msgent *m) {
     if (w) {
 	worker::ActiveMsgs.append(m);
 	w->msg = m;
-	w->opcode = (int) in->opcode;
+	w->opcode = (int) in->ih.opcode;
 	w->idle = 0;
 	VprocSignal((char *)w);
 	return;
@@ -735,7 +735,7 @@ void worker::AwaitRequest() {
 	LOG(1000, ("worker::AwaitRequest: dequeuing message\n"));
 	ActiveMsgs.append(m);
 	msg = m;
-	opcode = (int) ((struct inputArgs *)m->msg_buf)->opcode;
+	opcode = (int) ((union inputArgs *)m->msg_buf)->ih.opcode;
 	idle = 0;
 	return;
     }
@@ -747,8 +747,8 @@ void worker::AwaitRequest() {
 /* Called by workers after completing a service request. */
 void worker::Resign(msgent *msg, int size) {
     if (returned) {
-	char *opstr = VenusOpStr((int) ((struct outputArgs*)msg->msg_buf)->opcode);
-	char *retstr = VenusRetStr((int) ((struct outputArgs *)msg->msg_buf)->result);
+	char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
+	char *retstr = VenusRetStr((int) ((union outputArgs *)msg->msg_buf)->oh.result);
 	
 #ifdef	TIMING
 	float elapsed = SubTimes(u.u_tv2, u.u_tv1);
@@ -759,8 +759,8 @@ void worker::Resign(msgent *msg, int size) {
 #endif	TIMING
     }
     else {
-	if (((struct outputArgs *)msg->msg_buf)->result == EINCONS) {
-/*	    ((struct outputArgs *)msg->msg_buf)->result = ENOENT;*/
+	if (((union outputArgs *)msg->msg_buf)->oh.result == EINCONS) {
+/*	    ((union outputArgs *)msg->msg_buf)->oh.result = ENOENT;*/
 	    Choke("worker::Resign: result == EINCONS");
 	}
 
@@ -780,8 +780,8 @@ void worker::Return(msgent *msg, int size) {
     if (returned)
 	Choke("worker::Return: already returned!");
 
-    char *opstr = VenusOpStr((int) ((struct outputArgs*)msg->msg_buf)->opcode);
-    char *retstr = VenusRetStr((int) ((struct outputArgs*)msg->msg_buf)->result);
+    char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
+    char *retstr = VenusRetStr((int) ((union outputArgs*)msg->msg_buf)->oh.result);
 
 #ifdef	TIMING
     float elapsed = SubTimes(u.u_tv2, u.u_tv1);
@@ -793,15 +793,16 @@ void worker::Return(msgent *msg, int size) {
     /* There is no reply to an interrupted operation. */
     if (!interrupted) {
 	int cc = MsgWrite(msg->msg_buf, size);
+	int errn = errno;
 	if (cc != size) {
 	    eprint("worker::Return: message write error %d (op = %d, seq = %d), wrote %d of %d bytes\n",
-		   errno, ((struct outputArgs*)msg->msg_buf)->opcode,
-		   ((struct outputArgs*)msg->msg_buf)->unique, cc, size);  
+		   errno, ((union outputArgs*)msg->msg_buf)->oh.opcode,
+		   ((union outputArgs*)msg->msg_buf)->oh.unique, cc, size);  
 
 	    /* Guard against a race in which the kernel is signalling us, but we entered this */
 	    /* block before the signal reached us.  In this case the error code from the MsgWrite */
 	    /* will be ESRCH.  No other error code is legitimate. */
-	    if (errno != ESRCH) Choke("worker::Return: errno (%d) from MsgWrite", errno);
+	    if (errn != ESRCH) Choke("worker::Return: errno (%d) from MsgWrite", errno);
 	    interrupted = 1;
 	}
     }
@@ -811,8 +812,8 @@ void worker::Return(msgent *msg, int size) {
 
 
 void worker::Return(int code) {
-    ((struct outputArgs*)msg->msg_buf)->result = code; 
-    Return(msg, (int)VC_OUT_NO_DATA);
+    ((union outputArgs*)msg->msg_buf)->oh.result = code; 
+    Return(msg, (int)sizeof (struct cfs_out_hdr));
 }
 
 
@@ -828,8 +829,8 @@ void worker::main(void *parm) {
 	if (idle) Choke("Worker: signalled but not dispatched!");
 	if (!msg) Choke("Worker: no message!");
 
-	struct inputArgs *in = (struct inputArgs *)msg->msg_buf;
-	struct outputArgs *out = (struct outputArgs *)msg->msg_buf;
+	union inputArgs *in = (union inputArgs *)msg->msg_buf;
+	union outputArgs *out = (union outputArgs *)msg->msg_buf;
 	
 	interrupted = 0;
 	returned = 0;
@@ -841,10 +842,10 @@ void worker::main(void *parm) {
 	u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
 
 	/* This switch corresponds to the kernel trap handler. */
-	switch (in->opcode) {
+	switch (in->ih.opcode) {
 	    int size;
 #define GOTTA_BE_ME(in) \
-	    u.u_cred = (in)->cred; u.u_pid = (in)->pid; u.u_pgid = (in)->pgid;
+	    u.u_cred = (in)->ih.cred; u.u_pid = (in)->ih.pid; u.u_pgid = (in)->ih.pgid;
 	    
 	    case CFS_ACCESS:
 		{
@@ -862,12 +863,12 @@ void worker::main(void *parm) {
  		   (Satya, 8/16/96)
 		*/
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_access.VFid, 0);
-		access(vtarget, in->d.cfs_access.flags);
+		MAKE_VNODE(vtarget, in->cfs_access.VFid, 0);
+		access(vtarget, in->cfs_access.flags);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -877,12 +878,12 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_CLOSE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_close.VFid, 0);
-		close(vtarget, in->d.cfs_close.flags);
+		MAKE_VNODE(vtarget, in->cfs_close.VFid, 0);
+		close(vtarget, in->cfs_close.flags);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -893,23 +894,23 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_CREATE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,u.u_pgid));
 
 		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->d.cfs_create.VFid, 0);
+		MAKE_VNODE(vparent, in->cfs_create.VFid, 0);
 		struct venus_vnode *target = 0;
-		create(vparent, (char *)in + (int)in->d.cfs_create.name,
-		       &in->d.cfs_create.attr, in->d.cfs_create.excl,
-		       in->d.cfs_create.mode, &target);
+		create(vparent, (char *)in + (int)in->cfs_create.name,
+		       &in->cfs_create.attr, in->cfs_create.excl,
+		       in->cfs_create.mode, &target);
 		DISCARD_VNODE(vparent);
 
 		if (u.u_error == 0) {
-		    out->d.cfs_create.VFid = VTOC(target)->c_fid;
-		    out->d.cfs_create.attr = in->d.cfs_create.attr;
+		    out->cfs_create.VFid = VTOC(target)->c_fid;
+		    out->cfs_create.attr = in->cfs_create.attr;
 		    DISCARD_VNODE(target);
 		    target = 0;
-		    size = (int)VC_SIZE(out, cfs_create);
+		    size = (int)sizeof (struct cfs_create_out);
 		} else
-		    size = VC_OUT_NO_DATA;
+		    size = sizeof (struct cfs_out_hdr);
 		
-		out->result = u.u_error;
+		out->oh.result = u.u_error;
 		Resign(msg, size);
 		break;
 		}
@@ -921,12 +922,12 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_fsync.VFid, 0);
+		MAKE_VNODE(vtarget, in->cfs_fsync.VFid, 0);
 		fsync(vtarget);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -937,13 +938,13 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_GETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_getattr.VFid, 0);
-		va_init(&out->d.cfs_getattr.attr);
-		getattr(vtarget, &out->d.cfs_getattr.attr);
+		MAKE_VNODE(vtarget, in->cfs_getattr.VFid, 0);
+		va_init(&out->cfs_getattr.attr);
+		getattr(vtarget, &out->cfs_getattr.attr);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_SIZE(out, cfs_getattr));
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_getattr_out));
 		break;
 		}
 
@@ -954,12 +955,12 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_INACTIVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_inactive.VFid, 0);
+		MAKE_VNODE(vtarget, in->cfs_inactive.VFid, 0);
 		inactive(vtarget);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -967,7 +968,7 @@ void worker::main(void *parm) {
 		{
 		char outbuf[VC_DATASIZE];
 		struct ViceIoctl data;
-		data.in = (char *)in + (int)in->d.cfs_ioctl.data;
+		data.in = (char *)in + (int)in->cfs_ioctl.data;
 		data.in_size = 0;
 		data.out = outbuf;	/* Can't risk overcopying. Sigh. -dcs */
 		data.out_size =	0;
@@ -976,22 +977,22 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_IOCTL: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		if (in->d.cfs_ioctl.cmd == VIOCPREFETCH)
+		if (in->cfs_ioctl.cmd == VIOCPREFETCH)
 		    worker::nprefetchers++;
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_ioctl.VFid, 0);
-		data.in_size = in->d.cfs_ioctl.len;
-		ioctl(vtarget, in->d.cfs_ioctl.cmd, &data, in->d.cfs_ioctl.rwflag);
+		MAKE_VNODE(vtarget, in->cfs_ioctl.VFid, 0);
+		data.in_size = in->cfs_ioctl.len;
+		ioctl(vtarget, in->cfs_ioctl.cmd, &data, in->cfs_ioctl.rwflag);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		out->d.cfs_ioctl.len = data.out_size;
-		out->d.cfs_ioctl.data = (char *)(VC_SIZE(out, cfs_ioctl));
-		bcopy(data.out, (char *)out + (int)out->d.cfs_ioctl.data, data.out_size);
-		Resign(msg, (int) VC_SIZE(out, cfs_ioctl) + data.out_size);
+		out->oh.result = u.u_error;
+		out->cfs_ioctl.len = data.out_size;
+		out->cfs_ioctl.data = (char *)(sizeof (struct cfs_ioctl_out));
+		bcopy(data.out, (char *)out + (int)out->cfs_ioctl.data, data.out_size);
+		Resign(msg, (int) sizeof (struct cfs_ioctl_out) + data.out_size);
 
-		if (in->d.cfs_ioctl.cmd == VIOCPREFETCH)
+		if (in->cfs_ioctl.cmd == VIOCPREFETCH)
 		    worker::nprefetchers--;
 
 		break;
@@ -1004,15 +1005,15 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_LINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vsource;
-		MAKE_VNODE(vsource, in->d.cfs_link.sourceFid, 0);
+		MAKE_VNODE(vsource, in->cfs_link.sourceFid, 0);
 		struct venus_vnode *vp_target;
-		MAKE_VNODE(vp_target, in->d.cfs_link.destFid, 0);
-		link(vsource, vp_target, (char *)in + (int)in->d.cfs_link.tname);
+		MAKE_VNODE(vp_target, in->cfs_link.destFid, 0);
+		link(vsource, vp_target, (char *)in + (int)in->cfs_link.tname);
 		DISCARD_VNODE(vsource);
 		DISCARD_VNODE(vp_target);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -1023,23 +1024,23 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_LOOKUP: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->d.cfs_lookup.VFid, 0);
+		MAKE_VNODE(vparent, in->cfs_lookup.VFid, 0);
 		struct venus_vnode *target = 0;
-		lookup(vparent, (char *)in + (int)in->d.cfs_lookup.name, &target);
+		lookup(vparent, (char *)in + (int)in->cfs_lookup.name, &target);
 		DISCARD_VNODE(vparent);
 
-		out->result = u.u_error;
+		out->oh.result = u.u_error;
 		if (u.u_error == 0) {
-		    out->d.cfs_lookup.VFid = VTOC(target)->c_fid;
-		    out->d.cfs_lookup.vtype = VN_TYPE(target);
-		    if (out->d.cfs_lookup.vtype == VLNK &&
+		    out->cfs_lookup.VFid = VTOC(target)->c_fid;
+		    out->cfs_lookup.vtype = VN_TYPE(target);
+		    if (out->cfs_lookup.vtype == VCLNK &&
 			VTOC(target)->c_flags & C_INCON)
-			    out->d.cfs_lookup.vtype |= CFS_NOCACHE;
+			    out->cfs_lookup.vtype |= CFS_NOCACHE;
 		    DISCARD_VNODE(target);
 		    target = 0;
-		    size = VC_SIZE(out, cfs_lookup);
+		    size = sizeof (struct cfs_lookup_out);
 		} else
-		    size = VC_OUT_NO_DATA;
+		    size = sizeof (struct cfs_out_hdr);
 		
 		Resign(msg,  size);
 
@@ -1053,21 +1054,21 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_MKDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->d.cfs_mkdir.VFid, 0);
+		MAKE_VNODE(vparent, in->cfs_mkdir.VFid, 0);
 		struct venus_vnode *target = 0;
-		mkdir(vparent, (char *)in + (int)in->d.cfs_mkdir.name, &in->d.cfs_mkdir.attr, &target);
+		mkdir(vparent, (char *)in + (int)in->cfs_mkdir.name, &in->cfs_mkdir.attr, &target);
 		DISCARD_VNODE(vparent);
 
 		if (u.u_error == 0) {
-		    out->d.cfs_mkdir.VFid = VTOC(target)->c_fid;
-		    out->d.cfs_mkdir.attr = in->d.cfs_mkdir.attr;
+		    out->cfs_mkdir.VFid = VTOC(target)->c_fid;
+		    out->cfs_mkdir.attr = in->cfs_mkdir.attr;
 		    DISCARD_VNODE(target);
 		    target = 0;
-		    size = VC_SIZE(out, cfs_mkdir);
+		    size = sizeof (struct cfs_mkdir_out);
 		} else
-		    size = VC_OUT_NO_DATA;
+		    size = sizeof (struct cfs_out_hdr);
 		
-		out->result = u.u_error;
+		out->oh.result = u.u_error;
 		Resign(msg, size);
 		break;
 		}
@@ -1095,24 +1096,24 @@ void worker::main(void *parm) {
 		 * another worker. Why not do the close ourselves? Oh well,
 		 * I'll leave it this way... -- DCS
 		 */
-		ViceFid saveFid = in->d.cfs_open.VFid;
-		int saveFlags = in->d.cfs_open.flags;
+		ViceFid saveFid = in->cfs_open.VFid;
+		int saveFlags = in->cfs_open.flags;
 
 #ifdef __MACH__
 #ifdef undef /* doesn't even seem to work on i386_mach  (Satya, 8/20/96) */
-		if (in->opcode == ODY_PREFETCH)
+		if (in->ih.opcode == ODY_PREFETCH)
 		    (VprocSelf())->prefetch = 1;
 #endif undef
 #endif /* __MACH__ */
 		
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_open.VFid, 0);
+		MAKE_VNODE(vtarget, in->cfs_open.VFid, 0);
 		struct venus_cnode *cp = VTOC(vtarget);
-		open(&vtarget, in->d.cfs_open.flags);
+		open(&vtarget, in->cfs_open.flags);
 
 #ifdef __MACH__
 #ifdef undef /* doesn't even seem to work on i386_mach  (Satya, 8/20/96) */
-		if (in->opcode == ODY_PREFETCH)
+		if (in->ih.opcode == ODY_PREFETCH)
 		    (VprocSelf())->prefetch = 0;
 #endif undef
 #endif /* __MACH__ */
@@ -1122,18 +1123,18 @@ void worker::main(void *parm) {
 		}
 
 		if (u.u_error == 0) {
-		    out->d.cfs_open.dev = cp->c_device;
-		    out->d.cfs_open.inode = cp->c_inode;
-		    size = VC_SIZE(out, cfs_open);
+		    out->cfs_open.dev = cp->c_device;
+		    out->cfs_open.inode = cp->c_inode;
+		    size = sizeof (struct cfs_open_out);
 		} else
-		    size = VC_OUT_NO_DATA;
+		    size = sizeof (struct cfs_out_hdr);
 		DISCARD_VNODE(vtarget);
 		
-		out->result = u.u_error;
+		out->oh.result = u.u_error;
 		Resign(msg, size);
 
 		/* If open was aborted by user we must abort our OPEN too (if it was successful). */
-		if (interrupted && out->result == 0) {
+		if (interrupted && out->oh.result == 0) {
 		    eprint("worker::main: aborting open (%x.%x.%x)",
 			  saveFid.Volume, saveFid.Vnode, saveFid.Unique);
 
@@ -1143,12 +1144,12 @@ void worker::main(void *parm) {
 		    /* Fashion a CLOSE message. */
 		    msgent *fm = (msgent *)worker::FreeMsgs.get();
 		    if (!fm) fm = new msgent;
-		    struct inputArgs *dog = (struct inputArgs *)fm->msg_buf;
+		    union inputArgs *dog = (union inputArgs *)fm->msg_buf;
 		    
-		    dog->unique = (u_long)-1;
-		    dog->opcode = CFS_CLOSE;
-		    dog->d.cfs_close.VFid = saveFid;
-		    dog->d.cfs_close.flags = saveFlags;
+		    dog->cfs_close.ih.unique = (u_long)-1;
+		    dog->cfs_close.ih.opcode = CFS_CLOSE;
+		    dog->cfs_close.VFid = saveFid;
+		    dog->cfs_close.flags = saveFlags;
 		    
 		    /* Dispatch it. */
 		    DispatchWorker(fm);
@@ -1164,34 +1165,34 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_RDWR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_rdwr.VFid, 0);
+		MAKE_VNODE(vtarget, in->cfs_rdwr.VFid, 0);
 		struct iovec aiov;
 
 		/* For writes, data is in buf. For reads, place data at end of out parms */
-		if (in->d.cfs_rdwr.rwflag == UIO_WRITE)
-		    aiov.iov_base = (char *)in + (int)in->d.cfs_rdwr.data;
+		if (in->cfs_rdwr.rwflag == UIO_WRITE)
+		    aiov.iov_base = (char *)in + (int)in->cfs_rdwr.data;
 		else 
-		    aiov.iov_base = (char *)in + VC_SIZE(out, cfs_rdwr); 
-		aiov.iov_len = in->d.cfs_rdwr.count;
+		    aiov.iov_base = (char *)in + sizeof (struct cfs_rdwr_out); 
+		aiov.iov_len = in->cfs_rdwr.count;
 		struct uio auio;
 		auio.uio_iov = &aiov;
 		auio.uio_iovcnt = 1;
-		auio.uio_offset = in->d.cfs_rdwr.offset;
-		auio.uio_resid = in->d.cfs_rdwr.count;
-		vproc::rdwr(vtarget, &auio, (enum uio_rw)in->d.cfs_rdwr.rwflag,
-			    in->d.cfs_rdwr.ioflag);
+		auio.uio_offset = in->cfs_rdwr.offset;
+		auio.uio_resid = in->cfs_rdwr.count;
+		vproc::rdwr(vtarget, &auio, (enum uio_rw)in->cfs_rdwr.rwflag,
+			    in->cfs_rdwr.ioflag);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		out->d.cfs_rdwr.rwflag = in->d.cfs_rdwr.rwflag;
-		out->d.cfs_rdwr.count = in->d.cfs_rdwr.count - auio.uio_resid;
+		out->oh.result = u.u_error;
+		out->cfs_rdwr.rwflag = in->cfs_rdwr.rwflag;
+		out->cfs_rdwr.count = in->cfs_rdwr.count - auio.uio_resid;
 
 		/* Tricky here. Leave the data where it was on the way up.
 		 * Assumes input args > output args, which is true now -- DCS
 		 */
-		out->d.cfs_rdwr.data = (char *)VC_SIZE(out, cfs_rdwr);	/* Its offset */
+		out->cfs_rdwr.data = (char *)sizeof (struct cfs_rdwr_out);	/* Its offset */
 		/* Already wrote the data to the right place! */
-		Resign(msg, VC_SIZE(out, cfs_rdwr) + out->d.cfs_rdwr.count);
+		Resign(msg, sizeof (struct cfs_rdwr_out) + out->cfs_rdwr.count);
 		break;
 		}
 
@@ -1202,22 +1203,22 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_READDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_readdir.VFid, 0);
+		MAKE_VNODE(vtarget, in->cfs_readdir.VFid, 0);
 		struct iovec aiov;
-		aiov.iov_base = (char *)out + VC_SIZE(out, cfs_readdir);
-		aiov.iov_len = in->d.cfs_readdir.count;
+		aiov.iov_base = (char *)out + sizeof (struct cfs_readdir_out);
+		aiov.iov_len = in->cfs_readdir.count;
 		struct uio auio;
 		auio.uio_iov = &aiov;
 		auio.uio_iovcnt = 1;
-		auio.uio_offset = in->d.cfs_readdir.offset;
-		auio.uio_resid = in->d.cfs_readdir.count;
+		auio.uio_offset = in->cfs_readdir.offset;
+		auio.uio_resid = in->cfs_readdir.count;
 		readdir(vtarget, &auio);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		out->d.cfs_readdir.size = in->d.cfs_readdir.count - auio.uio_resid;
-		out->d.cfs_readdir.data = (char*)(VC_SIZE(out, cfs_readdir));
-		Resign(msg, (int) VC_SIZE(out, cfs_readdir) + out->d.cfs_readdir.size);
+		out->oh.result = u.u_error;
+		out->cfs_readdir.size = in->cfs_readdir.count - auio.uio_resid;
+		out->cfs_readdir.data = (char*)(sizeof (struct cfs_readdir_out));
+		Resign(msg, (int) sizeof (struct cfs_readdir_out) + out->cfs_readdir.size);
 		break;
 		}
 
@@ -1228,10 +1229,10 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_READLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_readlink.VFid, 0);
+		MAKE_VNODE(vtarget, in->cfs_readlink.VFid, 0);
 
 		struct iovec aiov;
-		aiov.iov_base = (char *)out + VC_SIZE(out, cfs_readlink);
+		aiov.iov_base = (char *)out + sizeof (struct cfs_readlink_out);
 		aiov.iov_len = MAXPATHLEN;
 		struct uio auio;
 		auio.uio_iov = &aiov;
@@ -1245,10 +1246,10 @@ void worker::main(void *parm) {
 		}
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		out->d.cfs_readlink.count = MAXPATHLEN - auio.uio_resid;
-		out->d.cfs_readlink.data = (char *)(VC_SIZE(out, cfs_readlink));
-		Resign(msg, (int) VC_SIZE(out, cfs_readlink) + out->d.cfs_readlink.count);
+		out->oh.result = u.u_error;
+		out->cfs_readlink.count = MAXPATHLEN - auio.uio_resid;
+		out->cfs_readlink.data = (char *)(sizeof (struct cfs_readlink_out));
+		Resign(msg, (int) sizeof (struct cfs_readlink_out) + out->cfs_readlink.count);
 		break;
 		}
 
@@ -1258,12 +1259,12 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_REMOVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->d.cfs_remove.VFid, 0);
-		remove(vparent, (char *)in + (int)in->d.cfs_remove.name);
+		MAKE_VNODE(vparent, in->cfs_remove.VFid, 0);
+		remove(vparent, (char *)in + (int)in->cfs_remove.name);
 		DISCARD_VNODE(vparent);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -1274,16 +1275,16 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_RENAME: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vp_source;
-		MAKE_VNODE(vp_source, in->d.cfs_rename.sourceFid, 0);
+		MAKE_VNODE(vp_source, in->cfs_rename.sourceFid, 0);
 		struct venus_vnode *vp_target;
-		MAKE_VNODE(vp_target, in->d.cfs_rename.destFid, 0);
-		rename(vp_source, (char *)in + (int)in->d.cfs_rename.srcname,
-		       vp_target, (char *)in + (int)in->d.cfs_rename.destname);
+		MAKE_VNODE(vp_target, in->cfs_rename.destFid, 0);
+		rename(vp_source, (char *)in + (int)in->cfs_rename.srcname,
+		       vp_target, (char *)in + (int)in->cfs_rename.destname);
 		DISCARD_VNODE(vp_source);
 		DISCARD_VNODE(vp_target);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -1294,12 +1295,12 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_RMDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vparent;
-		MAKE_VNODE(vparent, in->d.cfs_rmdir.VFid, 0);
-		rmdir(vparent, (char *)in + (int)in->d.cfs_rmdir.name);
+		MAKE_VNODE(vparent, in->cfs_rmdir.VFid, 0);
+		rmdir(vparent, (char *)in + (int)in->cfs_rmdir.name);
 		DISCARD_VNODE(vparent);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -1311,14 +1312,14 @@ void worker::main(void *parm) {
 		root(&target);
 
 		if (u.u_error == 0) {
-		    out->d.cfs_root.VFid = VTOC(target)->c_fid;
+		    out->cfs_root.VFid = VTOC(target)->c_fid;
 		    DISCARD_VNODE(target);
 		    target = 0;
-		    size = VC_SIZE(out, cfs_root);
+		    size = sizeof (struct cfs_root_out);
 		} else
-		    size = VC_OUT_NO_DATA;
+		    size = sizeof (struct cfs_out_hdr);
 		    
-		out->result = u.u_error;
+		out->oh.result = u.u_error;
 		Resign(msg, size);
 		break;
 		}
@@ -1330,12 +1331,12 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_SETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->d.cfs_setattr.VFid, 0);
-		setattr(vtarget, &in->d.cfs_setattr.attr);
+		MAKE_VNODE(vtarget, in->cfs_setattr.VFid, 0);
+		setattr(vtarget, &in->cfs_setattr.attr);
 		DISCARD_VNODE(vtarget);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -1346,12 +1347,12 @@ void worker::main(void *parm) {
 		LOG(100, ("CFS_SYMLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_vnode *vp_target;
-		MAKE_VNODE(vp_target, in->d.cfs_symlink.VFid, 0);
-		symlink(vp_target, (char *)in + (int)in->d.cfs_symlink.srcname, &in->d.cfs_symlink.attr, (char *)in + (int)in->d.cfs_symlink.tname);
+		MAKE_VNODE(vp_target, in->cfs_symlink.VFid, 0);
+		symlink(vp_target, (char *)in + (int)in->cfs_symlink.srcname, &in->cfs_symlink.attr, (char *)in + (int)in->cfs_symlink.tname);
 		DISCARD_VNODE(vp_target);
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -1360,8 +1361,8 @@ void worker::main(void *parm) {
 		GOTTA_BE_ME(in);
 		sync();
 
-		out->result = u.u_error;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = u.u_error;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		break;
 		}
 
@@ -1374,20 +1375,20 @@ void worker::main(void *parm) {
 		struct venus_vnode *target = 0;
 		struct cfid fid;
 		fid.cfid_len = (unsigned short)sizeof(ViceFid);
-		fid.cfid_fid = in->d.cfs_vget.VFid;
+		fid.cfid_fid = in->cfs_vget.VFid;
 		vget(&target, &fid);
 
-		out->result = u.u_error;
+		out->oh.result = u.u_error;
 		if (u.u_error == 0) {
-		    out->d.cfs_vget.VFid = VTOC(target)->c_fid;
-		    out->d.cfs_vget.vtype = VN_TYPE(target);
-		    if (out->d.cfs_vget.vtype == VLNK && VTOC(target)->c_flags & C_INCON)
-			out->d.cfs_vget.vtype |= CFS_NOCACHE;
+		    out->cfs_vget.VFid = VTOC(target)->c_fid;
+		    out->cfs_vget.vtype = VN_TYPE(target);
+		    if (out->cfs_vget.vtype == VCLNK && VTOC(target)->c_flags & C_INCON)
+			out->cfs_vget.vtype |= CFS_NOCACHE;
 		    DISCARD_VNODE(target);
 		    target = 0;
-		    size = VC_SIZE(out, cfs_vget);
+		    size = sizeof (struct cfs_vget_out);
 		} else
-		    size = VC_OUT_NO_DATA;
+		    size = sizeof (struct cfs_out_hdr);
 		
 		Resign(msg, size);
 
@@ -1396,12 +1397,12 @@ void worker::main(void *parm) {
 
 	    default:	 /* Toned this down a bit, used to be a choke -- DCS */
 		{	/* But make sure someone sees it! */
-		eprint("worker::main Got a bogus opcode %d", in->opcode);
-		dprint("worker::main Got a bogus opcode %d\n", in->opcode);
-		MarinerLog("worker::main Got a bogus opcode %d\n", in->opcode);
+		eprint("worker::main Got a bogus opcode %d", in->ih.opcode);
+		dprint("worker::main Got a bogus opcode %d\n", in->ih.opcode);
+		MarinerLog("worker::main Got a bogus opcode %d\n", in->ih.opcode);
 
-		out->result = EOPNOTSUPP;
-		Resign(msg, (int) VC_OUT_NO_DATA);
+		out->oh.result = EOPNOTSUPP;
+		Resign(msg, (int) sizeof (struct cfs_out_hdr));
 		}
 	}
     }

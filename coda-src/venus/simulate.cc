@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.2 1997/02/26 16:03:24 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.3 1997/12/01 17:27:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2011,9 +2011,9 @@ PRIVATE void UpdateFsoName(char **f, char *r) {
 /* Temporary hack to cope with the fact that closes of devices are sometimes passed through! */
 PRIVATE ViceDataType VTTOFT(unsigned short vt) {
     switch (vt) {
-	case VREG: return(File);
-	case VDIR: return(Directory);
-	case VLNK: return(SymbolicLink);
+	case VCREG: return(File);
+	case VCDIR: return(Directory);
+	case VCLNK: return(SymbolicLink);
 
 	default:
 	    {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vproc_pioctl.cc,v 4.1 1997/01/08 21:51:51 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.2 1997/02/26 16:03:40 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -207,11 +207,11 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			/* return early to user */
 			if (type == VPT_Worker) {
 			    worker *w = (worker *)this;
-			    struct outputArgs *out;
-			    out = (struct outputArgs *)w->msg->msg_buf;
-			    out->d.cfs_ioctl.len = 0;
-			    out->result = 0;
-			    w->Return(w->msg, VC_SIZE(out,cfs_ioctl));
+			    union outputArgs *out;
+			    out = (union outputArgs *)w->msg->msg_buf;
+			    out->cfs_ioctl.len = 0;
+			    out->cfs_ioctl.oh.result = 0;
+			    w->Return(w->msg, sizeof (struct cfs_ioctl_out));
 			}
 
 			/* Release and reacquire the target (data this time). */

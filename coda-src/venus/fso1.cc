@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.5 1997/06/30 13:45:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.6 1997/12/01 17:27:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2244,19 +2244,19 @@ void fsobj::ReturnEarly() {
     /* Assumption: the opcode and unique fields of the w->msg->msg_ent are already filled in */
     worker *w = (worker *)v;
     switch (w->opcode) {
-	struct outputArgs *out;
+	union outputArgs *out;
 	case CFS_CREATE:
 	case CFS_MKDIR:
 	    {	/* create and mkdir use exactly the same sized output structure */
 	    if (w->msg == 0) Choke("fsobj::ReturnEarly: w->msg == 0");
 
-	    out = (struct outputArgs *)w->msg->msg_buf;
-	    out->result = 0;
-	    out->d.cfs_create.VFid = fid;
+	    out = (union outputArgs *)w->msg->msg_buf;
+	    out->cfs_create.oh.result = 0;
+	    out->cfs_create.VFid = fid;
 	    DemoteLock();
-	    GetVattr(&out->d.cfs_create.attr);
+	    GetVattr(&out->cfs_create.attr);
 	    PromoteLock();
-	    w->Return(w->msg, VC_SIZE(out,cfs_create));
+	    w->Return(w->msg, sizeof (struct cfs_create_out));
 	    break;
 	    }
 
@@ -2271,10 +2271,10 @@ void fsobj::ReturnEarly() {
 	case CFS_IOCTL:
 	    {
 	    /* Huh. IOCTL in the kernel thinks there may be return data. Assume not. */
-	    out = (struct outputArgs *)w->msg->msg_buf;
-	    out->d.cfs_ioctl.len = 0; 
-	    out->result = 0;
-	    w->Return(w->msg, VC_SIZE(out,cfs_ioctl));
+	    out = (union outputArgs *)w->msg->msg_buf;
+	    out->cfs_ioctl.len = 0; 
+	    out->cfs_ioctl.oh.result = 0;
+	    w->Return(w->msg, sizeof (struct cfs_ioctl_out));
 	    break;
 	    }
 

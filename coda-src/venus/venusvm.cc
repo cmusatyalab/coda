@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.2 1997/02/26 16:03:29 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.3 97/12/06 23:34:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -329,21 +329,6 @@ void VmonInit() {
     if (Simulating) {
 	VmonEnabled = 0;
 	return;
-    }
-
-    {	/* test kernel version */
-	struct nlist ktest[2];
-	ktest[0].n_name = "_pass_process_info";
-	ktest[1].n_name = 0;
-#ifndef	__linux__
-	if (nlist(VMUNIX, ktest) != 0) {
-	    fprintf(stderr, "ERROR: running a kernel that does not pass process info\n");
-	    fflush(stderr);
-	    LOG(0, ("ERROR: running running a kernel that does not pass process info\n"));
-	    /* Must force venus to die */
-	    ASSERT(0);
-	}
-#endif
     }
 
     struct hostent *h = gethostbyname(VmonHost);
