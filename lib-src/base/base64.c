@@ -15,6 +15,9 @@ listed in the file CREDITS.
 
 #*/
 
+#include <stdlib.h>
+#include "base64.h"
+
 /* base 64 encoding/decoding to store the tokens in a convenient fileformat */
 static char *b2e =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

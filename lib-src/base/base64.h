@@ -18,6 +18,8 @@ listed in the file CREDITS.
 #ifndef _BASE64_H_
 #define _BASE64_H_
 
+#include <stdio.h>
+
 void base64_encode(FILE *out, char *in, int len);
 void base64_decode(FILE *in, char **out, int *len);
 
