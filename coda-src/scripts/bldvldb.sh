@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/bldvldb.sh,v 4.2 1997/06/18 12:24:18 raiff Exp $";
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/scripts/Attic/bldvldb.sh,v 4.3 1997/07/03 19:24:04 braam Exp $";
 #endif /*_BLURB_*/
 
 set path = ( $path /vice/bin )

@@ -36,7 +36,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-nbsd-port/coda-4.0.1/coda-src/venus/RCS/vnode_if.h,v 4.1 1997/01/08 21:51:41 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/venus/Attic/venus_vnode_if.h,v 1.1 1997/01/17 15:22:55 satya Exp $";
 #endif /*_BLURB_*/
 
 
