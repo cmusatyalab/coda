@@ -10,9 +10,10 @@ BuildRoot: /usr/src/redhat/BUILD/coda-build
 Group: Networking/Daemons
 %description
 Source package for the Coda filesystem.  Three packages are provided by
-this rpm: the client and server components, and documentation.  A
-kernel module for 2.0.x  kernels which have MODVERSIONS enabled is
-included in the client module. 
+this rpm: the client and server and the backup components. Separately
+you must install a kernel module, or have a Coda enabled kernel, and 
+you should get the Coda documentation package.
+
 
 
 %package source
@@ -23,43 +24,38 @@ This contains the coda sources used for building the rpm (in the same
 location as during the build).  Install this if you want to run gdb on
 the Coda binaries.
 
-%package client-@LIBC@
+%package client
 Summary: Coda client
 Group: Networking/Daemons
-%description client-@LIBC@
-Also included are the binaries for the cachemanager, venus, the cfs
-utilities for logging, ACL manipulation etc, the hoarding tools for
-use with laptops and repair tools for fixing conflicts. Finally there
-is the cmon and codacon console utilities to monitor coda's
-activities. You need the coda kernel-module for your kernel version to 
-have a complete coda client.  Make sure to select the correct C library
-version. 
+%description client
+This package contains the main client program, the cachemanager Venus.
+Also included are the binaries for the cfs, utilities for logging, ACL
+manipulation etc, the hoarding tools for use with laptops and repair
+tools for fixing conflicts. Finally there is the cmon and codacon
+console utilities to monitor Coda's activities. You need a Coda
+kernel-module for your kernel version, or Coda in your kernel, to have
+a complete coda client.  Make sure to select the correct C library
+version.
 
-%package kernel-@KVER@-module
-Summary: Coda kernel module
-Group: Networking/Daemons
-%description kernel-@KVER@-module
-This package provides the kernel module with the coda-filesystem and the
-coda pseudo device. You need this on a client only and use it in conjunction
-with the user level cache manager in the coda-client package. 
-
-
-%package server-@LIBC@
+%package server
 Summary: Coda server
 Group: Networking/Daemons
-%description server-@LIBC@
-This package contains the fileserver for the coda filesystem, as well as
-the volume utilities.  For highest performance you will need a modified
-kernel with inode system calls.
+%description server
+This package contains the fileserver codasrv for the coda filesystem,
+as well as the volume utilities.  For highest performance you will
+need a modified kernel with inode system calls.
 
-%package backup-@LIBC@
+%package backup
 Summary: Coda backup coordinator
 Group: Networking/Daemons
-%description backup-@LIBC@
+%description backup
 This package contains the backup software for the coda filesystem, as
 well as the volume utilities.
 
 %changelog
+* Sun Jun 21 1998 Peter Braam <braam@cs.cmu.edu>
+- get rid of the kernel package. This needs interaction during the build.
+- no more separate libc, glibc packages
 * Tue Dec 30 1997 Peter Braam <braam@cs.cmu.edu>
 - several changes: documentation separate
 - use variables: @KVER@=`uname -r`, @CVER@=coda version
@@ -80,26 +76,21 @@ chown -R root.bin $RPM_BUILD_DIR/coda-@CVER@
 rm -rf $RPM_BUILD_DIR/obj-@CVER@
 mkdir $RPM_BUILD_DIR/obj-@CVER@
 cd $RPM_BUILD_DIR/obj-@CVER@
-../coda-@CVER@/configure --prefix=$RPM_BUILD_ROOT/usr
+$RPM_BUILD_DIR/coda-@CVER@/configure --prefix=$RPM_BUILD_ROOT/usr
 make GFLAG="" coda
 
 %install
 cd $RPM_BUILD_DIR/obj-@CVER@
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
-	$RPM_BUILD_ROOT/usr/coda/etc $RPM_BUILD_ROOT/lib/modules/@KVER@/fs \
+	$RPM_BUILD_ROOT/usr/coda/etc \
 	$RPM_BUILD_ROOT/coda $RPM_BUILD_ROOT/etc/rc.d/init.d\
-	$RPM_BUILD_ROOT/usr/man $RPM_BUILD_ROOT/$RPM_BUILD_DIR\
+	$RPM_BUILD_ROOT/$RPM_BUILD_DIR\
 	$RPM_BUILD_ROOT/usr/lib/coda $RPM_BUILD_ROOT/etc/rc.d/init.d
 
-# make prefix=$RPM_BUILD_ROOT/usr man-install
-
 make GFLAG="" client-install
-make GFLAG=""  server-install
+make GFLAG="" server-install
 
-# cp kernel-src/vfs/linux@KV@/coda.o $RPM_BUILD_ROOT/lib/modules/@KVER@/fs/coda.o
-
-touch $RPM_BUILD_ROOT/usr/coda/etc/vstab
 touch $RPM_BUILD_ROOT/usr/coda/venus.cache/INIT
 mknod $RPM_BUILD_ROOT/dev/cfs0 c 67 0
 touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
@@ -117,7 +108,7 @@ chown -R root.root $RPM_BUILD_ROOT
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%pre client-@LIBC@
+%pre client
 grep /coda /proc/mounts > /dev/null 2>1
 if [ $? = 0 ]; then
 	echo "*** Coda is mounted: cannot install ***"
@@ -126,22 +117,22 @@ else
 	exit 0
 fi
 
-%preun client-@LIBC@
+%preun client
 grep /coda /proc/mounts > /dev/null 2>1
 if [ $? = 0 ]; then
-	echo "*** Coda is mounted: cannot install ***"
+	echo "*** Coda is mounted: cannot uninstall ***"
 	exit 1
 else
 	exit 0
 fi
-
 	
-%post client-@LIBC@
+%post client
 if [ -e /usr/coda/etc/vstab ]; then 
 	touch /usr/coda/venus.cache/INIT
 else
 	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu
 fi
+
 cd /usr/lib/coda
 if [ ! -x /usr/bin/tixindex ]; then
 	chmod a+x /usr/bin/tixindex 
@@ -155,32 +146,29 @@ if [ ! -f /usr/bin/tixwish ]; then
 fi
 /sbin/chkconfig --add venus.init
 
+%postun
+/sbin/chkconfig --del venus.init
 
 %post source
 cd /usr/src/redhat/BUILD
 tar zxf coda-@CVER@.tgz
 
-%post server-@LIBC@
+%post server
 /sbin/chkconfig --add update.init
 /sbin/chkconfig --add auth2.init
 /sbin/chkconfig --add codasrv.init
 
-%postun server-@LIBC@
+%postun server
 /sbin/chkconfig --del update.init
 /sbin/chkconfig --del auth2.init
 /sbin/chkconfig --del codasrv.init
 
-%post kernel-@KVER@-module
-/sbin/depmod -a 
-
-%files kernel-@KVER@-module
-/dev/cfs0
-/lib/modules/@KVER@/fs/coda.o
 
 %files source
-%dir /usr/src/redhat/BUILD/coda-@CVER@.tgz
+/usr/src/redhat/BUILD/coda-@CVER@.tgz
 
-%files client-@LIBC@
+%files client
+/dev/cfs0
 %dir /usr/coda
 %dir /usr/coda/etc
 %dir /usr/coda/venus.cache
@@ -192,8 +180,6 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/vutil
 /usr/sbin/venus
 /usr/sbin/au
-/usr/sbin/coda-debug
-/usr/sbin/coda-trace
 /usr/bin/advice_srv
 /usr/bin/filcon
 /usr/bin/clog
@@ -213,37 +199,9 @@ tar zxf coda-@CVER@.tgz
 /usr/bin/xfrepair
 /usr/bin/xaskuser
 /usr/sbin/volmunge
-/usr/lib/coda/Advice.tcl            
-/usr/lib/coda/Consider.tcl          
-/usr/lib/coda/ConsiderAdding.tcl    
-/usr/lib/coda/ConsiderRemoving.tcl  
-/usr/lib/coda/ControlPanel.tcl      
-/usr/lib/coda/Date.tcl              
-/usr/lib/coda/DiscoMiss.tcl         
-/usr/lib/coda/Events.tcl            
-/usr/lib/coda/Helper.tcl            
-/usr/lib/coda/HoardWalk.tcl         
-/usr/lib/coda/HoardWalkAdvice.tcl   
-/usr/lib/coda/Indicators.tcl        
-/usr/lib/coda/Initialization.tcl    
-/usr/lib/coda/Lock.tcl              
-/usr/lib/coda/Log.tcl               
-/usr/lib/coda/Network.tcl           
-/usr/lib/coda/OutsideWorld.tcl      
-/usr/lib/coda/ReadMiss.tcl          
-/usr/lib/coda/Reconnection.tcl      
-/usr/lib/coda/Reintegration.tcl     
-/usr/lib/coda/Repair.tcl            
-/usr/lib/coda/Space.tcl             
-/usr/lib/coda/Task.tcl              
-/usr/lib/coda/Timing.tcl            
-/usr/lib/coda/Tokens.tcl            
-/usr/lib/coda/WeakMiss.tcl          
-/usr/lib/coda/tixCodaMeter.tcl      
-/usr/lib/coda/CodaConsole
-/usr/lib/coda/Globals.tcl
+%dir /usr/lib/coda
 
-%files server-@LIBC@	
+%files server	
 /usr/sbin/rvmutl
 /usr/sbin/rdsinit
 /usr/sbin/startserver
@@ -261,7 +219,6 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/vice-setup-user
 /usr/sbin/vice-setup-scm
 /usr/sbin/vice-killvolumes
-/usr/sbin/vice-install
 /usr/sbin/pcfgen
 /usr/sbin/pwd2pdb
 /usr/sbin/mvdb
@@ -284,7 +241,7 @@ tar zxf coda-@CVER@.tgz
 /etc/rc.d/init.d/auth2.init
 /etc/rc.d/init.d/update.init
 
-%files backup-@LIBC@	
+%files backup	
 /usr/sbin/backup.sh
 /usr/sbin/tape.pl
 /usr/sbin/auth2

@@ -16,7 +16,7 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
   I =  vfs
- II =  inodefs
+#  II =  inodefs
 
 SUBDIRS = $(I) $(II)
 
