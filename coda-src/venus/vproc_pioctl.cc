@@ -1163,6 +1163,12 @@ V_FreeLocks:
 		    if (!ue->SetTokens(secretp, clearp))
 			u.u_error = EPERM;
 		    PutUser(&ue);
+		    if (!u.u_error) {
+			connent *c = NULL;
+			/* attempt to trigger resolution */
+			realm->GetAdmConn(&c);
+			PutConn(&c);
+		    }
 		    realm->PutRef();
 #undef	secretlen
 #undef	secretp
