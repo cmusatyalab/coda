@@ -27,9 +27,9 @@ include $(TOPDIR)/Makeconf
 
 LOGSCRIPTS = # logbandwidth logcmls logreintegration logprogress
 ifeq ($(SYS),cygwin32)
-EXECUTABLES = codacon cfs hoard spy replay
+EXECUTABLES = codacon cfs hoard spy coda_replay
 else
-EXECUTABLES = cmon codacon cfs hoard spy replay $(LOGSCRIPTS)
+EXECUTABLES = cmon codacon cfs hoard spy coda_replay $(LOGSCRIPTS)
 endif
 
 CBINS       = $(EXECUTABLES)
@@ -58,8 +58,8 @@ hoard: hoard.o $(HOARD_LIBS)
 spy: spy.o
 	$(CXX) $(LDFLAGS) spy.o $(LIBBASE) $(LIBS) -o spy
 
-replay: replay.o
-	$(CXX) $(LDFLAGS) replay.o $(LIBS) -o replay
+coda_replay: replay.o
+	$(CXX) $(LDFLAGS) replay.o $(LIBS) -o coda_replay
 
 # up is broken on the pmax because a.out.h seems incomplete
 # fix if up is really needed (Satya 3/23/92)

@@ -13,7 +13,7 @@ usr/bin/hoard
 usr/bin/parser
 usr/bin/removeinc
 usr/bin/repair
-usr/bin/replay
+usr/bin/coda_replay
 usr/bin/spy
 usr/bin/xaskuser
 usr/bin/xfrepair

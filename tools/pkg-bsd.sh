@@ -188,7 +188,7 @@ bin/hoard
 bin/parser
 bin/removeinc
 bin/repair
-bin/replay
+bin/coda_replay
 bin/spy
 bin/xaskuser
 bin/xfrepair

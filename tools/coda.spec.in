@@ -119,10 +119,12 @@ fi
 if [ ! -e /etc/coda/venus.conf ]; then 
 	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 100000
 fi
-
+if [ ! -e /dev/cfs0 ]; then 
+	/bin/mknod /dev/cfs0 67 0
+fi
 /sbin/chkconfig --add venus.init
 
-%postun
+%postun client
 /sbin/chkconfig --del venus.init
 
 %post server
@@ -165,7 +167,7 @@ fi
 /usr/bin/parser
 /usr/bin/removeinc
 /usr/bin/repair
-/usr/bin/replay
+/usr/bin/coda_replay
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
