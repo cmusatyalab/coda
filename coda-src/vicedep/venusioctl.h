@@ -112,10 +112,6 @@ extern "C" {
 
 /* These were defined with numbers that wrapped around the 8-bit size of the nr
  * component in the ioctl */
-#define _VIOC_BEGINWB            (136) /* start writeback from volume id */
-#define _VIOC_ENDWB              (137) /* end writeback from volume id */
-#define _VIOC_STATUSWB           (138) /* fetch status from volume id */
-#define _VIOC_AUTOWB             (139) /* toggle autowriteback */
 #define _VIOC_SYNCCACHE          (140) /* reintegrate now ! */
 #define _VIOC_REDIR		 (141) /* redirect to a staging server */
 #define _VIOC_ADD_MT_PT		 (142) /* Add mount point */
@@ -222,10 +218,6 @@ extern "C" {
  * The following ioctls probably ended up either clobbering the ioctl number,
  * or they wrapped around and collided with some low numbers. */
 #if 0
-#define _VIOC_BEGINWB	(CFS_IOCTL_BASE + 200) /* start writeback from volume id */
-#define _VIOC_ENDWB	(CFS_IOCTL_BASE + 201) /* end writeback from volume id */
-#define _VIOC_STATUSWB	(CFS_IOCTL_BASE + 202) /* fetch status from volume id */
-#define _VIOC_AUTOWB	(CFS_IOCTL_BASE + 203) /* toggle autowriteback */
 #define _VIOC_SYNCCACHE	(CFS_IOCTL_BASE + 204) /* reintegrate now ! */
 #define _VIOC_REDIR	(CFS_IOCTL_BASE + 205) /* redirect to a staging server */
 #define _VIOC_ADD_MT_PT	(CFS_IOCTL_BASE + 206) /* Add mount point */

@@ -79,8 +79,8 @@ class cpman {
     cpman(char * ="anonymous coppendbuster");
     ~cpman();
 
-    friend int cpman_func(cpman *);
-    int func(int);
+    friend void cpman_func(void *);
+    void func(int);
     
     friend void InitCopPendingTable();
     friend class cpent;

@@ -449,7 +449,7 @@ static int GetRawStatistics(SmonStatistics *stats)
 
 static const int SmonDaemonInterval = TIMERINTERVAL;
 
-void SmonDaemon()
+void SmonDaemon(void *)
 {
     struct timeval time;
     SmonInit();

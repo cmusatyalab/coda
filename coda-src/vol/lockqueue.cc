@@ -60,9 +60,10 @@ void InitLockQueue() {
     LockQueueMan = new lqman("LockQueue Manager");
 }
 
-int LQman_init(void *c)
+void LQman_init(void *c)
 {
-    return ((lqman *)c)->func();
+    lqman *lqm = (lqman *)c;
+    lqm->func();
 }
 
 lqman::lqman(char *n)
@@ -73,8 +74,8 @@ lqman::lqman(char *n)
     
     /* Create the LWP process */
     printf("lqman: Creating LockQueue Manager.....");
-    LWP_CreateProcess((PFIC) LQman_init, LockQueManStkSize,
-		      LWP_NORMAL_PRIORITY, (char*)this, name, (PROCESS *)&pid);
+    LWP_CreateProcess(LQman_init, LockQueManStkSize, LWP_NORMAL_PRIORITY,
+		      this, name, (PROCESS *)&pid);
     printf("done\n");
 }
 

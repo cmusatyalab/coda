@@ -108,11 +108,12 @@ int FileRUConf(rsle *r, Vnode *vptr) {
     return(FileRUConf(DeletedVV, vptr));
 }
 
-int FileRUConf(ViceVersionVector *DeletedVV, Vnode *vptr) {
+int FileRUConf(ViceVersionVector *DeletedVV, Vnode *vptr)
+{
     if (!DeletedVV) return(1);	
     if (!vptr) return(0);
 
-    int res = VV_Cmp(&Vnode_vv(vptr), DeletedVV);
+    VV_Cmp_Result res = VV_Cmp(&Vnode_vv(vptr), DeletedVV);
     if (res == VV_EQ || res == VV_SUB) {
 	LogMsg(9, SrvDebugLevel, stdout,  
 	       "FileRUConflict: no R/U conflict for 0x%x.%x",

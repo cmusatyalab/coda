@@ -162,12 +162,9 @@ void FID_MakeSubtreeRoot(struct ViceFid *fid, VolumeId vid,
 	fid->Volume = vid;
 	fid->Vnode = FakeVnode;
 	fid->Unique = unique;
-
 }
 				
-
 /* Local stuff is for the repair tree arising from client copies */
-
 void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique)
 {
 	fid->Volume = LocalFakeVid;

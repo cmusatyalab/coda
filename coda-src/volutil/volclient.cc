@@ -134,7 +134,7 @@ struct rockInfo {
 
 static void V_InitRPC(int timeout);
 static int V_BindToServer(char *fileserver, char *realm, RPC2_Handle *RPCid);
-static void VolDumpLWP(struct rockInfo *rock);
+static void VolDumpLWP(void *arg);
 extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
 
 void ReadConfigFile(void)
@@ -582,8 +582,8 @@ static void dump(void)
     rock->numbytes = 0;
     
     PROCESS dumpPid;
-    LWP_CreateProcess((PFIC)VolDumpLWP, 16 * 1024, LWP_NORMAL_PRIORITY,
-		      (char *)rock, "VolDumpLWP", &dumpPid);
+    LWP_CreateProcess(VolDumpLWP, 16 * 1024, LWP_NORMAL_PRIORITY,
+		      rock, "VolDumpLWP", &dumpPid);
     
     rc = VolNewDump(rpcid, volid, &Incremental);
     if (rc != RPC2_SUCCESS) {
@@ -633,8 +633,9 @@ static void dumpestimate(void)
 
 
 
-static void VolDumpLWP(struct rockInfo *rock)
+static void VolDumpLWP(void *arg)
 {
+    struct rockInfo *rock = (struct rockInfo *)arg;
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer *myrequest;
     RPC2_Handle	mycid;
@@ -779,8 +780,8 @@ static void restorefromback(void)
     }
     
     PROCESS restorePid;
-    LWP_CreateProcess((PFIC)VolDumpLWP, 16 * 1024, LWP_NORMAL_PRIORITY,
-		      (char *)rock, "VolDumpLWP", &restorePid);
+    LWP_CreateProcess(VolDumpLWP, 16 * 1024, LWP_NORMAL_PRIORITY,
+		      rock, "VolDumpLWP", &restorePid);
     if (rc != LWP_SUCCESS) {
 	fprintf(stderr, "VolDump can't create child %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);

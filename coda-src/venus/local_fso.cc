@@ -806,7 +806,7 @@ int fsobj::ReplaceLocalFakeFid()
 }
 
 /*
-  LocalKakeify -- the fakeify process to create
+  LocalFakeify -- the fakeify process to create
   representation for an object detected to be in local/global conflict
 */
 /* MUST NOT be called from within a transaction */
@@ -901,9 +901,9 @@ int fsobj::LocalFakeify()
      */
     VenusFid FakeRootFid, LocalChildFid, GlobalChildFid;
     RPC2_Unsigned AllocHost = 0;
-    CODA_ASSERT(vol->IsReplicated());
-    repvol *rv = (repvol *)vol;
-    code = rv->AllocFid(Directory, &FakeRootFid, &AllocHost,V_UID);
+    CODA_ASSERT(pf->vol->IsReplicated());
+    repvol *rv = (repvol *)pf->vol;
+    code = rv->AllocFid(Directory, &FakeRootFid, &AllocHost, V_UID);
     if (code != 0) {
 	LOG(0, ("fsobj::LocalFakeify: can not alloc fid for the root object\n"));
 	return code;
@@ -927,6 +927,7 @@ int fsobj::LocalFakeify()
 	return (ENOSPC);
     }
     LOG(100, ("fsobj::LocalFakeify: created a new fake-root node\n"));
+
     Recov_BeginTrans();
     /* 
      * replace the (comp, GlobalRootFid) pair with the (comp, FakeRootFid)

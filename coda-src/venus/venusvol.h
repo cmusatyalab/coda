@@ -510,7 +510,6 @@ class vdb {
     int WriteDisconnect(unsigned =V_UNSETAGE, unsigned =V_UNSETREINTLIMIT);
     int WriteReconnect();
     void GetCmlStats(cmlstats&, cmlstats&);
-    void AutoRequestWBPermit();
 
     int CallBackBreak(Volid *);
     void TakeTransition();	/* also a daemon function */

@@ -114,22 +114,25 @@ void cpent::print(int fd) {
 
 }
 
-int coppendhashfn(void *a) {
+int coppendhashfn(void *a)
+{
     ViceStoreId *sid = (ViceStoreId *)a;
     return(sid->Host + sid->Uniquifier);
 }
 
-int cpman_func(cpman *cpman)
+void cpman_func(void *arg)
 {
-    return cpman->func(0);
+    cpman *cpm = (cpman *)arg;
+    cpm->func(0);
 }
 
-cpman::cpman(char *n): objects(COPHASHSIZE, coppendhashfn) {
+cpman::cpman(char *n): objects(COPHASHSIZE, coppendhashfn)
+{
     name = new char[strlen(n) + 1];
     strcpy(name, n);
     Lock_Init(&lock);
-    LWP_CreateProcess((PFIC)&cpman_func, cpman_stacksize, LWP_NORMAL_PRIORITY,
-		       (char *)this, name, (PROCESS *)&pid);
+    LWP_CreateProcess(&cpman_func, cpman_stacksize, LWP_NORMAL_PRIORITY,
+		      this, name, (PROCESS *)&pid);
 }
 
 cpman::~cpman() {
@@ -138,9 +141,9 @@ cpman::~cpman() {
 }
 
 const int CPINTERVAL = 60; 	/* seconds */
-int cpman::func(int parm) {
+void cpman::func(int parm)
+{
     /* parm is currently not used. */
-
     for (;;) {
 	long currtime = time(0);
 	ObtainWriteLock(&lock);
@@ -170,8 +173,6 @@ int cpman::func(int parm) {
        
 	VSLEEP(CPINTERVAL);
     }
-    
-    return(0);  /* just to keep C++ happy; will never get here */
 }
 
 /* Insert entry into table */

@@ -182,6 +182,6 @@ if [ X$OS = XLinux -a ! -f /etc/debian_version ]; then
     /sbin/depmod -a
 fi
 
-# Make sure the ports are listed in /etc/services (Debian already has them)
-[ ! -f /etc/debian_version ] && coda-setup-ports
+# Make sure the ports are listed in /etc/services
+coda-setup-ports
 

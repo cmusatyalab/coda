@@ -402,10 +402,6 @@ const char *IoctlOpStr(unsigned char nr)
 	case _VIOC_ADAPTIVE:		return("Adaptive");
 	case _VIOC_LISTCACHE:		return("List Cache");
 	case _VIOC_GET_MT_PT:		return("Get Mt Pt");
-	case _VIOC_BEGINWB:		return("Begin WB");
-	case _VIOC_ENDWB:		return("End WB");
-	case _VIOC_STATUSWB:		return("Status WB");
-	case _VIOC_AUTOWB:		return("Auto WB");
 	case _VIOC_SYNCCACHE:		return("Sync Cache");
 	case _VIOC_REP_CMD:		return("Rep CMD");
 	case _VIOC_UNLOADKERNEL:	return("Unload Kernel");

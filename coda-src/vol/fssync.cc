@@ -104,7 +104,7 @@ int FSYNC_askfs(VolumeId volume, int com, int reason);
 void FSYNC_fsInit();
 unsigned int FSYNC_CheckRelocationSite(VolumeId volumeId);
 
-static void FSYNC_sync();
+static void FSYNC_sync(void *arg);
 static void FSYNC_SetRelocationSite(VolumeId volumeId, int server);
 static void FSYNC_DeleteRelocations(int nMinutes);
 static void InitUtilities();
@@ -122,15 +122,14 @@ void FSYNC_fsInit()
 	long rc;
 
 	VLog(9, "Entering FSYNC_fsInit(), creating LWP");
-	rc = LWP_CreateProcess((PFIC)FSYNC_sync, 5*1024, USUAL_PRIORITY,
+	rc = LWP_CreateProcess(FSYNC_sync, 5*1024, USUAL_PRIORITY,
 			       0, "FSYNC_sync", &pid);
 	CODA_ASSERT (rc == LWP_SUCCESS);
 }
 
 /* Wake up periodically to delete outdated relocation information */
-static void FSYNC_sync() 
+static void FSYNC_sync(void * arg) 
 {
-
 	LogMsg(9, VolDebugLevel, stdout,  "Entering FSYNC_sync()");
 	while (!VInit)	// Wait for fileserver initialization to complete
 		LWP_DispatchProcess();

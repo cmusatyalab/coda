@@ -105,7 +105,7 @@ static void ReadConfigFile();
 static void SetDebug();
 static void ResetDebug();
 static void Terminate();
-static void ServerLWP(int *Ident);
+static void ServerLWP(void *);
 
 static char *prefix = NULL;
 
@@ -302,9 +302,9 @@ int main(int argc, char **argv)
 
     for (i = 0; i < lwps; i++) {
 	sprintf(sname, "ServerLWP-%d", i);
-	CODA_ASSERT(LWP_CreateProcess((PFIC)ServerLWP, 
-				 32 * 1024, LWP_MAX_PRIORITY - 1,
-				 (char *)&i, sname, &serverPid) 
+	CODA_ASSERT(LWP_CreateProcess(ServerLWP, 32 * 1024,
+				      LWP_MAX_PRIORITY - 1,
+				      &i, sname, &serverPid) 
 	       == LWP_SUCCESS);
     }
     gettimeofday(&tp, &tsp);
@@ -380,8 +380,9 @@ static long Update_AuthFail(RPC2_Integer authtype,
     return 0;
 }
 
-static void ServerLWP(int *Ident)
+static void ServerLWP(void *arg)
 {
+    int *Ident = (int *)arg;
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer * myrequest;
     RPC2_Handle mycid;

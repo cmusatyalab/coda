@@ -74,7 +74,7 @@ class srvent {
   friend void GetServer(srvent **, unsigned long);
   friend void ServerPrint(int);
   friend class srv_iterator;
-  friend void ResCheckServerLWP_worker();
+  friend void ResCheckServerLWP_worker(void *);
     /* The server list. */
     static olist *srvtab;
 

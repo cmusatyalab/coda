@@ -299,6 +299,7 @@ long userent::GetTokens(SecretToken *asecret, ClearToken *aclear) {
 }
 
 int userent::TokensValid() {
+    LOG(100, ("userent %d tokensvalid = %d\n", uid, tokensvalid));
     return(tokensvalid);
 }
 

@@ -157,18 +157,14 @@ char *vicedir = NULL;
 /* Procedure definitions. */
 static void V_InitRPC();
 static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
-static void VolDumpLWP(struct rockInfo *rock);
-static void PollLWP(int naptime);
+static void VolDumpLWP(void *arg);
+static void PollLWP(void *arg);
 static void PollServers();
 static int lockReplicas(volinfo_t *vol);
 static int backup(volinfo_t *vol);
 static void VUInitServerList();
 extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,
 				  SE_Descriptor*);
-#ifndef NDEBUG
-static void unlockReplicas(volinfo_t *vol);
-#endif
-
 void
 ReadConfigFile()
 {
@@ -823,13 +819,13 @@ int main(int argc, char **argv) {
     /* Start up thread to handle WriteDump requests. */
     PROCESS dumpPid;
     memset((char *)&Rock, 0, sizeof(struct rockInfo));
-    LWP_CreateProcess((PFIC)VolDumpLWP, 5 * 1024, LWP_NORMAL_PRIORITY,
-		      (char *)&Rock, "VolDumpLWP", &dumpPid);
+    LWP_CreateProcess(VolDumpLWP, 5 * 1024, LWP_NORMAL_PRIORITY,
+		      &Rock, "VolDumpLWP", &dumpPid);
 
     /* Start up thread to periodically poll down servers */
     PROCESS pollPid;
-    LWP_CreateProcess((PFIC)PollLWP, 8 * 1024, LWP_NORMAL_PRIORITY - 1,
-		      (char *)Naptime, "PollLWP", &pollPid);
+    LWP_CreateProcess(PollLWP, 8 * 1024, LWP_NORMAL_PRIORITY - 1,
+		      (void *)Naptime, "PollLWP", &pollPid);
 
     /* First try to backup (clone, dump, and mark) all volumes. Do all
      * volumes for a phase before starting the next phase to localize
@@ -1194,8 +1190,9 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
  * PollLWP will cycle: sleep for a time, then trying to rebind to any servers
  * which are down. Should it be forced to exit if the main program exits?
  */
-static void PollLWP(int naptime)
+static void PollLWP(void *arg)
 {
+    int naptime = (int)arg;
     struct timeval time;
     struct DiskPartition *part;
     struct dllist_head *tmp;
@@ -1255,8 +1252,9 @@ static void PollServers()
 }
 
 
-static void VolDumpLWP(struct rockInfo *rock)
+static void VolDumpLWP(void *arg)
 {
+    struct rockInfo *rock = (struct rockInfo *)arg;
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer *myrequest;
     RPC2_Handle	mycid;

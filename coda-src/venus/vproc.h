@@ -169,7 +169,7 @@ class vproc : public olink {
   friend void Rtry_Wait();
   friend void Rtry_Signal();
   friend vproc *FindVproc(int);
-  friend void VprocPreamble(struct Lock *);
+  friend void VprocPreamble(void *);
   friend vproc *VprocSelf();
   friend int VprocIdle();
   friend int VprocInterrupted();

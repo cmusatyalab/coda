@@ -678,7 +678,7 @@ conninfo *GetConnectionInfo(RPC2_Handle cid) {
 }
 
 
-void ResCheckServerLWP() 
+void ResCheckServerLWP(void *arg) 
 {
     struct timeval delay;
     LogMsg(1, SrvDebugLevel, stdout,  "Starting RecCheckServerLWP");
@@ -692,7 +692,7 @@ void ResCheckServerLWP()
 }
 
 /* LWP to check if servers are alive */
-void ResCheckServerLWP_worker() 
+void ResCheckServerLWP_worker(void *arg) 
 {
     struct timeval delay;
     LogMsg(1, SrvDebugLevel, stdout,  "Starting RecCheckServerLWP_worker");

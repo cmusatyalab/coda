@@ -2726,13 +2726,19 @@ int cmlent::GetReintegrationHandle()
     struct in_addr phost;
     connent *c = 0;
     srvent *s = 0;
-    
-    /* Make sure to clear the handle, so we don't get confused then the rpc
-     * fails */
-    Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(u);   
-	memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
-    Recov_EndTrans(MAXFP);
+
+    /* Eventhough it might seem like a good idea, we should NOT! clear the
+     * reintegration handle here. There are 2 failure cases, one is that one
+     * replica is unreachable, the other is that all replicas died.
+     *
+     * In the first case, the SendReintegrateFragment rpc times out, we try to
+     * revalidate the handle with the same server which fails as well. We end
+     * up here trying to connect to another replica and if that succeeds we
+     * replace the existing handle with the new data and retry the
+     * reintegration from the beginning. On the second case everything is
+     * unreachable and we still have a usable handle to reconnect to the
+     * original server when the network comes back.
+     */
 
     /* Acquire an Mgroup. */
     code = vol->GetMgrp(&m, log->owner);

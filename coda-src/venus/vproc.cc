@@ -113,7 +113,9 @@ vproc *FindVproc(int vpid) {
 /* It's job is to initialize state which needs to be set in the context of the
  * new vproc. Certain things can't be done in the vproc::ctor because that may
  * be executed in a different context! */
-void VprocPreamble(struct Lock *init_lock) {
+void VprocPreamble(void *arg)
+{
+    struct Lock *init_lock = (struct Lock *)arg;
 
     /* This lock is released by start_thread, as soon as the initialization has
      * finalized (aka. this->lwpid has been set */
@@ -396,8 +398,8 @@ void vproc::start_thread(void)
 	/* Create an LWP for this vproc. */
 	/* pass the lock, instead of the function; we can get back to the
 	 * function once we know which vproc the new lwp is */
-	int lwprc = LWP_CreateProcess((PFIC)VprocPreamble, stacksize, lwpri,
-				      (char *)&init_lock, name, (PROCESS *)&lwpid);
+	int lwprc = LWP_CreateProcess(VprocPreamble, stacksize, lwpri,
+				      &init_lock, name, (PROCESS *)&lwpid);
 	if (lwprc != LWP_SUCCESS)
 	    CHOKE("vproc::start_thread: LWP_CreateProcess(%d, %s) failed (%d)",
 		  stacksize, name, lwprc);
@@ -417,14 +419,13 @@ void vproc::start_thread(void)
 	    CHOKE("VprocInit: IOMGR_Initialize failed (%d)", iomgrrc);
 
 	initialized = 1;
-	VprocPreamble(&init_lock);
+	VprocPreamble((void *)&init_lock);
     }
 }
 
 void vproc::main(void)
 {
-    CODA_ASSERT(func != NULL);
-    
+    CODA_ASSERT(func);
     func();
 }
 

@@ -51,8 +51,7 @@ extern "C" {
 long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV, 
 		ViceStatus *statusp) 
 {
-
-    int res = 0;
+    VV_Cmp_Result res;
     Vnode *vptr = 0;
     Volume *volptr = 0;
     VolumeId VSGVolnum = Fid->Volume;
@@ -61,19 +60,19 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     conninfo *cip = GetConnectionInfo(RPCid);
 
     if (cip == NULL){
-	SLog(0,  "RS_ForceVV: Couldnt get conninfo ");
+	SLog(0, "RS_ForceVV: Couldnt get conninfo");
 	return(EINVAL);
     }
 
     if (!XlateVid(&Fid->Volume)) {
-	SLog(0,  "RS_ForceVV: Couldnt Xlate VSG %x",
-		Fid->Volume);
+	SLog(0, "RS_ForceVV: Couldnt Xlate VSG %x", Fid->Volume);
 	return(EINVAL);
     }
     
     /* get the object */
-    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0, 0))) {
-	SLog(0,  "RS_ForceVV: GetFsObj returns error %d for %s", 
+    errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0, 0);
+    if (errorcode) {
+	SLog(0, "RS_ForceVV: GetFsObj returns error %d for %s", 
 	     errorcode, FID_(Fid));
 	errorcode = EINVAL;
 	goto FreeLocks;
@@ -81,71 +80,54 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     
     /* make sure volume is locked by coordinator */
     if (V_VolLock(volptr).IPAddress != cip->GetRemoteHost()) {
-	SLog(0,  "RS_ForceVV: Volume of %s not locked by coordinator",
+	SLog(0, "RS_ForceVV: Volume of %s not locked by coordinator",
 	     FID_(Fid));
 	errorcode = EWOULDBLOCK;
 	goto FreeLocks;
     }
 
-    SLog(9,  "ForceVV: vector passed in is :");
-    if (SrvDebugLevel >= 9)
-	PrintVV(stdout, VV);
-    SLog(9,  "ForceVV: vector in the vnode is :");
-    if (SrvDebugLevel >= 9)
-	PrintVV(stdout, &Vnode_vv(vptr));
+    SLog(9, "ForceVV: vector passed in is :");
+    if (SrvDebugLevel >= 9) PrintVV(stdout, VV);
+    SLog(9, "ForceVV: vector in the vnode is :");
+    if (SrvDebugLevel >= 9) PrintVV(stdout, &Vnode_vv(vptr));
     
     /* check that the new version vector is >=  old vv */
     res = VV_Cmp(&Vnode_vv(vptr), VV);
-    if (res != VV_EQ) {
-	if (res == VV_SUB) {
-	    ViceVersionVector DiffVV = *VV;
-	    SubVVs(&DiffVV, &Vnode_vv(vptr));
-	    AddVVs(&Vnode_vv(vptr), &DiffVV);
-	    AddVVs(&V_versionvector(volptr), &DiffVV);
-	    CodaBreakCallBack(0, Fid, VSGVolnum);
-	}
-	else {
-	    errorcode = EINCOMPATIBLE;
-	    SLog(0,  "RS_ForceVV: Version Vectors are inconsistent");
-	    SLog(0,  "RS_ForceVV: Vectors are: ");
-	    SLog(0,  "[%d %d %d %d %d %d %d %d][0x%x.%x][%d]",
-		    Vnode_vv(vptr).Versions.Site0, Vnode_vv(vptr).Versions.Site1,
-		    Vnode_vv(vptr).Versions.Site2, Vnode_vv(vptr).Versions.Site3,
-		    Vnode_vv(vptr).Versions.Site4, Vnode_vv(vptr).Versions.Site5,
-		    Vnode_vv(vptr).Versions.Site6, Vnode_vv(vptr).Versions.Site7,
-		    Vnode_vv(vptr).StoreId.Host, Vnode_vv(vptr).StoreId.Uniquifier, 
-		    Vnode_vv(vptr).Flags);
-	    SLog(0,  "[%d %d %d %d %d %d %d %d][0x%x.%x][%d]",
-		    VV->Versions.Site0, VV->Versions.Site1,
-		    VV->Versions.Site2, VV->Versions.Site3,
-		    VV->Versions.Site4, VV->Versions.Site5,
-		    VV->Versions.Site6, VV->Versions.Site7,
-		    VV->StoreId.Host, VV->StoreId.Uniquifier, 
-		    VV->Flags);
-	    
-	    goto FreeLocks;
-	}
+
+    if (res == VV_DOM || res == VV_INC) {
+	errorcode = EINCOMPATIBLE;
+	SLog(0, "RS_ForceVV: Version Vectors are inconsistent");
+	SLog(0, "RS_ForceVV: Vectors are: ");
+	PrintVV(stdout, VV);
+	PrintVV(stdout, &Vnode_vv(vptr));
+	goto FreeLocks;
     }
-    else 
-	SLog(0,  "RS_ForceVV: Forcing the old version vector on %s.",
-	     FID_(Fid));
+
+    if (res == VV_EQ) {
+	SLog(0, "RS_ForceVV: Forcing the old version vector on %s.", FID_(Fid));
+    } else {
+	CODA_ASSERT(res == VV_SUB);
+	ViceVersionVector DiffVV = *VV;
+	SubVVs(&DiffVV, &Vnode_vv(vptr));
+	AddVVs(&Vnode_vv(vptr), &DiffVV);
+	AddVVs(&V_versionvector(volptr), &DiffVV);
+	CodaBreakCallBack(0, Fid, VSGVolnum);
+    }
     
     /* if cop pending flag is set for this vnode, then clear it */
     if (COP2Pending(Vnode_vv(vptr))) {
-	SLog(9,  "ForceVV: Clearing COP2 pending flag ");
+	SLog(9, "ForceVV: Clearing COP2 pending flag");
 	ClearCOP2Pending(Vnode_vv(vptr));
     }
 
-    if (statusp) {
+    if (statusp && statusp->Date) {
 	// need to set the owner/author/date/modebits 
 	// for now due to the rp2gen bug (can\'t pass NULL pointers for IN parameters)
 	// make sure Date is nonzero to check that the status is valid 
-	if (statusp->Date) {
-	    vptr->disk.modeBits = statusp->Mode;
-	    vptr->disk.author = statusp->Author;
-	    vptr->disk.owner = statusp->Owner;
-	    vptr->disk.unixModifyTime = statusp->Date;
-	}
+	vptr->disk.modeBits = statusp->Mode;
+	vptr->disk.author = statusp->Author;
+	vptr->disk.owner = statusp->Owner;
+	vptr->disk.unixModifyTime = statusp->Date;
     }
 
 FreeLocks:
@@ -158,7 +140,7 @@ FreeLocks:
     }
     PutVolObj(&volptr, NO_LOCK);
     rvmlib_end_transaction(flush, &(status));
-    SLog(9,  "RS_ForceVV returns %d", errorcode);
+    SLog(9, "RS_ForceVV returns %d", errorcode);
     return(errorcode);
 }
 

@@ -97,7 +97,9 @@ int main(int argc, char **argv) {
 	    ptmp->next = NULL;
 	    ptmp->req = reqcnt;
 	    sprintf(ptmp->name, "worker%d", ++workers);
-	    if ((rc = LWP_CreateProcess(worker, DSTACK, LWP_NORMAL_PRIORITY, (char *)ptmp, ptmp->name, &(ptmp->cpid))) != LWP_SUCCESS)
+	    rc = LWP_CreateProcess(worker, DSTACK, LWP_NORMAL_PRIORITY,
+				   ptmp, ptmp->name, &(ptmp->cpid));
+	    if (rc != LWP_SUCCESS)
 		quit("Could not create worker LWP (%d)", rc);
 	}
 	else { /* get first worker from queue and give it the request */
@@ -540,7 +542,8 @@ int point(char *linkpath, char *target) {
     else return(strcmp(lnpath, linkpath) == 0);
 }
 
-int worker(void *arg) {
+void worker(void *arg)
+{
     int rc, status, code;
     struct pnode *pinfo, *ptmp;
 
@@ -583,7 +586,7 @@ int worker(void *arg) {
 	LWP_WaitProcess(pinfo);
     }
 
-    return(-1);
+    return;
 }
 
 /* AdvSkk RPC2 calls */

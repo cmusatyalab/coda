@@ -16,13 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
-
 /*
  *
  * Headers for inconsistency handling in CODA.
@@ -38,10 +31,12 @@ listed in the file CREDITS.
 #define EINCONS  199	      /* should go into /usr/cs/include/errno.h */
 
 /* The possible results of a two-way version vector compare. */
-#define	VV_EQ	0
-#define	VV_DOM	1
-#define	VV_SUB	2
-#define	VV_INC	3
+typedef enum {
+    VV_EQ  = 0,
+    VV_DOM = 1,
+    VV_SUB = 2,
+    VV_INC = 3
+} VV_Cmp_Result;
 
 #define VV_INCON    0x01      /* mask for inconsistency flag */
 #define	VV_LOCAL    0x02      /* mask for local flag */
@@ -75,8 +70,8 @@ typedef ViceStoreId storeid_t;
 typedef ViceVersionVector vv_t;
 
 
-extern int VV_Cmp (const vv_t *, const vv_t *);
-extern int VV_Cmp_IgnoreInc (const vv_t *, const vv_t *);
+extern VV_Cmp_Result VV_Cmp (const vv_t *, const vv_t *);
+extern VV_Cmp_Result VV_Cmp_IgnoreInc (const vv_t *, const vv_t *);
 extern int VV_Check (int *, vv_t **, int);
 extern int VV_Check_IgnoreInc (int *, vv_t **, int);
 extern int IsRunt (vv_t *);

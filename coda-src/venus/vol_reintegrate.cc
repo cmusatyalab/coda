@@ -496,13 +496,6 @@ int repvol::PartialReintegrate(int tid)
     }
 
 CheckResult:
-    /* 
-     * if this record was being partially reintegrated, but was
-     * not sent completely, then the partial results are invalid.
-     */
-    if (m->HaveReintegrationHandle() && !m->DoneSending())
-	m->ClearReintegrationHandle();		/* start over! */
-
     /* allow log optimizations to go through. */
     cur_reint_tid = UNSET_TID;
 

@@ -549,10 +549,6 @@ OI_FreeLocks:
 	case _VIOC_ENABLEASR:
 	case _VIOC_DISABLEASR: 
 	case _VIOC_LISTCACHE_VOLUME:
-	case _VIOC_BEGINWB:
-	case _VIOC_STATUSWB:
-	case _VIOC_ENDWB:
-	case _VIOC_AUTOWB:
 	case _VIOC_SYNCCACHE:
 	case _VIOC_REDIR:
 	    {

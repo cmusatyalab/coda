@@ -86,8 +86,9 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
     SE_Descriptor sid;
     int errorcode = 0;
     fileresstats frstats;
-    char filename[50];
-    int tmp_fd;     /* For mkstemp */
+    ResStatus Status;
+    FILE *tmp = NULL;
+    int i, tmpfd;
 
     PROBE(FileresTPinfo, COORDSTARTFILERES); 
     // statistics stuff 
@@ -95,7 +96,7 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
     if (mgrp->IncompleteVSG()) frstats.file_incvsg++;
 
     /* regenerate VVs for host set */
-    for (int i = 0; i < VSG_MEMBERS; i++) 
+    for (i = 0; i < VSG_MEMBERS; i++) 
 	if (!mgrp->rrcc.hosts[i])
 	    VV[i] = NULL;
     
@@ -103,106 +104,107 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 	unsigned long hosts[VSG_MEMBERS];
 	errorcode = WEResPhase1(Fid, VV, mgrp, hosts, NULL, NULL);
 	frstats.file_we++;
+	goto EndFileResolve;
     }
-    else if (IncVVGroup(VV, &dix)){
+
+    if (IncVVGroup(VV, &dix)){
 	CODA_ASSERT(dix != -1);
 	errorcode = EINCONS;
+	goto EndFileResolve;
     }
-    else {				/* regular file resolution */
-	ResStatus Status;
 
-	// statistics collection stuff 
-	{
-	    int isrunt[VSG_MEMBERS];
-	    int nonruntfile = 0;
-	    if (RuntExists(VV, VSG_MEMBERS, isrunt, &nonruntfile)) 
-		frstats.file_runtforce++;
-	    else 
-		frstats.file_reg++;
+    /* regular file resolution */
+    // statistics collection stuff 
+    {
+	int isrunt[VSG_MEMBERS];
+	int nonruntfile = 0;
+	if (RuntExists(VV, VSG_MEMBERS, isrunt, &nonruntfile)) 
+	    frstats.file_runtforce++;
+	else 
+	    frstats.file_reg++;
+    }
+
+    tmp = tmpfile();
+    if (!tmp) {
+	SLog(0, "FileResolve: failed to create temporary file");
+	errorcode = errno;
+	goto EndFileResolve;
+    }
+    tmpfd = fileno(tmp);
+
+    PROBE(FileresTPinfo, COORDSTARTFILEFETCH);
+    /* fetch dominant file */
+    {
+	memset(&sid, 0, sizeof(SE_Descriptor));
+	sid.Tag = SMARTFTP;
+	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
+	sid.Value.SmartFTPD.ByteQuota = -1;
+	sid.Value.SmartFTPD.Tag = FILEBYFD;
+	sid.Value.SmartFTPD.FileInfo.ByFD.fd = tmpfd;
+
+	/* right now just use the connection from the mgrp -
+	   implement the uni-connection groups  --- PUNEET */
+	errorcode = Res_FetchFile(mgrp->rrcc.handles[dix], Fid,
+				  mgrp->rrcc.hosts[dix], &Status, &sid);
+	if (errorcode) {
+	    SLog(0,  "FileResolve: Error %d in fetchfile", errorcode);
+	    CODA_ASSERT(dix != -1);
+	    goto EndFileResolve;
 	}
-	PROBE(FileresTPinfo, COORDSTARTFILEFETCH);
-	/* fetch dominant file */
-	{
-	    memset(&sid, 0, sizeof(SE_Descriptor));
-	    sid.Tag = SMARTFTP;
-	    sid.Value.SmartFTPD.Tag = FILEBYNAME;
-	    sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
-	    sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-	    sid.Value.SmartFTPD.ByteQuota = -1;
+    }
+    PROBE(FileresTPinfo, COORDENDFILEFETCH);
+    /* force new file and VV to all sites - cop1 , cop2 */
+    {
+	ViceVersionVector newvv;
+	GetMaxVV(&newvv, VV, dix);
 
-	    /**********************************************
-	     * WARNING: RACE CONDITION	  (raiff 8/26/96)
-	     * DO NOT CHANGE
-	     *
-	     * Using mktemp can cause a race condition between 2
-	     * resolve threads.  The first thread gets a temp name and
-	     * yields before creating the file, so the second thread
-	     * gets the same name.  The last thread to complete will
-	     * then fail at the 'stat' below.
-	     * Creating the file immediately with mkstemp will
-	     * alieviate this. 
+	/* get the file length */
+	int length = lseek(tmpfd, 0, SEEK_END);
+	lseek(tmpfd, 0, SEEK_SET);
+
+	memset(&sid, 0, sizeof(SE_Descriptor));
+	sid.Tag = SMARTFTP;
+	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
+	sid.Value.SmartFTPD.ByteQuota = -1;
+	sid.Value.SmartFTPD.Tag = FILEBYFD;
+	sid.Value.SmartFTPD.FileInfo.ByFD.fd = tmpfd;
+
+	SLog(9,  "FileResolve: Going to force file");
+	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
+	{
+	    /* 
+	     * find the dominant set, and omit the file transfer to hosts
+	     * that already have a dominant copy. VV_Check should find no
+	     * inconsistencies. However, it is possible to have a weakly
+	     * equal set of vectors after excluding the submissive ones.
+	     * Allow this case raiff 8/16/96
 	     */
-	     
-	    sprintf(filename, "/tmp/fforceXXXXXX");
-	    tmp_fd = mkstemp(filename);
-	    close(tmp_fd);
-	    strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
-		   filename);
-	    /* right now just use the connection from the mgrp -
-	       implement the uni-connection groups  --- PUNEET */
-	    if ((errorcode = Res_FetchFile(mgrp->rrcc.handles[dix], Fid, 
-					  mgrp->rrcc.hosts[dix], &Status, &sid))){
-		SLog(0,  "FileResolve: Error %d in fetchfile", 
-			errorcode);
-		CODA_ASSERT(dix != -1);
-		goto EndFileResolve;
-	    }
+	    int HowMany = 0;
+	    CODA_ASSERT(VV_Check(&HowMany, VV, 0) || IsWeaklyEqual(VV, VSG_MEMBERS));
+	    SLog(0, "FileResolve: %d dominant copies", HowMany);
+	    for (int i = 0; i < VSG_MEMBERS; i++) 
+		if (VV[i]) sidvar_bufs[i].Tag = OMITSE;
 	}
-	PROBE(FileresTPinfo, COORDENDFILEFETCH);
-	/* force new file and VV to all sites - cop1 , cop2 */
-	{
-	    ViceVersionVector newvv;
-	    GetMaxVV(&newvv, VV, dix);
-	    struct stat buf;
-	    CODA_ASSERT(stat(filename, &buf) == 0);
-	    int length = buf.st_size;
-	    sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
-	    SLog(9,  "FileResolve: Going to force file");
-	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
-	    {	/* 
-		 * find the dominant set, and omit the file transfer to hosts
-		 * that already have a dominant copy.  VV_Check should find
-		 * no inconsistencies.  However, it is possible to
-		 * have a weakly equal set of vectors after excluding
-		 * the submissive ones.  Allow this case raiff 8/16/96
-		 */
-		int HowMany = 0;
-		CODA_ASSERT(VV_Check(&HowMany, VV, 0) || IsWeaklyEqual(VV, VSG_MEMBERS));
-		SLog(0, "FileResolve: %d dominant copies",
-		       HowMany);
-		for (int i = 0; i < VSG_MEMBERS; i++) 
-		    if (VV[i]) sidvar_bufs[i].Tag = OMITSE;
-	    }
 
-	    MRPC_MakeMulti(ForceFile_OP, ForceFile_PTR, VSG_MEMBERS,
-			   mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
-			   mgrp->rrcc.MIp, 0, 0, Fid, ResStoreData, 
-			   length, &newvv, &Status, sidvar_bufs);
-	    
-	    SLog(9,  "FileResolve: Returned from ForceFile");
-	    /* coerce rpc errors as timeouts */
-	    mgrp->CheckResult();
-	    /* collect replies and do cop2 */
-	    unsigned long hosts[VSG_MEMBERS];
-	    errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes,
-				      mgrp->rrcc.hosts, hosts);
-	    mgrp->GetHostSet(hosts);
-	    PROBE(FileresTPinfo, COORDENDFORCEFILE);
-	}
+	MRPC_MakeMulti(ForceFile_OP, ForceFile_PTR, VSG_MEMBERS,
+		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
+		       mgrp->rrcc.MIp, 0, 0, Fid, ResStoreData, 
+		       length, &newvv, &Status, sidvar_bufs);
+	SLog(9,  "FileResolve: Returned from ForceFile");
+	/* coerce rpc errors as timeouts */
+	mgrp->CheckResult();
+	/* collect replies and do cop2 */
+	unsigned long hosts[VSG_MEMBERS];
+	errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes,
+				  mgrp->rrcc.hosts, hosts);
+	mgrp->GetHostSet(hosts);
+	PROBE(FileresTPinfo, COORDENDFORCEFILE);
     }
 
 EndFileResolve:
-    unlink(filename);
+    if (tmp)
+	fclose(tmp);
+
     if (errorcode) {
 	SLog(0,  "FileResolve: Marking object 0x%x.%x.%x inconsistent",
 		Fid->Volume, Fid->Vnode, Fid->Unique);
@@ -222,8 +224,8 @@ EndFileResolve:
 /* fetch status and data for given fid */
 long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid, 
 		  RPC2_Unsigned PrimaryHost, ResStatus *Status, 
-		  SE_Descriptor *BD) {
-    
+		  SE_Descriptor *BD)
+{
     SE_Descriptor sid;
     Volume *volptr = 0;
     Vnode *vptr = 0;
@@ -302,8 +304,8 @@ FreeLocks:
 long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid, 
 		  ResStoreType Request, RPC2_Integer Length, 
 		  ViceVersionVector *VV, ResStatus *Status, 
-		  SE_Descriptor *BD) {
-    
+		  SE_Descriptor *BD)
+{
     Vnode *vptr = 0;
     Volume *volptr = 0;
     VolumeId VSGVolnum = Fid->Volume;
@@ -315,7 +317,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
     Inode oldinode = 0;
     Device device;
     VolumeId parentId;		
-    int res = 0;
+    VV_Cmp_Result res;
     int fd = -1;
 
     CODA_ASSERT(Request == ResStoreData);
@@ -348,17 +350,17 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 
     /* make sure new vv is dominant/equal to current vv */
     res = VV_Cmp(&Vnode_vv(vptr), VV);
+    if (res == VV_DOM || res == VV_INC) {
+	errorcode = EINCOMPATIBLE;
+	SLog(0,  "RS_ForceFile: Version Vectors are inconsistent");
+	goto FreeLocks;
+    }
+
     if (res != VV_EQ) {
-	if (res == VV_SUB){
-	    DiffVV = new ViceVersionVector;
-	    *DiffVV = *VV;
-	    SubVVs(DiffVV, &Vnode_vv(vptr));
-	}
-	else {
-	    errorcode = EINCOMPATIBLE;
-	    SLog(0,  "RS_ForceFile: Version Vectors are inconsistent");
-	    goto FreeLocks;
-	}
+	CODA_ASSERT(res == VV_SUB);
+	DiffVV = new ViceVersionVector;
+	*DiffVV = *VV;
+	SubVVs(DiffVV, &Vnode_vv(vptr));
     }
 
     CodaBreakCallBack(0, Fid, VSGVolnum);
@@ -476,42 +478,54 @@ FreeLocks:
 
 
 long RS_COP2(RPC2_Handle RPCid, ViceStoreId *StoreId, 
-	      ViceVersionVector *UpdateSet) {
+	     ViceVersionVector *UpdateSet)
+{
     return(InternalCOP2(RPCid, StoreId, UpdateSet));
 }
 
 /* there are max VSG_MEMBERS VV pointers */
 /* non-NULL VV pointers correspond to real VVs */
-static int IncVVGroup(ViceVersionVector **VV, int *domindex) {
+static int IncVVGroup(ViceVersionVector **VV, int *domindex)
+{
+    int i;
+
     *domindex = -1;
     
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (VV[i]) { *domindex = i; break;}
+    for (i = 0; i < VSG_MEMBERS; i++) {
+	if (VV[i]) {
+	    *domindex = i;
+	    break;
+	}
+    }
     if (*domindex == -1) return EINVAL;
 
-  { /* drop scope for int i below; to avoid identifier clash */
-    for(int i = *domindex; i < VSG_MEMBERS; i++){
-	if (VV[i] == NULL) continue;
-	int res = VV_Cmp(VV[i], VV[*domindex]);
-	if (res == VV_EQ) continue;
-	/* check for weak equality */
-	if (res == VV_INC){
-	    if (!memcmp((const void *)&(VV[i]->StoreId), (void *)&(VV[*domindex]->StoreId),
-		      sizeof(ViceStoreId)))
-		continue;
-	    else 
-		return(VV_INC);
-	}
-	if (res == VV_SUB) 
+    for(i = *domindex; i < VSG_MEMBERS; i++) {
+	if (!VV[i]) continue;
+
+	VV_Cmp_Result res = VV_Cmp(VV[i], VV[*domindex]);
+
+	switch (res) {
+	case VV_EQ:
+	case VV_SUB:
 	    continue;
-	if (res == VV_DOM)
-	    *domindex = i;
+
+	case VV_DOM:
+	    *domindex = 1;
+	    break;
+
+	case VV_INC:
+	    /* check for weak equality */
+	    if (SID_EQ(VV[i]->StoreId, VV[*domindex]->StoreId))
+		continue;
+
+	    return EINCONS;
+	}
     }
-  } /* drop scope for int i above; to avoid identifier clash */
-    return(0);
+    return 0;
 }
 
-static void SetResStatus(Vnode *vptr, ResStatus *Status) {
+static void SetResStatus(Vnode *vptr, ResStatus *Status)
+{
     Status->status = 0;
     Status->Author = vptr->disk.author;
     Status->Owner = vptr->disk.owner;
@@ -519,24 +533,23 @@ static void SetResStatus(Vnode *vptr, ResStatus *Status) {
     Status->Mode = vptr->disk.modeBits;
 }
 
-static void UpdateStats(ViceFid *Fid, fileresstats *frstats) {
-    
+static void UpdateStats(ViceFid *Fid, fileresstats *frstats)
+{
     VolumeId vid = Fid->Volume;
     Volume *volptr = 0;
-    if (XlateVid(&vid)) {
-	if (!GetVolObj(vid, &volptr, VOL_NO_LOCK, 0, 0)) {
-	    if (AllowResolution && V_RVMResOn(volptr)) 
-		V_VolLog(volptr)->vmrstats->update(frstats);
-	}
-	else { 
-	    SLog(0,
-	       "UpdateStats: couldn't get vol obj 0x%x\n", vid);
-	    volptr = 0;
-	}
+
+    if (!XlateVid(&vid)) {
+	SLog(0, "UpdateStats: couldn't Xlate Fid 0x%x\n", vid);
+	return;
     }
-    else 
-	SLog(0,
-	       "UpdateStats: couldn't Xlate Fid 0x%x\n", vid);
-    if (volptr) 
+
+    if (GetVolObj(vid, &volptr, VOL_NO_LOCK, 0, 0)) {
+	SLog(0, "UpdateStats: couldn't get vol obj 0x%x\n", vid);
+    } else {
+	if (AllowResolution && V_RVMResOn(volptr)) 
+	    V_VolLog(volptr)->vmrstats->update(frstats);
+    }
+
+    if (volptr)
 	PutVolObj(&volptr, VOL_NO_LOCK, 0);
 }

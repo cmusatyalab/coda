@@ -58,11 +58,11 @@ extern "C" {
 #include "rescoord.h"
 
 // ********** Private Routines *************
-static int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *, ViceStatus *);
+static int ComparePhase3Status(res_mgrpent *, int *, ViceStatus *);
 static char *CoordPhase2(res_mgrpent *, ViceFid *, int *, int *, int *, unsigned long *,dirresstats *);
 static int CoordPhase3(res_mgrpent*, ViceFid*, char*, int, int, ViceVersionVector**, dlist*, ResStatus**, unsigned long*, int*);
 static int CoordPhase4(res_mgrpent *, ViceFid *, unsigned long *, int *);
-static int CoordPhase34(res_mgrpent *, ViceFid *, dlist *, int *, int *);
+static int CoordPhase34(res_mgrpent *, ViceFid *, dlist *, int *);
 static void AllocateBufs(res_mgrpent *, char **, int *);
 static void DeAllocateBufs(char **);
 static char *ConcatLogs(res_mgrpent *, char **, RPC2_Integer *, RPC2_Integer *, int *, int *);
@@ -112,7 +112,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     dlist *inclist = NULL;
     dirresstats drstats;
     long retval;
-    int noinc = -1;		// used only for updating res stats (dept statistics)
     
     SLog(0, "Entering RecovDirResolve %s\n", FID_(Fid));
 
@@ -126,7 +125,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 		// for statistics collection
 		drstats.dir_nowork++;
 		drstats.dir_succ++;
-		noinc = 1;
 		reserror = 0;
 		goto Exit;
 	    }
@@ -174,7 +172,7 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     // Phase34
     {
 	PROBE(tpinfo, RecovCoorP34Begin);
-	if (CoordPhase34(mgrp, Fid, inclist, dirlengths, &noinc)) {
+	if (CoordPhase34(mgrp, Fid, inclist, dirlengths)) {
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "RecovDirResolve: Error during phase 34\n");
 	    goto Exit;
@@ -185,9 +183,8 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     // Phase 4
     {
 	PROBE(tpinfo, RecovCoorP4Begin);
-	if (!CoordPhase4(mgrp, Fid, succFlags, dirlengths)) {
+	if (CoordPhase4(mgrp, Fid, succFlags, dirlengths) == 0) {
 	    reserror = 0;
-	    noinc = 1;
 	    drstats.dir_succ++;
 	}
 	PROBE(tpinfo, RecovCoorP4End);
@@ -199,7 +196,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
 		       mgrp->rrcc.MIp, 0, 0, Fid);
-	noinc = 0;
 	drstats.dir_conf++;
     }
     // clean up
@@ -217,8 +213,8 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 static char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid, 
 			  int *totalentries, int *sizes, 
 			  int *totalsize, unsigned long *successFlags, 
-			  dirresstats *drstats) {
-    
+			  dirresstats *drstats)
+{
     char *bufs[VSG_MEMBERS];
     char *logbuffer = NULL;
     *totalsize = 0;
@@ -294,7 +290,8 @@ static char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid,
        
 }
 
-static void AllocateBufs(res_mgrpent *mgrp, char **bufs, int *sizes) {
+static void AllocateBufs(res_mgrpent *mgrp, char **bufs, int *sizes)
+{
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (sizes[i] > 0 && mgrp->rrcc.handles[i]) 
 	    bufs[i] = (char *)malloc(sizes[i]);
@@ -309,7 +306,8 @@ static void AllocateBufs(res_mgrpent *mgrp, char **bufs, int *sizes) {
 	   sizes[6], sizes[7]);
 }
 
-static void DeAllocateBufs(char **bufs) {
+static void DeAllocateBufs(char **bufs)
+{
     for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (bufs[i]) {
 	    free(bufs[i]);
@@ -319,7 +317,8 @@ static void DeAllocateBufs(char **bufs) {
 
 static char *ConcatLogs(res_mgrpent *mgrp, char **bufs, 
 			 RPC2_Integer *sizes, RPC2_Integer *entries, 
-			 int *totalsize, int *totalentries) {
+			 int *totalsize, int *totalentries)
+{
     char *logbuffer = NULL;
     // calculate the size 
     for (int i = 0; i < VSG_MEMBERS; i++) {
@@ -358,7 +357,7 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 {
     RPC2_BoundedBS PBinc;
     char buf[RESCOMM_MAXBSLEN];
-    SE_Descriptor	sid;
+    SE_Descriptor sid;
     ViceStatus status;
     // init parms PB, sid, status block
     {
@@ -403,7 +402,7 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 	    return(errorCode);
 	}
 
-	if (ComparePhase3Status(mgrp, dirlengths, statusvar_bufs, &status)) {
+	if (ComparePhase3Status(mgrp, dirlengths, statusvar_bufs)) {
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "CoordPhase3: Status blocks do not match\n");
 	    return(EINCONS);
@@ -421,65 +420,71 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
 }
 
 static int ComparePhase3Status(res_mgrpent *mgrp, int *dirlengths, 
-				ViceStatus *status_bufs, ViceStatus *status) {
-    int statusgotalready = 0;
+			       ViceStatus *status_bufs)
+{
+    ViceStatus *base = NULL;
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	dirlengths[i] = 0;
 	if (mgrp->rrcc.hosts[i] && !mgrp->rrcc.retcodes[i]) {
-	    dirlengths[i] = status_bufs[i].Length;
-	    if (!statusgotalready) 
-		*status = status_bufs[i];
-	    else {
-		ViceStatus *vs = &status_bufs[i];
-		int unequal = ((vs->Author != status->Author) ||
-			       (vs->Owner != status->Owner) ||
-			       (vs->Mode != status->Mode) ||
-			       (vs->vparent != status->vparent) ||
-			       (vs->uparent != status->uparent));
-		if (unequal) {
-		    LogMsg(0, SrvDebugLevel, stdout,  
-			   "Phase3: replica status not equal at end of phase 3");
-		    return(EINCONS);
-		}
+	    ViceStatus *vs = &status_bufs[i];
+	    int unequal;
+
+	    dirlengths[i] = vs->Length;
+
+	    if (!base) {
+		base = vs;
+		continue;
+	    }
+
+	    unequal = ((vs->Author != base->Author) ||
+		       (vs->Owner != base->Owner) ||
+		       (vs->Mode != base->Mode) ||
+		       (vs->vparent != base->vparent) ||
+		       (vs->uparent != base->uparent));
+
+	    if (unequal) {
+		LogMsg(0, SrvDebugLevel, stdout,  
+		       "Phase3: replica status not equal at end of phase 3");
+		return EINCONS;
 	    }
 	}
     }
-    return(0);
+    return 0;
 }
 
 
 static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid, 
-			unsigned long *succflags, int *dirlengths) {
+			unsigned long *succflags, int *dirlengths)
+{
     ViceVersionVector UpdateSet;
     char *dirbufs[VSG_MEMBERS];
     int Phase4Err = 0;
     SE_Descriptor sid;
+    int i;
 
     // initialize parameters for call to subordinate VV, sid, 
-    {
-	
-	for (int i = 0; i < VSG_MEMBERS; i++) 
-		(&(UpdateSet.Versions.Site0))[i] = 0;
+    for (i = 0; i < VSG_MEMBERS; i++) 
+	(&(UpdateSet.Versions.Site0))[i] = 0;
 	    
-    { /* drop scope for int i below; to avoid identifier clash */
-	for (int i = 0; i < VSG_MEMBERS; i++) 
-	    if (succflags[i]) {
-		// find the index in the update set 
-		vrent *vre = VRDB.find(Fid->Volume);
-		CODA_ASSERT(vre);
-		(&(UpdateSet.Versions.Site0))[vre->index(succflags[i])] = 1;
-	    }
-    } /* drop scope for int i above; to avoid identifier clash */
-	AllocStoreId(&UpdateSet.StoreId);
-	
-	memset(&sid, 0, sizeof(SE_Descriptor));
-	sid.Tag = SMARTFTP;
-	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-	sid.Value.SmartFTPD.Tag = FILEINVM;
-	sid.Value.SmartFTPD.ByteQuota = -1;
+    for (i = 0; i < VSG_MEMBERS; i++) {
+	if (succflags[i]) {
+	    // find the index in the update set 
+	    vrent *vre = VRDB.find(Fid->Volume);
+	    CODA_ASSERT(vre);
+	    (&(UpdateSet.Versions.Site0))[vre->index(succflags[i])] = 1;
+	}
     }
+
+    AllocStoreId(&UpdateSet.StoreId);
+	
+    memset(&sid, 0, sizeof(SE_Descriptor));
+    sid.Tag = SMARTFTP;
+    sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
+    sid.Value.SmartFTPD.Tag = FILEINVM;
+    sid.Value.SmartFTPD.ByteQuota = -1;
+
     ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
-    for (int i = 0; i < VSG_MEMBERS; i++)  {
+    for (i = 0; i < VSG_MEMBERS; i++) {
 	if (dirlengths[i]) {
 	    int maxlen = dirlengths[i] + VAclSize(NULL) + 2 * sizeof(int);
 	    dirbufs[i] = (char *)malloc(maxlen);
@@ -510,42 +515,40 @@ static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
 
     }
     // compare contents of directory replicas 
-    {
-	if (!Phase4Err  && ((Phase4Err = CompareDirContents(sidvar_bufs, Fid)) == 0))
-	    LogMsg(9, SrvDebugLevel, stdout,  
-		   "CoordPhase4: Dir Contents equal after phase4");
+    if (!Phase4Err) {
+	Phase4Err = CompareDirContents(sidvar_bufs, Fid);
+	if (!Phase4Err)
+	    LogMsg(9, SrvDebugLevel, stdout,
+		"CoordPhase4: Dir Contents equal after phase4");
     }
 
     // clean up 
-    {
-	for (int i = 0; i < VSG_MEMBERS; i++) 
-	    if (dirbufs[i]) free(dirbufs[i]);
-    }
-    LogMsg(1, SrvDebugLevel, stdout,  
-	   "CoordPhase4: returns %d\n", Phase4Err);
+    for (i = 0; i < VSG_MEMBERS; i++) 
+	if (dirbufs[i]) free(dirbufs[i]);
+
+    if (Phase4Err)
+	LogMsg(0, SrvDebugLevel, stdout, "CoordPhase4: returns %d\n", Phase4Err);
     return(Phase4Err);
 }
 
 static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid, 
-			 dlist *inclist, int *dirlengths, int *noinc) {
+			dlist *inclist, int *dirlengths)
+{
     RPC2_BoundedBS PB;
     char buf[RESCOMM_MAXBSLEN];
     int errorCode = 0;
     ViceStatus status;
+    unsigned long hosts[VSG_MEMBERS];
+    int i;
 
-    if (inclist->count() ==  0) {
-	*noinc = 1;
-	return(0);
-    }
+    if (inclist->count() == 0)
+	return 0;
     
-    *noinc = 0;
     /* pack list of inconsistencies into a BoundedBS */
-    {
-	PB.MaxSeqLen = RESCOMM_MAXBSLEN;
-	PB.SeqBody = (RPC2_ByteSeq)buf;
-	PB.SeqLen = 0;
-	DlistToBS(inclist, &PB);
-    }
+    PB.MaxSeqLen = RESCOMM_MAXBSLEN;
+    PB.SeqBody = (RPC2_ByteSeq)buf;
+    PB.SeqLen = 0;
+    DlistToBS(inclist, &PB);
 
     ViceStoreId logid;
     AllocStoreId(&logid);
@@ -553,43 +556,40 @@ static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
     MRPC_MakeMulti(HandleInc_OP, HandleInc_PTR, VSG_MEMBERS,
 		   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		   mgrp->rrcc.MIp, 0, 0, Fid, &logid, statusvar_ptrs, &PB);
-    for (int i = 0; i < VSG_MEMBERS; i++) {
+    for (i = 0; i < VSG_MEMBERS; i++) {
 	if (mgrp->rrcc.hosts[i] && !mgrp->rrcc.retcodes[i])
-	    dirlengths[i] = statusvar_bufs[i].Length;
-	else 
-	    dirlengths[i] = 0;
+	     dirlengths[i] = statusvar_bufs[i].Length;
+	else dirlengths[i] = 0;
     }
     mgrp->CheckResult();
-    unsigned long hosts[VSG_MEMBERS];
-    if ((errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts))){
-	LogMsg(0, SrvDebugLevel, stdout,  
-	       "CoordPhase34: Error %d in DirResPhase2", 
-	       errorCode);
-	return(errorCode);
-    }
-    return(0);
+
+    errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts);
+    if (errorCode)
+	LogMsg(0, SrvDebugLevel, stdout,
+	       "CoordPhase34: Error %d in DirResPhase2", errorCode);
+    return 0;
 }
 
 static void UpdateStats(ViceFid *Fid, dirresstats *drstats)
 {
     VolumeId vid = Fid->Volume;
     Volume *volptr = 0;
-    if (XlateVid(&vid)) {
-	if (!GetVolObj(vid, &volptr, VOL_NO_LOCK, 0, 0)) {
-	    if (AllowResolution && V_RVMResOn(volptr)) 
-		V_VolLog(volptr)->vmrstats->update(drstats);
-	}
-	else { 
-	    LogMsg(0, SrvDebugLevel, stdout,
-	       "UpdateStats: couldn't get vol obj 0x%x\n", vid);
-	    volptr = 0;
-	}
-    }
-    else 
+
+    if (!XlateVid(&vid)) {
 	LogMsg(0, SrvDebugLevel, stdout,
 	       "UpdateStats: couldn't Xlate Fid 0x%x\n", vid);
+	return;
+    }
+
+    if (GetVolObj(vid, &volptr, VOL_NO_LOCK, 0, 0)) {
+	LogMsg(0, SrvDebugLevel, stdout,
+	       "UpdateStats: couldn't get vol obj 0x%x\n", vid);
+    } else {
+	if (AllowResolution && V_RVMResOn(volptr)) 
+	    V_VolLog(volptr)->vmrstats->update(drstats);
+    }
+
     if (volptr) 
 	PutVolObj(&volptr, VOL_NO_LOCK, 0);
-
 }
 

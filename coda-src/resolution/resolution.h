@@ -21,8 +21,8 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
-void ResCheckServerLWP(void);
-void ResCheckServerLWP_worker(void);
+void ResCheckServerLWP(void *);
+void ResCheckServerLWP_worker(void *);
 
 #ifdef __cplusplus
 }

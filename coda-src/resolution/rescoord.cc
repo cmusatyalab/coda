@@ -150,7 +150,6 @@ int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid)
     if (SrvDebugLevel > 9) 
 	// dump contents to files 
 	DumpDirContents(sid_bufs, fid);
-    int replicafound = 0;
     DirHeader *firstreplica = NULL;
     int firstreplicasize = 0;
     for (int i = 0; i < VSG_MEMBERS; i++) {
@@ -158,30 +157,30 @@ int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid)
 	DirHeader *buf = (DirHeader *)sid_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody;
 	
 	if (len) {
-	    if (!replicafound) {
-		replicafound = 1;
-		firstreplica  = buf;
+	    if (!firstreplica) {
+		firstreplica = buf;
 		firstreplicasize = len;
+		continue;
 	    }
-	    else {
-		if (DIR_Compare(firstreplica, buf)) {
-		    SLog(0, "CompareDirContents: DirContents ARE DIFFERENT");
-		    if (SrvDebugLevel > 9) {
-			DIR_Print(firstreplica, stdout);
-			DIR_Print(buf, stdout);
-		    }
-		    return(-1);
+
+	    if (DIR_Compare(firstreplica, buf)) {
+		SLog(0, "CompareDirContents: DirContents ARE DIFFERENT");
+		if (SrvDebugLevel > 9) {
+		    DIR_Print(firstreplica, stdout);
+		    DIR_Print(buf, stdout);
 		}
-                if (memcmp((char *)firstreplica + DIR_Length(firstreplica),
-                           (char *)buf + DIR_Length(buf), VAclSize(NULL)) != 0)
-                {
-		    SLog(0, "CompareDirContents: ACL's are DIFFERENT");
-		    /* XXX ACL equality test is broken. same ACLs could be
-		     * represented differently. We need to enumerate through
-		     * all the entries of one replica and check this against
-		     * the other replica. --JH */
-		    //return(-1);
-                }
+		return(-1);
+	    }
+
+	    if (memcmp((char *)firstreplica + DIR_Length(firstreplica),
+		       (char *)buf + DIR_Length(buf), VAclSize(NULL)) != 0)
+	    {
+		SLog(0, "CompareDirContents: ACL's are DIFFERENT");
+		/* XXX ACL equality test is broken. same ACLs could be
+		 * represented differently. We need to enumerate through
+		 * all the entries of one replica and check this against
+		 * the other replica. --JH */
+		//return(-1);
 	    }
 	}
     }
@@ -335,8 +334,8 @@ int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV,
 
 	if (rstatusp) {
 	    unsigned long succflags[VSG_MEMBERS];
-	    CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, 
-			  succflags);
+	    CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes,
+			  mgrp->rrcc.hosts, succflags);
 	    GetResStatus(succflags, rstatusp, &vstatus);
 	}
 
@@ -371,8 +370,8 @@ static int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid,
 	memset((void *)&UpdateSet, 0, sizeof(ViceVersionVector));
 	
 	for (i = 0; i < VSG_MEMBERS; i++)
-		if (successHosts[i])
-			(&(UpdateSet.Versions.Site0))[i] = 1;
+	    if (successHosts[i])
+		(&(UpdateSet.Versions.Site0))[i] = 1;
     
 	MRPC_MakeMulti(COP2_OP, COP2_PTR, VSG_MEMBERS, 
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
@@ -416,9 +415,6 @@ int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 
     if (VV_Check(&HowMany, vv, 1) == 1) {
 	SLog(0, "RegDirResolution: VECTORS ARE ALREADY EQUAL");
-	for (int i = 0; i < VSG_MEMBERS; i++) 
-	    if (vv[i])
-		PrintVV(stdout, vv[i]);
 
 	/* We might have been looking at only a subset of the mgrp, by
 	 * kicking off a server probe we should succeed the next time a
@@ -433,7 +429,7 @@ int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     if (!IsWeaklyEqual(VV, VSG_MEMBERS))
 	goto Exit;
 
-    SLog(39, "RegDirResolution: WEAKLY EQUAL DIRECTORIES");
+    SLog(0, "RegDirResolution: WEAKLY EQUAL DIRECTORIES");
 
     unsigned long hosts[VSG_MEMBERS];
     ViceStoreId stid;

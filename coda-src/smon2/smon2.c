@@ -352,8 +352,9 @@ static void DoSleep(struct server *srv)
 	IOMGR_Select(0, 0, 0, 0, &NextProbe);  /* sleep */
 }
 
-static void srvlwp(int slot)
+static void srvlwp(void *arg)
 {
+    int slot = (int)arg;
     srv[slot].cid = 0;
     srv[slot].old = 0;
 
@@ -391,8 +392,8 @@ int main(int argc, char *argv[])
 
     /* start monitoring */
     for (i = 0; i < SrvCount; i++) {
-        LWP_CreateProcess((PFIC)srvlwp, 0x8000, LWP_NORMAL_PRIORITY,
-                          (char *)i, (char *)srv[i].srvname,
+        LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY,
+                          (void *)i, srv[i].srvname,
                           (PROCESS *)&srv[i].pid);
     }
 

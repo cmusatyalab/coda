@@ -146,10 +146,14 @@ fsobj::fsobj(VenusFid *key, char *name) : cf() {
 /* local-repair modification */
 /* MUST be called from within transaction! */
 /* Caller sets range for whole object! */
-void fsobj::ResetPersistent() {
+void fsobj::ResetPersistent()
+{
     MagicNumber = FSO_MagicNumber;
     fid = NullFid;
-    comp = NULL;
+    if (comp) {
+	rvmlib_rec_free(comp);
+	comp = NULL;
+    }
     vol = 0;
     state = FsoRunt;
     stat.VnodeType = Invalid;
@@ -784,13 +788,13 @@ void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet)
     /* nice optimization, but repair is looking at version vectors in not
      * necessarily replicated volumes (although the IsReadWriteRep test should
      * have matched in that case) */
-    //if (vol->IsReplicated() || vol->IsReadWriteReplica())
-    if (UpdateSet == 0)
-	stat.VV = vstat->VV;
-    else {
+    //if (!vol->IsReplicated() && !vol->IsReadWriteReplica())
+    if (UpdateSet) {
 	stat.VV.StoreId = vstat->VV.StoreId;
 	AddVVs(&stat.VV, UpdateSet);
-    }
+    } else
+	stat.VV = vstat->VV;
+
     stat.Date = vstat->Date;
     stat.Owner = (uid_t) vstat->Owner;
     stat.Mode = (short) vstat->Mode;
@@ -902,11 +906,11 @@ void fsobj::SetAcRights(uid_t uid, long my_rights, long any_rights)
     }
     AnyUser.valid = 1;
 
-    /* Don't record my_rights if we're not really authenticated! */
+    /* Don't record my_rights if we're system_anyuser! */
     userent *ue = vol->realm->GetUser(uid);
-    int tokensvalid = ue->TokensValid();
+    int is_anyuser = (ue == vol->realm->system_anyuser);
     PutUser(&ue);
-    if (!tokensvalid) return;
+    if (is_anyuser) return;
 
     int i;
     int j = -1;
@@ -1329,7 +1333,7 @@ void fsobj::AttachChild(fsobj *child) {
 
     if (child->child_link.is_linked())
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::AttachChild: bad child"); }
-    if (children == 0)
+    if (!children)
 	children = new dlist;
     children->prepend(&child->child_link);
 
@@ -1348,7 +1352,7 @@ void fsobj::DetachChild(fsobj *child) {
     DemoteHdbBindings();	    /* in case an expansion would no longer be satisfied! */
 
     if (child->pfso != this || !child->child_link.is_linked() ||
-	 children == 0 || children->count() == 0)
+	!children || children->count() == 0)
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::DetachChild: bad child"); }
     if (children->remove(&child->child_link) != &child->child_link)
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::DetachChild: remove failed"); }
@@ -2596,9 +2600,9 @@ void fsobj::print(int fdes) {
     fdprint(fdes, "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d\n",
 	     vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
 	     flags.fake, flags.fetching, flags.local);
-    fdprint(fdes, "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d\n",
+    fdprint(fdes, "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",
 	     REPLACEABLE(this), HAVEDATA(this), flags.owrite, flags.dirty,
-	     shadow != 0);
+	     shadow != 0, flags.ckmtpt);
 
     /* < mvstat [rootfid | mtptfid] > */
     fdprint(fdes, "\tmvstat = %s", PrintMvStat(mvstat));

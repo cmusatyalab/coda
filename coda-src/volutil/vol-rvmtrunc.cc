@@ -41,7 +41,8 @@ extern "C" {
 extern int stack;
 int rvm_truncate_stack = 1024;
 
-void TruncProcess() {
+void TruncProcess(void *)
+{
     PROCESS mypid;
     LogMsg(0, VolDebugLevel, stdout,
 	   "TruncProcess: Going to Truncate RVM log \n");
@@ -51,12 +52,10 @@ void TruncProcess() {
     LWP_CurrentProcess(&mypid);
     LWP_DestroyProcess(mypid);
 }
-/*
-  BEGIN_HTML
-  <strong> Service rvm log truncation request</strong> 
-  END_HTML
-*/
-long S_TruncateRVMLog(RPC2_Handle rpcid) {
+
+/* Service rvm log truncation request */
+long S_TruncateRVMLog(RPC2_Handle rpcid)
+{
     long rc = 0;
     PROCESS truncpid;
 
@@ -65,7 +64,7 @@ long S_TruncateRVMLog(RPC2_Handle rpcid) {
     LogMsg(1, VolDebugLevel, stdout,
 	   "Forking New Thread to Truncate RVM Log\n");
     // give this thread a bigger stack(1Meg) since it is going to truncate the log
-    rc = LWP_CreateProcess((PFIC)TruncProcess, rvm_truncate_stack * 1024, 
+    rc = LWP_CreateProcess(TruncProcess, rvm_truncate_stack * 1024, 
 			   LWP_NORMAL_PRIORITY,
 			   (char *)&rc/*dummy*/, "SynchronousRVMTrunc", 
 			   &truncpid);

@@ -94,7 +94,7 @@ int parse_cmd_line(int, char **);
 int parse_path(const char *, char *, char *);
 int parse_resolvefile(const char *, const char *, char *);
 int point(char *linkpath, char *target);
-int worker(void *);
+void worker(void *arg);
 
 #define lprintf(msg...)				\
 do {						\

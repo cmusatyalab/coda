@@ -233,10 +233,10 @@ static ClientEntry *CurrentClient[MAXLWP];
 
 /* *****  Private routines  ***** */
 
-static void ServerLWP(int *);
-static void ResLWP(int *);
-static void CallBackCheckLWP();
-static void CheckLWP();
+static void ServerLWP(void *);
+static void ResLWP(void *);
+static void CallBackCheckLWP(void *);
+static void CheckLWP(void *);
 
 static void ClearCounters();
 static void FileMsg();
@@ -532,34 +532,34 @@ int main(int argc, char *argv[])
     CODA_ASSERT(RPC2_Export(&server) == RPC2_SUCCESS);
     ClearCounters();
 
-    CODA_ASSERT(LWP_CreateProcess((PFIC)CallBackCheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
+    CODA_ASSERT(LWP_CreateProcess(CallBackCheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
 	    (char *)&cbwait, "CheckCallBack", &serverPid) == LWP_SUCCESS);
 	    
-    CODA_ASSERT(LWP_CreateProcess((PFIC)CheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
+    CODA_ASSERT(LWP_CreateProcess(CheckLWP, stack*1024, LWP_NORMAL_PRIORITY,
 	    (char *)&chk, "Check", &serverPid) == LWP_SUCCESS);
 	    
     for (i=0; i < lwps; i++) {
 	sprintf(sname, "ServerLWP-%d",i);
-	CODA_ASSERT(LWP_CreateProcess((PFIC)ServerLWP, stack*1024, LWP_NORMAL_PRIORITY,
-		(char *)&i, sname, &serverPid) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_CreateProcess(ServerLWP, stack*1024, LWP_NORMAL_PRIORITY,
+				      &i, sname, &serverPid) == LWP_SUCCESS);
     }
 
     /* set up resolution threads */
     for (i = 0; i < 2; i++){
 	sprintf(sname, "ResLWP-%d", i);
-	CODA_ASSERT(LWP_CreateProcess((PFIC)ResLWP, stack*1024, 
-				 LWP_NORMAL_PRIORITY, (char *)&i, 
-				 sname, &resPid) == LWP_SUCCESS);
+	CODA_ASSERT(LWP_CreateProcess(ResLWP, stack*1024, 
+				      LWP_NORMAL_PRIORITY, (char *)&i, 
+				      sname, &resPid) == LWP_SUCCESS);
     }
     sprintf(sname, "ResCheckSrvrLWP");
-    CODA_ASSERT(LWP_CreateProcess((PFIC)ResCheckServerLWP, stack*1024,
-			      LWP_NORMAL_PRIORITY, (char *)&i, 
-			      sname, &resPid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_CreateProcess(ResCheckServerLWP, stack*1024,
+				  LWP_NORMAL_PRIORITY, &i, 
+				  sname, &resPid) == LWP_SUCCESS);
 
     sprintf(sname, "ResCheckSrvrLWP_worker");
-    CODA_ASSERT(LWP_CreateProcess((PFIC)ResCheckServerLWP_worker, stack*1024,
-			      LWP_NORMAL_PRIORITY, (char *)&i, 
-			      sname, &resworkerPid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_CreateProcess(ResCheckServerLWP_worker, stack*1024,
+				  LWP_NORMAL_PRIORITY, &i, 
+				  sname, &resworkerPid) == LWP_SUCCESS);
     /* Set up volume utility subsystem (spawns 2 lwps) */
     SLog(29, "fileserver: calling InitvolUtil");
     extern void InitVolUtil(int stacksize);
@@ -567,11 +567,11 @@ int main(int argc, char *argv[])
     InitVolUtil(stack*1024);
     SLog(29, "fileserver: returning from InitvolUtil");
 
-    extern void SmonDaemon();
+    extern void SmonDaemon(void *);
     sprintf(sname, "SmonDaemon");
-    CODA_ASSERT(LWP_CreateProcess((PFIC)SmonDaemon, stack*1024,
-			     LWP_NORMAL_PRIORITY, (char *)&smonPid,
-			     sname, &smonPid) == LWP_SUCCESS);
+    CODA_ASSERT(LWP_CreateProcess(SmonDaemon, stack*1024,
+				  LWP_NORMAL_PRIORITY, &smonPid,
+				  sname, &smonPid) == LWP_SUCCESS);
 #ifdef PERFORMANCE
 #ifndef OLDLWP
     /* initialize global array of thread_t for timing - Puneet */
@@ -595,8 +595,9 @@ int main(int argc, char *argv[])
 
 
 #define BADCLIENT 1000
-static void ServerLWP(int *Ident)
+static void ServerLWP(void *arg)
 {
+    int *Ident = (int *)arg;
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer * myrequest;
     RPC2_Handle mycid;
@@ -712,7 +713,9 @@ static void ServerLWP(int *Ident)
     }
 }
 
-static void ResLWP(int *Ident){
+static void ResLWP(void *arg)
+{
+    int *Ident = (int *)arg;
     RPC2_RequestFilter myfilter;
     RPC2_Handle	mycid;
     RPC2_PacketBuffer *myrequest;
@@ -751,7 +754,7 @@ static void ResLWP(int *Ident){
     }
 }
 
-static void CallBackCheckLWP()
+static void CallBackCheckLWP(void *arg)
 {
     struct timeval  time;
     ProgramType *pt;
@@ -783,7 +786,7 @@ static void CallBackCheckLWP()
 }
 
 
-static void CheckLWP()
+static void CheckLWP(void *arg)
 {
     struct timeval  time;
     struct timeval  tpl;

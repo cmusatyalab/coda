@@ -72,18 +72,19 @@ static int ForceDir(vle *, Volume *, VolumeId , olist *, dlist *, int *);
 static int CheckForceDirSemantics(olist *, Volume *, Vnode *);
 
 
-void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
-		 ViceFid *Fid) {
-
+void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV, ViceFid *Fid)
+{
     SLog(9,  "UpdateRunts: Entered for Fid %s", FID_(Fid));
     int runtexists = 0;
     int isrunt[VSG_MEMBERS];
     int nonruntdir;
     ViceStatus vstatus;
     RPC2_BoundedBS al;
+    SE_Descriptor sid;
     char buf[(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)];
     FILE *tmp;
     int tmpfd;
+    int i;
 
     /* check if there are any runts */
     {
@@ -109,17 +110,17 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 
     /* fetch directory ops from the non-runt site */
     {
-	SE_Descriptor sid;
-	
 	al.MaxSeqLen = (SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
 	al.SeqLen  = 0;
 	al.SeqBody = (RPC2_ByteSeq)buf;
+
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.ByteQuota = -1;
 	sid.Value.SmartFTPD.Tag = FILEBYFD;
 	sid.Value.SmartFTPD.FileInfo.ByFD.fd = tmpfd;
+
 	SLog(9,  "UpdateRunts: Going to GetForceDirOps");
 	if (Res_GetForceDirOps(mgrp->rrcc.handles[nonruntdir], Fid, &vstatus,
 			       &al, &sid))
@@ -129,18 +130,15 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	}
     }
     /* Black out non-runt sites */
-    {
-	for (int i = 0; i < VSG_MEMBERS; i++)
-	    if (VV[i] && !isrunt[i])
-		mgrp->KillMember(mgrp->Hosts[i], 0);
+    for (i = 0; i < VSG_MEMBERS; i++)
+	if (VV[i] && !isrunt[i])
+	    mgrp->KillMember(mgrp->Hosts[i], 0);
 
-    }
     /* force directory ops onto runt sites */
     lseek(tmpfd, 0, SEEK_SET);
     {
 	SLog(9, "UpdateRunts: Forcing Directories onto runts");
 	int forceError;
-	SE_Descriptor sid;
 
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
@@ -160,28 +158,26 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	mgrp->CheckResult();
     }
     fclose(tmp);
+
     /* check return codes */
-    {
-	for (int i = 0; i < VSG_MEMBERS; i++)
-	    if (VV[i] && isrunt[i]) {
-		if (mgrp->rrcc.retcodes[i] == 0){
-		    SLog(9,  "UpdateRunts: Succesfully forced runt %d", 
-			    i);
-		    /* update the vv[i] slot */
-		    *(VV[i]) = vstatus.VV;
-		}
-		else 
-		    SLog(0,  "UpdateRunts: Error %d from force[%d]", 
-			    mgrp->rrcc.retcodes[i], i);
+    for (i = 0; i < VSG_MEMBERS; i++) {
+	if (VV[i] && isrunt[i]) {
+	    if (mgrp->rrcc.retcodes[i] == 0){
+		SLog(9,  "UpdateRunts: Succesfully forced runt %d", 
+		     i);
+		/* update the vv[i] slot */
+		*(VV[i]) = vstatus.VV;
 	    }
+	    else 
+		SLog(0,  "UpdateRunts: Error %d from force[%d]", 
+		     mgrp->rrcc.retcodes[i], i);
+	}
     }
     /* we killed all the non-runt hosts, we should probably bring them back for
      * the rest of the resolution process */
-    {
-	for (int i = 0; i < VSG_MEMBERS; i++)
-	    if (VV[i] && !isrunt[i])
-		mgrp->CreateMember(mgrp->Hosts[i]);
-    }
+    for (i = 0; i < VSG_MEMBERS; i++)
+	if (VV[i] && !isrunt[i])
+	    mgrp->CreateMember(mgrp->Hosts[i]);
 }
 
 long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
@@ -719,15 +715,14 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 int RuntExists(ViceVersionVector **VV, int maxvvs, int *isrunt, 
 		       int *NonRuntIndex) 
 {
-    int runtexists = 0;
+    int i, runtexists = 0;
     *NonRuntIndex = -1;
 
-    for (int i = 0; i < maxvvs; i++) 
+    for (i = 0; i < maxvvs; i++) 
 	isrunt[i] = 0;
 
-  { /* drop scope for int i below; to avoid identifier clash */
     /* check if there are any runts */
-    for (int i = 0; i < maxvvs; i++) {
+    for (i = 0; i < maxvvs; i++) {
 	if (VV[i]){
 	    if (IsRunt(VV[i])) {
 		SLog(19,  "UpdateRunt: VV[%d] is a runt VV", i);
@@ -742,8 +737,6 @@ int RuntExists(ViceVersionVector **VV, int maxvvs, int *isrunt,
 	    }
 	}
     }
-  } /* drop scope for int i above; to avoid identifier clash */
-
     return(runtexists);
 }
 

@@ -53,15 +53,10 @@ const ViceStoreId NullSid = { 0, 0 };
 static int VV_BruteForceCheck(int *, vv_t **, int, int);
 static int VV_Check_Real(int *, vv_t **, int, int);
 
-int VV_Cmp(const vv_t *a, const vv_t *b) {
-    if (IsIncon(*a) || IsIncon(*b)) return(VV_INC);
+VV_Cmp_Result VV_Cmp_IgnoreInc(const vv_t *a, const vv_t *b)
+{
 
-    return(VV_Cmp_IgnoreInc(a, b));
-}
-
-int VV_Cmp_IgnoreInc(const vv_t *a, const vv_t *b) {
-
-    int	res = VV_EQ;
+    VV_Cmp_Result res = VV_EQ;
 
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	long a_val = (&(a->Versions.Site0))[i];
@@ -78,21 +73,28 @@ int VV_Cmp_IgnoreInc(const vv_t *a, const vv_t *b) {
     return(res);
 }
 
+VV_Cmp_Result VV_Cmp(const vv_t *a, const vv_t *b)
+{
+    if (IsIncon(*a) || IsIncon(*b))
+	return(VV_INC);
+    return(VV_Cmp_IgnoreInc(a, b));
+}
+
 
 
 int VV_Check(int *HowMany, vv_t **vvp, int EqReq) 
-    {
+{
     return(VV_Check_Real(HowMany, vvp, EqReq, 0)); 
-    }
+}
 
 int VV_Check_IgnoreInc(int *HowMany, vv_t **vvp, int EqReq) 
-    {
+{
     return(VV_Check_Real(HowMany, vvp, EqReq, 1)); 
-    }
+}
 
 
-static int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
-
+static int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc)
+{
 /* If IgnoreInc is set, uses VV_Cmp_IgnoreInc() for comparison;
    else uses VV_Cmp()
 */
@@ -109,7 +111,8 @@ static int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
 
 
     int	dom_ix = -1;	/* index of first dominant vector */
-    int k, result;
+    int k;
+    VV_Cmp_Result result;
 
     /* Find the first non-Null vector and initialize dom_ix to its index. */
     for (int i = 0; i < VSG_MEMBERS; i++)
@@ -125,8 +128,11 @@ static int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
     *HowMany = 1;
     for (int j = dom_ix + 1; j < VSG_MEMBERS; j++) {
 	if (!vvp[j]) continue;
-	if (IgnoreInc) result = VV_Cmp_IgnoreInc(vvp[dom_ix], vvp[j]);
+
+	if (IgnoreInc)
+	     result = VV_Cmp_IgnoreInc(vvp[dom_ix], vvp[j]);
 	else result = VV_Cmp(vvp[dom_ix], vvp[j]);
+
 	switch (result) {
 	    case VV_EQ:
 		(*HowMany)++;
@@ -149,7 +155,6 @@ static int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
 		return(VV_BruteForceCheck(HowMany, vvp, EqReq, IgnoreInc));
 	}
     }
-
     return(1);
 }
 
@@ -169,7 +174,7 @@ static int VV_BruteForceCheck(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc
 
     for (j = 0; j < VSG_MEMBERS; j++)
 	if (vvp[j]) { i = j; break; }
-    if (i == -1) { *HowMany = 0; return(1); }	/* empty input array */
+    if (i == -1) { *HowMany = 0; return 1; }	/* empty input array */
 
     /* Find the first vector which is >= or == all other vectors (depending on EqReq). */
     for (; i < VSG_MEMBERS; i++) {
@@ -179,7 +184,8 @@ static int VV_BruteForceCheck(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc
 	    if (i == j) continue;
 	    if (!vvp[j]) continue;
 
-	    if (IgnoreInc) result = VV_Cmp_IgnoreInc(vvp[i], vvp[j]);
+	    if (IgnoreInc)
+		 result = VV_Cmp_IgnoreInc(vvp[i], vvp[j]);
 	    else result = VV_Cmp(vvp[i], vvp[j]);
 	    switch (result) {
 		case VV_EQ:
@@ -187,27 +193,27 @@ static int VV_BruteForceCheck(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc
 		    continue;
 
 		case VV_DOM:
-		    if (EqReq) return(0);
+		    if (EqReq) return 0;
 		    vvp[j] = 0;
 		    continue;
 
 		case VV_SUB:
-		    if (EqReq) return(0);
+		    if (EqReq) return 0;
 		    vvp[i] = 0;
 		    goto outer_continue;
 
 		case VV_INC:
-		    if (EqReq) return(0);
+		    if (EqReq) return 0;
 		    goto outer_continue;
 	    }
 	}
-	return(1);
+	return 1;
 
 outer_continue:
 	;	/* empty statement to satisfy compiler */
     }
 
-    return(0);
+    return 0;
 }
 
 

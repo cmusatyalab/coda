@@ -1431,7 +1431,7 @@ static int SetPhase3DirStatus(ViceStatus *status, ViceFid *Fid,
     CODA_ASSERT(ov && ov->vptr);
     
     // check if new vv is legal 
-    int res = VV_Cmp_IgnoreInc(&Vnode_vv(ov->vptr), &DiffVV);
+    VV_Cmp_Result res = VV_Cmp_IgnoreInc(&Vnode_vv(ov->vptr), &DiffVV);
     if (res != VV_EQ && res != VV_SUB) {
 	SLog(0, "SetPhase3DirStatus: 0x%x.%x VV's are in conflict",
 	       ov->vptr->vnodeNumber, ov->vptr->disk.uniquifier);

@@ -299,7 +299,8 @@ int CompareIlinkEntry(ilink *i, ilink *j) {
     return(strcmp(i->name, j->name));
 }
 
-void ObtainResStatus(ResStatus *status, VnodeDiskObjectStruct *vdop) {
+void ObtainResStatus(ResStatus *status, VnodeDiskObjectStruct *vdop)
+{
     status->status = 0;
     status->Author = vdop->author;
     status->Owner = vdop->owner;
@@ -308,14 +309,14 @@ void ObtainResStatus(ResStatus *status, VnodeDiskObjectStruct *vdop) {
 }
 
 void GetResStatus(unsigned long *succflags, ResStatus **status_p, 
-		  ViceStatus *finalstatus) {
+		  ViceStatus *finalstatus)
+{
     memset((void *)finalstatus, 0, sizeof(ViceStatus));
     int gotmbits = 0;
     for (int i = 0; i < VSG_MEMBERS; i++) {
 	if (succflags[i]) {
 	    if (status_p[i]->Owner) {
 		// a genuine (non-resolve generated) vnode
-		
 		if (!finalstatus->Owner) {
 		    finalstatus->Owner = status_p[i]->Owner;
 		    finalstatus->Author = status_p[i]->Author;

@@ -1,3 +1,13 @@
+2005-03-03	<jaharkes@cs.cmu.edu>
+	* codadump2tar and volutil restore no longer break when a volume name
+	  is longer than 31 characters (names will be truncated though).
+	* rvmsizer now also shows amount of RVM used for directory data.
+	* Build fixes for lwp-2.0 changes.
+	* Using tmpfile instead of mktemp for the temporary file used during
+	  runt resolution.
+	* Fix permission denied errors for files that are accessible by
+	  System:Anyuser when a user has lost his token.
+
 2004-12-22	<jaharkes@cs.cmu.edu>
 	* ======== Release 6.0.8 =========
 	* Removed obsolete purgevol script.
@@ -8,7 +18,7 @@
 	  they were off by quite a bit.
 	* Changed vice-setup to assume the rootvolume is named '/', and
 	  try to automatically create it.
-	* Number of CML and hoard entries are not relative to the number of
+	* Number of CML and hoard entries are now relative to the number of
 	  cache files instead of the cache size.
 	* Make cfs flushobject recurse across mountpoints.
 	* cpasswd broke in the last release, fixed.

@@ -62,7 +62,7 @@ class lqman {
     int pid;
     dlist objects;
 
-    friend int LQman_init(void *);
+    friend void LQman_init(void *);
     int func(void);
 
   public:

@@ -64,7 +64,7 @@ extern void SwapMalloc();
 extern long int volUtil_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*, SE_Descriptor*);
 
 static void InitServer();
-static void VolUtilLWP(int *);
+static void VolUtilLWP(void *);
 /* RPC key lookup routine */
 static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cident,
 		      RPC2_EncryptionKey sharedsecret,
@@ -79,19 +79,21 @@ void InitVolUtil(int stacksize)
 {
     InitServer();
 
-    if (stacksize == 0)
+    if (!stacksize)
 	stacksize = 8 * 1024;	/* Isn't this rediculously small? -- DCS */
     
     /* Must allow two utilities to run simultaneously */
     PROCESS mypid;
     for(int i = 0; i < 2; i++) {
-	LWP_CreateProcess((PFIC)VolUtilLWP, stacksize, LWP_NORMAL_PRIORITY,
-			    (char *)&i, "VolUtilLWP", &mypid);
+	LWP_CreateProcess(VolUtilLWP, stacksize, LWP_NORMAL_PRIORITY,
+			  &i, "VolUtilLWP", &mypid);
     }
 }
 
 
-void VolUtilLWP(int *myindex) {
+void VolUtilLWP(void *arg)
+{
+    int *myindex = (int *)arg;
     RPC2_RequestFilter myfilter;
     RPC2_PacketBuffer *myrequest;
     RPC2_Handle	mycid;

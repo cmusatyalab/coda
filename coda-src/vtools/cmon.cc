@@ -119,8 +119,8 @@ static void GetArgs(int argc, char *argv[]);
 static void InitRPC();
 static void DrawCaptions();
 static void PrintServer(struct server *);
-static void srvlwp(int);
-static void kbdlwp(char *);
+static void srvlwp(void *);
+static void kbdlwp(void *);
 static int CmpDisk(ViceDisk **, ViceDisk **);
 static int ValidServer(char *);
 static void ComputePV(struct server *s, struct printvals *pv);
@@ -178,18 +178,19 @@ int main(int argc, char *argv[])
     InitRPC();
     rpc2_logfile = dbg;
 
-    LWP_CreateProcess((PFIC)kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", (PROCESS *)&i);
+    LWP_CreateProcess(kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", (PROCESS *)&i);
     for (i = 0; i < SrvCount; i++)
 	{
-	LWP_CreateProcess((PFIC)srvlwp, 0x8000, LWP_NORMAL_PRIORITY, (char *)i, (char *)srv[i].srvname, (PROCESS *)&srv[i].pid);
+	LWP_CreateProcess(srvlwp, 0x8000, LWP_NORMAL_PRIORITY, (char *)i, (char *)srv[i].srvname, (PROCESS *)&srv[i].pid);
 	}
     
     LWP_WaitProcess(&Dummy); /* wait for Godot */
     cleanup_and_go(0);
     }
 
-static void srvlwp(int slot)
-    {
+static void srvlwp(void *arg)
+{
+    int slot = (int)arg;
     struct server *moi;
     RPC2_HostIdent hi;
     RPC2_PortIdent pi;
@@ -257,9 +258,9 @@ static void srvlwp(int slot)
 	}
     }
 
-static void kbdlwp(char *p)
+static void kbdlwp(void *arg)
     /* LWP to listen for keyboard activity */
-    {
+{
     fd_set rset;
     int rc;
     char c;
