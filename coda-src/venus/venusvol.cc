@@ -310,12 +310,15 @@ int GetRootVolume()
 	RVN.SeqBody = (RPC2_ByteSeq)buf;
 
 	/* Get the default realm */
+	int code = ENOENT;
 	Realm *r = REALMDB->GetRealm(default_realm);
+	connent *c = NULL;
 
-	/* Get the connection. */
-	connent *c;
-	int code = r->GetAdmConn(&c);
-	r->PutRef();
+	if (r) {
+	    /* Get the connection. */
+	    code = r->GetAdmConn(&c);
+	    r->PutRef();
+	}
 	if (code != 0) {
 	    LOG(100, ("GetRootVolume: can't get SUConn!\n"));
 	    RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
@@ -357,19 +360,21 @@ found_rootvolname:
     /* Retrieve the volume. */
     volent *v;
     Realm *realm = REALMDB->GetRealm(default_realm);
+    int code;
 
     if (!realm) {
 	eprint("GetRootVolume: can't get default realm %s", default_realm);
 	return 0;
     }
 
-    if (VDB->Get(&v, realm, RootVolName) != 0) {
+    code = VDB->Get(&v, realm, RootVolName);
+    realm->PutRef();
+
+    if (code != 0) {
 	eprint("GetRootVolume: can't get volinfo for root volume (%s @ %s)!",
 	       RootVolName, default_realm);
-	realm->PutRef();
 	return 0;
     }
-    realm->PutRef();
 
     rootfid.Realm = v->GetRealmId();
     rootfid.Volume = v->GetVolumeId();
@@ -723,6 +728,7 @@ Exit:
     code = 0;
 
 error_exit:
+    realm->PutRef();
     free(volname);
     return code;
 }

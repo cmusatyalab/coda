@@ -58,7 +58,9 @@ public:
     ~PersistentObject(void)
     {
 	CODA_ASSERT(!rec_refcount);
+	Recov_BeginTrans();
 	rec_list_del(&list);
+	Recov_EndTrans(0);
     }
 	
     void ResetTransient(void)

@@ -112,7 +112,6 @@ volent *Realm::GetVolume(const char *volname)
 
     VDB->Get(&v, volname);
 
-#if 0
     list_for_each(p, repvols) {
 	v = list_entry(p, volent, volumes);
 	if (strcmp(v->volname, volname) == 0) {
@@ -131,7 +130,6 @@ volent *Realm::GetVolume(const char *volname)
     Recov_BeginTrans();
     v = new volent(volname, &volumes);
     Recov_EndTrans(0);
-#endif
 
     return v;
 }
