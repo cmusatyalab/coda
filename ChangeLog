@@ -1,3 +1,68 @@
+2002-01-1?	<jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.18 =========
+	* Coda servers were doing strncmp instead of memcmp on ip-addresses.
+	  This fixes 'identity-crisis' problems for replicated servers, where
+	  servers didn't know which volumes they were hosting etc. (Ivan Popov)
+	* A wrong mknod args in the RPM postinstall, we failed to correctly
+	  create the /dev/cfs0 device.
+	* Some Coda client postinstall fixes for Debian.
+	* Made ValidateAttrs on the server more resilient to bad input.
+	* Handle reintegration conflicts when doing a partial reintegration,
+	  instead of endlessly looping.
+	* Improved devfs support on Linux (Rajesh Balan).
+	* We had some stupid assumptions about 'equivalency' between C++
+	  classes and C structs which break when compiling with
+	  gcc-3.0, there might be more problems lurking there.
+	* Windows XP installation fix (Phil Nelson).
+	* Searching the colon separated CODACONFPATH environment variable for
+	  venus.conf and server.conf configuration files.
+	* Added some more paranoia checks while parsing the /vice/db/servers
+	  file.
+
+2001-11-06   <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.17 =========
+	* venus-setup created NOT_REALLY_CODA in / instead of in /coda
+	  (Ivan Popov).
+	* Avoid killing clients when receiving truncated directory data.
+	* Block when accessing an uncached object during resolution instead of
+	  failing. This is especially useful during weak-reintegration.
+	* Added -local flag to cfs lv to avoid client-server rpc2 traffic.
+	* Fetch data as well as status in write-disconnected mode, the dirty
+	  status-only object would prevent subsequent data-fetches until
+	  successful reintegration completed.
+	* Added venus.conf option 'validateattrs' to limit piggybacked fids
+	  during validate attrs to help reducing IP layer fragmentation.
+	* Another new venus.conf option 'serverprobe' to increase server probe
+	  intervals (keeps firewalls from dropping masqueraded connections).
+	* venus.conf.ex file now defaults to turning on both masquerading and
+	  using private mmap's for RVM.
+	* Disallow unlinking special names with 'cfs rmm'
+	* Optimized local-global fid replacement.
+	* Removed /dev/cfs0 from RPM package to allow unpacking the RPM on devfs
+	  enabled systems, we don't fix up the devfs autoloading stuff yet.
+	* Moved /usr/bin/replay to /usr/bin/coda_replay to avoid name conflicts.
+	* Added getvolinfo program to be useful when debugging volume mounting
+	  problems.
+	* Added the missing fflush back in the server logging.
+	* Fixed createvol_rep to disable resolution logging when creating singly
+	  replicated volumes.
+	* Fixed possible errors during runt-resolution.
+	* Added assert to the server when not all hostnames in a VSG can be
+	  resolved.
+	* Avoid servers getting stuck in file-creation when there are
+	  pre-existing files in /vicepa.
+	* Always pre-allocate fids with the maximum possible stride, will become
+	  useful when we allowing modifications to a volume's replication
+	  group. However, any replicated volume over a mix of old and new
+	  servers has a slightly higher probability on getting unwanted
+	  fid-collissions.
+	* Reduced server memory usage during reintegration.
+	* gcc-3.0 compilation fixes.
+	* Lots of cygwin/win32 patches (Phil Nelson).
+	* Fixed the test for readline library version (Phil Nelson).
+	* Fixed detecting libdb3 with db 1.85 'compatible' API (Russ Mennie).
+	* OpenBSD patches (Jeff Bachtel).
+
 2001-06-12   <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.15 =========
 	* Improved the db1 autoconf test some more.

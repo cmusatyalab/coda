@@ -117,7 +117,7 @@ void print_VolHead(struct VolHead *VolHead, int volindex)
 	printf("\t\tversion stamp = %lx, %lu\n", VolHead->header.stamp.magic,
 					    VolHead->header.stamp.version);
     }
-    printf("\t\tid = %lx\n\t\t parentid = %lx\n\t\ttype = %u\n", VolHead->header.id,
+    printf("\t\tid = %lx\n\t\tparentid = %lx\n\t\ttype = %u\n", VolHead->header.id,
 				VolHead->header.parent, VolHead->header.type);
 }
 
@@ -206,7 +206,7 @@ void print_VolumeDiskData(VolumeDiskData *ddata)
     if (ddata->stamp.magic != 0) {
 	printf("\t\t\tblessed = %u\n\t\t\tneedsSalvaged = %u\n\t\t\tuniquifier= %lu\n\t\t\ttype = %d\n",
 	    ddata->blessed, ddata->needsSalvaged, ddata->uniquifier, ddata->type);
-	printf("\t\t\tparentId = %lx\n\t\t\tgrpId = %lx\n\t\t\tcloneId = %lx\n\t\t\tbackupId = %lxn\t\t\trestoreFromId = %lx\n",
+	printf("\t\t\tparentId = %lx\n\t\t\tgrpId = %lx\n\t\t\tcloneId = %lx\n\t\t\tbackupId = %lx\n\t\t\trestoreFromId = %lx\n",
 	    ddata->parentId, ddata->groupId, ddata->cloneId, ddata->backupId, ddata->restoredFromId);
 	printf("\t\t\tneedsCallback = %u\n\t\t\tdestroyMe = %u\n\t\t\tdontSalvage = %u\n\t\t\treserveb3 = %u\n",
 	    ddata->needsCallback, ddata->destroyMe, ddata->dontSalvage, ddata->reserveb3);
