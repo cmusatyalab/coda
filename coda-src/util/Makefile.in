@@ -38,8 +38,7 @@ OBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o  \
 	  rec_dhash.o rec_bstree.o vmindex.o arrlist.o recvarl.o \
 	  rvmtesting.o bitvect.o bitmap.o bitvect.o  \
 	  rec_dhash.o rec_bstree.o bitmap.o vmindex.o arrlist.o recvarl.o \
-	  rvmtesting.o bitvect.o proc.o \
-	  mkpath.o vice_file.o getsecret.o
+	  rvmtesting.o bitvect.o mkpath.o vice_file.o getsecret.o
 
 libutil.a: ${OBJECTS} 
 
