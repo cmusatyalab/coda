@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/salvage.cc,v 4.2 1997/02/26 16:02:37 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/dir/salvage.cc,v 4.3 1998/08/26 21:15:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,12 +68,7 @@ extern "C" {
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef __MACH__
-#include <libc.h>
-#endif /* __MACH__ */
-#ifdef __BSD44__
 #include <stdlib.h>
-#endif /* __BSD44__ */
 
 #ifdef __cplusplus
 }
@@ -83,191 +78,21 @@ extern "C" {
 #include "coda_dir.h"
 #include "dir.private.h"
 
-/* This routine is called with one parameter, the id (the same thing that is passed to physio or the buffer package) of a directory to check.  It returns 1 if the directory looks good, and 0 otherwise. */
 
+/* This routine is called with two parameters.  The first is the id of
+   the original, currently suspect, directory.  The second is the file
+   id of the place the salvager should place the new, fixed,
+   directory. */
 
-/* int DirOK (File *file){  changed *file to file */
-int DirOK (long *file){
-    struct DirHeader *dhp;
-    struct PageHeader *pp;
-    struct DirEntry *ep;
-    register int i, j, k;
-    int maxEntry, usedPages, count, entry;
-    char eaMap[MAXPAGES*EPP/8];	/* Change eaSize initialization below, too. */
-    int eaSize;
-
-    eaSize = MAXPAGES*EPP/8;
-
-    /* Check magic number for first page, and initialize dhp. */
-    dhp = (struct DirHeader *) DRead (file, 0);
-    if (!dhp)
-        {printf("First page in directory does not exist.\n");
-        DRelease((buffer *)dhp, 0);
-        return 0;
-        }
-    if (dhp->header.tag != htonl(1234))
-        {printf("Bad first pageheader magic number.\n");
-        DRelease((buffer *)dhp, 0);
-        return 0;
-        }
-
-    /* Ensure directory is contiguous, by checking dhp->alloMap.  Once the first dude is found with EPP free entries, the rest should match.  Check that alloMap entries all look in range.  Compute the largest numbered acceptable entry number as 256K / 32. */
-    for(i=0; i<MAXPAGES; i++)
-        {j = dhp->alloMap[i];
-        if (j<0 || j > EPP)
-            {printf("The dir header alloc map for page %d is bad.\n", i);
-            DRelease((buffer *)dhp, 0);
-            return 0;
-            }
-        }
-
-    usedPages = 0;
-    for(i=0; i<MAXPAGES; i++)
-        {if (dhp->alloMap[i] == EPP)
-            {usedPages = i;
-            break;
-            }
-        }
-    if (usedPages == 0) usedPages = MAXPAGES;
-    maxEntry = usedPages << LEPP;
-
-    for(i=usedPages; i<MAXPAGES; i++)
-        {if (dhp->alloMap[i] != EPP)
-            {printf("A partially-full page occurs in slot %d, after the dir end.\n", i);
-            DRelease((buffer *)dhp, 0);
-            return 0;
-            }
-        }
-
-    /* For all pages, initialize new allocation map with the proper
-       header entries used.  The first page, as it contains the dir
-       header, uses more room than the others.  Also, check that
-       alloMap has the right count for each page.  Also check the
-       magic number in each page header. */
-
-    /* First initialize the allocation map. */
-    for(i=0; i<eaSize; i++) eaMap[i] = 0;
-
-    for(i=0;i<usedPages;i++)
-        {pp = (struct PageHeader *) DRead(file, i);
-        if (!pp)
-            {printf("Directory shorter than alloMap indicates (page %d)\n", i);
-            DRelease((buffer *)dhp, 0);
-            return 0;
-            }
-        if (pp->tag != htonl(1234))
-            {DRelease((buffer *)pp, 0);
-            printf("Directory page %d has a bad magic number.\n", i);
-            DRelease((buffer *)dhp, 0);
-            return 0;
-            }
-        if (i==0)
-            {eaMap[0] = 0xff;	/* These two lines assume DHE==12. */
-            eaMap[1] = 0x1f;
-            }
-        else eaMap[i*(EPP/8)] = 0x01;
-        count = 0;
-        for(j=0;j<EPP/8;j++)
-            {k = pp->freebitmap[j];
-            if (k & 0x80) count++;
-            if (k & 0x40) count++;
-            if (k & 0x20) count++;
-            if (k & 0x10) count++;
-            if (k & 0x08) count++;
-            if (k & 0x04) count++;
-            if (k & 0x02) count++;
-            if (k & 0x01) count++;
-            }
-        count = EPP - count;
-        if ((count & 0xff) != (dhp->alloMap[i] & 0xff))
-            {DRelease((buffer *)pp, 0);
-            printf("Header allocation map doesn't match page header for page %d.\n", i);
-            DRelease((buffer *)dhp, 0);
-            return 0;
-            }
-        DRelease((buffer *)pp, 0);
-        }
-     
-    /* Walk down all the hash lists, ensuring that each flag field has FFIRST in it.  Mark the appropriate bits in the new allocation map.  Check that the name is in the right hash bucket. */
-    for(i=0; i<NHASH; i++)
-        {entry = ntohs(dhp->hashTable[i]);
-        while(1)
-            {if (!entry) break;
-            if (entry < 0 || entry >= usedPages*EPP)
-                {printf("Out-of-range hash id %d in chain %d.\n", entry, i);
-                DRelease((buffer *)dhp, 0);
-                return 0;
-                }
-            ep = GetBlob(file, entry);
-            if (!ep)
-                {printf("Invalid hash id %d in chain %d.\n", entry, i);
-                DRelease((buffer *)dhp, 0);
-                return 0;
-                }
-            if (ep->flag != FFIRST)
-                {printf("Dir entry %x in chain %d has bogus flag field.\n", ep, i);
-                DRelease((buffer *)dhp, 0);
-                DRelease((buffer *)ep, 0);
-                return 0;
-                }
-            j = strlen(ep->name);
-            if (j>256)
-                {printf("Dir entry %x in chain %d has too-long name.\n", ep, i);
-                DRelease((buffer *)ep, 0);
-                DRelease((buffer *)dhp, 0);
-                return 0;
-                }
-            k = NameBlobs(ep->name);
-            for(j=0; j<k; j++)
-                eaMap[(entry+j)>>3] |= (1<<((entry+j)&7));
-            if ((j=DirHash(ep->name)) != i)
-                {printf("Dir entry %x should be in hash bucket %d but IS in %d.\n", ep, j, i);
-                DRelease((buffer *)dhp, 0);
-                DRelease((buffer *)ep, 0);
-                return 0;
-                }
-            entry = ntohs(ep->next);
-            DRelease((buffer *)ep, 0);
-            }
-        }
-
-    /* Now the new allocation map has been computed.  Check that it matches the old one.  Note that if this matches, alloMap has already been checked against it. */
-    for(i=0; i<usedPages; i++)
-#ifdef	__linux__
-        {pp = (struct PageHeader *)DRead(file, i);
-#else
-        {pp = (PageHeader *)DRead(file, i);
-#endif
-        if (!pp)
-            {printf("Failed on second attempt(!) to read dir page %d\n", i);
-            printf("This shouldn't have happened!\n");
-            DRelease((buffer *)dhp, 0);
-            return 0;
-            }
-        count = i*(EPP/8);
-        for(j=0;j<EPP/8;j++) if (eaMap[count+j] != pp->freebitmap[j])
-            {printf("Entry alloc bitmap error, page %d, map offset %d, %x should be %x.\n", i, j, pp->freebitmap[j], eaMap[count+j]);
-            DRelease((buffer *)pp, 0);
-            DRelease((buffer *)dhp, 0);
-            return 0;
-            }
-        DRelease((buffer *)pp, 0);
-        }
-
-    /* Finally cleanup and return. */
-    DRelease((buffer *)dhp, 0);
-    return 1;
-    }
-
-/* This routine is called with two parameters.  The first is the id of the original, currently suspect, directory.  The second is the file id of the place the salvager should place the new, fixed, directory. */
 /*int DirSalvage (File *fromFile, File *toFile){*/
-int DirSalvage (long *fromFile, long *toFile){	/* corrected referencing level (ehs 10/87) */
-    /* First do a MakeDir on the target. */
-    long dot[3], dotdot[3], code, usedPages;
-    register int i;
-    struct DirHeader *dhp;
-    struct DirEntry *ep;
-    int entry;
+int DirSalvage (long *fromFile, long *toFile)
+{	/* corrected referencing level (ehs 10/87) */
+	/* First do a MakeDir on the target. */
+	long dot[3], dotdot[3], code, usedPages;
+	register int i;
+	struct DirHeader *dhp;
+	struct DirEntry *ep;
+	int entry;
 
     bzero((char *)dot, sizeof(dot));
     bzero((char *)dotdot, sizeof(dotdot));

@@ -219,6 +219,7 @@ int DIR_Hash (char *string);
 int DIR_DirOK (PDirHeader pdh);
 int DIR_Convert (PDirHeader dir, char *file, VolumeId vol);
 int DIR_Compare (PDirHeader, PDirHeader);
+void DIR_Setpages(PDirHeader, int);
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page);
 
 
@@ -242,7 +243,7 @@ void DI_VMFree(PDirInode pdi);
 void DI_VMDec(PDirInode pdi);
 
 /* dir handle cache */
-
+PDirInode DC_DC2DI(PDCEntry pdce);
 int DC_Refcount(PDCEntry);
 void DC_Put(PDCEntry);
 void DC_Drop(PDCEntry);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/dummy.cc,v 4.1 1997/01/08 21:49:49 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/dummy.cc,v 4.2 1997/12/20 23:34:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,7 +59,7 @@ int small = 500;
 
 vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 
-PollAndYield() {
+void PollAndYield() {
     dlist dl;
     ViceFid fid;
 

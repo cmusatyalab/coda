@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.22 98/09/23 18:47:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.23 1998/09/23 20:26:38 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -321,7 +321,7 @@ extern long FidToNodeid(ViceFid *);
 #ifdef __linux__
 
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_euid))
-#define	CRTORUID(cred)	((vuid_t)((cred).cr_fsuid))
+#define	CRTORUID(cred)	((vuid_t)((cred).cr_euid))
 #else
 
 /* XXX BSD needs to think through what they want!!!! 

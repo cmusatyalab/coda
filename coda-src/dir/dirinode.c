@@ -62,12 +62,12 @@ PDirInode DI_DhToDi(PDCEntry pdce, PDirInode pdi)
 			assert(lpdi->di_pages[i]); 
 		}
 		rvmlib_set_range(lpdi->di_pages[i], DIR_PAGESIZE);
-		bcopy((const void *)DIR_Page(pdh->dh_vmdata, i), lpdi->di_pages[i],
-		      DIR_PAGESIZE);
+		bcopy((const void *)DIR_Page(pdh->dh_vmdata, i), 
+		      lpdi->di_pages[i], DIR_PAGESIZE);
 	}
 
 	/* free pages which have disappeared */
-	for ( i=pages ; i<DIR_MAXPAGES ; i++ ) {
+	for (i=pages ; i<DIR_MAXPAGES ; i++) {
 		if (lpdi->di_pages[i])
 			rvmlib_rec_free(lpdi->di_pages);
 	}

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vicedep/recov_vollog.h,v 1.1 1996/11/22 19:09:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/recov_vollog.h,v 4.1 1997/01/08 21:52:04 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@ class recov_vol_log {
 				ViceVersionVector *, ResStatus *, 
 				RPC2_Integer *, RPC2_Integer,
 				RPC2_Integer *, ResPathElem *);
-    friend void DumpLog(rec_dlist *, Volume *, char **, int *, int *);
+    friend void DumpLog(rec_dlist *, struct Volume *, char **, int *, int *);
     friend int DumpVolDiskData(int, VolumeDiskData *);
     
     // recoverable part 

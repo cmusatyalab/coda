@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.5 1998/07/22 18:47:17 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.6 1998/08/31 12:23:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -38,20 +38,18 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+#include <netinet/in.h>
 
 #include <stdio.h>
 #include <strings.h>
 #include <errno.h>
-#ifdef	__MACH__
-#include <mach/boolean.h>
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>    
+#include <codadir.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <coda_dir.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <volutil.private.h>
@@ -64,14 +62,25 @@ extern "C" {
 #include <parser.h>
 #include "norton.h"
 
-static void printentry(struct DirSummary *dir, char *name, VnodeId
-			vnodeNumber, Unique_t unique) {
-    printf("    (0x%x 0x%x)\t%s\n", vnodeNumber, unique, name);
+
+struct NortonDirHandle {
+	DirHandle   nor_dirh;
+	VolumeId    nor_vol;
+};
+
+
+static int printentry(struct DirEntry *de, void *hook)
+{
+	int vnodenumber = ntohl(de->fid.dnf_vnode);
+	int unique = ntohl(de->fid.dnf_unique);
+	
+	printf("    (0x%x 0x%x)\t%s\n", vnodenumber, unique, de->name);
+	return 0;
 }
 
-static int 
-SetDirHandle(DirHandle *dir, int volid, int vnum, int unique) 
+PDCEntry SetDirHandle(int volid, int vnum, int unique) 
 { 
+	PDCEntry dc;
     char buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
     VolHead *vol;
@@ -107,12 +116,10 @@ SetDirHandle(DirHandle *dir, int volid, int vnum, int unique)
 	return 0;
     }
 
+    dc = DC_Get((PDirInode) vnode->inodeNumber);
+    
 
-    SetSalvageDirHandle(dir, volid, status.st_dev, (int)vnode->inodeNumber);
-    dir->vnode = vnum;
-    dir->unique = unique;
-
-    return(1);
+    return dc;
 }
 
 
@@ -138,7 +145,7 @@ void show_dir(int argc, char *argv[]) {
 void 
 show_dir(int volid, int vnum, int unique) 
 {
-    DirHandle dir;
+    PDCEntry dc;
     int     vclass = vnodeIdToClass(vnum);
 
     if ( vclass != vLarge ) {
@@ -146,16 +153,17 @@ show_dir(int volid, int vnum, int unique)
 	return;
     }
 
-    if (!SetDirHandle(&dir, volid, vnum, unique)) {
-	return;
+    dc= SetDirHandle(volid, vnum, unique);
+    if (!dc) {
+	    return;
     }
     
-    if (!DirOK((long *)&dir)) {
+    if (!DH_DirOK(DC_DC2DH(dc))) {
 	fprintf (stderr, "WARNING: Bad Dir(0x%#08x.0x%x.0x%x)\n",
 		 volid, vnum, unique);
     }
 
-    EnumerateDir((long *)&dir, (int (*)(void *...))printentry, (long)&dir);
+    DH_EnumerateDir(DC_DC2DH(dc), printentry, NULL);
 }
 
 
@@ -165,10 +173,13 @@ show_dir(int volid, int vnum, int unique)
 static void 
 delete_name(int volid, int vnum, int unique, char *name, int flag) 
 {
+
     char buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
-    DirHandle dirh;
-    struct VFid fid;
+    PDirHandle pdh;
+    PDCEntry dc;
+    PDirInode pdi;
+    struct ViceFid fid;
     Error   error;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     int     vclass = vnodeIdToClass(vnum);
@@ -176,48 +187,54 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     
     volindex = GetVolIndex(volid);
     if (volindex < 0) {
-	fprintf(stderr, "Unable to get volume 0x%x\n", volid);
-	return;
+	    fprintf(stderr, "Unable to get volume 0x%x\n", volid);
+	    return;
     }
 
     if (vclass != vLarge) {
-	fprintf(stderr, "Not a directory (i.e. large) vnode.\n");
+	    fprintf(stderr, "Not a directory (i.e. large) vnode.\n");
     }
 
-    if (!SetDirHandle(&dirh, volid, vnum, unique)) {
-	return;
+    dc = SetDirHandle(volid, vnum, unique);
+    if (!dc) {
+	    printf("Cannot get handle for directory\n");
+	    return;
     }
-    dirh.cacheCheck = 1; // XXX hack 
+    pdh = DC_DC2DH(dc);
+    assert(pdh);
 
     RVMLIB_BEGIN_TRANSACTION(restore)
 	    
     if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
 		     (Unique_t)unique, vnode) < 0) {
-	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
+	fprintf(stderr, "Unable to get vnode 0x%x 0x%x 0x%x\n", volid, vnum,
 		unique);
 	rvmlib_abort(VFAIL);
 	return;
     }
 
-
-    if ((error = Delete((long *)&dirh, name)) != 0) {
-	fprintf(stderr, "ERROR: Delete() returns %d, aborting\n", error);
+    error = DH_Delete(pdh, name);
+    if (error) {
+	fprintf(stderr, "ERROR: DH_Delete() returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;
     }
-    
-    // flush the buffer pages
-    DFlush();
+
+    if ( ! DH_DirOK(pdh) ) {
+	    printf("WARNING: directory not OK!\n");
+    }
 
     if ( flag ) {
 	vnode->linkCount--;
     }
 
     // ignore changing the length for now
-    fid.volume = dirh.volume;
-    fid.vnode = dirh.vnode;
-    fid.vunique = dirh.unique;
-    ICommit(&fid, (long *)vnode->inodeNumber);
+    pdi = DI_DhToDi(dc, pdi);
+    
+    if ( pdi != (PDirInode) vnode->inodeNumber ) {
+	    printf("WARNING: directory inode has changed!\n");
+	    vnode->inodeNumber = (long unsigned int)pdi;
+    }
 
     // mark the vnode with inconsistent flag
     SetIncon(vnode->versionvector);
@@ -239,6 +256,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
 
 
 void delete_name(int argc, char *argv[]) {
+
     int volid,
 	vnode,
 	unique,
@@ -255,9 +273,7 @@ void delete_name(int argc, char *argv[]) {
     }
 
     delete_name(volid, vnode, unique, argv[5], flag);
-
 }
-
 
 static void 
 create_name(int volid, int vnum, int unique, char *name, int cvnum, 
@@ -268,15 +284,16 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     char cbuf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
     struct VnodeDiskObject *cvnode = (struct VnodeDiskObject *)cbuf;
-    DirHandle dirh;
-    struct VFid fid;
+    PDirHandle pdh;
+    PDCEntry dc;
+    PDirInode pdi;
+    struct ViceFid vfid;
     Error   error;
     VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
     VnodeId cvnodeindex = vnodeIdToBitNumber(cvnum);
     int     vclass = vnodeIdToClass(vnum);
     int     cvclass = vnodeIdToClass(cvnum);
     int	    volindex;
-    long    vfid[3];
     
     volindex = GetVolIndex(volid);
     if (volindex < 0) {
@@ -288,10 +305,13 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
 	fprintf(stderr, "Not a directory (i.e. large) vnode.\n");
     }
 
-    if (!SetDirHandle(&dirh, volid, vnum, unique)) {
-	return;
+    dc = SetDirHandle(volid, vnum, unique);
+    if (!dc) {
+	    printf("Cannot get handle for directory\n");
+	    return;
     }
-    dirh.cacheCheck = 1; // XXX hack 
+    pdh = DC_DC2DH(dc);
+    assert(pdh);    
 
     RVMLIB_BEGIN_TRANSACTION(restore)
 	    
@@ -312,12 +332,17 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     }
 
 
-    vfid[1] = cvnum;
-    vfid[2] = cunique;
-    if ((error = Create((long *)&dirh, name, vfid)) != 0) {
+    vfid.Vnode = cvnum;
+    vfid.Unique = cunique;
+    error = DH_Create(pdh, name, &vfid);
+    if (error) {
 	fprintf(stderr, "ERROR: Create() returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;
+    }
+
+    if ( ! DH_DirOK(pdh) ) {
+	    printf("WARNING: directory not OK!\n");
     }
 
     // if child is directory increase linkCount of parent
@@ -329,14 +354,14 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     cvnode->vparent = vnum;
     cvnode->uparent = unique;
     
-    DFlush();
-    // 
+    pdi = DI_DhToDi(dc, pdi);
+    
+    if ( pdi != (PDirInode) vnode->inodeNumber ) {
+	    printf("WARNING: directory inode has changed!\n");
+	    vnode->inodeNumber = (long unsigned int)pdi;
+    }
 
-    // ignore changing the length for now
-    fid.volume = dirh.volume;
-    fid.vnode = dirh.vnode;
-    fid.vunique = dirh.unique;
-    ICommit(&fid, (long *)vnode->inodeNumber);
+
 
     // mark the vnode with inconsistent flag
     SetIncon(vnode->versionvector);
@@ -381,7 +406,6 @@ void sh_create_name(int argc, char **argv) {
 	fprintf(stderr, " <newvnode> <newunique>\n"); 
 	return;
     }
-
     create_name(volid, vnode, unique, argv[5], cvnode, cunique);
 
 }

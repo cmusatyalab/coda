@@ -177,7 +177,7 @@ static int dir_FindBlobs (struct DirHeader **dh, int nblobs)
 				pp->freecount -= nblobs;
 				for (k=0; k<nblobs; k++)
 					pp->freebitmap[(j+k)>>3] |= (1<<((j+k) % 8));
-				assert ( (j + i *EPP) > DHE +1 );
+				assert((j + i *EPP) > DHE);
 				return j+i*EPP;
 			}
 		}
@@ -472,7 +472,7 @@ int DIR_Length (struct DirHeader *dir)
 }
 
 
-/* the following three functions (Create, MkDir, Delete) 
+/* the following functions (Create, MkDir, Delete, Setpages) 
    modify directory contents.
    The first two of these may alse need to increase the directory 
    size, so they are passed a pointer to the dirheader address.
@@ -536,7 +536,9 @@ int DIR_Create (struct DirHeader **dh, char *entry, struct DirFid *fid)
 
 
 /* Delete an entry from a directory, including update of all free
-     entry descriptors. */
+   entry descriptors. 
+   Return 0 upon success
+*/
 int DIR_Delete(struct DirHeader *dir, char *entry)
 {
 	int nitems, index;
@@ -603,8 +605,9 @@ int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me,
 	for(i=2;i<EPP/8;i++) 
 		dhp->dirh_ph.freebitmap[i] = 0;
 	dhp->dirh_allomap[0] = (EPP-DHE-1);
-	for(i=1;i<DIR_MAXPAGES;i++)
-		dhp->dirh_allomap[i] = EPP;
+
+	DIR_Setpages(dhp, 1);
+
 	for(i=0;i<NHASH;i++)
 		dhp->dirh_hashTable[i] = 0;
 
@@ -617,6 +620,15 @@ int DIR_MakeDir (struct DirHeader **dir,struct DirFid *me,
 	return 0;
 }
 
+/* Set the number of pages in the allomap */
+void DIR_Setpages(PDirHeader dirh, int pages)
+{
+	int i;
+
+	assert(pages >= 1);
+	for(i=pages; i<DIR_MAXPAGES; i++)
+		dirh->dirh_allomap[i] = EPP;
+}
 
 
 /* will release the directory pages from memory or RVM */

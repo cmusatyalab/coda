@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.20 1998/08/05 23:50:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.21 1998/08/31 12:23:36 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -131,7 +131,6 @@ extern "C" {
 
 
 #include <srv.h>
-#include <codadir.h>
 #include <vice.private.h>
 #include <recov.h>
 #include <camprivate.h>

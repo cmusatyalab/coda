@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-setup.cc,v 4.4 98/08/31 12:23:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-setup.cc,v 4.5 1998/09/15 14:27:55 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -43,32 +43,22 @@ extern "C" {
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef __BSD44__
-#include <sys/dir.h>
-#endif
-#ifdef __MACH__
-#include <sys/fs.h>
-#include <fstab.h>
-#endif
-#ifdef	__linux__
-#include <linux/fs.h>
-#include <mntent.h>
-#endif
 
 #include <lwp.h>
 #include <rvm.h>
 #include <rds.h>
+#include <rvmlib.h>
+#include <codadir.h>
+#include <partition.h>
+#include <util.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <codadir.h>
+#include <rec_dlist.h>
 #include <voltypes.h>
-#include <partition.h>
-#include <rvmlib.h>
 #include <volume.h>
-
 
 #include "parser.h"
 #include "norton.h"
@@ -79,7 +69,6 @@ extern "C" {
 int norton_debug = 0;
 
 struct camlib_recoverable_segment *camlibRecoverableSegment;
-
 
 void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
     rvm_return_t err;
@@ -96,7 +85,6 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
 	perror("Reading data device");
 	exit(1);
     }
-    
 
     /* Set the per-thread data structure, don't ever free this. */
     rvmptt = (rvm_perthread_t *)malloc(sizeof(rvm_perthread_t));
@@ -104,8 +92,7 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
     rvmptt->list.table = NULL;
     rvmptt->list.count = 0;
     rvmptt->list.size = 0;
-    rvmptt->die = NULL;
-    rvmlib_set_thread_data()(rvmptt);
+    rvmlib_set_thread_data(rvmptt);
     assert(rvmlib_thread_data() != 0);
 
     options = rvm_malloc_options();
@@ -164,8 +151,8 @@ extern struct DiskPartition *DiskPartitionList;
 /* Do a partial vol package init.  VInitVolPackage() invokes the
  * salvager, we can't.
  */
-void NortonInitVolPackage() {
-    struct fstab *fsent;
+void NortonInitVolPackage() 
+{
 
     DiskPartitionList = NULL;
 
@@ -173,7 +160,6 @@ void NortonInitVolPackage() {
     InitLRU(VOLUMECACHESIZE);
     InitVolTable(HASHTABLESIZE);
 
-//    bzero(VolumeHashTable, sizeof(VolumeHashTable));
     
     VInitVnodes(vLarge, 10);
     VInitVnodes(vSmall, 10);
@@ -181,30 +167,6 @@ void NortonInitVolPackage() {
     /* Initialize the resolution storage structures */
     InitLogStorage();
     
-    /* Find all partitions named /vicep* */
-#ifdef	__MACH__ 
-    setfsent();
-    while (fsent = getfsent()) {
-	char *part = fsent->fs_file;
-	DIR *dirp;
-	struct stat status;
-
-	if (stat(part, &status) == -1) {
-	    fprintf(stderr,
-		    "VInitVolumePackage: Couldn't find file system %s; ignored",
-		    part); 
-	    continue;
-	}
-	if (status.st_ino != ROOTINO) {
-	    continue;
-	}
-	assert((dirp = opendir(part)) != NULL);
-	closedir(dirp);
-
-	VInitPartition(part, fsent->fs_spec, status.st_dev);
-    }
-    endfsent();
-#endif
 }
 
 
@@ -226,13 +188,8 @@ void NortonInit(char *log_dev, char *data_dev, int data_len) {
     InitLWP();
     LoadRVM(log_dev, data_dev, RVM_MK_OFFSET(0, data_len));
 
-
-    /* Initialize the dir package buffer system */
-    DInit(NUMBUFS);
-
-    /* Initialize the RVM directory hash table */
-    DirHtbInit();
-    
+    DIR_Init(DIR_DATA_IN_VM);
+    DC_HashInit();
 
     // Pretend we are the salvager.
     pt = salvager;

@@ -223,6 +223,13 @@ PDirHandle DC_DC2DH(PDCEntry pdce)
 	return &pdce->dc_dh;
 }
 
+
+PDirInode DC_DC2DI(PDCEntry pdce)
+{
+	assert(pdce);
+	return pdce->dc_pdi;
+}
+
 void DC_SetDirh(PDCEntry pdce, PDirHeader pdh)
 {
 	assert(pdce);

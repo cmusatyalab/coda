@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.16 1998/09/23 20:26:30 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.17 1998/09/25 19:09:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -168,9 +168,9 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
                    the fsobj. */
 		int tfd = ::open(data.dir->udcf->name, O_BINARY | O_RDWR | O_CREAT, V_MODE);
 		if (tfd < 0) Choke("fsobj::Open: open");
+#if !defined(DJGPP) && !defined(__CYGWIN32__)
 		if (::fchmod(tfd, V_MODE) < 0)
 		    Choke("fsobj::Open: fchmod");
-#if !defined(DJGPP) && !defined(__CYGWIN32__)
 		if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
 		    Choke("fsobj::Open: fchown");
 #endif
