@@ -32,7 +32,7 @@ prefix=@prefix@
 vicedir=
 
 # load the server configuration file
-. codaconfedit server.conf
+. `codaconfedit server.conf`
 
 if [ x${vicedir} = x ]; then
   vicedir=/vice
