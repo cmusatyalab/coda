@@ -1,0 +1,34 @@
+pkg-freebsd and pkg-netbsd are where the prototypes for the coda
+packages are held for the freebsd and netbsd systems.
+
+To build Coda on FreeBSD (or NetBSD):
+	cd pkg-freebsd (or pkg-netbsd)	 and
+	cp -rp net /usr/ports (or /usr/pkgsrc)
+This will install a coda_client, coda_doc, coda_intro and coda_server
+package.  The standard method for building a bsd package can be followed.
+For NetBSD for example,
+	cd /usr/pkgsrc/net/coda_client
+	make package
+NOTE:
+If you already HAD these packages in your ports (pkgsrc) area, these
+will most probably get you older releases of the packages.
+
+You also may be able to build the packages in place.  For example,
+	cd pkg-freebsd/net/coda_client 		and type
+	make package
+NOTE:
+For NetBSD, to make this work you should first put a link to
+the package system mk directory in pkg-netbsd
+	cd pkg-netbsd
+	ln -s /usr/pkgsrc/mk mk
+
+Finally, for both coda_client and coda_server the Makefile must
+chose a specific Coda release.  The current default is 5.0.  If
+this is not desired, you can override the RELEASE variable either
+by editting the Makefile or simply passing in a new release, viz
+	make RELEASE=4.6.6 package
+
+Also, you might want to compute the checksum of the coda-src tgz
+file used for your release and make an files/md5 entry for it.
+The content would be, for example,
+MD5 (coda-<RELEASE>.tgz) = <MD5 VALUE>
