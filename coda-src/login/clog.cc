@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/login/RCS/clog.cc,v 4.1 1997/01/08 21:49:48 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/login/clog.cc,v 4.2 1997/02/26 16:02:44 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -93,14 +93,15 @@ int main(int argc, char **argv)
     ClearToken		    cToken;
     struct passwd	    pwent;
     struct passwd	    *pw = &pwent;
-    static char		    passwd[100] = { '\0' };
+    static char		    passwd[100];
     long		    rc;
 
+    bzero(passwd, sizeof(passwd));
     if (argc < 2) {
 	pw = getpwuid (getuid ());
 	if (pw == NULL) {
 	    fprintf (stderr, "Can't figure out your user id.\n");
-	    fprintf (stderr, "Try \"log user\"\n");
+	    fprintf (stderr, "Try \"clog user\"\n");
 	    exit (1);
 	}
     }
