@@ -13,13 +13,13 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define assert(ex) {\
+#define assert(ex) do {\
     if (!(ex)) {\
 	fprintf(stderr,"Assertion failed: file \"%s\", line %d\n", __FILE__, __LINE__);\
 	fflush(stderr);\
     while ( 1 ) { sleep(1); } ;\
     }\
-}
+} while (0)
 
 
 #endif  _ASSERT_H_
