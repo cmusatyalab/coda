@@ -22,7 +22,6 @@ dnl Checks for libraries.
 AC_CHECK_LIB(pthread, pthread_create, [LIBPTHREAD="-lpthread"])
 AC_SUBST(LIBPTHREAD)
 AM_CONDITIONAL(pthread, test x$LIBPTHREAD != x)
-AC_CHECK_LIB(iberty, insque)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h)
@@ -32,11 +31,11 @@ dnl Checks for compiler characteristics.
 
 dnl Checks for library functions.
 AC_FUNC_MMAP
+CODA_FUNC_INSQUE
 
 dnl Checks for system services.
 AM_CYGWIN32
 
 dnl Generate output files
-AC_OUTPUT(Makefile include/Makefile include/lwp/Makefile src/Makefile
-          src-pt/Makefile pkgs/lwp.spec pkgs/lwp-nt.spec)
+AC_OUTPUT(Makefile include/Makefile include/lwp/Makefile src/Makefile src-pt/Makefile pkgs/Makefile pkgs/lwp.spec pkgs/lwp-nt.spec pkgs/lwp-dos.spec)
 

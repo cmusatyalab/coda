@@ -46,3 +46,9 @@ AC_DEFUN(CODA_PATCH_LIBTOOL,
   patch < ${srcdir}/libtool.patch
  fi])
 
+AC_DEFUN(CODA_FUNC_INSQUE,
+[AC_CHECK_FUNC(insque,,
+  [AC_CHECK_LIB(iberty, insque,,
+    [AC_CHECK_LIB(bfd, insque,,
+      [AC_CHECK_LIB(compat, insque)
+])])])])

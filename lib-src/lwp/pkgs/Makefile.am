@@ -17,18 +17,4 @@
 #                            none currently
 #*/
 
-if pthread
-EXTRA = src-pt
-endif
-
-SUBDIRS = include src $(EXTRA) pkgs
-
-EXTRA_DIST = acinclude.m4 bootstrap.sh configure libtool.patch
-
-MAINTAINERCLEANFILES = ChangeLog INSTALL Makefile.in aclocal.m4 config.guess \
-    config.h.in config.sub configure install-sh libtool ltconfig ltmain.sh \
-    missing mkinstalldirs stamp-h.in
-
-dist-hook:
-	if [ -x /afs/cs ] ; then cp /afs/cs/project/coda-src/cvs/CVSROOT/ChangeLog.lwp ChangeLog ; fi
-
+MAINTAINERCLEANFILES = Makefile.in

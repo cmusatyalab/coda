@@ -1,5 +1,5 @@
 Summary: LWP thread library
-Name: @PACKAGE@-cygwin32
+Name: @PACKAGE@-djgpp
 Version: @VERSION@
 Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
@@ -28,23 +28,23 @@ call library)
 %setup -n @PACKAGE@-@VERSION@
 
 %build
-./configure --prefix=/usr/gnuwin32 --target=nt
+./configure --prefix=/usr/djgpp --target=dos
 make
 
 %install
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
-make prefix=$RPM_BUILD_ROOT/usr/gnuwin32 install
+make prefix=$RPM_BUILD_ROOT/usr/djgpp install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files dev
-/usr/gnuwin32/lib/liblwp.la
-/usr/gnuwin32/lib/liblwp.a
-%dir /usr/gnuwin32/include/lwp
-/usr/gnuwin32/include/lwp/lock.h
-/usr/gnuwin32/include/lwp/lwp.h
-/usr/gnuwin32/include/lwp/preempt.h
-/usr/gnuwin32/include/lwp/timer.h
+/usr/djgpp/lib/liblwp.la
+/usr/djgpp/lib/liblwp.a
+%dir /usr/djgpp/include/lwp
+/usr/djgpp/include/lwp/lock.h
+/usr/djgpp/include/lwp/lwp.h
+/usr/djgpp/include/lwp/preempt.h
+/usr/djgpp/include/lwp/timer.h
 

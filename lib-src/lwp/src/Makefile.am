@@ -35,6 +35,6 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUFFIXES = .ss
 
-%.s: %.ss
+.ss.s:
 	$(CPP) -x c-header -P -D__ASSEMBLY__ $(AFLAGS) $< > $*.s
 
