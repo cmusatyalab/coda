@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.7 1998/05/27 20:29:06 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.8 1998/06/04 17:30:03 shafeeq Exp $";
 #endif /*_BLURB_*/
 
 
@@ -936,7 +936,7 @@ static checkbuffer(where, what, size)
     int32_t size;
 {
 	fprintf(where, "    if ( (char *)%s + %d > _EOB)\n"
-		 "        return NULL;\n", what,size);
+		 "        return 0;\n", what,size);
 }
 
 static set_timeout(proc, where)
@@ -1019,7 +1019,7 @@ static pack(who, parm, prefix, ptr, where)
     case RPC2_STRING_TAG:		
 	    fprintf(where, "    %s = strlen((char *)%s);\n", length, name);
 	    fprintf(where, "    if ( (char *)%s + _PAD(%s+1) + 4 > _EOB)\n"
-		    "        return NULL;\n", ptr,length);
+		    "        return 0;\n", ptr,length);
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s);\n", ptr, length);
 	    fprintf(where, "    strcpy((char *)(%s+4), (char *)%s);\n", ptr, name);
 	    fprintf(where, "    *(%s+4+%s) = '\\0';\n", ptr, length);
@@ -1028,7 +1028,7 @@ static pack(who, parm, prefix, ptr, where)
     case RPC2_COUNTEDBS_TAG:	
 	    fprintf(where, "    if ( (char *)%s +",ptr);
 	    print_size(who,parm,prefix,where);
-	    fprintf(where, "> _EOB)\n        return NULL;\n");
+	    fprintf(where, "> _EOB)\n        return 0;\n");
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sSeqLen);\n",
 		    ptr, name, select);
 	    fprintf(where, "    bcopy((char *)%s%sSeqBody, (char *)(%s+4), (long)%s%sSeqLen);\n",
@@ -1040,7 +1040,7 @@ static pack(who, parm, prefix, ptr, where)
     case RPC2_BOUNDEDBS_TAG:
 	    fprintf(where, "    if ( (char *)%s +",ptr);
 	    print_size(who,parm,prefix,where);
-	    fprintf(where, "> _EOB)\n        return NULL;\n");	
+	    fprintf(where, "> _EOB)\n        return 0;\n");	
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sMaxSeqLen);\n",
 		    ptr, name, select);
 	    fprintf(where, "    *(RPC2_Integer *) (%s+4) = htonl(%s%sSeqLen);\n",
@@ -1081,7 +1081,7 @@ static pack(who, parm, prefix, ptr, where)
     break;
     case RPC2_ENCRYPTIONKEY_TAG:	{
 	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE)\n"
-		           "        return NULL;",ptr);
+		           "        return 0;",ptr);
 	    fprintf(where, "    bcopy((char *)%s, (char *)%s, (long)%s);\n", name, ptr, "RPC2_KEYSIZE");
 	    inc(ptr, "RPC2_KEYSIZE", where);
     }
@@ -1159,16 +1159,16 @@ static unpack(who, parm, prefix, ptr, where)
 	    fprintf(where, "    %s = ntohl(*(RPC2_Integer *) %s) + 1;\n", length, ptr);
 	    inc4(ptr, where);
 	    fprintf(where, "    if ( (char *)%s + _PAD(%s) > _EOB)\n"
-		    "        return NULL;\n", ptr,length);
+		    "        return 0;\n", ptr,length);
 	    fprintf(where, "    if (*(%s+%s) != 0)"
-		           "        return NULL;\n",ptr,length);
+		           "        return 0;\n",ptr,length);
 	    /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
 	    /* So mode should not be examined here. */
 	    /* if (mode == IN_OUT_MODE && who == CLIENT) { */
 	    if (/* mode == IN_OUT_MODE && */ who == CLIENT) {
 		    /* Just copy characters back */
 		    fprintf(where,  "    bcopy((char *)%s, (char *)%s, (long)%s);\n", ptr, name, length);
-		    fprintf(where, "     %s[%s] = '\0';\n", name, length);
+		    fprintf(where, "     %s[%s] = '\\0';\n", name, length);
 	    }
 	    else {
 		    fputs("    ", where);
@@ -1185,7 +1185,7 @@ static unpack(who, parm, prefix, ptr, where)
 			fprintf(where, "    %s.SeqLen = ntohl(*(RPC2_Integer *) %s);\n", name, ptr);
 			inc4(ptr, where);
 			fprintf(where, "    if ( (char *)%s + _PAD(%s.SeqLen) > _EOB)\n"
-				"        return NULL;\n", ptr,name);
+				"        return 0;\n", ptr,name);
 			fprintf(where, "    %s.SeqBody = %s;\n", name, ptr);
 			fprintf(where, "    %s += _PAD(%s.SeqLen);\n", ptr, name);
 			break;
@@ -1193,7 +1193,7 @@ static unpack(who, parm, prefix, ptr, where)
 		fprintf(where, "    %s%sSeqLen = ntohl(*(RPC2_Integer *) %s);\n", name, select, ptr);
 		inc4(ptr, where);
 		fprintf(where, "    if ( (char *)%s + _PAD(%s%sSeqLen) > _EOB)\n"
-				"        return NULL;\n", ptr, name, select);
+				"        return 0;\n", ptr, name, select);
 		/*    bug fix. Should update SeqLen and use select. M.K. */
 		/*   fprintf(where, "    
 		     bcopy((char *)%s, (char *)%s->SeqBody, (int32_t)%s);\n", */
@@ -1211,7 +1211,7 @@ static unpack(who, parm, prefix, ptr, where)
 						name, select, ptr);
 	    inc4(ptr, where);
 	    fprintf(where, "    if ( (char *)%s + _PAD(%s%sSeqLen) > _EOB)\n"
-		    "        return NULL;\n", ptr,name,select);
+		    "        return 0;\n", ptr,name,select);
 	    if (who == CLIENT /* && mode == IN_OUT_MODE */) {
 		    fprintf(where, "    bcopy((char *)%s, (char *)%s%sSeqBody, (long)%s%sSeqLen);\n",
 			    ptr, name, select, name, select);
@@ -1265,7 +1265,7 @@ static unpack(who, parm, prefix, ptr, where)
     break;
     case RPC2_ENCRYPTIONKEY_TAG: {
 	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE > _EOB)\n"
-			    "        return NULL;\n", ptr);
+			    "        return 0;\n", ptr);
 	    fputs("    ", where);
 	    fprintf(where, "bcopy((char *)%s, (char *)%s, (int)%s);\n", ptr, name, "RPC2_KEYSIZE");
 	    inc(ptr, "RPC2_KEYSIZE", where);
