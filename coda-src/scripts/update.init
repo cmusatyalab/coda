@@ -55,8 +55,10 @@ case "$1" in
 	echon "rpc2portmap "
 	rpc2portmap &
 
-	echon "updatesrv "
-	updatesrv -p $DBDIR &
+	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
+		echon "updatesrv "
+		updatesrv -p $DBDIR &
+	fi
 
 	echon "updateclnt "
 	updateclnt  -h `cat $DBDIR/scm`  -q coda_udpsrv &
@@ -67,19 +69,21 @@ case "$1" in
 	echon "Stopping coda update servers "
 	echon "rpc2portmap "
 	if [ `uname` = 'SunOS' ] ; then
-	    pkill -9 rpc2portmap
+		pkill -9 rpc2portmap
 	else
-	    killall -9 rpc2portmap
+		killall -9 rpc2portmap
 	fi
     
-	if [ -f $PIDDIR/updatesrv.pid ]; then
-	    echon "updatesrv "
-	    kill -9 `cat $PIDDIR/updatesrv.pid`
+	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
+		if [ -f $PIDDIR/updatesrv.pid ]; then
+			echon "updatesrv "
+			kill -9 `cat $PIDDIR/updatesrv.pid`
+		fi
 	fi
 
 	if [ -f $PIDDIR/updateclnt.pid ]; then
-	    echon "updateclnt "
-	    kill -9 `cat $PIDDIR/updateclnt.pid`
+		echon "updateclnt "
+		kill -9 `cat $PIDDIR/updateclnt.pid`
 	fi
 	rm -f $LOCKFILE
 	echo "done."

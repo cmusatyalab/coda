@@ -1,3 +1,16 @@
+2000-06-22    <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.8 =========
+	* volutil restore bugfix (Ulrich Kahn).
+	* More changes for allowing multiple servers on a machine (Phil Nelson).
+	* Venus rotates the logfiles when it receives a SIGHUP.
+	* Many changes to the volume creation scripts and associated server
+	  code.
+	* Updatesrv now only has to run on the SCM.
+	* Fixed hosttable overflow crash which struck when 1024 clients had
+	  connected to a server.
+	* Servers now dump directory contents if queried by volutil showvnode.
+	* Some NetBSD-current updates (Phil Nelson).
+
 2000-05-01    <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.7 =========
 	* Bumped the version number to 5.3.7.
