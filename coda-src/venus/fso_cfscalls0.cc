@@ -590,7 +590,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		VFlagBS.SeqBody = (RPC2_ByteSeq)VFlags;
 
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_BoundedBS, VFlagvar, VFlagBS,
-				VSG_MEMBERS, VENUS_MAXBSLEN);
+				VSG_MEMBERS, MAX_PIGGY_VALIDATIONS);
 
 		/* make the RPC */
 		char val_prel_str[256];

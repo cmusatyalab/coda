@@ -1179,7 +1179,7 @@ void worker::main(void)
 		{
 		LOG(100, ("CODA_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 		MAKE_CNODE(vtarget, in->coda_fsync.Fid, 0);
-		fsync(&vtarget);
+		//fsync(&vtarget);
 		break;
 		}
 
