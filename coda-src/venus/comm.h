@@ -68,6 +68,7 @@ class srvent;
 class srv_iterator;
 class RepOpCommCtxt;
 class mgrpent;
+class probeslave;
 
 /* Bogus forward declarations to placate C++! */
 
@@ -226,6 +227,8 @@ class srvent : private RefCountedObject {
 
   friend class Realm;
   friend connent *conn_iterator::operator()();
+  friend class probeslave;
+  friend void MultiBind(int, struct in_addr *, connent **);
 
     /* The server list. */
     static olist *srvtab;

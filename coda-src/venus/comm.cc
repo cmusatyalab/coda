@@ -635,7 +635,6 @@ probeslave::probeslave(ProbeSlaveTask Task, void *Arg, void *Result, char *Sync)
     start_thread();
 }
 
-
 void probeslave::main(void)
 {
     switch(task) {
@@ -650,12 +649,13 @@ void probeslave::main(void)
 	case BindToServer:
 	    {
 	    /* *result gets pointer to connent on success, 0 on failure. */
-	    int **args = (int **)arg;
-	    struct in_addr *host = (struct in_addr *)((*args)[0]);
-	    RealmId realm = (*args)[1];
-            srvent *s = GetServer(host, realm);
-	    s->GetConn((connent **)result, V_UID, 1);
-            PutServer(&s);
+	    struct in_addr *Host = (struct in_addr *)arg;
+            srvent *s = FindServer(Host);
+	    if (s) {
+		s->GetRef();
+		s->GetConn((connent **)result, V_UID, 1);
+		PutServer(&s);
+	    }
 	    }
 	    break;
 
@@ -670,43 +670,46 @@ void probeslave::main(void)
     delete VprocSelf();
 }
 
-
 void ProbeServers(int Up)
 {
     LOG(1, ("ProbeServers: %s\n", Up ? "Up" : "Down"));
 
-    /* Hosts and Connections are arrays of addresses and connents respectively representing the servers to */
-    /* be probed.  HowMany is the current size of these arrays, and ix is the number of entries actually used. */
+    /* Hosts and Connections are arrays of addresses and connents respectively
+     * representing the servers to be probed.  HowMany is the current size of
+     * these arrays, and ix is the number of entries actually used. */
     const int GrowSize = 32;
     int HowMany = GrowSize;
-    struct in_addr *Hosts = (struct in_addr *)malloc(HowMany * sizeof(struct in_addr));
+    struct in_addr *Hosts;
     int ix = 0;
 
+    Hosts = (struct in_addr *)malloc(HowMany * sizeof(struct in_addr));
     /* Fill in the Hosts array for each server that is to be probed. */
     {
 	srv_iterator next;
 	srvent *s;
 	while ((s = next())) {
-	    if (!s->probeme ||
-		(Up && s->ServerIsDown()) || (!Up && !s->ServerIsDown())) continue;
+	    if (!s->probeme)
+		continue;
+
+	    if ((Up && s->ServerIsDown()) || (!Up && !s->ServerIsDown()))
+		continue;
 
 	    /* Grow the Hosts array if necessary. */
 	    if (ix == HowMany) {
-		/* I am terrified of realloc */
 		HowMany += GrowSize;
-		struct in_addr *newHosts = (struct in_addr *)malloc(HowMany * sizeof(struct in_addr));
-		memcpy(newHosts, Hosts, ix * sizeof(struct in_addr));
-		free(Hosts);
-		Hosts = newHosts;
+		Hosts = (struct in_addr *)
+		    realloc(Hosts, HowMany * sizeof(struct in_addr));
+		memset(&Hosts[ix], 0, GrowSize * sizeof(struct in_addr));
 	    }
 
 	    /* Stuff the address in the Hosts array. */
-	    Hosts[ix] = s->host;
+	    memcpy(&Hosts[ix], &s->host, sizeof(struct in_addr));
 	    ix++;
 	}
     }
 
-    if (ix > 0) DoProbes(ix, Hosts);
+    if (ix)
+	DoProbes(ix, Hosts);
 
     /* the incorrect "free" in DoProbes() is moved here */
     free(Hosts);
@@ -720,9 +723,10 @@ void DoProbes(int HowMany, struct in_addr *Hosts)
 
     CODA_ASSERT(HowMany > 0);
 
-    /* Bind to the servers. */
     Connections = (connent **)malloc(HowMany * sizeof(connent *));
     memset(Connections, 0, HowMany * sizeof(connent *));
+
+    /* Bind to the servers. */
     MultiBind(HowMany, Hosts, Connections);
 
     /* Probe them. */
@@ -748,9 +752,6 @@ void DoProbes(int HowMany, struct in_addr *Hosts)
 
 void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 {
-#warning "need realm when probing servers"
-    RealmId realm = 0;
-
     if (LogLevel >= 1) {
 	dprint("MultiBind: HowMany = %d\n\tHosts = [ ", HowMany);
 	for (int i = 0; i < HowMany; i++)
@@ -758,16 +759,21 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 	fprintf(logFile, "]\n");
     }
 
-    srvent **s = (srvent **)malloc(HowMany * sizeof(srvent *));
-    if (!s) return;
-
     int ix, slaves = 0;
     char slave_sync = 0;
     for (ix = 0; ix < HowMany; ix++) {
 	/* Try to get a connection without forcing a bind. */
 	connent *c = 0;
-        s[ix] = GetServer(&Hosts[ix], realm);
-	if (s[ix]->GetConn(&c, V_UID) == 0) {
+	int code;
+	srvent *s = FindServer(&Hosts[ix]);
+
+	if (!s) continue;
+
+	s->GetRef();
+	code = s->GetConn(&c, V_UID);
+	PutServer(&s);
+
+	if (code == 0) {
 	    /* Stuff the connection in the array. */
 	    Connections[ix] = c;
 	    continue;
@@ -775,19 +781,11 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 
 	/* Force a bind, but have a slave do it so we can bind in parallel. */
 	{
-	    int args[2];
-	    args[0] = *(int*)&Hosts[ix];
-	    args[1] = realm;
-
 	    slaves++;
-	    (void)new probeslave(BindToServer, (void *)&args,
+	    (void)new probeslave(BindToServer, (void *)(&Hosts[ix]),
 				 (void *)(&Connections[ix]), &slave_sync);
 	}
     }
-
-    for (ix = 0; ix < HowMany; ix++)
-        PutServer(&s[ix]);
-    free(s);
 
     /* Reap any slaves we created. */
     while (slave_sync != slaves) {
