@@ -14,6 +14,9 @@
 /*
  * HISTORY
  * $Log: cfs_vfsops.c,v $
+ * Revision 1.4  1996/12/12 22:11:00  bnoble
+ * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
+ *
  * Revision 1.3  1996/11/08 18:06:12  bnoble
  * Minor changes in vnode operation signature, VOP_UPDATE signature, and
  * some newly defined bits in the include files.
@@ -530,31 +533,6 @@ cfs_quotactl(vfsp, cmd, uid, arg, p)
     return (EOPNOTSUPP);
 }
     
-
-/*
- * Get file system statistics.
- */
-int
-cfs_statfs(vfsp, sbp, p)
-    register VFS_T *vfsp;
-    struct statfs *sbp;
-    struct proc *p;
-{
-    ENTRY;
-    MARK_ENTRY(CFS_STATFS_STATS);
-    sbp->f_type = 0;
-    sbp->f_bsize = 8192;	/* XXX -JJK */
-    sbp->f_blocks = -1;
-    sbp->f_bfree = -1;
-    sbp->f_bavail = -1;
-    sbp->f_files = -1;
-    sbp->f_ffree = -1;
-    bcopy((caddr_t)&(VFS_FSID(vfsp)), (caddr_t)&(sbp->f_fsid),
-	  sizeof (fsid_t));
-    
-    MARK_INT_SAT(CFS_STATFS_STATS);
-    return(0);
-}
 
 /*
  * Flush any pending I/O.

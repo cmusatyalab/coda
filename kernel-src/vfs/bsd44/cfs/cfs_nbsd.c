@@ -47,8 +47,6 @@
 #include <cfs/cfs_vnodeops.h>
 #include <cfs/cnode.h>
 
-#include <sys/fcntl.h>
-
 /* What we are delaying for in printf */
 int cfs_printf_delay = 0;  /* in microseconds */
 static int lockdebug = 0;
@@ -74,8 +72,9 @@ int cfs_vnop_print_entry = 0;
 #define ENTRY
 #endif 
 
+/* NetBSD interface to statfs */
+int cfs_nb_statfs    __P((VFS_T *, struct statfs *, struct proc *));
 
- 
 struct vfsops cfs_vfsops = {
     MOUNT_CFS,
     cfs_mount,
@@ -83,7 +82,7 @@ struct vfsops cfs_vfsops = {
     cfs_unmount,
     cfs_root,
     cfs_quotactl,
-    cfs_statfs,
+    cfs_nb_statfs,
     cfs_sync,
     cfs_vget,
     (int (*) (struct mount *, struct fid *, struct mbuf *, struct vnode **,
@@ -175,6 +174,35 @@ struct vnodeopv_entry_desc cfs_vnodeop_entries[] = {
     { (struct vnodeop_desc*)NULL, (int(*)())NULL }
 };
 
+/* NetBSD statfs */
+/*
+ * Get file system statistics.
+ */
+int
+cfs_nb_statfs(vfsp, sbp, p)
+    register VFS_T *vfsp;
+    struct statfs *sbp;
+    struct proc *p;
+{
+    bzero(sbp, sizeof(struct statfs));
+    /* XXX - what to do about f_flags, others? --bnoble */
+    sbp->f_bsize = 8192; /* XXX */
+    sbp->f_iosize = 8192; /* XXX */
+    sbp->f_blocks = -1;
+    sbp->f_bfree = INT_MAX;
+    sbp->f_bavail = INT_MAX;
+    sbp->f_files = -1;
+    sbp->f_ffree = INT_MAX;
+    bcopy((caddr_t)&(VFS_FSID(vfsp)), (caddr_t)&(sbp->f_fsid),
+	  sizeof (fsid_t));
+    strncpy(sbp->f_fstypename, MOUNT_CFS, MFSNAMELEN-1);
+    strcpy(sbp->f_mntonname, ""); /* XXX */
+    strcpy(sbp->f_mntfromname, ""); /* XXX */
+    return(0);
+}
+
+
+
 /* Definitions of NetBSD vnodeop interfaces */
 
 /* A generic panic: we were called with something we didn't define yet */
@@ -207,13 +235,7 @@ cfs_nb_open(v)
     struct vop_open_args *ap = v;
 
     ENTRY;
-    /* 
-     * NetBSD can pass the O_EXCL flag in mode, even though the check
-     * has already happened.  Venus defensively assumes that if open
-     * is passed the EXCL, it must be a bug.  We strip the flag here.
-     */
-    return (cfs_open(&(ap->a_vp), ap->a_mode & (~O_EXCL), ap->a_cred, 
-		     ap->a_p));
+    return (cfs_open(&(ap->a_vp), ap->a_mode, ap->a_cred, ap->a_p));
 }
 
 int
@@ -314,7 +336,8 @@ cfs_nb_readlink(v)
 /*
  * CFS abort op, called after namei() when a CREATE/DELETE isn't actually
  * done. If a buffer has been saved in anticipation of a cfs_create or
- * a cfs_remove, delete it.  */
+ * a cfs_remove, delete it.
+ */
 /* ARGSUSED */
 int
 cfs_nb_abortop(v)

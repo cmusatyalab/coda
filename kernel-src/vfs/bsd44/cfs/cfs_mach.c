@@ -13,6 +13,9 @@
 /*
  * HISTORY
  * $Log: cfs_mach.c,v $
+ * Revision 1.2  1996/01/02 16:56:49  bnoble
+ * Added support for Coda MiniCache and raw inode calls (final commit)
+ *
  * Revision 1.1.2.1  1995/12/20 01:57:14  bnoble
  * Added CFS-specific files
  *
@@ -150,7 +153,15 @@ cfs_statfs_mach(vfsp, sbp)
     register VFS_T *vfsp;
     struct statfs *sbp;
 {
-    reutrn cfs_statfs(vfsp, sbp, GLOBAL_PROC);
+    sbp->f_type = 0;
+    sbp->f_bsize = 8192;	/* XXX -JJK */
+    sbp->f_blocks = -1;
+    sbp->f_bfree = -1;
+    sbp->f_bavail = -1;
+    sbp->f_files = -1;
+    sbp->f_ffree = -1;
+    bcopy((caddr_t)&(VFS_FSID(vfsp)), (caddr_t)&(sbp->f_fsid),
+	  sizeof (fsid_t));
 }
 
 int
