@@ -200,7 +200,7 @@ int main(int argc, char **argv)
     if (!isatty(0)) passwdpipe = 1;
 
     if (passwdpipe == 0)
-	printf("username: %s\n", username);
+	printf("username: %s@%s\n", username, realm);
 
     U_InitRPC();
 
