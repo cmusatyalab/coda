@@ -80,14 +80,11 @@ class resent;
 enum VolLockType { EX_VOL_LK, SH_VOL_LK };
 
 /* XXX These should be in vice.h! */
+/* On the wire, all these operations map to OLDCML_NewStore_PTR */
 #define	OLDCML_Truncate_OP	100
-#define	OLDCML_Truncate_PTR	OLDCML_NewStore_PTR
 #define	OLDCML_Utimes_OP	101
-#define	OLDCML_Utimes_PTR	OLDCML_NewStore_PTR
 #define	OLDCML_Chown_OP	        102
-#define	OLDCML_Chown_PTR	OLDCML_NewStore_PTR
 #define	OLDCML_Chmod_OP	        103
-#define	OLDCML_Chmod_PTR	OLDCML_NewStore_PTR
 
 
 /*  *****  Constants  *****  */

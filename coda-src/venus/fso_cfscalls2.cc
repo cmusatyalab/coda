@@ -205,124 +205,132 @@ Exit:
     return(code);
 }
 
-
+/* Sync file to the servers */
 /* Call with object write-locked. */
 /* We CANNOT return ERETRY from this routine! */
-int fsobj::Close(int writep, int execp, vuid_t vuid, int not_written) 
+int fsobj::Sync(vuid_t vuid) 
 {
-    LOG(10, ("fsobj::Close: (%s, %d, %d), uid = %d\n",
-	      comp, writep, execp, vuid));
+    LOG(10, ("fsobj::Sync: (%s), uid = %d\n", comp, vuid));
 
     int code = 0;
 
-    /* Update openers state; send object to server(s) if necessary. */
-    if (openers < 1)
-	{ print(logFile); CHOKE("fsobj::Close: openers < 1"); }
+    FSO_ASSERT(this, openers != 0 && WRITING(this));
+
+    /* Don't do store on files that were deleted. */
+    if (DYING(this)) return 0;
+
+    PromoteLock();    
+
+    /* We need to send the new mtime to Vice in the RPC call, so we get the
+     * status off the disk.  If the file was freshly created and there were no
+     * writes, then we should send the time of the mknod.  However, we don't
+     * know the time of the mknod so we approximate it by the current time.
+     * Note that we are fooled by the truncation and subsequent closing
+     * (without further writing) of an existing file. */
+    long NewLength;
+    Date_t NewDate;
+    {
+        struct stat tstat;
+        data.file->Stat(&tstat);
+        if (tstat.st_size == 0) tstat.st_mtime = Vtime();
+
+        NewLength = tstat.st_size;
+        NewDate = tstat.st_mtime;
+    }
+    int old_blocks = (int) BLOCKS(this);
+    int new_blocks = (int) NBLOCKS(NewLength);
+    UpdateCacheStats(&FSDB->FileDataStats, WRITE, MIN(old_blocks, new_blocks));
+    if (NewLength < stat.Length)
+        UpdateCacheStats(&FSDB->FileDataStats, REMOVE, (old_blocks - new_blocks));
+    else if (NewLength > stat.Length)
+        UpdateCacheStats(&FSDB->FileDataStats, CREATE, (new_blocks - old_blocks));
+    FSDB->ChangeDiskUsage((int) NBLOCKS(NewLength));
+
+    Recov_BeginTrans();
+    data.file->SetLength((unsigned int) NewLength);
+    Recov_EndTrans(MAXFP);
+
+    /* Attempt the Store. */
+    vproc *v = VprocSelf();
+    if (v->type == VPT_Worker)
+        ((worker *)v)->StoreFid = fid;
+    code = Store(NewLength, NewDate, vuid);
+    if (v->type == VPT_Worker)
+        ((worker *)v)->StoreFid = NullFid;
+    if (code) {
+        eprint("failed to store %s on server", comp);
+        switch (code) {
+        case ENOSPC: eprint("server partition full"); break;
+        case EDQUOT: eprint("over your disk quota"); break;
+        case EACCES: eprint("protection failure"); break;
+        case ERETRY: print(logFile); CHOKE("fsobj::Close: Store returns ERETRY");
+        default: eprint("unknown store error %d", code); break;
+        }
+    }
+    DemoteLock();    
+
+    return(code);
+}
+
+/* Call with object write-locked. */
+/* We CANNOT return ERETRY from this routine! */
+void fsobj::Release(int writep, int execp) 
+{
+    LOG(10, ("fsobj::Release: (%s, %d, %d)\n", comp, writep, execp));
+
+    FSO_ASSERT(this, openers != 0);
+
     openers--;
+
+    if (execp) {
+	if (!EXECUTING(this))
+	    { print(logFile); CHOKE("fsobj::Release: !EXECUTING"); }
+	Execers--;
+    }
+
     if (writep) {
 	PromoteLock();    
 
 	if (!WRITING(this))
-	    { print(logFile); CHOKE("fsobj::Close: !WRITING"); }
+	    { print(logFile); CHOKE("fsobj::Release: !WRITING"); }
 	Writers--;
 
-	/* The object only gets sent to the server(s) if we are the
-           last writer to close. */
-	if (WRITING(this)) {
-	    FSO_RELE(this);		    /* Unpin object. */
-	    return(0);
-	}
+        /* The object only gets removed from the owrite queue if we were the
+         * last writer to close. */
+	if (!WRITING(this)) {
+            Recov_BeginTrans();
+            /* Last writer: remove from owrite queue. */
+            if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
+            { print(logFile); CHOKE("fsobj::Release: owriteq remove"); }
+            RVMLIB_REC_OBJECT(flags);
+            flags.owrite = 0;
 
-	Recov_BeginTrans();
-	/* Last writer: remove from owrite queue. */
-	if (FSDB->owriteq->remove(&owrite_handle) != &owrite_handle)
-		{ print(logFile); CHOKE("fsobj::Close: owriteq remove"); }
-	RVMLIB_REC_OBJECT(flags);
-	flags.owrite = 0;
-
-	/* Don't do store on files that were deleted while open. */
-	if (DYING(this)) {
-		LOG(0, ("fsobj::Close: last writer && dying (%x.%x.%x)\n",
-			fid.Volume, fid.Vnode, fid.Unique));
-		stat.Length = 0;	    /* Necessary for blocks maintenance! */
-	}
-	Recov_EndTrans(((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP));
-	if (DYING(this)) {
-	    FSO_RELE(this);		    /* Unpin object. */
-	    return(0);
-	}
-
-	/* We need to send the new mtime to Vice in the RPC call,
-	   so we get the status off */
-	/* the disk.  If the file was freshly created and there
-	   were no writes, then we should */
-	/* send the time of the mknod.  However, we don't know the
-	   time of the mknod so we */
-	/* approximate it by the current time.  Note that we are
-	   fooled by the truncation and */
-	/* subsequent closing (without further writing) of an
-	   existing file. */
-	long NewLength;
-	Date_t NewDate;
-	{
-	    struct stat tstat;
-	    data.file->Stat(&tstat);
-	    if (tstat.st_size == 0) tstat.st_mtime = Vtime();
-
-	    NewLength = tstat.st_size;
-	    NewDate = tstat.st_mtime;
-	}
-	int old_blocks = (int) BLOCKS(this);
-	int new_blocks = (int) NBLOCKS(NewLength);
-	UpdateCacheStats(&FSDB->FileDataStats, WRITE, MIN(old_blocks, new_blocks));
-	if (NewLength < stat.Length)
-	    UpdateCacheStats(&FSDB->FileDataStats, REMOVE, (old_blocks - new_blocks));
-	else if (NewLength > stat.Length)
-	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, (new_blocks - old_blocks));
-	FSDB->ChangeDiskUsage((int) NBLOCKS(NewLength));
-	Recov_BeginTrans();
-	data.file->SetLength((unsigned int) NewLength);
-	Recov_EndTrans(MAXFP);
-
-#if 0
-	/* Don't perform a store for objects that were (according to the
-	 * kernel) not written to. We do make an exception for any object
-	 * whose open happened to optimize away a CML store entry. */
-	if (not_written && !flags.optimized_store) {
-	    FSO_RELE(this);		    /* Unpin object. */
-	    EnableReplacement();
-	    return(0);
-	}
-#endif
-	flags.optimized_store = 0;
-
-	/* Attempt the Store. */
-	vproc *v = VprocSelf();
-	if (v->type == VPT_Worker)
-	    ((worker *)v)->StoreFid = fid;
-	code = Store(NewLength, NewDate, vuid);
-	if (v->type == VPT_Worker)
-	    ((worker *)v)->StoreFid = NullFid;
-	if (code) {
-	    eprint("failed to store %s on server", comp);
-	    switch (code) {
-		case ENOSPC: eprint("server partition full"); break;
-		case EDQUOT: eprint("over your disk quota"); break;
-		case EACCES: eprint("protection failure"); break;
-		case ERETRY: print(logFile); CHOKE("fsobj::Close: Store returns ERETRY");
-		default: eprint("unknown store error %d", code); break;
-	    }
-	}
-    }
-    if (execp) {
-	if (!EXECUTING(this))
-	    { print(logFile); CHOKE("fsobj::Close: !EXECUTING"); }
-	Execers--;
+            /* Fudge size of files that were deleted while open. */
+            if (DYING(this)) {
+                LOG(0, ("fsobj::Release: last writer && dying (%x.%x.%x)\n",
+                        fid.Volume, fid.Vnode, fid.Unique));
+                RVMLIB_REC_OBJECT(stat.Length);
+                stat.Length = 0;	    /* Necessary for blocks maintenance! */
+            }
+            Recov_EndTrans(((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP));
+        }
     }
 
-    FSO_RELE(this);		    /* Unpin object. */
-    EnableReplacement();
-    return(code);
+    FSO_RELE(this);	    /* Unpin object. */
+    EnableReplacement();    /* Won't enable as long as object is in use */
+    return;
+}
+
+int fsobj::Close(int writep, int execp, vuid_t vuid) 
+{
+    int code = 0;
+
+    /* The object only is sent to the server(s) if we are the last writer
+     * to close. */
+    if (writep && Writers == 1)
+        code = Sync(vuid);
+    Release(writep, execp);
+    return code;
 }
 
 
@@ -374,7 +382,6 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	};
 	rights &= fileModeMap[(stat.Mode & OWNERBITS) >> 6];
 */
-
 	/* check if the object is GlobalRootObj for a local-fake tree */
 	if (LRDB->RFM_IsGlobalRoot(&fid)) {
 	    /* 
@@ -492,9 +499,9 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	len = strlen(name);
 	if (len >= 4 && name[len-4] == '@')
 	{
-	    if      (strcmp(&name[len-3], "cpu") == 0)
+	    if      (STREQ(&name[len-3], "cpu"))
 		subst = CPUTYPE;
-	    else if (strcmp(&name[len-3], "sys") == 0)
+	    else if (STREQ(&name[len-3], "sys"))
 		subst = SYSTYPE;
 
 	    /* Embed the processor/system name for @cpu/@sys expansion. */
@@ -508,7 +515,6 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	}
 
 	/* Lookup the target object. */
-
 	if (STREQ(name, "..")) {
 	    if (IsRoot()) {
 		/* Back up over a mount point. */
@@ -526,7 +532,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 			return EACCES;
 		    } else {
 			print(logFile); 
-			CHOKE("fsobj::Lookup: pfid = NULL");
+			CHOKE("fsobj::Lookup(\"..\"): pfid = NULL");
 		    }
 		}
 		target_fid = pfid;

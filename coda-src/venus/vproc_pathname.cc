@@ -416,27 +416,20 @@ Exit:
 
 void vproc::verifyname(char *name, int flags)
 {
-    int length = strlen(name);
+    int length;
 
-    /* Disallow '.', '..', and '/' */
+    /* Disallow '', '.', and '..' */
     if (flags & NAME_NO_DOTS)
     {
-	switch(length)
-	{
-	case 2: /* test for '..' */
-	    if (name[1] != '.')
-		break;
-
-	case 1: /* test for '.' */
-	    if (name[0] != '.')
-		break;
-
-	case 0: /* test for empty names */
-	    u.u_error = EINVAL;
-	    break;
-	}
-	if (u.u_error) return;
+        if (!name[0] ||                       /* "" */
+            (name[1] == '.' && (!name[2] ||   /* "." */
+             (name[2] == '.' && name[3])))) { /* ".." */
+            u.u_error = EINVAL;
+            return;
+        }
     }
+
+    length = strlen(name);
 
     /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
     if ((flags & NAME_NO_CONFLICT) && length == 27 &&

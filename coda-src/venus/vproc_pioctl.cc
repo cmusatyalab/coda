@@ -205,9 +205,10 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			fsobj *target_fso = 0;
 			char *target_name = (char *) data->in;
 
-			/* Disallow deletion of ".". */
-			if (STREQ(target_name, "") || STREQ(target_name, "."))
-			    { u.u_error = EINVAL; break; }
+			/* Disallow deletion of special names. */
+                        verifyname(target_name, NAME_NO_DOTS |
+                                   NAME_NO_CONFLICT | NAME_NO_EXPANSION);
+                        if (u.u_error) break;
 
 			/* Verify that parent is a directory. */
 			if (!f->IsDir())
@@ -218,22 +219,28 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			if (u.u_error) break;
 
 			/* Verify that target is a mount point (either valid or dangling). */
-			if (!target_fso->IsMtPt() && !target_fso->IsMTLink())
-			    { u.u_error = ENOTDIR; FSDB->Put(&target_fso); break; }
+			if (!target_fso->IsMtPt() && !target_fso->IsMTLink()) {
+                            FSDB->Put(&target_fso);
+                            u.u_error = ENOTDIR;
+                            break;
+                        }
 
 			/* Verify that we have delete permission for the parent. */
 			u.u_error = f->Access((long)PRSFS_DELETE, 0, CRTORUID(u.u_cred));
-			if (u.u_error) { FSDB->Put(&target_fso); break; }
+			if (u.u_error) {
+                            FSDB->Put(&target_fso);
+                            break;
+                        }
 
 			/* We only remove MTLinks, not valid MtPts! */
 			if (target_fso->IsMtPt()) {
 			    Recov_BeginTrans();
-				fsobj *root_fso = target_fso->u.root;
-				FSO_ASSERT(target_fso,
-					   root_fso != 0 && root_fso->u.mtpoint == target_fso);
-				root_fso->UnmountRoot();
-				target_fso->UncoverMtPt();
-			    Recov_EndTrans(MAXFP);
+                            fsobj *root_fso = target_fso->u.root;
+                            FSO_ASSERT(target_fso,
+                                       root_fso && root_fso->u.mtpoint == target_fso);
+                            root_fso->UnmountRoot();
+                            target_fso->UncoverMtPt();
+                            Recov_EndTrans(MAXFP);
 			}
 
 			/* Do the remove. */
@@ -254,8 +261,10 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			int out_size = 0;	/* needed since data->out_size is a short! */
 
 			/* Verify that parent is a directory. */
-			if (!f->IsDir())
-			    { u.u_error = ENOTDIR; FSDB->Put(&target_fso); break; }
+			if (!f->IsDir()) {
+                            u.u_error = ENOTDIR;
+                            break;
+                        }
 
 			/* Get the target object. */
 			/* Take care against getting/putting object twice! */
@@ -265,7 +274,10 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			}
 			else {
 			    u.u_error = f->Lookup(&target_fso, 0, target_name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
-			    if (u.u_error) { FSDB->Put(&target_fso); break; }
+			    if (u.u_error) {
+                                FSDB->Put(&target_fso);
+                                break;
+                            }
 			}
 
 			/* Verify that target is a mount point (either valid or dangling). */
@@ -280,10 +292,13 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			/* Retrieve the link contents from the cache. */
 			u.u_error = target_fso->Readlink((char *)data->out, MAXPATHLEN,
 							 &out_size, CRTORUID(u.u_cred));
-			data->out_size = out_size;
-			if (u.u_error) { FSDB->Put(&target_fso); break; }
+			if (u.u_error) {
+                            FSDB->Put(&target_fso);
+                            break;
+                        }
 
 			/* Make link a proper string. */
+			data->out_size = out_size;
 			((char *)data->out) [data->out_size] = 0;
 			(data->out_size)++;
 

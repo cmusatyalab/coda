@@ -175,11 +175,11 @@ cacheblocks=100000
 #
 # Maximum number of fids & versionvectors that will be piggybacked with a
 # ValidateAttrs RPC2 call. The default (and maximum) is 50, however the
-# resulting outgoing packet is then around 2900 bytes which will be fragmented
-# by the IP layer. In some cases this IP fragmentation is not wanted
-# (unreliable networks, IPSec, and in the future IPv6 networks). Setting this
-# number to 15 piggybacked validations should limit the outgoing ValidateAttr
-# packet size to about 1020 bytes.
+# resulting outgoing packet is around 2900 bytes which will be fragmented by
+# the IP layer. In some cases this IP fragmentation is not wanted (unreliable
+# networks, IPSec, and in the future IPv6 networks). Setting this number to 15
+# piggybacked validations limits the outgoing ValidateAttr packet size to
+# about 1032 bytes, and 21 validations would result in a 1452 byte packet.
 #
 #validateattrs=50
 

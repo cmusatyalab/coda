@@ -197,10 +197,12 @@ FREE_ENTRY: /* release entry from namelist */
 
 	/* Recover the cache files (allocates as necessary). */
 	{
-	    /* This is done in the subsequent fsobj recovery loop because we statically associate */
-	    /* fsobj's and cache-file descriptors (i.e., we embed one of the latter in the former). */
-	    /* If we were to make the association dynamic instead, we would need to iterate */
-	    /* through the cache-file descriptor handles here, validating and/or resetting them. */
+            /* This is done in the subsequent fsobj recovery loop because we
+             * statically associate fsobj's and cache-file descriptors (i.e.,
+             * we embed one of the latter in the former). If we were to make
+             * the association dynamic instead, we would need to iterate
+             * through the cache-file descriptor handles here, validating
+             * and/or resetting them. */
 	}
 
 	/* Recover the fsobj's. */
@@ -608,6 +610,7 @@ RestartFind:
 	}
 
         /* Must ensure that the volume is cached. */
+retry_vdbget:
         volent *v = 0;
         if (VDB->Get(&v, key->Volume) != 0) {
             LOG(100, ("Volume not cached and we couldn't get it...\n"));
@@ -615,7 +618,7 @@ RestartFind:
         }
 
 	/* Retry the find, in case some other thread created the object while we blocked in vdb::Get(). */
-	if (Find(key) != 0) {
+	if (Find(key)) {
 	    VDB->Put(&v);
 	    goto RestartFind;
 	}
@@ -635,7 +638,7 @@ RestartFind:
 
 	/* Attempt the create. */
 	f = Create(key, RD, vp->u.u_priority, comp);
-	if (f == NULL) {
+	if (!f) {
 	    VDB->Put(&v);
 	    return(ENOSPC);
 	}
@@ -806,11 +809,12 @@ RestartFind:
                     char pathname[MAXPATHLEN];
                     int hoard_priority = 0;
 
-                    f->GetPath(pathname);
                     if (f->HoardPri > 0)
                         hoard_priority = f->HoardPri;
-                    else
+                    else {
+			f->GetPath(pathname);
                         hoard_priority = HDB->GetSuspectPriority(f->fid.Volume, pathname, vuid);
+		    }
 
                     int estimatedCost = f->EstimatedFetchCost();
                     /* If the fetch will take too long, coerce the request into a miss */
@@ -1086,7 +1090,6 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 		CHOKE("fsdb::TranslateFid: X-VOLUME, %s --> %s",
 		      FID_(OldFid), FID_2(NewFid));
 
-
 	/* First, change the object itself. */
 	f = Find(OldFid);
 	if (f == NULL) {
@@ -1125,7 +1128,7 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	f->fid = *NewFid;
 	
 	/* replace "." and its hardlinks if f is dir */
-	if (f->IsDir() && HAVEALLDATA(f) && (!f->IsMtPt())) 
+	if (f->IsDir() && HAVEALLDATA(f) && !f->IsMtPt()) 
 		f->dir_TranslateFid(OldFid, NewFid);
 	
 	/* replace f in the hash table */
@@ -1137,23 +1140,20 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	if (pf)
 		pf->dir_TranslateFid(OldFid, NewFid);
 
-	/* Update the children, if we f is a parent. */
-	if (! ISDIR(*OldFid))
-		return 0; 
-	
-	fso_iterator next(NL);
-	fsobj *cf;
-	while ((cf = next())) { 
-		/* this is probably not supposed to happen. Can it? (pjb) */ 
-		if (! FID_EQ(&cf->pfid, OldFid))
-			continue ;
+	/* Update the children, if we are a directory. */
+	if (ISDIR(*OldFid) && f->children) {
+            dlist_iterator next(*(f->children));
+            dlink *d;
+            while ((d = next())) { 
+                fsobj *cf = strbase(fsobj, d, child_link);
+                CODA_ASSERT(FID_EQ(&cf->pfid, OldFid));
+                RVMLIB_REC_OBJECT(cf->pfid);
+                cf->pfid = *NewFid;
 
-		RVMLIB_REC_OBJECT(cf->pfid);
-		cf->pfid = *NewFid;
-
-		if (cf->IsDir() && HAVEALLDATA(cf) && (!cf->IsMtPt()))
-			cf->dir_TranslateFid(OldFid, NewFid);
-	}
+                if (cf->IsDir() && HAVEALLDATA(cf) && !cf->IsMtPt())
+                    cf->dir_TranslateFid(OldFid, NewFid);
+            }
+        }
 	return 0;
 }
 
@@ -1296,8 +1296,7 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	    UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			     REPLACE, BLOCKS(f));
 
-	if (SkkEnabled)
-	  f->RecordReplacement(TRUE, HAVEDATA(f));
+        f->RecordReplacement(TRUE, HAVEDATA(f));
 
 	f->Kill();
 	f->GC();
@@ -1426,8 +1425,7 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 	UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			 REPLACE, BLOCKS(f));
 
-	if (SkkEnabled)
-	  f->RecordReplacement(FALSE, TRUE);
+        f->RecordReplacement(FALSE, TRUE);
 
 	f->DiscardData();
 

@@ -353,9 +353,7 @@ struct FsoFlags {
     unsigned local: 1;				/* local fake fid */
     /*T*/unsigned ckmtpt : 1;			/* mount point needs checked? */
     /*T*/unsigned fetching : 1;			/* fetch in progress? */
-    /*T*/unsigned optimized_store : 1;		/* CML store was optimized away
-						   during open()? */
-    unsigned padding : 9;
+    unsigned padding : 10;
 };
 
 enum MountStatus {  NORMAL,
@@ -659,7 +657,9 @@ class fsobj {
 
     /* The public CFS interface (non-Vice portion). */
     int Open(int, int, int, venus_cnode *, vuid_t);
-    int Close(int writep, int execp, vuid_t vuid, int not_written);
+    int Sync(vuid_t vuid);
+    void Release(int writep, int execp);
+    int Close(int writep, int execp, vuid_t vuid);
     int Access(long, int, vuid_t);
     int Lookup(fsobj **, ViceFid *, char *, vuid_t, int);
     int Readdir(char *, int, int, int *, vuid_t);
@@ -800,8 +800,8 @@ extern void FSOD_Init(void);
 /* we are replaceable whenever we are linked into FSDB->prioq */
 #define	REPLACEABLE(f)	((f)->prio_handle.tree() != 0)
 #define	GCABLE(f)	(DYING(f) && !DIRTY(f) && !BUSY(f))
-#define	FLUSHABLE(f)	(((DYING(f) && !DIRTY(f)) ||\
-			 REPLACEABLE(f)) && !BUSY(f))
+#define	FLUSHABLE(f)	((DYING(f) || REPLACEABLE(f)) && \
+                         !DIRTY(f) && !BUSY(f))
 #define	BLOCKS(f)	(NBLOCKS((f)->stat.Length))
 
 

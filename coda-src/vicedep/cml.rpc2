@@ -46,9 +46,7 @@ typedef RPC2_Enum
 
 1: CML_Create	(IN ViceFid Did,
 		 IN ViceVersionVector pVV,
-		 IN Date_t pMTime,
 		 IN RPC2_String Name,
-		 IN Date_t MTime,
 		 IN UserId Owner,
 		 IN RPC2_Unsigned Mode,
 		 IN ViceFid Fid,
@@ -57,14 +55,12 @@ typedef RPC2_Enum
 2: CML_Remove	(IN ViceFid Did,
 		 IN RPC2_String Name,
 		 IN ViceVersionVector pVV,
-		 IN Date_t pMTime,
 		 IN ViceVersionVector VV,
 		 IN ViceStoreId StoreId);
 
 		 
 3: CML_Rename	(IN ViceFid OldDid,
 		 IN ViceVersionVector spVV,
-		 IN Date_t MTime,
 		 IN RPC2_String OldName,
 		 IN ViceFid NewDid,
 		 IN ViceVersionVector tpVV,
@@ -140,7 +136,6 @@ typedef RPC2_Enum
 
 11: CML_Store	(IN ViceFid Fid,
 		 IN ViceVersionVector VV,
-		 IN Date_t time,
 		 IN RPC2_Integer Length,
 		 IN ViceStoreId StoreId);
 
@@ -150,7 +145,7 @@ typedef RPC2_Enum
 
 13: CML_Utimes	(IN ViceFid Fid,
 		 IN ViceVersionVector VV,
-		 IN Date_t time,
+		 IN Date_t Date,
 		 IN ViceStoreId StoreId);
 
 14: CML_Chmod	(IN ViceFid Fid,
@@ -165,18 +160,15 @@ typedef RPC2_Enum
 
 16: CML_SymLink	(IN ViceFid Did,
 		 IN ViceVersionVector pVV,
-		 IN Date_t pMTime,
 		 IN RPC2_String OldName,
 		 IN RPC2_String NewName,
 		 IN ViceFid Fid,
-		 IN Date_t MTime,
 		 IN UserId Owner,
 		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
 
 17: CML_Link	(IN ViceFid Did,
 		 IN ViceVersionVector pVV,
-		 IN Date_t pMTime,
 		 IN RPC2_String Name,
 		 IN ViceFid Fid,
 		 IN ViceVersionVector VV,
@@ -184,24 +176,21 @@ typedef RPC2_Enum
 
 18: CML_MakeDir	(IN ViceFid Did,
 		 IN ViceVersionVector pVV,
-		 IN Date_t pMTime,
 		 IN RPC2_String Name,
 		 IN ViceFid NewDid,
-		 IN Date_t MTime,
 		 IN UserId Owner,
 		 IN RPC2_Unsigned Mode,
 		 IN ViceStoreId StoreId);
 		 
 19: CML_RemoveDir(IN ViceFid Did,
 		  IN ViceVersionVector pVV,
-		  IN Date_t pMTime,
 		  IN RPC2_String Name,
 		  IN ViceVersionVector VV,
 		  IN ViceStoreId StoreId);
 
 20: CML_Repair	(IN ViceFid Fid,
 		 IN RPC2_Unsigned length, 
-		 IN Date_t mtime, 
+		 IN Date_t Date,
 		 IN UserId Author, 
 		 IN UserId Owner, 
 		 IN RPC2_Unsigned Mode,

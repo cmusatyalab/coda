@@ -41,22 +41,22 @@ extern int CheckSetACLSemantics(ClientEntry *, Vnode **, Volume **, int, VCP,
 				  ViceVersionVector *, FileVersion, Rights *, Rights *,
 				  RPC2_CountedBS *, AL_AccessList **);
 extern int CheckCreateSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **, int, VCP,
-				  ViceStatus *, ViceStatus *, Rights *, Rights *, int =1);
+				  void *, void *, Rights *, Rights *, int =1);
 extern int CheckRemoveSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **, int, VCP,
-				  ViceStatus *, ViceStatus *, Rights *, Rights *, int =1);
+				  void *, void *, Rights *, Rights *, int =1);
 extern int CheckLinkSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **, int, VCP,
-				ViceStatus *, ViceStatus *, Rights *, Rights *, int =1);
+				void *, void *, Rights *, Rights *, int =1);
 extern int CheckRenameSemantics(ClientEntry *, Vnode **, Vnode **, Vnode **, char *,
-				Vnode **, char *, Volume **, int, VCP, ViceStatus *,
-				ViceStatus *, ViceStatus *, ViceStatus *,
+				Vnode **, char *, Volume **, int, VCP, void *,
+				void *, void *, void *,
 				Rights *, Rights *, Rights *, Rights *, Rights *, Rights *, 
 				int =1, int =0, dlist * =NULL);
 extern int CheckMkdirSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **, int, VCP,
-				 ViceStatus *, ViceStatus *, Rights *, Rights *, int =1);
+				 void *, void *, Rights *, Rights *, int =1);
 extern int CheckRmdirSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **, int, VCP,
-				 ViceStatus *, ViceStatus *, Rights *, Rights *, int =1);
+				 void *, void *, Rights *, Rights *, int =1);
 extern int CheckSymlinkSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **, int, VCP,
-				   ViceStatus *, ViceStatus *, Rights *, Rights *, int =1);
+				   void *, void *, Rights *, Rights *, int =1);
 extern void PerformFetch(ClientEntry *, Volume *, Vnode *);
 extern int FetchBulkTransfer(RPC2_Handle, ClientEntry *, Volume *, Vnode *,
 			     RPC2_Unsigned Offset, ViceVersionVector *VV);

@@ -1219,7 +1219,7 @@ void worker::main(void)
 
 		out->coda_ioctl.len = data.out_size;
 		out->coda_ioctl.data = (char *)(sizeof (struct coda_ioctl_out));
-		memmove((char *)out + (int)out->coda_ioctl.data, data.out, data.out_size);
+		memcpy((char *)out + (int)out->coda_ioctl.data, data.out, data.out_size);
 		if (cmd == VIOCPREFETCH)
 		    worker::nprefetchers--;
 

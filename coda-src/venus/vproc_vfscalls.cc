@@ -273,7 +273,7 @@ void vproc::close(struct venus_cnode *cp, int flags)
           LOG(0, ("vproc::close: Don't have DATA and not DYING! (fid = %s, flags = %x)\n", FID_(&cp->c_fid), flags));
 
 	/* Do the operation. */
-	u.u_error = f->Close(writep, execp, CRTORUID(u.u_cred), not_written);
+	u.u_error = f->Close(writep, execp, CRTORUID(u.u_cred) /*, not_written */);
 
 FreeLocks:
 	FSDB->Put(&f);

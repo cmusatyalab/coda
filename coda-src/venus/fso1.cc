@@ -201,7 +201,6 @@ void fsobj::ResetTransient()
     flags.ckmtpt = 0;
     flags.fetching = 0;
     flags.random = ::random();
-    flags.optimized_store = 0;
 
     memset((void *)&u, 0, (int)sizeof(u));
 
@@ -255,8 +254,8 @@ fsobj::~fsobj() {
 
 #ifdef	VENUSDEBUG
     /* Sanity check. */
-    if (!GCABLE(this) || DIRTY(this))
-	{ print(logFile); CHOKE("fsobj::~fsobj: !GCABLE || DIRTY"); }
+    if (!GCABLE(this))
+	{ print(logFile); CHOKE("fsobj::~fsobj: !GCABLE"); }
 #endif /* VENUSDEBUG */
 
     LOG(10, ("fsobj::~fsobj: fid = (%s), comp = %s\n", FID_(&fid), comp));
@@ -427,18 +426,25 @@ void fsobj::Recover()
     ComputePriority();
 
     /* Garbage collect data that was in the process of being fetched. */
-    if (flags.fetching != 0) {
+    if (flags.fetching) {
 	FSO_ASSERT(this, HAVEDATA(this));
 	eprint("\t(%s, %s) freeing garbage data contents", comp, FID_(&fid));
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(flags);
 	flags.fetching = 0;
+
+    /* Could we trust the value of 'validdata' which was stored in RVM?
+     * there is no real way of telling when exactly we crashed and whether
+     * the datablocks hit the disk. The whole recovery seems to make the
+     * assumption that this is true, however... I'm hesitant to remove the
+     * call to 'DiscardData' here. It is probably ok when venus crashed, but
+     * probably not when the OS died. --JH */
 	DiscardData();
 	Recov_EndTrans(0);
     }
 
     /* Files that were open for write must be "closed" and discarded. */
-    if (flags.owrite != 0) {
+    if (flags.owrite) {
 	FSO_ASSERT(this, HAVEDATA(this));
 	eprint("\t(%s, %s) found owrite object, discarding", comp, FID_(&fid));
 	if (IsFile()) {
@@ -479,11 +485,11 @@ void fsobj::Recover()
 	case File:
 	    {
 
-	    if ((HAVEDATA(this) && cf.IsPartial()) ||
-                (!HAVEDATA(this) && cf.Length() != 0)) {
+	    if (!HAVEDATA(this) && cf.Length() != 0) {
 		eprint("\t(%s, %s) cache file validation failed",
 		       comp, FID_(&fid));
-		goto Failure;
+		FSDB->FreeBlocks(NBLOCKS(cf.Length()));
+		cf.Reset();
 	    }
 	    }
 	    break;
@@ -516,46 +522,28 @@ Failure:
 		comp, FID_(&fid)));
 	print(logFile);
 
-	/* Scavenge data for dirty, bogus file. */
-	/* Note that any store of this file in the CML must be cancelled (in
-	 * later step of recovery). */
-	if (DIRTY(this)) {
-	    if (!IsFile()) {
-		CHOKE("recovery failed on local, non-file object (%s, %s)",
-		    comp, FID_(&fid));
-	    }
-
+        /* Scavenge data for bogus objects. */
+        /* Note that any store of this file in the CML must be cancelled (in
+         * later step of recovery). */
+        {
 	    if (HAVEDATA(this)) {
-		    Recov_BeginTrans();
-		    /* Normally we can't discard dirty files, but here we just
-		     * decided that there is no other way. */
-		    flags.dirty = 0;
-		    DiscardData();
-		    Recov_EndTrans(MAXFP);
+                Recov_BeginTrans();
+                /* Normally we can't discard dirty files, but here we just
+                 * decided that there is no other way. */
+                flags.dirty = 0;
+                DiscardData();
+                Recov_EndTrans(MAXFP);
 	    }
-#if 0 /* done further down as well */
-	    else {
-		/* Reclaim cache-file blocks. */
-		if (cf.Length() != 0) {
-		    FSDB->FreeBlocks(NBLOCKS(cf.Length()));
-		    cf.Reset();
-		}
+            else if (cf.Length() != 0) {
+                /* Reclaim cache-file blocks. */
+                FSDB->FreeBlocks(NBLOCKS(cf.Length()));
+		cf.Reset();
 	    }
-#endif
-
-	    /* why did we return here? --JH */
-	    //return;
-	}
+        }
 
 	/* Kill bogus object. */
 	/* Caution: Do NOT GC since linked objects may not be valid yet! */
 	{
-	    /* Reclaim cache-file blocks. */
-	    if (cf.Length() != 0) {
-		FSDB->FreeBlocks(NBLOCKS(cf.Length()));
-		cf.Reset();
-	    }
-
 	    Recov_BeginTrans();
 	    Kill();
 	    Recov_EndTrans(MAXFP);
@@ -638,12 +626,7 @@ void fsobj::Kill(int TellServers)
 
 /* MUST be called from within transaction! */
 void fsobj::GC() {
-	/* Only GC the data now if the file has been locally modified! */
-    if (DIRTY(this)) {
-	DiscardData();
-    }
-    else
-	delete this;
+    delete this;
 }
 
 
@@ -1138,7 +1121,7 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     char type = data.symlink[0];
     switch(type) {
 	case '%':
-	    eprint("TryToCover: '%'-style mount points no longer supported");
+	    eprint("TryToCover: '%%'-style mount points no longer supported");
 	    return(EOPNOTSUPP);
 
 	case '#':
@@ -1916,7 +1899,7 @@ void fsobj::DiscardData() {
 
     LOG(10, ("fsobj::DiscardData: (%s)\n", FID_(&fid)));
 
-    CODA_ASSERT(!flags.dirty);
+    CODA_ASSERT(!DIRTY(this));
 
     RVMLIB_REC_OBJECT(data);
     switch(stat.VnodeType) {
@@ -2459,12 +2442,14 @@ void fsobj::RecordReplacement(int status, int data)
     char mountpath[MAXPATHLEN];
     char path[MAXPATHLEN];
 
+    if (!SkkEnabled) return;
+
     LOG(10, ("RecordReplacement(%d,%d)\n", status, data));
 
     CODA_ASSERT(vol != NULL);
     vol->GetMountPath(mountpath, 0);
     GetPath(path, 1);    
-    /* NotifyUserOfReplacement(&fid, path, status, (data ? 1 : 0)); */
+    NotifyUserOfReplacement(&fid, path, status, (data ? 1 : 0));
 #endif
 }
 

@@ -461,7 +461,7 @@ void lrdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	    lgm_iterator next(local_global_map);
 	    lgment *lgm;
 	    while ((lgm = next())) {
-		if (!memcmp((const void *)lgm->GetGlobalFid(), (const void *) OldFid, (int)sizeof(ViceFid))) {
+		if (!memcmp(lgm->GetGlobalFid(), OldFid, sizeof(ViceFid))) {
 		    lgm->SetGlobalFid(NewFid);
 		}
 	    }

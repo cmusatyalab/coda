@@ -81,6 +81,8 @@ extern void pack_struct(ARG *, PARM **, PARM **);
 #include "venusvol.h"
 #include "vproc.h"
 
+/* CML Stores are handled differently in many places */
+#define CML_STOREOP(opcode) (opcode == OLDCML_NewStore_OP || opcode == CML_Store_OP)
 
 static int RLE_Size(ARG * ...);
 static void RLE_Pack(PARM **, ARG * ...);
@@ -148,7 +150,7 @@ void ClientModifyLog::IncGetStats(cmlstats& current, cmlstats& cancelled, int ti
     cmlent *m;
     while ((m = next())) {
 	if (tid != UNSET_TID && m->GetTid() != tid) continue;
-	if (m->opcode == OLDCML_NewStore_OP) {
+	if (CML_STOREOP(m->opcode)) {
 	    current.store_count++;
 	    current.store_size += m->bytes();
 	    current.store_contents_size += (float)m->u.u_store.Length;
@@ -236,7 +238,7 @@ int cmlent::Freeze()
     /* already frozen, nothing to do */
     if (flags.frozen) return 0;
 
-    if (opcode == OLDCML_NewStore_OP)
+    if (CML_STOREOP(opcode))
     {
 	/* make sure there is only one object of the store */    
 	CODA_ASSERT(fid_bindings->count() == 1); 
@@ -263,7 +265,7 @@ void cmlent::Thaw()
 {
     if (!IsFrozen()) return;
 
-    if (opcode == OLDCML_NewStore_OP)
+    if (CML_STOREOP(opcode))
     {
 	/* make sure there is only one object of the store */    
 	CODA_ASSERT(fid_bindings->count() == 1); 
@@ -363,14 +365,16 @@ cmlent *ClientModifyLog::GetFatHead(int tid)
     cml_iterator next(*this, CommitOrder);
     unsigned long bw; /* bandwidth in bytes/sec */
 
+    /* Avoid weak reintegration when an ASR is in progress */
+    if (vol->asr_running())
+        return ((cmlent *)0);
+
     /* Get the first entry in the CML */
     m = next();
 
-    /* The head of the CML must exists, be a store operation and ready
+    /* The head of the CML must exists, be a store operation, and ready
      * for reintegration. */
-    if (vol->asr_running() || !m ||
-        (m->opcode != OLDCML_NewStore_OP) ||
-        !m->ReintReady())
+    if (!m || !CML_STOREOP(m->opcode) || !m->ReintReady())
         return((cmlent *)0);
 
     /* get the current bandwidth estimate */
@@ -558,6 +562,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
     va_start(ap, Tid);
     switch(op) {
 	case OLDCML_NewStore_OP:
+	case CML_Store_OP:
 	    u.u_store.Fid = *va_arg(ap, ViceFid *);
 	    u.u_store.Length = va_arg(ap, RPC2_Unsigned);
 	    memset(&u.u_store.RHandle, 0, sizeof(ViceReintHandle));
@@ -567,21 +572,25 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    break;
 
 	case OLDCML_Utimes_OP:
+	case CML_Utimes_OP:
 	    u.u_utimes.Fid = *va_arg(ap, ViceFid *);
 	    u.u_utimes.Date = va_arg(ap, Date_t);
 	    break;
 
 	case OLDCML_Chown_OP:
+	case CML_Chown_OP:
 	    u.u_chown.Fid = *va_arg(ap, ViceFid *);
 	    u.u_chown.Owner = va_arg(ap, UserId);
 	    break;
 
 	case OLDCML_Chmod_OP:
+	case CML_Chmod_OP:
 	    u.u_chmod.Fid = *va_arg(ap, ViceFid *);
 	    u.u_chmod.Mode = va_arg(ap, RPC2_Unsigned);
 	    break;
 
 	case OLDCML_Create_OP:
+	case CML_Create_OP:
 	    u.u_create.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
 	    u.u_create.Name = Copy_RPC2_String(name);
@@ -590,6 +599,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    break;
 
 	case OLDCML_Remove_OP:
+	case CML_Remove_OP:
 	    u.u_remove.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
 	    u.u_remove.Name = Copy_RPC2_String(name);
@@ -598,6 +608,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    break;
 
 	case OLDCML_Link_OP:
+	case CML_Link_OP:
 	    u.u_link.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
 	    u.u_link.Name = Copy_RPC2_String(name);
@@ -605,6 +616,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    break;
 
 	case OLDCML_Rename_OP:
+	case CML_Rename_OP:
 	    u.u_rename.SPFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
 	    u.u_rename.OldName = Copy_RPC2_String(name);
@@ -615,6 +627,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	case CML_MakeDir_OP:
 	    u.u_mkdir.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
 	    u.u_mkdir.Name = Copy_RPC2_String(name);
@@ -623,6 +636,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    break;
 
 	case OLDCML_RemoveDir_OP:
+	case CML_RemoveDir_OP:
 	    u.u_rmdir.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
 	    u.u_rmdir.Name = Copy_RPC2_String(name);
@@ -630,6 +644,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    break;
 
 	case OLDCML_SymLink_OP:
+	case CML_SymLink_OP:
 	    u.u_symlink.PFid = *va_arg(ap, ViceFid *);
 	    name = va_arg(ap, RPC2_String);
 	    u.u_symlink.NewName = Copy_RPC2_String(name);
@@ -640,6 +655,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 	    break;
 
 	case OLDCML_Repair_OP:
+	case CML_Repair_OP:
 	    u.u_repair.Fid = *va_arg(ap, ViceFid *);
 	    u.u_repair.Length = va_arg(ap, RPC2_Unsigned);
 	    u.u_repair.Date = va_arg(ap, Date_t);
@@ -676,7 +692,8 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
 }
 
 
-void cmlent::ResetTransient() {
+void cmlent::ResetTransient()
+{
     fid_bindings = 0;
 
     pred = 0;
@@ -687,59 +704,72 @@ void cmlent::ResetTransient() {
 
     switch(opcode) {
 	case OLDCML_NewStore_OP:
+	case CML_Store_OP:
 	    u.u_store.VV = NullVV;
 	    break;
 
         case OLDCML_Truncate_OP:
+        case CML_Truncate_OP:
 	    u.u_truncate.VV = NullVV;
 	    break;
 
 	case OLDCML_Utimes_OP:
+	case CML_Utimes_OP:
 	    u.u_utimes.VV = NullVV;
 	    break;
 
 	case OLDCML_Chown_OP:
+	case CML_Chown_OP:
 	    u.u_chown.VV = NullVV;
 	    break;
 
 	case OLDCML_Chmod_OP:
+	case CML_Chmod_OP:
 	    u.u_chmod.VV = NullVV;
 	    break;
 
 	case OLDCML_Create_OP:
+	case CML_Create_OP:
 	    u.u_create.PVV = NullVV;
 	    break;
 
 	case OLDCML_Remove_OP:
+	case CML_Remove_OP:
 	    u.u_remove.PVV = NullVV;
 	    u.u_remove.CVV = NullVV;
 	    break;
 
 	case OLDCML_Link_OP:
+	case CML_Link_OP:
 	    u.u_link.PVV = NullVV;
 	    u.u_link.CVV = NullVV;
 	    break;
 
 	case OLDCML_Rename_OP:
+	case CML_Rename_OP:
 	    u.u_rename.SPVV = NullVV;
 	    u.u_rename.TPVV = NullVV;
 	    u.u_rename.SVV = NullVV;
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	case CML_MakeDir_OP:
 	    u.u_mkdir.PVV = NullVV;
 	    break;
 
 	case OLDCML_RemoveDir_OP:
+	case CML_RemoveDir_OP:
 	    u.u_rmdir.PVV = NullVV;
 	    u.u_rmdir.CVV = NullVV;
 	    break;
 
 	case OLDCML_SymLink_OP:
+	case CML_SymLink_OP:
 	    u.u_symlink.PVV = NullVV;
 	    break;
 
         case OLDCML_Repair_OP:
+        case CML_Repair_OP:
 	    u.u_repair.OVV = NullVV;
 	    break;
 
@@ -766,48 +796,49 @@ cmlent::~cmlent() {
 
     /* Free strings. */
     switch(opcode) {
-	case OLDCML_NewStore_OP:
-	case OLDCML_Utimes_OP:
-	case OLDCML_Chown_OP:
-	case OLDCML_Chmod_OP:
-	    break;
-
 	case OLDCML_Create_OP:
+	case CML_Create_OP:
 	    Free_RPC2_String(u.u_create.Name);
 	    break;
 
 	case OLDCML_Remove_OP:
+	case CML_Remove_OP:
 	    Free_RPC2_String(u.u_remove.Name);
 	    break;
 
 	case OLDCML_Link_OP:
+	case CML_Link_OP:
 	    Free_RPC2_String(u.u_link.Name);
 	    break;
 
 	case OLDCML_Rename_OP:
+	case CML_Rename_OP:
 	    Free_RPC2_String(u.u_rename.OldName);
 	    Free_RPC2_String(u.u_rename.NewName);
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	case CML_MakeDir_OP:
 	    Free_RPC2_String(u.u_mkdir.Name);
 	    break;
 
 	case OLDCML_RemoveDir_OP:
+	case CML_RemoveDir_OP:
 	    Free_RPC2_String(u.u_rmdir.Name);
 	    break;
 
 	case OLDCML_SymLink_OP:
+	case CML_SymLink_OP:
 	    Free_RPC2_String(u.u_symlink.OldName);
 	    Free_RPC2_String(u.u_symlink.NewName);
 	    break;
 
         case OLDCML_Repair_OP:
+        case CML_Repair_OP:
 	    break;
 
 	default:
-	    print(logFile);
-	    CHOKE("cmlent::~cmlent: bogus opcode (%d)", opcode);
+	    break;
     }
 
     CODA_ASSERT(log->list.remove(&handle) == &handle);
@@ -816,7 +847,6 @@ cmlent::~cmlent() {
     log->bytes -= thisBytes;
 
     log = 0;
-
 }
 
 /* MUST be called from within transaction! */
@@ -835,40 +865,42 @@ void cmlent::operator delete(void *deadobj, size_t len) {
     VDB->AllocatedMLEs--;
 }
 
-long cmlent::bytes() {
+long cmlent::bytes()
+{
     long result = sizeof(*this);
     switch (opcode) {
-    case OLDCML_NewStore_OP:
-    case OLDCML_Utimes_OP:
-    case OLDCML_Chown_OP:
-    case OLDCML_Chmod_OP:
-    case OLDCML_Repair_OP:
-	break;
     case OLDCML_Create_OP:
+    case CML_Create_OP:
 	result += strlen((char *)u.u_create.Name);
 	break;
     case OLDCML_Remove_OP:
+    case CML_Remove_OP:
 	result += strlen((char *)u.u_remove.Name);
 	break;
     case OLDCML_Link_OP:
+    case CML_Link_OP:
 	result += strlen((char *)u.u_link.Name);
 	break;
     case OLDCML_Rename_OP:
+    case CML_Rename_OP:
 	result += strlen((char *)u.u_rename.OldName)
                  +strlen((char *)u.u_rename.NewName);
 	break;
     case OLDCML_MakeDir_OP:
+    case CML_MakeDir_OP:
 	result += strlen((char *)u.u_mkdir.Name);
 	break;
     case OLDCML_RemoveDir_OP:
+    case CML_RemoveDir_OP:
 	result += strlen((char *)u.u_rmdir.Name);
 	break;
     case OLDCML_SymLink_OP:
+    case CML_SymLink_OP:
 	result += strlen((char *)u.u_symlink.OldName)
 	         +strlen((char *)u.u_symlink.NewName);
 	break;
     default:
-	CODA_ASSERT(0);
+    	break;
     }
     return result;
 }
@@ -899,6 +931,7 @@ void cmlent::print(int afd) {
 	    flags.committed);
     switch(opcode) {
 	case OLDCML_NewStore_OP:
+	case CML_Store_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_store.Fid);
 	    fdprint(afd, ", length = %d\n", u.u_store.Length);
@@ -914,6 +947,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_Utimes_OP:
+	case CML_Utimes_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_utimes.Fid);
 	    fdprint(afd, ", utimes = %d\n", u.u_utimes.Date);
@@ -923,6 +957,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_Chown_OP:
+	case CML_Chown_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_chown.Fid);
 	    fdprint(afd, ", chown = %d\n", u.u_chown.Owner);
@@ -932,6 +967,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_Chmod_OP:
+	case CML_Chmod_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_chmod.Fid);
 	    fdprint(afd, ", chmod = %o\n", u.u_chmod.Mode);
@@ -941,6 +977,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_Create_OP:
+	case CML_Create_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_create.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_create.Name);
@@ -952,6 +989,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_Remove_OP:
+	case CML_Remove_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_remove.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_remove.Name);
@@ -966,6 +1004,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_Link_OP:
+	case CML_Link_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_link.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_link.Name);
@@ -980,6 +1019,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_Rename_OP:
+	case CML_Rename_OP:
 	    fdprint(afd, "\t\tspfid = ");
 	    PRINTFID(afd, u.u_rename.SPFid);
 	    fdprint(afd, ", sname = (%s)\n\t\ttpfid = ", u.u_rename.OldName);
@@ -999,6 +1039,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	case CML_MakeDir_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_mkdir.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_mkdir.Name);
@@ -1010,6 +1051,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_RemoveDir_OP:
+	case CML_RemoveDir_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_rmdir.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_rmdir.Name);
@@ -1024,6 +1066,7 @@ void cmlent::print(int afd) {
 	    break;
 
 	case OLDCML_SymLink_OP:
+	case CML_SymLink_OP:
 	    fdprint(afd, "\t\tpfid = ");
 	    PRINTFID(afd, u.u_symlink.PFid);
 	    fdprint(afd, ", name = (%s)\n\t\tcfid = ", u.u_symlink.NewName);
@@ -1036,6 +1079,7 @@ void cmlent::print(int afd) {
 	    break;
 
         case OLDCML_Repair_OP:
+        case CML_Repair_OP:
 	    fdprint(afd, "\t\tfid = ");
 	    PRINTFID(afd, u.u_repair.Fid);
 	    fdprint(afd, ", Length = %u\n\t\tattrs=[%d %d %o]\n",
@@ -1080,16 +1124,19 @@ int repvol::LogStore(time_t Mtime, vuid_t vuid, ViceFid *Fid, RPC2_Unsigned
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
 		    case OLDCML_NewStore_OP:
+		    case CML_Store_OP:
 			if (chown_mle == 0) {
 			    cancellation = m->cancel();
 			}
 			break;
 
 		    case OLDCML_Utimes_OP:
+		    case CML_Utimes_OP:
 			cancellation = m->cancel();
 			break;
 
 		    case OLDCML_Chown_OP:
+		    case CML_Chown_OP:
 			if (chown_mle == 0)
 			    chown_mle = m;
 			break;
@@ -1158,6 +1205,7 @@ int repvol::LogUtimes(time_t Mtime, vuid_t vuid, ViceFid *Fid, Date_t NewDate,
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
 		    case OLDCML_Utimes_OP:
+		    case CML_Utimes_OP:
 			cancellation = m->cancel();
 			break;
 		}
@@ -1186,6 +1234,7 @@ int repvol::LogChown(time_t Mtime, vuid_t vuid, ViceFid *Fid, UserId NewOwner,
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
 		    case OLDCML_Chown_OP:
+		    case CML_Chown_OP:
 			cancellation = m->cancel();
 			break;
 		}
@@ -1215,11 +1264,13 @@ int repvol::LogChmod(time_t Mtime, vuid_t vuid, ViceFid *Fid,
 	    while (!cancellation && (m = next())) {
 		switch(m->opcode) {
 		    case OLDCML_NewStore_OP:
+		    case CML_Store_OP:
 			if (store_mle == 0)
 			    store_mle = m;
 			break;
 
 		    case OLDCML_Chmod_OP:
+		    case CML_Chmod_OP:
 			if (store_mle == 0) {
 			    cancellation = m->cancel();
 			}
@@ -1273,8 +1324,10 @@ int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 	    {
 		cml_iterator next(CML, CommitOrder, CFid);
 		cmlent *m = next();
-		if (m != 0 && (m->opcode == OLDCML_Create_OP || m->opcode ==
-                               OLDCML_SymLink_OP)) {
+		if (m &&
+		    (m->opcode == OLDCML_Create_OP || m->opcode == OLDCML_SymLink_OP ||
+		     m->opcode == CML_Create_OP || m->opcode == CML_SymLink_OP))
+		{
 		    ObjectCreated = 1;
 		    if (m->IsFrozen() && !(m->IsToBeRepaired()))
 			CreateReintegrating = 1;
@@ -1298,6 +1351,10 @@ int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 			case OLDCML_Utimes_OP:
 			case OLDCML_Chown_OP:
 			case OLDCML_Chmod_OP:
+			case CML_Store_OP:
+			case CML_Utimes_OP:
+			case CML_Chown_OP:
+			case CML_Chmod_OP:
 			    cancellation = m->cancel();
 			    break;
 
@@ -1306,6 +1363,11 @@ int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 			case OLDCML_Link_OP:
 			case OLDCML_Rename_OP:
                         case OLDCML_SymLink_OP:
+			case CML_Create_OP:
+			case CML_Remove_OP:
+			case CML_Link_OP:
+			case CML_Rename_OP:
+                        case CML_SymLink_OP:
                             if (ObjectCreated) {
                                 if (CreateReintegrating) {
                                     RVMLIB_REC_OBJECT(m->flags);
@@ -1316,6 +1378,7 @@ int repvol::LogRemove(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
                             break;
 
 		        case OLDCML_Repair_OP:
+		        case CML_Repair_OP:
 			    break;
 
 			default:
@@ -1416,7 +1479,9 @@ int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 	{
 	    cml_iterator next(CML, CommitOrder, CFid);
 	    cmlent *m = next();
-	    if (m != 0 && m->opcode == OLDCML_MakeDir_OP) {
+	    if (m &&
+	        (m->opcode == OLDCML_MakeDir_OP || m->opcode == CML_MakeDir_OP))
+	    {
 		ObjectCreated = 1;
 		if (m->IsFrozen())
 		    CreateReintegrating = 1;
@@ -1431,15 +1496,22 @@ int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 			case OLDCML_Link_OP:
 			case OLDCML_RemoveDir_OP:
 			case OLDCML_SymLink_OP:
+			case CML_Create_OP:
+			case CML_Remove_OP:
+			case CML_Link_OP:
+			case CML_RemoveDir_OP:
+			case CML_SymLink_OP:
 			    DependentChildren = 1;
 			    break;
 
 			case OLDCML_Rename_OP:
+			case CML_Rename_OP:
 			    if (!FID_EQ(CFid, &m->u.u_rename.SFid))
 				DependentChildren = 1;
 			    break;
 
 			case OLDCML_MakeDir_OP:
+			case CML_MakeDir_OP:
 			    if (FID_EQ(CFid, &m->u.u_mkdir.PFid))
 				DependentChildren = 1;
 			    break;
@@ -1464,6 +1536,9 @@ int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 		    case OLDCML_Utimes_OP:
 		    case OLDCML_Chown_OP:
 		    case OLDCML_Chmod_OP:
+		    case CML_Utimes_OP:
+		    case CML_Chown_OP:
+		    case CML_Chmod_OP:
 			cancellation = m->cancel();
 			break;
 
@@ -1474,6 +1549,13 @@ int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
 		    case OLDCML_MakeDir_OP:
 		    case OLDCML_RemoveDir_OP:
                     case OLDCML_SymLink_OP:
+		    case CML_Create_OP:
+		    case CML_Remove_OP:
+		    case CML_Link_OP:
+		    case CML_Rename_OP:
+		    case CML_MakeDir_OP:
+		    case CML_RemoveDir_OP:
+                    case CML_SymLink_OP:
                         if (ObjectCreated && !DependentChildren) {
                             if (CreateReintegrating) {
                                 RVMLIB_REC_OBJECT(m->flags);
@@ -1484,6 +1566,7 @@ int repvol::LogRmdir(time_t Mtime, vuid_t vuid, ViceFid *PFid, char *Name,
                         break;
 
 		    case OLDCML_Repair_OP:
+		    case CML_Repair_OP:
 			break;
 
 		    default:
@@ -1561,7 +1644,7 @@ void repvol::CancelStores(ViceFid *Fid)
 	    cml_iterator next(CML, AbortOrder, Fid);
 	    cmlent *m;
 	    while ((m = next())) {
-		if (m->opcode == OLDCML_NewStore_OP && m->cancel()) {    
+		if (CML_STOREOP(m->opcode) && m->cancel()) {    
 		    cancellation = 1;
 		    /* 
 		     * Since cancelled store is not being overwritten, we
@@ -1589,19 +1672,13 @@ void repvol::RestoreObj(ViceFid *Fid)
     /* Length attribute. */
     long Length = 0;
     cmlent *lwriter = CML.LengthWriter(Fid);
-    if (lwriter == 0) {
+    if (!lwriter) {
 	FSO_ASSERT(f, f->CleanStat.Length != -1);
 	Length = f->CleanStat.Length;
     }
     else {
-	switch(lwriter->opcode) {
-	    case OLDCML_NewStore_OP:
-		Length = lwriter->u.u_store.Length;
-		break;
-
-	    default:
-		VOL_ASSERT(this, 0);
-	}
+	VOL_ASSERT(this, CML_STOREOP(lwriter->opcode));
+	Length = lwriter->u.u_store.Length;
     }
     if (Length != f->stat.Length) {
 	RVMLIB_REC_OBJECT(f->stat.Length);
@@ -1626,10 +1703,20 @@ void repvol::RestoreObj(ViceFid *Fid)
 	    case OLDCML_Link_OP:
 	    case OLDCML_Rename_OP:
 	    case OLDCML_RemoveDir_OP:
+	    case CML_Store_OP:
+	    case CML_Create_OP:
+	    case CML_MakeDir_OP:
+	    case CML_SymLink_OP:
+	    case CML_Repair_OP:
+	    case CML_Remove_OP:
+	    case CML_Link_OP:
+	    case CML_Rename_OP:
+	    case CML_RemoveDir_OP:
 		Utimes = uwriter->time;
 		break;
 
 	    case OLDCML_Utimes_OP:
+	    case CML_Utimes_OP:
 		Utimes = uwriter->u.u_utimes.Date;
 		break;
 
@@ -1648,11 +1735,9 @@ cmlent *ClientModifyLog::LengthWriter(ViceFid *Fid) {
     cml_iterator next(*this, AbortOrder, Fid);
     cmlent *m;
     while ((m = next())) {
-	switch(m->opcode) {
-	    case OLDCML_NewStore_OP:
-	    case OLDCML_Repair_OP:
+	if (CML_STOREOP(m->opcode) ||
+	    m->opcode == OLDCML_Repair_OP || m->opcode == CML_Repair_OP)
 		return(m);
-	}
     }
 
     /* Not found. */
@@ -1671,25 +1756,35 @@ cmlent *ClientModifyLog::UtimesWriter(ViceFid *Fid) {
 	    case OLDCML_MakeDir_OP:
 	    case OLDCML_SymLink_OP:
 	    case OLDCML_Repair_OP:
+	    case CML_Store_OP:
+	    case CML_Utimes_OP:
+	    case CML_Create_OP:
+	    case CML_MakeDir_OP:
+	    case CML_SymLink_OP:
+	    case CML_Repair_OP:
 		return(m);
 
 	    case OLDCML_Remove_OP:
+	    case CML_Remove_OP:
 		if (FID_EQ(Fid, &m->u.u_remove.PFid))
 		    return(m);
 		break;
 
 	    case OLDCML_Link_OP:
+	    case CML_Link_OP:
 		if (FID_EQ(Fid, &m->u.u_link.PFid))
 		    return(m);
 		break;
 
 	    case OLDCML_Rename_OP:
+	    case CML_Rename_OP:
 		if (FID_EQ(Fid, &m->u.u_rename.SPFid) ||
 		    FID_EQ(Fid, &m->u.u_rename.TPFid))
 		    return(m);
 		break;
 
 	    case OLDCML_RemoveDir_OP:
+	    case CML_RemoveDir_OP:
 		if (FID_EQ(Fid, &m->u.u_rmdir.PFid))
 		    return(m);
 		break;
@@ -1746,6 +1841,7 @@ int cmlent::cancel()
 
     switch(opcode) {
 	case OLDCML_NewStore_OP:
+	case CML_Store_OP:
 	    {
 	    /* Cancelling store may permit cancellation of earlier chmod. */
 
@@ -1755,31 +1851,32 @@ int cmlent::cancel()
 	    {
 		cml_iterator next(*(ClientModifyLog *)log, CommitOrder, &u.u_store.Fid, this);
 		cmlent *m;
-		while ((m = next()) && post_chmod_mle == 0)
-		    switch(m->opcode) {
-			case OLDCML_Chmod_OP:
+		while ((m = next())) {
+		    if (m->opcode == OLDCML_Chmod_OP || m->opcode == CML_Chmod_OP) {
 			    post_chmod_mle = m;
 			    break;
 		    }
+		}
 	    }
 
-	    if (post_chmod_mle != 0) {
+	    if (post_chmod_mle) {
 		cml_iterator next(*(ClientModifyLog *)log, AbortOrder, &u.u_store.Fid, this);
 		cmlent *m;
-		while ((m = next()) && pre_chmod_mle == 0)
-		    switch(m->opcode) {
-			case OLDCML_Chmod_OP:
+		while ((m = next())) {
+		    if (m->opcode == OLDCML_Chmod_OP || m->opcode == CML_Chmod_OP) {
 			    pre_chmod_mle = m;
 			    break;
 		    }
+		}
 	    }
 
-	    if (pre_chmod_mle != 0 && post_chmod_mle != 0)
+	    if (pre_chmod_mle && post_chmod_mle)
 		pre_chmod_mle->cancel();
 	    }
 	    break;
 
 	case OLDCML_Chown_OP:
+	case CML_Chown_OP:
 	    {
 	    /* Cancelling chown may permit cancellation of earlier store. */
 
@@ -1789,31 +1886,32 @@ int cmlent::cancel()
 	    {
 		cml_iterator next(*(ClientModifyLog *)log, CommitOrder, &u.u_chown.Fid, this);
 		cmlent *m;
-		while ((m = next()) && post_store_mle == 0)
-		    switch(m->opcode) {
-			case OLDCML_NewStore_OP:
+		while ((m = next())) {
+		    if (m->opcode == OLDCML_NewStore_OP || m->opcode == CML_Store_OP) {
 			    post_store_mle = m;
 			    break;
 		    }
+		}
 	    }
 
-	    if (post_store_mle != 0) {
+	    if (post_store_mle) {
 		cml_iterator next(*(ClientModifyLog *)log, AbortOrder, &u.u_chown.Fid, this);
 		cmlent *m;
-		while ((m = next()) && pre_store_mle == 0)
-		    switch(m->opcode) {
-			case OLDCML_NewStore_OP:
+		while ((m = next())) {
+		    if (m->opcode == OLDCML_NewStore_OP || m->opcode == CML_Store_OP) {
 			    pre_store_mle = m;
 			    break;
 		    }
+		}
 	    }
 
-	    if (pre_store_mle != 0 && post_store_mle != 0)
+	    if (pre_store_mle && post_store_mle)
 		(void) pre_store_mle->cancel();
 	    }
 	    break;
 
 	case OLDCML_Create_OP:
+	case CML_Create_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_create.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1827,6 +1925,7 @@ int cmlent::cancel()
 	    break;
 
 	case OLDCML_Remove_OP:
+	case CML_Remove_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_remove.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1840,6 +1939,7 @@ int cmlent::cancel()
 	    break;
 
 	case OLDCML_Link_OP:
+	case CML_Link_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_link.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1853,6 +1953,7 @@ int cmlent::cancel()
 	    break;
 
 	case OLDCML_Rename_OP:
+	case CML_Rename_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rename.SPFid);
 	    CODA_ASSERT(m != 0);
@@ -1878,6 +1979,7 @@ int cmlent::cancel()
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	case CML_MakeDir_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_mkdir.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1891,6 +1993,7 @@ int cmlent::cancel()
 	    break;
 
 	case OLDCML_RemoveDir_OP:
+	case CML_RemoveDir_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_rmdir.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1904,6 +2007,7 @@ int cmlent::cancel()
 	    break;
 
 	case OLDCML_SymLink_OP:
+	case CML_SymLink_OP:
 	    {
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_symlink.PFid);
 	    CODA_ASSERT(m != 0);
@@ -1917,11 +2021,12 @@ int cmlent::cancel()
 	    break;
 
         case OLDCML_Repair_OP:
+        case CML_Repair_OP:
 	    CODA_ASSERT(0);
 	    break;
     }
 
-    if (opcode == OLDCML_NewStore_OP) {
+    if (CML_STOREOP(opcode)) {
 	log->cancellations.store_count++;
 	log->cancellations.store_size += bytes();
 	log->cancellations.store_contents_size += u.u_store.Length;
@@ -1955,7 +2060,7 @@ int cmlent::cancelstore()
     int cancelled = 0;
     repvol *vol = strbase(repvol, log, CML);
 
-    if (opcode == OLDCML_NewStore_OP) {
+    if (CML_STOREOP(opcode)) {
 	dlink *d = fid_bindings->first();   /* and only */
 	binding *b = strbase(binding, d, binder_handle);
 	fsobj *f = (fsobj *)b->bindee;
@@ -2413,6 +2518,7 @@ int cmlent::realloc()
     RPC2_Unsigned AllocHost;
     switch(opcode) {
 	case OLDCML_Create_OP:
+	case CML_Create_OP:
 	    if (!FID_IsLocalFile(&u.u_create.CFid))
 		goto Exit;
 	    OldFid = u.u_create.CFid;
@@ -2420,6 +2526,7 @@ int cmlent::realloc()
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	case CML_MakeDir_OP:
 	    if (!FID_IsLocalDir(&u.u_mkdir.CFid))
 		goto Exit;
 	    OldFid = u.u_mkdir.CFid;
@@ -2427,6 +2534,7 @@ int cmlent::realloc()
 	    break;
 
 	case OLDCML_SymLink_OP:
+	case CML_SymLink_OP:
 	    if (!FID_IsLocalFile(&u.u_symlink.CFid))
 		goto Exit;
 	    OldFid = u.u_symlink.CFid;
@@ -2463,26 +2571,31 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
     RVMLIB_REC_OBJECT(u);
     switch(opcode) {
 	case OLDCML_NewStore_OP:
+	case CML_Store_OP:
 	    if (FID_EQ(&u.u_store.Fid, OldFid))
 	    { u.u_store.Fid = *NewFid; found = 1; }
 	    break;
 
 	case OLDCML_Utimes_OP:
+	case CML_Utimes_OP:
 	    if (FID_EQ(&u.u_utimes.Fid, OldFid))
 	    { u.u_utimes.Fid = *NewFid; found = 1; }
 	    break;
 
 	case OLDCML_Chown_OP:
+	case CML_Chown_OP:
 	    if (FID_EQ(&u.u_chown.Fid, OldFid))
 	    { u.u_chown.Fid = *NewFid; found = 1; }
 	    break;
 
 	case OLDCML_Chmod_OP:
+	case CML_Chmod_OP:
 	    if (FID_EQ(&u.u_chmod.Fid, OldFid))
 	    { u.u_chmod.Fid = *NewFid; found = 1; }
 	    break;
 
 	case OLDCML_Create_OP:
+	case CML_Create_OP:
 	    if (FID_EQ(&u.u_create.PFid, OldFid))
 	    { u.u_create.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_create.CFid, OldFid))
@@ -2490,6 +2603,7 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 	    break;
 
 	case OLDCML_Remove_OP:
+	case CML_Remove_OP:
 	    if (FID_EQ(&u.u_remove.PFid, OldFid))
 	    { u.u_remove.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_remove.CFid, OldFid))
@@ -2497,6 +2611,7 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 	    break;
 
 	case OLDCML_Link_OP:
+	case CML_Link_OP:
 	    if (FID_EQ(&u.u_link.PFid, OldFid))
 	    { u.u_link.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_link.CFid, OldFid))
@@ -2504,6 +2619,7 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 	    break;
 
 	case OLDCML_Rename_OP:
+	case CML_Rename_OP:
 	    if (FID_EQ(&u.u_rename.SPFid, OldFid))
 	    { u.u_rename.SPFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_rename.TPFid, OldFid))
@@ -2513,6 +2629,7 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	case CML_MakeDir_OP:
 	    if (FID_EQ(&u.u_mkdir.PFid, OldFid))
 	    { u.u_mkdir.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_mkdir.CFid, OldFid))
@@ -2520,6 +2637,7 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 	    break;
 
 	case OLDCML_RemoveDir_OP:
+	case CML_RemoveDir_OP:
 	    if (FID_EQ(&u.u_rmdir.PFid, OldFid))
 	    { u.u_rmdir.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_rmdir.CFid, OldFid))
@@ -2527,6 +2645,7 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 	    break;
 
 	case OLDCML_SymLink_OP:
+	case CML_SymLink_OP:
 	    if (FID_EQ(&u.u_symlink.PFid, OldFid))
 	    { u.u_symlink.PFid = *NewFid; found = 1; }
 	    if (FID_EQ(&u.u_symlink.CFid, OldFid))
@@ -2534,6 +2653,7 @@ void cmlent::translatefid(ViceFid *OldFid, ViceFid *NewFid) {
 	    break;
 
         case OLDCML_Repair_OP: /* Shouldn't be called for repair */ 
+        case CML_Repair_OP:
 	default:
 	    CHOKE("cmlent::translatefid: bogus opcode (%d)", opcode);
     }
@@ -2650,6 +2770,73 @@ int cmlent::size()
 			    &DummyStatus, 0);
 	    break;
 
+        /* new, more efficient CML packing */
+
+	case CML_Create_OP:
+	    len += RLE_Size(CML_Create_PTR, &u.u_create.PFid, &u.u_create.PVV,
+		     u.u_create.Name, uid, u.u_create.Mode, &u.u_create.CFid,
+                     &sid);
+	    break;
+
+	case CML_Link_OP:
+	    len += RLE_Size(CML_Link_PTR, &u.u_link.PFid, &u.u_link.PVV,
+		     u.u_link.Name, &u.u_link.CFid, &u.u_link.CVV, &sid);
+	    break;
+
+	case CML_MakeDir_OP:
+	    len += RLE_Size(CML_MakeDir_PTR, &u.u_mkdir.PFid, &u.u_mkdir.PVV,
+		     u.u_mkdir.Name, &u.u_mkdir.CFid, uid, u.u_mkdir.Mode, &sid);
+	    break;
+
+	case CML_SymLink_OP:
+	    len += RLE_Size(CML_SymLink_PTR, &u.u_symlink.PFid,
+		     &u.u_symlink.PVV, u.u_symlink.OldName,
+		     u.u_symlink.NewName, &u.u_symlink.CFid, uid,
+		     u.u_symlink.Mode, &sid);
+	    break;
+
+	case CML_Remove_OP:
+	    len += RLE_Size(CML_Remove_PTR, &u.u_remove.PFid, &u.u_remove.PVV,
+		     u.u_remove.Name, &u.u_remove.CVV, &sid);
+	    break;
+
+	case CML_RemoveDir_OP:
+	    len += RLE_Size(CML_RemoveDir_PTR, &u.u_rmdir.PFid, &u.u_rmdir.PVV,
+		     u.u_rmdir.Name, &u.u_rmdir.CVV, &sid);
+	    break;
+
+	case CML_Store_OP:
+	    len += RLE_Size(CML_Store_PTR, &u.u_store.Fid, &u.u_store.VV,
+		     u.u_store.Length, &sid);
+	    break;
+
+	case CML_Utimes_OP:
+	    len += RLE_Size(CML_Utimes_PTR, &u.u_utimes.Fid, &u.u_utimes.VV,
+		     u.u_utimes.Date, &sid);
+	    break;
+
+	case CML_Chown_OP:
+	    len += RLE_Size(CML_Chown_PTR, &u.u_chown.Fid, &u.u_chown.VV,
+		     u.u_chown.Owner, &sid);
+	    break;
+
+	case CML_Chmod_OP:
+	    len += RLE_Size(CML_Chmod_PTR, &u.u_chmod.Fid, &u.u_chmod.VV,
+		     u.u_chmod.Mode, &sid);
+	    break;
+
+	case CML_Rename_OP:
+	    len += RLE_Size(CML_Rename_PTR, &u.u_rename.SPFid, &u.u_rename.SPVV,
+		     u.u_rename.OldName, &u.u_rename.TPFid, &NullVV,
+		     u.u_rename.NewName, &u.u_rename.SVV, &sid);
+	    break;
+
+	case CML_Repair_OP:
+	    len += RLE_Size(CML_Repair_PTR, &u.u_repair.Fid, u.u_repair.Length,
+		     u.u_repair.Date, u.u_repair.Owner, u.u_repair.Owner,
+		     u.u_repair.Mode, &sid);
+	    break;
+
 	default:
 	    CHOKE("cmlent::size: bogus opcode (%d)", opcode);
     }
@@ -2678,72 +2865,8 @@ void cmlent::pack(PARM **_ptr) {
 	*((RPC2_Integer *)(*_ptr)++) = htonl(OLDCML_NewStore_OP);
     else
 	*((RPC2_Integer *)(*_ptr)++) = htonl(opcode);	/* Stick in opcode. */
-    *((Date_t	*)(*_ptr)++) = htonl(time);			/* Stick in modify time. */
+    *((Date_t *)(*_ptr)++) = htonl(time);		/* Stick in modify time. */
     switch(opcode) {
-	case OLDCML_NewStore_OP:
-	    {
-	    ViceStatus Status;
-	    Status.VV = u.u_store.VV;
-	    Status.Date = time;
-	    RLE_Pack(_ptr, OLDCML_NewStore_PTR, &u.u_store.Fid,
-		     StoreStatusData, &DummyCBS, &Status,
-		     u.u_store.Length, 0, 0/* Mask */, &sid, &DummyCBS, 0);
-	    }
-	    break;
-
-	case CML_Store_OP:
-	    RLE_Pack(_ptr, CML_Store_PTR, &u.u_store.Fid, &u.u_store.VV, time,
-		     u.u_store.Length, &sid);
-	    break;
-
-	case OLDCML_Utimes_OP:
-	    {
-	    ViceStatus Status;
-	    Status.VV = u.u_utimes.VV;
-	    Status.Date = u.u_utimes.Date;
-	    RLE_Pack(_ptr, OLDCML_Utimes_PTR, &u.u_utimes.Fid,
-		     StoreStatus, &DummyCBS, &Status, 0, SET_TIME/* Mask */,
-		     0, &sid, &DummyCBS, 0);
-	    }
-	    break;
-
-	case CML_Utimes_OP:
-	    RLE_Pack(_ptr, CML_Utimes_PTR, &u.u_utimes.Fid, &u.u_utimes.VV,
-		     u.u_utimes.Date, &sid);
-	    break;
-
-	case OLDCML_Chown_OP:
-	    {
-	    ViceStatus Status;
-	    Status.VV = u.u_chown.VV;
-	    Status.Owner = u.u_chown.Owner;
-	    RLE_Pack(_ptr, OLDCML_Chown_PTR, &u.u_chown.Fid,
-		     StoreStatus, &DummyCBS, &Status, 0, SET_OWNER/* Mask */,
-		     0, &sid, &DummyCBS, 0);
-	    }
-	    break;
-
-	case CML_Chown_OP:
-	    RLE_Pack(_ptr, CML_Chown_PTR, &u.u_chown.Fid, &u.u_chown.VV,
-		     u.u_chown.Owner, &sid);
-	    break;
-
-	case OLDCML_Chmod_OP:
-	    {
-	    ViceStatus Status;
-	    Status.VV = u.u_chmod.VV;
-	    Status.Mode = u.u_chmod.Mode;
-	    RLE_Pack(_ptr, OLDCML_Chmod_PTR, &u.u_chmod.Fid,
-		     StoreStatus, &DummyCBS, &Status, 0, SET_MODE/* Mask */,
-		     0, &sid, &DummyCBS, 0);
-	    }
-	    break;
-
-	case CML_Chmod_OP:
-	    RLE_Pack(_ptr, CML_Chmod_PTR, &u.u_chmod.Fid, &u.u_chmod.VV,
-		     u.u_chmod.Mode, &sid);
-	    break;
-
 	case OLDCML_Create_OP:
 	    {
 	    ViceStatus PStatus;
@@ -2763,30 +2886,6 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
-	case CML_Create_OP:
-	    RLE_Pack(_ptr, CML_Create_PTR, &u.u_create.PFid, &u.u_create.PVV,
-		     time, u.u_create.Name, time, uid, u.u_create.Mode,
-		     &u.u_create.CFid, &sid);
-	    break;
-
-	case OLDCML_Remove_OP:
-	    {
-	    ViceStatus PStatus;
-	    PStatus.VV = u.u_remove.PVV;
-	    PStatus.Date = time;
-	    ViceStatus CStatus;
-	    CStatus.VV = u.u_remove.CVV;
-	    RLE_Pack(_ptr, OLDCML_Remove_PTR, &u.u_remove.PFid,
-		     u.u_remove.Name, &PStatus, &CStatus,
-		     0, &sid, &DummyCBS);
-	    }
-	    break;
-
-	case CML_Remove_OP:
-	    RLE_Pack(_ptr, CML_Remove_PTR, &u.u_remove.PFid, &u.u_remove.PVV,
-		     time, u.u_remove.Name, &u.u_remove.CVV, &sid);
-	    break;
-
 	case OLDCML_Link_OP:
 	    {
 	    ViceStatus PStatus;
@@ -2798,37 +2897,6 @@ void cmlent::pack(PARM **_ptr) {
 		     u.u_link.Name, &u.u_link.CFid, &CStatus, &PStatus,
 		     0, &sid, &DummyCBS);
 	    }
-	    break;
-
-	case CML_Link_OP:
-	    RLE_Pack(_ptr, CML_Link_PTR, &u.u_link.PFid, &u.u_link.PVV, time,
-		     u.u_link.Name, &u.u_link.CFid, &u.u_link.CVV, &sid);
-	    break;
-
-	case OLDCML_Rename_OP:
-	    {
-	    ViceStatus SPStatus;
-	    SPStatus.VV = u.u_rename.SPVV;
-	    SPStatus.Date = time;
-	    ViceStatus TPStatus;
-	    TPStatus.VV = (FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid)
-			   ? u.u_rename.SPVV : u.u_rename.TPVV);
-	    ViceStatus SStatus;
-	    SStatus.VV = u.u_rename.SVV;
-	    ViceStatus TStatus;
-	    RLE_Pack(_ptr, OLDCML_Rename_PTR, &u.u_rename.SPFid,
-		     u.u_rename.OldName, &u.u_rename.TPFid,
-		     u.u_rename.NewName, &SPStatus, &TPStatus,
-		     &SStatus, &TStatus, 0, &sid, &DummyCBS);
-	    }
-	    break;
-
-	case CML_Rename_OP:
-	    TPVV = FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid) ?
-		u.u_rename.SPVV : u.u_rename.TPVV;
-	    RLE_Pack(_ptr, CML_Rename_PTR, &u.u_rename.SPFid, &u.u_rename.SPVV,
-		     time, u.u_rename.OldName, &u.u_rename.TPFid, &TPVV,
-		     u.u_rename.NewName, &u.u_rename.SVV, &sid);
 	    break;
 
 	case OLDCML_MakeDir_OP:
@@ -2847,29 +2915,6 @@ void cmlent::pack(PARM **_ptr) {
 		     u.u_mkdir.Name, &CStatus, &u.u_mkdir.CFid, &PStatus,
 		     DummyAllocHost, &sid, &DummyCBS);
 	    }
-	    break;
-
-	case CML_MakeDir_OP:
-	    RLE_Pack(_ptr, CML_MakeDir_PTR, &u.u_mkdir.PFid, &u.u_mkdir.PVV,
-		     time, u.u_mkdir.Name, &u.u_mkdir.CFid, time, uid,
-		     u.u_mkdir.Mode, &sid);
-	    break;
-
-	case OLDCML_RemoveDir_OP:
-	    {
-	    ViceStatus PStatus;
-	    PStatus.VV = u.u_rmdir.PVV;
-	    PStatus.Date = time;
-	    ViceStatus CStatus;
-	    CStatus.VV = u.u_rmdir.CVV;
-	    RLE_Pack(_ptr, OLDCML_RemoveDir_PTR, &u.u_rmdir.PFid,
-		     u.u_rmdir.Name, &PStatus, &CStatus, 0, &sid, &DummyCBS);
-	    }
-	    break;
-
-	case CML_RemoveDir_OP:
-	    RLE_Pack(_ptr, CML_RemoveDir_PTR, &u.u_rmdir.PFid, &u.u_rmdir.PVV,
-		     time, u.u_rmdir.Name, &u.u_rmdir.CVV, &sid);
 	    break;
 
 	case OLDCML_SymLink_OP:
@@ -2891,11 +2936,91 @@ void cmlent::pack(PARM **_ptr) {
 	    }
 	    break;
 
-	case CML_SymLink_OP:
-	    RLE_Pack(_ptr, CML_SymLink_PTR, &u.u_symlink.PFid,
-		     &u.u_symlink.PVV, time, u.u_symlink.OldName,
-		     u.u_symlink.NewName, &u.u_symlink.CFid, time, uid,
-		     u.u_symlink.Mode, &sid);
+	case OLDCML_Remove_OP:
+	    {
+	    ViceStatus PStatus;
+	    PStatus.VV = u.u_remove.PVV;
+	    PStatus.Date = time;
+	    ViceStatus CStatus;
+	    CStatus.VV = u.u_remove.CVV;
+	    RLE_Pack(_ptr, OLDCML_Remove_PTR, &u.u_remove.PFid,
+		     u.u_remove.Name, &PStatus, &CStatus,
+		     0, &sid, &DummyCBS);
+	    }
+	    break;
+
+	case OLDCML_RemoveDir_OP:
+	    {
+	    ViceStatus PStatus;
+	    PStatus.VV = u.u_rmdir.PVV;
+	    PStatus.Date = time;
+	    ViceStatus CStatus;
+	    CStatus.VV = u.u_rmdir.CVV;
+	    RLE_Pack(_ptr, OLDCML_RemoveDir_PTR, &u.u_rmdir.PFid,
+		     u.u_rmdir.Name, &PStatus, &CStatus, 0, &sid, &DummyCBS);
+	    }
+	    break;
+
+	case OLDCML_NewStore_OP:
+	    {
+	    ViceStatus Status;
+	    Status.VV = u.u_store.VV;
+	    Status.Date = time;
+	    RLE_Pack(_ptr, OLDCML_NewStore_PTR, &u.u_store.Fid,
+		     StoreStatusData, &DummyCBS, &Status,
+		     u.u_store.Length, 0, 0/* Mask */, &sid, &DummyCBS, 0);
+	    }
+	    break;
+
+	case OLDCML_Utimes_OP:
+	    {
+	    ViceStatus Status;
+	    Status.VV = u.u_utimes.VV;
+	    Status.Date = u.u_utimes.Date;
+	    RLE_Pack(_ptr, OLDCML_NewStore_PTR, &u.u_utimes.Fid,
+		     StoreStatus, &DummyCBS, &Status, 0, SET_TIME/* Mask */,
+		     0, &sid, &DummyCBS, 0);
+	    }
+	    break;
+
+	case OLDCML_Chown_OP:
+	    {
+	    ViceStatus Status;
+	    Status.VV = u.u_chown.VV;
+	    Status.Owner = u.u_chown.Owner;
+	    RLE_Pack(_ptr, OLDCML_NewStore_PTR, &u.u_chown.Fid,
+		     StoreStatus, &DummyCBS, &Status, 0, SET_OWNER/* Mask */,
+		     0, &sid, &DummyCBS, 0);
+	    }
+	    break;
+
+	case OLDCML_Chmod_OP:
+	    {
+	    ViceStatus Status;
+	    Status.VV = u.u_chmod.VV;
+	    Status.Mode = u.u_chmod.Mode;
+	    RLE_Pack(_ptr, OLDCML_NewStore_PTR, &u.u_chmod.Fid,
+		     StoreStatus, &DummyCBS, &Status, 0, SET_MODE/* Mask */,
+		     0, &sid, &DummyCBS, 0);
+	    }
+	    break;
+
+	case OLDCML_Rename_OP:
+	    {
+	    ViceStatus SPStatus;
+	    SPStatus.VV = u.u_rename.SPVV;
+	    SPStatus.Date = time;
+	    ViceStatus TPStatus;
+	    TPStatus.VV = (FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid)
+			   ? u.u_rename.SPVV : u.u_rename.TPVV);
+	    ViceStatus SStatus;
+	    SStatus.VV = u.u_rename.SVV;
+	    ViceStatus TStatus;
+	    RLE_Pack(_ptr, OLDCML_Rename_PTR, &u.u_rename.SPFid,
+		     u.u_rename.OldName, &u.u_rename.TPFid,
+		     u.u_rename.NewName, &SPStatus, &TPStatus,
+		     &SStatus, &TStatus, 0, &sid, &DummyCBS);
+	    }
 	    break;
 
         case OLDCML_Repair_OP:
@@ -2908,6 +3033,69 @@ void cmlent::pack(PARM **_ptr) {
 		RLE_Pack(_ptr, OLDCML_Repair_PTR, &u.u_repair.Fid,
 			 &Status, &sid, 0);
 	    }
+	    break;
+
+        /* new, more efficient CML packing */
+
+	case CML_Create_OP:
+	    RLE_Pack(_ptr, CML_Create_PTR, &u.u_create.PFid, &u.u_create.PVV,
+		     u.u_create.Name, uid, u.u_create.Mode, &u.u_create.CFid,
+                     &sid);
+	    break;
+
+	case CML_Link_OP:
+	    RLE_Pack(_ptr, CML_Link_PTR, &u.u_link.PFid, &u.u_link.PVV,
+		     u.u_link.Name, &u.u_link.CFid, &u.u_link.CVV, &sid);
+	    break;
+
+	case CML_MakeDir_OP:
+	    RLE_Pack(_ptr, CML_MakeDir_PTR, &u.u_mkdir.PFid, &u.u_mkdir.PVV,
+		     u.u_mkdir.Name, &u.u_mkdir.CFid, uid, u.u_mkdir.Mode, &sid);
+	    break;
+
+	case CML_SymLink_OP:
+	    RLE_Pack(_ptr, CML_SymLink_PTR, &u.u_symlink.PFid,
+		     &u.u_symlink.PVV, u.u_symlink.OldName,
+		     u.u_symlink.NewName, &u.u_symlink.CFid, uid,
+		     u.u_symlink.Mode, &sid);
+	    break;
+
+	case CML_Remove_OP:
+	    RLE_Pack(_ptr, CML_Remove_PTR, &u.u_remove.PFid, &u.u_remove.PVV,
+		     u.u_remove.Name, &u.u_remove.CVV, &sid);
+	    break;
+
+	case CML_RemoveDir_OP:
+	    RLE_Pack(_ptr, CML_RemoveDir_PTR, &u.u_rmdir.PFid, &u.u_rmdir.PVV,
+		     u.u_rmdir.Name, &u.u_rmdir.CVV, &sid);
+	    break;
+
+	case CML_Store_OP:
+	    RLE_Pack(_ptr, CML_Store_PTR, &u.u_store.Fid, &u.u_store.VV,
+		     u.u_store.Length, &sid);
+	    break;
+
+	case CML_Utimes_OP:
+	    RLE_Pack(_ptr, CML_Utimes_PTR, &u.u_utimes.Fid, &u.u_utimes.VV,
+		     u.u_utimes.Date, &sid);
+	    break;
+
+	case CML_Chown_OP:
+	    RLE_Pack(_ptr, CML_Chown_PTR, &u.u_chown.Fid, &u.u_chown.VV,
+		     u.u_chown.Owner, &sid);
+	    break;
+
+	case CML_Chmod_OP:
+	    RLE_Pack(_ptr, CML_Chmod_PTR, &u.u_chmod.Fid, &u.u_chmod.VV,
+		     u.u_chmod.Mode, &sid);
+	    break;
+
+	case CML_Rename_OP:
+	    TPVV = FID_EQ(&u.u_rename.SPFid, &u.u_rename.TPFid) ?
+		u.u_rename.SPVV : u.u_rename.TPVV;
+	    RLE_Pack(_ptr, CML_Rename_PTR, &u.u_rename.SPFid, &u.u_rename.SPVV,
+		     u.u_rename.OldName, &u.u_rename.TPFid, &TPVV,
+		     u.u_rename.NewName, &u.u_rename.SVV, &sid);
 	    break;
 
 	case CML_Repair_OP:
@@ -2962,8 +3150,8 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 	     * if the final update removed the object, don't bother adding the
 	     * COP2, but do update the version vector as in connected mode.
 	     */
-	    if (!(opcode == OLDCML_Remove_OP && FID_EQ(&u.u_remove.CFid, &f->fid)) &&
-		!(opcode == OLDCML_RemoveDir_OP && FID_EQ(&u.u_rmdir.CFid, &f->fid)))
+	    if (!((opcode == OLDCML_Remove_OP || opcode == CML_Remove_OP) && FID_EQ(&u.u_remove.CFid, &f->fid)) &&
+		!((opcode == OLDCML_RemoveDir_OP || opcode == CML_RemoveDir_OP) && FID_EQ(&u.u_rmdir.CFid, &f->fid)))
 		FinalMutationForAnyObject = 1;
 
 	    RVMLIB_REC_OBJECT(f->stat.VV);
@@ -2983,15 +3171,14 @@ void cmlent::commit(ViceVersionVector *UpdateSet)
 
 int cmlent::HaveReintegrationHandle()
 {
-    return (opcode == OLDCML_NewStore_OP &&
-	    u.u_store.RHandle.BirthTime);
+    return (CML_STOREOP(opcode) && u.u_store.RHandle.BirthTime);
 }
 
 
 /* MUST NOT be called from within transaction! */
 void cmlent::ClearReintegrationHandle()
 {
-    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
+    CODA_ASSERT(CML_STOREOP(opcode));
 
     Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(u);
@@ -3129,7 +3316,7 @@ Exit:
 
 int cmlent::WriteReintegrationHandle()
 {
-    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
+    CODA_ASSERT(CML_STOREOP(opcode));
     repvol *vol = strbase(repvol, log, CML);
     int code = 0, fd = -1;
     connent *c = 0;
@@ -3420,7 +3607,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
     }
 
     while (m) {
-	if (m->opcode == OLDCML_Remove_OP && FID_EQ(&m->u.u_remove.CFid, cfid)) {
+	if ((m->opcode == OLDCML_Remove_OP || m->opcode == CML_Remove_OP) && FID_EQ(&m->u.u_remove.CFid, cfid)) {
 	    /* when the cfid is removed, prepend suffix and replace cfid with its father */
 	    if (suffix[0]) 
 	      sprintf(buf, "%s/%s", m->u.u_remove.Name, suffix);
@@ -3431,7 +3618,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    return 1;
 	}
 
-	if (m->opcode == OLDCML_RemoveDir_OP && FID_EQ(&m->u.u_rmdir.CFid, cfid)) {
+	if ((m->opcode == OLDCML_RemoveDir_OP || m->opcode == CML_RemoveDir_OP) && FID_EQ(&m->u.u_rmdir.CFid, cfid)) {
 	    /*
 	     * when the current fid(directory) is removed, prepend suffix
 	     * replace cfid with its father.
@@ -3445,7 +3632,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    return 1;
 	}
 
-	if (m->opcode == OLDCML_Rename_OP && FID_EQ(&m->u.u_rename.SFid, cfid)) {
+	if ((m->opcode == OLDCML_Rename_OP || m->opcode == CML_Rename_OP) && FID_EQ(&m->u.u_rename.SFid, cfid)) {
 	    /*
 	     * when the current fid is renamed, prepend the original name to
 	     * suffix and replace cfid with the original father fid.
@@ -3898,14 +4085,14 @@ int cmlent::checkpoint(FILE *fp) {
     hblock hdr; memset((void *)&hdr, 0, (int) sizeof(hblock));
     switch(opcode) {
 	case OLDCML_NewStore_OP:
+	case CML_Store_OP:
 	    {
 	    /* Only checkpoint LAST store! */
 	    {
 		cml_iterator next(*(ClientModifyLog *)log, AbortOrder, &u.u_store.Fid);
 		cmlent *m;
-		while ((m = next()) && m->opcode != OLDCML_NewStore_OP)
-		    ;
-		CODA_ASSERT(m != 0);
+		while ((m = next()) && !CML_STOREOP(m->opcode)) /* loop */;
+		CODA_ASSERT(m);
 		if (m != this) break;
 	    }
 
@@ -3951,6 +4138,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    break;
 
 	case OLDCML_MakeDir_OP:
+	case CML_MakeDir_OP:
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_mkdir.CFid);
 	    strcat(hdr.dbuf.name, "/");
@@ -3965,6 +4153,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    break;
 
 	case OLDCML_SymLink_OP:
+	case CML_SymLink_OP:
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_symlink.CFid);
 	    sprintf(hdr.dbuf.mode, "%6o ", 0755);
@@ -3979,6 +4168,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    break;
 
         case OLDCML_Repair_OP:
+        case CML_Repair_OP:
 	    eprint("Not checkpointing file (%x.%x.%x)that was repaired\n",
 		   u.u_repair.Fid.Volume, u.u_repair.Fid.Vnode, u.u_repair.Fid.Unique);
 	    break;
@@ -4129,7 +4319,7 @@ void cmlent::AttachFidBindings()
 	fid_bindings->append(&b->binder_handle);
 	f->AttachMleBinding(b);
 
-	if (opcode == OLDCML_NewStore_OP && IsFrozen())
+	if (CML_STOREOP(opcode) && IsFrozen())
 	    f->MakeShadow();
     }
 }
@@ -4158,41 +4348,49 @@ void cmlent::writeops(FILE *fp)
 
     switch(opcode) {
     case OLDCML_NewStore_OP:
+    case CML_Store_OP:
 	RecoverPathName(path, &u.u_store.Fid, log, this);
 	sprintf(msg, "Store \t%s (length = %ld)", path, u.u_store.Length);
 	break;
 
     case OLDCML_Utimes_OP:
+    case CML_Utimes_OP:
 	RecoverPathName(path, &u.u_utimes.Fid, log, this);
 	sprintf(msg, "Utime \t%s", path);
 	break;
 
     case OLDCML_Chown_OP:
+    case CML_Chown_OP:
 	RecoverPathName(path, &u.u_chown.Fid, log, this);
 	sprintf(msg, "Chown \t%s (owner = %ld)", path, u.u_chown.Owner);
 	break;
 
     case OLDCML_Chmod_OP:
+    case CML_Chmod_OP:
 	RecoverPathName(path, &u.u_chmod.Fid, log, this);
 	sprintf(msg, "Chmod \t%s (mode = %lo)", path, u.u_chmod.Mode);
 	break;
 
     case OLDCML_Create_OP:
+    case CML_Create_OP:
 	RecoverPathName(path, &u.u_create.CFid, log, this);
 	sprintf(msg, "Create \t%s", path);
 	break;
 
     case OLDCML_Remove_OP:
+    case CML_Remove_OP:
 	RecoverPathName(path, &u.u_remove.CFid, log, this);
 	sprintf(msg, "Remove \t%s", path);
 	break;
 
     case OLDCML_Link_OP:
+    case CML_Link_OP:
 	RecoverPathName(path, &u.u_link.CFid, log, this);
 	sprintf(msg, "Link \t%s to %s", path, u.u_link.Name);
 	break;
 
     case OLDCML_Rename_OP:
+    case CML_Rename_OP:
 	RecoverPathName(path, &u.u_rename.SPFid, log, this);
 	RecoverPathName(path2, &u.u_rename.TPFid, log, this);
 	sprintf(msg, "Rename \t%s/%s (to: %s/%s)", path, u.u_rename.OldName, path2,
@@ -4200,21 +4398,25 @@ void cmlent::writeops(FILE *fp)
 	break;
 
     case OLDCML_MakeDir_OP:
+    case CML_MakeDir_OP:
 	RecoverPathName(path, &u.u_mkdir.CFid, log, this);
 	sprintf(msg, "Mkdir \t%s", path);
 	break;
 
     case OLDCML_RemoveDir_OP:
+    case CML_RemoveDir_OP:
 	RecoverPathName(path, &u.u_rmdir.CFid, log, this);
 	sprintf(msg, "Rmdir \t%s", path);
 	break;
 
     case OLDCML_SymLink_OP:
+    case CML_SymLink_OP:
 	RecoverPathName(path, &u.u_symlink.CFid, log, this);
 	sprintf(msg, "Symlink %s (--> %s)", path, u.u_symlink.OldName);
 	break;
 
     case OLDCML_Repair_OP:
+    case CML_Repair_OP:
 	sprintf(msg, "Disconnected Repair by an ASR for %s",
 		FID_(&u.u_repair.Fid));
 	break;
@@ -4250,7 +4452,7 @@ unsigned long cmlent::ReintTime(unsigned long bw) {
 
     if (bw > 0) {
 	time = (double) size();
-	if (opcode == OLDCML_NewStore_OP) 
+	if (CML_STOREOP(opcode)) 
 	    time += u.u_store.Length;  /* might be large */
 
 	time = time * 1000.0/ (double) bw;
@@ -4270,7 +4472,7 @@ unsigned long cmlent::ReintAmount()
     int amount, offset;
     unsigned long bw;	/* bandwidth, in bytes/sec */
 
-    CODA_ASSERT(opcode == OLDCML_NewStore_OP);
+    CODA_ASSERT(CML_STOREOP(opcode));
 
     /* 
      * try to get a dynamic bw estimate.  If that doesn't
@@ -4366,58 +4568,70 @@ cmlent *cml_iterator::operator()() {
 	    cmlent *m = (cmlent *)b->binder;
 	    switch(m->opcode) {
 		case OLDCML_NewStore_OP:
+		case CML_Store_OP:
 		    if (FID_EQ(&m->u.u_store.Fid, &fid)) return(m);
 		    break;
 
 		case OLDCML_Utimes_OP:
+		case CML_Utimes_OP:
 		    if (FID_EQ(&m->u.u_utimes.Fid, &fid)) return(m);
 		    break;
 
 		case OLDCML_Chown_OP:
+		case CML_Chown_OP:
 		    if (FID_EQ(&m->u.u_chown.Fid, &fid)) return(m);
 		    break;
 
 		case OLDCML_Chmod_OP:
+		case CML_Chmod_OP:
 		    if (FID_EQ(&m->u.u_chmod.Fid, &fid)) return(m);
 		    break;
 
 		case OLDCML_Create_OP:
+		case CML_Create_OP:
 		    if (FID_EQ(&m->u.u_create.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_create.CFid, &fid)) return(m);
 		    break;
 
 		case OLDCML_Remove_OP:
+		case CML_Remove_OP:
 		    if (FID_EQ(&m->u.u_remove.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_remove.CFid, &fid)) return(m);
 		    break;
 
 		case OLDCML_Link_OP:
+		case CML_Link_OP:
 		    if (FID_EQ(&m->u.u_link.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_link.CFid, &fid)) return(m);
 		    break;
 
 		case OLDCML_Rename_OP:
+		case CML_Rename_OP:
 		    if (FID_EQ(&m->u.u_rename.SPFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_rename.TPFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_rename.SFid, &fid)) return(m);
 		    break;
 
 		case OLDCML_MakeDir_OP:
+		case CML_MakeDir_OP:
 		    if (FID_EQ(&m->u.u_mkdir.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_mkdir.CFid, &fid)) return(m);
 		    break;
 
 		case OLDCML_RemoveDir_OP:
+		case CML_RemoveDir_OP:
 		    if (FID_EQ(&m->u.u_rmdir.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_rmdir.CFid, &fid)) return(m);
 		    break;
 
 		case OLDCML_SymLink_OP:
+		case CML_SymLink_OP:
 		    if (FID_EQ(&m->u.u_symlink.PFid, &fid)) return(m);
 		    if (FID_EQ(&m->u.u_symlink.CFid, &fid)) return(m);
 		    break;
 
 	        case OLDCML_Repair_OP:
+	        case CML_Repair_OP:
 		    if (FID_EQ(&m->u.u_repair.Fid, &fid)) return(m);
 		    break;
 
