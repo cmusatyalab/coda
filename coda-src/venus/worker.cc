@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.11 1998/03/06 20:20:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.12 1998/05/15 01:23:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -439,7 +439,8 @@ int k_Purge(ViceFid *fid, int severely) {
     }	
 
     /* Send the message. */
-    if (MsgWrite((char *)&msg, (int) sizeof(union outputArgs)) != (int) sizeof(union outputArgs)) {
+/*    if (MsgWrite((char *)&msg, (int) sizeof(union outputArgs)) != (int) sizeof(union outputArgs)) { */
+      if (MsgWrite((char *)&msg, (int) sizeof(msg)) !=  (int) sizeof(msg)) {
 	retcode = errno;
 	if (retcode != ETXTBSY)
 	    Choke("k_Purge: %s, message write returns %d", 

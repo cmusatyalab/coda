@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setlogparms.cc,v 4.3 1997/10/23 19:26:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-setlogparms.cc,v 4.4 1998/04/14 21:00:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,11 +68,11 @@ extern "C" {
 extern PMemMgr *LogStore[];
 
 /*
-  BEGIN_HTML
-  <a name="S_VolSetLogParms"><strong>Set the parameters for the resolution log </strong></a> 
-  END_HTML
+S_VolSetLogParms: Set the parameters for the resolution log
 */
-long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag, RPC2_Integer maxlogsize) {
+long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag, 
+		      RPC2_Integer maxlogsize) 
+{
     Volume *volptr = 0;
     Error error;
     ProgramType *pt;
@@ -98,16 +98,23 @@ long S_VolSetLogParms(RPC2_Handle rpcid, VolumeId Vid, RPC2_Integer OnFlag, RPC2
     }
 
     LogMsg(9, SrvDebugLevel, stdout, "S_VolSetLogParms: Got Volume %x",Vid);
-    if ((OnFlag & VMRES) || (OnFlag & RVMRES)) {
-	volptr->header->diskstuff.ResOn |= OnFlag;
-	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: res flag on volume 0x%x set to %d", 
+    switch OnFlag {
+    case RVMRES:
+	volptr->header->diskstuff.ResOn = OnFlag;
+	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: res flag on volume 0x%x set to %d (resolution enabled)", 
 	       Vid, volptr->header->diskstuff.ResOn);
-    }
-    if (OnFlag == 0) {
+	break;
+    case 0:
 	volptr->header->diskstuff.ResOn = 0;
-	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: res flag on volume 0x%x set to %d", Vid, OnFlag);
+	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: res flag on volume 0x%x set to %d (resolution disabled)", Vid, OnFlag);
+	break;
+    case VMRES:
+	LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: VM resolution no longer supported (volume %lx)", Vid);
+    default:
+	VPutVolume(volptr);
+	CAMLIB_ABORT(EINVAL);
     }
-    
+
     if (maxlogsize != 0) {
 	if ((maxlogsize & 0x1F) != 0) {
 	    LogMsg(0, SrvDebugLevel, stdout, "S_VolSetLogParms: Log Size has to be a multiple of 32");

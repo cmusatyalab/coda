@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/Makefile.in,v 4.6 1998/01/10 18:36:53 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/Makefile.in,v 4.7 1998/05/15 16:54:51 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -55,7 +55,7 @@ LIBS=	$(LIBKERNDEP) $(LIBUTIL)
 OBJECTS = y.tab.o lex.yy.o ruletypes.o resolver.o wildmat.o path.o
 
 parser: ${OBJECTS} $(LIBS)
-	$(CC) $(LIBFLAGS) ${OBJECTS} $(LIBS) $(LIBFLEX) -o parser
+	$(CXX) $(LIBFLAGS) ${OBJECTS} $(LIBS) $(LIBFLEX) -o parser
 
 # Dependencies
 y.tab.c: $(srcdir)/resolver.yacc
@@ -65,7 +65,7 @@ lex.yy.c: resolver.lex
 
 # YYuck!  I don't know how to tell yyac to deliver a .cc extension  GRRR..(pjb)
 y.tab.o: y.tab.c
-	$(CC) -x c++ $(CFLAGS) -c $<
+	$(CXX) -x c++ $(CFLAGS) -c $<
 
 
 include $(MAKDIR)/configs/Makerules
