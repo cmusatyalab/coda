@@ -50,20 +50,18 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 {
     PROCESS pid;
     int retval;
-    struct timeval to = {0,0}, *tp = NULL;
+    struct timeval to = {0,0};
 
     if (LWP_CurrentProcess(&pid))
         return LWP_EBADPID;
 
     /* avoid clobbering of timeout, existing programs using LWP don't
      * like that behaviour */
-    if (timeout) {
+    if (timeout)
         to = *timeout;
-        tp = &to;
-    }
 
     lwp_LEAVE(pid);
-    retval = select(fds, readfds, writefds, exceptfds, tp);
+    retval = select(fds, readfds, writefds, exceptfds, timeout ? &to : NULL);
     lwp_JOIN(pid);
 
     return retval;
@@ -72,8 +70,7 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 /* ofcourse not to be confused with poll(2) :( */
 int IOMGR_Poll(void)
 {
-//    return !list_empty(&lwp_runq);
-    return 1;
+    return lwp_waiting;
 }
 
 int IOMGR_Cancel (PROCESS pid)

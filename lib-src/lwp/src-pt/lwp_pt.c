@@ -109,10 +109,10 @@ static void _yield(void)
     pthread_mutex_lock(&run_mutex);
 }
 
+int lwp_waiting;
+
 static void _SCHEDULE(PROCESS pid, int leave)
 {
-    static int lwp_waiting = 0;
-
     /* only signal if we are the current LWP, or when there are none */
     if (pid == lwp_cpptr || !lwp_cpptr) {
 	lwp_cpptr = NULL;

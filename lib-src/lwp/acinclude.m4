@@ -7,25 +7,25 @@ AC_DEFUN(CODA_SETUP_BUILD,
 
 [AC_SUBST(LIBTOOL_LDFLAGS)
 
-case ${target} in
-  djgpp | dos )  target=i386-pc-msdos
-		 dosmmap=false ;;
-  win95 | win98 ) target=i386-pc-msdos 
-		 dosmmap=true ;;
-  cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
-  arm ) target=arm-unknown-linux-gnuelf ;;
+case ${host_alias} in
+  djgpp | dos ) host_alias=i386-pc-msdos ; dosmmap=false ;;
+  win95 | win98 ) host_alias=i386-pc-msdos ; dosmmap=true ;;
+  cygwin* | winnt | nt ) host_alias=i386-pc-cygwin ;;
+  arm ) host_alias=arm-unknown-linux-gnuelf ;;
 esac
 
-AC_CANONICAL_SYSTEM
-host=${target}
-program_prefix=
+AC_CANONICAL_HOST
 
 dnl Shared libraries work for i386, mips, sparc, and alpha platforms. They
 dnl might work for all platforms. If not, read the PORTING document.
 
 dnl When cross-compiling, pick the right compiler toolchain.
 dnl Can be overridden by providing the CROSS_COMPILE environment variable.
-if test ${build} != ${host} ; then
+if test ${cross_compiling} = yes ; then
+  dnl We have to override some things the configure script tends to
+  dnl get wrong as it tests the build platform feature
+  ac_cv_func_mmap_fixed_mapped=yes
+
   case ${host} in
    i*86-pc-msdos )
     dnl no shared libs for dos
