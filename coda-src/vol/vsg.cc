@@ -208,7 +208,10 @@ typedef int (*XXX)(void *);
 		       &vsgaddr, Host[0], Host[1], 
 		       Host[2], Host[3], Host[4], 
 		       Host[5], Host[6], Host[7]);
-	if (i == 0) break;
+
+	/* skip lines that cannot be used to construct a vsgent */
+	if (i < 2) continue;
+
 	/* number of hosts = i - 1 */
 	for (int j = 0; j < i - 1; j++){
 	    he = gethostbyname(Host[j]);
