@@ -1814,7 +1814,7 @@ fsobj::ReadDisconnectedCacheMiss(vproc *vp, vuid_t vuid) {
     GetPath(pathname, 1);
 
     LOG(100, ("Requesting ReadDisconnected CacheMiss Advice for path=%s, pid=%d...\n", pathname, vp->u.u_pid));
-    advice = adv_mon.RequestReadDisconnectedCacheMissAdvice(&fid, pathname, vp->u.u_pgid);
+    advice = adv_mon.ReadDisconnectedAdvice(&fid, pathname, vp->u.u_pgid);
     return(advice);
 }
 
@@ -1854,8 +1854,9 @@ CacheMissAdvice fsobj::WeaklyConnectedCacheMiss(vproc *vp, vuid_t vuid) {
     LOG(100, ("Requesting WeaklyConnected CacheMiss Advice for path=%s, pid=%d...\n", 
 	      pathname, vp->u.u_pid));
     vol->vsg->GetBandwidth(&CurrentBandwidth);
-    advice = adv_mon.RequestWeaklyConnectedCacheMissAdvice(&fid, pathname, vp->u.u_pid, stat.Length, 
-						      CurrentBandwidth, cf.Name());
+    advice = adv_mon.WeaklyConnectedAdvice(&fid, pathname, vp->u.u_pid,
+					   stat.Length, CurrentBandwidth,
+					   cf.Name());
     return(advice);
 }
 

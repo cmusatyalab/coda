@@ -114,8 +114,21 @@ class adv_monitor {
     int skkPgid(int x) { return(x == pgid); }
     int sameHandle(RPC2_Handle x) { return (x == handle); }
 
-    CacheMissAdvice RequestReadDisconnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid) { return CoerceToMiss; }
-    CacheMissAdvice RequestWeaklyConnectedCacheMissAdvice(ViceFid *fid, char *pathname, int pid, int length, int estimatedBandwidth, char *Vfilename) { return CoerceToMiss; }
+    CacheMissAdvice ReadDisconnectedAdvice(ViceFid *fid,
+					   char *pathname,
+					   int pid)
+    {
+	return FetchFromServers;
+    }
+
+    CacheMissAdvice WeaklyConnectedAdvice(ViceFid *fid,
+					  char *pathname,
+					  int pid, int length,
+					  int estimatedBandwidth,
+					  char *Vfilename)
+    {
+	return FetchFromServers;
+    }
 };
 
 
