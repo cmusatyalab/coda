@@ -150,12 +150,13 @@ long set_dev_char(dev,dev_length)
     switch (mode)
         {
       case S_IFCHR:                     /* note raw io */
+#ifdef LINUX
+      case S_IFBLK:  /* in LINUX, the interface VFS to block and char
+                     * dev is the same, which means that no additional
+                     * character devices are required
+                     */
+#endif
         dev->raw_io = rvm_true;
-        break;
-      case S_IFBLK:  
-	  /* added for Linux. Linux supports fsync on block devices,
-      and such devices can be opened*/
-        dev->raw_io = rvm_false;
         break;
       case S_IFREG:
         dev->num_bytes = RVM_MK_OFFSET(0,
