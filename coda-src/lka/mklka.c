@@ -25,6 +25,7 @@ listed in the file CREDITS.
 #include <errno.h>
 #include "coda_string.h"
 #include <unistd.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -44,12 +45,15 @@ char *TreeRoot = 0; /* pathname of root of tree to be walked and hashed */
 
 /* Forward refs */
 int SetDescriptor(struct rwcdb *dbh); 
-int WalkTree(char *, struct rwcdb *dbh); 
+int WalkTree(char *troot, char *prefix, struct rwcdb *dbh);
 
 int main(int argc, char **argv)
 {
   struct rwcdb dbh; /* database handle */
   int rc, i, open = 0;
+  char dbfile[PATH_MAX], realroot[PATH_MAX], prefix[PATH_MAX];
+  char *tmp, *d, *r;
+  int dirs = 0;
 
   /* Parse args */
   for (i = 1; i < argc; i++) {
@@ -62,10 +66,39 @@ int main(int argc, char **argv)
   }
   if (!NewLKDB || !TreeRoot) goto ParseError;
 
+  /* get absolute path to the lka database we want to create */
+  tmp = realpath(NewLKDB, dbfile);
+  if (!tmp) {
+    printf("realpath(%s): %s\n", NewLKDB, strerror(errno));
+    goto err;
+  }
+
+  /* get absolute path to the subtree we want to index */
+  tmp = realpath(TreeRoot, realroot);
+  if (!tmp) {
+    printf("realpath(%s): %s\n", TreeRoot, strerror(errno));
+    goto err;
+  }
+
+  if (RelativePathFlag) {
+      /* find the relative path we need to get from lka file to the
+       * indexed files */
+      d = dbfile; r = realroot;
+      while (*d == *r) { d++; r++; }; /* ignore common prefix */
+      while (*d != '/') { d--; r--; } d++; r++; /* backtrack to last dir */
+
+      /* create '../' entries for remaining directories in the db path */
+      while ((d = strchr(d, '/'))) {
+	strcpy(&prefix[dirs * 3], "../");
+	dirs++; d++;
+      }
+      strcpy(&prefix[dirs * 3], r); /* append remaining directories */
+  }
+
   /* Create lookaside database */
-  rc = rwcdb_init(&dbh, NewLKDB, O_RDWR);
+  rc = rwcdb_init(&dbh, dbfile, O_RDWR);
   if (rc) {
-    printf("%s: %s\n", NewLKDB, strerror(errno));
+    printf("%s: %s\n", dbfile, strerror(errno));
     goto err;
   }
 
@@ -76,7 +109,7 @@ int main(int argc, char **argv)
       goto err;
 
   /* Walk the tree at TreeRoot, inserting records for each file */
-  if (WalkTree(TreeRoot, &dbh) < 0) /* error */
+  if (WalkTree(realroot, prefix, &dbh) < 0) /* error */
       goto err;
 
  /* DBFillComplete */
@@ -125,7 +158,7 @@ int SetDescriptor(struct rwcdb *dbh)
 }
 
 
-int WalkTree(char *troot, struct rwcdb *dbh)
+int WalkTree(char *troot, char *prefix, struct rwcdb *dbh)
 {
   /* Traverse tree at troot and insert a record into database
      dbhandle for each (plain) file.  The key of the record is the
@@ -141,12 +174,22 @@ int WalkTree(char *troot, struct rwcdb *dbh)
   FTS *fth; /* open handle for fts() routines */
   char *path_argv[2];
   unsigned char shabuf[SHA_DIGEST_LENGTH];
-  int troot_strlen; /* save length of troot in this */
+  int troot_strlen = 0, prefix_strlen = 0; /* save length of troot in this */
   int myfd, dlen;
   char *path;
 
+  if (RelativePathFlag) {
+      /* find the length of the prefix */
+      prefix_strlen = strlen(prefix);
+      if (prefix[prefix_strlen] == '/')
+	  prefix_strlen--;
 
-  troot_strlen = strlen(troot);
+      /* find length of the treeroot */
+      troot_strlen = strlen(troot);
+      if (troot[troot_strlen] == '/')
+	  troot_strlen--;
+  }
+
   path_argv[0] = troot;
   path_argv[1] = 0;
   fth = fts_open(path_argv, FTS_PHYSICAL, 0);
@@ -169,19 +212,13 @@ int WalkTree(char *troot, struct rwcdb *dbh)
     close(myfd);
 
     /* Construct record to be inserted */
-    dlen = nextf->fts_pathlen + 1; /* assuming absolute path */
-    path = nextf->fts_path; /* assuming absolute path */
-
-    if (RelativePathFlag){/* troot should be prefix of fts_path */
-      if (strncmp(nextf->fts_path, troot, troot_strlen)) {
-	printf("Weirdness: tree root (%s) not prefix of %s\n",
-	       troot, nextf->fts_path);
-	rc = -1; goto WalkDone;
-      }
-
-      /* skip over troot and the slash that follows it */
-      dlen -= troot_strlen + 1;
-      path += troot_strlen + 1;
+    if (RelativePathFlag) {
+	dlen = prefix_strlen + nextf->fts_pathlen - troot_strlen + 1;
+	strcpy(prefix + prefix_strlen, nextf->fts_path + troot_strlen);
+	path = prefix;
+    } else {
+	dlen = nextf->fts_pathlen + 1;
+	path = nextf->fts_path;
     }
 
     /* Insert record into db */
