@@ -14,6 +14,9 @@
 /* 
  * HISTORY
  * $Log:	cnode.h,v $
+ * Revision 1.5  98/01/23  11:53:51  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ * 
  * Revision 1.4.2.5  98/01/23  11:21:14  rvb
  * Sync with 2.2.5
  * 
@@ -94,7 +97,10 @@
 
 #ifdef	__FreeBSD__
 
-#define	__DEBUG_FreeBSD__ 1
+/* yuck yuck yuck */
+#define vref(x) cvref(x)
+extern void cvref(struct vnode *vp);
+/* yuck yuck yuck */
 
 /* for the prototype of DELAY() */
 #include <machine/clock.h>

@@ -15,6 +15,9 @@
 /*
  * HISTORY
  * $Log:	cfs_vnodeops.c,v $
+ * Revision 1.6  98/01/23  11:53:47  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ * 
  * Revision 1.5.2.8  98/01/23  11:21:11  rvb
  * Sync with 2.2.5
  * 
@@ -429,7 +432,20 @@ cfs_open(v)
     cp->c_inode = inode;
 
     /* Open the cache file. */
-    error = VOP_OPEN(cp->c_ovp, flag, cred, p); 
+    error = VOP_OPEN(vp, flag, cred, p); 
+#ifdef	__FreeBSD__
+    if (error) {
+    	printf("cfs_open: VOP_OPEN on container failed %d\n", error);
+	return (error);
+    }
+    if (vp->v_type == VREG) {
+    	error = vfs_object_create(vp, p, cred, 1);
+	if (error != 0) {
+	    printf("cfs_open: vfs_object_create() returns %d\n", error);
+	    vput(vp);
+	}
+    }
+#endif
     return(error);
 }
 
@@ -570,6 +586,20 @@ cfs_rdwr(vp, uiop, rw, ioflag, cred, p)
 	    MARK_INT_GEN(CFS_OPEN_STATS);
 	    error = VOP_OPEN(vp, (rw == UIO_READ ? FREAD : FWRITE), 
 			     cred, p);
+printf("cfs_rdwr: Internally Opening %p\n", vp);
+#ifdef	__FreeBSD__
+	    if (error) {
+		printf("cfs_rdwr: VOP_OPEN on container failed %d\n", error);
+		return (error);
+	    }
+	    if (vp->v_type == VREG) {
+		error = vfs_object_create(vp, p, cred, 1);
+		if (error != 0) {
+		    printf("cfs_rdwr: vfs_object_create() returns %d\n", error);
+		    vput(vp);
+		}
+	    }
+#endif
 	    if (error) {
 		MARK_INT_FAIL(CFS_RDWR_STATS);
 		return(error);
@@ -587,21 +617,17 @@ cfs_rdwr(vp, uiop, rw, ioflag, cred, p)
 	error = VOP_READ(cfvp, uiop, ioflag, cred);
     } else {
 	error = VOP_WRITE(cfvp, uiop, ioflag, cred);
-#ifdef __MAYBE_FreeBSD__
-	    {
-	      struct vattr cfattr;
-	      int cf_error = 0;
-	      cf_error = VOP_GETATTR(cfvp, &cfattr, cred, p);
-	      if (!cf_error) 
-		vnode_pager_setsize(cfvp, cfattr.va_size);
+#ifdef	__FreeBSD__
+	/* ufs_write updates the vnode_pager_setsize for the vnode/object */
+	{   struct vattr attr;
+
+	    if (VOP_GETATTR(cfvp, &attr, cred, p) == 0) {
+		vnode_pager_setsize(vp, attr.va_size);
 #ifdef	__DEBUG_FreeBSD__
-		printf("vnode_pager_setsize(vp %x, cfvp %x, size %d)\n",
-			vp, cfvp, cfattr.va_size);
+		printf("write: vnode_pager_setsize(%p, %d)\n", vp, attr.va_size);
 #endif
-	      /* else
-		printf("RDWR: can not getattr!\n");
-		*/
 	    }
+	}
 #endif
     }
 
@@ -761,6 +787,10 @@ cfs_getattr(v)
     }
 #endif
 
+#ifdef	__FreeBSD__
+    if (IS_UNMOUNTING(cp))
+	return ENODEV;
+#endif
     /* Check for getattr of control object. */
     if (IS_CTL_VP(vp)) {
 	MARK_INT_FAIL(CFS_GETATTR_STATS);
@@ -794,19 +824,21 @@ cfs_getattr(v)
 	CFSDEBUG(CFS_GETATTR, if (!(cfsdebug & ~CFS_GETATTR))
 		 print_vattr(vap);	);
 	
+#ifdef	__FreeBSD__
+    {	int size = vap->va_size;
+    	struct vnode *convp = cp->c_ovp;
+	if (convp != (struct vnode *)0) {
+	    vnode_pager_setsize(convp, size);
+#ifdef	__DEBUG_FreeBSD__
+	    printf("getattr: vnode_pager_setsize(%p, %d)\n", convp, size);
+#endif
+	}
+    }
+#endif
 	/* If not open for write, store attributes in cnode */   
 	if ((cp->c_owrite == 0) && (cfs_attr_cache)) {  
 	    cp->c_vattr = *vap;
 	    cp->c_flags |= C_VATTR; 
-
-	    /* XXX inamura */
-#ifdef	__MAYBE_FreeBSD__
-	    if (cp->c_vattr.va_size > 0) {
-	      vnode_pager_setsize(CTOV(cp), cp->c_vattr.va_size);
-	    } else 
-	      CFSDEBUG(CFS_GETATTR,
-		       myprintf(("vnode size is suspicious.\n")); );
-#endif	    		 
 	}
 	
     }
@@ -844,6 +876,17 @@ cfs_setattr(v)
     if (!error)
 	cp->c_flags &= ~C_VATTR;
 
+#ifdef	__FreeBSD__
+    {	int size = vap->va_size;
+    	struct vnode *convp = cp->c_ovp;
+	if (size != VNOVAL && convp != (struct vnode *)0) {
+	    vnode_pager_setsize(convp, size);
+#ifdef	__DEBUG_FreeBSD__
+	    printf("setattr: vnode_pager_setsize(%p, %d)\n", convp, size);
+#endif
+	}
+    }
+#endif
     CFSDEBUG(CFS_SETATTR,	myprintf(("setattr %d\n", error)); )
     return(error);
 }
@@ -1001,15 +1044,17 @@ cfs_fsync(v)
     if (convp)
     	VOP_FSYNC(convp, cred, MNT_WAIT, p);
 
-#ifdef	__DEBUG_FreeBSD__
-    /* IMPORTANT TEST */
-/*    if (!vp->v_usecount) */ {
+#ifdef	__FreeBSD__
+    /*
+     * We see fsyncs with usecount == 1 then usecount == 0.
+     * For now we ignore them.
+     */
+    /*
+    if (!vp->v_usecount) {
     	printf("cfs_fsync on vnode %p with %d usecount.  c_flags = %x (%x)\n",
 		vp, vp->v_usecount, cp->c_flags, cp->c_flags&C_PURGING);
-	if (vp->v_usecount)
-		cfsnc_name(cp);
     }
-    /* IMPORTANT TEST */
+    */
 #endif
 
     /*
@@ -1023,28 +1068,12 @@ cfs_fsync(v)
 	return(0);
     }
 
-#ifdef	__MAYBE_FreeBSD__
-    if (convp && convp->v_object &&
-	  (convp->v_object->flags & OBJ_MIGHTBEDIRTY)) {
-	vm_object_page_clean(convp->v_object, 0, 0, TRUE, TRUE);
-    }
-    if (vp->v_object &&
-	(vp->v_object->flags & OBJ_MIGHTBEDIRTY)) {
-       vm_object_page_clean(vp->v_object, 0, 0, TRUE, TRUE);
-    }
-#endif
-#ifdef	__DEBUG_FreeBSD__
-    return (0);
-#endif
 #ifdef	__FreeBSD__
+    /* needs research */
     return 0;
 #endif
     error = venus_fsync(vtomi(vp), &cp->c_fid, cred, p);
 
-#ifdef	__MAYBE_FreeBSD__
-    if (((vp)->v_object) && (OBJ_DEAD == (vp)->v_object->flags))
-    	(vp)->v_object = NULL;
-#endif
     CFSDEBUG(CFS_FSYNC, myprintf(("in fsync result %d\n",error)); );
     return(error);
 }
@@ -1976,6 +2005,20 @@ cfs_readdir(v)
 	    opened_internally = 1;
 	    MARK_INT_GEN(CFS_OPEN_STATS);
 	    error = VOP_OPEN(vp, FREAD, cred, p);
+printf("cfs_readdir: Internally Opening %p\n", vp);
+#ifdef	__FreeBSD__
+	    if (error) {
+		printf("cfs_readdir: VOP_OPEN on container failed %d\n", error);
+		return (error);
+	    }
+	    if (vp->v_type == VREG) {
+		error = vfs_object_create(vp, p, cred, 1);
+		if (error != 0) {
+		    printf("cfs_readdir: vfs_object_create() returns %d\n", error);
+		    vput(vp);
+		}
+	    }
+#endif
 	    if (error) return(error);
 	}
 	
@@ -2087,6 +2130,11 @@ cfs_strategy(v)
 #ifdef	__MAYBE_FreeBSD__
 	struct vnode *vp;
 	struct cnode *cp;
+	/*
+	 * This needs testing.  execve calls bread and will go thru
+	 * this code.  So currently we comment out the "optimization"
+	 * in exec.
+	 */
 
 	myprintf(("cfs_strategy called!  "));
 	vp = bp->b_vp;

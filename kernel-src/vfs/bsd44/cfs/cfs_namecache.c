@@ -47,6 +47,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log:	cfs_namecache.c,v $
+ * Revision 1.7  98/01/23  11:53:39  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ * 
  * Revision 1.6.2.4  98/01/23  11:21:02  rvb
  * Sync with 2.2.5
  * 
@@ -205,7 +208,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <vm/vm_object.h>
 #endif
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.6.2.4 98/01/23 11:21:02 rvb Exp $");
+__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.7 98/01/23 11:53:39 rvb Exp $");
 
 /* 
  * Declaration of the name cache data structure.
@@ -488,11 +491,6 @@ cfsnc_remove(cncp, dcstat)
 	}
 	vrele(CTOV(cncp->cp)); 
 
-#ifdef	__MAYBE_FreeBSD__
-	if ((CTOV(cncp->cp)->v_object) && 
-	    (OBJ_DEAD == (CTOV(cncp->cp))->v_object->flags))
-	   CTOV(cncp->cp)->v_object = NULL;
-#endif
 	crfree(cncp->cred); 
 	bzero(DATA_PART(cncp),DATA_SIZE);
 

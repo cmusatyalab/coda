@@ -46,6 +46,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log:	cfs_subr.c,v $
+ * Revision 1.7  98/01/23  11:53:42  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ * 
  * Revision 1.6.2.3  98/01/23  11:21:05  rvb
  * Sync with 2.2.5
  * 
@@ -187,6 +190,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/malloc.h>
+#include <sys/proc.h>
 #include <sys/select.h>
 #include <sys/mount.h>
 
@@ -196,7 +200,7 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <cfs/cfsnc.h>
 
 
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_subr.c,v 1.6.2.3 98/01/23 11:21:05 rvb Exp $");
+__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_subr.c,v 1.7 98/01/23 11:53:42 rvb Exp $");
 
 #if	NVCFS
 
@@ -427,6 +431,11 @@ cfs_unmounting(whoIam)
 	for (hash = 0; hash < CFS_CACHESIZE; hash++) {
 		for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
 			if (CTOV(cp)->v_mount == whoIam) {
+				if (cp->c_flags & (C_LOCKED|C_WANTED)) {
+					printf("cfs_unmounting: Unlocking %p\n", cp);
+					cp->c_flags &= ~(C_LOCKED|C_WANTED);
+					wakeup((caddr_t) cp);
+				}
 				cp->c_flags |= C_UNMOUNTING;
 			}
 		}
@@ -511,9 +520,6 @@ int handleDownCall(opcode, out)
 {
     int error;
 
-#ifdef	__DEBUG_FreeBSD__
-    printf("into handleDownCall(%d)\n", opcode);
-#endif
     /* Handle invalidate requests. */
     switch (opcode) {
       case CFS_FLUSH : {
@@ -607,9 +613,6 @@ int handleDownCall(opcode, out)
 	
       case CFS_PURGEFID : {
 	  struct cnode *cp;
-#ifdef	__DEBUG_FreeBSD__
-	  printf("into CFS_PURGEFID\n");
-#endif
 
 	  error = 0;
 	  cfs_clstat.ncalls++;
@@ -617,17 +620,7 @@ int handleDownCall(opcode, out)
 
 	  cp = cfs_find(&out->cfs_purgefid.CodaFid);
 	  if (cp != NULL) {
-#ifdef	__DEBUG_FreeBSD__
-	  printf("purgefid: fid = (%lx.%lx.%lx)  ",
-	  	 cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique);
-	  {  struct vnode *vp = CTOV(cp);
-	     printf("cp %p vp %p\n", cp, vp);
-	  }
-#endif
 	      vref(CTOV(cp));
-#ifdef	__DEBUG_FreeBSD__
-	      printf("after vref\n");
-#endif
 	      if (ODD(out->cfs_purgefid.CodaFid.Vnode)) { /* Vnode is a directory */
 		  cfsnc_zapParentfid(&out->cfs_purgefid.CodaFid,
 				     IS_DOWNCALL);     
@@ -648,9 +641,6 @@ int handleDownCall(opcode, out)
 	      }
 	      vrele(CTOV(cp));
 	  }
-#ifdef	__DEBUG_FreeBSD__
-	  printf("outt CFS_PURGEFID\n");
-#endif
 	  return(error);
       }
 

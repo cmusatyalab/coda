@@ -62,7 +62,16 @@ vcattach(void)
   VCDEBUG("cfs: vccdevsw entry installed at %d.\n", major(vccdev));
 }
 
+#include <sys/vnode.h>
+void
+cvref(vp)
+	struct vnode *vp;
+{
+	if (vp->v_usecount <= 0)
+		panic("vref used where vget required");
 
+	vp->v_usecount++;
+}
 
 #ifdef __MAYBE_FreeBSD__
 
