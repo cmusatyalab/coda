@@ -46,13 +46,13 @@ coda_assert(char *pred, char *file, int line)
 	break;
 
     case CODA_ASSERT_EXIT:
-	fprintf(stderr, "VENUS IS EXITING! Bye!\n");
+	fprintf(stderr, "EXITING! Bye!\n");
 	fflush(stderr);
     	exit(77);
 	break;
 
     case CODA_ASSERT_ABORT:
-	fprintf(stderr, "VENUS WILL TRY TO DUMP CORE\n");
+	fprintf(stderr, "TRYING TO DUMP CORE\n");
 	fflush(stderr);
 	abort();
 	break;
@@ -65,3 +65,4 @@ coda_note(char *pred, char *file, int line)
     fprintf(stderr,"Note failed: %s, file \"%s\", line %d\n", pred, file, line);
     fflush(stderr);
 }
+
