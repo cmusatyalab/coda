@@ -17,6 +17,8 @@
 # 
 #*/
 
+# ignore SIGHUP
+trap "" 1
 if [ -f /vice/srv/pid ]; then
     echo "Can't start file server, one is already running!"
     exit 1 

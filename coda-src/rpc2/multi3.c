@@ -253,8 +253,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN  S
 	}
 
     /* Get an mgrp entry and initialize it. */
-    /* XXXXXX NULL is bad type here */
-    me = rpc2_AllocMgrp(&rpc2_LocalHost, &rpc2_LocalPort, NULL);
+    me = rpc2_AllocMgrp(&rpc2_LocalHost, &rpc2_LocalPort, 0);
     CODA_ASSERT(me != NULL);
     *MgroupHandle = me->MgroupID;
 

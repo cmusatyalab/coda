@@ -1528,7 +1528,7 @@ static int CheckSemPerformRes(rlent *rlog, int nrents,
 	    {
 		/* until log records are optimized do name length check - HACK YUCK */
 		if (name) {
-		    if (strlen(name) == DIROPNAMESIZE - 1) {
+		    if (strlen(name) >= DIROPNAMESIZE - 1) {
 			result[i] = MARKPARENTINC;
 			SLog(0,  "Marking parend Inc.- name %s too long", 
 				name);

@@ -55,7 +55,7 @@ Pittsburgh, PA.
 #include "test.h"
 
 #define SUBSYS_SRV 1001
-#define STESTSTACK 0x18000
+#define STESTSTACK 0x25000
 extern etext();
 extern long RPC2_Perror;
 extern long RPC2_DebugLevel;

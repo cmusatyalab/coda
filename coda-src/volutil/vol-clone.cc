@@ -94,7 +94,7 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *vlist
 	       VnodeDiskObject *rwVnode, VnodeClass vclass);
 
 /*
-S_VolClone: Create a new readonly clone of a volume.
+    S_VolClone: Create a new readonly clone of a volume.
 */
 /* ovolid: Volume Id of the volume to be cloned 
  * cloneId: OUT Parameter; Id of cloned volume returned in that param.
@@ -430,18 +430,18 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 /* Create a new vnode in the the new clone volume from the copy of the
  * r/w vnode stored in (vnode). Mark the RW Vnode as cloned.
  */
-int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlist,
-	       VnodeDiskObject *vnode, VnodeClass vclass)
+int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, 
+	       rec_smolist *rvlist, VnodeDiskObject *vnode, VnodeClass vclass)
 {
     Error error = 0;
-
     int vnodeNum = bitNumberToVnodeNumber(vnodeIndex, vclass);
+    int size=(vclass==vSmall) ? SIZEOF_SMALLDISKVNODE : SIZEOF_LARGEDISKVNODE;
+    VnodeDiskObject *vdo = (VnodeDiskObject *) rvmlib_rec_malloc(size);
+    int docreate = FALSE;
+
     VLog(9, "CloneVnode: Cloning %s vnode %x.%x.%x\n",
 	   (vclass == vLarge)?"Large":"Small",
 	   V_id(rwVp), vnodeNum, vnode->uniquifier);
-    
-    int size=(vclass==vSmall)?SIZEOF_SMALLDISKVNODE:SIZEOF_LARGEDISKVNODE;
-    VnodeDiskObject *vdo = (VnodeDiskObject *) rvmlib_rec_malloc(size);
 
     bzero((void *)&(vnode->nextvn), sizeof(rec_smolink));
     vnode->vol_index = V_volumeindex(cloneVp);
@@ -454,8 +454,6 @@ int CloneVnode(Volume *rwVp, Volume *cloneVp, int vnodeIndex, rec_smolist *rvlis
      * started (otherwise the rwVnode would be BARREN).
      * Inodes for Large Vnodes are in RVM, so should never disappear.
      */
-
-    int docreate = FALSE;
 	
     if (vclass == vLarge) { /* Directory -- no way it can be BARREN */
 	int linkcount = DI_Count((PDirInode)(vnode->inodeNumber));

@@ -254,11 +254,9 @@ void VFSMount() {
 	exit(-1);
     }
     rootnodeid = tstat.st_ino;
-#endif
 
     /* Issue the VFS mount request. */
 
-#ifdef __BSD44__
     if (mount("coda", venusRoot, 0, kernDevice) < 0) {
 	if (mount("cfs", venusRoot, 0, kernDevice) < 0)
 #if	defined(__FreeBSD__) && !defined(__FreeBSD_version)
@@ -306,6 +304,7 @@ void VFSMount() {
       } else {
 	FILE *fd;
 	struct mntent ent;
+	eprint("/coda now mounted.\n");
 	fd = setmntent("/etc/mtab", "a");
 	if ( fd > 0 ) { 
 	  ent.mnt_fsname="Coda";

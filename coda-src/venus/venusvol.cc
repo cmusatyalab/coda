@@ -506,7 +506,8 @@ int vdb::Get(volent **vpp, char *volname) {
 
     /* Must ensure that the vsg entry is cached for replicated volumes. */
     vsgent *vsg; vsg = 0;
-    if (volinfo.Type == ROVOL || volinfo.Type == REPVOL) {
+    /*    if (volinfo.Type == ROVOL || volinfo.Type == REPVOL) { */
+    if (volinfo.Type == REPVOL) {
 	/* HACK! VolumeInfo doesn't yet contain vsg info for ROVOLs; fake it! */
 	if (volinfo.Type == ROVOL && volinfo.VSGAddr == 0)
 		CHOKE("Fix GetVolInfo to return a VSGAddr for ROVOLS\n");

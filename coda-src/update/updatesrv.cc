@@ -153,8 +153,10 @@ int main(int argc, char **argv)
     (void) signal(SIGUSR1, (void (*)(int))SetDebug);
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
     
+    fprintf(stderr, "Updatesrv started!\n");
     freopen("UpdateSrvLog","a+",stdout);
     freopen("UpdateSrvLog","a+",stderr);
+    fprintf(stderr, "Updatesrv started!\n");
 
     if (chdir(prefix)) {
 	    perror("could not chdir to prefix directory");

@@ -725,34 +725,35 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 ViceNewConnection: Called after a new bind request is received.
 */
 
-long FS_ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set, RPC2_Integer sl,
-			 RPC2_Integer et, RPC2_Integer at, RPC2_CountedBS *cid)
+long FS_ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set, 
+			  RPC2_Integer sl,  RPC2_Integer et, 
+			  RPC2_Integer at, RPC2_CountedBS *cid)
 {
-    ClientEntry *client = 0;
-    SecretToken st;
-    char    user[PRS_MAXNAMELEN+1];
-    long errorCode;
+	ClientEntry *client = 0;
+	SecretToken st;
+	char    user[PRS_MAXNAMELEN+1];
+	long errorCode;
 
-    if (sl == RPC2_OPENKIMONO) {
-	if (cid->SeqLen > 0)
-	    strncpy(user, (char *)cid->SeqBody, PRS_MAXNAMELEN);
-	else
-	    strcpy(user, NEWCONNECT);
-    } else {
-	bcopy(cid->SeqBody, (char *)&st, (int)cid->SeqLen);
-	SLog(1, "Authorized Connection for uid %d, Start %d, end %d, time %d",
-		st.ViceId, st.BeginTimestamp, st.EndTimestamp, time(0));
-	if (AL_IdToName((int) st.ViceId, user))
-	    strcpy(user, "System:AnyUser");
-    }
+	if (sl == RPC2_OPENKIMONO) {
+		if (cid->SeqLen > 0)
+			strncpy(user, (char *)cid->SeqBody, PRS_MAXNAMELEN);
+		else
+			strcpy(user, NEWCONNECT);
+	} else {
+		bcopy(cid->SeqBody, (char *)&st, (int)cid->SeqLen);
+		SLog(1, "Authorized Connection for uid %d, Start %d, end %d, time %d",
+		     st.ViceId, st.BeginTimestamp, st.EndTimestamp, time(0));
+		if (AL_IdToName((int) st.ViceId, user))
+			strcpy(user, "System:AnyUser");
+	}
 
-    errorCode = CLIENT_Build(RPCid, user, sl, &client);
-    if (!errorCode) 
-	    client->SEType = (int) set;
+	errorCode = CLIENT_Build(RPCid, user, sl, &client);
+	if (!errorCode) 
+		client->SEType = (int) set;
 
-    SLog(1,"New connection received RPCid %d, security level %d, remote cid %d returns %s",
-	    RPCid, sl, cid, ViceErrorMsg((int) errorCode));
-    return(errorCode);
+	SLog(1,"New connection received RPCid %d, security level %d, remote cid %d returns %s",
+	     RPCid, sl, cid, ViceErrorMsg((int) errorCode));
+	return(errorCode);
 }
 
 
