@@ -12,7 +12,7 @@
  *                      resource request lists.
  */
 
-extern magic_t ds_rrlist_magic;
+extern const magic_t ds_rrlist_magic;
 
 #define DS_RRLIST_VALID(rp)   ((rp) && ((rp)->magic == ds_rrlist_magic))
 
@@ -42,7 +42,7 @@ struct ds_rrlist_t {
 
 /* elements for that hash table */
 
-extern magic_t ds_rrlist_reqtab_elt_magic;
+extern const magic_t ds_rrlist_reqtab_elt_magic;
 
 #define DS_RRLIST_REQTAB_ELT_VALID(rre)   \
          ((rre) && ((rre)->magic == ds_rrlist_reqtab_elt_magic))
@@ -77,4 +77,4 @@ do {                                          \
     FREE(rre);                                \
 } while (0)
 
-#endif _DS_RRLIST_PRIVATE_H_
+#endif /* _DS_RRLIST_PRIVATE_H_ */

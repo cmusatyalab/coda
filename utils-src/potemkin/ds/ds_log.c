@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include "coda_string.h"
 #include <sys/time.h>
+#include <time.h>
 
 #include <odytypes.h>
 

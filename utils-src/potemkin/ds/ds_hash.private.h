@@ -12,8 +12,8 @@
 
 /* magic numbers for structures */
 
-extern magic_t ds_hash_magic;
-extern magic_t ds_hash_iter_magic;
+extern const magic_t ds_hash_magic;
+extern const magic_t ds_hash_iter_magic;
 
 /* A hash table has a magic number, an array of ds_list_t's, 
    and a count of the number of elements.

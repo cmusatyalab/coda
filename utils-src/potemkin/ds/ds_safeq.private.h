@@ -6,10 +6,10 @@
 #define _DS_SAFEQ_PRIVATE_H_
 
 #include <odytypes.h>
-#include <lock.h>
+#include <lwp/lock.h>
 #include "ds_safeq.h"
 
-extern magic_t ds_safeq_magic;
+extern const magic_t ds_safeq_magic;
 
 struct ds_safeq_t {
     magic_t        sq_magic;

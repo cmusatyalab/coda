@@ -1,7 +1,7 @@
 #ifndef _DS_LOG_PRIVATE_H_
 #define _DS_LOG_PRIVATE_H_
 
-extern magic_t ds_log_magic;
+extern const magic_t ds_log_magic;
 
 struct ds_log_t {
     magic_t      magic;

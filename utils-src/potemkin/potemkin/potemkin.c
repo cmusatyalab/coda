@@ -68,7 +68,7 @@ listed in the file CREDITS.
 
 #include "vcrcommon.h"
 
-#include <cfs/coda.h>
+#include <coda.h>
 /* #include <cfs/cnode.h> */
 
 #include "potemkin.h"

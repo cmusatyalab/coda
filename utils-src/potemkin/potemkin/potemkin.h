@@ -50,26 +50,6 @@ typedef struct fid_ent_s {
 #define SYS_STRING "solaris"
 #endif
 
-#ifdef __STDC__
-#define CODA_ASSERT(b)                                           \
-do {                                                        \
-    if (!(b)) {                                             \
-	fprintf(stderr,"CODA_ASSERT(%s) -- line %d, file %s\n",  \
-                #b, __LINE__, __FILE__);                    \
-	zombify();                                          \
-    }                                                       \
-} while (0)
-#else /* __STDC__ */
-#define CODA_ASSERT(b)                                              \
-do {                                                           \
-    if (!b) {                                                  \
-	fprintf(stderr,"assertion failed line %d, file %s\n",  \
-		__LINE__, __FILE__);                           \
-	zombify();                                             \
-    }                                                          \
-} while (0)
-#endif
-
 #ifdef LINUX
 #define ATTR_MODE	1
 #define ATTR_UID	2

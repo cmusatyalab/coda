@@ -10,9 +10,9 @@
 #include "ds_list.h"  /* public parts */
 
 /* magic numbers for structures */
-extern magic_t ds_list_magic;
-extern magic_t ds_list_elt_magic;
-extern magic_t ds_list_iter_magic;
+extern const magic_t ds_list_magic;
+extern const magic_t ds_list_elt_magic;
+extern const magic_t ds_list_iter_magic;
 
 /* the structures themselves. */
 

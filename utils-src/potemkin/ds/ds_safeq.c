@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <odytypes.h>
 
-#include <lwp.h>
-#include <lock.h>
+#include <lwp/lwp.h>
+#include <lwp/lock.h>
 #include "ds_list.h"
 #include "ds_safeq.h"
 #include "ds_safeq.private.h"

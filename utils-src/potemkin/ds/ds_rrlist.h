@@ -51,7 +51,7 @@ typedef struct ds_request_t {
     long        pid;          /* process id of requesting process */
 } ds_request_t;
 
-extern magic_t ds_request_magic;
+extern const magic_t ds_request_magic;
 
 #define DS_REQUEST_VALID(rp)   ((rp) && ((rp)->magic == ds_request_magic))
 
@@ -171,4 +171,4 @@ ds_rrlist_set_value (ds_rrlist_t *l, long newval, ds_list_t **to_notify);
 extern void
 ds_rrlist_dump (ds_rrlist_t *l, FILE *f, char *name);
 
-#endif _DS_RRLIST_H_
+#endif /* _DS_RRLIST_H_ */
