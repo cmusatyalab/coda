@@ -1,0 +1,70 @@
+#!/bin/sh
+#
+# skeleton      Example file to build /etc/init.d scripts.
+#
+# Version:      @(#) /etc/init.d/skeleton 1.01 26-Oct-1993
+#
+# Author:       Miquel van Smoorenburg, <miquels@drinkel.nl.mugnet.org>
+#
+
+# Source function library if we are a System V type OS using SYSV init.
+# Otherwise, we are probably a BSD like OS.
+
+VICE=/vice
+VICESRV=${VICE}/srv
+
+PATH=/sbin:/usr/sbin:$PATH
+export PATH
+
+# See how we were called.
+case "$1" in
+  start)
+	# Check to see if we aren't suppose to start
+	if [ -f /var/lock/subsys/authmon ]; then
+    		echo -n "autmon/auth2 not started, "
+    		exit 1
+	fi
+	# start auth2 & update stuff: first the scm case
+    	echo -n "Starting "
+	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
+	    if [ -f /usr/sbin/authmon  ]; then
+ 		authmon &
+		echo -n "authmon/auth2,"
+	    fi
+	else 	# for non-scm machines.
+	    if [ -f /usr/sbin/authmon  ]; then
+		authmon -chk &
+		echo -n "authmon/auth2(ro),"
+	    fi
+	fi
+	if [ -d /var/lock ]; then
+	    touch /var/lock/subsys/authmon
+	fi
+	;;
+  stop)
+	# Normal Coda FS shutdown:
+	# if pid file doesn't exist, it isn't likely that srv is running.
+	echo -n "Shutting down authmon/auth2: "
+	if [ -f /var/run/authmon.pid ]; then
+	    kill -9 `cat /var/run/authmon.pid` 
+	fi
+	if [ -f /var/run/auth2.pid ]; then
+	    kill -9 `cat /var/run/auth2.pid`
+	fi
+	# the pid file must not exist on boot up.
+	if [ -d /var/lock ]; then
+		rm -f /var/lock/subsys/authmon
+	fi
+	;;
+  norestart)
+	# this tells us not to restart the server....
+	if [ -d /var/lock ]; then
+		rm -f /var/lock/subsys/authmon
+	fi
+	;;
+  *)
+	echo "Usage: $0 {start|stop}"
+	exit 1
+esac
+
+exit 0
