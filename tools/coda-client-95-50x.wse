@@ -1,0 +1,969 @@
+Document Type: WSE
+item: Global
+  Version=7.0
+  Title=Coda for Windows 95 Installation
+  Flags=10010111
+  Languages=65 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  Japanese Font Name=MS Gothic
+  Japanese Font Size=10
+  Progress Bar DLL=%_WISE_%\Progress\WIZ%_EXE_OS_TYPE_%.DLL
+  Start Gradient=0 0 160
+  End Gradient=0 0 0
+  Windows Flags=00000100000000010010110100000001
+  Log Pathname=%MAINDIR%\usr\coda\INSTALL.LOG
+  Message Font=MS Sans Serif
+  Font Size=8
+  Pages Modified=00111000111101100000100100000101
+  Extra Pages=00000000000000000000000000100000
+  Disk Filename=SETUP
+  Patch Flags=0000000000001001
+  Patch Threshold=85
+  Patch Memory=4000
+  EXE Filename=c:\wise-coda\win95\Coda-5.0-Win95.exe
+  FTP Cluster Size=20
+  Per-User Version ID=1
+  Dialogs Version=7
+  Version File=5.0
+  Version Description=Coda Client
+  Version Company=Carnegie Mellon University
+  Step View=All
+  Variable Name1=_SYS_
+  Variable Default1=C:\WINNT\System32
+  Variable Flags1=00001000
+  Variable Name2=_WISE_
+  Variable Default2=C:\Program Files\Wise InstallBuilder
+  Variable Flags2=00001000
+  Variable Name3=_ALIASNAME_
+  Variable Flags3=00001000
+  Variable Name4=_ALIASPATH_
+  Variable Flags4=00001000
+  Variable Name5=_ALIASTYPE_
+  Variable Flags5=00001000
+end
+item: Get Temporary Filename
+  Variable=READMEFILE
+end
+item: Install File
+  Source=c:\wise-coda\win95\GNU-LICENSE.txt
+  Destination=%TEMP%\%READMEFILE%
+  Flags=0000000000100010
+end
+item: Check Configuration
+  Flags=10000000
+end
+item: Check Configuration
+  Message=Wrong WIndows Version - use Windows 95
+  Title=WRONG
+  Flags=01011001
+end
+item: End Block
+end
+item: Check Configuration
+  Flags=10100000
+end
+item: Check Configuration
+  Message=This Version is not for Windows NT
+  Title=WROMG
+  Flags=01000000
+end
+item: End Block
+end
+item: Open/Close INSTALL.LOG
+  Flags=00000001
+end
+item: Check if File/Dir Exists
+  Pathname=%SYS%
+  Flags=10000100
+end
+item: Set Variable
+  Variable=SYS
+  Value=%WIN%
+end
+item: End Block
+end
+item: Set Variable
+  Variable=APPTITLE
+  Value=Coda for Windows 95
+  Flags=10000000
+end
+item: Set Variable
+  Variable=GROUP
+  Flags=10000000
+end
+item: Set Variable
+  Variable=DISABLED
+  Value=!
+end
+item: Set Variable
+  Variable=MAINDIR
+  Flags=10000000
+end
+item: Check Configuration
+  Flags=10111011
+end
+item: Get Registry Key Value
+  Variable=COMMON
+  Key=SOFTWARE\Microsoft\Windows\CurrentVersion
+  Default=C:\Program Files\Common Files
+  Value Name=CommonFilesDir
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=PROGRAM_FILES
+  Key=SOFTWARE\Microsoft\Windows\CurrentVersion
+  Default=C:\Program Files
+  Value Name=ProgramFilesDir
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=DESKTOPDIR
+  Key=SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Desktop
+  Default=%WIN%\Desktop
+  Value Name=DesktopDir
+  Flags=00000010
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=C:\%MAINDIR%
+  Flags=00001100
+end
+item: Set Variable
+  Variable=EXPLORER
+  Value=1
+end
+item: Else Statement
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=C:\%MAINDIR%
+  Flags=00001100
+end
+item: End Block
+end
+item: Set Variable
+  Variable=BACKUP
+  Value=%MAINDIR%\BACKUP
+  Flags=10000000
+end
+item: Set Variable
+  Variable=DOBACKUP
+  Value=B
+  Flags=10000000
+end
+item: Set Variable
+  Variable=COMPONENTS
+  Flags=10000000
+end
+item: Set Variable
+  Variable=BRANDING
+  Value=0
+end
+item: If/While Statement
+  Variable=BRANDING
+  Value=1
+end
+item: Read INI Value
+  Variable=NAME
+  Pathname=%INST%\CUSTDATA.INI
+  Section=Registration
+  Item=Name
+end
+item: Read INI Value
+  Variable=COMPANY
+  Pathname=%INST%\CUSTDATA.INI
+  Section=Registration
+  Item=Company
+end
+item: If/While Statement
+  Variable=NAME
+end
+item: Set Variable
+  Variable=DOBRAND
+  Value=1
+end
+item: End Block
+end
+item: End Block
+end
+item: Wizard Block
+  Direction Variable=DIRECTION
+  Display Variable=DISPLAY
+  Bitmap Pathname=%_WISE_%\DIALOGS\TEMPLATE\WIZARD.BMP
+  X Position=9
+  Y Position=10
+  Filler Color=8421440
+  Dialog=Select Program Manager Group
+  Dialog=Select Backup Directory
+  Dialog=Display Registration Information
+  Dialog=Get Registration Information
+  Variable=GROUP
+  Variable=DOBACKUP
+  Variable=DOBRAND
+  Variable=DOBRAND
+  Value=
+  Value=A
+  Value=1
+  Value=1
+  Compare=0
+  Compare=1
+  Compare=0
+  Compare=1
+  Flags=00000011
+end
+item: Custom Dialog Set
+  Name=Display ReadMe
+  Display Variable=DISPLAY
+  item: Dialog
+    Title=Licence Agreement for Coda 5.0
+    Title French=Fichier Lisez-moi
+    Title German=Liesmich-Datei
+    Title Portuguese=Ficheiro Leia-me
+    Title Spanish=Archivo Léeme
+    Title Italian=File Leggimi
+    Title Danish=Vigtigt fil
+    Title Dutch=Leesmij-bestand
+    Title Norwegian=Informasjonsfil
+    Title Swedish=Läs mig-fil
+    Width=280
+    Height=224
+    Font Name=Helv
+    Font Size=8
+    item: Push Button
+      Rectangle=172 185 214 199
+      Variable=DIRECTION
+      Value=N
+      Create Flags=01010000000000010000000000000001
+      Text=&Next >
+      Text French=&Suivant>
+      Text German=&Weiter>
+      Text Portuguese=&Próximo>
+      Text Spanish=&Siguiente >
+      Text Italian=&Avanti >
+      Text Danish=&Næste>
+      Text Dutch=&Volgende>
+      Text Norwegian=&Neste>
+      Text Swedish=&Nästa >
+    end
+    item: Push Button
+      Rectangle=222 185 264 199
+      Action=3
+      Create Flags=01010000000000010000000000000000
+      Text=Cancel
+      Text French=Annuler
+      Text German=Abbrechen
+      Text Portuguese=Cancelar
+      Text Spanish=Cancelar
+      Text Italian=Annulla
+      Text Danish=Slet
+      Text Dutch=Annuleren
+      Text Norwegian=Avbryt
+      Text Swedish=Avbryt
+    end
+    item: Static
+      Rectangle=9 177 263 178
+      Action=3
+      Create Flags=01010000000000000000000000000111
+    end
+    item: Editbox
+      Rectangle=85 11 254 170
+      Value=%TEMP%\%READMEFILE%
+      Help Context=16711681
+      Create Flags=01010000101000000000100000000100
+    end
+    item: Push Button
+      Rectangle=130 185 172 199
+      Variable=DIRECTION
+      Value=B
+      Create Flags=01010000000000010000000000000000
+      Flags=0000000000000001
+      Text=< &Back
+      Text French=<&Retour
+      Text German=<&Zurück
+      Text Portuguese=<&Retornar
+      Text Spanish=<&Retroceder
+      Text Italian=< &Indietro
+      Text Danish=<&Back
+      Text Dutch=<&Terug
+      Text Norwegian=<&Tilbake
+      Text Swedish=< &Tillbaka
+    end
+  end
+end
+item: If/While Statement
+  Variable=DISPLAY
+  Value=Select Destination Directory
+end
+item: Set Variable
+  Variable=BACKUP
+  Value=%MAINDIR%\BACKUP
+end
+item: End Block
+end
+item: End Block
+end
+item: If/While Statement
+  Variable=DOBACKUP
+  Value=A
+end
+item: Set Variable
+  Variable=BACKUPDIR
+  Value=%BACKUP%
+end
+item: End Block
+end
+item: If/While Statement
+  Variable=BRANDING
+  Value=1
+end
+item: If/While Statement
+  Variable=DOBRAND
+  Value=1
+end
+item: Edit INI File
+  Pathname=%INST%\CUSTDATA.INI
+  Settings=[Registration]
+  Settings=NAME=%NAME%
+  Settings=COMPANY=%COMPANY%
+  Settings=
+end
+item: End Block
+end
+item: End Block
+end
+item: Open/Close INSTALL.LOG
+end
+item: Check Disk Space
+  Component=COMPONENTS
+end
+item: Display Graphic
+  Pathname=C:\wise-coda\win95\install.bmp
+  X Position=16
+  Y Position=16
+  Flags=0000000000000010
+end
+item: Include Script
+  Pathname=%_WISE_%\INCLUDE\uninstal.wse
+end
+item: Install File
+  Source=c:\wise-coda\win95\cat.exe
+  Destination=%MAINDIR%\usr\coda\bin\cat.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\hoard.exe
+  Destination=%MAINDIR%\usr\coda\bin\hoard.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\gdbserver.exe
+  Destination=%MAINDIR%\usr\coda\bin\gdbserver.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\venus-setup.bat
+  Destination=%MAINDIR%\usr\coda\bin\venus-setup.bat
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\cygwinb19.dll
+  Destination=%MAINDIR%\usr\coda\bin\cygwinb19.dll
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\cunlog.exe
+  Destination=%MAINDIR%\usr\coda\bin\cunlog.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\ctokens.exe
+  Destination=%MAINDIR%\usr\coda\bin\ctokens.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\codadev.vxd
+  Destination=%MAINDIR%\usr\coda\bin\codadev.vxd
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\codacon.exe
+  Destination=%MAINDIR%\usr\coda\bin\codacon.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\clog.exe
+  Destination=%MAINDIR%\usr\coda\bin\clog.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\cfs.exe
+  Destination=%MAINDIR%\usr\coda\bin\cfs.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\logo.sys
+  Destination=%MAINDIR%\usr\coda\logo.sys
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\myhost
+  Destination=%MAINDIR%\usr\coda\venus.cache\myhost
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\vstab
+  Destination=%MAINDIR%\usr\coda\etc\vstab
+  Flags=0000000010000010
+end
+item: Create Directory
+  Pathname=%MAINDIR%\usr\coda\spool
+end
+item: Install File
+  Source=c:\wise-coda\win95\mcstub.vxd
+  Destination=%MAINDIR%\usr\coda\bin\mcstub.vxd
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\mmap.vxd
+  Destination=%MAINDIR%\usr\coda\bin\mmap.vxd
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\mount.exe
+  Destination=%MAINDIR%\usr\coda\bin\mount.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\relay.exe
+  Destination=%MAINDIR%\usr\coda\bin\relay.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\sock.vxd
+  Destination=%MAINDIR%\usr\coda\bin\sock.vxd
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\unmount.exe
+  Destination=%MAINDIR%\usr\coda\bin\unmount.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\venus.exe
+  Destination=%MAINDIR%\usr\coda\bin\venus.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=c:\wise-coda\win95\coda-howto.html
+  Destination=%MAINDIR%\usr\coda\bin\coda-howto.html
+  Flags=0000000010000010
+end
+item: Set Variable
+  Variable=COMMON
+  Value=%COMMON%
+  Flags=00010100
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=%MAINDIR%
+  Flags=00010100
+end
+item: Prompt for Text
+  Window Title=Coda Servers
+  Text=Please insert the IP adress of the Coda Servers you are using. Example:128.2.209.213,128.2.209.214,..., 128.2.209.215
+  Prompt Title=Server IPs
+  Default=128.2.209.213
+  Variable=IP
+end
+item: If/While Statement
+  Variable=IP
+  Value=""
+end
+item: Set Variable
+  Variable=IP
+  Value=128.2.209.213
+end
+item: End Block
+end
+item: Insert Line into Text File
+  Pathname=%MAINDIR%\usr\coda\etc\vstab
+  New Text=/coda:/dev/cfs0:%IP%::100000:1
+  Line Number=0
+end
+item: Add to SYSTEM.INI
+  Device=device=%MAINDIR%\usr\coda\bin\mcstub.vxd
+end
+item: Add to SYSTEM.INI
+  Device=device=%MAINDIR%\usr\coda\bin\mmap.vxd
+end
+item: Add Directory to Path
+  Directory=%MAINDIR%\usr\coda\bin
+end
+item: Prompt for Text
+  Window Title=Coda Client
+  Text=Please insert the IP adress of the your machine. Example:128.2.209.213
+  Prompt Title=Your IP
+  Variable=CIP
+end
+item: Insert Line into Text File
+  Pathname=%MAINDIR%\usr\coda\venus.cache\myhost
+  New Text=%CIP%
+  Line Number=0
+end
+item: Set Variable
+  Variable=OK
+  Value=YES
+end
+item: Read/Update Text File
+  Variable=SERVICES
+  Pathname=%WIN%\Services
+end
+item: If/While Statement
+  Variable=SERVICES
+  Value=# Iana allocated Coda filesystem port numbers
+  Flags=00000100
+end
+item: Set Variable
+  Variable=OK
+  Value=NO
+end
+item: End Block
+end
+item: End Block
+end
+item: If/While Statement
+  Variable=OK
+  Value=YES
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=# Iana allocated Coda filesystem port numbers
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=rpc2portmap     369/tcp
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=rpc2portmap     369/udp    # Coda portmapper
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=codaauth2       370/tcp
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=codaauth2       370/udp    # Coda authentication server
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=venus           2430/tcp   # codacon port
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\\Services
+  New Text=venus           2430/udp   # Venus callback/wbc interface
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=venus-se        2431/tcp   # tcp side effects
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=venus-se        2431/udp   # udp sftp side effect
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=codasrv         2432/tcp   # not used
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=codasrv         2432/udp   # server port
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=codasrv-se      2433/tcp   # tcp side effects
+  Line Number=0
+  Flags=00001000
+end
+item: Insert Line into Text File
+  Pathname=%WIN%\Services
+  New Text=codasrv-se      2433/udp   # udp sftp side effect
+  Line Number=0
+  Flags=00001000
+end
+item: End Block
+end
+item: Custom Dialog Set
+  Name=Startup Logo
+  item: Dialog
+    Title=Startup Logo
+    Width=134
+    Height=116
+    Font Name=Helv
+    Font Size=8
+    item: Radio Button
+      Rectangle=30 33 56 64
+      Variable=YESNO
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000010000000000001001
+      Text=Yes
+      Text=No
+      Text=
+    end
+    item: Static
+      Rectangle=9 7 123 27
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000000000000000000000
+      Text=Would you like to have your Windows 95 Startup Logo changed to the Coda Logo?
+    end
+    item: Push Button
+      Rectangle=82 73 117 88
+      Action=1
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000010000000000000001
+      Flags=0000000000000001
+      Text=OK
+    end
+  end
+end
+item: If/While Statement
+  Variable=YESNO
+  Value=A
+end
+item: Rename File/Directory
+  Old Pathname=%MAINDIR%\logo.sys
+  New Filename=%MAINDIR%\logo.org
+end
+item: Copy Local File
+  Source=%MAINDIR%\usr\coda\logo.sys
+  Destination=%MAINDIR%\logo.sys
+  Flags=0000000011100010
+end
+item: Delete File
+  Pathname=%MAINDIR%\usr\coda\logo.sys
+end
+item: End Block
+end
+item: Custom Dialog Set
+  Name=CODA-HOWTO
+  item: Dialog
+    Title=CODA-HOWTO
+    Width=150
+    Height=150
+    Font Name=Helv
+    Font Size=8
+    item: Static
+      Rectangle=22 12 127 46
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000000000000000000000
+      Text=A link to the CODA-HOWTO html file will be created on you desktop. Would you like to read the CODA-HOWTO right away?
+    end
+    item: Push Button
+      Rectangle=54 102 89 117
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000010000000000000001
+      Text=OK
+    end
+    item: Radio Button
+      Rectangle=30 58 122 87
+      Variable=HOWTO
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000010000000000001001
+      Text=Open CODA-HOWTO
+      Text=Do not open CODA-HOWTO
+      Text=
+    end
+  end
+end
+item: Create Shortcut
+  Source=%MAINDIR%\usr\coda\bin\coda-howto.html
+  Destination=%DESKTOPDIR%\coda-howto.lnk
+  Description=CODA-HOWTO
+  Key Type=1536
+  Flags=00000001
+end
+item: If/While Statement
+  Variable=HOWTO
+  Value=A
+end
+item: Execute Program
+  Pathname=%MAINDIR%\usr\coda\bin\coda-howto.html
+end
+item: End Block
+end
+item: Check Configuration
+  Flags=10111011
+end
+item: Get Registry Key Value
+  Variable=STARTUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu\Programs\StartUp
+  Value Name=StartUp
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=DESKTOPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Desktop
+  Value Name=Desktop
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=STARTMENUDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu
+  Value Name=Start Menu
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=GROUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu\Programs
+  Value Name=Programs
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=CSTARTUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%STARTUPDIR%
+  Value Name=Common Startup
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CDESKTOPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%DESKTOPDIR%
+  Value Name=Common Desktop
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CSTARTMENUDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%STARTMENUDIR%
+  Value Name=Common Start Menu
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CGROUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%GROUPDIR%
+  Value Name=Common Programs
+  Flags=00000100
+end
+item: Set Variable
+  Variable=CGROUP_SAVE
+  Value=%GROUP%
+end
+item: Set Variable
+  Variable=GROUP
+  Value=%GROUPDIR%\%GROUP%
+end
+item: Else Statement
+end
+item: End Block
+end
+item: Self-Register OCXs/DLLs
+  Description=Updating System Configuration, Please Wait...
+end
+item: Add Text to INSTALL.LOG
+  Text=Delete in-use files: On
+end
+item: Edit INI File
+  Pathname=%UNINSTALL_LANG%
+  Settings=[Settings]
+  Settings=No Background=0
+  Settings=
+end
+item: Add Text to INSTALL.LOG
+  Text=File Tree: %MAINDIR%\usr\coda\bin\
+end
+item: Add Text to INSTALL.LOG
+  Text=File Tree: %MAINDIR%\usr\coda\venus.cache\
+end
+item: Add Text to INSTALL.LOG
+  Text=File Tree: %MAINDIR%\usr\coda\etc\
+end
+item: Add Text to INSTALL.LOG
+  Text=File Tree: %MAINDIR%\usr\coda\LOG
+end
+item: Add Text to INSTALL.LOG
+  Text=File Tree: %MAINDIR%\usr\coda\bin\DATA
+end
+item: Add Text to INSTALL.LOG
+  Text=File Tree: %MAINDIR%\usr\coda\bin\*
+end
+item: Wizard Block
+  Direction Variable=DIRECTION
+  Display Variable=DISPLAY
+  Bitmap Pathname=%_WISE_%\DIALOGS\TEMPLATE\WIZARD.BMP
+  X Position=9
+  Y Position=10
+  Filler Color=8421440
+  Flags=00000011
+end
+item: Custom Dialog Set
+  Name=Finished
+  Display Variable=DISPLAY
+  item: Dialog
+    Title=Installation Complete
+    Title French=Installation en cours
+    Title German=Installation abgeschlossen
+    Title Portuguese=Instalação Completa 
+    Title Spanish=Se ha completado la Instalación
+    Title Italian=Installazione completata
+    Title Danish=Installation gennemført
+    Title Dutch=Installatie afgerond
+    Title Norwegian=Installasjonen er fullført
+    Title Swedish=Installationen klar
+    Width=280
+    Height=224
+    Font Name=Helv
+    Font Size=8
+    item: Push Button
+      Rectangle=170 185 212 199
+      Variable=DIRECTION
+      Value=N
+      Create Flags=01010000000000010000000000000001
+      Text=&Finish >
+      Text French=&Terminer>
+      Text German=&Fertigstellen>
+      Text Portuguese=&Terminar >
+      Text Spanish=&Finalizar>
+      Text Italian=&Fine >
+      Text Danish=&Afslut >
+      Text Dutch=&Klaar>
+      Text Norwegian=&Avslutt>
+      Text Swedish=&Sluta>
+    end
+    item: Push Button
+      Control Name=CANCEL
+      Rectangle=222 185 264 199
+      Action=3
+      Create Flags=01010000000000010000000000000000
+      Text=Cancel
+      Text French=Annuler
+      Text German=Abbrechen
+      Text Portuguese=Cancelar
+      Text Spanish=Cancelar
+      Text Italian=Annulla
+      Text Danish=Annuller
+      Text Dutch=Annuleren
+      Text Norwegian=Avbryt
+      Text Swedish=Avbryt
+    end
+    item: Static
+      Rectangle=9 177 263 178
+      Action=3
+      Create Flags=01010000000000000000000000000111
+    end
+    item: Static
+      Rectangle=90 10 260 63
+      Enabled Color=00000000000000001111111111111111
+      Create Flags=01010000000000000000000000000000
+      Text=%APPTITLE% has been successfully installed.
+      Text=
+      Text=
+      Text=Press the Finish button to exit this installation.
+      Text=
+      Text French=L'installation de %APPTITLE% est réussie
+      Text French=
+      Text French=
+      Text French=Cliquez sur Terminer pour quitter cette installation
+      Text French=
+      Text German=%APPTITLE% wurde erfolgreich installiert.
+      Text German=
+      Text German=
+      Text German=Zum Beenden dieser Installation Fertigstellen anklicken.
+      Text German=
+      Text Portuguese=%APPTITLE% foi instalado com êxito
+      Text Portuguese=
+      Text Portuguese=
+      Text Portuguese=Pressionar o botão Terminar para sair desta instalação
+      Text Portuguese=
+      Text Spanish=%APPTITLE% se ha instalado con éxito.
+      Text Spanish=
+      Text Spanish=
+      Text Spanish=Pulse el botón de Finalizar para salir de esta instalación.
+      Text Spanish=
+      Text Italian=%APPTITLE% è stato installato.
+      Text Italian=
+      Text Italian=
+      Text Italian=Premi il pulsante Fine per uscire dal programma di installazione
+      Text Italian=
+      Text Danish=%APPTITLE% er nu installeret korrekt.
+      Text Danish=
+      Text Danish=
+      Text Danish=Klik på Afslut for at afslutte installationen.
+      Text Danish=
+      Text Dutch=%APPTITLE% is met succes geïnstalleerd.
+      Text Dutch=
+      Text Dutch=
+      Text Dutch=Druk op Klaar om deze installatie af te ronden.
+      Text Dutch=
+      Text Norwegian=Installasjonen av %APPTITLE% er vellykket.
+      Text Norwegian=
+      Text Norwegian=
+      Text Norwegian=Trykk på Avslutt-tasten for å avslutte denne installasjonen.
+      Text Norwegian=
+      Text Swedish=Installationen av %APPTITLE% har lyckats.
+      Text Swedish=
+      Text Swedish=
+      Text Swedish=Tryck på Sluta för att gå ur installationsprogrammet.
+      Text Swedish=
+    end
+    item: Push Button
+      Control Name=BACK
+      Rectangle=128 185 170 199
+      Variable=DIRECTION
+      Value=B
+      Create Flags=01010000000000010000000000000000
+      Text=< &Back
+      Text French=<&Retour
+      Text German=<&Zurück
+      Text Portuguese=<&Retornar
+      Text Spanish=<&Retroceder
+      Text Italian=< &Indietro
+      Text Danish=<&Tilbage
+      Text Dutch=<&Terug
+      Text Norwegian=<&Tilbake
+      Text Swedish=< &Tillbaka
+    end
+    item: Set Control Attribute
+      Control Name=BACK
+      Operation=1
+    end
+    item: Set Control Attribute
+      Control Name=CANCEL
+      Operation=1
+    end
+  end
+end
+item: End Block
+end
+item: New Event
+  Name=Cancel
+end
+item: Include Script
+  Pathname=%_WISE_%\INCLUDE\rollback.wse
+end
