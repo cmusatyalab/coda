@@ -34,10 +34,10 @@ INCLDIR=$(TOPOBJ)/include
 ifneq ($(VPATH),)
     colon=:
     INCLPATH  := .:$(VPATH):$(INCLDIR)
-    INCLFLAGS :=  -I$(TOPOBJ) -I$(subst $(colon), -I,$(INCLPATH))
+    INCLFLAGS := -I. -I$(VPATH) -I$(INCLDIR) -I$(TOPOBJ)
 else
     INCLPATH  := .:$(INCLDIR)
-    INCLFLAGS :=  -I$(TOPOBJ) -I. -I$(INCLDIR)
+    INCLFLAGS := -I. -I$(INCLDIR) -I$(TOPOBJ)
 endif
 
 vpath %.h $(INCLPATH)
@@ -48,8 +48,8 @@ vpath %.rpc2 $(INCLPATH)
 ##############################
 
 DEPFLAG   := -MD
-CFLAGS	  := $(CFLAGS)   $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
-CXXFLAGS  := $(CXXFLAGS) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
+CFLAGS	  := $(DEPFLAG) $(MACHINE_FLAGS) $(INCLFLAGS) $(CFLAGS)
+CXXFLAGS  := $(DEPFLAG) $(MACHINE_FLAGS) $(INCLFLAGS) $(CXXFLAGS)
 
 RP2FLAGS  = -e  -I . -I $(srcdir) 
 

@@ -81,6 +81,7 @@ NOTE: This is a brand new cfs; it has been written from scratch
 
 */
 
+#define PERROR(desc) do { fflush(stdout); perror(desc); } while(0)
 
 #define PIOBUFSIZE 2048  /* max size of pioctl buffer */
 
@@ -466,10 +467,7 @@ int main(int argc, char *argv[])
 
     if (argc < 2) goto fail;
 
-    /* First make stderr & stdout the same, to get perror() to print right */
-    dup2(fileno(stdin), fileno(stderr));
-
-    /* Next find and dispatch the opcode */
+    /* Find and dispatch the opcode */
     slot = findslot(argv[1]);
     if (slot < 0) goto fail;
     
@@ -576,7 +574,7 @@ static void CheckServers(int argc, char *argv[], int opslot)
 
     printf("Contacting servers .....\n"); /* say something so Puneet knows something is going on */
     rc = pioctl(mountpoint, VIOCCKSERV, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOCCKSERV"); exit(-1);}
+    if (rc < 0) { PERROR("VIOCCKSERV"); exit(-1); }
 
     /* See if there are any dead servers */
     if (insrv) free(insrv); /* free insrv only if it was alloc before */
@@ -628,7 +626,7 @@ static void CheckPointML(int argc, char* argv[], int opslot)
     vio.out_size = 0;
     vio.out = 0;
     rc = pioctl(codadir, VIOC_CHECKPOINTML, &vio, 1);
-    if (rc < 0) {fflush(stdout); perror("VIOC_CHECKPOINTML"); exit(-1);}
+    if (rc < 0) { PERROR("VIOC_CHECKPOINTML"); exit(-1); }
     }
 
 
@@ -677,7 +675,7 @@ static void CheckVolumes(int argc, char *argv[], int opslot)
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOCCKBACK, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_VIOCCKBACK"); exit(-1);}
+    if (rc < 0) { PERROR("VIOC_VIOCCKBACK"); exit(-1); }
     }
 
 static void ClearPriorities(int argc, char *argv[], int opslot)
@@ -696,7 +694,7 @@ static void ClearPriorities(int argc, char *argv[], int opslot)
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_CLEARPRIORITIES, &vio, 0);
-    if (rc < 0){fflush(stdout); perror("  VIOC_CLEARPRIORITIES"); exit(-1);}
+    if (rc < 0) { PERROR("  VIOC_CLEARPRIORITIES"); exit(-1); }
     }
 
 static void Compress(int argc, char *argv[], int opslot)
@@ -718,7 +716,7 @@ static void Compress(int argc, char *argv[], int opslot)
         vio.out = 0;
         vio.out_size = 0;
         rc = pioctl(argv[i], VIOC_COMPRESS, &vio, 1);
-        if (rc < 0){fflush(stdout); perror("  VIOC_COMPRESS"); continue;}
+        if (rc < 0) { PERROR("VIOC_COMPRESS"); continue; }
         if (argc > 3) printf("\n");
         }
     }
@@ -745,7 +743,7 @@ static void Redir (int argc, char *argv[], int opslot)
 
     /* Do the pioctl */
     rc = pioctl(argv[2], VIOC_REDIR, &vio, 1);
-    if (rc <0) {fflush(stdout); perror(argv[2]);}
+    if (rc <0) { PERROR("VIOC_REDIR"); }
 }
 
 
@@ -789,7 +787,7 @@ static void Disconnect(int argc, char *argv[], int opslot)
     }
 
     rc = pioctl(mountpoint, VIOC_DISCONNECT, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_DISCONNECT"); exit(-1);}    
+    if (rc < 0) { PERROR("VIOC_DISCONNECT"); exit(-1);}    
 
     if (insrv)
         free(insrv);
@@ -868,8 +866,8 @@ static int doclosure(char *cloname, enum closure_ops opcode, int flags)
     if (!validateclosurespec(cloname, volname, volrootpath)) return(0);
 
     /* Remember the current working directory, then cd to the volume root. */
-    if (!getcwd(cwd, MAXPATHLEN)) {fflush(stdout); perror("getcwd");return(-1);}
-    if (chdir(volrootpath) < 0){fflush(stdout); perror(volrootpath); return(0);}
+    if (!getcwd(cwd, MAXPATHLEN)) { PERROR("getcwd");return(-1);}
+    if (chdir(volrootpath) < 0) { PERROR(volrootpath); return(0);}
 
     /* Construct and execute the appropriate command */
     switch (opcode)
@@ -889,7 +887,7 @@ static int doclosure(char *cloname, enum closure_ops opcode, int flags)
             if (flags & CLO_REMOVE)
                 {
                 rc = unlink(cloname);
-                if (rc < 0) {fflush(stdout); perror(cloname); return(-1);}
+                if (rc < 0) { PERROR(cloname); return(-1);}
                 }
             break;
             
@@ -899,7 +897,7 @@ static int doclosure(char *cloname, enum closure_ops opcode, int flags)
         }
 
     /* Return home */
-    if (chdir(cwd) < 0) {fflush(stdout); perror(cwd); return(-1);}
+    if (chdir(cwd) < 0) { PERROR(cwd); return(-1);}
 
     return(0);
     }
@@ -920,7 +918,7 @@ static int findclosures(char ***clist)
     sprintf(spooldir, "%s/%d", checkpointdir, getuid());
 
     dirp = opendir(spooldir);
-    if (dirp == NULL){fflush(stdout); perror(spooldir); exit(-1);}
+    if (dirp == NULL){ PERROR(spooldir); exit(-1);}
 
     while ((td = readdir(dirp)) != NULL)
         {
@@ -997,7 +995,7 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
     vio.out = piobuf;
     vio.out_size = PIOBUFSIZE;
     rc = pioctl(volrootpath, VIOCGETVOLSTAT, &vio, 1);
-    if (rc) {fflush(stdout); perror(volrootpath); return(0);}
+    if (rc) { PERROR(volrootpath); return(0);}
 
     Volname = piobuf + sizeof(VolumeStatus);
     if (strcmp(volname, Volname) != 0)
@@ -1012,7 +1010,7 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
     vio.out = piobuf;
     vio.out_size = PIOBUFSIZE;
     rc = pioctl(volrootpath, VIOC_GETFID, &vio, 1);
-    if (rc)  {fflush(stdout); perror(volrootpath); return(0);}
+    if (rc) { PERROR(volrootpath); return(0);}
     fid = (ViceFid *)piobuf;
     if (fid->Vnode != 1 || fid->Unique != 1)
         {
@@ -1039,7 +1037,7 @@ static void FlushCache(int argc, char *argv[], int opslot)
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_FLUSHCACHE, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_FLUSHCACHE"); exit(-1);}    
+    if (rc < 0) { PERROR("VIOC_FLUSHCACHE"); exit(-1);}    
     }
 
 static void FlushObject(int argc, char *argv[], int opslot)
@@ -1066,8 +1064,11 @@ static void FlushObject(int argc, char *argv[], int opslot)
         if (rc < 0)
             {
             fflush(stdout);
-            if (errno == EMFILE) printf("Can't flush active file\n");
-            else perror("  VIOCFLUSH");
+            if (errno == EMFILE) {
+		fflush(stdout);
+		fprintf(stderr, "Can't flush active file\n");
+	    }
+            else PERROR("VIOCFLUSH");
             continue;
             }
         else {if (argc > 3) printf("\n");}
@@ -1097,7 +1098,7 @@ static void FlushVolume(int argc, char *argv[], int opslot)
         vio.out = 0;
         vio.out_size = 0;
         rc = pioctl(argv[i], VIOC_FLUSHVOLUME, &vio, 0);
-        if (rc < 0) {fflush(stdout); perror("  VIOC_FLUSHVOLUME"); continue;}
+        if (rc < 0) { PERROR("  VIOC_FLUSHVOLUME"); continue;}
         else {if (argc > 3) printf("\n");}
         }
     }
@@ -1132,10 +1133,11 @@ static void BeginRepair(int argc, char *argv[], int opslot)
 
     rc = pioctl(argv[2], VIOC_ENABLEREPAIR, &vio, 0);
     if (rc < 0) {
-	if (errno == EOPNOTSUPP)
-	    printf("%s isn't inconsistent\n", argv[2]);
-	else
-	    perror("VIOC_ENABLEREPAIR");
+	if (errno == EOPNOTSUPP) {
+	    fflush(stdout);
+	    fprintf(stderr, "%s isn't inconsistent\n", argv[2]);
+	} else
+	    PERROR("VIOC_ENABLEREPAIR");
 
 	exit(-1);
     }
@@ -1157,7 +1159,7 @@ static void DisableASR(int argc, char *argv[], int opslot)
     memset(piobuf, 0, PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_DISABLEASR, &vio, 0);
-    if (rc < 0){fflush(stdout); perror("VIOC_DISABLEASR"); exit(-1);}
+    if (rc < 0) { PERROR("VIOC_DISABLEASR"); exit(-1); }
 }
 
 static void EnableASR(int argc, char *argv[], int opslot)
@@ -1176,7 +1178,7 @@ static void EnableASR(int argc, char *argv[], int opslot)
     memset(piobuf, 0, PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_ENABLEASR, &vio, 0);
-    if (rc < 0){fflush(stdout); perror("VIOC_ENABLEASR"); exit(-1);}
+    if (rc < 0) { PERROR("VIOC_ENABLEASR"); exit(-1); }
 }
 
 static void EndRepair(int argc, char *argv[], int opslot) 
@@ -1195,7 +1197,7 @@ static void EndRepair(int argc, char *argv[], int opslot)
     memset(piobuf, 0, PIOBUFSIZE);
 
     rc = pioctl(argv[2], VIOC_DISABLEREPAIR, &vio, 0);
-    if (rc < 0){fflush(stdout); perror("VIOC_DISABLEREPAIR"); exit(-1);}
+    if (rc < 0) { PERROR("VIOC_DISABLEREPAIR"); exit(-1);}
 }
 
 static void FlushASR(int argc, char *argv[], int opslot) {
@@ -1220,7 +1222,7 @@ static void FlushASR(int argc, char *argv[], int opslot) {
         memset(piobuf, 0, PIOBUFSIZE);
 
         rc = pioctl(argv[i], VIOC_FLUSHASR, &vio, 0);
-        if (rc < 0){fflush(stdout); perror("VIOC_FLUSHASR"); continue;}
+        if (rc < 0) { PERROR("VIOC_FLUSHASR"); continue; }
         printf("\n"); 
     }
 }
@@ -1278,11 +1280,7 @@ static void GetFid(int argc, char *argv[], int opslot)
         /* Validate next fid */
 
         rc = pioctl_GetFid(argv[i], &fid, &vv);
-        if (rc < 0) {
-            fflush(stdout);
-            perror("VIOC_GETFID");
-            continue;
-        }
+        if (rc < 0) { PERROR("VIOC_GETFID"); continue; }
 
         sprintf(buf, "0x%x.%x.%x",  fid.Volume, fid.Vnode, fid.Unique);
         printf("FID = %-20s     ", buf);
@@ -1337,20 +1335,12 @@ static void MarkFidIncon(int argc, char *argv[], int opslot)
 
 	/* Validate next fid */
 	if (pioctl_GetFid(argv[i], &fid, &vv) < 0)
-	{
-	    fflush(stdout);
-	    perror("VIOC_GETFID");
-	    continue;
-	}
+	    { PERROR("VIOC_GETFID"); continue; }
 
 	SetIncon(vv);
 
 	if (pioctl_SetVV(argv[i], &vv) < 0)
-	{
-	    fflush(stdout);
-	    perror("VIOC_SETVV");
-	    continue;
-	}
+	    { PERROR("VIOC_SETVV"); continue; }
     }
 }
 
@@ -1384,7 +1374,7 @@ static void GetPath(int argc, char *argv[], int opslot)
         vio.out = piobuf;
         vio.out_size = PIOBUFSIZE;
         rc = pioctl(mountpoint, VIOC_GETPATH, &vio, 0);
-        if (rc < 0){fflush(stdout); perror("VIOC_GETPATH"); continue;}
+        if (rc < 0) { PERROR("VIOC_GETPATH"); continue; }
         printf("\t%s\n", vio.out);
         }
     
@@ -1437,7 +1427,7 @@ static void ListACL(int argc, char *argv[], int opslot)
         vio.out_size = PIOBUFSIZE;
         vio.out = piobuf;
         rc = pioctl(argv[i], VIOCGETAL, &vio, 1);
-        if (rc < 0) {perror(argv[i]); continue;}
+        if (rc < 0) { PERROR(argv[i]); continue; }
         
         if (argc > 3) printf("\n%s:\n", argv[i]); /* show directory name */
         rc = parseacl(vio.out, &a);
@@ -1606,9 +1596,7 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
 
     /* Do the pioctl */
     rc = pioctl(mountpoint, VIOC_GET_MT_PT, &vio, 1);
-    if (rc < 0) {
-      fflush(stdout); perror("Failed in GetMountPoint."); exit(-1);
-    }
+    if (rc < 0) { PERROR("Failed in GetMountPoint."); exit(-1); }
     
     /* Print output field */
     printf("%x:  %s\n", vol_id, (char *)piobuf);
@@ -1702,9 +1690,7 @@ static void ListCache(int argc, char *argv[], int opslot)
 
         /* Do the pioctl getting mount point pathname */
         rc = pioctl(mountpoint, VIOC_GET_MT_PT, &vio, 1);
-        if (rc < 0) {
-          fflush(stdout); perror("Failed in GetMountPoint."); exit(-1);
-        }
+        if (rc < 0) { PERROR("Failed in GetMountPoint."); exit(-1); }
         strcpy(mtptpath, piobuf);
       }
 
@@ -1723,7 +1709,7 @@ static void ListCache(int argc, char *argv[], int opslot)
         rc = pioctl(mtptpath, VIOC_LISTCACHE_VOLUME, &vio, 1);
       else              /* Mount point pathname is specified. */
         rc = pioctl(argv[i], VIOC_LISTCACHE_VOLUME, &vio, 1);
-      if (rc < 0) {fflush(stdout); perror(argv[i]); exit(-1);}
+      if (rc < 0) { PERROR(argv[i]); exit(-1); }
     }
   } else {
       /* No volumes are specified. List all cache volumes. */
@@ -1740,9 +1726,7 @@ static void ListCache(int argc, char *argv[], int opslot)
       memset(piobuf, 0, PIOBUFSIZE);
       /* Do the pioctl */
       rc = pioctl(mountpoint, VIOC_LISTCACHE, &vio, 1);
-      if (rc < 0) {
-        fflush(stdout); perror("Failed in ListCache."); exit(-1);
-      }
+      if (rc < 0) { PERROR("Failed in ListCache."); exit(-1); }
     }
 
   /* List Cache Status.
@@ -1781,9 +1765,7 @@ static int WriteBackStatus(char *vol)
   vio.out_size = sizeof(int);
   
   rc = pioctl(vol, VIOC_STATUSWB, &vio, 0);
-  if (rc < 0) {
-    perror("  VIOC_STATUSWB"); exit(-1);
-  }
+  if (rc < 0) { PERROR("VIOC_STATUSWB"); exit(-1); }
   return cur;
 }
 
@@ -1815,7 +1797,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
 
         /* Do the pioctl */
         rc = pioctl(argv[i], VIOCGETVOLSTAT, &vio, 1);
-        if (rc <0) {fflush(stdout); perror(argv[i]); continue;}
+        if (rc <0) { PERROR(argv[i]); continue; }
         
         /* Get pointers to output fields */
 	/* Format is (status, name, conn_state, conflict,
@@ -1905,7 +1887,7 @@ static void LsMount (int argc, char *argv[], int opslot)
             if (stbuf.st_mode & 0xff00 & S_IFLNK)
                 {/* It is a sym link; read it */
                 rc = readlink(argv[i], piobuf, (int) sizeof(piobuf));
-                if (rc < 0) {fflush(stdout); perror("readlink"); continue;}
+                if (rc < 0) { PERROR("readlink"); continue; }
                 /* Check if first char is a '#'; this is a heuristic, but rarely misleads */
                 if (piobuf[0] == '#')
                     printf("Dangling sym link; looks like a mount point for volume \"%s\"\n", &piobuf[1]);
@@ -1920,12 +1902,12 @@ static void LsMount (int argc, char *argv[], int opslot)
         if (rc < 0)
             {
             if (errno == ENOTDIR) {printf("Not a mount point\n"); continue;}
-            else {fflush(stdout); perror("chdir"); continue;}
+            else { PERROR("chdir"); continue; }
             }
 
         /* We are in a directory, possibly the root of a volume */
         s = getcwd(part1, MAXPATHLEN);
-        if (s == 0) {fflush(stdout); perror("getcwd"); continue;}
+        if (s == 0) { PERROR("getcwd"); continue; }
         /* there must be a slash in what getcwd() returns */
         s = rindex(part1, '/');
         *s = 0; /* lop off last component */
@@ -1941,7 +1923,7 @@ static void LsMount (int argc, char *argv[], int opslot)
         if (rc < 0)
             {
             if (errno == EINVAL || errno == ENOTDIR) {printf("Not a mount point\n"); continue;}
-            else {fflush(stdout); perror("VIOC_AFS_STAT_MT_PT"); continue;}
+            else { PERROR("VIOC_AFS_STAT_MT_PT"); continue; }
             }
 
         printf("Mount point for volume \"%s\"\n", &piobuf[1]);
@@ -1964,7 +1946,7 @@ static void MkMount (int argc, char *argv[], int opslot)
 
     sprintf(buf, "#%s.", vol);
     rc = symlink(buf, dir);
-    if (rc < 0) {fflush(stdout); perror(dir); exit(-1);}
+    if (rc < 0) { PERROR(dir); exit(-1); }
     }
 
 static void PurgeML(int argc, char *argv[], int opslot)
@@ -1988,7 +1970,7 @@ static void PurgeML(int argc, char *argv[], int opslot)
     vio.out_size = 0;
     vio.out = 0;
     rc = pioctl(codadir, VIOC_PURGEML, &vio, 1);
-    if (rc) {fflush(stdout); perror("VIOC_PURGEML"); exit(-1);}
+    if (rc) { PERROR("VIOC_PURGEML"); exit(-1); }
     }
 
 
@@ -2031,7 +2013,7 @@ static void Reconnect(int argc, char *argv[], int opslot)
     }
 
     rc = pioctl(mountpoint, VIOC_RECONNECT, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_RECONNECT"); exit(-1);}    
+    if (rc < 0) { PERROR("VIOC_RECONNECT"); exit(-1); } 
 
     if (insrv)
         free(insrv);
@@ -2112,7 +2094,7 @@ static void RmMount(int argc, char *argv[], int opslot)
         vio.out_size = 0;
         vio.out = 0;
         rc = pioctl(prefix, VIOC_AFS_DELETE_MT_PT, &vio, 0);
-        if (rc) {fflush(stdout); perror("VIOC_AFS_DELETE_MT_PT"); continue;}
+        if (rc) { PERROR("VIOC_AFS_DELETE_MT_PT"); continue; }
         else {if (argc > 3) printf("\n");}
         }
     }
@@ -2167,7 +2149,7 @@ static void SetACL (int argc, char *argv[], int opslot)
         vio.out_size = PIOBUFSIZE;
         vio.out = piobuf;
         rc = pioctl(dir, VIOCGETAL, &vio, 1);
-        if (rc <0) {perror(dir); exit(-1);}
+        if (rc <0) { PERROR(dir); exit(-1); }
         rc = parseacl(vio.out, &a);
         if (rc < 0)
             {
@@ -2242,7 +2224,7 @@ EntryDone:
     vio.out = 0;
     rc = pioctl(dir, VIOCSETAL, &vio, 1);
     if (rc < 0) {
-	perror(dir);
+	PERROR(dir);
 	if (errno == EINVAL)
 	    fputs("*** User unknown by the servers?\n", stderr);
     }
@@ -2279,7 +2261,7 @@ static void SetQuota    (int argc, char *argv[], int opslot)
 
         /* Do the pioctl */
         rc = pioctl(argv[i], VIOCGETVOLSTAT, &vio, 1);
-        if (rc <0) {fflush(stdout); perror(argv[i]); return;}
+        if (rc <0) { PERROR(argv[i]); return; }
         
         /* Get pointers to output fields */
         vs = (VolumeStatus *)piobuf;
@@ -2294,7 +2276,7 @@ static void SetQuota    (int argc, char *argv[], int opslot)
         vio.out      = piobuf;
 
         rc = pioctl(argv[i], VIOCSETVOLSTAT, &vio, 1);
-        if (rc <0) {fflush(stdout); perror("Setting new quota"); return;}
+        if (rc <0) { PERROR("Setting new quota"); return; }
     }
 }
 
@@ -2317,7 +2299,7 @@ static void Slow(int argc, char *argv[], int opslot)
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_SLOW, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_SLOW"); exit(-1);}    
+    if (rc < 0){ PERROR("VIOC_SLOW"); exit(-1);}    
     }
 
 static void Strong(int argc, char *argv[], int opslot) 
@@ -2336,7 +2318,7 @@ static void Strong(int argc, char *argv[], int opslot)
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_STRONG, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_STRONG"); exit(-1);}    
+    if (rc < 0){ PERROR("VIOC_STRONG"); exit(-1); }
     }
 
 static void Adaptive(int argc, char *argv[], int opslot) 
@@ -2355,7 +2337,7 @@ static void Adaptive(int argc, char *argv[], int opslot)
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_ADAPTIVE, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_ADAPTIVE"); exit(-1);}    
+    if (rc < 0){ PERROR("VIOC_ADAPTIVE"); exit(-1); } 
     }
 
 static void TruncateLog(int argc, char *argv[], int opslot)
@@ -2374,7 +2356,7 @@ static void TruncateLog(int argc, char *argv[], int opslot)
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_TRUNCATELOG, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_TRUNCATELOG"); exit(-1);}    
+    if (rc < 0) { PERROR("  VIOC_TRUNCATELOG"); exit(-1); }
     }
 
 
@@ -2397,7 +2379,7 @@ static void Uncompress(int argc, char *argv[], int opslot)
         vio.out = 0;
         vio.out_size = 0;
         rc = pioctl(argv[i], VIOC_UNCOMPRESS, &vio, 1);
-        if (rc < 0){fflush(stdout); perror("  VIOC_UNCOMPRESS"); continue;}
+        if (rc < 0) { PERROR("  VIOC_UNCOMPRESS"); continue; }
         if (argc > 3) printf("\n");
         }
     }
@@ -2412,7 +2394,7 @@ static void UnloadKernel(int argc, char *argv[], int opslot)
     vio.out_size = 0;
     vio.out = 0;
     rc = pioctl(mountpoint, VIOC_UNLOADKERNEL, &vio, 0);
-    if (rc < 0) {fflush(stdout); perror("  VIOC_UNLOADKERNEL"); exit(-1);}
+    if (rc < 0) { PERROR("  VIOC_UNLOADKERNEL"); exit(-1); }
     }
 
 static void WhereIs (int argc, char *argv[], int opslot)
@@ -2442,7 +2424,7 @@ static void WhereIs (int argc, char *argv[], int opslot)
 
         /* Do the pioctl */
         rc = pioctl(argv[i], VIOCWHEREIS, &vio, 1);
-        if (rc <0) {fflush(stdout); perror(argv[i]); continue;}
+        if (rc <0) { PERROR(argv[i]); continue; }
         
         /* Print custodians */
         if (argc > 3) printf("  %*s:  ", w, argv[i]);
@@ -2484,7 +2466,7 @@ static void WaitForever (int argc, char *argv[], int opslot)
     vio.out = 0;
     vio.out_size = 0;
     rc = pioctl(mountpoint, VIOC_WAITFOREVER, &vio, 0);
-    if (rc < 0){fflush(stdout); perror("  VIOC_WAITFOREVER"); exit(-1);}
+    if (rc < 0){ PERROR("VIOC_WAITFOREVER"); exit(-1); }
     }
 
 
@@ -2507,7 +2489,7 @@ static void WriteDisconnect(int argc, char *argv[], int opslot)
     if (argc == i)      /* no more args -- do them all */
         {
         rc = pioctl(mountpoint, VIOC_WD_ALL, &vio, 1);     
-        if (rc) {fflush(stdout); perror("VIOC_WD_ALL"); exit(-1);}
+        if (rc) { PERROR("VIOC_WD_ALL"); exit(-1); }
         }
     else 
         {
@@ -2517,7 +2499,7 @@ static void WriteDisconnect(int argc, char *argv[], int opslot)
             if (argc > i+1) printf("  %*s\n", w, argv[j]); /* echo input if more than one fid */
 
             rc = pioctl(argv[j], VIOC_BEGINML, &vio, 0);
-            if (rc < 0) {fflush(stdout); perror("  VIOC_BEGINML"); exit(-1);}
+            if (rc < 0) { PERROR("VIOC_BEGINML"); exit(-1); }
             }
         }
     }
@@ -2544,9 +2526,8 @@ static void WriteBackStart(int argc, char *argv[], int opslot)
     
     rc = pioctl(argv[i], VIOC_BEGINWB, &vio, 0);
     if (rc < 0) {
-	fflush(stdout); 
-	perror("  VIOC_BEGINWB");
-	printf("  return code : %d",rc);
+	PERROR("VIOC_BEGINWB");
+	fprintf(stderr, "  return code : %d",rc);
     }
     else
 	printf("write-back enabled\n");
@@ -2575,9 +2556,8 @@ static void WriteBackStop(int argc, char *argv[], int opslot)
     
     rc = pioctl(argv[i], VIOC_ENDWB, &vio, 0);
     if (rc < 0) {
-	fflush(stdout); 
-	perror("  VIOC_ENDWB");
-	printf("  return code : %d",rc);
+	PERROR("VIOC_ENDWB");
+	fprintf(stderr, "  return code : %d",rc);
     }
     else
 	printf("write-back disabled\n");
@@ -2606,9 +2586,8 @@ static void WriteBackAuto(int argc, char *argv[], int opslot)
     
     rc = pioctl(argv[i], VIOC_AUTOWB, &vio, 0);
     if (rc < 0) {
-	fflush(stdout); 
-	perror("  VIOC_AUTOWB");
-	printf("  return code : %d",rc); 
+	PERROR("VIOC_AUTOWB");
+	fprintf(stderr, "  return code : %d",rc); 
     }
     else if (rc == WB_PERMIT_GRANTED)
 	printf("auto write-back enabled\n");
@@ -2646,8 +2625,8 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
     rc = pioctl(argv[i], VIOC_SYNCCACHE, &vio, 0);
     fflush(stdout); 
     if (rc < 0) {
-	perror("  VIOC_SYNCCACHE"); 
-	printf("  VIOC_SYNCCACHE returns %d\n",rc);
+	PERROR("VIOC_SYNCCACHE"); 
+	fprintf(stderr, "  VIOC_SYNCCACHE returns %d\n",rc);
     }
     else {   /* test CML entries remaining by doing a ListVolume*/
 	vio.in = 0;
@@ -2658,8 +2637,8 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
         /* Do the pioctl */
         rc = pioctl(argv[i], VIOCGETVOLSTAT, &vio, 1);
         if (rc < 0) {
-	    perror("  VIOC_GETVOLSTAT");
-	    printf("  VIOC_GETVOLSTAT returns %d\n");
+	    PERROR("VIOC_GETVOLSTAT");
+	    fprintf(stderr, "  VIOC_GETVOLSTAT returns %d\n");
 	}
 	else {  /* Get pointers to output fields */
 	        /* Format is (status, name, conn_state, conflict,
@@ -2702,7 +2681,7 @@ static void WriteReconnect(int argc, char *argv[], int opslot)
     if (argc == 2)      /* do them all */
         {
         rc = pioctl(mountpoint, VIOC_WR_ALL, &vio, 1);     
-        if (rc) {fflush(stdout); perror("VIOC_WR_ALL"); exit(-1);}
+        if (rc) { PERROR("VIOC_WR_ALL"); exit(-1); }
         }    
     else 
         {
@@ -2712,7 +2691,7 @@ static void WriteReconnect(int argc, char *argv[], int opslot)
             if (argc > 3) printf("  %*s\n", w, argv[i]); /* echo input if more than one fid */
 
             rc = pioctl(argv[i], VIOC_ENDML, &vio, 1);
-            if (rc) {fflush(stdout); perror("VIOC_ENDML"); exit(-1);}
+            if (rc) { PERROR("VIOC_ENDML"); exit(-1); }
             }
         }
     }

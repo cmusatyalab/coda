@@ -16,16 +16,9 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*  Simple program to monitor Coda servers
     M. Satyanarayanan, June 1990
 */
-
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -706,12 +699,35 @@ void
 print_stats(struct ViceStatistics *stats)
 {
     fprintf(dbg, "\n");
-    fprintf(dbg, "BootTime = %d, ", stats->BootTime);
+    fprintf(dbg, "Obsolete1 = %d, ", stats->Obsolete1);
+    fprintf(dbg, "Obsolete2 = %d, ", stats->Obsolete2);
     fprintf(dbg, "CurrentTime = %d, ", stats->CurrentTime);
+    fprintf(dbg, "BootTime = %d, ", stats->BootTime);
+    fprintf(dbg, "StartTime = %d, ", stats->StartTime);
+    fprintf(dbg, "\n");
+    fprintf(dbg, "CurrentConnections = %d, ", stats->CurrentConnections);
+    fprintf(dbg, "TotalViceCalls = %d, ", stats->TotalViceCalls);
+    fprintf(dbg, "\n");
+    fprintf(dbg, "TotalFetches = %d, ", stats->TotalFetches);
+    fprintf(dbg, "FetchDatas = %d, ", stats->FetchDatas);
+    fprintf(dbg, "FetchedBytes = %d, ", stats->FetchedBytes);
+    fprintf(dbg, "FetchDataRate = %d, ", stats->FetchDataRate);
+    fprintf(dbg, "\n");
+    fprintf(dbg, "TotalStores = %d, ", stats->TotalStores);
+    fprintf(dbg, "StoreDatas = %d, ", stats->StoreDatas);
+    fprintf(dbg, "StoredBytes = %d, ", stats->StoredBytes);
+    fprintf(dbg, "StoreDataRate = %d, ", stats->StoreDataRate);
+    fprintf(dbg, "\n");
+    fprintf(dbg, "TotalRPCBytesSent = %d, ", stats->TotalRPCBytesSent);
+    fprintf(dbg, "TotalRPCBytesReceived = %d, ", stats->TotalRPCBytesReceived);
+    fprintf(dbg, "TotalRPCPacketsSent = %d, ", stats->TotalRPCPacketsSent);
+    fprintf(dbg, "TotalRPCPacketsReceived = %d, ", stats->TotalRPCPacketsReceived);
+    fprintf(dbg, "TotalRPCPacketsLost = %d, ", stats->TotalRPCPacketsLost);
+    fprintf(dbg, "TotalRPCBogusPackets = %d, ", stats->TotalRPCBogusPackets);
     fprintf(dbg, "\n");
 
-    fprintf(dbg, "UserCPU = %d, ", stats->UserCPU);
     fprintf(dbg, "SystemCPU = %d, ", stats->SystemCPU);
+    fprintf(dbg, "UserCPU = %d, ", stats->UserCPU);
     fprintf(dbg, "NiceCPU = %d, ", stats->NiceCPU);
     fprintf(dbg, "IdleCPU = %d, ", stats->IdleCPU);
     fprintf(dbg, "\n");
@@ -719,19 +735,25 @@ print_stats(struct ViceStatistics *stats)
     fprintf(dbg, "TotalIO = %d, ", stats->TotalIO);
     fprintf(dbg, "ActiveVM = %d, ", stats->ActiveVM);
     fprintf(dbg, "TotalVM = %d, ", stats->TotalVM);
+    fprintf(dbg, "\n");
+    fprintf(dbg, "EtherNetTotalErrors = %d, ", stats->EtherNetTotalErrors);
+    fprintf(dbg, "EtherNetTotalWrites = %d, ", stats->EtherNetTotalWrites);
+    fprintf(dbg, "EtherNetTotalInterupts = %d, ", stats->EtherNetTotalInterupts);
+    fprintf(dbg, "EtherNetGoodReads = %d, ", stats->EtherNetGoodReads);
+    fprintf(dbg, "EtherNetTotalBytesWritten = %d, ", stats->EtherNetTotalBytesWritten);
+    fprintf(dbg, "\n");
     fprintf(dbg, "ProcessSize = %d, ", stats->ProcessSize);
+    fprintf(dbg, "WorkStations = %d, ", stats->WorkStations);
+    fprintf(dbg, "ActiveWorkStations = %d, ", stats->ActiveWorkStations);
     fprintf(dbg, "\n");
-
-    fprintf(dbg, "Spare1 = %d, ", stats->Spare1);
-    fprintf(dbg, "Spare2 = %d, ", stats->Spare2);
-    fprintf(dbg, "Spare3 = %d, ", stats->Spare3);
+    fprintf(dbg, "MinFlt = %d, ", stats->MinFlt);
+    fprintf(dbg, "MajFlt = %d, ", stats->MajFlt);
+    fprintf(dbg, "NSwaps = %d, ", stats->NSwaps);
     fprintf(dbg, "Spare4 = %d, ", stats->Spare4);
-    fprintf(dbg, "\n");
-
-    fprintf(dbg, "Spare5 = %d, ", stats->Spare5);
-    fprintf(dbg, "Spare6 = %d, ", stats->Spare6);
-    fprintf(dbg, "Spare7 = %d, ", stats->Spare7);
-    fprintf(dbg, "Spare8 = %d, ", stats->Spare8);
+    fprintf(dbg, "UsrTime = %d, ", stats->UsrTime);
+    fprintf(dbg, "SysTime = %d, ", stats->SysTime);
+    fprintf(dbg, "VmRSS = %d, ", stats->VmRSS);
+    fprintf(dbg, "VmData = %d, ", stats->VmData);
     fprintf(dbg, "\n");
     fflush(dbg);
 }

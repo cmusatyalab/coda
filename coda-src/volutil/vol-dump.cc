@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.21 $
+#define RCSVERSION $Revision: 4.22 $
 
 /* vol-dump.c */
 
@@ -543,6 +543,8 @@ static int DumpVnodeIndex_estimate(Volume *vp, VnodeClass vclass,
 	}
 	PollAndYield();
     }
+
+    if (vvl) delete vvl;
 
     SLog(9, "Leaving DumpVnodeIndex_estimate()");
     return 0;
