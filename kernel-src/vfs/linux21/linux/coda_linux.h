@@ -45,6 +45,7 @@ extern int coda_access_cache;
 /* this file:  heloers */
 char *coda_f2s(ViceFid *f, char *s);
 int coda_isroot(struct inode *i);
+int coda_fid_is_volroot(struct ViceFid *);
 int coda_iscontrol(const char *name, size_t length);
 void coda_load_creds(struct coda_cred *cred);
 int coda_mycred(struct coda_cred *);

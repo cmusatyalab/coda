@@ -26,6 +26,7 @@ struct coda_sb_info
 	struct vcomm *      sbi_vcomm;
 	struct inode *      sbi_root;
 	struct list_head    sbi_cchead;
+	struct list_head    sbi_volroothead;
 };
 
 /* communication pending/processing queues queues */

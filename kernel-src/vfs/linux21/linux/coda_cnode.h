@@ -26,6 +26,7 @@ struct cnode {
         u_short            c_mmcount;   /* count of mmappers */
         struct inode      *c_ovp;       /* open vnode pointer */
         struct list_head   c_cnhead;    /* head of cache entries */
+	struct list_head   c_volrootlist; /* list of volroot cnoddes */
 };
 
 /* flags */
