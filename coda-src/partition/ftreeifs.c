@@ -321,6 +321,11 @@ f_icreate(struct DiskPartition *dp, Inode inode_number, u_long volume,
 	} else {  /* other error, just fail */
 	    eprint("f_icreate: error %d in creating inode %ld!\n", 
 		   errno, ino);
+
+	    /* make sure the file doesn't exist on disk, that way we keep the
+	     * free bitmap in sync with reality --JH */
+	    (void)unlink(filename);
+
 	    CODA_ASSERT(0);
 	}
     } else {
