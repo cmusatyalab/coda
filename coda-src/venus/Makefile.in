@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.7 97/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.8 1997/07/22 11:12:36 lily Exp $";
 
 
 # 
@@ -77,8 +77,6 @@ LIBS=	$(LIBUTIL)\
 	$(LIBSEG)\
 	$(LIBCODARVM)\
 	$(LIBOLDLWP)\
-	$(LIBRPC2)\
-	$(LIBSE)\
 	$(LIBFAIL)\
 	$(LIBKERNDEP) \
 	$(LIBVV)\
@@ -87,7 +85,9 @@ LIBS=	$(LIBUTIL)\
 	$(LIBCS)\
 	$(LIBMACH)\
 	$(LIBCOMPAT)\
-	$(LIBVICEDEP)
+	$(LIBVICEDEP)\
+	$(LIBRPC2)\
+	$(LIBSE)
 
 RP2FILES= $(INCLDIR)/vice.rpc2 $(INCLDIR)/mond.rpc2 	$(INCLDIR)/admon.rpc2\
  $(INCLDIR)/adsrv.rpc2 $(INCLDIR)/callback.rpc2 $(INCLDIR)/fcon.rpc2
