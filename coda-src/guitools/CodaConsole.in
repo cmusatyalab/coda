@@ -20,15 +20,13 @@ proc gettimeofday { } {
 #                                 Main program                               #
 ##############################################################################
 
-puts stderr "preStdErr: CodaConsole started"
-flush stderr
+puts ""
+flush stdout
 
 #
 # Setup the auto_path variable to use the Coda tcl library
 #
 lappend auto_path +GUIDIR+
-
-SendToStdErr "autopath'd correctly"
 
 #
 #  Start Timing Events
@@ -49,7 +47,7 @@ set password ""
 #
 # Withdraw the main window
 #
-SendToStdErr "withdrawing ." 
+puts "withdrawing ." 
 flush stdout
 wm withdraw .
 
@@ -60,40 +58,17 @@ wm withdraw .
 #
 # Initialization
 #
-SendToStdErr "InitLocks"
 InitLocks
-
-SendToStdErr "InitSystemAdministrator"
 InitSystemAdministrator
-
-SendToStdErr "InitPathnamesArray"
 InitPathnamesArray
-
-SendToStdErr "InitDimensionsArray"
 InitDimensionsArray
-
-SendToStdErr "InitColorArray"
 InitColorArray
-
-SendToStdErr "InitDisplayStyleArray"
 InitDisplayStyleArray
-
-SendToStdErr "InitStatistics"
 InitStatistics
-
-SendToStdErr "InitServers"
 InitServers 
-
-SendToStdErr "InitEventsArray"
 InitEventsArray
-
-SendToStdErr "InitData"
 InitData
-
-SendToStdErr "InitIndicatorArray"
 InitIndicatorArray
-
-SendToStdErr "InitLog"
 InitLog
 
 #

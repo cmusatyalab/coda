@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.cc,v 4.6 1998/01/16 14:58:26 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/libal/Attic/alprocs.cc,v 4.6 1998/01/16 14:58:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -684,10 +684,7 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
 	consistency guarantee.  */
 
     if ((pfd = fopen(AL_pdbFileName, "r")) == 0 ||	/* changed '< 0' to '== 0' */
-#ifndef DJGPP
-	/* this is a server call -- not supported on DJGPP */
 	(flock(fileno(pfd), LOCK_SH) < 0)	||
-#endif
 	(fstat(fileno(pfd), &PdbStatBuf) < 0))
 	    {
 	    perror("AL_Initialize (opening vice.pdb file)");
@@ -699,9 +696,7 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
     	|| (PDBCheckSum != 0 && ComputeCheckSum(pfd) != PDBCheckSum))
 	{/* PDBCheckSum == 0 ==> old style .pcf file */
 	fprintf(stderr, "Bad .pcf or .pdb file\n");
-#ifndef DJGPP
 	flock(fileno(pfd), LOCK_UN); /* ignore return codes */
-#endif
 	fclose(pfd);
 	return(-1);
 	}
@@ -712,10 +707,8 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
 
     if (AL_DebugLevel > 100) PrintTables();
 
-#ifndef DJGPP
     if (flock(fileno(pfd), LOCK_UN) < 0)
 	{perror("AL_Initialize"); fclose(pfd); return(-1);}
-#endif
     fclose(pfd);
     return(0);
     }
@@ -833,9 +826,7 @@ RetryGet:
 	else seekval = Gseeks[-Id];
     
     if ((yyin = fopen(AL_pdbFileName, "r")) == NULL ||
-#ifndef DJGPP
 	    (flock(fileno(yyin), LOCK_SH) < 0) ||
-#endif
 	    (fstat(fileno(yyin), &mystatbuf) < 0))
 	{
 	perror(AL_pdbFileName);
@@ -864,9 +855,7 @@ RetryGet:
       yyparse();
       yy_delete_buffer(yybuf);
     }
-#ifndef DJGPP
     flock(fileno(yyin), LOCK_UN);	/* ignore return codes */
-#endif
     fclose(yyin);
     if (AL_DebugLevel > 0) PrintEntry();
 

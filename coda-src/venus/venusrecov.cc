@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.7 1998/01/10 18:39:02 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/venus/venusrecov.cc,v 4.7 1998/01/10 18:39:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,7 +74,7 @@ extern "C" {
 #include <rvm_segment.h>
 #include <rvm_statistics.h>
 
-#ifndef __MACH__
+#if defined(__linux__) || defined(__BSD44__)
 #include <sys/mman.h>
 #endif
 
@@ -129,9 +129,6 @@ PRIVATE const char *VM_RDSADDR = (char *)0x41000000;
 #elif	defined(__linux__) || defined(__CYGWIN32__)
 PRIVATE const char *VM_RVGADDR = (char *)0x20000000;
 PRIVATE const char *VM_RDSADDR = (char *)0x21000000;
-#elif	defined(DJGPP)
-PRIVATE const char *VM_RVGADDR = (char *)0x02000000;
-PRIVATE const char *VM_RDSADDR = (char *)0x03000000;
 #endif
 
 
@@ -363,7 +360,6 @@ PRIVATE void Recov_CheckParms() {
     }
 }
 
-extern int IAmChild;
 
 PRIVATE void Recov_InitRVM() {
 
@@ -403,21 +399,14 @@ PRIVATE void Recov_InitRVM() {
 
 	/* Initialize log and data segment. */
 	{
-#ifndef DJGPP
 	    unlink(VenusLogDevice);
-#endif
 	    {
 		/* Log initialization must be done by another process, since an RVM_INIT */
 		/* with NULL log must be specified (to prevent RVM from trying to do recovery). */
-#ifndef DJGPP
 		int child = fork();
 		if (child == -1)
 		    Choke("Recov_InitRVM: fork failed (%d)", errno);
 		if (child == 0) {
-#else
-		if (IAmChild) {
-		    unlink(VenusLogDevice);
-#endif
 		    rvm_return_t ret = RVM_INIT(NULL);
 		    if (ret != RVM_SUCCESS) {
 			if (ret == RVM_EINTERNAL)
@@ -434,14 +423,10 @@ PRIVATE void Recov_InitRVM() {
 			eprint("Recov_InitRVM(child): rvm_create_log failed (%d)", ret);
 			exit(ret);
 		    }
-#ifdef DJGPP
-		    printf("Recov_InitRVM child lived happily\n");
-#endif
-		    exit(RVM_SUCCESS);
 
+		    exit(RVM_SUCCESS);
 		}
 		else {
-#ifndef DJGPP
 		    union wait status;
 #ifdef __MACH__
 		    int exiter = wait(&status);
@@ -458,18 +443,14 @@ PRIVATE void Recov_InitRVM() {
 		    if (WEXITSTATUS(status.w_status) != RVM_SUCCESS)
 			Choke("Recov_InitRVM: log initialization failed (%d)", WEXITSTATUS(status.w_status));
 #endif /* __BSD44__ */
-#endif /* DJGPP */
+
 		}
 	    }
 	    eprint("%s initialized at size %#x",
 		   VenusLogDevice, VenusLogDeviceSize);
 
 	    int fd = 0;
-#ifndef DJGPP
 	    if ((fd = open(VenusDataDevice, O_WRONLY | O_CREAT | O_TRUNC, 0600)) < 0)
-#else
-	    if ((fd = open(VenusDataDevice, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0600)) < 0)
-#endif
 		Choke("Recov_InitRVM: create of (%s) failed (%d)",
 		    VenusDataDevice, errno);
 	    {
@@ -641,7 +622,7 @@ PRIVATE void Recov_InitSeg() {
 #ifdef __linux__  /* strtok broken on Linux ? */
 	eprint("Last init was %s\n", ctime((long *)&rvg->recov_LastInit));
 #else
-        eprint("Last init was %s", strtok(ctime((time_t *)&rvg->recov_LastInit), "\n"));
+        eprint("Last init was %s", strtok(ctime((long *)&rvg->recov_LastInit), "\n"));
 #endif
 
 	/* Copy CleanShutDown to VM global, then set it FALSE. */
@@ -804,7 +785,7 @@ void RecovPrint(int fd) {
 	     TransCount, (TransCount > 0 ? TransElapsed / TransCount : 0.0));
     fdprint(fd, "\tHeap: chunks = %d, nlists = %d, bytes = (%d, %d)\n",
 	     RdsChunkSize, RdsNlists, 0, 0);
-    fdprint(fd, "\tLast initialized %s\n", ctime((time_t *)&rvg->recov_LastInit));
+    fdprint(fd, "\tLast initialized %s\n", ctime((long *)&rvg->recov_LastInit));
 
     fdprint(fd, "***RVM Statistics***\n");
     Recov_GetStatistics();
@@ -836,7 +817,7 @@ PRIVATE void Recov_AllocateVM(char **addr, unsigned long length) {
 	Choke("Recov_AllocateVM: allocate(%x, %x) failed (%d)", *addr, length, ret);
     LOG(0, ("Recov_AllocateVM: allocated %x bytes at %x\n", length, *addr));
 
-#else
+#elif defined(__linux__) || defined(__BSD44__)
     char *requested_addr = *addr;
     *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
 		 (MAP_PRIVATE | MAP_ANON), -1, 0);
@@ -853,6 +834,9 @@ PRIVATE void Recov_AllocateVM(char **addr, unsigned long length) {
     }
 
     LOG(0, ("Recov_AllocateVM: allocated %x bytes at %x\n", length, *addr));
+
+#else /* DEFAULT */
+    Choke("Recov_AllocateVM: not yet implemented for this platform!");
 #endif
 }
 
@@ -863,12 +847,14 @@ PRIVATE void Recov_DeallocateVM(char *addr, unsigned long length) {
     if (ret != KERN_SUCCESS)
 	Choke("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
     LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
-#else
+#elif defined(__linux__) || defined(__BSD44__)
     if (munmap(addr, length)) {
 	Choke("Recov_DeallocateVM: munmap(%x, %x) failed with errno == %d", addr, length, errno);
     }
     LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
-#endif	
+#else	/* MACH || __linux__ || __BSD44__ */
+    Choke("Recov_DeallocateVM: not yet implemented for this platform");
+#endif	/* MACH || __linux__ || __BSD44__ */
 }
 
 

@@ -5,26 +5,18 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
+
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <dirent.h>
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
-#include <sys/socket.h>
-#include <netinet/in.h>
-#define lstat stat
-#define seteuid setuid
-#endif
-
-
 #ifdef __linux__
 #include <mntent.h>
 #else /* __linux__ */
 #include <sys/file.h>
 #include <sys/uio.h>
-
 #endif /* __linux__ */
 
 #include <ds_list.h>
@@ -37,14 +29,21 @@
 
 #include "potemkin.h"
 
+/*
+ * WARNING:
+ *
+ * It is likely that this code will not compile under anything but
+ * NetBSD.  In particular, the details of mounting/unmounting are
+ * probably different, at least
+ */
 
 /************************************************ Argument globals */
 char       *KernDevice = "/dev/cfs0";                    /* -kd */
-char       *RootDir    = "\temp";                    /* -rd */
+char       *RootDir    = "/tmp/coda";                    /* -rd */
 int         FidTabSize = 255;                            /* -ts */
 char       *MountPt    = "/coda";                        /* -mp */
 int         Interval   = 30;                             /* -i  */
-int         verbose    = 1;                              /* -v  */
+int         verbose    = 0;                              /* -v  */
 
 /************************************************ Other globals */
 ds_hash_t        *FidTab;         /* Table of known vnodes, by fid */
@@ -137,9 +136,6 @@ fid_fullname(fid_ent_t *fep)
     } while (fep != NULL);
 
     for (i=depth-1; i>=0; --i) {
-	    if ( fidlist[i]->name[0] == '.' && 
-		 strlen(fidlist[i]->name)  == 1)
-		    continue;
 	length += strlen(fidlist[i]->name)+1;  /* component + '/' or '\0' */
 	assert(length < (MAXNAMLEN-1));
 	src = fidlist[i]->name;
@@ -173,7 +169,6 @@ fid_assign_type(fid_ent_t *fep, struct stat *sbuf) {
     case S_IFREG:
 	fep->type = C_VREG;
 	break;
-#ifndef DJGPP
     case S_IFLNK:
 	fep->type = C_VLNK;
 	break;
@@ -184,7 +179,6 @@ fid_assign_type(fid_ent_t *fep, struct stat *sbuf) {
 	fep->type = C_VBAD;
 	return -1;
 	break;
-#endif
     default:
 	assert(0);
 	break;
@@ -240,7 +234,7 @@ fid_print(FILE *ostr, fid_ent_t *fep)
 }
 
 void
-dump_fids(int sig, int code)
+dump_fids(int sig, int code, struct sigcontext *scp)
 {
     ds_hash_iter_t  *i;
     fid_ent_t       *fep;
@@ -271,7 +265,6 @@ ParseArgs(int argc, char *argv[]) {
     int i;
 
     for (i=1; i < argc; i++) {
-	    printf("argv[%d]: %s\n", i, argv[i]);
 	if (!strcmp(argv[i],"-kd")) {
 	    if (++i==argc) usage();
 	    KernDevice = argv[i];
@@ -295,43 +288,7 @@ ParseArgs(int argc, char *argv[]) {
     }
 }
 
-
-int MsgRead(char *m) 
-{
-#if defined(DJGPP) || defined(__CYGWIN32__)
-        struct sockaddr_in addr;
-         int len = sizeof(addr);
-         int cc = recvfrom(KernFD, m, (int) (VC_MAXMSGSIZE),
-     		      0, (struct sockaddr *) &addr, &len);
-#else
-	 int cc = read(KernFD, m, (int) (VC_MAXMSGSIZE));
-#endif
-	 if (cc < sizeof(struct cfs_in_hdr)) 
-		 return(-1);
-	 /* printf("MsgRead: returning %d\n", cc); */
-	 return(cc);
-}
-
-
-
-
-int MsgWrite(char *buf, int size)
-{
-#if defined(DJGPP) || defined(__CYGWIN32__)
-         struct sockaddr_in addr;
-         int cc;
-
-         addr.sin_family = AF_INET;
-         addr.sin_port = htons(8001);
-         addr.sin_addr.s_addr = htonl(0x7f000001);
-         return sendto(KernFD, buf, size, 0, (struct sockaddr *) &addr,
-     		    sizeof(addr));
-#else 
-	return write(KernFD, buf, size);
-#endif
-}
-
-/************** Initialization */
+/*************************************************** Initialization */
 /*
  * Setup: -- we need to do the following
  * 
@@ -341,13 +298,10 @@ int MsgWrite(char *buf, int size)
  *          4) Mount on MountPoint
  */
 
-
 void
 Setup() {
     union outputArgs msg;
     struct sigaction  sa;
-    struct sockaddr_in addr;
-    int rc;
 
     /* Step 1: change to root directory */
     assert(!(chdir(RootDir)));
@@ -360,26 +314,12 @@ Setup() {
      * Open the kernel.
      * Construct a purge message and see if we can send it in... 
      */
-
-#if defined(DJGPP) || defined(__CYGWIN32__)
-    KernFD = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    printf("Socket KernFD is %d\n", KernFD);
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(8000);
-    rc = bind(KernFD, (struct sockaddr *)&addr, sizeof(addr));
-    if ( rc != 0 ) {
-	    printf("Bind returns %d\n", rc);
-	    exit(1);
-    }
-#else 
     KernFD = open(KernDevice, O_RDWR, 0);
-#endif
-
     assert(KernFD >= 0);
+
     msg.oh.opcode = CFS_FLUSH;
     msg.oh.unique = 0;
-    assert (MsgWrite((char*)&msg, sizeof(struct cfs_out_hdr))
+    assert (write(KernFD, (char*)&msg, sizeof(struct cfs_out_hdr))
 	    == sizeof(struct cfs_out_hdr));
 
 #ifdef __linux__
@@ -409,16 +349,13 @@ Setup() {
 	}
       }
     }
-#endif
-#ifdef __BSD44__
+#else
     assert (!mount(MOUNT_CFS, MountPt, 0, KernDevice));
 #endif
 
     /* Set up a signal handler to dump the contents of the FidTab */
     sa.sa_handler = dump_fids;
-#ifndef DJGPP
     sa.sa_flags = SA_RESTART;
-#endif
     sigemptyset(&sa.sa_mask);  /* or -1, who knows? */
     assert (!sigaction(SIGUSR1, &sa, NULL));
 
@@ -483,7 +420,7 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
     /*    vbuf->va_fileid = coda_f2i(&(fep->fid)); */
     vbuf->va_size = sbuf->st_size;
     vbuf->va_blocksize = V_BLKSIZE;
-#ifndef __BSD44__
+#ifdef __linux__
     vbuf->va_atime.tv_sec = sbuf->st_atime;
     vbuf->va_mtime.tv_sec = sbuf->st_mtime;
     vbuf->va_ctime.tv_sec = sbuf->st_ctime;
@@ -576,59 +513,6 @@ DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
  exit:
     if (path) free(path);
     *reply = VC_OUTSIZE(cfs_open_out);
-    return;
-}
-
-
-void
-DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
-{
-    ViceFid              *fp;
-    int                  *flags;
-    fid_ent_t            *fep;
-    fid_ent_t             dummy;
-    char                 *path=NULL;
-    struct stat           sbuf;
-    char *slash;
-    char *begin;
-
-    fp = &(in->cfs_open_by_path.VFid);
-    flags = &(in->cfs_open_by_path.flags);
-
-    dummy.fid = *fp;
-    assert((fep = ds_hash_member(FidTab, &dummy)) != NULL);
-    
-    path = fid_fullname(fep);
-    if (verbose) {
-	printf("Geting name for fid (%x.%x.%x): %s",fp->Volume,
-	       fp->Vnode, fp->Unique, path);
-	fflush(stdout);
-    }
-    if (lstat(path,&sbuf)) {
-	out->oh.result = errno;
-	goto exit;
-    }
-    begin = (char *)(&out->cfs_open_by_path.path + 1);
-    out->cfs_open_by_path.path = begin - (char *)out;
-    printf("Rootdir %s path %s, total %s\n", RootDir, path, begin);
-    sprintf(begin, "%s/%s", RootDir, path);
-#if defined(DJGPP) || defined(__CYGWIN32__)
-    slash = begin;
-    for (slash = begin ; *slash ; slash++ ) {
-	    if ( *slash == '/' ) 
-		    *slash='\\';
-    }
-    printf("Rootdir %s path %s, total %s\n", RootDir, path, begin);
-#endif
-    out->oh.result = 0;
-    if (verbose) {
-	printf("....found\n");
-	fflush(stdout);
-    }
- exit:
-    if (path) free(path);
-    *reply = sizeof (struct cfs_open_by_path_out) + 
-				strlen(begin) + 1;
     return;
 }
 
@@ -1130,14 +1014,13 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     }
     switch(sbuf.st_mode & S_IFMT) {
     case S_IFREG:
+    case S_IFLNK:
+	/* This might not be okay for symlinks. */
+	break;
     case S_IFDIR:
 	printf("REMOVE: trying to remove a directory!\n");
 	out->oh.result = EINVAL;
 	goto exit;
-	break;
-#ifndef DJGPP
-    case S_IFLNK:
-	/* This might not be okay for symlinks. */
 	break;
     case S_IFSOCK:               /* Can't be any of these */
     case S_IFIFO:
@@ -1147,7 +1030,6 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
 	out->oh.result = EINVAL;
 	goto exit;
 	break;
-#endif
     default:
 	assert(0);
 	break;
@@ -1754,14 +1636,13 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 	out->oh.result = EINVAL;
 	goto exit;
 	break;
-    case S_IFDIR:
-	/* OK */
-	break;
-#ifndef DJGPP
     case S_IFLNK:
 	printf("RMDIR: trying to remove a symlink!\n");
 	out->oh.result = EINVAL;
 	goto exit;
+	break;
+    case S_IFDIR:
+	/* OK */
 	break;
     case S_IFSOCK:               /* Can't be any of these */
     case S_IFIFO:
@@ -1771,7 +1652,6 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 	out->oh.result = EINVAL;
 	goto exit;
 	break;
-#endif
     default:
 	assert(0);
 	break;
@@ -1854,11 +1734,10 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
     assert(!seteuid(cred->cr_uid));
 
     out->cfs_readlink.data = (char*)VC_OUTSIZE(cfs_readlink_out);
-#ifndef DJGPP
     *count = readlink(path,
 		      (char*)out+(int)out->cfs_readlink.data,
 		      VC_MAXDATASIZE-1);
-#endif
+
     assert(!seteuid(suid));
     assert(!setgid(sgid));
 
@@ -2198,9 +2077,6 @@ Dispatch(union inputArgs *in, union outputArgs *out, int *reply) {
     case CFS_FSYNC:
 	DoFsync(in,out,reply);
 	break;
-    case CFS_OPEN_BY_PATH:
-	DoOpenByPath(in,out,reply);
-	break;
     default:
 	out->oh.result = EOPNOTSUPP;
 	fprintf(stderr,"** Not Supported **");
@@ -2265,7 +2141,7 @@ Service()
 	}
 
 	/* Read what we can... */
-	assert((rc = MsgRead(inbuf)) >= 0);
+	assert((rc = read(KernFD, inbuf, (int) VC_MAXMSGSIZE)) >= 0);
 	if (rc < VC_IN_NO_DATA) {
 	    fprintf(stderr,"Message fragment: size %d --",rc);
 	    perror(NULL);
@@ -2283,7 +2159,7 @@ Service()
 	}
 
 	/* Write out the result */
-	assert((rc = MsgWrite(outbuf, reply_size)) >= 0);
+	assert((rc = write(KernFD, outbuf, reply_size)) >= 0);
 	if (rc < reply_size) {
 	    fprintf(stderr,"Wrote fragment %d/%d --", rc, reply_size);
 	    perror(NULL);

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.4 1997/09/04 21:56:22 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rvm/Attic/rvmutl.c,v 4.4 1997/09/04 21:56:22 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -48,17 +48,18 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #include <ctype.h>
 #include <stdio.h>                      /* not used for log, segment i/o */
 #include <signal.h>
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
+#endif
 #include "rvm_private.h"
+
 #ifdef RVM_LOG_TAIL_BUG
 #include <rvmtesting.h>
 #endif RVM_LOG_TAIL_BUG
-
-#ifdef DJGPP
-#include <crt0.h>
-int _crt0_startup_flags = _CRT0_FLAG_NEARPTR;
-#endif
 
 /* global variables */
 

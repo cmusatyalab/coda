@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.5 1998/01/10 18:40:07 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/volutil/volclient.cc,v 4.5 1998/01/10 18:40:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -158,13 +158,10 @@ PRIVATE void VolDumpLWP(struct rockInfo *rock);
 extern int volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
 
 int main(int argc, char **argv) {
-#ifndef __CYGWIN32__
-	/* XXX -JJK */
     if (getuid() != 0) {
 	printf("Volume utilities must be run as root; sorry\n");
 	exit(1);
     }
-#endif
 
     if (argc < 2) {
         printf("Usage: volutil [-h hostname] [-t timeout] [-d debuglevel]  <option>, where <option> is one of the following:\n");
@@ -2097,14 +2094,8 @@ PRIVATE int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
-#ifdef __CYGWIN32__
-	/* XXX -JJK */
-	pident.Tag = RPC2_PORTALBYINETNUMBER;
-	pident.Value.InetPortNumber = htons(1361);
-#else
     pident.Tag = RPC2_PORTALBYNAME;
     strcpy(pident.Value.Name, "coda_filesrv");
-#endif
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;
 

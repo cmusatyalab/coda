@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cachefile.cc,v 4.4 1998/01/10 18:38:42 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/venus/fso_cachefile.cc,v 4.4 1998/01/10 18:38:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,6 +82,7 @@ CacheFile::CacheFile(int i) {
     sprintf(name, "V%d", i);
     inode = (ino_t)-1;
     length = 0;
+
     /* Container reset will be done by eventually by FSOInit()! */
 }
 
@@ -152,7 +153,6 @@ void CacheFile::ResetContainer() {
     struct stat tstat;
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC, V_MODE)) < 0)
 	Choke("CacheFile::ResetContainer: open failed (%d)", errno);
-#ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
 	Choke("CacheFile::ResetContainer: fchmod failed (%d)", errno);
 
@@ -162,7 +162,6 @@ void CacheFile::ResetContainer() {
 #else
     if (::chown(name, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	Choke("CacheFile::ResetContainer: fchown failed (%d)", errno);
-#endif
 #endif
     if (::fstat(tfd, &tstat) < 0)
 	Choke("CacheFile::ResetContainer: fstat failed (%d)", errno);
@@ -213,7 +212,6 @@ void CacheFile::Copy(CacheFile *source) {
 
     if ((tfd = ::open(name, O_RDWR | O_CREAT | O_TRUNC, V_MODE)) < 0)
 	Choke("CacheFile::Copy: open failed (%d)", errno);
-#ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
 	Choke("CacheFile::Copy: fchmod failed (%d)", errno);
 #ifndef __CYGWIN32__
@@ -222,7 +220,6 @@ void CacheFile::Copy(CacheFile *source) {
 #else
     if (::chown(name, (uid_t)V_UID, (gid_t)V_GID) < 0)
 	Choke("CacheFile::ResetCopy: fchown failed (%d)", errno);
-#endif
 #endif
     if ((ffd = ::open(source->name, O_RDONLY, V_MODE)) < 0)
 	Choke("CacheFile::Copy: source open failed (%d)", errno);
@@ -264,9 +261,7 @@ void CacheFile::Stat(struct stat *tstat) {
     ASSERT(inode != (ino_t)-1);
 
     ASSERT(::stat(name, tstat) == 0);
-#if ! defined(DJGPP) && ! defined(__CYGWIN32__)
     ASSERT(tstat->st_ino == inode);
-#endif
 }
 
 

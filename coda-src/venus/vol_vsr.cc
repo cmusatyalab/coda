@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.4 1998/01/10 18:39:13 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/venus/Attic/vol_vsr.cc,v 4.4 1998/01/10 18:39:13 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,12 +73,10 @@ extern "C" {
 #if defined(__GLIBC__) && __GLIBC__ >= 2
 #include <libelf/nlist.h>
 #else
-#ifndef DJGPP
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
 extern int nlist(const char*, struct nlist[]);
-#endif
 #endif
 
     
@@ -133,7 +131,6 @@ PRIVATE int hertz = 0;
 
 
 /* Raw Statistic Entry. */
-#ifndef DJGPP
 PRIVATE struct nlist RawStats[] = 
 {
 #define CPTIME	0
@@ -152,7 +149,6 @@ PRIVATE struct nlist RawStats[] =
 	0
     },
 };
-#endif
 
 #ifdef VENUSDEBUG
 int vsr::allocs = 0;
@@ -255,7 +251,6 @@ void volent::FlushVSRs(int hard) {
 
 
 void volent::InitStatsVSR(vsr *v) {
-#ifndef DJGPP
     long busy[CPUSTATES];
     SessionStatistics *Stats = &v->stats;
     SessionStatistics *InitStats = &v->initstats;
@@ -315,12 +310,10 @@ void volent::InitStatsVSR(vsr *v) {
     /* At the present, this information won't be collected, because in the
        disconnected state, this information seems meaningless. */
 #endif
-#endif
 }
 
 
 void volent::UpdateStatsVSR(vsr *v) {
-#ifndef DJGPP
     long busy[CPUSTATES];
     SessionStatistics *Stats = &v->stats;
     SessionStatistics *InitStats = &v->initstats;
@@ -376,7 +369,6 @@ void volent::UpdateStatsVSR(vsr *v) {
     /* Cache high water marks */
     /* At the present, this information won't be collected, because in the
        disconnected state, this information seems meaningless. */
-#endif
 #endif
 }
 

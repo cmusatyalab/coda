@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_logrecovr.c,v 4.6 1998/01/12 23:36:09 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rvm/Attic/rvm_logrecovr.c,v 4.6 1998/01/12 23:36:09 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -2001,7 +2001,6 @@ static rvm_return_t chk_wrap(log,force_wrap_chk,skip_trans)
 /* Recovery: phase 2 -- build modification trees, and
    construct dictionary of segment short names
 */
-#define X(a) 
 static rvm_return_t build_tree(log)
     log_t           *log;               /* log descriptor */
     {
@@ -2023,11 +2022,8 @@ static rvm_return_t build_tree(log)
                            | RVM_TRUNC_BUILD_TREE;
 
     /* reset sequence checks and init scan buffers */
-X(reset_hdr)
     reset_hdr_chks(log);
-X(clear_aux)
     clear_aux_buf(log);
-X(init_buf)
     if (RVM_OFFSET_EQL(status->prev_log_tail,
                        status->log_start))
         retval = init_buffer(log,&status->log_start,
@@ -2036,19 +2032,17 @@ X(init_buf)
         retval = init_buffer(log,&status->prev_log_tail,
                              REVERSE,SYNCH);
     ASSERT(log->trunc_thread == cthread_self());
-X(done_init_buf)
+
     /* scan in reverse from tail to find records for uncommitted changes */
     num_nodes = NODES_PER_YIELD;
     log_buf->split_ok = rvm_false;      /* split records not checked yet */
     tail = status->prev_log_tail;       /* use previous epoch tail */
     while (!RVM_OFFSET_EQL(tail,status->prev_log_head))
         {
-X(start loop)
         last_buf = log_buf->offset;
         last_ptr = log_buf->ptr;
         if ((retval=scan_reverse(log,SYNCH)) != RVM_SUCCESS)
             return retval;
-X(done scan_reverse)
         ASSERT(log->trunc_thread == cthread_self());
         ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                == RVM_TRUNC_BUILD_TREE);
@@ -2060,34 +2054,27 @@ X(done scan_reverse)
         rec_end = (rec_end_t *)&log_buf->buf[log_buf->ptr];
         if (rec_end->struct_id == log_wrap_id)
             {
-X(log_wrap)
             if (!log_buf->split_ok)
                 force_wrap_chk = rvm_true;
             }
         else
             {
-X(else)
             ASSERT(rec_end->struct_id == rec_end_id);
             switch (rec_end->rec_type)
                 {
               case trans_hdr_id:        /* process transaction */
-X( trans_hdr_id: chk_wrap)
                 if ((retval=chk_wrap(log,force_wrap_chk,&skip_trans))
                     != RVM_SUCCESS) return retval;
                 force_wrap_chk = rvm_false;
-X( trans_hdr_id: do_trans)
                 if ((retval=do_trans(log,skip_trans)) != RVM_SUCCESS)
                     return retval;
-X( trans_hdr_id: end)
                 trans_cnt++;
                 break;
               case log_seg_id:          /* enter seg short id in dictionary */
-X( log_seg_id: def_seg_dict)
                 if ((retval=def_seg_dict(log,(rec_hdr_t *)
                     RVM_SUB_LENGTH_FROM_ADDR(rec_end,
                                         rec_end->rec_length)))
                     != RVM_SUCCESS) return retval;
-X( log_seg_id: done)
                 log_buf->ptr -= rec_end->rec_length;
                 break;
               default:  ASSERT(rvm_false); /* trouble, log damage? */
@@ -2676,7 +2663,7 @@ rvm_return_t log_recover(log,count,is_daemon,flag)
     rvm_bool_t      do_truncation = rvm_false;
     rvm_return_t    retval = RVM_SUCCESS;
     rvm_length_t    new_1st_rec_num=0; 
-X(start)
+
     CRITICAL(log->truncation_lock,      /* begin truncation lock crit sec */
         {
         /* capture truncation thread & flag for checking */
@@ -2684,7 +2671,7 @@ X(start)
         ASSERT(status->trunc_state == ZERO);
         log->trunc_thread = cthread_self();
         status->trunc_state = flag;
-X(dev_lock)
+
         CRITICAL(log->dev_lock,         /* begin dev_lock crit sec */
             {
             /* process statistics */
@@ -2698,7 +2685,7 @@ X(dev_lock)
                 }
             last_tree_build_time = 0;
             last_tree_apply_time = 0;
-X(in_recovery)
+
             /* phase 1: locate tail & start new epoch */
             if (log->in_recovery)
                 {
@@ -2735,7 +2722,7 @@ X(in_recovery)
                     ASSERT(daemon->state == truncating);
                     }
                 }
-X(err_exit1)
+
 err_exit1:;
             });                         /* end dev_lock crit sec */
 
@@ -2745,14 +2732,11 @@ err_exit1:;
         /* do log scan if truncation actually needed */
         if (do_truncation)
             {
-X(do_trunc)
             /* build tree and time */
             kretval= gettimeofday(&tmp_time,(struct timezone *)NULL);
             if (kretval != 0) return RVM_EIO;
-X(build_tree)
             if ((retval=build_tree(log)) != RVM_SUCCESS) /* phase 2 */
                 return retval;
-X(build_tree done)
             ASSERT(log->trunc_thread == cthread_self());
             ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_BUILD_TREE);
@@ -2767,10 +2751,8 @@ X(build_tree done)
             /* apply tree and time */
             kretval= gettimeofday(&tmp_time,(struct timezone *)NULL);
             if (kretval != 0) return RVM_EIO;
-X(apply_mods)
             if ((retval=apply_mods(log)) != RVM_SUCCESS) /* phase 3 */
                 goto err_exit;
-X(apply_mods end)
             ASSERT(log->trunc_thread == cthread_self());
             ASSERT((status->trunc_state & RVM_TRUNC_PHASES)
                    == RVM_TRUNC_APPLY);
@@ -2785,7 +2767,7 @@ X(apply_mods end)
             status->trunc_state =
                 (status->trunc_state & ~RVM_TRUNC_PHASES)
                     | RVM_TRUNC_APPLY;
-X(status_upd)
+
         /* always update the status */
         retval = status_update(log, new_1st_rec_num);    /* phase 4 */
         ASSERT(log->trunc_thread == cthread_self());
@@ -2818,7 +2800,6 @@ err_exit:
 
     return retval;
     }
-#undef X
 /* rvm_truncate */
 rvm_return_t rvm_truncate()
     {
@@ -2837,6 +2818,7 @@ rvm_return_t rvm_truncate()
     retval = log_recover(default_log,
                        &default_log->status.tot_rvm_truncate,
                        rvm_false,RVM_TRUNCATE_CALL);
+
     return retval;
     }
 /* map & flush <--> truncation synchronization functions */

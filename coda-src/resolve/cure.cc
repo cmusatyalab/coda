@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/cure.cc,v 4.4 1998/01/04 14:57:33 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/resolve/Attic/cure.cc,v 4.4 1998/01/04 14:57:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,6 +60,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/param.h>
 
+#include <parser.h>
 
 #ifdef __cplusplus
 }
@@ -139,9 +140,7 @@ int RepairRename C_ARGS((int nreplicas, resreplica *dirs,
 	sprintf(curpath, "%s/%s", parentpath[i], childpath[i]);
 	if (prevset &&  (!strcmp(curpath, prevpath))) continue; 
 	sprintf(buf, "Do you want to preserve %s? ", curpath);
-#ifndef DJGPP  /* under Windows 95 this call will never run */
 	if (Parser_getbool(buf, 1)) break;
-#endif
 	strcpy(prevpath, curpath);
 	prevset = 1;
     }
@@ -226,13 +225,11 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 		str = (char *)malloc(strlen(deGroup[0]->name) + strlen(dirs[i].path) + 1);
 		strcpy(str, dirs[deGroup[0]->replicaid].path);
 		strcat(str, deGroup[0]->name);
-#ifdef S_IFLNK
 		lstat(str, &buf);
 		if ((buf.st_mode & S_IFMT) == S_IFLNK)
 		    /* object is a symbolic link */
 		    rep.opcode = REPAIR_CREATES;
 		else {
-#endif
 		    /* object is a file - if same object already exists in the */
 		    /* directory with a different name or in the  */
 		    /* replist with creates */
@@ -244,9 +241,7 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 			    rep.opcode = REPAIR_CREATEL;
 		    else 
 			    rep.opcode = REPAIR_CREATEF;
-#ifdef S_IFLNK
 		}
-#endif
 		free(str);
 	    }
 	}

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.3 98/01/26 21:31:33 mre Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/venus/Attic/advice_daemon.cc,v 4.3 1998/01/26 21:31:33 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -302,14 +302,9 @@ long S_GetServerInformation(RPC2_Handle _cid, RPC2_Integer maxServers, RPC2_Inte
       return(CAENOSERVERS);
     }
 
-    LOG(0, ("GetServerInformation: maxServers = %d\n", maxServers));
-    *numServers = 0;
     LOG(0, ("GetServerInformation: numServers = %d\n", *numServers));
 
-    ServerPrint();
-
     *numServers = (long)srvent::srvtab->count();
-    LOG(0, ("GetServerInformation: numServers = %d\n", numServers));
 
     srv_iterator next;
     srvent *s;

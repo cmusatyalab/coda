@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.6 1998/01/10 18:39:16 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.6 1998/01/10 18:39:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -141,10 +141,10 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 
 			/* Do the operation. */
 			RPC2_CountedBS acl;
-			acl.SeqLen = strlen((char *) data->in) + 1;
+			acl.SeqLen = strlen(data->in) + 1;
 			if (acl.SeqLen > V_MAXACLLEN)
 			    { u.u_error = EINVAL; break; }
-			acl.SeqBody = (RPC2_ByteSeq)(char *) data->in;
+			acl.SeqBody = (RPC2_ByteSeq)data->in;
 			f->PromoteLock();
 			u.u_error = f->SetACL(&acl, CRTORUID(u.u_cred));
 
@@ -225,7 +225,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 		    case VIOC_AFS_DELETE_MT_PT:
 			{
 			fsobj *target_fso = 0;
-			char *target_name = (char *) data->in;
+			char *target_name = data->in;
 
 			/* Disallow deletion of ".". */
 			if (STREQ(target_name, "."))
@@ -261,7 +261,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			/* Do the remove. */
 			f->PromoteLock();
 			target_fso->PromoteLock();
-			u.u_error = f->Remove((char *)(char *) data->in, target_fso, CRTORUID(u.u_cred));
+			u.u_error = f->Remove(data->in, target_fso, CRTORUID(u.u_cred));
 
 			FSDB->Put(&target_fso);
 			break;
@@ -270,7 +270,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 		    case VIOC_AFS_STAT_MT_PT:
 			{
 			fsobj *target_fso = 0;
-			char *target_name = (char *) data->in;
+			char *target_name = data->in;
 			int out_size = 0;	/* needed since data->out_size is a short! */
 
 			/* Verify that parent is a directory. */
@@ -298,13 +298,13 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			if (u.u_error) { FSDB->Put(&target_fso); break; }
 
 			/* Retrieve the link contents from the cache. */
-			u.u_error = target_fso->Readlink((char *)data->out, MAXPATHLEN,
+			u.u_error = target_fso->Readlink(data->out, MAXPATHLEN,
 							 &out_size, CRTORUID(u.u_cred));
 			data->out_size = out_size;
 			if (u.u_error) { FSDB->Put(&target_fso); break; }
 
 			/* Make link a proper string. */
-			((char *)data->out) [data->out_size] = 0;
+			data->out[data->out_size] = 0;
 			(data->out_size)++;
 
 			FSDB->Put(&target_fso);
@@ -334,7 +334,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    }
 			}
 
-			char *cp = (char *)data->out;
+			char *cp = data->out;
 
 			/* Copy out the fid. */
 			bcopy((const void *)&f->fid, (void *) cp, (int)sizeof(ViceFid));
@@ -521,7 +521,7 @@ O_FreeLocks:
 		    if (u.u_error) break;
 
 		    /* Format is (status, name, offlinemsg, motd). */
-		    char *cp = (char *) data->out;
+		    char *cp = data->out;
 		    bcopy((char *)&volstat, cp, (int)sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 		    strcpy(cp, name);
@@ -537,7 +537,7 @@ O_FreeLocks:
 		case VIOCSETVOLSTAT:
 		    {
 		    /* Format is (status, name, offlinemsg, motd). */
-		    char *cp = (char *) data->in;
+		    char *cp = data->in;
 
 		    /* Volume status block. */
 		    VolumeStatus volstat;
@@ -590,7 +590,7 @@ O_FreeLocks:
 
 		    /* Copy all the junk back out. */
 		    /* Format is (status, name, offlinemsg, motd). */
-		    cp = (char *) data->out;
+		    cp = data->out;
 		    bcopy((char *)&volstat, cp, (int)sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 		    strcpy(cp, name);
@@ -683,7 +683,7 @@ O_FreeLocks:
 #define	ReturnCodes ((int *)(RWVols + MAXHOSTS))
 #define	endp	    ((char *)(ReturnCodes + MAXHOSTS))
 		    data->out_size = (endp - startp);
-		    u.u_error = v->Repair(fid, (char *) RepairFile,
+		    u.u_error = v->Repair(fid, RepairFile,
 					  CRTORUID(u.u_cred), RWVols, ReturnCodes);
 
  	            LOG(0, ("MARIA: VIOC_REPAIR calls volent::Repair which returns %d\n",u.u_error));
@@ -733,7 +733,7 @@ O_FreeLocks:
 
 		case VIOC_CHECKPOINTML:
 		    {
-		    char *ckpdir = (data->in_size == 0 ? 0 : (char *) data->in);
+		    char *ckpdir = (data->in_size == 0 ? 0 : data->in);
 		    u.u_error = v->CheckPointMLEs(CRTORUID(u.u_cred), ckpdir);
 		    break;
 		    }
@@ -750,7 +750,7 @@ O_FreeLocks:
 		     * This is "pseudo-disconnected" mode, in which
 		     * fetches may be performed but mutations are logged.
 		     */
-		    char *startp = (char *) data->in;
+		    char *startp = data->in;
 #define agep ((unsigned *)(startp))
 #define timep ((unsigned *)(agep + 1))
 		    u.u_error = v->WriteDisconnect(*agep, *timep); 
@@ -897,7 +897,7 @@ V_FreeLocks:
 		case VIOCSETTOK:
 		    {
 		    /* Format of data is (len, secret, len, clear) */
-		    char *startp = (char *) data->in;
+		    char *startp = data->in;
 #define secretlen ((long *)(startp))
 #define secretp ((SecretToken *)(secretlen + 1))
 #define clearlen ((long *)(secretp + 1))
@@ -926,7 +926,7 @@ V_FreeLocks:
 		case VIOCGETTOK:
 		    {
 		    /* Format of data is (len, secret, len, clear) */
-		    char *startp = (char *) data->out;
+		    char *startp = data->out;
 #define secretlen ((long *)(startp))
 #define secretp ((SecretToken *)(secretlen + 1))
 #define clearlen ((long *)(secretp + 1))
@@ -964,14 +964,14 @@ V_FreeLocks:
 		    int bufsize = 2048;		/* XXX - IN/OUT parameter. */
 		    if (data->in_size == 0) {   /* probe everybody we know */
 			ServerProbe();
-			DownServers((char *) data->out, &bufsize);
+			DownServers(data->out, &bufsize);
 		    } else {
 			/* probe only those listed. */
 			/* format is #hosts, hostaddr, hostaddr, ... */
 #define nservers ((int *)(data->in))
 #define hostids ((unsigned long *)(nservers + 1))
 			DoProbes(*nservers, hostids);
-			DownServers(*nservers, hostids, (char *) data->out, &bufsize);
+			DownServers(*nservers, hostids, data->out, &bufsize);
 #undef nservers
 #undef hostids
 		    }
@@ -1162,7 +1162,7 @@ V_FreeLocks:
 			{ u.u_error = EINVAL; break; }
 		    ViceFid *fid = (ViceFid *)data->in;
 		    int	out_size = MAXPATHLEN;	    /* needed since data->out_size is a short! */
-		    GetPath(fid, (char *) data->out, &out_size, 0);
+		    GetPath(fid, data->out, &out_size, 0);
 		    data->out_size = out_size;
 
 		    break;
@@ -1240,7 +1240,7 @@ V_FreeLocks:
 		    }
 		case VIOC_WD_ALL:
 		    {
-		    char *startp = (char *) data->in;
+		    char *startp = data->in;
 #define agep ((unsigned *)(startp))
 #define timep ((unsigned *)(agep + 1))
 		    u.u_error = VDB->WriteDisconnect(*agep, *timep);
@@ -1258,7 +1258,7 @@ V_FreeLocks:
 		case VIOC_REP_CMD:
 		    {
 			int rep_cmd;
-			ASSERT(sscanf((char *) data->in, "%d", &rep_cmd) == 1);
+			ASSERT(sscanf(data->in, "%d", &rep_cmd) == 1);
 			switch (rep_cmd) {
 			case REP_CMD_BEGIN:
 			    {
@@ -1266,11 +1266,11 @@ V_FreeLocks:
 				int mode, dummy;
 				fsobj *obj = FSDB->Find(fid);
 				ASSERT(obj);
-				sscanf((char *) data->in, "%d %d", &dummy, &mode);
+				sscanf(data->in, "%d %d", &dummy, &mode);
 				LRDB->BeginRepairSession(&obj->fid,
 							 mode ? REP_SCRATCH_MODE : REP_DIRECT_MODE, 
-							 (char *) data->out);
-				data->out_size = (short)sizeof((char *) data->out);
+							 data->out);
+				data->out_size = (short)sizeof(data->out);
 				u.u_error = 0;
 				break;
 			    }
@@ -1287,11 +1287,11 @@ V_FreeLocks:
 				ASSERT(LRDB);
 				squirrelFid = LRDB->RFM_LookupGlobalRoot(LRDB->repair_root_fid);
 
-				sscanf((char *) data->in, "%d %d", &dummy, &commit);
-				LRDB->EndRepairSession(commit, (char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				sscanf(data->in, "%d %d", &dummy, &commit);
+				LRDB->EndRepairSession(commit, data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
-				if (strncmp((char *) data->out, "repair session completed", strlen("repair session completed")) == 0) {
+				if (strncmp(data->out, "repair session completed", strlen("repair session completed")) == 0) {
 
 				  LOG(0, ("MARIA:  End local repair successful\n"));
 				  if (AdviceEnabled) {
@@ -1310,8 +1310,8 @@ V_FreeLocks:
 */
 			case REP_CMD_CHECK:
 			    {
-				LRDB->ContinueRepairSession((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				LRDB->ContinueRepairSession(data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
 				break;
 			    }
@@ -1322,8 +1322,8 @@ V_FreeLocks:
 */
 			case REP_CMD_PRESERVE:
 			    {
-				LRDB->PreserveLocalMutation((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				LRDB->PreserveLocalMutation(data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
 				break;
 			    }
@@ -1334,8 +1334,8 @@ V_FreeLocks:
 */
 			case REP_CMD_PRESERVE_ALL:
 			    {
-				LRDB->PreserveAllLocalMutation((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				LRDB->PreserveAllLocalMutation(data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
 				break;
 			    }
@@ -1346,8 +1346,8 @@ V_FreeLocks:
 */
 			case REP_CMD_DISCARD:
 			    {
-				LRDB->DiscardLocalMutation((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				LRDB->DiscardLocalMutation(data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
 				break;
 			    }
@@ -1358,8 +1358,8 @@ V_FreeLocks:
 */
 			case REP_CMD_DISCARD_ALL:
 			    {
-				LRDB->DiscardAllLocalMutation((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				LRDB->DiscardAllLocalMutation(data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
 				break;
 			    }
@@ -1373,24 +1373,24 @@ V_FreeLocks:
 				/* list local mutations belonging to this session */
 				int dummy;
 				char fpath[MAXNAMELEN];
-				sscanf((char *) data->in, "%d %s", &dummy, fpath);
+				sscanf(data->in, "%d %s", &dummy, fpath);
 				if (LRDB->repair_root_fid == NULL) {
-				    sprintf((char *) data->out, "no repair session going on\n");
+				    sprintf(data->out, "no repair session going on\n");
 				    u.u_error = ENOENT;
 				} else {
 				    FILE *fp = fopen(fpath, "w");
 				    if (fp == NULL) {
 					u.u_error = ENOENT;
-					sprintf((char *) data->out, "can not open %s\n", fpath);
+					sprintf(data->out, "can not open %s\n", fpath);
 				    } else {
 					LRDB->ListCML(LRDB->repair_root_fid, fp);
-					sprintf((char *) data->out, "local mutations are:\n");
+					sprintf(data->out, "local mutations are:\n");
 					fflush(fp);
 					fclose(fp);
 					u.u_error = 0;
 				    }
 				}
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				data->out_size = (short)strlen(data->out) + 1;
 				break;
 			    }
 /*
@@ -1400,8 +1400,8 @@ V_FreeLocks:
 */
 			case REP_CMD_LOCAL_VIEW:
 			    {
-				LRDB->SetSubtreeView(SUBTREE_LOCAL_VIEW, (char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				LRDB->SetSubtreeView(SUBTREE_LOCAL_VIEW, data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
 				break;
 			    }
@@ -1412,8 +1412,8 @@ V_FreeLocks:
 */
 			case REP_CMD_GLOBAL_VIEW:
 			    {
-				LRDB->SetSubtreeView(SUBTREE_GLOBAL_VIEW, (char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				LRDB->SetSubtreeView(SUBTREE_GLOBAL_VIEW, data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
 				break;
 			    }
@@ -1424,8 +1424,8 @@ V_FreeLocks:
 */
 			case REP_CMD_MIXED_VIEW:
 			    {
-				LRDB->SetSubtreeView(SUBTREE_MIXED_VIEW, (char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
+				LRDB->SetSubtreeView(SUBTREE_MIXED_VIEW, data->out);
+				data->out_size = (short)strlen(data->out) + 1;
 				u.u_error = 0;
 				break;
 			    }

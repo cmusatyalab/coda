@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.2 1997/09/23 15:13:31 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/rpc2/Attic/rpc2.h,v 4.2 1997/09/23 15:13:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,7 +83,7 @@ formats in a detectable manner.  */
 /*
 The following constants are used to indicate the security-level of RPC connections.
 */
-#define RPC2_OPENKIMONO	98	/* Neither authenticated nor encrypted */
+#define RPC2_OPENKIMONO		98	/* Neither authenticated nor encrypted */
 #define RPC2_AUTHONLY		12	/* Authenticated but not encrypted */
 #define RPC2_HEADERSONLY	73	/* Authenticated but only headers encrypted */
 #define RPC2_SECURE 		66	/* Authenticated and fully encrypted */
@@ -263,15 +263,17 @@ typedef
 
 typedef
     RPC2_Byte *RPC2_ByteSeq;
-/* A contiguous sequence of bytes. In the C implementation this is a
-pointer.  RPC2Gen knows how to allocate and transform the pointer
-values on transmission.  Beware if you are not dealing via RPC2Gen.
-May be differently represented in other languages.  */
+/*
+A contiguous sequence of bytes. In the C implementation this is a pointer.  RPC2Gen knows how
+to allocate and transform the pointer values on transmission.  Beware if you are not dealing
+via RPC2Gen.  May be differently represented in other languages.  
+*/
 
 typedef
     RPC2_ByteSeq RPC2_String; /*no nulls except last byte*/
-/* A null-terminated sequence of characters.  Identical to the C
-language string definition.  */
+/*
+A null-terminated sequence of characters.  Identical to the C language string definition.
+*/
 
 
 typedef

@@ -120,7 +120,7 @@ void CreateDataDirectory(char *dirname) {
 	      fprintf(stderr, "\n");
 	      fprintf(stderr, "The file or directory (%s) already exists.\n", dirname);
 	      fprintf(stderr, "If you were running with the -i switch, you've probably \n");
-	      fprintf(stderr, "already initialized the necessary directory.  Try again \n");
+	      fprintf(stderr, "already initializedthe necessary directory.  Try again \n");
 	      fprintf(stderr, "without the -i switch.\n");
 	      fprintf(stderr, "\n");
 	      fprintf(stderr, "If you weren't running with the -i swtich, please contact\n");

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.10 1998/01/22 10:18:36 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/venus/worker.cc,v 4.10 1998/01/22 10:18:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,20 +51,23 @@ extern "C" {
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <netinet/in.h>
-#if !defined(__CYGWIN32__) && !defined(DJGPP)
+#ifndef __CYGWIN32__
 #include <sys/syscall.h>
-#include <sys/mount.h>
 #endif
+#include <sys/mount.h>
 #ifndef __FreeBSD__
 // Since vproc.h knows struct uio.
 #include <sys/uio.h>
 #endif
 #include <errno.h>
 #include <string.h>
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-
+#endif
 #ifdef  __FreeBSD__
 #include <sys/param.h>
 #endif
@@ -156,36 +159,16 @@ msgent *FindMsg(olist& ol, u_long seq) {
 }
 
 
-int MsgRead(msgent *m) 
-{
-#if defined(DJGPP) || defined(__CYGWIN32__)
-        struct sockaddr_in addr;
-	int len = sizeof(addr);
-	int cc = ::recvfrom(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE),
-			    0, (struct sockaddr *) &addr, &len);
-#else
-	int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
-#endif
-	if (cc < sizeof(struct cfs_in_hdr)) 
-		return(-1);
+int MsgRead(msgent *m) {
+    int cc = read(worker::muxfd, m->msg_buf, (int) (VC_MAXMSGSIZE));
+    if (cc < sizeof(struct cfs_in_hdr)) return(-1);
 
-	return(0);
+    return(0);
 }
 
 
-int MsgWrite(char *buf, int size) 
-{
-#if defined(DJGPP) || defined(__CYGWIN32__)
-         struct sockaddr_in addr;
-
-         addr.sin_family = AF_INET;
-         addr.sin_port = htons(8001);
-         addr.sin_addr.s_addr = htonl(0x7f000001);
-         return ::sendto(worker::muxfd, buf, size, 0, (struct sockaddr *) &addr,
-     		    sizeof(addr));
-#else 
-	return write(worker::muxfd, buf, size);
-#endif
+int MsgWrite(char *buf, int size) {
+    return write(worker::muxfd, buf, size);
 }
 
 
@@ -211,13 +194,8 @@ msgent *msg_iterator::operator()() {
     return((msgent *)olist_iterator::operator()());
 }
 
-void testKernDevice() 
-{
-#if defined(DJGPP) || defined(__CYGWIN32__)
-	return;
-#endif
-	if (Simulating) 
-		return;
+void testKernDevice() {
+    if (Simulating) return;
 
     /* First try to purge the kernel cache. */
     /* If the open of the kernel device succeeds we know that there is no other living venus. */
@@ -357,17 +335,13 @@ void VFSMount() {
 }
 
 
-void VFSUnmount() 
-{
-	if (Simulating || !Mounted) 
-		return;
+void VFSUnmount() {
+    if (Simulating || !Mounted) return;
 
-    /* Purge the kernel cache so that all cnodes are (hopefully)
-       released. */
-	k_Purge();
+    /* Purge the kernel cache so that all cnodes are (hopefully) released. */
+    k_Purge();
 #ifdef	__BSD44__
-    /* For now we can not unmount, because an cfs_root() upcall could
-       nail us. */
+    /* For now we can not unmount, because an cfs_root() upcall could nail us. */
 #ifndef	__BSD44__
     /* Issue the VFS unmount request. */
     if(syscall(SYS_unmount, venusRoot) < 0) {
@@ -530,29 +504,17 @@ void WorkerInit() {
 	    Choke("WorkerInit: MaxPrefetchers %d, MaxWorkers only %d!",
 		  MaxPrefetchers, MaxWorkers);
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
-    worker::muxfd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (worker::muxfd < 0)
-	    Choke("WorkerInit: socket() returns %d", errno);
-    if (worker::muxfd >= NFDS)
-	    Choke("WorkerInit: worker::muxfd >= %d!", NFDS);
-
-    dprint("WorkerInit: muxfd = %d", worker::muxfd);
-
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(8000);
-    if (::bind(worker::muxfd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-	    Choke("WorkerInit: bind() returns %d", errno);
-#else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);
     if (worker::muxfd < 0)
 	Choke("WorkerInit: open(%s, O_RDWR, 0) returns %d", kernDevice, errno);
     if (worker::muxfd >= NFDS)
 	Choke("WorkerInit: worker::muxfd >= %d!", NFDS);
- #endif
+
+    /* Why do we stat the device? -JJK */
+    struct stat tstat;
+    fstat(worker::muxfd, &tstat);
+
     /* Flush kernel cache(s). */
     k_Purge();
 
@@ -1156,70 +1118,6 @@ void worker::main(void *parm) {
 		    size = sizeof (struct cfs_open_out);
 		} else
 		    size = sizeof (struct cfs_out_hdr);
-		DISCARD_VNODE(vtarget);
-		
-		out->oh.result = u.u_error;
-		Resign(msg, size);
-
-		/* If open was aborted by user we must abort our OPEN too (if it was successful). */
-		if (interrupted && out->oh.result == 0) {
-		    eprint("worker::main: aborting open (%x.%x.%x)",
-			  saveFid.Volume, saveFid.Vnode, saveFid.Unique);
-
-		    /* NOTE: This may be bogus. It will definately cause a "message write
-		     * error" since the uniquifier is bogus. No harm done, I guess.
-		     * But why not just call close directly? -- DCS */
-		    /* Fashion a CLOSE message. */
-		    msgent *fm = (msgent *)worker::FreeMsgs.get();
-		    if (!fm) fm = new msgent;
-		    union inputArgs *dog = (union inputArgs *)fm->msg_buf;
-		    
-		    dog->cfs_close.ih.unique = (u_long)-1;
-		    dog->cfs_close.ih.opcode = CFS_CLOSE;
-		    dog->cfs_close.VFid = saveFid;
-		    dog->cfs_close.flags = saveFlags;
-		    
-		    /* Dispatch it. */
-		    DispatchWorker(fm);
-		}
-
-		break;
-		}
-
-	    case CFS_OPEN_BY_PATH:
-		{
-		GOTTA_BE_ME(in);
-
-		LOG(100, ("CFS_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-
-		ViceFid saveFid = in->cfs_open_by_path.VFid;
-		int saveFlags = in->cfs_open_by_path.flags;
-		
-		struct venus_vnode *vtarget;
-		MAKE_VNODE(vtarget, in->cfs_open_by_path.VFid, 0);
-		struct venus_cnode *cp = VTOC(vtarget);
-		open(&vtarget, in->cfs_open_by_path.flags);
-		
-		if (u.u_error == 0) {
-		    MarinerReport(&cp->c_fid, CRTORUID(u.u_cred));
-		}
-
-		if (u.u_error == 0) {
-			char *slash;
-			char *begin = (char *)(&out->cfs_open_by_path.path + 1);
-			out->cfs_open_by_path.path = begin - (char *)out;
-			sprintf(begin, "%s/%s", CacheDir, cp->c_cfname);
-#if defined(DJGPP) || defined(__CYGWIN32__)
-			slash = begin;
-			for (slash = begin ; *slash ; slash++ ) {
-				if ( *slash == '/' ) 
-					*slash='\\';
-			}
-#endif
-			size = sizeof (struct cfs_open_by_path_out) + 
-				strlen(begin) + 1;
-		} else
-			size = sizeof (struct cfs_out_hdr);
 		DISCARD_VNODE(vtarget);
 		
 		out->oh.result = u.u_error;

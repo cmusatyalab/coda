@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.8 1998/01/21 19:19:59 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/vice/srvproc2.cc,v 4.8 1998/01/21 19:19:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -109,7 +109,6 @@ extern int nlist(const char*, struct nlist[]);
 #include <vrdb.h>
 #include <vldb.h>
 #include <srv.h>
-#include <vice.private.h>
 #include <operations.h>
 #include <ops.h>
 #include "coppend.h"
@@ -200,7 +199,7 @@ long ViceConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion, ViceClient *Cli
     if (!errorCode && client) 
 	/* set up a callback channel if there isn't one for this host */
 	if (client->VenusId->id == 0) 
-	    errorCode = CLIENT_MakeCallBackConn(client);
+	    errorCode = MakeCallBackConn(client);
 
     LogMsg(2, SrvDebugLevel, stdout, "ViceConnectFS returns %s", 
 	   ViceErrorMsg((int) errorCode));
@@ -224,7 +223,7 @@ long ViceDisconnectFS(RPC2_Handle RPCid)
 
     if (!errorCode && client) {
 	ObtainWriteLock(&client->VenusId->lock);
-	CLIENT_Delete(client);
+	DeleteClient(client);
 	ReleaseWriteLock(&client->VenusId->lock);
     }
     else {
@@ -295,8 +294,7 @@ PRIVATE const int RCBEntrySize = (int) sizeof(ViceFid);
   <a name="ViceRemoveCallBack"><strong>Deletes callback for a fid</strong></a> 
   END_HTML
 */
-long ViceRemoveCallBack(RPC2_Handle RPCid, RPC2_CountedBS *RCBBS) 
-{
+long ViceRemoveCallBack(RPC2_Handle RPCid, RPC2_CountedBS *RCBBS) {
     int errorCode = 0;
     char *cp = (char *)RCBBS->SeqBody;
     char *endp = cp + RCBBS->SeqLen;
@@ -774,7 +772,7 @@ long ViceNewConnection(RPC2_Handle RPCid, RPC2_Integer set, RPC2_Integer sl,
 	    strcpy(user, "System:AnyUser");
     }
 
-    errorCode = CLIENT_Build(RPCid, user, sl, &client);
+    errorCode = BuildClient(RPCid, user, sl, &client);
     if (!errorCode) client->SEType = (int) set;
 
     LogMsg(1, SrvDebugLevel, stdout, "New connection received RPCid %d, security level %d, remote cid %d returns %s",
@@ -838,7 +836,7 @@ PRIVATE void SetViceStats(ViceStatistics *stats)
     stats->StoreDataRate = Counters[STOREDATA]/seconds;
 /*    stats->ProcessSize = sbrk(0) >> 10; */
     stats->ProcessSize = 0;
-    CLIENT_GetWorkStats((int *)&(stats->WorkStations),(int *)&(stats->ActiveWorkStations),
+    GetWorkStats((int *)&(stats->WorkStations),(int *)&(stats->ActiveWorkStations),
 	    (unsigned)(time(0)-15*60));
 }
 

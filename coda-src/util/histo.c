@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/histo.c,v 4.3 1998/01/10 18:38:30 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/util/histo.c,v 4.3 1998/01/10 18:38:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,10 +57,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/h
 #ifdef __CYGWIN32__
 #define HUGE 1.701411733192644270e38
 #endif
-#ifdef DJGPP
-#define HUGE HUGE_VAL
-#endif
-
 
   InitHisto(hg, lolimit, hilimit, bucketcount, ht)
     struct hgram *hg;

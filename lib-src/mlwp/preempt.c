@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/preempt.c,v 4.4 1998/01/10 18:40:38 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/lib-src/mlwp/Attic/preempt.c,v 4.4 1998/01/10 18:40:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,6 +64,13 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 char PRE_Block = 0;		/* used in lwp.c and process.s */
 
+#ifdef __CYGWIN32__
+#define ITIMER_REAL 0
+struct itimerval {
+    struct timeval it_interval;
+    struct timeval it_value;
+};
+#endif
 
 /* run the scheduler unless we are in a critical region */
 PRIVATE void AlarmHandler(int sig)

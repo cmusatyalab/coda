@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/pdbstuff/mvdb.cc,v 4.2 1997/02/26 16:02:46 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/pdbstuff/Attic/mvdb.cc,v 4.2 1997/02/26 16:02:46 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -135,13 +135,11 @@ main(int argc, char *argv[])
 
 
     pfd = open(lockfile, O_RDONLY, 0);
-#ifndef DJGPP
     if (pfd < 0 || flock(pfd, LOCK_EX) < 0)
 	{
 	perror(lockfile);
 	exit(-1);
 	}
-#endif
 	
     for (i = firstarg+1; i < argc; i++)
 	{
@@ -191,9 +189,7 @@ main(int argc, char *argv[])
 	if (VerboseFlag) fprintf(stderr, "OK\n");
 	}
 
-#ifndef DJGPP
 	flock(pfd, LOCK_UN);	/* ignore error returns */
-#endif
 	close(pfd);
     }
 

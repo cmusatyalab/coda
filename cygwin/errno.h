@@ -13,7 +13,7 @@ extern "C" {
 
 
 
-#define ESUCCESS 0
+
 
 
 static const char * const sys_errlist[] = {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auser.cc,v 4.5 1997/12/10 16:06:18 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/auth2/Attic/auser.cc,v 4.5 1997/12/10 16:06:18 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -71,14 +71,17 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
-#ifndef DJGPP
 #include <netdb.h>
-#endif
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
+#endif
 #include <errno.h>
 #include <lwp.h>
 #include <pioctl.h> 
@@ -307,7 +310,7 @@ PRIVATE void GetVSTAB(char *vstab)
 	return;
     }
     
-    area = (char *)malloc(buff.st_size);
+    area = malloc(buff.st_size);
     if(!area) {
 	perror("No memory!");
 	close(fd);

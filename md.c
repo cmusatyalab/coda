@@ -869,9 +869,6 @@ again:
 	if (exclude && strstr(buf, "gnuwin32")) {
 		goto again;
 	}
-	if (exclude && strstr(buf, "msdos")) {
-		goto again;
-	}
 #ifdef	__MACH__
 	if (exclude && (!strncmp(buf, "/usr/cs/include/", 16))) {
 		goto again;

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_private.h,v 4.4 1997/11/04 22:04:04 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rvm/Attic/rvm_private.h,v 4.4 1997/11/04 22:04:04 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -1187,7 +1187,7 @@ int_tid_t;
 #define TRANS_HDR(x)        ((trans_hdr->flags & (x)) != 0)
 /* functions and structures for managing list of RVM-allocated
      regions of memory (added by tilt, Nov 19 1996) */
-#if ! defined(MACH)
+#if defined(__linux__) || defined(__BSD44__)
 typedef struct rvm_page_entry {
     char                   *start;
     char                   *end;
@@ -1199,7 +1199,7 @@ rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length);
 rvm_bool_t rvm_unregister_page(char *vmaddr, rvm_length_t length);
 rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length);
 rvm_page_entry_t *find_page_entry(char *vmaddr);
-#endif /* __linux__ || __BSD44__ || __CYGWIN32__ */
+#endif /* __linux__ || __BSD44__ */
 /* list management functions */
 
 extern

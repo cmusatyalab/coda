@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.7 98/01/26 21:38:17 mre Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/advice/Attic/advice_srv.cc,v 4.7 1998/01/26 21:38:17 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -198,6 +198,7 @@ main(int argc, char *argv[])
   // Inform Venus of the availability of an AdviceMonitor for this user
   InformVenusOfOurExistance(HostName, uid, thisPGID);
 
+  // Setup the default user interests
   assert(LWP_NoYieldSignal(&initialUserSync) == LWP_SUCCESS);
 
   // Set up the request filter:  we only service ADMON subsystem requests.
@@ -216,6 +217,7 @@ main(int argc, char *argv[])
     // Wait for a request
     rc = RPC2_GetRequest(&reqfilter, &cid, &reqbuffer, &DaemonExpiry, NULL, (long)NULL, NULL) ;
     if (rc == RPC2_TIMEOUT) {
+printf("RPC2_GetRequest got a timeout\n");
       // Fire daemons that are ready to run. 
       DispatchDaemons();
 
@@ -505,19 +507,21 @@ void CodaConsoleHandler(char *c) {
 
   assert(LWP_WaitProcess(&initialUserSync) == LWP_SUCCESS);
 
-  sprintf(msg, "\tsource %s\n", CODACONSOLE);
+  sprintf(msg, "source %s\n", CODACONSOLE);
   SendToConsole(msg);
   printf("Sending: %s\n", msg);
   fflush(stdout);
+  Yield();
 
   LogMsg(100,LogLevel,LogFile, "UserEventHandler: Waiting...");
+
 
   while (1) {
     // Wait for and handle user events 
     assert(LWP_GetRock(42, &rock) == LWP_SUCCESS);
-    fprintf(stderr, "\tCodaConsole: Waiting for userSync\n");
+  printf("CodaConsole: Waiting for userSync\n");
     assert(LWP_WaitProcess(&userSync) == LWP_SUCCESS);
-    fprintf(stderr, "\tCodaConsole: Received userSync\n");
+  printf("CodaConsole: Received userSync\n");
 
     // Handle user event
 
