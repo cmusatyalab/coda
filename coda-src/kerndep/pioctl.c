@@ -279,7 +279,7 @@ int pioctl(const char *path, unsigned long cmd,
     static char *mountPoint = NULL;
     static char cygdrive [ 15 ] = "/cygdrive/./";
     static char driveletter = 0;
-
+    static char ctl_file [CODA_MAXPATHLEN] = "";
 
     /*  Do this only once for each execution. */
 
@@ -291,6 +291,9 @@ int pioctl(const char *path, unsigned long cmd,
 	    driveletter = tolower(mountPoint[0]);
 	    cygdrive[10] = driveletter;
 	}
+	// Make a control file name.
+	strcpy (ctl_file, mountPoint);
+	strcat (ctl_file, CODA_CONTROL);
     }
 
     /* Check out the path to see if it is a coda path.  If it is
@@ -345,6 +348,18 @@ int pioctl(const char *path, unsigned long cmd,
     /* printf ("pioctl: size = %d, cmd = 0x%x, in_size = %d, out_size = %d\n",
        size, cmd, data.vi.in_size, data.vi.out_size); */
 
+    // New try .. on /coda/.CONTROL 
+    
+    if (!hdev) {
+	hdev = CreateFile(ctl_file, 0, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (hdev == INVALID_HANDLE_VALUE){
+	    printf("Unable to open .CONTROL file, error %i\n", GetLastError());
+	    errno = EIO;
+	    return(-1);
+	}
+    }
+    
+#if 0
     if (!hdev) {
 	hdev = CreateFile("\\\\.\\CODADEV", 0, 0, NULL, OPEN_EXISTING,
 			  FILE_FLAG_DELETE_ON_CLOSE, NULL);
@@ -354,6 +369,7 @@ int pioctl(const char *path, unsigned long cmd,
 	    return(-1);
 	}
     }
+#endif
     
     code = DeviceIoControl(hdev, CODA_FSCTL_PIOCTL, send_data, size, outbuf,
 			   newlength, &bytesReturned, NULL);
@@ -361,7 +377,7 @@ int pioctl(const char *path, unsigned long cmd,
     if (!code){
 	    res = -1;
 	    errno = ENOENT;
-    //	    printf("DeviceIoControl failed with error %i\n", res*(-1));
+    	    printf("DeviceIoControl failed with error %i\n", res*(-1));
     } else{
 	    /* copy results in vidatas outbuffer */   
 	    memcpy(data.vi.out, outbuf, MIN(newlength, bytesReturned));
