@@ -28,6 +28,7 @@ extern "C" {
 #include <sys/file.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <pioctl.h>
