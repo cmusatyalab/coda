@@ -48,7 +48,7 @@ extern "C" {
 
 #include <sys/uio.h>
 
-#include <rpc2.h>
+#include <rpc2/rpc2.h>
 
 #include <codadir.h>
 
