@@ -2434,27 +2434,28 @@ void namectxt::getpath(char *buf) {
 	return;
 }
 
+void namectxt::putmsg(int fd, char *reason, int include_modifier)
+{
+    char fullpath[MAXPATHLEN+1];
+    const char *modifier = !include_modifier ? "" :
+	(expand_descendents ? " d+" : (expand_children ? " c+" : "   "));
 
-#define PUTMSG(reason, include_modifier) do {\
-	getpath(fullpath);\
-	fdprint(fd, "%25s  %s", reason, fullpath);\
-	if (include_modifier) fdprint(fd, " %s\n", modifier);\
-	else fdprint(fd, "\n");\
-} while(0);
+    getpath(fullpath);
 
-void namectxt::printsuspect(int fd, int verbosity) {
+    fdprint(fd, "%25s  %s%s\n", reason, fullpath, modifier);
+}
+
+void namectxt::printsuspect(int fd, int verbosity)
+{
     /* verbosity = 0		silence except for errors
        0 < verbosity <= 100	errors and confirmation of items in hoard database
        100 < verbosity		errors and confirmation of all expanded items
     */
-    char fullpath[MAXPATHLEN+1];
-    const char *modifier = expand_descendents ? "d+" :
-			  (expand_children    ? "c+" : "  ");
 
     /* Deal with this node first */
     dlink *d = expansion.last();
     if (d == 0){
-	PUTMSG("*** Not bound ***", 1);
+	putmsg(fd, "*** Not bound ***", 1);
 	return;
     }
     else {
@@ -2462,12 +2463,12 @@ void namectxt::printsuspect(int fd, int verbosity) {
 	fsobj *f = (fsobj *)b->bindee;
 
 	if (!f || !STATUSVALID(f) || !DATAVALID(f)) {
-	    PUTMSG("*** Missing/Invalid ***", 1);
+	    putmsg(fd, "*** Missing/Invalid ***", 1);
 	    return;
 	}
     }
 
-    if (verbosity) PUTMSG("OK", 0);
+    if (verbosity) putmsg(fd, "OK", 0);
 
     /* Then recursively deal with children */
     if (children) {
@@ -2479,10 +2480,6 @@ void namectxt::printsuspect(int fd, int verbosity) {
 	}
     }
 }
-#undef PUTMSG
-
-
-
 
 int NC_PriorityFN(bsnode *b1, bsnode *b2) {
     namectxt *n1 = strbase(namectxt, b1, prio_handle);
