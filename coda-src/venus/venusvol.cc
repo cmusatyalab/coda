@@ -590,8 +590,11 @@ int vdb::Get(volent **vpp, char *volname)
     /* Attempt the create. */
     v = Create(&volinfo, volname);
 
-    if (!v)
-	CHOKE("vdb::Get: Create (%x, %s) failed", volinfo.Vid, volname);
+    if (!v) {
+	LOG(0, ("vdb::Get: Create (%x, %s) failed", volinfo.Vid, volname));
+	*vpp = NULL;
+	return EIO;
+    }
 
 Exit:
     v->hold();
