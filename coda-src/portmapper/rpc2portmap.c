@@ -61,6 +61,7 @@ void InitRPC2(void)
 		exit(-1);
 	}
 
+	RPC2_enableReaping = 1;
 	subsysid.Tag = RPC2_SUBSYSBYID;
 	subsysid.Value.SubsysId = ntohl(PORTMAPPER_SUBSYSID);
 	CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);

@@ -280,6 +280,7 @@ int main(int argc, char **argv)
     tp.tv_sec = 80;
     tp.tv_usec = 0;
     CODA_ASSERT(RPC2_Init(RPC2_VERSION, 0, &port1, 6, &tp) == RPC2_SUCCESS);
+    RPC2_enableReaping = 1;
 
     /* register the port with the portmapper */
     portmapid = portmap_bind("localhost");
