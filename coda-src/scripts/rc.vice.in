@@ -8,7 +8,13 @@
 #
 # Modified:     Henry M. Pierce <hmpierce@cs.cmu.edu> for *BSD only...
 
-VICE=/vice
+if [ -f @prefix@/etc/coda/server.conf ] ; then
+. @prefix@/etc/coda/server.conf
+else
+  vicedir=/vice
+fi
+
+VICE=${vicedir}
 VICESRV=${VICE}/srv
 
 OSTYPE=`uname`
@@ -58,10 +64,10 @@ case "$1" in
 	rpc2portmap &
         echon " rpc2portmap"
 
-	updateclnt -h `cat /vice/db/scm`  -q coda_udpsrv &
+	updateclnt -h `cat ${VICE}/db/scm`  -q coda_udpsrv &
 	echon " updateclnt"
 
-	updatesrv -p /vice/db &
+	updatesrv -p ${VICE}/db &
 	echon " updatesrv"
         echo '.'	# Done With Coda Serivces
 

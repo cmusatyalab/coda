@@ -19,17 +19,25 @@
 
 # ignore SIGHUP
 trap "" 1
-if [ -f /vice/srv/pid ]; then
+
+if [ -f @prefix@/etc/coda/server.conf ] ; then
+  . @prefix@/etc/coda/server.conf
+  serverconf=yes
+else
+  vicedir=/vice
+fi
+
+if [ -f ${vicedir}/srv/pid ]; then
     echo "Can't start file server, one is already running!"
     exit 1 
 fi 
 
 # Remove outdated logfiles
-mv /vice/srv/SrvErr /vice/srv/SrvErr.prev 2>/dev/null
-rm -f /vice/srv/SrvLog-7
-rm -f /vice/srv/CRASH
+mv ${vicedir}/srv/SrvErr ${vicedir}/srv/SrvErr.prev 2>/dev/null
+rm -f ${vicedir}/srv/SrvLog-7
+rm -f ${vicedir}/srv/CRASH
 
-if [ -f /vice/srv/ZOMBIFY ]; then
+if [ -f ${vicedir}/srv/ZOMBIFY ]; then
     XFLAGS=-zombify
 fi
 
@@ -37,8 +45,12 @@ fi
 # The -rvm flag takes 3 arguments. The first is the log device/file,
 # the second is the data segment device/file, and the third is the
 # length of the file or device holding the RVM data segment.
-# These parameters are taken from /vice/srv.conf
+# These parameters are taken from ${vicedir}/srv.conf
 
-codasrv $* $XFLAGS -t 1000 -trunc 5 `grep '^\-rvm ' /vice/srv.conf`
+if [ ${serverconf} = yes ] ; then
+  codasrv $* $XFLAGS
+else
+  codasrv $* $XFLAGS -t 1000 -trunc 5 `grep '^\-rvm ' ${vicedir}/srv.conf`
+fi
 
-rm -f /vice/srv/pid
+rm -f ${vicedir}/srv/pid
