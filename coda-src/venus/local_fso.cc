@@ -74,7 +74,7 @@ int fsobj::RepairStore()
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE) {
 	return DisconnectedStore(Mtime, vuid, NewLength, LRDB->repair_session_tid);
     }
-    int code = 0;
+    int code = 0, fd = -1;
     char prel_str[256];
     sprintf(prel_str, "store::Store %%s [%ld]\n", NBLOCKS(NewLength));
 
@@ -107,8 +107,7 @@ int fsobj::RepairStore()
 	sei->ByteQuota = -1;
 
         /* and open a safe fd to the containerfile */
-        int fd = data.file->Open(this, O_RDONLY);
-        CODA_ASSERT(fd != -1);
+        fd = data.file->Open(O_RDONLY);
 
         sei->Tag = FILEBYFD;
         sei->FileInfo.ByFD.fd = fd;
@@ -256,7 +255,7 @@ NonRepExit:
 	PutConn(&c);
     }
     
-    data.file->Close();
+    data.file->Close(fd);
 
     return(code);
 }

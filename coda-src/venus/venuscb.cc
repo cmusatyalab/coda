@@ -223,7 +223,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
     LOG(1, ("CallBackFetch: host = %s, fid = (%x.%x.%x)\n",
 	     s->name, Fid->Volume, Fid->Vnode, Fid->Unique));
 
-    long code = 0;
+    long code = 0, fd;
 
     /* Get the object. */
     fsobj *f = FSDB->Find(Fid);
@@ -261,7 +261,6 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 
     /* Do the transfer. */
     {
-        int fd;
 	SE_Descriptor sid;
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
@@ -272,8 +271,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 	sei->ByteQuota = -1;
 
         /* and open a safe fd to the containerfile */
-        fd = f->shadow->Open(f, O_RDONLY);
-        CODA_ASSERT(fd != -1);
+        fd = f->shadow->Open(O_RDONLY);
 
         sei->Tag = FILEBYFD;
         sei->FileInfo.ByFD.fd = fd;
@@ -299,7 +297,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
     }
 
 GetLost:
-    if (f) f->shadow->Close();
+    if (f) f->shadow->Close(fd);
     LOG(1, ("CallBackFetch: returning %d\n", code));
     return(code);
 }

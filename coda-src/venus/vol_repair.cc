@@ -294,9 +294,8 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	sei->TransmissionDirection = CLIENTTOSERVER;
 
         /* and open a safe fd to the containerfile */
-        if (RepairF) fd = RepairF->data.file->Open(RepairF, O_RDONLY);
+        if (RepairF) fd = RepairF->data.file->Open(O_RDONLY);
         else         fd = open(RepairFile, O_RDONLY, (int)V_MODE);
-        CODA_ASSERT(fd != -1);
 
         sei->Tag = FILEBYFD;
         sei->FileInfo.ByFD.fd = fd;
@@ -356,7 +355,7 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     (void)COP2(m, &sid, &UpdateSet);
 
 Exit:
-    if (RepairF) RepairF->data.file->Close();
+    if (RepairF) RepairF->data.file->Close(fd);
     else         close(fd);
 
     PutMgrp(&m);
@@ -643,11 +642,14 @@ int volent::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid
     /* now store the new contents of the file */
     {
 	f->data.file = &f->cf;
-	int srcfd = open(fname, O_RDONLY | O_BINARY, 0644/*XXX*/);
+        RVMLIB_REC_OBJECT(f->cf);
+        f->data.file->Create();
+
+	int srcfd = open(fname, O_RDONLY | O_BINARY, V_MODE);
 	CODA_ASSERT(srcfd);
 	LOG(100, ("LocalRepair: Going to open %s\n", f->data.file->Name()));
 	int tgtfd = open(f->data.file->Name(),
-			 O_WRONLY | O_TRUNC | O_BINARY, 0644/*XXX*/);
+			 O_WRONLY | O_TRUNC | O_BINARY, V_MODE);
 	CODA_ASSERT(tgtfd>0);
 	char buf[512];
 	int rc;

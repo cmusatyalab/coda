@@ -167,16 +167,16 @@ int fsobj::Fetch(vuid_t vuid) {
 	    switch(stat.VnodeType) {
 		case File:
 		    RVMLIB_REC_OBJECT(data.file);
-		    data.file = &cf;
+                    
 		    /* create a sparse file of the desired size */
-		    data.file->Truncate(stat.Length);
+                    if (!HAVEDATA(this)) {
+                        data.file = &cf;
+                        RVMLIB_REC_OBJECT(cf);
+                        data.file->Create(stat.Length);
+                    }
 
-		    /* but remember how much we actually have */
-		    data.file->SetValidData(offset);
-
-                    /* and open a safe fd to the containerfile */
-		    fd = data.file->Open(this, O_WRONLY | O_CREAT);
-                    CODA_ASSERT(fd != -1);
+                    /* and open the containerfile */
+		    fd = data.file->Open(O_WRONLY);
 
 		    sei->Tag = FILEBYFD;
 		    sei->FileInfo.ByFD.fd = fd;
@@ -401,7 +401,7 @@ NonRepExit:
     }
     
     if (fd != -1)
-        data.file->Close();
+        data.file->Close(fd);
 
     if (code == 0) {
 	if (flags.usecallback &&
@@ -1044,7 +1044,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 {
     FSO_ASSERT(this, HOARDING(this));
 
-    int code = 0;
+    int code = 0, fd = -1;
     char prel_str[256];
     sprintf(prel_str, "store::Store %%s [%ld]\n", NBLOCKS(NewLength));
 
@@ -1077,8 +1077,7 @@ int fsobj::ConnectedStore(Date_t Mtime, vuid_t vuid, unsigned long NewLength)
 	sei->ByteQuota = -1;
 
         /* and open a safe fd to the containerfile */
-        int fd = data.file->Open(this, O_RDONLY);
-        CODA_ASSERT(fd != -1);
+        fd = data.file->Open(O_RDONLY);
 
         sei->Tag = FILEBYFD;
         sei->FileInfo.ByFD.fd = fd;
@@ -1234,7 +1233,7 @@ NonRepExit:
 	PutConn(&c);
     }
     
-    data.file->Close();
+    data.file->Close(fd);
 
     return(code);
 }

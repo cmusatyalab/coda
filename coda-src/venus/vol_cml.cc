@@ -3075,7 +3075,7 @@ int cmlent::WriteReintegrationHandle() {
     CODA_ASSERT(opcode == OLDCML_NewStore_OP);
 
     volent *vol = strbase(volent, log, CML);
-    int code = 0;
+    int code = 0, fd = -1;
     connent *c = 0;
     fsobj *f = NULL;
     RPC2_Unsigned length = ReintAmount();
@@ -3105,7 +3105,6 @@ int cmlent::WriteReintegrationHandle() {
 	SE_Descriptor sed;
         memset(&sed, 0, sizeof(SE_Descriptor));
 	{
-            int fd;
 	    sed.Tag = SMARTFTP;
 	    struct SFTP_Descriptor *sei = &sed.Value.SmartFTPD;
 	    sei->TransmissionDirection = CLIENTTOSERVER;
@@ -3114,8 +3113,7 @@ int cmlent::WriteReintegrationHandle() {
 	    sei->ByteQuota = length;
 
             /* and open the containerfile */
-	    fd = f->shadow->Open(f, O_RDONLY);
-            CODA_ASSERT(fd != -1);
+	    fd = f->shadow->Open(O_RDONLY);
 
             sei->Tag = FILEBYFD;
             sei->FileInfo.ByFD.fd = fd;
@@ -3160,7 +3158,7 @@ int cmlent::WriteReintegrationHandle() {
     }
 
  Exit:
-    if (f) f->shadow->Close();
+    if (f) f->shadow->Close(fd);
 
     PutConn(&c);
     LOG(0, ("cmlent::WriteReintegrateHandle: (%s), %d bytes, returns %s, new offset %d\n",

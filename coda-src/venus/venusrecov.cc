@@ -569,7 +569,8 @@ static void Recov_InitSeg()
 	    CHOKE("Recov_InitSeg: heap mismatch (%x, %x) vs (%x, %x)",
 		rvg->recov_HeapAddr, rvg->recov_HeapLength, Recov_RdsAddr, Recov_RdsLength);
 	if (!rvg->validate())
-	    { rvg->print(stderr); CHOKE("Recov_InitSeg: rvg validation failed, trying restarting venus with -init"); }
+	    { rvg->print(stderr); CHOKE("Recov_InitSeg: rvg validation failed, "
+                                        "restart venus with -init"); }
 #ifdef __linux__  /* strtok broken on Linux ? */
 	eprint("Last init was %s\n", ctime((long *)&rvg->recov_LastInit));
 #else
