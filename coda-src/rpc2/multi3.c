@@ -304,7 +304,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPort, IN  S
 	    break;
 
 	case RPC2_PORTBYNAME:
-	    if ((sentry = getservbyname(MulticastPort->Value.Name, NULL)) == NULL)
+	    if ((sentry = getservbyname(MulticastPort->Value.Name, "udp")) == NULL)
 		{
 		rpc2_FreeMgrp(me);
 		say(9, RPC2_DebugLevel, "no entry for port name %s\n", MulticastPort->Value.Name);
