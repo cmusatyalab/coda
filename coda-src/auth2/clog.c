@@ -81,10 +81,10 @@ extern "C" {
 void printusage(void)
 {
 		    fprintf(stderr,
-                            "Usage clog [-q] [-test] [-h authserver]"
-                            "\t[{-kerberos4,-kerberos5,-coda}]\n"
+                            "Usage clog [-q] [-test] [-host authserver]"
+                            "\t[-kerberos4 | -kerberos5 | -coda]\n"
                             "\t[-tofile <file>] [-fromfile <file>]\n"
-			    "\t[-as username] [Coda username]\n");
+			    "\t[-as username] [Coda username][@realm]\n");
 }
 
 int main(int argc, char **argv)
