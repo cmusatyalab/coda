@@ -3554,7 +3554,6 @@ ac_given_INSTALL="$INSTALL"
 trap 'rm -fr `echo "Makefile Makeconf.setup  
 configs/Makefile 
 lib-src/Makefile 
-lib-src/mlwp/Makefile 
 lib-src/base/Makefile
 lib-src/kernel-includes/Makefile 
 lib-src/special-includes/Makefile 
@@ -3732,7 +3731,6 @@ cat >> $CONFIG_STATUS <<EOF
 CONFIG_FILES=\${CONFIG_FILES-"Makefile Makeconf.setup  
 configs/Makefile 
 lib-src/Makefile 
-lib-src/mlwp/Makefile 
 lib-src/base/Makefile
 lib-src/kernel-includes/Makefile 
 lib-src/special-includes/Makefile 
