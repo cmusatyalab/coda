@@ -242,7 +242,7 @@ void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
 	(cPtr->SecurityLevel == RPC2_AUTHONLY ? "RPC2_AUTHONLY" : (cPtr->SecurityLevel == RPC2_SECURE ? "RPC2_SECURE" : 
 	(cPtr->SecurityLevel == RPC2_HEADERSONLY ? "RPC2_HEADERSONLY" :"??????"))));
     fprintf(tFile, "  EncryptionType = %ld  SessionKey = 0x", cPtr->EncryptionType);
-    for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(tFile, "%lx", (long)cPtr->SessionKey[i]);
+    for(i = 0; i < RPC2_KEYSIZE; i++)fprintf(tFile, "%02x", (long)cPtr->SessionKey[i]);
 	
     fprintf(tFile, "\n\tUniqueCID = 0x%lx  NextSeqNumber = %ld  PeerHandle = 0x%lx\n\tPrivatePtr = 0x%lx  SideEffectPtr = 0x%lx\n",
     	cPtr->UniqueCID, cPtr->NextSeqNumber, cPtr->PeerHandle, (long)cPtr->PrivatePtr, (long)cPtr->SideEffectPtr);

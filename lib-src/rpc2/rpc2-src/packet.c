@@ -633,8 +633,8 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 
 	memset(&pb->Header, 0, sizeof(struct RPC2_PacketHeader));
 	pb->Header.ProtoVersion = RPC2_PROTOVERSION;
-	pb->Header.Lamport	    = RPC2_LamportTime();
-	pb->Header.BodyLength = bodylen;
+	pb->Header.Lamport	= RPC2_LamportTime();
+	pb->Header.BodyLength   = bodylen;
 	pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
 	memset(&pb->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
 	memset(&pb->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
@@ -646,4 +646,4 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 		pb->Header.Uniquefier = ce->PeerUnique;
 		SetPktColor(pb, ce->Color);
     	}
-    }
+}
