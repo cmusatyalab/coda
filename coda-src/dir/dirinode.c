@@ -52,6 +52,22 @@ PDirHeader DI_DiToDh(PDirInode pdi)
 	return (PDirHeader) pdh;
 }
 
+/* allocate a new directory inode in RVM */
+static PDirInode DI_New()
+{
+	PDirInode newinode;
+	DIR_intrans();
+
+	DLog(29, "Entering DI_New");
+
+	newinode = (PDirInode)rvmlib_rec_malloc(sizeof(*newinode));
+	CODA_ASSERT(newinode);
+	rvmlib_set_range(newinode, sizeof(newinode));
+	memset(newinode, 0, sizeof(*newinode));
+	newinode->di_refcount = 1;
+	return newinode;
+}
+
 /* copy a dir handle to a directory inode; create latter if needed */
 void DI_DhToDi(PDCEntry pdce)
 {
@@ -66,8 +82,7 @@ void DI_DhToDi(PDCEntry pdce)
 	pages = DH_Length(pdh)/DIR_PAGESIZE;
 
 	if (pdi == NULL) {
-		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(*pdi));
-		CODA_ASSERT(pdi);
+		pdi = DI_New();
 		DC_SetDI(pdce, pdi);
 	} 
 
@@ -81,8 +96,7 @@ void DI_DhToDi(PDCEntry pdce)
 			CODA_ASSERT(pdi->di_pages[i]); 
 		}
 		rvmlib_set_range(pdi->di_pages[i], DIR_PAGESIZE);
-		memcpy(pdi->di_pages[i],
-                       DIR_Page(pdh->dh_data, i), DIR_PAGESIZE);
+		memcpy(pdi->di_pages[i],DIR_Page(pdh->dh_data,i), DIR_PAGESIZE);
 	}
 
 	/* free pages which have disappeared */
@@ -93,7 +107,7 @@ void DI_DhToDi(PDCEntry pdce)
                 }
 	}
 
-	return ;
+	return;
 }
 
 /* reduce the refcount of the directory, delete it when it falls to 0 */
@@ -241,23 +255,7 @@ void DI_VMDec(PDirInode pdi)
 /* Free up a VM Directory Inode */
 void DI_VMFree(PDirInode pdi)
 {
-
 	CODA_ASSERT(pdi); 
 	pdi->di_refcount = 1;
 	DI_VMDec(pdi);
-}
-/* allocate a new directory inode in RVM */
-PDirInode DI_New()
-{
-	PDirInode newinode;
-	DIR_intrans();
-
-	DLog(29, "Entering DI_New");
-
-	newinode = (PDirInode)rvmlib_rec_malloc(sizeof(*newinode));
-	CODA_ASSERT(newinode);
-	rvmlib_set_range(newinode, sizeof(newinode));
-	memset(newinode, 0, sizeof(*newinode));
-	newinode->di_refcount = 1;
-	return newinode;
 }
