@@ -1,9 +1,12 @@
 etc/coda/server.conf.ex
 etc/init.d/codasrv.init
 etc/init.d/auth2.init
+usr/bin/getvolinfo
 usr/bin/norton
 usr/bin/norton-reinit
 usr/bin/reinit
+usr/bin/rpc2ping
+usr/bin/smon2
 usr/sbin/startserver
 usr/sbin/codastart
 usr/sbin/partial-reinit.sh

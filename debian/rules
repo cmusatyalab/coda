@@ -10,7 +10,7 @@
 #export DH_VERBOSE=1
 
 # This is the debhelper compatability version to use.
-export DH_COMPAT=1
+export DH_COMPAT=2
 
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
@@ -48,19 +48,21 @@ install: build
 	# Add here commands to install the package into debian/tmp.
 	$(MAKE) client-install prefix=`pwd`/debian/tmp/usr
 	$(MAKE) server-install prefix=`pwd`/debian/tmp/usr
+
+	mkdir `pwd`/debian/tmp/coda
 	touch `pwd`/debian/tmp/coda/NOT_REALLY_CODA
 
 	# remove things we really don't need
-	rm -f `pwd`/debian/tmp/etc/init.d/update.init
-	rm -f `pwd`/debian/tmp/etc/init.d/venus.init
-	rm -f `pwd`/debian/tmp/usr/sbin/venus-setup
+	#rm -f `pwd`/debian/tmp/etc/init.d/update.init
+	#rm -f `pwd`/debian/tmp/etc/init.d/venus.init
+	#rm -f `pwd`/debian/tmp/usr/sbin/venus-setup
 
 	dh_movefiles
 
 	# both the client and the server package want this file. the client
 	# adds a diversion to avoid the conflict.
 	cp `pwd`/debian/coda-server/usr/sbin/codaconfedit \
-	    `pwd`/debian/tmp/usr/sbin/codaconfedit
+	    `pwd`/debian/coda-client/usr/sbin/codaconfedit
 
 # Build architecture-independent files here.
 # Pass -i to all debhelper commands in this target to reduce clutter.

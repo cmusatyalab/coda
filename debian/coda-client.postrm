@@ -16,7 +16,7 @@ set -e
 #        * <disappearer's-postrm> `disappear' <r>overwrit>r> <new-version>
 # for details, see /usr/doc/packaging-manual/
 
-if [ "$1" = "purge" ] ; then
+if [ "$1" == "purge" ] ; then
     echo -n "Purging Coda cache files etc. "
     rm -rf /etc/coda /var/cache/coda /var/lib/coda /var/log/coda
     echo "...done"

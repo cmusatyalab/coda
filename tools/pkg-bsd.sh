@@ -200,9 +200,12 @@ EOF
     if [ x${pkg} = xserver ]
     then
 	cat >> ${dst} << EOF
+bin/getvolinfo
 bin/norton
 bin/norton-reinit
 bin/reinit
+bin/rpc2ping
+bin/smon2
 sbin/auth2
 sbin/backup
 sbin/backup.sh
