@@ -38,8 +38,9 @@ void RealmDB::ResetTransient(void)
 
     PersistentObject::ResetTransient();
 
-    list_for_each(p, realms) {
-	realm = (Realm *)list_entry(p, PersistentObject, list);
+    for(p = realms.next; p != &realms;) {
+	realm = list_entry(p, Realm, realms);
+	p = p->next;
 	realm->ResetTransient();
     }
 }
@@ -55,7 +56,7 @@ Realm *RealmDB::GetRealm(const char *realmname)
     CODA_ASSERT(strlen(realmname) <= MAXHOSTNAMELEN);
 
     list_for_each(p, realms) {
-	realm = (Realm *)list_entry(p, PersistentObject, list);
+	realm = list_entry(p, Realm, realms);
 	if (strcmp(realm->Name(), realmname) == 0) {
 	    realm->GetRef();
 	    return realm;
@@ -63,7 +64,8 @@ Realm *RealmDB::GetRealm(const char *realmname)
     }
 
     Recov_BeginTrans();
-    realm = new Realm(realmname, &realms);
+    realm = new Realm(realmname);
+    rec_list_add(&realm->realms, &realms);
     Recov_EndTrans(0);
 
     return realm;
@@ -75,7 +77,7 @@ Realm *RealmDB::GetRealm(const RealmId realmid)
     Realm *realm;
 
     list_for_each(p, realms) {
-	realm = (Realm *)list_entry(p, PersistentObject, list);
+	realm = list_entry(p, Realm, realms);
 	if (realm->Id() == realmid) {
 	    realm->GetRef();
 	    return realm;
@@ -92,7 +94,7 @@ void RealmDB::print(FILE *f)
     fprintf(f, "*** BEGIN RealmDB ***\n");
 
     list_for_each(p, realms) {
-	realm = (Realm *)list_entry(p, PersistentObject, list);
+	realm = list_entry(p, Realm, realms);
 	realm->print(f);
     }
 

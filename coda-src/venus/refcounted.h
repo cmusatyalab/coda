@@ -40,19 +40,19 @@ protected:
     unsigned int refcount;
 
     /* Creation grabs an implicit reference */
-    RefCountedObject() { refcount = 1; };
+    RefCountedObject() { refcount = 1; }
 
     /* Deletion is ok when the refcount is either 0 or 1.
      * i.e. when it is one `delete' is similar to `PutRef', but PutRef is
      * still preferred */
-    virtual ~RefCountedObject() { assert(refcount <= 1); };
+    virtual ~RefCountedObject() { assert(refcount <= 1); }
 
 public:
     /* Grab a reference to the object */
-    void GetRef(void) { refcount++; };
+    void GetRef(void) { refcount++; }
 
     /* Put a reference, destroying the object when the last reference is put */
-    void PutRef(void) { assert(refcount > 0); if (!(--refcount)) delete this; };
+    void PutRef(void) { assert(refcount > 0); if (!(--refcount)) delete this; }
 
     /* Print the current reference count */
     void PrintRef(FILE *f) { fprintf(f, "\trefcount %u\n", refcount); }

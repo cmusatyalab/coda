@@ -28,10 +28,7 @@ class Realm : protected PersistentObject {
     friend class RealmDB;
 
 public:
-//    vdb   *VDB;
-///*T*/vsgdb *VSGDB;
-
-    Realm(const char *realm, struct dllist_head *h);
+    Realm(const char *realm);
     ~Realm(void);
 
     void ResetTransient(void);
@@ -52,6 +49,7 @@ public:
 
 private:
     char *name;
+    struct dllist_head realms;
 
 /*T*/struct coda_addrinfo *rootservers;
 /*T*/struct dllist_head servers;

@@ -27,7 +27,7 @@ class Server : protected RefCountedObject {
     friend class Realm;
 
 public:
-    Server(const struct in_addr *ipv4addr, struct dllist_head *head, Realm *r);
+    Server(const struct in_addr *ipv4addr, Realm *r);
     ~Server(void);
 
     const struct in_addr *ipaddr(void) { return &ipv4addr; }

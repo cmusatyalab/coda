@@ -1219,14 +1219,18 @@ void fsdb::InvalidateMtPts() {
 	    k_Purge(&f->pfid, 1);	/* force kernel to reevaluate! */
 	}
 
-    /* N.B.  We currently have no way of invalidating the mount point for the Coda root volume. */
-    /* That mount point is a VFS mount, which is known to the kernel (i.e., the MiniCache).   The */
-    /* proper thing to do is have another "back-call" into the MiniCache which unsaves the cnode */
-    /* thought by the kernel to be the current root, and makes a forward cfs_root call to Venus asking */
-    /* for the (new) root.  Of course, Venus would also have to make another ViceGetRootVolume call */
-    /* and update its global value (rootfid) as well.  Someday, someone should make the necessary */
-    /* changes to the MiniCache and Venus.  In the meantime, the only way for a client to reevaluate */
-    /* the Coda root is to shut down and restart Venus.  -JJK */
+    /* N.B.  We currently have no way of invalidating the mount point
+     * for the Coda root volume. That mount point is a VFS mount, which
+     * is known to the kernel (i.e., the MiniCache).   The proper thing
+     * to do is have another "back-call" into the MiniCache which
+     * unsaves the cnode thought by the kernel to be the current root,
+     * and makes a forward cfs_root call to Venus asking for the (new)
+     * root.  Of course, Venus would also have to make another
+     * ViceGetRootVolume call and update its global value (rootfid) as
+     * well.  Someday, someone should make the necessary changes to the
+     * MiniCache and Venus.  In the meantime, the only way for a client
+     * to reevaluate the Coda root is to shut down and restart Venus.
+     * -JJK */
 }
 
 

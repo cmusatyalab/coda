@@ -21,12 +21,11 @@ listed in the file CREDITS.
 #include "server.h"
 #include "realm.h"
 
-Server::Server(const struct in_addr *addr, struct dllist_head *head, Realm *r)
+Server::Server(const struct in_addr *addr, Realm *r)
 {
     memcpy(&ipv4addr, addr, sizeof(struct in_addr));
     realm = r;
-
-    list_add(&servers, head);
+    list_head_init(&servers);
 }
 
 Server::~Server(void)

@@ -2012,6 +2012,9 @@ int fsobj::Fakeify()
     srvent *s;
     int i;
     if (FID_IsFakeRoot(MakeViceFid(&fid))) {		/* Fake MTLink */
+	    ViceFid LinkFid;
+	    const char *realmname;
+
 	    /* Initialize status. */
 	    stat.DataVersion = 1;
 	    stat.Mode = 0644;
@@ -2025,110 +2028,83 @@ int fsobj::Fakeify()
 	    pfso = pf;
 
 	    /* local-repair modification */
-	    if (!strcmp(comp, "local")) {
+	    if (strcmp(comp, "local") == 0) {
 		/* the first special case, fake link for a local object */
 		LOG(100,("fsobj::Fakeify: fake link for a local object %s\n",
 			 FID_(&fid)));
 		LOG(100,("fsobj::Fakeify: parent fid for the fake link is %s\n",
 			 FID_(&pfid)));
 		flags.local = 1;
-		VenusFid *LocalFid = LRDB->RFM_LookupLocalRoot(&pfid);
-		FSO_ASSERT(this, LocalFid);
+		VenusFid *Fid = LRDB->RFM_LookupLocalRoot(&pfid);
+		FSO_ASSERT(this, Fid);
 
-		Realm *realm = REALMDB->GetRealm(LocalFid->Realm);
+		LinkFid = *MakeViceFid(Fid);
+		Realm *realm = REALMDB->GetRealm(Fid->Realm);
 		CODA_ASSERT(realm);
-		stat.Length += strlen(realm->Name());
-
-		/* Write out the link contents. */
-		data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
-		rvmlib_set_range(data.symlink, stat.Length+1);
-		sprintf(data.symlink, "@%08lx.%08lx.%08lx@%s",
-			LocalFid->Volume, LocalFid->Vnode, LocalFid->Unique,
-			realm->Name());
-
+		realmname = realm->Name();
 		realm->PutRef();
-
-		LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
-			  FID_(&fid), data.symlink));
-	    } else {
-		if (!strcmp(comp, "global")) {
-		    /* the second specical case, fake link for a global object */
-		    LOG(100, ("fsobj::Fakeify: fake link for a global object %s\n",
-			      FID_(&fid)));
-		    LOG(100, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
-			      FID_(&pfid)));
-		    flags.local = 1;
-		    VenusFid *GlobalFid = LRDB->RFM_LookupGlobalRoot(&pfid);
-		    FSO_ASSERT(this, GlobalFid);
-
-		    Realm *realm = REALMDB->GetRealm(GlobalFid->Realm);
-		    CODA_ASSERT(realm);
-		    stat.Length += strlen(realm->Name());
-
-		    /* Write out the link contents. */
-		    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
-		    rvmlib_set_range(data.symlink, stat.Length+1);
-		    sprintf(data.symlink, "@%08lx.%08lx.%08lx@%s",
-			    GlobalFid->Volume, GlobalFid->Vnode,
-			    GlobalFid->Unique, realm->Name());
-
-		    realm->PutRef();
-
-		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
-			      FID_(&fid), data.symlink));
-		} else if (strcmp(comp, "localhost") == 0) {
-		    /* another special case, fake link for the cached object */
-		    LOG(0, ("fsobj::Fakeify: fake link for a cached object %s\n",
-			      FID_(&fid)));
-		    LOG(0, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
-			      FID_(&pfid)));
-
-		    stat.Length += strlen(vp->realm->Name());
-
-		    /* Write out the link contents. */
-		    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
-		    rvmlib_set_range(data.symlink, stat.Length+1);
-		    sprintf(data.symlink, "@%08lx.%08lx.%08lx@%s",
-			    vp->GetVolumeId(), pfid.Vnode, pfid.Unique,
-			    vp->realm->Name());
-
-		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
-			      FID_(&fid), data.symlink));
-		} else {
-		    RealmId realmid;
-                    VolumeId rwvolumeid;
-                    struct in_addr host;
-
-		    /* the normal fake link */
-		    /* get the volumeid corresponding to the server name */
-		    for (i = 0; i < VSG_MEMBERS; i++) {
-                        if (!vp->volreps[i]) continue;
-                        vp->volreps[i]->Host(&host);
-
-			if ((s = FindServer(&host)) && s->name &&
-                            strcmp(s->name, comp) == 0) {
-                            break;
-                        }
-                    }
-		    if (i == VSG_MEMBERS) // server not found 
-                      CHOKE("fsobj::fakeify couldn't find the server for %s\n",
-                            comp);
-
-                    rwvolumeid = vp->volreps[i]->GetVolumeId();
-		    stat.Length += strlen(vp->volreps[i]->realm->Name());
-		    
-		    /* Write out the link contents. */
-		    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
-		    rvmlib_set_range(data.symlink, stat.Length+1);
-
-		    sprintf(data.symlink, "@%08lx.%08lx.%08lx@%s",
-			    rwvolumeid, pfid.Vnode, pfid.Unique,
-			    vp->volreps[i]->realm->Name());
-
-		    LOG(1, ("fsobj::Fakeify: making %s a symlink %s\n",
-			    FID_(&fid), data.symlink));
-		}
 	    }
+	    else if (strcmp(comp, "global") == 0) {
+		/* the second specical case, fake link for a global object */
+		LOG(100, ("fsobj::Fakeify: fake link for a global object %s\n",
+			  FID_(&fid)));
+		LOG(100, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
+			  FID_(&pfid)));
+		flags.local = 1;
+		VenusFid *Fid = LRDB->RFM_LookupGlobalRoot(&pfid);
+		FSO_ASSERT(this, Fid);
+
+		LinkFid = *MakeViceFid(Fid);
+		Realm *realm = REALMDB->GetRealm(Fid->Realm);
+		CODA_ASSERT(realm);
+		realmname = realm->Name();
+		realm->PutRef();
+	    }
+	    else if (strcmp(comp, "localhost") == 0) {
+		/* another special case, fake link for the cached object */
+		LOG(0, ("fsobj::Fakeify: fake link for a cached object %s\n",
+			FID_(&fid)));
+		LOG(0, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
+			FID_(&pfid)));
+
+		LinkFid.Volume = vp->GetVolumeId();
+		LinkFid.Vnode  = pfid.Vnode;
+		LinkFid.Unique = pfid.Unique;
+		realmname = vp->realm->Name();
+	    }
+	    else {
+		struct in_addr host;
+
+		/* the normal fake link */
+		/* get the volumeid corresponding to the server name */
+		for (i = 0; i < VSG_MEMBERS; i++) {
+		    if (!vp->volreps[i]) continue;
+		    vp->volreps[i]->Host(&host);
+
+		    if ((s = FindServer(&host)) && s->name &&
+			strcmp(s->name, comp) == 0) {
+			break;
+		    }
+		}
+		if (i == VSG_MEMBERS) // server not found 
+		    CHOKE("fsobj::fakeify couldn't find the server for %s\n",
+			  comp);
+
+		LinkFid.Volume = vp->volreps[i]->GetVolumeId();
+		LinkFid.Vnode  = pfid.Vnode;
+		LinkFid.Unique = pfid.Unique;
+		realmname = vp->volreps[i]->realm->Name();
+	    }
+
+	    /* Write out the link contents. */
+	    stat.Length += strlen(realmname);
+	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
+	    rvmlib_set_range(data.symlink, stat.Length+1);
+	    sprintf(data.symlink, "@%s@%s", FID_(&LinkFid), realmname);
+
+	    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
+		      FID_(&fid), data.symlink));
+
 	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
 	    /* notify blocked threads that the fso is ready. */
 	    Matriculate();
@@ -2158,12 +2134,15 @@ int fsobj::Fakeify()
 	    vp->GetHosts(volumehosts);
 	    for (i = 0; i < VSG_MEMBERS; i++) {
 		if (!volumehosts[i].s_addr) continue;
-		srvent *s;
-		char Name[CODA_MAXNAMLEN];
-		if ((s = FindServer(&volumehosts[i])) && s->name)
-		    sprintf(Name, "%s", s->name);
-		else
-		    sprintf(Name, "%08lx", volumehosts[i]);
+		srvent *s = FindServer(&volumehosts[i]);
+		char Name[CODA_MAXNAMLEN+1], *name;
+
+		if (s && s->name) name = s->name;
+		else		  name = inet_ntoa(volumehosts[i]);
+
+		snprintf(Name, CODA_MAXNAMLEN, "%s", name);
+		Name[CODA_MAXNAMLEN] = '\0';
+
 		VenusFid FakeFid = vp->GenerateFakeFid();
 		LOG(1, ("fsobj::Fakeify: new entry (%s, %s)\n",
 			Name, FID_(&FakeFid)));

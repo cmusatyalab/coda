@@ -376,8 +376,9 @@ found_rootvolname:
 
     rootfid.Realm = v->GetRealmId();
     rootfid.Volume = v->GetVolumeId();
-    FID_MakeRoot(MakeViceFid(&rootfid));
     VDB->Put(&v);
+
+    FID_MakeRoot(MakeViceFid(&rootfid));
 
     return(1);
 }
@@ -923,7 +924,6 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = VOLENT_MagicNumber;
 
-    r->GetRef();
     r->Rec_GetRef();
     realm = r;
     vid = volid;
@@ -989,7 +989,6 @@ volent::~volent()
     }
 
     realm->Rec_PutRef();
-    realm->PutRef();
 
     if (refcnt != 0)
 	{ print(logFile); CHOKE("volent::~volent: non-zero refcnt"); }

@@ -39,8 +39,7 @@ extern "C" {
 #include "comm.h"
 #include "parse_realms.h"
 
-Realm::Realm(const char *realm_name, struct dllist_head *h) :
-    PersistentObject(h)
+Realm::Realm(const char *realm_name)
 {
     int len = strlen(realm_name) + 1;
 
@@ -49,19 +48,18 @@ Realm::Realm(const char *realm_name, struct dllist_head *h) :
     CODA_ASSERT(name);
     strcpy(name, realm_name);
 
-    /* Grab a reference until volumes hold on to this realm... */
-    Rec_GetRef();
-    ResetTransient();
-    Rec_PutRef();
+    rec_list_head_init(&realms);
+
+    rootservers = NULL;
+    list_head_init(&servers);
 }
 
 void Realm::ResetTransient(void)
 {
-    list_head_init(&servers);
-
-    PersistentObject::ResetTransient();
-
     rootservers = NULL;
+    list_head_init(&servers);
+    /* this might destroy the object, so it has to be called last */
+    PersistentObject::ResetTransient();
 }
 
 Realm::~Realm(void)
@@ -69,7 +67,11 @@ Realm::~Realm(void)
     struct dllist_head *p;
     Server *s;
 
-    free(rootservers);
+    rec_list_del(&realms);
+    if (rootservers) {
+	free(rootservers);
+	rootservers = NULL;
+    }
     rvmlib_rec_free(name); 
 
     for (p = servers.next; p != &servers; ) {
@@ -77,7 +79,7 @@ Realm::~Realm(void)
 	p = p->next;
 	s->PutRef();
     }
-    list_del(&servers);
+    CODA_ASSERT(list_empty(&servers));
 }
 
 Server *Realm::GetServer(struct in_addr *host)
@@ -85,8 +87,7 @@ Server *Realm::GetServer(struct in_addr *host)
     struct dllist_head *p;
     Server *s;
 
-    CODA_ASSERT(host != 0);
-    CODA_ASSERT(host->s_addr != 0);
+    CODA_ASSERT(host && host->s_addr);
 
     list_for_each(p, servers) {
 	s = list_entry(p, Server, servers);
@@ -96,7 +97,8 @@ Server *Realm::GetServer(struct in_addr *host)
 	}
     }
 
-    s = new Server(host, &servers, this);
+    s = new Server(host, this);
+    list_add(&s->servers, &servers);
 
     return s;
 }
@@ -106,7 +108,8 @@ void Realm::print(FILE *f)
     struct coda_addrinfo *p;
     int i = 0;
 
-    fprintf(f, "%08x realm '%s', refcount %d\n", Id(), Name(), refcount);
+    fprintf(f, "%08x realm '%s', refcount %d/%d\n", Id(), Name(),
+	    refcount, rec_refcount);
     for (p = rootservers; p; p = p->ai_next) {
 	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
 	fprintf(f, "\t%s\n", inet_ntoa(sin->sin_addr)); 
