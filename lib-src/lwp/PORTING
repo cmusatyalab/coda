@@ -1,6 +1,6 @@
 Some quick notes related to porting LWP to new platforms.
 
-    src/process.ss
+    src/process.S
 	Support switching process stacks.
 
     src/lwp.c
