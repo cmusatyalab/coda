@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.1 1997/01/08 21:51:00 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.2 1997/09/23 15:14:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -100,7 +100,7 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include <util.h>
 #include "update.h"
 
-
+#define UPDSRVNAME "updatesrv"
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 
 PRIVATE void SetDebug();
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
     char    sname[20];
     char    pname[20];
     FILE * file;
-    int     i;
+    int     i, len;
     int     lwps = 2;
     int     badParm = 1;
     PROCESS parentPid, serverPid;
@@ -148,13 +148,22 @@ int main(int argc, char **argv)
     }
     if (badParm) {
 	LogMsg(0, SrvDebugLevel, stderr, 
-	       "usage: update [-p prefix -d (debug level)]) [-l (number of lwps)] ");
+	       "usage: updatesrv [-p prefix -d (debug level)]) [-l (number of lwps)] ");
 	LogMsg(0, SrvDebugLevel, stderr, "[-q (portal name)] \n");
 	exit(-1);
     }
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
     (void) signal(SIGTSTP, (void (*)(int))SetDebug);
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
+
+    len = strlen(argv[0]);
+    if (len > strlen(UPDSRVNAME)) {
+	for (i = 0; i < len; i++) {
+	    *(argv[0] + i) = ' ';
+	}
+	strcpy(argv[0], UPDSRVNAME);
+    }
+
     if (chdir(prefix)) {
 	LogMsg(0, SrvDebugLevel, stdout, "could not chdir to %s\n", prefix);
 	exit(-1);
@@ -245,27 +254,34 @@ PRIVATE void ServerLWP(int *Ident)
     LogMsg(0, SrvDebugLevel, stdout,"Starting Update Worker %d\n", lwpid);
 
     while (1) {
-	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, 0, RPC2_XOR, 0))
+	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, 0, 
+				  RPC2_XOR, 0))
 		== RPC2_SUCCESS) {
-	    LogMsg(1, SrvDebugLevel, stdout,"Worker %d received request %d\n", lwpid, myrequest->Header.Opcode);
+	    LogMsg(1, SrvDebugLevel, stdout,
+		   "Worker %d received request %d\n", 
+		   lwpid, myrequest->Header.Opcode);
 
 	    rc = update_ExecuteRequest(mycid, myrequest, 0);
 	    if (rc) {
-		LogMsg(0, SrvDebugLevel, stdout,"file.c request %d failed: %s\n",
-			myrequest->Header.Opcode, ViceErrorMsg((int)rc));
+		LogMsg(0, SrvDebugLevel, stdout,
+		       "file.c request %d failed: %s\n",
+		       myrequest->Header.Opcode, ViceErrorMsg((int)rc));
 		if(rc <= RPC2_ELIMIT) {
 		    RPC2_Unbind(mycid);
 		}
 	    }
-	}
-	else {
-		    LogMsg(0, SrvDebugLevel, stdout,"RPC2_GetRequest failed with %s\n",ViceErrorMsg((int)rc));
+	} else {
+	    LogMsg(0, SrvDebugLevel, stdout,
+		   "RPC2_GetRequest failed with %s\n",ViceErrorMsg((int)rc));
 	}
     }
 }
 
 
-long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName, RPC2_Unsigned Time, RPC2_Unsigned *NewTime, RPC2_Unsigned *CurrentSecs, RPC2_Integer *CurrentUsecs, SE_Descriptor *File)
+long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName, 
+		 RPC2_Unsigned Time, RPC2_Unsigned *NewTime, 
+		 RPC2_Unsigned *CurrentSecs, RPC2_Integer *CurrentUsecs, 
+		 SE_Descriptor *File)
 {
     long    rc;			/* return code to caller */
     SE_Descriptor sid;		/* sid to use to transfer */
@@ -297,8 +313,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName, RPC2_Unsigned Time, RP
 	if(fd <= 0) {
 	    perror("open for directory failed");
 	    fd = 0;
-	}
-	else {
+	} else {
 	    flock(fd, LOCK_SH);
 	}
 	sid.Tag = SMARTFTP;
@@ -306,8 +321,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName, RPC2_Unsigned Time, RP
 	sid.Value.SmartFTPD.SeekOffset = 0;
 	if (SrvDebugLevel > 2) {
 	    sid.Value.SmartFTPD.hashmark = '#';
-	}
-	else {
+	} else {
 	    sid.Value.SmartFTPD.hashmark = 0;
 	}
 	sid.Value.SmartFTPD.Tag = FILEBYNAME;
@@ -315,14 +329,16 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName, RPC2_Unsigned Time, RP
 	strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName, name);
 
 	if (rc = RPC2_InitSideEffect(RPCid, &sid)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "InitSideEffect failed %s\n", ViceErrorMsg((int)rc));
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "InitSideEffect failed %s\n", ViceErrorMsg((int)rc));
 	    if (rc <= RPC2_ELIMIT) {
 		goto Final;
 	    }
 	}
 
 	if (rc = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "CheckSideEffect failed %s\n", ViceErrorMsg((int)rc));
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "CheckSideEffect failed %s\n", ViceErrorMsg((int)rc));
 	    if (rc <= RPC2_ELIMIT) {
 		goto Final;
 	    }
@@ -337,15 +353,20 @@ Final:
     gettimeofday(&tp, &tsp);
     *CurrentSecs = tp.tv_sec;
     *CurrentUsecs = tp.tv_usec;
-    LogMsg(2, SrvDebugLevel, stdout, "UpdateFetch returns %s newtime is %d at %s",
-	    ViceErrorMsg((int)rc), *NewTime, ctime((long *)CurrentSecs));
+    LogMsg(2, SrvDebugLevel, stdout, 
+	   "UpdateFetch returns %s newtime is %d at %s",
+	   ViceErrorMsg((int)rc), *NewTime, ctime((long *)CurrentSecs));
     return(rc);
 }
 
 
-long UpdateNewConnection(RPC2_Handle cid, RPC2_Integer SideEffectType, RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType, RPC2_CountedBS *ClientIdent)
+long UpdateNewConnection(RPC2_Handle cid, RPC2_Integer SideEffectType, 
+			 RPC2_Integer SecurityLevel, 
+			 RPC2_Integer EncryptionType, 
+			 RPC2_CountedBS *ClientIdent)
 {
-    LogMsg(0, SrvDebugLevel, stdout,"New connection received %d, %d, %d\n", 0, 0, 0);
+    LogMsg(0, SrvDebugLevel, stdout,
+	   "New connection received %d, %d, %d\n", 0, 0, 0);
     /* at some point we should validate this connection as to its origin */
     return(0);
 }

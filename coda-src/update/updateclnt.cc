@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.2 1997/09/23 15:14:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.3 1997/10/15 15:47:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,21 +58,13 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 /************************************************************************/
-/*									*/
+/*								*/
 /*  updateclnt.c  - Client to update server data bases			*/
-/*									*/
-/*  Function  	- This is the client to update file servers dbs		*/
-/*		  It checks every waitinterval (default 5 minutes)	*/
-/*		  to see if any of the directories have changed.	*/
-/*		  There is also a class of directories that are 	*/
-/*		  only checked every six waitintervals.If the direct-	*/
-/*		  ory has changed it will open a file called "files"	*/
-/*		  in that directory and check that each of the files	*/
-/*		  named in "files" is up to date.  The format of	*/
-/*		  "files" is a name followed by a newline character.	*/
-/*		  If the name has a "-" in front of it, the file	*/
-/*		  is deleted.						*/
-/*									*/
+/*								*/
+/*  Function  	- This is the client to update file servers dbs	*/
+/*		  It checks every waitinterval (default 30 secs)	*/
+/*		  to see if any of the file listed in the files        */
+/*		  file has changed.  It fetches any new files.         */
 /************************************************************************/
 
 #ifdef __cplusplus
@@ -110,7 +102,7 @@ extern long VolUpdateDB(RPC2_Handle);
 
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 
-#define UPDATENAME "Update"
+#define UPDATENAME "updateclnt"
 #define MONITORNAME "UpdateMonitor"
 #define NEEDNEW 232
 #define LISTNAME "files"
@@ -132,7 +124,7 @@ PRIVATE int U_BindToServer(char *fileserver, RPC2_Handle *RPCid);
 PRIVATE int Rebind = 0;
 PRIVATE int Reexec = 0;
 PRIVATE int ReadOnlyAllowed = 0;
-PRIVATE int CheckAll = 0;
+PRIVATE int CheckAll = 1;
 
 PRIVATE RPC2_Unsigned operatorSecs = 0;
 PRIVATE RPC2_Integer operatorUsecs = 0;
@@ -192,7 +184,9 @@ int main(int argc, char **argv)
     Rebind = 1;
 
     gettimeofday(&tp, &tsp);
-    LogMsg(0, SrvDebugLevel, stdout, "Update Client pid = %d started at %s", getpid(), ctime((long *)&tp.tv_sec));
+    LogMsg(0, SrvDebugLevel, stdout, 
+	   "Update Client pid = %d started at %s", 
+	   getpid(), ctime((long *)&tp.tv_sec));
 
     time.tv_sec = waitinterval;
     time.tv_usec = 0;
@@ -214,44 +208,37 @@ int main(int argc, char **argv)
 
 	if (CheckDir("/vice/db", 0644)) {
 	    operatorSecs = 0;	/* if something changed time has elapsed */
-	/* signal file server to check data bases */
+	    /* signal file server to check data bases */
 	    file = fopen("/vice/srv/pid", "r");
 	    if (file == NULL) {
-		LogMsg(0, SrvDebugLevel, stdout, "Fopen failed for file server pid file with %s\n",
-			ViceErrorMsg(errno));
-	    }
-	    else {
+		LogMsg(0, SrvDebugLevel, stdout, 
+		       "Fopen failed for file server pid file with %s\n",
+		       ViceErrorMsg(errno));
+	    } else {
 		RPC2_Handle rpcid;
 		if (U_BindToServer(s_hostname, &rpcid) == RPC2_SUCCESS) {
 		    if (VolUpdateDB(rpcid) == RPC2_SUCCESS) {
-		      LogMsg(0, SrvDebugLevel, stdout, "Notifying fileserver of database updates\n");
+			LogMsg(0, SrvDebugLevel, stdout, 
+			       "Notifying fileserver of database updates\n");
+		    } else {
+			LogMsg(0, SrvDebugLevel, stdout, 
+			       "VolUpdateDB failed\n");
 		    }
-		    else {
-		      LogMsg(0, SrvDebugLevel, stdout, "VolUpdateDB failed\n");
-		    }
-		}
-		else {
-		    LogMsg(0, SrvDebugLevel, stdout, "Bind to server for database update failed\n");
+		} else {
+		    LogMsg(0, SrvDebugLevel, stdout, 
+			   "Bind to server for database update failed\n");
 		}
 		RPC2_Unbind(rpcid);
-
-#ifdef notdef
-		int pid;
-		fscanf(file, "%d", &pid);
-		fclose(file);
-		int fd = open("/vice/srv/DATABASE", O_RDWR + O_CREAT, 0666);
-		close(fd);
-		kill(pid, SIGXCPU);
-		LogMsg(0, SrvDebugLevel, stdout, "Notify PID %d that db changed\n", pid);
-#endif notdef
 	    }
 	}
 	if (operatorSecs > 0) {
 	    gettimeofday(&tp, &tsp);
-	    if ((tp.tv_sec < operatorSecs) || (tp.tv_sec > (operatorSecs + 2))) {
+	    if ((tp.tv_sec < operatorSecs) || 
+		(tp.tv_sec > (operatorSecs + 2))) {
 		tp.tv_sec = operatorSecs + 1;
 		tp.tv_usec = operatorUsecs;
-		LogMsg(0, SrvDebugLevel, stdout, "Settime to %s", ctime((long *)&tp.tv_sec));
+		LogMsg(0, SrvDebugLevel, stdout, 
+		       "Settime to %s", ctime((long *)&tp.tv_sec));
 		settimeofday(&tp, &tsp);
 	    }
 	}
@@ -263,11 +250,12 @@ int main(int argc, char **argv)
 
 	if (Reexec) {
 	    RPC2_Unbind(con);
-	    LogMsg(0, SrvDebugLevel, stdout, "Binaries have changed, Restart\n");
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "Binaries have changed, Restart\n");
 	    exit(0);
 	}
 
-	CheckAll = 0;
+	CheckAll = 1;
 
 	IOMGR_Select(0, 0, 0, 0, &time);
     }
@@ -349,21 +337,22 @@ PRIVATE void CheckLibStructure()
 PRIVATE int CheckDir(char *prefix, int mode)
 {
     static char list[LISTLEN],
-                name[256],
-                newname[1024];
+	name[256],
+	newname[1024];
     int     i,
-            j,
-            fd,
-	    nfd,
-            len,
-            rc = 0;
+	j,
+	fd,
+	nfd,
+	len,
+	rc = 0;
     struct stat buff;
 
     LogMsg(1, SrvDebugLevel, stdout, "Checking %s\n", prefix);
     if ((!(CheckFile(prefix, 0755))) && !CheckAll)
 	return(0);
 
-    LogMsg(1, SrvDebugLevel, stdout, "Directory %s changed, check files\n", prefix);
+    LogMsg(1, SrvDebugLevel, stdout, 
+	   "Directory %s changed, check files\n", prefix);
 
     strcpy(newname, prefix);
     strcat(newname, "/");
