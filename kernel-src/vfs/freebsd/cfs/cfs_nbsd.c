@@ -15,6 +15,9 @@
 /* 
  * HISTORY
  * $Log: cfs_nbsd.c,v $
+ * Revision 1.10  1997/02/12 15:32:05  rvb
+ * Make statfs return values like for AFS
+ *
  * Revision 1.9  1997/01/30 16:42:02  bnoble
  * Trace version as of SIGCOMM submission.  Minor fix in cfs_nb_open
  *
@@ -210,8 +213,8 @@ cfs_nb_statfs(vfsp, sbp, p)
     bcopy((caddr_t)&(VFS_FSID(vfsp)), (caddr_t)&(sbp->f_fsid),
 	  sizeof (fsid_t));
     strncpy(sbp->f_fstypename, MOUNT_CFS, MFSNAMELEN-1);
-    strcpy(sbp->f_mntonname, ""); /* XXX */
-    strcpy(sbp->f_mntfromname, ""); /* XXX */
+    strcpy(sbp->f_mntonname, "/coda");
+    strcpy(sbp->f_mntfromname, "CFS");
     return(0);
 }
 
