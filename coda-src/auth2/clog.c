@@ -239,8 +239,7 @@ int main(int argc, char **argv)
 
 #ifdef __CYGWIN32__
     username = getlogin();	 
-#elif DJGPP
-    chdir("c:\\usr\\coda\\bin");
+#elif defined(DJGPP)
     __djgpp_set_quiet_socket(1);	
 #else
     pw = getpwuid (getuid ());
