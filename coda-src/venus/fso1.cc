@@ -2186,7 +2186,7 @@ int fsobj::Fakeify()
 	    VenusFid *Fid = LRDB->RFM_LookupLocalRoot(&pfid);
 
 	    LinkFid = *MakeViceFid(Fid);
-	    realmname = vol->realm->Name();
+	    realmname = LocalRealm->Name();
 	}
 	else if (STREQ(comp, "global")) {
 	    /* the second specical case, fake link for a global object */
