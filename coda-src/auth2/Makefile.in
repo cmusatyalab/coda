@@ -49,8 +49,10 @@ LIBAUSEROBJS=auth2.client.o auser.o avenus.o $(AUTHCOMMON)
 
 CBINS       = clog cpasswd ctokens cunlog
 CSBINS      = au
+CMANPAGES   = au.8 clog.1 cpasswd.1 ctokens.1 cunlog.1
 SBINS       = 
-SSBINS      = au auth2 initpw
+SSBINS      = auth2 initpw
+SMANPAGES   = auth2.8 initpw.8
 EXECUTABLES = $(CBINS) $(CSBINS) $(SBINS) $(SSBINS) tokentool
 
 #

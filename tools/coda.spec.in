@@ -182,10 +182,15 @@ exit 0
 /usr/bin/xaskuser
 /usr/bin/xfrepair
 /usr/share/man/man1/cfs.1
+/usr/share/man/man1/clog.1
 /usr/share/man/man1/cmon.1
 /usr/share/man/man1/coda_replay.1
+/usr/share/man/man1/cpasswd.1
+/usr/share/man/man1/ctokens.1
+/usr/share/man/man1/cunlog.1
 /usr/share/man/man1/hoard.1
 /usr/share/man/man1/spy.1
+/usr/share/man/man8/au.8
 
 %files server	
 /etc/coda/server.conf.ex
@@ -224,6 +229,8 @@ exit 0
 /usr/bin/rpc2ping
 /usr/bin/rvmsizer
 /usr/bin/smon2
+/usr/share/man/man8/auth2.8
+/usr/share/man/man8/initpw.8
 /usr/share/man/man8/pdbtool.8
 /etc/rc.d/init.d/codasrv.init
 /etc/rc.d/init.d/auth2.init

@@ -195,10 +195,15 @@ bin/spy
 bin/xaskuser
 bin/xfrepair
 man/man1/cfs.1
+man/man1/clog.1
 man/man1/cmon.1
 man/man1/coda_replay.1
+man/man1/cpasswd.1
+man/man1/ctokens.1
+man/man1/cunlog.1
 man/man1/hoard.1
 man/man1/spy.1
+man/man8/au.8
 etc/coda/realms
 etc/coda/venus.conf.ex
 etc/coda/sidekick.intr.ex
@@ -246,6 +251,8 @@ sbin/vice-setup-scm
 sbin/vice-setup-srvdir
 sbin/vice-setup-user
 sbin/volutil
+man/man8/auth2.8
+man/man8/initpw.8
 man/man8/pdbtool.8
 etc/coda/server.conf.ex
 etc/rc.d/rc.vice

@@ -26,10 +26,11 @@ usr/sbin/vice-killvolumes
 usr/sbin/coda-setup-ports
 usr/sbin/pdbtool
 usr/sbin/inoder
-usr/sbin/au
 usr/sbin/auth2
 usr/sbin/initpw
 usr/sbin/volutil
 usr/sbin/codasrv
 usr/sbin/printvrdb
+usr/share/man/man8/auth2.8
+usr/share/man/man8/initpw.8
 usr/share/man/man8/pdbtool.8
