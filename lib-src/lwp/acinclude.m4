@@ -46,5 +46,13 @@ if test ${build} != ${target} ; then
     LIBTOOL_LDFLAGS="-no-undefined"
     ;;
  esac
-fi])
+fi
+case ${target} in
+   sparc-sun-solaris* )
+    echo "Setting special conditions for Solaris"
+    AFLAGS="-traditional"
+    LIBS="-lsocket -lposix4"
+    enable_shared=no
+    ;;
+esac])
 

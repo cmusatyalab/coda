@@ -34,5 +34,6 @@ AC_CYGWIN
 AC_EXEEXT
 
 dnl Generate output files
+AC_SUBST(AFLAGS)
 AC_OUTPUT(Makefile include/Makefile include/lwp/Makefile src/Makefile src-pt/Makefile pkgs/Makefile pkgs/lwp.spec pkgs/lwp-nt.spec pkgs/lwp-dos.spec)
 
