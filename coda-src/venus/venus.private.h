@@ -76,10 +76,7 @@ extern "C" {
 #define EASRSTARTED     200
 
 
-/*  *****  Command-line/vstab parameter defaults.  ***** */
-
-#define	VSTAB	"/usr/coda/etc/vstab"
-
+/*  *****  parameter defaults.  ***** */
 #if defined(DJGPP)
 #define DFLT_VR "N:"                     /* Venus Root */ 
 #define MCFD    16                       /* Michael Callahan File Descriptor? */
@@ -329,6 +326,7 @@ extern struct timeval DaemonExpiry;
 class vproc;
 extern vproc *Main;
 extern VenusFid rootfid;
+extern int mount_done;
 extern long rootnodeid;
 extern int CleanShutDown;
 extern char *venusRoot;

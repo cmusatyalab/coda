@@ -54,8 +54,10 @@ extern "C" {
 static void SigControl(int);
 static void SigChoke(int);
 static void SigExit(int);
+static void SigMounted(int);
 
 int TerminateVenus;
+int mount_done;
 
 void SigInit(void)
 {
@@ -74,8 +76,30 @@ void SigInit(void)
     sa.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sa, NULL);
 #ifdef SIGIO
-    sigaction(SIGIO,  &sa, NULL);
+    sigaction(SIGIO, &sa, NULL);
 #endif
+#ifdef SIGCHLD
+    sigaction(SIGCHLD, &sa, NULL);
+#endif
+#ifdef SIGTSTP
+    sigaction(SIGTSTP, &sa, NULL);
+#endif
+#ifdef SIGTTOU
+    sigaction(SIGTTOU, &sa, NULL);
+#endif
+#ifdef SIGTTIN
+    sigaction(SIGTTIN, &sa, NULL);
+#endif
+#ifdef SIGXCPU
+    sigaction(SIGXCPU, &sa, NULL);
+#endif
+#ifdef SIGXFSZ
+    sigaction(SIGXFSZ, &sa, NULL);
+#endif
+#ifdef SIGVTALARM
+    sigaction(SIGVTALRM, &sa, NULL);
+#endif
+
 
     /* shutdown... */
     sa.sa_handler = SigExit;
@@ -113,26 +137,15 @@ void SigInit(void)
     sigaction(SIGSTKFLT,  &sa, NULL);
 #endif
 
+    sa.sa_handler = SigMounted;
+    sigaction(SIGUSR1, &sa, NULL);
+
     /* There are also some aliases on linux, maybe they are different on other
      * platforms, and if they are not ignored we'd have to create more complex
      * ifdef's to handle them.
      * SIGIOT  == SIGABRT
      * SIGPOLL == SIGIO
      */
-
-    /* These were used by vutil, ignoring them should avoid problems when we
-     * accidently to use an old vutil script. */
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGUSR1, &sa, NULL);
-#ifdef SIGXCPU
-    sigaction(SIGXCPU, &sa, NULL);
-#endif
-#ifdef SIGXFSZ
-    sigaction(SIGXFSZ, &sa, NULL);
-#endif
-#ifdef SIGVTALARM
-    sigaction(SIGVTALRM, &sa, NULL);
-#endif
 
     /* Write our pid to a file so scripts can find us easily. */
     FILE *fp = fopen(VenusPidFile,"w");
@@ -248,5 +261,10 @@ static void SigExit(int sig)
     fflush(logFile);
     fflush(stderr);
     exit(0);
+}
+
+static void SigMounted(int sig)
+{
+    mount_done++;
 }
 

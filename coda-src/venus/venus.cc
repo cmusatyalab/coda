@@ -78,7 +78,7 @@ uid_t V_UID;
 /* *****  Exported variables  ***** */
 /* globals in the .bss are implicitly initialized to 0 according to ANSI-C standards */
 vproc *Main;
-VenusFid	rootfid;
+VenusFid rootfid;
 long rootnodeid;
 int CleanShutDown;
 int SearchForNOreFind;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
@@ -126,6 +126,21 @@ struct in_addr venus_relay_addr = { INADDR_LOOPBACK };
 
 /* *****  venus.c  ***** */
 
+static void daemonize(void)
+{
+    int rc;
+
+    /* fork into background */
+    rc = fork();
+    if (rc > 0) exit(0);
+    if (rc < 0) {
+	eprint("fork failed, continuing in foreground");
+    }
+
+    /* obtain a new process group */
+    setsid();
+}
+
 /* local-repair modification */
 int main(int argc, char **argv)
 {
@@ -137,7 +152,7 @@ int main(int argc, char **argv)
 
     /* open the console file and print vital info */
     freopen(consoleFile, "a+", stderr);
-    eprint("Coda Venus, version " PACKAGE_VERSION "\n");
+    eprint("Coda Venus, version " PACKAGE_VERSION);
     
     CdToCacheDir(); 
     CheckInitFile();
@@ -192,7 +207,6 @@ int main(int argc, char **argv)
     WritebackInit(); /* set up writeback subsystem */
     AdviceInit();   /* set up AdSrv and start the advice daemon */
     LRInit();	    /* set up local-repair database */
-    //    VFSMount();
 
     /* Get the Root Volume. */
     eprint("Mounting root volume...");
@@ -232,6 +246,12 @@ int main(int argc, char **argv)
 	/* set in sighand.cc whenever we want to perform a clean shutdown */
 	if (TerminateVenus)
 	    break;
+
+	/* bumped in sighand.cc when the mount completes */
+	if (mount_done == 1 && LogLevel == 0) {
+	    mount_done++;
+	    daemonize();
+	}
 
 	/* Fire daemons that are ready to run. */
 	DispatchDaemons();

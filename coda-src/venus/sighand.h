@@ -35,5 +35,6 @@ listed in the file CREDITS.
 
 void SigInit(void);
 extern int TerminateVenus;
+extern int mount_done;
 
 #endif /* _VENUS_SIGHAND_H_ */

@@ -318,7 +318,8 @@ void VFSMount()
 	    ent = getmntent(fd);
 	    if (!ent) break;
 
-	    if (STREQ(ent->mnt_fsname, "Coda") &&
+	    if ((STREQ(ent->mnt_fsname, "Coda") ||
+		 STREQ(ent->mnt_fsname, "coda")) &&
 		STREQ(ent->mnt_dir, venusRoot)) {
 		mounted = 1;
 		break;
@@ -328,8 +329,10 @@ void VFSMount()
 
 	if (mounted) {
 	    eprint("%s already mounted", venusRoot);
-	    if (allow_reattach)
+	    if (allow_reattach) {
+		kill(getpid(), SIGUSR1);
 		return;
+	    }
 	    exit(-1);
 	}
     }
@@ -393,7 +396,8 @@ void VFSMount()
 	    eprint("CHILD: mount system call failed. Killing parent.\n");
 	    kill(parent, SIGKILL);
 	} else {
-	    eprint("%s now mounted.\n", venusRoot);
+	    eprint("%s now mounted.", venusRoot);
+	    kill(parent, SIGUSR1);
 	}
 
 child_done:
@@ -402,7 +406,10 @@ child_done:
     }
 
     /* we just wait around to reap the first child */
-    while (waitpid(child, NULL, 0) != child) /* loop */;
+    pid_t pid;
+    do {
+	pid = waitpid(child, NULL, 0);
+    } while (pid == -1 && errno == EINTR);
 #endif /* __BSD44__ || __linux__ */
 
 #ifdef sun
