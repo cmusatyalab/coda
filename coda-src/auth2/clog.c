@@ -151,6 +151,22 @@ void base64_decode(FILE *in, char **out, int *len)
     *len = n;
 }
 
+void export(ClearToken *cToken)
+{
+    cToken.AuthHandle     = htonl(cToken.AuthHandle);
+    cToken.ViceId         = htonl(cToken.ViceId);
+    cToken.BeginTimeStamp = htonl(cToken.BeginTimeStamp);
+    cToken.EndTimeStamp   = htonl(cToken.EndTimeStamp);
+}
+
+void import(ClearToken *cToken)
+{
+    cToken.AuthHandle     = ntohl(cToken.AuthHandle);
+    cToken.ViceId         = ntohl(cToken.ViceId);
+    cToken.BeginTimeStamp = ntohl(cToken.BeginTimeStamp);
+    cToken.EndTimeStamp   = ntohl(cToken.EndTimeStamp);
+}
+
 void WriteTokenToFile(char *filename, ClearToken *cToken,
                       EncryptedSecretToken sToken)
 {
@@ -160,8 +176,10 @@ void WriteTokenToFile(char *filename, ClearToken *cToken,
 
     len = sizeof(ClearToken) + sizeof(EncryptedSecretToken);
     buf = malloc(len);
+    export(cToken);
     memcpy(buf, (char *)cToken, sizeof(ClearToken));
     memcpy(buf + sizeof(ClearToken), sToken, sizeof(EncryptedSecretToken));
+    import(cToken);
 
     f = fopen(filename, "w");
     base64_encode(f, buf, len);
@@ -176,7 +194,7 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
     char *buf;
     int len;
 
-    f = fopen(filename, "w");
+    f = fopen(filename, "r");
     base64_decode(f, &buf, &len);
     fclose(f);
 
@@ -187,6 +205,7 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
     }
     memcpy((char *)cToken, buf, sizeof(ClearToken));
     memcpy(sToken, buf + sizeof(ClearToken), sizeof(EncryptedSecretToken));
+    import(cToken);
     free(buf);
 }
 
