@@ -46,22 +46,20 @@ VolumeId VOL_Locate(char *volkey)
     if (vre)
 	return VREtoVolRepId(vre);
 
-    /* Try tp find by replicated volume id */
-    volid = strtoul(volkey, &end, 0);
-    if (volkey == end) return 0;
+    /* Try to find by replicated volume id */
+    volid = strtoul(volkey, &end, 16);
+    if (volkey != end) {
+	vre = VRDB.find(volid);
+	if (vre)
+	    return VREtoVolRepId(vre);
+    }
+    else
+	volid = 0;
 
-    vre = VRDB.find(volid);
-    if (vre)
-	return VREtoVolRepId(vre);
-
-    /* Try tp find by volume replica name */
+    /* Try to find by volume replica name */
     vldbp = VLDBLookup(volkey);
     if (vldbp)
 	return ntohl(vldbp->volumeId[vldbp->volumeType]);
-
-    /* Try to find by volume replica name */
-    if (volid && HashLookup(volid) == -1)
-	return 0;
 
     return volid;
 }
