@@ -959,6 +959,7 @@ OI_FreeLocks:
                                 //	u.u_error = WB_PERMIT_GRANTED;
                             }
                         }
+			break;
 		    }
    	      case VIOC_STATUSWB:
 	      {
@@ -981,8 +982,8 @@ OI_FreeLocks:
                       /* now we'll leave writeback mode */
                       v->flags.autowriteback = 0;
                       u.u_error = ((repvol *)v)->LeaveWriteback(u.u_uid);
-                      break;
                   }
+		  break;
               }
 	      case VIOC_SYNCCACHE:
               {
@@ -999,6 +1000,7 @@ OI_FreeLocks:
 
 		      v->flags.writebackreint = old_wb_flag;
 		  }
+		  break;
               }
 
 	      case VIOC_REDIR:
