@@ -288,11 +288,8 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     long resError = 0;
     long lockerror = 0;
     int logsizes = 0;
-    int pathsize = 0;
     int reson = 0;
     VolumeId tmpvid = Fid->Volume;
-    ResPathElem *pathelem_ptrs[VSG_MEMBERS];
-    ResPathElem *pathelembuf = NULL;
     int j;
 
     if ( Fid ) { 
@@ -335,20 +332,6 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     ARG_MARSHALL(OUT_MODE, ViceVersionVector, VVvar, VV, VSG_MEMBERS);
     ARG_MARSHALL(OUT_MODE, ResStatus, rstatusvar, rstatus, VSG_MEMBERS);
     ARG_MARSHALL(OUT_MODE, RPC2_Integer, logsizesvar, logsizes, VSG_MEMBERS);
-    ARG_MARSHALL(OUT_MODE, RPC2_Integer, pathsizevar, pathsize, VSG_MEMBERS);
-    // This is allocated via malloc instead of on the stack because the 
-    // array gets too big for the LWP stack.
-    // We use MAXPATHLEN/2 because that is the max number of components possible in 
-    // a single path 
-    pathelembuf = (ResPathElem *)malloc(sizeof(ResPathElem) * (MAXPATHLEN/2) 
-					* VSG_MEMBERS);
-
-    if (pathelembuf == NULL) 
-	    goto FreeGroups;
-    CODA_ASSERT(pathelembuf != NULL);  // XXX Should we do something nicer ?
-
-    for (j = 0; j < VSG_MEMBERS; j++) 
-	    pathelem_ptrs[j] = &(pathelembuf[j * (MAXPATHLEN/2)]);
 
     for (j = 0; j < VSG_MEMBERS; j++) {
 	    RPC2_Handle Handle = mgrp->rrcc.handles[j];
@@ -358,9 +341,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 		    continue;
 
 	    rc = Res_LockAndFetch(Handle, Fid, FetchStatus, VVvar_ptrs[j],
-				  rstatusvar_ptrs[j], logsizesvar_ptrs[j], 
-				  MAXPATHLEN/2, pathsizevar_ptrs[j], 
-				  pathelem_ptrs[j]);
+				  rstatusvar_ptrs[j], logsizesvar_ptrs[j]);
 	    mgrp->rrcc.retcodes[j] = rc;
     }
 				    
@@ -389,9 +370,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 	    case RVMRES: 
 		    resError = RecovDirResolve(mgrp, Fid, VVvar_ptrs, 
 					       rstatusvar_ptrs, 
-					       (int *)logsizesvar_bufs, 
-					       (int *)pathsizevar_bufs, 
-					       pathelem_ptrs, 1);
+					       (int *)logsizesvar_bufs);
 		    break;
 	    default:
 		    resError = OldDirResolve(mgrp, Fid, VVvar_ptrs);
@@ -411,7 +390,6 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 		   Fid->Volume);
 
  FreeGroups:
-    if (pathelembuf) free(pathelembuf);
     if (mgrp)
 	PutResMgroup(&mgrp);
     PROBE(FileresTPinfo, COORDENDVICERESOLVE);
@@ -430,9 +408,6 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
     }
     return(resError);
 }
-
-
-
 
 /*
   BEGIN_HTML

@@ -48,20 +48,6 @@ typedef RPC2_Struct
 	RPC2_Unsigned 	Mode;
 }	ResStatus;
 
-typedef RPC2_Struct
-{
-	RPC2_Integer		LogSize;
-	ViceVersionVector 	VV;
-}	ResVolParm;
-
-typedef RPC2_Struct
-{
-    VnodeId   vn;
-    Unique_t    un;
-    ViceVersionVector vv;
-    ResStatus st;
-}       ResPathElem;
-
 typedef RPC2_Enum
 {
 	FetchStatus = 0,
@@ -96,8 +82,7 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		 IN ResFetchType Request, 
 		 OUT ViceVersionVector VV,
 		 OUT ResStatus rstatus, 
-		 OUT RPC2_Integer logsize,
-		 OUT ResPathElem path[]);
+		 OUT RPC2_Integer logsize);
 
 4: UnlockVol   	(IN VolumeId Vid);
 

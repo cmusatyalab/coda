@@ -83,8 +83,8 @@ struct rvmrese : public olink {
     HistoElem LogSizeHisto[SHIPHISTOSIZE];
     HistoElem LogMaxHisto[NENTRIESHISTOSIZE];
     ResConflictStats Conflicts;
-    HistoElem SuccHierHist[DEPTHSIZE];
-    HistoElem FailHierHist[DEPTHSIZE];
+/*X*/HistoElem SuccHierHist[1];
+/*X*/HistoElem FailHierHist[1];
     ResLogStats ResLog;
     HistoElem VarLogHisto[MAXSIZES];
     HistoElem LogSize[SIZEBUCKETS];
@@ -128,12 +128,6 @@ struct rvmrese : public olink {
 	Conflicts.LogWrap = sp->conf.wrap;
 	Conflicts.Other = sp->conf.other;
 
-	/* hierarchystats */
-	for (i=0; i<DEPTHSIZE; i++) {
-	    SuccHierHist[i].bucket = sp->hstats.succres[i];
-	    FailHierHist[i].bucket = sp->hstats.unsuccres[i];
-	}
-
 	/* logstats */
 	ResLog.NumWraps = sp->lstats.nwraps;
 	ResLog.NumAdmGrows = sp->lstats.nadmgrows;
@@ -152,8 +146,7 @@ struct rvmrese : public olink {
 				    &FileRes, &DirRes, SHIPHISTOSIZE,
 				    LogSizeHisto, NENTRIESHISTOSIZE,
 				    LogMaxHisto, &Conflicts,
-				    DEPTHSIZE, SuccHierHist,
-				    DEPTHSIZE, FailHierHist,
+/*X*/				    1, SuccHierHist, 1, FailHierHist,
 				    &ResLog, MAXSIZES, VarLogHisto,
 				    SIZEBUCKETS, LogSize); }
 };

@@ -105,17 +105,6 @@ struct conflictstats {
     void update(conflictstats *);
 };
 
-#define DEPTHSIZE	12
-
-struct hierarchystats {
-    int succres[DEPTHSIZE];	// number of successful resolves at various depths
-    int unsuccres[DEPTHSIZE];	// unsuccessful resolves at diff. depths (due to wrap)
-
-    hierarchystats();
-    void print(int);
-};
-
-
 // log statistics
 
 // log size has several parameters
@@ -201,7 +190,6 @@ class resstats : public olink {
     fileresstats	file;
     dirresstats		dir;
     conflictstats	conf;
-    hierarchystats	hstats;
     logstats		lstats;
 
     resstats(unsigned long, int =0);
@@ -219,3 +207,4 @@ class resstats : public olink {
 
 #define Lsize(l)	(l).lstats.lsize
 #define VarlHisto(l)	(l).lstats.vdist
+

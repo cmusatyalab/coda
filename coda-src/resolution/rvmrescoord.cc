@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -75,10 +70,8 @@ static int ResolveInc(res_mgrpent *, ViceFid *, ViceVersionVector **);
 static int CompareDirContents(SE_Descriptor *, ViceFid *);
 static int CompareDirStatus(ViceStatus *, res_mgrpent *, ViceVersionVector **);
 static void DumpDirContents(SE_Descriptor *, ViceFid *);
-static void PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *);
 static int AllIncGroup(ViceVersionVector **, int );
 static void UpdateStats(ViceFid *, dirresstats *);
-static void UpdateStats(ViceFid *, int , int );
 
 // * Dir Resolution with logs in RVM
 // * This consists of 4 phases
@@ -113,8 +106,8 @@ static void UpdateStats(ViceFid *, int , int );
 //
 
 long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV, 
-		     ResStatus **rstatusp, int *sizes, int *pathsizes, 
-		     ResPathElem **paths, int checkpaths) {
+		     ResStatus **rstatusp, int *sizes)
+{
     int reserror = EINCONS;
     char *AllLogs = NULL;
     int totalentries = 0;
@@ -124,7 +117,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     dlist *inclist = NULL;
     dirresstats drstats;
     long retval = 0;
-    int dirdepth = -1;
     int noinc = -1;		// used only for updating res stats (dept statistics)
     
     // res stats stuff 
@@ -134,41 +126,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     }
     
     SLog(0, "Entering RecovDirResolve %s\n", FID_(Fid));
-
-#if 0
-    /* This should not be done for several reasons. 
-     * First of all, if the ancestor has a conflict we essentially return
-     * EINCONS for the wrong object. Second, we are only resolving the contents
-     * of the current directory. If anything is wrong with the ancestors, it
-     * should not affect successful resolution of this object. --JH */
-
-    // Check if object can be resolved 
-    if (checkpaths) {
-	if (SrvDebugLevel >= 10)
-	    PrintPaths(pathsizes, paths, mgrp);
-	ViceFid UnEqFid;
-	ViceVersionVector *UnEqVV[VSG_MEMBERS];
-	ResStatus *UnEqResStatus[VSG_MEMBERS];
-	if (ComparePath(pathsizes, paths, mgrp, &dirdepth, 
-			&UnEqFid, &UnEqVV[0], &UnEqResStatus[0])) {
-	    LogMsg(0, SrvDebugLevel, stdout,
-		   "%x.%x has ancestors that need to be resolved - therefore not resolving\n",
-		   Fid->Vnode, Fid->Unique);
-	    if (UnEqFid.Vnode != 0 && UnEqFid.Unique != 0) {
-		UnEqFid.Volume = Fid->Volume;
-		LogMsg(0, SrvDebugLevel, stdout, 
-		       "resolving %x.%x.%x  instead\n", 
-		       UnEqFid.Volume, UnEqFid.Vnode, UnEqFid.Unique);
-		RecovDirResolve(mgrp, &UnEqFid, &UnEqVV[0], &UnEqResStatus[0],
-				sizes, NULL, NULL, 0);
-	    }
-	    drstats.dir_problems++;
-	    reserror = 0;
-	    retval = EINVAL;
-	    goto Exit;
-	}
-    }
-#endif
 
     // Check if Regular Directory Resolution is required 
     {	
@@ -200,11 +157,7 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	}
     }
 
-    // Phase 1 has already been done by ViceResolve
-    // XXXXX needs to be modified
-    {
-	// lock volume
-    }
+    // Phase 1, locking the volume, has already been done by ViceResolve
     
     // Phase 2 
     {
@@ -272,8 +225,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     }
     SLog(1, "RecovDirResolve returns %d\n", retval);
     UpdateStats(Fid, &drstats);
-    if ((dirdepth != -1) && (noinc != -1))
-	UpdateStats(Fid, noinc, dirdepth);
     return(retval);
 }
 
@@ -928,23 +879,8 @@ static int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionVe
     return(0);
 }
 
-static void PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *mgrp) {
-    for (int i = 0; i < VSG_MEMBERS; i++) 
-	if (sizes[i] && !mgrp->rrcc.retcodes[i] && mgrp->rrcc.handles) {
-	    LogMsg(0, SrvDebugLevel, stdout,
-		   "There are %d Components for path %d\n",
-		   sizes[i], i);
-	    ResPathElem *components = paths[i];
-	    for (int j = 0; j < sizes[i]; j++) 
-		LogMsg(0, SrvDebugLevel, stdout, 
-		       "Fid: 0x%x.%x StoreId 0x%x.%x\n",
-		       components[j].vn, components[j].un,
-		       components[j].vv.StoreId.Host, 
-		       components[j].vv.StoreId.Uniquifier);
-	}
-}
-
-static void UpdateStats(ViceFid *Fid, dirresstats *drstats) {
+static void UpdateStats(ViceFid *Fid, dirresstats *drstats)
+{
     VolumeId vid = Fid->Volume;
     Volume *volptr = 0;
     if (XlateVid(&vid)) {
@@ -955,33 +891,6 @@ static void UpdateStats(ViceFid *Fid, dirresstats *drstats) {
 	else { 
 	    LogMsg(0, SrvDebugLevel, stdout,
 	       "UpdateStats: couldn't get vol obj 0x%x\n", vid);
-	    volptr = 0;
-	}
-    }
-    else 
-	LogMsg(0, SrvDebugLevel, stdout,
-	       "UpdateStats: couldn't Xlate Fid 0x%x\n", vid);
-    if (volptr) 
-	PutVolObj(&volptr, VOL_NO_LOCK, 0);
-
-}
-
-static void UpdateStats(ViceFid *Fid, int success, int dirdepth) {
-    VolumeId vid = Fid->Volume;
-    Volume *volptr = 0;
-    if (XlateVid(&vid)) {
-	if (!GetVolObj(vid, &volptr, VOL_NO_LOCK, 0, 0)) {
-	    if (AllowResolution && V_RVMResOn(volptr)) {
-		int bucketnumber = (dirdepth >= DEPTHSIZE) ? (DEPTHSIZE - 1): dirdepth;
-		if (success) 
-		    V_VolLog(volptr)->vmrstats->hstats.succres[bucketnumber]++;
-		else
-		    V_VolLog(volptr)->vmrstats->hstats.unsuccres[bucketnumber]++;
-	    }
-	}
-	else { 
-	    LogMsg(0, SrvDebugLevel, stdout,
-		   "UpdateStats: couldn't get vol obj 0x%x\n", vid);
 	    volptr = 0;
 	}
     }

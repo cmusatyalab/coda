@@ -115,29 +115,6 @@ void conflictstats::update(conflictstats *cs) {
     other += cs->other;
 }
 
-hierarchystats::hierarchystats() {
-    bzero((void *)this, sizeof(hierarchystats));
-}
-
-void hierarchystats::print(int fd) {
-    char buf[512];
-
-    sprintf(buf, "Depth   \t0\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t>10\n");
-    write(fd, buf, (int)strlen(buf));
-
-    sprintf(buf, "Succ Res\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-	    succres[0], succres[1], succres[2], succres[3], 
-	    succres[4], succres[5], succres[6], succres[7], 
-	    succres[8], succres[9], succres[10], succres[11]);
-    write(fd, buf, (int)strlen(buf));
-    
-    sprintf(buf, "UnSucc Res\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-	    unsuccres[0], unsuccres[1], unsuccres[2], unsuccres[3], 
-	    unsuccres[4], unsuccres[5], unsuccres[6], unsuccres[7], 
-	    unsuccres[8], unsuccres[9], unsuccres[10], unsuccres[11]);
-    write(fd, buf, (int)strlen(buf));
-}
-
 logsize::logsize(int size) {
     currentsize = high = highest = size;
 }
@@ -261,7 +238,6 @@ void resstats::print(int fd) {
 	    conf.nn, conf.ru, conf.uu, conf.mv, conf.wrap, conf.other);
     write(fd, buf, (int)strlen(buf));
 
-    hstats.print(fd);
     lstats.print(fd);
 }
 

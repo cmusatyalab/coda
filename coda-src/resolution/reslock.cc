@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* reslock.c 
  * Implements volume locking for resolution
  */
@@ -67,9 +61,7 @@ extern "C" {
 
 long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 		     ResFetchType Request, ViceVersionVector *VV, 
-		     ResStatus *rstatus,
-		     RPC2_Integer *logsize, RPC2_Integer maxcomponents, 
-		     RPC2_Integer *ncomponents, ResPathElem *components) 
+		     ResStatus *rstatus, RPC2_Integer *logsize)
 {
     int errorcode = 0;
     Volume *volptr = 0;
@@ -84,7 +76,6 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     // first set out parameters
     InitVV(VV);
     *logsize = 0;
-    *ncomponents = 0;
     bzero((void *)rstatus, sizeof(ResStatus));
 
     // get info from connection
@@ -146,13 +137,7 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	    PROBE(tpinfo, RESBEGIN);
     }
 
-
-    if ((errorcode = GetPath(Fid, (int)maxcomponents, (int *)ncomponents, 
-			    components)) )
-	    SLog(0, "RS_LockAndFetch:GetPath for %s returns error %d\n", 
-		 FID_(Fid), errorcode);
- FreeLocks:
-    
+FreeLocks:
     int filecode = 0;
     if (vptr){
 	    VPutVnode((Error *)&filecode, vptr);

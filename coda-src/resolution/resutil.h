@@ -197,9 +197,6 @@ extern ilink *AddILE(dlist &, char *, long, long, long, long, long);
 extern void CleanIncList(dlist *);
 extern void MarkObjInc(ViceFid *, Vnode *);
 extern int CreateObjToMarkInc(Volume *, ViceFid *, ViceFid *, char *, int, dlist *,int*);
-extern long GetPath(ViceFid *, int, int *, ResPathElem *);
-class res_mgrpent;
-extern int ComparePath(int *, ResPathElem **, res_mgrpent *, int *, ViceFid *, ViceVersionVector **, ResStatus **);
 void ObtainResStatus(ResStatus *, VnodeDiskObjectStruct *);
 
 
@@ -211,6 +208,7 @@ extern ViceStoreId *GetRemoteRemoveStoreId(olist *, unsigned long , ViceFid *, V
 extern int GetNameInParent(Vnode *, dlist *, Volume *, char *);
 
 /* declarations from rescoord.c */
+class res_mgrpent;
 extern long DirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **, int *);
 extern long OldDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **);
 extern int IsWeaklyEqual(ViceVersionVector **, int);
