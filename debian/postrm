@@ -16,15 +16,18 @@ set -e
 #        * <disappearer's-postrm> `disappear' <r>overwrit>r> <new-version>
 # for details, see /usr/doc/packaging-manual/
 
+if [ "$1" == "purge" ] ; then
+    echo -n "Purging Coda cache files etc. "
+    rm -rf /etc/coda /var/cache/coda /var/lib/coda /var/log/coda
+    echo "...done"
+fi
 
 case "$1" in
-    purge)
-        echo -n "Purging Coda cache files etc. "
-	rm -rf /etc/coda /var/cache/coda /var/lib/coda /var/log/coda
-	echo "...done"
+    purge|remove|abort-install|disappear)
+        dpkg-divert --package coda-client --rename --remove /usr/sbin/codaconfedit
     ;;
 
-    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    upgrade|failed-upgrade|abort-upgrade)
     ;;
 
     *)

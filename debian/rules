@@ -57,6 +57,11 @@ install: build
 
 	dh_movefiles
 
+	# both the client and the server package want this file. the client
+	# adds a diversion to avoid the conflict.
+	cp `pwd`/debian/coda-server/usr/sbin/codaconfedit \
+	    `pwd`/debian/tmp/usr/sbin/codaconfedit
+
 # Build architecture-independent files here.
 # Pass -i to all debhelper commands in this target to reduce clutter.
 binary-indep: DH_OPTIONS=-i

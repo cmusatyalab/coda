@@ -58,7 +58,7 @@ echon() {
 }
 
 # See how we were called.
-case "$1" in
+case "${1:-start}" in
   start)
     # start auth2 & update stuff: first the scm case
     echon "Starting Coda Services: "
@@ -72,14 +72,17 @@ case "$1" in
     fi
 
     # update srv and updatemon run on all servers
-    rpc2portmap &
-    echon " rpc2portmap"
+    if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
+            rpc2portmap &
+            echon " rpc2portmap"
+
+            updatesrv -p ${VICE}/db &
+            echon " updatesrv"
+    fi
 
     updateclnt -h `cat ${VICE}/db/scm`  -q coda_udpsrv &
     echon " updateclnt"
 
-    updatesrv -p ${VICE}/db &
-    echon " updatesrv"
     echo '.'	# Done With Coda Serivces
 
     # now the server
@@ -114,9 +117,23 @@ case "$1" in
   stop)
     # Normal Coda FS shutdown:
     # if pid file doesn't exist, it isn't likely that srv is running.
-    echon "Shutting down Coda: "
+    echon "Shutting down Coda:"
+
+    killall -9 auth2
+    echon " auth2"
+    killall -9 updateclnt
+    echon " updateclnt"
+
+    if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
+        killall -9 updatesrv
+        echon " updatesrv"
+        killall -9 rpc2portmap
+        echon " rpc2portmap"
+    fi
+
     if [ -f ${VICESRV}/pid ]; then
 	volutil shutdown
+        echo " codasrv"
 	echon "$0: sleeping 30 secs to let srv shutdown..."
 	sleep 30
 	echo "..done"
@@ -126,6 +143,7 @@ case "$1" in
 
   *)
     echo "Usage: $0 {start|stop}"
+    echo "       no parameters mean start"
     exit 1
 
 esac
