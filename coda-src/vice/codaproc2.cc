@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /************************************************************************/
 /*									*/
 /*  codaproc2.c	- Additional File Server Coda specific routines		*/
@@ -56,8 +50,6 @@ extern "C" {
 }
 #endif __cplusplus
 
-
-
 #include <srv.h>
 #include <coppend.h>
 #include <lockqueue.h>
@@ -73,6 +65,7 @@ extern "C" {
 #include <ops.h>
 #include <rsle.h>
 #include <inconsist.h>
+#include <vice.private.h>
 
 extern void MakeLogNonEmpty(Vnode *);
 extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
@@ -2012,13 +2005,15 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = v->f_finode;
 		    if ((errorCode = CallBackFetch(CBCid, &r->u.u_store.UntranslatedFid, &sid))) {
-#if 0 /* xXXX Jan clean this up */
-			    if ( errorCode < RPC2_ELIMIT ) {
-				    CLIENT_CleanUpHost(he);
-			    }
-#endif 			    
-			    index = -1;
-			    goto Exit;
+			HostTable *he = CLIENT_FindHostEntry(CBCid);
+			if ( errorCode < RPC2_ELIMIT ) {
+			    ObtainWriteLock(&he->lock);
+			    CLIENT_CleanUpHost(he);
+			    ReleaseWriteLock(&he->lock);
+			}
+
+			index = -1;
+			goto Exit;
 		    }
 		    RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
 		    if (r->u.u_store.Length != len) {

@@ -648,23 +648,31 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 	     client->UserName, client->VenusId->HostName, RPCid);
 	
 	if (!errorCode && client) {
-		/* set up a callback channel 
-		   if there isn't one for this host */
-		if (client->VenusId->id != 0) {
-			errorCode = CallBack(client->VenusId->id, &NullFid);
-			if ( errorCode != RPC2_SUCCESS ) {
-				SLog(0, "GetTime: Destroying callback conn for %s",
-				     client->VenusId->HostName);
-				/* tear down nak'd connection */
-				RPC2_Unbind(client->VenusId->id);
-				client->VenusId->id = 0;
-			}
+	    /* we need a lock, because we cannot do concurrent RPC2 calls on
+	     * the same connection */
+	    ObtainWriteLock(&client->VenusId->lock);
+
+	    /* set up a callback channel if there isn't one for this host */
+	    if (client->VenusId->id != 0) {
+		errorCode = CallBack(client->VenusId->id, &NullFid);
+		if ( errorCode != RPC2_SUCCESS ) {
+		    SLog(0, "GetTime: Destroying callback conn for %s",
+			 client->VenusId->HostName);
+		    /* tear down nak'd connection */
+		    RPC2_Unbind(client->VenusId->id);
+		    client->VenusId->id = 0;
 		}
-		if (client->VenusId->id == 0) {
-			SLog(0, "GetTime: Building callback conn to %s.",
-			     client->VenusId->HostName);
-			errorCode = CLIENT_MakeCallBackConn(client);
-		}
+	    }
+
+	    ReleaseWriteLock(&client->VenusId->lock);
+	    /* we don't need the lock here anymore, because MakeCallBackConn
+	     * does it's own locking */
+
+	    if (client->VenusId->id == 0) {
+		SLog(0, "GetTime: Building callback conn to %s.",
+		     client->VenusId->HostName);
+		errorCode = CLIENT_MakeCallBackConn(client);
+	    }
 	}
 
 	SLog(2, "GetTime returns %d, %d, errorCode %d", 
@@ -1043,6 +1051,10 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 	return(ENOTCONN);
     }
 
+    /* we need a lock, because we cannot do concurrent RPC2 calls on the same
+     * connection */
+    ObtainWriteLock(&client->VenusId->lock);
+
     /* attempt to send a callback message to this host */
     if (client->VenusId->id != 0) {
 	errorCode = CallBack(client->VenusId->id, &NullFid);
@@ -1052,6 +1064,10 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 	    client->VenusId->id = 0;
 	}
     }			
+
+    ReleaseWriteLock(&client->VenusId->lock);
+    /* we don't need the lock here anymore, because MakeCallBackConn
+     * does it's own locking */
 
     /* set up a callback channel if there isn't one for this host */
     if (client->VenusId->id == 0) {

@@ -372,16 +372,31 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
 	return;
     }
     
+    /* allocate space for all hostentries we will lock */
+    HostTable **helist = (HostTable **) malloc(sizeof(HostTable *) * tf->users);
+
     /* allocate space for multirpc lists.  tf->users is an upper bound. */
     RPC2_Handle *cidlist = (RPC2_Handle *) malloc(sizeof(RPC2_Handle) * tf->users);
     RPC2_Integer *rclist = (RPC2_Integer *) malloc(sizeof(RPC2_Integer) * tf->users);
     bzero((char *) rclist, (int) sizeof(RPC2_Integer) * tf->users);
     
-    /* how many client entries, other than us?  fill conn id list */
+    /* how many client entries, other than us?  fill conn id list, and obtain
+     * locks on the hostentry structures */
     int nhosts = 0;
-    for (tc = tf->callBacks; tc; tc = tc->next) 
-	if (tc->conn && tc->conn != client && tc->conn->id)
+    for (tc = tf->callBacks; tc; tc = tc->next) {
+	if (tc->conn && tc->conn != client && tc->conn->id) {
+	    ObtainWriteLock(&tc->conn->lock);
+
+	    /* Recheck! The callback connection might have been destroyed */
+	    if (!tc->conn->id) {
+		ReleaseWriteLock(&tc->conn->lock);
+		continue;
+	    }
+
+	    helist[nhosts] = tc->conn;
 	    cidlist[nhosts++] = tc->conn->id;
+	}
+    }
 
     LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack: %d conns, %d users", 
 	   nhosts, tf->users); 
@@ -392,19 +407,22 @@ void BreakCallBack(HostTable *client, ViceFid *afid) {
 		       NULL, NULL, NULL, afid);
 
 	for (int i = 0; i < nhosts; i++) {
-	    /* host entry may disappear during yield in CallBack() */
-	    HostTable *he = CLIENT_FindHostEntry(cidlist[i]);
-	    if (he) {
-		/* recursively calls DeleteVenus */
-		if (rclist[i] < RPC2_ELIMIT)  
-			CLIENT_CleanUpHost(he);
+	    /* we cannot have lost any of the hostentries, because they were
+	     * locked */
 
-		/* if a file callback, delete any volume callbacks */
-		if (!aVCB)  DeleteCallBack(he, &vFid);
-	    }
+	    /* recursively calls DeleteVenus */
+	    if (rclist[i] < RPC2_ELIMIT)  
+		CLIENT_CleanUpHost(helist[i]);
+
+	    /* if a file callback, delete any volume callbacks */
+	    if (!aVCB)  DeleteCallBack(helist[i], &vFid);
+
+	    /* and let go of the lock */
+	    ReleaseWriteLock(&helist[i]->lock);
 	}
     }
 
+    free(helist);
     free(cidlist);
     free(rclist);
 

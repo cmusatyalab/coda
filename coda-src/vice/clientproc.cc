@@ -222,12 +222,6 @@ static HostTable *client_GetVenusId(RPC2_Handle RPCid)
 		maxHost++;
 	}
 
-	/* Lock the host entry. */
-	ObtainWriteLock(&hostTable[i].lock);
-
-	/* Unlock the host entry. */
-	ReleaseWriteLock(&hostTable[i].lock);
-
 	return(&hostTable[i]);
 }
 
@@ -255,7 +249,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     RPC2_BindParms bp;
     HostTable *HostEntry;
     RPC2_Handle callback_id;
-    long	errorCode;
+    long	errorCode = RPC2_SUCCESS;
 
     /* Look up the Peer info corresponding to the given RPC handle. */
     CODA_ASSERT(RPC2_GetPeerInfo(Client->RPCid, &peer) == 0);
@@ -282,25 +276,17 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
 
     /* Check if another thread already set up the connection while we were
      * waiting for the lock, if so we're done quickly. */
-    if (HostEntry->id) {
-	errorCode = RPC2_SUCCESS;
+    if (HostEntry->id)
 	goto exit_makecallbackconn;
-    }
 
-    /* Attempt the bind, we use a local callback_id variable, because we
-     * will schedule out during the bind, and we don't want regular probes
-     * to attempt to use (& destroy) the only partially set up connection. */
+    /* Attempt the bind */
     errorCode = RPC2_NewBinding(&peer.RemoteHost, 
 				     &peer.RemotePort, &sid, &bp, 
 				     &callback_id);
 
-    /* This should be impossible with the HostEntry->lock, but it won't hurt
-     * to check here anyway. */
-    if (HostEntry->id != 0) {
-	SLog(0, "RPC2_MakeCallBackConn, connection already set up!");
-	RPC2_Unbind(callback_id);
-	goto exit_makecallbackconn;
-    }
+    /* This should never happen, otherwise someone forgot to get the
+     * HostEntry->lock! */
+    CODA_ASSERT(HostEntry->id == 0);
 
     HostEntry->id = callback_id;
 
@@ -348,12 +334,15 @@ void CLIENT_CallBackCheck()
     for (int i = 0; i < maxHost; i++) {
 	if ((hostTable[i].id) && (hostTable[i].LastCall < checktime)) {
 	    ObtainWriteLock(&hostTable[i].lock);
-	    long rc = CallBack(hostTable[i].id, &NullFid);
-	    if (rc <= RPC2_ELIMIT) {
-		SLog(0, "Callback failed %s for ws %s, port %d",
-		     ViceErrorMsg((int) rc), hostTable[i].HostName, 
-		     ntohs(hostTable[i].port));
-		CLIENT_CleanUpHost(&hostTable[i]);
+	    /* recheck, the connection may have been destroyed */
+	    if (hostTable[i].id != 0) {
+		long rc = CallBack(hostTable[i].id, &NullFid);
+		if (rc <= RPC2_ELIMIT) {
+		    SLog(0, "Callback failed %s for ws %s, port %d",
+			ViceErrorMsg((int) rc), hostTable[i].HostName, 
+			ntohs(hostTable[i].port));
+		    CLIENT_CleanUpHost(&hostTable[i]);
+		}
 	    }
 	    ReleaseWriteLock(&hostTable[i].lock);
 	}
@@ -361,6 +350,7 @@ void CLIENT_CallBackCheck()
 }
 
 
+/* This needs to be called with ht->lock taken!! */
 void CLIENT_CleanUpHost(HostTable *ht) 
 {
     SLog(1, "Cleaning up a HostTable for %s.%d", ht->HostName, ntohs(ht->port));
