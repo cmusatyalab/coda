@@ -22,6 +22,7 @@ listed in the file CREDITS.
 /* per-connection info */
 struct UserInfo
 {
+	RPC2_Handle handle;
         int ViceId;     /* from NewConnection */
         int HasQuit;    /* TRUE iff Quit() was received on this connection */
         PRS_InternalCPS *UserCPS;

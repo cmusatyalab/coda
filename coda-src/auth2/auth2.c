@@ -181,8 +181,8 @@ int main(int argc, char **argv)
     
     LogMsg(-1, 0, stdout, "Server successfully started");
 	
-	client_idx=0;
-	memset(client,0,sizeof(client));
+    client_idx=0;
+    memset(client,0,sizeof(client));
 
     while(TRUE) {
 	cid = 0;
@@ -341,19 +341,25 @@ static void SetDebug()
 
 
 static void Terminate()
-    {
-	int i;
+{
+    int i;
+    struct UserInfo *ui;
 
-	for(i=0; i<client_idx; i++)
-		free(client[i]);
+    for(i = 0; i < MAXNUMCLIENT; i++) {
+	if (!client[i]) continue;
 
-	for(i=client_idx+1; i < MAXNUMCLIENT; i++)
-		if(client[i]!=0)
-			free(client[client_idx]);
+	ui = client[i];
+	client[i] = NULL;
+
+	RPC2_Unbind(ui->handle);
+	if (ui->UserCPS)
+	    AL_FreeCPS(&ui->UserCPS);
+	free(ui);
+    }
 
     LogMsg(-1, 0, stdout, "Terminate signal received .......quitting");
     exit(0);
-    }
+}
 
 
 static void CheckSignal()
@@ -498,34 +504,47 @@ void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent,
 /* ============= Bodies of RPC routines follow =============  */
 
 long S_AuthNewConn(RPC2_Handle cid, RPC2_Integer seType, RPC2_Integer secLevel, RPC2_Integer encType, RPC2_Integer AuthType, RPC2_CountedBS *cIdent)
-    {
+{
     int vid;
+    struct UserInfo *ui;
 
     vid = GetViceId(cIdent);
     LogMsg(0, AuthDebugLevel, stdout, "AuthNewConn(0x%x, %d, %d, %d, %d)",
-	cid, seType, secLevel, encType, vid);
-    client[client_idx] = (struct UserInfo *) malloc(sizeof(struct UserInfo));
+	   cid, seType, secLevel, encType, vid);
 
-    RPC2_SetPrivatePointer(cid, (char *)client[client_idx]);
-    client[client_idx]->ViceId = vid;
-    client[client_idx]->HasQuit = FALSE;
-    client[client_idx]->UserCPS = NULL;
-    client[client_idx]->LastUsed = time(0);
+    if (client[client_idx]) {
+	ui = client[client_idx];
+	client[client_idx] = NULL;
 
-	client_idx=(client_idx+1)%MAXNUMCLIENT;
-	if(client[client_idx]!=0){	
-		free(client[client_idx]);
-	}
+	RPC2_Unbind(ui->handle);
+	if (ui->UserCPS)
+	    AL_FreeCPS(&ui->UserCPS);
+	free(ui);
+    }
+
+    ui = (struct UserInfo *) malloc(sizeof(*ui));
+    ui->handle = cid;
+    ui->ViceId = vid;
+    ui->HasQuit = FALSE;
+    ui->UserCPS = NULL;
+    ui->LastUsed = time(0);
+
+    RPC2_SetPrivatePointer(cid, (char *)ui);
+    client[client_idx++] = ui;
+
+    if (client_idx == MAXNUMCLIENT)
+	client_idx = 0;
 
     return(0);
-    }
+}
 
 
 long S_AuthQuit(RPC2_Handle cid)
     {
-    struct UserInfo *p;
-    RPC2_GetPrivatePointer(cid, (char **)&p);
-    p->HasQuit = TRUE;
+    struct UserInfo *ui;
+    RPC2_GetPrivatePointer(cid, (char **)&ui);
+    if (ui)
+	ui->HasQuit = TRUE;
     return(0);
     }
 
@@ -537,7 +556,7 @@ long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est, ClearToken *cTok
     SecretToken sToken;
 
     RPC2_GetPrivatePointer(cid, (char **)&ui);
-    if (ui == NULL || ui->HasQuit == TRUE) return(AUTH_FAILED);
+    if (!ui || ui->HasQuit == TRUE) return(AUTH_FAILED);
     ui->LastUsed = time(0);
 
     /* First build clear token */
@@ -621,20 +640,20 @@ extern int IsAUser(int viceId);
 
 long S_AuthDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
 {
-	struct UserInfo *p;
+	struct UserInfo *ui;
 
 	/* Do not allow if this is a read only server	*/
 	if(CheckOnly)
 		return(AUTH_READONLY);
 	
 	/* make sure it's a system administrator */
-	RPC2_GetPrivatePointer(cid, (char **)&p);
-	if (p == NULL || p->HasQuit == TRUE) 
+	RPC2_GetPrivatePointer(cid, (char **)&ui);
+	if (!ui || ui->HasQuit == TRUE) 
 		return(AUTH_FAILED);
-	p->LastUsed = time(0);
-	if (!IsAdministrator(p)) {
+	ui->LastUsed = time(0);
+	if (!IsAdministrator(ui)) {
 		char buf1[PRS_MAXNAMELEN], buf2[PRS_MAXNAMELEN];
-		LogMsg(-1, 0, stdout, "AuthDeleteUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(p->ViceId, buf2));
+		LogMsg(-1, 0, stdout, "AuthDeleteUser() attempt on  %s by %s denied", GetVname(viceId, buf1), GetVname(ui->ViceId, buf2));
 		return(AUTH_DENIED);
 	}
 	if (!IsAUser(viceId)) 
