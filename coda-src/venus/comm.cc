@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.13 1998/04/14 21:03:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.14 98/06/11 15:29:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1187,7 +1187,7 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
     if (code == ETIMEDOUT) {
 	/* Not already considered down. */
 	if (connid != 0) {
-	    eprint("%s down", name);
+	    eprint("%s unreachable", name);
 	    Reset();
 	    VSGDB->DownEvent(host);
   	    NotifyUsersOfServerDownEvent(name);
@@ -1292,7 +1292,7 @@ void srvent::ServerError(int *codep) {
 	/* Reset if TIMED'out or NAK'ed. */
 	switch (*codep) {
 	    case ETIMEDOUT:
-		eprint("%s down", name);
+		eprint("%s unreachable", name);
 		Reset();
 		VSGDB->DownEvent(host);
 		NotifyUsersOfServerDownEvent(name);
@@ -1300,7 +1300,7 @@ void srvent::ServerError(int *codep) {
 
 	    case ERETRY:
 		/* Must have missed a down event! */
-		eprint("%s naked", name);
+		eprint("%s nak'ed", name);
 		Reset();
 		VSGDB->DownEvent(host);
 		connid = -2;

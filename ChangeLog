@@ -1,3 +1,11 @@
+1998-06-24    <braam@carissimi.coda.cs.cmu.edu>
+
+	* kernel-src/vfs/linux21: enormous amounts of changes. New
+	Makefiles for the linux-coda module.  Improvements to the 
+	kernel code. 
+	* coda-src/fail: filcon now returns 0. 
+	* minor changes for BSD package building.
+
 1998-06-18    <braam@carissimi.coda.cs.cmu.edu>
 
 	* kernel-src/vfs/Makefile.in (SUBDIRS): linux kernel code builds

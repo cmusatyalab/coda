@@ -156,6 +156,9 @@ struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb)
 			if ( coda_fideq(&cii->c_fid, fid) ) {
 				inode = cii->c_vnode;
 				CDEBUG(D_INODE, "volume root, found %ld\n", cii->c_vnode->i_ino);
+				if ( cii->c_magic != CODA_CNODE_MAGIC )
+					printk("%s: Bad magic in inode, tell Peter.\n", 
+					       __FUNCTION__);
 				return cii->c_vnode;
 			}
 			

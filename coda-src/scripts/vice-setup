@@ -12,7 +12,7 @@ fi
 
 cd /vice
 
-for i in backup db srv vol bin ; do
+for i in backup db srv vol bin auth2 ; do
     if [ ! -d $i ]; then
        mkdir $i
     fi

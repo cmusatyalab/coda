@@ -10,7 +10,7 @@
 # Unlicensed use or distribution of this code is illegal.
 # 
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/Makefile.in,v 4.7 1998/01/10 18:37:20 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/Makefile.in,v 4.9 98/06/18 20:30:59 jaharkes Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -30,18 +30,17 @@ SBINS       = $(EXECUTABLES) $(SCRIPTS)
 NLIBS =	$(LIBIBERTY) \
 	$(LIBAUTH2)	\
 	$(SALVAGE_O) 	\
+	$(LIBRVMRES)	\
 	$(LIBVOL)	\
 	$(LIBVOLUTIL)	\
-	$(LIBRVMRES)	\
 	$(LIBRESLIB)	\
 	$(LIBVV)	\
 	$(LIBRPC2) 	\
 	$(LIBAL)	\
 	$(LIBSYSENT)	\
-	$(LIBUTIL) 	\
 	$(LIBDIRLIB)	\
 	${LIBPARTITION}\
-	${LIBUTIL}\
+	$(LIBUTIL) 	\
 	$(LIBCODARDS) 	\
 	$(LIBSEG) 	\
 	$(LIBCODARVM) 	\

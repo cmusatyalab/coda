@@ -421,7 +421,7 @@ struct proc_dir_entry proc_sys_coda = {
 };
 
 /*
- * target directory structure:
+ target directory structure:
    /proc/fs  (see linux/fs/proc/root.c)
    /proc/fs/coda
    /proc/fs/coda/{vfs_stats,
@@ -496,6 +496,23 @@ struct proc_dir_entry proc_coda_cache_inv_control =  {
 
 #endif
 
+__initfunc(int init_coda(void)) 
+{
+	int status;
+	printk(KERN_INFO "Coda Kernel/Venus communications, v4.6.0, braam@cs.cmu.edu\n");
+	
+	status = init_coda_psdev();
+	if ( status ) {
+		printk("Problem (%d) in init_coda_psdev\n", status);
+		return status;
+	}
+	
+	status = init_coda_fs();
+	if (status) {
+		printk("coda: failed in init_coda_fs!\n");
+	}
+	return status;
+}
 
 int init_coda_psdev(void)
 {
@@ -542,20 +559,20 @@ MODULE_AUTHOR("Peter J. Braam <braam@cs.cmu.edu>");
 
 int init_module(void)
 {
-  int status;
-  printk(KERN_INFO "Coda Kernel/User communications module 2.0\n");
+	int status;
+	printk(KERN_INFO "Coda Kernel/Venus communications (module), v4.6.0, braam@cs.cmu.edu\n");
 
-  status = init_coda_psdev();
-  if ( status ) {
-	  printk("Problem (%d) in init_coda_psdev\n", status);
-	  return status;
-  }
+	status = init_coda_psdev();
+	if ( status ) {
+		printk("Problem (%d) in init_coda_psdev\n", status);
+		return status;
+	}
 
-  status = init_coda_fs();
-  if (status) {
-	  printk("coda: failed in init_coda_fs!\n");
-  }
-  return status;
+	status = init_coda_fs();
+	if (status) {
+		printk("coda: failed in init_coda_fs!\n");
+	}
+	return status;
 }
 
 

@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/bldvldb.sh,v 4.8 1998/01/20 20:53:04 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/bldvldb.sh,v 4.9 1998/05/27 20:29:14 braam Exp $";
 #endif /*_BLURB_*/
 
 THISHOST=`hostname | tr A-Z a-z`
@@ -39,7 +39,7 @@ REMOTE=/vice/vol/remote
 PATH=/sbin:/usr/sbin:$PATH
 export PATH
 cd /vice/vol/remote
-
+SERVERS=""
 
 # Get the locally generated /vice/vol/VolumeList from 
 #  - all servers (if argc = 1)
@@ -48,8 +48,13 @@ cd /vice/vol/remote
 if [ $#  = 0 ]; then
 	SERVERS=`awk '{ print $1 }' /vice/db/servers`
 else
-	SERVERS=$*
+    for i in $* ; do
+        NEWSERVER=`awk '{ print $1 }' /vice/db/servers | grep $i `
+	SERVERS="$NEWSERVER $SERVERS"
+    done
 fi
+
+echo "Fetching /vice/vol/Volumelist from $SERVERS"
 
 for server in $SERVERS
 do 

@@ -611,11 +611,10 @@ static inline unsigned long coda_waitfor_upcall(struct vmsg *vmp)
 			if ( sigismember(&(current->signal), SIGKILL) ||
 			     sigismember(&(current->signal), SIGINT) )
 				break;
-#if 0			/* signal is present: after timeout always return 
+			/* signal is present: after timeout always return 
 			   really smart idea, probably useless ... */
 			if ( jiffies > vmp->vm_posttime + coda_timeout * HZ )
 				break; 
-#endif
 		}
 		schedule();
 
@@ -774,7 +773,13 @@ ENTRY;
 	return error;
 }
 
-
+/*  
+    The statements below are part of the Coda opportunistic
+    programming -- taken from the Mach/BSD kernel code for Coda. 
+    You don't get correct semantics by stating what needs to be
+    done without guaranteeing the invariants needed for it to happen.
+    When will be have time to find out what exactly is going on?  (pjb)
+*/
 
 
 /* 
@@ -805,7 +810,7 @@ ENTRY;
 int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 {
 
-    /* Handle invalidation requests. */
+	/* Handle invalidation requests. */
           if ( !sb ) { 
 	          printk("coda_downcall: opcode %d, no sb!\n", opcode);
 		  return 0; 
@@ -840,17 +845,12 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  clstats(CFS_ZAPDIR);
 
 		  inode = coda_fid_to_inode(fid, sb);
-		  if ( inode ) {
-			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld\n", inode->i_ino);
-	                  coda_flag_inode(inode, C_VATTR);
-#if 0
-			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld flagged\n", inode->i_ino);
-			  coda_cache_clear_inode(inode);
+		  if (inode) {
+			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld children flagged\n", 
+				 inode->i_ino);
+			  coda_purge_children(inode);
 			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld cache cleared\n", inode->i_ino);
-#endif
-
-			  coda_flag_alias_children(inode, C_PURGE);
-			  CDEBUG(D_DOWNCALL, "zapdir: inode = %ld children flagged\n", inode->i_ino);
+	                  coda_flag_inode(inode, C_VATTR);
 		  } else 
 			  CDEBUG(D_DOWNCALL, "zapdir: no inode\n");
 		  
@@ -866,7 +866,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  if ( inode ) {
 			  CDEBUG(D_DOWNCALL, "zapfile: inode = %ld\n", inode->i_ino);
 	                  coda_flag_inode(inode, C_VATTR);
-		  }else 
+		  } else 
 			  CDEBUG(D_DOWNCALL, "zapfile: no inode\n");
 		  return 0;
 	  }
@@ -879,7 +879,8 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  inode = coda_fid_to_inode(fid, sb);
 		  if ( inode ) { 
 			  CDEBUG(D_DOWNCALL, "purgefid: inode = %ld\n", inode->i_ino);
-                          coda_flag_inode(inode, C_PURGE);
+			  coda_purge_children(inode);
+			  coda_purge_dentries(inode);
 		  }else 
 			  CDEBUG(D_DOWNCALL, "purgefid: no inode\n");
 		  return 0;
@@ -893,7 +894,7 @@ int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 		  inode = coda_fid_to_inode(fid, sb);
 		  if ( inode ) { 
 			  CDEBUG(D_DOWNCALL, "replacefid: inode = %ld\n", inode->i_ino);
-                          coda_flag_inode(inode, C_PURGE);
+                          coda_purge_dentries(inode);
 		  }else 
 			  CDEBUG(D_DOWNCALL, "purgefid: no inode\n");
 		  return 0;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.1 1998/01/05 16:41:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.2 1998/01/05 22:04:04 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -130,15 +130,17 @@ char *argv[MAXARGS];
 
 iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
 
+void
 main(int argc, char **argv)
 {
 	if ( argc > 1 ) {
-		return Parser_execarg(argc-1, &argv[1], argcmdlist);
+		Parser_execarg(argc-1, &argv[1], argcmdlist);
 	} else {
 		InitRPC();
 		Parser_init("filcon> ", list);
 		Parser_commands();
 	}
+	exit(0);
 }
 
 int BreakupArgs(char *args, char **argv)
