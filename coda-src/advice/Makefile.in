@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.11 98/01/12 23:35:10 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.12 1998/01/26 21:38:16 mre Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -74,6 +74,9 @@ AOBJS = console_handler.o counters.o daemon.o data.o \
 REALRPCSETUP = rpc_setup.o
 FAKERPCSETUP = fake_rpc_setup.o
 
+
+coda: advice_srv.h
+
 advice: advice_srv
 
 libadvice.a: ${AOBJS} ${REALRPCSETUP}
@@ -93,7 +96,7 @@ advice_srv.h: advice_srv.h.in translate.sed
 	sed -f translate.sed $< > $@
 
 translate.sed: Makefile
-	echo "s%+GUIDIR+%${LIBEXECDIR}%g" >> $@
+	echo "s%+GUIDIR+%${GUIDIR}%g" >> $@
 
 # Dependencies
 
