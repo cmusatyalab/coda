@@ -56,11 +56,11 @@ extern "C" {
 #endif __cplusplus
 
 #include <util.h>
-#include "update.h"
 #include <volutil.h>
 #include <codaconf.h>
-#include <coda_md5.h>
 #include <vice_file.h>
+#include "update.h"
+#include "updatecommon.h"
 
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 
@@ -209,36 +209,6 @@ static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
     return(rc);
 }
 
-static int GetUpdateSecret(char *tokenfile, RPC2_EncryptionKey key)
-{
-    int fd, n;
-    unsigned char buf[512], digest[16];
-    MD5_CTX md5ctxt;
-
-    memset(key, 0, RPC2_KEYSIZE);
-
-    fd = open(tokenfile, O_RDONLY);
-    if (fd == -1) {
-	LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", tokenfile);
-	return -1;
-    }
-
-    memset(buf, 0, 512);
-    n = read(fd, buf, 512);
-    if (n < 0) {
-	LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", tokenfile);
-	return -1;
-    }
-
-    MD5_Init(&md5ctxt);
-    MD5_Update(&md5ctxt, buf, n);
-    MD5_Final(digest, &md5ctxt);
-
-    memcpy(key, digest, RPC2_KEYSIZE);
-
-    return 0;
-}
-
 static void Connect()
 {
     long     rc;
@@ -282,7 +252,7 @@ static void Connect()
     cident.SeqLen = strlen(hostname) + 1;
     bparms.ClientIdent = &cident;
 
-    GetUpdateSecret(vice_sharedfile("db/update.tk"), secret);
+    GetSecret(vice_sharedfile("db/update.tk"), secret);
     bparms.SharedSecret = &secret;
 
     if ((rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con))) {

@@ -91,10 +91,10 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #endif __cplusplus
 
 #include <util.h>
+#include <vice_file.h>
+#include <codaconf.h>
 #include "update.h"
-#include "vice_file.h"
-#include "codaconf.h"
-#include "coda_md5.h"
+#include "updatecommon.h"
 
 #define UPDSRVNAME "updatesrv"
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
@@ -350,42 +350,13 @@ static void Terminate()
     exit(0);
 }
 
-static int GetUpdateSecret(char *tokenfile, RPC2_EncryptionKey key)
-{
-    int fd, n;
-    unsigned char buf[512], digest[16];
-    MD5_CTX md5ctxt;
-
-    memset(key, 0, RPC2_KEYSIZE);
-
-    fd = open(tokenfile, O_RDONLY);
-    if (fd == -1) {
-	LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", tokenfile);
-	return -1;
-    }
-
-    memset(buf, 0, 512);
-    n = read(fd, buf, 512);
-    if (n < 0) {
-	LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", tokenfile);
-	return -1;
-    }
-
-    MD5_Init(&md5ctxt);
-    MD5_Update(&md5ctxt, buf, n);
-    MD5_Final(digest, &md5ctxt);
-
-    memcpy(key, digest, RPC2_KEYSIZE);
-    return 0;
-}
-
 static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
 			   RPC2_EncryptionKey sharedsecret,
 			   RPC2_EncryptionKey sessionkey)
 {
     unsigned int i;
 
-    if (GetUpdateSecret(vice_sharedfile("db/update.tk"), sharedsecret) == -1)
+    if (GetSecret(vice_sharedfile("db/update.tk"), sharedsecret) == -1)
 	return -1;
 
     memset(sessionkey, 0, RPC2_KEYSIZE);

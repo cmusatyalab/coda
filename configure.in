@@ -122,6 +122,7 @@ coda-src/scripts/codaconfedit
 coda-src/scripts/createvol_rep
 coda-src/scripts/rc.vice
 coda-src/scripts/startserver
+coda-src/scripts/venus.init
 coda-src/scripts/vice-setup
 coda-src/scripts/vice-setup-rvm
 coda-src/scripts/vice-setup-scm

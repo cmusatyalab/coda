@@ -11,27 +11,16 @@
 # description: The Coda cache manager.
 
 
-LOCKDIR=/var/lock/subsys
-PIDDIR=/usr/coda/venus.cache
-CACHEDIR=/usr/coda/venus.cache
-ETCDIR=/usr/coda/etc
-SPOOLDIR=/usr/coda/spool
-
 PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
 
-[ -f /usr/sbin/venus ] || exit 0
-[ -d $CACHEDIR ] || exit 0 
-[ -d $ETCDIR ] || exit 0
+# defaults
+pid_file=/usr/coda/venus.cache/pid
 
-if [ `uname` = 'SunOS' ] ; then
-    LOCKFILE=$PIDDIR/venus.init.lock
-else
-    # redhat and debian?
-    LOCKDIR=/var/lock/subsys
-    [ -d $LOCKDIR ] || exit 0
-    LOCKFILE=$LOCKDIR/venus.init
-fi
+# overridden from the venus.conf
+[ -f @sysconfdir@/venus.conf ] && . @sysconfdir@/coda/venus.conf
+
+[ -f @sbindir@/venus ] || exit 0
 
 echon() {
     if [ "`echo -n`" ] ; then
@@ -46,42 +35,38 @@ echon() {
 case "$1" in
   start)
 	echon "Starting venus: "
-	if [ ! -f $LOCKFILE ]; then
-		touch $LOCKFILE
-		venus &
-	else
-		echo "already locked."
-		exit 0
+	if [ -f $pid_file ]; then
+		echo "$pid_file exists, venus already running?."
+		exit 1
 	fi
+	@sbindir@/venus &
 	echo "done."
-	;;
+    ;;
   stop)
 	echon "Shutting down venus: "
-	if [ -f $PIDDIR/pid ]; then
-		
-		kill -TERM `cat $PIDDIR/pid`
+	if [ -f $pid_file ]; then
+		kill -TERM `cat $pid_file`
 		umount /coda
 	fi
-	rm -f $LOCKFILE
+	rm -f $pid_file
 	echo "done."
-
-	;;
-
+    ;;
   hardstop)
 	echon "Killing venus: "
-	if [ -f $PIDDIR/pid ]; then
-		
-		kill -9 `cat $PIDDIR/pid`
+	if [ -f $pid_file ]; then
+		kill -9 `cat $pid_file`
 		umount /coda
 	fi
-	rm -f $LOCKFILE
+	rm -f $pid_file
 	echo "done."
-	;;
-
-
-  *)
+    ;;
+    restart|force-reload)
+	echo "$1 not available"
+    ;;
+    *)
 	echo "Usage: $0 {start|stop|hardstop}"
 	exit 1
+    ;;
 esac
 
 exit 0

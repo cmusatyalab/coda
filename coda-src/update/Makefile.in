@@ -66,11 +66,11 @@ CXXFLAGS := -Wall -DSYSCONFDIR=\"${sysconfdir}\" $(CXXFLAGS)
 
 include $(TOPDIR)/configs/Makerules
 
-updatesrv: updatesrv.o update.server.o ${DEPLIBS}
-	$(CXX) $(LDFLAGS) updatesrv.o update.server.o ${LIBS} -o updatesrv
+updatesrv: updatesrv.o updatecommon.o update.server.o ${DEPLIBS}
+	$(CXX) $(LDFLAGS) updatesrv.o updatecommon.o update.server.o ${LIBS} -o updatesrv
 
-updateclnt: updateclnt.o update.client.o  ${DEPLIBS}
-	$(CXX) $(LDFLAGS) updateclnt.o update.client.o  ${LIBS} -o updateclnt
+updateclnt: updateclnt.o updatecommon.o update.client.o  ${DEPLIBS}
+	$(CXX) $(LDFLAGS) updateclnt.o updatecommon.o update.client.o  ${LIBS} -o updateclnt
 
-updatefetch: updatefetch.o update.client.o  ${DEPLIBS}
-	$(CXX) $(LDFLAGS) updatefetch.o update.client.o  ${LIBS} -o updatefetch
+updatefetch: updatefetch.o updatecommon.o update.client.o  ${DEPLIBS}
+	$(CXX) $(LDFLAGS) updatefetch.o updatecommon.o update.client.o  ${LIBS} -o updatefetch
