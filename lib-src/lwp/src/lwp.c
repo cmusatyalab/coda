@@ -643,7 +643,6 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
 	blocked.count = 0;
 	lwp_init = (struct lwp_ctl *) malloc(sizeof(struct lwp_ctl));
 	temp = (PROCESS) malloc(sizeof(struct lwp_pcb));
-	memset(temp, 0, sizeof(struct lwp_pcb));
 	if (lwp_init == NULL || temp == NULL)
 		Abort_LWP("Insufficient Storage to Initialize LWP Support");
 
@@ -850,6 +849,7 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 			   char *name)
 {
     lwpdebug(0, "Entered Initialize_PCB");
+    memset(temp, 0, sizeof(struct lwp_pcb));
 
     if (name)
 	temp->name = strdup(name);
@@ -857,17 +857,8 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
     temp->status = READY;
     temp->eventlist = (char **)malloc(EVINITSIZE*sizeof(char *));
     temp->eventlistsize = EVINITSIZE;
-    temp->qpending = 0;
-    temp->eventcnt = 0;
-    temp->wakevent = 0;
-    temp->waitcnt = 0;
-    temp->iomgrRequest = 0;
     temp->priority = priority;
     temp->index = lwp_nextindex++;
-    temp->misc = NULL;	/* currently unused */
-    temp->next = NULL;
-    temp->prev = NULL;
-    temp->rused = 0;
     temp->level = 1;		/* non-preemptable */
     timerclear(&temp->lastReady);
 
