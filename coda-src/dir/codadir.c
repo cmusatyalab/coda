@@ -861,6 +861,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	int num;
 	char *buf;
 	int offset = 0;
+	int rc;
 
 	if ( !dir ) 
 		return ENOENT;
@@ -869,10 +870,16 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	assert( fd >= 0 );
 
 	len = DIR_Length(dir);
-	assert( ftruncate(fd, len) == 0 );
 
+#ifndef DJGPP
+	assert( ftruncate(fd, len) == 0 );
 	buf = mmap(0, len, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
 	assert( (int) buf != -1 );
+#else
+	buf = malloc(len);
+	assert(buf);
+#endif
+
 	bzero(buf, len);
 
 	for (i=0; i<NHASH; i++) {
@@ -891,7 +898,12 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	vd->d_fileno = 0;
 	vd->d_reclen = len - offset + 1;
 
+#if DJGPP
+	rc  = write(fd, buf, len);
+	assert(rc == len);
+#else 
 	assert(munmap(buf, len) == 0);
+#endif
 	assert(close(fd) == 0);
 	return 0;
 }
