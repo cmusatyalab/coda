@@ -25,6 +25,9 @@
 /*
  * HISTORY
  * $Log: cfs_psdev.c,v $
+ * Revision 1.6.8.1  1998/09/12 18:37:21  rvb
+ * Merge ^c changes to b4_6_6 branch
+ *
  * Revision 1.7  1998/08/29 00:28:15  rvb
  * Enable ^C processing
  *
