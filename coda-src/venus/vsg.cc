@@ -153,9 +153,8 @@ void vsgent::KillMgrps(void)
 {
     LOG(10, ("vsgent::KillMgrps %p\n", this));
 
-    struct dllist_head *p;
-    for (p = mgrpents.next; p != &mgrpents;) {
-        mgrpent *m = list_entry(p, mgrpent, vsghandle);
+    while (!list_empty(&mgrpents)) {
+        mgrpent *m = list_entry(mgrpents.next, mgrpent, vsghandle);
         m->Kill(1); /* takes `m' out of the mgrpents list */
     }
 }
