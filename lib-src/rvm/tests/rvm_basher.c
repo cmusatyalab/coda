@@ -1962,7 +1962,12 @@ int main(argc, argv)
 #ifdef HAS_PLUMBER
     SetMallocCheckLevel(chk_alloc);
 #endif
-#endif /* RVM_USELWP */
+#else /* !RVM_USELWP */
+    if (nthreads > 1) {
+	fprintf(stderr, "Nonthreaded basher, ignoring request for multiple threads\n");
+	nthreads = 1;
+    }
+#endif
     
     /* esatblish RVM options */
     options = rvm_malloc_options();
