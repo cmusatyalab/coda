@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.5 98/01/12 23:35:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.6 1998/02/18 18:38:17 hmpierce Exp $";
 #endif /*_BLURB_*/
 
 
@@ -175,8 +175,14 @@ int main(int argc, char **argv)
 
     assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY - 1, &parentPid) == LWP_SUCCESS);
 
+#ifdef __CYGWIN32__
+	/* XXX -JJK */
+	portal1.Tag = RPC2_PORTALBYINETNUMBER;
+	portal1.Value.InetPortNumber = htons(1359);
+#else
     portal1.Tag = RPC2_PORTALBYNAME;
-    strcpy(portal1.Value.Name, pname);
+    strcpy(portal1.Value.Name, "coda_udpsrv");
+#endif
     portallist[0] = &portal1;
 
     SFTP_SetDefaults(&sftpi);
@@ -197,7 +203,7 @@ int main(int argc, char **argv)
     for (i = 0; i < lwps; i++) {
 	sprintf(sname, "ServerLWP-%d", i);
 	assert(LWP_CreateProcess((PFIC)ServerLWP, 
-				 16 * 1024, LWP_MAX_PRIORITY - 1,
+				 32 * 1024, LWP_MAX_PRIORITY - 1,
 				 (char *)&i, sname, &serverPid) 
 	       == LWP_SUCCESS);
     }
