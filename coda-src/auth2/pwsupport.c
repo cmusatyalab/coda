@@ -157,7 +157,7 @@ int LockParent(char *fName, int lockType)
 		/* parent surely has at least one '/' by now */
 
 	strcat(parent, LockFile);
-	if ((pfd = open(parent, O_RDONLY, 0)) < 0
+	if ((pfd = open(parent, O_CREAT | O_RDONLY, 0)) < 0
 		|| flock(pfd, lockType) < 0)
 	{
 		perror(parent);
