@@ -31,13 +31,24 @@ extern "C" {
 #include "parser.h"
 
 void usage(char * name) {
-    fprintf(stderr, "Usage: %s <log_device> <data_device> <length>\n",
+    fprintf(stderr,
+	    "Usage: %s [-mapprivate] <log_device> <data_device> <length>\n",
 	    name);
 }
 
 
 int main(int argc, char * argv[]) {
     rvm_return_t 	err;
+    int argstart;
+
+    if (argc == 5 && strcmp(argv[1],"-mapprivate") == 0) {
+      mapprivate = 1;
+      argstart = 2;
+      argc--;
+    } else {
+      mapprivate = 0;
+      argstart = 1;
+    }
     
     if (argc != 4) {
 	usage(argv[0]);
@@ -45,7 +56,7 @@ int main(int argc, char * argv[]) {
     }
 
     
-    NortonInit(argv[1], argv[2], atoi(argv[3]));
+    NortonInit(argv[argstart], argv[argstart+1], atoi(argv[argstart+2]));
     
     InitParsing();
     Parser_commands();

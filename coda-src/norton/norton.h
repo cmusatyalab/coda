@@ -26,6 +26,7 @@ listed in the file CREDITS.
 
 /* norton-setup.c */
 extern int norton_debug;
+extern int mapprivate;
 extern void NortonInit(char *log_dev, char *data_dev, int data_len);
 
 /* commands.c */

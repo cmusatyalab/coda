@@ -51,6 +51,7 @@ extern "C" {
 #define VOLUMECACHESIZE 50
 
 int norton_debug = 0;
+int mapprivate = 0;
 
 struct camlib_recoverable_segment *camlibRecoverableSegment;
 
@@ -81,7 +82,7 @@ void LoadRVM(char * log_dev, char * data_dev, rvm_offset_t data_len) {
 
     options = rvm_malloc_options();
     options->log_dev = log_dev;
-    options->flags = 0;
+    options->flags = (mapprivate ? RVM_MAP_PRIVATE : 0);
 
     // Supress truncation, do it manually if needed.
     options->truncate = 0;
