@@ -165,7 +165,7 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 		if (::close(tfd) < 0) CHOKE("fsobj::Open: close");
 		data.dir->udcf->inode = tstat.st_ino;
 	    }
-#endif 0
+#endif
 	    /* (Re)Build the Unix-format directory. */
 	    dir_Rebuild();
 	    struct stat tstat;
@@ -179,14 +179,11 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 
     /* <device, inode> handle is OUT parameter. */
     if (cp) {
+            CacheFile *container = IsDir() ? data.dir->udcf : data.file;
+
 	    cp->c_device = FSDB->device;
-	    if ( IsDir() ) {
-		    strncpy(cp->c_cfname, data.dir->udcf->name, 8);
-		    cp->c_inode= data.dir->udcf->Inode();
-	    } else {
-	            cp->c_inode = data.file->Inode();
-		    strncpy(cp->c_cfname, data.file->name, 8);
-	    }
+	    cp->c_inode = container->Inode();
+	    strncpy(cp->c_cfname, container->Name(), 8);
     }
 
 Exit:
