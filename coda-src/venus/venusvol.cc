@@ -466,8 +466,7 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
 			eprint("VSG change for volume %s [%d] %x -> %x",
 			       v->GetName(), i, vp->volreps[i], volreps[i]);
 
-			RVMLIB_REC_OBJECT(*vp->volreps[i]);
-
+			RVMLIB_REC_OBJECT(vp->volreps[i]);
 			VDB->Put((volent **)&vp->volreps[i]);
 			vp->volreps[i] = volreps[i];
 			volreps[i] = NULL;
