@@ -21,8 +21,8 @@ listed in the file CREDITS.
 
 
 /*  *****  Venus Version Numbers *****  */
-const int VenusMajorVersion = 4;
-const int VenusMinorVersion = 7;
-const int VenusReleaseVersion = 5;
+const int VenusMajorVersion = 5;
+const int VenusMinorVersion = 0;
+const int VenusReleaseVersion = 1;
 
 #endif

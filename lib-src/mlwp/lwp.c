@@ -39,6 +39,7 @@ Pittsburgh, PA.
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <stdio.h>
 #include "coda_assert.h"
 #include <sys/time.h>
@@ -549,7 +550,7 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 #if defined(__linux__) || defined(__BSD44__)
 	pagesize = getpagesize();
 	stackptr = (char *) mmap(lwp_stackbase, stacksize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-	if ( (int) stackptr == -1 ) {
+	if ( stackptr == MAP_FAILED ) {
 		perror("stack: ");
 		CODA_ASSERT(0);
 	}
@@ -770,11 +771,10 @@ static void Create_Process_Part2()
     LWP_DestroyProcess(temp);
 }
 
+#if defined(i386)
 /* set lwp_trace_depth to < 0 to trace the complete stack.
  * set it to > 0 to set the maximum trace depth. */
 static int lwp_trace_depth=-1;
-
-#if defined(i386)
 
 /* Stack crawling bits */
 

@@ -71,7 +71,7 @@ Pittsburgh, PA.
 
 struct IoRequest {
 
-    /* Pid of process making request (for use in IOMGR_Cancel */
+    /* Pid of process making request (for use in IOMGR_Cancel) */
     PROCESS		pid;
 
     /* Descriptor masks for requests */
@@ -84,6 +84,8 @@ struct IoRequest {
     /* Result of select call */
     int			result;
 
+    /* Free'd IoRequests are chained together (head == iorFreeList) */
+    struct IoRequest   *free;
 };
 
 /********************************\
@@ -118,7 +120,7 @@ static struct IoRequest *iorFreeList = 0;
 static struct TM_Elem *Requests;	/* List of requests */
 static struct timeval iomgr_timeout;	/* global so signal handler can zap it */
 
-#define FreeRequest(x) ((x)->result = (int) iorFreeList, iorFreeList = (x))
+#define FreeRequest(x) ((x)->free = iorFreeList, iorFreeList = (x))
 
 /* function & procedure declarations */
 static struct IoRequest *NewRequest();
@@ -137,9 +139,10 @@ static struct IoRequest *NewRequest()
     register struct IoRequest *request;
 
     if ((request=iorFreeList)) 
-	    iorFreeList = (struct IoRequest *) (request->result);
+	    iorFreeList = request->free;
     else 
 	    request = (struct IoRequest *) malloc(sizeof(struct IoRequest));
+
     return request;
 }
 
