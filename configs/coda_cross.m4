@@ -44,17 +44,20 @@ dnl We have to override some things the configure script tends to get wrong
 	    LDFLAGS="-L/usr/gnuwin32/lib"
 	    ;;
 	arm-unknown-linux-gnuelf )
-	    CC="arm-unknown-linuxelf-gcc"
-	    CXX="arm-unknown-linuxelf-g++"
-	    CFLAGS="-DHAVE_MMAP ${CFLAGS}"
-	    CXXFLAGS="-DHAVE_MMAP ${CFLAGS}"
-	    AR="arm-unknown-linuxelf-ar"
-	    RANLIB="arm-unknown-linuxelf-ranlib"
-	    AS="arm-unknown-linuxelf-as"
-	    NM="arm-unknown-linuxelf-nm"
-	    OBJDUMP="arm-unknown-linuxelf-objdump"
+	    CROSS_COMPILE="arm-unknown-linuxelf-"
 	    ;;
     esac
 fi
 
+if test "${CROSS_COMPILE}" ; then
+    CC=${CROSS_COMPILE}gcc
+    CXX=${CROSS_COMPILE}g++
+    CFLAGS="-DHAVE_MMAP ${CFLAGS}"
+    CXXFLAGS="-DHAVE_MMAP ${CFLAGS}"
+    AR=${CROSS_COMPILE}ar
+    RANLIB=${CROSS_COMPILE}ranlib
+    AS=${CROSS_COMPILE}as
+    NM=${CROSS_COMPILE}nm
+    OBJDUMP=${CROSS_COMPILE}objdump
+fi
 

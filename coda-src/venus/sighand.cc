@@ -55,7 +55,7 @@ static void SigControl(int);
 static void SigChoke(int);
 static void SigExit(int);
 
-int TerminateVenus = 0;
+int TerminateVenus;
 
 void SigInit(void)
 {
