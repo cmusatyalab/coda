@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.10 1998/05/27 20:46:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.11 98/06/16 21:01:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,7 +80,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 /* Stack size for IOMGR process and processes instantiated to handle signals */
-#define STACK_SIZE	0x4000
+#define STACK_SIZE	0x10000  /* 64K hopefully more than enough */
                         
 /********************************\
 * 				 *
