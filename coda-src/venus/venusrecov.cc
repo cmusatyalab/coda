@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.11 98/09/14 22:33:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.12 98/09/15 14:28:04 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,10 +105,7 @@ int MAXTS = UNSET_MAXTS;
 
 /*  *****  Private Constants  *****  */
 
-#ifdef MACH
-static const char *VM_RVGADDR = (char *)0x00c00000;
-static const char *VM_RDSADDR = (char *)0x01c00000;
-#elif defined(NetBSD1_3)
+#if defined(NetBSD1_3)
 static const char *VM_RVGADDR = (char *)0x50000000;
 static const char *VM_RDSADDR = (char *)0x51000000;
 #elif defined(__BSD44__)
@@ -124,6 +121,7 @@ static const char *VM_RDSADDR = (char *)0x21000000;
 static const char *VM_RVGADDR = (char *)0x02000000;
 static const char *VM_RDSADDR = (char *)0x03000000;
 #endif
+
 #ifdef __CYGWIN32__
 #include <windows.h>
 #endif
@@ -437,22 +435,14 @@ static void Recov_InitRVM() {
 		else {
 #ifndef DJGPP
 		    union wait status;
-#ifdef __MACH__
-		    int exiter = wait(&status);
-#else
 		    int exiter = wait(&status.w_status);
-#endif /* __linux__ ||__BSD44__ */
 		    if (exiter != child)
 			Choke("Recov_InitRVM: exiter (%d) != child (%d)", exiter, child);
-#ifdef __MACH__
-		    if (status.w_retcode != RVM_SUCCESS)
-			Choke("Recov_InitRVM: log initialization failed (%d)", status.w_retcode);
-#endif /* __MACH__ */
 #ifdef __BSD44__
 		    if (WEXITSTATUS(status.w_status) != RVM_SUCCESS)
 			Choke("Recov_InitRVM: log initialization failed (%d)", WEXITSTATUS(status.w_status));
 #endif /* __BSD44__ */
-#endif /* DJGPP */
+#endif /* !DJGPP */
 		}
 	    }
 	    eprint("%s initialized at size %#x",

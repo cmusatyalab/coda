@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.11 98/08/26 21:24:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.12 98/09/23 20:26:32 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,14 +55,8 @@ extern "C" {
 #include <sys/stat.h>
 #include <errno.h>
 #include <signal.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#include <mach.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #ifdef __cplusplus
 }
@@ -374,9 +368,7 @@ static void FatalSignal(int sig, int code, struct sigcontext *contextPtr)
 
     eprint("Fatal Signal (%d); pid %d becoming a zombie...", sig, getpid());
     eprint("You may use gdb to attach to %d", getpid());
-#ifdef	__MACH__
-    task_suspend(task_self());
-#else
+
     {
 	int       living_dead = 1;
 	sigset_t  mask;
@@ -385,20 +377,19 @@ static void FatalSignal(int sig, int code, struct sigcontext *contextPtr)
 	    sigsuspend(&mask);
 	}
     }
-#endif
 
     /* Dump the process context. */
     {
 	fprintf(logFile, "sig=%d\n", sig);
 	fprintf(logFile, "code=%d\n", code);
-#ifdef	i386
-#else	i386
+#ifndef	i386
 #if defined(sparc) && defined(__linux__)
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sigc_pc);
 #else
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sc_pc);
 #endif
-#endif	i386
+#endif	/* !defined(i386) */
+
 #ifndef __BSD44__
 	for (int i = 0; i < sizeof(struct sigaction) / sizeof(int); i++)
                 fprintf(logFile, "context[%d] = 0x%x\n", i, *((u_int *)contextPtr + i));

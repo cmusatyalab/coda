@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.14 98/09/23 16:56:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.15 98/09/23 20:26:29 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1258,12 +1258,9 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
 
 	    if (HAVEDATA(this)) {
 		int delta_blocks = (int) (BLOCKS(this) - NBLOCKS(NewLength));
-#ifdef	__MACH__
-#else
 		if (delta_blocks < 0) {
 			eprint("LocalSetAttr: %d\n", delta_blocks);
 		}
-#endif
 		UpdateCacheStats(&FSDB->FileDataStats, REMOVE, delta_blocks);
 		FSDB->FreeBlocks(delta_blocks);
 		data.file->Truncate((unsigned) NewLength);

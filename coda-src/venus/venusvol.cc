@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.12 1998/09/23 20:26:35 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.13 98/09/29 16:38:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -803,6 +803,11 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     ReintLimit = V_UNSETREINTLIMIT;
     DiscoRefCounter = -1;
 
+    /* this store uniqifier should also survive shutdowns, because the
+       server remembers the last sid we successfully reintegrated. It
+       is thus no longer a transient.-- JH */
+    SidUnique = Vtime();
+
     ResetTransient();
 
     /* Insert into hash table. */
@@ -853,8 +858,7 @@ void volent::ResetTransient() {
 
     CML.ResetTransient();
     Lock_Init(&CML_lock);
-    FidUnique = Vtime();
-    SidUnique = Vtime();
+    FidUnique = 1 << 19; /* trust me, I know what I'm doing --JH */
     OpenAndDirtyCount = 0;
     // Added 8/23/92 by bnoble - now transient
     RecordsCancelled = 0;
@@ -2186,11 +2190,21 @@ ViceFid volent::GenerateFakeFid()
 	return(fid);
 }
 
+/* This function is called from multiple places outside of a transaction,
+   but from vol_cml.cc we're suddenly called inside a transaction. The flag
+   recov, which normally defaults to 0, tells us that we are called from
+   within a transaction. --JH */
 
-ViceStoreId volent::GenerateStoreId() {
+ViceStoreId volent::GenerateStoreId(int recov) {
     ViceStoreId sid;
+
+    if (!recov) { Recov_BeginTrans(); }
+
+    RVMLIB_REC_OBJECT(SidUnique);
     sid.Host = (RPC2_Unsigned)myHostId;
     sid.Uniquifier = (RPC2_Unsigned)SidUnique++;
+
+    if (!recov) { Recov_EndTrans(MAXFP); }
 
     return(sid);
 }

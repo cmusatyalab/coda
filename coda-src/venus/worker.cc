@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.21 1998/09/23 20:26:39 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.22 98/09/29 16:38:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -270,15 +270,9 @@ void VFSMount() {
     }
     rootnodeid = tstat.st_ino;
 #endif
+
     /* Issue the VFS mount request. */
-#ifdef __MACH__
-    if (syscall(SYS_vfsmount, MOUNT_CFS, venusRoot,
-		 (caddr_t)0, kernDevice) < 0) {
-	eprint("vfsmount(%s, %s) failed (%d), exiting",
-	       kernDevice, venusRoot, errno);
-	exit(-1);
-    }
-#endif /* __MACH__ */
+
 #ifdef __BSD44__
 #ifndef	MOUNT_CFS
     /* for FreeBSD
@@ -294,6 +288,7 @@ void VFSMount() {
 	exit(-1);
     }
 #endif /* __BSD44__ */
+
 #ifdef __linux__
     {
 	struct sigaction sa;
@@ -342,8 +337,8 @@ void VFSMount() {
       }
       exit(1);
     }
-
 #endif
+
     Mounted = 1;
 }
 
@@ -876,15 +871,18 @@ void worker::main(void *parm) {
 	u.u_priority = FSDB->StdPri();
 	u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
 
+	/* GOTTA BE ME */
+	u.u_cred = (in)->ih.cred;
+	u.u_pid  = (in)->ih.pid;
+	u.u_pgid = (in)->ih.pgid;
+
 	/* This switch corresponds to the kernel trap handler. */
+
 	switch (in->ih.opcode) {
 	    int size;
-#define GOTTA_BE_ME(in) \
-	    u.u_cred = (in)->ih.cred; u.u_pid = (in)->ih.pid; u.u_pgid = (in)->ih.pgid;
 	    
 	    case CODA_ACCESS:
 		{
-		GOTTA_BE_ME(in);
 		LOG(100, ("CODA_ACCESS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 		struct venus_cnode vtarget;
 		MAKE_CNODE(vtarget, in->coda_access.VFid, 0);
@@ -897,7 +895,6 @@ void worker::main(void *parm) {
 
 	    case CODA_CLOSE:
 		{
-		GOTTA_BE_ME(in);
 		LOG(100, ("CODA_CLOSE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vtarget;
@@ -911,8 +908,6 @@ void worker::main(void *parm) {
 
 	  case CODA_CREATE:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_CREATE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,u.u_pgid));
 
 		struct venus_cnode vparent;
@@ -936,8 +931,6 @@ void worker::main(void *parm) {
 
 	    case CODA_FSYNC:	
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vtarget;
@@ -951,8 +944,6 @@ void worker::main(void *parm) {
 
 	    case CODA_GETATTR:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_GETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vtarget;
@@ -967,8 +958,6 @@ void worker::main(void *parm) {
 
 	    case CODA_INACTIVE: 
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_INACTIVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vtarget;
@@ -988,8 +977,6 @@ void worker::main(void *parm) {
 		data.in_size = 0;
 		data.out = outbuf;	/* Can't risk overcopying. Sigh. -dcs */
 		data.out_size =	0;
-
-		GOTTA_BE_ME(in);
 
 		LOG(100, ("CODA_IOCTL: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
@@ -1015,8 +1002,6 @@ void worker::main(void *parm) {
 
 	    case CODA_LINK:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_LINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vsource;
@@ -1032,8 +1017,6 @@ void worker::main(void *parm) {
 
 	    case CODA_LOOKUP:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_LOOKUP: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vparent;
@@ -1059,8 +1042,6 @@ void worker::main(void *parm) {
 
 	    case CODA_MKDIR:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_MKDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vparent;
@@ -1082,8 +1063,6 @@ void worker::main(void *parm) {
 
 	    case CODA_OPEN:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_OPEN: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		/* If an abort happens, we create a message and pass it off to
@@ -1138,8 +1117,6 @@ void worker::main(void *parm) {
 
 	    case CODA_OPEN_BY_PATH:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_OPEN_BY_PATH: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		ViceFid saveFid = in->coda_open_by_path.VFid;
@@ -1204,8 +1181,6 @@ void worker::main(void *parm) {
 
 	    case CODA_READLINK: 
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_READLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vtarget;
@@ -1229,8 +1204,6 @@ void worker::main(void *parm) {
 
 	    case CODA_REMOVE:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_REMOVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 		struct venus_cnode vparent;
 		MAKE_CNODE(vparent, in->coda_remove.VFid, 0);
@@ -1243,8 +1216,6 @@ void worker::main(void *parm) {
 
 	    case CODA_RENAME:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_RENAME: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vp_source;
@@ -1261,8 +1232,6 @@ void worker::main(void *parm) {
 
 	    case CODA_RMDIR:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_RMDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vparent;
@@ -1276,8 +1245,6 @@ void worker::main(void *parm) {
 
 	    case CODA_ROOT:
 		{
-		GOTTA_BE_ME(in);
-
 		struct venus_cnode target;
 		root(&target);
 
@@ -1294,8 +1261,6 @@ void worker::main(void *parm) {
 
 	    case CODA_SETATTR:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_SETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vtarget;
@@ -1309,8 +1274,6 @@ void worker::main(void *parm) {
 
 	    case CODA_SYMLINK:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_SYMLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode vp_target;
@@ -1325,7 +1288,6 @@ void worker::main(void *parm) {
 
 	    case CODA_SYNC:
 		{
-		GOTTA_BE_ME(in);
 		sync();
 
 		out->oh.result = u.u_error;
@@ -1335,8 +1297,6 @@ void worker::main(void *parm) {
 
 	    case CODA_VGET:
 		{
-		GOTTA_BE_ME(in);
-
 		LOG(100, ("CODA_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
 		struct venus_cnode target;

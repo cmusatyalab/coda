@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.7 1998/08/26 21:24:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.8 98/09/29 16:38:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,22 +51,12 @@ extern "C" {
 
 #include <string.h>
 
-#ifdef __MACH__
-#include <sys/dk.h>
-#endif /* __MACH__ */
 #if    defined(__BSD44__)
 #include <sys/dkstat.h>
 #endif /* __BSD44__ */
-#ifdef	__linux__
-#include "dkstat.h"
-#endif 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
+
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <fcntl.h>
 
@@ -105,9 +95,6 @@ extern int nlist(const char*, struct nlist[]);
 static int VmonKmem = 0;
 static int hertz = 0;
 
-#ifdef	__MACH__
-#define VMUNIX "/mach"
-#endif
 #ifdef __NetBSD__
 #define VMUNIX "/netbsd"
 #endif
@@ -136,9 +123,7 @@ static struct nlist RawStats[] =
     {
 	"_cp_time"
     },
-#ifdef __BSD44__
 #define HZ 1
-#endif
     {
 	"_hz"
     },
@@ -253,7 +238,7 @@ void volent::FlushVSRs(int hard) {
 
 
 void volent::InitStatsVSR(vsr *v) {
-#ifndef DJGPP
+#ifdef __BSD44__
     long busy[CPUSTATES];
     SessionStatistics *Stats = &v->stats;
     SessionStatistics *InitStats = &v->initstats;
@@ -275,7 +260,6 @@ void volent::InitStatsVSR(vsr *v) {
     InitStats->BytesBackFetched = BytesBackFetched;
 
     /* Get CPU data */
-#ifdef	__BSD44__
     if(VmonKmem == 0) {
 	nlist(VMUNIX, RawStats);
 	if(RawStats[0].n_type == 0) {
@@ -313,12 +297,11 @@ void volent::InitStatsVSR(vsr *v) {
     /* At the present, this information won't be collected, because in the
        disconnected state, this information seems meaningless. */
 #endif
-#endif
 }
 
 
 void volent::UpdateStatsVSR(vsr *v) {
-#ifndef DJGPP
+#ifdef __BSD44__
     long busy[CPUSTATES];
     SessionStatistics *Stats = &v->stats;
     SessionStatistics *InitStats = &v->initstats;
@@ -338,7 +321,6 @@ void volent::UpdateStatsVSR(vsr *v) {
     Stats->BytesBackFetched = BytesBackFetched - InitStats->BytesBackFetched;
 
     /* Gather CPU usage */
-#ifdef __BSD44__
     if (VmonKmem == 0) {
 	nlist(VMUNIX, RawStats);
 	if(RawStats[0].n_type == 0) {
@@ -374,7 +356,6 @@ void volent::UpdateStatsVSR(vsr *v) {
     /* Cache high water marks */
     /* At the present, this information won't be collected, because in the
        disconnected state, this information seems meaningless. */
-#endif
 #endif
 }
 

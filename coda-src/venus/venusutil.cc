@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.14 98/08/26 21:24:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.15 98/09/23 20:26:34 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -512,50 +512,6 @@ extern unsigned end;
     fdprint(afd, "\tsegment sizes = (%#08x, %#08x, %#08x, %#08x)\n",
 	     etext, edata - etext, end - edata, (char *)sbrk(0) - end);
 #endif
-
-#ifdef	__MACH__
-    /* Mach statistics. */
-    fdprint(afd, "Mach Rusage:\n");
-    vm_task_t target_task = task_self();
-/*
-      task_info_data_t taskinfo;
-      unsigned int taskinfoCnt = TASK_INFO_MAX;
-      (void)task_info(target_task, TASK_BASIC_INFO, &taskinfo, &taskinfoCnt);
-      thread_info_data_t threadinfo;
-      unsigned int threadinfoCnt = THREAD_INFO_MAX;
-      (void)thread_info(thread_self, THREAD_BASIC_INFO, &threadinfo, &threadinfoCnt);
-      LOG(0, ("*** Task/Thread Info: (%u %u) (%u %u %u %u) ***\n",
-	       taskinfo.virtual_size, taskinfo.resident_size,
-	       threadinfo.user_time, threadinfo.system_time,
-	       threadinfo.cpu_usage, threadinfo.sleep_time));
-*/
-    int region = 0;
-    vm_address_t address = 0;
-    vm_size_t totalsize = 0;
-    for (;;) {
-	vm_size_t size;
-	vm_prot_t protection;
-	vm_prot_t max_protection;
-	vm_inherit_t inheritance;
-	boolean_t shared;
-	port_t object_name;
-	vm_offset_t offset;
-
-	kern_return_t ret = vm_region(target_task, &address, &size, &protection,
-				      &max_protection, &inheritance, &shared,
-				      &object_name, &offset);
-	if (ret != KERN_SUCCESS) break;
-
-	fdprint(afd, "\tregion %d = [%#08x, %#08x], [%d, %d, %d, %d, %d, %d]\n",
-		region, address, size, protection, max_protection,
-		inheritance, shared, object_name, offset);
-
-	region++;
-	address += size;
-	totalsize += size;
-    }
-    fdprint(afd, "\ttotal VM allocated = %#08x\n", totalsize);
-#endif	/* __MACH__ */
 
     fdprint(afd, "\n");
 }

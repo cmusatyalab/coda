@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.7 1997/11/04 22:03:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_io.c,v 4.8 98/03/06 20:21:43 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -46,12 +46,8 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm
 #include <sys/stat.h>
 #include <sys/uio.h>
 #include <sys/errno.h>
-#ifdef __MACH__
-#include <sysent.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include "rvm_private.h"
 
 /* global variables */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.12 1998/09/23 20:26:27 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.13 98/09/29 16:38:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1688,16 +1688,9 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 
 /* Needn't be called from within transaction. */
 void fsdb::FreeBlocks(int nblocks) {
-#ifdef	__MACH__
     if (nblocks < 0)
-	Choke("fsdb::FreeBlocks: nblocks = %d", nblocks);
-    if (nblocks > 0)
-	ChangeDiskUsage(-nblocks);
-#else
-    if (nblocks < 0)
-	eprint("FreeBlocks: %d\n", nblocks);
+	eprint("fsdb::FreeBlocks: nblocks = %d\n", nblocks);
     ChangeDiskUsage(-nblocks);
-#endif
 }
 
 

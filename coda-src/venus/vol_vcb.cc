@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vcb.cc,v 4.3 1998/01/10 18:39:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vcb.cc,v 4.4 98/08/26 21:24:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -46,13 +46,8 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 #include <struct.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 #include <netinet/in.h>
 #ifdef __BSD44__
 #include <machine/endian.h>

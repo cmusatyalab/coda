@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.7 98/08/31 12:23:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/hoard.cc,v 4.8 98/09/23 18:26:57 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,7 +92,7 @@ extern int execvp(const char *, const char **);
 
 
 /* Manifest Constants. */
-#define	CODA_ROOT   "/coda"
+#define	CODA_MOUNTPOINT   "/coda"
 #define	STREQ(a, b) (strcmp(a, b) == 0)
 #define	FATAL	1
 #define	MAXCMDLEN   (MAXPATHLEN + 1024)
@@ -989,7 +989,7 @@ static void DoClears(olist& Clear) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_ROOT, VIOC_HDB_CLEAR, &vi, 0) != 0) {
+	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_CLEAR, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Clear(%d, %d): %s",
 		  c->msg.cuid, ruid, sys_errlist[errno]);
 	}
@@ -1007,7 +1007,7 @@ static void DoAdds(olist& Add) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_ROOT, VIOC_HDB_ADD, &vi, 0) != 0) {
+	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_ADD, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Add(%x, %s, %d, %d, %d): %s",
 		  a->msg.volno, a->msg.name, a->msg.priority, a->msg.attributes, ruid, sys_errlist[errno]);
 	}
@@ -1025,7 +1025,7 @@ static void DoDeletes(olist& Delete) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_ROOT, VIOC_HDB_DELETE, &vi, 0) != 0) {
+	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_DELETE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Delete(%x, %s, %d): %s",
 		  d->msg.volno, d->msg.name, ruid, sys_errlist[errno]);
 	}
@@ -1043,7 +1043,7 @@ static void DoLists(olist& List) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_ROOT, VIOC_HDB_LIST, &vi, 0) == 0) {
+	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_LIST, &vi, 0) == 0) {
 	    RenameOutFile(l->msg.outfile, l->tname);
 	}
 	else {
@@ -1065,7 +1065,7 @@ static void DoWalks(olist& Walk) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_ROOT, VIOC_HDB_WALK, &vi, 0) != 0) {
+	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_WALK, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Walk(%d): %s",
 		  ruid, sys_errlist[errno]);
 	}
@@ -1086,7 +1086,7 @@ static void DoVerifies(olist& Verify) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_ROOT, VIOC_HDB_VERIFY, &vi, 0) == 0) {
+	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_VERIFY, &vi, 0) == 0) {
 	    RenameOutFile(v->msg.outfile, v->tname);
 	}
 	else {
@@ -1109,7 +1109,7 @@ static void DoEnables(olist& Enable) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_ROOT, VIOC_HDB_ENABLE, &vi, 0) != 0) {
+	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_ENABLE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Enable(%d): %s",
 		  ruid, sys_errlist[errno]);
 	}
@@ -1128,7 +1128,7 @@ static void DoDisables(olist& Disable) {
 	vi.out = 0;
 	vi.out_size = 0;
 
-	if (pioctl(CODA_ROOT, VIOC_HDB_DISABLE, &vi, 0) != 0) {
+	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_DISABLE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Disable(%d): %s",
 		  ruid, sys_errlist[errno]);
 	}
@@ -1160,7 +1160,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 	error(FATAL, "MetaExpand: chdir(%s/..) failed (%s)", FullName, sys_errlist[errno]);
     char mtpt[MAXPATHLEN];
     char *cp;
-    if ((cp = rindex(VRPath, '/')) == NULL) cp = CODA_ROOT;
+    if ((cp = rindex(VRPath, '/')) == NULL) cp = CODA_MOUNTPOINT;
     strcpy(mtpt, cp + 1);
     ExpandNode(mtpt, vid, NodeName, Add, priority, attributes);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.18 1998/09/23 20:26:37 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.19 98/09/29 16:38:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -634,7 +634,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, vuid_t vuid, int op, int Tid 
     log->list.append(&handle);
 
     volent *vol = strbase(volent, log, CML);
-    sid = vol->GenerateStoreId();
+    sid = vol->GenerateStoreId(1);
     time = Mtime;
     uid = vuid;
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.6 1998/08/26 21:24:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.7 98/09/23 16:56:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -353,9 +353,6 @@ void Resolve(volent *v) {
 
     /* Set up context for resolver. */
     r->u.Init();
-#ifdef __MACH__
-    r->u.u_cred.cr_ruid = V_UID;
-#endif /* __MACH__ */
 #ifdef __BSD44__
     r->u.u_cred.cr_uid = V_UID;
 #endif /* __BSD44__ */
