@@ -4,6 +4,7 @@ set -e
 
 sh_which () {
   ( IFS=: ; for p in $PATH ; do [ -x "$p/$1" ] && echo "$p/$1" ; done )
+  return 0
 }
 
 
