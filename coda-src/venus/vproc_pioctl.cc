@@ -226,8 +226,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			*arg = '\0'; arg++;
 
 			/* Disallow special names. */
-			verifyname(link_name, NAME_NO_DOTS | NAME_NO_CONFLICT |
-				   NAME_NO_EXPANSION);
+			verifyname(link_name, NAME_NO_DOTS | NAME_NO_CONFLICT);
                         if (u.u_error) break;
 
 			/* Verify that parent is a directory. */
@@ -288,8 +287,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			char *target_name = (char *) data->in;
 
 			/* Disallow deletion of special names. */
-                        verifyname(target_name, NAME_NO_DOTS |
-                                   NAME_NO_CONFLICT | NAME_NO_EXPANSION);
+                        verifyname(target_name, NAME_NO_DOTS | NAME_NO_CONFLICT);
                         if (u.u_error) break;
 
 			/* Verify that parent is a directory. */

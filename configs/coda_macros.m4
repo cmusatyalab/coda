@@ -134,7 +134,7 @@ AC_DEFUN(CODA_CHECK_HASH,
    saved_LIBS="$LIBS"
    AC_SEARCH_LIBS(MD5_Init, crypto)
    AC_SEARCH_LIBS(SHA1_Init, crypto)
-   if test "$ac_cv_search_MD5_Init" == "-lcrypto" || "$ac_cv_search_SHA1_Init" == "-lcrypto"; then
+   if test "$ac_cv_search_MD5_Init" = "-lcrypto" -o "$ac_cv_search_SHA1_Init" = "-lcrypto"; then
       LIBCRYPTO="-lcrypto"
    fi
    LIBS="$saved_LIBS"

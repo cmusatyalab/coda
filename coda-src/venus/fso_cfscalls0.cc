@@ -658,7 +658,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		     have been upgraded to handle ViceValidateAttrsPlusSHA() (Satya 1/03) */
 
 		if (m->rocc.AllReplicasSupportSHA()) {
-		  sprintf(val_prel_str, "fetch::ValidateAttrsPlusSHA %%s(0x%x.%x.%x) [%d]\n", fid.Volume, fid.Vnode, fid.Unique, numPiggyFids);
+		  sprintf(val_prel_str, "fetch::ValidateAttrsPlusSHA %%s(%s) [%d]\n", FID_(&fid), numPiggyFids);
 		  CFSOP_PRELUDE(val_prel_str, comp, fid);
 		  MULTI_START_MESSAGE(ViceValidateAttrsPlusSHA_OP);
 		  code = (int) MRPC_MakeMulti(ViceValidateAttrsPlusSHA_OP,

@@ -189,7 +189,6 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
 {
     char msgbuf[DEF_BUF];
     ViceFid confFid;
-    struct stat sbuf;
     char **names;
     char realm[MAXHOSTNAMELEN];
     int ret, i, nreps, nConflicts = 0, setmode = 0, setacl = 0, setowner = 0;

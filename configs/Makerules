@@ -280,7 +280,7 @@ show showvar:
 
 .PRECIOUS: %.client.c %.server.c %.multi.c %.h
 
-%.client.c %.server.c %.multi.c %.h: %.rpc2 ${RP2GEN}
+%.client.c %.server.c %.multi.c %.h: %.rpc2
 	${RP2GEN} ${RP2FLAGS} $<
 
 .PHONY FORCE:

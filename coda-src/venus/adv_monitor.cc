@@ -152,8 +152,7 @@ int adv_monitor::RequestASRInvokation(repvol *vol, char *pathname, uid_t uid)
   if (!InterestArray[callType]) return(0);
 
   vol->lock_asr();
-#warning "ASR realm"
-  rc = C_InvokeASR(handle, (RPC2_String)pathname, vol->GetVolumeId(), uid, &ASRid, &ASRrc);
+  rc = C_InvokeASR(handle, (RPC2_String)pathname, vol->GetRealmId(), vol->GetVolumeId(), uid, &ASRid, &ASRrc);
   CheckError(rc, callType); /* resets connection and unlocks asr if RPC2 fails */
 
   if (rc == RPC2_SUCCESS) {

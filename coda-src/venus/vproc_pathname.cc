@@ -439,13 +439,5 @@ void vproc::verifyname(char *name, int flags)
 	u.u_error = EINVAL;
 	return;
     }
-
-    /* Disallow names ending in anything like "@sys/@cpu" (@???). */
-    if ((flags & NAME_NO_EXPANSION) && (length >= 4) && (name[length-4] == '@'))
-    {
-	u.u_error = EINVAL;
-	return;
-    }
-
     return;
 }

@@ -206,5 +206,6 @@ typedef RPC2_Struct
 32:ReplacementLogAvailable(IN RPC2_String LogFile);
 
 /* Invoke an Application Specific Resolver. */
-33:InvokeASR(IN RPC2_String Pathname, IN RPC2_Integer vid, IN RPC2_Integer vuid, 
+33:InvokeASR(IN RPC2_String Pathname, IN RPC2_Integer realmid,
+	     IN RPC2_Integer volumeid, IN RPC2_Integer vuid, 
 	     OUT RPC2_Integer ASRid, OUT RPC2_Integer ReturnCode);

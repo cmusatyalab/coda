@@ -774,8 +774,10 @@ long S_ReplacementLogAvailable(RPC2_Handle _cid, RPC2_String LogFile) {
     return(RPC2_SUCCESS);
 }
 
-long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer vol_id, 
-		 RPC2_Integer vuid, RPC2_Integer *ASRid, RPC2_Integer *ASRrc) {
+long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer realmid,
+		 RPC2_Integer volid, RPC2_Integer vuid, RPC2_Integer *ASRid,
+		 RPC2_Integer *ASRrc)
+{
     int ret;
     struct pnode *pinfo, *ptmp;
     RPC2_SubsysIdent subsysid;
@@ -816,9 +818,8 @@ long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer vol_id,
     }
     else {
 	pinfo->kid = ret;
-#warning "need realm here"
-	pinfo->realm = 0;
-	pinfo->volume = vol_id;
+	pinfo->realm = realmid;
+	pinfo->volume = volid;
 	*ASRid = ret;
 	*ASRrc = SKK_SUCCESS;
     }

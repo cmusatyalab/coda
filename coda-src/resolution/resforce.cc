@@ -82,7 +82,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
     ViceStatus vstatus;
     RPC2_BoundedBS al;
     char buf[(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)];
-    char filename[50];
+    FILE *tmp;
 
     /* check if there are any runts */
     {
@@ -97,7 +97,13 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	}
     }
 
-    SLog(9,  "UpdateRunts runtexists = %d", runtexists);
+    SLog(9,  "UpdateRunts: runtexists = %d", runtexists);
+
+    tmp = tmpfile();
+    if (!tmp) {
+	SLog(0, "UpdateRunts: failed to create temporary file");
+	return;
+    }
 
     /* fetch directory ops from the non-runt site */
     {
@@ -108,18 +114,13 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	al.SeqBody = (RPC2_ByteSeq)buf;
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
-	sid.Value.SmartFTPD.Tag = FILEBYNAME;
-	sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.ByteQuota = -1;
-	sprintf(filename, "/tmp/forceXXXXXX");
-	mktemp(filename);
-	strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
-	       filename);
+	sid.Value.SmartFTPD.Tag = FILEBYFD;
+	sid.Value.SmartFTPD.FileInfo.ByFD.fd = fileno(tmp);
 	SLog(9,  "UpdateRunts: Going to GetForceDirOps");
 	if (Res_GetForceDirOps(mgrp->rrcc.handles[nonruntdir], Fid, &vstatus,
 			       &al, &sid)) {
-	    unlink(filename);
 	    return;
 	}
     }
@@ -137,12 +138,10 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
-	sid.Value.SmartFTPD.Tag = FILEBYNAME;
-	sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.ByteQuota = -1;
-	strcpy(sid.Value.SmartFTPD.FileInfo.ByName.LocalFileName,
-	       filename);
+	sid.Value.SmartFTPD.Tag = FILEBYFD;
+	sid.Value.SmartFTPD.FileInfo.ByFD.fd = fileno(tmp);
 	ARG_MARSHALL(OUT_MODE, RPC2_Integer, forceErrorvar, forceError, VSG_MEMBERS);
 	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
 
@@ -153,8 +152,8 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 		       0, 0, Fid, &vstatus, &al,
 		       forceErrorvar_ptrs, sidvar_bufs);
 	mgrp->CheckResult();
-	unlink(filename);
     }
+    fclose(tmp);
     /* check return codes */
     {
 	for (int i = 0; i < VSG_MEMBERS; i++)

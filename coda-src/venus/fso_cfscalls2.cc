@@ -479,8 +479,6 @@ int fsobj::Access(long rights, int modes, uid_t uid)
 int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t uid, int flags)
 {
     LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n", comp, name, uid));
-    int  len;
-    char *subst = NULL, expand[CODA_MAXNAMLEN];
 
     /* We're screwed if (name == "." or ".."). -JJK */
     CODA_ASSERT(!STREQ(name, ".") && !STREQ(name, ".."));
@@ -500,25 +498,6 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 	if (code) {
 	    if (code == EINCONS && inc_fid != 0) *inc_fid = fid;
 	    return(code);
-	}
-
-	/* Check for @cpu/@sys expansion. */
-	len = strlen(name);
-	if (len >= 4 && name[len-4] == '@')
-	{
-	    if      (STREQ(&name[len-3], "cpu"))
-		subst = CPUTYPE;
-	    else if (STREQ(&name[len-3], "sys"))
-		subst = SYSTYPE;
-
-	    /* Embed the processor/system name for @cpu/@sys expansion. */
-	    if (subst && (len + strlen(subst)) < CODA_MAXNAMLEN)
-	    {
-		memset(expand, 0, CODA_MAXNAMLEN);
-		strncpy(expand, name, len-4);
-		strcpy(&expand[len-4], subst);
-		name = expand;
-	    }
 	}
 
 	/* Lookup the target object. */
@@ -638,9 +617,53 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
     }
 
     /* Fill in the buffer. */
-    memmove(buf, data.symlink, (int) stat.Length);
-    *cc = (int) stat.Length;
-    (buf)[*cc] = 0;
+    char *ptr, *end, *out;
+    ptr = data.symlink;
+    end = ptr + stat.Length;
+    out = buf;
+    while (ptr != end) {
+	char *subst, *c;
+	unsigned int tmp_len;
+
+	c = strchr(ptr, '@');
+	if (!c || end < c + 4) c = end;
+
+	/* copy everything up to this point */
+	tmp_len = c - ptr;
+
+	if (tmp_len >= len)
+	    tmp_len = len-1;
+	if (tmp_len) {
+	    memcpy(out, ptr, tmp_len);
+	    out += tmp_len;
+	    len -= tmp_len;
+	}
+
+	ptr = c + 4;
+	if (ptr > end) break;
+
+	subst = c;
+	tmp_len = 4;
+	if (strncmp(&c[1], "cpu", 3) == 0) {
+	     subst = CPUTYPE;
+	     tmp_len = strlen(CPUTYPE);
+	}
+	else if (strncmp(&c[1], "sys", 3) == 0) {
+	     subst = SYSTYPE;
+	     tmp_len = strlen(SYSTYPE);
+	}
+
+	if (tmp_len >= len)
+	    tmp_len = len-1;
+	if (tmp_len) {
+	    memcpy(out, subst, tmp_len);
+	    out += tmp_len;
+	    len -= tmp_len;
+	}
+    }
+    *out = '\0';
+    *cc = out - buf;
+
     LOG(100, ("fsobj::Readlink: contents = %s\n", buf));
 
     return(0);
