@@ -39,11 +39,16 @@ listed in the file CREDITS.
 #include <errno.h>
 #include <limits.h>
 
-#include <db.h>
 
 #include <coda_assert.h>
-
 #include "pdb.h"
+
+#if !defined(__GLIBC__) || __GLIBC_MINOR__ < 1
+#include <db.h>
+#else 
+#include <db_185.h>
+#endif
+
 
 #define PDB_MAIN "/vice/db/coda.db"
 #define PDB_NAME "/vice/db/name.db"

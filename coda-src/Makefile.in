@@ -38,8 +38,8 @@ III =  rpc2 util dir
 
   VI = auth2 vv
  VII =  vol librepair venus
-VIII =  advice repair guitools res
-  IX =  rvmres volutil vtools
+VIII =  advice repair guitools 
+  IX =  resolution volutil vtools
    X =  vice
   XI =  update asr egasr norton
 

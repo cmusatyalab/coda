@@ -61,7 +61,7 @@ class ohashtab {
   public:
     ohashtab(int, int (*)(void *));
     ohashtab(ohashtab&);	    // not supported!
-    operator=(ohashtab&);	    // not supported!
+    int operator=(ohashtab&);	    // not supported!
     virtual ~ohashtab();
     void insert(void *,	olink *);   // add at head of list
     void append(void *,	olink *);   // add at tail of list

@@ -26,14 +26,11 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 CXXFLAGS += -Wall
 LIBRARIES  = libreslib.a
-HEADERS	   =  rescomm.h  resforce.h \
-	       resutil.h lockqueue.h timing.h
+HEADERS	   = 
 
 RESC_LIBS  = ${LIBKERNDEP} ${LIBRPC2} ${LIBOLDLWP}
 
-RESLIBOBJS = resclient.o lockqueue.o\
-             rescoord.o  resforce.o reslock.o  \
-             resutil.o rescomm.o timing.o weres.o 
+RESLIBOBJS =
 
 libreslib.a:	${RESLIBOBJS}
 

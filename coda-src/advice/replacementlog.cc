@@ -27,7 +27,12 @@ extern "C" {
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+
+#if !defined(__GLIBC__) || __GLIBC_MINOR__ < 1
 #include <db.h>
+#else 
+#include <db_185.h>
+#endif
 
 #include <lock.h>
 #include <lwp.h>

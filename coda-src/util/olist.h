@@ -57,7 +57,7 @@ class olist {
   public:
     olist();
     olist(olist&);	    // not supported!
-    operator=(olist&);	    // not supported!
+    int operator= (olist&);	    // not supported!
     virtual ~olist();
     void insert(olink *);   // add at head of list
     void append(olink *);   // add at tail of list
@@ -91,7 +91,7 @@ class olink {		    // objects are derived from this class
   public:
     olink();
     olink(olink&);	    // not supported!
-    operator=(olink&);	    // not supported!
+    int operator=(olink&);	    // not supported!
     virtual ~olink();
     virtual void print();
     virtual void print(FILE *);
