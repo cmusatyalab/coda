@@ -524,6 +524,8 @@ void VFSUnmount()
 
 
 int k_Purge() {
+    size_t size;
+
     if (KernelMask == 0) return(1);
 
     LOG(1, ("k_Purge: Flush\n"));
@@ -533,9 +535,10 @@ int k_Purge() {
     
     msg.oh.opcode = CODA_FLUSH;
     msg.oh.unique = 0;
+    size = sizeof(struct coda_out_hdr);
     
     /* Send the message. */
-    if (MsgWrite((char *)&msg, sizeof(msg)) != sizeof(msg))
+    if (MsgWrite((char *)&msg, size) != size)
 	    CHOKE("k_Purge: Flush, message write returns %d", errno);
 
     LOG(1, ("k_Purge: Flush, returns 0\n"));
@@ -599,6 +602,8 @@ int k_Purge(ViceFid *fid, int severely) {
 
 
 int k_Purge(vuid_t vuid) {
+    size_t size;
+
     if (KernelMask == 0) return(1);
 
     LOG(1, ("k_Purge: vuid = %d\n", vuid));
@@ -609,11 +614,12 @@ int k_Purge(vuid_t vuid) {
     msg.coda_purgeuser.oh.opcode = CODA_PURGEUSER;
 
     /* Message data. */
-    bzero((void *)&msg.coda_purgeuser.cred, (int) sizeof(struct coda_cred));
+    memset(&msg.coda_purgeuser.cred, 0, sizeof(struct coda_cred));
     msg.coda_purgeuser.cred.cr_uid = vuid;
+    size = sizeof(msg.coda_purgeuser);
 
     /* Send the message. */
-    if (MsgWrite((char *)&msg, (int) sizeof(union outputArgs)) != (int) sizeof(union outputArgs))
+    if (MsgWrite((char *)&msg, size) != size)
 	CHOKE("k_Purge: PurgeUser, message write");
 
     LOG(1, ("k_Purge: PurgeUser, returns 0\n"));
