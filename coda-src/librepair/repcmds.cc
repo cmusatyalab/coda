@@ -225,11 +225,6 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
 	return(-1);
     }
  
-    if (nreps == 1) {
-	strerr(msg, msgsize, "Only one replica, nothing to compare");
-	goto Cleanup;
-    }
-
     /* Open the fixfile */
     if (!strcmp(fixfile, "stdout")) file = stdout;
     else if (!strcmp(fixfile, "stderr")) file = stderr;
@@ -605,7 +600,8 @@ int compareAcl(int nreplicas, resreplica *dirs) {
     return 0;
 }
 
-int compareOwner(int nreplicas, resreplica *dirs) {
+int compareOwner(int nreplicas, resreplica *dirs)
+{
     int i;
     for (i = 1; i < nreplicas; i++) {
 	if (dirs[i].owner != dirs[0].owner)
@@ -614,11 +610,8 @@ int compareOwner(int nreplicas, resreplica *dirs) {
     return 0;
 }
 
-int compareQuotas(int nreplicas, char **names) {
-    if (nreplicas <= 1) {
-	printf("Comparing Quotas: Not enough replicas to compare\n");
-	return 0;
-    }
+int compareQuotas(int nreplicas, char **names)
+{
     char piobuf[DEF_BUF];    
     struct ViceIoctl vio;
     vio.in = NULL;
