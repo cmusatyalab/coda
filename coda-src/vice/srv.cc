@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.20 1998/08/05 23:50:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.20.2.1 1998/08/27 17:46:31 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -70,9 +70,6 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/file.h>
-#ifndef __CYGWIN32__
-#include <sys/dir.h>
-#endif
 #include <strings.h>
 #include <errno.h>
 #include <signal.h>
@@ -1325,9 +1322,7 @@ PRIVATE pushlog() {
     char buf[100], buf2[100]; /* can't believe there will be more logs! */
     struct dirent **namelist;
 #ifndef __CYGWIN32__
-   count = scandir(".", (struct direct ***)&namelist, 
-		   (int (*)(const dirent *)) xselect, 
-		   (int (*)(const dirent *const *, const dirent *const *))compar);
+   count = scandir(".", &namelist, xselect, compar);
     /* It is safe now to blindly rename */
     for (i = 0; i < count; i++) {
 	sprintf(buf, "SrvLog-%d", count-i);

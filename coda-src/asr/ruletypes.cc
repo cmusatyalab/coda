@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/ruletypes.cc,v 4.6 1998/01/10 18:36:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/asr/ruletypes.cc,v 4.7 1998/01/14 23:53:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -43,13 +43,11 @@ extern "C" {
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifdef __BSD44__
-#include <sys/dir.h>
-#endif
 #include <sys/wait.h>
 #include <strings.h>
 #include <assert.h>
@@ -57,9 +55,7 @@ extern "C" {
 #include <venusioctl.h>
 #include <vcrcommon.h>
 #include "asr.h" 
-#ifndef __BSD44__
-#include <dirent.h>
-#endif
+
 extern "C" void path(char *, char *, char *);
 extern int wildmat(char *text, char *pattern);
 
