@@ -8,27 +8,27 @@
 #include "rpc2.private.h"
 
 int RPC2_getaddrinfo(const char *node, const char *service,
-		     const struct rpc2_addrinfo *hints,
-		     struct rpc2_addrinfo **res)
+		     const struct RPC2_addrinfo *hints,
+		     struct RPC2_addrinfo **res)
 {
     struct addrinfo *result;
     int ret;
 
-    /* here we use the fact that rpc2_addrinfo and addrinfo structures are
+    /* here we use the fact that RPC2_addrinfo and addrinfo structures are
      * identical (except for possibly the allocation policy) */
     ret = getaddrinfo(node, service, (const struct addrinfo *)hints, &result);
     if (ret)
 	return ret;
 
-    *res = RPC2_copyaddrinfo((struct rpc2_addrinfo *)result);
+    *res = RPC2_copyaddrinfo((struct RPC2_addrinfo *)result);
     freeaddrinfo(result);
 
     return 0;
 }
 
-int RPC2_freeaddrinfo(struct rpc2_addrinfo *res)
+int RPC2_freeaddrinfo(struct RPC2_addrinfo *res)
 {
-    struct rpc2_addrinfo *p;
+    struct RPC2_addrinfo *p;
     while (res) {
 	p = res;
 	res = res->ai_next;
@@ -44,7 +44,7 @@ const char *RPC2_gai_strerror(int errcode)
     return gai_strerror(errcode);
 }
 
-void RPC2_ntop(struct rpc2_addrinfo *ai, char *buf, size_t buflen)
+void RPC2_formataddrinfo(struct RPC2_addrinfo *ai, char *buf, size_t buflen)
 {
     int n, port = 0;
 
@@ -76,9 +76,9 @@ void RPC2_ntop(struct rpc2_addrinfo *ai, char *buf, size_t buflen)
 }
 
 /* deep copy an (rpc2_)addrinfo structure */
-struct rpc2_addrinfo *RPC2_copyaddrinfo(struct rpc2_addrinfo *addrinfo)
+struct RPC2_addrinfo *RPC2_copyaddrinfo(struct RPC2_addrinfo *addrinfo)
 {
-    struct rpc2_addrinfo *head = NULL, *cur, *prev = NULL, *src = addrinfo;
+    struct RPC2_addrinfo *head = NULL, *cur, *prev = NULL, *src = addrinfo;
     
     /* this loop probably a bit uglier than it should be because I'm
      * trying to keep the same order */
@@ -111,7 +111,7 @@ struct rpc2_addrinfo *RPC2_copyaddrinfo(struct rpc2_addrinfo *addrinfo)
     return head;
 }
 
-int RPC2_cmpaddrinfo(struct rpc2_addrinfo *node, struct rpc2_addrinfo *host)
+int RPC2_cmpaddrinfo(struct RPC2_addrinfo *node, struct RPC2_addrinfo *host)
 {
     if (!node && !host)
 	return 1;
@@ -128,14 +128,14 @@ int RPC2_cmpaddrinfo(struct rpc2_addrinfo *node, struct rpc2_addrinfo *host)
     return 0;
 }
 
-struct rpc2_addrinfo *rpc2_allocaddrinfo(struct sockaddr *addr, size_t addrlen)
+struct RPC2_addrinfo *rpc2_allocaddrinfo(struct sockaddr *addr, size_t addrlen)
 {
-    struct rpc2_addrinfo *ai;
-    ai = (struct rpc2_addrinfo *)malloc(sizeof(struct rpc2_addrinfo) + addrlen);
+    struct RPC2_addrinfo *ai;
+    ai = (struct RPC2_addrinfo *)malloc(sizeof(struct RPC2_addrinfo) + addrlen);
     if (!ai)
 	return NULL;
 
-    memset(ai, 0, sizeof(struct rpc2_addrinfo));
+    memset(ai, 0, sizeof(struct RPC2_addrinfo));
 
     if (addrlen == sizeof(struct sockaddr_in))
 	ai->ai_family = AF_INET;
@@ -149,18 +149,18 @@ struct rpc2_addrinfo *rpc2_allocaddrinfo(struct sockaddr *addr, size_t addrlen)
     return ai;
 }
 
-void rpc2_printaddrinfo(struct rpc2_addrinfo *ai, FILE *f)
+void rpc2_printaddrinfo(struct RPC2_addrinfo *ai, FILE *f)
 {
     char addr[RPC2_ADDRSTRLEN];
-    RPC2_ntop(ai, addr, RPC2_ADDRSTRLEN);
+    RPC2_formataddrinfo(ai, addr, RPC2_ADDRSTRLEN);
     fprintf(f, "AddrInfo = %s", addr);
 }
 
-/* Returns struct rpc2_addrinfo by resolving the input parameters.
+/* Returns struct RPC2_addrinfo by resolving the input parameters.
  * Returns NULL on failure. */
-struct rpc2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
+struct RPC2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
 {
-    struct rpc2_addrinfo hint, *result;
+    struct RPC2_addrinfo hint, *result;
     char nbuf[INET_ADDRSTRLEN], pbuf[11];
     char *node = NULL, *service = NULL;
     int retval;
@@ -184,7 +184,7 @@ struct rpc2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
     }
 
     /* Resolve host */
-    memset(&hint, 0, sizeof(struct rpc2_addrinfo));
+    memset(&hint, 0, sizeof(struct RPC2_addrinfo));
     hint.ai_family = PF_UNSPEC;
     hint.ai_socktype = SOCK_DGRAM;
 
@@ -218,9 +218,9 @@ struct rpc2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
     return result;
 }
 
-/* Fills in the HostIdent/PortIdent structures based on the rpc2_addrinfo */
+/* Fills in the HostIdent/PortIdent structures based on the RPC2_addrinfo */
 void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
-			struct rpc2_addrinfo *addr)
+			struct RPC2_addrinfo *addr)
 {
     if (Host) {
 	Host->Tag = RPC2_HOSTBYADDRINFO;

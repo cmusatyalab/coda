@@ -57,7 +57,7 @@ Pittsburgh, PA.
  * that don't have these useful functions yet and can avoid allocation problems
  * when copying the struct around. But to simplify things we should definitely
  * try to keep the layout identical if the system already has getaddrinfo. */
-struct rpc2_addrinfo {
+struct RPC2_addrinfo {
     int ai_flags;
     int ai_family;
     int ai_socktype;
@@ -65,25 +65,25 @@ struct rpc2_addrinfo {
     size_t ai_addrlen;
     struct sockaddr *ai_addr;
     char *ai_canonname;
-    struct rpc2_addrinfo *ai_next;
+    struct RPC2_addrinfo *ai_next;
 };
 
 /* These functions match their non RPC2_ counterparts */
 int RPC2_getaddrinfo(const char *node, const char *service,
-		     const struct rpc2_addrinfo *hints,
-		     struct rpc2_addrinfo **res);
-int RPC2_freeaddrinfo(struct rpc2_addrinfo *res);
+		     const struct RPC2_addrinfo *hints,
+		     struct RPC2_addrinfo **res);
+int RPC2_freeaddrinfo(struct RPC2_addrinfo *res);
 const char *RPC2_gai_strerror(int errcode);
 
 /* copyaddrinfo is in my opinion missing from the getaddrinfo suite */
 /* cmpaddrinfo tests whether 'host' matches any of the entries in 'node' */
-struct rpc2_addrinfo *RPC2_copyaddrinfo(struct rpc2_addrinfo *node);
-int RPC2_cmpaddrinfo(struct rpc2_addrinfo *node, struct rpc2_addrinfo *host);
+struct RPC2_addrinfo *RPC2_copyaddrinfo(struct RPC2_addrinfo *node);
+int RPC2_cmpaddrinfo(struct RPC2_addrinfo *node, struct RPC2_addrinfo *host);
 
-/* this one is not really interface compatible with inet_ntop, but we don't
- * need a generic solution (and we could add portnumbers to the output) */
+/* this one is inspired by inet_ntop, but this one adds the portnumber to the
+ * output and only works for addrinfo structs. */
 #define RPC2_ADDRSTRLEN (46 + 1 + 10 + 1) /* inet6 addr + : + portnumber + \0 */
-void RPC2_ntop(struct rpc2_addrinfo *host, char *buf, size_t buflen);
+void RPC2_formataddrinfo(struct RPC2_addrinfo *host, char *buf, size_t buflen);
 
 
 /* This string is used in RPC initialization calls to ensure that the
@@ -358,7 +358,7 @@ typedef
 	HostTag Tag;
 	union
 	    {
-	    struct rpc2_addrinfo *AddrInfo; /* includes sockaddr, which includes port */
+	    struct RPC2_addrinfo *AddrInfo; /* includes sockaddr, which includes port */
 	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
 	    char Name[64];	/* minimum length for use with domain names */
 	    }
@@ -399,7 +399,7 @@ typedef
 	MgrpTag Tag;
 	union
 	    {
-	    struct rpc2_addrinfo *AddrInfo; /* includes sockaddr, which includes port */
+	    struct RPC2_addrinfo *AddrInfo; /* includes sockaddr, which includes port */
 	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
 	    char	    Name[64];	    /* minimum length for use with domain names */
 	    }
@@ -448,7 +448,7 @@ typedef struct RPC2_PacketBuffer {
 	long Line;
 
 	/* these fields are set when we receive the packet. */
-	struct rpc2_addrinfo	*PeerAddr;
+	struct RPC2_addrinfo	*PeerAddr;
 	char   oldhostandport[88]; /* padding to keep the userspace interface
 				      mostly identical */
 	struct timeval		RecvStamp;

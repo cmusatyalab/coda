@@ -248,7 +248,7 @@ static void PrintHostIdent(hPtr, tFile)
     switch (hPtr->Tag)
 	{
 	case RPC2_HOSTBYADDRINFO:
-		RPC2_ntop(hPtr->Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
+		RPC2_formataddrinfo(hPtr->Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
 		fprintf(tFile, "Host.AddrInfo = %s", addr);
 		break;
 

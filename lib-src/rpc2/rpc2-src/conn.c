@@ -181,7 +181,7 @@ struct CEntry *rpc2_getFreeConn()
     return ce;
 }
 
-struct CEntry *rpc2_AllocConn(struct rpc2_addrinfo *addr)
+struct CEntry *rpc2_AllocConn(struct RPC2_addrinfo *addr)
 {
     struct CEntry *ce;
 
@@ -341,7 +341,7 @@ build and maintain.  */
 
 struct RecentBind
 {
-    struct rpc2_addrinfo *addr;	/* Remote Host */
+    struct RPC2_addrinfo *addr;	/* Remote Host */
     RPC2_Integer Unique;	/* Uniquefier value in Init1 packet */
     RPC2_Handle MyConn;		/* Local handle allocated for this connection */
 };
@@ -356,7 +356,7 @@ static int RBCacheOn = 0;	/* 0 = RBCacheOff, 1 = RBCacheOn */
 
 /* Adds information about a new bind to the RBCache; throws out the
    oldest entry if needed */
-void rpc2_NoteBinding(struct rpc2_addrinfo *addr, RPC2_Integer whichUnique,
+void rpc2_NoteBinding(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique,
 		      RPC2_Handle whichConn)
 {
     if (rpc2_ConnCount <= RBCACHE_THRESHOLD)
@@ -389,7 +389,7 @@ void rpc2_NoteBinding(struct rpc2_addrinfo *addr, RPC2_Integer whichUnique,
    list.    */
 
 struct CEntry *
-rpc2_ConnFromBindInfo(struct rpc2_addrinfo *addr, RPC2_Integer whichUnique)
+rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique)
 {
     struct RecentBind *rbn;
     int next, count;

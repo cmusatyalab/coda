@@ -189,7 +189,7 @@ struct MEntry			/* describes an RPC multicast connection */
 
     /* Multicast Group Connection info */
     RPC2_Integer	    State;	    /* eg {C,S}_AWAITREQUEST */
-    struct rpc2_addrinfo    *ClientAddr;    /* |		*/
+    struct RPC2_addrinfo    *ClientAddr;    /* |		*/
     RPC2_Handle		    MgroupID;	    /* |		*/
     RPC2_Integer	    NextSeqNumber;  /* for mgrp connection */
     RPC2_Integer	    SubsysId;
@@ -222,7 +222,7 @@ struct MEntry			/* describes an RPC multicast connection */
 #define	conn		    me_conns.mes_conn
 
     /* Other information - Only needed by client */
-    struct rpc2_addrinfo    *IPMAddr;	    /* IP Multicast Host Address */
+    struct RPC2_addrinfo    *IPMAddr;	    /* IP Multicast Host Address */
     RPC2_PacketBuffer	    *CurrentPacket; /* current multicast packet */
 	};
 
@@ -307,7 +307,7 @@ struct HEntry {
     struct HEntry    *Qname;	/* LinkEntry field */
     struct HEntry    *HLink;	/* for host hash */
     int		      RefCount; /* # connections that have a reference */
-    struct rpc2_addrinfo *Addr; /* network address */
+    struct RPC2_addrinfo *Addr; /* network address */
     struct timeval   LastWord;	/* Most recent time we've heard from this host*/
     unsigned RPC2_NumEntries;	/* number of observations recorded */
     RPC2_NetLogEntry RPC2_Log[RPC2_MAXLOGLENGTH];
@@ -447,13 +447,13 @@ void FreeHeld(struct SL_Entry *sle);
 
 /* Socket creation */
 
-long rpc2_CreateIPSocket(long *svar, struct rpc2_addrinfo *addr,
+long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
 			 RPC2_PortIdent *Port);
 
 /* Packet  routines */
 long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
 void rpc2_XmitPacket(long whichSocket, RPC2_PacketBuffer *whichPB,
-		     struct rpc2_addrinfo *addr);
+		     struct RPC2_addrinfo *addr);
 void rpc2_InitPacket();
 long rpc2_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichBuff);
 void rpc2_htonp(RPC2_PacketBuffer *p);
@@ -468,7 +468,7 @@ void rpc2_ProcessPackets(), rpc2_ExpireEvents();
 int rpc2_InitConn(void);
 void rpc2_FreeConn(), rpc2_SetConnError();
 struct CEntry *rpc2_AllocConn();
-struct CEntry *rpc2_ConnFromBindInfo(struct rpc2_addrinfo *peeraddr,
+struct CEntry *rpc2_ConnFromBindInfo(struct RPC2_addrinfo *peeraddr,
 				     RPC2_Integer whichUnique);
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
 void rpc2_ReapDeadConns(void);
@@ -476,7 +476,7 @@ void rpc2_IncrementSeqNumber(struct CEntry *);
 
 /* Host manipulation routines */
 void rpc2_InitHost(void);
-struct HEntry *rpc2_GetHost(struct rpc2_addrinfo *addr);
+struct HEntry *rpc2_GetHost(struct RPC2_addrinfo *addr);
 void rpc2_FreeHost(struct HEntry **whichHost);
 void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log,
 		     NetLogEntryType type);
@@ -492,8 +492,8 @@ void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
 
 /* Multicast group manipulation routines */
 void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();
-struct MEntry *rpc2_AllocMgrp(struct rpc2_addrinfo *addr, RPC2_Handle handle);
-struct MEntry *rpc2_GetMgrp(struct rpc2_addrinfo *addr, RPC2_Handle handle,
+struct MEntry *rpc2_AllocMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle);
+struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
 			    long role);
 
 /* Hold queue routines */
@@ -530,7 +530,7 @@ void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
 time_t rpc2_time();
 long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
 
-void rpc2_NoteBinding(struct rpc2_addrinfo *peeraddr, RPC2_Integer whichUnique, RPC2_Handle whichConn);
+void rpc2_NoteBinding(struct RPC2_addrinfo *peeraddr, RPC2_Integer whichUnique, RPC2_Handle whichConn);
 
 int mkcall(RPC2_HandleResult_func *ClientHandler, int ArgCount, int HowMany,
 	   RPC2_Handle ConnList[], long offset, long rpcval, int *args);
@@ -572,12 +572,13 @@ extern unsigned long rpc2_NoNaks;
 extern long rpc2_BindLimit, rpc2_BindsInQueue;
 extern long rpc2_FreeMgrps, rpc2_AllocMgrps;
 
-/* rpc2_addrinfo helper routines */
-struct rpc2_addrinfo *rpc2_allocaddrinfo(struct sockaddr *addr, size_t addrlen);
-void rpc2_printaddrinfo(struct rpc2_addrinfo *ai, FILE *f);
-struct rpc2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port);
-void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
-			struct rpc2_addrinfo *addr);
+/* RPC2_addrinfo helper routines */
+struct RPC2_addrinfo *rpc2_allocaddrinfo(struct sockaddr *addr, size_t addrlen);
+struct RPC2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port);
+void                  rpc2_printaddrinfo(struct RPC2_addrinfo *ai, FILE *f);
+void                  rpc2_splitaddrinfo(RPC2_HostIdent *Host,
+					 RPC2_PortIdent *Port,
+					 struct RPC2_addrinfo *addr);
 
 
 /*--------------- Useful definitions that used to be in potpourri.h or util.h ---------------*/

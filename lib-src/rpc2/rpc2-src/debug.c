@@ -184,7 +184,7 @@ void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
     fprintf(tFile, "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
 	(long)hPtr, (long)hPtr->Next, (long)hPtr->Prev, WhichMagic(hPtr->MagicNumber));
 
-    RPC2_ntop(hPtr->Addr, addr, RPC2_ADDRSTRLEN);
+    RPC2_formataddrinfo(hPtr->Addr, addr, RPC2_ADDRSTRLEN);
     fprintf(tFile, "AddrInfo = %s", addr);
     fprintf(tFile, "\tLastWord = %ld.%06ld\n", hPtr->LastWord.tv_sec, hPtr->LastWord.tv_usec);
     fprintf(tFile, "\tRTT = %ld.%03ld, RTTvar = %ld.%03ld\n",
@@ -339,7 +339,7 @@ void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
         case RPC2_MGRPBYADDRINFO:
             {
 		char addr[RPC2_ADDRSTRLEN];
-		RPC2_ntop(hPtr->Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
+		RPC2_formataddrinfo(hPtr->Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
 		fprintf(tFile, "Host.AddrInfo = %s", addr);
                 break;	
             }
@@ -657,7 +657,7 @@ void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
 		    case RPC2_HOSTBYADDRINFO:
 		    {
 			char addr[RPC2_ADDRSTRLEN];
-			RPC2_ntop(tea->Host.Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
+			RPC2_formataddrinfo(tea->Host.Value.AddrInfo, addr, RPC2_ADDRSTRLEN);
 			fprintf(outFile, "Host:     Tag = RPC2_HOSTBYINETADDR	AddrInfo = %s\n",
 				addr);
 			break;

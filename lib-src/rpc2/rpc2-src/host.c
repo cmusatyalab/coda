@@ -93,7 +93,7 @@ void rpc2_InitHost()
 
 /* Returns pointer to the host entry corresponding to addr. Addr should point
  * at only a single addrinfo structure. */
-struct HEntry *rpc2_GetHost(struct rpc2_addrinfo *addr)
+struct HEntry *rpc2_GetHost(struct RPC2_addrinfo *addr)
 {
     struct HEntry *he;
     long bucket;
@@ -372,7 +372,7 @@ void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned elapsed_us,
     eL -= (host->RTTVar >> RPC2_RTTVAR_SHIFT);
     host->RTTVar += eL;
 
-    RPC2_ntop(host->Addr, addr, RPC2_ADDRSTRLEN);
+    RPC2_formataddrinfo(host->Addr, addr, RPC2_ADDRSTRLEN);
     say(0, RPC2_DebugLevel,
 	"Est: %s %4ld.%06lu/%-5lu<%-5lu RTT:%lu/%lu us BR:%lu/%lu ns/B\n",
 	    addr, elapsed_us / 1000000, elapsed_us % 1000000,

@@ -254,7 +254,7 @@ struct TraceElem
 	    RPC2_PacketBuffer *whichPB_Address;
 	    RPC2_PacketBuffer whichPB;
 	    long whichSocket;
-	    struct rpc2_addrinfo whichAddr;
+	    struct RPC2_addrinfo whichAddr;
 	    }
 	    XmitPacketEntry;
 	    
@@ -295,7 +295,7 @@ struct TraceElem
 	    {
 	    RPC2_PacketBuffer pb;
 	    long pb_address;
-	    struct rpc2_addrinfo ThisAddr;
+	    struct RPC2_addrinfo ThisAddr;
 	    }
 	    XlateMcastPacketEntry;
 

@@ -93,7 +93,7 @@ void rpc2_InitMgrp()
 
 
 /* Implements simple hash algorithm depends on addrinfo having any links */
-static struct bucket *rpc2_GetBucket(struct rpc2_addrinfo *addr,
+static struct bucket *rpc2_GetBucket(struct RPC2_addrinfo *addr,
 				     RPC2_Handle mgrpid)
 {
     int index = 0;
@@ -110,7 +110,7 @@ static struct bucket *rpc2_GetBucket(struct rpc2_addrinfo *addr,
 /* Clients call this routine with: <rpc2_LocalAddr, NULL>
    Servers call this routine with: <ClientAddr, mgrpid>
 */
-struct MEntry *rpc2_AllocMgrp(struct rpc2_addrinfo *addr, RPC2_Handle handle)
+struct MEntry *rpc2_AllocMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle)
 {
     struct MEntry  *me;
     RPC2_Handle    mgrpid;
@@ -126,7 +126,7 @@ struct MEntry *rpc2_AllocMgrp(struct rpc2_addrinfo *addr, RPC2_Handle handle)
        mgrpid in the rpc2_initmulticast message.  Thus, the unique
        identifier is <client_host, client_port, mgrpid, role>. */
     mgrpid = (handle == 0) ? ++LastMgrpidAllocated : handle;
-    RPC2_ntop(addr, buf, RPC2_ADDRSTRLEN);
+    RPC2_formataddrinfo(addr, buf, RPC2_ADDRSTRLEN);
     say(9, RPC2_DebugLevel, "Allocating Mgrp: host = %s\tmgrpid = 0x%lx\t", buf, mgrpid);
     bucket = rpc2_GetBucket(addr, mgrpid);
 
@@ -174,7 +174,7 @@ void rpc2_FreeMgrp(me)
 
     rpc2_FreeMgrps++;
     SetRole(me, FREE);
-    RPC2_ntop(me->ClientAddr, buf, RPC2_ADDRSTRLEN);
+    RPC2_formataddrinfo(me->ClientAddr, buf, RPC2_ADDRSTRLEN);
     say(9, RPC2_DebugLevel, "Freeing Mgrp: ClientHost = %s\tMgroupID = 0x%lx\t", buf, me->MgroupID);
 
     bucket = rpc2_GetBucket(me->ClientAddr, me->MgroupID);
@@ -190,7 +190,7 @@ void rpc2_FreeMgrp(me)
 }
 
 
-struct MEntry *rpc2_GetMgrp(struct rpc2_addrinfo *addr, RPC2_Handle handle,
+struct MEntry *rpc2_GetMgrp(struct RPC2_addrinfo *addr, RPC2_Handle handle,
 			    long role)
     {
     struct MEntry  *me;
@@ -201,7 +201,7 @@ struct MEntry *rpc2_GetMgrp(struct rpc2_addrinfo *addr, RPC2_Handle handle,
     for (me = bucket->chain, i = 0; i < bucket->count; me = me->Next, i++) {
 	char buf[RPC2_ADDRSTRLEN];
 
-	RPC2_ntop(me->ClientAddr, buf, RPC2_ADDRSTRLEN);
+	RPC2_formataddrinfo(me->ClientAddr, buf, RPC2_ADDRSTRLEN);
 	say(9, RPC2_DebugLevel, "GetMgrp: %s %ld\n", buf, me->MgroupID);
 
 	if (RPC2_cmpaddrinfo(me->ClientAddr, addr) &&
@@ -849,7 +849,7 @@ int XlateMcastPacket(RPC2_PacketBuffer *pb)
         TestState(ce, SERVER, ~S_AWAITREQUEST) ||
         (h_Flags & RPC2_RETRY) != 0) {BOGUS(pb); return(FALSE);}
 
-    RPC2_ntop(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
+    RPC2_formataddrinfo(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
     say(9, RPC2_DebugLevel, "Host = %s\tMgrp = 0x%lx\n", addr, h_RemoteHandle);
 
     /* Decrypt the packet with the MULTICAST session key. Clear the encrypted 

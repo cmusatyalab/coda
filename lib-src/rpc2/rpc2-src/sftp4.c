@@ -71,7 +71,7 @@ int sftp_XmitPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *pb)
 {
     int whichSocket;
     RPC2_PortIdent *whichPort;
-    struct rpc2_addrinfo *ai;
+    struct RPC2_addrinfo *ai;
 
 #ifdef RPC2DEBUG
     struct TraceEntry *te;

@@ -410,7 +410,7 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     }
 
 
-long SFTP_DeleteMgrp(RPC2_Handle MgroupHandle, struct rpc2_addrinfo *ClientAddr,
+long SFTP_DeleteMgrp(RPC2_Handle MgroupHandle, struct RPC2_addrinfo *ClientAddr,
 		     long Role)
     {
     struct MEntry	*me;
@@ -451,7 +451,7 @@ int SFXlateMcastPacket(RPC2_PacketBuffer *pb)
 	    h_ThisRPCCall;					/* decrypt first */
     short XlatePort;
     char addr[RPC2_ADDRSTRLEN];
-    struct rpc2_addrinfo *ai;
+    struct RPC2_addrinfo *ai;
 
     ai = pb->Prefix.PeerAddr;
     if (ai->ai_family == AF_INET)
@@ -462,7 +462,7 @@ int SFXlateMcastPacket(RPC2_PacketBuffer *pb)
     XlatePort = htons(ntohs(XlatePort) - 1);
 
     say(9, SFTP_DebugLevel, "SFXlateMcastPacket()\n");
-    RPC2_ntop(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
+    RPC2_formataddrinfo(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
     say(9, SFTP_DebugLevel, "Host = %s\tPort = %u\tMgrp = 0x%lx\n",
 	addr, XlatePort, h_RemoteHandle);
 
@@ -500,7 +500,7 @@ int SFXlateMcastPacket(RPC2_PacketBuffer *pb)
     if (mse->WhoAmI != SFSERVER) {
 	say(9, SFTP_DebugLevel, "mse->WhoAmI != SFSERVER\n"); return(FALSE);}
 
-    RPC2_ntop(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
+    RPC2_formataddrinfo(pb->Prefix.PeerAddr, addr, RPC2_ADDRSTRLEN);
     say(9, SFTP_DebugLevel, "Host = %s\tPort = %u\tMgrp = 0x%lx\n",
 	addr, XlatePort, h_RemoteHandle );
 

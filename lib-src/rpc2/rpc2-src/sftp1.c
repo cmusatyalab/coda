@@ -100,7 +100,7 @@ long SFTP_Init()
 {
 #warning "what to do here, maybe we should just drop the sftp listener"
     char *sname;
-    struct rpc2_addrinfo *sftp_localaddr;
+    struct RPC2_addrinfo *sftp_localaddr;
     int error;
     
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");

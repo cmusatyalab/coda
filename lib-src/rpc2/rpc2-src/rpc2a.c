@@ -346,7 +346,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     if (ce->Flags & CE_OLDV)
     {
 	char addr[RPC2_ADDRSTRLEN];
-	RPC2_ntop(ce->HostInfo->Addr, addr, RPC2_ADDRSTRLEN);
+	RPC2_formataddrinfo(ce->HostInfo->Addr, addr, RPC2_ADDRSTRLEN);
 	say(-1, RPC2_DebugLevel, "Request from %s: Old rpc2 version\n", addr);
 
 	/* Get rid of allocated connection entry. */
@@ -568,7 +568,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     
     
     /* Step 0: Resolve bind parameters */
-    struct rpc2_addrinfo *addr, *peeraddrs = rpc2_resolve(Host, Port);
+    struct RPC2_addrinfo *addr, *peeraddrs = rpc2_resolve(Host, Port);
     if (!peeraddrs) {
 	    DROPCONN();
 	    rpc2_Quit(RPC2_NOBINDING);

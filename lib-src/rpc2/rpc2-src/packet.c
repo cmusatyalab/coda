@@ -99,7 +99,7 @@ static long DontFailPacket(predicate, pb, addr, sock)
     }
 
 void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
-		     IN struct rpc2_addrinfo *addr)
+		     IN struct RPC2_addrinfo *addr)
 {
     int n;
 

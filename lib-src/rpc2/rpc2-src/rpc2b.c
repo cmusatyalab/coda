@@ -81,7 +81,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     char *c;
     long rc, i, ctpid;
     int error;
-    struct rpc2_addrinfo *rpc2_localaddr;
+    struct RPC2_addrinfo *rpc2_localaddr;
 
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
@@ -805,7 +805,7 @@ long RPC2_ClearNetInfo(IN Conn)
     
 /* adding this arg in theory allows me to specify whether to
    create a v4 or v6 socket.  Simpler way to do this? */
-long rpc2_CreateIPSocket(long *svar, struct rpc2_addrinfo *addr,
+long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
 			 RPC2_PortIdent *Port)
 {
     struct servent *sentry;
