@@ -87,10 +87,10 @@ void rvmlib_abort(int);
 
 void rvmlib_set_range(void *base, unsigned long size);
 void rvmlib_modify_bytes(void *dest, const void *newval, int len);
-char *rvmlib_strdup(const char *src);
+char *rvmlib_strdup(const char *src, const char *file, int line);
 
-void *rvmlib_malloc(unsigned long size, char *file, int line);
-void rvmlib_free(void *p, char *file, int line);
+void *rvmlib_malloc(unsigned long size, const char *file, int line);
+void rvmlib_free(void *p, const char *file, int line);
 
 void rvmlib_init_threaddata(rvm_perthread_t *rvmptt);
 extern void rvmlib_set_thread_data(void *);
@@ -120,6 +120,7 @@ do { \
 
 #define rvmlib_rec_malloc(size) rvmlib_malloc(size, __FILE__, __LINE__)
 #define rvmlib_rec_free(addr) rvmlib_free(addr, __FILE__, __LINE__)
+#define rvmlib_rec_strdup(size) rvmlib_strdup(size, __FILE__, __LINE__)
 
 #define RVMLIB_REC_OBJECT(object) rvmlib_set_range(&(object), sizeof(object))
 

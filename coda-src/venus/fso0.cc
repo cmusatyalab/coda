@@ -671,7 +671,7 @@ RestartFind:
 		Recov_BeginTrans();
 		RVMLIB_REC_OBJECT(f->comp);
 		rvmlib_rec_free(f->comp);
-		f->comp = rvmlib_strdup(comp);
+		f->comp = rvmlib_rec_strdup(comp);
 		Recov_EndTrans(MAXFP);
 	}
     }

@@ -47,11 +47,11 @@ extern "C" {
 Realm::Realm(const char *realm_name)
 {
     RVMLIB_REC_OBJECT(name);
-    name = rvmlib_strdup(realm_name);
+    name = rvmlib_rec_strdup(realm_name);
     CODA_ASSERT(name);
 
     RVMLIB_REC_OBJECT(rootvolname);
-    rootvolname = rvmlib_strdup(DEFAULT_ROOTVOLNAME);
+    rootvolname = rvmlib_rec_strdup(DEFAULT_ROOTVOLNAME);
     CODA_ASSERT(rootvolname);
 
     rec_list_head_init(&realms);
@@ -230,7 +230,7 @@ void Realm::SetRootVolName(char *name)
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(rootvolname);
     rvmlib_rec_free(rootvolname);
-    rootvolname = rvmlib_strdup(name);
+    rootvolname = rvmlib_rec_strdup(name);
     CODA_ASSERT(rootvolname);
     Recov_EndTrans(MAXFP);
 }

@@ -623,7 +623,7 @@ void fsobj::LocalRename(Date_t Mtime, fsobj *s_parent_fso, char *s_name,
 	if (!STREQ(s_fso->comp, t_name)) {
 	    RVMLIB_REC_OBJECT(s_fso->comp);
 	    rvmlib_rec_free(s_fso->comp);
-	    s_fso->comp = rvmlib_strdup(t_name);
+	    s_fso->comp = rvmlib_rec_strdup(t_name);
 	}
 	s_fso->DetachHdbBindings();
 /*    s_fso->stat.DataVersion++;*/

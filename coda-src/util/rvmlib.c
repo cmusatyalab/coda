@@ -189,10 +189,10 @@ void rvmlib_modify_bytes(void *dest, const void *newval, int len)
 	memmove(dest, newval, len);
 }
 
-char *rvmlib_strdup(const char *src)
+char *rvmlib_strdup(const char *src, const char *file, int line)
 {
     int len = strlen(src) + 1;
-    char *dst = (char *)rvmlib_rec_malloc(len); 
+    char *dst = (char *)rvmlib_malloc(len, file, line); 
 
     if (dst)
 	rvmlib_modify_bytes(dst, src, len);
@@ -200,7 +200,7 @@ char *rvmlib_strdup(const char *src)
     return dst;
 }
 
-void *rvmlib_malloc(unsigned long size, char *file, int line)
+void *rvmlib_malloc(unsigned long size, const char *file, int line)
 {
 	int err;
 	void *p;
@@ -231,7 +231,7 @@ void *rvmlib_malloc(unsigned long size, char *file, int line)
 	}
 }
 
-inline void rvmlib_free(void *p, char *file, int line)
+inline void rvmlib_free(void *p, const char *file, int line)
 {
 	int err = 0;  
 	rvm_perthread_t *_rvm_data;

@@ -548,7 +548,7 @@ void fsobj::SetComp(char *name)
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(comp);
     if (comp) rvmlib_rec_free(comp);
-    comp = rvmlib_strdup(name);
+    comp = rvmlib_rec_strdup(name);
     Recov_EndTrans(MAXFP);
 }
 

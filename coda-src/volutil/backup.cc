@@ -410,7 +410,7 @@ int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
 
 	    memset((char *)vol->replicas, 0, vol->nReplicas * sizeof(repinfo_t));
 
-	    for (char i = 0; i < vol->nReplicas; i++) {
+	    for (int i = 0; i < vol->nReplicas; i++) {
 		vol->replicas[i].repvolId = vre->ServerVolnum[i];
 		if (getReplica(&(vol->replicas[i])) == -1) {
 		    LogMsg(0, 0, stdout, "Skipping backup for volume %x\n", vol->volId);

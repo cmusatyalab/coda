@@ -133,7 +133,7 @@ fsobj::fsobj(VenusFid *key, char *name) : cf() {
     ResetPersistent();
     fid = *key;
     if (name)
-	comp = rvmlib_strdup(name);
+	comp = rvmlib_rec_strdup(name);
     if (FID_IsVolRoot(&fid))
 	mvstat = ROOT;
     ResetTransient();
