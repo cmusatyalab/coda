@@ -2,7 +2,6 @@
 #include <sys/systm.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
-#include <sys/vnode.h>
 #include <sys/select.h>
 #include <sys/ioctl.h>
 /* for CNV_OFLAGS below */
