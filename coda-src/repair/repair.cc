@@ -1523,7 +1523,7 @@ static int GetReplicaNames(char **names, int maxnames, char
     int i;
     DIR *d = opendir(ReplicatedName);
     if (!d) {
-	printf("GetReplicaNames: coudln't open %s\n", ReplicatedName);
+	printf("GetReplicaNames: couldn't open %s\n", ReplicatedName);
 	return(-1);
     }
     int SizeRepName = (int) (strlen(ReplicatedName) + 1);

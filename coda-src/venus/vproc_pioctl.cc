@@ -369,6 +369,7 @@ O_FreeLocks:
 
 		    /* Make sure the kernel drops the symlink */
 		    (void)k_Purge(fid, 1);
+		    (void)k_Purge(&f->pfid, 1);
 		    break;
 		    }
 

@@ -1,4 +1,22 @@
+1999-05-31    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.2.4  =========
+	* Client uniquifiers were not unique, because the random generator
+	  wasn't seeded yet.	
+	* Trickle stores were broken, blocking reintegration.
+	* A bunch of repair related changes, mainly simplify porting the
+	  repair tools to windows.
+	* More SFTP tuning for lossy networks.
+	* cfs disconnect/reconnect is fixed! (Clement).
+	* More Win95 updates (Marc).
+	* Handling token expiry at the server side now.
+	* Fixed some rvm leaks in the client.
+	* Turned off RPC2_strict_ip_matching by default, too many
+	  `multihomers' got bitten by this one.
+	* Fixed rvm recovery bug in venus.
+
 1999-05-13    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.2.3  =========
+	* Moved pdb filenames to prot_users.db and prot_index.db.
 	* Avoid random data problems and buffer overflows when reading
 	  auth2 and volutil tokens.
 	* Only query the servers in the vstab for volume information.
