@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vice/RCS/codaproc.cc,v 4.3 1997/02/26 16:03:42 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.4 1997/06/14 22:04:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -311,15 +311,13 @@ Exit:
 }
 
 /*
-  BEGIN_HTML
-  <a name="ViceResolve"><strong>Resolve the diverging replicas of an object</strong></a> 
-  END_HTML
+  ViceResolve: Resolve the diverging replicas of an object
 */
 long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
     int errorCode = 0;
     Volume *volptr = 0;	    /* the volume ptr */
     Vnode *vptr = 0;	    /* the vnode ptr */
-    VolumeId VSGVolnum = Fid->Volume;
+    VolumeId VSGVolnum;
     int	status = 0;	    /* transaction status variable */
     ViceVersionVector VV;
     ResStatus rstatus;
@@ -335,6 +333,14 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
     ResPathElem *pathelembuf = NULL;
     int j;
 
+    if ( Fid ) 
+        VSGVolnum = Fid->Volume;
+    else { 
+	LogMsg(0, SrvDebugLevel, stdout, "ViceResolve: I was handed NULL Fid");
+	assert(0);
+    }
+
+       
     if (pathtiming && probingon && (!(ISDIR(*Fid)))) {
 	FileresTPinfo = new timing_path(MAXPROBES);
 	PROBE(FileresTPinfo, COORDSTARTVICERESOLVE);
