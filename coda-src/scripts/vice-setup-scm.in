@@ -31,7 +31,8 @@ set -e
 #
 # Configuration
 #
-conf=@prefix@/etc/coda/server.conf
+prefix=@prefix@
+conf=@sysconfdir@/server.conf
 if [ -f ${conf} ] ; then
   . ${conf}
   haveconf=1

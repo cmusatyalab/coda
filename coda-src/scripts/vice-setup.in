@@ -28,8 +28,8 @@ echon() {
 #
 # initial information
 #
-
-conf=@prefix@/etc/coda/server.conf
+prefix=@prefix@
+conf=@sysconfdir@/server.conf
 
 if [ -f $conf ] ; then
   echo "You already have a file $conf!"
@@ -50,11 +50,12 @@ fi
 
 echo 'Setting up config files for a coda server.'
 
-echon "Do you want the file $conf created? [yes]"
+echon "Do you want the file $conf created? [yes] "
 yesno=""
 read yesno
 if [ x$yesno = x -o x$yesno = xyes -o x$yesno = xy ] ; then
   mkconf=1
+  mkdir -p @sysconfdir@ 2>/dev/null
 else
   mkconf=0
 fi

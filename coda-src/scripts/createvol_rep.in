@@ -20,9 +20,13 @@
 PATH=$PATH:@prefix@/sbin
 export PATH
 
-if [ -f @prefix@/etc/coda/server.conf ] ; then
-  . @prefix@/etc/coda/server.conf
-else
+prefix=@prefix@
+vicedir=
+if [ -f @sysconfdir@/server.conf ] ; then
+  . @sysconfdir@/server.conf
+fi
+
+if [ x${vicedir} = x ]; then
   vicedir=/vice
 fi
 

@@ -17,33 +17,46 @@
 # 
 #*/
 
+#
+# Configuration
+#
+prefix=@prefix@
+conf=@sysconfdir@/server.conf
+if [ -f ${conf} ] ; then
+  . ${conf}
+fi
+
+if [ x${vicedir} = x ] ; then
+  vicedir=/vice
+fi
+
 THISHOST=`hostname | tr A-Z a-z`
-REMOTE=/vice/vol/remote
+REMOTE=${vicedir}/vol/remote
 
 PATH=/sbin:/usr/sbin:$PATH
 export PATH
-cd /vice/vol/remote
+cd ${vicedir}/vol/remote
 SERVERS=""
 
-# Get the locally generated /vice/vol/VolumeList from 
+# Get the locally generated ${vicedir}/vol/VolumeList from 
 #  - all servers (if argc = 1)
 #  - the listed servers (if argc > 1) 
 
 if [ $#  = 0 ]; then
-	SERVERS=`awk '{ print $1 }' /vice/db/servers`
+	SERVERS=`awk '{ print $1 }' ${vicedir}/db/servers`
 else
     for i in $* ; do
-        NEWSERVER=`awk '{ print $1 }' /vice/db/servers | grep $i `
+        NEWSERVER=`awk '{ print $1 }' ${vicedir}/db/servers | grep $i `
 	SERVERS="$NEWSERVER $SERVERS"
     done
 fi
 
-echo "Fetching /vice/vol/Volumelist from $SERVERS"
+echo "Fetching ${vicedir}/vol/Volumelist from $SERVERS"
 
 for server in $SERVERS
 do 
 
-    updatefetch -h ${server} -r /vice/vol/VolumeList -l \
+    updatefetch -h ${server} -r ${vicedir}/vol/VolumeList -l \
 	${REMOTE}/${server}.list.new
 
     if [ -r ${REMOTE}/${server}.list.new ]; then
@@ -58,4 +71,4 @@ done
 cd ${REMOTE}; cat *.list> ../BigVolumeList
 
 # Make a new vldb from the list
-volutil makevldb  /vice/vol/BigVolumeList
+volutil makevldb  ${vicedir}/vol/BigVolumeList

@@ -28,7 +28,8 @@ echon() {
 #
 # Configuration
 #
-conf=@prefix@/etc/coda/server.conf
+prefix=@prefix@
+conf=@sysconfdir@/server.conf
 if [ -f ${conf} ] ; then
   . ${conf}
 fi
@@ -64,10 +65,10 @@ if [ -d "$srvdir" -o -h "$srvdir" ]; then
     fi
 else
     mkdir "$srvdir"
-    if [ $? = 0 ]; then
-   	 echo $srvdir exists, but is not a directory. Exiting.
-  	  echo Run vice-setup-srvdir to repeat this step.
-  	  exit 1
+    if [ $? != 0 ]; then
+   	 echo Could not make $srvdir as a directory. Exiting.
+  	 echo Run vice-setup-srvdir to repeat this step.
+  	 exit 1
     fi
 fi
 touch "$srvdir/FTREEDB"

@@ -8,9 +8,13 @@
 #
 # Modified:     Henry M. Pierce <hmpierce@cs.cmu.edu> for *BSD only...
 
-if [ -f @prefix@/etc/coda/server.conf ] ; then
-. @prefix@/etc/coda/server.conf
-else
+prefix=@prefix@
+vicedir=
+if [ -f @sysconfdir@/server.conf ] ; then
+. @sysconfdir@/server.conf
+fi
+
+if [ x${vicedir} = x ]; then
   vicedir=/vice
 fi
 

@@ -20,8 +20,9 @@
 # ignore SIGHUP
 trap "" 1
 
-if [ -f @prefix@/etc/coda/server.conf ] ; then
-  . @prefix@/etc/coda/server.conf
+prefix=@prefix@
+if [ -f @sysconfdir@/server.conf ] ; then
+  . @sysconfdir@/server.conf
   serverconf=1
 else
   serverconf=0

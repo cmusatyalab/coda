@@ -31,7 +31,8 @@ set -e
 #
 # Configuration
 #
-conf=@prefix@/etc/coda/server.conf
+prefix=@prefix@
+conf=@sysconfdir@/server.conf
 if [ -f ${conf} ] ; then
   . ${conf}
   haveconf=1
@@ -185,6 +186,7 @@ case "$datasize" in
     1[gG] )
         dsparam=1073741824
 	heapsize=0x3FF00000
+	;;
     * )
 	echo 'Read rdsinit(8) and rdsinit to configure your data area.'
 	echo 'After configuring the RVM data area you also need to create'
