@@ -14,6 +14,9 @@
 /* 
  * HISTORY
  * $Log: cnode.h,v $
+ * Revision 1.2  1996/01/02 16:57:26  bnoble
+ * Added support for Coda MiniCache and raw inode calls (final commit)
+ *
  * Revision 1.1.2.1  1995/12/20 01:57:53  bnoble
  * Added CFS-specific files
  *
@@ -115,6 +118,7 @@ struct cnode {
 #define CN_LOCKED     0x10       /* Set if lock held */
 #define CN_UNMOUNTING 0X20       /* Set if unmounting */
 #define IS_UNMOUNTING(cp)       ((cp)->c_flags & CN_UNMOUNTING)
+#define CN_PURGING    0x40       /* Set if purging a fid */
 #endif KERNEL
 
 #endif	not _CNODE_H_

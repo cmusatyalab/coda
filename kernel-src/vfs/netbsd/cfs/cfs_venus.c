@@ -15,6 +15,9 @@
 /*
  * HISTORY
  * $Log: cfs_vnodeops.c,v $
+ * Revision 1.2  1996/01/02 16:57:07  bnoble
+ * Added support for Coda MiniCache and raw inode calls (final commit)
+ *
  * Revision 1.1.2.1  1995/12/20 01:57:34  bnoble
  * Added CFS-specific files
  *
@@ -921,8 +924,10 @@ cfs_fsync(vp, cred, p)
     }
        
     /* Check for operation on a dying object */
-    /* We can expect fsync on the root vnode if we are in the midst
-       of unmounting (in NetBSD), so silently ignore it. */
+    /* 
+     * We can expect fsync on the root vnode if we are in the midst of
+     * unmounting (in NetBSD), so silently ignore it.  
+     */
     if (IS_DYING(cp)) {
 	if (!IS_ROOT_VP(vp)) {
 	    COMPLAIN_BITTERLY(fsync, cp->c_fid);
@@ -930,7 +935,18 @@ cfs_fsync(vp, cred, p)
 	}
 	return(ENODEV);	/* Can't contact dead venus */
     }
-    
+
+    /*
+     * We can expect fsync on any vnode at all if venus is pruging it.
+     * Venus can't very well answer the fsync request, now can it?
+     * Hopefully, it won't have to, because hopefully, venus preserves
+     * the (possibly untrue) invariant that it never purges an open
+     * vnode.  Hopefully.
+     */
+    if (cp->c_flags & CN_PURGING) {
+	return(0);
+    }
+
     /* Check for fsync of control object. */
     if (IS_CTL_VP(vp)) {
 	MARK_INT_SAT(CFS_FSYNC_STATS);
@@ -1601,7 +1617,7 @@ cfs_rmdir(dvp, nm, cred, p)
      * the directory, especially "." and "..".
      */
     cp = cfsnc_lookup(dcp, nm, cred);
-    if (cp) cfsnc_zapParentfid(&(cp->c_fid));
+    if (cp) cfsnc_zapParentfid(&(cp->c_fid), NOT_DOWNCALL);
     
     /* Remove the file's entry from the CFS Name Cache */
     cfsnc_zapfile(dcp, nm);

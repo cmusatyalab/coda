@@ -14,6 +14,10 @@
 /*
  * HISTORY
  * $Log: cfs_namecache.c,v $
+ * Revision 1.3  1996/11/08 18:06:09  bnoble
+ * Minor changes in vnode operation signature, VOP_UPDATE signature, and
+ * some newly defined bits in the include files.
+ *
  * Revision 1.2  1996/01/02 16:56:50  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  *
@@ -169,8 +173,9 @@ cfsnc_find(dcp, name, namelen, cred, hash)
 }
 
 static void
-cfsnc_remove(cncp)
+cfsnc_remove(cncp, dcstat)
 	struct cfscache *cncp;
+	enum dc_status dcstat;
 {
 	/* 
 	 * remove an entry -- VN_RELE(cncp->dcp, cp), crfree(cred),
@@ -185,10 +190,17 @@ cfsnc_remove(cncp)
   	CFSNC_HSHREM(cncp);
 
 	CFSNC_HSHNUL(cncp);		/* have it be a null chain */
+	if ((dcstat == IS_DOWNCALL) && (CNODE_COUNT(cncp->dcp) == 1)) {
+		cncp->dcp->c_flags |= CN_PURGING;
+	}
 	VN_RELE(CTOV(cncp->dcp)); 
-	VN_RELE(CTOV(cncp->cp)); 
-	crfree(cncp->cred); 
 
+	if ((dcstat == IS_DOWNCALL) && (CNODE_COUNT(cncp->cp) == 1)) {
+		cncp->cp->c_flags |= CN_PURGING;
+	}
+	VN_RELE(CTOV(cncp->cp)); 
+
+	crfree(cncp->cred); 
 	bzero(DATA_PART(cncp),DATA_SIZE);
 
 	/* Put the null entry just after the least-recently-used entry */
@@ -380,8 +392,9 @@ cfsnc_lookup(dcp, name, cred)
  */
 
 void
-cfsnc_zapParentfid(fid)
+cfsnc_zapParentfid(fid, dcstat)
 	ViceFid *fid;
+	enum dc_status dcstat;
 {
 	/* To get to a specific fid, we might either have another hashing
 	   function or do a sequential search through the cache for the
@@ -415,15 +428,16 @@ cfsnc_zapParentfid(fid)
 			    (cncp->dcp->c_fid.Vnode == fid->Vnode)   &&
 			    (cncp->dcp->c_fid.Unique == fid->Unique)) {
 			        cfsnchash[i].length--;      /* Used for tuning */
-				cfsnc_remove(cncp); 
-			    }
-		     }
+				cfsnc_remove(cncp, dcstat); 
+			}
+		}
 	}
 }
 
 void
-cfsnc_zapfid(fid)
+cfsnc_zapfid(fid, dcstat)
 	ViceFid *fid;
+	enum dc_status dcstat;
 {
 	/* See comment for zapParentfid. This routine will be used
 	   if attributes are being cached. 
@@ -449,9 +463,9 @@ cfsnc_zapfid(fid)
 			    (cncp->cp->c_fid.Vnode == fid->Vnode)   &&
 			    (cncp->cp->c_fid.Unique == fid->Unique)) {
 			        cfsnchash[i].length--;     /* Used for tuning */
-				cfsnc_remove(cncp); 
-			    }
-		     }
+				cfsnc_remove(cncp, dcstat); 
+			}
+		}
 	}
 }
 
@@ -464,9 +478,10 @@ cfsnc_zapfid(fid)
  */
 
 void
-cfsnc_zapvnode(fid, cred)	
+cfsnc_zapvnode(fid, cred, dcstat)	
 	ViceFid *fid;
 	struct ucred *cred;
+	enum dc_status dcstat;
 {
 	/* See comment for zapfid. I don't think that one would ever
 	   want to zap a file with a specific cred from the kernel.
@@ -528,14 +543,16 @@ cfsnc_zapfile(dcp, name)
  */
 
 void
-cfsnc_purge_user(cred)
-	struct ucred *cred;
+cfsnc_purge_user(cred, dcstat)
+	struct ucred    *cred;
+	enum dc_status  dcstat;
 {
-	/* I think the best approach is to go through the entire cache
-	   via HASH or whatever and zap all entries which match the
-	   input cred. Or just flush the whole cache.
-	   It might be best to go through on basis of LRU since cache
-	   will almost always be full and LRU is more straightforward.
+	/* 
+	 * I think the best approach is to go through the entire cache
+	 * via HASH or whatever and zap all entries which match the
+	 * input cred. Or just flush the whole cache.  It might be
+	 * best to go through on basis of LRU since cache will almost
+	 * always be full and LRU is more straightforward.  
 	 */
 
 	register struct cfscache *cncp, *ncncp;
@@ -561,7 +578,7 @@ cfsnc_purge_user(cred)
 		        hash = CFSNC_HASH(cncp->name, cncp->namelen, cncp->dcp);
 			cfsnchash[hash].length--;     /* For performance tuning */
 
-			cfsnc_remove(cncp); 
+			cfsnc_remove(cncp, dcstat); 
 		}
 	}
 }
@@ -571,7 +588,8 @@ cfsnc_purge_user(cred)
  */
 
 void
-cfsnc_flush()
+cfsnc_flush(dcstat)
+	enum dc_status dcstat;
 {
 	/* One option is to deallocate the current name cache and
 	   call init to start again. Or just deallocate, then rebuild.
@@ -598,12 +616,25 @@ cfsnc_flush()
 		if (CFSNC_VALID(cncp)) {
 			CFSNC_HSHREM(cncp);	/* only zero valid nodes */
 			CFSNC_HSHNUL(cncp);
+			if ((dcstat == IS_DOWNCALL) 
+			    && (CNODE_COUNT(cncp->dcp) == 1))
+			{
+				cncp->dcp->c_flags |= CN_PURGING;
+			}
 			VN_RELE(CTOV(cncp->dcp)); 
 			if (!ISDIR(cncp->cp->c_fid) && (CTOV(cncp->cp)->v_flag & VTEXT)) {
 			    if (cfs_vmflush(cncp->cp))
-				CFSDEBUG(CFS_FLUSH, myprintf(("cfsnc_flush: (%x.%x.%x) busy\n", cncp->cp->c_fid.Volume, cncp->cp->c_fid.Vnode, cncp->cp->c_fid.Unique)); )
+				CFSDEBUG(CFS_FLUSH, 
+					 myprintf(("cfsnc_flush: (%x.%x.%x) busy\n", cncp->cp->c_fid.Volume, cncp->cp->c_fid.Vnode, cncp->cp->c_fid.Unique)); )
+			}
+
+			if ((dcstat == IS_DOWNCALL) 
+			    && (CNODE_COUNT(cncp->cp) == 1))
+			{
+				cncp->cp->c_flags |= CN_PURGING;
 			}
 			VN_RELE(CTOV(cncp->cp));  
+
 			crfree(cncp->cred); 
 			bzero(DATA_PART(cncp),DATA_SIZE);
 		}
@@ -620,30 +651,32 @@ cfsnc_flush()
  * even when the reference count on those fids are not zero.
  */
 void
-cfsnc_replace(f1, f2)	/* How do I hate compiling for sun4s, let me count the ways...*/
-	      ViceFid *f1; ViceFid *f2;
+cfsnc_replace(f1, f2)
+	ViceFid *f1; ViceFid *f2;
 {
         /* 
 	 * Replace f1 with f2 throughout the name cache
 	 */
 	int hash;
 	register struct cfscache *cncp;
-
+	
 	CFSNC_DEBUG(CFSNC_REPLACE,
 		    myprintf(("cfsnc_replace fid_1 = (%x.%x.%x) and fid_2 = (%x.%x.%x)\n",
-			   f1->Volume, f1->Vnode, f1->Unique, f2->Volume, f2->Vnode, f2->Unique));)
-
+			      f1->Volume, f1->Vnode, f1->Unique, 
+			      f2->Volume, f2->Vnode, f2->Unique)););
+		
 	for (hash = 0; hash < cfsnc_hashsize; hash++) {
 		for (cncp = cfsnchash[hash].hash_next; 
 		     cncp != (struct cfscache *)&cfsnchash[hash];
 		     cncp = cncp->hash_next) {
-		        if (!bcmp(&cncp->cp->c_fid, f1, sizeof(ViceFid))) {
-			    bcopy(f2, &cncp->cp->c_fid, sizeof(ViceFid));
-			    continue; 	/* no need to check cncp->dcp now */
+			if (!bcmp(&cncp->cp->c_fid, f1, sizeof(ViceFid))) {
+				bcopy(f2, &cncp->cp->c_fid, sizeof(ViceFid));
+				/* no need to check cncp->dcp now */
+				continue; 	
 			}
-		        if (!bcmp(&cncp->dcp->c_fid, f1, sizeof(ViceFid)))
-			    bcopy(f2, &cncp->dcp->c_fid, sizeof(ViceFid));
-		     }
+			if (!bcmp(&cncp->dcp->c_fid, f1, sizeof(ViceFid)))
+				bcopy(f2, &cncp->dcp->c_fid, sizeof(ViceFid));
+		}
 	}
 }
 
@@ -720,8 +753,9 @@ cfsnc_gather_stats()
  * is in an improper state (except by turning the cache off).
  */
 int
-cfsnc_resize(hashsize, heapsize)
+cfsnc_resize(hashsize, heapsize, dcstat)
      int hashsize, heapsize;
+     enum dc_status dcstat;
 {
     if ((hashsize % 2) || (heapsize % 2)) { /* Illegal hash or cache sizes */
 	return(EINVAL);
@@ -729,7 +763,7 @@ cfsnc_resize(hashsize, heapsize)
     
     cfsnc_use = 0;                       /* Turn the cache off */
     
-    cfsnc_flush();                       /* free any cnodes in the cache */
+    cfsnc_flush(dcstat);                 /* free any cnodes in the cache */
     
     /* WARNING: free must happen *before* size is reset */
     CFS_FREE(cfsncheap,TOTAL_CACHE_SIZE);

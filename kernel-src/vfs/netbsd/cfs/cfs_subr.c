@@ -13,6 +13,9 @@
 /*
  * HISTORY
  * $Log: cfs_subr.c,v $
+ * Revision 1.3  1996/12/05 16:20:15  bnoble
+ * Minor debugging aids
+ *
  * Revision 1.2  1996/01/02 16:57:01  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  *
@@ -301,7 +304,8 @@ int handleDownCall(opcode, out)
     /* Handle invalidate requests. */
     switch (opcode) {
       case CFS_FLUSH : {
-	  cfs_flush();
+
+	  cfs_flush(IS_DOWNCALL);
 	  
 	  CFSDEBUG(CFS_FLUSH,cfs_testflush();)    /* print remaining cnodes */
 	      return(0);
@@ -311,7 +315,8 @@ int handleDownCall(opcode, out)
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_PURGEUSER]++;
 	  
-	  cfsnc_purge_user(&out->d.cfs_purgeuser.cred);
+	  /* XXX - need to prevent fsync's */
+	  cfsnc_purge_user(&out->d.cfs_purgeuser.cred, IS_DOWNCALL);
 	  return(0);
       }
 	
@@ -335,8 +340,10 @@ int handleDownCall(opcode, out)
 					      cp->c_fid.Volume, 
 					      cp->c_fid.Vnode, 
 					      cp->c_fid.Unique, 
-					      CNODE_COUNT(cp) - 1, error));)
-		  
+					      CNODE_COUNT(cp) - 1, error)););
+	      if (CNODE_COUNT(cp) == 1) {
+		  cp->c_flags |= CN_PURGING;
+	      }
 	      VN_RELE(CTOV(cp));
 	  }
 	  
@@ -354,15 +361,17 @@ int handleDownCall(opcode, out)
 	      VN_HOLD(CTOV(cp));
 	      
 	      cp->c_flags &= ~C_VATTR;
-	      cfsnc_zapParentfid(&out->d.cfs_zapdir.CodaFid);     
+	      cfsnc_zapParentfid(&out->d.cfs_zapdir.CodaFid, IS_DOWNCALL);     
 	      
 	      CFSDEBUG(CFS_ZAPDIR, myprintf(("zapdir: fid = (%x.%x.%x), 
                                           refcnt = %d\n",cp->c_fid.Volume, 
 					     cp->c_fid.Vnode, 
 					     cp->c_fid.Unique, 
-					     CNODE_COUNT(cp) - 1));)
-		  
-		  VN_RELE(CTOV(cp));
+					     CNODE_COUNT(cp) - 1)););
+	      if (CNODE_COUNT(cp) == 1) {
+		  cp->c_flags |= CN_PURGING;
+	      }
+	      VN_RELE(CTOV(cp));
 	  }
 	  
 	  return(0);
@@ -372,7 +381,8 @@ int handleDownCall(opcode, out)
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_ZAPVNODE]++;
 	  
-	  cfsnc_zapvnode(&out->d.cfs_zapvnode.VFid, &out->d.cfs_zapvnode.cred);
+	  cfsnc_zapvnode(&out->d.cfs_zapvnode.VFid, &out->d.cfs_zapvnode.cred,
+			 IS_DOWNCALL);
 	  return(0);
       }	
 	
@@ -388,11 +398,12 @@ int handleDownCall(opcode, out)
 	      VN_HOLD(CTOV(cp));
 	      
 	      if (ODD(out->d.cfs_purgefid.CodaFid.Vnode)) { /* Vnode is a directory */
-		  cfsnc_zapParentfid(&out->d.cfs_purgefid.CodaFid);     
+		  cfsnc_zapParentfid(&out->d.cfs_purgefid.CodaFid,
+				     IS_DOWNCALL);     
 	      }
 	      
 	      cp->c_flags &= ~C_VATTR;
-	      cfsnc_zapfid(&out->d.cfs_purgefid.CodaFid);
+	      cfsnc_zapfid(&out->d.cfs_purgefid.CodaFid, IS_DOWNCALL);
 	      if (!(ODD(out->d.cfs_purgefid.CodaFid.Vnode)) 
 		  && (CTOV(cp)->v_flag & VTEXT)) {
 		  
@@ -401,9 +412,11 @@ int handleDownCall(opcode, out)
 	      CFSDEBUG(CFS_PURGEFID, myprintf(("purgefid: fid = (%x.%x.%x), refcnt = %d, error = %d\n",
                                             cp->c_fid.Volume, cp->c_fid.Vnode,
                                             cp->c_fid.Unique, 
-					    CNODE_COUNT(cp) - 1, error));)
-		  
-		  VN_RELE(CTOV(cp));
+					    CNODE_COUNT(cp) - 1, error)););
+	      if (CNODE_COUNT(cp) == 1) {
+		  cp->c_flags |= CN_PURGING;
+	      }
+	      VN_RELE(CTOV(cp));
 	  }
 	  return(error);
       }
@@ -468,56 +481,57 @@ makecfsnode(fid, vfsp, type)
  * cfs_mnttbl. -- DCS 12/1/94 */
 
 int
-cfs_kill(whoIam)
-     VFS_T *whoIam;
+cfs_kill(whoIam, dcstat)
+	VFS_T *whoIam;
+	enum dc_status dcstat;
 {
-    int hash, count = 0;
-    struct cnode *cp;
-
-    /* 
-     * Algorithm is as follows: 
-     *     First, step through all cnodes and mark them unmounting.
-     *         NetBSD kernels may try to fsync them now that venus
-     *         is dead, which would be a bad thing.
-     *
-     *     Second, flush whatever vnodes we can from the name cache.
-     * 
-     *     Finally, step through whatever is left and mark them dying.
-     *        This prevents any operation at all.
-     */
-
-
-    for (hash = 0; hash < CFS_CACHESIZE; hash++) {
-	for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
-	    if (VN_VFS(CTOV(cp)) == whoIam) {
-		cp->c_flags |= CN_UNMOUNTING;
-	    }
+	int hash, count = 0;
+	struct cnode *cp;
+	
+	/* 
+	 * Algorithm is as follows: 
+	 *     First, step through all cnodes and mark them unmounting.
+	 *         NetBSD kernels may try to fsync them now that venus
+	 *         is dead, which would be a bad thing.
+	 *
+	 *     Second, flush whatever vnodes we can from the name cache.
+	 * 
+	 *     Finally, step through whatever is left and mark them dying.
+	 *        This prevents any operation at all.
+	 */
+	
+	
+	for (hash = 0; hash < CFS_CACHESIZE; hash++) {
+		for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
+			if (VN_VFS(CTOV(cp)) == whoIam) {
+				cp->c_flags |= CN_UNMOUNTING;
+			}
+		}
 	}
-    }
-
-    /* This is slightly overkill, but should work. Eventually it'd be
-     * nice to only flush those entries from the namecache that
-     * reference a vnode in this vfs.  */
-    cfsnc_flush();
-    
-    for (hash = 0; hash < CFS_CACHESIZE; hash++) {
-	for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
-	    if (VN_VFS(CTOV(cp)) == whoIam) {
-		count++;
-		/* Clear unmountng bit, set dying bit */
-		cp->c_flags &= ~CN_UNMOUNTING;
-		cp->c_flags |= C_DYING;
-		CFSDEBUG(CFS_FLUSH, 
-			 myprintf(("Live cnode fid %x-%x-%x flags %d count %d\n",
-				   (cp->c_fid).Volume,
-				   (cp->c_fid).Vnode,
-				   (cp->c_fid).Unique, 
-				   cp->c_flags,
-				   CNODE_COUNT(cp))); );
-	    }
+	
+	/* This is slightly overkill, but should work. Eventually it'd be
+	 * nice to only flush those entries from the namecache that
+	 * reference a vnode in this vfs.  */
+	cfsnc_flush(dcstat);
+	
+	for (hash = 0; hash < CFS_CACHESIZE; hash++) {
+		for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {
+			if (VN_VFS(CTOV(cp)) == whoIam) {
+				count++;
+				/* Clear unmountng bit, set dying bit */
+				cp->c_flags &= ~CN_UNMOUNTING;
+				cp->c_flags |= C_DYING;
+				CFSDEBUG(CFS_FLUSH, 
+					 myprintf(("Live cnode fid %x-%x-%x flags %d count %d\n",
+						   (cp->c_fid).Volume,
+						   (cp->c_fid).Vnode,
+						   (cp->c_fid).Unique, 
+						   cp->c_flags,
+						   CNODE_COUNT(cp))); );
+			}
+		}
 	}
-    }
-    return count;
+	return count;
 }
 
 /*
@@ -525,7 +539,8 @@ cfs_kill(whoIam)
  * name cache or it may be executing.  
  */
 void
-cfs_flush()
+cfs_flush(dcstat)
+	enum dc_status dcstat;
 {
     int hash;
     struct cnode *cp;
@@ -533,7 +548,7 @@ cfs_flush()
     cfs_clstat.ncalls++;
     cfs_clstat.reqs[CFS_FLUSH]++;
     
-    cfsnc_flush();		    /* flush files from the name cache */
+    cfsnc_flush(dcstat);	    /* flush files from the name cache */
 
     for (hash = 0; hash < CFS_CACHESIZE; hash++) {
 	for (cp = cfs_cache[hash]; cp != NULL; cp = CNODE_NEXT(cp)) {  

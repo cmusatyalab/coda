@@ -24,6 +24,9 @@
 /*
  * HISTORY
  * $Log: cfs_psdev.c,v $
+ * Revision 1.3  1996/11/13 04:14:20  bnoble
+ * Merging BNOBLE_WORK_6_20_96 into main line
+ *
  * Revision 1.2.8.1  1996/08/22 14:25:04  bnoble
  * Added a return code from vc_nb_close
  *
@@ -359,7 +362,7 @@ vc_nb_ioctl(dev, cmd, addr, flag, p)
     switch(cmd) {
     case CFSRESIZE: {
 	struct cfs_resize *data = (struct cfs_resize *)addr;
-	return(cfsnc_resize(data->hashsize, data->heapsize));
+	return(cfsnc_resize(data->hashsize, data->heapsize, IS_DOWNCALL));
 	break;
     }
     case CFSSTATS:

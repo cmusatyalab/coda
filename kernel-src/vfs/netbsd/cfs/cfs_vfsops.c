@@ -14,6 +14,10 @@
 /*
  * HISTORY
  * $Log: cfs_vfsops.c,v $
+ * Revision 1.3  1996/11/08 18:06:12  bnoble
+ * Minor changes in vnode operation signature, VOP_UPDATE signature, and
+ * some newly defined bits in the include files.
+ *
  * Revision 1.2  1996/01/02 16:57:04  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
  *
@@ -265,7 +269,7 @@ cfs_unmount(vfsp, mntflags, p)
 	    if (!IS_DYING(VTOC(op->rootvp)))
 		return (EBUSY); 	/* Venus is still running */
 	    
-	    active = cfs_kill(vfsp);
+	    active = cfs_kill(vfsp, NOT_DOWNCALL);
 	    
 	    if (active > 1) {	/* 1 is for rootvp */
 		error = EBUSY;
@@ -289,7 +293,7 @@ cfs_unmount(vfsp, mntflags, p)
 	    
 	    VN_RELE(op->rootvp);
 	    /* Kill them again...we have to get rid of the rootvp */
-	    active = cfs_kill(vfsp);
+	    active = cfs_kill(vfsp, NOT_DOWNCALL);
 	    if (active) {
 		panic("cfs_unmount: couldn't kill root vnode");
 	    }
