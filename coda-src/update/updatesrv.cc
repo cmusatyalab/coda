@@ -223,7 +223,7 @@ int main(int argc, char **argv)
     miscdir = vice_sharedfile("misc");
     if (stat(miscdir, &statbuf) == -1 && errno == ENOENT) {
 	fprintf(stderr, "creating missing directory '%s'\n", miscdir);
-	mkdir(miscdir);
+	mkdir(miscdir, 0755);
     }
 
     rc = chdir(miscdir);
