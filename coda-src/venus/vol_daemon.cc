@@ -163,13 +163,6 @@ void VolDaemon() {
 }
 
 
-/* This should be called vdb::CheckVolumes()! */
-void vdb::Validate() {
-    LOG(100, ("vdb::Validate: \n"));
-
-    FSDB->InvalidateMtPts();
-}
-
 /* local-repair modification */
 void vdb::GetDown() {
     LOG(100, ("vdb::GetDown: \n"));

@@ -1238,7 +1238,6 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
 			    { mf->print(logFile); rf->print(logFile); CHOKE("TryToCover: mf->root != rf"); }
 		    mf->UncoverMtPt();
 	    }
-	    
 	    rf->UnmountRoot();
     }
     Recov_EndTrans(MAXFP);
@@ -1352,7 +1351,7 @@ void fsobj::UnmountRoot() {
     k_Purge(&fid);
 
     /* Enter new state (ROOT, without link). */
-    if (FID_IsVolRoot(&fid)) {
+    if (!FID_IsVolRoot(&fid)) {
 	mvstat = NORMAL;	    /* couldn't be mount point, could it? */       
 	/* this object could be the global root of a local/global subtree */
 	if (FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {

@@ -552,17 +552,17 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 		    FSDB->Put(&target_fso);
 		    code = FSDB->Get(&target_fso, &target_fid, vuid, RC_DATA, name);
 		    if (code) {
-			if (code == EINCONS && inc_fid != 0) *inc_fid = target_fid;
+			if (code == EINCONS) *inc_fid = target_fid;
 			return(code);
 		    }
 		}
 
 		target_fso->PromoteLock();
 		code = target_fso->TryToCover(inc_fid, vuid);
-		if (code == EINCONS && inc_fid != 0)
-		    { FSDB->Put(&target_fso); return(EINCONS); }
-		if (code == ERETRY)
-		    { FSDB->Put(&target_fso); return(ERETRY); }
+		if (code == EINCONS || code == ERETRY) {
+		    FSDB->Put(&target_fso);
+		    return(code);
+		}
 		code = 0;
 		target_fso->DemoteLock();
 	    }

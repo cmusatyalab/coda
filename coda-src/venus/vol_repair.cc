@@ -100,10 +100,8 @@ int volent::EnableRepair(vuid_t vuid, VolumeId *RWVols,
     int code = 0;
 
     /* Place volume in "repair mode." */
-    if (flags.repair_mode != 1) {
+    if (flags.repair_mode != 1)
 	flags.repair_mode = 1;
-	(void)k_Purge();	    /* we should be able to do this on a volume/user basis! */
-    }
 
     /* RWVols, LockUids, and LockWSs are OUT parameters. */
     bcopy((const void *)u.rep.RWVols, (void *) RWVols, MAXHOSTS * (int)sizeof(VolumeId));
@@ -667,17 +665,13 @@ int volent::DisableRepair(vuid_t vuid) {
     LOG(100, ("volent::DisableRepair: vol = %x, uid = %d\n", vid, vuid));
 
     if (!IsReplicated()) return(EINVAL);
-    if (!IsUnderRepair(vuid))
+
+    if (IsUnderRepair(vuid))
+	flags.repair_mode = 0;
+    else
 	LOG(0, ("volent::DisableRepair: %x not under repair", vid));
 
-    int code = 0;
-
-    if (flags.repair_mode != 0) {
-	flags.repair_mode = 0;
-	(void)k_Purge();	    /* we should be able to do this on a volume/user basis! */
-    }
-
-    return(code);
+    return(0);
 }
 
 
@@ -701,8 +695,8 @@ int volent::IsUnderRepair(vuid_t vuid) {
 
 	default:
 	    CHOKE("volent::IsUnderRepair: %x, bogus type (%d)", vid, type);
-	    return(0); /* to keep g++ happy */
     }
+    return(0); /* to keep g++ happy */
 }
 
 /* Enable ASR invocation for this volume */

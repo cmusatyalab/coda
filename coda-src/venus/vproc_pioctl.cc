@@ -611,19 +611,15 @@ O_FreeLocks:
 #define	LockWSs	    ((unsigned long *)(LockUids + MAXHOSTS))
 #define	endp	    ((char *)(LockWSs + MAXHOSTS))
 		    u.u_error = v->EnableRepair(CRTORUID(u.u_cred), RWVols,
-						LockUids, LockWSs);
-
+					 	LockUids, LockWSs);
 		    data->out_size = (endp - startp);
 #undef	startp
 #undef	RWVols
 #undef	LockUids
 #undef	LockWSs
 #undef	endp
-
-		    /* This is drastic, but I'm having trouble getting rid of */
-		    /* MiniCache vnodes that have the "wrong" type! -JJK */
-		    (void)k_Purge();
-
+		    /* Make sure the kernel drops the symlink */
+		    (void)k_Purge(fid, 1);
 		    break;
 		    }
 /*
@@ -636,8 +632,6 @@ O_FreeLocks:
 		    /* Disable repair of target volume by this user. */
 		    u.u_error = v->DisableRepair(CRTORUID(u.u_cred));
 
-		    /* This is drastic, but I'm having trouble getting rid of */
-		    /* MiniCache vnodes that have the "wrong" type! -JJK */
 		    (void)k_Purge(fid, 1);
 
 		    break;

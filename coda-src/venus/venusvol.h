@@ -609,7 +609,6 @@ class vdb {
     volent *Create(VolumeInfo *, char *);
 
     /* Daemon functions. */
-    void Validate();
     void GetDown();
     void FlushCOP2();
     void WriteBack();
