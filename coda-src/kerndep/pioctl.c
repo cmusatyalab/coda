@@ -21,6 +21,7 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/file.h>
