@@ -91,7 +91,7 @@ typedef struct ViceFid {
 #endif	not VICEFID_DEFINED
 #endif	KERNEL
 
-#ifdef MACH
+#ifdef	__MACH__
 #include <vfs/vfs.h>
 #include <vfs/vnode.h>
 #endif
@@ -120,11 +120,11 @@ struct cnode {
         ViceFid	    c_fid;	     /* file handle */
 #ifdef	KERNEL
         int             c_magic;     /* to verify the data structure */
-#ifdef LINUX
+#ifdef	__linux__
         struct inode    *c_ovp;	     /* open vnode pointer */
 #else
         struct vnode    *c_ovp;	     /* open vnode pointer */
-#endif LINUX
+#endif	/* __linux__ */
         struct inode    *c_psdev;    /*psdev associated with this filesystem*/
         u_short	        c_ocount;    /* count of openers */
         u_short         c_owrite;    /* count of open for write */
@@ -148,7 +148,7 @@ struct cnode {
 
 
 
-#ifdef LINUX
+#ifdef	__linux__
 #ifndef KERNEL
 
 
@@ -169,7 +169,7 @@ struct coda_inode {
 };
 
 #endif KERNEL
-#endif LINUX
+#endif	/* __linux__ */
 
 
 #ifdef KERNEL
@@ -182,12 +182,12 @@ struct coda_inode {
 #define IS_UNMOUNTING(cp)       ((cp)->c_flags & CN_UNMOUNTING)
 
 
-#ifdef LINUX
+#ifdef	__linux__
 struct coda_inode {
         struct iattr ci_attr;
         struct cnode ci_cnode;
 };
-#endif LINUX
+#endif	/* __linux__ */
 
 #endif KERNEL
 

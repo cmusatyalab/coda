@@ -1,35 +1,31 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#                           CODA FILE SYSTEM
-#                             Release 2.0
-#                      School of Computer Science
-#                      Carnegie Mellon University
-#                          Copyright 1987-94
-#
-#Coda  may  be  used  under license outside Carnegie Mellon University.
-#Contact  the  Coda  Project   Coordinator   for   licensing   details.
-#Unlicensed use or distribution of this code is illegal.
-#*/
-#
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/norton/RCS/GNUmakefile.in,v 1.1 1996/11/22 19:14:54 braam Exp braam $";
-#endif _BLURB_
+
+#                            CODA FILE SYSTEM
+#                              Release 2.0
+#                       School of Computer Science
+#                       Carnegie Mellon University
+#                           Copyright 1987-94
+# 
+# Coda  may  be  used  under license outside Carnegie Mellon University.
+# Contact  the  Coda  Project   Coordinator   for   licensing   details.
+# Unlicensed use or distribution of this code is illegal.
+# 
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/norton/Makefile.in,v 1.4 1997/01/07 16:39:20 rvb Exp";
 
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-CXXFLAGS += -I/usr/misc/.gnu-comp/include
+EXECUTABLES = norton norton-reinit
+SCRIPTS     = reinit
+SBINS       = $(EXECUTABLES) $(SCRIPTS)
 
-MACHLIBS = -ltermcap -lmach
-
-LIBS = 	/usr/misc/.gnu-comp/lib/libreadline.a \
-	/usr/misc/.gnu-comp/lib/libiberty.a \
+LIBS = 	$(LIBREADLINE) \
+	$(LIBIBERTY) \
 	$(LIBAUTH2)	\
 	$(SALVAGE_O) 	\
 	$(LIBVOL)	\
@@ -41,37 +37,32 @@ LIBS = 	/usr/misc/.gnu-comp/lib/libreadline.a \
 	$(LIBAL)	\
 	$(LIBSYSENT)	\
 	$(LIBUTIL) 	\
-	$(DIR_O)	\
-	$(BUFFER_O)	\
+	$(LIBDIRLIB)	\
+	$(LIBIFS)	\
+	$(LIBCS)	\
 	$(LIBCODARDS) 	\
 	$(LIBSEG) 	\
 	$(LIBCODARVM) 	\
-	$(LIBOLDLWP)	
+	$(LIBOLDLWP)	\
+	$(LIBMACH)	\
+	$(LIBCOMPAT)	\
+	-ltermcap
 
+common_objects = norton-setup.o commands.o parser.o norton-volume.o \
+		 norton-recov.o norton-vnode.o norton-dir.o norton-rds.o dummy.o
 
-common_objects=norton-setup.o commands.o parser.o norton-volume.o \
-	norton-recov.o norton-vnode.o norton-dir.o norton-rds.o dummy.o
+norton_objs =	norton.o ${common_objects}
+reinit_objs =	norton-reinit.o ${common_objects}
 
-norton_objs=norton.o ${common_objects}
-reinit_objs=norton-reinit.o ${common_objects}
+norton: ${norton_objs} ${LIBS}
+	$(CXX) $(LIBFLAGS) ${norton_objs} ${LIBS} -o norton
 
-EXECUTABLES = norton norton-reinit reinit
+norton-reinit: ${reinit_objs} ${LIBS}
+	$(CXX) $(LIBFLAGS) ${reinit_objs} ${LIBS} -o norton-reinit
 
-norton: ${norton_objs} ${headers} ${HFILES} ${LIBS}
-	$(CXX) ${CXXFLAGS} $(LIBFLAGS) -o norton ${norton_objs} ${LIBS} ${MACHLIBS}
+parser.o: parser.cc parser.h
+	$(CXX) $(CFLAGS) $(INCREADLINE) -c $< -o parser.o
 
-norton-reinit: ${reinit_objs} ${headers} ${HFILES} ${LIBS}
-	$(CXX) ${CXXFLAGS} $(LIBFLAGS) -o norton-reinit ${reinit_objs} ${LIBS} ${MACHLIBS}
-
-clean:
-	rm -f *.o norton norton-reinit
-
-cleanbin:
-	rm -f norton norton-reinit
-
-relink: cleanbin all
-
-parser.o: parser.h
-commands.o: commands.c parser.h
+commands.o: commands.cc parser.h
 
 include $(TOPDIR)/Makerules

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rpc2/rpc2b.c,v 1.2 1997/01/07 18:41:19 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -305,7 +305,7 @@ long rpc2_AllocBuffer(IN MinBodySize, OUT BuffPtr, IN File, IN Line)
 
     rpc2_Enter();
     thissize = MinBodySize + sizeof(RPC2_PacketBuffer);
-#ifdef LINUX
+#ifdef	__linux__
     if (thissize > RPC2_MAXPACKETSIZE) return(0);
 #else
     if (thissize > RPC2_MAXPACKETSIZE) return(NULL);
@@ -957,7 +957,7 @@ PRIVATE int is43()
     /* TRUE iff executing on 4.3BSD; FALSE on 4.2BSD */
     {
     int fd, rc;
-#ifdef LINUX
+#ifdef	__linux__
     return(FALSE);
 #else
 /*  4.3 requires a buffer argument to the setsockopt call

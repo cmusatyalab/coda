@@ -176,7 +176,7 @@ cfs_strategy __P((struct buf *,
  * The following don't exist in NetBSD, but are needed in Mach
  */
 
-#ifdef MACH
+#ifdef	__MACH__
 
 int
 cfs_bread __P((struct vnode *,

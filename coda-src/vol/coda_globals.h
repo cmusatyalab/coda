@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vol/coda_globals.h,v 1.2 1997/01/07 18:43:07 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -68,7 +68,7 @@ static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
  */
 #ifndef __MACH__
 typedef int boolean_t; /* defined in /usr/include/mach/machine/boolean.h on Mach machines */
-#endif __MACH__
+#endif /* __MACH__ */
 
 CAMLIB_BEGIN_RECOVERABLE_DECLARATIONS
 

@@ -1,5 +1,15 @@
-#ifndef _BLURB_
-#define _BLURB_
+# Top level
+#	Targets:
+# 		all (default):
+#			librds.a librdslwp.a rdsinit
+# 		safe: make all, ensuring that the dependencies are consistent
+#		       safe is expensive to build.
+# 		install: 
+#			rds.h rds_private.h -> $(INCLSPECIAL)
+#			librds.a librdslwp.a-> $(LIBSPECIAL)
+#			rvminit -> $(BINDIR)
+# 		sterile: clean + remove derived sources, dependency information
+
 #
 #
 #     RVM: an Experimental Recoverable Virtual Memory Package
@@ -31,44 +41,45 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/rds/RCS/Makefile.in,v 1.1 1996/11/22 13:40:07 raiff Exp braam $
+# rcsid = /afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/rvm-src/rds/Makefile.in,v 1.4 1997/01/06 21:29:06 rvb Exp
 #
-#endif _BLURB_
 
 #   	RDS Makefile: depends on csmake.
-
-
 
 # rds definitions
 
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXPHEADERS = rds.h
-PRIVHEADERS = rds_private.h
+# presto changeo!
+LIBDIR := $(LIBSPECIAL)
+INCLDIR := $(INCLSPECIAL)
+
+EXECUTABLES = rdsinit 
+SSBINS      = rdsinit
+LIBRARIES   = librds.a librdslwp.a
 HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
 
-LIBDIR := $(LIBSPECIAL)
+# Mach platforms need libthread.a and libmach.a.
+# LIBTHREADS and LIBMACH are defined in configs/Makeconf.Mach file
+# i386_nbsd1 platforms need LIBCOMPAT
+RDSINIT_LIBS = ${LIBSEG} ${LIBRVM} ${LIBOLDLWP} ${LIBCOMPAT} ${LIBTHREADS} ${LIBMACH}
 
-LIBRARIES   = librds.a librdslwp.a
-EXECUTABLES = rdsinit 
+EXPHEADERS = rds.h
+PRIVHEADERS = rds_private.h
 
 
 OBJ1 = rds_coalesce.o rds_free.o rds_init.o rds_malloc.o rds_prealloc.o \
        rds_split.o rds_stats.o rds_start.o rds_util.o rds_zap.o 
 
 LWPOBJ1 = ${OBJ1:.o=.l.o}
-PTOBJ1  = ${OBJ1:.o=.pt.o}
-
-# to compile the lwp sources, we need to look in the VPATH directories
-# to ensure that we pick up th ecorrect copies of local include files
-
-
 LWPSRC1 = ${OBJ1:.o=.l.c}
+
+PTOBJ1  = ${OBJ1:.o=.pt.o}
 PTSRC1  = ${OBJ1:.o=.pt.c}
 
 OBJ2 = rdsinit.o
@@ -103,33 +114,11 @@ LIBS_hp700_ux90  = librds.a librdspt.a
 LIBS_i386_linux2 = librds.a librdslwp.a
 LIBS             = $(LIBS_$(SYS))
 
-# Mach platforms need libthread.a and libmach.a.
-# LIBTHREADS and LIBMACH are defined in the all_mach Makeconf.sys
-# file.
-# i386_nbsd1 platforms need LIBCOMPAT
-RDSINITLIBS_pmax_mach   = ${LIBSEG} ${LIBRVM} ${LIBTHREADS} ${LIBMACH}
-RDSINITLIBS_pmax_ul4    = ${LIBSEG} ${LIBRVM}
-RDSINITLIBS_i386_mach   = ${LIBSEG} ${LIBRVM} ${LIBTHREADS} ${LIBMACH}
-RDSINITLIBS_sun4_mach   = ${LIBSEG} ${LIBRVM} ${LIBTHREADS} ${LIBMACH}
-RDSINITLIBS_alpha_osf20 = ${LIBSEG} ${LIBRVM} 
-RDSINITLIBS_i386_nbsd1  = ${LIBSEG} ${LIBRVM} $(LIBOLDLWP) ${LIBCOMPAT}
-RDSINITLIBS_hp700_ux90  = $(LIBSEG) $(LIBRVM)
-RDSINITLIBS_i386_linux2 = $(LIBSEG) $(LIBRVM) 
-RDSINITLIBS             = $(RDSINITLIBS_$(SYS))
-
-BINS = rdsinit
-
-TARGETS = ${LIBS} ${BINS}
-
-# all: ${TARGETS}
-
 safe: Depend all
 
 # build RDS library
 # Uses chtreads if available, otherwise uses no threads.
 librds.a: $(NEED_CTHREAD) $(OBJ1)
-#	ar rv $@ $(OBJ1)
-#	ranlib $@
 
 # Need to symlink versions of the source for lwp-objects.
 # Grungy, but no other way I know of.
@@ -150,21 +139,17 @@ librds.a: $(NEED_CTHREAD) $(OBJ1)
 # This rule completely recreates the library since some fnames
 # will be truncated.
 librdslwp.a: $(LWPOBJ1)
-	rm -f $@
-	ar rv $@ $?
+	$(RM) $@
+	$(AR) rv $@ $?
 	ranlib $@
 
 librdspt.a: $(PTOBJ1)
-	rm -f $@
-	ar rv $@ $?
+	$(RM) $@
+	$(AR) rv $@ $?
 	ranlib $@
 
-rdsinit: $(NEED_CTHREAD) $(OBJ2) librds.a 
-	$(CC) $(CFLAGS) -o rdsinit  $(OBJ2) librds.a $(RDSINITLIBS) \
-              $(LIBFLAGS)
-
-clean:
-	-rm -f ${TARGETS} ${OBJECTS}
+rdsinit: $(NEED_CTHREAD) $(OBJ2) librds.a $(RDSINIT_LIBS)
+	$(CC) $(LIBSFLAGS) $(OBJ2) librds.a $(RDSINIT_LIBS) -o rdsinit
 
 sterile: clean
 	-rm -f ${LWPSRC1} $(NEED_CTHREAD) Depend
@@ -176,8 +161,6 @@ Depend: $(DEPDEP)
 #Optionally use dependencies
 #-include Depend
 
-#install: srcinstall hdrinstall libinstall bininstall
-
 ## setenv SUPPRESS_DOSRCINSTALL if you want to suppress the RCS checkin
 ## by dosrcinstall
 #srcinstall:
@@ -185,29 +168,7 @@ Depend: $(DEPDEP)
 #	export SRCDIR; export SYS;    \
 #        $(DOSRCINSTALL)	
 
-#hdrinstall: ${EXPHEADERS}
-#	-chmod 0644 $(INCLDIR)/*
-#	${INSTALL} $> $(INCLDIR)
-#	-chmod 0444 $(INCLDIR)/*
-
-#libinstall: ${LIBS}
-#	-chmod 0644 $(LIBDIR)/*
-#	${INSTALL} $> $(LIBDIR)
-#	-chmod 0444 $(LIBDIR)/*
-
-#bininstall: ${BINS}
-#	-chmod 0755 $(BINDIR)/*
-#	${INSTALL} $> $(BINDIR)
-#	-chmod 0555 $(BINDIR)/*
-
 nothing:
 	@echo $(LIBFLAGS)
 
-
-# to install in lib-special and lib-include
-LIBDIR := $(LIBSPECIAL)
-INCLDIR := $(INCLSPECIAL)
-
 include $(TOPDIR)/Makerules
-
-

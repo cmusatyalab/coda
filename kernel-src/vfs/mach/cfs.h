@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: cfs.h,v 1.1 96/11/22 13:39:00 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/kernel-src/vfs/mach/cfs.h,v 1.2 1997/01/07 18:44:11 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -161,16 +161,16 @@ typedef struct ViceFid {
 #endif	/* not VICEFID_DEFINED */
 #endif  /* KERNEL */
 
-#ifdef LINUX
+#ifdef	__linux__
 #include <cfs/cfs_LINUX.h>	
 #ifdef __KERNEL__
 #define KERNEL
 #endif
-#endif LINUX
+#endif	/* __linux__ */
 
-#ifdef MACH
+#ifdef	__MACH__
 #include <cfs/cfs_MACH.h>
-#endif MACH
+#endif	/* __MACH__ */
 
 #ifdef __NetBSD__
 #include <cfs/cfs_NetBSD.h>

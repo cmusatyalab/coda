@@ -1,46 +1,33 @@
+#
+# sets:
+#	variables, libraries for Linux build
+
 # definitions for Linux make and install of Coda
 # first draft
 
 # Peter Braam
 # Josh Raiff, modified for configure
 
-# these are all the subdirectories in INCLDIR.
-# need to reset the mode bits after chmoding INCLDIR/* to 644
-INCLSUBS = ${INCLDIR}/camlib ${INCLDIR}/cfs ${INCLDIR}/rpc ${INCLDIR}/vfs 
+MACHINE_FLAGS = -DLINUX
+SHORTSYS      = linux
+INCLFLAGS     = -I/usr/include
+GFLAG         = -gstabs
+CPP           = gcc -E -x c-header
+LIBCURSES     = -lncurses
+LIBCOMPAT     =
+LIBIFS        = $(LIBDIR)/libuifs.a
+LIBTRACE      = ../venus/libfaketrace.a
+LIBREADLINE   = /usr/lib/libreadline.a
+LIBIBERTY     = /usr/lib/libiberty.a
+machine_ifs   = 
+#for rvm
+LIBTHREADS    =
+LIBMACH       = 
 
-SHORTSYS=linux
+LEX           = flex
 
-# utilities
-INSTALL = cp -p
+# ########################################################################
+#	Deep six all this
+# ########################################################################
 
-# compilation
-CC     = gcc 
-C++    = g++
-LEX    = flex
-CPP    = gcc -E -x c-header
-
-ifeq ($(SHOB),)
-INCLFLAGS = -I-  -I.  $(SHADOWINCLS) -I$(INCLDIR)  -I/usr/include
-else
-INCLFLAGS = -I-  -I. -I$(INCLDIR) -I$(INCLSPECIAL) $(SHADOWINCLS) -I/usr/include
-endif
-
-CFLAGS =  -DPRIVATE=static -DLINUX -gstabs $(INCLFLAGS) 
-CXXFLAGS := $(CFLAGS)
-
-RP2FLAGS = -I .  -I $(srcdir) `printenv MAKEPSD | awk -F:  '{ for(i=1; i<NF+1; i++) {printf("-I %s ", $$i)}}'` -I $(INCLDIR)
-
-# system dependent libraries
-LIBCURSES = -lncurses
-
-# platform dependent libraries
-ifeq ($(SHOB),)
-LIBIFS          =../sys/libuifs.a
-LIBTRACE = ../venus/libfaketrace.a
-else
-LIBTRACE = ../venus/libfaketrace.a
-LIBIFS          =$(LIBDIR)/libuifs.a
-
-endif
-
-
+C++ = g++

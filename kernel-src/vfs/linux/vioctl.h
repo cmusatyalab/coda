@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: vioctl.h,v 1.1 96/11/22 13:38:50 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/kernel-src/vfs/linux/vioctl.h,v 1.1.1.2 1997/01/07 21:18:23 rvb Exp";
 #endif /*_BLURB_*/
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir/coda-src/vtools/RCS/cfs.cc,v 1.2 1996/12/09 21:05:02 braam Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vtools/cfs.cc,v 1.3 1997/01/08 00:10:23 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -53,7 +53,7 @@ extern "C" {
 #include <netdb.h>
 #include <sys/stat.h>
 #include <sys/param.h>
-#ifdef LINUX
+#ifdef	__linux__
 #include <sys/dirent.h>
 #else
 #include <sys/dir.h>
@@ -70,7 +70,7 @@ extern "C" {
 #include <prs_fs.h>
 
 
-#ifdef LINUX
+#ifdef	__linux__
 #define DIR dirent
 #define direct dirent
 #define d_namlen d_reclen

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venusvm.cc,v 1.1 1996/11/22 19:11:19 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/venusvm.cc,v 1.3 1997/01/07 18:42:21 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -52,17 +52,19 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
-#ifdef LINUX
+#include <fcntl.h>
+
+#ifdef	__linux__
 #include <netinet/in.h>
 #include <endian.h>
 #else
 #include <machine/endian.h>
-#endif
+#endif /* LINUX */
 #include <netdb.h>
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
@@ -104,7 +106,7 @@ extern int nlist(const char*, struct nlist[]);
 #ifdef __NetBSD__
 #define VMUNIX "/netbsd"
 #endif
-#ifdef LINUX
+#ifdef	__linux__
 #define VMUNIX "/vmlinuz"
 #endif
 
@@ -273,7 +275,7 @@ PRIVATE unsigned long LastVmonBindAttempt = 0;
 PRIVATE RvmStatistics stats;
 PRIVATE int VmonSessionEventArraySize = 0;
 
-#ifdef LINUX
+#ifdef	__linux__
 PRIVATE int VmonSessionEventSize = 1; /* got FPEs after disabling some stuff */
 #else
 PRIVATE int VmonSessionEventSize = 0;
@@ -316,7 +318,7 @@ int VmonPortal = DFLT_VMONPORTAL;	    /* may be overridden from command line */
 
 void VmonInit() {
 
-#ifdef LINUX
+#ifdef	__linux__
     VmonEnabled = 0;
     return;
 #endif
@@ -330,7 +332,7 @@ void VmonInit() {
 	struct nlist ktest[2];
 	ktest[0].n_name = "_pass_process_info";
 	ktest[1].n_name = 0;
-#ifndef LINUX
+#ifndef	__linux__
 	if (nlist(VMUNIX, ktest) != 0) {
 	    fprintf(stderr, "ERROR: running a kernel that does not pass process info\n");
 	    fflush(stderr);
@@ -359,7 +361,7 @@ void VmonInit() {
     RawStats[0].n_name = "_cfs_vfsopstats";
     RawStats[1].n_name = "_cfs_vnodeopstats";
     RawStats[2].n_name = 0;
-#ifndef LINUX
+#ifndef	__linux__
     if (nlist(VMUNIX,RawStats) != 0) {
 	fprintf(stderr, "ERROR: running a pre-vfs-statistics kernel\n");
 	fflush(stderr);

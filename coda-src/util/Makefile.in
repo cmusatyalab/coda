@@ -1,92 +1,72 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 4.0
-#
-#          Copyright (c) 1987-1996 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/util/RCS/GNUmakefile.in,v 1.1 1996/11/22 19:07:57 braam Exp braam $";
-#endif /*_BLURB_*/
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/util/Makefile.in,v 1.3 1997/01/06 21:28:09 rvb Exp";
 
 
-#/*
-#
-#                         IBM COPYRIGHT NOTICE
-#
-#                          Copyright (C) 1986
-#             International Business Machines Corporation
-#                         All Rights Reserved
-#
-#This  file  contains  some  code identical to or derived from the 1986
-#version of the Andrew File System ("AFS"), which is owned by  the  IBM
-#Corporation.    This  code is provded "AS IS" and IBM does not warrant
-#that it is free of infringement of  any  intellectual  rights  of  any
-#third  party.    IBM  disclaims  liability of any kind for any damages
-#whatsoever resulting directly or indirectly from use of this  software
-#or  of  any  derivative work.  Carnegie Mellon University has obtained
-#permission to distribute this code, which is based on Version 2 of AFS
-#and  does  not  contain the features and enhancements that are part of
-#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-#supported by Transarc Corporation, Pittsburgh, PA.
-#
-#*/
+# 
+#                          IBM COPYRIGHT NOTICE
+# 
+#                           Copyright (C) 1986
+#              International Business Machines Corporation
+#                          All Rights Reserved
+# 
+# This  file  contains  some  code identical to or derived from the 1986
+# version of the Andrew File System ("AFS"), which is owned by  the  IBM
+# Corporation.    This  code is provded "AS IS" and IBM does not warrant
+# that it is free of infringement of  any  intellectual  rights  of  any
+# third  party.    IBM  disclaims  liability of any kind for any damages
+# whatsoever resulting directly or indirectly from use of this  software
+# or  of  any  derivative work.  Carnegie Mellon University has obtained
+# permission to distribute this code, which is based on Version 2 of AFS
+# and  does  not  contain the features and enhancements that are part of
+# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+# supported by Transarc Corporation, Pittsburgh, PA.
+# 
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-# Multiversion definitions
+LIBRARIES = libutil.a
+HEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h process.h \
+	    histo.h dtcreg.h timing_paths.h rvmlib.h rec_olist.h \
+	    rec_smolist.h rec_ohash.h rec_dlist.h rec_dhash.h rec_bstree.h \
+	    vmindex.h bitmap.h arrlist.h recvarl.h rvmtesting.h
 
-# Files of interest
+# Multiversion definitions
 
 OBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o process.o \
 	  histo.o rvmlib.o rec_olist.o rec_smolist.o rec_ohash.o rec_dlist.o \
 	  rec_dhash.o rec_bstree.o bitmap.o vmindex.o arrlist.o recvarl.o \
 	  rvmtesting.o
-
-SOURCES = util.cc olist.cc ohash.cc dlist.cc dhash.cc bstree.cc dict.cc \
-	  process.cc \
-	  histo.cc  timing_paths.cc freeclock.cc rvmlib.cc rec_olist.cc \
-	  rec_smolist.cc rec_ohash.cc rec_dlist.cc rec_dhash.cc rec_bstree.cc \
-	  vmindex.cc bitmap.cc arrlist.cc recvarl.cc rvmtesting.cc
-
-HEADERS = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h process.h \
-	  histo.h dtcreg.h timing_paths.h rvmlib.h rec_olist.h rec_smolist.h \
-	  rec_ohash.h rec_dlist.h rec_dhash.h rec_bstree.h \
-	  vmindex.h bitmap.h arrlist.h recvarl.h rvmtesting.h
-
-
-#all:	libutil.a freeclock 
-# freeclock fails to compile; check with Gowthami (Satya 12/20/91)
-
-LIBRARIES = libutil.a
 
 libutil.a: ${OBJECTS} 
 

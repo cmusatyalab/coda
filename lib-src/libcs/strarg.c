@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: strarg.c,v 1.1 96/06/03 19:01:28 satya Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/libcs/strarg.c,v 1.2 1997/01/07 18:44:29 rvb Exp";
 #endif /*_BLURB_*/
 
 /*  strarg  --  parse a string
@@ -58,7 +58,7 @@ static char *rcsid = "$Header: strarg.c,v 1.1 96/06/03 19:01:28 satya Exp $";
 
 char *strarg (ptr, brk, prompt, defalt, buf)
 char **ptr;
-#ifdef	MACH
+#ifdef	__MACH__
 const char *brk, *prompt;
 char *defalt;
 #else

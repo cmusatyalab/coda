@@ -1,0 +1,58 @@
+#ifndef _BLURB_
+#define _BLURB_
+#/*
+#                           CODA FILE SYSTEM
+#                             Release 1.0
+#                      School of Computer Science
+#                      Carnegie Mellon University
+#                          Copyright 1987-92
+#
+#Coda  may  be  used  under license outside Carnegie Mellon University.
+#Contact  the  Coda  Project   Coordinator   for   licensing   details.
+#Unlicensed use or distribution of this code is illegal.
+#*/
+#
+#
+#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/plumber/Makefile.coda.yuk,v 1.1.1.1 1996/11/22 19:20:00 rvb Exp";
+#endif _BLURB_
+
+#/*
+#                    IBM COPYRIGHT NOTICE
+#
+#This file contains  some code identical to or  derived from
+#the 1986 version of  the Andrew File System, which is owned
+#by  the  IBM  Corporation.  Carnegie Mellon  University has
+#obtained permission to distribute this code under the terms
+#of the Coda License.
+#
+#*/
+
+CPP = /usr/cs/lib/cpp -P
+
+all: libplumber.a
+
+libplumber.a: pmalloc.o getcallr.o pplumber.o
+	ar rv libplumber.a $?
+	ranlib libplumber.a
+
+getcallr.o: getcallr.spp
+	$(CPP)  -I/usr/include getcallr.spp getcallr.ss
+	as -o getcallr.o getcallr.ss
+	rm getcallr.ss
+
+malloc.o: malloc.ci
+plumber.o: plumber.ci
+pmalloc.o: malloc.ci
+pplumber.o: plumber.ci
+
+# Remove garbage
+clean:
+	-rm -f *.o *.a
+
+
+libinstall: all
+	-chmod 0644 $(LIBPLUMBER)
+	${INSTALL} libsysent.a $(LIBPLUMBER)
+
+install: libinstall
+

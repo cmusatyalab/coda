@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venusrecov.cc,v 1.1 1996/11/22 19:11:17 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/venusrecov.cc,v 1.2 1997/01/07 18:42:19 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -58,13 +58,13 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
 
-#ifdef LINUX
+#ifdef	__linux__
 #define MAX(a,b)   ( (a) > (b) ? (a) : (b))
 #endif
 
@@ -74,11 +74,11 @@ extern "C" {
 #include <rvm_segment.h>
 #include <rvm_statistics.h>
 
-#ifdef	MACH
+#ifdef	__MACH__
 #include <mach.h>
-#endif	MACH
+#endif	/* __MACH__ */
 
-#if __NetBSD__ || LINUX
+#if defined(__linux__) || defined(__NetBSD__)
 #include <sys/mman.h>
 #endif __NetBSD__
 
@@ -424,8 +424,8 @@ PRIVATE void Recov_InitRVM() {
 		    union wait status;
 #ifdef __MACH__
 		    int exiter = wait(&status);
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 		    int exiter = wait(&status.w_status);
 #endif __NetBSD__
 		    if (exiter != child)
@@ -433,7 +433,7 @@ PRIVATE void Recov_InitRVM() {
 #ifdef __MACH__
 		    if (status.w_retcode != RVM_SUCCESS)
 			Choke("Recov_InitRVM: log initialization failed (%d)", status.w_retcode);
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 		    if (WEXITSTATUS(status.w_status) != RVM_SUCCESS)
 			Choke("Recov_InitRVM: log initialization failed (%d)", WEXITSTATUS(status.w_status));

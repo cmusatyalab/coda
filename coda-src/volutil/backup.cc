@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/volutil/RCS/backup.cc,v 1.1 1996/11/22 19:14:16 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/volutil/backup.cc,v 1.4 1997/01/07 18:43:31 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -65,11 +65,21 @@ extern "C" {
 #include <sys/stat.h>
 #ifdef __MACH__
 #include <sys/fs.h>
-#endif
+#include <libc.h>
+#include <sysent.h>
+#endif /* __MACH__ */
+
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || LINUX */
+
 #include <netinet/in.h>
 #include <netdb.h>
 #include <libc.h>
+#ifdef __MACH__
 #include <fstab.h>
+#endif
 #include <errno.h>
 #include <strings.h>
 
@@ -319,7 +329,7 @@ getReplica(repinfo_t *rep) {
 
 void SetPartitionDiskUsage(register partitionInfo_t *dp)
 {
-#ifndef LINUX
+#ifdef __MACH__
     static struct fs sblock;  /*Static because of constraints on lwp proc size*/
     int fd;
     long totalblks, free, used, availblks;
@@ -342,9 +352,16 @@ void SetPartitionDiskUsage(register partitionInfo_t *dp)
     availblks = totalblks * (100 - sblock.fs_minfree) / 100;
 
     dp->free = availblks - used; /* May be negative, which is OK */
-#else
+#endif /* __MACH__ */
+
+#ifdef	__linux__
     dp->free =0;
-#endif
+#endif /* LINUX */
+
+#ifdef __NetBSD__
+    LogMsg(0, 0, stdout, "Arrgghh... SetPartitionDiskUsage() not ported yet");
+    assert(0);
+#endif __NetBSD__
 }
 
 InitPartitionEntry(partitionInfo_t **table, char *name, char *todayName)
@@ -374,6 +391,7 @@ InitPartitionEntry(partitionInfo_t **table, char *name, char *todayName)
     /*This is slow, but the it is easier to read and backup will be slow anyway.*/
     {
 	part->devName[0] = 0;
+#ifdef __MACH__
 	setfsent();
 	struct fstab *fsent;
 	while (fsent = getfsent()) {
@@ -384,6 +402,7 @@ InitPartitionEntry(partitionInfo_t **table, char *name, char *todayName)
 		}
 	}
 	endfsent();
+#endif
 
 	if (part->devName[0] == 0) {
 	    LogMsg(0,0,stdout, "Error: Couldn't find device name for %s.", name);
@@ -856,6 +875,8 @@ int main(int argc, char **argv) {
     char *myname = argv[0];
     char *filename = NULL;
     char *dumpdir = NULL;
+    volinfo_t *vol; /* for-loop index variable */
+
     while ( argc > 1) {			/* While args left to parse. */
 	if (!strcmp(argv[1], "-t")) {
 	    Timeout = atoi(argv[2]);
@@ -919,7 +940,7 @@ int main(int argc, char **argv) {
      */
     /* Backup (clone) Phase */
 
-    for (volinfo_t *vol = Volumes; vol; vol = vol->next) {
+    for (vol = Volumes; vol; vol = vol->next) {
 	if (backup(vol) != 0) {
 	    vol->flags |= BADNESS;
 	    LogMsg(0, 0, stdout, "Backup of replicated volume %x failed!\n",vol->volId);
@@ -1058,7 +1079,7 @@ int main(int argc, char **argv) {
 		ptr += strlen(buf);
 		
 		/* Use the letter for the last stage each replica passed. */
-		for (i = 0; i < vol->nReplicas; i++) {
+		for (int i = 0; i < vol->nReplicas; i++) {
 		    char c = ' ';
 		    if (ISLOCKED(reps[i].flags)) c = 'L';
 		    if (ISCLONED(reps[i].flags)) c = 'C';
@@ -1094,7 +1115,7 @@ int main(int argc, char **argv) {
 		ptr += strlen(buf);
 		
 		/* Use the letter for the last stage each replica passed. */
-		for (i = 0; i < vol->nReplicas; i++) {
+		for (int i = 0; i < vol->nReplicas; i++) {
 		    char c = ' ';
 		    if (ISLOCKED(reps[i].flags)) c = 'L';
 		    if (ISCLONED(reps[i].flags)) c = 'C';
@@ -1364,7 +1385,7 @@ PRIVATE void VolDumpLWP(struct rockInfo *rock)
     myfilter.ConnOrSubsys.SubsysId = VOLDUMP_SUBSYSTEMID;
 
     while (1) {
-	rc=RPC2_GetRequest(&myfilter, &mycid, &myrequest, NULL, NULL, NULL, NULL);
+	rc=RPC2_GetRequest(&myfilter, &mycid, &myrequest, NULL, NULL, 0, NULL);
 	if (rc == RPC2_SUCCESS) {
 	    rc = volDump_ExecuteRequest(mycid, myrequest, NULL);
 	    if (rc) {

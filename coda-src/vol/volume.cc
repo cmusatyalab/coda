@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/volume.cc,v 1.5 1996/12/09 16:13:06 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vol/volume.cc,v 1.4 1997/01/08 00:10:19 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <sys/dir.h>
-#ifndef LINUX
+#ifndef	__linux__
 #include <fstab.h>
 #endif
 #include <netdb.h>
@@ -80,12 +80,12 @@ extern "C" {
 #ifdef __MACH__
 #include <libc.h>
 #include <sysent.h>
-#endif __MACH__
-#if LINUX || __NetBSD__
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
-#ifdef LINUX
+#ifdef	__linux__
 #include <dirent.h>
 #include <stdio.h>
 #include <mntent.h>
@@ -98,7 +98,7 @@ extern "C" {
 
 #ifdef __MACH__
 #include <mach.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -255,7 +255,7 @@ int VInitVolUtil(ProgramType pt) {
 
 /* one time initialization for file server only */
 void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
-#ifdef LINUX
+#ifdef	__linux__
     FILE *mnt_handle;
     struct mntent *mntent;
 #endif

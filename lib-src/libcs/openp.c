@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: openp.c,v 1.1 96/06/03 19:00:56 satya Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/libcs/openp.c,v 1.1.1.1 1996/11/22 19:19:10 rvb Exp";
 #endif /*_BLURB_*/
 
 /*  openp, fopenp  --  search pathlist and open file

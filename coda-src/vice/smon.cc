@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/smon.cc,v 1.1 1996/11/22 19:14:38 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vice/smon.cc,v 1.2 1997/01/06 21:28:18 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -440,7 +440,7 @@ PRIVATE long CheckSmonResult(long code)
 
 PRIVATE int GetRawStatistics(SmonStatistics *stats)
 {
-#ifndef LINUX
+#ifdef __MACH__
     static	int	kmem = 0;
     static      int     hertz = 0;
     int		i;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rp2gen/rp2main.c,v 1.3 1997/01/07 18:41:15 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -61,7 +61,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 int yydebug;
 
-#ifdef LINUX
+#ifdef	__linux__
 extern char * basename(char * name);
 #endif
 
@@ -238,7 +238,7 @@ static int SetupFiles()
     h_hack_begin(hfile, hfile_name);
     header(hfile, h_includes[(int) clanguage]);
 
-    if ( cplusplus ) {
+    if ( c_plus ) {
             if (cfile_name == NIL) cfile_name = concat(base, ".client.cc");
     } else {
             if (cfile_name == NIL) cfile_name = concat(base, ".client.c");
@@ -248,7 +248,7 @@ static int SetupFiles()
     header(cfile, client_includes[(int) clanguage]);
     fprintf(cfile, "#include \"%s\"\n", hfile_name);
 
-    if ( cplusplus ) {
+    if ( c_plus ) {
             if (sfile_name == NIL) sfile_name = concat(base, ".server.cc");
     } else {
             if (sfile_name == NIL) sfile_name = concat(base, ".server.c");
@@ -258,7 +258,7 @@ static int SetupFiles()
     header(sfile, server_includes[(int) slanguage]);
     fprintf(sfile, "#include \"%s\"\n", hfile_name);
 
-    if ( cplusplus ) { 
+    if ( c_plus ) { 
             if (mfile_name == NIL) mfile_name = concat(base, ".multi.cc"); 
     } else {
             if (mfile_name == NIL) mfile_name = concat(base, ".multi.c");

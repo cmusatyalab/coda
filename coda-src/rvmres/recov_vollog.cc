@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rvmres/recov_vollog.cc,v 1.2 1997/01/07 02:33:23 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -538,11 +538,12 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
     vmindex ind;
     int different = 0;
     int status = 0;
+    int i;
 
     VnodeId prevwrapvn = wrapvn;
     Unique_t prevwrapun = wrapun;
 
-    for (int i = 0; i < 32 ; i++) {
+    for (i = 0; i < 32 ; i++) {
 	// chose an object whose log must be wrapped around
 	if (ChooseWrapAroundVnode(volptr, different)) {
 	    LogMsg(0, SrvDebugLevel, stdout, 

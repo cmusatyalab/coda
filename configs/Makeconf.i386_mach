@@ -1,6 +1,7 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
+#
+# sets:
+#	variables, libraries for Mach (i386, pmax) build
+
 #
 #            Coda: an Experimental Distributed File System
 #                             Release 3.1
@@ -8,109 +9,48 @@
 #          Copyright (c) 1987-1995 Carnegie Mellon University
 #                         All Rights Reserved
 #
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: Makeconf.Mach,v 1.1 96/11/22 19:20:04 raiff Locked $";
-#endif /*_BLURB_*/
-
-# For mach, make sure we are using gcc
-CC=gcc
-CXX = g++
-SHORTSYS=mach
-
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
 # 
-
-# ROOT = /afs/cs/project/coda-raiff/
-
-INCLSPECIALSUBDIR= ${INCLSPECIAL}/readline -I${INCLSPECIAL}/sets
-
-# these are all the subdirectories in INCLDIR.
-# need to reset the mode bits after chmoding INCLDIR/* to 644
-INCLSUBS = ${INCLDIR}/camlib ${INCLDIR}/cfs ${INCLDIR}/rpc ${INCLDIR}/vfs 
-
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
 #
-MACHDIR = /usr/mach
-CSDIR = /usr/cs
-KERNELDIR = /coda/project/coda/kernel
-GNUCOMPDIR=/usr/misc/.gnu-comp
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# */
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/configs/Makeconf.Mach,v 1.6 1997/01/06 21:28:42 rvb Exp";
 
-#ALPHACI = $(SCRIPTDIR)/alphaci
-
-#
-
-
-INCLFLAGS = -I- -I.  $(SHADOWINCLS)  -I$(srcdir) \
-	-I$(INCLDIR)  -I$(INCLSPECIAL)  -I$(INCLSPECIALSUBDIR) \
-	-I$(MACHDIR)/include -I$(CSDIR)/include  -I/usr/include
-
-LIBFLAGS = -L$(MACHDIR)/lib -L$(CSDIR)/lib -L$(GNUCOMPDIR)/lib
-
-RP2FLAGS :=  -I $(srcdir) -I .  `printenv MAKEPSD | awk -F:  '{for (i=1; i<NF+1; i++) {printf("-I %s ", $$i)}}'` -I $(INCLDIR)
-
-
-CFLAGS := -g $(INCLFLAGS) -DPRIVATE=static 
-CXXFLAGS := $(CFLAGS)
-C++FLAGS := $(CFLAGS)	# Mach uses c++ flags, not CXX
-
-INSTALL= cp -p
-CPP= /usr/cs/lib/cpp
-
-
-# These libraries have something system dependent in them
-# system dependent libraries
-# -- LIBMACH --
-LIBMACH=/usr/mach/lib/libmach.a
-
-#If not at CMU, uncomment this.
-#LIBCS = 	$(LIBSPECIAL)/libcs.a
-
-LIBSYS = -lsys
-LIBCURSES =-lcurses
-
-
-# platform dependent libraries
-ifeq ($(SHOB),)
-LIBIFS          =$(TOPOBJ)/kernel-src/ifs/mach/libifs.a
-LIBTRACE = ../venus/libfaketrace.a
-else
-LIBTRACE = ../venus/libfaketrace.a
-LIBIFS          =$(LIBDIR)/libifs.a
-
-endif
+MACHINE_FLAGS =
+SHORTSYS      = mach
+INCLFLAGS     = -I/usr/cs/include
+GFLAG         = -g
+CPP           = /usr/cs/lib/cpp
+LIBSYS        = /usr/cs/lib/libsys.a
+LIBCURSES     = -lcurses
+LIBCOMPAT     =
+LIBIFS        = $(LIBDIR)/libifs.a
+LIBTRACE      = ../venus/libfaketrace.a
+LIBREADLINE   = /usr/new/lib/libreadline.a
+INCREADLINE   = -I/usr/new/include/readline
+machine_ifs   = ifs
+#for rvm
+LIBTHREADS    = /usr/mach/lib/libthreads.a
+LIBMACH       = /usr/mach/lib/libmach.a
 
 # -- PLUMBERs -- not built for Linux and netbsd yet
-LIBPLUMBER =$(LIBSPECIAL)/libplumber.a
-LIBNEWPLUMBER =$(LIBSPECIAL)/libnewplumb.a
+LIBPLUMBER    = $(LIBSPECIAL)/libplumber.a
+LIBNEWPLUMBER = $(LIBSPECIAL)/libnewplumb.a
 
-
-# -- CURSES --
-
-
-#on exit from the program write the source directory and path of Makeconf into the
-#object directory
-# this was added to facilitate writing resolvers.
-.EXIT:
-	@echo set SOURCEDIR = $(VPATH) > .SRCDIRS
-	@echo -n "setenv MAKECONF " >> .SRCDIRS
-	@printenv MAKECONF >> .SRCDIRS
-
-all:
+#ALPHACI = $(SCRIPTDIR)/alphaci

@@ -1,81 +1,71 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 4.0
-#
-#          Copyright (c) 1987-1996 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vice/RCS/Makefile.in,v 1.1 1996/12/09 14:40:56 raiff Exp braam $";
-#endif /*_BLURB_*/
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vice/Makefile.in,v 1.5 1997/01/08 00:55:24 rvb Exp";
 
 
-#/*
-#
-#                         IBM COPYRIGHT NOTICE
-#
-#                          Copyright (C) 1986
-#             International Business Machines Corporation
-#                         All Rights Reserved
-#
-#This  file  contains  some  code identical to or derived from the 1986
-#version of the Andrew File System ("AFS"), which is owned by  the  IBM
-#Corporation.    This  code is provded "AS IS" and IBM does not warrant
-#that it is free of infringement of  any  intellectual  rights  of  any
-#third  party.    IBM  disclaims  liability of any kind for any damages
-#whatsoever resulting directly or indirectly from use of this  software
-#or  of  any  derivative work.  Carnegie Mellon University has obtained
-#permission to distribute this code, which is based on Version 2 of AFS
-#and  does  not  contain the features and enhancements that are part of
-#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-#supported by Transarc Corporation, Pittsburgh, PA.
-#
-#*/
+# 
+#                          IBM COPYRIGHT NOTICE
+# 
+#                           Copyright (C) 1986
+#              International Business Machines Corporation
+#                          All Rights Reserved
+# 
+# This  file  contains  some  code identical to or derived from the 1986
+# version of the Andrew File System ("AFS"), which is owned by  the  IBM
+# Corporation.    This  code is provded "AS IS" and IBM does not warrant
+# that it is free of infringement of  any  intellectual  rights  of  any
+# third  party.    IBM  disclaims  liability of any kind for any damages
+# whatsoever resulting directly or indirectly from use of this  software
+# or  of  any  derivative work.  Carnegie Mellon University has obtained
+# permission to distribute this code, which is based on Version 2 of AFS
+# and  does  not  contain the features and enhancements that are part of
+# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+# supported by Transarc Corporation, Pittsburgh, PA.
+# 
 
-
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-CC=g++
-
-#CAMLIBS = $(CAMDIR)/lib/libcamlib.a $(CAMDIR)/lib/libcam.a
-#MACHLIBS = -lmach 
 
 EXECUTABLES = srv printvrdb
-LIBRARIES   = ViceErrorMsg.o
+SSBINS      = $(EXECUTABLES)
+LIBRARIES   = libviceerror.a
 
-RP2FLAGS += -n
+#CAMLIBS = $(CAMDIR)/lib/libcamlib.a $(CAMDIR)/lib/libcam.a
 
-LIBS = 	$(LIBAUTH2)	\
+LIBS = 	$(LIBVOLSERV)  \
+	$(LIBVICEDEP)   \
+	$(LIBAUTH2)	\
 	$(LIBAL)	\
 	$(LIBVOLUTIL)	\
-	$(SALVAGE_O) 	\
 	$(LIBRESLIB)	\
 	$(LIBRVMRES)	\
 	$(LIBRESOLVE) 	\
@@ -85,14 +75,15 @@ LIBS = 	$(LIBAUTH2)	\
 	$(LIBDIRLIB)	\
 	$(LIBIFS)	\
 	$(LIBUTIL) 	\
-	$(LIBCODARDS)       \
+	$(LIBCODARDS)   \
 	$(LIBSEG)  	\
 	$(LIBCODARVM) 	\
 	$(LIBRPC2) 	\
 	$(LIBSE)	\
 	$(LIBFAIL)	\
-	$(LIBOLDLWP)	
-
+	$(LIBOLDLWP)	\
+	$(LIBMACH)	\
+	$(LIBCOMPAT)
 
 headers=$(INCLSPECIAL)/lwp.h	\
 	$(INCLDIR)/al.h		\
@@ -103,11 +94,11 @@ headers=$(INCLSPECIAL)/lwp.h	\
 	$(INCLDIR)/cvnode.h	\
 	$(INCLDIR)/rpc2.h	\
 	$(INCLDIR)/fail.h	\
-	$(INCLDIR)/vice.h	\
-	$(INCLDIR)/mond.h       \
+	$(INCLDIR)/vice.rpc2	\
+	$(INCLDIR)/mond.rpc2    \
 	$(INCLDIR)/srv.h	\
 	$(INCLDIR)/vrdb.h	\
-	$(INCLDIR)/fcon.h
+	$(INCLDIR)/fcon.rpc2
 
 objects=srvproc.o	\
 	srvproc2.o	\
@@ -115,54 +106,28 @@ objects=srvproc.o	\
 	codaproc.o	\
 	codaproc2.o	\
 	clientproc.o	\
-	vice.server.o	\
-	vice.multi.o	\
 	vicecb.o	\
 	smon.o		\
-	ViceErrorMsg.o	\
-	callback.client.o \
-	callback.multi.o \
-	mond.client.o
-
-CFILES=srv.cc srvproc.cc srvproc2.cc  codaproc.cc \
-	codaproc2.cc clientproc.cc vicecb.cc smon.cc ViceErrorMsg.cc \
-	printvrdb.cc coppend.cc
+	ViceErrorMsg.o	
 
 HFILES = coppend.h codaproc.h 
 
-all: vice.server.c vice.multi.c callback.client.c callback.multi.c mond.client.c srv printvrdb codamon
+dummyplumber.o: dummyplumber.cc
 
-vice.server.c vice.multi.c vice.h: $(VICE_RPC2) ${RP2GEN}
-callback.client.c callback.multi.c callback.h: $(CALLBACK_RPC2) ${RP2GEN}
-mond.client.c mond.h: $(MOND_RPC2) ${RP2GEN}
+srv: ${objects} srv.o dummyplumber.o ${LIBS}
+	$(CXX) $(LIBFLAGS) ${objects} srv.o dummyplumber.o ${LIBS} -lm -o srv
 
-smon.o: mond.h
+srv.plumber: ${objects} srv.o ${LIBNEWPLUMBER}
+	$(CCX) $(LIBFLAGS) ${objects} srv.o ${LIBNEWPLUMBER} ${LIBS} -lm -o srv.plumber
 
-${objects}:${headers} ${HFILES}
-
-dummyplumber.o: dummyplumber.c
-
-srv: ${objects} srv.o ${headers} ${HFILES}  dummyplumber.o
-	$(CXX) ${CXXFLAGS} $(LIBFLAGS) -o srv ${objects} srv.o dummyplumber.o ${LIBS} -lm ${MACHLIBS}
-
-srv.plumber: ${objects} srv.o ${headers} ${HFILES}  ${LIBNEWPLUMBER}
-	$(CC) ${CFLAGS} $(LIBFLAGS) -o srv.plumber ${objects} srv.o ${LIBNEWPLUMBER} ${LIBS} -lm ${MACHLIBS}
-
-codamon: codamon.o 
-	$(CXX) ${CXXFLAGS} -o codamon codamon.o ${LIBUTIL}
+codamon: codamon.o $(LIBUTIL)
+	$(CXX) ${LIBFLAGS} codamon.o ${LIBUTIL} -o codamon
 
 printvrdb: printvrdb.o
-	$(CXX) ${CXXFLAGS} -o printvrdb printvrdb.o
+	$(CXX) ${LIBFLAGS} printvrdb.o -o printvrdb
 
-vice.server.o: vice.server.c ${headers} ${HFILES}
+libviceerror.a: ViceErrorMsg.o
 
-callback.multi.o: callback.multi.c callback.h
-
-clean:
-	rm -f *.o srv printvrdb codamon \
-	callback.client.c callback.multi.c callback.server.c \
-	mond.client.c mond.multi.c mond.server.c \
-	vice.client.c vice.multi.c vice.server.c \
-	callback.h mond.h vice.h
+${objects}:${headers} ${HFILES}
 
 include $(TOPDIR)/Makerules

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/libal/al.h,v 1.1.1.1 1996/11/22 19:08:32 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -62,7 +62,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef _AL_
 #define _AL_
 
-#define AL_VERSION "$Header: al.h,v 1.1 96/11/22 13:28:49 raiff Exp $"
+#define AL_VERSION "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/libal/al.h,v 1.1.1.1 1996/11/22 19:08:32 rvb Exp"
 
 typedef
     struct

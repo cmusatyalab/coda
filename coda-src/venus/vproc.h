@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/vproc.h,v 1.3 1996/12/03 15:55:21 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/vproc.h,v 1.2 1997/01/07 18:42:45 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -70,9 +70,9 @@ extern "C" {
 /* Pick up private versions of vnode headers from vicedep */
 #include <cfs/mach_vfs.h>
 #include <cfs/mach_vnode.h>
-#endif __MACH__
+#endif /* __MACH__ */
 
-#ifdef LINUX
+#ifdef	__linux__
 #include <sys/uio.h>
         /* hmm we need this, so let's define it. Where is it in BSD anyway? */
 enum  uio_rw { UIO_READ, UIO_WRITE };
@@ -87,7 +87,7 @@ struct uio {
 #define MAX(a,b)   ( (a) > (b) ? (a) : (b))
 #define MIN(a,b)   ( (a) < (b) ? (a) : (b))
 
-#endif LINUX
+#endif	/* __linux__ */
 
 #include <cfs/cfs.h>
 #include <cfs/cnode.h>
@@ -320,9 +320,9 @@ extern long FidToNodeid(ViceFid *);
 #ifdef __MACH__
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
 #define	CRTORUID(cred)	((vuid_t)((cred).cr_ruid))
-#endif __MACH__
+#endif /* __MACH__ */
 
-#if __NetBSD__ || LINUX
+#if defined(__linux__) || defined(__NetBSD__)
 /* vnodes in NetBSD don't seem to store effective user & group ids.  So just
    coerce everything to uid */
 #define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
@@ -345,7 +345,7 @@ extern long FidToNodeid(ViceFid *);
     (VP)->v_rdev = (DEV);\
     (VP)->v_socket = 0;\
 }
-#endif __MACH__
+#endif /* __MACH__ */
 
 #define	VFSOP_UNSET	-1
 #define	VFSOP_MOUNT	/*CFS_MOUNT*/VFSOP_UNSET
@@ -418,7 +418,7 @@ extern int vnode_deallocs;
     vnode_deallocs++;\
     delete (VTOC((vp)));\
 }
-#endif __MACH__
+#endif /* __MACH__ */
 
 #if  __NetBSD__ || LINUX
 #define	MAKE_VNODE(vp, fid, type)\
@@ -459,7 +459,7 @@ extern int vnode_deallocs;
 #define VA_ATIME_2(va)	(va)->va_atime.tv_usec
 #define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
 #define VA_CTIME_2(va)	(va)->va_ctime.tv_sec
-#endif __MACH__
+#endif /* __MACH__ */
 
 #ifdef __NetBSD__ 
 #define VA_ID(va)	(va)->va_fileid
@@ -473,7 +473,7 @@ extern int vnode_deallocs;
 #endif __NetBSD__
 
 
-#ifdef LINUX
+#ifdef	__linux__
 #define VA_ID(va)	(va)->va_fileid
 #define VA_STORAGE(va)	(va)->va_bytes
 #define VA_MTIME_1(va)	(va)->va_mtime.tv_sec
@@ -482,7 +482,7 @@ extern int vnode_deallocs;
 #define VA_ATIME_2(va)	(va)->va_atime.tv_nsec
 #define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
 #define VA_CTIME_2(va)	(va)->va_ctime.tv_nsec
-#endif LINUX
+#endif	/* __linux__ */
 
 
 #endif	not _VENUS_PROC_H_

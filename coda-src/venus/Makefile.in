@@ -1,79 +1,64 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 4.0
-#
-#          Copyright (c) 1987-1996 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:48 raiff Exp $";
-#endif /*_BLURB_*/
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/Makefile.in,v 1.4 1997/01/06 21:28:11 rvb Exp";
 
 
-#/*
+# 
+#                          IBM COPYRIGHT NOTICE
+# 
+#                           Copyright (C) 1986
+#              International Business Machines Corporation
+#                          All Rights Reserved
+# 
+# This  file  contains  some  code identical to or derived from the 1986
+# version of the Andrew File System ("AFS"), which is owned by  the  IBM
+# Corporation.    This  code is provded "AS IS" and IBM does not warrant
+# that it is free of infringement of  any  intellectual  rights  of  any
+# third  party.    IBM  disclaims  liability of any kind for any damages
+# whatsoever resulting directly or indirectly from use of this  software
+# or  of  any  derivative work.  Carnegie Mellon University has obtained
+# permission to distribute this code, which is based on Version 2 of AFS
+# and  does  not  contain the features and enhancements that are part of
+# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+# supported by Transarc Corporation, Pittsburgh, PA.
+# 
 
-
-#
-#                         IBM COPYRIGHT NOTICE
-#
-#                          Copyright (C) 1986
-#             International Business Machines Corporation
-#                         All Rights Reserved
-#
-#This  file  contains  some  code identical to or derived from the 1986
-#version of the Andrew File System ("AFS"), which is owned by  the  IBM
-#Corporation.    This  code is provded "AS IS" and IBM does not warrant
-#that it is free of infringement of  any  intellectual  rights  of  any
-#third  party.    IBM  disclaims  liability of any kind for any damages
-#whatsoever resulting directly or indirectly from use of this  software
-#or  of  any  derivative work.  Carnegie Mellon University has obtained
-#permission to distribute this code, which is based on Version 2 of AFS
-#and  does  not  contain the features and enhancements that are part of
-#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-#supported by Transarc Corporation, Pittsburgh, PA.
-#
-#*/
-
-
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-CC = g++
-
-# Files to make/install
-HEADERS = advice.h hdb.h newplumb.h venus_vnode.h
-LIBRARIES = libfaketrace.a
-CSBINS = venus
-
-EXECUTABLES= venus
-
+EXECUTABLES = venus
+CSBINS      = venus
+LIBRARIES   = libfaketrace.a
+HEADERS	    = advice.h hdb.h newplumb.h venus_vnode.h
 
 #Turn off data collection
 #CFLAGS = $(CFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG -DRVM_USELWP
@@ -81,12 +66,8 @@ EXECUTABLES= venus
 
 CXXFLAGS := $(CXXFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG \
 	    -DRVM_USELWP 
-RP2FLAGS := -n $(RP2FLAGS)
 
 # Conditional definition of MACHLIBS for NetBSD port (Satya, 8/16/96)
-MACHLIBS_pmax_mach = -lmach -lsys
-MACHLIBS_i386_mach = -lmach
-MACHLIBS_i386_nbsd1 = -lcompat
 
 LIBS=	$(LIBUTIL)\
 	$(LIBCODARDS)\
@@ -103,55 +84,30 @@ LIBS=	$(LIBUTIL)\
 	$(LIBSYS)\
 	$(LIBCS)\
 	$(LIBIFS)\
-	$(LIBTRACE)
+	$(LIBTRACE)\
+	$(LIBMACH)\
+	$(LIBCOMPAT)\
+	$(LIBVICEDEP)
 
-HFILES=	vice.h			\
-		mond.h			\
-		admon.h			\
-		adsrv.h			\
-		callback.h		\
-		$(INCLDIR)/rpc2.h	\
-		$(INCLDIR)/se.h		\
-		$(INCLDIR)/timer.h 	\
-		$(INCLDIR)/auth2.h	\
-		$(INCLDIR)/fail.h	\
-		$(INCLDIR)/fcon.h
-
-CFILES= advice.cc advice_daemon.cc binding.cc comm.cc comm_daemon.cc daemon.cc fso0.cc fso1.cc fso_cachefile.cc fso_cfscalls0.cc fso_cfscalls1.cc fso_cfscalls2.cc fso_daemon.cc fso_dir.cc hdb.cc hdb_daemon.cc local_cml.cc local_daemon.cc local_fso.cc local_subtree.cc local_repair.cc local_vol.cc mariner.cc venusrecov.cc sighand.cc simulate.cc user.cc venusutil.cc venus.cc venuscb.cc venusvm.cc venusvol.cc vol_daemon.cc vol_cml.cc vol_reintegrate.cc vol_repair.cc vol_resolve.cc vol_vcb.cc vol_vsr.cc vol_COP2.cc vproc.cc vproc_pathname.cc vproc_pioctl.cc vproc_vfscalls.cc worker.cc faketrace.c
+RP2FILES= $(INCLDIR)/vice.rpc2 $(INCLDIR)/mond.rpc2 	$(INCLDIR)/admon.rpc2\
+ $(INCLDIR)/adsrv.rpc2 $(INCLDIR)/callback.rpc2 $(INCLDIR)/fcon.rpc2
 
 HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h simulate.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
 
-VOBJS = advice.o advice_daemon.o admon.client.o adsrv.server.o binding.o callback.server.o comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o simulate.o user.o venusutil.o venus.o venuscb.o venusvm.o vice.client.o vice.multi.o mond.client.o venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o faketrace.o
 
-RP2FILES=$(CALLBACK_RPC2)  $(VICE_RPC2) $(MOND_RPC2) $(ADMON_RPC2) $(ADSRV_RPC2)
-RP2HFILES= $(subst .rpc2,.h,$(RP2FILES))
-RP2CFILES= $(subst .rpc2,.client.c,$(RP2FILES))
+VOBJS = advice.o advice_daemon.o  binding.o  comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o simulate.o user.o venusutil.o venus.o venuscb.o venusvm.o  venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o faketrace.o
 
 
-venus:  ${VOBJS} dummy.o $(LIBRARIES) $(RP2CFILES)
-	$(CXX) ${CXXFLAGS} $(LIBFLAGS) -o venus ${VOBJS} dummy.o $(LIBS) $(MACHLIBS_$(SYS)) -lm 
+venus:  ${VOBJS} dummy.o $(LIBS)
+	$(CXX) $(LIBFLAGS) ${VOBJS} dummy.o $(LIBS) -lm -o venus
 
 # When the new plumber works it should be linked in here too.
-venus.plumber:  ${VOBJS} $(LIBPLUMBER)
-	$(CXX) ${CXXFLAGS} $(LIBFLAGS) -o venus.plumber ${VOBJS} $(LIBPLUMBER) $(LIBS) $(MACHLIBS_$(SYS)) -lm -lsys
-
-#####################
-# Warning: these dependencies are on variables and are not covered by Makerules
-#####################
-callback.client.c callback.server.c callback.multi.c callback.h: $(CALLBACK_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
-vice.client.c vice.server.c vice.multi.c vice.h: $(VICE_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
-mond.client.c mond.server.c mond.multi.c mond.h: $(MOND_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
-admon.client.c admon.server.c admon.multi.c admon.h: $(ADMON_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
-adsrv.client.c adsrv.server.c adsrv.mutli.c adsrv.h: $(ADSRV_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
+venus.plumber:  ${VOBJS} $(LIBPLUMBER) $(LIBS)
+	$(CXX) $(LIBFLAGS) ${VOBJS} $(LIBPLUMBER) $(LIBS) -lm -lsys -o venus.plumber
 
 
-advice.o: advice.cc advice.h admon.h adsrv.h adviceconn.h mond.h
-advice_daemon.o: advice_daemon.cc adsrv.h admon.h adviceconn.h mond.h
+advice.o: advice.cc advice.h adviceconn.h $(RP2FILES)
+advice_daemon.o: advice_daemon.cc  adviceconn.h $(RP2FILES)
 binding.o: binding.cc binding.h
 comm.o: comm.cc comm.h venus.private.h fso.h mariner.h simulate.h\
 	user.h vproc.h venusvm.h venusvol.h worker.h $(HFILES) 
@@ -231,14 +187,8 @@ venus.o: venus.cc venus.private.h local.h fso.h comm.h hdb.h mariner.h\
 
 venuscb.o: venuscb.cc comm.h mariner.h venuscb.h venus.private.h $(HFILES)
 
-venusvm.o: venusvm.cc venusvm.h venus.private.h callback.h mond.h\
+venusvm.o: venusvm.cc venusvm.h venus.private.h $(RP2FILES)\
 	mariner.h simulate.h vproc.h venusrecov.h $(HFILES)
-
-vice.client.o: vice.client.c vice.h
-
-vice.multi.o: vice.multi.c vice.h
-
-mond.client.o: mond.client.c mond.h
 
 venusvol.o: venusvol.cc venusvol.h venus.private.h local.h comm.h\
 	fso.h mariner.h venusrecov.h simulate.h user.h\
@@ -251,7 +201,7 @@ vol_daemon.o: vol_daemon.cc venusvol.h venus.private.h local.h \
 	simulate.h vproc.h $(HFILES)
 
 vol_reintegrate.o: vol_reintegrate.cc venusvol.h comm.h fso.h mariner.h \
-	venus.private.h vice.h vproc.h user.h local.h advice_daemon.h $(HFILES)
+	venus.private.h  vproc.h user.h local.h advice_daemon.h $(HFILES) $(RP2FILES)
 
 vol_repair.o: vol_repair.cc venusvol.h venus.private.h local.h\
 	comm.h fso.h mariner.h vproc.h worker.h $(HFILES)
@@ -263,7 +213,7 @@ vol_vcb.o: vol_vcb.cc venusvol.h venus.private.h comm.h fso.h\
 	mariner.h venuscb.h vproc.h $(HFILES)
 
 vol_vsr.o: vol_vsr.cc venusvol.h venus.private.h venusvm.h\
-	vice.h mond.h mariner.h local.h $(HFILES)
+	mariner.h local.h $(HFILES) $(RP2FILES)
 
 vol_COP2.o: vol_COP2.cc venusvol.h venus.private.h comm.h\
 	mariner.h $(HFILES)
@@ -285,23 +235,15 @@ worker.o: worker.cc worker.h venus.private.h comm.h fso.h mariner.h\
 	simulate.h venuscb.h venusstats.h venusvol.h vproc.h\
 	 worker.h   $(HFILES)
 
-clean:
-	-rm -rf *.o venus venus.plumber vice.h mond.h callback.h vice.client.c mond.client.c callback.server.c vice.server.c mond.server.c callback.client.c admon.client.c admon.h admon.multi.c admon.server.c adsrv.client.c adsrv.h adsrv.multi.c adsrv.server.c callback.multi.c mond.multi.c vice.multi.c
-
-
 # (Satya, 8/16/96): this is a temporary hack to build a dummy libtrace.a for NetBSD;
 # All the routines are dummies;  copy libfaketrace.a to include-special
+# The rules below must use gcc; CC has been changed to g++ in this file.  
 libfaketrace.a:	 faketrace.o
-	ar rv $@ $?
-	ranlib $@
 
 faketrace.o: faketrace.c
-	gcc -c $<
-
-
+	gcc $(CFLAGS) -c $<
 
 testjmp: testjmp.cc
-	g++ -o testjmp testjmp.cc
-
+	$(CXX) $(CXXFLAGS) -o testjmp testjmp.cc
 
 include $(TOPDIR)/Makerules

@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: intarg.c,v 1.1 96/06/03 19:00:45 satya Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/libcs/intarg.c,v 1.1.1.1 1996/11/22 19:19:24 rvb Exp";
 #endif /*_BLURB_*/
 
 /*  intarg  --  parse integer argument

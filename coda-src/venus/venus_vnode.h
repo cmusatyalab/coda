@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/venus_vnode.h,v 1.2 1996/12/09 18:54:46 braam Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/venus_vnode.h,v 1.1.1.2 1997/01/07 21:15:52 rvb Exp";
 #endif /*_BLURB_*/
 
 /*	$NetBSD: vnode.h,v 1.32 1995/03/26 20:25:05 jtc Exp $	*/

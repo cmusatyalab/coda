@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/simulate.cc,v 1.1 1996/11/22 19:11:12 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/simulate.cc,v 1.3 1997/01/07 18:42:12 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -81,18 +81,17 @@ extern "C" {
 #include <sys/stat.h>
 #ifdef __MACH__
 #include <sysent.h>
-#include <libc.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #if __NetBSD__ | LINUX
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
 
-
 #ifdef __NetBSD__
 #include <dirent.h> /* to get defn of MAXNAMLEN */
 #endif __NetBSD__
 
+#include <libcs.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -126,9 +125,9 @@ extern "C" {
 /* Define wrapper macro to cope with absence of VFMT on NetBSD */
 #ifdef __MACH__
 #define SIM_VTTOFT(v) VTTOFT((v) & VFMT)
-#endif __MACH__
+#endif /* __MACH__ */
 
-#if __NetBSD__ || LINUX
+#if defined(__linux__) || defined(__NetBSD__)
 #define SIM_VTTOFT(v)  VTTOFT((v))
 #endif __NetBSD__
 

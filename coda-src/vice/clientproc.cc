@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/clientproc.cc,v 1.1 1996/11/22 19:14:29 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vice/clientproc.cc,v 1.2 1997/01/07 18:42:53 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -372,7 +372,7 @@ void PrintClients() {
     struct timeval tp;
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
-#ifdef LINUX
+#ifdef	__linux__
     LogMsg(1, SrvDebugLevel, stdout,  "List of active users at %s", ctime((const long int *)&tp.tv_sec));
 #else
     LogMsg(1, SrvDebugLevel, stdout,  "List of active users at %s", ctime(&tp.tv_sec));

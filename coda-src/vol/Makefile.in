@@ -1,97 +1,87 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 4.0
-#
-#          Copyright (c) 1987-1996 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/vol/RCS/GNUmakefile.in,v 1.3 1996/12/02 19:27:37 braam Exp braam $";
-#endif /*_BLURB_*/
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vol/Makefile.in,v 1.3 1997/01/06 21:28:24 rvb Exp";
 
 
-#/*
-#
-#                         IBM COPYRIGHT NOTICE
-#
-#                          Copyright (C) 1986
-#             International Business Machines Corporation
-#                         All Rights Reserved
-#
-#This  file  contains  some  code identical to or derived from the 1986
-#version of the Andrew File System ("AFS"), which is owned by  the  IBM
-#Corporation.    This  code is provded "AS IS" and IBM does not warrant
-#that it is free of infringement of  any  intellectual  rights  of  any
-#third  party.    IBM  disclaims  liability of any kind for any damages
-#whatsoever resulting directly or indirectly from use of this  software
-#or  of  any  derivative work.  Carnegie Mellon University has obtained
-#permission to distribute this code, which is based on Version 2 of AFS
-#and  does  not  contain the features and enhancements that are part of
-#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-#supported by Transarc Corporation, Pittsburgh, PA.
-#
-#*/
+# 
+#                          IBM COPYRIGHT NOTICE
+# 
+#                           Copyright (C) 1986
+#              International Business Machines Corporation
+#                          All Rights Reserved
+# 
+# This  file  contains  some  code identical to or derived from the 1986
+# version of the Andrew File System ("AFS"), which is owned by  the  IBM
+# Corporation.    This  code is provded "AS IS" and IBM does not warrant
+# that it is free of infringement of  any  intellectual  rights  of  any
+# third  party.    IBM  disclaims  liability of any kind for any damages
+# whatsoever resulting directly or indirectly from use of this  software
+# or  of  any  derivative work.  Carnegie Mellon University has obtained
+# permission to distribute this code, which is based on Version 2 of AFS
+# and  does  not  contain the features and enhancements that are part of
+# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+# supported by Transarc Corporation, Pittsburgh, PA.
+# 
 
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-HEADERS=nfs.h errors.h viceinode.h vldb.h\
-  partition.h fssync.h recov.h vutil.h volinodes.h\
-  srvsignal.h index.h vicelock.h rvmdir.h treeremove.h\
-  vlist.h cvnode.h coda_globals.h voldefs.h volume.h camprivate.h\
-  volres.h volhash.h vrdb.h vsg.h struct.h
-VICEDEPHDRS = $(INCLDIR)/vice.h
-CFILES=cvnode.cc volume.cc vutil.cc partition.cc vldb.cc hash.cc fssync.cc \
-  index.cc recova.cc recovb.cc recovc.cc volhash.cc dumpcamstorage.cc \
-  rvmdir.cc vrdb.cc vsg.cc vlist.cc
-LIBVOLOBJS=cvnode.o volume.o vutil.o partition.o vldb.o hash.o fssync.o \
-  index.o recova.o recovb.o recovc.o volhash.o dumpcamstorage.o \
-  rvmdir.o vrdb.o vsg.o vlist.o
 LIBRARIES = libvol.a
-# TESTS = testvrdb testvsg # these don't compile
+HEADERS	  = nfs.h errors.h viceinode.h vldb.h \
+	    partition.h fssync.h recov.h vutil.h volinodes.h \
+	    srvsignal.h index.h vicelock.h rvmdir.h treeremove.h \
+	    vlist.h cvnode.h coda_globals.h voldefs.h volume.h camprivate.h \
+	    volres.h volhash.h vrdb.h vsg.h struct.h
+# TESTS	  = testvrdb testvsg # these don't compile
 
+VICEDEPHDRS = $(INCLDIR)/vice.h
 
-${LIBVOLOBJS}: ${HEADERS} ${INCLSPECIAL}/lwp.h ${INCLSPECIAL}/lock.h srvsignal.h vldb.h
-
-vrdb.o: vrdb.cc vrdb.h
-
-vsg.o: vsg.cc vsg.h 
+LIBVOLOBJS= cvnode.o volume.o vutil.o partition.o vldb.o hash.o fssync.o \
+	index.o recova.o recovb.o recovc.o volhash.o dumpcamstorage.o \
+	rvmdir.o vrdb.o vsg.o vlist.o
 
 libvol.a: ${LIBVOLOBJS}
+
+testvsg: testvsg.o vsg.o $(LIBUTIL)
+	${CXX} ${LIBFLAGS} testvsg.o vsg.o $(LIBUTIL) -o testvsg
+
+testvrdb: testvrdb.o vrdb.o $(LIBUTIL)
+	${CXX} ${LIBFLAGS} testvrdb.o vrdb.o $(LIBUTIL) -o testvrdb
+
+${LIBVOLOBJS}: ${HEADERS} ${INCLSPECIAL}/lwp.h ${INCLSPECIAL}/lock.h srvsignal.h vldb.h
+testvrdb.o: testvrdb.cc 
 volhash.o: volhash.cc volhash.h ${INCLDIR}/inconsist.h
-
-testvsg: testvsg.o vsg.h vsg.cc
-	${CXX} ${CXXFLAGS} -o testvsg testvsg.o vsg.o $(LIBUTIL)
-
-testvrdb: testvrdb.o testvrdb.cc vrdb.cc vrdb.h vrdb.o 
-	${CXX} ${CXXFLAGS} -o testvrdb testvrdb.o vrdb.o $(LIBUTIL)
+vrdb.o: vrdb.cc vrdb.h
+vsg.o: vsg.cc vsg.h 
 
 include $(TOPDIR)/Makerules

@@ -1,44 +1,38 @@
-# Coda top level Makefile
+# 			Let's build coda!
+
+# TARGETS:
+#	install	recursively build and install objects
+#	all	recursively build objects
+#	clean	recursively descend the tree and clean .a's, .o's, binaries, ...
+#	rcs	populate the tree with rcs links
 
 # Josh Raiff
 # Moved up further Peter Braam
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
 
-SECSRC= @SECSRC@
-SHOB=   @SHOB@
-TOPOBJ= @TOPOBJ@
+SECSRC = @SECSRC@
+SHOB   = @SHOB@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-
-# This is pretty much a special case
 
   I =  kernel-src
  II =  lib-src
 III =  rvm-src
  IV =  coda-src
-  V =  utils-src
+# V =  utils-src
 
-
-THISDIR = $(shell pwd)
-
-coda: topcoda
-
-rcs: 
-ifdef RCSDIR
-	ln -s $(TOPDIR)/RCSLINK RCSLINK	
-	find . -type d -print | while  read thedir ; do  ln -s $(THISDIR)/RCSLINK/$$thedir $$thedir/RCS; done
-endif
-
-setup: 
-	echo TOPOBJ=`pwd` >> Makeconf.local
-
+SUBDIRS = $(I) $(II) $(III) $(IV) $(V)
 
 include $(TOPDIR)/Makerules
 
+THISDIR = $(shell pwd)
+rcs: 
+ifdef RCSDIR
 
-
+	ln -s $(TOPDIR)/RCSLINK RCSLINK	
+	find . -type d -print | while  read thedir ; do  ln -s $(THISDIR)/RCSLINK/$$thedir $$thedir/RCS; done
+endif

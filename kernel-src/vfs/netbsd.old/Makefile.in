@@ -1,6 +1,9 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
+# TARGETS:
+#	install: put headers in $(INCLDIR)/cfs
+#		THIS IS WRONG!
+#	all: no op
+
+#
 #
 #            Coda: an Experimental Distributed File System
 #                             Release 3.1
@@ -8,63 +11,67 @@
 #          Copyright (c) 1987-1996 Carnegie Mellon University
 #                         All Rights Reserved
 #
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/kernel-src/vfs/mach/RCS/GNUmakefile,v 1.1 1996/11/22 19:15:55 braam Exp braam $";
-#endif /*_BLURB_*/
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/kernel-src/vfs/netbsd/Makefile.in,v 1.4 1997/01/06 21:28:53 rvb Exp";
 
-
-
-#/* 
-# * Mach Operating System
-# * Copyright (c) 1990 Carnegie-Mellon University
-# * Copyright (c) 1989 Carnegie-Mellon University
-# * All rights reserved.  The CMU software License Agreement specifies
-# * the terms and conditions for use and redistribution.
-# */
-#
-#/*
-# * This code was written for the Coda file system at Carnegie Mellon University.
-# * Contributers include David Steere, James Kistler, and M. Satyanarayanan.
-# */
+#  Mach Operating System
+#  Copyright (c) 1990 Carnegie-Mellon University
+#  Copyright (c) 1989 Carnegie-Mellon University
+#  All rights reserved.  The CMU software License Agreement specifies
+#  the terms and conditions for use and redistribution.
+# 
+#  This code was written for the Coda file system at Carnegie Mellon University.
+#  Contributers include David Steere, James Kistler, and M. Satyanarayanan.
 
 #
 # TODO: Update header dependencies
 #
 
-# Which C compiler to use
-
-
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
 TOPOBJ= @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
+# presto changeo!
+INCLDIR := $(INCLDIR)/cfs
 
-CC = cc
-PLAINC = $(PLAINC?$(PLAINC):cc)
-RP2GEN= ${BINDIR}/rp2gen
+EXECUTABLES = cfsnstat
+LIBRARIES   = pioctl.o
+HEADERS     = cfs.h cfs_LINUX.h cfs_MACH.h cfs_NetBSD.h cfs_opstats.h \
+	      cfs_vnodeops.h cfsio.h cfsnc.h cnode.h mach_vioctl.h
+LIBRARIES   =
+EXECUTABLES =
+
+include $(TOPDIR)/Makerules
+
+##################################################################################
+#		CLEAN UP
+##################################################################################
+
+#CC = cc
+#PLAINC = $(PLAINC?$(PLAINC):cc)
+#RP2GEN= ${BINDIR}/rp2gen
 
 
 # Identify files of interest
@@ -74,13 +81,10 @@ RP2GEN= ${BINDIR}/rp2gen
 #		As an expedient during the port	to NetBSD, I am installing all the .h files
 #		Straighten this out soon....
 
-HFILES = cfs.h cfs_LINUX.h cfs_MACH.h cfs_NetBSD.h cfs_opstats.h cfs_vnodeops.h cfsio.h\
-		cfsnc.h cnode.h mach_vioctl.h
-CFILES = pioctl.c cfsncstat.c
 
 # cfsmount and cfsunmount are obsolete programs and have been 
 # eliminated (Satya, 8/9/96)
-all: pioctl.o cfsncstat
+#all: pioctl.o cfsncstat
 
 pioctl.o: pioctl.c
 	$(CC) $(CFLAGS) -c pioctl.c
@@ -88,27 +92,29 @@ pioctl.o: pioctl.c
 cfsncstat: cfsncstat.c
 	$(PLAINC) $(CFLAGS) -o cfsncstat cfsncstat.c
 
-clean:
-	-rm -rf *.o cfsncstat
+#clean:
+#	-rm -rf *.o cfsncstat
 
 #------------- Installation----------------
-libinstall: all
-	if [ ! -d $(LIBDIR) ]; then mkdir -p $(LIBDIR); fi
-	-cd $(LIBDIR); chmod 0644 pioctl.o 
-	${INSTALL} pioctl.o $(PIOCTL_O)
-	if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
-	-cd $(BINDIR); chmod 0755  cfsncstat
-	${INSTALL} cfsncstat ${BINDIR}
+
+#libinstall: all
+#	if [ ! -d $(LIBDIR) ]; then mkdir -p $(LIBDIR); fi
+#	-cd $(LIBDIR); chmod 0644 pioctl.o 
+#	${INSTALL} pioctl.o $(PIOCTL_O)
+#	if [ ! -d $(BINDIR) ]; then mkdir -p $(BINDIR); fi
+#	-cd $(BINDIR); chmod 0755  cfsncstat
+#	${INSTALL} cfsncstat ${BINDIR}
 
 
-hdrinstall: ${HFILES}
-	-mkdir -p  ${INCLDIR}/cfs
-	-chmod 0644 ${INCLDIR}/cfs/*
-	${INSTALL} $? ${INCLDIR}/cfs
+#hdrinstall: ${HFILES}
+#	-mkdir -p  ${INCLDIR}/cfs
+#	-chmod 0644 ${INCLDIR}/cfs/*
+#	${INSTALL} $? ${INCLDIR}/cfs
 
 
-srcinstall:
+#srcinstall:
 # Manually setenv SUPPRESS_ALPHACI if you want to suppress the RCS checkin by alphaci
-	SRCDIR=$(SRCDIR); export SRCDIR; $(ALPHACI)
+#	SRCDIR=$(SRCDIR); export SRCDIR; $(ALPHACI)
 
-install: libinstall hdrinstall srcinstall 
+#install: libinstall hdrinstall srcinstall 
+

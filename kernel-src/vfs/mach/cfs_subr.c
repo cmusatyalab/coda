@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: cfs_subr.c,v 1.1 96/11/22 13:39:12 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/kernel-src/vfs/mach/cfs_subr.c,v 1.2 1997/01/07 18:44:12 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -134,7 +134,7 @@ static char *rcsid = "$Header: cfs_subr.c,v 1.1 96/11/22 13:39:12 raiff Exp $";
 
 struct cnode *cfs_alloc C_ARGS((void));
 struct cnode *cfs_find C_ARGS((ViceFid *fid));
-#ifdef MACH
+#ifdef	__MACH__
 extern struct fs *igetfs C_ARGS((dev_t));
 #endif /* MACH */
 

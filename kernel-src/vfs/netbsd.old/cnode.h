@@ -77,7 +77,7 @@ typedef struct ViceFid {
 } ViceFid;
 #endif	not VICEFID_DEFINED
 #else	KERNEL
-#ifdef MACH
+#ifdef	__MACH__
 #include <vfs/vfs.h>
 #include <vfs/vnode.h>
 #endif

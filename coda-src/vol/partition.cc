@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/partition.cc,v 1.2 1996/12/07 18:28:43 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vol/partition.cc,v 1.2 1997/01/07 18:43:16 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -63,25 +63,25 @@ extern "C" {
 #include <sys/param.h>
 #ifdef __MACH__
 #include <sys/fs.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #include <sys/errno.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <sys/file.h>
 #include <sys/dir.h>
-#ifndef LINUX
+#ifndef	__linux__
 #include <fstab.h>
 #endif
 #ifdef __MACH__
 #include <libc.h>
 #include <sysent.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
 
-#ifdef LINUX
+#ifdef	__linux__
 #include <sys/vfs.h>
 #endif
 
@@ -145,7 +145,7 @@ struct DiskPartition *VGetPartition(char *name)
 
 PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
 {
-#ifdef LINUX
+#ifdef	__linux__
   struct statfs fsbuf;
   int rc;
 #endif
@@ -175,7 +175,7 @@ PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
     dp->free = availblks - used; /* May be negative, which is OK */
 #endif
 
-#ifdef LINUX
+#ifdef	__linux__
  rc = statfs(dp->devName, &fsbuf);
  assert( rc == 0 );
  
@@ -188,7 +188,7 @@ PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
     		used by Venus; needs to be ported for server; depends on sys/fs.h in Mach */
     LogMsg(0, VolDebugLevel, stdout,  "PORTING ERROR: VSetPartitionDiskUsage() not yet ported");
     assert(0); /* die horribly */
-#endif __MACH__
+#endif /* __MACH__ */
 
 }
 

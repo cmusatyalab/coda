@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/update/updateclnt.cc,v 1.2 1997/01/06 21:28:05 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
     Rebind = 1;
 
     gettimeofday(&tp, &tsp);
-    LogMsg(0, SrvDebugLevel, stdout, "Update Client pid = %d started at %s", getpid(), ctime(&tp.tv_sec));
+    LogMsg(0, SrvDebugLevel, stdout, "Update Client pid = %d started at %s", getpid(), ctime((long *)&tp.tv_sec));
 
     time.tv_sec = waitinterval;
     time.tv_usec = 0;
@@ -270,7 +270,7 @@ int main(int argc, char **argv)
 	    if ((tp.tv_sec < operatorSecs) || (tp.tv_sec > (operatorSecs + 2))) {
 		tp.tv_sec = operatorSecs + 1;
 		tp.tv_usec = operatorUsecs;
-		LogMsg(0, SrvDebugLevel, stdout, "Settime to %s", ctime(&tp.tv_sec));
+		LogMsg(0, SrvDebugLevel, stdout, "Settime to %s", ctime((long *)&tp.tv_sec));
 		settimeofday(&tp, &tsp);
 	    }
 	}
@@ -598,10 +598,10 @@ PRIVATE void SwapLog()
     }
     else {
 	gettimeofday(&tv, &tz);
-	LogMsg(0, SrvDebugLevel, stdout, "Moving UpdateLog to UpdateLog.old at %s", ctime(&tv.tv_sec));
+	LogMsg(0, SrvDebugLevel, stdout, "Moving UpdateLog to UpdateLog.old at %s", ctime((long *)&tv.tv_sec));
 	freopen("UpdateLog","a+",stdout);
 	freopen("UpdateLog","a+",stderr);
-	LogMsg(0, SrvDebugLevel, stdout, "New UpdateLog started at %s", ctime(&tv.tv_sec));
+	LogMsg(0, SrvDebugLevel, stdout, "New UpdateLog started at %s", ctime((long *)&tv.tv_sec));
     }
 }
 

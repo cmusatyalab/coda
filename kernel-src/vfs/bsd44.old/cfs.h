@@ -130,16 +130,16 @@ typedef struct ViceFid {
 #endif	/* not VICEFID_DEFINED */
 #endif  /* KERNEL */
 
-#ifdef LINUX
+#ifdef	__linux__
 #include <cfs/cfs_LINUX.h>	
 #ifdef __KERNEL__
 #define KERNEL
 #endif
-#endif LINUX
+#endif	/* __linux__ */
 
-#ifdef MACH
+#ifdef	__MACH__
 #include <cfs/cfs_MACH.h>
-#endif MACH
+#endif	/* __MACH__ */
 
 #ifdef __NetBSD__
 #include <cfs/cfs_NetBSD.h>

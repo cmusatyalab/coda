@@ -1,85 +1,70 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-# * This code was originally part of the CMU SCS library "libcs".
-# * A branch of that code was taken in May 1996, to produce this
-# * standalone version of the library for use in Coda and Odyssey
-# * distribution.  The copyright and terms of distribution are
-# * unchanged, as reproduced below.
-# *
-# * Copyright (c) 1990-96 Carnegie Mellon University
-# * All Rights Reserved.
-# * 
-# * Permission to use, copy, modify and distribute this software and its
-# * documentation is hereby granted, provided that both the copyright
-# * notice and this permission notice appear in all copies of the
-# * software, derivative works or modified versions, and any portions
-# * thereof, and that both notices appear in supporting documentation.
-# *
-# * THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
-# * DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
-# * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
-# * SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
-# * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
-# * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
-# * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
-# * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-# *
-# * Users of this software agree to return to Carnegie Mellon any
-# * improvements or extensions that they make and grant Carnegie the
-# * rights to redistribute these changes.
-# *
-# * Export of this software is permitted only after complying with the
-# * regulations of the U.S. Deptartment of Commerce relating to the
-# * Export of Technical Data.
-# */
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/lib-src/libcs/RCS/GNUmakefile.in,v 1.1 1996/11/22 19:19:52 braam Exp braam $";
-#endif /*_BLURB_*/
+# TARGETS:
+#	install:
+#		ci.h del.h libcs.h -> $(INCLSPECIAL)
+#		libcs.a -> $(LIBSPECIAL)
+#	 all:
+#		libcs.a
 
-# This Makefile works for three situations:
-#	(a) standalone compilations
-#	(b) installation into /coda/project/coda/{lib,include}-special
-#	(c) installation with standalone distributions of RPC2 and friends.
+# This code was originally part of the CMU SCS library "libcs".
+# A branch of that code was taken in May 1996, to produce this
+# standalone version of the library for use in Coda and Odyssey
+# distribution.  The copyright and terms of distribution are
+# unchanged, as reproduced below.
 #
-# In case (c), the Makeconf file needs to be renamed
-# so that variables like CFLAGS, LIBDIR and INCLDIR are inherited
-# from the Makeconf in the parent directory.  The MAKEDIST script included
-# with the distribution does this.
+# Copyright (c) 1990-96 Carnegie Mellon University
+# All Rights Reserved.
+# 
+# Permission to use, copy, modify and distribute this software and its
+# documentation is hereby granted, provided that both the copyright
+# notice and this permission notice appear in all copies of the
+# software, derivative works or modified versions, and any portions
+# thereof, and that both notices appear in supporting documentation.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND CARNEGIE MELLON UNIVERSITY
+# DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.  IN NO EVENT
+# SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY SPECIAL, DIRECT,
+# INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+# RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+# CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+# CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# Users of this software agree to return to Carnegie Mellon any
+# improvements or extensions that they make and grant Carnegie the
+# rights to redistribute these changes.
+#
+# Export of this software is permitted only after complying with the
+# regulations of the U.S. Deptartment of Commerce relating to the
+# Export of Technical Data.
 
+#
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/libcs/Makefile.in,v 1.3 1997/01/06 21:28:57 rvb Exp";
 
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
-# Need to conditionalize this
 include $(TOPDIR)/Makeconf
 
+# presto changeo!
+LIBDIR := $(LIBSPECIAL)
+INCLDIR := $(INCLSPECIAL)
 
-OBJS=	atoh.o atoo.o boolarg.o chrarg.o ci.o del.o doublearg.o \
+LIBRARIES = libcs.a
+HEADERS   = ci.h del.h libcs.h
+
+OBJS =	atoh.o atoo.o boolarg.o chrarg.o ci.o del.o doublearg.o \
 	expand.o floatarg.o fold.o getbool.o getchr.o getdouble.o \
 	getfloat.o gethex.o getint.o getlong.o getoct.o getsearch.o \
 	getshort.o getstab.o getstr.o hexarg.o intarg.o longarg.o \
 	nxtarg.o octarg.o openp.o path.o prstab.o run.o searcharg.o \
 	searchp.o shortarg.o sindex.o skipto.o srchscore.o stabarg.o \
 	stablk.o stabsearch.o stlmatch.o strarg.o
-HEADERS= ci.h del.h libcs.h
-LIBRARIES = libcs.a
-
-LIBDIR := $(LIBSPECIAL)
-INCLDIR := $(INCLSPECIAL)
 
 libcs.a: $(OBJS)
-
-all: libcs.a
 
 # Manually setenv SUPPRESS_ALPHACI if you want to suppress the RCS checkin by alphaci
 #	SRCDIR=$(SRCDIR); export SRCDIR; $(ALPHACI)
 
-
-LIBDIR := $(LIBSPECIAL)
-INCLDIR:= $(INCLSPECIAL)
-
 include $(TOPDIR)/Makerules
-

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/vol_reintegrate.cc,v 1.2 1997/01/07 18:42:28 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -654,7 +654,7 @@ void Reintegrate(volent *v) {
     r->u.Init();
 #ifdef __MACH__
     r->u.u_cred.cr_ruid = v->CML.Owner();
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
     r->u.u_cred.cr_uid = v->CML.Owner();
 #endif __NetBSD__

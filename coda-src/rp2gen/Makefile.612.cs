@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rp2gen/Makefile.612.cs,v 1.1.1.1 1996/11/22 19:08:40 rvb Exp";
 #endif /*_BLURB_*/
 
 

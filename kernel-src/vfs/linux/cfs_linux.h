@@ -29,7 +29,7 @@
 
 /* directory entries; should go somewhere else XXX */
 #ifdef KERNEL
-#ifdef LINUX
+#ifdef	__linux__
 #define u_int32_t   unsigned int
 #define u_int16_t   unsigned short
 #define u_int8_t    char
@@ -170,7 +170,7 @@ typedef struct inode *C_VNODE_T;
 
 /* ioctl stuff */
 /* this needs to be sorted out XXXX */ 
-#ifdef LINUX
+#ifdef	__linux__
 #define IOCPARM_MASK 0x0000ffff
 #endif 
 

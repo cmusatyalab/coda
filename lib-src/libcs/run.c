@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: run.c,v 1.1 96/06/03 19:01:04 satya Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/libcs/run.c,v 1.2 1997/01/07 18:44:28 rvb Exp";
 #endif /*_BLURB_*/
 
 /*  run[c], run[c]v, run[c]p, run[c]vp -- exec process and wait for it to exit
@@ -106,7 +106,7 @@ int usepath;
 {
 	int wpid;
 	register int pid;
-#ifdef LINUX
+#ifdef	__linux__
 	struct sigaction ignoresig,intsig,quitsig;
 #else
 	struct sigif ignoresig,intsig,quitsig;
@@ -133,7 +133,7 @@ int usepath;
 		fprintf (stderr,"run: can't exec %s\n",name);
 		_exit (0377);
 	}
-#ifdef LINUX
+#ifdef	__linux__
 	ignoresig.sa_handler = SIG_IGN;	/* ignore INT and QUIT signals */
 #else
 	ignoresig.sif_handler = SIG_IGN;	/* ignore INT and QUIT signals */

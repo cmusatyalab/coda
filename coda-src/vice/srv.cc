@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vice/RCS/srv.cc,v 1.2 1996/12/03 01:30:54 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vice/srv.cc,v 1.4 1997/01/07 18:42:57 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -79,6 +79,7 @@ extern "C" {
 #include <netinet/in.h>
 #include <netdb.h>
 #ifdef __MACH__
+#include <libc.h>
 #include <mach.h> 
 #endif
 #include <sysent.h>
@@ -272,7 +273,7 @@ PRIVATE void InitServerKeys(char *, char *);
 #include <rvmtesting.h>
 #endif RVMTESTING
 
-#ifdef LINUX
+#ifdef	__linux__
 struct sigaction OldContext; /* zombie() saves original context here */
 #else
 struct sigcontext OldContext; /* zombie() saves original context here */
@@ -284,7 +285,7 @@ extern void dumpvm();
        Backtraces will then make sense.
        Otherwise the gap in the RT stack causes the backtrace to end prematurely.
     */
-#ifdef LINUX
+#ifdef	__linux__
 void zombie(int sig, int code, struct sigaction *scp) {
     bcopy(scp, &OldContext, sizeof(struct sigaction));
 #else
@@ -326,7 +327,7 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	    dumpvm(); /* sanity check rvm recovery. */
     }
     
-#ifdef MACH
+#ifdef	__MACH__
     LogMsg(0, 0, stdout, "To debug via gdb: attach %d, setcontext OldContext", getpid());
     LogMsg(0, 0, stdout, "Becoming a zombie now ........");
     task_suspend(task_self());
@@ -615,7 +616,7 @@ main(int argc, char *argv[])
     struct timeval tp;
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
-#ifdef LINUX
+#ifdef	__linux__
     LogMsg(0, 0, stdout,"File Server started %s", ctime((const long int *)&tp.tv_sec));
 #else
     LogMsg(0, 0, stdout,"File Server started %s", ctime(&tp.tv_sec));
@@ -890,7 +891,7 @@ PRIVATE void CheckLWP()
 		ProgramType *pt, tmp_pt;
 
 		TM_GetTimeOfDay(&tpl, &tspl);
-#ifdef LINUX
+#ifdef	__linux__
 		LogMsg(0, 0, stdout, "Shutting down the File Server %s", ctime((const long int *)&tpl.tv_sec));
 #else
 		LogMsg(0, 0, stdout, "Shutting down the File Server %s", ctime(&tpl.tv_sec));
@@ -1299,7 +1300,7 @@ void SwapLog()
     
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
-#ifdef LINUX
+#ifdef	__linux__
     LogMsg(0, 0, stdout, "New SrvLog started at %s", ctime((const long int *)&tp.tv_sec));
 #else
     LogMsg(0, 0, stdout, "New SrvLog started at %s", ctime(&tp.tv_sec));
@@ -1347,7 +1348,11 @@ PRIVATE pushlog()
     struct direct **namelist;
 
 
+#ifdef	__MACH__
+   count = scandir(".", &namelist,  xselect, compar);
+#else
    count = scandir(".", (struct direct ***)&namelist, (int (*)(const dirent *)) xselect, (int (*)(const dirent *const *, const dirent *const *))compar);
+#endif
     
     /* Sanity check all names for safety */
     for (i = 0; i < count; i++)

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/vproc_vfscalls.cc,v 1.2 1997/01/07 18:42:49 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -99,7 +99,7 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 #include <unistd.h>
 #include <stdlib.h>
@@ -128,7 +128,7 @@ extern "C" {
 #define IO_UNIT		0x01		/* do io as atomic unit for VOP_RDWR */
 #define IO_APPEND	0x02		/* append write for VOP_RDWR */
 #define IO_SYNC		0x04		/* sync io for VOP_RDWR */
-#ifndef LINUX
+#ifndef	__linux__
 #define IO_NDELAY	0x08		/* non-blocking i/o for fifos */
 #endif 
 
@@ -483,7 +483,7 @@ FreeLocks:
 
 #ifdef __MACH__
 	vap->va_blocks = NBLOCKS(vap->va_size) << 1;    /* 512 byte units! */
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 	vap->va_bytes = vap->va_size;
 #endif __NetBSD__

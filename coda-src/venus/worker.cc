@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/worker.cc,v 1.1 1996/11/22 19:11:35 braam Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/worker.cc,v 1.3 1997/01/08 00:10:12 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -58,7 +58,7 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 #include <unistd.h>
 #include <stdlib.h>
@@ -217,8 +217,9 @@ void testKernDevice() {
 
 void VFSMount() {
     if (Simulating) return;
+
     /* Linux Coda filesystems are mounted by hand through forking since they need venus. XXX eliminate zombie */ 
-#ifdef LINUX
+#ifdef __linux__
 
 #else
     /* Silently unmount the root node in case an earlier venus exited without successfully unmounting. */
@@ -254,7 +255,7 @@ void VFSMount() {
 	       kernDevice, venusRoot, errno);
 	exit(-1);
     }
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
     if (mount(MOUNT_CFS, venusRoot, 0, kernDevice) < 0) {
 	eprint("mount(%s, %s) failed (%d), exiting",
@@ -300,7 +301,7 @@ void VFSUnmount() {
 
     /* Purge the kernel cache so that all cnodes are (hopefully) released. */
     k_Purge();
-#ifndef LINUX
+#ifndef	__linux__
     /* Issue the VFS unmount request. */
     if(syscall(SYS_unmount, venusRoot) < 0) {
 	eprint("vfsunmount(%s) failed (%d)", venusRoot, errno);
@@ -1051,7 +1052,7 @@ void worker::main(void *parm) {
 		 * the vproc, and clearing it when we are done. 
 		 */
 #endif undef
-#endif __MACH__
+#endif /* __MACH__ */
 		
 	    case CFS_OPEN:
 		{
@@ -1071,7 +1072,7 @@ void worker::main(void *parm) {
 		if (in->opcode == ODY_PREFETCH)
 		    (VprocSelf())->prefetch = 1;
 #endif undef
-#endif __MACH__
+#endif /* __MACH__ */
 		
 		struct vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_open.VFid, 0);
@@ -1083,7 +1084,7 @@ void worker::main(void *parm) {
 		if (in->opcode == ODY_PREFETCH)
 		    (VprocSelf())->prefetch = 0;
 #endif undef
-#endif __MACH__
+#endif /* __MACH__ */
 		
 		if (u.u_error == 0) {
 		    MarinerReport(&cp->c_fid, CRTORUID(u.u_cred));

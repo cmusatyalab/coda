@@ -11,6 +11,14 @@
 ac_help=
 ac_default_prefix=/usr/local
 # Any additions from configure.in:
+ac_help="$ac_help
+Second shadow directory"
+ac_help="$ac_help
+RCS directory"
+ac_help="$ac_help
+Shared library dirs"
+ac_help="$ac_help
+Platform (i386_linux2 i386_nbsd1 i386_mach pmax_mach)"
 
 # Initialize some variables set by options.
 # The variables have the same names as the options, with
@@ -556,7 +564,7 @@ else
   yes;
 #endif
 EOF
-if { ac_try='${CXX-g++} -E conftest.C'; { (eval echo configure:560: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
+if { ac_try='${CXX-g++} -E conftest.C'; { (eval echo configure:568: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
   ac_cv_prog_gxx=yes
 else
   ac_cv_prog_gxx=no
@@ -711,7 +719,7 @@ else
   yes;
 #endif
 EOF
-if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:715: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
+if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:723: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
   ac_cv_prog_gcc=yes
 else
   ac_cv_prog_gcc=no
@@ -763,13 +771,13 @@ else
   # On the NeXT, cc -E runs the code through the compiler's parser,
   # not just through cpp.
   cat > conftest.$ac_ext <<EOF
-#line 767 "configure"
+#line 775 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:773: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:781: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out`
 if test -z "$ac_err"; then
   :
@@ -778,13 +786,13 @@ else
   rm -rf conftest*
   CPP="${CC-cc} -E -traditional-cpp"
   cat > conftest.$ac_ext <<EOF
-#line 782 "configure"
+#line 790 "configure"
 #include "confdefs.h"
 #include <assert.h>
 Syntax Error
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:788: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:796: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out`
 if test -z "$ac_err"; then
   :
@@ -846,7 +854,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-l$ac_lib  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 850 "configure"
+#line 858 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -858,7 +866,7 @@ int t() {
 yywrap()
 ; return 0; }
 EOF
-if { (eval echo configure:862: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
+if { (eval echo configure:870: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; }; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -987,6 +995,43 @@ test -n "$YACC" || YACC="yacc"
 
 
 
+
+
+TOPOBJ=`pwd`
+
+
+# Check whether --enable-srcdir or --disable-srcdir was given.
+if test "${enable_srcdir+set}" = set; then
+  enableval="$enable_srcdir"
+  SECSRC=$enable_srcdir
+fi
+
+
+
+# Check whether --enable-rcsdir or --disable-rcsdir was given.
+if test "${enable_rcsdir+set}" = set; then
+  enableval="$enable_rcsdir"
+  RCSDIR=$enable_rcsdir
+fi
+
+
+
+# Check whether --enable-shareobjs or --disable-shareobjs was given.
+if test "${enable_shareobjs+set}" = set; then
+  enableval="$enable_shareobjs"
+  SHOB=$enable_shareobjs
+fi
+
+
+
+# Check whether --enable-platform or --disable-platform was given.
+if test "${enable_platform+set}" = set; then
+  enableval="$enable_platform"
+  PLATFORM=$enable_platform
+fi
+
+
+
 trap '' 1 2 15
 cat > confcache <<\EOF
 # This file is a shell script that caches the results of configure
@@ -1085,7 +1130,7 @@ done
 
 ac_given_srcdir=$srcdir
 
-trap 'rm -fr `echo "GNUmakefile lib-src/GNUmakefile lib-src/mlwp/GNUmakefile.coda lib-src/mlwp/GNUmakefile.real lib-src/libcs/GNUmakefile lib-src/special-includes/GNUmakefile rvm-src/GNUmakefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/GNUmakefile coda-src/scripts/GNUmakefile coda-src/sys/GNUmakefile coda-src/dir/GNUmakefile  coda-src/rpc2/GNUmakefile coda-src/util/GNUmakefile coda-src/libal/GNUmakefile coda-src/rp2gen/GNUmakefile coda-src/pdbstuff/GNUmakefile coda-src/blurb/GNUmakefile coda-src/camstuff/GNUmakefile coda-src/fail/GNUmakefile coda-src/vicedep/GNUmakefile  coda-src/auth2/GNUmakefile coda-src/vv/GNUmakefile coda-src/login/GNUmakefile coda-src/vol/GNUmakefile coda-src/resolve/GNUmakefile coda-src/venus/GNUmakefile coda-src/advice/GNUmakefile coda-src/repair/GNUmakefile coda-src/res/GNUmakefile coda-src/rvmres/GNUmakefile coda-src/volutil/GNUmakefile coda-src/vtools/GNUmakefile coda-src/vice/GNUmakefile coda-src/update/GNUmakefile coda-src/norton/GNUmakefile coda-src/asr/GNUmakefile coda-src/egasr/GNUmakefile kernel-src/GNUmakefile kernel-src/ifs/GNUmakefile kernel-src/ifs/mach/GNUmakefile kernel-src/ifs/netbsd/GNUmakefile kernel-src/vfs/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/GNUmakefile kernel-src/vfs/netbsd/GNUmakefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile Makeconf.setup  lib-src/Makefile lib-src/mlwp/Makefile lib-src/libcs/Makefile lib-src/special-includes/Makefile rvm-src/Makefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/Makefile coda-src/scripts/Makefile coda-src/sys/Makefile coda-src/dir/Makefile  coda-src/rpc2/Makefile coda-src/util/Makefile coda-src/libal/Makefile coda-src/rp2gen/Makefile coda-src/pdbstuff/Makefile coda-src/blurb/Makefile coda-src/camstuff/Makefile coda-src/fail/Makefile coda-src/vicedep/Makefile  coda-src/auth2/Makefile coda-src/vv/Makefile coda-src/login/Makefile coda-src/vol/Makefile coda-src/resolve/Makefile coda-src/venus/Makefile coda-src/advice/Makefile coda-src/repair/Makefile coda-src/res/Makefile coda-src/rvmres/Makefile coda-src/volutil/Makefile coda-src/vtools/Makefile coda-src/vice/Makefile coda-src/update/Makefile coda-src/norton/Makefile coda-src/asr/Makefile coda-src/egasr/Makefile kernel-src/Makefile kernel-src/ifs/Makefile kernel-src/ifs/mach/Makefile kernel-src/ifs/netbsd/Makefile kernel-src/vfs/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/Makefile kernel-src/vfs/netbsd/Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -1125,12 +1170,17 @@ s%@LN_S@%$LN_S%g
 s%@SET_MAKE@%$SET_MAKE%g
 s%@RANLIB@%$RANLIB%g
 s%@YACC@%$YACC%g
+s%@TOPOBJ@%$TOPOBJ%g
+s%@SECSRC@%$SECSRC%g
+s%@RCSDIR@%$RCSDIR%g
+s%@SHOB@%$SHOB%g
+s%@PLATFORM@%$PLATFORM%g
 
 CEOF
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"GNUmakefile lib-src/GNUmakefile lib-src/mlwp/GNUmakefile.coda lib-src/mlwp/GNUmakefile.real lib-src/libcs/GNUmakefile lib-src/special-includes/GNUmakefile rvm-src/GNUmakefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/GNUmakefile coda-src/scripts/GNUmakefile coda-src/sys/GNUmakefile coda-src/dir/GNUmakefile  coda-src/rpc2/GNUmakefile coda-src/util/GNUmakefile coda-src/libal/GNUmakefile coda-src/rp2gen/GNUmakefile coda-src/pdbstuff/GNUmakefile coda-src/blurb/GNUmakefile coda-src/camstuff/GNUmakefile coda-src/fail/GNUmakefile coda-src/vicedep/GNUmakefile  coda-src/auth2/GNUmakefile coda-src/vv/GNUmakefile coda-src/login/GNUmakefile coda-src/vol/GNUmakefile coda-src/resolve/GNUmakefile coda-src/venus/GNUmakefile coda-src/advice/GNUmakefile coda-src/repair/GNUmakefile coda-src/res/GNUmakefile coda-src/rvmres/GNUmakefile coda-src/volutil/GNUmakefile coda-src/vtools/GNUmakefile coda-src/vice/GNUmakefile coda-src/update/GNUmakefile coda-src/norton/GNUmakefile coda-src/asr/GNUmakefile coda-src/egasr/GNUmakefile kernel-src/GNUmakefile kernel-src/ifs/GNUmakefile kernel-src/ifs/mach/GNUmakefile kernel-src/ifs/netbsd/GNUmakefile kernel-src/vfs/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/GNUmakefile kernel-src/vfs/netbsd/GNUmakefile"}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile Makeconf.setup  lib-src/Makefile lib-src/mlwp/Makefile lib-src/libcs/Makefile lib-src/special-includes/Makefile rvm-src/Makefile rvm-src/rvm/Makefile rvm-src/seg/Makefile rvm-src/rds/Makefile rvm-src/tests/Makefile coda-src/Makefile coda-src/scripts/Makefile coda-src/sys/Makefile coda-src/dir/Makefile  coda-src/rpc2/Makefile coda-src/util/Makefile coda-src/libal/Makefile coda-src/rp2gen/Makefile coda-src/pdbstuff/Makefile coda-src/blurb/Makefile coda-src/camstuff/Makefile coda-src/fail/Makefile coda-src/vicedep/Makefile  coda-src/auth2/Makefile coda-src/vv/Makefile coda-src/login/Makefile coda-src/vol/Makefile coda-src/resolve/Makefile coda-src/venus/Makefile coda-src/advice/Makefile coda-src/repair/Makefile coda-src/res/Makefile coda-src/rvmres/Makefile coda-src/volutil/Makefile coda-src/vtools/Makefile coda-src/vice/Makefile coda-src/update/Makefile coda-src/norton/Makefile coda-src/asr/Makefile coda-src/egasr/Makefile kernel-src/Makefile kernel-src/ifs/Makefile kernel-src/ifs/mach/Makefile kernel-src/ifs/netbsd/Makefile kernel-src/vfs/Makefile kernel-src/vfs/linux/Makefile kernel-src/vfs/mach/Makefile kernel-src/vfs/netbsd/Makefile"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then

@@ -1,25 +1,20 @@
-# Coda top level Makefile
+# DESCEND:
+#	Build vfs (install headers)
+#	Build ifs except for linux
 
 # Josh Raiff
 # Moved up further Peter Braam
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-# ******* Define precedence of modules ******
+  I =  vfs
+ II =  $(machine_ifs)
 
-  I =  rvm
- II =  seg
-III =  rds
- IV =  tests
-
-SUBDIRS = $(I) $(II) $(III) $(IV)
+SUBDIRS = $(I) $(II)
 
 include $(TOPDIR)/Makerules
-
-
-

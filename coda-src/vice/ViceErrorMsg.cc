@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/ViceErrorMsg.cc,v 1.1 1996/11/22 19:14:49 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vice/ViceErrorMsg.cc,v 1.2 1997/01/06 21:28:17 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -128,7 +128,7 @@ char *ViceErrorMsg(int errorCode)
 	case EPIPE:		return("Broken pipe");
 	case EDOM:		return("Math argument");
 	case ERANGE:		return("Result too large");
-#ifndef LINUX
+#ifdef __MACH__
     case EWOULDBLOCK:	return("Operation would block");
 #endif
 	case EINPROGRESS:	return("Operation now in progress");
@@ -142,7 +142,7 @@ char *ViceErrorMsg(int errorCode)
 	case EADDRINUSE:	return("Address already in use");
 	case EADDRNOTAVAIL:	return("Cannot assign requested address");
 	case ENETDOWN:		return("Network is down");
-#ifndef LINUX
+#ifdef __MACH__
 	case ENETUNREACH:	return("Network is unreachable");
 	case ENETRESET:		return("Network dropped connection on reset");
 	case ECONNABORTED:	return("Software caused connection abort");

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/util/RCS/rvmlib.h,v 1.1 1996/11/22 19:08:24 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/util/rvmlib.h,v 1.3 1997/01/07 20:48:07 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -48,11 +48,18 @@ extern "C" {
 
 #include <string.h>
 #include <rvm.h>
-#ifdef __MACH__
-#include <libc.h>
-#endif __MACH__
+#include <unistd.h>
+#include <stdlib.h>
 
+#ifdef	__MACH__
+  /* yuck yuck yuck */
+#define CMU
 #include <setjmp.h>
+#undef CMU
+  /* yuck yuck yuck */
+#else
+#include <setjmp.h>
+#endif	/* __MACH__ */
 
 #include <rds.h>
 
@@ -75,7 +82,7 @@ typedef struct {
     rvm_tid_t *tid;
     jmp_buf abort;
     intentionList_t list;
-#ifdef LINUX
+#ifdef	__linux__
   void (*die)(char *arg, ...);
 #else
   void (*die)(char * ...);
@@ -91,7 +98,7 @@ extern long rvm_no_yield;		/*  exported by rvm */
 /*  ***** Functions  ***** */
 
 extern void rvmlib_internal_abort(char *);
-#ifdef LINUX
+#ifdef	__linux__
 extern void *rvmlib_internal_malloc(int, int abortonerr);
 extern void rvmlib_internal_free(void *, int abortonerr);
 #else

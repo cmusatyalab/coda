@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/asr/resolver.lex,v 1.3 1997/01/07 18:40:19 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -43,23 +43,34 @@ extern "C" {
 #include "y.tab.h"
 #include "asr.h"
 #include <stdio.h>
+#ifdef	__linux__
+#include <stdlib.h>
+#else
 #include <libc.h>
+#endif
 extern int yylook();
 
 #define YYERRCODE	256		/* gross hack to simulate error */
 int yywrap() {
 	return(1);
 }
+#ifdef	__linux__
+int yyback(int *p, int m);
+int yyoutput(int);
+static void yyunput(int, char *);
+
+#else
 int yyback(int *p, int m);
 int yyoutput(int);
 int yyunput(int);
-
+#endif
 #ifdef __cplusplus
 }
 #endif __cplusplus
 int context = FILE_NAME_CTXT;
 
 %}
+%option yylineno
 integer		[0-9]+
 wspace	[ \t]
 filenamechar	[a-zA-Z0-9\/\*\?\.\-\#]

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/norton/norton-setup.cc,v 1.3 1997/01/07 18:40:54 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -44,8 +44,14 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/dir.h>
+#ifdef __MACH__
 #include <sys/fs.h>
 #include <fstab.h>
+#endif
+#ifdef	__linux__
+#include <linux/fs.h>
+#include <mntent.h>
+#endif
 
 #include <lwp.h>
 #include <rvm.h>
@@ -55,7 +61,7 @@ extern "C" {
 }
 #endif __cplusplus
 
-#include <dir.h>
+#include <coda_dir.h>
 #include <nfs.h>
 #include <partition.h>
 #include <rvmdir.h>
@@ -175,6 +181,7 @@ void NortonInitVolPackage() {
     InitLogStorage();
     
     /* Find all partitions named /vicep* */
+#ifdef	__MACH__ 
     setfsent();
     while (fsent = getfsent()) {
 	char *part = fsent->fs_file;
@@ -196,6 +203,7 @@ void NortonInitVolPackage() {
 	VInitPartition(part, fsent->fs_spec, status.st_dev);
     }
     endfsent();
+#endif
 }
 
 
@@ -234,3 +242,4 @@ void NortonInit(char *log_dev, char *data_dev, int data_len) {
     
     NortonInitVolPackage();
 }
+

@@ -7,7 +7,7 @@ shift
 FILES=$@
 
 
-if [ ! -d $DIR ] ;  then mkdir $DIR; fi
+if [ ! -d $DIR ] ;  then mkdir -p $DIR; fi
 
 for f in $FILES ; do
   TARGET=$DIR/`basename $f`

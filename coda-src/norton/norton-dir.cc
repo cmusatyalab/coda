@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/norton/norton-dir.cc,v 1.3 1997/01/07 18:40:51 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -42,14 +42,16 @@ extern "C" {
 #include <stdio.h>
 #include <strings.h>
 #include <errno.h>
+#ifdef	__MACH__
 #include <mach/boolean.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>    
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <dir.h>
+#include <coda_dir.h>
 #include <cvnode.h>
 #include <volume.h>
 #include <volutil.private.h>
@@ -143,7 +145,7 @@ void show_dir(int volid, int vnum, int unique) {
 		 volid, vnum, unique);
     }
 
-    EnumerateDir((long *)&dir, (int (*)(...))printentry, (long)&dir);
+    EnumerateDir((long *)&dir, (int (*)(void *...))printentry, (long)&dir);
 }
 
 

@@ -118,13 +118,13 @@
 #endif /* __NetBSD__ */
 
 /* ... and for LINUX catch __KERNEL__ */
-#ifdef LINUX
+#ifdef	__linux__
 
 #ifdef __KERNEL__
 #define KERNEL
 #endif __KERNEL__
 
-#endif LINUX
+#endif	/* __linux__ */
 
 
 #ifndef	C_ARGS
@@ -150,21 +150,21 @@ typedef struct ViceFid {
 #endif	/* not VICEFID_DEFINED */
 #endif  /* KERNEL */
 
-#ifdef MACH
+#ifdef	__MACH__
 #include <cfs/cfs_MACH.h>
-#endif MACH
+#endif	/* __MACH__ */
 
 #ifdef __NetBSD__
 #include <cfs/cfs_NetBSD.h>
 #endif /* __NetBSD__ */
 
-#ifdef LINUX
+#ifdef	__linux__
 #ifdef KERNEL
 #include "cfs_linux.h"
 #else
 #include <cfs/cfs_linux.h>
 #endif KERNEL
-#endif LINUX
+#endif	/* __linux__ */
 
 
 /*
@@ -175,7 +175,7 @@ extern int cfsdebug;
 #define CFSDBGMSK(N)            (1 << N)
 #define CFSDEBUG(N, STMT)       { if (cfsdebug & CFSDBGMSK(N)) { STMT } }
 
-#ifndef LINUX
+#ifndef	__linux__
 #ifdef KERNEL
 
 /*
@@ -197,7 +197,7 @@ int cfs_fhtovp    __P((VFS_T *, struct fid *, struct mbuf *, struct vnode **,
 int cfs_vptofh    __P((struct vnode *, struct fid *));
 int cfs_init      __P((void));
 #endif KERNEL
-#endif LINUX
+#endif	/* __linux__ */
 
 /*
  * Cfs constants
@@ -259,7 +259,7 @@ int cfs_init      __P((void));
  */
 
 
-#ifdef LINUX
+#ifdef	__linux__
 #define INIT_IN(in, op) \
 	  (in)->opcode = (op); \
 	  (in)->pid = Process_pid; \
@@ -622,7 +622,7 @@ struct vmsg {
 
 
 /* these definitions conflict with Linux mm.h XXXX */
-#ifndef LINUX
+#ifndef	__linux__
 #define	VM_READ	    1
 #define	VM_WRITE    2
 #define	VM_INTR	    4
@@ -650,7 +650,7 @@ struct vcomm {
  */
 
 struct ody_mntinfo {
-#ifdef LINUX
+#ifdef	__linux__
   struct inode 	   *rootvp;
 #else
   struct vnode 	   *rootvp;
@@ -708,14 +708,14 @@ extern struct cfs_mntinfo cfs_mnttbl[]; /* indexed by minor device number */
  * vfs pointer to mount info
  * sorry under linux this needs to be done in cfs_LINUX.h
  */
-#ifndef LINUX
+#ifndef	__linux__
 #define vftomi(vfsp)    ((struct cfs_mntinfo *)((vfsp)->VFS_DATA))
 #endif 
 /*
  * vnode pointer to mount info
  * In Linux, this is actually easier, but we do it in cfs_LINUX.h
  */
-#ifndef LINUX
+#ifndef	__linux__
 #define vtomi(vp)       ((struct cfs_mntinfo *)((VN_VFS(vp))->VFS_DATA))
 #endif
 
@@ -761,7 +761,7 @@ extern int cfs_grab_vnode C_ARGS((dev_t, ino_t, struct vnode **));
 /* 
  *  Prototypes of functions exported within cfs 
  */
-#ifndef LINUX
+#ifndef	__linux__
 extern int  cfs_vmflush __P(());
 extern void print_cfsnc __P(());
 extern void cfsnc_init __P(());
@@ -793,7 +793,7 @@ extern void cfsnc_zapfile __P((struct cnode *, char *));
 
 #endif !_CFS_HEADER_
 
-#ifdef LINUX
+#ifdef	__linux__
 
 
-#endif LINUX
+#endif	/* __linux__ */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/norton/commands.cc,v 1.4 1997/01/07 18:40:51 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -41,7 +41,9 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#ifdef	__MACH__
 #include <mach.h>
+#endif
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -131,7 +133,7 @@ void notyet(int argc, char *argv[]) {
 }
 
 
-
+#ifdef	__MACH__
 static
 long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 {
@@ -157,7 +159,34 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
     }
     return(1);
 }
+#endif
 
+#ifdef	__linux__
+#include <sys/mman.h>
+#define vm_address_t caddr_t
+#define vm_size_t    size_t
+#define vm_prot_t    int
+#define VM_PROT_READ PROT_READ
+static
+long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
+{
+  return mprotect(addr, sz, perm);
+}
+#endif
+
+#ifdef __NetBSD__
+#include <sys/mman.h>
+#define vm_address_t caddr_t
+#define vm_size_t    size_t
+#define vm_prot_t    int
+#define VM_PROT_READ PROT_READ
+static
+long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
+{
+  fprintf(stderr, "Someone needs to write code for address_ok.\n");
+  return 1;
+}
+#endif
 
 #define BYTES_PER_LINE	16
 void examine(int argc, char *argv[]) {
@@ -216,3 +245,5 @@ void set_debug(int argc, char *argv[]) {
 void show_debug(int argc, char *argv[]) {
     printf("Debug level: %d\n", norton_debug);
 }
+
+

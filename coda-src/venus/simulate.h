@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/simulate.h,v 1.2 1997/01/07 18:42:15 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ extern "C" {
 
 #include <stdio.h>
 
-#ifndef LINUX
+#ifndef	__linux__
 #include <tracelib.h>
 #else
 #include "tracelib.h"
@@ -143,7 +143,7 @@ extern void SimExit();
 extern void SimReport();
 extern void Simulate();
 
-#if __NetBSD__ || LINUX
+#if defined(__linux__) || defined(__NetBSD__)
 /* (Satya, 8/12/96): these definitions are found in sys/inode.h in Mach.
    The NetBSD equivalent file (sys/mount.h) has none of these definitions;
    they are assumed by the dfstrace package and are used in tracelib.h.

@@ -103,7 +103,7 @@ int coda_upcall(struct coda_sb_info *mntinfo, int inSize,int *outSize, caddr_t b
 extern int coda_debug;
 extern int coda_print_entry;
 
-#ifdef LINUX
+#ifdef	__linux__
 #define __P(ARG) ARG
 #endif
 
@@ -343,7 +343,7 @@ int coda_downcall(opcode, out)
 
               */
 #if 0
-#ifdef LINUX
+#ifdef	__linux__
 	      if (!(S_ISDIR(out->d.cfs_purgefid.CodaFid.Vnode->i_mode)) ) {
 #else
 	      if (!(ODD(out->d.cfs_purgefid.CodaFid.Vnode)) 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rvmres/resstats.cc,v 1.4 1997/01/07 20:48:03 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -40,7 +40,15 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
+
+#ifdef	__MACH__
 #include <libc.h>
+#endif /* MACH */
+
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || LINUX */
 
 #ifdef __cplusplus
 }
@@ -103,8 +111,10 @@ void logshiphisto::add(int tsize, int *entries, int nentries) {
 void logshiphisto::update(logshiphisto *newlsh) {
     for (int i = 0; i < SHIPHISTOSIZE; i++) 
 	if (newlsh->totalsize[i]) totalsize[i] += newlsh->totalsize[i];
-    for (i = 0; i < NENTRIESHISTOSIZE; i++)
+  { /* drop scope for int i below; to avoid identifier clash */
+    for (int i = 0; i < NENTRIESHISTOSIZE; i++)
 	if (newlsh->maxentries[i]) maxentries[i] += newlsh->maxentries[i];
+  } /* drop scope for int i above; to avoid identifier clash */
 }
 dirresstats::dirresstats() {
     bzero(this, sizeof(dirresstats));

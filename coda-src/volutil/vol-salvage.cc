@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/volutil/RCS/vol-salvage.cc,v 1.1 1996/11/22 19:14:06 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/volutil/vol-salvage.cc,v 1.5 1997/01/07 20:48:12 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -79,20 +79,47 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include <libc.h>
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/dir.h>
 
-#ifdef LINUX
+#ifdef __MACH__
+#include <libc.h>
+#include <sysent.h>
+#include <mach.h>
+#endif /* __MACH__ */
+
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || LINUX */
+
+/* If'defd includes below are highly platform-specific */
+
+#ifdef __MACH__
+#include <sys/inode.h>
+#include <fstab.h>
+#endif /* __MACH__ */
+
+#ifdef	__linux__
 #include <dirent.h>
 #include <stdio.h>
 #include <mntent.h>
 #include <sys/vfs.h>
 #include <linux/ext2_fs.h>
-#else
-#include <sys/inode.h>
+#endif
+
+#ifdef	__NetBSD__
+/* Not yet implemented */
 #include <fstab.h>
+#endif
+
+#ifdef	__MACH__
+#include <sys/inode.h>
 #endif
 #include <sysent.h>
 #include <errno.h>
@@ -103,9 +130,7 @@ extern "C" {
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
-#ifdef MACH
-#include <mach.h>
-#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -189,6 +214,11 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
     ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
     char *path = (char *) formal_path;
 
+#ifdef __NetBSD__
+      LogMsg(0, VolDebugLevel, stdout, "Arrrgh.... S_VolSalvage() not yet implemented for NetBSD!!");
+      assert(0);
+#endif /* __NetBSD__ */
+
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
 			rpcid, path, singleVolumeNumber, force, Debug, list);
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
@@ -223,7 +253,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
     
     if (path == NULL) {
       int didSome = 0;
-#ifndef LINUX
+#ifdef __MACH__
       struct fstab *fsent;
       setfsent();
       while (fsent = getfsent()) {
@@ -235,7 +265,9 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
 	  didSome++;
 	}
       }
-#else
+#endif /* __MACH__ */
+
+#ifdef	__linux__
       struct mntent *mntent;
       FILE *mnt_handle;
       mnt_handle = setmntent("/etc/mtab", "r");
@@ -248,7 +280,10 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
 	  didSome++;
 	}
       }
-#endif
+#endif /* LINUX */
+
+
+
       if (!didSome) {
 	LogMsg(0, VolDebugLevel, stdout, 
 	       "No partitions named %s* found; not salvaged",
@@ -428,7 +463,7 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 /* Return the name of the indicated block device */
 PRIVATE char *devName(unsigned int dev)
 {
-#ifndef LINUX
+#ifdef	__MACH__
     struct direct *dp;
     static char name[32];
     int rc;
@@ -450,9 +485,16 @@ PRIVATE char *devName(unsigned int dev)
     }
     closedir(dirp);
     return NULL;
-#else 
+#endif /* __MACH__ */
+
+#ifdef	__linux__
     return NULL;
-#endif
+#endif /* LINUX */
+
+#ifdef __NetBSD__
+    LogMsg(0, VolDebugLevel, stdout, "Arrghhh... devName() not implemented for NetBSD yet");
+    assert(0);
+#endif /* __NetBSD__ */
 }
 
 PRIVATE	int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
@@ -594,7 +636,7 @@ PRIVATE int SalvageVolHead(register struct VolumeSummary *vsp)
  */
 PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes, 
 			    struct VolumeSummary *vsp) {
-#ifndef LINUX
+#ifdef	__MACH__
     LogMsg(9, VolDebugLevel, stdout, "Entering VnodeInodeCheck()");    
     VolumeId volumeNumber = vsp->header.id;
     char buf[SIZEOF_SMALLDISKVNODE];
@@ -757,15 +799,18 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
     assert(vnext(vnode) == -1);
     assert(nVnodes == 0);
     return 0;
-#else
-    return -1;
-#endif
+#endif /* __MACH__ */
+
+#if defined(__linux__) || defined(__NetBSD__)
+    LogMsg(0, VolDebugLevel, stdout, "Arrrgghhh... VnodeInodeCheck() not yet implemented");
+    assert(0);
+#endif /* __NetBSD__ || LINUX */
 }
 /* inodes corresponding to a volume that has been blown away.
  * We need to idec them
  */
 PRIVATE void CleanInodes(struct InodeSummary *isp) {
-#ifndef LINUX
+#ifdef	__MACH__
     int size;
     struct ViceInodeInfo *inodes = 0;
 
@@ -789,8 +834,11 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
 	}
     }
     free(inodes);
-#else
-    return;
+#endif /* __MACH__ */
+
+#if defined(__linux__) || defined(__NetBSD__)
+    LogMsg(0, VolDebugLevel, stdout, "Arrrghh... CleanInodes() not yet implemented");
+    assert(0);
 #endif
     
 }
@@ -1273,11 +1321,14 @@ PRIVATE void GetSkipVolumeNumbers() {
 	assert(skipsalv != NULL);
 	fscanf(skipsalv, "%d\n", &nskipvols);
 	skipvolnums = (VolumeId *)malloc(nskipvols * sizeof(VolumeId));
+    { /* drop scope for int i below; to avoid identifier clash */
 	for (int i = 0; i < nskipvols; i++)
 	    fscanf(skipsalv, "%x\n", &(skipvolnums[i]));
+    } /* drop scope for int i above; to avoid identifier clash */
+
 	fclose(skipsalv);
 	LogMsg(1, VolDebugLevel, stdout, "The Volume numbers to be skipped salvaging are :");
-	for (i = 0; i < nskipvols; i++){
+	for (int i = 0; i < nskipvols; i++){
 	    LogMsg(1, VolDebugLevel, stdout, "Volume %x", skipvolnums[i]);
 	}
     }

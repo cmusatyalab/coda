@@ -1,100 +1,75 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 4.0
-#
-#          Copyright (c) 1987-1996 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/res/RCS/Makefile.in,v 1.1 1996/12/09 14:40:52 raiff Exp braam $";
-#endif /*_BLURB_*/
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/res/Makefile.in,v 1.4 1997/01/06 21:27:48 rvb Exp";
 
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-CC=g++
+LIBRARIES  = libreslib.a
+HEADERS	   =  rescomm.h logalloc.h pdlist.h remotelog.h resforce.h \
+	      reslog.h resutil.h lockqueue.h timing.h
+RP2FILES   = $(VICE_RPC2) $(CALLBACK_RPC2) $(RES_RPC2)
+RP2HEADERS = $(notdir ${RP2FILES:.rpc2=.h})
 
+RESC_LIBS  = ${LIBCODASYS} ${LIBRPC2} ${LIBOLDLWP}
 
-RESLIBOBJS=logalloc.o pdlist.o remotelog.o resclient.o lockqueue.o\
-           rescoord.o  resforce.o reslock.o reslog.o \
-           resutil.o rescomm.o timing.o\
-	   res.server.o res.client.o res.multi.o weres.o 
-
-CFILES=	logalloc.cc pdlist.cc remotelog.cc resclient.cc rescomm.cc \
-	rescoord.cc resforce.cc reslock.cc reslog.cc \
-	resutil.cc lockqueue.cc timing.cc weres.cc 
-
-HEADERS=res.h  rescomm.h logalloc.h pdlist.h remotelog.h resforce.h \
-       reslog.h resutil.h lockqueue.h timing.h
-
-
-LIBRARIES = libreslib.a
-
-${RESLIBOBJS}: ${HEADERS}
-RP2FLAGS := -n $(RP2FLAGS)
+RESLIBOBJS = logalloc.o pdlist.o remotelog.o resclient.o lockqueue.o\
+             rescoord.o  resforce.o reslock.o reslog.o \
+             rescoord.o  resforce.o reslock.o reslog.o \
+             resutil.o rescomm.o timing.o weres.o 
 
 libreslib.a:	${RESLIBOBJS}
 
 # Test programs
-resc: resc.o  vice.client.o callback.server.o ${PIOCTL_O}
-	$(CC) -o resc resc.o\
-	vice.client.o callback.server.o\
-	${PIOCTL_O} ${LIBRPC2} ${LIBOLDLWP}
+resc: resc.o  vice.client.o callback.server.o $(RESC_LIBS)
+	$(CXX) $(LIBFLAGS) resc.o vice.client.o callback.server.o $(RESC_LIBS) -o resc
 
-testpdlist: testpdlist.o pdlist.o logalloc.o 
-	$(CC) -o testpdlist testpdlist.o\
-	logalloc.o pdlist.o ${LIBUTIL}
+testpdlist: testpdlist.o pdlist.o logalloc.o $(LIBUTIL)
+	$(CXX) $(LIBFLAGS) testpdlist.o pdlist.o logalloc.o ${LIBUTIL} -o testpdlist
 
-test: test.o logalloc.o
-	$(CC) -o test test.o logalloc.o ${LIBUTIL}
+test: test.o logalloc.o ${LIBUTIL}
+	$(CXX) $(LIBFLAGS) test.o logalloc.o ${LIBUTIL} -o test
 
-timetest: timetest.o timing.o 
-	$(CC) -o timetest timetest.o timing.o ${LIBUTIL}
+timetest: timetest.o timing.o ${LIBUTIL}
+	$(CXX) $(LIBFLAGS) timetest.o timing.o ${LIBUTIL} -o timetest
 
 
-# Objects for libreslib.a
+${RESLIBOBJS}: ${HEADERS}
+
 pdlist.o: logalloc.h 
 
-vice.h vice.client.c: $(VICE_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
-callback.h callback.server.c: $(CALLBACK_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
 resc.o: vice.h callback.h
 
-res.h res.server.c res.client.c res.multi.c : $(RES_RPC2) ${RP2GEN}
-	${RP2GEN} ${RP2FLAGS} $<
 reslog.o: logalloc.h
 
-clean:
-	rm -f *.o *.client.c *.server.c resc
-
 include $(TOPDIR)/Makerules
-

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/res/RCS/reslog.cc,v 1.1 1996/11/22 19:13:00 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/res/reslog.cc,v 1.5 1997/01/07 20:47:59 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -50,23 +50,23 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/time.h>
-
-#if 0
-#include <cthreads.h>
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <assert.h>
 #include <stdio.h>
-#include <libc.h>
 #include <struct.h>
 #include <stdarg.h>
 #include <strings.h>
-#include <rpc2.h>
-#ifndef LINUX
+#ifdef __MACH__
+#include <libc.h>
 #include <mach.h>
-#endif
+#endif /* MACH */
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ */
+#include <rpc2.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -435,8 +435,11 @@ void ChooseWrapAroundVnode(PMemMgr *mmgr, int volindex) {
     mmgr->wrapvnode = -1;
     mmgr->wrapunique = -1;
     rl = (rlent *)mmgr->baseAddr;
-    for (i = 0; i < mmgr->nEntries; i++) 
+  { /* drop scope for int i below; to avoid identifier clash */
+    for (int i = 0; i < mmgr->nEntries; i++) 
 	rl[i].print();
+  } /* drop scope for int i above; to avoid identifier clash */
+
 }
 
 int GetIndexViaWrapAround(PMemMgr *mmgr, int volindex) {

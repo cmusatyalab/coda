@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.5 1996/12/06 14:23:25 raiff Exp braam $";
+#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/tools/alphaci,v 1.1.1.1 1996/12/09 19:20:38 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -66,7 +66,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/tools/RCS/alphaci,v 1.5 1996/12/06 14:23:25 raiff Exp braam $";
+#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/tools/alphaci,v 1.1.1.1 1996/12/09 19:20:38 rvb Exp";
 #endif /*_BLURB_*/
 
 #############################################################################

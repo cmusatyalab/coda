@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/volutil/RCS/listinodes.cc,v 1.1 1996/11/22 19:13:43 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/volutil/listinodes.cc,v 1.4 1997/01/07 18:43:33 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -66,14 +66,24 @@ extern "C" {
 #include <errno.h>
 #include <ctype.h>
 #include <sys/param.h>
+
 #ifdef __MACH__
 #include <sys/fs.h>
 #include <sys/inode.h>
 #include <sys/file.h>
-#endif
-#ifdef LINUX
+#include <libc.h>
+#include <sysent.h>
+#endif /* __MACH__ */
+
+#ifdef	__linux__
 #include <linux/fs.h>
-#endif
+#endif /* LINUX */
+
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || LINUX */
+
 #include <libc.h>
 #include <sysent.h>
 
@@ -102,7 +112,7 @@ PRIVATE int bread(int fd, char *buf, daddr_t blk, long size);
 int ListViceInodes(char *devname, char *mountedOn, char *resultFile,
 			int (*judgeInode)(struct ViceInodeInfo*, VolumeId), int judgeParam)
 {
-#ifndef LINUX
+#ifdef __MACH__
    union {
        struct fs fs;
        char block[SBSIZE];
@@ -216,22 +226,28 @@ out:
    if (inodes)
         free((char *)inodes);
    return -1;
-#else /* Linux */
-   return -1;  /* no support for this yet */
-#endif 
+#else /* __MACH__ */
+/* Abort on platforms to which this code has not been ported yet */
+
+   LogMsg(0, VolDebugLevel, stdout, "Arrgh..... ListViceInodes() has not been ported yet!!!");
+   assert(0);
+#endif /* __MACH__ */
 }
 
 
 int bread(int fd, char *buf, daddr_t blk, long size)
 {
-#ifndef LINUX
+#ifdef __MACH__
 	if (lseek(fd, (long)dbtob(blk), L_SET) < 0
 	  || read(fd, buf, size) != size) {
 	     LogMsg(0, VolDebugLevel, stdout, "Unable to read block %d, partition %s", blk, partition);
 		return -1;
 	  }
 	return 0;
-#else
-	return -1;
-#endif
+#else /* __MACH__ */
+/* Abort on platforms to which this code has not been ported yet */
+
+   LogMsg(0, VolDebugLevel, stdout, "Arrgh..... bread() has not been ported yet!!!");
+   assert(0);
+#endif /* __MACH__ */
 }

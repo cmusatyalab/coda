@@ -4,12 +4,18 @@
 # Edit DEFINES below depending on your kernel version
 #
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
 VPATH = @srcdir@
 TOPOBJ= @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
+
+# presto changeo!
+INCLDIR := $(INCLDIR)/cfs
+
+EXECUTABLES = coda.o
+HEADERS     = odytypes.h cnode.h cfs_linux.h cfs.h cfs_opstats.h
 
 CC=gcc
 
@@ -18,12 +24,7 @@ INCL=-I/usr/src/linux/include -I. -include /usr/src/linux/include/linux/modversi
 CFLAGS=-D__KERNEL__ $(INCL)   $(DEFINES)  -g
 XCFLAGS=
 
-
-all:	coda.o
-
-
 OBJS=	  psdev.o cnode.o comm.o super.o inode.o file.o
-
 
 types: dummy
 	mkdir types
@@ -31,20 +32,9 @@ types: dummy
 coda.o: $(OBJS)
 	$(LD) -m elf_i386 -r -o $@ $(OBJS)
 
-
-install: coda.o
-	cp coda.o /lib/modules/`uname -r`/fs
-	cp -f odytypes.h cnode.h cfs_linux.h cfs.h cfs_opstats.h $(INCLDIR)/cfs
-
-HEADERS = odytypes.h cnode.h cfs_linux.h cfs.h cfs_opstats.h
-hdrinstall: $(HEADERS)
-	if [ ! -d $(INCLDIR)/cfs ]; then mkdir -p $(INCLDIR)/cfs; fi
-	cp -f $? $(INCLDIR)/cfs
-
-
-clean:
-	rm -f core *.o *.a *.s 
-	rm -f types/* typedir types.a
+BINDIR = /lib/modules/`uname -r`/fs
+#install: coda.o
+#	cp coda.o /lib/modules/`uname -r`/fs
 
 include $(TOPDIR)/Makerules
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/coda/src/coda-4.0.1/coda-src/venus/RCS/venus.private.h,v 1.2 1996/11/24 21:06:13 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/venus.private.h,v 1.2 1997/01/07 18:42:16 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -78,7 +78,7 @@ extern "C" {
 #include "venusstats.h"
 
 /*  *****  New error codes.  *****  */
-#if __NetBSD__ || LINUX
+#if defined(__linux__) || defined(__NetBSD__)
 #define ESUCCESS	0	/* MACH'ism, it appears */
 #endif __NetBSD__
 

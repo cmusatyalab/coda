@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/res/RCS/resclient.cc,v 1.1 1996/11/22 19:12:52 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/res/resclient.cc,v 1.3 1997/01/07 20:47:55 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -659,10 +659,12 @@ long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	LogMsg(9, SrvDebugLevel, stdout,  
 	       "DirResPhase3: Going to check if truncate log possible");
 	unsigned long Hosts[VSG_MEMBERS];
+	int i = 0;
 	vv_t checkvv;
+
 	vre->GetHosts(Hosts);
 	vre->HostListToVV(Hosts, &checkvv);
-	for (int i = 0; i < VSG_MEMBERS; i++) 
+	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (((&(checkvv.Versions.Site0))[i]) ^ 
 		((&(VV->Versions.Site0))[i]))
 		break;
@@ -741,9 +743,10 @@ PRIVATE rlent *FindRmtPartialOps(int nrmtentries, rlent *RmtLog,
     LogMsg(9, SrvDebugLevel, stdout,  "Entering FindRmtPartialOps()");
     /* sort rmt log entries */
     {
+	int i = 0;
 	RmtLogPtrs = (rlent **)malloc(nrmtentries * 
 				      sizeof(rlent *));
-	for (int i = 0; i < nrmtentries; i++)
+	for (i = 0; i < nrmtentries; i++)
 	    RmtLogPtrs[i] = &(RmtLog[i]);
 	qsort(RmtLogPtrs, nrmtentries, sizeof(rlent *),
 	      (int (*)(const void *, const void *))CmpLogEntries);
@@ -836,11 +839,13 @@ PRIVATE rlent *CreateCompList(int *sizes, rlent **partialops,
 	opsptrs = (rlent **)malloc(sizeof(rlent *) * totalops);
 	LogMsg(39, SrvDebugLevel, stdout,  "CreateCompList: %d totalops ", totalops);
 	int index = 0;
-	for (i = 0; i < nhosts; i++) 
+      { /* drop scope for int i below; to avoid identifier clash */
+	for (int i = 0; i < nhosts; i++) 
 	    for (int j = 0; j < sizes[i]; j++) {
 		opsptrs[index] = partialops[i] + j;
 		index++;
 	    }
+      } /* drop scope for int i above; to avoid identifier clash */
     }	
     /* sort the ops */
     LogMsg(39, SrvDebugLevel, stdout,  "CreateCompList: Sorting all ops lists");
@@ -1003,7 +1008,7 @@ PRIVATE int ComputeCompOps(olist *AllHostsList, ViceFid *Fid,
 	
 	LogMsg(39, SrvDebugLevel, stdout,  "Sorted Local Log has %d entries :", nlentries);
 	if (SrvDebugLevel > 39) {
-	    for (i = 0; i < nlentries; i++) 
+	    for (int i = 0; i < nlentries; i++) 
 		(*sortedLlog)[i].print();
 	}
     }
@@ -3165,6 +3170,8 @@ void GetRemoteRemoveStoreId(ViceStoreId *stid, olist *hvlog, unsigned long serve
 			    ViceFid *pFid, ViceFid *cFid, char *cname) {
     LogMsg(9, SrvDebugLevel, stdout,  "Entering GetRemoteRemoveStoreId: Parent = %x.%x; Child = %x.%x %s",
 	    pFid->Vnode, pFid->Unique, cFid->Vnode, cFid->Unique, cname);
+    int i = 0;
+
     stid->Host = 0;
     stid->Uniquifier = 0;
     he *rhe = FindHE(hvlog, serverid);
@@ -3179,7 +3186,7 @@ void GetRemoteRemoveStoreId(ViceStoreId *stid, olist *hvlog, unsigned long serve
 		pFid->Vnode, pFid->Unique);
 	return;
     }
-    for (int i = 0; i < r->u.remote.nentries; i++) {
+    for (i = 0; i < r->u.remote.nentries; i++) {
 	rlent *rle = &(r->u.remote.log[i]);
 	if ((rle->opcode == ViceRemove_OP ||
 	     rle->opcode == ResolveViceRemove_OP) &&
@@ -3322,8 +3329,10 @@ int DirRUConf(RUParm *rup, char *name, long vnode, long unique) {
 	}
     	/* check if last entry is in remote log */
 	{
+	    int i = 0;
+
 	    assert(nrmtentries > 0);
-	    for (int i = nrmtentries - 1; i >= 0 && lastrle ; i--) 
+	    for (i = nrmtentries - 1; i >= 0 && lastrle ; i--) 
 		if (SID_EQ(rmtlog[i].storeid, lastrle->storeid) &&
 		    ((rmtlog[i].opcode == lastrle->opcode) ||
 		     (lastrle->opcode == ResolveAfterCrash_OP))) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: cfs_vnodeops.h,v 1.1 96/11/22 13:39:18 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/kernel-src/vfs/mach/cfs_vnodeops.h,v 1.2 1997/01/07 18:44:17 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -211,7 +211,7 @@ cfs_strategy __P((struct buf *,
  * The following don't exist in NetBSD, but are needed in Mach
  */
 
-#ifdef MACH
+#ifdef	__MACH__
 
 int
 cfs_bread __P((struct vnode *,

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vol/recova.cc,v 1.3 1997/01/07 18:43:17 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -56,8 +56,8 @@ extern "C" {
 #ifdef __MACH__
 #include <libc.h>
 #include <sysent.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
@@ -67,7 +67,7 @@ extern "C" {
 
 #ifdef __MACH__
 #include <mach.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -380,12 +380,12 @@ PRIVATE int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass) {
 
 	/* Now delete the inodes for the vnodes we already purged. */
 	if (vclass == vSmall) {
-	    for (int i = 0; i < count; i++) {
+	    for (int j = 0; j < count; j++) {
 		/* Assume inodes for backup volumes are stored with
 		 * the VolumeId of the original read/write volume.
 		 */
-		if (DeadInodes[i])
-		    if (idec((int)dev, DeadInodes[i], (vdata->volumeInfo)->parentId))
+		if (DeadInodes[j])
+		    if (idec((int)dev, DeadInodes[j], (vdata->volumeInfo)->parentId))
 			LogMsg(0, 0, stdout,
 			       "VolBackup: idec failed with %d", errno);
 	    }	

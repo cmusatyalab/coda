@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_logrecovr.c,v 1.5 96/11/19 14:24:52 tilt Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/rvm-src/rvm/rvm_logrecovr.c,v 1.2 1997/01/07 18:44:41 rvb Exp";
 #endif _BLURB_
 
 /*
@@ -45,9 +45,9 @@ static char *rcsid = "$Header: rvm_logrecovr.c,v 1.5 96/11/19 14:24:52 tilt Exp 
 #include <sys/file.h>
 #include <sys/time.h>
 #include "rvm_private.h"
-#ifdef MACH
+#ifdef	__MACH__
 #include <mach.h>
-#endif MACH
+#endif	/* __MACH__ */
 
 #ifdef RVM_LOG_TAIL_BUG
 #include <rvmtesting.h>
@@ -149,7 +149,7 @@ rvm_return_t alloc_log_buf(log)
         return RVM_ENO_MEMORY;
 
     /* write-protect the buffers */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
         ret = vm_protect(task_self_,(vm_address_t)(log_buf->buf),
@@ -171,7 +171,7 @@ rvm_return_t alloc_log_buf(log)
                          VM_PROT_READ);
         ASSERT(ret == KERN_SUCCESS);
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     return RVM_SUCCESS;
     }
@@ -263,7 +263,7 @@ rvm_return_t init_buffer(log,offset,direction,synch)
         }
 
     /* allow write to buffer */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
         ret = vm_protect(task_self_,(vm_address_t)(log_buf->buf),
@@ -271,7 +271,7 @@ rvm_return_t init_buffer(log,offset,direction,synch)
                          VM_PROT_WRITE | VM_PROT_READ);
         ASSERT(ret == KERN_SUCCESS);
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     /* read data from log device */
     if ((log_buf->r_length=read_dev(&log->dev,&log_buf->offset,
@@ -283,7 +283,7 @@ rvm_return_t init_buffer(log,offset,direction,synch)
     ASSERT(log->trunc_thread == cthread_self());
 
     /* write protect buffer & unlock */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
 
@@ -314,7 +314,7 @@ rvm_return_t init_buffer(log,offset,direction,synch)
             }
 #endif SPECIAL_DEBUG
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     if (synch)
         mutex_unlock(&log->dev_lock);   /* end dev_lock crit sec */
@@ -363,7 +363,7 @@ int disk_buf_cmp(buf,disp)
     int             r_length;
 
     /* allow write to buffer */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
         ret = vm_protect(task_self_,(vm_address_t)(log_buf->buf),
@@ -371,7 +371,7 @@ int disk_buf_cmp(buf,disp)
                          VM_PROT_WRITE | VM_PROT_READ);
         ASSERT(ret == KERN_SUCCESS);
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     /* read buffer from log */
     if ((r_length=read_dev(&default_log->dev,&log_buf->offset,
@@ -380,7 +380,7 @@ int disk_buf_cmp(buf,disp)
     ASSERT(r_length == log_buf->r_length);
 
     /* re-protect buffer */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
         ret = vm_protect(task_self_,(vm_address_t)(log_buf->buf),
@@ -388,7 +388,7 @@ int disk_buf_cmp(buf,disp)
                          VM_PROT_READ);
         ASSERT(ret == KERN_SUCCESS);
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     /* compare results */
     if (disp < 0) disp = 0;
@@ -523,7 +523,7 @@ rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
         }
 
     /* allow write to buffer */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
         ret = vm_protect(task_self_,(vm_address_t)(log_buf->aux_buf),
@@ -531,7 +531,7 @@ rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
                          VM_PROT_WRITE | VM_PROT_READ);
         ASSERT(ret == KERN_SUCCESS);
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     /* read new value data from log */
     if ((log_buf->aux_rlength=read_dev(&log->dev,&log_buf->aux_offset,
@@ -543,7 +543,7 @@ rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
     ASSERT(log->trunc_thread == cthread_self());
 
     /* write protect buffer & unlock */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
 
@@ -552,7 +552,7 @@ rvm_return_t load_aux_buf(log,log_offset,length,aux_ptr,
                          FALSE,VM_PROT_READ);
         ASSERT(ret == KERN_SUCCESS);
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     if (synch)
         mutex_unlock(&log->dev_lock);   /* end dev_lock crit sec */
@@ -2066,7 +2066,7 @@ static rvm_return_t build_tree(log)
         }
 
     /* leave buffer unprotected for later phases */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
         ret = vm_protect(task_self_,(vm_address_t)(log_buf->buf),
@@ -2074,7 +2074,7 @@ static rvm_return_t build_tree(log)
                          VM_PROT_WRITE | VM_PROT_READ);
         ASSERT(ret == KERN_SUCCESS);
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     return RVM_SUCCESS;
     }
@@ -2508,7 +2508,7 @@ rvm_return_t apply_mods(log)
         }
 
     /* re-protect buffer */
-#ifdef MACH
+#ifdef	__MACH__
         {
         kern_return_t   ret;
         log_buf_t       *log_buf = &log->log_buf;
@@ -2518,7 +2518,7 @@ rvm_return_t apply_mods(log)
                          VM_PROT_READ);
         ASSERT(ret == KERN_SUCCESS);
         }
-#endif MACH
+#endif	/* __MACH__ */
 
     return retval;
     }

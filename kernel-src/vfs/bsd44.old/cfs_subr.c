@@ -99,7 +99,7 @@
 
 struct cnode *cfs_alloc C_ARGS((void));
 struct cnode *cfs_find C_ARGS((ViceFid *fid));
-#ifdef MACH
+#ifdef	__MACH__
 extern struct fs *igetfs C_ARGS((dev_t));
 #endif /* MACH */
 

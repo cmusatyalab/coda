@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/update/updatemon.cc,v 1.2 1997/01/06 21:28:06 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -100,7 +100,7 @@ main(int argc, char *argv[], char *envp[])
     }
 
     if(!(file = fopen("UpdateMonitor", "w"))) {
-	printf("Could not open UpdateMonitor at %s\n", ctime(&tp.tv_sec));
+	printf("Could not open UpdateMonitor at %s\n", ctime((long *)&tp.tv_sec));
 	exit(-1);
     }
     
@@ -120,7 +120,7 @@ main(int argc, char *argv[], char *envp[])
 
 	while (child != wait(0));
 	gettimeofday(&tp, 0);
-	printf("UpdateMonitor is Restarting at %s", ctime(&tp.tv_sec));
+	printf("UpdateMonitor is Restarting at %s", ctime((long *)&tp.tv_sec));
 	execve("/vice/bin/updatemon", argv, envp);
     }
     gettimeofday( &tp, 0);

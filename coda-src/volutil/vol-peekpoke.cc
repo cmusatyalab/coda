@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/volutil/RCS/vol-peekpoke.cc,v 1.1 1996/11/22 19:14:02 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/volutil/vol-peekpoke.cc,v 1.4 1997/01/07 18:43:46 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -48,8 +48,17 @@ extern "C" {
 #include <sys/time.h>
 
 #include <stdio.h>
+
+#ifdef __MACH__
 #include <libc.h>
 #include <sysent.h>
+#endif /* __MACH__ */
+
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || LINUX */
+
 #include <struct.h>
 
 #include <ctype.h>
@@ -60,7 +69,7 @@ extern int nlist(const char*, struct nlist[]);
     
 #include <string.h>
 #include <sys/param.h>
-#ifdef MACH
+#ifdef	__MACH__
 #include <mach.h>
 #endif
 #include <lwp.h>
@@ -78,7 +87,11 @@ extern int nlist(const char*, struct nlist[]);
 
 static	char	*srvname;
 
+#ifdef	__MACH__
+char *strdup(const char *s)
+#else
 char *strdup(char *s)
+#endif
 {
         char    *t;
         if ((t = (char *) malloc(((unsigned int) strlen(s)) + 1)) == NULL) {
@@ -99,7 +112,7 @@ void setmyname(char *s)
 	else	printf("%s: unable to find the current directory\n", s);
 }
 
-#ifndef LINUX
+#ifdef __MACH__
 static
 long checkaddress(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 {
@@ -163,7 +176,9 @@ long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
 	LogMsg(0, VolDebugLevel, stdout, "okaddr using address 0x%lx\n", (long) *pm);
 	return(checkaddress(*pm, sz, perm));
 }
-#else
+#else /* MACH */
+
+/* Not ported yet to Linux or NetBSD; die horribly.... */
 
 #define vm_address_t  unsigned int
 #define vm_size_t     unsigned int
@@ -173,15 +188,17 @@ long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
 static
 long checkaddress(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 {
-  return -1;
+  LogMsg(0, VolDebugLevel, stdout, "Arrrghhh....checkaddress() not ported yet\n");
+  assert(0);
 }
 
 static
 long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
 {
-  return -1;
+  LogMsg(0, VolDebugLevel, stdout, "Arrrghhh....okaddress() not ported yet\n");
+  assert(0);
 }
-#endif
+#endif /* __MACH__ */
 
 /*
   BEGIN_HTML

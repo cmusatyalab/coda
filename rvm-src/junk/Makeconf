@@ -16,7 +16,7 @@
 #          version.
 
 #
-#static char *rcsid = "$Header: Makeconf,v 1.4 95/01/16 23:44:05 bnoble Exp $";
+#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/rvm-src/junk/Makeconf,v 1.1.1.1 1996/11/22 19:18:04 rvb Exp";
 #endif _BLURB_
 #ifndef _BLURB_
 

@@ -1,0 +1,6 @@
+The directory ifs is the exported NetBSD kernel sources for the inode
+file system.  The other files in this directory are the user-level
+faux-inode filesystem.
+
+For advice in incorporating this code into the NetBSD kernel,
+contact coda@cs.cmu.edu

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso0.cc,v 1.2 1996/11/22 20:50:00 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/fso0.cc,v 1.2 1997/01/07 18:41:59 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -55,13 +55,13 @@ extern "C" {
 #include <sys/types.h>
 #ifdef __MACH__
 #include <sys/dir.h> 
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 #include <dirent.h> /* NOT sys/dirent.h!!! (Satya, 8/12,96) */
 #endif __NetBSD__
 #ifdef LINUX /* platform independent directory structures (pjb 11/96) */
 #include <venus-dirent.h>
-#endif LINUX
+#endif	/* __linux__ */
 
 #include <sys/stat.h>
 #include <struct.h>
@@ -69,7 +69,7 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 #include <unistd.h>
 #include <stdlib.h>
@@ -194,7 +194,7 @@ void FSOInit() {
 		::unlink(dirent->d_name);
 	    }
 	    closedir(cdir);
-#endif __MACH__
+#endif /* __MACH__ */
 
 #ifdef __NetBSD__
 	    struct dirent **namelist;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/dir/RCS/dir.cc,v 1.2 1996/12/02 16:09:27 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/dir/dir.cc,v 1.3 1997/01/07 18:40:35 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -69,8 +69,8 @@ extern "C" {
 #include <string.h>
 #ifdef __MACH__
 #include <libc.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <stdlib.h>
 #endif __NetBSD__
 
@@ -282,7 +282,7 @@ int EnumerateDir (long *dir, int (*hookproc)(void *par1,...), long hook){
             ep = GetBlob(dir,num);
             if (!ep) break;
             num = ntohs(ep->next);
-            (*hookproc) (hook, ep->name, ntohl(ep->fid.mkvnode), ntohl(ep->fid.mkvunique));
+            (*hookproc) ((void *)hook, ep->name, ntohl(ep->fid.mkvnode), ntohl(ep->fid.mkvunique));
             DRelease((buffer *)ep,0);
             }
         }
@@ -294,18 +294,12 @@ int EnumerateDir (long *dir, int (*hookproc)(void *par1,...), long hook){
  * 	If more than 1 name exists for the same object, return the first one 
  */
 char *FindName(long *dir, long vnode, long unique, char *buf) {
-#ifdef LINUX
-  int i;
-#endif
+    int i;
     int entryfound = 0;
     struct DirHeader *dhp;
     dhp = (struct DirHeader *)DRead(dir, 0);
     if (dhp) {
-#ifdef LINUX
-for (i = 0; i < NHASH && !entryfound; i++) {
-#else
-	for (int i = 0; i < NHASH && !entryfound; i++) {
-#endif
+	for (i = 0; i < NHASH && !entryfound; i++) {
 	    int num = ntohs(dhp->hashTable[i]);
 	    while (num != 0) {
 		struct DirEntry *ep;
@@ -464,7 +458,7 @@ int IsEmpty (long *dir) {
 struct DirEntry *GetBlob (long *dir, long blobno){
     /* Return a pointer to an entry, given its number. */
     struct PageHeader *pp;
-#ifdef LINUX
+#ifdef	__linux__
     pp=(struct PageHeader *)DRead(dir,blobno>>LEPP);
 #else
     pp=(PageHeader *)DRead(dir,blobno>>LEPP);

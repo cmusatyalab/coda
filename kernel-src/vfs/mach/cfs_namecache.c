@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: cfs_namecache.c,v 1.1 96/11/22 13:39:06 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/kernel-src/vfs/mach/cfs_namecache.c,v 1.1.1.1 1996/11/22 19:16:02 rvb Exp";
 #endif /*_BLURB_*/
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: comm.cc,v 1.1 96/11/22 19:10:47 braam Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/comm.cc,v 1.4 1997/01/07 18:41:55 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -64,12 +64,14 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+  /* sigh if gcc 2.3.3 */
+  /* #define binding Xbinding*/
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
-#ifndef LINUX
+#ifndef	__linux__
 #include <machine/endian.h>
 #else
 #include <netinet/in.h>
@@ -1063,7 +1065,7 @@ srvent::srvent(unsigned long Host) {
 
     host = Host;
     connid = -1;
-    binding = 0;
+    Xbinding = 0;
     probeme = 0;
     initialbw = 0;
     EventCounter = 0;
@@ -1103,21 +1105,21 @@ int srvent::Connect(RPC2_Handle *cidp, int *authp, vuid_t vuid, int Force) {
 	    return(ETIMEDOUT);
 	}
 
-	if (!binding) break;
+	if (!Xbinding) break;
 	if (VprocInterrupted()) return(EINTR);
 	Srvr_Wait();
 	if (VprocInterrupted()) return(EINTR);
     }
 
     /* Get the user entry and attempt to connect to it. */
-    binding = 1;
+    Xbinding = 1;
     {
 	userent *u = 0;
 	GetUser(&u, vuid);
 	code = u->Connect(cidp, authp, host);
 	PutUser(&u);
     }
-    binding = 0;
+    Xbinding = 0;
     Srvr_Signal();
 
     /* Interpret result. */
@@ -1497,7 +1499,7 @@ long srvent::InitBandwidth(long b) {
 
 void srvent::print(int fd) {
     fdprint(fd, "%#08x : %-16s : cid = %d, host = %#08x, binding = %d, bw = %d\n",
-	     (long)this, name, connid, host, binding, bw);
+	     (long)this, name, connid, host, Xbinding, bw);
 }
 
 
@@ -2793,7 +2795,7 @@ vsgent *vsg_iterator::operator()() {
  */
 int FailDisconnect(int nservers, unsigned long *hostids)
 {
-    int rc, i = 0;
+    int rc, k = 0;
     FailFilter filter;
     FailFilterSide side;
 
@@ -2801,7 +2803,7 @@ int FailDisconnect(int nservers, unsigned long *hostids)
 	srv_iterator next;
 	srvent *s;
 	while (s = next())
-	    if (nservers == 0 || s->host == hostids[i]) {
+	    if (nservers == 0 || s->host == hostids[k]) {
 		/* we want a pair of filters for server s. */
 
 		unsigned long addr = htonl(s->host);    
@@ -2815,8 +2817,8 @@ int FailDisconnect(int nservers, unsigned long *hostids)
 		filter.factor = 0;
 		filter.speed = 0;
 
-		for (int lx = 0; lx < 2; lx++) {
-		    if (lx == 0) side = sendSide;
+		for (int i = 0; i < 2; i++) {
+		    if (i == 0) side = sendSide;
 		    else side = recvSide;
 
 		    /* 
@@ -2863,7 +2865,7 @@ int FailDisconnect(int nservers, unsigned long *hostids)
 		} 
 	    }
 
-    } while (i++ < nservers-1);
+    } while (k++ < nservers-1);
 
     return(0);
 }

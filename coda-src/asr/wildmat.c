@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/asr/wildmat.c,v 1.2 1997/01/06 21:27:27 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -59,15 +59,13 @@ static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
 #define NEGATE_CLASS	'^'
 
 /* Forward declaration. */
-static int	DoMatch();
+static int DoMatch(register char *text, register char *p);
 
 /*
 **  See if the text matches the p, which has an implied leading asterisk.
 */
 static int
-Star(text, p)
-    register char	*text;
-    register char	*p;
+Star(register char *text, char * p)
 {
     register int	ret;
 
@@ -82,9 +80,7 @@ Star(text, p)
 **  Match text and p, return TRUE, FALSE, or ABORT.
 */
 static int
-DoMatch(text, p)
-    register char	*text;
-    register char	*p;
+DoMatch(register char *text, register char *p)
 {
     register int 	 last;
     register int 	 matched;
@@ -130,9 +126,7 @@ DoMatch(text, p)
 **  User-level routine.  Returns TRUE or FALSE.
 */
 int
-wildmat(text, p)
-    char	*text;
-    char	*p;
+wildmat(char *text, char * p)
 {
     return DoMatch(text, p) == TRUE;
 }

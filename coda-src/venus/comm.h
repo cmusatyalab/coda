@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/comm.h,v 1.2 1997/01/06 21:28:15 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -268,7 +268,7 @@ class srvent {
     unsigned long host;
     RPC2_Handle	connid;		/* The callback connid. */
     int	EventCounter;		/* incremented on every Up/Down event */
-    unsigned binding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
+    unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
     unsigned initialbw : 1;	/* is current BW estimate an initial one? */
     long bw;			/* bandwidth estimate, Bytes/sec */

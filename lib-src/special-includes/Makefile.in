@@ -1,16 +1,20 @@
+# TARGETS:
+#	install:
+#		assert.h -> $(INCLSPECIAL)
+#	 all:
+#		no op
+
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
-# Need to conditionalize this
 include $(TOPDIR)/Makeconf
 
-HEADERS= assert.h 
+# presto changeo
+INCLDIR := $(INCLSPECIAL)
 
-
-LIBDIR := $(LIBSPECIAL)
-INCLDIR:= $(INCLSPECIAL)
+HEADERS = assert.h 
 
 include $(TOPDIR)/Makerules
 

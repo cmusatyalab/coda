@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/res/RCS/resutil.cc,v 1.1 1996/11/22 19:13:03 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/res/resutil.cc,v 1.3 1997/01/07 20:48:00 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -440,7 +440,8 @@ int ComparePath(int nreplicas, int *nentries, ResPathElem **paths) {
 	}
     
     // compare all but the last component 
-    for (i = 1; i < nreplicas; i++) 
+  { /* drop scope for int i below; to avoid identifier clash */
+    for (int i = 1; i < nreplicas; i++) 
 	for (int j = 0; j < nentries[i] - 1; j++) 
 	    if (CmpComponent(&paths[i][j], &paths[0][j])) {
 		LogMsg(0, SrvDebugLevel, stdout, 
@@ -448,10 +449,12 @@ int ComparePath(int nreplicas, int *nentries, ResPathElem **paths) {
 		       j, i);
 		return(-1);
 	    }
+  } /* drop scope for int i above; to avoid identifier clash */
 
     // compare only the fid of the last component 
+  { /* drop scope for int i below; to avoid identifier clash */
     int lastindex = nentries[0] - 1;
-    for (i = 1; i < nreplicas; i++) {
+    for (int i = 1; i < nreplicas; i++) {
 	if ((paths[0][lastindex].vn != paths[i][lastindex].vn) ||
 	    (paths[0][lastindex].un != paths[i][lastindex].un)) {
 	    LogMsg(0, SrvDebugLevel, stdout,
@@ -460,6 +463,7 @@ int ComparePath(int nreplicas, int *nentries, ResPathElem **paths) {
 	    return(-1);
 	}
     }
+  } /* drop scope for int i above; to avoid identifier clash */
     return(0);
 }
 

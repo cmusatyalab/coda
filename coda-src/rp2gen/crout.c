@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rp2gen/crout.c,v 1.2 1997/01/07 18:41:12 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -404,7 +404,7 @@ static common(where)
 	fputs("\n#ifdef __cplusplus\nextern \"C\" {\n#endif __cplusplus\n", where);
 	fputs("\n#include <sys/types.h>\n#include <netinet/in.h>\n#include <sys/time.h>\n", where);
 	fputs("#include <string.h>\n", where);
-	fputs("#ifdef __MACH__\n#include <sysent.h>\n#include <libc.h>\n#endif __MACH__\n", where);
+	fputs("#ifdef __MACH__\n#include <sysent.h>\n#include <libc.h>\n#endif /* __MACH__ */\n", where);
 	fputs("#ifdef __NetBSD__\n#include <unistd.h>\n#include <stdlib.h>\n#endif __NetBSD__\n", where);
 	fputs("\n#ifdef __cplusplus\n}\n#endif __cplusplus\n", where);
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rvmres/rvmrescoord.cc,v 1.3 1997/01/07 20:48:04 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -308,13 +308,13 @@ PRIVATE int RegDirResRequired(res_mgrpent *mgrp, ViceFid *Fid,
 	LogMsg(9, SrvDebugLevel, stdout,
 	       "RegDirResRequired: Checking if Objects equal \n");
 	ViceVersionVector *vv[VSG_MEMBERS];
-	for (i = 0; i < VSG_MEMBERS; i++) 
+	for (int i = 0; i < VSG_MEMBERS; i++) 
 	    vv[i] = VV[i];
 	int HowMany = 0;
 	if (VV_Check(&HowMany, vv, 1) == 1) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "RegDirResRequired: VECTORS ARE ALREADY EQUAL\n");
-	    for (i = 0; i < VSG_MEMBERS; i++) 
+	    for (int i = 0; i < VSG_MEMBERS; i++) 
 		if (vv[i])
 		    PrintVV(stdout, vv[i]);
 	    resrequired = 0;
@@ -476,7 +476,7 @@ PRIVATE char *ConcatLogs(res_mgrpent *mgrp, char **bufs,
     /* copy into buf */
     char *tmp = logbuffer;
     if (logbuffer) {
-	for (i = 0; i < VSG_MEMBERS; i++) 
+	for (int i = 0; i < VSG_MEMBERS; i++) 
 	    if (mgrp->rrcc.hosts[i] &&
 		(mgrp->rrcc.retcodes[i] == 0) &&
 		bufs[i]) {
@@ -598,13 +598,15 @@ PRIVATE int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
 	for (int i = 0; i < VSG_MEMBERS; i++) 
 		(&(UpdateSet.Versions.Site0))[i] = 0;
 	    
-	for (i = 0; i < VSG_MEMBERS; i++) 
+    { /* drop scope for int i below; to avoid identifier clash */
+	for (int i = 0; i < VSG_MEMBERS; i++) 
 	    if (succflags[i]) {
 		// find the index in the update set 
 		vrent *vre = VRDB.find(Fid->Volume);
 		assert(vre);
 		(&(UpdateSet.Versions.Site0))[vre->index(succflags[i])] = 1;
 	    }
+    } /* drop scope for int i above; to avoid identifier clash */
 	AllocStoreId(&UpdateSet.StoreId);
 	
 	bzero(&sid, sizeof(SE_Descriptor));
@@ -798,9 +800,12 @@ PRIVATE int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGr
     }
   Exit:
     // free all the allocate dir bufs
-    for (i = 0 ; i < VSG_MEMBERS; i++) 
+  { /* drop scope for int i below; to avoid identifier clash */
+    for (int i = 0 ; i < VSG_MEMBERS; i++) 
 	if (dirbufs[i]) 
 	    free(dirbufs[i]);
+  } /* drop scope for int i above; to avoid identifier clash */
+
     LogMsg(0, SrvDebugLevel, stdout,
 	   "ResolveInc: returns(%d)\n",
 	   errorcode);

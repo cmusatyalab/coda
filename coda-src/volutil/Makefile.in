@@ -1,76 +1,74 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 4.0
-#
-#          Copyright (c) 1987-1996 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/volutil/RCS/GNUmakefile.in,v 1.1 1996/11/22 19:13:33 braam Exp braam $";
-#endif /*_BLURB_*/
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/volutil/Makefile.in,v 1.5 1997/01/06 21:28:28 rvb Exp";
 
 
-#/*
-#
-#                         IBM COPYRIGHT NOTICE
-#
-#                          Copyright (C) 1986
-#             International Business Machines Corporation
-#                         All Rights Reserved
-#
-#This  file  contains  some  code identical to or derived from the 1986
-#version of the Andrew File System ("AFS"), which is owned by  the  IBM
-#Corporation.    This  code is provded "AS IS" and IBM does not warrant
-#that it is free of infringement of  any  intellectual  rights  of  any
-#third  party.    IBM  disclaims  liability of any kind for any damages
-#whatsoever resulting directly or indirectly from use of this  software
-#or  of  any  derivative work.  Carnegie Mellon University has obtained
-#permission to distribute this code, which is based on Version 2 of AFS
-#and  does  not  contain the features and enhancements that are part of
-#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-#supported by Transarc Corporation, Pittsburgh, PA.
-#
-#*/
+# 
+#                          IBM COPYRIGHT NOTICE
+# 
+#                           Copyright (C) 1986
+#              International Business Machines Corporation
+#                          All Rights Reserved
+# 
+# This  file  contains  some  code identical to or derived from the 1986
+# version of the Andrew File System ("AFS"), which is owned by  the  IBM
+# Corporation.    This  code is provded "AS IS" and IBM does not warrant
+# that it is free of infringement of  any  intellectual  rights  of  any
+# third  party.    IBM  disclaims  liability of any kind for any damages
+# whatsoever resulting directly or indirectly from use of this  software
+# or  of  any  derivative work.  Carnegie Mellon University has obtained
+# permission to distribute this code, which is based on Version 2 of AFS
+# and  does  not  contain the features and enhancements that are part of
+# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+# supported by Transarc Corporation, Pittsburgh, PA.
+# 
 
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-RP2FLAGS += -n
-CC=g++
 
+EXECUTABLES = volutil parserecdump backup readdump merge
+SSBINS      = $(EXECUTABLES)
+LIBRARIES   = libvolutil.a libvolserv.a
+HEADERS     = volutil.private.h
+RP2FILES    = $(VOLUTIL_RPC2) $(VOLDUMP_RPC2)
+RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 LIBS =	${LIBVOL} \
 	${LIBVV} \
 	${LIBUTIL} \
 	${LIBRPC2} \
 	${LIBSE} \
+	$(LIBVICEDEP)\
 	${LIBCODARDS} \
 	${LIBSEG} \
 	${LIBCODARVM} \
@@ -79,48 +77,10 @@ LIBS =	${LIBVOL} \
 	${LIBMACH}  \
 	${LIBIFS}\
 	$(LIBCS)\
-         -lm  -lc
+	$(LIBCOMPAT)
+        
 
-
-# Keep these in alphabetical order, and 1 per line for easy
-# comparison with ls output 
-CFILES=	dumpstuff.cc \
-	listinodes.cc \
-	parserecdump.cc\
-	physio.cc \
-	readstuff.cc \
-	vol-ancient.cc \
-	vol-backup.cc \
-	vol-clone.cc \
-	vol-create.cc \
-	vol-dump.cc \
-	vol-dumpmem.cc  \
-	vol-elapse.cc \
-	vol-info.cc \
-	vol-lock.cc \
-	vol-lookup.cc   \
-	vol-makevldb.cc \
-	vol-makevrdb.cc \
-	vol-maxid.cc \
-	vol-peekpoke.cc \
-	vol-purge.cc \
-	vol-restore.cc \
-	vol-rvmsize.cc  \
-	vol-salvage.cc \
-	vol-setlogparms.cc  \
-	vol-setvv.cc \
-	vol-showvnode.cc \
-	vol-timing.cc \
-	vol-tracerpc.cc\
-	vol-printstats.cc\
-	vol-showcallbacks.cc\
-	vol-rvmtrunc.cc\
-	volclient.cc \
-	volutil.cc \
-	vvlist.cc
-
-
-HFILES= voldump.h volutil.h \
+HFILES= $(INCLDIR)/voldump.rpc2 $(INCLDIR)/volutil.rpc2 \
 	dump.h dumpstream.h vol-dumprecstore.h vol-rcvheap.h \
 	volutil.private.h vvlist.h \
 	${INCLDIR}/srv.h ${INCLDIR}/errors.h \
@@ -130,7 +90,7 @@ HFILES= voldump.h volutil.h \
 	${INCLDIR}/voldefs.h ${INCLDIR}/volinodes.h ${INCLDIR}/volume.h
 
 
-LOCALOBJS=readstuff.o dumpstuff.o vvlist.o
+LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
 
 # Keep these in alphabetical order, and 1 per line for easy
 # comparison with ls output 
@@ -163,50 +123,47 @@ VOLUTILOBJS = \
 	vol-printstats.o\
 	vol-showcallbacks.o\
 	vol-rvmtrunc.o\
-	volutil.o \
 	${LOCALOBJS}
 
-VOLCLIENTOBJS=volclient.o volutil.client.o voldump.server.o
+VOLCLIENTOBJS = volclient.o 
 
-OBJS=${VOLUTILOBJS} ${VOLCLIENTOBJS}
+OBJS =		${VOLUTILOBJS} ${VOLCLIENTOBJS}
 
-RP2FLAGS += -n
 
-EXECUTABLES = volutil parserecdump backup readdump merge
-LIBRARIES   = libvolutil.a 
-HEADERS     = volutil.private.h
-
-libvolutil.a:	${VOLUTILOBJS} volutil.server.o voldump.client.o
+libvolutil.a:	${VOLUTILOBJS} 
+libvolserv.a:   volutil.o
 
 parserecdump.o:	parserecdump.cc vol-dumprecstore.h
 
 local.a: ${LOCALOBJS}
 
-${OBJS}: ${HFILES}
-${LOCALOBJS}: ${HFILES}
-
-volutil.h volutil.client.c volutil.server.c: $(VOLUTIL_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
-voldump.h voldump.client.c voldump.server.c: $(VOLDUMP_RPC2)
-	${RP2GEN} ${RP2FLAGS} $<
+${OBJS} ${LOCALOBJS}: ${HFILES}
 
 vol-create.o: volutil.private.h 
 
 vol-newvldb: vol-newvldb.sh
 
-volutil:    ${VOLCLIENTOBJS}
-	${CXX} $(CXXFLAGS) $(LIBFLAGS) -o volutil $? ${LIBS} 
+volutil:    ${VOLCLIENTOBJS} ${LIBS}
+	${CXX} $(LIBFLAGS) ${VOLCLIENTOBJS} ${LIBS} -o volutil
 
-merge: merge.o dumpstream.o dumpstuff.o
-	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -o merge $? ${LIBS}
+merge:	merge.o dumpstream.o dumpstuff.o ${LIBS}
+	$(CXX) $(LIBFLAGS) merge.o dumpstream.o dumpstuff.o ${LIBS} -o merge
 
-backup: backup.o volutil.client.o voldump.server.o
-	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -o backup $? ${LIBS}
+backup: backup.o ${LIBS}
+	$(CXX) $(LIBFLAGS) backup.o ${LIBS} -lm -o backup
 
-readdump: readdump.o dumpstream.o dumpstuff.o
-	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -o readdump $? ${LIBS}
+readdump: readdump.o dumpstream.o dumpstuff.o ${LIBS}
+	$(CXX) $(LIBFLAGS) readdump.o dumpstream.o dumpstuff.o ${LIBS} -o readdump
 
-parserecdump:	parserecdump.o
-	$(CXX) $(CXXFLAGS) $(LIBFLAGS) -o parserecdump $? ${LIBS}
+parserecdump: parserecdump.o ${LIBS}
+	$(CXX) $(LIBFLAGS) parserecdump.o ${LIBS} -o parserecdump
 
 include $(TOPDIR)/Makerules
+
+
+
+
+
+
+
+

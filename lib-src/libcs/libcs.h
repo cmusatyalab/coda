@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: libcs.h,v 1.1 96/06/03 19:00:47 satya Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/libcs/libcs.h,v 1.2 1997/01/07 18:44:28 rvb Exp";
 #endif /*_BLURB_*/
 
 #ifndef	_LIBCS_H_
@@ -84,7 +84,7 @@ extern char *nxtarg __P((char **, const char *));
 extern char *getstr __P((const char *, const char *, char *));
 extern int getstab __P((const char *, /* const */ char **, const char *));
 extern int getsearch __P((const char *, /* const */ char **, const char *));
-#ifdef	MACH
+#ifdef	__MACH__
 extern char *strarg __P((char **, const char *, const char *, char *, char *));
 #else
 extern char *strarg __P((char **, const char *, const char *, const char *, char *));

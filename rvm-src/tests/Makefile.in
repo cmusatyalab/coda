@@ -1,5 +1,9 @@
-#ifndef _BLURB_
-#define _BLURB_
+#	Targets:
+# 		all (default):
+#			testrvm rvm_basher
+# 		install: 
+#			testrvm rvm_basher -> $(BINDIR)
+
 #
 #
 #     RVM: an Experimental Recoverable Virtual Memory Package
@@ -31,51 +35,40 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/tests/RCS/Makefile.in,v 1.2 1996/11/24 23:29:56 braam Exp $
+# rcsid = /afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/rvm-src/tests/Makefile.in,v 1.5 1997/01/06 21:29:10 rvb Exp
 #
-#endif _BLURB_
 
 #   	RVM Test Programs Makefile
 
-# get basic definitions
-# include ..$(ROOT)/build_defs
-
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
 include $(TOPDIR)/Makeconf
 
 EXECUTABLES = testrvm rvm_basher
+TESTS = testrvm rvm_basher
 
-RVMDIR = ${ROOT}/src/rvm
-SEGDIR = ${ROOT}/src/seg
-RDSDIR = ${ROOT}/src/rds
-RVMOBJDIR = ${ROOT}/obj/rvm
-SEGOBJDIR = ${ROOT}/obj/seg
-RDSOBJDIR = ${ROOT}/obj/rds
-PLUMBLIB  = /coda/project/coda/alpha/LIB-SPECIAL
-LWPLIB    = ${ROOT}/LWPROOT/lib
-LIBFLAGS  := ${LIBFLAGS} ${LIBCOMPAT}
-cc = ${CC}
+TESTRVM_LIBS    = $(LIBRVM) $(LIBCOMPAT) $(LIBMACH)
+RVM_BASHER_LIBS = $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBCOMPAT) $(LIBMACH)
+LWP_BASHER_LIBS = $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) \
+		  $(LIBPLUMBER) $(LIBMACH)
+
 # CFLAGS = -g3 -O2 -I/afs/cs.cmu.edu/user/tilt/rvm-top/include
-
-# tests definitions
-HFILES = $(RVMDIR)/rvm.h $(RVMDIR)/rvm_statistics.h $(RDSDIR)/rds.h $(SEGDIR)/rvm_segment.h
 
 # build simple RVM test program
 testrvm.o: testrvm.h testrvm.c
 
-testrvm: testrvm.h testrvm.o
-	$(cc) $(CFLAGS) -o testrvm testrvm.o $(LIBRVM) $(LIBFLAGS)
+testrvm: testrvm.h testrvm.o $(TESTRVM_LIBS)
+	$(CC) $(LIBFLAGS) testrvm.o $(TESTRVM_LIBS) -o testrvm
 
 # build better test program using seg and rds
 rvm_basher.o:	rvm_basher.c 
 
-rvm_basher: rvm_basher.o 
-	$(cc) $(CFLAGS) -o rvm_basher rvm_basher.o  $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBFLAGS)
+rvm_basher: rvm_basher.o $(RVM_BASHER_LIBS)
+	$(CC) $(LIBFLAGS) rvm_basher.o $(RVM_BASHER_LIBS) -o rvm_basher
 
 # Coda-specific installations
 
@@ -85,8 +78,8 @@ lwp_basher.o:	rvm_basher.c
 	mv rvm_basher.o lwp_basher.o
 	-mv xxx_basher.o rvm_basher.o
 
-lwp_basher: lwp_basher.o 
-	    $(cc) $(CFLAGS) -o lwp_basher lwp_basher.o $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBOLDLWP) $(LIBFLAGS) $(PLUMBLIB)/libplumber.a  -lmach
+lwp_basher: lwp_basher.o $(LWP_BASHER_LIBS)
+	    $(CC) $(LIBFLAGS) lwp_basher.o $(LWP_BASHER_LIBS) -o lwp_basher
 
 installlwpfiles:
 	$(INSTALL) lwp_basher $(BINDIR)
@@ -103,3 +96,4 @@ installlwp:
 lwp:	lwp_basher
 
 include $(TOPDIR)/Makerules
+

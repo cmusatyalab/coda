@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/libal/prs.h,v 1.1.1.1 1996/11/22 19:08:39 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define _PRS_
 
 
-#define PRS_VERSION "$Header: prs.h,v 1.1 96/11/22 13:29:02 raiff Exp $"
+#define PRS_VERSION "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/libal/prs.h,v 1.1.1.1 1996/11/22 19:08:39 rvb Exp"
 
 #define PRS_MAXNAMELEN 100    /*Maximum length of group and user names*/
 

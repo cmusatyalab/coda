@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/vol_vsr.cc,v 1.3 1997/01/07 18:42:37 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -53,21 +53,23 @@ extern "C" {
 
 #ifdef __MACH__
 #include <sys/dk.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 #include <sys/dkstat.h>
 #endif __NetBSD__
-#ifdef LINUX
+#ifdef	__linux__
 #include "dkstat.h"
 #endif 
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
+
+#include <fcntl.h>
 
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
@@ -243,7 +245,7 @@ void volent::InitStatsVSR(vsr *v) {
     InitStats->BytesBackFetched = BytesBackFetched;
 
     /* Get CPU data */
-#ifndef LINUX
+#ifndef	__linux__
     if(VmonKmem == 0) {
 	nlist("/vmunix", RawStats);
 	if(RawStats[0].n_type == 0) {
@@ -304,7 +306,7 @@ void volent::UpdateStatsVSR(vsr *v) {
     Stats->BytesBackFetched = BytesBackFetched - InitStats->BytesBackFetched;
 
     /* Gather CPU usage */
-#ifndef LINUX
+#ifndef	__linux__
     if (VmonKmem == 0) {
 	nlist("/vmunix", RawStats);
 	if(RawStats[0].n_type == 0) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso1.cc,v 1.2 1996/11/22 20:50:15 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/fso1.cc,v 1.2 1997/01/07 18:42:01 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
-#ifdef LINUX
+#ifdef	__linux__
 #include <venus-dirent.h>  /* the new fashion: platform independent VFS for Venus */
 #endif
 #ifdef __NetBSD__
@@ -69,7 +69,7 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 #include <unistd.h>
 #include <stdlib.h>
@@ -2195,7 +2195,7 @@ void fsobj::GetVattr(struct vattr *vap) {
     vap->va_rdev = 1;
 #ifdef __MACH__
     vap->va_blocks = NBLOCKS(vap->va_size) << 1;    /* 512 byte units! */
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
     vap->va_bytes = vap->va_size;
 #endif __NetBSD__

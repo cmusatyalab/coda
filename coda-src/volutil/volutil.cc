@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/volutil/volutil.cc,v 1.4 1997/01/07 18:43:56 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -52,10 +52,18 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
-#include <libc.h>
-#include <sysent.h>
 #include <ctype.h>
 #include <errno.h>
+
+#ifdef __MACH__
+#include <libc.h>
+#include <sysent.h>
+#endif /* __MACH__ */
+
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || LINUX */
 
 #include <lwp.h>
 #include <lock.h>
@@ -154,7 +162,7 @@ void VolUtilLWP(int *myindex) {
 	    LogMsg(5, SrvDebugLevel, stdout, "VolUtilWorker %d received request %d",
 				lwpid, myrequest->Header.Opcode);
 
-	    rc = volUtil_ExecuteRequest(mycid, myrequest, NULL);
+	    rc = volUtil_ExecuteRequest((RPC2_Handle)mycid, myrequest, NULL);
 	    if (rc) {
 		LogMsg(0, SrvDebugLevel, stdout, "volutil lwp %d: request %d failed with %s",
 			lwpid, myrequest->Header.Opcode, ViceErrorMsg(rc));

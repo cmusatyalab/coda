@@ -1,4 +1,8 @@
-# Master Coda Makeconf file
+#		 Master Coda Makeconf file
+# sets:
+#	VPATH, DIRS, FLAGS, LIBRARIES, <>_RPC2
+# includes:
+#	Makefile.setup,	configs/Makeconf.$(SYS)
 
 # 11/18/96 Created, Josh Raiff
 # 11/19/96 Modified, Peter Braam
@@ -7,46 +11,51 @@
 #########################################################
 #  Coda 4.0.1 build environment
 #  little here should need editing
-#  platform dependent stuff, included at the end is found in ./configs/ 
-#  
-#
 #########################################################
 
 include $(TOPOBJ)/Makeconf.setup
+include $(TOPDIR)/configs/Makeconf.$(SYS)
 
 ##############################
 # tools
 ##############################
 
-ALPHACI=$(TOPDIR)/tools/alphaci
+ALPHACI = $(TOPDIR)/tools/alphaci
 
 
 ##############################
 # VPATH
 ##############################
 
-
 # edit VPATH appropiately
 
 ifneq ($(SECSRC),)
-VPATHTAIL:= $(subst $(TOPDIR),,$(VPATH))
+VPATHTAIL := $(subst $(TOPDIR),,$(VPATH))
 OLDVPATH := $(VPATH)
-NEWVPATH:= $(SECSRC)$(VPATHTAIL):$(VPATH)
-VPATH:=$(NEWVPATH)
+NEWVPATH := $(SECSRC)$(VPATHTAIL):$(VPATH)
+VPATH := $(NEWVPATH)
 endif
 
 ifneq ($(VPATH),)
 colon=:
-SHADOWINCLS:= -I$(subst $(colon), -I,$(VPATH))
-SHADOWRP2 := ../vicedep $(subst $(colon),../vicedep ,$(VPATH))
+SHADOWINCLS := -I$(subst $(colon), -I,$(VPATH))
 endif
-
 
 ##############################
 # Location of objects
 ##############################
-ifeq ($(SHOB),)
 
+ifeq	($(origin BLD),environment)
+rel = no
+else
+ ifeq	($(SHOB),)
+ rel = yes
+ else
+ rel = no
+ endif
+endif
+
+ifeq ($(rel),yes)
 INCLDIR=$(TOPOBJ)/include
 INCLSPECIAL=$(INCLDIR)
 RP2GEN=../rp2gen/rp2gen
@@ -54,12 +63,16 @@ PCFGEN=../pcfgen/pcfgen
 
 else
 
+ifeq	($(SHOB),)
+ROOT:=$(TOPOBJ)/BLD/$(SYS)
+endif
+
 BINSPECIAL = ${ROOT}/BIN-SPECIAL
 BINDIR = ${ROOT}/bin
 LIBSPECIAL = ${ROOT}/LIB-SPECIAL
 LIBDIR=	 ${ROOT}/lib
 INCLSPECIAL= ${ROOT}/INCLUDE-SPECIAL
-INCLDIR= ${ROOT}/include
+INCLDIR = ${ROOT}/include
 MANDIR = ${ROOT}/man
 SCRIPTDIR = ${BINDIR}
 DOCDIR = ${ROOT}/doc
@@ -68,14 +81,33 @@ RP2GEN = $(BINDIR)/rp2gen
 PCFGEN = $(BINDIR)/pcfgen
 
 endif
+##############################
+# Machine independent FLAGS
+##############################
+
+CC = gcc
+CXX = g++
+INSTALL = cp -p
+
+INCLFLAGS := -I- -I. -I$(INCLDIR) -I$(INCLSPECIAL) $(SHADOWINCLS) $(INCLFLAGS)
+DEPFLAG   :=
+MYFLAGS   :=
+OPTFLAG   := -O
+LIBFLAGS  :=
+AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
+CFLAGS	  := $(OPTFLAG) $(AFLAGS) -DPRIVATE=static
+CXXFLAGS  := $(CFLAGS)
+C++FLAGS  := $(CFLAGS)	# Mach uses c++ flags, not CXX
+
+RP2FLAGS  = -n -I . -I $(srcdir) -I $(INCLDIR)
 
 ##############################
 # Library definitions
 ##############################
-ifeq ($(SHOB),)
+ifneq	($(origin BLD),environment)
 
 ##############################
-# CASE 1: no shared object directory
+# CASE 1: use binaries and libraries from tree
 ##############################
 
 # -- IFS --
@@ -104,8 +136,10 @@ LIBCODARDS = $(LIBRDSLWP)
 LIBCODASYS =../sys/libcodasys.a   # --- (pioctl, setpag)
 LIBAUTH2 =../auth2/libauth2.a
 LIBAL = ../libal/libal.a
-LIBVOLUTIL =../volutil/libvolutil.a
 LIBVOL = ../vol/libvol.a
+LIBVICEDEP= ../vicedep/libvicedep.a
+LIBVOLUTIL =../volutil/libvolutil.a
+LIBVOLSERV =../volutil/libvolserv.a
 LIBVV = ../vv/libvv.a
 LIBRESOLVE =../resolve/libresolve.a
 LIBRESLIB =../res/libreslib.a
@@ -115,6 +149,7 @@ LIBSE =../rpc2/libse.a
 LIBFAIL =../fail/libfail.a
 LIBRVMRES =../rvmres/librvmres.a
 LIBDIRLIB= ../dir/libdir.a
+LIBVICEERROR  = ../vice/libviceerror.a
 # LIBSETPAG= ../sys/libsetpag.a
 # LIBMTCORE =../??/libmtcore.a
 # LIBCOMM =/libcomm.a
@@ -132,58 +167,64 @@ VOLUTIL_RPC2 = ../vicedep/volutil.rpc2
 RES_RPC2 = ../vicedep/res.rpc2
 ADMON_RPC2 = ../vicedep/admon.rpc2
 ADSRV_RPC2 = ../vicedep/adsrv.rpc2
-vpath %.rpc2 $(SHADOWRP2)        # needed to pick up "shared" rpc2's
+	# needed to pick up "shared" rpc2's
+vpath %.rpc2 $(SHADOWRP2)
 
 else
 ##############################
 # CASE 2: using shared SHOBJ
 ##############################
+
 # -- IFS --
 # platform dependent: choice from user level and kernel level version
 # defined in configs/Makeconf.$(SYS)
 
 # -- CS --
-LIBCS     =$(LIBSPECIAL)/libcs.a
+LIBCS = $(LIBSPECIAL)/libcs.a
 
 # -- LWP --
-# LIBNEWLWP =${LIBSPECIAL}/libnewlwp.a	(should not be used)
-LIBOLDLWP =${LIBSPECIAL}/liboldlwp.a			
+# LIBNEWLWP = ${LIBSPECIAL}/libnewlwp.a	(should not be used)
+LIBOLDLWP = ${LIBSPECIAL}/liboldlwp.a			
 
 # -- RVM --
-LIBRVM= $(LIBSPECIAL)/librvm.a
-LIBRDS= $(LIBSPECIAL)/librds.a	 		
+LIBRVM = $(LIBSPECIAL)/librvm.a
+LIBRDS = $(LIBSPECIAL)/librds.a	 		
 # threaded
 LIBRVMLWP = $(LIBSPECIAL)/librvmlwp.a		
 LIBRDSLWP = $(LIBSPECIAL)/librdslwp.a
 # libseg doesn't use threads.
-LIBSEG= $(LIBSPECIAL)/libseg.a 			
+LIBSEG = $(LIBSPECIAL)/libseg.a 			
 
 # -- CODA --
 LIBCODARVM = $(LIBRVMLWP)
 LIBCODARDS = $(LIBRDSLWP)
-LIBCODASYS =$(LIBDIR)/libcodasys.a   # --- (pioctl, setpag)
-LIBAUTH2 =$(LIBDIR)/libauth2.a
+LIBCODASYS = $(LIBDIR)/libcodasys.a   # --- (pioctl, setpag)
+LIBAUTH2 = $(LIBDIR)/libauth2.a
 LIBAL = $(LIBDIR)/libal.a
-LIBVOLUTIL =${LIBDIR}/libvolutil.a
 LIBVOL = ${LIBDIR}/libvol.a
+LIBVICEDEP= $(LIBDIR)/libvicedep.a
+LIBVOLUTIL = ${LIBDIR}/libvolutil.a
+LIBVOLSERV = ${LIBDIR}/libvolserv.a
 LIBVV = $(LIBDIR)/libvv.a
-LIBRESOLVE =$(LIBDIR)/libresolve.a
-LIBRESLIB =${LIBDIR}/libreslib.a
-LIBGROUP =$(LIBDIR)/libgroup.a
-LIBUTIL =$(LIBDIR)/libutil.a
-LIBRPC2 =$(LIBDIR)/librpc2.a
-LIBRPCLIB =$(LIBDIR)/librpclib.a
-LIBSE =$(LIBDIR)/libse.a
-LIBFAIL =$(LIBDIR)/libfail.a
-LIBMTCORE =$(LIBSPECIAL)/libmtcore.a
-LIBCOMM =$(LIBDIR)/libcomm.a
-LIBRVMRES =$(LIBDIR)/librvmres.a
-LIBDIRLIB=$(LIBDIR)/libdir.a
-LIBSETPAG=      $(LIBDIR)/libsetpag.a
+LIBRESOLVE = $(LIBDIR)/libresolve.a
+LIBRESLIB = ${LIBDIR}/libreslib.a
+LIBGROUP = $(LIBDIR)/libgroup.a
+LIBUTIL = $(LIBDIR)/libutil.a
+LIBRPC2 = $(LIBDIR)/librpc2.a
+LIBRPCLIB = $(LIBDIR)/librpclib.a
+LIBSE = $(LIBDIR)/libse.a
+LIBFAIL = $(LIBDIR)/libfail.a
+LIBMTCORE = $(LIBSPECIAL)/libmtcore.a
+LIBCOMM = $(LIBDIR)/libcomm.a
+LIBRVMRES = $(LIBDIR)/librvmres.a
+LIBDIRLIB= $(LIBDIR)/libdir.a
+LIBSETPAG = $(LIBDIR)/libsetpag.a
+LIBVICEERROR  = $(LIBDIR)/libviceerror.a
 
 ##############################
 # RPC2 interface definitions in module vicedep
 ##############################
+
 CALLBACK_RPC2 = $(INCLDIR)/callback.rpc2
 MOND_RPC2 = $(INCLDIR)/mond.rpc2
 VCRCOMMON_RPC2 = $(INCLDIR)/vcrcommon.rpc2
@@ -194,15 +235,11 @@ RES_RPC2 = $(INCLDIR)/res.rpc2
 ADMON_RPC2 = $(INCLDIR)/admon.rpc2
 ADSRV_RPC2 = $(INCLDIR)/adsrv.rpc2
 
-vpath %.rpc2 $(INCLDIR)        # needed to pick up "shared" rpc2's
+ifneq	($(origin BLD),environment)
+	# needed to pick up "shared" rpc2's
+vpath %.rpc2 $(INCLDIR)
+endif
 
 endif
 
-# Just include the system Makeconf
-include $(TOPDIR)/configs/Makeconf.$(SYS)
-
-# Force all to be the first target
 all:
-
-
-

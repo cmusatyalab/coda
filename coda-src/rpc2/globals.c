@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rpc2/globals.c,v 1.1.1.1 1996/11/22 19:07:20 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -132,7 +132,7 @@ long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
 
-char *rpc2_LastEdit = "$Header: globals.c,v 1.1 96/11/22 13:26:19 raiff Exp $";
+char *rpc2_LastEdit = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rpc2/globals.c,v 1.1.1.1 1996/11/22 19:07:20 rvb Exp";
 
 long rpc2_errno;
 

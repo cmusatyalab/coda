@@ -1,61 +1,47 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 4.0
-#
-#          Copyright (c) 1987-1996 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/rvmres/RCS/Makefile.in,v 1.1 1996/12/09 14:40:53 raiff Exp braam $";
-#endif /*_BLURB_*/
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rvmres/Makefile.in,v 1.4 1997/01/06 21:27:59 rvb Exp";
 
 
-
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-CC=g++
-RP2FLAGS := -n $(RP2FLAGS)
-
-RVMRESOBJS=ops.o recle.o recov_vollog.o rsle.o rvmrescoord.o \
-	compops.o parselog.o ruconflict.o subresphase2.o subresphase3.o \
-	subresphase34.o subresphase4.o rename.o subpreres.o resstats.o\
-	 resfile.o 
-
-CFILES=ops.cc recle.cc recov_vollog.cc rsle.cc rvmrescoord.cc \
-	compops.cc parselog.cc ruconflict.cc rvmrescoord.cc subresphase2.cc \
-	subresphase3.cc subresphase34.cc subresphase4.cc rename.cc \
-	subpreres.cc resstats.cc resfile.cc
-
-HEADERS=ops.h recle.h rsle.h compops.h parselog.h ruconflict.h resstats.h
 
 LIBRARIES = librvmres.a
+HEADERS	  = ops.h recle.h rsle.h compops.h parselog.h ruconflict.h resstats.h
+
+RVMRESOBJS = ops.o recle.o recov_vollog.o rsle.o rvmrescoord.o \
+	     compops.o parselog.o ruconflict.o subresphase2.o subresphase3.o \
+	     subresphase34.o subresphase4.o rename.o subpreres.o resstats.o\
+	     resfile.o 
 
 librvmres.a:	${RVMRESOBJS}
 
@@ -84,8 +70,4 @@ rename.o: ruconflict.h ops.h rsle.h
 
 resstats.o: resstats.h 
 
-clean:
-	rm -f *.o 
-
 include $(TOPDIR)/Makerules
-

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/kernel-src/ifs/mach/RCS/ilib.s,v 1.1 1996/11/22 13:39:40 raiff Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/kernel-src/ifs/mach/ilib.s,v 1.2 1996/12/23 03:45:23 rvb Exp";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -127,12 +127,19 @@ SYSCALL(idec)
 #endif
 
 #ifdef	i386
-#include <sys/syscall.h>
+#include <syscall.h>
 #include <machine/asm.h>
 #ifndef __NetBSD__
+#undef EXT
+#define ALIGN 2
+#define	LCL(x)	x
 #ifdef __STDC__
+#define EXT(x) _ ## x
+#define	ENTRY(x)	.globl EXT(x); .align ALIGN; EXT(x):
 #define SYSCALL(x)	ENTRY(x); movl	$SYS_ ## x, %eax; SVC; jb LCL(cerror)
 #else
+#define EXT(x) _/**/x
+#define	ENTRY(x)	.globl EXT(x); .align ALIGN; EXT(x):
 #define SYSCALL(x)	ENTRY(x); movl	$(SYS_/**/x), %eax; SVC; jb LCL(cerror)
 #endif
 #else	__NetBSD__

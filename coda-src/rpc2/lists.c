@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rpc2/lists.c,v 1.2 1997/01/07 18:41:18 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -174,7 +174,7 @@ struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
 	slConn->MySl = sl;
 	sl->Conn = slConn->UniqueCID;
 	}
-#ifdef LINUX
+#ifdef	__linux__
     else sl->Conn = 0;
 #else
     else sl->Conn = NULL;
@@ -196,7 +196,7 @@ struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
     tsl = *sl;
     assert(tsl->MagicNumber == OBJ_SLENTRY);
 
-#ifdef LINUX
+#ifdef	__linux__
     if (tsl->Conn != 0)
 #else
       if (tsl->Conn != NULL)

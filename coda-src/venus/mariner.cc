@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/mariner.cc,v 1.2 1997/01/07 18:42:10 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -59,12 +59,12 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
-#ifdef LINUX
+#ifdef	__linux__
 
 #include <linux/fs.h>
 
@@ -230,7 +230,7 @@ void MarinerReport(ViceFid *fid, vuid_t vuid) {
 		m->u.u_cred.cr_uid = (uid_t)vuid;
 #ifdef __MACH__
 		m->u.u_cred.cr_ruid = (uid_t)vuid;
-#endif __MACH__
+#endif /* __MACH__ */
 		len = MAXPATHLEN;
 		m->GetPath(fid, buf, &len);
 		if (m->u.u_error == 0) {
@@ -511,11 +511,11 @@ void mariner::PathStat(char *path) {
     u.u_cred.cr_uid = (uid_t)V_UID;
 #ifdef __MACH__
     u.u_cred.cr_ruid = (uid_t)V_UID;
-#endif __MACH__
+#endif /* __MACH__ */
     u.u_cred.cr_gid = (gid_t)V_GID;
 #ifdef __MACH__
     u.u_cred.cr_rgid = (gid_t)V_GID;
-#endif __MACH__
+#endif /* __MACH__ */
     u.u_priority = 0;
     u.u_cdir = rootfid;
     u.u_nc = 0;
@@ -541,11 +541,11 @@ void mariner::FidStat(ViceFid *fid) {
     u.u_cred.cr_uid = (uid_t)V_UID;
 #ifdef __MACH__
     u.u_cred.cr_ruid = (uid_t)V_UID;
-#endif __MACH__
+#endif /* __MACH__ */
     u.u_cred.cr_gid = (gid_t)V_GID;
 #ifdef __MACH__
     u.u_cred.cr_rgid = (gid_t)V_GID;
-#endif __MACH__
+#endif /* __MACH__ */
     u.u_priority = FSDB->MaxPri();
 
     fsobj *f = 0;

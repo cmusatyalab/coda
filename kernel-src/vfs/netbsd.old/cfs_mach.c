@@ -22,7 +22,7 @@
  */
 
 /* Mach-specific routines for the cfs code */
-#ifdef MACH
+#ifdef	__MACH__
 
 #include <cfs/cfs.h>
 #include <cfs/cfs_vnodeops.h>

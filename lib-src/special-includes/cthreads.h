@@ -6,7 +6,13 @@
  */
 /*
  * HISTORY
- * $Log:	cthreads.h,v $
+ * cthreads.h,v
+ * Revision 1.1.1.1  1996/11/22 19:19:06  rvb
+ *  almost done
+ *
+ * Revision 1.1  1996/11/22 19:19:06  braam
+ * First Checkin (pre-release)
+ *
  * Revision 1.8  90/11/02  16:46:37  mrt
  * 	Changed declaration of chtread_init from void to extern to agree
  * 	with the Mach 3.0 cthreads package.

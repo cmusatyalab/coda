@@ -1,7 +1,14 @@
-# Generated automatically from Makefile.in by configure.
-#ifndef _BLURB_
-#define _BLURB_
-#/*
+# TARGETS:
+#	install:
+#		lock.h lwp.h lwp.camelot.h preempt.h timer.h cargs.h ->$(INCLSPECIAL)
+#		liboldlwp.a -> $(LIBSPECIAL)
+#		test rw -> $(BINDIR)
+#	 all:
+#		liboldlwp.a
+#		test rw
+#	unbuilt:
+#		tdb libnewlwp.a newtest newrw neqtdb
+
 #
 #            Coda: an Experimental Distributed File System
 #                             Release 4.0
@@ -9,131 +16,99 @@
 #          Copyright (c) 1987-1996 Carnegie Mellon University
 #                         All Rights Reserved
 #
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
 #
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
 #
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/lib-src/mlwp/RCS/Makefile.in,v 1.1 1996/12/07 20:27:37 braam Exp braam $";
-#endif /*_BLURB_*/
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/mlwp/Makefile.in,v 1.3 1997/01/06 21:28:59 rvb Exp";
 
 TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
-
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
+
+# presto changeo!
 LIBDIR := $(LIBSPECIAL)
 INCLDIR := $(INCLSPECIAL)
 
 LIBRARIES = liboldlwp.a
-TESTS = test rw  # tdb doesn't work yet
+HEADERS   = lock.h lwp.h lwp.camelot.h preempt.h timer.h cargs.h
+TESTS     = test rw  # tdb doesn't work yet
 
-# Relevant files
+OLD_LIBS = liboldlwp.a $(LIBCOMPAT) 
+NEW_LIBS = libnewlwp.a $(LIBCOMPAT)
+
 OFILES = lwp.o lock.o iomgr.o timer.o fasttime.o preempt.o process.o
-HFILES = lock.h lwp.h lwp.camelot.h preempt.h timer.h cargs.h
 PRIVHFILES = lwp.private.h
-HEADERS := $(HFILES)
-
-# Since we never use libnewlwp.a, don't compile it unless its asked for.
-
-CPP_pmax_mach  =/usr/cs/lib/cpp
-CPP_i386_mach  =/usr/cs/lib/cpp
-CPP_sun4_mach  =/usr/cs/lib/cpp
-CPP_alpha_osf20=cpp
-CPP_i386_nbsd1 =cpp
-CPP_i386_linux2 = /usr/bin/gcc -E -x c-header 
-CPP            =$(CPP_${SYS})
-
-LIBCOMPAT_pmax_mach  =
-LIBCOMPAT_i386_mach  =
-LIBCOMPAT_sun4_mach  =
-LIBCOMPAT_alpha_osf20=
-LIBCOMPAT_i386_nbsd1 = -lcompat
-LIBCOMPAT_i386 =
-LIBCOMPAT            = $(LIBCOMPAT_${SYS})
-
-# Coda installation
-MACHLIBS = $(MACHDIR)/lib/libthreads$(UNDERSCOREP).a $(MACHDIR)/lib/libmach$(UNDERSCOREP).a
-
-LIBS = $(LIBCOMPAT) 
 
 # Flags for old or new lwp
-
 oldFLAGS := -DOLDLWP
-CFLAGS := -DLWPDEBUG  $(CFLAGS)
-
-
-old: 
-	$(MAKE)  CFLAGS="$(CFLAGS) $(oldFLAGS)"  liboldlwp.a
-
-
-new:  clean
-	$(MAKE)  CFLAGS:="$(CFLAGS)"  libnewlwp.a
-	rm -f $(OFILES)
+CFLAGS := -DLWPDEBUG $(CFLAGS) $(oldFLAGS)
+AFLAGS := -DLWPDEBUG $(AFLAGS) $(oldFLAGS)
 
 # Coda Installation
-
-coda: old 
-
+old: liboldlwp.a
 liboldlwp.a: $(OFILES)
 
-# If building libnewlwp.a, clean up after yourself. 
-libnewlwp.a: $(OFILES)
+# Since we never use libnewlwp.a, don't compile it unless its asked for.
+new: libnewlwp.a
+# If building libnewlwp.a, clean up before and after yourself.
+# also flush -DOLDLWP by overriding oldFLAGS
+#libnewlwp.a: $(OFILES)
+libnewlwp.a:
+	$(RM) $(OFILES)
+	$(MAKE) oldFLAGS= $(OFILES)
+	$(AR) rv $@ $(OFILES)
+	ranlib $@
+	$(RM) $(OFILES)
 
-# The real stuff
-all:  warn
-
-warn:
+# Confusion
+confused:
 	@echo "Type 'make old' for liboldlwp.a, and"
 	@echo "Type 'make new' for libnewlwp.a."
 	@exit 1
 
 # Dependencies for object files
-$(OFILES):  $(HFILES) $(PRIVHFILES)
-
+$(OFILES):  $(HEADERS) $(PRIVHFILES)
 
 # Test programs
-test:	test.c liboldlwp.a
-	${CC} ${CFLAGS} $(oldFLAGS) $(srcdir)/test.c liboldlwp.a  $(LIBS) -o test
+test:	test.o $(OLD_LIBS)
+	${CC} ${LIBFLAGS} $(oldFLAGS) test.o $(OLD_LIBS) -o test
 
-tdb:	tdb.c liboldlwp.a
-	$(CC) $(CFLAGS) $(oldFLAGS) $(srcdir)/tdb.c liboldlwp.a $(LIBS) -o tdb 
+tdb:	tdb.o $(OLD_LIBS)
+	$(CC) $(LIBFLAGS) $(oldFLAGS) tdb.o $(OLD_LIBS) -o tdb 
 
-rw:	rw.c liboldlwp.a
-	$(CC) $(CFLAGS) $(oldFLAGS) $(srcdir)/rw.c liboldlwp.a $(LIBS) -o rw
+rw:	rw.o $(OLD_LIBS)
+	$(CC) $(LIBFLAGS) $(oldFLAGS) rw.o $(OLD_LIBS) -o rw
 
-newtest:test.c libnewlwp.a
+newtest:test.o $(NEW_LIBS)
 	rm test.o
-	${CC} ${CFLAGS}  $(srcdir)/test.c libnewlwp.a  $(LIBS) -o newtest
+	${CC} ${LIBFLAGS} test.o $(NEW_LIBS) -o newtest
 
-neqtdb:	tdb.c libnewlwp.a
+neqtdb:	tdb.o $(NEW_LIBS)
 	rm tdb.o
-	$(CC) $(CFLAGS) $(srcdir)/tdb.c libnewlwp.a $(LIBS) -o newtdb 
+	$(CC) $(LIBFLAGS) tdb.o $(NEW_LIBS) -o newtdb 
 
-newrw:	rw.c libnewlwp.a
+newrw:	rw.o $(NEW_LIBS)
 	rm rw.o
-	$(CC) $(CFLAGS) $(srcdir)/rw.c libnewlwp.a $(LIBS) -o newrw
+	$(CC) $(LIBFLAGS) rw.o $(NEW_LIBS) -o newrw
 
 include $(TOPDIR)/Makerules
-
-
-
-

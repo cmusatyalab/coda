@@ -1874,7 +1874,7 @@ cfs_strategy(bp, p)
    page_write()
 */
 
-#ifdef MACH
+#ifdef	__MACH__
 /*
  * read a logical block and return it in a buffer */
 int

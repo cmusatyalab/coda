@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/fail/fcon.c,v 1.2 1996/12/22 01:51:39 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -91,7 +91,7 @@ int Fcon_LWP()
 				   NULL, NULL, NULL)) < RPC2_WLIMIT)
 	    PrintRPCError(err, cid);
 	RPC2_SetColor(cid, FAIL_IMMUNECOLOR);
-	if ((err = Fcon_ExecuteRequest(cid, reqbuffer)) < RPC2_WLIMIT)
+	if ((err = Fcon_ExecuteRequest(cid, reqbuffer, (SE_Descriptor *) 0)) < RPC2_WLIMIT)
 	    PrintRPCError(err, cid);
     }
 }
@@ -123,7 +123,7 @@ RPC2_BoundedBS *name;
 long Fcon_InsertFilter(cid, side, which, filter)
 RPC2_Handle cid;
 FailFilterSide side;
-int which;
+RPC2_Integer which;
 FailFilter *filter;
 {
     return Fail_InsertFilter(side, which, filter);
@@ -132,7 +132,7 @@ FailFilter *filter;
 long Fcon_RemoveFilter(cid, side, id)
 RPC2_Handle cid;
 FailFilterSide side;
-int id;
+RPC2_Integer id;
 {
     return Fail_RemoveFilter(side, id);
 }
@@ -140,7 +140,7 @@ int id;
 long Fcon_ReplaceFilter(cid, side, id, filter)
 RPC2_Handle cid;
 FailFilterSide side;
-int id;
+RPC2_Integer id;
 FailFilter *filter;
 {
     return Fail_ReplaceFilter(side, id, filter);

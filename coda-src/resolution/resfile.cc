@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/rvmres/RCS/resfile.cc,v 1.3 1996/12/05 05:14:30 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/rvmres/resfile.cc,v 1.4 1997/01/07 20:48:03 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -50,7 +50,16 @@ extern "C" {
 #include <sys/stat.h>
 #include <assert.h>
 #include <stdio.h>
+
+#ifdef	__MACH__
 #include <libc.h>
+#endif	/* __MACH__ */
+
+#if defined(__linux__) || defined(__NetBSD__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || LINUX */
+
 #include <struct.h>
 
 #ifdef CAMELOT
@@ -528,7 +537,8 @@ PRIVATE int IncVVGroup(ViceVersionVector **VV, int *domindex) {
 	if (VV[i]) { *domindex = i; break;}
     if (*domindex == -1) return EINVAL;
 
-    for(i = *domindex; i < VSG_MEMBERS; i++){
+  { /* drop scope for int i below; to avoid identifier clash */
+    for(int i = *domindex; i < VSG_MEMBERS; i++){
 	if (VV[i] == NULL) continue;
 	int res = VV_Cmp(VV[i], VV[*domindex]);
 	if (res == VV_EQ) continue;
@@ -545,7 +555,7 @@ PRIVATE int IncVVGroup(ViceVersionVector **VV, int *domindex) {
 	if (res == VV_DOM)
 	    *domindex = i;
     }
-	
+  } /* drop scope for int i above; to avoid identifier clash */
     return(0);
 }
 

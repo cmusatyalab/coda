@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/sighand.cc,v 1.2 1997/01/07 18:42:11 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -58,8 +58,8 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
-#if __NetBSD__ || LINUX
+#endif /* __MACH__ */
+#if defined(__linux__) || defined(__NetBSD__)
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
@@ -99,7 +99,7 @@ PRIVATE void FatalSignal(int, int, struct sigcontext *);
 
 void SigInit() {
     /* Establish/Join our own process group to avoid extraneous signals. */
-#ifdef LINUX
+#ifdef	__linux__
         if (setpgrp() < 0)
 #else
                 if (setpgrp(0, getpid()) < 0)
@@ -111,7 +111,7 @@ void SigInit() {
     signal(SIGILL, (void (*)(int))ILL);		/* Choke */
     signal(SIGTRAP, (void (*)(int))TRAP);	/* Choke */
     signal(SIGIOT, (void (*)(int))IOT);		/* turn on profiling */
-#ifndef LINUX
+#ifndef	__linux__
     signal(SIGEMT, (void (*)(int))EMT);		/* turn off profiling */
 #endif
     /* SIGFPE is ignored for the short term */
@@ -119,7 +119,7 @@ void SigInit() {
     signal(SIGFPE, SIG_IGN);                    /* Ignore */
     signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
     signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
-#ifndef LINUX
+#ifndef	__linux__
     signal(SIGSYS, (void (*)(int))SYS);		/* set {COPmode, Mcast, DebugLevel} */
 #endif
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
@@ -165,7 +165,7 @@ PRIVATE void IOT(int sig, int code, struct sigcontext *contextPtr) {
     signal(SIGIOT, (void (*)(int))IOT);
 }
 
-#ifndef LINUX
+#ifndef	__linux__
 PRIVATE void EMT(int sig, int code, struct sigcontext *contextPtr) {
     if (Profiling)
 	ToggleProfiling();
@@ -188,7 +188,7 @@ PRIVATE void SEGV(int sig, int code, struct sigcontext *contextPtr) {
     FatalSignal(sig, code, contextPtr);
 }
 
-#ifndef LINUX
+#ifndef	__linux__
 PRIVATE void SYS(int sig, int code, struct sigcontext *contextPtr) {
     int RealSigSys = 1;
     struct stat tstat;
@@ -301,10 +301,10 @@ PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
 PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
     LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
 
-#ifdef	MACH
+#ifdef	__MACH__
     eprint("Fatal Signal (%d); pid %d becoming a zombie...", sig, getpid());
     task_suspend(task_self());
-#endif	MACH
+#endif	/* __MACH__ */
 
     /* Dump the process context. */
     {
@@ -314,7 +314,7 @@ PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
 #else	i386
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sc_pc);
 #endif	i386
-#ifdef LINUX
+#ifdef	__linux__
 	for (int i = 0; i < sizeof(struct sigaction) / sizeof(int); i++)
                 fprintf(logFile, "context[%d] = 0x%x\n", i, *((u_int *)contextPtr + i));
 #else
@@ -322,7 +322,7 @@ PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
                 fprintf(logFile, "context[%d] = 0x%x\n", i, *((u_int *)contextPtr + i));
 #endif
 
-#ifdef	MACH
+#ifdef	__MACH__
 /*
 	 task_t task = task_self();
 	 vm_address_t address = 0;
@@ -343,7 +343,7 @@ PRIVATE void FatalSignal(int sig, int code, struct sigcontext *contextPtr) {
 	     address += size;
 	 }
 */
-#endif	MACH
+#endif	/* __MACH__ */
 
 	fflush(logFile);
     }

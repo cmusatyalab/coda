@@ -1,74 +1,66 @@
-#ifndef _BLURB_
-#define _BLURB_
-#/*
-#
-#            Coda: an Experimental Distributed File System
-#                             Release 4.0
-#
-#          Copyright (c) 1987-1996 Carnegie Mellon University
-#                         All Rights Reserved
-#
-#Permission  to  use, copy, modify and distribute this software and its
-#documentation is hereby granted,  provided  that  both  the  copyright
-#notice  and  this  permission  notice  appear  in  all  copies  of the
-#software, derivative works or  modified  versions,  and  any  portions
-#thereof, and that both notices appear in supporting documentation, and
-#that credit is given to Carnegie Mellon University  in  all  documents
-#and publicity pertaining to direct or indirect use of this code or its
-#derivatives.
-#
-#CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-#SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-#FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-#DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-#RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
-#ANY DERIVATIVE WORK.
-#
-#Carnegie  Mellon  encourages  users  of  this  software  to return any
-#improvements or extensions that  they  make,  and  to  grant  Carnegie
-#Mellon the rights to redistribute these changes without encumbrance.
-#*/
-#
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/auth2/RCS/GNUmakefile.in,v 1.2 1996/11/24 00:50:15 braam Exp braam $";
-#endif /*_BLURB_*/
+# 
+#             Coda: an Experimental Distributed File System
+#                              Release 4.0
+# 
+#           Copyright (c) 1987-1996 Carnegie Mellon University
+#                          All Rights Reserved
+# 
+# Permission  to  use, copy, modify and distribute this software and its
+# documentation is hereby granted,  provided  that  both  the  copyright
+# notice  and  this  permission  notice  appear  in  all  copies  of the
+# software, derivative works or  modified  versions,  and  any  portions
+# thereof, and that both notices appear in supporting documentation, and
+# that credit is given to Carnegie Mellon University  in  all  documents
+# and publicity pertaining to direct or indirect use of this code or its
+# derivatives.
+# 
+# CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+# SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+# FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+# DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+# RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+# ANY DERIVATIVE WORK.
+# 
+# Carnegie  Mellon  encourages  users  of  this  software  to return any
+# improvements or extensions that  they  make,  and  to  grant  Carnegie
+# Mellon the rights to redistribute these changes without encumbrance.
+# 
+# static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/auth2/Makefile.in,v 1.4 1997/01/06 21:27:28 rvb Exp";
 
+# 
+#                          IBM COPYRIGHT NOTICE
+# 
+#                           Copyright (C) 1986
+#              International Business Machines Corporation
+#                          All Rights Reserved
+# 
+# This  file  contains  some  code identical to or derived from the 1986
+# version of the Andrew File System ("AFS"), which is owned by  the  IBM
+# Corporation.    This  code is provded "AS IS" and IBM does not warrant
+# that it is free of infringement of  any  intellectual  rights  of  any
+# third  party.    IBM  disclaims  liability of any kind for any damages
+# whatsoever resulting directly or indirectly from use of this  software
+# or  of  any  derivative work.  Carnegie Mellon University has obtained
+# permission to distribute this code, which is based on Version 2 of AFS
+# and  does  not  contain the features and enhancements that are part of
+# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
+# supported by Transarc Corporation, Pittsburgh, PA.
+# 
 
-
-
-
-#/*
-#
-#                         IBM COPYRIGHT NOTICE
-#
-#                          Copyright (C) 1986
-#             International Business Machines Corporation
-#                         All Rights Reserved
-#
-#This  file  contains  some  code identical to or derived from the 1986
-#version of the Andrew File System ("AFS"), which is owned by  the  IBM
-#Corporation.    This  code is provded "AS IS" and IBM does not warrant
-#that it is free of infringement of  any  intellectual  rights  of  any
-#third  party.    IBM  disclaims  liability of any kind for any damages
-#whatsoever resulting directly or indirectly from use of this  software
-#or  of  any  derivative work.  Carnegie Mellon University has obtained
-#permission to distribute this code, which is based on Version 2 of AFS
-#and  does  not  contain the features and enhancements that are part of
-#Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-#supported by Transarc Corporation, Pittsburgh, PA.
-#
-#*/
-
-
-
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-#Change this once rp2gen outputs .cc files
-CC = g++
+EXECUTABLES = auth2 authmon initpw au oldtokens
+SSBINS      = auth2 authmon initpw au
+LIBRARIES   = libauth2.a
+HEADERS     = auth2.h auth2.rpc2
+
+RP2FILES    = auth2.rpc2
+RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 LIBS=	${LIBRPC2}\
 	${LIBAL}\
@@ -77,18 +69,24 @@ LIBS=	${LIBRPC2}\
 	${LIBCODASYS} \
 	${LIBCOMPAT}
 
+libauth2.a: avice.o auser.o avenus.o auth2.server.o auth2.client.o
 
-# Identify files of interest
+auth2: auth2.o libauth2.a $(LIBS)
+	$(CXX) $(LIBFLAGS) auth2.o libauth2.a $(LIBS) -o auth2
 
-SOURCES=	au.cc		\
-		auser.cc	\
-		auth2.cc	\
-		authmon.cc	\
-		avenus.cc	\
-		avice.cc	\
-		initpw.cc	\
-		oldtokens.cc
+oldtokens: oldtokens.o libauth2.a $(LIBS)
+	$(CXX) $(LIBFLAGS) oldtokens.o libauth2.a $(LIBS) -o oldtokens
 
+authmon: authmon.o $(LIBS)
+	$(CXX) $(LIBFLAGS) authmon.o $(LIBS) -o authmon
+
+initpw: initpw.o $(LIBS)
+	$(CXX) $(LIBFLAGS) initpw.o $(LIBS) -o initpw
+
+au: au.o libauth2.a $(LIBS)
+	$(CXX) $(LIBFLAGS) au.o libauth2.a $(LIBS) -o au
+
+# Dependencies
 HFILES=	auth2.h			\
 	${INCLDIR}/rpc2.h	\
 	${INCLDIR}/se.h		\
@@ -96,48 +94,16 @@ HFILES=	auth2.h			\
 	${INCLDIR}/util.h	\
 	${INCLDIR}/al.h		\
 	${INCLDIR}/prs.h
-
-EXECUTABLES 	= auth2 authmon initpw au  oldtokens
-LIBRARIES 	= libauth2.a
-HEADERS 	= auth2.h auth2.rpc2
-
-RP2FLAGS := $(RP2FLAGS) -n
-
-libauth2.a: avice.o auser.o avenus.o auth2.server.o auth2.client.o
-
-auth2: auth2.o libauth2.a  
-	$(CXX)  auth2.o $(CXXFLAGS) libauth2.a $(LIBFLAGS) $(LIBS) -o auth2
-
-oldtokens: oldtokens.o libauth2.a  
-	$(CXX) $(CXXFLAGS) oldtokens.o libauth2.a $(LIBFLAGS) $(LIBS) -o oldtokens
-
-authmon: authmon.o
-	$(CXX) $(CXXFLAGS) authmon.o  $(LIBFLAGS) $(LIBS) -o authmon
-
-initpw: initpw.o 
-	$(CXX) $(CXXFLAGS) initpw.o  $(LIBFLAGS) $(LIBS) -o initpw
-
-au: au.o libauth2.a 
-	$(CXX) $(CXXFLAGS) au.o libauth2.a $(LIBFLAGS) $(LIBS) -o au
-
-auth2.h auth2.server.c auth2.client.c: auth2.rpc2
+auth2.h auth2.server.cc auth2.client.cc: auth2.rpc2
 auth2.o: auth2.h auth2.cc
 oldtokens.o: oldtokens.cc  $(HFILES)
 authmon.o: authmon.cc
 avice.o: avice.cc $(HFILES)
 auser.o: auser.cc $(HFILES)
 avenus.o: avenus.cc $(HFILES)
-auth2.server.o: auth2.server.c $(HFILES)
-auth2.client.o: auth2.client.c $(HFILES)
+auth2.server.o: auth2.server.cc $(HFILES)
+auth2.client.o: auth2.client.cc $(HFILES)
 initpw.o: initpw.cc $(HFILES)
 au.o:	au.cc $(HFILES)
 
-clean:
-	rm -f *.o *.a auth2.h auth2.client.c auth2.server.c auth2.mutli.c \
-	      $(EXECUTABLES)
-
 include $(TOPDIR)/Makerules
-
-
-
-

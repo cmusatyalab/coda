@@ -32,7 +32,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: tracelib.h,v 1.1 96/11/22 13:33:14 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/tracelib.h,v 1.1.1.1 1996/11/22 19:11:38 rvb Exp";
 #endif _BLURB_
 
 /* 

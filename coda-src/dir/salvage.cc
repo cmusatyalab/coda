@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/dir/RCS/salvage.cc,v 1.1 1996/11/22 19:07:04 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/dir/salvage.cc,v 1.2 1997/01/07 18:40:36 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -70,7 +70,7 @@ extern "C" {
 #include <string.h>
 #ifdef __MACH__
 #include <libc.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 #include <stdlib.h>
 #endif __NetBSD__
@@ -229,7 +229,7 @@ int DirOK (long *file){
 
     /* Now the new allocation map has been computed.  Check that it matches the old one.  Note that if this matches, alloMap has already been checked against it. */
     for(i=0; i<usedPages; i++)
-#ifdef LINUX
+#ifdef	__linux__
         {pp = (struct PageHeader *)DRead(file, i);
 #else
         {pp = (PageHeader *)DRead(file, i);

@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/scripts/makebeta,v 1.1.1.1 1996/11/22 19:06:52 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: makebeta,v 1.1 96/11/22 13:25:39 raiff Exp $";
+#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/scripts/makebeta,v 1.1.1.1 1996/11/22 19:06:52 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -214,7 +214,7 @@ if ($reply == "y") break
 end
 endif
 
-### Create RCS branches and re-checkout to set $Header: makebeta,v 1.1 96/11/22 13:25:39 raiff Exp $ correctly
+### Create RCS branches and re-checkout to set /afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/scripts/makebeta,v 1.1.1.1 1996/11/22 19:06:52 rvb Exp correctly
 # The contents of BETA are now known to be correct
 
 echo " "

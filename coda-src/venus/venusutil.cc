@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venusutil.cc,v 1.1 1996/11/22 19:11:18 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/venusutil.cc,v 1.2 1997/01/07 18:42:20 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -62,7 +62,7 @@ extern "C" {
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
-#endif __MACH__
+#endif /* __MACH__ */
 #ifdef __NetBSD__
 #include <unistd.h>
 #include <stdlib.h>
@@ -558,7 +558,7 @@ extern unsigned end;
     fdprint(afd, "\tsegment sizes = (%#08x, %#08x, %#08x, %#08x)\n",
 	     etext, edata - etext, end - edata, sbrk(0) - end);
 
-#ifdef	MACH
+#ifdef	__MACH__
     /* Mach statistics. */
     fdprint(afd, "Mach Rusage:\n");
     vm_task_t target_task = task_self();
@@ -600,14 +600,14 @@ extern unsigned end;
 	totalsize += size;
     }
     fdprint(afd, "\ttotal VM allocated = %#08x\n", totalsize);
-#endif	MACH
+#endif	/* __MACH__ */
 
     fdprint(afd, "\n");
 }
 
 
 int VMUsage() {
-#ifdef	MACH
+#ifdef	__MACH__
     vm_task_t target_task = task_self();
     int region = 0;
     vm_address_t address = 0;
@@ -633,7 +633,7 @@ int VMUsage() {
     return(totalsize);
 #else	MACH
     return(0);
-#endif	MACH
+#endif	/* __MACH__ */
 }
 
 
@@ -867,7 +867,7 @@ void StatsInit() {
    pjb
    */
 void ProfInit() {
-#ifndef LINUX
+#ifndef	__linux__
 #if !defined(mips) && !defined(sparc) && !defined(sun4)
     moncontrol(0);   /* not available on mips, sun/sparc */
 #endif
@@ -878,7 +878,7 @@ void ProfInit() {
 
 void ToggleProfiling() {
     Profiling = 1 - Profiling;
-#ifndef LINUX
+#ifndef	__linux__
 #if !defined(mips) && !defined(sparc) && !defined(sun4)
     moncontrol(Profiling);
 #endif

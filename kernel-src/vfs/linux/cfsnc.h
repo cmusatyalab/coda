@@ -64,7 +64,7 @@
 #include <sys/user.h>
 #include <rpc/types.h>
 #include <rpc/xdr.h>
-#ifndef LINUX
+#ifndef	__linux__
 #include <cfs/cfs.h>
 #include <cfs/cnode.h>
 #endif 
@@ -83,7 +83,7 @@ typedef struct ViceFid {
 #endif	not VICEFID_DEFINED
 
 #else	KERNEL
-#ifndef LINUX
+#ifndef	__linux__
 #include <vfs/vfs.h>
 #include <vfs/vnode.h>
 #else

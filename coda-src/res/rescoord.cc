@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/res/rescoord.cc,v 1.3 1997/01/07 20:47:57 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -129,12 +129,10 @@ long DirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     PROBE(tpinfo, RUNTUPDATEBEGIN);
 
     /* regenerate VVs for host set */
-    for (int i = 0; i < VSG_MEMBERS; i++) 
-	if (!mgrp->rrcc.hosts[i])
-	    VV[i] = NULL;
-
-    for (i = 0; i < VSG_MEMBERS; i++) 
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+	if (!mgrp->rrcc.hosts[i])  VV[i] = NULL;
 	dirbufs[i] = 0;
+    }
 
     UpdateRunts(mgrp, VV, Fid); 
     PROBE(tpinfo, RUNTUPDATEEND);
@@ -151,13 +149,13 @@ long DirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     {
 	LogMsg(9, SrvDebugLevel, stdout,  "DirResolve: Checking if Objects equal ");
 	ViceVersionVector *vv[VSG_MEMBERS];
-	for (i = 0; i < VSG_MEMBERS; i++) 
+	for (int i = 0; i < VSG_MEMBERS; i++) 
 	    vv[i] = VV[i];
 	int HowMany = 0;
 	if (VV_Check(&HowMany, vv, 1) == 1) {
 	    LogMsg(0, SrvDebugLevel, stdout,  "DirResolve: VECTORS ARE ALREADY EQUAL");
 	    LWP_NoYieldSignal((char *)ResCheckServerLWP);
-	    for (i = 0; i < VSG_MEMBERS; i++) 
+	    for (int i = 0; i < VSG_MEMBERS; i++) 
 		if (vv[i])
 		    PrintVV(stdout, vv[i]);
 	    return(0);
@@ -246,7 +244,8 @@ long DirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	    sid.Value.SmartFTPD.Tag = FILEINVM;
 	    sid.Value.SmartFTPD.ByteQuota = -1;
 	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
-	    for (i = 0; i < VSG_MEMBERS; i++) {
+    { /* drop scope for int i below; to avoid identifier clash */
+	    for (int i = 0; i < VSG_MEMBERS; i++) {
 		if (dirlengths[i]) {
 		    dirbufs[i] = (char *)malloc(dirlengths[i]);
 		    assert(dirbufs[i]);
@@ -263,6 +262,7 @@ long DirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 		    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = 0;
 		}
 	    }
+    } /* drop scope for int i above; to avoid identifier clash */
 	    LogMsg(9, SrvDebugLevel, stdout,  "DirResolve: Doing Phase 3");
 	    MRPC_MakeMulti(DirResPhase3_OP, DirResPhase3_PTR, VSG_MEMBERS,
 			   mgrp->rrcc.handles, mgrp->rrcc.retcodes,
@@ -295,9 +295,11 @@ long DirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	    delete il;
 	delete inclist;
     }
-    for (i = 0; i < VSG_MEMBERS; i++) 
+  { /* drop scope for int i below; to avoid identifier clash */
+    for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (dirbufs[i]) 
 	    free(dirbufs[i]);
+  } /* drop scope for int i above; to avoid identifier clash */
     PROBE(tpinfo, COORMARKINCBEGIN);
     if (reserror) {
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
@@ -395,13 +397,16 @@ PRIVATE char *CollectLogs(res_mgrpent *mgrp, ViceFid *fid, int *sizes,
        
        /* copy into buf */
        char *tmp = logbuffer;
-       for (i = 0; i < VSG_MEMBERS; i++) 
+    { /* drop scope for int i below; to avoid identifier clash */
+       for (int i = 0; i < VSG_MEMBERS; i++) 
 	   if (mgrp->rrcc.hosts[i] &&
 	       (mgrp->rrcc.retcodes[i] == 0) &&
 	       bufs[i]) {
 	       bcopy(bufs[i], tmp, logsizevar_bufs[i]);
 	       tmp += logsizevar_bufs[i];
 	   }
+    } /* drop scope for int i above; to avoid identifier clash */
+
    }
  Exit:
    {
@@ -534,15 +539,16 @@ PRIVATE int Phase2(res_mgrpent *mgrp, ViceFid *Fid, dlist *inclist, int *dirleng
 }
 /* non-NULL VV pointers correspond to real VVs */
 int IsWeaklyEqual(ViceVersionVector **VV, int nvvs) {
+    int i, j;
+
     LogMsg(69, SrvDebugLevel, stdout,  "Entering IsWeaklyEqual()");
-    for (int i = 0; i < nvvs - 1 ; ){
+    for (i = 0; i < nvvs - 1 ; ){
 	if (VV[i] == NULL) {
 	    i++;
 	    continue;
 	}
-	LogMsg(49, SrvDebugLevel, stdout,  "IsWeaklyEqual: Doing for i = %d", 
-		i);
-	for (int j = i + 1; j < nvvs; j++) {
+	LogMsg(49, SrvDebugLevel, stdout,  "IsWeaklyEqual: Doing for i = %d", i);
+	for (j = i + 1; j < nvvs; j++) {
 	    LogMsg(49, SrvDebugLevel, stdout,  "IsWeaklyEqual: Doing for j = %d", 
 		    j);
 	    if (VV[j] == NULL) continue;
@@ -696,7 +702,7 @@ long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV) {
     {
 	LogMsg(9, SrvDebugLevel, stdout,  "DirResolve: Checking if Objects equal ");
 	ViceVersionVector *vv[VSG_MEMBERS];
-	for (i = 0; i < VSG_MEMBERS; i++) 
+	for (int i = 0; i < VSG_MEMBERS; i++) 
 	    vv[i] = VV[i];
 	int HowMany = 0;
 	if (VV_Check(&HowMany, vv, 1) == 1) {

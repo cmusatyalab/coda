@@ -1,25 +1,16 @@
-# Coda top level Makefile
+# BUILD for a specific architecture
+#	NetBSD & MACH Makefiles are the same
 
 # Josh Raiff
 # Moved up further Peter Braam
 
-TOPDIR= @top_srcdir@
+TOPDIR = @top_srcdir@
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-# ******* Define precedence of modules ******
-
-  I =  rvm
- II =  seg
-III =  rds
- IV =  tests
-
-SUBDIRS = $(I) $(II) $(III) $(IV)
+SUBDIRS = $(SHORTSYS)
 
 include $(TOPDIR)/Makerules
-
-
-

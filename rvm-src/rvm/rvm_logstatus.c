@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_logstatus.c,v 1.6 96/11/19 14:24:57 tilt Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/rvm-src/rvm/rvm_logstatus.c,v 1.2 1997/01/07 18:44:46 rvb Exp";
 #endif _BLURB_
 
 /*
@@ -140,9 +140,9 @@ void enter_log(log)
       this is massively unportable: for the moment, assert we are
       on pmax_mach. 
     */
-#ifndef MACH
+#ifndef	__MACH__
     ASSERT(0);
-#endif MACH
+#endif	/* __MACH__ */
 #ifndef mips
     ASSERT(0);
 #endif mips

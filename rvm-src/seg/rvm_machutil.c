@@ -10,7 +10,7 @@
 Use of RVM outside Carnegie Mellon University requires a license.
 */
 
-static char *rcsid = "$Header: rvm_machutil.c,v 1.2 94/03/15 09:49:45 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/rvm-src/seg/rvm_machutil.c,v 1.2 1997/01/07 18:44:51 rvb Exp";
 #endif _BLURB_
 
 
@@ -18,7 +18,7 @@ static char *rcsid = "$Header: rvm_machutil.c,v 1.2 94/03/15 09:49:45 raiff Exp 
 #include <rvm.h>
 #include "rvm_segment.h"
 
-#ifdef MACH
+#ifdef	__MACH__
 #include <mach.h>
 
 rvm_return_t    
@@ -44,4 +44,4 @@ deallocate_mach_vm(addr, length)
     ret = vm_deallocate(task_self(), addr, length);
     if (ret == KERN_INVALID_ADDRESS) return RVM_ERANGE;
 }
-#endif MACH
+#endif	/* __MACH__ */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /mnt/home/clement/newobj5/coda-src/vtools/RCS/hoard.cc,v 1.1 1996/11/22 19:14:21 braam Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vtools/hoard.cc,v 1.3 1997/01/07 18:44:01 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -64,7 +64,7 @@ extern "C" {
 #include <errno.h>
 extern FILE *_findiop();
 #include <libc.h>
-#ifndef LINUX
+#ifdef __MACH__
 extern int execvp(const char *, const char **);
 #endif
 #include <sysent.h>
@@ -79,7 +79,7 @@ extern int execvp(const char *, const char **);
 #include <vice.h>
 #include <hdb.h>
 
-#ifdef LINUX
+#ifdef	__linux__
 #define MAXSYMLINKS 10
 #endif
 
@@ -296,7 +296,7 @@ PRIVATE FILE *ParseCommandLine(int argc, char **argv) {
     }
     if (fp == NULL) {
 	/* Assign fp to argv[0]. */
-#ifdef LINUX
+#ifndef __MACH__
 	int fd[2];
 	if (pipe(fd)<0)
 	    error(FATAL, "open pipe error") ;
@@ -1232,7 +1232,11 @@ PRIVATE int CreateOutFile(char *in, char *out) {
 	/* Wait for child to finish. */
 	union wait status;
 	int rc;
+#ifdef	__NetBSD__
+	while ((rc = wait(&status.w_status)) != child)
+#else
 	while ((rc = wait(&status)) != child)
+#endif
 	    if (rc < 0) return(-1);
 	if (status.w_retcode != 0) {
 	    errno = status.w_retcode;
@@ -1308,7 +1312,11 @@ PRIVATE void RenameOutFile(char *from, char *to) {
     else {
 	/* Wait for child to finish. */
 	union wait status;
+#ifdef	__NetBSD__
+	::wait(&status.w_status);
+#else
 	::wait(&status);
+#endif
 
 	if (!Debug)
 	    unlink(from);

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/lib-src/mlwp/process.s,v 1.1 1996/12/05 18:58:46 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/mlwp/process.s,v 1.2 1997/01/07 18:44:35 rvb Exp";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -424,7 +424,7 @@ returnto:
 	char *newsp;
 */
 	
-#ifdef LINUX
+#ifdef	__linux__
 #include <linux/linkage.h>	
 #define SYMB(name)  ENTRY(name)
 #define EXT(x) SYMBOL_NAME(x)

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/res/rescomm.cc,v 1.3 1997/01/07 20:47:57 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -179,9 +179,11 @@ res_mgrpent::~res_mgrpent() {
 }
 
 int res_mgrpent::CreateMember(unsigned long host) {
+    int i;
+
     /* Don't re-create members that already exist. */
     LogMsg(20, SrvDebugLevel, stdout,  "res_mgrepent::CreateMember(%x)", host);
-    for (int i = 0; i < VSG_MEMBERS; i++)
+    for (i = 0; i < VSG_MEMBERS; i++)
 	if (rrcc.hosts[i] == host) return(0);
     
     /* Deduce index of specified host. */
@@ -219,10 +221,11 @@ void res_mgrpent::KillMember(unsigned long host, int forcibly) {
     LogMsg(20, SrvDebugLevel, stdout,  "res_mgrpent::KillMember(%x, %d)",
 	   host, forcibly);
     int code = 0;
+    int i;
     
     if (host == 0) return;
     
-    for (int i = 0; i < VSG_MEMBERS; i++)
+    for (i = 0; i < VSG_MEMBERS; i++)
 	if (rrcc.hosts[i] == host) {
 	    if (inuse && !forcibly) {
 		rrcc.dying[i] = 1;
@@ -251,9 +254,11 @@ int res_mgrpent::GetHostSet(unsigned long *HostSet) {
 	if (HostSet[i] != 0 && rrcc.hosts[i] == 0)
 	    CreateMember(HostSet[i]);
     /* Kill Members not in the host set */
-    for (i = 0; i < VSG_MEMBERS; i++) 
+  { /* drop scope for int i below; to avoid identifier clash */
+    for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (HostSet[i] == 0 && rrcc.hosts[i] != 0)
 	    KillMember(rrcc.hosts[i], 1);
+  } /* drop scope for int i above; to avoid identifier clash */
     
     /* Make sure at least 1 server is up */
     if (rrcc.HowMany == 0) return(ETIMEDOUT);
@@ -300,9 +305,12 @@ int res_mgrpent::IncompleteVSG(){
     for (int i = 0; i < VSG_MEMBERS; i++) 
         if (Hosts[i]) 
 	    countVSGhosts++;
-    for (i = 0; i < VSG_MEMBERS; i++) 
+  { /* drop scope for int i below; to avoid identifier clash */
+    for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (rrcc.hosts[i]) 
 	    countmgrphosts++;
+  } /* drop scope for int i above; to avoid identifier clash */
+
     if (countmgrphosts != countVSGhosts) return(1);
     return(0);
 }

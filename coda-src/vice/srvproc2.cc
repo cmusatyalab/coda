@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/srvproc2.cc,v 1.1 1996/11/22 19:14:45 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/vice/srvproc2.cc,v 1.4 1997/01/07 18:43:02 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ extern "C" {
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#ifdef LINUX
+#ifdef	__linux__
 #include <linux/if_ether.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -81,12 +81,13 @@ extern "C" {
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
 extern int nlist(const char*, struct nlist[]);
 
-#ifndef LINUX    
+#ifdef __MACH__
 #include <sys/dk.h>
 #endif
 #include <strings.h>
 #include <sysent.h>
 #ifdef __MACH__
+#include <libc.h>
 #include <mach.h>
 #endif
 

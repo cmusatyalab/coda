@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/advice_srv.cc,v 1.2 1996/11/24 21:23:40 braam Exp braam $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/advice/advice_srv.cc,v 1.4 1997/01/07 18:40:13 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -49,18 +49,26 @@ static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/advice_srv.cc
 extern "C" {
 #endif __cplusplus
 
-#ifdef MACH
+#ifdef	__MACH__
 #include <sys/table.h>
-#endif
-#include <stdio.h>
+#include <libc.h>
+#include <sysent.h>
+extern void path(char *, char *, char *); /* defined in a Mach library */
+#endif /* MACH */
+
+#if defined(__linux__) || defined(__NetBSD__)
 #include <stdlib.h>
+#include <unistd.h>
+void path(char *, char *, char *); /* defined locally */
+#endif /* LINUX || __NetBSD__ */
+
+#include <stdio.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <assert.h> 
 #include <struct.h>
-#include <sysent.h>
 #include <sys/wait.h> 
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -68,21 +76,13 @@ extern "C" {
 #include <pwd.h>
 #include <errno.h>
 #include <strings.h>
-#include <libc.h>
 #include <lwp.h>
 #include <rpc2.h>
 
-#if LINUX || NetBSD
-#include <unistd.h>
-void path(char *, char *, char *);
-#else
-        extern void path(char *, char *, char *);
-#endif
 extern int table(int id, int index, char *addr, int nel, int lel);
 extern int ffilecopy(FILE*, FILE*);
 extern char **environ;
 
-//extern int unlink(char *path);
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -395,7 +395,7 @@ void WorkerHandler() {
  **********************************************/
 
 void InitPGID() {
-#ifdef LINUX
+#ifdef	__linux__
         (void) setpgrp();
 #else
         (void) setpgrp(0, thisPID);
@@ -697,7 +697,7 @@ void InitializeDirectory(char *dirname, char *username) {
 }
 
 
-#ifdef MACH
+#ifdef	__MACH__
 // This is a Mach-specific way to do this.  For non-Mach architectures, read on...
 #define ARGSIZE 4096
 char* getcommandname(int pid) {
@@ -2060,7 +2060,11 @@ void Child(int code) {
   LogMsg(1000,LogLevel,LogFile,"Child: SIGCHLD event, code = %d", code);
   
   do {                          /* in case > 1 kid died  */
+#ifdef	__NetBSD__
+    pid = wait3(&status.w_status, WNOHANG,(struct rusage *)0);
+#else
     pid = wait3(&status, WNOHANG,(struct rusage *)0);
+#endif
     if (pid>0) {                        /* was a child to reap  */
       LogMsg(100,LogLevel,LogFile,"Child: Child %d died, rc=%d, coredump=%d, termsig=%d",
 	     pid, status.w_retcode, status.w_coredump, status.w_termsig);
@@ -2296,7 +2300,7 @@ void EndASREventHandler(char *c) {
   }
 }
 
-#if LINUX || NetBSD
+#if defined(__linux__) || defined(__NetBSD__)
 
 /* An implementation of path(3) which is a standard function in Mach OS
  * the behaviour is according to man page in Mach OS, which says,
@@ -2349,4 +2353,7 @@ void path(char *pathname, char *direc, char *file)
   return;
 }
 
-#endif
+#endif /* LINUX || __NetBSD__ */
+
+
+

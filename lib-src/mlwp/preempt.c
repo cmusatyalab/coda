@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/mlwp/preempt.c,v 1.2 1997/01/07 18:44:34 rvb Exp";
 #endif /*_BLURB_*/
 
 
@@ -57,7 +57,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #include <sys/time.h>
-#ifdef LINUX
+#ifdef	__linux__
 #include <bsd/signal.h>
 #else
 #include <signal.h>
@@ -100,7 +100,7 @@ char PRE_Block = 0;		/* used in lwp.c and process.s */
 PRIVATE AlarmHandlerType AlarmHandler(sig, code, scp)
     int sig;
     int code;
-#ifndef LINUX
+#ifndef	__linux__
     struct sigcontext *scp;
 #else
 struct sigaction *scp;
@@ -113,7 +113,7 @@ struct sigaction *scp;
 	sig = 0;
 	code = 0;
 	PRE_BeginCritical();
-#ifdef LINUX
+#ifdef	__linux__
 	sigsetmask(scp->sa_mask);
 #else
 	sigsetmask(scp->sc_mask);

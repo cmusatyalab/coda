@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rvm_segutil.c,v 1.5 96/11/19 14:29:07 tilt Exp $";
+static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/rvm-src/seg/rvm_segutil.c,v 1.2 1997/01/07 18:44:52 rvb Exp";
 #endif _BLURB_
 
 #include <unistd.h>
@@ -76,7 +76,7 @@ int overlap(nregions, regionDefs)
     return FALSE;
 }     
 /* Mach memory allocation functions */
-#ifdef MACH
+#ifdef	__MACH__
 #include <mach.h>
 #define ALLOCATE_VM_DEFINED
 
@@ -112,7 +112,7 @@ deallocate_vm(addr, length)
 /* NetBSD memory allocation; uses mmap as an allocator.  Any mmap-aware
    system should be able to use this code */
 
-#if __NetBSD__ || LINUX
+#if defined(__linux__) || defined(__NetBSD__)
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -273,4 +273,4 @@ deallocate_vm(addr, length)
     return RVM_SUCCESS;
 */
     }
-#endif MACH
+#endif	/* __MACH__ */
