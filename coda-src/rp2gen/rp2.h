@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2.h,v 4.3 1997/12/20 23:34:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2.h,v 4.4 1998/01/08 13:32:28 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -138,7 +138,7 @@ typedef enum{ NONE=0, C=1, PASCAL=2, F77=3 } LANGUAGE;
 #undef CLIENT
 #undef SERVER
 #endif
-typedef enum{ CLIENT=0, SERVER=1, MULTI=2 } WHO;
+typedef enum{ CLIENT=0, SERVER=1, MULTI=2, DUMP=3} WHO;
 
 typedef struct stubelem {
     char        *type;
@@ -157,3 +157,5 @@ extern rp2_bool ansi;
    set on semantic errors for yyerror() and yywarn() */
 
 extern int line;
+
+

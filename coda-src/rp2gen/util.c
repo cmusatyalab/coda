@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/util.c,v 4.3 1998/01/08 13:32:34 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/util.c,v 4.4 1998/03/06 20:20:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,7 +75,7 @@ char *copy(s)
     char *s;
 {
     register char *new;
-    register int len;
+    register int32_t len;
 
     len = strlen(s) + 1;
     new = (char *) malloc(len);
@@ -246,7 +246,7 @@ char *concat(s1, s2)
     char *s1, *s2;
 {
     register char *new;
-    register int len1, len2;
+    register int32_t len1, len2;
 
     len1 = strlen(s1);
     len2 = strlen(s2);
@@ -273,7 +273,7 @@ char *basename(name)
     char *name;
 {
     register char *p, *l, *r;
-    register int len;
+    register int32_t len;
     register char *base;
 
     /* Save pointer to left end  -- i.e., last '/' */

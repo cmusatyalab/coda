@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.2 1997/09/23 15:13:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.3 1998/04/14 20:59:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,7 +59,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/param.h>
 #include "rp2.h"
 
-int yydebug;
+int32_t yydebug;
 
 #ifdef	__linux__
 extern char * basename(char * name);
@@ -72,12 +72,12 @@ struct subsystem subsystem;	/* Holds global subsystem information */
 char *server_prefix, *client_prefix;
 
 FILE *file;
-FILE *cfile, *sfile, *hfile, *mfile;
-char *cfile_name, *sfile_name, *hfile_name, *mfile_name;
+FILE *cfile, *sfile, *hfile, *mfile, *pfile;
+char *cfile_name, *sfile_name, *hfile_name, *mfile_name, *pfile_name;
 char *file_name;
 char define_name[MAXPATHLEN]; /* value of __XXX__ */
 
-int HeaderOnlyFlag;  /* set to one if only .h file is to be produced */
+int32_t HeaderOnlyFlag;  /* set to one if only .h file is to be produced */
 
 static LANGUAGE clanguage, slanguage, mlanguage;
 
@@ -113,26 +113,26 @@ static char *multi_includes[] = {
 rp2_bool testing;
 rp2_bool strictproto = 1;
 rp2_bool cplusplus = 0;
+rp2_bool tcpdump = 0;
 rp2_bool ansi; 
 rp2_bool neterrors;
 
 char **cpatharray;  /* array of strings indicating search paths for 
                   included files (defined by -I flag) */
-int  cpathcnt; /* no of elements in cpath, initially 0 */
+int32_t  cpathcnt; /* no of elements in cpath, initially 0 */
 
 unsigned versionnumber;	/* used to check version */
 
 /* forward decls */
-static int GetArgs();
-static int SetupFiles();
-static int h_hack_begin();
-static int h_hack_end();
-static int header();
-static int do_procs();
+static int32_t GetArgs();
+static int32_t h_hack_begin();
+static int32_t h_hack_end();
+static int32_t header();
+static int32_t do_procs();
 
 
 main(argc, argv)
-    int argc;
+    int32_t argc;
     char *argv[];
     {
     init_lex();
@@ -152,11 +152,11 @@ main(argc, argv)
     exit(0);
     }
 
-static int GetArgs(argc, argv)
-    int argc;
+static int32_t GetArgs(argc, argv)
+    int32_t argc;
     char *argv[];
     {
-    register int i;
+    register int32_t i;
 
     testing = RP2_FALSE;
     strictproto = RP2_TRUE;   /* generate strict prototypes */
@@ -169,6 +169,7 @@ static int GetArgs(argc, argv)
     clanguage = C;  
     slanguage = C;
     mlanguage = C;
+    pfile_name == NULL;
 
     if (argc < 2) badargs();
     for (i = 1; i < argc - 1; i++)
@@ -197,14 +198,16 @@ static int GetArgs(argc, argv)
 	    mfile_name = argv[i];
 	    continue;
 	    }
-	if (strcmp(argv[i], "-e") == 0)
+	if (strcmp(argv[i], "-p") == 0)
+	    {
+	    if (++i >= argc) badargs();
+	    pfile_name = argv[i];
+	    continue;
+	    }
+	if ((strcmp(argv[i], "-t") == 0) || (strcmp(argv[i],"-tcpdump")==0))
+		{tcpdump = RP2_TRUE; continue;}
+	if ((strcmp(argv[i], "-e") == 0) || (strcmp(argv[i],"-neterrors")==0))
 	    {neterrors = RP2_TRUE; continue;}
-	if (strcmp(argv[i], "-n") == 0)
-	    {strictproto = RP2_TRUE; continue;}
-	if (strcmp(argv[i], "-t") == 0)
-	    {testing = RP2_TRUE; continue;}
-	if (strcmp(argv[i], "-ansi") == 0)
-	    {ansi = RP2_TRUE; continue;}
 	if (strcmp(argv[i], "-cplusplus") == 0)
 	    {cplusplus = RP2_TRUE; continue;}
 	if (strcmp(argv[i], "-I") == 0)
@@ -224,7 +227,7 @@ static int GetArgs(argc, argv)
 
 extern char *basename(), *concat();
 
-static int SetupFiles()
+static int32_t SetupFiles()
     {
     char *base;
 
@@ -241,7 +244,7 @@ static int SetupFiles()
     if (hfile == NIL) {perror(hfile_name); exit(-1);}
     /* Special include hack for .h file */
     h_hack_begin(hfile, hfile_name);
-    header(hfile, h_includes[(int) clanguage]);
+    header(hfile, h_includes[(int32_t) clanguage]);
 
     if ( cplusplus ) {
             if (cfile_name == NIL) cfile_name = concat(base, ".client.cc");
@@ -250,7 +253,7 @@ static int SetupFiles()
     }
     cfile = fopen(cfile_name, "w");
     if (cfile == NIL) {perror(cfile_name); exit(-1);}
-    header(cfile, client_includes[(int) clanguage]);
+    header(cfile, client_includes[(int32_t) clanguage]);
     fprintf(cfile, "#include \"%s\"\n", hfile_name);
 
     if ( cplusplus ) {
@@ -260,7 +263,7 @@ static int SetupFiles()
     }
     sfile = fopen(sfile_name, "w");
     if (sfile == NIL) {perror(sfile_name); exit(-1);}
-    header(sfile, server_includes[(int) slanguage]);
+    header(sfile, server_includes[(int32_t) slanguage]);
     fprintf(sfile, "#include \"%s\"\n", hfile_name);
 
     if ( cplusplus ) { 
@@ -270,16 +273,25 @@ static int SetupFiles()
     }
     mfile = fopen(mfile_name, "w");
     if (mfile == NIL) {perror(mfile_name); exit(-1);}
-    header(mfile, multi_includes[(int) mlanguage]);
+    header(mfile, multi_includes[(int32_t) mlanguage]);
     fprintf(mfile, "#include \"%s\"\n", hfile_name);
+
+    if ( cplusplus ) { 
+            if (pfile_name == NIL) pfile_name = concat(base, ".print.cc"); 
+    } else {
+            if (pfile_name == NIL) pfile_name = concat(base, ".print.c");
+    }
+    pfile = fopen(pfile_name, "w");
+    if (pfile == NIL) {perror(pfile_name); exit(-1);}
 
     free(base);
     }
 
 badargs()
     {
-    printf("Usage: rp2gen [-t] [-n] [-I incldir] [-s srvstub] [-c clntstub]\n");
-    printf("              [-ansi] [-h header] [-m multistub] file\n");
+    printf("Usage: rp2gen [-neterrors,-n] [-I incldir] [-s srvstub] [-c clntstub]\n");
+    printf("              [-h header] [-m multistub] [-p printstub] \n");
+    printf("              [-t tcpdump prettyprint]   file\n");
     exit(-1);
     }
 
@@ -289,7 +301,7 @@ static char uc(c)
     return (c >= 'a' && c <= 'z') ? c - ('a'-'A') : c;
 }
 
-static int h_hack_begin(where, name)
+static int32_t h_hack_begin(where, name)
     FILE *where;
     char *name;
 {
@@ -305,13 +317,13 @@ static int h_hack_begin(where, name)
     fprintf(where, "#define _%s_\n", define_name);
 }
 
-static int h_hack_end(where)
+static int32_t h_hack_end(where)
     FILE *where;
     {
     fprintf(where, "\n#endif _%s_\n", define_name);
     }
 
-static int header(f, prefix)
+static int32_t header(f, prefix)
     register FILE *f;
     char *prefix;
 {
@@ -342,11 +354,11 @@ static no_support();
 
 static struct {
     char	*name;		/* Name for printing */
-    int		(*include)();	/* Routine for outputting include to file */
-    int		(*define)();	/* Routine for outputting define to file */
-    int		(*type)();	/* Routine for outputting type to file */
-    int		(*proc)();	/* Routine for outputting procedure to file */
-    int		(*op_codes)();	/* Routine for generating op codes in .h file */
+    int32_t		(*include)();	/* Routine for outputting include to file */
+    int32_t		(*define)();	/* Routine for outputting define to file */
+    int32_t		(*type)();	/* Routine for outputting type to file */
+    int32_t		(*proc)();	/* Routine for outputting procedure to file */
+    int32_t		(*op_codes)();	/* Routine for generating op codes in .h file */
 } lang_struct[] = {
 
 	/* NONE */	{ "N/A",	cant_happen,	cant_happen,	cant_happen,	cant_happen,	cant_happen	},
@@ -361,7 +373,7 @@ static no_support(type, who, where)
     WHO who;
     FILE *where;
 {
-    printf("RP2GEN: no language support for %s\n", lang_struct[(int) clanguage]);
+    printf("RP2GEN: no language support for %s\n", lang_struct[(int32_t) clanguage]);
     exit(1);
 }
 
@@ -372,7 +384,7 @@ spit_type(type)
 	puts("RP2GEN: warning, SPIT_TYPE does not support multiple languages");
 	exit(1);
     }
-    (*lang_struct[(int) clanguage].type)(type, CLIENT, hfile);		/* Types always go to .h file */
+    (*lang_struct[(int32_t) clanguage].type)(type, CLIENT, hfile);		/* Types always go to .h file */
 }
 
 spit_include(filename)
@@ -382,7 +394,7 @@ spit_include(filename)
 	puts("RP2GEN: warning, SPIT_INCLUDE does not support multiple languages");
 	exit(1);
     }
-    (*lang_struct[(int) clanguage].include)(filename, CLIENT, hfile);
+    (*lang_struct[(int32_t) clanguage].include)(filename, CLIENT, hfile);
 }
 
 spit_define(id, value)
@@ -392,10 +404,10 @@ spit_define(id, value)
 	puts("RP2GEN: warning, SPIT_DEFINE does not support multiple languages");
 	exit(1);
     }
-    (*lang_struct[(int) clanguage].define)(id, value, CLIENT, hfile);
+    (*lang_struct[(int32_t) clanguage].define)(id, value, CLIENT, hfile);
 }
 
-static int do_procs()
+static int32_t do_procs()
 {
     extern PROC *get_head();
     register PROC *head, *proc;
@@ -417,20 +429,24 @@ static int do_procs()
     }
 
     /* Generate op codes in .h file */
-    (*lang_struct[(int) clanguage].op_codes)(head, CLIENT, hfile);
+    (*lang_struct[(int32_t) clanguage].op_codes)(head, CLIENT, hfile);
 
     /* Generate client file */
     if (HeaderOnlyFlag)
-    	{fclose(cfile); unlink(cfile_name);}
-    else (*lang_struct[(int) clanguage].proc)(head, CLIENT, cfile);
+	    {fclose(cfile); unlink(cfile_name);}
+    else (*lang_struct[(int32_t) clanguage].proc)(head, CLIENT, cfile);
 
     /* Generate server file */
     if (HeaderOnlyFlag)
-    	{fclose(sfile); unlink(sfile_name);}
-    else (*lang_struct[(int) slanguage].proc)(head, SERVER, sfile);
+	    {fclose(sfile); unlink(sfile_name);}
+    else (*lang_struct[(int32_t) slanguage].proc)(head, SERVER, sfile);
 
     /* Generate multi file */
     if (HeaderOnlyFlag)
-    	{fclose(mfile); unlink(mfile_name);}
-    else (*lang_struct[(int) mlanguage].proc)(head, MULTI, mfile);
+	    {fclose(mfile); unlink(mfile_name);}
+    else (*lang_struct[(int32_t) mlanguage].proc)(head, MULTI, mfile);
+    
+    if (HeaderOnlyFlag)
+	    {fclose(pfile); unlink(pfile_name);}
+    else (*lang_struct[(int32_t) slanguage].proc)(head, DUMP, pfile);
 }
