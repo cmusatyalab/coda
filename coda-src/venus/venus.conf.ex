@@ -161,17 +161,8 @@ mapprivate=1
 #kerneldevice=/dev/cfs0,/dev/coda/0
 
 #
-# The masquerade option enables SFTP to use the same ports as RPC2 for
-# bulk data transfers. This allows a Coda client to connect to servers
-# from behind a masquerading firewall. The rpc2 library on both the
-# client and the servers must be at least version 1.9 for this to work.
-# 
-#masquerade=0
-masquerade=1
-
-#
-# Masquerade port, if masquerading bind the client to the specified port.
-# when masquerade_port=0, an arbitrary port is used.
+# Masquerade port, if non-zero, bind the client to the specified port.
+# When masquerade_port=0, an arbitrary port is used.
 # 
 #masquerade_port=0
 
