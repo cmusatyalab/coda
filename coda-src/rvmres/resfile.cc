@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/rvmres/RCS/resfile.cc,v 1.2 1996/12/02 20:56:06 braam Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/rvmres/RCS/resfile.cc,v 1.3 1996/12/05 05:14:30 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -58,7 +58,7 @@ extern "C" {
 #include <camlib/camlib_prefixed.h>
 #include <cam/_setjmp.h>
 #endif CAMELOT
-#ifdef __MACH__
+#if 0
 #include <cthreads.h>
 #else
 #include <dummy_cthreads.h>
