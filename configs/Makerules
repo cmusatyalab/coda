@@ -25,7 +25,7 @@ ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    ${MAKE} -C $$d install; \
 	    if [ $$? != 0 ] ; then echo "----> error in $$d"; exit 1; \
-	    else true; fi \
+	    else true; fi; \
 	done
 endif
 
@@ -40,7 +40,7 @@ ifdef SUBDIRS
 	    echo "----> Entering $$d"; \
 	    ${MAKE} -C $$d Coda; \
 	    if [ $$? != 0 ] ; then echo "----> Error in $$d"; exit 1; \
-	    else echo "----> Leaving $$d."; fi \
+	    else echo "----> Leaving $$d."; fi; \
 	done
 endif
 
@@ -55,7 +55,7 @@ ifdef SUBDIRS
 	    echo "----> Entering $$d"; \
 	    ${MAKE} -C $$d client-install; \
 	    if [ $$? != 0 ] ; then echo "----> Error in $$d"; exit 1; \
-	    else echo "----> Leaving $$d."; fi \
+	    else echo "----> Leaving $$d."; fi; \
 	done
 endif
 
@@ -70,7 +70,7 @@ ifdef SUBDIRS
 	    echo "----> Entering $$d"; \
 	    ${MAKE} -C $$d server-install; \
 	    if [ $$? != 0 ] ; then echo "----> Error in $$d"; exit 1; \
-	    else echo "----> Leaving $$d."; fi \
+	    else echo "----> Leaving $$d."; fi; \
 	done
 endif
 

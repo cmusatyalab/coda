@@ -30,8 +30,9 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-1/coda-4.0.1/configs/RCS/Makeconf.i386_mach,v 4.8 97/04/23 09:08:45 braam Exp Locker: raiff $";
+# static char *rcsid = "$Header: Makeconf.i386_mach,v 4.9 97/04/23 10:30:47 raiff Exp $";
 
+SHELL	      = /usr/local/bin/bash
 MACHINE_FLAGS = -D__MACH__
 SHORTSYS      = mach
 INCLFLAGS     = -I/usr/cs/include
