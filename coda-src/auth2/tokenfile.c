@@ -71,7 +71,7 @@ void ReadTokenFromFile(char *filename, ClearToken *cToken,
     base64_decode(f, &buf, &len);
     fclose(f);
 
-    if (len == (sizeof(ClearToken) + sizeof(EncryptedSecretToken))) {
+    if (len != (sizeof(ClearToken) + sizeof(EncryptedSecretToken))) {
         fprintf(stderr, "Corrupted token file?\n");
         free(buf);
         exit(-EINVAL);
