@@ -49,6 +49,9 @@ extern "C" {
 #include <signal.h>
 #include <stdio.h>
 #include <stdarg.h>
+
+#include <portmapper.h>
+#include <map.h>
 #include <lock.h>
 #include <lwp.h>
 #include <rpc2.h>
@@ -197,11 +200,26 @@ PRIVATE void Connect()
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hid;
     RPC2_CountedBS dummy;
+    long portmapid;
+    long port;
+
+    portmapid = portmap_bind(host);
+    if ( !portmapid ) {
+	    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
+	    exit(1);
+    }
+    rc = portmapper_client_lookup_pbynvp(portmapid, (unsigned char *)"codaupdate", 0, 17, &port);
+
+    if ( rc ) {
+	    fprintf(stderr, "Cannot get port from rpc2portmap; exiting\n");
+	    exit(1);
+    }
+    RPC2_Unbind(portmapid);
 
     hid.Tag = RPC2_HOSTBYNAME;
     strcpy(hid.Value.Name, host);
-    sid.Tag = RPC2_PORTALBYNAME;
-    strcpy(sid.Value.Name, pname);
+    sid.Tag = RPC2_PORTALBYINETNUMBER;
+    sid.Value.InetPortNumber = port;
     ssid.Tag = RPC2_SUBSYSBYID;
     ssid.Value.SubsysId = SUBSYS_UPDATE;
     dummy.SeqLen = 0;

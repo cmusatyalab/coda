@@ -429,7 +429,7 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	if (stat(forcepath, &force) == 0)
 	    unlink("forcepath");
     }
-    LogMsg(9, VolDebugLevel, stdout, "Leaving SalvageFileSys with rc = 0");
+    LogMsg(0, VolDebugLevel, stdout, "SalvageFileSys completed on %s", path);
     return (0);
 }
 

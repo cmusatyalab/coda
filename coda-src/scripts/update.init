@@ -28,6 +28,16 @@ export PATH
 # See how we were called.
 case "$1" in
   start)
+	# rpc2portmap
+	if [ ! -f $LOCKDIR/rpc2portmap.init ]; then
+		touch $LOCKDIR/rpc2portmap.init
+		rpc2portmap &
+		echo "rpc2portmap"
+	else
+		echo "rpc2portmap: already locked."
+		exit 1
+	fi
+
 	# updatesrv
 	if [ ! -f $LOCKDIR/updatesrv.init ]; then
 		touch $LOCKDIR/updatesrv.init
@@ -49,15 +59,18 @@ case "$1" in
 	fi
 	;;
   stop)
+        killall -9 rpc2portmap
+	rm -f $LOCKDIR/rpc2portmap.init
+    
 	if [ -f $PIDDIR/updatesrv.pid ]; then
 		kill -9 `cat $PIDDIR/updatesrv.pid`
-		rm -f $LOCKDIR/updatesrv.init
 	fi
+	rm -f $LOCKDIR/updatesrv.init
 
 	if [ -f $PIDDIR/updateclnt.pid ]; then
 		kill -9 `cat $PIDDIR/updateclnt.pid`
-		rm -f $LOCKDIR/updateclnt.init
 	fi
+	rm -f $LOCKDIR/updateclnt.init
 	;;
 
  restart)

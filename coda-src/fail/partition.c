@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/partition.c,v 4.3 1998/01/05 16:42:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/partition.c,v 4.4 1998/05/15 01:22:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,7 +87,7 @@ int oldpartition(int argc, char ** argv)
 	PrintError("Can't bind", rc);
 	exit(-1);
     }
-    printf("Bind Succeded \n");
+    printf("Bind Succeeded \n");
     RPC2_SetColor(cid1, FAIL_IMMUNECOLOR);
 
     printf("Trying to bind to %s on port %d...\n", host2, port2);
@@ -96,7 +96,7 @@ int oldpartition(int argc, char ** argv)
 	PrintError("Can't bind", rc);
 	exit(-1);
     }
-    printf("Bind Succeded \n");
+    printf("Bind Succeeded \n");
     RPC2_SetColor(cid2, FAIL_IMMUNECOLOR);
     he1 = gethostbyname(host1);
     assert(he1 != NULL);

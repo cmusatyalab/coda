@@ -1,12 +1,16 @@
 
-/* $Id: map.c,v 1.2 1998/04/07 05:22:46 robert Exp $ */
+/* $Id: map.c,v 1.1 1998/04/14 20:54:06 braam Exp $ */
 
 /* structure management for an RPC2 portmapper */
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <netinet/in.h>
 
+#include <lwp.h>
+#include <ports.h>
+#include <rpc2.h>
 #include "portmapper.h"
 #include "map.h"
 
@@ -133,4 +137,44 @@ void delete_mapping(struct protoentry *pe)
 
 	free(pe->name);
 	free(pe);
+}
+
+long portmap_bind(char *host)
+{
+	RPC2_BindParms bp;
+	RPC2_HostIdent hident;
+	RPC2_PortalIdent pident;
+	RPC2_SubsysIdent sident;
+	RPC2_CountedBS cident;
+	long	rc;
+	RPC2_Handle	cid;
+	struct timeval	timeout;
+
+	hident.Tag = RPC2_HOSTBYNAME;
+	strcpy(hident.Value.Name, host);
+
+	pident.Tag = RPC2_PORTALBYINETNUMBER;
+	pident.Value.InetPortNumber = ntohs(PORT_rpc2portmap);
+
+	sident.Tag = RPC2_SUBSYSBYID;
+	sident.Value.SubsysId = htonl(PORTMAPPER_SUBSYSID);
+
+	cident.SeqBody = 0;
+	cident.SeqLen = 0;
+
+	timeout.tv_sec = 20;
+	timeout.tv_usec = 0;
+
+	bp.SecurityLevel = RPC2_OPENKIMONO;
+	bp.EncryptionType = 0;
+	/*	bp.timeout = (struct timeval *) NULL; */
+	bp.SharedSecret = 0;
+	bp.ClientIdent = &cident;
+	bp.SideEffectType = 0;
+	bp.Color = 0;
+
+	rc = RPC2_NewBinding(&hident, &pident, &sident, &bp, &cid);
+	if ( ! rc ) 
+		return cid;
+	return 0;
 }

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/Makefile.in,v 4.6 1998/01/10 18:37:35 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/repair/Makefile.in,v 4.7 1998/05/15 16:55:06 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -42,7 +42,7 @@ CBINS       = repair
 # TESTS	    = reptest
 
 RLIBS = ${LIBRESOLVE} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP} ${LIBUTIL} \
-       $(LIBREADLINE) $(LIBTERMCAP)
+       $(LIBREADLINE) $(LIBTERMCAP) ../auth2/libauser.a
 
 OFILES = rvol.o path.o
 

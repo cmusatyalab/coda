@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.2 1997/07/03 11:41:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.3 1998/01/10 18:37:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -208,7 +208,8 @@ FailFilter *filter;
 	theQueues[(int)side][which] = myq;	
     }
 TEMPDEBUG("InsertFilter!\n")
-    return (filter->id);
+	/* return (filter->id); */
+	return 0;
 }
 
 

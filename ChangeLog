@@ -1,3 +1,15 @@
+1998-08-05    <braam@cs.cmu.edu>
+
+	* ======== Release 4.6.4 =========
+	* Fixed filcon to return errors instead of filter id's
+	* Salvage prints a message when it finishes a partition
+	* login directory removed
+	* auth directory now contains login stuff and kerberos support
+	* port numbers changed to IANA assigned numbers
+	* update uses the portmapper (since it has no port anymore)
+	* crud removed from several directories
+
+
 1998-07-23    <jaharkes@telos.odyssey.cs.cmu.edu>
 
 	* ======== Release 4.6.3 =========

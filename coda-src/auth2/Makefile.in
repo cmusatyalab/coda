@@ -25,27 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Makefile.in,v 4.8 1998/04/14 20:49:37 braam Exp $";
 
-# 
-#                          IBM COPYRIGHT NOTICE
-# 
-#                           Copyright (C) 1986
-#              International Business Machines Corporation
-#                          All Rights Reserved
-# 
-# This  file  contains  some  code identical to or derived from the 1986
-# version of the Andrew File System ("AFS"), which is owned by  the  IBM
-# Corporation.    This  code is provded "AS IS" and IBM does not warrant
-# that it is free of infringement of  any  intellectual  rights  of  any
-# third  party.    IBM  disclaims  liability of any kind for any damages
-# whatsoever resulting directly or indirectly from use of this  software
-# or  of  any  derivative work.  Carnegie Mellon University has obtained
-# permission to distribute this code, which is based on Version 2 of AFS
-# and  does  not  contain the features and enhancements that are part of
-# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-# supported by Transarc Corporation, Pittsburgh, PA.
-# 
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -57,17 +37,49 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-# windos 95 does not build this
-ifneq ($(SHORTSYS),djgpp)
-EXECUTABLES = auth2 initpw au oldtokens
-SSBINS      = auth2 initpw 
-CSBINS      = au
+#
+# Kerberos stuff
+#
+
+ifeq ($(KERBEROS),)
+CLOG=clog
+AUTH2=auth2
+AU=au
+LIBAUTH2OBJS=auth2.server.o acommon.o avice.o pwsupport.o
+LIBAUSEROBJS=auth2.client.o acommon.o auser.o avenus.o
+else
+CLOG=kclog
+AUTH2=kauth2
+AU=kau
+LIBAUTH2OBJS=auth2.server.o acommon.o avice.o pwsupport.o krbsupport.o
+LIBAUSEROBJS=auth2.client.o acommon.o auser.o avenus.o krbsupport.o
 endif
 
-LIBRARIES   = libauth2.a
-HEADERS     = ${RP2FILES} ${RP2HEADERS}
-OBJS = auth2.client.o auth2.server.o auth2.multi.o au.o auser.o authmon.o avenus.o avice.o initpw.o oldtokens.o 
+ifneq ($(KERBEROS5),)
+CFLAGS += -DKERBEROS5
+endif
 
+ifneq ($(KERBEROS4),)
+CFLAGS += -DKERBEROS4
+endif
+
+CFLAGS += -DCODAAUTH
+
+
+#
+# non- Dos stuff
+#
+
+ifneq ($(SHORTSYS),djgpp)
+EXECUTABLES = $(AUTH2) initpw $(AU) $(CLOG) cpasswd ctokens cunlog
+CBINS       = $(CLOG) cpasswd ctokens cunlog
+
+CSBINS      = $(AU)
+SBINS       = $(AU)
+SSBINS      = $(AUTH2) initpw
+endif
+
+CFLAGS := -Wall $(CFLAGS)
 
 RP2FILES    = auth2.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
@@ -77,21 +89,41 @@ LIBS=	${LIBRPC2}\
 	${LIBOLDLWP}\
 	${LIBUTIL} \
 	${LIBKERNDEP} \
+	${LIBAUSER}\
 	${LIBCOMPAT}
 
-libauth2.a: auth2.server.o auth2.client.o avice.o auser.o avenus.o 
+CFLAGS := $(CFLAGS) $(KRBINCLFLAGS)
 
-auth2: auth2.o libauth2.a $(LIBS)
-	$(CXX) $(LIBFLAGS) auth2.o libauth2.a $(LIBS) -o auth2
+LIBRARIES   = libauth2.a libauser.a
+HEADERS     = ${RP2FILES} ${RP2HEADERS} avenus.h
+OBJS = auth2.client.o auth2.server.o auth2.multi.o au.o auser.o authmon.o avenus.o avice.o initpw.o
 
-oldtokens: oldtokens.o libauth2.a $(LIBS)
-	$(CXX) $(LIBFLAGS) oldtokens.o libauth2.a $(LIBS) -o oldtokens
+
+libauth2.a: $(LIBAUTH2OBJS)
+
+libauser.a: $(LIBAUSEROBJS)
+
+$(AUTH2): auth2.o libauth2.a $(LIBS)
+	$(CC) $(LIBFLAGS) auth2.o libauth2.a $(LIBS) $(LIBKRBS) -o $(AUTH2)
 
 initpw: initpw.o $(LIBS)
-	$(CXX) $(LIBFLAGS) initpw.o $(LIBS) -o initpw
+	$(CC) $(LIBFLAGS) initpw.o $(LIBS) -o initpw
 
-au: au.o libauth2.a $(LIBS)
-	$(CXX) $(LIBFLAGS) au.o libauth2.a $(LIBS) -o au
+$(AU): au.o libauser.a $(LIBS)
+	$(CC) $(LIBFLAGS) au.o libauser.a $(LIBS) $(LIBKRBS) -o $(AU)
+
+$(CLOG): clog.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) clog.o libauser.a ${LIBS} $(LIBKRBS) -o $(CLOG)
+
+cunlog: cunlog.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) cunlog.o libauser.a ${LIBS} -o cunlog
+
+cpasswd: cpasswd.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) cpasswd.o  libauser.a ${LIBS} ${LIBKRBS} -o cpasswd
+
+ctokens: ctokens.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) ctokens.o libauser.a ${LIBS} -o ctokens
+
 
 
 include $(MAKDIR)/configs/Makerules

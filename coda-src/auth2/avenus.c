@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avenus.cc,v 4.4 1998/01/10 18:37:00 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avenus.c,v 4.1.2.1 1998/05/15 16:50:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -106,9 +106,9 @@ extern "C" {
 #undef VIRTUE
 #undef VICE
 
-PRIVATE void GetPathName();
+static void GetPathName();
 
-PRIVATE char pName[64];		/* name to use on PIOCTLS */
+static char pName[64];		/* name to use on PIOCTLS */
 
 typedef struct {
     int			    sTokenSize;
@@ -169,9 +169,11 @@ int U_GetLocalTokens(OUT ClearToken *cToken, OUT EncryptedSecretToken sToken)
     if(rc) {
 	return(-1);
     }
-    if(outbuff.sTokenSize != sizeof(EncryptedSecretToken)) return(-1);
+    if(outbuff.sTokenSize != sizeof(EncryptedSecretToken))
+	    return(-1);
     bcopy((char *)outbuff.stoken, (char *)sToken, sizeof(EncryptedSecretToken));
-    if(outbuff.cTokenSize != sizeof(ClearToken)) return(-1);
+    if(outbuff.cTokenSize != sizeof(ClearToken))
+	    return(-1);
     bcopy((char *)&outbuff.ctoken, (char *)cToken, sizeof(ClearToken));
     return(0);
 }
@@ -192,7 +194,7 @@ int U_DeleteLocalTokens()
 }
 
 
-PRIVATE void GetPathName()
+static void GetPathName()
 {
     int		fd;
     int		len;

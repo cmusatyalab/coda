@@ -1,11 +1,11 @@
-%{#ifndef _BLURB_
+#ifndef _BLURB_
 #define _BLURB_
 /*
 
             Coda: an Experimental Distributed File System
-                             Release 3.1
+                             Release 4.0
 
-          Copyright (c) 1987-1995 Carnegie Mellon University
+          Copyright (c) 1987-1996 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its
@@ -29,8 +29,9 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/update.rpc2,v 4.3 1998/05/15 01:23:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Attic/ctokens.c,v 1.1.2.1 1998/05/15 16:50:51 braam Exp $";
 #endif /*_BLURB_*/
+
 
 /*
 
@@ -53,25 +54,68 @@ Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
 supported by Transarc Corporation, Pittsburgh, PA.
 
 */
-%}
+
+#ifdef __cplusplus
+extern "C" {
+#endif __cplusplus
+
+#include <sys/types.h>
+#include <errno.h>
+#ifdef __MACH__
+#include <sysent.h>
+#include <libc.h>
+#else	/* __linux__ || __BSD44__ */
+#include <unistd.h>
+#include <stdlib.h>
+#endif
+#include <stdio.h>
+#include "auth2.h"
+#include "avenus.h"
+
+#ifdef __cplusplus
+}
+#endif __cplusplus
 
 
 
-Subsystem "update" 1 1;
-#define SUBSYS_UPDATE 132137
+int main(int argc, char *argv[]) {
+    char OutString[160];
+    char *cp = OutString;
+    ClearToken clear;
+    EncryptedSecretToken secret;
+    int rc;
 
+    /* Header. */
+    sprintf(cp, "\nTokens held by the Cache Manager:\n\n");
+    cp += strlen(cp);
 
-1: UpdateFetch	(IN RPC2_String FileName,
-		 IN RPC2_Unsigned Time,
-		 OUT RPC2_Unsigned NewTime,
-		 OUT RPC2_Unsigned CurrentSecs,
-		 OUT RPC2_Integer CurrentUsecs,
-		 IN OUT SE_Descriptor File);
+    /* Get the user id. */
+    sprintf(cp, "UID=%d : ", getuid());
+    cp += strlen(cp);
 
-UpdateNewConnection (IN RPC2_Integer SideEffectType,
-		   IN RPC2_Integer SecurityLevel,
-		   IN RPC2_Integer EncryptionType,
-		   IN RPC2_Integer AuthType,
-		   IN RPC2_CountedBS ClientIdent)
-		   NEW_CONNECTION;
+    /* Get the tokens.  */
+    rc = U_GetLocalTokens(&clear, secret);
+    if (rc < 0) {
+	if (errno == ENOTCONN)
+	    sprintf(cp, "Not Authenticated\n");
+	else
+	    sprintf(cp, "\nGetLocalTokens error (%d)\n", errno);
 
+	printf(OutString);
+	exit(-1);
+    }
+
+    /* Check for expiration. */
+    if (clear.EndTimestamp <= time(0))
+	sprintf(cp, "[>> Expired <<]\n");
+    else {
+	char *str = ctime((time_t *)&clear.EndTimestamp);
+	str +=	4;
+	str[12] = '\0';
+	sprintf(cp, "[Expires %s]\n", str);
+    }
+
+    /* Output the string. */
+    printf(OutString);
+    exit(0);
+}

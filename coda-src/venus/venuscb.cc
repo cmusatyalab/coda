@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.4 1998/01/10 18:39:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.5 1998/04/14 21:03:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -332,8 +332,9 @@ GetLost:
 
 /* CallBackNEWCONNECTION() */
 long CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
-		      RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType,
-		      RPC2_CountedBS *ClientIdent) {
+		     RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType,
+		     RPC2_Integer AuthType, RPC2_CountedBS *ClientIdent) 
+{
     /* Get the {host,portal} pair for this call. */
     RPC2_PeerInfo thePeer;
     RPC2_GetPeerInfo(RPCid, &thePeer);

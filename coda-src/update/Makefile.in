@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/Makefile.in,v 4.11 1998/05/15 01:23:23 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/Makefile.in,v 4.12 1998/05/27 20:29:23 braam Exp $";
 
 
 # 
@@ -68,7 +68,7 @@ RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 LIBS=	${LIBVICEERROR}\
 	${LIBUTIL}\
-	${LIBSYSENT}\
+	${LIBPORTMAP}\
 	${LIBNEWLWP}\
 	$(LIBVICEDEP)\
 	${LIBRPC2}\

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/fail/fcon.rpc2,v 1.1 1996/11/22 19:09:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fcon.rpc2,v 4.1 1997/01/08 21:49:37 rvb Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -59,34 +59,34 @@ typedef RPC2_Struct {
 
 typedef RPC2_Enum { sendSide = 0, recvSide = 1, noSide = 2 } FailFilterSide;
 
-GetInfo(IN OUT RPC2_BoundedBS name);
+1: GetInfo(IN OUT RPC2_BoundedBS name);
 
-InsertFilter(
+2: InsertFilter(
 	IN FailFilterSide side,
 	IN RPC2_Integer which,
 	IN FailFilter filter
 );
 
-RemoveFilter(
+3: RemoveFilter(
 	IN FailFilterSide side,
 	IN RPC2_Integer id
 );
 
-ReplaceFilter(
+4: ReplaceFilter(
 	IN FailFilterSide side,
 	IN RPC2_Integer which,
 	IN FailFilter id
 );
 
-GetFilters(
+5: GetFilters(
 	IN FailFilterSide side,
 	IN OUT RPC2_BoundedBS filters
 );
 
-CountFilters(
+6: CountFilters(
 	IN FailFilterSide side
 );
 
-PurgeFilters(
+7: PurgeFilters(
 	IN FailFilterSide side
 );

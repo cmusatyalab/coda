@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.2 1998/01/05 22:04:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/filcon.c,v 4.3 1998/06/24 18:47:35 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -504,8 +504,8 @@ void cmdInsertFilter(int argc, char **argv)
 	return;
     }
     else {
-        printf("Filter inserted with ID number %d\n", rc);
-        maxFilterID = (rc > maxFilterID)?rc:maxFilterID;
+        printf("Filter inserted with ID number %d\n", filter.id);
+        maxFilterID = (filter.id > maxFilterID)?filter.id:maxFilterID;
     }
     return;
 }

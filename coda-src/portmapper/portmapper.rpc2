@@ -1,5 +1,5 @@
 /*
- *	$Id: portmapper.rpc2,v 1.2 1998/04/07 05:20:27 robert Exp $
+ *	$Id: portmapper.rpc2,v 1.1 1998/04/14 20:54:07 braam Exp $
  *
  *	A simple portmapper for RPC2
  */
@@ -9,7 +9,6 @@ client prefix "portmapper_client";
 
 Subsystem "portmapper";
 #define PORTMAPPER_SUBSYSID	1
-#define PORTMAPPER_PORT		6400
 
 /*
  * Useful types and their closest approximations in RPC2 types

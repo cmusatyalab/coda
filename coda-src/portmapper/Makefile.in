@@ -27,7 +27,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/partition/Makefile.in,v 1.6 1998/01/15 21:07:17 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/portmapper/Makefile.in,v 1.1 1998/04/14 20:54:06 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -42,19 +42,22 @@ include $(MAKDIR)/Makeconf
 
 
 CFLAGS := -Wall ${CFLAGS}
-HEADERS   = map.h
+HEADERS   = map.h portmapper.h
 RP2HEADERS = portmapper.h
 
 OBJS = portmapper.server.o portmapper.client.o map.o server.o
 
 LIBOBS = 
 EXECUTABLES = rpc2portmap simpleclient
+SSBINS=rpc2portmap
 RP2FILES=portmapper.rpc2
 
-rpc2portmap:  ${OBJS} rpc2portmap.o
+libportmap.a: $(OBJS)
+
+rpc2portmap:   rpc2portmap.o libportmap.a
 	$(CC) -o $@ $^  ${LIBRPC2} ${LIBOLDLWP} ${LIBCOMPAT}
 
-simpleclient:  ${OBJS} simpleclient.o
+simpleclient:   simpleclient.o libportmap.a
 	$(CC) -o $@ $^ ${OBJECTS} ${LIBRPC2} ${LIBOLDLWP} ${LIBCOMPAT}
 
 portmapper.server.o: portmapper.server.c

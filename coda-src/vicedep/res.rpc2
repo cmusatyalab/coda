@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vicedep/res.rpc2,v 1.1 1996/11/22 19:09:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/res.rpc2,v 4.1 1997/01/08 21:52:04 rvb Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -45,8 +45,6 @@ server prefix "RS";
 client prefix "Res";
 
 Subsystem "resolution";
-
-#define RESPORTAL	1361
 #define RESOLUTIONSUBSYSID 5893
 
 /* 
@@ -101,6 +99,7 @@ COP2		(IN ViceStoreId StoreId,
 NewConnection	(IN RPC2_Integer SideEffectType,
 		 IN RPC2_Integer SecurityLevel,
 		 IN RPC2_Integer EncryptionType,
+		 IN RPC2_Integer AuthType,
 		 IN RPC2_CountedBS ClientIdent)
                  NEW_CONNECTION;
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.12 98/06/19 21:07:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.13 1998/07/01 10:35:25 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -88,6 +88,8 @@ extern "C" {
 #include <se.h>
 #include "timer.h"
 #include "sftp.h"
+#include <map.h>
+#include <portmapper.h>
 #include <vice.h>
 #include <util.h>
 
@@ -522,38 +524,59 @@ PRIVATE void ReConnect()
     RPC2_HostIdent hid;
     RPC2_CountedBS dummy;
     int     i;
+    long portmapid;
+    long port;
 
     if (con != 0) {
 	LogMsg(0, SrvDebugLevel, stdout, "Unbinding\n");
 	RPC2_Unbind(con);
     }
 
-    hid.Tag = RPC2_HOSTBYNAME;
-    strcpy(hid.Value.Name, host);
-    sid.Tag = RPC2_PORTALBYNAME;
-    strcpy(sid.Value.Name, pname);
-    ssid.Tag = RPC2_SUBSYSBYID;
-    ssid.Value.SubsysId= SUBSYS_UPDATE;
-    dummy.SeqLen = 0;
-
-    time.tv_sec = waitinterval;
-    time.tv_usec = 0;
-
-    RPC2_BindParms bparms;
-    bzero((void *)&bparms, sizeof(bparms));
-    bparms.SecurityLevel = RPC2_OPENKIMONO;
-    bparms.SideEffectType = SMARTFTP;
-
     for (i = 0; i < 100; i++) {
-	if (rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con)) {
-	    LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", (char *)ViceErrorMsg((int)rc));
-	    if (rc < RPC2_ELIMIT)
-		IOMGR_Select(0, 0, 0, 0, &time);
+	    portmapid = portmap_bind(host);
+	    if ( !portmapid ) {
+		    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
+		    IOMGR_Select(0, 0, 0, 0, &time);
+		    continue;
+	    }
+	    rc = portmapper_client_lookup_pbynvp(portmapid, (unsigned char *)"codaupdate", 0, 17, &port);
+	    
+	    if ( rc ) {
+		    fprintf(stderr, "Cannot get port from rpc2portmap; exiting\n");
+		    RPC2_Unbind(portmapid);
+		    IOMGR_Select(0, 0, 0, 0, &time);
+		    continue;
+	    } else 
+		    RPC2_Unbind(portmapid);
+
+	    
+	    hid.Tag = RPC2_HOSTBYNAME;
+	    strcpy(hid.Value.Name, host);
+	    sid.Tag = RPC2_PORTALBYINETNUMBER;
+	    sid.Value.InetPortNumber = port;
+	    ssid.Tag = RPC2_SUBSYSBYID;
+	    ssid.Value.SubsysId= SUBSYS_UPDATE;
+	    dummy.SeqLen = 0;
+	    
+	    time.tv_sec = waitinterval;
+	    time.tv_usec = 0;
+	    
+	    RPC2_BindParms bparms;
+	    bzero((void *)&bparms, sizeof(bparms));
+	    bparms.SecurityLevel = RPC2_OPENKIMONO;
+	    bparms.SideEffectType = SMARTFTP;
+	    
+	    if (rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con)) {
+		    LogMsg(0, SrvDebugLevel, stdout, 
+			   "Bind failed with %s\n", 
+			   (char *)ViceErrorMsg((int)rc));
+		    if (rc < RPC2_ELIMIT)
+			    IOMGR_Select(0, 0, 0, 0, &time);
+		    else
+			    break;
+	    }
 	    else
-		break;
-	}
-	else
-	    break;
+		    return ;
     }
 }
 
@@ -650,7 +673,7 @@ PRIVATE int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
     pident.Tag = RPC2_PORTALBYNAME;
-    strcpy(pident.Value.Name, "coda_filesrv");
+    strcpy(pident.Value.Name, "codasrv");
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;
 

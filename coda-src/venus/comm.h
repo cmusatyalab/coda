@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.h,v 4.5 98/01/26 21:31:40 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.h,v 4.6 1998/07/22 18:47:25 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -259,7 +259,7 @@ class srvent {
   friend int GetAdmConn(connent **);
   friend long CallBack(RPC2_Handle, ViceFid *);
   friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
-  friend long CallBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
+  friend long CallBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
   friend int FailDisconnect(int, unsigned long *);
   friend int FailReconnect(int, unsigned long *);
   friend int FailSlow(unsigned *);

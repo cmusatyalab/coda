@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/fail.cc,v 4.2 1997/12/23 17:19:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/fail.cc,v 4.3 1998/04/14 20:58:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,6 +57,8 @@ extern "C" {
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
+#include <ports.h>
+
 
 #include <rpc2.h>
 #include <fail.h>
@@ -403,12 +405,10 @@ void Quit()
     LWP_TerminateProcessSupport();
 }
 
-#define SERVER_PORT 1361
-#define CLIENT_PORT 1363
 int CheckServer(char *client, char *server) {
     int clientNumber, rc;
 
-    clientNumber = AddClient(server, SERVER_PORT);
+    clientNumber = AddClient(server, PORT_codasrv);
     if (clientNumber <= 0) return(-1);
     rc = CheckAllFilters(clientNumber, client);
     if (DeleteClient(clientNumber) != 0) return(-1);
@@ -416,12 +416,10 @@ int CheckServer(char *client, char *server) {
 }
 
 
-#define SERVER_PORT 1361
-#define CLIENT_PORT 1363
 int CheckClient(char *client, char *server) {
     int clientNumber, rc;
 
-    clientNumber = AddClient(client, CLIENT_PORT);
+    clientNumber = AddClient(client, PORT_venus);
     if (clientNumber <= 0) return(-1);
     rc = CheckAllFilters(clientNumber, server);
     if (DeleteClient(clientNumber) != 0) return(-1);

@@ -1,5 +1,5 @@
 /*
- *      $Id: simpleclient.c,v 1.1 1998/04/07 05:20:29 robert Exp $   
+ *      $Id: simpleclient.c,v 1.1 1998/04/14 20:54:07 braam Exp $   
  */
 
 /* Simple client to excercise the RPC2 procedure calls */
@@ -22,6 +22,7 @@
 #include <rpc2.h>
 #include <se.h>
 
+#include <ports.h>
 #include "portmapper.h"
 
 void main(void)
@@ -46,7 +47,7 @@ void main(void)
 	strcpy(hident.Value.Name, "localhost");
 
 	pident.Tag = RPC2_PORTALBYINETNUMBER;
-	pident.Value.InetPortNumber = ntohs(PORTMAPPER_PORT);
+	pident.Value.InetPortNumber = ntohs(PORT_rpc2portmap);
 
 	sident.Tag = RPC2_SUBSYSBYID;
 	sident.Value.SubsysId = htonl(PORTMAPPER_SUBSYSID);

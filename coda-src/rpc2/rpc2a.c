@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.7 1998/06/07 20:15:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.5.2.1 1998/05/15 16:50:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -133,7 +133,7 @@ PRIVATE RPC2_PacketBuffer *Send2Get3();
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce);
 PRIVATE bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
 PRIVATE long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce);
-PRIVATE long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, OUT long *xrand, OUT RPC2_CountedBS *cident);
+PRIVATE long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenTicationType, OUT long *xrand, OUT RPC2_CountedBS *cident);
 PRIVATE long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_EncryptionKey ekey);
 
 FILE *rpc2_logfile;
@@ -234,6 +234,7 @@ long RPC2_GetRequest(
 	struct CEntry *ce;
 	RPC2_RequestFilter myfilter;
 	RPC2_PacketBuffer *pb;
+	RPC2_Integer AuthenticationType;
 	RPC2_CountedBS cident;
 	long rc, saveXRandom;
 
@@ -304,7 +305,7 @@ long RPC2_GetRequest(
        Extract relevant fields from Init1 packet and then
 	make it a fake NEWCONNECTION packet */
 
-    rc = MakeFake(pb, ce, &saveXRandom, &cident);
+    rc = MakeFake(pb, ce, &saveXRandom, &AuthenticationType, &cident);
     if (rc < RPC2_WLIMIT) {DROPIT();}
 
     /* Do rest of bind protocol */
@@ -314,12 +315,12 @@ long RPC2_GetRequest(
 	}
     else
 	{
-	rc = ServerHandShake(ce, &cident, saveXRandom, GetKeys, EncryptionTypeMask);
+	rc = ServerHandShake(ce, &AuthenticationType, &cident, saveXRandom, GetKeys, EncryptionTypeMask);
 	if (rc!= RPC2_SUCCESS)
 	    {
 	    if (AuthFail)
 		{/* Client could be iterating through keys; log this */
-		(*AuthFail)(&cident, ce->EncryptionType, &ce->PeerHost, &ce->PeerPortal);
+		(*AuthFail)(AuthenticationType, &cident, ce->EncryptionType, &ce->PeerHost, &ce->PeerPortal);
 		}
 	    DROPIT();
 	    }
@@ -668,6 +669,7 @@ long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
     ib->FakeBody.SideEffectType = htonl(Bparms->SideEffectType);
     ib->FakeBody.SecurityLevel = htonl(Bparms->SecurityLevel);
     ib->FakeBody.EncryptionType = htonl(Bparms->EncryptionType);
+    ib->FakeBody.AuthenticationType = htonl(Bparms->AuthenticationType);
     if (Bparms->ClientIdent == NULL)
 	ib->FakeBody.ClientIdent.SeqLen = 0;
     else
@@ -816,6 +818,14 @@ long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
     /* We have a good INIT4 packet in pb */
     ib4 = (struct Init4Body *)pb->Body;
     rpc2_Decrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body), (char *)Bparms->SharedSecret, Bparms->EncryptionType);
+    ib4->XRandomPlusTwo = ntohl(ib4->XRandomPlusTwo);
+    say(9, RPC2_DebugLevel, ("XRandomPlusTwo = %l\n", ib4->XRandomPlusTwo));
+    if (savexrandom+2 != ib4->XRandomPlusTwo)
+    {
+       DROPCONN();
+       RPC2_FreeBuffer(&pb);
+       rpc2_Quit(RPC2_NOTAUTHENTICATED);
+    }
     ce->NextSeqNumber = ntohl(ib4->InitialSeqNumber);
     bcopy(ib4->SessionKey, ce->SessionKey, sizeof(RPC2_EncryptionKey));
     RPC2_FreeBuffer(&pb);	/* Release Init4 Packet */
@@ -1144,8 +1154,13 @@ TryAnother:
     }
 
 
-PRIVATE long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, OUT long *xrand, OUT RPC2_CountedBS *cident)
-{
+PRIVATE long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cident)
+    RPC2_PacketBuffer *pb;
+    struct CEntry *ce;
+    long *xrand;
+    RPC2_Integer *authenticationtype;
+    RPC2_CountedBS *cident;
+    {
     /* Synthesize fake packet after extracting encrypted XRandom and clientident */
     long i;
     register struct Init1Body *ib1;
@@ -1162,6 +1177,7 @@ PRIVATE long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, OUT lon
 	}
 
     *xrand  = ib1->XRandom;		/* Still encrypted */
+    *authenticationtype = ntohl(ncb->AuthenticationType);
     cident->SeqLen = ntohl(ncb->ClientIdent.SeqLen);
     cident->SeqBody = (RPC2_ByteSeq) &ncb->ClientIdent.SeqBody;
 
@@ -1208,8 +1224,9 @@ PRIVATE void SendOKInit2(IN ce)
     SavePacketForRetry(pb, ce);
     }
 
-PRIVATE int ServerHandShake(IN ce, IN cident, IN xrand, IN KeyProc, IN emask)
+PRIVATE int ServerHandShake(IN ce, IN authenticationtype, IN cident, IN xrand, IN KeyProc, IN emask)
     struct CEntry *ce;
+    RPC2_Integer *authenticationtype;
     RPC2_CountedBS *cident;
     long xrand;    /* still encrypted */
     long (*KeyProc)();
@@ -1221,7 +1238,7 @@ PRIVATE int ServerHandShake(IN ce, IN cident, IN xrand, IN KeyProc, IN emask)
 
     /* Abort if we cannot get keys or if bogus encryption type specified */
     if (KeyProc == NULL
-    	|| (*KeyProc)(cident, SharedSecret, ce->SessionKey) != 0
+    	|| (*KeyProc)(authenticationtype, cident, SharedSecret, ce->SessionKey) != 0
     	||  (ce->EncryptionType & emask) == 0 	/* unsupported or unknown encryption type */
 	||  MORETHANONEBITSET(ce->EncryptionType))
 	{
@@ -1230,6 +1247,9 @@ PRIVATE int ServerHandShake(IN ce, IN cident, IN xrand, IN KeyProc, IN emask)
 	}
 
     /* Send Init2 packet and await Init3 */
+    rpc2_Decrypt((char *)&xrand, (char *)&xrand, sizeof(xrand), SharedSecret, ce->EncryptionType);
+    xrand = ntohl(xrand);
+
     pb = Send2Get3(ce, SharedSecret, xrand, &saveYRandom);
     if (pb == NULL) return(RPC2_NOTAUTHENTICATED);
 
@@ -1243,7 +1263,7 @@ PRIVATE int ServerHandShake(IN ce, IN cident, IN xrand, IN KeyProc, IN emask)
 	}
 
     /* Send Init4 */
-    Send4AndSave(ce, SharedSecret);
+    Send4AndSave(ce, xrand, SharedSecret);
     return(RPC2_SUCCESS);
     }
 
@@ -1285,9 +1305,7 @@ PRIVATE RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
     else pb2->Header.ReturnCode = RPC2_SUCCESS;
 
     /* Do xrand, yrand munging */
-    rpc2_Decrypt((char *)&xrand, (char *)&xrand, sizeof(xrand), key, ce->EncryptionType);
-    xrand = ntohl(xrand);
-    say(9, RPC2_DebugLevel, "XRandom = %ld\n", xrand);
+    say(9, RPC2_DebugLevel, ("XRandom = %ld\n", xrand));
     ib2->XRandomPlusOne = htonl(xrand+1);
     *yrand = rpc2_NextRandom(NULL);
     ib2->YRandom = htonl(*yrand);
@@ -1345,8 +1363,9 @@ PRIVATE long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_En
     else return(RPC2_NOTAUTHENTICATED);	
     }
 
-PRIVATE void Send4AndSave(ce, ekey)
+PRIVATE void Send4AndSave(ce, xrand, ekey)
     struct CEntry *ce;
+    int xrand;
     RPC2_EncryptionKey ekey;
     {
     RPC2_PacketBuffer *pb;
@@ -1361,6 +1380,7 @@ PRIVATE void Send4AndSave(ce, ekey)
     ib4 = (struct Init4Body *)pb->Body;
     bcopy(ce->SessionKey, ib4->SessionKey, sizeof(RPC2_EncryptionKey));
     ib4->InitialSeqNumber = htonl(ce->NextSeqNumber);
+    ib4->XRandomPlusTwo = htonl(xrand + 2);
     rpc2_Encrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body), ekey, ce->EncryptionType);
     if (ce->TimeStampEcho) {     /* service time is now-requesttime */
 	assert(ce->RequestTime);

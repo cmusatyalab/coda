@@ -136,7 +136,7 @@ void Init_RPC(int *mainpid)
   portallist[0] = &portal1; 
 
   portal1.Tag = RPC2_PORTALBYINETNUMBER;
-  portal1.Value.InetPortNumber = ADSRVPORTAL;
+  portal1.Value.InetPortNumber = PORT_venus;
 
   rc = RPC2_Init(RPC2_VERSION, NULL, portallist, 1, -1, NULL) ;
   if (rc != RPC2_SUCCESS) {

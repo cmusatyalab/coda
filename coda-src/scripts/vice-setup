@@ -87,21 +87,7 @@ echo lockfiles created.
 # adding stuff to /etc/services if needed
 #
 
-echo 
-if grep coda_filesrv /etc/services 1> /dev/null 2> /dev/null ; then 
-    echo Services already present. Good.
-else
-    echo Adding services to /etc/services.
-    cat  >> /etc/services <<EOF
-# Coda server port numbers
-coda_opcons     1355/udp                        # Coda opcons
-coda_auth       1357/udp                        # Coda auth
-coda_udpsrv     1359/udp                        # Coda updsrv
-coda_filesrv    1361/udp                        # Coda filesrv
-coda_venus      1363/udp                        # Coda venus
-EOF
-echo /etc/services set up.
-fi
+vice-setup-ports
 
 
 #

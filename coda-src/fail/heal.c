@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/heal.c,v 4.4 1998/01/05 16:41:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/heal.c,v 4.5 1998/05/15 01:22:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -93,7 +93,7 @@ int heal(int argc, char ** argv)
 	PrintError("Can't bind", rc);
 	exit(-1);
     }
-    printf("Bind Succeded \n");
+    printf("Bind Succeeded \n");
     RPC2_SetColor(cid1, FAIL_IMMUNECOLOR);
 
     printf("Trying to bind to %s on port %d...\n", host2, port2);
@@ -102,7 +102,7 @@ int heal(int argc, char ** argv)
 	PrintError("Can't bind", rc);
 	exit(-1);
     }
-    printf("Bind Succeded \n");
+    printf("Bind Succeeded \n");
     RPC2_SetColor(cid2, FAIL_IMMUNECOLOR);
     
     /* get the filters and remove them */

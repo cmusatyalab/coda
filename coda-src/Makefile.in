@@ -28,7 +28,6 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/Makefile.in,v 4.10 1998/04/14 21:08:23 braam Exp $";
 
 #  Coda top level Makefile
 #  Josh Raiff
@@ -49,7 +48,7 @@ III =  rpc2 util
  IV =  libal rp2gen portmapper pdbstuff blurb
   V =  fail vicedep partition
 
-  VI = auth2 vv login
+  VI = auth2 vv
  VII =  vol resolve venus
 VIII =  advice repair guitools res
   IX =  rvmres volutil vtools
