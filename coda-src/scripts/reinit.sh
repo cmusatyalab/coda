@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/reinit.sh,v 4.1 1997/01/08 21:50:52 rvb Exp $";
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/scripts/Attic/reinit.sh,v 4.2 1998/01/15 20:43:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/reinit.sh,v 4.1 1997/01/08 21:50:52 rvb Exp $";
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/scripts/Attic/reinit.sh,v 4.2 1998/01/15 20:43:53 braam Exp $";
 #endif /*_BLURB_*/
 
 

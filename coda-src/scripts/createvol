@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol,v 4.2 1998/01/04 14:58:35 braam Exp $";
+#static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/scripts/Attic/createvol,v 4.3 1998/01/15 20:43:32 braam Exp $";
 #endif /*_BLURB_*/
 
 # /*

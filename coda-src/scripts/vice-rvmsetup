@@ -1,0 +1,142 @@
+#!/bin/sh -x
+
+
+if [ -e /vice/srv.conf ]; then 
+   grep '^\-rvm ' /vice/srv.conf
+   if [ $? = 0 ]; then
+       echo "You have already got rvm parameters in srv.conf."
+       echo "Remove these up first."
+   fi
+fi
+
+
+echo
+echo You need a small log disk partition, preferrably on a disk by itself.
+echo You need a metadata partition of approx 4% of you filespace.
+echo 
+echo For trial purposes you may give oridnary files instead of raw
+echo partitions. Keep all size small if you do this. 
+echo Production servers will want partitions for speed.
+echo
+echo     -------------------------------------------------------
+echo     WARNING: you are going to play with your partitions now. 
+echo     verify all answers you give.
+echo     -------------------------------------------------------
+echo
+echo WARNING: these choices are not easy to change once you are up and running.
+echo
+
+yesno=""
+until [ x$yesno != x ]; do
+   echo -n "Are you ready to set up RVM? [yes/no] "
+   read yesno
+   if [  x$yesno = xyes  -o  x$yesno = xy ]; then
+       echo ""
+   else
+       echo "Run vice-rvmsetup when you are ready!"
+       exit 
+   fi
+done
+
+#
+# we need a size and partition for the log.
+#
+until [ x$log != x ]; do
+   echo -n "What is your log partition? "
+   read log
+done
+
+until [ x$logsize != x ]; do
+    echo
+   echo  "The log size must be smaller than you log partition."
+   echo  "We recommend not more than 30M log size, and 2M is a good choice."
+    echo
+   echo -n "What is your log size? (enter as e.g. '12M') "
+   read logsize
+done
+
+until [ x$data != x ]; do
+   echo -n "What is your data partition (or file)? "
+   read data
+done
+
+until [ x$datasize != x ]; do
+    echo
+   echo  "The data size must be approx 4% of you server file space."
+   echo  "We have templates for servers of approx: 500M, 1G, 2.2G and 3.3G"
+   echo  "(you can store less, but not more on such servers)."
+   echo  "The corresponding data sizes are  22M, 44M, 90M, 130M." 
+   echo  "Pick one of the defaults, otherwise I will bail out"
+    echo
+   echo -n "What is the size of you data partition (or file) [22M,44M, 90M, 130M]: "
+    read datasize 
+done
+
+
+echo 
+echo --------------------------------------------------------
+echo WARNING: DATA and LOG  partitions are about to be wiped.
+echo --------------------------------------------------------
+echo
+echo "  --- log area: $log, size $logsize."
+echo "  --- data area: $data, size $datasize."
+echo
+echo -n "Proceed, and wipe out old data? [y/N] "
+answer=n
+read answer 
+if [  x$answer = xn -o x$answer = xno -o x$answer = xN -o x$answer = xNo ]; then
+	exit 1    
+fi
+
+echo
+rvmutl > /dev/null  << EOF
+i $log $logsize
+q
+EOF
+
+echo
+if [ $? != 0 ]; then
+    echo Error in rvmutl. Exiting.
+    exit 1
+fi
+
+echo LOG file has been initialized!
+
+echo
+case $datasize in 
+    22M )
+       parms="20480000 0x20000000 0x1000000 0x100000 80 32"
+       dsparm=20480000
+       ;;
+     44M )
+       parms="39690240 0x20000000 0x1000000 0x100000 80 32"
+       dsparm=39690240
+        ;;
+     90M )
+       parms="79380480 0x20000000 0x1000000 0x100000 80 32"
+       dsparm=79380480
+        ;;
+     130M )
+       parms="119070700 0x20000000 0x1000000 0x100000 80 32"
+       dsparm=119070700
+        ;;
+     * )
+        echo 'Read rdsinit(8) use rdsinit to configure your data area.'
+	exit 
+        ;; 
+esac
+
+echo "-rvm $log $data $dsparm" >> /vice/srv.conf
+
+echo
+echo Rdsinit will initialize data and log.
+echo This takes a while. 
+rdsinit -f $log $data $parms
+
+if [ $? != 0 ]; then
+    echo Error in rdsinit. Exiting.
+    exit 1
+fi
+
+echo RVM setup is done!
+echo 
