@@ -129,6 +129,9 @@ int cfs_nb_islocked  __P((void *));
 int nbsd_vop_error   __P((void *));
 int nbsd_vop_nop     __P((void *));
 int cfs_nb_reclaim   __P((void *));
+#if    __FreeBSD__
+int fbsd_vnotsup     __P((void *));
+#endif __FreeBSD__
 
 /* Definition of the vnode operation vector */
 
@@ -146,7 +149,10 @@ struct vnodeopv_entry_desc cfs_vnodeop_entries[] = {
     { &vop_read_desc, cfs_nb_read },		/* read */
     { &vop_write_desc, cfs_nb_write },		/* write */
 #ifndef __FreeBSD__
-    { &vop_lease_desc, nbsd_vop_nop },          /* lease */
+    { &vop_lease_desc,    nbsd_vop_nop },       /* lease */
+#else   /* For FreeBSD */
+    { &vop_getpages_desc, fbsd_vnotsup },       /* pager intf.*/
+    { &vop_putpages_desc, fbsd_vnotsup },       /* pager intf.*/
 #endif
     { &vop_ioctl_desc, cfs_nb_ioctl },		/* ioctl */
     { &vop_select_desc, cfs_nb_select },		/* select */
@@ -873,19 +879,20 @@ cfs_nb_lock(v)
     }
     if (vp->v_tag == VT_NON)
 	return (ENOENT);
-
+#if ! defined(__FreeBSD__) /* XXX inamura */
     if (cp->c_flags & CN_LOCKED) {
 	cp->c_flags |= CN_WANTED;
 #ifdef DIAGNOSTIC
 	myprintf(("cfs_nb_lock: lock contention\n"));
 #endif
-	(void) tsleep((caddr_t)cp, PINOD, "cfs vn lock", 0);
+	(void) tsleep((caddr_t)cp, PINOD, "cfs cn lock", 0);
 #ifdef DIAGNOSTIC
 	myprintf(("cfs_nb_lock: contention resolved\n"));
 #endif
 	goto start;
     }
     cp->c_flags |= CN_LOCKED;
+#endif /* XXX inamura */
     return (0);
 }
 
@@ -901,6 +908,7 @@ cfs_nb_unlock(v)
 	myprintf(("Attempting unlock on %d.%d.%d\n",
 		  cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
     }
+#if ! defined(__FreeBSD__) /* XXX inamura */
 #ifdef DIAGNOSTIC
     if ((cp->c_flags & CN_LOCKED) == 0) 
 	panic("cfs_unlock: not locked");
@@ -910,6 +918,7 @@ cfs_nb_unlock(v)
 	cp->c_flags &= ~CN_WANTED;
 	wakeup((caddr_t)cp);
     }
+#endif /* XXX inamura */
     return (0);
 }
 
@@ -1030,4 +1039,13 @@ vcfsattach(n)
 {
 }
 
+#if __FreeBSD__
+
+fbsd_vnotsup(ap)
+    void *ap;
+{
+  return(EOPNOTSUPP);
+}
+
+#endif __FreeBSD__
 #endif /* __BSD44__ */

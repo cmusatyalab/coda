@@ -187,6 +187,13 @@ cfs_mount(vfsp, path, data, ndp, p)
 	return (error);
       }
     }
+#if __FreeBSD__
+    /* Set f_iosize.  XXX -- inamura@isl.ntt.co.jp. 
+       For vnode_pager_haspage() references. The value should be obtained 
+       from underlying UFS. */
+    /* Checked UFS. iosize is set as 8192 */
+    vfsp->mnt_stat.f_iosize = 8192;
+#endif
 
     /*
      * See if the device table matches our expectations.

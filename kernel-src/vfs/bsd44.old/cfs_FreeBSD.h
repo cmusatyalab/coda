@@ -30,10 +30,11 @@ Mellon the rights to redistribute these changes without encumbrance.
 */
 #endif _BLURB_
 /*
- @NTT_COPY_RIGHT_HI@
- FreeBSD specific defs. Mostly same as NetBSD.h comes with Coda.
- $Id: cfs_FreeBSD.h,v 1.3 1997/02/17 01:56:18 inamura Exp $
-*/
+     Copyright (c) 1996-1997 Nippon Telegraph and Telephone
+                   NTT Information and Communication Systems Laboratories.
+    
+    FreeBSD specific defs.
+  */
 /* cfs_plat.h: platform-specific support for the CFS driver */
 
 /*************** Include files */
@@ -45,7 +46,6 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <sys/systm.h>
 #include <sys/malloc.h>         /* No zalloc.h; malloc.h instead */
 #include <sys/param.h>
-#include <sys/mount.h>          /* no struct vfs, struct mount instead */
 #include <sys/uio.h>
 #include <sys/vnode.h>          /* vnode.h lives in sys, get via makefile */
 #include <cfs/mach_vioctl.h>    /* No viceioctl.h on NetBSD */
@@ -63,6 +63,12 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <sys/ucred.h>
 #include <sys/vnode.h>
 #endif KERNEL
+
+#include <sys/mount.h>          /* no struct vfs, struct mount instead */
+
+#ifndef MOUNT_CFS
+#  error Please modify /usr/src/sys/sys/mount.h to define MOUNT_CFS.
+#endif  MOUNT_CFS
 
 #ifdef KERNEL
 /**** XXX!  I don't know why dir.h doesn't pick this up for us! */
@@ -273,8 +279,22 @@ do {                                                          \
 
 extern int print_hold_release;
 
+#include <vm/vm.h>
+#include <vm/vm_object.h>
+
 #define VN_HOLD(vp)          vref(vp);
-#define VN_RELE(vp)          vrele(vp);  
+#define VN_RELE(vp)                        \
+do {                                       \
+  if (0 == (vp)->v_usecount) {             \
+     printf("vrele: Zero count rele'ed\n"); \
+     (vp)->v_usecount++;                   \
+  }                                        \
+  vrele(vp);                               \
+  if (((vp)->v_object) &&                  \
+    (OBJ_DEAD & (vp)->v_object->flags))    \
+      (vp)->v_object = NULL;               \
+} while (0)
+
 #define VN_LOCK(vp)          VOP_LOCK(vp)
 #define VN_UNLOCK(vp)        VOP_UNLOCK(vp)
 
@@ -306,7 +326,11 @@ typedef char *CONDITION_T;
 #define SELWAKEUP(selproc)    selwakeup(&selproc)
 #define SELRECORD(selinfo)    selrecord(p, &(selinfo))
 #define WAKEUP(cond)          wakeup(cond)
-#define SLEEP(cond, priority) tsleep((cond),(priority),"cfscall",0)
+#define SLEEP(cond, priority)                \
+do {                                         \
+   if (NULL==cond) panic("SLEEP with null cond"); \
+   tsleep((cond),(priority),"cfscall",0);    \
+} while(0)
 
 /*************** allocation. */
 
@@ -352,5 +376,30 @@ do {                                                           \
 #define makefstype(TYPE)  (TYPE) 
 #define delay(X) DELAY(X)
 extern int DELAY __P((int));
+
+/* 
+ * To avoid cfs_fsync() is called when doing cfsnc_remove, we defined a new 
+ * flag for FreeBSD port. Vinvalbuf() (kern/vfs_subr.c) in FreeBSD 
+ * causes VOP_FSYNC.
+ * The flag value should be chosen according to the values in cnode.h
+ * Hiroshi Inamura (inamura@isl.ntt.co.jp)
+ */
+/* Set if the cnode has purged. */
+#define CN_PURGED      0x40
+#define IS_PURGED(cp)  ((cp)->c_flags & CN_PURGED)
+
+/* 
+ * To make sure to do sync during purge. This affects cfs_sync().
+ */
+#define CN_SYNCING  0x80
+#define IS_SYNCING(cp)  ((cp)->c_flags & CN_SYNCING)
+/* 
+ * To avoid cfs_getattr() is called during vref() to do vm_object_create().
+ * In cfs_getattr() is checking this flag. Downcalls from venus is enbraced
+ * by these gurds now.
+ * Hiroshi Inamura (inamura@isl.ntt.co.jp)
+ */
+#define BeginPurge 	purging_pid = curproc->p_pid
+#define EndPurge 	purging_pid = 0
 
 #endif /* KERNEL */

@@ -133,6 +133,10 @@ struct cnode *cfs_cache[CFS_CACHESIZE];
 #define cfshash(fid) \
     (((fid)->Volume + (fid)->Vnode) & (CFS_CACHESIZE-1))
 
+#if __FreeBSD__
+/* To avoid VOP_GETATTR in vref/vrele during purgefid by venus. */
+pid_t purging_pid = 0;
+#endif
 
 /* 
  * Key question: whether to sleep interuptably or uninteruptably when
@@ -319,6 +323,9 @@ int handleDownCall(opcode, out)
 	  struct cnode *cp;
 	  int error = 0;
 	  
+#if __FreeBSD__
+	  BeginPurge;
+#endif
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_ZAPFILE]++;
 	  
@@ -340,6 +347,9 @@ int handleDownCall(opcode, out)
 	      VN_RELE(CTOV(cp));
 	  }
 	  
+#if __FreeBSD__
+	  EndPurge;
+#endif
 	  return(error);
       }
 	
@@ -348,7 +358,10 @@ int handleDownCall(opcode, out)
 	  
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_ZAPDIR]++;
-	  
+
+#if __FreeBSD__
+	  BeginPurge;
+#endif
 	  cp = cfs_find(&out->d.cfs_zapdir.CodaFid);
 	  if (cp != NULL) {
 	      VN_HOLD(CTOV(cp));
@@ -365,6 +378,9 @@ int handleDownCall(opcode, out)
 		  VN_RELE(CTOV(cp));
 	  }
 	  
+#if __FreeBSD__
+	  EndPurge;
+#endif
 	  return(0);
       }
 	
@@ -372,7 +388,13 @@ int handleDownCall(opcode, out)
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_ZAPVNODE]++;
 	  
+#if __FreeBSD__
+	  BeginPurge;
+#endif
 	  cfsnc_zapvnode(&out->d.cfs_zapvnode.VFid, &out->d.cfs_zapvnode.cred);
+#if __FreeBSD__
+	  EndPurge;
+#endif
 	  return(0);
       }	
 	
@@ -382,9 +404,12 @@ int handleDownCall(opcode, out)
 	  
 	  cfs_clstat.ncalls++;
 	  cfs_clstat.reqs[CFS_PURGEFID]++;
-	  
+	
 	  cp = cfs_find(&out->d.cfs_purgefid.CodaFid);
 	  if (cp != NULL) {
+#if __FreeBSD__
+	      BeginPurge;
+#endif
 	      VN_HOLD(CTOV(cp));
 	      
 	      if (ODD(out->d.cfs_purgefid.CodaFid.Vnode)) { /* Vnode is a directory */
@@ -405,6 +430,9 @@ int handleDownCall(opcode, out)
 					    CNODE_COUNT(cp) - 1, error));)
 		  
 		  VN_RELE(CTOV(cp));
+#if __FreeBSD__
+	      EndPurge;
+#endif
 	  }
 	  return(error);
       }

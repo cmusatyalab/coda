@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/volutil/RCS/vol-salvage.cc,v 4.6 1997/05/27 14:39:23 braam Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.7 97/06/14 22:06:28 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -108,6 +108,10 @@ extern "C" {
 #include <mntent.h>
 #include <sys/vfs.h>
 #include <linux/ext2_fs.h>
+#endif
+#ifdef __FreeBSD__
+#include <sys/ucred.h>
+#include <sys/mount.h>
 #endif
 
 #ifdef __BSD44__
@@ -275,7 +279,21 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
       }
 #endif /* __linux__ */
 
-
+#if defined(__FreeBSD__)
+      struct statfs *m_info, *se;
+      int    nelem, e_id = 0;
+/*    assert(0<(nelem = getmntinfo(&m_info, MOUNT_UFS)));    */
+      assert(0<(nelem = getmntinfo(&m_info, MOUNT_MAXTYPE)));    /* XXX */
+      for (e_id = 0; e_id <= nelem; e_id++) {
+	if (strncmp(m_info[e_id].f_mntonname, VICE_PARTITION_PREFIX, 
+		    VICE_PREFIX_SIZE)== 0) {
+	  rc = SalvageFileSys(m_info[e_id].f_mntonname, 0);
+	  if (rc != 0)
+	    goto cleanup;
+	  didSome++;
+	}
+      }
+#endif
 
       if (!didSome) {
 	LogMsg(0, VolDebugLevel, stdout, 
@@ -489,11 +507,11 @@ PRIVATE char *devName(unsigned int dev)
     return NULL;
 #endif /* __MACH__ */
 
-#ifdef	__linux__
+#if	defined(__linux__) || defined(__FreeBSD__)
     return NULL;
 #endif /* __linux*/
 
-#ifdef __BSD44__
+#if	defined(__BSD44__) && ! defined(__FreeBSD__)
     LogMsg(0, VolDebugLevel, stdout, "Arrghhh... devName() not implemented for BSD44 yet");
     assert(0);
 #endif /* __BSD44__ */

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/inodefs/netbsd/RCS/ilib.s,v 4.1 1997/01/08 21:53:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/inodefs/bsd44/ilib.s,v 4.3 97/02/26 17:53:01 rvb Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -61,6 +61,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <machine/asm.h>
 #endif
 #ifdef	__FreeBSD__
+#define KERNEL
 #include <machine/asmacros.h>
 #endif
 #include <sys/syscall.h>

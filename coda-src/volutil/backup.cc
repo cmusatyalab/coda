@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/raiff/coda/src/coda-src/volutil/RCS/backup.cc,v 4.2 97/02/26 16:04:00 rvb Exp Locker: raiff $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.3 97/06/13 14:41:20 raiff Exp $";
 #endif /*_BLURB_*/
 
 
@@ -350,11 +350,11 @@ void SetPartitionDiskUsage(register partitionInfo_t *dp)
     dp->free = availblks - used; /* May be negative, which is OK */
 #endif /* __MACH__ */
 
-#ifdef	__linux__
+#if	defined(__linux__) || defined(__FreeBSD__)
     dp->free =0;
-#endif /* __linux*/
+#endif /* __linux__ */
 
-#ifdef	__BSD44__
+#if	defined(__BSD44__) && ! defined(__FreeBSD__)
     LogMsg(0, 0, stdout, "Arrgghh... SetPartitionDiskUsage() not ported yet");
     assert(0);
 #endif /* __BSD44__ */

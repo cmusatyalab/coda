@@ -42,7 +42,7 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.5 1997/07/22 23:05:59 clement Exp $
+# rcsid = $Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/Makefile.in,v 4.6 97/07/23 00:10:26 clement Exp $
 #
 
 TOPDIR = @top_srcdir@
@@ -94,6 +94,7 @@ OBJECTS_sun4_mach   = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS_alpha_osf20 = ${OBJ1} ${OBJ2}
 OBJECTS_hp700_ux90  = ${OBJ1} ${PTOBJ1} ${OBJ2}
 OBJECTS_i386_nbsd1  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
+OBJECTS_i386_fbsd2  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS_i386_linux  = ${OBJ1} ${LWPOBJ1} ${OBJ2}
 OBJECTS             = $(OBJECTS_${SYS})
 
@@ -112,6 +113,7 @@ LIBS_sun4_mach   = librvm.a librvmlwp.a
 LIBS_alpha_osf20 = librvm.a
 LIBS_hp700_ux90  = librvm.a librvmpt.a
 LIBS_i386_nbsd1  = librvm.a librvmlwp.a
+LIBS_i386_fbsd2  = librvm.a librvmlwp.a
 LIBS             = $(LIBS_$(SYS))
 
 # use log tail shadowing to debug the log tail pointer corruption

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.6 97/04/24 09:00:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.7 97/07/16 15:00:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -253,8 +253,10 @@ void vproc::open(struct vnode **vpp, int flags) {
 	if (u.u_error) goto FreeLocks;
 
 	/* Exclusive mode open fails. */
+#ifndef __FreeBSD__
+	// inamura@isl.ntt.co.jp For FreeBSD. Date: Fri Jul 11 1997
 	if (exclp) { u.u_error = EEXIST; goto FreeLocks; }
-
+#endif
 	/* Verify that we have the necessary permission. */
 	if (readp) {
 	    long rights = f->IsFile() ? PRSFS_READ : PRSFS_LOOKUP;

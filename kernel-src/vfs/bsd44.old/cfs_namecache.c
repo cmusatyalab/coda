@@ -189,8 +189,23 @@ cfsnc_remove(cncp)
   	CFSNC_HSHREM(cncp);
 
 	CFSNC_HSHNUL(cncp);		/* have it be a null chain */
+
+#if __FreeBSD__
+	/* Marking the dcp may harm. */
+        cncp->cp->c_flags |= CN_PURGED;
+	if (CFSNC_VALID(cncp)) {
+	  cncp->dcp->c_flags |= CN_PURGED;
+	  VN_RELE(CTOV(cncp->dcp));
+	}
+#else
 	VN_RELE(CTOV(cncp->dcp)); 
-	VN_RELE(CTOV(cncp->cp)); 
+#endif
+	VN_RELE(CTOV(cncp->cp));
+#if __FreeBSD__
+	if ((CTOV(cncp->cp)->v_object) && 
+	  (OBJ_DEAD == (CTOV(cncp->cp))->v_object->flags))
+	    CTOV(cncp->cp)->v_object = NULL;
+#endif
 	crfree(cncp->cred); 
 
 	bzero(DATA_PART(cncp),DATA_SIZE);
@@ -591,6 +606,9 @@ cfsnc_flush()
 	register struct cfscache *cncp;
 	int i;
 
+	CFSNC_DEBUG(CFSNC_FLUSH,
+		myprintf(("ZapAll cache\n")); )
+
 	if (cfsnc_use == 0)			/* Cache is off */
 		return;
 
@@ -600,8 +618,17 @@ cfsnc_flush()
 	     cncp != (struct cfscache *)&cfsnc_lru;
 	     cncp = CFSNC_LRUGET(*cncp)) {
 		if (CFSNC_VALID(cncp)) {
+#if __FreeBSD__
+		  cfsnc_remove(cncp);
+#else
 			CFSNC_HSHREM(cncp);	/* only zero valid nodes */
 			CFSNC_HSHNUL(cncp);
+#if __FreeBSD__
+	/* Marking the dcp may harm. */
+			cncp->cp->c_flags  |= CN_PURGED;
+		        if (CFSNC_VALID(cncp))
+			  cncp->dcp->c_flags |= CN_PURGED;
+#endif
 			VN_RELE(CTOV(cncp->dcp)); 
 			if (!ISDIR(cncp->cp->c_fid) && (CTOV(cncp->cp)->v_flag & VTEXT)) {
 			    if (cfs_vmflush(cncp->cp))
@@ -610,11 +637,15 @@ cfsnc_flush()
 			VN_RELE(CTOV(cncp->cp));  
 			crfree(cncp->cred); 
 			bzero(DATA_PART(cncp),DATA_SIZE);
+#endif
 		}
 	}
 
 	for (i = 0; i < cfsnc_hashsize; i++)
 	  cfsnchash[i].length = 0;
+
+	CFSNC_DEBUG(CFSNC_FLUSH,
+		myprintf(("ZapAll done.\n")); )
 }
 
 /*

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/dirent.h,v 4.1 1997/01/08 21:51:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/dirent.h,v 4.2 97/02/26 16:03:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*	$BSD: dirent.h,v 1.9 1994/12/13 15:58:20 mycroft Exp $	*/
@@ -68,7 +68,8 @@ static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/dirent.h,v 4.1
  *
  *	@(#)dirent.h	8.3 (Berkeley) 8/10/94
  */
-
+#ifndef _VENUS_DIRENT_H_
+#define _VENUS_DIRENT_H_
 /*
  * The dirent structure defines the format of directory entries returned by 
  * the getdirentries(2) system call.
@@ -117,3 +118,5 @@ struct dirent {
  */
 #define	IFTODT(mode)	(((mode) & 0170000) >> 12)
 #define	DTTOIF(dirtype)	((dirtype) << 12)
+
+#endif  _VENUS_DIRENT_H_

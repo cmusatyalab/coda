@@ -399,7 +399,20 @@ cfs_rdwr(vp, uiop, rw, ioflag, cred, p)
 	if (rw == UIO_READ) {
 	    error = VOP_DO_READ(cfvp, uiop, ioflag, cred);
 	} else {
+	    /* XXX inamura */
 	    error = VOP_DO_WRITE(cfvp, uiop, ioflag, cred);
+#ifdef __FreeBSD__
+	    {
+	      struct vattr cfattr;
+	      int cf_error = 0;
+	      cf_error = VOP_GETATTR(cfvp, &cfattr, cred, p);
+	      if (!cf_error) 
+		vnode_pager_setsize(vp, cfattr.va_size);
+	      /* else
+		printf("RDWR: can not getattr!\n");
+		*/
+	    }
+#endif
 	}
 	
 	if (error)
@@ -637,6 +650,9 @@ cfs_select(vp, which, cred, p)
  * order to make this call, the user must have done a lookup and
  * opened the file, and therefore should already have access.  
  */
+#ifdef __FreeBSD__
+extern pid_t purging_pid;
+#endif
 
 int
 cfs_getattr(vp, vap, cred, p)
@@ -686,6 +702,19 @@ cfs_getattr(vp, vap, cred, p)
 	return(0);
     }
 
+#if __FreeBSD__
+    if (purging_pid == curproc->p_pid){
+      /* printf("In purging cnode, mark error by purging_fid\n"); */
+      if (scp) VN_RELE(vp);
+      return(1);
+    }
+
+    if (IS_PURGED(cp)) {
+      /* printf("In purging cnode, CN_PURGED is cleared\n"); */
+      cp ->c_flags &= !CN_PURGED;
+    }
+#endif
+
     CFS_ALLOC(inp, struct inputArgs *, sizeof(struct inputArgs));
     outp = (struct outputArgs *) inp;
     
@@ -712,6 +741,16 @@ cfs_getattr(vp, vap, cred, p)
 	if ((cp->c_owrite == 0) && (cfs_attr_cache)) {  
 	    cp->c_vattr = outp->d.cfs_getattr.attr; 
 	    cp->c_flags |= C_VATTR; 
+
+	    /* XXX inamura */
+#if __FreeBSD__
+	    /* cp ->c_flags &= !CN_PURGED; */
+	    if (cp->c_vattr.va_size>0) {
+	      vnode_pager_setsize(CTOV(cp), cp->c_vattr.va_size);
+	    } else 
+	      CFSDEBUG(CFS_GETATTR,
+		       myprintf(("vnode size is suspicious.\n")); );
+#endif	    		 
 	}
 	
 	*vap = outp->d.cfs_getattr.attr;
@@ -930,7 +969,36 @@ cfs_fsync(vp, cred, p)
     if (IS_UNMOUNTING(cp)) {
 	return(ENODEV);
     }
-       
+
+#if __FreeBSD__
+    {				/* Flush UFS part. */
+      struct vnode *cfvp = cp->c_ovp;
+
+      if (cfvp && cfvp->v_object &&
+	  (cfvp->v_object->flags & OBJ_MIGHTBEDIRTY)) {
+	vm_object_page_clean(cfvp->v_object, 0, 0, TRUE, TRUE);
+      }
+      if (cfvp)
+	VOP_FSYNC(cfvp, MNT_WAIT, cred, p);
+    }
+
+    if (IS_SYNCING(cp))  return(0);
+
+    if (vp->v_object &&
+	(vp->v_object->flags & OBJ_MIGHTBEDIRTY)) {
+      cp->c_flags |= CN_SYNCING;
+      vm_object_page_clean(vp->v_object, 0, 0, TRUE, TRUE);
+      cp->c_flags &= ~CN_SYNCING;
+    }
+    if (((vp)->v_object) && (OBJ_DEAD == (vp)->v_object->flags))
+      (vp)->v_object = NULL;
+
+    /* 
+     *  See cfs_FreeBSD.h 
+     */
+    if (IS_PURGED(cp))  return(0);
+#endif
+
     /* Check for operation on a dying object */
     /* We can expect fsync on the root vnode if we are in the midst
        of unmounting (in BSD44), so silently ignore it. */
@@ -985,6 +1053,10 @@ cfs_inactive(vp, cred, p)
     CFSDEBUG(CFS_INACTIVE, myprintf(("in inactive, %x.%x.%x. vfsp %x\n",
 				  cp->c_fid.Volume, cp->c_fid.Vnode, 
 				  cp->c_fid.Unique, VN_VFS(vp)));)
+#if __FreeBSD__
+    if (vp->v_flag & VXLOCK)
+	printf ("Inactive: Vnode is Locked\n");
+#endif
 	
     /* If an array has been allocated to hold the symlink, deallocate it */
     if ((cfs_symlink_cache) && (VALID_SYMLINK(cp))) {
@@ -1846,10 +1918,15 @@ cfs_bmap(vp, bn, vpp, bnp, p)
     struct vnode **vpp;	/* RETURN vp of device */
     daddr_t *bnp;		/* RETURN device block number */
     struct proc *p;
-{ 
+{
+#if __FreeBSD__
+        /* Just like nfs_bmap(). Do not touch *vpp, this cause pfault. */
+	return(EOPNOTSUPP);
+#else
 	*vpp = (struct vnode *)0;
 	myprintf(("cfs_bmap called!\n"));
 	return(EINVAL);
+#endif
 }
 
 /*
@@ -1866,9 +1943,12 @@ cfs_strategy(bp, p)
     struct proc *p;
 { 
 	myprintf(("cfs_strategy called!\n"));
+#if __FreeBSD__
+	return(EOPNOTSUPP);
+#else
 	return(EINVAL);
+#endif
 }
-
 
 /* The following calls are MACH only:
    bread()
