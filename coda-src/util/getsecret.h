@@ -15,14 +15,13 @@ listed in the file CREDITS.
 
 #*/
 
-/* Common routines for the updateclnt/srv/fetch programs */
-
-#ifndef _UPDATECOMMON_H_
-#define _UPDATECOMMON_H_
+#ifndef _GETSECRET_H_
+#define _GETSECRET_H_
 
 #include <rpc2/rpc2.h>
 
+/* Read a tokenfile and return an RPC2 encryption key. */
 int GetSecret(char *tokenfile, RPC2_EncryptionKey key);
 
-#endif /* _UPDATECOMMON_H_ */
+#endif /* _GETSECRET_H_ */
 

@@ -95,7 +95,7 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include <codaconf.h>
 #include <coda_config.h>
 #include "update.h"
-#include "updatecommon.h"
+#include "getsecret.h"
 
 #define UPDSRVNAME "updatesrv"
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
@@ -401,6 +401,7 @@ static void ServerLWP(int *Ident)
 		== RPC2_SUCCESS) {
 
 	    RPC2_GetPeerInfo(mycid, &peer);
+
 	    if (peer.SecurityLevel == RPC2_OPENKIMONO) {
                 LogMsg(0, SrvDebugLevel, stdout,
                        "Receiving unauthenticated request %d, "

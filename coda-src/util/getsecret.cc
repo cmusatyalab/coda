@@ -28,40 +28,57 @@ extern "C" {
 #endif __cplusplus
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <util.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <coda_md5.h>
 #include <coda_string.h>
-#include "updatecommon.h"
+#include "getsecret.h"
 
 int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
 {
+    struct stat statbuf;
+    static time_t mtime = 0;
+    static off_t size = 0;
+    static unsigned char digest[16];
+
     int fd, n;
-    unsigned char buf[512], digest[16];
+    unsigned char buf[512];
     MD5_CTX md5ctxt;
 
-    memset(key, 0, RPC2_KEYSIZE);
-
-    fd = open(tokenfile, O_RDONLY);
-    if (fd < 0) {
-	LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", tokenfile);
-	return -1;
-    }
-
-    memset(buf, 0, 512);
-    n = read(fd, buf, 512);
+    n = stat(tokenfile, &statbuf);
     if (n < 0) {
-	LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", tokenfile);
-	close(fd);
+	LogMsg(0, SrvDebugLevel, stdout, "Could not stat %s", tokenfile);
 	return -1;
     }
-    close(fd);
 
-    MD5_Init(&md5ctxt);
-    MD5_Update(&md5ctxt, buf, n);
-    MD5_Final(digest, &md5ctxt);
+    /* check if the key we have is still valid */
+    if (size != statbuf.st_size || mtime != statbuf.st_mtime) {
+	fd = open(tokenfile, O_RDONLY);
+	if (fd < 0) {
+	    LogMsg(0, SrvDebugLevel, stdout, "Could not open %s", tokenfile);
+	    return -1;
+	}
 
+	memset(buf, 0, 512);
+	n = read(fd, buf, 512);
+	if (n < 0) {
+	    LogMsg(0, SrvDebugLevel, stdout, "Could not read %s", tokenfile);
+	    close(fd);
+	    return -1;
+	}
+	close(fd);
+
+	MD5_Init(&md5ctxt);
+	MD5_Update(&md5ctxt, buf, n);
+	MD5_Final(digest, &md5ctxt);
+
+	/* update size & mtime of when we read the cached key */
+	size = statbuf.st_size;
+	mtime = statbuf.st_mtime;
+    }
     memcpy(key, digest, RPC2_KEYSIZE);
 
     return 0;

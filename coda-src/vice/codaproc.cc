@@ -423,7 +423,7 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Cou
     long errorCode = 0;
     rvm_return_t camstatus = RVM_SUCCESS;
 
-    SLog(9,  "Entering ViceSetVV(%u.%d.%d)", Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(9,  "Entering ViceSetVV(%s", FID_(Fid));
     
     /* translate replicated fid to rw fid */
     XlateVid(&Fid->Volume);		/* dont bother checking for errors */
@@ -490,7 +490,7 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     struct repair *myRepairList = 0;
     char    filename[100];  		/* for transfer by name */
 
-    SLog(1,  "ViceRepair: Fid = %u.%d.%d", Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(1,  "ViceRepair: Fid = %s", FID_(Fid));
     
     /* 1. validate parameters */
     {
@@ -620,8 +620,8 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	SLog(9, "ViceRepair: Spooling Repair Log Record");
 	if ((errorCode = SpoolVMLogRecord(vlist, ov, volptr, StoreId, 
 					  ViceRepair_OP, 0))) {
-	    SLog(0, "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
-		 errorCode, Fid->Vnode, Fid->Unique);
+	    SLog(0, "ViceRepair: error %d in SpoolVMLogRecord for (%s)\n",
+		 errorCode, FID_(Fid));
 	    goto FreeLocks;
 	}
 	// set log of dir being repaired for truncation 
@@ -1073,9 +1073,9 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    if (ObjectExists(V_volumeindex(volptr), vSmall, 
 			     vnodeIdToBitNumber(repairent.parms[1]),
 			     repairent.parms[2], &ParentFid)) {
-		SLog(0,  "Object %s(%x.%x) already exists in parent %x.%x",
+		SLog(0,  "Object %s(%x.%x) already exists in parent %s",
 			repairent.name, repairent.parms[1], repairent.parms[2],
-			ParentFid.Vnode, ParentFid.Unique);
+			FID_(&ParentFid));
 		return(EINVAL);
 	    }
 	    deltablocks += nBlocks(0);
@@ -1089,9 +1089,9 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    if (ObjectExists(V_volumeindex(volptr), vLarge, 
 				 vnodeIdToBitNumber(repairent.parms[1]),
 				 repairent.parms[2], &ParentFid)) {
-		SLog(0,  "Object %s(%x.%x) already exists in parent %x.%x",
+		SLog(0,  "Object %s(%x.%x) already exists in parent %s",
 			repairent.name, repairent.parms[1], repairent.parms[2],
-			ParentFid.Vnode, ParentFid.Unique);
+			FID_(&ParentFid));
 		return(EINVAL);
 	    }
 	    deltablocks += EMPTYDIRBLOCKS;
@@ -1105,9 +1105,9 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    if (ObjectExists(V_volumeindex(volptr), vSmall, 
 			     vnodeIdToBitNumber(repairent.parms[1]),
 			     repairent.parms[2], &ParentFid)) {
-		SLog(0,  "Object %s(%x.%x) already exists in parent %x.%x",
+		SLog(0,  "Object %s(%x.%x) already exists in parent %s",
 			repairent.name, repairent.parms[1], repairent.parms[2],
-			ParentFid.Vnode, ParentFid.Unique);
+			FID_(&ParentFid));
 		return(EINVAL);
 	    }
 	    deltablocks += nBlocks(0);
@@ -1734,8 +1734,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 	dlist_iterator next(*vlist);
 	vle *v;
 	while ((v = (vle *)next())) {
-	    SLog(10,  "GetRepairObjects: acquiring (%x.%x.%x)",
-		    v->fid.Volume, v->fid.Vnode, v->fid.Unique);
+	    SLog(10,  "GetRepairObjects: acquiring (%s)", FID_(&v->fid));
 	    if ((errorCode = GetFsObj(&v->fid, &volptr, &v->vptr, 
 				     WRITE_LOCK, SHARED_LOCK, 1, 0, 
 				     v->d_inodemod)))

@@ -20,15 +20,8 @@ Coda are listed in the file CREDITS.
 Server Prefix "S";
 Subsystem "volUtil";
 
-/* The portal for volume utility requests to the file server */
-/* Must exist in /etc/services */
-#define UTIL_PORTAL "dsys2"
-
 /* subsystem id for volume utility requests to the file server */
 #define UTIL_SUBSYSID	7777
-
-/* identity of volume utility requests */
-#define VolName	"VolumeUtility"		
 
 /* name of token key file */
 #define VolTKFile "db/volutil.tk"

@@ -67,6 +67,7 @@ extern "C" {
 #include <codaconf.h>
 #include <coda_config.h>
 #include <vice_file.h>
+#include <getsecret.h>
 
 static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 static char *vicedir = NULL;
@@ -1980,6 +1981,7 @@ static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     RPC2_HostIdent hident;
     RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
+    RPC2_EncryptionKey secret;
     long     rcode;
 
     hident.Tag = RPC2_HOSTBYNAME;
@@ -1998,8 +2000,12 @@ static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     fprintf(stderr, "V_BindToServer: binding to host %s\n", fileserver);
     RPC2_BindParms bparms;
     memset((void *)&bparms, 0, sizeof(bparms));
-    bparms.SecurityLevel = RPC2_OPENKIMONO;
+    bparms.SecurityLevel = RPC2_AUTHONLY;
+    bparms.EncryptionType = RPC2_XOR;
     bparms.SideEffectType = SMARTFTP;
+
+    GetSecret(vice_sharedfile(VolTKFile), secret);
+    bparms.SharedSecret = &secret;
 
     rcode = RPC2_NewBinding(&hident, &pident, &sident, &bparms, RPCid);
     if (rcode < 0 && rcode > RPC2_ELIMIT)

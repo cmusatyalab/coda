@@ -53,6 +53,7 @@ extern "C" {
 #include <volume.h>
 #include <vldb.h>
 #include <vutil.h>
+#include <getsecret.h>
 
 
 
@@ -68,9 +69,6 @@ static void VolUtilLWP(int *);
 static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cident,
 		      RPC2_EncryptionKey sharedsecret,
 		      RPC2_EncryptionKey sessionkey);
-
-static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
-
 
 /*
  * Called by fileserver to initialize VolUtil subsystem
@@ -150,31 +148,31 @@ void VolUtilLWP(int *myindex) {
 }
 
 
-static void InitServer() {
+static void InitServer()
+{
     RPC2_SubsysIdent subsysid;
-    FILE *tokfile;
-
-    /* get encryption key for authentication */
-    tokfile = fopen(vice_sharedfile(VolTKFile), "r");
-    memset(vkey, 0, RPC2_KEYSIZE);
-    fread(vkey, 1, RPC2_KEYSIZE, tokfile);
-    fclose(tokfile);
 
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = UTIL_SUBSYSID;
     CODA_ASSERT(RPC2_Export(&subsysid) == RPC2_SUCCESS);
-    }
+}
 
 static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cid,
-		      RPC2_EncryptionKey id,
-		      RPC2_EncryptionKey skey)
+		      RPC2_EncryptionKey sharedsecret,
+		      RPC2_EncryptionKey sessionkey)
 {
-    char name[32];
+    unsigned int i;
 
-    sprintf(name, "%s", VolName);
-    if (strncmp((char *)cid->SeqBody, name, RPC2_KEYSIZE) != 0)
-	return(-1);
-    memmove(id, vkey, RPC2_KEYSIZE);
+    /* reject OPENKIMONO connections */
+    if (!cid) return -1;
+
+    if (GetSecret(vice_sharedfile(VolTKFile), sharedsecret) == -1)
+	return -1;
+
+    memset(sessionkey, 0, RPC2_KEYSIZE);
+    for (i = 0; i < RPC2_KEYSIZE / sizeof(int); i++)
+	((int *)sessionkey)[i] = rpc2_NextRandom(NULL);
+
     return(0);
 }
 

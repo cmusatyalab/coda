@@ -60,7 +60,7 @@ extern "C" {
 #include <coda_config.h>
 #include <vice_file.h>
 #include "update.h"
-#include "updatecommon.h"
+#include "getsecret.h"
 
 extern char *ViceErrorMsg(int errorCode);   /* should be in libutil */
 
