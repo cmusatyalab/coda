@@ -116,7 +116,7 @@ done
 PART=""
 for SERVER in $SERVERS ; do
         grep "^P"  ${vicedir}/vol/BigVolumeList | \
-	      awk "/ H$SERVER / "'{print $1}' | \
+	      awk "/ H$SERVER[\. ]/ "'{print $1}' | \
 	      sed -e "s/^P//g" > /tmp/cvr.$$  
 	np=`cat /tmp/cvr.$$ | wc -w`
 	if [ $np -eq 0 ]; then
