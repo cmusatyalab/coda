@@ -189,7 +189,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	return(-1);
     }
 
-    if (sftpd->SeekOffset > 0) {
+    if (sftpd->SeekOffset >= 0) {
 	sEntry->fd_offset = (off_t)sftpd->SeekOffset;
 	(void)lseek(sEntry->openfd, sEntry->fd_offset, SEEK_SET);
     }
@@ -891,7 +891,7 @@ static int ResendWorried(struct SFTP_Entry *sEntry)
 #ifdef VERY_FAST_SERVERS
 	    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 		htonl(sEntry->TimeEcho +
-		      ((long)TSDELTA(now, sEntry->RequestTime)) :
+		      (long)TSDELTA(now, sEntry->RequestTime)) :
 		htonl(0);
 #else
 	    pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
@@ -947,7 +947,7 @@ static int SendFirstUnacked(struct SFTP_Entry *sEntry)
 #ifdef VERY_FAST_SERVERS
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	htonl(sEntry->TimeEcho +
-	      ((long)TSDELTA(now, sEntry->RequestTime)) :
+	      (long)TSDELTA(now, sEntry->RequestTime)) :
 	htonl(0);
 #else
     pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
@@ -1019,7 +1019,7 @@ static int SendSendAhead(struct SFTP_Entry *sEntry, int worried)
 #ifdef VERY_FAST_SERVERS
 	pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
 	    htonl(sEntry->TimeEcho +
-		  ((long)TSDELTA(now, sEntry->RequestTime)) :
+		  (long)TSDELTA(now, sEntry->RequestTime)) :
 	    htonl(0);
 #else
 	pb->Header.TimeEcho = VALID_TIMEECHO(sEntry) ?
@@ -1101,8 +1101,11 @@ int sftp_ReadStrategy(struct SFTP_Entry *sEntry)
 
     /* Read in one fell swoop */
     bytesread = sftp_vfreadv(sEntry, iovarray, sEntry->SendAhead);
-    if (!(bytesread >= 0))
-	{ BOGOSITY(sEntry, 0); perror("sftp_vfreadv"); return(-1); }
+    if (bytesread < 0) {
+	BOGOSITY(sEntry, 0);
+	perror("sftp_vfreadv");
+	return(-1);
+    }
 
     /* If ByteQuota exceeded make it appear like an EOF */
     if (SFTP_EnforceQuota && sEntry->SDesc->Value.SmartFTPD.ByteQuota > 0 && 
@@ -1437,8 +1440,6 @@ int sftp_piggybackfileread(struct SFTP_Entry *se, char *buf)
 	len = sftp_piggybackfilesize(se);
 	n = read(se->openfd, buf, len);
 	if (n < len) return(RPC2_SEFAIL4);
-	if (BYFDFILE(se->SDesc))
-	    (void)lseek(se->openfd, se->fd_offset, SEEK_SET);
     }
     return(0);
 }
