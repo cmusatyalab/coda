@@ -27,7 +27,6 @@ Coda are listed in the file CREDITS.
 
 /* global variables */
 
-extern  int         errno;              /* kernel error number */
 extern  log_t       *default_log;       /* default log descriptor ptr */
 extern char         *rvm_errmsg;        /* internal error message buffer */
 extern rvm_bool_t   rvm_utlsw;          /* running under rvmutl */

@@ -26,7 +26,6 @@ listed in the file CREDITS.
 #include <config.h>
 #endif
 
-#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>

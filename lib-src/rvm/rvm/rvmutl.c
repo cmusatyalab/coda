@@ -50,7 +50,6 @@ extern rvm_bool_t   rvm_inited;         /* initialization complete flag */
 extern rvm_bool_t   rvm_utlsw;          /* RVM utility flag */
 extern
     device_t        *rvm_errdev;        /* last device reportiing error */
-extern int          errno;              /* kernel error number */
 extern log_t        *default_log;       /* default log descriptor ptr */
 extern
     rvm_length_t    page_size;          /* page length in bytes */

@@ -30,8 +30,6 @@ listed in the file CREDITS.
 #include <rvm/rvm.h>
 #include "testrvm.h"
 
-extern int errno;
-
 char                *map_data;          /* mapped data array ptr */
 rvm_options_t       *options;           /* options descriptor ptr */
 rvm_region_t        *region;            /* region descriptor ptr */

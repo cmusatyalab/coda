@@ -27,6 +27,7 @@ Coda are listed in the file CREDITS.
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/time.h>
+#include <errno.h>
 #include "rvm_private.h"
 
 #ifdef RVM_LOG_TAIL_BUG
@@ -36,7 +37,6 @@ extern unsigned long *ClobberAddress;
 
 /* global variables */
 
-extern int          errno;              /* kernel error number */
 extern log_t        *default_log;       /* default log descriptor ptr */
 extern list_entry_t seg_root;           /* segment list */
 extern rw_lock_t    seg_root_lock;      /* segment list lock */

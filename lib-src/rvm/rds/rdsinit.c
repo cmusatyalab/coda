@@ -33,7 +33,6 @@ listed in the file CREDITS.
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <errno.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -57,8 +56,6 @@ listed in the file CREDITS.
 void
 PollAndYield() {
 }
-
-extern int          errno;              /* kernel error number */
 
 enum round_dir { UP, DOWN, NO_ROUND };
 

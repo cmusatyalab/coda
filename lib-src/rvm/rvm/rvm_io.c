@@ -48,7 +48,6 @@ device_t            *rvm_errdev;        /* last device to have error */
 int                 rvm_ioerrno=0;      /* also save the errno for I/O error */
 rvm_length_t        rvm_max_read_len = MAX_READ_LEN; /* maximum single read in Mach */
 
-extern int          errno;              /* kernel error number */
 extern char         *rvm_errmsg;        /* internal error message buffer */
 extern log_t        *default_log;       /* log descriptor */
 extern rvm_bool_t   rvm_utlsw;          /* operating under rvmutl */
@@ -360,14 +359,14 @@ static long gather_write_file(dev,offset,wrt_len)
 
     /* do gather write in groups of 16 for Unix */
     if (!(rvm_utlsw && rvm_no_update))
-        while (dev->iov_cnt)
+        while (dev->iov_cnt > 0)
             {
             if (dev->iov_cnt > UIO_MAXIOV)
 		count = UIO_MAXIOV;
             else
 		count = dev->iov_cnt;
 
-            retval = writev(dev->handle, (struct iovec *)&dev->iov[iov_index], count);
+            retval = writev(dev->handle, &dev->iov[iov_index], count);
             if (retval < 0)
                 {
                 rvm_errdev = dev;

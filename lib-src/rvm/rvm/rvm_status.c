@@ -25,7 +25,6 @@ Coda are listed in the file CREDITS.
 
 /* global variables */
 extern log_t        *default_log;       /* default log descriptor ptr */
-extern int          errno;              /* kernel error number */
 extern rvm_bool_t   rvm_utlsw;          /* true if call by rvmutl */
 extern char         *rvm_errmsg;        /* internal error message buffer */
 extern rvm_length_t rvm_max_read_len;   /* maximum Mach read length */

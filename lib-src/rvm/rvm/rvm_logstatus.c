@@ -36,7 +36,6 @@ extern unsigned long *ClobberAddress;
 
 /* global variables */
 
-extern int          errno;              /* kernel error number */
 rvm_bool_t          rvm_utlsw;          /* true iff RVM called by rvmutl,
                                            permits certain structures to be
                                            retained after errors are discovered
@@ -695,8 +694,10 @@ rvm_return_t read_log_status(log,status_buf)
     /* read the status areas */
     if (status_buf != NULL)
         dev_status = (log_dev_status_t *)status_buf;
-    else
+    else {
+	BZERO(status_io, LOG_DEV_STATUS_SIZE); /* clear buffer */
         dev_status = (log_dev_status_t *)status_io;
+    }
     if (log->dev.raw_io) status_offset = &raw_status_offset;
     else status_offset = &file_status_offset;
     if (read_dev(&log->dev,status_offset,
@@ -763,7 +764,7 @@ rvm_return_t write_log_status(log,dev)
     RVM_ASSIGN_OFFSET(last_log_tail,log->status.log_tail);
 #endif /* RVM_LOG_TAIL_SHADOW */
     if (dev == NULL) dev = &log->dev;
-    (void) BZERO(status_io,LOG_DEV_STATUS_SIZE); /* clear buffer */
+    (void) BZERO(status_io, LOG_DEV_STATUS_SIZE); /* clear buffer */
 
     /* set up device status i/o area */
     status->update_cnt = UPDATE_STATUS;

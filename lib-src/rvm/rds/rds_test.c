@@ -25,9 +25,9 @@ Coda are listed in the file CREDITS.
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include "rds_private.h"
 
-extern int errno;
 extern char *sys_errlist[];
 extern int sys_nerr;
 

@@ -45,6 +45,7 @@ Coda are listed in the file CREDITS.
 #endif /* hpux */
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 #include "rvm_private.h"
 
 #ifdef __CYGWIN32__
@@ -54,7 +55,6 @@ Coda are listed in the file CREDITS.
 /* global variables */
 
 extern log_t        *default_log;       /* default log descriptor ptr */
-extern int          errno;              /* kernel error number */
 extern rvm_bool_t   rvm_no_update;      /* no segment or log update if true */
 extern rvm_bool_t   rvm_map_private;    /* Do we want to map private? */
 extern char         *rvm_errmsg;        /* internal error message buffer */
@@ -120,7 +120,6 @@ rvm_return_t bad_region(rvm_region)
 #include <sys/types.h>
 #include <sys/mman.h>
 #include "coda_mmap_anon.h"
-#include <errno.h>
 
 /*
  * Page table management code
