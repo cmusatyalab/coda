@@ -14,19 +14,20 @@
 #
 # What is the default realm, this is only used by clog/ctokens etc.
 #
-realm=
+#realm=
 
 #
 # Which file is used for realm lookups, before we look at dns SRV and A
 # records.
 #
-realmtab=/etc/coda/realms
+#realmtab=/etc/coda/realms
 
 #
 # What should the size of the local cache be in 1k blocks. If this is
 # not specified or `0' the default value of 40000 (40MB) is chosen.
 # Minimum value is 4096.
 #
+#cacheblocks=40000
 cacheblocks=100000
 
 #
@@ -136,6 +137,7 @@ cacheblocks=100000
 # data is stored on a raw partition. Set to 1 to use private mappings,
 # 0 to use anonymous mappings.
 # 
+#mapprivate=0
 mapprivate=1
 
 #
@@ -156,24 +158,19 @@ mapprivate=1
 #kerneldevice=/dev/cfs0,/dev/coda/0
 
 #
-# What is the name of the rootvolume. Normally this is queried from the
-# rootservers, only in very unusual cases does this need to be set.
-#
-#rootvolume=
-
-#
 # The masquerade option enables SFTP to use the same ports as RPC2 for
 # bulk data transfers. This allows a Coda client to connect to servers
 # from behind a masquerading firewall. The rpc2 library on both the
 # client and the servers must be at least version 1.9 for this to work.
 # 
+#masquerade=0
 masquerade=1
 
 #
 # Masquerade port, if masquerading bind the client to the specified port.
 # when masquerade_port=0, an arbitrary port is used.
 # 
-masquerade_port=0
+#masquerade_port=0
 
 #
 # On NT with Cygwin, venus names are different than the NT real names.
