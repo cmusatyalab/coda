@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /home/sparta/Peter/cb/ss/coda-src/libal/RCS/Makefile.in,v 4.1 97/01/08 21:49:40 rvb Exp Locker: braam $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/coda-src/libal/RCS/Makefile.in,v 4.2 1997/04/17 09:35:38 braam Exp braam $";
 
 
 # 
@@ -73,7 +73,7 @@ parsepdb.o: y.tab.c lex.yy.c $(HFILES)
 	$(CXX) -x c++ $(CXXFLAGS) -c y.tab.c; mv y.tab.o parsepdb.o
 
 lex.yy.c: parsepdb.lex lexedit.sed
-	$(LEX) $<
+	$(LEX) -l -i $<
 	sed -f $(srcdir)/lexedit.sed lex.yy.c > foo.c
 	mv foo.c lex.yy.c
 
