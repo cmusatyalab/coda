@@ -370,7 +370,9 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	if (code != 0) goto Exit;
     }
 
-    /* Prune CML entries if localhost is specified in fixfile */
+    /* For directory conflicts only! (for file conflicts, there is no fixfile)
+     * Prune CML entries if localhost is specified in fixfile */
+    if (ISDIR(*RepairFid)) 
     {
 	time_t modtime;
 	int hcount, rc, repLC, mvLC;
@@ -379,7 +381,9 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	struct ViceFid entryFid, mvFid, mvPFid;
 
 	/* parse input file and obtain internal rep  */
-	if (repair_getdfile(RepairFile, &hcount, &hlist) < 0) {
+	rc = ::lseek(fd, 0, SEEK_SET);
+	if (rc != 0) { code = errno; goto Exit; }
+	if (repair_getdfile(fd, &hcount, &hlist) < 0) {
 	    code = errno; /* XXXX - Could use a more meaningful return code here */
 	    goto Exit;
 	}

@@ -142,9 +142,9 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
     else { fclose(ff); return(0); }
 }
 
-
-int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList)
+int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **replicaList)
     /*	fname		name of file to read list from
+     *  infd            open file descriptor to use (instead of opening fname)
      *	replicaCount	number of replicas
      *	replicaList		array of malloc'ed headers, one per replica
      *
@@ -159,16 +159,19 @@ int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList
     struct repair *r;
     FILE *ff;
     char *s;
-    
+
 #define CHKERR() if (ferror(ff) || feof(ff)) goto ERR
 
-    ff = fopen(fname, "r");
-    if (!ff) goto ERR;
+    if (fname == NULL) ff = fdopen(infd, "r");
+    else               ff = fopen(fname, "r");
+    if (!ff) { perror((fname ? fname : "input fd")); return(-1); }
     
     fread(&x, sizeof(int), 1, ff); CHKERR();
     *replicaCount = ntohl(x);
 
     *replicaList = (struct listhdr *) calloc(*replicaCount, sizeof(struct listhdr));
+
+    if (*replicaList == NULL) goto ERR;
 
     for (i = 0; i < *replicaCount; i++) {
 	fread(&x, sizeof(int), 1, ff); CHKERR();
@@ -207,13 +210,20 @@ int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList
 	    }
 	}
     }
-    fclose(ff);
+    if (fname != NULL) fclose(ff);
     return(0);
 
  ERR: /* Error exit */
-    perror(fname); fclose(ff); return(-1);            
+    if (fname == NULL) perror("input fd");
+    else { perror(fname); fclose(ff); }
+    return(-1);
 }
+#undef CHKERR
 
+int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList)
+   { return(repair_getdfile(fname, 0, replicaCount, replicaList)); }
+int repair_getdfile(int infd, int *replicaCount, struct listhdr **replicaList)
+   { return(repair_getdfile(NULL, infd, replicaCount, replicaList)); }
 
 int repair_parseline(char *line, struct repair *rs)
     /*  Parses line and fills rs
@@ -274,7 +284,7 @@ int repair_parseline(char *line, struct repair *rs)
     
     return(-1);  /* unknown opcode */
 
-Opfound:
+ Opfound:
     /* Parse name */
     switch(rs->opcode) {
     case REPAIR_SETMODE:
@@ -348,7 +358,7 @@ Opfound:
 	    sscanf(c, "%x", &rs->parms[i]);
     }
 
-DoneParse:
+ DoneParse:
     /* Check no garbage at end of line */
     c = ++d;
     if (eos - c > 0) {
@@ -357,6 +367,9 @@ DoneParse:
     }
     return(0);
 }
+#undef NEXTFIELD
+#undef ADVANCE
+
 
 int repair_parsefile(char *fname, int *hdcount, struct listhdr **hdarray)
     /*  fname		ascii input file
@@ -461,7 +474,7 @@ static int acldecode(char *s, unsigned int *r)
 	Decodes rights specified as [rliwdka] in s and returns rights mask in r.
 	Returns 0 on success, -1 if s is bogus in some way
     */
-    {
+{
     register int i, max;
 
     if (!strcmp(s, "none")) s = "";
@@ -474,21 +487,21 @@ static int acldecode(char *s, unsigned int *r)
    
     for (i = 0; i < max; i++)
 	{
-	switch(s[i])
-	    {
-	    case 'r': *r |= PRSFS_READ; break;
-	    case 'w': *r |= PRSFS_WRITE; break;
-	    case 'i': *r |= PRSFS_INSERT; break;
-	    case 'l': *r |= PRSFS_LOOKUP; break;
-	    case 'd': *r |= PRSFS_DELETE; break;
-	    case 'k': *r |= PRSFS_LOCK; break;
-	    case 'a': *r |= PRSFS_ADMINISTER; break;
+	    switch(s[i])
+		{
+		case 'r': *r |= PRSFS_READ; break;
+		case 'w': *r |= PRSFS_WRITE; break;
+		case 'i': *r |= PRSFS_INSERT; break;
+		case 'l': *r |= PRSFS_LOOKUP; break;
+		case 'd': *r |= PRSFS_DELETE; break;
+		case 'k': *r |= PRSFS_LOCK; break;
+		case 'a': *r |= PRSFS_ADMINISTER; break;
 
-	    default: return(-1);  /* bogus input */
-	    }
+		default: return(-1);  /* bogus input */
+		}
 	}
     return(0);
-    }
+}
 
 
 void repair_printline(struct repair *rs, FILE *ff) {
@@ -534,7 +547,7 @@ void repair_printfile(char *fname) {
     int repcount;
     struct listhdr *list;
     int i, j;
-    repair_getdfile(fname, &repcount, &list);
+    repair_getdfile(fname, 0, &repcount, &list);
     for (i = 0; i < repcount; i++) {
 	printf("New replica: volume id %x has %d repair entries\n",
 	       list[i].replicaId, list[i].repairCount);
@@ -542,5 +555,3 @@ void repair_printfile(char *fname) {
 	    repair_printline(&list[i].repairList[j], stdout);
     }
 }
-
-

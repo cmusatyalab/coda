@@ -54,13 +54,13 @@ main(int argc, char **argv) {
     memset(cfix, 0, sizeof(cfix));
     signal(SIGINT, (void (*)(int))INT); /* catch SIGINT */
 
-    if ((argc > 1) && (strcmp(argv[1], "-clear") == 0)) {
+    if ((argc > 1) && (strcmp(argv[1], "-remove") == 0)) {
 	if (argc != 3) {
-	    fprintf(stderr, "Usage:  %s [-clear <pathname>]\n", argv[0]);
+	    fprintf(stderr, "Usage:  %s [-remove <pathname>]\n", argv[0]);
 	    exit(1);
 	}
 	else {
-	    if ((ret = BeginRepair(argv[2], &repv, msgbuf, sizeof(msgbuf))) < 0) {
+	    if ((BeginRepair(argv[2], &repv, msgbuf, sizeof(msgbuf))) < 0) {
 		fprintf(stderr, "%s\nError beginning repair\n", msgbuf);
 		exit(1);
 	    }
@@ -75,7 +75,9 @@ main(int argc, char **argv) {
 	    if (EndRepair(repv, 1, msgbuf, sizeof(msgbuf)) < 0)
 		fprintf(stderr, "%s\nError ending repair\n", msgbuf);
 	    Parser_exit(0, NULL);
-	    return(0);
+	    execlp("rm", "rm", "-Rf", argv[2]);
+	    fprintf(stderr, "%s\nError removing %s: %s\n", argv[2], strerror(errno));
+	    exit(1);
 	}
     }
 
