@@ -141,7 +141,6 @@ void PrintTimeStamp(FILE *f)
        seems overkill for now.
     */
 {
-    static char *day[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 #define NLOGS 5
     /* these are used for keeping track of when we last logged a message */
     static struct { FILE *file; int year; int yday; } logs[NLOGS];
@@ -166,8 +165,10 @@ void PrintTimeStamp(FILE *f)
     if (i != NLOGS &&
 	(t->tm_year > logs[i].year || t->tm_yday > logs[i].yday))
     {
-	fprintf(f, "\nDate: %3s %02d/%02d/%02d\n\n",
-		day[t->tm_wday], t->tm_mon+1, t->tm_mday, t->tm_year);
+	char datestr[80];
+
+	strftime(datestr, sizeof(datestr), "\nDate: %a %m/%d/%Y\n\n", t);
+	fputs(datestr, f);
 
 	/* remember when we were last called */
 	logs[i].file = f;

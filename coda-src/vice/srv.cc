@@ -1178,12 +1178,15 @@ static void RdsTimeStamp(FILE *f)
     struct tm *t;
     time_t clock;
     static int oldyear = -1, oldyday = -1; 
-    static char *day[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     
     time(&clock);
     t = localtime(&clock);
-    if ((t->tm_year > oldyear) || (t->tm_yday > oldyday))
-	fprintf(f, "\nDate: %3s %02d/%02d/%02d\n\n", day[t->tm_wday], t->tm_mon+1, t->tm_mday, t->tm_year);
+    if ((t->tm_year > oldyear) || (t->tm_yday > oldyday)) {
+	char datestr[80];
+
+	strftime(datestr, sizeof(datestr), "\nDate: %a %m/%d/%Y\n\n", t);
+	fputs(datestr, f);
+    }
     fprintf(f, "%02d:%02d:%02d ", t->tm_hour, t->tm_min, t->tm_sec);    
     oldyear = t->tm_year; /* remember when we were last called */
     oldyday = t->tm_yday;
