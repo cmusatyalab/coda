@@ -33,6 +33,11 @@ Coda are listed in the file CREDITS.
 #include "rwcdb_pack.h"
 #include "rwcdb.h"
 
+/* To avoid using too much memory, as we already have RVM and such using up
+ * gobs of address space, any databases larger than the following threshold
+ * will not be mmapped. */
+#define MMAP_THRESHOLD (256 * 1024) /* Just picked a random value of 256KB */
+
 /*=====================================================================*/
 /* scratch buffer */
 
@@ -76,7 +81,7 @@ int db_file_mread(struct db_file *f, void **data, const u_int32_t len,
         return -1;
 
 #ifdef HAVE_MMAP
-    if (!f->map) {
+    if (!f->map && f->len <= MMAP_THRESHOLD) {
         f->map = mmap(0, f->len, PROT_READ, MAP_SHARED, f->fd, 0);
         if (f->map == MAP_FAILED) f->map = NULL;
     }
