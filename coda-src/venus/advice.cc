@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.1 97/01/08 21:51:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.2 97/12/16 16:08:20 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,11 +53,13 @@ extern "C" {
 #include <admon.h>
 #include <adsrv.h>
 
+/* from util */
+#include <proc.h>
+
 /* from venus */
 #include "user.h"
 #include "advice.h"
 #include "adviceconn.h"
-#include "commands.h"
 
 #define FALSE 0
 #define TRUE 1
