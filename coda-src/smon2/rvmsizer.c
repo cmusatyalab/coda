@@ -131,6 +131,10 @@ void scantree(char * const *root)
 	    printf("\n");
 	}
 
+	/* Avoid double counting for directories */
+	if (obj->fts_info == FTS_D)
+	    continue;
+
 	if (obj->fts_statp)
 	    totalsize += obj->fts_statp->st_size;
 
