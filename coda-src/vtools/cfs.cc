@@ -282,8 +282,8 @@ struct command cmdarray[] =
             NULL
         },
         {"listvol", "lv", ListVolume, 
-            "cfs listvol <dir> [<dir> <dir> ...]",
-            "Display volume status",
+            "cfs listvol [-local] <dir> [<dir> <dir> ...]",
+            "Display volume status (-local avoids querying server)",
             NULL
         },
         {"lookaside", "lka", LookAside, 
@@ -1850,7 +1850,8 @@ static void ListVolume(int argc, char *argv[], int opslot)
         if (*motd) printf("  Message of the day is \"%s\"\n", motd);
         printf("  Volume type is %s\n", xlate_vvtype(vs->Type));
 	printf("  Connection State is %s\n", print_conn_state(conn_state));
-	if (conn_state!=Emulating) { /* info not avail if disconnected */
+	/* info not avail if disconnected, or if we did a local query */
+	if (conn_state!=Emulating && local_only == 0) {
 	    printf("  Minimum quota is %lu,", vs->MinQuota);
 	    if (vs->MaxQuota > 0)
 		printf(" maximum quota is %lu\n", vs->MaxQuota);
