@@ -43,9 +43,9 @@ LIBS = ${LIBRPC2} ${LIBOLDLWP} ${LIBCOMPAT} ${LIBBASE} ${LIBFIXUP}
 libportmap.a: $(OBJS)
 
 rpc2portmap:   rpc2portmap.o libportmap.a ${LIBS}
-	$(CC) -o $@ $^ ${LIBS}
+	$(CC) -o $@ $^ ${LIBS} ${LIBDL}
 
 simpleclient:   simpleclient.o libportmap.a ${LIBS}
-	$(CC) -o $@ $^ ${OBJECTS} ${LIBS}
+	$(CC) -o $@ $^ ${OBJECTS} ${LIBS} ${LIBDL}
 
 include $(TOPDIR)/configs/Makerules

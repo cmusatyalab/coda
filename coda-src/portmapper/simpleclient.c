@@ -20,7 +20,7 @@ listed in the file CREDITS.
 
 #include "coda_assert.h"
 
-#ifdef __BSD44__
+#if defined(__BSD44__) || defined(sun)
 #include <sys/types.h>
 #endif
 #if !defined(__CYGWIN32__) && !defined(DJGPP)
