@@ -80,7 +80,6 @@ mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 make prefix=$RPM_BUILD_ROOT/usr client-install
 make prefix=$RPM_BUILD_ROOT/usr server-install
 
-mknod $RPM_BUILD_ROOT/dev/cfs0 c 67 0
 touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
 
 
@@ -138,7 +137,6 @@ fi
 
 
 %files client
-/dev/cfs0
 %dir /usr/coda
 %dir /usr/coda/etc
 %dir /usr/coda/venus.cache
