@@ -12,9 +12,8 @@
 
 VICE=/vice
 VICESRV=${VICE}/srv
-VICEBIN=${VICE}/bin
 
-PATH=$VICEBIN:$PATH
+PATH=/sbin:/usr/sbin:$PATH
 export PATH
 
 # See how we were called.
@@ -23,32 +22,32 @@ case "$1" in
 	# start auth2 & update stuff: first the scm case
     	echo -n "Starting Coda: "
 	if [ "`cat /.hostname`" = "`cat /.scm`" ]; then
-	    if [ -f "${VICEBIN}/authmon"  ]; then
- 		${VICEBIN}/authmon &
+	    if [ -f "authmon"  ]; then
+ 		authmon &
 		echo -n "authmon/auth2,"
 	    fi
 	else 	# for non-scm machines.
-	    if [ -f "${VICEBIN}/authmon"  ]; then
-		${VICEBIN}/authmon -chk &
+	    if [ -f "authmon"  ]; then
+		authmon -chk &
 		echo -n "authmon/auth2(ro),"
 	    fi
 	fi
 
 	# update srv and updatemon run on all servers
-	if [ -f ${VICEBIN}/updatemon ]; then
-		${VICEBIN}/updatemon -h `cat /.scm`  -q coda_udpsrv &
+	if [ -f updatemon ]; then
+		updatemon -h `cat /.scm`  -q coda_udpsrv &
 		echo "updatemon/updateclnt."
 	fi
-	if [ -f ${VICEBIN}/updatemon ]; then
-		${VICEBIN}/updatemon -s -p /vice/db &
+	if [ -f updatemon ]; then
+		updatemon -s -p /vice/db &
 		echo "updatemon/updatesrv."
 	fi
 
 	# now the server
 	if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
-	    if [ -f "${VICEBIN}/startserver" ]; then
+	    if [ -f "startserver" ]; then
 	      	rm -f $VICESRV/pid
-		${VICEBIN}/startserver &
+		startserver &
 		echo "srv."
 	    fi
 	else
@@ -65,7 +64,7 @@ case "$1" in
 	# if pid file doesn't exist, it isn't likely that srv is running.
 	echo -n "Shutting down Coda: "
 	if [ -f /vice/srv/pid ]; then
-	    if [ -f "${VICEBIN}/volutil" ]; then
+	    if [ -f "volutil" ]; then
 	      	volutil shutdown
 		echo -n "srv: sleeping 30 secs to let srv shutdown..."
 		sleep 30
