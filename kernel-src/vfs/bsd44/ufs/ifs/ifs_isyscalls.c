@@ -587,7 +587,7 @@ sys_pioctl(p, uap, retval)
     printf("pioctl(path=%s com=%d comarg=%s follow=%d) called\n",
 	   uap->path, uap->com, uap->comarg, uap->follow);
     *retval = 0;
-    return(0);
+    return(EOPNOTSUPP);
 }
 
 /*
