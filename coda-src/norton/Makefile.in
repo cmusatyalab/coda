@@ -24,7 +24,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = norton norton-reinit
+EXECUTABLES = norton # norton-reinit
 SCRIPTS     = reinit
 SBINS       = $(EXECUTABLES) $(SCRIPTS)
 

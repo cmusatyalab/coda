@@ -130,14 +130,11 @@ void InitLWP() {
 
 
 extern void InitVolTable(int);
-extern void InitLogStorage();
 /* Do a partial vol package init.  VInitVolPackage() invokes the
  * salvager, we can't.
  */
 void NortonInitVolPackage() 
 {
-
-
     VInitServerList();
     InitLRU(VOLUMECACHESIZE);
     InitVolTable(HASHTABLESIZE);
@@ -147,8 +144,7 @@ void NortonInitVolPackage()
     VInitVnodes(vSmall, 10);
 
     /* Initialize the resolution storage structures */
-    InitLogStorage();
-    
+    //InitLogStorage();
 }
 
 

@@ -69,7 +69,6 @@ extern "C" {
 #include <viceinode.h>
 #include <vutil.h>
 #include <vrdb.h>
-#include <reslog.h>
 
 #include <ops.h>
 #include <rsle.h>

@@ -32,7 +32,7 @@ extern "C" {
 #endif __cplusplus
 
 //#include <reslog.h>
-#include <remotelog.h>
+//#include <remotelog.h>
 #include <rsle.h>
 #include <parselog.h>
 #include <cvnode.h>

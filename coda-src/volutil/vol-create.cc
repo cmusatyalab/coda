@@ -75,7 +75,6 @@ extern "C" {
 #include <recov.h>
 #include <codadir.h>
 #include <camprivate.h>
-#include <reslog.h>
 #include <coda_globals.h>
 #include <recov_vollog.h>
 #include "volutil.private.h"
