@@ -778,25 +778,15 @@ int hdb::GetSuspectPriority(int vid, char *pathname, int uid) {
 void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
     bstree_iterator next(*prioq, BstDescending);
     bsnode *b, *bnext;
+    namectxt *prev = NULL;
     int cleaning = 0;
 
     bnext = next();
-    while ((b = bnext) != NULL) {
+    while ((b = bnext)) {
 	namectxt *n = strbase(namectxt, b, prio_handle);
 
-	/* This is just a workaround for a bug I haven't been able to figure
-	 * out. What happens is that when we drop a token, we lose access to
-	 * objects. These objects are killed during the hoardwalk (and removed
-	 * from the HDB->prioq), but sometimes next() will give us an already
-	 * destroyed namecontext. It does get cleaned up correctly if we simply
-	 * skip it here. -JH */
-	if (n->dying) {
-	    LOG(0, ("Hoard daemon got dead or dying namecontext %p, "
-		    "skipping it!\n", n));
-	    bnext = next();
-	    continue;
-	}
-
+	if (prev) prev->release();
+	prev = n;
 	n->hold();
 
 	/* Yield periodically. */
@@ -804,12 +794,9 @@ void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
 	if (((*expansions) & HDB_YIELDMASK) == 0)
 	    VprocYield();
 
-	/* grab the next namecontext */
-	bnext = next();
-
 	/* Skip over indigent contexts in cleaning mode. */
 	if (cleaning && n->state == PeIndigent) {
-	    n->release();
+	    bnext = next();
 	    continue;
 	}
 
@@ -823,9 +810,10 @@ void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
 	}
 
 	/* Take transition and release context. */
+	bnext = next();
 	n->Transit(next_state);
-	n->release();
     }
+    if (prev) prev->release();
 }
 
 int hdb::CalculateTotalBytesToFetch() {
@@ -915,8 +903,8 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch) {
 	       ValidCount, SuspectCount, IndigentCount, InconsistentCount,
 	       MetaNameCtxts, DeltaMetaExpansions, DeltaMetaContractions,
 	       iterations, expansions, elapsed / 1000, ibuf);
-    if (SuspectCount > 0)
-	eprint("MAX_SW_ITERATIONS (%d) reached!!!", MAX_SW_ITERATIONS);
+    if (SuspectCount)
+	eprint("MAX_SW_ITERATIONS reached, SuspectCount=%d!!!", SuspectCount);
 }
 
 void TallyAllHDBentries(dlist *hdb_bindings, int blocks, TallyStatus status) {
