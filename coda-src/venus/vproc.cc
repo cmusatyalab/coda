@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.9 1997/12/16 20:15:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.10 97/12/18 23:44:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -848,7 +848,10 @@ void VattrToStat(struct coda_vattr *vap, struct stat *sp) {
     sp->st_blocks = (int64_t)ceil(((double)vap->va_bytes) / S_BLKSIZE);
     sp->st_flags = 0;
     sp->st_gen = 0;
+#ifdef	NetBSD1_3
+#else
     sp->st_lspare = 0;
+#endif
     sp->st_qspare[0] = 0;
     sp->st_qspare[1] = 0;
 #endif /* __BSD44__ */

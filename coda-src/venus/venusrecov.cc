@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.3 1997/08/25 22:16:30 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.4 97/10/18 05:00:29 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -50,7 +50,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
+#include <sys/param.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -120,6 +120,9 @@ int MAXTS = UNSET_MAXTS;
 #ifdef MACH
 PRIVATE const char *VM_RVGADDR = (char *)0x00c00000;
 PRIVATE const char *VM_RDSADDR = (char *)0x01c00000;
+#elif defined(NetBSD1_3)
+PRIVATE const char *VM_RVGADDR = (char *)0x50000000;
+PRIVATE const char *VM_RDSADDR = (char *)0x51000000;
 #elif defined(__BSD44__)
 PRIVATE const char *VM_RVGADDR = (char *)0x40000000;
 PRIVATE const char *VM_RDSADDR = (char *)0x41000000;
