@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.6 97/12/16 16:46:13 mre Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/Makefile.in,v 4.7 97/12/16 22:50:02 mre Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -66,14 +66,25 @@ HFILES =	$(INCLDIR)/admon.rpc2	\
 		$(INCLDIR)/fail.h	\
 		$(INCLSPECIAL)/lwp.h
 
-AOBJS = advice_srv.o console_handler.o counters.o daemon.o data.o \
+AOBJS = console_handler.o counters.o daemon.o data.o \
 	fail.o filecopy.o globals.o helpers.o conversions.o miss.o \
-	mybstree.o programspy.o replacementlog.o rpc_setup.o rpcs.o volent.o
+	mybstree.o programspy.o replacementlog.o rpcs.o volent.o
+
+REALRPCSETUP = rpc_setup.o
+FAKERPCSETUP = fake_rpc_setup.o
 
 advice: advice_srv
 
-advice_srv: $(AOBJS) $(LIBS) $(OTHERLIBS)
-	$(CXX) $(LIBFLAGS) $(AOBJS) $(LIBS) $(OTHERLIBS) -o advice_srv
+libadvice.a: ${AOBJS} ${REALRPCSETUP}
+
+libfakeadvice.a: ${AOBJS} ${FAKERPCSETUP}
+
+fake_rpc_setup.o: rpc_setup.cc
+	$(CXX) $(CFLAGS) -D__FAKE__ -c ${srcdir}/rpc_setup.cc -o fake_rpc_setup.o
+	
+
+advice_srv: $(LIBS) $(OTHERLIBS) libadvice.a advice_srv.o
+	$(CXX) $(LIBFLAGS) advice_srv.o libadvice.a $(LIBS) $(OTHERLIBS) -o advice_srv
 
 
 

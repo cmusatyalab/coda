@@ -41,7 +41,7 @@ char *GetFullPath(char *fidStr, char *path, int length) {
 
     rc = sscanf(fidStr, "<%lx.%lx.%lx>", &fid.Volume, &fid.Vnode, &fid.Unique);
     if (rc != 3) {
-      printf("ERROR!\n");
+       fprintf(stderr, "ERROR!\n");
        return(NULL);
     }
 
@@ -71,7 +71,7 @@ char *GetFullPath(char *fidStr, char *path, int length) {
     }
 
     if (snprintf(path, length, "%s%s", rootPath, &(relativePath[1])) >= length) {
-      printf("path too long\n");
+      fprintf(stderr, "path too long\n");
       return(NULL);
     }
     return(path);
@@ -90,7 +90,7 @@ int IncludeInProgramProfile(char *program, char *path, char *profileDir) {
 
     profile = fopen(profileName, "a+");
     if (profile == NULL) {
-        printf("ERROR!  Can't open %s\n", profileName);
+        fprintf(stderr, "ERROR!  Can't open %s\n", profileName);
 	return(-1);
     }
 
@@ -142,7 +142,7 @@ int IncludeInProgramProfile(char *program, char *path, char *profileDir) {
 
     profile = fopen(profileName, "r");
     if (profile == NULL) {
-        printf("ERROR!  Can't open %s\n", profileName);
+        fprintf(stderr, "ERROR!  Can't open %s\n", profileName);
 	return(-1);
     }
 
@@ -307,7 +307,7 @@ void PrintPWDB(char *filename) {
 
     outfile = fopen(filename, "a+");
     if (outfile == NULL) {
-      printf("ERROR:  Cannot open %s\n", filename);
+      fprintf(stderr, "ERROR:  Cannot open %s\n", filename);
       return;
     }
 
@@ -472,7 +472,7 @@ void PrintUADB(char *filename) {
 
     outfile = fopen(filename, "a+");
     if (outfile == NULL) {
-      printf("ERROR:  Cannot open %s\n", filename);
+      fprintf(stderr, "ERROR:  Cannot open %s\n", filename);
       return;
     }
 
