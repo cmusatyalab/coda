@@ -23,7 +23,7 @@ Coda are listed in the file CREDITS.
 
 /*
  * Special extended version of getaddrinfo for Coda,
- *   coda_getaddrinfo      - adds (ai_flags & RPC2_AI_RES_SRV), which performs
+ *   coda_getaddrinfo      - adds (ai_flags & CODA_AI_RES_SRV), which performs
  *			     SRV record lookups, additional information such as
  *			     priority and weights are stored in the returned
  *			     addrinfo list.
@@ -310,8 +310,10 @@ int coda_getaddrinfo(const char *node, const char *service,
 	    return RPC2_EAI_BADFLAGS;
 
 #ifdef PF_INET6
+	/* check whether we were given an IP address in a format that doesn't
+	 * match the hinted address family */
 	if (hints->ai_family != PF_INET6 && inet_pton(PF_INET, node, &tmp) > 0)
-	    return RPC2_EAI_BADFLAGS;
+		return RPC2_EAI_BADFLAGS;
 
 	if (hints->ai_family != PF_INET && inet_pton(PF_INET6, node, &tmp) > 0)
 	    return RPC2_EAI_BADFLAGS;
@@ -330,11 +332,8 @@ int coda_getaddrinfo(const char *node, const char *service,
     err = RPC2_getaddrinfo(node, service, hints, &srvs);
 
 Exit:
-#if 1 /* append new addresses to the end of **res? */
+    /* append new addresses to the end of **res? */
     while (*res) res = &(*res)->ai_next;
-#else
-    srvs->ai_next = *res;
-#endif
 
     *res = srvs;
     return err;
