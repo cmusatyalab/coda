@@ -633,7 +633,8 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 
 	/* Set up uarea. */
 	vp->u.Init();
-	vp->u.u_cred.cr_uid = (uid_t)f->HoardVuid;
+	vp->u.u_cred.cr_uid = vp->u.u_cred.cr_euid =
+	    vp->u.u_cred.cr_fsuid = (uid_t)f->HoardVuid;
 	vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
 	vp->u.u_priority = f->priority;
 
@@ -959,7 +960,8 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch) {
 
 	    /* Set up uarea. */
 	    vp->u.Init();
-	    vp->u.u_cred.cr_uid = (uid_t)f->HoardVuid;
+	    vp->u.u_cred.cr_uid = vp->u.u_cred.cr_euid =
+		vp->u.u_cred.cr_fsuid = (uid_t)f->HoardVuid;
 	    vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
 	    vp->u.u_priority = f->priority;
 	    
@@ -1930,7 +1932,8 @@ pestate namectxt::CheckExpansion() {
     for (iterations = 0; iterations < MAX_CE_ITERATIONS; iterations++) {
 	/* Set up uarea. */
 	vp->u.Init();
-	vp->u.u_cred.cr_uid = (uid_t)vuid;
+	vp->u.u_cred.cr_uid = vp->u.u_cred.cr_euid =
+	    vp->u.u_cred.cr_fsuid = (uid_t)vuid;
 	vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
 	vp->u.u_priority = FSDB->MakePri(0, priority);
 	vp->u.u_cdir = cdir;
