@@ -461,12 +461,7 @@ void fsobj::Recover()
 
     /* Get rid of fake objects, and other objects that are not likely to be
      * useful anymore. */
-#ifdef OBSOLETE
-    /* first part of this test should be obsolete because fake volumes are no
-     * longer replicated volume */
     if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) || !vol->IsReplicated()) {
-#endif
-    if (!vol->IsReplicated())
 	goto Failure;
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
@@ -2018,7 +2013,7 @@ int fsobj::Fakeify()
 
 	    /* local-repair modification */
 	    if (!strcmp(comp, "local")) {
-		/* the first specical case, fake link for a local object */
+		/* the first special case, fake link for a local object */
 		LOG(100,("fsobj::Fakeify: fake link for a local object %s\n",
 			 FID_(&fid)));
 		LOG(100,("fsobj::Fakeify: parent fid for the fake link is %s\n",
