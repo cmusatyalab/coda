@@ -476,7 +476,8 @@ int venus_access(struct super_block *sb, struct ViceFid *fid, int mask)
 	UPARG(CFS_ACCESS);
 
         inp->cfs_access.VFid = *fid;
-        inp->cfs_access.flags = mask << 6;
+	/* note that masks will lie between 0 and 7 */
+        inp->cfs_access.flags = mask;
 
 	error = coda_upcall(coda_sbp(sb), insize, &outsize, inp);
 
