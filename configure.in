@@ -85,6 +85,7 @@ AC_SEARCH_LIBS(bind, socket)
 AC_SEARCH_LIBS(inet_ntoa, nsl)
 AC_SEARCH_LIBS(gethostbyname, resolv)
 AC_SEARCH_LIBS(res_search, resolv)
+AC_SEARCH_LIBS(res_9_init, resolv)
 
 dnl Checks for header files.
 AC_CHECK_HEADERS(search.h sys/resource.h sys/stream.h ncurses.h netdb.h)
