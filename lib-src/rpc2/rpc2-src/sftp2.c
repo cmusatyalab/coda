@@ -116,6 +116,7 @@ static void sftp_ProcessPackets()
 
     SFTP_AllocBuffer(SFTP_MAXBODYSIZE, &pb);
     rc = sftp_RecvPacket(sftp_Socket, pb);
+
     if (rc < 0) {
 	/* If errno = 0, libfail killed the packet.
 	   else packet greater than RPC2_MAXPACKETSIZE */
@@ -223,6 +224,15 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
     struct SFTP_Entry	*sfp;
     struct CEntry	*ce;
     int			 iamserver;
+
+    /* collect statistics */
+    if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
+	sftp_MRecvd.Total++;
+	sftp_MRecvd.Bytes += pb->Prefix.LengthOfPacket;
+    } else {
+	sftp_Recvd.Total++;
+	sftp_Recvd.Bytes += pb->Prefix.LengthOfPacket;
+    }
 
     /* SFTPVERSION must match or we have no hope at all. */
     if (ntohl(pb->Header.ProtoVersion) != SFTPVERSION)
@@ -335,14 +345,17 @@ static void ServerPacket(RPC2_PacketBuffer *whichPacket,
     sls = sEntry->Sleeper;
     if (sls == NULL || (sls->State != S_WAITING && sls->State != S_TIMEOUT))
     {/* no one expects this packet; toss it out; NAK'ing may have race hazards */
-	if (whichPacket) BOGUS(whichPacket);
+	if (whichPacket) {
+	    fprintf(stderr, "No waiters, dropped incoming sftp packet\n");
+	    BOGUS(whichPacket);
+	}
 	return;
     }
     sEntry->Sleeper = NULL;	/* no longer anyone waiting for a packet */
     sls->State = S_ARRIVED;
     sls->Packet = whichPacket;
     REMOVETIMER(sls);
-    LWP_NoYieldSignal((char *)sls);
+    LWP_SignalProcess((char *)sls);
 }
 
 

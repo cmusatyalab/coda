@@ -114,18 +114,6 @@ long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket)
     rc = rpc2_RecvPacket(whichSocket, whichPacket);
     if (rc < 0) return(rc);
 
-    if (ntohl(whichPacket->Header.Flags) & RPC2_MULTICAST) {
-	rpc2_MRecvd.Total--;
-	rpc2_MRecvd.Bytes -= whichPacket->Prefix.LengthOfPacket;
-	sftp_MRecvd.Total++;
-	sftp_MRecvd.Bytes += whichPacket->Prefix.LengthOfPacket;
-    } else {
-	rpc2_Recvd.Total--;
-	rpc2_Recvd.Bytes -= whichPacket->Prefix.LengthOfPacket;
-	sftp_Recvd.Total++;
-	sftp_Recvd.Bytes += whichPacket->Prefix.LengthOfPacket;
-    }
-
 #ifdef RPC2DEBUG
     {
 	struct TraceEntry *te = (struct TraceEntry *)CBUF_NextSlot(TraceBuf);

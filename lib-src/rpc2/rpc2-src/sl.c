@@ -194,6 +194,15 @@ void rpc2_HandlePacket(RPC2_PacketBuffer *pb)
         struct CEntry *ce;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
 
+	/* collect statistics */
+	if (ntohl(pb->Header.Flags) & RPC2_MULTICAST) {
+	    rpc2_MRecvd.Total++;
+	    rpc2_MRecvd.Bytes += pb->Prefix.LengthOfPacket;
+	} else {
+	    rpc2_Recvd.Total++;
+	    rpc2_Recvd.Bytes += pb->Prefix.LengthOfPacket;
+	}
+
 	if ((ntohl(pb->Header.LocalHandle) == -1) || 
 	    (ntohl(pb->Header.Opcode) == RPC2_NAKED)) {
 		assert(pb->Prefix.Qname == &rpc2_PBList);

@@ -223,13 +223,6 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
 	    return (-1);
     }
 
-    if (ntohl(whichBuff->Header.Flags) & RPC2_MULTICAST) {
-	    rpc2_MRecvd.Total++;
-	    rpc2_MRecvd.Bytes += rc;
-    } else {
-	    rpc2_Recvd.Total++;
-	    rpc2_Recvd.Bytes += rc;
-    }
     whichBuff->Prefix.LengthOfPacket = rc;
 
     if (rc == len) {
