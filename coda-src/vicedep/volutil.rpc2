@@ -131,7 +131,7 @@ typedef RPC2_Struct {
 
 38: VolSwapmalloc();
 
-39: VolSetWBParms(IN VolumeId Vid, IN RPC2_Integer newWBFlag);
+/* 39: VolSetWBParms(IN VolumeId Vid, IN RPC2_Integer newWBFlag); */
 
 40: NewVolMarkAsAncient(IN VolumeId backupId);
 
