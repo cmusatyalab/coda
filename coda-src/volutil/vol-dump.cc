@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.9 98/11/02 16:47:09 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.10 1998/11/24 15:34:59 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.9 $
+#define RCSVERSION $Revision: 4.10 $
 
 /* vol-dump.c */
 

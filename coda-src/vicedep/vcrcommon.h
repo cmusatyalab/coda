@@ -44,7 +44,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vcrcommon.rpc2,v 4.3 1997/11/14 13:21:16 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/vicedep/Attic/vcrcommon.h,v 4.1 1998/12/04 22:26:45 braam Exp $";
 #endif /*_BLURB_*/
 
 /*

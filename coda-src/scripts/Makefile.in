@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.27 1998/10/08 17:30:11 jaharkes Exp $";
+# static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/scripts/Attic/Makefile.in,v 4.28 1998/11/11 15:58:53 smarc Exp $";
 
 TOPDIR = @top_srcdir@
 

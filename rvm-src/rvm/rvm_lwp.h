@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_lwp.h,v 4.3 1998/01/29 00:54:22 braam Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rvm/Attic/rvm_lwp.h,v 4.4 1998/08/26 15:40:14 braam Exp $";
 #endif _BLURB_
 
 /* LWP compatability for RVM */

@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda.h,v 1.9 1998/08/18 17:05:25 rvb Exp $ */
+/* $Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/freebsd/cfs/Attic/coda.h,v 1.10 1998/08/28 18:12:26 rvb Exp $ */
 
 /*
  *

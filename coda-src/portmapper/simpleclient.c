@@ -1,5 +1,5 @@
 /*
- *      $Id: simpleclient.c,v 1.5 98/11/02 17:54:24 rvb Exp $   
+ *      $Id: simpleclient.c,v 1.6 1998/11/24 15:34:29 jaharkes Exp $   
  */
 
 /* Simple client to excercise the RPC2 procedure calls */
