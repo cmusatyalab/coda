@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-rvb/real/coda-src/venus/RCS/fso_cfscalls0.cc,v 4.3 1997/02/26 16:03:18 rvb Exp rvb $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/fso_cfscalls0.cc,v 4.4 1997/02/27 13:59:23 rvb Exp clement $";
 #endif /*_BLURB_*/
 
 
@@ -471,9 +471,11 @@ NonRepExit:
 	ATOMIC(
 	    RVMLIB_REC_OBJECT(flags);
 	    flags.fetching = 0;
-	    if (IsFile()) 
-	       data.file->SetLength((unsigned) stat.Length);
-	    DiscardData();
+	    if (HAVEDATA(this)) {
+		if (IsFile()) 
+		    data.file->SetLength((unsigned) stat.Length);
+		DiscardData();
+	    }
 
 	    /* Demote existing status. */
 	    Demote();
