@@ -143,17 +143,11 @@ void
 ReadExportList()
 {
     FILE * exportf;
-    char   errmsg[MAXPATHLEN];
     char   rdline[MAXPATHLEN];
     flist *entry;
 
     exportf = fopen (vice_sharedfile("db/files.export"), "r");
     if (!exportf) {
-        /* Can not read export list.  DIE! */
-        snprintf (errmsg, MAXPATHLEN, "Cannot open %s",
-		  vice_sharedfile("db/files.export"));
-	perror(errmsg);
-	fprintf(stderr, "updatesrv will fetch ANY file on the system.\n"); 
 	checknames = 0;
 	return;
     }
@@ -384,6 +378,27 @@ static void ServerLWP(int *Ident)
     }
 }
 
+int AccessAllowed(char *name)
+{
+    char *p = name;
+    /* Any `..' in the name, deny access! */
+    while (1) {
+	p = strchr(p, '.');
+	if (!p) break;
+	if (*(++p) == '.') return 0;
+    }
+    /* if the file is in the export list, allow */
+    if (InList(name)) return 1;
+
+    /* export list was specified and the file was not listed, deny */
+    if (checknames) return 0;
+
+    /* not absolute path or in the /vice subtree, allow */
+    if (name[0] != '/' || strncmp(name, "/vice/", 6) == 0) return 1;
+	
+    /* you lose */
+    return 0;
+}
 
 long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName, 
 		 RPC2_Unsigned Time, RPC2_Unsigned *NewTime, 
@@ -392,22 +407,27 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 {
     long    rc;			/* return code to caller */
     SE_Descriptor sid;		/* sid to use to transfer */
-    char    name[1024];		/* area to hold the name */
+    char    name[1025];		/* area to hold the name */
     struct stat buff;		/* buffer for stat */
+    int     len;
 
     rc = 0;
 
-    LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d",
-	    FileName, Time);
+    len = strlen((char *)FileName);
+    if (len > 1024) len = 1024;
+    memcpy(name, FileName, 1024);
+    name[1024] = '\0';
 
-    if (checknames && !InList((char *)FileName)) {
+    LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d",
+	    name, Time);
+
+    if (!AccessAllowed((char *)name)) {
         LogMsg(0, SrvDebugLevel, stdout, "Access denied to file %s.",
 	       (char *)FileName);
 	rc = CEACCES;
 	goto Final;
     }
 
-    strcpy(name, (char *)FileName);
     if (stat(name, &buff)) {
 	*NewTime = 0;
 	goto Final;

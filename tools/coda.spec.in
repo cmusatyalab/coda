@@ -3,8 +3,8 @@ Name: @CODA@
 Version: @CVER@
 Release: @REL@
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-@VERSION@.tgz
-Requires: bc
-Copyright: CMU
+Requires: bc, rvm-tools
+Copyright: GPL
 BuildRoot: /usr/src/redhat/BUILD/coda-build
 Group: Networking/Daemons
 %description
@@ -118,17 +118,6 @@ if [ ! -e /usr/coda/etc/vstab ]; then
 	/usr/sbin/venus-setup testserver.coda.cs.cmu.edu 40000
 fi
 
-cd /usr/lib/coda
-#if [ ! -x /usr/bin/tixindex ]; then
-#	chmod a+x /usr/bin/tixindex 
-#fi
-#tixindex *tcl
-#if [ ! -f /usr/bin/tixwish ]; then
-#	ln -s /usr/bin/tixwish* /usr/bin/tixwish
-#	if [ x$? != x0 ]; then
-#		echo "**WARNING: tixwish is not correctly installed"
-#	fi
-#fi
 /sbin/chkconfig --add venus.init
 
 %postun
