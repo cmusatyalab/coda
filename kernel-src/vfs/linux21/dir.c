@@ -637,7 +637,9 @@ int coda_readdir(struct file *file, void *dirent,  filldir_t filldir)
                 result = coda_venus_readdir(&open_file, dirent, filldir);
         } else {
                 /* potemkin case: we are handed a directory inode */
+		down(&cnp->c_ovp->i_sem);
                 result = open_file.f_op->readdir(&open_file, dirent, filldir);
+		up(&cnp->c_ovp->i_sem);
         }
 	coda_restore_codafile(inode, file, cnp->c_ovp, &open_file);
         EXIT;

@@ -78,7 +78,7 @@ static struct super_block * coda_read_super(struct super_block *sb,
 
         if ( sbi->sbi_sb ) {
 		printk("Already mounted\n");
-		return NULL;
+		goto error;
 	}
 
 	sbi->sbi_sb = sb;
@@ -101,7 +101,6 @@ static struct super_block * coda_read_super(struct super_block *sb,
 	        printk("coda_read_super: coda_get_rootfid failed with %d\n",
 		       error);
 		sb->s_dev = 0;
-	        unlock_super(sb);
 		goto error;
 	}	  
 	printk("coda_read_super: rootfid is %s\n", coda_f2s(&fid));
@@ -111,7 +110,6 @@ static struct super_block * coda_read_super(struct super_block *sb,
         if ( error || !root ) {
 	    printk("Failure of coda_cnode_make for root: error %d\n", error);
 	    sb->s_dev = 0;
-	    unlock_super(sb);
 	    goto error;
 	} 
 
@@ -124,6 +122,7 @@ static struct super_block * coda_read_super(struct super_block *sb,
         return sb;
 
  error:
+	unlock_super(sb);
 	EXIT;  
 	MOD_DEC_USE_COUNT;
 	if (sbi) {
@@ -148,7 +147,7 @@ static void coda_put_super(struct super_block *sb)
         sb->s_dev = 0;
 	coda_cache_clear_all(sb);
 	sb_info = coda_sbp(sb);
-	sb_info->sbi_vcomm->vc_inuse = 0;
+	/* sb_info->sbi_vcomm->vc_inuse = 0; */
 	coda_super_info.sbi_sb = NULL;
 	printk("Coda: Bye bye.\n");
 	memset(sb_info, 0, sizeof(* sb_info));

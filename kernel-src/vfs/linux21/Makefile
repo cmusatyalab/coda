@@ -8,7 +8,7 @@ MODDIR = $(PREFIX)/lib/modules/$(UTS_RELEASE)
 
 ifndef CFLAGS
 # Don't remove "-O2" or bad things will happen!
-KFLAGS = -O2 -g -Wall -Wstrict-prototypes -Winline -pipe
+KFLAGS = -O2 -Wall -Wstrict-prototypes -Winline -pipe
 endif
 
 CPPFLAGS = $(PCDEBUG) -D__KERNEL__ -DMODULE -I../include \
