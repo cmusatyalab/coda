@@ -228,10 +228,11 @@ struct coda_vattr {
 #define CODA_PURGEUSER   26
 #define CODA_ZAPFILE     27
 #define CODA_ZAPDIR      28
-/* #define CODA_ZAPVNODE    29   obsolete */ 
 #define CODA_PURGEFID    30
 #define CODA_OPEN_BY_PATH 31
-#define CODA_NCALLS 32
+#define CODA_RESOLVE     32
+#define CODA_REINTEGRATE 33
+#define CODA_NCALLS 34
 
 #define DOWNCALL(opcode) (opcode >= CODA_REPLACE && opcode <= CODA_PURGEFID)
 
