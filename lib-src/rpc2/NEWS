@@ -1,3 +1,9 @@
+New in 1.15:
+
+* Remove noisy debugging printf.
+* Generate correct packing/unpacking code for RPC2_BoundedBS structures with
+  rp2gen.
+
 New in 1.14:
 
 * Fixed readline includes.

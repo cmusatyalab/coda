@@ -512,25 +512,23 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 				/* Later *args is added by 4. Now add 4 for MaxSeqLen */
 				(*args)++; /* Ugly!! */
 			      }
+			      else if (mode == IN_MODE) {
+			        _length = (*arg->bbs).SeqLen;
+			        ((*_ptr)++)->integer = htonl(_length);
+			        memcpy(*_ptr, (*arg->bbs).SeqBody, _length);
+			      }
 			      else if (mode == IN_OUT_MODE) {
 			        ((*_ptr)++)->integer = htonl((*arg->bbsp)->MaxSeqLen);
 			        _length = (*arg->bbsp)->SeqLen;
 			        ((*_ptr)++)->integer = htonl(_length);
 			        memcpy(*_ptr, (*arg->bbsp)->SeqBody, _length);
 			      }
-			      else {
-			        ((*_ptr)++)->integer = htonl(arg->bbs->MaxSeqLen);
-			        _length = arg->bbs->SeqLen;
-			        ((*_ptr)++)->integer = htonl(_length);
-			        memcpy(*_ptr, arg->bbs->SeqBody, _length);
+			      else { /* OUT_MODE */
+			        ((*_ptr)++)->integer = htonl((*arg->bbsp)->MaxSeqLen);
+			        _length = 0;
 			      }
-#if SIZE == 4
-			      (*_ptr) += (_PAD(_length) >> 2);
-			      /* (*_ptr) += ((a_types->size) >> 2) - 2; */
-#else
 			      (*_ptr) += (_PAD(_length) / SIZE);
 			      /* (*_ptr) += (a_types->size / SIZE) - 2; */
-#endif
 			      (*args)++;
 			      break;
 	   case RPC2_ENCRYPTIONKEY_TAG:
@@ -718,7 +716,9 @@ int get_len(ARG **a_types, PARM **args, MODE mode)
 			  return((*a_types)->size = 2*SIZE+_PAD(bbsbodyp->SeqLen));
 			} else if (mode == IN_OUT_MODE)
 			  return((*a_types)->size = 2*SIZE+_PAD((*(*args)->bbsp)->SeqLen));
-			else return((*a_types)->size = 2*SIZE+_PAD((*args)->bbs->SeqLen));
+			else if (mode == IN_MODE)
+			  return((*a_types)->size = SIZE+_PAD((*(*args)->bbs).SeqLen));
+			else return((*a_types)->size = SIZE); /* OUT_MODE */
 	case RPC2_BULKDESCRIPTOR_TAG:	
 	case RPC2_ENCRYPTIONKEY_TAG:
 			return((*a_types)->size);
@@ -862,20 +862,17 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				}
 				break;
 		case RPC2_BOUNDEDBS_TAG:
-				if (mode != NO_MODE) {
-				  args->bbsp[offset]->MaxSeqLen = ntohl((*_ptr)->integer);
+				if (mode == OUT_MODE || mode == IN_OUT_MODE) {
+				  RPC2_Integer _length;
+				  _length = ntohl((*_ptr)->integer);
 				  (*_ptr)++;
-				  args->bbsp[offset]->SeqLen = ntohl((*_ptr)->integer);
+				  args->bbsp[offset]->SeqLen = _length;
 				  (*_ptr)++;
-				  memcpy(args->bbsp[offset]->SeqBody, *_ptr,
-					 args->bbsp[offset]->SeqLen);
-#if SIZE == 4
-				  (*_ptr) += (_PAD(args->bbsp[offset]->SeqLen)) >> 2;
-#else
-				  (*_ptr) += (_PAD(args->bbsp[offset]->SeqLen)) / SIZE;
-#endif
+				  if (_length <= args->bbsp[offset]->MaxSeqLen)
+				    memcpy(args->bbsp[offset]->SeqBody, *_ptr, _length);
+				  (*_ptr) += (_PAD(_length)) / SIZE;
 				}
-				else {
+				else if (mode == NO_MODE) {
 				  bbsbodyp = (RPC2_BoundedBS *)args;
 				  bbsbodyp->MaxSeqLen = ntohl((*_ptr)->integer);
 				  (*_ptr)++;
@@ -883,11 +880,7 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				  (*_ptr)++;
 				  memcpy(bbsbodyp->SeqBody, *_ptr,
 					 bbsbodyp->SeqLen);
-#if SIZE == 4
-				  (*_ptr) += (_PAD(bbsbodyp->SeqLen)) >> 2;
-#else
 				  (*_ptr) += (_PAD(bbsbodyp->SeqLen)) / SIZE;
-#endif
 				}
 		case RPC2_BULKDESCRIPTOR_TAG:
 				break;
