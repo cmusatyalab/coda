@@ -14,14 +14,15 @@
 
 #include <cfs/coda.h>
 
-/*#include <auth2.h>
+//#include <auth2.h>
 
-typedef struct {
-    int			    sTokenSize;
-    EncryptedSecretToken    stoken;
-    int			    cTokenSize;
-    ClearToken		    ctoken;
-    } venusbuff;*/
+//typedef struct {
+  //  int			    sTokenSize;
+  //  EncryptedSecretToken    stoken;
+  //  int			    cTokenSize;
+  //  ClearToken		    ctoken;
+  //  } venusbuff;
+
 #define BUFSIZE 4096
 
 FILE *file;
@@ -96,7 +97,7 @@ void
 printrequest (char *buffer)
 {
   union inputArgs *in = (union inputArgs *) buffer;
-  /*  venusbuff *vb ; */
+ // venusbuff *vb ; 
 
   fprintf (file, "req: %s uniq %d ", opcode(in->ih.opcode), in->ih.unique);
   switch (in->ih.opcode) {
@@ -130,9 +131,9 @@ printrequest (char *buffer)
     fprintf (file, "\"%s\" ", buffer + (int) in->coda_remove.name);
     break;
   case CODA_IOCTL:
-    printvfid(&in->coda_ioctl.VFid);
-    /*    vb = (venusbuff *)(buffer + (int )in->coda_ioctl.data);
-	  fprintf (file, "\"%i\" ", vb->ctoken.EndTimestamp); */
+    printvfid(&in->coda_ioctl.VFid);    
+ //   vb = (venusbuff *)(buffer + (int )in->coda_ioctl.data);
+ //   fprintf (file, "vb \"%i\" ", vb->ctoken.EndTimestamp); 
     break;
   }
   fprintf (file, "\n");
@@ -276,7 +277,9 @@ main()
      perror("file");
      exit(1);
   }
-
+  
+  __djgpp_set_quiet_socket(1);
+  
   udpfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
   if (udpfd == -1) {
     perror ("socket");
@@ -410,9 +413,12 @@ done:
     exit (1);
   }
   do {
-    printf ("UNLOAD result %d\n", res = vxdldr_unload_device("CODADEV"));
+    printf ("UNLOAD result %d\n", res = vxdldr_unload_device("CODADEV"));    
   } while (res == 0);
-
+  res = 0;
+  do {
+    printf ("UNLOAD result %d\n", res = vxdldr_unload_device("SOCK"));    
+  } while (res == 0);
 }
 
 

@@ -87,7 +87,7 @@ main()
   res = DeviceIoControl(8, NULL, 0, NULL, 0);
   if (res) {
     printf ("Unmount failed: %d\n", res);
-    exit (1);
+    //   exit (1);
   }
 
   printf ("Unmount OK\n");
