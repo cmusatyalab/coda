@@ -6,7 +6,7 @@
 # the following may need editing depending on your preferences
 
 CPP           = gcc -E -x c-header -traditional-cpp -D_ASM
-MACHINE_FLAGS := $(MACHINE_FLAGS) -DRVM_USELWP
+MACHINE_FLAGS := $(MACHINE_FLAGS)
 NATIVECC      = gcc
 SHORTSYS      = solaris2
 # for Solaris ... sockets, nsl ...
@@ -16,7 +16,7 @@ LIBDL	      = -ldl
 LIBREADLINE   = -L/usr/local/lib -R/usr/local/lib -lreadline
 INCREADLINE   = -I/usr/local/include/readline
 #for rvm
-LIBTHREADS    = $(TOPOBJ)/lib-src/mlwp/liboldlwp.a
+LIBTHREADS    = 
 LIBMACH       = 
 #for advice_srv
 #LIBKVM        = /usr/lib/libkvm.a
