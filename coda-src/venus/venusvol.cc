@@ -2203,34 +2203,38 @@ void repvol::SetStagingServer(struct in_addr *srvr)
     if (ro_replica)
 	VDB->Put((volent **)&ro_replica);
 
-    if (!srvr->s_addr) {
-        struct in_addr hosts[VSG_MEMBERS];
-        GetHosts(hosts);
-        vsg = VSGDB->GetVSG(hosts);
-        return;
+    if (srvr->s_addr) {
+	strcpy(stagingname, name);
+	/* make sure we don't overflow stagingname when appending ".ro" */
+	stagingname[V_MAXVOLNAMELEN-4] = '\0';
+	strcat(stagingname, ".ro");
+
+	memset(&StagingVol, 0, sizeof(VolumeInfo));
+	StagingVol.Vid = stagingvid++;
+	StagingVol.Type = BACKVOL;
+	(&StagingVol.Type0)[replicatedVolume] = vid;
+	StagingVol.Server0 = ntohl(srvr->s_addr);
+
+	ro_replica = (volrep *)VDB->Create(&StagingVol, stagingname);
+
+	if (ro_replica) {
+	    ro_replica->hold();
+
+	    /* fake a CB-connection */
+	    {
+		srvent *s;
+		GetServer(&s, srvr);
+		if (s) s->connid = 666;
+		PutServer(&s);
+	    }
+	}
     }
 
-    strcpy(stagingname, name);
-    /* make sure we don't overflow stagingname when appending ".ro" */
-    stagingname[V_MAXVOLNAMELEN-4] = '\0';
-    strcat(stagingname, ".ro");
-
-    memset(&StagingVol, 0, sizeof(VolumeInfo));
-    StagingVol.Vid = stagingvid++;
-    StagingVol.Type = BACKVOL;
-    (&StagingVol.Type0)[replicatedVolume] = vid;
-    StagingVol.Server0 = ntohl(srvr->s_addr);
-
-    ro_replica = (volrep *)VDB->Create(&StagingVol, stagingname);
-    if (ro_replica) {
-        ro_replica->hold();
-        /* fake a CB-connection */
-        {
-            srvent *s;
-            GetServer(&s, srvr);
-            if (s) s->connid = 666;
-            PutServer(&s);
-        }
+    /* reattach the replicated volume to the vsg */
+    {
+	struct in_addr hosts[VSG_MEMBERS];
+	GetHosts(hosts);
+	vsg = VSGDB->GetVSG(hosts);
     }
 }
 
