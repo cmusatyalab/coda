@@ -165,7 +165,7 @@ int AuthorizedUser(vuid_t thisUser) {
   }
 
   /* If this user is logged into the console, then this user is authorized */
-  if (thisUser == ConsoleUser()) {
+  if (ConsoleUser(thisUser)) {
     LOG(100, ("AuthorizedUser: User (%d) --> authorized as console user.\n", thisUser));
     return(1);
   }
@@ -176,23 +176,30 @@ int AuthorizedUser(vuid_t thisUser) {
 }
 
 #define	CONSOLE	    "console"
-vuid_t ConsoleUser() {
-    vuid_t vuid = ALL_UIDS;
-#ifndef DJGPP
-#ifdef __linux__
+
+int ConsoleUser(vuid_t user)
+{
+#ifdef DJGPP
+    return(1);
+
+#elif __linux__
     setutent();
     struct utmp w, *u;
     strcpy(w.ut_line, CONSOLE);
     if ((u = getutline(&w))) {
         struct passwd *pw = getpwnam(u->ut_name);
-        if (pw) vuid = pw->pw_uid;
+        if (pw) return (user == pw->pw_uid);
     }
     endutent();
-#else /* !__linux__ */
-    /* Look up console user in utmp. */
+    return(0);
+
+#else /* Look up console user in utmp. */
+
 #ifndef UTMP_FILE
 #define	UTMP_FILE   "/etc/utmp"
 #endif
+    vuid_t vuid = ALL_UIDS;
+
     FILE *fp = fopen(UTMP_FILE, "r");
     if (fp == NULL) return(vuid);
     struct utmp u;
@@ -205,9 +212,9 @@ vuid_t ConsoleUser() {
     }
     if (fclose(fp) == EOF)
 	CHOKE("ConsoleUser: fclose(%s) failed", UTMP_FILE);
+
+    return(vuid == user);
 #endif
-#endif
-    return(vuid);
 }
 
 

@@ -247,7 +247,7 @@ extern void UserPrint();
 extern void UserPrint(FILE *);
 extern void UserPrint(int);
 extern int AuthorizedUser(vuid_t);
-extern vuid_t ConsoleUser();
+extern int ConsoleUser(vuid_t user);
 
 
 /* user_daemon.c */
