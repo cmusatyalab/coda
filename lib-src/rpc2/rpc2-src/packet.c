@@ -172,8 +172,16 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
 	n = sendto(whichSocket, &whichPB->Header,
 		   whichPB->Prefix.LengthOfPacket, 0,
 		   addr->ai_addr, addr->ai_addrlen);
-    }
+    } else
 #endif
+    if (n == -1 && errno == EAGAIN)
+    {
+	/* operation failed probably because the send buffer was full. we could
+	 * try to select for write and retry, or we could just consider this
+	 * packet lost somewhere on the network and have the normal
+	 * retransmission kick in.
+	 */
+    } else
 
     if (RPC2_Perror && n != whichPB->Prefix.LengthOfPacket)
     {
@@ -208,6 +216,10 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     rc = recvfrom(whichSocket, &whichBuff->Header, len, 0,
 		  (struct sockaddr *) &sa, &fromlen);
 
+    if (rc < 0 && errno == EAGAIN) {
+	/* the packet might have had a corrupt udp checksum */
+	return -1;
+    }
     if (rc < 0) {
 	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
 	    return(-1);

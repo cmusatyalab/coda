@@ -837,6 +837,7 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 			 RPC2_PortIdent *Port)
 {
     int err = RPC2_FAIL;
+    int flags;
 
     for (; addr; addr = addr->ai_next) {
 	if (af != PF_UNSPEC && af != addr->ai_family)
@@ -849,6 +850,11 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 	    continue;
 	}
 
+	/* make sure the socket is non-blocking, corrupt udp checksums can
+	 * cause a packet drop by recvmsg and it would end up blocking
+	 * (possibly indefinitely). */
+	flags = fcntl(*svar, F_GETFL, 0);
+	fcntl(*svar, F_SETFL, flags | O_NONBLOCK);
 #if 0
 	rc = setsockopt(*svar, SOL_SOCKET, SO_SNDBUF, &blen, sizeof(blen));
 	if ( rc ) {
