@@ -299,7 +299,7 @@
 	<para>Flush all data in specified volumes.  Care must be taken when
 	using the <command>cfs</command> <option>flushvolume</option> command,
 	as flushing the cache while operating in disconnected mode may result
-	in loss of data.
+	in loss of data.</para>
     </listitem>
     </varlistentry>
 

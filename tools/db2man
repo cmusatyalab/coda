@@ -3,7 +3,7 @@
 set -e
 
 if [ "`which docbook-to-man`" ] ; then
-    docbook-to-man < "$1" > "$2"
+    docbook-to-man "$1" > "$2"
     exit 0
 fi
 
