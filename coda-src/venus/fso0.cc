@@ -1049,8 +1049,10 @@ RestartFind:
 			/* Otherwise, let fsdb::Get go ahead and fetch the object */
 		    }
 
-		    int nblocks = (int) BLOCKS(f);
-		    if (f->IsFile()) {
+		    int nblocks;
+		    nblocks = (int) BLOCKS(f) - NBLOCKS(f->stat.GotThisData);
+
+		    if (f->IsFile() && !HAVEDATA(f)) {
 			code = AllocBlocks(vp->u.u_priority, nblocks);
 			if (code != 0) {
                             VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, NOSPACE, nblocks);

@@ -16,6 +16,8 @@ listed in the file CREDITS.
 
 #*/
 
+#define OLDFETCH
+
 /*
  *
  *    CFS calls0.
@@ -145,12 +147,7 @@ int fsobj::Fetch(vuid_t vuid) {
     memset(&dummysed, 0, sizeof(SE_Descriptor));
     SE_Descriptor *sed = 0;
 
-#define OLDFETCH 1
-#ifdef OLDFETCH
-    long offset = 0;
-#else
     long offset = PARTIALDATA(this) ? stat.GotThisData : 0;
-#endif
 
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
@@ -261,6 +258,9 @@ int fsobj::Fetch(vuid_t vuid) {
 	    /* Collate responses from individual servers and decide what to do next. */
 	    code = vol->Collate_NonMutating(m, code);
 	    MULTI_RECORD_STATS(ViceFetch_OP);
+#ifdef OLDFETCH
+	    if (code != 0) stat.GotThisData = 0;
+#endif
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code == EAGAIN) { stat.GotThisData = 0; code = ERETRY; }
 
@@ -501,10 +501,10 @@ NonRepExit:
 	flags.fetching = 0;
 #ifdef OLDFETCH
 	if (HAVEALLDATA(this)) {
-		if (IsFile()) 
-			data.file->SetLength((unsigned) stat.Length);
-		DiscardData();
-	    }
+	    if (IsFile()) 
+		data.file->SetLength((unsigned) stat.Length);
+	    DiscardData();
+	}
 #endif
 	
 	/* Demote existing status. */
