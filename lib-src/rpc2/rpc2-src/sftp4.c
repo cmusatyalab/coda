@@ -50,14 +50,11 @@ Pittsburgh, PA.
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <sys/uio.h>
-#include <errno.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
 #include "cbuf.h"
 
-
-extern int errno;
 
 #define TRACELEN 1000
 

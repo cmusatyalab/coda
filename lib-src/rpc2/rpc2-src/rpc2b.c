@@ -69,7 +69,6 @@ Pittsburgh, PA.
 #define INADDR_LOOPBACK 0x7f000001
 #endif
 
-extern int errno;
 struct in_addr rpc2_bindaddr = { INADDR_ANY };
 
 long RPC2_Init(char *VId,		/* magic version string */

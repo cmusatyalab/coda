@@ -59,15 +59,12 @@ Pittsburgh, PA.
 #endif
 #include <netinet/in.h>
 #include <netdb.h>
-#include <errno.h>
 #include <assert.h>
 #include <string.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>
 #include "sftp.h"
 
-
-extern int errno;
 
 /* sftp5.c */
 extern void B_ShiftLeft();

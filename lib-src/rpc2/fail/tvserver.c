@@ -34,11 +34,10 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <assert.h>
+#include <errno.h>
 #include <lwp.h>
 #include <rpc2.h>
 #include "tv.h"
-
-extern int errno;		/* where does this really come from? */
 
 /* Per-connection information */
 

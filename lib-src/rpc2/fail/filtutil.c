@@ -22,6 +22,7 @@ listed in the file CREDITS.
 #include <netdb.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 #include "ports.h"
 #include "filtutil.h"
 
@@ -479,8 +480,6 @@ void close_connection()
 /* Handle RPC2 / errno error messages */
 void PrintError(char *msg, int err)
 {
-    extern int errno;
-    
     if (err == 0) perror(msg);
     else printf("%s: %s\n", msg, RPC2_ErrorMsg(err));
 }

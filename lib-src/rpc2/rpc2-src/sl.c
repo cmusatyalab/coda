@@ -61,7 +61,6 @@ Pittsburgh, PA.
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <sys/time.h>
-#include <errno.h>
 #include <assert.h>
 #include "rpc2.private.h"
 #include <rpc2/se.h>

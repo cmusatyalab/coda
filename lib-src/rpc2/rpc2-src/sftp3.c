@@ -58,8 +58,6 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "sftp.h"
 
-extern int errno;
-
 /* Globals: see sftp.h for descriptions; set by SFTP_Activate(), via SFTP_SetDefaults() */
 long SFTP_PacketSize;
 long SFTP_WindowSize;

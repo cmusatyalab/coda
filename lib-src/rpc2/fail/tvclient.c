@@ -29,11 +29,10 @@ listed in the file CREDITS.
 #include <sys/time.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <errno.h>
 #include <lwp.h>
 #include <rpc2.h>
 #include "tv.h"
-
-extern int errno;
 
 main()
 {

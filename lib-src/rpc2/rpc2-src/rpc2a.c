@@ -45,7 +45,6 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <netdb.h>
 #include <sys/time.h>
-#include <errno.h>
 #include <assert.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>

@@ -44,7 +44,6 @@ Pittsburgh, PA.
 
 
 #include <stdio.h>
-#include <errno.h>
 #include <sys/time.h>
 #include <assert.h>
 #include <string.h>

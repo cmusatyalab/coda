@@ -55,7 +55,6 @@ int lwp_nextindex;
 #include <sys/file.h>
 #include <netinet/in.h>
 #include <netdb.h>
-#include <errno.h>
 #include <assert.h>
 #include <string.h>
 #include <lwp/lwp.h>
@@ -66,7 +65,6 @@ int lwp_nextindex;
 
 #define SUBSYS_SRV 1001
 
-extern int errno;
 extern long sftp_windowfulls, sftp_ackslost, sftp_duplicates, sftp_bogus;
 long lostunbinds;  /* no of times a NAK was received because of lost
 			reply to an Unbind RPC */

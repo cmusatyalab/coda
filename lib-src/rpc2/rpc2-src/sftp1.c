@@ -61,7 +61,6 @@ Pittsburgh, PA.
 #endif
 #include <netinet/in.h>
 #include <netdb.h>
-#include <errno.h>
 #include <assert.h>
 #include <string.h>
 #include "rpc2.private.h"

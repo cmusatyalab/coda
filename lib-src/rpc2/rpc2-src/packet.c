@@ -54,8 +54,6 @@ Pittsburgh, PA.
 #include "cbuf.h"
 #include "trace.h"
 
-extern int errno;
-
 static long DefaultRetryCount = 6;
 static struct timeval DefaultRetryInterval = {60, 0};
 
