@@ -156,7 +156,7 @@ int cpman::func(int parm) {
 
 	if (SrvDebugLevel >= 9)
 	    print();
-
+       
 	VSLEEP(CPINTERVAL);
     }
     

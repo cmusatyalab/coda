@@ -1864,7 +1864,8 @@ static int getFids(struct DirEntry *de, void * data)
 {
         dlist *flist = (dlist *)data;
 	char *name = de->name;
-	unsigned long vnode, unique;
+	VnodeId vnode;
+	Unique_t unique;
 	ViceFid fid;
 
 	SLog(9,  "Entering GetFid for %s", name);
