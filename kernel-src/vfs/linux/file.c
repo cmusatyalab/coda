@@ -19,6 +19,7 @@
 #include "linux/coda.h"
 #include <cfs_linux.h>
 #include <psdev.h>
+#include "upcalls.h"
 #include "cnode.h"
 #include "super.h"
 
@@ -221,11 +222,9 @@ exit:
 int
 coda_open(struct inode *i, struct file *f)
 {
-
+	ino_t ino;
+	dev_t dev;
         struct cnode *cnp;
-        struct outputArgs *out;
-        struct inputArgs *inp = NULL;
-        int outsize;
         int error = 0;
         struct inode *cont_inode = NULL;
         unsigned short flags = f->f_flags;
@@ -241,31 +240,7 @@ coda_open(struct inode *i, struct file *f)
         cnp = ITOC(i);
         CHECK_CNODE(cnp);
 
-        if ( IS_DYING(cnp) ) {
-                COMPLAIN_BITTERLY(open, cnp->c_fid);
-                return -ENODEV;
-        }
-
-        CODA_ALLOC(inp, struct inputArgs *, sizeof(struct inputArgs));
-        out = (struct outputArgs *)inp;
-        INIT_IN(inp, CFS_OPEN);
-
-        inp->d.cfs_open.VFid = cnp->c_fid;
-        inp->d.cfs_open.flags = flags;
-
-        coda_load_creds(&(inp->cred));
-
-        error = coda_upcall(coda_sbp(i->i_sb), sizeof(struct inputArgs), 
-                            &outsize, (char *)inp);
-        if (!error) {
-                error = out->result;
-                if (error) {
-                        CDEBUG(D_FILE, "venus: dev %d, inode %ld, out->result %d\n",
-                              out->d.cfs_open.dev,
-                              out->d.cfs_open.inode, error);
-                        goto exit;
-                }
-        }
+	error = -venus_open(i->i_sb, &(cnp->c_fid), flags, &ino, &dev);
 
         if (error) {
                 printk("coda_open: coda_upcall returned %d\n", error);
@@ -296,13 +271,11 @@ coda_open(struct inode *i, struct file *f)
 	    cfsnc_zapfid(&(cnp->c_fid));
 	} 
 
-        cnp->c_device = out->d.cfs_open.dev;
-        cnp->c_inode  = out->d.cfs_open.inode;
+        cnp->c_device = dev;
+        cnp->c_inode  = ino;
         
 
 exit:
-        if (inp) 
-                CODA_FREE(inp, sizeof(struct inputArgs));
         CDEBUG(D_FILE, "result %d, coda i->i_count is %d for ino %ld\n", 
               error, i->i_count, i->i_ino);
         CDEBUG(D_FILE, "cache ino: %ld, count %d\n", cnp->c_ovp->i_ino, cnp->c_ovp->i_count);
@@ -671,11 +644,7 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         struct inputArgs *in = NULL;
         struct outputArgs *out;
         int error, size;
-        struct a {
-                char *path;
-                struct ViceIoctl vidata;
-                int follow;
-        } iap;  
+	struct PioctlData iap;
         char *buf = NULL;
         struct inode *target_inode = NULL;
         struct cnode *cnp;
@@ -683,12 +652,12 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         ENTRY;
     
         /* get the arguments from user space */
-        error = verify_area(VERIFY_READ, (int *) arg, sizeof(struct a));
+        error = verify_area(VERIFY_READ, (int *) arg, sizeof(iap));
         if ( error ) {
                 printk("coda_pioctl: cannot read from user space!.\n");
 		goto exit;
         }
-        memcpy_fromfs(&iap, (int *) arg, sizeof(struct a));
+        memcpy_fromfs(&iap, (int *) arg, sizeof(iap));
        
         /* 
          *  Look up the pathname. Note that the pathname is in 
@@ -724,7 +693,7 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         CDEBUG(D_PIOCTL, "operating on inode %ld\n", target_inode->i_ino);
 
         /* build packet for Venus */
-        if (iap.vidata.in_size > VC_DATASIZE) {
+        if (iap.vi.in_size > VC_DATASIZE) {
 	        error =  -EINVAL;
 		goto exit;
         }
@@ -747,11 +716,11 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
         in->d.cfs_ioctl.cmd |= (size & IOCPARM_MASK) <<	16;	
     
         /* in->d.cfs_ioctl.rwflag = flag; */
-        in->d.cfs_ioctl.len = iap.vidata.in_size;
+        in->d.cfs_ioctl.len = iap.vi.in_size;
         in->d.cfs_ioctl.data = (char *)(VC_INSIZE(cfs_ioctl_in));
      
         /* get the data out of user space */
-        error = verify_area(VERIFY_READ, iap.vidata.in, iap.vidata.in_size);
+        error = verify_area(VERIFY_READ, iap.vi.in, iap.vi.in_size);
         if ( error ) {
                 printk("coda_pioctl: cannot copy from user space.\n");
                 iput(target_inode);
@@ -759,11 +728,11 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
                 return error;
         }
         memcpy_fromfs((char*)in + (int)in->d.cfs_ioctl.data,
-                      iap.vidata.in, iap.vidata.in_size);
+                      iap.vi.in, iap.vi.in_size);
         
         size = VC_MAXMSGSIZE;
         error = coda_upcall(coda_sbp(inode->i_sb),
-                            VC_INSIZE(cfs_ioctl_in) + iap.vidata.in_size, 
+                            VC_INSIZE(cfs_ioctl_in) + iap.vi.in_size, 
                             &size, buf);
         
         if (!error) {
@@ -780,17 +749,17 @@ coda_pioctl(struct inode * inode, struct file * filp, unsigned int cmd,
 
         
 	/* Copy out the OUT buffer. */
-        if (out->d.cfs_ioctl.len > iap.vidata.out_size) {
+        if (out->d.cfs_ioctl.len > iap.vi.out_size) {
                 CDEBUG(D_FILE, "return len %d <= request len %d\n",
                       out->d.cfs_ioctl.len, 
-                      iap.vidata.out_size);
+                      iap.vi.out_size);
                 error = -EINVAL;
         } else {
-                error = verify_area(VERIFY_WRITE, iap.vidata.out, 
-                                    iap.vidata.out_size);
-                memcpy_tofs(iap.vidata.out, 
+                error = verify_area(VERIFY_WRITE, iap.vi.out, 
+                                    iap.vi.out_size);
+                memcpy_tofs(iap.vi.out, 
                             (char *)out + (int)out->d.cfs_ioctl.data, 
-                            iap.vidata.out_size);
+                            iap.vi.out_size);
         }
 
 exit:
