@@ -74,7 +74,7 @@ static int GetTokens(const char *realm)
     EncryptedSecretToken secret;
     int rc;
 
-    fprintf(stdout, "\n    @%s\n", realm);
+    fprintf(stdout, "    @%s\n", realm);
 
     /* Get the tokens.  */
     rc = U_GetLocalTokens(&clear, secret, realm);
@@ -93,7 +93,7 @@ static int GetTokens(const char *realm)
 	fprintf(stdout, "\tThis token has expired.\n");
 	return -2;
     }
-    fprintf(stdout, "\tExpiration time: %s\n", ctime((time_t *)&clear.EndTimestamp));
+    fprintf(stdout, "\tExpiration time: %s", ctime((time_t *)&clear.EndTimestamp));
     return 0;
 }
 
@@ -116,8 +116,7 @@ int main(int argc, char *argv[])
 	SplitRealmFromName(argv[1], &realm);
 
     /* Header. */
-    fprintf(stdout, "\nTokens held by the Cache Manager:\n");
-    fprintf(stdout, "Local username: %s\n", username);
+    fprintf(stdout, "Tokens held by the Cache Manager for %s:\n", username);
 
     if (!realm) {
 	char *mountpoint = NULL;

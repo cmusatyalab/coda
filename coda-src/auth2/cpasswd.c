@@ -84,21 +84,18 @@ int main(int argc, char **argv)
 	int insist;
 	int flags;
 	int c, pwlen;
-	char *uname;
-	char newpw[10];
-	char buf[200];
+	char newpw[128];
 	int ok, rc;
-	char *realm = NULL;
+	char *username, *realm;
 	char *host = NULL;
 	struct RPC2_addrinfo *srvs;
 
-	memset(newpw, 0, sizeof(newpw));
-	memset(buf, 0, sizeof(buf));
+	username = realm = NULL;
 
 	if (argc > 1) {
 	    if (strcmp(argv[1], "-h") == 0) {
 	        if (argc < 3) {
-		    printf("Usage: %s [-h SCM-host-name]\n", argv[0]);
+		    printf("Usage: %s [-h SCM-host-name] [coda-user-name][@realm]\n", argv[0]);
     		    exit(1);
  	        }
 
@@ -109,28 +106,40 @@ int main(int argc, char **argv)
 	}
 	
 	insist = 0;
-	if ((myuser = getenv("USER")) == NULL) {
-		fprintf(stderr, "Who are you?  Set $USER.\n");
-		exit(1);
-	}
-	if (argc < 2)
-		uname = myuser;
-	else {
-		uname = argv[1];
-		SplitRealmFromName(uname, &realm);
+	if (argc >= 2) {
+		username = argv[1];
+		SplitRealmFromName(username, &realm);
 	}
 
-	/* Make sure our arrays don't overflow. */
-	if (strlen(uname) > 20) {
-	    fprintf(stderr, "User name is invalid.\n");
-	    exit(1);
+	if (!username || *username == '\0') {
+#ifdef __CYGWIN32__
+	    username = getlogin();   
+#else
+	    struct passwd *pw = getpwuid(geteuid());
+	    if (pw) {
+		username=pw->pw_name;
+	    }
+#endif
 	}
 
 	codaconf_init("venus.conf");
 	codaconf_init("auth2.conf");
+
 	CODACONF_STR(realm, "realm", NULL);
 
-	printf("Changing password for %s@%s\n", uname, realm);
+	if (!username || !realm) {
+	    fprintf (stderr, "Can't figure out your username or realm.\n");
+	    fprintf (stderr, "Try \"cpasswd user[@realm]\"\n");
+	    exit (1);
+	}
+
+	/* Make sure our arrays don't overflow. */
+	if (strlen(username) > 20) {
+	    fprintf(stderr, "User name is invalid.\n");
+	    exit(1);
+	}
+
+	printf("Changing password for %s@%s\n", username, realm);
 /*
 	if (U_InitRPC() != 0) {
 		fprintf(stderr, "Internal error: RPC or vstab problems.\n");
@@ -138,14 +147,10 @@ int main(int argc, char **argv)
 	}
 */
 	U_InitRPC();
-	if (strcmp(uname, myuser) == 0)
-		strcpy(mypasswd, getpass("Old password:"));
-	else
-		strcpy(mypasswd, getpass("Your password:"));
+	strcpy(mypasswd, getpass("Old password: "));
 tryagain:
-	sprintf(buf, "New password for %s:", uname);
 	memset(newpw, 0, sizeof(newpw));
-	strcpy(newpw, getpass(buf));
+	strncpy(newpw, getpass("New password: "), sizeof(newpw)-1);
 	pwlen = strlen(newpw);
 	if (pwlen == 0) {
 		printf("Password unchanged.\n");
@@ -190,7 +195,7 @@ tryagain:
 		exit(1);
 	}
 	srvs = U_GetAuthServers(realm, host);
-	rc = U_ChangePassword (srvs, uname, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
+	rc = U_ChangePassword (srvs, username, newpw, AUTH_METHOD_CODAUSERNAME, myuser, strlen(myuser)+1, mypasswd, strlen(mypasswd));
 	RPC2_freeaddrinfo(srvs);
 
 	switch(rc) {
@@ -198,7 +203,7 @@ tryagain:
 		printf("Server to change passwords down, try again later\n");
 		break;
 	    case AUTH_DENIED:
-		printf("%s not authenticated to change passwd for %s\n", myuser, uname);
+		printf("%s not authenticated to change passwd for %s\n", myuser, username);
 		break;
 	    case AUTH_SUCCESS:
 		printf("Password changed\n");
