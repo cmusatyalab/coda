@@ -27,7 +27,6 @@ listed in the file CREDITS.
 
    Note: this code makes no assumptions about ordering of large vnodes
    or small vnodes within their respective regions of the input dump file.
-   The iterative process of discovering pathnames supports this.
 
    Created: Satya, May 2004
 */
@@ -82,40 +81,25 @@ typedef struct {
   Unique_t uniquifier;
 } objectid_t;
 
-/* pathname of object */
-typedef struct {
-  char *fullpathname; /* pointer to malloc'ed string */
-  int prefixlen; /* how many chars in prefix (sans trailing slash) */
-} objname_t;
-
 /* entry in hash table for one object in dump */
 class DumpObject:public olink {
 public:
   objectid_t oid;
-  int linkcount; /* 0 initially; typically 1 at end; > 1 if hard links */
-  objname_t **onarray; /* array of linkcount malloc'ed names; NULL initially */
-  int slashcount; /* how many slashes in onarray[0]->fullpathname (depth in tree) */
+
+  int links;
+  DumpObject **parents;
+  char **components;
 
   /* the following are only used by directories */
   unsigned int isdir;
-  unsigned int dir_owner;
-  unsigned int dir_size;
+  unsigned int children;
   unsigned int dir_mtime;
 
   DumpObject(VnodeId, Unique_t);
-  void AddPathname(const char *prefix, const char *lastcomponent);
-  const char *GetPathname(); /* NULL or first pathname */
-};
-
-/* one entry in Namelist */
-class NameListEntry: public olink{
-public:
-  DumpObject *parentdir;  /* directory in which name occurs */
-  DumpObject *mydumpobj;   /* object corr to this nle */
-  char *component_name; /* malloc'ed string */
-
-  NameListEntry(DumpObject *, DumpObject *, char *);
-  const char *NameOfParent(); /* non-NULL only if parendir's name is known */
+  void AddParent(DumpObject *parent, const char *component);
+  size_t GetFullPath(char *buf, size_t len, int idx=0); /* full path */
+  size_t GetComponent(char *buf, size_t len, int idx); /* last path element */
+  size_t GetPrefix(char *buf, size_t len, int idx); /* full path of our parent */
 };
 
 /* tar record and associated routines */
@@ -138,7 +122,7 @@ public:
 
   TarRecd(); /* constructor */
   void Reset(); /* reinits all field */
-  void GetNameParts(objname_t *);  /* extracts name fields */
+  void GetNameParts(DumpObject *obj, int idx=0);  /* extracts name fields */
   void Format();   /* fills tarblock */
   void Output(); /* writes tarblock to output */
   void WriteZeroTrailer(); /* write two blocks of zero records  */
@@ -153,36 +137,27 @@ dumpstream *DStream;     /* open stream */
 
 /* from "-o xxx" on command line; default of zero means STDOUT */
 char TarFileName[MAXPATHLEN]; 
-FILE *TarFile;  /* open file handle for output */
+FILE *TarFile = stdout;  /* open file handle for output */
 
 /* from "-rn xxx" on command line; if not specified, uses 
-   volume name from dump, prefixed by "./" */
+   volume name from dump */
 char *RootName;
 
 int DebugLevel = 0; /* set by "-d xxx" command line switch */
-#define DEBUG_HEAVY  ((DebugLevel >= 10))
-#define DEBUG_LIGHT  ((DebugLevel > 0) && (DebugLevel < 10))
-#define DEBUG_ON     (DEBUG_LIGHT || DEBUG_HEAVY)
+#define DEBUG_HEAVY  (DebugLevel >= 10)
+#define DEBUG_LIGHT  (DebugLevel > 0 && DebugLevel < 10)
 
 /* Hash table of all objects found in dump */
 ohashtab *DumpTable;
-
-/* a singly linked unordered list of all names found in directories */
-olist NameList; 
 
 /* stuff read from dump */
 struct DumpHeader ThisHead;    /* info about this dump */
 VolumeDiskData ThisVDD;       /* info pertaining to entire volume */
 
-/* Array for sorting large vnodes by directory depth */
-DumpObject **LVNsortarray; /* malloc'ed when no. of large vnodes known */
-int  LVNfillcount; /* no of entries filled in LVNsortarray */
+/* Array of all directory vnodes */
+DumpObject **LVNlist; /* malloc'ed when no. of large vnodes known */
+int  LVNfillcount; /* no of entries filled in LVNlist */
 
-
-/* CurrentDir is set on each iteration through large Vnode objects; 
-   this is the parentdir value for all the NameList entries created 
-   for names in this directory */
-DumpObject *CurrentDir; 
 
 /* TarObj is used to create and write out tar records */
 TarRecd TarObj;
@@ -197,27 +172,19 @@ int HashPower = DEFAULT_HASHPOWER; /* can be set by "-hp x" on command line */
 /* steps of main() */
 void ParseArgs(int, char **);
 void DoGlobalSetup();
-void ProcessDirectory();
-void SanityCheckLists();
+int ProcessDirectory();
 void DiscoverPathnames();
 void VerifyEverythingNamed();
-void CreateSkeletonTree();
-void ProcessFileOrSymlink();
+void CreateEmptyDirectories();
+int ProcessFileOrSymlink();
 void ProcessHardLinks();
 
-/* comparator functions for generic routines like qsort() and FindObject() */
-int CompareDumpOid(DumpObject *, objectid_t *);
-int CompareNLoid(NameListEntry *, objectid_t *);
-int CompareDepths(const void *, const void *);
-
 /* helper routines */
-DumpObject *DoesDumpObjectExist(VnodeId, Unique_t);
+DumpObject *GetDumpObj(VnodeId, Unique_t);
 int LowBits(DumpObject *);
 void FreeDirectory(PDirInode);
 int AddNameEntry(struct DirEntry *, void *);
-void NameTheRoot();
-void CreateHardLinkRecd(objname_t *, objname_t *);
-
+void CreateHardLinkRecd(DumpObject *, int idx);
 
 /* -------------------------------------------------- */
 
@@ -235,7 +202,6 @@ int main(int argc, char **argv)
   ParseArgs(argc, argv);
   DoGlobalSetup();
 
-
   /* Obtain dump header  */
   rc = DStream->getDumpHeader(&ThisHead);
   if (!rc){
@@ -243,11 +209,6 @@ int main(int argc, char **argv)
     exit(-1);
   }
   if (DEBUG_HEAVY) PrintDumpHeader(stderr, &ThisHead);
-  if (ThisHead.Incremental) {
-    fprintf(stderr, "Can't restore incremental dump!\n");
-    exit(-1);
-  }
-
 
   /* Obtain volume data */
   rc = DStream->getVolDiskData(&ThisVDD);
@@ -257,6 +218,8 @@ int main(int argc, char **argv)
   }
   if (DEBUG_HEAVY) PrintVolumeDiskData(stderr, &ThisVDD);
   if (DEBUG_HEAVY) fprintf(stderr, "\n\n");
+
+  RootName = ThisVDD.name;
 
   /* Initialize the directory package */
   DIR_Init(DIR_DATA_IN_VM);
@@ -272,49 +235,38 @@ int main(int argc, char **argv)
 	  vLargeCount, vLargeSize);
   }
 
-  /* create and initialize LVN sort array */
-  LVNsortarray = (DumpObject **) malloc(vLargeCount * sizeof(DumpObject *));
+  /* create and initialize LVN list */
+  LVNlist = (DumpObject **) malloc(vLargeCount * sizeof(DumpObject *));
   LVNfillcount = 0; 
 
   /* Now iterate through all the directories */
   if (DEBUG_LIGHT) fprintf(stderr, "Reading and processing directories: ");
   for (i = 0; i < vLargeCount; i++) {
     if (DEBUG_HEAVY) fprintf(stderr, "Starting directory #%i:\n", i);
-    ProcessDirectory();
+    rc = ProcessDirectory();
     if (DEBUG_HEAVY) fprintf(stderr, "Ending directory #%i\n\n", i);
+    if (rc == -1) break;
     if (DEBUG_LIGHT) fprintf(stderr, "%d ", i);
   }
   if (DEBUG_LIGHT) fprintf(stderr, "\n\n");
 
   /* At this point we should meet these conditions:
      (a) DumpTable has one entry for every object in dump
-     (b) NameList has one entry for each directory entry seen (sans "..")
-     (c) Somewhere in DumpTable is the root directory of the volume
-     (d) LVNsortarray has exactly one entry per directory (not sorted yet)
+     (b) LVNlist has exactly one entry per directory
   */
 
-  /* Verify that invariants are met */
-  SanityCheckLists(); 
-
-  /* Iterate over NameList and find pathnames of all dump objects */
-  DiscoverPathnames();
-
-  /* We should now know the name of every dump object; make sure of this */
-  VerifyEverythingNamed();
-
-  /* sort directory names by depth in tree */
-  qsort(LVNsortarray, LVNfillcount, sizeof(DumpObject *), CompareDepths);
-
   if (DEBUG_HEAVY) {
-    fprintf(stderr, "\n\n **** Sorted by depth ***\n\n");
+    fprintf(stderr, "\n\n **** Large Vnodes ***\n\n");
     for (i = 0; i < LVNfillcount; i++) {
-      objname_t **onx = LVNsortarray[i]->onarray;
-      fprintf(stderr, "%s [%d]\n", onx[0]->fullpathname, onx[0]->prefixlen);
+      char path[CODA_MAXPATHLEN];
+      LVNlist[i]->GetFullPath(path, CODA_MAXPATHLEN);
+      fprintf(stderr, "%s%s\n", path, LVNlist[i]->children ? "" : " [empty]");
     }
   }
 
-  /* use LVNsortarray to create skeleton tree in tarfile */
-  CreateSkeletonTree();
+  /* use LVNlist to add empty directories to the tarfile */
+  if (!ThisHead.Incremental)
+    CreateEmptyDirectories();
 
   /* Get Small Vnodes (i.e. plain files) */
 
@@ -327,8 +279,9 @@ int main(int argc, char **argv)
   if (DEBUG_LIGHT) fprintf(stderr, "Reading and processing small vnodes: ");
   for (i = 0; i < vSmallCount; i++) {
     if (DEBUG_HEAVY) fprintf(stderr, "Starting small vnode #%i:\n", i);
-    ProcessFileOrSymlink();
+    rc = ProcessFileOrSymlink();
     if (DEBUG_HEAVY) fprintf(stderr, "Ending small vnode #%i:\n", i);
+    if (rc == -1) break;
     if (DEBUG_LIGHT) fprintf(stderr, "%d ", i);
   }
   if (DEBUG_LIGHT) fprintf(stderr, "\n\n");
@@ -344,7 +297,8 @@ int main(int argc, char **argv)
 }
 
 
-void ParseArgs(int argc, char **argv){
+void ParseArgs(int argc, char **argv)
+{
   for (int i = 1; i < argc; i++) {
 
     /* [-f <dumpfilename>] */
@@ -396,7 +350,8 @@ void ParseArgs(int argc, char **argv){
 
 }
 
-void DoGlobalSetup() {
+void DoGlobalSetup()
+{
   /* separate routine so main() doesn't get too long */
 
   /* create dump object table */
@@ -414,20 +369,16 @@ void DoGlobalSetup() {
   }
 
   /* create output tar file */
-  if (TarFileName[0] == 0) {
-    TarFile = stdout;
-  }
-  else {
+  if (TarFileName[0]) {
     TarFile = fopen(TarFileName, "w");
     if (!TarFile) {
       perror(TarFileName);
       exit(-1);
     }
   }
-
 }
 
-void ProcessDirectory()
+int ProcessDirectory()
 {
   /* Called with DStream positioned at a large vnode; reads and 
      processes one large vnode and associated dir pages */
@@ -439,14 +390,12 @@ void ProcessDirectory()
   off_t offset = 0;
   int rc, deleted;
   VnodeId vn;
+  DumpObject *CurrentDir;
 
   /* First get the large vnode */
   memset(vdo, 0, SIZEOF_LARGEDISKVNODE); /* clear to simplify debugging */
   rc = DStream->getNextVnode(vdo, &vn, &deleted, &offset);
-  if (rc < 0) {
-    fprintf(stderr, "getNextVnode() failed for vnode 0x%08lx\n", vn);
-    exit(-1);
-  }
+  if (rc < 0) return -1;
 
   if (DEBUG_HEAVY) {
     fprintf(stderr, "\nNext Vnode: deleted = %d    offset = %ld\n",
@@ -454,23 +403,19 @@ void ProcessDirectory()
     PrintVnodeDiskObject(stderr, vdo, vn);
   } 
 
+  if (deleted) return 0;
+
   CODA_ASSERT(vdo->type == vDirectory);
 
   /* Find or create a DumpObject for this large Vnode */
-  CurrentDir = DoesDumpObjectExist(vn, vdo->uniquifier);
-  if (!CurrentDir) {
-    /* Large vnode encountered before first mention of its name in a directory */
-    CODA_ASSERT(CurrentDir = new DumpObject(vn, vdo->uniquifier));
-    DumpTable->insert(CurrentDir, CurrentDir);
-  }
+  CurrentDir = GetDumpObj(vn, vdo->uniquifier);
 
-  CurrentDir->isdir = 1; /* fill in missing pieces */
-  CurrentDir->dir_owner = (unsigned int) vdo->owner;
-  CurrentDir->dir_size  = (unsigned int) vdo->length;  
+  /* fill in missing pieces */
+  CurrentDir->isdir = 1;
   CurrentDir->dir_mtime = (unsigned int) vdo->unixModifyTime;
 
-  /* add pointer to this object in sort array */
-  LVNsortarray[LVNfillcount++] = CurrentDir;
+  /* add pointer to this object in list of large vnodes */
+  LVNlist[LVNfillcount++] = CurrentDir;
 
   /* Then get the associated dir pages */
   PDirInode nextdir;
@@ -485,119 +430,33 @@ void ProcessDirectory()
   dh.dh_data = DI_DiToDh(nextdir);
 
   /* Iterate through entries in directory and proces them */
-  DH_EnumerateDir(&dh, AddNameEntry, 0);
+  DH_EnumerateDir(&dh, AddNameEntry, CurrentDir);
 
   /* Free things allocated in this routine (except vdo) */
   FreeDirectory(nextdir); /* free what readDirectory() allocated */
   free(dh.dh_data); /* also result of conversion */
+  return 0;
 }
 
-void SanityCheckLists() {
-  /* Routine to verify invariants of dump objects and name list entries */
-
-  ohashtab_iterator dti(*DumpTable);  /* iterator over all buckets */
-  DumpObject *dobj;
-  int dobjcount;
-  NameListEntry *nlmatch;
-
-  /* Every object in the DumpTable should have been named in
-     at least in one directory (may be more with hard links) */
-
-  dobjcount = 0;
-  while ((dobj = (DumpObject *)dti())) {
-    dobjcount++;
-
-    if (dobj->oid.vnode == 1 && dobj->oid.uniquifier == 1)
-	continue;
-
-    nlmatch = (NameListEntry *) NameList.FindObject(&dobj->oid, 
-						    (otagcompare_t) CompareNLoid);
-
-    if (!nlmatch) {
-      fprintf(stderr, "SanityCheckLists(): Couldn't find nle for 0x%08lx.0x%08lx\n",
-	      dobj->oid.vnode, dobj->oid.uniquifier);
-      exit(-1);
-    }
-  }
-
-  if (DEBUG_HEAVY) fprintf(stderr, "Found %d dump objects, all named\n", dobjcount);
-}
-
-
-void DiscoverPathnames() {
-  /* This routine starts with a full DumpTable that has no pathname info,
-     and a full NameList, all of whose entries have parents with
-     unknown pathnames. The routine iterates a shrinking NameList, 
-     discovering a new pathname each time a NameList entry's parent has
-     a known pathname.  On exit, NameList is empty and every object 
-     in DumpTable should have a pathname (may have more than one 
-     in case of  hard links)
-  */
-
-  int itercount = 0; /* debugging */
-  olist_iterator nliter(NameList);
-
-  /* First give the root object its name */
-  NameTheRoot();
-
-  /* Then keep iterating over NameList until it vanishes */
-  while ((NameList.count() > 0)) {
-    NameListEntry *nextnle;
-
-    if (DEBUG_HEAVY) 
-      fprintf(stderr, "DiscoverPathnames: iteration #%d\n", itercount);
-    nliter.reset(); /* clean start on each iteration */
-
-    /* walk the list */
-    while ((nextnle = (NameListEntry *)nliter())) {
-      const char *prefix = nextnle->NameOfParent();
-
-      if (!prefix) continue;
-      /* We now know name of this NameListEntry! */
-
-      nextnle->mydumpobj->AddPathname(prefix, nextnle->component_name);
-      CODA_ASSERT(NameList.remove(nextnle));  /* shrink NameList */
-    }
-    itercount++;
-  }
-}
-
-
-
-void VerifyEverythingNamed() {
-  /* Sanity check routine, to make sure we aren't missing any names */
-
-  ohashtab_iterator dti(*DumpTable);  /* iterator over all buckets */
-  DumpObject *dobj;
-
-  while ((dobj = (DumpObject *)dti())) {
-    if (!dobj->linkcount) {
-      fprintf(stderr, "VerifyEverythingNamed():  0x%08lx.%08lx is not named\n",
-	      (unsigned long) dobj->oid.vnode, 
-	      (unsigned long) dobj->oid.uniquifier);
-      exit(-1);
-    }
-  }
-
-  if (DEBUG_HEAVY) fprintf(stderr, "VerifyEverythingNamed(): success!\n");
-}
-
-void CreateSkeletonTree() {
+void CreateEmptyDirectories()
+{
   /* output tar commands to create skeleton of tree */
 
   int lvn;
   DumpObject *thisd; /* object being handled now */
-  objname_t *thisn; /* pointer to this object's name */
 
   /* Loop through directories, creating tar record for each */
 
   for (lvn = 0; lvn < LVNfillcount; lvn++) {
-    thisd = LVNsortarray[lvn]; /* next dump object */
-    thisn = thisd->onarray[0]; /* name of dump object */
+    thisd = LVNlist[lvn]; /* next dump object */
     CODA_ASSERT(thisd->isdir);  /* sheer paranoia */
+    if (thisd->children) continue;
 
-    if (DEBUG_HEAVY) fprintf(stderr, "[%d]: creating tar output for %s\n",
-			    lvn, thisn->fullpathname);
+    if (DEBUG_HEAVY) {
+	char path[CODA_MAXPATHLEN];
+	thisd->GetFullPath(path, CODA_MAXPATHLEN);
+	fprintf(stderr, "[%d]: creating tar output for %s\n", lvn, path);
+    }
 
     /* Fill entries unique to this directory.
        Use 0755 for all directories rather than vdo->modeBits because
@@ -609,10 +468,10 @@ void CreateSkeletonTree() {
     TarObj.Reset();
     TarObj.tr_type = DIRTYPE;
     TarObj.tr_mode = 0755;
-    TarObj.tr_uid = (unsigned int) thisd->dir_owner;
-    TarObj.tr_size = (unsigned int) thisd->dir_size;
+    TarObj.tr_uid = 0;
+    TarObj.tr_size = 0;
     TarObj.tr_mtime = (unsigned int) thisd->dir_mtime;
-    TarObj.GetNameParts(thisn);
+    TarObj.GetNameParts(thisd);
 
     /* fill and output this tar record */
     TarObj.Format();
@@ -620,7 +479,8 @@ void CreateSkeletonTree() {
   }
 }
 
-void ProcessFileOrSymlink() {
+int ProcessFileOrSymlink()
+{
   /* Called with DStream positioned at a small vnode; reads and 
      processes one small vnode and associated data; this is typically
      a file, but might also be a sym link; at end, DStream is positioned
@@ -637,10 +497,7 @@ void ProcessFileOrSymlink() {
   /* First get the small vnode */
   memset(&smallv, 0, sizeof(smallv)); /* clear to simplify debugging */
   rc = DStream->getNextVnode(&smallv, &vn, &deleted, &offset);
-  if (rc < 0) {
-    fprintf(stderr, "getNextVnode() failed for vnode 0x%08lx\n", vn);
-    exit(-1);
-  }
+  if (rc < 0) return -1;
 
   if (DEBUG_HEAVY) {
     fprintf(stderr, "\nNext Vnode: deleted = %d    offset = %ld\n",
@@ -648,9 +505,10 @@ void ProcessFileOrSymlink() {
     PrintVnodeDiskObject(stderr, &smallv, vn);
   } 
 
+  if (deleted) return 0;
+
   /* Find DumpObject for this small Vnode */
-  dobj = DoesDumpObjectExist(vn, smallv.uniquifier);
-  CODA_ASSERT(dobj);
+  dobj = GetDumpObj(vn, smallv.uniquifier);
 
   /* Obtain tar record fields for this object */
   TarObj.Reset();
@@ -658,7 +516,7 @@ void ProcessFileOrSymlink() {
   TarObj.tr_uid =  (unsigned int) smallv.owner;
   TarObj.tr_size = (unsigned int) smallv.length; /* set to 0 below if symlink */ 
   TarObj.tr_mtime = (unsigned int) smallv.unixModifyTime;
-  TarObj.GetNameParts(dobj->onarray[0]);
+  TarObj.GetNameParts(dobj);
 
   if (smallv.type == vSymlink) {
     /* Coda dump format treats symlink value as file content, but tar
@@ -680,7 +538,7 @@ void ProcessFileOrSymlink() {
     TarObj.Format();
     TarObj.Output();
     free(buff);
-    return; 
+    return 0; 
   }
 
   /* Else we have a plain file; write out tar recd first */
@@ -696,12 +554,14 @@ void ProcessFileOrSymlink() {
   }
 
   /* We are done!  DStream should be at next small vnode (or EOF) */
+  return 0;
 }
 
 
 /* Called only after tar records have been created for all dumpobjects;
    hence targets of all hard links created when untaring are guaranteed to exist */
-void ProcessHardLinks() {
+void ProcessHardLinks()
+{
   ohashtab_iterator dti(*DumpTable);  /* iterator over all buckets */
   DumpObject *dobj;
 
@@ -709,26 +569,29 @@ void ProcessHardLinks() {
      one; if yes, create a hard link for each additional name */
 
   while ((dobj = (DumpObject *)dti())) {
-    if (dobj->linkcount == 1) continue; /* common case */
+    if (dobj->links <= 1) continue; /* common case */
 
-    for (int i = 1; i < dobj->linkcount; i++) {
-      CreateHardLinkRecd (dobj->onarray[0], dobj->onarray[i]);
-    }
+    for (int i = 1; i < dobj->links; i++)
+      CreateHardLinkRecd(dobj, i);
   }
 }
 
 /* Creates a tar recd that will make new a hard link to old */
-void CreateHardLinkRecd(objname_t *oldname, objname_t *newname) {
+void CreateHardLinkRecd(DumpObject *dobj, int idx)
+{
 
   if (DEBUG_HEAVY) {
-    fprintf(stderr, "Hard link: new = '%s'\n", newname->fullpathname);
-    fprintf(stderr, "           old = '%s'\n", oldname->fullpathname);
+    char oldpath[CODA_MAXPATHLEN], newpath[CODA_MAXPATHLEN];
+    dobj->GetFullPath(oldpath, CODA_MAXPATHLEN);
+    dobj->GetFullPath(newpath, CODA_MAXPATHLEN, idx);
+    fprintf(stderr, "Hard link: new = '%s'\n", newpath);
+    fprintf(stderr, "           old = '%s'\n", oldpath);
   }
 
     TarObj.Reset();
     TarObj.tr_type = LNKTYPE;
-    TarObj.GetNameParts(newname);
-    strncpy(TarObj.tr_linkname, oldname->fullpathname, 99);
+    TarObj.GetNameParts(dobj, idx);
+    dobj->GetFullPath(TarObj.tr_linkname, 99);
     TarObj.Format();
     TarObj.Output();
 }
@@ -742,102 +605,129 @@ DumpObject::DumpObject(VnodeId v, Unique_t uq)
   /* constructor*/
   oid.vnode = v;
   oid.uniquifier = uq;
-  linkcount = 0;
-  onarray = NULL; 
-  slashcount = 0;
+
+  links = 0;
+  parents = NULL;
+  components = NULL;
+
   isdir = 0;
+  children = 0;
 }
 
-void DumpObject::AddPathname(const char *prefix, const char *lastcomponent) {
+void DumpObject::AddParent(DumpObject *parent, const char *component)
+{
   /* Give dump object a pathname; multiple names are due to hard links */
 
-  char *newpathname;
-  int size;
+  DumpObject **newparents;
+  char **newcomponents;
+  int newlen = links + 1;
 
-  /* +2 --> one for slash, one for trailing null */
-  size = (prefix ? strlen(prefix) : 0) + strlen(lastcomponent) + 2;
-
-  /* construct the pathname */
-  if (prefix) {
-    newpathname = (char *) malloc(size);
-    CODA_ASSERT(newpathname);
-    strcpy(newpathname, prefix);
-    strcat(newpathname, "/");
-    strcat(newpathname, lastcomponent);
+  if (!links) {
+      newparents = (DumpObject **)malloc(newlen*sizeof(DumpObject *));
+      newcomponents = (char **)malloc(newlen*sizeof(char *));
   }
-  else newpathname = strdup(lastcomponent);
+  else
+  {
+      if (DEBUG_HEAVY) {
+	  fprintf(stderr, "HARDLINK: old linkcount == %d\n", links);
+	  fprintf(stderr, "          original name: '%s'\n", components[0]);
+	  fprintf(stderr, "               new name: '%s'\n", component);
+      }
+      newparents = (DumpObject **)realloc(parents, newlen*sizeof(DumpObject *));
+      newcomponents = (char **)realloc(components, newlen*sizeof(char *));
+  }
+  CODA_ASSERT(newparents && newcomponents);
 
-  if (DEBUG_HEAVY) fprintf(stderr, "Adding pathname: '%s'\n", newpathname);
+  parents = newparents;
+  components = newcomponents;
 
-  /* create empty entry in array of names for this dump object */ 
-  if (linkcount) { /* at least one name already exists */
-    objname_t **newarray;
+  parents[links] = parent;
+  components[links] = strdup(component);
+  CODA_ASSERT(components[links]); 
 
-    if (DEBUG_HEAVY) {
-      fprintf(stderr, "HARDLINK: old linkcount == %d\n", linkcount);
-      fprintf(stderr, "          original name: '%s'\n", onarray[0]->fullpathname);
-      fprintf(stderr, "               new name: '%s'\n", newpathname);
+  links++;
+  if (parent)
+      parent->children++;
+}
+
+/* Fill buf with full pathname of the parent (or return 0) */
+size_t DumpObject::GetPrefix(char *buf, size_t len, int idx)
+{
+    if (idx >= links)
+	return 0;
+    
+    return parents[idx]->GetFullPath(buf, len);
+}
+
+/* Fill buf with the basename of this object */
+size_t DumpObject::GetComponent(char *buf, size_t len, int idx)
+{
+    size_t ret;
+    int n;
+
+    if (!len) return 0;
+
+    if (idx >= links)
+    {
+	if (oid.vnode == 1 && oid.uniquifier == 1)
+	     n = snprintf(buf, len, "%s", RootName);
+	else n = snprintf(buf, len, "%s/lost+found/0x%08lx.%08lx",
+			  RootName, oid.vnode, oid.uniquifier);
+	if (n < 0) {
+	    *buf = '\0';
+	    ret = 0;
+	} else
+	    ret = (size_t)n;
+    }
+    else
+    {
+	strncpy(buf, components[idx], len);
+	ret = strlen(buf);
     }
 
-    newarray = (objname_t **)realloc(onarray, ((linkcount+1)*sizeof(objname_t *)));
-    CODA_ASSERT(newarray);
-    newarray[linkcount] = (objname_t *) malloc(sizeof(objname_t));
-    CODA_ASSERT(newarray[linkcount]);
-    onarray = newarray;
-  }
-  else { /* first pathname for this object */
-    /* note tree depth */
-    slashcount = 0;
-    for (int i = 0; i < size;  i++){
-      if (newpathname[i] == '/') slashcount++;
+    /* Now what do we do with truncated names... */
+    if (ret >= len) {
+	switch(len) {
+	default: buf[len-4] = '~';
+	case 3:  buf[len-3] = '~';
+	case 2:  buf[len-2] = '~';
+	case 1:  buf[len-1] = '\0';
+	case 0:  break;
+	}
+	ret = len-1;
     }
-    /* create 1-entry array */
-    onarray = (objname_t **) malloc(sizeof(objname_t *));
-    CODA_ASSERT(onarray);
-    onarray[0] = (objname_t *) malloc(sizeof(objname_t));
-    CODA_ASSERT(onarray[0]);
-  }
-
-  /* fill newly-created entry */
-  onarray[linkcount]->fullpathname = newpathname;
-  onarray[linkcount]->prefixlen = prefix ? strlen(prefix) : 0;
-
-  /* note that we now have one more name */
-  linkcount++; 
+    return ret;
 }
 
-/* Return (first) pathname of object or NULL */
-const char *DumpObject::GetPathname()
+/* Fill buf with full pathname of this object */
+size_t DumpObject::GetFullPath(char *buf, size_t len, int idx)
 {
-    return (linkcount ? onarray[0]->fullpathname : NULL);
+    size_t n;
+    if (!len) return 0;
+
+    n = GetPrefix(buf, len, idx);
+    if (n) {
+	if (n < len-2) {
+	    buf[n++] = '/';
+	    buf[n] = '\0';
+	}
+	buf += n;
+	len -= n;
+    }
+    n += GetComponent(buf, len, idx);
+    return n;
 }
 
-
-
-/* ----- NameList methods ----- */
-
-NameListEntry::NameListEntry(DumpObject *parent, DumpObject *me, char *nm)
-{
-    parentdir = parent;
-    mydumpobj = me;
-
-    int size = strlen(nm) + 1;
-    CODA_ASSERT(component_name = (char *) malloc(size));
-    strcpy(component_name, nm);
-}
-
-const char *NameListEntry::NameOfParent()
-{
-    return parentdir->GetPathname();
-}
 
 /* ----- TarRecd methods ----- */
 
-TarRecd::TarRecd() {
+TarRecd::TarRecd()
+{
   Reset();
 }
 
-void TarRecd::Reset() {
+void TarRecd::Reset()
+{
   struct posix_header *tblk = &tarblock.header; 
 
   /* Initialize header block to clean state 
@@ -862,20 +752,15 @@ void TarRecd::Reset() {
 }
 
 
-void TarRecd::GetNameParts(objname_t *obn)
+void TarRecd::GetNameParts(DumpObject *obj, int idx)
 {
-    if (obn->prefixlen) {/* skip trailing slash */
-      strncpy(TarObj.tr_name, &obn->fullpathname[(obn->prefixlen)+1], 100);
-      int lx = (obn->prefixlen < 155) ? obn->prefixlen : 155;
-      memcpy(TarObj.tr_prefix, obn->fullpathname, lx);
-    }
-    else { /* no prefix */
-      strncpy(TarObj.tr_name, obn->fullpathname, 100);
-    }
+    obj->GetPrefix(TarObj.tr_prefix, 155, idx);
+    obj->GetComponent(TarObj.tr_name, 100, idx);
 }
 
 
-void TarRecd::Format() {
+void TarRecd::Format()
+{
   struct posix_header *tblk = &tarblock.header; 
   char temp[100];  /* temporary to avoid NULLs in TarRecd from sprintf() */
   unsigned int sum; /* for checksum computation */
@@ -907,7 +792,8 @@ void TarRecd::Format() {
   memcpy(tblk->chksum, temp, 8);
 }
 
-void TarRecd::Output() {
+void TarRecd::Output()
+{
   int rc;
 
   rc = fwrite(&tarblock, BLOCKSIZE, 1, TarFile);
@@ -917,9 +803,9 @@ void TarRecd::Output() {
     }
 }
 
-void TarRecd::WriteZeroTrailer() {
+void TarRecd::WriteZeroTrailer()
+{
   /* end tar file with two zero blocks */
-
   memset(tarblock.buffer, 0, BLOCKSIZE); /* zerofill */
   Output();
   Output();
@@ -936,33 +822,9 @@ int CompareDumpOid(DumpObject *dobj, objectid_t *testid)
     return (1);
 }
 
-/* For NameList->FindObject() */
-int CompareNLoid(NameListEntry *nle, objectid_t *testid)
-{
-    return CompareDumpOid(nle->mydumpobj, testid);
-}
-
-/* for qsort() of LVNsortarray */
-int CompareDepths(const void *x, const void *y)
-{
-  DumpObject *a = *((DumpObject **)x);
-  DumpObject *b = *((DumpObject **)y);
-  objname_t *an, *bn;
-
-  if (a->slashcount <  b->slashcount) return(-1);
-  if (a->slashcount >  b->slashcount) return(1);
-
-  /* (a->slashcount == b->slashcount) */
-  /* use lexical ordering on names of equal depth */
-  an = (a->onarray)[0];
-  bn = (b->onarray)[0];
-  return(strcmp(an->fullpathname, bn->fullpathname));
-}
-
-
 /* ------ helper function definitions ------ */
 
-DumpObject *DoesDumpObjectExist(VnodeId vv, Unique_t uu)
+DumpObject *GetDumpObj(VnodeId vv, Unique_t uu)
 {
   /* Checks if DumpObject already exists for vnode-unqiuifier pair; 
      returns pointer  to that DumpObject or NULL */
@@ -974,7 +836,12 @@ DumpObject *DoesDumpObjectExist(VnodeId vv, Unique_t uu)
   dummy.oid.uniquifier = uu;
   dobj = (DumpObject *)DumpTable->FindObject(&dummy, &dummy.oid, 
 					     (otagcompare_t)CompareDumpOid);
-  return(dobj);
+  if (!dobj) {
+      dobj = new DumpObject(vv, uu);
+      CODA_ASSERT(dobj);
+      DumpTable->insert(dobj, dobj);
+  }
+  return dobj;
 }
 
 
@@ -988,13 +855,14 @@ void FreeDirectory(PDirInode pdiri)
 
   for (int i = 0; i < DIR_MAXPAGES; i++){
     if (pdiri->di_pages[i]) free (pdiri->di_pages[i]);
-    else break;
+    //else break;
   }
   free(pdiri);  /* get rid of the DirInode itself */
 }
 
 
-int LowBits(DumpObject *obj){
+int LowBits(DumpObject *obj)
+{
   /* hash function: use low order bits of object's vnode number */
   int bucket, shift;
 
@@ -1004,11 +872,12 @@ int LowBits(DumpObject *obj){
   return(bucket);  
 }
 
-int AddNameEntry(struct DirEntry *de, void *hook){
+int AddNameEntry(struct DirEntry *de, void *hook)
+{
   /* AddNameEntry() is a "hookproc" for use by DIR_EnumerateDir() */
 
-  NameListEntry *nle;
   DumpObject *newobj;
+  DumpObject *parent = (DumpObject *)hook;
 
   /* coda dir pkg uses net order; convert just once */
   VnodeId thisv = ntohl(de->fid.dnf_vnode); 
@@ -1021,65 +890,23 @@ int AddNameEntry(struct DirEntry *de, void *hook){
   /* "." and ".." entries play no useful role for us; just ignore */
   if (de->name[0] == '.' && (de->name[1] == '\0' ||
        (de->name[1] == '.' && de->name[2] == '\0'))) {
-      if (DEBUG_HEAVY) fprintf(stderr, "    [skipping]\n");
+      if (DEBUG_HEAVY) fprintf(stderr, "\t[skipping]\n");
       return(0);
   }
 
   /* Find or create dump object entry; if hard links across directories
      are allowed, this can be unpredictable.
   */
-  newobj = DoesDumpObjectExist(thisv, thisu);
-  if (!newobj) {
-    CODA_ASSERT(newobj = new DumpObject(thisv, thisu));
-    DumpTable->insert(newobj, newobj);
-    if (DEBUG_HEAVY) fprintf(stderr, "    [created dump object]\n");
-  } else
-    if (DEBUG_HEAVY) fprintf(stderr, "    [found dump object]\n");
+  newobj = GetDumpObj(thisv, thisu);
+
+  if (DEBUG_HEAVY)
+      fprintf(stderr, "\t[%s dump object]\n", newobj->links? "found":"created");
 
   /* newobj guaranteed to be defined at this point */
-
-   /* Create a name list entry */
-  nle = new NameListEntry(CurrentDir, newobj, de->name);
-  CODA_ASSERT(nle);
-  NameList.insert(nle);
+  parent->children++;
+  newobj->AddParent(parent, de->name);
 
   return(0); /* continue enumeration */
-}
-
-/* Routine to bootstrap the name discovery process */
-void NameTheRoot()
-{
-  DumpObject *rootobj;
-
-  /* Somewhere in the DumpTable is the root directory; find it */
-  rootobj = DoesDumpObjectExist(1, 1);
-  if (!rootobj) {
-    fprintf(stderr, "Can't find root object in DumpTable\n");
-    exit(-1);
-  }
-
-  if (DEBUG_HEAVY) {
-    fprintf(stderr, "Found root object: 0x%08lx.%08lx\n",
-	    (unsigned long) rootobj->oid.vnode, 
-	    (unsigned long) rootobj->oid.uniquifier);
-  }
-
-  /* If needed, construct pathname of the root object */
-  if (!RootName) {
-    int bufsize = strlen(ThisVDD.name) + 1;
-    RootName = (char *) malloc (bufsize);
-    CODA_ASSERT(RootName);
-    strcpy(RootName, ThisVDD.name);
-    for (int i = 0; i < bufsize; i++) {
-      /* change dubious chars in name to avoid shell trouble later */
-      if (RootName[i] == ':') RootName[i] = '-';
-      /* add other common substitutions here based on experience */
-    }
-  }
-
-  /* Assign the root its name */
-  rootobj->AddPathname(NULL, RootName);
-  if (DEBUG_HEAVY) fprintf(stderr, "Root pathname = '%s'\n", RootName);
 }
 
 /* NOTES: (mostly bugs) Satya, May 04 
