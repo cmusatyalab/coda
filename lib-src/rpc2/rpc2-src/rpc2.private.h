@@ -75,7 +75,7 @@ struct sockaddr_in6 {
 #endif
 
 #ifndef HAVE_SOCKLEN_T
-#define scocklen_t unsigned int
+#define socklen_t unsigned int
 #endif
 
 
