@@ -680,7 +680,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     say(9, RPC2_DebugLevel, "Sending INIT1 packet on 0x%lx\n", *ConnHandle);
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb, (struct timeval *)NULL);
+    rpc2_SendReliably(ce, sl, pb, (struct timeval *)&ce->Retry_Beta[0]);
 
     switch(sl->ReturnCode)
 	{
@@ -762,7 +762,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb, (struct timeval *)NULL);
+    rpc2_SendReliably(ce, sl, pb, (struct timeval *)&ce->Retry_Beta[0]);
 
     switch(sl->ReturnCode)
 	{
@@ -1297,7 +1297,7 @@ static RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
     /* Send Init2 packet and await Init3 packet */
     SetState(ce, S_AWAITINIT3);
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb2, (struct timeval *)NULL);
+    rpc2_SendReliably(ce, sl, pb2, (struct timeval *)&ce->Retry_Beta[0]);
 
     switch(sl->ReturnCode)
 	{
