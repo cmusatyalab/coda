@@ -105,8 +105,6 @@ struct IoRequest {
 #define badsig(signo)		(((signo) <= 0) || ((signo) >= NSIG))
 #define mysigmask(signo)		(1 << ((signo)-1))
 
-extern int errno;
-
 static long sigsHandled;		/* sigmask(signo) is on if we handle signo */
 static int anySigsDelivered;		/* true if any have been delivered. */
 static struct sigaction oldVecs[NSIG];	/* the old signal vectors */
