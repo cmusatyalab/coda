@@ -132,7 +132,7 @@ typedef u_long vgid_t;
 #define _CODACRED_T_
 struct coda_cred {
     vuid_t cr_uid, cr_euid, cr_suid, cr_fsuid; /* Real, efftve, set, fs uid*/
-#ifdef	__BSD44__
+#if	defined(__NetBSD__) || defined(__FreeBSD__)
     vgid_t cr_groupid, cr_egid, cr_sgid, cr_fsgid; /* same for groups */
 #else
     vgid_t cr_gid,     cr_egid, cr_sgid, cr_fsgid; /* same for groups */
