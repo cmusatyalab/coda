@@ -20,7 +20,7 @@
 
 CCLD=$(NATIVECC)
 EXEEXT=
-YFLAGS= -d
+AM_YFLAGS= -d
 INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include -I$(srcdir) -I.
 
 .c.o:
