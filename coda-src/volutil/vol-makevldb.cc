@@ -126,7 +126,6 @@ static void AddServer(struct vldb *old, struct vldb *vnew);
 static void AddAssociate(struct vldb *old, struct vldb *vnew);
 static void CheckRWindex(unsigned long volume, char *name);
 static void GetArgs(char *line, char **args, int *nargs);
-static char *AllocString(char *s);
 static void GetServerNames();
 
 /*
@@ -479,12 +478,6 @@ static void GetArgs(char *line, char **args, int *nargs)
     }
 }
 
-static char *AllocString(char *s)
-{
-    char *as = (char *) malloc(strlen(s)+1);
-    strcpy(as, s);
-    return(as);
-}
 
 static void GetServerNames() {
     char line[200];
@@ -509,7 +502,7 @@ static void GetServerNames() {
 	    if (hostent == NULL)
 		printf("Warning: host %s (listed in %s) is not in /etc/hosts\n", sname, serverList);
 	    else
-		ServerName[sid] = AllocString(hostent->h_name);
+		ServerName[sid] = strdup(hostent->h_name);
 	}
     }
     fclose(file);
