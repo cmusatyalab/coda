@@ -313,7 +313,7 @@ int main(int argc, char **argv)
     }
     gettimeofday(&tp, &tsp);
     LogMsg(0, SrvDebugLevel, stdout, 
-	   "Update Server started %s", ctime((long *)&tp.tv_sec));
+	   "Update Server started %s", ctime(&tp.tv_sec));
 
     CODA_ASSERT(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
 
@@ -526,7 +526,7 @@ Final:
     *CurrentUsecs = tp.tv_usec;
     LogMsg(2, SrvDebugLevel, stdout, 
 	   "UpdateFetch returns %s newtime is %d at %s",
-	   ViceErrorMsg((int)rc), *NewTime, ctime((long *)CurrentSecs));
+	   ViceErrorMsg((int)rc), *NewTime, ctime(&tp.tv_sec));
     return(rc);
 }
 

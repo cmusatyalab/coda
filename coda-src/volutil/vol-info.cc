@@ -86,7 +86,7 @@ void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber);
 
 static void PrintHeader(Volume *);
 static void printvns(Volume *, VnodeClass);
-static void date(unsigned long, char *);
+static void date(time_t, char *);
 
 /*
   S_VolInfo: Dump out information (in ascii) about a volume 
@@ -245,9 +245,9 @@ void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber)
     PrintVV(outfile, &(vnode->versionvector));
 }
 
-static void date(unsigned long date, char *result)
+static void date(time_t date, char *result)
 {
-    struct tm *tm = localtime((long *)&date);
+    struct tm *tm = localtime(&date);
     sprintf(result, "%lu (%04d/%02d/%02d.%02d:%02d:%02d)", date,
 	1900 + tm->tm_year, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 }

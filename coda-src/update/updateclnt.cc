@@ -228,7 +228,7 @@ int main(int argc, char **argv)
     gettimeofday(&tp, &tsp);
     LogMsg(0, SrvDebugLevel, stdout, 
 	   "Update Client pid = %d started at %s", 
-	   getpid(), ctime((long *)&tp.tv_sec));
+	   getpid(), ctime(&tp.tv_sec));
 
     time.tv_sec = waitinterval;
     time.tv_usec = 0;
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 		    "use `xntpd' to keep the time synchronized");
 		/*
 		LogMsg(0, SrvDebugLevel, stdout, 
-		       "Settime to %s", ctime((long *)&tp.tv_sec));
+		       "Settime to %s", ctime(&tp.tv_sec));
 		settimeofday(&tp, &tsp);
 		*/
 	    }
@@ -701,10 +701,10 @@ static void SwapLog()
     }
     else {
 	gettimeofday(&tv, &tz);
-	LogMsg(0, SrvDebugLevel, stdout, "Moving UpdateLog to UpdateLog.old at %s", ctime((long *)&tv.tv_sec));
+	LogMsg(0, SrvDebugLevel, stdout, "Moving UpdateLog to UpdateLog.old at %s", ctime(&tv.tv_sec));
 	freopen("UpdateLog","a+",stdout);
 	freopen("UpdateLog","a+",stderr);
-	LogMsg(0, SrvDebugLevel, stdout, "New UpdateLog started at %s", ctime((long *)&tv.tv_sec));
+	LogMsg(0, SrvDebugLevel, stdout, "New UpdateLog started at %s", ctime(&tv.tv_sec));
     }
 }
 

@@ -33,6 +33,7 @@ extern "C" {
 #include <limits.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
@@ -138,7 +139,7 @@ void showHeader(int largc, char **largv) {
     printf("%s Dump Version = %d\n", (head.Incremental)?"Incremental":"Full",
 	   head.version);
     printf("VolId = 0x%lx, name = %s\n", head.volumeId, head.volumeName);
-    printf("Parent = 0x%lx, backupDate = %s", head.parentId, ctime((long *)&head.backupDate));
+    printf("Parent = 0x%lx, backupDate = %s", head.parentId, ctime((time_t *)&head.backupDate));
     printf("Ordering references: Oldest %d, Latest %d\n",
 	   head.oldest, head.latest);
     return;

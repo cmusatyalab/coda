@@ -230,7 +230,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
     VLog(9, "Volume id = %x, Volume name = %s", 
 	 header.volumeId, header.volumeName);
     VLog(9, "Dump from backup taken from %x at %s", 
-	 header.parentId, ctime((long *)&header.backupDate));
+	 header.parentId, ctime((time_t *)&header.backupDate));
     VLog(9, "Dump uniquifiers %x -> %x", 
 	 header.oldest, header.latest);
     

@@ -32,8 +32,8 @@ extern "C" {
 #include <sys/types.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <time.h>
 #include <sys/time.h>
+#include <time.h>
 #include "coda_string.h"
 #include <errno.h>
 
@@ -57,9 +57,7 @@ extern "C" {
 }
 #endif
 
-
-
-static long MonBirthTime; /* when this monitor was born */
+static time_t MonBirthTime; /* when this monitor was born */
 
 typedef enum {DEAD, NEWBORN, ALIVE} SrvState;
 
@@ -172,7 +170,7 @@ main(int argc, char *argv[])
     curWin = newwin(1, 1, 0, 0);
     DrawCaptions();
 
-    MonBirthTime = time(0);
+    MonBirthTime = time(NULL);
     GetArgs(argc, argv);
     InitRPC();
     rpc2_logfile = dbg;
@@ -423,7 +421,7 @@ static void DrawCaptions()
     }
 
 
-char *when(long now, long then)
+char *when(time_t now, time_t then)
     /* then, now: Unix times in seconds */
     {
     long days;

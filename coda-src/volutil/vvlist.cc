@@ -92,7 +92,7 @@ void DumpListVVHeader(int VVListFd, Volume *vp, unsigned int dumplevel,
 		      int unique)
 {
     char buffer[LISTLINESIZE];
-    long time = V_copyDate(vp);
+    time_t time = V_copyDate(vp);
 
     if (VVListFd < 0) return;
 

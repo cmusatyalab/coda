@@ -43,6 +43,7 @@ extern "C" {
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <time.h>
 #include <ctype.h>
 #include <sys/param.h>
 #include <errno.h>
@@ -137,9 +138,9 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 	vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
 	vnp->disk.length);
     fprintf(infofile, "inode=0x%lx, parent=%lx.%lx, serverTime=%s",
-	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, ctime((long *)&vnp->disk.serverModifyTime));
+	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, ctime((time_t *)&vnp->disk.serverModifyTime));
     fprintf(infofile, "author=%lu, owner=%lu, modifyTime=%s, volumeindex = %d",
-        vnp->disk.author, vnp->disk.owner, ctime((long *)&vnp->disk.unixModifyTime),
+        vnp->disk.author, vnp->disk.owner, ctime((time_t *)&vnp->disk.unixModifyTime),
 	vnp->disk.vol_index);
     PrintVV(infofile, &(vnp->disk.versionvector));
 

@@ -25,6 +25,7 @@ extern "C" {
 #endif
 
 #include <stdio.h>
+#include <time.h>
 #include "coda_string.h"
     
 #ifdef __cplusplus
@@ -43,9 +44,9 @@ extern "C" {
 
 
 // Stolen from vol-info.c
-static char * date(unsigned long date, char *result)
+static char * date(time_t date, char *result)
 {
-    struct tm *tm = localtime((long *)&date);
+    struct tm *tm = localtime(&date);
     sprintf(result, "%02d/%02d/%02d.%02d:%02d:%02d", 
 	    tm->tm_year, tm->tm_mon+1, tm->tm_mday,
 	    tm->tm_hour, tm->tm_min, tm->tm_sec);
