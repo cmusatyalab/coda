@@ -210,7 +210,7 @@ if [ $isscm = N ]; then
 
     if ! updatefetch -h $scmhost -r db/servers -l servers ; then
 	echo "Could not contact SCM."
-	echo "Check whether the rpc2portmap and updatesrv processes are
+	echo "Check whether the rpc2portmap and updatesrv processes are"
 	echo "running on the SCM."
 	exit 1
     fi

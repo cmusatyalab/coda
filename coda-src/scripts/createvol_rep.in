@@ -89,7 +89,8 @@ if [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'$1'\.[0-7]$/  {print $1}' ${vicedir}/vol/B
 fi
 
 # Dump the VRDB from RVM into a temporary VRList list
-volutil -h `cat ${vicedir}/db/scm` dumpvrdb ${vicedir}/db/VRList.new
+rm -f "${vicedir}/db/VRList.new"
+volutil -h `cat ${vicedir}/db/scm` dumpvrdb "${vicedir}/db/VRList.new"
 if [ $? -ne 0 ]; then
     echo "Failed to dump the current VRDB into ${vicedir}/db/VRList.new"
     exit 1
