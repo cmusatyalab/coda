@@ -1,3 +1,8 @@
+1998-06-11  Peter Braam  <braam@motet.coda.cs.cmu.edu>
+
+	* kernel-src/vfs/linux21: the volroot list off the superblock was being corrupted with
+	stale entries. Fixed.  Also refresh the opened container inode upon every open.
+
 1998-06-07    <braam@carissimi.coda.cs.cmu.edu>
 
 	* kernel-src/vfs/linux21/psdev.c Moved entry for /proc/fs to the

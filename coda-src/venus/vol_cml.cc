@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.10 1998/03/19 15:13:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.11 1998/04/14 21:03:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -3549,11 +3549,16 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 }
 
 
-int volent::CheckPointMLEs(vuid_t vuid, char *ckpdir) {
+int volent::CheckPointMLEs(vuid_t vuid, char *ckpdir) 
+{
     if (CML.count() == 0)
 	return(ENOENT);
     if (CML.owner != vuid && vuid != V_UID)
 	return(EACCES);
+
+    if ( rvmlib_in_transaction() ) {
+	    Choke("CheckPointMLEs started while in transaction!");
+    }
 
     int code = CML.CheckPoint(ckpdir);
     return(code);

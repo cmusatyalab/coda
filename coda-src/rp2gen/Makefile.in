@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/Makefile.in,v 4.4 1998/01/10 18:38:02 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/Makefile.in,v 4.5 1998/06/04 17:30:02 shafeeq Exp $";
 
 
 # 
@@ -62,7 +62,7 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 CC=$(NATIVECC)
-CFLAGS:= -Wall -I. -I/usr/include -I$(TOPOBJ)/include 
+CFLAGS:=  -I. -I/usr/include -I$(TOPOBJ)/include 
 
 EXECUTABLES = rp2gen
 

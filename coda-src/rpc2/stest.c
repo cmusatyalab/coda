@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.1 1997/01/08 21:50:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.2 1998/04/14 21:07:09 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -176,7 +176,7 @@ void HandleRequests(lwp)
 	if ((--availableLWPs <= 0) &&
 	    (numLWPs < maxLWPs)) {
 #if	__GNUC__ >= 2
-	    i = LWP_CreateProcess((PFIC)HandleRequests, 8192, LWP_NORMAL_PRIORITY,
+	    i = LWP_CreateProcess((PFIC)HandleRequests, 16384, LWP_NORMAL_PRIORITY,
 			      (char *)numLWPs, "server", &pids[numLWPs]);
 /* ??? */
 #else

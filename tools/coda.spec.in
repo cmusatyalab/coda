@@ -248,7 +248,6 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/rdsinit
 /usr/sbin/startserver
 /usr/sbin/partial-reinit.sh
-/usr/sbin/reinit.sh
 /usr/sbin/recreatevol
 /usr/sbin/recreatevol_rep
 /usr/sbin/createvol

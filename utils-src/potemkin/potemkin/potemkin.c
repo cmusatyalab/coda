@@ -11,7 +11,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-#if defined(DJGPP) || defined(__CYGWIN32__)
+#if defined(DJGPP) || defined(__CYGWIN32__) || defined(__linux__)
 #include <sys/socket.h>
 #include <netinet/in.h>
 #define lstat stat

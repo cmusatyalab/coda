@@ -22,7 +22,7 @@ PATH=/sbin:/usr/sbin:/usr/local/sbin:$PATH
 export PATH
 
 [ -f /usr/sbin/volutil ] || exit 0
-[ -f /usr/sbin/srv ] || exit 0
+[ -f /usr/sbin/codasrv ] || exit 0
 [ -f /usr/sbin/startserver ] || exit 0
 [ -d $VICESRV ] || exit 0
 
@@ -39,7 +39,7 @@ case "$1" in
 	if [ ! -f ${VICESRV}/CRASH ]; then
 	    touch $LOCKDIR/codasrv.init 
 	    startserver &
-	    echo "srv."
+	    echo "codasrv."
 	else
 	    echo "`date`: found CRASH, srv not started." >> ${VICE}/srv/SrvErr
 	fi
