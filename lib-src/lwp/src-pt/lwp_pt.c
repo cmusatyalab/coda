@@ -182,7 +182,8 @@ static void lwp_cleanup_process(void *data)
     sem_destroy(&pid->waitq);
     pthread_cond_destroy(&pid->event);
 
-    free(pid->evlist);
+    if (pid->name)   free(pid->name);
+    if (pid->evlist) free(pid->evlist);
     free(data);
 }
 
@@ -213,7 +214,7 @@ int LWP_Init (int version, int priority, PROCESS *ret)
     /* now set up our private process structure */
     assert(LWP_CurrentProcess(&pid) == 0);
 
-    strncpy(pid->name, "Main Process", 31);
+    pid->name = strdup("Main Process");
     pid->priority = priority;
 
     pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
@@ -287,7 +288,7 @@ static void *lwp_newprocess(void *arg)
     pid->func = newproc->func;
     pid->parm = newproc->parm;
     pid->priority = newproc->prio;
-    strncpy(pid->name, newproc->name, 31);
+    pid->name = strdup(newproc->name);
 
     /* Tell the parent thread that he's off the hook (although the caller
      * of LWP_CreateProcess isn't if any volatile parameters were passed,
@@ -495,7 +496,8 @@ int LWP_MwaitProcess (int wcount, char *evlist[])
 
     /* copy the events */
     if (entries > pid->evsize) {
-        pid->evlist = (char **)realloc(pid->evlist, entries * sizeof(char*));
+        pid->evlist = (char **)realloc(pid->evlist, entries * sizeof(*evlist));
+	assert(pid->evlist != NULL);
         pid->evsize = entries;
     }
     memcpy(pid->evlist, evlist, entries * sizeof(*evlist));

@@ -86,7 +86,7 @@ struct rock
 #define MAXROCKS	8	/* max no. of rocks per LWP */
 
 struct lwp_pcb {			/* process control block */
-  char		name[32];		/* ASCII name */
+  char		*name;			/* ASCII name */
   int		rc;			/* most recent return code */
   char		status;			/* status flags */
   char		**eventlist;		/* ptr to array of eventids */

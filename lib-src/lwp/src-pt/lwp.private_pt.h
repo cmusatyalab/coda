@@ -38,7 +38,7 @@ struct lwp_pcb {
     int              waiting;
     int              priority;
 
-    char	     name[32];          /* ASCII name */
+    char	     *name;          /* ASCII name */
 
     int       (*func)(void *);          /* entry point */
     void       *parm;                   /* parameters */
@@ -66,7 +66,7 @@ int lwp_threads_waiting(void);
 extern int   lwp_loglevel;
 extern FILE *lwp_logfile;
 
-#define lwp_debug(class, msg...) \
+#define lwp_dbg(class, msg...) \
     do { if (lwp_loglevel & class) \
         { fprintf(lwp_logfile, ## msg); \
          fflush(lwp_logfile); } } while(0);

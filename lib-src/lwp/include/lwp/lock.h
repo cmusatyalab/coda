@@ -78,7 +78,7 @@ struct Lock {
     char             initialized;
     char             readers;
     PROCESS          excl;
-    pthread_mutex_t  access;
+    pthread_mutex_t  _access;
     pthread_cond_t   wakeup;
 };
 #endif /* _REENTRANT || _THREAD_SAFE */

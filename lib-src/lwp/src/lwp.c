@@ -343,7 +343,7 @@ int LWP_GetProcessPriority(PROCESS pid, int *priority)
 
 int LWP_WaitProcess(void *event)
 {
-    char *tempev[2];
+    void *tempev[2];
 
     lwpdebug(0, "Entered Wait_Process");
     if (event == NULL) return LWP_EBADEVENT;
@@ -1009,7 +1009,8 @@ static void Free_PCB(PROCESS pid)
 #endif
     }
 
-    if (pid->eventlist != NULL)  free((char *)pid->eventlist);
+    if (pid->name)      free(pid->name);
+    if (pid->eventlist) free((char *)pid->eventlist);
     free((char *)pid);
 }	
 
@@ -1019,10 +1020,7 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 	int i = 0;
 
 	lwpdebug(0, "Entered Initialize_PCB");
-	if (name != NULL)
-		while (((temp -> name[i] = name[i]) != '\0') && (i < 31)) 
-			i++;
-	temp -> name[31] = '\0';
+	temp -> name = strdup(name);
 	temp -> status = READY;
 	temp -> eventlist = (char **)malloc(EVINITSIZE*sizeof(char *));
 	temp -> eventlistsize = EVINITSIZE;
@@ -1126,8 +1124,8 @@ static int Stack_Used(char *stackptr, int stacksize)
 /* Complain of a stack overflow to stderr without using stdio. */
 static void Overflow_Complain()
 {
-    char *msg1 = "LWP: stack overflow in process ";
-    char *msg2 = "!\n";
+    static const char *msg1 = "LWP: stack overflow in process ";
+    static const char *msg2 = "!\n";
     write (2, msg1, strlen(msg1));
     write (2, lwp_cpptr->name, strlen(lwp_cpptr->name));
     write (2, msg2, strlen(msg2));
