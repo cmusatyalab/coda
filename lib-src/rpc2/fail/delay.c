@@ -83,12 +83,8 @@ int Delay_Init()
  * delay is too small, the routine does nothing else and 
  * returns 1.
  */
-int DelayPacket(speed, socket, sap, pb, queue)
-int speed;
-long socket;
-struct sockaddr_in *sap;
-RPC2_PacketBuffer *pb;
-int queue;
+int DelayPacket(int speed, long socket, struct sockaddr_in *sap,
+		RPC2_PacketBuffer *pb, int queue)
 {
 	u_int msec;
 	packetInfo *pp;
@@ -324,7 +320,4 @@ static int Delay_LWP()
 	}
     }
 }
-    
-
-
 
