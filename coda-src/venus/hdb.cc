@@ -2417,7 +2417,7 @@ void namectxt::printsuspect(int fd, int verbosity) {
 	binding *b = strbase(binding, d, binder_handle);
 	fsobj *f = (fsobj *)b->bindee;
 
-	if ((!f) || (!STATUSVALID(f)) || (!DATAVALID(f))) {
+	if (!f || !STATUSVALID(f) || !DATAVALID(f)) {
 	    PUTMSG("*** Missing/Invalid ***", 1);
 	    return;
 	}

@@ -883,29 +883,35 @@ int fsobj::IsValid(int rcrights) {
     int haveit = 0;
 
     if (rcrights & RC_STATUS) 
-        haveit = (state != FsoRunt);
-    if (rcrights & RC_DATA)  /* should work if both set */
-        haveit = (HAVEALLDATA(this) ? HAVEALLDATA(this) : haveit);
+        haveit = HAVESTATUS(this); /* (state != FsoRunt) */
 
-    /* hook for VCB statistics -- valid due to VCB only? */
-    if ((haveit &&
-	 ((vol->state == Hoarding) || 
-	  (vol->IsWriteDisconnected() && !flags.dirty)) &&
-	 !flags.readonly &&
-	 !IsMtPt() &&
-	 !IsFakeMTLink() &&
-	 !CheckRcRights(rcrights) &&
-	 vol->HaveCallBack()))
+    if (!haveit && (rcrights & RC_DATA))  /* should work if both set */
+        haveit = HAVEALLDATA(this);
+
+    /* If we don't have the object, it definitely is not valid. */
+    if (!haveit) return 0;
+
+    /* Replicated objects must be considered valid when we are either
+     * disconnected or write-disconnected and the object is dirty. */
+    if (flags.replicated) {
+	if (vol->IsDisconnected())		       return 1;
+	if (vol->IsWriteDisconnected() && flags.dirty) return 1;
+    }
+
+    /* Several other reasons that imply this object is valid */
+    if (flags.readonly)		    return 1;
+    if (CheckRcRights(rcrights))    return 1;
+    if (IsMtPt() || IsFakeMTLink()) return 1;
+
+    /* Now if we still have the volume callback, we can't lose.
+     * also update VCB statistics -- valid due to VCB */
+    if (vol->HaveCallBack()) {
 	vol->VCBHits++;
+	return 1;
+    }
 
-    return(haveit && 
-	   ((vol->IsDisconnected() && flags.replicated) ||
-	    (vol->IsWriteDisconnected() && flags.dirty && flags.replicated) ||
-	    flags.readonly ||
-	    CheckRcRights(rcrights) ||
-	    vol->HaveCallBack() ||
-	    IsMtPt() ||
-	    IsFakeMTLink()));
+    /* Final conclusion, the object is not valid */
+    return 0;
 }
 
 
