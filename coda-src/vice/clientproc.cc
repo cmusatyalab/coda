@@ -214,7 +214,10 @@ static HostTable *client_GetVenusId(RPC2_Handle RPCid)
 		hostTable[i].port = peer.RemotePort.Value.InetPortNumber;
 		hostTable[i].FirstClient = 0;
 		hostTable[i].id = 0;
-		sprintf(hostTable[i].HostName, "%08x", htonl(hostTable[i].host));
+		/* the funky redirection is to fool the C++ compiler into
+		 * converting the long into a struct. The correct solution is
+		 * typing  hostTable.host as struct in_addr!!! --JH */
+		sprintf(hostTable[i].HostName, "%s", inet_ntoa(*(struct in_addr*)&hostTable[i].host));
 		Lock_Init(&hostTable[i].lock);
 		maxHost++;
 	}
