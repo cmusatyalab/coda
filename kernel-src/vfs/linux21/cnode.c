@@ -184,8 +184,8 @@ struct inode *coda_fid_to_inode(ViceFid *fid, struct super_block *sb)
 	   mount, but the fid will be wrong. 
 	*/
 	if ( !coda_fideq(fid, &(cnp->c_fid)) ) {
-		printk("coda_fid2inode: bad cnode (ino %ld, fid %s)"
-		       "Tell Peter.\n", nr, coda_f2s(fid));
+		/* printk("coda_fid2inode: bad cnode (ino %ld, fid %s)"
+		   "Tell Peter.\n", nr, coda_f2s(fid)); */
 		iput(inode);
 		return NULL;
 	}
