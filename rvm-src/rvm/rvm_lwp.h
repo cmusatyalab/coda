@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/rvm/RCS/rvm_lwp.h,v 4.1 1997/01/08 21:54:35 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_lwp.h,v 4.2 1997/04/01 01:55:57 clement Exp $";
 #endif _BLURB_
 
 /* LWP compatability for RVM */
@@ -53,7 +53,7 @@ PROCESS                     rvm_lwppid;     /* LWP process id */
 #define MACRO_END			} while(0)
 #endif MACRO_BEGIN
 
-#define STACKSIZE	1024 * 8
+#define STACKSIZE	1024 * 12
 #define BOGUSCODE 	(BOGUS_USE_OF_CTHREADS)  /* force compilation error */
 
 #define RVM_MUTEX			struct Lock
