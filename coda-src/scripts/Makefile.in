@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/scripts/RCS/GNUmakefile.in,v 1.2 1996/11/26 08:52:33 raiff Exp braam $";
+#static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:32 raiff Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,12 +73,10 @@ VICE-SCRIPTS = cleanlog startserver restartserver startfromboot
 MAKE-SCRIPTS = makebeta bbpost c++2html
 REINIT-SCIPTS = reinit.sh recreatevol recreatevol_rep
 
-EXECUTABLES := $(UPDATE-SCRIPTS) $(VOL-SCRIPTS) $(SUP-SCRIPTS)\
+SCRIPTS := $(UPDATE-SCRIPTS) $(VOL-SCRIPTS) $(SUP-SCRIPTS)\
 	     $(VENUS-SCRIPTS) $(INIT-SCRIPTS) $(BACKUP-SCRIPTS)\
 	     $(VICE-SCRIPTS) $(MAKE-SCRIPTS) $(REINIT-SCRIPTS)
 
-# Removed supfiles, I don't htink they are ever user
-# raiff 11/4/96
 
 include $(TOPDIR)/Makerules
 
