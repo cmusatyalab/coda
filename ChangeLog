@@ -1,4 +1,4 @@
-2000-04-28    <jaharkes@cs.cmu.edu>
+2000-05-01    <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.7 =========
 	* Bumped the version number to 5.3.7.
 	* Many changes to the server setup scripts (Phil Nelson).
@@ -15,6 +15,7 @@
 	* Fixed hoarding of symlinks.
 	* Added volume dump estimates and allow for concurrently running dumps.
 	* Volutil can now dump/write to stdout, needs rpc2-1.4.
+	* Fixed directory bug (Greg Troxel).
 
 2000-03-21    <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.6 =========
