@@ -7,6 +7,9 @@ case ${target} in
     cygwin32 | winnt )
 	target=i386-pc-cygwin32
 	;;
+    arm ) 
+	target=arm-unknown-linux-gnuelf 
+	;;
 esac
 
 dnl Now let configure fill in the blanks.
@@ -39,6 +42,17 @@ dnl We have to override some things the configure script tends to get wrong
 	    RANLIB="gnuwin32ranlib"
 	    AS="gnuwin32as"
 	    LDFLAGS="-L/usr/gnuwin32/lib"
+	    ;;
+	arm-unknown-linux-gnuelf )
+	    CC="arm-unknown-linuxelf-gcc"
+	    CXX="arm-unknown-linuxelf-g++"
+	    CFLAGS="-DHAVE_MMAP ${CFLAGS}"
+	    CXXFLAGS="-DHAVE_MMAP ${CFLAGS}"
+	    AR="arm-unknown-linuxelf-ar"
+	    RANLIB="arm-unknown-linuxelf-ranlib"
+	    AS="arm-unknown-linuxelf-as"
+	    NM="arm-unknown-linuxelf-nm"
+	    OBJDUMP="arm-unknown-linuxelf-objdump"
 	    ;;
     esac
 fi

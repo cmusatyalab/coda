@@ -129,7 +129,7 @@ AC_DEFUN(CODA_CHECK_LIBDB185,
 dnl We cannot test for setpgrp(void) when cross-compiling, let's just assume
 dnl we're POSIX-compliant in that case.
 AC_DEFUN(CODA_FUNC_SETPGRP,
-  if test $target != "i386-pc-cygwin32" -a $target != "i386-pc-djgpp" ; then
+  if test $target != "i386-pc-cygwin32" -a $target != "i386-pc-djgpp" -a $target != "arm-unknown-linux-gnuelf"; then
     [AC_FUNC_SETPGRP]
   else
     [AC_DEFINE(SETPGRP_VOID)]
