@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.cc,v 4.4 1998/01/10 18:36:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auth2.cc,v 4.5 1998/01/13 00:20:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -186,18 +186,20 @@ int main(int argc, char **argv)
 
     while(TRUE) {
 	cid = 0;
-	if ((rc = RPC2_GetRequest(NULL, &cid, &reqbuffer, NULL, 
+	rc = RPC2_GetRequest(NULL, &cid, &reqbuffer, NULL, 
 				  (long (*)())PWGetKeys, RPC2_XOR, 
-				  (long (*)())LogFailures)) 
-	    < RPC2_WLIMIT)
+				  (long (*)())LogFailures);
+	if ( rc  < RPC2_WLIMIT) { 
 		HandleRPCError(rc, cid);
+		break; 
+	} 
 
 	if(stat(PDB, &buff)) {
-	    printf("stat for vice.pdb failed\n");
-	    fflush(stdout);
+		printf("stat for vice.pdb failed\n");
+		fflush(stdout);
 	} else {
-	    if(AuthTime != buff.st_mtime)
-		InitAl();
+		if(AuthTime != buff.st_mtime)
+			InitAl();
 	}
 	if ((rc = auth2_ExecuteRequest(cid, reqbuffer, (SE_Descriptor *)0)) 
 	    < RPC2_WLIMIT)
