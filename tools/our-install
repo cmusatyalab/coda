@@ -10,7 +10,7 @@ if [ ! -d $DIR ] ;  then mkdir -p $DIR; fi
 for f in $FILES ; do
   TARGET=$DIR/`basename $f`
   if [ -f $TARGET ] ; then chmod 644 $TARGET; fi
-  cp $f $TARGET
+  cp -p $f $TARGET
   chmod $MODE $TARGET
 done
 
