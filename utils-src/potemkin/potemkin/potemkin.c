@@ -23,7 +23,7 @@ listed in the file CREDITS.
 #define _SCALAR_T_
 #include <stdlib.h>
 #include <stdio.h>
-#include "coda_string.h";
+#include "coda_string.h"
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
@@ -33,6 +33,12 @@ listed in the file CREDITS.
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
+
+#ifdef sun
+#include <sys/mount.h>
+#include <sys/mnttab.h>
+#include <sys/mntent.h>
+#endif
 
 #if defined(DJGPP) || defined(__CYGWIN32__) || defined(__linux__)
 #include <sys/socket.h>
@@ -447,6 +453,42 @@ Setup() {
 #ifdef __BSD44__
     CODA_ASSERT (!mount(MOUNT_CFS, MountPt, 0, KernDevice));
 #endif
+#ifdef sun
+    CODA_ASSERT (!mount(KernDevice, MountPt, MS_DATA, "coda", NULL, 0));
+    /* Update the /etc mount table entry */
+    { int lfd, mfd;
+      int lck;
+      FILE *mnttab;
+      char tm[25];
+      struct mnttab mt;
+
+      printf ("Trying to mount.\n");
+      fflush(stdout);
+      lfd = open ("/etc/.mnttab.lock", O_WRONLY|O_CREAT, 0600);
+      CODA_ASSERT (lfd >= 0);
+
+      lck = lockf(lfd, F_LOCK, 0);
+      CODA_ASSERT (lck == 0);
+      
+      mnttab = fopen(MNTTAB, "a+");
+      CODA_ASSERT (mnttab != NULL);
+      mt.mnt_special = "CODA";
+      mt.mnt_mountp = MountPt;
+      mt.mnt_fstype = "CODA";
+      mt.mnt_mntopts = MNTOPT_RW;
+      mt.mnt_time = tm;
+      sprintf (tm, "%d", time(0));
+
+      putmntent(mnttab,&mt);
+
+      fclose(mnttab);
+      (void) lockf(lfd, F_ULOCK, 0);
+      close(lfd);
+      printf ("Done mounting.\n");
+      fflush(stdout);
+    }
+#endif
+
 
     /* Set up a signal handler to dump the contents of the FidTab */
     sa.sa_handler = dump_fids;
@@ -644,7 +686,8 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
     }
     begin = (char *)(&out->coda_open_by_path.path + 1);
     out->coda_open_by_path.path = begin - (char *)out;
-    printf("Rootdir %s path %s, total %s\n", RootDir, path, begin);
+    if (verbose)
+      printf("Rootdir %s path %s, total %s\n", RootDir, path, begin);
     sprintf(begin, "%s/%s", RootDir, path);
 #if defined(DJGPP) || defined(__CYGWIN32__)
     slash = begin;
@@ -2300,7 +2343,8 @@ Service()
 	}
 
 	/* Read what we can... */
-	CODA_ASSERT((rc = MsgRead(inbuf)) >= 0);
+	rc = MsgRead(inbuf);
+	CODA_ASSERT(rc >= 0);
 	if (rc < VC_IN_NO_DATA) {
 	    fprintf(stderr,"Message fragment: size %d --",rc);
 	    perror(NULL);
