@@ -82,7 +82,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "adv_daemon.h"
 
 int COPModes = 6;	/* ASYNCCOP2 | PIGGYCOP2 */
-int UseMulticast = 0;
 char myHostName[MAXHOSTNAMELEN];
 int rpc2_retries = UNSET_RT;
 int rpc2_timeout = UNSET_TO;
@@ -445,7 +444,7 @@ connent *conn_iterator::operator()() {
 	if (key == (struct ConnKey *)0) return(c);
 	if ((key->host.s_addr == c->srv->host.s_addr ||
              key->host.s_addr == INADDR_ANY) &&
-	    (key->uid == c->uid || key->uid == ALL_UIDS))
+	    (key->uid == c->uid || key->uid == ANYUSER_UID))
 	    return(c);
     }
 
@@ -1052,7 +1051,7 @@ void srvent::Reset()
 
     /* Kill all direct connections to this server. */
     {
-	struct ConnKey Key; Key.host = host; Key.uid = ALL_UIDS;
+	struct ConnKey Key; Key.host = host; Key.uid = ANYUSER_UID;
 	conn_iterator conn_next(&Key);
 	connent *c = 0;
 	connent *tc = 0;

@@ -452,8 +452,8 @@ int fsobj::Access(long rights, int modes, uid_t uid)
      * System:AnyUser !!! */
     userent *ue = vol->realm->GetUser(uid);
     int tokensvalid = ue->TokensValid();
+    uid_t CheckVuid = ue->GetUid();
     PutUser(&ue);
-    uid_t CheckVuid = (tokensvalid ? uid : ALL_UIDS);
 
     if ((code = CheckAcRights(CheckVuid, rights, 1)) != ENOENT)
 	return(code);

@@ -116,7 +116,7 @@ void lrdb::BeginRepairSession(VenusFid *RootFid, int RepMode, char *msg)
 	VolumeId Vols[VSG_MEMBERS];
 	uid_t LockUids[VSG_MEMBERS];
 	unsigned long LockWSs[VSG_MEMBERS];
-	vol->EnableRepair(ALL_UIDS, Vols, LockUids, LockWSs);
+	vol->EnableRepair(ANYUSER_UID, Vols, LockUids, LockWSs);
     }
 
     strcpy(msg, "0"); /* local/global repair session successfully begun! */
@@ -243,7 +243,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 	    repvol *vol = vpt->GetVol();
 	    OBJ_ASSERT(this, vol);
 	    vol->CheckTransition();
-	    (void)vol->DisableRepair(ALL_UIDS);
+	    (void)vol->DisableRepair(ANYUSER_UID);
 	}
     }
 

@@ -791,7 +791,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 				 * cached for this object are still good.
 				 */
 				if (pobj->IsDir()) {
-				    pobj->PromoteAcRights(ALL_UIDS);
+				    pobj->PromoteAcRights(ANYUSER_UID);
 				    pobj->PromoteAcRights(uid);
 				}
 			    } else {

@@ -318,7 +318,7 @@ int repvol::GetVolAttr(uid_t uid)
 			    if (!f->IsDir())
 				continue;
 
-			    f->PromoteAcRights(ALL_UIDS);
+			    f->PromoteAcRights(ANYUSER_UID);
 			    f->PromoteAcRights(uid);
 			}
 		    } 

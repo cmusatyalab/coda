@@ -79,7 +79,7 @@ extern "C" {
 
 
 static int NullRcRights = 0;
-static AcRights NullAcRights = { ALL_UIDS, 0, 0, 0 };
+static AcRights NullAcRights = { ANYUSER_UID, 0, 0, 0 };
 
 
 /*  *****  Constructors, Destructors  *****  */
@@ -165,10 +165,10 @@ void fsobj::ResetPersistent() {
     stat.VV = NullVV;
     stat.VV.StoreId.Host = NO_HOST;
     stat.Date = (Date_t)-1;
-    stat.Author = ALL_UIDS;
-    stat.Owner = ALL_UIDS;
+    stat.Author = ANYUSER_UID;
+    stat.Owner = ANYUSER_UID;
     stat.Mode = (unsigned short)-1;
-    ClearAcRights(ALL_UIDS);
+    ClearAcRights(ANYUSER_UID);
     flags.fake = 0;
     flags.owrite = 0;
     flags.dirty = 0;
@@ -200,7 +200,7 @@ void fsobj::ResetTransient()
 	data.dir->udcf = 0;
     }
     ClearRcRights();
-    DemoteAcRights(ALL_UIDS);
+    DemoteAcRights(ANYUSER_UID);
     flags.ckmtpt = 0;
     flags.fetching = 0;
     flags.random = ::random();
@@ -595,7 +595,7 @@ void fsobj::Demote(void)
     ClearRcRights();
 
     if (IsDir())
-	DemoteAcRights(ALL_UIDS);
+	DemoteAcRights(ANYUSER_UID);
 
     DemoteHdbBindings();
 
@@ -870,7 +870,7 @@ int fsobj::IsValid(int rcrights) {
 /* Returns {0, EACCES, ENOENT}. */
 int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
 {
-    if (uid != ALL_UIDS) {
+    if (uid != ANYUSER_UID) {
 	/* Do we have this user's rights in the cache? */
 	for (int i = 0; i < CPSIZE; i++) {
 	    if (SpecificUser[i].inuse && (!connected || SpecificUser[i].valid)
@@ -878,7 +878,7 @@ int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
 		return((rights & SpecificUser[i].rights) ? 0 : EACCES);
 	}
     }
-    if (uid == ALL_UIDS || !connected) {
+    if (uid == ANYUSER_UID || !connected) {
 	/* Do we have access via System:AnyUser? */
 	if (AnyUser.inuse && (!connected || AnyUser.valid))
 	    return((rights & AnyUser.rights) ? 0 : EACCES);
@@ -938,11 +938,11 @@ void fsobj::DemoteAcRights(uid_t uid)
 {
     LOG(100, ("fsobj::DemoteAcRights: (%s), uid = %d\n", FID_(&fid), uid));
 
-    if (uid == ALL_UIDS && AnyUser.valid)
+    if (uid == ANYUSER_UID)
 	AnyUser.valid = 0;
 
     for (int i = 0; i < CPSIZE; i++)
-	if ((uid == ALL_UIDS || SpecificUser[i].uid == uid) && SpecificUser[i].valid)
+	if (uid == ANYUSER_UID || SpecificUser[i].uid == uid)
 	    SpecificUser[i].valid = 0;
 }
 
@@ -952,7 +952,7 @@ void fsobj::PromoteAcRights(uid_t uid)
 {
     LOG(100, ("fsobj::PromoteAcRights: (%s), uid = %d\n", FID_(&fid), uid));
 
-    if (uid == ALL_UIDS) {
+    if (uid == ANYUSER_UID) {
 	AnyUser.valid = 1;
 
 	/* 
@@ -990,13 +990,13 @@ void fsobj::ClearAcRights(uid_t uid)
 {
     LOG(100, ("fsobj::ClearAcRights: (%s), uid = %d\n", FID_(&fid), uid));
 
-    if (uid == ALL_UIDS) {
+    if (uid == ANYUSER_UID) {
 	RVMLIB_REC_OBJECT(AnyUser);
 	AnyUser = NullAcRights;
     }
 
     for (int i = 0; i < CPSIZE; i++)
-	if (uid == ALL_UIDS || SpecificUser[i].uid == uid) {
+	if (uid == ANYUSER_UID || SpecificUser[i].uid == uid) {
 	    RVMLIB_REC_OBJECT(SpecificUser[i]);
 	    SpecificUser[i] = NullAcRights;
 	}

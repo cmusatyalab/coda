@@ -85,7 +85,7 @@ try_again:
 
     list_for_each(p, mgrpents) {
         *m = list_entry_plusplus(p, mgrpent, vsghandle);
-        if (uid != ALL_UIDS && uid != (*m)->uid)
+        if (uid != ANYUSER_UID && uid != (*m)->uid)
             continue;
 
         count++;
@@ -139,7 +139,8 @@ got_mgrp:
         goto exit;
 
     /* Choose whether to multicast or not. XXX probably broken --JH */
-    (*m)->rocc.MIp = (UseMulticast) ? &(*m)->McastInfo : 0;
+    //(*m)->rocc.MIp = (UseMulticast) ? &(*m)->McastInfo : 0;
+    (*m)->rocc.MIp = 0;
     
 /*--- We should have a usable mgrp now */
 

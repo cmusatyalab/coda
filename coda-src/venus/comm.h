@@ -319,7 +319,6 @@ class probeslave : public vproc {
 /*  *****  Variables  *****  */
 
 extern int COPModes;
-extern int UseMulticast;
 extern char myHostName[];
 extern int rpc2_retries;
 extern int rpc2_timeout;

@@ -118,7 +118,7 @@ const gid_t V_GID = 513;    /* GID that the venus process runs under. */
 #else
 const gid_t V_GID = 65534;    /* GID that the venus process runs under. */
 #endif
-const uid_t ALL_UIDS = (uid_t)-1;
+const uid_t ANYUSER_UID = (uid_t)-1;
 const uid_t HOARD_UID = (uid_t)-2; /* uid of hoard daemon */
 const uid_t UNSET_UID = (uid_t)-666; /* beastly but recognizable */
 const unsigned short V_MODE = 0600;

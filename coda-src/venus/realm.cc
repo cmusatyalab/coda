@@ -102,7 +102,7 @@ void Realm::ResetTransient(void)
 {
     rootservers = NULL;
     refcount = 0;
-    system_anyuser = new userent(Id(), (uid_t)-1);
+    system_anyuser = new userent(Id(), ANYUSER_UID);
 
     if (rvmlib_in_transaction() && !rec_refcount)
 	delete this;

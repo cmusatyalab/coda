@@ -201,7 +201,7 @@ int ConsoleUser(uid_t user)
 #define	UTMP_FILE   "/etc/utmp"
 #endif
 
-    uid_t uid = ALL_UIDS;
+    uid_t uid = ANYUSER_UID;
 
     FILE *fp = fopen(UTMP_FILE, "r");
     if (fp == NULL) return(uid);
@@ -247,6 +247,9 @@ userent::~userent() {
 
 long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
     LOG(100, ("userent::SetTokens: uid = %d\n", uid));
+
+    if (uid == (uid_t)-1)
+	return EPERM;
 
     if (uid == V_UID) {
 	eprint("root acquiring Coda tokens!");

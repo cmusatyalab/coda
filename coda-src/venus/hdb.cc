@@ -345,7 +345,7 @@ int hdb::Delete(hdb_delete_msg *m, uid_t local_id)
 }
 
 
-/* cuid = ALL_UIDS is a wildcard meaning "clear all entries." */
+/* cuid = ANYUSER_UID is a wildcard meaning "clear all entries." */
 extern FILE *logFile;
 int hdb::Clear(hdb_clear_msg *m, uid_t local_id) {
     LOG(10, ("hdb::Clear: <%d, %d>\n", m->cuid, local_id));
@@ -375,7 +375,7 @@ int hdb::Clear(hdb_clear_msg *m, uid_t local_id) {
 }
 
 
-/* luid = ALL_UIDS is a wildcard meaning "list all entries." */
+/* luid = ANYUSER_UID is a wildcard meaning "list all entries." */
 int hdb::List(hdb_list_msg *m, uid_t local_id) {
     LOG(10, ("hdb::List: <%s, %d, %d>\n",
 	      m->outfile, m->luid, local_id));
@@ -770,7 +770,7 @@ int hdb::GetSuspectPriority(Volid *vid, char *pathname, uid_t uid)
 	if (LogLevel >= 100) { n->print(logFile); fflush(logFile); }
 	if (n->cdir.Realm == vid->Realm &&
 	    n->cdir.Volume == vid->Volume &&
-	    ((n->uid == uid) || (n->uid == ALL_UIDS))) {
+	    ((n->uid == uid) || (n->uid == ANYUSER_UID))) {
 	    /* First, deal with direct match */
 	    if (STREQ(n->path, pathname)) {
 		fflush(logFile);
@@ -1413,7 +1413,7 @@ void hdbent::printsuspect(int afd, int verbosity) {
 
 /* Iterator through all entries. */
 hdb_iterator::hdb_iterator() : rec_ohashtab_iterator(HDB->htab) {
-    uid = ALL_UIDS;
+    uid = ANYUSER_UID;
 }
 
 
@@ -1425,7 +1425,7 @@ hdb_iterator::hdb_iterator(uid_t Vuid) : rec_ohashtab_iterator(HDB->htab) {
 
 /* Iterator through all entries in a particular hash bucket (used for Find). */
 hdb_iterator::hdb_iterator(hdb_key *key) : rec_ohashtab_iterator(HDB->htab, key) {
-    uid = ALL_UIDS;
+    uid = ANYUSER_UID;
 }
 
 
@@ -1433,7 +1433,7 @@ hdbent *hdb_iterator::operator()() {
     rec_olink *o;
     while ((o = rec_ohashtab_iterator::operator()())) {
 	hdbent *h = strbase(hdbent, o, tbl_handle);
-	if (uid == ALL_UIDS || uid == h->uid) return(h);
+	if (uid == ANYUSER_UID || uid == h->uid) return(h);
     }
 
     return(0);

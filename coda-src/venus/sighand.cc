@@ -179,13 +179,6 @@ static void SigControl(int sig)
 	LOG(100, ("COPModes = %x\n", COPModes));
     }
 
-    if (STREQ(command, "MCAST")) {
-#if 0
-	(void)fscanf(fp, "%d", &UseMulticast);
-#endif
-	LOG(100, ("UseMulticast is now %d.\n", UseMulticast));
-    }
-
     if (STREQ(command, "DEBUG")) {
 	int found, loglevel, rpc2level, lwplevel;
 

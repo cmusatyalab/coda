@@ -284,20 +284,8 @@ static void ParseCmdline(int argc, char **argv) {
 		i++, CacheDir = argv[i];
 	    else if (STREQ(argv[i], "-m"))
 		i++, COPModes = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-mc"))
-		i++, UseMulticast = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-maxworkers"))  /* number of worker threads */
 		i++, MaxWorkers = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-maxworktime")) {  /* max acceptible pause times */
-		extern struct timeval cont_sw_threshold;
-		cont_sw_threshold.tv_sec = (atoi(argv[++i]));
-		cont_sw_threshold.tv_usec = 0;
-	    }
-            else if (STREQ(argv[i], "-maxrunwait")) {  /* max acceptible lwp run-wait time */
-                extern struct timeval run_wait_threshold;
-                run_wait_threshold.tv_sec = (atoi(argv[++i]));
-                run_wait_threshold.tv_usec = 0;
-            }
 	    else if (STREQ(argv[i], "-weakthresh")) {   /* Threshold at which to go to weak mode */
 		WCThresh = atoi(argv[++i]);		/* in Bytes/sec */
 	    }

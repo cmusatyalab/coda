@@ -513,7 +513,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	volent *vol = VDB->Find(MakeVolid(key));
 	if (vol && vol->IsReplicated()) {
 	    repvol *vp = (repvol *)vol;
-	    if (!vp->IsUnderRepair(ALL_UIDS) && vp->HasLocalSubtree()) {
+	    if (!vp->IsUnderRepair(ANYUSER_UID) && vp->HasLocalSubtree()) {
 		lgm_iterator next(LRDB->local_global_map);
 		lgment *lgm;
 		VenusFid *gfid;

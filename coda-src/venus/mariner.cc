@@ -269,7 +269,7 @@ void MarinerReport(VenusFid *fid, uid_t uid) {
     mariner_iterator next;
     mariner *m;
     while ((m = next()))
-	if (m->reporting && (m->uid == ALL_UIDS || m->uid == uid)) {
+	if (m->reporting && (m->uid == ANYUSER_UID || m->uid == uid)) {
 	    if (first) {
 		m->u.Init();
 		m->u.u_uid = uid;
@@ -324,7 +324,7 @@ mariner::mariner(int afd) :
     dying = 0;
     logging = 0;
     reporting = 0;
-    uid = ALL_UIDS;
+    uid = ANYUSER_UID;
     fd = afd;
     memset(commbuf, 0, MWBUFSIZE);
 
@@ -446,7 +446,7 @@ void mariner::main(void)
 	    Write(
 "Commands are:\n"
 "\thelp, debugon, debugoff, dumpcore, quit, rpc2t\n"
-"\tcop <modes>, umc, set:fetch, clear:fetch, reporton <uid>, reportoff\n"
+"\tcop <modes>, set:fetch, clear:fetch, reporton <uid>, reportoff\n"
 "\t, fd <fd>pathstat <pathname>, fidstat <fid>, rpc2stat, print <args>\n");
 	}
 	else if (STREQ(argv[0], "debugon")) {
@@ -487,10 +487,6 @@ void mariner::main(void)
 	    }
 	    Write("COPModes = %x\n", COPModes);
 	}
-	else if (STREQ(argv[0], "umc")) {
-	    UseMulticast = (1 - UseMulticast);
-	    Write("UseMulticast is now %d.\n", UseMulticast);
-	}
 	else if (STREQ(argv[0], "set:fetch")) {
 	    logging = 1;
 	}
@@ -499,7 +495,7 @@ void mariner::main(void)
 	}
 	else if (STREQ(argv[0], "reporton")) {
 	    reporting = 1;
-	    uid = (argc == 1 ? ALL_UIDS : atoi(argv[1]));
+	    uid = (argc == 1 ? ANYUSER_UID : atoi(argv[1]));
 	}
 	else if (STREQ(argv[0], "reportoff")) {
 	    reporting = 0;
