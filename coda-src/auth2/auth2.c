@@ -87,6 +87,8 @@ extern "C" {
 #include <codaconf.h>
 #include <vice_file.h>
 
+#define MAXNUMCLIENT 10
+
 static char *vicedir = NULL;
 
 extern int AL_DebugLevel;
@@ -115,6 +117,9 @@ static int AUTime = 0;			/* used to tell if binaries have changed */
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
 static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
+
+struct UserInfo* client[MAXNUMCLIENT];
+int client_idx;
 
 void
 ReadConfigFile()
@@ -175,6 +180,9 @@ int main(int argc, char **argv)
 #endif
     
     LogMsg(-1, 0, stdout, "Server successfully started");
+	
+	client_idx=0;
+	memset(client,0,sizeof(client));
 
     while(TRUE) {
 	cid = 0;
@@ -334,6 +342,15 @@ static void SetDebug()
 
 static void Terminate()
     {
+	int i;
+
+	for(i=0; i<client_idx; i++)
+		free(client[i]);
+
+	for(i=client_idx+1; i < MAXNUMCLIENT; i++)
+		if(client[i]!=0)
+			free(client[client_idx]);
+
     LogMsg(-1, 0, stdout, "Terminate signal received .......quitting");
     exit(0);
     }
@@ -482,18 +499,24 @@ void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent,
 
 long S_AuthNewConn(RPC2_Handle cid, RPC2_Integer seType, RPC2_Integer secLevel, RPC2_Integer encType, RPC2_Integer AuthType, RPC2_CountedBS *cIdent)
     {
-    struct UserInfo *p;
     int vid;
 
     vid = GetViceId(cIdent);
     LogMsg(0, AuthDebugLevel, stdout, "AuthNewConn(0x%x, %d, %d, %d, %d)",
 	cid, seType, secLevel, encType, vid);
-    p = (struct UserInfo *) malloc(sizeof(struct UserInfo));
-    RPC2_SetPrivatePointer(cid, (char *)p);
-    p->ViceId = vid;
-    p->HasQuit = FALSE;
-    p->UserCPS = NULL;
-    p->LastUsed = time(0);
+    client[client_idx] = (struct UserInfo *) malloc(sizeof(struct UserInfo));
+
+    RPC2_SetPrivatePointer(cid, (char *)client[client_idx]);
+    client[client_idx]->ViceId = vid;
+    client[client_idx]->HasQuit = FALSE;
+    client[client_idx]->UserCPS = NULL;
+    client[client_idx]->LastUsed = time(0);
+
+	client_idx=(client_idx+1)%MAXNUMCLIENT;
+	if(client[client_idx]!=0){	
+		free(client[client_idx]);
+	}
+
     return(0);
     }
 
