@@ -176,9 +176,9 @@ int next_opnum = 1;
 %token NUMBER 		/* arb sequence of digits*/
 %token STRING		/* quoted string */
 %token SUBSYSTEM
-%token TIMEOUT, DEFINE, NEW_CONNECTION
-%token TYPEDEF, RPC2_STRUCT, RPC2_ENUM
-%token CLIENT, SERVER, PREFIX
+%token TIMEOUT DEFINE NEW_CONNECTION
+%token TYPEDEF RPC2_STRUCT RPC2_ENUM
+%token CLIENT SERVER PREFIX
 
 %token IN
 %token OUT
@@ -198,24 +198,24 @@ int next_opnum = 1;
 }
 
 %type <u_bool> new_connection
-%type <u_bool> DEFINE, TYPEDEF, procedure_description
+%type <u_bool> DEFINE TYPEDEF procedure_description
 
 %type <u_mode> usage
 
-%type <u_string> DefinedNumber, String, id_number, protocol_version
-%type <u_string> subsystem_name, IDENTIFIER, NUMBER, STRING, array_spec
+%type <u_string> DefinedNumber String id_number protocol_version
+%type <u_string> subsystem_name IDENTIFIER NUMBER STRING array_spec
 %type <u_string> timeout_override
 %type <u_int>    opcode_number
 
 %type <u_string_array> identifier_list
 
-%type <u_rpc2_type> rpc2_struct, rpc2_enum
+%type <u_rpc2_type> rpc2_struct rpc2_enum
 
-%type <u_entry> rpc2_type, type_name
+%type <u_entry> rpc2_type type_name
 
 %type <u_enum> enum_val
 
-%type <u_var> formal, array_spec_var
+%type <u_var> formal array_spec_var
 
 %type <u_var_array> field
 
