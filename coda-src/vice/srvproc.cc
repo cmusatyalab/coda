@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.26 1998/12/09 14:57:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.27 98/12/09 16:15:12 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -215,7 +215,7 @@ long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
     Rights anyrights = 0;	/* rights for any user */
     int inconok = 0;		/* flag to say whether Coda inconsistency is ok */
     VolumeId VSGVolnum = Fid->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v;
     vle *av;
@@ -226,7 +226,8 @@ START_TIMING(Fetch_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Fid->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
 
 	/* Request type. */
@@ -330,7 +331,7 @@ long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid,
     Rights rights = 0;		/* rights for this user */
     Rights anyrights = 0;	/* rights for any user */
     VolumeId VSGVolnum = Fid->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v = 0;
     vle *av = 0;
@@ -340,8 +341,8 @@ START_TIMING(GetAttr_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
-				      &Fid->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Fid->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
     }
 
@@ -416,7 +417,7 @@ long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
     ClientEntry *client = 0;	/* pointer to the client data */
     Rights rights = 0;		/* rights for this user */
     Rights anyrights = 0;	/* rights for any user */
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v = 0;
     vle *av = 0;
@@ -453,8 +454,8 @@ START_TIMING(ViceValidateAttrs_Total);
 	/* Validate parameters. */
         {
 	    /* We've already dealt with the PiggyBS in the GetAttr above. */
-	    if (iErrorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
-					   &Piggies[i].Fid.Volume, NULL))
+	    if (iErrorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+					   &Piggies[i].Fid.Volume, NULL, NULL))
 		goto InvalidObj;
         }
 
@@ -546,7 +547,7 @@ long FS_ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, int InconOK, RPC2_BoundedBS 
     Rights anyrights = 0;	/* rights for any user */
     RPC2_String eACL = 0;
     VolumeId VSGVolnum = Fid->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v = 0;
 
@@ -556,7 +557,8 @@ START_TIMING(GetACL_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Fid->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
     }
 
@@ -622,7 +624,7 @@ long FS_ViceNewVStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
     Rights anyrights = 0;	/* rights for any user */
     int deltablocks = 0;
     VolumeId VSGVolnum = Fid->Volume;
-    int	ReplicatedOp = (PrimaryHost != 0);
+    int	ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v = 0;
     vle *av = 0;
@@ -633,7 +635,8 @@ START_TIMING(Store_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Fid->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
 
 	/* Request type. */
@@ -784,7 +787,7 @@ long FS_ViceNewSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
     Rights anyrights = 0;	/* rights for any user */
     int deltablocks = 0;
     VolumeId VSGVolnum = Fid->Volume;
-    int	ReplicatedOp = (PrimaryHost != 0);
+    int	ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v = 0;
     vle *av = 0;
@@ -795,7 +798,8 @@ START_TIMING(SetAttr_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Fid->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
     }
 
@@ -916,7 +920,7 @@ long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
     Rights anyrights = 0;	/* rights for any user */
     AL_AccessList *newACL = 0;
     VolumeId VSGVolnum = Fid->Volume;
-    int	ReplicatedOp = (PrimaryHost != 0);
+    int	ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v = 0;
 
@@ -926,7 +930,8 @@ START_TIMING(SetACL_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Fid->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
     }
 
@@ -1005,7 +1010,7 @@ long FS_ViceVCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
     Rights anyrights = 0;	/* rights for any user */
     int deltablocks = 0;
     VolumeId VSGVolnum = Did->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *pv = 0;
     vle *cv = 0;
@@ -1018,8 +1023,8 @@ START_TIMING(Create_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
-				      &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Did->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
 
 	if (ReplicatedOp) {
@@ -1157,7 +1162,7 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     Rights anyrights = 0;	/* rights for any user */
     int deltablocks = 0;
     VolumeId VSGVolnum = Did->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *pv = 0;
     vle *cv = 0;
@@ -1171,8 +1176,8 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
-				      &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Did->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
     }
 
@@ -1287,7 +1292,7 @@ long FS_ViceVLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     Rights rights = 0;		/* rights for this user */
     Rights anyrights = 0;	/* rights for any user */
     VolumeId VSGVolnum = Did->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *pv = 0;
     vle *cv = 0;
@@ -1302,7 +1307,8 @@ START_TIMING(Link_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Did->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
 
 	/* Volume match. */
@@ -1422,7 +1428,7 @@ long FS_ViceVRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
     Rights s_anyrights;		/* rights for any user */
     int deltablocks = 0;
     VolumeId VSGVolnum = OldDid->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     int SameParent = FID_EQ(OldDid, NewDid);
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *spv = 0;
@@ -1440,7 +1446,8 @@ START_TIMING(Rename_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &OldDid->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &OldDid->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
 
 	/* Volume match. */
@@ -1627,7 +1634,7 @@ long FS_ViceVMakeDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     Rights anyrights = 0;	/* rights for any user */
     int deltablocks = 0;
     VolumeId VSGVolnum = Did->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *pv = 0;
     vle *cv = 0;
@@ -1640,8 +1647,8 @@ START_TIMING(MakeDir_Total);
     
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
-				      &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Did->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
 
 	/* Child/Parent volume match. */
@@ -1790,7 +1797,7 @@ long FS_ViceVRemoveDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     Rights anyrights = 0;	/* rights for any user */
     int deltablocks = 0;
     VolumeId VSGVolnum = Did->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *pv = 0;
     vle *cv = 0;
@@ -1803,8 +1810,8 @@ START_TIMING(RemoveDir_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
-				      &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Did->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
     }
 
@@ -1933,7 +1940,7 @@ long FS_ViceVSymLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String NewName,
     Rights anyrights = 0;		/* rights for any user */
     int deltablocks = 0;
     VolumeId VSGVolnum = Did->Volume;
-    int ReplicatedOp = (PrimaryHost != 0);
+    int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *pv = 0;
     vle *cv = 0;
@@ -1948,7 +1955,8 @@ START_TIMING(SymLink_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Did->Volume, PiggyBS, NULL))
 	    goto FreeLocks;
 
 	/* Child/Parent volume match. */
@@ -2530,19 +2538,25 @@ void ChangeDiskUsage(Volume *volptr, int length)
 /*
   ValidateParms: Validate the parameters of the RPC
 */
-int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
-		   int ReplicatedOp, VolumeId *Vidp, RPC2_CountedBS *PiggyBS) 
+int ValidateParms(RPC2_Handle RPCid, ClientEntry **client, int *ReplicatedOp,
+		  VolumeId *Vidp, RPC2_CountedBS *PiggyBS, int *Nservers) 
 {
     int errorCode = 0;
+    int replicated;
     VolumeId GroupVid;
+    int count, pos;
 
     /* 1. Apply PiggyBacked COP2 operations. */
-    if (ReplicatedOp)
-	if ((PiggyBS) && (PiggyBS->SeqLen > 0) && (errorCode = (int)FS_ViceCOP2(RPCid, PiggyBS)))
+    if (PiggyBS && PiggyBS->SeqLen > 0)
+    {
+	errorCode = (int)FS_ViceCOP2(RPCid, PiggyBS);
+	if (errorCode)
 	    return(errorCode);
+    }
 
     /* 2. Map RPC handle to client structure. */
-    if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)client)) != RPC2_SUCCESS) {
+    errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)client);
+    if (errorCode != RPC2_SUCCESS) {
 	SLog(0, "ValidateParms: GetPrivatePointer failed (%d)", errorCode);
 	return(errorCode);
     }
@@ -2552,15 +2566,20 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
     }
 
     /* 3. Translate group to read/write volume id. */
-    if (ReplicatedOp) {
-	    GroupVid = *Vidp;
-	    if (!XlateVid(Vidp)) {
-		    SLog(1, "ValidateParms: failed to translate VSG %x", 
-			 GroupVid);
-		    return(EINVAL);
-	    }
+    GroupVid = *Vidp;
+    replicated = XlateVid(Vidp, &count, &pos);
+
+    if (ReplicatedOp)
+	*ReplicatedOp = replicated;
+
+    if (Nservers)
+	*Nservers = count;
+	    
+    if ( replicated ) {
 	    SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
-     }
+    } else {
+	    SLog(10, "ValidateParms: using replica %s", *Vidp);
+    }
 
     return(0);
 }
