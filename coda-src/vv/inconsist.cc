@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vv/inconsist.cc,v 4.2 1997/02/26 16:04:23 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vv/inconsist.cc,v 4.3 1998/01/10 18:40:18 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,8 +67,8 @@ extern "C" {
 /* From vice/codaproc2.c */
 ViceStoreId NullSid = { 0, 0 };
 
-PRIVATE int VV_BruteForceCheck(int *, vv_t **, int, int);
-PRIVATE int VV_Check_Real(int *, vv_t **, int, int);
+static int VV_BruteForceCheck(int *, vv_t **, int, int);
+static int VV_Check_Real(int *, vv_t **, int, int);
 
 int VV_Cmp(vv_t *a, vv_t *b) {
     if (IsIncon(*a) || IsIncon(*b)) return(VV_INC);
@@ -108,7 +108,7 @@ int VV_Check_IgnoreInc(int *HowMany, vv_t **vvp, int EqReq)
     }
 
 
-PRIVATE int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
+static int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
 
 /* If IgnoreInc is set, uses VV_Cmp_IgnoreInc() for comparison;
    else uses VV_Cmp()
@@ -175,7 +175,7 @@ PRIVATE int VV_Check_Real(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
 
 /* I can't decide whether this is ever necessary! -JJK */
 /* A less efficient algorithm, but it can deal with inconsistencies amongst submissive vectors. */
-PRIVATE int VV_BruteForceCheck(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
+static int VV_BruteForceCheck(int *HowMany, vv_t **vvp, int EqReq, int IgnoreInc) {
     /* If IgnoreInc is set, uses VV_Cmp_IgnoreInc() for comparison;
 	else uses VV_Cmp()
     */

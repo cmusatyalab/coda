@@ -101,17 +101,17 @@ extern "C" {
 extern int AL_DebugLevel;
 
 
-PRIVATE void InitGlobals(int argc, char **argv);
-PRIVATE void InitLog();
-PRIVATE void InitSignals();
-PRIVATE void ResetDebug();
-PRIVATE void SetDebug();
-PRIVATE void CheckSignal();
-PRIVATE void Terminate();
-PRIVATE void InitRPC();
-PRIVATE void HandleRPCError(int rCode, RPC2_Handle connId);
-PRIVATE void InitAl();
-PRIVATE void CheckTokenKey();
+static void InitGlobals(int argc, char **argv);
+static void InitLog();
+static void InitSignals();
+static void ResetDebug();
+static void SetDebug();
+static void CheckSignal();
+static void Terminate();
+static void InitRPC();
+static void HandleRPCError(int rCode, RPC2_Handle connId);
+static void InitAl();
+static void CheckTokenKey();
 long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);	/* multiplex to other functions */
 
 void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortalIdent *pPortal);	/* to log authentication failures */
@@ -123,15 +123,15 @@ RPC2_EncryptionKey TokenKey;	/* Used for encrypting server tokens;
 int TokenTime = 0;	/* last modified time on TokenKey file	*/
 int AuthTime = 0;	/* last modified time for PDB		*/
 /*char DefKey[RPC2_KEYSIZE] = {'\146','\154','\141','\155','\151','\156','\147','\157'}; */
-PRIVATE char *TKFile = "/vice/db/auth2.tk";	/* name of token key file */
-PRIVATE int AUTime = 0;			/* used to tell if binaries have changed */
+static char *TKFile = "/vice/db/auth2.tk";	/* name of token key file */
+static int AUTime = 0;			/* used to tell if binaries have changed */
 char *default_realm = NULL;
 
 #define PDB "/vice/db/vice.pdb"
 #define PCF "/vice/db/vice.pcf"
 
-PRIVATE int CheckOnly = 0;	/* only allow password checking at this server */
-PRIVATE int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
+static int CheckOnly = 0;	/* only allow password checking at this server */
+static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
 
 
 int main(int argc, char **argv)
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 }
 
 
-PRIVATE void InitGlobals(int argc, char **argv)
+static void InitGlobals(int argc, char **argv)
     /* Set globals from command line args */
 {
     register int i;
@@ -285,7 +285,7 @@ PRIVATE void InitGlobals(int argc, char **argv)
 }
 
 
-PRIVATE void InitLog()
+static void InitLog()
     {
     if (DoRedirectLog)
 	{
@@ -298,7 +298,7 @@ PRIVATE void InitLog()
     }
 
 
-PRIVATE void InitSignals()
+static void InitSignals()
     {
     FILE *file;
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
@@ -318,14 +318,14 @@ PRIVATE void InitSignals()
     }
 
 
-PRIVATE void ResetDebug()
+static void ResetDebug()
     {
     AuthDebugLevel = RPC2_DebugLevel = AL_DebugLevel = 0;
     LogMsg(-1, 0, stdout, "Debug levels reset to 0");
     }
 
 
-PRIVATE void SetDebug()
+static void SetDebug()
     {
     if (AuthDebugLevel == 0) AuthDebugLevel = 1;
     else AuthDebugLevel *= 5;
@@ -335,20 +335,20 @@ PRIVATE void SetDebug()
     }
 
 
-PRIVATE void Terminate()
+static void Terminate()
     {
     LogMsg(-1, 0, stdout, "Terminate signal received .......quitting");
     exit(0);
     }
 
 
-PRIVATE void CheckSignal()
+static void CheckSignal()
     {
     LogMsg(-1, 0, stdout, "Check signal received ...... ignored");
     }
 
 
-PRIVATE void InitRPC()
+static void InitRPC()
     {
     PROCESS mylpid;
     RPC2_Integer rc;
@@ -369,14 +369,14 @@ PRIVATE void InitRPC()
     }
 
 
-PRIVATE void HandleRPCError(int rCode, RPC2_Handle connId)
+static void HandleRPCError(int rCode, RPC2_Handle connId)
     {
     fprintf(stderr, "auth2: %s", RPC2_ErrorMsg(rCode));
     if (rCode < RPC2_FLIMIT && connId != 0) RPC2_Unbind(connId);
     }
 
 
-PRIVATE void InitAl()
+static void InitAl()
 {
     RPC2_Integer rc;
     struct stat buff;
@@ -391,7 +391,7 @@ PRIVATE void InitAl()
 }
 
 
-PRIVATE void CheckTokenKey()
+static void CheckTokenKey()
     {
     struct stat statbuf;
     FILE *tf;
