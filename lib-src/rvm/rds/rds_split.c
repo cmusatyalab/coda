@@ -78,6 +78,7 @@ retry:
 	}
     }
     
+    bp = NULL;
     tempbp = list->head;
     while (tempbp) {
 	/* best fit strategy, only really useful for the largest list which
