@@ -1539,10 +1539,14 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
 			/* Perform. */
 			HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
-			PerformCreate(client, VSGVolnum, volptr, parent_v->vptr,
-				      child_v->vptr, r->Name[0],
-				      r->Mtime, r->u.u_create.Mode, 0, &r->sid,
-				      &parent_v->d_cinode, &deltablocks);
+			errorCode = PerformCreate(client, VSGVolnum, volptr,
+						  parent_v->vptr,
+						  child_v->vptr, r->Name[0],
+						  r->Mtime, r->u.u_create.Mode,
+						  0, &r->sid,
+						  &parent_v->d_cinode,
+						  &deltablocks);
+			CODA_ASSERT(errorCode == 0);
 
 			ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
 			ReintPrelimCOP(child_v, &NullSid, &r->sid, volptr);
@@ -1661,9 +1665,11 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    /* Perform. */
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
 		    HandleWeakEquality(volptr, child_v->vptr, &r->VV[1]);
-		    PerformLink(client, VSGVolnum, volptr, parent_v->vptr,
-				child_v->vptr, r->Name[0], r->Mtime,
-				0, &r->sid, &parent_v->d_cinode, &deltablocks);
+		    errorCode = PerformLink(client, VSGVolnum, volptr,
+					    parent_v->vptr, child_v->vptr,
+					    r->Name[0], r->Mtime, 0, &r->sid,
+					    &parent_v->d_cinode, &deltablocks);
+		    CODA_ASSERT(errorCode == 0);
 		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
 		    ReintPrelimCOP(child_v, &r->VV[1].StoreId, &r->sid, volptr);
 
@@ -1820,10 +1826,13 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
 		    /* Perform. */
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
-		    PerformMkdir(client, VSGVolnum, volptr, parent_v->vptr,
-				 child_v->vptr, r->Name[0], r->Mtime,
-				 r->u.u_mkdir.Mode, 0, &r->sid,
-				 &parent_v->d_cinode, &deltablocks);
+		    errorCode = PerformMkdir(client, VSGVolnum, volptr,
+					     parent_v->vptr, child_v->vptr,
+					     r->Name[0], r->Mtime,
+					     r->u.u_mkdir.Mode, 0, &r->sid,
+					     &parent_v->d_cinode,
+					     &deltablocks);
+		    CODA_ASSERT(errorCode == 0);
 		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
 		    ReintPrelimCOP(child_v, &NullSid, &r->sid, volptr);
 
@@ -1956,11 +1965,14 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    CODA_ASSERT(n == linklen);
 
 		    HandleWeakEquality(volptr, parent_v->vptr, &r->VV[0]);
-		    PerformSymlink(client, VSGVolnum, volptr, parent_v->vptr,
-				   child_v->vptr, r->Name[0],
-				   child_v->f_finode, linklen, r->Mtime,
-				   r->u.u_symlink.Mode, 0, &r->sid,
-				   &parent_v->d_cinode, &deltablocks);
+		    errorCode = PerformSymlink(client, VSGVolnum, volptr,
+					       parent_v->vptr, child_v->vptr,
+					       r->Name[0], child_v->f_finode,
+					       linklen, r->Mtime,
+					       r->u.u_symlink.Mode, 0, &r->sid,
+					       &parent_v->d_cinode,
+					       &deltablocks);
+		    CODA_ASSERT(errorCode == 0);
 		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
 		    ReintPrelimCOP(child_v, &NullSid, &r->sid, volptr);
 

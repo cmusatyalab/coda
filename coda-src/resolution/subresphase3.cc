@@ -1153,12 +1153,13 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 		return(errorCode);
 	    }
 	    int tblocks = 0;
-	    PerformCreate(NULL, VSGVolnum, volptr, pv->vptr,
-			  cv->vptr, name, 
-			  pv->vptr->disk.unixModifyTime,
-			  pv->vptr->disk.modeBits,
-			  0, &r->storeid, &pv->d_cinode, &tblocks);
+	    errorCode = PerformCreate(NULL, VSGVolnum, volptr, pv->vptr,
+				      cv->vptr, name,
+				      pv->vptr->disk.unixModifyTime,
+				      pv->vptr->disk.modeBits, 0, &r->storeid,
+				      &pv->d_cinode, &tblocks);
 	    *blocks += tblocks;
+	    CODA_ASSERT(errorCode == 0);
 	    cv->vptr->disk.owner = r->u.create.owner;	/* sent in a NULL client */
 	    cv->vptr->disk.author = r->u.create.owner;
 	    
@@ -1191,12 +1192,13 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 		return(errorCode);
 	    }
 	    int tblocks = 0;
-	    PerformSymlink(NULL, VSGVolnum, volptr, pv->vptr,
-			   cv->vptr, name, 0, 0,
-			   pv->vptr->disk.unixModifyTime,
-			   pv->vptr->disk.modeBits,
-			   0, &r->storeid, &pv->d_cinode, &tblocks);
+	    errorCode = PerformSymlink(NULL, VSGVolnum, volptr, pv->vptr,
+				       cv->vptr, name, 0, 0,
+				       pv->vptr->disk.unixModifyTime,
+				       pv->vptr->disk.modeBits, 0, &r->storeid,
+				       &pv->d_cinode, &tblocks);
 	    *blocks += tblocks;
+	    CODA_ASSERT(errorCode == 0);
 
 	    cv->vptr->disk.owner = r->u.slink.owner;
 	    cv->vptr->disk.author = r->u.slink.owner;
@@ -1229,11 +1231,10 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 	    }
 
 	    /* add name to parent */
-	    PerformLink(0, VSGVolnum, volptr, pv->vptr,
-			cv->vptr, name, 
-			cv->vptr->disk.unixModifyTime,
-			0, &r->storeid, &pv->d_cinode,
-			blocks);
+	    errorCode = PerformLink(0, VSGVolnum, volptr, pv->vptr, cv->vptr,
+				    name, cv->vptr->disk.unixModifyTime, 0,
+				    &r->storeid, &pv->d_cinode, blocks);
+	    CODA_ASSERT(errorCode == 0);
 
 	    /* spool log record */
 	    SLog(9, "PerformResOp: Spooling log record Link(%s)", name);
@@ -1265,11 +1266,11 @@ static int PerformResOp(rsle *r, dlist *vlist, olist *AllLogs,
 
 	    /* make the directory */
 	    int tblocks = 0;
-	    PerformMkdir(0, VSGVolnum, volptr, pv->vptr,
-			 cv->vptr, name, 
-			 pv->vptr->disk.unixModifyTime,
-			 pv->vptr->disk.modeBits,
-			 0, &r->storeid, &pv->d_cinode, &tblocks);
+	    errorCode = PerformMkdir(0, VSGVolnum, volptr, pv->vptr, cv->vptr,
+				     name, pv->vptr->disk.unixModifyTime,
+				     pv->vptr->disk.modeBits, 0, &r->storeid,
+				     &pv->d_cinode, &tblocks);
+	    CODA_ASSERT(errorCode == 0);
 	    *blocks += tblocks;
 	    // set the storeid  of child
 	    Vnode_vv(cv->vptr).StoreId = r->storeid;

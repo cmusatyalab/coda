@@ -71,26 +71,26 @@ extern void PerformSetAttr(ClientEntry *, VolumeId, Volume *, Vnode *, int,
 			   RPC2_Integer * =NULL);
 extern void PerformSetACL(ClientEntry *, VolumeId, Volume *,
 			   Vnode *, int, ViceStoreId *, AL_AccessList *, RPC2_Integer * =NULL);
-extern void PerformCreate(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
+extern int PerformCreate(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
 			   char *, Date_t, RPC2_Unsigned, int, ViceStoreId *, 
 			  DirInode **, int *, RPC2_Integer * =NULL);
 extern void PerformRemove(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
 			   char *, Date_t, int, ViceStoreId *, DirInode **, int *, 
 			   RPC2_Integer * =NULL);
-extern void PerformLink(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
+extern int PerformLink(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
 			 char *, Date_t, int, ViceStoreId *, DirInode **, int *, 
 			 RPC2_Integer * =NULL);
 extern void PerformRename(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
 			   Vnode *, Vnode *, char *, char *, Date_t, int, ViceStoreId *,
 			   DirInode **, DirInode **, DirInode **, int * = NULL,
 			   RPC2_Integer * =NULL);
-extern void PerformMkdir(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
+extern int PerformMkdir(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
 			  char *, Date_t, RPC2_Unsigned, int, ViceStoreId *, 
 			 DirInode **, int *, RPC2_Integer * =NULL);
 extern void PerformRmdir(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
 			  char *, Date_t, int, ViceStoreId *, DirInode **, int *, 
 			  RPC2_Integer * = NULL);
-extern void PerformSymlink(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
+extern int PerformSymlink(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *,
 			    char *, Inode, RPC2_Unsigned, Date_t, RPC2_Unsigned,
 			    int, ViceStoreId *, DirInode **, int *, 
 			    RPC2_Integer * =NULL);

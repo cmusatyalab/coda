@@ -606,9 +606,11 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		*deltablocks += tblocks;
 		tblocks = 0;
 		
-		PerformMkdir(0, repvolid, volptr, pv->vptr, cv->vptr, p->name, 
-			     time(0), 0666, 0, NULL, &pv->d_cinode, &tblocks);
+		errorCode = PerformMkdir(0, repvolid, volptr, pv->vptr,
+					 cv->vptr, p->name, time(0), 0666, 0,
+					 NULL, &pv->d_cinode, &tblocks);
 		*deltablocks += tblocks;
+		CODA_ASSERT(errorCode == 0);
 		
 		cv->vptr->delete_me = 1;
 	    }
@@ -625,9 +627,11 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		*deltablocks += tblocks;
 		tblocks = 0;
 		
-		PerformCreate(0, repvolid, volptr, pv->vptr, cv->vptr, p->name,
-			      time(0), 0666, 0, NULL, &pv->d_cinode, &tblocks);
+		errorCode = PerformCreate(0, repvolid, volptr, pv->vptr,
+					  cv->vptr, p->name, time(0), 0666, 0,
+					  NULL, &pv->d_cinode, &tblocks);
 		*deltablocks += tblocks;
+		CODA_ASSERT(errorCode == 0);
 		
 		/*create the inode */
 		cv->vptr->disk.dataVersion = 1;
@@ -651,8 +655,10 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		CODA_ASSERT(cv->vptr != 0);
 		
 		CODA_ASSERT(cv->vptr->disk.linkCount > 0);
-		PerformLink(0, repvolid, volptr, pv->vptr, cv->vptr, p->name, 
-			    time(0), 0, NULL, &pv->d_cinode, &tblocks);
+		errorCode = PerformLink(0, repvolid, volptr, pv->vptr,
+					cv->vptr, p->name, time(0), 0, NULL,
+					&pv->d_cinode, &tblocks);
+		CODA_ASSERT(errorCode == 0);
 		*deltablocks += tblocks;
 	    }
 	    break;
@@ -668,10 +674,12 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		*deltablocks += tblocks;
 		tblocks = 0;
 		
-		PerformSymlink(0, repvolid, volptr, pv->vptr, cv->vptr, p->name, 
-			       0, 0, time(0), 0666, 0, NULL, &pv->d_cinode, 
-			       &tblocks);
+		errorCode = PerformSymlink(0, repvolid, volptr, pv->vptr,
+					   cv->vptr, p->name, 0, 0, time(0),
+					   0666, 0, NULL, &pv->d_cinode,
+					   &tblocks);
 		*deltablocks += tblocks;
+		CODA_ASSERT(errorCode == 0);
 		
 		/*create the inode */
 		cv->vptr->disk.dataVersion = 1;

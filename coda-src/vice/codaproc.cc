@@ -1288,13 +1288,16 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
 					   &(ov->fid), client->Id, 1, &tblocks)))
 		    return(errorCode);
+
 		*deltablocks += tblocks;
 		tblocks = 0;
 
 		/* add name to parent */
-		PerformCreate(client, VSGVolnum, volptr, ov->vptr,
-			      cv->vptr, repairent.name, status->Date,
-			      0644, 0, StoreId, &ov->d_cinode, &tblocks);
+		errorCode = PerformCreate(client, VSGVolnum, volptr, ov->vptr,
+					  cv->vptr, repairent.name,
+					  status->Date, 0644, 0, StoreId,
+					  &ov->d_cinode, &tblocks);
+		CODA_ASSERT(errorCode == 0);
 		*deltablocks += tblocks;
 
 		/* create the inode */
@@ -1324,9 +1327,11 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		tblocks = 0;
 
 		/* make the child directory and insert name in parent */
-		PerformMkdir(client, VSGVolnum, volptr, ov->vptr,
-			     cv->vptr, repairent.name, status->Date,
-			     0755, 0, StoreId, &ov->d_cinode, &tblocks);
+		errorCode = PerformMkdir(client, VSGVolnum, volptr, ov->vptr,
+					 cv->vptr, repairent.name,
+					 status->Date, 0755, 0, StoreId,
+					 &ov->d_cinode, &tblocks);
+		CODA_ASSERT(errorCode == 0);
 		*deltablocks += tblocks;
 
 		/* set the delete flag to true - for abort case */
@@ -1347,9 +1352,11 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		tblocks = 0;
 
 		/* create the symlink */
-		PerformSymlink(client, VSGVolnum, volptr, ov->vptr,
-			       cv->vptr, repairent.name, 0, 0, status->Date,
-			       0777, 0, StoreId, &ov->d_cinode, &tblocks);
+		errorCode = PerformSymlink(client, VSGVolnum, volptr, ov->vptr,
+					   cv->vptr, repairent.name, 0, 0,
+					   status->Date, 0777, 0, StoreId,
+					   &ov->d_cinode, &tblocks);
+		CODA_ASSERT(errorCode == 0);
 		*deltablocks += tblocks;
 		
 		/* create the inode */
@@ -1380,9 +1387,10 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		}
 
 		/* add name to parent */
-		PerformLink(client, VSGVolnum, volptr, ov->vptr, cv->vptr,
-			    repairent.name, status->Date, 0, StoreId, 
-			    &ov->d_cinode, &tblocks);
+		errorCode = PerformLink(client, VSGVolnum, volptr, ov->vptr,
+					cv->vptr, repairent.name, status->Date,
+					0, StoreId, &ov->d_cinode, &tblocks);
+		CODA_ASSERT(errorCode == 0);
 		*deltablocks += tblocks;
 	    }
 	    break;

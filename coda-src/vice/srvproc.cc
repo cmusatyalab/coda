@@ -140,7 +140,7 @@ static int Check_CLMS_Semantics(ClientEntry *, Vnode **, Vnode **, char *, Volum
                                 Rights *, Rights *, int);
 static int Check_RR_Semantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **, VnodeType,
 				int, VCP, void *, void *, Rights *, Rights *, int);
-static void Perform_CLMS(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *, CLMS_Op opcode,
+static int Perform_CLMS(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *, CLMS_Op opcode,
 			   char *, Inode, RPC2_Unsigned, Date_t, RPC2_Unsigned,
 			   int, ViceStoreId *, PDirInode *, int *, RPC2_Integer *);
 static void Perform_RR(ClientEntry *, VolumeId, Volume *, Vnode *, Vnode *, char *,
@@ -1065,11 +1065,15 @@ START_TIMING(Create_Total);
 
 	if (ReplicatedOp)
 	    GetMyVS(volptr, OldVS, NewVS);
-	PerformCreate(client, VSGVolnum, volptr, pv->vptr, cv->vptr, 
-		      (char *)Name,
-		      DirStatus->Date, Status->Mode, ReplicatedOp, StoreId, 
-		      &pv->d_cinode, &tblocks, NewVS);
+
+	errorCode = PerformCreate(client, VSGVolnum, volptr, pv->vptr,
+				  cv->vptr, (char *)Name, DirStatus->Date,
+				  Status->Mode, ReplicatedOp, StoreId,
+				  &pv->d_cinode, &tblocks, NewVS);
 	deltablocks += tblocks;
+	if (errorCode)
+	    goto FreeLocks;
+
 	SetStatus(pv->vptr, DirStatus, rights, anyrights);
 	SetStatus(cv->vptr, Status, rights, anyrights);
 
@@ -1318,9 +1322,12 @@ START_TIMING(Link_Total);
     {
 	if (ReplicatedOp)
 	    GetMyVS(volptr, OldVS, NewVS);
-	PerformLink(client, VSGVolnum, volptr, pv->vptr, cv->vptr, (char *)Name,
-		    DirStatus->Date, ReplicatedOp, StoreId, 
-		    &pv->d_cinode, &deltablocks, NewVS);
+
+	errorCode = PerformLink(client, VSGVolnum, volptr, pv->vptr, cv->vptr,
+				(char *)Name, DirStatus->Date, ReplicatedOp,
+				StoreId, &pv->d_cinode, &deltablocks, NewVS);
+	if (errorCode)
+	    goto FreeLocks;
 
 	SetStatus(pv->vptr, DirStatus, rights, anyrights);
 	SetStatus(cv->vptr, Status, rights, anyrights);
@@ -1650,12 +1657,18 @@ START_TIMING(MakeDir_Total);
     /* Perform operation. */
     {
 	int tblocks = 0;
+
 	if (ReplicatedOp)
 	    GetMyVS(volptr, OldVS, NewVS);
-	PerformMkdir(client, VSGVolnum, volptr, pv->vptr, cv->vptr, (char *)Name,
-		     DirStatus->Date, Status->Mode, ReplicatedOp, StoreId, 
-		     &pv->d_cinode, &tblocks, NewVS);
+
+	errorCode = PerformMkdir(client, VSGVolnum, volptr, pv->vptr, cv->vptr,
+				 (char *)Name, DirStatus->Date, Status->Mode,
+				 ReplicatedOp, StoreId, &pv->d_cinode,
+				 &tblocks, NewVS);
 	deltablocks += tblocks;
+	if (errorCode)
+	    goto FreeLocks;
+
 	SetStatus(pv->vptr, DirStatus, rights, anyrights);
 	SetStatus(cv->vptr, Status, rights, anyrights);
 	if ( errorCode == 0 )
@@ -1948,11 +1961,14 @@ START_TIMING(SymLink_Total);
 	    GetMyVS(volptr, OldVS, NewVS);
 
 	int tblocks = 0;
-	PerformSymlink(client, VSGVolnum, volptr, pv->vptr, cv->vptr,
-		       (char *)NewName, cv->f_finode, linklen, DirStatus->Date,
-		       Status->Mode, ReplicatedOp, StoreId, 
-		       &pv->d_cinode, &tblocks, NewVS);
+	errorCode = PerformSymlink(client, VSGVolnum, volptr, pv->vptr,
+				   cv->vptr, (char *)NewName, cv->f_finode,
+				   linklen, DirStatus->Date, Status->Mode,
+				   ReplicatedOp, StoreId, &pv->d_cinode,
+				   &tblocks, NewVS);
 	deltablocks += tblocks;
+	if (errorCode)
+	    goto FreeLocks;
 
 	SetStatus(pv->vptr, DirStatus, rights, anyrights);
 	SetStatus(cv->vptr, Status, rights, anyrights);
@@ -3893,14 +3909,14 @@ void PerformSetACL(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     }
 }
 
-void PerformCreate(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
+int PerformCreate(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                    Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime, RPC2_Unsigned Mode,
                    int ReplicatedOp, ViceStoreId *StoreId, 
                    DirInode **CowInode, int *blocks, RPC2_Integer *vsptr)
 {
-    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_Create,
-                 Name, 0, 0, Mtime, Mode, ReplicatedOp, StoreId, CowInode,
-                 blocks, vsptr);
+    return Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_Create,
+			Name, 0, 0, Mtime, Mode, ReplicatedOp, StoreId,
+			CowInode, blocks, vsptr);
 }
 
 
@@ -3914,14 +3930,14 @@ void PerformRemove(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 }
 
 
-void PerformLink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
+int PerformLink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                  Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime,
                  int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
                  int *blocks, RPC2_Integer *vsptr)
 {
-    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_Link,
-                 Name, 0, 0, Mtime, 0, ReplicatedOp, StoreId, CowInode, 
-                 blocks, vsptr);
+    return Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_Link,
+			Name, 0, 0, Mtime, 0, ReplicatedOp, StoreId, CowInode,
+			blocks, vsptr);
 }
 
 
@@ -4117,14 +4133,14 @@ void PerformRename(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 }
 
 
-void PerformMkdir(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
+int PerformMkdir(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                   Vnode *dirvptr, Vnode *vptr, char *Name, Date_t Mtime, RPC2_Unsigned Mode,
                   int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
                   int *blocks, RPC2_Integer *vsptr)
 {
-    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_MakeDir,
-                 Name, 0, 0, Mtime, Mode, ReplicatedOp, StoreId, CowInode,
-                 blocks, vsptr);
+    return Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_MakeDir,
+			Name, 0, 0, Mtime, Mode, ReplicatedOp, StoreId,
+			CowInode, blocks, vsptr);
 }
 
 
@@ -4138,15 +4154,15 @@ void PerformRmdir(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 }
 
 
-void PerformSymlink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
+int PerformSymlink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
                     Vnode *dirvptr, Vnode *vptr, char *Name, Inode newinode,
                     RPC2_Unsigned Length, Date_t Mtime, RPC2_Unsigned Mode,
                     int ReplicatedOp, ViceStoreId *StoreId, DirInode **CowInode,
                     int *blocks, RPC2_Integer *vsptr)
 {
-    Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_SymLink,
-                 Name, newinode, Length, Mtime, Mode, ReplicatedOp, StoreId, CowInode,
-                 blocks, vsptr);
+    return Perform_CLMS(client, VSGVolnum, volptr, dirvptr, vptr, CLMS_SymLink,
+			Name, newinode, Length, Mtime, Mode, ReplicatedOp,
+			StoreId, CowInode, blocks, vsptr);
 }
 
 
@@ -4155,7 +4171,7 @@ void PerformSymlink(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
   symlink operation on a VM copy of the object.
 */
 
-static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
+static int Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
                          Volume *volptr, Vnode *dirvptr, Vnode *vptr,
                          CLMS_Op opcode, char *Name, Inode newinode,
                          RPC2_Unsigned Length, Date_t Mtime, RPC2_Unsigned Mode,
@@ -4190,7 +4206,7 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
     if ( error ) {
 	    eprint("Create returns %d on %s %s", error, Name, FID_(&Fid));
 	    VN_PutDirHandle(dirvptr);
-	    CODA_ASSERT(0);
+	    return error;
     }
     int newlength = DH_Length(dh);
     VN_PutDirHandle(dirvptr);
@@ -4303,6 +4319,7 @@ static void Perform_CLMS(ClientEntry *client, VolumeId VSGVolnum,
 	fids[1] = Fid;
 	CopPendingMan->add(new cpent(StoreId, fids));
     }
+    return 0;
 }
 
 

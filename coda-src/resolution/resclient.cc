@@ -344,8 +344,10 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		ViceStoreId stid;
 		AllocStoreId(&stid);
 
-		PerformLink(NULL, VSGVolnum, vp, pv->vptr, cv->vptr, 
-			    name, time(0), 0, &stid, &pv->d_cinode, blocks);
+		errorCode = PerformLink(NULL, VSGVolnum, vp, pv->vptr,
+					cv->vptr, name, time(0), 0, &stid,
+					&pv->d_cinode, blocks);
+		CODA_ASSERT(errorCode == 0);
 		if (cv->vptr->delete_me) {
 		    /* it was deleted before the link was done */
 		    SLog(0,  "Undeleting Vnode %s (%x.%x)",
@@ -412,12 +414,13 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 				errorCode, cFid->Vnode, cFid->Unique, name);
 			return(errorCode);
 		    }
-		    PerformCreate(NULL, VSGVolnum, vp, pv->vptr,
-				  cv->vptr, name, 
-				  pv->vptr->disk.unixModifyTime,
-				  pv->vptr->disk.modeBits,
-				  0, &stid, &pv->d_cinode, &tblocks);
+		    errorCode = PerformCreate(NULL, VSGVolnum, vp, pv->vptr,
+					      cv->vptr, name,
+					      pv->vptr->disk.unixModifyTime,
+					      pv->vptr->disk.modeBits, 0,
+					      &stid, &pv->d_cinode, &tblocks);
 		    *blocks += tblocks;
+		    CODA_ASSERT(errorCode == 0);
 		    cv->vptr->disk.dataVersion = 1;
 		    cv->f_finode = icreate((int) V_device(vp), (int) V_id(vp),
 					   (int) cv->vptr->vnodeNumber,
@@ -442,12 +445,13 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 			return(errorCode);
 		    }
 		    int tblocks = 0;
-		    PerformSymlink(NULL, VSGVolnum, vp, pv->vptr,
-				   cv->vptr, name, 0, 0, 
-				   pv->vptr->disk.unixModifyTime,
-				   pv->vptr->disk.modeBits,
-				   0, &stid, &pv->d_cinode, &tblocks);
+		    errorCode = PerformSymlink(NULL, VSGVolnum, vp, pv->vptr,
+					       cv->vptr, name, 0, 0,
+					       pv->vptr->disk.unixModifyTime,
+					       pv->vptr->disk.modeBits, 0,
+					       &stid, &pv->d_cinode, &tblocks);
 		    *blocks += tblocks;
+		    CODA_ASSERT(errorCode == 0);
 		    cv->vptr->disk.dataVersion = 1;
 		    cv->f_finode = icreate((int) V_device(vp), (int) V_id(vp),
 					   (int) cv->vptr->vnodeNumber,
@@ -473,12 +477,13 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    }
 		    cv->d_inodemod = 1;
 		    int tblocks = 0;
-		    PerformMkdir(NULL, VSGVolnum, vp, pv->vptr,
-				 cv->vptr, name,
-				 pv->vptr->disk.unixModifyTime,
-				 pv->vptr->disk.modeBits,
-				 0, &stid, &pv->d_cinode, &tblocks);
+		    errorCode = PerformMkdir(NULL, VSGVolnum, vp, pv->vptr,
+					     cv->vptr, name,
+					     pv->vptr->disk.unixModifyTime,
+					     pv->vptr->disk.modeBits, 0, &stid,
+					     &pv->d_cinode, &tblocks);
 		    *blocks += tblocks;
+		    CODA_ASSERT(errorCode == 0);
 		    if ((errorCode = SpoolVMLogRecord(vlist, pv, vp, &stid,
 						      ResolveViceMakeDir_OP,
 						      name, cFid->Vnode, cFid->Unique))) 
