@@ -184,7 +184,6 @@ static int parse_res_reply(char *answer, int alen,
     }
     return err;
 }
-#endif
 
 static int do_srv_lookup(const char *node, const char *service,
 			 const struct RPC2_addrinfo *hints,
@@ -194,24 +193,14 @@ static int do_srv_lookup(const char *node, const char *service,
     fprintf(stderr, "Doing SRV record lookup for %s %s\n", node, service);
 #endif
 
-#ifdef HAVE_RES_SEARCH
     char answer[1024], *srvdomain;
     int len;
-    static int initialized = 0;
     const char *proto = (hints && hints->ai_protocol == IPPROTO_UDP) ?
 	"udp" : "tcp";
 
     srvdomain = srvdomainname(node, service, proto);
     if (!srvdomain)
 	return RPC2_EAI_MEMORY;
-
-    /* according to the manpage I have in front of me, this function should
-     * already be called implicitly by the first call to res_search. However
-     * it looks like the libresolv implementation RH 9.0 doesn't do this. */
-    if (!initialized) {
-	res_init();
-	initialized = 1;
-    }
 
     len = res_search(srvdomain, ns_c_in, ns_t_srv, answer, sizeof(answer));
 
@@ -222,10 +211,8 @@ static int do_srv_lookup(const char *node, const char *service,
 	return RPC2_EAI_FAIL;
 
     return parse_res_reply(answer, len, hints, res);
-#else
-    return RPC2_EAI_FAIL;
-#endif
 }
+#endif
 
 void coda_reorder_addrinfo(struct RPC2_addrinfo **srvs)
 {
@@ -301,8 +288,23 @@ int coda_getaddrinfo(const char *node, const char *service,
 		     struct RPC2_addrinfo **res)
 {
     struct RPC2_addrinfo Hints, *srvs = NULL;
-    int err;
+    static int initialized = 0;
+    int err = RPC2_EAI_FAIL;
 
+    if (!initialized) {
+#ifdef HAVE_RES_SEARCH
+	/* assuming that if we have res_search, we'll have res_init and
+	 * _res.options and so on */
+	res_init();
+
+	/* turn off default domain substitutions */
+	_res.options &= ~(RES_DEFNAMES | RES_DNSRCH);
+#endif
+	initialized = 1;
+    }
+
+    /* If the user specified hints, copy them. We might need to clear the
+     * CODA_AI_RES_SRV flag at some point */
     if (hints) {
 	Hints = *hints;
 	hints = &Hints;
@@ -337,12 +339,14 @@ int coda_getaddrinfo(const char *node, const char *service,
 	/* lower layers don't really like unknown flagbits */
 	Hints.ai_flags &= ~CODA_AI_RES_SRV;
 
+#ifdef HAVE_RES_SEARCH
 	/* try to find SRV records */
 	err = do_srv_lookup(node, service, hints, &srvs);
 	if (!err) {
 	    coda_reorder_addrinfo(&srvs);
 	    goto Exit;
 	}
+#endif
     }
 
     /* when not doing SRV record lookup or when it failed, we use

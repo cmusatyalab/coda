@@ -130,30 +130,25 @@ void GetRealmServers(const char *name, const char *service,
     }
 
     if (!found) {
-	char *fullname = malloc(strlen(name) + 2);
-	if (fullname) {
-	    char tmp[sizeof(struct in6_addr)];
-	    struct RPC2_addrinfo hints;
+	struct RPC2_addrinfo hints;
 
-	    memset(&hints, 0, sizeof(hints));
-	    hints.ai_family   = PF_INET;
-	    hints.ai_socktype = SOCK_DGRAM;
-	    hints.ai_protocol = IPPROTO_UDP;
-	    hints.ai_flags    = RPC2_AI_CANONNAME | CODA_AI_RES_SRV;
-
-	    strcpy(fullname, name);
-
-	    /* If the name is not a numerical address append a '.'.
-	     * That way we'll only do FQDN lookups. */
-	    if (inet_pton(PF_INET, name, &tmp) <= 0)
 #ifdef PF_INET6
-		if (inet_pton(PF_INET6, name, &tmp) <= 0)
+	/* As we expect onlu FQDNs, the name should contain at least one '.'
+	 * This also prevents lookups for accidentally mistyped paths as well
+	 * as things that the OS might look for like 'Recycle Bin'. */
+	char tmp[sizeof(struct in6_addr)];
+	if (inet_pton(PF_INET6, name, &tmp) <= 0)
 #endif
-		    strcat(fullname, ".");
+	    if (strchr(name, '.') == NULL)
+		return;
 
-	    coda_getaddrinfo(fullname, service, &hints, &results);
-	    free(fullname);
-	}
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family   = PF_INET;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_protocol = IPPROTO_UDP;
+	hints.ai_flags    = RPC2_AI_CANONNAME | CODA_AI_RES_SRV;
+
+	coda_getaddrinfo(name, service, &hints, &results);
     }
 
     /* Is is really necessary to filter out loopback and other bad
