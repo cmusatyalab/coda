@@ -46,7 +46,7 @@ extern "C" {
 
 void aclstore::init(char *a) {
     type = ACLSTORE;
-    memmove((void *)acl, (const void *)a, SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
+    memcpy(acl, a, SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
 }
 
 void aclstore::print(int fd) {

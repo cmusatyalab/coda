@@ -492,7 +492,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		vdo->vol_index = volindex;
 		vdo->vnodeMagic = LARGEVNODEMAGIC;
 		ViceLockClear((&vdo->lock));
-		memmove((void *) &(vdo->nextvn), (const void *)&(camvdo->nextvn), sizeof(rec_smolink));
+		memcpy(&(vdo->nextvn), &(camvdo->nextvn), sizeof(rec_smolink));
 		rvmlib_modify_bytes(camvdo, vdo, SIZEOF_LARGEDISKVNODE);
 		nvnodes ++;
 	    }
@@ -577,7 +577,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
 		vdo->vol_index = volindex;
 		vdo->vnodeMagic = SMALLVNODEMAGIC;
 		ViceLockClear((&vdo->lock));
-		memmove((void *) &(vdo->nextvn), (const void *)&(camvdo->nextvn), sizeof(rec_smolink));
+		memcpy(&(vdo->nextvn), &(camvdo->nextvn), sizeof(rec_smolink));
 		rvmlib_modify_bytes(camvdo, vdo, SIZEOF_SMALLDISKVNODE);
 		nvnodes ++;
 	    }

@@ -497,13 +497,13 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	vnode->vol_index = vnp->disk.vol_index;
 
 	/* Now copy the disk data into the vnode */
-	memmove((void *)&vnp->disk, (const void *)vnode, VNODESIZE(vclass));
+	memcpy(&vnp->disk, vnode, VNODESIZE(vclass));
 	vnp->changed = 1;
 	vnp->delete_me = 0;
 	
 	rvmlib_begin_transaction(restore);
 	if (vclass == vLarge) {
-	    memset((void *)inode, 0, (int)sizeof(DirInode));
+	    memset(inode, 0, sizeof(DirInode));
 		
 	    /* Read in the directory pages */
 	    if (read(fd, (void *)&npages, (int)sizeof(npages)) == -1) {

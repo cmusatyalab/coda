@@ -157,7 +157,7 @@ void bitmap::Grow(int newsize) {
     memset(newmap, 0, newmapsize);
     if (map) {
 	CODA_ASSERT(mapsize > 0);
-	memmove((void *)newmap, (const void *)map, mapsize);
+	memcpy(newmap, map, mapsize);
 	if (recoverable)
 	    rvmlib_rec_free(map);
 	else
@@ -278,7 +278,7 @@ void bitmap::operator=(bitmap& b) {
 	    rvmlib_set_range(map, mapsize);
     }
     
-    memmove((void *)map, (const void *)b.map, mapsize);
+    memcpy(map, b.map, mapsize);
 }
 int bitmap::operator!=(bitmap& b) {
     if (mapsize != b.mapsize) 	

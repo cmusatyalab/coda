@@ -358,7 +358,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	else {
 	    ap = (aclstore *)newstp;
 	    u.acl.type = ACLSTORE;
-	    memmove((void *)u.acl.acl, (const void *)ap->acl, (int) sizeof(u.acl.acl));
+	    memcpy(u.acl.acl, ap->acl, sizeof(u.acl.acl));
 	}
 	break;
       case ResolveViceCreate_OP:

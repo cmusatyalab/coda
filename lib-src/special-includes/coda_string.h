@@ -24,10 +24,6 @@ Coda are listed in the file CREDITS.
 #endif
 
 #include <string.h>
-#ifdef HAVE_BCOPY_IN_STRINGS_H
-/* bcopy et al are in strings.h on Solaris */
-#include <strings.h>
-#endif
 
 #ifndef HAVE_STRERROR
 #define strerror(err) \

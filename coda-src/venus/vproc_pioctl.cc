@@ -401,7 +401,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 		        }
 
 			/* Copy out the parent fid. */
-			memmove((void *) data->out, (const void *)&f->pfid, (int)sizeof(VenusFid));
+			memcpy(data->out, &f->pfid, sizeof(VenusFid));
 			data->out_size = (short)sizeof(VenusFid);
 
 			break;
@@ -753,7 +753,7 @@ OI_FreeLocks:
 		    /* Copy all the junk back out. */
 		    /* Format is (status, name, offlinemsg, motd). */
 		    cp = (char *) data->out;
-		    memmove(cp, (char *)&volstat, (int)sizeof(VolumeStatus));
+		    memcpy(cp, &volstat, sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 		    strcpy(cp, name);
 		    cp += strlen(name) + 1;

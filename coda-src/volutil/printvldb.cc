@@ -13,13 +13,7 @@ listed in the file CREDITS.
 
                         Additional copyrights
                            none currently
-
 #*/
-
-
-
-
-
 
 /******************************************/
 /* Print out vldb, copied from vol/vldb.c */
@@ -71,9 +65,9 @@ void heapify(struct vldb a[], int i, int size)
 	largest = r;
 	
     if (largest != i) {
-	memmove( &tmp, &a[i], sizeof(struct vldb));
-	memmove( &a[i], &a[largest], sizeof(struct vldb));
-	memmove( &a[largest], &tmp, sizeof(struct vldb));
+	memcpy(&tmp, &a[i], sizeof(struct vldb));
+	memcpy(&a[i], &a[largest], sizeof(struct vldb));
+	memcpy(&a[largest], &tmp, sizeof(struct vldb));
 	heapify(a, largest, size);
     }
 }
@@ -87,9 +81,9 @@ void heapsort(struct vldb a[], int length)
 	heapify(a, i, size);
 
     for (i = length; i >= 2; i--) {
-	memmove( &tmp, &a[i], sizeof(struct vldb));
-	memmove( &a[i], &a[1], sizeof(struct vldb));
-	memmove( &a[1], &tmp, sizeof(struct vldb));
+	memcpy(&tmp, &a[i], sizeof(struct vldb));
+	memcpy(&a[i], &a[1], sizeof(struct vldb));
+	memcpy(&a[1], &tmp, sizeof(struct vldb));
 	heapify(a, 1, --size);
     }
 }
@@ -123,20 +117,20 @@ void main(int argc, char **argv)
 	nRecords = (n>>LOG_VLDBSIZE);
 
 	for (i = 0; i < nRecords; i++) {
-	    register struct vldb *vldp = &buffer[i];
+	    struct vldb *vldp = &buffer[i];
 
 /* There are two entries in the VLDB for each volume, one is keyed on the
    volume name, and the other is keyed on the volume id in alphanumeric form.
    I feel we should only print out the entry with the volume name. */
 	    
 	    if ((VID(vldp) != 0) && (VID(vldp) != atoi(vldp->key))) {
-		memmove( &VLDB[nentries++], vldp, sizeof(struct vldb));
+		memcpy(&VLDB[nentries++], vldp, sizeof(struct vldb));
 		if (nentries == size) {
 		    struct vldb *tmp;
 
 		    size *= 2;
 		    tmp = (struct vldb *)malloc(size * sizeof(struct vldb));
-		    memmove( tmp, VLDB, nentries * sizeof(struct vldb));
+		    memcpy(tmp, VLDB, nentries * sizeof(struct vldb));
 		    free(VLDB);
 		    VLDB = tmp;
 		}

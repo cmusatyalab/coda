@@ -445,7 +445,7 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Cou
 	    goto FreeLocks;
 	}
     }
-    memmove((void *) &(Vnode_vv(vptr)), (const void *)VV, (int)sizeof(ViceVersionVector));
+    memcpy(&(Vnode_vv(vptr)), VV, sizeof(ViceVersionVector));
     
 FreeLocks:
     rvmlib_begin_transaction(restore);
@@ -950,9 +950,8 @@ int SetRights(Vnode *vptr, char *name, int rights)
 	    else {
 		/* remove this entry since rights are zero */
 		for (int j = i; j < (aCL->PlusEntriesInUse - 1); j++)
-		    memmove((void *) &(aCL->ActualEntries[j]),
-			    (const void *)&(aCL->ActualEntries[j+1]),
-			    (int) sizeof(AL_AccessEntry));
+		    memcpy(&(aCL->ActualEntries[j]), &(aCL->ActualEntries[j+1]),
+			   sizeof(AL_AccessEntry));
 		aCL->PlusEntriesInUse--;
 		aCL->TotalNoOfEntries--;
 		aCL->MySize -= (int) sizeof(AL_AccessEntry);
@@ -967,9 +966,8 @@ int SetRights(Vnode *vptr, char *name, int rights)
 	for (int i = aCL->TotalNoOfEntries - 1; 
 	     i > (aCL->TotalNoOfEntries - aCL->MinusEntriesInUse - 1); 
 	     i--)
-	    memmove((void *) &(aCL->ActualEntries[i+1]),
-		    (const void *)&(aCL->ActualEntries[i]),
-		    (int) sizeof(AL_AccessEntry));
+	    memcpy(&(aCL->ActualEntries[i+1]), &(aCL->ActualEntries[i]),
+		   sizeof(AL_AccessEntry));
 	aCL->TotalNoOfEntries++;
 	aCL->MySize += (int) sizeof(AL_AccessEntry);
     }
@@ -1015,9 +1013,8 @@ int SetNRights(Vnode *vptr, char *name, int rights)
 	    else {
 		/* remove this entry since rights are zero */
 		for (int j = i; j > t - m; j--)
-		    memmove((void *) &(aCL->ActualEntries[j]),
-			    (const void *)&(aCL->ActualEntries[j-1]), 
-			    (int) sizeof(AL_AccessEntry));
+		    memcpy(&(aCL->ActualEntries[j]), &(aCL->ActualEntries[j-1]),
+			   sizeof(AL_AccessEntry));
 		aCL->MinusEntriesInUse--;
 		aCL->TotalNoOfEntries--;
 		aCL->MySize -= (int) sizeof(AL_AccessEntry);
@@ -1029,9 +1026,8 @@ int SetNRights(Vnode *vptr, char *name, int rights)
     if ((m + p) == t){
 	/* all entries are taken - create one */
 	for (int i = t - 1; i > t - m - 1; i--)
-	    memmove((void *) &(aCL->ActualEntries[i+1]),
-		    (const void *)&(aCL->ActualEntries[i]), 
-		    (int) sizeof(AL_AccessEntry));
+	    memcpy(&(aCL->ActualEntries[i+1]), &(aCL->ActualEntries[i]),
+		   sizeof(AL_AccessEntry));
 	t = ++aCL->TotalNoOfEntries;
 	aCL->MySize += (int)sizeof(AL_AccessEntry);
     }

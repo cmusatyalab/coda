@@ -201,7 +201,7 @@ void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to)
     parent = to->parentId;
     group = to->groupId;
     copydate = to->copyDate;
-    memmove((char *)to, (char *)from, sizeof(*from));
+    memcpy(to, from, sizeof(*from));
     to->id = id;
     to->parentId = parent;
     to->groupId = group;
@@ -215,7 +215,7 @@ void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to)
 
 void ClearVolumeStats(VolumeDiskData *vol)
 {
-    memset((char *)vol->weekUse, 0, sizeof(vol->weekUse));
+    memset(vol->weekUse, 0, sizeof(vol->weekUse));
     vol->dayUse = 0;
     vol->dayUseDate = 0;
 }

@@ -84,7 +84,7 @@ void timing_path::grow_storage() {
     tpe *tmparr = 0;
     if (maxentries){
 	tmparr = (tpe *)malloc(sizeof(tpe) * 2 * maxentries);
-	memmove((void *)tmparr, (const void *)arr, sizeof(tpe) * maxentries);
+	memcpy(tmparr, arr, sizeof(tpe) * maxentries);
 	maxentries += maxentries;
     }
     else {
@@ -94,8 +94,8 @@ void timing_path::grow_storage() {
     CODA_ASSERT(tmparr);
     free(arr);
     arr = tmparr;
-	    
 }
+
 void timing_path::insert(int id) {
     if (nentries >= maxentries) 
 	grow_storage();

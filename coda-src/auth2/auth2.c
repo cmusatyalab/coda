@@ -515,7 +515,7 @@ long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est, ClearToken *cTok
     sToken.Noise2 = rpc2_NextRandom(NULL);
     sToken.EndTimestamp = cToken->EndTimestamp;
     sToken.Noise3 = rpc2_NextRandom(NULL);
-    memmove((void *)sToken.HandShakeKey, (const void *)cToken->HandShakeKey, RPC2_KEYSIZE);
+    memcpy(sToken.HandShakeKey, cToken->HandShakeKey, RPC2_KEYSIZE);
     sToken.Noise4 = rpc2_NextRandom(NULL);
     hton_SecretToken(&sToken);
     CheckTokenKey();
@@ -538,7 +538,7 @@ long S_AuthChangePasswd (RPC2_Handle cid, RPC2_Integer viceId,
 	    len = strlen(Passwd);
     else
 	    len = RPC2_KEYSIZE;
-    memmove((void *)newPasswd, (const void *)Passwd, len); 
+    memcpy(newPasswd, Passwd, len); 
 
     if (AuthDebugLevel)
 	{

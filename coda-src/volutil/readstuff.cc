@@ -99,7 +99,7 @@ static char *get(DumpBuffer_t *buf, int size, int *error)
 	    }
 
 	    /* Save unused portion of buffer. */
-	    memmove(buf->DumpBuf, buf->DumpBufPtr, (int)nbytes);	
+	    memcpy(buf->DumpBuf, buf->DumpBufPtr, nbytes);	
 
 	    buf->DumpBufPtr = buf->DumpBuf + nbytes;
 	}

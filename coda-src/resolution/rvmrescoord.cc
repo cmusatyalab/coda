@@ -338,13 +338,14 @@ static char *ConcatLogs(res_mgrpent *mgrp, char **bufs,
     /* copy into buf */
     char *tmp = logbuffer;
     if (logbuffer) {
-	for (int i = 0; i < VSG_MEMBERS; i++) 
+	for (int i = 0; i < VSG_MEMBERS; i++) {
 	    if (mgrp->rrcc.hosts[i] &&
 		(mgrp->rrcc.retcodes[i] == 0) &&
 		bufs[i]) {
-		memmove((void *)tmp, (const void *)bufs[i], sizes[i]);
+		memcpy(tmp, bufs[i], sizes[i]);
 		tmp += sizes[i];
 	    }
+	}
     }
     return(logbuffer);
 }

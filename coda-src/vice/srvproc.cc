@@ -3880,7 +3880,7 @@ void PerformSetACL(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
     AL_AccessList *aCL = 0;
     int aCLSize = 0;
     SetAccessList(vptr, aCL, aCLSize);
-    memmove((void *)aCL, (const void *)newACL, (int)(newACL->MySize));
+    memcpy(aCL, newACL, newACL->MySize);
 
     if (ReplicatedOp) {
 	NewCOP1Update(volptr, vptr, StoreId, vsptr);

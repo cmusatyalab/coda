@@ -891,7 +891,7 @@ int fsobj::LocalFakeify()
      */
     /* preserve the original global fid for "this" object */
     VenusFid GlobalRootFid;
-    memmove((void *)&GlobalRootFid, (const void *)&fid, (int)sizeof(VenusFid));
+    memcpy(&GlobalRootFid, &fid, sizeof(VenusFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	CHOKE("fsobj::LocalFakeify: replace local fake fid failed");
@@ -1022,7 +1022,7 @@ int fsobj::LocalFakeifyRoot()
      */
     int code = 0;
     VenusFid GlobalRootFid;
-    memmove((void *)&GlobalRootFid, (const void *)&fid, (int)sizeof(VenusFid));
+    memcpy(&GlobalRootFid, &fid, sizeof(VenusFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	CHOKE("fsobj::LocalFakeifyRoot: replace local fake fid failed");

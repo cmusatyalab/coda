@@ -1091,7 +1091,7 @@ static void VUInitServerList() {
 	    } else {
 		long netaddress;
 		CODA_ASSERT(hostent->h_length == 4);
-		memmove((char *)&netaddress, (char *)hostent->h_addr, 4);
+		memcpy(&netaddress, hostent->h_addr, 4);
 		HostAddress[sid] = Hosts[sid].address = ntohl(netaddress);
 		strncpy(Hosts[sid].name, hostent->h_name, 100);
 	    }

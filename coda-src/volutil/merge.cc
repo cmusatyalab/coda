@@ -255,7 +255,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
     if (nslots > Table->nslots) { /* "Grow" Vnode Array */
 	ventry **tmp = (ventry **)malloc(sizeof(ventry*) * nslots);
 	CODA_ASSERT(tmp != NULL);
-	memmove((void *)tmp, (const void *)Table->table, sizeof(ventry*) * Table->nslots);
+	memcpy(tmp, Table->table, sizeof(ventry*) * Table->nslots);
 	free(Table->table);
 	Table->nslots = nslots;
 	Table->table = tmp;

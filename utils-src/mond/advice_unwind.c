@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_unwind.c,v 3.9 2003/03/01 07:17:38 jaharkes Exp $";
+static char *rcsid = "$Header: /coda-src/coda/utils-src/mond/advice_unwind.c,v 3.10 2003/05/23 18:27:55 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -457,7 +457,7 @@ static void InitSignals() {
 }
 
 static void zombie(int sig, int code, struct sigcontext *scp) {
-    bcopy(scp, &OldContext, (int)sizeof(struct sigcontext));
+    memcpy(&OldContext, scp, (int)sizeof(struct sigcontext));
     LogMsg(0, 0, LogFile,  "****** INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
     LogMsg(0, 0, LogFile,  "****** Aborting outstanding transactions, stand by...");
     

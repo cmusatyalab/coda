@@ -345,8 +345,8 @@ int InsertListHdr (struct repair *rep, struct listhdr **ops, int index)
     repList = (struct repair *)malloc(sizeof(struct repair) * (size + 1));
     if (repList == 0) return -1;
     if (size > 0) 
-	memmove((void *) repList, (const void *)(*ops)[index].repairList, (size * sizeof(struct repair))); 
-    memmove((void *)&(repList[size]), (const void *)rep, sizeof(struct repair)); 
+	memcpy(repList, (*ops)[index].repairList, (size * sizeof(struct repair))); 
+    memcpy(&(repList[size]), rep, sizeof(struct repair)); 
     /*    free ((*ops)[index].repairList);  */
     ((*ops)[index]).repairList = repList; 
     ((*ops)[index]).repairCount ++; 

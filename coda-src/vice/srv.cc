@@ -264,7 +264,7 @@ extern void dumpvm();
 void zombie(int sig) {
 #else
 void zombie(int sig, int code, struct sigcontext *scp) {
-    memmove((void *)&OldContext, (const void *)scp, sizeof(struct sigcontext));
+    memcpy(&OldContext, scp, sizeof(struct sigcontext));
 #endif
 
 #ifndef  __BSD44__

@@ -273,7 +273,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     {
 	CODA_ASSERT(AccessList->SeqLen == VAclSize(dirvptr));
 	AL_ntohAlist((AL_AccessList *)(AccessList->SeqBody));
-	memmove(VVnodeACL(dirvptr), AccessList->SeqBody, VAclSize(dirvptr));
+	memcpy(VVnodeACL(dirvptr), AccessList->SeqBody, VAclSize(dirvptr));
 	dirvptr->disk.author = status->Author;
 	dirvptr->disk.owner = status->Owner;
 	dirvptr->disk.modeBits = status->Mode;
@@ -388,8 +388,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
     SetStatus(vptr, status, 0, 0);
 
     /* convert acl into network order */
-    memmove((void *)AccessList->SeqBody, (const void *)VVnodeACL(vptr), 
-	  VAclSize(vptr));
+    memcpy(AccessList->SeqBody, VVnodeACL(vptr), VAclSize(vptr));
     AccessList->SeqLen = VAclSize(vptr);
     AL_htonAlist((AL_AccessList *)(AccessList->SeqBody));
 

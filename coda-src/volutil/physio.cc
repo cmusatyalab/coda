@@ -95,7 +95,7 @@ int ReallyRead (void *formal_file, long block, char *data)
 	    }
 	}
 	if (nsdp) {
-	    memmove((void *)data, (const void *)nsdp->Data, PAGESIZE);
+	    memcpy(data, nsdp->Data, PAGESIZE);
 	    return PAGESIZE;
 	}
     }
@@ -105,7 +105,7 @@ int ReallyRead (void *formal_file, long block, char *data)
 /*	printf("ReallyRead: page number	%d, vnode %d \n", block,
 	       file->vnode);
 */	
-	memmove((void *)data, (const void *)((dinode->Pages)[block]), PAGESIZE);
+	memcpy(data, (dinode->Pages)[block], PAGESIZE);
 	return PAGESIZE;
     }
     else {
