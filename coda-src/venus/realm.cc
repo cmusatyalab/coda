@@ -82,7 +82,6 @@ Realm::~Realm(void)
     Realm *localrealm = REALMDB->GetRealm(LOCALREALM);
 
     /* kill the fake object that represents our mountlink */
-
     Fid.Realm = localrealm->Id();
     Fid.Volume = FakeRootVolumeId;
     Fid.Vnode = 0xfffffffc;

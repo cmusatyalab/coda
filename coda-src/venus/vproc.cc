@@ -476,6 +476,7 @@ void vproc::GetStamp(char *buf) {
 	case VPT_VmonDaemon:	t = 'N'; break;
 	case VPT_AdviceDaemon:  t = 'A'; break;
 	case VPT_LRDaemon:  	t = 'L'; break;
+	case VPT_Daemon:	t = 'd'; break;
 	default:
 		t = '?'; 
 		eprint("???vproc::GetStamp: bogus type (%d)!", type);

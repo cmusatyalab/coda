@@ -583,9 +583,9 @@ class fsobj {
     void UnLock(LockLevel);
 
     /* Interface to the dir package. */
-    void dir_Create(char *, VenusFid *);
+    void dir_Create(const char *, VenusFid *);
     int dir_Length();
-    void dir_Delete(char *);
+    void dir_Delete(const char *);
     void dir_MakeDir();
     int dir_LookupByFid(char *, VenusFid *);
     void dir_Rebuild();

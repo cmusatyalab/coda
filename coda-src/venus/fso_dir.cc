@@ -79,7 +79,7 @@ void fsobj::dir_Rebuild()
 
 
 /* TRANS */
-void fsobj::dir_Create(char *Name, VenusFid *Fid) 
+void fsobj::dir_Create(const char *Name, VenusFid *Fid) 
 {
 	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
@@ -88,10 +88,14 @@ void fsobj::dir_Create(char *Name, VenusFid *Fid)
 
 	int oldlength = dir_Length();
 
-	if (DH_Create(&data.dir->dh, Name, MakeViceFid(Fid)) != 0) { 
+	/* XXX we need to strdup, because the dirops don't accept const char */
+	char *entry = strdup(Name);
+	CODA_ASSERT(entry);
+	if (DH_Create(&data.dir->dh, entry, MakeViceFid(Fid)) != 0) { 
 		print(logFile); CHOKE("fsobj::dir_Create: (%s, %s) Create failed!", 
 				      Name, FID_(Fid)); 
 	}
+	free(entry);
 
 	data.dir->udcfvalid = 0;
 
@@ -113,7 +117,7 @@ int fsobj::dir_Length()
 
 
 /* TRANS */
-void fsobj::dir_Delete(char *Name) 
+void fsobj::dir_Delete(const char *Name) 
 {
 	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
@@ -122,10 +126,13 @@ void fsobj::dir_Delete(char *Name)
 
 	int oldlength = dir_Length();
 
-	if (DH_Delete(&data.dir->dh, Name) != 0) { 
+	char *entry = strdup(Name);
+	CODA_ASSERT(entry);
+	if (DH_Delete(&data.dir->dh, entry)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Delete: (%s) Delete failed!", Name); 
 	}
+	free(entry);
 
 	data.dir->udcfvalid = 0;
 

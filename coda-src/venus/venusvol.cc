@@ -573,6 +573,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
     char *realm_name = NULL;
     Realm *realm;
     char *volname = strdup(name);
+    char *volinfoname = NULL;
     CODA_ASSERT(volname);
 
     SplitRealmFromName(volname, &realm_name);
@@ -585,25 +586,21 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 	realm->GetRef();
     }
 
-    if (volname[0] == '\0') {
+    /* Ivan Popov's suggestion, we just need to allow for long volume
+     * names and have a realm relative GetPath implementation */
+    if (volname[0] == '\0' && realm == prealm) {
 	free(volname);
-
-	/* never mount a realm's rootvolume within the realm itself! */
-	if (realm == prealm) {
-	    volname = (char *)malloc(MAXPATHLEN);
-	    if (!f)
-		goto error_exit;
-
-	    /* Ivan Popov's suggestion, we just need to allow for long volume
-	     * names and have a realm relative GetPath implementation */
-	    f->GetPath(volname, PATH_REALM);
-	} else {
-	    code = GetRootVolume(realm, &volname);
-	    if (code)
-		goto error_exit;
-	}
+	volname = (char *)malloc(MAXPATHLEN);
+	if (!f) goto error_exit;
+	f->GetPath(volname, PATH_REALM);
     }
 
+    /* hopefully temporary hack, we need to modify the server to return the
+     * actual rootvolume information when they are queried for an empty name */ 
+    if (volname[0] == '\0')
+	code = GetRootVolume(realm, &volinfoname);
+    if (code || !volinfoname)
+	volinfoname = strdup(volname);
 
     LOG(100, ("vdb::Get: volname = %s@%s\n", volname, realm->Name()));
 
@@ -620,7 +617,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 	/* Make the RPC call. */
 	MarinerLog("store::GetVolumeInfo %s@%s\n", volname, realm->Name());
 	UNI_START_MESSAGE(ViceGetVolumeInfo_OP);
-	code = (int) ViceGetVolumeInfo(c->connid, (RPC2_String)volname, &volinfo);
+	code = (int) ViceGetVolumeInfo(c->connid, (RPC2_String)volinfoname, &volinfo);
 	UNI_END_MESSAGE(ViceGetVolumeInfo_OP);
 	MarinerLog("store::getvolumeinfo done\n");
 
@@ -631,7 +628,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 
 	if (code == 0) break; /* used to || with ENXIO (VNOVOL) */
 
-	if (code != 0 && code != ETIMEDOUT)
+	if (code && code != ETIMEDOUT)
 	    goto error_exit;
     }
 
@@ -686,6 +683,8 @@ Exit:
 
 error_exit:
     realm->PutRef();
+    if (volinfoname)
+	free(volinfoname);
     if (volname)
 	free(volname);
     return code;
@@ -2420,6 +2419,7 @@ VenusFid repvol::GenerateFakeFid()
 {
     VenusFid fid;
     FID_MakeSubtreeRoot(MakeViceFid(&fid), vid, FidUnique);
+    fid.Realm = realm->Id();
 
     RVMLIB_REC_OBJECT(FidUnique);
     FidUnique++;
