@@ -1,6 +1,8 @@
 Makefile
 Makefile.in
-rvm_basher
+log_file
 lwp_basher
+rvm_basher
+testrvm
 .deps
 .libs
