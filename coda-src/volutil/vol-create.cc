@@ -223,7 +223,7 @@ static int ViceCreateRoot(Volume *vp)
     char buf3[sizeof(Vnode)];
     Vnode *vn = (Vnode *)buf3;
     vindex v_index(V_id(vp), vLarge, V_device(vp), SIZEOF_LARGEDISKVNODE);
-    int adminid, anyuserid;
+    int adminid, anyuserid, adminindex;
 
     if (AL_NameToId(PRS_ADMINGROUP, &adminid) == -1) {
 	fprintf(stderr, "Cannot find group id for '" PRS_ADMINGROUP
