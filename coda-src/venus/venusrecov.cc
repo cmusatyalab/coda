@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.9 1998/05/15 01:23:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.10 1998/08/26 21:24:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -123,6 +123,9 @@ static const char *VM_RDSADDR = (char *)0x21000000;
 #elif	defined(DJGPP)
 static const char *VM_RVGADDR = (char *)0x02000000;
 static const char *VM_RDSADDR = (char *)0x03000000;
+#endif
+#ifdef __CYGWIN32__
+#include <windows.h>
 #endif
 
 
@@ -827,19 +830,25 @@ void RecovPrint(int fd) {
 
 /*  *****  VM Allocation/Deallocation  *****  */
 
-static void Recov_AllocateVM(char **addr, unsigned long length) {
-#if	MACH
-    kern_return_t ret = vm_allocate(task_self(), (vm_address_t *)addr,
-				    (unsigned int)length, (*addr == 0));
-    if (ret != KERN_SUCCESS)
-	Choke("Recov_AllocateVM: allocate(%x, %x) failed (%d)", *addr, length, ret);
-    LOG(0, ("Recov_AllocateVM: allocated %x bytes at %x\n", length, *addr));
-
-#else
+static void Recov_AllocateVM(char **addr, unsigned long length) 
+{
     char *requested_addr = *addr;
-    *addr = (char *)mmap(*addr, length, (PROT_READ | PROT_WRITE),
-		 (MAP_PRIVATE | MAP_ANON), -1, 0);
-
+#ifdef __CYGWIN32__
+    {
+      HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+                                      PAGE_READWRITE, 0, length, NULL);
+      if (hMap == NULL)
+          return(RVM_EINTERNAL);
+      *addr = MapViewOfFileEx(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0, *addr);
+      if (*addr == NULL)
+          *addr = (char *)-1;
+      CloseHandle(hMap);
+    }
+#else
+      *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
+  		 (MAP_PRIVATE | MAP_ANON), -1, 0);
+#endif
+ 
     if (*addr == (char *)-1) {
 	if (errno == ENOMEM)
 	    Choke("Recov_AllocateVM: mmap(%x, %x, ...) out of memory", *addr, length);
@@ -857,11 +866,11 @@ static void Recov_AllocateVM(char **addr, unsigned long length) {
 
 
 static void Recov_DeallocateVM(char *addr, unsigned long length) {
-#if	MACH
-    kern_return_t ret = vm_deallocate(task_self(), (vm_address_t)addr, (unsigned int)length);
-    if (ret != KERN_SUCCESS)
-	Choke("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
-    LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
+#if	__CYGWIN32__
+    int ret = UnmapViewOfFile(addr);
+    if (ret != 1)
+  	Choke("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
+      LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
 #else
     if (munmap(addr, length)) {
 	Choke("Recov_DeallocateVM: munmap(%x, %x) failed with errno == %d", addr, length, errno);

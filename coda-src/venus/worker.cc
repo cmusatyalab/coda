@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.17 1998/06/16 10:46:19 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.18 1998/08/26 21:24:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -98,7 +98,7 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-
+extern int venus_relay_addr;
 /* Temporary!  Move to cnode.h. -JJK */
 #define	C_INCON	0x2
 
@@ -173,7 +173,7 @@ int MsgWrite(char *buf, int size)
 
          addr.sin_family = AF_INET;
          addr.sin_port = htons(8001);
-         addr.sin_addr.s_addr = htonl(0x7f000001);
+         addr.sin_addr.s_addr = htonl(venus_relay_addr);
          return ::sendto(worker::muxfd, buf, size, 0, 
 			 (struct sockaddr *) &addr, sizeof(addr));
 #else 
