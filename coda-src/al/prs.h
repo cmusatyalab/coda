@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 5
+                              Release 6
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -38,7 +38,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define _PRS_
 
 
-#define PRS_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/al/prs.h,v 1.2 1999/02/11 21:37:33 smarc Exp $"
+#define PRS_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/al/prs.h,v 1.3 2001/01/18 14:31:05 jaharkes Exp $"
 
 #define PRS_MAXNAMELEN 100    /* Maximum length of group and user names */
 

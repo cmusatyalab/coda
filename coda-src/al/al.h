@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 5
+                              Release 6
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -39,7 +39,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef _AL_
 #define _AL_
 
-#define AL_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/al/al.h,v 1.2 1999/02/11 21:37:32 smarc Exp $"
+#define AL_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/al/al.h,v 1.3 1999/05/11 20:07:59 jaharkes Exp $"
 
 typedef struct {
         int Id;         /*internally-used ID of user or group*/

@@ -6,9 +6,9 @@
 /* BLURB lgpl
 
                            Coda File System
-                              Release 5
+                              Release 6
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This code is distributed "AS IS" without warranty of any kind under
@@ -23,9 +23,9 @@ CREDITS.
 /*
 
             Coda: an Experimental Distributed File System
-                             Release 4.0
+                             Release 6
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its

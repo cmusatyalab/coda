@@ -1,9 +1,9 @@
 /* BLURB gpl
 
                            Coda File System
-                              Release 5
+                              Release 6
 
-          Copyright (c) 1987-1999 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.27 $
+#define RCSVERSION $Revision: 4.28 $
 
 /* vol-dump.c */
 

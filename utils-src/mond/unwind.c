@@ -3,9 +3,9 @@
 /*
 
             Coda: an Experimental Distributed File System
-                             Release 3.1
+                             Release 6
 
-          Copyright (c) 1987-1995 Carnegie Mellon University
+          Copyright (c) 1987-2003 Carnegie Mellon University
                          All Rights Reserved
 
 Permission  to  use, copy, modify and distribute this software and its
@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/unwind.c,v 3.8 1999/09/14 19:02:59 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/unwind.c,v 3.9 2003/03/01 07:17:39 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
