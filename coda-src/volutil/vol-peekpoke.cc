@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*****************************************
  * vol-peekpoke.c                           *
  * Get or set the maximum used volume id *
@@ -51,6 +47,11 @@ extern "C" {
 #include <rpc2/rpc2.h>
 #include <volutil.h>
 
+#if defined(__APPLE__) && defined(__MACH__)
+#include <mach/mach.h>
+#include <nlist.h>
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -75,6 +76,31 @@ void setmyname(char *s)
 }
 
 #ifdef __MACH__
+#ifdef __APPLE__
+static long checkaddress(vm_address_t addr, vm_size_t size, vm_prot_t perm)
+{
+    kern_return_t  rc;
+    struct vm_region_basic_info info;
+    mach_msg_type_number_t infoCnt;
+    vm_address_t current, end;
+    mach_port_t object_name;
+    infoCnt = VM_REGION_BASIC_INFO_COUNT;
+
+    current = addr;
+    end = addr + size;
+    while (current < end) {
+        rc = vm_region(mach_task_self(), &current, &size, VM_REGION_BASIC_INFO, (vm_region_info_t)&info, &infoCnt, &object_name);
+        if (rc != KERN_SUCCESS)
+            return RPC2_FAIL;
+
+        if ((info.protection & perm) != perm)
+            return RPC2_FAIL;
+
+        current += size;
+    }
+    return RPC2_SUCCESS;
+}
+#endif /* __APPLE__ */
 
 static
 long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
@@ -113,7 +139,7 @@ long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
 	LogMsg(0, VolDebugLevel, stdout, "okaddr using address 0x%lx\n", (long) *pm);
 	return(checkaddress(*pm, sz, perm));
 }
-#else /* MACH */
+#else /* !__MACH__ */
 
 /* Not ported yet to Linux or BSD44; die horribly.... */
 

@@ -107,6 +107,8 @@ static const char *VM_RVMADDR = (char *)0x20000000;
 static const char *VM_RVMADDR = (char *)0x03000000;
 #elif defined(sun)
 static const char *VM_RVMADDR = (char *)0x40000000;
+#elif defined(__APPLE__) && defined(__MACH__)
+static const char *VM_RVMADDR = (char *)0x50000000;
 #else
 #error "Please define RVM address for this platform."
 #endif

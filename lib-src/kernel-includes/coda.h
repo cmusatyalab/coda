@@ -127,6 +127,11 @@ typedef unsigned long long u_quad_t;
 #undef __BIT_TYPES_DEFINED__
 #endif
 
+/* Mac OS X / Darwin */
+#if defined(__APPLE__) && defined(__MACH__)
+#define __BIT_TYPES_DEFINED__
+#endif
+
 #ifndef __BIT_TYPES_DEFINED__
 #define __BIT_TYPES_DEFINED__
 typedef signed char	      int8_t;

@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*
  *
  * Implementation of the Server Monitor.
@@ -377,6 +373,10 @@ static long CheckSmonResult(long code)
 static int GetRawStatistics(SmonStatistics *stats)
 {
 #ifdef __MACH__
+#ifdef __APPLE__
+#warning Need to port this to Mach 3.0 on Mac OS X
+    return -1;
+#else
     static	int	kmem = 0;
     static      int     hertz = 0;
     int		i;
@@ -433,6 +433,7 @@ static int GetRawStatistics(SmonStatistics *stats)
     for (i = 0; i < DK_NDRIVE; i++) {
 	stats->TotalIO += xfer[i];
     }
+#endif /* !__APPLE__ */
 #else
     return 0;
 #endif

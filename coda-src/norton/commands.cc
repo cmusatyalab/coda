@@ -30,6 +30,11 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include "coda_string.h"
+
+#if defined(__APPLE__) && defined(__MACH__)
+#include <mach/mach.h>
+#endif
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -126,7 +131,33 @@ void notyet(int argc, char *argv[]) {
 }
 
 
-#ifdef	__MACH__
+#ifdef __MACH__
+#ifdef __APPLE__
+static long address_ok(vm_address_t addr, vm_size_t size, vm_prot_t perm)
+{
+    kern_return_t  rc;
+    struct vm_region_basic_info info;
+    mach_msg_type_number_t infoCnt;
+    vm_address_t current, end;
+    mach_port_t object_name;
+
+    infoCnt = VM_REGION_BASIC_INFO_COUNT;
+
+    current = addr;
+    end = addr + size;
+    while (current < end) {
+        rc = vm_region(mach_task_self(), &current, &size, VM_REGION_BASIC_INFO, (vm_region_info_t)&info, &infoCnt, &object_name);
+        if (rc != KERN_SUCCESS)
+            return 0;
+
+        if ((info.protection & perm) != perm)
+            return 0;
+
+        current += size;
+    }
+    return 1;
+}
+#else
 static
 long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 {
@@ -152,7 +183,8 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
     }
     return(1);
 }
-#endif
+#endif /* !__APPLE__ */
+#endif /* __MACH__ */
 
 #if    defined	(__linux__) || defined(__CYGWIN32__) || defined(sun)
 #include <sys/mman.h>
@@ -167,7 +199,7 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 }
 #endif
 
-#ifdef BSD4_4
+#if defined(BSD4_4) && !defined(__APPLE__)
 #include <sys/mman.h>
 #define vm_address_t caddr_t
 #define vm_size_t    size_t
