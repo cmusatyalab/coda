@@ -40,21 +40,24 @@ extern "C" {
 #include "parse_realms.h"
 #include "rec_dllist.h"
 
+
+#define DEFAULT_ROOTVOLNAME "/"
+
 /* MUST be called from within a transaction */
 Realm::Realm(const char *realm_name)
 {
-    int len = strlen(realm_name) + 1;
-
     RVMLIB_REC_OBJECT(name);
-    name = (char *)rvmlib_rec_malloc(len); 
+    name = rvmlib_strdup(realm_name);
     CODA_ASSERT(name);
-    rvmlib_set_range(name, len);
-    strcpy(name, realm_name);
+
+    RVMLIB_REC_OBJECT(rootvolname);
+    rootvolname = rvmlib_strdup(DEFAULT_ROOTVOLNAME);
+    CODA_ASSERT(rootvolname);
 
     rec_list_head_init(&realms);
 
-    RVMLIB_REC_OBJECT(rec_refcount);
     /* we need a reference to prevent suicide in ResetTransient */
+    RVMLIB_REC_OBJECT(rec_refcount);
     rec_refcount = 1;
 
     ResetTransient();
@@ -80,6 +83,7 @@ Realm::~Realm(void)
 	rootservers = NULL;
     }
     rvmlib_rec_free(name); 
+    rvmlib_rec_free(rootvolname); 
 
     delete system_anyuser;
 
@@ -217,6 +221,16 @@ retry:
 	goto retry;
     }
     return ETIMEDOUT;
+}
+
+
+/* MUST be called from within a transaction */
+void Realm::SetRootVolName(char *name)
+{
+    RVMLIB_REC_OBJECT(rootvolname);
+    rvmlib_rec_free(rootvolname);
+    rootvolname = rvmlib_strdup(name);
+    CODA_ASSERT(rootvolname);
 }
 
 void Realm::print(FILE *f)

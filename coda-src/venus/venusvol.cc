@@ -275,9 +275,7 @@ static int GetRootVolume(Realm *realm, char **buf)
     connent *c = NULL;
     int code;
     RPC2_BoundedBS RVN;
-
-    *buf = (char *)malloc(V_MAXVOLNAMELEN);
-    if (!*buf) return ENOMEM;
+    char *rvn = NULL;
 
     /* Get the connection. */
     if (realm->GetAdmConn(&c) != 0) {
@@ -288,10 +286,16 @@ static int GetRootVolume(Realm *realm, char **buf)
 	goto err_exit;
     }
 
-    memset(*buf, 0, V_MAXVOLNAMELEN);
+    rvn = (char *)malloc(V_MAXVOLNAMELEN);
+    if (!rvn) {
+	code = ENOMEM;
+	goto err_exit;
+    }
+
+    memset(rvn, 0, V_MAXVOLNAMELEN);
     RVN.MaxSeqLen = V_MAXVOLNAMELEN-1;
     RVN.SeqLen = 0;
-    RVN.SeqBody = (RPC2_ByteSeq)*buf;
+    RVN.SeqBody = (RPC2_ByteSeq)rvn;
 
     /* Make the RPC call. */
     MarinerLog("store::GetRootVolume @%s\n", realm->Name());
@@ -304,14 +308,18 @@ static int GetRootVolume(Realm *realm, char **buf)
 
     PutConn(&c);
 
-    LOG(10, ("GetRootVolume: (%s) received name: %s, code: %d\n",
-	     realm->Name(), *buf, code));
+    if (!code) {
+	realm->SetRootVolName(rvn);
+	LOG(10, ("GetRootVolume: (%s) received name: %s, code: %d\n",
+		 realm->Name(), rvn, code));
+    }
+    code = 0; 
 
 err_exit:
-    if (code) {
-	free(*buf);
-	*buf = NULL;
-    }
+    if (rvn)
+	free(rvn);
+
+    *buf = strdup(realm->GetRootVolName());
     return code;
 }
 
@@ -598,7 +606,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 
     /* "special" case? not everybody wants to use the pathname based volume
      * name mapping and uses a rootvolume named "/" */
-    if (volname[0] == '\0' || (volname[0] == '/' && volname[1] == '\0')) {
+    if (volname[0] == '\0') {
 	char *volinfoname = NULL;
 	code = GetRootVolume(realm, &volinfoname);
 	if (!code) {

@@ -83,11 +83,7 @@ const unsigned long DFLT_MAXTS = 256 * 1024;	/* Maximum Truncate Size */
 const unsigned long UNSET_MAXTS = (unsigned long)-1;
 
 const int RecovMagicNumber = 0x8675309;
-const int RecovVersionNumber = 35;	/* Update this when format changes.
-                                           Last changed by Satya (1/03) for 
-					   addition of VenusSHA field to fso */
-
-
+const int RecovVersionNumber = 36;	/* Update this when format changes. */
 
 /*  *****  Types  *****  */
 /* local-repair modification */
