@@ -95,7 +95,7 @@ rvm_return_t rvm_initialize(char *rvm_version, rvm_options_t *rvm_options)
         init_map_roots();               /* mapping list and tree */
         init_log_list();                /* log device list */
 
-        if (rvm_options->create_log_file)
+        if (rvm_options && rvm_options->create_log_file)
         {
             /* we need to pretend were already initialized, and for all
              * purposes of rvm_create_log, we are. */
