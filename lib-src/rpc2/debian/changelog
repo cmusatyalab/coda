@@ -1,10 +1,4 @@
-rpc2 (1.10) unstable; urgency=low
-
-  * Fixed NULL pointer dereference when tracing. 
-
- -- Jan Harkes <jaharkes@cs.cmu.edu>  Mon, 22 Jan 2001 16:50:06 -0500
-
-rpc2 (1.9) unstable; urgency=low
+rpc2 (1.11) unstable; urgency=low
 
   * Merged debian packaging in rpc2 distribution. 
 
