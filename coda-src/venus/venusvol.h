@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.h,v 4.4 1997/12/16 16:08:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.h,v 4.5 98/07/08 22:42:10 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -79,7 +79,6 @@ extern "C" {
 
 /* from venus */
 #include "comm.h"
-#include "simulate.h"
 #include "venusrecov.h"
 #include "venus.private.h"
 
@@ -281,7 +280,6 @@ class cmlent {
   friend class cml_iterator;
   friend class volent;
   friend class fsobj;
-  friend class simulator;
   friend int PathAltered(ViceFid *, char *, ClientModifyLog *, cmlent *);
 
     ClientModifyLog *log;
@@ -723,7 +721,6 @@ class volent {
   friend class userent;
   friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
   friend class vproc;
-  friend class simulator;
   friend void InitVCBData(VolumeId);
   friend void ReportVCBEvent(VCBEventType, VolumeId, vcbevent *);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.20 1998/09/15 20:14:03 smarc Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.21 98/09/23 16:56:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -103,7 +103,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "comm.h"
 #include "fso.h"
 #include "mariner.h"
-#include "simulate.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venusrecov.h"
@@ -254,46 +253,44 @@ void CommInit() {
     if (hcount == 0)
 	Choke("CommInit: no bootstrap server");
 
-    if (!Simulating) {
-	RPC2_Perror = 0;
+    RPC2_Perror = 0;
 
-	/* Portal initialization. */
-	/* Multicast requires that (sftp_portal = rpc2_portal + 1). */
-	struct servent *s = getservbyname("venus", 0);
-	if (s == 0) 
-		Choke("CommInit: getservbyname failed; check /etc/services");
-	RPC2_PortalIdent portal1;
-	portal1.Tag = RPC2_PORTALBYINETNUMBER;
-	portal1.Value.InetPortNumber = s->s_port;
+    /* Portal initialization. */
+    /* Multicast requires that (sftp_portal = rpc2_portal + 1). */
+    struct servent *s = getservbyname("venus", 0);
+    if (s == 0) 
+	Choke("CommInit: getservbyname failed; check /etc/services");
+    RPC2_PortalIdent portal1;
+    portal1.Tag = RPC2_PORTALBYINETNUMBER;
+    portal1.Value.InetPortNumber = s->s_port;
 
-	/* SFTP initialization. */
-	s = getservbyname("venus-se", 0);
-	if (s == 0) 
-	  Choke("CommInit: getservbyname failed; check /etc/services");
-	SFTP_Initializer sei;
-	SFTP_SetDefaults(&sei);
-	sei.WindowSize = sftp_windowsize;
-	sei.SendAhead = sftp_sendahead;
-	sei.AckPoint = sftp_ackpoint;
-	sei.PacketSize = sftp_packetsize;
-	sei.EnforceQuota = 1;
-	sei.Portal.Tag = RPC2_PORTALBYINETNUMBER;
-	sei.Portal.Value.InetPortNumber = s->s_port;
+    /* SFTP initialization. */
+    s = getservbyname("venus-se", 0);
+    if (s == 0) 
+	Choke("CommInit: getservbyname failed; check /etc/services");
+    SFTP_Initializer sei;
+    SFTP_SetDefaults(&sei);
+    sei.WindowSize = sftp_windowsize;
+    sei.SendAhead = sftp_sendahead;
+    sei.AckPoint = sftp_ackpoint;
+    sei.PacketSize = sftp_packetsize;
+    sei.EnforceQuota = 1;
+    sei.Portal.Tag = RPC2_PORTALBYINETNUMBER;
+    sei.Portal.Value.InetPortNumber = s->s_port;
 
-	SFTP_Activate(&sei);
+    SFTP_Activate(&sei);
 
-	/* RPC2 initialization. */
-	struct timeval tv;
-	tv.tv_sec = rpc2_timeout;
-	tv.tv_usec = 0;
-	if (RPC2_Init(RPC2_VERSION, 0, &portal1, rpc2_retries, &tv) != RPC2_SUCCESS)
-	    Choke("CommInit: RPC2_Init failed");
+    /* RPC2 initialization. */
+    struct timeval tv;
+    tv.tv_sec = rpc2_timeout;
+    tv.tv_usec = 0;
+    if (RPC2_Init(RPC2_VERSION, 0, &portal1, rpc2_retries, &tv) != RPC2_SUCCESS)
+	Choke("CommInit: RPC2_Init failed");
 
-	/* Failure package initialization. */
-	bzero((void *)FailFilterInfo, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
-	Fail_Initialize("venus", 0);
-	Fcon_Init();
-    }
+    /* Failure package initialization. */
+    bzero((void *)FailFilterInfo, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
+    Fail_Initialize("venus", 0);
+    Fcon_Init();
 
     /* Fire up the probe daemon. */
     PROD_Init();
@@ -2413,10 +2410,8 @@ void VSGInit() {
 		VSGDB->htab.count(), VSGDB->freelist.count(), CacheFiles);
     }
 
-    if (!Simulating) {
-	RecovFlush(1);
-	RecovTruncate(1);
-    }
+    RecovFlush(1);
+    RecovTruncate(1);
 
     /* Fire up the daemon. */
     VSGD_Init();

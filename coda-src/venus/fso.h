@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.9 1998/08/26 21:24:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.10 98/09/23 16:56:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -97,7 +97,6 @@ extern "C" {
 #include "hdb.h"
 #include "mariner.h"
 #include "venusrecov.h"
-#include "simulate.h"
 #include "vproc.h"
 #include "venus.private.h"
 
@@ -156,9 +155,6 @@ class fsdb {
   friend class hdb;
   friend class vproc;
   friend void RecovInit();
-  friend void SimReport();
-  friend void Simulate();
-  friend class simulator;
   friend class volent;
   friend void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vuid, enum CacheType datatype, enum CacheEvent event, unsigned long blocks);
 
@@ -374,8 +370,6 @@ struct FsoFlags {
     /*T*/unsigned era : 1;			/* early returns allowed? */
     unsigned dirty : 1;				/* is this object dirty? */
     /*T*/unsigned ckmtpt : 1;			/* mount point needs checked? */
-    /*T*/unsigned created : 1;			/* simulating: was object created by this Venus? */
-    /*T*/unsigned marked : 1;			/* simulating: was this object marked during tree walk? */
     unsigned local: 1;				/* local fake fid */
     unsigned discread : 1;			/* read during the last disconnection */
     /*T*/unsigned random : 16;			/* help balance binary-search trees */
@@ -427,10 +421,6 @@ class fsobj {
   friend class mgrpent;
   friend class hdb;
   friend class lrdb;
-  friend void SimExit();
-  friend void SimReport();
-  friend void Simulate();
-  friend class simulator;  
   friend void RecoverPathName(char *, ViceFid *, ClientModifyLog *, cmlent *);
   friend void VmonUpdateSession(vproc *, ViceFid *, fsobj *, volent *, vuid_t, enum CacheType, enum CacheEvent, unsigned long);
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.11 1998/08/26 21:24:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.12 98/09/23 16:56:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -96,7 +96,6 @@ extern "C" {
 #include "fso.h"
 #include "hdb.h"
 #include "mariner.h"
-#include "simulate.h"
 #include "tallyent.h"
 #include "user.h"
 #include "venus.private.h"
@@ -185,10 +184,8 @@ void HDB_Init() {
 	}
     }
 
-    if (!Simulating) {
-	RecovFlush(1);
-	RecovTruncate(1);
-    }
+    RecovFlush(1);
+    RecovTruncate(1);
 
     /* Fire up the daemon. */
     HDBD_Init();

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.5 1998/04/14 21:03:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.6 98/05/15 01:23:31 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,7 +61,6 @@ extern "C" {
 /* from venus */
 #include "tallyent.h"
 #include "user.h"
-#include "simulate.h"
 #include "advice.h"
 #include "adviceconn.h"
 #include "advice_daemon.h"
@@ -90,7 +89,6 @@ int PATIENCE_GAMMA = UNSET_PATIENCE_GAMMA;
 void AdviceInit() {
   RPC2_SubsysIdent sid;
 
-  if (Simulating) return;
   if (!AdviceEnabled) return;
 
   LOG(100, ("E AdviceInit()\n"));

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.19 1998/09/14 22:33:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.20 98/09/23 16:56:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,7 +90,6 @@ extern "C" {
 /* from venus */
 #include "comm.h"
 #include "mariner.h"
-#include "simulate.h"
 #include "venus.private.h"
 #include "vproc.h"
 #include "worker.h"
@@ -213,9 +212,6 @@ void testKernDevice()
 #if defined(DJGPP) || defined(__CYGWIN32__)
 	return;
 #endif
-	if (Simulating) 
-		return;
-
 	/* If the open of the kernel device succeeds we know that there is
 	   no other living venus. */
 	int fd = ::open(kernDevice, O_RDWR, 0);
@@ -247,8 +243,6 @@ void testKernDevice()
 }
 
 void VFSMount() {
-    if (Simulating) return;
-
     /* Linux Coda filesystems are mounted by hand through forking since they need venus. XXX eliminate zombie */ 
 #ifdef __BSD44__
     /* Silently unmount the root node in case an earlier venus exited without successfully unmounting. */
@@ -356,7 +350,7 @@ void VFSMount() {
 
 void VFSUnmount() 
 {
-	if (Simulating || !Mounted) 
+	if (!Mounted) 
 		return;
 
     /* Purge the kernel cache so that all cnodes are (hopefully)
@@ -383,8 +377,6 @@ void VFSUnmount()
 
 
 int k_Purge() {
-    if (Simulating)
-	return(1);
     if (KernelMask == 0) return(1);
 
     LOG(1, ("k_Purge: Flush\n"));
@@ -407,8 +399,6 @@ int k_Purge() {
 
 
 int k_Purge(ViceFid *fid, int severely) {
-    if (Simulating)
-	return(1);
     if (KernelMask == 0) return(1);
 
     LOG(100, ("k_Purge: fid = (%x.%x.%x), severely = %d\n",
@@ -456,8 +446,6 @@ int k_Purge(ViceFid *fid, int severely) {
 
 
 int k_Purge(vuid_t vuid) {
-    if (Simulating)
-	return(1);
     if (KernelMask == 0) return(1);
 
     LOG(1, ("k_Purge: vuid = %d\n", vuid));
@@ -482,8 +470,6 @@ int k_Purge(vuid_t vuid) {
 }
 
 int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
-    if (Simulating)
-	return(1);
     if (KernelMask == 0) return(1);
 
     if (!fid_1 || !fid_2)
@@ -514,8 +500,6 @@ int k_Replace(ViceFid *fid_1, ViceFid *fid_2) {
 /* -------------------------------------------------- */
 
 void WorkerInit() {
-    if (Simulating) return;
-
     if (MaxWorkers == UNSET_MAXWORKERS)
 	MaxWorkers = DFLT_MAXWORKERS;
 

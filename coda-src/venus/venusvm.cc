@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.11 98/08/26 21:24:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.12 98/09/15 14:28:05 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,7 +81,6 @@ extern int nlist(const char*, struct nlist[]);
 #include "adviceconn.h"
 #include "local.h"
 #include "mariner.h"
-#include "simulate.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venusrecov.h"
@@ -307,11 +306,6 @@ void VmonInit() {
 
     if (!VmonEnabled)
 	return;
-
-    if (Simulating) {
-	VmonEnabled = 0;
-	return;
-    }
 
     struct hostent *h = gethostbyname(VmonHost);
     if (h) VmonAddr = ntohl(*((unsigned long *)h->h_addr));
@@ -955,7 +949,6 @@ void CheckVCB() {
 
 
 static int ValidateVmonHandle() {
-    if (Simulating) return(0);
     if (VmonHandle != 0) return(1);
 
     long curr_time = Vtime();

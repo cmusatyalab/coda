@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.14 1998/09/14 19:14:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.15 98/09/23 16:56:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -100,10 +100,9 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 
     /*  write lock the object if we might diddle it below.  Disabling
      * replacement and bumping reference counts are performed
-     * elsewhere under read lock.  The simulator makes its own
-     * assumptions, leave alone in that case.  */
-    if (!Simulating && (writep || truncp || 
-        (IsDir() && (!data.dir->udcf || !data.dir->udcfvalid))))
+     * elsewhere under read lock. */
+    if (writep || truncp || 
+        (IsDir() && (!data.dir->udcf || !data.dir->udcfvalid)))
         PromoteLock();
 
     /* Update usage counts here. */
@@ -141,7 +140,7 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
       } 
 
     /* If object is directory make sure Unix-format contents are valid. */
-    if (!Simulating && IsDir()) {
+    if (IsDir()) {
 	if (data.dir->udcf == 0) {
 	    data.dir->udcf = &cf;
 	    FSO_ASSERT(this, data.dir->udcfvalid == 0);
@@ -241,8 +240,7 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 	{ print(logFile); Choke("fsobj::Close: openers < 1"); }
     openers--;
     if (writep) {
-        if (!Simulating) 
-            PromoteLock();    
+	PromoteLock();    
 
 	if (!WRITING(this))
 	    { print(logFile); Choke("fsobj::Close: !WRITING"); }
@@ -273,55 +271,53 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 	    return(0);
 	}
 
-	if (!Simulating) {
-	    /* We need to send the new mtime to Vice in the RPC call,
-               so we get the status off */
-	    /* the disk.  If the file was freshly created and there
-               were no writes, then we should */
-	    /* send the time of the mknod.  However, we don't know the
-               time of the mknod so we */
-	    /* approximate it by the current time.  Note that we are
-               fooled by the truncation and */
-	    /* subsequent closing (without further writing) of an
-               existing file. */
-	    unsigned long NewLength;
-	    Date_t NewDate;
-	    {
-		struct stat tstat;
-		data.file->Stat(&tstat);
-		if (tstat.st_size == 0) tstat.st_mtime = Vtime();
+	/* We need to send the new mtime to Vice in the RPC call,
+	   so we get the status off */
+	/* the disk.  If the file was freshly created and there
+	   were no writes, then we should */
+	/* send the time of the mknod.  However, we don't know the
+	   time of the mknod so we */
+	/* approximate it by the current time.  Note that we are
+	   fooled by the truncation and */
+	/* subsequent closing (without further writing) of an
+	   existing file. */
+	unsigned long NewLength;
+	Date_t NewDate;
+	{
+	    struct stat tstat;
+	    data.file->Stat(&tstat);
+	    if (tstat.st_size == 0) tstat.st_mtime = Vtime();
 
-		NewLength = tstat.st_size;
-		NewDate = tstat.st_mtime;
-	    }
-	    int old_blocks = (int) BLOCKS(this);
-	    int new_blocks = (int) NBLOCKS(NewLength);
-	    UpdateCacheStats(&FSDB->FileDataStats, WRITE, MIN(old_blocks, new_blocks));
-	    if (NewLength < stat.Length)
-		UpdateCacheStats(&FSDB->FileDataStats, REMOVE, (old_blocks - new_blocks));
-	    else if (NewLength > stat.Length)
-		UpdateCacheStats(&FSDB->FileDataStats, CREATE, (new_blocks - old_blocks));
-	    FSDB->ChangeDiskUsage((int) NBLOCKS(NewLength));
-	    Recov_BeginTrans();
-	    data.file->SetLength((unsigned int) NewLength);
-	    Recov_EndTrans(MAXFP);
+	    NewLength = tstat.st_size;
+	    NewDate = tstat.st_mtime;
+	}
+	int old_blocks = (int) BLOCKS(this);
+	int new_blocks = (int) NBLOCKS(NewLength);
+	UpdateCacheStats(&FSDB->FileDataStats, WRITE, MIN(old_blocks, new_blocks));
+	if (NewLength < stat.Length)
+	    UpdateCacheStats(&FSDB->FileDataStats, REMOVE, (old_blocks - new_blocks));
+	else if (NewLength > stat.Length)
+	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, (new_blocks - old_blocks));
+	FSDB->ChangeDiskUsage((int) NBLOCKS(NewLength));
+	Recov_BeginTrans();
+	data.file->SetLength((unsigned int) NewLength);
+	Recov_EndTrans(MAXFP);
 
-	    /* Attempt the Store. */
-	    vproc *v = VprocSelf();
-	    if (v->type == VPT_Worker)
-		if (flags.era) ((worker *)v)->StoreFid = fid;
-	    code = Store(NewLength, NewDate, vuid);
-	    if (v->type == VPT_Worker)
-		((worker *)v)->StoreFid = NullFid;
-	    if (code) {
-		eprint("failed to store %s on server", comp);
-		switch (code) {
-		    case ENOSPC: eprint("server partition full"); break;
-		    case EDQUOT: eprint("over your disk quota"); break;
-		    case EACCES: eprint("protection failure"); break;
-		    case ERETRY: print(logFile); Choke("fsobj::Close: Store returns ERETRY");
-		    default: eprint("unknown store error %d", code); break;
-		}
+	/* Attempt the Store. */
+	vproc *v = VprocSelf();
+	if (v->type == VPT_Worker)
+	    if (flags.era) ((worker *)v)->StoreFid = fid;
+	code = Store(NewLength, NewDate, vuid);
+	if (v->type == VPT_Worker)
+	    ((worker *)v)->StoreFid = NullFid;
+	if (code) {
+	    eprint("failed to store %s on server", comp);
+	    switch (code) {
+		case ENOSPC: eprint("server partition full"); break;
+		case EDQUOT: eprint("over your disk quota"); break;
+		case EACCES: eprint("protection failure"); break;
+		case ERETRY: print(logFile); Choke("fsobj::Close: Store returns ERETRY");
+		default: eprint("unknown store error %d", code); break;
 	    }
 	}
     }

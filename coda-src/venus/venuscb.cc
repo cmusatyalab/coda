@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.8 1998/09/15 20:14:05 smarc Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.9 98/09/23 16:56:41 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -96,8 +96,6 @@ int cbbreaks = 0;	/* count of broken callbacks */
 
 
 void CallBackInit() {
-    if (Simulating) return;
-
     if (MaxCBServers == UNSET_MAXCBSERVERS)
 	MaxCBServers = DFLT_MAXCBSERVERS;
 

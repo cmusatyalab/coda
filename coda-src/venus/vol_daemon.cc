@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_daemon.cc,v 4.3 1998/06/19 16:32:00 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_daemon.cc,v 4.4 98/08/26 21:24:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,7 +68,6 @@ extern "C" {
 
 /* from venus */
 #include "local.h"
-#include "simulate.h"
 #include "venus.private.h"
 #include "venusrecov.h"
 #include "venusvol.h"
@@ -242,8 +241,6 @@ void vdb::GetDown() {
 
 /* local-repair modification */
 void vdb::FlushCOP2() {
-    if (Simulating) return;
-
     LOG(100, ("vdb::FlushCOP2: \n"));
 
     /* For each volume. */
@@ -270,8 +267,6 @@ void vdb::FlushCOP2() {
 /* local-repair modification */
 /* XXX Use this routine to "touch" all volumes periodically so that volume state changes get taken! */
 void vdb::TakeTransition() {
-    if (Simulating) return;
-
     LOG(100, ("vdb::TakeTransition: \n"));
 
     /* For each volume. */
@@ -307,8 +302,6 @@ void vdb::FlushVSR() {
  * if the CML has changed since the last checkpoint interval.
  */
 void vdb::CheckPoint(unsigned long curr_time) {
-    if (Simulating) return;
-
     LOG(100, ("vdb::CheckPoint: \n"));
 
     /* For each volume. */
@@ -360,8 +353,6 @@ void vdb::CheckLocalSubtree()
 
 /* Note: no longer in class vdb, since VolDaemon isn't (Satya, 5/20/95) */
 void TrickleReintegrate() {
-    if (Simulating) return;
-
     LOG(100, ("TrickleReintegrate(): \n"));
 
     /* For each volume. */

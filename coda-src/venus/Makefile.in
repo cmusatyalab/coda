@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.18 1998/08/27 19:40:48 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/Makefile.in,v 4.19 98/09/23 16:56:34 braam Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -66,10 +66,10 @@ LIBS=	$(LIBUTIL)\
 	$(LIBSE)\
 	$(LIBKVM)
 
-HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h simulate.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
+HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venusvol.h vproc.h worker.h
 
 
-VOBJS = advice.o advice_daemon.o  binding.o  comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o simulate.o tallyent.o user.o venusutil.o venus.o venuscb.o venusvm.o  venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o spool.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o faketrace.o
+VOBJS = advice.o advice_daemon.o  binding.o  comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o venusrecov.o sighand.o tallyent.o user.o venusutil.o venus.o venuscb.o venusvm.o  venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o spool.o vol_resolve.o vol_vcb.o vol_vsr.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o worker.o faketrace.o
 
 
 venus:  ${VOBJS} dummy.o $(LIBS) libfaketrace.a

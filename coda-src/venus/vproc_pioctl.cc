@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.8 1998/08/26 21:24:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.9 98/09/23 16:56:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -432,10 +432,9 @@ O_FreeLocks:
         case VIOC_DISABLEASR: 
 	case VIOC_LISTCACHE_VOLUME:
 	    {
-//#ifdef    TIMING
- 	    if (!Simulating)
- 		gettimeofday(&u.u_tv1, 0);
-//#endif    TIMING
+#ifdef    TIMING
+ 	    gettimeofday(&u.u_tv1, 0);
+#endif    TIMING
 	    volent *v = 0;
 	    if ((u.u_error = VDB->Get(&v, fid->Volume)) != 0) break;
 
@@ -790,10 +789,8 @@ V_FreeLocks:
  	    float elapsed = 0.0;
 #ifdef	    TIMING
  	    
- 	    if (!Simulating) {
- 		gettimeofday(&u.u_tv2, 0);
- 		elapsed = SubTimes(u.u_tv2, u.u_tv1);
- 	    }
+	    gettimeofday(&u.u_tv2, 0);
+	    elapsed = SubTimes(u.u_tv2, u.u_tv1);
 #endif      TIMING
  	    /* Hack to include this as an ioctl request in the proper vsr. */
 	    if (v->vid != LocalFakeVid) {

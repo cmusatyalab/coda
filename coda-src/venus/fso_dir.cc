@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.8 1998/08/26 21:24:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_dir.cc,v 4.9 98/09/23 16:56:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,7 +67,6 @@ extern "C" {
 
 #include "fso.h"
 #include "local.h"
-#include "simulate.h"
 #include "venusrecov.h"
 #include "venus.private.h"
 
@@ -121,9 +120,6 @@ int fsobj::dir_Length()
 		print(logFile); 
 		Choke("fsobj::dir_Length: no data"); 
 	}
-
-	if (Simulating)
-		return(DIR_SIZE);
 
 	return(DH_Length(&data.dir->dh));
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.13 1998/04/14 21:03:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.14 98/08/26 21:24:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,7 +87,6 @@ extern "C" {
 #include "hdb.h"
 #include "local.h"
 #include "mariner.h"
-#include "simulate.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venus.version.h"
@@ -219,8 +218,6 @@ void Choke(char *fmt ...) {
 	eprint(msg);
 
 	/* Dump system state to the log. */
-	if (Simulating && recPtr != 0)
-	    Trace_PrintRecord(recPtr);
 	DumpState();
 
 	/* Flush session record to RVM. */
@@ -894,9 +891,6 @@ Exit:
 
 
 long Vtime() {
-    if (Simulating)
-	return(SimTime);
-
     return(::time(0));
 }
 

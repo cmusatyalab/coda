@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.10 1998/08/26 21:24:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.11 98/09/23 16:56:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,7 +77,6 @@ extern "C" {
 #include "hdb.h"
 #include "local.h"
 #include "mariner.h"
-#include "simulate.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venusrecov.h"
@@ -155,70 +154,40 @@ void FSOInit() {
 	   The ifdef's are necessary because the directory operations
 	   have changed completely between 4.3BSD and 4.4BSD  (Satya, 8/12/96)
         */
-	if (!Simulating) {
-#ifdef __MACH__
-	    DIR *cdir = opendir(".");
-	    if (!cdir) Choke("FSOInit: opendir");
-	    struct dirent *dirent;
-	    while (dirent = readdir(cdir)) {
-		/* Don't unlink special files. */
-		if (STREQ(dirent->d_name, ".") ||
-		    STREQ(dirent->d_name, "..") ||
-		    STREQ(dirent->d_name, "lost+found") ||
-		    STREQ(dirent->d_name, LOGFILE) ||
-		    STREQ(dirent->d_name, LOGFILE_OLD) ||
-		    STREQ(dirent->d_name, "pid") ||
-		    STREQ(dirent->d_name, "core"))
-		    continue;
-
-		/* Don't unlink cache files. */
-		int ix;
-		if (dirent->d_name[0] == 'V' &&
-		    sscanf(dirent->d_name, "V%d", &ix) == 1 &&
-		    (ix >= 0 && ix < FSDB->MaxFiles))
-		    continue;
-
-		/* Garbage collect everything else. */
-		::unlink(dirent->d_name);
-	    }
-	    closedir(cdir);
-#endif /* __MACH__ */
-
 #ifdef __BSD44__
-	    struct dirent **namelist;
-	    int nentries;
-	    nentries = scandir(".", &namelist, 0, 0) ;
-	    if (nentries < 0) Choke("FSOInit: scandir");
+	struct dirent **namelist;
+	int nentries;
+	nentries = scandir(".", &namelist, 0, 0) ;
+	if (nentries < 0) Choke("FSOInit: scandir");
 
-	    /* Examine each entry and decide to keep or delete it */
-	    for (i = 0; i < nentries; i++) {
-		/* Don't unlink special files. */
-		if (STREQ(namelist[i]->d_name, ".") ||
-		    STREQ(namelist[i]->d_name, "..") ||
-		    STREQ(namelist[i]->d_name, "lost+found") ||
-		    STREQ(namelist[i]->d_name, LOGFILE) ||
-		    STREQ(namelist[i]->d_name, LOGFILE_OLD) ||
-		    STREQ(namelist[i]->d_name, "pid") ||
-		    STREQ(namelist[i]->d_name, "core"))
-		    goto FREE_ENTRY;
+	/* Examine each entry and decide to keep or delete it */
+	for (i = 0; i < nentries; i++) {
+	    /* Don't unlink special files. */
+	    if (STREQ(namelist[i]->d_name, ".") ||
+		STREQ(namelist[i]->d_name, "..") ||
+		STREQ(namelist[i]->d_name, "lost+found") ||
+		STREQ(namelist[i]->d_name, LOGFILE) ||
+		STREQ(namelist[i]->d_name, LOGFILE_OLD) ||
+		STREQ(namelist[i]->d_name, "pid") ||
+		STREQ(namelist[i]->d_name, "core"))
+		goto FREE_ENTRY;
 
-		/* Don't unlink cache files. */
-		int ix;
-		if (namelist[i]->d_name[0] == 'V' &&
-		    sscanf(namelist[i]->d_name, "V%d", &ix) == 1 &&
-		    (ix >= 0 && ix < FSDB->MaxFiles))
-		    goto FREE_ENTRY;
+	    /* Don't unlink cache files. */
+	    int ix;
+	    if (namelist[i]->d_name[0] == 'V' &&
+		sscanf(namelist[i]->d_name, "V%d", &ix) == 1 &&
+		(ix >= 0 && ix < FSDB->MaxFiles))
+		goto FREE_ENTRY;
 
-		/* Garbage collect everything else. */
-		::unlink(namelist[i]->d_name);
-		
-		FREE_ENTRY: /* release entry from namelist */
-		free(namelist[i]);
-	    }
-	    /* Free the array allocated by scandir() */
-	    free(namelist);
-#endif /* __BSD44__ */
+	    /* Garbage collect everything else. */
+	    ::unlink(namelist[i]->d_name);
+
+FREE_ENTRY: /* release entry from namelist */
+	    free(namelist[i]);
 	}
+	/* Free the array allocated by scandir() */
+	free(namelist);
+#endif /* __BSD44__ */
 
 	/* Allocate the fsobj's if requested. */
 	if (InitMetaData) {
@@ -325,25 +294,21 @@ void FSOInit() {
     }
 
     /* Set new Data version stamps. */
-    if (!Simulating) {
-	int DataVersion = (int) Vtime();
+    int DataVersion = (int) Vtime();
 
-	FILE *fp = fopen("CacheInfo", "w+");
-	if (fp == NULL)
-	    Choke("FSOInit: fopen(CacheInfo, WR)");
-	fprintf(fp, "%d", DataVersion);
-	fclose(fp);
+    FILE *fp = fopen("CacheInfo", "w+");
+    if (fp == NULL)
+	Choke("FSOInit: fopen(CacheInfo, WR)");
+    fprintf(fp, "%d", DataVersion);
+    fclose(fp);
 
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(FSDB->DataVersion);
-	FSDB->DataVersion = DataVersion;
-	Recov_EndTrans(0);
-    }
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(FSDB->DataVersion);
+    FSDB->DataVersion = DataVersion;
+    Recov_EndTrans(0);
 
-    if (!Simulating) {
-	RecovFlush(1);
-	RecovTruncate(1);
-    }
+    RecovFlush(1);
+    RecovTruncate(1);
 
     /* Fire up the daemon. */
     FSOD_Init();
@@ -843,7 +808,7 @@ RestartFind:
 	 * the routine fsobj::IsLocalFid, which checks to see if the _volume_
 	 * the object belongs to is the local volume.  yuck.  --lily
 	 */
-	if (FID_IsDisco(key) && !Simulating) {
+	if (FID_IsDisco(key)) {
 		LOG(0, ("fsdb::Get: Locally created fid %s not found!\n", 
 			FID_(key)));
 		return ETIMEDOUT;
@@ -944,11 +909,6 @@ RestartFind:
 		strcpy(f->comp, comp);
 		Recov_EndTrans(MAXFP);
 	}
-    }
-
-    if (Simulating) {
-	*f_addr = f;
-	return(0);
     }
 
     /* Consider fetching status and/or data. */
@@ -1381,8 +1341,8 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 		return(ENOENT);
 	}
 	
-	/* Can't handle any case but reintegration (and simulating). */
-	/* in old versions we would choke too  if (!DIRTY(f) && !Simulating) */
+	/* Can't handle any case but reintegration. */
+	/* in old versions we would choke too  if (!DIRTY(f)) */
 	if (!HAVESTATUS(f)) {
 		f->print(logFile); 
 		Choke("fsdb::TranslateFid: !HAVESTATUS"); 
@@ -1568,30 +1528,6 @@ int fsdb::GrabFreeFso(int priority, fsobj **f) {
 
 /* MUST be called from within transaction! */
 void fsdb::ReclaimFsos(int priority, int count) {
-    if (Simulating) {
-	/* Create necessary number of new fsobjs (rounded up to suitable multiple). */
-	ASSERT(count > 0);
-	int create_count = 4 * MAX(count, FreeFileMargin);
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(MaxFiles);
-	MaxFiles += create_count;
-	CacheFiles = MaxFiles;
-	long *tmp = (long *)rvmlib_rec_malloc((int)(MaxFiles * sizeof(long)));
-	rvmlib_set_range(tmp, (int)(MaxFiles * sizeof(long)));
-	bcopy((const void *)LastRef, (void *) tmp, (int)((MaxFiles - create_count) * sizeof(long)));
-	rvmlib_rec_free(LastRef);
-	RVMLIB_REC_OBJECT(LastRef);
-	LastRef = tmp;
-	
-	for (int i = (MaxFiles - create_count); i < MaxFiles; i++) {
-		fsobj *f; f = new (FROMHEAP) fsobj(i);
-	}
-	Recov_EndTrans(MAXFP);
-
-	ASSERT(count < (FreeFsoCount() - FreeFileMargin));
-	return;
-    }
-
     vproc *vp = VprocSelf();
     int reclaimed = 0;
     bstree_iterator next(*prioq);
@@ -1644,20 +1580,18 @@ int fsdb::FreeBlockCount() {
     int count = MaxBlocks - blocks;
 
     /* Subtract out blocks belonging to objects currently open for write. */
-    if (!Simulating) {
-	if (owriteq->count() > 0) {
-	    olist_iterator onext(*owriteq);
-	    olink *o;
-	    while (o = onext()) {
-		fsobj *f = strbase(fsobj, o, owrite_handle);
+    if (owriteq->count() > 0) {
+	olist_iterator onext(*owriteq);
+	olink *o;
+	while (o = onext()) {
+	    fsobj *f = strbase(fsobj, o, owrite_handle);
 
-		if (f->flags.owrite == 0)
-		    { f->print(logFile); Choke("fsdb::FreeBlockCount: on owriteq && !owrite"); }
+	    if (f->flags.owrite == 0)
+	    { f->print(logFile); Choke("fsdb::FreeBlockCount: on owriteq && !owrite"); }
 
-		struct stat tstat;
-		f->cf.Stat(&tstat);
-		count -= (int) NBLOCKS(tstat.st_size);
-	    }
+	    struct stat tstat;
+	    f->cf.Stat(&tstat);
+	    count -= (int) NBLOCKS(tstat.st_size);
 	}
     }
 
@@ -1715,20 +1649,6 @@ int fsdb::GrabFreeBlocks(int priority, int nblocks) {
 
 /* MUST be called from within transaction! */
 void fsdb::ReclaimBlocks(int priority, int nblocks) {
-    if (Simulating) {
-	/* Extend block limit as necessary. */
-	ASSERT(nblocks > 0);
-	int extend_count = 4 * MAX(nblocks, FreeBlockMargin);
-	Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(MaxBlocks);
-	    MaxBlocks += extend_count;
-	    CacheBlocks = MaxBlocks;
-	Recov_EndTrans(MAXFP);
-
-	  ASSERT(nblocks < (FreeBlockCount() - FreeBlockMargin));
-	return;
-    }
-
     int reclaimed = 0;
     bstree_iterator next(*prioq);
     bsnode *b;
@@ -1972,11 +1892,9 @@ void fsdb::print(int fd, int SummaryOnly) {
 		switch(f->stat.VnodeType) {
 		    case File:
 			if (f->flags.owrite) {
-			    if (!Simulating) {
-				struct stat tstat;
-				f->cf.Stat(&tstat);
-				ow_blocks += (int) NBLOCKS(tstat.st_size);
-			    }
+			    struct stat tstat;
+			    f->cf.Stat(&tstat);
+			    ow_blocks += (int) NBLOCKS(tstat.st_size);
 			} else {
 			    normal_blocks += NBLOCKS(f->cf.Length());
 			}

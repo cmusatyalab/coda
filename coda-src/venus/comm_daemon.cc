@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm_daemon.cc,v 4.2 1997/03/06 21:04:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm_daemon.cc,v 4.3 98/08/26 21:24:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -49,7 +49,6 @@ extern "C" {
 
 /* from venus */
 #include "comm.h"
-#include "simulate.h"
 #include "venus.private.h"
 #include "venusrecov.h"
 #include "vproc.h"
@@ -103,14 +102,12 @@ void ProbeDaemon() {
 	if ((curr_time - LastT1Check >= T1Interval) ||
 	    (curr_time - LastT2Check >= T2Interval)) {
 
-	    if (!Simulating) 
-		ServerProbe(&LastT1Check, &LastT2Check);
+	    ServerProbe(&LastT1Check, &LastT2Check);
 	}
 
 	/* refresh network measurements for each server */
 	if (curr_time - LastCommCheck >= CommCheckInterval) {
-	    if (!Simulating) 
-		CheckServerBW(curr_time);
+	    CheckServerBW(curr_time);
 
 	    LastCommCheck = curr_time;
 	}

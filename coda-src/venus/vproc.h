@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.21 1998/09/23 16:56:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.22 98/09/23 18:47:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -140,7 +140,6 @@ enum vproctype {    VPT_Main,
 		    VPT_UserDaemon,
 		    VPT_RecovDaemon,
 		    VPT_VmonDaemon,
-		    VPT_Simulator,
 		    VPT_AdviceDaemon,
 		    VPT_LRDaemon
 };

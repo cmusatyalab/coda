@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.16 1998/09/15 14:28:06 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.17 98/09/23 16:56:42 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -602,7 +602,7 @@ void *cmlent::operator new(size_t len) {
 
     LOG(1, ("cmlent::operator new()\n"));
 
-    assert(VDB->AllocatedMLEs < VDB->MaxMLEs || Simulating);
+    assert(VDB->AllocatedMLEs < VDB->MaxMLEs);
 
     /* Get entry from free list or heap */
     if (VDB->mlefreelist.count() > 0)
@@ -615,13 +615,6 @@ void *cmlent::operator new(size_t len) {
     RVMLIB_REC_OBJECT(VDB->AllocatedMLEs);
     VDB->AllocatedMLEs++;
 
-    if (VDB->AllocatedMLEs > VDB->MaxMLEs) {
-	ASSERT(Simulating);
-	RVMLIB_REC_OBJECT(VDB->MaxMLEs);
-	VDB->MaxMLEs++;
-	MLEs++;
-    }
-    
     return(c);
 }
 

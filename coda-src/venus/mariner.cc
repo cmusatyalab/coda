@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.10 1998/09/15 20:14:05 smarc Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.11 98/09/23 16:56:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -72,7 +72,6 @@ extern "C" {
 
 /* from venus */
 #include "fso.h"
-#include "simulate.h"
 #include "venus.private.h"
 #include "venuscb.h"
 #include "vproc.h"
@@ -90,8 +89,6 @@ int mariner::muxfd;
 int mariner::nmariners;
 
 void MarinerInit() {
-    if (Simulating) return;
-
     MarinerMask = 0;
     mariner::nmariners = 0;
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.16 1998/08/26 21:24:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.cc,v 4.17 98/09/23 16:56:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -477,7 +477,6 @@ void vproc::GetStamp(char *buf) {
 	case VPT_UserDaemon:	t = 'U'; break;
 	case VPT_RecovDaemon:	t = 'T'; break;
 	case VPT_VmonDaemon:	t = 'N'; break;
-	case VPT_Simulator:	t = 'S'; break;
 	case VPT_AdviceDaemon:  t = 'A'; break;
 	case VPT_LRDaemon:  	t = 'L'; break;
 	default:
@@ -546,8 +545,7 @@ void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode) {
 	 /*VM_UNSET*/-1 ? VFSOP_TO_VOLMODE(vfsop) : volmode);
     u.u_vfsop = vfsop;
 #ifdef	TIMING
-    if (!Simulating)
-	gettimeofday(&u.u_tv1, 0);
+    gettimeofday(&u.u_tv1, 0);
 #endif	TIMING
 		   
     /* Attempt to enter the volume. */
@@ -716,8 +714,7 @@ void vproc::End_VFS(int *retryp) {
 
 Exit:
 #ifdef TIMING
-    if (!Simulating) 
-	gettimeofday(&u.u_tv2, 0);
+    gettimeofday(&u.u_tv2, 0);
 #endif TIMING
 
     /* Update VFS statistics. */
@@ -731,11 +728,9 @@ Exit:
 	    else {
 		t->success++;
 #ifdef	TIMING
-		if (!Simulating) {
-		    elapsed = SubTimes(u.u_tv2, u.u_tv1);
-		    t->time += (double)elapsed;
-		    t->time2 += (double)(elapsed * elapsed);
-		}
+		elapsed = SubTimes(u.u_tv2, u.u_tv1);
+		t->time += (double)elapsed;
+		t->time2 += (double)(elapsed * elapsed);
 #endif	TIMING
 	    }
 	}

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.12 1998/08/26 21:24:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.13 98/09/14 22:33:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,6 @@ extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #include "local.h"
 #include "mariner.h"
 #include "sighand.h"
-#include "simulate.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venus.version.h"
@@ -157,7 +156,6 @@ int main(int argc, char **argv) {
     DaemonInit();   /* before any Daemons initialize and after LogInit */
     ProfInit();
     StatsInit();
-    SimInit();      /* if simulating, open trace file and set filter */
     SigInit();      /* set up signal handlers */
     DIR_Init(DIR_DATA_IN_RVM);
     RecovInit();    /* set up RVM and recov daemon */
@@ -175,16 +173,14 @@ int main(int argc, char **argv) {
     LRInit();	    /* set up local-repair database */
     VFSMount();
 
-    if (!Simulating) {
-	/* Get the Root Volume. */
-	while (!GetRootVolume()) {
-	    ServerProbe();
+    /* Get the Root Volume. */
+    while (!GetRootVolume()) {
+	ServerProbe();
 
-	    struct timeval tv;
-	    tv.tv_sec = 15;
-	    tv.tv_usec = 0;
-	    VprocSleep(&tv);
-	}
+	struct timeval tv;
+	tv.tv_sec = 15;
+	tv.tv_usec = 0;
+	VprocSleep(&tv);
     }
 
     UnsetInitFile();
@@ -192,22 +188,16 @@ int main(int argc, char **argv) {
 
     /* Act as message-multiplexor/daemon-dispatcher. */
     for (;;) {
-	if (Simulating) {
-	    VprocYield();
-	    Simulate();
-	}
-	else {
-	    /* Wait for a message or daemon expiry. */
-	    int rdfds = (KernelMask | MarinerMask);
-	    if (VprocSelect(NFDS, &rdfds, 0, 0, &DaemonExpiry) > 0) {
-		/* Handle mariner request(s). */
-		if (rdfds & MarinerMask)
-		    MarinerMux(rdfds);
+	/* Wait for a message or daemon expiry. */
+	int rdfds = (KernelMask | MarinerMask);
+	if (VprocSelect(NFDS, &rdfds, 0, 0, &DaemonExpiry) > 0) {
+	    /* Handle mariner request(s). */
+	    if (rdfds & MarinerMask)
+		MarinerMux(rdfds);
 
-		/* Handle worker request. */
-		if (rdfds & KernelMask)
-		    WorkerMux(rdfds);
-	    }
+	    /* Handle worker request. */
+	    if (rdfds & KernelMask)
+		WorkerMux(rdfds);
 	}
 
 	/* Fire daemons that are ready to run. */
@@ -314,14 +304,6 @@ static void ParseCmdline(int argc, char **argv) {
 		i++, VmonHost = argv[i];
 	    else if (STREQ(argv[i], "-mondportal"))
 		i++, VmonPortal = atoi(argv[i]);
-	    else if (STREQ(argv[i], "-sim")) {        /* simulator mode */
-		Simulating = 1;
-		i++, SimInfilename = argv[i];         /* input is a trace */
-		i++, SimOutfilename = argv[i];
-		i++, SimFilterfilename = argv[i];     /* filter for trace */
-		i++, SimAtSys = argv[i];              /* value of @sys for trace */
-		i++, SimTmpFid = argv[i];	      /* fid of /tmp, if excluding */
-	    }
 	    else if (STREQ(argv[i], "-init"))        /* brain wipe rvm */
 		InitMetaData = 1;
 	    else if (STREQ(argv[i], "-rvmt"))
@@ -409,11 +391,6 @@ static void ParseCmdline(int argc, char **argv) {
     fprintf(stderr, "Coda Venus, version %d.%d (%d)\n",
              VenusMajorVersion, VenusMinorVersion, RecovVersionNumber);
     fflush(stderr);
-
-    if (Simulating) {
-	    RvmType = VM;
-	    COPModes = 0;
-    }
 }
 
 
@@ -421,15 +398,13 @@ static void ParseCmdline(int argc, char **argv) {
 /* Note that individual modules initialize their own unset command-line parameters as appropriate. */
 static void DefaultCmdlineParms() {
     /* Try vstab first. */
-    if (!Simulating) {
-	struct vstab *v = getvsent();
-	if (v) {
-	    if (venusRoot == UNSET_VR) venusRoot = v->v_dir;
-	    if (kernDevice == UNSET_KD) kernDevice = v->v_dev;
-	    if (fsname == UNSET_FS) fsname = v->v_host;
-	    if (CacheDir == UNSET_CD) CacheDir = v->v_cache;
-	    if (CacheBlocks == UNSET_CB) CacheBlocks = v->v_cachesize;
-	}
+    struct vstab *v = getvsent();
+    if (v) {
+	if (venusRoot == UNSET_VR) venusRoot = v->v_dir;
+	if (kernDevice == UNSET_KD) kernDevice = v->v_dev;
+	if (fsname == UNSET_FS) fsname = v->v_host;
+	if (CacheDir == UNSET_CD) CacheDir = v->v_cache;
+	if (CacheBlocks == UNSET_CB) CacheBlocks = v->v_cachesize;
     }
 
     /* Use hard-wired defaults otherwise. */
@@ -444,8 +419,6 @@ static void DefaultCmdlineParms() {
 
 
 static void CdToCacheDir() {
-    if (Simulating) return;
-
     if (chdir(CacheDir) < 0) {
 	if (errno != ENOENT)
 	    { perror("CacheDir chdir"); exit(-1); }
@@ -459,8 +432,6 @@ static void CdToCacheDir() {
 static void CheckInitFile() {
     char initPath[MAXPATHLEN];
     struct stat tstat;
-
-    if (Simulating) return;
 
     /* Construct name for INIT file */
 #ifndef DJGPP
@@ -487,8 +458,6 @@ static void CheckInitFile() {
 
 static void UnsetInitFile() {
     char initPath[MAXPATHLEN];
-
-    if (Simulating) return;
 
     /* Create the file, if it doesn't already exist */
 #ifndef DJGPP

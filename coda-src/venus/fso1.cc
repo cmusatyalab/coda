@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.13 1998/08/26 21:24:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.14 98/09/23 16:56:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -94,7 +94,6 @@ extern "C" {
 #include "fso.h"
 #include "local.h"
 #include "mariner.h"
-#include "simulate.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venusrecov.h"
@@ -234,8 +233,6 @@ void fsobj::ResetTransient() {
     flags.replaceable = 0;
     flags.era = 1;
     flags.ckmtpt = 0;
-    flags.created = 0;
-    flags.marked = 0;
     flags.random = ::random();
 
     bzero((void *)&u, (int)sizeof(u));
@@ -440,8 +437,6 @@ void fsobj::operator delete(void *deadobj, size_t len) {
 /* local-repair modification */
 /* MUST NOT be called from within transaction. */
 void fsobj::Recover() {
-    ASSERT(!Simulating);
-
     /* Validate state. */
     switch(state) {
 	case FsoRunt:
@@ -679,10 +674,6 @@ void fsobj::Kill(int TellServers) {
     DetachHdbBindings();
 
     k_Purge(&fid, 1);
-
-    /* Reset pfid (this is needed for simulating). */
-    if (Simulating)
-        pfid = NullFid;
 }
 
 
@@ -690,11 +681,7 @@ void fsobj::Kill(int TellServers) {
 void fsobj::GC() {
 	/* Only GC the data now if the file has been locally modified! */
     if (DIRTY(this)) {
-	if (Simulating && IsDir())
-	    /* Need to preserve directory contents when simulating! */
-	    ;
-	else
-	    DiscardData();
+	DiscardData();
     }
     else
 	delete this;
@@ -865,8 +852,6 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 void fsobj::ReplaceStatus(ViceStatus *vstat, vv_t *UpdateSet) {
-    FSO_ASSERT(this, !Simulating);
-
     RVMLIB_REC_OBJECT(stat);
     stat.Length = vstat->Length;
     stat.DataVersion = vstat->DataVersion;
@@ -929,7 +914,6 @@ int fsobj::IsValid(int rcrights) {
 
     /* hook for VCB statistics -- valid due to VCB only? */
     if ((haveit &&
-	 !Simulating &&
 	 ((vol->state == Hoarding) || 
 	  (vol->IsWriteDisconnected() && !flags.dirty)) &&
 	 !flags.readonly &&
@@ -940,8 +924,7 @@ int fsobj::IsValid(int rcrights) {
 	vol->VCBHits++;
 
     return(haveit && 
-	   (Simulating || 
-	    (vol->IsDisconnected() && flags.replicated) ||
+	   ((vol->IsDisconnected() && flags.replicated) ||
 	    (vol->IsWriteDisconnected() && flags.dirty && flags.replicated) ||
 	    flags.readonly ||
 	    CheckRcRights(rcrights) ||
@@ -1153,7 +1136,6 @@ void fsobj::MakeClean() {
 
     RVMLIB_REC_OBJECT(flags);
     flags.dirty = 0;
-    flags.created = 0;
 
     EnableReplacement();
 }
@@ -2059,7 +2041,7 @@ void fsobj::DiscardData() {
 	     * stat.Length because they may differ legitimately if a cache file 
 	     * validation fails or if the file is stored compressed.
 	     */
-	    FSDB->FreeBlocks((int) NBLOCKS((Simulating ? stat.Length : data.file->Length())));	/* XXX */
+	    FSDB->FreeBlocks((int) NBLOCKS(data.file->Length()));    /* XXX */
 	    data.file->Truncate(0);
 	    data.file = 0;
 	    }
@@ -2072,7 +2054,6 @@ void fsobj::DiscardData() {
 
 	    /* Return cache-file blocks associated with Unix-format directory. */
 	    if (data.dir->udcf) {
-		FSO_ASSERT(this, !Simulating);	/* XXX */
 		FSDB->FreeBlocks(NBLOCKS(data.dir->udcf->Length()));
 		data.dir->udcf->Truncate(0);
 		data.dir->udcf = 0;
@@ -2377,7 +2358,7 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
 
     /* If the object is currently open for writing we must physically 
        stat it to get its size and time info. */
-    if (!Simulating && WRITING(this)) {
+    if (WRITING(this)) {
 	struct stat tstat;
 	cf.Stat(&tstat);
 

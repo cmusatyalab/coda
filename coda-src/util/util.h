@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.h,v 4.6 1998/08/26 21:13:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.h,v 4.7 98/09/23 18:47:55 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -93,14 +93,10 @@ extern int SafeStrCpy(char *dest, char *src, int totalspace);
 void eprint(char *, ...);
 void fdprint(long afd, char *fmt, ...);
 
-#ifndef MAX
+#if defined(__CYGWIN32__) || defined(DJGPP)
 #define MAX(a,b)  ( ((a) > (b)) ? (a) : (b) )
-#endif
-
-#ifndef MIN
 #define MIN(a,b)  ( ((a) < (b)) ? (a) : (b) )
 #endif
-
 
 
 /* Routine for conditionally printing timestamped log messages */

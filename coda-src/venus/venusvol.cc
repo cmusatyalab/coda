@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.10 98/08/26 21:24:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.11 98/09/15 14:28:06 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -168,7 +168,6 @@ extern "C" {
 #include "fso.h"
 #include "local.h"
 #include "mariner.h"
-#include "simulate.h"
 #include "user.h"
 #include "venus.private.h"
 #include "venuscb.h"
@@ -251,10 +250,8 @@ void VolInit() {
 		VDB->AllocatedMLEs, VDB->mlefreelist.count(), VDB->MaxMLEs);
     }
 
-    if (!Simulating) {
-	RecovFlush(1);
-	RecovTruncate(1);
-    }
+    RecovFlush(1);
+    RecovTruncate(1);
 
     /* Fire up the daemon. */
     VOLD_Init();
@@ -538,38 +535,27 @@ int vdb::Get(volent **vpp, char *volname) {
     int code = 0;
 
     VolumeInfo volinfo;
-    if (Simulating) {
-	/* Construct phony volume info. */
-	bzero((void *)&volinfo, (int)sizeof(VolumeInfo));
-	if (sscanf(volname, "%d", &volinfo.Vid) != 1)
-	    Choke("vdb::Get: %s not a number", volname);
-	volinfo.Type = REPVOL;
-	volinfo.ServerCount = 1;
-	volinfo.Server0 = 0x80020101;
-	volinfo.VSGAddr = 0xe0000001;
-	volinfo.RepVolMap.Volume0 = (0xc0000000 | (volinfo.Vid & 0x00ffffff));
-    }
-    else {
-	for (;;) {
-	    /* Get a connection to any server. */
-	    connent *c;
-	    code = GetAdmConn(&c);
-	    if (code != 0) break;
 
-	    /* Make the RPC call. */
-	    MarinerLog("store::GetVolumeInfo %s\n", volname);
-	    UNI_START_MESSAGE(ViceGetVolumeInfo_OP);
-	    code = (int) ViceGetVolumeInfo(c->connid, (RPC2_String)volname, &volinfo);
-	    UNI_END_MESSAGE(ViceGetVolumeInfo_OP);
-	    MarinerLog("store::getvolumeinfo done\n");
+    for (;;) {
+	/* Get a connection to any server. */
+	connent *c;
+	code = GetAdmConn(&c);
+	if (code != 0) break;
 
-	    code = c->CheckResult(code, 0);
-	    UNI_RECORD_STATS(ViceGetVolumeInfo_OP);
+	/* Make the RPC call. */
+	MarinerLog("store::GetVolumeInfo %s\n", volname);
+	UNI_START_MESSAGE(ViceGetVolumeInfo_OP);
+	code = (int) ViceGetVolumeInfo(c->connid, (RPC2_String)volname, &volinfo);
+	UNI_END_MESSAGE(ViceGetVolumeInfo_OP);
+	MarinerLog("store::getvolumeinfo done\n");
 
-	    PutConn(&c);
+	code = c->CheckResult(code, 0);
+	UNI_RECORD_STATS(ViceGetVolumeInfo_OP);
 
-	    if (code == 0 || code == ENXIO) break;
-	}
+	PutConn(&c);
+
+	if (code == 0 || code == ENXIO) break;
+
 	if (code != 0 && code != ETIMEDOUT) return(code);
     }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.10 1998/06/11 14:40:14 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.11 98/08/26 21:24:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -164,14 +164,12 @@ void SigInit() {
     signal(SIGUSR1, (void (*)(int))USR1);	/* set {COPmode, Mcast, DebugLevel} */
 #endif
 
-    if (!Simulating) {
-	/* Write our pid to a file so scripts can find us easily. */
-	FILE *fp = fopen("pid","w");
-	if (fp == NULL)
-	    Choke("SigInit: can't open file for pid!");
-	fprintf(fp, "%d", getpid());
-	fclose(fp);
-    }
+    /* Write our pid to a file so scripts can find us easily. */
+    FILE *fp = fopen("pid","w");
+    if (fp == NULL)
+	Choke("SigInit: can't open file for pid!");
+    fprintf(fp, "%d", getpid());
+    fclose(fp);
 }
 
 

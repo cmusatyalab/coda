@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.13 1998/09/15 20:14:04 smarc Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.14 98/09/23 16:56:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1602,7 +1602,6 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
 	target_fso->stat.Date = Mtime;
 	target_fso->stat.Owner = Owner;
 	target_fso->stat.Mode = Mode;
-	target_fso->flags.created = 1;
 	target_fso->Matriculate();
 	target_fso->SetParent(fid.Vnode, fid.Unique);
 
