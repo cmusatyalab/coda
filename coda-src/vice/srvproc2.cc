@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.5 1998/01/10 18:39:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.6 1998/01/12 23:35:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,6 +107,7 @@ extern int nlist(const char*, struct nlist[]);
 #include <vsg.h>
 #include <vlist.h>
 #include <vrdb.h>
+#include <vldb.h>
 #include <srv.h>
 #include <operations.h>
 #include <ops.h>
@@ -636,10 +637,8 @@ long ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *status, 
 
 #define DEFAULTVOLUME "1"
 /*
-  BEGIN_HTML
-  <a name="ViceGetRootVolume"><strong>Return the name of the root volume
-  (corresponding to <tt>/coda</tt>)</strong></a> 
-  END_HTML
+  ViceGetRootVolume: Return the name of the root volume
+  (corresponding to /coda)
 */
 long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 {
@@ -651,11 +650,11 @@ long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 
     LogMsg(1, SrvDebugLevel, stdout, "ViceGetRootVolume");
 
-    fd = open("/ROOTVOLUME", O_RDONLY, 0666);
+    fd = open("/vice/db/ROOTVOLUME", O_RDONLY, 0666);
     if (fd <= 0) {
 	strcpy((char *)volume->SeqBody, DEFAULTVOLUME);
-    }
-    else {
+	errorCode= VNOVOL;
+    } else {
 	flock(fd, LOCK_EX);
 	len = read(fd, volume->SeqBody, (int) volume->MaxSeqLen);
 	flock(fd, LOCK_UN);
@@ -665,20 +664,26 @@ long ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 	volume->SeqBody[len] = '\0';
     }
     volume->SeqLen = strlen((char *)volume->SeqBody) + 1;
+    if ( VLDBLookup(volume->SeqBody) == NULL ) {
+	    LogMsg(0, SrvDebugLevel, stdout, 
+		   "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
+		   volume->SeqBody);
+	    LogMsg(0, SrvDebugLevel, stderr, 
+		   "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
+		   volume->SeqBody);
+	    errorCode = VNOVOL;
+    }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ViceGetRootVolume returns %s, Volume = %s",
-	    ViceErrorMsg(errorCode), volume->SeqBody);
+    LogMsg(2, SrvDebugLevel, stdout, 
+	   "ViceGetRootVolume returns %s, Volume = %s",
+	   ViceErrorMsg(errorCode), volume->SeqBody);
 
     return(errorCode);
 }
 
 
-/*
-  BEGIN_HTML
-  <a name="ViceSetRootVolume">
-  <strong>Set the /ROOTVOLUME file to contain the name of the new root volume </strong></a> 
-  END_HTML
-*/
+/* ViceSetRootVolume: Set the /vicde/db/ROOTVOLUME file to contain the
+  name of the new root volume */
 long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 {
     long   errorCode;		/* error code */
@@ -703,7 +708,7 @@ long ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 	goto Final;
     }
 
-    fd = open("/ROOTVOLUME", O_WRONLY+O_CREAT+O_TRUNC, 0666);
+    fd = open("/vice/db/ROOTVOLUME", O_WRONLY+O_CREAT+O_TRUNC, 0666);
     assert(fd > 0);
     flock(fd,LOCK_EX);
     write(fd, volume, (int) strlen((char *)volume));
