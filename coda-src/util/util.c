@@ -235,7 +235,7 @@ char *hostname(char *name)
 {
     struct utsname id;
     
-    if ( uname(&id) == 0 ) 
+    if ( uname(&id) >= 0 ) 
 	return strcpy(name, id.nodename);
     else 
 	return NULL;
@@ -247,6 +247,10 @@ int UtilHostEq(char *name1, char *name2)
     char *addr;
     int len;
     struct hostent *host;
+
+    /* Validity check */
+    if (!name1 || !name2)
+        return 0;
     
     host = gethostbyname(name1);
     if ( ! host ) 
