@@ -54,7 +54,6 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
     char *infile = (char *)formal_infile;
     FILE *vrlist = NULL;
     int err = 0;
-    vrent *vre = NULL;
     char line[500];
     int lineno = 0;
     int fd = 0;
@@ -76,11 +75,12 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	err = VFAIL;
 	goto Exit;
     }
-    vre = new vrent();
-    CODA_ASSERT(vre);
     while (fgets(line, sizeof(line), vrlist) != NULL) {
-	lineno++;
 	int servercount, n;
+	vrent *vre = new vrent();
+	CODA_ASSERT(vre);
+
+	lineno++;
 	n = sscanf(line, "%s %lx %d %lx %lx %lx %lx %lx %lx %lx %lx %lx",
 		   vre->key, &vre->volnum, &servercount,
 		   &vre->ServerVolnum[0], &vre->ServerVolnum[1],
@@ -88,7 +88,7 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 		   &vre->ServerVolnum[4], &vre->ServerVolnum[5],
 		   &vre->ServerVolnum[6], &vre->ServerVolnum[7],
 		   &vre->dontuse_vsgaddr);
-	if (n < 11 || n > 12 || strlen(vre->key) >= V_MAXVOLNAMELEN) {
+	if (n < 3 || n > 12 || strlen(vre->key) >= V_MAXVOLNAMELEN) {
 	    LogMsg(0, VolDebugLevel, stdout, "Bad input line(%d): %s", lineno, line);
 	    LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
 	    err = VFAIL;
@@ -100,9 +100,11 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	if (write(fd, vre, sizeof(struct vrent)) != sizeof(struct vrent)) {
 	    LogMsg(0, VolDebugLevel, stdout, "write error on input line(%d): %s", lineno, line);
 	    LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");
+	    delete vre;
 	    err = VFAIL;
 	    goto Exit;
 	}
+        delete vre;
     }
 
     /* Make temporary VRDB permanent. */
@@ -120,6 +122,5 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
   Exit:
     if (vrlist) fclose(vrlist);
     if (fd > 0) close(fd);
-    if (vre) delete vre;
     return(err ? VFAIL : 0);
 }
