@@ -107,8 +107,8 @@ typedef struct VnodeDiskObjectStruct {
 				   from nextVnodeUnique in the Volume
 				   structure) */
     FileVersion   dataVersion;	/* version number of the data */
-#define	NEWVNODEINODE -1	/* inode number for a vnode allocated 
-                                   but not used for creation */
+#define	NEWVNODEINODE ((Inode)-1) /* inode number for a vnode allocated 
+                                     but not used for creation */
     Inode	  inodeNumber;	/* inode number of the data attached to
     				   this vnode */
     /* version vector is updated atomically with the data */

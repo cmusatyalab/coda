@@ -507,7 +507,8 @@ void ClientModifyLog::print(int fd)
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
     while ((m = next()))
-	m->print(fd);
+	if (m->tid != -1)
+	    m->print(fd);
 }
 
 
@@ -2220,6 +2221,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	/* Manually compute the OUT parameters from the mgrpent::Reintegrate() call! -JJK */
 	int dh_ix; dh_ix = -1;
 	(void)m->DHCheck(0, -1, &dh_ix);
+	bufsize = 0;
 	bufsize += sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred;
 	LOG(10, ("ViceReintegrate: transferred %d bytes\n",
 		  sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred));

@@ -470,7 +470,7 @@ long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 
     /* No resolution logs, we can only try to resolve the trivial cases */
     ret = RegDirResolution(mgrp, Fid, VV, NULL, &logresreq);
-    if (logresreq || (ret && ret != EINCONS)) {
+    if (logresreq || ret) {
 	SLog(9,  "OldDirResolution marking %s as conflict", FID_(Fid));
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 

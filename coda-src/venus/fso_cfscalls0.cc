@@ -617,7 +617,8 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
 		while ((f = next()) && (numPiggyFids < PiggyValidations)) {
 		    if (!HAVESTATUS(f) || STATUSVALID(f) || DYING(f) ||
-			FID_EQ(&f->fid, &fid) || f->IsLocalObj() || BUSY(f))
+			FID_EQ(&f->fid, &fid) || f->IsLocalObj() || BUSY(f) ||
+			DIRTY(f))
 			    continue;
 
 		    /* paranoia check */
@@ -782,7 +783,8 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 				 * is a side-effect.
 				 */
 				if (HAVEDATA(pobj) && !WRITING(pobj) &&
-				    !EXECUTING(pobj) && !pobj->IsFakeDir()) {
+				    !EXECUTING(pobj) && !pobj->IsFakeDir() ||
+				    DIRTY(pobj)) {
 				    Recov_BeginTrans();
 				    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats 
 						      : &FSDB->FileDataStats),

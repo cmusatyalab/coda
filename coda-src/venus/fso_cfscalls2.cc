@@ -526,18 +526,15 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 	    code = dir_Lookup(name, &target_fid, flags);
 
 	    if (code) {
-		Volid fakeroot;
-		fakeroot.Realm = LocalRealm->Id();
-		fakeroot.Volume = FakeRootVolumeId;
-
-		if (!FID_VolEQ(MakeVolid(&fid), &fakeroot))
+		if (vol->GetRealmId() != LocalRealm->Id() ||
+		    vol->GetVolumeId() != FakeRootVolumeId)
 		    return code;
 
 		/* regular lookup failed, but if we are in the fake root
-		 * volume, so we can try to check for a new realm */
+		 * volume, we can try to check for a new realm */
 
 		// don't even bother to follow lookups of dangling symlinks
-		if (name[0] == '#')
+		if (name[0] == '#' || name[0] == '@')
 		    return ENOENT;
 
 		// Try to get and mount the realm.
@@ -576,7 +573,8 @@ get_object:
 	/* Handle mount points. */
 	if (traverse_mtpts) {
 	    /* If the target is a covered mount point and it needs checked, uncover it (and unmount the root). */
-	    if (target_fso->IsMtPt() && target_fso->flags.ckmtpt) {
+	    if (target_fso->IsMtPt() && target_fso->flags.ckmtpt)
+	    {
 		fsobj *root_fso = target_fso->u.root;
 		FSO_ASSERT(target_fso, (root_fso != 0 && root_fso->u.mtpoint == target_fso));
 		Recov_BeginTrans();

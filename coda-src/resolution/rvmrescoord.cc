@@ -130,13 +130,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 		reserror = 0;
 		goto Exit;
 	    }
-	    /* If the group was already marked as inconsistent, there is no need
-	     * to flag them again */
-	    if (retval == EINCONS) {
-		reserror = 0;
-		goto Exit;
-	    }
-
 	    retval = EINCONS;
 	    goto Exit;
 	}

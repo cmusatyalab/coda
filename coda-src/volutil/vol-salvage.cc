@@ -562,7 +562,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 
 	/* take care of special cases first */
 	{
-	    if ((int)vnode->inodeNumber == NEWVNODEINODE){
+	    if (vnode->inodeNumber == NEWVNODEINODE){
 		vnode->type = vNull;
 		CODA_ASSERT(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
 		VolumeChanged = 1;
@@ -918,10 +918,10 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 	    vep->vid = bitNumberToVnodeNumber(vnodeIndex, vclass);
 	    if (vnode->type == vDirectory) {
 		CODA_ASSERT(vclass == vLarge);
-		/* for directory vnodes inode can never be zero */
+		/* for directory vnodes inode should never be zero */
 		/* if the inode number is NEWVNODEINODE blow away vnode */
 		CODA_ASSERT(vnode->inodeNumber != 0);
-		if ((int)vnode->inodeNumber == NEWVNODEINODE){
+		if (vnode->inodeNumber == NEWVNODEINODE){
 		    /* delete the vnode */
 		    VLog(0, "DistilVnodeEssence: Found a Directory"
 			 "vnode %lx that has a special inode ... deleting vnode ",

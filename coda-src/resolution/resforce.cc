@@ -123,6 +123,12 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	    return;
 	}
     }
+    /* Black out non-runt sites */
+    {
+	for (int i = 0; i < VSG_MEMBERS; i++)
+	    if (VV[i] && !isrunt[i])
+		mgrp->KillMember(mgrp->Hosts[i], 0);
+    }
     /* force directory ops onto runt sites */
     {
 	SLog(9,  "UpdateRunts: Forcing Directories onto runts");
@@ -141,7 +147,6 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
 
 	SLog(0, "UpdateRunts: Owner is %d\n", vstatus.Owner);
-	/* SHOULD PROBABLY BLACK OUT NON RUNT OBJECTS FOR M-RPC */
 	MRPC_MakeMulti(DoForceDirOps_OP, DoForceDirOps_PTR,
 		       VSG_MEMBERS, mgrp->rrcc.handles, 
 		       mgrp->rrcc.retcodes, mgrp->rrcc.MIp,
@@ -164,6 +169,13 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 		    SLog(0,  "UpdateRunts: Error %d from force[%d]", 
 			    mgrp->rrcc.retcodes[i], i);
 	    }
+    }
+    /* we killed all the non-runt hosts, we should probably bring them back for
+     * the rest of the resolution process */
+    {
+	for (int i = 0; i < VSG_MEMBERS; i++)
+	    if (VV[i] && !isrunt[i])
+		mgrp->CreateMember(mgrp->Hosts[i]);
     }
 }
 
@@ -335,7 +347,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
        return(EINVAL);
     }
 
-    if ((errorcode =GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0))) {
+    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 1, 0, 0))) {
 	SLog(0,  "RS_GetForceDirOps:GetFsObj returns error %d",
 		errorcode);
 	errorcode = EINVAL;

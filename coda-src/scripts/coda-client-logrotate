@@ -5,7 +5,7 @@
 
 logfile=/usr/coda/etc/venus.log
 errorlog=/usr/coda/etc/console
-pidfile=/usr/coda/venus.cache/pid
+pid_file=/usr/coda/venus.cache/pid
 . "`codaconfedit venus.conf`"
 
 for i in 9 8 7 6 5 4 3 2 1 0 ; do
@@ -18,7 +18,7 @@ done
 [ -f "${errorlog}" ] && mv -f "${errorlog}" "${errorlog}-0"
 
 # Tell venus to reopen the logfiles
-kill -HUP `cat ${pidfile}` 2>/dev/null
+kill -HUP `cat ${pid_file}` 2>/dev/null
 
 # alternatively use one of the following,
 # vutil swap

@@ -445,6 +445,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	    u.mv.tvv = mvp->tvv;
 	    u.mv.tlist = NULL;
 	    u.mv.oldname[0] = '\0';
+	    u.mv.newname_offset = 0;
 	    name1 = &(mvp->oldname[0]);
 	    name2 = &(mvp->oldname[0]) + mvp->newname_offset;
 	}

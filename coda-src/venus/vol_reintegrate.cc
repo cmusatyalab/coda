@@ -253,7 +253,7 @@ int repvol::IncReintegrate(int tid)
     START_TIMING();
     float pre_elapsed = 0.0, inter_elapsed = 0.0, post_elapsed = 0.0;
     do {
-	char *buf = 0;
+	char *buf = NULL;
 	int bufsize = 0;
 	ViceVersionVector UpdateSet;
 	code = 0;
@@ -273,7 +273,7 @@ int repvol::IncReintegrate(int tid)
 
 	    /* 
 	     * Step 3 is to "thread" the log and pack it into a buffer 
-	     * (buffer is allocated by pack routine).
+	     * (buffer is allocated with new[] by pack routine).
 	     */
 	    CML.IncThread(tid);
 	    CML.IncPack(&buf, &bufsize, tid);
@@ -296,10 +296,11 @@ int repvol::IncReintegrate(int tid)
 	    inter_elapsed = elapsed;
 	}
 
+	delete [] buf;
+
 	{
 CheckResult:
 	    START_TIMING();
-	    if (buf) delete [] buf;
 
 	    switch(code) {
 	    case 0 : 
@@ -481,14 +482,15 @@ int repvol::PartialReintegrate(int tid)
 
     /* reintegrate the changes if all of the data is there */
     if (m->DoneSending()) {
-	char *buf = 0;
+	char *buf = NULL;
 	int bufsize = 0;
 
 	CML.IncThread(tid);
 	CML.IncPack(&buf, &bufsize, tid);
 
 	code = m->CloseReintegrationHandle(buf, bufsize, &UpdateSet);
-	if (buf != 0) delete buf;
+
+	delete [] buf;
 
 	if (code != 0) goto CheckResult;
     }
@@ -548,6 +550,7 @@ CheckResult:
 	ObtainReadLock(&CML_lock);
 
 	/* cancel, localize, or abort the offending record */
+	m->ClearReintegrationHandle();
 	CML.CancelPending();       
 	CML.HandleFailedMLE();
 

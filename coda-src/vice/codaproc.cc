@@ -82,7 +82,6 @@ extern "C" {
 #include <writeback.h>
 
 #define	EMPTYDIRBLOCKS	    2
-#define NEWVNODEINODE -1
 
 class TreeRmBlk;
 class rmblk;

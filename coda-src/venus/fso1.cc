@@ -582,7 +582,8 @@ void fsobj::Matriculate()
 void fsobj::Demote(void)
 {
     if (!HAVESTATUS(this) || DYING(this)) return;
-    if (IsMtPt() || IsFakeMTLink()) return;
+    //if (IsMtPt() || IsFakeMTLink()) return;
+    if (IsFakeMTLink()) return;
 
     LOG(10, ("fsobj::Demote: fid = (%s)\n", FID_(&fid)));
 
@@ -615,17 +616,9 @@ void fsobj::Kill(int TellServers)
 	RVMLIB_REC_OBJECT(state);
 	state = FsoDying;
 
-	ClearRcRights();
-	
-	if (IsDir())
-		DemoteAcRights(ALL_UIDS);
-	
 	/* Inform advice servers of loss of availability of this object */
 	/* NotifyUsersOfKillEvent(hdb_bindings, NBLOCKS(stat.Length)); */
-	
-	DetachHdbBindings();
-	
-	k_Purge(&fid, 1);
+	Demote();
 }
 
 
@@ -821,13 +814,16 @@ void fsobj::ReplaceStatusAndSHA(ViceStatus *vstat, vv_t *UpdateSet, RPC2_Bounded
 
     stat.Length = vstat->Length;
     stat.DataVersion = vstat->DataVersion;
-    if (vol->IsReplicated() || vol->IsReadWriteReplica()) {
-	if (UpdateSet == 0)
-	    stat.VV = vstat->VV;
-	else {
-	    stat.VV.StoreId = vstat->VV.StoreId;
-	    AddVVs(&stat.VV, UpdateSet);
-	}
+
+    /* nice optimization, but repair is looking at version vectors in not
+     * necessarily replicated volumes (although the IsReadWriteRep test should
+     * have matched in that case) */
+    //if (vol->IsReplicated() || vol->IsReadWriteReplica())
+    if (UpdateSet == 0)
+	stat.VV = vstat->VV;
+    else {
+	stat.VV.StoreId = vstat->VV.StoreId;
+	AddVVs(&stat.VV, UpdateSet);
     }
     stat.Date = vstat->Date;
     stat.Owner = (uid_t) vstat->Owner;
@@ -1202,7 +1198,6 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 	    return ELOOP;
 	}
     }
-
 
     /* Get volume root. */
     fsobj *rf = 0;
