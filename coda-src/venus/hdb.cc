@@ -2381,6 +2381,13 @@ void namectxt::CheckComponent(fsobj *f) {
 	/* If (f == 0) it must be an inconsistent object! */
 	if (f != 0)
 	    f->AttachHdbBinding(b);
+
+	/* did we get bound successfully? */
+	if (!b->bindee) {
+	    expansion.remove(&b->binder_handle);
+	    b->binder = NULL;
+	    delete b;
+	}
     }
 }
 

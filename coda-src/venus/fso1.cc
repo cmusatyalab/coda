@@ -1559,7 +1559,8 @@ void fsobj::DisableReplacement() {
 }
 
 
-int CheckForDuplicates(dlist *hdb_bindings_list, void *binder) {
+binding *CheckForDuplicates(dlist *hdb_bindings_list, void *binder)
+{
     /* If the list is empty, this can't be a duplicate */
     if (hdb_bindings_list == NULL)
         return(0);
@@ -1571,16 +1572,19 @@ int CheckForDuplicates(dlist *hdb_bindings_list, void *binder) {
 	binding *b = strbase(binding, d, bindee_handle);
 	if (b->binder == binder) {
 	  /* Found it! */
-	  return(1);
+	  return(b);
 	}
     }
 
     /* If we had found it, we wouldn't have gotten here! */
-    return(0);
+    return(NULL);
 }
 
 /* Need not be called from within transaction. */
-void fsobj::AttachHdbBinding(binding *b) {
+void fsobj::AttachHdbBinding(binding *b)
+{
+    binding *dup;
+
     /* Sanity checks. */
     if (b->bindee != 0) {
 	print(logFile);
@@ -1589,10 +1593,10 @@ void fsobj::AttachHdbBinding(binding *b) {
     }
 
     /* Check for duplicates */
-    if (CheckForDuplicates(hdb_bindings, b->binder) == 1) {
-      b->IncrRefCount();
-      LOG(100, ("This is a duplicate binding...skip it.\n"));
-      //      return;
+    if ((dup = CheckForDuplicates(hdb_bindings, b->binder))) {
+	dup->IncrRefCount();
+	LOG(100, ("This is a duplicate binding...skip it.\n"));
+	return;
     }
 
     if (LogLevel >= 1000) {
@@ -1601,7 +1605,7 @@ void fsobj::AttachHdbBinding(binding *b) {
     }
 
     /* Attach ourselves to the binding. */
-    if (hdb_bindings == 0)
+    if (!hdb_bindings)
 	hdb_bindings = new dlist;
     hdb_bindings->insert(&b->bindee_handle);
     b->bindee = this;
@@ -1705,7 +1709,7 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
 	int new_HoardPri = 0;
 	vuid_t new_HoardVuid = HOARD_UID;
     gettimeofday(&StartTV, 0);
-    LOG(0, ("Detach: hdb_binding list contains %d namectxts\n", hdb_bindings->count()));
+    LOG(10, ("Detach: hdb_binding list contains %d namectxts\n", hdb_bindings->count()));
 	dlist_iterator next(*hdb_bindings);
 	dlink *d;
 	while ((d = next())) {
@@ -1718,7 +1722,7 @@ void fsobj::DetachHdbBinding(binding *b, int DemoteNameCtxt) {
 	}
     gettimeofday(&EndTV, 0);
     elapsed = SubTimes(&EndTV, &StartTV);
-    LOG(0, ("fsobj::DetachHdbBinding: recompute, elapsed= %3.1f\n", elapsed));
+    LOG(10, ("fsobj::DetachHdbBinding: recompute, elapsed= %3.1f\n", elapsed));
 
 	if (new_HoardPri < HoardPri) {
 	    HoardPri = new_HoardPri;

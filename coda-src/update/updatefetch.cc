@@ -66,7 +66,6 @@ static void Connect();
 static void PrintHelp();
 static void ProcessArgs(int argc, char **argv);
 static void U_InitRPC();
-static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid);
 
 static char *LocalFileName = NULL, *RemoteFileName = NULL;
 
@@ -82,7 +81,6 @@ static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 
 int main(int argc, char **argv)
 {
-    struct timeval  time;
     FILE * file = NULL;
     int rc;
 
@@ -155,7 +153,6 @@ static void PrintHelp(){
 
 static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
 {
-    struct stat buff;
     RPC2_Unsigned time, newtime, currentsecs;
     RPC2_Integer currentusecs;
     long     rc;
@@ -223,7 +220,7 @@ static void Connect()
     bparms.SecurityLevel = RPC2_OPENKIMONO;
     bparms.SideEffectType = SMARTFTP;
 
-    if ( rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con)) {
+    if ((rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con))) {
         LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", (char *)ViceErrorMsg((int)rc));
 	exit (-1);
     }

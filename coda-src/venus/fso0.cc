@@ -141,7 +141,10 @@ void FSOInit() {
 #ifdef __BSD44__
 	struct dirent **namelist;
 	int nentries;
-	char *cwd,*abspath;
+	char *cwd,*abspath,*eos;
+	abspath = strncpy(abspath,cwd,MAXPATHLEN);
+	abspath = strncat(abspath,"/",2);
+	eos = abspath + strlen(abspath) + 1;
 
 	nentries = scandir(".", &namelist, 0, 0) ;
 	if (nentries < 0) CHOKE("FSOInit: scandir");
@@ -153,10 +156,7 @@ void FSOInit() {
 	/* Examine each entry and decide to keep or delete it */
 	for (i = 0; i < nentries; i++) {
 	    /* Don't unlink special files. */
-	    abspath = strncpy(abspath,cwd,MAXPATHLEN);
-	    abspath = strncat(abspath,"/",2);
-	    abspath = strncat(abspath,namelist[i]->d_name,
-			      MAXPATHLEN-strlen(cwd));
+	    abspath = strncpy(eos, namelist[i]->d_name, MAXPATHLEN-strlen(cwd));
 	    if (STREQ(namelist[i]->d_name, ".") ||
 		STREQ(namelist[i]->d_name, "..") ||
 		STREQ(namelist[i]->d_name, "lost+found") ||
@@ -164,11 +164,9 @@ void FSOInit() {
 		STREQ(namelist[i]->d_name, "pid"))
 		goto FREE_ENTRY;
 
-	    /* Don't unlink cache files. */
-	    int ix;
-	    if (namelist[i]->d_name[0] == 'V' &&
-		sscanf(namelist[i]->d_name, "V%d", &ix) == 1 &&
-		(ix >= 0 && ix < FSDB->MaxFiles))
+	    /* Don't unlink cache directories. */
+	    if (stat(namelist[i]->d_name, &statbuf) == 0 &&
+		S_ISDIR(statbuf.st_mode))
 		goto FREE_ENTRY;
 
 	    /* Garbage collect everything else. */
@@ -176,6 +174,7 @@ void FSOInit() {
 
 FREE_ENTRY: /* release entry from namelist */
 	    free(namelist[i]);
+	    *eos = '\0';
 	}
 	/* Free the array allocated by scandir() */
 	free(namelist);

@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /* from venus */
 #include "binding.h"
 #include "venus.private.h"

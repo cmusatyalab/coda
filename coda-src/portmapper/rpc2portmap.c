@@ -19,6 +19,7 @@ listed in the file CREDITS.
 /* main for rpc2portmap daemon */
 
 #include <unistd.h>
+#include <sys/param.h>
 #include "coda_assert.h"
 #include <netinet/in.h>
 #include <stdlib.h>
@@ -70,7 +71,7 @@ void InitRPC2(void)
 void
 ReadConfigFile()
 {
-    char    confname[MAXPATHLEN];
+    char confname[MAXPATHLEN];
 
     /* don't complain if config files are missing */
     codaconf_quiet = 1;

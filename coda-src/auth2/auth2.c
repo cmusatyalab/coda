@@ -54,6 +54,7 @@ extern "C" {
 #include <stdio.h>
 #include <sys/file.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
 #include <sys/time.h>
