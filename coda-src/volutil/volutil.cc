@@ -20,7 +20,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -47,7 +47,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <cvnode.h>
 #include <volume.h>
@@ -96,7 +96,7 @@ void VolUtilLWP(int *myindex) {
     RPC2_PacketBuffer *myrequest;
     RPC2_Handle	mycid;
     int lwpid;
-    register int rc;
+    int rc = 0;
     ProgramType *pt;
 
     /* using rvm - so set the per thread data structure for executing transactions */
@@ -127,22 +127,24 @@ void VolUtilLWP(int *myindex) {
 	mycid = 0;
 
 	rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, NULL,
-			(long (*)(...))VolGetKey, RPC2_XOR, NULL);
-	if (rc == RPC2_SUCCESS) {
-	    LogMsg(5, SrvDebugLevel, stdout, "VolUtilWorker %d received request %d",
-				lwpid, myrequest->Header.Opcode);
-
-	    rc = volUtil_ExecuteRequest((RPC2_Handle)mycid, myrequest, NULL);
-	    if (rc) {
-		LogMsg(0, SrvDebugLevel, stdout, "volutil lwp %d: request %d failed with %s",
-			lwpid, myrequest->Header.Opcode, ViceErrorMsg(rc));
-	    }
-	    if(rc <= RPC2_ELIMIT) {
-		RPC2_Unbind(mycid);
-	    }
-	}
-	else {
+			     VolGetKey, RPC2_XOR, NULL);
+	if (rc != RPC2_SUCCESS) {
 	   LogMsg(0, SrvDebugLevel, stdout,"RPC2_GetRequest failed with %s",ViceErrorMsg(rc));
+	   continue;
+	}
+
+	LogMsg(5, SrvDebugLevel, stdout, "VolUtilWorker %d received request %d",
+	       lwpid, myrequest->Header.Opcode);
+
+	rc = volUtil_ExecuteRequest((RPC2_Handle)mycid, myrequest, NULL);
+
+	if (rc) {
+	    LogMsg(0, SrvDebugLevel, stdout, "volutil lwp %d: request %d failed with %s",
+		   lwpid, myrequest->Header.Opcode, ViceErrorMsg(rc));
+	}
+
+	if(rc <= RPC2_ELIMIT) {
+	    RPC2_Unbind(mycid);
 	}
     }
 }

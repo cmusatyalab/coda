@@ -25,7 +25,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 #include <time.h>
@@ -34,6 +34,7 @@ extern "C" {
 
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <lwp/lwp.h>
 #include <rpc2/rpc2.h>
@@ -45,7 +46,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <olist.h>
 #include <resstats.h>

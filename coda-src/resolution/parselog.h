@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _PARSELOG_H_
 #define _PARSELOG_H_ 	1
 // compops.h
@@ -48,4 +44,4 @@ extern void DeallocateRemoteLogs(olist *);
 extern remoteloglist *FindLogList(he *, VnodeId, Unique_t);
 extern olist *FindRemoteLog(olist *, unsigned long , ViceFid *);
 
-#endif _PARSELOG_H_
+#endif /* _PARSELOG_H_ */

@@ -55,7 +55,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -88,7 +88,7 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <util.h>
 #include <vice_file.h>
@@ -349,7 +349,7 @@ static void Terminate()
     exit(0);
 }
 
-static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
+static long Update_GetKeys(RPC2_Integer authtype, RPC2_CountedBS *cident,
 			   RPC2_EncryptionKey sharedsecret,
 			   RPC2_EncryptionKey sessionkey)
 {
@@ -368,9 +368,9 @@ static long Update_GetKeys(RPC2_Integer *authtype, RPC2_CountedBS *cident,
     return 0;
 }
 
-static long Update_AuthFail(RPC2_Integer *authtype,
+static long Update_AuthFail(RPC2_Integer authtype,
 			    RPC2_CountedBS *cident,
-			    RPC2_Integer *encryptiontype,
+			    RPC2_Integer encryptiontype,
 			    RPC2_HostIdent *host,
 			    RPC2_PortIdent *port)
 {
@@ -396,8 +396,8 @@ static void ServerLWP(int *Ident)
 
     while (1) {
 	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0,
-				  (long (*)(...))Update_GetKeys, RPC2_XOR,
-				  (long (*)(...))Update_AuthFail))
+				  Update_GetKeys, RPC2_XOR,
+				  Update_AuthFail))
 		== RPC2_SUCCESS) {
 
 	    RPC2_GetPeerInfo(mycid, &peer);

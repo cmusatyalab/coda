@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*
  * compops.c
  *	routines for computing list of 
@@ -28,11 +24,13 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
+
 #include <stdio.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <util.h>
 #include <olist.h>
@@ -144,5 +142,4 @@ olist *FindRemoteLog(olist *AllLogs, unsigned long hostid,
     if (rllp) return(&rllp->slelist);
     else return(NULL);
 }
-
 

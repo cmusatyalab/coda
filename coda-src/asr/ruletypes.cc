@@ -22,7 +22,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -48,7 +48,7 @@ extern int wildmat(char *text, char *pattern);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 //C++ include files 
 #include <olist.h>

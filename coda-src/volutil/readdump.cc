@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*
  * A program to help decipher dump files. The basic idea is to have a command
  * interpreter (ci?) which provides commands to help a user poke around
@@ -29,7 +25,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/param.h>
 #include <stdio.h>
@@ -43,7 +39,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <util.h>
 #include <voltypes.h>

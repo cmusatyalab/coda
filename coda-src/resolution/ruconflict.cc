@@ -16,18 +16,16 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
+
 #include <stdio.h>
+
 #include <util.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <olist.h>
 #include <dlist.h>
@@ -101,8 +99,9 @@ int RUConflict(rsle *r, dlist *vlist, olist *AllLogs, ViceFid *dFid) {
 	return(rup.rcode);
     }
 }
-#undef FileRemove 0
-#undef DirRemove 1
+
+#undef FileRemove // 0
+#undef DirRemove  // 1
 
 int FileRUConf(rsle *r, Vnode *vptr) {
     ViceVersionVector *DeletedVV = &r->u.rm.cvv;

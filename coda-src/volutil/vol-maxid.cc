@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*****************************************
  * vol-maxid.c                           *
  * Get or set the maximum used volume id *
@@ -27,7 +23,8 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -41,9 +38,10 @@ extern "C" {
 #include <lwp/lock.h>
 #include <rpc2/rpc2.h>
 #include <volutil.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "cvnode.h"
 #include "volume.h"

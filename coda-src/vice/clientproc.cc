@@ -49,7 +49,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <netdb.h>
@@ -60,9 +60,10 @@ extern "C" {
 #include <prs.h>
 #include <al.h>
 #include <vice.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <srv.h>
 #include <vice.private.h>

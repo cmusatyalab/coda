@@ -203,7 +203,7 @@ class srvent : private RefCountedObject {
   friend void PutServer(srvent **);
   friend void ProbeServers(int);
   friend void ServerProbe(long *, long *);
-  friend long HandleProbe(int, RPC2_Handle *, long, long);
+  friend long HandleProbe(int, RPC2_Handle Handles[], long, long, ...);
   friend void CheckServerBW(long);
   friend void DownServers(char *, unsigned int *);
   friend void DownServers(int, struct in_addr *, char *, unsigned int *);
@@ -341,7 +341,7 @@ extern void ProbeServers(int);
 extern void DoProbes(int, struct in_addr *);
 extern void MultiBind(int, struct in_addr *, connent **);
 extern void MultiProbe(int, RPC2_Handle *);
-extern long HandleProbe(int, RPC2_Handle *, long, long);
+extern long HandleProbe(int, RPC2_Handle Handles[], long, long, ...);
 extern void ServerProbe(long * =0, long * =0);
 extern void DownServers(char *, unsigned int *);
 extern void DownServers(int, struct in_addr *, char *, unsigned int *);

@@ -49,4 +49,6 @@ extern int RUConflict(rsle *, dlist *, olist *, ViceFid *);
 extern int FileRUConf(rsle *, Vnode *);
 extern int FileRUConf(ViceVersionVector *, Vnode *);
 int NewDirRUConf(RUParm *, char *, long , long );
-#endif _RUCONFLICT_H_ 
+
+#endif /* _RUCONFLICT_H_ */
+

@@ -59,8 +59,6 @@ struct  getdiropParm {
 
 extern void UpdateRunts(res_mgrpent *, ViceVersionVector **, ViceFid *);
 extern int RuntExists(ViceVersionVector **, int, int *, int *);
-#endif _RES_FORCE_H
 
-
-
+#endif /* _RES_FORCE_H_ */
 

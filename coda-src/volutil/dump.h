@@ -98,4 +98,5 @@ extern int ReadVolumeDiskData(DumpBuffer_t *, VolumeDiskData *vol);
 extern int ReadVV(DumpBuffer_t *, vv_t *vv);
 extern int ReadFile(DumpBuffer_t *, FILE *);
 extern int EndOfDump(DumpBuffer_t *);
-#endif _DUMP_H_
+
+#endif /* _DUMP_H_ */

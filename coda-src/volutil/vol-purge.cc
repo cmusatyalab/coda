@@ -39,7 +39,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -59,7 +59,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <cvnode.h>
 #include <volume.h>

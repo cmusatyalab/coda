@@ -29,10 +29,9 @@ listed in the file CREDITS.
 #ifndef _VICE_COPPEND_H_
 #define _VICE_COPPEND_H_ 1
 
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <lwp/lock.h>
@@ -41,7 +40,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 #include <ohash.h>
@@ -84,7 +83,7 @@ class cpman {
     int func(int);
     
     friend void InitCopPendingTable();
-    friend cpent;
+    friend class cpent;
     friend void AddPairToCopPendingTable(ViceStoreId *, ViceFid *);
     cpent *find(ViceStoreId *);
 
@@ -102,4 +101,5 @@ extern cpman *CopPendingMan;
 extern void InitCopPendingTable();
 extern void AddToCopPendingTable(ViceStoreId *, ViceFid *);
 extern void AddPairToCopPendingTable(ViceStoreId *, ViceFid *);
-#endif not _VICE_COPPEND_H
+
+#endif /* _VICE_COPPEND_H_ */

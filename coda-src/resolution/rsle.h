@@ -16,12 +16,9 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _RSLE_H
 #define _RSLE_H 	1
+
 /* 
  * class SpoolListEntry(rsle - r stands for rvm to 
  *			distinguish this from the sle 
@@ -33,12 +30,13 @@ listed in the file CREDITS.
  */
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdarg.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <olist.h>
 #include "ops.h"
@@ -86,4 +84,6 @@ class rsle : public olink {
 extern int ExtractVNTypeFromrsle(rsle *);
 extern void ExtractChildFidFromrsle(rsle *, ViceFid *);
 extern char *ExtractNameFromrsle(rsle *);
-#endif _RSLE_H
+
+#endif /* _RSLE_H_ */
+

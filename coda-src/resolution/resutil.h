@@ -184,4 +184,4 @@ extern int IsWeaklyEqual(ViceVersionVector **, int);
 extern int WERes(ViceFid *, ViceVersionVector **, ResStatus **,
 		 res_mgrpent *, unsigned long *);
 
-#endif not _RESUTIL_H_
+#endif /* _RESUTIL_H_ */

@@ -30,7 +30,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -46,7 +46,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "timing.h"
 
@@ -108,9 +108,9 @@ void timing_path::insert(int id) {
 	arr[nentries].tv.tv_sec = 0;
 	ioctl(clockFD, NSC_GET_COUNTER, &arr[nentries].tv.tv_usec);
     }
-#else _NSC_TIMING_    
+#else /* _NSC_TIMING_ */
     gettimeofday(&arr[nentries].tv, NULL);
-#endif _NSC_TIMING_
+#endif
     nentries++;
 }
 
@@ -161,7 +161,7 @@ void timing_path::postprocess(int fd) {
 		    arr[nentries-1].id, arr[0].id, difft.tv_sec, difft.tv_usec);
 	    write(fd, buf, strlen(buf));
 	}
-#else _NSC_TIMING_	
+#else /* _NSC_TIMING_ */
 	for (int i = 1; i < nentries; i++) {
 	    tvaminustvb(&arr[i].tv, &arr[i-1].tv, &difft);
 	    sprintf(buf, 
@@ -176,6 +176,6 @@ void timing_path::postprocess(int fd) {
 		    arr[nentries-1].id, arr[0].id, difft.tv_sec, difft.tv_usec);
 	    write(fd, buf, strlen(buf));
 	}
-#endif _NSC_TIMING_	
+#endif /* _NSC_TIMING_ */
     }
 }

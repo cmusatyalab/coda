@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  * This module holds routines which lock and unlock volumes for volutil.
  * Currently these routines are only used as part of the backup mechanism.
@@ -28,7 +23,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -42,9 +37,10 @@ extern "C" {
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 #include <volutil.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <util.h>
 #include <vice.h>

@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* rescomm.h
  * Communication management for resolution subsystem
  * Created Puneet Kumar, June 1990
@@ -31,13 +25,13 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <rpc2/rpc2.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <olist.h>
 #include <dlist.h>
@@ -214,4 +208,4 @@ class conninfo_iterator : public olist_iterator {
 
 #define RESCOMM_MAXBSLEN 2048
 
-#endif not _RES_COMM_H_
+#endif /* _RES_COMM_H_ */

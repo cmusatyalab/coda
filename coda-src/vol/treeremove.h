@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 #ifndef _VOL_TREEREMOVE_H_
 #define _VOL_TREEREMOVE_H_ 1
 
@@ -68,4 +63,4 @@ class TreeRmBlk {
 
 extern int PerformTreeRemoval(PDirEntry, void *);
 
-#endif _VOL_TREEREMOVE_H_
+#endif /* _VOL_TREEREMOVE_H_ */

@@ -35,6 +35,10 @@ extern "C" {
 #include <rpc2/rpc2.h>
 #include <rpc2/se.h>
 
+/* For VENUS_CallBackFetch prototype */
+#include <callback.h>
+#include <codadir.h>
+
 #ifdef __cplusplus
 }
 #endif

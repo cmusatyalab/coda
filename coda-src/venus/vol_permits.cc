@@ -25,7 +25,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -41,7 +41,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vice.h>

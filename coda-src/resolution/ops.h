@@ -16,16 +16,12 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _OPS_H
 #define _OPS_H 1
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <unistd.h>
@@ -34,7 +30,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <olist.h>
 #include <dlist.h>
@@ -62,4 +58,4 @@ extern void DumpLog(rec_dlist *, Volume *, char **, int *, int *);
 // temporary  - should go to rvmrescoord.h
 extern long RecovDirResolve(res_mgrpent *, ViceFid *, ViceVersionVector **, ResStatus **, int *);
 extern int CheckAndPerformRename(rsle *, Volume *, VolumeId, ViceFid *, dlist *, olist *, dlist *, int *);
-#endif _OPS_H
+#endif /* _OPS_H_ */

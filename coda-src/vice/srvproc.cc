@@ -49,7 +49,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -70,7 +70,8 @@ extern "C" {
 
 #ifdef _TIMECALLS_
 #include "histo.h"
-#endif _TIMECALLS_
+#endif
+
 #include <partition.h>
 #include <util.h>
 #include <prs.h>
@@ -78,9 +79,10 @@ extern "C" {
 #include <callback.h>
 #include <vice.h>
 #include <cml.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <volume.h>
 #include <srv.h>
@@ -906,9 +908,7 @@ long FS_ViceVCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
     vle *cv = 0;
 
 START_TIMING(Create_Total);
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(Create_Total);
-#endif _TIMECALLS_
+
     SLog(1, "ViceCreate: %s, %s", FID_(Did), Name);
 
     /* Validate parameters. */
@@ -1025,9 +1025,6 @@ START_TIMING(Create_Total);
 
     SLog(2, "ViceCreate returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Create_Total);
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(Create_Total);
-#endif _TIMECALLS_
 
     Fid->Volume	= VSGVolnum;	    /* Fid is an IN/OUT parameter; re-translate it. */
     return(errorCode);
@@ -1057,9 +1054,6 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     vle *cv = 0;
 
     START_TIMING(Remove_Total);
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(Remove_Total);
-#endif _TIMECALLS_
 
     SLog(1, "ViceRemove: %s, %s", FID_(Did), Name);
 
@@ -1157,9 +1151,6 @@ FreeLocks:
 
     SLog(2, "ViceRemove returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Remove_Total);
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(Remove_Total);
-#endif _TIMECALLS_
     
     return(errorCode);
 }
@@ -1187,9 +1178,6 @@ long FS_ViceVLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     int deltablocks = 0;
 
 START_TIMING(Link_Total);
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(Link_Total);
-#endif _TIMECALLS_
     
     SLog(1, "ViceLink: %s, %s --> %s", FID_(Did), Name, FID_2(Fid));
 
@@ -1281,9 +1269,6 @@ FreeLocks:
 
     SLog(2, "ViceLink returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Link_Total);
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(Link_Total);
-#endif _TIMECALLS_
     
     return(errorCode);
 }
@@ -1320,9 +1305,6 @@ long FS_ViceVRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
     vle *sv = 0;
     vle *tv = 0;
 START_TIMING(Rename_Total);
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(Rename_Total);
-#endif _TIMECALLS_
     
     SLog(1, "ViceRename: (%x.%x.%x), %s --> (%x.%x.%x), %s",
 	    OldDid->Volume, OldDid->Vnode, OldDid->Unique, OldName,
@@ -1494,9 +1476,7 @@ FreeLocks:
 
     SLog(2, "ViceRename returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Rename_Total);
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(Rename_Total);
-#endif _TIMECALLS_
+
     return(errorCode);
 }
 
@@ -1523,9 +1503,7 @@ long FS_ViceVMakeDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     vle *cv = 0;
 
 START_TIMING(MakeDir_Total);
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(MakeDir_Total);
-#endif _TIMECALLS_
+
     SLog(1, "ViceMakeDir: %s, %s", FID_(Did), Name);
     
     /* Validate parameters. */
@@ -1648,10 +1626,8 @@ FreeLocks:
     }
 
     SLog(2, "ViceMakeDir returns %s", ViceErrorMsg(errorCode));
+
 END_TIMING(MakeDir_Total);
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(MakeDir_Total);
-#endif _TIMECALLS_
     
     NewDid->Volume = VSGVolnum;		/* NewDid is an IN/OUT paramter; re-translate it. */
     return(errorCode);
@@ -1682,10 +1658,8 @@ long FS_ViceVRemoveDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     vle *cv = 0;
 
 START_TIMING(RemoveDir_Total);
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(RemoveDir_Total)
-#endif _TIMECALLS_
-	    SLog(1, "ViceRemoveDir: %s, %s", FID_(Did), Name);
+
+    SLog(1, "ViceRemoveDir: %s, %s", FID_(Did), Name);
 
     /* Validate parameters. */
     {
@@ -1784,9 +1758,6 @@ FreeLocks:
 
     SLog(2, "ViceRemoveDir returns %s", ViceErrorMsg(errorCode));
 END_TIMING(RemoveDir_Total);
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(RemoveDir_Total);
-#endif _TIMECALLS_
     
     return(errorCode);
 }
@@ -1821,9 +1792,6 @@ long FS_ViceVSymLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String NewName,
     vle *cv = 0;
 
 START_TIMING(SymLink_Total);
-#ifdef _TIMECALLS_
-    START_NSC_TIMING(SymLink_Total);
-#endif _TIMECALLS_
 
     SLog(1, "ViceSymLink: (%x.%x.%x), %s --> %s",
 	    Did->Volume, Did->Vnode, Did->Unique, NewName, OldName);
@@ -1940,9 +1908,7 @@ FreeLocks:
 
     SLog(2, "ViceSymLink returns %s", ViceErrorMsg(errorCode));
 END_TIMING(SymLink_Total);
-#ifdef _TIMECALLS_
-    END_NSC_TIMING(SymLink_Total);
-#endif _TIMECALLS_
+
     Fid->Volume	= VSGVolnum;		/* Fid is an IN/OUT parameter; re-translate it. */
     return(errorCode);
 }
@@ -2236,10 +2202,10 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 		}
 
 		/*
-		  START_TIMING(CopyOnWrite_idec);
+		  START_NSC_TIMING(CopyOnWrite_idec);
 		  CODA_ASSERT(!(idec(V_device(volptr), 
 		  vptr->disk.inodeNumber, V_parentId(volptr))));
-		  END_TIMING(CopyOnWrite_idec);
+		  END_NSC_TIMING(CopyOnWrite_idec);
 		*/
 
 		vptr->disk.inodeNumber = ino;
@@ -4400,8 +4366,7 @@ END_NSC_TIMING(PutObjects_TransactionEnd);\
 #define rvmlib_end_transaction(flush, &(status)); \
     rvmlib_end_transaction(flush, (&(status)))
 
-
-#endif _TIMEPUTOBJS_
+#endif /* _TIMEPUTOBJS_ */
 
 /*
   PutObjects: Update and release vnodes, volume, directory data
@@ -4432,8 +4397,8 @@ void PutObjects(int errorCode, Volume *volptr, int LockLevel,
 
 START_TIMING(PutObjects_Transaction);
 #ifdef _TIMEPUTOBJS_
-    START_NSC_TIMING(PutObjects_Transaction);
-#endif _TIMEPUTOBJS_
+    START_NSCTIMING(PutObjects_Transaction);
+#endif
 
     /* Separate branches for Mutating and Non-Mutating cases are to
        avoid transaction in the latter. */
@@ -4588,14 +4553,15 @@ START_TIMING(PutObjects_Transaction);
     }
 END_TIMING(PutObjects_Transaction);
 #ifdef _TIMEPUTOBJS_
-    END_NSC_TIMING(PutObjects_Transaction);
-#endif _TIMEPUTOBJS_    
+END_NSC_TIMING(PutObjects_Transaction);
+#endif
 
     /* Post-transaction: handle inodes and clean-up the vlist. */
 START_TIMING(PutObjects_Inodes); 
 #ifdef _TIMEPUTOBJS_
-    START_NSC_TIMING(PutObjects_Inodes);
-#endif _TIMEPUTOBJS_    
+START_NSC_TIMING(PutObjects_Inodes);
+#endif
+
     if (vlist) {
 	vle *v;
 	int count = 0;
@@ -4639,10 +4605,10 @@ START_TIMING(PutObjects_Inodes);
 	delete vlist;
 	vlist = 0;
     }
-#ifdef _TIMEPUTOBJS_
-    END_NSC_TIMING(PutObjects_Inodes);
-#endif _TIMEPUTOBJS_    
 END_TIMING(PutObjects_Inodes);
+#ifdef _TIMEPUTOBJS_
+END_NSC_TIMING(PutObjects_Inodes);
+#endif
 
     SLog(10, "PutObjects: returning %s", ViceErrorMsg(0));
 }

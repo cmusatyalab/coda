@@ -18,7 +18,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -45,7 +45,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
 #ifndef INADDR_LOOPBACK
@@ -62,7 +62,7 @@ void CheckTheMariner(char *);
 
 int use_tcp = 0;
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int running = 1;
     int venusSocket;

@@ -82,6 +82,7 @@ extern int global_kernfd;
 
 /* from coda include again, must appear AFTER venus.private.h */
 
+
 /*  *****  Constants  ***** */
 
 #define	FSDB	(rvg->recov_FSDB)

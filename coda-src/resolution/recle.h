@@ -208,6 +208,5 @@ class setquota_rle {
     void print(int);
 };
 
-#endif _RECLE_H
-
+#endif /* _RECLE_H_ */
 

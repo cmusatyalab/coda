@@ -16,7 +16,8 @@ listed in the file CREDITS.
 
 #*/
 
-
+#ifndef _TIMECALLS_H_
+#define _TIMECALLS_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,7 +48,9 @@ extern struct hgram Rename_Total_hg, MakeDir_Total_hg,
 #define NSC_GET_COUNTER         _IOR(c, 1, long)
 #endif  __STDC__
 
-#define START_NSC_TIMING(id)	unsigned long a/**/id, b/**/id;			\
+#ifdef _TIMECALLS_
+#define START_NSC_TIMING(id) START_TIMING(id) \
+			unsigned long a/**/id, b/**/id;			\
                         float timediff/**/id;					\
                         struct timeval after/**/id, before/**/id;		\
                         { 		                                        \
@@ -57,7 +60,7 @@ extern struct hgram Rename_Total_hg, MakeDir_Total_hg,
 			       gettimeofday(&before/**/id, 0);			\
 			}
 
-#define END_NSC_TIMING(id) {							\
+#define END_NSC_TIMING(id) { END_TIMING(id) \
 			    if (clockFD > 0) {					\
 			        ioctl(clockFD, NSC_GET_COUNTER, &a/**/id);	\
 				if (a/**/id > b/**/id)				\
@@ -72,4 +75,10 @@ extern struct hgram Rename_Total_hg, MakeDir_Total_hg,
 			    }							\
 				UpdateHisto(&id/**/_hg, (double)timediff/**/id);\
 			  }
+#else /* !_TIMECALLS_ */
+#define START_NSC_TIMING(id) START_TIMING(id)
+#define END_NSC_TIMING(id) END_TIMING(id)
+#endif
+
+#endif /* _TIMECALLS_H_ */
 

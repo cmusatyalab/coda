@@ -979,7 +979,6 @@ Volume *VGetVolume(Error *ec, VolumeId volumeId)
 {
     Volume *vp;
     ProgramType *pt;
-    struct stat status;	/* temp debugging stuff */
     int headerExists = 0;
 
     VLog(9, "Entering VGetVolume for volume %x", volumeId);

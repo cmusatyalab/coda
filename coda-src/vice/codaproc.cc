@@ -28,7 +28,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -55,9 +55,10 @@ extern "C" {
 #include <prs.h>
 #include <al.h>
 #include <vice.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <vmindex.h>
 #include <srv.h>
@@ -808,7 +809,7 @@ int CheckFileRepairSemantics(vle *ov, vle *pv, Volume *volptr,
 	    return(EACCES);
 	}
     }
-#endif notdef
+#endif
     return(0);
 }
 

@@ -16,17 +16,15 @@ listed in the file CREDITS.
 
 #*/
 
-
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 extern int print_heap();
     
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 void show_heap(int arc, char *argv[]) {
     print_heap();

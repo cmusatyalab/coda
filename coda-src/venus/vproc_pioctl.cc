@@ -27,7 +27,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -46,7 +46,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vice.h>
@@ -462,9 +462,9 @@ OI_FreeLocks:
 	case VIOC_SYNCCACHE:
 	case VIOC_REDIR:
 	    {
-#ifdef    TIMING
+#ifdef TIMING
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
-#endif    TIMING
+#endif
 	    volent *v = 0;
 	    if ((u.u_error = VDB->Get(&v, fid->Volume)) != 0) break;
 
@@ -918,11 +918,11 @@ OI_FreeLocks:
 V_FreeLocks:
 	    if (entered) v->Exit(volmode, CRTORUID(u.u_cred));
  	    float elapsed = 0.0;
-#ifdef	    TIMING
+#ifdef TIMING
  	    
 	    gettimeofday(&u.u_tv2, 0);
 	    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
-#endif      TIMING
+#endif
 
 	    VDB->Put(&v);
 	    }

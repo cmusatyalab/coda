@@ -3305,6 +3305,8 @@ Exit:
 static int RLE_Size(ARG *ArgTypes ...) 
 {
     int len = 0;
+    ARG *a_types;
+    PARM *args;
 
     va_list ap;
     va_start(ap, ArgTypes);
@@ -3314,8 +3316,9 @@ static int RLE_Size(ARG *ArgTypes ...)
      * are "big"!).  So we mislead it to get the four bytes off the
      * stack sans dereferencing.  */
 
-    PARM *args = (PARM *) &(va_arg(ap, unsigned long));
-    for	(ARG *a_types =	ArgTypes; a_types->mode	!= C_END; a_types++, args = (PARM *) &(va_arg(ap, unsigned long))) {
+    for	(a_types = ArgTypes; a_types->mode != C_END; a_types++)
+    {
+	args = (PARM *)va_arg(ap, unsigned long);
 	LOG(1000, ("RLE_Size: a_types = [%d %d %d %x], args = (%x %x)\n",
 		   a_types->mode, a_types->type, a_types->size, a_types->field,
 		   args, *args));
@@ -3323,15 +3326,12 @@ static int RLE_Size(ARG *ArgTypes ...)
 	if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
 	    continue;
 
-	/* Extra level of indirection for IN/OUT args! */
-	PARM *targs = (PARM *)&args;
-	PARM *xargs = ( a_types->mode == IN_OUT_MODE) ? targs : args;
-
-	a_types->bound = 0;
 	if (a_types->type == RPC2_STRUCT_TAG)
-	    len += struct_len(&a_types, &xargs);
-	else
-	    len += get_len(&a_types, &xargs, a_types->mode);
+	    len += struct_len(&a_types, &args);
+	else {
+	    a_types->bound = 0;
+	    len += get_len(&a_types, &args, a_types->mode);
+	}
     }
 
     va_end(ap);
@@ -3341,13 +3341,16 @@ static int RLE_Size(ARG *ArgTypes ...)
 
 /* Pack a ReintegrationLog Entry. */
 /* Patterned after code in MRPC_MakeMulti(). */
-static void RLE_Pack(PARM **ptr, ARG *ArgTypes ...) {
+static void RLE_Pack(PARM **ptr, ARG *ArgTypes ...)
+{
+    ARG *a_types;
+    PARM *args;
     va_list ap;
     va_start(ap, ArgTypes);
 
     /* see comment about GNU C above. */
-    PARM *args = (PARM *) &(va_arg(ap, unsigned long));
-    for	(ARG *a_types =	ArgTypes; a_types->mode	!= C_END; a_types++, args = (PARM *) &(va_arg(ap, unsigned long))) {
+    for	(ARG *a_types =	ArgTypes; a_types->mode	!= C_END; a_types++) {
+	args = (PARM *) va_arg(ap, unsigned long);
 	LOG(1000, ("RLE_Pack: a_types = [%d %d %d %x], ptr = (%x %x %x), args = (%x %x)\n",
 		   a_types->mode, a_types->type, a_types->size, a_types->field,
 		   ptr, *ptr, **ptr, args, *args));
@@ -3355,14 +3358,10 @@ static void RLE_Pack(PARM **ptr, ARG *ArgTypes ...) {
 	if (a_types->mode != IN_MODE && a_types->mode != IN_OUT_MODE)
 	    continue;
 
-	/* Extra level of indirection for IN/OUT args! */
-	PARM *targs = (PARM *)&args;
-	PARM *xargs = (a_types->mode == IN_OUT_MODE) ? targs : args;
-
 	if (a_types->type == RPC2_STRUCT_TAG)
-	    pack_struct(a_types, &xargs, (PARM **)ptr);
+	    pack_struct(a_types, &args, (PARM **)ptr);
 	else
-	    pack(a_types, &xargs, (PARM **)ptr);
+	    pack(a_types, &args, (PARM **)ptr);
     }
 
     va_end(ap);

@@ -916,7 +916,7 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles)
     MULTI_START_MESSAGE(ViceGetTime_OP);
     int code = (int) MRPC_MakeMulti(ViceGetTime_OP, ViceGetTime_PTR,
 			       HowMany, Handles, (RPC2_Integer *)0, 0,
-			       (long (*)())&HandleProbe, 0, secs_ptrs, usecs_ptrs);
+			       HandleProbe, 0, secs_ptrs, usecs_ptrs);
     MULTI_END_MESSAGE(ViceGetTime_OP);
     MarinerLog("fetch::probe done\n");
 
@@ -931,7 +931,7 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles)
 }
 
 
-long HandleProbe(int HowMany, RPC2_Handle *Handles, long offset, long rpcval)
+long HandleProbe(int HowMany, RPC2_Handle Handles[], long offset, long rpcval, ...)
 {
     RPC2_Handle RPCid = Handles[offset];
 

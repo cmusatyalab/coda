@@ -16,17 +16,13 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 /*
  * Module to define a dump file stream class, with dedicated functions
  * to get and put information into it.
  */
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -42,7 +38,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <voltypes.h>
 #include <vcrcommon.h>

@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /* vol-dumpmem.c 
   * utility to dump out an image of a memory chunk
   */
@@ -28,7 +23,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <ctype.h>
 #include <sys/param.h>
@@ -47,9 +42,10 @@ extern "C" {
 #include <lwp/lock.h>
 #include <rpc2/rpc2.h>
 #include <volutil.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <util.h>
 #include <vice.h>

@@ -24,7 +24,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -45,7 +45,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vice.h>
@@ -162,14 +162,14 @@ vproc *VprocSelf() {
 
 
 void VprocWait(char *addr) {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    CHOKE("VprocWait: in transaction (tid = %x)", _rvm_data->tid);
     }
-#endif	VENUSDEBUG
+#endif
 
     int lwprc = LWP_WaitProcess(addr);
     if (lwprc != LWP_SUCCESS)
@@ -179,14 +179,14 @@ void VprocWait(char *addr) {
 
 
 void VprocMwait(int wcount, char **addrs) {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    CHOKE("VprocMwait: in transaction (tid = %x)", _rvm_data->tid);
     }
-#endif	VENUSDEBUG
+#endif
 
     int lwprc = LWP_MwaitProcess(wcount, addrs);
     if (lwprc != LWP_SUCCESS)
@@ -196,14 +196,14 @@ void VprocMwait(int wcount, char **addrs) {
 
 
 void VprocSignal(char *addr, int yield) {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     if (yield) {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    CHOKE("VprocSignal: in transaction (tid = %x)", _rvm_data->tid);
     }
-#endif	VENUSDEBUG
+#endif
 
     int lwprc = (yield ? LWP_SignalProcess(addr) : LWP_NoYieldSignal(addr));
     if (lwprc != LWP_SUCCESS && lwprc != LWP_ENOWAIT)
@@ -218,28 +218,28 @@ void VprocSignal(char *addr, int yield) {
 
 
 void VprocSleep(struct timeval *delay) {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    CHOKE("VprocSleep: in transaction (tid = %x)", _rvm_data->tid);
     }
-#endif	VENUSDEBUG
+#endif
 
     IOMGR_Select(0, NULL, NULL, NULL, delay);
 }
 
 
 void VprocYield() {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    CHOKE("VprocYield: in transaction (tid = %x)", _rvm_data->tid);
     }
-#endif	VENUSDEBUG
+#endif
 
     /* Do a polling select first to make vprocs with pending I/O runnable. */
     (void)IOMGR_Poll();
@@ -254,14 +254,14 @@ void VprocYield() {
 
 int VprocSelect(int nfds, int *readfds, int *writefds, int *exceptfds,
 		struct timeval *timeout) {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     {
 	/* Sanity-check: vproc must not context-switch in mid-transaction! */
 	rvm_perthread_t *_rvm_data = rvmlib_thread_data();
 	if (_rvm_data && _rvm_data->tid != 0)
 	    CHOKE("VprocSelect: in transaction (tid = %x)", _rvm_data->tid);
     }
-#endif	VENUSDEBUG
+#endif
 
     return(IOMGR_Select(nfds, (fd_set *)readfds, (fd_set *)writefds,
 			(fd_set *)exceptfds, timeout));
@@ -542,9 +542,9 @@ void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode)
 	(volmode == 
 	 /*VM_UNSET*/-1 ? VFSOP_TO_VOLMODE(vfsop) : volmode);
     u.u_vfsop = vfsop;
-#ifdef	TIMING
+#ifdef TIMING
     gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
-#endif	TIMING
+#endif
 
     /* Kick out non-ASR processes if an ASR is running */
     if (u.u_vol->IsReplicated() && (vfsop != CODA_RESOLVE) && 
@@ -681,7 +681,7 @@ void vproc::End_VFS(int *retryp) {
 Exit:
 #ifdef TIMING
     gettimeofday(&u.u_tv2, 0);
-#endif TIMING
+#endif
 
     /* Update VFS statistics. */
     if (u.u_vfsop >= 0 && u.u_vfsop < NVFSOPS) {
@@ -693,11 +693,11 @@ Exit:
 		t->retry++;
 	    else {
 		t->success++;
-#ifdef	TIMING
+#ifdef TIMING
 		elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 		t->time += (double)elapsed;
 		t->time2 += (double)(elapsed * elapsed);
-#endif	TIMING
+#endif
 	    }
 	}
 	else if (u.u_error == ETIMEDOUT)

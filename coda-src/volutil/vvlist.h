@@ -67,4 +67,4 @@ extern void ListVV(int fd, int vnode, VnodeDiskObject *vnp,
 		   unsigned int dumplevel);
 extern void getlistfilename(char *, VolumeId, VolumeId, char *);
 
-#endif  _VVLIST_H_
+#endif /* _VVLIST_H_ */

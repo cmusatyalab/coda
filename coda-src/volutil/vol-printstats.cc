@@ -16,13 +16,9 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 
@@ -33,9 +29,10 @@ extern "C" {
 #include <lwp/lock.h>
 #include <rpc2/rpc2.h>
 #include <volutil.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <util.h>
 #include <srv.h>

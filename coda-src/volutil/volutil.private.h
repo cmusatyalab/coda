@@ -55,4 +55,4 @@ Pittsburgh, PA.
 
 extern void PrintVersionVector(FILE *outfile, vv_t vv);
 
-#endif _VOLUTIL_PRIVATE_H_
+#endif /* _VOLUTIL_PRIVATE_H_ */

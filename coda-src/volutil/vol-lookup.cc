@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* lookup.c
    Manual lookup of volume location data base information 
    for a particular volume.
@@ -29,7 +23,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -55,9 +49,10 @@ extern "C" {
 #include <rvmlib.h>
 
 #include <volutil.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <voltypes.h>
 #include <vice.h>

@@ -22,9 +22,10 @@ listed in the file CREDITS.
 
 #ifndef _RULETYPES_H_
 #define _RULETYPES_H_
+
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -39,7 +40,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 //C++ include files 
 #include <olist.h>
@@ -140,4 +141,4 @@ class rule_t : public olink {
 
 // exportable routines 
 extern void expandstring(char *, char *, char *);
-#endif _RULETYPES_H_
+#endif /* _RULETYPES_H_ */

@@ -16,9 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /*
  *
  *    Implementation of the Venus Resolve facility.
@@ -30,7 +27,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <struct.h>
@@ -42,7 +39,7 @@ extern "C" {
 #include <vice.h>
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 /* from util */
@@ -61,7 +58,7 @@ extern "C" {
 #ifdef VENUSDEBUG
 int resent::allocs = 0;
 int resent::deallocs = 0;
-#endif VENUSDEBUG
+#endif
 
 void repvol::Resolve()
 {
@@ -222,9 +219,9 @@ resent::resent(ViceFid *Fid) {
     result = -1;
     refcnt = 0;
 
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 
@@ -244,9 +241,9 @@ int resent::operator=(resent& r) {
 
 
 resent::~resent() {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     deallocs++;
-#endif	VENUSDEBUG
+#endif
 
     LOG(10, ("resent::~resent: fid = (%x.%x.%x)\n",
 	      fid.Volume, fid.Vnode, fid.Unique));

@@ -26,14 +26,14 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/time.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 #define TIMEGROWSIZE 10
@@ -110,4 +110,4 @@ if (pathtiming && probingon && (info)) \
 #define CPHASE3BEGIN	27
 #define CPHASE3END	28
 
-#endif _RVMRES_TIMING_H
+#endif /* _RVMRES_TIMING_H_ */

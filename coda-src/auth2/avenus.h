@@ -13,10 +13,14 @@ listed in the file CREDITS.
 
                         Additional copyrights
                            none currently
-
 #*/
 
+#ifndef _AVENUS_H_
+#define _AVENUS_H_
 
 int U_DeleteLocalTokens();
 int U_GetLocalTokens(ClearToken *cToken, EncryptedSecretToken sToken);
 int U_SetLocalTokens(int setPag, ClearToken *cToken, EncryptedSecretToken sToken);
+
+#endif /* _AVENUS_H_ */
+

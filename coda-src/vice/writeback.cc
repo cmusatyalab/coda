@@ -28,7 +28,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -50,9 +50,10 @@ extern "C" {
 #include <prs.h>
 #include <al.h>
 #include <vice.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <vmindex.h>
 #include <srv.h>
@@ -398,8 +399,7 @@ int CheckWriteBack(ViceFid * Fid,ClientEntry * client) {
     if (rc == RPC2_SUCCESS) {
 	SLog(1, "CheckWriteBack: Modifications reintegrated to %x",myVid);
     } else {
-	SLog(1, "CheckWriteBack: Permit revocation failed on %x with error
-	     %d",myVid,rc);
+	SLog(1, "CheckWriteBack: Permit revocation failed on %x with error %d",myVid,rc);
     }
 
 FreeLocks:

@@ -16,9 +16,9 @@ listed in the file CREDITS.
 
 #*/
 
+#include <venusvol.h>
 #include "adv_monitor.h"
 #include "adv_daemon.h"
-#include <venusvol.h>
 
 int SkkEnabled = 1;
 int ASRallowed = 1;
@@ -62,12 +62,12 @@ void AdviceInit() {
 
   /* Start up the AM servers. */
   for (int i = 0; i < max_daemons; i++) 
-    (void) new adv_daemon;
+      adv_daemon *x = new adv_daemon;
 
   LOG(100, ("L AdviceInit()\n"));
 }
 
-adv_daemon::adv_daemon() :
+adv_daemon::adv_daemon(void) :
     vproc("AdviceServer", NULL, VPT_AdviceDaemon, AdviceDaemonStackSize)
 {
 

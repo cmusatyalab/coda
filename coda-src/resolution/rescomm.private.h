@@ -22,7 +22,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 extern void ResProcWait(char *);
 extern void ResProcSignal(char *, int = 0);
@@ -39,5 +39,5 @@ extern void ResProcSignal(char *, int = 0);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 

@@ -39,7 +39,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -58,9 +58,11 @@ extern "C" {
 #include <rvmlib.h>
 
 #include <volutil.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
+
 #include <srv.h>
 #include <vice.h>
 #include <cvnode.h>

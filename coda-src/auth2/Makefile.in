@@ -79,7 +79,7 @@ DEPLIBS = ${LIBAL} ${LIBUTIL} ${LIBKERNDEP} ${LIBAUSER} ${LIBBASE}
 LIBS := ${DEPLIBS} ${LIBRPC2} ${LIBLWP} ${LIBS}
 
 LIBRARIES   = libauth2.a libauser.a
-HEADERS     = avenus.h
+HEADERS     = avenus.h avice.h
 OBJS = auth2.client.o auth2.server.o auth2.multi.o au.o auser.o avenus.o avice.o initpw.o
 
 include $(TOPDIR)/configs/Makerules

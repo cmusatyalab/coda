@@ -56,8 +56,8 @@ class adv_daemon : public vproc {
   RPC2_Handle handle;
   RPC2_PacketBuffer *packet;
 
-  adv_daemon();
-  ~adv_daemon();
+  adv_daemon(void);
+  ~adv_daemon(void);
 
  protected:
   virtual void main(void); /* entry point */

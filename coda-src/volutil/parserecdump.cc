@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  *  parserecdump: parses dumped array of recoverable storage used
  *  by a server.
@@ -29,7 +24,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -41,13 +36,13 @@ extern "C" {
 #include <sys/file.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include "coda_assert.h"
 
-
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include "vol-dumprecstore.h"
 

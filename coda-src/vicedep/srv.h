@@ -53,6 +53,7 @@ extern "C" {
 #include <lwp/lock.h>
 #include <rpc2/rpc2.h>
 #include <rpc2/errors.h>
+
 #ifdef __cplusplus
 }
 #endif
@@ -244,8 +245,9 @@ if ((t1).microseconds < (t2).microseconds){	\
 #ifdef CODA_DEBUG
 #define	START_TIMING(id)\
     struct timeval start##id, end##id;\
-    if(SrvDebugLevel > 1)\
+    if(SrvDebugLevel > 1) \
 	gettimeofday(&start##id, 0);
+
 #define END_TIMING(id)\
     if(SrvDebugLevel > 1)\
 	gettimeofday(&end##id, 0);\
@@ -255,7 +257,6 @@ if ((t1).microseconds < (t2).microseconds){	\
 #define	START_TIMING(id)
 #define END_TIMING(id)
 #endif
-
 
 /* ViceErrorMsg.c */
 extern char *ViceErrorMsg(int);

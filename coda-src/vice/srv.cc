@@ -46,7 +46,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -87,19 +87,9 @@ extern int Fcon_Init();
 
 #ifdef _TIMECALLS_
 #include <histo.h>
-#endif _TIMECALLS_
+#endif
 
-#ifdef __cplusplus
-}
-#endif __cplusplus
-
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
 #include <rvm/rvm_statistics.h>
-
 
 #include <prs.h>
 #include <al.h>
@@ -109,10 +99,12 @@ extern "C" {
 #include <vice.h>
 #include <volutil.h>
 #include <codadir.h>
-#ifdef __cplusplus
+#include <avice.h>
 
+#ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
+
 #include <volume.h>
 #include <srv.h>
 #include <vice.private.h>
@@ -124,11 +116,6 @@ extern "C" {
 #include <lockqueue.h>
 #include <vsg.h>
 #include "coppend.h"
-
-
-/* Auth2 imports. */
-extern "C" long GetKeysFromToken(RPC2_CountedBS *, RPC2_EncryptionKey, RPC2_EncryptionKey);
-extern "C" void SetServerKeys(RPC2_EncryptionKey, RPC2_EncryptionKey);
 
 
 /* *****  Exported variables  ***** */
@@ -165,7 +152,7 @@ struct hgram Create_Total_hg, Remove_Total_hg, Link_Total_hg;
 struct hgram Rename_Total_hg, MakeDir_Total_hg, RemoveDir_Total_hg, SymLink_Total_hg;
 struct hgram SpoolVMLogRecord_hg, PutObjects_Transaction_hg, PutObjects_TransactionEnd_hg,
 	PutObjects_Inodes_hg, PutObjects_RVM_hg; 
-#endif _TIMECALLS_
+#endif /* _TIMECALLS_ */
 
 int large = 0;	  // default 500, control size of lru cache for large vnodes 
 int small = 0;	  // default 500, control size of lru cache for small vnodes
@@ -179,7 +166,7 @@ extern int SmonPort;
 thread_t lwpth[NLWPS];
 thread_array_t thread_list;
 int thread_count;
-#endif PERFORMANCE
+#endif /* PERFORMANCE */
 
 
 /* *****  Private variables  ***** */
@@ -270,7 +257,7 @@ static void InitializeServerRVM(char *name);
 
 #ifdef RVMTESTING
 #include <rvmtesting.h>
-#endif RVMTESTING
+#endif
 
 /* Signal handlers in Linux will not be passed the arguments code and scp */
 #ifdef __BSD44__
@@ -406,7 +393,7 @@ int main(int argc, char *argv[])
     InitHisto(&PutObjects_RVM_hg, (double)0, (double)50000, 500, LINEAR);
     InitHisto(&PutObjects_Transaction_hg, (double)0, (double)50000, 500, LINEAR);
     InitHisto(&PutObjects_TransactionEnd_hg, (double)0, (double)50000, 500, LINEAR);
-#endif _TIMECALLS_
+#endif /* _TIMECALLS_ */
 
     /* open the file where records are written at end of transaction */
     if (cam_log_file){
@@ -456,16 +443,16 @@ int main(int argc, char *argv[])
     /* initialize the array of thread_t to 0 - Puneet */
     for (i = 0; i < NLWPS; i ++)
 	lwpth[i] = (thread_t)0;
-#endif PERFORMANCE
+#endif /* PERFORMANCE */
 
     stat(KEY1, &buff);
     keytime = (int)buff.st_mtime;
     InitServerKeys(KEY1, KEY2);
 
 #ifdef __CYGWIN32__
-	/* XXX -JJK */
-	port1.Tag = RPC2_PORTBYINETNUMBER;
-	port1.Value.InetPortNumber = htons(PORT_codasrv);
+    /* XXX -JJK */
+    port1.Tag = RPC2_PORTBYINETNUMBER;
+    port1.Value.InetPortNumber = htons(PORT_codasrv);
 #else
     port1.Tag = RPC2_PORTBYNAME;
     strcpy(port1.Value.Name, "codasrv");
@@ -606,7 +593,7 @@ int main(int argc, char *argv[])
     else
 	SLog(0, "Thread ids for %d threads initialized", thread_count);
 #endif
-#endif PERFORMANCE
+#endif /* PERFORMANCE */
     struct timeval tp;
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
@@ -648,7 +635,7 @@ static void ServerLWP(int *Ident)
     while (1) {
 	LastOp[lwpid] = 0;
 	CurrentClient[lwpid] = (ClientEntry *)0;
-	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, (long (*)(...))GetKeysFromToken, RPC2_XOR, NULL))
+	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, GetKeysFromToken, RPC2_XOR, NULL))
 		== RPC2_SUCCESS) {
 	    if (RPC2_GetPrivatePointer(mycid, (char **)&client) != RPC2_SUCCESS) 
 		client = 0;
@@ -1140,8 +1127,7 @@ void PrintCounters(FILE *fp)
     SLog(0, SrvDebugLevel, fp, "PutObjects_Inodes_hg histogram:\n");
     PrintHisto(fp, &PutObjects_Inodes_hg);
     ClearHisto(&PutObjects_Inodes_hg);
-#endif _TIMECALLS_
-
+#endif /* _TIMECALLS_ */
 }
 
 
@@ -1574,7 +1560,7 @@ static int ParseArgs(int argc, char *argv[])
 		clockFD = open("/dev/cntr0", O_RDONLY, 0666);
 		CODA_ASSERT(clockFD > 0);
 	    }
-#endif _TIMECALLS_
+#endif /* _TIMECALLS_ */
 	else
 	    if (!strcmp(argv[i], "-nc")){
 		if (RvmType != UNSET) {
@@ -1768,11 +1754,13 @@ static void DaemonizeSrv() {
     signal(SIGTRAP, (void (*)(int))zombie);
     signal(SIGILL,  (void (*)(int))zombie);
     signal(SIGFPE,  (void (*)(int))zombie);
+
 #ifdef	RVMTESTING
     signal(SIGBUS, (void (*)(int))my_sigBus); /* Defined in util/rvmtesting.c */
-#else	RVMTESTING
+#else
     signal(SIGBUS,  (void (*)(int))zombie);
-#endif	RVMTESTING
+#endif
+
     signal(SIGSEGV, (void (*)(int))zombie);
 }
 

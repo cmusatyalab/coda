@@ -18,7 +18,8 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
+
 #include <stdio.h>
 #include <rpc2/rpc2.h>
 #ifndef __CYGWIN32__
@@ -26,9 +27,10 @@ extern "C" {
 #endif
 #include <util.h>
 #include <codadir.h>
+
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <olist.h>
 #include <dlist.h>

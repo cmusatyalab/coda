@@ -59,6 +59,7 @@ extern "C" {
 #include <stdlib.h>
 #include <util.h>
 #include <rpc2/rpc2.h>
+#include <avice.h>
 
 #ifdef __cplusplus
 }
@@ -72,13 +73,6 @@ static RPC2_EncryptionKey Key1;
 static RPC2_EncryptionKey Key2;
 
 extern void ntoh_SecretToken(SecretToken *);
-
-/* prototype */
-long GetKeysFromToken(IN RPC2_Integer AuthenticationType, 
-		      INOUT RPC2_CountedBS *cIdent,
-                      OUT RPC2_EncryptionKey hKey,
-                      OUT RPC2_EncryptionKey sKey);
-
 
 /*  Wrapper function when multiple authentication type support was added;
     fits new calling parameters.  We only allow by-token authentication to
@@ -118,7 +112,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 
 		case	AUTH_METHOD_CODATOKENS:
 			/* this is a good way to auth to Vice */
-				return GetKeysFromToken(*AuthenticationType, cIdent, hKey, sKey);
+				return GetKeysFromToken(AuthenticationType, cIdent, hKey, sKey);
 
 		case	AUTH_METHOD_PK:
 			/* just a reserved constant, thanks */
@@ -148,7 +142,7 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
     connection routine, which can access the fields of SecretToken.  
 */
 
-long GetKeysFromToken(IN RPC2_Integer AuthenticationType,
+long GetKeysFromToken(IN RPC2_Integer *AuthenticationType,
 		      INOUT RPC2_CountedBS *cIdent, 
 		      OUT RPC2_EncryptionKey hKey, 
 		      OUT RPC2_EncryptionKey sKey)

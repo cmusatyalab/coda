@@ -16,16 +16,12 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifndef _DUMPSTREAM_H_
 #define _DUMPSTREAM_H_
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <lwp/lwp.h>		/* Include all files referenced herein */
 #include <lwp/lock.h>
@@ -33,7 +29,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <cvnode.h>
 #include <volume.h>
@@ -57,5 +53,5 @@ class dumpstream {
     void setIndex(VnodeClass);
 };
 
-#endif	_DUMPSTREAM_H_
+#endif /* _DUMPSTREAM_H_ */
 

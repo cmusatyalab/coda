@@ -16,9 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /*
  *
  * Implementation of the Venus Worker subsystem.
@@ -28,7 +25,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -82,7 +79,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 /* from vicedep */
@@ -112,7 +109,7 @@ olist worker::ActiveMsgs;
 #ifdef VENUSDEBUG
 int msgent::allocs = 0;
 int msgent::deallocs = 0;
-#endif VENUSDEBUG
+#endif
 
 const int WorkerStackSize = 131072;
 
@@ -192,17 +189,17 @@ int MsgWrite(char *buf, int size)
 
 msgent::msgent() 
 {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 
 msgent::~msgent() 
 {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     deallocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 
@@ -1019,14 +1016,14 @@ void worker::Resign(msgent *msg, int size) {
 	char *opstr = VenusOpStr((int) ((union outputArgs*)msg->msg_buf)->oh.opcode);
 	char *retstr = VenusRetStr((int) ((union outputArgs *)msg->msg_buf)->oh.result);
 	
-#ifdef	TIMING
+#ifdef TIMING
 	float elapsed;
 	elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 	LOG(1, ("[Return Done] %s : returns %s, elapsed = %3.1f\n",
 		opstr, retstr, elapsed));
-#else	TIMING
+#else /* !TIMING */
 	LOG(1, ("[Return Done] %s : returns %s\n", opstr, retstr))
-#endif	TIMING
+#endif
     }
     else {
 	if (((union outputArgs *)msg->msg_buf)->oh.result == EINCONS) {
@@ -1063,9 +1060,9 @@ void worker::Return(msgent *msg, int size) {
 	LOG(1, ("%s : returns %s, elapsed = unknown msec (Returning early)\n",
 		opstr, retstr));
     }
-#else	TIMING
+#else /* !TIMING */
     LOG(1, ("%s : returns %s\n", opstr, retstr));
-#endif	TIMING
+#endif
 
     /* There is no reply to an interrupted operation. */
     if (!interrupted) {

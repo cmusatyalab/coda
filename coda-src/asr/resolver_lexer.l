@@ -22,7 +22,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include "resolver_parser.h"
 #include "asr.h"
@@ -31,7 +31,8 @@ extern "C" {
 extern int yylook();
 
 #define YYERRCODE	256		/* gross hack to simulate error */
-int yywrap() {
+int yywrap(void); /* prototype needed to prevent spurious warning */
+int yywrap(void) {
 	return(1);
 }
 int yyback(int *p, int m);
@@ -40,7 +41,8 @@ static void yyunput(int, char *);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
+
 int context = FILE_NAME_CTXT;
 
 %}
@@ -140,4 +142,5 @@ cmdnamechar	[a-zA-Z0-9\/\.\-\_]
 			   return(BLANK_LINE);
 			}
 		}
-#endif notdef 
+#endif /* notdef */
+

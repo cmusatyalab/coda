@@ -16,13 +16,9 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -48,7 +44,7 @@ extern int path(char *, char *, char *);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <olist.h>
 #include "ruletypes.h"
@@ -147,9 +143,10 @@ int ParseArgs(int argc, char **argv, char *incdname, char *incfname) {
 
 #ifdef TIMING 
 #define NSC_GET_COUNTER         _IOR('c', 1, long)
-#endif TIMING
+#endif
 
-void main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     if (debug)
 	fprintf(stderr, "Uid is %u Euid is %u\n", getuid(), geteuid());
 
@@ -164,7 +161,7 @@ void main(int argc, char **argv) {
     unsigned long endyyparsetime = 0;
     if (clockFD)
 	ioctl(clockFD, NSC_GET_COUNTER, &startparsertime);
-#endif TIMING
+#endif /* TIMING */
     
     // get file name 
     if (ParseArgs(argc, argv, incdname, incfname)) {
@@ -175,7 +172,7 @@ void main(int argc, char **argv) {
 #ifdef TIMING
     if (clockFD)
 	ioctl(clockFD, NSC_GET_COUNTER, &endyyparsetime);
-#endif TIMING
+#endif /* TIMING */
 
     rule_t *r;
     if (debug) {
@@ -219,7 +216,7 @@ void main(int argc, char **argv) {
 	       (endparsertime - startparsertime)/25 :
 	       (171798691 - ((startparsertime  - endparsertime )/25)));
     }
-#endif TIMING
+#endif /* TIMING */
     
     exit(0);
 }

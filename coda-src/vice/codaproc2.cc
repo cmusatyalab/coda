@@ -28,7 +28,7 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -53,7 +53,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <volume.h>
 #include <srv.h>
@@ -103,7 +103,7 @@ extern void PollAndYield();
 /*  *****  Gross stuff for packing/unpacking RPC arguments  *****  */
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <rpc2/multi.h>
 extern void unpack(ARG *, PARM *, PARM **, long);
@@ -111,7 +111,7 @@ extern void unpack_struct(ARG *, PARM **, PARM **, long);
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 static void RLE_Unpack(PARM **, ARG * ...);
 

@@ -16,13 +16,9 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -35,7 +31,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 #include <olist.h>
 #include <dlist.h>

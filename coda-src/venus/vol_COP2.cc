@@ -43,14 +43,14 @@ listed in the file CREDITS.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #include <stdio.h>
 #include <rpc2/rpc2.h>
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 /* interfaces */
 #include <vice.h>
@@ -75,7 +75,7 @@ static const int COP2EntrySize = (int)(sizeof(ViceStoreId) + sizeof(ViceVersionV
 #ifdef VENUSDEBUG
 int cop2ent::allocs = 0;
 int cop2ent::deallocs = 0;
-#endif VENUSDEBUG
+#endif
 
 /* Send a buffer-full of UpdateSets. */
 int repvol::COP2(mgrpent *m, RPC2_CountedBS *PiggyBS)
@@ -310,9 +310,9 @@ cop2ent::cop2ent(ViceStoreId *Sid, ViceVersionVector *UpdateSet) {
     updateset = *UpdateSet;
     time = Vtime();
 
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     allocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 
@@ -332,9 +332,9 @@ int cop2ent::operator=(cop2ent& c) {
 
 
 cop2ent::~cop2ent() {
-#ifdef	VENUSDEBUG
+#ifdef VENUSDEBUG
     deallocs++;
-#endif	VENUSDEBUG
+#endif
 }
 
 void cop2ent::operator delete(void *deadobj, size_t len) {

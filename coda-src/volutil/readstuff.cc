@@ -40,7 +40,7 @@ Pittsburgh, PA.
 
 #ifdef __cplusplus
 extern "C" {
-#endif __cplusplus
+#endif
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -61,7 +61,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif
 
 
 #include <util.h>
@@ -243,7 +243,7 @@ int ReadString(DumpBuffer_t *buf, char *to, int max)
 	while ((c = getc(buf)) && c != EOF);
 	to[-1] = 0;
     }
-#endif NOTDEF
+#endif
     return TRUE;
 }
 
@@ -384,7 +384,7 @@ int EndOfDump(DumpBuffer_t *buf)
 	LogMsg(0, VolDebugLevel, stdout, "Unrecognized postamble in dump; restore aborted");
 	return FALSE;
     }
-#endif UNDEF
+#endif
     return TRUE;
 }
 
