@@ -599,11 +599,12 @@ static void dump(void)
     
     rc = VolNewDump(rpcid, volid, &Incremental);
     if (rc != RPC2_SUCCESS) {
-	fprintf(stderr, "VolDump failed with %s\n", RPC2_ErrorMsg((int)rc));
+	fprintf(stderr, "\nVolDump failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
 
-    fprintf(stderr, "%s VolDump completed\n", Incremental ? "Incremental" : "");
+    fprintf(stderr, "\n%sVolDump completed, %ld bytes dumped\n",
+	    Incremental ? "Incremental " : "", rock->numbytes);
     exit(0);
 }
 
@@ -719,8 +720,12 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
 	    *nbytes, sed.Value.SmartFTPD.BytesTransferred);
 	*nbytes = sed.Value.SmartFTPD.BytesTransferred;
     }
+#if 0
     fprintf(stderr, "Transmitted %ld bytes.\n",
 	    sed.Value.SmartFTPD.BytesTransferred);
+#else
+    fprintf(stderr, ".");
+#endif
     rock->numbytes += sed.Value.SmartFTPD.BytesTransferred;
     return rc;
 }
@@ -795,11 +800,11 @@ static void restorefromback(void)
 
     rc = VolRestore(rpcid, (RPC2_String)partition, (RPC2_String)volname, (RPC2_Unsigned *)&volid);
     if (rc != RPC2_SUCCESS){
-	fprintf(stderr, "VolRestore failed with %s\n", RPC2_ErrorMsg((int)rc));
+	fprintf(stderr, "\nVolRestore failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
 
-    printf("VolRestore successful, created %#8lx\n", volid);
+    printf("\nVolRestore successful, created %#8lx\n", volid);
     exit(0);
 }
 
@@ -864,7 +869,11 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
 	fprintf(stderr, "ReadDump: Error %s in CheckSideEffect\n", RPC2_ErrorMsg((int)rc));
     }
 
+#if 0
     fprintf(stderr, "Transmitted %ld bytes.\n", sed.Value.SmartFTPD.BytesTransferred);
+#else
+    fprintf(stderr, ".");
+#endif
     rock->numbytes += sed.Value.SmartFTPD.BytesTransferred;
     free(buf);
     return rc;
