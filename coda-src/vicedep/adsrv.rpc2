@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/adsrv.rpc2,v 4.1 97/01/08 21:52:02 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/adsrv.rpc2,v 4.2 97/12/16 15:56:15 braam Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -146,13 +146,19 @@ typedef RPC2_Struct
 	MetaInfoID meta;
 } HoardCmd;
 
+typedef RPC2_Struct
+{
+	RPC2_String name;
+	RPC2_Integer bw;
+} ServerEnt;
+
 /*
  * NewAdviceService
  *
  * Advice Servers use this call to inform Venus of
  * their existance.
  */
-NewAdviceService	(IN RPC2_String HostName,
+1:NewAdviceService	(IN RPC2_String HostName,
 			 IN RPC2_Integer UserID,
 			 IN RPC2_Integer Port,
 			 IN RPC2_Integer PGrpID,
@@ -167,7 +173,7 @@ NewAdviceService	(IN RPC2_String HostName,
  * Advice Servers use this call to make sure that the connection
  * to Venus is alive.
  */
-ConnectionAlive(IN RPC2_Integer UserID);
+2:ConnectionAlive(IN RPC2_Integer UserID);
 
 
 /*
@@ -176,8 +182,14 @@ ConnectionAlive(IN RPC2_Integer UserID);
  * Advice Servers use this call to inform Venus about
  * their interest in certain events.
  */
-RegisterInterest	(IN RPC2_Integer UserID, IN InterestValuePair interests[]);
+3:RegisterInterest	(IN RPC2_Integer UserID, IN InterestValuePair interests[]);
 
+/*
+ * GetServerInformation
+ *
+ * Advice Servers use this call to get a list of server names.
+ */
+4:GetServerInformation	(OUT ServerEnt servers[]);
 
 /* 
  * GetCacheStatistics
@@ -185,25 +197,36 @@ RegisterInterest	(IN RPC2_Integer UserID, IN InterestValuePair interests[]);
  * Advice Servers use this call to get information about
  * space usage, both cache space and rvm space.
  */
-GetCacheStatistics 	(OUT RPC2_Integer FilesAllocated,
+5:GetCacheStatistics 	(OUT RPC2_Integer FilesAllocated,
 			 OUT RPC2_Integer FilesOccupied,
 			 OUT RPC2_Integer BlocksAllocated,
 			 OUT RPC2_Integer BlocksOccupied,
 			 OUT RPC2_Integer RVMAllocated,
 			 OUT RPC2_Integer RVMOccupied);
 
+/*
+ * GetNextHoardWalk
+ *
+ * Advice Servers use this call to determine when the next
+ * hoard walk is scheduled to occur.
+ */
+6:GetNextHoardWalk	(OUT RPC2_Integer nextWalkTimeSeconds);
 
 /*
  *
  */
-OutputUsageStatistics  (IN RPC2_Integer UserID, IN RPC2_String Pathname);
+7:OutputUsageStatistics  (IN RPC2_Integer UserID, 
+			  IN RPC2_String Pathname,
+			  IN RPC2_Integer DisconnectionsSinceLastUse,
+			  IN RPC2_Integer PercentDisconnectionsUsed,
+			  IN RPC2_Integer TotalDisconnectionsUsed);
 
 /* 
  * HoardCommands
  *
  * Advice Servers use this call to ship hoard commands to Venus.
  */
-HoardCommands	(IN RPC2_Integer UserID, IN HoardCmd commands[]);
+8:HoardCommands	(IN RPC2_Integer UserID, IN HoardCmd commands[]);
 
 
 /*
@@ -212,7 +235,7 @@ HoardCommands	(IN RPC2_Integer UserID, IN HoardCmd commands[]);
  * Advice Servers use this call to set Venus parameters dynamically.
  *
  */
-SetParameters	(IN RPC2_Integer UserID, IN ParameterValuePair parameters[]);
+9:SetParameters	(IN RPC2_Integer UserID, IN ParameterValuePair parameters[]);
 
 
 /*
@@ -221,7 +244,7 @@ SetParameters	(IN RPC2_Integer UserID, IN ParameterValuePair parameters[]);
  * Advice Servers use this call to return the result
  * of an ASR Invokation.
  */
-ResultOfASR		(IN RPC2_Integer ASRid,
+10:ResultOfASR		(IN RPC2_Integer ASRid,
 			 IN RPC2_Integer result);
 
 /*
@@ -231,6 +254,6 @@ ResultOfASR		(IN RPC2_Integer ASRid,
  * their imminent death (when they are being good
  * citizens).
  */
-ImminentDeath		(IN RPC2_String HostName,
+11:ImminentDeath	(IN RPC2_String HostName,
 			 IN RPC2_Integer UserID,
 			 IN RPC2_Integer Port);

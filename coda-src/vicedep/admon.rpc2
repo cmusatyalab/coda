@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/admon.rpc2,v 4.1 97/01/08 21:52:02 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/admon.rpc2,v 4.2 97/12/16 15:56:15 braam Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -100,7 +100,7 @@ typedef RPC2_Struct
  * Venus uses this call to inform an advice server that it has lost its 
  * connection, when it is able to behave as a good citizen.
  */
-LostConnection();
+1:LostConnection();
 
 
 
@@ -108,11 +108,11 @@ LostConnection();
 
 /* Authentication Information */
 
-TokensAcquired	(IN RPC2_Integer EndTimestamp);
+2:TokensAcquired	(IN RPC2_Integer EndTimestamp);
 
-TokensExpired	();
+3:TokensExpired	();
 
-ActivityPendingTokens	(IN ActivityID activityType,
+4:ActivityPendingTokens	(IN ActivityID activityType,
 			 IN RPC2_String argument);
 
 
@@ -122,10 +122,10 @@ ActivityPendingTokens	(IN ActivityID activityType,
 
 /* Space Information */
 
-SpaceInformation(IN RPC2_Integer PercentFilesFilledByHoardedData,
-		 IN RPC2_Integer PercentBlocksFilledByHoardedData,
-		 IN RPC2_Integer PercentRVMFull,
-		 IN Boolean RVMFragmented);
+5:SpaceInformation(IN RPC2_Integer PercentFilesFilledByHoardedData,
+	  	   IN RPC2_Integer PercentBlocksFilledByHoardedData,
+		   IN RPC2_Integer PercentRVMFull,
+		   IN Boolean RVMFragmented);
 
 
 
@@ -140,11 +140,11 @@ typedef RPC2_Struct
 
 /* Network Information */
 
-ServerAccessible	(IN RPC2_String ServerName);
-ServerInaccessible	(IN RPC2_String ServerName);
-ServerConnectionStrong	(IN RPC2_String ServerName);
-ServerConnectionWeak	(IN RPC2_String ServerName);
-NetworkQualityEstimate	(IN QualityEstimate serverList[]);
+6:ServerAccessible	 (IN RPC2_String ServerName);
+7:ServerInaccessible	 (IN RPC2_String ServerName);
+8:ServerConnectionStrong (IN RPC2_String ServerName);
+9:ServerConnectionWeak 	 (IN RPC2_String ServerName);
+10:NetworkQualityEstimate(IN QualityEstimate serverList[]);
 
 
 
@@ -157,10 +157,10 @@ NetworkQualityEstimate	(IN QualityEstimate serverList[]);
  * Venus uses this call to inform the advice monitor that
  * a volume has transitioned to a new state.  
  */
-VolumeTransitionEvent(IN RPC2_String VolumeName,
-  		      IN RPC2_Integer vid,
-		      IN VolumeStateID NewState,
-		      IN VolumeStateID OldState);
+11:VolumeTransitionEvent(IN RPC2_String VolumeName,
+  		         IN RPC2_Integer vid,
+		         IN VolumeStateID NewState,
+		         IN VolumeStateID OldState);
 
 
 /* 
@@ -170,8 +170,8 @@ VolumeTransitionEvent(IN RPC2_String VolumeName,
  * This questionnaire is used to collect qualitative data
  * from users regarding the success of a disconnected session.
  */
-Reconnection(IN ReconnectionQuestionnaire Questionnaire,
-	     OUT RPC2_Integer ReturnCode);
+12:Reconnection(IN ReconnectionQuestionnaire Questionnaire,
+	        OUT RPC2_Integer ReturnCode);
 
 
 
@@ -212,17 +212,17 @@ typedef RPC2_Struct
  * data fetch is taking place.  This allows the advice
  * monitor to display a progress bar as the fetch takes place.
  */
-DataFetchEvent		(IN RPC2_String Pathname,
+13:DataFetchEvent	(IN RPC2_String Pathname,
 			 IN RPC2_Integer Size,
 			 IN RPC2_String Vfile);
 
 
 
-ReadDisconnectedCacheMissEvent	(IN ObjectInformation objInfo,
-				 IN ProcessInformation processInfo,
-				 IN RPC2_Unsigned TimeOfMiss,
-				 OUT CacheMissAdvice Advice,
-				 OUT RPC2_Integer ReturnCode);
+14:ReadDisconnectedCacheMissEvent	(IN ObjectInformation objInfo,
+					 IN ProcessInformation processInfo,
+					 IN RPC2_Unsigned TimeOfMiss,
+					 OUT CacheMissAdvice Advice,
+					 OUT RPC2_Integer ReturnCode);
 
 
 /*
@@ -231,7 +231,7 @@ ReadDisconnectedCacheMissEvent	(IN ObjectInformation objInfo,
  * Venus uses this call to inform an advice server that a request
  * during a weakly connected session is unavailable in the cache.
  */
-WeaklyConnectedCacheMissEvent	(IN ObjectInformation objInfo,
+15:WeaklyConnectedCacheMissEvent(IN ObjectInformation objInfo,
 				 IN ProcessInformation processInfo,
 				 IN RPC2_Unsigned TimeOfMiss,
 				 IN RPC2_Integer Length,
@@ -242,7 +242,7 @@ WeaklyConnectedCacheMissEvent	(IN ObjectInformation objInfo,
 
 /* IMPORTANT!  Increment this anytime this call is changed! */
 #define DMQ_VERSION 3
-DisconnectedCacheMissEvent	(IN ObjectInformation objInfo,
+16:DisconnectedCacheMissEvent	(IN ObjectInformation objInfo,
 				 IN ProcessInformation processInfo,
 				 IN RPC2_Unsigned TimeOfMiss,
 				 IN RPC2_Unsigned TimeOfDisconnection,
@@ -255,9 +255,9 @@ DisconnectedCacheMissEvent	(IN ObjectInformation objInfo,
  * Venus uses this call to request advice about what objects
  * should be fetched in the process of a hoard walk.
  */
-HoardWalkAdviceRequest	(IN RPC2_String InputPathname,
-			 IN RPC2_String OutputPathname,
-			 OUT RPC2_Integer ReturnCode);
+17:HoardWalkAdviceRequest(IN RPC2_String InputPathname,
+			  IN RPC2_String OutputPathname,
+			  OUT RPC2_Integer ReturnCode);
 
 
 
@@ -266,15 +266,15 @@ HoardWalkAdviceRequest	(IN RPC2_String InputPathname,
 
 /* Hoard Walk Information */
 
-HoardWalkBegin();
+18:HoardWalkBegin();
 
-HoardWalkStatus(IN RPC2_Integer Percentage);
+19:HoardWalkStatus(IN RPC2_Integer Percentage);
 
-HoardWalkEnd();
+20:HoardWalkEnd();
 
-HoardWalkPeriodicOn();
+21:HoardWalkPeriodicOn();
 
-HoardWalkPeriodicOff();
+22:HoardWalkPeriodicOff();
 
 
 
@@ -283,10 +283,10 @@ HoardWalkPeriodicOff();
 
 /* Repair Information */
 
-ObjectInConflict	(IN RPC2_String Pathname,
+23:ObjectInConflict	(IN RPC2_String Pathname,
 			 IN ViceFid fid);
 
-ObjectConsistent	(IN RPC2_String Pathname,
+24:ObjectConsistent	(IN RPC2_String Pathname,
 			 IN ViceFid fid);
 
 
@@ -295,13 +295,13 @@ ObjectConsistent	(IN RPC2_String Pathname,
 
 /* Reintegration Information */
 
-ReintegrationPendingTokens	(IN RPC2_String volumeID);
+25:ReintegrationPendingTokens	(IN RPC2_String volumeID);
 
-ReintegrationEnabled		(IN RPC2_String volumeID);
+26:ReintegrationEnabled		(IN RPC2_String volumeID);
 
-ReintegrationActive		(IN RPC2_String volumeID);
+27:ReintegrationActive		(IN RPC2_String volumeID);
 
-ReintegrationCompleted		(IN RPC2_String volumeID);
+28:ReintegrationCompleted	(IN RPC2_String volumeID);
 
 
 
@@ -317,13 +317,13 @@ typedef RPC2_Struct
 	RPC2_Integer IncompleteInformation;
 } TallyInfo;
 
-TaskAvailability	(IN TallyInfo taskList[]);
+29:TaskAvailability	(IN TallyInfo taskList[]);
 
-TaskUnavailable		(IN RPC2_Integer TaskPriority,
+30:TaskUnavailable	(IN RPC2_Integer TaskPriority,
 			 IN RPC2_Integer ElementSize);
 
-ProgramAccessLogAvailable (IN RPC2_String LogFile);
-ReplacementLogAvailable (IN RPC2_String LogFile);
+31:ProgramAccessLogAvailable (IN RPC2_String LogFile);
+32:ReplacementLogAvailable   (IN RPC2_String LogFile);
 
 
 /*******************************************************************/
@@ -335,7 +335,7 @@ ReplacementLogAvailable (IN RPC2_String LogFile);
  * 
  * Venus uses this call to invoke Application Specific Resolvers.
  */
-InvokeASR	(IN RPC2_String Pathname, 
+33:InvokeASR	(IN RPC2_String Pathname, 
 		 IN RPC2_Integer uid, 
 		 OUT RPC2_Integer ASRid,
 		 OUT RPC2_Integer ReturnCode);
