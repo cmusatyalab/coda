@@ -30,6 +30,16 @@
  *	/usr/cs/include).
  *
  * $Log: md.c,v $
+ * Revision 4.4  1998/03/06 20:19:55  braam
+ * This is a mega commit, with many changes:
+ * 1) all windows 95 support is now incorporated. the cpp flags are DJGPP
+ * 2) some cleanup in cientproc.cc
+ * 3) patches for NT to make things work (from Jay).
+ *
+ * I hope we haven't broken too much, we will have to see.
+ *
+ * - Peter -
+ *
  * Revision 4.3  1998/01/10 18:36:41  braam
  * This is a big commit: the tree now supports compilation for
  * Windows NT.

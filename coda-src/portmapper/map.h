@@ -1,4 +1,4 @@
-/* $Id: map.h,v 1.2 1998/04/07 05:22:47 robert Exp $ */
+/* $Id: map.h,v 1.1 1998/04/14 20:54:06 braam Exp $ */
 
 /* structures for sorting port mappings -- optimization is on reads, with
    assumptions:
