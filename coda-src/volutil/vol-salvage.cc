@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.13 1998/01/12 23:35:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.14 98/04/14 21:00:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -964,6 +964,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 {
     int BlocksInVolume = 0, FilesInVolume = 0;
     int	i;
+    int doassert = 0; 
     VolumeId vid;
     register VnodeClass vclass;
     VolumeDiskData volHeader;
@@ -1009,7 +1010,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	if (!DirOK((long *)&dir.dirHandle)) {
 	    LogMsg(0, VolDebugLevel, stdout, "DCC: Bad Dir(0x%#08x.%x.%x) in rvm...Aborting", 
 		dir.dirHandle.volume, dir.vnodeNumber, dir.unique);
-	    assert(0);
+	    doassert = 1;
 	}
 	dirHandle = dir.dirHandle;
 	EnumerateDir((long *)&dirHandle, (int (*)(void * ...))JudgeEntry, (long)&dir);
@@ -1046,9 +1047,9 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	    LogMsg(29, VolDebugLevel, stdout, "\t linkcount = %d, index = %d, parent = 0x%x, unique = 0x%x",
 		vnp->count, i, vnp->vparent, vnp->unique);
 	    if (vnp->changed || vnp->count != 0) {
-		LogMsg(0, VolDebugLevel, stdout, "DCC: For Vnode (0x%#08x.%x.%x) parent (0x%x.%x): linkcount is %d",
+		LogMsg(0, VolDebugLevel, stdout, "DCC: For Vnode (0x%x.%x.%x) parent (0x%x.%x): linkcount is %d",
 		    vid, vnp->vid, vnp->unique, vnp->vparent, vnp->uparent, vnp->count);
-		assert(0);
+		doassert = 1;
 		/* You can bring up the server by forcing this volume off-line
 		 * edit /vice/vol/skipsalvage.  The format of this file is
 		 * the fist line has the number of volumes to skip, and
@@ -1058,6 +1059,10 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 	}
     }
 
+    if  ( doassert ) {
+	    	LogMsg(0, VolDebugLevel, stdout, "Salvage vol 0x%x: fatal error.", vid);
+	    assert(0);
+    }
     /* clean up state */
     for (vclass = 0; vclass < nVNODECLASSES; vclass++) {
 	register struct VnodeInfo *vip = &vnodeInfo[vclass];

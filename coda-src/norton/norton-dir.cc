@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.3 1997/10/23 19:24:06 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.4 1997/12/23 17:19:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -276,7 +276,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     int     vclass = vnodeIdToClass(vnum);
     int     cvclass = vnodeIdToClass(cvnum);
     int	    volindex;
-    long    vfid[2];
+    long    vfid[3];
     
     volindex = GetVolIndex(volid);
     if (volindex < 0) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.h,v 4.4 97/06/14 21:48:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.h,v 4.5 98/01/26 21:31:40 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -124,13 +124,13 @@ const int DFLT_RT = 4;			    /* rpc2 retries */
 const int UNSET_RT = -1;
 const int DFLT_TO = 15;			    /* rpc2 timeout */
 const int UNSET_TO = -1;
-const int DFLT_WS = 8;			    /* sftp window size */
+const int DFLT_WS = 32;			    /* sftp window size */
 const int UNSET_WS = -1;
-const int DFLT_SA = 4;			    /* sftp send ahead */
+const int DFLT_SA = 8;			    /* sftp send ahead */
 const int UNSET_SA = -1;
-const int DFLT_AP = 4;			    /* sftp ack point */
+const int DFLT_AP = 8;			    /* sftp ack point */
 const int UNSET_AP = -1;
-const int DFLT_PS = 2800;		    /* sftp packet size */
+const int DFLT_PS = 1472;		    /* sftp packet size */
 const int UNSET_PS = -1;
 const int UNSET_ST = -1;                    /* do we time rpcs? */
 const int UNSET_MT = -1;                    /* do we time mrpcs? */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.3 1998/05/07 17:23:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.4 98/07/09 11:01:51 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -76,7 +76,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define SFTP_MAXPACKETSIZE	2900 /* (prefix+header+body) of largest sftp packet (2 IP fragments on Ether) */
 #define SFTP_MAXBODYSIZE	SFTP_MAXPACKETSIZE - sizeof(RPC2_PacketBuffer)
 
-#define SFTP_DEFPACKETSIZE 2800
+#define SFTP_DEFPACKETSIZE 1472
 #define SFTP_DEFWINDOWSIZE 32
 #define SFTP_DEFSENDAHEAD 8
 
@@ -183,7 +183,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define SFTPMAGIC	4902057
 #define MAXOPACKETS	64	/* Maximum no of outstanding packets; multiple of 32 */
 #define BITMASKWIDTH	(MAXOPACKETS / 32)	/* No of elements in integer array */
-#define MINDELTASS	10	/* minimum milliseconds between invocations of SendStrategy due to an ACK */
+#define MINDELTASS	0	/* minimum milliseconds between invocations of SendStrategy due to an ACK */
 
 struct SFTP_Parms
     {/* sent in SFTP_START packets, and piggy-backed on very first RPC call on a connection */
@@ -246,7 +246,7 @@ struct SFTP_Entry		/* per-connection data structure */
     SE_Descriptor *PiggySDesc;	/* malloc()ed copy of SDesc; held on until SendResponse, if piggybacking
 					might take place */
 
-#define SFTP_MINRTT   100        /* min rtt is 100 msec */
+#define SFTP_MINRTT   0          /* min rtt is 0 msec */
 #define SFTP_MAXRTT   300000     /* max rtt is 300 seconds */
 
 /*  Transmission Parameters:

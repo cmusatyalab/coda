@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.6 1998/05/07 17:23:54 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.7 98/07/09 11:01:53 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -230,7 +230,7 @@ void sftp_UpdateRTT(RPC2_Unsigned tStamp, register struct SFTP_Entry *sEntry)
       tcp_xmit_timer.
     */
 {
-    long obs = rpc2_MakeTimeStamp() + 1;
+    long obs = rpc2_MakeTimeStamp();
     long diff;
     unsigned long newrex;
 
@@ -247,9 +247,9 @@ void sftp_UpdateRTT(RPC2_Unsigned tStamp, register struct SFTP_Entry *sEntry)
       such a way that the observation is positive but
       low, we can't tell.  Yuck.
     */
-    if (obs <= 0) return;
+    if (obs < 0) return;
 
-    diff = obs - 1 - (sEntry->RTT >> SFTP_RTT_SHIFT);
+    diff = obs - (sEntry->RTT >> SFTP_RTT_SHIFT);
     if ((sEntry->RTT += diff) <= 0)
 	sEntry->RTT = 1;
 
@@ -792,7 +792,6 @@ sftp_SendStrategy(sEntry)
 	    {
     	    if (ResendWorried(sEntry, TRUE) < 0) return(-1);
 	    }
-	if (sftp_ReadStrategy(sEntry) < 0) return(-1); /* rechecks window */
 	}
     return(0);
     }
@@ -1026,16 +1025,18 @@ sftp_ReadStrategy(sEntry)
     RPC2_PacketBuffer *pb;
     struct iovec iovarray[MAXOPACKETS];
     register long i, byteswanted, bytesread, j;
+    int bodylength;
 
     if (sEntry->HitEOF) return(0);
     if (!WinIsOpen(sEntry)) return(0);
 
     /* Be optimistic: assume you won't hit EOF */
-    byteswanted = sEntry->SendAhead * sEntry->PacketSize; /* what we expect normally */
+    bodylength = sEntry->PacketSize - sizeof(struct RPC2_PacketHeader);
+    byteswanted = sEntry->SendAhead * bodylength; /* what we expect normally */
     for (i = 1; i < 1 + sEntry->SendAhead; i++)
 	{
-	SFTP_AllocBuffer(sEntry->PacketSize, &pb);	/* BodyLength set */
-	sftp_InitPacket(pb, sEntry, sEntry->PacketSize);
+	SFTP_AllocBuffer(bodylength, &pb);	/* BodyLength set */
+	sftp_InitPacket(pb, sEntry, bodylength);
 	pb->Header.Flags = (sEntry->UseMulticast ? RPC2_MULTICAST : 0);
 	pb->Header.SEFlags = SFTP_MOREDATA;		/* tentative assumption */
 	pb->Header.Opcode = SFTP_DATA;
@@ -1045,7 +1046,7 @@ sftp_ReadStrategy(sEntry)
 	j = PBUFF((sEntry->SendMostRecent + i));
 	sEntry->ThesePackets[j] = pb;
 	iovarray[i-1].iov_base = (caddr_t)pb->Body;
-	iovarray[i-1].iov_len = sEntry->PacketSize;
+	iovarray[i-1].iov_len = bodylength;
 	}
 
     /* Read in one fell swoop */
