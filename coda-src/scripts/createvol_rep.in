@@ -99,8 +99,8 @@ while [ $# -gt 1 ]; do
 	    GROUPID="$1"
 	    break
 	fi
-	SERVER="`echo "$1/" | cut -d/ -f1`"
-	PART="/`echo "$1/" | cut -d/ -f2`"
+	SERVER="`echo "$1" | sed 's/\([^\/]*\).*/\1/'`"
+	PART="`echo "$1" | sed 's/[^\/]*\(.*\)/\1/'`"
 
 	# Validate the server
 	grep $SERVER ${vicedir}/db/servers > /dev/null 
@@ -130,7 +130,7 @@ while [ $# -gt 1 ]; do
 	    echo Found no partitions for server $SERVER.
 	    exit 1
 	fi 
-        if [ "$PART" = "/" ]; then
+        if [ -z "$PART" ]; then
 	    if [ $np -gt 1 ]; then
 		echo Found 2 or more partitions for server $SERVER.   You
 		echo must specify a partition.
