@@ -2880,6 +2880,10 @@ void log_daemon(void *arg)
        created thread before returning to caller */
     if (daemon->thread == (cthread_t)NULL)
         daemon->thread = cthread_self();
+    
+#ifdef RVM_USELWP
+    PRE_Concurrent(1);
+#endif
 
     DO_FOREVER
         {

@@ -32,9 +32,6 @@ Coda are listed in the file CREDITS.
 #include <config.h>
 #endif
 
-#ifdef HAVE_SEARCH_H
-#include <search.h>
-#endif
 #if defined(hpux) || defined(__hpux)
 #include <hp_bsd.h>
 #endif /* hpux */
@@ -1311,6 +1308,10 @@ void rw_lock_clear(rwl)
     rw_lock_t       *rwl;               /* ptr to rw_lock structure */
     rw_lock_mode_t  mode;               /* r or w */
     {
+#ifdef RVM_USELWP
+    if (mode == r) ObtainReadLock(&rwl->mutex);
+    else           ObtainWriteLock(&rwl->mutex);
+#else
     rw_qentry_t      q;                 /* queue entry */
 
     CRITICAL(rwl->mutex,                /* begin rw_lock mutex crit sec */
@@ -1351,11 +1352,16 @@ void rw_lock_clear(rwl)
             rwl->lock_mode = mode;
             }
         });                             /* end rw_lock mutex crit sec */
+#endif
     }
 void rw_unlock(rwl,mode)
     rw_lock_t       *rwl;               /* ptr to rw_lock structure */
     rw_lock_mode_t  mode;               /* r or w (for consistency chk only) */
     {
+#ifdef RVM_USELWP
+    if (mode == r) ReleaseReadLock(&rwl->mutex);
+    else           ReleaseWriteLock(&rwl->mutex);
+#else
     rw_qentry_t      *q,*old_q;         /* thread queue elements */
 
     CRITICAL(rwl->mutex,                /* begin rw_lock mutex crit sec */
@@ -1410,6 +1416,7 @@ void rw_lock_clear(rwl)
                 while (!(q->links.is_hdr || (q->mode == w)));
             }
         });                             /* end rw_lock mutex crit sec */
+#endif
     }
 /*  binary tree functions
     all functions leave locking to caller

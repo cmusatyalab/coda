@@ -32,7 +32,7 @@ Coda are listed in the file CREDITS.
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/mman.h>
-#if defined(__linux__) && defined(sparc)
+#ifndef HAVE_GETPAGESIZE /* defined(__linux__) && defined(sparc) */
 #include <asm/page.h>
 #define getpagesize() PAGE_SIZE
 #endif
@@ -170,7 +170,7 @@ rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length)
     if(rvm_allocations == NULL) {
 	/* There are no other allocated pages, so this is the trivial case */
 	entry = (rvm_page_entry_t *) malloc(sizeof(rvm_page_entry_t));
-	CODA_ASSERT(entry != NULL);
+	assert(entry != NULL);
 	entry->start    = vmaddr;
 	entry->end      = end;
 	entry->prev     = NULL;	 /* indicates beginning of list */
@@ -218,7 +218,7 @@ rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length)
 	   region before the one we're currently looking at. */
 	if(end < bookmark->start) {
 	    entry = (rvm_page_entry_t *) malloc(sizeof(rvm_page_entry_t));
-	    CODA_ASSERT(entry != NULL);
+	    assert(entry != NULL);
 	    entry->start    = vmaddr;
 	    entry->end      = end;
 	    entry->prev     = bookmark->prev; /* insert the new entry */
@@ -236,7 +236,7 @@ rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length)
 	   put the entry at the end */
 	if(bookmark->next == NULL) {
 	    entry = (rvm_page_entry_t *) malloc(sizeof(rvm_page_entry_t));
-	    CODA_ASSERT(entry != NULL);
+	    assert(entry != NULL);
 	    entry->start    = vmaddr;
 	    entry->end      = end;
 	    entry->prev     = bookmark;       /* insert the new entry */
@@ -250,7 +250,7 @@ rvm_bool_t rvm_register_page(char *vmaddr, rvm_length_t length)
     } /* end while */
 
     /* we shouldn't be able to get here. */
-    CODA_ASSERT(rvm_false);
+    assert(rvm_false);
     return(rvm_false);
 }
 
@@ -335,9 +335,9 @@ char *page_alloc(len)
     {
       HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
                                       PAGE_READWRITE, 0, len, NULL);
-      CODA_ASSERT(hMap != NULL);
+      assert(hMap != NULL);
       vmaddr = MapViewOfFile(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
-      CODA_ASSERT(vmaddr != NULL);
+      assert(vmaddr != NULL);
       CloseHandle(hMap);
     }
 #endif
@@ -349,7 +349,7 @@ char *page_alloc(len)
 	    } 
 	else 
 	    {
-	    CODA_ASSERT(rvm_false);  /* Unknown error condition */
+	    assert(rvm_false);  /* Unknown error condition */
    	    }
         }
 
@@ -363,7 +363,7 @@ char *page_alloc(len)
        work with mmap()). */
     if (rvm_register_page(vmaddr, len) == rvm_false)
         {
-	CODA_ASSERT(rvm_false);	/* Registering shouldn't have failed */
+	assert(rvm_false);	/* Registering shouldn't have failed */
 	}
 
     return vmaddr;
@@ -377,14 +377,14 @@ void page_free(vmaddr, length)
     {
 #ifdef HAVE_MMAP
 	if (munmap(vmaddr, length)) {
-	    CODA_ASSERT(0); /* should never fail */
+	    assert(0); /* should never fail */
 	}
 #else
 	UnmapViewOfFile(vmaddr);
 #endif
 
 	if (rvm_unregister_page(vmaddr, length) == rvm_false) {
-	    CODA_ASSERT(0); /* should never fail */
+	    assert(0); /* should never fail */
 	}
     }
 
@@ -414,7 +414,7 @@ rvm_bool_t mem_chk(char *vmaddr, rvm_length_t length)
 				       bridge when we get to it. */
     }
 
-    CODA_ASSERT(rvm_false);
+    assert(rvm_false);
     return(rvm_false);		/* shouldn't be able to get here */
 }
 
@@ -737,7 +737,7 @@ region_t *find_partial_range(dest,length,code)
         if (node != NULL)
             {
             region = node->region;
-            CODA_ASSERT(region != NULL);
+            assert(region != NULL);
 
             /* begin region_lock crit sect (ended by caller) */
             rw_lock(&region->region_lock,r);

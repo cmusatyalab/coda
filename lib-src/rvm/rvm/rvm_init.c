@@ -41,14 +41,7 @@ static rvm_bool_t   terminated = rvm_false; /* shutdown flag -- no
 /* check that RVM properly initialized (for interface functions) */
 rvm_bool_t bad_init(void)
 {
-    rvm_bool_t      init_val;
-
-    CRITICAL(init_lock,                 /* begin init_lock crit sec */
-        {
-        init_val = inited;
-        });                             /* end init_lock crit sec */
-
-    if (init_val == rvm_true)           /* return reverse sense */
+    if (inited == rvm_true)           /* return reverse sense */
         return rvm_false;
     else
         return rvm_true;
