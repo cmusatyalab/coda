@@ -28,3 +28,5 @@ LIBGDBM       = /usr/lib/libgdbm.a
 LEX           = flex
 #YACC          = bison -y
 PERL          = perl
+
+GUIDIR        = /usr/lib/coda

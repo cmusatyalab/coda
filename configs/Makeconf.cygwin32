@@ -46,3 +46,4 @@ LIBFLEX       =
 LEX           = flex
 #YACC          = bison -y
 PERL          = perl
+GUIDIR        = /usr/lib/coda

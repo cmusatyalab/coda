@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.19 98/01/10 18:40:21 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.20 1998/01/22 10:18:42 rvb Exp $";
 # 
 
 # the following may need editing depending on your preferences
@@ -59,3 +59,4 @@ LIBGDBM       = /usr/pkg/lib/libgdbm.a
 endif
 
 LIBMATH       = -lm
+GUIDIR        = /usr/lib/coda
