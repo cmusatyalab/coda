@@ -18,8 +18,8 @@
 #*/
 
 echon() {
-    if [ "`echo -n`" ] ; then
-        echo "$@"\c
+    if [ "`echo -n`" = "-n" ] ; then
+        echo "$@"'\c'
     else
         echo -n "$@"
     fi
@@ -36,35 +36,35 @@ echo "for a Coda System:Administrator member on this server,"
 echo "(sort of a Coda super user)"
 echo
  
-until [ x$userid != x ]; do
+userid=
+until [ "x$userid" != x ]; do
  	echon "Enter the uid of this user: "
  	read userid
- 	if [ x$userid = x ]; then
+ 	if [ "x$userid" = x ]; then
  	    echo "Nothing cannot be a Coda administrator"
- 	    echo "Run vice-setup-user again"
-#	    exit 1
+	    continue
  	fi
   
- 	if [ x$userid = x0 ]; then
+ 	if [ "x$userid" = x0 ]; then
  	    echo "Root cannot be a Coda administrator"
- 	    echo "Run vice-setup-user again"
- 	    exit 1
+	    userid=
+	    continue
  	fi
 done
 
-until [ x$username != x ]; do
+username=
+until [ "x$username" != x ]; do
  	echon "Enter the username of this user: "
  	read username
- 	if [ x$username = x ]; then
+ 	if [ "x$username" = x ]; then
  	    echo "Nothing cannot be a Coda administrator"
- 	    echo "Run vice-setup-user again"
-#	    exit 1
+	    continue
  	fi
  
- 	if [ x$username = xroot ]; then
+ 	if [ "x$username" = xroot ]; then
  	    echo "Root cannot be a Coda administrator"
- 	    echo "Run vice-setup-user again"
- 	    exit 1
+	    username=
+	    continue
  	fi
 done
 

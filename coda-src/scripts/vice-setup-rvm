@@ -18,8 +18,8 @@
 #*/
 
 echon() {
-    if [ "`echo -n`" ] ; then
-        echo "$@"\c
+    if [ "`echo -n`" = "-n" ] ; then
+        echo "$@"'\c'
     else
         echo -n "$@"
     fi
@@ -54,40 +54,40 @@ echo WARNING: these choices are not easy to change once you are up and running.
 echo
 
 yesno=""
-until [ x$yesno != x ]; do
+until [ "x$yesno" != x ]; do
    echon "Are you ready to set up RVM? [yes/no] "
    read yesno
-   if [  x$yesno = xyes  -o  x$yesno = xy ]; then
-       echo ""
-   else
-       echo "Run vice-rvmsetup when you are ready!"
-       exit 
-   fi
 done
+if [ "x$yesno" = xyes -o "x$yesno" = xy -o "x$yesno" = xy ]; then
+    echo ""
+else
+    echo "Run vice-rvmsetup when you are ready!"
+    exit 
+fi
 
 #
 # we need a size and partition for the log.
 #
-until [ x$log != x ]; do
+until [ "x$log" != x ]; do
    echon "What is your log partition? "
    read log
 done
 
-until [ x$logsize != x ]; do
+until [ "x$logsize" != x ]; do
     echo
     echo  "The log size must be smaller than you log partition."
     echo  "We recommend not more than 30M log size, and 2M is a good choice."
-    echon "What is your log size? (enter as e.g. '12M') "
+    echon "What is your log size? (enter as e.g. '2M') "
     read logsize
     echo
 done
 
-until [ x$data != x ]; do
+until [ "x$data" != x ]; do
    echon "What is your data partition (or file)? "
    read data
 done
 
-until [ x$datasize != x ]; do
+until [ "x$datasize" != x ]; do
     echo
     echo  "The data size must be approx 4% of you server file space."
     echo  "We have templates for servers of approx: 500M, 1G, 2.2G, 3.3G, 8G"
@@ -110,14 +110,14 @@ echo
 echo "  --- log area: $log, size $logsize."
 echo "  --- data area: $data, size $datasize."
 echo
-until [ x$answer != x ]; do
+until [ "x$answer" != x ]; do
     echon "Proceed, and wipe out old data? [y/n] "
     answer=n
     read answer 
-    if [  x$answer = xn -o x$answer = xno -o x$answer = xN -o x$answer = xNo ]; then
-	exit 1    
-    fi
 done
+if [ "x$answer" = xn -o "x$answer" = xno -o "x$answer" = xN -o "x$answer" = xNo ]; then
+    exit 1    
+fi
 
 echo
 rvmutl > /dev/null  << EOF
@@ -149,7 +149,7 @@ case `uname -sr` in
                 rvmstart=0x20000000 ;;
 esac
 
-case $datasize in 
+case "$datasize" in 
     22[mM] )
  	dsparm=23068672 # was 20480000
  	heapsize=0x1200000

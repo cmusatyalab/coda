@@ -90,7 +90,6 @@ const int FSDB_NBUCKETS = 2048;
 const int FSO_MagicNumber = 2687694;
 
 const int BLOCKS_PER_FILE = 24;			    /* rule of thumb */
-const int UNSET_CF = 0;
 const int MIN_CF = MIN_CB / BLOCKS_PER_FILE;
 
 const int PIGGY_VALIDATIONS = 50;  /* number of objects we can validate on the side */

@@ -75,15 +75,15 @@ int CleanShutDown = 0;
 int SearchForNOreFind = 0;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
 
 /* Command-line/vstab parameters. */
-char *consoleFile = UNSET_CONSOLE;
-char *venusRoot = UNSET_VR;
-char *kernDevice = UNSET_KD;
-char *fsname = UNSET_FS;
-char *CacheDir = UNSET_CD;
-int   CacheBlocks = UNSET_CB;
-char *RootVolName = UNSET_RV;
+char *consoleFile = NULL;
+char *venusRoot = NULL;
+char *kernDevice = NULL;
+char *fsname = NULL;
+char *CacheDir = NULL;
+int   CacheBlocks = 0;
+char *RootVolName = NULL;
 vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
-char *SpoolDir = UNSET_SPOOLDIR;
+char *SpoolDir = NULL;
 char *VenusPidFile = NULL;
 char *VenusControlFile = NULL;
 char *VenusLogFile = NULL;
@@ -431,51 +431,50 @@ static void DefaultCmdlineParms()
     struct vstab *v = getvsent();
     if (v) {
 #ifdef DJGPP
-	if (venusRoot == UNSET_VR) venusRoot = strcat(v->v_dir, ":");
+	if (!venusRoot)   venusRoot = strcat(v->v_dir, ":");
 #else
-	if (venusRoot == UNSET_VR) venusRoot = v->v_dir;
+	if (!venusRoot)   venusRoot = v->v_dir;
 #endif
-	if (kernDevice == UNSET_KD) kernDevice = v->v_dev;
-	if (fsname == UNSET_FS) fsname = v->v_host;
-	if (CacheDir == UNSET_CD) CacheDir = v->v_cache;
-	if (CacheBlocks == UNSET_CB) CacheBlocks = v->v_cachesize;
+	if (!kernDevice)  kernDevice = v->v_dev;
+	if (!fsname)	  fsname = v->v_host;
+	if (!CacheDir)	  CacheDir = v->v_cache;
+	if (!CacheBlocks) CacheBlocks = v->v_cachesize;
     }
 
     /* Load the venusdotconf file */
     conf_init(venusdotconf);
 
-    CONF_INT(CacheBlocks,       "cacheblocks",   DFLT_CB);
+    CONF_INT(CacheBlocks,       "cacheblocks",   40000);
     CONF_STR(CacheDir,          "cachedir",      DFLT_CD);
-    CONF_STR(SpoolDir,          "checkpointdir", DFLT_SPOOLDIR);
-    CONF_STR(consoleFile,       "errorlog",      DFLT_CONSOLE);
-    CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
-    CONF_STR(fsname,            "rootservers",   DFLT_FS);
-    CONF_STR(RootVolName,       "rootvolume",    UNSET_RV);
-    CONF_STR(VenusLogDevice,    "rvm_log",       DFLT_VLD);
-    CONF_STR(VenusDataDevice,   "rvm_data",      DFLT_VDD);
+    CONF_STR(SpoolDir,          "checkpointdir", "/usr/coda/spool");
+    CONF_STR(consoleFile,       "errorlog",      "/usr/coda/etc/console");
+    CONF_STR(kernDevice,        "kerneldevice",  DFLT_KD);
+    CONF_INT(MapPrivate,	"mapprivate",	 0);
     CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
+    CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
+    CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
+    CONF_STR(fsname,            "rootservers",   "");
+    CONF_STR(RootVolName,       "rootvolume",    NULL);
+    CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");
+    CONF_STR(VenusDataDevice,   "rvm_data",      "/usr/coda/DATA");
 
-    CONF_INT(MapPrivate, "mapprivate", 0);
-
-    CONF_INT(CacheFiles, "cachefiles", UNSET_CF);
+    CONF_INT(CacheFiles,	"cachefiles",	 0);
     {
-	if (CacheFiles == UNSET_CF)
-	    CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
+	if (!CacheFiles) CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
 
 #ifdef DJGPP
 	if (CacheFiles > 1500)
 	    CacheFiles = 1500;
 #endif
 	if (CacheFiles < MIN_CF) {
-	    eprint("Cannot start: minimum number of cache files is %d",MIN_CF); 
+	    eprint("Cannot start: minimum number of cache files is %d", MIN_CF);
 	    exit(-1); 
 	}
     }
 
-    CONF_INT(MLEs, "cml_entries", UNSET_MLE);
+    CONF_INT(MLEs,		"cml_entries",	 0);
     {
-	if (MLEs == UNSET_MLE)
-	    MLEs = CacheBlocks / BLOCKS_PER_MLE;
+	if (!MLEs) MLEs = CacheBlocks / BLOCKS_PER_MLE;
 
 	if (MLEs < MIN_MLE) {
 	    eprint("Cannot start: minimum number of cml entries is %d",MIN_MLE);
@@ -483,10 +482,9 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_INT(HDBEs, "hoard_entries", UNSET_HDBE);
+    CONF_INT(HDBEs,		"hoard_entries", 0);
     {
-	if (HDBEs == UNSET_HDBE)
-	    HDBEs = CacheBlocks / BLOCKS_PER_HDBE;
+	if (!HDBEs) HDBEs = CacheBlocks / BLOCKS_PER_HDBE;
 
 	if (HDBEs < MIN_HDBE) {
 	    eprint("Cannot start: minimum number of hoard entries is %d",
@@ -495,7 +493,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_STR(VenusPidFile, "pid_file", NULL);
+    CONF_STR(VenusPidFile,	"pid_file",	 NULL);
     {
 #define PIDFILE "/pid"
 	if (!VenusPidFile) {
@@ -505,7 +503,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_STR(VenusControlFile, "control_file", NULL);
+    CONF_STR(VenusControlFile,	"control_file",  NULL);
     {
 #define CTRLFILE "/VENUS_CTRL"
 	if (!VenusControlFile) {
@@ -515,7 +513,7 @@ static void DefaultCmdlineParms()
 	}
     }
 
-    CONF_STR(VenusLogFile, "logfile", NULL);
+    CONF_STR(VenusLogFile,	"logfile",	 NULL);
     {
 #define LOGFILE "/venus.log"
 	if (!VenusLogFile) {
@@ -526,9 +524,6 @@ static void DefaultCmdlineParms()
     }
 
 #ifdef moremoremore
-    CONF_STR(venusRoot,       "mountpoint",    DFLT_VR);
-    CONF_STR(kernDevice,      "kerneldevice",  DFLT_KD);
-
     char *x = NULL;
     CONF_STR(x, "relay", NULL, "127.0.0.1");
     venus_relay_addr = getip(x);

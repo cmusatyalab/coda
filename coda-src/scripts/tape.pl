@@ -89,7 +89,7 @@ if ( ! -d $dumpdir ) {
     print "Error: no dumpdir $dumpdir!\n";
     exit 1;
 }
-system("cp -p $dbdir/* $dumpdir");
+system("cp -ax $dbdir/* $dumpdir");
 
 #
 #  the following interacts with operators and tapes to check for the right tape
@@ -167,10 +167,10 @@ print "\n\nNow dumping the tape\n";
 foreach $part ( @partitions ) { 
     my $time = strftime("%T", localtime);
     print "\n\n---------->$time: doing partition $part\n";
-    print     "---------->command: dump 0sBf $blocksize $size  $tape $part\n";
-    $rc = 0xffff & system("dump 0sBf $blocksize $size $tape $part");
+    print     "---------->command: dump 0Bf $size $tape $part\n";
+    $rc = 0xffff & system("dump 0Bf $size $tape $part");
     if ( $rc ) { 
-	printf "Error dumping: dump 0sBf $blocksize $tape $part\n";
+	printf "Error dumping: dump 0Bf $size $tape $part\n";
 	exit 1;
     }
 }
@@ -184,7 +184,8 @@ $partno = 1;
 foreach $part ( @partitions ) { 
     print "\n\n---------> Partition $part:\n";
     print     "---------> command: mt -f $tape rewind\n";    
-    print     "---------> command: restore -b $blocksize -s $partno -f $tape -t /\n";
+    print     "---------> command: restore -b $blocksize -s $partno -f $tape
+-i\n";
     $rc = 0xffff & system("mt -f $tape rewind");
     $rc = 0xffff & system("restore -b $blocksize -s $partno -f $tape -t /");
     if ( $rc ) { 

@@ -62,14 +62,10 @@ class vcbdb;
 
 const int UNSET_IMD = 0; /* do not initialize meta data */
 #define	DFLT_RVMT UFS			/* meta data store type */
-#define	DFLT_VDD "/usr/coda/DATA"	/* Venus meta-data device */
-#define	UNSET_VDD 0
 const unsigned long DFLT_VDDS =	0x400000; /* Venus meta-data device size */
 const unsigned long UNSET_VDDS = (unsigned long)-1;
 const unsigned long MIN_VDDS = 0x080000;
 const int DataToLogSizeRatio = 4;
-#define	DFLT_VLD "/usr/coda/LOG"	/* Venus log device */
-#define	UNSET_VLD 0
 const unsigned long DFLT_VLDS =	DFLT_VDDS / DataToLogSizeRatio;	/* Venus log device size */
 const unsigned long UNSET_VLDS = (unsigned long)-1;
 const unsigned long MIN_VLDS = MIN_VDDS / DataToLogSizeRatio;

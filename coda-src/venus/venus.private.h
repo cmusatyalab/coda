@@ -84,8 +84,6 @@ extern struct Features HAVE;
 
 #define	CODADIR	"/usr/coda"
 #define	VSTAB	"/usr/coda/etc/vstab"
-#define DFLT_CONSOLE "/usr/coda/etc/console"/* console file */
-#define UNSET_CONSOLE 0
 
 #if !defined(DJGPP)
 #define	DFLT_VR	"/coda"			    /* venus root */
@@ -94,11 +92,7 @@ extern struct Features HAVE;
 #define MCFD    16                           /* Michael Callahan File Descriptor */
 #endif
 
-#define	UNSET_VR 0
 #define	DFLT_KD	"/dev/cfs0"		    /* kernel pseudo-device */
-#define	UNSET_KD 0
-#define	DFLT_FS	""	    /* file servers */
-#define	UNSET_FS 0
 #if defined(DJGPP) 
 #define	DFLT_CD	"C:/usr/coda/venus.cache"    /* Win cache directory */
 #elif  defined(__CYGWIN32__)
@@ -106,7 +100,6 @@ extern struct Features HAVE;
 #else 
 #define	DFLT_CD	"/usr/coda/venus.cache"	    /* cache directory */
 #endif
-#define	UNSET_CD 0
 
 #if defined(__CYGWIN32__)
 #define CF_PREFIX "/DosDevices/"
@@ -114,13 +107,8 @@ extern struct Features HAVE;
 #define CF_PREFIX ""
 #endif
 
-const int DFLT_CB = 40000;		    /* cache blocks */
-const int UNSET_CB = 0;
 const int MIN_CB = 2048;
-#define	UNSET_RV 0
 #define UNSET_PRIMARYUSER 0		    /* primary user of this machine */
-#define DFLT_SPOOLDIR "/usr/coda/spool"
-#define UNSET_SPOOLDIR 0
 
 const int FREE_FACTOR = 16;
 

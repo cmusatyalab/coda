@@ -68,7 +68,7 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
-int CacheFiles = UNSET_CF;
+int CacheFiles = 0;
 int FSO_SWT = UNSET_SWT;
 int FSO_MWT = UNSET_MWT;
 int FSO_SSF = UNSET_SSF;

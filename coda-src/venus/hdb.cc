@@ -90,7 +90,7 @@ extern "C" {
 #include "worker.h"
 
 
-int HDBEs = UNSET_HDBE;
+int HDBEs = 0;
 int MetaExpand(struct DirEntry *entry, long hook) ;
 
 /* ***** Allow periodic hoard walks ***** */

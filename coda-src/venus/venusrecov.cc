@@ -80,9 +80,9 @@ float TransElapsed = 0.0;
 int MapPrivate = 0;
 
 int InitMetaData = UNSET_IMD;
-char *VenusLogDevice = UNSET_VLD;
+char *VenusLogDevice = NULL;
 unsigned long VenusLogDeviceSize = UNSET_VLDS;
-char *VenusDataDevice = UNSET_VDD;
+char *VenusDataDevice = NULL;
 unsigned long VenusDataDeviceSize = UNSET_VDDS;
 int RdsChunkSize = UNSET_RDSCS;
 int RdsNlists = UNSET_RDSNL;

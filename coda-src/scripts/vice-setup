@@ -18,8 +18,8 @@
 #*/
 
 echon() {
-    if [ "`echo -n`" ] ; then
-        echo "$@"\c
+    if [ "`echo -n`" = "-n" ] ; then
+        echo "$@"'\c'
     else
         echo -n "$@"
     fi
@@ -61,17 +61,16 @@ cd /vice/db
 
 for which in auth2 volutil; do
     token=""
-    until [ x$token != x ]; do
+    until [ "x$token" != x ]; do
 	echo "The following tokens must be identical on all servers."
 	echon "Enter a random token for $which authentication : "
 	read token
-	if [ x$token != x ]; then
-            rm -f $which.tk
-	    touch $which.tk
-	    chmod 600 $which.tk
-	    echo $token >> $which.tk
-        fi
     done
+
+    rm -f $which.tk
+    touch $which.tk
+    chmod 600 $which.tk
+    echo "$token" >> $which.tk
 done
 echo tokens done!
 
@@ -130,7 +129,7 @@ esac
 # startup scripts
 #
 CODABASE=
-case x`uname` in
+case "x`uname`" in
   xNetBSD)
 	CODABASE=/usr/pkg
 	;;
@@ -140,19 +139,19 @@ case x`uname` in
 esac
 
 if [ x$CODABASE != x ]; then
-yesno=""
-until [ x$yesno != x ]; do
-   echon 'Do you want to start the server at boot time? (y/n) '
-   read yesno
-   if [ x$yesno = xy  -o  x$yesno = xyes -o x$yesno = xY ]; then
-       touch /vice/srv/STARTFROMBOOT
-       grep "${CODABASE}/etc/rc.vice" /etc/rc.local > /dev/null 2>1
-       if [ $? != 0 ]; then 
-         echo "if [ -x ${CODABASE}/etc/rc.vice ]; then ${CODABASE}/etc/rc.vice start ; fi" >> /etc/rc.local 
-       fi
-       echo "Startup scripts now installed."
-   fi
-done
+    yesno=""
+    until [ x$yesno != x ]; do
+	echon 'Do you want to start the server at boot time? (y/n) '
+	read yesno
+    done
+    if [ "x$yesno" = xy  -o  "x$yesno" = xyes -o "x$yesno" = xY ]; then
+	touch /vice/srv/STARTFROMBOOT
+	grep "${CODABASE}/etc/rc.vice" /etc/rc.local > /dev/null 2>1
+	if [ $? != 0 ]; then 
+	    echo "if [ -x ${CODABASE}/etc/rc.vice ]; then ${CODABASE}/etc/rc.vice start ; fi" >> /etc/rc.local 
+	fi
+	echo "Startup scripts now installed."
+    fi
 fi
 
 #
@@ -173,16 +172,16 @@ echo $bn > /vice/hostname
 
 isscm=N
 yesno=""
-until [ x$yesno != x ]; do
+until [ "x$yesno" != x ]; do
    echon 'Is this the master server, aka the SCM machine? (y/n) '
    read yesno
-   if [ x$yesno = xy  -o  x$yesno = xyes ]; then
-      isscm=Y
-      echo  "Now installing files specific to the SCM..."
-   else
-      echo  "Now installing things specific to non-SCM machines..."
-   fi
 done
+if [ "x$yesno" = xy -o "x$yesno" = xyes -o "x$yesno" = xY ]; then
+   isscm=Y
+   echo  "Now installing files specific to the SCM..."
+else
+   echo  "Now installing things specific to non-SCM machines..."
+fi
 
 
 if [ $isscm = Y ]; then
@@ -212,13 +211,11 @@ fi
 # specifics for non SCM servers only 
 # 
 
-until [ x$scmhost != x ]; do
+until [ "x$scmhost" != x ]; do
     echon "Enter the hostname of the SCM machine : "
     read scmhost
-    if [ x$scmhost != x ]; then
-       echo $scmhost > /vice/db/scm
-    fi
 done
+echo "$scmhost" > /vice/db/scm
 
 vice-setup-rvm
 vice-setup-srvdir

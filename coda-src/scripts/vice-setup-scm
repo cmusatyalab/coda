@@ -18,8 +18,8 @@
 #*/
 
 echon() {
-    if [ "`echo -n`" ] ; then
-        echo "$@"\c
+    if [ "`echo -n`" = "-n" ] ; then
+        echo "$@"'\c'
     else
         echo -n "$@"
     fi
@@ -47,13 +47,14 @@ if [ x$bn = x ]; then
 fi
 cd /vice/db
 
-until [ x$id != x ]; do
-   echon 'Enter an id for this server (a number > 0 < 255) : '
+until [ "x$id" != x ]; do
+   echo 'Enter an id for this server.'
+   echo 'The serverid should be a number between 0 and 255 *avoid 0, 127, and
+255*'
+   echon 'serverid: '
    read id
-   if [ x$id != x ]; then
-      echo "$bn		$id" >> servers
-   fi
 done
+echo "$bn		$id" >> servers
 echo done!
 
 #
@@ -72,13 +73,11 @@ id=""
 echo
 echo Setting up ROOTVOLUME file
 cd /vice/db
-until [ x$id != x ]; do
+until [ "x$id" != x ]; do
    echon 'Enter the name of the rootvolume (< 32 chars) : '
    read id
-   if [ x$id != x ]; then
-	echo $id > /vice/db/ROOTVOLUME
-   fi
 done
+echo $id > /vice/db/ROOTVOLUME
 echo
 echo
 

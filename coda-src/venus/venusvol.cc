@@ -180,7 +180,7 @@ extern "C" {
 #include "vproc.h"
 
 
-int MLEs = UNSET_MLE;
+int MLEs = 0;
 
 
 /* local-repair modification */
@@ -265,9 +265,26 @@ int VOL_HashFN(void *key) {
 }
 
 
-int GetRootVolume() {
-    /* If we don't already know the root volume name ask the server(s) for it. */
-    if (RootVolName == UNSET_RV) {
+int GetRootVolume()
+{
+    if (RootVolName)
+	goto found_rootvolname;
+
+    /* By using the copy of the rootvolume name stored in RVM we avoid the 15
+     * second timeout when starting disconnected. But we do lose the ability to
+     * verify whether the rootvolume has changed. This is not a real problem,
+     * since the cached state often is wrong if the rootvolume changes without
+     * reinitializing venus. */
+
+    /* Dig RVN out of recoverable store if possible. */
+    if (rvg->recov_RootVolName[0] != '\0') {
+	RootVolName = new char[V_MAXVOLNAMELEN];
+	strncpy(RootVolName, rvg->recov_RootVolName, V_MAXVOLNAMELEN);
+	goto found_rootvolname;
+    }
+
+    /* If we don't already know the root volume name ask the servers for it. */
+    {
 	RPC2_BoundedBS RVN;
 	RVN.MaxSeqLen = V_MAXVOLNAMELEN;
 	RVN.SeqLen = 0;
@@ -280,7 +297,7 @@ int GetRootVolume() {
 	if (code != 0) {
 	    LOG(100, ("GetRootVolume: can't get SUConn!\n"));
 	    RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
-	    goto CheckRootVolume;
+	    goto failure;
 	}
 
 	/* Make the RPC call. */
@@ -295,23 +312,18 @@ int GetRootVolume() {
 
 	PutConn(&c);
 
-CheckRootVolume:
+failure:
 	if (code != 0) {
-	    /* Dig RVN out of recoverable store if possible. */
-	    if (rvg->recov_RootVolName[0] != '\0') {
-		strncpy((char *)RVN.SeqBody, rvg->recov_RootVolName, V_MAXVOLNAMELEN);
-		RVN.SeqLen = V_MAXVOLNAMELEN;
-	    }
-	    else {
-		eprint("GetRootVolume: can't get root volume name!");
-		return(0);
-	    }
+	    eprint("GetRootVolume: can't get root volume name!");
+	    return(0);
 	}
+
 	RootVolName = new char[V_MAXVOLNAMELEN];
 	strncpy(RootVolName, (char *)RVN.SeqBody, V_MAXVOLNAMELEN);
     }
 
-    /* Record name in RVM. */
+found_rootvolname:
+    /* Make sure the rootvolume name is stored in RVM. */
     if (rvg->recov_RootVolName[0] == '\0' ||
 	 !STRNEQ(RootVolName, rvg->recov_RootVolName, V_MAXVOLNAMELEN)) {
 	Recov_BeginTrans();
@@ -323,9 +335,11 @@ CheckRootVolume:
     /* Retrieve the volume. */
     volent *v;
     if (VDB->Get(&v, RootVolName) != 0) {
-	eprint("GetRootVolume: can't get volinfo for root volume (%s)!", RootVolName);
+	eprint("GetRootVolume: can't get volinfo for root volume (%s)!",
+	       RootVolName);
 	return(0);
     }
+
     rootfid.Volume = v->vid;
     FID_MakeRoot(&rootfid);
     VDB->Put(&v);
