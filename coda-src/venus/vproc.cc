@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/vproc.cc,v 4.2 97/01/17 15:23:01 satya Exp $";
+static char *rcsid = "$Header: vproc.cc,v 4.4 97/02/27 18:49:15 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -394,6 +394,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
     bzero(&rvm_data, (int) sizeof(rvm_perthread_t));
     rvm_data.die = &Choke;
     type = t;
+    lwpri = priority;
     seq = 0;
     idle = 0;
     interrupted = 0;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/comm_daemon.cc,v 1.1 1996/11/22 19:10:48 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/comm_daemon.cc,v 4.1 97/01/08 21:51:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -110,7 +110,7 @@ void ProbeDaemon() {
 	/* refresh network measurements for each server */
 	if (curr_time - LastCommCheck >= CommCheckInterval) {
 	    if (!Simulating) 
-		CheckServerBW();
+		CheckServerBW(curr_time);
 
 	    LastCommCheck = curr_time;
 	}
@@ -156,21 +156,16 @@ void ServerProbe(unsigned long *lastupp, unsigned long *lastdownp) {
 	     * times sent in), or if the server has not been heard from 
 	     * within the appropriate interval. Otherwise, pretend a probe
 	     * occurred at the "last live" time.
-	     *
-	     * Note that the definition of "recent" for the last live time
-	     * is within half the appropriate probe interval.  This is to
-	     * increase the probability that a change is server status is 
-	     * discovered by this daemon instead of a real request.
 	     */
 	    struct timeval lastword;
 
 	    (void) s->GetLiveness(&lastword);		/* if error, lastword = 0 */
 	    if ((lastupp == 0 && lastdownp == 0) ||	/* forced check */
 		(s->ServerIsUp() && 
-		 (lastword.tv_sec + (T1Interval >> 1) <= curr_time) && /* heard recently */
-		 (*lastupp + T1Interval <= curr_time)) ||	  /* up interval expired */
+		 (lastword.tv_sec + T1Interval <= curr_time) && /* heard recently */
+		 (*lastupp + T1Interval <= curr_time)) ||	/* up interval expired */
 		(s->ServerIsDown() && 
-		 (lastword.tv_sec + (T2Interval >> 1) <= curr_time) && /* heard recently */
+		 (lastword.tv_sec + T2Interval <= curr_time) && /* heard recently */
 		 (*lastdownp + T2Interval <= curr_time))) {	/* down interval expired */
 
 		s->probeme = 1;

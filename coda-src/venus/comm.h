@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/comm.h,v 1.1 1996/11/22 19:11:42 braam Exp $";
+static char *rcsid = "$Header: comm.h,v 4.1 97/01/08 21:51:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -141,6 +141,10 @@ const int DFLT_ST = 0;
 const int DFLT_MT = 0;
 #endif
 const int UNSET_BW = -1;		    /* unset bandwidth estimate */
+const int UNSET_WCT = -1;
+const int DFLT_WCT = 50000;
+const int UNSET_WCS = -1;
+const int DFLT_WCS = 1800;		    /* 30 minutes */
 
 
 /*  *****  Types  *****  */
@@ -170,6 +174,8 @@ class connent {
   friend int GetRootVolume();
   friend class vdb;
   friend class volent;
+  friend class ClientModifyLog;
+  friend class cmlent;
 
     /* The connection list. */
     static olist *conntab;
@@ -239,6 +245,7 @@ class srvent {
   friend void ProbeServers(int);
   friend void ServerProbe(unsigned long *, unsigned long *);
   friend long HandleProbe(int, RPC2_Handle *, long, long);
+  friend void CheckServerBW(unsigned long);
   friend void DownServers(char *, int *);
   friend void DownServers(int, unsigned long *, char *, int *);
   friend void ServerPrint(int);
@@ -299,7 +306,7 @@ class srvent {
     void ServerUp(RPC2_Handle);
     int	ServerIsDown() { return(connid == 0); }
     int ServerIsUp() { return(connid != 0); }
-    int ServerIsWeak() { return(connid > 0 && bw < WCThresh); }
+    int ServerIsWeak() { return(connid > 0 && bw <= WCThresh && bw != UNSET_BW); }
                          /* quasi-up != up */
 
     void print() { print(stdout); }
@@ -629,6 +636,52 @@ extern void ProbeDaemon();
 extern void VSGDaemon(); /* used to be member of class vsgdb */
 extern void VSGD_Init();
 
+/* comm synchronization */
+struct CommQueueStruct {
+    char sync;
+    int count[LWP_MAX_PRIORITY+1];
+};
+
+extern struct CommQueueStruct CommQueue;
+
+/*
+ * The CommQueue summarizes outstanding RPC traffic for all threads.
+ * Threads servicing requests for weakly connected volumes defer to 
+ * higher priority threads before using the network.  Note that Venus
+ * cannot determine the location of a network bottleneck.  Therefore,
+ * it conservatively assumes that all high priority requests are 
+ * sources of interference.  Synchronization could be made finer, currently 
+ * all waiters are awakened instead of the highest priority ones.  
+ */
+#define START_COMMSYNC()\
+{   vproc *vp = VprocSelf();\
+    if (vp->u.u_vol && vp->u.u_vol->IsWeaklyConnected()) {\
+	int i = LWP_MAX_PRIORITY;\
+	while (i > vp->lwpri) {\
+	    if (CommQueue.count[i]) {\
+		LOG(0, ("WAITING(CommQueue) pri = %d, for %d at pri %d\n",\
+			vp->lwpri, CommQueue.count[i], i));\
+		START_TIMING();\
+		VprocWait(&CommQueue.sync);\
+		END_TIMING();\
+                LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));\
+		i = LWP_MAX_PRIORITY;\
+	    } else {\
+		i--;\
+	    }\
+	}\
+    }\
+    CommQueue.count[vp->lwpri]++;\
+}
+
+#define END_COMMSYNC()\
+{\
+    vproc *vp = VprocSelf();\
+    CommQueue.count[vp->lwpri]--;\
+    VprocSignal(&CommQueue.sync);\
+}
+
+
 /* comm statistics (move to venus.private.h?) */
 #ifdef	TIMING
 #define START_COMMSTATS()\
@@ -640,10 +693,12 @@ extern void VSGD_Init();
 	SubCSSs(&endCS, &startCS);\
     }
 #define	MULTI_START_MESSAGE(viceop)\
+    START_COMMSYNC();\
     LOG(10, ("(Multi)%s: start\n", RPCOpStats.RPCOps[viceop].name));\
     START_TIMING();\
     START_COMMSTATS();
 #define	UNI_START_MESSAGE(viceop)\
+    START_COMMSYNC();\
     LOG(10, ("%s: start\n", RPCOpStats.RPCOps[viceop].name));\
     START_TIMING();\
     START_COMMSTATS();
@@ -654,6 +709,7 @@ extern void VSGD_Init();
 #if defined(sun4) || defined(sparc)
 #define MULTI_END_MESSAGE(viceop)\
     END_TIMING();\
+    END_COMMSYNC();\
     END_COMMSTATS();\
     LOG(10, ("(Multi)%s: code = %d, elapsed = %3.1f\n", RPCOpStats.RPCOps[viceop].name, code, elapsed));\
     LOG(1000, ("RPC2_SStats: Total = %d\n", endCS.RPC2_SStats_Multi.Multicasts));\
@@ -663,6 +719,7 @@ extern void VSGD_Init();
 #else
 #define MULTI_END_MESSAGE(viceop)\
     END_TIMING();\
+    END_COMMSYNC();\
     END_COMMSTATS();\
     LOG(10, ("(Multi)%s: code = %d, elapsed = %3.1f\n", RPCOpStats.RPCOps[viceop].name, code, elapsed));\
     LOG(1000, ("RPC2_SStats: Total = %d\n", endCS.RPC2_SStats_Multi.Multicasts));\
@@ -676,6 +733,7 @@ extern void VSGD_Init();
 
 #define UNI_END_MESSAGE(viceop)\
     END_TIMING();\
+    END_COMMSYNC();\
     END_COMMSTATS();\
     LOG(10, ("%s: code = %d, elapsed = %3.1f\n", RPCOpStats.RPCOps[viceop].name, code, elapsed));\
     LOG(1000, ("RPC2_SStats: Total = %d\n", endCS.RPC2_SStats_Uni.Total));\
@@ -701,12 +759,16 @@ extern void VSGD_Init();
     }
 #else	TIMING
 #define	MULTI_START_MESSAGE(viceop)\
+    START_COMMSYNC();\
     LOG(10, ("(Multi)%s: start\n", RPCOpStats.RPCOps[viceop].name));
 #define	UNI_START_MESSAGE(viceop)\
+    START_COMMSYNC();\
     LOG(10, ("%s: start\n", RPCOpStats.RPCOps[viceop].name));
 #define MULTI_END_MESSAGE(viceop)\
+    END_COMMSYNC();\
     LOG(10, ("(Multi)%s: code = %d\n", RPCOpStats.RPCOps[viceop].name, code));
 #define UNI_END_MESSAGE(viceop)\
+    END_COMMSYNC();\
     LOG(10, ("%s: code = %d\n", RPCOpStats.RPCOps[viceop].name, code));
 #define MULTI_RECORD_STATS(viceop)\
     if (code < 0) RPCOpStats.RPCOps[viceop].Mrpc_retries++;\

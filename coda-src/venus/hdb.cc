@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/hdb.cc,v 4.1 1997/01/08 21:51:25 rvb Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/hdb.cc,v 4.2 97/02/26 16:03:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -271,13 +271,6 @@ int hdb::Add(hdb_add_msg *m) {
     LOG(10, ("hdb::Add: <%x, %s, %d, %d, %d>\n",
 	      m->volno, m->name, m->priority, m->attributes, m->ruid));
 
-    /* Can only add entries if root or authorized user. */
-    if (m->ruid != V_UID && !AuthorizedUser(m->ruid)) {
-	LOG(1, ("hdb::Add: (%x, %s, %d) not authorized\n",
-		m->volno, m->name, m->ruid));
-	return(EACCES);
-    }
-
     /* See if an entry already exists.  If it does, try to delete it. */
     hdbent *h = Find(m->volno, m->name);
     if (h) {
@@ -342,7 +335,7 @@ int hdb::Delete(hdb_delete_msg *m) {
 int hdb::Clear(hdb_clear_msg *m) {
     LOG(10, ("hdb::Clear: <%d, %d>\n", m->cuid, m->ruid));
 
-    /* Can only clear one's own entries unless root. */
+    /* Can only clear one's own entries unless root or authorized user. */
     if (m->ruid != m->cuid && m->ruid != V_UID && !AuthorizedUser(m->ruid)) {
 	LOG(1, ("hdb::Clear: (%d, %d) not authorized\n",
 		m->cuid, m->ruid));
@@ -383,6 +376,14 @@ int hdb::List(hdb_list_msg *m) {
     if (outfd < 0) {
 	LOG(1, ("hdb::List: (%s, %d, %d) open failed (%d)\n",
 		m->outfile, m->luid, m->ruid, errno));
+	return(errno);
+    }
+
+    /* set ownership of file to actual owner */
+    int err = ::fchown(outfd, m->ruid, (gid_t) -1);
+    if (err) {
+	LOG(1, ("hdb::List: (%s, %d) fchown failed (%d)\n",
+		m->outfile, m->ruid, errno));
 	return(errno);
     }
 
@@ -979,12 +980,6 @@ int hdb::Walk(hdb_walk_msg *m) {
 
     vproc *vp = VprocSelf();
 
-    /* Can only initiate walk if root or authorized user. */
-    if (m->ruid != V_UID && !AuthorizedUser(m->ruid)) {
-	LOG(1, ("hdb::Walk: (%d) not authorized\n", m->ruid));
-	return(EACCES);
-    }
-
     /* Set the time of the last demand hoard walk */
     if (AuthorizedUser(m->ruid)) 
         SetDemandWalkTime();
@@ -1030,6 +1025,14 @@ int hdb::Verify(hdb_verify_msg *m) {
 	return(errno);
     }
 
+    /* set ownership of file to actual owner */
+    int err = ::fchown(outfd, m->ruid, (gid_t) -1);
+    if (err) {
+	LOG(1, ("hdb::Verify: (%s, %d) fchown failed (%d)\n",
+		m->outfile, m->ruid, errno));
+	return(errno);
+    }
+
     /* Print suspicious entries. */
     hdb_iterator next(m->luid);
     hdbent *h;
@@ -1049,12 +1052,6 @@ int hdb::Enable(hdb_walk_msg *m) {
 
     vproc *vp = VprocSelf();
 
-    /* Can only enable periodic walks if root or authorized user. */
-    if (m->ruid != V_UID && !AuthorizedUser(m->ruid)) {
-	LOG(1, ("hdb::Enable: (%d) not authorized\n", m->ruid));
-	return(EACCES);
-    }
-
     eprint("Enabling periodic hoard walks");
     PeriodicWalksAllowed = 1;
     return 0;
@@ -1064,12 +1061,6 @@ int hdb::Disable(hdb_walk_msg *m) {
     LOG(10, ("hdb::Disable: <%d>\n", m->ruid));
 
     vproc *vp = VprocSelf();
-
-    /* Can only disable periodic walks if root or authorized user. */
-    if (m->ruid != V_UID && !AuthorizedUser(m->ruid)) {
-	LOG(1, ("hdb::Disable: (%d) not authorized\n", m->ruid));
-	return(EACCES);
-    }
 
     eprint("Disabling periodic hoard walks");
     PeriodicWalksAllowed = 0;

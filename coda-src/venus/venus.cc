@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venus.cc,v 4.2 1997/02/18 15:28:26 lily Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/venus.cc,v 4.3 97/02/26 16:03:26 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -261,6 +261,10 @@ PRIVATE void ParseCmdline(int argc, char **argv) {
 	    else if (STREQ(argv[i], "-weakthresh")) {   /* Threshold at which to go to weak mode */
 		extern long WCThresh;
 		WCThresh = atoi(argv[++i]);		/* in Bytes/sec */
+	    }
+	    else if (STREQ(argv[i], "-weakstale")) {   /* When estimates become too old */
+		extern int WCStale;
+		WCStale = atoi(argv[++i]);		/* in seconds */
 	    }
 	    else if (STREQ(argv[i], "-maxcbservers")) 
 		i++, MaxCBServers = atoi(argv[i]);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/venusvol.cc,v 4.1 97/01/08 21:51:40 rvb Exp $";
+static char *rcsid = "$Header: venusvol.cc,v 4.3 97/02/27 18:49:15 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -810,7 +810,6 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     flags.reserved = 0;
     flags.has_local_subtree = 0;
     flags.logv = 0;
-    flags.newreintsupported = 1;  /* until proven otherwise */
     VVV = NullVV;
     AgeLimit = V_UNSETAGE;
     ReintLimit = V_UNSETREINTLIMIT;
@@ -856,8 +855,9 @@ void volent::ResetTransient() {
     flags.allow_asrinvocation = 1;
     flags.reintegratepending = 0;
     flags.reintegrating = 0;
-    flags.weaklyconnected = 0;
     flags.repair_mode = 0;		    /* normal mode */
+    flags.resolve_me = 0;
+    flags.weaklyconnected = 0;
 
     fso_list = new olist;
 
@@ -2513,8 +2513,9 @@ void volent::print(int afd) {
 	default:
 	    Choke("volent::print: %x, bogus type (%d)", vid, type);
     }
-    fdprint(afd, "\trefcnt = %d, fsos = %d, valid = %d, online = %d, logv = %d\n",
-	    refcnt, fso_list->count(), flags.valid, flags.online, flags.logv);
+    fdprint(afd, "\trefcnt = %d, fsos = %d, valid = %d, online = %d, logv = %d, weak = %d\n",
+	    refcnt, fso_list->count(), flags.valid, flags.online, flags.logv,
+	    flags.weaklyconnected);
     fdprint(afd, "\tstate = %s, t_p = %d, d_p = %d, counts = [%d %d %d %d], repair = %d\n",
 	    PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
 	    observer_count, mutator_count, waiter_count, resolver_count, 
@@ -2530,8 +2531,8 @@ void volent::print(int afd) {
 
     fdprint(afd, "\treint_id_gen = %d, age limit = %u (sec), reint limit = %u (msec)\n", 
 	    reint_id_gen, AgeLimit, ReintLimit);
-    fdprint(afd, "\thas_local_subtree = %d, new reintegration supported = %d\n",
-	    flags.has_local_subtree, flags.newreintsupported);
+    fdprint(afd, "\thas_local_subtree = %d, resolve_me = %d\n", 
+	    flags.has_local_subtree, flags.resolve_me);
 
     /* Modify Log. */
     CML.print(afd);

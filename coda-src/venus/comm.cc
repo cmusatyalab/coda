@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/comm.cc,v 4.1 1997/01/08 21:51:19 rvb Exp $";
+static char *rcsid = "$Header: comm.cc,v 4.2 97/02/26 16:03:10 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,16 +128,18 @@ int sftp_ackpoint = UNSET_AP;
 int sftp_packetsize = UNSET_PS;
 int rpc2_timeflag = UNSET_ST;
 int mrpc2_timeflag = UNSET_MT;
+long WCThresh = UNSET_WCT;  	/* in Bytes/sec */
+int WCStale = UNSET_WCS;	/* seconds */
 
 int RoundRobin = 0;
 int AllowIPAddrs = 1;
 
 extern long RPC2_Perror;
-long WCThresh = 50000;  /* in Bytes/sec */
+struct CommQueueStruct CommQueue;
 
 #define MAXFILTERS 32
 
-struct {
+struct FailFilterInfoStruct {
 	unsigned id;
 	unsigned long host;
 	FailFilterSide side;
@@ -181,10 +183,16 @@ void CommInit() {
     else
 	srv_MultiStubWork[0].opengate = mrpc2_timeflag;
 
+    if (WCThresh == UNSET_WCT) WCThresh = DFLT_WCT;
+    if (WCStale == UNSET_WCT) WCStale = DFLT_WCS;
+
     /* Sanity check COPModes. */
     if ( (ASYNCCOP1 && !ASYNCCOP2) ||
 	 (PIGGYCOP2 && !ASYNCCOP2) )
 	Choke("CommInit: bogus COPModes (%x)", COPModes);
+
+    /* Initialize comm queue */
+    bzero(&CommQueue, sizeof(CommQueueStruct));
 
     /* Hostname is needed for file server connections. */
     if (gethostname(myHostName, MAXHOSTNAMELEN) < 0)
@@ -280,6 +288,7 @@ void CommInit() {
 	    Choke("CommInit: RPC2_Init failed");
 
 	/* Failure package initialization. */
+	bzero(FailFilterInfo, (int) (MAXFILTERS * sizeof(struct FailFilterInfoStruct)));
 	Fail_Initialize("venus", 0);
 	Fcon_Init();
     }
@@ -586,6 +595,10 @@ int connent::CheckResult(int code, VolumeId vid) {
 
 	case VNOVNODE:
 	    code = ENOENT;
+	    break;
+
+	case VLOGSTALE:
+	    code = EALREADY;
 	    break;
 
 	case VSALVAGE:
@@ -1009,15 +1022,24 @@ void DownServers(int nservers, unsigned long *hostids, char *buf, int *bufsize) 
 }
 
 
-/* update bandwidth estimates for all up servers */
-void CheckServerBW() {
+/* 
+ * Update bandwidth estimates for all up servers.
+ * Reset estimates and declare connectivity strong if there are
+ * no recent observations.  Called by the probe daemon.
+ */
+void CheckServerBW(unsigned long curr_time) {
     srv_iterator next;
     srvent *s;
     long bw = UNSET_BW;
 
-    while (s = next()) 
+    while (s = next()) {
 	if (s->ServerIsUp()) 
 	    (void) s->GetBandwidth(&bw);
+
+	if (s->ServerIsWeak() && 
+	    (s->lastobs.tv_sec + WCStale < curr_time))
+	    (void) s->InitBandwidth(UNSET_BW);
+    }
 }
 
 
@@ -1453,45 +1475,61 @@ long srvent::GetBandwidth(long *Bandwidth) {
 
 
 /* 
- * Initializes the bandwidth to the server with a static estimate.  
- * This blows away all history.  Logs the static estimate with RPC2 
- * if the server is up. Note that the ServerIsUp check isn't 
- * sufficient because it doesn't exclude "quasi-up" states, which
- * have no connection ids.
+ * Initialize the bandwidth to a server, clearing all history.
+ * If an estimate is supplied, deposit a static estimate in the
+ * transmission log.  If the server is not up yet, the transmission
+ * log record will be written when the server becomes available.
+ * Note that the ServerIsUp check is not sufficient because it 
+ * does not exclude "quasi-up" states, which have no associated 
+ * connection ids.  Finally, provoke a transition if necessary.
  */
 long srvent::InitBandwidth(long b) {
     long rc = 0;
+    long oldbw = bw;
 
     /* check if we have a real connection. */
     if (connid > 0) {
 	/* clear the host logs and drop in a static log entry */
-	RPC2_NetLog rlog;
-	RPC2_NetLogEntry rle;
+	if ((rc = RPC2_ClearNetInfo(connid)) != RPC2_SUCCESS)
+	    return(rc);
 
-	rlog.NumEntries = 1;
-	rlog.Entries = &rle;
-	rle.Tag = RPC2_STATIC_NLE;
-	rle.Value.Static.Bandwidth = b;
+	if (b != UNSET_BW) {
+	    RPC2_NetLog rlog;
+	    RPC2_NetLogEntry rle;
 
-	rc = RPC2_ClearNetInfo(connid);
-	rc = RPC2_PutNetInfo(connid, &rlog, &rlog);
+	    rlog.NumEntries = 1;
+	    rlog.Entries = &rle;
+	    rle.Tag = RPC2_STATIC_NLE;
+	    rle.Value.Static.Bandwidth = b;
+
+	    if ((rc = RPC2_PutNetInfo(connid, &rlog, &rlog)) != RPC2_SUCCESS)
+		return(rc);
+	}
 
 	lastobs.tv_sec = Vtime(); 
 	initialbw = 0;
-    } else
-	initialbw = 1;
+    } else {
+	if (b != UNSET_BW)
+	    initialbw = 1;
+    }
 
-    /* signal weak/strong transitions as necessary */
-    if ((bw == UNSET_BW || bw > WCThresh) && b <= WCThresh) {
+    /* 
+     * Install the new estimate and signal weak/strong transitions.
+     * Note that the "unset" value is considered strong. Unlike in 
+     * srvent::GetBandwidth, it is possible to go from the "set" to 
+     * "unset" state.
+     */
+    bw = b;
+    if ((oldbw == UNSET_BW || oldbw > WCThresh) && 
+	(bw != UNSET_BW && bw <= WCThresh)) {
 	eprint("%s connection is weak", name);
 	VSGDB->WeakEvent(host);
     }
-    else if (bw != UNSET_BW && bw <= WCThresh && b > WCThresh) {
+    else if ((oldbw != UNSET_BW && oldbw <= WCThresh) && 
+	     (bw == UNSET_BW || bw > WCThresh)) {
 	eprint("%s connection is strong", name);
 	VSGDB->StrongEvent(host);
     }
-    
-    bw = b;
     return(rc);
 }
 

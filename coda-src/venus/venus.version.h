@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venus.version.h,v 1.2 1996/11/24 21:08:56 braam Exp $";
+static char *rcsid = "$Header: venus.version.h,v 4.1 97/01/08 21:51:37 rvb Exp $";
 #endif /*_BLURB_*/
 
 #ifndef	_VENUS_VERSION_H_
@@ -38,6 +38,6 @@ static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venus.version.
 
 /*  *****  Venus Version Numbers *****  */
 const int VenusMajorVersion = 4;
-const int VenusMinorVersion = 0;
+const int VenusMinorVersion = 1;
 
 #endif

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/venusvol.h,v 1.1 1996/11/22 19:11:53 braam Exp $";
+static char *rcsid = "$Header: venusvol.h,v 4.1 97/01/08 21:51:41 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -683,7 +683,7 @@ struct VolFlags {
     /*T*/unsigned reintegratepending : 1;	/* are we waiting for tokens? */
     /*T*/unsigned reintegrating : 1;		/* are we reintegrating now? */
     /*T*/unsigned repair_mode : 1;		/* 0 --> normal, 1 --> repair */
-    unsigned newreintsupported: 1;		/* new reintegration allowed? */
+    /*T*/unsigned resolve_me: 1;		/* resolve reintegrated objects */
     /*T*/unsigned weaklyconnected : 1;		/* are we weakly connected? */ 
     unsigned reserved : 19;
 };

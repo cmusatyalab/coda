@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/hdb_daemon.cc,v 1.1 1996/11/22 19:11:04 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/hdb_daemon.cc,v 4.1 97/01/08 21:51:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,6 +63,7 @@ extern "C" {
 
 /* from venus */
 #include "hdb.h"
+#include "user.h"
 #include "venus.private.h"
 #include "vproc.h"
 
@@ -148,8 +149,11 @@ void HDBDaemon() {
 
 int HDBD_Request(hdbd_request type, void *request, vuid_t euid, vuid_t ruid) {
     /* Ensure request was issued by "locally authoritative" entity. */
-    if (euid != V_UID/* || ruid != msg->ruid*/)
+    if (euid != V_UID && !AuthorizedUser(ruid)) {
+	LOG(0, ("HDBD_Request (%s): <%d, %d> not authorized\n",
+		PRINT_HDBDREQTYPE(type), euid, ruid));
 	return(EACCES);
+    }
 
     /* Form message. */
     hdbd_msg m;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vproc.h,v 4.3 1997/02/18 15:28:29 lily Exp $";
+static char *rcsid = "$Header: vproc.h,v 4.4 97/02/26 16:03:39 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -230,6 +230,7 @@ class vproc : public olink {
   public:
     /* Public for the time being. -JJK */
     vproctype type;
+    int lwpri;
     int seq;
     struct uarea u;
     unsigned idle : 1;

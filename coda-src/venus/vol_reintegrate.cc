@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/venus/RCS/vol_reintegrate.cc,v 4.1 97/01/08 21:51:48 rvb Exp $";
+static char *rcsid = "$Header: vol_reintegrate.cc,v 4.3 97/02/27 18:49:15 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -297,14 +297,6 @@ CheckResult:
 		 */
 		break;
 
-	    case EOPNOTSUPP:	/* compatibility mode */
-		ATOMIC(
-		       RVMLIB_REC_OBJECT(flags);
-		       flags.newreintsupported = 0;
-		, MAXFP)
-		code = ERETRY;
-		/* fall through to ERETRY */    
-
 	    case ERETRY:
 	    case EWOULDBLOCK:
 		/* 
@@ -457,7 +449,7 @@ int volent::PartialReintegrate(int tid) {
 
     /* send some file data to the server */
     {
-	while (!m->DoneSending() && (code == 0) /* && traffic check */) 
+	while (!m->DoneSending() && (code == 0)) 
 	    code = m->WriteReintegrationHandle();
 
 	if (code != 0) goto CheckResult;
@@ -554,7 +546,6 @@ int volent::ReadyToReintegrate() {
      * is Venus-wide, so the check is correct but more conservative than 
      * we would like.
      */
-    /* later, add in traffic check */
     if (IsWriteDisconnected() && 
 	(CML.count() > 0) && u->TokensValid() &&
 	!ASRinProgress && !IsReintegrating()) {
@@ -618,6 +609,7 @@ int cmlent::ReintReady()
 
 PRIVATE const int ReintegratorStackSize = 65536;
 PRIVATE const int MaxFreeReintegrators = 2;
+PRIVATE const int ReintegratorPriority = LWP_NORMAL_PRIORITY-2;
 
 /* local-repair modification */
 class reintegrator : public vproc {
@@ -625,6 +617,7 @@ class reintegrator : public vproc {
 
     static olist freelist;
     olink handle;
+    struct Lock run_lock;
 
     reintegrator();
     reintegrator(reintegrator&);			/* not supported! */
@@ -639,7 +632,8 @@ olist reintegrator::freelist;
 
 
 /* This is the entry point for reintegration. */
-/* It finds a free reintegrator (or creates a new one), sets up its context, and gives it a poke. */
+/* It finds a free reintegrator (or creates a new one), 
+   sets up its context, and gives it a poke. */
 void Reintegrate(volent *v) {
     LOG(0, ("Reintegrate\n"));
     /* Get a free reintegrator. */
@@ -659,22 +653,21 @@ void Reintegrate(volent *v) {
     r->u.u_cred.cr_uid = v->CML.Owner();
 #endif /* __BSD44__ */
     r->u.u_vol = v;
-    v->hold();			    /* vproc::End_VFS() will do release */
+    v->hold();		    /* vproc::End_VFS() will do release */
 
     /* Set it going. */
     r->idle = 0;
-    VprocSignal((char *)r);
+    VprocSignal((char *)r);	/* ignored for new reintegrators */
 }
 
 
-/* local-repair modification */
 reintegrator::reintegrator() :
 	vproc("Reintegrator", (PROCBODY) &reintegrator::main,
-		VPT_Reintegrator, ReintegratorStackSize) {
+		VPT_Reintegrator, ReintegratorStackSize, ReintegratorPriority) {
     LOG(100, ("reintegrator::reintegrator(%#x): %-16s : lwpid = %d\n",
 	       this, name, lwpid));
 
-    VprocSignal((char *)this, 1);
+    idle = 1;
 }
 
 
@@ -689,31 +682,34 @@ reintegrator::~reintegrator() {
 }
 
 
-/* local-repair modification */
+/* 
+ * N.B. Vproc synchronization is not done in the usual way, with
+ * the constructor signalling, and the new vproc waiting in its
+ * main procedure for the constructor to poke it.  This handshake 
+ * assumes that the new vproc has a thread priority greater than or
+ * equal to its creator; only then does the a thread run when 
+ * LWP_CreateProcess is called.  In this case, the newly-created
+ * reintegrator runs only when its creator is suspended.
+ */
 void reintegrator::main(void *parm) {
-    /* Wait for ctor to poke us. */
-    VprocWait((char *)this);
-
     for (;;) {
-	/* Wait for new request. */
-	idle = 1;
-	VprocWait((char *)this);
 	if (idle) Choke("reintegrator::main: signalled but not dispatched!");
 	if (!u.u_vol) Choke("reintegrator::main: no volume!");
-	volent *v = u.u_vol;	
 
 	/* Do the reintegration. */
 	u.u_vol->Reintegrate();
 	
 	seq++;
+	idle = 1;
 
 	/* Commit suicide if we already have enough free reintegrators. */
-	if (freelist.count() == MaxFreeReintegrators) {
-	    idle = 1;
+	if (freelist.count() == MaxFreeReintegrators) 
 	    delete VprocSelf();
-	}
 
 	/* Else put ourselves on free list. */
 	freelist.append(&handle);
+
+	/* Wait for new request. */
+	VprocWait((char *)this);
     }
 }
