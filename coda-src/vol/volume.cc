@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/vol/RCS/volume.cc,v 1.2 1996/11/22 21:32:22 braam Exp braam $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/vol/RCS/volume.cc,v 1.3 1996/11/24 18:06:36 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -85,6 +85,8 @@ extern "C" {
 #endif __NetBSD__
 #ifdef LINUX
 #include <dirent.h>
+#include <stdio.h>
+#include <mntent.h>
 #endif
 
 #include <lwp.h>
@@ -119,6 +121,7 @@ extern "C" {
 extern void InitLogStorage();
 extern void print_VnodeDiskObject(VnodeDiskObject *);
 extern int HashLookup(VolumeId);
+
 
 /* Exported Variables */
 char *ThisHost;		/* This machine's hostname */
@@ -248,7 +251,10 @@ int VInitVolUtil(ProgramType pt) {
 
 /* one time initialization for file server only */
 void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
-
+#ifdef LINUX
+    struct FILE *mnt_handle;
+    struct mntent *mntent;
+#endif
     struct fstab *fsent;
     struct timeval tv;
     struct timezone tz;
@@ -300,13 +306,11 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     }
 
     /* Find all partitions named /vicep* */
+    /* this is rather platform depentdent... Grr.. */
+#ifndef LINUX 
     setfsent();
     while (fsent = getfsent()) {
-#ifdef LINUX 
-            char *part = fsent->mnt_dir;
-#else
             char *part = fsent->fs_file;
-#endif
 	DIR *dirp;
 	struct stat status;
 	if (stat(part, &status) == -1) {
@@ -326,6 +330,30 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	VInitPartition(part, fsent->fs_spec, status.st_dev);
     }
     endfsent();
+#else 
+    mnt_handle = setmntent("/etc/mtab", "r");
+    while ( mntent = getmntent(mnt_handle)) {
+            char *part = mntent->mnt_dir;
+	DIR *dirp;
+	struct stat status;
+	if (stat(part, &status) == -1) {
+	    LogMsg(0, VolDebugLevel, stdout, "VInitVolumePackage: Couldn't find file system %s; ignored", part);
+	    continue;
+	}
+	/* Satya (8/2/96): test below used to be a simple test (status.st_ino != ROOTINO)
+		on Mach; unfortunately ROOTINO is defined in sys/fs.h which doesn't
+		exist in NetBSD; MountedAtRoot() is a more portable test for the same */
+	if (!MountedAtRoot(part)) {
+	    LogMsg(0, VolDebugLevel, stdout, "%s is not a mounted file system; ignored", part);
+	    continue;
+	}
+	assert((dirp = opendir(part)) != NULL);
+	closedir(dirp);
+
+	VInitPartition(part, mntent->mnt_fsname, status.st_dev);
+    }
+    endmntent(mnt_handle);
+#endif
 
     /* Setting Debug to 1 and List to 0; maybe remove later ***ehs***/
     /* invoke salvager for full salvage */
@@ -702,7 +730,7 @@ void VShutdown() {
 }
 
 
-PRIVATE void WriteVolumeHeader(Error *ec, Volume *vp)
+private void WriteVolumeHeader(Error *ec, Volume *vp)
 {
     *ec = 0;
 
@@ -1847,7 +1875,7 @@ void SetVolDebugLevel(int level) {
 }
 
 PRIVATE int MountedAtRoot(char *path) {
-    /* Returns 1 if path is mounted at "/", 0 otherwise */
+    /* Returns 1 if path is a subdirectory of  "/"-directory, 0 otherwise */
 
     struct stat rootbuf, pathbuf;
 
