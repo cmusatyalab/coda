@@ -2130,9 +2130,10 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	    LOG(0, ("ClientModifyLog::COP1: stale dir %s\n",
 		    FID_(&StaleDir)));
 	    fsobj *f = FSDB->Find(&StaleDir);
-	    CODA_ASSERT(f);
+	    if (!f) continue;
+
 	    Recov_BeginTrans();
-		   f->Kill();
+	    f->Kill();
 	    Recov_EndTrans(DMFP);
 	}
 
