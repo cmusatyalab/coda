@@ -243,11 +243,15 @@ void U_InitRPC()
 {
     PROCESS mylpid;
     int rc;
+    struct timeval tout;
 
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
+    
+    tout.tv_sec = 15;
+    tout.tv_usec = 0;
 
-    rc = RPC2_Init(RPC2_VERSION, 0, NULL, -1, NULL);
+    rc = RPC2_Init(RPC2_VERSION, 0, NULL, -1, &tout);
     if ( rc != RPC2_SUCCESS ) {
 	    fprintf(stderr, "Cannot initialize RPC2 (error %d). ! Exiting.\n",
 		    rc);

@@ -22,8 +22,6 @@ INITDIR:=$(exec_prefix)/$(initsuffix)
 MANDIR:=$(mandir)
 
 NATIVECC = cc
-CC = cc
-CXX = c++
 AR=ar
 RANLIB=ranlib
 INSTALL = cp -p

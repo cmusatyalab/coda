@@ -56,14 +56,6 @@ askyesno() {
 	esac
     done
 }
-=======
-
-
-
-set STARTSERVER = /vice/bin/startserver
-set RESTARTSERVER = /vice/bin/restartserver
-set SKIPSALVAGE = /vice/vol/skipsalvage
->>>>>>> 4.2
 
 echo "WARNING: This program reinitializes a server."
 echo -n "Are you sure you want to proceed? (yes/no) "
