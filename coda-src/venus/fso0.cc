@@ -720,7 +720,9 @@ void VmonUpdateSession(vproc *vp, ViceFid *key, fsobj *f, volent *vol, vuid_t vu
  * return value of ETOOMANYREFS to the user when there is *nothing* the 
  * poor user can do about it.
  */
-int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights, char *comp, int *rcode) {
+int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
+	      char *comp, int *rcode)
+{
     CODA_ASSERT(rights != 0);
     int getdata = (rights & RC_DATA);
 

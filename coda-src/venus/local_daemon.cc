@@ -111,6 +111,8 @@ void lrdb::CheckLocalSubtree()
 	    OBJ_ASSERT(this, RootParentObj != NULL);
 	    char RootPath[MAXPATHLEN];
 	    RootParentObj->GetPath(RootPath, 1);
+	    eprint("Local inconsistent object at %s/%s, please check!\n",
+		   RootPath, rfm->GetName());
 	    MarinerLog("Local inconsistent object at %s/%s, please check!\n",
 		       RootPath, rfm->GetName());
 	    char fullpath[MAXPATHLEN];

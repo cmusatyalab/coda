@@ -94,7 +94,19 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 		if (u.u_error) break;
 
 		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
-		if (u.u_error) goto O_FreeLocks;
+
+		/* allow the VIOC_GETFID to succeed on inconsistent objects */
+		if (u.u_error == EINCONS && com == VIOC_GETFID) {
+		    memcpy((char*)data->out, fid, sizeof(ViceFid));
+		    memset((char*)data->out + sizeof(ViceFid), 0,
+			   sizeof(ViceVersionVector));
+		    data->out_size = sizeof(ViceFid)+sizeof(ViceVersionVector);
+		    u.u_error = 0;
+		    goto O_FreeLocks;
+		}
+
+		if (u.u_error)
+		    goto O_FreeLocks;
 
 		switch(com) {
 		    case VIOCSETAL:
