@@ -20,6 +20,10 @@ CFLAGS= $(KFLAGS) $(MFLAG)
 SRCS=psdev.c cnode.c inode.c dir.c file.c upcall.c coda_linux.c symlink.c pioctl.c cache.c sysctl.c stats.c
 OBJS=$(SRCS:%.c=%.o)
 
+ifeq ($(ARCH),ppc)
+CFLAGS += -msoft-float
+endif
+
 MODULES = coda.o
 
 all:	../.prereq.ok kcheck $(MODULES) 
