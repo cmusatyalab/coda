@@ -145,9 +145,6 @@ static void TruncateLog(int, char **, int);
 static void UnloadKernel(int, char **, int);
 static void WaitForever(int, char**, int);
 static void WhereIs(int, char**, int);
-static void WriteBackStart(int, char**, int);
-static void WriteBackStop(int, char**, int);
-static void WriteBackAuto(int, char**, int);
 static void ForceReintegrate(int, char**, int);
 static void WriteDisconnect(int, char**, int);
 static void WriteReconnect(int, char**, int);
@@ -381,23 +378,6 @@ struct command cmdarray[] =
             "Write connect all volumes, or volumes specified",
             NULL
         },
-#if 0
-	{"wbstart", NULL, WriteBackStart,
-	    "cfs wbstart <dir> [<dir> <dir> ...]",
-            "Enable write-back caching on volumes specified",
-            NULL
-        },
-	{"wbstop", NULL, WriteBackStop,
-	    "cfs wbstop <dir> [<dir> <dir> ...]",
-	    "Disable write-back caching on volumes specified",
-	    NULL
-	},
-	{"wbauto", "wb", WriteBackAuto,
-	    "cfs wbauto <dir> [<dir> <dir> ...]",
-	    "Toggle auto write-back cache requesting on volumes specified",
-	    NULL
-	},
-#endif
 	{"forcereintegrate", "fr", ForceReintegrate,
 	    "cfs forcereintegrate <dir> [<dir> <dir> ...]",
 	    "Force modifications in a disconnected volume to the server",
@@ -1772,22 +1752,6 @@ static void ListCache(int argc, char *argv[], int opslot)
 }
 
 
-static int WriteBackStatus(char *vol)
-{
-  struct ViceIoctl vio;
-  int rc;
-  int cur;
-
-  vio.in = piobuf;
-  vio.in_size = 0;
-  vio.out = (char *) &cur;
-  vio.out_size = sizeof(int);
-  
-  rc = pioctl(vol, _VICEIOCTL(_VIOC_STATUSWB), &vio, 0);
-  if (rc < 0) { PERROR("VIOC_STATUSWB"); exit(-1); }
-  return cur;
-}
-
 static void ListVolume(int argc, char *argv[], int opslot)
     {
     int i, rc;
@@ -1859,12 +1823,6 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	    printf("  Current blocks used are %lu\n", vs->BlocksInUse);
 	    printf("  The partition has %lu blocks available out of %lu\n",
 		   vs->PartBlocksAvail, vs->PartMaxBlocks);
-	}
-	printf("  Write-back is ");
-	if (WriteBackStatus(argv[i])) {
-	  printf("enabled\n");
-	} else {
-	  printf("disabled\n");
 	}
 	if (conflict)
 	    printf("  *** There are pending conflicts in this volume ***\n");
@@ -2576,98 +2534,6 @@ static void WriteDisconnect(int argc, char *argv[], int opslot)
             }
         }
     }
-
-static void WriteBackStart(int argc, char *argv[], int opslot)
-{
-  int  i = 2, rc, w;
-  struct ViceIoctl vio;
-  
-  if (argc < 3) {
-    printf("Usage: %s\n", cmdarray[opslot].usetxt);
-    exit(-1);
-  }
-  
-  w = getlongest(argc, argv);
-  
-  vio.in = piobuf;
-  vio.in_size = 0;
-  vio.out = 0;
-  vio.out_size = 0;
-  
-  for (i = 2; i < argc; i++) {
-    if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
-    
-    rc = pioctl(argv[i], _VICEIOCTL(_VIOC_BEGINWB), &vio, 0);
-    if (rc < 0) {
-	PERROR("VIOC_BEGINWB");
-	fprintf(stderr, "  return code : %d",rc);
-    }
-    else
-	printf("write-back enabled\n");
-  }
-}
-
-static void WriteBackStop(int argc, char *argv[], int opslot)
-{
-  int  i = 2, rc, w;
-  struct ViceIoctl vio;
-  
-  if (argc < 3) {
-    printf("Usage: %s\n", cmdarray[opslot].usetxt);
-    exit(-1);
-  }
-  
-  w = getlongest(argc, argv);
-  
-  vio.in = piobuf;
-  vio.in_size = 0;
-  vio.out = 0;
-  vio.out_size = 0;
-  
-  for (i = 2; i < argc; i++) {
-    if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
-    
-    rc = pioctl(argv[i], _VICEIOCTL(_VIOC_ENDWB), &vio, 0);
-    if (rc < 0) {
-	PERROR("VIOC_ENDWB");
-	fprintf(stderr, "  return code : %d",rc);
-    }
-    else
-	printf("write-back disabled\n");
-  }
-}
-
-static void WriteBackAuto(int argc, char *argv[], int opslot)
-{
-  int  i = 2, rc, w;
-  struct ViceIoctl vio;
-  
-  if (argc < 3) {
-    printf("Usage: %s\n", cmdarray[opslot].usetxt);
-    exit(-1);
-  }
-  
-  w = getlongest(argc, argv);
-  
-  vio.in = piobuf;
-  vio.in_size = 0;
-  vio.out = 0;
-  vio.out_size = 0;
-  
-  for (i = 2; i < argc; i++) {
-    if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
-    
-    rc = pioctl(argv[i], _VICEIOCTL(_VIOC_AUTOWB), &vio, 0);
-    if (rc < 0) {
-	PERROR("VIOC_AUTOWB");
-	fprintf(stderr, "  return code : %d",rc); 
-    }
-    else if (rc == WB_PERMIT_GRANTED)
-	printf("auto write-back enabled\n");
-    else
-	printf("auto write-back disabled\n");
-  }
-}
 
 static void ForceReintegrate(int argc, char *argv[], int opslot)
 {

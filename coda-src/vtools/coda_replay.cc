@@ -70,15 +70,19 @@ void setlength(char *, off_t);
 void settimes(char *, time_t);
 void readblock(hblock&);
 void writeblock(hblock&);
-void usage();
+void usage(const char *prog);
 
+static char *EXE;
+#define log(msg, ...) fprintf(stderr, "%s: " msg, EXE, ## __VA_ARGS__)
 
 int main(int argc, char *argv[])
 {
+    EXE = argv[0];
+
     /* Parse Args. */
     {
 	if (argc != 2 && argc != 3)
-	    usage();
+	    usage(argv[0]);
 
 	for (int i = 0; argv[1][i]; i++)
 	    switch(argv[1][i]) {
@@ -87,7 +91,7 @@ int main(int argc, char *argv[])
 		    break;
 
 		case 's':
-		    fprintf(stderr, "replay: s option is deprecated\n");
+		    log("s option is deprecated\n");
 		    exit(-1);
 		    sflag++;
 		    break;
@@ -105,14 +109,14 @@ int main(int argc, char *argv[])
 		    break;
 
 		default:
-		    usage();
+		    usage(argv[0]);
 	    }
 	if (rflag + sflag + tflag != 1)
-	    usage();
+	    usage(argv[0]);
 
 	if (argc == 3) {
 	    if (freopen(argv[2], "r", stdin) == NULL) {
-		fprintf(stderr, "replay: couldn't open %s for reading\n", argv[2]);
+		log("couldn't open %s for reading\n", argv[2]);
 		exit(-1);
 	    }
 	}
@@ -125,7 +129,7 @@ int main(int argc, char *argv[])
 	    readblock(hdr);
 
 	    if (!ValidateHeader(hdr)) {
-		fprintf(stderr, "replay: failed header validation\n");
+		log("failed header validation\n");
 		exit(-1);
 	    }
 
@@ -210,7 +214,7 @@ int ValidateHeader(hblock& hdr) {
 	    break;
 
 	default:
-	    fprintf(stderr, "replay: bogus linkflag %c\n", hdr.dbuf.linkflag);
+	    log("bogus linkflag %c\n", hdr.dbuf.linkflag);
 	    exit(-1);
     }
     
@@ -219,7 +223,7 @@ int ValidateHeader(hblock& hdr) {
     chksum2 = checksum(hdr);
     sprintf(hdr.dbuf.chksum, "%o", chksum1);
     if (chksum1 != chksum2) {
-	fprintf(stderr, "replay: checksum error (%d != %d)\n", chksum1, chksum2);
+	log("checksum error (%d != %d)\n", chksum1, chksum2);
 	return(0);
     }
 
@@ -249,7 +253,7 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    makeprefix(hdr.dbuf.name);
 	    if (rflag && freopen(hdr.dbuf.name, "w+", stdout) == NULL) {
-		fprintf(stderr, "replay: could not create %s\n", hdr.dbuf.name);
+		log("could not create %s\n", hdr.dbuf.name);
 		if (hflag) exit(-1);
 		break;
 	    }
@@ -259,7 +263,7 @@ void HandleRecord(hblock& hdr) {
 		writeblock(data);
 	    }
 	    if (rflag && fclose(stdout) == EOF) {
-		fprintf(stderr, "replay: could not close %s\n", hdr.dbuf.name);
+		log("could not close %s\n", hdr.dbuf.name);
 		exit(-1);
 	    }
 
@@ -278,7 +282,7 @@ void HandleRecord(hblock& hdr) {
 		    unlink(hdr.dbuf.name);
 	    }
 	    if (rflag && link(hdr.dbuf.linkname, hdr.dbuf.name) < 0) {
-		fprintf(stderr, "replay: can't link %s to %s: ",
+		log("can't link %s to %s: ",
 			hdr.dbuf.name, hdr.dbuf.linkname);
 		perror("");
 		if (hflag) exit(-1);
@@ -294,7 +298,7 @@ void HandleRecord(hblock& hdr) {
 		    unlink(hdr.dbuf.name);
 	    }
 	    if (rflag && symlink(hdr.dbuf.linkname, hdr.dbuf.name) < 0) {
-		fprintf(stderr, "replay: can't symbolic link %s to %s: ",
+		log("can't symbolic link %s to %s: ",
 			hdr.dbuf.name, hdr.dbuf.linkname);
 		perror("");
 		if (hflag) exit(-1);
@@ -315,7 +319,7 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    if (rflag && unlink(hdr.dbuf.name) < 0) {
 		if (vflag || hflag) {
-		    fprintf(stderr, "replay: unlink %s failed: ", hdr.dbuf.name);
+		    log("unlink %s failed: ", hdr.dbuf.name);
 		    perror("");
 		}
 		if (hflag) exit(-1);
@@ -327,7 +331,7 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    if (rflag && rename(hdr.dbuf.linkname, hdr.dbuf.name) < 0) {
 		if (vflag || hflag) {
-		    fprintf(stderr, "replay: rename %s to %s failed: ",
+		    log("rename %s to %s failed: ",
 			    hdr.dbuf.linkname, hdr.dbuf.name);
 		    perror("");
 		}
@@ -340,7 +344,7 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    if (rflag && mkdir(hdr.dbuf.name, mode) < 0) {
 		if (vflag || hflag) {
-		    fprintf(stderr, "replay: mkdir %s failed: ", hdr.dbuf.name);
+		    log("mkdir %s failed: ", hdr.dbuf.name);
 		    perror("");
 		}
 		if (hflag) exit(-1);
@@ -352,7 +356,7 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    if (rflag && rmdir(hdr.dbuf.name) < 0) {
 		if (vflag || hflag) {
-		    fprintf(stderr, "replay: rmdir %s failed: ", hdr.dbuf.name);
+		    log("rmdir %s failed: ", hdr.dbuf.name);
 		    perror("");
 		}
 		if (hflag) exit(-1);
@@ -361,7 +365,7 @@ void HandleRecord(hblock& hdr) {
 	    }
 
 	default:
-	    fprintf(stderr, "replay: bogus linkflag %c\n", hdr.dbuf.linkflag);
+	    log("bogus linkflag %c\n", hdr.dbuf.linkflag);
 	    exit(-1);
     }
 }
@@ -420,7 +424,7 @@ void makeprefix(char *name) {
 void setmode(char *path, int mode) {
     if (rflag && chmod(path, mode) < 0) {
 	if (vflag || hflag) {
-	    fprintf(stderr, "replay: can't set mode on %s: ", path);
+	    log("can't set mode on %s: ", path);
 	    perror("");
 	}
 	if (hflag) exit(-1);
@@ -431,7 +435,7 @@ void setmode(char *path, int mode) {
 void setowner(char *path, int uid, int gid) {
     if (rflag && chown(path, uid, gid) < 0) {
 	if (vflag || hflag) {
-	    fprintf(stderr, "replay: can't set owner on %s: ", path);
+	    log("can't set owner on %s: ", path);
 	    perror("");
 	}
 	if (hflag) exit(-1);
@@ -443,13 +447,13 @@ void setlength(char *path, off_t size) {
 #ifdef __CYGWIN32__
      int fd = open(path, O_RDWR);
      if ( fd < 0 )
-	    fprintf(stderr, "replay: can't set length on %s: ", path);
+	    log("can't set length on %s: ", path);
      if ( ftruncate(fd, size) != 0 ) {
 #else
     if (rflag && truncate(path, size) < 0) {
 #endif
 	if (vflag || hflag) {
-	    fprintf(stderr, "replay: can't set length on %s: ", path);
+	    log("can't set length on %s: ", path);
 	    perror("");
 	}
 	if (hflag) exit(-1);
@@ -468,7 +472,7 @@ void settimes(char *path, time_t mt) {
 	tv[0].tv_usec = tv[1].tv_usec = 0;
 	if (utimes(path, tv) < 0) {
 	    if (vflag || hflag) {
-		fprintf(stderr, "replay: can't set time on %s: ", path);
+		log("can't set time on %s: ", path);
 		perror("");
 	    }
 	    if (hflag) exit(-1);
@@ -479,7 +483,7 @@ void settimes(char *path, time_t mt) {
 
 void readblock(hblock& blk) {
     if (fread((char *)&blk, sizeof(hblock), 1, stdin) != 1) {
-	fprintf(stderr, "fread failed\n");
+	log("fread failed\n");
 	exit(-1);
     }
 }
@@ -487,13 +491,13 @@ void readblock(hblock& blk) {
 
 void writeblock(hblock& blk) {
     if (rflag && fwrite((char *)&blk, sizeof(hblock), 1, stdout) != 1) {
-	fprintf(stderr, "fwrite failed\n");
+	log("fwrite failed\n");
 	exit(-1);
     }
 }
 
-
-void usage() {
-    fprintf(stderr, "Usage: replay [rstvh] [filename]\n");
+void usage(const char *prog)
+{
+    fprintf(stderr, "Usage: %s [rstvh] [filename]\n", prog);
     exit(-1);
 }
