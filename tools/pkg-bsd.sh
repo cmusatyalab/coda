@@ -169,6 +169,7 @@ EOF
 sbin/au
 sbin/adv_sidekick
 sbin/codaconfedit
+sbin/coda-setup-ports
 sbin/venus
 sbin/venus-setup
 sbin/volmunge
@@ -226,7 +227,7 @@ sbin/updatefetch
 sbin/updatesrv
 sbin/vice-killvolumes
 sbin/vice-setup
-sbin/vice-setup-ports
+sbin/coda-setup-ports
 sbin/vice-setup-rvm
 sbin/vice-setup-scm
 sbin/vice-setup-srvdir

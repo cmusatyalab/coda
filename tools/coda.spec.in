@@ -149,6 +149,7 @@ fi
 /usr/sbin/@AU@
 /usr/sbin/adv_sidekick
 /usr/sbin/codaconfedit
+/usr/sbin/coda-setup-ports
 /usr/sbin/venus
 /usr/sbin/venus-setup
 /usr/sbin/volmunge
@@ -198,7 +199,7 @@ fi
 /usr/sbin/vice-setup-srvdir
 /usr/sbin/vice-setup-user
 /usr/sbin/vice-setup-scm
-/usr/sbin/vice-setup-ports
+/usr/sbin/coda-setup-ports
 /usr/sbin/volutil
 /usr/bin/norton
 /usr/bin/norton-reinit
