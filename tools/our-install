@@ -14,5 +14,6 @@ for f in $FILES ; do
   if [ -f $TARGET ] ; then rm -f $TARGET; fi
   cp -p $f $TARGET
   chmod $MODE $TARGET
+  if [ `whoami` = root ]; then chown root.root $TARGET ; fi
 done
 
