@@ -1,0 +1,15 @@
+#!/bin/sh
+
+set -e
+
+if [ -x "/etc/init.d/codasrv.init" ]; then
+    update-rc.d auth2.init defaults >/dev/null
+    update-rc.d codasrv.init defaults >/dev/null
+
+    if [ -f /etc/coda/server.conf ]; then
+	invoke-rc.d auth2.init start
+	invoke-rc.d codasrv.init start
+    fi
+fi
+
+exit 0
