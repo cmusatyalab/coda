@@ -444,7 +444,8 @@ extern struct timeval SaveResponse;
 void rpc2_Replenish();
 struct LinkEntry *rpc2_MoveEntry();
 struct SL_Entry *rpc2_AllocSle();
-void rpc2_FreeSle(), rpc2_ActivateSle(), rpc2_DeactivateSle();
+void rpc2_FreeSle(struct SL_Entry **sl);
+void rpc2_ActivateSle(), rpc2_DeactivateSle();
 struct SubsysEntry *rpc2_AllocSubsys();
 void rpc2_FreeSubsys();
 

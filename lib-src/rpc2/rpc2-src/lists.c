@@ -174,12 +174,10 @@ struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
     return(sl);
     }
 
-void rpc2_FreeSle(INOUT sl)
-    struct SL_Entry **sl;
+void rpc2_FreeSle(INOUT struct SL_Entry **sl)
     /* Releases the SL_Entry pointed to by sl. Sets sl to NULL.
        Removes binding between sl and its connection */
- 
-    {
+{
     struct SL_Entry *tsl, **fromlist;
     long *fromcount;
     struct CEntry *ce;
@@ -187,29 +185,24 @@ void rpc2_FreeSle(INOUT sl)
     tsl = *sl;
     assert(tsl->MagicNumber == OBJ_SLENTRY);
 
-    if (tsl->Conn != 0)
-	{
+    if (tsl->Conn != 0) {
 	ce = rpc2_GetConn(tsl->Conn);
-        assert(ce != NULL);
-	ce->MySl = NULL;
-	}
+	if (ce) ce->MySl = NULL;
+    }
 
-    if (tsl->Type == REQ)
-	{
+    if (tsl->Type == REQ) {
 	fromlist = &rpc2_SLReqList;
 	fromcount = &rpc2_SLReqCount;
-	}
-    else
-	{
+    } else {
 	fromlist = &rpc2_SLList;
 	fromcount = &rpc2_SLCount;
-	}
+    }
 
     rpc2_MoveEntry((struct LinkEntry **)fromlist,
 			(struct LinkEntry **)&rpc2_SLFreeList,
 			(struct LinkEntry *)tsl, fromcount, &rpc2_SLFreeCount);
     *sl = NULL;
-    }
+}
 
 void rpc2_ActivateSle (selem, exptime)
     struct SL_Entry *selem;

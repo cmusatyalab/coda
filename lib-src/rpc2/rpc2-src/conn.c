@@ -206,7 +206,6 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     assert(ce != NULL);
     assert(ce->MagicNumber == OBJ_CENTRY);
     rpc2_FreeConns++;
-    list_del(&ce->Chain);
 
     free(ce->Retry_Beta);
     if (ce->HeldPacket != NULL)
@@ -227,9 +226,11 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
 	    }
     }
 
+    list_del(&ce->Chain);
     SetRole(ce, FREE);
     rpc2_MoveEntry(&rpc2_ConnList, &rpc2_ConnFreeList, ce,
 			&rpc2_ConnCount, &rpc2_ConnFreeCount);
+
     EntriesInUse--;
 }
 
