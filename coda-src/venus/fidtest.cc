@@ -50,7 +50,7 @@ struct GetFid {
 
 void main(int argc, char **argv) {
     GetFid out;
-    bzero(&out, sizeof(struct GetFid));
+    memset(&out, 0, sizeof(struct GetFid));
 
     struct ViceIoctl vi;
     vi.in = 0;

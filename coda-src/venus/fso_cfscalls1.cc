@@ -913,7 +913,7 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 	target_fso->stat.Owner = Owner;
 	target_fso->stat.Mode = Mode;
 	target_fso->AnyUser = AnyUser;
-	bcopy((const void *)SpecificUser, (void *)target_fso->SpecificUser, (int)(CPSIZE * sizeof(AcRights)));
+	memmove( (void *)target_fso->SpecificUser, (const void *)SpecificUser, (int)(CPSIZE * sizeof(AcRights)));
 	target_fso->Matriculate();
 	target_fso->SetParent(fid.Vnode, fid.Unique);
 
@@ -1508,7 +1508,7 @@ void fsobj::LocalSymlink(Date_t Mtime, fsobj *target_fso, char *name,
 	target_fso->stat.Length = linklen;
 	target_fso->data.symlink = (char *)rvmlib_rec_malloc(linklen + 1);
 	rvmlib_set_range(target_fso->data.symlink, linklen);
-	bcopy(contents, target_fso->data.symlink, linklen);
+	memmove(target_fso->data.symlink, contents, linklen);
 	UpdateCacheStats(&FSDB->FileDataStats, CREATE,
 			 NBLOCKS(linklen));
 

@@ -131,7 +131,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
     /* Status parameters. */
     ViceStatus status;
-    bzero((void *)&status, (int)sizeof(ViceStatus));
+    memset((void *)&status, 0, (int)sizeof(ViceStatus));
 
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];

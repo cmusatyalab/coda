@@ -619,7 +619,7 @@ int fsobj::Readlink(char *buf, int len, int *cc, vuid_t vuid) {
     }
 
     /* Fill in the buffer. */
-    bcopy(data.symlink, buf, (int) stat.Length);
+    memmove(buf, data.symlink, (int) stat.Length);
     *cc = (int) stat.Length;
     (buf)[*cc] = 0;
     LOG(100, ("fsobj::Readlink: contents = %s\n", buf));

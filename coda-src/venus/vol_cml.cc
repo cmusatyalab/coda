@@ -3370,7 +3370,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    else 
 	      sprintf(buf, "%s", m->u.u_remove.Name);
 	    strcpy(suffix, buf);
-	    bcopy((const void *)&m->u.u_remove.PFid, (void *) cfid, (int) sizeof(ViceFid));
+	    memmove((void *) cfid, (const void *)&m->u.u_remove.PFid, (int) sizeof(ViceFid));
 	    return 1;
 	}
 
@@ -3384,7 +3384,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    else
 	      sprintf(buf, "%s", m->u.u_rmdir.Name);
 	    strcpy(suffix, buf);
-	    bcopy((const void *)&m->u.u_rmdir.PFid, (void *) cfid, (int) sizeof(ViceFid));
+	    memmove((void *) cfid, (const void *)&m->u.u_rmdir.PFid, (int) sizeof(ViceFid));
 	    return 1;
 	}
 
@@ -3398,7 +3398,7 @@ int PathAltered(ViceFid *cfid, char *suffix, ClientModifyLog *CML, cmlent *start
 	    else
 	      sprintf(buf, "%s", m->u.u_rename.OldName);
 	    strcpy(suffix, buf);
-	    bcopy((const void *)&m->u.u_rename.SPFid, (void *) cfid, (int) sizeof(ViceFid));
+	    memmove((void *) cfid, (const void *)&m->u.u_rename.SPFid, (int) sizeof(ViceFid));
 	    return 1;
 	}
 	m = next();
@@ -3417,7 +3417,7 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
     char suffix[MAXPATHLEN];
     char buf[MAXPATHLEN];
 
-    bcopy((const void *)fid, (void *) &cfid, (int)sizeof(ViceFid));
+    memmove((void *) &cfid, (const void *)fid, (int)sizeof(ViceFid));
     suffix[0] = '\0';
 
     /* the loog invariant is "path(cfid)/suffix == path(fid)" */
@@ -3446,9 +3446,9 @@ void RecoverPathName(char *path, ViceFid *fid, ClientModifyLog *CML, cmlent *sta
 	    /* going up to its parent */
 	    if (f->IsRoot() && f->u.mtpoint) {
 		/* this must be the global-root-node of a local-repair subtree */
-		bcopy((const void *)&((f->u.mtpoint)->pfid), (void *) &cfid, (int)sizeof(ViceFid));
+		memmove((void *) &cfid, (const void *)&((f->u.mtpoint)->pfid), (int)sizeof(ViceFid));
 	    } else {
-		bcopy((const void *)&f->pfid, (void *) &cfid, (int)sizeof(ViceFid));
+		memmove((void *) &cfid, (const void *)&f->pfid, (int)sizeof(ViceFid));
 	    }
 	}
     }
@@ -3834,7 +3834,7 @@ static int WriteLinks(struct DirEntry *de, void * hook)
 int cmlent::checkpoint(FILE *fp) {
     int code = 0;
 
-    hblock hdr; bzero((void *)&hdr, (int) sizeof(hblock));
+    hblock hdr; memset((void *)&hdr, 0, (int) sizeof(hblock));
     switch(opcode) {
 	case OLDCML_NewStore_OP:
 	    {
@@ -3974,7 +3974,7 @@ static int WriteData(FILE *wrfp, char *rdfn) {
 	char buf[TBLOCK];
 	int cc = fread(buf, (int) sizeof(char), TBLOCK, rdfp);
 	if (cc < TBLOCK)
-	    bzero((char *)buf + cc, TBLOCK - cc);
+	    memset((char *)buf + cc, 0, TBLOCK - cc);
 	if (fwrite(buf, TBLOCK, 1, wrfp) != 1) {
 	    LOG(0, ("WriteData: (%s) fwrite (%d)", rdfn, errno));
 	    code = (errno ? errno : ENOSPC);
@@ -3989,7 +3989,7 @@ static int WriteData(FILE *wrfp, char *rdfn) {
 
 static int WriteTrailer(FILE *fp) {
     char buf[TBLOCK];
-    bzero((void *)buf, TBLOCK);
+    memset((void *)buf, 0, TBLOCK);
     for (int i = 0; i < 2; i++)
 	if (fwrite(buf, TBLOCK, 1, fp) != 1) {
 	    LOG(0, ("WriteTrailer: fwrite (%d)", errno));

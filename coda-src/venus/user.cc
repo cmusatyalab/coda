@@ -216,8 +216,8 @@ userent::userent(vuid_t userid) {
     uid = userid;
     tokensvalid = 0;
     told_you_so = 0;
-    bzero((void *)&secret, (int) sizeof(SecretToken));
-    bzero((void *)&clear, (int) sizeof(ClearToken));
+    memset((void *)&secret, 0, (int) sizeof(SecretToken));
+    memset((void *)&clear, 0, (int) sizeof(ClearToken));
     waitforever = 0;
 }
 
@@ -241,8 +241,8 @@ long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
 
     /* N.B. Using direct assignment to the Token structs rather than the bcopys doesn't seem to work! */
     tokensvalid = 1;
-    bcopy((const void *)asecret, (void *) &secret, (int) sizeof(SecretToken));
-    bcopy((const void *)aclear, (void *) &clear, (int) sizeof(ClearToken));
+    memmove((void *) &secret, (const void *)asecret, (int) sizeof(SecretToken));
+    memmove((void *) &clear, (const void *)aclear, (int) sizeof(ClearToken));
 LOG(100, ("SetTokens calling Reset\n"));
     Reset();
 
@@ -308,8 +308,8 @@ void userent::Invalidate() {
     /* Security is not having to say you're sorry. */
     tokensvalid = 0;
     told_you_so = 0;
-    bzero((void *)&secret, (int) sizeof(SecretToken));
-    bzero((void *)&clear, (int) sizeof(ClearToken));
+    memset((void *)&secret, 0, (int) sizeof(SecretToken));
+    memset((void *)&clear, 0, (int) sizeof(ClearToken));
 
     /* Inform the user */
     eprint("Coda token for user %d has been discarded", uid);

@@ -192,10 +192,10 @@ void fsobj::ResetTransient() {
 	{ print(logFile); CHOKE("fsobj::ResetTransient: bogus MagicNumber"); }
 
     /* This is a horrible way of resetting handles! */
-    bzero((void *)&vol_handle, (int)sizeof(vol_handle));
-    bzero((void *)&prio_handle, (int)sizeof(prio_handle));
-    bzero((void *)&del_handle, (int)sizeof(del_handle));
-    bzero((void *)&owrite_handle, (int)sizeof(owrite_handle));
+    memset((void *)&vol_handle, 0, (int)sizeof(vol_handle));
+    memset((void *)&prio_handle, 0, (int)sizeof(prio_handle));
+    memset((void *)&del_handle, 0, (int)sizeof(del_handle));
+    memset((void *)&owrite_handle, 0, (int)sizeof(owrite_handle));
 
     if (HAVEDATA(this) && stat.VnodeType == Directory &&
 	mvstat != MOUNTPOINT) {
@@ -214,11 +214,11 @@ void fsobj::ResetTransient() {
     flags.ckmtpt = 0;
     flags.random = ::random();
 
-    bzero((void *)&u, (int)sizeof(u));
+    memset((void *)&u, 0, (int)sizeof(u));
 
     pfso = 0;
     children = 0;
-    bzero((void *)&child_link, (int)sizeof(child_link));
+    memset((void *)&child_link, 0, (int)sizeof(child_link));
 
     priority = -1;
     HoardPri = 0;
@@ -2773,8 +2773,8 @@ void fsobj::GetOperationState(int *conn, int *tid)
 	    else
 	      cfo = cfo->pfso;
 	}
-	if ((cfo != NULL) && (!bcmp((const void *)&(cfo->pfid), (const void *)LRDB->repair_root_fid, (int)sizeof(ViceFid)) ||
-            !bcmp((const void *)&(cfo->pfid), (const void *)LRDB->RFM_FakeRootToParent(LRDB->repair_root_fid), (int)sizeof(ViceFid)))) {
+	if ((cfo != NULL) && (!memcmp((const void *)&(cfo->pfid), (const void *)LRDB->repair_root_fid, (int)sizeof(ViceFid)) ||
+            !memcmp((const void *)&(cfo->pfid), (const void *)LRDB->RFM_FakeRootToParent(LRDB->repair_root_fid), (int)sizeof(ViceFid)))) {
 	    repair_mutation = 1;
 	}
     }

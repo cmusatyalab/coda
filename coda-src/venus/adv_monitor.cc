@@ -433,7 +433,7 @@ void adv_monitor::Reset(int init) {
     handle = -1;
   }
   port = 0;
-  bzero(hostname, MAXHOSTNAMELEN);
+  memset(hostname, 0, MAXHOSTNAMELEN);
   for (int i = 0; i < MAXEVENTS; i++)
     InterestArray[i] = 0;
   programFILE = NULL;

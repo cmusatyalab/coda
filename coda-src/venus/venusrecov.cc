@@ -816,7 +816,7 @@ RPC2_String Copy_RPC2_String(RPC2_String& src) {
 
     RPC2_String tgt = (RPC2_String)rvmlib_rec_malloc(len);
     rvmlib_set_range(tgt, len);
-    bcopy(src, tgt, len);
+    memmove(tgt, src, len);
 
     return(tgt);
 }

@@ -300,7 +300,7 @@ void VprocSetRetry(int HowManyRetries, struct timeval *Beta0) {
     CODA_ASSERT(VprocRetryN == -1 && VprocRetryBeta == 0);
     VprocRetryN = HowManyRetries;
     VprocRetryBeta = (struct timeval *)malloc(sizeof(struct timeval)*(2+HowManyRetries));
-    bzero((void *)VprocRetryBeta, (int)sizeof(struct timeval)*(2+HowManyRetries));
+    memset((void *)VprocRetryBeta, 0, (int)sizeof(struct timeval)*(2+HowManyRetries));
     VprocRetryBeta[0] = *Beta0;
 
     /* compute VprocRetryBeta[1] .. VprocRetryBeta[N] */
@@ -375,7 +375,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority)
     strcpy(name, n);
     func = f;
     vpid = counter++;
-    bzero((void *)&rvm_data, (int) sizeof(rvm_perthread_t));
+    memset((void *)&rvm_data, 0, (int) sizeof(rvm_perthread_t));
     /*    rvm_data.die = &CHOKE; */
     type = t;
     stacksize = stksize;

@@ -603,7 +603,7 @@ vcbdent::vcbdent(VolumeId Vid, char *volname) {
     MagicNumber = VCBDENT_MagicNumber;
     strcpy(name, volname);
     vid = Vid;
-    bzero((void *)&data, (int)sizeof(VCBStatistics));
+    memset((void *)&data, 0, (int)sizeof(VCBStatistics));
 
     VCBDB->htab.insert(&vid, &handle);
 }

@@ -144,7 +144,7 @@ void fsobj::dir_MakeDir()
 
 	data.dir = (VenusDirData *)rvmlib_rec_malloc((int)sizeof(VenusDirData));
 	RVMLIB_REC_OBJECT(*data.dir);
-	bzero((void *)data.dir, (int)sizeof(VenusDirData));
+	memset((void *)data.dir, 0, (int)sizeof(VenusDirData));
 	DH_Init(&data.dir->dh);
 
 

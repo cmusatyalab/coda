@@ -378,7 +378,7 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	rfment *rfm;
 	while ((rfm = next())) {
 	    if (rfm->RootCovered()) continue;
-	    if (!bcmp((const void *)rfm->GetRootParentFid(), (const void *)&fid, 
+	    if (!memcmp((const void *)rfm->GetRootParentFid(), (const void *)&fid, 
 		      (int)sizeof(ViceFid)))
 	      shared_parent_count++;
 	}
@@ -436,7 +436,7 @@ void fsobj::DeLocalRootParent(fsobj *RepairRoot, ViceFid *GlobalRootFid, fsobj *
 	/* no matter what happened to FSDB::Get(), search it from hash-table */
 	GlobalRootObj = FSDB->Find(GlobalRootFid);
 	if (GlobalRootObj) {
-	    if (!bcmp((const void *)&fid, (const void *)&(GlobalRootObj->pfid), 
+	    if (!memcmp((const void *)&fid, (const void *)&(GlobalRootObj->pfid), 
 		      (int)sizeof(ViceFid)) &&
 		GlobalRootObj->pfso == this) {
 		/* 
@@ -643,7 +643,7 @@ int fsobj::IsAncestor(ViceFid *Fid)
     while (cfo) {
 	LOG(100, ("fsobj::IsAncestor: current node is (%s, 0x%x.%x.%x)\n",
 		  cfo->comp, cfo->fid.Volume, cfo->fid.Vnode, cfo->fid.Unique));
-	if (!bcmp((const void *)&cfo->fid, (const void *)Fid, (int)sizeof(ViceFid))) {
+	if (!memcmp((const void *)&cfo->fid, (const void *)Fid, (int)sizeof(ViceFid))) {
 	    return 1;
 	}
 	if (cfo->IsRoot()) {
@@ -814,7 +814,7 @@ int fsobj::ReplaceLocalFakeFid()
 	ViceFid GlobalFid;
 	Recov_BeginTrans();
 	LocalFid = LRDB->GenerateLocalFakeFid(stat.VnodeType);
-	bcopy((const void *)&obj->fid, (void *)&GlobalFid, (int)sizeof(ViceFid));
+	memmove((void *)&GlobalFid, (const void *)&obj->fid, (int)sizeof(ViceFid));
 	/* insert the local-global fid mapping */
 	LRDB->LGM_Insert(&LocalFid, &GlobalFid);
 	/* globally replace the global-fid with the local-fid */
@@ -905,7 +905,7 @@ int fsobj::LocalFakeify()
      */
     /* preserve the original global fid for "this" object */
     ViceFid GlobalRootFid;
-    bcopy((const void *)&fid, (void *)&GlobalRootFid, (int)sizeof(ViceFid));
+    memmove((void *)&GlobalRootFid, (const void *)&fid, (int)sizeof(ViceFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	CHOKE("fsobj::LocalFakeify: replace local fake fid failed");
@@ -1037,7 +1037,7 @@ int fsobj::LocalFakeifyRoot()
      */
     int code = 0;
     ViceFid GlobalRootFid;
-    bcopy((const void *)&fid, (void *)&GlobalRootFid, (int)sizeof(ViceFid));
+    memmove((void *)&GlobalRootFid, (const void *)&fid, (int)sizeof(ViceFid));
 
     if ((code = ReplaceLocalFakeFid()) != 0) {
 	CHOKE("fsobj::LocalFakeifyRoot: replace local fake fid failed");

@@ -313,7 +313,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 		        }
 
 			/* Copy out the parent fid. */
-			bcopy((const void *)&f->pfid, (void *) data->out, (int)sizeof(ViceFid));
+			memmove((void *) data->out, (const void *)&f->pfid, (int)sizeof(ViceFid));
 			data->out_size = (short)sizeof(ViceFid);
 
 			break;
@@ -574,7 +574,7 @@ OI_FreeLocks:
 		    char *cp = (char *) data->out;/* Invariant: cp always
 						     point to next loc. to
 						     be copied into */
-		    bcopy((char *)&volstat, cp, (int)sizeof(VolumeStatus));
+		    memmove(cp, (char *)&volstat, (int)sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 		    strcpy(cp, name);
 		    cp += strlen(name) + 1;
@@ -599,7 +599,7 @@ OI_FreeLocks:
 
 		    /* Volume status block. */
 		    VolumeStatus volstat;
-		    bcopy((const void *)cp, (void *) (char *)&volstat, (int)sizeof(VolumeStatus));
+		    memmove((void *) (char *)&volstat, (const void *)cp, (int)sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 
 		    /* Volume name. */
@@ -649,7 +649,7 @@ OI_FreeLocks:
 		    /* Copy all the junk back out. */
 		    /* Format is (status, name, offlinemsg, motd). */
 		    cp = (char *) data->out;
-		    bcopy((char *)&volstat, cp, (int)sizeof(VolumeStatus));
+		    memmove(cp, (char *)&volstat, (int)sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 		    strcpy(cp, name);
 		    cp += strlen(name) + 1;
@@ -739,7 +739,7 @@ OI_FreeLocks:
 
 		    /* Get statistics from each host. */
 		    /* OUT data for hosts that are incommunicado will be zero. */
-		    bzero(data->out, nHosts * (int)sizeof(ViceStatistics));
+		    memset(data->out, 0, nHosts * (int)sizeof(ViceStatistics));
 		    ViceStatistics *Stats = (ViceStatistics *)data->out;
 		    for (i = 0; i < MAXHOSTS; i++)
 			if (Hosts[i] != 0) {
@@ -1074,7 +1074,7 @@ V_FreeLocks:
 			{ u.u_error = EACCES; break; }
 
 		    long on;
-		    bcopy((const void *)data->in, (void *) &on, (int)sizeof(long));
+		    memmove((void *) &on, (const void *)data->in, (int)sizeof(long));
 		    on &= 0xff;
 		    if (on) DebugOn(); else DebugOff();
 
@@ -1087,7 +1087,7 @@ V_FreeLocks:
 			{ u.u_error = EINVAL; break; }
 
 		    VenusStatistics *Stats = (VenusStatistics *)data->out;
-		    bzero((void *)Stats, (int)sizeof(VenusStatistics));
+		    memset((void *)Stats, 0, (int)sizeof(VenusStatistics));
 		    Stats->VFSStats = VFSStats;
 		    Stats->CommStats.RPCOpStats = RPCOpStats;
 		    GetCSS(&Stats->CommStats.RPCPktStats);
@@ -1207,7 +1207,7 @@ V_FreeLocks:
 		case VIOC_WAITFOREVER:
 		    {
 		    int on;
-		    bcopy((const void *)data->in, (void *) &on, (int)sizeof(int));
+		    memmove((void *) &on, (const void *)data->in, (int)sizeof(int));
 
 		    /* We would like "waitforever" behavior to be settable on a per-process group basis. */
 		    /* However, this would require cooperation with the kernel, which I don't want to */

@@ -319,7 +319,7 @@ mariner::mariner(int afd) :
     reporting = 0;
     vuid = ALL_UIDS;
     fd = afd;
-    bzero(commbuf, MWBUFSIZE);
+    memset(commbuf, 0, MWBUFSIZE);
     MarinerMask |= (1 << fd);
 
     /* Poke main procedure. */

@@ -194,7 +194,7 @@ void VolInit() {
 
 	/* Create the local fake volume */
 	VolumeInfo LocalVol;
-	bzero((void *)&LocalVol, (int)sizeof(VolumeInfo));
+	memset((void *)&LocalVol, 0, (int)sizeof(VolumeInfo));
 	FID_MakeVolFake(&LocalVol.Vid);
         LocalVol.Type = ROVOL;
 	CODA_ASSERT(VDB->Create(&LocalVol, "Local"));
@@ -753,7 +753,7 @@ volent::volent(VolumeInfo *volinfo, char *volname) {
     current_reco_time = 0;	
     current_rws_cnt = 0;
     current_disc_read_cnt = 0;
-    bzero((void *)&rwsq, (int)sizeof(rec_dlist));
+    memset((void *)&rwsq, 0, (int)sizeof(rec_dlist));
 
     /* Writeback */
     flags.writebacking = 0;
@@ -2553,7 +2553,7 @@ void volent::GetHosts(unsigned long *hosts) {
 	case RWVOL:
 	case BACKVOL:
 	case RWRVOL:
-	    bzero((void *)hosts, (int)(MAXHOSTS * sizeof(unsigned long)));
+	    memset((void *)hosts, 0, (int)(MAXHOSTS * sizeof(unsigned long)));
 	    hosts[0] = host;
 	    return;
 

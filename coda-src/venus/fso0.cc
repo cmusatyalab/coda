@@ -403,7 +403,7 @@ fsdb::fsdb() : htab(FSDB_NBUCKETS, FSO_HashFN) {
 
     LastRef = (long *)rvmlib_rec_malloc(MaxFiles * (int)sizeof(long));
     rvmlib_set_range(LastRef, MaxFiles * (int)sizeof(long));
-    bzero((void *)LastRef, (int)(MaxFiles * sizeof(long)));
+    memset((void *)LastRef, 0, (int)(MaxFiles * sizeof(long)));
 }
 
 
@@ -425,10 +425,10 @@ void fsdb::ResetTransient() {
     delq = new dlist;
     owriteq = new olist;
 
-    bzero((void *)&DirAttrStats, (int)sizeof(CacheStats));
-    bzero((void *)&DirDataStats, (int)sizeof(CacheStats));
-    bzero((void *)&FileAttrStats, (int)sizeof(CacheStats));
-    bzero((void *)&FileDataStats, (int)sizeof(CacheStats));
+    memset((void *)&DirAttrStats, 0, (int)sizeof(CacheStats));
+    memset((void *)&DirDataStats, 0, (int)sizeof(CacheStats));
+    memset((void *)&FileAttrStats, 0, (int)sizeof(CacheStats));
+    memset((void *)&FileDataStats, 0, (int)sizeof(CacheStats));
     Recomputes = 0;
     Reorders = 0;
 
@@ -749,7 +749,7 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
 	    ViceFid *gfid;
 	    while ((lgm = next())) {
 		gfid = lgm->GetGlobalFid();
-		if (!bcmp((const void *)gfid, (const void *)key, (int)sizeof(ViceFid))) {
+		if (!memcmp((const void *)gfid, (const void *)key, (int)sizeof(ViceFid))) {
 		    LOG(0, ("fsdb::Get: trying to access localied object 0x%x.%x.%x\n",
 			    key->Volume, key->Vnode, key->Unique));
 		    return EACCES;

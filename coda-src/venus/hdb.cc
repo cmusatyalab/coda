@@ -1511,7 +1511,7 @@ void *namectxt::operator new(size_t len) {
 
     if (d == 0) {
 	n = (namectxt *)new char[len];
-	bzero((void *)n, (int)len);
+	memset((void *)n, 0, (int)len);
     }
     else {
 	n = strbase(namectxt, d, fl_handle);

@@ -801,7 +801,7 @@ void CheckRW()
 	    }
 	    rwsent *rws = (rwsent *)d;
 	    ReadWriteSharingStats Stats;
-	    bzero((void *)&Stats, (int)sizeof(Stats));
+	    memset((void *)&Stats, 0, (int)sizeof(Stats));
 	    Stats.Vid = v->GetVid();
 	    Stats.RwSharingCount = rws->sharing_count;
 	    Stats.DiscReadCount = rws->disc_read_count;
@@ -877,7 +877,7 @@ void CheckRepair()
 	return;
     }
     RepairSessionStats Stats;
-    bzero((void *)&Stats, (int)sizeof(RepairSessionStats));
+    memset((void *)&Stats, 0, (int)sizeof(RepairSessionStats));
     Stats.SessionNum = LRDB->repair_stats.SessionNum;
     Stats.CommitNum = LRDB->repair_stats.CommitNum;
     Stats.AbortNum = LRDB->repair_stats.AbortNum;

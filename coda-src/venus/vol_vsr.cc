@@ -200,7 +200,7 @@ void volent::FlushVSRs(int hard) {
 	olist_iterator vnext(*vsr_list);
 	while ((v = (vsr *)vnext())) {
 	    VmonSessionEventArray *na = new(VmonSessionEventArray);
-	    bcopy((const void *)&(v->events), (void *)na,(int)sizeof(VmonSessionEventArray));
+	    memmove((void *)na, (const void *)&(v->events),(int)sizeof(VmonSessionEventArray));
 	    /* Convert SigmaTSquared from floating-point milliseconds to fixed-point seconds. */
 	    for (int i = 0; i < (sizeof(VmonSessionEventArray) / sizeof(VmonSessionEvent)); i++) {
 		VmonSessionEvent *se = &((&(na->Event0))[i]);
@@ -208,10 +208,10 @@ void volent::FlushVSRs(int hard) {
 	    }
 
 	    SessionStatistics *ss = new(SessionStatistics);
-	    bcopy((const void *)&v->stats, (void *) ss, (int)sizeof(SessionStatistics));
+	    memmove((void *) ss, (const void *)&v->stats, (int)sizeof(SessionStatistics));
 
             CacheStatistics *cs = new (CacheStatistics);
-            bcopy((const void *)&v->cachestats, (void *) cs, (int)sizeof(CacheStatistics));
+            memmove((void *) cs, (const void *)&v->cachestats, (int)sizeof(CacheStatistics));
 
 	    VmonEnqueueSession(VsrUnique, vid, v->uid, &AVSG,
 			       v->starttime, v->endtime, v->cetime,
@@ -232,9 +232,9 @@ void volent::InitStatsVSR(vsr *v) {
     SessionStatistics *InitStats = &v->initstats;
     CacheStatistics *CacheStats = &v->cachestats;
 
-    bzero((void *)Stats, (int) sizeof(SessionStatistics));
-    bzero((void *)InitStats, (int) sizeof(SessionStatistics));
-    bzero((void *)CacheStats, (int) sizeof(CacheStatistics));
+    memset((void *)Stats, 0, (int) sizeof(SessionStatistics));
+    memset((void *)InitStats, 0, (int) sizeof(SessionStatistics));
+    memset((void *)CacheStats, 0, (int) sizeof(CacheStatistics));
 
     /* Gather ClientModifyLog information */
     Stats->EntriesStart = CML.count();
@@ -358,7 +358,7 @@ vsr::vsr(vuid_t Uid) {
     cetime = 0;
 
     /* think about doing some flagging trick here -- bnoble */
-    bzero((void *)&events, (int)sizeof(VmonSessionEventArray));
+    memset((void *)&events, 0, (int)sizeof(VmonSessionEventArray));
 
 #ifdef	VENUSDEBUG
     allocs++;

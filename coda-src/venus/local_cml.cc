@@ -82,9 +82,9 @@ void cmlent::TranslateFid(ViceFid *global, ViceFid *local)
     for (int i = 0; i < 3; i++) {
 	if (Fids[i] != NULL) {
 	    /* Check if Fids[i] is global */
-	    if (!bcmp((const void *)Fids[i], (const void *)global, (int)sizeof(ViceFid))) {
+	    if (!memcmp((const void *)Fids[i], (const void *)global, (int)sizeof(ViceFid))) {
 		RVMLIB_REC_OBJECT(*Fids[i]);
-		bcopy((const void *)local, (void *) Fids[i], (int)sizeof(ViceFid));
+		memmove((void *) Fids[i], (const void *)local, (int)sizeof(ViceFid));
 		count++;
 	    }
 	}
