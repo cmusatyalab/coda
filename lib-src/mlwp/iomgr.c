@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/mlwp/RCS/iomgr.c,v 4.1 1997/01/08 21:54:11 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/lib-src/mlwp/RCS/iomgr.c,v 4.2 1997/02/26 16:04:57 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -221,13 +221,14 @@ PRIVATE int IOMGR_CheckTimeouts() {
 
 
 /* Return value indicates whether anyone was woken up. */
-/* N.B.  Special return value of -1 indicates a signal was delivered prior to the select. */
+/* N.B.  Special return value of -1 indicates a signal was delivered
+   prior to the select. */
 PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
     int PollingCheck;
 {
     int fds, readfds, writefds, exceptfds;
     struct TM_Elem *earliest;
-    struct timeval timeout, junk;
+    struct timeval timeout, tmp_timeout, junk;
 
     earliest = TM_GetEarliest(Requests);
     if (earliest == NIL) return(0);
@@ -258,10 +259,14 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
 	iomgr_timeout.tv_usec = 0;
     }
 
-    /* Check one last time for a signal delivery.  If one comes after this, the signal */
-    /* handler will set iomgr_timeout to zero, causing the select to return immediately. */
-    /* The timer package won't return a zero timeval because all of those guys were handled above. */
-    /* I'm assuming that the kernel masks signals while it's picking up the parameters to select. */
+    /* Check one last time for a signal delivery.  If one comes after
+       this, the signal */
+    /* handler will set iomgr_timeout to zero, causing the select to
+       return immediately. */
+    /* The timer package won't return a zero timeval because all of
+       those guys were handled above. */
+    /* I'm assuming that the kernel masks signals while it's picking
+       up the parameters to select. */
     /* This may a bad assumption! -DN */
     if (anySigsDelivered) return(-1);
 
@@ -275,14 +280,20 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
 	last_context_switch.tv_sec = 0;
 	last_context_switch.tv_usec = 0;
     }
-
+    /* Linux adheres to Posix standard for select and sets
+       iomgr_timeout to 0; this needs to be reset before we proceed,
+       otherwise SignalTimeout never gets called */
+    tmp_timeout = iomgr_timeout;
     fds = select(MAX_FDS, (fd_set *)(readfds ? &readfds : 0), 
 		  (fd_set *)(writefds ? &writefds : 0), 
 		  (fd_set *)(exceptfds ? &exceptfds : 0), 
 		  &iomgr_timeout);
+    iomgr_timeout = tmp_timeout;
+
     if (fds < 0 && errno != EINTR) {
 	for(fds=0;fds<MAX_FDS;fds++) {
-	    if (fcntl(fds, F_GETFD, 0) < 0 && errno == EBADF) openMask |= (1<<fds);
+	    if (fcntl(fds, F_GETFD, 0) < 0 && errno == EBADF) 
+	      openMask |= (1<<fds);
 	}
 	abort();
     }
@@ -294,8 +305,11 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
     if (fds > 0)
 	/* Action -- wake up everyone involved. */
 	return(SignalIO(fds, readfds, writefds, exceptfds));
-    else if (fds == 0 && (iomgr_timeout.tv_sec != 0 || iomgr_timeout.tv_usec != 0))
-	/* Real timeout only if signal handler hasn't set iomgr_timeout to zero. */
+    else if (fds == 0 && 
+	     (iomgr_timeout.tv_sec != 0 || 
+	      iomgr_timeout.tv_usec != 0))
+	/* Real timeout only if signal handler hasn't set
+           iomgr_timeout to zero. */
 	return(SignalTimeout(fds, &timeout));
     else
 	return(0);
@@ -304,18 +318,18 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
 
 /* The IOMGR process */
 
-/*
- * Important invariant: process->iomgrRequest is null iff request not in timer queue
- * also, request->pid is valid while request is in queue,
- * also, don't signal selector while request in queue, since selector free's request.
- */
+/* Important invariant: process->iomgrRequest is null iff request not
+ * in timer queue also, request->pid is valid while request is in
+ * queue, also, don't signal selector while request in queue, since
+ * selector free's request.  */
 
 PRIVATE void IOMGR(dummy)
     char *dummy;
 {
 
     for (;;) {
-	/* Wake up anyone who has expired or who has received a Unix signal between executions. */
+	/* Wake up anyone who has expired or who has received a Unix
+           signal between executions. */
 	/* Keep going until we run out. */
 	{
 	    int woke_someone;
