@@ -1,3 +1,9 @@
+New in 1.21:
+
+* IPv6 support.
+* Extra boundary checking when unpacking MultiRPC reply packets.
+* Updated for automake 1.7, autoconf 2.52, libtool 1.5.2.
+
 New in 1.20:
 
 * Add /usr/include/rpc2/rpc2_addrinfo.h to the devel packages.
