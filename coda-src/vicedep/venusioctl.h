@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vicedep/RCS/venusioctl.h,v 4.1 1997/01/08 21:52:05 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/venusioctl.h,v 4.2 1997/02/26 16:03:47 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,26 +70,12 @@ supported by Transarc Corporation, Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
-#ifdef __MACH__
-#include <sys/viceioctl.h>
-#endif /* __MACH__ */
-#if defined(__linux__) || defined(__BSD44__)
-#include <cfs/mach_vioctl.h> /* new identity of sys/viceioctl.h */
-#endif /* __BSD44__ */
+#include <pioctl.h> /* new identity of sys/viceioctl.h */
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-/* Fix some brain-damage in the just included file. */
-#undef	_VICEIOCTL
-#ifdef	__STDC__
-#define _VICEIOCTL(id)  (/*(unsigned int ) */_IOW('V', id, struct ViceIoctl))
-#else
-#define _VICEIOCTL(id)  (/*(unsigned int ) */_IOW(V, id, struct ViceIoctl))
-#endif
-#undef	_VALIDVICEIOCTL
-#define _VALIDVICEIOCTL(com) (com >= _VICEIOCTL(0) && com <= _VICEIOCTL(255))
 
 /* Definitions of Venus-specific ioctls  */
 
@@ -205,17 +191,18 @@ extern "C" {
 #define	VIOC_LISTCACHE		_VICEIOCTL(CFS_IOCTL_BASE + 50)	/* List cache status */
 #define	VIOC_GET_MT_PT		_VICEIOCTL(CFS_IOCTL_BASE + 51)	/* Get mount point path from volume id */
 
-/* 
- * The following change is made in order to reduce the number of command codes for the 
- * local/global repair interface. We now use only one pioctl command code for the interface
- * the actual repair command are passed as an additional parameter, as defined as follows.
- * This new command VIOC_REP_CMD and its associated constants are intended to replace the 
- * previous 9 commands such as VIOC_REP_BEGIN etc. that are used for local/global repair.
- * We let the old command to exist for now in order to reduce the occasions of inconvenience
- * of the imcompatibility between venus and tools such as cfs and repair. We will later perform
- * one major pioctl interface cleanup later, and that will require every user to pick up the 
- * right venus and the right tools.
- */
+/*  The following change is made in order to reduce the number of
+ * command codes for the local/global repair interface. We now use
+ * only one pioctl command code for the interface the actual repair
+ * command are passed as an additional parameter, as defined as
+ * follows.  This new command VIOC_REP_CMD and its associated
+ * constants are intended to replace the previous 9 commands such as
+ * VIOC_REP_BEGIN etc. that are used for local/global repair.  We let
+ * the old command to exist for now in order to reduce the occasions
+ * of inconvenience of the imcompatibility between venus and tools
+ * such as cfs and repair. We will later perform one major pioctl
+ * interface cleanup later, and that will require every user to pick
+ * up the right venus and the right tools.  */
 #define VIOC_REP_CMD  	        _VICEIOCTL(CFS_IOCTL_BASE + 52)	/* new local-global repair command */
 #define	REP_CMD_BEGIN		1
 #define REP_CMD_END		2

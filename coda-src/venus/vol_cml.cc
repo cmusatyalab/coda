@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.4 97/03/06 21:04:54 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_cml.cc,v 4.5 1997/07/15 12:48:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,9 +53,6 @@ extern "C" {
 #include <sys/types.h>
 #include <stdarg.h>
 #include <struct.h>
-#ifdef __BSD44__
-#include <dirent.h> /* to get defn of MAXNAMLEN */
-#endif /* __BSD44__ */
 
 #ifdef __MACH__
 #include <sysent.h>
@@ -3120,7 +3117,7 @@ int cmlent::WriteReintegrationHandle() {
 	/* Notify Codacon */
 	{
 	    char *comp = f->comp;
-	    char buf[MAXNAMLEN];
+	    char buf[CFS_MAXNAMLEN];
 	    if (comp[0] == '\0') {
 		sprintf(buf, "[%x.%x.%x]", f->fid.Volume, f->fid.Vnode, f->fid.Unique);
 		comp = buf;
@@ -3773,7 +3770,7 @@ int ClientModifyLog::CheckPoint(char *ckpdir) {
 	for (char *cp = mountpath; *cp; cp++)
 	    if (*cp == '/') *cp = '|';
     }
-    strncat(ckpname, mountpath, MAXNAMLEN - (int) strlen(vol->name) - 1 - 1);
+    strncat(ckpname, mountpath, CFS_MAXNAMLEN - (int) strlen(vol->name) - 1 - 1);
     (void) strcpy(lname, ckpname);
     (void) strcat(ckpname, ".tar");
     (void) strcat(lname, ".cml");
@@ -3929,7 +3926,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    }
 
 	    GetPath(hdr.dbuf.name, &u.u_store.Fid);
-	    char CacheFileName[MAXNAMLEN];
+	    char CacheFileName[CFS_MAXNAMLEN];
 	    {
 		fsobj *f = FSDB->Find(&u.u_store.Fid);
 		ASSERT(f != 0);

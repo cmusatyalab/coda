@@ -272,6 +272,12 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
 	       dircnp->c_fid.Volume,
 	       dircnp->c_fid.Vnode, dircnp->c_fid.Unique);
 
+	/* special case. iput(dir) and iget(res_inode) balance out */
+	if ( length == 1 && name[0]=='.' ) {
+	        *res_inode = dir;
+		return 0;
+	}
+
         /* check for operation on dying object */
 	if ( IS_DYING(dircnp) ) {
                 COMPLAIN_BITTERLY(lookup, dircnp->c_fid);
@@ -296,11 +302,11 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
 		CHECK_CNODE(savedcnp);
 		*res_inode = CTOI(savedcnp);
 		iget((*res_inode)->i_sb, (*res_inode)->i_ino);
-		CDEBUG(D_INODE, "cache hit for ino: %ld, count: %d!\n",
-		       (*res_inode)->i_ino, (*res_inode)->i_count);
+		CDEBUG(D_INODE, "cache hit for ino: %ld, count: %d, name %s!\n",
+		       (*res_inode)->i_ino, (*res_inode)->i_count, name);
 		goto exit;
 	}
-	CDEBUG(D_INODE, "name not found in cache!\n");
+	CDEBUG(D_INODE, "name not found in cache (%s)!\n", name);
 
 	/* is this name too long? */
         if ( length > CFS_MAXNAMLEN ) {

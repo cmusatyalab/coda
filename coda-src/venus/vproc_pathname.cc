@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/vproc_pathname.cc,v 4.1 1997/01/08 21:51:51 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pathname.cc,v 4.2 1997/02/26 16:03:40 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -51,9 +51,6 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
-#if defined(__linux__) || defined(__BSD44__)
-#include <dirent.h> /* to pick up defn of MAXNAMLEN */
-#endif
 
 #ifdef __MACH__
 #include <sysent.h>
@@ -105,7 +102,7 @@ inline void SkipSlashes(char **pptr_addr, int *plen_addr) {
 /* Returns {0, 1}.  On 0, u.u_error is set to appropriate Unix errno and *vpp is 0. */
 /* On 1, u.u_error is 0 and *vpp is a valid vnode pointer. */
 /* Caller must set u_cred, u_priority, u.u_cdir and u_nc fields as appropriate. */
-int vproc::namev(char *path, int flags, struct vnode **vpp) {
+int vproc::namev(char *path, int flags, struct venus_vnode **vpp) {
     LOG(1, ("vproc::namev: %s, %d\n", path, flags));
 
     *vpp = 0;
@@ -113,11 +110,11 @@ int vproc::namev(char *path, int flags, struct vnode **vpp) {
     /* Initialize some global variables. */
     u.u_error = 0;
     u.u_flags = flags;
-    struct vnode *pvp = 0;
-    struct vnode *vp = 0;
-    char comp[MAXNAMLEN];
+    struct venus_vnode *pvp = 0;
+    struct venus_vnode *vp = 0;
+    char comp[CFS_MAXNAMLEN];
     comp[0] = '\0';
-    char workingpath[MAXPATHLEN];
+    char workingpath[CFS_MAXNAMLEN];
     strcpy(workingpath, path);
     char *pptr = workingpath;
     int plen = strlen(pptr);
@@ -128,7 +125,7 @@ int vproc::namev(char *path, int flags, struct vnode **vpp) {
 	struct cfid fid;
 	fid.cfid_len = sizeof(ViceFid);
 	fid.cfid_fid = u.u_cdir;
-	vget(&pvp, (struct fid *)&fid);
+	vget(&pvp, &fid);
 	if (u.u_error) goto Exit;
 
 	/* Skip over leading slashes. */
@@ -212,7 +209,7 @@ int vproc::namev(char *path, int flags, struct vnode **vpp) {
 		}
 
 		/* Guard against looping. */
-		if (++nlinks > MAXSYMLINKS) {
+		if (++nlinks > CODA_MAXSYMLINK) {
 		    u.u_error = ELOOP;
 		    goto Exit;
 		}
@@ -277,7 +274,7 @@ int vproc::namev(char *path, int flags, struct vnode **vpp) {
 		    struct cfid fid;
 		    fid.cfid_len = sizeof(ViceFid);
 		    fid.cfid_fid = rootfid;
-		    vget(&pvp, (struct fid *)&fid);
+		    vget(&pvp, &fid);
 		    if (u.u_error) goto Exit;
 		}
 		else if (linkdata[0] == '/') {
@@ -392,7 +389,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 	    if (u.u_error) goto FreeLocks;
 
 	    /* Lookup the name of the previous component. */
-	    char comp[MAXNAMLEN];
+	    char comp[CFS_MAXNAMLEN];
 	    u.u_error = f->dir_LookupByFid(comp, &prevFid);
 	    if (u.u_error) goto FreeLocks;
 

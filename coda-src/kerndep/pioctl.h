@@ -28,15 +28,30 @@ Carnegie  Mellon  encourages  users  of  this  software  to return any
 improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
-
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/kerndep/RCS/netbsdasm.h,v 4.1 1997/01/08 21:50:58 rvb Exp $";
 #endif /*_BLURB_*/
 
-#ifdef __BSD44__
-#define LCL(x)	x	
-#define	CALL(x,y)	call PIC_PLT(_##y); addl $4*x,%esp
-/* gas fucks up offset -- although we don't currently need it, do for BCS */
-#define	LCALL(x,y)	.byte 0x9a; .long y; .word x
 
-#define	SYSCALL(x)	.text; .align 2; 2: jmp PIC_PLT(cerror); ENTRY(x); movl $SYS_/**/x,%eax; LCALL(7,0); jc 2b	
-#endif /* __BSD44__ */
+/*
+ *  TODO:  combine ViceIoctl and PioctlData structures.
+ */
+
+#ifndef	_PIOCTL_H_
+#define _PIOCTL_H_
+
+#include <sys/types.h>
+#include <time.h>
+#include <sys/ioctl.h>
+#include <cfs/coda.h>
+
+/* WARNING: don't send more data than allowed by the CFS_MAXMSG size
+in coda.h */
+
+int pioctl(const char *path, unsigned long com, struct
+	   ViceIoctl *vidata, int follow);
+
+/* people who understand ioctling probably know why this is useful... */
+#define _VICEIOCTL(id)  (_IOW('V', id, struct ViceIoctl))
+#define _VALIDVICEIOCTL(com) (com >= _VICEIOCTL(0) && com <= _VICEIOCTL(255))
+
+
+#endif	_PIOCTL_H_

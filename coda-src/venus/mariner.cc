@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/mariner.cc,v 4.2 1997/02/26 16:03:23 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.3 1997/05/29 19:14:16 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,9 +64,6 @@ extern "C" {
 #include <stdlib.h>
 #endif
 
-#ifdef	__linux__
-#include <linux/fs.h>
-#endif
 
 #include <lock.h>
 #include <rpc2.h>
@@ -83,13 +80,14 @@ extern "C" {
 #include "simulate.h"
 #include "venus.private.h"
 #include "venuscb.h"
+#include "venus_vnode.h"
 #include "vproc.h"
 #include "worker.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
-#include <cfs/cnode.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -517,7 +515,7 @@ void mariner::PathStat(char *path) {
     u.u_priority = 0;
     u.u_cdir = rootfid;
     u.u_nc = 0;
-    struct vnode *tvp = 0;
+    struct venus_vnode *tvp = 0;
     if (!namev(path, 0, &tvp)) {
 	Write("namev(%s) failed (%d)\n", path, u.u_error);
 	return;

@@ -309,7 +309,7 @@ struct CodaCred {
     vgid_t cr_gid, cr_egid, cr_sgid, cr_fsgid; /* same for groups */
     vgid_t cr_groups[NGROUPS];	      /* Group membership for caller */
 };
-#define ucred CodaCred
+/* #define ucred CodaCred */
 
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/hdb.cc,v 4.2 97/02/26 16:03:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.3 1997/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,6 +91,7 @@ extern "C" {
 #include <coda_dir.h>
 
 /* from venus */
+#include "venus_vnode.h"
 #include "advice_daemon.h"
 #include "adviceconn.h"
 #include "advice.h"
@@ -120,7 +121,9 @@ int NameCtxt_deallocs = 0;
 
 /*  *****  Private Constants  *****  */
 
+#ifndef __linux__
 #define	UTMP_FILE   "/etc/utmp"
+#endif
 #define	CONSOLE	    "console"
 /*PRIVATE const*/ int HDB_YIELDMASK = 0x1;  /* yield every 2 iterations */
 
@@ -1744,7 +1747,7 @@ pestate namectxt::CheckExpansion() {
 	/* Expand/validate the context. */
 	if (expansion.count() > 0)
 	    next = new dlist_iterator(expansion);
-	struct vnode *vnp = 0;
+	struct venus_vnode *vnp = 0;
 	if (vp->namev(path, FOLLOW_SYMLINKS, &vnp)) {
 	    DISCARD_VNODE(vnp);
 	    vnp = 0;

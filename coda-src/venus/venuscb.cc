@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venuscb.cc,v 4.1 1997/01/08 21:51:38 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venuscb.cc,v 4.2 1997/02/26 16:03:27 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,9 +60,6 @@ extern "C" {
 #include <endian.h>
 #else
 #include <machine/endian.h>
-#endif
-#if    defined(__BSD44__) 
-#include <dirent.h> /* to get definition of MAXNAMLEN */
 #endif
 
 #ifdef __MACH__
@@ -283,7 +280,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
     /* Notify Codacon. */
     {
 	char *comp = f->comp;
-	char buf[MAXNAMLEN];
+	char buf[CFS_MAXNAMLEN];
 	if (comp[0] == '\0') {
 	    sprintf(buf, "[%x.%x.%x]", f->fid.Volume, f->fid.Vnode, f->fid.Unique);
 	    comp = buf;

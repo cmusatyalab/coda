@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: vproc.h,v 4.4 97/02/26 16:03:39 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc.h,v 4.5 1997/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -96,8 +96,7 @@ struct uio {
 
 #endif	/* __linux__ */
 
-#include <cfs/cfs.h>
-#include <cfs/cnode.h>
+#include <cfs/coda.h>
 
 #include <lwp.h>
 #include <lock.h>
@@ -122,7 +121,7 @@ struct uio {
 
 /* from venus */
 #include "venus.private.h"
-
+#include "venus_vnode.h"
 
 /* Forward declarations. */
 struct uarea;
@@ -142,6 +141,20 @@ const int RETRY_LIMIT = 10;
 
 
 /* *****  Exported types  ***** */
+#if 0
+#define  MAXFIDSZ 16
+struct fid {
+        u_short         fid_len;                /* length of data in bytes */
+        char            fid_data[MAXFIDSZ];     /* data (variable length) */
+};
+#endif
+struct cfid {
+    u_short     cfid_len;
+    u_short     cfid_fill;
+    ViceFid     cfid_fid;
+};
+
+
 
 /* local-repair modification */
 enum vproctype {    VPT_Main,
@@ -168,7 +181,7 @@ class namectxt;
 class volent;
 struct uarea {
     int	u_error;		/* implicit return code */
-    struct ucred u_cred;	/* implicit user identifier */
+    struct CodaCred u_cred;	/* implicit user identifier */
     int	u_priority;		/* to be used in resource requests */
     ViceFid u_cdir;		/* for name lookup */
     int	u_flags;		/*  "	" */
@@ -251,34 +264,34 @@ class vproc : public olink {
 /*  Note: all references to struct vfs eliminated; see vproc_vfscalls.c (Satya, 8/15/96) */
     void mount(char *, void *);
     void unmount();
-    void root(struct vnode **);
+    void root(struct venus_vnode **);
     void statfs(struct statfs *);
     void sync();
-    void vget(struct vnode **, struct fid *);
-    void open(struct vnode **, int);
-    void close(struct vnode *, int);
-    void rdwr(struct vnode *, struct uio *, enum uio_rw, int);
-    void ioctl(struct vnode *, unsigned int, struct ViceIoctl *, int);
-    void select(struct vnode *, int);
-    void getattr(struct vnode *, struct vattr *);
-    void setattr(struct vnode *, struct vattr *);
-    void access(struct vnode *, int);
-    void lookup(struct vnode *, char *, struct vnode **);
-    void create(struct vnode *, char *, struct vattr *, int, int, struct vnode **);
-    void remove(struct vnode *, char *);
-    void link(struct vnode *, struct vnode *, char *);
-    void rename(struct vnode *, char *, struct vnode *, char *);
-    void mkdir(struct vnode *, char *, struct vattr *, struct vnode **);
-    void rmdir(struct vnode *, char *);
-    void readdir(struct vnode *, struct uio *);
-    void symlink(struct vnode *, char *, struct vattr *, char *);
-    void readlink(struct vnode *, struct uio *);
-    void fsync(struct vnode *);
-    void inactive(struct vnode *);
-    void fid(struct vnode *, struct fid	**);
+    void vget(struct venus_vnode **, struct cfid *);
+    void open(struct venus_vnode **, int);
+    void close(struct venus_vnode *, int);
+    void rdwr(struct venus_vnode *, struct uio *, enum uio_rw, int);
+    void ioctl(struct venus_vnode *, unsigned int, struct ViceIoctl *, int);
+    void select(struct venus_vnode *, int);
+    void getattr(struct venus_vnode *, struct coda_vattr *);
+    void setattr(struct venus_vnode *, struct coda_vattr *);
+    void access(struct venus_vnode *, int);
+    void lookup(struct venus_vnode *, char *, struct venus_vnode **);
+    void create(struct venus_vnode *, char *, struct coda_vattr *, int, int, struct venus_vnode **);
+    void remove(struct venus_vnode *, char *);
+    void link(struct venus_vnode *, struct venus_vnode *, char *);
+    void rename(struct venus_vnode *, char *, struct venus_vnode *, char *);
+    void mkdir(struct venus_vnode *, char *, struct coda_vattr *, struct venus_vnode **);
+    void rmdir(struct venus_vnode *, char *);
+    void readdir(struct venus_vnode *, struct uio *);
+    void symlink(struct venus_vnode *, char *, struct coda_vattr *, char *);
+    void readlink(struct venus_vnode *, struct uio *);
+    void fsync(struct venus_vnode *);
+    void inactive(struct venus_vnode *);
+    void fid(struct venus_vnode *, struct cfid	**);
 
     /* Pathname translation. */
-    int namev(char *, int, struct vnode **);
+    int namev(char *, int, struct venus_vnode **);
     void GetPath(ViceFid *, char *, int *, int =1);
 
     void GetStamp(char *);
@@ -321,8 +334,8 @@ extern int VprocInterrupted();
 
 /* Things which should be in vnode.h? -JJK */
 
-extern void va_init(struct vattr *);
-extern void VattrToStat(struct vattr *, struct stat *);
+extern void va_init(struct coda_vattr *);
+extern void VattrToStat(struct coda_vattr *, struct stat *);
 extern long FidToNodeid(ViceFid *);
 
 #ifdef __MACH__
@@ -341,19 +354,6 @@ extern long FidToNodeid(ViceFid *);
 			 (ft) == (int)Directory ? VDIR :\
 			 (ft) == (int)SymbolicLink ? VLNK :\
 			 VREG)
-
-/* VN_INIT() only defined for Mach; not used in BSD44 */
-#ifdef __MACH__
-#define	VN_INIT(VP, VFSP, TYPE,	DEV)	{\
-    (VP)->v_flag = 0;\
-    (VP)->v_count = 1;\
-    (VP)->v_shlockc = (VP)->v_exlockc = 0;\
-    (VP)->v_vfsp = (VFSP);\
-    (VP)->v_mode = (/*0 | */(TYPE & VFMT));\
-    (VP)->v_rdev = (DEV);\
-    (VP)->v_socket = 0;\
-}
-#endif /* __MACH__ */
 
 #define	VFSOP_UNSET	-1
 #define	VFSOP_MOUNT	/*CFS_MOUNT*/VFSOP_UNSET
@@ -393,83 +393,40 @@ extern long FidToNodeid(ViceFid *);
 extern int vnode_allocs;
 extern int vnode_deallocs;
 
-/* Use of vnodes by Venus (Satya, 8/14/96): 
+/* Use of venus_vnodes by Venus (Satya, 8/14/96): 
 
-   The use of struct vnode by Venus is purely for convenience; the kernel never
-   passes a vnode up to Venus or vice versa.  Venus allocates and deallocates vnodes
-   only because they are convenient structures to hold exactly the info needed about
-   cached objects.  What actually gets allocated is a struct cnode, that encapsulates
-   a struct vnode.
-   
-   On Mach, all the data is directly embedded in the encapsulating cnode.
-   
-   On BSD44, the vnode corresponding to a cnode has to be explicitly allocated; 
-   the v_data field of the vnode points to its associated cnode.
-
-   All this makes the code trickier to understand, but it does keep down the 
-   profileration of "ifdef's" in the mainline code.   Hopefully this approach is a 
-   net win.  The Linux port should help clarify whether it is.
+   The use of struct venus_vnode by Venus is purely for convenience;
+   the kernel never passes a venus_vnode up to Venus or vice versa.
+   Venus allocates and deallocates venus_vnodes only because they are
+   convenient structures to hold exactly the info needed about cached
+   objects.  What actually gets allocated is a struct venus_cnode, that
+   encapsulates a struct venus_vnode.
 */
 
-#ifdef __MACH__
+#define CTOV(cn)  &((cn)->c_vnode)
+#define VTOC(vp)  ((struct venus_cnode *)((vp)->v_data))
 #define	MAKE_VNODE(vp, fid, type)\
 {\
-    struct cnode *tcp = new cnode;\
-    CN_INIT(tcp, (fid), 0, 0);\
-    VN_INIT(CTOV(tcp), 0, (type), 0);\
+    struct venus_cnode *tcp = new venus_cnode;\
+    bzero(tcp, (int) sizeof(struct venus_cnode));\
+    tcp->c_fid = fid;\
     (vp) = CTOV(tcp);\
+    (vp)->v_usecount = 1; /* Is this right? (Satya, 8/15/96) */\
+    (vp)->v_type = (enum coda_vtype) type;\
+    (vp)->v_data = tcp; /* backpointer for VTOC() */ \
     vnode_allocs++;\
 }
-
 #define	DISCARD_VNODE(vp)\
 {\
     vnode_deallocs++;\
     delete (VTOC((vp)));\
 }
-#endif /* __MACH__ */
-
-#if defined(__linux__) || defined(__BSD44__)
-#define	MAKE_VNODE(vp, fid, type)\
-{\
-    struct cnode *tcp = new cnode;\
-    bzero(tcp, (int) sizeof(struct cnode));\
-    tcp->c_fid = fid;\
-    tcp->c_vnode = new vnode;\
-    (vp) = CTOV(tcp);\
-    bzero((vp), (int) sizeof(struct vnode));\
-    (vp)->v_usecount = 1; /* Is this right? (Satya, 8/15/96) */\
-    (vp)->v_type = (enum vtype) type;\
-    (vp)->v_data = tcp; /* point back so VTOC() will work */ \
-    vnode_allocs++;\
-}
-#define	DISCARD_VNODE(vp)\
-{\
-    vnode_deallocs++;\
-    delete (VTOC((vp))); /* Has to happen BEFORE delete of vp; else VTOC() won't work!! -- Satya */ \
-    delete (vp);\
-}
-#endif /* __linux__ || __BSD44__ */
 
 
 #define	VFSOP_TO_VSE(vfsop)\
     (vfsop)
 
 
-/* Macros for fields of struct vattr that are different in Mach and BSD44;
-   use of these reduces ugly #ifdef's in mainline code (Satya, 8/15/96) */
-
-#ifdef __MACH__
-#define VA_ID(va)	(va)->va_nodeid
-#define VA_STORAGE(va)	(va)->va_blocks
-#define VA_MTIME_1(va)	(va)->va_mtime.tv_sec
-#define VA_MTIME_2(va)	(va)->va_mtime.tv_usec
-#define VA_ATIME_1(va)	(va)->va_atime.tv_sec
-#define VA_ATIME_2(va)	(va)->va_atime.tv_usec
-#define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
-#define VA_CTIME_2(va)	(va)->va_ctime.tv_usec
-#endif /* __MACH__ */
-
-#ifdef __BSD44__
 #define VA_ID(va)	(va)->va_fileid
 #define VA_STORAGE(va)	(va)->va_bytes
 #define VA_MTIME_1(va)	(va)->va_mtime.tv_sec
@@ -478,25 +435,10 @@ extern int vnode_deallocs;
 #define VA_ATIME_2(va)	(va)->va_atime.tv_nsec
 #define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
 #define VA_CTIME_2(va)	(va)->va_ctime.tv_nsec
-#endif /* __BSD44__ */
-
-#ifdef	__linux__
-#define VA_ID(va)	(va)->va_fileid
-#define VA_STORAGE(va)	(va)->va_bytes
-#define VA_MTIME_1(va)	(va)->va_mtime.tv_sec
-#define VA_MTIME_2(va)	(va)->va_mtime.tv_nsec
-#define VA_ATIME_1(va)	(va)->va_atime.tv_sec
-#define VA_ATIME_2(va)	(va)->va_atime.tv_nsec
-#define VA_CTIME_1(va)	(va)->va_ctime.tv_sec
-#define VA_CTIME_2(va)	(va)->va_ctime.tv_nsec
-#endif	/* __linux__ */
-
 
 /* Definitions of the value -1 with correct cast for different
-   platforms, to be used in struct vattr to indicate a
-   field to be ignored.  Used  mostly in vproc::setattr(), and a few
-   other places.  The platform-specific definitions should go away once
-   we replace use of sys/vnode.h  by venus/venus_vnode.h  (Satya, 1/11/97) */
+   platforms, to be used in struct vattr to indicate a field to be
+   ignored.  Used mostly in vproc::setattr() */
 
 #define	VA_IGNORE_FSID		((long)-1)
 #define	VA_IGNORE_ID		((long)-1)
@@ -507,25 +449,9 @@ extern int vnode_deallocs;
 #define VA_IGNORE_MODE		((u_short)-1)
 #define VA_IGNORE_UID		((vuid_t) -1)
 #define VA_IGNORE_TIME2		((long) -1)
-
-#ifdef __MACH__
-#define VA_IGNORE_GID		((short) -1)
-#define VA_IGNORE_SIZE		((u_long)-1) 
-#define VA_IGNORE_TIME1		((long)-1)
-#endif /* __MACH */
-
-#ifdef __BSD44__
 #define VA_IGNORE_GID		((vgid_t) -1)
 #define VA_IGNORE_SIZE		((u_quad_t)-1) 
 #define VA_IGNORE_TIME1		((time_t)-1)
 #define VA_IGNORE_FLAGS		((u_long) -1)
-#endif /* __ BSD44__ */
 
-#ifdef __linux__
-#define VA_IGNORE_GID		((vgid_t) -1)
-#define VA_IGNORE_SIZE		((u_long)-1) 
-#define VA_IGNORE_TIME1		((long)-1)
-#endif /* __linux__ */
-
-
-#endif /* not _VENUS_PROC_H_ */
+#endif /* _VENUS_PROC_H_ */

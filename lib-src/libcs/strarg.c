@@ -34,7 +34,7 @@
  * Export of Technical Data.
  */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/libcs/strarg.c,v 1.1 1996/11/22 19:19:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/libcs/strarg.c,v 4.1 1997/01/08 21:54:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*  strarg  --  parse a string
@@ -58,12 +58,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 
 char *strarg (ptr, brk, prompt, defalt, buf)
 char **ptr;
-#ifdef	__MACH__
-const char *brk, *prompt;
-char *defalt;
-#else
 const char *brk, *prompt, *defalt;
-#endif
 char *buf;
 {
 	register char *arg;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.4 1997/02/27 18:49:15 lily Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.5 1997/06/30 13:45:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,12 +55,6 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <sys/param.h>
-#ifdef	__linux__
-#include <venus-dirent.h>  /* the new fashion: platform independent VFS for Venus */
-#endif
-#ifdef __BSD44__
-#include <sys/dirent.h>
-#endif /* __BSD44__ */
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
@@ -84,7 +78,7 @@ extern "C" {
 extern "C" {
 #endif __cplusplus
 
-#include <cfs/cfs.h>
+#include <cfs/coda.h>
 
 #ifdef __cplusplus
 }
@@ -1957,7 +1951,7 @@ int fsobj::Fakeify() {
 
         unsigned long volumehosts[VSG_MEMBERS];
 	srvent *s;
-	char Name[MAXNAMLEN];
+	char Name[CFS_MAXNAMLEN];
 	int i;
 	if (ISFAKE(fid)) {		/* Fake MTLink */
 	    /* Initialize status. */
@@ -2068,7 +2062,7 @@ int fsobj::Fakeify() {
 	    for (i = 0; i < VSG_MEMBERS; i++) {
 		if (volumehosts[i] == 0) continue;
 		srvent *s;
-		char Name[MAXNAMLEN];
+		char Name[CFS_MAXNAMLEN];
 		if ((s = FindServer(volumehosts[i])) &&
 		    (s->name))
 		    sprintf(Name, "%s", s->name);
@@ -2165,7 +2159,7 @@ void fsobj::UnLock(LockLevel level) {
 
 /*  *****  Miscellaneous Utility Routines  *****  */
 
-void fsobj::GetVattr(struct vattr *vap) {
+void fsobj::GetVattr(struct coda_vattr *vap) {
     /* Most attributes are derived from the VenusStat structure. */
 #if defined(__linux__) || defined(__BSD44__)
     vap->va_type = FTTOVT(stat.VnodeType);

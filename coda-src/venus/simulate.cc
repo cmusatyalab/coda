@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/simulate.cc,v 4.1 1997/01/08 21:51:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/simulate.cc,v 4.2 1997/02/26 16:03:24 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -86,10 +86,6 @@ extern "C" {
 #include <stdlib.h>
 #endif
 
-#ifdef __BSD44__
-#include <dirent.h> /* to get defn of MAXNAMLEN */
-#endif /* __BSD44 */
-
 #include <libcs.h>
 
 #ifdef __cplusplus
@@ -101,8 +97,6 @@ extern "C" {
 
 /* from dir */
 #include <coda_dir.h>
-
-
 
 /* from venus */
 #include "fso.h"
@@ -417,13 +411,13 @@ void simulator::main(void *parm) {
 		ViceDataType type = SIM_VTTOFT(r->fileType);
 		ViceFid fid; XlateFid(&r->fid, &fid, type);
 		Begin_VFS(fid.Volume, (int)VFSOP_OPEN,
-			  (r->flags & (FWRITE|O_CREAT|O_TRUNC)) ? VM_MUTATING : VM_OBSERVING);
+			  (r->flags & (O_WRONLY | O_RDWR|O_CREAT|O_TRUNC)) ? VM_MUTATING : VM_OBSERVING);
 		fsobj *f = 0;
 		if (r->oldSize == -1) {
 		    /* Create a file. */
 		    ASSERT(type == File);
 		    ViceFid pfid; XlateFid(&r->dirFid, &pfid, Directory);
-		    char name[MAXNAMLEN];
+		    char name[CFS_MAXNAMLEN];
 		    GetComponent(r->path, name);
 		    f = CreateFso(&fid, type, &pfid, name);
 		    f->DemoteLock();
@@ -436,7 +430,7 @@ void simulator::main(void *parm) {
 		}
 
 		/* Perform operation. */
-		int writep = r->flags & FWRITE;
+		int writep = r->flags & (O_WRONLY | O_RDWR);
 		int execp = 0;
 		int truncp = (r->flags & O_TRUNC) && (r->oldSize	!= -1);	/* truncate explicitly below! */
 		f->PromoteLock();
@@ -467,11 +461,11 @@ void simulator::main(void *parm) {
 		unsigned long length = (type == File ? (unsigned long)-1 :
 					type == Directory ? DIR_SIZE : SYMLINK_SIZE);
 		Begin_VFS(fid.Volume, (int)VFSOP_CLOSE,
-			  (r->flags & FWRITE) ? VM_MUTATING : VM_OBSERVING);
+			  (r->flags & (O_WRONLY | O_RDWR)) ? VM_MUTATING : VM_OBSERVING);
 		fsobj *f = GetFso(&fid, RC_DATA, type, length, 0, 0);
 
 		/* Perform operation. */
-		int writep = r->flags & FWRITE;
+		int writep = r->flags & (O_WRONLY | O_RDWR);
 		int execp = 0;
 		f->PromoteLock();
 		if (f->Close(writep, execp, SIMUID) != 0)
@@ -543,7 +537,7 @@ void simulator::main(void *parm) {
 
 		/* Get/initialize/create target. */
 		ViceFid cfid; XlateFid(&r->fid, &cfid, File);
-		char name[MAXNAMLEN];
+		char name[CFS_MAXNAMLEN];
 		GetComponent(r->path, name);
 		fsobj *cf = 0;
 		if (r->oldSize == -1) {
@@ -593,7 +587,7 @@ void simulator::main(void *parm) {
 
 		/* Create target. */
 		ViceFid cfid; XlateFid(&r->fid, &cfid, Directory);
-		char name[MAXNAMLEN];
+		char name[CFS_MAXNAMLEN];
 		GetComponent(r->path, name);
 		pf->PromoteLock();
 		fsobj *cf = CreateFso(&cfid, Directory, pf, name);
@@ -767,7 +761,7 @@ void simulator::main(void *parm) {
 		ViceFid sfid; XlateFid(&r->fromFid, &sfid, stype);
 		unsigned long slength = (stype == File ? (unsigned long)-1 :
 					 stype == Directory ? DIR_SIZE : SYMLINK_SIZE);
-		char fromname[MAXNAMLEN];
+		char fromname[CFS_MAXNAMLEN];
 		GetComponent(r->fromPath, fromname);
 		fsobj *sf = GetFso(&sfid, RC_STATUS, stype, slength, &spfid, fromname);
 		FSO_HOLD(sf); sf->UnLock(RD);
@@ -784,7 +778,7 @@ void simulator::main(void *parm) {
 		/* Get/initialize target (if appropriate). */
 		ViceDataType ttype = stype;
 		ViceFid tfid;
-		char toname[MAXNAMLEN];
+		char toname[CFS_MAXNAMLEN];
 		GetComponent(r->toPath, toname);
 		fsobj *tf = 0;
 		int LinkDiscrepancy = 0;
@@ -847,7 +841,7 @@ void simulator::main(void *parm) {
 			FSO_HOLD(sf); sf->UnLock(WR);
 			FSO_HOLD(tf); tf->UnLock(WR);
 			while (tf->stat.LinkCount > 0) {
-			    char comp[MAXNAMLEN];
+			    char comp[CFS_MAXNAMLEN];
 			    FSO_ASSERT(tpf, tpf->dir_LookupByFid(comp, &tf->fid) == 0);
 			    InferNameRemoval(tpf, comp);
 			}
@@ -891,14 +885,14 @@ void simulator::main(void *parm) {
 		ViceDataType stype = SIM_VTTOFT(r->fileType);
 		ASSERT(stype == File);
 		ViceFid sfid; XlateFid(&r->fromFid, &sfid, stype);
-		char fromname[MAXNAMLEN];
+		char fromname[CFS_MAXNAMLEN];
 		GetComponent(r->fromPath, fromname);
 		fsobj *sf = GetFso(&sfid, RC_STATUS, stype, (unsigned long)-1, &spfid, fromname);
 
 		/* Perform operation. */
 		tpf->Lock(WR); FSO_RELE(tpf);
 		sf->PromoteLock();
-		char toname[MAXNAMLEN];
+		char toname[CFS_MAXNAMLEN];
 		GetComponent(r->toPath, toname);
 		{
 		    /* Unlink toname in target-dir if necessary. */
@@ -944,7 +938,7 @@ void simulator::main(void *parm) {
 			break;
 		    }
 		}
-		char name[MAXNAMLEN];
+		char name[CFS_MAXNAMLEN];
 		GetComponent(r->linkPath, name);
 		pf->PromoteLock();
 		fsobj *cf = CreateFso(&cfid, SymbolicLink, pf, name);
@@ -969,7 +963,7 @@ void simulator::main(void *parm) {
 		ViceFid cfid; XlateFid(&r->fid, &cfid, ctype);
 		unsigned long clength = (ctype == File ? (unsigned long)r->size :
 					 ctype == Directory ? DIR_SIZE : SYMLINK_SIZE);
-		char name[MAXNAMLEN];
+		char name[CFS_MAXNAMLEN];
 		GetComponent(r->path, name);
 		fsobj *cf = GetFso(&cfid, RC_STATUS, ctype, clength, &pfid, name);
 		FSO_ASSERT(cf, (ctype == File && cf->stat.LinkCount >= 1) || (ctype == SymbolicLink && cf->stat.LinkCount == 1));
@@ -997,7 +991,7 @@ void simulator::main(void *parm) {
 			pf->DemoteLock();
 			FSO_HOLD(cf); cf->UnLock(WR);
 			while (cf->stat.LinkCount > 0) {
-			    char comp[MAXNAMLEN];
+			    char comp[CFS_MAXNAMLEN];
 			    FSO_ASSERT(pf, pf->dir_LookupByFid(comp, &cf->fid) == 0);
 			    InferNameRemoval(pf, comp);
 			}
@@ -1024,7 +1018,7 @@ void simulator::main(void *parm) {
 
 		    /* Get/initialize target. */
 		    ViceFid cfid; XlateFid(&r->fid, &cfid, Directory);
-		    char name[MAXNAMLEN];
+		    char name[CFS_MAXNAMLEN];
 		    GetComponent(r->path, name);
 		    fsobj *cf = GetFso(&cfid, RC_DATA, Directory, DIR_SIZE, &pfid, name);
 
@@ -1053,7 +1047,7 @@ void simulator::main(void *parm) {
 		ASSERT(r->compFid.tag == r->parentFid.tag);
 		recType = r->compFid.tag;
 
-		char name[MAXNAMLEN];
+		char name[CFS_MAXNAMLEN];
 		GetComponent(r->path, name);
 		if (!STREQ(name, "..") && !STREQ(name, ".")) {
 		    /* Get/initialize parent. */
@@ -1362,7 +1356,7 @@ fsobj *simulator::GetFso(ViceFid *key, int rights, ViceDataType type,
 			    FSO_HOLD(f); f->UnLock(RD);
 			    fsobj *pf = GetFso(&f->pfid, RC_DATA, Directory, DIR_SIZE, 0, 0);
 			    f->Lock(RD); FSO_RELE(f);
-			    char tcomp[MAXNAMLEN];
+			    char tcomp[CFS_MAXNAMLEN];
 			    FSO_ASSERT(pf, pf->dir_LookupByFid(tcomp, &f->fid) == 0);
 			    InferOtherNameRemoval(pf, f, tcomp);
 			    PutFso(&pf);
@@ -1642,7 +1636,7 @@ void simulator::NameRemoval(fsobj *f) {
     FSO_ASSERT(f, (f->stat.VnodeType != SymbolicLink || f->stat.LinkCount == 1));
     int LinkCount = (f->stat.VnodeType == Directory ? 1 : f->stat.LinkCount);
     for (; LinkCount >= 1; LinkCount--) {
-	char comp[MAXNAMLEN];
+	char comp[CFS_MAXNAMLEN];
 	FSO_ASSERT(pf, pf->dir_LookupByFid(comp, &f->fid) == 0);
 	NameRemoval(pf, comp, f);
     }
@@ -1743,7 +1737,7 @@ void simulator::InferDelete(fsobj *f) {
     FSO_ASSERT(f, (f->stat.VnodeType != SymbolicLink || f->stat.LinkCount == 1));
     int LinkCount = (f->stat.VnodeType == Directory ? 1 : f->stat.LinkCount);
     for (; LinkCount >= 1; LinkCount--) {
-	char comp[MAXNAMLEN];
+	char comp[CFS_MAXNAMLEN];
 	FSO_ASSERT(pf, pf->dir_LookupByFid(comp, &f->fid) == 0);
 	InferNameRemoval(pf, comp, f);
     }
@@ -1816,7 +1810,7 @@ void simulator::InferNameRemoval(fsobj *pf, char *comp, fsobj *f) {
     }
 
     if (f->stat.VnodeType != File || f->stat.LinkCount == 0) {
-	char tcomp[MAXNAMLEN];
+	char tcomp[CFS_MAXNAMLEN];
 	FSO_ASSERT(pf, pf->dir_LookupByFid(tcomp, &f->fid) == ENOENT);
     }
 
@@ -1863,7 +1857,7 @@ void simulator::InferRename(fsobj *sf, ViceFid *tpfid, char *toname) {
 
     Begin_VFS(tpfid->Volume, (int)VFSOP_RENAME);
     fsobj *spf = GetFso(&sf->pfid, RC_DATA, Directory, DIR_SIZE, 0, 0);
-    char fromname[MAXNAMLEN];
+    char fromname[CFS_MAXNAMLEN];
     FSO_ASSERT(spf, spf->dir_LookupByFid(fromname, &sf->fid) == 0);
     FSO_HOLD(spf); spf->UnLock(RD);
     fsobj *tpf;
@@ -2236,7 +2230,7 @@ void simulator::UnperformInsertion(ViceFid *pfid, char *comp, ViceFid *cfid) {
     FSO_ASSERT(pf, FID_EQ(tfid, *cfid));
 
     pf->dir_Delete(comp);
-    char tcomp[MAXNAMLEN];
+    char tcomp[CFS_MAXNAMLEN];
     if (pf->dir_LookupByFid(tcomp, cfid) == 0) {
 	/* There are more links to this file. */
 	FSO_ASSERT(cf, cf->IsFile());
@@ -2336,7 +2330,7 @@ void simulator::Skeletize(fsobj *f, char *comp, FILE *sfp) {
 	    if (comp != 0) {
 		fsobj *pf = FSDB->Find(&f->pfid);
 		FID_ASSERT(f->pfid, pf != 0);
-		char tcomp[MAXNAMLEN];
+		char tcomp[CFS_MAXNAMLEN];
 		FSO_ASSERT(pf, pf->dir_LookupByFid(tcomp, &f->fid) == 0);
 		if (!STREQ(comp, tcomp)) {
 		    char path2[MAXPATHLEN];

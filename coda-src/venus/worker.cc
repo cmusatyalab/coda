@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/worker.cc,v 4.2 1997/02/26 16:03:42 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.3 1997/05/21 23:23:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,11 +47,12 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
-#include <sys/types.h>
+#include <sys/param.h>
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/mount.h>
 #ifndef __FreeBSD__
 // Since vproc.h knows struct uio.
 #include <sys/uio.h>
@@ -67,10 +68,8 @@ extern "C" {
 #endif
 #ifdef  __FreeBSD__
 #include <sys/param.h>
-#include <sys/mount.h>
 #endif
 #ifdef __linux__
-#include <sys/mount.h>
 #include <linux/fs.h>
 #include <mntent.h>
 #endif
@@ -82,13 +81,13 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
-
+#include <vproc.h>
+#include <venus_vnode.h>
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
 
-#include <cfs/cfs.h>
-#include <cfs/cnode.h>
+#include <cfs/coda.h>
 
 #ifdef __cplusplus
 }
@@ -133,13 +132,16 @@ PRIVATE int Mounted = 0;
 
 /* -------------------------------------------------- */
 
-/* The rationale for having a pool of messages which are dynamically assigned to workers */
-/* rather than giving each worker its own private message is to allow the mux to  process */
-/* signal messages (i.e., interrupts).  In order to allow that with the static scheme, the mux */
-/* would have to copy the message into a worker's buffer after determining that it is not a */
-/* signal.  That option was deemed to be less efficient that the message-pool scheme. */
-/* Also, it would require that either we allow an infinite number of worker's to be created, */
-/* or force the mux to either block or refuse new requests when MaxWorkers was reached. */
+/* The rationale for having a pool of messages which are dynamically
+assigned to workers rather than giving each worker its own private
+message is to allow the mux to process signal messages (i.e.,
+interrupts).  In order to allow that with the static scheme, the mux
+would have to copy the message into a worker's buffer after
+determining that it is not a signal.  That option was deemed to be
+less efficient that the message-pool scheme.  Also, it would require
+that either we allow an infinite number of worker's to be created, or
+force the mux to either block or refuse new requests when MaxWorkers
+was reached. */
 
 
 /* Should not be called on the free list! */
@@ -427,7 +429,7 @@ int k_Purge(vuid_t vuid) {
     msg.opcode = CFS_PURGEUSER;
 
     /* Message data. */
-    bzero(&msg.d.cfs_purgeuser.cred, (int) sizeof(struct ucred));
+    bzero(&msg.d.cfs_purgeuser.cred, (int) sizeof(struct CodaCred));
     msg.d.cfs_purgeuser.cred.cr_uid = vuid;
 
     /* Send the message. */
@@ -849,7 +851,7 @@ void worker::main(void *parm) {
 		GOTTA_BE_ME(in);
 		LOG(100, ("CFS_ACCESS: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		/* Original code used to have a local declaration of a struct cnode here.
+		/* Original code used to have a local declaration of a struct venus_cnode here.
 		   This avoided heap allocation and freeing, but only worked in Mach (because
 		   the cnode contains the vnode rather than the vnode being separately allocated).
 		   No choice in BSD44 but to use {MAKE,DISCARD}_VNODE.
@@ -859,7 +861,7 @@ void worker::main(void *parm) {
 		   This comment also applies to all the other arms of this switch.  
  		   (Satya, 8/16/96)
 		*/
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_access.VFid, 0);
 		access(vtarget, in->d.cfs_access.flags);
 		DISCARD_VNODE(vtarget);
@@ -874,7 +876,7 @@ void worker::main(void *parm) {
 		GOTTA_BE_ME(in);
 		LOG(100, ("CFS_CLOSE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_close.VFid, 0);
 		close(vtarget, in->d.cfs_close.flags);
 		DISCARD_VNODE(vtarget);
@@ -890,9 +892,9 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_CREATE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid,u.u_pgid));
 
-		struct vnode *vparent;
+		struct venus_vnode *vparent;
 		MAKE_VNODE(vparent, in->d.cfs_create.VFid, 0);
-		struct vnode *target = 0;
+		struct venus_vnode *target = 0;
 		create(vparent, (char *)in + (int)in->d.cfs_create.name,
 		       &in->d.cfs_create.attr, in->d.cfs_create.excl,
 		       in->d.cfs_create.mode, &target);
@@ -918,7 +920,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_FSYNC: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_fsync.VFid, 0);
 		fsync(vtarget);
 		DISCARD_VNODE(vtarget);
@@ -934,7 +936,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_GETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_getattr.VFid, 0);
 		va_init(&out->d.cfs_getattr.attr);
 		getattr(vtarget, &out->d.cfs_getattr.attr);
@@ -951,7 +953,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_INACTIVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_inactive.VFid, 0);
 		inactive(vtarget);
 		DISCARD_VNODE(vtarget);
@@ -977,7 +979,7 @@ void worker::main(void *parm) {
 		if (in->d.cfs_ioctl.cmd == VIOCPREFETCH)
 		    worker::nprefetchers++;
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_ioctl.VFid, 0);
 		data.in_size = in->d.cfs_ioctl.len;
 		ioctl(vtarget, in->d.cfs_ioctl.cmd, &data, in->d.cfs_ioctl.rwflag);
@@ -1001,9 +1003,9 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_LINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vsource;
+		struct venus_vnode *vsource;
 		MAKE_VNODE(vsource, in->d.cfs_link.sourceFid, 0);
-		struct vnode *vp_target;
+		struct venus_vnode *vp_target;
 		MAKE_VNODE(vp_target, in->d.cfs_link.destFid, 0);
 		link(vsource, vp_target, (char *)in + (int)in->d.cfs_link.tname);
 		DISCARD_VNODE(vsource);
@@ -1020,9 +1022,9 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_LOOKUP: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vparent;
+		struct venus_vnode *vparent;
 		MAKE_VNODE(vparent, in->d.cfs_lookup.VFid, 0);
-		struct vnode *target = 0;
+		struct venus_vnode *target = 0;
 		lookup(vparent, (char *)in + (int)in->d.cfs_lookup.name, &target);
 		DISCARD_VNODE(vparent);
 
@@ -1050,9 +1052,9 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_MKDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vparent;
+		struct venus_vnode *vparent;
 		MAKE_VNODE(vparent, in->d.cfs_mkdir.VFid, 0);
-		struct vnode *target = 0;
+		struct venus_vnode *target = 0;
 		mkdir(vparent, (char *)in + (int)in->d.cfs_mkdir.name, &in->d.cfs_mkdir.attr, &target);
 		DISCARD_VNODE(vparent);
 
@@ -1103,9 +1105,9 @@ void worker::main(void *parm) {
 #endif undef
 #endif /* __MACH__ */
 		
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_open.VFid, 0);
-		struct cnode *cp = VTOC(vtarget);
+		struct venus_cnode *cp = VTOC(vtarget);
 		open(&vtarget, in->d.cfs_open.flags);
 
 #ifdef __MACH__
@@ -1161,7 +1163,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_RDWR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_rdwr.VFid, 0);
 		struct iovec aiov;
 
@@ -1199,7 +1201,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_READDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_readdir.VFid, 0);
 		struct iovec aiov;
 		aiov.iov_base = (char *)out + VC_SIZE(out, cfs_readdir);
@@ -1225,7 +1227,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_READLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_readlink.VFid, 0);
 
 		struct iovec aiov;
@@ -1255,7 +1257,7 @@ void worker::main(void *parm) {
 		GOTTA_BE_ME(in);
 
 		LOG(100, ("CFS_REMOVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		struct vnode *vparent;
+		struct venus_vnode *vparent;
 		MAKE_VNODE(vparent, in->d.cfs_remove.VFid, 0);
 		remove(vparent, (char *)in + (int)in->d.cfs_remove.name);
 		DISCARD_VNODE(vparent);
@@ -1271,9 +1273,9 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_RENAME: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vp_source;
+		struct venus_vnode *vp_source;
 		MAKE_VNODE(vp_source, in->d.cfs_rename.sourceFid, 0);
-		struct vnode *vp_target;
+		struct venus_vnode *vp_target;
 		MAKE_VNODE(vp_target, in->d.cfs_rename.destFid, 0);
 		rename(vp_source, (char *)in + (int)in->d.cfs_rename.srcname,
 		       vp_target, (char *)in + (int)in->d.cfs_rename.destname);
@@ -1291,7 +1293,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_RMDIR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vparent;
+		struct venus_vnode *vparent;
 		MAKE_VNODE(vparent, in->d.cfs_rmdir.VFid, 0);
 		rmdir(vparent, (char *)in + (int)in->d.cfs_rmdir.name);
 		DISCARD_VNODE(vparent);
@@ -1305,7 +1307,7 @@ void worker::main(void *parm) {
 		{
 		GOTTA_BE_ME(in);
 
-		struct vnode *target = 0;
+		struct venus_vnode *target = 0;
 		root(&target);
 
 		if (u.u_error == 0) {
@@ -1327,7 +1329,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_SETATTR: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vtarget;
+		struct venus_vnode *vtarget;
 		MAKE_VNODE(vtarget, in->d.cfs_setattr.VFid, 0);
 		setattr(vtarget, &in->d.cfs_setattr.attr);
 		DISCARD_VNODE(vtarget);
@@ -1343,7 +1345,7 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_SYMLINK: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *vp_target;
+		struct venus_vnode *vp_target;
 		MAKE_VNODE(vp_target, in->d.cfs_symlink.VFid, 0);
 		symlink(vp_target, (char *)in + (int)in->d.cfs_symlink.srcname, &in->d.cfs_symlink.attr, (char *)in + (int)in->d.cfs_symlink.tname);
 		DISCARD_VNODE(vp_target);
@@ -1369,11 +1371,11 @@ void worker::main(void *parm) {
 
 		LOG(100, ("CFS_VGET: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
 
-		struct vnode *target = 0;
+		struct venus_vnode *target = 0;
 		struct cfid fid;
 		fid.cfid_len = (unsigned short)sizeof(ViceFid);
 		fid.cfid_fid = in->d.cfs_vget.VFid;
-		vget(&target, (struct fid *)&fid);
+		vget(&target, &fid);
 
 		out->result = u.u_error;
 		if (u.u_error == 0) {

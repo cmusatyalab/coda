@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/coda-src/kerndep/RCS/Makefile.in,v 4.4 1997/02/26 16:02:39 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/kerndep/Makefile.in,v 4.5 1997/04/29 21:27:25 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -39,30 +39,14 @@ TOPOBJ = @TOPOBJ@
 # Need to conditionalize this
 include $(MAKDIR)/Makeconf
 
-# presto changeo!
-INCLDIR := $(INCLDIR)/cfs
-
 LIBRARIES = libkerndep.a 
-HEADERS   = mach_vioctl.h
+HEADERS   = pioctl.h
 
-CFLAGS += -DLINUX -DPRIVATE=static
 CXXFLAGS := $(CFLAGS)
 
-libkerndep.a:  setpag.o pioctl.o
+libkerndep.a:  pioctl.o
 
-ifneq ($(SHORTSYS), mach)
-# On Linux and BSD44, convert pioctl() to ioctl()
-setpag.o: setpag.c
-	$(CC) $(CFLAGS) -c $<
 pioctl.o: pioctl.c
 	$(CC) $(CFLAGS) -c $<
-else
-# Actually, I'm not sure even Mach uses pioctl.s ... (Satya 1/9/97)
-setpag.o: setpag.s
-pioctl.o: pioctl.s
-endif
-
-OFILES= setpag.o pioctl.o
-$(OFILES): $(HEADERS)
 
 include $(MAKDIR)/Makerules

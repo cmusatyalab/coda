@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-rvb/real/coda-src/venus/RCS/fso0.cc,v 4.3 1997/02/26 16:03:14 rvb Exp rvb $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.4 1997/02/27 13:59:21 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -53,16 +53,6 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
-#ifdef __MACH__
-#include <sys/dir.h> 
-#endif /* __MACH__ */
-#ifdef __BSD44__
-#include <dirent.h> /* NOT sys/dirent.h!!! (Satya, 8/12,96) */
-#endif /* __BSD44 */
-#ifdef __linux__ /* platform independent directory structures (pjb 11/96) */
-#include <venus-dirent.h>
-#endif	/* __linux__ */
-
 #include <sys/stat.h>
 #include <struct.h>
 #include <sys/param.h>
@@ -72,6 +62,7 @@ extern "C" {
 #else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
+#include <dirent.h>
 #endif
 
 #ifdef __cplusplus
@@ -170,7 +161,7 @@ void FSOInit() {
 #ifdef __MACH__
 	    DIR *cdir = opendir(".");
 	    if (!cdir) Choke("FSOInit: opendir");
-	    struct direct *dirent;
+	    struct dirent *dirent;
 	    while (dirent = readdir(cdir)) {
 		/* Don't unlink special files. */
 		if (STREQ(dirent->d_name, ".") ||

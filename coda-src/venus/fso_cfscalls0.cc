@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/fso_cfscalls0.cc,v 4.4 1997/02/27 13:59:23 rvb Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.5 1997/06/19 17:13:44 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1511,7 +1511,7 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, vuid_t vuid, unsigned long NewLengt
     return(code);
 }
 
-int fsobj::SetAttr(struct vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
+int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl) {
     LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n",
 	      comp, vuid));
 
@@ -1598,7 +1598,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, vuid_t vuid) {
 	return(ETIMEDOUT);
     }
 
-    struct vattr va;
+    struct coda_vattr va;
     va_init(&va);
     int code = SetAttr(&va, vuid, acl);
 

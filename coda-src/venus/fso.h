@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/fso.h,v 4.1 1997/01/08 21:51:22 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso.h,v 4.2 1997/02/26 16:03:13 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -668,7 +668,7 @@ class fsobj {
     int GetAttr(vuid_t, RPC2_BoundedBS * =0);
     int GetACL(RPC2_BoundedBS *, vuid_t);
     int Store(unsigned long, Date_t, vuid_t);
-    int SetAttr(struct vattr *, vuid_t, RPC2_CountedBS * =0);
+    int SetAttr(struct coda_vattr *, vuid_t, RPC2_CountedBS * =0);
     int SetACL(RPC2_CountedBS *, vuid_t);
     int Create(char *, fsobj **, vuid_t, unsigned short, int);
     int Remove(char *, fsobj *, vuid_t);
@@ -689,7 +689,7 @@ class fsobj {
     int Readlink(char *, int, int *, vuid_t);
 
     /* Miscellaneous utility routines. */
-    void GetVattr(struct vattr *);		/* translate attributes to VFS format */
+    void GetVattr(struct coda_vattr *);		/* translate attributes to VFS format */
     void ReturnEarly();
     void GetPath(char *, int =0);		/* from volume-root (NOT Venus-root) */
     int IsFile() { return(stat.VnodeType == (int)File); }

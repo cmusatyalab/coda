@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.7 97/07/16 15:00:09 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_vfscalls.cc,v 4.8 1997/09/26 16:43:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -121,14 +121,13 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
+#define FREAD 0x0001
 
 /* Temporary!  Move to cnode.h. -JJK */
 #define	C_INCON	0x2
 
 /* From <vfs/vnode.h>.  Not otherwise defined since conditionalized by KERNEL. -JJK */
-#ifdef __FreeBSD__
-#include <sys/vnode.h>
-#else 
+#ifndef __FreeBSD__
 #define IO_UNIT		0x01		/* do io as atomic unit for VOP_RDWR */
 #define IO_APPEND	0x02		/* append write for VOP_RDWR */
 #define IO_SYNC		0x04		/* sync io for VOP_RDWR */
@@ -136,6 +135,7 @@ extern "C" {
 #define IO_NDELAY	0x08		/* non-blocking i/o for fifos */
 #endif 
 #endif
+
 
 /* ***** VFS Operations  ***** */
 
@@ -157,7 +157,7 @@ void vproc::unmount() {
 }
 
 
-void vproc::root(struct vnode **vpp) {
+void vproc::root(struct venus_vnode **vpp) {
     LOG(1, ("vproc::root\n"));
 
     /* Set OUT parameter. */
@@ -177,8 +177,7 @@ void vproc::sync() {
 }
 
 
-void vproc::vget(struct vnode **vpp, struct fid *fidp) {
-    struct cfid *cfidp = (struct cfid *)fidp;
+void vproc::vget(struct venus_vnode **vpp, struct cfid *cfidp) {
 
     LOG(1, ("vproc::vget: fid = (%x.%x.%x), nc = %x\n",
 	     (cfidp->cfid_fid.Volume, cfidp->cfid_fid.Vnode,
@@ -186,7 +185,7 @@ void vproc::vget(struct vnode **vpp, struct fid *fidp) {
 
     int code = 0;
     fsobj *f = 0;
-    struct cnode *cp = 0;
+    struct venus_cnode *cp = 0;
     *vpp = 0;
     if (u.u_nc && LogLevel >= 100)
 	u.u_nc->print(logFile);
@@ -227,16 +226,16 @@ FreeLocks:
 
 /* ***** Vnode Operations  ***** */
 
-void vproc::open(struct vnode **vpp, int flags) {
-    struct cnode *cp = VTOC(*vpp);
+void vproc::open(struct venus_vnode **vpp, int flags) {
+    struct venus_cnode *cp = VTOC(*vpp);
 
     LOG(1, ("vproc::open: fid = (%x.%x.%x), flags = %x\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, flags));
 
     /* Expand the flags argument into some useful predicates. */
 
-    int readp = (flags & FREAD) != 0;
-    int writep = (flags & FWRITE) != 0;
+    int readp = ((flags & FREAD) != 0);
+    int writep = (flags & (O_WRONLY | O_RDWR)) != 0;
     int truncp = (flags & O_TRUNC) != 0;
     int exclp = (flags & O_EXCL) != 0;
     int	execp =	0;	    /* With VFS we're no longer told of execs! -JJK */
@@ -297,14 +296,14 @@ FreeLocks:
 }
 
 
-void vproc::close(struct vnode *vp, int flags) {
-    struct cnode *cp = VTOC(vp);
+void vproc::close(struct venus_vnode *vp, int flags) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::close: fid = (%x.%x.%x), flags = %x\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, flags));
 
     /* Expand the flags argument into some useful predicates. */
-    int writep = (flags & (FWRITE | O_TRUNC)) != 0;
+    int writep = (flags & (O_WRONLY | O_RDWR | O_TRUNC)) != 0;
     int	execp =	0;	    /* ??? -JJK */
 
     fsobj *f = 0;
@@ -345,9 +344,9 @@ FreeLocks:
 }
 
 
-void vproc::rdwr(struct vnode *vp, struct uio *uiop,
+void vproc::rdwr(struct venus_vnode *vp, struct uio *uiop,
 		  enum uio_rw rwflag, int ioflag) {
-    struct cnode *cp = VTOC(vp);
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::rdwr: fid = (%x.%x.%x), rwflag = %d, ioflag = %d\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, rwflag, ioflag));
@@ -388,7 +387,7 @@ void vproc::rdwr(struct vnode *vp, struct uio *uiop,
 
 	/* Adjust offset in the case of append. */
 	if ((ioflag & IO_APPEND) && (rwflag == UIO_WRITE)) {
-	    struct vattr va;
+	    struct coda_vattr va;
 	    va_init(&va);
 	    f->GetVattr(&va);
 	    offset = (int) va.va_size;
@@ -413,9 +412,9 @@ FreeLocks:
 }
 
 
-void vproc::ioctl(struct vnode *vp, unsigned int com,
+void vproc::ioctl(struct venus_vnode *vp, unsigned int com,
 		   struct ViceIoctl *data, int flags) {
-    struct cnode *cp = VTOC(vp);
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::ioctl(%d): fid = (%x.%x.%x), com = %s\n",
 	     u.u_cred.cr_uid,
@@ -430,8 +429,8 @@ void vproc::ioctl(struct vnode *vp, unsigned int com,
 }
 
 
-void vproc::select(struct vnode *vp, int rwflag) {
-    struct cnode *cp = VTOC(vp);
+void vproc::select(struct venus_vnode *vp, int rwflag) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::select: fid = (%x.%x.%x), rwflag = %d\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, rwflag));
@@ -440,8 +439,8 @@ void vproc::select(struct vnode *vp, int rwflag) {
 }
 
 
-void vproc::getattr(struct vnode *vp, struct vattr *vap) {
-    struct cnode *cp = VTOC(vp);
+void vproc::getattr(struct venus_vnode *vp, struct coda_vattr *vap) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::getattr: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
@@ -509,8 +508,8 @@ FreeLocks:
       va_size	    truncate, ftruncate
       va_mtime	    utimes
 */
-void vproc::setattr(struct vnode *vp, struct vattr *vap) {
-    struct cnode *cp = VTOC(vp);
+void vproc::setattr(struct venus_vnode *vp, struct coda_vattr *vap) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::setattr: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
@@ -629,8 +628,8 @@ FreeLocks:
 }
 
 
-void vproc::access(struct vnode *vp, int mode) {
-    struct cnode *cp = VTOC(vp);
+void vproc::access(struct venus_vnode *vp, int mode) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::access: fid = (%x.%x.%x), mode = %#o\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique, mode));
@@ -690,8 +689,8 @@ FreeLocks:
 }
 
 
-void vproc::lookup(struct vnode *dvp, char *name, struct vnode **vpp) {
-    struct cnode *dcp = VTOC(dvp);
+void vproc::lookup(struct venus_vnode *dvp, char *name, struct venus_vnode **vpp) {
+    struct venus_cnode *dcp = VTOC(dvp);
 
     LOG(1, ("vproc::lookup: fid = (%x.%x.%x), name = %s, nc = %x\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique,
@@ -701,7 +700,7 @@ void vproc::lookup(struct vnode *dvp, char *name, struct vnode **vpp) {
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
-    struct cnode *cp = 0;
+    struct venus_cnode *cp = 0;
     *vpp = 0;
 
     for (;;) {
@@ -759,9 +758,9 @@ FreeLocks:
 }
 
 
-void vproc::create(struct vnode *dvp, char *name, struct vattr *vap,
-		   int excl, int mode, struct vnode **vpp) {
-    struct cnode *dcp = VTOC(dvp);
+void vproc::create(struct venus_vnode *dvp, char *name, struct coda_vattr *vap,
+		   int excl, int mode, struct venus_vnode **vpp) {
+    struct venus_cnode *dcp = VTOC(dvp);
 
     LOG(1, ("vproc::create: fid = (%x.%x.%x), name = %s, excl = %d, mode = %d\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique,
@@ -769,7 +768,7 @@ void vproc::create(struct vnode *dvp, char *name, struct vattr *vap,
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
-    struct cnode *cp = 0;
+    struct venus_cnode *cp = 0;
     *vpp = 0;
 
     /* Expand the flags into some useful predicates. */
@@ -879,8 +878,8 @@ FreeLocks:
 }
 
 
-void vproc::remove(struct vnode *dvp, char *name) {
-    struct cnode *dcp = VTOC(dvp);
+void vproc::remove(struct venus_vnode *dvp, char *name) {
+    struct venus_cnode *dcp = VTOC(dvp);
 
     LOG(1, ("vproc::remove: fid = (%x.%x.%x), name = %s\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, name));
@@ -934,9 +933,9 @@ FreeLocks:
 }
 
 
-void vproc::link(struct vnode *vp, struct vnode *tdvp, char *toname) {
-    struct cnode *dcp = VTOC(tdvp);
-    struct cnode *scp = VTOC(vp);
+void vproc::link(struct venus_vnode *vp, struct venus_vnode *tdvp, char *toname) {
+    struct venus_cnode *dcp = VTOC(tdvp);
+    struct venus_cnode *scp = VTOC(vp);
 
     LOG(1, ("vproc::link: fid = (%x.%x.%x), td_fid = (%x.%x.%x), toname = %s\n",
 	     scp->c_fid.Volume, scp->c_fid.Vnode, scp->c_fid.Unique,
@@ -1020,10 +1019,10 @@ FreeLocks:
 }
 
 
-void vproc::rename(struct vnode *dvp, char *name,
-		   struct vnode *tdvp, char *toname) {
-    struct cnode *spcp = VTOC(dvp);
-    struct cnode *tpcp = VTOC(tdvp);
+void vproc::rename(struct venus_vnode *dvp, char *name,
+		   struct venus_vnode *tdvp, char *toname) {
+    struct venus_cnode *spcp = VTOC(dvp);
+    struct venus_cnode *tpcp = VTOC(tdvp);
 
     LOG(1, ("vproc::rename: fid = (%x.%x.%x), td_fid = (%x.%x.%x), name = %s, toname = %s\n",
 	     spcp->c_fid.Volume, spcp->c_fid.Vnode, spcp->c_fid.Unique,
@@ -1238,16 +1237,16 @@ FreeLocks:
 }
 
 
-void vproc::mkdir(struct vnode *dvp, char *name,
-		  struct vattr *vap, struct vnode **vpp) {
-    struct cnode *dcp = VTOC(dvp);
+void vproc::mkdir(struct venus_vnode *dvp, char *name,
+		  struct coda_vattr *vap, struct venus_vnode **vpp) {
+    struct venus_cnode *dcp = VTOC(dvp);
 
     LOG(1, ("vproc::mkdir: fid = (%x.%x.%x), name = %s\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, name));
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
-    struct cnode *cp = 0;
+    struct venus_cnode *cp = 0;
     *vpp = 0;
 
     /* Disallow mkdir of {'.','..', '/'}. */
@@ -1303,8 +1302,8 @@ FreeLocks:
 }
 
 
-void vproc::rmdir(struct vnode *dvp, char *name) {
-    struct cnode *dcp = VTOC(dvp);
+void vproc::rmdir(struct venus_vnode *dvp, char *name) {
+    struct venus_cnode *dcp = VTOC(dvp);
 
     LOG(1, ("vproc::rmdir: fid = (%x.%x.%x), name = %s\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, name));
@@ -1371,8 +1370,8 @@ FreeLocks:
 }
 
 
-void vproc::readdir(struct vnode *dvp, struct uio *uiop) {
-    struct cnode *dcp = VTOC(dvp);
+void vproc::readdir(struct venus_vnode *dvp, struct uio *uiop) {
+    struct venus_cnode *dcp = VTOC(dvp);
 
     LOG(1, ("vproc::readdir: fid = (%x.%x.%x), offset = %d, count = %d\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique,
@@ -1425,9 +1424,9 @@ FreeLocks:
 }
 
 
-void vproc::symlink(struct vnode *dvp, char *contents,
-		    struct vattr *vap, char *name) {
-    struct cnode *dcp = VTOC(dvp);
+void vproc::symlink(struct venus_vnode *dvp, char *contents,
+		    struct coda_vattr *vap, char *name) {
+    struct venus_cnode *dcp = VTOC(dvp);
 
     LOG(1, ("vproc::symlink: fid = (%x.%x.%x), contents = %s, name = %s\n",
 	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, contents, name));
@@ -1492,8 +1491,8 @@ FreeLocks:
 }
 
 
-void vproc::readlink(struct vnode *vp, struct uio *uiop) {
-    struct cnode *cp = VTOC(vp);
+void vproc::readlink(struct venus_vnode *vp, struct uio *uiop) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::readlink: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
@@ -1550,8 +1549,8 @@ FreeLocks:
 }
 
 
-void vproc::fsync(struct vnode *vp) {
-    struct cnode *cp = VTOC(vp);
+void vproc::fsync(struct venus_vnode *vp) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::fsync: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
@@ -1592,8 +1591,8 @@ FreeLocks:
 }
 
 
-void vproc::inactive(struct vnode *vp) {
-    struct cnode *cp = VTOC(vp);
+void vproc::inactive(struct venus_vnode *vp) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::inactive: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));
@@ -1602,8 +1601,8 @@ void vproc::inactive(struct vnode *vp) {
 }
 
 
-void vproc::fid(struct vnode *vp, struct fid **fidpp) {
-    struct cnode *cp = VTOC(vp);
+void vproc::fid(struct venus_vnode *vp, struct cfid **cfidpp) {
+    struct venus_cnode *cp = VTOC(vp);
 
     LOG(1, ("vproc::fid: fid = (%x.%x.%x)\n",
 	     cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique));

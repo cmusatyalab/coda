@@ -1,5 +1,9 @@
-# BUILD for a specific architecture
-#	MACH & BSD44 are the same except for HEADERS
+
+#
+# Makefile for the Linux userfs-filesystem routines.
+#
+# Edit DEFINES below depending on your kernel version
+#
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -11,6 +15,8 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-SUBDIRS = includes $(SHORTSYS)
+INCLDIR     := $(INCLDIR)/cfs
+HEADERS     =  coda.h cfs_opstats.h
 
 include $(MAKDIR)/Makerules
+

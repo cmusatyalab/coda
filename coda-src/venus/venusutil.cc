@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.5 1997/05/29 18:51:00 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.6 1997/10/23 19:25:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -804,7 +804,7 @@ void MallocPrint(int fd) {
     fdprint(fd, "msgent: %d, %d, %d\n", msgent::allocs, msgent::deallocs,
 	     (msgent::allocs - msgent::deallocs) * sizeof(msgent));
     fdprint(fd, "vnode: %d, %d, %d\n", vnode_allocs, vnode_deallocs,
-	     (vnode_allocs - vnode_deallocs) * sizeof(struct cnode));
+	     (vnode_allocs - vnode_deallocs) * sizeof(struct venus_cnode));
     VmonPrint(fd);
 #endif	VENUSDEBUG
 }

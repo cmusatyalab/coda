@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/avenus.cc,v 4.1 1997/01/08 21:49:26 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avenus.cc,v 4.2 1997/02/26 16:02:33 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,7 +80,7 @@ extern "C" {
 #include <sys/viceioctl.h>
 #endif /* __MACH__ */
 #if defined(__linux__) || defined(__BSD44__)
-#include <cfs/mach_vioctl.h>
+#include <pioctl.h>
 #endif /* __linux__ ||__BSD44__ */
 #include <sys/file.h>
 #include <errno.h>
@@ -93,7 +93,6 @@ extern "C" {
 #include <stdlib.h>
 #endif
 
-extern int pioctl(...), setpag(...);
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -114,19 +113,21 @@ typedef struct {
     ClearToken		    ctoken;
 } venusbuff;
 
+ /* Tells Venus about the clear and secret tokens obtained from the
+    auth server.  If setPag is true, a setpag system call is made.
+    Returns 0 on success, -1 on failure.  Who knows what setpag did? */
 
 int U_SetLocalTokens(IN int setPag, IN ClearToken *cToken, IN EncryptedSecretToken sToken)
- /* Tells Venus about  the clear and secret tokens obtained from the auth server.
-    If setPag is true, a setpag system call is made.
-    Returns 0 on success, -1 on failure.    */
 {
     int    rc;
     struct ViceIoctl buffer;
     venusbuff inbuff;
 
+#if 0
     if(setPag) {
 	setpag();
     }
+#endif
 
     inbuff.sTokenSize = sizeof(EncryptedSecretToken);
     bcopy((char *)sToken,(char *)inbuff.stoken, sizeof(EncryptedSecretToken));
