@@ -58,6 +58,7 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
+#include "coda_expansion.h"
 
 
 /* Call with object write-locked. */
@@ -444,46 +445,6 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 }
 
 
-/* Embed the processor/system name in the code for @cpu/@sys expansion. */
-
-#ifdef __alpha__
-#define CPUTYPE "alpha"
-#endif
-#ifdef arm32
-#define CPUTYPE "arm32"
-#endif
-#ifdef i386
-#define CPUTYPE "i386"
-#endif 
-#ifdef __powerpc__
-#define CPUTYPE "powerpc"
-#endif
-#ifdef sparc
-#define CPUTYPE "sparc"
-#endif
-#ifdef sun3
-#define CPUTYPE "sun3"
-#endif
-#ifndef CPUTYPE
-#define CPUTYPE "unknown"
-#endif
-
-#ifdef __FreeBSD__
-#define SYSTYPE CPUTYPE"_fbsd2"
-#endif
-#ifdef __linux__
-#define SYSTYPE CPUTYPE"_linux"
-#endif
-#ifdef __NetBSD__
-#define SYSTYPE CPUTYPE"_nbsd1"
-#endif
-#if defined(__CYGWIN32__) || defined(DJGPP)
-#define SYSTYPE CPUTYPE"_win32"
-#endif 
-#ifndef SYSTYPE
-#define SYSTYPE CPUTYPE"_unknown"
-#endif
-
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
@@ -522,6 +483,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	    else if (strcmp(&name[len-3], "sys") == 0)
 		subst = SYSTYPE;
 
+	    /* Embed the processor/system name for @cpu/@sys expansion. */
 	    if (subst && (len + strlen(subst)) < CODA_MAXNAMLEN)
 	    {
 		memset(expand, 0, CODA_MAXNAMLEN);

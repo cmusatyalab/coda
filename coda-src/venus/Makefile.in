@@ -28,7 +28,7 @@ include $(TOPDIR)/Makeconf
 EXECUTABLES = venus
 CSBINS      = venus
 LIBRARIES   = libfaketrace.a
-HEADERS	    = advice.h hdb.h newplumb.h
+HEADERS	    = advice.h hdb.h newplumb.h coda_expansion.h
 
 #Turn off data collection
 #CFLAGS = $(CFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG -DRVM_USELWP

@@ -54,6 +54,8 @@ extern "C" {
 #include <venusioctl.h>
 #include <prs.h>
 
+/* get the platform dependent @sys/@cpu expansions */
+#include <coda_expansion.h>
 
 #ifdef	__linux__
 #define direct dirent
@@ -132,11 +134,15 @@ static void WriteDisconnect(int, char**, int);
 static void WriteReconnect(int, char**, int);
 static int IsObjInc(char *, ViceFid *);
 
+static void At_SYS(int, char **, int);
+static void At_CPU(int, char **, int);
+
 /*  Array with one entry per command.
-    To add new ones, just insert new 6-tuple, and add handler routine to list above.
-    Note alphabetical order; the code doesn't rely on it, but it makes things easier to find.
-    This array gets sequentially searched to parse and execute a command; it doesn't seem
-	worthwhile being smarter (e.g. binary search or hash lookup)
+    To add new ones, just insert new 6-tuple, and add handler routine to
+    list above. Note alphabetical order; the code doesn't rely on it,
+    but it makes things easier to find. This array gets sequentially
+    searched to parse and execute a command; it doesn't seem worthwhile
+    being smarter (e.g. binary search or hash lookup)
 */
 
 struct command cmdarray[] =
@@ -199,6 +205,16 @@ struct command cmdarray[] =
 	{"examineclosure", "ec", ExamineClosure, 
 	    "cfs ec [-c] [<closure> <closure> ...]",
 	    "Examine reintegration closure",
+	    NULL
+	},
+	{"cpuname", "@cpu", At_CPU, 
+	    "cfs {cpuname|@cpu}",
+	    "print the @cpu expansion for the current platform",
+	    NULL
+	},
+	{"sysname", "@sys", At_SYS, 
+	    "cfs {sysname|@sys}",
+	    "print the @sys expansion for the current platform",
 	    NULL
 	},
 	{"flushasr", "fasr", FlushASR,
@@ -2249,6 +2265,15 @@ static void WriteReconnect(int argc, char *argv[], int opslot)
 	}
     }
 
+static void At_SYS(int argc, char *argv[], int opslot)
+{
+    printf("%s\n", SYSTYPE);
+}
+
+static void At_CPU(int argc, char *argv[], int opslot)
+{
+    printf("%s\n", CPUTYPE);
+}
 
 static int findslot(char *s)
     /* Returns the index in cmdarray[] of opcode or abbreviation s;
