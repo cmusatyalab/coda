@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.12 1998/05/15 01:23:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.13 1998/05/27 17:08:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,6 +68,7 @@ extern "C" {
 #ifdef  __FreeBSD__
 #include <sys/param.h>
 #endif
+
 #ifdef __linux__
 #if !defined(__GLIBC__) || __GLIBC__ < 2
 #include <linux/fs.h>
@@ -75,6 +76,7 @@ extern "C" {
 #include <mntent.h>
 #endif
 
+#include <cfs/coda.h>
 
 #ifdef __cplusplus
 }
@@ -84,15 +86,6 @@ extern "C" {
 #include <vice.h>
 #include <vproc.h>
 #include <venus_vnode.h>
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-#include <cfs/coda.h>
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
 
 /* from vicedep */
 #include <venusioctl.h>
@@ -127,7 +120,7 @@ const int WorkerStackSize = 131072;
 
 int MaxWorkers = UNSET_MAXWORKERS;
 int MaxPrefetchers = UNSET_MAXWORKERS;
-int KernelMask = 0;				/* subsystem is uninitialized until mask is non-zero */
+int KernelMask = 0;	/* subsystem is uninitialized until mask is non-zero */
 PRIVATE int Mounted = 0;
 
 
@@ -181,36 +174,43 @@ int MsgWrite(char *buf, int size)
          addr.sin_family = AF_INET;
          addr.sin_port = htons(8001);
          addr.sin_addr.s_addr = htonl(0x7f000001);
-         return ::sendto(worker::muxfd, buf, size, 0, (struct sockaddr *) &addr,
-     		    sizeof(addr));
+         return ::sendto(worker::muxfd, buf, size, 0, 
+			 (struct sockaddr *) &addr, sizeof(addr));
 #else 
 	return write(worker::muxfd, buf, size);
 #endif
 }
 
 
-msgent::msgent() {
+msgent::msgent() 
+{
 #ifdef	VENUSDEBUG
     allocs++;
 #endif	VENUSDEBUG
 }
 
 
-msgent::~msgent() {
+msgent::~msgent() 
+{
 #ifdef	VENUSDEBUG
     deallocs++;
 #endif	VENUSDEBUG
 }
 
 
-msg_iterator::msg_iterator(olist& ol) : olist_iterator(ol) {
+msg_iterator::msg_iterator(olist& ol) : olist_iterator(ol) 
+{
 }
 
 
-msgent *msg_iterator::operator()() {
+msgent *msg_iterator::operator()() 
+{
     return((msgent *)olist_iterator::operator()());
 }
 
+
+/* test if we can open the kernel device and purge the cache,
+   BSD systems like to purge that cache */
 void testKernDevice() 
 {
 #if defined(DJGPP) || defined(__CYGWIN32__)
@@ -219,14 +219,13 @@ void testKernDevice()
 	if (Simulating) 
 		return;
 
-    /* First try to purge the kernel cache. */
-    /* If the open of the kernel device succeeds we know that there is no other living venus. */
-	/* Open the kernel device. */
+	/* If the open of the kernel device succeeds we know that there is
+	   no other living venus. */
 	int fd = ::open(kernDevice, O_RDWR, 0);
 	if (fd < 0) {
-	    eprint("open(%s) failed (%d), exiting",
-		   kernDevice, errno);
-	    exit(-1);
+		eprint("Probably another Venus is running! open(%s) failed (%d), exiting",
+		       kernDevice, errno);
+		exit(-1);
 	}
 
 	/* Construct a purge message */
@@ -236,18 +235,18 @@ void testKernDevice()
 	msg.oh.unique = 0;
 
 	/* Send the message. */
-	if (write(fd, (char *)&msg, sizeof(struct cfs_out_hdr)) != 
-		  sizeof(struct cfs_out_hdr)) {
-	    eprint("write for flush failed (%d), exiting", errno);
-	    exit(-1);
+	if (write(fd, (const void *)&msg, sizeof(struct cfs_out_hdr))
+		  != sizeof(struct cfs_out_hdr)) {
+		eprint("Write for flush failed (%d), exiting", errno);
+		exit(-1);
 	}
 
 	/* Close the kernel device. */
 	if (close(fd) < 0) {
-	    eprint("close(%s) failed (%d), exiting",
+	    eprint("close(%s) of /dev/cfs0 failed (%d), exiting",
 		   kernDevice, errno);
 	    exit(-1);
-    }
+	}
 }
 
 void VFSMount() {
@@ -439,11 +438,9 @@ int k_Purge(ViceFid *fid, int severely) {
     }	
 
     /* Send the message. */
-/*    if (MsgWrite((char *)&msg, (int) sizeof(union outputArgs)) != (int) sizeof(union outputArgs)) { */
-      if (MsgWrite((char *)&msg, (int) sizeof(msg)) !=  (int) sizeof(msg)) {
+    if (MsgWrite((char *)&msg, (int) sizeof(msg)) !=  (int) sizeof(msg)) {
 	retcode = errno;
-	if (retcode != ETXTBSY)
-	    Choke("k_Purge: %s, message write returns %d", 
+	Choke("k_Purge: %s, message write fails: errno %d", 
 	      msg.oh.opcode == CFS_PURGEFID ? "CFS_PURGEFID" :
 	      msg.oh.opcode == CFS_ZAPFILE ? "CFS_ZAPFILE" : "CFS_ZAPDIR", retcode);
     }

@@ -21,9 +21,9 @@ CSBINS 	    =  ../linux/coda-debug ../linux/coda-trace
 EXECUTABLES =  coda.o
 OBJS        =  psdev.o cnode.o inode.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o cache.o sysctl.o stats.o
 
-DEFINES =  -DMODULE  -DMODVERSIONS -Wstrict-prototypes -Wall -O2
-INCL    =  -I. -I/usr/src/linux/include/linux/modversions.h
-CFLAGS  := -D__KERNEL__   $(DEFINES)  $(CFLAGS) $(INCL) 
+DEFINES =   -O2 -D__SMP__ -Wall -Wstrict-prototypes  -fomit-frame-pointer  -pipe -fno-strength-reduce -m486 -malign-loops=2 -malign-jumps=2 -malign-functions=2 -DCPU=586
+INCL    =  -I. -DMODULE  -DMODVERSIONS --include /usr/src/linux/include/linux/modversions.h
+CFLAGS  := -D__KERNEL__   $(DEFINES)  $(INCL) 
 
 linincl:
 	-mkdir linux

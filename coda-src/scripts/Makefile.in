@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.16 1998/01/15 21:33:01 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.17 1998/05/15 01:23:16 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -42,11 +42,11 @@ VENUS-SCRIPTS = vutil volmunge venus-setup
 
 VOL-SCRIPTS	= createvol createvol_rep purgevol purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver
-REINIT-SCRIPTS	= partial-reinit.sh reinit.sh recreatevol recreatevol_rep
+REINIT-SCRIPTS	= partial-reinit.sh recreatevol recreatevol_rep
 VICE-SETUP      = vice-setup vice-setup-rvm  vice-setup-scm vice-setup-srvdir vice-setup-user vice-install vice-killvolumes
 
 BACKUP-SCRIPTS	= backup.sh tape.pl
-INIT-SCRIPTS    = venus.init vice.init auth2.init update.init rc.vice
+INIT-SCRIPTS    = venus.init codasrv.init auth2.init update.init rc.vice
 
 # all scripts
 SCRIPTS := $(VENUS-SCRIPTS) $(BACKUP-SCRIPTS) $(INIT-SCRIPTS)\
@@ -58,7 +58,7 @@ BINDIR := $(INITDIR)
 CBINS = venus.init
 CSBINS = $(VENUS-SCRIPTS)
 
-SBINS = vice.init
+SBINS = codasrv.init auth2.init update.init
 SSBINS = $(BACKUP-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS) $(VOL-SCRIPTS) $(VICE-SETUP)
 
 include $(MAKDIR)/configs/Makerules

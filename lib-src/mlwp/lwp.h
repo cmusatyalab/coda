@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.h,v 4.2 1997/10/23 18:53:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.h,v 4.3 1998/04/14 20:42:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,7 +59,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define LWP_INCLUDED
 
 #include <sys/time.h>
-
+#include <stdio.h>
 
 /*
     LWP_VERSION is first argument to LWP_Init().
@@ -126,6 +126,7 @@ typedef int (*PFI) (char *);
 #endif  __cplusplus
 
 
+void LWP_SetLog(FILE *file, int level);
 extern int LWP_QWait();
 extern int LWP_QSignal (register PROCESS pid);
 extern int LWP_Init (int version, int priority, PROCESS *pid);

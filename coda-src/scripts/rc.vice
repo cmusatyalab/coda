@@ -16,45 +16,41 @@ VICESRV=${VICE}/srv
 PATH=/sbin:/usr/sbin:$PATH
 export PATH
 
+[ -e /usr/sbin/auth2 ] || exit 1
+[ -e /usr/sbin/updatesrv ] || exit 1
+[ -e /usr/sbin/updateclnt ] || exit 1
+[ -e /usr/sbin/codasrv ] || exit 1
+[ -e /usr/sbin/startserver ] || exit 1
+[ -e /usr/sbin/volutil ] || exit 1
+
 # See how we were called.
 case "$1" in
   start)
 	# start auth2 & update stuff: first the scm case
     	echo -n "Starting Coda: "
 	if [ "`cat /vice/hostname`" = "`cat /vice/db/scm`" ]; then
-	    if [ -f /usr/sbin/authmon  ]; then
- 		authmon &
-		echo -n "authmon/auth2,"
-	    fi
+ 		auth2 &
+		echo -n "auth2,"
+		
 	else 	# for non-scm machines.
-	    if [ -f /usr/sbin/authmon  ]; then
-		authmon -chk &
-		echo -n "authmon/auth2(ro),"
-	    fi
+		auth2 -chk &
+		echo -n "auth2(ro),"
 	fi
 
 	# update srv and updatemon run on all servers
-	if [ -f /usr/sbin/updatemon ]; then
-		updatemon -h `cat /vice/db/scm`  -q coda_udpsrv &
-		echo "updatemon/updateclnt."
-		updatemon -s -p /vice/db &
-		echo "updatemon/updatesrv."
-	fi
+		updateclnt -h `cat /vice/db/scm`  -q coda_udpsrv &
+		echo "updateclnt."
+		updatesrv -p /vice/db &
+		echo "updatesrv."
 
 	# now the server
 	if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
-	    if [ -f /usr/sbin/startserver ]; then
 	      	rm -f $VICESRV/pid
 		startserver &
 		echo "srv."
-	    fi
 	else
-	    echo "`date`: srv not started." >> ${VICE}/srv/SrvErr
-	    echo "missing STARTFROMBOOT or CRASH." >> ${VICE}/srv/SrvErr
-	fi
-	# The following is for SYSV based machines such as Red Hat Linux.
-	if [ -d /var/lock ]; then
-		touch /var/lock/subsys/coda_server.init
+		echo "`date`: srv not started." >> ${VICE}/srv/SrvErr
+		echo "missing STARTFROMBOOT or CRASH." >> ${VICE}/srv/SrvErr
 	fi
 	;;
   stop)
@@ -62,22 +58,10 @@ case "$1" in
 	# if pid file doesn't exist, it isn't likely that srv is running.
 	echo -n "Shutting down Coda: "
 	if [ -f /vice/srv/pid ]; then
-	    if [ -f /usr/sbin/volutil ]; then
 	      	volutil shutdown
 		echo -n "vice.init: sleeping 30 secs to let srv shutdown..."
 		sleep 30
 		echo "..done"
-	    fi
-	fi
-	# the pid file must not exist on boot up.
-	if [ -d /var/lock ]; then
-		rm -f /var/lock/subsys/coda_server.init
-	fi
-	;;
-  norestart)
-	# this tells us not to restart the server....
-	if [ -d /var/lock ]; then
-		rm -f /var/lock/subsys/coda_server.init
 	fi
 	;;
   *)

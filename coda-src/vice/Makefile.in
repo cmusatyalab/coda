@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/Makefile.in,v 4.5 1997/12/02 16:40:17 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/Makefile.in,v 4.6 1998/04/14 20:55:33 braam Exp $";
 
 
 # 
@@ -58,11 +58,11 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-EXECUTABLES = srv printvrdb
+EXECUTABLES = codasrv printvrdb
 SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libviceerror.a
 
-LIBS = 	$(LIBVOLSERV)  \
+CLIBS =	$(LIBVOLSERV)  \
 	$(LIBVICEDEP)   \
 	$(LIBAUTH2)	\
 	$(LIBAL)	\
@@ -96,14 +96,8 @@ objects=srvproc.o	\
 	smon.o		\
 	ViceErrorMsg.o	
 
-srv: ${objects} srv.o dummyplumber.o ${LIBS}
-	$(CXX) $(LIBFLAGS)  srv.o ${objects} dummyplumber.o ${LIBS} -lm -o srv
-
-srv.plumber: ${objects} srv.o ${LIBNEWPLUMBER}
-	$(CCX) $(LIBFLAGS) ${objects} srv.o ${LIBNEWPLUMBER} ${LIBS} -lm -o srv.plumber
-
-codamon: codamon.o $(LIBUTIL)
-	$(CXX) ${LIBFLAGS} codamon.o ${LIBUTIL} -o codamon
+codasrv: ${objects} srv.o dummyplumber.o ${LIBS}
+	$(CXX) $(LIBFLAGS)  srv.o ${objects} dummyplumber.o ${CLIBS} -lm -o codasrv
 
 printvrdb: printvrdb.o
 	$(CXX) ${LIBFLAGS} printvrdb.o -o printvrdb

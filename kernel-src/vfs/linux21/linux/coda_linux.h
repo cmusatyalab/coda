@@ -48,6 +48,7 @@ static __inline__ struct ViceFid *coda_i2f(struct inode *);
 char *coda_f2s(ViceFid *f);
 int coda_isroot(struct inode *i);
 int coda_fid_is_volroot(struct ViceFid *);
+int coda_fid_is_weird(struct ViceFid *fid);
 int coda_iscontrol(const char *name, size_t length);
 
 

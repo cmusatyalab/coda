@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.5 1998/04/14 20:59:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.6 1998/05/07 17:24:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -438,6 +438,7 @@ static locals(where)
     fprintf(where, "    register RPC2_Byte *%s;\n", ptr);
     fprintf(where, "    long %s, %s, %s;\n", length, rpc2val, code);
     fprintf(where, "    RPC2_PacketBuffer *%s;\n", rspbuffer);
+
 }
 
 static common(where)
@@ -1062,17 +1063,25 @@ static unpack(who, parm, prefix, ptr, where)
     select = ((who == CLIENT && mode != NO_MODE) ? "->" : ".");
     suffix = concat3elem("[", iterate, "]");
     switch (parm->type->type->tag) {
-	case RPC2_INTEGER_TAG:		fputs("    ", where);
-					if (mode != NO_MODE && who == CLIENT) fputc('*', where);
-						fprintf(where, "%s = ntohl(*(RPC2_Integer *) %s);\n", name, ptr);
-					inc4(ptr, where);
-					break;
-	case RPC2_UNSIGNED_TAG:		fputs("    ", where);
-					if (mode != NO_MODE && who == CLIENT) fputc('*', where);
-					fprintf(where, "%s = ntohl(*(RPC2_Unsigned *) %s);\n", name, ptr);
-					inc4(ptr, where);
-					break;
-	case RPC2_BYTE_TAG:		fputs("    ", where);
+    case RPC2_INTEGER_TAG:		
+	    if ( who == SERVER ) {
+		    fprintf(where, "    if ( (char *)%s + 4 > _EOB)\n"
+			    "        return NULL;\n", ptr);
+	    }
+	    fputs("    ", where);
+	    if (mode != NO_MODE && who == CLIENT) 
+		    fputc('*', where);
+	    fprintf(where, "%s = ntohl(*(RPC2_Integer *) %s);\n", name, ptr);
+	    inc4(ptr, where);
+	    break;
+    case RPC2_UNSIGNED_TAG:		
+	    fputs("    ", where);
+	    if (mode != NO_MODE && who == CLIENT) fputc('*', where);
+	    fprintf(where, "%s = ntohl(*(RPC2_Unsigned *) %s);\n", name, ptr);
+	    inc4(ptr, where);
+	    break;
+    case RPC2_BYTE_TAG:		
+	    fputs("    ", where);
 					if (parm->type->bound != NIL) {
 					    fprintf(where, "bcopy((char *)%s, (char *)%s, (int)%s);\n", ptr, name, parm->type->bound);
 					    inc(ptr, parm->type->bound, where);
@@ -1273,6 +1282,10 @@ static one_server_proc(proc, where)
 
     /* declare locals */
     locals(where);
+
+    /* note end of buffer */
+    fprintf(where, "    char *_EOB = (char *) %s + %s->Prefix.LengthOfPacket;\n", 
+	    reqbuffer, reqbuffer);
 
     /* Declare parms */
     in_parms = RP2_FALSE;

@@ -19,15 +19,8 @@ endif
 #  recursively descend into subdirs and install all
 ###############################################################
 
-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 hdrinstall bininstall scriptinstall libinstall mkdep
-ifdef SUBDIRS
-	@for d in $(SUBDIRS) ; do \
-	    ${MAKE} -C $$d install; \
-	    if [ $$? != 0 ] ; then echo "----> error in $$d"; exit 1; \
-	    else true; fi; \
-	done
-endif
+install: 
+	@echo "Choose from client-install or server-install"
 
 ###############################################################
 #  recursively descend into subdirs and do hdrinstall and build
@@ -94,27 +87,6 @@ ifdef SUBDIRS
 	done
 endif
 
-###############################################################
-#  install the man pages
-###############################################################
-man-install:
-	cd man ; cp -r man* ${prefix}/man
-
-
-#####################
-# install executables
-#####################
-bininstall: $(EXECUTABLES)
-ifdef EXECUTABLES
- ifdef SHOB
-	$(TOPDIR)/tools/our-install 755 $(SHOB_BIN_DIR) $?
-	-touch bininstall
- else
-	@echo SHOB not set\; Can not \"bininstall\"
-	exit 1
- endif
-endif
-
 #####################
 # install  client or server executables 
 #####################
@@ -140,34 +112,6 @@ endif
 s_sbin_install: $(SSBINS)
 ifdef SSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
-endif
-
-#####################
-# install scripts
-#####################
-scriptinstall: $(SCRIPTS)
-ifdef SCRIPTS
- ifdef SHOB
-	$(TOPDIR)/tools/our-install 755 $(SHOB_BIN_DIR) $?
-	-touch scriptinstall
- else
-	@echo SHOB not set\; Can not \"scriptinstall\"
-	exit 1
- endif
-endif
-
-#####################
-# install libraries
-#####################
-libinstall: $(LIBRARIES)
-ifdef LIBRARIES
- ifdef SHOB
-	$(TOPDIR)/tools/our-install 644 $(SHOB_LIB_DIR) $?
-	-touch libinstall
- else
-	@echo SHOB not set\; Can not \"libinstall\"
-	exit 1
- endif
 endif
 
 #####################
@@ -230,19 +174,12 @@ mkdep:
 ###############################################################
 # 			misc
 ###############################################################
-#####################
-# source checkin ... 
-#####################
-srcinstall:
-	SRCDIR=$(srcdir); export SRCDIR; $(ALPHACI)
-
 
 ##################
 # testing variables
 ##################
 show showvar:
 	@echo  SECSRC: $(SECSRC)
-	@echo  RP2GEN: $(RP2GEN)
 	@echo  SHADOWINCLS: $(SHADOWINCLS)
 	@echo  SHADOWRP2: $(SHADOWRP2)
 	@echo  INCLPATH: $(INCLPATH)	
@@ -264,8 +201,10 @@ show showvar:
 	@echo  SHORTSYS:  $(SHORTSYS)
 	@echo  VFSDIR:  $(VFSDIR)
 	@echo  MANDIR:  $(MANDIR)
-	@echo  MANDIR:  $(MANDIR)
-	@echo  MANDIR:  $(MANDIR)
+	@echo  HEADERS: $(HEADERS)
+	@echo  RP2GEN: $(RP2GEN)
+	@echo  RP2FILES:    $(RP2FILES)
+	@echo  RP2HEADERS:  $(RP2HEADERS)
 
 ##################
 # linting
@@ -291,9 +230,6 @@ lint: $(SOURCES)
 %.client.c %.server.c %.multi.c %.h: %.rpc2
 	${RP2GEN} ${RP2FLAGS} $<
 
-#%.client.cc %.server.cc %.multi.cc  %.h: %.rpc2
-#	${RP2GEN} -n ${RP2FLAGS} $<
-
 
 ifndef NO_LEX
 lex.yy.c:
@@ -305,15 +241,6 @@ endif
 
 .PHONY FORCE:
 
-########################
-# If you need to override globally during the build, place
-# Makeconf.overrule at the top of your build tree and uncomment
-# the line below
-########################
-
-ifdef OVERRIDE
-include $(TOPOBJ)/Makeconf.override
-endif
 
 ###############################################################
 # 		Finally ...

@@ -148,8 +148,8 @@ static inline ino_t coda_f2i(struct ViceFid *fid)
 
 #ifndef _VUID_T_
 #define _VUID_T_
-typedef u_long vuid_t;
-typedef u_long vgid_t;
+typedef unsigned int vuid_t;
+typedef unsigned int vgid_t;
 #endif /*_VUID_T_ */
 
 #ifndef _CODACRED_T_
@@ -223,7 +223,7 @@ struct coda_vattr {
 #define CFS_PURGEUSER   ((u_long) 26)
 #define CFS_ZAPFILE     ((u_long) 27)
 #define CFS_ZAPDIR      ((u_long) 28)
-#define CFS_ZAPVNODE    ((u_long) 29)
+/* #define CFS_ZAPVNODE    ((u_long) 29)   obsolete */ 
 #define CFS_PURGEFID    ((u_long) 30)
 #define CFS_OPEN_BY_PATH ((u_long) 31)
 #define CFS_NCALLS 32

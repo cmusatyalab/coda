@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.9 1998/04/14 21:08:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.10 1998/05/15 01:23:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -89,11 +89,13 @@ extern "C" {
 #include "timer.h"
 #include "sftp.h"
 #include <vice.h>
+#include <util.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
+
 #include "update.h"
 #include <volutil.h>
 extern long VolUpdateDB(RPC2_Handle);
@@ -147,7 +149,9 @@ int main(int argc, char **argv)
 	    dirfd,
             len,
 
-    host = '\0';
+
+    UtilDetach();
+    *host = '\0';
     strcpy(pname, "coda_udpsrv");
 
     ProcessArgs(argc, argv);
@@ -158,7 +162,7 @@ int main(int argc, char **argv)
 
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
-    (void) signal(SIGTSTP, (void (*)(int))SetDebug);
+    (void) signal(SIGUSR1, (void (*)(int))SetDebug);
 #ifndef __CYGWIN32__
     (void) signal(SIGXFSZ, (void (*)(int))SetCheck);
     (void) signal(SIGXCPU, (void (*)(int))SwapLog);

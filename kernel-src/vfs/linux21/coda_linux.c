@@ -65,6 +65,36 @@ int coda_fid_is_volroot(struct ViceFid *fid)
 {
 	return ( (fid->Vnode == 1) && (fid->Unique == 1 ) );
 }
+  
+int coda_fid_is_weird(struct ViceFid *fid)
+{
+        /* volume roots */
+        if ( (fid->Vnode == 1) && (fid->Unique == 1 ) )
+	        return 1;
+        /* tmpfid unique (simulate.cc) */
+	if ( fid->Unique == 0xffffffff )
+	        return 1;
+	/* LocalFakeVnode (local.h)  */
+	if ( fid->Vnode == 0xfffffffd )
+	        return 1;
+	/* LocalFileVnode (venus.private.h) */
+	if ( fid->Vnode == 0xfffffffe )
+	        return 1;
+	/* local fake vid (local.h) */
+	if ( fid->Volume == 0xffffffff )
+	        return 1;
+	/* local DirVnode (venus.private.h) */
+	if ( fid->Vnode == 0xffffffff )
+	        return 1;
+	/* FakeVnode (venus.private.h) */
+	if ( fid->Vnode == 0xfffffffc )
+	        return 1;
+
+	return 0;
+
+}
+
+
 
 /* put the current process credentials in the cred */
 void coda_load_creds(struct coda_cred *cred)
@@ -97,14 +127,23 @@ unsigned short coda_flags_to_cflags(unsigned short flags)
 	if ( (flags & 0xf) == O_RDONLY )
 		coda_flags |= C_O_READ;
 
-	if ( flags &  O_RDWR )
+	if ( flags &  O_RDWR ) 
 		coda_flags |= C_O_READ;
 
-	if ( flags & (O_WRONLY | O_RDWR) )
+	if ( flags & (O_WRONLY | O_RDWR) ){ 
+		CDEBUG(D_FILE, "--> C_O_WRITE added\n");
 		coda_flags |= C_O_WRITE;
+	}
 
-	if ( flags & O_TRUNC ) 
+	if ( flags & O_TRUNC )  { 
+		CDEBUG(D_FILE, "--> C_O_TRUNC added\n");
 		coda_flags |= C_O_TRUNC;
+	}
+
+	if ( flags & O_EXCL ) {
+		coda_flags |= C_O_EXCL;
+		CDEBUG(D_FILE, "--> C_O_EXCL added\n");
+	}
 
 	return coda_flags;
 }

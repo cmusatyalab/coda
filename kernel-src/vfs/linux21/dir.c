@@ -167,8 +167,10 @@ exit:
 	entry->d_time = 0;
 	entry->d_op = &coda_dentry_operations;
 	d_add(entry, res_inode);
-	if ( dropme ) 
+	if ( dropme ) {
 		d_drop(entry);
+		ITOC(res_inode)->c_flags |= C_VATTR;
+	}
         EXIT;
         return 0;
 }
@@ -264,7 +266,7 @@ static int coda_create(struct inode *dir, struct dentry *de, int mode)
 	}
 
 	/* invalidate the directory cnode's attributes */
-	dircnp->c_flags &= ~C_VATTR;
+	dircnp->c_flags |= C_VATTR;
 	d_instantiate(de, result);
         return 0;
 }			     
@@ -320,7 +322,7 @@ static int coda_mkdir(struct inode *dir, struct dentry *de, int mode)
 	}
 	
 	/* invalidate the directory cnode's attributes */
-	dircnp->c_flags &= ~C_VATTR;
+	dircnp->c_flags |= C_VATTR;
 	dir->i_nlink++;
 	d_instantiate(de, inode);
         return 0;
@@ -359,7 +361,7 @@ static int coda_link(struct dentry *source_de, struct inode *dir_inode,
 			   (const char *)name, len);
 
 	if (  ! error ) { 
-		dir_cnp->c_flags &= ~C_VATTR;
+		dir_cnp->c_flags |= C_VATTR;
 		inode->i_nlink++;
 		d_instantiate(de, inode);
 	} else {
@@ -442,7 +444,7 @@ int coda_unlink(struct inode *dir, struct dentry *de)
         }
 
         /* cache management */
-	dircnp->c_flags &= ~C_VATTR;
+	dircnp->c_flags |= C_VATTR;
 	
 	de->d_inode->i_nlink--;
 	d_delete(de);
@@ -618,7 +620,7 @@ int coda_open(struct inode *i, struct file *f)
         struct coda_inode_info *cnp;
         int error = 0;
         struct inode *cont_inode = NULL;
-        unsigned short flags = f->f_flags;
+        unsigned short flags = f->f_flags & (~O_EXCL);
 	unsigned short coda_flags = coda_flags_to_cflags(flags);
 
         ENTRY;
@@ -672,7 +674,7 @@ int coda_release(struct inode *i, struct file *f)
 {
         struct coda_inode_info *cnp;
         int error;
-        unsigned short flags = f->f_flags;
+        unsigned short flags = (f->f_flags) & (~O_EXCL);
 	unsigned short cflags = coda_flags_to_cflags(flags);
 
         ENTRY;
@@ -814,7 +816,7 @@ int coda_dentry_revalidate(struct dentry *de)
 		if (is_bad_inode(inode))
 			return 0;
 		cii = ITOC(de->d_inode);
-		if (cii->c_flags & C_PURGE) 
+		if (cii->c_flags & (C_PURGE | C_VATTR)) 
 			valid = 0;
 	}
 	return valid ||  coda_isroot(de->d_inode);
@@ -838,7 +840,7 @@ static int coda_refresh_inode(struct dentry *dentry)
 	}
 
 	/* this baby may be lost if:
-	   - it's type changed
+            - it's type changed
             - it's ino changed 
 	*/
 	old_mode = inode->i_mode;
@@ -852,7 +854,7 @@ static int coda_refresh_inode(struct dentry *dentry)
 		return -EIO;
 	}
 	
-	cii->c_flags &= ~C_VATTR;
+	cii->c_flags &= ~(C_VATTR | C_PURGE);
 	return 0;
 }
 

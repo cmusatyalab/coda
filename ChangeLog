@@ -1,3 +1,13 @@
+1998-05-18    <braam@ptar.stelias.com>
+
+	* got rid of /vice/db/hosts.  Names in /vice/db/servers
+	must now be equal to those in the VSGDB. This involved minor
+	changes in vol/volume.cc
+	* changed SIGSTP to SIGUSR and added a routine UtilDetach which
+	does setsid  to: updatesrv, updateclnt, auth2. 
+	* changed srv to codasrv
+	* vice-setup-rvm exits if srv.conf exists
+
 1998-05-14    <braam@carissimi.coda.cs.cmu.edu>
 
 	* increased the stack of advice_daemon in Venus to 0x4000. Stack

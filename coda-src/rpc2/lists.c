@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.2 1998/01/10 18:38:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.3 1998/04/14 21:06:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -124,22 +124,28 @@ struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
 {
     struct LinkEntry *victim;
 
-    if (p == NULL) victim = *fromPtr;	
-    else victim = p;
+    if (p == NULL) 
+	    victim = *fromPtr;	
+    else 
+	    victim = p;
     assert(victim->Qname == fromPtr);    /* sanity check for list corruption */
 
     /* first remove element from the first list */
-    if (victim == *fromPtr) *fromPtr = victim->NextEntry;
+    if (victim == *fromPtr) 
+	    *fromPtr = victim->NextEntry;
     remque(victim);
-    if (victim == *fromPtr) *fromPtr = NULL;
+    if (victim == *fromPtr) 
+	    *fromPtr = NULL;
     (*fromCount)--;
 
     /* make victim a singleton list */
     victim->NextEntry = victim->PrevEntry = victim;
 
     /* then insert into second list */
-    if (*toPtr == NULL) *toPtr = victim;
-    else insque(victim, (*toPtr)->PrevEntry);
+    if (*toPtr == NULL) 
+	    *toPtr = victim;
+    else 
+	    insque(victim, (*toPtr)->PrevEntry);
 	/* PrevEntry because semantics of insque() causes non-FIFO queue */
     victim->Qname = toPtr;
     (*toCount)++;

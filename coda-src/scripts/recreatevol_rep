@@ -16,7 +16,7 @@
 #*/
 #
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/recreatevol_rep,v 4.3 1998/01/15 20:43:50 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/recreatevol_rep,v 4.4 1998/01/20 20:53:14 braam Exp $";
 #endif _BLURB_
 
 # Parge arguments
@@ -68,8 +68,8 @@ if ($NSERVERS == 0 || $NSERVERS > $MAXSERVERS) then
 endif
 set N=0
 foreach SERVER ($SERVERS)
-	if ($SERVER != `awk ' $2 ~/^'$SERVER'$/  {print $2}' /vice/db/hosts`) then
-		echo Server $SERVER not in host file
+	if ($SERVER != `awk ' $1 ~/^'$SERVER'$/  {print $1}' /vice/db/servers`) then
+		echo Server $SERVER not in servers file
 		exit
 	endif
 	@ N++

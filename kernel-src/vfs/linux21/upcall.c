@@ -777,8 +777,6 @@ ENTRY;
  *                  force a new lookup for all the children
                     of this dir.
 
- * CFS_ZAPVNODE  -- intended to be a zapfile for just one cred. 
-                    Not used?
  *
  * The next is a result of Venus detecting an inconsistent file.
  * CFS_PURGEFID  -- flush the attribute for the file
@@ -792,81 +790,85 @@ ENTRY;
 int coda_downcall(int opcode, union outputArgs * out, struct super_block *sb)
 {
 
-    /* Handle invalidate requests. */
-    switch (opcode) {
-    case CFS_FLUSH : {
-	    clstats(CFS_FLUSH);
-	    CDEBUG(D_DOWNCALL, "CFS_FLUSH\n");
-	    coda_cache_clear_all(sb);
-	    shrink_dcache_sb(sb);
-	    return(0);
-    }
-    case CFS_PURGEUSER : {
-	    struct coda_cred *cred = &out->cfs_purgeuser.cred;
-	    CDEBUG(D_DOWNCALL, "CFS_PURGEUSER\n");
-	    if ( !cred ) {
-		    printk("PURGEUSER: null cred!\n");
-		    return 0;
-	    }
-	    clstats(CFS_PURGEUSER);
-	    coda_cache_clear_cred(sb, cred);
-	    return(0);
-    }
-    case CFS_ZAPDIR : {
-	    struct inode *inode;
-	    ViceFid *fid = &out->cfs_zapdir.CodaFid;
-	    if ( !fid ) {
-		    printk("ZAPDIR: Null fid\n");
-		    return 0;
-	    }
-	    CDEBUG(D_DOWNCALL, "zapdir: fid = %s\n", coda_f2s(fid));
-	    clstats(CFS_ZAPDIR);
-	    inode = coda_fid_to_inode(fid, sb);
-	    coda_flag_inode(inode, C_VATTR);
-	    coda_cache_clear_inode(inode);
-	    coda_flag_alias_children(inode, C_PURGE);
-	    return(0);
-    }
+    /* Handle invalidation requests. */
+          if ( !sb ) { 
+	          printk("coda_downcall: opcode %d, no sb!\n", opcode);
+		  return 0; 
+	  }
 
-    case CFS_ZAPVNODE : 
-    case CFS_ZAPFILE : {
-	    struct inode *inode;
-	    struct ViceFid *fid = &out->cfs_zapfile.CodaFid;
-	    clstats(CFS_ZAPFILE);
-	    if ( !fid ) {
-		    printk("ZAPFILE: Null fid\n");
-		    return 0;
-	    }
-	    CDEBUG(D_DOWNCALL, "zapfile: fid = %s\n", coda_f2s(fid));
-	    inode = coda_fid_to_inode(fid, sb);
-	    coda_flag_inode(inode, C_VATTR);
-	    coda_cache_clear_inode(inode);
-	    return 0;
-    }
-    case CFS_PURGEFID : {
-	    struct inode *inode;
-	    ViceFid *fid = &out->cfs_purgefid.CodaFid;
-	    if ( !fid ) {
-		    printk("PURGEFID: Null fid\n");
-		    return 0;
-	    }
-	    CDEBUG(D_DOWNCALL, "purgefid: fid = %s\n", coda_f2s(fid));
-	    clstats(CFS_PURGEFID);
-	    inode = coda_fid_to_inode(fid, sb);
-	    coda_flag_inode(inode, C_PURGE);
-	    coda_cache_clear_inode(inode);
-	    return 0;
-    }
-    case CFS_REPLACE : {
-	    printk("CFS_REPLACCE\n");
-	    clstats(CFS_REPLACE);
-	    CDEBUG(D_DOWNCALL, "CFS_REPLACE\n");
-	    coda_cache_clear_all(sb);
-	    shrink_dcache_sb(sb);
-	    return (0);
-    }			   
-    }
-      return 0;
+	  switch (opcode) {
+
+	  case CFS_FLUSH : {
+	           clstats(CFS_FLUSH);
+		   CDEBUG(D_DOWNCALL, "CFS_FLUSH\n");
+		   coda_cache_clear_all(sb);
+		   shrink_dcache_sb(sb);
+		   return(0);
+	  }
+
+	  case CFS_PURGEUSER : {
+	           struct coda_cred *cred = &out->cfs_purgeuser.cred;
+		   CDEBUG(D_DOWNCALL, "CFS_PURGEUSER\n");
+		   if ( !cred ) {
+		           printk("PURGEUSER: null cred!\n");
+			   return 0;
+		   }
+		   clstats(CFS_PURGEUSER);
+		   coda_cache_clear_cred(sb, cred);
+		   return(0);
+	  }
+
+	  case CFS_ZAPDIR : {
+	          struct inode *inode;
+		  ViceFid *fid = &out->cfs_zapdir.CodaFid;
+		  CDEBUG(D_DOWNCALL, "zapdir: fid = %s\n", coda_f2s(fid));
+		  clstats(CFS_ZAPDIR);
+
+		  inode = coda_fid_to_inode(fid, sb);
+		  if ( inode ) {
+	                  coda_flag_inode(inode, C_VATTR);
+			  coda_cache_clear_inode(inode);
+			  coda_flag_alias_children(inode, C_PURGE);
+		  }
+		  return(0);
+	  }
+
+	  case CFS_ZAPFILE : {
+	          struct inode *inode;
+		  struct ViceFid *fid = &out->cfs_zapfile.CodaFid;
+		  clstats(CFS_ZAPFILE);
+		  CDEBUG(D_DOWNCALL, "zapfile: fid = %s\n", coda_f2s(fid));
+		  inode = coda_fid_to_inode(fid, sb);
+		  if ( inode ) {
+	                  coda_flag_inode(inode, C_VATTR);
+			  coda_cache_clear_inode(inode);
+		  }
+		  return 0;
+	  }
+
+	  case CFS_PURGEFID : {
+	          struct inode *inode;
+		  ViceFid *fid = &out->cfs_purgefid.CodaFid;
+		  CDEBUG(D_DOWNCALL, "purgefid: fid = %s\n", coda_f2s(fid));
+		  clstats(CFS_PURGEFID);
+		  inode = coda_fid_to_inode(fid, sb);
+		  if ( inode ) { 
+                          coda_flag_inode(inode, C_PURGE);
+			  coda_cache_clear_inode(inode);
+		  }
+		  return 0;
+	  }
+
+	  case CFS_REPLACE : {
+	          printk("CFS_REPLACCE\n");
+		  clstats(CFS_REPLACE);
+		  CDEBUG(D_DOWNCALL, "CFS_REPLACE\n");
+		  coda_cache_clear_all(sb);
+		  shrink_dcache_sb(sb);
+		  return (0);
+	  }			   
+	  }
+	  return 0;
 }
 
 

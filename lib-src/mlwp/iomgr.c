@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.7 1998/03/06 20:21:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.8 1998/04/14 20:42:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -180,15 +180,18 @@ PRIVATE struct IoRequest *NewRequest()
  */
 
 /* Return value indicates whether anyone was signalled. */
-PRIVATE int IOMGR_CheckSignals() {
-    if (!anySigsDelivered) return(FALSE);
-
-    return(SignalSignals());
+PRIVATE int IOMGR_CheckSignals() 
+{
+	if (!anySigsDelivered) 
+		return(FALSE);
+	
+	return(SignalSignals());
 }
 
 
 /* Return value indicates whether anyone timed-out (and was woken-up). */
-PRIVATE int IOMGR_CheckTimeouts() {
+PRIVATE int IOMGR_CheckTimeouts() 
+{
     int woke_someone = FALSE;
 
     TM_Rescan(Requests);
@@ -261,7 +264,8 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
     /* I'm assuming that the kernel masks signals while it's picking
        up the parameters to select. */
     /* This may a bad assumption! -DN */
-    if (anySigsDelivered) return(-1);
+    if (anySigsDelivered) 
+	    return(-1);
 
     /* Do the select.  It runs much faster if 0's are passed instead of &0s! */
     lwpdebug(0, "[select(%d, 0x%x, 0x%x, 0x%x, <%d, %d>)]\n",
@@ -292,18 +296,19 @@ PRIVATE int IOMGR_CheckDescriptors(PollingCheck)
 
 
     if (fds < 0 && errno != EINTR) {
-	for(fds=0;fds<MAX_FDS;fds++) {
-		if (fcntl(fds, F_GETFD, 0) < 0 && errno == EBADF) { 
-			if ( FD_ISSET(fds, (fd_set *)&readfds) )
-				lwpdebug(0, "BADF readfds for %d", fds);
-			if ( FD_ISSET(fds, (fd_set *) &writefds) )
-				lwpdebug(0, "BADF writefds for %d", fds);
-			if ( FD_ISSET(fds, (fd_set *) &exceptfds) )
-				lwpdebug(0, "BADF exceptfds for %d", fds);
-			openMask |= (1<<fds);
-		}
-	}
-	abort();
+    	    for(fds=0;fds<MAX_FDS;fds++) {
+		    if (fcntl(fds, F_GETFD, 0) < 0 && errno == EBADF) { 
+			    if ( FD_ISSET(fds, (fd_set *)&readfds) )
+				    lwpdebug(0, "BADF readfds for %d", fds);
+			    if ( FD_ISSET(fds, (fd_set *) &writefds) )
+				    lwpdebug(0, "BADF writefds for %d", fds);
+			    if ( FD_ISSET(fds, (fd_set *) &exceptfds) )
+				    lwpdebug(0, "BADF exceptfds for %d", fds);
+			    openMask |= (1<<fds);
+		    } 
+
+	    }
+	    assert(0);
     }
 
     /* Force a new gettimeofday call so FT_AGetTimeOfDay calls work. */
@@ -435,17 +440,16 @@ PRIVATE int SignalTimeout(fds, timeout)
 *  signalling routines, above).			      *
 *						      *
 \*****************************************************/
-PRIVATE SigHandlerType SigHandler (signo)
-    int signo;
+PRIVATE SigHandlerType SigHandler (int signo)
 {
 
-    if (badsig(signo) || (sigsHandled & mysigmask(signo)) == 0)
-	return;		/* can't happen. */
-    sigDelivered[signo] = TRUE;
-    anySigsDelivered = TRUE;
-    /* Make sure that the IOMGR process doesn't pause on the select. */
-    iomgr_timeout.tv_sec = 0;
-    iomgr_timeout.tv_usec = 0;
+	if (badsig(signo) || (sigsHandled & mysigmask(signo)) == 0)
+		return;		/* can't happen. */
+	sigDelivered[signo] = TRUE;
+	anySigsDelivered = TRUE;
+	/* Make sure that the IOMGR process doesn't pause on the select. */
+	iomgr_timeout.tv_sec = 0;
+	iomgr_timeout.tv_usec = 0;
 }
 
 /* Alright, this is the signal signalling routine.  It delivers LWP signals

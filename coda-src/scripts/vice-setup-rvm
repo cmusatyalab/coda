@@ -4,8 +4,9 @@
 if [ -e /vice/srv.conf ]; then 
    grep '^\-rvm ' /vice/srv.conf
    if [ $? = 0 ]; then
-       echo "You have already got rvm parameters in srv.conf."
+       echo "You already have rvm parameters in srv.conf."
        echo "Remove these up first."
+       exit 1
    fi
 fi
 
@@ -106,15 +107,16 @@ echo LOG file has been initialized!
 echo
 
 
-if [  "`uname -sr`" = "NetBSD 1.2" ]; then
-		rvmstart=0x20000000 
-elif [ "`uname -sr`" = "NetBSD 1.3" ]; then
-		rvmstart=0x50000000 
-elif [ "`uname -sr`" = "FreeBSD 2.2.5-RELEASE" ]; then
-		rvmstart=0x50000000 
-elif [ "`uname -s`" = "Linux" ]; then
-		rvmstart=0x20000000
-fi
+case `uname -sr` in
+        "NetBSD 1.2" )
+                rvmstart=0x20000000 ;;
+        NetBSD\ 1.3* )
+                rvmstart=0x50000000 ;;
+        FreeBSD\ 2.2* )
+                rvmstart=0x50000000 ;;
+        *)
+                rvmstart=0x20000000 ;;
+esac
 
 case $datasize in 
     22M )

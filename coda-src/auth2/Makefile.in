@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Makefile.in,v 4.7 1998/03/06 20:20:05 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Makefile.in,v 4.8 1998/04/14 20:49:37 braam Exp $";
 
 # 
 #                          IBM COPYRIGHT NOTICE
@@ -59,8 +59,8 @@ include $(MAKDIR)/Makeconf
 
 # windos 95 does not build this
 ifneq ($(SHORTSYS),djgpp)
-EXECUTABLES = auth2 authmon initpw au oldtokens
-SSBINS      = auth2 authmon initpw 
+EXECUTABLES = auth2 initpw au oldtokens
+SSBINS      = auth2 initpw 
 CSBINS      = au
 endif
 
@@ -86,9 +86,6 @@ auth2: auth2.o libauth2.a $(LIBS)
 
 oldtokens: oldtokens.o libauth2.a $(LIBS)
 	$(CXX) $(LIBFLAGS) oldtokens.o libauth2.a $(LIBS) -o oldtokens
-
-authmon: authmon.o $(LIBS)
-	$(CXX) $(LIBFLAGS) authmon.o $(LIBS) -o authmon
 
 initpw: initpw.o $(LIBS)
 	$(CXX) $(LIBFLAGS) initpw.o $(LIBS) -o initpw

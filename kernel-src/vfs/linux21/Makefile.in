@@ -21,6 +21,7 @@ CSBINS 	    =  ../linux/coda-debug ../linux/coda-trace
 EXECUTABLES =  coda.o
 OBJS        =  psdev.o cnode.o inode.o dir.o file.o upcall.o coda_linux.o symlink.o pioctl.o cache.o sysctl.o stats.o
 
+
 DEFINES =  -DMODULE  -DMODVERSIONS -Wstrict-prototypes -Wall -O2 
 INCL    =  -I. --include /usr/src/linux/include/linux/modversions.h
 CFLAGS  := -D__KERNEL__   $(DEFINES)  $(CFLAGS) $(INCL) 

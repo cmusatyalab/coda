@@ -161,6 +161,8 @@ static void coda_put_super(struct super_block *sb)
 
         ENTRY;
 
+
+        sb->s_dev = 0;
 	coda_cache_clear_all(sb);
 	sb_info = coda_sbp(sb);
 	sb_info->sbi_vcomm->vc_inuse = 0;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.2 1998/04/14 21:07:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.3 1998/05/07 17:23:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -583,19 +583,8 @@ extern FILE *rpc2_tracefile;
 #endif RPC2DEBUG
 
 
-/* Redefine assert() to use kill -TRAP rather than invoking abort();
-   on the IBM-RT abort() does not use the normal calling convention;
-   renders gdb useless for debugging 
-   
-   Beware: you cannot make the (!RPC2DEBUG)case a null macro,
-   because of side effects */
 #include <signal.h>
-
-#ifdef RPC2DEBUG
-#define assert(ex) {if (!(ex)){fprintf(stderr,"Assertion failed: file %s, line %d\n", __FILE__, __LINE__); (void) fflush(stdout); (void) fflush(stderr); (void) kill(getpid(), SIGTRAP);}}
-#else
-#define assert(ex) {if (!(ex)) kill(getpid(), SIGTRAP);}
-#endif RPC2DEBUG
+#include <assert.h>
 
 
 #ifndef TRUE

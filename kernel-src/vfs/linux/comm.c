@@ -289,7 +289,6 @@ CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
  * CFS_ZAPDIR    -- flush the attributes for the dir from its cnode.
  *                  Zap all children of this directory from the namecache.
  * CFS_ZAPFILE   -- flush the cached attributes for a file.
- * CFS_ZAPVNODE  -- in linux the same as zap file (no creds).
  *
  * The next is a result of Venus detecting an inconsistent file.
  * CFS_PURGEFID  -- flush the attribute for the file
@@ -325,14 +324,6 @@ int coda_downcall(int opcode, union outputArgs *out)
 					  fid->Unique);
 	      return(0);
       }
-      case CFS_ZAPVNODE : {
-        /*
-	  cfs_clstat.ncalls++;
-	  cfs_clstat.reqs[CFS_ZAPVNODE]++;
-	  */
-	  cfsnc_zapfid(&out->cfs_zapvnode.VFid);
-	  return(0);
-      }	
       case CFS_ZAPFILE : {
 	  cfsnc_zapfid(&out->cfs_zapfile.CodaFid);
 	  return 0;

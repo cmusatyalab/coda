@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.5 1998/05/07 17:23:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.6 1998/05/15 01:23:11 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -193,10 +193,10 @@ Fatal Errors
      code == RPC2_BADMGROUP)
 
 
-/*
-Universal opcode values:  opcode values equal to or less than 0 are reserved.  Values greater than 0
-are  usable by mutual agreement between clients and servers.  
-*/
+/* Universal opcode values: opcode values equal to or less than 0 are
+reserved.  Values greater than 0 are usable by mutual agreement
+between clients and servers.  */
+
 #define RPC2_INIT1OPENKIMONO	-2	/* Begin a new connection with security level RPC2_OPENKIMONO */
 #define RPC2_INIT1AUTHONLY 	-3	/* Begin a new connection with security level RPC2_AUTHONLY */
 #define RPC2_INIT1HEADERSONLY	-4	/* Begin a new connection with security level RPC2_HEADERSONLY */

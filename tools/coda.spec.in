@@ -153,7 +153,7 @@ if [ ! -f /usr/bin/tixwish ]; then
 		echo "**WARNING: tixwish is not correctly installed"
 	fi
 fi
-/sbin/chkconfig -add venus.init
+/sbin/chkconfig --add venus.init
 
 
 %post source
@@ -163,7 +163,12 @@ tar zxf coda-@CVER@.tgz
 %post server-@LIBC@
 /sbin/chkconfig --add update.init
 /sbin/chkconfig --add auth2.init
-/sbin/chkconfig --add vice.init
+/sbin/chkconfig --add codasrv.init
+
+%postun server-@LIBC@
+/sbin/chkconfig --del update.init
+/sbin/chkconfig --del auth2.init
+/sbin/chkconfig --del codasrv.init
 
 %post kernel-@KVER@-module
 /sbin/depmod -a 
@@ -262,15 +267,13 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/pwd2pdb
 /usr/sbin/mvdb
 /usr/sbin/auth2
-/usr/sbin/authmon
 /usr/sbin/initpw
 /usr/sbin/volutil
 /usr/sbin/makeftree
 /usr/sbin/inoder
 /usr/sbin/parserecdump
-/usr/sbin/srv
+/usr/sbin/codasrv
 /usr/sbin/printvrdb
-/usr/sbin/updatemon
 /usr/sbin/updatesrv
 /usr/sbin/updateclnt
 /usr/sbin/updatefetch
@@ -278,7 +281,7 @@ tar zxf coda-@CVER@.tgz
 /usr/bin/norton
 /usr/bin/norton-reinit
 /usr/bin/reinit
-/etc/rc.d/init.d/vice.init
+/etc/rc.d/init.d/codasrv.init
 /etc/rc.d/init.d/auth2.init
 /etc/rc.d/init.d/update.init
 
@@ -286,12 +289,10 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/backup.sh
 /usr/sbin/tape.pl
 /usr/sbin/auth2
-/usr/sbin/authmon
 /usr/sbin/volutil
 /usr/sbin/backup
 /usr/sbin/readdump
 /usr/sbin/merge
-/usr/sbin/updatemon
 /usr/sbin/updatesrv
 /usr/sbin/updateclnt
 /usr/sbin/updatefetch

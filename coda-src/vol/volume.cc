@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.9 1998/03/06 20:21:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.10 1998/04/14 21:01:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -388,49 +388,69 @@ void VDisconnectFS() {
     FSYNC_clientFinis();
 }
 
+void VInitThisHost()
+{
+        char hostname[MAXHOSTNAMELEN];
+	struct hostent *hostent;
+	long netaddress;
+
+	gethostname(hostname, sizeof(hostname)-1);
+#if 0
+	/* HACK --JJK */
+	/* There should be a get_canonical_hostname routine! */
+	{
+	  char *cp = hostname;
+	  while (*cp) {
+	    *cp = tolower(*cp);
+	    cp++;
+	  }
+	}
+#endif
+	ThisServerId = -1;
+	ThisHost = (char *) malloc((int)strlen(hostname)+1);
+	strcpy(ThisHost, hostname);
+	hostent = gethostbyname(ThisHost);
+	if (hostent == NULL) {
+		LogMsg(0, VolDebugLevel, stdout, "Host %s cannot be resolved. Exiting.", ThisHost);
+		exit(1);
+	}
+}
+
 /* must be called before calling VInitVolumePackage!! */
-void VInitServerList() {
-    /* Find the server id */
+/* Find the server id */
+void VInitServerList() 
+{
+
     char hostname[100];
     char line[200];
     char *serverList = SERVERLISTPATH;
     FILE *file;
 
+    VInitThisHost();
+
     LogMsg(9, VolDebugLevel, stdout, "Entering VInitServerList");
     file = fopen(serverList, "r");
     if (file == NULL) {
 	LogMsg(0, VolDebugLevel, stdout, "VInitServerList: unable to read file %s; aborted", serverList);
-	assert(0);
+	exit(1);
     }
-    gethostname(hostname, sizeof(hostname)-1);
-#ifdef __CYGWIN32__
-    /* HACK --JJK */
-    /* There should be a get_canonical_hostname routine! */
-    {
-	char *cp = hostname;
-	while (*cp) {
-	    *cp = tolower(*cp);
-	    cp++;
-	}
-    }
-#endif
-    ThisHost = (char *) malloc((int)strlen(hostname)+1);
-    strcpy(ThisHost, hostname);
+
     while (fgets(line, sizeof(line), file) != NULL) {
         char sname[50];
 	struct hostent *hostent;
         int sid;
 	if (sscanf(line, "%s%d", sname, &sid) == 2) {
 	    if (sid > N_SERVERIDS) {
-		LogMsg(0, VolDebugLevel, stdout, "Warning: host %s is assigned a bogus server number (%x) in %s; host ignored",
+		LogMsg(0, VolDebugLevel, stdout, "Host %s is assigned a bogus server number (%x) in %s. Exit.",
 		  sname, sid, serverList);
-		continue;
+		exit(1);
 	    }
-	    if (strcmp(hostname, sname) == 0)
+	    if (UtilHostEq(ThisHost, sname))
 		ThisServerId = sid;
 	    hostent = gethostbyname(sname);
 	    if (hostent == NULL) {
-		LogMsg(0, VolDebugLevel, stdout, "Warning: host %s (listed in %s) is not in /etc/hosts", sname, serverList);
+		LogMsg(0, VolDebugLevel, stdout, "Host %s (listed in %s) cannot be resolved. Exiting.", sname, serverList);
+		exit(1);
 	    } else {
 		long netaddress;
 		assert(hostent->h_length == 4);
@@ -440,7 +460,8 @@ void VInitServerList() {
 	}
     }
     if (ThisServerId == -1) {
-	LogMsg(0, VolDebugLevel, stdout, "Warning: the hostname of this server (%s) is not listed in %s", ThisHost, serverList);
+	LogMsg(0, VolDebugLevel, stdout, "Hostname of this server (%s) is not listed in %s. Exiting.", ThisHost, serverList);
+	exit(1);
     }
     fclose(file);
 }

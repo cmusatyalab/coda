@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.h,v 4.3 1997/10/23 19:25:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.h,v 4.4 1998/01/10 18:38:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -115,6 +115,9 @@ extern void PrintTimeStamp(FILE *fout);
 int UtilHostEq(char *name1, char *name2);
 char *hostname(char *);
 
+  /* Process releted utilities */
+void UtilDetach();
+
 /* Useful locking macros */
 #define U_wlock(b)     ObtainWriteLock(&((b)->lock))
 #define U_rlock(b)    ObtainReadLock(&((b)->lock))
@@ -143,3 +146,6 @@ long int gethostid(void);
 #ifdef __cplusplus
 }
 #endif __cplusplus
+
+
+

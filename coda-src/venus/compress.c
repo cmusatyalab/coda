@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/venus/compress.c,v 1.1 1996/11/22 19:10:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/compress.c,v 4.1 1997/01/08 21:51:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,9 +63,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
  */
 
 
-#ifndef lint
-static char sccsid[] = "@(#)compress.c	@(#)compress.c	5.9 (Berkeley) 5/11/86";
-#endif not lint
+
 
 /* 
  * Compress - data compression program 

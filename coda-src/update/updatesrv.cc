@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.8 1998/04/14 21:08:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.9 1998/05/15 01:23:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -126,6 +126,8 @@ int main(int argc, char **argv)
     RPC2_SubsysIdent server;
     SFTP_Initializer sftpi;
 
+    UtilDetach();
+
     strcpy(pname,"coda_udpsrv");
 
     for (i = 1; i < argc; i++) {
@@ -150,7 +152,7 @@ int main(int argc, char **argv)
     }
 
     (void) signal(SIGHUP, (void (*)(int))ResetDebug);
-    (void) signal(SIGTSTP, (void (*)(int))SetDebug);
+    (void) signal(SIGUSR1, (void (*)(int))SetDebug);
     (void) signal(SIGQUIT, (void (*)(int))Terminate);
     
     if (chdir(prefix)) {

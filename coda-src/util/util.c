@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.c,v 4.4 1998/01/10 18:38:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.c,v 4.5 1998/01/28 23:18:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -276,5 +276,29 @@ int UtilHostEq(char *name1, char *name2)
 	return 1;
     else 
 	return 0;
+
+}
+
+void UtilDetach()
+{
+    pid_t child; 
+    int rc;
+
+    child = fork();
+    
+    if ( child < 0 ) { 
+	fprintf(stderr, "Cannot fork: exiting.\n");
+	exit(1);
+    }
+
+    if ( child != 0 ) /* parent */
+	exit(0); 
+
+    rc = setsid();
+
+    if ( rc < 0 ) {
+	fprintf(stderr, "Error detaching from terminal.\n");
+	exit(1);
+    }
 
 }
