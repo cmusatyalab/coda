@@ -68,7 +68,6 @@ extern "C" {
 #include "mgrp.h"
 #include "user.h"
 #include "venus.private.h"
-#include "venus.version.h"
 #include "venuscb.h"
 #include "venusioctl.h"
 #include "venusrecov.h"
@@ -450,8 +449,7 @@ void LogInit()
     if (logFile == NULL)
 	{ eprint("LogInit failed"); exit(-1); }
     LogInited = 1;
-    LOG(0, ("Coda Venus, version %d.%d.%d\n", 
-	    VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion));
+    LOG(0, ("Coda Venus, version " PACKAGE_VERSION "\n"));
 
     struct timeval now;
     gettimeofday(&now, 0);

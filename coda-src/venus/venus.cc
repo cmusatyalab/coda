@@ -20,6 +20,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -50,7 +54,6 @@ extern "C" {
 #include "sighand.h"
 #include "user.h"
 #include "venus.private.h"
-#include "venus.version.h"
 #include "venuscb.h"
 #include "venuswb.h"
 #include "venusrecov.h"
@@ -134,8 +137,7 @@ int main(int argc, char **argv)
 
     /* open the console file and print vital info */
     freopen(consoleFile, "a+", stderr);
-    eprint("Coda Venus, version %d.%d.%d\n",
-	   VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
+    eprint("Coda Venus, version " PACKAGE_VERSION "\n");
     
     CdToCacheDir(); 
     CheckInitFile();

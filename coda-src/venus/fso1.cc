@@ -132,13 +132,8 @@ fsobj::fsobj(VenusFid *key, char *name) : cf() {
     RVMLIB_REC_OBJECT(*this);
     ResetPersistent();
     fid = *key;
-    {
-	int len = (name ? (int) strlen(name) : 0) + 1;
-	comp = (char *)rvmlib_rec_malloc(len);
-	rvmlib_set_range(comp, len);
-	if (name) strcpy(comp, name);
-	else comp[0] = '\0';
-    }
+    if (name)
+	comp = rvmlib_strdup(name);
     if (FID_IsVolRoot(&fid))
 	mvstat = ROOT;
     ResetTransient();
@@ -155,7 +150,7 @@ fsobj::fsobj(VenusFid *key, char *name) : cf() {
 void fsobj::ResetPersistent() {
     MagicNumber = FSO_MagicNumber;
     fid = NullFid;
-    comp = 0;
+    comp = NULL;
     vol = 0;
     state = FsoRunt;
     stat.VnodeType = Invalid;

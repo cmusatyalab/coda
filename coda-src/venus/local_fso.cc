@@ -545,15 +545,10 @@ void fsobj::LocalToMixed(VenusFid *FakeRootFid, VenusFid *LocalChildFid, char *N
 void fsobj::SetComp(char *name)
 {
     FSO_ASSERT(this, name != NULL);
-    int len = (int) strlen(name) + 1;
     Recov_BeginTrans();
-    if (comp != NULL) {
-	    RVMLIB_REC_OBJECT(comp);
-	    rvmlib_rec_free(comp);
-	   }
-    comp = (char *)rvmlib_rec_malloc(len);
-    rvmlib_set_range(comp, len);
-    strcpy(comp, name);
+    RVMLIB_REC_OBJECT(comp);
+    if (comp) rvmlib_rec_free(comp);
+    comp = rvmlib_strdup(name);
     Recov_EndTrans(MAXFP);
 }
 

@@ -154,8 +154,10 @@ long S_NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer use
     adv_mon.InitializeProgramLog((uid_t)userId);
     adv_mon.InitializeReplacementLog((uid_t)userId);
 
-    *VenusMajorVersionNum = (RPC2_Integer)VenusMajorVersion;
-    *VenusMinorVersionNum = (RPC2_Integer)VenusMinorVersion;
+    static char version[] = PACKAGE_VERSION, *p;
+
+    *VenusMajorVersionNum = strtoul(version, &p, 10);
+    *VenusMinorVersionNum = p ? strtoul(++p, NULL, 10) : 0;
   }
 
   return(rc);

@@ -25,12 +25,16 @@ listed in the file CREDITS.
 #include "user.h"
 #include "venus_adv.h"
 #include "venus.private.h"
-#include "venus.version.h"
 #include "vproc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <netinet/in.h>
 #include <netdb.h>
 #include <rpc2/rpc2.h>
