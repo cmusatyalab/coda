@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.13 1998/09/29 21:04:45 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.14 1998/10/05 17:15:14 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,7 +105,7 @@ int MAXTS = UNSET_MAXTS;
 
 /*  *****  Private Constants  *****  */
 
-if defined(NetBSD1_3) || defined(__FreeBSD_version)
+#if defined(NetBSD1_3) || defined(__FreeBSD_version)
 static const char *VM_RVGADDR = (char *)0x50000000;
 static const char *VM_RDSADDR = (char *)0x51000000;
 #elif defined(__BSD44__)

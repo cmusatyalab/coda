@@ -16,7 +16,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-EXECUTABLES = md
+# EXECUTABLES = md
 
   I =  kernel-src
  II =  lib-src

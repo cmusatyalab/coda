@@ -796,6 +796,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	int num;
 	char *buf;
 	int offset = 0;
+	int rc;
 
 	if ( !dir ) 
 		return ENOENT;
