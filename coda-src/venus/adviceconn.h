@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/adviceconn.h,v 1.1 1996/11/22 19:11:40 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -60,6 +60,7 @@ extern "C" {
 #include "fso.h"
 #include "lock.h"
 #include "advice.h"
+#include "adsrv.h"
 
 typedef enum { PCM=0, HWA=1, DM=2, R=3, RP=4, IASR=5, LC=6, WCM=7, VSC=8, DFE=9, NHoarding=10, NEmulating=11, NLogging=12, NResolving=13 } CallTypes;
 #define NumCallTypes 10
@@ -81,6 +82,16 @@ class adviceconn {
     int pgid;                    /* Process group of the advice monitor */
 
     /* Information Requested */
+    int InconsistentObjects;
+    int ReadDisconnectedCacheMisses;
+    int WeaklyConnectedCacheMisses;
+    int DisconnectedCacheMisses;
+    int VolumeTransitions;
+    int ReconnectionQuestionnaires;
+    int ReintegrationPendings;
+    int HoardWalks;
+    int ASRs;
+
     int stoplight_data;
 
     /* Statistics Counting */
@@ -106,7 +117,7 @@ class adviceconn {
 
   public:
     
-    PseudoAdvice RequestPseudoAdvice(char *pathname, int pid);
+    ReadDiscAdvice RequestReadDisconnectedCacheMissAdvice(char *pathname, int pid);
     void RequestHoardWalkAdvice(char *input, char *output);
     void RequestDisconnectedQuestionnaire(char *pathname, int pid, ViceFid *fid, long DiscoTime);
     void RequestReconnectionQuestionnaire(char *volname, VolumeId vid, int CMLcount, 
@@ -120,13 +131,10 @@ class adviceconn {
     void RequestReintegratePending(char *volname, int flag);
     int RequestASRInvokation(char *pathname, vuid_t vuid);
     void InformLostConnection();
-    WeaklyAdvice RequestWeaklyConnectedCacheMiss(char *pathname, int pid, int expectedCost);
+    WeaklyAdvice RequestWeaklyConnectedCacheMissAdvice(char *pathname, int pid, int expectedCost);
 
     int NewConnection(char *hostname, int port, int pgrp);
-    int SolicitHoardWalkAdvice(vuid_t vuid);
-    int UnsolicitHoardWalkAdvice();
-    int BeginStoplightMonitor();
-    int EndStoplightMonitor();
+    int RegisterInterest(vuid_t vuid, long numEvents, InterestValuePair events[]);
 
     void CheckConnection();
     void ReturnConnection();
@@ -157,7 +165,7 @@ class adviceconn {
     int Getpgid();
 
     char *StateString();
-    char *PseudoAdviceString(PseudoAdvice advice);
+    char *ReadDiscAdviceString(ReadDiscAdvice advice);
     char *WeaklyAdviceString(WeaklyAdvice advice);
 
     void GetStatistics(AdviceCalls *calls, AdviceResults *results, AdviceStatistics *stats);

@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/user_initiated,v 1.1 1996/11/22 19:12:27 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -145,6 +145,35 @@ proc RequestHoardAdvice {} {
 	WaitForCommandFileRemoval
 }
 
+proc RequestDiscoMissQuestionnaires { } {
+	global RequestDiscoMissQs 
+	global UnrequestDiscoMissQs 
+	global DiscoMissQuestionnaires
+
+	if {$DiscoMissQuestionnaires} {
+		CreateCommandFile $RequestDiscoMissQs 
+	} else {
+		CreateCommandFile $UnrequestDiscoMissQs 
+	}
+
+	SignalAdviceMonitor
+	WaitForCommandFileRemoval
+}
+
+proc RequestLongFetchQueries { } {
+	global RequestLongFetchQuery
+	global UnrequestLongFetchQuery
+	global LongFetchQueries
+
+	if {$LongFetchQueries} {
+		CreateCommandFile $RequestLongFetchQuery
+	} else {
+		CreateCommandFile $UnrequestLongFetchQuery
+	}
+	SignalAdviceMonitor
+	WaitForCommandFileRemoval
+}
+
 proc CreateMenuBar {} {
 
 ;	frame .frame -relief flat 
@@ -175,7 +204,12 @@ proc CreateMenuBar {} {
 		-command RequestHoardAdvice
 	.mbar.weakmiss.menu add checkbutton \
 		-label "Long Fetch Queries" \
-		-variable LongFetchQueries
+		-variable LongFetchQueries \
+		-command RequestLongFetchQueries
+	.mbar.weakmiss.menu add checkbutton \
+		-label "Disconnected Cache Miss Questionnaires" \
+		-variable DiscoMissQuestionnaires \
+		-command RequestDiscoMissQuestionnaires
 	.mbar.weakmiss.menu add separator
 	.mbar.weakmiss.menu add command \
 		-label "Request list of cache misses" \
@@ -219,6 +253,9 @@ set RequestMissList c
 set RequestLongFetchQuery d
 set BeginStopLight e
 set EndStopLight f
+set RequestDiscoMissQs g
+set UnrequestDiscoMissQs h
+set UnrequestLongFetchQuery i
 set QuitAdvice q
 # End of global variables which MUST be consistent with those in advice_srv.h
 

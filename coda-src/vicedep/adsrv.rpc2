@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/vicedep/RCS/adsrv.rpc2,v 1.1 1996/11/22 19:09:29 braam Exp braam $";
 #endif /*_BLURB_*/%}
 
 
@@ -50,7 +50,45 @@ Subsystem "AdSrv";
 
 
 /* IMPORTANT!  Change this anytime this file is changed! */
-#define ADSRV_VERSION 2
+#define ADSRV_VERSION 4
+
+typedef RPC2_Enum
+{
+	InconsistentObject 		= 0,  /* Venus finds an inconsistent object */
+	ReadDisconnectedCacheMiss	= 1,  /* Venus finds an object missing from its cache */
+	DisconnectedCacheMiss		= 2,  /* Venus finds an object missing from its cache */
+	WeaklyConnectedCacheMiss	= 3,  /* Venus finds an object missing from its cache */
+	VolumeTransition		= 4,  /* Venus transitions a volume to a new state */
+	ReconnectionEvent	 	= 5,  /* Venus reconnects to the servers */
+	ReintegrationPending 		= 6,  /* Venus has a reintegration pending */
+	HoardWalk			= 7,  /* Venus performs a hoard walk */
+	ASR 				= 8   /* Venus has an ASR pending*/
+} InterestID;
+
+typedef RPC2_Struct
+{
+	InterestID interest;
+	RPC2_Integer argument;
+  	RPC2_Integer value;
+} InterestValuePair;
+
+
+typedef RPC2_Enum
+{
+	AgeLimit	= 0,  /* Set the age at which CML records become ripe for reintegration */
+	ReintLimit	= 1,  /* Set the amount of time for a single trickle reintegration */
+	ReintBarrier	= 2,  /* Set the reintegration barrier after this CML record */
+	WeakThreshold	= 3   /* Set the BW threshold at which Venus declares a connection weak */
+} ParameterID;
+
+typedef RPC2_Struct
+{
+	ParameterID parameter;
+	RPC2_Integer argument;
+	RPC2_Integer value;
+} ParameterValuePair;
+
+
 
 /*
  * NewAdviceService
@@ -75,28 +113,23 @@ NewAdviceService	(IN RPC2_String HostName,
  */
 ConnectionAlive(IN RPC2_Integer UserID);
 
-/*
- * SolicitHoardWalkAdvice
- *
- * Advice Servers use this call to request that Venus request
- * advice during hoard walks.  This call causes Venus to use
- * the HoardWalkAdvice call in admon.rpc2 during subsequent
- * hoard walks (until a call to UnsolicitHoardWalkAdvice is
- * made by the advice server).
- */
-SolicitHoardWalkAdvice(IN RPC2_Integer UserID);
 
 /*
- * UnsolicitHoardWalkAdvice
+ * RegisterInterest
  *
- * Advice Servers use this call to request that Venus no longer
- * request advice during hoard walks. 
+ * Advice Servers use this call to inform Venus about
+ * their interest in certain events.
  */
-UnsolicitHoardWalkAdvice(IN RPC2_Integer UserID);
+RegisterInterest	(IN RPC2_Integer UserID, IN InterestValuePair interests[]);
 
 
-BeginStoplightMonitor(IN RPC2_Integer UserID);
-EndStoplightMonitor(IN RPC2_Integer UserID);
+/*
+ * SetParameters
+ *
+ * Advice Servers use this call to set Venus parameters dynamically.
+ *
+ */
+SetParameters	(IN RPC2_Integer UserID, IN ParameterValuePair parameters[]);
 
 
 /*

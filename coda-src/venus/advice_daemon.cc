@@ -29,14 +29,14 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/advice_daemon.cc,v 1.1 1996/11/22 19:12:03 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
 
 
-
 #include "venus.private.h"
+#include "venus.version.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -186,12 +186,10 @@ void adviceserver::CheckConnections() {
  *                          Venus of its existance.
  *     ConnectionAlive -- an advice monitor makes this call to Venus to confirm
  *                        that its connection is alive.
- *     SolicitHoardWalkAdvice -- an advice monitor makes this call to Venus to
- *                               request that Venus ask the user for advice during
- *                               hoard walks.
- *     UnsolicitHoardWalkAdvice -- an advice monitor makes this call to Venus to
- *                                 request that Venus stop asking the user for advice
- *                                 during hoard walks.
+ *     RegisterInterest -- an advice monitor makes this call to Venus to register
+ * 			   its interest (or disinterest) in certain events.
+ *     SetParameters -- an advice monitor makes this call to Venus to set internal
+ *                      Venus parameters.  (for wizards only)
  *     ResultOfASR -- an advice monitor makes this call to Venus to return the
  *                    result of an ASR Invokation.
  *     ImminentDeath --  an advice monitor makes this call to Venus to inform
@@ -256,67 +254,93 @@ long ConnectionAlive(RPC2_Handle _cid, RPC2_Integer userId) {
 	return RPC2_FAIL;
 }
 
-long SolicitHoardWalkAdvice(RPC2_Handle _cid, RPC2_Integer userId) {
+long RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, InterestValuePair events[]) {
   userent *u;
   
-  LOG(0, ("E SolicitHoardWalkAdvice\n"));
+  LOG(0, ("E RegisterInterest\n"));
 
   /* Find this connection */
   u = FindUser((vuid_t)userId);
   if (u == 0)
     return RPC2_FAIL;
 
-  u->SolicitHoardWalkAdvice((vuid_t) userId);
+  u->RegisterInterest((vuid_t)userId, numEvents, events);
 
-  LOG(0, ("L SolicitHoardWalkAdvice\n"));
+  LOG(0, ("L RegisterInterest\n"));
   return RPC2_SUCCESS;
 }
 
-long UnsolicitHoardWalkAdvice(RPC2_Handle _cid, RPC2_Integer userId) {
+long SetParameters(RPC2_Handle _cid, RPC2_Integer userId, long numParameters, ParameterValuePair parameters[]) {
   userent *u;
-  
-  LOG(0, ("E UnsolicitHoardWalkAdvice\n"));
+  int uid;
 
-  /* Find this connection */
-  u = FindUser((vuid_t)userId);
-  if (u == 0)
-    return RPC2_FAIL;
+  LOG(0, ("E SetParameters\n"));
+  uid = (int)userId;
 
-  u->UnsolicitHoardWalkAdvice();
+  if (!AuthorizedUser(uid)) {
+    LOG(0, ("adviceconn::SetParameters:  Unauthorized user (%d) attempted to set internal parameters\n", uid));
+    return(-1);
+  }
 
-  LOG(0, ("L UnsolicitHoardWalkAdvice\n"));
+  for (int i=0; i < numParameters; i++) {
+    switch (parameters[i].parameter) {
+      AgeLimit:
+	LOG(100, ("adviceconn::SetParameters:  %d set age limit to %d\n", uid, parameters[i].value));
+//      From venusvol.h, volent class
+//      unsigned AgeLimit;                  /* min age of log records in SECONDS */
+
+	break;
+      ReintLimit:
+	LOG(100, ("adviceconn::SetParameters:  %d set reintegration limit to %d\n", uid, parameters[i].value));
+//      From venusvol.h, volent class
+//      unsigned ReintLimit;                /* work limit, in MILLESECONDS */
+	break;
+      ReintBarrier:
+	LOG(100, ("adviceconn::SetParameters:  %d set reintegration barrier to %d\n", uid, parameters[i].value));
+	break;
+      WeakThreshold:
+	LOG(100, ("adviceconn::SetParameters:  %d set weak threshold to %d\n", uid, parameters[i].value));
+        extern long WCThresh;
+        WCThresh = (int)parameters[i].value; /* in Bytes/sec */
+	break;
+      default:
+	LOG(0, ("adviceconn::SetParameters:  Unknown parameter %d by %d -- ignored", parameters[i].parameter, uid));
+    }
+  }
+
+  LOG(0, ("L SetParameters\n"));
   return RPC2_SUCCESS;
 }
 
-long BeginStoplightMonitor(RPC2_Handle _cid, RPC2_Integer userId) {
-  userent *u;
+//long BeginStoplightMonitor(RPC2_Handle _cid, RPC2_Integer userId) {
+//  userent *u;
+//
+//  LOG(0, ("E BeginStoplightMonitor\n"));
+//
+  /* Find this connection */
+//  u = FindUser((vuid_t)userId);
+//  if (u == 0)
+//    return RPC2_FAIL;
 
-  LOG(0, ("E BeginStoplightMonitor\n"));
+//  u->BeginStoplightMonitor();
+
+//  LOG(0, ("L BeginStoplightMonitor\n"));
+//}
+
+//long EndStoplightMonitor(RPC2_Handle _cid, RPC2_Integer userId) {
+//  userent *u;
+
+//  LOG(0, ("E EndStoplightMonitor\n"));
 
   /* Find this connection */
-  u = FindUser((vuid_t)userId);
-  if (u == 0)
-    return RPC2_FAIL;
+//  u = FindUser((vuid_t)userId);
+//  if (u == 0)
+//    return RPC2_FAIL;
 
-  u->BeginStoplightMonitor();
+//  u->EndStoplightMonitor();
 
-  LOG(0, ("L BeginStoplightMonitor\n"));
-}
-
-long EndStoplightMonitor(RPC2_Handle _cid, RPC2_Integer userId) {
-  userent *u;
-
-  LOG(0, ("E EndStoplightMonitor\n"));
-
-  /* Find this connection */
-  u = FindUser((vuid_t)userId);
-  if (u == 0)
-    return RPC2_FAIL;
-
-  u->EndStoplightMonitor();
-
-  LOG(0, ("L EndStoplightMonitor\n"));
-}
+// LOG(0, ("L EndStoplightMonitor\n"));
+//}
 
 long ResultOfASR(RPC2_Handle _cid, RPC2_Integer ASRid, RPC2_Integer result) {
 

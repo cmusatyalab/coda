@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venus.private.h,v 1.1 1996/11/22 19:11:50 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -122,10 +122,6 @@ const int FREE_FACTOR = 16;
 
 
 /*  *****  Manifest constants for Venus.  *****  */
-
-// Switched from floats to ints to make version passing easier
-const int VenusMajorVersion = 3;
-const int VenusMinorVersion = 14;
 const int MAXHOSTS = 8;	/* The number of hosts we generally try to parse in a host list.  S/B in vice.h! */
 const int NFDS = 32;	/* IOMGR-enforced limit!  Kernel may allocate fds numbered higher than this! */
 /* definition of vuid_t that used to be here has been moved to vicedep/vcrcommon.rpc2  (Satya 3/23/92) */
@@ -257,7 +253,7 @@ enum LockLevel { NL, RD, SH, WR };
 enum CacheType {    ATTR,
 		    DATA
 };
-#undef WRITE
+
 enum CacheEvent	{   HIT,
 		    MISS,
 		    RETRY,

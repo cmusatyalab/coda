@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venus.cc,v 1.1 1996/11/22 19:11:15 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -78,6 +78,7 @@ extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #include "simulate.h"
 #include "user.h"
 #include "venus.private.h"
+#include "venus.version.h"
 #include "venuscb.h"
 #include "venusrecov.h"
 #include "venusvm.h"

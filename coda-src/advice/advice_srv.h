@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/advice_srv.h,v 1.1 1996/11/22 19:12:22 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -52,7 +52,7 @@ static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
 #define USERINITIATED "/usr/coda/etc/user_initiated"
 #define REINT_PENDING "/usr/coda/etc/reintegration_pending"
 #define WEAKMISS "/usr/coda/etc/weakmiss"
-#define PSEUDOMISS "/usr/coda/etc/pseudomiss"
+#define READMISS "/usr/coda/etc/readmiss"
 #define STOPLIGHT "/usr/coda/etc/stoplight"
 #define STOPLIGHT_STATECHANGE "/usr/coda/etc/stoplight_statechange"
 
@@ -81,6 +81,9 @@ extern int execute_tcl(char *script, char *args[]);
 #define RequestLongFetchQuery 'd'
 #define BeginStoplight 'e'
 #define EndStoplight 'f'
+#define RequestDiscoMissQs 'g'
+#define UnrequestDiscoMissQs 'h'
+#define UnrequestLongFetchQuery 'i'
 #define QuitAdvice 'q'
 
 

@@ -1,4 +1,6 @@
 #!/usr/coda/etc/wish -f
+# The next line restarts using wish\
+exec /coda/misc/tcl/@sys/beta/bin/wish  "$0" "$@"
 #ifndef _BLURB_
 #define _BLURB_
 #/*
@@ -30,7 +32,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+#static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/reconnection,v 1.1 1996/11/22 19:12:31 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -246,7 +248,7 @@ proc cbentry {path text length var command} {
         -text $text \
         -variable $var \
         -relief flat \
-        -activebackground Bisque1 \
+        -activebackground gray \
         -command $command
     entry $path.entry -width $length -relief sunken
     pack append $path $path.cb {left expand} $path.entry {right expand}
@@ -259,7 +261,7 @@ proc cbtext {path text length var command} {
         -text $text \
         -variable $var \
         -relief flat \
-        -activebackground Bisque1 \
+        -activebackground gray \
         -command $command
     text $path.text \
 	-relief raised \
@@ -280,7 +282,7 @@ proc labeltext {path text length} {
 	-relief raised \
 	-bd 2 \
 	-height 3 \
-	-width 60 \
+	-width $length \
         -yscrollcommand "$path.scroll set"
     scrollbar $path.scroll -command "$path.text yview"
     pack append $path $path.label {left frame nw} $path.text {left} $path.scroll {left filly}
@@ -392,7 +394,7 @@ proc packwindows {} {
 
 	set w [winfo width $f]
 	set h [winfo height $f]
-	.c config -scrollregion "0 0 $w $h" -scrollincrement 10
+	.c config -scrollregion "0 0 $w $h"
 	set sh [winfo screenheight $f]
 #	set sh 300 ; # hack to test on large screen monitors
 	if {$h > $sh} {
@@ -425,21 +427,21 @@ proc QuestionAware {} {
                 -variable AwareOfDisconnection \
                 -value "Yes" \
                 -relief flat \
-                -activebackground Bisque1 \
+                -activebackground gray \
                 -command "Unpack; Transition Knows; packwindows"
         radiobutton .aware.rb.no \
                 -text "No" \
                 -variable AwareOfDisconnection \
                 -value "No" \
                 -relief flat \
-                -activebackground Bisque1 \
+                -activebackground gray \
                 -command "Unpack; Transition FinalComments; packwindows"
         radiobutton .aware.rb.suspected \
                 -text "I suspected, but wasn't sure" \
                 -variable AwareOfDisconnection \
                 -value "Suspected" \
                 -relief flat \
-                -activebackground Bisque1 \
+                -activebackground gray \
                 -command "Unpack; Transition Suspicions; packwindows"
         pack append .aware.rb \
                 .aware.rb.yes           {left padx 40} \
@@ -458,7 +460,7 @@ proc QuestionComments {} {
         #
 
         frame .comments -relief raised -borderwidth 2
-        labeltext .comments.label "Final comments:" 50
+        labeltext .comments.label "Final comments:" 40
         button .comments.done \
                 -command quit\
                 -text "Done" \
@@ -721,19 +723,19 @@ proc QuestionPrepare {} {
                 -text "Nothing" \
                 -variable NoPreparation \
                 -relief flat \
-                -activebackground Bisque1 \
+                -activebackground gray \
                 -command "ResetOtherPreps"
         checkbutton .prepare.cb.hoardwalk \
                 -text "Hoard Walk" \
                 -variable HoardWalk \
                 -relief flat \
-                -activebackground Bisque1 \
+                -activebackground gray \
                 -command "ResetNoPreparation"
         checkbutton .prepare.cb.pseudodisconnection \
                 -text "Pseudo Disconnection" \
                 -variable PseudoDisconnection \
                 -relief flat \
-                -activebackground Bisque1 \
+                -activebackground gray \
                 -command "ResetNoPreparation"
         pack append .prepare.cb \
                 .prepare.cb.nothing     {left expand fill} \
@@ -746,14 +748,13 @@ proc QuestionPrepare {} {
                 -text "Practice Disconnection(s), how many?" \
                 -variable PracticeDisconnectionPreparation \
                 -relief flat \
-                -activebackground Bisque1 \
+                -activebackground gray \
                 -command "SetPracticeScale"
-        scale .prepare.le.practicedisconnection.scale -from 0 -to 5 -length 300 \
+        scale .prepare.le.practicedisconnection.scale -from 0 -to 5 -length 175 \
                 -tickinterval 1 \
-                -label "None                                                 (5 or more)"  \
+                -label "None                  (5 or more)"  \
                 -orient horizontal \
-                -bg Bisque1 \
-                -activeforeground Gray \
+                -activebackground Gray \
                 -command "SetPracticeCB"
 
         pack append .prepare.le.practicedisconnection \
@@ -826,8 +827,7 @@ proc QuestionOverall {} {
         scale .overall.scale -from 0 -to 9 -length 400 -tickinterval 1 \
                 -label "Invalid | Not at all!    Not very         Hard To Say Somewhat          Very!"\
 		-orient horizontal \
-                -bg Bisque1 \
-		-activeforeground Gray \
+		-activebackground Gray \
 		-showvalue False
 
 

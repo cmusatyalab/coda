@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/vicedep/RCS/admon.rpc2,v 1.1 1996/11/22 19:09:28 braam Exp braam $";
 #endif /*_BLURB_*/%}
 
 
@@ -45,7 +45,7 @@ Subsystem  "AdMon";
 #include "vcrcommon.rpc2"
 
 /* IMPORTANT!  Change this anytime this file is changed! */
-#define ADMON_VERSION 7
+#define ADMON_VERSION 8
 
 typedef RPC2_Enum
 {
@@ -92,12 +92,12 @@ typedef RPC2_Struct
 } WeaklyConnectedInformation;
 
 /*
- * PseudoConnectedMiss
+ * ReadDisconnectedMiss
  *
  * Venus uses this call to request advice about whether or 
- * not to service a pseudo-connected cache miss.
+ * not to service a read disconnected cache miss.
  */
-PseudoConnectedMiss 	(IN RPC2_String Pathname, 
+ReadDisconnectedMiss 	(IN RPC2_String Pathname, 
 			 IN RPC2_Integer pid,
 			 OUT RPC2_Integer Advice);
 

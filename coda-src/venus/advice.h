@@ -29,9 +29,8 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/advice.h,v 1.1 1996/11/22 19:11:39 braam Exp braam $";
 #endif /*_BLURB_*/
-
 
 
 
@@ -46,12 +45,12 @@ static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
 
 enum AdviceState {AdviceInvalid, AdviceDying, AdviceWaiting, AdviceValid};
 
-enum PseudoAdvice {PseudoUnknown=-1, 
-		   PseudoFetch, 
-		   PseudoHOARDimmedFETCH, 
-		   PseudoHOARDdelayFETCH, 
-		   PseudoTimeout};
-const int MaxPseudoAdvice = 3;
+enum ReadDiscAdvice {ReadDiscUnknown=-1, 
+		     ReadDiscFetch, 
+		     ReadDiscHOARDimmedFETCH, 
+		     ReadDiscHOARDdelayFETCH, 
+		     ReadDiscTimeout};
+const int MaxReadDiscAdvice = 3;
 
 enum WeaklyAdvice {WeaklyUnknown=-1,
 		   WeaklyFetch,

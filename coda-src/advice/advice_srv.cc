@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/advice_srv.cc,v 1.1 1996/11/22 19:12:08 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -133,6 +133,7 @@ void InitiateNewUser();
 RPC2_Handle connect_to_machine(char *_name);
 void Init_RPC();
 void InformVenusOfOurExistance(char *);
+int SetupDefaultAdviceRequests();
 int GetAdvice(char *);
 void Shutdown(int);
 void Child(int);
@@ -216,6 +217,7 @@ int userdrivenpid, asrendpid, shutdownpid, keepalivepid, datapid, mainpid, worke
 char shutdownSync;
 char dataSync;
 char keepaliveSync;
+char initialUserSync;
 char userSync;
 char workerSync;
 
@@ -314,6 +316,9 @@ main(int argc, char *argv[])
   // Inform Venus of the availability of an AdviceMonitor for this user
   InformVenusOfOurExistance(HostName);
 
+  // Setup the default user interests
+  assert(LWP_NoYieldSignal(&initialUserSync) == LWP_SUCCESS);
+
   // Set up the request filter:  we only service ADMON subsystem requests.
   reqfilter.FromWhom = ANY;
   reqfilter.OldOrNew = OLDORNEW;
@@ -331,6 +336,7 @@ main(int argc, char *argv[])
 
     // Wait for a request
     rc = RPC2_GetRequest(&reqfilter, &cid, &reqbuffer, &DaemonExpiry, NULL, NULL, NULL) ;
+
     if (rc == RPC2_TIMEOUT) {
       // Fire daemons that are ready to run. 
       DispatchDaemons();
@@ -343,7 +349,6 @@ main(int argc, char *argv[])
     else {
 	assert(LWP_SignalProcess(&workerSync) == LWP_SUCCESS);
     }
-
   }
 }
 
@@ -931,7 +936,6 @@ void InformVenusOfOurExistance(char *hostname) {
 
   LogMsg(1000,LogLevel,LogFile,"InformVenusOfOurExistance: Binding to venus");
   VenusCID = connect_to_machine(hostname);
-
   LogMsg(1000,LogLevel,LogFile,
 	"InformVenusOfOurExistance: NewAdviceService(%s, %d, %d, %d, %d, %d)...", 
 	hostname, uid, rpc2_LocalPortal.Value.InetPortNumber, thisPGID, 
@@ -953,6 +957,10 @@ void InformVenusOfOurExistance(char *hostname) {
       LogMsg(0,LogLevel,EventFile, "NewAdviceService: VersionSkew or UserNotExist");
       LogMsg(0,LogLevel,LogFile, "Information:  uid=%d, ADSRV_VERSION=%d, ADMON_VERSION=%d",
 	     uid, ADSRV_VERSION, ADMON_VERSION);
+      fflush(LogFile);
+      fflush(EventFile);
+      fclose(LogFile);
+      fclose(EventFile);
       exit(-1);
   }
   else {
@@ -961,16 +969,42 @@ void InformVenusOfOurExistance(char *hostname) {
     LogMsg(0,LogLevel,LogFile,"\tVenus Version = %d.%d", VenusMajorVersionNumber, VenusMinorVersionNumber);
     LogMsg(0,LogLevel,LogFile,"\tADSRV Version = %d",ADSRV_VERSION);
     LogMsg(0,LogLevel,LogFile,"\tADMON Version = %d\n",ADMON_VERSION);
+    fflush(LogFile);
   }
 }
 
+SetupDefaultAdviceRequests() {
+    InterestValuePair interests[2];
+    int numInterests = 2;
+    long rc;
+
+    LogMsg(100,LogLevel,LogFile, "E SetupDefaultAdviceRequests");
+
+    interests[0].interest = ReconnectionEvent;
+    interests[1].interest = ReintegrationPending;
+    for (int i=0; i<numInterests; i++) {
+        interests[i].argument = 0;
+        interests[i].value = 1;
+    }
+    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
+    if (rc != RPC2_SUCCESS) {
+	    LogMsg(0,LogLevel,LogFile, "SetupDefaultAdviceRequests call failed\n");
+    }
+    LogMsg(100,LogLevel,LogFile, "L SetupDefaultAdviceRequests");
+}
+
 SolicitAdviceOnNextHoardWalk() {
+    InterestValuePair interests[1];
+    int numInterests = 1;
     long rc;
 
     LogMsg(100,LogLevel,LogFile, "E SolicitAdviceOnNextHoardWalk");
 
-    rc = SolicitHoardWalkAdvice(VenusCID, (RPC2_Integer)uid);
+    interests[0].interest = HoardWalk;
+    interests[0].argument = 0;
+    interests[0].value = 1;
 
+    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
     if (rc != RPC2_SUCCESS) {
 	    LogMsg(0,LogLevel,LogFile, "SolicitHoardWalkAdvice call failed\n");
     }
@@ -979,18 +1013,94 @@ SolicitAdviceOnNextHoardWalk() {
 
 
 UnsolicitAdviceOnNextHoardWalk() {
+    InterestValuePair interests[1];
+    int numInterests = 1;
     long rc;
 
     LogMsg(100,LogLevel,LogFile, "E UnsolicitAdviceOnNextHoardWalk");
 
-    rc = UnsolicitHoardWalkAdvice(VenusCID, (RPC2_Integer)uid);
+    interests[0].interest = HoardWalk;
+    interests[0].argument = 0;
+    interests[0].value = 0;
 
+    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
     if (rc != RPC2_SUCCESS) {
 	LogMsg(0,LogLevel,LogFile, "UnsolicitHoardWalkAdvice call failed\n");
     }
     LogMsg(100,LogLevel,LogFile, "L UnsolicitAdviceOnNextHoardWalk");
 }
 
+SolicitWeakMissAdvice() {
+    InterestValuePair interests[1];
+    int numInterests = 1;
+    long rc;
+
+    LogMsg(100,LogLevel,LogFile, "E SolicitWeakMissAdvice");
+
+    interests[0].interest = WeaklyConnectedCacheMiss;
+    interests[0].argument = 0;
+    interests[0].value = 1;
+
+    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
+    if (rc != RPC2_SUCCESS) {
+	    LogMsg(0,LogLevel,LogFile, "SolicitWeakMissAdvice call failed\n");
+    }
+    LogMsg(100,LogLevel,LogFile, "L SolicitWeakMissAdvice");
+}
+
+UnsolicitWeakMissAdvice() {
+    InterestValuePair interests[1];
+    int numInterests = 1;
+    long rc;
+
+    LogMsg(100,LogLevel,LogFile, "E UnsolicitWeakMissAdvice");
+
+    interests[0].interest = WeaklyConnectedCacheMiss;
+    interests[0].argument = 0;
+    interests[0].value = 0;
+
+    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
+    if (rc != RPC2_SUCCESS) {
+	    LogMsg(0,LogLevel,LogFile, "UnsolicitWeakMissAdvice call failed\n");
+    }
+    LogMsg(100,LogLevel,LogFile, "L UnsolicitWeakMissAdvice");
+}
+
+SolicitDiscoMissQs() {
+    InterestValuePair interests[1];
+    int numInterests = 1;
+    long rc;
+
+    LogMsg(100,LogLevel,LogFile, "E SolicitDiscoMissQs");
+
+    interests[0].interest = DisconnectedCacheMiss;
+    interests[0].argument = 0;
+    interests[0].value = 1;
+
+    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
+    if (rc != RPC2_SUCCESS) {
+	    LogMsg(0,LogLevel,LogFile, "SolicitDiscoMissQs call failed (rc=%d)",rc);
+    }
+    LogMsg(100,LogLevel,LogFile, "L SolicitDiscoMissQs");
+}
+
+UnsolicitDiscoMissQs() {
+    InterestValuePair interests[1];
+    int numInterests = 1;
+    long rc;
+
+    LogMsg(100,LogLevel,LogFile, "E UnsolicitDiscoMissQs");
+
+    interests[0].interest = DisconnectedCacheMiss;
+    interests[0].argument = 0;
+    interests[0].value = 0;
+
+    rc = RegisterInterest(VenusCID, (RPC2_Integer)uid, numInterests, (InterestValuePair *)interests);
+    if (rc != RPC2_SUCCESS) {
+	    LogMsg(0,LogLevel,LogFile, "UnsolicitDiscoMissQs call failed\n");
+    }
+    LogMsg(100,LogLevel,LogFile, "L UnsolicitDiscoMissQs");
+}
 
 BeginStopLightMonitor() {
     long rc;
@@ -1132,21 +1242,21 @@ int GetAdvice(char *request)
 	  rc = read(0, buf, 128);
 	  LogMsg(100,LogLevel,LogFile, "GetAdvice: buf = *%s*", buf);
 	  if (strncmp(buf, "fetch", 3) == 0)
-	    op = PseudoFetch;
+	    op = ReadDiscFetch;
 	  else if (strncmp(buf, "timeout", 7) == 0)
-	    op = PseudoTimeout;
+	    op = ReadDiscTimeout;
 	  else if (strncmp(buf, "hoard", 5) == 0)
-	    op = PseudoHOARDimmedFETCH;
+	    op = ReadDiscHOARDimmedFETCH;
 	  else
-	    op = PseudoUnknown;
+	    op = ReadDiscUnknown;
 	  return(op);
     default:
 	  snprintf(error_msg, BUFSIZ, "IOMGR_Select returned too many fds, %d\n",rc);
 	  ErrorReport(error_msg);
-	  return(PseudoUnknown);
+	  return(ReadDiscUnknown);
   }
 
-  return(PseudoUnknown);
+  return(ReadDiscUnknown);
 }
 
 
@@ -1215,7 +1325,7 @@ int fork_tcl(char *script, char *args[]) {
  ******************  Incoming RPC Handlers  ******************
  *************************************************************/
 
-long PseudoConnectedMiss(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer pid, RPC2_Integer *advice) 
+long ReadDisconnectedMiss(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer pid, RPC2_Integer *advice) 
 {
     static char lastPathname[MAXPATHLEN]; char thisPathname[MAXPATHLEN];
     static char lastProgName[MAXPATHLEN]; char thisProgName[MAXPATHLEN];
@@ -1224,11 +1334,11 @@ long PseudoConnectedMiss(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer pi
 
     if (StackChecking) {
 	LWP_StackUsed((PROCESS)workerpid, &max, &used);
-	LogMsg(100,LogLevel,LogFile, "WorkerHandler:  Pseudo returned max=%d used=%d\n",max,used);
+	LogMsg(100,LogLevel,LogFile, "WorkerHandler:  ReadDisconnectedMiss returned max=%d used=%d\n",max,used);
 	oldworkerused = used;
     }
 
-    *advice = PseudoUnknown;
+    *advice = ReadDiscUnknown;
 
     /* Filter out duplicates -- if it's the same as the last one... */
     strncpy(thisPathname, (char*)pathname, MAXPATHLEN);
@@ -1241,12 +1351,12 @@ long PseudoConnectedMiss(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer pi
     strncpy(lastPathname, thisPathname, MAXPATHLEN);
     strncpy(lastProgName, thisProgName, MAXPATHLEN);
 
-    LogMsg(100,LogLevel,LogFile,"E PseudoConnectedMiss: %s %d", (char*)pathname, (int)pid);
+    LogMsg(100,LogLevel,LogFile,"E ReadDisconnectedMiss: %s %d", (char*)pathname, (int)pid);
 
     IncrementCounter(&PCMcount, REQUESTED);
 
     if (AutoReply) {
-       *advice = PseudoFetch;
+       *advice = ReadDiscFetch;
        lastAdvice = *advice;
        return(RPC2_SUCCESS);
     }
@@ -1254,15 +1364,15 @@ long PseudoConnectedMiss(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer pi
     {
 	char *args[4];
 
-	args[0] = PSEUDOMISS;
+	args[0] = READMISS;
 	args[1] = (char*)pathname;
 	args[2] = GetCommandName((int)pid);
 	args[3] = NULL;
 
-	int rc = execute_tcl(PSEUDOMISS, args);
+	int rc = execute_tcl(READMISS, args);
 	if (rc == -1) {
-	    LogMsg(0,LogLevel,LogFile, "PseudoConnectedMiss: execute_tcl ERROR");
-	    LogMsg(0,LogLevel,EventFile, "PseudoConnectedMiss: execute_tcl ERROR");
+	    LogMsg(0,LogLevel,LogFile, "ReadDisconnectedMiss: execute_tcl ERROR");
+	    LogMsg(0,LogLevel,EventFile, "ReadDisconnectedMiss: execute_tcl ERROR");
 	    lastAdvice = *advice;
 	    return(RPC2_SUCCESS);
 	}
@@ -1270,30 +1380,30 @@ long PseudoConnectedMiss(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer pi
 
     switch (CHILDresult) {
         case 2:
-	    LogMsg(100,LogLevel,LogFile, "Pseudo Advice: Hoarding...\n");
+	    LogMsg(100,LogLevel,LogFile, "ReadDisconnectedMiss Advice: Hoarding...\n");
         case 0:
-	    LogMsg(100,LogLevel,LogFile, "Pseudo Advice: Fetch\n");
-  	   *advice = PseudoFetch;
+	    LogMsg(100,LogLevel,LogFile, "ReadDisconnectedMiss Advice: Fetch\n");
+  	   *advice = ReadDiscFetch;
             break;
         case 1:
-	    LogMsg(100,LogLevel,LogFile, "Pseudo Advice: Timeout\n");
+	    LogMsg(100,LogLevel,LogFile, "ReadDisconnectedMiss Advice: Timeout\n");
 	    m = new miss((char*)pathname,GetCommandName((int)pid));
-	   *advice = PseudoTimeout;
+	   *advice = ReadDiscTimeout;
             break;
         default:
-	    LogMsg(100,LogLevel,LogFile, "PseudoConnectedMiss: ERROR ==> Invalid return code from tcl script (%d)\n",CHILDresult);
+	    LogMsg(100,LogLevel,LogFile, "ReadDisconnectedMiss: ERROR ==> Invalid return code from tcl script (%d)\n",CHILDresult);
 	    LogMsg(100,LogLevel,EventFile, "tcl_childreturn: PCM  %d", CHILDresult);
-  	   *advice = PseudoUnknown;
+  	   *advice = ReadDiscUnknown;
 	    break;
     }
 
     CHILDpid = 0;
     PrintCounters();
-    LogMsg(100,LogLevel,LogFile, "L PseudoConnectedMiss(advice=%d)", *advice);
+    LogMsg(100,LogLevel,LogFile, "L ReadDisconnectedMiss(advice=%d)", *advice);
     lastAdvice = *advice;
     if (StackChecking) {
 	LWP_StackUsed((PROCESS)workerpid, &max, &used);
-	LogMsg(100,LogLevel,LogFile, "WorkerHandler:  Pseudo returned max=%d used=%d\n",max,used);
+	LogMsg(100,LogLevel,LogFile, "WorkerHandler:  ReadDisconnectedMiss returned max=%d used=%d\n",max,used);
 	oldworkerused = used;
     }
     return(RPC2_SUCCESS);
@@ -1903,6 +2013,12 @@ char *GetDataFile(char *here) {
 
     LogMsg(100,LogLevel,LogFile, "E GetDataFile(%s)", here);
     hereDIR = opendir(here);
+    if ( hereDIR == NULL) {
+        LogMsg(0,LogLevel,LogFile, "Error:  GetDataFile(%s) -- cannot open directory", here);
+	printf("Error!!  GetDataFile cannot open %s", here);
+	printf("Please try notify Maria and send her a listing of this directory (if possible).");
+	fflush(stdout);
+    }
     assert(hereDIR != NULL);
     for (dirent = readdir(hereDIR); dirent != NULL; dirent = readdir(hereDIR))
 	if ((dirent->d_name[0] != '#') &&
@@ -2042,6 +2158,9 @@ void UserEventHandler(char *c) {
 
   LogMsg(100,LogLevel,LogFile, "UserEventHandler: Initializing...");
 
+  assert(LWP_WaitProcess(&initialUserSync) == LWP_SUCCESS);
+  SetupDefaultAdviceRequests();
+
   // Start the user control panel
   {
     char arg[smallStringLength];
@@ -2106,7 +2225,17 @@ void UserEventHandler(char *c) {
         HandleWeakAdvice(); 
         break;
       case RequestLongFetchQuery:
+	SolicitWeakMissAdvice();
         break;
+      case UnrequestLongFetchQuery:
+        UnsolicitWeakMissAdvice();
+        break;
+      case RequestDiscoMissQs:
+	SolicitDiscoMissQs();
+	break;
+      case UnrequestDiscoMissQs:
+	UnsolicitDiscoMissQs();
+	break;
       default:
 	break;
     }

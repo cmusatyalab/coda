@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso_cfscalls0.cc,v 1.1 1996/11/22 19:12:04 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -727,13 +727,14 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 				nfailed++;	
 				/* 
 				 * If we have data, it is stale and must be discarded,
-				 * unless someone is writing or executing it. In that case 
-				 * we wait and rely on the destructor to discard the data.
+				 * unless someone is writing or executing it, or it is
+				 * a fake directory.  In that case, we wait and rely on
+				 * the destructor to discard the data.
 				 *
 				 * We don't restart from the beginning, since the
 				 * validation of piggybacked fids is a side-effect.
 				 */
-				if (HAVEDATA(pobj) && !WRITING(pobj) && !EXECUTING(pobj)) {
+				if (HAVEDATA(pobj) && !WRITING(pobj) && !EXECUTING(pobj) && !pobj->IsFakeDir()) {
 				    ATOMIC(
 					   UpdateCacheStats((IsDir() ? &FSDB->DirDataStats 
 							     : &FSDB->FileDataStats),

@@ -1,6 +1,6 @@
 #!/bin/sh
 # The next line restarts using wish\
-exec /coda/misc/tcl/@sys/beta/bin/wish  "$0" "$@"
+exec /coda/misc/tcl/@sys/beta/bin/tixwish  "$0" "$@"
 #ifndef _BLURB_
 #define _BLURB_
 #/*
@@ -31,24 +31,22 @@ exec /coda/misc/tcl/@sys/beta/bin/wish  "$0" "$@"
 #improvements or extensions that  they  make,  and  to  grant  Carnegie
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
-#
-#static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/weakmiss,v 1.1 1996/11/22 19:12:27 braam Exp braam $";
-#endif /*_BLURB_*/
+
 
 
 #
-# Inform the user that a weak miss has occurred.
+# Inform the user that a read miss has occurred.
 #
 # History :
-#  95/10/20 : mre@cs.cmu.edu : code
+#  96/02/13 : mre@cs.cmu.edu : code
 #
 
 #
 #
 #
 
-if { $argc != 3 } then {
-	puts "Usage: weak_miss object_info requesting_program expected_fetch_time"
+if { $argc != 2 } then {
+	puts "Usage: readmiss object_info requesting_program"
 	exit 1
 }
 
@@ -56,12 +54,12 @@ if { $argc != 3 } then {
 wm geometry . +0+0
 
 set w .
-set title "Weak Miss"
-set text [format "File: %s\nRequesting Program: %s\nEstimated Fetch Time:  %s secs" [lindex $argv 0] [lindex $argv 1] [lindex $argv 2]]
+set title "Read Miss"
+set text [format "File: %s\nRequesting Program: %s" [lindex $argv 0] [lindex $argv 1] ]
 set bitmap {}
 # The default is set to argument #0 (Fetch)
 set default 0
-set args [list Fetch {Coerce to Miss}]
+set args [list Fetch {Coerce to Miss} {Add to HDB and then Fetch}]
 
 #
 # 1. Create the top-level window and divide it into top and bottom.
@@ -125,7 +123,7 @@ if {$default >= 0} {
 # 5. Set a timer for 15 seconds.  If the user doesn't respond
 #    in that timeframe, just fetch the file anyway.
 #
-after 15000 {set button 0}
+#after 15000 {set button 0}
 	
 #
 # 6. Wait for the user to respond, then restore the focus
@@ -135,4 +133,5 @@ after 15000 {set button 0}
 tkwait variable button
 destroy .
 exit $button
+
 

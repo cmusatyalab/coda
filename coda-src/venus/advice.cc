@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/advice.cc,v 1.1 1996/11/22 19:10:45 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -48,9 +48,11 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include "user.h"
 #include "advice.h"
 #include "adviceconn.h"
 #include "admon.h"
+#include "adsrv.h"
 
 #define FALSE 0
 #define TRUE 1
@@ -84,43 +86,48 @@ adviceconn::~adviceconn() {
 
 /*******************************************************************************************
  *  RPC Requests to the user via Advice Monitor:
- *      RequestPseudoAdvice
+ *      RequestReadDisconnectedCacheMissAdvice
  *      RequestHoardWalkAdvice
  *      RequestDisconnectedQuestionnaire
  *      RequestReconnectionQuestionnaire
  *	RequestReintegratePending
  *      RequestASRInvokation
- *      RequestWeaklyConnectedCacheMiss
+ *      RequestWeaklyConnectedCacheMissAdvice
  *******************************************************************************************/
 
-PseudoAdvice adviceconn::RequestPseudoAdvice(char *pathname, int pid) {
+ReadDiscAdvice adviceconn::RequestReadDisconnectedCacheMissAdvice(char *pathname, int pid) {
   RPC2_Integer advice;
   long rc;
 
   if (!IsAdviceValid(0))
-    return(PseudoUnknown);
+    return(ReadDiscUnknown);
+  if (ReadDisconnectedCacheMisses == 0)
+    return(ReadDiscUnknown);
 
-  LOG(100, ("E adviceconn::RequestPseudoAdvice()\n"));
+  LOG(100, ("E adviceconn::RequestReadDisconnectedCacheMissAdvice()\n"));
   ObtainWriteLock(&userLock);
-  LOG(100, ("Requesting pseudo advice on %s from handle = %d\n", pathname, handle));
-  rc = PseudoConnectedMiss(handle, (RPC2_String) pathname, (RPC2_Integer) pid, &advice) ;
+  LOG(100, ("Requesting read disconnected cache miss advice on %s from handle = %d\n", pathname, handle));
+  rc = ReadDisconnectedMiss(handle, (RPC2_String) pathname, (RPC2_Integer) pid, &advice) ;
   ReleaseWriteLock(&userLock);
 
   CheckError(rc, PCM);
   if (rc != RPC2_SUCCESS) 
-    advice = PseudoUnknown;
+    advice = ReadDiscUnknown;
 
-  LOG(100, ("Advice was to %s on %s\n", PseudoAdviceString((PseudoAdvice)advice), pathname));
+  LOG(100, ("Advice was to %s on %s\n", ReadDiscAdviceString((ReadDiscAdvice)advice), pathname));
 
   assert(advice >= -1);
-  assert(advice <= MaxPseudoAdvice);
-  LOG(100, ("L adviceconn::RequestPseudoAdvice()\n"));
-  return((PseudoAdvice)advice);
+  assert(advice <= MaxReadDiscAdvice);
+  LOG(100, ("L adviceconn::RequestReadDisconnectedCacheMissAdvice()\n"));
+  return((ReadDiscAdvice)advice);
 }
 
 void adviceconn::RequestHoardWalkAdvice(char *input, char *output) {
   RPC2_Integer ReturnCode;
   long rc;
+
+  if (HoardWalks == 0)
+    return;
 
   LOG(100, ("E adviceconn::RequestHoardWalkAdvice()\n"));
   ObtainWriteLock(&userLock);
@@ -141,6 +148,8 @@ void adviceconn::RequestDisconnectedQuestionnaire(char *pathname, int pid, ViceF
   long rc;
 
   if (!IsAdviceValid(0))
+    return;
+  if (DisconnectedCacheMisses == 0)
     return;
 
   questionnaire.DMQVersionNumber = DMQ_VERSION;
@@ -240,6 +249,8 @@ void adviceconn::RequestReconnectionQuestionnaire(char *volname, VolumeId vid, i
 
   if (!IsAdviceValid(0))
     return;
+  if (ReconnectionQuestionnaires == 0)
+    return;
 
   LOG(100, ("E adviceconn::RequestReconnectionQuestionnaire(volname=%s)\n", volname));
 
@@ -273,6 +284,8 @@ void adviceconn::RequestReintegratePending(char *volname, int flag) {
 
   if (!IsAdviceValid(0))
     return;
+  if (ReintegrationPendings == 0)
+    return;
 
   LOG(100, ("E adviceconn::RequestReintegratePendingTokens()\n"));
 
@@ -294,6 +307,9 @@ int adviceconn::RequestASRInvokation(char *pathname, vuid_t vuid) {
   long rc;
   RPC2_Integer ASRid;
   RPC2_Integer ASRrc;
+
+  if (ASRs == 0)
+    return(-1);
 
   LOG(100, ("E adviceconn::RequestASRInvokation(%s, %d)\n", pathname, vuid));
   if (ASRinProgress) {
@@ -318,13 +334,19 @@ int adviceconn::RequestASRInvokation(char *pathname, vuid_t vuid) {
   return(rc);
 }
 
-WeaklyAdvice adviceconn::RequestWeaklyConnectedCacheMiss(char *pathname, int pid, int expectedCost) {
+WeaklyAdvice adviceconn::RequestWeaklyConnectedCacheMissAdvice(char *pathname, int pid, int expectedCost) {
   WeaklyConnectedInformation information;
   RPC2_Integer advice;
   long rc;
 
-  if (!IsAdviceValid(0))
+  if (!IsAdviceValid(0)) {
+    LOG(100, ("RequestWeaklyConnectedCacheMissAdvice: Advice not valid for this user...\n"));
     return(WeaklyUnknown);
+  }
+  if (WeaklyConnectedCacheMisses == 0) {
+    LOG(100, ("RequestWeaklyConnectedCacheMissAdvice: This type of advice not requested for this user...\n"));
+    return(WeaklyFetch);
+  }
 
   information.Pathname = (RPC2_String) pathname;
   information.pid = pid;
@@ -342,7 +364,7 @@ WeaklyAdvice adviceconn::RequestWeaklyConnectedCacheMiss(char *pathname, int pid
   assert(advice >= (RPC2_Integer)-1);
   assert(advice <= (RPC2_Integer)MaxWeaklyAdvice);
 
-  LOG(100, ("L adviceconn::RequestWeaklyConnectedCacheMiss() with %s\n", WeaklyAdviceString((WeaklyAdvice)advice)));
+  LOG(100, ("L adviceconn::RequestWeaklyConnectedCacheMissAdvice() with %s\n", WeaklyAdviceString((WeaklyAdvice)advice)));
   return((WeaklyAdvice)advice);
 }
 
@@ -372,8 +394,10 @@ int adviceconn::NewConnection(char *hostName, int portNumber, int pgrp) {
     return(-1);
   }
 
-  if (IsAdviceValid(0) == TRUE) 
+  if (IsAdviceValid(0) == TRUE) {
+    LOG(0, ("adviceconn::NewConnection:  Inform old advice server that it has lost its connection\n"));
     InformLostConnection();
+  }
 
   strcpy(hostname, hostName);
   LOG(0, ("MARIA: You should check that the hostname is our host\n"));
@@ -384,33 +408,79 @@ int adviceconn::NewConnection(char *hostName, int portNumber, int pgrp) {
   return(0);
 }
 
-int adviceconn::SolicitHoardWalkAdvice(vuid_t uid) {
-    LOG(100, ("E adviceconn::SolicitHoardWalkAdvice(%d)\n",(int)uid));
-    HDB->SetSolicitAdvice(uid);
-    LOG(100, ("L adviceconn::SolicitHoardWalkAdvice()\n"));
+int adviceconn::RegisterInterest(vuid_t uid, long numEvents, InterestValuePair events[])
+{
+    for (int i=0; i < numEvents; i++) {
+	LOG(0, ("adviceconn::RegisterInterest:  events[%d].interest = %d\n", i, events[i].interest));
+        switch (events[i].interest) {
+	    case InconsistentObject:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for inconsistent objects\n", events[i].value));
+		InconsistentObjects = events[i].value;
+		break;
+	    case ReadDisconnectedCacheMiss:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for read disconnected cache misses\n", events[i].value));
+		ReadDisconnectedCacheMisses = events[i].value;
+		break;
+	    case WeaklyConnectedCacheMiss:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for weakly connected cache misses\n", events[i].value));
+		WeaklyConnectedCacheMisses = events[i].value;
+		break;
+	    case DisconnectedCacheMiss:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for disconnected cache misses\n", events[i].value));
+		DisconnectedCacheMisses = events[i].value;
+		break;
+	    case VolumeTransition:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for volume transitions\n", events[i].value));
+		VolumeTransitions = events[i].value;
+		break;
+	    case ReconnectionEvent:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for reconnection questionnaires\n", events[i].value));
+		ReconnectionQuestionnaires = events[i].value;
+		break;
+	    case ReintegrationPending:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for pending reintegrations\n", events[i].value));
+		ReintegrationPendings = events[i].value;
+		break;
+	    case HoardWalk:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for hoard walks\n", events[i].value));
+		if (!AuthorizedUser(uid)) {
+		  LOG(0, ("adviceconn::RegisterInterest:  Unauthorized user (%d) attempted to capture hoard walk advice requests\n", uid));
+		  return(-1);
+		}
+
+		HoardWalks = events[i].value;
+
+		if (events[i].value == 0) 
+		    HDB->SetSolicitAdvice(-1);
+		else if (events[i].value == 1)
+		    HDB->SetSolicitAdvice(uid);
+		else
+		    LOG(0, ("adviceconn::RegisterInterest:  Unknown value for HoardWalk -- ignored\n"));
+		break;
+	    case ASR:
+		LOG(0, ("adviceconn::RegisterInterest:  Register %d for application specific resolvers\n", events[i].value));
+		ASRs = events[i].value;
+		break;
+	    default:
+		LOG(0, ("adviceconn::RegisterInterest:  Unknown interest %d -- ignored\n", events[i].interest));
+        }
+    }
     return(0);
 }
 
-int adviceconn::UnsolicitHoardWalkAdvice() {
-    LOG(100, ("E adviceconn::UnsolicitHoardWalkAdvice()\n"));
-    HDB->SetSolicitAdvice(-1);
-    LOG(100, ("L adviceconn::UnsolicitHoardWalkAdvice()\n"));
-    return(0);
-}
+//int adviceconn::BeginStoplightMonitor() {
+//    LOG(100, ("E adviceconn::BeginStoplightMonitor()\n"));
+//    SetStoplightData();
+//    LOG(100, ("L adviceconn::BeginStoplightMonitor()\n"));
+//    return(0);
+//}
 
-int adviceconn::BeginStoplightMonitor() {
-    LOG(100, ("E adviceconn::BeginStoplightMonitor()\n"));
-    SetStoplightData();
-    LOG(100, ("L adviceconn::BeginStoplightMonitor()\n"));
-    return(0);
-}
-
-int adviceconn::EndStoplightMonitor() {
-    LOG(100, ("E adviceconn::EndStoplightMonitor()\n"));
-    UnsetStoplightData();
-    LOG(100, ("L adviceconn::EndStoplightMonitor()\n"));
-    return(0);
-}
+//int adviceconn::EndStoplightMonitor() {
+//    LOG(100, ("E adviceconn::EndStoplightMonitor()\n"));
+//    UnsetStoplightData();
+//    LOG(100, ("L adviceconn::EndStoplightMonitor()\n"));
+//    return(0);
+//}
 
 
 void adviceconn::CheckConnection() {
@@ -546,6 +616,17 @@ void adviceconn::Reset() {
   handle = -1;
   port = 0;
   bzero(hostname, MAXHOSTNAMELEN);
+
+  InconsistentObjects = 0;
+  ReadDisconnectedCacheMisses = 0;
+  WeaklyConnectedCacheMisses = 0;
+  DisconnectedCacheMisses = 0;
+  VolumeTransitions = 0;
+  ReconnectionQuestionnaires = 0;
+  ReintegrationPendings = 0;
+  HoardWalks = 0; 
+  ASRs = 0;
+
   LOG(100, ("L adviceconn::Reset()\n"));
 }
 
@@ -617,24 +698,24 @@ char *adviceconn::StateString()
   return(msgbuf);
 }
 
-char *adviceconn::PseudoAdviceString(PseudoAdvice advice)
+char *adviceconn::ReadDiscAdviceString(ReadDiscAdvice advice)
 {
   static char msgbuf[100];
 
   switch (advice) {
-    case PseudoFetch:
+    case ReadDiscFetch:
       (void) sprintf(msgbuf, "FETCH");
       break;
-    case PseudoHOARDimmedFETCH:
+    case ReadDiscHOARDimmedFETCH:
       (void) sprintf(msgbuf, "HOARD with immediate FETCH");
       break;
-    case PseudoHOARDdelayFETCH:
+    case ReadDiscHOARDdelayFETCH:
       (void) sprintf(msgbuf, "HOARD with delayed FETCH");
       break;
-    case PseudoTimeout:
+    case ReadDiscTimeout:
       (void) sprintf(msgbuf, "MISS");
       break;
-    case PseudoUnknown:
+    case ReadDiscUnknown:
     default:
       (void) sprintf(msgbuf, "UNKNOWN");
       break;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/peter-objs/coda-src/venus/RCS/fso0.cc,v 1.1 1996/11/22 19:10:54 braam Exp braam $";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso0.cc,v 1.2 1996/11/22 20:50:00 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -529,12 +529,12 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
     return(f);
 }
 
-enum PseudoAdvice PseudoConnectedCacheMissEvent(vproc *vp, fsobj *f, vuid_t vuid) {
+enum ReadDiscAdvice ReadDisconnectedCacheMissEvent(vproc *vp, fsobj *f, vuid_t vuid) {
     userent *u;
     char pathname[MAXPATHLEN];
-    PseudoAdvice advice;
+    ReadDiscAdvice advice;
 
-    LOG(0, ("E PseudoConnectedCacheMissEvent\n"));
+    LOG(100, ("E ReadDisconnectedCacheMissEvent\n"));
 
     GetUser(&u, vuid);
     assert(u != NULL);
@@ -543,7 +543,7 @@ enum PseudoAdvice PseudoConnectedCacheMissEvent(vproc *vp, fsobj *f, vuid_t vuid
     if (!AdviceEnabled) {
         LOG(0, ("ADMON STATS:  PCCM Advice NOT enabled.\n"));
         u->AdviceNotEnabled();
-        return(PseudoFetch);
+        return(ReadDiscFetch);
     }
 
     /* Check that:                                                     *
@@ -553,22 +553,22 @@ enum PseudoAdvice PseudoConnectedCacheMissEvent(vproc *vp, fsobj *f, vuid_t vuid
     assert(vp != NULL);
     if (vp->type == VPT_HDBDaemon) {
 	LOG(100, ("ADMON STATS:  PCCM Advice inappropriate.\n"));
-        return(PseudoFetch);
+        return(ReadDiscFetch);
     }
     if (u->IsAdvicePGID(vp->u.u_pgid)) {
         LOG(100, ("ADMON STATS:  PCCM Advice inappropriate.\n"));
-        return(PseudoFetch);
+        return(ReadDiscFetch);
     }
     if (u->IsAdviceValid(1) != TRUE) {
         LOG(0, ("ADMON STATS:  PCCM Advice NOT valid. (uid = %d)\n", vuid));
-        return(PseudoFetch);
+        return(ReadDiscFetch);
     }
 
     assert(f != NULL);
     f->GetPath(pathname, 1);
 
-    LOG(100, ("Requesting PseudoConnected CacheMiss Advice for %s, %d...\n", pathname, vp->u.u_pid));
-    advice = u->RequestPseudoAdvice(pathname, vp->u.u_pgid);
+    LOG(100, ("Requesting ReadDisconnected CacheMiss Advice for path=%s, pid=%d...\n", pathname, vp->u.u_pid));
+    advice = u->RequestReadDisconnectedCacheMissAdvice(pathname, vp->u.u_pgid);
     return(advice);
 }
 
@@ -577,7 +577,7 @@ enum WeaklyAdvice WeaklyConnectedCacheMissEvent(vproc *vp, fsobj *f, vuid_t vuid
     char pathname[MAXPATHLEN];
     WeaklyAdvice advice;
 
-    LOG(0, ("E WeaklyConnectedCacheMissEvent\n"));
+    LOG(100, ("E WeaklyConnectedCacheMissEvent\n"));
 
     GetUser(&u, vuid);
     assert(u != NULL);
@@ -610,8 +610,8 @@ enum WeaklyAdvice WeaklyConnectedCacheMissEvent(vproc *vp, fsobj *f, vuid_t vuid
     assert(f != NULL);
     f->GetPath(pathname, 1);
 
-    LOG(100, ("Requesting WeaklyConnected CacheMiss Advice for %s, %d, %d...\n", pathname, vp->u.u_pid, expectedCost));
-    advice = u->RequestWeaklyConnectedCacheMiss(pathname, vp->u.u_pid, expectedCost);
+    LOG(100, ("Requesting WeaklyConnected CacheMiss Advice for path=%s, pid=%d, cost=%d...\n", pathname, vp->u.u_pid, expectedCost));
+    advice = u->RequestWeaklyConnectedCacheMissAdvice(pathname, vp->u.u_pid, expectedCost);
     return(advice);
 }
 
@@ -1246,20 +1246,20 @@ RestartFind:
 		    }
 
 		    /* Make cache misses non-transparent. */
-		    PseudoAdvice advice;
-		    advice = PseudoConnectedCacheMissEvent(vp, f, vuid);
+		    ReadDiscAdvice advice;
+		    advice = ReadDisconnectedCacheMissEvent(vp, f, vuid);
 		    switch (advice) {
-		        case PseudoFetch:
-                            LOG(10, ("The advice was to PseudoFetch --> Fetching.\n"));
+		        case ReadDiscFetch:
+                            LOG(10, ("The advice was to ReadDiscFetch --> Fetching.\n"));
                             break;
-		        case PseudoTimeout:
-			    LOG(0, ("Pseudo Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tReturn code:  EFBIG\n", 
+		        case ReadDiscTimeout:
+			    LOG(0, ("Read Disconnected Miss Coersion:\n\tObject:  %s <%x,%x,%x>\n\tReturn code:  EFBIG\n", 
 				   comp, key->Volume, key->Vnode, key->Unique));
-		            MarinerLog("Pseudo Miss Coersion on %s <%x,%x,%x>\n",
+		            MarinerLog("Read Disconnected Miss Coersion on %s <%x,%x,%x>\n",
 				       comp, key->Volume, key->Vnode, key->Unique);
 			    Put(&f);
 			    return(ETIMEDOUT);
-		        case PseudoUnknown:
+		        case ReadDiscUnknown:
 		        default:
 			    LOG(0, ("The advice was Unrecognized --> Fetching anyway.\n"));
 			    break;
