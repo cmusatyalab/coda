@@ -1143,14 +1143,6 @@ void worker::main(void)
 		break;
 		}
 
-	    case CODA_INACTIVE: 
-		{
-		LOG(100, ("CODA_INACTIVE: u.u_pid = %d u.u_pgid = %d\n", u.u_pid, u.u_pgid));
-		MAKE_CNODE(vtarget, in->coda_inactive.VFid, 0);
-		inactive(&vtarget);
-		break;
-		}
-
 	    case CODA_IOCTL:
 		{
 		char outbuf[VC_MAXDATASIZE];
@@ -1370,12 +1362,6 @@ void worker::main(void)
 
 		MAKE_CNODE(vtarget, in->coda_symlink.VFid, 0);
                 symlink(&vtarget, (char *)in + (int)in->coda_symlink.srcname, &in->coda_symlink.attr, (char *)in + (int)in->coda_symlink.tname);
-		break;
-		}
-
-	    case CODA_SYNC:
-		{
-		sync();
 		break;
 		}
 

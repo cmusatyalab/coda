@@ -295,7 +295,6 @@ struct coda_statfs {
  */
 
 #define CODA_ROOT	2
-#define CODA_SYNC	3
 #define CODA_OPEN	4
 #define CODA_CLOSE	5
 #define CODA_IOCTL	6
@@ -309,11 +308,9 @@ struct coda_statfs {
 #define CODA_RENAME	14
 #define CODA_MKDIR	15
 #define CODA_RMDIR	16
-#define CODA_READDIR	17
 #define CODA_SYMLINK	18
 #define CODA_READLINK	19
 #define CODA_FSYNC	20
-#define CODA_INACTIVE	21
 #define CODA_VGET	22
 #define CODA_SIGNAL	23
 #define CODA_REPLACE	 24 /* DOWNCALL */

@@ -119,12 +119,6 @@ void vproc::statfs(struct coda_statfs *sfs) {
 }
 
 
-void vproc::sync() {
-    LOG(1, ("vproc::sync\n"));
-    u.u_error = EOPNOTSUPP;
-}
-
-
 void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
 
     LOG(1, ("vproc::vget: fid = %s, nc = %x\n", FID_(&cfidp->cfid_fid),
@@ -1363,7 +1357,6 @@ FreeLocks:
     }
 }
 
-
 void vproc::fsync(struct venus_cnode *cp) 
 {
 
@@ -1402,13 +1395,5 @@ FreeLocks:
 	u.u_error = ENOENT;
 	k_Purge(&cp->c_fid, 1);
     }
-}
-
-void vproc::inactive(struct venus_cnode *cp) 
-{
-
-    LOG(1, ("vproc::inactive: fid = %s\n", FID_(&cp->c_fid)));
-
-    u.u_error = EOPNOTSUPP;
 }
 

@@ -58,7 +58,7 @@ extern "C" {
 #endif __cplusplus
 
 /* interfaces */
-/* this is silly and only needed for the IsVirgin/IsBackfetching tests! */
+/* this is silly and only needed for the IsVirgin test! */
 #include <cml.h>
 
 /* from vicedep */
@@ -2440,18 +2440,6 @@ int fsobj::IsVirgin() {
     }
 
     return(virginal);
-}
-
-
-int fsobj::IsBackFetching() {
-    cml_iterator next(vol->CML, CommitOrder, &fid);
-    cmlent *m;
-
-    while ((m = next())) 
-	if ((m->opcode == OLDCML_NewStore_OP) && m->IsReintegrating()) 
-	    return 1;
-
-    return 0;
 }
 
 
