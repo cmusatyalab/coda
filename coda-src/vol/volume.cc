@@ -168,16 +168,26 @@ void Vol_Init_vicedir(char *viced)
 /* not thread safe! */
 char *Vol_vicefile(char *file)
 {
-	static char *volpath = NULL;
-	if (!volpath) 
-		volpath = (char *)malloc(MAXPATHLEN);
-	CODA_ASSERT(volpath);
+	static char *volpath[2] = { NULL, NULL };
+	static char  vpidx = 0;
+
+	if (!volpath[0]) {
+		volpath[0] = (char *)malloc(MAXPATHLEN);
+		volpath[1] = (char *)malloc(MAXPATHLEN);
+	}
+	CODA_ASSERT(volpath[0]);
 	if (!vicedir)
 		CODA_ASSERT(0);
 	if (!file)
 		CODA_ASSERT(0);
-	snprintf(volpath, MAXPATHLEN, "%s/%s",  vicedir, file);
-	return volpath;
+
+	/* We need at least 2 static volpaths to be able to handle:
+	 *   rename(Vol_vicefile(p1), Vol_vicefile(p2);
+	 * the following indexing takes care of that. -JH */
+	vpidx = (vpidx + 1) & 0x1;
+	snprintf(volpath[vpidx], MAXPATHLEN, "%s/%s",  vicedir, file);
+
+	return volpath[vpidx];
 }
 
 /* invoked by all volume utilities except full salvager */
