@@ -114,6 +114,3 @@ struct fsobj *OBJ_Add(struct fsobjlist *objlist, ViceFid *fid)
 	}
 	return(obj);
 }
-
-
-#endif	not _VICE_OBJLIST_H_
