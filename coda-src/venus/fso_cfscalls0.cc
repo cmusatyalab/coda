@@ -16,7 +16,7 @@ listed in the file CREDITS.
 
 #*/
 
-//#define OLDFETCH
+#define OLDFETCH
 
 /*
  *

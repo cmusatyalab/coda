@@ -466,7 +466,7 @@ void fsobj::Recover() {
 
     /* Files that were open for write must be "closed" and discarded. */
     if (flags.owrite != 0) {
-	FSO_ASSERT(this, HAVEALLDATA(this));
+	FSO_ASSERT(this, HAVEDATA(this));
 	eprint("\t(%s, %x.%x.%x) discarding owrite object",
 	       comp, fid.Volume, fid.Vnode, fid.Unique);
 	Recov_BeginTrans();
