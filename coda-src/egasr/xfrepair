@@ -1,4 +1,4 @@
-#!/bin/csh -f 
+#!/bin/sh -e
 #ifndef _BLURB_
 #define _BLURB_
 #/*
@@ -30,75 +30,83 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/xfrepair,v 4.1 1997/01/08 21:49:35 rvb Exp $";
+#/*
+#Rewritten for the bourne shell by Anders Hammarquist <iko@iko.pp.se>
+#*/
+#
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/egasr/xfrepair,v 4.2 98/03/13 18:15:14 braam Exp $";
 #endif /*_BLURB_*/
 
+CTOKENS=ctokens
+RMINCFILE=removeinc
+CFS=cfs
 
-if ($#argv != 1) then 
-   echo "Usage: $0 <filename>"
-   exit -1
-endif 
+if [ $# != 1 ]; then
+    echo "Usage: $0 <filename>"
+    exit -1
+fi
 
-# check for coda authentication
-/usr/coda/etc/ctokens | grep "Not Authenticated" > /dev/null
-if ($status == 255) then
-   echo "You are not authenticated to the Coda servers"
-   exit 1
-endif
+# Check coda authentication
+if ! ctokens > /dev/null; then
+    echo "You are not authenticated to the Coda servers"
+    exit 1
+fi
 
-set fname = $argv[1]
-set RMINCFILE = /usr/coda/bin/removeinc
-set CFS = /usr/coda/bin/cfs
-if ($?DISPLAY) then
-   set xisrunning = 1
-   set ASKUSERSCRIPT = "/usr/coda/bin/xaskuser"
-else 
-   set xisrunning = 0
-   echo "Non-X version of this repair tool isn't available yet"
-   exit -1
-endif
+fname=$1
 
-set idir = $fname:h
-set ifile = $fname:t
-if ($ifile == $idir) set idir = $cwd
+if [ "x$DISPLAY" != x ]; then
+    ASKUSER=xaskuser
+else
+    echo "Non-X version of this repair tool isn't available yet"
+    exit -1
+fi
+
+idir=`dirname $fname`
+ifile=`basename $fname`
+
+trap "$CFS endrepair $idir/$file" 1 2 15
 
 $CFS beginrepair $idir/$ifile
-if ($status) then 
-   exit $status
-endif
 
-# check for local/global conflicts
-if ((-e ${fname}/local) && (-e ${fname}/global)) then
-   echo "$fname has a local/global conflict, please use the regular repair tool"	
-   $CFS endrepair $idir/$ifile
-   exit -1
-endif
+# Check for local/global conflicts
+if [ -e $fname/local -a -e $fname/global ]; then
+    echo "$fname has a local/global conflict,"
+    echo "please use the regular repair tool"
+    $CFS endrepair $idir/$ifile
+    exit -1
+fi
 
-set askout = `$ASKUSERSCRIPT $idir $ifile`
-set rc = $status
+set +e
+$ASKUSER $idir $ifile > /dev/null
+rc=$?
+set -e
 $CFS endrepair $idir/$ifile
-switch ($rc)
-   case 0:
-      # do nothing
-      exit 0
-      breaksw;
-   case 1:
-      # remove the inconsistent object
-      $RMINCFILE $idir/$ifile
-      exit $status
-      breaksw
-   case 2:
-      # use one of the replicas for repair, which has already been 
-      # done by the xaskuer script
-      exit 0
-      breaksw
-   case 3:
-      # use a new file for repair , which has already been
-      # done by the xaskuer script
-      exit 0
-      breaksw
-   default:
-      echo "Couldn't figure out what the user wanted to do"
-      exit -1
-      breaksw
-endsw
+
+case $rc in
+    0)
+        # do nothing
+	exit 0
+	;;
+
+    1)
+	# remove the inconsistent object
+	$RMINCFILE $idir/$ifile
+	;;
+
+    2)
+	# use one of the replicas for repair, which has already been 
+	# done by the xaskuer script
+	;;
+
+    3)
+	# use a new file for repair , which has already been
+	# done by the xaskuer script
+	;;
+
+    *)
+	echo "Couldn't figure out what the user wanted to do"
+	exit -1
+	;;
+esac
+
+exit 0
