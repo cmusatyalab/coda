@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/parser.c,v 4.1 1997/12/23 17:19:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/parser.c,v 4.2 1998/01/04 14:31:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -122,7 +122,50 @@ int line2args(char *line, char **argv, int maxargs)
     }
     return i;
 }
+
+/* find a command -- return it if unique otherwise print alternatives */
     
+static argcmd_t *Parser_findargcmd(char *name, argcmd_t cmds[])
+{
+	argcmd_t *cmd, *found = NULL;
+	int i, unique = 1;
+
+	for (i = 0; cmds[i].ac_name; i++) {
+		cmd = &cmds[i];
+
+		if (strlen(name) != strlen(cmd->ac_name))
+			continue;
+
+		if (strlen(name) == strlen(cmd->ac_name)) {
+			if (strcmp(name, cmd->ac_name) == 0) 
+				return cmd;
+			else
+				continue;
+		}
+
+	}
+	return NULL;
+}
+
+int Parser_execarg(int argc, char **argv, argcmd_t cmds[])
+{
+	argcmd_t *cmd;
+	int i;
+
+        cmd = Parser_findargcmd(argv[0], cmds);
+	if ( cmd ) {
+		return (cmd->ac_func)(argc, argv);
+	} else {
+		printf("Try interactive use without arguments or use one of: ");
+		for (i=0 ; cmds[i].ac_name ; i++) {
+			cmd = &cmds[i];
+			printf("\"%s\" ", cmd->ac_name);
+		}
+		printf("as argument.\n");
+	}
+	return -1;
+}
+
 /* returns the command_t * (NULL if not found) corresponding to a
    _partial_ match with the first token in name.  It sets *next to
    point to the following token. Does not modify *name. */

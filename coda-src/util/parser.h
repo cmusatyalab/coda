@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/parser.h,v 4.1 1997/01/08 21:49:53 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/parser.h,v 4.1 1997/12/23 17:20:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,6 +48,11 @@ typedef struct cmd {
     char *help;
 } command_t;
 
+typedef struct argcmd {
+	char    *ac_name;
+	int      (*ac_func)(int, char **);
+	char     *ac_help;
+} argcmd_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +62,7 @@ void Parser_commands();			/* Start the command parser */
 void Parser_qhelp(int, char **);	/* Quick help routine */
 void Parser_help(int, char **);		/* Detailed help routine */
 void Parser_exit(int, char **);		/* Shuts down command parser */
+int Parser_execarg(int argc, char **argv, argcmd_t cmds[]);
 
 /* Converts a string to an integer */
 int Parser_int(char *, int *);
