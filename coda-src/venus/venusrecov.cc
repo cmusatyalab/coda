@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/venusrecov.cc,v 4.1 1997/01/08 21:51:38 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusrecov.cc,v 4.2 1997/02/26 16:03:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -533,6 +533,7 @@ PRIVATE void Recov_CreateSeg() {
     LOG(10, ("Recov_CreateSeg: RVG = (%x, %x), RDS = (%x, %x)\n",
 	      Recov_RvgAddr, Recov_RvgLength, Recov_RdsAddr, Recov_RdsLength));
     rvm_offset_t dummy;
+    RVM_ZERO_OFFSET(dummy);	/* VenusDataDevice is file, must zero dummy */
     rvm_return_t ret = rvm_create_segment(VenusDataDevice, dummy,
 					   &Recov_Options, nregions, regions);
     if (ret != RVM_SUCCESS)
