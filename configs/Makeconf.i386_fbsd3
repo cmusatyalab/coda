@@ -30,12 +30,13 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_fbsd3,v 4.1 1998/09/04 00:57:03 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_fbsd3,v 4.2 1998/10/05 17:15:18 rvb Exp $";
 # 
 
 MACHINE_FLAGS = -D__BSD44__
 SHORTSYS      = bsd44
 INCLFLAGS     = -I/usr/include
+OPTFLAG	      =
 GFLAG         = -g
 CPP 	      = gcc -E -x c-header
 LIBCURSES     = /usr/lib/aout/libcurses.a

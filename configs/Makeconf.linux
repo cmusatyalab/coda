@@ -13,7 +13,8 @@
 MACHINE_FLAGS = 
 SHORTSYS      = linux
 INCLFLAGS     = -I/usr/include
-GFLAG         = 
+OPTFLAG	      =
+GFLAG         = -g
 CPP           = gcc -E -x c-header
 LIBCURSES     = -lncurses
 LIBTERMCAP    = $(LIBS)
