@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.3 1997/09/23 15:13:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.4 1998/01/08 13:32:26 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -119,7 +119,8 @@ static print_stubpredefined(FILE *where);
 
 extern char *concat(), *concat3elem(), *server_prefix, *client_prefix;;
 extern rp2_bool testing;
-extern rp2_bool c_plus;	    /* generate c++ compatible code */
+extern rp2_bool strictproto;
+extern rp2_bool cplusplus;
 extern rp2_bool neterrors;  /* exchange OS independent errors */
 extern struct subsystem subsystem;
 extern unsigned versionnumber;	/* used to check version */
@@ -303,9 +304,15 @@ copcodes(head, who, where)
 
     /* Generate <subsystem>_ExecuteRequest() definition, if 
 	<subsystem> is defined; may not be if HeadersOnlyFlag is RP2_TRUE */
+    if ( ! cplusplus ) {
+	    fprintf(where, "#ifdef __cplusplus\n");
+	    fprintf(where, "extern \"C\"{\n");
+	    fprintf(where, "#endif\n");
+    }
+	    
     if (subsystem.subsystem_name) {
-	fprintf(where, "extern int %s_ExecuteRequest(", subsystem.subsystem_name);
-	if (c_plus)
+	fprintf(where, "int %s_ExecuteRequest(", subsystem.subsystem_name);
+	if (strictproto)
 	    fprintf(where, "RPC2_Handle cid, RPC2_PacketBuffer *pb, SE_Descriptor *se");
 	fprintf(where, ");\n\n");
     }
@@ -314,14 +321,16 @@ copcodes(head, who, where)
 
 	    /* Output extern proc definitions */
 	    if (client_prefix)
-		fprintf(where, "extern long %s_%s(", client_prefix, head->name);
-	    else fprintf(where, "extern long %s(", head->name);
-	    if (c_plus) {PUTPARMS()}
+		    fprintf(where, "long %s_%s(", client_prefix, head->name);
+	    else 
+		    fprintf(where, "long %s(", head->name);
+	    if (strictproto) 
+		    {PUTPARMS()}
 	    fprintf(where, ");\n");
 
 	    if (server_prefix) {
-		fprintf(where, "extern long %s_%s(", server_prefix, head->name);
-		if (c_plus) {PUTPARMS()}
+		fprintf(where, "long %s_%s(", server_prefix, head->name);
+		if (strictproto) {PUTPARMS()}
 		fprintf(where, ");\n");
 	    }
 
@@ -364,12 +373,18 @@ copcodes(head, who, where)
 	    if (server_prefix)
 		fprintf(where, "extern long %s_%s(", server_prefix, head->name);
 	    else fprintf(where, "extern long %s(", head->name);
-	    if (c_plus) fprintf(where, "RPC2_Handle cid, RPC2_Integer SideEffectType, RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType, RPC2_CountedBS *ClientIdent");
+	    if (strictproto) fprintf(where, "RPC2_Handle cid, RPC2_Integer SideEffectType, RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType, RPC2_CountedBS *ClientIdent");
 	    fprintf(where, ");\n");
 
 	    /* Other definitions */
 	    head -> op_code = "RPC2_NEWCONNECTION";
 	}
+    if ( ! cplusplus ) {
+	    fprintf(where, "#ifdef __cplusplus\n");
+	    fprintf(where, "}\n");
+	    fprintf(where, "#endif\n");
+    }
+
     if (subsystem.subsystem_name) {
 	fprintf(where, "#define %sOPARRAYSIZE %d\n", subsystem.subsystem_name, next_opnum);
 	fprintf(where, "\nextern CallCountEntry %s_CallCount[];\n", subsystem.subsystem_name);
@@ -425,7 +440,7 @@ static locals(where)
 static common(where)
     register FILE *where;
 {
-    if (c_plus) {
+    if (strictproto) {
 	fputs("\n#ifdef __cplusplus\nextern \"C\" {\n#endif __cplusplus\n", where);
 	fputs("\n#include <sys/types.h>\n#include <netinet/in.h>\n#include <sys/time.h>\n", where);
 	fputs("#include <string.h>\n", where);
@@ -474,14 +489,14 @@ static one_client_proc(proc, where)
     fputs("\nlong ", where);
     if (client_prefix != NIL) fprintf(where, "%s_", client_prefix);
 
-    if(c_plus) fprintf(where, "%s(RPC2_Handle %s", proc->name, cid);
+    if(strictproto) fprintf(where, "%s(RPC2_Handle %s", proc->name, cid);
     else fprintf(where, "%s(%s", proc->name, cid);
 
     /* Now do parameter list and types */
     in_parms = RP2_FALSE;
     out_parms = RP2_FALSE;
 
-    if(c_plus) {
+    if(strictproto) {
 	for (parm=proc->formals; *parm!=NIL; parm++) {
 		    fprintf(where, ", ");
 		    spit_parm(*parm, CLIENT, where, RP2_TRUE);
@@ -1225,7 +1240,7 @@ static one_server_proc(proc, where)
     /* Generate header */
     fputs("\nstatic RPC2_PacketBuffer *_", where);
     if (server_prefix != NIL) fprintf(where, "%s_", server_prefix);
-    if (c_plus) {
+    if (strictproto) {
 	fprintf(where, "%s(RPC2_Handle %s, RPC2_PacketBuffer *%s, ", 
 			    proc->name, cid, reqbuffer);
 	fprintf(where, "SE_Descriptor *%s)\n", bd);

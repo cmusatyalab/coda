@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.1 1997/01/08 21:50:17 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.2 1997/09/23 15:13:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -111,7 +111,8 @@ static char *multi_includes[] = {
 };
 
 rp2_bool testing;
-rp2_bool c_plus, cplusplus;
+rp2_bool strictproto = 1;
+rp2_bool cplusplus = 0;
 rp2_bool ansi; 
 rp2_bool neterrors;
 
@@ -158,7 +159,7 @@ static int GetArgs(argc, argv)
     register int i;
 
     testing = RP2_FALSE;
-    c_plus = RP2_FALSE;   /* generate C++ compatible code? */
+    strictproto = RP2_TRUE;   /* generate strict prototypes */
     cplusplus = RP2_FALSE; /* by default generate .c not .cc files */
     ansi = RP2_FALSE;     /* generate ## paste tokens rather than double-comment */
     neterrors = RP2_FALSE; /* exchange errors in OS independent fashion */
@@ -199,7 +200,7 @@ static int GetArgs(argc, argv)
 	if (strcmp(argv[i], "-e") == 0)
 	    {neterrors = RP2_TRUE; continue;}
 	if (strcmp(argv[i], "-n") == 0)
-	    {c_plus = RP2_TRUE; continue;}
+	    {strictproto = RP2_TRUE; continue;}
 	if (strcmp(argv[i], "-t") == 0)
 	    {testing = RP2_TRUE; continue;}
 	if (strcmp(argv[i], "-ansi") == 0)
@@ -242,7 +243,7 @@ static int SetupFiles()
     h_hack_begin(hfile, hfile_name);
     header(hfile, h_includes[(int) clanguage]);
 
-    if ( c_plus ) {
+    if ( cplusplus ) {
             if (cfile_name == NIL) cfile_name = concat(base, ".client.cc");
     } else {
             if (cfile_name == NIL) cfile_name = concat(base, ".client.c");
@@ -252,7 +253,7 @@ static int SetupFiles()
     header(cfile, client_includes[(int) clanguage]);
     fprintf(cfile, "#include \"%s\"\n", hfile_name);
 
-    if ( c_plus ) {
+    if ( cplusplus ) {
             if (sfile_name == NIL) sfile_name = concat(base, ".server.cc");
     } else {
             if (sfile_name == NIL) sfile_name = concat(base, ".server.c");
@@ -262,7 +263,7 @@ static int SetupFiles()
     header(sfile, server_includes[(int) slanguage]);
     fprintf(sfile, "#include \"%s\"\n", hfile_name);
 
-    if ( c_plus ) { 
+    if ( cplusplus ) { 
             if (mfile_name == NIL) mfile_name = concat(base, ".multi.cc"); 
     } else {
             if (mfile_name == NIL) mfile_name = concat(base, ".multi.c");
