@@ -99,7 +99,7 @@ void lqman::func(int parm) {
 			lqe->Vid);
 		if ((lqe->Time + LQTIMEOUT <= currtime) &&
 		    !lqe->deqing) {
-		    printf("LQMan: Unlocking %x\n", lqe->Vid);
+		    printf("LQMan: Unlocking %lx\n", lqe->Vid);
 		    lqent *tmplqe = lqe;
 		    readahead = ((lqe = next()) != 0);
 		    objects.remove(tmplqe);
@@ -132,7 +132,7 @@ lqent *lqman::find(VolumeId vid) {
     lq_iterator next(objects);
     lqent *lqe;
 
-    while (lqe = next())
+    while ((lqe = next()))
 	if (vid == lqe->Vid)
 	    break;
     ReleaseReadLock(&lock);
@@ -142,7 +142,7 @@ lqent *lqman::findanddeq(VolumeId vid) {
     ObtainReadLock(&lock);
     lq_iterator next(objects);
     lqent *lqe;
-    while (lqe = next()) 
+    while ((lqe = next())) 
 	if (vid == lqe->Vid)
 	    break;
     if (lqe)
@@ -165,7 +165,7 @@ void lqman::print(int fd) {
     
     lq_iterator	next(objects);
     lqent *lqe;
-    while(lqe = next()) lqe->print(fd);
+    while((lqe = next())) lqe->print(fd);
     ReleaseReadLock(&lock);
 }
 
@@ -194,7 +194,7 @@ void lqent::print(FILE *fp) {
 void lqent::print(int fd) {
     char buf[80];
     
-    sprintf(buf, "VolumeId = 0x%x, time = %d, deqing = %d\n",
+    sprintf(buf, "VolumeId = 0x%lx, time = %ld, deqing = %d\n",
 	     Vid, Time, deqing);
     write(fd, buf, (int)strlen(buf));
 }

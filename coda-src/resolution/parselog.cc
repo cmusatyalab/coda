@@ -57,7 +57,7 @@ void ParseRemoteLogs(char *buf, int bufsize, int nentries,
 
     *hlist = new olist();
 
-    unsigned long currenthost = 0;
+    int currenthost = 0;
     he *currenthe = NULL;
 
     VnodeId vnode = 0;
@@ -68,7 +68,7 @@ void ParseRemoteLogs(char *buf, int bufsize, int nentries,
 	rsle *r = &((*RemoteLogEntries)[i]);
 
 	// index overloaded to hold hostid when shipped 
-	if (r->index != currenthost) {
+	if ((r->index != (int)currenthost)) {
 	    // new host, add new entry to host list
 	    currenthe = new he(r->index);
 	    (*hlist)->append(currenthe);
@@ -99,9 +99,9 @@ void ParseRemoteLogs(char *buf, int bufsize, int nentries,
 
 void DeallocateRemoteLogs(olist *AllLogs) {
     he *nexthe = NULL;
-    while (nexthe = (he *)(AllLogs->get())) {
+    while ((nexthe = (he *)(AllLogs->get()))) {
 	remoteloglist *rll;
-	while (rll = (remoteloglist *)(nexthe->vlist.get())) 
+	while ((rll = (remoteloglist *)(nexthe->vlist.get()))) 
 	    delete rll;			// remove all links and free rll
 	delete nexthe;
     }
@@ -130,7 +130,7 @@ static void ReadOpsFromBuf(char *buf, int bufsize,
 remoteloglist *FindLogList(he *hostent, VnodeId vn, Unique_t un) {
     olist_iterator next(hostent->vlist);
     remoteloglist *r;
-    while (r = (remoteloglist *)next()) 
+    while ((r = (remoteloglist *)next())) 
 	if (r->vnode == vn && r->unique == un) 
 	    return(r);
     return(NULL);

@@ -80,9 +80,9 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
     // check semantics for rename 
     {
 	newinclist = new dlist((CFN)CompareIlinkEntry);
-	if (errorCode = CheckResolveRenameSemantics(r, volptr, dFid, vlist, &sv, &tv, 
+	if ((errorCode = CheckResolveRenameSemantics(r, volptr, dFid, vlist, &sv, &tv, 
 						    &sdv, &tdv, AllLogs, inclist, 
-						    newinclist, blocks))
+						    newinclist, blocks)))
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "Error %d from CheckResolveRenameSemantics\n",
 		   errorCode);
@@ -124,7 +124,7 @@ int CheckAndPerformRename(rsle *r, Volume *volptr, VolumeId VSGVolnum,
 	       r->name2, r->u.mv.tvnode, r->u.mv.tunique);
     
 	ilink *il;
-	while (il = (ilink *)newinclist->get()) {
+	while ((il = (ilink *)newinclist->get())) {
 	    ViceFid fid;
 	    FormFid(fid, V_id(volptr), il->vnode, il->unique);
 	    
@@ -214,7 +214,6 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
     int SrcNameFidBindingOK = FALSE;
     int SrcObjExists = FALSE;
     int SrcParentPtrOK = FALSE;
-    char name[MAXNAMLEN];
     int errorCode = 0;
 
     /* check that both src and target directories exist */
@@ -393,13 +392,13 @@ static int CheckResolveRenameSemantics(rsle *r, Volume *volptr, ViceFid *dFid, d
     }
     
     /* check normal rename semantics */
-    if (errorCode = CheckRenameSemantics(NULL, &opv->vptr, &npv->vptr, 
+    if ((errorCode = CheckRenameSemantics(NULL, &opv->vptr, &npv->vptr, 
 					 &sv->vptr, 
 					 r->name1, tv ? &tv->vptr : 0, 
 					 r->name2, &volptr, 0, NULL, 
 					 NULL, NULL, NULL, NULL, 
 					 NULL, NULL, NULL, NULL, 
-					 NULL, NULL, 0, 1)) {
+					 NULL, NULL, 0, 1))) {
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "ChkResRenSem: Error %d from vicerenamechksemantics ",
 	       errorCode);

@@ -173,12 +173,11 @@ int ExtractVolHeader(VolumeId volid, struct VolumeHeader *header)
 int VolHeaderByIndex(int myind, struct VolumeHeader *header) 
 {
 	VolumeId maxid = 0;
-	int status = 0;	/* transaction status variable */
 
 	VLog(9,  "Entering VolHeaderByIndex for index %d", myind);
 
 	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-	if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS)) {
+	if ((myind < 0) || (myind >= (int)maxid) || (myind >= MAXVOLS)) {
 		VLog(1,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
 		return(-1);
 	}
@@ -306,7 +305,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 		p = vnlist[i].get();
 
 		if (p == NULL) {
-			if (++i < nLists) 
+			if (++i < (int)nLists) 
 				continue;
 			moreVnodes = FALSE;
 			break;

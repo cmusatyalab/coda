@@ -321,7 +321,8 @@ int VAllocFid(Volume *vp, VnodeType type, VnodeId vnode, Unique_t unique)
 
 	/* Set the proper bit in the bitmap. */
 	VnodeClass vclass = vnodeTypeToClass(type);
-	int bitNumber = VAllocBitmapEntry(&ec, vp, &vp->vnIndex[vclass], vnode);
+	int bitNumber;
+	bitNumber = VAllocBitmapEntry(&ec, vp, &vp->vnIndex[vclass], vnode);
 
 	return ec;
 
@@ -858,11 +859,11 @@ void VN_VN2PFid(Vnode *vptr, Volume *volptr, ViceFid *fid)
 
 static void printvn(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber)
 {
-    fprintf(outfile, "Vnode %u.%u.%u, cloned = %u, length = %u, inode = %u\n",
+    fprintf(outfile, "Vnode %lu.%lu.%lu, cloned = %u, length = %lu, inode = %lu\n",
         vnodeNumber, vnode->uniquifier, vnode->dataVersion, vnode->cloned,
 	vnode->length, vnode->inodeNumber);
-    fprintf(outfile, "link count = %u, type = %u, volume index = %ld\n", vnode->linkCount, vnode->type, vnode->vol_index);
-    fprintf(outfile, "parent = %x.%x\n", vnode->vparent, vnode->uparent);
+    fprintf(outfile, "link count = %u, type = %u, volume index = %d\n", vnode->linkCount, vnode->type, vnode->vol_index);
+    fprintf(outfile, "parent = %lx.%lx\n", vnode->vparent, vnode->uparent);
     PrintVV(outfile, &(vnode->versionvector));
     return;
 }

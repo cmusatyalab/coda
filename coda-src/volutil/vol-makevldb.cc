@@ -152,7 +152,6 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
     int MaxRO, MaxBK, MaxRW;
     int err = 0;
     ProgramType *pt;
-    struct vldb *tmpvldb;
 
     /* To keep C++ 2.0 happy */
     char *infile = (char *)formal_infile;
@@ -229,7 +228,7 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	printf("makevldb:  Unable to create %s; aborted\n", VLDB_TEMP);
 	return(VNOVNODE);
     }
-    if (write(fd, (char *)vldb_array, vldbSize*sizeof(struct vldb)) != vldbSize*sizeof(struct vldb)) {
+    if (write(fd, (char *)vldb_array, vldbSize*sizeof(struct vldb)) !=  vldbSize*(int)sizeof(struct vldb)) {
 	perror("makevldb");
 	unlink(VLDB_TEMP);
 	return(VNOVNODE);
@@ -299,7 +298,7 @@ static int Pass(char type)
 		while (++argp,--nargs) {
 		    switch (**argp) {
 			case 'I':
-			    sscanf(&(*argp)[1], "%x", &volume);
+			    sscanf(&(*argp)[1], "%lx", &volume);
 			    break;
 			case 'H':
 			    sscanf(&(*argp)[1], "%x", &server);
@@ -317,7 +316,7 @@ static int Pass(char type)
 			    sscanf(&(*argp)[1], "%x", &diskusage);
 			    break;
 			case 'W':
-			    sscanf(&(*argp)[1], "%x", &readwrite);
+			    sscanf(&(*argp)[1], "%lx", &readwrite);
 			    break;
 			case 'D':
 			    sscanf(&(*argp)[1], "%x", &copydate);
@@ -337,21 +336,21 @@ static int Pass(char type)
 			    return(VFAIL);
 		    }
 		}
-		sprintf(idname, "%u", volume);
+		sprintf(idname, "%lu", volume);
 		/* debugging hack: */
-		sprintf(rootname, "%u", volume);
+		sprintf(rootname, "%lu", volume);
 		VolumeEntry(type, 0, idname, volume, server, readwrite, creationdate, copydate, backupdate);
 		VolumeEntry(type, 1, name, volume, server, readwrite, creationdate, copydate, backupdate);
-		fprintf(AllList, "%s %x %s %s %u %u %u %c %u %u %u\n", name, volume, ServerName[server],
+		fprintf(AllList, "%s %lx %s %s %u %u %u %c %u %u %u\n", name, volume, ServerName[server],
 			    partition, diskusage, minquota, maxquota, type, creationdate, copydate, volumeusage);
 		if (type == 'B') {
 		    register char *dot;
-		    if (dot = (char *) rindex(name, '.'))
+		    if ( (dot = (char *) rindex(name, '.')) )
 			*dot = 0;
-		    fprintf(BackupList, "%s %x %s %s\n", name, readwrite, ServerName[server], partition);
+		    fprintf(BackupList, "%s %lx %s %s\n", name, readwrite, ServerName[server], partition);
 		}
 		else if (type == 'W') {
-		    fprintf(RWList, "%s %x %s %s %u %u %u\n", name, volume, ServerName[server],
+		    fprintf(RWList, "%s %lx %s %s %u %u %u\n", name, volume, ServerName[server],
 			    partition, diskusage, minquota, maxquota);
 		}
 	    }
@@ -374,7 +373,6 @@ static void VolumeEntry(char type, int byname, char *name, unsigned long volume,
 		int copydate, int backupdate)
 {
     struct vldb vnew;
-    int takenew = 0;
     haveEntry = 1;
     bzero((char *)&vnew, sizeof(vnew));
     strncpy(vnew.key, name, sizeof(vnew.key)-1);
@@ -433,7 +431,7 @@ static void AddReadOnlyEntry(register struct vldb *vnew, int byname,
 	Add(vnew, creationdate);
 	added = 1;
     }
-    sprintf(rwname, "%u", readwrite);
+    sprintf(rwname, "%lu", readwrite);
     if (byname && added) {
         register struct vldb *rwp;
 	rwp = Lookup(rwname, &olddate);
@@ -468,7 +466,7 @@ static void AddBackupEntry(register struct vldb *vnew, int byname,
 	Add(vnew, backupdate);
 	added = 1;
     }
-    sprintf(rwname, "%u", readwrite);
+    sprintf(rwname, "%lu", readwrite);
     if (byname && added) {
         register struct vldb *rwp;
 	rwp = Lookup(rwname, &olddate);
@@ -543,7 +541,7 @@ static void CheckRWindex(unsigned long volume, char *name)
     long date;
     register struct vldb *idp, *namep;
     char idname[100];
-    sprintf(idname, "%u", volume);
+    sprintf(idname, "%lu", volume);
     idp = Lookup(idname, &date);
     namep = Lookup(name, &date);
     if (idp == 0 || namep == 0)
@@ -613,9 +611,9 @@ static void GetServerNames() {
         char sname[50];
 	struct hostent *hostent;
 	long sid;
-	if (sscanf(line, "%s%d", sname, &sid) == 2) {
+	if (sscanf(line, "%s%ld", sname, &sid) == 2) {
 	    if (sid > N_SERVERIDS) {
-		printf("Warning: host %s is assigned a bogus server number (%u) in %s; host ignored\n",
+		printf("Warning: host %s is assigned a bogus server number (%lu) in %s; host ignored\n",
 		  sname, sid, serverList);
 		continue;
 	    }

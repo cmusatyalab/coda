@@ -126,7 +126,7 @@ void timing_path::postprocess(int fd) {
 	timeval difft;
 	sprintf(buf, "There are %d entries\n", nentries);
 	write(fd, buf, strlen(buf));
-	sprintf(buf, "Entry[0] is id: %d time (%u.%u)\n",
+	sprintf(buf, "Entry[0] is id: %d time (%lu.%lu)\n",
 		arr[0].id, arr[0].tv.tv_sec, arr[0].tv.tv_usec);
 	write(fd, buf, strlen(buf));
 #ifdef _NSC_TIMING_
@@ -160,14 +160,14 @@ void timing_path::postprocess(int fd) {
 	for (int i = 1; i < nentries; i++) {
 	    tvaminustvb(&arr[i].tv, &arr[i-1].tv, &difft);
 	    sprintf(buf, 
-		    "Entry[%d] id: %d time (%u.%u), delta (%u secs %u usecs)\n",
+		    "Entry[%d] id: %d time (%lu.%lu), delta (%lu secs %lu usecs)\n",
 		    i, arr[i].id, arr[i].tv.tv_sec, arr[i].tv.tv_usec,
 		    difft.tv_sec, difft.tv_usec);
 	    write(fd, buf, strlen(buf));
 	}
 	if (nentries > 1) {
 	    tvaminustvb(&arr[nentries-1].tv, &arr[0].tv, &difft);
-	    sprintf(buf, "Final delta between entry id %d and %d is %u secs %u usecs\n",
+	    sprintf(buf, "Final delta between entry id %d and %d is %lu secs %lu usecs\n",
 		    arr[nentries-1].id, arr[0].id, difft.tv_sec, difft.tv_usec);
 	    write(fd, buf, strlen(buf));
 	}

@@ -179,7 +179,6 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     VolumeId VSGVolnum = Fid->Volume;
     long repvolid = Fid->Volume;
     int errorCode = 0;
-    int camstatus = 0;
     *rstatus = 0;
     olist *forceList = 0;
     dlist *vlist = new dlist((CFN)VLECmp);
@@ -205,8 +204,8 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     {
 	pv = AddVLE(*vlist, Fid);
 	pv->d_inodemod = 1;
-	if (errorCode =GetFsObj(Fid, &volptr, &pv->vptr, 
-				WRITE_LOCK, NO_LOCK, 0, 0, pv->d_inodemod)) {
+	if ((errorCode =GetFsObj(Fid, &volptr, &pv->vptr, 
+				WRITE_LOCK, NO_LOCK, 0, 0, pv->d_inodemod))) {
 	    *rstatus = EINVAL;
 	    goto FreeLocks;
 	}
@@ -253,7 +252,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 
     /* do semantic checking */
     {
-	if (errorCode = CheckForceDirSemantics(forceList, volptr, dirvptr)) {
+	if ((errorCode = CheckForceDirSemantics(forceList, volptr, dirvptr))) {
 	    SLog(0,  "RS_DoForceDirOps: error %d during Sem Checking");
 	    *rstatus = EINVAL;
 	    goto FreeLocks;
@@ -279,8 +278,8 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     {
 	SLog(9,  "RS_DoForceDirOps: Going to force directory(%x.%x.%x)",
 		repvolid, dirvptr->vnodeNumber, dirvptr->disk.uniquifier);
-	if (errorCode = ForceDir(pv, volptr, repvolid, forceList, 
-				 vlist, &deltablocks)) {
+	if ((errorCode = ForceDir(pv, volptr, repvolid, forceList, 
+				 vlist, &deltablocks))) {
 	    SLog(0,  "Error %d in ForceDir", errorCode);
 	    *rstatus = EINVAL;
 	    goto FreeLocks;
@@ -303,8 +302,8 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     if (AllowResolution && V_RVMResOn(volptr) && !errorCode) {
 	SLog(9,  
 	       "RS_DoForceDirOps: Going to spool recoverable log record \n");
-	if (errorCode = SpoolVMLogRecord(vlist, pv->vptr, volptr, 
-					 &status->VV.StoreId, ResolveNULL_OP, 0)) 
+	if ((errorCode = SpoolVMLogRecord(vlist, pv->vptr, volptr, 
+					 &status->VV.StoreId, ResolveNULL_OP, 0))) 
 	    SLog(0, 
 		   "RS_DoForceDirOps: Error %d during SpoolVMLogRecord\n", 
 		   errorCode);
@@ -313,7 +312,7 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
   FreeLocks:
     if (forceList){
 	olink *p;
-	while(p = forceList->get())
+	while((p = forceList->get()))
 	    delete p;
 	delete forceList;
     }
@@ -338,7 +337,6 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
     Volume *volptr = 0;
     long errorcode = 0;
     SE_Descriptor sid;
-    int camstatus = 0;
     int fd = 0;
     char buf[20];
     char *filename = 0;
@@ -351,7 +349,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 		Fid->Volume);
 	return(EINVAL);
     }
-    if (errorcode =GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0)) {
+    if ((errorcode =GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0))) {
 	SLog(0,  "RS_GetForceDirOps:GetFsObj returns error %d",
 		errorcode);
 	errorcode = EINVAL;
@@ -374,7 +372,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	errorcode = EIO;
 	goto FreeLocks;
     }
-    while(dop = (diroplink *) gdop.oplist->get()){
+    while((dop = (diroplink *) gdop.oplist->get())){
 	dop->hton();
 	CODA_ASSERT(dop->write(fd) == 0);
 	delete dop;
@@ -460,8 +458,8 @@ int ObtainDirOps(PDirEntry de, void *data)
 	/* check if it should be actual file creation or just a link */
 	olist_iterator	next(*(gdop->oplist));
 	diroplink	*dopl;
-	while(dopl = (diroplink *)next()) {
-	    if (vnode == dopl->vnode && unique == dopl->unique){
+	while((dopl = (diroplink *)next())) {
+	    if ((long)vnode == dopl->vnode && (long)unique == dopl->unique){
 		CODA_ASSERT(dopl->op == CreateF || dopl->op == CreateL);
 		break;
 	    }
@@ -549,7 +547,7 @@ static int CheckForceDirSemantics(olist *flist, Volume *volptr, Vnode *dirvptr) 
     /* check if there is enough disk space */
     if (deltablocks) {
 	int errorCode;
-	if (errorCode = CheckDiskUsage(volptr, deltablocks))
+	if ((errorCode = CheckDiskUsage(volptr, deltablocks)))
 	    return(errorCode);
     }
 
@@ -567,7 +565,6 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	    repvolid, pv->vptr->vnodeNumber, pv->vptr->disk.uniquifier);
     diroplink *p;
     ViceFid parentFid;
-    Vnode *cvnode = 0;
     int errorCode = 0;
     
     *deltablocks = 0;
@@ -591,9 +588,9 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
 		cv->d_inodemod = 1;
-		if (errorCode = AllocVnode(&cv->vptr, volptr, 
+		if ((errorCode = AllocVnode(&cv->vptr, volptr, 
 					   (ViceDataType)vDirectory, &cFid, 
-					   &parentFid, 0, 1, &tblocks)) 
+					   &parentFid, 0, 1, &tblocks)))
 		    return(errorCode);
 		*deltablocks += tblocks;
 		tblocks = 0;
@@ -611,8 +608,8 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
-		if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
-					   &parentFid, 0, 1, &tblocks))
+		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
+					   &parentFid, 0, 1, &tblocks)))
 		    return(errorCode);
 		*deltablocks += tblocks;
 		tblocks = 0;
@@ -654,8 +651,8 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
-		if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid, 
-					   &parentFid, 0, 1, &tblocks))
+		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid, 
+					   &parentFid, 0, 1, &tblocks)))
 		    return(errorCode);
 		*deltablocks += tblocks;
 		tblocks = 0;
@@ -687,7 +684,7 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	dlist_iterator next(*vlist);
 	vle *v;
 	if (!errorCode)
-	    while (v = (vle *)next()) 
+	    while ((v = (vle *)next())) 
 		if ((v->vptr->delete_me == 1) &&
 		    (v->vptr->disk.linkCount > 0))
 		    v->vptr->delete_me = 0;

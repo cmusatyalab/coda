@@ -106,7 +106,7 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
 
     /* See if user passed in volid rather than volname */
     long volid, index;
-    if ((sscanf(vol, "%X", &volid) ==  1) && ((index = HashLookup(volid)) > 0)) {
+    if ((sscanf(vol, "%lX", &volid) ==  1) && ((index = HashLookup(volid)) > 0)) {
 	VolumeDiskData *vp = SRV_RVM(VolumeList[index]).data.volumeInfo;
 	VGetVolumeInfo(&error, vp->name, &info);
     } else {
@@ -122,24 +122,24 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
 	int printed, i;
 	register RPC2_Unsigned *sptr;
 	RPC2_Unsigned s;
-	fprintf(infofile, "Info for vol \"%s\": volume id %x, %s volume\n", vol, info.Vid, voltypes[info.Type]);
+	fprintf(infofile, "Info for vol \"%s\": volume id %lx, %s volume\n", vol, info.Vid, voltypes[info.Type]);
     	fprintf(infofile, "Associates: ");
 	for (printed=0, p = &info.Type0, i = 0; i<MAXVOLTYPES; i++, p++) {
 	    if (*p) {
 		if (printed)
 		    fprintf(infofile, ",");
-		fprintf(infofile, " %s volume %x", voltypes[i], *p);
+		fprintf(infofile, " %s volume %lx", voltypes[i], *p);
 		printed++;
 	    }
 	}
 	fprintf(infofile, "\nOn servers: ");
-	for (i = 0, sptr = &info.Server0; i<info.ServerCount; i++,sptr++) {
+	for (i = 0, sptr = &info.Server0; i< (int) info.ServerCount; i++,sptr++) {
 	    struct hostent *h;
 	    s = htonl(*sptr);
 	    h = gethostbyaddr((char *)&s, sizeof(s), AF_INET);
 	    if (h)
 	        fprintf(infofile, "%s", h->h_name);
-	    if (i<info.ServerCount-1)
+	    if (i < (int)info.ServerCount-1)
 	        fprintf(infofile, ", ");
 	}
 	fprintf(infofile, "\n");

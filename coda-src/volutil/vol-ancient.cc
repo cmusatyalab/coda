@@ -54,7 +54,6 @@ extern "C" {
 long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
 {
     ProgramType *pt;
-    int status = 0;
     int rc = 0;
     
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);

@@ -132,7 +132,7 @@ static char *get(DumpBuffer_t *buf, int size, int *error)
 	    buf->secs += (after - before);
 	    LogMsg(2, SrvDebugLevel, stdout,"ReadDump: got %d bytes.", sed.Value.SmartFTPD.BytesTransferred);
     
-	    if (nbytes != (buf->DumpBufEnd - buf->DumpBufPtr)) {
+	    if ((int)nbytes != (buf->DumpBufEnd - buf->DumpBufPtr)) {
 		LogMsg(2, VolDebugLevel, stdout, "ReadStuff: ReadDump didn't fetch enough -- end of dump.");
 	    }
 	    if (nbytes == 0) *error = EOF;
@@ -144,7 +144,7 @@ static char *get(DumpBuffer_t *buf, int size, int *error)
 		if (fd < 0) LogMsg(0, VolDebugLevel, stdout, "Open failed!");
 		else {
 		    int n = write(fd, buf->DumpBufPtr, (int)nbytes);
-		    if (n != nbytes) {
+		    if (n != (int)nbytes) {
 			LogMsg(0, VolDebugLevel, stdout, "Couldn't write %d bytes!", nbytes);
 		    }
 		    close(fd);
@@ -228,7 +228,7 @@ int ReadString(register DumpBuffer_t *buf, register char *to, register int max)
     register char *str = (char *)get(buf, (int)len, &error);
     if (!str || (error == EOF)) return FALSE;
 
-    if (len + 1 > max) { 	/* Ensure we only use max room */
+    if ((int)len + 1 > max) { 	/* Ensure we only use max room */
 	len = max - 1;
 	LogMsg(0, VolDebugLevel, stdout,"ReadString: String longer than max (%d>%d) truncating.",len,max);
     }
@@ -480,9 +480,9 @@ int ReadVolumeDiskData(DumpBuffer_t *buf, VolumeDiskData *vol)
 		int i;
     		unsigned long data;
 	  	ReadLong(buf, &length);
-		for (i = 0; i<length; i++) {
+		for (i = 0; i<(int)length; i++) {
 		    ReadLong(buf, &data);
-		    if (i < sizeof(vol->weekUse)/sizeof(vol->weekUse[0]))
+		    if (i < (int)(sizeof(vol->weekUse)/sizeof(vol->weekUse[0])))
 			vol->weekUse[i] = (int)data;
 		}
 		break;

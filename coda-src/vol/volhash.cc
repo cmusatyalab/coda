@@ -124,7 +124,7 @@ hashent *vhashtab::find(VolumeId volid)
     vhash_iterator next(*this, volid);
     hashent *vol;
 
-    while (vol = next()) {
+    while ((vol = next())) {
 	if(vol->id == volid)
 	    return(vol);
     }
@@ -140,11 +140,11 @@ int vhashtab::volumes()
 
 void vhashtab::vprint(FILE *fp) {
     if (fp == NULL) {
-	printf("%#08x : %s\n", (long)this, name);
+	printf("%p : %s\n", this, name);
 	printf("%d volumes\n", vols);
     }
     else {
-	fprintf(fp, "%#08x : %s\n", (long)this, name);
+	fprintf(fp, "%p : %s\n", this, name);
 	fprintf(fp, "%d volumes\n", vols);
     }
 }

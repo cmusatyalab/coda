@@ -43,7 +43,7 @@ VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-
+CXXFLAGS += -Wall
 EXECUTABLES = volutil parserecdump backup readdump merge
 SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libvolutil.a libvolserv.a
@@ -74,7 +74,6 @@ LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
 # Keep these in alphabetical order, and 1 per line for easy
 # comparison with ls output 
 VOLUTILOBJS = \
-	listinodes.o \
 	vol-ancient.o \
 	vol-backup.o \
 	vol-clone.o \

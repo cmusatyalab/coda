@@ -56,9 +56,9 @@ extern "C" {
 void getlistfilename(char *filename, VolumeId groupId, VolumeId repId, char *suffix)
 {
     if (groupId > 0)
-	sprintf(filename, "/vice/backup/%x.%x.", groupId, repId);
+	sprintf(filename, "/vice/backup/%lx.%lx.", groupId, repId);
     else
-	sprintf(filename, "/vice/backup/%x.", repId);
+	sprintf(filename, "/vice/backup/%lx.", repId);
 	
     strcat(filename, suffix);
 }
@@ -79,7 +79,7 @@ int ValidListVVHeader(FILE *Ancient, register Volume *vp, int *unique)
 	   dummy, &volid, unique, &parid) < 4)
 	return FALSE;
 
-    if (parid != V_parentId(vp))
+    if (parid != (int)V_parentId(vp))
 	return FALSE;
 
     return TRUE;
@@ -94,16 +94,16 @@ void DumpListVVHeader(int VVListFd,register Volume *vp,int Incremental,int uniqu
     if (VVListFd > 0) {
 	if (V_type(vp) == BACKVOL) /* Only Backups or R/O are dumped. */
 	    sprintf(buffer,
-		    "%s dump of backup vol %x(%x) for R/W vol %x, backup at %s",
+		    "%s dump of backup vol %lx(%x) for R/W vol %lx, backup at %s",
 		    (Incremental? "Incremental" : "Full"),
 		    V_id(vp), unique, V_parentId(vp), ctime(&time));
 	else 
 	    sprintf(buffer,
-		    "%s dump of clone vol %x(%x) for R/W vol %x, cloned at %s",
+		    "%s dump of clone vol %lx(%x) for R/W vol %lx, cloned at %s",
 		    (Incremental? "Incremental" : "Full"),
 		    V_id(vp), unique, V_parentId(vp), ctime(&time));
 
-	if (write(VVListFd, buffer, (int)strlen(buffer)) != strlen(buffer))
+	if (write(VVListFd, buffer, strlen(buffer)) != (int)strlen(buffer))
 	    LogMsg(0, VolDebugLevel, stdout, "DumpListVVHeader write didn't succeed");    
     }
 }
@@ -115,7 +115,7 @@ void ListVV(int fd, int vnode, struct VnodeDiskObject *vnp)
     ViceVersionVector *vv = (ViceVersionVector *)(&(vnp->versionvector));
     
     if (fd > 0) {
-	sprintf(buffer, "%d.%d (%d.%d.%d.%d.%d.%d.%d.%d) (%x.%x)\n",
+	sprintf(buffer, "%d.%ld (%ld.%ld.%ld.%ld.%ld.%ld.%ld.%ld) (%lx.%lx)\n",
 		vnode, vnp->uniquifier,
 		vv->Versions.Site0,     vv->Versions.Site1, 
 		vv->Versions.Site2,     vv->Versions.Site3, 
@@ -123,7 +123,7 @@ void ListVV(int fd, int vnode, struct VnodeDiskObject *vnp)
 		vv->Versions.Site6,     vv->Versions.Site7, 
 		vv->StoreId.Host,       vv->StoreId.Uniquifier);
 
-	if (write(fd, buffer, (int)strlen(buffer)) != strlen(buffer))
+	if (write(fd, buffer, strlen(buffer)) != (int)strlen(buffer))
 	    LogMsg(0, VolDebugLevel, stdout, "ListVV didn't write out correctly (%d)", errno);
     }
 }

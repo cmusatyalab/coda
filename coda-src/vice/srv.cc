@@ -329,7 +329,6 @@ main(int argc, char *argv[])
 {
     char    sname[20];
     int     i;
-    int     len;
     FILE   *file;
     struct stat buff;
     PROCESS parentPid, serverPid, resPid, smonPid, resworkerPid;
@@ -813,7 +812,6 @@ static void CheckLWP()
 static void ShutDown()
 {
     int     fd;
-    int camstatus = 0;
 
     PrintCounters(stdout);
 
@@ -1232,7 +1230,7 @@ static int compar(struct dirent **dp1, struct dirent **dp2) {
    Then "pushes" them, resulting in SrvLog-1, SrvLog-2,....SrvLog-(N+1).
    All work is done in the current directory.
 */
-static pushlog() { 
+static int pushlog() { 
     int i, count;
     char buf[100], buf2[100]; /* can't believe there will be more logs! */
     struct dirent **namelist;
@@ -1610,7 +1608,7 @@ void Die(char *msg)
 
 
 static void DaemonizeSrv() { 
-    int child, rc; 
+    int  rc; 
    /* Set DATA segment limit to maximum allowable. */
 #ifndef __CYGWIN32__
     struct rlimit rl;

@@ -67,8 +67,8 @@ static char *ConcatLogs(res_mgrpent *, char **, RPC2_Integer *, RPC2_Integer *, 
 static int ResolveInc(res_mgrpent *, ViceFid *, ViceVersionVector **);
 static int CompareDirContents(SE_Descriptor *, ViceFid *);
 static int CompareDirStatus(ViceStatus *, res_mgrpent *, ViceVersionVector **);
-static DumpDirContents(SE_Descriptor *, ViceFid *);
-static PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *);
+static void DumpDirContents(SE_Descriptor *, ViceFid *);
+static void PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *);
 static int AllIncGroup(ViceVersionVector **, int );
 static void UpdateStats(ViceFid *, dirresstats *);
 static void UpdateStats(ViceFid *, int , int );
@@ -126,9 +126,7 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	if (mgrp->IncompleteVSG()) drstats.dir_incvsg++;
     }
     
-    LogMsg(0, SrvDebugLevel, stdout,
-	   "Entering RecovDirResolve (0x%x.%x.%x)\n",
-	   Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(0, "Entering RecovDirResolve %s\n", FID_(Fid));
 
     // Check if object can be resolved 
     if (checkpaths) {
@@ -256,14 +254,14 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	if (AllLogs) free(AllLogs);
 	if (inclist) CleanIncList(inclist);
     }
-    LogMsg(1, SrvDebugLevel, stdout,
-	   "RecovDirResolve returns %d\n", retval);
+    SLog(1, "RecovDirResolve returns %d\n", retval);
     UpdateStats(Fid, &drstats);
     if ((dirdepth != -1) && (noinc != -1))
 	UpdateStats(Fid, noinc, dirdepth);
     return(retval);
 }
 
+/* weak resolution, runts, and VV already equal cases */
 static int RegDirResRequired(res_mgrpent *mgrp, ViceFid *Fid, 
 			      ViceVersionVector **VV, ResStatus **rstatusp, 
 			      int *errorCode) {
@@ -388,8 +386,8 @@ static char *CoordPhase2(res_mgrpent *mgrp, ViceFid *fid,
 	       mgrp->rrcc.retcodes[4], mgrp->rrcc.retcodes[5], 
 	       mgrp->rrcc.retcodes[6], mgrp->rrcc.retcodes[7]);
 	mgrp->CheckResult();
-	if (errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				      mgrp->rrcc.hosts, successFlags)) {
+	if ((errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
+				      mgrp->rrcc.hosts, successFlags))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "Error Code from at least one server sending log");
 	   goto Exit;
@@ -517,8 +515,8 @@ static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logsi
 		       sidvar_bufs);
 	mgrp->CheckResult();
 	int errorCode = 0;
-	if (errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				      mgrp->rrcc.hosts, successFlags)) {
+	if ((errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
+				      mgrp->rrcc.hosts, successFlags))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "CoordPhase3: Error %d in ResPhase3", errorCode);
 	    return(errorCode);
@@ -623,8 +621,8 @@ static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
 		       mgrp->rrcc.MIp, 0, 0, Fid, &UpdateSet, sidvar_bufs);
 	mgrp->CheckResult();
 	
-	if (Phase4Err = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
-				      mgrp->rrcc.hosts, succflags)) 
+	if ((Phase4Err = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, 
+				      mgrp->rrcc.hosts, succflags)) )
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "CoordPhase4: Phase4 Error %d", Phase4Err);
 	PollAndYield();
@@ -682,7 +680,7 @@ static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
     }
     mgrp->CheckResult();
     unsigned long hosts[VSG_MEMBERS];
-    if (errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts)){
+    if ((errorCode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, hosts))){
 	LogMsg(0, SrvDebugLevel, stdout,  
 	       "CoordPhase34: Error %d in DirResPhase2", 
 	       errorCode);
@@ -698,7 +696,6 @@ static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
 static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup) {
     SE_Descriptor sid;
     char *dirbufs[VSG_MEMBERS];
-    int *dirlengths[VSG_MEMBERS];
     int dirlength = MAXPAGES * PAGESIZE + VAclSize(foo);
     ViceStatus status;
     int DirsEqual = 0;
@@ -857,12 +854,12 @@ static int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
     return(0);
 }
 
-static DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
+static void DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid) {
     for (int j = 0; j < VSG_MEMBERS; j++) {
 	int length = sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
 	if (length) {
 	    char fname[256];
-	    sprintf(fname, "/tmp/dir.0x%x.0x%x.%d", fid->Vnode, fid->Unique, j);
+	    sprintf(fname, "/tmp/dir.0x%lx.0x%lx.%d", fid->Vnode, fid->Unique, j);
 	    int fd = open(fname, O_CREAT | O_TRUNC | O_RDWR, 0777);
 	    CODA_ASSERT(fd > 0);
 	    write(fd, sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody, 
@@ -910,7 +907,7 @@ static int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionVe
     return(0);
 }
 
-static PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *mgrp) {
+static void PrintPaths(int *sizes, ResPathElem **paths, res_mgrpent *mgrp) {
     for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (sizes[i] && !mgrp->rrcc.retcodes[i] && mgrp->rrcc.handles) {
 	    LogMsg(0, SrvDebugLevel, stdout,

@@ -206,7 +206,7 @@ START_TIMING(AllocFids_Total);
     /* Only AllocHost actually allocates the fids. */
     if (ThisHostAddr == AllocHost) {
 	/* Get the volume. */
-	if (errorCode = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0)) {
+	if ((errorCode = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0))) {
 	    SLog(0,  "ViceAllocFids: GetVolObj error %s", ViceErrorMsg((int) errorCode));
 	    goto FreeLocks;
 	}
@@ -214,7 +214,7 @@ START_TIMING(AllocFids_Total);
 	/* Allocate a contiguous range of fids. */
 	if (Range->Count > MaxFidAlloc)
 	    Range->Count = MaxFidAlloc;
-	if (errorCode = VAllocFid(volptr, Type, Range, stride, ix)) {
+	if ((errorCode = VAllocFid(volptr, Type, Range, stride, ix))) {
 	    SLog(0,  "ViceAllocFids: VAllocVnodes error %s", ViceErrorMsg((int) errorCode));
 	    goto FreeLocks;
 	}
@@ -272,12 +272,10 @@ Exit:
 /*
   ViceResolve: Resolve the diverging replicas of an object
 */
-long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
+long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) 
+{
     int errorCode = 0;
-    Volume *volptr = 0;	    /* the volume ptr */
-    Vnode *vptr = 0;	    /* the vnode ptr */
     VolumeId VSGVolnum;
-    int	status = 0;	    /* transaction status variable */
     ViceVersionVector VV;
     ResStatus rstatus;
     unsigned long hosts[VSG_MEMBERS];
@@ -322,8 +320,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
     SLog(9,  "ViceResolve: Getting Mgroup for VSG %x", vsgaddr);
     if (GetResMgroup(&mgrp, vsgaddr, 0)){
 	    /* error getting mgroup */
-	    SLog(0,  "ViceResolve: Couldnt get mgroup for vsg %x", 
-		 vsgaddr);
+	    SLog(0,  "ViceResolve: No mgroup for vsg %x", vsgaddr);
 	    errorCode = EINVAL;
 	    goto FreeGroups;
     }
@@ -342,11 +339,25 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 					* VSG_MEMBERS);
     for (j = 0; j < VSG_MEMBERS; j++) 
 	    pathelem_ptrs[j] = &(pathelembuf[j * (MAXPATHLEN/2)]);
-    MRPC_MakeMulti(LockAndFetch_OP, LockAndFetch_PTR, VSG_MEMBERS,
-		   mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
-		   mgrp->rrcc.MIp, 0, 0, Fid, 
-		   FetchStatus, VVvar_ptrs, rstatusvar_ptrs, logsizesvar_ptrs, 
-		   MAXPATHLEN/2, pathsizevar_ptrs, pathelem_ptrs);
+
+    for (j = 0; j < VSG_MEMBERS; j++) {
+	    RPC2_Handle Handle = mgrp->rrcc.handles[j];
+	    RPC2_Integer rc; 
+
+	    if ( mgrp->rrcc.hosts[j] == 0 ) 
+		    continue;
+
+	    rc = Res_LockAndFetch(Handle, Fid, FetchStatus, VVvar_ptrs[j],
+				  rstatusvar_ptrs[j], logsizesvar_ptrs[j], 
+				  MAXPATHLEN/2, pathsizevar_ptrs[j], 
+				  pathelem_ptrs[j]);
+	    mgrp->rrcc.retcodes[j] = rc;
+
+	    /* if volume is already locked, bail out */
+	    if ( rc > 0 && rc != VNOVNODE ) 
+		    break;
+    }
+				    
     // delete hosts from mgroup where rpc failed 
     errorCode = mgrp->CheckResult();
 
@@ -362,7 +373,7 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 	    goto UnlockExit;
 
     if (ISDIR(*Fid)) {
-	    SLog(9,  "ViceResolve: Going to call Dirresolve");
+	    SLog(9,  "ViceResolve: Going to call DirResolve");
 	    switch (reson) {
 	    case VMRES:
 		    errorCode = EOPNOTSUPP;
@@ -417,7 +428,6 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 
 // used by the lock queue manager to unlock expired locks 
 void ForceUnlockVol(VolumeId Vid) {/* Vid is the rw id */
-    int error = 0;
     Volume *volptr;
     if (GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0)) {
 	SLog(0,  "ForceUnlockVol: GetVolObj %x error", Vid);
@@ -451,7 +461,7 @@ long FS_ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Cou
     if (!client) return EINVAL;
     if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(cid, PiggyBS)))
 	goto FreeLocks;
-    if (errorCode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0, 0)){
+    if ((errorCode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0, 0))){
 	SLog(0,  "ViceSetVV: Error %d in GetFsObj", errorCode);
 	goto FreeLocks;
     }
@@ -499,24 +509,21 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     int deltablocks = 0;
     int	    errorCode = 0;
     int Length = (int) status->Length;
-    int	    DirRepairErrorCode = 0; 
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *ov = 0;
-    vle *pv = 0;
     VolumeId VSGVolnum = Fid->Volume;	
     int volindex = -1;
     int FRep;
     int myRepairCount = 0;
     struct repair *myRepairList = 0;
     char    filename[100];  		/* for transfer by name */
-    int	vmresolutionOn = 0;
 
     SLog(1,  "ViceRepair: Fid = %u.%d.%d", Fid->Volume, Fid->Vnode, Fid->Unique);
     
     /* 1. validate parameters */
     {
-	if (errorCode = ValidateParms(cid, &client, NULL, &Fid->Volume, NULL,
-				      NULL))
+	if ((errorCode = ValidateParms(cid, &client, NULL, &Fid->Volume, NULL,
+				      NULL)))
 	    goto FreeLocks;
     }
     
@@ -558,11 +565,11 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 			       (int) ov->vptr->disk.dataVersion + 1);
 	    CODA_ASSERT(ov->f_finode > 0);
 	    int tblocks = (int) (nBlocks(Length) - nBlocks(ov->vptr->disk.length));
-	    if (errorCode = AdjustDiskUsage(volptr, tblocks))
+	    if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 		goto FreeLocks;
 	    deltablocks = tblocks;
-	    if (errorCode = StoreBulkTransfer(cid, client, volptr, 
-					      ov->vptr, ov->f_finode, Length))
+	    if ((errorCode = StoreBulkTransfer(cid, client, volptr, 
+					      ov->vptr, ov->f_finode, Length)))
 		goto FreeLocks;
 
 	}
@@ -570,7 +577,7 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	    /* directory repair - transfer by name */
 	    strcpy(filename, "/tmp/repair.XXXXXX");
 	    mktemp(filename);
-	    if (errorCode = FetchFileByName(cid, filename, client)) {
+	    if ((errorCode = FetchFileByName(cid, filename, client))) {
 		unlink(filename);
 		goto FreeLocks;
 	    }
@@ -583,13 +590,13 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	    struct listhdr *replicaList = 0;
 	    int replicaCount;
 	    /* parse repair file */
-	    if (errorCode = repair_getdfile(filename, &replicaCount, &replicaList)){
+	    if ((errorCode = repair_getdfile(filename, &replicaCount, &replicaList))){
 		SLog(0,  "CheckDirRepairSemantics: Error %d in getdfile", errorCode);
 		goto FreeLocks;
 	    }
 	    unlink(filename);
-	    if (errorCode = GetMyRepairList(&(ov->fid), replicaList, replicaCount, 
-					    &myRepairList, &myRepairCount)) {
+	    if ((errorCode = GetMyRepairList(&(ov->fid), replicaList, replicaCount, 
+					    &myRepairList, &myRepairCount))) {
 		SLog(0,  "CheckDirRepairSemantics: Error %d in getmyrepairlist",
 			errorCode);
 		if (replicaList) free(replicaList);
@@ -601,31 +608,31 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 
     /* get all objects under repair */
     {
-    	if (errorCode = GetRepairObjects(volptr, ov, vlist, 
-					 myRepairList, myRepairCount))
+    	if ((errorCode = GetRepairObjects(volptr, ov, vlist, 
+					 myRepairList, myRepairCount)))
 	    goto FreeLocks;
     }
     /* Check Semantics */
     {
 
-	if (errorCode = CheckRepairSemantics(ov, volptr, vlist, status, 
+	if ((errorCode = CheckRepairSemantics(ov, volptr, vlist, status, 
 					     client, &rights, &anyrights,
-					     myRepairCount, myRepairList))
+					     myRepairCount, myRepairList)))
 	    goto FreeLocks;
     }
 
     /* Peform Repair */
     {
 	if (FRep) {
-	    if (errorCode = PerformFileRepair(ov, volptr, VSGVolnum, 
+	    if ((errorCode = PerformFileRepair(ov, volptr, VSGVolnum, 
 					      status, StoreId, 
-					      rights, anyrights))
+					      rights, anyrights)))
 		goto FreeLocks;
 	}
-	else if (errorCode = PerformDirRepair(client, ov, volptr, VSGVolnum,
+	else if ((errorCode = PerformDirRepair(client, ov, volptr, VSGVolnum,
 					      status, StoreId, 
 					      myRepairList, myRepairCount, 
-					      vlist, rights, anyrights, &deltablocks))
+					      vlist, rights, anyrights, &deltablocks)))
 	    goto FreeLocks;
     }
     /* add vnode to coppending table  */
@@ -640,8 +647,8 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	if (!FRep) {
 	    SLog(9, 
 		   "ViceRepair: Spooling Repair Log Record");
-	    if (errorCode = SpoolVMLogRecord(vlist, ov, volptr, StoreId, 
-					     ViceRepair_OP, 0)) {
+	    if ((errorCode = SpoolVMLogRecord(vlist, ov, volptr, StoreId, 
+					     ViceRepair_OP, 0))) {
 		SLog(0, 
 		       "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
 		       errorCode, Fid->Vnode, Fid->Unique);
@@ -654,7 +661,7 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	if (!FRep && !errorCode) {
 	    dlist_iterator next(*vlist);
 	    vle *v;
-	    while (v = (vle *)next()) 
+	    while ((v = (vle *)next())) 
 		if (v->vptr && 
 		    v->vptr->delete_me &&
 		    v->vptr->disk.type == vDirectory) 
@@ -807,7 +814,6 @@ int CheckRepairSemantics(vle *ov, Volume *volptr, dlist *vlist,
 int CheckFileRepairSemantics(vle *ov, vle *pv, Volume *volptr, 
 			     ViceStatus *status, ClientEntry *client,
 			     Rights *rights, Rights *anyrights) {
-    int errorCode = 0;
     AL_AccessList   *aCL = 0;   
     int	    aCLSize = 0;	    
 
@@ -852,7 +858,7 @@ int CheckRepairACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr,
 
     CODA_ASSERT(GetRights(client->CPS, *aCL, *aCLSize, &rights, &anyrights) == 0);
     if (!(rights & PRSFS_ADMINISTER) &&
-	 (client->Id != vptr->disk.owner) &&
+	 (client->Id != (long)vptr->disk.owner) &&
 	 (SystemUser(client))){
 	SLog(0,  "CheckACLSemantics: No access ");
 	return(EACCES);
@@ -870,7 +876,7 @@ int CheckRepairSetACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr,
 
     /* protection checks */
     {
-	if (errorCode = CheckRepairACLSemantics(client, vptr, volptr, &aCL, &aCLSize))
+	if ((errorCode = CheckRepairACLSemantics(client, vptr, volptr, &aCL, &aCLSize)))
 	    return(errorCode);
     }
 
@@ -909,7 +915,7 @@ int CheckRepairSetNACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr
 
     /* protection checks */
     {
-	if (errorCode = CheckRepairACLSemantics(client, vptr, volptr, &aCL, &aCLSize))
+	if ((errorCode = CheckRepairACLSemantics(client, vptr, volptr, &aCL, &aCLSize)))
 	    return(errorCode);
     }
 
@@ -938,11 +944,11 @@ static int CheckRepairRenameSemantics(ClientEntry *client, Volume *volptr, vle *
 				       vle *tdv, vle *sv, vle *tv, char *name, 
 				       char *newname) {
     int errorCode;
-    if (errorCode = CheckRenameSemantics(client, &(sdv->vptr), &(tdv->vptr),
+    if ((errorCode = CheckRenameSemantics(client, &(sdv->vptr), &(tdv->vptr),
 					 &(sv->vptr), name, tv ? &(tv->vptr) : NULL, 
 					 newname, &volptr, 0, NULL, NULL, NULL, 
 					 NULL, NULL, NULL, NULL, NULL, NULL,
-					 NULL, NULL, 1, 0))
+					 NULL, NULL, 1, 0)))
 	return(errorCode);
     
     // make sure atleast one of src/target is incon
@@ -1095,9 +1101,9 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	ViceFid ParentFid;
 	switch(repairent.opcode){
 	  case REPAIR_CREATEF:
-	    if (errorCode = CheckCreateSemantics(client, &(ov->vptr), NULL, 
+	    if ((errorCode = CheckCreateSemantics(client, &(ov->vptr), NULL, 
 						 repairent.name, &volptr, 0, 
-						 NULL, NULL, NULL, NULL, NULL))
+						 NULL, NULL, NULL, NULL, NULL)))
 		return(errorCode);
 	    ParentFid.Volume = ov->fid.Volume;
 	    if (ObjectExists(V_volumeindex(volptr), vSmall, 
@@ -1111,10 +1117,10 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    deltablocks += nBlocks(0);
 	    break;
 	  case REPAIR_CREATED:
-	    if (errorCode = CheckMkdirSemantics(client, &(ov->vptr), NULL, 
+	    if ((errorCode = CheckMkdirSemantics(client, &(ov->vptr), NULL, 
 						 repairent.name, &volptr, 
 						 0, NULL, NULL, NULL, 
-						 NULL, NULL))
+						 NULL, NULL)))
 		return(errorCode);
 	    if (ObjectExists(V_volumeindex(volptr), vLarge, 
 				 vnodeIdToBitNumber(repairent.parms[1]),
@@ -1127,10 +1133,10 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    deltablocks += EMPTYDIRBLOCKS;
 	    break;
 	  case REPAIR_CREATES:
-	    if (errorCode = CheckSymlinkSemantics(client, &(ov->vptr), NULL, 
+	    if ((errorCode = CheckSymlinkSemantics(client, &(ov->vptr), NULL, 
 						   repairent.name, &volptr, 
 						   0, NULL, NULL, NULL, 
-						   NULL, NULL))
+						   NULL, NULL)))
 		return(errorCode);
 	    if (ObjectExists(V_volumeindex(volptr), vSmall, 
 			     vnodeIdToBitNumber(repairent.parms[1]),
@@ -1146,11 +1152,11 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    {
 		vle *v = FindVLE(*vlist, (ViceFid *)&repairent.parms[0]);
 		Vnode *childvptr = (v == 0) ? 0 : v->vptr;
-		if (errorCode = CheckLinkSemantics(client, &(ov->vptr), 
+		if ((errorCode = CheckLinkSemantics(client, &(ov->vptr), 
 						    childvptr? &childvptr : 0,
 						    repairent.name, &volptr, 
 						    0, NULL, NULL, NULL, 
-						    NULL, NULL))
+						    NULL, NULL)))
 		    return(errorCode);
 	    }
 	    break;
@@ -1159,9 +1165,9 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		/* get the object first */
 		vle *cv = FindVLE(*vlist, (ViceFid *)&repairent.parms[0]);
 		CODA_ASSERT(cv != 0);
-		if (errorCode = CheckRemoveSemantics(client, &(ov->vptr), &cv->vptr,
+		if ((errorCode = CheckRemoveSemantics(client, &(ov->vptr), &cv->vptr,
 						      repairent.name, &volptr, 
-						      0, NULL, NULL, NULL, 0, 0))
+						      0, NULL, NULL, NULL, 0, 0)))
 		    return(errorCode);
 		deltablocks -= (int) nBlocks(cv->vptr->disk.length);
 	    }
@@ -1171,18 +1177,18 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		/* get the object first */
 		vle *cv = FindVLE(*vlist, (ViceFid *)&repairent.parms[0]);
 		CODA_ASSERT(cv != 0);
-		if (errorCode = CheckRmdirSemantics(client, &(ov->vptr), &(cv->vptr), 
+		if ((errorCode = CheckRmdirSemantics(client, &(ov->vptr), &(cv->vptr), 
 						     repairent.name, &volptr,
-						     0, NULL, NULL, NULL, NULL, NULL))
+						     0, NULL, NULL, NULL, NULL, NULL)))
 		    return(errorCode);
 		
 		PDirHandle cDir;
 		cDir = VN_SetDirHandle(cv->vptr);
 		if (!DH_IsEmpty(cDir)) {
 		    /* do semantic checking recursively */
-		    if (errorCode = CheckTreeRemoveSemantics(client, volptr, 
+		    if ((errorCode = CheckTreeRemoveSemantics(client, volptr, 
 							     (ViceFid *)(&repairent.parms[0]),
-							     vlist))
+							     vlist)))
 			return(errorCode);
 		}
 		VN_PutDirHandle(cv->vptr);
@@ -1223,19 +1229,19 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
 		}
 		VN_PutDirHandle(tdv->vptr);
-		if (errorCode = CheckRepairRenameSemantics(client, volptr, sdv, tdv, 
-							   sv, tv, repairent.name, repairent.newname))
+		if ((errorCode = CheckRepairRenameSemantics(client, volptr, sdv, tdv, 
+							   sv, tv, repairent.name, repairent.newname)))
 		    return(errorCode);
 	    }	
 	    break;
 	  case REPAIR_SETACL:
-	    if (errorCode = CheckRepairSetACLSemantics(client, ov->vptr, volptr, 
-						       repairent.name, repairent.parms[0]))
+	    if ((errorCode = CheckRepairSetACLSemantics(client, ov->vptr, volptr, 
+						       repairent.name, repairent.parms[0])))
 		return(errorCode);
 	    break;	  
 	  case REPAIR_SETNACL:
-	    if (errorCode = CheckRepairSetNACLSemantics(client, ov->vptr, volptr, 
-						  repairent.name, repairent.parms[0]))
+	    if ((errorCode = CheckRepairSetNACLSemantics(client, ov->vptr, volptr, 
+						  repairent.name, repairent.parms[0])))
 		return(errorCode);
 	    break;
 	  case REPAIR_SETOWNER:
@@ -1249,7 +1255,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    break;
 	  case REPAIR_SETMODE:
 	  case REPAIR_SETMTIME:
-	    if ((client)->Id == ov->vptr->disk.owner)
+	    if ((client)->Id == (long)ov->vptr->disk.owner)
 		break;
 	    /* protection checks */
 	    {
@@ -1270,7 +1276,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 
     /* check if there is enough place on disk */
     if (deltablocks) {
-	if (errorCode = CheckDiskUsage(volptr, deltablocks))
+	if ((errorCode = CheckDiskUsage(volptr, deltablocks)))
 	    return(errorCode);
     }
     return(0);
@@ -1313,8 +1319,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 
 		/* create the vnode */
 		vle *cv = AddVLE(*vlist, &cFid);
-		if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
-					   &(ov->fid), client->Id, 1, &tblocks))
+		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vFile, &cFid,
+					   &(ov->fid), client->Id, 1, &tblocks)))
 		    return(errorCode);
 		*deltablocks += tblocks;
 		tblocks = 0;
@@ -1346,8 +1352,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 
 		/* allocate the vnode */
 		vle *cv = AddVLE(*vlist, &cFid);
-		if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory, &cFid,
-					   &(ov->fid), client->Id, 1, &tblocks))
+		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory, &cFid,
+					   &(ov->fid), client->Id, 1, &tblocks)))
 		    return(errorCode);		
 		*deltablocks += tblocks;
 		tblocks = 0;
@@ -1370,8 +1376,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 
 		/* create the vnode */
 		vle *cv = AddVLE(*vlist, &cFid);
-		if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid,
-					   &(ov->fid), client->Id, 1, &tblocks))
+		if ((errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vSymlink, &cFid,
+					   &(ov->fid), client->Id, 1, &tblocks)))
 		    return(errorCode);
 		*deltablocks += tblocks;
 		tblocks = 0;
@@ -1538,8 +1544,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			SLog(0, 
 			       "PerformRepair: Spooling Repair(rename - target) Log Record");
-			if (errorCode = SpoolVMLogRecord(vlist, tdv, volptr, StoreId, 
-							 ViceRepair_OP, 0)) {
+			if ((errorCode = SpoolVMLogRecord(vlist, tdv, volptr, StoreId, 
+							 ViceRepair_OP, 0))) {
 			    SLog(0, 
 				   "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
 				   errorCode, tdv->vptr->vnodeNumber, tdv->vptr->disk.uniquifier);
@@ -1551,8 +1557,8 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		    if (AllowResolution && V_RVMResOn(volptr)) {
 			SLog(0, 
 			       "PerformRepair: Spooling Repair(rename - source) Log Record");
-			if (errorCode = SpoolVMLogRecord(vlist, sdv, volptr, StoreId, 
-							 ViceRepair_OP, 0)) {
+			if ((errorCode = SpoolVMLogRecord(vlist, sdv, volptr, StoreId, 
+							 ViceRepair_OP, 0))) {
 			    SLog(0, 
 				   "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
 				   errorCode, sdv->vptr->vnodeNumber, sdv->vptr->disk.uniquifier);
@@ -1769,12 +1775,12 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
     {
 	dlist_iterator next(*vlist);
 	vle *v;
-	while (v = (vle *)next()) {
+	while ((v = (vle *)next())) {
 	    SLog(10,  "GetRepairObjects: acquiring (%x.%x.%x)",
 		    v->fid.Volume, v->fid.Vnode, v->fid.Unique);
-	    if (errorCode = GetFsObj(&v->fid, &volptr, &v->vptr, 
+	    if ((errorCode = GetFsObj(&v->fid, &volptr, &v->vptr, 
 				     WRITE_LOCK, SHARED_LOCK, 1, 0, 
-				     v->d_inodemod))
+				     v->d_inodemod)))
 		return(errorCode);
 	}	
     }
@@ -1796,8 +1802,8 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
 
     /* get root vnode */
     {
-	if (errorCode = GetFsObj(fid, &volptr, &vptr,
-				 READ_LOCK, NO_LOCK, 1, 0, 1)) 
+	if ((errorCode = GetFsObj(fid, &volptr, &vptr,
+				 READ_LOCK, NO_LOCK, 1, 0, 1)) )
 	    goto Exit;
         
 	CODA_ASSERT(vptr->disk.type == vDirectory);
@@ -1825,7 +1831,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     /* put fids of sub-subtrees in list */
     {
 	vle *v;
-	while (v = (vle *)tmplist->get()) {
+	while ((v = (vle *)tmplist->get())) {
 	    ViceFid cFid = v->fid;
 	    delete v;
 	    cFid.Volume = fid->Volume;
@@ -1845,7 +1851,8 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
   Exit:
     {
 	vle *v;
-	while (v = (vle *)tmplist->get()) delete v;
+	while ((v = (vle *)tmplist->get()))
+		delete v;
 	delete tmplist;
     }
     if (vptr) {
@@ -1910,7 +1917,6 @@ static int RecursiveCheckRemoveSemantics(PDirEntry de, void * data)
 	ViceFid fid;
 	vle *pv = 0;
 	vle *ov = 0;
-	vle *tv = 0;
 	/* form the fid */
 	{
 		fid.Volume = V_id(rb->volptr);
@@ -1971,7 +1977,6 @@ static int RecursiveCheckRemoveSemantics(PDirEntry de, void * data)
 static int CheckTreeRemoveSemantics(ClientEntry *client, Volume *volptr, 
 				     ViceFid *tFid, dlist *vlist) 
 {
-	int errorCode = 0;
 	vle *tv = 0;
 
 	/* get the root's vnode */
@@ -2080,12 +2085,12 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 			   "TreeRemove: Spooling Log Record for removing dir %s",
 			   name);
 		    int errorCode = 0;
-		    if (errorCode = SpoolVMLogRecord(pkdparm->vlist, pv, 
+		    if ((errorCode = SpoolVMLogRecord(pkdparm->vlist, pv, 
 						     pkdparm->volptr, &stid,
 						     ResolveViceRemoveDir_OP, name, 
 						     vnode, unique, 
 						     VnLog(cv->vptr), &(Vnode_vv(cv->vptr).StoreId),
-						     &(Vnode_vv(cv->vptr).StoreId)))
+						     &(Vnode_vv(cv->vptr).StoreId))))
 			SLog(0, 
 			       "PerformTreeRemoval: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
 			       errorCode, vnode, unique);
@@ -2124,11 +2129,11 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		    SLog(9,  "TreeRemove: Spooling Log Record for removing %s",
 			 name);
 		    int errorCode = 0;
-		    if (errorCode = SpoolVMLogRecord(pkdparm->vlist, pv, 
+		    if ((errorCode = SpoolVMLogRecord(pkdparm->vlist, pv, 
 						     pkdparm->volptr, &stid,
 						     ResolveViceRemove_OP, name, 
 						     vnode, unique, 
-						     &(Vnode_vv(cv->vptr))))
+						     &(Vnode_vv(cv->vptr)))))
 			SLog(0, "PerformTreeRemoval: error %d in"
 			     " SpoolVMLogRecord for (0x%x.%x)\n",
 			     errorCode, vnode, unique);
@@ -2137,7 +2142,7 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 	}
     }
 	
-
+	return 0;
 }
 
 
@@ -2220,7 +2225,7 @@ END_TIMING(COP2_Transaction);
 	   log records that were truncated */
 	vmindex_iterator next(&freed_indices);
 	unsigned long ind;
-	while ((ind = next()) != -1) 
+	while ((int) (ind = next()) != -1) 
 	    vollog->DeallocRecord((int)ind);
     }
 
@@ -2236,7 +2241,7 @@ static int GetResFlag(VolumeId Vid) {
     Volume *volptr = 0;
 
     if (!AllowResolution) return(0);
-    if (error = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0)) {
+    if ((error = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0))) {
 	SLog(0,  "GetResFlag:: GetVolObj failed (%d) for %x",
 		error, Vid);
 	return(0);
@@ -2621,7 +2626,7 @@ long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 
 	/* check the version stamp in our slot in the vector */
 	index = i * count + ix;
-	if (ntohl(((RPC2_Unsigned *) VSBS->SeqBody)[index]) == myVS) {
+	if ((long)ntohl(((RPC2_Unsigned *) VSBS->SeqBody)[index]) == myVS) {
 	    SLog(8, "ValidateVolumes: 0x%x ok, adding callback", 
 		   Vids[i].Vid);
 	    /* 

@@ -54,6 +54,9 @@ extern "C" {
 #include "rvmrestiming.h"
 #include "resstats.h"
 
+long RS_DirResPhase3(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
+		  SE_Descriptor *sed);
+
 long RS_ResPhase4(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		  SE_Descriptor *sed) {
 

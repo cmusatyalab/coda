@@ -402,7 +402,7 @@ void recov_vol_log::print(int fd) {
     sprintf(buf, "index contents\n");
     write(fd, buf, strlen(buf));
     for (int i = 0; i < (admin_limit/LOGRECORD_BLOCKSIZE); i++) {
-	sprintf(buf, "0x%x ", index[i]);
+	sprintf(buf, "0x%p ", index[i]);
 	write(fd, buf, strlen(buf));
     }
     sprintf(buf, " \n");
@@ -423,7 +423,7 @@ int
 recov_vol_log::ChooseWrapAroundVnode(Volume *vol, int different) 
 {
 
-    if ((!different) && (wrapvn != -1) && (wrapun != -1)) {
+    if ((!different) && ((long)wrapvn != -1) && ((long)wrapun != -1)) {
 	SLog(0,
 	       "ChooseWrapAroundVnode: returning same vnode 0x%x.%x in vol 0x%x\n", wrapvn, wrapun, V_id(vol));
 	return(0);
@@ -537,7 +537,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    }
 	}
 		    
-	if (errorcode = GetFsObj(&fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 1, 0)) {
+	if ((errorcode = GetFsObj(&fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 1, 0))) {
 	    SLog(0,
 		   "AllocViaWrapAround: Couldnt get object 0x%x.%x\n",
 		   wrapvn, wrapun);
@@ -574,7 +574,7 @@ int recov_vol_log::AllocViaWrapAround(int *index, int *seqno,
 	    rvmlib_begin_transaction(restore);
 	    recle *le = (recle *)VnLog(vptr)->get();
 	    rec_dlist *childlog;
-	    if (childlog = le->HasList()) 
+	    if ((childlog = le->HasList()) )
 		PurgeLog(childlog, volptr, &ind);
 
 	    // RESSTATS

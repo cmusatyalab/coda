@@ -24,7 +24,7 @@ VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-
+CXXFLAGS += -Wall
 LIBRARIES  = libreslib.a
 HEADERS	   =  rescomm.h logalloc.h pdlist.h remotelog.h resforce.h \
 	      reslog.h resutil.h lockqueue.h timing.h

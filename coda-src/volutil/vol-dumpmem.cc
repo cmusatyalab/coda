@@ -66,8 +66,6 @@ extern "C" {
 */
 long S_VolDumpMem(RPC2_Handle rpcid, RPC2_String formal_dumpfile, RPC2_Unsigned addr, RPC2_Unsigned size)
 {
-    int rc = 0;
-    int status = 0;
     ProgramType *pt;
     int DumpFd; 
 

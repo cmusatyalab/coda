@@ -75,7 +75,6 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 {
 	rec_smolist *vlist;
 	VnodeDiskObject *vind;
-	int status = 0;	// transaction status variable
 	VolumeId maxid = 0;
 
 	VLog(9,  "Entering ExtractVnode(volindex = %d, vclass = %d, vnodeindex = %x, Unique = %x vnode = 0x%x)",
@@ -84,7 +83,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 	*ec = 0;
 	
 	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+	if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 		VLog(0,  "ExtractVnode: bogus volume index %d", volindex);
 		return(-1);
 	}
@@ -99,7 +98,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 	/* set up iterator and return correct vnode */
 		rec_smolist_iterator next(*vlist);
 		rec_smolink *p;
-		while(p = next()){
+		while((p = next())){
 			vind = strbase(VnodeDiskObject, p, nextvn);
 			if (vind->uniquifier == uniquifier){
 				bcopy((const void *)vind, (void *)vnode, SIZEOF_SMALLDISKVNODE);
@@ -121,7 +120,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 			vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
 			rec_smolist_iterator next(*vlist);
 			rec_smolink *p;
-			while(p = next()) {
+			while((p = next())) {
 				vind = strbase(VnodeDiskObject, p, nextvn);
 				if (vind->uniquifier == uniquifier) {
 					bcopy((const void *)vind, (void *)vnode, SIZEOF_LARGEDISKVNODE);
@@ -158,7 +157,7 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
     /* check volume index */
     {    
 	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+	if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	    VLog(0,  "ObjectExists: bogus volume index %d", volindex);
 	    return(0);
 	}
@@ -174,7 +173,7 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 	/* set up iterator and return correct vnode */
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
-	while(p = next()){
+	while((p = next())){
 	    vind = strbase(VnodeDiskObject, p, nextvn);
 	    if (vind->uniquifier == u) {
 		if (ParentFid) {
@@ -197,7 +196,7 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
-	while(p = next()) {
+	while((p = next())) {
 	    vind = strbase(VnodeDiskObject, p, nextvn);
 	    if (vind->uniquifier == u) {
 		if (ParentFid) {
@@ -240,7 +239,7 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
     /* check volume index */
     {    
 	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+	if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	    VLog(0,  "GetParentFid: bogus volume index %d", volindex);
 	    return(0);
 	}
@@ -257,7 +256,7 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
 	/* set up iterator and return correct vnode */
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
-	while(p = next()){
+	while((p = next())){
 	    vind = strbase(VnodeDiskObject, p, nextvn);
 	    if (vind->uniquifier == cFid->Unique) {
 		CODA_ASSERT(vind->uparent != 0);
@@ -278,7 +277,7 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
-	while(p = next()) {
+	while((p = next())) {
 	    vind = strbase(VnodeDiskObject, p, nextvn);
 	    if (vind->uniquifier == cFid->Unique) {
 		if (vind->uparent != 0) {
@@ -313,7 +312,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+    if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	VLog(0,  "ReplaceVnode: bogus volume index %d", volindex);
 	rvmlib_abort(VFAIL);	// invalid volume index
 	return VNOVOL;
@@ -429,7 +428,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 	   "Entering DeleteVnode(%d, %d, %d, <struct>)", 
 	   volindex, vclass, vnodeindex);
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+    if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	VLog(0,  "DeleteVnode: bogus volume index %d", volindex);
 	rvmlib_abort(VFAIL);	// invalid volume index
     }
@@ -540,7 +539,6 @@ int VolDiskInfoById(Error *ec, VolumeId volid, VolumeDiskData *vol) {
 /* Must be called from within a transaction */
 void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
 {
-    int status = 0;	/* transaction status variable */
     VolumeId maxid = 0;
     *ec = 0;
 
@@ -550,7 +548,7 @@ void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
     CODA_ASSERT(vol->stamp.version == VOLUMEINFOVERSION);
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if ((volindex < 0) || (volindex > maxid) || (volindex > MAXVOLS)) {
+    if ((volindex < 0) || (volindex > (int)maxid) || (volindex > MAXVOLS)) {
 	char volname[32];
 	sprintf(volname, VFORMAT, vol->id);
 	VLog(0,  "ReplaceVolDiskInfo: bogus volume index %d for volume %s",
@@ -577,7 +575,7 @@ VnodeDiskObject *FindVnode(rec_smolist *vnlist, Unique_t u) {
     rec_smolist_iterator next(*vnlist);
     rec_smolink *p;
     VnodeDiskObject *vdo;
-    while (p = next()) {
+    while ((p = next())) {
 	vdo = strbase(VnodeDiskObject, p, nextvn);
 	if (vdo->uniquifier == u)
 	    return(vdo);

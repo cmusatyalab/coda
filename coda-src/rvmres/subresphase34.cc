@@ -79,7 +79,7 @@ long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     {
 	vlist = new dlist((CFN) VLECmp);
 	
-	if (errorCode = GetPhase2Objects(Fid, vlist, inclist, &volptr)) {
+	if ((errorCode = GetPhase2Objects(Fid, vlist, inclist, &volptr))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  
 		   "RS_ResPhase34: Error getting objects");
 	    goto Exit;
@@ -88,8 +88,8 @@ long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     
     // create nonexistent objects 
     {
-	if (errorCode = CreateResPhase2Objects(Fid, vlist, inclist, volptr, 
-					       VSGVolnum, &blocks)) {
+	if ((errorCode = CreateResPhase2Objects(Fid, vlist, inclist, volptr, 
+					       VSGVolnum, &blocks))) {
 	    LogMsg(0, SrvDebugLevel, stdout,  "DirResPhase2: Error %d in create objects",
 		    errorCode);
 	    goto Exit;
@@ -105,8 +105,8 @@ long RS_ResPhase34(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreId *logid,
     {
 	vle *ov = FindVLE(*vlist, Fid);
 	CODA_ASSERT(ov && ov->vptr);
-	if (errorCode = SpoolVMLogRecord(vlist, ov->vptr, volptr, 
-					 logid, ResolveNULL_OP, 0)) {
+	if ((errorCode = SpoolVMLogRecord(vlist, ov->vptr, volptr, 
+					 logid, ResolveNULL_OP, 0))) {
 	    if (errorCode == ENOSPC) {
 		LogMsg(0, SrvDebugLevel, stdout, 
 		       "RS_ResPhase34 - no space for spooling log record - ignoring\n");
@@ -147,7 +147,7 @@ static void ProcessIncList(ViceFid *Fid, dlist *inclist,
 			    dlist *vlist) {
     dlist_iterator next(*inclist);
     ilink *il;
-    while (il = (ilink *)next()) {
+    while ((il = (ilink *)next())) {
 	ViceFid cfid;
 	ViceFid ipfid;
 	FormFid(cfid, Fid->Volume, il->vnode, il->unique);
@@ -157,8 +157,8 @@ static void ProcessIncList(ViceFid *Fid, dlist *inclist,
 	if (v) {
 	    if (!strcmp(il->name, ".")) 
 		MarkObjInc(&cfid, v->vptr);
-	    else if(v->vptr->disk.vparent == il->pvnode &&
-		    v->vptr->disk.uparent == il->punique)
+	    else if((long)v->vptr->disk.vparent == il->pvnode &&
+		    (long)v->vptr->disk.uparent == il->punique)
 		MarkObjInc(&cfid, v->vptr);
 	    else {
 		// parents are different - mark both parents inc 

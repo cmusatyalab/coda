@@ -75,7 +75,7 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
     
     /* get the object */
-    if (errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0, 0)) {
+    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0, 0))) {
 	SLog(0,  "RS_ForceVV: GetFsObj returns error %d for %s", 
 	     errorcode, FID_(Fid));
 	errorcode = EINVAL;

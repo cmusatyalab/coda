@@ -237,7 +237,7 @@ void resstats::print(FILE *fp) {
 
 void resstats::print(int fd) {
     char buf[512];
-    sprintf(buf, "Res. stats for volume 0x%x:\n", vid);
+    sprintf(buf, "Res. stats for volume 0x%lx:\n", vid);
     write(fd, buf, (int)strlen(buf));
 
     sprintf(buf, "File Stats: %d Nresolves, %d Succ, %d Conf, %d runtforces, %d WeakEq, %d Reg FR, %d user resolves, %d successful user resolves, %d IncompleteVSG\n",
@@ -264,7 +264,7 @@ void resstats::print(int fd) {
 resstats *FindResStats(unsigned long id) {
     olist_iterator next(ResStatsList);
     resstats *r = NULL;
-    while (r = (resstats *)next()) {
+    while ((r = (resstats *)next())) {
 	if (r->vid == id) break;
     }
     return(r);

@@ -128,33 +128,33 @@ void RepResCommCtxt::print(FILE *fp) {
 
 void RepResCommCtxt::print(int fd) {
     char buf[80];
-    sprintf(buf, "%#08x : HowMany = %d\n", (long)this, HowMany);
+    sprintf(buf, "%#08lx : HowMany = %ld\n", (long)this, HowMany);
     write(fd, buf, strlen(buf));
 }
 
 
 /* res_mgrpent implementation */
-res_mgrpent::res_mgrpent(unsigned long vsgaddr, RPC2_Handle mid){
-    int nhosts;
-    LogMsg(20, SrvDebugLevel, stdout,  "res_mgrpent::resmgrpent vsgaddr = %#08x, mid = %d",
-	   vsgaddr, mid);
-    VSGAddr = vsgaddr;
-    bzero((void *)&McastInfo, sizeof(RPC2_Multicast));
-    McastInfo.Mgroup = mid;
-    McastInfo.ExpandHandle = 0;
-    
-    /* get hosts from vsg table */
-    CODA_ASSERT(GetHosts(vsgaddr, Hosts, &nhosts) != 0);
-    for (; nhosts < VSG_MEMBERS; nhosts++)
-	Hosts[nhosts] = 0;
-    
-    inuse = 0;
-    dying = 0;
+res_mgrpent::res_mgrpent(unsigned long vsgaddr, RPC2_Handle mid)
+{
+	int nhosts;
+	SLog(20,  "res_mgrpent::resmgrpent vsgaddr = %#08x, mid = %d",
+	     vsgaddr, mid);
+	VSGAddr = vsgaddr;
+	bzero((void *)&McastInfo, sizeof(RPC2_Multicast));
+	McastInfo.Mgroup = mid;
+	McastInfo.ExpandHandle = 0;
+	
+	/* get hosts from vsg table */
+	CODA_ASSERT(GetHosts(vsgaddr, Hosts, &nhosts) != 0);
+	for (; nhosts < VSG_MEMBERS; nhosts++)
+		Hosts[nhosts] = 0;
+	
+	inuse = 0;
+	dying = 0;
 }
 
 res_mgrpent::~res_mgrpent() {
     /* kill the member connectins */
-    int code = 0;
     LogMsg(100, SrvDebugLevel, stdout,  "~res_mgrpent:: vsgaddr = #08x", VSGAddr);
     for (int i = 0; i < VSG_MEMBERS; i++)
 	KillMember(rrcc.hosts[i], 1);
@@ -162,48 +162,43 @@ res_mgrpent::~res_mgrpent() {
     /* code = RPC2_DeleteMgrp(McastInfo.Mgroup); */
 }
 
-int res_mgrpent::CreateMember(unsigned long host) {
-    int i;
+int res_mgrpent::CreateMember(unsigned long host) 
+{
+	int i;
+	int code = 0;
 
-    CODA_ASSERT (host != 0);
+	CODA_ASSERT (host != 0);
 
-    /* Don't re-create members that already exist. */
-    LogMsg(20, SrvDebugLevel, stdout,  "res_mgrepent::CreateMember(%x)", host);
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (rrcc.hosts[i] == host) return(0);
+	/* Don't re-create members that already exist. */
+	SLog(20,  "res_mgrepent::CreateMember(%x)", host);
+	for (i = 0; i < VSG_MEMBERS; i++)
+		if (rrcc.hosts[i] == host) return(0);
     
-    /* Deduce index of specified host. */
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (Hosts[i] == host) break;
-    if (i == VSG_MEMBERS) 
-    {
-	LogMsg(0, SrvDebugLevel, stdout, "res_mgrpent::CreateMember: no host (%x)", host);
-	CODA_ASSERT(0);
-    }
+	/* Deduce index of specified host. */
+	for (i = 0; i < VSG_MEMBERS; i++)
+		if (Hosts[i] == host) break;
+	if (i == VSG_MEMBERS) {
+		SLog(0, "res_mgrpent::CreateMember: no host (%x)", host);
+		CODA_ASSERT(0);
+	}
     
-    int code = 0;
-    
-    /* bind to server */
-    srvent *s = 0;
-    GetServer(&s, host);
-    RPC2_Handle ConnHandle = 0;
-    code = s->Connect(&ConnHandle, 0);
-    PutServer(&s);
-    if (code != 0) return code;
-    
-    /* for multicast - not sure - Puneet */
-    /* RPC2_AddToMgrp(McastInfo.Mgroup, ConnHandle); */
-    
-    rrcc.HowMany++;
-    rrcc.handles[i] = ConnHandle;
-    rrcc.hosts[i] = host;
-    rrcc.retcodes[i] = 0;
-    rrcc.dying[i] = 0;
-    
-    LogMsg(20, SrvDebugLevel, stdout,  "res_mgrpent::CreateMember Added %x at index %d",
-	   host, i);
-    return(0);
-    
+	/* bind to server */
+	srvent *s = 0;
+	GetServer(&s, host);
+	RPC2_Handle ConnHandle = 0;
+	code = s->Connect(&ConnHandle, 0);
+	PutServer(&s);
+	if (code != 0) 
+		return code;
+	
+	rrcc.HowMany++;
+	rrcc.handles[i] = ConnHandle;
+	rrcc.hosts[i] = host;
+	rrcc.retcodes[i] = 0;
+	rrcc.dying[i] = 0;
+	
+	SLog(20,  "res_mgrpent::CreateMember Added %x at index %d", host, i);
+	return(0);
 }
 
 void res_mgrpent::KillMember(unsigned long host, int forcibly) {
@@ -266,24 +261,26 @@ void res_mgrpent::PutHostSet() {
 }
 
 /* check results from call - if rpc2 related error codes reset state maybe*/
-int res_mgrpent::CheckResult(){
-    int code = 0;
-    LogMsg(20, SrvDebugLevel, stdout,  "res_mgrpent::CheckResult()");
-    for(int i = 0; i < VSG_MEMBERS; i++){
-	if (rrcc.hosts[i] == 0) continue;
+int res_mgrpent::CheckResult()
+{
+	int code = 0;
+	SLog(20,  "res_mgrpent::CheckResult()");
+	for(int i = 0; i < VSG_MEMBERS; i++){
+		if (rrcc.hosts[i] == 0) 
+			continue;
 	
-	if (rrcc.retcodes[i] < 0) {
-	    code = ETIMEDOUT;
-	    srvent *s = 0;
-	    GetServer(&s, rrcc.hosts[i]);
-	    s->ServerError((int *)&rrcc.retcodes[i]);
-	    PutServer(&s);
-	    
-	    if (rrcc.retcodes[i] == ETIMEDOUT)
-		KillMember(rrcc.hosts[i], 1);
+		if (rrcc.retcodes[i] < 0) {
+			code = ETIMEDOUT;
+			srvent *s = 0;
+			GetServer(&s, rrcc.hosts[i]);
+			s->ServerError((int *)&rrcc.retcodes[i]);
+			PutServer(&s);
+			
+			if (rrcc.retcodes[i] == ETIMEDOUT)
+				KillMember(rrcc.hosts[i], 1);
+		}
 	}
-    }
-    return(code);
+	return(code);
 }
 
 int res_mgrpent::IncompleteVSG(){
@@ -320,7 +317,7 @@ void res_mgrpent::print(FILE *fp) {
 }
 void res_mgrpent::print(int fd) {
     char buf[80];
-    sprintf(buf, "%#08x : VSGAddr = 0x%x\n", (long) this, VSGAddr);
+    sprintf(buf, "%p : VSGAddr = 0x%lx\n",  this, VSGAddr);
     write(fd, buf, strlen(buf));
 }
 
@@ -331,7 +328,7 @@ resmgrp_iterator::resmgrp_iterator(unsigned long vsgaddr) : dlist_iterator ((dli
 
 res_mgrpent *resmgrp_iterator::operator()() {
     dlink *d;
-    while (d = dlist_iterator::operator()()) {
+    while ((d = dlist_iterator::operator()())) {
 	res_mgrpent *m = strbase(res_mgrpent, d, tblhandle);
 	if ((VSGaddr == (unsigned long)0) ||
 	    (VSGaddr == ALL_VSGS) ||
@@ -351,7 +348,7 @@ srvent *FindServer(unsigned long host) {
     srvent *s;
 
     LogMsg(20, SrvDebugLevel, stdout,  "FindServer(%x)", host);
-    while (s = next())
+    while ((s = next()))
 	if (s->host == host) return(s);
     LogMsg(20, SrvDebugLevel, stdout,  "FindServer didnt find host %x", host);
     return(0);
@@ -397,7 +394,7 @@ void ServerPrint(int fd) {
 
     srv_iterator next;
     srvent *s;
-    while (s = next()) s->print(fd);
+    while ((s = next())) s->print(fd);
 
     sprintf(buffer, "\n");
     write(fd, buffer, strlen(buffer));
@@ -414,7 +411,7 @@ srvent::srvent(unsigned long Host) {
     }
     else {
 	char buf[12];
-	sprintf(buf, "%u", Host);
+	sprintf(buf, "%lu", Host);
 	name = new char[strlen(buf) + 1];
 	strcpy(name, buf);
     }
@@ -479,13 +476,13 @@ void srvent::Reset() {
     /* Kill all indirect connections to this server. */
     resmgrp_iterator mgrp_next;
     res_mgrpent *m;
-    while (m = mgrp_next())
+    while ((m = mgrp_next()))
 	m->KillMember(host, 0);
 
     /* Kill all conninfos with this server */
     conninfo_iterator conninfo_next;
     conninfo *cip;
-    while(cip = conninfo_next())
+    while((cip = conninfo_next()))
 	if (cip->GetRemoteHost() == host){
 	    conninfo::CInfoTab->remove(&cip->tblhandle);
 	    conninfo::ncinfos--;
@@ -550,8 +547,8 @@ void srvent::print(FILE *fp) {
 
 void srvent::print(int fd) {
     char buf[80];
-    sprintf(buf, "%#08x : %-16s : host = %#08x, binding = %d\n",
-	     (long)this, name, host, binding);
+    sprintf(buf, "%p : %-16s : host = %#08lx, binding = %d\n",
+	     this, name, host, binding);
     write(fd, buf, strlen(buf));
 }
 srv_iterator::srv_iterator() : olist_iterator((olist&)*srvent::srvtab) {
@@ -576,7 +573,7 @@ int GetResMgroup(res_mgrpent **mpp, unsigned long vsgaddr,
 
     /* Grab an existing free mgroup if possible */
     resmgrp_iterator	next(vsgaddr);
-    while (m = next()) 
+    while ((m = next()) )
 	if (!m->inuse) {
 	    LogMsg(20, SrvDebugLevel, stdout,  "GetResMgroup: Found existing mgroup");
 	    m->inuse = 1;
@@ -647,7 +644,7 @@ void ResMgrpPrint(int fd) {
     /* Iterate through the individual entries. */
     resmgrp_iterator next;
     res_mgrpent *m;
-    while (m = next()) m->print(fd);
+    while ((m = next())) m->print(fd);
     sprintf(buffer, "\n");
     write(fd, buffer, strlen(buffer));
 }
@@ -689,7 +686,7 @@ conninfo_iterator::conninfo_iterator(RPC2_Handle cid): olist_iterator((olist&)*c
 }
 conninfo *conninfo_iterator::operator()() {
     olink *o;
-    while (o = olist_iterator::operator()()) {
+    while ((o = olist_iterator::operator()())) {
 	conninfo *cip = strbase(conninfo, o, tblhandle);
 	if (cip->cid == key || key == 0) return(cip);
     }
@@ -708,7 +705,6 @@ void ResCheckServerLWP()
     delay.tv_sec = 120;
     delay.tv_usec = 0;
 
-    srvent *s;
     while(1) {
 	LWP_SignalProcess((char *)ResCheckServerLWP);
 	IOMGR_Select(0, 0, 0, 0, &delay);
@@ -727,7 +723,7 @@ void ResCheckServerLWP_worker()
     while(1) {
 	srv_iterator *next;
 	next = new srv_iterator;
-	while (s = (*next)())
+	while ((s = (*next)()))
 	    if (s->ServerIsDown()){
 		LogMsg(19, SrvDebugLevel, stdout,  
 		       "ResCheckServerLWP_worker - checking server %s\n", s->name);

@@ -250,20 +250,6 @@ static int ValidateRHandle(VolumeId, int, ViceReintHandle[], ViceReintHandle **)
 
 
 /*
-  ViceVIncReintegrate: Reintegrate disconnected mutations 
-  in an incremental fashion
-*/
-long FS_ViceVIncReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer *Index,
-			 RPC2_Integer LogSize, RPC2_CountedBS *OldVS, 
-			 RPC2_Integer *NewVS, CallBackStatus *VCBStatus, 
-			 RPC2_CountedBS *PiggyBS, SE_Descriptor *BD) 
-{
-
-	return(FS_ViceReintegrate(RPCid, Vid, LogSize, Index, 0, NULL, NULL,
-			       OldVS, NewVS, VCBStatus, PiggyBS, BD));
-}
-
-/*
   ViceReintegrate: Reintegrate disconnected mutations
 */
 long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
@@ -297,22 +283,22 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 	SLog(1, "Starting ValidateReintegrateParms for %#x", Vid);
 
 	/* Phase I. */
-	if (errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
-						 LogSize, rlog, Index, 0))
+	if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
+						 LogSize, rlog, Index, 0)))
 		goto FreeLocks;
 	
 	SLog(1, "Starting  GetReintegrateObjects for %#x", Vid);
 
 	/* Phase II. */
-	if (errorCode = GetReintegrateObjects(client, rlog, vlist, 
-					      &blocks, Index))
+	if ((errorCode = GetReintegrateObjects(client, rlog, vlist, 
+					      &blocks, Index)))
 		goto FreeLocks;
 
 	SLog(1, "Starting  CheckSemanticsAndPerform for %#x", Vid);
 
 	/* Phase III. */
-	if (errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, rlog, 
-						 vlist, &blocks, Index))
+	if ((errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, rlog, 
+						 vlist, &blocks, Index)))
 		goto FreeLocks;
 	
  FreeLocks:
@@ -340,19 +326,18 @@ long FS_ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid,
     int errorCode = 0;		/* return code for caller */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
-    VolumeId VSGVolnum = Fid->Volume;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v;
 
     SLog(0/*1*/, "ViceOpenReintHandle: Fid = (%x.%x.%x)",
 	     Fid->Volume, Fid->Vnode, Fid->Unique);
 
-    if (errorCode = ValidateParms(RPCid, &client, NULL, &Fid->Volume, 0, NULL))
+    if ((errorCode = ValidateParms(RPCid, &client, NULL, &Fid->Volume, 0, NULL)))
 	goto FreeLocks;
 
     v = AddVLE(*vlist, Fid);
-    if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
-			     NO_LOCK, 0, 0, 0))
+    if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
+			     NO_LOCK, 0, 0, 0)))
 	goto FreeLocks;
 
     /* create a new inode */
@@ -397,7 +382,7 @@ long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
 	goto Exit;
     }	
 
-    if (errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle)) 
+    if ((errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle)) )
 	goto Exit;
 
     SLog(0/*1*/, "ViceQueryReintHandle: Handle = (%d,%d,%d)",
@@ -452,7 +437,7 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
 	goto Exit;
     }	
 
-    if (errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle)) 
+    if ((errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle)) )
 	goto Exit;
 
     SLog(0/*1*/, "ViceSendReintFragment: Handle = (%d,%d,%d), Length = %d",
@@ -502,7 +487,7 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
 	goto Exit;
     }
 
-    if (sid.Value.SmartFTPD.BytesTransferred != Length) {
+    if (sid.Value.SmartFTPD.BytesTransferred != (long)Length) {
 	SLog(0, "ViceSendReintFragment: length discrepancy (%d : %d), (%d,%d,%d), %s %s.%d",
 	       Length, sid.Value.SmartFTPD.BytesTransferred, 
 	       myHandle->BirthTime, myHandle->Device, myHandle->Inode,
@@ -548,21 +533,21 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSi
     if ((PiggyBS->SeqLen > 0) && (errorCode = FS_ViceCOP2(RPCid, PiggyBS))) 
 	goto FreeLocks;
 
-    if (errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle))
+    if ((errorCode = ValidateRHandle(Vid, numHandles, RHandle, &myHandle)))
 	goto FreeLocks;
 
     /* Phase I. */
-    if (errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
-					     LogSize, rlog, 0, myHandle))
+    if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
+					     LogSize, rlog, 0, myHandle)))
 	goto FreeLocks;
 
     /* Phase II. */
-    if (errorCode = GetReintegrateObjects(client, rlog, vlist, &blocks, 0))
+    if ((errorCode = GetReintegrateObjects(client, rlog, vlist, &blocks, 0)))
 	goto FreeLocks;
 
     /* Phase III. */
-    if (errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, rlog, 
-					     vlist, &blocks, 0))
+    if ((errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, rlog, 
+					     vlist, &blocks, 0)))
 	goto FreeLocks;
 
  FreeLocks:
@@ -570,7 +555,6 @@ long FS_ViceCloseReintHandle(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSi
     PutReintegrateObjects(errorCode, volptr, rlog, vlist, blocks, client,
 			  0, NULL, NULL, OldVS, NewVS, VCBStatus);
 
- Exit:
     SLog(0/*2*/, "ViceCloseReintHandle returns %s", ViceErrorMsg(errorCode));
 
     return(errorCode);
@@ -793,7 +777,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	rle *r;
 	int count = 0;
 	index = 0;
-	while (r = (rle *)next()) {
+	while ((r = (rle *)next())) {
 	    switch(r->opcode) {
 		case OLDCML_NewStore_OP:
 		    if (!XlateVid(&r->u.u_store.Fid.Volume) ||
@@ -900,8 +884,8 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
     /* Acquire the volume in exclusive mode. */
     {
-	if (errorCode = GetVolObj(*Vid, volptr, VOL_EXCL_LOCK, 
-				  0, ThisHostAddr)) {
+	if ((errorCode = GetVolObj(*Vid, volptr, VOL_EXCL_LOCK, 
+				  0, ThisHostAddr))) {
 	    index = -1;
 	    goto Exit;
 	}
@@ -992,7 +976,7 @@ START_TIMING(Reintegrate_GetObjects);
 	rle *r;
 	int count = 0;
         index = 0;
-	while (r = (rle *)next()) {
+	while ((r = (rle *)next())) {
 	    switch(r->opcode) {
 	        case OLDCML_NewStore_OP:
 		case OLDCML_Remove_OP:
@@ -1004,12 +988,12 @@ START_TIMING(Reintegrate_GetObjects);
 		case OLDCML_Create_OP:
 		    {
 		    int tblocks = 0;
-		    if (errorCode = AllocReintegrateVnode(&volptr, vlist,
+		    if ((errorCode = AllocReintegrateVnode(&volptr, vlist,
 							  &r->u.u_create.Did,
 							  &r->u.u_create.Fid,
 							  File, client->Id,
 							  r->u.u_create.AllocHost,
-							  &tblocks))
+							  &tblocks)))
 			goto Exit;
 		    *blocks += tblocks;
 		    }
@@ -1018,12 +1002,12 @@ START_TIMING(Reintegrate_GetObjects);
 		case OLDCML_MakeDir_OP:
 		    {
 		    int tblocks = 0;
-		    if (errorCode = AllocReintegrateVnode(&volptr, vlist,
+		    if ((errorCode = AllocReintegrateVnode(&volptr, vlist,
 							  &r->u.u_mkdir.Did,
 							  &r->u.u_mkdir.NewDid,
 							  Directory, client->Id,
 							  r->u.u_mkdir.AllocHost,
-							  &tblocks))
+							  &tblocks)))
 			goto Exit;
 		    *blocks += tblocks;
 		    }
@@ -1032,12 +1016,12 @@ START_TIMING(Reintegrate_GetObjects);
 		case OLDCML_SymLink_OP:
 		    {
 		    int tblocks = 0;
-		    if (errorCode = AllocReintegrateVnode(&volptr, vlist,
+		    if ((errorCode = AllocReintegrateVnode(&volptr, vlist,
 							  &r->u.u_symlink.Did,
 							  &r->u.u_symlink.Fid,
 							  SymbolicLink, client->Id,
 							  r->u.u_symlink.AllocHost,
-							  &tblocks))
+							  &tblocks)))
 			goto Exit;
 		    *blocks += tblocks;
 		    }
@@ -1091,7 +1075,7 @@ START_TIMING(Reintegrate_GetObjects);
 	rle *r;
 	int count = 0;
 	index = 0;
-	while (r = (rle *)next()) {
+	while ((r = (rle *)next())) {
 	    switch(r->opcode) {
 		case OLDCML_NewStore_OP:
 		    {
@@ -1101,8 +1085,8 @@ START_TIMING(Reintegrate_GetObjects);
 		    /* (Parent MUST already be on list if child was 
 		       just alloc'ed!) */
 		    if (v->vptr == 0 && !(ISDIR(r->u.u_store.Fid)))
-			if (errorCode = AddParent(&volptr, vlist, 
-						  &r->u.u_store.Fid)) {
+			if ((errorCode = AddParent(&volptr, vlist, 
+						  &r->u.u_store.Fid))) {
 			    goto Exit;
 			}
 		    }
@@ -1123,10 +1107,10 @@ START_TIMING(Reintegrate_GetObjects);
 		    /* Add the child object's fid to the vlist 
 		       (if it presently exists). */
 		    if (p_v->vptr == 0)
-			if (errorCode = AddChild(&volptr, vlist,
+			if ((errorCode = AddChild(&volptr, vlist,
 						 &r->u.u_remove.Did, 
 						 (char *)r->u.u_remove.Name, 
-						 0))
+						 0)))
 			    goto Exit;
 
 		    p_v->d_inodemod = 1;
@@ -1151,20 +1135,20 @@ START_TIMING(Reintegrate_GetObjects);
 		    /* Add the source object's fid to the vlist 
 		       (if it presently exists). */
 		    if (sp_v->vptr == 0) 
-			    if (errorCode = AddChild(&volptr, vlist,
+			    if ((errorCode = AddChild(&volptr, vlist,
 						     &r->u.u_rename.OldDid, 
 						     (char *)r->u.u_rename.OldName, 
-						     0))
+						     0)))
 			    goto Exit;
 
 		    vle *tp_v = AddVLE(*vlist, &r->u.u_rename.NewDid);
 
 		    /* Add the target object's fid to the vlist (if it presently exists). */
 		    if (tp_v->vptr == 0)
-			if (errorCode = AddChild(&volptr, vlist,
+			if ((errorCode = AddChild(&volptr, vlist,
 						 &r->u.u_rename.NewDid, 
 						 (char *)r->u.u_rename.NewName,
-						 0))
+						 0)))
 			    goto Exit;
 
 		    sp_v->d_reintupdate = 1;
@@ -1188,10 +1172,10 @@ START_TIMING(Reintegrate_GetObjects);
 
 		    /* Add the child object's fid to the vlist (if it presently exists). */
 		    if (p_v->vptr == 0)
-			if (errorCode = AddChild(&volptr, vlist,
+			if ((errorCode = AddChild(&volptr, vlist,
 						 &r->u.u_rmdir.Did, 
 						 (char *)r->u.u_rmdir.Name, 
-						 0))
+						 0)))
 			    goto Exit;
 
 		    p_v->d_reintupdate = 1;
@@ -1228,14 +1212,14 @@ START_TIMING(Reintegrate_GetObjects);
 	dlist_iterator next(*vlist);
 	vle *v;
 	int count = 0;
-	while (v = (vle *)next()) {
+	while ((v = (vle *)next())) {
 	    if (v->vptr != 0) continue;
 
 	    SLog(10,  "GetReintegrateObjects: acquiring (%x.%x.%x)",
 		    v->fid.Volume, v->fid.Vnode, v->fid.Unique);
-	    if (errorCode = GetFsObj(&v->fid, &volptr, &v->vptr, 
+	    if ((errorCode = GetFsObj(&v->fid, &volptr, &v->vptr, 
 				     WRITE_LOCK, VOL_NO_LOCK, 0, 0,
-				     v->d_inodemod)) {
+				     v->d_inodemod))) {
                 index = -1;
 		goto Exit;
 	    }
@@ -1281,7 +1265,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
     int index;
 
     /* Get a no-lock reference to the volume for use in this routine (only). */
-    if (errorCode = GetVolObj(Vid, &volptr, VOL_NO_LOCK)) {
+    if ((errorCode = GetVolObj(Vid, &volptr, VOL_NO_LOCK))) {
         index = -1;
 	goto Exit;
     }
@@ -1301,7 +1285,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 	rle *r;
 	int count = 0;
         index = 0;
-	while (r = (rle *)next()) {
+	while ((r = (rle *)next())) {
 	    switch(r->opcode) {
 		case OLDCML_NewStore_OP:
 		    {
@@ -1322,12 +1306,12 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			case StoreData:
 			case StoreStatusData:
 			    /* Check. */
-			    if (errorCode = CheckStoreSemantics(client, &a_v->vptr,
+			    if ((errorCode = CheckStoreSemantics(client, &a_v->vptr,
 								&v->vptr, &volptr, 1,
 								NormalVCmp,
 								&r->u.u_store.Status.VV,
 								r->u.u_store.Status.DataVersion,
-								0, 0)) {
+								0, 0))) {
 				goto Exit;
 			    }
 			    /* Perform. */
@@ -1381,7 +1365,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				r->u.u_store.Status.Length = v->vptr->disk.length;
 
 			    /* Check. */
-			    if (errorCode = CheckNewSetAttrSemantics(client, &a_v->vptr,
+			    if ((errorCode = CheckNewSetAttrSemantics(client, &a_v->vptr,
 								     &v->vptr, &volptr, 1,
 								     NormalVCmp,
 								     r->u.u_store.Status.Length,
@@ -1391,7 +1375,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 								     r->u.u_store.Mask,
 								     &r->u.u_store.Status.VV,
 								     r->u.u_store.Status.DataVersion,
-								     0, 0)) {
+								     0, 0))) {
 				goto Exit;
 			    }
 
@@ -1416,7 +1400,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				  : RES_NewStore_OP;
 				SLog(5, 
 				       "Spooling Reintegration newstore record \n");
-				if (errorCode = 
+				if ((errorCode = 
 				    SpoolVMLogRecord(vlist, v, volptr,
 						     &r->sid, opcode, STSTORE,
 						     r->u.u_store.Status.Owner,
@@ -1424,7 +1408,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 						     r->u.u_store.Status.Author, 
 						     r->u.u_store.Status.Date, 
 						     r->u.u_store.Mask,
-						     &(r->u.u_store.Status.VV))) {
+						     &(r->u.u_store.Status.VV)))) {
 				    SLog(0, "Reint: Error %d for spool of Store Op\n",
 					   errorCode);
 				    goto Exit;
@@ -1455,7 +1439,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			default:
 			    CODA_ASSERT(FALSE);
 		    }
-		    if (errorCode = AdjustDiskUsage(volptr, deltablocks)) {
+		    if ((errorCode = AdjustDiskUsage(volptr, deltablocks))) {
 			goto Exit;
 		    }
 		    *blocks += deltablocks;
@@ -1510,11 +1494,11 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			    int opcode = (parent_v->d_needsres)
 				? ResolveViceCreate_OP
 				    : RES_Create_OP;
-			    if (errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
+			    if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							     &r->sid, opcode, 
 							     r->u.u_create.Name, 
 							     r->u.u_create.Fid.Vnode,
-							     r->u.u_create.Fid.Unique)) {
+							     r->u.u_create.Fid.Unique))) {
 				SLog(0, 
 				       "Reint(CSAP): Error %d during spooling log record for create\n",
 				       errorCode);
@@ -1530,21 +1514,21 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    /* Check. */
 		    vle *parent_v = FindVLE(*vlist, &r->u.u_remove.Did);
 		    vle *child_v;
-		    if (errorCode = LookupChild(volptr, parent_v->vptr,
+		    if ((errorCode = LookupChild(volptr, parent_v->vptr,
 						(char *)r->u.u_remove.Name,
-						&r->u.u_remove.TgtFid))
+						&r->u.u_remove.TgtFid)))
 			goto Exit;
 		    if (!(child_v = FindVLE(*vlist, &r->u.u_remove.TgtFid))) {
 			errorCode = EINVAL;
 			goto Exit;
 		    }
-		    if (errorCode = CheckRemoveSemantics(client, &parent_v->vptr,
+		    if ((errorCode = CheckRemoveSemantics(client, &parent_v->vptr,
 							  &child_v->vptr,
 							  (char *)r->u.u_remove.Name,
 							  &volptr, 1, NormalVCmp,
 							  &r->u.u_remove.DirStatus,
 							  &r->u.u_remove.Status,
-							  0, 0))
+							  0, 0)))
 			goto Exit;
 
 		    /* directory concurrency check */
@@ -1569,12 +1553,12 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			  ? ResolveViceRemove_OP
 			  : RES_Remove_OP;
 			ViceVersionVector *ghostVV = &Vnode_vv(child_v->vptr);	/* ??? -JJK */
-			if (errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
+			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							 &r->sid, opcode, 
 							 r->u.u_remove.Name, 
 							 r->u.u_remove.TgtFid.Vnode, 
 							 r->u.u_remove.TgtFid.Unique, 
-							 ghostVV)) {
+							 ghostVV))) {
 			    SLog(0, "Reint: Error %d during spool log record for remove op\n",
 				   errorCode);
 			    goto Exit;
@@ -1583,7 +1567,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    *blocks += tblocks;
 		    if (child_v->vptr->delete_me) {
 			int deltablocks = -nBlocks(child_v->vptr->disk.length);
-			if (errorCode = AdjustDiskUsage(volptr, deltablocks))
+			if ((errorCode = AdjustDiskUsage(volptr, deltablocks)))
 			    goto Exit;
 			*blocks += deltablocks;
 
@@ -1608,13 +1592,13 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    /* Check. */
 		    vle *parent_v = FindVLE(*vlist, &r->u.u_link.Did);
 		    vle *child_v = FindVLE(*vlist, &r->u.u_link.Fid);
-		    if (errorCode = CheckLinkSemantics(client, &parent_v->vptr,
+		    if ((errorCode = CheckLinkSemantics(client, &parent_v->vptr,
 							&child_v->vptr,
 							(char *)r->u.u_link.Name,
 							&volptr, 1, NormalVCmp,
 							&r->u.u_link.DirStatus,
 							&r->u.u_link.Status,
-							0, 0))
+							0, 0)))
 			goto Exit;
 
 		    /* directory concurrency check */
@@ -1637,12 +1621,12 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceLink_OP
 			  : RES_Link_OP;
-			if (errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
+			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							 &r->sid, opcode, 
 							 r->u.u_link.Name, 
 							 r->u.u_link.Fid.Vnode,
 							 r->u.u_link.Fid.Unique,
-							 &(Vnode_vv(child_v->vptr)))) {
+							 &(Vnode_vv(child_v->vptr))))) {
 			    SLog(0, "Reint: error %d during spool log record for ViceLink\n",
 				   errorCode);
 			    goto Exit;
@@ -1659,9 +1643,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    vle *td_v = FindVLE(*vlist, &r->u.u_rename.NewDid);
 		    int SameParent = (sd_v == td_v);
 		    vle *s_v;
-		    if (errorCode = LookupChild(volptr, sd_v->vptr,
+		    if ((errorCode = LookupChild(volptr, sd_v->vptr,
 						(char *)r->u.u_rename.OldName,
-						&r->u.u_rename.SrcFid))
+						&r->u.u_rename.SrcFid)))
 			goto Exit;
 		    if (!(s_v = FindVLE(*vlist, &r->u.u_rename.SrcFid))) {
 			errorCode = EINVAL;
@@ -1687,7 +1671,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			    goto Exit;
 		    }
 		    int TargetExists = (t_v != 0);
-		    if (errorCode = CheckRenameSemantics(client, &sd_v->vptr,
+		    if ((errorCode = CheckRenameSemantics(client, &sd_v->vptr,
 							  &td_v->vptr, &s_v->vptr,
 							  (char *)r->u.u_rename.OldName,
 							  (TargetExists ? &t_v->vptr : 0),
@@ -1697,7 +1681,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							  &r->u.u_rename.NewDirStatus,
 							  &r->u.u_rename.SrcStatus,
 							  &r->u.u_rename.TgtStatus,
-							  0, 0, 0, 0, 0, 0, 1, 0, vlist))
+							  0, 0, 0, 0, 0, 0, 1, 0, vlist)))
 			goto Exit;
 
 		    /* directory concurrency checks */
@@ -1744,16 +1728,13 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			int sd_opcode = (sd_v->d_needsres)
 			  ? ResolveViceRename_OP
 			  : RES_Rename_OP;
-			int td_opcode = (td_v->d_needsres)
-			  ? ResolveViceRename_OP
-			  : RES_Rename_OP;
 			// rvm resolution is on 
-			if (errorCode = SpoolRenameLogRecord((int) sd_opcode, (dlist *) vlist, 
+			if ((errorCode = SpoolRenameLogRecord((int) sd_opcode, (dlist *) vlist, 
 							     (Vnode *)s_v->vptr,(Vnode *)( t_v ? t_v->vptr : NULL) ,
 							     (Vnode *)sd_v->vptr, (Vnode *)td_v->vptr, (Volume *) volptr, 
 							     (char *)r->u.u_rename.OldName,
 							     (char *)r->u.u_rename.NewName, 
-							     (ViceStoreId *) &r->sid)) {
+							     (ViceStoreId *) &r->sid))) {
 				SLog(0, "Reint: Error %d during spool log record for rename\n",
 				     errorCode);
 				goto Exit;
@@ -1762,7 +1743,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
 		    if (TargetExists && t_v->vptr->delete_me) {
 			int deltablocks = -nBlocks(t_v->vptr->disk.length);
-			if (errorCode = AdjustDiskUsage(volptr, deltablocks))
+			if ((errorCode = AdjustDiskUsage(volptr, deltablocks)))
 			    goto Exit;
 			*blocks += deltablocks;
 
@@ -1782,13 +1763,13 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    /* Check. */
 		    vle *parent_v = FindVLE(*vlist, &r->u.u_mkdir.Did);
 		    vle *child_v = FindVLE(*vlist, &r->u.u_mkdir.NewDid);
-		    if (errorCode = CheckMkdirSemantics(client, &parent_v->vptr,
+		    if ((errorCode = CheckMkdirSemantics(client, &parent_v->vptr,
 							 &child_v->vptr,
 							 (char *)r->u.u_mkdir.Name,
 							 &volptr, 1, NormalVCmp,
 							 &r->u.u_mkdir.DirStatus,
 							 &r->u.u_mkdir.Status,
-							 0, 0))
+							 0, 0)))
 			goto Exit;
 
 		    /* directory concurrency check */
@@ -1813,20 +1794,20 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			  : RES_MakeDir_OP;
 			int c_opcode = RES_MakeDir_OP;
 			if (!errorCode) {
-			    if (errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
+			    if ((errorCode = SpoolVMLogRecord(vlist, parent_v, volptr, 
 							     &r->sid, p_opcode, 
 							     (char *)r->u.u_mkdir.Name,
 							     r->u.u_mkdir.NewDid.Vnode,
-							     r->u.u_mkdir.NewDid.Unique)) {
+							     r->u.u_mkdir.NewDid.Unique))) {
 				SLog(0, "Reint: Error %d during SpoolVMLogRecord for parent in MakeDir_OP\n",
 				       errorCode);
 				goto Exit;
 			    }
-			    if (errorCode = SpoolVMLogRecord(vlist, child_v, 
+			    if ((errorCode = SpoolVMLogRecord(vlist, child_v, 
 							     volptr, &r->sid, 
 							     c_opcode, ".", 
 							     r->u.u_mkdir.NewDid.Vnode,
-							     r->u.u_mkdir.NewDid.Unique)) {
+							     r->u.u_mkdir.NewDid.Unique))) {
 				SLog(0, 
 				       "Reint:  error %d during SpoolVMLogRecord for child in MakeDir_OP\n",
 				       errorCode);
@@ -1843,21 +1824,21 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    /* Check. */
 		    vle *parent_v = FindVLE(*vlist, &r->u.u_rmdir.Did);
 		    vle *child_v;
-		    if (errorCode = LookupChild(volptr, parent_v->vptr,
+		    if ((errorCode = LookupChild(volptr, parent_v->vptr,
 						(char *)r->u.u_rmdir.Name,
-						&r->u.u_rmdir.TgtFid))
+						&r->u.u_rmdir.TgtFid)))
 			goto Exit;
 		    if (!(child_v = FindVLE(*vlist, &r->u.u_rmdir.TgtFid))) {
 			errorCode = EINVAL;
 			goto Exit;
 		    }
-		    if (errorCode = CheckRmdirSemantics(client, &parent_v->vptr,
+		    if ((errorCode = CheckRmdirSemantics(client, &parent_v->vptr,
 							 &child_v->vptr,
 							 (char *)r->u.u_rmdir.Name,
 							 &volptr, 1, NormalVCmp,
 							 &r->u.u_rmdir.Status,
 							 &r->u.u_rmdir.TgtStatus,
-							 0, 0))
+							 0, 0)))
 			goto Exit;
 
 		    /* directory concurrency check */
@@ -1881,7 +1862,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceRemoveDir_OP
 			  : RES_RemoveDir_OP;
-			if (errorCode = SpoolVMLogRecord(vlist, parent_v, 
+			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, 
 							 volptr, &r->sid, 
 							 opcode, 
 							 (char *)r->u.u_rmdir.Name,
@@ -1889,7 +1870,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							 r->u.u_rmdir.TgtFid.Unique,
 							 VnLog(child_v->vptr), 
 							 &(Vnode_vv(child_v->vptr).StoreId),
-							 &(Vnode_vv(child_v->vptr).StoreId))) {
+							 &(Vnode_vv(child_v->vptr).StoreId)))) {
 			    SLog(0, 
 				   "Reint(CSAP): Error %d during SpoolVMLogRecord for RmDir_OP\n",
 				   errorCode);
@@ -1899,7 +1880,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    *blocks += tblocks;
 		    CODA_ASSERT(child_v->vptr->delete_me);
 		    int deltablocks = -nBlocks(child_v->vptr->disk.length);
-		    if (errorCode = AdjustDiskUsage(volptr, deltablocks))
+		    if ((errorCode = AdjustDiskUsage(volptr, deltablocks)))
 			goto Exit;
 		    *blocks += deltablocks;
 		    }
@@ -1912,13 +1893,13 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    /* Check. */
 		    vle *parent_v = FindVLE(*vlist, &r->u.u_symlink.Did);
 		    vle *child_v = FindVLE(*vlist, &r->u.u_symlink.Fid);
-		    if (errorCode = CheckSymlinkSemantics(client, &parent_v->vptr,
+		    if ((errorCode = CheckSymlinkSemantics(client, &parent_v->vptr,
 							   &child_v->vptr,
 							   (char *)r->u.u_symlink.NewName,
 							   &volptr, 1, NormalVCmp,
 							   &r->u.u_symlink.DirStatus,
 							   &r->u.u_symlink.Status,
-							   0, 0))
+							   0, 0)))
 			goto Exit;
 
 		    /* directory concurrency check */
@@ -1951,12 +1932,12 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			int opcode = (parent_v->d_needsres)
 			  ? ResolveViceSymLink_OP
 			  : RES_SymLink_OP;
-			if (errorCode = SpoolVMLogRecord(vlist, parent_v, 
+			if ((errorCode = SpoolVMLogRecord(vlist, parent_v, 
 							 volptr, &r->sid,
 							 opcode, 
 							 r->u.u_symlink.NewName,
 							 r->u.u_symlink.Fid.Vnode,
-							 r->u.u_symlink.Fid.Unique)) {
+							 r->u.u_symlink.Fid.Unique))) {
 			    SLog(0, 
 				   "Reint: Error %d during spool log record for ViceSymLink\n",
 				   errorCode);
@@ -1986,7 +1967,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
     {
 	dlist_iterator next(*rlog);
 	rle *r;
-	while (r = (rle *)next()) {
+	while ((r = (rle *)next())) {
 	    switch(r->opcode) {
 		case OLDCML_Create_OP:
 		case OLDCML_Remove_OP:
@@ -2031,7 +2012,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    sid.Value.SmartFTPD.ByteQuota = r->u.u_store.Length;
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
 		    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = v->f_finode;
-		    if (errorCode = CallBackFetch(CBCid, &r->u.u_store.UntranslatedFid, &sid)) {
+		    if ((errorCode = CallBackFetch(CBCid, &r->u.u_store.UntranslatedFid, &sid))) {
 #if 0 /* xXXX Jan clean this up */
 			    if ( errorCode < RPC2_ELIMIT ) {
 				    CLIENT_CleanUpHost(he);
@@ -2102,7 +2083,7 @@ START_TIMING(Reintegrate_PutObjects);
     if (rlog) {
 	rle *r;
 	int count = 0;
-	while (r = (rle *)rlog->get()) {
+	while ((r = (rle *)rlog->get())) {
 	    if (rlog->count() == 0) 	/* last one -- save sid */
 		sid = r->sid;
 	    delete r;
@@ -2122,7 +2103,7 @@ START_TIMING(Reintegrate_PutObjects);
 
 	dlist_iterator next(*vlist);
 	vle *v;
-	while (v = (vle *)next()) {
+	while ((v = (vle *)next())) {
 	    if ((!ISDIR(v->fid) || v->d_reintupdate) && !v->vptr->delete_me) {
 		ReintFinalCOP(v, volptr, NewVS);
 	    } else {
@@ -2206,8 +2187,8 @@ static int AllocReintegrateVnode(Volume **volptr, dlist *vlist,
 	CODA_ASSERT(GetVolObj(pFid->Volume, volptr, VOL_NO_LOCK, 0, 0) == 0);
 
     /* Allocate/Retrieve the vnode. */
-    if (errorCode = AllocVnode(&vptr, *volptr, Type, cFid,
-				pFid, ClientId, AllocHost, blocks))
+    if ((errorCode = AllocVnode(&vptr, *volptr, Type, cFid,
+				pFid, ClientId, AllocHost, blocks)))
 	goto Exit;
 
     /* Create a new vle for this vnode and add it to the vlist. */
@@ -2247,8 +2228,8 @@ int AddChild(Volume **volptr, dlist *vlist, ViceFid *Did,
     /* Notice that the vlist->d_inodemod field must be 1 or we lose 
        refcounts on this directory 
     */
-    if (errorCode = GetFsObj(Did, volptr, &vptr, READ_LOCK, 
-			     VOL_NO_LOCK, IgnoreInc, 0, 1))
+    if ((errorCode = GetFsObj(Did, volptr, &vptr, READ_LOCK, 
+			     VOL_NO_LOCK, IgnoreInc, 0, 1)))
 	goto Exit;
 
     /* Look up the child, and add a vle if found. */
@@ -2312,8 +2293,8 @@ static int AddParent(Volume **volptr, dlist *vlist, ViceFid *Fid) {
 	CODA_ASSERT(GetVolObj(Fid->Volume, volptr, VOL_NO_LOCK, 0, 0) == 0);
 
     /* Child must NOT have just been alloc'ed, else this will deadlock! */
-    if (errorCode = GetFsObj(Fid, volptr, &vptr, READ_LOCK, 
-			     VOL_NO_LOCK, 0, 0, 0))
+    if ((errorCode = GetFsObj(Fid, volptr, &vptr, READ_LOCK, 
+			     VOL_NO_LOCK, 0, 0, 0)))
 	    goto Exit;
     
     /* Look up the parent, and add a vle. */
@@ -2360,6 +2341,7 @@ static int ReintNormalVCmp(int ReplicatedOp, VnodeType type,
 	default:
 	    CODA_ASSERT(0);
     }
+    return 0;
 }
 
 
@@ -2520,7 +2502,7 @@ static int ValidateRHandle(VolumeId Vid, int numHandles,
     }
 
     /* check device */
-    if (V_device(volptr) != RHandle[ix].Device) {
+    if ((long)V_device(volptr) != RHandle[ix].Device) {
 	SLog(0, "ValidateRHandle: Bad device (%d,%d)",
 	       V_device(volptr), RHandle[ix].Device);
 	error = EBADF;
@@ -2528,7 +2510,7 @@ static int ValidateRHandle(VolumeId Vid, int numHandles,
     }
 
     /* check age of handle */
-    if (StartTime != RHandle[ix].BirthTime) {
+    if ((long)StartTime != RHandle[ix].BirthTime) {
 	SLog(0, "ValidateRHandle: Old handle (%d,%d,%d)",
 	       RHandle[ix].BirthTime, RHandle[ix].Device, RHandle[ix].Inode);
 	error = EBADF;

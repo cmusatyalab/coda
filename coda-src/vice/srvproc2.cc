@@ -112,7 +112,6 @@ static void SetRPCStats(ViceStatistics *);
 static void SetVolumeStats(ViceStatistics *);
 static void SetSystemStats(ViceStatistics *);
 static void PrintVolumeStatus(VolumeStatus *);
-static void PrintUnusedComplaint(RPC2_Handle, RPC2_Integer, char *);
 
 
 /*
@@ -288,7 +287,6 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     int		aCLSize;
     int		rights;
     int		anyrights;
-    int tstatus = 0;		/* transaction status variable */
 
     errorCode = fileCode = 0;
     vptr = 0;
@@ -329,8 +327,8 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     vfid.Unique = 1;
 
     // get the root vnode even if it is inconsistent
-    if (errorCode = GetFsObj(&vfid, &volptr, &vptr, 
-			     READ_LOCK, VOL_NO_LOCK, 1, 0, 0)) {
+    if ((errorCode = GetFsObj(&vfid, &volptr, &vptr, 
+			     READ_LOCK, VOL_NO_LOCK, 1, 0, 0))) {
 	goto Final;
     }
 
@@ -406,7 +404,6 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     int		aCLSize;
     int		rights;
     int		anyrights;
-    int tstatus = 0;		/* transaction status variable */
     int oldquota = -1;               /* Old quota if it was changed */
     int ReplicatedOp;
     vle *v = 0;
@@ -431,8 +428,8 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     }
 
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, &vid, 
-				      PiggyCOP2, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, &vid, 
+				      PiggyCOP2, NULL)))
 	    goto Final;
     }
 
@@ -456,15 +453,15 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
     vfid.Vnode = ROOTVNODE;
     vfid.Unique = 1;
 
-    if (errorCode = GetVolObj(vid, &volptr, VOL_EXCL_LOCK, 0, 1 /* check this */)) {
+    if ((errorCode = GetVolObj(vid, &volptr, VOL_EXCL_LOCK, 0, 1 /* check this */))) {
 	SLog(0, "Error locking volume in ViceSetVolumeStatus: %s", ViceErrorMsg((int) errorCode));
 	goto Final ;
     }
 
 
     v = AddVLE(*vlist, &vfid);
-    if (errorCode = GetFsObj(&vfid, &volptr, &v->vptr, READ_LOCK, 
-			     VOL_NO_LOCK, 0, 0, 0)) {
+    if ((errorCode = GetFsObj(&vfid, &volptr, &v->vptr, READ_LOCK, 
+			     VOL_NO_LOCK, 0, 0, 0))) {
 	goto Final;
     }
 
@@ -509,9 +506,9 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 	    SLog(1, 
 		   "ViceSetVolumeStatus: About to spool log record, oldquota = %d, new quota = %d\n",
 		   oldquota, status->MaxQuota);
-	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId,
+	    if ((errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId,
 					     ViceSetVolumeStatus_OP, oldquota,
-					     status->MaxQuota))
+					     status->MaxQuota)))
 		SLog(0, 
 		       "ViceSetVolumeStatus: Error %d during SpoolVMLogRecord\n",
 		       errorCode);
@@ -931,12 +928,6 @@ static void SetSystemStats_bsd44(ViceStatistics *stats)
 }
 #endif
 
-#ifndef __BSD44__
-static void SetNoSystemStats(ViceStatistics *stats)
-{
-	memset(stats, 0, sizeof(*stats));
-}
-#endif
 
 #include <sys/resource.h>
 static struct rusage resource;
@@ -1073,13 +1064,3 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 }
 
 
-static void PrintUnusedComplaint(RPC2_Handle RPCid, RPC2_Integer Opcode, char *OldName) {
-    ClientEntry *client = 0;
-    long   errorCode;
-
-    (void) RPC2_GetPrivatePointer(RPCid, (char **)&client);
-
-    SLog(0, "Obsolete request %d (%s) on cid %d for %s at %s",
-	   Opcode, OldName, RPCid, client ? client->UserName:"???",
-	   (client && client->VenusId) ? client->VenusId->HostName:"???");
-}

@@ -394,9 +394,9 @@ static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
     } else 
 	CODA_ASSERT(0);
     /* now free the list */
-    for (int i = 0; i < listsize; i++){
+    for (int i = 0; i < (int)listsize; i++){
 	    rec_smolink *p;
-	    while (p = list[i].get()){
+	    while ((p = list[i].get())){
 	     VLog(0, "Vol_Restore: Found a vnode on the new volume's %s list!",
 		  (vclass == vLarge) ? "Large" : "Small");
 	     vdo = strbase(VnodeDiskObject, p, nextvn);
@@ -559,7 +559,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     CODA_ASSERT(status == 0);			/* Never aborts... */
     
     VnodeDiskObject *camvdo;
-    long    tmp = 0, i = 0, count = 0;
+    long    tmp = 0, i = 0;
     while (i < num_vnodes) {
 	rvmlib_begin_transaction(restore);
 	do {
@@ -724,7 +724,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    }
 
 	    vdop->length = ReadFile(buf, ifile);
-	    if (vdop->length == -1) {
+	    if ((int)vdop->length == -1) {
 		VLog(0, "Failure reading in data for vnode %d: aborted", 
 		     *vnodeNumber);
 		return -1;

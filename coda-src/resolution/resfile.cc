@@ -147,8 +147,8 @@ long FileResolve(res_mgrpent *mgrp, ViceFid *Fid,
 		   filename);
 	    /* right now just use the connection from the mgrp -
 	       implement the uni-connection groups  --- PUNEET */
-	    if (errorcode = Res_FetchFile(mgrp->rrcc.handles[dix], Fid, 
-					  mgrp->rrcc.hosts[dix], &Status, &sid)){
+	    if ((errorcode = Res_FetchFile(mgrp->rrcc.handles[dix], Fid, 
+					  mgrp->rrcc.hosts[dix], &Status, &sid))){
 		SLog(0,  "FileResolve: Error %d in fetchfile", 
 			errorcode);
 		CODA_ASSERT(dix != -1);
@@ -251,7 +251,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     }
     
     /* no need for access checks for resolution subsystem */
-    if (errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0)){
+    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0))){
 	errorcode = EINVAL;
 	SLog(0,  "RS_FetchFile Error in GetFsObj %d", errorcode);
 	goto FreeLocks;
@@ -336,7 +336,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
     }
     
     /* get object */
-    if (errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0, 0)){
+    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 0, 0, 0))){
 	SLog(0,  "RS_ForceFile: GetFsObj returns error %d", errorcode);
 	errorcode = EINVAL;
 	goto FreeLocks;
@@ -378,7 +378,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 	CODA_ASSERT(newinode > 0);
 
 	/* adjust the disk block count by the difference in the files */
-	if(errorcode = AdjustDiskUsage(volptr, (nBlocks(Length) - nBlocks(vptr->disk.length)))) {
+	if((errorcode = AdjustDiskUsage(volptr, (nBlocks(Length) - nBlocks(vptr->disk.length))))) {
 	    SLog(0,  "RS_ForceFile: Error %d in AdjustDiskUsage", errorcode);
 	    goto FreeLocks;
 	}

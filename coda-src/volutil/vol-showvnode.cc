@@ -128,23 +128,19 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     }
 
     infofile = fopen(INFOFILE, "w");
-    fprintf(infofile, "%x.%x(%x), %s, cloned=%d, mode=%o, links=%d, length=%ld\n",
+    fprintf(infofile, "%lx.%lx(%lx), %s, cloned=%d, mode=%o, links=%d, length=%ld\n",
 	vnodeid, vnp->disk.uniquifier, vnp->disk.dataVersion,
 	vnp->disk.type == vFile? "file": vnp->disk.type == vDirectory? "directory":
 	vnp->disk.type == vSymlink? "symlink" : "unknown type",
 	vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
 	vnp->disk.length);
-    fprintf(infofile, "inode=0x%x, parent=%x.%x, serverTime=%d",
+    fprintf(infofile, "inode=0x%lx, parent=%lx.%lx, serverTime=%s",
 	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, ctime((long *)&vnp->disk.serverModifyTime));
-    fprintf(infofile, "author=%u, owner=%u, modifyTime=%s, volumeindex = %d",
-        vnp->disk.author, vnp->disk.owner, (int)ctime((long *)&vnp->disk.unixModifyTime),
+    fprintf(infofile, "author=%lu, owner=%lu, modifyTime=%s, volumeindex = %d",
+        vnp->disk.author, vnp->disk.owner, ctime((long *)&vnp->disk.unixModifyTime),
 	vnp->disk.vol_index);
     PrintVV(infofile, &(vnp->disk.versionvector));
     
-    if (AllowResolution && V_VMResOn(vp) && vnp->disk.type == vDirectory)
-	/* print the resolution log */
-	PrintResLog(vnp->disk.vol_index, vnodeid, unique, infofile);
-
     if (AllowResolution && V_RVMResOn(vp) && vnp->disk.type == vDirectory) 
 	PrintLog(vnp, infofile);
 

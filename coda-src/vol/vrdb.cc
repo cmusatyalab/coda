@@ -99,7 +99,7 @@ vrent *vrtab::find(VolumeId grpvolnum) {
     ohashtab_iterator next(*this, (void *)grpvolnum);
     vrent *vre;
 
-    while (vre = (vrent *)next())
+    while ((vre = (vrent *)next()))
 	if (vre->volnum == grpvolnum) return(vre);
 
     return(0);
@@ -111,7 +111,7 @@ vrent *vrtab::find(char *grpname) {
     vrent *vre;
     olink *l;
     
-    while (l = next()) {
+    while ((l = next())) {
 	vre = strbase(vrent, l, namehtblink);
 	if (STREQ(vre->key, grpname)) return(vre);
     }
@@ -125,7 +125,7 @@ vrent *vrtab::ReverseFind(VolumeId rwvolnum) {
     ohashtab_iterator next(*this, (void *) -1);
     vrent *vre;
 
-    while (vre = (vrent *)next())
+    while ((vre = (vrent *)next()))
 	for (int i = 0; i < vre->nServers; i++)
 	    if (vre->ServerVolnum[i] == rwvolnum) return(vre);
 
@@ -137,7 +137,7 @@ void vrtab::clear() {
     ohashtab_iterator next(*this, (void *)-1);
     vrent *vre;
 
-    while (vre = (vrent *)next()) {
+    while ((vre = (vrent *)next())) {
 	ohashtab::remove((void *)vre->volnum, vre);
 	namehtb.remove(vre->key, &(vre->namehtblink));
 	delete vre;
@@ -158,12 +158,13 @@ void vrtab::print(FILE *fp) {
 
 void vrtab::print(int afd) {
     char buf[40];
-    sprintf(buf, "%#08x : %-16s\n", (long)this, name);
+    sprintf(buf, "%#08lx : %-16s\n", (long)this, name);
     write(afd, buf, strlen(buf));
 
     ohashtab_iterator next(*this, (void *)-1);
     vrent *vre;
-    while (vre = (vrent *)next()) vre->print(afd);
+    while ((vre = (vrent *)next())) 
+	    vre->print(afd);
 }
 
 
@@ -252,7 +253,7 @@ vrent::vrent(vrent& vre) {
 }
 
 
-vrent::operator=(vrent& vre) {
+int vrent::operator=(vrent& vre) {
     abort();
     return(0);	/* keep C++ happy */
 }
@@ -314,7 +315,7 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
     }
     if (canonicalize) {
 	long tmpvsgaddr = GetVSGAddress(&(Info->Server0), Info->ServerCount);
-	CODA_ASSERT(tmpvsgaddr == addr);
+	CODA_ASSERT(tmpvsgaddr == (long)addr);
     }
     Info->VSGAddr = addr;
     for (i = 0; i < nServers; i++)
@@ -356,7 +357,7 @@ void vrent::Canonicalize() {
     char buf[512], *c;
     c = buf;
     for (i = 0; i < VSG_MEMBERS; i++) {
-	sprintf(c, "0x%x ", ServerVolnum[i]);
+	sprintf(c, "0x%lx ", ServerVolnum[i]);
 	c += strlen(c);
     }
     LogMsg(10, VolDebugLevel, stdout, 
@@ -397,8 +398,8 @@ void vrent::print(FILE *fp) {
 
 void vrent::print(int afd) {
     char buf[512];
-    sprintf(buf, "%#08x : %s : 0x%x, %d, (x.x.x.x.x.x.x.x), 0x%x\n",
-	     (long)this, key, volnum, nServers, addr);
+    sprintf(buf, "%p : %s : 0x%lx, %d, (x.x.x.x.x.x.x.x), 0x%lx\n",
+	    this, key, volnum, nServers, addr);
     write(afd, buf, strlen(buf));
 
 }

@@ -449,14 +449,6 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
-54: ViceVIncReintegrate(IN VolumeId Vid,
-	            OUT RPC2_Integer Index,
-		    IN RPC2_Integer LogSize,
-		    IN RPC2_CountedBS OldVS,
-		    OUT RPC2_Integer NewVS,
-		    OUT CallBackStatus VCBStatus,
-		    IN RPC2_CountedBS PiggyCOP2,
-		    IN OUT SE_Descriptor BD);
 
 55: ViceOpenReintHandle	(IN ViceFid Fid,
 			 OUT ViceReintHandle RHandle);

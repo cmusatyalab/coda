@@ -669,7 +669,7 @@ void PrintCallBackState(FILE *fp)
 			tcbe = tcbe->next;
 		    }
 		    if (countcbe != tfe->users) 
-			fprintf(fp, "For Fid %x.%x.%x users = %d when counted = %d\n",
+			fprintf(fp, "For Fid %lx.%lx.%lx users = %d when counted = %d\n",
 				tfe->theFid.Volume, tfe->theFid.Vnode, 
 				tfe->theFid.Unique, tfe->users, countcbe);
 		    
@@ -697,7 +697,7 @@ void PrintCallBackState(FILE *fp)
 	{
 	int i;
             for (i = 0;  i < numVolumes; i++) {
-	        fprintf(fp, "\t0x%x  %d FEs (%d VEs), %d CBEs (%d VCBEs)\n",
+	        fprintf(fp, "\t0x%lx  %d FEs (%d VEs), %d CBEs (%d VCBEs)\n",
 		        CBStats[i].volid, CBStats[i].FEs, CBStats[i].VEs,
 		        CBStats[i].CBEs, CBStats[i].VCBEs);
 	    
@@ -719,12 +719,12 @@ static void PrintCBE(struct CallBackEntry *tcbe, FILE *fp)
     CODA_ASSERT (tcbe);
     if (tcbe->conn) {
 	unsigned long host = htonl(tcbe->conn->host);
-	fprintf(fp, "\tHost %d.%d.%d.%d ",
+	fprintf(fp, "\tHost %ld.%ld.%ld.%ld ",
 		(host & 0xff000000)>>24, (host & 0x00ff0000)>>16, 
 		(host & 0x0000ff00)>>8, host & 0x000000ff);
 	// try to get the host name 
 	long cbhostaddr;
-	if (sscanf(tcbe->conn->HostName, "%x", &cbhostaddr) == 1) {
+	if (sscanf(tcbe->conn->HostName, "%lx", &cbhostaddr) == 1) {
 	    unsigned long nhost = htonl(cbhostaddr);
 	    struct hostent *h = gethostbyaddr((char *)&nhost, 
 					      (int)sizeof(unsigned long),
@@ -745,26 +745,26 @@ static void PrintCBE(struct CallBackEntry *tcbe, FILE *fp)
 
 static void GetCallBacks(ViceFid *fid, FILE *fp) 
 {
-    fprintf(fp, "Printing callbacks for 0x%x.%x.%x\n", 
+    fprintf(fp, "Printing callbacks for 0x%lx.%lx.%lx\n", 
 	    fid->Volume, fid->Vnode, fid->Unique);
     struct FileEntry *tfe = FindEntry(fid);
     if (tfe) 
 	for (struct CallBackEntry *tcbe = tfe->callBacks; tcbe; tcbe = tcbe->next) 
 	    PrintCBE(tcbe, fp);
 
-    fprintf(fp, "End of callbacks for %x.%x.%x\n",
+    fprintf(fp, "End of callbacks for %lx.%lx.%lx\n",
 	    fid->Volume, fid->Vnode, fid->Unique); 
 }
 
 static void GetCallBacks(VolumeId vid, FILE *fp) 
 {
-    fprintf(fp, "Printing callbacks for 0x%x\n", vid);
+    fprintf(fp, "Printing callbacks for 0x%lx\n", vid);
 
     /* print volume callbacks first */
     ViceFid fid = NullFid; fid.Volume = vid;
     struct FileEntry *tfe = FindEntry(&fid);
     if (tfe) {
-	fprintf(fp, "VID 0x%x  Volume Callback\n", vid);
+	fprintf(fp, "VID 0x%lx  Volume Callback\n", vid);
 	for (struct CallBackEntry *tcbe = tfe->callBacks; tcbe; tcbe = tcbe->next) 
 	    PrintCBE(tcbe, fp);
     }
@@ -775,14 +775,14 @@ static void GetCallBacks(VolumeId vid, FILE *fp)
 	for (struct FileEntry *tf = hashTable[j]; tf; tf = nf) {
 	    nf = tf->next;
 	    if (tf->theFid.Volume == vid && tf->theFid.Vnode && tf->theFid.Unique) {
-		fprintf(fp, "FID 0x%x.%x.%x\n", tf->theFid.Volume, tf->theFid.Vnode,
+		fprintf(fp, "FID 0x%lx.%lx.%lx\n", tf->theFid.Volume, tf->theFid.Vnode,
 			tf->theFid.Unique);
 		for (struct CallBackEntry *tcbe = tf->callBacks; tcbe; tcbe = tcbe->next)
 		    PrintCBE(tcbe, fp);
 	    }
         }
     }
-    fprintf(fp, "End of callbacks for %x\n", vid);
+    fprintf(fp, "End of callbacks for %lx\n", vid);
 }
 
 // print all the callbacks for given fid.

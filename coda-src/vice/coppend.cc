@@ -101,7 +101,7 @@ void cpent::print(FILE *fp) {
 void cpent::print(int fd) {
     char buf[80];
 
-    sprintf(buf, "StoreId = (0x%x.%x), time = %d, deqing = %d\n",
+    sprintf(buf, "StoreId = (0x%lx.%lx), time = %ld, deqing = %d\n",
 	     StoreId.Host, StoreId.Uniquifier, time, deqing);
 
     write(fd, buf, (int)strlen(buf));
@@ -192,7 +192,7 @@ cpent *cpman::find(ViceStoreId *StoreId) {
 
     ohashtab_iterator next(objects, StoreId);
     cpent *cpe;
-    while(cpe = (cpent *)next())
+    while((cpe = (cpent *)next()))
 	if (cpe->StoreId.Host == StoreId->Host &&
 	    cpe->StoreId.Uniquifier == StoreId->Uniquifier) {
 	    ReleaseReadLock(&lock);
@@ -226,7 +226,7 @@ cpent *cpman::findanddeq(ViceStoreId *StoreId) {
     ohashtab_iterator next(objects, StoreId);
     cpent *cpe;
 
-    while (cpe = (cpent *)next()) 
+    while ((cpe = (cpent *)next()) )
 	if (cpe->StoreId.Host == StoreId->Host &&
 	    cpe->StoreId.Uniquifier == StoreId->Uniquifier)
 	    break;
@@ -257,12 +257,12 @@ void cpman::print(FILE *fp) {
 void cpman::print(int fd) {
     ObtainReadLock(&lock);
     char buf[40];
-    sprintf(buf, "%#08x : %-16s\n", (long)this, name);
+    sprintf(buf, "%p : %-16s\n", this, name);
     write(fd, buf, (int)strlen(buf));
 
     ohashtab_iterator next(objects);
     cpent *cpe;
-    while (cpe = (cpent *)next()) cpe->print(fd);
+    while ((cpe = (cpent *)next())) cpe->print(fd);
 
     ReleaseReadLock(&lock);
 }

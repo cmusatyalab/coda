@@ -70,15 +70,15 @@ long RS_ResPhase2(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     // Validate parameters 
     {
 	if (!XlateVid(&Fid->Volume)) {
-	    SLog(0, "RS_FetchLog: Couldn't Xlate VSG for %s", FID_(Fid));
+	    SLog(0, "RS_ResPhase2: Couldn't Xlate VSG for %s", FID_(Fid));
 	    return(EINVAL);
 	}
     }
     // get objects 
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
-				 NO_LOCK, 0, 0, 0))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
+				 NO_LOCK, 0, 0, 0)))
 	    goto Exit;
     }
     // Check Phase2 Semantics 

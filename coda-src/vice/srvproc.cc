@@ -192,7 +192,6 @@ long FS_ViceNewFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
 
     int errorCode = 0;		/* return code to caller */
-    Error fileCode = 0;		/* return code to do writes */
     Volume *volptr = 0;		/* pointer to the volume */
     ClientEntry *client = 0;	/* pointer to the client data */
     Rights rights = 0;		/* rights for this user */
@@ -210,8 +209,8 @@ START_TIMING(Fetch_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
-				      &Fid->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
 
 	/* Request type. */
@@ -242,8 +241,8 @@ START_TIMING(Fetch_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
-				 NO_LOCK, inconok, 0, 0))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
+				 NO_LOCK, inconok, 0, 0)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
@@ -254,24 +253,24 @@ START_TIMING(Fetch_Total);
 
 	    VN_VN2PFid(v->vptr, volptr, &pFid);
 	    av = AddVLE(*vlist, &pFid);
-	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, 
-				     NO_LOCK, inconok, 0, 0))
+	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, 
+				     NO_LOCK, inconok, 0, 0)))
 		goto FreeLocks;
 	}
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckFetchSemantics(client, &av->vptr, &v->vptr,
-					    &volptr, &rights, &anyrights))
+	if ((errorCode = CheckFetchSemantics(client, &av->vptr, &v->vptr,
+					    &volptr, &rights, &anyrights)))
 	    goto FreeLocks;
     }
 
     /* Perform operation. */
     {
 	if (!ReplicatedOp || PrimaryHost == ThisHostAddr)
-	    if (errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
-					      Offset, Quota, VV))
+	    if ((errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
+					      Offset, Quota, VV)))
 		goto FreeLocks;
 	PerformFetch(client, volptr, v->vptr);
 
@@ -317,7 +316,6 @@ long FS_ViceGetAttr(RPC2_Handle RPCid, ViceFid *Fid,
 		 RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
-    Error fileCode = 0;		/* return code to do writes */
     Volume *volptr = 0;		/* pointer to the volume */
     ClientEntry *client = 0;	/* pointer to the client data */
     Rights rights = 0;		/* rights for this user */
@@ -333,16 +331,16 @@ START_TIMING(GetAttr_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
-				      &Fid->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
 
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
-				 NO_LOCK, InconOK, 0, 0))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, 
+				 NO_LOCK, InconOK, 0, 0)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
@@ -353,16 +351,16 @@ START_TIMING(GetAttr_Total);
 
     VN_VN2PFid(v->vptr, volptr, &pFid);
 	    av = AddVLE(*vlist, &pFid);
-	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
-				     READ_LOCK, NO_LOCK, InconOK, 0, 0))
+	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
+				     READ_LOCK, NO_LOCK, InconOK, 0, 0)))
 		goto FreeLocks;
 	}
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckGetAttrSemantics(client, &av->vptr, &v->vptr,
-					      &volptr, &rights, &anyrights))
+	if ((errorCode = CheckGetAttrSemantics(client, &av->vptr, &v->vptr,
+					      &volptr, &rights, &anyrights)))
 	    goto FreeLocks;
     }
 
@@ -422,8 +420,8 @@ START_TIMING(ViceValidateAttrs_Total);
 
     /* Do a real getattr for primary fid. */
     {
-	if (errorCode = FS_ViceGetAttr(RPCid, PrimaryFid, 0, Status, 
-				    PrimaryHost, PiggyBS))
+	if ((errorCode = FS_ViceGetAttr(RPCid, PrimaryFid, 0, Status, 
+				    PrimaryHost, PiggyBS)))
 		goto Exit;
     }
 
@@ -446,16 +444,16 @@ START_TIMING(ViceValidateAttrs_Total);
 	/* Validate parameters. */
         {
 	    /* We've already dealt with the PiggyBS in the GetAttr above. */
-	    if (iErrorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
-					   &Piggies[i].Fid.Volume, NULL, NULL))
+	    if ((iErrorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+					   &Piggies[i].Fid.Volume, NULL, NULL)))
 		goto InvalidObj;
         }
 
 	/* Get objects. */
 	{
 	    v = AddVLE(*vlist, &Piggies[i].Fid);
-	    if (iErrorCode = GetFsObj(&Piggies[i].Fid, &volptr, 
-				      &v->vptr, READ_LOCK, NO_LOCK, 0, 0, 0))
+	    if ((iErrorCode = GetFsObj(&Piggies[i].Fid, &volptr, 
+				      &v->vptr, READ_LOCK, NO_LOCK, 0, 0, 0)))
 		goto InvalidObj;
 
 	    /* This may violate locking protocol! -JJK */
@@ -467,8 +465,8 @@ START_TIMING(ViceValidateAttrs_Total);
 		pFid.Vnode = v->vptr->disk.vparent;
 		pFid.Unique = v->vptr->disk.uparent;
 		av = AddVLE(*vlist, &pFid);
-		if (iErrorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
-					  READ_LOCK, NO_LOCK, 0, 0, 0))
+		if ((iErrorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
+					  READ_LOCK, NO_LOCK, 0, 0, 0)))
 		    goto InvalidObj;
 
 	    }
@@ -476,8 +474,8 @@ START_TIMING(ViceValidateAttrs_Total);
 
 	/* Check semantics. */
 	{
-	    if (iErrorCode = CheckGetAttrSemantics(client, &av->vptr, &v->vptr,
-						  &volptr, &rights, &anyrights))
+	    if ((iErrorCode = CheckGetAttrSemantics(client, &av->vptr, &v->vptr,
+						  &volptr, &rights, &anyrights)))
 		goto InvalidObj;
 	}
 
@@ -532,13 +530,11 @@ long FS_ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, int InconOK, RPC2_BoundedBS 
 		 ViceStatus *Status, RPC2_Unsigned PrimaryHost, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code to caller */
-    Error fileCode = 0;		/* return code to do writes */
     Volume *volptr = 0;		/* pointer to the volume */
     ClientEntry *client = 0;	/* pointer to the client data */
     Rights rights = 0;		/* rights for this user */
     Rights anyrights = 0;	/* rights for any user */
     RPC2_String eACL = 0;
-    VolumeId VSGVolnum = Fid->Volume;
     int ReplicatedOp;
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v = 0;
@@ -549,22 +545,22 @@ START_TIMING(GetACL_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
-				      &Fid->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
 
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, NO_LOCK, InconOK, 0, 0))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, READ_LOCK, NO_LOCK, InconOK, 0, 0)))
 	    goto FreeLocks;
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckGetACLSemantics(client, &v->vptr, &volptr, &rights,
-					     &anyrights, AccessList, &eACL))
+	if ((errorCode = CheckGetACLSemantics(client, &v->vptr, &volptr, &rights,
+					     &anyrights, AccessList, &eACL)))
 	    goto FreeLocks;
     }
 
@@ -609,7 +605,6 @@ long FS_ViceNewVStore(RPC2_Handle RPCid, ViceFid *Fid, ViceStoreType Request,
 			  StoreId, OldVS, NewVS, VCBStatus, PiggyBS));
 
     int errorCode = 0;		/* return code for caller */
-    Error fileCode = 0;		/* return code for writes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
     Rights rights = 0;		/* rights for this user */
@@ -627,8 +622,8 @@ START_TIMING(Store_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
-				      &Fid->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
 
 	/* Request type. */
@@ -658,7 +653,7 @@ START_TIMING(Store_Total);
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
@@ -667,22 +662,22 @@ START_TIMING(Store_Total);
 	pFid.Vnode = v->vptr->disk.vparent;
 	pFid.Unique = v->vptr->disk.uparent;
 	av = AddVLE(*vlist, &pFid);
-	if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0, 0))
+	if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckStoreSemantics(client, &av->vptr, &v->vptr, &volptr,
+	if ((errorCode = CheckStoreSemantics(client, &av->vptr, &v->vptr, &volptr,
 					    ReplicatedOp, StoreVCmp, &Status->VV,
-					    Status->DataVersion, &rights, &anyrights))
+					    Status->DataVersion, &rights, &anyrights)))
 	    goto FreeLocks;
     }
 
     /* Perform operation. */
     {
 	int tblocks = (int) (nBlocks(Length) - nBlocks(v->vptr->disk.length));
-	if (errorCode = AdjustDiskUsage(volptr, tblocks))
+	if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 	    goto FreeLocks;
 	deltablocks = tblocks;
 
@@ -699,12 +694,9 @@ START_TIMING(Store_Total);
 	v->f_finode = icreate((int) V_device(volptr), 0, (int) V_id(volptr), 
 			      (int) v->vptr->vnodeNumber, (int) v->vptr->disk.uniquifier, 
 			      (int) v->vptr->disk.dataVersion + 1);
-#if   defined(__linux__) 
 	CODA_ASSERT(v->f_finode > (unsigned long) 0);
-#else
-	CODA_ASSERT(v->f_finode > 0);
-#endif /* __linux__ */
-	if (errorCode = StoreBulkTransfer(RPCid, client, volptr, v->vptr, v->f_finode, Length))
+
+	if ((errorCode = StoreBulkTransfer(RPCid, client, volptr, v->vptr, v->f_finode, Length)))
 	    goto FreeLocks;
 	v->f_sinode = v->vptr->disk.inodeNumber;
 	if (ReplicatedOp) {
@@ -749,7 +741,6 @@ long FS_ViceNewSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
 		    CallBackStatus *VCBStatus, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code for caller */
-    Error fileCode = 0;		/* return code for writes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
     Rights rights = 0;		/* rights for this user */
@@ -767,15 +758,15 @@ START_TIMING(SetAttr_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
-				      &Fid->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
 
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
@@ -787,18 +778,18 @@ START_TIMING(SetAttr_Total);
 	    pFid.Vnode = v->vptr->disk.vparent;
 	    pFid.Unique = v->vptr->disk.uparent;
 	    av = AddVLE(*vlist, &pFid);
-	    if (errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0, 0))
+	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0, 0)))
 		goto FreeLocks;
 	}
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckNewSetAttrSemantics(client, &av->vptr, &v->vptr, &volptr,
+	if ((errorCode = CheckNewSetAttrSemantics(client, &av->vptr, &v->vptr, &volptr,
 						 ReplicatedOp, NormalVCmp, Status->Length,
 						 Status->Date, Status->Owner, Status->Mode,
 						 Mask, &Status->VV, Status->DataVersion,
-						 &rights, &anyrights))
+						 &rights, &anyrights)))
 	    goto FreeLocks;
     }
 
@@ -810,7 +801,7 @@ START_TIMING(SetAttr_Total);
 	if (Mask & SET_LENGTH) {
 	    truncp = 1;
 	    int tblocks = (int) (nBlocks(Status->Length) - nBlocks(v->vptr->disk.length));
-	    if (errorCode = AdjustDiskUsage(volptr, tblocks))
+	    if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 		goto FreeLocks;
 	    deltablocks = tblocks;
 	}
@@ -841,11 +832,11 @@ START_TIMING(SetAttr_Total);
 	    v->vptr->disk.type == vDirectory) {
 	    SLog(0, "Going to spool store log record %u %u %u %u\n",
 		   Status->Owner, Status->Mode, Status->Author, Status->Date);
-	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
+	    if ((errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
 					     RES_NewStore_OP, STSTORE, 
 					     Status->Owner, Status->Mode,
 					     Status->Author, Status->Date,
-					     Mask, &Status->VV)) 
+					     Mask, &Status->VV)) )
 		SLog(0, "ViceNewSetAttr: Error %d during SpoolVMLogRecord\n", 
 		     errorCode);
 	}
@@ -882,7 +873,6 @@ long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
 		 CallBackStatus *VCBStatus, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* return code for caller */
-    Error fileCode = 0;		/* return code for writes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
     Rights rights = 0;		/* rights for this user */
@@ -899,23 +889,23 @@ START_TIMING(SetACL_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
-				      &Fid->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Fid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
 
     /* Get objects. */
     {
 	v = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
+	if ((errorCode = GetFsObj(Fid, &volptr, &v->vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckSetACLSemantics(client, &v->vptr, &volptr, ReplicatedOp,
+	if ((errorCode = CheckSetACLSemantics(client, &v->vptr, &volptr, ReplicatedOp,
 					      NormalVCmp, &Status->VV, Status->DataVersion,
-					      &rights, &anyrights, AccessList, &newACL))
+					      &rights, &anyrights, AccessList, &newACL)))
 	    goto FreeLocks;
     }
 
@@ -934,8 +924,8 @@ START_TIMING(SetACL_Total);
     if (AllowResolution && V_RVMResOn(volptr)) 
 	if (ReplicatedOp && !errorCode) {
 	    CODA_ASSERT(v->vptr->disk.type == vDirectory);
-	    if (errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
-					     RES_NewStore_OP, ACLSTORE, newACL)) 
+	    if ((errorCode = SpoolVMLogRecord(vlist, v, volptr, StoreId, 
+					     RES_NewStore_OP, ACLSTORE, newACL)) )
 		SLog(0, 
 		       "ViceSetACL: error %d during SpoolVMLogRecord\n", errorCode);
 	}
@@ -972,7 +962,6 @@ long FS_ViceVCreate(RPC2_Handle RPCid, ViceFid *Did, ViceFid *BidFid,
 		RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* error code */
-    Error fileCode = 0;		/* used when writing Vnodes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
     Rights rights = 0;		/* rights for this user */
@@ -992,8 +981,8 @@ START_TIMING(Create_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
-				      &Did->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
 
 	if (ReplicatedOp) {
@@ -1028,16 +1017,16 @@ START_TIMING(Create_Total);
     {
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
 				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
-				 pv->d_inodemod))
+				 pv->d_inodemod)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	Vnode *vptr = 0;
-	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vFile, 
+	if ((errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vFile, 
 				   Fid, Did,
-				   client->Id, PrimaryHost, &deltablocks)) {
+				   client->Id, PrimaryHost, &deltablocks))) {
 	    CODA_ASSERT(vptr == 0);
 	    goto FreeLocks;
 	}
@@ -1047,12 +1036,12 @@ START_TIMING(Create_Total);
 
     /* Check semantics. */
     {
-	if (errorCode = CheckCreateSemantics(client, &pv->vptr, &cv->vptr, 
+	if ((errorCode = CheckCreateSemantics(client, &pv->vptr, &cv->vptr, 
 					     (char *)Name,
 					     &volptr, ReplicatedOp, 
 					     NormalVCmp,
 					     DirStatus, Status, 
-					     &rights, &anyrights, 1))
+					     &rights, &anyrights, 1)))
 	    goto FreeLocks;
     }
 
@@ -1080,10 +1069,10 @@ START_TIMING(Create_Total);
     if (AllowResolution && V_RVMResOn(volptr)) 
 	/* Create Log Record */
 	if (ReplicatedOp && !errorCode) 
-	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
 					     RES_Create_OP, 
 					     Name, Fid->Vnode, Fid->Unique, 
-					     client?client->Id:0))
+					     client?client->Id:0)))
 		SLog(0, 
 		       "ViceCreate: Error %d during SpoolVMLogRecord\n",
 		       errorCode);
@@ -1123,7 +1112,6 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		CallBackStatus *VCBStatus, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* error code */
-    Error fileCode = 0;		/* used when writing Vnodes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ViceFid Fid;		/* area for Fid from the directory */
     ClientEntry *client = 0;	/* pointer to client structure */
@@ -1145,8 +1133,8 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
-				      &Did->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
 
@@ -1155,9 +1143,9 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	PDirHandle dh;
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
 				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
-				 pv->d_inodemod))
+				 pv->d_inodemod)))
 		goto FreeLocks;
 
 	dh = VN_SetDirHandle(pv->vptr);
@@ -1171,18 +1159,18 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	/* This may violate locking protocol! -JJK */
 	FID_CpyVol(&Fid, Did);
 	cv = AddVLE(*vlist, &Fid);
-	if (errorCode = GetFsObj(&Fid, &volptr, &cv->vptr, 
-				 WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
+	if ((errorCode = GetFsObj(&Fid, &volptr, &cv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckRemoveSemantics(client, &pv->vptr, &cv->vptr, 
+	if ((errorCode = CheckRemoveSemantics(client, &pv->vptr, &cv->vptr, 
 					     (char *)Name,
 					     &volptr, ReplicatedOp, NormalVCmp,
 					     DirStatus, Status, &rights, 
-					     &anyrights, 1))
+					     &anyrights, 1)))
 	    goto FreeLocks;
     }
 
@@ -1197,7 +1185,7 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	if (cv->vptr->delete_me) {
 		pv->d_inodemod = 1;
 		int tblocks = (int) -nBlocks(cv->vptr->disk.length);
-		if (errorCode = AdjustDiskUsage(volptr, tblocks))
+		if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 			goto FreeLocks;
 		deltablocks += tblocks;
 
@@ -1214,9 +1202,9 @@ long FS_ViceVRemove(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
     if (AllowResolution && V_RVMResOn(volptr)) 
 	    if (ReplicatedOp && !errorCode) {
 		    ViceVersionVector ghostVV = cv->vptr->disk.versionvector;	    
-		    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
+		    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
 						     RES_Remove_OP, Name, Fid.Vnode, 
-						     Fid.Unique, &ghostVV))
+						     Fid.Unique, &ghostVV)))
 		SLog(0, "ViceRemove: error %d during SpoolVMLogRecord\n",
 		       errorCode);
 	}
@@ -1255,7 +1243,6 @@ long FS_ViceVLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 	       CallBackStatus *VCBStatus, RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* error code */
-    Error fileCode = 0;		/* used when writing Vnodes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
     Rights rights = 0;		/* rights for this user */
@@ -1276,8 +1263,8 @@ START_TIMING(Link_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
-				      &Did->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
 
 	/* Volume match. */
@@ -1303,23 +1290,23 @@ START_TIMING(Link_Total);
     {
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
 				 WRITE_LOCK, SHARED_LOCK, 0, 0, 	
-				 pv->d_inodemod))
+				 pv->d_inodemod)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	cv = AddVLE(*vlist, Fid);
-	if (errorCode = GetFsObj(Fid, &volptr, &cv->vptr, 
-				 WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
+	if ((errorCode = GetFsObj(Fid, &volptr, &cv->vptr, 
+				 WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 	    goto FreeLocks;
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckLinkSemantics(client, &pv->vptr, &cv->vptr, (char *)Name,
+	if ((errorCode = CheckLinkSemantics(client, &pv->vptr, &cv->vptr, (char *)Name,
 					    &volptr, ReplicatedOp, NormalVCmp,
-					    DirStatus, Status, &rights, &anyrights, 1))
+					    DirStatus, Status, &rights, &anyrights, 1)))
 	    goto FreeLocks;
     }
 
@@ -1339,9 +1326,9 @@ START_TIMING(Link_Total);
 
     if (AllowResolution && V_RVMResOn(volptr)) 
 	if (ReplicatedOp && !errorCode) {
-	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
 					     RES_Link_OP, (char *)Name, Fid->Vnode, Fid->Unique, 
-					     &(Vnode_vv(cv->vptr))))
+					     &(Vnode_vv(cv->vptr)))))
 		SLog(0, 
 		       "ViceLink: Error %d during SpoolVMLogRecord\n",
 		       errorCode);
@@ -1382,12 +1369,9 @@ long FS_ViceVRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
 		RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* error code */
-    Error fileCode = 0;		/* used when writing Vnodes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ViceFid SrcFid;		/* Fid of file to move */
-    DirFid SrcDFid;
     ViceFid TgtFid;		/* Fid of new file */
-    DirFid TgtDFid;		
     ClientEntry * client;	/* pointer to client structure */
     Rights sp_rights;		/* rights for this user */
     Rights sp_anyrights;	/* rights for any user */
@@ -1415,8 +1399,8 @@ START_TIMING(Rename_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
-				      &OldDid->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &OldDid->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
 
 	/* Volume match. */
@@ -1437,9 +1421,9 @@ START_TIMING(Rename_Total);
 
 	spv = AddVLE(*vlist, OldDid);
 	spv->d_inodemod = 1;
-	if (errorCode = GetFsObj(OldDid, &volptr, &spv->vptr, 
+	if ((errorCode = GetFsObj(OldDid, &volptr, &spv->vptr, 
 				 WRITE_LOCK, SHARED_LOCK, 0, 0,
-				 spv->d_inodemod))
+				 spv->d_inodemod)))
 	    goto FreeLocks;
 	sdh = DC_DC2DH(spv->vptr->dh);
 
@@ -1474,9 +1458,9 @@ START_TIMING(Rename_Total);
 	sv = AddVLE(*vlist, &SrcFid);
 	if ( ISDIR(SrcFid) )
 		sv->d_inodemod = 1;
-	if (errorCode = GetFsObj(&SrcFid, &volptr, &sv->vptr, 
+	if ((errorCode = GetFsObj(&SrcFid, &volptr, &sv->vptr, 
 				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
-				 sv->d_inodemod))
+				 sv->d_inodemod)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
@@ -1488,7 +1472,7 @@ START_TIMING(Rename_Total);
 		VN_PutDirHandle(tpv->vptr);
 		if ( tdh != sdh )
 			VN_PutDirHandle(spv->vptr);
-		if ( sv->vptr->disk.type = vDirectory )
+		if ( sv->vptr->disk.type == vDirectory )
 			VN_PutDirHandle(sv->vptr);
 		goto FreeLocks;
 	} else {
@@ -1496,17 +1480,17 @@ START_TIMING(Rename_Total);
 		tv = AddVLE(*vlist, &TgtFid);
 		if ( ISDIR(TgtFid) )
 			tv->d_inodemod = 1;
-		if (errorCode = GetFsObj(&TgtFid, &volptr, &tv->vptr, 
+		if ((errorCode = GetFsObj(&TgtFid, &volptr, &tv->vptr, 
 					 WRITE_LOCK, 
 					 SHARED_LOCK, 0, 0,
-					 tv->d_inodemod))
+					 tv->d_inodemod)))
 			goto FreeLocks;
 	}
     }
 
     /* Check semantics. */
     {
-	if (errorCode = CheckRenameSemantics(client, &spv->vptr, &tpv->vptr, 
+	if ((errorCode = CheckRenameSemantics(client, &spv->vptr, &tpv->vptr, 
 					     &sv->vptr,
 					     (char *)OldName, 
 					     (tv ? &tv->vptr : 0), 
@@ -1518,7 +1502,7 @@ START_TIMING(Rename_Total);
 					     &sp_rights, &sp_anyrights, 
 					     &tp_rights,
 					     &tp_anyrights, &s_rights, 
-					     &s_anyrights, 1, 0))
+					     &s_anyrights, 1, 0)))
 	    goto FreeLocks;
     }
 
@@ -1534,7 +1518,7 @@ START_TIMING(Rename_Total);
 		      NewVS);
 	if (tv && tv->vptr->delete_me) {
 		int tblocks = (int) -nBlocks(tv->vptr->disk.length);
-		if (errorCode = AdjustDiskUsage(volptr, tblocks))
+		if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 			goto FreeLocks;
 		deltablocks = tblocks;
 		
@@ -1596,7 +1580,6 @@ long FS_ViceVMakeDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		  RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* error code */
-    Error fileCode = 0;		/* used when writing Vnodes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
     Rights rights = 0;		/* rights for this user */
@@ -1616,8 +1599,8 @@ START_TIMING(MakeDir_Total);
     
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
-				      &Did->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
 
 	/* Child/Parent volume match. */
@@ -1651,10 +1634,10 @@ START_TIMING(MakeDir_Total);
 
 	/* This may violate locking protocol! -JJK */
 	Vnode *vptr = 0;
-	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vDirectory, 
+	if ((errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vDirectory, 
 				   NewDid,
 				   Did, client->Id, PrimaryHost, 
-				   &deltablocks)) {
+				   &deltablocks))) {
 	    CODA_ASSERT(vptr == 0);
 	    goto FreeLocks;
 	}
@@ -1666,11 +1649,11 @@ START_TIMING(MakeDir_Total);
 
     /* Check semantics. */
     {
-	if (errorCode = CheckMkdirSemantics(client, &pv->vptr, &cv->vptr, 
+	if ((errorCode = CheckMkdirSemantics(client, &pv->vptr, &cv->vptr, 
 					    (char *)Name,
 					     &volptr, ReplicatedOp, NormalVCmp,
 					     DirStatus, Status, &rights, 
-					    &anyrights, 1))
+					    &anyrights, 1)))
 	    goto FreeLocks;
     }
 
@@ -1700,10 +1683,10 @@ START_TIMING(MakeDir_Total);
 
     if (AllowResolution && V_RVMResOn(volptr)) 
 	if (ReplicatedOp && !errorCode) {
-	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
 					     RES_MakeDir_OP, Name, 
 					     NewDid->Vnode, NewDid->Unique, 
-					     client?client->Id:0)) 
+					     client?client->Id:0)) )
 		SLog(0, "ViceMakeDir: Error %d during SpoolVMLogRecord for parent\n",
 		     errorCode);
 	    // spool child's log record 
@@ -1756,7 +1739,6 @@ long FS_ViceVRemoveDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 		    RPC2_CountedBS *PiggyBS)
 {
     int errorCode = 0;		/* error code */
-    Error fileCode = 0;		/* used when writing Vnodes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ViceFid ChildDid;		/* area for Fid from the directory */
     ClientEntry *client = 0;	/* pointer to client structure */
@@ -1777,8 +1759,8 @@ START_TIMING(RemoveDir_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
-				      &Did->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
+				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
     }
 
@@ -1787,9 +1769,9 @@ START_TIMING(RemoveDir_Total);
 	PDirHandle dh;
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
 				 WRITE_LOCK, SHARED_LOCK, 0, 0,
-				 pv->d_inodemod))
+				 pv->d_inodemod)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
@@ -1805,9 +1787,9 @@ START_TIMING(RemoveDir_Total);
 	FID_CpyVol(&ChildDid, Did);
 	cv = AddVLE(*vlist, &ChildDid);
 	cv->d_inodemod = 1;
-	if (errorCode = GetFsObj(&ChildDid, &volptr, &cv->vptr, 
+	if ((errorCode = GetFsObj(&ChildDid, &volptr, &cv->vptr, 
 				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
-				 cv->d_inodemod)) {
+				 cv->d_inodemod))) {
 		VN_PutDirHandle(pv->vptr);
 		goto FreeLocks;
 	}
@@ -1816,11 +1798,11 @@ START_TIMING(RemoveDir_Total);
 
     /* Check semantics. */
     {
-	if (errorCode = CheckRmdirSemantics(client, &pv->vptr, &cv->vptr, 
+	if ((errorCode = CheckRmdirSemantics(client, &pv->vptr, &cv->vptr, 
 					    (char *)Name,
 					    &volptr, ReplicatedOp, NormalVCmp,
 					    DirStatus, Status, 
-					    &rights, &anyrights, 1))
+					    &rights, &anyrights, 1)))
 		goto FreeLocks;
     }
 
@@ -1836,7 +1818,7 @@ START_TIMING(RemoveDir_Total);
 	    CODA_ASSERT(cv->vptr->delete_me);
 	    /* note that the directories are modified */
 	    int tblocks = (int) -nBlocks(cv->vptr->disk.length);
-	    if (errorCode = AdjustDiskUsage(volptr, tblocks))
+	    if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 		goto FreeLocks;
 	    deltablocks += tblocks;
 	}
@@ -1849,11 +1831,11 @@ START_TIMING(RemoveDir_Total);
 
     if (AllowResolution && V_RVMResOn(volptr)) {
 	if (ReplicatedOp) 
-	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
 					     RES_RemoveDir_OP, Name, 
 					     ChildDid.Vnode, ChildDid.Unique, 
 					     VnLog(cv->vptr), &(Vnode_vv(cv->vptr).StoreId),
-					     &(Vnode_vv(cv->vptr).StoreId)))
+					     &(Vnode_vv(cv->vptr).StoreId))))
 		SLog(0, 
 		       "ViceRemoveDir: error %d in SpoolVMLogRecord\n",
 		       errorCode);
@@ -1900,7 +1882,6 @@ long FS_ViceVSymLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String NewName,
 /*ViceStatus	 *DirStatus;	 Status for the directory */
 {
     int errorCode = 0;		/* error code */
-    Error fileCode = 0;		/* used when writing Vnodes */
     Volume *volptr = 0;		/* pointer to the volume header */
     ClientEntry *client = 0;	/* pointer to client structure */
     Rights rights = 0;		/* rights for this user */
@@ -1922,8 +1903,8 @@ START_TIMING(SymLink_Total);
 
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
-				      &Did->Volume, PiggyBS, NULL))
+	if ((errorCode = ValidateParms(RPCid, &client, &ReplicatedOp,
+				      &Did->Volume, PiggyBS, NULL)))
 	    goto FreeLocks;
 
 	/* Child/Parent volume match. */
@@ -1950,16 +1931,16 @@ START_TIMING(SymLink_Total);
     {
 	pv = AddVLE(*vlist, Did);
 	pv->d_inodemod = 1;
-	if (errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
+	if ((errorCode = GetFsObj(Did, &volptr, &pv->vptr, 
 				 WRITE_LOCK, SHARED_LOCK, 0, 0, 
-				 pv->d_inodemod))
+				 pv->d_inodemod)))
 	    goto FreeLocks;
 
 	/* This may violate locking protocol! -JJK */
 	Vnode *vptr = 0;
-	if (errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vSymlink, 
+	if ((errorCode = AllocVnode(&vptr, volptr, (ViceDataType)vSymlink, 
 				   Fid, Did,
-				   client->Id, PrimaryHost, &deltablocks)) {
+				   client->Id, PrimaryHost, &deltablocks))) {
 	    CODA_ASSERT(vptr == 0);
 	    goto FreeLocks;
 	}
@@ -1969,11 +1950,11 @@ START_TIMING(SymLink_Total);
 
     /* Check semantics. */
     {
-	if (errorCode = CheckSymlinkSemantics(client, &pv->vptr, &cv->vptr, 
+	if ((errorCode = CheckSymlinkSemantics(client, &pv->vptr, &cv->vptr, 
 					      (char *)NewName,
 					      &volptr, ReplicatedOp, 
 					      NormalVCmp, DirStatus, Status, 
-					      &rights, &anyrights, 1))
+					      &rights, &anyrights, 1)))
 	    goto FreeLocks;
     }
 
@@ -2009,10 +1990,10 @@ START_TIMING(SymLink_Total);
     if (AllowResolution && V_RVMResOn(volptr)) {
 	/* Create Log Record */
 	if (ReplicatedOp) 
-	    if (errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
+	    if ((errorCode = SpoolVMLogRecord(vlist, pv, volptr, StoreId,
 					     RES_SymLink_OP, 
 					     NewName, Fid->Vnode, Fid->Unique,
-					     client?client->Id:0)) 
+					     client?client->Id:0)) )
 		SLog(0, 
 		       "ViceSymLink: Error %d in SpoolVMLogRecord\n",
 		       errorCode);
@@ -2241,7 +2222,7 @@ int GetVolObj(VolumeId Vid, Volume **volptr,
 	    }
 	    V_VolLock(*volptr).IPAddress = LockerAddress;
 	    ObtainWriteLock(&(V_VolLock(*volptr).VolumeLock));
-	    CODA_ASSERT(V_VolLock(*volptr).IPAddress == LockerAddress);
+	    CODA_ASSERT((long)V_VolLock(*volptr).IPAddress == LockerAddress);
 	    if (Enque) {
 		    lqent *lqep = new lqent(Vid);
 		    LockQueueMan->add(lqep);
@@ -2559,7 +2540,6 @@ int AllocVnode(Vnode **vptr, Volume *volptr, ViceDataType vtype, ViceFid *Fid,
 {
     int errorCode = 0;
     Error fileCode = 0;
-    VolumeId VSGVolnum = 0;
     int ReplicatedOp = (AllocHost != 0);
     *vptr = 0;
     *blocks = 0;
@@ -2583,11 +2563,11 @@ START_TIMING(AllocVnode_Total);
       : EMPTYSYMLINKBLOCKS;
     if (ReplicatedOp) {
 	if (AllocHost == ThisHostAddr) {
-	    if (errorCode = GetFsObj(Fid, &volptr, vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0))
+	    if ((errorCode = GetFsObj(Fid, &volptr, vptr, WRITE_LOCK, SHARED_LOCK, 0, 0, 0)))
 		goto FreeLocks;
 	}
 	else {
-	    if (errorCode = AdjustDiskUsage(volptr, tblocks))
+	    if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 		goto FreeLocks;
 	    *blocks = tblocks;
 
@@ -2598,7 +2578,7 @@ START_TIMING(AllocVnode_Total);
 	}
     }
     else {
-	if (errorCode = AdjustDiskUsage(volptr, tblocks))
+	if ((errorCode = AdjustDiskUsage(volptr, tblocks)))
 	    goto FreeLocks;
 	*blocks = tblocks;
 
@@ -2657,12 +2637,11 @@ END_TIMING(AllocVnode_Total);
 int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 			 Volume **volptr, Rights *rights, Rights *anyrights)
 {
-    int errorCode = 0;
     ViceFid Fid;
     Fid.Volume = V_id(*volptr);
     Fid.Vnode = (*vptr)->vnodeNumber;
     Fid.Unique = (*vptr)->disk.uniquifier;
-    int IsOwner = (client->Id == (*vptr)->disk.owner);
+    int IsOwner = (client->Id == (long)(*vptr)->disk.owner);
 
     /* Concurrency-control checks. */
     {
@@ -2714,7 +2693,6 @@ int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 int CheckGetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 			   Volume **volptr, Rights *rights, Rights *anyrights)
 {
-    int errorCode = 0;
     ViceFid Fid;
 
     VN_VN2Fid(*vptr, *volptr, &Fid);
@@ -2749,7 +2727,6 @@ int CheckGetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
 			  Volume **volptr, Rights *rights, Rights *anyrights,
 			  RPC2_BoundedBS *AccessList, RPC2_String *eACL) {
-    int errorCode = 0;
     ViceFid Fid;
     Fid.Volume = V_id(*volptr);
     Fid.Vnode = (*vptr)->vnodeNumber;
@@ -2810,14 +2787,14 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     Fid.Volume = V_id(*volptr);
     Fid.Vnode = (*vptr)->vnodeNumber;
     Fid.Unique = (*vptr)->disk.uniquifier;
-    int IsOwner = (client->Id == (*vptr)->disk.owner);
+    int IsOwner = (client->Id == (long)(*vptr)->disk.owner);
     int Virginal = ((*vptr)->disk.inodeNumber == 0);
 
     /* Concurrency-control checks. */
     if (VCmpProc) {
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
-	if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
+	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
 	    SLog(0, "CheckStoreSemantics: (%x.%x.%x), VCP error (%d)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 	    return(errorCode);
@@ -2869,7 +2846,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     Fid.Volume = V_id(*volptr);
     Fid.Vnode = (*vptr)->vnodeNumber;
     Fid.Unique = (*vptr)->disk.uniquifier;
-    int IsOwner = (client->Id == (*vptr)->disk.owner);
+    int IsOwner = (client->Id == (long)(*vptr)->disk.owner);
     int chmodp = Mask & SET_MODE;
     int chownp = Mask & SET_OWNER;
     int truncp = Mask & SET_LENGTH;
@@ -2880,7 +2857,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     if (VCmpProc) {
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
-	if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
+	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
 	    SLog(0, "CheckNewSetAttrSemantics: (%x.%x.%x), VCP error (%d)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 	    return(errorCode);
@@ -2895,7 +2872,7 @@ int CheckNewSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EISDIR);
 	    }
-	    if (Length > (*vptr)->disk.length) {
+	    if (Length > (long)(*vptr)->disk.length) {
 		SLog(0, "CheckNewSetAttrSemantics: truncate length bad (%x.%x.%x)",
 			Fid.Volume, Fid.Vnode, Fid.Unique);
 		return(EINVAL);
@@ -2987,14 +2964,13 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
     Fid.Volume = V_id(*volptr);
     Fid.Vnode = (*vptr)->vnodeNumber;
     Fid.Unique = (*vptr)->disk.uniquifier;
-    int IsOwner = (client->Id == (*vptr)->disk.owner);
-    int Virginal = ((*vptr)->disk.inodeNumber == 0);
+    int IsOwner = (client->Id == (long)(*vptr)->disk.owner);
 
     /* Concurrency-control checks. */
     if (VCmpProc) {
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
-	if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
+	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
 	    SLog(0, "CheckSetACLSemantics: (%x.%x.%x), VCP error (%d)",
 		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 	    return(errorCode);
@@ -3124,7 +3100,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	{
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*s_dirvptr) : (void *)&(*s_dirvptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&s_dirstatus->VV : (void *)&s_dirstatus->DataVersion);
-	    if (errorCode = VCmpProc(ReplicatedOp, (*s_dirvptr)->disk.type, arg1, arg2)) {
+	    if ((errorCode = VCmpProc(ReplicatedOp, (*s_dirvptr)->disk.type, arg1, arg2))) {
 		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
 			SDid.Volume, SDid.Vnode, SDid.Unique, errorCode);
 		return(errorCode);
@@ -3136,7 +3112,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	{
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*t_dirvptr) : (void *)&(*t_dirvptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&t_dirstatus->VV : (void *)&t_dirstatus->DataVersion);
-	    if (errorCode = VCmpProc(ReplicatedOp, (*t_dirvptr)->disk.type, arg1, arg2)) {
+	    if ((errorCode = VCmpProc(ReplicatedOp, (*t_dirvptr)->disk.type, arg1, arg2))) {
 		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
 			TDid.Volume, TDid.Vnode, TDid.Unique, errorCode);
 		return(errorCode);
@@ -3147,7 +3123,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	{
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*s_vptr) : (void *)&(*s_vptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&s_status->VV : (void *)&s_status->DataVersion);
-	    if (errorCode = VCmpProc(ReplicatedOp, (*s_vptr)->disk.type, arg1, arg2)) {
+	    if ((errorCode = VCmpProc(ReplicatedOp, (*s_vptr)->disk.type, arg1, arg2))) {
 		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
 			SFid.Volume, SFid.Vnode, SFid.Unique, errorCode);
 		return(errorCode);
@@ -3158,7 +3134,7 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	if (TargetExists) {
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*t_vptr) : (void *)&(*t_vptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&t_status->VV : (void *)&t_status->DataVersion);
-	    if (errorCode = VCmpProc(ReplicatedOp, (*t_vptr)->disk.type, arg1, arg2)) {
+	    if ((errorCode = VCmpProc(ReplicatedOp, (*t_vptr)->disk.type, arg1, arg2))) {
 		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
 			TFid.Volume, TFid.Vnode, TFid.Unique, errorCode);
 		return(errorCode);
@@ -3441,7 +3417,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
     if (VCmpProc) {
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*dirvptr) : (void *)&(*dirvptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)&dirstatus->VV : (void *)&dirstatus->DataVersion);
-	if (errorCode = VCmpProc(ReplicatedOp, (*dirvptr)->disk.type, arg1, arg2)) {
+	if ((errorCode = VCmpProc(ReplicatedOp, (*dirvptr)->disk.type, arg1, arg2))) {
 	    SLog(0, "%s: (%x.%x.%x), VCP error (%d)",
 		    ProcName, Did.Volume, Did.Vnode, Did.Unique, errorCode);
 	    return(errorCode);
@@ -3450,7 +3426,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 	if (vptr != 0) {
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	    arg2 = (ReplicatedOp ? (void *)&status->VV : (void *)&status->DataVersion);
-	    if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
+	    if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
 		SLog(0, "%s: (%x.%x.%x), VCP error (%d)",
 			ProcName, Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
 		return(errorCode);
@@ -3573,8 +3549,8 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 
 	arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*dirvptr) : (void *)&(*dirvptr)->disk.dataVersion);
 	arg2 = (ReplicatedOp ? (void *)&dirstatus->VV : (void *)&dirstatus->DataVersion);
-	if (errorCode = VCmpProc(ReplicatedOp, (*dirvptr)->disk.type, 
-				 arg1, arg2)) {
+	if ((errorCode = VCmpProc(ReplicatedOp, (*dirvptr)->disk.type, 
+				 arg1, arg2))) {
 		SLog(0, "%s: %s, VCP error (%d)", ProcName, 
 		     FID_(&Did), errorCode);
 		return(errorCode);
@@ -3582,7 +3558,7 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 
 	arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	arg2 = (ReplicatedOp ? (void *)&status->VV : (void *)&status->DataVersion);
-	if (errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2)) {
+	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
 	    SLog(0, "%s: %s, VCP error (%d)", ProcName, FID_(&Fid), errorCode);
 	    return(errorCode);
 	}
@@ -3673,7 +3649,6 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
     PDirHandle dh;
     PDirHeader buf = 0;
     int size = 0;
-    int i;
 
     {
 	/* When we are continueing a trickle/interrupted fetch, the version
@@ -4596,7 +4571,7 @@ START_TIMING(PutObjects_Transaction);
 	    dlist_iterator next(*vlist);
 	    vle *v;
 	    int count = 0;
-	    while (v = (vle *)next())
+	    while ((v = (vle *)next()))
 		if (v->vptr) {
 		    /* for resolution/reintegration yield every n vnodes */
 		    if (LockLevel == NO_LOCK) {
@@ -4650,8 +4625,7 @@ START_TIMING(PutObjects_Transaction);
 			// log mutation into recoverable volume log
 			olist_iterator next(v->rsl);
 			rsle *vmle;
-			int volindex = V_volumeindex(volptr);
-			while(vmle = (rsle *)next()) {
+			while((vmle = (rsle *)next())) {
 			    if (!errorCode) {
 				SLog(9, 
 				       "PutObjects: Appending recoverable log record");
@@ -4721,7 +4695,7 @@ START_TIMING(PutObjects_Transaction);
 	if (vlist) {
 	    dlist_iterator next(*vlist);
 	    vle *v;
-	    while (v = (vle *)next())
+	    while ((v = (vle *)next()))
 		if (v->vptr) {
 		    /* Directory pages.  Cloning cannot occur without mutation! */
 		    if (v->vptr->disk.type == vDirectory) {
@@ -4756,7 +4730,7 @@ START_TIMING(PutObjects_Inodes);
     if (vlist) {
 	vle *v;
 	int count = 0;
-	while (v = (vle *)vlist->get()) {
+	while ((v = (vle *)vlist->get())) {
 	    if (!ISDIR(v->fid)) {
 		count++;
 		if ((count && Yield_PutInodes_Mask) == 0)
@@ -4788,11 +4762,11 @@ START_TIMING(PutObjects_Inodes);
 		/* clean up spooled log record list */
 		sle *s;
 		rsle *rs;
-		while (s = (sle *)v->sl.get()) {
+		while ((s = (sle *)v->sl.get())) {
 		    s->rec_index = -1;
 		    delete s;
 		}
-		while (rs = (rsle *)v->rsl.get()) 
+		while ((rs = (rsle *)v->rsl.get())) 
 		    delete rs;
 	    }
 	    delete v;

@@ -217,7 +217,6 @@ static int ViceCreateRoot(Volume *vp)
     PDirHandle dir;
     AL_AccessList * ACL;
     ViceFid	did;
-    Inode inodeNumber;
     char buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *) buf;
     struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vLarge];
@@ -276,7 +275,7 @@ static int ViceCreateRoot(Volume *vp)
     vn->delete_me = 0;
     vn->vnodeNumber = (VnodeId)bitNumberToVnodeNumber(0, vLarge);
     vn->volumePtr = vp;
-    memcpy((const void *)&vn->disk, (void *)vnode, sizeof(VnodeDiskObject));
+    memcpy((void *)&vn->disk, (const void *)vnode, sizeof(VnodeDiskObject));
     VN_DCommit(vn);   
     DC_SetDirty(vn->dh, 0);
     VN_PutDirHandle(vn);

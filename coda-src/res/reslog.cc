@@ -111,7 +111,7 @@ void InitVolLog(int index) {
 	vlist = &(SRV_RVM(VolumeList[index]).data.largeVnodeLists[i]);
 	rec_smolist_iterator	next(*vlist);
 	rec_smolink *p;
-	while (p = next()){
+	while ((p = next())){
 	    /* every iteration for a  unique vnode with same vnode number */
 	    VnodeDiskObject *vdo; 
 	    vdo = strbase(VnodeDiskObject, p, nextvn);
@@ -155,7 +155,7 @@ pdlist *AllocateVMResLogList(int volindex,
     VNResLog *vn;
     /* check if res log header already exists */
     olist_iterator next(*mylist);
-    while (vn = (VNResLog *)next()) 
+    while ((vn = (VNResLog *)next())) 
 	if (vn->uniquifier == u && vn->vnode == vnode) {
 	    LogMsg(9, SrvDebugLevel, stdout,  "AllocateVMResLog(%d, %x, %x): Already allocated",
 		volindex, vnodeindex, u);
@@ -188,7 +188,7 @@ void DeAllocateVMResLogListHeader(int volindex, VnodeId vnode, Unique_t u) {
     long vnodeindex = vnodeIdToBitNumber(vnode);
     olist *myvnlist = &(l[vnodeindex]);
     olist_iterator next(*myvnlist);
-    while (vnlog = (VNResLog *)next()) 
+    while ((vnlog = (VNResLog *)next())) 
 	if (vnlog->uniquifier == u) {
 	    LogMsg(19, SrvDebugLevel, stdout,  "DeAllocateVMResLogListHeader: Deleting log header for %x.%x",
 		    vnode, u);
@@ -218,7 +218,7 @@ pdlist *iGetResLogList(int volindex, int vnodeindex, Unique_t u, VNResLog **rlog
     olist *myvnlist = &(l[vnodeindex]);
     VNResLog *vnlog;
     olist_iterator	next(*myvnlist);
-    while (vnlog = (VNResLog *)next())
+    while ((vnlog = (VNResLog *)next()))
 	if (vnlog->uniquifier == u){
 	    *rlog = vnlog;
 	    LogMsg(9, SrvDebugLevel, stdout,  "iGetResLogList: Found loglist for %x.%x", 
@@ -304,7 +304,7 @@ void PurgeLog(int volindex, int head, int count, int offset) {
 
     pdlist	plist(offset, LogStore[volindex], count, head);
     pdlink	*l;
-    while (l = plist.get()) {
+    while ((l = plist.get())) {
 	rlent *rle = strbase(rlent, l, link);
 	if ((rle->opcode == RES_RemoveDir_OP) ||
 	    (rle->opcode == ResolveViceRemoveDir_OP))
@@ -341,7 +341,7 @@ void PurgeLog(int volindex, VnodeId vnode, Unique_t unq) {
     /* remove each entry recursively */
     {
 	pdlink *l;
-	while (l = pdl->get()) {
+	while ((l = pdl->get())) {
 	    rlent *rle = strbase(rlent, l, link);
 	    if ((rle->opcode == RES_RemoveDir_OP)||
 		(rle->opcode == ResolveViceRemoveDir_OP))
@@ -513,7 +513,7 @@ void PrintResLog(pdlist *p, FILE *fp) {
     LogMsg(9, SrvDebugLevel, stdout,  "Entered PrintResLog - pdlist and file *");
     pdlist_iterator next(*p);
     pdlink *pl;
-    while (pl = next()) {
+    while ((pl = next())) {
 	rlent *rl = strbase(rlent, pl, link);
 	rl->print(fp);
 	
@@ -555,7 +555,7 @@ void PrintResLog(int volindex, VnodeId vnode, Unique_t u, FILE *fp) {
     else {
 	pdlist_iterator	next(*p);
 	pdlink *pl;
-	while (pl = next()) {
+	while ((pl = next())) {
 	    rlent *rl = strbase(rlent, pl, link);
 	    rl->print(fp);
 	    
@@ -592,7 +592,7 @@ void PrintResLog(int volindex, VnodeId vnode, Unique_t u, FILE *fp) {
 void fPrintResLog(pdlist *p, FILE *fp) {
     pdlist_iterator next(*p);
     pdlink *pl;
-    while (pl = next()) {
+    while ((pl = next())) {
 	rlent *rl = strbase(rlent, pl, link);
 	rl->print(fp);
     }
@@ -634,7 +634,7 @@ void ReadVolResLog(PMemMgr **p, int fd) {
     int nentries = (int) (buf.st_size/sizeof(rlent));
     *p = new PMemMgr((int) sizeof(rlent), nentries, -1, nentries);
     CODA_ASSERT(read(fd, (*p)->baseAddr, (int) (nentries * sizeof(rlent))) 
-	   == (nentries * sizeof(rlent)));	
+	   == (int)(nentries * sizeof(rlent)));	
     for (int i = 0; i < (*p)->bitmapSize ; i++) 
 	(*p)->bitmap[i] = 255;
     (*p)->nEntries = nentries;
@@ -881,7 +881,7 @@ void rlent::hton() {
     dvnode = htonl(dvnode);
     dunique = htonl(dunique);
     
-    unsigned long t, nt;
+    unsigned long nt;
     switch(op) {
       case ResolveViceNewStore_OP:
       case RES_NewStore_OP:
@@ -913,7 +913,6 @@ void rlent::hton() {
       case  ResolveViceRename_OP:
       case RES_Rename_OP:
 	{
-	    unsigned long st = u.u_rename.srctgt;
 	    u.u_rename.srctgt = htonl(u.u_rename.srctgt);
 	    u.u_rename.rename_src.cvnode = htonl(u.u_rename.rename_src.cvnode);
 	    u.u_rename.rename_src.cunique = htonl(u.u_rename.rename_src.cunique);
@@ -1067,10 +1066,10 @@ void rlent::print(FILE *fp) {
 
 void rlent::print(int fd) {
     char buf[512];
-    sprintf(buf, "****** Log Record\nStoreId: %x.%x \n", 
+    sprintf(buf, "****** Log Record\nStoreId: %lx.%lx \n", 
 	    storeid.Host, storeid.Uniquifier);
     write(fd, buf, (int) strlen(buf));
-    sprintf(buf, "Directory(%x.%x)\nHosid = %x\n", dvnode, dunique, serverid);
+    sprintf(buf, "Directory(%lx.%lx)\nHosid = %lx\n", dvnode, dunique, serverid);
     write(fd, buf, (int) strlen(buf));
 
     sprintf(buf, "Opcode: %s %s\n",
@@ -1084,8 +1083,8 @@ void rlent::print(int fd) {
       case ResolveViceNewStore_OP:
       case RES_NewStore_OP:
 	if (u.u_newstore.stType == ACLStore) {
-	    AL_ExternalAccessList ea;
 /*
+	    AL_ExternalAccessList ea;
 	    if (AL_Externalize((AL_AccessList *)&(u.u_store.s.acl[0]), &ea) != 0)
 		sprintf(buf, " stType = ACL: Couldnt translate access list\n");
 	    else {
@@ -1096,14 +1095,14 @@ void rlent::print(int fd) {
 	    sprintf(buf, "ACL Store operation - NO ACL STORED YET\n");
 	}
 	else 
-	    sprintf(buf, " stType = status; Mask = %o Owner: %u Mode %u\n", 
+	    sprintf(buf, " stType = status; Mask = %lo Owner: %lu Mode %lu\n", 
 		    u.u_newstore.s.st.mask, u.u_newstore.s.st.owner, u.u_newstore.s.st.mode);
 	break;
 
       case  ResolveViceRemove_OP:
       case RES_Remove_OP:
 	vv = &u.u_remove.cvv;
-	sprintf(buf, "Child: %s (%x.%x)[%d %d %d %d %d %d %d %d (%x.%x) (%d)]\n", 
+	sprintf(buf, "Child: %s (%lx.%lx)[%ld %ld %ld %ld %ld %ld %ld %ld (%lx.%lx) (%ld)]\n", 
 		u.u_remove.name, u.u_remove.cvnode, u.u_remove.cunique, 
 		vv->Versions.Site0, vv->Versions.Site1, vv->Versions.Site2,
 		vv->Versions.Site3, vv->Versions.Site4, vv->Versions.Site5,
@@ -1112,20 +1111,20 @@ void rlent::print(int fd) {
 	break;
       case  ResolveViceCreate_OP:
       case RES_Create_OP:
-	sprintf(buf, "Child: %s (%x.%x)\n",
+	sprintf(buf, "Child: %s (%lx.%lx)\n",
 		u.u_create.name, u.u_create.cvnode, u.u_create.cunique);
 	break;
       case  ResolveViceRename_OP:
       case RES_Rename_OP:
 	if (u.u_rename.srctgt == SOURCE)
-	    sprintf(buf, "SOURCE DIR: src child %s (%x.%x), \ntarget dir %x.%x\n",
+	    sprintf(buf, "SOURCE DIR: src child %s (%lx.%lx), \ntarget dir %lx.%lx\n",
 		    u.u_rename.rename_src.oldname, 
 		    u.u_rename.rename_src.cvnode,
 		    u.u_rename.rename_src.cunique,
 		    u.u_rename.OtherDirV,
 		    u.u_rename.OtherDirU);
 	else
-	    sprintf(buf, "TARGET DIR: src child %s (%x.%x) src dir %x.%x\n",
+	    sprintf(buf, "TARGET DIR: src child %s (%lx.%lx) src dir %lx.%lx\n",
 		    u.u_rename.rename_src.oldname, 
 		    u.u_rename.rename_src.cvnode,
 		    u.u_rename.rename_src.cunique,
@@ -1138,7 +1137,7 @@ void rlent::print(int fd) {
 	    cfid.Vnode = u.u_rename.rename_tgt.TgtVnode;
 	    cfid.Unique = u.u_rename.rename_tgt.TgtUnique;
 	    if (ISDIR(cfid))
-		sprintf(buf, "Target Existed: %s %x.%x, gh log head = %d cnt = %d\n",
+		sprintf(buf, "Target Existed: %s %lx.%lx, gh log head = %d cnt = %d\n",
 			u.u_rename.rename_tgt.newname,
 			u.u_rename.rename_tgt.TgtVnode,
 			u.u_rename.rename_tgt.TgtUnique, 
@@ -1146,7 +1145,7 @@ void rlent::print(int fd) {
 			u.u_rename.rename_tgt.TgtGhost.TgtGhostLog.count);
 	    else {
 		ViceVersionVector *vv = &u.u_rename.rename_tgt.TgtGhost.TgtGhostVV;
-		sprintf(buf, "Target Existed: %s %x.%x, gh vv = [%d %d %d %d %d %d %d %d (%x.%x) (%d)]\n",
+		sprintf(buf, "Target Existed: %s %lx.%lx, gh vv = [%ld %ld %ld %ld %ld %ld %ld %ld (%lx.%lx) (%ld)]\n",
 			u.u_rename.rename_tgt.newname,
 			u.u_rename.rename_tgt.TgtVnode,
 			u.u_rename.rename_tgt.TgtUnique, 
@@ -1163,22 +1162,22 @@ void rlent::print(int fd) {
 	break;
       case  ResolveViceSymLink_OP:
       case RES_SymLink_OP:
-	sprintf(buf, "Child: %s (%x.%x)\n",
+	sprintf(buf, "Child: %s (%lx.%lx)\n",
 		u.u_symlink.name, u.u_symlink.cvnode, u.u_symlink.cunique);
 	break;
       case  ResolveViceLink_OP:
       case RES_Link_OP:
-	sprintf(buf, "Child: %s (%x.%x)\n",
+	sprintf(buf, "Child: %s (%lx.%lx)\n",
 		u.u_hardlink.name, u.u_hardlink.cvnode, u.u_hardlink.cunique);
 	break;
       case  ResolveViceMakeDir_OP:
       case RES_MakeDir_OP:
-	sprintf(buf, "Child: %s (%x.%x)\n",
+	sprintf(buf, "Child: %s (%lx.%lx)\n",
 		u.u_makedir.name, u.u_makedir.cvnode, u.u_makedir.cunique);
 	break;
       case  ResolveViceRemoveDir_OP:
       case RES_RemoveDir_OP:
-	sprintf(buf, "Child: %s (%x.%x)[%x.%x] LCP[%x.%x]\n",
+	sprintf(buf, "Child: %s (%lx.%lx)[%lx.%lx] LCP[%lx.%lx]\n",
 		u.u_removedir.name, u.u_removedir.cvnode,
 		u.u_removedir.cunique, u.u_removedir.csid.Host, 
 		u.u_removedir.csid.Uniquifier,u.u_removedir.childLCP.Host,

@@ -96,22 +96,13 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber);
 static int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols);
 static int QuickCheck(struct VolumeSummary *vsp, int nVols);
 static int SalvageVolHead(register struct VolumeSummary *vsp);
-#if 0
-static int SalvageHeader(register struct stuff *sp,
-			struct InodeSummary *isp, int check, int *deleteMe);
-#endif 
 static int VnodeInodeCheck(int, struct ViceInodeInfo *, int, struct VolumeSummary *);
 static void DirCompletenessCheck(struct VolumeSummary *vsp);
-static void JudgeEntry(struct DirSummary *dir, char *name,
-		VnodeId vnodeNumber, Unique_t unique);
 static void SanityCheckFreeLists();
 
 /* correcting/action routines */
-static int MaybeZapVolume(struct InodeSummary *isp,
-			char *message, int deleteMe);
 static void CleanInodes(struct InodeSummary *);
 static void ClearROInUseBit(struct VolumeSummary *summary);
-static int CopyInode(Device device, Inode inode1, Inode inode2);
 static void FixInodeLinkcount(struct ViceInodeInfo *, struct InodeSummary *);
 static int DestroyBadVolumes();
 
@@ -120,7 +111,6 @@ static int DestroyBadVolumes();
 extern long time(long *);
 int OnlyOneVolume(struct ViceInodeInfo *, VolumeId);
 int InSkipVolumeList(VolumeId, VolumeId *, int);
-static char *devName(unsigned int dev);
 static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t);
 static int AskOffline(VolumeId volumeId);
 static int AskOnline(VolumeId volumeId);

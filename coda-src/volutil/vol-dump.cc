@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.12 $
+#define RCSVERSION $Revision: 4.13 $
 
 /* vol-dump.c */
 
@@ -129,7 +129,6 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 {
     register Volume *vp = 0;
     long rc = 0, retcode = 0;
-    int status = 0;
     Error error;
     ProgramType *pt;
     DumpBuffer_t *dbuf = NULL;
@@ -381,9 +380,9 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
     if (DumpLong(dbuf, 's', nLists) == -1)
 	return -1;
     
-    sprintf(buf, "Start of %s list, %d vnodes, %d lists.\n",
+    sprintf(buf, "Start of %s list, %ld vnodes, %ld lists.\n",
 	    ((vclass == vLarge)? "Large" : "Small"), nVnodes, nLists);
-    if (write(VVListFd, buf, (int)strlen(buf)) != strlen(buf)) {
+    if (write(VVListFd, buf, strlen(buf)) != (int)strlen(buf)) {
 	SLog(0, "Write %s Index header didn't succeed.", ((vclass == vLarge)? "Large" : "Small"));
 	VPutVolume(vp);
 	return -1;
@@ -412,7 +411,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	int nlists;
 	char Class[7];
 	
-	if (sscanf(buf, "Start of %s list, %d vnodes, %d lists.\n",
+	if (sscanf(buf, "Start of %s list, %ld vnodes, %d lists.\n",
 		   Class, &nvnodes, &nlists)!=3) { 
 	    SLog(0, "Couldn't scan head of %s Index.", 
 		(vclass==vLarge?"Large":"Small"));
@@ -434,11 +433,11 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	 * modified, or deleted.
 	 */
 	
-	for (int vnodeIndex = 0; vnodeIndex < nLists; vnodeIndex++) {
+	for (int vnodeIndex = 0; vnodeIndex < (int)nLists; vnodeIndex++) {
 	    rec_smolist_iterator nextVnode(vnList[vnodeIndex]);
 	    rec_smolink *vptr;
 	    
-	    while (vptr = nextVnode()) {	/* While more vnodes */
+	    while ( (vptr = nextVnode()) ) {	/* While more vnodes */
 		vnode = strbase(VnodeDiskObject, vptr, nextvn);
 		int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
 		nVnodes--;
@@ -469,7 +468,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 	    vvent_iterator vvnext(vvlist, vnodeIndex);
 	    vvent *vventry;
 		
-	    while (vventry = vvnext()) { 
+	    while ( (vventry = vvnext()) ) { 
 		if (!vventry->isThere) {
 		    /* Note: I could define VnodeNumber in the outer loop and
 		     * seemingly save effort. However, it would be done for every
@@ -512,7 +511,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 
     if (vclass == vLarge) { 	/* Output End of Large Vnode list */
 	    sprintf(buf, "%s", ENDLARGEINDEX);	/* Macro contains a new-line */
-	    if (write(VVListFd, buf, (int)strlen(buf)) != strlen(buf))
+	    if (write(VVListFd, buf, strlen(buf)) != (int)strlen(buf))
 		    SLog(0, "EndLargeIndex write didn't succeed.");
     }
     SLog(9, "Leaving DumpVnodeIndex()");

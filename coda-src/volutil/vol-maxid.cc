@@ -76,7 +76,7 @@ long S_VolSetMaxVolId(RPC2_Handle cid, RPC2_Integer newid)
 	return(RPC2_FAIL);
     }
 
-    if ( SRV_RVM(MaxVolId) > newid) {
+    if ( (int) SRV_RVM(MaxVolId) > newid) {
 	VLog(0, "VSetMaxVolumeId: MaxVolId > newid, not setting MaxVolId");
 	return (RPC2_FAIL);
     }

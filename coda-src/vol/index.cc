@@ -72,7 +72,6 @@ vindex::vindex(VolumeId volid, int vnodetype, Device dev, int size, int volindex
 /*    volindex      If supplied, use this index rather than looking it */
 /*                  up in the hash table, added for norton. */
 {
-    int objsize = 0;
 
 #ifdef notdef
     /* hoping this isn't necessary...*/

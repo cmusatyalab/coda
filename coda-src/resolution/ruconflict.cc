@@ -141,7 +141,7 @@ int ENewDirRUConf(PDirEntry de, void *data)
 	char *name = de->name;
 	FID_NFid2Int(&de->fid, &vnode, &unique);
 	
-	NewDirRUConf(rup, name, vnode, unique);
+	return NewDirRUConf(rup, name, vnode, unique);
 }
 
 int NewDirRUConf(RUParm *rup, char *name, long vnode, long unique) {
@@ -203,7 +203,7 @@ static ViceVersionVector *FindDeletedFileVV(olist *AllLogs, unsigned long hostid
     {
 	olist_iterator next(*rmtloglist);
 	rsle *ep = NULL;
-	while (ep = (rsle *)next()) {
+	while ((ep = (rsle *)next())) {
 	    if ((ep->opcode == RES_Remove_OP ||
 		 ep->opcode == ResolveViceRemove_OP) &&
 		(ep->u.rm.cvnode == filefid->Vnode) &&
@@ -250,7 +250,7 @@ static int ChildDirRUConf(RUParm *rup, ViceFid *cFid, Vnode *cvptr) {
     {
 	olist_iterator next(*DeletedDirLog);
 	rsle *rslep;
-	while (rslep = (rsle *)next())
+	while ((rslep = (rsle *)next()))
 	    if (SID_EQ(rslep->storeid, LastLocalle->storeid) &&
 		(rslep->opcode == LastLocalle->opcode)) 
 		break;

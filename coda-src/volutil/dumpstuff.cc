@@ -257,7 +257,7 @@ int DumpString(DumpBuffer_t *buf, byte tag, register char *s)
     register byte *p;
     register n;
     n = strlen(s)+1;
-    if (p = Reserve(buf, 1 + n + sizeof(long))) {
+    if ((p = Reserve(buf, 1 + n + sizeof(long)))) {
 	*p++ = tag;
 	putlong(p, n);
 	bcopy(s, p, n);
@@ -306,7 +306,7 @@ int DumpFile(DumpBuffer_t *buf, byte tag, int fd, int vnode)
 
     /* We want to dump st_blksize bytes at a time, so buffer better
      * be big enough to hold at least that many bytes. */
-    if (status.st_blksize > (buf->DumpBufEnd - buf->DumpBuf)) {
+    if ((int)status.st_blksize > (buf->DumpBufEnd - buf->DumpBuf)) {
 	LogMsg(0, VolDebugLevel, stdout, "Dump Buffer not big enough!");
 	return -1;
     }

@@ -80,14 +80,14 @@ OBJ_HENTRY = 48127
 
 /* Server States */
 #define	S_AWAITREQUEST 0x1
-#define        S_REQINQUEUE 0x2
-#define        S_PROCESS 0x4
+#define S_REQINQUEUE 0x2
+#define S_PROCESS 0x4
 #define	S_INSE 0x8
-#define        S_HARDERROR 0x10
-#define        S_STARTBIND 0x20
+#define S_HARDERROR 0x10
+#define S_STARTBIND 0x20
 #define	S_AWAITINIT3 0x40
-#define        S_FINISHBIND 0x80
-#define        S_AWAITENABLE 0x0100
+#define S_FINISHBIND 0x80
+#define S_AWAITENABLE 0x0100
 
 
 #define SetRole(e, role) (e->State = role)

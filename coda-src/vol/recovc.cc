@@ -56,9 +56,6 @@ extern "C" {
 extern olist *VolLogPtrs[MAXVOLS];
 extern void dump_storage(int, char*);
 
-static void DeleteVolHeader(int);
-static void DeleteVolData(int);
-
 unsigned long VMCounter = 0;
 unsigned long startuptime = 0;
 
@@ -138,7 +135,6 @@ int coda_init()
     char buf1[SIZEOF_SMALLDISKVNODE];
     char buf2[SIZEOF_LARGEDISKVNODE];
     VnodeDiskObject *zerovnode;
-    VolumeId volid = 0;
     rvm_return_t status = RVM_SUCCESS;
     int i = 0;
 
@@ -202,14 +198,13 @@ int coda_init()
 /* mainly to check for existence of VolumeDiskData */
 void CheckVolData(Error *ec, int volindex) {
     VolumeData *data;
-    int status = 0;	// transaction status variable
     VolumeId maxid;
     *ec = 0;
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering CheckVolData for volindex %d", volindex);
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+    if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "CheckVolData: bogus volume index %d", volindex);
 	*ec = VNOVOL;	// invalid volume index
 	return;
@@ -233,7 +228,7 @@ int ActiveVnodes(int volindex, int vclass) {
     LogMsg(9, VolDebugLevel, stdout,  "Entering ActiveVnodes for index %d, vclass = %d",
 						volindex, vclass);
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+    if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "ActiveVnodes: bogus volume index %d", volindex);
 	return(-1);	// invalid volume index
     }
@@ -262,7 +257,7 @@ int AllocatedVnodes(int volindex, int vclass) {
     LogMsg(9, VolDebugLevel, stdout,  "Entering AllocatedVnodes for index %d, vclass %d", 
 					    volindex, vclass);
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+    if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "AllocatedVnodes: bogus volume index %d", volindex);
 	return(-1);	// invalid volume index
     }
@@ -286,7 +281,6 @@ int AllocatedVnodes(int volindex, int vclass) {
 /* data inodes. ec is set if the volume is not found */
 void GetVolPartition(Error *ec, VolumeId volid, int myind, char partition[]) {
     VolumeDiskData *voldata;
-    int status = 0;	// transaction status variable
 
     *ec = 0;
 
@@ -349,11 +343,11 @@ void VSetMaxVolumeId(VolumeId newid) {
  * Called whenever vnode bitmap grows to make sure that bitmap size never
  * exceeds vnode array size.
  */
-void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
+void GrowVnodes(VolumeId volid, int vclass, short newBMsize) 
+{
     rec_smolist *newvlist;
     int myind, newvnodes;
     bit32 cursize, newsize;
-    int status = 0;		    // transaction status variable
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering GrowVnodes for volid %x, vclass %d", volid, vclass);
 
@@ -370,7 +364,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 	newsize = cursize + SMALLGROWSIZE;
 	if (newvnodes % SMALLGROWSIZE)
 	    newvnodes += SMALLGROWSIZE - (newvnodes % SMALLGROWSIZE);
-	if (newvnodes > newsize) newsize = newvnodes;
+	if (newvnodes > (int)newsize) newsize = newvnodes;
 	LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing Small list from %d to %d for volume 0x%x",
 					    cursize, newsize, volid);
 	/* create a new larger list and zero out its tail */
@@ -401,7 +395,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 	newsize = cursize + LARGEGROWSIZE;
 	if (newvnodes % LARGEGROWSIZE)
 	    newvnodes += LARGEGROWSIZE - (newvnodes % LARGEGROWSIZE);
-	if (newvnodes > newsize) newsize = newvnodes;
+	if (newvnodes > (int)newsize) newsize = newvnodes;
 	LogMsg(0, VolDebugLevel, stdout,  "GrowVnodes: growing Large list from %d to %d for volume 0x%x",
 		cursize, newsize, volid);
 	/* create a new larger list and zero out its tail */
@@ -444,14 +438,13 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize) {
 
 /* Lookup volume disk info for specified volume */
 void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol) {
-    int status = 0;	// transaction status variable
     VolumeId maxid = 0;
     *ec = 0;
 
     LogMsg(9, VolDebugLevel, stdout,  "Entering ExtractVolDiskInfo for volindex %u", volindex);
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+    if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "ExtractVolDiskInfo: bogus volume index %d", volindex);
 	*ec = VNOVOL;	// invalid volume index
 	return;
@@ -478,7 +471,7 @@ int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u)
     rec_smolist *vlist;
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
-    if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
+    if (volindex < 0 || volindex > (int)maxid || volindex > MAXVOLS) {
 	LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus volume index %d", volindex);
 	return(0);
     }
@@ -507,7 +500,7 @@ int AvailVnode(int volindex, int vclass, VnodeId vnodeindex, Unique_t u)
 	/* check if vnode matching uniquifier exists in list */
 	rec_smolist_iterator next(*vlist);
 	rec_smolink *p;
-	while (p = next()) {
+	while ((p = next())) {
 	    VnodeDiskObject *vdo;
 	    vdo = strbase(VnodeDiskObject, p, nextvn);
 	    if (vdo->uniquifier == u)

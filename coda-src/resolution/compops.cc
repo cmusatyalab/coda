@@ -46,7 +46,6 @@ extern "C" {
 // ********** Private Routines *************
 static olist *ExtractLog(olist *, unsigned long, ViceFid *);
 static olist **ExtractRemoteLogs(olist *, ViceFid *, int *);
-static void CleanRemoteLogs(olist **);
 static arrlist *FindRemoteOps(arrlist *, olist **, int );
 static arrlist *MergeRemoteOps(arrlist *, int);
 static arrlist *RemoveLocalOps(arrlist *, arrlist *);
@@ -102,7 +101,7 @@ arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid)
 		   "Local Log Contains\n");
 	    olist_iterator next(*llog);
 	    rsle *r;
-	    while (r = (rsle *)next()) 
+	    while ((r = (rsle *)next())) 
 		r->print(stdout);
 	    goto Exit;
 	}
@@ -178,8 +177,8 @@ static olist **ExtractRemoteLogs(olist *logs, ViceFid *Fid, int *nlists) {
     olist_iterator next(*logs);
     he *hoste;
     int index = 0;
-    while (hoste = (he *)next()) {
-	if (hoste->hid == ThisHostAddr) continue;
+    while ((hoste = (he *)next())) {
+	if (hoste->hid == (long)ThisHostAddr) continue;
 	rmtlogs[index] = ExtractLog(logs, hoste->hid, Fid);
 	index++;
     }
@@ -217,11 +216,11 @@ static arrlist *FindRemoteOps(arrlist *sllog, olist **rlogs,
 	    olist_iterator next(*(rlogs[i]));
 	    rsle *r;
 	    // scan remote log until common point
-	    while (r = (rsle *)next()) 
+	    while ((r = (rsle *)next())) 
 		if (r == CommonPoints[i]) break;
 	    CODA_ASSERT(r);
 	    // copy rest of remote log 
-	    while (r = (rsle *)next()) 
+	    while ((r = (rsle *)next())) 
 		nonlocalops[i].add((void *)r);
 	}
     }
@@ -246,7 +245,7 @@ static arrlist *MergeRemoteOps(arrlist *rmtops, int nsites) {
 	for (int i = 0; i < nsites; i++) {
 	    arrlist_iterator next(&rmtops[i]);
 	    void *p;
-	    while (p = next()) 
+	    while ((p = next())) 
 		allops.add(p);
 	}
     }
@@ -265,7 +264,7 @@ static arrlist *MergeRemoteOps(arrlist *rmtops, int nsites) {
 	prevstoreid.Host = prevstoreid.Uniquifier = 0;
 	arrlist_iterator next(&allops);
 	rsle *r;
-	while (r = (rsle *)next()) 
+	while ((r = (rsle *)next()) )
 	    if (!SID_EQ(r->storeid, prevstoreid)) {
 		mergedops->add((void *)r);
 		prevstoreid = r->storeid;
@@ -277,8 +276,8 @@ static arrlist *MergeRemoteOps(arrlist *rmtops, int nsites) {
 // Remove the local ops that also appear in the merged rmt ops
 // IMPORTANT: This assumes that sllog and ops have already been 
 // 		sorted by storeid
-static arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog) {
-    int i, j;
+static arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog) 
+{
     int res = -1;
     arrlist *newlist = new arrlist(ops->cursize);
     arrlist_iterator nexto(ops);
@@ -309,7 +308,7 @@ static arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog) {
 	    gotnextl = 1;
 	}
     }
-    while (or = (rsle *)nexto())
+    while ((or = (rsle *)nexto()))
 	newlist->add((void *)or);
     return(newlist);
 }
@@ -318,7 +317,7 @@ static arrlist *RemoveLocalOps(arrlist *ops, arrlist *sllog) {
 static void SortLog(olist *log, arrlist *slp) {
     olist_iterator next(*log);
     void *p;
-    while (p = (void *)next()) 
+    while ((p = (void *)next()))
 	slp->add(p);
     qsort(slp->list, slp->cursize, sizeof(void *), 
 	  (int (*)(const void *, const void *))CmpSleEntries);
@@ -427,7 +426,7 @@ static void PrintArrList(arrlist *a, char *s)
     printf("*** %s Begin *** \n", s);
     arrlist_iterator next(a);
     rsle *r;
-    while (r = (rsle *)next()) {
+    while ((r = (rsle *)next())) {
 	LogMsg(0, SrvDebugLevel, stdout, 
 	       "-----------------\n");
 	r->print();
@@ -444,7 +443,7 @@ void PrintCompOps(arrlist *a) {
 static void PrintLogList(olist *l) {
     olist_iterator next(*l);
     rsle *r;
-    while (r = (rsle *)next()) {
+    while ((r = (rsle *)next())) {
 	LogMsg(0, SrvDebugLevel, stdout, 
 	       "-----------------\n");
 	r->print();

@@ -65,20 +65,6 @@ extern int nlist(const char*, struct nlist[]);
 
 static	char	*srvname;
 
-#ifdef	__MACH__
-char *strdup(const char *s)
-#else
-char *strdup(char *s)
-#endif
-{
-        char    *t;
-        if ((t = (char *) malloc(((unsigned int) strlen(s)) + 1)) == NULL) {
-		LogMsg(0, VolDebugLevel, stdout, "strdup failed: Out of memory\n");
-                printf("strdup failed: Out of memory\n");
-                return(NULL);
-        }
-        return(strcpy(t, s));
-}
 
 void setmyname(char *s)
 {
@@ -91,31 +77,6 @@ void setmyname(char *s)
 }
 
 #ifdef __MACH__
-static
-long checkaddress(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
-{
-	vm_address_t	address = addr;
-	vm_size_t       size;
-	vm_prot_t       protection;
-	vm_prot_t       max_protection;
-	vm_inherit_t    inheritance;
-	boolean_t       shared;
-	port_t          object_name;
-	vm_offset_t     offset;
-
-	while(vm_region(task_self(), &address, &size,
-			&protection, &max_protection,
-			&inheritance, &shared,
-			&object_name, &offset) == KERN_SUCCESS) {
-		if (address > addr) return(3-10040L);
-		if ((protection & perm) != perm) return(4-10040L);
-		if (address + size >= addr + sz) return(RPC2_SUCCESS);
-		sz = (addr + sz) - (address + size);
-		addr = address += size;
-		if (size == 0) break;
-	}
-	return(3-10040L);
-}
 
 static
 long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
@@ -163,21 +124,15 @@ long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
 #define vm_prot_t     int
 #define VM_PROT_READ 1
 #define VM_PROT_WRITE 2
-static
-long checkaddress(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
-{
-  LogMsg(0, VolDebugLevel, stdout, "Arrrghhh....checkaddress() not ported yet\n");
-  CODA_ASSERT(0);
-}
 
 static
 long okaddr(vm_address_t *pm, RPC2_String s, vm_size_t sz, vm_prot_t perm)
 {
   LogMsg(0, VolDebugLevel, stdout, "Arrrghhh....okaddress() not ported yet\n");
   CODA_ASSERT(0);
+  return 0;
 }
-#endif /* __MACH__ */
-
+#endif
 /*
   BEGIN_HTML
   <a name="S_VolPeekInt"><strong>Service the peek request</strong></a> 

@@ -102,7 +102,6 @@ int VN_DCommit(Vnode *vnp)
 /* Eliminate the VM Data of the directory */
 int VN_DAbort(Vnode *vnp) 
 {
-	Volume *volume;
     
 	if (!vnp || (vnp->disk.type != vDirectory) || !vnp->dh){
 		DLog(29, "DAbort: Vnode not allocated, not a directory or no handle");

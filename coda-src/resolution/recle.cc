@@ -276,20 +276,19 @@ void recle::print(FILE *fp) {
 
 void recle::print(int fd) {
     char buf[512];
-    sprintf(buf, "    **Server: 0x%x StoreId: 0x%x.%x \n", 
+    sprintf(buf, "    **Server: 0x%lx StoreId: 0x%lx.%lx \n", 
 	    serverid, storeid.Host, storeid.Uniquifier);
     write(fd, buf, (int) strlen(buf));
 
-    sprintf(buf, "    Directory(0x%x.%x)\n    Opcode: %s \n\0",
+    sprintf(buf, "    Directory(0x%lx.%lx)\n    Opcode: %s \n\0",
 	    dvnode, dunique, PRINTOPCODE(opcode));
     write(fd, buf, (int) strlen(buf));
-    sprintf(buf, "    index is %d, sequence number %d, var length is %d\n\0",
+    sprintf(buf, "    index is %ld, sequence number %d, var length is %d\n\0",
 	    index, seqno, size);
     write(fd, buf, (int) strlen(buf));
 
     /* Decls that used to be inside switch{} but make C++ 3.0 unhappy */
     aclstore *acls;
-    ststore *sp;
     newstore *newsp;
     rm_rle *rm;
     create_rle *c;

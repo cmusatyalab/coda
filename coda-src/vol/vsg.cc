@@ -87,11 +87,11 @@ void vsgent::print(FILE *fp) {
 void vsgent::print(int fd) {
     char buf[80];
 /*    sprintf(buf, "%#08x : VSGAddr = 0x%x\n", (long)this, VSGaddr); */
-    sprintf(buf, "VSGAddr = 0x%x ", VSGaddr);
+    sprintf(buf, "VSGAddr = 0x%lx ", VSGaddr);
     write(fd, buf, strlen(buf));
     for (int i = 0; i < nhosts; i++)
 	if (Hosts[i]){
-	    sprintf(buf, "0x%x ", Hosts[i]);
+	    sprintf(buf, "0x%lx ", Hosts[i]);
 	    write(fd, buf, strlen(buf));
 	}
     sprintf(buf, "\n");
@@ -117,7 +117,7 @@ int GetHosts(unsigned long vsgaddr, unsigned long *Haddr, int *nh) {
     olink  *ol;
 
     *nh = 0;
-    while (ol = next()) {
+    while ((ol = next())) {
 	rv = strbase(vsgent, ol, vsgtabhandle);
 	LogMsg(10, VolDebugLevel, stdout, "GetHosts: comparing one more entry ");
 	if (rv->VSGaddr == vsgaddr){
@@ -155,7 +155,7 @@ unsigned long GetVSGAddress(unsigned long *hosts, int nh) {
     }
     ohashtab_iterator next(*vsgent::hosttab, CanHosts);
     olink *l;
-    while (l = next()) {
+    while ((l = next())) {
 	vsgent *v = strbase(vsgent, l, htabhandle);
 	LogMsg(10, VolDebugLevel, stdout, "GetVSGAddress: Comparing one more entry");
 	if (!bcmp((const void *)CanHosts,  (const void *)v->Hosts, sizeof(long) * VSG_MEMBERS) &&
@@ -173,7 +173,7 @@ void ClearVSGDB() {
     
     vsgent *v;
     olink *l;
-    while (l = next()) {
+    while ((l = next())) {
 	v = strbase(vsgent, l, vsgtabhandle);
         vsgent::vsgaddrtab->remove((void *)v->VSGaddr, l);
 	delete v;
@@ -200,7 +200,7 @@ typedef int (*XXX)(void *);
 
     while(1){
 	if (fgets(string, 1024, fp) == NULL) break;
-	int i = sscanf(string, "%x %s %s %s %s %s %s %s %s\n",
+	int i = sscanf(string, "%lx %s %s %s %s %s %s %s %s\n",
 		       &vsgaddr, Host[0], Host[1], 
 		       Host[2], Host[3], Host[4], 
 		       Host[5], Host[6], Host[7]);
@@ -225,7 +225,7 @@ void PrintVSGDB() {
     
     vsgent *v;
     olink *l;
-    while (l = next()) {
+    while ((l = next())) {
 	v = strbase(vsgent, l, vsgtabhandle);
         v->print();
     }
@@ -235,181 +235,4 @@ void CheckVSGDB() {
     ClearVSGDB();
     InitVSGDB();
 }
-
-#if 0
-/* this is the old vsg.c file 
- * It used to implement the multi cast vsg groups
- * Until somebody who understands this stuff in the kernel
- * we are deleting it.
-
-#include "vsg.h"
-#include "errno.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <sysent.h>
-#include "file.h"
-
-extern int joingroup(unsigned long, unsigned long, unsigned long, unsigned int, char *);
-extern int leavegroup(int, unsigned long, unsigned long);
-
-
-vsgtab JoinedVSGs("JoinedVSGs");
-
-
-vsgtab::vsgtab(char *n) {
-    name = new char[strlen(n) + 1];
-    strcpy(name, n);
-}
-
-
-vsgtab::vsgtab(vsgtab& vsgt) {
-    abort();
-}
-
-
-vsgtab::operator=(vsgtab& vsgt) {
-    abort();
-}
-
-
-vsgtab::~vsgtab() {
-    vsgtab_iterator next(*this);
-    vsgent *vsge;
-    while (vsge = next()) remove(vsge);
-    delete name;
-}
-
-
-void vsgtab::add(vsgent *vsge) {
-    olist::insert(vsge);
-}
-
-
-void vsgtab::remove(vsgent *vsge) {
-    olist::remove(vsge);
-/*
-    LogMsg(1, VolDebugLevel, stdout, "vsgtab::remove: leaving VSG %x", vsge->addr);
-    if (leavegroup(vsge->fd, 0, 0) < 0)
-	LogMsg(0, VolDebugLevel, stdout, "vsgtab::remove: leavegroup failed (%d)", errno);
-*/
-    delete vsge;
-}
-
-
-vsgent *vsgtab::find(unsigned long vsgaddr) {
-    vsgtab_iterator next(*this);
-    vsgent *vsge;
-    while (vsge = next())
-	if (vsge->addr == vsgaddr) return(vsge);
-
-    return(0);
-}
-
-
-void vsgtab::join(unsigned long vsgaddr)  {
-    vsgent *vsge;
-    if (vsge = find(vsgaddr)) {
-	vsge->Mark();
-	return;
-    }
-
-/*
-    LogMsg(1, VolDebugLevel, stdout, "vsgtab::join: joining VSG %x", vsgaddr);
-    int fd = joingroup(vsgaddr, 0, 0, 0, 0);
-    if (fd < 0)
-	LogMsg(0, VolDebugLevel, stdout, "vsgtab::add: joingroup failed (%d)", errno);
-    else
-	add(new vsgent(vsgaddr, fd));
-*/
-}
-
-
-void vsgtab::UnMark() {
-    vsgtab_iterator next(*this);
-    vsgent *vsge;
-    while (vsge = next()) vsge->UnMark();
-}
-
-
-void vsgtab::GarbageCollect() {
-    vsgtab_iterator next(*this);
-    vsgent *vsge;
-    while (vsge = next())
-	if (!(vsge->IsMarked())) remove(vsge);
-}
-
-
-void vsgtab::print() {
-    print(stdout);
-}
-
-
-void vsgtab::print(FILE *fp) {
-    fflush(fp);
-    print(fileno(fp));
-}
-
-
-void vsgtab::print(int afd) {
-    char buf[40];
-    sprintf(buf, "%#08x : %-16s\n", (long)this, name);
-    write(afd, buf, strlen(buf));
-
-    vsgtab_iterator next(*this);
-    vsgent *vsge;
-    while (vsge = next()) vsge->print(afd);
-}
-
-
-vsgtab_iterator::vsgtab_iterator(vsgtab& vtab) : (vtab) {
-}
-
-
-vsgent *vsgtab_iterator::operator()() {
-    return((vsgent *)olist_iterator::operator()());
-}
-
-
-vsgent::vsgent(unsigned long vsgaddr, int fdes) {
-    addr = vsgaddr;
-    fd = fdes;
-    mark = 1;
-}
-
-
-void vsgent::Mark() {
-    mark = 1;
-}
-
-
-void vsgent::UnMark() {
-    mark = 0;
-}
-
-
-int vsgent::IsMarked() {
-    return(mark);
-}
-
-
-void vsgent::print() {
-    print(stdout);
-}
-
-
-void vsgent::print(FILE *fp) {
-    fflush(fp);
-    print(fileno(fp));
-}
-
-
-void vsgent::print(int afd) {
-    char buf[80];
-    sprintf(buf, "%#08x : addr = %x, fd = %d, mark = %d\n",
-	     (long)this, addr, fd, mark);
-    write(afd, buf, strlen(buf));
-}
-
-
-#endif 0
 

@@ -55,14 +55,9 @@ extern "C" {
 
 
 long RS_NewConnection(RPC2_Handle RPCid, RPC2_Integer set, 
-		       RPC2_Integer sl, RPC2_Integer et, RPC2_Integer at,
-		       RPC2_CountedBS *cid){
-/*RPC2_Handle  RPCid;		RPC Id		*/
-/*RPC2_Integer set;		Side Effect Type	*/
-/*RPC2_Integer sl;		Security Level	*/
-/*RPC2_Integer et;		Encryption Type	*/
-/*RPC2_CountedBS * cid;		Client Ident field	*/
-    
+		      RPC2_Integer sl, RPC2_Integer et, 
+		      RPC2_Integer at, RPC2_CountedBS *cid)
+{
     conninfo *cip = new conninfo(RPCid, sl);
     conninfo::CInfoTab->insert(&cip->tblhandle);
     conninfo::ncinfos++;
@@ -141,12 +136,12 @@ long CheckRetCodes(unsigned long *rc, unsigned long *rh,
     return(error);
 }
 
-/* check for return codes for resolution other than time outs:
+/* check for return codes for resolution other than timeouts:
 
    - hosts will hold the ip address of hosts that responded
    - result will be VNOVNODE if that was the only error
      returned by the available servers
-   - result may also hold the first error encountered if not VNOVNODE
+   - result will hold the first error encountered if not VNOVNODE
 */
 
 long CheckResRetCodes(unsigned long *rc, unsigned long *rh, 
@@ -166,10 +161,6 @@ long CheckResRetCodes(unsigned long *rc, unsigned long *rh,
 		    addr.s_addr = ntohl(rh[i]);
 		    SLog(0,  "CheckRetCodes: server %s returned error %d)",
 			 inet_ntoa(addr), rc[i]);
-#if 0  /* used to be for Cygwin */
-		    SLog(0,  "CheckRetCodes: server %s returned error  %d)",
-			 rh[i], rc[i]);
-#endif
 	    }
 	    if ( result == 0 ||  result == VNOVNODE )
 		    result = error;
@@ -215,7 +206,7 @@ void DlistToBS(dlist *dl, RPC2_BoundedBS *BS) {
     BS->SeqLen = 0;
     ilink *il = 0;
     dlist_iterator next(*dl, DlAscending);
-    while (il = (ilink *)next()) {
+    while ((il = (ilink *)next())) {
 	ViceFid Fid;
 	ViceFid pFid;
 	Fid.Volume = 0;
@@ -229,7 +220,7 @@ void DlistToBS(dlist *dl, RPC2_BoundedBS *BS) {
 void CleanIncList(dlist *inclist) {
     ilink *il;
     if (inclist) {
-	while (il = (ilink *)inclist->get()) 
+	while ((il = (ilink *)inclist->get())) 
 	    delete il;
 	delete inclist;
     }
@@ -271,9 +262,9 @@ void AllocIncBSEntry(RPC2_BoundedBS *bbs, char *name, ViceFid *Fid,
     char *c = ((char *)bbs->SeqBody) + bbs->SeqLen;
     int namelength = strlen(name) + 1;
     int modlength = 0;
-    if (modlength = (namelength % sizeof(long))) 
+    if ((modlength = (namelength % sizeof(long)))) 
 	namelength += sizeof(long) - modlength;
-    if ((bbs->SeqLen + namelength + SIZEOF_INCFID) > bbs->MaxSeqLen) {
+    if ((int)(bbs->SeqLen + namelength + SIZEOF_INCFID) > bbs->MaxSeqLen) {
 	SLog(0,  "AllocIncPBEntry: NO MORE SPACE IN BUFFER");
 	CODA_ASSERT(0);
     }
@@ -325,8 +316,8 @@ long GetPath(ViceFid *fid, int maxcomponents,
     
     /* get status of all the objects on path from volume root */
     while (!errorcode && tmpfid.Vnode != 0 && tmpfid.Unique != 0) {
-	if (errorcode = GetFsObj(&tmpfid, &volptr, &vptr, 
-				 READ_LOCK, VOL_NO_LOCK, 1, 0, 0))
+	if ((errorcode = GetFsObj(&tmpfid, &volptr, &vptr, 
+				 READ_LOCK, VOL_NO_LOCK, 1, 0, 0)))
 	    break;
 	
 	ResStatus rs;

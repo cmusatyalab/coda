@@ -99,9 +99,9 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
 	    return EINVAL;
     }
 
-    if (errorcode = GetVolObj(Fid->Volume, &volptr, 
+    if ((errorcode = GetVolObj(Fid->Volume, &volptr, 
 			      VOL_EXCL_LOCK, 1, 
-			      cip->GetRemoteHost())) {
+			      cip->GetRemoteHost()))) {
 	    SLog(0,  "RS_LockAndFetch: Error %d during GetVolObj for %s",
 		 errorcode, FID_(Fid));
 	    return errorcode;
@@ -109,8 +109,8 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     ObtainedLock = 1;
 
     /* this Vnode is obtained to get at its logs, and then put away */
-    if (errorcode = GetFsObj(Fid, &volptr, &vptr, 
-			  READ_LOCK, NO_LOCK, 1, 0, 0)){/*ignore incon*/
+    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, 
+			  READ_LOCK, NO_LOCK, 1, 0, 0))){/*ignore incon*/
 	    SLog(0,  "RS_LockAndFetch: GetFsObj for %s returned error %d", 
 		 FID_(Fid), errorcode);
 	    goto FreeLocks;
@@ -152,8 +152,8 @@ long RS_LockAndFetch(RPC2_Handle RPCid, ViceFid *Fid,
     }
 
 
-    if (errorcode = GetPath(Fid, (int)maxcomponents, (int *)ncomponents, 
-			    components)) 
+    if ((errorcode = GetPath(Fid, (int)maxcomponents, (int *)ncomponents, 
+			    components)) )
 	    SLog(0, "RS_LockAndFetch:GetPath for %s returns error %d\n", 
 		 FID_(Fid), errorcode);
  FreeLocks:
@@ -194,8 +194,8 @@ long RS_UnlockVol(RPC2_Handle RPCid, VolumeId Vid)
     }
     
     /* get volume and check if locked */
-    if (errorcode = GetVolObj(Vid, &volptr, 
-			      VOL_NO_LOCK, 0, 0)) {
+    if ( (errorcode = GetVolObj(Vid, &volptr, 
+			      VOL_NO_LOCK, 0, 0))) {
 	SLog(0,  "RS_UnlockVol: GetVolObj error %d for %x", 
 		errorcode, Vid);
 	return(errorcode);

@@ -60,7 +60,7 @@ rmtle *FindRMTLE(olist *list, VnodeId vn, Unique_t un) {
     olist_iterator next(*list);
     rmtle *l;
 
-    while (l = (rmtle *)next()) {
+    while ( (l = (rmtle *)next()) ) {
 	if (l->dvnode == vn && l->dunique == un)
 	    return(l);
     }
@@ -70,7 +70,7 @@ rmtle *FindRMTLE(olist *list, VnodeId vn, Unique_t un) {
 he *FindHE(olist *list, long hostaddress) {
     olist_iterator next(*list);
     he *h;
-    while (h = (he *)next()) {
+    while ( (h = (he *)next())) {
 	if (h->hid == hostaddress)
 	    return(h);
     }
@@ -113,7 +113,7 @@ char *FlattenLocalRMTLElist(olist *llist, int *bufsize) {
 	size = 0;
 	rmtle *ll;
 	olist_iterator lnext(*llist);
-	while (ll = (rmtle *)lnext()) {
+	while ( (ll = (rmtle *)lnext()) ) {
 	    LogMsg(59, SrvDebugLevel, stdout,  "FlattenLocalRMTLElist: Counting: %x.%x has %d log entries",
 		    ll->dvnode, ll->dunique, ll->u.local.log->count());
 	    size += ll->u.local.log->count();
@@ -131,7 +131,7 @@ char *FlattenLocalRMTLElist(olist *llist, int *bufsize) {
 	int i = 0;
 	/* get each vnodes log */
 	rmtle *ll;
-	while (ll = (rmtle *)lnext2()) {
+	while ( (ll = (rmtle *)lnext2()) ) {
 	    pdlist_iterator nextrlent(*(ll->u.local.log));
 	    pdlink *pl;
 	    LogMsg(59, SrvDebugLevel, stdout,  "FlattenLocal...: %x.%x has %d entries",
@@ -226,7 +226,7 @@ void GetRmSubTreeLocalRMTLE(int volindex, VnodeId vn,
     {
 	pdlist_iterator next(*tmpPlist);
 	pdlink *pl;
-	while (pl = next()) {
+	while ( (pl = next()) ) {
 	    rlent *rl = strbase(rlent, pl, link);
 	    if ((rl->opcode == RES_RemoveDir_OP) ||
 		(rl->opcode == ResolveViceRemoveDir_OP))
@@ -285,7 +285,7 @@ void BuildRemoteResLogIndexByHost(rlent *buf,
 
 	/* add new host to list */
 	{
-	    if (rle->serverid != prevhost) {
+	    if ( ((int)rle->serverid != prevhost) ) {
 		prevhost = rle->serverid;
 		currentHE = new he(rle->serverid);
 		prevvn = -1;
@@ -296,8 +296,8 @@ void BuildRemoteResLogIndexByHost(rlent *buf,
 
 	/* add new vnode to vnode list */
 	{
-	    if ((rle->dvnode != prevvn) || 
-		(rle->dunique != prevunique)) {
+	    if (((long)rle->dvnode != prevvn) || 
+		((long)rle->dunique != prevunique)) {
 		prevvn = rle->dvnode;
 		prevunique = rle->dunique;
 		currentRMTLE = new rmtle(prevvn, prevunique, 
@@ -313,7 +313,7 @@ void BuildRemoteResLogIndexByHost(rlent *buf,
 
 void PurgeRemoteResLogIndexByHost(olist *hlist) {
     he *tmpHE;
-    while (tmpHE = (he *)(hlist->get())){
+    while ( (tmpHE = (he *)(hlist->get())) ) {
 	olist *tmpvlist = &tmpHE->vlist;
 	rmtle *tmpRMTLE;
 	tmpRMTLE = (rmtle *)(tmpvlist->get());

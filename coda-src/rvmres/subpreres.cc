@@ -195,7 +195,7 @@ long RS_ClearIncon(RPC2_Handle RPCid, ViceFid *Fid,
     }
     
     // get the object 
-    if (errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0, 0)) {
+    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0, 0))) {
 	SLog(0, "RS_ClearIncon: GetFsObj returns error %d, fid %s", 
 	       errorcode, FID_(Fid));
 	errorcode = EINVAL;

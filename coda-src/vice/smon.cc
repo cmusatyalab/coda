@@ -228,7 +228,6 @@ static SmonStatistics stats;
 
 /* ***** Private routines  ***** */
 
-static void SmonNoteOverflow(RPC2_Unsigned);
 static void CheckCallStat();		    /* Daemon Report Entries */
 static void CheckRVMResStat();
 static int ValidateSmonHandle();
@@ -255,10 +254,6 @@ void SmonInit()
 
 
 
-static void SmonNoteOverflow(RPC2_Unsigned time) {
-    if (SOE.Count++ == 0)
-	SOE.StartTime = time;
-}
 
 /*
 ** we really only need to send data if the mond is running,
@@ -272,7 +267,7 @@ static void CheckCallStat() {
     if (!SmonEnabled || !SmonInited 
 	|| !ValidateSmonHandle()) return;
     unsigned long curr_time = ::time(0);
-    if (curr_time - last_time > callReportInterval) {
+    if ((long)(curr_time - last_time) > callReportInterval) {
 	last_time = curr_time;
 	GetRawStatistics(&stats);
 	long code = SmonReportCallEvent(SmonHandle, &MyViceId, curr_time,
@@ -301,7 +296,7 @@ static void CheckRVMResStat()
     if (RVMResList->count() >0) {
 	LogMsg(0,SrvDebugLevel,stdout,"Sending some RVMResEvents");
 	struct rvmrese *re =0;
-	while(re = (struct rvmrese *)RVMResList->first()) {
+	while((re = (struct rvmrese *)RVMResList->first())) {
 	    LogMsg(10, SrvDebugLevel, stdout,
 		   "Sending an RVMRes event, volume = 0x%lx time = %d",
 		   re->Time, re->VolID);
@@ -314,14 +309,14 @@ static void CheckRVMResStat()
     /* we don't enqueue anything if there was already something on the list */
     } else {
 	unsigned long curr_time = ::time(0);
-	if (curr_time - last_time > rvmresReportInterval) {
+	if ((long)(curr_time - last_time) > rvmresReportInterval) {
 	    last_time = curr_time;
 	    LogMsg(0,SrvDebugLevel,stdout,"Enqueueing some RVMResEvents");
 	    olist_iterator next(ResStatsList);
 	    resstats *s;
 	    /* We don't need to check the size -- we know that only
 	       one set of stats will exist in the queue at any one time */
-	    while (s=(struct resstats*)next()) {
+	    while ((s=(struct resstats*)next())) {
 		struct rvmrese *e = new(struct rvmrese);
 		s->precollect();
 		e->Init(curr_time,s);
@@ -363,7 +358,7 @@ static int ValidateSmonHandle()
     long curr_time = ::time(0);
 
     /* Try to bind unless the most recent attempt was within SmonBindInterval seconds. */
-    if (curr_time - LastSmonBindAttempt < SmonBindInterval) return(0);
+    if ((long)(curr_time - LastSmonBindAttempt) < SmonBindInterval) return(0);
 
     /* Attempt the bind. */
     LastSmonBindAttempt = curr_time;

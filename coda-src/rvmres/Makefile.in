@@ -24,7 +24,7 @@ VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
-
+CXXFLAGS += -Wall
 LIBRARIES = librvmres.a
 HEADERS	  = ops.h recle.h rsle.h compops.h parselog.h ruconflict.h resstats.h
 

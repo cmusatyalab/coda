@@ -197,7 +197,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
     if (*pt == salvager) {
 	    GetSkipVolumeNumbers();
 	    SanityCheckFreeLists();
-	    if (rc = DestroyBadVolumes())
+	    if ((rc = DestroyBadVolumes()))
 		    return(rc);
     }
     
@@ -215,7 +215,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
 		    }
 	    }
     } else 
-	    rc = SalvageFileSys(path, singleVolumeNumber);
+	    rc = SalvageFileSys((char *)path, singleVolumeNumber);
 
     /* should put vol back on line if singleVolumeNumber */
     if (singleVolumeNumber)
@@ -251,7 +251,6 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path,
 static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 {
     struct stat status;
-    struct ViceInodeInfo *ip = NULL;
     struct stat force;
     char inodeListPath[32];
     char forcepath[MAXNAMLEN];
@@ -339,29 +338,23 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
     for (i = 0, vsp = volumeSummary; i < nVolumesInInodeFile; i++){
 	VolumeId rwvid = inodeSummary[i].RWvolumeId;
 	while (nVolumes && (vsp->header.parent < rwvid)){
-	    VLog(0,
-		   "SFS:No Inode summary for volume 0x%x; skipping full salvage",  
-		vsp->header.parent);
-	    VLog(0, 
-		   "SalvageFileSys: Therefore only resetting inUse flag");
+	    VLog(0, "SFS:No Inode summary for volume 0x%x;" 
+		 " skipping full salvage",  vsp->header.parent);
+	    VLog(0, "SalvageFileSys: Therefore only resetting inUse flag");
 	    ClearROInUseBit(vsp);
 	    vsp->inSummary = NULL;
 	    nVolumes--;
 	    vsp++;
 	}
-	VLog(9, 
-	       "SFS: nVolumes = %d, parent = 0x%x, id = 0x%x, rwvid = 0x%x", 
-	       nVolumes, vsp->header.parent, vsp->header.id, rwvid);
+	VLog(9, "SFS: nVolumes = %d, parent = 0x%x, id = 0x%x, rwvid = 0x%x", 
+	     nVolumes, vsp->header.parent, vsp->header.id, rwvid);
 	    
 	if (nVolumes && vsp->header.parent == rwvid){
-	    VLog(9, 
-		   "SFS: Found a volume for Inodesummary %d", i);
+	    VLog(9, "SFS: Found a volume for Inodesummary %d", i);
 	    VolumeSummary *startVsp = vsp;
 	    int SalVolCnt = 0;
 	    while (nVolumes && vsp->header.parent == rwvid){
-		VLog(9, 
-		       "SFS: Setting Volume 0x%x inodesummary to %d",
-		    rwvid, i);
+		VLog(9, "SFS: Setting Volume 0x%x inodesummary to %d", rwvid, i);
 		vsp->inSummary = &(inodeSummary[i]);
 		SalVolCnt++;
 		vsp++;
@@ -369,8 +362,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	    }
 	    rc = SalvageVolumeGroup(startVsp, SalVolCnt);
 	    if (rc) {
-		VLog(9, "SalvageVolumeGroup failed with rc = %d, ABORTING", 
-		     rc);
+		VLog(9, "SalvageVolumeGroup failed: rc = %d, ABORTING", rc);
 		rvmlib_abort(VFAIL);
 		return VFAIL;
 	    }
@@ -544,7 +536,6 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 			    struct VolumeSummary *vsp) {
 
     VLog(9, "Entering VnodeInodeCheck()");    
-    VolumeId volumeNumber = vsp->header.id;
     char buf[SIZEOF_SMALLDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
     int vnodeIndex = 0;
@@ -552,18 +543,16 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
     vindex v_index(vsp->header.id, vSmall, fileSysDevice, SIZEOF_SMALLDISKVNODE);
     vindex_iterator vnext(v_index);
     int	foundinode;
+    int vnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vSmall);
 
     nVnodes = v_index.vnodes();
     for (vnodeIndex = 0; 
 	 nVnodes && ((vnodeIndex = vnext(vnode)) != -1);
 	 nVnodes--){
-	
-	int vnodeChanged = 0;
-	int vnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vSmall);
 
 	/* take care of special cases first */
 	{
-	    if (vnode->inodeNumber == NEWVNODEINODE){
+	    if ((int)vnode->inodeNumber == NEWVNODEINODE){
 		vnode->type = vNull;
 		CODA_ASSERT(v_index.put(vnodeNumber, vnode->uniquifier, vnode) == 0);
 		VolumeChanged = 1;
@@ -588,7 +577,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	}
 
 	/* find an inode with matching vnodeNumber */
-	while (nInodes && ip->VnodeNumber < vnodeNumber){
+	while (nInodes && (int)ip->VnodeNumber < vnodeNumber){
 	    ip++;
 	    nInodes--;
 	}
@@ -596,7 +585,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	register struct ViceInodeInfo *lip = ip;
 	register int lnInodes = nInodes;
 	/* skip over old inodes with same vnodeNumber */
-	while (lnInodes && lip->VnodeNumber == vnodeNumber){
+	while (lnInodes && (int)lip->VnodeNumber == vnodeNumber){
 	    if (vnode->inodeNumber == lip->InodeNumber){
 		foundinode = 1;
 		break;
@@ -626,7 +615,7 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		    continue;
 		}
 	    }
-	    if (lip->ByteCount != vnode->length) {
+	    if (lip->ByteCount != (int)vnode->length) {
 		VLog(0, "Vnode (%x.%x.%x): length incorrect; can't happen!",
 		    vsp->header.id, vnodeNumber, vnode->uniquifier);
 		VLog(0, "Marking as BARREN ");
@@ -778,7 +767,6 @@ static int JudgeEntry(struct DirEntry *de, void *data)
 	char *name = de->name;
 	VnodeId vnodeNumber;
 	Unique_t unique;
-	int rc = 0;
 	struct VnodeEssence *vnodeEssence;
 
 	FID_NFid2Int(&de->fid, &vnodeNumber, &unique);
@@ -855,7 +843,7 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp)
     CODA_ASSERT(vsp->logbm);
     rec_dlist_iterator next(*loglist);
     recle *r;
-    while (r = (recle *)next()) {
+    while ((r = (recle *)next())) {
 	if (vsp->logbm->Value(r->index))  {
 	    VLog(0, "MarkLogEntries: This index %d already set\n",
 		   r->index);
@@ -865,7 +853,7 @@ static void MarkLogEntries(rec_dlist *loglist, VolumeSummary *vsp)
 	else 
 	    vsp->logbm->SetIndex(r->index);
 	rec_dlist *childlist;
-	if (childlist = r->HasList()) {
+	if ((childlist = r->HasList())) {
 	    VLog(9, "MarkLogEntries: Looking recursively.....\n");
 	    MarkLogEntries(childlist, vsp);
 	}
@@ -924,7 +912,7 @@ static void DistilVnodeEssence(VnodeClass vclass, VolumeId volid) {
 		/* for directory vnodes inode can never be zero */
 		/* if the inode number is NEWVNODEINODE blow away vnode */
 		CODA_ASSERT(vnode->inodeNumber != 0);
-		if (vnode->inodeNumber == NEWVNODEINODE){
+		if ((int)vnode->inodeNumber == NEWVNODEINODE){
 		    /* delete the vnode */
 		    VLog(0, "DistilVnodeEssence: Found a Directory"
 			 "vnode %d that has a special inode ... deleting vnode ",
@@ -1025,7 +1013,6 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
     /* check link counts, parent pointers */
     for (vclass = 0; vclass < nVNODECLASSES; vclass++) {
 	    int nVnodes = vnodeInfo[vclass].nVnodes;
-	    struct VnodeClassInfo *vcp = &VnodeClassInfo_Array[vclass];
 	    struct VnodeEssence *vnodes = vnodeInfo[vclass].vnodes;
 	    FilesInVolume += vnodeInfo[vclass].nAllocatedVnodes;
 	    BlocksInVolume += vnodeInfo[vclass].volumeBlockCount;
@@ -1096,7 +1083,6 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 static void ClearROInUseBit(struct VolumeSummary *summary)
 {
 	Error ec;
-	VolumeId headerVid = summary->header.id;
 	VolumeDiskData volHeader;
 
 	VLog(9, "Entering ClearROInUseBit()");
@@ -1162,26 +1148,6 @@ static int AskOnline(VolumeId volumeId)
     return (0);
 }
 
-/* copy data from one inode to another */
-static int CopyInode(Device device, Inode inode1, Inode inode2)
-{
-    char buf[4096];
-    register int fd1, fd2, n;
-
-    VLog(9, "Entering CopyInode()");
-
-    fd1 = iopen(device, inode1, O_RDONLY);
-    fd2 = iopen(device, inode2, O_WRONLY);
-    CODA_ASSERT(fd1 != -1);
-    CODA_ASSERT(fd2 != -1);
-    while ((n = read(fd1, buf, sizeof(buf))) > 0)
-	CODA_ASSERT(write(fd2, buf, n) == n);
-    CODA_ASSERT (n == 0);
-    close(fd1);
-    close(fd2);
-    return 0;
-}
-
 /* Prints out a list of all inodes into the Log */
 static void PrintInodeList() {
     register struct ViceInodeInfo *ip;
@@ -1205,7 +1171,6 @@ static void PrintInodeList() {
     }
     free((char *)buf);
 }
-
 /* release file server and volume utility locks (for full salvage only) */
 static void release_locks(int volUtil) {
     int fslock;
@@ -1251,7 +1216,7 @@ static void GetSkipVolumeNumbers() {
 	skipvolnums = (VolumeId *)malloc(nskipvols * sizeof(VolumeId));
     { /* drop scope for int i below; to avoid identifier clash */
 	for (int i = 0; i < nskipvols; i++)
-	    fscanf(skipsalv, "%x\n", &(skipvolnums[i]));
+	    fscanf(skipsalv, "%lx\n", &(skipvolnums[i]));
     } /* drop scope for int i above; to avoid identifier clash */
 
 	fclose(skipsalv);
@@ -1410,7 +1375,7 @@ static void CountVolumeInodes(register struct ViceInodeInfo *ip,
 
     n = nSpecial = 0;
     maxunique = 0;
-    while (maxInodes-- && volume == ip->VolumeNo) {
+    while (maxInodes-- && volume == (int)ip->VolumeNo) {
 	n++;
 	if (ip->VnodeNumber == INODESPECIAL) {
 	    VLog(0, "CountVolumeInodes: Bogus specialinode; can't happen");
@@ -1443,7 +1408,6 @@ int OnlyOneVolume(struct ViceInodeInfo *inodeinfo,
 /* by volume and vnode number */
 static int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
 {
-    int i;
     if ( (p1->VnodeNumber == INODESPECIAL) ||
 	 (p2->VnodeNumber == INODESPECIAL)) {
 	VLog(0, "CompareInodes: found special inode! Aborting");
@@ -1605,9 +1569,8 @@ static int CompareVolumes(register struct VolumeSummary *p1,
  *  Gets a volume summary list based on the contents of recoverable
  *  storage.
  */
-static int GetVolumeSummary(VolumeId singleVolumeNumber) {
-
-    DIR *dirp;
+static int GetVolumeSummary(VolumeId singleVolumeNumber) 
+{
     Error ec;
     int rc = 0;
     int i;

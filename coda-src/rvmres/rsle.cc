@@ -86,15 +86,9 @@ void rsle::init(int op ...) {
     va_end(ap);
 }
 
-void rsle::init(int op, va_list ap) {
-
-    UserId owner;
-    RPC2_Unsigned mode;
-    UserId author;
-    Date_t d;
-    ViceVersionVector *vv;
-
-    int sttype, newsttype;
+void rsle::init(int op, va_list ap) 
+{
+    int newsttype;
     switch(op) {
       case ResolveViceNewStore_OP:
       case RES_NewStore_OP:
@@ -292,14 +286,14 @@ void rsle::Abort(Volume *vol) {
 // and move buffer pointer to past end of buffer 
 void rsle::InitFromRecleBuf(char **buf) {
     long *l = (long *)*buf;
-    if (l[0] != DUMP_ENTRY_BEGIN_STAMP) {
+    if (l[0] != (long)DUMP_ENTRY_BEGIN_STAMP) {
 	LogMsg(0, SrvDebugLevel, stdout, 
 	       "rsle::InitFromBuf Bad begin stamp 0x%x\n",
 	       l[0]);
     	return;
     }
     long *lastlong = (long *)(*buf + l[1] - sizeof(long));
-    if (*lastlong != DUMP_ENTRY_END_STAMP) {
+    if (*lastlong != (long)DUMP_ENTRY_END_STAMP) {
 	LogMsg(0, SrvDebugLevel, stdout, 
 	       "rsle::InitFromBuf Bad end stamp 0x%x\n",
 	       *lastlong);
@@ -321,7 +315,6 @@ void rsle::InitFromRecleBuf(char **buf) {
 	varp++;
     
     /* Decls that used to be inside switch {}, but cause C++ 3.0 to choke */
-    ststore *stp;
     newstore *newstp;
     aclstore *ap;
     create_rle *cp;
@@ -467,7 +460,7 @@ void rsle::print(FILE *fp){
 void rsle::print(int fd) {
     char buf[512];
     sprintf(buf, 
-	    "index 0x%x seqno %d stid 0x%x.%x\nDir (0x%x.%x)\nopcode %s\n\0",
+	    "index 0x%x seqno %d stid 0x%lx.%lx\nDir (0x%lx.%lx)\nopcode %s\n\0",
 	    index, seqno, storeid.Host, storeid.Uniquifier, dvn, du, 
 	    PRINTOPCODE(opcode));
     write(fd, buf, (int)strlen(buf));
@@ -662,5 +655,5 @@ int ExtractVNTypeFromrsle(rsle *a) {
 	CODA_ASSERT(0);
 	break;
     }
-	
+    return 0;	
 }

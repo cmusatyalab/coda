@@ -137,7 +137,6 @@ static void VAppendVolume(Volume *vp);
 static void WriteVolumeHeader(Error *ec, Volume *vp);
 static Volume *attach2(Error *ec, char *path, struct VolumeHeader *header,
 			Device device, char *partition);
-static void VSyncVolume(Error *ec, Volume *vp);
 static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass);
 static void VAdjustVolumeStatistics(Volume *vp);
 static void VScanUpdateList();
@@ -148,7 +147,6 @@ void FreeVolumeHeader(Volume *vp);
 static void AddVolumeToHashTable(Volume *vp, int hashid);
 void DeleteVolumeFromHashTable(Volume *vp);
 
-static int MountedAtRoot(char *path);
 
 
 /* InitVolUtil has a problem right now - 
@@ -222,7 +220,6 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
     struct timeval tv;
     struct timezone tz;
     ProgramType *pt;
-    long rc = 0;
 
     VLog(9, "Entering VInitVolumePackage(%d, %d, %d)",
 	nLargeVnodes, nSmallVnodes, DoSalvage);
@@ -365,20 +362,8 @@ void VInitThisHost()
 {
         char hostname[MAXHOSTNAMELEN];
 	struct hostent *hostent;
-	long netaddress;
 
 	gethostname(hostname, sizeof(hostname)-1);
-#if 0
-	/* HACK --JJK */
-	/* There should be a get_canonical_hostname routine! */
-	{
-	  char *cp = hostname;
-	  while (*cp) {
-	    *cp = tolower(*cp);
-	    cp++;
-	  }
-	}
-#endif
 	ThisServerId = -1;
 	ThisHost = (char *) malloc((int)strlen(hostname)+1);
 	strcpy(ThisHost, hostname);
@@ -527,7 +512,7 @@ static void VListVolume(register FILE *file, register Volume *vp)
     VAdjustVolumeStatistics(vp);
     for (volumeusage = i = 0; i<7; i++)
 	volumeusage += V_weekUse(vp)[i];
-    fprintf(file, "%c%s I%x H%x P%s m%x M%x U%x W%x C%x D%x B%x A%x\n",
+    fprintf(file, "%c%s I%lx H%x P%s m%x M%x U%x W%lx C%lx D%lx B%lx A%x\n",
       V_type(vp) == readwriteVolume? 'W':V_type(vp) == readonlyVolume? 'R':
 	V_type(vp) == backupVolume? 'B':'?',
       V_name(vp), V_id(vp), ThisServerId, vp->partition->name,
@@ -904,7 +889,6 @@ static Volume *attach2(Error *ec, char *name,
 	VLog(29, "Leaving attach2()");
 	return vp;
 }
-
 /* Attach an existing volume.
    The volume also normally goes online at this time.
    An offline volume must be reattached to make it go online.
@@ -1371,7 +1355,7 @@ void PrintVolumesInHashTable()
 		printf("PrintVolumesInHashTable: Lookint at index %d\n", i);
 		Volume *vp = VolumeHashTable[i];
 		while(vp){
-			printf("PVInHT: volume id %x hashid %u is in HT\n",
+			printf("PVInHT: volume id %lx hashid %lu is in HT\n",
 			       V_id(vp), vp->hashid);
 			vp = vp->hashNext;
 		}
@@ -1746,7 +1730,7 @@ static void AddVolumeToHashTable(register Volume *vp, int hashid)
 					V_id(vp), hashid);
 
     /* Do some sanity checking before performing insert. */
-    if (hashid != V_id(vp)) {
+    if (hashid != (long)V_id(vp)) {
 	VLog(0, "VolHashTable: hashid %x != V_id(vp).", hashid, V_id(vp));
 	CODA_ASSERT(0);
     }

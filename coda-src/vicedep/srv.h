@@ -178,7 +178,7 @@ typedef struct ClientEntry {
 #define RESOLVE ViceResolve_OP
 #define REPAIR ViceRepair_OP
 #define SETVV ViceSetVV_OP
-#define REINTEGRATE ViceVIncReintegrate_OP
+#define REINTEGRATE ViceReintegrate_OP
 #define ALLOCFIDS ViceAllocFids_OP
 #define VALIDATEATTRS ViceValidateAttrs_OP
 #define NEWCONNECTFS ViceNewConnectFS_OP

@@ -123,24 +123,6 @@ NewConnection	(IN RPC2_Integer SideEffectType,
 		 IN OUT RPC2_CountedBS AccessList,
 		 IN OUT SE_Descriptor sed);
 
-10: FetchLog	(IN ViceFid Fid,
-		 OUT RPC2_Integer logsize,
-		 IN OUT SE_Descriptor sed);
-
-11: DirResPhase2	(IN ViceFid Fid,
-		 IN ViceStoreId logid,
-		 OUT ViceStatus status,
-		 IN RPC2_BoundedBS pbinc);
-
-12: DirResPhase1	(IN ViceFid Fid, 
-		 IN RPC2_Integer size,
-		 IN OUT ViceStatus status,
-		 IN OUT RPC2_BoundedBS piggyinc,
-		 IN OUT SE_Descriptor sed);
-
-13: DirResPhase3	(IN ViceFid Fid,
-		 IN ViceVersionVector UpdateSet,
-		 IN OUT SE_Descriptor sed);
 
 /* New calls with logs in rvm */
 /* reuse DirResPhase2 and DirResPhase3 */

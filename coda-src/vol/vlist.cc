@@ -47,7 +47,7 @@ vle *FindVLE(dlist& dl, ViceFid *fid)
 {
     dlist_iterator next(dl);
     vle *v;
-    while (v = (vle *)next())
+    while ((v = (vle *)next()))
 	if (FID_EQ(&v->fid, fid)) return(v);
     return(0);
 }
