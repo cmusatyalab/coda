@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.cc,v 4.2 1997/02/26 16:02:41 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/alprocs.cc,v 4.3 1997/07/11 17:14:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -611,13 +611,15 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
     /*
     Initializes the access list package.
     Version should always be AL_VERSION.
-    pdbFile is a string defining the protection database file; set to NULL for default.
-    pcfFile is a string defining the protection configuration file; set to NULL for default.
+
+    pdbFile is a string defining the protection database file; set to
+    NULL for default.  pcfFile is a string defining the protection
+    configuration file; set to NULL for default.
     
-    This routine may be called many times -- it will perform reinitialization each time.
-    Synchronization code here guarantees that the .pdb and .pcf files are mutually consistent,
-	provided all updaters  follow the locking discipline.
-    */
+    This routine may be called many times -- it will perform
+    reinitialization each time.  Synchronization code here guarantees
+    that the .pdb and .pcf files are mutually consistent, provided all
+    updaters follow the locking discipline.  */
     {
 /*    register int i; */
     FILE *pfd;
@@ -627,11 +629,12 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
 
     assert(strcmp(Version, AL_VERSION) == 0);
 
-    /* We do not free AL_pdbFileName or AL_pcfFileName; this is because they may be aliased as
-	pdbFile and pcfFile if AL_Initialize() is being called from inside the AL package itself.
+    /* We do not free AL_pdbFileName or AL_pcfFileName; this is
+	because they may be aliased as pdbFile and pcfFile if
+	AL_Initialize() is being called from inside the AL package
+	itself.
 	
-	This may result in a tiny core  leak, but it is not worth worrying about.
-    */
+	This may result in a tiny core leak, but it is not worth worrying about.  */
 
     if (pdbFile == NULL)	
 	{
@@ -664,18 +667,20 @@ int AL_Initialize(IN char *Version, IN char *pdbFile, IN char *pcfFile)
     if (Gsorted) free((char *) Gsorted);
     if (Gseeks) free((char *) Gseeks);
 
-    /* To prevent race hazards in updating .pcf and .pdb files we use flock() on 
-	the .pdb file.  For this to be useful, the updating agent must flock() the .pdb
-	file exclusively.  Note that pcfRead() also flock()s the .pcf file, but that is
-	probably redundant -- the .pdb file suffices as a semaphore.  We hold the
-	lock on the .pdb file until the .pcf file has been read and the initialization is
-	complete.  The invariants guaranteed by this procedure are:
-		1. The .pcf and .pdb files are mutually consistent
-		2. The global PdbStatBuf contains the status of the .pdb file as of now.
+    /* To prevent race hazards in updating .pcf and .pdb files we use
+	flock() on the .pdb file.  For this to be useful, the updating
+	agent must flock() the .pdb file exclusively.  Note that
+	pcfRead() also flock()s the .pcf file, but that is probably
+	redundant -- the .pdb file suffices as a semaphore.  We hold
+	the lock on the .pdb file until the .pcf file has been read
+	and the initialization is complete.  The invariants guaranteed
+	by this procedure are: 1. The .pcf and .pdb files are mutually
+	consistent 2. The global PdbStatBuf contains the status of the
+	.pdb file as of now.
 
-	REPEAT: all this caution is worthless unless the updater also flock()s the .pdb file.
-		Just doing a "cp" will buy you no consistency guarantee.
-    */
+	REPEAT: all this caution is worthless unless the updater also
+	flock()s the .pdb file.  Just doing a "cp" will buy you no
+	consistency guarantee.  */
 
     if ((pfd = fopen(AL_pdbFileName, "r")) == 0 ||	/* changed '< 0' to '== 0' */
 	(flock(fileno(pfd), LOCK_SH) < 0)	||
