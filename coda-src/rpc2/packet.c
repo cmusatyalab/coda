@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.3 1998/07/09 11:01:50 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.4 1998/08/26 17:08:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -558,7 +558,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 void rpc2_htonp(p)
     RPC2_PacketBuffer *p;
     {
-#if	defined(vax) || defined(mips) || defined(i386)
+#if	defined(vax) || defined(mips) || defined(i386) || defined(arm32) || defined(ns32k)
     p->Header.ProtoVersion = htonl(p->Header.ProtoVersion);
     p->Header.RemoteHandle = htonl(p->Header.RemoteHandle);
     p->Header.LocalHandle = htonl(p->Header.LocalHandle);
@@ -584,7 +584,7 @@ void rpc2_htonp(p)
 void rpc2_ntohp(p)
     RPC2_PacketBuffer *p;
     {
-#if	defined(vax) || defined(mips) || defined(i386)
+#if	defined(vax) || defined(mips) || defined(i386) || defined(arm32) || defined(ns32k) 
     p->Header.ProtoVersion = ntohl(p->Header.ProtoVersion);
     p->Header.RemoteHandle = ntohl(p->Header.RemoteHandle);
     p->Header.LocalHandle = ntohl(p->Header.LocalHandle);
