@@ -104,7 +104,8 @@ lib-src/kernel-includes/Makefile
 lib-src/special-includes/Makefile 
 coda-src/Makefile 
 coda-src/scripts/Makefile 
-coda-src/scripts/vutil 
+coda-src/scripts/vutil
+coda-src/scripts/rc.vice
 coda-src/kerndep/Makefile 
 coda-src/partition/Makefile 
 coda-src/dir/Makefile  
