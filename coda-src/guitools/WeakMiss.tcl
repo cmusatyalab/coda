@@ -98,7 +98,7 @@ proc Prod { } {
     global WeakMiss
 
     if { ![winfo exists $WeakMiss(MainWindow)] } then { 
-	puts "WeakMiss.tcl:Prod  Warning -- window is gone"
+	SendToStdErr "WeakMiss.tcl:Prod  Warning -- window is gone"
 	return 
     }
     raise $WeakMiss(MainWindow)
@@ -147,7 +147,6 @@ proc WeakMissQuestionnaire { pathname program fetchTime timeOut } {
     # Now wait for the user to respond, then restore the focus
     # and return the index of the selected button.
     #
-puts "tkwaiting in WeakMiss"
     tkwait variable WeakMiss(result)
     after cancel $WeakMiss(Prod)
 

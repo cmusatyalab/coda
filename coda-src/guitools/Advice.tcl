@@ -100,8 +100,12 @@ proc AdviceVisualStart { } {
 }
 
 proc AdviceRequestHoardAdvice { } {
-    puts "GetUsageStats"
-    flush stdout
+    global ConsiderRemoving
+
+    SendToAdviceMonitor "GetUsageStats $ConsiderRemoving(NumberRecent) $ConsiderRemoving(PercentAccess) $ConsiderRemoving(MinimumDatapoints)"
+
+    SendToStdErr "GetUsageStats $ConsiderRemoving(NumberRecent) $ConsiderRemoving(PercentAccess) $ConsiderRemoving(MinimumDatapoints)"
+    SendToStdErr "If not connect to Venus, please enter 1 2 1 2 1 2 <return>"
 }
 
 proc UsageStatisticsAvailable { venusfile missfile replacefile } {
@@ -110,22 +114,9 @@ proc UsageStatisticsAvailable { venusfile missfile replacefile } {
     global ConsiderAddingData
     global ConsiderRemovingData
 
-  puts stderr "Usage Statistics must be available now..."
-  flush stderr
-
     Consider_ProcessVenusInput $venusfile
-puts stderr "Done with venus input"
-flush stderr
     Consider_ProcessMissInput $missfile
-puts stderr "Done with miss input"
-flush stderr
-
     Consider_ProcessReplaceInput $replacefile
-puts stderr "Done with replace input"
-flush stderr
-
-  puts stderr "Returned from Processing the usage statistics file"
-  flush stderr
 
     set feedback 0
     if { $ConsiderAddingData(ID) > 0 } then {
@@ -397,7 +388,7 @@ proc AskAdvice { foo } {
     if { $result != -1 } then {
 
 	if { $result == "" } then {
-	    puts stderr "$Advice(${foo}:Command) returned NULL...exiting."
+	    SendToStdErr "$Advice(${foo}:Command) returned NULL...exiting."
 	    exit
 	}
 
@@ -408,8 +399,7 @@ proc AskAdvice { foo } {
 	CancelPendingIndicatorEvents Advice
 
     } else {
-	puts stderr "Can't remove advice because advice request returned error"
-	flush stderr
+	SendToStdErr "Can't remove advice because advice request returned error"
     }
 }
 
@@ -475,10 +465,8 @@ proc DisconnectedCacheMissEvent { output pathname program } {
     global Events
     global Indicator
 
-    puts {Advice Received DisconnectedCacheMissEvent}
-flush stdout
-    puts [pid]
-flush stdout
+    SendToAdviceMonitor {Advice Received DisconnectedCacheMissEvent}
+    SendToAdviceMonitor [pid]
 
     set text "Disconnected Cache Miss"
     set id [AdviceGetID]
@@ -543,11 +531,6 @@ proc ReadDisconnectedCacheMissEvent { pathname program } {
     global Events
     global Indicator
 
-#    puts {Advice Received ReadDisconnectedCacheMissEvent}
-#flush stdout
-#puts [pid]
-#flush stdout
-
     if { [regexp {.*\.coda\.cs\.cmu\.edu$} $pathname match prefix] == 1 } then {
 	SendToAdviceMonitor "ReadMissQuestionnaire returns 0"
 	return
@@ -574,8 +557,7 @@ proc ReconnectionEvent { outputfile date time length } {
     global Advice
     global Indicator
 
-    puts {Advice Received ReconnectionEvent}
-    flush stdout
+    SendToAdviceMonitor {Advice Received ReconnectionEvent}
 
     set text "Reconnection Survey"
     set id [AdviceGetID]

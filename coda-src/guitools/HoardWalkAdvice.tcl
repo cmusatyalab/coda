@@ -63,8 +63,7 @@ proc HoardWalkAdvice { } {
 proc HWAComplete { } {
     global HWA
 
-    puts stderr "MARIA:  Implement HWAComplete"
-    flush stderr
+    SendToStdErr "MARIA:  Implement HWAComplete"
 
     set HWA(Geometry) [GeometryLocationOnly [wm geometry $HWA(MainWindow)]]
     destroy $HWA(MainWindow)
@@ -86,10 +85,10 @@ proc HWAProcessHeaderLines { inFile } {
         HWAinput(FilesAllocated) HWAinput(BlocksAllocated)
     if { ($HWAinput(FilesAllocated) != $Statistics(Files:Allocated)) ||
          ($HWAinput(BlocksAllocated) != $Statistics(Blocks:Allocated)) } then {
-        puts stderr "Error:  File and/or Block allocation mismatch ==>"
-        puts stderr [format "\tHoard input: Files = %d Blocks = %d" \
+        SendToStdErr "Error:  File and/or Block allocation mismatch ==>"
+        SendToStdErr [format "\tHoard input: Files = %d Blocks = %d" \
                  $HWAinput(FilesAllocated) $HWAinput(BlocksAllocated)]
-        puts stderr [format "\tStatistics: Files = %d Blocks = %d" \
+        SendToStdErr [format "\tStatistics: Files = %d Blocks = %d" \
                  $Statistics(Files:Allocated) $Statistics(Blocks:Allocated)]
     }
 
@@ -162,7 +161,7 @@ proc HWAProcessAdviceLine { thisLine } {
 #	}
 #	incr HWAinput(TotalNumberOfObjects)
 #    } elseif { $askUser == -1 } {
-#	puts stderr [format "ERROR:  Cannot handle askUser value of -1"]
+#	SendToStdErr [format "ERROR:  Cannot handle askUser value of -1"]
 #    }
 }
 
@@ -788,7 +787,7 @@ proc StringPiecewiseCompare { str1 str2 } {
     set lengthStr2 [string length $str2]
     set minLength [MIN $lengthStr1 $lengthStr2]
 
-    if { $minLength == 0 } then { puts stderr "zero-length string"; return -1 }
+    if { $minLength == 0 } then { SendToStdErr "zero-length string"; return -1 }
 
     for { set i 0 } { $i < $minLength } { incr i } {
 	if { [string index $str1 $i] == [string index $str2 $i] } then { 
@@ -904,7 +903,7 @@ proc HWAGetSiblingList { index } {
     set childrenList [HWAGetChildrenList $parent]
     set me [lsearch -exact $childrenList $index]
     if { $me == -1 } then { 
-	puts stderr "ERROR:  HWAGetSiblingList: childrenList missing me"
+	SendToStdErr "ERROR:  HWAGetSiblingList: childrenList missing me"
 	exit
     }
     set siblingList [lreplace $childrenList $me $me]
@@ -923,7 +922,7 @@ proc HWAGetPeerList { index } {
 
     set me [lsearch -exact $matchList $index]
     if { $me == -1 } then {
-	puts stderr "ERROR:  HWAGetPeerList: matchList missing me"
+	SendToStdErr "ERROR:  HWAGetPeerList: matchList missing me"
 	exit
     }
     set peerList [lreplace $matchList $me $me]
@@ -1023,7 +1022,7 @@ proc HWAVerifyNoDescendantsClicked { index clickType } {
 
     foreach descendant [HWAGetDescendantsList $index] {
 	if { $HWATree(${clickType}Click$descendant) == 1 } then {
-	    puts stderr "INVARIANT \#3 VIOLATED!  $index is clicked for $clickType, so is $descendant"
+	    SendToStdErr "INVARIANT \#3 VIOLATED!  $index is clicked for $clickType, so is $descendant"
 	}
     }
 }
@@ -1034,7 +1033,7 @@ proc HWAVerifyNoAncestorsClicked { index clickType } {
     set ID $index
     while { $ID != "" } {
 	if { $HWATree(${clickType}Click$ID) == 1 } then { 
-	    puts stderr "INVARIANT \#1 VIOLATED!  $index is clicked for $clickType, so its ancestor ($ID)"
+	    SendToStdErr "INVARIANT \#1 VIOLATED!  $index is clicked for $clickType, so its ancestor ($ID)"
 	}
 	set ID [HWAGetParentID $ID]
     }
@@ -1045,7 +1044,7 @@ proc HWACheckClickInvariant { index clickType } {
 
     if { $HWATree(${clickType}Click$index) == 1 } then {
 	if { $HWATree(${clickType}$index) == 0 } then {
-	    puts stderr "INVARIANT \#2 VIOLATED:  $index:  Click is on, but $clickType is off"
+	    SendToStdErr "INVARIANT \#2 VIOLATED:  $index:  Click is on, but $clickType is off"
 	}
 	HWAVerifyNoDescendantsClicked $index $clickType
     } else {
@@ -1367,7 +1366,7 @@ proc HoardWalkFetchListElement { index } {
 
 	set troubles [HWACheckForTrouble $index Fetch]
 	if { [llength $troubles] > 0 } then {
-	    puts stderr "MARIA: Pop-up warning message: $index has trouble with $troubles"
+	    SendToStdErr "MARIA: Pop-up warning message: $index has trouble with $troubles"
 	}
 
 	HWAUnFetchElement $index 
@@ -1481,7 +1480,7 @@ proc HoardWalkStopAskingListElement { index } {
 
 	set troubles [HWACheckForTrouble $index StopAsking]
 	if { [llength $troubles] > 0 } then {
-	    puts stderr "MARIA: Pop-up warning message: $index has trouble with $troubles"
+	    SendToStdErr "MARIA: Pop-up warning message: $index has trouble with $troubles"
 	}
 
 	HWAUnStopAskingElement $index 
@@ -1502,23 +1501,22 @@ proc HoardWalkOutputResults { OutFileName } {
 
 	if { ![HoardWalkIsLeaf $element] } then { continue }
 
-#	puts stderr "Attempting to find input line matching $HWATree($element)"
+#	SendToStdErr "Attempting to find input line matching $HWATree($element)"
 
 	# Find the FID associated with this element
 	set lineNumber -1
 	foreach inputLine [array names HWAinput Filename*] {
-#	    puts stderr "    Comparing with: $HWAinput($inputLine)"
+#	    SendToStdErr "    Comparing with: $HWAinput($inputLine)"
 	    if { ![string compare $HWATree($element) $HWAinput($inputLine)] } then {
 		continue
 	    }
 	    
-#	    puts stderr "  Matched: $HWAinput($inputLine) (lineNumber= $lineNumber)"
+#	    SendToStdErr "  Matched: $HWAinput($inputLine) (lineNumber= $lineNumber)"
 	    set lineNumber [string range $inputLine 9 end]
 	    break
 	}
 	if { $lineNumber == -1 } then {
-	    puts stderr "==> HoardWalkOutputResults: Couldn't find the FID for $element\n"
-	    flush stderr
+	    SendToStdErr "==> HoardWalkOutputResults: Couldn't find the FID for $element\n"
 	}
 
 	if { $HWATree(Fetch$element) == 1 } then {
@@ -1544,8 +1542,7 @@ proc HoardWalkNow { } {
 
     # Cancel the hoard walk state
     if { $HoardWalk(State:secondary) != "PendingAdvice" } then {
-	puts stderr "Assertion failed: HoardWalk(State) != PendingAdvice"
-	flush stderr
+	SendToStdErr "Assertion failed: HoardWalk(State) != PendingAdvice"
 	exit
     }
     set HWA(State) "Active"
@@ -1605,7 +1602,7 @@ proc updateFetchTime { } {
     set totalTime $HWATree(TotalExpectedFetchTime)
 
     if { $totalTime < 0 } then {
-	puts stderr "ERROR: HWATree(TotalExpectedFetchTime) = $HWATree(TotalExpectedFetchTime) (and is less than 0!)"
+	SendToStdErr "ERROR: HWATree(TotalExpectedFetchTime) = $HWATree(TotalExpectedFetchTime) (and is less than 0!)"
 	set HWATree(TotalExpectedFetchTime:hours) -0
 	set HWATree(TotalExpectedFetchTime:minutes) 0
 	set HWATree(TotalExpectedFetchTime:seconds) 0

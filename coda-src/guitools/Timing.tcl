@@ -63,7 +63,6 @@ proc OutputProcessedTimingValues { Type SubjectID } {
     set TimingFILE [open /tmp/${Type}ProcessedTiming${SubjectID} {WRONLY CREAT TRUNC}]
 
     foreach name [array names Timing] {
-	puts $name
 	if { [regexp {(.*):(end$)} $name match name ending] == 1 } then {
 	    if { [info exists Timing($name:begin)] == 1 } then {
 		set Timing(Calculated$name) [expr $Timing($name:end)-$Timing($name:begin)]

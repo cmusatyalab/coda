@@ -15,8 +15,6 @@ proc TokensVisualStart { } {
     global Indicator
     global password
 
-puts "TokensVisualStart"
-flush stdout
     if { [winfo exists $Tokens(MainWindow)] == 1 } then {
 	raise $Tokens(MainWindow)
 	return

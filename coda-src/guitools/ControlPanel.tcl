@@ -118,13 +118,13 @@ proc ControlPanelInitData { } {
     set ControlPanel(Colors:Warning) $Colors(Warning)
     set ControlPanel(Colors:Critical) $Colors(Critical)
 
-    puts stderr "MARIA:  Determine logical connectivity"
+    SendToStdErr "MARIA:  Determine logical connectivity"
     set ControlPanel(Logical:ReadConnectivity) "connected"
     set ControlPanel(Logical:ReadConnectivityCommitted) $ControlPanel(Logical:ReadConnectivity)
     set ControlPanel(Logical:WriteConnectivity) "connected"
     set ControlPanel(Logical:WriteConnectivityCommitted) $ControlPanel(Logical:WriteConnectivity)
 
-    puts stderr "MARIA:  Determine connectivity"
+    SendToStdErr "MARIA:  Determine connectivity"
     set ControlPanel(Physical:Connectivity) "connected"
     set ControlPanel(Physical:ConnectivityCommitted) $ControlPanel(Physical:Connectivity) 
 
@@ -1114,9 +1114,9 @@ proc LogicalCommitConnectivity { } {
 
     LogAction "Control Panel Logical Tab:  Click on Commit Button"
     if { $ControlPanel(Logical:ReadConnectivity) == "connected" } then {
-	puts stderr "MARIA:  Implement read reconnect"
+	SendToStdErr "MARIA:  Implement read reconnect"
     } elseif { $ControlPanel(Logical:ReadConnectivity) == "disconnected" } then {
-	puts stderr "MARIA:  Implement read disconnect"
+	SendToStdErr "MARIA:  Implement read disconnect"
     }
 
     if { $ControlPanel(Logical:WriteConnectivity) == "connected" } then {

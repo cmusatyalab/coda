@@ -20,6 +20,8 @@ proc gettimeofday { } {
 #                                 Main program                               #
 ##############################################################################
 
+puts ""
+flush stdout
 
 #
 # Setup the auto_path variable to use the Coda tcl library
@@ -45,6 +47,8 @@ set password ""
 #
 # Withdraw the main window
 #
+puts "withdrawing ." 
+flush stdout
 wm withdraw .
 
 #
@@ -86,7 +90,7 @@ option add *selectColor gray24
 #  Timing
 #
 update idletasks
-SetTime "CodaConsole:visible"
+#SetTime "CodaConsole:visible"
 
 #
 #  Call the demo (if appropriate)
@@ -100,4 +104,6 @@ SetTime "CodaConsole:visible"
 #
 # End of program
 ##############################################################################
+flush stdout
+
 

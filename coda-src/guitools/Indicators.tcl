@@ -103,9 +103,6 @@ proc IndicatorFlash { times indicator oldColor } {
     }
     set FutureTime [expr $FutureTime + 500]
     lappend Indicator(${indicator}:PendingEvents) [after $FutureTime [list IndicatorColor $indicator $newColor]]
-
-    #puts "IndicatorFlash: pending events for $indicator: $Indicator(${indicator}:PendingEvents)"
-    #flush stdout
 }
 
 proc CancelPendingIndicatorEvents { indicator } {

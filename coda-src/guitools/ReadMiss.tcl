@@ -9,8 +9,7 @@
 proc ReadMissQuestionnaire { pathname program} {
     global ReadMiss
 
-    puts {Received Request for Read Disconnected Cache Miss Questionnaire}
-    flush stdout
+    SendToAdviceMonitor {Received Request for Read Disconnected Cache Miss Questionnaire}
 
     set ReadMiss(MainWindow) .readmiss
 
@@ -99,8 +98,6 @@ proc ReadMissQuestionnaire { pathname program} {
     set ReadMiss(Geometry) [wm geometry $ReadMiss(MainWindow)]
     destroy $ReadMiss(MainWindow)
 
-#    puts "ReadMiss is going to return $ReadMiss(button)"
-#    flush stdout
     return $ReadMiss(button)
 }
 

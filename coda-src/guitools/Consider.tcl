@@ -135,7 +135,7 @@ proc Consider_ProcessVenusInputLine { line } {
     if { ($percent < $ConsiderRemoving(PercentAccess)) && 
 	 ($totalDisconnections >= $ConsiderRemoving(MinimumDatapoints)) } then {
 	set path [Consider_GetPath [string trim [lindex $lineList 0] <>]]
-	if { [Consider_IgnoreElement $path] } then { puts return }
+	if { [Consider_IgnoreElement $path] } then { return }
 	CR_Set $path NotFrequent
     }
     
@@ -143,8 +143,7 @@ proc Consider_ProcessVenusInputLine { line } {
 
 proc Consider_ProcessVenusInput { filename } {
 
-puts stderr "Process VenusInput $filename"
-flush stderr
+    SendToStdErr "Process VenusInput $filename"
 
     if { ![file exists $filename] } then { return }
 
@@ -155,15 +154,13 @@ flush stderr
 	if { [string compare $line $headerLine] == 0 } then { continue }
 	if { $line == "" } then { continue }
 	if { [catch {Consider_ProcessVenusInputLine $line} result] } then {
-	    puts stderr "while in Consider_ProcessVenusInputLine $line"
-	    puts stderr "  $result"
-	    flush stderr
+	    SendToStdErr "while in Consider_ProcessVenusInputLine $line"
+	    SendToStdErr "  $result"
 	}
     }
     close $VenusFILE
 
-puts stderr "ProcessVenusInput $filename"
-flush stderr
+    SendToStdErr "ProcessVenusInput $filename"
 }
 
 
@@ -188,8 +185,7 @@ proc Consider_ProcessMissInputLine { line } {
 
 proc Consider_ProcessMissInput { filename } {
 
-puts stderr "ProcessMissInput $filename"
-flush stderr
+    SendToStdErr "ProcessMissInput $filename"
 
     if { ![file exists $filename] } then { return }
 
@@ -200,8 +196,7 @@ flush stderr
     }
     close $MissFILE
 
-puts stderr "ProcessMissList $filename"
-flush stderr
+    SendToStdErr "ProcessMissList $filename"
 }
 
 
@@ -209,8 +204,7 @@ proc Consider_ProcessReplaceInput { filename } {
     
     if { ![file exists $filename] } then { return }
 
-puts stderr "ProcessReplaceInput $filename"
-flush stderr
+    SendToStdErr "ProcessReplaceInput $filename"
 
     set ReplaceFILE [open $filename {RDONLY}]
     foreach line [split [read $ReplaceFILE] \n] {
@@ -219,6 +213,6 @@ flush stderr
 	CA_Set $line Refetch
     }
     close $ReplaceFILE
-puts stderr "ProcessReplaceInput $filename"
-flush stderr
+
+    SendToStdErr "ProcessReplaceInput $filename"
 }

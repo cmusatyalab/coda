@@ -37,8 +37,8 @@ proc ParseEventConfiguration { configList } {
     set event [lindex $configList 0]
     set index [lsearch $Events(List) $event]
     if { $index == -1 } then {
-        puts stderr "Error in $Pathnames(advicerc):  $event unrecognized event name"
-        puts stderr "   Should be one of: $Events(List)"
+        SendToStdErr "Error in $Pathnames(advicerc):  $event unrecognized event name"
+        SendToStdErr "   Should be one of: $Events(List)"
     }
 
     switch -exact [lindex $configList 1] {
@@ -46,31 +46,31 @@ proc ParseEventConfiguration { configList } {
         N {set Events($event:Urgency) Normal}
         W {set Events($event:Urgency) Warning}
         C {set Events($event:Urgency) Critical}
-        default {puts stderr "Error (.advicerc):  Urgency element of $event"}
+        default {SendToStdErr "Error (.advicerc):  Urgency element of $event"}
     }
 
     switch -exact [lindex $configList 2] {
         0 {set Events($event:Notify) No}
         1 {set Events($event:Notify) Yes}
-        default {puts stderr "Error (.advicerc):  Notify element of $event"}
+        default {SendToStdErr "Error (.advicerc):  Notify element of $event"}
     }
 
     switch -exact [lindex $configList 3] {
         0 {set Events($event:Notify:Popup) No}
         1 {set Events($event:Notify:Popup) Yes}
-        default {puts stderr "Error (.advicerc):  Popup element of $event"}
+        default {SendToStdErr "Error (.advicerc):  Popup element of $event"}
     }
 
     switch -exact [lindex $configList 4] {
         0 {set Events($event:Notify:Beep) No}
         1 {set Events($event:Notify:Beep) Yes}
-        default {puts stderr "Error (.advicerc):  Beep element of $event"}
+        default {SendToStdErr "Error (.advicerc):  Beep element of $event"}
     }
 
     switch -exact [lindex $configList 5] {
         0 {set Events($event:Notify:Flash) No}
         1 {set Events($event:Notify:Flash) Yes}
-        default {puts stderr "Error (.advicerc):  Flash element of $event"}
+        default {SendToStdErr "Error (.advicerc):  Flash element of $event"}
     }
 }
 
@@ -203,11 +203,12 @@ proc CheckStatisticsCurrency { currency } {
     if { $age > $currency } then {
 	set Statistics(Done) 0
 
-	Lock Output
-	puts "GetCacheStatistics"
-	puts ""
-	flush stdout
-	UnLock Output
+#	Lock Output
+#	puts "GetCacheStatistics"
+#	puts ""
+#	flush stdout
+#	UnLock Output
+	SendToAdviceMonitor "GetCacheStatistics"
 
 	set answer [gets stdin]
 
@@ -218,8 +219,7 @@ proc CheckStatisticsCurrency { currency } {
 }
 
 proc GetListOfServerNames { } {
-    puts stderr "Implement GetListOfServerNames"
-    flush stderr
+    SendToStdErr "Implement GetListOfServerNames"
 
 #    set VENUSLOG /usr/coda/venus.cache/venus.log
 #    set first {{ print $1 " " $6}}

@@ -80,7 +80,7 @@ proc GetBandwidthEstimate { server } {
 proc GetNextHoardWalk { } {
     global HoardWalk
 
-    puts stderr "MARIA:  Implement GetNextHoardWalk"
+    SendToStdErr "MARIA:  Implement GetNextHoardWalk"
     if { $HoardWalk(State) == "Unknown" } then {
         return -1
     } else {
@@ -95,7 +95,7 @@ proc GetHoardWalkProgress { } {
 }
 
 proc InitTaskAvailability { } {
-    puts stderr "MARIA:  Write InitTaskAvailability"
+    SendToStdErr "MARIA:  Write InitTaskAvailability"
 }
 
 proc GetTaskAvailability { task } {
@@ -127,7 +127,7 @@ proc GetTaskCurrentSizeKB { task } {
     if { [info exists TaskSpace(Current:$task)] == 1 } then {
 	return $TaskSpace(Current:$task)
     } else {
-	puts stderr "GetTaskCurrentSizeKB returns bogosity"
+	SendToStdErr "GetTaskCurrentSizeKB returns bogosity"
     }
 }
 
@@ -161,9 +161,14 @@ proc GetTaskMaxSpaceKB { task } {
 proc SendToAdviceMonitor { message } {
 
     Lock Output
-
     puts $message
     flush stdout
-
+    SendToStdErr $message
     UnLock Output
+}
+
+proc SendToStdErr { message } {
+    puts -nonewline stderr "stderr: "
+    puts stderr $message
+    flush stderr
 }

@@ -139,7 +139,7 @@ proc RepairRemove { path fid } {
 	}
     }
     if { $i > $Repair(IDnum) } then {
-	puts "$path does not have a repair pending"
+	SendToAdviceMonitor "$path does not have a repair pending"
 	return
     }
 
@@ -168,10 +168,7 @@ proc RepairPendingEvent { pathname fidString } {
     global Repair
     global Indicator
 
-puts stderr "RepairPendingEvent"
-flush stderr
-    puts stderr "RepairPendingEvent $pathname $fidString"
-    flush stderr
+    SendToStdErr "RepairPendingEvent $pathname $fidString"
 
     if { [IsRepairPending $pathname $fidString] == 1 } then {
 	return
@@ -188,10 +185,7 @@ proc RepairCompleteEvent { pathname fidString } {
     global Repair
     global Indicator
 
-puts stderr "RepairCompleteEvent"
-flush stderr
-    puts stderr "RepairCompleteEvent $pathname $fidString"
-    flush stderr
+    SendToStdErr "RepairCompleteEvent $pathname $fidString"
 
     set id [RepairRemove $pathname $fidString]
 
@@ -208,6 +202,6 @@ proc DoRepair { idstring } {
     }
 
     SetTime "$idstring:beginrepair"
-    puts [format "Repairing: %s" $Repair($idstring:Text)]
+    SendToAdviceMonitor [format "Repairing: %s" $Repair($idstring:Text)]
     RepairCompleteEvent $Repair($idstring:Text)
 }

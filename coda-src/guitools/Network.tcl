@@ -148,8 +148,7 @@ proc NetworkDetermineState { } {
 	    set WeaklyConnected "yes"
 	}
 	if { $Servers(${s}:Connectivity) == "none" } {
-	    puts stderr "NetworkDetermineState: $s is down"
-	    flush stderr
+	    SendToStdErr "NetworkDetermineState: $s is down"
 	    set Disconnected "yes"
 	}
     }
@@ -204,7 +203,7 @@ proc ServerConnectionWeakEvent { Server } {
     global Events
 
     set server [ParseServerName $Server]
-  puts stderr "ServerConnectionWeakEvent $server"
+  SendToStdErr "ServerConnectionWeakEvent $server"
 
     set Servers(${server}:Connectivity) "weak"
     NetworkUpdateMeterColor $server $Colors($Events([ServerDetermineState $server]:Urgency))
@@ -216,7 +215,7 @@ proc ServerConnectionGoneEvent { Server } {
     global Events
 
     set server [ParseServerName $Server]
-  puts stderr "ServerConnectionGoneEvent $server"
+  SendToStdErr "ServerConnectionGoneEvent $server"
 
     set Servers(${server}:Connectivity) "none"
     NetworkUpdateMeterColor $server $Colors($Events([ServerDetermineState $server]:Urgency))
@@ -227,7 +226,7 @@ proc ServerAccessibleEvent { Server } {
     global Bandwidth
 
     set server [ParseServerName $Server]
-  puts stderr "ServerAccessibleEvent $server"
+  SendToStdErr "ServerAccessibleEvent $server"
 
     ServerConnectionStrongEvent $server
     ServerBandwidthEstimateEvent $server $Bandwidth(Ethernet)
@@ -236,7 +235,7 @@ proc ServerAccessibleEvent { Server } {
 proc ServerInaccessibleEvent { Server } {
 
     set server [ParseServerName $Server]
-  puts stderr "ServerInaccessibleEvent $server"
+  SendToStdErr "ServerInaccessibleEvent $server"
 
     ServerConnectionGoneEvent $server
     ServerBandwidthEstimateEvent $server 0
@@ -269,11 +268,11 @@ proc ServerBandwidthEstimateEvent { args } {
 }
 
 proc NetworkOpportunityEvent { } {
-    puts "MARIA:  Implement NetworkOpportunityEvent"
+    SendToStdErr "NetworkOpportunityEvent not implemented"
 }
 
 proc NetworkScarcityEvent { } {
-    puts "MARIA:  Implement NetworkScarcityEvent"
+    SendToStdErr "NetworkScarcityEvent not implemented"
 }
 
 proc ArtificialNetwork { server } {

@@ -237,7 +237,9 @@ proc KeyboardAccelerators { } {
     bind $DiscoMiss(comments).label.text <Control-d> {focus $DiscoMiss(MainWindow)}
     bindtags $DiscoMiss(affect).scale [list $DiscoMiss(affect).scale $DiscoMiss(MainWindow) all]
 
-    bind $DiscoMiss(affect).scale <Any-KeyPress> { puts stderr "DiscoMiss: keypress on scale widget" }
+    bind $DiscoMiss(affect).scale <Any-KeyPress> { 
+	SendToStdErr "DiscoMiss: keypress on scale widget" 
+    }
 
     bind $DiscoMiss(affect).scale <ButtonPress-1> {
 	global DiscoMiss
@@ -291,8 +293,7 @@ proc Toggle { variablename } {
 proc DisconnectedCacheMissQuestionnaire { outputfile pathname program } {
     global DiscoMiss
 
-    puts stderr {Received Request for Disconnected Cache Miss Questionnaire}
-    flush stderr
+    SendToStdErr {Received Request for Disconnected Cache Miss Questionnaire}
 
     set DiscoMiss(outputfile) $outputfile
     set DiscoMiss(pathname) $pathname

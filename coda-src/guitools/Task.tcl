@@ -30,9 +30,6 @@ proc TaskMakeRightLabel { maxSpace } {
 	set righttext "?? MB"
     } elseif { $righttext == "0 MB" } then {
 	set righttext "<1MB"
-    } else {
-##	puts stderr "TaskMeter: righttext = $righttext"
-##	flush stderr
     }
 
     return $righttext
@@ -428,9 +425,8 @@ proc InputSelectedTask { task which relative_location } {
 	        -window $Task(selectedlist).sel$funnytask \
    	        -before $which
 	} else {
-	    puts stderr "Error:  InputSelectedTask unknown relative location = $relative_location"
-	    puts stderr"        Element not inserted"
-	    flush stderr
+	    SendToStdErr "Error:  InputSelectedTask unknown relative location = $relative_location"
+	    SendToStdErr "        Element not inserted"
 	    exit -1
 	}
     }
@@ -668,15 +664,13 @@ proc SelectedTaskSaveToFile { } {
 }
 
 proc UnselectTask { entry } {
-    puts stderr "MARIA:  Implement UnselectTask($entry)"
-    flush stderr
+    SendToStdErr "MARIA:  Implement UnselectTask($entry)"
 }
 
 proc AbortTaskChanges { } {
     global Task
 
-    puts stderr "MARIA:  Inplement AbortTaskChanges"
-    flush stderr
+    SendToStdErr "MARIA:  Inplement AbortTaskChanges"
 
 #    for {set i 1} {$i <= [llength $Task(NewlySelectedTaskList)]} {incr i} {
 #	set index [expr $Task(selectedlist:nextindex) - $i]
@@ -693,8 +687,7 @@ proc AbortTaskChanges { } {
 proc CommitTaskChanges { } {
     global Task
 
-    puts stderr "MARIA:  Implement CommitTaskChanges"
-    flush stderr
+    SendToStdErr "MARIA:  Implement CommitTaskChanges"
 
 #    if { [llength $Task(NewlySelectedTaskList)] > 0 } then {
 #        set Task(SelectedTaskList) \
@@ -1061,10 +1054,7 @@ proc ListSelectEnd {w y list} {
 		    } elseif { [string match *subtasks* $w] == 1 } then {
 			$Task(TaskDefinition:NameList) pick 0
 		    } else {
-		 	puts  "ListSelectEnd:  This should never happen."
-			flush stdout
-		 	puts stderr  "ListSelectEnd:  This should never happen."
-			flush stderr
+		 	SendToStdErr  "ListSelectEnd:  This should never happen."
 		    }
 		} else {
                     $list subwidget listbox insert end [$w get $i]
@@ -1142,8 +1132,7 @@ proc ListItemSelect { window Yval list } {
     LogAction "Task Definition Window: Select $taskname from Choices Listbox"
     
     if { $taskname == "New..." } then {
-	puts stderr "MARIA:  Should we popup an error box?  Or just display the item?(HARD)  Or what?"
-	flush stderr
+	SendToStdErr "MARIA:  Should we popup an error box?  Or just display the item?(HARD)  Or what?"
 	return
     }
 
@@ -1538,8 +1527,7 @@ proc DataDefinitionDataElement { frame datadefinition } {
     $frame.pathname insert 0 $pathname
 
     if { ![file exists $pathname] } then {
-	puts stderr "Yoohoo.... $pathname DOES NOT EXIST!"
-	flush stderr
+	SendToStdErr "Yoohoo.... $pathname DOES NOT EXIST!"
     }
     if { ($pathname != "") && ([file isdirectory $pathname]) } then {
 	EnableMetaInformation $frame
@@ -1677,8 +1665,7 @@ proc RemoveTaskFromTaskDefinitions { element whichList } {
 	    set TaskDefinition($task:$whichList) [lreplace $TaskDefinition($task:$whichList) $index2 $index2]
 	}
 	if { $index != $index2 } then {
-	    puts stderr "Warning:  Indices on Task and TaskDefinition differ for $task's $whichList list"
-	    flush stderr
+	    SendToStdErr "Warning:  Indices on Task and TaskDefinition differ for $task's $whichList list"
 	}
     }
 }
@@ -1837,14 +1824,12 @@ proc DataDefinitionDataElementBindings { frame } {
 	%W.pathname xview end
 	focus %W.pathname
         update idletasks
-	puts stderr "MARIA:  We should double-check all meta-informaiton."
-	flush stderr
+	SendToStdErr "MARIA:  We should double-check all meta-informaiton."
     }
 
     bind $frame.pathname <1> {
 	LogAction "Data Element: Select pathname in %W"
-	puts stderr "MARIA:  We should double-check all meta-informaiton."
-	flush stderr
+	SendToStdErr "MARIA:  We should double-check all meta-informaiton."
     }
 
     # Same as <BackSpace> below
@@ -2591,8 +2576,7 @@ proc TaskAvailabilityProc { priority available unavailable incomplete } {
     }
 
     if { $incomplete == 1 } then {
-	puts stderr "MARIA:  TaskAvailabilityProc ignores incomplete"
-	flush stderr
+	SendToStdErr "MARIA:  TaskAvailabilityProc ignores incomplete"
     }
 }
 
@@ -2683,8 +2667,7 @@ proc TaskGetPriority { task } {
 
     # Lookup the index in the list of Priorities
     if { $index >= [llength $Task(Priorities)] } then {
-	puts stderr "ERROR: Too many tasks hoarded!!!!"
-	flush stderr
+	SendToStdErr "ERROR: Too many tasks hoarded!!!!"
 	set priority $Task(MinimumPriority)
     } else {
         set priority [lindex $Task(Priorities) $index]
@@ -2740,12 +2723,8 @@ proc HoardTask { task priority arg depth taskpath } {
     global TaskDefinition
 
     foreach f {userData programs subtasks} {
-#        for {set j 0} {$j <= $depth} {incr j} { puts -nonewline stderr " " }
-#	puts stderr "$f:"
 	for {set i 0} {$i < [llength $Task(${task}:${f}List)]} {incr i} {
 	    set element [lindex $Task(${task}:${f}List) $i]
-#            for {set j 0} {$j <= $depth} {incr j} { puts -nonewline stderr " " }
-#	    puts stderr " $element"
 
 	    # Recurse
 	    if { $f == "userData" } then {
@@ -2758,7 +2737,6 @@ proc HoardTask { task priority arg depth taskpath } {
 		HoardTask $element $priority $arg [expr $depth+2] "$taskpath\\$element"
 	    }
 	}
-#	puts stderr ""
     }
 }
 
@@ -2772,12 +2750,10 @@ proc HoardData { data priority arg depth taskpath } {
 	set pathname [lindex $def 0]
 
 	if { ![file exists $pathname] } then {
-	    puts stderr "Output ERROR: $pathname does not exist"
-	    flush stderr
+	    SendToStdErr "Output ERROR: $pathname does not exist"
 	}
 	set meta [lindex $def 1]
 
-#        for {set j 0} {$j <= $depth} {incr j} { puts -nonewline stderr " " }
 	if { [file isdirectory $pathname] } then {
 	    set HoardList(Line$HoardList(linenum)) \
 		[format "%s %s %s %s" $pathname $meta $priority $taskpath]
@@ -2809,13 +2785,10 @@ proc HoardProgram { program priority arg depth taskpath } {
 
     for {set i 0} {$i < [llength $Program(${program}:Definition)]} {incr i} {
 	set element [lindex $Program(${program}:Definition) $i]
-#        for {set j 0} {$j <= $depth} {incr j} { puts -nonewline stderr " " }
-#	puts stderr " $element"
 	regsub -all {/} $element {\\} profileName
 	if { [file exists $Pathnames(newHoarding)/ProgramProfiles/${profileName}] } then {
 	    set PROFILE [open $Pathnames(newHoarding)/ProgramProfiles/${profileName} "r"]
 	    while {[gets $PROFILE line] >= 0} {
-#               for {set j 0} {$j <= $depth} {incr j} { puts -nonewline stderr " " }
 		set HoardList(Line$HoardList(linenum)) "$line $priority $taskpath"
 		set HoardList(Path$HoardList(linenum)) [lindex $line 0]
 		set HoardList(Priority$HoardList(linenum)) $priority
@@ -2829,8 +2802,7 @@ proc HoardProgram { program priority arg depth taskpath } {
 	    }
 	    close $PROFILE
 	} else {
-	    puts stderr "ERROR:  Hoard profile (for $program) does not exist! (yet?)"
-	    flush stderr
+	    SendToStdErr "ERROR:  Hoard profile (for $program) does not exist! (yet?)"
 	}
     }
 }

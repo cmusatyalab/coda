@@ -169,7 +169,7 @@ proc DoReintegrate { idstring } {
     }
 
     SetTime "$idstring:beginreintegration"
-    puts [format "Reintegrating: %s" $Reintegration($idstring:Text)]
+    SendToAdviceMonitor [format "Reintegrating: %s" $Reintegration($idstring:Text)]
     ReintegrationCompletedEvent  $Reintegration($idstring:Text)
 }
 
@@ -199,7 +199,7 @@ proc ReintegrationRemove { text } {
 	}
     }
     if { $i > $Reintegration(IDnum) } then {
-	puts "$text does not have a reintegration pending"
+	SendToAdviceMonitor "$text does not have a reintegration pending"
 	return
     }
 

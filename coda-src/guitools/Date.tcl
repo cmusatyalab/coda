@@ -6,5 +6,3 @@ proc nowSeconds { } {
     return [exec date +%s]
 }
 
-#puts [nowString]
-#puts [nowSeconds]
