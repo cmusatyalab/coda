@@ -31,7 +31,7 @@ fi
 db_get coda/rootservers
 codaconfedit /etc/coda/venus.conf rootservers "$RET"
 db_get coda/cachesize
-codaconfedit /etc/coda/venus.conf cachesize "$RET"
+codaconfedit /etc/coda/venus.conf cacheblocks "$RET"
 
 # summary of how this script can be called:
 #        * <postinst> `configure' <most-recently-configured-version>

@@ -23,11 +23,11 @@ if [ "$1" == "purge" ] ; then
 fi
 
 case "$1" in
-    purge|remove|abort-install|disappear)
+    remove|abort-install|disappear)
         dpkg-divert --package coda-client --rename --remove /usr/sbin/codaconfedit
     ;;
 
-    upgrade|failed-upgrade|abort-upgrade)
+    purge|upgrade|failed-upgrade|abort-upgrade)
     ;;
 
     *)

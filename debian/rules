@@ -98,7 +98,7 @@ binary-arch: build install
 	dh_testroot
 	dh_installdebconf
 	dh_installdocs
-	dh_installinit
+	dh_installinit --update-rcd-params="defaults 60"
 #	dh_installmanpages
 #	dh_undocumented
 	dh_installmodules
