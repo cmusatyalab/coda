@@ -68,12 +68,9 @@ extern "C" {
 #include <vice.private.h>
 #include <writeback.h>
 
-
 /* *****  Private variables  ***** */
 
 static HostTable hostTable[MAXHOSTTABLEENTRIES];
-static int maxHost = 0;
-
 
 /* *****  Private routines  ***** */
 
@@ -239,22 +236,8 @@ GotIt:
 	ReleaseWriteLock(&hostTable[i].lock);
 }
 
-/* look up a host entry given the (callback) connection id */
-HostTable *CLIENT_FindHostEntry(RPC2_Handle CBCid) 
-{
-    int i;
-
-    /* Look for a corresponding host entry. */
-    for (i = 0; i < maxHost; i++)
-	if (hostTable[i].id == CBCid) 
-	    return &hostTable[i];
-
-    return NULL;
-}
-
 int CLIENT_MakeCallBackConn(ClientEntry *Client) 
 {
-
     RPC2_PeerInfo peer;
     RPC2_SubsysIdent sid;
     RPC2_CountedBS cbs;
@@ -317,7 +300,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     }
 
     /* Make a gratuitous callback. */
-    errorCode = CallBack(HostEntry->id, &NullFid);
+    errorCode = CallBack(HostEntry->id, (ViceFid *)&NullFid);
     if (errorCode != 0) {
 	SLog(0, "Callback message to %s port %d failed %s",
 	     inet_ntoa(HostEntry->host), ntohs(HostEntry->port), 
@@ -350,14 +333,14 @@ void CLIENT_CallBackCheck()
     time_t checktime = now - (5 * 60);
     time_t deadtime  = now - (15 * 60);
 
-    for (i = 0; i < maxHost; i++) {
+    for (i = 0; i < MAXHOSTTABLEENTRIES; i++) {
 	if (hostTable[i].id) {
 	    if (hostTable[i].LastCall < checktime) {
 		ObtainReadLock(&hostTable[i].lock);
 		/* recheck, the connection may have been destroyed while
 		 * waiting for the lock */
 		if (hostTable[i].id)
-		     rc = CallBack(hostTable[i].id, &NullFid);
+		     rc = CallBack(hostTable[i].id, (ViceFid *)&NullFid);
 		else rc = RPC2_ABANDONED;
 
 		ReleaseReadLock(&hostTable[i].lock);
@@ -445,13 +428,12 @@ void CLIENT_PrintClients()
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
     SLog(1, "List of active users at %s", ctime((const time_t *)&tp.tv_sec));
-    struct dllist_head *head, *curr;
+    struct dllist_head *curr;
     ClientEntry *cp;
     int i;
 
-    for(i = 0; i < maxHost; i++) {
-	head = &hostTable[i].Clients;
-	for (curr = head->next; curr != head; curr = curr->next) {
+    for(i = 0; i < MAXHOSTTABLEENTRIES; i++) {
+	list_for_each(curr, hostTable[i].Clients) {
 	    cp = list_entry(curr, ClientEntry, Clients);
 	    SLog(1, "user = %s at %s:%d cid %d security level %s",
 		 cp->UserName, inet_ntoa(hostTable[i].host),
@@ -491,7 +473,7 @@ void CLIENT_GetWorkStats(int *num, int *active, unsigned int time)
     *num = 0;
     *active = 0;
 
-    for(i = 0; i < maxHost; i++) {
+    for(i = 0; i < MAXHOSTTABLEENTRIES; i++) {
 	if (hostTable[i].id) {
 	    (*num)++;
 	    if (hostTable[i].ActiveCall > (time_t)time) 

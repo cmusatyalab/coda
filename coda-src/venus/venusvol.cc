@@ -249,7 +249,7 @@ void VolInit()
 }
 
 
-int VOL_HashFN(void *key)
+int VOL_HashFN(const void *key)
 {
     return(*((VolumeId *)key));
 }

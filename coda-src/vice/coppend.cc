@@ -215,7 +215,7 @@ cpent *cpman::find(ViceStoreId *StoreId) {
 
 /*
 cpent *cpman::find(ViceFid *fid) {
-    if (FID_EQ(*fid, NullFid))
+    if (FID_EQ(fid, &NullFid))
 	Die("cpman::find: fid == NullFid");
 
     ObtainReadLock(&lock);

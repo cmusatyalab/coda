@@ -727,7 +727,7 @@ class repvol : public volent {
     friend class fsobj;
     friend class vdb;
     friend class volent; /* CML_Lock */
-    friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
+    friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
     friend void Resolve(volent *);
     friend void Reintegrate(repvol *);
     friend void VolInit(void);

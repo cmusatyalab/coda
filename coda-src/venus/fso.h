@@ -220,7 +220,7 @@ class fsdb {
     void FlushRefVec();
 
   public:
-    fsobj *Find(ViceFid *);
+    fsobj *Find(const ViceFid *);
     /* rcode arg added for local repair */
     int Get(fsobj **fso, ViceFid *fid, vuid_t vuid, int rights, char *comp=0,
 	    int *rcode=0, int GetInconsistent=0);
@@ -228,7 +228,7 @@ class fsdb {
     void Flush();
     void Flush(VolumeId);
     int TranslateFid(ViceFid *, ViceFid *);
-    int CallBackBreak(ViceFid *);
+    int CallBackBreak(const ViceFid *);
     void ResetUser(vuid_t);
     void ClearPriorities();
     void InvalidateMtPts();
@@ -390,7 +390,7 @@ class fsobj {
   friend class fsdb;
   friend class fso_iterator;
   friend class fso_vol_iterator;
-  friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
+  friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
   friend class vproc;
   friend class namectxt;
   friend class volent;
@@ -731,7 +731,7 @@ class fso_iterator : public rec_ohashtab_iterator {
     volent *cvol;	    /* 0 --> all volumes */
 
   public:
-    fso_iterator(LockLevel, ViceFid * =(ViceFid *)-1);
+    fso_iterator(LockLevel, const ViceFid * =(ViceFid *)-1);
     fsobj *operator()();
 };
 

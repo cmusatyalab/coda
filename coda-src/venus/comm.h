@@ -216,9 +216,9 @@ class srvent {
   friend class mgrpent;
   friend int GetConn(connent **, struct in_addr *, vuid_t, int);
   friend int GetAdmConn(connent **);
-  friend long CallBack(RPC2_Handle, ViceFid *);
-  friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
-  friend long CallBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
+  friend long VENUS_CallBack(RPC2_Handle, ViceFid *);
+  friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
+  friend long VENUS_CallBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
   friend long WriteBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
   friend int FailDisconnect(int, struct in_addr *);
   friend int FailReconnect(int, struct in_addr *);

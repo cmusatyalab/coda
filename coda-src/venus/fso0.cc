@@ -313,7 +313,7 @@ FREE_ENTRY: /* release entry from namelist */
 }
 
 
-static int FSO_HashFN(void *key) {
+static int FSO_HashFN(const void *key) {
     return(((ViceFid *)key)->Volume + ((ViceFid *)key)->Vnode);
 }
 
@@ -449,7 +449,8 @@ void fsdb::operator delete(void *, size_t){
 }
 
 
-fsobj *fsdb::Find(ViceFid *key) {
+fsobj *fsdb::Find(const ViceFid *key)
+{
     fso_iterator next(NL, key);
     fsobj *f;
     while ((f = next()))
@@ -1156,9 +1157,9 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
  * access and remove the callback status flags (Demote it). -JH
 /* Perhaps there should be a "MUTATED" parameter in the RPC from the server.
  * -JJK */
-int fsdb::CallBackBreak(ViceFid *fid) {
-
-    fsobj *f = FSDB->Find(fid);
+int fsdb::CallBackBreak(const ViceFid *fid)
+{
+    fsobj *f = Find(fid);
     if (!f || !HAVESTATUS(f)) return(0);
 
     f->Demote();

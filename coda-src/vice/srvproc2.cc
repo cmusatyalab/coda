@@ -650,7 +650,7 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 
 	    /* set up a callback channel if there isn't one for this host */
 	    if (client->VenusId->id != 0) {
-		errorCode = CallBack(client->VenusId->id, &NullFid);
+		errorCode = CallBack(client->VenusId->id, (ViceFid *)&NullFid);
 		if ( errorCode != RPC2_SUCCESS ) {
 		    SLog(0, "GetTime: Destroying callback conn for %s:%d",
 			 inet_ntoa(client->VenusId->host),
@@ -1080,7 +1080,7 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 
     /* attempt to send a callback message to this host */
     if (client->VenusId->id != 0) {
-	errorCode = CallBack(client->VenusId->id, &NullFid);
+	errorCode = CallBack(client->VenusId->id, (ViceFid *)&NullFid);
 	if (errorCode) {
 	    /* tear down nak'd connection */
 	    RPC2_Unbind(client->VenusId->id);

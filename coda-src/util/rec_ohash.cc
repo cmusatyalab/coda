@@ -193,7 +193,7 @@ int rec_ohashtab::IsMember(void *key, rec_olink *p) {
 }
 
 
-int rec_ohashtab::bucket(void *key) {
+int rec_ohashtab::bucket(const void *key) {
     return(hfn(key) & (sz - 1));
 }
 
@@ -220,7 +220,8 @@ void rec_ohashtab::print(int fd) {
 }
 
 
-rec_ohashtab_iterator::rec_ohashtab_iterator(rec_ohashtab& ht, void *key) {
+rec_ohashtab_iterator::rec_ohashtab_iterator(rec_ohashtab& ht, const void *key)
+{
     chashtab = &ht;
     allbuckets = (key == (void *)-1);
     cbucket = (allbuckets ? 0 : chashtab->bucket(key));

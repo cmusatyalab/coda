@@ -177,7 +177,7 @@ void HDB_Init()
 }
 
 
-static int HDB_HashFN(void *key)
+static int HDB_HashFN(const void *key)
 {
     int value = ((hdb_key *)key)->vid;
 

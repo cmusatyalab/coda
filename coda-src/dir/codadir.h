@@ -113,15 +113,15 @@ void DH_Init(PDirHandle dh);
 
 
 /* local fid and local volume related stuff */
-inline int FID_IsVolRoot(struct ViceFid *fid);
+inline int FID_IsVolRoot(const struct ViceFid *fid);
 inline void FID_MakeRoot(struct ViceFid *fid);
 
 
 
 /* check if this is a local directory or file */
-inline int FID_IsDisco(struct ViceFid *x);
-inline int FID_IsLocalDir(struct ViceFid *fid);
-inline int FID_IsLocalFile(struct ViceFid *fid);
+inline int FID_IsDisco(const struct ViceFid *x);
+inline int FID_IsLocalDir(const struct ViceFid *fid);
+inline int FID_IsLocalFile(const struct ViceFid *fid);
 inline void FID_MakeDiscoFile(struct ViceFid *fid, VolumeId vid, 
 			      Unique_t unique);
 inline void FID_MakeDiscoDir(struct ViceFid *fid, VolumeId vid,
@@ -141,25 +141,25 @@ inline void FID_MakeLocalSubtreeRoot(struct ViceFid *fid, Unique_t unique);
 
 /* check if the volume is local */
 inline void FID_MakeVolFake(VolumeId *id);
-inline int  FID_VolIsLocal(struct ViceFid *x);
-inline int FID_VolIsFake(VolumeId id);
+inline int  FID_VolIsLocal(const struct ViceFid *x);
+inline int FID_VolIsFake(const VolumeId id);
 
 /* compare parts of fids */
-int FID_EQ(struct ViceFid *fa, struct ViceFid *fb);
-int FID_VolEQ(struct ViceFid *fa, struct ViceFid *fb);
-int FID_Cmp(struct ViceFid *, struct ViceFid *);
+int FID_EQ(const struct ViceFid *fa, const struct ViceFid *fb);
+int FID_VolEQ(const struct ViceFid *fa, const struct ViceFid *fb);
+int FID_Cmp(const struct ViceFid *, const struct ViceFid *);
 
 /*  copy or transform parts of fids */
-void FID_CpyVol(struct ViceFid *target, struct ViceFid *source);
-void FID_VFid2DFid(struct ViceFid *vf, struct DirFid *df);
-void FID_DFid2VFid(struct DirFid *df, struct ViceFid *vf);
-void FID_PrintFid(struct DirFid *fid);
-void FID_Int2DFid(struct DirFid *fid, int vnode, int unique);
-void FID_NFid2Int(struct DirNFid *fid, VnodeId *vnode, Unique_t *unique);
+void FID_CpyVol(struct ViceFid *target, const struct ViceFid *source);
+void FID_VFid2DFid(const struct ViceFid *vf, struct DirFid *df);
+void FID_DFid2VFid(const struct DirFid *df, struct ViceFid *vf);
+void FID_PrintFid(const struct DirFid *fid);
+void FID_Int2DFid(struct DirFid *fid, const int vnode, const int unique);
+void FID_NFid2Int(const struct DirNFid *fid, VnodeId *vnode, Unique_t *unique);
 
 /* print fids */
-char *FID_(struct ViceFid *);
-char *FID_2(struct ViceFid *);
+char *FID_(const struct ViceFid *);
+char *FID_2(const struct ViceFid *);
 
 
 /* extern definitions for dirbody.c */

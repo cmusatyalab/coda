@@ -2594,7 +2594,7 @@ void fsobj::ListCacheLong(FILE* fp)
 
 /* *****  Iterator  ***** */
 
-fso_iterator::fso_iterator(LockLevel level, ViceFid *key) : rec_ohashtab_iterator(FSDB->htab, key) {
+fso_iterator::fso_iterator(LockLevel level, const ViceFid *key) : rec_ohashtab_iterator(FSDB->htab, key) {
     clevel = level;
     cvol = 0;
 }

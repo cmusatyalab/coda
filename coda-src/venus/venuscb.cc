@@ -177,14 +177,17 @@ void callbackserver::main(void)
 }
 
 
-/* Some very tricky code here.  Essentially, when we make a call and are awarded a callback, */
-/* we have to ensure that the callback connection stayed valid until we ran again (done by */
-/* checking that the cbconnid field in the connection block didn't change), and that no break */
-/* callback was done while we were waiting to run.  If we're creating a file, however, this last */
-/* is hard, since we do not even know the fid of the file when the callback is broken.  For this */
-/* then, any callback break that fails to find the fid increments a counter that is compared over */
-/* the ViceCreate call.  If it changed, we assume it was for us. */
-long CallBack(RPC2_Handle RPCid, ViceFid *fid) {
+/* Some very tricky code here.  Essentially, when we make a call and are
+ * awarded a callback, we have to ensure that the callback connection stayed
+ * valid until we ran again (done by checking that the cbconnid field in the
+ * connection block didn't change), and that no break callback was done while
+ * we were waiting to run.  If we're creating a file, however, this last is
+ * hard, since we do not even know the fid of the file when the callback is
+ * broken.  For this then, any callback break that fails to find the fid
+ * increments a counter that is compared over the ViceCreate call.  If it
+ * changed, we assume it was for us. */
+long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
+{
     srvent *s = FindServerByCBCid(RPCid);
     LOG(1, ("CallBack: host = %s, fid = (%x.%x.%x)\n",
 	     s->name, fid->Volume, fid->Vnode, fid->Unique));
@@ -211,7 +214,7 @@ long CallBack(RPC2_Handle RPCid, ViceFid *fid) {
 }
 
 
-long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
+long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
 {
     srvent *s = FindServerByCBCid(RPCid);
     LOG(1, ("CallBackFetch: host = %s, fid = (%x.%x.%x)\n",
@@ -300,9 +303,10 @@ GetLost:
 
 
 /* CallBackNEWCONNECTION() */
-long CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
-		     RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType,
-		     RPC2_Integer AuthType, RPC2_CountedBS *ClientIdent) 
+long VENUS_CallBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
+			   RPC2_Integer SecurityLevel,
+			   RPC2_Integer EncryptionType,
+			   RPC2_Integer AuthType, RPC2_CountedBS *ClientIdent) 
 {
     /* Get the {host,port} pair for this call. */
     RPC2_PeerInfo thePeer;

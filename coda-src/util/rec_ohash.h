@@ -43,7 +43,7 @@ extern "C" {
 
 class rec_ohashtab;
 class rec_ohashtab_iterator;
-typedef int (*RHFN)(void *);
+typedef int (*RHFN)(const void *);
 
 
 class rec_ohashtab {
@@ -74,7 +74,7 @@ class rec_ohashtab {
 
     int count();
     int IsMember(void *, rec_olink *);
-    int	bucket(void *);					/* returns bucket number of key */
+    int	bucket(const void *);					/* returns bucket number of key */
     /*virtual*/ void print();
     /*virtual*/ void print(FILE *);
     /*virtual*/ void print(int);
@@ -88,7 +88,7 @@ class rec_ohashtab_iterator {
     rec_olist_iterator *nextlink;			/* current olist iterator */
 
   public:
-    rec_ohashtab_iterator(rec_ohashtab&, void * =(void *)-1);
+    rec_ohashtab_iterator(rec_ohashtab&, const void * =(void *)-1);
     ~rec_ohashtab_iterator();
     void Reset();
     rec_olink *operator()();				/* return next object or 0 */

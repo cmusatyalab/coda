@@ -2372,7 +2372,6 @@ void UpdateVVs(ViceVersionVector *VVV, ViceVersionVector *VV, ViceVersionVector 
     AddVVs(VV, US);
 }
 
-extern int pollandyield;
 void PollAndYield() {
     if (!pollandyield) 
 	return;
@@ -2383,8 +2382,7 @@ void PollAndYield() {
     SLog(100,  "Thread Yielding");
     int lwprc = LWP_DispatchProcess();
     if (lwprc != LWP_SUCCESS)
-	SLog(0,  
-		"PollAndYield: LWP_DispatchProcess failed (%d)", 
+	SLog(0, "PollAndYield: LWP_DispatchProcess failed (%d)", 
 		lwprc);
     SLog(100,  "Thread Yield Returning");
 }

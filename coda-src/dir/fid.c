@@ -36,20 +36,20 @@ listed in the file CREDITS.
  * Public FID routines: to be taken elsewhere.
  */
 
-void FID_PrintFid(struct DirFid *fid)
+void FID_PrintFid(const struct DirFid *fid)
 {
 	printf("vnode: %ld, unique %ld\n", fid->df_vnode, fid->df_unique);
 	return;
 }
 
-void FID_CpyVol(struct ViceFid *target, struct ViceFid *source)
+void FID_CpyVol(struct ViceFid *target, const struct ViceFid *source)
 {
 	CODA_ASSERT(target && source);
 	target->Volume = source->Volume;
 }
 
 
-void FID_Int2DFid(struct DirFid *fid, int vnode, int unique)
+void FID_Int2DFid(struct DirFid *fid, const int vnode, const int unique)
 {
 	CODA_ASSERT(fid);
 
@@ -58,14 +58,14 @@ void FID_Int2DFid(struct DirFid *fid, int vnode, int unique)
 	return;
 }
 
-void FID_NFid2Int(struct DirNFid *fid, VnodeId *vnode, Unique_t *unique)
+void FID_NFid2Int(const struct DirNFid *fid, VnodeId *vnode, Unique_t *unique)
 {
 	*vnode = ntohl(fid->dnf_vnode);
 	*unique = ntohl(fid->dnf_unique);
 	return;
 }
 
-void FID_VFid2DFid(struct ViceFid *vf, struct DirFid *df)
+void FID_VFid2DFid(const struct ViceFid *vf, struct DirFid *df)
 {
 	CODA_ASSERT( vf && df );
 	df->df_vnode = vf->Vnode;
@@ -73,14 +73,14 @@ void FID_VFid2DFid(struct ViceFid *vf, struct DirFid *df)
 
 }
 
-void FID_DFid2VFid(struct DirFid *df, struct ViceFid *vf)
+void FID_DFid2VFid(const struct DirFid *df, struct ViceFid *vf)
 {
 	CODA_ASSERT( vf && df );
 	vf->Vnode = df->df_vnode;
 	vf->Unique = df->df_unique;
 }
 
-char *FID_(struct ViceFid *vf)
+char *FID_(const struct ViceFid *vf)
 {
 	static char str1[50];
 	snprintf(str1, 50, "(0x%lx.0x%lx.0x%lx)", 
@@ -88,7 +88,7 @@ char *FID_(struct ViceFid *vf)
 	return str1;
 }
 
-char *FID_2(struct ViceFid *vf)
+char *FID_2(const struct ViceFid *vf)
 {
 	static char str1[50];
 	snprintf(str1, 50, "(0x%lx.0x%lx.0x%lx)", 
@@ -97,7 +97,7 @@ char *FID_2(struct ViceFid *vf)
 }
 
 
-int FID_Cmp(struct ViceFid *fa, struct ViceFid *fb) 
+int FID_Cmp(const struct ViceFid *fa, const struct ViceFid *fb) 
 {
 	if ((fa->Volume) < (fb->Volume)) 
 		return(-1);
@@ -114,7 +114,7 @@ int FID_Cmp(struct ViceFid *fa, struct ViceFid *fb)
 	return(0);
 }
 
-int FID_EQ(struct ViceFid *fa, struct ViceFid *fb)
+int FID_EQ(const struct ViceFid *fa, const struct ViceFid *fb)
 {
 	if  (fa->Volume != fb->Volume) 
 		return 0;
@@ -125,7 +125,7 @@ int FID_EQ(struct ViceFid *fa, struct ViceFid *fb)
 	return 1;
 }
 
-int FID_VolEQ(struct ViceFid *fa, struct ViceFid *fb)
+int FID_VolEQ(const struct ViceFid *fa, const struct ViceFid *fb)
 {
 	if  (fa->Volume != fb->Volume) 
 		return 0;
@@ -134,7 +134,7 @@ int FID_VolEQ(struct ViceFid *fa, struct ViceFid *fb)
 
 /* to determine if the volume is the local copy during a repair/conflict */
 static VolumeId LocalFakeVid = 0xffffffff;
-inline int  FID_VolIsLocal(struct ViceFid *x) 
+inline int  FID_VolIsLocal(const struct ViceFid *x) 
 {
 	return (x->Volume == LocalFakeVid);
 }
@@ -144,7 +144,7 @@ inline void FID_MakeVolFake(VolumeId *id)
 	*id = LocalFakeVid;
 }
 
-inline int FID_VolIsFake(VolumeId id)
+inline int FID_VolIsFake(const VolumeId id)
 {
 	return(id == LocalFakeVid);
 }
@@ -154,17 +154,17 @@ inline int FID_VolIsFake(VolumeId id)
 /* was this fid created during a disconnection */
 static VnodeId LocalFileVnode = 0xfffffffe;
 static VnodeId LocalDirVnode  = 0xffffffff;
-inline int FID_IsDisco(struct ViceFid *x)
+inline int FID_IsDisco(const struct ViceFid *x)
 {
   return  ( (x->Vnode == LocalFileVnode) || (x->Vnode == LocalDirVnode));
 }
 
-inline int FID_IsLocalDir(struct ViceFid *fid)
+inline int FID_IsLocalDir(const struct ViceFid *fid)
 {
 	return fid->Vnode == LocalDirVnode;
 }
 
-inline int FID_IsLocalFile(struct ViceFid *fid)
+inline int FID_IsLocalFile(const struct ViceFid *fid)
 {
 	return fid->Vnode == LocalFileVnode;
 }
@@ -246,7 +246,7 @@ inline void FID_MakeRoot(struct ViceFid *fid)
 	fid->Unique = ROOT_UNIQUE;
 }
 
-inline int FID_IsVolRoot(struct ViceFid *fid)
+inline int FID_IsVolRoot(const struct ViceFid *fid)
 {
 	return ((fid->Vnode == ROOT_VNODE) && (fid->Unique == ROOT_UNIQUE));
 

@@ -282,7 +282,12 @@ extern unsigned StartTime;
 extern int CurrentConnections;
 extern int Authenticate;
 extern int Counters[];
-extern ViceFid NullFid;
+extern const ViceFid NullFid;
+extern const int MaxVols;
+extern int pollandyield;
+extern int probingon;
+extern char *CodaSrvIp;
+
 #ifdef	PERFORMANCE
 thread_t *lwpth;
 thread_array_t thread_list;

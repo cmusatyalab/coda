@@ -125,11 +125,8 @@ static void AddServer(struct vldb *old, struct vldb *vnew);
 static void AddAssociate(struct vldb *old, struct vldb *vnew);
 static void CheckRWindex(unsigned long volume, char *name);
 static void GetArgs(char *line, char **args, int *nargs);
-static void GetServerNames();
 
-/*
-S_VolMakeVLDB: Rebuild the VLDB from the file listed as parameter
-*/
+/* S_VolMakeVLDB: Rebuild the VLDB from the file listed as parameter */
 long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile) 
 {
     int nentries;
@@ -143,7 +140,6 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
     char *infile = (char *)formal_infile;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolMakeVLDB; infile %s", infile);
-    GetServerNames();
     InitAddEntry();
 
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
@@ -477,6 +473,7 @@ static void GetArgs(char *line, char **args, int *nargs)
 }
 
 
+#if 0 /* This code is currently unused, but we might want to start using it when we change the VLDB format to handle ipv6 addresses or multihomed hosts */
 static void GetServerNames() {
     char line[200];
     char *serverList = SERVERLISTPATH;
@@ -515,4 +512,4 @@ static void GetServerNames() {
     }
     fclose(file);
 }
-
+#endif

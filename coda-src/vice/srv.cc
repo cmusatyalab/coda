@@ -133,24 +133,27 @@ extern "C" void SetServerKeys(RPC2_EncryptionKey, RPC2_EncryptionKey);
 
 /* *****  Exported variables  ***** */
 
-int SystemId = 0;
-unsigned StartTime = 0;
-int CurrentConnections = 0;
+int SystemId;
+unsigned StartTime;
+int CurrentConnections;
 int Counters[MAXCNTRS];
-ViceFid NullFid = {0, 0, 0};
-int optimizationson = 0;
-int probingon = 0;
-int MaxVols = MAXVOLS;          /* so we can use it in vicecb.c. yuck. */
+const ViceFid NullFid = { 0, 0, 0 };
+const int MaxVols = MAXVOLS;          /* so we can use it in vicecb.c. yuck. */
 
-				// set by ReadConfigFile()
-int Authenticate = 0;		// default 1
-int AllowResolution = 0;	// default 1, controls directory resolution 
-int comparedirreps = 0;		// default 1 
-int pathtiming = 0;		// default 0 
-int pollandyield = 0;		// default 1 
-int MapPrivate = 0;		// default 0
+/* defaults set by ReadConfigFile() */
+int probingon;			// default 0
+int Authenticate;		// default 1
+int AllowResolution;		// default 1, controls directory resolution 
+int comparedirreps;		// default 1 
+int pathtiming;			// default 0 
+int pollandyield;		// default 1 
+char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
 
+/* local */
+static int MapPrivate;		// default 0
+static int optimizationson;
 
+/* imported */
 extern rvm_length_t rvm_test;
 extern int canonicalize;	/* controls if vrdb - Getvolumeinfo
 				   should return hosts in canonical
@@ -188,9 +191,8 @@ static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
 
 /* File server parameters.   Defaults set by ReadConfigFile. */
 
-static char *vicedir = NULL;	// default "/vice"
-static char *srvhost = NULL;	// default NULL
-static char myname[256];	// place to store srvhost chars
+static char *vicedir;		// default "/vice"
+static char *srvhost;		// default NULL
 
 static int trace = 0;		// default 0 
 static int SrvWindowSize = 0;	// default 32
@@ -377,10 +379,6 @@ int main(int argc, char *argv[])
 
     (void)ReadConfigFile();
 
-    if (srvhost == NULL) {
-        srvhost = hostname(myname);
-    }
-
     if(chdir(vice_file("srv"))) {
 	SLog(0, "could not cd to %s - exiting", vice_file("srv"));
 	exit(-1);
@@ -415,6 +413,7 @@ int main(int argc, char *argv[])
 	camlog_fd = open(cam_log_file, O_RDWR | O_TRUNC | O_CREAT, 0777);
 	if (camlog_fd < 0) perror("Error opening cam_log_file\n");
     }
+
     VInitServerList(srvhost);	/* initialize server info for volume pkg */
 
     switch (RvmType) {
@@ -1352,6 +1351,7 @@ static int ReadConfigFile(void)
     CONF_INT(pollandyield,	"pollandyield",    1); 
     CONF_INT(pathtiming,	"pathtiming",	   1);
     CONF_INT(MapPrivate,	"mapprivate",	   0);
+    CONF_STR(CodaSrvIp,		"ipaddress",	   NULL);
 
     CONF_INT(large,		"large",	   500);
     CONF_INT(small,		"small",	   500);

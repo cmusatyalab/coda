@@ -24,7 +24,6 @@ extern void CLIENT_CleanUpHost(HostTable *);
 extern void CLIENT_GetWorkStats(int *, int *, unsigned int);
 extern void CLIENT_PrintClients();
 extern void CLIENT_CallBackCheck();
-HostTable *CLIENT_FindHostEntry(RPC2_Handle CBCid);
 int CLIENT_MakeCallBackConn(ClientEntry *Client);
 int CLIENT_MakeWriteBackConn(HostTable * VenusId);
 

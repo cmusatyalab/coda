@@ -79,6 +79,7 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include <srv.h>
 #include "cvnode.h"
 #include "volume.h"
 #include "lockqueue.h"
@@ -97,7 +98,6 @@ extern "C" {
 extern void InitLogStorage();
 extern void print_VnodeDiskObject(VnodeDiskObject *);
 extern int HashLookup(VolumeId);
-
 
 /* Exported Variables */
 char *ThisHost;		/* This machine's hostname */
@@ -359,31 +359,24 @@ void VDisconnectFS() {
 
 void VInitThisHost(char *host)
 {
-	struct hostent *hostent;
+    if (ThisHost) free(ThisHost);
 
-	ThisHost = (char *)malloc(MAXHOSTNAMELEN);
-	CODA_ASSERT(ThisHost);
+    ThisHost = (char *)malloc(MAXHOSTNAMELEN);
+    CODA_ASSERT(ThisHost);
 
-	if ( !host ) {
-		gethostname(ThisHost, MAXHOSTNAMELEN);
-	} else {
-		strncpy(ThisHost, host, MAXHOSTNAMELEN);
-	}
-	ThisServerId = -1;
-	hostent = gethostbyname(ThisHost);
+    if ( !host )
+	gethostname(ThisHost, MAXHOSTNAMELEN);
+    else
+	strncpy(ThisHost, host, MAXHOSTNAMELEN);
 
-	if (hostent == NULL) {
-		VLog(0, "Host %s cannot be resolved. Exit.", ThisHost);
-		exit(1);
-	}
+    ThisServerId = -1;
 }
 
 /* must be called before calling VInitVolumePackage!! */
 /* Find the server id */
 void VInitServerList(char *host) 
 {
-
-    char hostname[100];
+    char hostname[MAXHOSTNAMELEN];
     char line[200];
     char *serverList = SERVERLISTPATH;
     FILE *file;
@@ -412,15 +405,25 @@ void VInitServerList(char *host)
     while (fgets(line, sizeof(line), file) != NULL) {
         char sname[50];
 	struct hostent *hostent;
-        int sid;
-	if (sscanf(line, "%s%d", sname, &sid) == 2) {
-	    if (sid > N_SERVERIDS) {
+        unsigned int sid;
+	if (sscanf(line, "%s%u", sname, &sid) == 2) {
+	    if (sid >= N_SERVERIDS) {
 		VLog(0, "Host %s is assigned a bogus server number (%x) in %s. Exit.",
-		  sname, sid, serverList);
+		     sname, sid, serverList);
 		exit(1);
 	    }
-	    if (UtilHostEq(ThisHost, sname))
-		ThisServerId = sid;
+	    /* catch several `special cased' host-id's */
+	    switch (sid) {
+	    case 0:
+	    case 127:
+	    case 255:
+		VLog(0, "Warning: host %s is using a reserved server number (%lu) in %s. Exit",
+		       sname, sid, serverList);
+		exit(1);
+	    default:
+		break;
+	    }
+
 	    hostent = gethostbyname(sname);
 	    if (hostent == NULL) {
 		VLog(0, "Host %s (listed in %s) cannot be resolved. Exiting.", sname, serverList);
@@ -430,13 +433,31 @@ void VInitServerList(char *host)
 		CODA_ASSERT(hostent->h_length == sizeof(struct in_addr));
 
 		/* check whether we got an address in the 127.x.x.x range */
-		if (inet_netof(*(struct inaddr *)hostent->h_addr) == 0x7f)
-		    VLog(0, "WARNING: gethostbyname(%s) returned a non-routable address %s.",
-			 sname, inet_ntoa(*(struct in_addr *)hostent->h_addr));
+		if (inet_netof(*(struct in_addr *)hostent->h_addr) == 0x7f) {
+		    if (!CodaSrvIp) {
+			VLog(0,
+"ERROR: gethostbyname(%s) returned a loopback address (%s).\n"
+"This address is not routeable. Please set a routeable address\n"
+"for this server by adding a ipaddress=\"xxx.xxx.xxx.xxx\" option\n"
+"to server.conf",	sname, inet_ntoa(*(struct in_addr *)hostent->h_addr));
+			exit(1);
+		    }
+		    struct in_addr ipaddr;
+		    if (!inet_aton(CodaSrvIp, &ipaddr)) {
+			VLog(0, "ERROR: failed to parse %s as an ip-address",
+			     CodaSrvIp);
+			exit(1);
+		    }
+		    memcpy(&netaddress, &ipaddr, sizeof(struct in_addr));
+		} else
+		    memcpy(&netaddress, hostent->h_addr,sizeof(struct in_addr));
 
-		memcpy((char *)&netaddress, (char *)hostent->h_addr, sizeof(struct in_addr));
 		HostAddress[sid] = ntohl(netaddress);
 	    }
+
+	    if (UtilHostEq(ThisHost, sname))
+		ThisServerId = sid;
+
 	}
     }
     if (ThisServerId == -1) {
