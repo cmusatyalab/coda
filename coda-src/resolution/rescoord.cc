@@ -276,8 +276,7 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 			   mgrp->rrcc.MIp, 0, 0, Fid, newVV);
 	    mgrp->CheckResult();
 	    errorcode = CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, succflags);
-	} else
-	    errorcode = EINCONS;
+	}
     }
   Exit:
     // free all the allocate dir bufs
@@ -389,12 +388,13 @@ static int WEResPhase2(res_mgrpent *mgrp, ViceFid *Fid,
 /* This function is shared by both rescoord.cc and rvmrescoord.cc */
 /* Resolves all kinds of weak equality, runts, and VV already equal cases */
 int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
-		     ResStatus **rstatusp)
+		     ResStatus **rstatusp, int *logresreq)
 {
     SLog(1, "Entering RegDirResolution for (%s)", FID_(Fid));
     ViceVersionVector *vv[VSG_MEMBERS];
     int HowMany = 0;
-    int ret = 0;
+    int done = 0;
+    int ret;
 
     for (int i = 0; i < VSG_MEMBERS; i++) 
 	if (!mgrp->rrcc.hosts[i])
@@ -406,7 +406,7 @@ int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     if (AlreadyIncGroup(VV, VSG_MEMBERS)) {
 	SLog(0, "RegDirResolution: Group already inconsistent");
 	ret = ResolveInc(mgrp, Fid, VV);
-	goto Exit;
+	goto Exit_Resolved;
     }
 
     // checking if vv's already equal 
@@ -425,15 +425,13 @@ int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	 * ViceResolve is triggered. (at least that is what I assume the
 	 * code is doing here) -JH */
 	LWP_NoYieldSignal((char *)ResCheckServerLWP);
-	goto Exit;
+	goto Exit_Resolved;
     }
 
     //check for weak equality
     SLog(9, "RegDirResolution: Checking for weak Equality");
-    if (!IsWeaklyEqual(VV, VSG_MEMBERS)) {
-	ret = 1;
+    if (!IsWeaklyEqual(VV, VSG_MEMBERS))
 	goto Exit;
-    }
 
     SLog(39, "RegDirResolution: WEAKLY EQUAL DIRECTORIES");
 
@@ -449,28 +447,36 @@ int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	/* OldDirResolve case, i.e. there are no RVM resolution logs so we
 	 * have to do a COP2 here */
 	ret = WEResPhase2(mgrp, Fid, hosts, &stid);
-	if (ret)
+	if (ret) {
 	    SLog(0,  "RegDirResolve: error %d in (WE)ResPhase2", ret);
+	    goto Exit;
+	}
     }
+Exit_Resolved:
+    done = 1;
 Exit:
     SLog(1, "RegDirResolution: Further resolution %srequired: errorCode = %d",
-	 ret == 0 ? "not " : "", ret);
+	 done ? "not " : "", ret);
+
+    if (logresreq)
+	*logresreq = !done;
     return ret;
 }
 
 long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 {
     long ret;
+    int logresreq;
 
     /* No resolution logs, we can only try to resolve the trivial cases */
-    ret = RegDirResolution(mgrp, Fid, VV, NULL);
-    if (ret && ret != EINCONS) {
+    ret = RegDirResolution(mgrp, Fid, VV, NULL, &logresreq);
+    if (logresreq || (ret && ret != EINCONS)) {
 	SLog(9,  "OldDirResolution marking %s as conflict", FID_(Fid));
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 
 		       mgrp->rrcc.MIp, 0, 0, Fid);
 	ret = EINCONS;
     }
-    return(ret);
+    return ret;
 }
 

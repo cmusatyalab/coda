@@ -25,6 +25,6 @@ int WEResPhase1(ViceFid *Fid, ViceVersionVector **VV,
 		ViceStoreId *stid, ResStatus **rstatusp);
 int CompareDirContents(SE_Descriptor *sid_bufs, ViceFid *fid);
 int RegDirResolution(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
-		     ResStatus **rstatusp);
+		     ResStatus **rstatusp, int *logresreq);
 
 #endif /* _RESCOORD_H_ */

@@ -118,21 +118,26 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 
     // Check if regular Directory Resolution can deal with this case
     {	
-	retval = RegDirResolution(mgrp, Fid, VV, rstatusp);
-	if (!retval) {
-	    SLog(0, "RecovDirResolve: RegDirResolution succeeded\n");
-	    // for statistics collection
-	    drstats.dir_nowork++;
-	    drstats.dir_succ++;
-	    noinc = 1;
+	int logresreq;
+	retval = RegDirResolution(mgrp, Fid, VV, rstatusp, &logresreq);
+	if (!logresreq) {
+	    if (!retval) {
+		SLog(0, "RecovDirResolve: RegDirResolution succeeded\n");
+		// for statistics collection
+		drstats.dir_nowork++;
+		drstats.dir_succ++;
+		noinc = 1;
+		reserror = 0;
+		goto Exit;
+	    }
+	    /* If the group was already marked as inconsistent, there is no need
+	     * to flag them again */
+	    if (retval == EINCONS) {
+		reserror = 0;
+		goto Exit;
+	    }
 
-	    reserror = 0;
-	    goto Exit;
-	}
-	/* If the group was already marked as inconsistent, there is no need
-	 * to tag them again or retry the log-based resolution */
-	if (retval == EINCONS) {
-	    reserror = 0;
+	    retval = EINCONS;
 	    goto Exit;
 	}
 	retval = 0;
