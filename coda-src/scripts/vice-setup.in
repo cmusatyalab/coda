@@ -53,13 +53,11 @@ echo
 #
 # initial information
 #
-prefix=@prefix@
-conf=@sysconfdir@/server.conf
-
-if [ -f $conf ] ; then
+conf="`codaconfedit server.conf`"
+if [ "x$conf" != x/dev/null ] ; then
     yesno=""
     echo "You already have a file $conf!"
-    echo "Continuning will remove that file."
+    echo "Continueing will remove that file."
     while [ x$yesno = x ]; do
 	echon "Do you want to continue? [yes/no] "
 	read yesno
@@ -84,12 +82,22 @@ fi
 
 echo 'Setting up config files for a coda server.'
 
+# figure out where the server.conf template, and thus the new server.conf
+# file are located.
+conf_template="`codaconfedit server.conf.ex`"
+if [ "x$conf_template" = x/dev/null ] ; then
+    echo "Could not find the server.conf.ex template file"
+    exit 1
+fi
+conf_directory="`dirname $conf_template`"
+conf="${conf_directory}/`basename $conf_template .ex`"
+
 echon "Do you want the file $conf created? [yes] "
 yesno=""
 read yesno
 if [ x$yesno = x -o x$yesno = xyes -o x$yesno = xy ] ; then
   mkconf=1
-  mkdir -p @sysconfdir@ 2>/dev/null
+  mkdir -p "$conf_directory" 2>/dev/null
 else
   mkconf=0
   if [ $numservers != 1 ]; then
@@ -98,70 +106,58 @@ else
   fi
 fi
 
-if [ $numservers = 1 ]; then
-  echon "What is the root directory for your coda server? [/vice] "
-else
-  echon "What is the root directory for your coda servers? [/vice] "
-fi
+echon "What is the root directory for your coda server(s)? [/vice] "
 vicedir=""
 read vicedir
 
-if [ x$vicedir = x ] ; then
+if [ "x$vicedir" = x ] ; then
    vicedir=/vice
 fi
 
 if [ $mkconf = 1 ] ; then
-   codaconfedit $conf vicedir $vicedir
-   codaconfedit $conf numservers $numservers
-fi
-
-if [ ! -d $vicedir ]; then
-    mkdir $vicedir
+   codaconfedit server.conf vicedir $vicedir
+   codaconfedit server.conf numservers $numservers
 fi
 
 echo "Setting up $vicedir."
-cd $vicedir
+if [ ! -d "$vicedir" ]; then
+    mkdir -p "$vicedir"
+fi
+
+for i in auth2 backup db misc vol/remote ; do
+    if [ ! -d "${vicedir}/$i" ]; then
+	mkdir -p "${vicedir}/$i"
+    fi
+done
 
 if [ $numservers = 1 ]; then
-
-    for i in auth2 backup db misc srv vol vol/remote ; do
-        if [ ! -d $i ]; then
-            mkdir $i
-        fi
-    done
-
-else
-
-    if [ $mkconf -eq 0 ]; then
-	echo "These scripts require server .conf files with multiple servers."
-	echo "Rerun $0 and ask for .conf files to be created."
-	exit 1
+    if [ ! -d "${vicedir}/srv" ]; then
+	mkdir ${vicedir}/srv
     fi
-
-    for i in auth2 db misc vol vol/remote ; do
-        if [ ! -d $i ]; then
-            mkdir $i
-        fi
-    done
-
+else
     n=1
     while [ $n -le $numservers ]; do
 
+	sconf="${conf_directory}/server_$n.conf"
+        dir="${vicedir}/server_$n"
+
 	echo
-        dir=${vicedir}/server_$n
 	hostname=""
 	while [ x$hostname = x ]; do
 	    echon "Hostname for server $n: "
 	    read hostname
 	done
-	sconf=@prefix@/etc/coda/server_$n.conf 
-	echo "hostname=$hostname" > $sconf
-	echo "#rvm_log= " >> $sconf
-	echo "#rvm_data= " >> $sconf
-	echo "#rvm_data_length= " >> $sconf
-	echo "#mapprivate= " >> $sconf
+
+	cat > $sconf << EOF
+hostname="${hostname}"
+#rvm_log=""
+#rvm_data=""
+#rvm_data_length=""
+#mapprivate=""
+EOF
+
 	echo Creating $dir and subdirectories.
-	mkdir $dir
+	mkdir "$dir"
         for i in backup srv vol ; do
             if [ ! -d $dir/$i ]; then
                 mkdir $dir/$i
@@ -213,7 +209,9 @@ if [ $isscm = N ]; then
     echo "$token" >> update.tk
 
     if ! updatefetch -h $scmhost -r db/servers -l servers ; then
-	echo "Could not contact SCM.  Rerun when SCM is up.";
+	echo "Could not contact SCM."
+	echo "Check whether the rpc2portmap and updatesrv processes are
+	echo "running on the SCM."
 	exit 1
     fi
 
@@ -325,8 +323,8 @@ echo $bn > ${vicedir}/hostname
 # server.conf standard 
 #
 if [ $mkconf = 1 ] ; then
-    codaconfedit $conf rvmtruncate 5
-    codaconfedit $conf trace 100
+    codaconfedit server.conf rvmtruncate 5
+    codaconfedit server.conf trace 100
 fi
 
 #
@@ -397,10 +395,18 @@ echo "Other config files will be fetched from the SCM by updateclnt."
 echo
 echo "To finish your server setup you should"
 echo
-echo " start rpc2portmap as: rpc2portmap"
 echo " start updateclnt as:  updateclnt -h $scm "
 echo " start the auth2 server as: auth2 -chk"
 echo
+echo "After that, there is still some configuration needed on the SCM before
+echo "this server can be started."
+echo
+echo "An entry for this host is needed in /vice/db/servers"
+echo "New volume storage groups need to be defined in /vice/db/VSGDB"
+echo "Then all servers need to be shut down and restarted, as they need to"
+echo "know about the new server and storage groups."
+echo "After all that it _should_ be ok to start the new server and create"
+echo "your first replicated volume."
 #echo " On the SCM ($scm) run: new_server $bn"
 #echo
 #echon "Now you can " 

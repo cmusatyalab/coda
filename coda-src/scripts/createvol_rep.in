@@ -28,15 +28,9 @@ echon() {
 PATH=$PATH:@prefix@/sbin
 export PATH
 
-prefix=@prefix@
-vicedir=
-
 # load the server configuration file
-. `codaconfedit server.conf`
-
-if [ x${vicedir} = x ]; then
-  vicedir=/vice
-fi
+vicedir=/vice
+. "`codaconfedit server.conf`"
 
 if [ ! -f ${vicedir}/hostname -o ! -f ${vicedir}/db/scm ] ; then
    echo "Coda server configuration error.  Could not find needed files."
@@ -49,7 +43,7 @@ if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]; then
 	exit 1
 fi
 
-# Parge arguments
+# Parse arguments
 if  [ $# -lt 2 -o $# -gt 4 ]; then
 	echo "bad args:  createvol_rep <volname> <vsgaddr> [<partition-name>] [<groupid>]"
 	exit

@@ -40,18 +40,17 @@ fi
 #
 # Configuration
 #
-prefix=@prefix@
-conf=@sysconfdir@/server.conf
-if [ -f ${conf} ] ; then
+
+# defaults, will be overridden by settings in the server.conf file
+vicedir=/vice
+
+conf="`codaconfedit server.conf`"
+if [ "x${conf}" != x/dev/null ] ; then
   . ${conf}
   haveconf=1
 else
   haveconf=0
   numservers=1
-fi
-
-if [ x${vicedir} = x ] ; then
-  vicedir=/vice
 fi
 
 # test on Solaris doesn't have a -e flag :-(
@@ -64,7 +63,6 @@ if [ -f ${vicedir}/srv.conf ]; then
        exit 1
    fi
 fi
-
 
 echo
 echo A server needs a small log disk partition, preferrably on a disk by
@@ -107,24 +105,29 @@ n=1
 while [ $n -le $numservers ]; do
 
     if [ $numservers -gt 1 ]; then
-        conf=@sysconfdir@/server_$n.conf
-	if [ -f $conf ]; then
+        conf="`codaconfedit server_$n.conf`"
+	if [ "x$conf" != x/dev/null ]; then
 	    . $conf
 	fi
 	if [ x$hostname != x ]; then
             echo "Configuring for server $n ($hostname)."
 	else
-	    echo "Configuring for server $n."
-	    hostname=""
-	    while [ x$hostname = x ]; do
-	        echon "What is the hostname for server $n? "
-		read hostname
-            done
-	    echo "hostname=$hostname" > $conf 
-	    echo "#rvm_log= " >> $conf
-	    echo "#rvm_data= " >> $conf
-	    echo "#rvm_data_length= " >> $conf
-	    echo "#mapprivate= " >> $conf
+	    echo "No initial server_$n.conf found, something went wrong with vice-setup?"
+	    exit 1
+
+#	    echo "Configuring for server $n."
+#	    hostname=""
+#	    while [ x$hostname = x ]; do
+#	        echon "What is the hostname for server $n? "
+#		read hostname
+#            done
+#	    echo > $conf << EOF
+#hostname="$hostname"
+##rvm_log=""
+##rvm_data=""
+##rvm_data_length=""
+##mapprivate=""
+#EOF
 	fi
     fi
 
@@ -285,9 +288,10 @@ EOF
     parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
 
     if [ $haveconf = 1 ] ; then
-	codaconfedit $conf rvm_log $log
-	codaconfedit $conf rvm_data $data
-	codaconfedit $conf rvm_data_length $dsparm
+	conffile="`basename $conf`"
+	codaconfedit $conffile rvm_log $log
+	codaconfedit $conffile rvm_data $data
+	codaconfedit $conffile rvm_data_length $dsparm
     else
 	echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
     fi

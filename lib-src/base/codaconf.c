@@ -32,7 +32,7 @@ Coda are listed in the file CREDITS.
 
 /* default configuration file search path used by codaconf_init */
 static const char *default_codaconfpath =
-	SYSCONFDIR ":/usr/local/etc/coda:/etc/coda";
+	SYSCONFDIR ":/usr/local/etc/coda:/etc/coda:";
 
 /* buffer to read lines of config data */
 #define MAXLINELEN 256

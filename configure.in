@@ -127,9 +127,6 @@ coda-src/scripts/startserver
 coda-src/scripts/venus.init
 coda-src/scripts/vice-setup
 coda-src/scripts/vice-setup-rvm
-coda-src/scripts/vice-setup-scm
-coda-src/scripts/vice-setup-srvdir
-coda-src/scripts/vice-setup-user
 coda-src/scripts/vutil
 coda-src/kerndep/Makefile 
 coda-src/partition/Makefile 
