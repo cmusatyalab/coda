@@ -55,5 +55,7 @@ parser: ${OBJECTS} $(DEPLIBS)
 # YYuck!  I don't know how to tell yyac to deliver a .cc extension  GRRR..(pjb)
 resolver_parser.o: resolver_parser.c
 	$(CXX) -x c++ $(CXXFLAGS) $(CPPFLAGS) -c $<
+
+resolver_lexer.c: resolver_lexer.l
         
 TESTS= resolver_lexer.c resolver_parser.c y.tab.h
