@@ -1,3 +1,10 @@
+2000-10-06    <jaharkes@cs.cmu.edu>
+        * ======== Release 5.3.9 =========
+	* Fixed mounting /coda on Linux 2.0 kernels.
+	* Caught wrong initialization of a volume flag which causes
+	  disconnected volumes when the network is strong and servers
+	  are up.
+
 2000-09-29    <jaharkes@cs.cmu.edu>
         * ======== Release 5.3.9 =========
         * Some createvol_rep fixes when new servers are added (Phil Nelson).
