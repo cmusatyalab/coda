@@ -21,7 +21,7 @@ listed in the file CREDITS.
 #include <sys/socket.h>
 #include <netdb.h>
 #include "coda_assert.h"
-#include <rpc2/ports.h>
+#include "ports.h"
 #include "filtutil.h"
 
 
