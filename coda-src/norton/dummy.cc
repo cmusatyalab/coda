@@ -46,7 +46,7 @@ void PollAndYield() {
 
     CODA_ASSERT(0);
     FindVLE(dl, &fid);
-    return(0);
+    return;
 }
 
 void Die(char *msg) {
