@@ -43,6 +43,7 @@ OBJECTS = resolver_parser.o resolver_lexer.o ruletypes.o resolver.o wildmat.o pa
 include $(TOPDIR)/configs/Makerules
 
 YFLAGS= -d
+EXTRACLEAN=resolver_parser.h
 
 resolver_parser.c: resolver_parser.h
 resolver_parser.h: resolver_parser.y
