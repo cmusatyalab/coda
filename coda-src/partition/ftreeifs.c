@@ -22,12 +22,11 @@ listed in the file CREDITS.
  *
  * Inodes are simulated using files.
  * The name of the file is the "inode number" for the file transformed
- * into a tree structure: e.g. inode 4711 in base 10 with width 1 and 
- * depth 5 would become 0/4/7/1/1.
- * at width 2 it would become 0/0/0/47/11
- * The vnode, volume, unique and dataversion fields are stored in the
- * resource forks:
- * 0/4/7/1/.1 and 0/0/0/47/.11
+ * into a tree structure: e.g. inode 0x47a1 with width 4 and depth 5
+ * would become 0/4/7/a/1
+ * while at width 8 it would become 0/0/0/47/a1
+ * i.e. width is log2 of max number of names at one level,
+ * the number of bits being converted to a hexadecimal number.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -256,7 +255,7 @@ static int f_init (union PartitionData **data,
 
 
 /*
- * iopen, simply returns an open call on the first file of the inode chain
+ * iopen, simply returns an open call on the corresponding file of the inode
  * and lseek to the data offset.
  */
 
@@ -403,7 +402,7 @@ f_get_header(struct DiskPartition *dp, struct i_header *header, Inode ino)
 
 
 /*
- * chagne the lnk attribute 
+ * change the lnk attribute 
  */
 static int 
 f_change_lnk(struct DiskPartition *dp, Inode  ino, long value, int inc)
@@ -477,7 +476,7 @@ f_iinc(struct DiskPartition *dp, Inode inode_number, Inode parent_vol)
 
 /*
  * iread,
- * opens the first file in the inode chain and performs a read & close.
+ * opens the corresponding file of the inode and performs a read & close.
  */
 static int 
 f_iread(struct DiskPartition *dp, Inode inode_number, Inode parent_vol, 
@@ -506,8 +505,8 @@ f_iread(struct DiskPartition *dp, Inode inode_number, Inode parent_vol,
 
 /*
  * iwrite,
- * Similar to iread, opens the first file in the inode chain,
- * and reads data and then closes the fd.
+ * Similar to iread, opens the corresponding file of the inode,
+ * and writes data and then closes the fd.
  *
  */
 static int 
@@ -539,7 +538,7 @@ f_iwrite(struct DiskPartition *dp, Inode inode_number,Inode  parent_vol,
 #if 0
 /*
  * istat,
- * retrieves inode information from the first file in the inode chain.
+ * retrieves inode information from the corresponding file of the inode
  * and stores the attributes from the resource file to the fields of the
  * stat struct.
  *
