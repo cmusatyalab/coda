@@ -39,7 +39,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef _AL_
 #define _AL_
 
-#define AL_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/al/al.h,v 1.2 1999/02/11 21:37:32 smarc Exp $"
+#define AL_VERSION "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/coda-src/al/al.h,v 1.3 1999/05/11 20:07:59 jaharkes Exp $"
 
 typedef struct {
         int Id;         /*internally-used ID of user or group*/
