@@ -264,9 +264,13 @@ void testKernDevice()
 
 void VFSMount()
 {
-    /* Linux Coda filesystems are mounted by hand through forking since they need venus. XXX eliminate zombie */ 
+    /* Linux (and NetBSD) Coda filesystems are mounted through forking since
+     * they need venus.
+     * XXX we could merge some of the duplicated code between BSD and Linux
+     * XXX eliminate zombie? */ 
 #ifdef __BSD44__
-    /* Silently unmount the root node in case an earlier venus exited without successfully unmounting. */
+    /* Silently unmount the root node in case an earlier venus exited without
+     * successfully unmounting. */
     unmount(venusRoot,0);
     switch(errno) {
 	case 0:
@@ -291,19 +295,27 @@ void VFSMount()
     }
     rootnodeid = tstat.st_ino;
 
-    /* Issue the VFS mount request. */
-
-    if (mount("coda", venusRoot, 0, kernDevice) < 0) {
-	if (mount("cfs", venusRoot, 0, kernDevice) < 0)
+    if ( fork() == 0 ) {
+	/* Issue the VFS mount request. */
+	int error = mount("coda", venusRoot, 0, kernDevice);
+	if (error < 0)
+	    error = mount("cfs", venusRoot, 0, kernDevice);
 #if	defined(__FreeBSD__) && !defined(__FreeBSD_version)
 #define MOUNT_CFS 19
-	    if (mount(MOUNT_CFS, venusRoot, 0, kernDevice) < 0)
+	if (error < 0)
+	    error = mount(MOUNT_CFS, venusRoot, 0, kernDevice);
 #endif
-	{
-	    eprint("mount(%s, %s) failed (%d), exiting",
-		   kernDevice, venusRoot, errno);
-	    exit(-1);
+	if (error < 0) {
+	    pid_t parent;
+	    LOG(0, ("CHILD: mount system call failed. Killing parent.\n"));
+	    eprint("CHILD: mount system call failed. Killing parent.\n");
+	    parent = getppid();
+	    kill(parent, SIGKILL);
+	} else {
+	    eprint("%s now mounted.\n", venusRoot);
 	}
+	WorkerCloseMuxfd();
+	exit(error < 0 ? 1 : 0);
     }
 #endif /* __BSD44__ */
 
