@@ -818,6 +818,10 @@ static void Create_Process_Part2()
  * set it to > 0 to set the maximum trace depth. */
 static int lwp_trace_depth=-1;
 
+#if defined(sun)
+typedef long register_t;
+#endif
+
 /* Stack crawling bits */
 
 /* register file */

@@ -455,6 +455,15 @@ returnto:
 #define SYMB(x)  ENTRY(x)
 #define EXT(x)	_C_LABEL(x)
 
+#elif	defined(sun)
+#define SYMB(x)	\
+	.align	4; \
+	.globl	x; \
+	.type	x, @function; \
+x:
+
+#define EXT(x) 	x
+
 #else
 /* some kind of win32 machine */
 #define SYMB(x) .align 4;  .globl _##x; _##x:

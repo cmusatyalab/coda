@@ -54,5 +54,10 @@ case ${target} in
     LIBS="-lsocket -lposix4"
     enable_shared=no
     ;;
+  i386-pc-solaris2* )
+    echo "Setting special conditions for Solaris"
+    AFLAGS="-traditional"
+    LIBS="-lsocket -lposix4"
+    ;;
 esac])
 
