@@ -1,3 +1,28 @@
+1999-10-11    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.3.2 =========
+	* Bugfixes:
+	    - Truncating a file while disconnected caused venus to crash.
+	    - A memory leak was triggered by failing SFTP transfers, this has
+	      been partially fixed.
+	    - Fixed a crash that occured after a double kill of a namecontext
+	      during a hoard walk after token expiry.
+	    - Collapsed hoard namecontexts were never re-expanded due to some
+	      optimizations.
+	* Cleanups & features:
+	    - Thanks to a huge patch from Jozsef Kadlecsik, many #ifdef's in
+	      the code are now based on autoconf detected features instead of
+	      operating system.
+	    - Reworked the init scripts a bit.
+	    - New configuration file, $sysconfdir/coda/venus.conf, which
+	      allows persistent changes to rvm/logfiles/cache directory
+	      locations, which should allow distributions to push Coda into
+	      their standard directory hierarchy.
+	    - Fixed a (false) conflict that was created after a token expired.
+	    - Several compiler errors/warnings fixed, thanks to Troy
+	      Benjegerdes and Kurt Garloff.
+	    - Phil Nelson has been making many fixes and updates for the
+	      Solaris port.
+
 1999-09-01    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.3.1 =========
 	* Added CC -fpermissive flag testing to the autoconf script.
@@ -19,6 +44,7 @@
 	* Fixed directory resolution bugs introduced in 5.3.0
 	* AutoRequestWBPermit was a used as a reference instead of a 
 	  function call. (Nickolai Zeldovich)
+
 1999-08-13    <jaharkes@cs.cmu.edu>
 	* ======== Release 5.3.0 =========
 	* Fixes for big-endian problems with rpc2portmapper. (Troy Benjegerdes)
