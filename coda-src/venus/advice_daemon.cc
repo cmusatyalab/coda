@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.7 1998/09/23 20:26:24 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice_daemon.cc,v 4.8 98/11/02 16:45:56 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -564,7 +564,11 @@ void NotifyUsersOfHoardWalkProgress(int fetched, int total) {
       totalToFetch = total;
     CODA_ASSERT(total == totalToFetch);
 
-    thisPercentage = (int) ((double)totalFetched*(double)100/(double)total);
+    if (total != 0)
+	thisPercentage = (int) ((double)totalFetched*(double)100/(double)total);
+    else
+	thisPercentage = 100;
+
     if (thisPercentage < lastPercentage) {
       LOG(0, ("fetched=%d, totalFetched=%d, totalToFetch=%d, thisPercentage=%d\n", 
 	      fetched, totalFetched, total, thisPercentage));
