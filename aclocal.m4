@@ -25,7 +25,7 @@ AC_DEFUN(CODA_CXX_FEATURE_TEST,
        coda_cv_cxx_$1=yes,
        coda_cv_cxx_$1=no)
      AC_LANG_RESTORE
-     CXX="$coda_saved_CC")
+     CXX="$coda_saved_CXX")
    if test $coda_cv_cxx_$1 = yes; then
      CXX="$CXX $2"
    fi])
