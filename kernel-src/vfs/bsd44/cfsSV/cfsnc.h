@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfsnc.h,v 1.6 1998/08/18 16:31:49 rvb Exp $ */
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfsnc.h,v 1.7 1998/08/18 17:05:24 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -45,6 +45,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /* 
  * HISTORY
  * $Log: cfsnc.h,v $
+ * Revision 1.7  1998/08/18 17:05:24  rvb
+ * Don't use __RCSID now
+ *
  * Revision 1.6  1998/08/18 16:31:49  rvb
  * Sync the code for NetBSD -current; test on 1.3 later
  *
@@ -133,8 +136,13 @@ Mellon the rights to redistribute these changes without encumbrance.
  * 2nd try -- same, except dir fid.vnode instead of cp
  */
 
+#ifdef	oldhash
 #define CFSNC_HASH(name, namelen, cp) \
 	((name[0] + name[namelen-1] + namelen + (int)(cp)) & (cfsnc_hashsize-1))
+#else
+#define CFSNC_HASH(name, namelen, cp) \
+	((name[0] + (name[namelen-1]<<4) + namelen + (((int)cp)>>8)) & (cfsnc_hashsize-1))
+#endif
 
 #define CFS_NAMEMATCH(cp, name, namelen, dcp) \
 	((namelen == cp->namelen) && (dcp == cp->dcp) && \

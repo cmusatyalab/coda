@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cnode.h,v 1.8 1998/08/18 16:31:49 rvb Exp $ */
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cnode.h,v 1.9 1998/08/18 17:05:24 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -45,6 +45,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /* 
  * HISTORY
  * $Log: cnode.h,v $
+ * Revision 1.9  1998/08/18 17:05:24  rvb
+ * Don't use __RCSID now
+ *
  * Revision 1.8  1998/08/18 16:31:49  rvb
  * Sync the code for NetBSD -current; test on 1.3 later
  *
@@ -82,7 +85,8 @@ Mellon the rights to redistribute these changes without encumbrance.
  * Kill DYING
  * 
  * Revision 1.3  1996/12/12 22:11:03  bnoble
- * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
+ * Fixed the "downcall invokes venus operation" deadlock in all known cases. 
+ *  There may be more.
  *
  * Revision 1.2  1996/01/02 16:57:26  bnoble
  * Added support for Coda MiniCache and raw inode calls (final commit)
@@ -137,19 +141,38 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 #ifdef	__FreeBSD__
 
+/* for the prototype of DELAY() */
+#include <machine/clock.h>
+
+#ifdef	__FreeBSD_version
+/* You would think that <sys/param.h> or something would include this */
+#include <sys/lock.h>
+
+MALLOC_DECLARE(M_CFS);
+
+#else
+
 /* yuck yuck yuck */
 #define vref(x) cvref(x)
 extern void cvref(struct vnode *vp);
 /* yuck yuck yuck */
 
-/* for the prototype of DELAY() */
-#include <machine/clock.h>
+#endif
 #endif
 
 #if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+#define	NEW_LOCKMGR(l, f, i) lockmgr(l, f, i)
 #define	VOP_X_LOCK(vn, fl) vn_lock(vn, fl)
 #define	VOP_X_UNLOCK(vn, fl) VOP_UNLOCK(vn, fl)
+
+#elif defined(__FreeBSD_version)
+#define	NEW_LOCKMGR(l, f, i) lockmgr(l, f, i, curproc)
+#define	VOP_X_LOCK(vn, fl) vn_lock(vn, fl, curproc)
+#define	VOP_X_UNLOCK(vn, fl) VOP_UNLOCK(vn, fl, curproc)
+
+/* NetBSD 1.3 & FreeBSD 2.2.x */
 #else
+#undef	NEW_LOCKMGR
 #define	VOP_X_LOCK(vn, fl) VOP_LOCK(vn)
 #define	VOP_X_UNLOCK(vn, fl) VOP_UNLOCK(vn)
 #endif
@@ -203,7 +226,7 @@ struct cnode {
     struct vnode	*c_vnode;
     u_short		 c_flags;	/* flags (see below) */
     ViceFid		 c_fid;		/* file handle */
-#if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
+#ifdef	NEW_LOCKMGR
     struct lock		 c_lock;	/* new lock protocol */
 #endif
     struct vnode	*c_ovp;		/* open vnode pointer */
@@ -303,7 +326,7 @@ int cfs_vnodeopstats_init(void);
 /* cfs_vfsops.h */
 struct mount *devtomp(dev_t dev);
 
-#ifndef	NetBSD1_3
+#if	!(defined NetBSD1_3) && !defined(__FreeBSD_version)
 #define __RCSID(x) static char *rcsid = x
 #endif
 

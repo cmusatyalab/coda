@@ -27,8 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.9 1998/08/18 16:31:39 rvb Exp $ */
-
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.10 1998/08/18 17:05:14 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -46,6 +45,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log: cfs_namecache.c,v $
+ * Revision 1.10  1998/08/18 17:05:14  rvb
+ * Don't use __RCSID now
+ *
  * Revision 1.9  1998/08/18 16:31:39  rvb
  * Sync the code for NetBSD -current; test on 1.3 later
  *
@@ -80,7 +82,8 @@ Mellon the rights to redistribute these changes without encumbrance.
  * Capture current cfs_venus
  * 
  * Revision 1.5.4.4  97/11/18  10:27:13  rvb
- * cfs_nbsd.c is DEAD!!!; integrated into cfs_vf/vnops.c; cfs_nb_foo and cfs_foo are joined
+ * cfs_nbsd.c is DEAD!!!; integrated into cfs_vf/vnops.c
+ * cfs_nb_foo and cfs_foo are joined
  * 
  * Revision 1.5.4.3  97/11/13  22:02:57  rvb
  * pass2 cfs_NetBSD.h mt
@@ -97,7 +100,8 @@ Mellon the rights to redistribute these changes without encumbrance.
  * not actually replaced.  (cfs_namecache.c, cfsnc.h, cfs_subr.c)
  * 
  * Revision 1.4  96/12/12  22:10:57  bnoble
- * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
+ * Fixed the "downcall invokes venus operation" deadlock in all known cases.
+ * There may be more
  * 
  * Revision 1.3  1996/11/08 18:06:09  bnoble
  * Minor changes in vnode operation signature, VOP_UPDATE signature, and
@@ -211,9 +215,10 @@ Mellon the rights to redistribute these changes without encumbrance.
 #ifdef	__FreeBSD__
 #include <vm/vm.h>
 #include <vm/vm_object.h>
+#ifdef	__FreeBSD_version
+#include <sys/ucred.h>
 #endif
-
-__RCSID("$Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_namecache.c,v 1.9 1998/08/18 16:31:39 rvb Exp $");
+#endif
 
 /* 
  * Declaration of the name cache data structure.

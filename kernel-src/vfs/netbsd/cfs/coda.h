@@ -27,8 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda.h,v 1.8 1998/08/18 16:31:50 rvb Exp $ */
-
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/coda.h,v 1.9 1998/08/18 17:05:25 rvb Exp $ */
 
 /*
  *
@@ -143,6 +142,7 @@ typedef struct ViceFid {
 } ViceFid;
 #endif	/* VICEFID */
 
+#ifdef	__linux__
 static inline ino_t coda_f2i(struct ViceFid *fid)
 {
       if ( fid ) {
@@ -151,7 +151,7 @@ static inline ino_t coda_f2i(struct ViceFid *fid)
               return 0;
       }
 }
-
+#endif
 
 #ifndef _VUID_T_
 #define _VUID_T_

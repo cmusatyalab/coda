@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_nbsd.c,v 1.19 1998/08/18 16:31:40 rvb Exp $ */
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_nbsd.c,v 1.20 1998/08/18 17:05:15 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -46,6 +46,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /* 
  * HISTORY
  * $Log: cfs_nbsd.c,v $
+ * Revision 1.20  1998/08/18 17:05:15  rvb
+ * Don't use __RCSID now
+ *
  * Revision 1.19  1998/08/18 16:31:40  rvb
  * Sync the code for NetBSD -current; test on 1.3 later
  *
@@ -62,7 +65,8 @@ Mellon the rights to redistribute these changes without encumbrance.
  * Capture current cfs_venus
  * 
  * Revision 1.16.6.4  97/11/18  10:27:14  rvb
- * cfs_nbsd.c is DEAD!!!; integrated into cfs_vf/vnops.c; cfs_nb_foo and cfs_foo are joined
+ * cfs_nbsd.c is DEAD!!!; integrated into cfs_vf/vnops.c
+ * cfs_nb_foo and cfs_foo are joined
  * 
  * Revision 1.16.6.3  97/11/13  22:02:58  rvb
  * pass2 cfs_NetBSD.h mt

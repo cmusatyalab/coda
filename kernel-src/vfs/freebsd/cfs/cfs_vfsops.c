@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vfsops.c,v 1.9 1998/08/18 16:31:44 rvb Exp $ */
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vfsops.c,v 1.10 1998/08/18 17:05:19 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -45,6 +45,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log: cfs_vfsops.c,v $
+ * Revision 1.10  1998/08/18 17:05:19  rvb
+ * Don't use __RCSID now
+ *
  * Revision 1.9  1998/08/18 16:31:44  rvb
  * Sync the code for NetBSD -current; test on 1.3 later
  *
@@ -85,7 +88,8 @@ Mellon the rights to redistribute these changes without encumbrance.
  * Capture current cfs_venus
  * 
  * Revision 1.5.14.5  97/11/18  10:27:17  rvb
- * cfs_nbsd.c is DEAD!!!; integrated into cfs_vf/vnops.c; cfs_nb_foo and cfs_foo are joined
+ * cfs_nbsd.c is DEAD!!!; integrated into cfs_vf/vnops.c
+ * cfs_nb_foo and cfs_foo are joined
  * 
  * Revision 1.5.14.4  97/11/13  22:03:01  rvb
  * pass2 cfs_NetBSD.h mt
@@ -105,7 +109,8 @@ Mellon the rights to redistribute these changes without encumbrance.
  * there correctly.
  *
  * Revision 1.4  1996/12/12 22:11:00  bnoble
- * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
+ * Fixed the "downcall invokes venus operation" deadlock in all known cases.
+ * There may be more
  *
  * Revision 1.3  1996/11/08 18:06:12  bnoble
  * Minor changes in vnode operation signature, VOP_UPDATE signature, and
@@ -177,6 +182,12 @@ Mellon the rights to redistribute these changes without encumbrance.
 #include <cfs/coda_opstats.h>
 /* for VN_RDEV */
 #include <miscfs/specfs/specdev.h>
+
+#ifdef	__FreeBSD__
+#ifdef	__FreeBSD_version
+MALLOC_DEFINE(M_CFS, "CFS storage", "Various Coda Structures");
+#endif
+#endif
 
 int cfsdebug = 0;
 
@@ -259,7 +270,26 @@ struct vfsops cfs_vfsops = {
 #endif
     0
 };
+
 #elif	defined(__FreeBSD__)
+#ifdef	__FreeBSD_version
+struct vfsops cfs_vfsops = {
+    cfs_mount,
+    cfs_start,
+    cfs_unmount,
+    cfs_root,
+    cfs_quotactl,
+    cfs_nb_statfs,
+    cfs_sync,
+    cfs_vget,
+    (int (*) (struct mount *, struct fid *, struct sockaddr *, struct vnode **,
+	      int *, struct ucred **))
+	eopnotsupp,
+    (int (*) (struct vnode *, struct fid *)) eopnotsupp,
+    cfs_init,
+};
+
+#else
 struct vfsops cfs_vfsops = {
     cfs_mount,
     cfs_start,
@@ -275,6 +305,9 @@ struct vfsops cfs_vfsops = {
     (int (*) (struct vnode *, struct fid *)) eopnotsupp,
     cfs_init,
 };
+
+#endif
+
 
 #include <sys/kernel.h>
 VFS_SET(cfs_vfsops, cfs, MOUNT_CFS, VFCF_NETWORK);
@@ -390,6 +423,10 @@ cfs_mount(vfsp, path, data, ndp, p)
 #ifdef	__NetBSD__
     vfsp->mnt_stat.f_fsid.val[0] = 0;
     vfsp->mnt_stat.f_fsid.val[1] = makefstype(MOUNT_CFS);
+#elif	defined(__FreeBSD__) && defined(__FreeBSD_version)
+
+    vfs_getnewfsid (vfsp);
+
 #elif	defined(__FreeBSD__)
     /* Seems a bit overkill, since usualy /coda is the only mount point
      * for cfs.
@@ -482,9 +519,10 @@ cfs_unmount(vfsp, mntflags, p)
 	printf("cfs_unmount: ROOT: vp %p, cp %p\n", mi->mi_rootvp, VTOC(mi->mi_rootvp));
 #endif
 	vrele(mi->mi_rootvp);
-	active = cfs_kill(vfsp, NOT_DOWNCALL);
 
 #ifdef	NetBSD1_3
+	active = cfs_kill(vfsp, NOT_DOWNCALL);
+
 #if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
 	if (1)
 #else
@@ -497,9 +535,8 @@ cfs_unmount(vfsp, mntflags, p)
 	} else {
 		printf("cfs_unmount: busy\n");
 	} 
-#else
+#else	/* FreeBSD I guess */
 	active = cfs_kill(vfsp, NOT_DOWNCALL);
-
 	error = vflush(mi->mi_vfsp, NULLVP, FORCECLOSE);
 	printf("cfs_unmount: active = %d, vflush active %d\n", active, error);
 	error = 0;
@@ -744,12 +781,21 @@ cfs_init(void)
     ENTRY;
 }
 #elif	defined(__FreeBSD__)
+#ifdef	__FreeBSD_version
+int
+cfs_init(struct vfsconf *vfsp)
+{
+    ENTRY;
+    return 0;
+}
+#else
 int
 cfs_init(void)
 {
     ENTRY;
     return 0;
 }
+#endif
 #endif
 
 #if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)

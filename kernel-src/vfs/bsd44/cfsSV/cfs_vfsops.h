@@ -27,13 +27,14 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vfsops.h,v 1.7 1998/08/18 16:31:45 rvb Exp $ */
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vfsops.h,v 1.8 1998/08/18 17:05:19 rvb Exp $ */
 
 /*
  * cfid structure:
  * This overlays the fid structure (see vfs.h)
  * Only used below and will probably go away.
  */
+
 struct cfid {
     u_short	cfid_len;
     u_short     padding;
@@ -64,7 +65,11 @@ int cfs_vptofh(struct vnode *, struct fid *);
 #ifdef	__NetBSD__
 void cfs_init(void);
 #elif defined(__FreeBSD__)
+#ifdef	__FreeBSD_version
+int cfs_init(struct vfsconf *vfsp);
+#else
 int cfs_init(void);
+#endif
 #endif
 #if	defined(__NetBSD__) && defined(NetBSD1_3) && (NetBSD1_3 >= 7)
 int cfs_sysctl(int *, u_int, void *, size_t *, void *, size_t,

@@ -27,14 +27,18 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_venus.c,v 1.9 1998/08/18 16:31:43 rvb Exp $ */
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_venus.c,v 1.10 1998/08/18 17:05:17 rvb Exp $ */
 
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/malloc.h>
 #include <sys/proc.h>
 #include <sys/select.h>
+#ifdef	__FreeBSD_version
+#include <sys/ioccom.h>
+#else
 #include <sys/ioctl.h>
+#endif
 /* for CNV_OFLAGS below */
 #include <sys/fcntl.h>
 

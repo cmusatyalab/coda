@@ -27,7 +27,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vnodeops.h,v 1.5 1998/08/18 16:31:47 rvb Exp $ */
+/* $Header: /afs/cs/project/coda-src/cvs/coda/kernel-src/vfs/bsd44/cfs/cfs_vnodeops.h,v 1.6 1998/08/18 17:05:22 rvb Exp $ */
 
 /* 
  * Mach Operating System
@@ -46,6 +46,9 @@ Mellon the rights to redistribute these changes without encumbrance.
 /*
  * HISTORY
  * $Log: cfs_vnodeops.h,v $
+ * Revision 1.6  1998/08/18 17:05:22  rvb
+ * Don't use __RCSID now
+ *
  * Revision 1.5  1998/08/18 16:31:47  rvb
  * Sync the code for NetBSD -current; test on 1.3 later
  *
@@ -112,6 +115,10 @@ int nbsd_vop_error   __P((void *));
 int nbsd_vop_nop     __P((void *));
 #ifdef __FreeBSD__
 int fbsd_vnotsup  __P((void *ap));
+#ifdef	__FreeBSD_version
+int cfs_fbsd_getpages	__P((void *));
+int cfs_fbsd_putpages	__P((void *));
+#endif
 #endif
 
 int (**cfs_vnodeop_p)(void *);
