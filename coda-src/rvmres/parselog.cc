@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/parselog.cc,v 4.2 1997/12/20 23:34:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/parselog.cc,v 4.3 1998/08/31 12:23:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -46,9 +46,6 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres
 extern "C" {
 #endif __cplusplus
 #include <stdio.h>
-#if !defined(__GLIBC__)
-#include <libc.h>
-#endif
 #ifdef __cplusplus
 }
 #endif __cplusplus

@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Attic/Makeconf.i386_fbsd3,v 1.1.2.1 1998/09/03 21:11:30 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_fbsd3,v 4.1 1998/09/04 00:57:03 rvb Exp $";
 # 
 
 MACHINE_FLAGS = -D__BSD44__
@@ -54,7 +54,6 @@ LGDBM         = -L/usr/local/lib
 LIBMATH       = -lm
 GUIDIR        = /usr/lib/coda
 
-KRBINCLFLAGS  = -I/usr/athena/include -I/usr/include/kerberosIV
-#LIBKRBS       =    /usr/athena/lib/libkrb4.a /usr/athena/lib/libkrb5.a /usr/athena/lib/libcrypto.a /usr/athena/lib/libcom_err.a  /usr/athena/lib/libdes425.a /usr/athena/lib/libkrb524.a
-LIBKRBS = /usr/lib/libkrb.a
+KRBINCLFLAGS  =
+LIBKRBS = /usr/lib/aout/libkrb.a /usr/lib/aout/libdes.a
 
