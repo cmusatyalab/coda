@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.4 1997/10/23 19:24:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/resolve.cc,v 4.5 1997/12/23 17:19:55 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -364,14 +364,14 @@ int InsertListHdr C_ARGS((struct repair *rep, struct listhdr **ops, int index))
     if (size > 0) 
 	bcopy((*ops)[index].repairList, repList, (size * sizeof(struct repair))); 
     bcopy(rep, &(repList[size]), sizeof(struct repair)); 
-    free ((*ops)[index].repairList); 
+    /*    free ((*ops)[index].repairList);  */
     ((*ops)[index]).repairList = repList; 
     ((*ops)[index]).repairCount ++; 
     return 0; 
 }
 
 /* checks if an entry exists in a repair list */
-int InRepairList C_ARGS((struct listhdr *opList, unsigned opcode, long vnode, long unique))
+int InRepairList (struct listhdr *opList, unsigned opcode, long vnode, long unique)
 {
     struct repair *repList = opList->repairList;
 
@@ -393,7 +393,7 @@ int IsCreatedEarlier C_ARGS((struct listhdr **opList, int index, long vnode, lon
     return 0;
 }
 
-void ResolveConflict C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt))
+void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt)
 {
     /* call the appropriate repair function */
     switch (conflictType){

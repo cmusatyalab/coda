@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/cure.cc,v 4.2 1997/02/26 16:02:54 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/resolve/cure.cc,v 4.3 1997/12/23 17:19:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -195,8 +195,8 @@ int RepairRename C_ARGS((int nreplicas, resreplica *dirs,
     return(0);
 }
 /* given an object, RepairSubsetCreate decides which replicas */
-/* donot have that object and places that info in the repair ops list */
-int RepairSubsetCreate C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, listhdr **ops))
+/* do not have that object and places that info in the repair ops list */
+int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, listhdr **ops)
 {
     int isDir = ISDIR(deGroup[0]->vno);
     struct repair rep;
@@ -222,9 +222,9 @@ int RepairSubsetCreate C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **d
 		char *str;
 		struct stat buf;
 
-		str = (char *)malloc(strlen(&(deGroup[0]->name[0])) + strlen(dirs[i].path) + 1);
+		str = (char *)malloc(strlen(deGroup[0]->name) + strlen(dirs[i].path) + 1);
 		strcpy(str, dirs[deGroup[0]->replicaid].path);
-		strcat(str, &(deGroup[0]->name[0]));
+		strcat(str, deGroup[0]->name);
 		lstat(str, &buf);
 		if ((buf.st_mode & S_IFMT) == S_IFLNK)
 		    /* object is a symbolic link */
@@ -234,9 +234,13 @@ int RepairSubsetCreate C_ARGS((int nreplicas, resreplica *dirs, resdir_entry **d
 		    /* directory with a different name or in the  */
 		    /* replist with creates */
 		    /* then it is a CREATEL, ow it is a CREATEF */
-		    if (ObjExists(&(dirs[i]), deGroup[0]->vno, deGroup[0]->uniqfier) || InRepairList(&((*ops)[i]),  REPAIR_CREATEF, deGroup[0]->vno, deGroup[0]->uniqfier))
-			rep.opcode = REPAIR_CREATEL;
-		    else rep.opcode = REPAIR_CREATEF;
+		    if (ObjExists(&(dirs[i]), deGroup[0]->vno, 
+				  deGroup[0]->uniqfier) 
+			|| InRepairList(&((*ops)[i]),  REPAIR_CREATEF, 
+					deGroup[0]->vno, deGroup[0]->uniqfier))
+			    rep.opcode = REPAIR_CREATEL;
+		    else 
+			    rep.opcode = REPAIR_CREATEF;
 		}
 		free(str);
 	    }
