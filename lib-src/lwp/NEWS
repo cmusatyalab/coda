@@ -1,6 +1,7 @@
 New in 1.7:
 
 * Fixed <sys/time.h> vs. <time.h> mixup.
+* Applied MacOS X (Darwin) patches from Timothy Wood.
 
 New in 1.6:
 
