@@ -1170,8 +1170,13 @@ int DIR_DirOK(PDirHeader pdh)
 			}
 			j = strlen(ep->name);
 			if ( j > CODA_MAXNAMLEN ) {
-				printf("Dir entry %p in chain %d has too long name: %s\n",
+				printf("Dir entry %p in chain %d too long name: %s\n",
 				       ep, j, ep->name);
+				return 0;
+			}
+			if ( j == 0 ) {
+				printf("Dir entry in blob %d has null name\n",
+				       entryno);
 				return 0;
 			}
 			k = dir_NameBlobs(ep->name);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.16 1998/08/05 23:50:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.17 1998/08/31 12:23:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,12 +62,17 @@ supported by Transarc Corporation, Pittsburgh, PA.
  ********************************/
 
 /* Problems (maybe?)
-   1. Some ambiguity about which volumes are read/write and read-only.  The assumption
-      is that volume number == parent volume number ==> read-only.  This isn't always true.
-      The only problem this can cause is that a read-only volume might be salvaged like
-      a read/write volume.
-   2. Directories are examined, but not actually salvaged.  The directory salvage routine
-      exists but the call is commented out, for now.
+
+   1. Some ambiguity about which volumes are read/write and read-only.
+   The assumption is that volume number == parent volume number ==>
+   read-only.  This isn't always true.  The only problem this can
+   cause is that a read-only volume might be salvaged like a
+   read/write volume.
+
+   2. Directories are examined, but not actually salvaged.  The
+   directory salvage routine exists but the call is commented out, for
+   now.
+
 */
 
 #define SalvageVersion "3.0"
@@ -176,7 +181,7 @@ static struct VnodeInfo  vnodeInfo[nVNODECLASSES];
  *  the transaction abort.
  */
 
-long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, 
+long S_VolSalvage(RPC2_Handle rpcid, RPC2_String path, 
 		  VolumeId singleVolumeNumber,
 		  RPC2_Integer force, RPC2_Integer Debug, 
 		  RPC2_Integer list)
@@ -184,7 +189,6 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path,
     long rc = 0;
     int UtilityOK = 0;	/* flag specifying whether the salvager may run as a volume utility */
     ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
-    char *path = (char *) formal_path;
 
     LogMsg(9, VolDebugLevel, stdout, 
 	   "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
@@ -206,7 +210,8 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path,
     /* the file server in this case to take the read write volume and */
     /* associated read-only volumes off line before salvaging */
 
-    if (path != NULL && singleVolumeNumber != 0) UtilityOK = 1;
+    if (path != NULL && singleVolumeNumber != 0) 
+	    UtilityOK = 1;
 
     rc = VInitVolUtil(UtilityOK? volumeUtility: salvager);
     if (rc != 0) {
@@ -216,40 +221,32 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path,
     }
 
     if (*pt == salvager) {
-	GetSkipVolumeNumbers();
-	SanityCheckFreeLists();
-	if (rc = DestroyBadVolumes())
-	    return(rc);
+	    GetSkipVolumeNumbers();
+	    SanityCheckFreeLists();
+	    if (rc = DestroyBadVolumes())
+		    return(rc);
     }
     
     if (path == NULL) {
-      int didSome = 0;
-      struct DiskPartition *dp = DiskPartitionList;
+	    struct DiskPartition *dp = DiskPartitionList;
 
-      do {
-	  rc = SalvageFileSys(dp->name, 0);
-	  if (rc != 0)
-	      goto cleanup;
-	  didSome++;
-	  dp = dp->next;
-      } while ( dp ) ;
-
-      if (!didSome) {
-	LogMsg(0, VolDebugLevel, stdout, 
-	       "No partitions named found in %s; not salvaged",
-	       VICETAB);
-	goto cleanup;
-      }
+	    do {
+		    rc = SalvageFileSys(dp->name, 0);
+		    if (rc != 0)
+			    goto cleanup;
+		    dp = dp->next;
+	    } while ( dp ) ;
+	    
     } else 
-	rc = SalvageFileSys(path, singleVolumeNumber);
+	    rc = SalvageFileSys(path, singleVolumeNumber);
 
     /* should put vol back on line if singleVolumeNumber */
     if (singleVolumeNumber)
-	AskOnline(singleVolumeNumber);
+	    AskOnline(singleVolumeNumber);
 
-cleanup:
+ cleanup:
     if (UtilityOK) {
-	VDisconnectFS();
+	    VDisconnectFS();
     }
     release_locks(UtilityOK);
     zero_globals();	/* clean up state */
@@ -741,7 +738,8 @@ static int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 /* inodes corresponding to a volume that has been blown away.
  * We need to idec them
  */
-static void CleanInodes(struct InodeSummary *isp) {
+static void CleanInodes(struct InodeSummary *isp) 
+{
     int size;
     struct ViceInodeInfo *inodes = 0;
 
@@ -1070,8 +1068,9 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 		    VLog(29, "\t linkcount = %d, index = %d, parent = 0x%x, unique = 0x%x",
 			 vnp->count, i, vnp->vparent, vnp->unique);
 		    if (vnp->changed || vnp->count != 0) {
-			    VLog(0, "DCC: For Vnode (%#x.%x.%x) parent (0x%x.%x): linkcount is %d",
-				 vid, vnp->vid, vnp->unique, vnp->vparent, 
+			    VLog(0, "DCC: For Vnode (%#x %#x %#x) parent (%#x %#x %#x): linkcount is %d bigger than count of directory entries.",
+				 vid, vnp->vid, vnp->unique, vid, 
+				 vnp->vparent, 
 				 vnp->uparent, vnp->count);
 			    doassert = 1;
 			    /* You can bring up the server by forcing
@@ -1563,13 +1562,7 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
     summaryFile = fdopen(summaryFd,"w");
     assert(summaryFile != NULL);
     nInodes = status.st_size / sizeof(ViceInodeInfo);
-#if 0
-    if (nInodes == 0) {
-	LogMsg(0, VolDebugLevel, stdout, "%s vice inodes on %s; not salvaged", singleVolumeNumber? "No applicable": "No", dev);
-	close(summaryFd);
-	return(VNOVOL);
-    }
-#endif
+
     ip = tmp_ip = (struct ViceInodeInfo *) malloc(status.st_size);
     if (ip == NULL) {
 	LogMsg(0, VolDebugLevel, stdout, "Unable to allocate enough space to read inode table; %s not salvaged", dev);
@@ -1636,6 +1629,7 @@ static int CompareVolumes(register struct VolumeSummary *p1,
 	return 1;
     return p1->header.id < p2->header.id ? -1: 1; /* Both read-only */
 }
+
 
 /*  this is inefficiently structured. it has to iterate through all
  *  volumes once for each partition since there is only one global

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.10 1998/08/31 12:23:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.11 1998/09/29 16:38:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -497,13 +497,11 @@ static void create() {
     exit(0);
 }
 /*
-  BEGIN_HTML
-  <a name="clone"><strong>Client end of the <tt>clone</tt> request</strong></a> 
-  END_HTML
+clone: Client end of the clone request
 */
 static void clone()
 {
-    if (these_args < 3) {
+    if (these_args != 3 && these_args != 5) {
 	printf("Usage: volutil clone <volume-id> [-n <new volume name>]\n");
 	exit(-1);
     }

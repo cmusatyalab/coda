@@ -138,7 +138,7 @@ void *DI_Page(PDirInode pdi, int page)
 {
 	
 	assert(pdi);
-	assert(page>0 && page < DIR_MAXPAGES);
+	assert(page>=0 && page < DIR_MAXPAGES);
 
 	return pdi->di_pages[page];
 }

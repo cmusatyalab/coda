@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.h,v 4.1 1997/01/08 21:49:52 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.h,v 4.2 1997/10/15 15:53:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,6 +77,7 @@ extern void show_vnode(int, char **);
 extern void show_vnode(int, int, int);
 extern void show_vnode(int, int);
 extern void show_free(int, char **);
+extern void set_linkcount(int, char **);
 extern void PrintVnodeDiskObject(VnodeDiskObject *);
 
 /* norton-recov.c */

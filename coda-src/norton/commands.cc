@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/commands.cc,v 4.4 1997/12/23 17:19:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/commands.cc,v 4.5 1998/01/10 18:37:21 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,9 +41,6 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#ifdef	__MACH__
-#include <mach.h>
-#endif
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -99,7 +96,8 @@ command_t list_cmds[] = {
 };
 
 command_t set_cmds[] = {
-    { "debug",	set_debug,	0,	""},
+    { "linkcount",	set_linkcount,	0,	"Set linkcount in vnode (args: vol vnode uniq count)"},
+    { "debug",	set_debug,	0,	"Set debug level (args: level)"},
     { 0, 0, 0, ""}
 };
 
