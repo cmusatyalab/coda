@@ -178,6 +178,7 @@ static void daemonize(void)
 /* local-repair modification */
 int main(int argc, char **argv)
 {
+    int fd;
     coda_assert_action = CODA_ASSERT_SLEEP;
     coda_assert_cleanup = VFSUnmount;
 
@@ -187,6 +188,11 @@ int main(int argc, char **argv)
     /* open the console file and print vital info */
     freopen(consoleFile, "a+", stderr);
     eprint("Coda Venus, version " PACKAGE_VERSION);
+
+    /* close all other filedescriptors, we'll redirect stdin/stdout
+     * once we daemonize. */
+    for (fd = 3; fd < FD_SETSIZE; fd++)
+	close(fd);
     
     CdToCacheDir(); 
     CheckInitFile();
