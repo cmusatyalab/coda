@@ -170,7 +170,7 @@ if [ X$OS = XLinux -a ! -f /etc/debian_version ]; then
         echo >> $MODULES
 	echo '# old style and devfs style auto module loading'
         echo 'alias char-major-67 coda' >> $MODULES
-        echo 'alias /dev/coda*    coda' >> $MODULES
+        echo 'alias /dev/coda coda' >> $MODULES
     fi
     /sbin/depmod -a
 fi
