@@ -57,6 +57,7 @@ extern int global_kernfd;
 #endif
 
 /* interfaces */
+#include <user.h>
 #include <vice.h>
 #include <adv_skk.h>
 
@@ -506,7 +507,7 @@ class fsobj {
     void SetRcRights(int);
     void ClearRcRights();
     int IsValid(int);
-    void SetAcRights(uid_t, long my_rights, long any_rights);
+    void SetAcRights(uid_t uid, long my_rights, long any_rights);
     void DemoteAcRights(uid_t);
     void PromoteAcRights(uid_t);
     void ClearAcRights(uid_t);
@@ -665,7 +666,7 @@ class fsobj {
 
     /* Miscellaneous utility routines. */
     int dir_Lookup(char *, VenusFid *, int);
-    int CheckAcRights(uid_t, long rights, int connected);
+    int CheckAcRights(uid_t uid, long rights, int connected);
     void GetVattr(struct coda_vattr *);		/* translate attributes to VFS format */
     void GetFid(VenusFid *f) { *f = fid; }
     void ReturnEarly();

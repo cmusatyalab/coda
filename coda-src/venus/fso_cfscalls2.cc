@@ -334,7 +334,7 @@ int fsobj::Access(long rights, int modes, uid_t uid)
     LOG(10, ("fsobj::Access : (%s, %d, %d), uid = %d\n",
 	      GetComp(), rights, modes, uid));
 
-    int code = 0;
+    int code = 0, disconnected;
 
 #define PRSFS_MUTATE (PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)
     /* Disallow mutation of backup, rw-replica, and zombie volumes. */
@@ -428,24 +428,16 @@ int fsobj::Access(long rights, int modes, uid_t uid)
     /* No sense checking when there is no hope of success. */
     if (rights == 0) return(EACCES);
 
-    if (EMULATING(this) || (DIRTY(this) && LOGGING(this))) {
-	/* Don't insist on validity when disconnected. */
-	if ((code = CheckAcRights(uid, rights, 0)) != ENOENT)
-	    return(code);
-	return(EACCES);
-    }
-
-    /* XXX we might be 'RESOLVING(this)', what will happen then? -JH */
-    FSO_ASSERT(this, (HOARDING(this) || (LOGGING(this) && !DIRTY(this))));
-
-    /* !!! important point, this is where we map unauthenticated users to
-     * System:AnyUser !!! */
-    userent *ue = vol->realm->GetUser(uid);
-    uid_t CheckVuid = ue->GetUid();
-    PutUser(&ue);
-
-    if ((code = CheckAcRights(CheckVuid, rights, 1)) != ENOENT)
+    disconnected = EMULATING(this) || (DIRTY(this) && LOGGING(this));
+    code = CheckAcRights(uid, rights, !disconnected);
+    if (code != ENOENT)
 	return(code);
+
+    if (disconnected)
+	return EACCES;
+
+    /* XXX we might be 'RESOLVING', what will happen then? -JH */
+    FSO_ASSERT(this, (HOARDING(this) || (LOGGING(this) && !DIRTY(this))));
 
     /* We must re-fetch status; rights will be returned as a side-effect. */
     /* Promote the lock level if necessary. */
@@ -454,13 +446,16 @@ int fsobj::Access(long rights, int modes, uid_t uid)
 	if (level == RD) PromoteLock();
 	code = GetAttr(uid);
 	if (level == RD) DemoteLock();
+
+	/* In case we got disconnected during the getattr it returns ERETRY.
+	 * As a result we will repeat the operation (allowing the volume to
+	 * transition to disconnected state) but then the disconnected flag
+	 * will be set when checking access rights. */
 	if (code != 0) return(code);
     }
 
-    if ((code = CheckAcRights(CheckVuid, rights, 1)) != ENOENT)
-	return(code);
-
-    return(EACCES);
+    code = CheckAcRights(uid, rights, 1);
+    return (code == 0) ? 0 : EACCES;
 }
 
 

@@ -168,8 +168,10 @@ static int CheckRepair_CheckAccess(fsobj *fso, int rights,
 {
     vproc *vp = VprocSelf();
     char path[MAXPATHLEN];
+    int ret;
 
-    if (fso->CheckAcRights(vp->u.u_uid, rights, 0) == EACCES) {
+    ret = fso->CheckAcRights(vp->u.u_uid, rights, 0);
+    if (ret == EACCES) {
 	LOG(100, ("cmlent::CheckRepair: acl check failed\n"));
 	fso->GetPath(path, 1);
 	sprintf(msg, "conflict: acl check failure on parent %s", path);

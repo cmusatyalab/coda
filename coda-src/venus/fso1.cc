@@ -873,29 +873,44 @@ int fsobj::IsValid(int rcrights) {
 /* Returns {0, EACCES, ENOENT}. */
 int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
 {
-    if (uid != ANYUSER_UID) {
+    userent *ue = vol->realm->GetUser(uid);
+    long allowed;
+
+    if (ue != vol->realm->system_anyuser) {
+	CODA_ASSERT(uid == ue->GetUid());
 	/* Do we have this user's rights in the cache? */
 	for (int i = 0; i < CPSIZE; i++) {
 	    if (SpecificUser[i].inuse && (!connected || SpecificUser[i].valid)
-		&& uid == SpecificUser[i].uid)
-		return((rights & SpecificUser[i].rights) ? 0 : EACCES);
+		&& uid == SpecificUser[i].uid) {
+		allowed = SpecificUser[i].rights;
+		goto exit_found;
+	    }
 	}
     }
-    if (uid == ANYUSER_UID || !connected) {
+    if (ue == vol->realm->system_anyuser || !connected) {
 	/* Do we have access via System:AnyUser? */
-	if (AnyUser.inuse && (!connected || AnyUser.valid))
-	    return((rights & AnyUser.rights) ? 0 : EACCES);
+	if (AnyUser.inuse && (!connected || AnyUser.valid)) {
+	    allowed = AnyUser.rights;
+	    goto exit_found;
+	}
     }
+    PutUser(&ue);
 
     LOG(10, ("fsobj::CheckAcRights: not found, (%s), (%d, %d, %d)\n",
 	      FID_(&fid), uid, rights, connected));
     return(ENOENT);
+
+exit_found:
+    PutUser(&ue);
+    return (rights & allowed) ? 0 : EACCES;
 }
 
 
 /* MUST be called from within transaction! */
 void fsobj::SetAcRights(uid_t uid, long my_rights, long any_rights)
 {
+    userent *ue = vol->realm->GetUser(uid);
+
     LOG(100, ("fsobj::SetAcRights: (%s), uid = %d, my_rights = %d, any_rights = %d\n",
 	       FID_(&fid), uid, my_rights, any_rights));
 
@@ -907,10 +922,13 @@ void fsobj::SetAcRights(uid_t uid, long my_rights, long any_rights)
     AnyUser.valid = 1;
 
     /* Don't record my_rights if we're system_anyuser! */
-    userent *ue = vol->realm->GetUser(uid);
-    int is_anyuser = (ue == vol->realm->system_anyuser);
+    if (ue == vol->realm->system_anyuser) {
+	PutUser(&ue);
+	return;
+    }
+
+    CODA_ASSERT(uid == ue->GetUid());
     PutUser(&ue);
-    if (is_anyuser) return;
 
     int i;
     int j = -1;
