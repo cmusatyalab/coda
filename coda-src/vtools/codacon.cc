@@ -193,43 +193,28 @@ void CheckMariner(FILE *fp) {
 }
 
 
-void CheckTheMariner(char *buf) {
-    char *s;
+void CheckTheMariner(char *buf)
+{
+    char *string, *prefix = "";
 
-    if (strncmp(buf, "fetch::", 7) == 0) {
-	s = &(buf[7]);
-	char done[128];
-	if ((sscanf(s, "%*s %s", done) == 1) && strcmp(done, "done") == 0) {
-	    /* Nothing, yet. */
+    /* search for a :: separator between the prefix and the actual message */
+    string = strstr(buf, "::");
+    if (string) {
+	*string = '\0';
+	string += 2;
+	prefix = buf;
+    } else
+	string = buf;
+
+    /* Some prefixes we do not want to display if they contain ' done ' */
+    if (strcmp(prefix, "fetch") == 0 ||
+	strcmp(prefix, "store") == 0 ||
+	strcmp(prefix, "mond") == 0)
+    {
+	if (strstr(string, " done "))
 	    return;
-	}
-    }
-    else if (strncmp(buf, "store::", 7) == 0) {
-	s = &(buf[7]);
-	char done[128];
-	if ((sscanf(s, "%*s %s", done) == 1) && strcmp(done, "done") == 0) {
-	    /* Nothing, yet. */
-	    return;
-	}
-    }
-    else if (strncmp(buf, "callback::", 10) == 0) {
-	s = &(buf[10]);
-    }
-    else if (strncmp(buf, "cache::", 7) == 0) {
-	s = &(buf[7]);
-    }
-    else if (strncmp(buf, "mond::", 6) == 0) {
-	s = &(buf[6]);
-	char done[128];
-	if ((sscanf(s, "%*s %s", done) == 1) && strcmp(done, "done") == 0) {
-	    /* Nothing, yet. */
-	    return;
-	}
-    }
-    else {
-	s = &(buf[0]);
     }
 
-    printf(s);
+    printf(string);
     fflush(stdout);
 }
