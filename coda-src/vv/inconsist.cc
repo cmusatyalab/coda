@@ -250,7 +250,7 @@ int IsRunt(vv_t *v) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if ((&(v->Versions.Site0))[i])
 	    return(0);
-    if (v->StoreId.Host || v->StoreId.Uniquifier || v->Flags)
+    if (v->StoreId.Host || v->StoreId.Uniquifier || (v->Flags && !IsIncon(v)))
 	return(0);
     return(1);
 }

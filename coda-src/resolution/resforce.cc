@@ -352,7 +352,7 @@ long RS_GetForceDirOps(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *status,
        return(EINVAL);
     }
 
-    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 1, 0, 0))) {
+    if ((errorcode = GetFsObj(Fid, &volptr, &vptr, READ_LOCK, NO_LOCK, 0, 0, 0))) {
 	SLog(0,  "RS_GetForceDirOps:GetFsObj returns error %d",
 		errorcode);
 	errorcode = EINVAL;
