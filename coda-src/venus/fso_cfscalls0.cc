@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.16 1998/09/29 21:04:43 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls0.cc,v 4.17 98/10/04 21:58:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -586,7 +586,12 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 		 */
 		char VFlags[PIGGY_VALIDATIONS];
 		RPC2_CountedBS VFlagBS;
-		VFlagBS.SeqLen = 0;
+
+		/* Temporary quickfix:
+		 * Although we are not sending anything, we need to give
+		 * the server enough space to jot down the returnvalues.
+		 *  -JH */
+		VFlagBS.SeqLen = numPiggyFids;
 		VFlagBS.SeqBody = (RPC2_ByteSeq)VFlags;
 
 		ARG_MARSHALL_BS(IN_OUT_MODE, RPC2_CountedBS, VFlagvar, VFlagBS, VSG_MEMBERS, VENUS_MAXBSLEN);
