@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /* 
  * resutil.h
  */
@@ -152,36 +146,6 @@ struct ilink : public dlink {
     }
 };
 
-/* *********** respath class functions ************** */
-/* respath is used to pass info to the coordinator about 
-   the state of all vnodes on the path from the volume root
-*/
-struct respath : public olink {
-    long vnode;
-    long unique;
-    ViceVersionVector vv;
-    // ViceStoreId sid;	when directories have only store ids.
-    ResStatus st;
-
-    respath(long vn, long unq, ViceVersionVector *v, ResStatus *s) {
-	vnode = vn;
-	unique = unq;
-	vv = *v;
-	st = *s;
-    }
-
-    ~respath() {
-
-    }
-    int init(long vn, long unq, ViceVersionVector *v, ResStatus *s) {
-	vnode = vn;
-	unique = unq;
-	vv = *v;
-	st = *s;
-	return(0); /* keep C++ 3.0 happy */
-    }
-};
-
 extern void GetResStatus(unsigned long *, ResStatus **, ViceStatus *);
 extern void AllocStoreId(ViceStoreId *);
 extern long CheckRetCodes(unsigned long *, unsigned long *, unsigned long *);
@@ -206,6 +170,8 @@ extern int CreateResPhase2Objects(ViceFid *, dlist *, dlist *, Volume *,
 extern void GetRemoteRemoveStoreId(ViceStoreId *, olist *, unsigned long, ViceFid *, ViceFid *, char *);
 extern ViceStoreId *GetRemoteRemoveStoreId(olist *, unsigned long , ViceFid *, ViceFid *,  char*);
 extern int GetNameInParent(Vnode *, dlist *, Volume *, char *);
+
+void *Dir_n_ACL(struct Vnode *vn, int *size);
 
 /* declarations from rescoord.c */
 class res_mgrpent;

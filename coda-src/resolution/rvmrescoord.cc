@@ -437,11 +437,11 @@ static char *ConcatLogs(res_mgrpent *mgrp, char **bufs,
 }
 
 
-static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs, int logsize,
-			int totalentries, ViceVersionVector **VV, 
-			dlist *inclist, ResStatus **rstatusp, 
-			unsigned long *successFlags, int *dirlengths) {
-
+static int CoordPhase3(res_mgrpent *mgrp, ViceFid *Fid, char *AllLogs,
+		       int logsize, int totalentries, ViceVersionVector **VV,
+		       dlist *inclist, ResStatus **rstatusp,
+		       unsigned long *successFlags, int *dirlengths)
+{
     RPC2_BoundedBS PBinc;
     char buf[RESCOMM_MAXBSLEN];
     SE_Descriptor	sid;
@@ -567,12 +567,12 @@ static int CoordPhase4(res_mgrpent *mgrp, ViceFid *Fid,
     ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
     for (int i = 0; i < VSG_MEMBERS; i++)  {
 	if (dirlengths[i]) {
-	    dirbufs[i] = (char *)malloc(dirlengths[i]);
+	    int maxlen = dirlengths[i] + VAclSize(NULL) + 2 * sizeof(int);
+	    dirbufs[i] = (char *)malloc(maxlen);
 	    CODA_ASSERT(dirbufs[i]);
-	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = 
-		dirlengths[i];
-	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = 
-		dirlengths[i];
+	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = 0;
+	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen =
+		maxlen;
 	    sidvar_bufs[i].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = 
 		(RPC2_ByteSeq)dirbufs[i];
 	}

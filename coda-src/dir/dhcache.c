@@ -78,7 +78,6 @@ static void dc_Grow(int count)
 		ObtainWriteLock(&dlock); 
 		list_add(&pdce->dc_list, &dfreelist);
 		ReleaseWriteLock(&dlock);
-
 	}	
 }
 
@@ -245,16 +244,17 @@ void DC_SetCount(PDCEntry pdce, int count)
 PDCEntry DC_New()
 {
 	PDCEntry pdce;
-	ObtainWriteLock(&dlock); 
 
 	pdce = dc_GetFree();
 	pdce->dc_count = 1;
 	pdce->dc_pdi = NULL;
 	pdce->dc_refcount = 1;
 	DC_SetDirty(pdce, 1);
-	list_add(&pdce->dc_hash, &dnewlist);
 
+	ObtainWriteLock(&dlock); 
+	list_add(&pdce->dc_hash, &dnewlist);
 	ReleaseWriteLock(&dlock);
+
 	return pdce;
 }
 

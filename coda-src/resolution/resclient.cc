@@ -119,12 +119,13 @@ extern void UpdateVVs(ViceVersionVector *, ViceVersionVector *, ViceVersionVecto
 long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		     SE_Descriptor *sed) {
     PROBE(tpinfo, CPHASE3BEGIN);
-    Volume *volptr = 0;
+    Volume *volptr = NULL;
     dlist *vlist = new dlist((CFN) VLECmp);
     int ix = -1;
     long errorCode = 0;
-    vle *ov = 0;
-    vrent *vre = 0;
+    vle *ov = NULL;
+    vrent *vre = NULL;
+    void *buf = NULL;
     
     {
 	if (!XlateVid(&Fid->Volume)) {
@@ -193,11 +194,15 @@ long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     
     /* return contents of directory in a buffer for coordinator to compare */
     {
-	PDirHandle dh;
-	int size = 0;
-	dh = VN_SetDirHandle(ov->vptr);
-	SLog(9,  "RS_InstallVV: Shipping dir contents ");
 	SE_Descriptor sid;
+	int size;
+
+	SLog(9,  "RS_InstallVV: Shipping dir contents ");
+
+	/* Get directory contents */
+	buf = Dir_n_ACL(ov->vptr, &size);
+
+	/* And ship it back to the coordinator */
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -206,31 +211,29 @@ long RS_InstallVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	sid.Value.SmartFTPD.Tag = FILEINVM;
 	sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = size;
 	sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = size;
-	sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = 
-		(RPC2_ByteSeq)DH_Data(dh);
+	sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = (RPC2_ByteSeq)buf;
 	
-	if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) 
-	   <= RPC2_ELIMIT) {
-		SLog(0,  
-		       "RS_InstallVV:  InitSE failed (%d)", errorCode);
-		VN_PutDirHandle(ov->vptr);
+	if((errorCode = RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT)
+	{
+		SLog(0, "RS_InstallVV:  InitSE failed (%d)", errorCode);
 		goto Exit;
 	}
 	
-	if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) 
-	    <= RPC2_ELIMIT) {
-		SLog(0,  
-		       "RS_InstallVV: CheckSE failed (%d)", errorCode);
+	if ((errorCode = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT)
+	{
+		SLog(0, "RS_InstallVV: CheckSE failed (%d)", errorCode);
 		if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
-		VN_PutDirHandle(ov->vptr);
 		goto Exit;
 	}
-	VN_PutDirHandle(ov->vptr);
     }
+
   Exit:
+    if (buf) free(buf);
+
     PutObjects((int)errorCode, volptr, NO_LOCK, vlist, 0, 1);
     SLog(9,  "InstallVV returns %d", errorCode);
     PROBE(tpinfo, CPHASE3END);
+
     return(errorCode);
 }
 

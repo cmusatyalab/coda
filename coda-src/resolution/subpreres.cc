@@ -16,10 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
@@ -73,8 +69,7 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
     Volume *volptr = 0;
     Vnode *vptr = 0;
     int errorcode = 0;
-    char *buf = NULL;
-    PDirHandle dh;
+    void *buf = NULL;
     int size = 0;
     rvm_return_t camstatus = RVM_SUCCESS;
     SE_Descriptor sid;
@@ -95,40 +90,9 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
 		goto Exit;
     }
 
-    /* dump directory contents in a buffer */
-    {
-	size = 0;
-	dh = VN_SetDirHandle(vptr);
-	buf = (char *)malloc(vptr->disk.length + VAclSize(vptr) + 
-			     (2 * sizeof(int))/* for quota */);
-	CODA_ASSERT(buf);
-	bcopy((const void *)DH_Data(dh), buf, vptr->disk.length);
-	VN_PutDirHandle(vptr);
-        size = vptr->disk.length;
-    }
+    /* Get the directory contents */
+    buf = Dir_n_ACL(vptr, &size);
 
-    /* dump the acl after the contents  */
-    {
-	AL_AccessList *aCL;
-	int aCLSize = 0;
-	SetAccessList(vptr, aCL, aCLSize);
-	bcopy((const void *)VVnodeACL(vptr), (void *)&buf[size], VAclSize(vptr));
-	bzero((void *)&buf[size + aCL->MySize - 1], aCLSize - aCL->MySize);
-	size += VAclSize(vptr);
-
-	SLog(9,"RS_FetchDirContents: dumpacl: aCL::MySize = %d aCL::TotalNoOfEntries = %d\n",
-	       aCL->MySize, aCL->TotalNoOfEntries);
-    }
-    /* dump the volume quota information into the buffer too 
-       for root directory */
-    if ((Fid->Vnode == 1) && (Fid->Unique == 1)) {
-	int tmp = htonl(V_maxquota(volptr));
-	bcopy((char *)&tmp, &buf[size], sizeof(int));
-	size += sizeof(int);
-	tmp = htonl(V_minquota(volptr));
-	bcopy((char *)&tmp, &buf[size], sizeof(int));
-	size += sizeof(int);
-    }
     /* ship the contents  */
     {
 	SLog(9, "RS_FetchDirContents: Shipping dir contents %s", FID_(Fid));
@@ -165,8 +129,8 @@ long RS_FetchDirContents(RPC2_Handle RPCid, ViceFid *Fid,
 	    SetStatus(vptr, status, 0, 0);
     }
   Exit:
-    if (buf) 
-	    free(buf);
+    if (buf) free(buf);
+
     rvmlib_begin_transaction(restore);
     SLog(9, "RS_FetchDirContents: Putting back vnode and volume for %s", FID_(Fid));
     if (vptr){

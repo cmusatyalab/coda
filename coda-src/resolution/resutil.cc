@@ -45,6 +45,7 @@ extern "C" {
 #include <codadir.h>
 #include <res.h>
 #include <vrdb.h>
+#include <volume.h>
 #include <lockqueue.h>
 
 #include "rescomm.h"
@@ -330,3 +331,54 @@ void GetResStatus(unsigned long *succflags, ResStatus **status_p,
 	}
     }
 }
+
+/* Combine the directory contents and the ACL in a single blob.
+ * Used during resolution to get the directory and ACL contents for
+ * RS_FetchDirContents and RS_InstallVV. Don't forget to `free(buf)'! */
+void *Dir_n_ACL(struct Vnode *vptr, int *size)
+{
+	char	      *buf, *ptr;
+	PDirHandle     dh;
+	AL_AccessList *acl;
+	int            dirsize, aclsize, quotasize = 0;
+
+	dh      = VN_SetDirHandle(vptr);
+	dirsize = DH_Length(dh);
+
+	acl     = VVnodeACL(vptr);
+	aclsize = VAclSize(vptr);
+
+	if (vptr->vnodeNumber == 1 && vptr->disk.uniquifier == 1)
+	    quotasize = 2 * sizeof(int);
+
+	ptr = buf = (char *)malloc(dirsize + aclsize + quotasize);
+	if (!buf) {
+	    *size = 0;
+	    return NULL;
+	}
+
+	/* copy directory data */
+	memcpy(ptr, DH_Data(dh), dirsize);
+	ptr += dirsize;
+
+	VN_PutDirHandle(vptr);
+
+	/* copy acl */
+	memset(ptr, 0, aclsize);
+	memcpy(ptr, acl, acl->MySize);
+	ptr += aclsize;
+	SLog(9,"Dir_n_ACL: acl->MySize = %d acl->TotalNoOfEntries = %d\n",
+	     acl->MySize, acl->TotalNoOfEntries);
+
+	/* copy volume quotas */
+	if (quotasize) {
+	    *((int *)ptr) = htonl(V_maxquota(vptr->volumePtr));
+	    ptr += sizeof(int);
+	    *((int *)ptr) = htonl(V_minquota(vptr->volumePtr));
+	}
+
+	*size = dirsize + aclsize + quotasize;
+
+	return (void *)buf;
+}
+

@@ -223,8 +223,7 @@ long RS_ShipLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
     }
     
     PROBE(tpinfo, RecovSubP3End);
-    SLog(0,  
-	   "RS_ShipLogs - returning %d", errorCode);
+    SLog(0, "RS_ShipLogs - returning %d", errorCode);
     return(errorCode);
 }
 
@@ -1469,8 +1468,7 @@ static int SetPhase3DirStatus(ViceStatus *status, ViceFid *Fid,
     // check if new vv is legal 
     int res = VV_Cmp_IgnoreInc(&Vnode_vv(ov->vptr), &DiffVV);
     if (res != VV_EQ && res != VV_SUB) {
-	SLog(0,  
-	       "SetPhase3DirStatus: 0x%x.%x VV's are in conflict",
+	SLog(0, "SetPhase3DirStatus: 0x%x.%x VV's are in conflict",
 	       ov->vptr->vnodeNumber, ov->vptr->disk.uniquifier);
 	CODA_ASSERT(0);
     }
