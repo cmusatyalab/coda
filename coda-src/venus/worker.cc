@@ -299,6 +299,21 @@ void VFSMount() {
 	    CODA_ASSERT(0);
 	}
     }
+    {
+	FILE *fd;
+	struct mntent *ent;
+	fd = setmntent("/etc/mtab", "r");
+	if ( fd > 0 ) { 
+	  while ((ent = getmntent(fd))) {
+	      if (strcmp(ent->mnt_fsname, "Coda") == 0 &&
+		  strcmp(ent->mnt_dir, venusRoot) == 0) {
+		  eprint("/coda already mounted");
+		  exit(-1);
+	      }
+	  }
+	  endmntent(fd);
+	}
+    }
     if ( fork() == 0 ) {
       int error;
       /* child only makes a system call and should not hang on to 

@@ -38,6 +38,8 @@ extern "C" {
 #include <stdlib.h>
 #include <fcntl.h>
 
+int mkpath (const char *name, mode_t mode);
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -49,11 +51,6 @@ extern "C" {
 #include "fso.h"
 #include "venus.private.h"
 
-/* Prototype */
-extern "C" {
-int mkpath (const char *name, mode_t mode);
-}
-
 /*  *****  CacheFile Members  *****  */
 
 /* Pre-allocation routine. */
@@ -61,8 +58,8 @@ int mkpath (const char *name, mode_t mode);
 CacheFile::CacheFile(int i) {
     /* Assume caller has done RVMLIB_REC_OBJECT! */
     /* RVMLIB_REC_OBJECT(*this); */
-    sprintf(name, "%x/%x%/%x/%x", (i>>24) & 0xff, (i>>16) & 0xff,
-	    			  (i>>8) & 0xff, i & 0xff);
+    sprintf(name, "%02X/%02X/%02X/%02X",
+	    (i>>24) & 0xff, (i>>16) & 0xff, (i>>8) & 0xff, i & 0xff);
     inode = (ino_t)-1;
     length = validdata = 0;
     refcnt = 1;
