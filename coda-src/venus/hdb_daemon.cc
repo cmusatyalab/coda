@@ -48,7 +48,7 @@ extern "C" {
 
 /*  *****  Private constants  *****  */
 
-static const int HDBDaemonInterval = 300;
+static const int HDBDaemonInterval = 5 * 60;
 static const int HdbWalkInterval = 10 * 60;
 static const int HDBDaemonStackSize = 65536;
 static const int HDBDaemonPriority = LWP_NORMAL_PRIORITY-1;

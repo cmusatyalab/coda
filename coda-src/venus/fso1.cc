@@ -766,7 +766,11 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating) {
 	    LOG(0, ("fsobj::StatusEq: (%s), Length %d != %d\n",
 		    FID_(&fid), stat.Length, vstat->Length));
     }
-    if (stat.DataVersion != vstat->DataVersion) {
+    /* DataVersion is a non-replicated value and different replicas may
+     * legitimately return different dataversions. On a replicated volume we
+     * use the VV, and shouldn't use the DataVersion at all. -JH
+     */
+    if (!flags.replicated && stat.DataVersion != vstat->DataVersion) {
 	eq = 0;
 	if (log)
 	    LOG(0, ("fsobj::StatusEq: (%s), DataVersion %d != %d\n",
