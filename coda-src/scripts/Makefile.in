@@ -28,7 +28,7 @@ include $(TOPDIR)/Makeconf
 VENUS-SCRIPTS = vutil volmunge venus-setup
 
 VOL-SCRIPTS	= createvol_rep purgevol purgevol_rep bldvldb.sh
-VICE-SCRIPTS	= startserver
+VICE-SCRIPTS	= startserver codastart
 REINIT-SCRIPTS	= partial-reinit.sh
 VICE-SETUP      = vice-setup vice-setup-rvm vice-setup-scm vice-setup-srvdir vice-setup-user vice-killvolumes vice-setup-ports
 

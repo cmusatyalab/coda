@@ -79,7 +79,7 @@ void timing_path::grow_storage() {
     tpe *tmparr = 0;
     if (maxentries){
 	tmparr = (tpe *)malloc(sizeof(tpe) * 2 * maxentries);
-	bcopy(arr, tmparr, sizeof(tpe) * maxentries);
+	bcopy((char *)arr, (char *)tmparr, sizeof(tpe) * maxentries);
 	maxentries += maxentries;
     }
     else {
