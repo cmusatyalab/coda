@@ -185,6 +185,26 @@ long FS_ViceGetStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
     return(errorCode);
 }
 
+static const char *GetROOTVOLUME(void)
+{
+    static char rootvolume[V_MAXVOLNAMELEN];
+    int fd, len;
+
+    fd = open(vice_sharedfile("db/ROOTVOLUME"), O_RDONLY);
+    if (fd < 0)
+	return NULL;
+
+    len = read(fd, rootvolume, V_MAXVOLNAMELEN-1);
+    close(fd);
+    if (len <= 0)
+	return NULL;
+
+    if (rootvolume[len-1] == '\n') len--;
+    rootvolume[len] = '\0';
+
+    return rootvolume;
+}
+
 /*
   ViceGetVolumeInfo: Used to get information about a particular volume
 */
@@ -195,6 +215,12 @@ long FS_ViceGetVolumeInfo(RPC2_Handle RPCid, RPC2_String VolName, VolumeInfo *In
     int	errorCode = 0;	    /* error code */
     vrent *vre;
     
+    if (VolName[0] == '\0' || (VolName[0] == '/' && VolName[1] == '\0')) {
+	const char *rootvol = GetROOTVOLUME();
+	if (rootvol)
+	    VolName = (RPC2_String)rootvol;
+    }
+
     vre = VRDB.find((char *)VolName);
     if (!vre) {
 	VolumeId Vid = strtol((char *)VolName, NULL, 0);
@@ -482,53 +508,23 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 #define DEFAULTVOLUME "/"
 /*
   ViceGetRootVolume: Return the name of the root volume
-  (corresponding to /coda)
+  (corresponding to /coda/<realm>/)
 */
 long FS_ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 {
-    int errorCode;		/* error code */
-    int fd;
-    int len;
-
-    errorCode = VNOVOL;
-    volume->SeqLen = 0;
-
     SLog(1, "ViceGetRootVolume");
 
-    fd = open(vice_sharedfile("db/ROOTVOLUME"), O_RDONLY, 0644);
-    if (fd >= 0) {
-	len = read(fd, volume->SeqBody, volume->MaxSeqLen-1);
-	close(fd);
-	if (len > 0) {
-	    if (volume->SeqBody[len-1] == '\n') len--;
-	    volume->SeqBody[len] = '\0';
-	    errorCode = 0;
-	}
+    if ((unsigned int)volume->MaxSeqLen <= strlen(DEFAULTVOLUME))
+    {
+	volume->SeqLen = 0;
+	SLog(1, "ViceGetRootVolume: not enough space in query");
+	return VNOVOL;
     }
 
-    if (errorCode == VNOVOL) {
-	len = strlen(DEFAULTVOLUME);
-	if (volume->MaxSeqLen > len) {
-	    strcpy((char *)volume->SeqBody, DEFAULTVOLUME);
-	    errorCode = 0;
-	}
-    }
+    strcpy((char *)volume->SeqBody, DEFAULTVOLUME);
+    volume->SeqLen = strlen(DEFAULTVOLUME) + 1;
 
-    if (!errorCode)
-	volume->SeqLen = len + 1;
-
-#if 0
-    /* almost right: sadly we need to check the VRDB instead */
-    if ( VLDBLookup(volume->SeqBody) == NULL ) {
-	SLog(0, "ViceGetRootVolume Volume = %s in ROOTVOLUME is bogus!",
-	     volume->SeqBody);
-	errorCode = VNOVOL;
-    }
-#endif
-    SLog(2, "ViceGetRootVolume returns %s, Volume = %s",
-	   ViceErrorMsg(errorCode), errorCode ? "unknown" : (char *)volume->SeqBody);
-
-    return(errorCode);
+    return 0;
 }
 
 
@@ -536,40 +532,53 @@ long FS_ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
   name of the new root volume */
 long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 {
-    long   errorCode;		/* error code */
+    long errorCode = 0;
     ClientEntry * client;	/* pointer to client entry */
-    int   fd;
+    int fd, rc, len;
 
-    errorCode = 0;
+    SLog(1,"ViceSetRootVolume to %s", (char *)volume);
 
-    SLog(1,"ViceSetRootVolume to %s",volume);
+    errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client);
+    if (errorCode != RPC2_SUCCESS)
+	goto exit;
 
-    if((errorCode = RPC2_GetPrivatePointer(RPCid, (char **)&client)) != RPC2_SUCCESS)
-	goto Final;
-
-    if(!client) {
+    if (!client) {
 	errorCode = EFAULT;
 	SLog(0, "Client pointer is zero in SetRootVolume");
-	goto Final;
+	goto exit;
     }
 
-    if(SystemUser(client)) {
+    if(!SystemUser(client)) {
 	errorCode = EACCES;
-	goto Final;
+	goto exit;
     }
 
-    fd = open(vice_sharedfile("db/ROOTVOLUME"), O_WRONLY+O_CREAT+O_TRUNC, 0666);
-    CODA_ASSERT(fd > 0);
-    myflock(fd,MYFLOCK_EX,MYFLOCK_BL);
-    write(fd, volume, (int) strlen((char *)volume));
-    fsync(fd);
-    myflock(fd,MYFLOCK_UN,MYFLOCK_BL);
+    fd = open(vice_sharedfile("db/ROOTVOLUME.new"), O_WRONLY|O_CREAT|O_EXCL, 0644);
+    if (fd < 0) {
+	errorCode = errno;
+	SLog(0, "SetRootVolume failed to open ROOTVOLUME.new");
+	goto exit;
+    }
+
+    len = strlen((char *)volume);
+    rc = write(fd, (char *)volume, len);
     close(fd);
+    if (rc != len) {
+	errorCode = ENOSPC;
+	SLog(0, "SetRootVolume failed to write ROOTVOLUME.new");
+	goto exit;
+    }
 
- Final:
+    rc = rename(vice_sharedfile("db/ROOTVOLUME.new"),
+		vice_sharedfile("db/ROOTVOLUME"));
+    if (rc == -1) {
+	errorCode = errno;
+	SLog(0, "SetRootVolume failed to rename ROOTVOLUME.new");
+    }
 
-    SLog (2, "ViceSetRootVolume returns %s", ViceErrorMsg((int) errorCode));
-    return(errorCode);
+exit:
+    SLog (2, "ViceSetRootVolume returns %s", ViceErrorMsg(errorCode));
+    return errorCode;
 }
 
 
