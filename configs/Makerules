@@ -246,7 +246,7 @@ realclean:
 xtraclean:
 
 distclean: clean
-	-$(RM) -r include autom4te.cache
+	-$(RM) -r include
 	-$(RM) config.cache config.log config.status
 	-$(RM) Makeconf.setup `find . -name "Makefile" | grep -v linux`
 	-$(RM) config.h coda_config.h
