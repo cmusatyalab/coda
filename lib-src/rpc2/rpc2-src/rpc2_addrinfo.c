@@ -210,6 +210,10 @@ struct RPC2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
     } else /* no host specified, I guess we're resolving for a listener */
 	hint.ai_flags = AI_PASSIVE;
 
+    /* getaddrinfo doesn't allow both to be NULL */
+    if (!node && !service)
+	service = "0";
+
     retval = RPC2_getaddrinfo(node, service, &hint, &result);
     if (retval) {
 	say(0, RPC2_DebugLevel, "rpc2_resolve: getaddrinfo failed\n");

@@ -640,7 +640,7 @@ void rpc2_DeleteMgrp(me)
 
     /* Call side-effect routine if appropriate; ignore result */
     if (me->SEProcs != NULL && me->SEProcs->SE_DeleteMgrp != NULL)  /* ignore result */
-	(*me->SEProcs->SE_DeleteMgrp)(me->MgroupID, &me->ClientAddr, (TestRole(me, SERVER) ? SERVER : CLIENT));
+	(*me->SEProcs->SE_DeleteMgrp)(me->MgroupID, me->ClientAddr, (TestRole(me, SERVER) ? SERVER : CLIENT));
 
     rpc2_FreeMgrp(me);
     }
