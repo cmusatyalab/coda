@@ -269,7 +269,7 @@ void MarinerReport(VenusFid *fid, vuid_t vuid) {
 	if (m->reporting && (m->vuid == ALL_UIDS || m->vuid == vuid)) {
 	    if (first) {
 		m->u.Init();
-		m->u.u_cred.cr_uid = (uid_t)vuid;
+		m->u.u_uid = vuid;
 		len = MAXPATHLEN;
 		m->GetPath(fid, buf, &len);
 		if (m->u.u_error == 0) {
@@ -555,8 +555,7 @@ void mariner::main(void)
 void mariner::PathStat(char *path) {
     /* Map pathname to fid. */
     u.Init();
-    u.u_cred.cr_uid = (uid_t)V_UID;
-    u.u_cred.cr_groupid = (vgid_t)V_GID;
+    u.u_uid = V_UID;
     u.u_priority = 0;
     u.u_cdir = rootfid;
     u.u_nc = 0;
@@ -577,8 +576,7 @@ void mariner::PathStat(char *path) {
 void mariner::FidStat(VenusFid *fid) {
     /* Set up context. */
     u.Init();
-    u.u_cred.cr_uid = (uid_t)V_UID;
-    u.u_cred.cr_groupid = (vgid_t)V_GID;
+    u.u_uid = V_UID;
     u.u_priority = FSDB->MaxPri();
 
     fsobj *f = 0;
@@ -589,8 +587,7 @@ void mariner::FidStat(VenusFid *fid) {
 	    break;
 	}
 
-	u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS,
-			      NULL, NULL, 1);
+	u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS, NULL, NULL, 1);
 	if (u.u_error) {
 	    Write("fsdb::Get(%s) failed (%d)\n", FID_(fid), u.u_error);
 	    goto FreeLocks;

@@ -441,7 +441,7 @@ int repvol::ValidateFSOs()
 		  FID_(&f->fid), whatToGet, f->stat.Length));
 
 	fsobj *tf = 0;
-	code = FSDB->Get(&tf, &f->fid, CRTORUID(vp->u.u_cred), whatToGet);
+	code = FSDB->Get(&tf, &f->fid, vp->u.u_uid, whatToGet);
 	FSDB->Put(&tf);
 
 	LOG(100, ("volent::ValidateFSOs: vget returns %s\n", VenusRetStr(code)));

@@ -640,8 +640,8 @@ class volent {
     /* Volume synchronization. */
     void hold();
     void release();
-    int Enter(int, vuid_t);
-    void Exit(int, vuid_t);
+    int Enter(int, uid_t);
+    void Exit(int, uid_t);
     void TakeTransition();
     int TransitionPending() { return flags.transition_pending; }
     void Wait();

@@ -134,7 +134,7 @@ class namectxt;
 class volent;
 struct uarea {
     int	u_error;		/* implicit return code */
-    struct coda_cred u_cred;	/* implicit user identifier */
+    uid_t u_uid;		/* implicit user identifier */
     int	u_priority;		/* to be used in resource requests */
     VenusFid u_cdir;		/* for name lookup */
     int	u_flags;		/*  "	" */
@@ -305,36 +305,6 @@ extern int VprocInterrupted();
 extern void va_init(struct coda_vattr *);
 extern long FidToNodeid(VenusFid *);
 
-/* Explanation: 
-   CRTOEUID is only used by HDBD_Request (hdb_deamon.cc)
-   and allows root to always make hoard requests
-  
-   For all filesystem use CRTORUID is used: for Linux we definitely want to 
-   fsuid to be used for filesystem access.  This however breaks the old AFS
-   semantics that if an "su" is performed you retain tokens.
-
-   To make things more complicated, reintegration and resolve (which
-   is in fact repair :) ) use the coda_cred's directly. 
-   XXXXX Let's straighten this out. (pjb/jh)
-
-
-*/
-
-#ifdef __linux__
-
-#define	CRTOEUID(cred)	((vuid_t)((cred).cr_fsuid))
-#define	CRTORUID(cred)	((vuid_t)((cred).cr_fsuid))
-#else
-
-/* XXX BSD needs to think through what they want!!!! 
-   The current behaviour has "AFS semantics" but allows no
-   fileserver to access Coda (since since it will come in with 
-   ruid 0 (at least for samba, nfs etc). */
-
-#define	CRTOEUID(cred)	((vuid_t)((cred).cr_uid))
-#define	CRTORUID(cred)	((vuid_t)((cred).cr_uid))
-#endif
-
 #define	FTTOVT(ft)	((ft) == (int)File ? C_VREG :\
 			 (ft) == (int)Directory ? C_VDIR :\
 			 (ft) == (int)SymbolicLink ? C_VLNK :\
@@ -391,3 +361,4 @@ struct venus_cnode {
 #define VA_IGNORE_FLAGS		((u_long) -1)
 
 #endif /* _VENUS_PROC_H_ */
+

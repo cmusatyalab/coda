@@ -671,9 +671,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 
 	/* Set up uarea. */
 	vp->u.Init();
-	vp->u.u_cred.cr_uid = vp->u.u_cred.cr_euid =
-	    vp->u.u_cred.cr_fsuid = (uid_t)f->HoardVuid;
-	vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
+	vp->u.u_uid = f->HoardVuid;
 	vp->u.u_priority = f->priority;
 
 	/* Perform a vget(). */
@@ -685,7 +683,7 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	    if (vp->u.u_error) break;
 
 	    fsobj *tf = 0;
-	    vp->u.u_error = FSDB->Get(&tf, &tfid, CRTORUID(vp->u.u_cred), RC_STATUS);
+	    vp->u.u_error = FSDB->Get(&tf, &tfid, vp->u.u_uid, RC_STATUS);
 
 	    if (tf)
 	        statusBytesFetched += tf->stat.Length;
@@ -996,9 +994,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 
 	    /* Set up uarea. */
 	    vp->u.Init();
-	    vp->u.u_cred.cr_uid = vp->u.u_cred.cr_euid =
-		vp->u.u_cred.cr_fsuid = (uid_t)f->HoardVuid;
-	    vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
+	    vp->u.u_uid = f->HoardVuid;
 	    vp->u.u_priority = f->priority;
 	    
 	    /* Prefetch the object.  This is like vproc::vget(), only we want the data. */
@@ -1010,8 +1006,7 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 		if (vp->u.u_error) break;
 
 		fsobj *tf = 0;
-		vp->u.u_error = FSDB->Get(&tf, &tfid,
-					  CRTORUID(vp->u.u_cred), RC_DATA);
+		vp->u.u_error = FSDB->Get(&tf, &tfid, vp->u.u_uid, RC_DATA);
 		FSDB->Put(&tf);
 		int retry_call = 0;
 		vp->End_VFS(&retry_call);
@@ -2002,9 +1997,7 @@ pestate namectxt::CheckExpansion() {
     for (iterations = 0; iterations < MAX_CE_ITERATIONS; iterations++) {
 	/* Set up uarea. */
 	vp->u.Init();
-	vp->u.u_cred.cr_uid = vp->u.u_cred.cr_euid =
-	    vp->u.u_cred.cr_fsuid = (uid_t)vuid;
-	vp->u.u_cred.cr_groupid = (vgid_t)V_GID;
+	vp->u.u_uid = vuid;
 	vp->u.u_priority = FSDB->MakePri(0, priority);
 	vp->u.u_cdir = cdir;
 	vp->u.u_nc = this;
@@ -2310,8 +2303,7 @@ void namectxt::MetaExpand() {
 		if (vp->u.u_error) break;
 
 		fsobj *tf = 0;
-		vp->u.u_error = FSDB->Get(&tf, &tfid,
-					  CRTORUID(vp->u.u_cred), RC_DATA);
+		vp->u.u_error = FSDB->Get(&tf, &tfid, vp->u.u_uid, RC_DATA);
 		FSDB->Put(&tf);
 		int retry_call = 0;
 		vp->End_VFS(&retry_call);

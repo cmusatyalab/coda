@@ -760,7 +760,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 	/* map local fid into its global counterpart and find the global object */
 	VenusFid  *GFid;
 	OBJ_ASSERT(this, GFid = LGM_LookupGlobal(fid));
-	rcode = FSDB->Get(global, GFid, CRTORUID(vp->u.u_cred), RC_DATA, 0, &gcode);
+	rcode = FSDB->Get(global, GFid, vp->u.u_uid, RC_DATA, 0, &gcode);
 	if (rcode == 0) {
 	    LOG(100, ("lrdb::FindRepairObject: found global fsobj for %s\n",
 		      FID_(GFid)));
@@ -779,7 +779,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
     } else {
 	*local = (fsobj *)NULL;	 	/* fid is global, so local object must be NULL */
 	*global = (fsobj *)NULL;	/* initialized global object */
-	rcode = FSDB->Get(global, fid, CRTORUID(vp->u.u_cred), RC_DATA, 0 , &gcode);
+	rcode = FSDB->Get(global, fid, vp->u.u_uid, RC_DATA, 0 , &gcode);
 	if (rcode == 0) {
 	    LOG(100, ("lrdb::FindRepairObject: found global fsobj for %s\n",
 		      FID_(fid)));
@@ -808,7 +808,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 	PFid = &OBJ->pfid;
 	OBJ_ASSERT(this, !FID_EQ(PFid, &NullFid));
 	gcode = 0;
-	rcode = FSDB->Get(&parent, PFid, CRTORUID(vp->u.u_cred), RC_DATA, 0 , &gcode);
+	rcode = FSDB->Get(&parent, PFid, vp->u.u_uid, RC_DATA, 0 , &gcode);
 	if (rcode == 0) {
 	    parent->UnLock(RD);		/* unlock read-locked parent */
 	    /* even if rcode is zero, gcode may still be EINCONS because of succeeded fakeification */
@@ -831,7 +831,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 	PFid = &OBJ->pfid;
 	OBJ_ASSERT(this, !FID_EQ(PFid, &NullFid));
 	gcode = 0;
-	rcode = FSDB->Get(&parent, PFid, CRTORUID(vp->u.u_cred), RC_DATA, 0, &gcode);
+	rcode = FSDB->Get(&parent, PFid, vp->u.u_uid, RC_DATA, 0, &gcode);
 	if (rcode == 0) {
 	    parent->UnLock(RD);		/* unlock read-locked parent */
 	    /* even if rcode is zero, gcode may still be EINCONS because of succeeded fakeification */
@@ -910,7 +910,7 @@ fsobj *lrdb::GetGlobalParentObj(VenusFid *GlobalChildFid)
 	      FID_(GlobalParentFid)));
     fsobj *GlobalParentObj;
     vproc *vp = VprocSelf();
-    if (FSDB->Get(&GlobalParentObj, GlobalParentFid, CRTORUID(vp->u.u_cred), RC_DATA) != 0) {
+    if (FSDB->Get(&GlobalParentObj, GlobalParentFid, vp->u.u_uid, RC_DATA) != 0) {
 	LOG(100, ("lrdb::GetGlobalParentObj: can not FSDB::Get global parent\n"));
 	return (fsobj *)NULL;
     } else {
@@ -992,7 +992,7 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 	    /* check global root object */
 	    vproc *vp = VprocSelf();
 	    fsobj *GlobalRootObj = (fsobj *)NULL;
-	    if (FSDB->Get(&GlobalRootObj, GlobalRootFid, CRTORUID(vp->u.u_cred), RC_DATA, "global") != 0) {
+	    if (FSDB->Get(&GlobalRootObj, GlobalRootFid, vp->u.u_uid, RC_DATA, "global") != 0) {
 		LOG(100, ("lrdb::SetSubtreeView: can't get data-valid global root object\n"));
 		sprintf(msg, "%s failed", msg);
 		continue;
@@ -1003,12 +1003,12 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 	    /* check global child object */
 	    fsobj *child = (fsobj *)NULL;
 	    VenusFid dummy;
-	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "global", CRTORUID(vp->u.u_cred), CLU_CASE_SENSITIVE) == 0);
+	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "global", vp->u.u_uid, CLU_CASE_SENSITIVE) == 0);
 	    child->UnLock(RD);
 
 	    /* check local child object */
 	    child = (fsobj *)NULL;
-	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "local", CRTORUID(vp->u.u_cred), CLU_CASE_SENSITIVE) == 0);
+	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "local", vp->u.u_uid, CLU_CASE_SENSITIVE) == 0);
 	    child->UnLock(RD);
 	}
 

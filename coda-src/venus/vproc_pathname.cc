@@ -319,7 +319,7 @@ void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath)
 	if (u.u_error) goto Exit;
 
 	/* Initialize the "prev" and "current" fids to the target object and its parent, respectively. */
-	u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
+	u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS);
 	if (u.u_error) goto FreeLocks;
 	if (FID_IsVolRoot(&f->fid)) {
 	    fsobj *newf = f->u.mtpoint;
@@ -338,7 +338,7 @@ void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath)
 
 	for (;;) {
 	    /* Get the current object. */
-	    u.u_error = FSDB->Get(&f, &currFid, CRTORUID(u.u_cred), RC_DATA);
+	    u.u_error = FSDB->Get(&f, &currFid, u.u_uid, RC_DATA);
 	    if (u.u_error) goto FreeLocks;
 
 	    /* Lookup the name of the previous component. */

@@ -997,11 +997,11 @@ int volent::IsReadWriteReplica()
 #define	VOLBUSY(vol)\
     ((vol)->resolver_count > 0 || (vol)->mutator_count > 0 || (vol)->observer_count > 0)
 /* MUST NOT be called from within transaction! */
-int volent::Enter(int mode, vuid_t vuid)
+int volent::Enter(int mode, uid_t uid)
 {
-    LOG(1000, ("volent::Enter: vol = %x, state = %s, t_p = %d, d_p = %d, mode = %s, vuid = %d\n",
+    LOG(1000, ("volent::Enter: vol = %x, state = %s, t_p = %d, d_p = %d, mode = %s\n",
 		vid, PRINT_VOLSTATE(state), flags.transition_pending,
-		flags.demotion_pending, PRINT_VOLMODE(mode), vuid));
+		flags.demotion_pending, PRINT_VOLMODE(mode)));
 
     int just_transitioned = 0;
     /*  Step 1 is to demote objects in volume if AVSG enlargement or
@@ -1051,7 +1051,7 @@ int volent::Enter(int mode, vuid_t vuid)
             (rv->HaveStamp() && (vp->type != VPT_VolDaemon || !just_transitioned)))
         {
             // we already checked if this volume is replicated
-	    int code = rv->GetVolAttr(vuid);
+	    int code = rv->GetVolAttr(uid);
 	    LOG(100, ("volent::Enter: GetVolAttr(0x%x) returns %s\n",
 		      vid, VenusRetStr(code)));
         }
@@ -1100,7 +1100,7 @@ int volent::Enter(int mode, vuid_t vuid)
 			    { print(logFile); CHOKE("volent::Enter: mutating, CML owner == %d\n", rv->GetCML()->Owner()); }
 
 			mutator_count++;
-			rv->GetCML()->owner = vuid;
+			rv->GetCML()->owner = uid;
 			shrd_count++;
 			ObtainReadLock(&rv->CML_lock);
 			return(0);
@@ -1109,7 +1109,7 @@ int volent::Enter(int mode, vuid_t vuid)
 		    /* Continue using the volume if possible. */
 		    /* We might need to do something about fairness here
 		     * eventually! -JJK */
-		    if (rv->GetCML()->Owner() == vuid) {
+		    if (rv->GetCML()->Owner() == uid) {
                         if (mutator_count == 0 && rv->GetCML()->count() == 0 &&
                             !rv->IsReintegrating())
 			    { print(logFile); CHOKE("volent::Enter: mutating, CML owner == %d\n", rv->GetCML()->Owner()); }
@@ -1194,11 +1194,11 @@ int volent::Enter(int mode, vuid_t vuid)
 
 /* local-repair modification */
 /* MUST NOT be called from within transaction! */
-void volent::Exit(int mode, vuid_t vuid)
+void volent::Exit(int mode, uid_t uid)
 {
-    LOG(1000, ("volent::Exit: vol = %x, state = %s, t_p = %d, d_p = %d, mode = %s, vuid = %d\n",
+    LOG(1000, ("volent::Exit: vol = %x, state = %s, t_p = %d, d_p = %d, mode = %s\n",
 		vid, PRINT_VOLSTATE(state), flags.transition_pending,
-		flags.demotion_pending, PRINT_VOLMODE(mode), vuid));
+		flags.demotion_pending, PRINT_VOLMODE(mode)));
 
     /* 
      * Step 1 is to demote objects in volume if AVSG enlargement or shrinking

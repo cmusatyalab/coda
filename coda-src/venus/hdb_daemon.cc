@@ -136,14 +136,12 @@ LOG(0, ("HDBDaemon just woke up\n"));
 }
 
 
-int HDBD_Request(hdbd_request type, void *request, struct uarea *u) {
+int HDBD_Request(hdbd_request type, void *request, struct uarea *u)
+{
     /* Ensure request was issued by "locally authoritative" entity. */
-    vuid_t euid = CRTOEUID(u->u_cred);
-    vuid_t ruid = CRTORUID(u->u_cred);
-
-    if (euid != V_UID && !AuthorizedUser(ruid)) {
-	LOG(0, ("HDBD_Request (%s): <%d, %d> Not an authorized user\n",
-		PRINT_HDBDREQTYPE(type), euid, ruid));
+    if (!AuthorizedUser(u->u_uid)) {
+	LOG(0, ("HDBD_Request (%s): <%d> Not an authorized user\n",
+		PRINT_HDBDREQTYPE(type), u->u_uid));
 	return(EACCES);
     }
 
@@ -153,9 +151,7 @@ int HDBD_Request(hdbd_request type, void *request, struct uarea *u) {
     m.request  = request;
     m.result   = 0;
 
-    /* We use ruid, so that hoarding can be allowed to everybody by
-     * making the hoard application setuid root */
-    m.local_id = ruid;
+    m.local_id = u->u_uid;
 
     /* Send it, and wait for reply. */
     hdbd_msgq.append(&m);

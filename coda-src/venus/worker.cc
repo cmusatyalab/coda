@@ -647,12 +647,13 @@ int k_Purge(VenusFid *fid, int severely) {
 }
 
 
-int k_Purge(vuid_t vuid) {
+int k_Purge(uid_t uid)
+{
     size_t size;
 
     if (KernelMask == 0) return(1);
 
-    LOG(1, ("k_Purge: vuid = %d\n", vuid));
+    LOG(1, ("k_Purge: uid = %d\n", uid));
 
     /* Message prefix. */
     union outputArgs msg;
@@ -660,8 +661,7 @@ int k_Purge(vuid_t vuid) {
     msg.coda_purgeuser.oh.opcode = CODA_PURGEUSER;
 
     /* Message data. */
-    memset(&msg.coda_purgeuser.cred, 0, sizeof(struct coda_cred));
-    msg.coda_purgeuser.cred.cr_uid = vuid;
+    msg.coda_purgeuser.uid = uid;
     size = sizeof(msg.coda_purgeuser);
 
     /* Send the message. */
@@ -1121,7 +1121,7 @@ void worker::main(void)
 	u.u_flags = (FOLLOW_SYMLINKS | TRAVERSE_MTPTS | REFERENCE);
 
 	/* GOTTA BE ME */
-	u.u_cred = (in)->ih.cred;
+	u.u_uid  = (in)->ih.uid;
 	u.u_pid  = (in)->ih.pid;
 	u.u_pgid = (in)->ih.pgid;
 
@@ -1278,7 +1278,7 @@ void worker::main(void)
 		open(&vtarget, in->coda_open.flags);
 		
 		if (u.u_error == 0) {
-		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
+		    MarinerReport(&vtarget.c_fid, u.u_uid);
 
 		    out->coda_open.dev = vtarget.c_device;
 		    out->coda_open.inode = vtarget.c_inode;
@@ -1300,7 +1300,7 @@ void worker::main(void)
 		
                 openfd = -1;
 		if (u.u_error == 0) {
-		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
+		    MarinerReport(&vtarget.c_fid, u.u_uid);
 
 		    openfd = ::open(vtarget.c_cfname, O_RDWR|O_BINARY, V_MODE);
 		    out->coda_open_by_fd.fd = openfd;
@@ -1326,7 +1326,7 @@ void worker::main(void)
 		open(&vtarget, in->coda_open_by_path.flags);
 		
 		if (u.u_error == 0) {
-		    MarinerReport(&vtarget.c_fid, CRTORUID(u.u_cred));
+		    MarinerReport(&vtarget.c_fid, u.u_uid);
 
                     char *begin = (char *)(&out->coda_open_by_path.path + 1);
                     out->coda_open_by_path.path = begin - (char *)out;
@@ -1357,7 +1357,7 @@ void worker::main(void)
 		readlink(&vtarget, &string);
 
 		if (u.u_error == 0)
-		    MarinerReport(&(vtarget.c_fid), CRTORUID(u.u_cred));
+		    MarinerReport(&(vtarget.c_fid), u.u_uid);
 
 		out->coda_readlink.count = string.cs_len;
 		/* readlink.data is an offset, with the wrong type .. sorry */

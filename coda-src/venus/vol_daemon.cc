@@ -296,12 +296,11 @@ void vdb::AutoRequestWBPermit()
     repvol_iterator next;
     repvol *v;
     vproc *vp = VprocSelf();
-    vuid_t vuid = CRTORUID(vp->u.u_cred); 
     /* XXX SSS replace this with something useful */
 
     while ((v = next()))
 	if (v->flags.autowriteback && !v->flags.writebacking)
-	    v->EnterWriteback(vuid);
+	    v->EnterWriteback(vp->u.u_uid);
 }
 
 

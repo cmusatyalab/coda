@@ -555,7 +555,7 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
 	 (u.u_pgid != ((repvol *)u.u_vol)->asr_id())))
       u.u_error = EAGAIN;
     else /* Attempt to enter the volume. */
-      u.u_error = u.u_vol->Enter(u.u_volmode, CRTORUID(u.u_cred));
+      u.u_error = u.u_vol->Enter(u.u_volmode, u.u_uid);
 
     if (u.u_error) VDB->Put(&u.u_vol);
 }
@@ -571,7 +571,7 @@ void vproc::End_VFS(int *retryp) {
 
     /* Exit the volume. */
     if (u.u_vol == 0) goto Exit;
-    u.u_vol->Exit(u.u_volmode, CRTORUID(u.u_cred));
+    u.u_vol->Exit(u.u_volmode, u.u_uid);
 
     /* Handle synchronous resolves. */
     if (u.u_error == ESYNRESOLVE) {
@@ -650,7 +650,7 @@ void vproc::End_VFS(int *retryp) {
 	    /* Check whether user wants to wait on blocking events. */
 	    {
 	    userent *ue;
-	    GetUser(&ue, u.u_vol->realm, CRTORUID(u.u_cred));
+	    GetUser(&ue, u.u_vol->realm, u.u_uid);
 	    int waitforever = ue->GetWaitForever();
 	    PutUser(&ue);
 	    if (!waitforever) goto Exit;

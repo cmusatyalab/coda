@@ -550,7 +550,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
 	/* Preserve the user context. */
 	struct uarea saved_ctxt = vp->u;
 	vp->u.Init();
-	vp->u.u_cred = saved_ctxt.u_cred;
+	vp->u.u_uid = saved_ctxt.u_uid;
 	vp->u.u_priority = saved_ctxt.u_priority;
 	vp->u.u_flags = saved_ctxt.u_flags;
 	vp->u.u_pid = saved_ctxt.u_pid;

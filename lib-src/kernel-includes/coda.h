@@ -222,20 +222,6 @@ static __inline__ ino_t coda_f2i(CodaFid *fid)
 }
 	
 
-#ifndef _VUID_T_
-#define _VUID_T_
-typedef u_int32_t vuid_t;
-typedef u_int32_t vgid_t;
-#endif /*_VUID_T_ */
-
-#ifndef _CODACRED_T_
-#define _CODACRED_T_
-struct coda_cred {
-    vuid_t cr_uid, cr_euid, cr_suid, cr_fsuid; /* Real, efftve, set, fs uid*/
-    vgid_t cr_groupid,     cr_egid, cr_sgid, cr_fsgid; /* same for groups */
-};
-#endif 
-
 #ifndef _VENUS_VATTR_T_
 #define _VENUS_VATTR_T_
 /*
@@ -247,8 +233,8 @@ struct coda_vattr {
 	long     	va_type;	/* vnode type (for create) */
 	u_short		va_mode;	/* files access mode and type */
 	short		va_nlink;	/* number of references to file */
-	vuid_t		va_uid;		/* owner user id */
-	vgid_t		va_gid;		/* owner group id */
+	uid_t		va_uid;		/* owner user id */
+	gid_t		va_gid;		/* owner group id */
 	long		va_fileid;	/* file id */
 	u_quad_t	va_size;	/* file size in bytes */
 	long		va_blocksize;	/* blocksize preferred for i/o */
@@ -326,32 +312,19 @@ struct coda_statfs {
 /*
  *        Venus <-> Coda  RPC arguments
  */
-#ifndef sun
 struct coda_in_hdr {
-    unsigned long opcode;
-    unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
-    u_short pid;		    /* Common to all */
-    u_short pgid;		    /* Common to all */
-    u_short sid;                    /* Common to all */
-    struct coda_cred cred;	    /* Common to all */
+    u_int32_t opcode;
+    u_int32_t unique;	    /* Keep multiple outstanding msgs distinct */
+    pid_t pid;		    /* Common to all */
+    pid_t pgid;		    /* Common to all */
+    uid_t uid;		    /* Common to all */
 };
-#else
-/* Solaris uses longs for pid, pgid.... change to pid_t for all? */
-struct coda_in_hdr {
-    unsigned long opcode;
-    unsigned long unique;	    /* Keep multiple outstanding msgs distinct */
-    pid_t pid;			    /* Common to all */
-    pid_t pgid;			    /* Common to all */
-    pid_t sid;                      /* Common to all */
-    struct coda_cred cred;	    /* Common to all */
-};
-#endif
 
 /* Really important that opcode and unique are 1st two fields! */
 struct coda_out_hdr {
-    unsigned long opcode;
-    unsigned long unique;	
-    unsigned long result;
+    u_int32_t opcode;
+    u_int32_t unique;	
+    u_int32_t result;
 };
 
 /* coda_root: NO_IN */
@@ -611,7 +584,7 @@ struct coda_vget_out {
 /* CODA_PURGEUSER is a venus->kernel call */
 struct coda_purgeuser_out {
     struct coda_out_hdr oh;
-    struct coda_cred cred;
+    uid_t		uid;
 };
 
 /* coda_zapfile: */
@@ -632,7 +605,6 @@ struct coda_zapdir_out {
 /* CODA_ZAPVNODE is a venus->kernel call */	
 struct coda_zapvnode_out { 
     struct coda_out_hdr oh;
-    struct coda_cred cred;
     CodaFid Fid;
 };
 
