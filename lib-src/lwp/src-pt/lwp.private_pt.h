@@ -38,9 +38,9 @@ struct lwp_pcb {
     int              waiting;
     int              priority;
 
-    char	     *name;          /* ASCII name */
+    char	     *name;		/* ASCII name */
 
-    int       (*func)(void *);          /* entry point */
+    void      (*func)(void *);          /* entry point */
     void       *parm;                   /* parameters */
 
 #define MAXROCKS 8                      /* max. # of rocks per LWP */
@@ -66,10 +66,17 @@ int lwp_threads_waiting(void);
 extern int   lwp_loglevel;
 extern FILE *lwp_logfile;
 
-#define lwp_dbg(class, msg...) \
-    do { if (lwp_loglevel & class) \
-        { fprintf(lwp_logfile, ## msg); \
-         fflush(lwp_logfile); } } while(0);
+#define lwp_dbg(class, msg...) do { \
+    if (lwp_loglevel & class) { \
+	fprintf(lwp_logfile, ## msg); \
+	fflush(lwp_logfile); \
+    } } while(0);
+
+#define lwp_mutex_lock(lock) \
+    pthread_cleanup_push((void (*)(void*))pthread_mutex_unlock, (void*)(lock));\
+    pthread_mutex_lock(lock)
+
+#define lwp_mutex_unlock(lock) pthread_cleanup_pop(1)
 
 #endif /* _LWP_PRIVATE_H_ */
 

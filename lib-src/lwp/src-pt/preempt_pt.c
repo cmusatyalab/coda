@@ -32,7 +32,7 @@ void PRE_Concurrent(int on)
         pid->concurrent = 1;
     } else {
         pid->concurrent = 0;
-        lwp_JOIN(pid);
+        lwp_YIELD(pid);
     }
 }
 

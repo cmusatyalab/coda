@@ -19,13 +19,15 @@ listed in the file CREDITS.
 #include <stdio.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <signal.h>
 
 #include <lwp/lwp.h>
 
-void OtherProcess(PROCESS parent)
-    {
+void OtherProcess(void *arg)
+{
+    PROCESS parent = (PROCESS)arg;
     for(;;)
-	{
+    {
         /* we just yield */
 #if 0
 	LWP_DispatchProcess();
@@ -33,8 +35,8 @@ void OtherProcess(PROCESS parent)
 	LWP_QSignal(parent);
         LWP_QWait();
 #endif
-	}
     }
+}
 
 int main(int argc, char **argv)
 {
@@ -42,8 +44,8 @@ int main(int argc, char **argv)
     PROCESS pid, otherpid;
     register long i,  count, x;
     static char c[] = "OtherProcess";
-    
-    count = atoi(argv[1]);
+
+    count = argc > 1 ? atoi(argv[1]) : 10000;
 
     cont_sw_threshold.tv_sec = 0;
     cont_sw_threshold.tv_usec = 10000;
@@ -51,7 +53,7 @@ int main(int argc, char **argv)
     last_context_switch.tv_usec = 0;
 
     assert(LWP_Init(LWP_VERSION, 0, &pid) == LWP_SUCCESS);
-    assert(LWP_CreateProcess((PFI)OtherProcess, 16384, 0, (char *)pid, c, &otherpid) == LWP_SUCCESS);
+    assert(LWP_CreateProcess(OtherProcess, 16384, 0, (char *)pid, c, &otherpid) == LWP_SUCCESS);
     assert(IOMGR_Initialize() == LWP_SUCCESS);
     gettimeofday(&t1, NULL);
 

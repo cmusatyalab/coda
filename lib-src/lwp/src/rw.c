@@ -67,8 +67,8 @@ static queue *init();
 static char empty (queue *q);
 static void insert (queue *q, char *s);
 static char *myremove (queue *q);
-static void read_process (int id);
-static void write_process();
+static void read_process (void *arg);
+static void write_process(void *unused);
 
 static char *messages[] =
     {
@@ -171,15 +171,14 @@ queue *q;
 int asleep;	/* Number of processes sleeping -- used for
 		   clean termination */
 
-static void read_process(id)
-    int id;
+static void read_process(void *arg)
 {
+    int id = (int)arg;
 
     printf("\t[Reader %d]\n", id);
-    LWP_DispatchProcess();		/* Just relinquish control for now */
 
    for (;;) {
-        register int i;
+        int i;
 
 	/* Wait until there is something in the queue */
 	asleep++;
@@ -202,8 +201,8 @@ static void read_process(id)
     }
 }
 
-static void write_process(){
-
+static void write_process(void *unused)
+{
     char **mesg;
 
     printf("\t[Writer]\n");
@@ -264,12 +263,12 @@ int main(int argc, char **argv)
     printf("[Creating Readers...\n");
     readers = (PROCESS *) calloc((unsigned)nreaders, (unsigned)(sizeof(PROCESS)));
     for (i=0; i<nreaders; i++)
-	LWP_CreateProcess((PFI)read_process, STACK_SIZE, 0, (char *)(long)i,
+	LWP_CreateProcess(read_process, STACK_SIZE, 0, (char *)(long)i,
 			  "Reader", &readers[i]);
     printf("done]\n");
 
     printf("\t[Creating Writer...\n");
-    LWP_CreateProcess((PFI)write_process, STACK_SIZE, 1, 0, "Writer", &writer);
+    LWP_CreateProcess(write_process, STACK_SIZE, 1, 0, "Writer", &writer);
     printf("done]\n");
 
     /* Now loop until everyone's done */

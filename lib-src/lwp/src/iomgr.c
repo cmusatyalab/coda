@@ -116,7 +116,7 @@ static int sigDelivered[NSIG];		/* True for signals delivered
 					   trying to write it */
 /* software 'signals' */
 #define NSOFTSIG		4
-static PFIC sigProc[NSOFTSIG];
+static void (*sigProc[NSOFTSIG])(void *);
 static char *sigRock[NSOFTSIG];
 
 
@@ -132,7 +132,7 @@ static struct IoRequest *NewRequest();
 static int IOMGR_CheckSignals ();
 static int IOMGR_CheckTimeouts ();
 static int IOMGR_CheckDescriptors(int PollingCheck);
-static void IOMGR(char *dummy);
+static void IOMGR(void *unused);
 static int SignalIO (fd_set *readfds, fd_set *writefds, fd_set *exceptfds);
 static int SignalTimeout(struct timeval *timeout);
 static int SignalSignals ();
@@ -256,9 +256,11 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
     if (anySigsDelivered) 
 	    return(-1);
 
+#if 0
     lwpdebug(0, "[select(%d, 0x%x, 0x%x, 0x%x, <%d, %d>)]\n",
 		 nfds, readfds, writefds, exceptfds, (int)timeout.tv_sec, 
 		 (int)timeout.tv_usec);
+#endif
 
     if (iomgr_timeout.tv_sec != 0 || iomgr_timeout.tv_usec != 0)  {
 	/* this is a non polling select 
@@ -322,7 +324,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
  * queue, also, don't signal selector while request in queue, since
  * selector free's request.  */
 
-static void IOMGR(char *dummy)
+static void IOMGR(void *unused)
 {
 
     for (;;) {
@@ -452,8 +454,8 @@ static int SignalSignals ()
 {
 
     int gotone = FALSE;
+    void (*p)(void *);
     int i;
-    PFIC    p;
 
     anySigsDelivered = FALSE;
 
@@ -462,7 +464,7 @@ static int SignalSignals ()
 	PROCESS pid = NULL;
 	if ((p=sigProc[i])) /* This yields!!! */
 	    LWP_CreateProcess(p, STACK_SIZE, LWP_NORMAL_PRIORITY, sigRock[i],
-		"SignalHandler", &pid);
+			      "SignalHandler", &pid);
 	sigProc[i] = 0;
     }
 
@@ -486,9 +488,7 @@ static int SignalSignals ()
 /* Keep IOMGR process id */
 static PROCESS IOMGR_Id = NULL;
 
-int IOMGR_SoftSig(aproc, arock)
-    PFIC aproc;
-    char *arock;
+int IOMGR_SoftSig(void (*aproc)(void *), char *arock)
 {
     int i;
     for (i=0;i<NSOFTSIG;i++) {
@@ -520,7 +520,7 @@ int IOMGR_Initialize()
     anySigsDelivered = TRUE; /* A soft signal may have happened before
 	IOMGR_Initialize:  so force a check for signals regardless */
 
-    return LWP_CreateProcess((PFIC)IOMGR, STACK_SIZE, 0, 0, "IO MANAGER", &IOMGR_Id);
+    return LWP_CreateProcess(IOMGR, STACK_SIZE, 0, 0, "IO MANAGER", &IOMGR_Id);
 }
 
 int IOMGR_Finalize()

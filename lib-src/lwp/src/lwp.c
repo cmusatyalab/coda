@@ -61,14 +61,13 @@ Pittsburgh, PA.
 
 #include <lwp/lwp.h>
 #include "lwp.private.h"
+#include "lwp_ucontext.h"
+#include "lwp_stacktrace.h"
 
 #define  ON	    1
 #define  OFF	    0
 #define  READY	    2
 #define  WAITING    3
-#define  DESTROYED  4
-#define  QWAITING   5
-#define  MAXINT     (~(1<<((sizeof(int)*8)-1)))
 #define  MINSTACK   44
 #ifndef MAX
 #define  MAX(a,b)   ((a) > (b) ? (a) : (b))
@@ -94,34 +93,25 @@ struct QUEUE {
     int		count;
 } runnable[MAX_PRIORITIES], blocked;
 
+static ucontext_t reaper; /* reaper context, see comments for lwp_Reaper() */
+static ucontext_t tracer; /* context for the for stack tracing thread */
+
 /* Invariant for runnable queues: The head of each queue points to the
 currently running process if it is in that queue, or it points to the
 next process in that queue that should run. */
-
-/* Macro to force a re-schedule.  Strange name is historical */
-#define Set_LWP_RC() savecontext(Dispatcher, &lwp_cpptr->context, NULL)
 
 /* internal procedure declarations */
 static void lwpremove(PROCESS p, struct QUEUE *q);
 static void lwpinsert(PROCESS p, struct QUEUE *q);
 static void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to);
-static void Dispatcher();
-static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, PFIC ep, char *parm, char *name);
-static int  Internal_Signal(void *event);
+static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, void (*func)(void *), void *arg, char *name);
 static void Abort_LWP(char *msg);
 static void Exit_LWP();
-static void Dump_One_Process (PROCESS pid, FILE *fp, int dofree);
-static void Dump_Processes (int magic);
-static void purge_dead_pcbs();
-static void Delete_PCB(PROCESS pid);
 static void Free_PCB(PROCESS pid);
-static void Dispose_of_Dead_PCB(PROCESS cur);
 
-static void Create_Process_Part2 ();
-static void Overflow_Complain ();
-static void Initialize_Stack (char *stackptr, int stacksize);
-static int  Stack_Used (char *stackptr, int stacksize);
-static int  InitializeProcessSupport();
+static void Overflow_Complain (void);
+static void Initialize_Stack (void *stackptr, int stacksize);
+static int  Stack_Used (stack_t *stack);
 
 /*----------------------------------------*/
 /* Globals identical in  OLD and NEW lwps */
@@ -132,29 +122,20 @@ int     lwp_debug = 0;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
 int lwp_nextindex;		    /* Next lwp index to assign */
-static struct lwp_ctl *lwp_init = 0;
+static struct lwp_ctl *lwp_init = NULL;
 int	Cont_Sws;
 struct timeval last_context_switch; /* used to find out how long a lwp was running */
 struct timeval cont_sw_threshold; /* how long a lwp is allowed to run */
 PROCESS cont_sw_id;		  /* id of thread setting the last_context_switch time */
 
-/* The global Highest_runnable_priority is only needed in NEW lwp.
-    But it gets set within a for_all_elts() instance in
-    InternalSignal().  Causes Sun's CPP to choke.  Hence not placed
-    under #ifdef OLDLWP.  */
-
-/* XXX this parameter is not needed see comment above */
-int	Highest_runnable_priority;	/* global variable for max priority */
 struct timeval run_wait_threshold;
 
 /*-----------------------------------------*/
 /* Globals that differ in OLD and NEW lwps */
 /*-----------------------------------------*/
 
-
 int lwp_overflowAction = LWP_SOABORT;	/* Stack checking action */
 int lwp_stackUseEnabled = 1;		/* Controls stack size counting */
-int stack_offset;			/* Offset of stack field within pcb */
 
 /* fixing up some missing funtions */
 #ifndef timercmp
@@ -212,21 +193,20 @@ static void lwpinsert(PROCESS p, struct QUEUE *q)
 }
 
 /* Moves a PROCESS p from QUEUE "from" to QUEUE "to" */
-static void lwpmove(p, from, to)
-    PROCESS p;
-    struct QUEUE *from;
-    struct QUEUE *to;
+static void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to)
 {
     lwpremove(p, from);
     lwpinsert(p, to);
 }
 
-int LWP_TerminateProcessSupport()       /* terminate all LWP support */
+int LWP_TerminateProcessSupport(void)       /* terminate all LWP support */
 {
     int i;
 
     lwpdebug(0, "Entered Terminate_Process_Support");
-    if (lwp_init == NULL) return LWP_EINIT;
+    if (!lwp_init)
+	return LWP_EINIT;
+
     if (lwp_cpptr != LWPANCHOR.outerpid)
 	/* terminate support not called from same process as the init process */
         Abort_LWP("Terminate_Process_Support invoked from wrong process!");
@@ -295,50 +275,35 @@ int LWP_NewRock(int Tag, char *Value)
     else return(LWP_ENOROCKS);
 }
 
-static void Dispose_of_Dead_PCB(PROCESS cur)
-{
-
-  lwpdebug(0, "Entered Dispose_of_Dead_PCB");
-  Delete_PCB(cur);
-  Free_PCB(cur);
-}
-
 int LWP_CurrentProcess(PROCESS *pid)
 {
     lwpdebug(0, "Entered LWP_CurrentProcess");
-    if (lwp_init) {
-            *pid = lwp_cpptr;
-            return LWP_SUCCESS;
-    } else
-        return LWP_EINIT;
+    *pid = lwp_cpptr;
+    return lwp_init ? LWP_SUCCESS : LWP_EINIT;
 }
 
 PROCESS LWP_ThisProcess()
 {
     lwpdebug(0, "Entered LWP_ThisProcess");
-    if (lwp_init) {
-            return lwp_cpptr;
-    } else
-	    return NULL;
+    return lwp_init ? lwp_cpptr : NULL;
 }
 
 
 void LWP_SetLog(FILE *file, int level)
 {
-	if ( file ) 
-		lwp_logfile = file;
-	lwp_debug = level;
+    lwp_logfile = file;
+    lwp_debug = level;
 }
 	
 
 int LWP_GetProcessPriority(PROCESS pid, int *priority)
 {
     lwpdebug(0, "Entered Get_Process_Priority");
-    if (lwp_init) {
-	*priority = pid -> priority;
-	return 0;
-    } else
+    if (!lwp_init)
 	return LWP_EINIT;
+
+    *priority = pid -> priority;
+    return 0;
 }
 
 int LWP_WaitProcess(void *event)
@@ -352,63 +317,9 @@ int LWP_WaitProcess(void *event)
     return LWP_MwaitProcess(1, (char **)tempev);
 }
 
-static void Delete_PCB(PROCESS pid)
-{
-    lwpdebug(0, "Entered Delete_PCB");
-    lwpremove(pid, (pid->blockflag || pid->status==WAITING || pid->status==DESTROYED
-		 ? &blocked
-		 : &runnable[pid->priority]));
-    LWPANCHOR.processcnt--;
-}
-
-static void purge_dead_pcbs()
-{
-    for_all_elts(cur, blocked, { if (cur->status == DESTROYED) Dispose_of_Dead_PCB(cur); })
-}
-
 static void Exit_LWP()
 {
     exit (-1);
-}
-
-
-#define FREE_STACKS 1
-#define DONT_FREE   0
-
-static void Dump_Processes(int magic)
-{
-    /* This function is too easily mistaken for LWP_Print_Processes
-     * (I did it a couple of times already) --JH */
-    if (magic != 0xdeadbeef) return;
-
-    if (lwp_init) {
-	int i;
-	for (i=0; i<MAX_PRIORITIES; i++)
-	    for_all_elts(x, runnable[i], {
-		fprintf(lwp_logfile, "[Priority %d]\n", i);
-		Dump_One_Process(x, lwp_logfile, FREE_STACKS);
-	    })
-	for_all_elts(x, blocked, { Dump_One_Process(x, lwp_logfile, FREE_STACKS); })
-    } else
-	fprintf(lwp_logfile, "***LWP: LWP support not initialized\n");
-}
-
-void LWP_Print_Processes(void)
-{
-    if (lwp_init) {
-	int i;
-	for (i=0; i<MAX_PRIORITIES; i++)
-	    for_all_elts(x, runnable[i], {
-		fprintf(lwp_logfile, "[Priority %d]\n", i);
-		Dump_One_Process(x, lwp_logfile, DONT_FREE);
-		fflush(lwp_logfile);
-	    })
-	for_all_elts(x, blocked, {
-	     Dump_One_Process(x, lwp_logfile, DONT_FREE);
-	     fflush(lwp_logfile);
-	})
-    } else
-	fprintf(lwp_logfile, "***LWP: LWP support not initialized\n");
 }
 
 char *LWP_Name()
@@ -426,27 +337,15 @@ int LWP_HighestIndex()
     return(lwp_nextindex-1);
 }
 
-static int IsGreater(struct timeval *t1, struct timeval *t2) 
-{
-    if (t1->tv_sec > t2->tv_sec) 
-	return (1);
-    else if (t1->tv_sec < t2->tv_sec) 
-	return (0);
-    else if (t1->tv_usec > t2->tv_usec) 
-	return(1);
-    else 
-	return(0);
-}
-
 static void CheckWorkTime(PROCESS currentThread, PROCESS nextThread) 
 {
     struct timeval current;
     struct timeval worktime;
 
-    if (!cont_sw_threshold.tv_sec  && !cont_sw_threshold.tv_usec) return;
+    if (!cont_sw_threshold.tv_sec && !cont_sw_threshold.tv_usec) return;
 
-    if ((last_context_switch.tv_sec != 0) && 
-	(cont_sw_id == currentThread)) {
+    if (last_context_switch.tv_sec && cont_sw_id == currentThread)
+    {
 	gettimeofday(&current, NULL);
 	worktime.tv_sec = current.tv_sec;
 	worktime.tv_usec = current.tv_usec;
@@ -457,7 +356,7 @@ static void CheckWorkTime(PROCESS currentThread, PROCESS nextThread)
 	worktime.tv_sec -= last_context_switch.tv_sec;
 	worktime.tv_usec -= last_context_switch.tv_usec;
 
-	if (IsGreater(&worktime, &cont_sw_threshold)) {
+	if (timercmp(&worktime, &cont_sw_threshold, >)) {
 	    struct tm *lt = localtime((const time_t *)&current.tv_sec);
 	    fprintf(stderr, "[ %02d:%02d:%02d ] ***LWP %s(%p) took too much cpu %d secs %6d usecs\n", 
 		    lt->tm_hour, lt->tm_min, lt->tm_sec, 
@@ -511,178 +410,228 @@ static void CheckRunWaitTime(PROCESS thread)
  */
 int LWP_QWait()
 {
-    PROCESS tp;
-    (tp=lwp_cpptr) -> status = QWAITING;
-    lwpremove(tp, &runnable[tp->priority]);
-    timerclear(&tp->lastReady);
-    Set_LWP_RC();
+    if (--lwp_cpptr->qpending >= 0)
+	return LWP_SUCCESS;
+
+    lwp_cpptr->status = WAITING;
+    lwpmove(lwp_cpptr, &runnable[lwp_cpptr->priority], &blocked);
+    timerclear(&lwp_cpptr->lastReady);
+    LWP_DispatchProcess();
+
     return LWP_SUCCESS;
 }
-
 
 /* signal the PROCESS pid - by adding it to the runnable queue */
 int LWP_QSignal(PROCESS pid)
 {
+    if (++pid->qpending != 0)
+	return LWP_ENOWAIT;
 
-    if (pid->status == QWAITING) {
-        lwpdebug(0, "LWP_Qsignal: %s is going to QSignal %s\n", 
-		 lwp_cpptr->name, pid->name);
-	pid->status = READY;
-	lwpinsert(pid, &runnable[pid->priority]);
-	lwpdebug(0, "LWP_QSignal: Just inserted %s into runnable queue\n", pid->name);
-	gettimeofday(&pid->lastReady, 0);
-	return LWP_SUCCESS;	
-    }
-    else return LWP_ENOWAIT;
+    lwpdebug(0, "LWP_Qsignal: %s is going to QSignal %s\n", 
+	     lwp_cpptr->name, pid->name);
+
+    pid->status = READY;
+    lwpmove(pid, &blocked, &runnable[pid->priority]);
+    lwpdebug(0, "LWP_QSignal: Just inserted %s into runnable queue\n", pid->name);
+    gettimeofday(&pid->lastReady, NULL);
+    return LWP_SUCCESS;	
 }
 
-int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm, 
-		      char *name, PROCESS *pid)
+int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
+		      void *parm, char *name, PROCESS *pid)
 {
-
-    PROCESS temp, temp2;
+    PROCESS temp;
     char *stackptr;
 #ifdef MMAP_LWP_STACKS
     int pagesize;
 #endif
 
     lwpdebug(0, "Entered LWP_CreateProcess");
-    /* Throw away all dead process control blocks */
-    purge_dead_pcbs();
-    if (lwp_init) {
-	temp = (PROCESS) malloc (sizeof (struct lwp_pcb));
-	if (temp == NULL) {
-	    Set_LWP_RC();
-	    return LWP_ENOMEM;
-	}
-	if (stacksize < MINSTACK)
-	    stacksize = 1000;
-	else
-	    stacksize = 4 * ((stacksize+3) / 4);
+
+    if (!lwp_init)
+	return LWP_EINIT;
+
+    temp = (PROCESS) malloc (sizeof (struct lwp_pcb));
+    if (!temp)
+	return LWP_ENOMEM;
+
+    if (stacksize < MINSTACK)
+	stacksize = 1024;
+    else
+	stacksize = 4 * ((stacksize+3) / 4);
 
 #ifndef MMAP_LWP_STACKS
-	stackptr = (char *) malloc(stacksize);
+    stackptr = (char *) malloc(stacksize);
 #else
-	pagesize = getpagesize();
-
 #ifdef MAP_ANON
-	stackptr = mmap(lwp_stackbase, stacksize, PROT_READ | PROT_WRITE,
-                        MAP_PRIVATE | MAP_ANON, -1, 0);
+    stackptr = mmap(lwp_stackbase, stacksize, PROT_READ | PROT_WRITE,
+		    MAP_PRIVATE | MAP_ANON, -1, 0);
 #else
-        {
-            int fd;
-            stackptr = MAP_FAILED;
-            if ((fd = open("/dev/zero", O_RDWR)) != -1) {
-                stackptr = mmap(lwp_stackbase, stacksize,
-                                PROT_READ | PROT_WRITE,
-                                MAP_PRIVATE | (lwp_stackbase ? MAP_FIXED : 0),
-                                fd, 0);
-                (void)close(fd);
-            }
-        }
-#endif
-	if ( stackptr == MAP_FAILED ) {
-		perror("stack: ");
-		assert(0);
+    {
+	int fd;
+	stackptr = MAP_FAILED;
+	if ((fd = open("/dev/zero", O_RDWR)) != -1) {
+	    stackptr = mmap(lwp_stackbase, stacksize,
+			    PROT_READ | PROT_WRITE,
+			    MAP_PRIVATE | (lwp_stackbase ? MAP_FIXED : 0),
+			    fd, 0);
+	    (void)close(fd);
 	}
-	lwp_stackbase += ((stacksize/pagesize) + 2) * pagesize;
+    }
 #endif
-	if (stackptr == NULL) {
-	    Set_LWP_RC();
-	    return LWP_ENOMEM;
-        }
-	if (priority < 0 || priority >= MAX_PRIORITIES) {
-	    Set_LWP_RC();
-	    return LWP_EBADPRI;
-	}
- 	Initialize_Stack(stackptr, stacksize);
-	Initialize_PCB(temp, priority, stackptr, stacksize, ep, parm, name);
-	lwpinsert(temp, &runnable[priority]);
-	gettimeofday(&temp->lastReady, 0);
-	temp2 = lwp_cpptr;
+    if ( stackptr == MAP_FAILED ) {
+	perror("stack: ");
+	assert(0);
+    }
+    pagesize = getpagesize();
+    lwp_stackbase += ((stacksize/pagesize) + 2) * pagesize;
+#endif
+    if (!stackptr)
+	return LWP_ENOMEM;
 
-	/* Gross hack: beware! */
-	lwp_cpptr = temp;
-	savecontext(Create_Process_Part2, &temp2->context, stackptr+stacksize-STACK_PAD);
-	/* End of gross hack */
+    if (priority < 0 || priority >= MAX_PRIORITIES)
+	return LWP_EBADPRI;
 
-	Set_LWP_RC();
-	*pid = temp;
-	return 0;
-    } else
-	    return LWP_EINIT;
+    Initialize_Stack(stackptr, stacksize);
+    Initialize_PCB(temp, priority, stackptr, stacksize, ep, parm, name);
+    lwpinsert(temp, &runnable[priority]);
+    gettimeofday(&temp->lastReady, NULL);
+
+    LWP_DispatchProcess();
+    *pid = temp;
+    return 0;
 }
 
+/* The reaper is used to kill the current thread and schedule another
+ * runnable thread. This context is called whenever a thread exits and by
+ * LWP_DestroyProcess if the current process is destroyed. */
+static void lwp_Reaper(void)
+{
+    Free_PCB(lwp_cpptr);
+    lwp_cpptr = NULL;
+    LWP_DispatchProcess();
+    /* we never get here */
+}
 
+static void Dump_One_Process(PROCESS pid, FILE *fp)
+{
+    stack_t *stack = &pid->ctx.uc_stack;
+    int i;
+
+    fprintf(fp,"***LWP: process %s (%p)\n", pid->name, pid);
+    if (pid->ep)
+	fprintf(fp,"\tentry point: %p, parameter %p\n", pid->ep, pid->parm);
+    fprintf(fp,"\tpriority: %d, status: ", pid->priority);
+    switch (pid->status) {
+	case READY:	fprintf(fp, "READY");     break;
+	case WAITING:	fprintf(fp, "WAITING");   break;
+	default:	fprintf(fp, "unknown");
+	}
+    fprintf(fp, "\n");
+
+    if (pid->eventcnt) {
+	fprintf(fp, "\tnumber of events outstanding: %d\n", pid->waitcnt);
+	fprintf(fp, "\tevent list:");
+	for (i = 0; i < pid->eventcnt; i++)
+	    fprintf(fp, " %p", pid->eventlist[i]);
+	fprintf(fp, "\n");
+    }
+    if (pid->wakevent)
+	fprintf(fp, "\tlast wakeup event: %d\n", pid->wakevent);
+
+    if (stack->ss_sp) {
+	fprintf(fp, "\tstack base: %p, size: %d\n",
+		stack->ss_sp, stack->ss_size);
+	fprintf(fp, "\tstack usage high water mark: %d\n", Stack_Used(stack));
+	fprintf(fp, "\tstack pointer at last yield: %p\n", pid->topstack);
+    }
+
+    lwp_stacktrace(fp, pid->topstack, stack);
+
+    fprintf(fp,"==========================================\n");
+}
+
+static void lwp_Tracer(void)
+{
+    int i;
+
+    for (i=0; i<MAX_PRIORITIES; i++)
+	for_all_elts(x, runnable[i], {
+		     fprintf(lwp_logfile, "[Priority %d]\n", i);
+		     Dump_One_Process(x, lwp_logfile);
+		     fflush(lwp_logfile);
+		     })
+    for_all_elts(x, blocked, {
+		 fprintf(lwp_logfile, "[Blocked]\n");
+		 Dump_One_Process(x, lwp_logfile);
+		 fflush(lwp_logfile);
+		 })
+    fprintf(lwp_logfile, "Trace done\n");
+
+    /* jump back to the thread that called us */
+    setcontext(&lwp_cpptr->ctx);
+}
+
+static void init_contexts(void)
+{
+#define REAPER_STACKSIZE 8192
+    getcontext(&reaper);
+    reaper.uc_stack.ss_sp = malloc(REAPER_STACKSIZE);
+    reaper.uc_stack.ss_size = REAPER_STACKSIZE;
+    makecontext(&reaper, lwp_Reaper, 0);
+
+#define TRACER_STACKSIZE 16384
+    getcontext(&tracer);
+    tracer.uc_stack.ss_sp = malloc(REAPER_STACKSIZE);
+    tracer.uc_stack.ss_size = REAPER_STACKSIZE;
+    makecontext(&tracer, lwp_Tracer, 0);
+}
 
 int LWP_DestroyProcess(PROCESS pid)
 {
-	PROCESS temp;
-	char   *topstack;
-
 	lwpdebug(0, "Entered Destroy_Process");
-	if (lwp_init) {
-		if (lwp_cpptr != pid) {
-			Dispose_of_Dead_PCB(pid);
-			Set_LWP_RC();
-		} else {
-			pid -> status = DESTROYED;
-			lwpmove(pid, &runnable[pid->priority], &blocked);
-			topstack = &(LWPANCHOR.dsptchstack[(sizeof(LWPANCHOR.dsptchstack)-STACK_PAD) & ~0xf]); /* the '& ~0xf' should take care of alignment */
-			temp = lwp_cpptr;
-			savecontext(Dispatcher, &(temp -> context), topstack);
-		}
+	if (!lwp_init)
+	    return LWP_EINIT;
 
-		return LWP_SUCCESS;
-	} else
-		return LWP_EINIT;
+	if (lwp_cpptr == pid)
+	    swapcontext(&lwp_cpptr->ctx, &reaper);
+
+	Free_PCB(pid);
+	return LWP_SUCCESS;
 }
 
-/* explicit voluntary preemption */
-int LWP_DispatchProcess()
+static void lwp_Print_Processes(int dummy)
 {
-	lwpdebug(0, "Entered Dispatch_Process");
-	if (lwp_init) {
-		Set_LWP_RC();
-		return LWP_SUCCESS;
-	} else
-		return LWP_EINIT;
+    if (!lwp_init) {
+	fprintf(lwp_logfile, "***LWP: LWP support not initialized\n");
+	return;
+    }
+
+    lwp_cpptr->topstack = &dummy;
+
+    /* switch to the context that dumps the process stacks */
+    swapcontext(&lwp_cpptr->ctx, &tracer);
 }
 
-
-/* New initialization procedure; checks header and library versions
-   Use this instead of LWP_InitializeProcessSupport() First argument
-   should always be LWP_VERSION.  */
-
-int LWP_Init(int version, int priority, PROCESS *pid)
+void LWP_Print_Processes(void)
 {
-
-    lwp_logfile = stderr;
-    if (version != LWP_VERSION) {
-	    fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
-	    exit(-1);
-    } else 
-	    return(InitializeProcessSupport(priority, pid));    
+    lwp_Print_Processes(0);
 }
-
 
 /* Used to be externally visible as  LWP_InitializeProcessSupport() */
 static int InitializeProcessSupport(int priority, PROCESS *pid)
 {
 	PROCESS temp;
-	struct lwp_pcb dummy;
 	int i;
 	
 	lwpdebug(0, "Entered InitializeProcessSupport");
-	if (lwp_init != NULL) 
-		return LWP_SUCCESS;
+	if (lwp_init) 
+	    return LWP_SUCCESS;
 
-	last_context_switch.tv_sec = 0;
-	last_context_switch.tv_usec = 0;
+	init_contexts();
+
+	timerclear(&last_context_switch);
 	cont_sw_id = NULL;
-
-	/* Set up offset for stack checking -- do this as soon as possible */
-	stack_offset = (char *) &dummy.stack - (char *) &dummy;
 
 	if (priority >= MAX_PRIORITIES) 
 		return LWP_EBADPRI;
@@ -696,31 +645,35 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
 	temp = (PROCESS) malloc(sizeof(struct lwp_pcb));
 	if (lwp_init == NULL || temp == NULL)
 		Abort_LWP("Insufficient Storage to Initialize LWP Support");
+
 	LWPANCHOR.processcnt = 1;
 	LWPANCHOR.outerpid = temp;
 	LWPANCHOR.outersp = NULL;
 	Initialize_PCB(temp, priority, NULL, 0, NULL, NULL, "Main Process");
 	lwpinsert(temp, &runnable[priority]);
-	gettimeofday(&temp->lastReady, 0);
-	savecontext(Dispatcher, &temp->context, NULL);
-	LWPANCHOR.outersp = temp -> context.topstack;
-	Set_LWP_RC();
+	lwp_cpptr = temp;
+	gettimeofday(&temp->lastReady, NULL);
+	LWP_DispatchProcess();
+	LWPANCHOR.outersp = temp->topstack;
 	*pid = temp;
 	return LWP_SUCCESS;
 }
 
-int LWP_INTERNALSIGNAL(void *event, int yield)
+/* New initialization procedure; checks header and library versions
+   Use this instead of LWP_InitializeProcessSupport() First argument
+   should always be LWP_VERSION.  */
+
+int LWP_Init(int version, int priority, PROCESS *pid)
 {
-	lwpdebug(0, "Entered LWP_SignalProcess");
-	if (lwp_init) {
-		int rc;
-		rc = Internal_Signal(event);
-	if (yield) 
-		Set_LWP_RC();
-	return rc;
-	} else
-		return LWP_EINIT;
+
+    lwp_logfile = stderr;
+    if (version != LWP_VERSION) {
+	    fprintf(stderr, "**** FATAL ERROR: LWP VERSION MISMATCH ****\n");
+	    exit(-1);
+    }
+    return(InitializeProcessSupport(priority, pid));    
 }
+
 
 /* wait on m of n events */
 int LWP_MwaitProcess(int wcount, char **evlist)
@@ -729,231 +682,109 @@ int LWP_MwaitProcess(int wcount, char **evlist)
 
 	lwpdebug(0, "Entered Mwait_Process [waitcnt = %d]", wcount);
 	if (evlist == NULL) {
-		Set_LWP_RC();
 		return LWP_EBADCOUNT;
 	}
 	for (ecount = 0; evlist[ecount] != NULL; ecount++) ;
 	if (ecount == 0) {
-		Set_LWP_RC();
 		return LWP_EBADCOUNT;
 	}
-	if (lwp_init) {
-		if (wcount>ecount || wcount<0) {
-			Set_LWP_RC();
-			return LWP_EBADCOUNT;
-		}
-		if (ecount > lwp_cpptr->eventlistsize) {
-			lwp_cpptr->eventlist = 
-				(char **)realloc((char *)lwp_cpptr->eventlist, 
-						 ecount*sizeof(char *));
-			lwp_cpptr->eventlistsize = ecount;
-		}
-		for (i=0; i<ecount; i++) 
-			lwp_cpptr -> eventlist[i] = evlist[i];
-		if (wcount > 0) {
-			lwp_cpptr -> status = WAITING;
-			lwpmove(lwp_cpptr, &runnable[lwp_cpptr->priority], &blocked);
-			timerclear(&lwp_cpptr->lastReady);
-		}
-		lwp_cpptr -> wakevent = 0;
-		lwp_cpptr -> waitcnt = wcount;
-		lwp_cpptr -> eventcnt = ecount;
-		Set_LWP_RC();
-		return LWP_SUCCESS;
+	if (!lwp_init)
+	    return LWP_EINIT;
+
+	if (wcount>ecount || wcount<0) {
+	    return LWP_EBADCOUNT;
 	}
-	return LWP_EINIT;
+	if (ecount > lwp_cpptr->eventlistsize) {
+	    lwp_cpptr->eventlist = 
+		(char **)realloc((char *)lwp_cpptr->eventlist, 
+				 ecount*sizeof(char *));
+	    lwp_cpptr->eventlistsize = ecount;
+	}
+	for (i=0; i<ecount; i++) 
+	    lwp_cpptr -> eventlist[i] = evlist[i];
+	if (wcount > 0) {
+	    lwp_cpptr -> status = WAITING;
+	    lwpmove(lwp_cpptr, &runnable[lwp_cpptr->priority], &blocked);
+	    timerclear(&lwp_cpptr->lastReady);
+	}
+	lwp_cpptr -> wakevent = 0;
+	lwp_cpptr -> waitcnt = wcount;
+	lwp_cpptr -> eventcnt = ecount;
+	LWP_DispatchProcess();
+	lwp_cpptr -> eventcnt = 0;
+	return LWP_SUCCESS;
 }
 
-
-int LWP_StackUsed(PROCESS pid, int *max, int *used)
-{
-    *max = pid -> stacksize;
-    *used = Stack_Used(pid->stack, *max);
-    if (*used == 0)
-	return LWP_NO_STACK;
-    return LWP_SUCCESS;
-}
 
 static void Abort_LWP(char *msg)
 {
-    struct lwp_context tempcontext;
-
     lwpdebug(0, "Entered Abort_LWP");
     printf("***LWP Abort: %s\n", msg);
-    Dump_Processes(0xdeadbeef);
-    if (LWPANCHOR.outersp == NULL)
-	    Exit_LWP();
-    else
-	    savecontext(Exit_LWP, &tempcontext, LWPANCHOR.outersp);
+    Exit_LWP();
 }
 
-static void Create_Process_Part2()
+static void Free_PCB(PROCESS pid)
 {
-    PROCESS temp;
-    lwpdebug(0, "Entered Create_Process_Part2");
-    temp = lwp_cpptr;		/* Get current process id */
-    savecontext(Dispatcher, &temp->context, NULL);
-    (*temp->ep)(temp->parm);
-    LWP_DestroyProcess(temp);
-}
+    stack_t *stack = &pid->ctx.uc_stack;
 
-#if defined(i386)
-/* set lwp_trace_depth to < 0 to trace the complete stack.
- * set it to > 0 to set the maximum trace depth. */
-static int lwp_trace_depth=-1;
+    lwpdebug(0, "Entered Free_PCB");
 
-/* Stack crawling bits */
+    lwpremove(pid, (pid->status==WAITING ?
+		    &blocked :
+		    &runnable[pid->priority]));
+    LWPANCHOR.processcnt--;
 
-/* register file */
-struct regfile {
-    register_t   edi;
-    register_t   esi;
-    register_t   ebp;
-    register_t   unused;
-    register_t   ebx;
-    register_t   edx;
-    register_t   ecx;
-    register_t   eax;
-};
+    if (pid->name)
+	free(pid->name);
 
-static void Trace_Swapped_Stack(top, fp, depth, name)
-    caddr_t top;
-    FILE    *fp;
-    int     depth;
-    char    *name;
-{
-    register_t      ip;
-    register_t      ebp, prev_ebp;
-    char           *esp;
-    
-    /* Set current stack pointer to top */
-    esp = (char *)top;
-
-    /* Simulate a POPA */
-    ebp = ((struct regfile *)esp)->ebp;
-    esp += sizeof(struct regfile);
-
-    /* Pop the return address (RET) */
-    ip = *(register_t *)esp;
-    esp += sizeof(register_t);
-
-    /* 
-     * We are now at the bottom of the frame: 
-     * esp = end of frame.
-     * ebp = beginning of frame.
-     * ip = caller of savecontext 
-     */
-    prev_ebp = (register_t)NULL;
-    while (--depth) {
-	fprintf(fp,"\tStack: %s - 0x%x\n", name, ip);
-
-        /* make sure we don't segfault while going to the next frame --JH */
-        if (ebp <= prev_ebp) break;
-
-	/* LEAVE */
-	esp = (char *)ebp;
-	prev_ebp = ebp;
-	ebp = *(register_t *)esp;
-	esp += sizeof(register_t);
-	/* RET */
-	ip = *(register_t *)esp;
-	esp += sizeof(register_t);
-    }
-}
-#endif
-
-
-static void Dump_One_Process(pid, fp, dofree)
-    PROCESS pid;
-    FILE    *fp;
-    int     dofree;
-{
-    int i;
-
-    fprintf(fp,"***LWP: Process Control Block at %p\n", pid);
-    fprintf(fp,"***LWP: Name: %s\n", pid->name);
-    if (pid->ep != NULL)
-	fprintf(fp,"***LWP: Initial entry point: %p\n", pid->ep);
-    if (pid->blockflag) fprintf(fp,"BLOCKED and ");
-    switch (pid->status) {
-	case READY:	fprintf(fp,"READY");     break;
-	case WAITING:	fprintf(fp,"WAITING");   break;
-	case DESTROYED:	fprintf(fp,"DESTROYED"); break;
-	default:	fprintf(fp,"unknown");
-	}
-    fprintf(fp, "\n");
-    fprintf(fp,"***LWP: Priority: %d \t\tInitial parameter: %p\n",
-	    pid->priority, pid->parm);
-
-    if (pid->stacksize != 0) {
-	fprintf(fp,"***LWP: Stacksize: %d \tStack base address: %p\n",
-		pid->stacksize, pid->stack);
-	fprintf(fp,"***LWP: HWM stack usage: ");
-	fprintf(fp,"%d\n", Stack_Used(pid->stack,pid->stacksize));
-	if (dofree == FREE_STACKS) {
+    if (stack->ss_sp) {
+	lwpdebug(0, "HWM stack usage: %d, [PCB at %p]", Stack_Used(stack), pid);
 #ifdef MMAP_LWP_STACKS
-	    munmap(pid->stack, pid->stacksize);
+	munmap(stack->ss_sp, stack->ss_size);
 #else
-	    free (pid->stack);
+	free(stack->ss_sp);
 #endif
-	    }
-	}
-    fprintf(fp,"***LWP: Current Stack Pointer: %p\n", pid->context.topstack);
-
-    /* Add others here as needed */
-#if defined(i386)
-    if (lwp_cpptr == pid) {
-	    fprintf(fp, "\tCURRENTLY RUNNING\n");
-    } else {
-	    Trace_Swapped_Stack(pid->context.topstack, fp, 
-				lwp_trace_depth, pid->name);
     }
-#endif    
 
-    if (pid->eventcnt > 0) {
-	fprintf(fp,"***LWP: Number of events outstanding: %d\n", pid->waitcnt);
-	fprintf(fp,"***LWP: Event id list:");
-	for (i=0;i<pid->eventcnt;i++)
-	    fprintf(fp," %p", pid->eventlist[i]);
-	fprintf(fp,"\n");
-    }
-    if (pid->wakevent>0)
-	fprintf(fp,"***LWP: Number of last wakeup event: %d\n", pid->wakevent);
+    if (pid->eventlist != NULL)  free((char *)pid->eventlist);
+    free((char *)pid);
+}	
 
-    fprintf(fp,"==========================================\n");
-}
-
-static void Dispatcher()		/* Lightweight process dispatcher */
+/* explicit voluntary preemption */
+static int lwp_DispatchProcess(int dummy)
 {
-    int i;
     static int dispatch_count = 0;
-    PROCESS old_cpptr;
+    PROCESS old_cpptr = lwp_cpptr;
+    int i;
+
+    if (!lwp_init)
+	return LWP_EINIT;
+
+    /* keep track of where the stack is */
+    if (lwp_cpptr)
+	lwp_cpptr->topstack = &dummy;
+
+    lwpdebug(0, "Entered LWP_DispatchProcess");
 
     if (LWP_TraceProcesses > 0) {
 	for (i=0; i<MAX_PRIORITIES; i++) {
 	    printf("[Priority %d, runnable (%d):", i, runnable[i].count);
-	    for_all_elts(p, runnable[i], {
-		printf(" \"%s\"", p->name);
-	    })
+	    for_all_elts(p, runnable[i], { printf(" \"%s\"", p->name); })
 	    puts("]");
     	}
 	printf("[Blocked (%d):", blocked.count);
-	for_all_elts(p, blocked, {
-	    printf(" \"%s\"", p->name);
-	})
+	for_all_elts(p, blocked, { printf(" \"%s\"", p->name); })
 	puts("]");
     }
 
     /* Check for stack overflowif this lwp has a stack.  Check for
-       the guard word at the front of the stack being damaged and
-       for the stack pointer being below the front of the stack.
+       the guard word at the front of the stack being damaged.
        WARNING!  This code assumes that stacks grow downward. */
-    if (lwp_cpptr != NULL && lwp_cpptr->stack != NULL
-	    && (lwp_cpptr->stackcheck != *(long *)(lwp_cpptr->stack)
-		|| lwp_cpptr->context.topstack < lwp_cpptr->stack)) {
+    if (lwp_cpptr && lwp_cpptr->stackcheck &&
+        (lwp_cpptr->stackcheck != *(int *)lwp_cpptr->ctx.uc_stack.ss_sp ||
+	 (char *)&dummy < (char *)lwp_cpptr->ctx.uc_stack.ss_sp))
+    {
 	switch (lwp_overflowAction) {
-	    case LWP_SOQUIET:
-		break;
 	    case LWP_SOABORT:
 		Overflow_Complain();
 		abort ();
@@ -961,93 +792,101 @@ static void Dispatcher()		/* Lightweight process dispatcher */
 	    default:
 		Overflow_Complain();
 		lwp_overflowAction = LWP_SOQUIET;
+	    case LWP_SOQUIET:
 		break;
 	}
-	}
+    }
     /* Move head of current runnable queue forward if current LWP is still in it. */
-    if (lwp_cpptr != NULL && lwp_cpptr == runnable[lwp_cpptr->priority].head) 
+    if (lwp_cpptr && lwp_cpptr == runnable[lwp_cpptr->priority].head) 
 	runnable[lwp_cpptr->priority].head = runnable[lwp_cpptr->priority].head -> next;
 
     /* Find highest priority with runnable processes. */
     for (i=MAX_PRIORITIES-1; i>=0; i--)
-	if (runnable[i].head != NULL) break;
-    if (i < 0) Abort_LWP("No READY processes");
+	if (runnable[i].head)
+	    break;
+
+    if (i < 0)
+	Abort_LWP("LWP_DispatchProcess: Possible deadlock, "
+		  "no runnable threads found\n");
 
     if (LWP_TraceProcesses > 0)
 	printf("Dispatch %d [PCB at %p] \"%s\"\n", 
          ++dispatch_count, runnable[i].head, runnable[i].head->name);
-    old_cpptr = lwp_cpptr;
+
     if (old_cpptr)
-        gettimeofday(&old_cpptr->lastReady, 0);	/* back in queue */
+        gettimeofday(&old_cpptr->lastReady, NULL);	/* back in queue */
+
     lwp_cpptr = runnable[i].head;
     Cont_Sws++; /* number of context switches, for statistics */
 
     /* check time to context switch */
-    if (cont_sw_threshold.tv_sec || cont_sw_threshold.tv_usec) 
+    if (timerisset(&cont_sw_threshold))
 	CheckWorkTime(old_cpptr, lwp_cpptr);
 
     /* check time waiting to run */
     if (timerisset(&run_wait_threshold))
 	CheckRunWaitTime(lwp_cpptr);
 
-    returnto(&lwp_cpptr->context);
-
-}
-
-
-static void Free_PCB(PROCESS pid)
-{
-    lwpdebug(0, "Entered Free_PCB");
-
-    if (pid -> stack != NULL) {
-	lwpdebug(0, "HWM stack usage: %d, [PCB at %p]",
-		   Stack_Used(pid->stack,pid->stacksize), pid);
-#ifdef MMAP_LWP_STACKS
-	munmap(pid->stack, pid->stacksize);
-#else
-	free(pid -> stack);
-#endif
+    if (!old_cpptr) {
+	setcontext(&lwp_cpptr->ctx);
+	assert(0); /* we should never get here */
     }
 
-    if (pid->name)      free(pid->name);
-    if (pid->eventlist) free((char *)pid->eventlist);
-    free((char *)pid);
-}	
+    /* If another thread is now runnable, swap context */
+    if (lwp_cpptr != old_cpptr)
+	swapcontext(&old_cpptr->ctx, &lwp_cpptr->ctx);
 
-static void Initialize_PCB(PROCESS temp, int priority, char *stack, 
-			   int stacksize, PFIC ep, char *parm, char *name)
-{
-	int i = 0;
-
-	lwpdebug(0, "Entered Initialize_PCB");
-	temp -> name = strdup(name);
-	temp -> status = READY;
-	temp -> eventlist = (char **)malloc(EVINITSIZE*sizeof(char *));
-	temp -> eventlistsize = EVINITSIZE;
-	temp -> eventcnt = 0;
-	temp -> wakevent = 0;
-	temp -> waitcnt = 0;
-	temp -> blockflag = 0;
-	temp -> iomgrRequest = 0;
-	temp -> priority = priority;
-	temp -> index = lwp_nextindex++;
-	temp -> ep = ep;
-	temp -> parm = parm;
-	temp -> misc = NULL;	/* currently unused */
-	temp -> next = NULL;
-	temp -> prev = NULL;
-	temp -> rused = 0;
-	temp -> level = 1;		/* non-preemptable */
-	timerclear(&temp->lastReady);
-
-	temp -> stack = stack;
-	temp -> stacksize = stacksize;
-	if (temp -> stack != NULL)
-		temp -> stackcheck = *(long *) (temp -> stack);
-
-	lwpdebug(0, "Leaving Initialize_PCB\n");
+    return LWP_SUCCESS;
 }
 
+int LWP_DispatchProcess(void)
+{
+    return lwp_DispatchProcess(0);
+}
+
+static void Initialize_PCB(PROCESS temp, int priority, char *stack, 
+			   int stacksize, void (*func)(void *), void *arg,
+			   char *name)
+{
+    lwpdebug(0, "Entered Initialize_PCB");
+
+    if (name)
+	temp->name = strdup(name);
+
+    temp->status = READY;
+    temp->eventlist = (char **)malloc(EVINITSIZE*sizeof(char *));
+    temp->eventlistsize = EVINITSIZE;
+    temp->qpending = 0;
+    temp->eventcnt = 0;
+    temp->wakevent = 0;
+    temp->waitcnt = 0;
+    temp->iomgrRequest = 0;
+    temp->priority = priority;
+    temp->index = lwp_nextindex++;
+    temp->misc = NULL;	/* currently unused */
+    temp->next = NULL;
+    temp->prev = NULL;
+    temp->rused = 0;
+    temp->level = 1;		/* non-preemptable */
+    timerclear(&temp->lastReady);
+
+    temp->ep = func;
+    temp->parm = arg;
+
+    if (stack) {
+	temp->stackcheck = *(int *)stack;
+
+	getcontext(&temp->ctx);
+	temp->ctx.uc_stack.ss_sp = stack;
+	temp->ctx.uc_stack.ss_size = stacksize;
+	temp->ctx.uc_link = &reaper; /* whenever a thread exits, we
+					automatically reap it and schedule
+					another runnable thread */
+	makecontext(&temp->ctx, (void (*)(void))func, 1, arg);
+    }
+
+    lwpdebug(0, "Leaving Initialize_PCB\n");
+}
 
 static int Internal_Signal(void *event)
 {
@@ -1074,15 +913,7 @@ static int Internal_Signal(void *event)
                         temp -> status = READY;
                         temp -> wakevent = i+1;
                         lwpmove(temp, &blocked, &runnable[temp->priority]);
-			gettimeofday(&temp->lastReady, 0);
-			/* update Highest_runnable_priority
-
-			   BOGUS ALERT: this  assignment is needed only in 
-			   NEW lwp.  But we are within a for_all_elts() macro, and the
-			   Sun cpp chokes if we #ifdef the following assignment.
-			   Doing this in OLD lwp is innocuous anyway.
-			*/
-			Highest_runnable_priority = MAX(Highest_runnable_priority, temp->priority);
+			gettimeofday(&temp->lastReady, NULL);
                         break;
 		    }
 		}
@@ -1092,8 +923,22 @@ static int Internal_Signal(void *event)
     return rc;
 }    
 
+int LWP_INTERNALSIGNAL(void *event, int yield)
+{
+    int rc;
+    lwpdebug(0, "Entered LWP_SignalProcess");
+    if (!lwp_init)
+	return LWP_EINIT;
 
-static void Initialize_Stack(char *stackptr, int stacksize)
+    rc = Internal_Signal(event);
+    if (yield) 
+	LWP_DispatchProcess();
+
+    return rc;
+}
+
+
+static void Initialize_Stack(void *stackptr, int stacksize)
 {
 /* This can be any unlikely pattern except 0x00010203 or the reverse. */
 #define STACKMAGIC	0xBADBADBA
@@ -1102,26 +947,36 @@ static void Initialize_Stack(char *stackptr, int stacksize)
     lwpdebug(0, "Entered Initialize_Stack");
     if (lwp_stackUseEnabled)
 	for (i=0; i<stacksize; i++)
-	    stackptr[i] = i &0xff;
+	    ((unsigned char *)stackptr)[i] = i &0xff;
     else
-	*(long *)stackptr = STACKMAGIC;
+	*(int *)stackptr = STACKMAGIC;
 }
 
-static int Stack_Used(char *stackptr, int stacksize)
+static int Stack_Used(stack_t *stack)
 {
-    int    i;
+    int i;
 
-    if (*(long *) stackptr == STACKMAGIC)
+    if (*(int *) stack->ss_sp == STACKMAGIC)
 	return 0;
-    else {
-	for (i = 0; i < stacksize; i++)
-	    if ((unsigned char) stackptr[i] != (i & 0xff))
-		return (stacksize - i);
-	return 0;
-    }
+
+    for (i = 0; i < stack->ss_size; i++)
+	if (((unsigned char *)stack->ss_sp)[i] != (i & 0xff))
+	    return (stack->ss_size - i);
+    return 0;
 }
 
-/* Complain of a stack overflow to stderr without using stdio. */
+int LWP_StackUsed(PROCESS pid, int *max, int *used)
+{
+    *max = pid->ctx.uc_stack.ss_size;
+    *used = Stack_Used(&pid->ctx.uc_stack);
+    if (*used == 0)
+	return LWP_NO_STACK;
+    return LWP_SUCCESS;
+}
+
+
+/* Complain of a stack overflow to stderr without using stdio (and use as
+ * little stack as possible). */
 static void Overflow_Complain()
 {
     static const char *msg1 = "LWP: stack overflow in process ";

@@ -46,13 +46,11 @@ Pittsburgh, PA.
 
 char semaphore;
 
-void OtherProcess(void)
-    {
-    for(;;)
-	{
+void OtherProcess(void *dummy)
+{
+    while(1)
 	LWP_SignalProcess(&semaphore);
-	}
-    }
+}
 
 int main(int argc, char **argv)
 {
@@ -79,7 +77,7 @@ int main(int argc, char **argv)
     last_context_switch.tv_usec = 0;
 
     assert(LWP_Init(LWP_VERSION, 0, &pid) == LWP_SUCCESS);
-    assert(LWP_CreateProcess((PFI)OtherProcess,4096,0, 0, c, &otherpid) == LWP_SUCCESS);
+    assert(LWP_CreateProcess(OtherProcess,4096,0, 0, c, &otherpid) == LWP_SUCCESS);
     assert(IOMGR_Initialize() == LWP_SUCCESS);
     waitarray[0] = &semaphore;
     waitarray[1] = 0;
@@ -87,7 +85,7 @@ int main(int argc, char **argv)
     for (i = 0; i < count; i++)
 	{
 	for (j = 0; j < 100000; j++);
-	sleeptime.tv_sec = i;
+	sleeptime.tv_sec = 1;
 	sleeptime.tv_usec = 0;
 	IOMGR_Select(0, NULL, NULL, NULL, &sleeptime);
 	LWP_MwaitProcess(1, waitarray);

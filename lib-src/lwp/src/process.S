@@ -37,6 +37,12 @@ Pittsburgh, PA.
 
 */
 /* some headers want to have this defined */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#if !defined(HAVE_UCONTEXT_H) && !defined(HAVE_SIGALTSTACK)
+
 #define __ASSEMBLY__ 1
 
 #if defined(sun3) || defined(mc68000) || defined(mc68020) || defined(mc68030)
@@ -642,7 +648,6 @@ newsp	=	16
 	.align	2
 	.globl	EXT(savecontext)
 SYMB(savecontext)
-	movb	1, _PRE_Block(pc)	# Do not allow any interrupt finagling 
 	enter	[r0,r1,r2,r3,r4,r5,r6,r7], 0	# save registers
 	sprd	fp, r0			# push frame pointer
 	movd	r0, tos
@@ -1005,4 +1010,6 @@ returnto:
       .end    returnto
 
 #endif /* DEC Alpha */
+
+#endif /* !defined(HAVE_UCONTEXT_H) && !defined(HAVE_SIGALTSTACK) */
 

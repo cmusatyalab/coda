@@ -39,15 +39,16 @@ Pittsburgh, PA.
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
 #include <lwp/lwp.h>
 
-int procA(int dummy);
-int procB(int dummy);
-int procC(int dummy);
+void procA(void *dummy);
+void procB(void *dummy);
+void procC(void *dummy);
 int tdb(int e);
 
 void count();
@@ -64,17 +65,17 @@ int main(int argc, char **argv)
     LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY+1, &mainthread);
     IOMGR_Initialize();
     printf("Main thread going to create procA\n");
-    LWP_CreateProcess((PFI)procA, 2048, LWP_NORMAL_PRIORITY, NULL, "procA", &A_pid);
+    LWP_CreateProcess(procA, 2048, LWP_NORMAL_PRIORITY, NULL, "procA", &A_pid);
     printf("Main thread going to create procB\n");
-    LWP_CreateProcess((PFI)procB, 2048, LWP_NORMAL_PRIORITY, NULL, "procB", &B_pid); 
+    LWP_CreateProcess(procB, 2048, LWP_NORMAL_PRIORITY, NULL, "procB", &B_pid); 
     printf("Main thread going to create procC \n");
-    LWP_CreateProcess((PFI)procC, 2048, LWP_NORMAL_PRIORITY, NULL, "procC", &C_pid);
+    LWP_CreateProcess(procC, 2048, LWP_NORMAL_PRIORITY, NULL, "procC", &C_pid);
     printf("Main thread returned from creating procC  \n");
     LWP_WaitProcess(&b);
     exit(0);
 }
 
-int procA(int dummy)
+void procA(void *dummy)
 {
     int    i;
     struct timeval t;
@@ -112,7 +113,7 @@ int procA(int dummy)
     }
 }
 
-int procB(int dummy)
+void procB(void *dummy)
 {
     while(1)
     {
@@ -130,7 +131,7 @@ int procB(int dummy)
 	}
     }
 
-int procC(int dummy)
+void procC(void *dummy)
 {
     int i;
     while(1)

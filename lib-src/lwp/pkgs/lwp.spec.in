@@ -5,7 +5,7 @@ Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
 Copyright: LGPL
 Group: Development/Libraries
-BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
+BuildRoot: %{_builddir}/@PACKAGE@-@VERSION@/Root
 %description
 The LWP userspace threads library. The LWP threads library is used by the Coda
 distributed filesystem, RVM (a persistent VM library), and RPC2/SFTP (remote

@@ -46,6 +46,7 @@ extern "C" {
 
 #include <sys/time.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdio.h>
 
@@ -100,27 +101,19 @@ extern int lwp_overflowAction;
 /* Tells if stack size counting is enabled. */
 extern int lwp_stackUseEnabled;
 
-typedef int (*PFIC)(void *);
-typedef void (*PFV)();
-
-
 /* variables used for checking work time of an lwp */
 extern struct timeval last_context_switch; /* how long a lwp was running */
 extern struct timeval cont_sw_threshold;  /* how long a lwp is allowed to run */
 
 extern struct timeval run_wait_threshold;
 
-#ifndef __cplusplus
-typedef int (*PFI) (void *);
-#endif
-
 void LWP_SetLog(FILE *file, int level);
 extern int LWP_QWait();
 extern int LWP_QSignal (PROCESS pid);
 extern int LWP_Init (int version, int priority, PROCESS *pid);
 extern int LWP_TerminateProcessSupport();
-extern int LWP_CreateProcess (PFIC ep, int stacksize, int priority, char *parm, 
-			     char *name, PROCESS *pid);
+extern int LWP_CreateProcess (void (*ep)(void *), int stacksize, int priority,
+			      void *parm, char *name, PROCESS *pid);
 extern int LWP_CurrentProcess (PROCESS *pid);
 PROCESS LWP_ThisProcess();
 extern void LWP_SetLog(FILE *, int );
@@ -147,7 +140,7 @@ void PRE_BeginCritical(void);
 void PRE_EndCritical(void);
 
 /* extern definitions for the io manager routines */
-extern int IOMGR_SoftSig (PFIC aproc, char *arock);
+extern int IOMGR_SoftSig (void (*aproc)(void *), char *arock);
 extern int IOMGR_Initialize();
 extern int IOMGR_Finalize();
 extern int IOMGR_Poll();
@@ -159,9 +152,6 @@ extern int IOMGR_CancelSignal (int signo);
 
 /* declarations for fasttime.c routines */
 extern int FT_Init (int printErrors, int notReally);
-#if	__GNUC__ >= 2
-struct timezone;
-#endif
 extern int FT_GetTimeOfDay (struct timeval *tv, struct timezone *tz);
 extern int TM_GetTimeOfDay (struct timeval *tv, struct timezone *tz);
 extern int FT_AGetTimeOfDay (struct timeval *tv, struct timezone *tz);

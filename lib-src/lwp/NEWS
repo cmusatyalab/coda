@@ -1,3 +1,18 @@
+New in 2.0:
+
+* Use ucontext.h provided functions for thread creation and switching.
+  In case those are not available use sigaltstack for thread creation
+  and sigsetjmp/siglongjump for thread switching, and if sigaltstack
+  doesn't exist fall back on the old process.S assembly code.
+* Simplified pthread support a bit, now it builds and runs on cygwin.
+* RPM .spec file fix to allow non-root users to build (Matthew Rich).
+* Included AIX process.S assembly, since I don't know the right ifdefs,
+  it isn't actually part of process.S yet.
+* This library is binary compatible with previous releases. But some of
+  the prototypes of callback functions got cleaned up a bit so that
+  building against this version of LWP will give some trivially fixable
+  compile warnings or errors.
+
 New in 1.13:
 
 * Stack switching code for AMD64 processors (Brett Lymn).

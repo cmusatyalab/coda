@@ -62,7 +62,7 @@ int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
 
     lwp_LEAVE(pid);
     retval = select(fds, readfds, writefds, exceptfds, timeout ? &to : NULL);
-    lwp_JOIN(pid);
+    lwp_YIELD(pid);
 
     return retval;
 }
@@ -84,7 +84,7 @@ int IOMGR_Cancel (PROCESS pid)
 int IOMGR_Finalize() { return 0; }
 
 /* signal delivery is not implemented yet */
-int IOMGR_SoftSig (PFIC aproc, char *arock)
+int IOMGR_SoftSig (void (*aproc)(void *), char *arock)
 {
     assert(0);
     return LWP_SUCCESS;

@@ -1,0 +1,44 @@
+
+	      .globl .savecontext
+
+.savecontext: 
+	      # Set new stack
+	      subi  1,1,128
+              # Save link register
+              mflr  0
+	      stw   0,4(4)
+	      # Save condition code register
+	      mfcr  9
+	      stw   9,8(4)
+              # Save general registers
+	      stmw  10,40(1)
+              # Save stack
+	      stw   1,0(4)
+	      # Set new stack, if neccesary
+	      cmpi  0,5,0
+	      beq   jump
+	      mr    1,5
+jump:
+              # Jump to the subroutine
+	      lwz 0,0(3)
+	      mtlr 0
+	      blr 
+
+
+              .globl .returnto
+	      
+.returnto:  
+              # Restore stack
+	      lwz   1,0(3)
+	      # Resore general registers
+	      lmw   10,40(1)
+	      # Resore condition code register
+	      lwz   9,8(3)
+	      mtcrf 255,9
+	      # Restore link register
+	      lwz   0,4(3)
+	      mtlr  0
+	      # Set old stack
+	      addi  1,1,128
+              # Return 
+	      blr

@@ -46,7 +46,7 @@ static struct list_head lwp_list;    /* list of all threads */
 
 /* information passed to a child process */
 struct lwp_forkinfo {
-    PFIC    func;
+    void  (*func)(void *);
     char   *parm; 
     char   *name;
     int     prio;
@@ -70,8 +70,8 @@ PROCESS lwp_cpptr = NULL; /* the currently running LWP thread */
  * to call SIGNAL to unblock the next runnable thread.
  * 
  * IOMGR_Select and LWP_QWait make a non-concurrent thread temporarily
- * concurrent, using lwp_LEAVE and lwp_JOIN. lwp_LEAVE unblocks a runnable
- * thread before releasing the run_mutex. lwp_LEAVE and lwp_JOIN are the
+ * concurrent, using lwp_LEAVE and lwp_YIELD. lwp_LEAVE unblocks a runnable
+ * thread before releasing the run_mutex. lwp_LEAVE and lwp_YIELD are the
  * _only_ functions that obtain and release the run_mutex, for the rest it
  * is only implicitly released while waiting on condition variables.
  * 
@@ -81,7 +81,7 @@ PROCESS lwp_cpptr = NULL; /* the currently running LWP thread */
  * there are runnable higher priority threads, lower queues will not be run
  * at all. All threads on the same queue are scheduled in a roundrobin order.
  * 
- * Non-concurrent thread have to be very careful not to get cancelled while
+ * Non-concurrent threads have to be very careful not to get cancelled while
  * waiting on condition variables because the cleanup handler needs to get
  * access to the shared list of processes, and therefore needs to lock the
  * run_mutex.
@@ -95,59 +95,50 @@ int lwp_threads_waiting(void)
 {
     int ret;
 
-    pthread_mutex_lock(&run_mutex);
+    lwp_mutex_lock(&run_mutex);
     ret = lwp_waiting;
-    pthread_mutex_unlock(&run_mutex);
+    lwp_mutex_unlock(&run_mutex);
 
     return ret;
 }
 
 static void _SCHEDULE(PROCESS pid, int leave)
 {
-    /* only signal if we are the running LWP */
-    if (pid == lwp_cpptr) {
-	lwp_cpptr = NULL;
-	if (lwp_waiting)
-		pthread_cond_signal(&run_cond);
-    }
-
-    if (leave) return;
-
-/* if there already is a running LWP, or others are waiting we should block */
-    if (lwp_cpptr || lwp_waiting) {
-	    lwp_waiting++;
-	    pid->waiting = 1;
-	    /* block at least once to give others a chance to run */
-	    do {
-		    pthread_cond_wait(&run_cond, &run_mutex);
-	    } while (lwp_cpptr);
-	    lwp_waiting--;
-	    pid->waiting = 0;
-    }
-    lwp_cpptr = pid;
-}
-
-void lwp_JOIN(PROCESS pid)
-{
-    pthread_testcancel();
-    if (pid->concurrent)
-	return;
-
-    pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
-    pthread_mutex_lock(&run_mutex);
-    _SCHEDULE(pid, 0);
-    pthread_cleanup_pop(1);
 }
 
 void lwp_LEAVE(PROCESS pid)
 {
-    if (!pid->concurrent) {
-	pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
-	pthread_mutex_lock(&run_mutex);
-	_SCHEDULE(pid, 1);
-	pthread_cleanup_pop(1);
+    if (pid == lwp_cpptr) {
+	lwp_mutex_lock(&run_mutex);
+	lwp_cpptr = NULL;
+	pthread_cond_signal(&run_cond);
+	lwp_mutex_unlock(&run_mutex);
     }
     pthread_testcancel();
+}
+
+void lwp_YIELD(PROCESS pid)
+{
+    lwp_LEAVE(pid);
+
+    if (pid->concurrent)
+	return;
+
+    lwp_mutex_lock(&run_mutex);
+    if (lwp_cpptr || lwp_waiting) {
+	lwp_waiting++;
+	pid->waiting = 1;
+
+	/* block at least once to give others a chance to run */
+	do {
+	    pthread_cond_wait(&run_cond, &run_mutex);
+	} while(lwp_cpptr);
+
+	lwp_waiting--;
+	pid->waiting = 0;
+    }
+    lwp_cpptr = pid;
+    lwp_mutex_unlock(&run_mutex);
 }
 
 /*-------------END SCHEDULER CODE------------*/
@@ -160,23 +151,18 @@ static void lwp_cleanup_process(void *data)
     PROCESS pid = (PROCESS)data;
 
     /* now we need the run_mutex to fiddle around with the process list */
-    pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
-    pthread_mutex_lock(&run_mutex);
+    lwp_mutex_lock(&run_mutex);
     {
+	if (pid == lwp_cpptr) {
+	    lwp_cpptr = NULL;
+	    pthread_cond_signal(&run_cond);
+	}
 	if (pid->waiting)
 	    lwp_waiting--;
 
-	if (pid == lwp_cpptr) {
-	    lwp_cpptr = NULL;
-	    pid->waiting = 1;
-	}
-
-	if (pid->waiting && !lwp_cpptr)
-	    pthread_cond_signal(&run_cond);
-
 	list_del(&pid->list);
     }
-    pthread_cleanup_pop(1);
+    lwp_mutex_unlock(&run_mutex);
 
     /* ok, we're safe, start cleaning up */
     sem_destroy(&pid->waitq);
@@ -217,13 +203,10 @@ int LWP_Init (int version, int priority, PROCESS *ret)
     pid->name = strdup("Main Process");
     pid->priority = priority;
 
-    pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
-    pthread_mutex_lock(&run_mutex);
-    {
-	list_add(&pid->list, &lwp_list);
-	_SCHEDULE(pid, 0);
-    }
-    pthread_cleanup_pop(1);
+    /* As we're still initializing (and therefore the first LWP thread) we
+     * don't need to fiddle with the run_mutex */
+    list_add(&pid->list, &lwp_list);
+    lwp_cpptr = pid;
 
     if (ret) *ret = pid;
 
@@ -266,7 +249,6 @@ static void *lwp_newprocess(void *arg)
 {
     struct lwp_forkinfo *newproc = (struct lwp_forkinfo *)arg;
     PROCESS              pid, parent = newproc->pid;
-    int                  retval;
 
     /* block incoming signals to this thread */
     sigset_t mask;
@@ -298,23 +280,22 @@ static void *lwp_newprocess(void *arg)
     newproc->pid = pid;
     LWP_QSignal(parent);
 
-    pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
-    pthread_mutex_lock(&run_mutex);
-    {
-	list_add(&pid->list, &lwp_list);
-	_SCHEDULE(pid, 0);
-    }
-    pthread_cleanup_pop(1);
+    lwp_mutex_lock(&run_mutex);
+    list_add(&pid->list, &lwp_list);
+    lwp_mutex_unlock(&run_mutex);
+
+    lwp_YIELD(pid);
 
     /* Fire off the newborn */
-    retval = pid->func(pid->parm);
+    pid->func(pid->parm);
 
-    pthread_exit(&retval);
+    lwp_LEAVE(pid);
+    pthread_exit(NULL);
     /* Not reached */
 }
 
-int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm, 
-		      char *name, PROCESS *ret)
+int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
+		      void *parm, char *name, PROCESS *ret)
 {
     PROCESS             pid;
     struct lwp_forkinfo newproc;
@@ -333,8 +314,9 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
     newproc.prio = priority;
     newproc.pid  = pid;
 
-    assert(pthread_attr_init(&attr) == 0);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    /* For some reason cygwin likes to return EBUSY here */
+    (void)pthread_attr_init(&attr);
+    (void)pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     err = pthread_create(&threadid, &attr, lwp_newprocess, &newproc);
     if (err) {
@@ -361,11 +343,11 @@ static void _LWP_DestroyProcess (PROCESS pid)
 
 int LWP_DestroyProcess (PROCESS pid)
 {
-    pthread_mutex_lock(&run_mutex);
+    lwp_mutex_lock(&run_mutex);
     {
 	_LWP_DestroyProcess(pid);
     }
-    pthread_mutex_unlock(&run_mutex);
+    lwp_mutex_unlock(&run_mutex);
     return LWP_SUCCESS;
 }
 
@@ -376,7 +358,7 @@ int LWP_TerminateProcessSupport()
 
     assert(LWP_CurrentProcess(&this) == 0);
 
-    pthread_mutex_lock(&run_mutex);
+    lwp_mutex_lock(&run_mutex);
     {
 	/* I should not kill myself. */
 	list_del(&this->list);
@@ -386,15 +368,12 @@ int LWP_TerminateProcessSupport()
 	    _LWP_DestroyProcess(pid);
 	}
     }
+    lwp_mutex_unlock(&run_mutex);
 
     /* Threads should be cancelled by now, we just have to wait for them to
      * terminate. */
-    while(!list_empty(&lwp_list)) {
-	pthread_mutex_unlock(&run_mutex);
-	pthread_mutex_lock(&run_mutex);
-	_SCHEDULE(this, 0);
-    }
-    pthread_mutex_unlock(&run_mutex);
+    while(!list_empty(&lwp_list))
+	lwp_YIELD(this);
 
     /* We can start cleaning. */
     lwp_cleanup_process(this);
@@ -411,7 +390,7 @@ int LWP_DispatchProcess(void)
     if (LWP_CurrentProcess(&pid))
 	return LWP_EBADPID;
 
-    lwp_JOIN(pid);
+    lwp_YIELD(pid);
 
     return LWP_SUCCESS;
 }
@@ -436,7 +415,7 @@ int LWP_QWait()
 
     lwp_LEAVE(pid);
     sem_wait(&pid->waitq); /* wait until we get signalled */
-    lwp_JOIN(pid);
+    lwp_YIELD(pid);
 
     return LWP_SUCCESS;
 }
@@ -445,12 +424,11 @@ int LWP_INTERNALSIGNAL(void *event, int yield)
 {
     struct list_head *ptr;
     PROCESS           this, pid;
-    int               i, signalled = 0;
+    int               i;
 
     assert(LWP_CurrentProcess(&this) == 0);
 
-    pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
-    pthread_mutex_lock(&run_mutex);
+    lwp_mutex_lock(&run_mutex);
     {
 	list_for_each(ptr, &lwp_list)
 	{
@@ -465,15 +443,14 @@ int LWP_INTERNALSIGNAL(void *event, int yield)
 		    break;
 		}
 	    }
-	    if (pid->eventcnt && !pid->waitcnt) {
+	    if (pid->eventcnt && !pid->waitcnt)
 		pthread_cond_signal(&pid->event);
-		signalled = 1;
-	    }
 	}
-	if ((signalled || yield) && !this->concurrent)
-	    _SCHEDULE(this, 0);
     }
-    pthread_cleanup_pop(1);
+    lwp_mutex_unlock(&run_mutex);
+
+    if (yield)
+	lwp_YIELD(this);
 
     return LWP_SUCCESS;
 }
@@ -504,25 +481,17 @@ int LWP_MwaitProcess (int wcount, char *evlist[])
     }
     memcpy(pid->evlist, evlist, entries * sizeof(*evlist));
     pid->waitcnt = wcount;
+    pid->eventcnt = entries;
 
-    pthread_cleanup_push((void(*)(void*))pthread_mutex_unlock, (void *)&run_mutex);
-    pthread_mutex_lock(&run_mutex);
-    {
-	pid->eventcnt = entries;
+    lwp_LEAVE(pid);
 
-	/* if we were non-concurrent, this will enable other threads to start
-	 * sending us signals */
-	if (!pid->concurrent)
-	    _SCHEDULE(pid, 1);
+    /* wait until we received enough events */
+    lwp_mutex_lock(&run_mutex);
+    while (pid->waitcnt)
+	pthread_cond_wait(&pid->event, &run_mutex);
+    lwp_mutex_unlock(&run_mutex);
 
-	/* wait until we received enough events */
-	while (pid->waitcnt)
-	    pthread_cond_wait(&pid->event, &run_mutex);
-
-	if (!pid->concurrent)
-	    _SCHEDULE(pid, 0);
-    }
-    pthread_cleanup_pop(1);
+    lwp_YIELD(pid);
 
     return LWP_SUCCESS;
 }
