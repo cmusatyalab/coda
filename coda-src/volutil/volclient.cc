@@ -65,6 +65,13 @@ extern "C" {
 #include <volume.h>
 #include "velapse.h"
 
+#include <codaconf.h>
+#include <vice_file.h>
+
+static char *serverconf = SYSCONFDIR "/server"; /* ".conf" */
+static char *vicedir = NULL;
+static int   nservers = 0;
+
 static RPC2_EncryptionKey vkey;	/* Encryption key for bind authentication */
 /* file variables for utils with file transfer */
 static char outfile[256];	// file name for requested info
@@ -133,11 +140,32 @@ static int V_BindToServer(char *fileserver, RPC2_Handle *RPCid);
 static void VolDumpLWP(struct rockInfo *rock);
 extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
 
+ void
+ReadConfigFile()
+{
+    char    confname[MAXPATHLEN];
+
+    /* don't complain if config files are missing */
+    codaconf_quiet = 1;
+
+    /* Load configuration file to get vice dir. */
+    sprintf (confname, "%s.conf", serverconf);
+    (void) conf_init(confname);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+    CONF_INT(nservers,		"numservers", 	   1); 
+
+    vice_dir_init(vicedir, 0);
+}
+
+
 int main(int argc, char **argv)
 {
     /* Set the default timeout and server host */
     timeout = 30;	/* Default rpc2 timeout is 30 seconds. */
     gethostname(s_hostname, sizeof(s_hostname) -1);
+
+    ReadConfigFile();
 	
     while (argc > 2 && *argv[1] == '-') { /* Both options require 2 arguments. */
 	if (strcmp(argv[1], "-h") == 0) { /* User specified other host. */
