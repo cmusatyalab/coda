@@ -755,7 +755,7 @@ int fsobj::ReplaceLocalFakeFid()
 	      obj->UnLock(WR);
 	      continue;
 	}
-	if (obj->IsDir() && HAVEDATA(obj) && (!obj->IsMtPt())) {
+	if (obj->IsDir() && HAVEALLDATA(obj) && (!obj->IsMtPt())) {
 	    /* deal with possible un-cached children under "obj" */
 	    LRDB->DirList_Clear();
 	    ViceFid *DirFid = &obj->fid;
@@ -765,7 +765,7 @@ int fsobj::ReplaceLocalFakeFid()
 	    LRDB->DirList_Process(obj);
 	}
 	if (obj->children != 0) {	/* Try to PUSH the stack if appropriate */
-	    if (!HAVEDATA(obj)) {
+	    if (!HAVEALLDATA(obj)) {
 		/* 
 		 * In theory this should not happen at all, but there is rare sequence
 		 * of actions that can discard the data for a directory object while
@@ -826,7 +826,7 @@ int fsobj::ReplaceLocalFakeFid()
 	obj->vol->TranslateCMLFid(&GlobalFid, &LocalFid);
 	obj->SetLocalObj();
 	Recov_EndTrans(MAXFP);
-	if (HAVEDATA(obj) && !DYING(obj))
+	if (HAVEALLDATA(obj) && !DYING(obj))
 		obj->SetRcRights(RC_DATA | RC_STATUS);
 	else
 		obj->ClearRcRights();
@@ -884,7 +884,7 @@ int fsobj::LocalFakeify()
 	fso_vol_iterator next(NL, vol);
 	while (pf = next()) {
 	    if (!pf->IsDir() || pf->IsMtPt()) continue;
-	    if (!HAVEDATA(pf)) continue;
+	    if (!HAVEALLDATA(pf)) continue;
 	    if (!pf->dir_IsParent(&fid)) continue;
 	    /* Found! */
 	    break;
@@ -968,7 +968,7 @@ int fsobj::LocalFakeify()
     FakeRoot->stat.DataVersion = 1;
     FakeRoot->stat.Mode = 0444;
     FakeRoot->stat.Owner = V_UID;
-    FakeRoot->stat.Length = 0;
+    FakeRoot->stat.Length = FakeRoot->stat.GotThisData = 0;
     FakeRoot->stat.Date = Vtime();
     FakeRoot->stat.LinkCount = 2;
     FakeRoot->stat.VnodeType = Directory;
@@ -977,7 +977,7 @@ int fsobj::LocalFakeify()
     FakeRoot->pfso = pf;
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
-    FakeRoot->stat.Length = FakeRoot->dir_Length();
+    FakeRoot->stat.Length = FakeRoot->stat.GotThisData = FakeRoot->dir_Length();
     FakeRoot->RcRights = RC_DATA | RC_STATUS;
     UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
     
@@ -1108,7 +1108,7 @@ int fsobj::LocalFakeifyRoot()
     FakeRoot->stat.DataVersion = 1;
     FakeRoot->stat.Mode = 0444;
     FakeRoot->stat.Owner = V_UID;
-    FakeRoot->stat.Length = 0;
+    FakeRoot->stat.Length = FakeRoot->stat.GotThisData = 0;
     FakeRoot->stat.Date = Vtime();
     FakeRoot->stat.LinkCount = 2;
     FakeRoot->stat.VnodeType = Directory;
@@ -1117,7 +1117,7 @@ int fsobj::LocalFakeifyRoot()
     FakeRoot->pfso = pf;
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
-    FakeRoot->stat.Length = FakeRoot->dir_Length();
+    FakeRoot->stat.Length = FakeRoot->stat.GotThisData = FakeRoot->dir_Length();
     FakeRoot->RcRights = RC_DATA | RC_STATUS;
     UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
     

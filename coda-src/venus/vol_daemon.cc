@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  * Implementation of the Venus Volume Daemon.

@@ -57,7 +57,9 @@ extern int CheckRmdirSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volume
 extern int CheckSymlinkSemantics(ClientEntry *, Vnode **, Vnode **, char *, Volume **, int, VCP,
 				   ViceStatus *, ViceStatus *, Rights *, Rights *, int =1);
 extern void PerformFetch(ClientEntry *, Volume *, Vnode *);
-extern int FetchBulkTransfer(RPC2_Handle, ClientEntry *, Volume *, Vnode *);
+extern int FetchBulkTransfer(RPC2_Handle, ClientEntry *, Volume *, Vnode *,
+			     RPC2_Unsigned Offset, RPC2_Unsigned Quota,
+			     ViceVersionVector *VV);
 extern void PerformGetAttr(ClientEntry *, Volume *, Vnode *);
 extern void PerformGetACL(ClientEntry *, Volume *, Vnode *, RPC2_BoundedBS *, RPC2_String);
 extern void PerformStore(ClientEntry *, VolumeId, Volume *, Vnode *,

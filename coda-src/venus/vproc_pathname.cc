@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  *    Implementation of the Venus path expansion facility.
@@ -291,7 +285,7 @@ Exit:
 void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
     LOG(1, ("vproc::GetPath: %s, %d\n", FID_(fid), fullpath));
 
-    if (*outlen < MAXPATHLEN)
+    if (*outlen < CODA_MAXPATHLEN)
 	{ u.u_error = ENAMETOOLONG; *outlen = 0; goto Exit; }
 
     /* Handle degenerate case of file system or volume root! */
@@ -414,4 +408,47 @@ Exit:
     }
     LOG(1, ("vproc::GetPath: returns %s (%s)\n",
 	     VenusRetStr(u.u_error), out));
+}
+
+void vproc::verifyname(char *name, int flags)
+{
+    char *ptr;
+    int   length = strlen(name);
+
+    /* Disallow '.', '..', and '/' */
+    if (flags & NAME_NO_DOTS)
+    {
+	switch(length)
+	{
+	case 2: /* test for '..' */
+	    if (name[1] != '.')
+		break;
+
+	case 1: /* test for '.' */
+	    if (name[0] != '.')
+		break;
+
+	case 0: /* test for empty names */
+	    u.u_error = EINVAL;
+	    break;
+	}
+	if (u.u_error) return;
+    }
+
+    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
+    if ((flags & NAME_NO_CONFLICT) && length == 27 &&
+	name[0] == '@' && name[9] == '.' && name[18] == '.')
+    {
+	u.u_error = EINVAL;
+	return;
+    }
+
+    /* Disallow names ending in anything like "@sys/@cpu" (@???). */
+    if ((flags & NAME_NO_EXPANSION) && (length >= 4) && (ptr[length-4] == '@'))
+    {
+	u.u_error = EINVAL;
+	return;
+    }
+
+    return;
 }

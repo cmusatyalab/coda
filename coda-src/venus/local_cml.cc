@@ -913,7 +913,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 		      GObj->fid.Volume, GObj->fid.Vnode, GObj->fid.Unique,
 		      LObj->fid.Volume, LObj->fid.Vnode, LObj->fid.Unique));
 
-	    if (!LObj->data.havedata)
+	    if (!HAVEALLDATA(LObj))
 		CHOKE("DoRepair: Store with no local data!");
 
 	    /* copy the local-obj cache file into the global-obj cache */
@@ -926,7 +926,10 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    close(gfd);
 	    close(lfd);
 	    /* set the local-obj length to the global-obj length */
+	    /* XXX Err, it seems to be the other way around, who wrote that
+	     * comment? --JH */
 	    GObj->stat.Length = LObj->stat.Length;
+	    GObj->stat.GotThisData = LObj->stat.GotThisData;
 	    code = GObj->RepairStore();
 	    GObj->GetPath(GlobalPath, 1);
 	    if (rcode == REPAIR_OVER_WRITE) {

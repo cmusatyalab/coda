@@ -58,7 +58,6 @@ extern "C" {
 #include <util.h>
 #include <callback.h>
 #include <prs.h>
-#include <prs.h>
 #include <al.h>
 #include <vice.h>
 #ifdef __cplusplus

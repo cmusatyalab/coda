@@ -16,9 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 /*
  *
  *    Implementation of the Venus VFS interface.
@@ -114,6 +111,22 @@ void vproc::root(struct venus_cnode *vpp) {
 void vproc::statfs(struct statfs *sbp) {
     LOG(1, ("vproc::statfs\n"));
     u.u_error = EOPNOTSUPP;
+
+#if 0
+    /* Maybe use this to give some useful information about cache usage? */
+    /* we only need to add an upcall and dig the necessary info from
+     * somewhere inside venus */
+    memset(sbp, 0, sizeof(struct statfs));
+    sbp->f_type    = CODA_SUPER_MAGIC;
+    sbp->f_bsize   = 1024;
+    sbp->f_blocks  = cache size;
+    sbp->f_bfree   = cache size - dirty objects;
+    sbp->f_bavail  = sbp->f_bfree - reserved blocks;
+    sbp->f_files   = fsobjs;
+    sbp->f_ffree   = free fsobjs;
+    sbp->f_fsid    = -1;
+    sbp->f_namelen = CODA_MAXNAMLEN;
+#endif
 }
 
 
@@ -273,7 +286,7 @@ void vproc::close(struct venus_cnode *cp, int flags)
         u.u_error = FSDB->Get(&f, &cp->c_fid, CRTORUID(u.u_cred), RC_STATUS);
         if (u.u_error) goto FreeLocks;
 
-        if (!DYING(f) && !HAVEDATA(f)) 
+        if (!DYING(f) && !HAVEALLDATA(f)) 
           LOG(0, ("vproc::close: Don't have DATA and not DYING! (fid = %s, flags = %x)\n", FID_(&cp->c_fid), flags));
 
 	/* Do the operation. */
@@ -634,13 +647,9 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
     int truncp = (vap->va_size == 0);
     int exclp = excl;
 
-    /* Disallow creation of {'.','..', '/'}. */
-    if (STREQ(name, "..") || STREQ(name, ".") || STREQ(name, ""))
-	{ u.u_error = EINVAL; return; }
-
-    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
-    if (strlen(name) == 27 && name[0] == '@' && name[9] == '.' && name[18] == '.')
-	{ u.u_error = EINVAL; return; }
+    /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
+    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
+    if (u.u_error) return;
 
     for (;;) {
 	Begin_VFS(dcp->c_fid.Volume, CODA_CREATE);
@@ -744,9 +753,9 @@ void vproc::remove(struct venus_cnode *dcp, char *name)
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
 
-    /* Disallow removal of {'.','..', '/'}. */
-    if (STREQ(name, "..") || STREQ(name, ".") || STREQ(name, ""))
-	{ u.u_error = EINVAL; return; }
+    /* don't allow '.', '..', '/' */
+    verifyname(name, NAME_NO_DOTS);
+    if (u.u_error) return;
 
     for (;;) {
 	Begin_VFS(dcp->c_fid.Volume, CODA_REMOVE);
@@ -801,13 +810,9 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
     fsobj *source_fso = 0;
     fsobj *target_fso = 0;
 
-    /* Disallow link of {'.','..', '/'}. */
-    if (STREQ(toname, "..") || STREQ(toname, ".") || STREQ(toname, ""))
-	{ u.u_error = EINVAL; return; }
-
-    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
-    if (strlen(toname) == 27 && toname[0] == '@' && toname[9] == '.' && toname[18] == '.')
-	{ u.u_error = EINVAL; return; }
+    /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
+    verifyname(toname, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
+    if (u.u_error) return;
 
     /* Another pathological case. */
     if (FID_EQ(&dcp->c_fid, &scp->c_fid))
@@ -889,14 +894,13 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
     fsobj *s_fso = 0;
     fsobj *t_fso = 0;
 
-    /* Disallow rename from/to {'.','..', '/'}. */
-    if (STREQ(name, "..") || STREQ(name, ".") || STREQ(name, "") ||
-	 STREQ(toname, "..") || STREQ(toname, ".") || STREQ(toname, ""))
-	{ u.u_error = EINVAL; return; }
+    /* don't allow '.', '..', '/' */
+    verifyname(name, NAME_NO_DOTS);
+    if (u.u_error) return;
 
-    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
-    if (strlen(toname) == 27 && toname[0] == '@' && toname[9] == '.' && toname[18] == '.')
-	{ u.u_error = EINVAL; return; }
+    /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
+    verifyname(toname, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
+    if (u.u_error) return;
 
     /* Ensure that objects are in the same volume. */
     if (spcp->c_fid.Volume != tpcp->c_fid.Volume)
@@ -1103,13 +1107,9 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name,
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
 
-    /* Disallow mkdir of {'.','..', '/'}. */
-    if (STREQ(name, "..") || STREQ(name, ".") || STREQ(name, ""))
-	{ u.u_error = EINVAL; return; }
-
-    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
-    if (strlen(name) == 27 && name[0] == '@' && name[9] == '.' && name[18] == '.')
-	{ u.u_error = EINVAL; return; }
+    /* don't allow '.', '..', '/', conflict names, or @xxx expansions */
+    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
+    if (u.u_error) return;
 
     for (;;) {
 	Begin_VFS(dcp->c_fid.Volume, CODA_MKDIR);
@@ -1132,6 +1132,7 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name,
 
 	/* Do the operation. */
 	parent_fso->PromoteLock();
+
 	u.u_error = parent_fso->Mkdir(name, &target_fso, CRTORUID(u.u_cred),
 				      vap->va_mode & 0777, FSDB->StdPri());
 	if (u.u_error) goto FreeLocks;
@@ -1164,9 +1165,9 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
 
-    /* Disallow removal of {'.','..', '/'}. */
-    if (STREQ(name, "..") || STREQ(name, ".") || STREQ(name, ""))
-	{ u.u_error = EINVAL; return; }
+    /* don't allow '.', '..', '/' */
+    verifyname(name, NAME_NO_DOTS);
+    if (u.u_error) return;
 
     for (;;) {
 	Begin_VFS(dcp->c_fid.Volume, CODA_RMDIR);
@@ -1235,13 +1236,9 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
 
-    /* Disallow link of {'.','..', '/'}. */
-    if (STREQ(name, "..") || STREQ(name, ".") || STREQ(name, ""))
-	{ u.u_error = EINVAL; return; }
-
-    /* Disallow names of the form "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ". */
-    if (strlen(name) == 27 && name[0] == '@' && name[9] == '.' && name[18] == '.')
-	{ u.u_error = EINVAL; return; }
+    /* don't allow '.', '..', '/', conflict names, or expansions */
+    verifyname(name, NAME_NO_DOTS | NAME_NO_CONFLICT | NAME_NO_EXPANSION);
+    if (u.u_error) return;
 
     for (;;) {
 	Begin_VFS(dcp->c_fid.Volume, CODA_SYMLINK);

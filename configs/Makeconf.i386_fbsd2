@@ -8,7 +8,6 @@ SHORTSYS      = bsd44
 INCLFLAGS     = -I/usr/include
 OPTFLAG	      =
 GFLAG         = -g
-CPP 	      = gcc -E -x c-header
 LIBCURSES     = -lcurses
 LIBCOMPAT     = /usr/lib/libcompat.a
 LIBREADLINE   = /usr/lib/libreadline.a

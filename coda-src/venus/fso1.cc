@@ -162,7 +162,7 @@ void fsobj::ResetPersistent() {
     state = FsoRunt;
     stat.VnodeType = Invalid;
     stat.LinkCount = (unsigned char)-1;
-    stat.Length = (unsigned long)-1;
+    stat.Length = stat.GotThisData = 0;
     stat.DataVersion = -1;
     stat.VV = NullVV;
     stat.VV.StoreId.Host = NO_HOST;
@@ -199,7 +199,8 @@ void fsobj::ResetTransient() {
     bzero((void *)&del_handle, (int)sizeof(del_handle));
     bzero((void *)&owrite_handle, (int)sizeof(owrite_handle));
 
-    if (HAVEDATA(this) && stat.VnodeType == Directory && mvstat != MOUNTPOINT) {
+    if (HAVEALLDATA(this) && stat.VnodeType == Directory &&
+	mvstat != MOUNTPOINT) {
 	data.dir->udcfvalid = 0;
 	data.dir->udcf = 0;
     }
@@ -465,7 +466,7 @@ void fsobj::Recover() {
 
     /* Files that were open for write must be "closed" and discarded. */
     if (flags.owrite != 0) {
-	FSO_ASSERT(this, HAVEDATA(this));
+	FSO_ASSERT(this, HAVEALLDATA(this));
 	eprint("\t(%s, %x.%x.%x) discarding owrite object",
 	       comp, fid.Volume, fid.Vnode, fid.Unique);
 	Recov_BeginTrans();
@@ -492,8 +493,8 @@ void fsobj::Recover() {
     switch(stat.VnodeType) {
 	case File:
 	    {
-	    if ((HAVEDATA(this) && cf.Length() != stat.Length) ||
-		(!HAVEDATA(this) && cf.Length() != 0)) {
+	    if ((HAVEDATA(this) && cf.Length() != stat.GotThisData) ||
+		(!HAVEALLDATA(this) && cf.Length() != 0)) {
 		eprint("\t(%s, %x.%x.%x) cache file validation failed",
 		       comp, fid.Volume, fid.Vnode, fid.Unique);
 		goto Failure;
@@ -530,7 +531,8 @@ Failure:
 	print(logFile);
 
 	/* Scavenge data for dirty, bogus file. */
-	/* Note that any store of this file in the CML must be cancelled (in later step of recovery). */
+	/* Note that any store of this file in the CML must be cancelled (in
+	 * later step of recovery). */
 	if (DIRTY(this)) {
 	    if (!IsFile()) {
 		print(logFile);
@@ -864,6 +866,10 @@ void fsobj::SetRcRights(int rights) {
 	       fid.Volume, fid.Vnode, fid.Unique, rights));
 
     FSO_ASSERT(this, flags.discread == 0 || flags.local == 1);
+    /* There is a problem if the rights are set that we have valid data,
+     * but we actually don't have data yet. */
+    FSO_ASSERT(this, !(rights & RC_DATA) ||
+	             ((rights & RC_DATA) && HAVEALLDATA(this)));
     RcRights = rights;
 }
 
@@ -890,7 +896,7 @@ int fsobj::IsValid(int rcrights) {
     if (rcrights & RC_STATUS) 
         haveit = (state != FsoRunt);
     if (rcrights & RC_DATA)  /* should work if both set */
-        haveit = (data.havedata?data.havedata:haveit);
+        haveit = (HAVEALLDATA(this) ? HAVEALLDATA(this) : haveit);
 
     /* hook for VCB statistics -- valid due to VCB only? */
     if ((haveit &&
@@ -1126,7 +1132,7 @@ void fsobj::MakeClean() {
 /* MUST NOT be called from within transaction! */
 /* Call with object write-locked. */
 int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
-    if (!HAVEDATA(this))
+    if (!HAVEALLDATA(this))
 	{ print(logFile); CHOKE("fsobj::TryToCover: called without data"); }
 
     LOG(10, ("fsobj::TryToCover: fid = (%x.%x.%x)\n",
@@ -2068,7 +2074,7 @@ int fsobj::Fakeify() {
 	fso_vol_iterator next(NL, vol);
 	while (pf = next()) {
 	    if (!pf->IsDir() || pf->IsMtPt()) continue;
-	    if (!HAVEDATA(pf)) continue;
+	    if (!HAVEALLDATA(pf)) continue;
 	    if (!pf->dir_IsParent(&fid)) continue;
 
 	    /* Found! */
@@ -2098,7 +2104,8 @@ int fsobj::Fakeify() {
 	    stat.DataVersion = 1;
 	    stat.Mode = 0644;
 	    stat.Owner = V_UID;
-	    stat.Length = 27;		/* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ" */
+	    stat.Length = stat.GotThisData = 27;
+		    /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ" */
 	    stat.Date = Vtime();
 	    stat.LinkCount = 1;
 	    stat.VnodeType = SymbolicLink;
@@ -2181,7 +2188,7 @@ int fsobj::Fakeify() {
 	    stat.DataVersion = 1;
 	    stat.Mode = 0444;
 	    stat.Owner = V_UID;
-	    stat.Length = 0;
+	    stat.Length = stat.GotThisData = 0;
 	    stat.Date = Vtime();
 	    stat.LinkCount = 2;
 	    stat.VnodeType = Directory;
@@ -2194,7 +2201,7 @@ int fsobj::Fakeify() {
 
 	    /* Create the target directory. */
 	    dir_MakeDir();
-	    stat.Length = dir_Length();
+	    stat.Length = stat.GotThisData = dir_Length();
 	    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(this));
 
 	    /* Make entries for each of the rw-replicas. */
@@ -2614,7 +2621,7 @@ void fsobj::print(int fdes) {
 	     flags.backup, flags.readonly, flags.replicated, flags.rwreplica,
 	     flags.usecallback, flags.fake, flags.fetching, flags.local);
     fdprint(fdes, "\trep = %d, data = %d, owrite = %d, era = %d, dirty = %d, shadow = %d\n",
-	     flags.replaceable, data.havedata != 0, flags.owrite, flags.era, flags.dirty,
+	     flags.replaceable, HAVEDATA(this), flags.owrite, flags.era, flags.dirty,
 	     shadow != 0);
 
     /* < mvstat [rootfid | mtptfid] > */

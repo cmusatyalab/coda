@@ -1641,7 +1641,7 @@ void volent::RestoreObj(ViceFid *Fid) {
     }
     if (Length != f->stat.Length) {
 	RVMLIB_REC_OBJECT(f->stat.Length);
-	f->stat.Length = Length;
+	f->stat.Length = f->stat.GotThisData = Length;
     }
 
     /* Mtime attribute. */
@@ -3047,7 +3047,7 @@ int cmlent::WriteReintegrationHandle() {
 		  f->fid.Volume, f->fid.Vnode, f->fid.Unique);
 
 	/* Sanity checks. */
-	if (!f->IsFile() || !HAVEDATA(f)) {
+	if (!f->IsFile() || !HAVEALLDATA(f)) {
 	    code = EINVAL;
 	    goto Exit;
 	}
@@ -3893,7 +3893,7 @@ int cmlent::checkpoint(FILE *fp) {
 	    {
 		fsobj *f = FSDB->Find(&u.u_store.Fid);
 		CODA_ASSERT(f != 0);
-		if (!HAVEDATA(f)) {
+		if (!HAVEALLDATA(f)) {
 		    eprint("can't checkpoint (%s), no data", hdr.dbuf.name);
 		    break;
 		}

@@ -1853,7 +1853,9 @@ int volent::GetConn(connent **c, vuid_t vuid) {
 int volent::Collate(connent *c, int code) {
     code = c->CheckResult(code, vid);
 
-    if (flags.transition_pending)
+    /* when the operation has failed miserably, but we have a pending volume
+     * transition, just retry the operation */
+    if (code && flags.transition_pending)
 	code = ERETRY;
     return(code);
 }
@@ -1888,7 +1890,9 @@ int volent::GetMgrp(mgrpent **m, vuid_t vuid, RPC2_CountedBS *PiggyBS) {
 int volent::Collate_NonMutating(mgrpent *m, int code) {
     code = m->CheckNonMutating(code);
 
-    if (flags.transition_pending)
+    /* when the operation has failed miserably, but we have a pending volume
+     * transition, just retry the operation */
+    if (code && flags.transition_pending)
 	code = ERETRY;
     return(code);
 }

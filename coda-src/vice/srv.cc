@@ -93,7 +93,6 @@ extern "C" {
 
 
 #include <prs.h>
-#include <prs.h>
 #include <al.h>
 
 #include <auth2.h>
@@ -901,7 +900,7 @@ void PrintCounters(FILE *fp)
     SLog(0, "NewConnectFS %d", Counters[NEWCONNECTFS]);
     SLog(0, "DisconnectFS %d", Counters[DISCONNECT]);
 
-    SLog(0, "Fetch %d", Counters[ViceFetch_OP]);
+    SLog(0, "Fetch %d", Counters[ViceNewFetch_OP]);
     SLog(0, "Store %d", Counters[STORE]);
     SLog(0, "ValidateAttrs %d", Counters[VALIDATEATTRS]);
 
@@ -923,7 +922,6 @@ void PrintCounters(FILE *fp)
     SLog(0, "GetVolumeInfo %d", Counters[ViceGetVolumeInfo_OP]); 
     SLog(0, "EnableGroup %d", Counters[ViceEnableGroup_OP]); 
     SLog(0, "DisableGroup %d", Counters[ViceDisableGroup_OP]); 
-    SLog(0, "Probe %d", Counters[ViceProbe_OP]); 
     SLog(0, "AllocFids %d", Counters[ALLOCFIDS]); 
     SLog(0, "COP2 %d", Counters[ViceCOP2_OP]); 
     SLog(0, "Resolve %d", Counters[RESOLVE]);

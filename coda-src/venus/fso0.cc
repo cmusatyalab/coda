@@ -16,11 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
 /*
  *
  *    Implementation of the Venus File-System Object (fso) abstraction.
@@ -272,7 +267,7 @@ FREE_ENTRY: /* release entry from namelist */
 	    fso_iterator next(NL);
 	    fsobj *f;
 	    while ((f = next()))
-		if (DIRTY(f) && !HAVEDATA(f))
+		if (DIRTY(f) && !HAVEALLDATA(f))
 		    f->CancelStores();
 	}
     }
@@ -1020,7 +1015,7 @@ RestartFind:
 	    /* we have to re-check FETCHABLE because it may have changed as
 	       a result of the inconsistent object manipulation above. */
 	    if (getdata && FETCHABLE(f)) {
-		if (HAVEDATA(f)) {
+		if (HAVEALLDATA(f)) {
 		    /* If we have data at this point, it MUST be valid! */
                     VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, HIT, BLOCKS(f));
 		}
@@ -1141,7 +1136,7 @@ RestartFind:
 		      Put(&f);
 		      return(ETOOMANYREFS);
 		    } 
-		    if (HAVEDATA(f)) {
+		    if (HAVEALLDATA(f)) {
                         VmonUpdateSession(vp, key, f, f->vol, vuid, DATA, HIT, BLOCKS(f)); /* sort of... */
 			if (!DATAVALID(f))
 			    LOG(0, ("Allowing access to stale data! (key = <%x.%x.%x>)\n",  key->Volume, key->Vnode, key->Unique));
@@ -1363,7 +1358,7 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 	f->fid = *NewFid;
 	
 	/* replace "." and its hardlinks if f is dir */
-	if (f->IsDir() && HAVEDATA(f) && (!f->IsMtPt())) 
+	if (f->IsDir() && HAVEALLDATA(f) && (!f->IsMtPt())) 
 		f->dir_TranslateFid(OldFid, NewFid);
 	
 	/* replace f in the hash table */
@@ -1389,7 +1384,7 @@ int fsdb::TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 		RVMLIB_REC_OBJECT(cf->pfid);
 		cf->pfid = *NewFid;
 
-		if (cf->IsDir() && HAVEDATA(cf) && (!cf->IsMtPt()))
+		if (cf->IsDir() && HAVEALLDATA(cf) && (!cf->IsMtPt()))
 			cf->dir_TranslateFid(OldFid, NewFid);
 	}
 	return 0;
@@ -1551,7 +1546,7 @@ void fsdb::ReclaimFsos(int priority, int count) {
 			     REPLACE, BLOCKS(f));
 
 	if (AdviceEnabled)
-	  f->RecordReplacement(TRUE, (HAVEDATA(f)));
+	  f->RecordReplacement(TRUE, HAVEDATA(f));
 
 	f->Kill();
 	f->GC();
@@ -1691,17 +1686,19 @@ void fsdb::FreeBlocks(int nblocks) {
  *    We currently have the following exceptions:
  *       1. When valid data is discovered at startup in the fsobj constructor
  *       2. When (re)derivating a udir
- *       3. When FetchData retrieves more data than expected (due to a write-sharing race)
+ *       3. When FetchData retrieves more data than expected (due to a
+ *          write-sharing race)
  *       4. When a file opened for write is closed.
  *
- *    Items 1-2 are either inconsequential or will disappear when we switch to RVM.
- *    Item 3 is a rare event (presumably), and can be fixed either by implementing the
- *    ByteQuota feature of SFTP, or by making the version of the data requested an IN
- *    parameter to ViceFetch.  Item 4 is the sticky one.  What I have in mind is to pass back
- *    an "allowance" parameter to the VFS_OPEN(WR) call.  If the MiniCache (specifically,
- *    cfs_rdwr) detects that a write would cause the allowance to be exceeded, it makes
- *    a new call (an ioctl?) asking for more.  On VFS_CLOSE(WR), any unused allowance
- *    would be reclaimed.
+ *    Items 1-2 are either inconsequential or will disappear when we switch to
+ *    RVM. Item 3 is a rare event (presumably), and can be fixed either by
+ *    implementing the ByteQuota feature of SFTP, or by making the version of
+ *    the data requested an IN parameter to ViceFetch.  Item 4 is the sticky
+ *    one.  What I have in mind is to pass back an "allowance" parameter to
+ *    the VFS_OPEN(WR) call.  If the MiniCache (specifically, cfs_rdwr)
+ *    detects that a write would cause the allowance to be exceeded, it makes
+ *    a new call (an ioctl?) asking for more.  On VFS_CLOSE(WR), any unused
+ *    allowance would be reclaimed.
  */
 void fsdb::ChangeDiskUsage(int delta_blocks) {
     LOG(10, ("fsdb::ChangeDiskUsage: %d blocks\n", delta_blocks));
@@ -1867,6 +1864,7 @@ void fsdb::print(int fd, int SummaryOnly) {
 #ifdef	VENUSDEBUG
     {
 	int normal_blocks = 0;
+	int got_blocks = 0;
 	int udir_blocks = 0;
 	int ow_blocks = 0;
 	fso_iterator next(NL);
@@ -1881,6 +1879,7 @@ void fsdb::print(int fd, int SummaryOnly) {
 			    ow_blocks += (int) NBLOCKS(tstat.st_size);
 			} else {
 			    normal_blocks += NBLOCKS(f->cf.Length());
+			    got_blocks += NBLOCKS(f->stat.GotThisData);
 			}
 			break;
 
@@ -1897,7 +1896,7 @@ void fsdb::print(int fd, int SummaryOnly) {
 			CHOKE("fsdb::print: bogus vnode type");
 		}
 	    }
-	fdprint(fd, "Real Blocks: %d, %d, %d\n", normal_blocks, udir_blocks, ow_blocks);
+	fdprint(fd, "Real Blocks: %d, %d, %d\n", got_blocks, normal_blocks, udir_blocks, ow_blocks);
     }
 #endif	VENUSDEBUG
     fdprint(fd, "Cache Statistics:  [ count : blocks ]\n");

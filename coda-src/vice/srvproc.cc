@@ -70,7 +70,6 @@ extern "C" {
 #include <partition.h>
 #include <util.h>
 #include <prs.h>
-#include <prs.h>
 #include <al.h>
 #include <callback.h>
 #include <vice.h>
@@ -175,11 +174,12 @@ extern void PollAndYield();
 
 
 /*
-  ViceFetch":Fetch a file or directory
+  ViceNewFetch":Fetch a file or directory
 */
-long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
+long FS_ViceNewFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 		ViceFetchType Request, RPC2_BoundedBS *AccessList,
 		ViceStatus *Status, RPC2_Unsigned PrimaryHost,
+		RPC2_Unsigned Offset, RPC2_Unsigned Quota,
 		RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
 {
     /* We should have separate RPC routines for these two! */
@@ -205,7 +205,7 @@ long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
     vle *av;
 
 START_TIMING(Fetch_Total);
-    SLog(1, "ViceFetch: Fid = %s, Repair = %d", FID_(Fid), 
+    SLog(1, "ViceNewFetch: Fid = %s, Repair = %d", FID_(Fid), 
 	 (Request == FetchDataRepair));
 
     /* Validate parameters. */
@@ -226,20 +226,14 @@ START_TIMING(Fetch_Total);
 		break;
 
 	    default:
-		SLog(0, "ViceFetch: illegal type %d", Request);
+		SLog(0, "ViceNewFetch: illegal type %d", Request);
 		errorCode = EINVAL;
 		goto FreeLocks;
 	}
 
 	/* Deprecated/Inapplicable parameters. */
-	if (!FID_EQ(&NullFid, BidFid)) {
-	    SLog(0, "ViceFetch: non-Null BidFid (%x.%x.%x)",
-		    BidFid->Volume, BidFid->Vnode, BidFid->Unique);
-	    errorCode = EINVAL;
-	    goto FreeLocks;
-	}
 	if (AccessList->MaxSeqLen != 0) {
-	    SLog(0, "ViceFetch: ACL != 0");
+	    SLog(0, "ViceNewFetch: ACL != 0");
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
@@ -276,7 +270,8 @@ START_TIMING(Fetch_Total);
     /* Perform operation. */
     {
 	if (!ReplicatedOp || PrimaryHost == ThisHostAddr)
-	    if (errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr))
+	    if (errorCode = FetchBulkTransfer(RPCid, client, volptr, v->vptr,
+					      Offset, Quota, VV))
 		goto FreeLocks;
 	PerformFetch(client, volptr, v->vptr);
 
@@ -294,9 +289,22 @@ FreeLocks:
 	PutObjects(errorCode, volptr, NO_LOCK, vlist, 0, 0);
     }
 
-    SLog(2, "ViceFetch returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceNewFetch returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Fetch_Total);
     return(errorCode);
+}
+
+
+/*
+  ViceFetch":Fetch a file or directory
+*/
+long FS_ViceFetch(RPC2_Handle RPCid, ViceFid *Fid, ViceFid *BidFid,
+		ViceFetchType Request, RPC2_BoundedBS *AccessList,
+		ViceStatus *Status, RPC2_Unsigned PrimaryHost,
+		RPC2_CountedBS *PiggyBS, SE_Descriptor *BD)
+{
+    return FS_ViceNewFetch(RPCid, Fid, NULL, Request, AccessList, Status,
+			   PrimaryHost, 0, 0, PiggyBS, BD);
 }
 
 
@@ -2089,7 +2097,7 @@ int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
     }
 
     if (anyid != 0) {
-	    if (AL_CheckRights(ACL, anyCPS, (int *)anyrights) != 0) {
+	if (AL_CheckRights(ACL, anyCPS, (int *)anyrights) != 0) {
 		    SLog(0, "CheckRights failed");
 		    anyrights = 0;
 	}
@@ -2647,7 +2655,7 @@ END_TIMING(AllocVnode_Total);
 
 
 int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
-			 Volume **volptr, Rights *rights, Rights *anyrights) 
+			 Volume **volptr, Rights *rights, Rights *anyrights)
 {
     int errorCode = 0;
     ViceFid Fid;
@@ -3653,7 +3661,8 @@ void PerformFetch(ClientEntry *client, Volume *volptr, Vnode *vptr) {
 
 
 int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, 
-		      Volume *volptr, Vnode *vptr) 
+		      Volume *volptr, Vnode *vptr, RPC2_Unsigned Offset,
+		      RPC2_Unsigned Quota, ViceVersionVector *VV)
 {
     int errorCode = 0;
     ViceFid Fid;
@@ -3665,6 +3674,17 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
     PDirHeader buf = 0;
     int size = 0;
     int i;
+
+    {
+	/* When we are continueing a trickle/interrupted fetch, the version
+	 * vector must be the same */
+	if (VV && (VV_Cmp(VV, &vptr->disk.versionvector) != VV_EQ))
+	{
+		SLog(1, "FetchBulkTransfer: Attempting resumed fetch on updated object");
+		/* now what errorcode can we use for this case?? */
+		return(EAGAIN);
+	}
+    }
 
     /* If fetching a directory first copy contents from rvm to a temp buffer. */
     if (vptr->disk.type == vDirectory){
@@ -3687,9 +3707,9 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = client->SEType;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-	sid.Value.SmartFTPD.SeekOffset = 0;
+	sid.Value.SmartFTPD.SeekOffset = Offset;
 	sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
-	sid.Value.SmartFTPD.ByteQuota = -1;
+	sid.Value.SmartFTPD.ByteQuota = (Quota == 0) ? -1 : (long)Quota;
 	if (vptr->disk.type != vDirectory) {
 	    if (vptr->disk.inodeNumber) {
 		sid.Value.SmartFTPD.Tag = FILEBYINODE;
@@ -3744,11 +3764,16 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	    goto Exit;
 	}
 
+	/* compensate Length for the data we skipped because of the requested
+	 * Offset */
+	Length -= Offset;
+
 	RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
-	if (Length != len) {
+	if (len != Length) {
 	    SLog(0, "FetchBulkTransfer: length discrepancy (%d : %d), (%x.%x.%x), %s %s.%d",
 		 Length, len, Fid.Volume, Fid.Vnode, Fid.Unique,
-		 client->UserName, client->VenusId->HostName, client->VenusId->port);
+		 client->UserName, client->VenusId->HostName,
+		 client->VenusId->port);
 	    errorCode = EINVAL;
 	    goto Exit;
 	}

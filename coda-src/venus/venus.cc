@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus

@@ -1,3 +1,38 @@
+1999-03-04    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.1.0 (5.2.pre1) =========
+	- summary of some of the differences since 5.0.x
+	* New protection database (simplyfies user administration).
+	* Removed obsolete venus-vice rpc2 calls.
+	* Server support for trickle fetch and fetch continuations.
+	* Improved support on the Windows platforms.
+	* Avoid deadlocks in the rpc2 binding sequence.
+	* Added support for FreeBSD 4.0 (Robert Watson)
+	* Testing for -fno-exceptions in configure script.
+	* Switching fetches between volume replicas.
+	* Removed the need for -child flag on Win95.
+	* Nice GUI frontend on Windows for starting/stopping venus.
+	  (Michael Callahan and Marc Schnieder)
+	* Fixed @sys/@cpu expansions in venus, and allow setuid bits.
+	* Many more cleanups and bugfixes.
+
+1999-02-25    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.0.3 =========
+	* Fixed a bug introduced by the rpc2 cleanups, where lost packets
+	  were not retried, this was the cause of the server deadlocks.
+
+1999-02-19    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.0.2 =========
+	* Resolution refcounting fixes. (Peter)
+	* Test if the compiler has -fno-exceptions.
+	* Made auth2 block only 15 seconds when authentication fails.
+	* Corrected initialization for a couple of LWP threads. (Marc)
+	* Zero out SFTP descriptors before usage.
+	* Removed leftover merge conflict in norton/reinit. (Anders Hammarquist)
+	* NetBSD-sparc support and BSD directory format fixes. (Matt Fredette)
+	* Misc other *BSD patches. (Matt and Greg Troxel)
+	* Prevention of DoS in the initial rpc2 bind sequence.
+	* Fix for > 127 char filenames.
+
 1999-01-21    <jaharkes@cs.cmu.edu>
 
 	* ======== Release 5.0.1 =========

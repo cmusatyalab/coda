@@ -34,8 +34,6 @@ extern "C" {
 #endif __cplusplus
 
 #include <util.h>
-#include <prs.h>
-#include <al.h>
 #include <srv.h>
 #include <volume.h>
 #include <vlist.h>

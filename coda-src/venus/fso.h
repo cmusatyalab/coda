@@ -318,6 +318,7 @@ struct VenusStat {
     ViceDataType VnodeType;
     unsigned char LinkCount;
     unsigned long Length;
+    unsigned long GotThisData;	/* amount of successfully fetched data */
     long DataVersion;
     ViceVersionVector VV;
     Date_t Date;
@@ -734,6 +735,8 @@ class fsobj {
     int RepairMkdir(fsobj **, char *, unsigned short, int);
     int RepairRmdir(char *, fsobj *);
     int RepairSymlink(fsobj **, char *, char *, unsigned short, int);
+
+    void FetchProgressIndicator(unsigned int offset);
 };
 
 class fso_iterator : public rec_ohashtab_iterator {
@@ -784,7 +787,9 @@ extern void FSOD_Init();
 #define	DIRTY(f)	((f)->flags.dirty)
 #define	HAVESTATUS(f)	((f)->state != FsoRunt)
 #define	STATUSVALID(f)	((f)->IsValid(RC_STATUS))
-#define	HAVEDATA(f)	((f)->data.havedata)
+#define	HAVEDATA(f)	((f)->data.havedata != 0)
+#define	PARTIALDATA(f)	((f)->stat.GotThisData != (f)->stat.Length)
+#define	HAVEALLDATA(f)	(HAVEDATA(f) && !PARTIALDATA(f))
 #define	DATAVALID(f)	((f)->IsValid(RC_DATA))
 #define	EXECUTABLE(f)	(HAVESTATUS(f) &&\
 			 (f)->IsFile() &&\

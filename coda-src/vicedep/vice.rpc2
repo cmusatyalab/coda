@@ -262,6 +262,18 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
+3: ViceNewFetch	(IN ViceFid Fid,
+		 IN ViceVersionVector VV,
+		 IN ViceFetchType Request,
+		 IN OUT RPC2_BoundedBS AccessList,
+		 OUT ViceStatus Status,
+		 IN RPC2_Unsigned PrimaryHost,
+		 IN RPC2_Unsigned Offset,
+		 IN RPC2_Unsigned Quota,
+		 IN RPC2_CountedBS PiggyCOP2,
+		 IN OUT SE_Descriptor BD);
+
+
 11: ViceRemoveCallBack (IN RPC2_CountedBS RCBBS);
 
 15: ViceGetRootVolume (IN OUT RPC2_BoundedBS Volume);
@@ -297,9 +309,6 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 25: ViceEnableGroup (IN RPC2_String GroupName);
 
 26: ViceDisableGroup (IN RPC2_String GroupName);
-
-27: ViceProbe	(IN RPC2_CountedBS Volumes,
-		 OUT RPC2_CountedBS VVs);
 
 29: ViceCOP2	(IN RPC2_CountedBS COP2BS);
 

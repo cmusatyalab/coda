@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  *    CFS calls2.
@@ -450,64 +444,45 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 }
 
 
-/* Embed the processor/system name in the code for @cputype/@sys expansion. */
+/* Embed the processor/system name in the code for @cpu/@sys expansion. */
 
-#ifdef __NetBSD__
-#ifdef i386
-static char cputype [] = "i386";
-static char systype [] = "i386_nbsd1";
-#endif /* i386 */
+#ifdef __alpha__
+#define CPUTYPE "alpha"
+#endif
 #ifdef arm32
-static char cputype [] = "arm32";
-static char systype [] = "arm32_nbsd1";
+#define CPUTYPE "arm32"
+#endif
+#ifdef i386
+#define CPUTYPE "i386"
+#endif 
+#ifdef __powerpc__
+#define CPUTYPE "powerpc"
 #endif
 #ifdef sparc
-static char cputype [] = "sparc";
-static char systype [] = "sparc_nbsd1";
+#define CPUTYPE "sparc"
 #endif
 #ifdef sun3
-static char cputype [] = "sun3";
-static char systype [] = "sun3_nbsd1";
+#define CPUTYPE "sun3"
 #endif
-#endif /* __NetBSD__ */
+#ifndef CPUTYPE
+#define CPUTYPE "unknown"
+#endif
 
 #ifdef __FreeBSD__
-#ifdef i386
-static char cputype [] = "i386";
-static char systype [] = "i386_fbsd2";
-#endif /* i386 */
-#endif /* __FreeBSD__ */
-
+#define SYSTYPE CPUTYPE"_fbsd2"
+#endif
 #ifdef __linux__
-#ifdef i386
-static char cputype [] = "i386";
-static char systype [] = "i386_linux";
-#endif /* i386 */
-#ifdef sparc
-static char cputype [] = "sparc";
-static char systype [] = "sparc_linux";
+#define SYSTYPE CPUTYPE"_linux"
 #endif
-#ifdef __alpha__
-static char cputype [] = "alpha";
-static char systype [] = "alpha_linux";
+#ifdef __NetBSD__
+#define SYSTYPE CPUTYPE"_nbsd1"
 #endif
-#ifdef __powerpc__
-static char cputype [] = "powerpc";
-static char systype [] = "powerpc_linux";
+#if defined(__CYGWIN32__) || defined(DJGPP)
+#define SYSTYPE CPYTYPE"_win32"
+#endif 
+#ifndef SYSTYPE
+#define SYSTYPE CPUTYPE"_unknown"
 #endif
-#endif /* __linux__ */
-
-#ifdef __CYGWIN32__
-#ifdef i386
-static char cputype [] = "i386";
-static char systype [] = "i386_win32";
-#endif 
-#endif 
-
-#ifdef DJGPP
-static char cputype [] = "i386";
-static char systype [] = "i386_win32";
-#endif 
 
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
@@ -515,6 +490,8 @@ static char systype [] = "i386_win32";
 int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t vuid, int flags) {
     LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n",
 	      comp, name, vuid));
+    int  len;
+    char *subst = NULL, expand[CODA_MAXNAMLEN];
 
     /* We're screwed if (name == "."). -JJK */
     if (STREQ(name, "."))
@@ -536,18 +513,27 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	    return(code);
 	}
 
-	/* Check for @cputype/@sys expansion. */
-	if (STREQ(name, "@cputype"))
-	    name = cputype;
-	else if (STREQ(name, "@sys"))
-	    name = systype;
+	/* Check for @cpu/@sys expansion. */
+	len = strlen(name);
+	if (len >= 4 && name[len-4] == '@')
+	{
+	    if      (strcmp(&name[len-3], "cpu") == 0)
+		subst = CPUTYPE;
+	    else if (strcmp(&name[len-3], "sys") == 0)
+		subst = SYSTYPE;
+
+	    if (subst && (len + strlen(subst)) < CODA_MAXNAMLEN)
+	    {
+		memset(expand, 0, CODA_MAXNAMLEN);
+		strncpy(expand, name, len-4);
+		strcpy(&expand[len-4], subst);
+		name = expand;
+	    }
+	}
 
 	/* Lookup the target object. */
 
-	/* Haven't we already choked if STREQ(name, ".") ??? */
-	if (STREQ(name, ".")) 
-	    target_fid = fid;
-	else if (STREQ(name, "..")) {
+	if (STREQ(name, "..")) {
 	    if (IsRoot()) {
 		/* Back up over a mount point. */
 		LOG(100, ("fsobj::Lookup: backing up over a mount point\n"));
@@ -600,7 +586,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
 	    /* If the target is an uncovered mount point, try to cover it. */
 	    if (target_fso->IsMTLink()) {
 		/* We must have the data here. */
-		if (!HAVEDATA(target_fso)) {
+		if (!HAVEALLDATA(target_fso)) {
 		    FSDB->Put(&target_fso);
 		    code = FSDB->Get(&target_fso, &target_fid, vuid, RC_DATA, name);
 		    if (code) {
@@ -642,7 +628,7 @@ int fsobj::Readlink(char *buf, int len, int *cc, vuid_t vuid) {
     LOG(10, ("fsobj::Readlink : (%s, %x, %d, %x), uid = %d\n",
 	      comp, buf, len, cc, vuid));
 
-    if (!HAVEDATA(this))
+    if (!HAVEALLDATA(this))
 	{ print(logFile); CHOKE("fsobj::Readlink: called without data"); }
     if (!IsSymLink() && !IsMtPt())
 	return(EINVAL);

@@ -26,9 +26,13 @@ mandir = @mandir@
 host = @host@
 host_alias = @host_alias@
 
-CC=   @CC@
-CXX=  @CXX@
-LIBS= @LIBS@
+CC=     @CC@
+CPP=    @CPP@ -x c-header
+CXX=    @CXX@
+LIBS=   @LIBS@
+YACC=   @YACC@
+LEX=    @LEX@
+LEXLIB= @LEXLIB@
 
 #
 # Platform, uncomment your choice; 
@@ -39,7 +43,7 @@ SYS = @sys@
 
 # SYS=i386_mach
 # SYS=linux
-# SYS=i386_nbsd1
+# SYS=nbsd
 # SYS=cygwin32
 
 

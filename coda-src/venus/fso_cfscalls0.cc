@@ -61,13 +61,25 @@ extern "C" {
 
 /*  *****  Fetch  *****  */
 
+/* C-stub to jump into the c++ method without compiler warnings */
+static void FetchProgressIndicator_stub(void *up, unsigned int offset)
+{
+    ((fsobj *)up)->FetchProgressIndicator(offset);
+}
+
+void fsobj::FetchProgressIndicator(unsigned int offset)
+{
+    stat.GotThisData = (unsigned long)offset;
+    MarinerLog("progress::fetching (%s) %u/%u\n", comp, offset, stat.Length);
+}
+
 int fsobj::Fetch(vuid_t vuid) {
     LOG(10, ("fsobj::Fetch: (%s), uid = %d\n", comp, vuid));
 
     if (IsLocalObj()) {
 	LOG(10, ("fsobj::Fetach: (%s), uid = %d, local object\n", comp, vuid));
 	/* set the valid RC status */
-	if (HAVEDATA(this)) {
+	if (HAVEALLDATA(this)) {
 	    SetRcRights(RC_DATA | RC_STATUS);
 	    return 0;
 	} else {
@@ -86,8 +98,8 @@ int fsobj::Fetch(vuid_t vuid) {
 	    { print(logFile); CHOKE("fsobj::Fetch: !HAVESTATUS"); }
 
 	/* We never fetch data if we already have some. */
-	if (HAVEDATA(this))
-	    { print(logFile); CHOKE("fsobj::Fetch: HAVEDATA"); }
+	if (HAVEALLDATA(this))
+	    { print(logFile); CHOKE("fsobj::Fetch: HAVEALLDATA"); }
 
 	/* We never fetch data for fake objects. */
 	if (IsFake())
@@ -120,6 +132,13 @@ int fsobj::Fetch(vuid_t vuid) {
     memset(&dummysed, 0, sizeof(SE_Descriptor));
     SE_Descriptor *sed = 0;
 
+#define OLDFETCH 1
+#ifdef OLDFETCH
+    unsigned long offset = 0;
+#else
+    unsigned long offset = PARTIALDATA(this) ? stat.GotThisData : 0;
+#endif
+
     /* C++ 3.0 whines if the following decls moved closer to use  -- Satya */
     {
 	    Recov_BeginTrans();
@@ -128,10 +147,14 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    sed = &dummysed;
 	    sed->Tag = SMARTFTP;
+
+	    sed->XferCB = FetchProgressIndicator_stub;
+	    sed->userp = this;
+
 	    struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
 	    sei->TransmissionDirection = SERVERTOCLIENT;
 	    sei->hashmark = 0;
-	    sei->SeekOffset = 0;
+	    sei->SeekOffset = offset;
 	    sei->ByteQuota = -1;
 	    switch(stat.VnodeType) {
 		case File:
@@ -202,6 +225,7 @@ int fsobj::Fetch(vuid_t vuid) {
 
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE(prel_str, comp, fid);
+#ifdef OLDFETCH
 	    MULTI_START_MESSAGE(ViceFetch_OP);
 	    code = (int) MRPC_MakeMulti(ViceFetch_OP, ViceFetch_PTR,
 				  VSG_MEMBERS, m->rocc.handles,
@@ -209,12 +233,28 @@ int fsobj::Fetch(vuid_t vuid) {
 				  &fid, &NullFid, fetchtype, aclvar_ptrs,
 				  statusvar_ptrs, ph, &PiggyBS, sedvar_bufs);
 	    MULTI_END_MESSAGE(ViceFetch_OP);
+#else
+	    MULTI_START_MESSAGE(ViceNewFetch_OP);
+	    code = (int) MRPC_MakeMulti(ViceNewFetch_OP, ViceNewFetch_PTR,
+				  VSG_MEMBERS, m->rocc.handles,
+				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
+				  &fid, &stat.VV, fetchtype, aclvar_ptrs,
+				  statusvar_ptrs, ph, offset, -1, &PiggyBS,
+				  sedvar_bufs);
+	    MULTI_END_MESSAGE(ViceNewFetch_OP);
+#endif
 	    CFSOP_POSTLUDE("fetch::fetch done\n");
 
 	    /* Collate responses from individual servers and decide what to do next. */
 	    code = vol->Collate_NonMutating(m, code);
 	    MULTI_RECORD_STATS(ViceFetch_OP);
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
+	    if (code == EAGAIN) { stat.GotThisData = 0; code = ERETRY; }
+
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(stat.GotThisData);
+	    Recov_EndTrans(CMFP);
+
 	    if (code != 0) goto RepExit;
 
 	    /* Finalize COP2 Piggybacking. */
@@ -231,7 +271,8 @@ int fsobj::Fetch(vuid_t vuid) {
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
-	    /* Compute the dominant host set.  The index of a dominant host is returned as a side-effect. */
+	    /* Compute the dominant host set.  The index of a dominant host is
+	     * returned as a side-effect. */
 	    int dh_ix; dh_ix = -1;
 	    code = m->DHCheck(vv_ptrs, ph_ix, &dh_ix, 1);
 	    if (code != 0) goto RepExit;
@@ -241,30 +282,33 @@ int fsobj::Fetch(vuid_t vuid) {
 	    {
 		long bytes = sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred;
 		LOG(10, ("(Multi)ViceFetch: fetched %d bytes\n", bytes));
-		if (bytes != status.Length) {
+		if (bytes != (status.Length - offset)) {
 		    print(logFile);
 		    CHOKE("fsobj::Fetch: bytes mismatch (%d, %d)",
-			bytes, status.Length);
+			bytes, (status.Length - offset));
 		}
 
-		/* The following is needed until ViceFetch takes a version IN parameter! */
+#ifdef OLDFETCH
+		/* The following is needed until ViceFetch takes a version IN
+		 * parameter! */
 		if (NBLOCKS(bytes) != BLOCKS(this)) {
 		    LOG(0, ("fsobj::Fetch: nblocks changed during fetch (%d, %d)\n",
 			    NBLOCKS(bytes), BLOCKS(this)));
 		    /* 
-		     * for a directory, pages are allocated based on the original
-		     * status block.  If there is a mismatch, the new data may be
-		     * bogus, so we force a retry of the fetch.  We fall through 
-		     * the remainder of the replicated case to install new status.
-		     * Data is discarded just before return.  It is possible for 
-		     * this case to recur; Venus will return EWOULDBLOCK if it
-		     * exhausts its retries.
+		     * for a directory, pages are allocated based on the
+		     * original status block.  If there is a mismatch, the new
+		     * data may be bogus, so we force a retry of the fetch.
+		     * We fall through the remainder of the replicated case to
+		     * install new status. Data is discarded just before
+		     * return.  It is possible for this case to recur; Venus
+		     * will return EWOULDBLOCK if it exhausts its retries.
 		     */
 		    if (IsFile()) 
 			FSDB->ChangeDiskUsage((int) (NBLOCKS(bytes) - BLOCKS(this)));
 		    else 
 			code = ERETRY;
 		}
+#endif
 	    }
 
 	    /* Handle failed validations. */
@@ -328,26 +372,48 @@ RepExit:
 	/* Make the RPC call. */
 	long cbtemp; cbtemp = cbbreaks;
 	CFSOP_PRELUDE(prel_str, comp, fid);
+#ifdef OLDFETCH
 	UNI_START_MESSAGE(ViceFetch_OP);
 	code = (int) ViceFetch(c->connid, &fid, &NullFid, fetchtype,
 			 acl, &status, 0, &PiggyBS, sed);
 	UNI_END_MESSAGE(ViceFetch_OP);
+#else
+	UNI_START_MESSAGE(ViceFetch_OP);
+	code = (int) ViceNewFetch(c->connid, &fid, &stat.VV, fetchtype,
+			 acl, &status, 0, offset, 0, &PiggyBS, sed);
+	UNI_END_MESSAGE(ViceFetch_OP);
+#endif
 	CFSOP_POSTLUDE("fetch::fetch done\n");
 
 	/* Examine the return code to decide what to do next. */
 	code = vol->Collate(c, code);
 	UNI_RECORD_STATS(ViceFetch_OP);
+
+	/* when the server responds with EAGAIN, the VersionVector was
+	 * changed, so this can effectively be handled like a failed
+	 * validation */
+	if (code == EAGAIN) {
+	    stat.GotThisData = 0;
+	    code = ERETRY;
+	    Demote(0);
+	}
+
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(stat.GotThisData);
+	Recov_EndTrans(CMFP);
+
 	if (code != 0) goto NonRepExit;
 
 	{
 	    long bytes = sed->Value.SmartFTPD.BytesTransferred;
 	    LOG(10, ("ViceFetch: fetched %d bytes\n", bytes));
-	    if (bytes != status.Length) {
+	    if (bytes != (status.Length - offset)) {
 		print(logFile);
 		CHOKE("fsobj::Fetch: bytes mismatch (%d, %d)",
-		    bytes, status.Length);
+		    bytes, (status.Length - offset));
 	    }
 
+#ifdef OLDFETCH
 	    /* The following is needed until ViceFetch takes a version IN parameter! */
 	    if (NBLOCKS(bytes) != BLOCKS(this)) {
 		LOG(0, ("fsobj::Fetch: nblocks changed during fetch (%d, %d)\n",
@@ -355,6 +421,7 @@ RepExit:
 		FSO_ASSERT(this, IsFile());
 		FSDB->ChangeDiskUsage((int) (NBLOCKS(bytes) - BLOCKS(this)));
 	    }
+#endif
 	}
 
 	/* Handle failed validations. */
@@ -419,11 +486,13 @@ NonRepExit:
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(flags);
 	flags.fetching = 0;
-	if (HAVEDATA(this)) {
+#ifdef OLDFETCH
+	if (HAVEALLDATA(this)) {
 		if (IsFile()) 
 			data.file->SetLength((unsigned) stat.Length);
 		DiscardData();
 	    }
+#endif
 	
 	/* Demote existing status. */
 	Demote();
@@ -441,7 +510,7 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
     if (IsLocalObj()) {
 	LOG(0, ("fsobj::GetAttr: (%s), uid = %d, local object\n", comp, vuid));
 	/* set the valid RC status */
-	if (HAVEDATA(this)) {
+	if (HAVEALLDATA(this)) {
 	    SetRcRights(RC_DATA | RC_STATUS);
 	    return 0;
 	} else {
@@ -459,8 +528,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 	    FSO_ASSERT(this, acl == 0);
 
 	    /* We never fetch fake directory without having status and data. */
-	    if (IsFakeDir() && !HAVEDATA(this))
-		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeDir && !HAVEDATA"); }
+	    if (IsFakeDir() && !HAVEALLDATA(this))
+		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeDir && !HAVEALLDATA"); }
 
 	    /* We never fetch fake mtpts (covered or uncovered). */
 	    if (IsFakeMtPt() || IsFakeMTLink())
@@ -642,7 +711,10 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 				}
 
 				if (flags.usecallback && (cbtemp == cbbreaks)) {
-				    pobj->SetRcRights(RC_STATUS | RC_DATA);
+				    if (!HAVEALLDATA(pobj))
+					pobj->SetRcRights(RC_STATUS);
+				    else
+					pobj->SetRcRights(RC_STATUS | RC_DATA);
 				    /* 
 				     * if the object matched, the access rights 
 				     * cached for this object are still good.
@@ -687,7 +759,8 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 				 * We don't restart from the beginning, since the
 				 * validation of piggybacked fids is a side-effect.
 				 */
-				if (HAVEDATA(pobj) && !WRITING(pobj) && !EXECUTING(pobj) && !pobj->IsFakeDir()) {
+				if (HAVEDATA(pobj) && !WRITING(pobj) &&
+				    !EXECUTING(pobj) && !pobj->IsFakeDir()) {
 				    Recov_BeginTrans();
 				    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats 
 						      : &FSDB->FileDataStats),
@@ -811,7 +884,12 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl) {
 	    status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks &&
 	    !asy_resolve)
-	    SetRcRights(RC_STATUS | RC_DATA);
+	{
+	    if (!HAVEALLDATA(this))
+		SetRcRights(RC_STATUS);
+	    else
+		SetRcRights(RC_STATUS | RC_DATA);
+	}
 
 RepExit:
 	PutMgrp(&m);
@@ -910,7 +988,12 @@ RepExit:
 	if (flags.usecallback &&
 	    status.CallBack == CallBackSet &&
 	    cbtemp == cbbreaks)
-	    SetRcRights(RC_STATUS | RC_DATA);
+	{
+	    if (!HAVEALLDATA(this))
+		SetRcRights(RC_STATUS);
+	    else
+		SetRcRights(RC_STATUS | RC_DATA);
+	}
 
 NonRepExit:
 	PutConn(&c);
@@ -969,7 +1052,7 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength) {
 	RVMLIB_REC_OBJECT(*this);
 
 	stat.DataVersion++;
-	stat.Length = NewLength;
+	stat.Length = stat.GotThisData = NewLength;
 	stat.Date = Mtime;
 
 	UpdateCacheStats((IsDir() ? &FSDB->DirAttrStats : &FSDB->FileAttrStats),
@@ -1242,7 +1325,7 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
 	if (NewLength != (unsigned long)-1) {
 	    FSO_ASSERT(this, !WRITING(this));
 
-	    if (HAVEDATA(this)) {
+	    if (HAVEALLDATA(this)) {
 		int delta_blocks = (int) (BLOCKS(this) - NBLOCKS(NewLength));
 		if (delta_blocks < 0) {
 			eprint("LocalSetAttr: %d\n", delta_blocks);
@@ -1250,6 +1333,7 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
 		UpdateCacheStats(&FSDB->FileDataStats, REMOVE, delta_blocks);
 		FSDB->FreeBlocks(delta_blocks);
 		data.file->Truncate((unsigned) NewLength);
+		stat.GotThisData = NewLength;
 	    }
 	    stat.Length = NewLength;
 	    stat.Date = Mtime;
@@ -1491,8 +1575,8 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 		NewOwner = vap->va_uid;
 
 	if ((vap->va_mode != VA_IGNORE_MODE) && 
-	    ((vap->va_mode & 0777) != stat.Mode) )
-		NewMode= (vap->va_mode & 0777);
+	    ((vap->va_mode & 04777) != stat.Mode) )
+		NewMode= (vap->va_mode & 04777);
 
 	/* Only update cache file when truncating and open for write! */
 	if (NewLength != (unsigned long)-1 && WRITING(this)) {
@@ -1573,7 +1657,7 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
 	/* Update the status to reflect the create. */
 	RVMLIB_REC_OBJECT(stat);
 	stat.DataVersion++;
-	stat.Length = dir_Length();
+	stat.Length = stat.GotThisData = dir_Length();
 	stat.Date = Mtime;
     }
 
@@ -1583,7 +1667,7 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
 	RVMLIB_REC_OBJECT(*target_fso);
 	target_fso->stat.VnodeType = File;
 	target_fso->stat.LinkCount = 1;
-	target_fso->stat.Length = 0;
+	target_fso->stat.Length = target_fso->stat.GotThisData = 0;
 	target_fso->stat.DataVersion = 0;
 	target_fso->stat.Date = Mtime;
 	target_fso->stat.Owner = Owner;

@@ -15,14 +15,6 @@ you should get the Coda documentation package.
 
 
 
-%package source
-Summary: Coda sources
-Group: Networking/Daemons
-%description source
-This contains the coda sources used for building the rpm (in the same
-location as during the build).  Install this if you want to run gdb on
-the Coda binaries.
-
 %package client
 Summary: Coda client
 Group: Networking/Daemons
@@ -84,7 +76,6 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 	$RPM_BUILD_ROOT/usr/coda/etc \
 	$RPM_BUILD_ROOT/coda $RPM_BUILD_ROOT/etc/rc.d/init.d\
-	$RPM_BUILD_ROOT/$RPM_BUILD_DIR\
 	$RPM_BUILD_ROOT/usr/lib/coda $RPM_BUILD_ROOT/etc/rc.d/init.d
 
 make client-install
@@ -100,12 +91,11 @@ if [ X@DEBUG@ != X1 ]; then
    strip $RPM_BUILD_ROOT/usr/bin/* $RPM_BUILD_ROOT/vice/bin/* $RPM_BUILD_ROOT/usr/sbin/* || :
 fi
 
-cd $RPM_BUILD_DIR
-cp $RPM_SOURCE_DIR/coda-@VERSION@.tgz $RPM_BUILD_ROOT/$RPM_BUILD_DIR/coda-@VERSION@.tgz
 chown -R root.root $RPM_BUILD_ROOT
 
 %clean
 rm -rf $RPM_BUILD_ROOT
+rm -rf $RPM_BUILD_DIR/obj-@CVER@
 
 %pre client
 grep "^coda" /proc/mounts > /dev/null 2>&1
@@ -148,10 +138,6 @@ tixindex *tcl
 %postun
 /sbin/chkconfig --del venus.init
 
-%post source
-cd /usr/src/redhat/BUILD
-tar zxf coda-@VERSION@.tgz
-
 %post server
 /sbin/chkconfig --add update.init
 /sbin/chkconfig --add auth2.init
@@ -162,9 +148,6 @@ tar zxf coda-@VERSION@.tgz
 /sbin/chkconfig --del auth2.init
 /sbin/chkconfig --del codasrv.init
 
-
-%files source
-/usr/src/redhat/BUILD/coda-@VERSION@.tgz
 
 %files client
 /dev/cfs0

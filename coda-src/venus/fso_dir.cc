@@ -59,7 +59,7 @@ extern "C" {
 /* Need not be called from within transaction. */
 void fsobj::dir_Rebuild() 
 {
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Rebuild: no data"); 
 	}
@@ -78,7 +78,7 @@ void fsobj::dir_Rebuild()
 /* TRANS */
 void fsobj::dir_Create(char *Name, ViceFid *Fid) 
 {
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Create: (%s, %x.%x.%x) no data", 
 		      Name, Fid->Volume, Fid->Vnode, Fid->Unique); 
@@ -101,7 +101,7 @@ void fsobj::dir_Create(char *Name, ViceFid *Fid)
 
 int fsobj::dir_Length() 
 {
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Length: no data"); 
 	}
@@ -113,7 +113,7 @@ int fsobj::dir_Length()
 /* TRANS */
 void fsobj::dir_Delete(char *Name) 
 {
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Delete: (%s) no data", Name); 
 	}
@@ -157,7 +157,7 @@ void fsobj::dir_MakeDir()
 int fsobj::dir_Lookup(char *Name, ViceFid *Fid, int flags) 
 {
 	
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Lookup: (%s) no data", Name); 
 	}
@@ -174,7 +174,7 @@ int fsobj::dir_Lookup(char *Name, ViceFid *Fid, int flags)
 /* Name buffer had better be CODA_MAXNAMLEN bytes or more! */
 int fsobj::dir_LookupByFid(char *Name, ViceFid *Fid) 
 {
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_LookupByFid: %s no data", FID_(Fid));
 	}
@@ -186,7 +186,7 @@ int fsobj::dir_LookupByFid(char *Name, ViceFid *Fid)
 /* return 1 if directory is empty, 0 otherwise */
 int fsobj::dir_IsEmpty() 
 {
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_IsEmpty: no data"); 
 	}
@@ -197,7 +197,7 @@ int fsobj::dir_IsEmpty()
 /* determine if target_fid is the parent of this */
 int fsobj::dir_IsParent(ViceFid *target_fid) 
 {
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_IsParent: (%x.%x.%x) no data", 
 		      target_fid->Volume, target_fid->Vnode, target_fid->Unique); 
@@ -223,7 +223,7 @@ void fsobj::dir_TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 {
 	char *Name = NULL; 
 
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_TranslateFid: %s -> %s no data", 
 		      FID_(OldFid), FID_2(NewFid));
@@ -255,7 +255,7 @@ void fsobj::dir_TranslateFid(ViceFid *OldFid, ViceFid *NewFid)
 
 void fsobj::dir_Print() 
 {
-	if (!HAVEDATA(this)) { 
+	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_Print: no data"); 
 	}

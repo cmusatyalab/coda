@@ -248,7 +248,7 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
 	      f->fid.Volume, f->fid.Vnode, f->fid.Unique);
 
     /* Sanity checks. */
-    if (!f->IsFile() || !HAVEDATA(f)) {
+    if (!f->IsFile() || !HAVEALLDATA(f)) {
 	code = EINVAL;
 	goto GetLost;
     }

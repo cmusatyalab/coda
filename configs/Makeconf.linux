@@ -15,7 +15,6 @@ SHORTSYS      = linux
 INCLFLAGS     = -I/usr/include
 OPTFLAG	      =
 GFLAG         = -g
-CPP           = gcc -E -x c-header
 LIBCURSES     = -lncurses
 LIBTERMCAP    = $(LIBS)
 LIBCOMPAT     =
@@ -27,8 +26,6 @@ LIBTHREADS    =
 LIBMACH       = 
 LIBMATH       = -lm
 LGDBM         = -L/usr/lib
-LEX           = flex
-#YACC          = bison -y
 PERL          = perl
 
 GUIDIR        = /usr/lib/coda

@@ -394,13 +394,24 @@ int volent::ValidateFSOs() {
     fso_vol_iterator next(NL, this);
 
     while (f = next()) {
-	if ((HAVESTATUS(f) && STATUSVALID(f)) && (DATAVALID(f) || !HAVEDATA(f)))
+#ifdef AUTOFETCH
+	if ((HAVESTATUS(f) && STATUSVALID(f)) &&
+	    (DATAVALID(f) || !HAVEDATA(f)))
+#else
+	if ((HAVESTATUS(f) && STATUSVALID(f)) &&
+	    (DATAVALID(f) || !HAVEALLDATA(f)))
+#endif
 	    continue;
 
 	int whatToGet = 0;
 	if (!HAVESTATUS(f) || !STATUSVALID(f)) 
 	    whatToGet = RC_STATUS;
+
+#ifdef AUTOFETCH
 	if (HAVEDATA(f) && !DATAVALID(f)) 
+#else
+	if (HAVEALLDATA(f) && !DATAVALID(f)) 
+#endif
 	    whatToGet |= RC_DATA;
 
 	LOG(100, ("volent::ValidateFSOs: vget(%x.%x.%x, %x, %d)\n",

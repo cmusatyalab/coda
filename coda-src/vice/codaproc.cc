@@ -157,22 +157,6 @@ static int GetResFlag(VolumeId );
 
 static void COP2Update(Volume *, Vnode *, ViceVersionVector *, vmindex * =NULL);
 
-
-/*
-  ViceProbe: Empty routine - simply return the probe 
-*/
-
-long FS_ViceProbe(RPC2_Handle cid, RPC2_CountedBS *Vids, RPC2_CountedBS *VVs) 
-{
-    int errorCode = 0;
-
-    VVs->SeqLen = 0;
-
-    SLog(1,  "ViceProbe, ");
-
-    return(errorCode);
-}
-
 const int MaxFidAlloc = 32;
 
 /*
