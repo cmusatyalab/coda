@@ -3,7 +3,7 @@ Section: devel
 Priority: optional
 Maintainer: Jan Harkes <jaharkes@cs.cmu.edu>
 Standards-Version: 3.6.1
-Build-Depends: debhelper (>= 4), automake1.7, autoconf, libtool
+Build-Depends: debhelper (>= 4)
 
 Package: liblwp-dev
 Architecture: alpha arm i386 m68k powerpc sparc
