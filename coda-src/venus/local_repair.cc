@@ -731,7 +731,7 @@ void lrdb::DeLocalization()
   mutation operation
 */
 
-/* need not be called from within a transaction */
+/* must not be called from within a transaction */
 int lrdb::FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 {
     int rc, i = 0;
@@ -744,7 +744,7 @@ int lrdb::FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
     return(rc);
 }
 
-/* need not be called from within a transaction */
+/* must not be called from within a transaction */
 int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 {
     OBJ_ASSERT(this, fid);
@@ -857,11 +857,14 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 	OBJ_ASSERT(this, !FID_EQ(PFid, &NullFid));
 	OBJ_ASSERT(this, parent = FSDB->Find(PFid)); /* parent must have been cached already */
 	OBJ_ASSERT(this, parent->dir_LookupByFid(comp, &OBJ->fid) == 0);
+
+	Recov_BeginTrans();
 	OBJ->SetComp(comp);
 
-	if (OBJ->pfso == NULL) {
+	if (OBJ->pfso == NULL)
 	    OBJ->SetParent(PFid->Vnode, PFid->Unique);
-	}
+	Recov_EndTrans(MAXFP);
+
 	OBJ = OBJ->pfso;
 	count--;
     }
@@ -1037,15 +1040,19 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 	}
 	if (OldView == SUBTREE_GLOBAL_VIEW && NewView == SUBTREE_MIXED_VIEW) {
 	    RootParentObj->GlobalToMixed(FakeRootFid, GlobalChildFid, Name);
+	    Recov_BeginTrans();
 	    LocalChildObj->SetComp("local");
 	    GlobalChildObj->SetComp("global");
+	    Recov_EndTrans(MAXFP);
 	    sprintf(msg, "%s succeeded", msg);
 	    continue;
 	}
 	if (OldView == SUBTREE_LOCAL_VIEW && NewView == SUBTREE_MIXED_VIEW) {
 	    RootParentObj->LocalToMixed(FakeRootFid, LocalChildFid, Name);
+	    Recov_BeginTrans();
 	    LocalChildObj->SetComp("local");
 	    GlobalChildObj->SetComp("global");
+	    Recov_EndTrans(MAXFP);
 	    sprintf(msg, "%s succeeded", msg);
 	    continue;
 	}

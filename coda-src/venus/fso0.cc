@@ -666,7 +666,11 @@ RestartFind:
 	/* Update component. */
 	if (comp && comp[0] != '\0' &&
 	    !STREQ(comp, ".") && !STREQ(comp, "..") && !STREQ(comp, f->comp))
+	{
+	    Recov_BeginTrans();
 	    f->SetComp(comp);
+	    Recov_EndTrans(MAXFP);
+	}
     }
 
     /* Consider fetching status and/or data. */
