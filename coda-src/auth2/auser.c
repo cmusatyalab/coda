@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auser.cc,v 4.5 1997/12/10 16:06:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/auser.cc,v 4.6 1998/03/06 20:20:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,12 +84,12 @@ extern "C" {
 #include <pioctl.h> 
 #include <rpc2.h>
 #include <util.h>
+#include "auth2.h"
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include "auth2.h"
 
 #define VSTAB "/usr/coda/etc/vstab"
 
@@ -180,7 +180,7 @@ void U_InitRPC()
 
     assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
-    assert (RPC2_Init(RPC2_VERSION, 0, NULL, 1, -1, NULL) > RPC2_ELIMIT);
+    assert (RPC2_Init(RPC2_VERSION, 0, NULL, -1, NULL) > RPC2_ELIMIT);
 }
 
 
@@ -205,6 +205,9 @@ int U_BindToServer(char *DefAuthHost, char *uName, char *uPasswd,
     char    AuthHost[128];
     int     i = 0;
     int     rc;
+
+    if ( DefAuthHost ) 
+	    return TryBinding(uName, uPasswd, DefAuthHost, RPCid);
 
     GetVSTAB(VSTAB);
     while (1) {
@@ -235,13 +238,19 @@ PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost,
     long rc;
     int len;
 
+    bzero((void *)&bp, sizeof(bp));
+    bzero((void *)&hident, sizeof(hident));
+    bzero((void *)&pident, sizeof(pident));
+    bzero((void *)&sident, sizeof(sident));
+    bzero((void *)&hkey, sizeof(hkey));
+
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, AuthHost);
     pident.Tag = RPC2_PORTALBYNAME;
     strcpy(pident.Value.Name, AUTH_SERVICE);
     sident.Tag = RPC2_SUBSYSBYID;
-    sident.Value.SubsysId = htonl(AUTH_SUBSYSID);
+    sident.Value.SubsysId = AUTH_SUBSYSID;
 
     cident.SeqLen = 1+strlen(viceName);
     cident.SeqBody = (RPC2_ByteSeq)viceName;
@@ -250,7 +259,6 @@ PRIVATE int TryBinding(char *viceName, char *vicePasswd, char *AuthHost,
     else 
 	len = strlen(vicePasswd);
 	       
-    bzero(hkey, RPC2_KEYSIZE);
     bcopy(vicePasswd, hkey, len);
 
     bp.SecurityLevel = RPC2_SECURE;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/adduser.cc,v 4.1 1997/01/08 21:49:25 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/adduser.cc,v 4.2 1997/02/26 16:02:30 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,11 +84,12 @@ extern "C" {
 #include <stdlib.h>
 #endif
 
+#include "auth2.h"
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include "auth2.h"
 
 int main(int argc, char **argv);
 PRIVATE int AddNewUser (char *uid, char *pw);

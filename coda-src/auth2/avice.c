@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avice.cc,v 4.2 1997/02/26 16:02:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/avice.cc,v 4.3 1997/12/10 16:06:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,11 +77,12 @@ extern "C" {
 #include <util.h>
 #include <rpc2.h>
 
+#include "auth2.h"
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include "auth2.h"
 
 static int Key1IsValid = FALSE;
 static int Key2IsValid = FALSE;

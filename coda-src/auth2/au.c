@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/au.cc,v 4.2 1997/02/26 16:02:30 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/au.cc,v 4.3 1997/12/10 16:06:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -74,24 +74,21 @@ extern "C" {
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <pwd.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
+
 #include <lwp.h>
 #include <rpc2.h>
 #include <se.h>
+#include <util.h>
+
+#include "auth2.h"
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <prs.h>
-#include "auth2.h"
 
 PRIVATE void SetGlobals(int argc, char **argv);
 PRIVATE int GetVid(char *s, int *id);
@@ -216,7 +213,8 @@ PRIVATE void SetGlobals(int argc, char **argv)
 	{
 	if (strcmp(argv[i], "-x") == 0)
 	    {
-	    DebugLevel++;
+	    RPC2_DebugLevel = 100;
+	    DebugLevel = 1000;
 	    continue;
 	    }
 

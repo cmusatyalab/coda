@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/initpw.cc,v 4.1 1997/01/08 21:49:27 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/initpw.cc,v 4.2 1997/02/26 16:02:34 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -104,6 +104,7 @@ int main(int argc, char **argv)
     register int i;
     char thisline[1000], *lastpart;
     RPC2_EncryptionKey thispw;
+    PROCESS mypid;
 
     /* Obtain invocation options */
     for (i = 1; i < argc; i++)
@@ -133,7 +134,6 @@ int main(int argc, char **argv)
     if (!KeyIsValid) 
 	fprintf(stderr, "WARNING: no key specified\n");
 
-    PROCESS mypid;
     assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mypid) == LWP_SUCCESS);
     while(TRUE)
 	{

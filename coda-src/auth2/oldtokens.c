@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/auth2/RCS/oldtokens.cc,v 4.1 1997/01/08 21:49:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/oldtokens.cc,v 4.2 1997/02/26 16:02:34 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,19 +65,15 @@ extern "C" {
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/file.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
+
+#include "auth2.h"
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include "auth2.h"
 
 int main(int argc, char **argv);
 PRIVATE void readfile(char *path, char *what, char len);
@@ -101,7 +97,7 @@ int main(int argc, char **argv)
 			sprintf(path,"%s.clear",*argv);
 			sprintf(path2,"%s.secret",*argv);
 			argc--,argv++;
-			if (rc = U_GetLocalTokens(&cToken,(EncryptedSecretToken)&sToken))
+			if (rc = U_GetLocalTokens(&cToken,(EncryptedSecretToken *)&sToken))
 			{
 				fprintf(stderr,"U_GetLocalTokens = %d\n",rc);
 				fprintf(stderr,"\terrno = %d\n",errno);
@@ -121,7 +117,7 @@ int main(int argc, char **argv)
 			argc--,argv++;
 			name = *argv;
 			argc--,argv++;
-			if (rc = U_Authenticate(name,pass,&cToken,(EncryptedSecretToken)&sToken))
+			if (rc = U_Authenticate(name,pass,&cToken,(EncryptedSecretToken *)&sToken))
 			{
 				fprintf(stderr,"U_Authenticate = %d\n",rc);
 				fprintf(stderr,"\terrno = %d\n",errno);
@@ -139,7 +135,7 @@ int main(int argc, char **argv)
 			readfile(path,(char *)&cToken,sizeof(cToken));
 			readfile(path2,(char *)&sToken,sizeof(sToken));
 			U_NetToHostClearToken(&cToken);
-			if (rc = U_SetLocalTokens(1,&cToken,(EncryptedSecretToken)&sToken))
+			if (rc = U_SetLocalTokens(1,&cToken,(EncryptedSecretToken *)&sToken))
 			{
 				fprintf(stderr,"U_SetLocalTokens = %d\n",rc);
 				fprintf(stderr,"\terrno = %d\n",errno);
