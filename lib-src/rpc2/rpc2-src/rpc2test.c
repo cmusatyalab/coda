@@ -219,7 +219,7 @@ static long WorkerBody(char *workerName)
     RPC2_AllocBuffer(1000, &OutBuff);
     InBuff = NULL;
 
-    while (TRUE)
+    while (1)
 	{
 	RanDelay(MaxComputeTime);
 
@@ -395,7 +395,7 @@ static long ListenerBody(char *listenerName)
 
     InBuff = NULL;
 
-    while (TRUE)
+    while (1)
 	{
 	RanDelay(MaxListenPause);
 
@@ -465,7 +465,7 @@ static long ClientBody(char *clientName)
     ClientsReady++;
     LWP_WaitProcess((char *)&ClientsReady);	/* wait for main() to tap me on shoulder */
 
-    while(TRUE)
+    while(1)
 	{
 	if (reply) RPC2_FreeBuffer(&reply);
 
@@ -898,7 +898,7 @@ static void RanDelay(int t) /* milliseconds */
 	    fprintf(stderr, "delaying for %ld:%ld seconds ....\n", 
 		    tval.tv_sec, tval.tv_usec);
 	FLUSH();
-	assert(IOMGR_Select(32, 0,0,0, &tval) == 0);
+	assert(IOMGR_Select(0, NULL, NULL, NULL, &tval) == 0);
 	}
 }
 

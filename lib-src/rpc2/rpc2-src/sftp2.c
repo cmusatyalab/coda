@@ -177,9 +177,9 @@ static bool sftp_MorePackets(bool *rpc2, bool *sftp)
     tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
     emask = rmask = (1 << sftp_Socket) | (1 << rpc2_RequestSocket);
     wmask = 0;
-    /* We use select rather than IOMGR_Select to avoid overheads. This is acceptable
-       only because we are doing a polling select */
-    if (select(8*sizeof(long), SELECT_TYPE_ARG234 &rmask, SELECT_TYPE_ARG234 &wmask, SELECT_TYPE_ARG234 &emask, &tv) > 0)
+    /* We use select rather than IOMGR_Select to avoid overheads. This is
+     * acceptable only because we are doing a polling select */
+    if (select(MAX_FDS, SELECT_TYPE_ARG234 &rmask, SELECT_TYPE_ARG234 &wmask, SELECT_TYPE_ARG234 &emask, &tv) > 0)
     {
 	*rpc2 = rmask & (1 << rpc2_RequestSocket);
 	*sftp = rmask & (1 << sftp_Socket);
@@ -191,23 +191,27 @@ static bool sftp_MorePackets(bool *rpc2, bool *sftp)
 
 static int AwaitEvent()
     /* Awaits for a packet or earliest timeout and returns code from IOMGR_Select() */
-    {
-    int emask, rmask, wmask, rc;
+{
+    fd_set emask, rmask;
     struct timeval *tvp;
     struct TM_Elem *t;
+    int nfds, rc;
     
     /* wait for packet or earliest timeout */
     t = TM_GetEarliest(sftp_Chain);
     if (t == NULL) tvp = NULL;
     else tvp = &t->TimeLeft;
     
-    emask = rmask = (1 << sftp_Socket);
-    wmask = 0;
+    FD_ZERO(&rmask);
+    FD_ZERO(&emask);
+    FD_SET(sftp_Socket, &rmask);
+    FD_SET(sftp_Socket, &emask);
+    nfds = sftp_Socket + 1;
 
     /* Only place where sftp_Listener() gives up control */
-    rc = IOMGR_Select(8*sizeof(long), &rmask, &wmask, &emask, tvp);
+    rc = IOMGR_Select(nfds, &rmask, NULL, &emask, tvp);
     return(rc);
-    }
+}
 
 
 static void ExaminePacket(RPC2_PacketBuffer *pb)

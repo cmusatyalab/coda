@@ -202,8 +202,8 @@ int main(int arg, char **argv)
 
     DoBinding(&cid);
 
-    while (TRUE)
-	{
+    while (1)
+    {
 	if (!qflag) printf("RPC operation (%d for help)? ", HELP);
 	(void) fscanf(ifd, "%ld", &opcode);
 	if (!qflag && fflag) printf(" %ld\n", opcode);
@@ -491,7 +491,7 @@ int main(int arg, char **argv)
 	rpctime = ((t2.tv_sec - t1.tv_sec)*1000) + ((t2.tv_usec - t1.tv_usec)/1000);
 
 	printf("RPC2_MakeRPC(): %ld milliseconds elapsed time\n", rpctime);
-	}
+    }
 Finish:
     (void) RPC2_Unbind(cid);
 

@@ -259,7 +259,8 @@ static bool PacketCame()
 {
 	struct TM_Elem *t;
 	struct timeval *tvp;
-	int rmask, wmask, emask;
+	fd_set rmask, emask;
+	int nfds;
 
 	/* Obtain earliest event */
 	t = TM_GetEarliest(rpc2_TimerQueue);
@@ -268,9 +269,13 @@ static bool PacketCame()
     
 	/* Yield control */
 	say(999, RPC2_DebugLevel, "About to enter IOMGR_Select()\n");
-	emask = rmask = (1 << rpc2_RequestSocket);
-	wmask = 0;
-	if (IOMGR_Select(8*sizeof(long), &rmask, &wmask, &emask, tvp) == 1) 
+	FD_ZERO(&rmask);
+	FD_ZERO(&emask);
+	FD_SET(rpc2_RequestSocket, &rmask);
+	FD_SET(rpc2_RequestSocket, &emask);
+	nfds = rpc2_RequestSocket + 1;
+
+	if (IOMGR_Select(nfds, &rmask, NULL, &emask, tvp) == 1) 
 		return(TRUE);
 	else 
 		return(FALSE);

@@ -1,3 +1,8 @@
+New in 1.6:
+
+* Cross compilation stuff for the Itsy (SA-1100). (Jason Flinn)
+* Corrected byteswapping of incoming/outgoing packets on Itsy's. (Jason Flinn)
+
 New in 1.5:
 
 * Fixed a bug where we always decoded packets when receiving, even when

@@ -140,7 +140,7 @@ void HandleRequests(lwp)
     reqfilter.OldOrNew = OLDORNEW;
 #endif
     availableLWPs++;
-    while (TRUE) {
+    while (1) {
 	/*
 	 * Get a request
 	 */
