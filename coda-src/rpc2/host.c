@@ -329,8 +329,8 @@ void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
      * overflows with the 31 bit calculations below */
     if (elapsed_us > 0x00ffffff) elapsed_us = 0x00ffffff;
 
-    /* calculate an estimated rtt */
-    eRTT = (host->RTT >> RPC2_RTT_SHIFT) + (host->RTTVar >> RPC2_RTTVAR_SHIFT);
+    /* get the estimated rtt */
+    eRTT = host->RTT >> RPC2_RTT_SHIFT;
 
     if (elapsed_us > eRTT)
     {
