@@ -58,6 +58,19 @@ struct sockaddr_storage {
 };
 #endif
 
+#ifndef HAVE_STRUCT_SOCKADDR_IN6
+struct in6_addr {
+    u_int8_t u6_addr[16];
+};
+struct sockaddr_in6 {
+    u_int16_t sin6_family;
+    u_int16_t sin6_port;
+    u_int32_t sin6_flowinfo;
+    struct in6_addr sin6_addr;
+};
+#endif
+
+
 /*
 Magic Number assignments for runtime system objects.
 Truly random values to allow easy detection of storage corruption.

@@ -55,6 +55,10 @@ Pittsburgh, PA.
 #include "sftp.h"
 #include "test.h"
 
+#ifndef INET_ADDRSTRLEN
+#define INET_ADDRSTRLEN 16
+#endif
+
 #define SUBSYS_SRV 1001
 #define STESTSTACK 0x25000
 extern long RPC2_Perror;

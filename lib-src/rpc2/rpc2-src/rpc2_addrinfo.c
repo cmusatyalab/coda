@@ -188,15 +188,7 @@ struct RPC2_addrinfo *RPC2_allocaddrinfo(const struct sockaddr *addr,
 	return NULL;
     memset(ai, 0, sizeof(*ai));
 
-    if (addrlen == sizeof(struct sockaddr_in))
-	ai->ai_family = PF_INET;
-    else if (addrlen == sizeof(struct sockaddr_in6))
-	ai->ai_family = PF_INET6;
-    else {
-	free(ai);
-	return NULL;
-    }
-
+    ai->ai_family = addr->sa_family;
     ai->ai_addr = (struct sockaddr *)&(ai[1]);
     ai->ai_addrlen = addrlen;
     memcpy(ai->ai_addr, addr, addrlen);
@@ -410,7 +402,7 @@ void RPC2_freeaddrinfo(struct RPC2_addrinfo *res)
 
 const char *RPC2_gai_strerror(const int errcode)
 {
-#ifdef HAVE_GETADDRINFO
+#ifdef HAVE_GAI_STRERROR
     return gai_strerror(errcode);
 #else
     const char *str;

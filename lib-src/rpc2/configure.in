@@ -56,16 +56,17 @@ AC_SUBST(LIBPTHREAD)
 dnl Checks for header files.
 AC_CHECK_HEADERS(sys/stream.h arpa/inet.h netdb.h)
 
-dnl Checks for typedefs.
-AC_CHECK_TYPES([struct sockaddr_storage],,,
+dnl Checks for types.
+AC_CHECK_TYPES([struct sockaddr_storage, struct sockaddr_in6],,,
     [#include <sys/types.h>
-     #include <sys/socket.h>])
+     #include <sys/socket.h>
+     #include <netinet/in.h>])
 
 dnl Checks for compiler characteristics.
 CODA_DARWIN_BROKEN_CPP_WORKAROUND
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(ffs iopen getaddrinfo getipnodebyname)
+AC_CHECK_FUNCS(ffs iopen getaddrinfo gai_strerror getipnodebyname)
 AC_CHECK_FUNCS(inet_aton inet_ntoa inet_pton inet_ntop)
 AC_FUNC_SELECT_ARGTYPES
 

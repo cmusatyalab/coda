@@ -48,6 +48,10 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "trace.h"
 
+#ifndef INET_ADDRSTRLEN
+#define INET_ADDRSTRLEN 16
+#endif
+
 /*----- Routines to aid in debugging -----*/
 
 char *rpc2_timestring(void)

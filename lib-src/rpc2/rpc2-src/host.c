@@ -74,7 +74,7 @@ int HASHHOST(struct RPC2_addrinfo *ai)
 	break;
 
     case PF_INET6:
-	lsb = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr.in6_u.u6_addr32[3];
+	lsb = ((u_int32_t *)&((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr)[3];
 	break;
     }
     return lsb & (HOSTHASHBUCKETS-1);
