@@ -120,17 +120,39 @@ extern int coda_print_entry;
 #define __P(ARG) ARG
 #endif
 
-
-
-
 /* 
- * Key question: whether to sleep interuptably or uninteruptably when
- * waiting for Venus.  The former seems better (cause you can ^C a
- * job), but then GNU-EMACS completion breaks. Use tsleep with no
- * timeout, and no longjmp happens. But, when sleeping
- * "uninterruptibly", we don't get told if it returns abnormally
- * (e.g. kill -9).  
+ * quality timeout stuff below. 
  */
+
+unsigned long coda_timeout = 10;
+int coda_hard = 0;
+
+static inline void coda_waitfor_upcall(struct vmsg *vmp)
+{
+	struct wait_queue	wait = { current, NULL };
+
+	vmp->vm_posttime = jiffies;
+
+	add_wait_queue(&vmp->vm_sleep, &wait);
+	for (;;) {
+		if ( coda_hard == 0 ) 
+			current->state = TASK_INTERRUPTIBLE;
+		else
+			current->state = TASK_UNINTERRUPTIBLE;
+
+		if ( vmp->vm_flags & VM_WRITE )
+			break;
+		if ((current->signal & ~current->blocked) &&
+		    (jiffies > vmp->vm_posttime + coda_timeout * HZ) )
+			break;
+		schedule();
+	}
+	remove_wait_queue(&vmp->vm_sleep, &wait);
+	current->state = TASK_RUNNING;
+
+	return;
+}
+
 
 
 int coda_upcall(mntinfo, inSize, outSize, buffer) 
@@ -189,8 +211,9 @@ CDEBUG(D_UPCALL, "about to wake up Venus and sleep for (process, opc, uniq) =(%d
 
 	/* Ignore return, We have to check anyway */
 
+	 coda_waitfor_upcall(vmp);
 
-	SLEEP(&vmp->vm_sleep);
+		 /*	SLEEP(&vmp->vm_sleep); */
 CDEBUG(D_UPCALL, "process %d woken up by Venus.\n", current->pid);
 	if (VC_OPEN(vcommp)) {	/* Venus is still alive */
 	    /* Op went through, interrupt or not... */

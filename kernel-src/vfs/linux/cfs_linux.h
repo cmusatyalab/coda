@@ -261,8 +261,8 @@ do {                                                                      \
 #define MAXPATHLEN PATH_MAX
 
 /* I need os-specific macros for sleep/wakeup. */
-#define SELWAKEUP(proc) if (proc) wake_up_interruptible(&(struct wait_queue *)(proc));
-#define WAKEUP(cond) wake_up_interruptible((cond));
+#define SELWAKEUP(proc) if (proc) wake_up(&(struct wait_queue *)(proc));
+#define WAKEUP(cond) wake_up((cond));
 #define SLEEP(cond)  interruptible_sleep_on((cond));
 
 

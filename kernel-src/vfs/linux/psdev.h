@@ -27,6 +27,7 @@ struct vmsg {
     u_short	 vm_opcode; 	/* copied from data to save ptr lookup */
     int		 vm_unique;
     struct wait_queue *	 vm_sleep;	/* Not used by Mach. */
+    unsigned long vm_posttime;
 };
 
 
