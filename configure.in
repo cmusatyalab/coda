@@ -37,6 +37,14 @@ AC_PROG_AWK
 AC_PATH_PROG(CP, cp, "")
 AC_PATH_PROG(DF, df, "")
 AC_PATH_PROG(ED, ed, "")
+
+dnl check to see if ED is defined ...
+if test x${ED} = x ; then
+  echo 'program "ed" not found.'
+  echo 'coda needs the program "ed" for proper operation.'
+  exit 1
+fi
+
 AC_PATH_PROG(GREP, grep, "")
 AC_PATH_PROG(HOSTNAME, hostname, "")
 AC_PATH_PROG(MV, mv, "")
