@@ -3,11 +3,68 @@
 # 11/18/96 Created, Josh Raiff
 # 11/19/96 Modified, Peter Braam
 
+
+#########################################################
+#  Coda 4.0.1 build environment
+#  little here should need editing
+#  platform dependent stuff, included at the end is found in ./configs/ 
+#  
+#
+#########################################################
+
+
+##############################
+# Library definitions
+##############################
+# -- IFS --
+# platform dependent: choice from user level and kernel level version
+
+# -- CS --
+LIBCS     =$(LIBSPECIAL)/libcs.a
+
+# -- LWP --
+LIBNEWLWP =${LIBSPECIAL}/libnewlwp.a			
+LIBOLDLWP =${LIBSPECIAL}/liboldlwp.a			
+
+# -- RVM --
+LIBRVM= $(LIBSPECIAL)/librvm.a
+LIBRDS= $(LIBSPECIAL)/librds.a	 		
+LIBSEG= $(LIBSPECIAL)/libseg.a 			
+# threaded versions
+LIBRVMLWP = $(LIBSPECIAL)/librvmlwp.a		
+LIBRDSLWP = $(LIBSPECIAL)/librdslwp.a
+
+
+# -- CODA --
+LIBCODASYS =$(LIBDIR)/libcodasys.a   # --- (pioctl, setpag)
+LIBAUTH2 =$(LIBDIR)/libauth2.a
+LIBAL = $(LIBDIR)/libal.a
+LIBVOLUTIL =${LIBDIR}/libvolutil.a
+LIBVOL = ${LIBDIR}/libvol.a
+LIBVV = $(LIBDIR)/libvv.a
+LIBRESOLVE =$(LIBDIR)/libresolve.a
+LIBRESLIB =${LIBDIR}/libreslib.a
+LIBGROUP =$(LIBDIR)/libgroup.a
+LIBUTIL =$(LIBDIR)/libutil.a
+LIBRPC2 =$(LIBDIR)/librpc2.a
+LIBRPCLIB =$(LIBDIR)/librpclib.a
+LIBSE =$(LIBDIR)/libse.a
+LIBFAIL =$(LIBDIR)/libfail.a
+LIBMTCORE =$(LIBSPECIAL)/libmtcore.a
+LIBCOMM =$(LIBDIR)/libcomm.a
+LIBRVMRES =$(LIBDIR)/librvmres.a
+
+LIBDIRLIB=$(LIBDIR)/libdir.a
+
+LIBSETPAG=      $(LIBDIR)/libsetpag.a
+
+
 # Just include the system Makeconf
 sys=$(shell uname)
 include $(TOPDIR)/configs/Makeconf.$(sys)
 
+ALPHACI=$(TOPDIR)/tools/simpleci
 vpath %.rpc2 $(INCLDIR)
 
-# Force all to be the first target
-all:
+
+

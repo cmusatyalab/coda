@@ -1,42 +1,88 @@
-all: $(SUBDIRS) $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(TESTS)
+all: $(SUBDIRS) $(LIBRARIES)  $(HEADERS) $(EXECUTABLES) $(TESTS)
 
 # Catch all, most versions of gnu make use CXXFLAGS for g++, but mach's 
 # version uses C++FLAGS.
 C++FLAGS := $(CXXFLAGS)
 
+###############################################################
+#  jump into subdirs, keep going until failure
+###############################################################
+subdirinstall: 
+ifdef SUBDIRS
+	@for d in $(SUBDIRS) ; do \
+	  if [ -r $$d/GNUmakefile.coda ] ; then \
+	    echo "----> entering directory $$d"; \
+	    ${MAKE} -C $$d -f GNUmakefile.coda SUBDIRS= install; \
+	    if [ $$? != 0 ] ; then echo "----> error in $$d"; exit ; else echo "----> done in $$d"; fi \
+	  else \
+	    echo "----> entering directory $$d"; \
+	    ${MAKE} -C $$d SUBDIRS= install; \
+	    if [ $$? != 0 ] ; then echo "----> error in $$d"; exit ; else echo "----> done in $$d"; fi \
+	  fi \
+	done
+endif
 
+###################
 # Installation rules
-install: all subdirinstall bininstall libinstall \
-	 hdrinstall srcinstall
+###################
+install: subdirinstall bininstall libinstall hdrinstall 
 
-clean-install:
-	$(RM) hdrinstall srcinstall libinstall
-
-reinstall: clean-install install
-
+#####################
+# install executables
+#####################
 bininstall: $(EXECUTABLES)
 ifdef EXECUTABLES
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
 	touch bininstall
 endif
-
+	
+#####################
+# install libraries
+#####################
 libinstall: $(LIBRARIES)
 ifdef LIBRARIES
 	$(TOPDIR)/tools/our-install 644 $(LIBDIR) $?
 	touch libinstall
 endif
 
+#####################
+# install headers
+#####################
 hdrinstall: $(HEADERS)
 ifdef HEADERS
 	$(TOPDIR)/tools/our-install 644 $(INCLDIR) $?
 	touch hdrinstall
 endif
 
+#####################
+# re-install 
+#####################
+clean-install:
+	$(RM) hdrinstall libinstall
+reinstall: clean-install install
+
+#####################
+# source checkin ... 
+#####################
 srcinstall:
 	SRCDIR=$(srcdir); export SRCDIR; $(ALPHACI)
 
+##################
+# cleaning: important too
+# XXX must add rule to remove rp2gen generated .h files
+##################
+clean: 
+	$(RM) *.o *.a *.client.c *.server.c *.multi.c core
+	$(RM) $(EXECUTABLES) $(LIBRARIES) $(TEST)
+	$(RM) hdrinstall libinstall bininstall
+	$(RM) *.l.c *.pt.c *.l.o *.pt.o
+
+##################
+# build a single subdirectory
+##################
 ifdef SUBDIRS
 $(SUBDIRS): FORCE
+	echo "----> entering $@"; \
 	if [ -r $@/GNUmakefile.coda ] ; then \
 	  ${MAKE} -C $@ -f GNUmakefile.coda SUBDIRS= all; \
 	else \
@@ -44,24 +90,10 @@ $(SUBDIRS): FORCE
 	fi
 endif
 
-subdirinstall: 
-ifdef SUBDIRS
-	for d in $(SUBDIRS) ; do \
-	  if [ -r $$d/GNUmakefile.coda ] ; then \
-	    ${MAKE} -C $$d -f GNUmakefile.coda SUBDIRS= install; \
-	  else \
-	    ${MAKE} -C $$d SUBDIRS= install; \
-	  fi \
-	done
-endif
 
 lint: $(SOURCES)
 	lint $(INCDIRS) $(SOURCES)
 
-clean: 
-	$(RM) *.o *.a *.client.c *.server.c *.multi.c core
-	$(RM) $(EXECUTABLES) $(LIBRARIES) $(TEST)
-	$(RM) hdrinstall libinstall bininstall
 
 # General rules:
 %.o: %.s
