@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vol/volinodes.h,v 1.1 1996/11/22 19:10:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/viceinode.h,v 4.1 1997/01/08 21:52:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,30 +55,38 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
+#ifndef VICEINODE_INCLUDED
+#define VICEINODE_INCLUDED 1
+#include <voltypes.h>
 
 
-/* Used by vutil.c and salvager.c */
-
-#ifndef _VOLINODES_H_
-#define _VOLINODES_H_ 1
-
-extern struct VolumeHeader tempHeader;
-
-struct stuff {
-    struct versionStamp stamp;
-    bit32	inodeType;
-    int		size;	/* size of any fixed size portion of the header */
-    Inode	*inode;
-    char	*description;
-    int		obsolete;	/* if this is 1, then this inode is obsolete--
-				   salvager may delete it, and shouldn't complain
-				   if it isn't there; create can not bother to create it */
+/* used by the inode methods */
+struct i_header {
+    long    lnk;
+    VolumeId   volume;
+    VnodeId    vnode;
+    Unique_t   unique;
+    FileVersion dataversion;
+    long    magic;
 };
-/* inodeType is redundant in the above table;  it used to be useful, but now
-   we require the table to be ordered */
 
-extern struct stuff stuff[];
 
-#define MAXINODETYPE VI_MOUNTTABLE
+/* Structure of individual records output by fsck.
+   When VICEMAGIC inodes are created, they are given four parameters;
+   these correspond to the params.fsck array of this record.
+ */
+struct ViceInodeInfo {
+    bit32	InodeNumber;
+    int		ByteCount;
+    int		LinkCount;
+    VolId	VolumeId;
+    VnodeId	VnodeNumber;
+    Unique_t	VnodeUniquifier;
+    FileVersion	InodeDataVersion;
+    long        Magic;
+}; 
 
-#endif _VOLINODES_H_
+#define INODESPECIAL 0xffffffff	/* This vnode number will never
+					   be used legitimately */
+
+#endif _VICEINODE_H_

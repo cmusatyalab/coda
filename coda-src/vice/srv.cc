@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.3 1997/10/09 18:25:22 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.4 1997/10/13 03:55:22 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -94,11 +94,10 @@ extern "C" {
 #include <sftp.h>
 #include <fail.h>
 #include <fcon.h>
+#include <partition.h>
+#include <util.h>
 
 extern int nice(int);
-#ifdef MTCORE
-extern kern_return_t mtcore_register(char *);
-#endif MTCORE
 extern int Fcon_Init(); 
 
 #ifdef _TIMECALLS_
@@ -111,7 +110,6 @@ extern int Fcon_Init();
 
 extern void setmyname(char *);
 
-#include <util.h>
 #include <rvmlib.h>
 
 #ifdef __cplusplus
@@ -231,6 +229,9 @@ int prottrunc = FALSE;
 /* PRIVATE */int MallocTrace = FALSE;
 /* PRIVATE */void rds_printer(char *fmt ...);
 
+/* vicetab */
+#define VCT "/vice/db/vicetab"
+
 /* PDB stuff. */
 PRIVATE int pdbtime = 0;
 #define PDB "/vice/db/vice.pdb"
@@ -301,7 +302,8 @@ void zombie(int sig, int code, struct sigcontext *scp) {
     LogMsg(0, 0, stdout,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
 #endif    
     LogMsg(0, 0, stdout,  "****** Aborting outstanding transactions, stand by...");
-    
+    /* leave a sign to prevent automatic restart, ignore failures */
+    creat("CRASH", 00600);
     /* Abort all transactions before suspending... */
     if (RvmType == RAWIO || RvmType == UFS) {
 	rvm_options_t curopts;
@@ -444,19 +446,6 @@ main(int argc, char *argv[])
 	case UNSET	   : LogMsg(0, 0, stdout, "No RvmType selected!"); exit(-1);
     }
 
-
-#ifdef MTCORE
-#ifdef mips
-    if (RvmType == RAWIO || RvmType == UFS) {	/* Register with the mtcore server. */
-	kern_return_t ret = mtcore_register("/vicepb");
-	if (ret != KERN_SUCCESS) {
-	    LogMsg(0, 0, stdout, "Can't register with mtcore server. Is it running?");
-	    LogMsg(0, 0, stdout, "To start it run /usr/coda/bin/mtserver");
-	}
-    }
-#endif mips
-#endif MTCORE
-
     LogMsg(0, SrvDebugLevel, stdout, "Main process doing a LWP_Init()");
     assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,&parentPid)==LWP_SUCCESS);
 
@@ -503,6 +492,7 @@ main(int argc, char *argv[])
     RPC2_InitTraceBuffer(trace);
     RPC2_Trace = trace;
 
+    InitPartitions(VCT);
     CAMLIB_INITIALIZE_SERVER(NULL, TRUE, "codaserver"); 
 
     /* Trace mallocs and frees in the persistent heap if requested. */

@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/Makefile.in,v 4.5 1997/05/22 10:32:05 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/Makefile.in,v 4.6 1997/09/23 15:14:30 braam Exp $";
 
 
 # 
@@ -75,12 +75,13 @@ LIBS=	${LIBVICEERROR}\
 	${LIBSE}\
 	$(LIBIFS)\
 	${LIBVV}\
+	${LIBPARTITION}\
+	${LIBUTIL}\
 	$(LIBOLDLWP)\
 	${LIBKERNDEP}\
 	$(LIBTHREADS)\
 	$(LIBMACH)\
-	$(LIBCOMPAT)\
-	$(LIBINODEFS)
+	$(LIBCOMPAT)
 
 updatesrv: updatesrv.o update.server.o ${LIBS}
 	$(CXX) $(LIBLAGS) updatesrv.o update.server.o ${LIBS} -o updatesrv

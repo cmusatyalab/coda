@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.12 97/07/09 20:37:01 clement Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_nbsd1,v 4.13 1997/07/16 15:09:07 rvb Exp $";
 # 
 
 # the following may need editing depending on your preferences
@@ -45,12 +45,6 @@ LIBCURSES     = -lcurses
 LIBCOMPAT     = /usr/lib/libcompat.a
 LIBREADLINE   = /usr/local/lib/libreadline.a
 INCREADLINE   = -I/usr/local/include/readline
-INODEFSNAME   = libuinodefs.a
-INODEFSDIR    = kernel-src/inodefs/common
-# When we are ready use kernel inode ops
-# INODEFSNAME   = libinodefs.a
-# INODEFSDIR    = kernel-src/inodefs/bsd44
-# machine_inodefs   = bsd44
 #for rvm
 LIBTHREADS    =
 LIBMACH       = 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/volutil/vol-salvage.private.h,v 1.1 1996/11/22 19:13:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.private.h,v 4.1 1997/01/08 21:52:35 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -104,7 +104,8 @@ struct DirSummary {
 
 
 /* routines that get summaries */
-PRIVATE int GetInodeSummary(char *path, VolumeId singleVolumeNumber);
+PRIVATE int GetInodeSummary(char *fspath, char *path, 
+			    VolumeId singleVolumeNumber);
 PRIVATE int GetVolumeSummary(VolumeId singleVolumeNumber);
 PRIVATE void DistilVnodeEssence(VnodeClass vclass, Inode indexInode);
 
@@ -113,8 +114,10 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber);
 PRIVATE int SalvageVolumeGroup(struct VolumeSummary *vsp, int nVols);
 PRIVATE int QuickCheck(struct VolumeSummary *vsp, int nVols);
 PRIVATE int SalvageVolHead(register struct VolumeSummary *vsp);
+#if 0
 PRIVATE int SalvageHeader(register struct stuff *sp,
 			struct InodeSummary *isp, int check, int *deleteMe);
+#endif 
 PRIVATE int VnodeInodeCheck(int, struct ViceInodeInfo *, int, struct VolumeSummary *);
 PRIVATE void DirCompletenessCheck(struct VolumeSummary *vsp);
 PRIVATE void JudgeEntry(struct DirSummary *dir, char *name,

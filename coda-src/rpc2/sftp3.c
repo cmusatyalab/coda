@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: sftp3.c,v 4.1 97/01/08 21:50:31 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.2 1997/01/29 18:13:42 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,7 +75,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "rpc2.private.h"
 #include "se.h"
 #include "sftp.h"
-#include <inodefs.h>
 
 extern int errno;
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vicedep/RCS/vcrcommon.rpc2,v 1.2 1996/12/20 00:16:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/vcrcommon.rpc2,v 4.1 1997/01/08 21:52:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -61,11 +61,21 @@ supported by Transarc Corporation, Pittsburgh, PA.
  * Include file common to both callback.rpc2, vice.rpc2 and res.rpc2
  */
 
+%{
+#ifndef VOLTYPES_DEFINED
+#define VOLTYPES_DEFINED
+%}
 
 typedef RPC2_Unsigned   VolumeId;
-typedef VolumeId	VolId;
 typedef RPC2_Unsigned	VnodeId;
+typedef VolumeId        VolId;
 typedef RPC2_Unsigned	Unique_t;
+typedef RPC2_Unsigned	FileVersion;
+
+%{ 
+#endif
+%}
+
 
 %{
 #ifndef _VUID_T_
@@ -77,9 +87,9 @@ typedef unsigned int vgid_t;
 
 typedef RPC2_Struct 
 {
-	VolumeId	Volume;
-	VnodeId		Vnode;
-	Unique_t	Unique;
+	RPC2_Unsigned	Volume;
+	RPC2_Unsigned	Vnode;
+	RPC2_Unsigned	Unique;
 }	ViceFid;
 
 typedef RPC2_Struct
@@ -108,7 +118,6 @@ typedef RPC2_Struct
 }	ViceVersionVector;
 
 typedef RPC2_Unsigned	UserId;
-typedef RPC2_Unsigned	FileVersion;
 typedef RPC2_Unsigned	Date_t;
 typedef RPC2_Integer	Rights;
 

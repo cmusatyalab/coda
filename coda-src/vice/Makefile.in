@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.2 97/01/29 18:10:15 lily Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/Makefile.in,v 4.3 1997/04/29 21:27:25 rvb Exp $";
 
 
 # 
@@ -74,9 +74,9 @@ LIBS = 	$(LIBVOLSERV)  \
 	$(LIBRESOLVE) 	\
 	$(LIBVOL)	\
 	$(LIBVV)	\
+	$(LIBPARTITION)	\
 	$(LIBSYSENT)	\
 	$(LIBDIRLIB)	\
-	$(LIBIFS)	\
 	$(LIBUTIL) 	\
 	$(LIBCODARDS)   \
 	$(LIBSEG)  	\
@@ -86,8 +86,7 @@ LIBS = 	$(LIBVOLSERV)  \
 	$(LIBFAIL)	\
 	$(LIBOLDLWP)	\
 	$(LIBMACH)	\
-	$(LIBCOMPAT)	\
-	$(LIBINODEFS)
+	$(LIBCOMPAT)	
 
 headers=$(INCLSPECIAL)/lwp.h	\
 	$(INCLDIR)/al.h		\

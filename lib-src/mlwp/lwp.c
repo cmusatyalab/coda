@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/src/lib-src/mlwp/RCS/lwp.c,v 4.2 97/02/26 16:04:58 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.3 1997/04/25 18:51:32 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -307,9 +307,7 @@ int LWP_GetRock(Tag, Value)
 }
 
 
-int LWP_NewRock(Tag, Value)
-    int Tag;
-    char *Value;
+int LWP_NewRock(int Tag, char *Value)
 {
     /* Finds a free rock and sets its value to Value.
         Return codes:
@@ -317,12 +315,11 @@ int LWP_NewRock(Tag, Value)
                 LWP_EBADROCK    Rock already exists.
                 LWP_ENOROCKS    All rocks are in use.
 
-        From the above semantics, you can only set a rock value once.  This is specifically
-       to prevent multiple users of the LWP package from accidentally using th\
-e same Tag
-        value and clobbering others.  You can always use one level of indirection to obtain
-        a rock whose contents can change.
-    */
+        From the above semantics, you can only set a rock value once.
+        This is specifically to prevent multiple users of the LWP
+        package from accidentally using the same Tag value and
+        clobbering others.  You can always use one level of
+        indirection to obtain a rock whose contents can change.  */
     
     register int i;
     register struct rock *ra;   /* rock array */
@@ -343,8 +340,7 @@ e same Tag
     else return(LWP_ENOROCKS);
 }
 
-PRIVATE void Dispose_of_Dead_PCB(cur)
-    PROCESS cur;
+PRIVATE void Dispose_of_Dead_PCB(PROCESS cur)
 {
 
   lwpdebug(0, ("Entered Dispose_of_Dead_PCB"))
@@ -352,8 +348,7 @@ PRIVATE void Dispose_of_Dead_PCB(cur)
   Free_PCB(cur);
 }
 
-int LWP_CurrentProcess(pid)
-    PROCESS *pid;
+int LWP_CurrentProcess(PROCESS *pid)
 {
     lwpdebug(0, ("Entered Current_Process"))
     if (lwp_init) {
@@ -424,28 +419,34 @@ PRIVATE void Dump_Processes()
 }
 
 char *LWP_Name()
-    {
+{
     return(lwp_cpptr->name);    
-    }
-
-int LWP_Index()
-    {
-    return(lwp_cpptr->index);
-    }
-
-int LWP_HighestIndex()
-    {
-    return(lwp_nextindex-1);
-    }
-
-PRIVATE int IsGreater(struct timeval *t1, struct timeval *t2) {
-    if (t1->tv_sec > t2->tv_sec) return (1);
-    else if (t1->tv_sec < t2->tv_sec) return (0);
-    else if (t1->tv_usec > t2->tv_usec) return(1);
-    else return(0);
 }
 
-PRIVATE void CheckWorkTime(PROCESS currentThread, PROCESS nextThread) {
+int LWP_Index()
+{
+    return(lwp_cpptr->index);
+}
+
+int LWP_HighestIndex()
+{
+    return(lwp_nextindex-1);
+}
+
+PRIVATE int IsGreater(struct timeval *t1, struct timeval *t2) 
+{
+    if (t1->tv_sec > t2->tv_sec) 
+	return (1);
+    else if (t1->tv_sec < t2->tv_sec) 
+	return (0);
+    else if (t1->tv_usec > t2->tv_usec) 
+	return(1);
+    else 
+	return(0);
+}
+
+PRIVATE void CheckWorkTime(PROCESS currentThread, PROCESS nextThread) 
+{
     struct timeval current;
     struct timeval worktime;
 
@@ -478,7 +479,8 @@ PRIVATE void CheckWorkTime(PROCESS currentThread, PROCESS nextThread) {
 }
 
 
-PRIVATE void CheckRunWaitTime(PROCESS thread) {
+PRIVATE void CheckRunWaitTime(PROCESS thread) 
+{
     struct timeval current;
     struct timeval waittime;
 

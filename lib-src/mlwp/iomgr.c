@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/lib-src/mlwp/RCS/iomgr.c,v 4.2 1997/02/26 16:04:57 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/iomgr.c,v 4.3 1997/06/14 22:09:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -532,7 +532,8 @@ int IOMGR_Finalize()
 }
 
 /* Check for pending IO, and set corresponding LWPs runnable. */
-/* This is quite similar to the body of IOMGR, but everything MUST be done in polling fashion! */
+/* This is quite similar to the body of IOMGR, but everything MUST be
+   done in polling fashion! */
 /* Return value indicates whether anyone was set runnable by the poll. */
 int IOMGR_Poll() 
 {

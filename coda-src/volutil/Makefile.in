@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/Makefile.in,v 4.3 1997/04/29 21:27:25 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/Makefile.in,v 4.4 1997/09/23 15:15:38 braam Exp $";
 
 
 # 
@@ -68,30 +68,29 @@ RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
 LIBS =	${LIBVOL} \
 	${LIBVV} \
-	${LIBUTIL} \
 	$(LIBVICEDEP)\
 	${LIBRPC2} \
 	${LIBSE} \
 	${LIBCODARDS} \
 	${LIBSEG} \
 	${LIBCODARVM} \
+	${LIBPARTITION}\
+	${LIBUTIL} \
 	${LIBOLDLWP} \
 	${LIBSYSENT} \
 	${LIBMACH}  \
-	${LIBIFS}\
 	$(LIBCS)\
-	$(LIBCOMPAT)\
-	$(LIBINODEFS)
+	$(LIBCOMPAT)
         
 
-HFILES= $(INCLDIR)/voldump.rpc2 $(INCLDIR)/volutil.rpc2 \
-	dump.h dumpstream.h vol-dumprecstore.h vol-rcvheap.h \
-	volutil.private.h vvlist.h \
-	${INCLDIR}/srv.h ${INCLDIR}/errors.h \
-	${INCLDIR}/srvsignal.h ${INCLDIR}/fssync.h ${INCLDIR}/index.h \
-	${INCLDIR}/nfs.h ${INCLDIR}/partition.h ${INCLDIR}/recov.h \
-	${INCLDIR}/viceinode.h ${INCLDIR}/vldb.h ${INCLDIR}/cvnode.h \
-	${INCLDIR}/voldefs.h ${INCLDIR}/volinodes.h ${INCLDIR}/volume.h
+#HFILES= $(INCLDIR)/voldump.rpc2 $(INCLDIR)/volutil.rpc2 \
+#	dump.h dumpstream.h vol-dumprecstore.h vol-rcvheap.h \
+#	volutil.private.h vvlist.h \
+#	${INCLDIR}/srv.h ${INCLDIR}/errors.h \
+#	${INCLDIR}/srvsignal.h ${INCLDIR}/fssync.h ${INCLDIR}/index.h \
+#	${INCLDIR}/partition.h ${INCLDIR}/recov.h \
+#	 ${INCLDIR}/vldb.h ${INCLDIR}/cvnode.h \
+#	${INCLDIR}/voldefs.h ${INCLDIR}/volume.h
 
 
 LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
@@ -141,11 +140,7 @@ parserecdump.o:	parserecdump.cc vol-dumprecstore.h
 
 local.a: ${LOCALOBJS}
 
-${OBJS} ${LOCALOBJS}: ${HFILES}
-
-vol-create.o: volutil.private.h 
-
-vol-newvldb: vol-newvldb.sh
+# ${OBJS} ${LOCALOBJS}: ${HFILES}
 
 volutil:    ${VOLCLIENTOBJS} ${LIBS}
 	${CXX} $(LIBFLAGS) ${VOLCLIENTOBJS} ${LIBS} -o volutil

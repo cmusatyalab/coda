@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.1 1997/01/08 21:49:50 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.2 1997/10/15 15:53:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,9 @@ PRIVATE void printentry(struct DirSummary *dir, char *name, VnodeId
     printf("    (0x%x 0x%x)\t%s\n", vnodeNumber, unique, name);
 }
 
-PRIVATE int SetDirHandle(DirHandle *dir, int volid, int vnum, int unique) { 
+PRIVATE int 
+SetDirHandle(DirHandle *dir, int volid, int vnum, int unique) 
+{ 
     char buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
     VolHead *vol;
@@ -176,6 +178,10 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     if (volindex < 0) {
 	fprintf(stderr, "Unable to get volume 0x%x\n", volid);
 	return;
+    }
+
+    if (vclass != vLarge) {
+	fprintf(stderr, "Not a directory (i.e. large) vnode.\n");
     }
 
     if (!SetDirHandle(&dirh, volid, vnum, unique)) {

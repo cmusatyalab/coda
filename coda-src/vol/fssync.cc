@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/fssync.cc,v 4.2 1997/02/26 16:03:52 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/fssync.cc,v 4.3 1997/09/05 12:45:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,7 +87,7 @@ extern "C" {
 
 #include <util.h>
 #include <vice.h>
-#include "nfs.h"
+#include "voltypes.h"
 #include "errors.h"
 #include "fssync.h"
 #include "cvnode.h"

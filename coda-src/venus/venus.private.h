@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/venus.private.h,v 4.7 1997/06/10 22:22:50 clement Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.private.h,v 4.8 1997/06/11 00:34:35 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,7 +63,7 @@ extern "C" {
 
 #include <lock.h>
 #include <rpc2.h>
-
+#include <util.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -320,8 +320,10 @@ struct CacheStats {
 
 /*  *****  Declarations for source files without their own headers.  ***** */
 /* util.c */
+#if 0
 extern void fdprint(long, char * ...);
 extern void eprint(char * ...);
+#endif
 extern void dprint(char * ...);
 extern void Choke(char* ...);  /* used to be Die() but clashes with vicedep/srv.h & dir/dir.private.h */
 extern void rds_printer(char * ...);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vtools/RCS/cfs.cc,v 4.2 1997/01/28 11:57:05 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.3 1997/02/26 16:04:19 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,13 +59,14 @@ extern "C" {
 #include <netdb.h>
 #include <sys/stat.h>
 #include <sys/param.h>
+#include <sys/types.h>
 #ifdef	__linux__
 #include <sys/dirent.h>
 #else
 #include <sys/dir.h>
 #endif
 
-#include <inodefs.h>
+#include <inodeops.h>
 
 #ifdef __cplusplus
 }
@@ -79,7 +80,6 @@ extern "C" {
 
 
 #ifdef	__linux__
-#define DIR dirent
 #define direct dirent
 #define d_namlen d_reclen
 #endif
@@ -92,7 +92,6 @@ NOTE: This is a brand new cfs; it has been written from scratch
 */
 
 
-#define NULL 0
 #define PIOBUFSIZE 2048  /* max size of pioctl buffer */
 
 char piobuf[PIOBUFSIZE];

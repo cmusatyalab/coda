@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/lib-src/mlwp/RCS/lock.c,v 4.1 1997/01/08 21:54:11 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lock.c,v 4.2 1997/02/26 16:04:57 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,16 +57,11 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #include <stdio.h>
-#ifdef	__BSD44__
-#include <sys/time.h>
-#endif
 #include "lwp.h"
 #include "lwp.private.h"
 #include "lock.h"
 
-
-void Lock_Init(lock)
-    register struct Lock *lock;
+void Lock_Init(register struct Lock *lock)
 {
     lock -> readers_reading = 0;
     lock -> excl_locked = 0;
@@ -74,9 +69,7 @@ void Lock_Init(lock)
     lock -> num_waiting = 0;
 }
 
-void Lock_Obtain(lock, how)
-    register struct Lock *lock;
-    int how;
+void Lock_Obtain(register struct Lock *lock, int how)
 {
 
     switch (how) {
@@ -117,14 +110,14 @@ void Lock_Obtain(lock, how)
 				lock->excl_locked = WRITE_LOCK;
 				break;
 
-	default:		printf("Can't happen, bad LOCK type: %d\n", how);
+	default:		fprintf(stderr, 
+				 "Can't happen, bad LOCK type: %d\n", how);
 				abort();
     }
 }
 
 /* release a lock, giving preference to new readers */
-void Lock_ReleaseR(lock)
-    register struct Lock *lock;
+void Lock_ReleaseR(register struct Lock *lock)
 {
 
     if (lock->wait_states & READ_LOCK) {
@@ -138,8 +131,7 @@ void Lock_ReleaseR(lock)
 }
 
 /* release a lock, giving preference to new writers */
-void Lock_ReleaseW(lock)
-    register struct Lock *lock;
+void Lock_ReleaseW(register struct Lock *lock)
 {
 
     if (lock->wait_states & EXCL_LOCKS) {
@@ -151,4 +143,3 @@ void Lock_ReleaseW(lock)
 	LWP_NoYieldSignal(&lock->readers_reading);
     }
 }
-

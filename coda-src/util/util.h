@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/util.h,v 4.1 1997/01/08 21:51:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.h,v 4.2 1997/02/26 16:03:08 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,18 +67,14 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <unistd.h>
 #include <stdlib.h>
 #endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
 
-#include <signal.h>
-#include <assert.h> /* in lieu of explicit definition below */
-#include <stdio.h>
 
-#ifdef __cplusplus
-}
-#endif __cplusplus
+#include <signal.h>
+#include <assert.h> 
+#include <stdio.h>
 
 #ifndef IN  /* rpc2.private.h also defines these */
 /* Parameter usage */
@@ -86,10 +82,6 @@ extern "C" {
 #define OUT	/* Output parameter */
 #define INOUT	/* Obvious */
 #endif IN
-
-
-/* Got rid of explicit definition of assert().  Added include of
-   assert.h for compatibility. */
 
 
 #define TRUE 1
@@ -109,6 +101,8 @@ extern int CaseFoldedCmp(char *s1, char *s2);
 	code for comma-expressions in conditionals */
 extern int SafeStrCat(char *dest, char *src, int totalspace);
 extern int SafeStrCpy(char *dest, char *src, int totalspace);
+void eprint(char *, ...);
+void fdprint(long afd, char *fmt, ...);
 
 
 /* Routine for conditionally printing timestamped log messages */
@@ -116,6 +110,16 @@ extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...);
 
 /* The routine that prints the timestamp */
 extern void PrintTimeStamp(FILE *fout);
+
+/* Hostname related utilities */
+int UtilHostEq(char *name1, char *name2);
+char *hostname(char *);
+
+/* Useful locking macros */
+#define U_wlock(b)     ObtainWriteLock(&((b)->lock))
+#define U_rlock(b)    ObtainReadLock(&((b)->lock))
+#define U_wunlock(b)    ReleaseWriteLock(&((b)->lock))
+#define U_runlock(b)    ReleaseReadLock(&((b)->lock))
 
 /* Extern decls for variables used in Coda to control verbosity of messages from LogMsg().
    These should probably be spread out in the individual header files for 
@@ -128,3 +132,8 @@ extern int SalvageDebugLevel;	/* Salvager */
 extern int DirDebugLevel;	/* Dir package */
 extern int AL_DebugLevel;	/* ACL package */
 extern int AuthDebugLevel;	/* Auth package */
+
+
+#ifdef __cplusplus
+}
+#endif __cplusplus

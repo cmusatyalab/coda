@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.h,v 4.1 1997/01/08 21:52:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.h,v 4.2 1997/09/05 12:45:18 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,8 +55,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-#ifndef _VOLUME_H_
-#define _VOLUME_H_ 1
+#ifndef VOLUME_INCLUDED
+#define VOLUME_INCLUDED 1
 #include <recov_vollog.h>
 #include <vice.h>
 #include "voldefs.h"
@@ -489,4 +489,13 @@ typedef struct DirHandle {
 			   that were generated in days of old */
 } DirHandle;
 
-#endif _VOLUME_H_
+
+/* partition disk usage related routines */
+
+/* exported routines */
+void VAdjustDiskUsage(Error *ec, Volume *vp, int blocks);
+void VCheckDiskUsage(Error *ec, Volume *vp, int blocks);
+void VGetPartitionStatus(Volume *vp, int *totalBlocks, int *freeBlocks);
+
+
+#endif VOLUME_INCLUDED

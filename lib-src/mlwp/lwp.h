@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/mlwp/lwp.h,v 1.1 1996/11/22 19:18:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.h,v 4.1 1997/01/08 21:54:15 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,8 +55,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-#ifndef _LWP_
-#define _LWP_
+#ifndef LWP_INCLUDED
+#define LWP_INCLUDED
 
 #include "cargs.h"
 #include <sys/time.h>
@@ -173,7 +173,7 @@ extern int TM_GetTimeOfDay C_ARGS((struct timeval *tv, struct timezone *tz));
 extern int FT_AGetTimeOfDay C_ARGS((struct timeval *tv, struct timezone *tz));
 extern unsigned int FT_ApproxTime() ;
 
-#endif _LWP_
+#endif /* LWP_INCLUDED */
 
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/norton/norton-setup.cc,v 1.1 1996/11/22 19:14:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-setup.cc,v 4.1 1997/01/08 21:49:51 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,7 +62,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <coda_dir.h>
-#include <nfs.h>
+#include <voltypes.h>
 #include <partition.h>
 #include <rvmdir.h>
 #include <rvmlib.h>

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/coda-src/venus/RCS/venusutil.cc,v 4.4 1997/05/27 14:33:03 braam Exp clement $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.5 1997/05/29 18:51:00 clement Exp $";
 #endif /*_BLURB_*/
 
 
@@ -169,41 +169,6 @@ PRIVATE char *VFSOpsNameTemplate[NVFSOPS] = {
 
 
 /* *****  util.c  ***** */
-
-/* Send a message out on a file descriptor. */
-void fdprint(long afd, char *fmt ...) {
-    va_list ap;
-    char buf[240];
-
-    va_start(ap, fmt);
-    vsnprintf(buf, 240, fmt, ap);
-    va_end(ap);
-    write((int) afd, buf, (int) strlen(buf));
-}
-
-
-/* Send an error message to stderr. */
-void eprint(char *fmt ...) {
-    va_list ap;
-    char msg[240];
-    char *cp = msg;
-
-    /* Construct message in buffer and add newline */
-    va_start(ap, fmt);
-    vsnprintf(cp, 239, fmt, ap); /* leave 1 char for the "\n" */
-    va_end(ap);
-    cp += strlen(cp);
-    strcat(cp, "\n");
-
-    /* Write to stderr */
-    PrintTimeStamp(stderr);  /* first put out a timestamp */
-    fprintf(stderr, msg); /* then the message */
-    fflush(stderr);
-
-    /* Put a copy in the log for debugging. */
-    LOG(0, ("%.128s", msg));
-}
-
 
 /* Print a debugging message to the log file. */
 void dprint(char *fmt ...) {

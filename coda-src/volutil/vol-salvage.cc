@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.7 97/06/14 22:06:28 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.8 1997/09/26 16:43:30 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,68 +82,33 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sysent.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/dir.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
-/* If'defd includes below are highly platform-specific */
-
-#ifdef __MACH__
-#include <sys/inode.h>
-#include <fstab.h>
-#endif /* __MACH__ */
-
-#ifdef	__linux__
 #include <dirent.h>
 #include <stdio.h>
-#include <mntent.h>
-#include <sys/vfs.h>
-#include <linux/ext2_fs.h>
-#endif
-#ifdef __FreeBSD__
-#include <sys/ucred.h>
-#include <sys/mount.h>
-#endif
-
-#ifdef __BSD44__
-/* Not yet implemented */
-#include <fstab.h>
-#endif
-
-#ifdef	__MACH__
-#include <sys/inode.h>
-#endif
-#include <sysent.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/dir.h>
 
 #include <lwp.h>
 #include <lock.h>
 #include <rpc2.h>
-#include <inodefs.h>
+#include <util.h>
+#include <partition.h>
+#include <inodeops.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
-
 #include <vice.h>
-#include <nfs.h>
+#include <voltypes.h>
 #include <errors.h>
 #include <cvnode.h>
 #include <volume.h>
-#include <partition.h>
-#include <viceinode.h>
 #include <srvsignal.h>
 #include <fssync.h>
 #include <vutil.h>
@@ -152,7 +117,6 @@ extern "C" {
 #include <camprivate.h>
 #include <coda_globals.h>
 #include <volhash.h>
-#include <util.h>
 #include <rvmlib.h>
 #include <bitmap.h>
 #include <recle.h>
@@ -177,12 +141,15 @@ VolumeId *skipvolnums = NULL;
 
 int debarrenize = 0;			/* flag for debarrenizing vnodes on startup */
 
-PRIVATE Device fileSysDevice;		/* The device number of partition being salvaged */
+PRIVATE Device fileSysDevice;		/* The device number of
+					   partition being salvaged */
 PRIVATE char *fileSysDeviceName; 	/* The block device where the file system 
 					   being salvaged was mounted */
-PRIVATE char    *fileSysPath;		/* The path of the mounted partition currently
-					   being salvaged, i.e. the directory
-					   containing the volume headers */
+PRIVATE char    *fileSysPath;		/* The path of the mounted
+					   partition currently being
+					   salvaged, i.e. the
+					   diqrectory containing the
+					   volume headers */
 int	VolumeChanged = 0;		/* Set by any routine which would change
 					   the volume in a way which would require
 					   callback to be broken if the volume was
@@ -198,7 +165,6 @@ PRIVATE int nVolumes;			/* Number of volumes in volume summary */
 
 PRIVATE struct VnodeInfo  vnodeInfo[nVNODECLASSES];
 
-
 /*
  *  S_VolSalvage is the RPC2 Volume Utility subsystem call used to salvage
  *  a particular volume. It is also called directly by the fileserver to
@@ -208,16 +174,19 @@ PRIVATE struct VnodeInfo  vnodeInfo[nVNODECLASSES];
  *  the transaction abort.
  */
 
-long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVolumeNumber,
-		  RPC2_Integer force, RPC2_Integer Debug, RPC2_Integer list)
+long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, 
+		  VolumeId singleVolumeNumber,
+		  RPC2_Integer force, RPC2_Integer Debug, 
+		  RPC2_Integer list)
 {
     long rc = 0;
     int UtilityOK = 0;	/* flag specifying whether the salvager may run as a volume utility */
     ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
     char *path = (char *) formal_path;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
-			rpcid, path, singleVolumeNumber, force, Debug, list);
+    LogMsg(9, VolDebugLevel, stdout, 
+	   "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
+	   rpcid, path, singleVolumeNumber, force, Debug, list);
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
     zero_globals();
@@ -226,7 +195,9 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
     debug = Debug;
     ListInodeOption = list;
     
-    LogMsg(0, VolDebugLevel, stdout, "Vice file system salvager, version %s.", SalvageVersion);
+    LogMsg(0, VolDebugLevel, stdout, 
+	   "Vice file system salvager, version %s.", 
+	   SalvageVersion);
 
     /* Note:  if path and volume number are specified, we initialize this */
     /* as a standard volume utility: negotations have to be made with */
@@ -237,7 +208,8 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
 
     rc = VInitVolUtil(UtilityOK? volumeUtility: salvager);
     if (rc != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolSalvage: VInitVolUtil failed with %d.", rc);
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "S_VolSalvage: VInitVolUtil failed with %d.", rc);
 	return(rc);
     }
 
@@ -250,59 +222,24 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
     
     if (path == NULL) {
       int didSome = 0;
-#if defined(__MACH__) || defined(__BSD44__)
-      struct fstab *fsent;
-      setfsent();
-      while (fsent = getfsent()) {
-	if (strncmp(fsent->fs_file, VICE_PARTITION_PREFIX, 
-		    VICE_PREFIX_SIZE)== 0) {
-	  rc = SalvageFileSys(fsent->fs_file, 0);
-	  if (rc != 0)
-	    goto cleanup;
-	  didSome++;
-	}
-      }
-#endif /* __MACH__  and BSD44 */
+      struct DiskPartition *dp = DiskPartitionList;
 
-#if defined(__linux__) 
-      struct mntent *mntent;
-      FILE *mnt_handle;
-      mnt_handle = setmntent("/etc/mtab", "r");
-      while ( mntent = getmntent(mnt_handle)) { 
-	if (strncmp(mntent->mnt_dir, VICE_PARTITION_PREFIX, 
-		    VICE_PREFIX_SIZE)== 0) {
-	  rc = SalvageFileSys(mntent->mnt_dir, 0);
+      do {
+	  rc = SalvageFileSys(dp->name, 0);
 	  if (rc != 0)
-	    goto cleanup;
+	      goto cleanup;
 	  didSome++;
-	}
-      }
-#endif /* __linux__ */
-
-#if defined(__FreeBSD__)
-      struct statfs *m_info, *se;
-      int    nelem, e_id = 0;
-/*    assert(0<(nelem = getmntinfo(&m_info, MOUNT_UFS)));    */
-      assert(0<(nelem = getmntinfo(&m_info, MOUNT_MAXTYPE)));    /* XXX */
-      for (e_id = 0; e_id <= nelem; e_id++) {
-	if (strncmp(m_info[e_id].f_mntonname, VICE_PARTITION_PREFIX, 
-		    VICE_PREFIX_SIZE)== 0) {
-	  rc = SalvageFileSys(m_info[e_id].f_mntonname, 0);
-	  if (rc != 0)
-	    goto cleanup;
-	  didSome++;
-	}
-      }
-#endif
+	  dp = dp->next;
+      } while ( dp ) ;
 
       if (!didSome) {
 	LogMsg(0, VolDebugLevel, stdout, 
-	       "No partitions named %s* found; not salvaged",
-	       VICE_PARTITION_PREFIX);
+	       "No partitions named found in %s; not salvaged",
+	       VICETAB);
 	goto cleanup;
       }
-    }
-    else rc = SalvageFileSys(path, singleVolumeNumber);
+    } else 
+	rc = SalvageFileSys(path, singleVolumeNumber);
 
     /* should put vol back on line if singleVolumeNumber */
     if (singleVolumeNumber)
@@ -339,68 +276,69 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 {
     struct stat status;
     struct ViceInodeInfo *ip = NULL;
-    char *name;
+    struct stat force;
     char inodeListPath[32];
+    char forcepath[MAXNAMLEN];
     struct VolumeSummary *vsp;
     int i,rc, camstatus;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering SalvageFileSys (%s, %x)", path, singleVolumeNumber);
+    LogMsg(9, VolDebugLevel, stdout, 
+	   "Entering SalvageFileSys (%s, %x)", path, singleVolumeNumber);
 
     if (stat(path,&status) == -1) {
-	LogMsg(0, VolDebugLevel, stdout, "Couldn't find file system \"%s\", aborting", path);
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "Couldn't find file system \"%s\", aborting", path);
 	return(VFAIL);
     }
-    /* this is not the case for inode systems with files */
-#if __MACH__
-    if (status.st_ino != ROOTINODE || (name = devName(status.st_dev)) == NULL) {
-	LogMsg(0, VolDebugLevel, stdout, "\"%s\" is not a mounted file system", path);
-	return(VNOVNODE);
-    }
-#else 
-    /* Name isn't used by anything put LogMsg, but we better initialize it. 
-     * (raiff 5/12/97)
-     */
-    name = "";
-#endif
+
     VLockPartition(path);
+
+    /* house keeping to deal with FORCESALVAGE */
+    if ( (strlen(path) + strlen("/FORCESALVAGE")) >= MAXPATHLEN ) {
+	eprint("Fatal string operation detected.\n");
+	assert(0);
+    } else {
+	strcpy(forcepath, path);
+	strcat(forcepath, "/FORCESALVAGE");
+    }
+
     if (singleVolumeNumber || ForceSalvage)
 	ForceSalvage = 1;
     else {
-	struct stat force;
-	assert(chdir(path) != -1);
-	if (stat("FORCESALVAGE", &force) == 0)
+	if (stat(forcepath, &force) == 0)
 	    ForceSalvage = 1;
     }
-    if (singleVolumeNumber) {	// not running in full salvage mode
+
+    if (singleVolumeNumber) {	/* not running in full salvage mode */
 	if ((rc = AskOffline(singleVolumeNumber)) != 0)
 	    return (rc);
-    }
-    else {
-	LogMsg(0, VolDebugLevel, stdout, "Salvaging file system partition %s (device=%s)", path, name);
+    } else {
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "Salvaging file system partition %s", path);
 	if (ForceSalvage)
-	    LogMsg(0, VolDebugLevel, stdout, "Force salvage of all volumes on this partition");
+	    LogMsg(0, VolDebugLevel, stdout, 
+		   "Force salvage of all volumes on this partition");
     }
 
     /* obtain a summary of all the inodes in the partition */
     fileSysDevice = status.st_dev;
     fileSysPath = path;
-    fileSysDeviceName = name;
-    strcpy(inodeListPath, "/tmp/salvage.inodes.");
-    if ( name ) 
-      strcat(inodeListPath, name); 
-    rc = GetInodeSummary(inodeListPath, singleVolumeNumber);
+    strcpy(inodeListPath, "/tmp/salvage.inodes");
+    rc = GetInodeSummary(path, inodeListPath, singleVolumeNumber);
     if (rc != 0) {
 	if (rc == VNOVOL) {
 	    return 0;
 	}
 	else {
-	    LogMsg(9, VolDebugLevel, stdout, "SalvageFileSys: GetInodeSummary failed with %d", rc);
+	    LogMsg(9, VolDebugLevel, stdout, 
+		   "SalvageFileSys: GetInodeSummary failed with %d", rc);
 	    return rc;
 	}
-    }
-    else {
+    } else {
 	LogMsg(9, VolDebugLevel, stdout, "GetInodeSummary returns success");
     }
+
+    /* open the summary file and unlink it for automatic cleanup */
     inodeFd = open(inodeListPath, O_RDONLY, 0);
     assert(unlink(inodeListPath) != -1);
     if (inodeFd == -1) {
@@ -409,35 +347,45 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	return(VNOVNODE);
     }
 
+    /* get volume summaries */
     if ((rc = GetVolumeSummary(singleVolumeNumber)) != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "SalvageFileSys: GetVolumeSummary failed with %d", rc);
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "SalvageFileSys: GetVolumeSummary failed with %d", rc);
 	return(rc);
     }
     if (nVolumes > nVolumesInInodeFile)
-      LogMsg(0, VolDebugLevel, stdout, "SFS: There are some volumes without any inodes in them");
+      LogMsg(0, VolDebugLevel, stdout, 
+	     "SFS: There are some volumes without any inodes in them");
 
+
+    /* there we go: salvage it */
     CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
 
     for (i = 0, vsp = volumeSummary; i < nVolumesInInodeFile; i++){
 	VolumeId rwvid = inodeSummary[i].RWvolumeId;
 	while (nVolumes && (vsp->header.parent < rwvid)){
-	    LogMsg(0, VolDebugLevel, stdout,"SFS:No Inode summary for volume %#08x; skipping full salvage",  
+	    LogMsg(0, VolDebugLevel, stdout,
+		   "SFS:No Inode summary for volume 0x%x; skipping full salvage",  
 		vsp->header.parent);
-	    LogMsg(0, VolDebugLevel, stdout, "SalvageFileSys: Therefore only resetting inUse flag");
+	    LogMsg(0, VolDebugLevel, stdout, 
+		   "SalvageFileSys: Therefore only resetting inUse flag");
 	    ClearROInUseBit(vsp);
 	    vsp->inSummary = NULL;
 	    nVolumes--;
 	    vsp++;
 	}
-	LogMsg(9, VolDebugLevel, stdout, "SFS: nVolumes = %d, parent = 0x%x, id = 0x%x, rwvid = 0x%x", 
-	    nVolumes, vsp->header.parent, vsp->header.id, rwvid);
+	LogMsg(9, VolDebugLevel, stdout, 
+	       "SFS: nVolumes = %d, parent = 0x%x, id = 0x%x, rwvid = 0x%x", 
+	       nVolumes, vsp->header.parent, vsp->header.id, rwvid);
 	    
 	if (nVolumes && vsp->header.parent == rwvid){
-	    LogMsg(9, VolDebugLevel, stdout, "SFS: Found a volume for Inodesummary %d", i);
+	    LogMsg(9, VolDebugLevel, stdout, 
+		   "SFS: Found a volume for Inodesummary %d", i);
 	    VolumeSummary *startVsp = vsp;
 	    int SalVolCnt = 0;
 	    while (nVolumes && vsp->header.parent == rwvid){
-		LogMsg(9, VolDebugLevel, stdout, "SFS: Setting Volume 0x%#08x inodesummary to %d",
+		LogMsg(9, VolDebugLevel, stdout, 
+		       "SFS: Setting Volume 0x%x inodesummary to %d",
 		    rwvid, i);
 		vsp->inSummary = &(inodeSummary[i]);
 		SalVolCnt++;
@@ -446,21 +394,24 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	    }
 	    rc = SalvageVolumeGroup(startVsp, SalVolCnt);
 	    if (rc) {
-		LogMsg(9, VolDebugLevel, stdout, "SalvageVolumeGroup failed with rc = %d, ABORTING", rc);
+		LogMsg(9, VolDebugLevel, stdout, 
+		       "SalvageVolumeGroup failed with rc = %d, ABORTING", rc);
 		CAMLIB_ABORT(VFAIL);
 	    }
 	    continue;
-	}
-	else {
-	    LogMsg(0, VolDebugLevel, stdout, "*****No Volume corresponding to inodes with rwvid %#08x", 
+	} else {
+	    LogMsg(0, VolDebugLevel, stdout, 
+		   "*****No Volume corresponding to inodes with rwvid 0x%lx", 
 		rwvid);
 	    CleanInodes(&(inodeSummary[i]));
 	}
     }
     while (nVolumes) {
-	LogMsg(0, VolDebugLevel, stdout, "SalvageFileSys:  unclaimed volume header file or no Inodes in volume %x",
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "SalvageFileSys:  unclaimed volume header file or no Inodes in volume %x",
 	    vsp->header.id);
-	LogMsg(0, VolDebugLevel, stdout, "SalvageFileSys: Therefore only resetting inUse flag");
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "SalvageFileSys: Therefore only resetting inUse flag");
 	ClearROInUseBit(vsp);
 	nVolumes--;
 	vsp++;
@@ -468,53 +419,17 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 
     CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, camstatus)
     if (camstatus){
-	LogMsg(0, VolDebugLevel, stdout, "SFS: aborting salvage with status %d", camstatus);
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "SFS: aborting salvage with status %d", camstatus);
 	return (camstatus);
     }
 
     if (ForceSalvage && !singleVolumeNumber) {
-	if (chdir(path) == 0)
-	    unlink("FORCESALVAGE");
+	if (stat(forcepath, &force) == 0)
+	    unlink("forcepath");
     }
     LogMsg(9, VolDebugLevel, stdout, "Leaving SalvageFileSys with rc = 0");
     return (0);
-}
-
-/* Return the name of the indicated block device */
-PRIVATE char *devName(unsigned int dev)
-{
-#ifdef	__MACH__
-    struct direct *dp;
-    static char name[32];
-    int rc;
-    DIR *dirp = opendir("/dev");
-
-    LogMsg(9, VolDebugLevel, stdout, "Entering devName(%u)", dev);
-    assert(dirp != NULL);
-    rc = chdir("/dev");
-    assert(rc != -1);
-    for (dp=readdir(dirp); dp!=NULL; dp=readdir(dirp)) {
-	struct stat status;
-	if (stat(dp->d_name, &status) != -1 &&
-	    (status.st_mode & IFMT) == IFBLK &&
-	    (status.st_rdev == dev)) {
-		strcpy(name, dp->d_name);
-		closedir(dirp);
-		return name;
-	    }
-    }
-    closedir(dirp);
-    return NULL;
-#endif /* __MACH__ */
-
-#if	defined(__linux__) || defined(__FreeBSD__)
-    return NULL;
-#endif /* __linux*/
-
-#if	defined(__BSD44__) && ! defined(__FreeBSD__)
-    LogMsg(0, VolDebugLevel, stdout, "Arrghhh... devName() not implemented for BSD44 yet");
-    assert(0);
-#endif /* __BSD44__ */
 }
 
 PRIVATE	int SalvageVolumeGroup(register struct VolumeSummary *vsp, int nVols)
@@ -624,7 +539,6 @@ PRIVATE int QuickCheck(register struct VolumeSummary *vsp, register int nVols)
     return 1;	// ok to skip detailed salvage
 }
 
-#include "volinodes.h"	/* header magic number, etc. stuff */
 PRIVATE int SalvageVolHead(register struct VolumeSummary *vsp)
 {
     Error ec = 0;
@@ -703,7 +617,7 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	}
 
 	/* find an inode with matching vnodeNumber */
-	while (nInodes && ip->u.vnode.vnodeNumber < vnodeNumber){
+	while (nInodes && ip->VnodeNumber < vnodeNumber){
 	    ip++;
 	    nInodes--;
 	}
@@ -711,14 +625,14 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 	register struct ViceInodeInfo *lip = ip;
 	register int lnInodes = nInodes;
 	/* skip over old inodes with same vnodeNumber */
-	while (lnInodes && lip->u.vnode.vnodeNumber == vnodeNumber){
-	    if (vnode->inodeNumber == lip->inodeNumber){
+	while (lnInodes && lip->VnodeNumber == vnodeNumber){
+	    if (vnode->inodeNumber == lip->InodeNumber){
 		foundinode = 1;
 		break;
 	    }
 	    else {
 		LogMsg(0, VolDebugLevel, stdout, "VICheck: Found old inode %d for vnode number %d", 
-		    lip->inodeNumber, vnodeNumber);	
+		    lip->InodeNumber, vnodeNumber);	
 		lip++;
 		lnInodes--;
 	    }
@@ -729,9 +643,9 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		Unique_t vu,iu;
 		FileVersion vd,id;
 		vu = vnode->uniquifier;
-		iu = lip->u.vnode.vnodeUniquifier;
+		iu = lip->VnodeUniquifier;
 		vd = vnode->dataVersion;
-		id = lip->u.vnode.inodeDataVersion;
+		id = lip->InodeDataVersion;
 		if ((vu != iu) ||(vd != id)) {
 		    LogMsg(0, VolDebugLevel, stdout, 
 			   "SI: Vnode (0x%x.%x.%x) uniquifier(0x%x)/dataversion(%d) doesn't match with inode(0x%x/%d); marking BARREN",
@@ -742,7 +656,7 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		    continue;
 		}
 	    }
-	    if (lip->byteCount != vnode->length) {
+	    if (lip->ByteCount != vnode->length) {
 		LogMsg(0, VolDebugLevel, stdout, "Vnode (%x.%x.%x): length incorrect; can't happen!",
 		    vsp->header.id, vnodeNumber, vnode->uniquifier);
 		LogMsg(0, VolDebugLevel, stdout, "Marking as BARREN ");
@@ -752,7 +666,7 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
 		continue;
 	    }
 	    /* everything is fine - update inode linkcount */
-	    lip->linkCount--;
+	    lip->LinkCount--;
 	}
 	else {
 	    // didn't find an inode - 
@@ -838,14 +752,16 @@ PRIVATE void CleanInodes(struct InodeSummary *isp) {
     
     for(int i = 0; i < isp->nInodes; i++) {
 	ViceInodeInfo *ip = &inodes[i];
-	assert(ip->linkCount > 0);
-	LogMsg(0, VolDebugLevel, stdout, "#####Scavenging inode %u, size %u, p=(%u,%u,%u,%u)",
-	     ip->inodeNumber, ip->byteCount,
-	    ip->u.param[0], ip->u.param[1], ip->u.param[2], ip->u.param[3]);
-	while(ip->linkCount > 0) {
-	    assert(idec(fileSysDevice, ip->inodeNumber, 
-			ip->u.param[0]) == 0);
-	    ip->linkCount--;
+	assert(ip->LinkCount > 0);
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "#####Scavenging inode %u, size %u, p=(%lx,%lx,%lx,%lx)",
+	       ip->InodeNumber, ip->ByteCount,
+	       ip->VolumeId, ip->VnodeNumber, ip->VnodeUniquifier, 
+	       ip->InodeDataVersion);
+	while(ip->LinkCount > 0) {
+	    assert(idec(fileSysDevice, ip->InodeNumber, 
+			ip->VolumeId) == 0);
+	    ip->LinkCount--;
 	}
     }
     free(inodes);
@@ -1280,9 +1196,11 @@ PRIVATE void PrintInodeList() {
     nInodes = status.st_size / sizeof(struct ViceInodeInfo);
     assert(read(inodeFd, (char *)buf, status.st_size) == status.st_size);
     for(ip = buf; nInodes--; ip++) {
-	LogMsg(0, VolDebugLevel, stdout, "Inode:%u, linkCount=%d, size=%u, p=(%u,%u,%u,%u)",
-	    ip->inodeNumber, ip->linkCount, ip->byteCount,
-	    ip->u.param[0], ip->u.param[1], ip->u.param[2], ip->u.param[3]);
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "Inode:%u, linkCount=%d, size=%u, p=(%lx,%lx,%lx,%lx)",
+	       ip->InodeNumber, ip->LinkCount, ip->ByteCount,
+	       ip->VolumeId, ip->VnodeNumber, ip->VnodeUniquifier, 
+	       ip->InodeDataVersion);
     }
     free((char *)buf);
 }
@@ -1437,27 +1355,29 @@ PRIVATE void FixInodeLinkcount(struct ViceInodeInfo *inodes,
     int totalInodes = isp->nInodes;
     for (ip = inodes; totalInodes; ip++,totalInodes--) {
 	static TraceBadLinkCounts = 25;
-	if (ip->linkCount != 0 && TraceBadLinkCounts) {
+	if (ip->LinkCount != 0 && TraceBadLinkCounts) {
 	    TraceBadLinkCounts--; 
-	    LogMsg(0, VolDebugLevel, stdout, "#### DEBUG #### Link count incorrect by %d; inode %u, size %u, p=(%u,%u,%u,%u)",
-	    ip->linkCount, ip->inodeNumber, ip->byteCount,
-	    ip->u.param[0], ip->u.param[1], ip->u.param[2], ip->u.param[3]);
+	    LogMsg(0, VolDebugLevel, stdout, 
+		   "Link count incorrect by %d; inode %u, size %u, p=(%lx,%lx,%lx,%lx)",
+		   ip->LinkCount, ip->InodeNumber, ip->ByteCount,
+		   ip->VolumeId, ip->VnodeNumber, ip->VnodeUniquifier, 
+		   ip->InodeDataVersion);
 	}
 
 	/* Delete any links that are still unaccounted for */
-	while (ip->linkCount > 0) {
-	   assert(idec(fileSysDevice,ip->inodeNumber, ip->u.param[0]) == 0);
-	   ip->linkCount--;
+	while (ip->LinkCount > 0) {
+	   assert(idec(fileSysDevice,ip->InodeNumber, ip->VolumeId) == 0);
+	   ip->LinkCount--;
 	}
-	while (ip->linkCount < 0) {
-	   assert(iinc(fileSysDevice,ip->inodeNumber, ip->u.param[0]) == 0);
-	   ip->linkCount++;
+	while (ip->LinkCount < 0) {
+	   assert(iinc(fileSysDevice,ip->InodeNumber, ip->VolumeId) == 0);
+	   ip->LinkCount++;
 	}
     }
 }
-
 /* zero out global variables */
-PRIVATE void zero_globals() {
+PRIVATE void zero_globals() 
+{
     debug = 0;
     ListInodeOption = 0;
     ForceSalvage = 0;
@@ -1474,46 +1394,13 @@ PRIVATE void zero_globals() {
 	sizeof(struct VolumeSummary) * MAXVOLS_PER_PARTITION);
 }
 
-
-
 /* routines that get inode and volume summaries */
 
-/* Comparison routine for inode sort. Inodes are sorted */
-/* by volume and vnode number */
-PRIVATE int CompareInodes(register struct ViceInodeInfo *p1,
-				register struct ViceInodeInfo *p2)
-{
-    if (p1->u.vnode.vnodeNumber == INODESPECIAL ||
-	p2->u.vnode.vnodeNumber == INODESPECIAL) {
-	LogMsg(0, VolDebugLevel, stdout, "CompareInodes: found special inode! Aborting");
-	assert(0);
-    }
-
-    if (p1->u.vnode.volumeId<p2->u.vnode.volumeId)
-	return -1;
-    if (p1->u.vnode.volumeId>p2->u.vnode.volumeId)
-	return 1;
-    if (p1->u.vnode.vnodeNumber < p2->u.vnode.vnodeNumber)
-	return -1;
-    if (p1->u.vnode.vnodeNumber > p2->u.vnode.vnodeNumber)
-	return 1;
-    /* The following tests are reversed, so that the most desirable
-       of several similar inodes comes first */
-    if (p1->u.vnode.vnodeUniquifier > p2->u.vnode.vnodeUniquifier)
-	return -1;
-    if (p1->u.vnode.vnodeUniquifier < p2->u.vnode.vnodeUniquifier)
-	return 1;
-    if (p1->u.vnode.inodeDataVersion > p2->u.vnode.inodeDataVersion)
-	return -1;
-    if (p1->u.vnode.inodeDataVersion < p2->u.vnode.inodeDataVersion)
-	return 1;
-    return 0;
-}
 
 PRIVATE void CountVolumeInodes(register struct ViceInodeInfo *ip,
 		int maxInodes, register struct InodeSummary *summary)
 {
-    int volume = ip->u.vnode.volumeId;
+    int volume = ip->VolumeId;
     int rwvolume = volume;
     register n, nSpecial;
     register Unique_t maxunique;
@@ -1522,15 +1409,15 @@ PRIVATE void CountVolumeInodes(register struct ViceInodeInfo *ip,
 
     n = nSpecial = 0;
     maxunique = 0;
-    while (maxInodes-- && volume == ip->u.vnode.volumeId) {
+    while (maxInodes-- && volume == ip->VolumeId) {
 	n++;
-	if (ip->u.vnode.vnodeNumber == INODESPECIAL) {
+	if (ip->VnodeNumber == INODESPECIAL) {
 	    LogMsg(0, VolDebugLevel, stdout, "CountVolumeInodes: Bogus specialinode; can't happen");
 	    assert(0);
 	}
 	else {
-	    if (maxunique < ip->u.vnode.vnodeUniquifier)
-		maxunique = ip->u.vnode.vnodeUniquifier;
+	    if (maxunique < ip->VnodeUniquifier)
+		maxunique = ip->VnodeUniquifier;
 	}
 	ip++;
     }
@@ -1544,11 +1431,43 @@ int OnlyOneVolume(struct ViceInodeInfo *inodeinfo,
 			VolumeId singleVolumeNumber)
 {
 
-    if (inodeinfo->u.vnode.vnodeNumber == INODESPECIAL) {
+    if (inodeinfo->VnodeNumber == INODESPECIAL) {
 	LogMsg(0, VolDebugLevel, stdout, "OnlyOneVolume: tripped over INODESPECIAL- can't happen!");
 	assert(FALSE);
     }
-    return (inodeinfo->u.vnode.volumeId == singleVolumeNumber);
+    return (inodeinfo->VolumeId == singleVolumeNumber);
+}
+
+/* Comparison routine for inode sort. Inodes are sorted */
+/* by volume and vnode number */
+PRIVATE int CompareInodes(struct ViceInodeInfo *p1, struct ViceInodeInfo *p2)
+{
+    int i;
+    if ( (p1->VnodeNumber == INODESPECIAL) ||
+	 (p2->VnodeNumber == INODESPECIAL)) {
+	LogMsg(0, VolDebugLevel, stdout, "CompareInodes: found special inode! Aborting");
+	assert(0);
+	return -1;
+    }
+    if ( (p1->VolumeId) < (p2->VolumeId))
+	return -1;
+    if ( (p1->VolumeId) > (p2->VolumeId))
+	return 1;
+    if (p1->VnodeNumber < p2->VnodeNumber)
+	return -1;
+    if (p1->VnodeNumber > p2->VnodeNumber)
+	return 1;
+    /* The following tests are reversed, so that the most desirable
+       of several similar inodes comes first */
+    if (p1->VnodeUniquifier > p2->VnodeUniquifier)
+	return -1;
+    if (p1->VnodeUniquifier < p2->VnodeUniquifier)
+	return 1;
+    if (p1->InodeDataVersion > p2->InodeDataVersion)
+	return -1;
+    if (p1->InodeDataVersion < p2->InodeDataVersion)
+	return 1;
+    return 0;
 }
 
 /*  
@@ -1557,7 +1476,7 @@ int OnlyOneVolume(struct ViceInodeInfo *inodeinfo,
  *  respectively, with which they are associated.
  */
 
-PRIVATE int GetInodeSummary(char *path, VolumeId singleVolumeNumber)
+PRIVATE int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber)
 {
     struct stat status;
     int summaryFd;
@@ -1567,27 +1486,29 @@ PRIVATE int GetInodeSummary(char *path, VolumeId singleVolumeNumber)
     struct InodeSummary summary;
     FILE *summaryFile;
     char *dev = fileSysDeviceName;
+    struct DiskPartition *dp = VGetPartition(fspath);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering GetInodeSummary (%s, %x)", path, singleVolumeNumber);
-#ifdef __MACH__
+    if ( dp == NULL ) {
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "Cannot find partition %s\n",
+	       path);
+	return VFAIL;
+    }
+
+    LogMsg(9, VolDebugLevel, stdout, 
+	   "Entering GetInodeSummary (%s, %x)", path, singleVolumeNumber);
+
     if(singleVolumeNumber)
-	rc = ListViceInodes(dev, fileSysPath, path, OnlyOneVolume, singleVolumeNumber);
+	rc = dp->ops->ListCodaInodes(dp, path, OnlyOneVolume, 
+				     singleVolumeNumber);
     else
-	rc = ListViceInodes(dev, fileSysPath, path, NULL, singleVolumeNumber);
+	rc = dp->ops->ListCodaInodes(dp, path, NULL, 
+				     singleVolumeNumber);
 
     if (rc == 0) {
-	LogMsg(9, VolDebugLevel, stdout, "ListViceInodes returns success");
+	LogMsg(9, VolDebugLevel, stdout, 
+	       "ListViceInodes returns success");
     }
-#else
-    if(singleVolumeNumber)
-	rc = ListCodaInodes(dev, fileSysPath, path, OnlyOneVolume, singleVolumeNumber);
-    else
-	rc = ListCodaInodes(dev, fileSysPath, path, NULL, singleVolumeNumber);
-
-    if (rc == 0) {
-	LogMsg(9, VolDebugLevel, stdout, "ListCodaInodes returns success");
-    }
-#endif
 
 
     if(rc == -1) {
@@ -1695,18 +1616,21 @@ PRIVATE int GetVolumeSummary(VolumeId singleVolumeNumber) {
     int rc = 0;
     int i;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering GetVolumeSummary(%x)", singleVolumeNumber);
+    LogMsg(9, VolDebugLevel, stdout, 
+	   "Entering GetVolumeSummary(%x)", singleVolumeNumber);
 
     /* Make sure the disk partition is readable */
-    if (chdir(fileSysPath) == -1 || (dirp = opendir(".")) == NULL) {
-	LogMsg(0, VolDebugLevel, stdout, "Can't read directory %s; not salvaged", fileSysPath);
+    if ( access(fileSysPath, R_OK) != 0  ) {
+	LogMsg(0, VolDebugLevel, stdout, 
+	       "Can't read directory %s; not salvaged", fileSysPath);
 	return(VNOVNODE);
     }
 
     /* iterate through all the volumes on this partition, and try to */
     /* match with the desired volumeid */
-    LogMsg(39, VolDebugLevel, stdout, "GetVolSummary: filesyspath = %s nVolumes = %d", 
-	 fileSysPath, nVolumes);
+    LogMsg(39, VolDebugLevel, stdout, 
+	   "GetVolSummary: filesyspath = %s nVolumes = %d", 
+	   fileSysPath, nVolumes);
     for (i = 0; i <= MAXVOLS; i++) {
 	char thispartition[64];
 	struct VolumeSummary *vsp = &volumeSummary[nVolumes];
@@ -1727,8 +1651,10 @@ PRIVATE int GetVolumeSummary(VolumeId singleVolumeNumber) {
 	    if (vsp->header.id == CAMLIB_REC(VolumeList[j]).header.id) assert(0);
 	
 	/* reject volumes from other partitions */
-	LogMsg(39, VolDebugLevel, stdout, "Partition for vol-index %d, (id 0x%x) is (%s)",
-	    i, vsp->header.id, (CAMLIB_REC(VolumeList[i]).data.volumeInfo)->partition);
+	LogMsg(39, VolDebugLevel, stdout, 
+	       "Partition for vol-index %d, (id 0x%x) is (%s)",
+	       i, vsp->header.id, 
+	       (CAMLIB_REC(VolumeList[i]).data.volumeInfo)->partition);
 	GetVolPartition(&ec, vsp->header.id, i, thispartition);
 	LogMsg(39, VolDebugLevel, stdout, "GetVolSummary: For Volume id 0x%x GetVolPartition returns %s",
 	    vsp->header.id, thispartition);

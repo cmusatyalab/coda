@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.4 1997/04/30 19:54:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.5 1997/09/05 12:45:14 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,12 +95,13 @@ extern "C" {
 
 #include <lwp.h>
 #include <lock.h>
+#include <util.h>
+#include <partition.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <util.h>
 #include <rvmlib.h>
 
 #include <vice.h>
@@ -108,7 +109,6 @@ extern "C" {
 #include "volume.h"
 #include <recov_vollog.h>
 #include "vldb.h"
-#include "partition.h"
 #include "srvsignal.h"
 #include "vutil.h"
 #include "fssync.h"
@@ -299,6 +299,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	LogMsg(0, VolDebugLevel, stdout, "VInitVolPackage: no VLDB! Create a new one.");
     }
 
+#if 0
     /* Find all partitions named /vicep* */
     /* this is rather platform depentdent... Grr.. */
 #ifndef __linux__
@@ -376,6 +377,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     endmntent(mnt_handle);
 #endif
 
+#endif /*obsolete section */
     /* Setting Debug to 1 and List to 0; maybe remove later ***ehs***/
     /* invoke salvager for full salvage */
     *pt = salvager;	/* MUST set *pt to salvager before vol_salvage */
@@ -1924,3 +1926,40 @@ PRIVATE int MountedAtRoot(char *path) {
     else return(1);
 }
 
+/* migrated here from partition.cc which was retired */
+
+/* Quota enforcement: since the return value of close is not often
+   checked we set ec only when we are already over quota. If a store
+   operation exceeds the quota the next open will fail.
+   We could enforce quota more strictly with the clause: 
+      (V_maxquota(vp) && (V_diskused(vp) + blocks > V_maxquota(vp)))
+ */
+void VAdjustDiskUsage(Error *ec, Volume *vp, int blocks)
+{
+    *ec = 0;
+    if (blocks > 0) {
+	if (vp->partition->free - blocks < 0)
+	    *ec = VDISKFULL;
+	else if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))
+	    *ec = EDQUOT;
+    }    
+    vp->partition->free -= blocks;
+    V_diskused(vp) += blocks;
+}
+
+void VCheckDiskUsage(Error *ec, Volume *vp, int blocks)
+{
+    *ec = 0;
+    if (blocks > 0){
+	if (vp->partition->free - blocks < 0)
+	    *ec = VDISKFULL;
+	else if (V_maxquota(vp) && (V_diskused(vp) >= V_maxquota(vp)))	
+	    *ec = EDQUOT;
+    }
+}
+
+void VGetPartitionStatus(Volume *vp, int *totalBlocks, int *freeBlocks)
+{
+    *totalBlocks = vp->partition->totalUsable;
+    *freeBlocks = vp->partition->free;
+}

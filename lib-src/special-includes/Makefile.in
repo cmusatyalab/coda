@@ -17,7 +17,7 @@ include $(MAKDIR)/Makeconf
 # presto changeo
 INCLDIR := $(INCLSPECIAL)
 
-HEADERS = assert.h 
+HEADERS = assert.h voltypes.h inodeops.h
 
 include $(MAKDIR)/Makerules
 

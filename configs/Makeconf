@@ -149,6 +149,7 @@ LIBRVMRES =../rvmres/librvmres.a
 LIBDIRLIB= ../dir/libdir.a
 LIBVICEERROR  = ../vice/libviceerror.a
 LIBDS = ../ds/libds.a
+LIBPARTITION = ../partition/libpartition.a
 
 ##############################
 # RPC2 interface definitions in module vicedep
@@ -214,6 +215,7 @@ LIBRVMRES = $(SHOB_LIB_DIR)/librvmres.a
 LIBDIRLIB= $(SHOB_LIB_DIR)/libdir.a
 LIBSETPAG = $(SHOB_LIB_DIR)/libsetpag.a
 LIBVICEERROR  = $(SHOB_LIB_DIR)/libviceerror.a
+LIBPARTITION = $(SHOB_LIB_DIR)/libpartition.a
 
 # -- Dynamic sets for Potemkin --
 LIBDS = $(SHOB_LIB_DIR)/libds.a

@@ -1,0 +1,37 @@
+The new handy dandy partition and inode interface are here!
+
+Partition have methods, but for backward compatibility a call to
+icreate(dev, .....)  will find the partition belonging to the device
+and invoke the right method.
+
+Vicetab file
+============
+
+To be placed in /vice/db/ and distributed by update.
+
+Entries are of the form:
+
+# comment
+host partpath type opt1=val1,opt2=val2 
+host partpath type...
+
+Supported types: ftree and simple.
+
+Setting up ftree partitions
+===========================
+
+1. Determine how many files you want and:
+Choose a depth of your tree d
+Choose a width of your tree w.  w must a be a power of 2!!
+You will have w^d "inodes" available.
+
+2. Put 
+host path ftree depth=d,width=w
+in /vice/db/vicetab
+on the SCM!!!
+
+3. To install the skeleton:
+touch path/FTREEDB
+makeftree /vice/db/vicetab path
+
+4. Fire up your server.

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/util/util.cc,v 1.1 1996/11/22 19:08:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/util.cc,v 4.1 1997/01/08 21:51:15 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -68,6 +68,8 @@ extern "C" {
 #include <math.h>
 #include <strings.h>
 #include <sys/time.h>
+#include <sys/utsname.h>
+#include <netdb.h>
 #include <stdarg.h>
 
 #ifdef __cplusplus
@@ -139,7 +141,7 @@ void PrintTimeStamp(FILE *f)
        seen so far, and a separate oldyear and oldday for each. This
        seems overkill for now.
     */
-    {
+{
     struct tm *t;
     time_t clock;
     static int oldyear = -1, oldyday = -1; 
@@ -152,14 +154,10 @@ void PrintTimeStamp(FILE *f)
     fprintf(f, "%02d:%02d:%02d ", t->tm_hour, t->tm_min, t->tm_sec);    
     oldyear = t->tm_year; /* remember when we were last called */
     oldyday = t->tm_yday;
-    }
+}
 
-#ifdef	__linux__
 extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)
-#else
-     void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt ...)
-#endif
-    {
+{
     va_list ap;
 
     if (debuglevel < msglevel) return;
@@ -171,6 +169,77 @@ extern void LogMsg(int msglevel, int debuglevel, FILE *fout, char *fmt,  ...)
     fprintf(fout, "\n");
     fflush(fout);
     va_end(ap);
-    }
+}
+
+/* Send a message out on a file descriptor. */
+void fdprint(long afd, char *fmt, ...) 
+{
+    va_list ap;
+    char buf[240];
+
+    va_start(ap, fmt);
+    vsnprintf(buf, 240, fmt, ap);
+    va_end(ap);
+    write((int) afd, buf, (int) strlen(buf));
+}
+
+/* message to stderr */
+void eprint(char *fmt, ...) 
+{
+    va_list ap;
+    char msg[240];
+    char *cp = msg;
+
+    /* Construct message in buffer and add newline */
+    va_start(ap, fmt);
+    vsnprintf(cp, 239, fmt, ap); /* leave 1 char for the "\n" */
+    va_end(ap);
+    cp += strlen(cp);
+    strcat(cp, "\n");
+
+    /* Write to stderr */
+    PrintTimeStamp(stderr);  /* first put out a timestamp */
+    fprintf(stderr, msg); /* then the message */
+    fflush(stderr);
+}
 
 
+/* hostname returns name of this host */
+char *hostname(char *name)
+{
+    struct utsname id;
+    
+    if ( uname(&id) == 0 ) 
+	return strcpy(name, id.nodename);
+    else 
+	return NULL;
+}
+
+/* return 1 if hosts have same first address in h_addr_list */
+int UtilHostEq(char *name1, char *name2)
+{
+    char *addr;
+    int len;
+    struct hostent *host;
+    
+    host = gethostbyname(name1);
+    if ( ! host ) 
+        return 0;
+    else
+        len = host->h_length;
+
+    addr = (char *) malloc(len);
+    if (!addr )
+        return 0;
+    else 
+        memcpy(addr, host->h_addr_list[0], len);
+
+    host = gethostbyname(name2);
+    if ( ! host ) 
+        return 0;
+
+    if ( host->h_length != len ) 
+	return 0;
+    else
+	return  ~ strncmp(addr, host->h_addr_list[0], len);
+}

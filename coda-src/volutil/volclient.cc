@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/volclient.cc,v 4.1 1997/01/08 21:52:37 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/volclient.cc,v 4.2 1997/02/26 16:04:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -468,10 +468,12 @@ PRIVATE void create() {
     }
     partition = this_argp[2];
     volumeName = this_argp[3];
+#if 0 /* XXX this needs to go to the server end now */
     if (strncmp(partition, VICE_PARTITION_PREFIX, VICE_PREFIX_SIZE) != 0) {
 	printf("Invalid partition specified, %s\n", (int)partition);
 	exit(1);
     }
+#endif
     /*
       BEGIN_HTML
       <pre>
@@ -974,10 +976,13 @@ PRIVATE void create_rep() {
     }
     partition = this_argp[2];
     volumeName = this_argp[3];
+
+#if 0 /* needs to be checked on the server */
     if (strncmp(partition, VICE_PARTITION_PREFIX, VICE_PREFIX_SIZE) != 0) {
 	printf("Invalid partition specified, %s\n", (int)partition);
 	exit(1);
     }
+#endif
     if (sscanf(this_argp[4], "%X", &groupid) != 1){
 	printf("CreateRep: Bad Group Id %s\n", this_argp[4]);
 	exit(-1);

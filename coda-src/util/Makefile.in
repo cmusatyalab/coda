@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:51:01 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/Makefile.in,v 4.2 1997/04/29 21:27:25 rvb Exp $";
 
 
 # 
@@ -62,14 +62,14 @@ LIBRARIES = libutil.a
 HEADERS   = util.h olist.h ohash.h dlist.h dhash.h bstree.h dict.h process.h \
 	    histo.h dtcreg.h timing_paths.h rvmlib.h rec_olist.h \
 	    rec_smolist.h rec_ohash.h rec_dlist.h rec_dhash.h rec_bstree.h \
-	    vmindex.h bitmap.h arrlist.h recvarl.h rvmtesting.h
+	    vmindex.h bitmap.h arrlist.h recvarl.h rvmtesting.h bitvect.h
 
 # Multiversion definitions
 
 OBJECTS = util.o olist.o ohash.o dlist.o dhash.o bstree.o dict.o process.o \
 	  histo.o rvmlib.o rec_olist.o rec_smolist.o rec_ohash.o rec_dlist.o \
 	  rec_dhash.o rec_bstree.o bitmap.o vmindex.o arrlist.o recvarl.o \
-	  rvmtesting.o
+	  rvmtesting.o bitvect.o
 
 libutil.a: ${OBJECTS} 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/res/simops.h,v 1.1 1996/11/22 19:12:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/simops.h,v 4.1 1997/01/08 21:50:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -40,11 +40,7 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 
 #ifndef _SIM_OPS_H_
 #define _SIM_OPS_H_ 1
-typedef long   	VolumeId;
-typedef VolumeId VolId;
-typedef	long	VnodeId;
-typedef long	Unique;
-
+#include <voltypes.h>
 typedef struct
 {
 	VolumeId	Volume;
