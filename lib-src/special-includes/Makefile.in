@@ -33,5 +33,9 @@ include $(TOPDIR)/Makeconf
 
 HEADERS = ports.h voltypes.h inodeops.h # config.h
 
+ifeq ($(SYS),sol2)
+HEADERS += sunflock.h
+endif
+
 include $(TOPDIR)/configs/Makerules
 
