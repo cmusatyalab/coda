@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.2 1997/09/23 15:13:30 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.3 1997/10/01 18:55:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,7 +105,7 @@ typedef struct	{
 
 PRIVATE void SetupConns();
 PRIVATE void SetupPackets();
-#define	MaxLWPs	  8		    /* lwp's enabled to make simultaneous MultiRPC calls */
+#define MaxLWPs	  8    /* lwp's enabled to make simultaneous MultiRPC calls */
 PRIVATE MultiCon *mcon[MaxLWPs] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 PRIVATE MultiCon *get_multi_con();
 PRIVATE void cleanup();
@@ -149,7 +149,7 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
 
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, ("Entering RPC2_MultiRPC\n"));
+    say(0, RPC2_DebugLevel, "Entering RPC2_MultiRPC\n");
 	    
 #ifdef RPC2DEBUG
     TR_MULTI();
@@ -225,7 +225,7 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     }
 
     /* send packets and await replies */
-    say(9, RPC2_DebugLevel, ("Sending requests\n"));
+    say(9, RPC2_DebugLevel, "Sending requests\n");
     /* allocate timer entry */
     slarray[HowMany] = rpc2_AllocSle(OTHER, NULL);  
     slarray[HowMany + 1] = NULL;
@@ -242,11 +242,11 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     case RPC2_TIMEOUT:	
     case RPC2_FAIL:
 	say(9, RPC2_DebugLevel, 
-	    ("mrpc_SendPacketsReliably()--> %s\n", RPC2_ErrorMsg(rc)));
+	    "mrpc_SendPacketsReliably()--> %s\n", RPC2_ErrorMsg(rc));
 	break;
     default:
 	say(9, RPC2_DebugLevel, 
-	    ("Bad return code for mrpc_SendPacketsReliably: %ld\n", rc));
+	    "Bad return code for mrpc_SendPacketsReliably: %ld\n", rc);
 	rc = RPC2_FAIL;
     }
 
@@ -337,9 +337,9 @@ PRIVATE void SetupConns(HowMany, ConnHandleList, ceaddr, MCast, me, SDescList, r
 		    {
 		    if (TRUE/*EnqueueRequest*/)
 			{
-			say(0, RPC2_DebugLevel, ("Enqueuing on connection 0x%lx\n", ConnHandleList[host]));
+			say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n", ConnHandleList[host]);
 			LWP_WaitProcess((char *)thisconn);
-			say(0, RPC2_DebugLevel, ("Dequeueing on connection 0x%lx\n", ConnHandleList[host]));
+			say(0, RPC2_DebugLevel, "Dequeueing on connection 0x%lx\n", ConnHandleList[host]);
 			host = 0;	/* !!! restart loop !!! */
 			break;
 			}
@@ -416,7 +416,7 @@ PRIVATE void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
 
 	/* complete non-default header fields */
 	thisreq->Header.RemoteHandle = MCast->Mgroup;
-	thisreq->Header.LocalHandle = NULL;		    /* checked at server */
+	thisreq->Header.LocalHandle = 0;		    /* checked at server */
 	thisreq->Header.SeqNumber = me->NextSeqNumber;
 	thisreq->Header.Opcode = Request->Header.Opcode;    /* set by client */
 	thisreq->Header.SubsysId = me->SubsysId;
@@ -578,7 +578,7 @@ PRIVATE void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
     }
 
 	
-/* Get a free context from the pool or allocate an unused one */
+/* Get a free context from the pool or allocate an unused one */
 /* locking is not a problem since LWPs are nonpreemptive */
 PRIVATE MultiCon *get_multi_con(count)
 long count;
@@ -625,7 +625,7 @@ long count;
 }
 
 
-/* deallocate buffers and free allocated arrays */
+/* deallocate buffers and free allocated arrays */
 PRIVATE void cleanup(curhost, req, preq, slarray, context, me)
 long curhost;
 RPC2_PacketBuffer *req[], *preq[];
@@ -662,7 +662,7 @@ struct MEntry *me;
 }
 
 
-	/* MultiRPC version */
+	/* MultiRPC version */
 PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		ConnArray, SLArray, PacketArray, ArgInfo, SDescList, UnpackMulti, TimeOut, RCList)
     int HowMany;			/* how many servers to send to */
@@ -700,7 +700,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 	return(rc);\
 	}
 
-    say(0, RPC2_DebugLevel, ("mrpc_SendPacketsReliably()\n"));
+    say(0, RPC2_DebugLevel, "mrpc_SendPacketsReliably()\n");
 
 #ifdef RPC2DEBUG
     TR_MSENDRELIABLY();
@@ -733,7 +733,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
     /* initialize reply pointers and return codes */
     bzero(Reply, sizeof(char *) * HowMany);
 
-    say(9, RPC2_DebugLevel, ("Sending initial packets at time %d\n", rpc2_time()));
+    say(9, RPC2_DebugLevel, "Sending initial packets at time %d\n", rpc2_time());
     timestamp = rpc2_MakeTimeStamp();
 
     /* Do an initial send of packets on all good connections */
@@ -784,7 +784,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
     /* send multicast packet here. */
     if (MCast)
 	{
-	say(9, RPC2_DebugLevel, ("Sending multicast packet at time %d\n", rpc2_time()));
+	say(9, RPC2_DebugLevel, "Sending multicast packet at time %d\n", rpc2_time());
 	me->CurrentPacket->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 	rpc2_XmitPacket(rpc2_RequestSocket, me->CurrentPacket, &me->IPMHost, &me->IPMPortal);
 	me->NextSeqNumber += 2;	/* blindly increment the multicast sequence number??? */
@@ -817,7 +817,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 
 		case ARRIVED:
 		    /* know this hasn't yet been processd */
-		    say(9, RPC2_DebugLevel, ("Request reliably sent on 0x%lx\n", c_entry));
+		    say(9, RPC2_DebugLevel, "Request reliably sent on 0x%lx\n", c_entry);
 		    /* remove current connection from future examination */
 		    i = exchange(indexlist, i, finalind--);
 
@@ -873,7 +873,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		    break;	/* switch */
 		    
 		case NAKED:	/* explicitly NAK'ed this time or earlier */
-		    say(9, RPC2_DebugLevel, ("Request NAK'ed on 0x%lx\n", c_entry));
+		    say(9, RPC2_DebugLevel, "Request NAK'ed on 0x%lx\n", c_entry);
 		    rpc2_SetConnError(c_entry);	    /* does signal on ConnHandle also */
 		    i = exchange(indexlist, i, finalind--);
 		    finalrc = RPC2_FAIL;
@@ -900,7 +900,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 			((c_entry->Retry_Beta[slp->RetryIndex+1].tv_sec <= 0) &&
 			 (c_entry->Retry_Beta[slp->RetryIndex+1].tv_usec <= 0)))
 			{
-			say(9, RPC2_DebugLevel, ("Request failed on 0x%lx\n", c_entry));
+			say(9, RPC2_DebugLevel, "Request failed on 0x%lx\n", c_entry);
 			rpc2_SetConnError(c_entry); /* does signal on ConnHandle also */
 			/* remote site is now declared dead; mark all inactive connections to there likewise */
 			i = exchange(indexlist, i, finalind--);
@@ -921,7 +921,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		    slp->RetryIndex += 1;
 		    tout = &c_entry->Retry_Beta[slp->RetryIndex];
 		    rpc2_ActivateSle(slp, tout);
-		    say(9, RPC2_DebugLevel, ("Sending retry %ld at %d on 0x%lx (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, tout->tv_sec, tout->tv_usec));
+		    say(9, RPC2_DebugLevel, "Sending retry %ld at %d on 0x%lx (timeout %ld.%06ld)\n", slp->RetryIndex, rpc2_time(), c_entry->UniqueCID, tout->tv_sec, tout->tv_usec);
 		    PacketArray[thispacket]->Header.Flags = htonl((ntohl(PacketArray[thispacket]->Header.Flags) | RPC2_RETRY));
 		    PacketArray[thispacket]->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */
@@ -941,7 +941,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
     }
 
 
-PRIVATE PacketCon *get_packet_con(count)
+PRIVATE PacketCon *get_packet_con(count)
 long count;
 {
     long buffsize;

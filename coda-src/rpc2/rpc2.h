@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.2 1997/09/23 15:13:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.3 1998/03/06 20:20:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -541,8 +541,8 @@ typedef
 			    /* REAL size, not packed size */
 	struct arg	*field;/* nested for structures only */
 	int		bound; /* used for byte arrays only */
-	void            (*startlog) C_ARGS((int)); /* used for stub logging */
-	void            (*endlog) C_ARGS((int, RPC2_Integer, RPC2_Handle *, RPC2_Integer *)); /* used for stub logging */
+	void            (*startlog) (int); /* used for stub logging */
+	void            (*endlog) (int, RPC2_Integer, RPC2_Handle *, RPC2_Integer *); /* used for stub logging */
 	}
     ARG;
 
@@ -624,71 +624,73 @@ RPC2 runtime routines:
 #include <stdio.h>
 #endif /* (__cplusplus | __STDC__) */
 
-extern long RPC2_Init C_ARGS((char *VersionId, RPC2_Options *Options, RPC2_PortalIdent **PortalList, long HowManyPortals, long RetryCount, struct timeval *KeepAliveInterval));
-extern long RPC2_Export C_ARGS((RPC2_SubsysIdent *Subsys));
-extern long RPC2_DeExport C_ARGS((RPC2_SubsysIdent *Subsys));
+
+extern long RPC2_Init (char *VersionId, RPC2_Options *Options, RPC2_PortalIdent *PortalList, long RetryCount, struct timeval *KeepAliveInterval);
+void RPC2_SetLog(FILE *, int);
+extern long RPC2_Export (RPC2_SubsysIdent *Subsys);
+extern long RPC2_DeExport (RPC2_SubsysIdent *Subsys);
 #ifndef NONDEBUG
 #define RPC2_AllocBuffer(x, y)  (rpc2_AllocBuffer((long) (x), y, __FILE__, (long) __LINE__))
 #else
 #define  RPC2_AllocBuffer(x, y)  (rpc2_AllocBuffer((long) (x), y, 0, (long) 0))
 #endif NONDEBUG
-extern long rpc2_AllocBuffer C_ARGS((long MinBodySize, RPC2_PacketBuffer **BufferPtr, char *SrcFile, long SrcLine));
-extern long RPC2_FreeBuffer C_ARGS((RPC2_PacketBuffer **Buffer));
-extern long RPC2_SendResponse C_ARGS((RPC2_Handle ConnHandle, RPC2_PacketBuffer *Reply));
-extern long RPC2_GetRequest C_ARGS((RPC2_RequestFilter *Filter, RPC2_Handle *ConnHandle,
+extern long rpc2_AllocBuffer (long MinBodySize, RPC2_PacketBuffer **BufferPtr, char *SrcFile, long SrcLine);
+extern long RPC2_FreeBuffer (RPC2_PacketBuffer **Buffer);
+extern long RPC2_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Reply);
+extern long RPC2_GetRequest (RPC2_RequestFilter *Filter, RPC2_Handle *ConnHandle,
 	RPC2_PacketBuffer **Request, struct timeval *Patience, long (*GetKeys)(),
-	long EncryptionTypeMask, long (*AuthFail)()));
-extern long RPC2_MakeRPC C_ARGS((RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
-	 SE_Descriptor *SDesc, RPC2_PacketBuffer **Reply, struct timeval *Patience, long EnqueueRequest));
-extern long RPC2_MultiRPC C_ARGS((int HowMany, RPC2_Handle ConnHandleList[], RPC2_Integer RCList[],
+	long EncryptionTypeMask, long (*AuthFail)());
+extern long RPC2_MakeRPC (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
+	 SE_Descriptor *SDesc, RPC2_PacketBuffer **Reply, struct timeval *Patience, long EnqueueRequest);
+extern long RPC2_MultiRPC (int HowMany, RPC2_Handle ConnHandleList[], RPC2_Integer RCList[],
 	RPC2_Multicast *MCast, RPC2_PacketBuffer *Request, SE_Descriptor SDescList[],
-	long (*UnpackMulti)(), ARG_INFO *ArgInfo, struct timeval *BreathOfLife));
-extern long RPC2_NewBinding C_ARGS((RPC2_HostIdent *Host, RPC2_PortalIdent *Portal,
-	 RPC2_SubsysIdent *Subsys, RPC2_BindParms *BParms, RPC2_Handle *ConnHandle));
-extern long RPC2_InitSideEffect C_ARGS((RPC2_Handle ConnHandle, SE_Descriptor *SDesc));
-extern long RPC2_CheckSideEffect C_ARGS((RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags));
-extern long RPC2_Unbind C_ARGS((RPC2_Handle ConnHandle));
-extern long RPC2_GetPrivatePointer C_ARGS((RPC2_Handle WhichConn, char **PrivatePtr));
-extern long RPC2_SetPrivatePointer C_ARGS((RPC2_Handle WhichConn, char *PrivatePtr));
+	long (*UnpackMulti)(), ARG_INFO *ArgInfo, struct timeval *BreathOfLife);
+extern long RPC2_NewBinding (RPC2_HostIdent *Host, RPC2_PortalIdent *Portal,
+	 RPC2_SubsysIdent *Subsys, RPC2_BindParms *BParms, RPC2_Handle *ConnHandle);
+extern long RPC2_InitSideEffect (RPC2_Handle ConnHandle, SE_Descriptor *SDesc);
+extern long RPC2_CheckSideEffect (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags);
+extern long RPC2_Unbind (RPC2_Handle ConnHandle);
+extern long RPC2_GetPrivatePointer (RPC2_Handle WhichConn, char **PrivatePtr);
+extern long RPC2_SetPrivatePointer (RPC2_Handle WhichConn, char *PrivatePtr);
 struct SFTP_Entry;
-extern long RPC2_GetSEPointer C_ARGS((RPC2_Handle WhichConn, struct SFTP_Entry **SEPtr));
-extern long RPC2_SetSEPointer C_ARGS((RPC2_Handle WhichConn, struct SFTP_Entry *SEPtr));
-extern long RPC2_GetPeerInfo C_ARGS((RPC2_Handle WhichConn, RPC2_PeerInfo *PeerInfo));
-extern char *RPC2_ErrorMsg C_ARGS((long rc));
-extern long RPC2_DumpTrace C_ARGS((FILE *OutFile, long HowMany));
-extern long RPC2_DumpState C_ARGS((FILE *OutFile, long Verbosity));
-extern long RPC2_InitTraceBuffer C_ARGS((long HowMany));
-extern long RPC2_LamportTime C_ARGS(());
-extern long RPC2_Enable C_ARGS((RPC2_Handle ConnHandle));
-extern long RPC2_CreateMgrp C_ARGS((RPC2_Handle *MgroupHandle, RPC2_McastIdent *MulticastHost, RPC2_PortalIdent *MulticastPortal, RPC2_SubsysIdent *Subsys, RPC2_Integer SecurityLevel, RPC2_EncryptionKey SessionKey, RPC2_Integer EncryptionType, long SideEffectType));
-extern long RPC2_AddToMgrp C_ARGS((RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle));
-extern long RPC2_RemoveFromMgrp C_ARGS((RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle));
-extern long RPC2_DeleteMgrp C_ARGS((RPC2_Handle MgroupHandle));
+extern long RPC2_GetSEPointer (RPC2_Handle WhichConn, struct SFTP_Entry **SEPtr);
+extern long RPC2_SetSEPointer (RPC2_Handle WhichConn, struct SFTP_Entry *SEPtr);
+extern long RPC2_GetPeerInfo (RPC2_Handle WhichConn, RPC2_PeerInfo *PeerInfo);
+extern char *RPC2_ErrorMsg (long rc);
+extern long RPC2_DumpTrace (FILE *OutFile, long HowMany);
+extern long RPC2_DumpState (FILE *OutFile, long Verbosity);
+extern long RPC2_InitTraceBuffer (long HowMany);
+extern long RPC2_LamportTime ();
+extern long RPC2_Enable (RPC2_Handle ConnHandle);
+extern long RPC2_CreateMgrp (RPC2_Handle *MgroupHandle, RPC2_McastIdent *MulticastHost, RPC2_PortalIdent *MulticastPortal, RPC2_SubsysIdent *Subsys, RPC2_Integer SecurityLevel, RPC2_EncryptionKey SessionKey, RPC2_Integer EncryptionType, long SideEffectType);
+extern long RPC2_AddToMgrp (RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle);
+extern long RPC2_RemoveFromMgrp (RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle);
+extern long RPC2_DeleteMgrp (RPC2_Handle MgroupHandle);
 
-extern long MRPC_MakeMulti C_ARGS((int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
+extern long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	RPC2_Handle CIDList[], RPC2_Integer RCList[], RPC2_Multicast *MCast,
-	long (*HandleResult)(), struct timeval *Timeout,  ...));
+	long (*HandleResult)(), struct timeval *Timeout,  ...);
 
-extern long RPC2_SetColor C_ARGS((RPC2_Handle ConnHandle, RPC2_Integer Color));
-extern long RPC2_GetColor C_ARGS((RPC2_Handle ConnHandle, RPC2_Integer *Color));
-extern long RPC2_GetPeerLiveness C_ARGS((RPC2_Handle ConnHandle, struct timeval *Time, struct timeval *SETime));
-extern long RPC2_GetNetInfo C_ARGS((RPC2_Handle ConnHandle, RPC2_NetLog *RPCLog, RPC2_NetLog *SELog));
-extern long RPC2_PutNetInfo C_ARGS((RPC2_Handle ConnHandle, RPC2_NetLog *RPCLog, RPC2_NetLog *SELog));
-extern long RPC2_ClearNetInfo C_ARGS((RPC2_Handle ConnHandle));
-extern long getsubsysbyname C_ARGS((char *subsysName));
-extern int RPC2_R2SError C_ARGS((int error));
-extern int RPC2_S2RError C_ARGS((int error));
+extern long RPC2_SetColor (RPC2_Handle ConnHandle, RPC2_Integer Color);
+extern long RPC2_GetColor (RPC2_Handle ConnHandle, RPC2_Integer *Color);
+extern long RPC2_GetPeerLiveness (RPC2_Handle ConnHandle, struct timeval *Time, struct timeval *SETime);
+extern long RPC2_GetNetInfo (RPC2_Handle ConnHandle, RPC2_NetLog *RPCLog, RPC2_NetLog *SELog);
+extern long RPC2_PutNetInfo (RPC2_Handle ConnHandle, RPC2_NetLog *RPCLog, RPC2_NetLog *SELog);
+extern long RPC2_ClearNetInfo (RPC2_Handle ConnHandle);
+extern long getsubsysbyname (char *subsysName);
+extern int RPC2_R2SError (int error);
+extern int RPC2_S2RError (int error);
 
 
 /* These shouldn't really be here: they are internal RPC2 routines
    But some applications (e.g. Coda auth server) use them */
 
-extern void rpc2_Encrypt C_ARGS((char *FromBuffer, char *ToBuffer,
-		long HowManyBytes, char *WhichKey, long EncryptionType));
+extern void rpc2_Encrypt (char *FromBuffer, char *ToBuffer,
+		long HowManyBytes, char *WhichKey, long EncryptionType);
 
-void rpc2_Decrypt C_ARGS((char *FromBuffer, char *ToBuffer, long  HowManyBytes,
-    RPC2_EncryptionKey WhichKey, int EncryptionType));
-extern long rpc2_NextRandom C_ARGS((char *StatePtr));
+void rpc2_Decrypt (char *FromBuffer, char *ToBuffer, long  HowManyBytes,
+    RPC2_EncryptionKey WhichKey, int EncryptionType);
+extern long rpc2_NextRandom (char *StatePtr);
 
 /* hack until we can do something more sophisticated. */
 extern long rpc2_Bandwidth;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/rpc2.private.h,v 1.1 1996/11/22 19:07:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.1 1997/01/08 21:50:26 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,14 +92,14 @@ OBJ_HENTRY = 48127
 
 /* Server States */
 #define	S_AWAITREQUEST 0x1
-#define S_REQINQUEUE 0x2
-#define S_PROCESS 0x4
+#define        S_REQINQUEUE 0x2
+#define        S_PROCESS 0x4
 #define	S_INSE 0x8
-#define S_HARDERROR 0x10
-#define S_STARTBIND 0x20
+#define        S_HARDERROR 0x10
+#define        S_STARTBIND 0x20
 #define	S_AWAITINIT3 0x40
-#define S_FINISHBIND 0x80
-#define S_AWAITENABLE 0x0100
+#define        S_FINISHBIND 0x80
+#define        S_AWAITENABLE 0x0100
 
 
 #define SetRole(e, role) (e->State = role)
@@ -265,7 +265,8 @@ enum SL_Type {REPLY=1421, REQ=1422, OTHER=1423};
 enum RetVal {WAITING=38358230, ARRIVED=38358231, TIMEOUT=38358232,
 	KEPTALIVE=38358233, KILLED=38358234, NAKED=38358235};
 
-struct SL_Entry		/* data structure for communication with SocketListener */
+/* data structure for communication with SocketListener */
+struct SL_Entry		
     {
     /* LinkEntry fields */
     struct SL_Entry *NextEntry;
@@ -491,7 +492,7 @@ extern long rpc2_GetLocalHost();
 extern bool rpc2_FilterMatch();
 
 /* Autonomous LWPs */
-extern rpc2_SocketListener(), rpc2_ClockTick();
+extern void rpc2_SocketListener(), rpc2_ClockTick();
 
 /* Packet timestamp creation */
 extern unsigned long rpc2_MakeTimeStamp();
@@ -504,6 +505,18 @@ extern FILE *ErrorLogFile;
 
 extern void rpc2_InitRandom();
 extern long rpc2_TrueRandom();
+
+/* encryption */
+void rpc2_ApplyD(register RPC2_PacketBuffer *pb, register struct CEntry *ce);
+void rpc2_ApplyE(register RPC2_PacketBuffer *pb, register struct CEntry *ce);
+
+int rpc2_time();
+long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
+
+void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal, 
+		 RPC2_Integer whichUnique, RPC2_Handle whichConn);
+
+
 
 
 /*-----------  Macros ---------- */
@@ -558,11 +571,13 @@ extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
 
 
 /* Conditional debugging output macros */
+extern FILE *rpc2_logfile;
+extern FILE *rpc2_tracefile;
 #ifdef RPC2DEBUG
-#define say(when, what, how)\
-	if (when < what){printf("%s: \"%s\", line %d:    ",\
+#define say(when, what, how...)\
+	if (when < what){fprintf(rpc2_logfile, "%s: \"%s\", line %d:    ",\
 		LWP_Name(), __FILE__, __LINE__);\
-			printf how;(void) fflush(stdout);}\
+			fprintf(rpc2_logfile, ## how);(void) fflush(rpc2_logfile);}\
 	else
 #else 
 #define say(when, what, how)	/* null macro; BEWARE: avoid side effects in say() */

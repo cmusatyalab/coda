@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.1 1997/01/08 21:50:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.2 1998/01/10 18:38:05 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -72,10 +72,19 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "sftp.h"
 #include "test.h"
 
+#define SUBSYS_SRV 1001
 
 #ifdef FAKESOCKETS
 extern int fake;
 #endif FAKESOCKETS
+
+
+void DoBinding(RPC2_Handle *cid);
+void PrintHelp(void);
+void PrintStats(void);
+void ClearStats(void);
+void GetPortal(    RPC2_PortalIdent *p);
+void GetWho(register RPC2_CountedBS *w, long s, RPC2_EncryptionKey e);
 
 extern struct SStats rpc2_Sent;
 extern struct RStats rpc2_Recvd;
@@ -98,58 +107,56 @@ long rpc2rc;
 
 
 
-main()
-    {
-    RPC2_Handle cid;
-    long i, j, tt;
-    long opcode;
+int main(int arg, char **argv)
+{
+	RPC2_Handle cid;
+	long i, j, tt;
+	long opcode;
+	
+	char *nextc;
+	RPC2_PacketBuffer *Buff1;
+	RPC2_PacketBuffer *Buff2;
+	SFTP_Initializer sftpi;
 
-    char *nextc;
-    RPC2_PacketBuffer *Buff1;
-    RPC2_PacketBuffer *Buff2;
-    SFTP_Initializer sftpi;
+	long rpctime;
+	struct timeval t1, t2;
+	
+	SE_Descriptor sed;
 
-    long rpctime;
-    struct timeval t1, t2;
-
-    SE_Descriptor sed;
-
-    ErrorLogFile = stderr;
-    assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mypid) == LWP_SUCCESS);
+	ErrorLogFile = stderr;
+	assert(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mypid) == LWP_SUCCESS);
 
 
-    for (i='a'; i < 'z' + 1; i++)
-	{
-	j = 6*(i-'a');
-	ShortText[j] = ShortText[j+1] = ShortText[j+2] = ShortText[j+3] = ShortText[j+4]
-		= ShortText[j+5] = i;
+	for (i='a'; i < 'z' + 1; i++) {
+		j = 6*(i-'a');
+		ShortText[j] = ShortText[j+1] = ShortText[j+2] = 
+			ShortText[j+3] = ShortText[j+4]
+			= ShortText[j+5] = i;
 	}
-    LongText[0] = 0;
-    for (i = 0; i < 10; i++)
-	(void) strcat(LongText, ShortText);
+	LongText[0] = 0;
+	for (i = 0; i < 10; i++)
+		(void) strcat(LongText, ShortText);
 
 
-
-    printf("Debug level? ");
-    (void) scanf("%ld", &RPC2_DebugLevel);
+	printf("Debug level? ");
+	(void) scanf("%ld", &RPC2_DebugLevel);
 
 #ifndef FAKESOCKETS
-    SFTP_SetDefaults(&sftpi);
-    sftpi.WindowSize = 32;
-    sftpi.SendAhead = 8;
-    sftpi.AckPoint = 8;
-    sftpi.PacketSize = 2800;
-    SFTP_Activate(&sftpi);
-    SFTP_EnforceQuota = 1;
+	SFTP_SetDefaults(&sftpi);
+	sftpi.WindowSize = 32;
+	sftpi.SendAhead = 8;
+	sftpi.AckPoint = 8;
+	sftpi.PacketSize = 2800;
+	SFTP_Activate(&sftpi);
+	SFTP_EnforceQuota = 1;
 #endif FAKESOCKETS
 
 #ifdef PROFILE
-    InitProfiling();
+	InitProfiling();
 #endif PROFILE
 
-    if(WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, 
-			      (RPC2_PortalIdent **)NULL, (long) 1,  
-			      (long) -1, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
+	if(WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, 
+				  (RPC2_PortalIdent *)NULL, 0, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
 	exit(-1);
 
 #ifdef OLDLWP
@@ -172,8 +179,12 @@ main()
 	Buff1->Header.Opcode = opcode;
 	switch((int) opcode)
 	    {
-	    case HELP: PrintHelp();
-	     	       break;
+	    case HELP: 
+		    FT_GetTimeOfDay(&t1, NULL);
+		    
+		    PrintHelp();
+		    FT_GetTimeOfDay(&t2, NULL);
+		    break;
 
 	    case REMOTESTATS:
 	    case BEGINREMOTEPROFILING:
@@ -409,10 +420,10 @@ main()
 #ifdef RPC2DEBUG
 	    if (RPC2_DebugLevel > 0) {
 		rpc2_htonp(Buff2);  /* rpc2_PrintPacketHeader assumes net order */
-		rpc2_PrintPacketHeader(Buff2, stdout);
+		rpc2_PrintPacketHeader(Buff2, rpc2_tracefile);
 		rpc2_ntohp(Buff2);
 	    }
-	    (void) fflush(stdout);
+	    (void) fflush(rpc2_tracefile);
 #endif RPC2DEBUG
 	    printf("Response Body: ``");
 	    nextc = (char *)Buff2->Body;
@@ -432,20 +443,23 @@ Finish:
 #ifdef PROFILE
     DoneProfiling();
 #endif PROFILE
+    return 0;
+
     }
 
 
 
-iopen()
-    {
+int iopen()
+{
 	printf("In iopen");
     assert(1 == 0);
-    }
+    return 1;
+}
 
 
 
-PrintStats()
-    {
+void PrintStats()
+{
     printf("RPC2:\n");
     printf("Packets Sent = %lu\tPacket Retries = %lu (of %lu)\tPackets Received = %lu\n",
 	   rpc2_Sent.Total, rpc2_Sent.Retries, 
@@ -475,7 +489,7 @@ PrintStats()
     }
 
 
-ClearStats()
+void ClearStats()
     {
     bzero((char *)&rpc2_Sent, sizeof(struct SStats));
     bzero((char *)&rpc2_Recvd, sizeof(struct RStats));
@@ -485,9 +499,8 @@ ClearStats()
 
 
 
-GetHost(h)
-    RPC2_HostIdent *h;
-    {
+void GetHost(RPC2_HostIdent *h)
+{
     char buff[100];
     char *nextc;
 
@@ -506,8 +519,7 @@ GetHost(h)
     h->Value.InetAddress = htonl(h->Value.InetAddress);
     }
 
-GetPortal(p)
-    RPC2_PortalIdent *p;
+void GetPortal(    RPC2_PortalIdent *p)
     {
     long i;
 
@@ -517,19 +529,8 @@ GetPortal(p)
     p->Value.InetPortNumber = htons(p->Value.InetPortNumber);
     }
 
-GetSubsys(s)
-    RPC2_SubsysIdent *s;
-    {
-    s->Tag = RPC2_SUBSYSBYNAME;
-    (void) strcpy(s->Value.Name, "Vice2-FileServer");
-    }
-
-
-GetWho(w, s, e)
-    register RPC2_CountedBS *w;
-    long s;
-    RPC2_EncryptionKey e;
-    {
+void GetWho(register RPC2_CountedBS *w, long s, RPC2_EncryptionKey e)
+{
     if (s != RPC2_OPENKIMONO)
 	{
 	printf("Identity? ");
@@ -548,19 +549,18 @@ GetWho(w, s, e)
     }
 
 
-PrintHelp()
-    {
+void PrintHelp(void)
+{
     int i, n;
     n = sizeof(Opnames)/sizeof(char *);
     
     for (i = 0; i < n; i++) printf("%s = %d   ", Opnames[i], i);
     printf("\n");
-    }
+}
 
 
-DoBinding(cid)
-    RPC2_Handle *cid; /* OUT parameter */
-    {
+void DoBinding(RPC2_Handle *cid)
+{
     RPC2_HostIdent hid;
     RPC2_PortalIdent sid;
     RPC2_SubsysIdent ssid;
@@ -572,9 +572,10 @@ DoBinding(cid)
     hid.Tag = RPC2_HOSTBYNAME;
     printf("Host? "); (void) scanf("%s", hid.Value.Name);
     GetPortal(&sid);
-    GetSubsys(&ssid);
+    ssid.Tag = RPC2_SUBSYSBYID;
+    ssid.Value.SubsysId = SUBSYS_SRV;
 
-    printf("Side Effect Type (%d or %d)? ", NULL, SMARTFTP);
+    printf("Side Effect Type (%d or %d)? ", 0, SMARTFTP);
     (void) scanf("%ld", &bparms.SideEffectType);
 
     printf("Security [98(OK), 12(AO), 73(HO), 66(S)]? ");

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.3 1998/01/29 00:52:12 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.4 1998/03/06 20:20:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -57,6 +57,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -80,74 +81,54 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #define NETWORKS 8
-PRIVATE long get_netaddr(), SetGreedy();
-PRIVATE int is43();
+PRIVATE long get_netaddr();
 extern int errno;
 
-
-long getsubsysbyname(IN subsysName)
-    char *subsysName;
-    /* Returns the integer subsysid of the specified subsystem.
-    	Returns -1 if bogus subsystem is specified.
 
-	This is just a placeholder for now.  Do it right later */
-    {
-    if (strcmp(subsysName, "Vice2-FileServer") == 0)
-    	return(1001);
-    if (strcmp(subsysName, "DumbFTP-Server") == 0)
-    	return(12984);
-    if (strcmp(subsysName, "Vice2-CallBack") == 0)
-    	return(127823);
-    if (strcmp(subsysName, "Vice2-UpdateServer") == 0)
-    	return(132137);
-    if (strcmp(subsysName, "Vice2-ControlPoint") == 0)
-    	return(199331);
-    if (strcmp(subsysName, "DummySubsys1") == 0)
-    	return(3474);
-    if (strcmp(subsysName, "DummySubsys2") == 0)
-    	return(831);
-    if (strcmp(subsysName, "DummySubsys3") == 0)
-    	return(124);
-    return(-1);
-    }
-
-
-long RPC2_Init(IN VId, IN Options, IN PList, IN PCount, IN RetryCount, IN KAInterval)
-    char *VId;			/* magic version string */
-    RPC2_Options *Options; 
-    RPC2_PortalIdent *PList[];	/* array of portal ids */
-    long PCount;		/* Length of PList*/
-    long RetryCount;		/* max number of retries before declaring conn broken*/
-    struct timeval *KAInterval;	/* for keeping long RPC requests alive  */
-    {
+long RPC2_Init(
+	       char *VId,		/* magic version string */
+	       RPC2_Options *Options,
+	       RPC2_PortalIdent *Port,	/* array of portal ids */
+	       long RetryCount,	   /* max number of retries before breaking conn*/
+	       struct timeval *KAInterval	/* for keeping long RPC requests alive  */
+	       )
+{
     char *c;
     long rc, i, ctpid;
 
+    rpc2_logfile = stderr;
+    rpc2_tracefile = stderr;
+
+
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, ("RPC2_Init()\n"));
-    say(999, RPC2_DebugLevel, ("Runtime system version: \"%s\"\n", RPC2_VERSION));
+    say(0, RPC2_DebugLevel, "RPC2_Init()\n");
+    say(999, RPC2_DebugLevel, "Runtime system version: \"%s\"\n", RPC2_VERSION);
 
-    if (strcmp(VId, RPC2_VERSION) != 0) rpc2_Quit (RPC2_WRONGVERSION);
+    if (strcmp(VId, RPC2_VERSION) != 0) 
+	    rpc2_Quit (RPC2_WRONGVERSION);
 
 
-    rpc2_43bsd = is43();  /* where are we running? */
 
     (void) FT_GetTimeOfDay(&rpc2_InitTime, (struct timezone *)0);
 
     rpc2_InitConn();
     rpc2_InitMgrp();
     rpc2_InitHost();
+
+    if (Port) 
+	    rpc2_LocalPortal = *Port; 
+    else 
+	    rpc2_LocalPortal.Tag = (PortalTag)0;  
     
-    assert(PCount <= 1);  /* for now */
-    if (PCount == 0) PList = 0;
-    if (PList) rpc2_LocalPortal = *(PList[0]); /* structure assignment */
-    else rpc2_LocalPortal.Tag = (PortalTag)0;  /* so rpc2_CreateIPSocket will ignore it */
     rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalHost,
 	    	&rpc2_LocalPortal);
-    if (rc < RPC2_ELIMIT) rpc2_Quit(rc);
+
+    if (rc < RPC2_ELIMIT) 
+	    rpc2_Quit(rc);
 
     /* Initialize retry parameters */
-    if (rpc2_InitRetry(RetryCount, KAInterval) != 0)     rpc2_Quit(RPC2_FAIL);
+    if (rpc2_InitRetry(RetryCount, KAInterval) != 0)     
+	    rpc2_Quit(RPC2_FAIL);
 
     /* Initialize random number generation for sequence numbers */
     rpc2_InitRandom();
@@ -161,8 +142,9 @@ long RPC2_Init(IN VId, IN Options, IN PList, IN PCount, IN RetryCount, IN KAInte
 		rpc2_Quit(RPC2_SEFAIL2);
 
     c = "SocketListener";
-    LWP_CreateProcess((PFIC)rpc2_SocketListener, 12288, LWP_NORMAL_PRIORITY, NULL,
-		c, &rpc2_SocketListenerPID);
+    LWP_CreateProcess((PFIC)rpc2_SocketListener, 0x1000, 
+		      LWP_NORMAL_PRIORITY, NULL,
+		      c, &rpc2_SocketListenerPID);
 
 #ifdef RPC2DEBUG
     c = "ClockTick";
@@ -170,10 +152,10 @@ long RPC2_Init(IN VId, IN Options, IN PList, IN PCount, IN RetryCount, IN KAInte
 #endif RPC2DEBUG 
 
     rpc2_Quit(rc);
-    }
+}
 
 
-
+
 long RPC2_Export(IN Subsys)
     RPC2_SubsysIdent *Subsys;
     {
@@ -181,7 +163,7 @@ long RPC2_Export(IN Subsys)
     register struct SubsysEntry *sp;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, ("RPC2_Export()\n"));
+    say(0, RPC2_DebugLevel, "RPC2_Export()\n");
 
     switch(Subsys->Tag)
 	{
@@ -190,8 +172,8 @@ long RPC2_Export(IN Subsys)
 	    break;
 	
 	case RPC2_SUBSYSBYNAME:
-	    if((myid = getsubsysbyname(Subsys->Value.Name)) < 0)
-		rpc2_Quit(RPC2_BADSERVER);
+		say(0, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
+		assert(0);
 	    break;
 
 	default: rpc2_Quit(RPC2_FAIL);
@@ -207,7 +189,7 @@ long RPC2_Export(IN Subsys)
     rpc2_Quit(RPC2_SUCCESS);    
     }
 
-
+
 long RPC2_DeExport(IN Subsys)
     RPC2_SubsysIdent *Subsys;
     {
@@ -215,7 +197,7 @@ long RPC2_DeExport(IN Subsys)
     struct SubsysEntry *sp;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, ("RPC2_DeExport()\n"));
+    say(0, RPC2_DebugLevel, "RPC2_DeExport()\n");
 
     if (Subsys == NULL)
 	{/* Terminate all subsystems */
@@ -232,8 +214,9 @@ long RPC2_DeExport(IN Subsys)
 	    break;
 	
 	case RPC2_SUBSYSBYNAME:
-	    if((myid = getsubsysbyname(Subsys->Value.Name)) < 0)
-		rpc2_Quit(RPC2_BADSERVER);
+		say(0, RPC2_DebugLevel, "RPC2_Export: obsolete SUBSYSBYNAME used!\n");
+		assert(0);
+
 	    break;
 
 	default: rpc2_Quit(RPC2_BADSERVER);
@@ -288,45 +271,37 @@ PRIVATE RPC2_PacketBuffer *GetPacket(psize)
     }
 
 
+/* Allocates a packet buffer whose body is at least MinBodySize bytes,
+   and sets BuffPtr to point to it.  Returns RPC2_SUCCESS on success.
+   Sets BodyLength field of allocated packet to MinBodySize: you can
+   alter this if this is not what you intended */
+long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr, 
+		      IN char *File, IN long Line)
+{
+	register long thissize;
 
-
-long rpc2_AllocBuffer(IN MinBodySize, OUT BuffPtr, IN File, IN Line)
-    long MinBodySize;
-    RPC2_PacketBuffer **BuffPtr;
-    char *File;
-    long Line;
-    /* Allocates a packet buffer whose body  is at least MinBodySize bytes,
-	and sets BuffPtr to point to it.
-	Returns RPC2_SUCCESS on success.
-	Sets BodyLength field of allocated packet to MinBodySize: you can 
-	alter this if this is not what you intended */
-    {
-    register long thissize;
+	rpc2_Enter();
+	thissize = MinBodySize + sizeof(RPC2_PacketBuffer);
+	if (thissize > RPC2_MAXPACKETSIZE) 
+		return(0);
 
-    rpc2_Enter();
-    thissize = MinBodySize + sizeof(RPC2_PacketBuffer);
-#ifdef	__linux__
-    if (thissize > RPC2_MAXPACKETSIZE) return(0);
-#else
-    if (thissize > RPC2_MAXPACKETSIZE) return(NULL);
-#endif
-    *BuffPtr = GetPacket(thissize);
-    assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
+	*BuffPtr = GetPacket(thissize);
+	assert((*BuffPtr)->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
-    bzero(&(*BuffPtr)->Header, sizeof(struct RPC2_PacketHeader));
-    (*BuffPtr)->Header.BodyLength = MinBodySize;
+	bzero(&(*BuffPtr)->Header, sizeof(struct RPC2_PacketHeader));
+	(*BuffPtr)->Header.BodyLength = MinBodySize;
 
 #ifdef RPC2DEBUG
-    strncpy((char *)(*BuffPtr)->Prefix.File, File, 12);
-    (*BuffPtr)->Prefix.File[2] &= 0xffffff00;
-    (*BuffPtr)->Prefix.Line = Line;
+	strncpy((char *)(*BuffPtr)->Prefix.File, File, 12);
+	(*BuffPtr)->Prefix.File[2] &= 0xffffff00;
+	(*BuffPtr)->Prefix.Line = Line;
 #endif RPC2DEBUG
 
-    rpc2_Quit(RPC2_SUCCESS);
-    }
+	rpc2_Quit(RPC2_SUCCESS);
+}
 
 
-
+
 long RPC2_FreeBuffer(INOUT BuffPtr)
     RPC2_PacketBuffer **BuffPtr;
     {
@@ -416,7 +391,7 @@ char *RPC2_ErrorMsg(rc)
     }
 
 
-
+
 long RPC2_GetPrivatePointer(IN ConnHandle, OUT PrivatePtr)
     RPC2_Handle ConnHandle;
     char **PrivatePtr;
@@ -425,7 +400,7 @@ long RPC2_GetPrivatePointer(IN ConnHandle, OUT PrivatePtr)
 
     rpc2_Enter();
 
-    say(999, RPC2_DebugLevel, ("RPC2_GetPrivatePointer()\n"));
+    say(999, RPC2_DebugLevel, "RPC2_GetPrivatePointer()\n");
 
     ceaddr = rpc2_GetConn(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
@@ -434,7 +409,7 @@ long RPC2_GetPrivatePointer(IN ConnHandle, OUT PrivatePtr)
     rpc2_Quit(RPC2_SUCCESS);
     }
 
-
+
 long RPC2_SetPrivatePointer(IN ConnHandle, IN PrivatePtr)
     RPC2_Handle ConnHandle;
     char *PrivatePtr;
@@ -442,7 +417,7 @@ long RPC2_SetPrivatePointer(IN ConnHandle, IN PrivatePtr)
     register struct CEntry *ceaddr;
 
     rpc2_Enter();
-    say(999, RPC2_DebugLevel, ("RPC2_SetPrivatePointer()\n"));
+    say(999, RPC2_DebugLevel, "RPC2_SetPrivatePointer()\n");
 
 
     ceaddr = rpc2_GetConn(ConnHandle);
@@ -452,7 +427,7 @@ long RPC2_SetPrivatePointer(IN ConnHandle, IN PrivatePtr)
     }
 
 
-
+
 long RPC2_GetSEPointer(IN ConnHandle, OUT SEPtr)
     RPC2_Handle ConnHandle;
     struct SFTP_Entry **SEPtr;
@@ -460,7 +435,7 @@ long RPC2_GetSEPointer(IN ConnHandle, OUT SEPtr)
     register struct CEntry *ceaddr;
 
     rpc2_Enter();
-    say(999, RPC2_DebugLevel, ("RPC2_GetSEPointer()\n"));
+    say(999, RPC2_DebugLevel, "RPC2_GetSEPointer()\n");
 
     ceaddr = rpc2_GetConn(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
@@ -468,7 +443,7 @@ long RPC2_GetSEPointer(IN ConnHandle, OUT SEPtr)
     rpc2_Quit(RPC2_SUCCESS);    
     }
     
-
+
 long RPC2_SetSEPointer(IN ConnHandle, IN SEPtr)
     RPC2_Handle ConnHandle;
     struct SFTP_Entry *SEPtr;
@@ -476,7 +451,7 @@ long RPC2_SetSEPointer(IN ConnHandle, IN SEPtr)
     register struct CEntry *ceaddr;
 
     rpc2_Enter();
-    say(999, RPC2_DebugLevel, ("RPC2_SetSEPointer()\n"));
+    say(999, RPC2_DebugLevel, "RPC2_SetSEPointer()\n");
 
 
     ceaddr = rpc2_GetConn(ConnHandle);
@@ -485,7 +460,7 @@ long RPC2_SetSEPointer(IN ConnHandle, IN SEPtr)
     rpc2_Quit(RPC2_SUCCESS);    
     }
 
-
+
 long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     RPC2_Handle ConnHandle;
     RPC2_PeerInfo *PeerInfo;
@@ -493,7 +468,7 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     register struct CEntry *ceaddr;
 
     rpc2_Enter();
-    say(999, RPC2_DebugLevel, ("RPC2_GetPeerInfo()\n"));
+    say(999, RPC2_DebugLevel, "RPC2_GetPeerInfo()\n");
 
     ceaddr = rpc2_FindCEAddr(ConnHandle);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
@@ -510,7 +485,7 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     rpc2_Quit(RPC2_SUCCESS);
     }
 
-
+
 long RPC2_DumpTrace(IN OutFile, IN HowMany)
     FILE *OutFile;
     long HowMany;
@@ -526,7 +501,7 @@ long RPC2_DumpTrace(IN OutFile, IN HowMany)
 #endif RPC2DEBUG
     }
 
-
+
 long RPC2_InitTraceBuffer(IN ecount)
     long ecount;
     {/* NOTE: not surrounded by rpc2_Enter() and rpc2_Quit() */
@@ -541,7 +516,7 @@ long RPC2_InitTraceBuffer(IN ecount)
 #endif RPC2DEBUG
     }
 
-
+
 long RPC2_DumpState(DumpFile, Verbosity)
     FILE *DumpFile;
     long Verbosity;	/* > 0 ==> full dump */
@@ -553,7 +528,7 @@ long RPC2_DumpState(DumpFile, Verbosity)
     
     if (DumpFile == NULL) DumpFile = stdout;	/* it's ok, call-by-value */
     gethostname(where, sizeof(where));
-    fprintf(DumpFile, "\n\n\t\t\tRPC2 Runtime State on %s at %s\n", where, ctime(&when));
+    fprintf(DumpFile, "\n\n\t\t\tRPC2 Runtime State on %s at %s\n", where, ctime((time_t)&when));
     fprintf(DumpFile, "rpc2_ConnCreationCount = %ld  rpc2_ConnCount = %ld  rpc2_ConnFreeCount = %ld\n",
     	rpc2_ConnCreationCount, rpc2_ConnCount, rpc2_ConnFreeCount);
     fprintf(DumpFile, "rpc2_PBCount = %ld  rpc2_PBHoldCount = %ld  rpc2_PBFreezeCount = %ld\n", rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount);
@@ -571,7 +546,7 @@ long RPC2_DumpState(DumpFile, Verbosity)
 #endif RPC2DEBUG
     }
 
-
+
 long RPC2_LamportTime()
     /*  Returns the Lamport time for this system.
     	This is at least one greater than the value returned on the preceding call.
@@ -595,20 +570,21 @@ long RPC2_SetBindLimit(IN bindLimit)
     rpc2_Quit(RPC2_SUCCESS);
     }
 
-long RPC2_Enable(whichConn)
-    RPC2_Handle whichConn;
-    {
-    register struct CEntry *ceaddr;
+long RPC2_Enable(RPC2_Handle whichConn)
+{
+	register struct CEntry *ceaddr;
 
-    say(0, RPC2_DebugLevel, ("RPC2_Enable()\n"));
+	say(0, RPC2_DebugLevel, "RPC2_Enable()\n");
 
-    rpc2_Enter();
-    ceaddr = rpc2_GetConn(whichConn);
-    if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
-    if (!TestState(ceaddr, SERVER, S_AWAITENABLE)) rpc2_Quit(RPC2_FAIL);
-    SetState(ceaddr, S_AWAITREQUEST);
-    rpc2_Quit(RPC2_SUCCESS);
-    }
+	rpc2_Enter();
+	ceaddr = rpc2_GetConn(whichConn);
+	if (ceaddr == NULL) 
+		rpc2_Quit(RPC2_NOCONNECTION);
+	if (!TestState(ceaddr, SERVER, S_AWAITENABLE)) 
+		rpc2_Quit(RPC2_FAIL);
+	SetState(ceaddr, S_AWAITREQUEST);
+	rpc2_Quit(RPC2_SUCCESS);
+}
 
 long RPC2_SetColor(Conn, Color)
     RPC2_Handle Conn;
@@ -616,7 +592,7 @@ long RPC2_SetColor(Conn, Color)
     {
     register struct CEntry *ceaddr;
 
-    say(0, RPC2_DebugLevel, ("RPC2_SetColor()\n"));
+    say(0, RPC2_DebugLevel, "RPC2_SetColor()\n");
 
     rpc2_Enter();
     ceaddr = rpc2_GetConn(Conn);
@@ -631,7 +607,7 @@ long RPC2_GetColor(Conn, Color)
     {
     register struct CEntry *ceaddr;
 
-    say(0, RPC2_DebugLevel, ("RPC2_GetColor()\n"));
+    say(0, RPC2_DebugLevel, "RPC2_GetColor()\n");
 
     rpc2_Enter();
     ceaddr = rpc2_GetConn(Conn);
@@ -648,7 +624,7 @@ long RPC2_GetPeerLiveness(IN ConnHandle, OUT Time, OUT SETime)
     register struct CEntry *ceaddr;
 
     rpc2_Enter();
-    say(999, RPC2_DebugLevel, ("RPC2_GetPeerLiveness()\n"));
+    say(999, RPC2_DebugLevel, "RPC2_GetPeerLiveness()\n");
 
     Time->tv_sec = Time->tv_usec = 0;
     SETime->tv_sec = SETime->tv_usec = 0;
@@ -698,7 +674,7 @@ long RPC2_GetNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
     {
     register struct CEntry *ceaddr;
 
-    say(0, RPC2_DebugLevel, ("RPC2_GetNetInfo()\n"));
+    say(0, RPC2_DebugLevel, "RPC2_GetNetInfo()\n");
 
     rpc2_Enter();
 
@@ -749,7 +725,7 @@ long RPC2_PutNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
     register struct CEntry *ceaddr;
     int i;
 
-    say(0, RPC2_DebugLevel, ("RPC2_PutNetInfo()\n"));
+    say(0, RPC2_DebugLevel, "RPC2_PutNetInfo()\n");
 
     rpc2_Enter();
 
@@ -800,7 +776,7 @@ long RPC2_ClearNetInfo(IN Conn)
     register struct CEntry *ceaddr;
 
     rpc2_Enter();
-    say(999, RPC2_DebugLevel, ("RPC2_ClearNetInfo()\n"));
+    say(999, RPC2_DebugLevel, "RPC2_ClearNetInfo()\n");
 
     ceaddr = rpc2_FindCEAddr(Conn);
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
@@ -823,91 +799,136 @@ long RPC2_ClearNetInfo(IN Conn)
     }  
 
     
-long rpc2_CreateIPSocket(svar, hvar, pvar)
-    long *svar;	/* socket value will be returned here */
-    RPC2_HostIdent *hvar;   /* host ident will be returned here */
-    RPC2_PortalIdent *pvar; /* portal ident will be used if valid,
-			    and always returned here */
-    {
-    struct sockaddr_in bindaddr;
-    struct servent *sentry;
-    int blen, finalrc;
+long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortalIdent *pvar)
+{
+	struct sockaddr_in bindaddr;
+	struct servent *sentry;
+	int rc;
+	struct protoent *pe;
+	int blen = 0x8000 ;
 
-    /* Allocate socket and expand buffer */
-    *svar = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (*svar < 0) return(RPC2_FAIL);
-    finalrc = SetGreedy(*svar);	/* expand buffer size */
 
-    /* set host address for bind() */
-    bzero(&bindaddr, sizeof(bindaddr));
-    bindaddr.sin_family = AF_INET;
-    bindaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	/* Allocate socket */
+	*svar = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (*svar < 0) 
+		return(RPC2_FAIL);
+
+#if 0
+	pe = getprotobyname("ip");
+	if ( pe == NULL ) 
+		exit(1);
+
+ 	/* let udp layer (17) give debugging info */
+	rc = setsockopt(*svar, pe->p_proto, SO_DEBUG, NULL, 0);
+	if ( rc ) {
+		perror("setsockopt: ");
+		exit(1);
+	}
+
+	rc = setsockopt(*svar, SOL_SOCKET, SO_SNDBUF, &blen, sizeof(blen));
+	if ( rc ) {
+		perror("setsockopt: ");
+		exit(1);
+	}
+
+	rc = setsockopt(*svar, SOL_SOCKET, SO_RCVBUF, &blen, sizeof(blen));
+	if ( rc ) {
+		perror("setsockopt: ");
+		exit(1);
+	}
+
+	rc = setsockopt(*svar, pe->p_proto, SO_DEBUG, NULL, 0);
+	if ( rc ) {
+		perror("setsockopt: ");
+		exit(1);
+	}
+#endif
+	/* set host address for bind() */
+	bzero(&bindaddr, sizeof(bindaddr));
+	bindaddr.sin_family = AF_INET;
+	bindaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 					
-    /* set port address for bind() */
-    switch (pvar->Tag)
-    	{
+	/* set port address for bind() */
+	switch (pvar->Tag) {
 	case RPC2_PORTALBYNAME:
-	    sentry = getservbyname (pvar->Value.Name, NULL);
-	    if (sentry == NULL) return(RPC2_BADSERVER);
-	    if (htonl(1) == 1)	bindaddr.sin_port  = sentry->s_port;
-	    else
-		{
-		bcopy(&sentry->s_port, &bindaddr.sin_port, sizeof(short));
-		/* ghastly, but true: s_port is in network order, but stored as 
-		    a 2-byte byte string in a 4-byte field */
-		}
-	    break;
+		sentry = getservbyname(pvar->Value.Name, "udp");
+		if (sentry == NULL) 
+			return(RPC2_BADSERVER);
+		/* sentry has port in network order */
+		bindaddr.sin_port  = sentry->s_port;
+		break;
 	
+		/*  XXXX NO INETNUMBER , just ports */
 	case RPC2_PORTALBYINETNUMBER:
-	    bindaddr.sin_port = pvar->Value.InetPortNumber;
-	    break;
+		bindaddr.sin_port = pvar->Value.InetPortNumber;
+		break;
 
 	case RPC2_DUMMYPORTAL:
 	default:
-	    bindaddr.sin_port = 0;	/* kernel will assign */
+		bindaddr.sin_port = 0;	/* kernel will assign */
 	}
 
-    /* Now bind the socket */
-    if (bind (*svar, (struct sockaddr *)&bindaddr, sizeof(bindaddr)) < 0)
-	{
-	if (errno == EADDRINUSE) return(RPC2_DUPLICATESERVER);
-	else return(RPC2_BADSERVER);
+	/* Now bind the socket */
+	if (bind (*svar, (struct sockaddr *)&bindaddr, sizeof(bindaddr)) < 0) {
+		if (errno == EADDRINUSE) 
+			return(RPC2_DUPLICATESERVER);
+		else 
+			return(RPC2_BADSERVER);
 	}
 
-    /* Retrieve fully resolved socket address */
-    if (pvar->Tag == RPC2_DUMMYPORTAL) {
-	hvar->Tag = RPC2_DUMMYHOST;
-	hvar->Value.InetAddress = 0;
-    } else {
-	hvar->Tag = RPC2_HOSTBYINETADDR;
-	hvar->Value.InetAddress = get_netaddr(*svar);
-	if (hvar->Value.InetAddress == 0) return (RPC2_FAIL);
-	blen = sizeof(bindaddr);
-	if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) return(RPC2_FAIL);
-	pvar->Tag = RPC2_PORTALBYINETNUMBER;
-	pvar->Value.InetPortNumber = bindaddr.sin_port;
-    }
+	/* Retrieve fully resolved socket address */
+	if (pvar->Tag == RPC2_DUMMYPORTAL) {
+		hvar->Tag = RPC2_DUMMYHOST;
+		hvar->Value.InetAddress = 0;
+	} else {
+		hvar->Tag = RPC2_HOSTBYINETADDR;
+		hvar->Value.InetAddress = get_netaddr(*svar);
+		if (hvar->Value.InetAddress == 0) 
+			return (RPC2_FAIL);
+		blen = sizeof(bindaddr);
+		if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) 
+			return(RPC2_FAIL);
+		pvar->Tag = RPC2_PORTALBYINETNUMBER;
+		pvar->Value.InetPortNumber = bindaddr.sin_port;
+	}
 
 #ifdef RPC2DEBUG
-    if (RPC2_DebugLevel > 9)
-	{
-	rpc2_PrintHostIdent(hvar, stdout);
-	printf("    ");
-	rpc2_PrintPortalIdent(pvar, stdout);
-	printf("\n");
+	if (RPC2_DebugLevel > 9) {
+		rpc2_PrintHostIdent(hvar, rpc2_tracefile);
+		printf("    ");
+		rpc2_PrintPortalIdent(pvar, rpc2_tracefile);
+		printf("\n");
 	}
 #endif RPC2DEBUG
+    
+	return RPC2_SUCCESS;
+}
 
-    return(finalrc);
-    }
-
-PRIVATE long get_netaddr(sock)
-    long sock;
-    /* get internet address from kernel, zero on error */
-    {
+/* get internet address from kernel, zero on error */
+PRIVATE long get_netaddr(long sock)
+{
 #ifdef DJGPP
       return __djgpp_get_my_host();   /* MJC--hack! */
-#else
+#if 0
+      /*#elif __CYGWIN32__ */
+      char hostname[128];
+    struct hostent *h;
+
+    if (gethostname(hostname, sizeof(hostname)) != 0) {
+	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostname()");
+	assert (0);
+    }
+
+    h = gethostbyname(hostname);
+    if (!h) {
+	fprintf (stderr, "get_netaddr: cannot gethostbyname(%s)",
+		 hostname);
+	assert (0);
+    }
+    printf("get_netaddr returning: %lx\n", *(long *)(h->h_addr_list[0]));
+    return (*(long *)(h->h_addr_list[0]));
+#endif
+#else 
     struct ifconf ifc;
     struct ifreq conf[NETWORKS];
     struct sockaddr_in *sa_struct;
@@ -916,81 +937,59 @@ PRIVATE long get_netaddr(sock)
 
     ifc.ifc_len = sizeof(conf);
     ifc.ifc_buf = (caddr_t) conf;
-    if (ioctl(sock, SIOCGIFCONF, (char *)&ifc) < 0) return(0);
+    if (ioctl(sock, SIOCGIFCONF, (char *)&ifc) < 0) 
+	    return(0);
 
     interfaces = ifc.ifc_len / sizeof(struct ifreq);
     for (i = 0; i < interfaces; i++)
 	{
 	sa_struct = (struct sockaddr_in *) &conf[i].ifr_addr;
 	if (sa_struct->sin_addr.s_addr != 0 &&
-		    strcmp(conf[i].ifr_name, "lo0") != 0)
-	return (sa_struct->sin_addr.s_addr);
+	    sa_struct->sin_addr.s_addr != 0x100007f)
+		return (sa_struct->sin_addr.s_addr);
 	}
     return (0);
 #endif
-    }
+}
 
-PRIVATE long SetGreedy(s)
-    long s; /* socket on which buffer is to be expanded */
 
-    /* Set massive socket buffer size 
-	If compiled under 4.3BSD, will work under both 4.2BSD, 4.3BSD.
-	If compiled under 4.2BSD, will only work under 4.2BSD
-    */
-    {
-    long blen;
-
-#if (defined(SO_SNDBUF) && defined(SO_RCVBUF) && defined(SB_MAX))
-	/* compiled in 4.3BSD */
-	blen = SB_MAX >> 1;  /* otherwise we get ENOBUFS error */
-	if (setsockopt(s, SOL_SOCKET, SO_SNDBUF, &blen, sizeof(blen)) < 0)
-	    return(RPC2_NOGREEDY);
-	if (setsockopt(s, SOL_SOCKET, SO_RCVBUF, &blen, sizeof(blen)) < 0)
-	    return(RPC2_NOGREEDY);
-#else
-#if (defined(SO_GREEDY))
-	/* compiled in 4.2BSD */
-	if (setsockopt(s, SOL_SOCKET, SO_GREEDY, &blen, sizeof(blen)) < 0)
-	    return(RPC2_NOGREEDY);
-#endif
-#endif
-    return(RPC2_SUCCESS);    
-    }
-
-PRIVATE int is43()
-    /* TRUE iff executing on 4.3BSD; FALSE on 4.2BSD */
-    {
-    int fd, rc;
-#if  defined(__linux__) || defined(DJGPP)
-    return(FALSE);
-#else
-/*  4.3 requires a buffer argument to the setsockopt call
-    4.2 doesn't */
-
-    fd = socket(AF_INET, SOCK_STREAM, 0);
-    rc = setsockopt(fd, SOL_SOCKET, SO_USELOOPBACK, 0, 0);
-    close(fd);
-
-    if (rc < 0) return(TRUE);
-    else return(FALSE);
-#endif
-    }
-
+/* Fill in localhost with the IP address that is used when sending
+   packets to remotehost.
+*/
 long rpc2_GetLocalHost(localhost, remotehost)
     RPC2_HostIdent *localhost, *remotehost;
-    /* Fill in localhost with the IP address that is used when sending
-       packets to remotehost.
-     */
-    {
+{
     struct sockaddr_in sin;
     int s, i = sizeof(struct sockaddr_in);
-    assert(remotehost->Tag == RPC2_HOSTBYINETADDR);
 #ifdef DJGPP
+    assert(remotehost->Tag == RPC2_HOSTBYINETADDR);
     /* horrible hack -- figure out how to do this with MSTCP */
     localhost->Tag = RPC2_HOSTBYINETADDR;
     localhost->Value.InetAddress = __djgpp_get_my_host();
     return 0;
+#elif __CYGWIN32__
+    char hostname[128];
+    struct hostent *h;
+
+    if (gethostname(hostname, sizeof(hostname)) != 0) {
+	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostname()");
+	assert (0);
+    }
+
+    h = gethostbyname(hostname);
+    if (!h) {
+	fprintf (stderr, "rpc2_GetLocalHost: cannot gethostbyname(%s)",
+		 hostname);
+	assert (0);
+    }
+
+    localhost->Tag = RPC2_HOSTBYINETADDR;
+    memcpy(&localhost->Value.InetAddress, h->h_addr, h->h_length);
+    fprintf (stderr, "rpc2_GetLocalHost: name %s len %d ip %x\n",
+	     hostname, h->h_length, ntohl(localhost->Value.InetAddress));
+    return 0;
 #else
+    assert(remotehost->Tag == RPC2_HOSTBYINETADDR);
     sin.sin_family = AF_INET;
     sin.sin_port = htons(1);	/* dummy port number */
     sin.sin_addr.s_addr = remotehost->Value.InetAddress;
@@ -1031,8 +1030,8 @@ void rpc2_ResetObs(obsp, ceaddr)
     register struct CEntry *ceaddr;
     {
     long delta = ceaddr->reqsize * 8 * 100 / rpc2_Bandwidth;
-    say(4, RPC2_DebugLevel, ("rpc2_ResetObs: conn 0x%lx, obs %ld, delta %ld, new %ld\n", 
-			     ceaddr->UniqueCID, *obsp, delta, *obsp-delta));
+    say(4, RPC2_DebugLevel, "rpc2_ResetObs: conn 0x%lx, obs %ld, delta %ld, new %ld\n", 
+			     ceaddr->UniqueCID, *obsp, delta, *obsp-delta);
     if (*obsp > delta)  *obsp -= delta;
     }
 
@@ -1097,9 +1096,9 @@ void rpc2_UpdateRTT(tStamp, ceaddr)
     if (ceaddr->LowerLimit < LOWERLIMIT) ceaddr->LowerLimit = LOWERLIMIT;
     else if (ceaddr->LowerLimit > upperlimit) ceaddr->LowerLimit = upperlimit;
 
-    say(4, RPC2_DebugLevel, ("rpc2_UpdateRTT: conn 0x%lx, obs %ld, RTT %ld, RTTVar %ld LL %lu usec\n", 
+    say(4, RPC2_DebugLevel, "rpc2_UpdateRTT: conn 0x%lx, obs %ld, RTT %ld, RTTVar %ld LL %lu usec\n", 
 			     ceaddr->UniqueCID, obs, ceaddr->RTT, 
-			     ceaddr->RTTVar, ceaddr->LowerLimit));
+			     ceaddr->RTTVar, ceaddr->LowerLimit);
 
     /* now adjust retransmission intervals with new Lowerlimit */
     (void) rpc2_SetRetry(ceaddr);

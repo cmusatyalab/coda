@@ -1,3 +1,4 @@
+
 #ifndef _BLURB_
 #define _BLURB_
 /*
@@ -29,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/packet.c,v 1.1 1996/11/22 19:07:27 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.1 1997/01/08 21:50:26 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,6 +57,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -117,8 +120,8 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
     register RPC2_PacketBuffer *whichPB;
     register RPC2_HostIdent *whichHost;
     register RPC2_PortalIdent *whichPortal;
-    {
-    say(0, RPC2_DebugLevel, ("rpc2_XmitPacket()\n"));
+{
+    say(0, RPC2_DebugLevel, "rpc2_XmitPacket()\n");
 
 #ifdef RPC2DEBUG
     if (RPC2_DebugLevel > 9)
@@ -180,28 +183,26 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
 	    
 	default: assert(FALSE);
 	}
-    }
+}
 
-long rpc2_RecvPacket(IN whichSocket, OUT whichBuff, OUT whichHost, OUT whichPortal)
-    register long whichSocket;
-    register RPC2_PacketBuffer *whichBuff;
-    register RPC2_HostIdent *whichHost;
-    register RPC2_PortalIdent *whichPortal;
-    /* Reads the next packet from whichSocket into whichBuff, sets its LengthOfPacket field,
-	    fills in whichHost and whichPortal, and returns 0;
-	Returns -3 iff a too-long packet arrived.
-	Returns -1 on any other system call error.
+/* Reads the next packet from whichSocket into whichBuff, sets its
+   LengthOfPacket field, fills in whichHost and whichPortal, and
+   returns 0; Returns -3 iff a too-long packet arrived.  Returns -1 on
+   any other system call error.
 
-	Note that whichBuff should at least be able to accomodate 1 byte more than the 
-	    longest receivable  packet.
-	Only Internet packets are dealt with currently.
- */
-    {
+   Note that whichBuff should at least be able to accomodate 1 byte
+   more than the longest receivable packet.  Only Internet packets are
+   dealt with currently.  */
+long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff, 
+		     OUT RPC2_HostIdent *whichHost, OUT RPC2_PortalIdent *whichPortal)
+{
     long rc, len;
     int fromlen;
     struct sockaddr_in sa;
+    int error = 0;
+    char errbuf[128];
 
-    say(0, RPC2_DebugLevel, ("rpc2_RecvPacket()\n"));
+    say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
     assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     len = whichBuff->Prefix.BufferSize - (long)(&whichBuff->Header) + (long)(whichBuff);
@@ -209,66 +210,67 @@ long rpc2_RecvPacket(IN whichSocket, OUT whichBuff, OUT whichHost, OUT whichPort
     
     /* WARNING: only Internet works; no warnings */
     fromlen = sizeof(sa);
-    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0,  (struct sockaddr *)&sa, &fromlen);
-    if (rc < 0)	return(-1);
+    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0, &sa, &fromlen);
+
+    if (rc < 0) {
+	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
+	    return(-1);
+    }
 
     whichHost->Tag = RPC2_HOSTBYINETADDR;
     whichHost->Value.InetAddress = sa.sin_addr.s_addr;
     whichPortal->Tag = RPC2_PORTALBYINETNUMBER;
     whichPortal->Value.InetPortNumber = sa.sin_port;
 
-    if (!DontFailPacket(Fail_RecvPredicate, whichBuff, &sa, whichSocket))
-	{
-	errno = 0;
-	return (-1);
-	}
-
-    if (ntohl(whichBuff->Header.Flags) & RPC2_MULTICAST)
-	{
-	rpc2_MRecvd.Total++;
-	rpc2_MRecvd.Bytes += rc;
-	}
-    else
-	{
-	rpc2_Recvd.Total++;
-	rpc2_Recvd.Bytes += rc;
-	}
-    whichBuff->Prefix.LengthOfPacket = rc;
-
-    if (rc == len)
-	{
-	if (ntohl(whichBuff->Header.Flags) & RPC2_MULTICAST)
-	    rpc2_MRecvd.Giant++;
-	else
-	    rpc2_Recvd.Giant++;
-	return(-3);
-	}
-    			/* we assume this was because there were really more bytes to read */
-
 #ifdef RPC2DEBUG
     TR_RECV();
 #endif RPC2DEBUG
 
-    return(0);
+    if (!DontFailPacket(Fail_RecvPredicate, whichBuff, &sa, whichSocket)) {
+	    errno = 0;
+	    return (-1);
     }
 
-
-long rpc2_InitRetry(IN HowManyRetries, IN Beta0)
-    long HowManyRetries;		/* should be less than 30; -1 for default */
-    struct timeval *Beta0;	        /* NULL for default */
-    /*
-      Initializes default retry intervals given the number of
-      retries desired and the keepalive interval.
-      This implementation has:
-    	(1)	Beta[i+1] = 2*Beta[i]
-	(2)	Beta[0] = Beta[1] + Beta[2] ... + Beta[Retry_N+1]
+    if (ntohl(whichBuff->Header.Flags) & RPC2_MULTICAST) {
+	    rpc2_MRecvd.Total++;
+	    rpc2_MRecvd.Bytes += rc;
+    } else {
+	    rpc2_Recvd.Total++;
+	    rpc2_Recvd.Bytes += rc;
+    }
+    whichBuff->Prefix.LengthOfPacket = rc;
 
-      Time constants less than LOWERLIMIT are set to LOWERLIMIT.
-      There is a limit on retry intervals and timeouts of just over an
-      hour, since we do these computations in microseconds.
-      Returns 0 on success, -1 on bogus parameters.
-    */
-    {
+    if (rc == len) {
+	    if (ntohl(whichBuff->Header.Flags) & RPC2_MULTICAST)
+		    rpc2_MRecvd.Giant++;
+	    else
+		    rpc2_Recvd.Giant++;
+	    return(-3);
+    }
+
+    return(0);
+}
+
+
+/*
+  Initializes default retry intervals given the number of
+  retries desired and the keepalive interval.
+  This implementation has:
+
+  Note: Beta(0) is a special case of keepalive.
+  
+  (1)	Beta[i+1] = 2*Beta[i] for i >= 1
+  (2)	Beta[0] = Beta[1] + Beta[2] ... + Beta[Retry_N+1]
+
+  Time constants less than LOWERLIMIT are set to LOWERLIMIT.
+  There is a limit on retry intervals and timeouts of just over an
+  hour, since we do these computations in microseconds.
+  Returns 0 on success, -1 on bogus parameters.
+*/
+long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
+		/*  HowManyRetries" should be less than 30; -1 for default */
+	        /*  Beta0: NULL for default */
+{
     register long betax, timeused, beta0;	/* entirely in microseconds */
     register long i;
 
@@ -320,7 +322,7 @@ long rpc2_InitRetry(IN HowManyRetries, IN Beta0)
     return(0);
     }
 
-
+
 long rpc2_SetRetry(IN Conn)
     register struct CEntry *Conn;
 
@@ -343,7 +345,7 @@ long rpc2_SetRetry(IN Conn)
     
     /* recompute Retry_Beta[1] .. Retry_Beta[N] */
     /* betax is the shortest interval */
-    betax = (1000000*Conn->Retry_Beta[0].tv_sec + Conn->Retry_Beta[0].tv_usec)/((1 << Conn->Retry_N+1) - 1);
+    betax = (1000000*Conn->Retry_Beta[0].tv_sec + Conn->Retry_Beta[0].tv_usec)/((1 << (Conn->Retry_N+1)) - 1);
     beta0 = (1000000*Conn->Retry_Beta[0].tv_sec + Conn->Retry_Beta[0].tv_usec);
     timeused = 0;
     for (i = 1; i < Conn->Retry_N+2 && beta0 > timeused; i++)
@@ -374,7 +376,7 @@ long rpc2_SetRetry(IN Conn)
     return(0);
     }
 
-
+
 /* HACK. if bandwidth is low, increase retry intervals appropriately */
 void rpc2_ResetLowerLimit(IN Conn, IN Packet)
     register struct CEntry *Conn;
@@ -390,14 +392,14 @@ void rpc2_ResetLowerLimit(IN Conn, IN Packet)
     delta *= 1000;  /* was in msec to avoid overflow */
 
     say(4, RPC2_DebugLevel,
-	("ResetLowerLimit: conn 0x%lx, lower limit %ld usec, delta %ld usec\n",
-	 Conn->UniqueCID, Conn->LowerLimit, delta));
+	"ResetLowerLimit: conn 0x%lx, lower limit %ld usec, delta %ld usec\n",
+	 Conn->UniqueCID, Conn->LowerLimit, delta);
 
     Conn->LowerLimit += delta;
     rpc2_SetRetry(Conn);
 }
 
-
+
 long rpc2_CancelRetry(IN Conn, IN Sle)
     register struct CEntry *Conn;
     register struct SL_Entry *Sle;	
@@ -411,7 +413,7 @@ long rpc2_CancelRetry(IN Conn, IN Sle)
     struct timeval now, lastword, timeout;
     struct timeval *retry;
 
-    say(0, RPC2_DebugLevel, ("rpc2_CancelRetry()\n"));
+    say(0, RPC2_DebugLevel, "rpc2_CancelRetry()\n");
 
     retry = Conn->Retry_Beta;
 
@@ -422,16 +424,16 @@ long rpc2_CancelRetry(IN Conn, IN Sle)
 	FT_GetTimeOfDay(&now, (struct timezone *)0);
 	SUBTIME(&now, &lastword);
 	say(9, RPC2_DebugLevel,
-	    ("Heard from side effect on 0x%lx %ld.%06ld ago, retry interval was %ld.%06ld\n",
+	    "Heard from side effect on 0x%lx %ld.%06ld ago, retry interval was %ld.%06ld\n",
 	     Conn->UniqueCID, now.tv_sec, now.tv_usec, 
-	     retry[Sle->RetryIndex].tv_sec, retry[Sle->RetryIndex].tv_usec));
+	     retry[Sle->RetryIndex].tv_sec, retry[Sle->RetryIndex].tv_usec);
 	if (timercmp(&now, &retry[Sle->RetryIndex], <)) {
 	    timeout = retry[0];
 	    SUBTIME(&timeout, &now);
 	    say(/*9*/4, RPC2_DebugLevel,
-		("Supressing retry %ld at %d on 0x%lx, new timeout = %ld.%06ld\n",
+		"Supressing retry %ld at %d on 0x%lx, new timeout = %ld.%06ld\n",
 		 Sle->RetryIndex, rpc2_time(), Conn->UniqueCID,
-		 timeout.tv_sec, timeout.tv_usec));
+		 timeout.tv_sec, timeout.tv_usec);
 
 	    rpc2_Sent.Cancelled++;
 	    Sle->RetryIndex = 0;
@@ -442,7 +444,7 @@ long rpc2_CancelRetry(IN Conn, IN Sle)
     return(0);
   }
 
-
+
 long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     register struct CEntry *Conn;
     register struct SL_Entry *Sle;	
@@ -454,7 +456,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     struct timeval *tout;
     struct timeval *ThisRetryBeta;
 
-    say(0, RPC2_DebugLevel, ("rpc2_SendReliably()\n"));
+    say(0, RPC2_DebugLevel, "rpc2_SendReliably()\n");
 
 #ifdef RPC2DEBUG
     TR_SENDRELIABLY();
@@ -472,14 +474,16 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 	Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 	    
     /* Do an initial send of the packet */
-    say(9, RPC2_DebugLevel, ("Sending try at %d on 0x%lx (timeout %ld.%06ld)\n", 
+    say(9, RPC2_DebugLevel, "Sending try at %d on 0x%lx (timeout %ld.%06ld)\n", 
 			     rpc2_time(), Conn->UniqueCID,
-			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec));
+			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
     rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPortal);
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
     /* Initialize the SL Entry */
+    /* NOTE: we don't register for RetryBeta[0] here which is the 
+       keepalive */ 
     Sle->RetryIndex = 1;
     rpc2_ActivateSle(Sle, &ThisRetryBeta[1]);
 
@@ -511,7 +515,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		break;	/* switch */
 		
 	    case TIMEOUT:
-		if (hopeleft = rpc2_CancelRetry(Conn, Sle))
+		if ((hopeleft = rpc2_CancelRetry(Conn, Sle)))
 		    break;      /* switch; we heard from side effect recently */
 		if (Sle->RetryIndex > Conn->Retry_N)
 		    break;	/* switch; note hopeleft must be 0 */
@@ -524,9 +528,9 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		else hopeleft = 1;
 		rpc2_ActivateSle(Sle, tout);
 		say(9, RPC2_DebugLevel,
-		    ("Sending retry %ld at %d on 0x%lx (timeout %ld.%06ld)\n",
+		    "Sending retry %ld at %d on 0x%lx (timeout %ld.%06ld)\n",
 		     Sle->RetryIndex, rpc2_time(), Conn->UniqueCID,
-		     tout->tv_sec, tout->tv_usec));
+		     tout->tv_sec, tout->tv_usec);
 		Packet->Header.Flags = htonl((ntohl(Packet->Header.Flags) | RPC2_RETRY));
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
@@ -601,22 +605,20 @@ void rpc2_ntohp(p)
 #endif
     }
 
-void rpc2_InitPacket(pb, ce, bodylen)
-    register RPC2_PacketBuffer *pb;
-    register struct CEntry *ce;
-    register long bodylen;
-    {
-    bzero(&pb->Header, sizeof(struct RPC2_PacketHeader));
-    pb->Header.ProtoVersion = RPC2_PROTOVERSION;
-    pb->Header.Lamport	    = RPC2_LamportTime();
-    pb->Header.BodyLength = bodylen;
-    pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
-    if (ce)
-    	{
-	pb->Header.RemoteHandle = ce->PeerHandle;
-    	pb->Header.LocalHandle  = ce->UniqueCID;
-    	pb->Header.SubsysId  = ce->SubsysId;
-	pb->Header.Uniquefier = ce->PeerUnique;
-	SetPktColor(pb, ce->Color);
+void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
+{
+	assert(pb);
+
+	bzero(&pb->Header, sizeof(struct RPC2_PacketHeader));
+	pb->Header.ProtoVersion = RPC2_PROTOVERSION;
+	pb->Header.Lamport	    = RPC2_LamportTime();
+	pb->Header.BodyLength = bodylen;
+	pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
+	if (ce)	{
+		pb->Header.RemoteHandle = ce->PeerHandle;
+		pb->Header.LocalHandle  = ce->UniqueCID;
+		pb->Header.SubsysId  = ce->SubsysId;
+		pb->Header.Uniquefier = ce->PeerUnique;
+		SetPktColor(pb, ce->Color);
     	}
     }

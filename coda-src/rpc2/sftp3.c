@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.3 1997/10/23 19:24:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.4 1997/11/13 15:03:17 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -217,9 +217,9 @@ void sftp_InitRTT(RPC2_Unsigned obs, register struct SFTP_Entry *sEntry)
     else if (newrex < SFTP_MINRTT) newrex = SFTP_MINRTT;
     TSTOTV(&sEntry->RInterval, newrex);
 
-    say(4, SFTP_DebugLevel, ("sftp_InitRTT: conn 0x%lx, obs %lu, RTT %ld, RTTVar %ld, RI %ld.%0ld sec\n", 
+    say(4, SFTP_DebugLevel, "sftp_InitRTT: conn 0x%lx, obs %lu, RTT %ld, RTTVar %ld, RI %ld.%0ld sec\n", 
 			     sEntry->LocalHandle, obs, sEntry->RTT, sEntry->RTTVar,
-			     sEntry->RInterval.tv_sec, sEntry->RInterval.tv_usec));
+			     sEntry->RInterval.tv_sec, sEntry->RInterval.tv_usec);
 }
 
 void sftp_UpdateRTT(RPC2_Unsigned tStamp, register struct SFTP_Entry *sEntry)
@@ -266,9 +266,9 @@ void sftp_UpdateRTT(RPC2_Unsigned tStamp, register struct SFTP_Entry *sEntry)
     else if (newrex < SFTP_MINRTT) newrex = SFTP_MINRTT;
     TSTOTV(&sEntry->RInterval, newrex);
 
-    say(4, SFTP_DebugLevel, ("sftp_UpdateRTT: conn 0x%lx, obs %ld, RTT %ld, RTTVar %ld, RI %ld.%06ld sec\n", 
+    say(4, SFTP_DebugLevel, "sftp_UpdateRTT: conn 0x%lx, obs %ld, RTT %ld, RTTVar %ld, RI %ld.%06ld sec\n", 
 			      sEntry->LocalHandle, obs, sEntry->RTT, sEntry->RTTVar,
-			      sEntry->RInterval.tv_sec, sEntry->RInterval.tv_usec));
+			      sEntry->RInterval.tv_sec, sEntry->RInterval.tv_usec);
 }
 
 void sftp_Backoff(register struct SFTP_Entry *sEntry)
@@ -290,8 +290,8 @@ void sftp_Backoff(register struct SFTP_Entry *sEntry)
 	if (timercmp(&sEntry->RInterval, &maxrtt, >))
 		sEntry->RInterval = maxrtt;
 
-	say(4, SFTP_DebugLevel, ("Backoff: new rxmt at %ld ms\n", 
-		 sEntry->RInterval.tv_sec*1000 + sEntry->RInterval.tv_usec/1000));
+	say(4, SFTP_DebugLevel, "Backoff: new rxmt at %ld ms\n", 
+		 sEntry->RInterval.tv_sec*1000 + sEntry->RInterval.tv_usec/1000);
 }
 
 
@@ -314,8 +314,8 @@ void sftp_UpdateBW(RPC2_Unsigned tStamp, unsigned long bytes,
     entry.Value.Measured.Bytes = bytes;
     entry.Value.Measured.ElapsedTime = obs * 10;	/* want ms */
     (void) rpc2_AppendHostLog(sEntry->HostInfo, &entry);
-    say(0/*4*/, SFTP_DebugLevel, ("sftp_UpdateBW: conn 0x%lx, %ld bytes, %ld ms\n", 
-				  sEntry->LocalHandle, bytes, obs*10));
+    say(0/*4*/, SFTP_DebugLevel, "sftp_UpdateBW: conn 0x%lx, %ld bytes, %ld ms\n", 
+				  sEntry->LocalHandle, bytes, obs*10);
 }
 
 
@@ -339,10 +339,10 @@ sftp_DataArrived(RPC2_PacketBuffer *pBuff, register struct SFTP_Entry *sEntry)
 	sftp_MRecvd.Datas++;
     else
 	sftp_Recvd.Datas++;
-    say(/*9*/4, SFTP_DebugLevel, ("R-%lu [%lu] {%ld} %s%s\n", pBuff->Header.SeqNumber, 
+    say(/*9*/4, SFTP_DebugLevel, "R-%lu [%lu] {%ld} %s%s\n", pBuff->Header.SeqNumber, 
 				  pBuff->Header.TimeStamp, pBuff->Header.TimeEcho,
 				  (pBuff->Header.SEFlags & SFTP_FIRST)?"F":"",
-				  (pBuff->Header.Flags & SFTP_ACKME)?"A":""));
+				  (pBuff->Header.Flags & SFTP_ACKME)?"A":"");
 
     if ((SFTP_MaxPackets > 0) && (sftp_PacketsInUse > SFTP_MaxPackets)) {
 	/* Drop this packet.  Since the packet could have been dropped
@@ -566,8 +566,8 @@ sftp_SendAck(register struct SFTP_Entry *sEntry)
     pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader);
     rpc2_htonp(pb);
     sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPortal);
-    say(/*9*/4, SFTP_DebugLevel, ("A-%lu [%lu] {%lu}\n", ntohl(pb->Header.SeqNumber), 
-			     ntohl(pb->Header.TimeStamp), ntohl(pb->Header.TimeEcho)));
+    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%lu}\n", ntohl(pb->Header.SeqNumber), 
+			     ntohl(pb->Header.TimeStamp), ntohl(pb->Header.TimeEcho));
     SFTP_FreeBuffer(&pb);
     return(0);
 }
@@ -589,8 +589,8 @@ sftp_AckArrived(pBuff, sEntry)
 
     sftp_ackr++;
     sftp_Recvd.Acks++;
-    say(/*9*/4, SFTP_DebugLevel, ("A-%lu [%lu] {%ld}\n", pBuff->Header.SeqNumber, 
-				  pBuff->Header.TimeStamp, pBuff->Header.TimeEcho));
+    say(/*9*/4, SFTP_DebugLevel, "A-%lu [%lu] {%ld}\n", pBuff->Header.SeqNumber, 
+				  pBuff->Header.TimeStamp, pBuff->Header.TimeEcho);
 
     /* calculate length of initial run of acked packets */
     prun = pBuff->Header.GotEmAll - sEntry->SendLastContig;
@@ -821,15 +821,15 @@ PRIVATE CheckWorried(sEntry)
 	    if (thePacket) {
 		then = ntohl(thePacket->Header.TimeStamp);
 		if (now - then > rexmit) {
-			say(4, SFTP_DebugLevel, ("Worried packet %ld, sent %lu, (%lu msec ago)\n",
-					 i, then, 10*(now-then)));
+			say(4, SFTP_DebugLevel, "Worried packet %ld, sent %lu, (%lu msec ago)\n",
+					 i, then, 10*(now-then));
 			break;
 		}
 	    }
 	}
     sEntry->SendWorriedLimit = i;
-    say(/*9*/4, SFTP_DebugLevel, ("LastContig = %ld, Worried = %ld, AckLimit = %ld, MostRecent = %ld\n",
-				  sEntry->SendLastContig, sEntry->SendWorriedLimit, sEntry->SendAckLimit, sEntry->SendMostRecent));
+    say(/*9*/4, SFTP_DebugLevel, "LastContig = %ld, Worried = %ld, AckLimit = %ld, MostRecent = %ld\n",
+				  sEntry->SendLastContig, sEntry->SendWorriedLimit, sEntry->SendAckLimit, sEntry->SendMostRecent);
     }
 
 PRIVATE ResendWorried(sEntry, ackLast)
@@ -883,8 +883,8 @@ PRIVATE ResendWorried(sEntry, ackLast)
 	    pb->Header.Flags = htonl(pb->Header.Flags);
 	    pb->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 	    pb->Header.TimeEcho = htonl(sEntry->TimeEcho);
-	    say(/*9*/4, SFTP_DebugLevel, ("Worried S-%lu [%lu] {%lu}\n", ntohl(pb->Header.SeqNumber), 
-					  ntohl(pb->Header.TimeStamp), ntohl(pb->Header.TimeEcho)));
+	    say(/*9*/4, SFTP_DebugLevel, "Worried S-%lu [%lu] {%lu}\n", ntohl(pb->Header.SeqNumber), 
+					  ntohl(pb->Header.TimeStamp), ntohl(pb->Header.TimeEcho));
 	    sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPortal);
 	    }
 
@@ -926,8 +926,8 @@ SendFirstUnacked(sEntry)
     pb->Header.SEFlags = htonl(pb->Header.SEFlags);
     pb->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
     pb->Header.TimeEcho = htonl(sEntry->TimeEcho);
-    say(/*9*/4, SFTP_DebugLevel, ("First Unacked S-%lu [%lu] {%lu}\n", ntohl(pb->Header.SeqNumber), 
-				  ntohl(pb->Header.TimeStamp), ntohl(pb->Header.TimeEcho)));
+    say(/*9*/4, SFTP_DebugLevel, "First Unacked S-%lu [%lu] {%lu}\n", ntohl(pb->Header.SeqNumber), 
+				  ntohl(pb->Header.TimeStamp), ntohl(pb->Header.TimeEcho));
     sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPortal);
     return(0);
     }
@@ -981,8 +981,8 @@ PRIVATE SendSendAhead(sEntry)
 	pb->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 	pb->Header.TimeEcho = htonl(sEntry->TimeEcho);
 	sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPortal);
-	say(/*9*/4, SFTP_DebugLevel, ("S-%lu [%lu] {%lu}\n", ntohl(pb->Header.SeqNumber), 
-				ntohl(pb->Header.TimeStamp), ntohl(pb->Header.TimeEcho)));
+	say(/*9*/4, SFTP_DebugLevel, "S-%lu [%lu] {%lu}\n", ntohl(pb->Header.SeqNumber), 
+				ntohl(pb->Header.TimeStamp), ntohl(pb->Header.TimeEcho));
 	}
 
     /* if we are multicasting, update the per-connection
@@ -1159,7 +1159,7 @@ sftp_SendStart(sEntry)
 
     sftp_starts++;
     sftp_Sent.Starts++;
-    say(9, SFTP_DebugLevel, ("sftp_SendStart()\n"));
+    say(9, SFTP_DebugLevel, "sftp_SendStart()\n");
 
     /* Allocating a "0-length" buffer below is shaky, since we may
        append Parms below! */
@@ -1186,8 +1186,8 @@ sftp_SendStart(sEntry)
     rpc2_htonp(pb);
 
     sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPortal);
-    say(/*9*/4, SFTP_DebugLevel, ("X-%lu [%lu]\n", ntohl(pb->Header.SeqNumber),
-				   ntohl(pb->Header.TimeStamp)));
+    say(/*9*/4, SFTP_DebugLevel, "X-%lu [%lu]\n", ntohl(pb->Header.SeqNumber),
+				   ntohl(pb->Header.TimeStamp));
     SFTP_FreeBuffer(&pb);
     return(0);
     }
@@ -1202,7 +1202,7 @@ sftp_StartArrived(pBuff, sEntry)
 
     sftp_starts++;
     sftp_Recvd.Starts++;
-    say(9, SFTP_DebugLevel, ("sftp_StartArrived()\n"));
+    say(9, SFTP_DebugLevel, "sftp_StartArrived()\n");
 
     if (sEntry->XferState == XferNotStarted)
 	{
@@ -1210,25 +1210,25 @@ sftp_StartArrived(pBuff, sEntry)
 /*	if (sEntry->GotParms == FALSE)*/
 	    if (sftp_ExtractParmsFromPacket(sEntry, pBuff) < 0) return(-1);
 
-	say(/*9*/4, SFTP_DebugLevel, ("X-%lu\n", pBuff->Header.SeqNumber));
+	say(/*9*/4, SFTP_DebugLevel, "X-%lu\n", pBuff->Header.SeqNumber);
 	if (sftpd->hashmark != 0)
 	    switch(sftpd->Tag)
 		{
 		case FILEBYNAME:
-		    say(0, SFTP_DebugLevel, ("%s: ", sftpd->FileInfo.ByName.LocalFileName));
+		    say(0, SFTP_DebugLevel, "%s: ", sftpd->FileInfo.ByName.LocalFileName);
 		    break;
 
 		case FILEBYFD:
-		    say(0, SFTP_DebugLevel, ("%ld: ", sftpd->FileInfo.ByFD.fd));
+		    say(0, SFTP_DebugLevel, "%ld: ", sftpd->FileInfo.ByFD.fd);
 		    break;
 
 		case FILEBYINODE:
-		    say(0, SFTP_DebugLevel, ("%ld.%ld: ", sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode));
+		    say(0, SFTP_DebugLevel, "%ld.%ld: ", sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode);
 		    break;
 		}
 	}
 
-    say(/*9*/4, SFTP_DebugLevel, ("X-%lu [%lu]\n", pBuff->Header.SeqNumber, pBuff->Header.TimeStamp));
+    say(/*9*/4, SFTP_DebugLevel, "X-%lu [%lu]\n", pBuff->Header.SeqNumber, pBuff->Header.TimeStamp);
     /* 
      * grab the timestamp whether the transfer has started or not,
      * because we're going to send more data anyway. 
@@ -1313,7 +1313,7 @@ PrintDb(se, pb)
     if (!pb) return;
 
     printf("\nSFTP_Packet:\n");
-    rpc2_PrintPacketHeader(pb, stdout);
+    rpc2_PrintPacketHeader(pb, rpc2_tracefile);
     }
 #endif RPC2DEBUG
 
@@ -1325,13 +1325,11 @@ one (specified by name, fd or inode) or a fake one (in memory).  The first
 two args to all the routines are the same: an SE descriptor that defines
 the file, and a file descriptor that is already open in the correct mode */
 
-sftp_vfsize(sdesc, openfd)
-    register SE_Descriptor *sdesc;
-    long openfd;  /* ignored if sdesc refers to a vmfile */
     /* Returns length of file sdesc using openfd
        openfd is ignored if sdesc refers to a vmfile
        Returns RPC2 error code (< 0)  on failure
     */
+sftp_vfsize(register SE_Descriptor *sdesc, long openfd)
     {
     struct stat stbuf;
 
@@ -1347,10 +1345,7 @@ sftp_vfsize(sdesc, openfd)
 	}
     }
 
-sftp_vfreadfile(sdesc, openfd, buf)
-    register SE_Descriptor *sdesc;
-    long openfd;  /* ignored if sdesc refers to a vmfile */
-    char *buf;
+sftp_vfreadfile(register SE_Descriptor *sdesc, long openfd, char *buf)
     /* Reads entire file defined by sdesc into buf using openfd
        openfd is ignored if sdesc refers to a vmfile
        Returns 0 on success, RPC2 error code (< 0) on failure
@@ -1372,14 +1367,10 @@ sftp_vfreadfile(sdesc, openfd, buf)
     return(0);
     }
 
-sftp_vfwritefile(sdesc, openfd, buf, nbytes)
-    register SE_Descriptor *sdesc;
-    int openfd; /* ignored if sdesc refers to a vmfile */
-    char *buf;
-    int nbytes;
     /* writes out nbytes from buf to file sdesc using openfd
        Returns 0 on success,  RPC2 error code (< 0) on failure
     */
+int sftp_vfwritefile(register SE_Descriptor *sdesc, int openfd, char *buf, int nbytes)
     {
     struct FileInfoByAddr *p;
 
@@ -1405,9 +1396,8 @@ sftp_vfwritefile(sdesc, openfd, buf, nbytes)
     return(0);    
     }
 
-sftp_vfclose(sdesc, openfd)
-    SE_Descriptor *sdesc; /* can be NULL */
-    int openfd;  /* ignored if sdesc refers to a vmfile, or if user provided fd */
+/* sdesc, can be null, fd ignored if sdesc refers to a vmfile, or if user provided fd */
+void sftp_vfclose(SE_Descriptor *sdesc, int openfd)
     {
     if (sdesc && MEMFILE(sdesc)) return;
     if (sdesc && sdesc->Value.SmartFTPD.Tag == FILEBYFD) return;

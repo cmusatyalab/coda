@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/sftp.h,v 1.1 1996/11/22 19:07:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.1 1997/01/08 21:50:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,14 +59,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef _SFTP
 #define _SFTP
 
-#ifndef	C_ARGS
-#if	(__cplusplus | __STDC__)
-#define	C_ARGS(arglist)	arglist
-#else	__cplusplus
-#define	C_ARGS(arglist)	()
-#endif	__cplusplus
-#endif	C_ARGS
-
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 /*	    
     Features:
 	    1. Windowing with bit masks to avoid unnecessary retransmissions
@@ -359,7 +354,7 @@ extern long SFTP_DebugLevel;
 
 
 
-extern sftp_Listener();
+extern int sftp_Listener();
 
 #define IsSource(sfe)\
     ((sfe->WhoAmI == SFCLIENT && sfe->SDesc && sfe->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER) ||\
@@ -396,55 +391,62 @@ extern long SFTP_DoPiggy;	/* FALSE to suppress piggybacking */
 
 /* SE routines invoked by base RPC2 code */
 extern long SFTP_Init();
-extern long SFTP_Bind1 C_ARGS((RPC2_Handle ConnHandle, RPC2_CountedBS *ClientIdent));
-extern long SFTP_Bind2 C_ARGS((RPC2_Handle ConnHandle, RPC2_Unsigned BindTime));
-extern long SFTP_Unbind C_ARGS((RPC2_Handle ConnHandle));
-extern long SFTP_NewConn C_ARGS((RPC2_Handle ConnHandle, RPC2_CountedBS *ClientIdent));
-extern long SFTP_MakeRPC1 C_ARGS((RPC2_Handle ConnHandle, SE_Descriptor *SDesc, RPC2_PacketBuffer **RequestPtr));
-extern long SFTP_MakeRPC2 C_ARGS((RPC2_Handle ConnHandle, SE_Descriptor *SDesc, RPC2_PacketBuffer *Reply));
+extern long SFTP_Bind1 (RPC2_Handle ConnHandle, RPC2_CountedBS *ClientIdent);
+extern long SFTP_Bind2 (RPC2_Handle ConnHandle, RPC2_Unsigned BindTime);
+extern long SFTP_Unbind (RPC2_Handle ConnHandle);
+extern long SFTP_NewConn (RPC2_Handle ConnHandle, RPC2_CountedBS *ClientIdent);
+extern long SFTP_MakeRPC1 (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, RPC2_PacketBuffer **RequestPtr);
+extern long SFTP_MakeRPC2 (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, RPC2_PacketBuffer *Reply);
 extern long SFTP_MultiRPC1();
 extern long SFTP_MultiRPC2();
 extern long SFTP_CreateMgrp();
 extern long SFTP_AddToMgrp();
 extern long SFTP_InitMulticast();
 extern long SFTP_DeleteMgrp();
-extern long SFTP_GetRequest C_ARGS((RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request));
-extern long SFTP_InitSE C_ARGS((RPC2_Handle ConnHandle, SE_Descriptor *SDesc));
-extern long SFTP_CheckSE C_ARGS((RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags));
-extern long SFTP_SendResponse C_ARGS((RPC2_Handle ConnHandle, RPC2_PacketBuffer **Reply));
-extern long SFTP_PrintSED C_ARGS((SE_Descriptor *SDesc, FILE *outFile));
-extern void SFTP_SetDefaults C_ARGS((SFTP_Initializer *initPtr));
-extern void SFTP_Activate C_ARGS((SFTP_Initializer *initPtr));
-extern long SFTP_GetTime C_ARGS((RPC2_Handle ConnHandle, struct timeval *Time));
-extern long SFTP_GetHostInfo C_ARGS((RPC2_Handle ConnHandle, struct HEntry **hPtr));
+extern long SFTP_GetRequest (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request);
+extern long SFTP_InitSE (RPC2_Handle ConnHandle, SE_Descriptor *SDesc);
+extern long SFTP_CheckSE (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags);
+extern long SFTP_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer **Reply);
+extern long SFTP_PrintSED (SE_Descriptor *SDesc, FILE *outFile);
+extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
+extern void SFTP_Activate (SFTP_Initializer *initPtr);
+extern long SFTP_GetTime (RPC2_Handle ConnHandle, struct timeval *Time);
+extern long SFTP_GetHostInfo (RPC2_Handle ConnHandle, struct HEntry **hPtr);
 
 /* Internal SFTP routines */
-extern sftp_InitIO();
-extern sftp_DataArrived();
-extern sftp_WriteStrategy();
-extern sftp_AckArrived();
-extern sftp_SendStrategy();
-extern sftp_ReadStrategy();
-extern sftp_SendStart();
-extern sftp_StartArrived();
-extern sftp_SendTrigger();
+extern int sftp_InitIO();
+extern int sftp_DataArrived();
+extern int sftp_WriteStrategy();
+extern int sftp_AckArrived();
+extern int sftp_SendStrategy();
+extern int sftp_ReadStrategy();
+extern int sftp_SendStart();
+extern int sftp_StartArrived();
+extern int sftp_SendTrigger();
 extern void sftp_InitPacket();
+extern void sftp_InitTrace();
+void sftp_vfclose(SE_Descriptor *sdesc, int openfd);
+int sftp_vfwritefile(register SE_Descriptor *sdesc, int openfd, char *buf, int nbytes);
+int sftp_vfreadfile(register SE_Descriptor *sdesc, long openfd, char *buf);
+int sftp_vfsize(register SE_Descriptor *sdesc, long openfd);
+void sftp_TraceBogus(long filenum, long linenum);
+
 extern void sftp_InitRTT();
 extern void sftp_UpdateRTT();
 extern void sftp_Backoff();
-extern SFXlateMcastPacket();
-extern MC_CheckAckorNak();
-extern MC_CheckStart();
+extern int SFXlateMcastPacket();
+extern int MC_CheckAckorNak();
+extern int MC_CheckStart();
 
 extern struct SFTP_Entry *sftp_AllocSEntry();
 extern void sftp_FreeSEntry();
 extern void sftp_AllocPiggySDesc();
 extern void sftp_FreePiggySDesc();
-extern sftp_AppendParmsToPacket();
-extern sftp_ExtractParmsFromPacket();
-extern sftp_AppendFileToPacket();
-extern sftp_ExtractFileFromPacket();
-extern sftp_AddPiggy();
+extern int sftp_AppendParmsToPacket();
+extern int sftp_ExtractParmsFromPacket();
+extern int sftp_AppendFileToPacket();
+extern int sftp_ExtractFileFromPacket();
+extern int sftp_AddPiggy();
 extern void sftp_SetError();
 
 

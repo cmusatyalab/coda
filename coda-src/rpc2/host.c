@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/host.c,v 1.1 1996/11/22 19:07:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.1 1997/01/08 21:50:22 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,23 +78,21 @@ of the Coda License.
 
 */
 
-/* Code to track host liveness */
+/* Code to track host liveness 
 
-/* 
-We track liveness by host-portal pair, as we're really interested
-in the liveness of the server process.  Response times are recorded
-in the appropriate host-portal pair, and exported to applications.
-This is similar to the "Lastword" shared between an RPC connection 
-and its side effect.  However, unlike the "Lastword" sharing, these
-times cannot be used to suppress retransmissions _between_ 
-connections, because of the possibility of lost request packets.
+   We track liveness by host-portal pair, as we're really interested
+   in the liveness of the server process.  Response times are recorded
+   in the appropriate host-portal pair, and exported to applications.
+   This is similar to the "Lastword" shared between an RPC connection
+   and its side effect.  However, unlike the "Lastword" sharing, these
+   times cannot be used to suppress retransmissions _between_
+   connections, because of the possibility of lost request packets.
 
-Entries are kept in a hash table. Since most hosts have multiple
-connections to a give server or service, and services are published
-on certain well-known portal ids, we hash on a combination of the
-low byte of the host address and the low byte of the portal.
-Both are in network order, and are assumed to be numbers, not names.
-*/ 
+   Entries are kept in a hash table. Since most hosts have multiple
+   connections to a give server or service, and services are published
+   on certain well-known portal ids, we hash on a combination of the
+   low byte of the host address and the low byte of the portal.  Both
+   are in network order, and are assumed to be numbers, not names.  */
  
 #define HOSTHASHBUCKETS 64
 #define HASHHOST(h,p) (((p & 0x0f00) >> 4 | (h & 0x0f000000) >> 24) \
@@ -103,11 +101,12 @@ Both are in network order, and are assumed to be numbers, not names.
 PRIVATE struct HEntry **HostHashTable;	/* to malloc'ed hash table of size CurrentLength entries */
 
 void rpc2_InitHost()
-    {
-    assert((HostHashTable = (struct HEntry **)malloc(HOSTHASHBUCKETS*sizeof(struct HEntry *))) != NULL);
-    bzero(HostHashTable, HOSTHASHBUCKETS*sizeof(struct HEntry *));	/* all entries initially NULL */
-    /* all entries in table have NULL value; malloc() guarantees this */
-    }
+{
+    HostHashTable = (struct HEntry **)malloc(HOSTHASHBUCKETS*sizeof(struct HEntry *));
+    assert(HostHashTable != 0);
+    /* all entries initially NULL */
+    bzero(HostHashTable, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
+}
 
 struct HEntry *rpc2_FindHEAddr(IN whichHost, IN whichPortal)
     register unsigned long whichHost;

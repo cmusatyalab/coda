@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/stest.c,v 1.1 1996/11/22 19:07:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.1 1997/01/08 21:50:33 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,17 +64,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/signal.h>
 #include <netinet/in.h>
 #include <math.h>
-#ifdef	__NetBSD__
-/* this is so 
-	stest.c:177: warning: passing arg 1 of `LWP_CreateProcess'
-		from incompatible pointer type
-	stest.c:177: warning: passing arg 4 of `LWP_CreateProcess'
-		makes pointer from integer without a cast
- * does not happen
- */
-#undef	C_ARGS
-#define	C_ARGS(arglist)	()
-#endif
 #include "lwp.h"
 #include "timer.h"
 #include "rpc2.h"
@@ -83,10 +72,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "rpc2.private.h"
 #include "test.h"
 
-
-#ifdef	__linux__
-#define RPC2_DEBUG
-#endif
+#define SUBSYS_SRV 1001
 
 extern etext();
 extern long RPC2_Perror;
@@ -217,8 +203,8 @@ long FindKey(IN ClientIdent, OUT IdentKey, OUT SessionKey)
     RPC2_EncryptionKey SessionKey;
     {
     long x;
-    say(0, RPC2_DebugLevel, ("*** In FindKey('%s', 0x%lx, 0x%lx) ***\n",
-		(char *)ClientIdent->SeqBody, (long)IdentKey, (long)SessionKey));
+    say(0, RPC2_DebugLevel, "*** In FindKey('%s', 0x%lx, 0x%lx) ***\n",
+		(char *)ClientIdent->SeqBody, (long)IdentKey, (long)SessionKey);
     x = -1;
     if (strcmp((char *)ClientIdent->SeqBody, "satya") == 0) x =1;
     if (strcmp((char *)ClientIdent->SeqBody, "bovik") == 0) x = 2;
@@ -415,7 +401,7 @@ ProcessPacket(cIn, pIn, pOut)
 		    }
 		}
 
-	    if (VerboseFlag) SFTP_PrintSED(&sed, stdout);
+	    if (VerboseFlag) SFTP_PrintSED(&sed, rpc2_tracefile);
 
 	    if ((i = RPC2_InitSideEffect(cIn, &sed)) == RPC2_SUCCESS)
 		{
@@ -443,7 +429,7 @@ ProcessPacket(cIn, pIn, pOut)
 		printf("VMCurrFileSize = %ld\n", VMCurrFileSize);
 	        }
 
-	    if (VerboseFlag) SFTP_PrintSED(&sed, stdout);
+	    if (VerboseFlag) SFTP_PrintSED(&sed, rpc2_tracefile);
 
 	    pOut->Header.BodyLength = replylen; /* should ensure not too long */
 	    bzero((char *)pOut->Body, (int) replylen);
@@ -528,6 +514,8 @@ GetParms(argc, argv, sftpI)
 	{
 	if (strcmp(argv[i], "-x") == 0 && i < argc -1)
 	    {RPC2_DebugLevel = atoi(argv[++i]); continue;}
+	if (strcmp(argv[i], "-lwpdebug") == 0 && i < argc -1)
+	    {lwp_debug = atoi(argv[++i]); continue;}
 	if (strcmp(argv[i], "-sx") == 0 && i < argc -1)
 	    {SFTP_DebugLevel = atoi(argv[++i]); continue;}
 	if (strcmp(argv[i], "-l") == 0 && i < argc -1)
@@ -566,22 +554,21 @@ FillStrings()
 
 InitRPC()
     {
-    RPC2_PortalIdent *portallist[1], **pp;
+    RPC2_PortalIdent *pp;
     RPC2_SubsysIdent subsysid;
 
     ThisPortal.Tag = RPC2_PORTALBYINETNUMBER;
-    portallist[0] = &ThisPortal;
-    pp = (ThisPortal.Value.InetPortNumber == 0) ? NULL : portallist;
+    pp = (ThisPortal.Value.InetPortNumber == 0) ? NULL :  &ThisPortal;
 
-    if (WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, pp, (long)1,
+    if (WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, pp,
 		      (long) 6, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
 	exit(-1);
     PrintHostIdent(&rpc2_LocalHost, (FILE *)NULL);
     printf("    ");
     PrintPortalIdent(&rpc2_LocalPortal, (FILE *)NULL);
     printf("\n\n");
-    subsysid.Tag = RPC2_SUBSYSBYNAME;
-    (void) strcpy(subsysid.Value.Name, "Vice2-FileServer");
+    subsysid.Tag = RPC2_SUBSYSBYID;
+    subsysid.Value.SubsysId = SUBSYS_SRV;
     (void) RPC2_Export(&subsysid);
     }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.1 1997/01/08 21:50:23 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.2 1998/01/10 18:38:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -58,6 +58,11 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#ifdef __linux__
+#include <search.h>
+#endif
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -66,6 +71,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "timer.h"
 #include "rpc2.h"
 #include "rpc2.private.h"
+
 
 
 /* Routines to allocate and manipulate the doubly-linked circular lists 
@@ -96,26 +102,26 @@ void rpc2_Replenish(whichList, whichCount, elemSize, creationCount, magicNumber)
     }
 
 
+/* Generic routine to move elements between lists Assumes p points to
+   an entry in the list pointed to by fromPtr.  Moves that entry to
+   the list pointed to by toPtr.  If p is NULL, an arbitrary entry in
+   the from list is selected as a victim and moved.  If toPtr is NULL,
+   the moved entry is made into a singleton list.  In all cases a
+   pointer to the moved entry is returned as the value of the
+   function.
+
+	*fromCount is decremented by one.
+	*toCount is incremented by one.
+
+   Frequently used routine -- optimize the hell out of it.  */
 struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
     /* pointers to header pointers of from and to lists */
     register struct LinkEntry **fromPtr, **toPtr;
     register struct LinkEntry *p;	/* pointer to entry to be moved */
     long *fromCount;		/* pointer to count of entries in from list */
     long *toCount;		/* pointer to count of entries in to list */
-    /* Generic routine to move elements between lists    
-	Assumes p points to an entry in the list pointed to by fromPtr.
-	Moves that entry to the list pointed to by toPtr.
-	If p is NULL, an arbitrary entry in the from list is selected as a victim and moved.
-	If toPtr is NULL, the moved entry is made into a singleton list.
-	In all  cases a pointer to the moved entry is returned as the value of the function.
 
-	*fromCount is decremented by one.
-	*toCount is incremented by one.
-
-	Frequently used routine -- optimize the hell out of it.
-    */
-
-    {
+{
     struct LinkEntry *victim;
 
     if (p == NULL) victim = *fromPtr;	
@@ -138,20 +144,18 @@ struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
     victim->Qname = toPtr;
     (*toCount)++;
     return(victim);
-    }
+}
 
-struct SL_Entry *rpc2_AllocSle(slType, slConn)
-    enum SL_Type slType;
-    struct CEntry *slConn;
-    /* Allocates an SL entry and binds it to slConn */
-    {
-    struct SL_Entry *sl, **tolist;
-    long *tocount;
-    
-    if (rpc2_SLFreeCount == 0)
-    	{
-	rpc2_Replenish((struct LinkEntry **) &rpc2_SLFreeList, &rpc2_SLFreeCount,
-	    sizeof(struct SL_Entry), &rpc2_SLCreationCount, OBJ_SLENTRY);
+/* Allocates an SL entry and binds it to slConn */
+struct SL_Entry *rpc2_AllocSle(enum SL_Type slType, struct CEntry *slConn)
+{
+	struct SL_Entry *sl, **tolist;
+	long *tocount;
+	
+	if (rpc2_SLFreeCount == 0)
+		{
+			rpc2_Replenish((struct LinkEntry **) &rpc2_SLFreeList, &rpc2_SLFreeCount,
+				       sizeof(struct SL_Entry), &rpc2_SLCreationCount, OBJ_SLENTRY);
 	}
 
     if (slType == REQ)
@@ -170,21 +174,16 @@ struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
 
     assert(sl->MagicNumber == OBJ_SLENTRY);
     sl->Type = slType;
-    if (slType != REQ && slConn != NULL)
-	{
-	slConn->MySl = sl;
-	sl->Conn = slConn->UniqueCID;
-	}
-#ifdef	__linux__
-    else sl->Conn = 0;
-#else
-    else sl->Conn = NULL;
-#endif
+    if (slType != REQ && slConn != NULL) {
+	    slConn->MySl = sl;
+	    sl->Conn = slConn->UniqueCID;
+    }   else 
+	    sl->Conn = 0;
 
     return(sl);
     }
 
-void rpc2_FreeSle(INOUT sl)
+void rpc2_FreeSle(INOUT sl)
     struct SL_Entry **sl;
     /* Releases the SL_Entry pointed to by sl. Sets sl to NULL.
        Removes binding between sl and its connection */
@@ -197,11 +196,7 @@ struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
     tsl = *sl;
     assert(tsl->MagicNumber == OBJ_SLENTRY);
 
-#ifdef	__linux__
     if (tsl->Conn != 0)
-#else
-      if (tsl->Conn != NULL)
-#endif
 	{
 	ce = rpc2_FindCEAddr(tsl->Conn);
 	ce->MySl = NULL;
@@ -249,11 +244,13 @@ void rpc2_ActivateSle (selem, exptime)
     oldt = TM_GetEarliest(rpc2_TimerQueue);
     if (oldt != NULL)
 	{
+		/* remove oldt if it isn't the soonest anymore */
 	delta = (oldt->TimeLeft.tv_sec - t->TotalTime.tv_sec)*1000000 +
 		    (oldt->TimeLeft.tv_usec - t->TotalTime.tv_usec);
 	if (delta > 0) 	IOMGR_Cancel(rpc2_SocketListenerPID);
 	}
-    else IOMGR_Cancel(rpc2_SocketListenerPID);
+    else  /* why the heck remove something that isn't there? */
+	    IOMGR_Cancel(rpc2_SocketListenerPID);
     TM_Insert(rpc2_TimerQueue, t);
     }
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/debug.c,v 4.1 1997/01/08 21:50:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/debug.c,v 4.2 1997/09/23 15:13:27 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -89,7 +89,7 @@ void rpc2_PrintTMElem(tPtr, tFile)
     register struct TM_Elem *tPtr;
     FILE *tFile;
     {
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "MyAddr = 0x%lx Next = 0x%lx  Prev = 0x%lx  TotalTime = %ld:%ld  TimeLeft = %ld:%ld  BackPointer = 0x%lx\n",
     	(long)tPtr, (long)tPtr->Next, (long)tPtr->Prev, tPtr->TotalTime.tv_sec, tPtr->TotalTime.tv_usec,
 	tPtr->TimeLeft.tv_sec, tPtr->TimeLeft.tv_usec, tPtr->BackPointer);
@@ -100,7 +100,7 @@ void rpc2_PrintFilter(fPtr, tFile)
     register RPC2_RequestFilter *fPtr;
     FILE *tFile;
     {
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "FromWhom = %s  OldOrNew = %s  ", 
 	fPtr->FromWhom == ANY ? "ANY" : (fPtr->FromWhom == ONECONN ? "ONECONN" : (fPtr->FromWhom == ONESUBSYS ? "ONESUBSYS" : "??????")),
 	fPtr->OldOrNew == OLD ? "OLD" : (fPtr->OldOrNew == NEW ? "NEW" : (fPtr->OldOrNew == OLDORNEW ? "OLDORNEW" : "??????")));
@@ -117,11 +117,10 @@ void rpc2_PrintSLEntry(slPtr, tFile)
     register struct SL_Entry *slPtr;
     FILE *tFile;
     {
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;
+    
     fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx PrevEntry = 0x%lx  MagicNumber = %s  ReturnCode = %s\n\tTElem==>  ", (long)slPtr, (long)slPtr->NextEntry, (long)slPtr->PrevEntry, WhichMagic(slPtr->MagicNumber), 
 	    slPtr->ReturnCode == WAITING ? "WAITING" : slPtr->ReturnCode == ARRIVED ? "ARRIVED" : slPtr->ReturnCode == TIMEOUT ? "TIMEOUT" : slPtr->ReturnCode == NAKED ? "NAKED" : "??????");
-    rpc2_PrintTMElem(&slPtr->TElem, tFile);
-
     switch(slPtr->Type)
 	{
 	case REPLY:
@@ -144,6 +143,7 @@ void rpc2_PrintSLEntry(slPtr, tFile)
 		    fprintf(tFile, "\tElementType = ???????\n");
 		    break;
 	}
+    rpc2_PrintTMElem(&slPtr->TElem, tFile);
     fprintf(tFile, "\n");
     (void) fflush(tFile);
     }
@@ -156,7 +156,7 @@ void rpc2_PrintHEntry(hPtr, tFile)
     register long a = ntohl(hPtr->Host);
     int head, ix;
 
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     fprintf(tFile, "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
 	(long)hPtr, (long)hPtr->Next, (long)hPtr->Prev, WhichMagic(hPtr->MagicNumber));
@@ -212,7 +212,7 @@ void rpc2_PrintCEntry(cPtr, tFile)
     FILE *tFile;
     {
     long i;
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s  Role = %s  State = ",
 	(long)cPtr, (long)cPtr->NextEntry, (long)cPtr->PrevEntry,
 	WhichMagic(cPtr->MagicNumber),
@@ -282,7 +282,7 @@ void rpc2_PrintMEntry(mPtr, tFile)
     FILE *tFile;
     {
     long i;
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s  Role = %s  State = ",
 	(long)mPtr, (long)mPtr->Next, (long)mPtr->Prev,
 	WhichMagic(mPtr->MagicNumber),
@@ -345,7 +345,7 @@ void rpc2_PrintHostIdent(hPtr, tFile)
     register RPC2_HostIdent *hPtr;
     FILE *tFile;
     {
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     switch (hPtr->Tag)
 	{
 	case RPC2_HOSTBYINETADDR:
@@ -375,7 +375,7 @@ void rpc2_PrintPortalIdent(pPtr, tFile)
     register RPC2_PortalIdent *pPtr;
     FILE *tFile;
     {
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     switch (pPtr->Tag)
 	{
 	case RPC2_PORTALBYINETNUMBER:
@@ -398,10 +398,11 @@ void rpc2_PrintSubsysIdent(Subsys, tFile)
     register RPC2_SubsysIdent *Subsys;
     FILE *tFile;
     {
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     switch(Subsys->Tag) {
 	case RPC2_SUBSYSBYNAME:
-		fprintf(tFile, "Subsys:    Tag = RPC2_SUBSYSBYNAME    Name = \"%s\"\n", Subsys->Value.Name);
+		say(-1, RPC2_DebugLevel, "Someone is still trying to use obsoleted RPC2_SUBSYSBYNAME\n");
+		assert(0);
 		break;
 			
 	case RPC2_SUBSYSBYID:
@@ -409,7 +410,8 @@ void rpc2_PrintSubsysIdent(Subsys, tFile)
 		break;
 			
 	default:
-		fprintf(tFile, "Subsys:    ??????\n");
+		say(-1, RPC2_DebugLevel, "BOGUS Tag value in Subsys!\n");
+		assert(0);
     }
     }
 
@@ -421,7 +423,7 @@ void rpc2_PrintPacketHeader(pb, tFile)
     register RPC2_PacketBuffer *pb;
     FILE *tFile;
 {
-    if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
+    if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     fprintf(tFile, "\tPrefix: BufferSize = %ld  LengthOfPacket = %ld  ",
 	    pb->Prefix.BufferSize, pb->Prefix.LengthOfPacket);
@@ -920,7 +922,7 @@ void rpc2_PrintSEDesc(whichSDesc, whichFile)
     register FILE *whichFile;
     {
     register long i;
-    if (whichFile == NULL) whichFile = stdout;	/* it's ok, call by value */
+    if (whichFile == NULL) whichFile = rpc2_logfile;	/* it's ok, call by value */
     for (i = 0; i < SE_DefCount; i++)
 	if (SE_DefSpecs[i].SideEffectType == whichSDesc->Tag) break;
     if (i >= SE_DefCount) return; /* Bogus side effect */

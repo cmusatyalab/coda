@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi2.c,v 4.1 1997/01/08 21:50:25 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi2.c,v 4.2 1997/09/23 19:53:17 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,10 +60,10 @@ supported by Transarc Corporation, Pittsburgh, PA.
 	Routines for MultiRPC
 */
 
-/* MRPC_MakeMulti() and MRPC_UnpackMulti() perform argument packing and unpacking for 
- * the RPC2_MultiRPC() call. This is a library routine which gets its type information
- * from definitions in RP2GEN generated include files and client side interface.
- */
+/* MRPC_MakeMulti() and MRPC_UnpackMulti() perform argument packing
+ * and unpacking for the RPC2_MultiRPC() call. This is a library
+ * routine which gets its type information from definitions in RP2GEN
+ * generated include files and client side interface.  */
 
 #include <stdio.h>
 #include <string.h>
@@ -90,37 +90,6 @@ supported by Transarc Corporation, Pittsburgh, PA.
 extern long HandleResult();
 long MRPC_UnpackMulti();
 
-/* CAVEAT (Satya 5/30/96):  This code should be called "Ellen's Revenge".  The treatment of 
-        variable length parameter lists in this code is an unholy mess!   It should be 
-	completely gutted and rewritten.  For now, I've patched it yet once more with a bandaid.
-	
-	The code in this file implicitly assumes that all the variable length
-	parameters are of the union type PARM, that the stack grows downward, and that
-	arguments are pushed on the stack in reverse order.   Based on these assumptions,
-	various routines in this file step through the variable argument list by directly
-	incrementing a (PARM *) pointer.    Sometimes the stepping occurs as a side effect
-	of a call to a routine (e.g., to pack()).  Although MRPC_MakeMulti() now uses the ...
-	notation and pays lip service to stdarg.h, it also relies on these assumptions.
-	The use of stdarg.h in this case is merely to fool gcc into thinking all is well!
-	
-	Woe betide anyone who tries to port this code onto a platform where these assumptions
-	are not true.	
-
-*/
-
-/* I hit this "Ellen's Revenge" while porting this code to
-     linux-sparc.  So I roll my sleeves and rewrite the handling of
-     variable length parameter lists.  It should be pretty safe now.
-     However, I am not exactly sure the handling of RPC2_BOUNDEDBS_TAG
-     and RPC2_ENUM_TAG.
-
-       -- Clement (9/1/97) 
-*/
-
-long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
-		    RPC2_Handle CIDList[], RPC2_Integer RCList[], RPC2_Multicast *MCast,
-		    long (*HandleResult)(), struct timeval *Timeout, ...)
-
 /*
     ServerOp	RP2Gen generated op code 
     ArgTypes	format of server arguments 
@@ -132,6 +101,10 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
     Timeout	user specified timeout
     
 */
+long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
+		    RPC2_Handle CIDList[], RPC2_Integer RCList[], RPC2_Multicast *MCast,
+		    long (*HandleResult)(), struct timeval *Timeout, ...)
+
 
 {
     RPC2_PacketBuffer *_reqbuffer;
@@ -147,227 +120,230 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
     int count = 0, i;
     va_list ap;
 
-    /* first we need to know how many arguments in the variable-length argument lists */
+    /* first we need to know how many arguments in the variable-length
+       argument lists */
     for(a_types = ArgTypes, i=0; a_types->mode != C_END; a_types++)
-      i++;
+	    i++;
     va_array = malloc(i * sizeof(PARM)); /* and then malloc the storage */
-    assert((va_array!=0));		/* don't know better way to handle "Can't malloc" */
+    assert((va_array!=0));   /* don't know better way to handle "Can't malloc" */
     
-    /* the followings are safe and standard way to get those variable-length arguments */
+    /* the followings are safe and standard way to get those
+       variable-length arguments */
     va_start(ap, Timeout);
     for(a_types = ArgTypes, i=0; a_types->mode != C_END; a_types++, i++) {
-        switch(a_types->type) {
-        case RPC2_INTEGER_TAG:  /* 0: begin of case RPC2_INTEGER_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	
-                va_array[i].integer = va_arg(ap, RPC2_Integer);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].integerp = va_arg(ap, RPC2_Integer **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;              /* 0: end   of case RPC2_INTEGER_TAG */
-        case RPC2_UNSIGNED_TAG: /* 1: begin of case RPC_UNSIGNED_TAG */
-            switch (a_types->mode) {
-            case IN_MODE:
-                va_array[i].unsgned = va_arg(ap, RPC2_Unsigned);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].unsgnedp = va_arg(ap, RPC2_Unsigned **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;              /* 1: end of case RPC2_UNSIGNED_TAG */
-        case RPC2_BYTE_TAG:	/* 2: begin of case RPC2_BYTE_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	
-                va_array[i].integer = va_arg(ap, RPC2_Byte);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].integerp = va_arg(ap, RPC2_Byte **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;              /* 2: end   of case RPC2_BYTE_TAG */
-        case RPC2_STRING_TAG:	/* 3: begin of case RPC2_STRING_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	
-                va_array[i].integer = va_arg(ap, RPC2_String);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].integerp = va_arg(ap, RPC2_String **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;              /* 3: end   of case RPC2_STRING_TAG */
-        case RPC2_COUNTEDBS_TAG:/* 4: begin of case RPC2_COUNTEDBS_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	
-                va_array[i].integer = va_arg(ap, RPC2_CountedBS *);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].integerp = va_arg(ap, RPC2_CountedBS **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;              /* 4: end   of case RPC2_COUNTEDBS_TAG */
-        case RPC2_BOUNDEDBS_TAG:/* 5: begin of case RPC2_BOUNDEDBS_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	
-                va_array[i].integer = va_arg(ap, RPC2_BoundedBS *);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].integerp = va_arg(ap, RPC2_BoundedBS **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;              /* 5: end   of case RPC2_BOUNDEDBS_TAG */
-        case RPC2_BULKDESCRIPTOR_TAG: /* 6: begin of case RPC2_BULKDESCRIPTOR_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	
-            case OUT_MODE:
-            case IN_OUT_MODE:	/* not sure if this is correct way: bulk descriptor is
-				   not documented in Ch.2 of RPC2 manual*/
-                va_array[i].integerp = va_arg(ap, long *); 
-                break;
-            default:
-                assert(0);      
-            }
-            break;                    /* 6: end   of case RPC2_BULKDESCRIPTOR_TAG */
-        case RPC2_ENCRYPTIONKEY_TAG:  /* 7: begin of case RPC2_ENCRYPTIONKEY_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	
-                va_array[i].integer = va_arg(ap, RPC2_EncryptionKey *);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].integerp = va_arg(ap, RPC2_EncryptionKey **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;                    /* 7: end   of case RPC2_ENCRYPTIONKEY_TAG */
-        case RPC2_STRUCT_TAG:	/* 8: begin of case RPC2_STRUCT_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	
-                va_array[i].integer = va_arg(ap, union PARM *);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].integerp = va_arg(ap, union PARM **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;              /* 8: end   of case RPC2_STRUCT_TAG */
-        case RPC2_ENUM_TAG:	/* 9: begin of case RPC2_ENUM_TAG */
-            switch(a_types->mode) {
-            case IN_MODE:	/* is this the right way to ENUM parameter ? */
-                va_array[i].integer = va_arg(ap, RPC2_Integer *);
-                break;
-            case OUT_MODE:
-            case IN_OUT_MODE:
-                va_array[i].integerp = va_arg(ap, RPC2_Integer **);
-                break;
-            default:
-                assert(0);      
-            }
-            break;              /* 9: end   of case RPC2_ENUM_TAG */
-        default:
-	  assert(0);
-        } /* end of switch on a_types */
+	    switch(a_types->type) {
+	    case RPC2_INTEGER_TAG:  /* 0: begin of case RPC2_INTEGER_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	
+			    va_array[i].integer = va_arg(ap, RPC2_Integer);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].integerp = va_arg(ap, RPC2_Integer **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;              /* 0: end   of case RPC2_INTEGER_TAG */
+	    case RPC2_UNSIGNED_TAG: /* 1: begin of case RPC_UNSIGNED_TAG */
+		    switch (a_types->mode) {
+		    case IN_MODE:
+			    va_array[i].unsgned = va_arg(ap, RPC2_Unsigned);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].unsgnedp = va_arg(ap, RPC2_Unsigned **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;              /* 1: end of case RPC2_UNSIGNED_TAG */
+	    case RPC2_BYTE_TAG:	/* 2: begin of case RPC2_BYTE_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	
+			    va_array[i].integer = va_arg(ap, RPC2_Byte);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].integerp = va_arg(ap, RPC2_Byte **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;              /* 2: end   of case RPC2_BYTE_TAG */
+	    case RPC2_STRING_TAG:	/* 3: begin of case RPC2_STRING_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	
+			    va_array[i].integer = va_arg(ap, RPC2_String);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].integerp = va_arg(ap, RPC2_String **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;              /* 3: end   of case RPC2_STRING_TAG */
+	    case RPC2_COUNTEDBS_TAG:/* 4: begin of case RPC2_COUNTEDBS_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	
+			    va_array[i].integer = va_arg(ap, RPC2_CountedBS *);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].integerp = va_arg(ap, RPC2_CountedBS **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;              /* 4: end   of case RPC2_COUNTEDBS_TAG */
+	    case RPC2_BOUNDEDBS_TAG:/* 5: begin of case RPC2_BOUNDEDBS_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	
+			    va_array[i].integer = va_arg(ap, RPC2_BoundedBS *);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].integerp = va_arg(ap, RPC2_BoundedBS **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;              /* 5: end   of case RPC2_BOUNDEDBS_TAG */
+	    case RPC2_BULKDESCRIPTOR_TAG: /* 6: begin of case RPC2_BULKDESCRIPTOR_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	
+		    case OUT_MODE:
+		    case IN_OUT_MODE:	/* not sure if this is correct way: bulk descriptor is
+					   not documented in Ch.2 of RPC2 manual*/
+			    va_array[i].integerp = va_arg(ap, long *); 
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;                    /* 6: end   of case RPC2_BULKDESCRIPTOR_TAG */
+	    case RPC2_ENCRYPTIONKEY_TAG:  /* 7: begin of case RPC2_ENCRYPTIONKEY_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	
+			    va_array[i].integer = va_arg(ap, RPC2_EncryptionKey *);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].integerp = va_arg(ap, RPC2_EncryptionKey **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;                    /* 7: end   of case RPC2_ENCRYPTIONKEY_TAG */
+	    case RPC2_STRUCT_TAG:	/* 8: begin of case RPC2_STRUCT_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	
+			    va_array[i].integer = va_arg(ap, union PARM *);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].integerp = va_arg(ap, union PARM **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;              /* 8: end   of case RPC2_STRUCT_TAG */
+	    case RPC2_ENUM_TAG:	/* 9: begin of case RPC2_ENUM_TAG */
+		    switch(a_types->mode) {
+		    case IN_MODE:	/* is this the right way to ENUM parameter ? */
+			    va_array[i].integer = va_arg(ap, RPC2_Integer *);
+			    break;
+		    case OUT_MODE:
+		    case IN_OUT_MODE:
+			    va_array[i].integerp = va_arg(ap, RPC2_Integer **);
+			    break;
+		    default:
+			    assert(0);      
+		    }
+		    break;              /* 9: end   of case RPC2_ENUM_TAG */
+	    default:
+		    assert(0);
+	    } /* end of switch on a_types */
     } /* end of stepping thru the list of variable-length arguments */
     va_end(ap);
-
+    
     _length = 0;
-
+    
     count = 0;
-    for(a_types = ArgTypes, args = va_array; a_types->mode != C_END ; a_types++, args++, count++) {
-	switch(a_types->mode){
-	   case OUT_MODE:
-	   case C_END:
+    for(a_types = ArgTypes, args = va_array; a_types->mode != C_END ; 
+	a_types++, args++, count++) {
+	    switch(a_types->mode){
+	    case OUT_MODE:
+	    case C_END:
 		    break;
-	   case IN_MODE:
-	   case IN_OUT_MODE:
-	     switch(a_types->type) {
-		case RPC2_STRUCT_TAG:	_length += struct_len(&a_types, &args);
-					break;
+	    case IN_MODE:
+	    case IN_OUT_MODE:
+		    switch(a_types->type) {
+		    case RPC2_STRUCT_TAG:	_length += struct_len(&a_types, &args);
+			    break;
+			    
+		    case RPC2_BULKDESCRIPTOR_TAG:
+			    a_types->bound = 0;
+			    SDescList = args[0].sedp;
+			    break;
+			    
+		    default:		a_types->bound = 0;
+			    _length += get_len(&a_types, &args, a_types->mode);
+			    
+		    }
+		    break;
 
-		case RPC2_BULKDESCRIPTOR_TAG:
-	                                a_types->bound = 0;
-					SDescList = args[0].sedp;
-					break;
-
-		default:		a_types->bound = 0;
-		                        _length += get_len(&a_types, &args, a_types->mode);
-
-	     }
-	     break;
-
-	   case NO_MODE:
-		say(0, RPC2_DebugLevel, ("MRPC_MakeMulti: bad mode for argument NO_MODE\n"));
-	}
+	    case NO_MODE:
+		    say(0, RPC2_DebugLevel, "MRPC_MakeMulti: bad mode for argument NO_MODE\n");
+	    }
     }
-
+    
     for(a_types = ArgTypes; ; a_types++)
-        if (a_types->mode == C_END) {
-            (*a_types->startlog)(ServerOp); /* Call Stub log start */
-	    break;
-	}
-
+	    if (a_types->mode == C_END) {
+		    (*a_types->startlog)(ServerOp); /* Call Stub log start */
+		    break;
+	    }
+    
     _rpc2val = RPC2_AllocBuffer(_length, &_reqbuffer);
     if (_rpc2val != RPC2_SUCCESS) return _rpc2val;
-
+    
     /* Pack arguments */
     _ptr = (PARM *)_reqbuffer->Body;
     for(a_types = ArgTypes, args = va_array; a_types->mode != C_END; a_types++) {
-      if (a_types->mode != OUT_MODE) {
-	if (a_types->type != RPC2_STRUCT_TAG)
-		pack(a_types, &args, &_ptr);
-	else {
-		pack_struct(a_types, &args, &_ptr);
-		args++;
-	}
-      }
-      else args++;
+	    if (a_types->mode != OUT_MODE) {
+		    if (a_types->type != RPC2_STRUCT_TAG)
+			    pack(a_types, &args, &_ptr);
+		    else {
+			    pack_struct(a_types, &args, &_ptr);
+			    args++;
+		    }
+	    }
+	    else args++;
     }
 
-   /* Pack server argument info into structure */
+    /* Pack server argument info into structure */
     arg_info.ArgTypes = ArgTypes;
     arg_info.Args = va_array;
     arg_info.HandleResult = HandleResult;
     arg_info.ArgCount = count;
-
+    
     /* Generate RPC2 call */
-     
+    
     _reqbuffer->Header.Opcode = ServerOp;
 
     _rpc2val = RPC2_MultiRPC(HowMany, CIDList, RCList, MCast, _reqbuffer, SDescList, MRPC_UnpackMulti, &arg_info, Timeout);
-
+    
     for(a_types = ArgTypes; ; a_types++)
-        if (a_types->mode == C_END) {
-            (*a_types->endlog)(ServerOp, HowMany, CIDList, RCList); /* Call Stub Log end */
-	    break;
-	}
-
+	    if (a_types->mode == C_END) {
+		    (*a_types->endlog)(ServerOp, HowMany, CIDList, RCList); /* Call Stub Log end */
+		    break;
+	    }
+    
     free(va_array);		/* done with the array */
     if (_rpc2val != RPC2_SUCCESS) {
-       RPC2_FreeBuffer (&_reqbuffer);
-
-       return _rpc2val;
+	    RPC2_FreeBuffer (&_reqbuffer);
+	    
+	    return _rpc2val;
     }
     _rpc2val = RPC2_FreeBuffer(&_reqbuffer);
     return _rpc2val;
@@ -378,36 +354,36 @@ pack_struct(a_types, args, ptr)
 register ARG *a_types;
 register PARM **args, **ptr;
 {
-    ARG *field;
-    PARM **strp, *str;
-    int i, maxiterate;
+	ARG *field;
+	PARM **strp, *str;
+	int i, maxiterate;
 
-    if (a_types->mode == IN_OUT_MODE) {
-        str = *(*args)->structpp;
-	strp = &str;
-    }
-    else if (a_types->mode == IN_MODE) {
-        str = (*args)->structp;
-	strp = &str;
-    }
-    else strp = args;
-
-    if (a_types->bound != 0) {
-        maxiterate = get_arraylen_pack(a_types-1, *args-1);
-	for(i = 0; i < maxiterate; i++) {
-	    for(field = a_types->field; field->mode != C_END; field++) {
-	        if (field->type == RPC2_STRUCT_TAG)
-		    pack_struct(field, strp, ptr);
-		else pack(field, strp, ptr);
-	    }
+	if (a_types->mode == IN_OUT_MODE) {
+		str = *(*args)->structpp;
+		strp = &str;
 	}
-    } else {
-        for(field = a_types->field; field->mode != C_END; field++) {
-	    if (field->type == RPC2_STRUCT_TAG)
-	        pack_struct(field, strp, ptr);
-	    else pack(field, strp, ptr);
+	else if (a_types->mode == IN_MODE) {
+		str = (*args)->structp;
+		strp = &str;
 	}
-    }
+	else strp = args;
+	
+	if (a_types->bound != 0) {
+		maxiterate = get_arraylen_pack(a_types-1, *args-1);
+		for(i = 0; i < maxiterate; i++) {
+			for(field = a_types->field; field->mode != C_END; field++) {
+				if (field->type == RPC2_STRUCT_TAG)
+					pack_struct(field, strp, ptr);
+				else pack(field, strp, ptr);
+			}
+		}
+	} else {
+		for(field = a_types->field; field->mode != C_END; field++) {
+			if (field->type == RPC2_STRUCT_TAG)
+				pack_struct(field, strp, ptr);
+			else pack(field, strp, ptr);
+		}
+	}
 }
 
 
@@ -588,10 +564,10 @@ pack(a_types, args, _ptr)
 			      (*args)++;
 			       break;
 	   case RPC2_STRUCT_TAG:
-				say(0, RPC2_DebugLevel, ("MakeMulti (pack): RPC2_STRUCT_TAG encountered\n"));
+				say(0, RPC2_DebugLevel, "MakeMulti (pack): RPC2_STRUCT_TAG encountered\n");
 				break;
 	   default:
-			       say(0, RPC2_DebugLevel, ("MakeMulti (pack): unknown type tag: %d\n", a_types->type));
+			       say(0, RPC2_DebugLevel, "MakeMulti (pack): unknown type tag: %d\n", a_types->type);
 	}
 }
 
@@ -758,10 +734,10 @@ MODE mode;
 	case RPC2_ENCRYPTIONKEY_TAG:
 			return((*a_types)->size);
 	case RPC2_STRUCT_TAG:		
-			say(0, RPC2_DebugLevel, ("get_len: struct_tag encountered\n"));
+			say(0, RPC2_DebugLevel, "get_len: struct_tag encountered\n");
 			return(-1);
 	default:
-			say(0, RPC2_DebugLevel, ("get_len: [can't happen]: impossible type tag: %d\n", (*a_types)->type));
+			say(0, RPC2_DebugLevel, "get_len: [can't happen]: impossible type tag: %d\n", (*a_types)->type);
 			return(-1);
      }
 }
@@ -784,7 +760,7 @@ register PARM *args;
 			/*NOTREACHED*/
 			break;
         default:
-			say(0, RPC2_DebugLevel, ("MakeMulti: cannot pack array size\n"));
+			say(0, RPC2_DebugLevel, "MakeMulti: cannot pack array size\n");
 			exit(-1);
     }
     /*NOTREACHED*/
@@ -800,7 +776,7 @@ register PARM *ptr;
 			/*NOTREACHED*/
 			break;
         default:
-			say(0, RPC2_DebugLevel, ("MakeMulti: cannot unpack array size\n"));
+			say(0, RPC2_DebugLevel, "MakeMulti: cannot unpack array size\n");
 			exit(-1);
     }
     /*NOTREACHED*/
@@ -927,7 +903,7 @@ register long offset;
 		case RPC2_BULKDESCRIPTOR_TAG:
 				break;
 		case RPC2_STRUCT_TAG:
-				say(0, RPC2_DebugLevel, ("Unpack: encountered struct\n"));
+				say(0, RPC2_DebugLevel, "Unpack: encountered struct\n");
 				break;
 		case RPC2_ENCRYPTIONKEY_TAG:
 				if (mode == IN_OUT_MODE) {
@@ -941,7 +917,7 @@ register long offset;
 #endif
 				break;
 		default:
-				say(0, RPC2_DebugLevel, ("UnpackMulti (unpack): unknown tag: %d\n", a_types->type));
+				say(0, RPC2_DebugLevel, "UnpackMulti (unpack): unknown tag: %d\n", a_types->type);
 	    }
   }
 

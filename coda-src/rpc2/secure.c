@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/secure.c,v 1.1 1996/11/22 19:07:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/secure.c,v 4.1 1997/01/08 21:50:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,6 +56,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/time.h>
@@ -220,50 +222,48 @@ long rpc2_NextRandom(StatePtr)
 #endif
 
 
-rpc2_ApplyE(pb, ce)
-    register RPC2_PacketBuffer *pb;
-    register struct CEntry *ce;
-    {
-    switch((int)ce->SecurityLevel)
-	{
+void rpc2_ApplyE(register RPC2_PacketBuffer *pb,     register struct CEntry *ce)
+{
+	switch((int)ce->SecurityLevel) {
 	case RPC2_OPENKIMONO:
 	case RPC2_AUTHONLY:
-		    return;
-
+		return;
+		    
 	case RPC2_HEADERSONLY:
-	    rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
-		    sizeof(struct RPC2_PacketHeader)-4*sizeof(RPC2_Integer),
-		    ce->SessionKey, ce->EncryptionType);
-	    break;
+		rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
+			     sizeof(struct RPC2_PacketHeader)-4*sizeof(RPC2_Integer),
+			     ce->SessionKey, ce->EncryptionType);
+		break;
 	
 	case RPC2_SECURE:
-	    rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
-		    pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),
-		    ce->SessionKey, ce->EncryptionType);
-	    break;
+		rpc2_Encrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
+			     pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),
+			     ce->SessionKey, ce->EncryptionType);
+		break;
 	}
 	
-    pb->Header.Flags = htonl(RPC2_ENCRYPTED | ntohl(pb->Header.Flags));
-    }
+	pb->Header.Flags = htonl(RPC2_ENCRYPTED | ntohl(pb->Header.Flags));
+}
 
-rpc2_ApplyD(pb, ce)
-    register RPC2_PacketBuffer *pb;
-    register struct CEntry *ce;
-    {
-    if (!(ntohl(pb->Header.Flags) & RPC2_ENCRYPTED)) return;
+void rpc2_ApplyD(register RPC2_PacketBuffer *pb, register struct CEntry *ce)
+{
 
-    switch((int)ce->SecurityLevel)
-	{
+	switch((int)ce->SecurityLevel) {
 	case RPC2_HEADERSONLY:
-	    rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
-		    sizeof(struct RPC2_PacketHeader)-4*sizeof(RPC2_Integer),
-		    ce->SessionKey, ce->EncryptionType);
-	    return;
+		rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
+			     sizeof(struct RPC2_PacketHeader)-4*sizeof(RPC2_Integer),
+			     ce->SessionKey, ce->EncryptionType);
+		return;
 	
 	case RPC2_SECURE:
-	    rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
-		    pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),
-		    ce->SessionKey, ce->EncryptionType);
-	    return;
+		rpc2_Decrypt((char *)&pb->Header.BodyLength, (char *)&pb->Header.BodyLength, 
+			     pb->Prefix.LengthOfPacket-4*sizeof(RPC2_Integer),
+			     ce->SessionKey, ce->EncryptionType);
+		return;
 	}
-    }
+
+        /* XXXXXXXXXXXXXXX this was at the beginning now moved 
+	 */
+	if (!(ntohl(pb->Header.Flags) & RPC2_ENCRYPTED)) 
+		return;
+}

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/multi3.c,v 1.1 1996/11/22 19:07:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.1 1997/01/08 21:50:25 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -85,7 +85,7 @@ extern void SavePacketForRetry();  /* rpc2a.c */
 
 /* this definition was taken from sl.c */
 #define BOGUS(p)	/* bogus packet; throw it away */\
-    say(9, RPC2_DebugLevel, ("Bogus packet, discarding\n"));\
+    say(9, RPC2_DebugLevel, "Bogus packet, discarding\n");\
     rpc2_MRecvd.Bogus++;\
     RPC2_FreeBuffer(&p);
 
@@ -99,15 +99,15 @@ PRIVATE	RPC2_Handle	LastMgrpidAllocated;
 #define	LISTENERALLOCSIZE   8		    /* malloc/realloc granularity */
 
 
-/* Initialize the multicast group data structures; all this requires is 
-   zeroing the hash table. */
+/* Initialize the multicast group data structures; all this requires
+   is zeroing the hash table. */
 void rpc2_InitMgrp()
-    {
-    say(0, RPC2_DebugLevel, ("In rpc2_InitMgrp()\n"));
-
-    bzero(MgrpHashTable, sizeof(MgrpHashTable));
-    LastMgrpidAllocated = 0;
-    }
+{
+	say(0, RPC2_DebugLevel, "In rpc2_InitMgrp()\n");
+	
+	bzero(MgrpHashTable, sizeof(MgrpHashTable));
+	LastMgrpidAllocated = 0;
+}
 
 
 /* Implements simple hash algorithm. */
@@ -119,19 +119,19 @@ PRIVATE struct bucket *rpc2_GetBucket(host, portal, mgrpid)
     register int    index;
 
     index = (host->Value.InetAddress ^ mgrpid) & (MGRPHASHLENGTH - 1);
-    say(9, RPC2_DebugLevel, ("bucket = %d, count = %d\n", index, MgrpHashTable[index].count));
+    say(9, RPC2_DebugLevel, "bucket = %d, count = %d\n", index, MgrpHashTable[index].count);
     return(&MgrpHashTable[index]);
     }
 
 
-/* Clients call this routine with: <rpc2_LocalHost, rpc2_LocalPortal, NULL>
+/* Clients call this routine with: <rpc2_LocalHost, rpc2_LocalPortal, NULL>
    Servers call this routine with: <ClientHost, ClientPortal, mgrpid>
 */
 struct MEntry *rpc2_AllocMgrp(host, portal, handle)
     RPC2_HostIdent	*host;
     RPC2_PortalIdent	*portal;
     RPC2_Handle		handle;
-    {
+{
     register struct MEntry  *me;
     register RPC2_Handle    mgrpid;
     register struct bucket  *bucket;
@@ -141,11 +141,12 @@ struct MEntry *rpc2_AllocMgrp(host, portal, handle)
     if (rpc2_MgrpFreeCount == 0)
 	rpc2_Replenish(&rpc2_MgrpFreeList, &rpc2_MgrpFreeCount, sizeof(struct MEntry), &rpc2_MgrpCreationCount, OBJ_MENTRY);
 
-    /* Clients allocate mgrpids sequentially; because they are 32-bits long we assume they
-       are never reused.  Servers are told the mgrpid in the rpc2_initmulticast message.  
-       Thus, the unique identifier is <client_host, client_portal, mgrpid, role>. */
-    mgrpid = (handle == NULL) ? ++LastMgrpidAllocated : handle;
-    say(9, RPC2_DebugLevel, ("Allocating Mgrp: host = 0x%lx\tportal = 0x%x\tmgrpid = 0x%lx\t", host->Value.InetAddress, portal->Value.InetPortNumber, mgrpid));
+    /* Clients allocate mgrpids sequentially; because they are 32-bits
+       long we assume they are never reused.  Servers are told the
+       mgrpid in the rpc2_initmulticast message.  Thus, the unique
+       identifier is <client_host, client_portal, mgrpid, role>. */
+    mgrpid = (handle == 0) ? ++LastMgrpidAllocated : handle;
+    say(9, RPC2_DebugLevel, "Allocating Mgrp: host = 0x%lx\tportal = 0x%x\tmgrpid = 0x%lx\t", host->Value.InetAddress, portal->Value.InetPortNumber, mgrpid);
     bucket = rpc2_GetBucket(host, portal, mgrpid);
 
     me = (struct MEntry *)rpc2_MoveEntry(&rpc2_MgrpFreeList, &bucket->chain, NULL, &rpc2_MgrpFreeCount, &bucket->count);
@@ -157,12 +158,12 @@ struct MEntry *rpc2_AllocMgrp(host, portal, handle)
     me->SEProcs = NULL;
     me->SideEffectPtr = NULL;
     return(me);
-    }
+}
 
 
-void rpc2_FreeMgrp(me)
+void rpc2_FreeMgrp(me)
     register struct MEntry  *me;
-    {
+{
     register struct CEntry  *ce;
     register int	    i;
     register struct bucket  *bucket;
@@ -170,7 +171,7 @@ struct MEntry *rpc2_AllocMgrp(host, portal, handle)
     assert(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK|C_HARDERROR)) ||
         TestState(me, SERVER, ~(S_AWAITREQUEST|S_REQINQUEUE|S_PROCESS|S_HARDERROR)))
-	say(9, RPC2_DebugLevel, ("WARNING: freeing busy mgroup\n"));
+	say(9, RPC2_DebugLevel, "WARNING: freeing busy mgroup\n");
 
     if (TestRole(me, CLIENT))
 	{
@@ -192,13 +193,13 @@ struct MEntry *rpc2_AllocMgrp(host, portal, handle)
 
     rpc2_FreeMgrps++;
     SetRole(me, FREE);
-    say(9, RPC2_DebugLevel, ("Freeing Mgrp: ClientHost = 0x%lx\tClientPortal = 0x%x\tMgroupID = 0x%lx\t", me->ClientHost.Value.InetAddress, me->ClientPortal.Value.InetPortNumber, me->MgroupID));
+    say(9, RPC2_DebugLevel, "Freeing Mgrp: ClientHost = 0x%lx\tClientPortal = 0x%x\tMgroupID = 0x%lx\t", me->ClientHost.Value.InetAddress, me->ClientPortal.Value.InetPortNumber, me->MgroupID);
     bucket = rpc2_GetBucket(&me->ClientHost, &me->ClientPortal, me->MgroupID);
     rpc2_MoveEntry(&bucket->chain, &rpc2_MgrpFreeList, me, &bucket->count, &rpc2_MgrpFreeCount);
-    }
+}
 
 
-struct MEntry *rpc2_GetMgrp(host, portal, handle, role)
+struct MEntry *rpc2_GetMgrp(host, portal, handle, role)
     RPC2_HostIdent	*host;
     RPC2_PortalIdent	*portal;
     RPC2_Handle		handle;
@@ -212,8 +213,8 @@ struct MEntry *rpc2_AllocMgrp(host, portal, handle)
     bucket = rpc2_GetBucket(host, portal, handle);
 
     for (me = bucket->chain, i = 0; i < bucket->count; me = me->Next, i++) {
-	say(9, RPC2_DebugLevel, ("GetMgrp: 0x%lx.%u.%ld\n", me->ClientHost.Value.InetAddress, 
-			   (unsigned) me->ClientPortal.Value.InetPortNumber, me->MgroupID));
+	say(9, RPC2_DebugLevel, "GetMgrp: 0x%lx.%u.%ld\n", me->ClientHost.Value.InetAddress, 
+			   (unsigned) me->ClientPortal.Value.InetPortNumber, me->MgroupID);
 	if (me->ClientHost.Value.InetAddress == host->Value.InetAddress &&
 	    me->ClientPortal.Value.InetPortNumber == portal->Value.InetPortNumber &&
 	    me->MgroupID == handle && TestRole(me, role))
@@ -227,7 +228,7 @@ struct MEntry *rpc2_AllocMgrp(host, portal, handle)
     }
 
 
-/* Client-side operation only. */
+/* Client-side operation only. */
 long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN  Subsys,
 	     SecurityLevel, SessionKey, EncryptionType, SideEffectType)
     RPC2_Handle		*MgroupHandle;
@@ -244,7 +245,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
     long			secode;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, ("In RPC2_CreateMgrp()\n"));
+    say(0, RPC2_DebugLevel, "In RPC2_CreateMgrp()\n");
 
 #ifdef RPC2DEBUG
     TR_CREATEMGRP();
@@ -303,7 +304,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 
 	case RPC2_MGRPBYNAME:		/* NOT yet supported */
 	    rpc2_FreeMgrp(me);
-	    say(9, RPC2_DebugLevel, ("MGRPBYNAME not supported"));
+	    say(9, RPC2_DebugLevel, "MGRPBYNAME not supported\n");
 	    rpc2_Quit(RPC2_FAIL);
 
 	default:    assert(FALSE);
@@ -320,7 +321,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 	    if ((sentry = getservbyname(MulticastPortal->Value.Name, NULL)) == NULL)
 		{
 		rpc2_FreeMgrp(me);
-		say(9, RPC2_DebugLevel, ("no entry for portal name %s\n", MulticastPortal->Value.Name));
+		say(9, RPC2_DebugLevel, "no entry for portal name %s\n", MulticastPortal->Value.Name);
 		rpc2_Quit(RPC2_FAIL);
 		}
 	    if (htonl(1) == 1)
@@ -330,8 +331,9 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 	    else
 		{
 		bcopy(&sentry->s_port, &me->IPMPortal.Value.InetPortNumber, sizeof(short));
-		/* ghastly, but true: s_port is in network order, but stored as a 2-byte byte 
-			string in a 4-byte field */
+		/* ghastly, but true: s_port is in network order, but
+			stored as a 2-byte byte string in a 4-byte
+			field */
 		}
 	    me->IPMPortal.Tag = RPC2_PORTALBYINETNUMBER;
 	    break;
@@ -346,19 +348,12 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 	    break;
 
 	case RPC2_SUBSYSBYNAME:
-	    if ((me->SubsysId = getsubsysbyname(Subsys->Value.Name)) == -1)
-		{
-		rpc2_FreeMgrp(me);
-		say(9, RPC2_DebugLevel, ("no entry for subsys name %s\n", Subsys->Value.Name));
-		rpc2_Quit(RPC2_FAIL);
-		}
-	    break;
-
+		say(-1, RPC2_DebugLevel, "RPC2_SUBSYSBYNAME has been banned\n");
 	default:    assert(FALSE);
 	}
 
     /* Obtain pointer to appropriate set of side effect routines */
-    if (SideEffectType != NULL)
+    if (SideEffectType != 0)
 	{
 	int	i;
 
@@ -367,7 +362,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
 	if (i >= SE_DefCount)
 	    {
 	    rpc2_FreeMgrp(me);
-	    say(9, RPC2_DebugLevel, ("Bogus side effect specified (%ld)\n", SideEffectType));
+	    say(9, RPC2_DebugLevel, "Bogus side effect specified (%ld)\n", SideEffectType);
 	    rpc2_Quit(RPC2_FAIL);	/* bogus side effect */
 	    }
 	me->SEProcs = &SE_DefSpecs[i];
@@ -389,7 +384,7 @@ long RPC2_CreateMgrp(OUT MgroupHandle, IN MulticastHost, IN MulticastPortal, IN 
     }
 
 
-/* Client-side operation only. */
+/* Client-side operation only. */
 long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
     RPC2_Handle	MgroupHandle;
     RPC2_Handle	ConnHandle;
@@ -403,7 +398,7 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
     RPC2_PacketBuffer			*savedpkt;	/* in case SE reallocates */
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, ("In RPC2_AddToMgrp()\n"));
+    say(0, RPC2_DebugLevel, "In RPC2_AddToMgrp()\n");
 
 #ifdef RPC2DEBUG
     TR_ADDTOMGRP();
@@ -419,9 +414,9 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	if (TestState(me, CLIENT, ~C_THINK))
 	    {
 	    /*	if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	    say(0, RPC2_DebugLevel, ("Enqueuing on mgrp 0x%lx\n",MgroupHandle));
+	    say(0, RPC2_DebugLevel, "Enqueuing on mgrp 0x%lx\n",MgroupHandle);
 	    LWP_WaitProcess((char *)me);
-	    say(0, RPC2_DebugLevel, ("Dequeueing on mgrp 0x%lx\n", MgroupHandle));
+	    say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MgroupHandle);
 	    continue;
 	    }
 
@@ -439,9 +434,9 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	    }
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);*/
-	say(0, RPC2_DebugLevel, ("Enqueuing on connection 0x%lx\n",ConnHandle));
+say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
 	LWP_WaitProcess((char *)ce);
-	say(0, RPC2_DebugLevel, ("Dequeueing on connection 0x%lx\n", ConnHandle));
+	say(0, RPC2_DebugLevel, "Dequeueing on connection 0x%lx\n", ConnHandle);
 	}
 
     /* Check that the connection's Portal Number and SubsysId match that of the mgrp. */
@@ -451,16 +446,19 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
         me->SubsysId != ce->SubsysId)
 	rpc2_Quit(RPC2_BADMGROUP);
 
-    /* Check that the connection's security level and encryption type match that of the mgrp. */
-    /* QUESTION: if both Mgroup and Connection security levels = open kimono,
-       should we bother checking that the Encryption Types are equivalent? */
+    /* Check that the connection's security level and encryption type
+       match that of the mgrp. */
+    /* QUESTION: if both Mgroup and Connection security levels = open
+       kimono, should we bother checking that the Encryption Types are
+       equivalent? */
     if ((me->SecurityLevel != ce->SecurityLevel) || 
         (me->SecurityLevel != RPC2_OPENKIMONO && me->EncryptionType != ce->EncryptionType))
-	rpc2_Quit(RPC2_BADMGROUP);
-
-    /* Check that the connection has the same side-effect type as the multicast group */
+	    rpc2_Quit(RPC2_BADMGROUP);
+    
+    /* Check that the connection has the same side-effect type as the
+       multicast group */
     if (me->SEProcs != ce->SEProcs)
-	rpc2_Quit(RPC2_BADMGROUP);
+	    rpc2_Quit(RPC2_BADMGROUP);
 
     /* Construct an InitMulticast packet. */
     SetState(ce, C_AWAITREPLY);
@@ -478,36 +476,32 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 
     /* Notify side-effect routine, if any */
     savedpkt = pb;
-    if (me->SEProcs != NULL && me->SEProcs->SE_AddToMgrp != NULL)
-	{
-	secode = (*me->SEProcs->SE_AddToMgrp)(MgroupHandle, ConnHandle, &pb);
-	if (pb != savedpkt) RPC2_FreeBuffer(&savedpkt);	    /* free old buffer */
-	if (secode != RPC2_SUCCESS)
-	    {
-	    RPC2_FreeBuffer(&pb);
-	    if (secode > RPC2_FLIMIT)
-		{
-		SetState(ce, C_THINK);
-		LWP_NoYieldSignal((char *)ce);
-		SetState(me, C_THINK);
-		LWP_NoYieldSignal((char *)me);
-		rpc2_Quit(RPC2_SEFAIL1);
-		}
-	    else
-		{
-		rpc2_SetConnError(ce);
-		SetState(me, C_THINK);
-		LWP_NoYieldSignal((char *)me);
-		rpc2_Quit(RPC2_SEFAIL2);
-		}
+    if (me->SEProcs != NULL && me->SEProcs->SE_AddToMgrp != NULL){
+	    secode = (*me->SEProcs->SE_AddToMgrp)(MgroupHandle, ConnHandle, &pb);
+	    if (pb != savedpkt) 
+		    RPC2_FreeBuffer(&savedpkt);	    /* free old buffer */
+	    if (secode != RPC2_SUCCESS) {
+		    RPC2_FreeBuffer(&pb);
+		    if (secode > RPC2_FLIMIT) {
+			    SetState(ce, C_THINK);
+			    LWP_NoYieldSignal((char *)ce);
+			    SetState(me, C_THINK);
+			    LWP_NoYieldSignal((char *)me);
+			    rpc2_Quit(RPC2_SEFAIL1);
+		    }   else {
+			    rpc2_SetConnError(ce);
+			    SetState(me, C_THINK);
+			    LWP_NoYieldSignal((char *)me);
+			    rpc2_Quit(RPC2_SEFAIL2);
+		    }
 	    }
-	}
+    }
 
     rpc2_htonp(pb);
     rpc2_ApplyE(pb, ce);
 
     /* Send packet and await positive acknowledgment. */
-    say(9, RPC2_DebugLevel, ("Sending INITMULTICAST packet on 0x%lx\n", ConnHandle));
+    say(9, RPC2_DebugLevel, "Sending INITMULTICAST packet on 0x%lx\n", ConnHandle);
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
     rpc2_SendReliably(ce, sl, pb, NULL);
@@ -515,7 +509,7 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
     switch(sl->ReturnCode)
 	{
 	case ARRIVED:
-	    say(9, RPC2_DebugLevel, ("Received INITMULTICAST response on 0x%lx\n", ConnHandle));
+	    say(9, RPC2_DebugLevel, "Received INITMULTICAST response on 0x%lx\n", ConnHandle);
 	    RPC2_FreeBuffer(&pb);	/* release the request packet */
 	    pb = sl->Packet;		/* and get the response packet */
 	    rpc2_FreeSle(&sl);
@@ -524,7 +518,7 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	case NAKED:
 	case TIMEOUT:
 	    /* free connection, buffers, and quit */
-	    say(9, RPC2_DebugLevel, ("Failed to send INITMULTICAST packet on 0x%lx\n", ConnHandle));
+	    say(9, RPC2_DebugLevel, "Failed to send INITMULTICAST packet on 0x%lx\n", ConnHandle);
 	    RPC2_FreeBuffer(&pb);	/* release the request packet */
 	    rc = sl->ReturnCode == NAKED ? RPC2_NAKED : RPC2_DEAD;
 	    rpc2_FreeSle(&sl);
@@ -537,7 +531,7 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
 	}
 
     rc = pb->Header.ReturnCode;
-    say(9, RPC2_DebugLevel, ("INITMULTICAST return code = %ld\n", rc));
+    say(9, RPC2_DebugLevel, "INITMULTICAST return code = %ld\n", rc);
     RPC2_FreeBuffer(&pb);
     if (rc != RPC2_SUCCESS)
 	{
@@ -566,8 +560,9 @@ long RPC2_AddToMgrp(IN MgroupHandle, IN ConnHandle)
     }
 
 
-/* RPC2 internal version. */
-/* This routine does NOT prohibit the removal of a connection from a busy multicast group. */
+/* RPC2 internal version. */
+/* This routine does NOT prohibit the removal of a connection from a
+   busy multicast group. */
 void rpc2_RemoveFromMgrp(me, ce)
     register struct MEntry  *me;
     register struct CEntry  *ce;
@@ -581,7 +576,7 @@ void rpc2_RemoveFromMgrp(me, ce)
     assert(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK|C_HARDERROR)) ||
         TestState(me, SERVER, ~(S_AWAITREQUEST|S_REQINQUEUE|S_PROCESS|S_HARDERROR)))
-	say(9, RPC2_DebugLevel, ("WARNING: connection being removed from busy mgroup\n"));
+	say(9, RPC2_DebugLevel, "WARNING: connection being removed from busy mgroup\n");
 
     /* Find and remove the connection. */
     assert(ce != NULL && ce->Mgrp == me);
@@ -622,7 +617,7 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
     register struct CEntry  *ce;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, ("In RPC2_RemoveFromMgrp()\n"));
+    say(0, RPC2_DebugLevel, "In RPC2_RemoveFromMgrp()\n");
 
     /* Validate multicast group and connection. */
     while (TRUE)
@@ -634,9 +629,9 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
 	if (TestState(me, CLIENT, ~C_THINK))
 	    {
 	    /*	if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	    say(0, RPC2_DebugLevel, ("Enqueuing on mgrp 0x%lx\n",MgroupHandle));
+	    say(0, RPC2_DebugLevel, "Enqueuing on mgrp 0x%lx\n",MgroupHandle);
 	    LWP_WaitProcess((char *)me);
-	    say(0, RPC2_DebugLevel, ("Dequeueing on mgrp 0x%lx\n", MgroupHandle));
+	    say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MgroupHandle);
 	    continue;
 	    }
 
@@ -652,9 +647,9 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
 	    }
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);*/
-	say(0, RPC2_DebugLevel, ("Enqueuing on connection 0x%lx\n",ConnHandle));
+	say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
 	LWP_WaitProcess((char *)ce);
-	say(0, RPC2_DebugLevel, ("Dequeueing on connection 0x%lx\n", ConnHandle));
+	say(0, RPC2_DebugLevel, "Dequeueing on connection 0x%lx\n", ConnHandle);
 	}
 
     rpc2_RemoveFromMgrp(me, ce);
@@ -662,7 +657,7 @@ long RPC2_RemoveFromMgrp(IN MgroupHandle, IN ConnHandle)
     }
 
 
-/* RPC2 internal version. */
+/* RPC2 internal version. */
 /* This routine does NOT prohibit the deletion of a busy multicast group. */
 void rpc2_DeleteMgrp(me)
     register struct MEntry  *me;
@@ -670,7 +665,7 @@ void rpc2_DeleteMgrp(me)
     assert(me != NULL && !TestRole(me, FREE));
     if (TestState(me, CLIENT, ~(C_THINK|C_HARDERROR)) ||
         TestState(me, SERVER, ~(S_AWAITREQUEST|S_REQINQUEUE|S_PROCESS|S_HARDERROR)))
-	say(9, RPC2_DebugLevel, ("WARNING: deleting busy mgroup\n"));
+	say(9, RPC2_DebugLevel, "WARNING: deleting busy mgroup\n");
 
     /* Call side-effect routine if appropriate; ignore result */
     if (me->SEProcs != NULL && me->SEProcs->SE_DeleteMgrp != NULL)  /* ignore result */
@@ -687,7 +682,7 @@ long RPC2_DeleteMgrp(IN MgroupHandle)
     register struct MEntry  *me;
 
     rpc2_Enter();
-    say(0, RPC2_DebugLevel, ("In RPC2_DeleteMgrp()\n"));
+    say(0, RPC2_DebugLevel, "In RPC2_DeleteMgrp()\n");
 
     /* Validate multicast group. */
     while (TRUE)
@@ -699,9 +694,9 @@ long RPC2_DeleteMgrp(IN MgroupHandle)
 	if (TestState(me, CLIENT, C_THINK)) break;
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	say(0, RPC2_DebugLevel, ("Enqueuing on mgrp 0x%lx\n",MgroupHandle));
+	say(0, RPC2_DebugLevel, "Enqueuing on mgrp 0x%lx\n",MgroupHandle);
 	LWP_WaitProcess((char *)me);
-	say(0, RPC2_DebugLevel, ("Dequeueing on mgrp 0x%lx\n", MgroupHandle));
+	say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MgroupHandle);
 	}
 
     rpc2_DeleteMgrp(me);
@@ -709,8 +704,9 @@ long RPC2_DeleteMgrp(IN MgroupHandle)
     }
 
 
-/* Either expand the MgroupHandle into the list of associated connections, or validate the
-   connections that were passed in, whichever the caller has requested. */
+/* Either expand the MgroupHandle into the list of associated
+   connections, or validate the connections that were passed in,
+   whichever the caller has requested. */
 long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
     RPC2_Multicast  *MCast;
     struct MEntry   **meaddr;
@@ -733,9 +729,9 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
 	if (TestState(me, CLIENT, C_THINK)) break;
 
 	/*  if (!EnqueueRequest) rpc2_Quit(RPC2_MGRPBUSY);*/
-	say(0, RPC2_DebugLevel, ("Enqueuing on mgrp 0x%lx\n", MCast->Mgroup));
+	say(0, RPC2_DebugLevel, "Enqueuing on mgrp 0x%lx\n", MCast->Mgroup);
 	LWP_WaitProcess((char *)me);
-	say(0, RPC2_DebugLevel, ("Dequeueing on mgrp 0x%lx\n", MCast->Mgroup));
+	say(0, RPC2_DebugLevel, "Dequeueing on mgrp 0x%lx\n", MCast->Mgroup);
 	}
 
     assert(me->listeners != NULL && me->maxlisteners >= me->howmanylisteners);
@@ -771,7 +767,7 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
     }
 
 
-void HandleInitMulticast(pb, ce)
+void HandleInitMulticast(pb, ce)
     RPC2_PacketBuffer	*pb;
     struct CEntry	*ce;
     {
@@ -781,7 +777,7 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
     register struct InitMulticastBody	*imb;
     register unsigned long              ts;
 
-    say(0, RPC2_DebugLevel, ("In HandleInitMulticast()\n"));
+    say(0, RPC2_DebugLevel, "In HandleInitMulticast()\n");
 
     rpc2_Recvd.Requests++;	    /* classify this as a normal request? */
 
@@ -834,7 +830,7 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
     rpc2_htonp(pb);
     rpc2_ApplyE(pb, ce);
 
-    say(9, RPC2_DebugLevel, ("Sending InitMulticast reply\n"));
+    say(9, RPC2_DebugLevel, "Sending InitMulticast reply\n");
     rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPortal);
 
     /* Save reply for retransmission. */
@@ -842,7 +838,7 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
     }
 
 
-bool XlateMcastPacket(pb, ThisHost, ThisPortal)
+bool XlateMcastPacket(pb, ThisHost, ThisPortal)
     RPC2_PacketBuffer	*pb;
     RPC2_HostIdent *ThisHost;
     RPC2_PortalIdent *ThisPortal;
@@ -854,7 +850,7 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
 	    h_Flags = ntohl(pb->Header.Flags),
 	    h_SeqNumber;				/* decrypt first */
 
-    say(9, RPC2_DebugLevel, ("In XlateMcastPacket()\n"));
+    say(9, RPC2_DebugLevel, "In XlateMcastPacket()\n");
 
 #ifdef RPC2DEBUG
     TR_XLATEMCASTPACKET();
@@ -872,8 +868,8 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
     if (h_Flags & RPC2_RETRY) return(TRUE);	/* pass the packet untranslated */
 
     /* Lookup the multicast connection handle. */
-    assert(h_RemoteHandle != NULL);	/* would be a multicast Bind request! */
-    assert(h_LocalHandle == NULL);	/* extra sanity check */
+    assert(h_RemoteHandle != 0);	/* would be a multicast Bind request! */
+    assert(h_LocalHandle == 0);	/* extra sanity check */
     me = rpc2_GetMgrp(ThisHost, ThisPortal, h_RemoteHandle, SERVER);
     if (me == NULL) {BOGUS(pb); return(FALSE);}
 /*    assert(TestRole(me, SERVER));	/* redundant check */
@@ -888,7 +884,7 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
         TestState(ce, SERVER, ~S_AWAITREQUEST) ||
         h_Flags & RPC2_RETRY != 0) {BOGUS(pb); return(FALSE);}
 
-    say(9, RPC2_DebugLevel, ("Host = 0x%lx\tPortal = 0x%x\tMgrp = 0x%lx\n", ThisHost->Value.InetAddress, ThisPortal->Value.InetPortNumber, h_RemoteHandle));
+    say(9, RPC2_DebugLevel, "Host = 0x%lx\tPortal = 0x%x\tMgrp = 0x%lx\n", ThisHost->Value.InetAddress, ThisPortal->Value.InetPortNumber, h_RemoteHandle);
 
     /* Decrypt the packet with the MULTICAST session key. Clear the encrypted 
        bit so that we don't decrypt again with the connection session key. */
@@ -932,7 +928,7 @@ long SetupMulticast(MCast, meaddr, HowMany, ConnHandleList)
        multicast connection.  This avoids having to reverse the multicast state
        if we later decide to NAK or drop the packet. */
 
-    say(9, RPC2_DebugLevel, ("In XlateMcastPacket(): returning success\n"));
+    say(9, RPC2_DebugLevel, "In XlateMcastPacket(): returning success\n");
     return(TRUE);
     }
 

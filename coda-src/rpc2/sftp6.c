@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/sftp6.c,v 1.1 1996/11/22 19:07:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp6.c,v 4.1 1997/01/08 21:50:32 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -86,14 +86,14 @@ PRIVATE void SFSendBusy();
 PRIVATE void MC_AppendParmsToPacket();
 PRIVATE MC_SendStrategy(), SDescCmp(), MC_ExtractParmsFromPacket();
 
-/*----------------------- The procs below interface directly with RPC2 ------------------------ */
+/*----------------------- The procs below interface directly with RPC2 ------------------------ */
 
 #define	HOSTSEOK(host)\
   (ceaddr[host] && (retcode[host] > RPC2_ELIMIT) && (SDescList[host].Tag != OMITSE))
 
 #define	FAIL_MCRPC1(rCode)\
         {\
-        say(9, SFTP_DebugLevel, ("FAIL_MCRPC1: code = %d\n", rCode));\
+        say(9, SFTP_DebugLevel, "FAIL_MCRPC1: code = %d\n", rCode);\
 	for (host = 0; host < HowMany; host++)\
 	    if (HOSTSEOK(host)) retcode[host] = rCode;\
 	mse->SDesc = NULL;\
@@ -136,7 +136,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     struct CEntry **ceaddr = (struct CEntry **)malloc(HowMany * sizeof(struct CEntry *));
     assert(ceaddr != NULL);
 
-    say(0, SFTP_DebugLevel, ("SFTP_MultiRPC1()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_MultiRPC1()\n");
 
     /* reacquire CEntry pointers */
     for (host = 0; host < HowMany; host++)
@@ -162,7 +162,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 	SE_Descriptor		*thisdesc;	/* singlescast SE descriptor */
 
 	/* reacquire MEntry pointer */
-	assert(MCast->Mgroup != NULL);
+	assert(MCast->Mgroup != 0);
 	assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, MCast->Mgroup, CLIENT)) != NULL);
 	assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
 	assert(mse->SDesc == NULL);
@@ -268,7 +268,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 #undef	INIT_SE_ENTRY
 
 
-long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
+long SFTP_MultiRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     RPC2_Handle		ConnHandle;
     SE_Descriptor	*SDesc;
     RPC2_PacketBuffer	*Reply;
@@ -276,7 +276,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     struct SFTP_Entry	*se;
     long		rc;
 
-    say(0, SFTP_DebugLevel, ("SFTP_MultiRPC2()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_MultiRPC2()\n");
 
     rc = SFTP_MakeRPC2(ConnHandle, SDesc, Reply);
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
@@ -299,7 +299,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
 	if (mse->McastersFinished < mse->McastersStarted) return(rc);
 
 	/* Everyone has finished, so clean up the multicast state. */
-	say(9, SFTP_DebugLevel, ("SFTP_MultiRPC2: cleaning up multicast state\n"));
+	say(9, SFTP_DebugLevel, "SFTP_MultiRPC2: cleaning up multicast state\n");
 	if (mse->openfd >= 0) CLOSE(mse);
 	if (mse->PiggySDesc != NULL) sftp_FreePiggySDesc(mse);
 	for (i = 0; i < MAXOPACKETS; i++)
@@ -315,20 +315,20 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     }
 
 
-long SFTP_CreateMgrp(IN MgroupHandle)
+long SFTP_CreateMgrp(IN MgroupHandle)
     RPC2_Handle MgroupHandle;
     {
     struct MEntry	*me;
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
     RPC2_PeerInfo	*PeerInfo;
 
-    say(0, SFTP_DebugLevel, ("SFTP_CreateMgrp()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_CreateMgrp()\n");
     assert((me = rpc2_GetMgrp(&rpc2_LocalHost, &rpc2_LocalPortal, MgroupHandle, CLIENT)) != NULL);
 
     /* allocate an SFTP_Entry for the multicast group */
     mse = sftp_AllocSEntry();
     mse->WhoAmI = SFCLIENT;
-    mse->LocalHandle = NULL;			/* none is relevant */
+    mse->LocalHandle = 0;			/* none is relevant */
 
     /* fill in peer info; can't use RPC2_GetPeerInfo() */
     PeerInfo = &mse->PInfo;
@@ -339,7 +339,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     PeerInfo->RemoteHandle = me->MgroupID;
     PeerInfo->SecurityLevel = me->SecurityLevel;
     PeerInfo->EncryptionType = me->EncryptionType;
-    PeerInfo->Uniquefier = NULL;		/* not used */
+    PeerInfo->Uniquefier = 0;		/* not used */
     bcopy(me->SessionKey, PeerInfo->SessionKey, sizeof(RPC2_EncryptionKey));
 
     mse->PeerPortal = PeerInfo->RemotePortal;	/* structure assignment */
@@ -352,7 +352,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     }
 
 
-long SFTP_AddToMgrp(IN MgroupHandle, IN ConnHandle, INOUT Request)
+long SFTP_AddToMgrp(IN MgroupHandle, IN ConnHandle, INOUT Request)
     RPC2_Handle		MgroupHandle;
     RPC2_Handle 	ConnHandle;
     RPC2_PacketBuffer	**Request;		/* InitMulticast packet */
@@ -370,7 +370,7 @@ long SFTP_MultiRPC1(IN HowMany, IN ConnHandleList, IN MCast, INOUT SDescList, IN
     }
 
 
-/* This is effectively a combination SE_CreateMgrp/SE_AddToMgrp call for the server */
+/* This is effectively a combination SE_CreateMgrp/SE_AddToMgrp call for the server */
 long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     RPC2_Handle 	MgroupHandle;
     RPC2_Handle 	ConnHandle;
@@ -381,7 +381,7 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     struct MEntry	*me;
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
 
-    say(0, SFTP_DebugLevel, ("SFTP_InitMulticast()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_InitMulticast()\n");
     assert((ce = rpc2_GetConn(ConnHandle)) != NULL);
     assert((me = rpc2_GetMgrp(&ce->PeerHost, &ce->PeerPortal, MgroupHandle, SERVER)) != NULL);
     assert(RPC2_GetSEPointer(ConnHandle, &sse) == RPC2_SUCCESS);
@@ -408,7 +408,7 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     }
 
 
-long SFTP_DeleteMgrp(IN MgroupHandle, IN ClientHost, IN ClientPortal, IN Role)
+long SFTP_DeleteMgrp(IN MgroupHandle, IN ClientHost, IN ClientPortal, IN Role)
     RPC2_Handle		MgroupHandle;
     RPC2_HostIdent	*ClientHost;
     RPC2_PortalIdent	*ClientPortal;
@@ -418,7 +418,7 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     struct SFTP_Entry	*mse;			/* Multicast SFTP Entry */
     int			i;
 
-    say(0, SFTP_DebugLevel, ("SFTP_DeleteMgrp()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_DeleteMgrp()\n");
     assert(ClientHost->Tag == RPC2_HOSTBYINETADDR && ClientPortal->Tag == RPC2_PORTALBYINETNUMBER);
     assert((me = rpc2_GetMgrp(ClientHost, ClientPortal, MgroupHandle, Role)) != NULL);
 
@@ -437,7 +437,7 @@ long SFTP_InitMulticast(IN MgroupHandle, IN ConnHandle, IN Request)
     }
 
 
-/*------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------*/
 
 SFXlateMcastPacket(pb, whichHost, whichPortal)
     RPC2_PacketBuffer	*pb;
@@ -458,30 +458,30 @@ SFXlateMcastPacket(pb, whichHost, whichPortal)
 
     XlatePortal = *whichPortal;		/* structure assignment */
 
-    say(9, SFTP_DebugLevel, ("SFXlateMcastPacket()\n"));
-    say(9, SFTP_DebugLevel, ("Host = 0x%lx\tPortal = 0x%x\tMgrp = 0x%lx\n", whichHost->Value.InetAddress, (unsigned) XlatePortal.Value.InetPortNumber -1, h_RemoteHandle));
+    say(9, SFTP_DebugLevel, "SFXlateMcastPacket()\n");
+    say(9, SFTP_DebugLevel, "Host = 0x%lx\tPortal = 0x%x\tMgrp = 0x%lx\n", whichHost->Value.InetAddress, (unsigned) XlatePortal.Value.InetPortNumber -1, h_RemoteHandle);
 
     /* Find and validate the relevant data structures */
-    assert(h_RemoteHandle != NULL && h_LocalHandle == NULL);
+    assert(h_RemoteHandle != 0 && h_LocalHandle == 0);
     assert(XlatePortal.Tag == RPC2_PORTALBYINETNUMBER);
     XlatePortal.Value.InetPortNumber = htons(ntohs(XlatePortal.Value.InetPortNumber) - 1);
     me = rpc2_GetMgrp(whichHost, &XlatePortal, h_RemoteHandle, SERVER);
     if (me == NULL) {
-	say(9, SFTP_DebugLevel, ("me == NULL\n"));
+	say(9, SFTP_DebugLevel, "me == NULL\n");
 	return(FALSE);
     }
     ce = me->conn;
     assert(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
     if ((sse = (struct SFTP_Entry *)ce->SideEffectPtr) == NULL) {
-	say(9, SFTP_DebugLevel, ("sse == NULL\n")); return(FALSE);}
+	say(9, SFTP_DebugLevel, "sse == NULL\n"); return(FALSE);}
     if (sse->WhoAmI != SFSERVER) {
-	say(9, SFTP_DebugLevel, ("sse->WhoAmI != SFSERVER\n")); return(FALSE);}
+	say(9, SFTP_DebugLevel, "sse->WhoAmI != SFSERVER\n"); return(FALSE);}
     if ((mse = (struct SFTP_Entry *)me->SideEffectPtr) == NULL) {
-	say(9, SFTP_DebugLevel, ("mse == NULL\n")); return(FALSE);}
+	say(9, SFTP_DebugLevel, "mse == NULL\n"); return(FALSE);}
     if (mse->WhoAmI != SFSERVER) {
-	say(9, SFTP_DebugLevel, ("mse->WhoAmI != SFSERVER\n")); return(FALSE);}
+	say(9, SFTP_DebugLevel, "mse->WhoAmI != SFSERVER\n"); return(FALSE);}
 
-    say(9, SFTP_DebugLevel, ("Host = 0x%lx\tPortal = 0x%x\tMgrp = 0x%lx\n", whichHost->Value.InetAddress, (unsigned) XlatePortal.Value.InetPortNumber, h_RemoteHandle));
+    say(9, SFTP_DebugLevel, "Host = 0x%lx\tPortal = 0x%x\tMgrp = 0x%lx\n", whichHost->Value.InetAddress, (unsigned) XlatePortal.Value.InetPortNumber, h_RemoteHandle );
 
     /* Decrypt the packet with the MULTICAST session key. Clear the encrypted bit so that we don't
 	decrypt again with the connection session key. */
@@ -501,21 +501,21 @@ SFXlateMcastPacket(pb, whichHost, whichPortal)
     pb->Header.SeqNumber = htonl(sse->RecvLastContig + (h_SeqNumber - mse->RecvLastContig));
     h_ThisRPCCall = ntohl(pb->Header.ThisRPCCall);
     pb->Header.ThisRPCCall = htonl(ce->NextSeqNumber + (h_ThisRPCCall - me->NextSeqNumber));
-    say(9, SFTP_DebugLevel, ("pb->SN = %lu\tsse->RLC = %ld\tmse->RLC = %ld\n", ntohl(pb->Header.SeqNumber), sse->RecvLastContig, mse->RecvLastContig));
+    say(9, SFTP_DebugLevel, "pb->SN = %lu\tsse->RLC = %ld\tmse->RLC = %ld\n", ntohl(pb->Header.SeqNumber), sse->RecvLastContig, mse->RecvLastContig );
 
     /* Leave the Multicast flag set so that multicast state can be updated later */
     return(TRUE);
     }
 
 
-MC_CheckAckorNak(whichEntry)
+MC_CheckAckorNak(whichEntry)
     struct SFTP_Entry	*whichEntry;
     {
     struct CEntry	*ce;
     struct MEntry	*me;
     struct SFTP_Entry	*mse;
 
-    say(9, SFTP_DebugLevel, ("MC_CheckAckorNak()\n"));
+    say(9, SFTP_DebugLevel, "MC_CheckAckorNak()\n");
     assert((ce = rpc2_GetConn(whichEntry->LocalHandle)) != NULL);
     assert((me = ce->Mgrp) != NULL);
     assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
@@ -534,7 +534,7 @@ MC_CheckStart(whichEntry)
     struct SFTP_Entry	*mse, *thisse;
     int			host;
 
-    say(9, SFTP_DebugLevel, ("MC_CheckStart()\n"));
+    say(9, SFTP_DebugLevel, "MC_CheckStart()\n");
     assert((ce = rpc2_GetConn(whichEntry->LocalHandle)) != NULL);
     assert((me = ce->Mgrp) != NULL);
     assert((mse = (struct SFTP_Entry *)me->SideEffectPtr) != NULL);
@@ -564,7 +564,7 @@ MC_CheckStart(whichEntry)
     }
 
 
-PRIVATE MC_SendStrategy(me, mse)
+PRIVATE MC_SendStrategy(me, mse)
     struct MEntry	*me;
     struct SFTP_Entry	*mse;
     {
@@ -583,7 +583,7 @@ MC_CheckStart(whichEntry)
     struct timeval	tt;
     long		AllReplied = TRUE;
 
-    say(9, SFTP_DebugLevel, ("MC_SendStrategy()\n"));
+    say(9, SFTP_DebugLevel, "MC_SendStrategy()\n");
 
     /* we update the multicast values of SE transmission state here as follows:
 	(MC)SendLastContig: min(normalized SendLastContig) for all GOOD conns;
@@ -645,10 +645,10 @@ MC_CheckStart(whichEntry)
     assert(!TESTBIT(CompositeSTB, 1));
 
     /* update the Mgrp parameters (finally) */
-    say(9, SFTP_DebugLevel, ("mse->SLC = %ld\n", mse->SendLastContig));
+    say(9, SFTP_DebugLevel, "mse->SLC = %ld\n", mse->SendLastContig );
     mse->SendLastContig += diffSendCount;
     B_Assign(mse->SendTheseBits, CompositeSTB);
-    say(9, SFTP_DebugLevel, ("mse->SLC = %ld\n", mse->SendLastContig));
+    say(9, SFTP_DebugLevel, "mse->SLC = %ld\n", mse->SendLastContig );
 
     /* we can now free those packets that we incremented SendLastContig over */
     for (i = 0; i < diffSendCount; i++)
@@ -686,7 +686,7 @@ MC_CheckStart(whichEntry)
     }
 
 
-PRIVATE SDescCmp(desc1, desc2)
+PRIVATE SDescCmp(desc1, desc2)
     SE_Descriptor *desc1, *desc2;
     {
     struct SFTP_Descriptor *ftpd1 = &desc1->Value.SmartFTPD;
@@ -698,19 +698,19 @@ MC_CheckStart(whichEntry)
 	ftpd1->SeekOffset != ftpd2->SeekOffset ||
 	ftpd1->ByteQuota != ftpd2->ByteQuota ||
 	 ftpd1->Tag != ftpd2->Tag)
-    { say(9, SFTP_DebugLevel, ("SDescCmp: FAILED\n")); return(FALSE); }
+    { say(9, SFTP_DebugLevel, "SDescCmp: FAILED\n"); return(FALSE); }
 
     if (ftpd1->Tag == FILEBYNAME)
 	{
 	if (ftpd1->FileInfo.ByName.ProtectionBits != ftpd2->FileInfo.ByName.ProtectionBits ||
 	    strncmp(ftpd1->FileInfo.ByName.LocalFileName, ftpd2->FileInfo.ByName.LocalFileName, sizeof(ftpd1->FileInfo.ByName.LocalFileName)) != 0)
-    { say(9, SFTP_DebugLevel, ("SDescCmp: FAILED\n")); return(FALSE); }
+    { say(9, SFTP_DebugLevel, "SDescCmp: FAILED\n"); return(FALSE); }
 	}
     else	/* ftpd1->Tag == FILEBYINODE */
 	{
 	if (ftpd1->FileInfo.ByInode.Device != ftpd2->FileInfo.ByInode.Device ||
 	    ftpd1->FileInfo.ByInode.Inode != ftpd2->FileInfo.ByInode.Inode)
-    { say(9, SFTP_DebugLevel, ("SDescCmp: FAILED\n")); return(FALSE); }
+    { say(9, SFTP_DebugLevel, "SDescCmp: FAILED\n"); return(FALSE); }
 	}
 
     return(TRUE);
@@ -723,7 +723,7 @@ PRIVATE void SFSendBusy(whichEntry)
     RPC2_PacketBuffer *busypb;
 
     sftp_Sent.Busies++;
-    say(9, SFTP_DebugLevel, ("SFSendBusy()\n"));
+    say(9, SFTP_DebugLevel, "SFSendBusy()\n");
 
     SFTP_AllocBuffer(0, &busypb);
     sftp_InitPacket(busypb, whichEntry, 0);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2test.c,v 4.1 1997/01/08 21:50:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2test.c,v 4.2 1997/09/23 15:13:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,6 +78,8 @@ int lwp_nextindex;
 #include "rpc2.h"
 #include "rpc2.private.h"
 #include "se.h"
+
+#define SUBSYS_SRV 1001
 
 extern int errno;
 extern long sftp_windowfulls, sftp_ackslost, sftp_duplicates, sftp_bogus;
@@ -205,7 +207,7 @@ PRIVATE long WorkerBody(workerName)
     LWP_DispatchProcess();	/* initial courtesy to parent */
 
     reqfilter.FromWhom = ONESUBSYS;
-    reqfilter.ConnOrSubsys.SubsysId = getsubsysbyname("Vice2-FileServer");
+    reqfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
     assert(reqfilter.ConnOrSubsys.SubsysId != -1);
     reqfilter.OldOrNew = OLD;
 
@@ -284,7 +286,7 @@ PRIVATE long WorkerBody(workerName)
 			continue;
 			}
 		else
-		    say(0, VerboseFlag, ("%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred));
+		    say(0, VerboseFlag, "%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred);
 		OutBuff->Header.ReturnCode = (long)sed.LocalStatus;
 		OutBuff->Header.BodyLength = 0;
 		break;
@@ -309,7 +311,7 @@ PRIVATE long WorkerBody(workerName)
 			BulkErr(workercid, &sed, rc, InBuff->Header.Opcode);
 			}
 		else
-		    say(0, VerboseFlag, ("%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred));
+		    say(0, VerboseFlag, "%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred);
 		OutBuff->Header.ReturnCode = (long)sed.LocalStatus;
 		OutBuff->Header.BodyLength = 0;
 		break;
@@ -382,7 +384,7 @@ PRIVATE long ListenerBody(listenerName)
 
     LWP_DispatchProcess();	/* initial courtesy to parent */
     reqfilter.FromWhom = ONESUBSYS;
-    reqfilter.ConnOrSubsys.SubsysId = getsubsysbyname("Vice2-FileServer");
+    reqfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
     assert(reqfilter.ConnOrSubsys.SubsysId != -1);
     reqfilter.OldOrNew = NEW;
 
@@ -476,8 +478,8 @@ PRIVATE long ClientBody(clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, ("Time on %s is %s (%ld msecs)\n",
-		    	ConnVector[thisconn].RemoteHost.Value.Name, reply->Body, rpctime));
+		    say(0, VerboseFlag, "Time on %s is %s (%ld msecs)\n",
+		    	ConnVector[thisconn].RemoteHost.Value.Name, reply->Body, rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -492,8 +494,8 @@ PRIVATE long ClientBody(clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, (" %s says square of %ld is %ld (%ld msecs)\n",
-		    	ConnVector[thisconn].RemoteHost.Value.Name, x, ntohl(*(long *)reply->Body), rpctime));
+		    say(0, VerboseFlag, " %s says square of %ld is %ld (%ld msecs)\n",
+		    	ConnVector[thisconn].RemoteHost.Value.Name, x, ntohl(*(long *)reply->Body), rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -509,8 +511,8 @@ PRIVATE long ClientBody(clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, ("%s says cube of %ld is %ld (%ld msecs)\n",
-		    	ConnVector[thisconn].RemoteHost.Value.Name, x, ntohl(*(long *)reply->Body), rpctime));
+		    say(0, VerboseFlag, "%s says cube of %ld is %ld (%ld msecs)\n",
+		    	ConnVector[thisconn].RemoteHost.Value.Name, x, ntohl(*(long *)reply->Body), rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -523,8 +525,8 @@ PRIVATE long ClientBody(clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, ("%s says its name is \"%s\" (%ld msecs)\n",
-		    	ConnVector[thisconn].RemoteHost.Value.Name, reply->Body, rpctime));
+		    say(0, VerboseFlag, "%s says its name is \"%s\" (%ld msecs)\n",
+		    	ConnVector[thisconn].RemoteHost.Value.Name, reply->Body, rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -554,7 +556,7 @@ PRIVATE long ClientBody(clientName)
 		    break;		    
 		    }
 		else
-		    say(0, VerboseFlag,("%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred));
+		    say(0, VerboseFlag, "%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred);
 
 		break;
 		}
@@ -581,7 +583,7 @@ PRIVATE long ClientBody(clientName)
 		    break;		    
 		    }
 		else
-		    say(0, VerboseFlag,("%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred));		
+		    say(0, VerboseFlag,"%ld bytes transferred\n", sed.Value.SmartFTPD.BytesTransferred);		
 		break;
 		}
 
@@ -592,9 +594,9 @@ PRIVATE long ClientBody(clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, ("Unbound connection to %s for %s after %d calls\n",
+		    say(0, VerboseFlag, "Unbound connection to %s for %s after %d calls\n",
 			ConnVector[thisconn].RemoteHost.Value.Name, ConnVector[thisconn].Identity.SeqBody,
-			ConnVector[thisconn].CallsMade));
+			ConnVector[thisconn].CallsMade);
 		    assert(RPC2_Unbind(ConnVector[thisconn].ConnHandle) == RPC2_SUCCESS);
 		    }
 		else
@@ -709,7 +711,7 @@ PRIVATE MakeFiles()
     /* Variety of sizes to test file transfer ability
 	Files get created in test directory  */
 
-    static char *fsize[] = {"832", "23531", "131072", "1048576"};
+    static char *fsize[] = {"10", "235", "1310", "14235", "100234", "1048576"};
     static char *fname[sizeof(fsize)/sizeof(char *)];
     int i;
 
@@ -805,7 +807,6 @@ PRIVATE MakeClients()
 
 PRIVATE InitRPC()
     {
-    RPC2_PortalIdent *portallist[1];
     SFTP_Initializer sftpi;
     char *cstring;
     int rc;
@@ -814,12 +815,11 @@ PRIVATE InitRPC()
 
     PortalId.Tag = RPC2_PORTALBYINETNUMBER;
     PortalId.Value.InetPortNumber = htons(TESTPORTAL);
-    portallist[0] = &PortalId;
 
     SFTP_SetDefaults(&sftpi);
     SFTP_Activate(&sftpi);
 
-    rc = RPC2_Init(RPC2_VERSION, 0, portallist, 1, -1, NULL);
+    rc = RPC2_Init(RPC2_VERSION, 0, &PortalId, -1, NULL);
     if (rc != RPC2_SUCCESS)
 	{
 	printf("RPC2_Init() --> %s\n", RPC2_ErrorMsg(rc));
@@ -829,8 +829,8 @@ PRIVATE InitRPC()
     if (RPC2_Trace && (RPC2_InitTraceBuffer(TBSIZE) != RPC2_SUCCESS))
 	exit(-1);
 
-    SubsysId.Tag = RPC2_SUBSYSBYNAME;
-    strcpy(SubsysId.Value.Name, "Vice2-FileServer");
+    SubsysId.Tag = RPC2_SUBSYSBYID;
+    SubsysId.Value.SubsysId = SUBSYS_SRV;
     RPC2_Export(&SubsysId);
 
     cstring = "Listener1";
@@ -874,8 +874,8 @@ PRIVATE RanDelay(t)
 	tx = rpc2_NextRandom(0) % t;
 	tval.tv_sec = tx / 1000;
 	tval.tv_usec = 1000*(tx % 1000);
-	say(0, VerboseFlag, ("delaying for %ld:%ld seconds ....\n", 
-		    tval.tv_sec, tval.tv_usec));
+	say(0, VerboseFlag, "delaying for %ld:%ld seconds ....\n", 
+		    tval.tv_sec, tval.tv_usec);
 	FLUSH();
 	assert(IOMGR_Select(32, 0,0,0, &tval) == 0);
 	}

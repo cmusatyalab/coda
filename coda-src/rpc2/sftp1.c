@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.2 1997/11/13 15:03:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.3 1998/01/29 00:52:15 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -113,11 +113,12 @@ long SFTP_Init()
     {
     char *sname;
     
-    say(0, SFTP_DebugLevel, ("SFTP_Init()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
     /* Create socket for SFTP packets */
     if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Host, &sftp_Portal) != RPC2_SUCCESS)
 	return(RPC2_FAIL);
+
 
     /* Create SFTP listener process */
     sname = "sftp_Listener";
@@ -209,7 +210,7 @@ long SFTP_Bind1(IN ConnHandle, IN ClientIdent)
     {
     register struct SFTP_Entry *se;
 
-    say(0, SFTP_DebugLevel, ("SFTP_Bind()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_Bind()\n");
 
     se = sftp_AllocSEntry();	/* malloc and initialize SFTP_Entry */
     se->WhoAmI = SFCLIENT;
@@ -253,7 +254,7 @@ long SFTP_NewConn(IN ConnHandle, IN ClientIdent)
     {
     register struct SFTP_Entry *se;
 
-    say(0, SFTP_DebugLevel, ("SFTP_NewConn()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_NewConn()\n");
 
     se = sftp_AllocSEntry();	/* malloc and initialize */
     se->WhoAmI = SFSERVER;
@@ -275,7 +276,7 @@ long SFTP_MakeRPC1(IN ConnHandle, INOUT SDesc, INOUT RequestPtr)
     struct SFTP_Entry *se;
     int rc;
 
-    say(0, SFTP_DebugLevel, ("SFTP_MakeRPC1 ()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_MakeRPC1 ()\n");
 
     SDesc->LocalStatus = SE_SUCCESS;	/* non-execution == success */
     SDesc->RemoteStatus = SE_SUCCESS;	/* non-execution == success */
@@ -341,7 +342,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     struct SFTP_Entry *se;
     register int i, nbytes;
 
-    say(0, SFTP_DebugLevel, ("SFTP_MakeRPC2()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_MakeRPC2()\n");
     
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
 
@@ -399,7 +400,7 @@ long SFTP_GetRequest(IN ConnHandle, INOUT Request)
     struct SFTP_Entry *se;
     long len;
 
-    say(0, SFTP_DebugLevel, ("SFTP_GetRequest()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_GetRequest()\n");
 
     assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     if (se->WhoAmI != SFSERVER) FAIL(se, RPC2_SEFAIL2);
@@ -437,7 +438,7 @@ long SFTP_InitSE(IN ConnHandle, INOUT SDesc)
     struct SFTP_Entry *se;
     int rc;
 
-    say(0, SFTP_DebugLevel, ("SFTP_InitSE ()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_InitSE ()\n");
 	
     SDesc->LocalStatus = SE_NOTSTARTED;
     SDesc->RemoteStatus = SE_NOTSTARTED;
@@ -465,7 +466,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
     struct FileInfoByAddr *p;
 	
 
-    say(0, SFTP_DebugLevel, ("SFTP_CheckSE()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_CheckSE()\n");
 
     if (Flags == 0) return(RPC2_SUCCESS);
     assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
@@ -482,19 +483,19 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
 	switch(sftpd->Tag)
 	    {
 	    case FILEBYNAME:
-		say(0, SFTP_DebugLevel, ("%s: ", sftpd->FileInfo.ByName.LocalFileName));
+		say(0, SFTP_DebugLevel, "%s: ", sftpd->FileInfo.ByName.LocalFileName);
 	    	break;
 
 	    case FILEBYINODE:
-		say(0, SFTP_DebugLevel, ("%ld.%ld: ", sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode));
+		say(0, SFTP_DebugLevel, "%ld.%ld: ", sftpd->FileInfo.ByInode.Device, sftpd->FileInfo.ByInode.Inode);
 	    	break;
 
 	    case FILEBYFD:
-		say(0, SFTP_DebugLevel, ("%ld: ", sftpd->FileInfo.ByFD.fd));
+		say(0, SFTP_DebugLevel, "%ld: ", sftpd->FileInfo.ByFD.fd);
 	    	break;
 
 	    case FILEINVM:
-		say(0, SFTP_DebugLevel, ("0x%lx[%ld, %ld]: ", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen,  sftpd->FileInfo.ByAddr.vmfile.SeqLen));
+		say(0, SFTP_DebugLevel, "%p[%ld, %ld]: ", sftpd->FileInfo.ByAddr.vmfile.SeqBody, sftpd->FileInfo.ByAddr.vmfile.MaxSeqLen,  sftpd->FileInfo.ByAddr.vmfile.SeqLen);
 	    	break;
 	    }
 
@@ -572,7 +573,7 @@ long SFTP_SendResponse(IN ConnHandle, IN Reply)
     struct SFTP_Entry *se;
     long rc;
 
-    say(0, SFTP_DebugLevel, ("SFTP_SendResponse()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_SendResponse()\n");
 
     assert (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     
@@ -632,7 +633,7 @@ long SFTP_GetTime(IN ConnHandle, INOUT Time)
     struct SFTP_Entry *se;
     long rc;
 
-    say(0, SFTP_DebugLevel, ("SFTP_GetTime()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_GetTime()\n");
 
     se = NULL;
     /* 
@@ -656,7 +657,7 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
     struct SFTP_Entry *se;
     long rc;
 
-    say(0, SFTP_DebugLevel, ("SFTP_GetHostInfo()\n"));
+    say(0, SFTP_DebugLevel, "SFTP_GetHostInfo()\n");
 
     se = NULL;
     if ((rc = RPC2_GetSEPointer(ConnHandle, &se)) != RPC2_SUCCESS)
@@ -876,6 +877,8 @@ PRIVATE RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
 	default: assert(FALSE);
 	}
     /*NOTREACHED*/
+    assert(0);
+    return NULL;
     }
     
 
@@ -895,7 +898,7 @@ PRIVATE void AddTimerEntry(whichElem)
 
 /*---------------------- Piggybacking routines -------------------------*/
 
-sftp_AddPiggy(whichP, dPtr, dSize, maxSize)
+int sftp_AddPiggy(whichP, dPtr, dSize, maxSize)
     RPC2_PacketBuffer **whichP;	/* packet to be enlarged */
     char *dPtr;		/* data to be piggybacked */
     long dSize;		/* length of data at dPtr */
@@ -906,7 +909,7 @@ sftp_AddPiggy(whichP, dPtr, dSize, maxSize)
 	Returns 0 if data has been piggybacked, -1 if maxSize would be exceeded
     */
     {
-    say(9, SFTP_DebugLevel, ("sftp_AddPiggy: %ld\n", dSize));
+    say(9, SFTP_DebugLevel, "sftp_AddPiggy: %ld\n", dSize);
     
     if (MakeBigEnough(whichP, dSize, maxSize) < 0) return (-1);
 
@@ -978,7 +981,7 @@ sftp_AppendFileToPacket(sEntry, whichP)
     if (filelen > maxbytes) return(-2);
 
     /* enough space: append the file! */
-    rc = sftp_vfreadfile(sEntry->SDesc, sEntry->openfd, GlobalJunk, filelen);
+    rc = sftp_vfreadfile(sEntry->SDesc, sEntry->openfd, GlobalJunk);
     if (rc < 0) return(-1);
     assert(!sftp_AddPiggy(whichP, GlobalJunk, filelen, SFTP_MAXPACKETSIZE));
     sEntry->HitEOF = TRUE;
@@ -1096,7 +1099,7 @@ sftp_ExtractParmsFromPacket(sEntry, whichP)
 	sEntry->DupThreshold = sp.DupThreshold;
 	}
     sEntry->GotParms = TRUE;
-    say(9, SFTP_DebugLevel, ("GotParms: %ld %ld %ld %ld %ld\n", sEntry->WindowSize, sEntry->SendAhead, sEntry->AckPoint, sEntry->PacketSize, sEntry->DupThreshold));
+    say(9, SFTP_DebugLevel, "GotParms: %ld %ld %ld %ld %ld\n", sEntry->WindowSize, sEntry->SendAhead, sEntry->AckPoint, sEntry->PacketSize, sEntry->DupThreshold);
 
     whichP->Header.BodyLength -= sizeof(struct SFTP_Parms);
 
