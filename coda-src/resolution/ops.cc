@@ -492,7 +492,7 @@ void TruncateLog(Volume *vol, Vnode *vptr, vmindex *ind)
 	   
     rec_dlist *log = VnLog(vptr);
     /* number of entries that will be freed */
-    int count = log->count() - 1;	
+    int count = log ? log->count() - 1 : 0;	
 
     for (int i = 0; i < count; i++) {
 	/* remove entry from list */
