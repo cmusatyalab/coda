@@ -298,6 +298,8 @@ int main(int argc, char **argv)
     fflush(logFile);
     fflush(stderr);
 
+    MarinerLog("shutdown in progress");
+
     LWP_TerminateProcessSupport();
 
 #if defined(__CYGWIN32__)

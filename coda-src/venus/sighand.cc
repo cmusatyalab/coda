@@ -224,11 +224,13 @@ static void SigControl(int sig)
 
 static void SigChoke(int sig)
 {
+    int pid = getpid();
     LOG(0, ("*****  FATAL SIGNAL (%d) *****\n", sig));
 
 #ifndef DJGPP
-    eprint("Fatal Signal (%d); pid %d becoming a zombie...", sig, getpid());
-    eprint("You may use gdb to attach to %d", getpid());
+    eprint("Fatal Signal (%d); pid %d becoming a zombie...", sig, pid);
+    eprint("You may use gdb to attach to %d", pid);
+    MarinerLog("zombie state::pid %d", pid);
 
     {
 	int       living_dead = 1;
