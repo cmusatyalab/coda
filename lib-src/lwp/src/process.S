@@ -418,7 +418,7 @@ returnto:
 #elif	defined(__FreeBSD__)
 #define ENTRY(x) .align 4;  .globl _##x; _##x:
 
-#elif	defined(__NetBSD__)
+#elif	defined(__NetBSD__) || defined(__OpenBSD__)
 #include <machine/asm.h>
 
 #elif	defined(sun)
