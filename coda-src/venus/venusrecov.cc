@@ -89,7 +89,7 @@ int MAXTS = UNSET_MAXTS;
 
 /*  *****  Private Constants  *****  */
 
-#if defined(NetBSD1_3) || defined(__FreeBSD_version)
+#if defined(NetBSD1_3) || defined(NetBSD1_4) || defined(__FreeBSD_version)
 static const char *VM_RVGADDR = (char *)0x50000000;
 static const char *VM_RDSADDR = (char *)0x51000000;
 #elif defined(__BSD44__)

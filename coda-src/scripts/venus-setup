@@ -28,6 +28,8 @@ case `uname -sr` in
 		CFSMAJOR=51 ;;
 	NetBSD\ 1.3* )
 		CFSMAJOR=60 ;;
+	NetBSD\ 1.4* )
+		CFSMAJOR=60 ;;
 	FreeBSD* )
 		CFSMAJOR=93 ;;
 	*)
