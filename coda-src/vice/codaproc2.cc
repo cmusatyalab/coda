@@ -206,7 +206,6 @@ static int AllocReintegrateVnode(Volume **, dlist *, ViceFid *, ViceFid *,
 
 static int AddParent(Volume **, dlist *, ViceFid *);
 static int ReintNormalVCmp(int, VnodeType, void *, void *);
-static int ReintNormalVCmpNoRes(int, VnodeType, void *, void *);
 static void ReintPrelimCOP(vle *, const ViceStoreId *, ViceStoreId *, Volume *);
 static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *);
 static int ValidateRHandle(VolumeId, ViceReintHandle *);
@@ -1299,7 +1298,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
     int errorCode = 0;
     Volume *volptr = 0;
-    VCP VCmp = (VCP)0;
     HostTable *he;
     int index;
 
@@ -1308,12 +1306,6 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
         index = -1;
 	goto Exit;
     }
-
-    /* VCmp routine depends on resolution! */
-    if (AllowResolution && V_RVMResOn(volptr))
-	VCmp = ReintNormalVCmp;
-    else
-	VCmp = ReintNormalVCmpNoRes;
 
     /* Check each operation and perform it. */
     /* Note: the data transfer part of stores is delayed until all other operations have completed. */
@@ -1344,8 +1336,9 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		      nBlocks(v->vptr->disk.length);
 		    if ((errorCode = CheckStoreSemantics(client, &a_v->vptr,
 							 &v->vptr, &volptr, 1,
-							 VCmp, &r->VV[0],
-							 0, 0, 0))) {
+							 ReintNormalVCmp,
+							 &r->VV[0], 0, 0, 0)))
+		    {
 			goto Exit;
 		    }
 		    /* Perform. */
@@ -1436,7 +1429,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		     * invalid attributes are ignored --JH */
 		    if ((errorCode = CheckSetAttrSemantics(client,
 							   &a_v->vptr, &v->vptr, &volptr, 1,
-							   VCmp, 0, // r->u.u_truncate.Length,
+							   ReintNormalVCmp, 0, // r->u.u_truncate.Length,
 							   r->u.u_utimes.Date,
 							   r->u.u_chown.Owner,
 							   r->u.u_chmod.Mode,
@@ -1519,8 +1512,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			vle *child_v = FindVLE(*vlist, &r->Fid[1]);
 			errorCode = CheckCreateSemantics(client,
 					&parent_v->vptr, &child_v->vptr,
-					r->Name[0], &volptr, 1, VCmp, &r->VV[0],
-                                        &NullVV, 0, 0);
+					r->Name[0], &volptr, 1, ReintNormalVCmp,
+					&r->VV[0], &NullVV, 0, 0);
 
 #if 0
 			if ( errorCode == EEXIST  &&
@@ -1581,7 +1574,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckRemoveSemantics(client, &parent_v->vptr,
 							  &child_v->vptr,
 							  r->Name[0],
-							  &volptr, 1, VCmp,
+							  &volptr, 1,
+							  ReintNormalVCmp,
 							  &r->VV[0],
 							  &r->VV[1],
 							  0, 0)))
@@ -1647,7 +1641,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckLinkSemantics(client, &parent_v->vptr,
 							&child_v->vptr,
 							r->Name[0],
-							&volptr, 1, VCmp,
+							&volptr, 1,
+							ReintNormalVCmp,
 							&r->VV[0], &r->VV[1],
 							0, 0)))
 			goto Exit;
@@ -1723,7 +1718,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 							  r->Name[0],
 							  TargetExists ? &t_v->vptr : 0,
 							  r->Name[1],
-							  &volptr, 1, VCmp,
+							  &volptr, 1,
+							  ReintNormalVCmp,
 							  &r->VV[0], &r->VV[1],
 							  &r->VV[2],
 							  &NullVV, /* XXX wrong? */
@@ -1805,7 +1801,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckMkdirSemantics(client, &parent_v->vptr,
 							 &child_v->vptr,
 							 r->Name[0],
-							 &volptr, 1, VCmp,
+							 &volptr, 1,
+							 ReintNormalVCmp,
 							 &r->VV[0],
 							 &NullVV,
 							 0, 0)))
@@ -1872,7 +1869,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckRmdirSemantics(client, &parent_v->vptr,
 							 &child_v->vptr,
 							 r->Name[0],
-							 &volptr, 1, VCmp,
+							 &volptr, 1,
+							 ReintNormalVCmp,
 							 &r->VV[0], &r->VV[1],
 							 0, 0)))
 			goto Exit;
@@ -1928,7 +1926,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    if ((errorCode = CheckSymlinkSemantics(client, &parent_v->vptr,
 							   &child_v->vptr,
 							   r->Name[0],
-							   &volptr, 1, VCmp,
+							   &volptr, 1,
+							   ReintNormalVCmp,
 							   &r->VV[0],
 							   &NullVV,
 							   0, 0)))
@@ -2381,19 +2380,6 @@ static int ReintNormalVCmp(int ReplicatedOp, VnodeType type,
 	    CODA_ASSERT(0);
     }
     return 0;
-}
-
-
-/* Permits only Strong and Weak Equality for both files and directories. */
-static int ReintNormalVCmpNoRes(int ReplicatedOp, VnodeType type, 
-				void *arg1, void *arg2) 
-{
-	CODA_ASSERT(ReplicatedOp == 1);
-	ViceVersionVector *vva = (ViceVersionVector *)arg1;
-	ViceVersionVector *vvb = (ViceVersionVector *)arg2;
-
-	int SameSid = SID_EQ(vva->StoreId, vvb->StoreId);
-	return(SameSid ? 0 : EINCOMPATIBLE);
 }
 
 
