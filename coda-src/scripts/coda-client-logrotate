@@ -18,7 +18,7 @@ done
 [ -f "${errorlog}" ] && mv -f "${errorlog}" "${errorlog}-0"
 
 # Tell venus to reopen the logfiles
-kill -HUP `cat ${pid_file}` 2>/dev/null
+[ -f "${pid_file}" ] && kill -HUP `cat "${pid_file}"` 2>/dev/null
 
 # alternatively use one of the following,
 # vutil swap

@@ -24,8 +24,8 @@ done
 [ -f "${authlog}" ] && mv -f "${authlog}" "${authlog}-0"
 
 # Tell codasrv and auth2 to reopen their logfiles
-kill -HUP `cat ${srvdir}/pid`  2>/dev/null
-kill -HUP `cat ${authdir}/pid` 2>/dev/null
+[ -f "${srvdir}"/pid ] && kill -HUP `cat "${srvdir}"/pid`  2>/dev/null
+[ -f "${authdir}"/pid ] && kill -HUP `cat "${authdir}"/pid` 2>/dev/null
 
 # alternatively use one of the following,
 ## run volutil in the background, just in case the server isn't running.
