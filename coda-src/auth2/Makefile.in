@@ -63,7 +63,7 @@ endif
 
 RP2HEADERS  = auth2.h
 
-DEPLIBS = $(LIBAL) $(LIBRWCDB) $(LIBUTIL) $(LIBKERNDEP) $(LIBAUSER) $(LIBBASE)
+DEPLIBS = $(LIBUTIL) $(LIBKERNDEP) $(LIBBASE)
 LIBS := $(LIBRPC2) $(LIBLWP) $(LIBS)
 
 LIBRARIES   = libauth2.a libauser.a
@@ -76,7 +76,7 @@ libauth2.a: $(LIBAUTH2OBJS)
 
 libauser.a: $(LIBAUSEROBJS)
 
-auth2: auth2.o libauth2.a $(DEPLIBS)
+auth2: auth2.o libauth2.a $(LIBAL) $(LIBRWCDB) $(DEPLIBS)
 	${CC} $(LDFLAGS) $^ ${LIBKRBS} ${LIBS} -o $@
 
 au: au.o libauser.a $(DEPLIBS)
