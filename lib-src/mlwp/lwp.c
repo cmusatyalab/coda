@@ -61,7 +61,9 @@ Pittsburgh, PA.
 #define  QWAITING   5
 #define  MAXINT     (~(1<<((sizeof(int)*8)-1)))
 #define  MINSTACK   44
+#ifndef MAX
 #define  MAX(a,b)   ((a) > (b) ? (a) : (b))
+#endif
 #define	 LWPANCHOR  (*lwp_init)
 #define	 MAX_PRIORITIES	(LWP_MAX_PRIORITY+1)
 
@@ -364,8 +366,8 @@ static void Exit_LWP()
 
 static void Dump_Processes(int magic)
 {
-    /* This function is too easily mistaken for LWP_PrintProcesses (I did it a
-     * couple of times already) --JH */
+    /* This function is too easily mistaken for LWP_Print_Processes
+     * (I did it a couple of times already) --JH */
     if (magic != 0xdeadbeef) return;
 
     if (lwp_init) {
@@ -380,16 +382,20 @@ static void Dump_Processes(int magic)
 	fprintf(lwp_logfile, "***LWP: LWP support not initialized\n");
 }
 
-void LWP_Print_Processes()
+void LWP_Print_Processes(void)
 {
     if (lwp_init) {
-	register int i;
+	int i;
 	for (i=0; i<MAX_PRIORITIES; i++)
 	    for_all_elts(x, runnable[i], {
 		fprintf(lwp_logfile, "[Priority %d]\n", i);
 		Dump_One_Process(x, lwp_logfile, DONT_FREE);
+		fflush(lwp_logfile);
 	    })
-	for_all_elts(x, blocked, { Dump_One_Process(x, lwp_logfile, DONT_FREE); })
+	for_all_elts(x, blocked, {
+	     Dump_One_Process(x, lwp_logfile, DONT_FREE);
+	     fflush(lwp_logfile);
+	})
     } else
 	fprintf(lwp_logfile, "***LWP: LWP support not initialized\n");
 }
@@ -802,7 +808,7 @@ static void Trace_Swapped_Stack(top, fp, depth, name)
     char    *name;
 {
     register_t      ip;
-    register_t      ebp;
+    register_t      ebp, prev_ebp;
     char           *esp;
     
     /* Set current stack pointer to top */
@@ -822,21 +828,21 @@ static void Trace_Swapped_Stack(top, fp, depth, name)
      * ebp = beginning of frame.
      * ip = caller of savecontext 
      */
-    while (depth--) {
+    prev_ebp = (register_t)NULL;
+    while (--depth) {
 	fprintf(fp,"\tStack: %s - 0x%x\n", name, ip);
 
         /* make sure we don't segfault while going to the next frame --JH */
-        if (ebp == 0) break;
+        if (ebp <= prev_ebp) break;
 
-	if (depth) {
-	    /* LEAVE */
-	    esp = (char *)ebp;
-	    ebp = *(register_t *)esp;
-	    esp += sizeof(register_t);
-	    /* RET */
-	    ip = *(register_t *)esp;
-	    esp += sizeof(register_t);
-	}
+	/* LEAVE */
+	esp = (char *)ebp;
+	prev_ebp = ebp;
+	ebp = *(register_t *)esp;
+	esp += sizeof(register_t);
+	/* RET */
+	ip = *(register_t *)esp;
+	esp += sizeof(register_t);
     }
 }
 #endif
