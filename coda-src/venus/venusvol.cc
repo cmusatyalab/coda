@@ -652,7 +652,8 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
 	volname = (char *)malloc(V_MAXVOLNAMELEN);
 	CODA_ASSERT(volname);
 
-	if (GetRootVolName(realm, volname) != 0)
+	code = GetRootVolName(realm, volname);
+	if (code != 0)
 	    goto error_exit;
     }
 

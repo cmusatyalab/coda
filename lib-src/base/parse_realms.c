@@ -61,7 +61,7 @@ static struct in_addr *ResolveRootServers(char *servers)
     }
 
     i = 0;
-    for (i = 0; (host = strtok(servers, " \t\n")) != NULL; servers = NULL)
+    for (i = 0; (host = strtok(servers, ", \t\n")) != NULL; servers = NULL)
     {
 
 #ifndef GETHOSTBYNAME_ACCEPTS_IPADDRS
@@ -126,10 +126,10 @@ struct in_addr *GetRealmServers(const char *realm_name)
     }
     fclose(f);
 
-    if (found)
-	return ResolveRootServers(&line[namelen]);
+    if (!found)
+	return NULL;
 
-    return NULL;
+    return ResolveRootServers(&line[namelen]);
 }
 
 

@@ -76,6 +76,7 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 #include "worker.h"
+#include "realmdb.h"
 
 
 static int NullRcRights = 0;
@@ -1091,7 +1092,8 @@ void fsobj::MakeClean() {
 /* local-repair modification */
 /* MUST NOT be called from within transaction! */
 /* Call with object write-locked. */
-int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid) {
+int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
+{
     if (!HAVEALLDATA(this))
 	{ print(logFile); CHOKE("fsobj::TryToCover: called without data"); }
 
@@ -1111,10 +1113,6 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid) {
     }
     char type = data.symlink[0];
     switch(type) {
-	case '%':
-	    eprint("TryToCover: '%%'-style mount points no longer supported");
-	    return(EOPNOTSUPP);
-
 	case '#':
 	case '@':
 	    break;
@@ -1147,19 +1145,30 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid) {
 
     /* Don't allow a volume to be mounted inside itself! */
     /* but only when its mount root is the global-root-obj of a local subtree */
-    if (fid.Realm == tvol->GetRealmId() &&
-	fid.Volume == tvol->GetVolumeId() &&
+    if (fid.Realm == tvol->GetRealmId() && fid.Volume == tvol->GetVolumeId() &&
 	!LRDB->RFM_IsGlobalChild(&fid)) {
 	eprint("TryToCover(%s): recursive mount!", data.symlink);
 	VDB->Put(&tvol);
 	return(ELOOP);
     }
 
+    /* Only allow cross-realm mountpoints from our default realm. */
+    if (vol->GetRealmId() != tvol->GetRealmId()) {
+	Realm *r = REALMDB->GetRealm("");
+	RealmId r_id = r->Id();
+	r->PutRef();
+
+	if (r_id != vol->GetRealmId()) {
+	    VDB->Put(&tvol);
+	    return ELOOP;
+	}
+    }
+
+
     /* Get volume root. */
     fsobj *rf = 0;
     VenusFid root_fid;
     root_fid.Realm = tvol->GetRealmId();
-#warning "Check for cross-realm mounts here"
     root_fid.Volume = tvol->vid;
     if (IsFake()) {
 	if (sscanf(data.symlink, "@%*lx.%*lx.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
