@@ -251,13 +251,13 @@ static void GetArgs(int argc, char *argv[])
 
 static void InitRPC()
 {
-    int pid;
+    PROCESS pid;
     int rc;
     SFTP_Initializer sei;
     struct timeval tv;
 
     /* Init RPC2 */
-    rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, (PROCESS *)&pid);
+    rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid);
     if (rc != LWP_SUCCESS) {
 	fprintf(stderr, "LWP_Init() failed\n");
 	exit(-1);

@@ -35,12 +35,12 @@ listed in the file CREDITS.
 
 void Initialize(void)
 {
-    PROCESS         *pid;
-    struct timeval   tv;
-    long             rc;
+    PROCESS pid;
+    struct timeval tv;
+    long rc;
 
     /* initialize the subsystems LWP/RPC */
-    rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, (PROCESS *)&pid);
+    rc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &pid);
     if (rc != LWP_SUCCESS) {
 	printf("LWP_Init() failed\n");
 	exit(-1);

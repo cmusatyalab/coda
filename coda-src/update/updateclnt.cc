@@ -585,14 +585,12 @@ static int CheckFile(char *fileName, int mode)
 static void ReConnect()
 {
     long     rc;
-    struct timeval  time;
     RPC2_PortIdent sid;
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hid;
     RPC2_CountedBS cident;
     RPC2_EncryptionKey secret;
     char hostname[64];
-    int     i;
     long portmapid;
     long port;
 
