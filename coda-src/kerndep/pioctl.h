@@ -95,13 +95,24 @@ int pioctl(const char *path, unsigned long com, struct
 #if defined(__CYGWIN32__)
 /* Get the _IO... definitions for CYGWIN. */
 #include <asm/socket.h>
-#endif 
-
-
+#endif
 
 /* people who understand ioctling probably know why this is useful... */
 #define _VICEIOCTL(id)  (_IOW('V', id, struct ViceIoctl))
 #define _VALIDVICEIOCTL(com) (com >= _VICEIOCTL(0) && com <= _VICEIOCTL(255))
 
+/* unpacking macros */
+#ifndef _IOC_NR
+
+#if defined(__CYGWIN32__) || defined(__NetBSD__)
+#define _IOC_TYPEMASK	0xff
+#define _IOC_TYPESHIFT	8
+#define _IOC_NRMASK	0xff
+#define _IOC_NRSHIFT	0
+#endif
+
+#define _IOC_TYPE(nr)	((nr >> _IOC_TYPESHIFT) & _IOC_TYPEMASK)
+#define _IOC_NR(nr)	((nr >> _IOC_NRSHIFT) & _IOC_NRMASK)
+#endif
 
 #endif /* _PIOCTL_H_ */
