@@ -40,17 +40,17 @@ void ViceSHAtoHex (unsigned char sha[SHA_DIGEST_LENGTH],
 		   char *printbuf, int printbuflen)
 {
     /* Convert a Vice SHA structure into a printable hex string in a
-       buffer of length printbuflen (at least 60 chars long) */
+       buffer of length printbuflen (at least 40 chars long) */
 
     int i;
 
-    if (printbuflen <= (3*SHA_DIGEST_LENGTH - 1))
+    if (printbuflen <= 2*SHA_DIGEST_LENGTH)
 	return; /* buffer too short */
 
     for (i = 0; i < SHA_DIGEST_LENGTH; i++)
-	sprintf(&printbuf[3*i], "%02x.", sha[i]);
+	sprintf(&printbuf[2*i], "%02x", sha[i]);
 
-    printbuf[3*SHA_DIGEST_LENGTH-1] = '\0';
+    printbuf[2*SHA_DIGEST_LENGTH] = '\0';
 }
 
 

@@ -247,7 +247,7 @@ int WalkTree(char *troot, char *prefix, struct rwcdb *dbh)
     /* Successfully added one more entry! */
     NumEntries++;
     if (VerboseFlag) {
-      char temp[3*SHA_DIGEST_LENGTH];
+      char temp[2*SHA_DIGEST_LENGTH+1];
       ViceSHAtoHex(shabuf, temp, sizeof(temp));
       printf("Entry %05d:  %s  %s\n", NumEntries, temp, path);
     }

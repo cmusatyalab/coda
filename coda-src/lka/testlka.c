@@ -43,7 +43,7 @@ int main(int argc, char **argv)
   int rc, fd, cfd;
   char testfile[MAXPATHLEN];
   unsigned char testsha[SHA_DIGEST_LENGTH];
-  char container[30], shaprintbuf[60]; 
+  char container[30], shaprintbuf[2*SHA_DIGEST_LENGTH+1]; 
   
   strcpy(container, "/tmp/testlka.XXXXXX");
   mktemp(container);

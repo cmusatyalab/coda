@@ -947,7 +947,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
             ARG_UNMARSHALL_BS(myshavar, mysha, dh_ix);
 
 	    if (mysha.SeqLen == SHA_DIGEST_LENGTH) {
-		char printbuf[3*SHA_DIGEST_LENGTH+1];
+		char printbuf[2*SHA_DIGEST_LENGTH+1];
 		ViceSHAtoHex(mysha.SeqBody, printbuf, sizeof(printbuf));
 		LOG(-1, ("mysha(%d, %d) = %s\n.", mysha.MaxSeqLen, mysha.SeqLen, printbuf));
 	    }
@@ -1013,7 +1013,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
 	if (IsFile()) {
 	    RVMLIB_REC_OBJECT(VenusSHA);
-	    /* VenusSHA already was set by getattr */
+	    /* VenusSHA already set by getattr */
 	    if (mysha.SeqLen != SHA_DIGEST_LENGTH)
 		memset(&VenusSHA, 0, SHA_DIGEST_LENGTH);
 	}

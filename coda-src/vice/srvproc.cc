@@ -396,7 +396,7 @@ START_TIMING(GetAttr_Total);
 	memcpy(MySHA->SeqBody, VnSHA(v->vptr), SHA_DIGEST_LENGTH);
 
 	if (SrvDebugLevel > 1) {
-	    char printbuf[3*SHA_DIGEST_LENGTH]; 
+	    char printbuf[2*SHA_DIGEST_LENGTH+1]; 
 	    ViceSHAtoHex(MySHA->SeqBody, printbuf, sizeof(printbuf));
 	    fprintf(stdout, "ViceGetAttrPlusSHA: SHA = %s\n", printbuf);
 	}
