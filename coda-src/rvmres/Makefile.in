@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/rvmres/RCS/GNUmakefile.in,v 1.1 1996/11/22 19:13:08 braam Exp braam $";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/rvmres/RCS/Makefile.in,v 1.1 1996/12/09 14:40:53 raiff Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -40,6 +40,7 @@ VPATH = @srcdir@
 TOPOBJ= @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
+CC=g++
 RP2FLAGS := -n $(RP2FLAGS)
 
 RVMRESOBJS=ops.o recle.o recov_vollog.o rsle.o rvmrescoord.o \
