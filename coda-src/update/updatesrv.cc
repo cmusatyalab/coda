@@ -240,7 +240,7 @@ static void SetDebug()
     }
     RPC2_DebugLevel = SrvDebugLevel/10;
     LogMsg(0, SrvDebugLevel, stdout, 
-	   "Set Debug On level = %d, RPC level = %d\n",
+	   "Set Debug On level = %d, RPC level = %d",
 	   SrvDebugLevel, RPC2_DebugLevel);
 }
 
@@ -248,13 +248,13 @@ static void SetDebug()
 static void ResetDebug()
 {
     RPC2_DebugLevel = SrvDebugLevel = 0;
-    LogMsg(0, SrvDebugLevel, stdout, "Reset Debug levels to 0\n");
+    LogMsg(0, SrvDebugLevel, stdout, "Reset Debug levels to 0");
 }
 
 
 static void Terminate()
 {
-    LogMsg(0, SrvDebugLevel, stdout, "Exiting updateclnt\n");
+    LogMsg(0, SrvDebugLevel, stdout, "Exiting updateclnt");
     exit(0);
 }
 
@@ -271,20 +271,20 @@ static void ServerLWP(int *Ident)
     myfilter.OldOrNew = OLDORNEW;
     myfilter.ConnOrSubsys.SubsysId = SUBSYS_UPDATE;
     lwpid = *Ident;
-    LogMsg(0, SrvDebugLevel, stdout,"Starting Update Worker %d\n", lwpid);
+    LogMsg(0, SrvDebugLevel, stdout,"Starting Update Worker %d", lwpid);
 
     while (1) {
 	if ((rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 0, 0, 
 				  RPC2_XOR, 0))
 		== RPC2_SUCCESS) {
 	    LogMsg(1, SrvDebugLevel, stdout,
-		   "Worker %d received request %d\n", 
+		   "Worker %d received request %d", 
 		   lwpid, myrequest->Header.Opcode);
 
 	    rc = update_ExecuteRequest(mycid, myrequest, 0);
 	    if (rc) {
 		LogMsg(0, SrvDebugLevel, stdout,
-		       "file.c request %d failed: %s\n",
+		       "file.c request %d failed: %s",
 		       myrequest->Header.Opcode, ViceErrorMsg((int)rc));
 		if(rc <= RPC2_ELIMIT) {
 		    RPC2_Unbind(mycid);
@@ -292,7 +292,7 @@ static void ServerLWP(int *Ident)
 	    }
 	} else {
 	    LogMsg(0, SrvDebugLevel, stdout,
-		   "RPC2_GetRequest failed with %s\n",ViceErrorMsg((int)rc));
+		   "RPC2_GetRequest failed with %s",ViceErrorMsg((int)rc));
 	}
     }
 }
@@ -313,7 +313,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 
     rc = 0;
 
-    LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d\n",
+    LogMsg(1, SrvDebugLevel, stdout, "UpdateFetch file = %s, Time = %d",
 	    FileName, Time);
 
 /*    strcpy(name, prefix); */
@@ -351,7 +351,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 
 	if (rc = RPC2_InitSideEffect(RPCid, &sid)) {
 	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "InitSideEffect failed %s\n", ViceErrorMsg((int)rc));
+		   "InitSideEffect failed %s", ViceErrorMsg((int)rc));
 	    if (rc <= RPC2_ELIMIT) {
 		goto Final;
 	    }
@@ -359,7 +359,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 
 	if (rc = RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) {
 	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "CheckSideEffect failed %s\n", ViceErrorMsg((int)rc));
+		   "CheckSideEffect failed %s", ViceErrorMsg((int)rc));
 	    if (rc <= RPC2_ELIMIT) {
 		goto Final;
 	    }
@@ -388,7 +388,7 @@ long UpdateNewConnection(RPC2_Handle cid, RPC2_Integer SideEffectType,
 			 RPC2_CountedBS *ClientIdent)
 {
     LogMsg(0, SrvDebugLevel, stdout,
-	   "New connection received %d, %d, %d\n", 0, 0, 0);
+	   "New connection received %d, %d, %d", 0, 0, 0);
     /* at some point we should validate this connection as to its origin */
     return(0);
 }
