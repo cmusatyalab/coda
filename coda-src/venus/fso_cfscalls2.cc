@@ -439,8 +439,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	/* Don't insist on validity when disconnected. */
 	if ((code = CheckAcRights(vuid, rights, 0)) != ENOENT)
 	    return(code);
-	else
-	    return(EACCESS);
+	return(EACCES);
     }
 
     /* XXX we might be 'RESOLVING(this)', what will happen then? -JH */
