@@ -15,8 +15,6 @@
 
 set -e
 
-prefix="@prefix@"
-
 if [ $# != 3 ] ; then
     echo "Usage: $0 <conffile> <variable> <newvalue>"
     exit 1
