@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vol/partition.cc,v 1.1 1996/11/22 19:10:26 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/partition.cc,v 1.2 1996/12/07 18:28:43 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -76,10 +76,14 @@ extern "C" {
 #include <libc.h>
 #include <sysent.h>
 #endif __MACH__
-#ifdef __NetBSD__
+#if __NetBSD__ || LINUX
 #include <unistd.h>
 #include <stdlib.h>
 #endif __NetBSD__
+
+#ifdef LINUX
+#include <sys/vfs.h>
+#endif
 
 #include <lwp.h>
 #include <lock.h>
@@ -141,6 +145,10 @@ struct DiskPartition *VGetPartition(char *name)
 
 PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
 {
+#ifdef LINUX
+  struct statfs fsbuf;
+  int rc;
+#endif
 #ifdef __MACH__
     /* Note:  we don't bother syncing because it's only an estimate, update
        is syncing every 30 seconds anyway, we only have to keep the disk
@@ -165,7 +173,17 @@ PRIVATE void VSetPartitionDiskUsage(register struct DiskPartition *dp)
     dp->minFree = (int)sblock.fs_minfree;
     dp->totalUsable = availblks;
     dp->free = availblks - used; /* May be negative, which is OK */
-#else __MACH__
+#endif
+
+#ifdef LINUX
+ rc = statfs(dp->devName, &fsbuf);
+ assert( rc == 0 );
+ 
+ dp->free = fsbuf.f_bavail;  /* available free blocsk */
+ dp->totalUsable = fsbuf.f_blocks * 9 /10; 
+ dp->minFree = 10;
+
+#else
     /* Satya (8/5/96): skipped porting this routine since it is not
     		used by Venus; needs to be ported for server; depends on sys/fs.h in Mach */
     LogMsg(0, VolDebugLevel, stdout,  "PORTING ERROR: VSetPartitionDiskUsage() not yet ported");

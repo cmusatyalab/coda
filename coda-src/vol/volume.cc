@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vol/RCS/volume.cc,v 1.3 1996/11/24 18:06:36 braam Exp braam $";
+static char *rcsid = "$Header: /home/braam/coda/ss/coda-src/vol/RCS/volume.cc,v 1.4 1996/12/07 18:26:34 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -87,6 +87,8 @@ extern "C" {
 #include <dirent.h>
 #include <stdio.h>
 #include <mntent.h>
+#include <sys/vfs.h>
+#include <linux/ext2_fs.h>
 #endif
 
 #include <lwp.h>
@@ -252,7 +254,7 @@ int VInitVolUtil(ProgramType pt) {
 /* one time initialization for file server only */
 void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 #ifdef LINUX
-    struct FILE *mnt_handle;
+    FILE *mnt_handle;
     struct mntent *mntent;
 #endif
     struct fstab *fsent;
@@ -280,14 +282,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     /* Setup (volume id -> VolumeList index) hash table */
     InitVolTable(HASHTABLESIZE);
 
-    /*
-      BEGIN_HTML
-      <a name="InitVolumeHashTable">
-      <strong>Initialize the VolumeHashTable
-      </strong>
-      </a>
-      END_HTML
-    */
+    /* Initialize the volume hash tables */
     bzero(VolumeHashTable, sizeof(VolumeHashTable));
     
     VInitVnodes(vLarge, nLargeVnodes);
@@ -310,11 +305,11 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 #ifndef LINUX 
     setfsent();
     while (fsent = getfsent()) {
-            char *part = fsent->fs_file;
+        char *part = fsent->fs_file;
 	DIR *dirp;
 	struct stat status;
 	if (stat(part, &status) == -1) {
-	    LogMsg(0, VolDebugLevel, stdout, "VInitVolumePackage: Couldn't find file system %s; ignored", part);
+        LogMsg(0, VolDebugLevel, stdout, "VInitVolumePackage: Couldn't find file system %s; ignored", part);
 	    continue;
 	}
 	/* Satya (8/2/96): test below used to be a simple test (status.st_ino != ROOTINO)
@@ -331,26 +326,50 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     }
     endfsent();
 #else 
+    /* go through the mounted file systems, act sensibly */
     mnt_handle = setmntent("/etc/mtab", "r");
     while ( mntent = getmntent(mnt_handle)) {
             char *part = mntent->mnt_dir;
-	DIR *dirp;
-	struct stat status;
-	if (stat(part, &status) == -1) {
-	    LogMsg(0, VolDebugLevel, stdout, "VInitVolumePackage: Couldn't find file system %s; ignored", part);
-	    continue;
-	}
-	/* Satya (8/2/96): test below used to be a simple test (status.st_ino != ROOTINO)
-		on Mach; unfortunately ROOTINO is defined in sys/fs.h which doesn't
-		exist in NetBSD; MountedAtRoot() is a more portable test for the same */
-	if (!MountedAtRoot(part)) {
-	    LogMsg(0, VolDebugLevel, stdout, "%s is not a mounted file system; ignored", part);
-	    continue;
-	}
-	assert((dirp = opendir(part)) != NULL);
-	closedir(dirp);
+	    DIR *dirp;
+	    struct stat status;
+	    struct statfs statfsbuf;
+	    
+	    if (strncmp(part, VICE_PARTITION_PREFIX, VICE_PREFIX_SIZE) != 0) {
+	      continue;
+	    }
 
-	VInitPartition(part, mntent->mnt_fsname, status.st_dev);
+	    if (stat(part, &status) == -1) {
+	      LogMsg(0, VolDebugLevel, stdout, 
+		     "VInitVolumePackage: Couldn't find file system %s; 
+                          ignored", part);
+	      continue;
+	    }
+
+	    if ( statfs(part, &statfsbuf) ) {
+	      LogMsg(0, VolDebugLevel, stdout, 
+		     "VInitVolumePackage: Couldn't statfs file system %s; 
+                             ignored", part);
+	      continue;
+	    }
+
+	    if ( statfsbuf.f_type !=  EXT2_SUPER_MAGIC ) {
+	      LogMsg(0, VolDebugLevel, stdout, 
+		     "VInitVolumePackage: File system %s not of type 'ext2'; 
+                             ignored", part);
+	      continue;
+	    }
+
+	    /* I think we are paranoia, but maybe that's good */
+	    if (!MountedAtRoot(part)) {
+	      LogMsg(0, VolDebugLevel, stdout, 
+		     "%s is not a mounted file system; ignored", part);
+	      continue;
+	    }
+
+	    assert((dirp = opendir(part)) != NULL);
+	    closedir(dirp);
+
+	    VInitPartition(part, mntent->mnt_fsname, status.st_dev);
     }
     endmntent(mnt_handle);
 #endif
