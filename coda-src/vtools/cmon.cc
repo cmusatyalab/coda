@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.9 1998/11/24 15:35:01 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cmon.cc,v 4.10 1998/12/05 16:49:13 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -175,11 +175,12 @@ main(int argc, char *argv[])
 #endif
 
     MonBirthTime = time(0);
-    initscr();
-    curWin = newwin(1, 1, 0, 0);
     GetArgs(argc, argv);
     InitRPC();
     rpc2_logfile = dbg;
+
+    initscr();
+    curWin = newwin(1, 1, 0, 0);
     DrawCaptions();
 
     LWP_CreateProcess((PFIC)kbdlwp, 0x4000, LWP_NORMAL_PRIORITY, NULL, "KBD", (PROCESS *)&i);
