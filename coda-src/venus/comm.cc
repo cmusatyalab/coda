@@ -251,7 +251,7 @@ void Conn_Signal() {
 int srvent::GetConn(connent **cpp, uid_t uid, int Force)
 {
     LOG(100, ("srvent::GetConn: host = %s, uid = %d, force = %d\n",
-              inet_ntoa(host), uid, Force));
+              name, uid, Force));
 
     *cpp = 0;
     int code = 0;
@@ -600,10 +600,10 @@ srvent *GetServer(struct in_addr *host, RealmId realm)
 
 void PutServer(srvent **spp)
 {
-    LOG(100, ("PutServer: \n"));
-
-    if (*spp)
+    if (*spp) {
+	LOG(100, ("PutServer: %s\n", (*spp)->name));
         (*spp)->PutRef();
+    }
     *spp = NULL;
 }
 
@@ -1364,14 +1364,34 @@ srvent *srv_iterator::operator()() {
 
 
 #ifndef USE_FAIL_FILTERS
+extern int (*Fail_SendPredicate)(unsigned char ip1, unsigned char ip2,
+				 unsigned char ip3, unsigned char ip4,
+				 unsigned char color, RPC2_PacketBuffer *pb,
+				 struct sockaddr_in *sin, int fd);
+extern int (*Fail_RecvPredicate)(unsigned char ip1, unsigned char ip2,
+				 unsigned char ip3, unsigned char ip4,
+				 unsigned char color, RPC2_PacketBuffer *pb,
+				 struct sockaddr_in *sin, int fd);
+
+static int DropPacket(unsigned char ip1, unsigned char ip2,
+		      unsigned char ip3, unsigned char ip4,
+		      unsigned char color, RPC2_PacketBuffer *pb,
+		      struct sockaddr_in *sin, int fd)
+{
+    /* Tell rpc2 to drop the packet */
+    return 0;
+}
+
 int FailDisconnect(int nservers, struct in_addr *hostids)
 {
-    return -1;
+    Fail_SendPredicate = Fail_RecvPredicate = &DropPacket;
+    return 0;
 }
 
 int FailReconnect(int nservers, struct in_addr *hostids)
 {
-    return -1;
+    Fail_SendPredicate = Fail_RecvPredicate = NULL;
+    return 0;
 }
 
 int FailSlow(unsigned *speedp)
