@@ -19,7 +19,7 @@
 
 SUBDIRS = rpc2-src rp2gen fail include pkgs debian
 
-EXTRA_DIST = acinclude.m4 bootstrap.sh configure
+EXTRA_DIST = acinclude.m4 bootstrap.sh configure README.ipv6
 
 MAINTAINERCLEANFILES = AUTHORS ChangeLog Makefile.in README aclocal.m4 \
     config.guess config.h.in config.sub configure install-sh libtool \
