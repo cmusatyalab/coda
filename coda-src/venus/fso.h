@@ -507,8 +507,8 @@ class fsobj {
     void SetRcRights(int);
     void ClearRcRights();
     int IsValid(int);
-    int CheckAcRights(vuid_t, long, int);
-    void SetAcRights(vuid_t, long);
+    int CheckAcRights(vuid_t, long rights, int connected);
+    void SetAcRights(vuid_t, long my_rights, long any_rights);
     void DemoteAcRights(vuid_t);
     void PromoteAcRights(vuid_t);
     void ClearAcRights(vuid_t);

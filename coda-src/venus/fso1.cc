@@ -686,10 +686,9 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vuid_t vuid)
     }
 
     /* Set access rights and parent (if they differ). */
-    if (IsDir()) {
-	SetAcRights(ALL_UIDS, vstat->AnyAccess);
-	SetAcRights(vuid, vstat->MyAccess);
-    }
+    if (IsDir())
+	SetAcRights(vuid, vstat->MyAccess, vstat->AnyAccess);
+
     SetParent(vstat->vparent, vstat->uparent);
 }
 
@@ -716,10 +715,9 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, vuid_t vuid)
 
     /* Set access rights and parent (if they differ). */
     /* N.B.  It should be a fatal error if they differ! */
-    if (IsDir()) {
-	SetAcRights(ALL_UIDS, vstat->AnyAccess);
-	SetAcRights(vuid, vstat->MyAccess);
-    }
+    if (IsDir())
+	SetAcRights(vuid, vstat->MyAccess, vstat->AnyAccess);
+
     SetParent(vstat->vparent, vstat->uparent);
 }
 
@@ -891,74 +889,67 @@ int fsobj::IsValid(int rcrights) {
 
 
 /* Returns {0, EACCES, ENOENT}. */
-int fsobj::CheckAcRights(vuid_t vuid, long rights, int validp) {
-    if (vuid == ALL_UIDS) {
-	/* Do we have access via System:AnyUser? */
-	if ((AnyUser.inuse) &&
-	    (!validp || AnyUser.valid))
-	    return((rights & AnyUser.rights) ? 0 : EACCES);
-    }
-    else {
+int fsobj::CheckAcRights(vuid_t vuid, long rights, int connected) {
+    if (vuid != ALL_UIDS) {
 	/* Do we have this user's rights in the cache? */
 	for (int i = 0; i < CPSIZE; i++) {
-	    if ((!SpecificUser[i].inuse) ||
-		(validp && !SpecificUser[i].valid))
-		continue;
-
-	    if (vuid == SpecificUser[i].uid)
+	    if (SpecificUser[i].inuse && (!connected || SpecificUser[i].valid)
+		&& vuid == SpecificUser[i].uid)
 		return((rights & SpecificUser[i].rights) ? 0 : EACCES);
 	}
     }
+    if (vuid == ALL_UIDS || !connected) {
+	/* Do we have access via System:AnyUser? */
+	if (AnyUser.inuse && (!connected || AnyUser.valid))
+	    return((rights & AnyUser.rights) ? 0 : EACCES);
+    }
 
     LOG(10, ("fsobj::CheckAcRights: not found, (%s), (%d, %d, %d)\n",
-	      FID_(&fid), vuid, rights, validp));
+	      FID_(&fid), vuid, rights, connected));
     return(ENOENT);
 }
 
 
 /* MUST be called from within transaction! */
-void fsobj::SetAcRights(vuid_t vuid, long rights) {
-    LOG(100, ("fsobj::SetAcRights: (%s), vuid = %d, rights = %d\n",
-	       FID_(&fid), vuid, rights));
+void fsobj::SetAcRights(vuid_t vuid, long my_rights, long any_rights) {
+    LOG(100, ("fsobj::SetAcRights: (%s), vuid = %d, my_rights = %d, any_rights = %d\n",
+	       FID_(&fid), vuid, my_rights, any_rights));
 
-    if (vuid == ALL_UIDS) {
-	if (AnyUser.rights != rights || !AnyUser.inuse) {
-	    RVMLIB_REC_OBJECT(AnyUser);
-	    AnyUser.rights = (unsigned char) rights;
-	    AnyUser.inuse = 1;
-	}
-	AnyUser.valid = 1;
+    if (!AnyUser.inuse || AnyUser.rights != any_rights) {
+	RVMLIB_REC_OBJECT(AnyUser);
+	AnyUser.rights = (unsigned char) any_rights;
+	AnyUser.inuse = 1;
     }
-    else {
-	/* Don't record rights if we're really System:AnyUser! */
-	userent *ue;
-	GetUser(&ue, vuid);
-	int tokensvalid = ue->TokensValid();
-	PutUser(&ue);
-	if (!tokensvalid) return;
+    AnyUser.valid = 1;
 
-	int i;
-	int j = -1;
-	int k = -1;
-	for (i = 0; i < CPSIZE; i++) {
-	    if (vuid == SpecificUser[i].uid) break;
-	    if (!SpecificUser[i].inuse) j = i;
-	    if (!SpecificUser[i].valid) k = i;
-	}
-	if (i == CPSIZE && j != -1) i = j;
-	if (i == CPSIZE && k != -1) i = k;
-	if (i == CPSIZE) i = (int) (Vtime() % CPSIZE);
+    /* Don't record my_rights if we're not really authenticated! */
+    userent *ue;
+    GetUser(&ue, vuid);
+    int tokensvalid = ue->TokensValid();
+    PutUser(&ue);
+    if (!tokensvalid) return;
 
-	if (SpecificUser[i].uid != vuid ||
-	    SpecificUser[i].rights != rights ||
-	    !SpecificUser[i].inuse) {
-	    RVMLIB_REC_OBJECT(SpecificUser[i]);
-	    SpecificUser[i].uid = vuid;
-	    SpecificUser[i].rights = (unsigned char) rights;
-	    SpecificUser[i].inuse = 1;
-	}
-	SpecificUser[i].valid = 1;
+    int i;
+    int j = -1;
+    int k = -1;
+    for (i = 0; i < CPSIZE; i++) {
+	if (vuid == SpecificUser[i].uid) break;
+	if (!SpecificUser[i].inuse) j = i;
+	if (!SpecificUser[i].valid) k = i;
     }
+    if (i == CPSIZE && j != -1) i = j;
+    if (i == CPSIZE && k != -1) i = k;
+    if (i == CPSIZE) i = (int) (Vtime() % CPSIZE);
+
+    if (!SpecificUser[i].inuse || SpecificUser[i].uid != vuid ||
+	SpecificUser[i].rights != my_rights)
+    {
+	RVMLIB_REC_OBJECT(SpecificUser[i]);
+	SpecificUser[i].uid = vuid;
+	SpecificUser[i].rights = (unsigned char) my_rights;
+	SpecificUser[i].inuse = 1;
+    }
+    SpecificUser[i].valid = 1;
 }
 
 

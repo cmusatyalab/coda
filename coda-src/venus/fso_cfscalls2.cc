@@ -343,15 +343,18 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 
     int code = 0;
 
+#define PRSFS_MUTATE (PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)
     /* Disallow mutation of backup, rw-replica, and zombie volumes. */
-    if ((vol->IsBackup() || vol->IsReadWriteReplica()) &&
-	 (rights & (long)(PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK)))
-	return(EROFS);
+    if (vol->IsBackup() || vol->IsReadWriteReplica()) {
+	if (rights & PRSFS_MUTATE)
+	    return(EROFS);
+	/* But don't allow reading unless the acl allows us to. */
+    }
 
     /* Disallow mutation of fake directories and mtpts.  Always permit
        reading of the same. */
     if (IsFake() || IsLocalObj()) {
-	if (rights & (long)(PRSFS_WRITE | PRSFS_DELETE | PRSFS_INSERT | PRSFS_LOCK))
+	if (rights & PRSFS_MUTATE)
 	    return(EROFS);
 
 	return(0);
@@ -369,7 +372,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	LockLevel level = (writers > 0 ? WR : RD);
 
 	/* Refine the permissions according to the file mode bits. */
-/*
+#if 0
 	static char fileModeMap[8] = {
 	    PRSFS_INSERT | PRSFS_DELETE	| PRSFS_ADMINISTER,				* --- *
 	    PRSFS_INSERT | PRSFS_DELETE	| PRSFS_ADMINISTER,				* --x *
@@ -381,7 +384,8 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	    PRSFS_INSERT | PRSFS_DELETE	| PRSFS_ADMINISTER | PRSFS_READ | PRSFS_WRITE	* rwx *
 	};
 	rights &= fileModeMap[(stat.Mode & OWNERBITS) >> 6];
-*/
+#endif
+
 	/* check if the object is GlobalRootObj for a local-fake tree */
 	if (LRDB->RFM_IsGlobalRoot(&fid)) {
 	    /* 
@@ -397,7 +401,10 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	if (FID_EQ(&NullFid, &parent_fid))
 	    { print(logFile); CHOKE("fsobj::Access: pfid == Null"); }
 	UnLock(level);
-	FSO_RELE(this);
+	//FSO_RELE(this); this was moved up here by someone to avoid problems
+	//in FSDB->Get. But it's really bad, because we lose the guarantee that
+	//the current object doesn't get swept from under us while we release
+	//the lock. --JH
 
 	/* Get the parent object, make the check, and put the parent. */
 	fsobj *parent_fso = 0;
@@ -408,7 +415,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 
 	/* Reacquire the child at the appropriate level and unpin it. */
 	Lock(level);
-	/* FSO_RELE(this); // Used to be here.  Moved earlier to avoid problems in fsdb::Get */
+	FSO_RELE(this);
 
 	/* Check mode bits if necessary. */
 	/* There should be a special case if this user is the creator.
@@ -417,9 +424,9 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	   --JH
 	*/
 	if (!(modes & C_A_C_OK))
-	    if (((modes & C_A_X_OK) != 0 && (stat.Mode & OWNEREXEC) == 0) ||
-		((modes & C_A_W_OK) != 0 && (stat.Mode & OWNERWRITE) == 0) ||
-		((modes & C_A_R_OK) != 0 && (stat.Mode & OWNERREAD) == 0))
+	    if (((modes & C_A_X_OK) && (stat.Mode & OWNEREXEC) == 0) ||
+		((modes & C_A_W_OK) && (stat.Mode & OWNERWRITE) == 0) ||
+		((modes & C_A_R_OK) && (stat.Mode & OWNERREAD) == 0))
 		code = EACCES;
 
 	return(code);
@@ -432,34 +439,36 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	/* Don't insist on validity when disconnected. */
 	if ((code = CheckAcRights(vuid, rights, 0)) != ENOENT)
 	    return(code);
-	if ((code = CheckAcRights(ALL_UIDS, rights, 0)) != ENOENT)
-	    return(code);
+	else
+	    return(EACCESS);
     }
-    else {
-	FSO_ASSERT(this, (HOARDING(this) || (LOGGING(this) && !DIRTY(this))));
 
-	userent *ue;
-	GetUser(&ue, vuid);
-	int tokensvalid = ue->TokensValid();
-	PutUser(&ue);
-	vuid_t CheckVuid = (tokensvalid ? vuid : ALL_UIDS);
+    /* XXX we might be 'RESOLVING(this)', what will happen then? -JH */
+    FSO_ASSERT(this, (HOARDING(this) || (LOGGING(this) && !DIRTY(this))));
 
-	if ((code = CheckAcRights(CheckVuid, rights, 1)) != ENOENT)
-	    return(code);
+    /* !!! important point, this is where we map unauthenticated users to
+     * System:AnyUser !!! */
+    userent *ue;
+    GetUser(&ue, vuid);
+    int tokensvalid = ue->TokensValid();
+    PutUser(&ue);
+    vuid_t CheckVuid = (tokensvalid ? vuid : ALL_UIDS);
 
-	/* We must re-fetch status; rights will be returned as a side-effect. */
-	/* Promote the lock level if necessary. */
-	if (FETCHABLE(this)) {
-	    LockLevel level = (writers > 0 ? WR : RD);
-	    if (level == RD) PromoteLock();
-	    code = GetAttr(vuid);
-	    if (level == RD) DemoteLock();
-	    if (code != 0) return(code);
-	}
+    if ((code = CheckAcRights(CheckVuid, rights, 1)) != ENOENT)
+	return(code);
 
-	if ((code = CheckAcRights(CheckVuid, rights, 1)) != ENOENT)
-	    return(code);
+    /* We must re-fetch status; rights will be returned as a side-effect. */
+    /* Promote the lock level if necessary. */
+    if (FETCHABLE(this)) {
+	LockLevel level = (writers > 0 ? WR : RD);
+	if (level == RD) PromoteLock();
+	code = GetAttr(vuid);
+	if (level == RD) DemoteLock();
+	if (code != 0) return(code);
     }
+
+    if ((code = CheckAcRights(CheckVuid, rights, 1)) != ENOENT)
+	return(code);
 
     return(EACCES);
 }

@@ -211,13 +211,12 @@ void vproc::open(struct venus_cnode *cp, int flags) {
 	    /* Special modes to pass:
                 Truncating requires write permission.
 		  Newly created stuff is writeable if parent allows it, 
-                   modebits are ignored for new files: C_O_C_OK
+                   modebits are ignored for new files: C_A_C_OK
 	         Otherwise, either write or insert suffices (to support
                    insert only directories). 
 	    */
-	    long rights = (truncp
-			   ? (long)PRSFS_WRITE
-			   : (long)(PRSFS_WRITE | PRSFS_INSERT));
+	    long rights = (truncp ?  (long)PRSFS_WRITE :
+				     (long)(PRSFS_WRITE | PRSFS_INSERT));
 	    int modes = (createp ? C_A_C_OK : C_A_W_OK);
 	    u.u_error = f->Access(rights, modes, CRTORUID(u.u_cred));
 	    if (u.u_error) goto FreeLocks;
