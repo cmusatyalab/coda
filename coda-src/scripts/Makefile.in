@@ -30,6 +30,7 @@ VENUS-SCRIPTS = vutil volmunge venus-setup
 VOL-SCRIPTS	= createvol_rep purgevol purgevol_rep bldvldb.sh
 VICE-SCRIPTS	= startserver codastart
 REINIT-SCRIPTS	= partial-reinit.sh
+UPGRADE-SCRIPTS	= pwdtopdbtool.py
 VICE-SETUP      = vice-setup vice-setup-rvm vice-setup-scm vice-setup-srvdir vice-setup-user vice-killvolumes vice-setup-ports
 
 BACKUP-SCRIPTS	= backup.sh tape.pl
@@ -47,7 +48,7 @@ endif
 
 # all scripts
 SCRIPTS := $(VENUS-SCRIPTS) $(BACKUP-SCRIPTS) $(INIT-SCRIPTS)\
-	   $(VOL-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS)
+	   $(VOL-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS) $(UPGRADE-SCRIPTS)
 
 # init scripts are installed here
 BINDIR := $(INITDIR)
@@ -56,7 +57,7 @@ CBINS = $(CINIT-SCRIPTS)
 CSBINS = $(VENUS-SCRIPTS)
 
 SBINS = $(SINIT-SCRIPTS)
-SSBINS = $(BACKUP-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS) $(VOL-SCRIPTS) $(VICE-SETUP)
+SSBINS = $(BACKUP-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS) $(VOL-SCRIPTS) $(VICE-SETUP) $(UPGRADE-SCRIPTS)
 
 include $(TOPDIR)/configs/Makerules
 
