@@ -100,7 +100,7 @@ int VCheckVLDB()
 /* Lookup vldb record from a file */
 struct vldb *VLDBLookup(char *key)
 {
-    private struct vldb VLDB_records[8];
+    static struct vldb VLDB_records[8];
     int rc;
 
     if (VLDB_size == 0) {

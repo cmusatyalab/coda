@@ -660,7 +660,7 @@ void VShutdown() {
 }
 
 
-private void WriteVolumeHeader(Error *ec, Volume *vp)
+static void WriteVolumeHeader(Error *ec, Volume *vp)
 {
 	rvm_return_t status = RVM_SUCCESS;
 	*ec = 0;

@@ -40,7 +40,6 @@ Pittsburgh, PA.
 #ifndef _VOLTYPES_H_
 #define _VOLTYPES_H_ 1
 
-#define private static
 #ifndef NULL
 #define NULL	0
 #endif
