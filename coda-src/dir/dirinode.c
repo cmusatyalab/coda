@@ -145,11 +145,11 @@ int DI_Pages(PDirInode pdi)
 	int i = 0;
 	CODA_ASSERT(pdi);
 
-	while( pdi->di_pages[i] && (i <= DIR_MAXPAGES)) 
+	while( pdi->di_pages[i] && (i < DIR_MAXPAGES)) 
 		i++;
 	
 	/* check this guy is valid */
-	CODA_ASSERT(i< DIR_MAXPAGES);
+	CODA_ASSERT(i <= DIR_MAXPAGES);
 	return i;
 }
 
