@@ -126,3 +126,25 @@ AC_DEFUN(CODA_LIBRARY_VERSION,
    FREEBSD_VERSION="$2"
    GENERIC_VERSION="$2.$1"])
 
+dnl ---------------------------------------------
+dnl Mac OS X has a weird compiler toolchain.
+dnl
+dnl Long story: The compiler tool chain in the Mac OS X Developer Tools is a
+dnl strange beast. The compiler is based on the gcc 2.95.2 suite, with
+dnl modifications to support the Objective C language and some Darwin quirks.
+dnl The preprocessor (cpp) is available in two versions. One is the standard
+dnl precompiler (from gcc 2.95.2), the other one is a special precompiler
+dnl written by Apple, with support for precompiled headers. The latter one is
+dnl used by default, because it is faster. However, some code doesn't compile
+dnl with Apple's precompiler, so you must use the -traditional-cpp option to
+dnl get the standard precompiler.
+dnl
+dnl (taken from http://fink.sourceforge.net/darwin/porting.php)
+
+AC_DEFUN(CODA_DARWIN_BROKEN_CPP_WORKAROUND,
+  [case "$build" in
+    powerpc-apple-darwin*)
+	CPPFLAGS="$CPPFLAGS -traditional-cpp"
+	;;
+   esac])
+

@@ -2,6 +2,7 @@ New in 1.4:
 
 * Fixed <sys/time.h> vs. <time.h> confusion.
 * Fixed off by one bug in the RVM error table.
+* Applied Mac OS X (Darwin) patches from Timothy Wood.
 
 New in 1.3:
 

@@ -42,7 +42,7 @@ extern rvm_length_t range_elims_vec[range_elims_len]; /* ranges eliminated by ra
                                                          coalesce histogram defs */
 extern rvm_length_t trans_elims_vec[trans_elims_len]; /* ranges eliminated by trans
                                                          coalesce histogram defs */
-rvm_length_t        trans_coalesces_vec[trans_coalesces_len]; /* transactions
+extern rvm_length_t trans_coalesces_vec[trans_coalesces_len]; /* transactions
                                                                  coalesed per flush */
 
 rvm_length_t        rvm_optimizations = 0;  /* optimizations switches */

@@ -21,19 +21,14 @@ Coda are listed in the file CREDITS.
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 
-#ifdef RVM_LWPPID
-extern PROCESS rvm_lwppid;
-#else /* !RVM_LWPPID */
-#define RVM_LWPPID
-PROCESS                     rvm_lwppid;     /* LWP process id */
-#endif /* !RVM_LWPPID */
+extern PROCESS rvm_lwppid; /* LWP process id */
 
 #ifndef MACRO_BEGIN
 #define MACRO_BEGIN			do {
 #define MACRO_END			} while(0)
 #endif /* MACRO_BEGIN */
 
-#define STACKSIZE	1024 * 16
+#define RVM_STACKSIZE	1024 * 16
 #define BOGUSCODE 	(BOGUS_USE_OF_CTHREADS)  /* force compilation error */
 
 #define RVM_MUTEX			struct Lock
@@ -44,7 +39,8 @@ PROCESS                     rvm_lwppid;     /* LWP process id */
 /* Supported cthread definitions */
 
 #define cthread_t			PROCESS
-#define cthread_fork(fname, arg)	(LWP_CreateProcess((fname), STACKSIZE, \
+#define cthread_fork(fname, arg)	(LWP_CreateProcess((fname), \
+					  RVM_STACKSIZE, \
 					  LWP_NORMAL_PRIORITY,	\
 					  (char *)arg, 		\
 					  (char *)"rvm_thread",	\
