@@ -166,7 +166,7 @@ ifdef SUBDIRS
 endif
 
 realclean:
-	$(RM) *.o *.a 
+	$(RM) *.o *.a .depend *.d
 	$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c $(RP2HEADERS)
 	$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) core
 	$(RM) lex.yy.c y.tab.c y.tab.h
@@ -177,7 +177,7 @@ realclean:
 # dependency generation
 #####################
 mkdep:
-	@$(BINDIR)/md -o .depend -d -S $(INCLFLAGS) *.d
+	@$(TOPOBJ)/md -o .depend -d -S $(INCLFLAGS) *.d
 
 
 ###############################################################
