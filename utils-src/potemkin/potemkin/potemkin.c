@@ -24,7 +24,7 @@
 
 #include "vcrcommon.h"
 
-#include <cfs/cfs.h>
+#include <cfs/coda.h>
 /* #include <cfs/cnode.h> */
 
 #include "potemkin.h"
@@ -94,7 +94,7 @@ fid_create(char *name, fid_ent_t *parent)
     result = (fid_ent_t *) malloc (sizeof(fid_ent_t));
     result->fid.Volume = Volno;
     result->fid.Vnode = result->fid.Unique = Uniq++;
-    result->type = VNON;
+    result->type = VCNON;
     result->kids = ds_list_create(fid_comp, TRUE, FALSE);
     result->parent = parent;
     assert(strlen(name) <= MAXNAMLEN);
@@ -164,19 +164,19 @@ fid_assign_type(fid_ent_t *fep, struct stat *sbuf) {
 
     switch (sbuf->st_mode & S_IFMT) {
     case S_IFDIR:
-	fep->type = VDIR;
+	fep->type = VCDIR;
 	break;
     case S_IFREG:
-	fep->type = VREG;
+	fep->type = VCREG;
 	break;
     case S_IFLNK:
-	fep->type = VLNK;
+	fep->type = VCLNK;
 	break;
     case S_IFSOCK:               /* Can't be any of these */
     case S_IFIFO:
     case S_IFCHR:
     case S_IFBLK:
-	fep->type = VBAD;
+	fep->type = VCBAD;
 	return -1;
 	break;
     default:
@@ -197,14 +197,14 @@ fid_print(FILE *ostr, fid_ent_t *fep)
     char             *fullname;
 
     switch (fep->type) {
-    case VDIR:
-	typestr = "VDIR";
+    case VCDIR:
+	typestr = "VCDIR";
 	break;
-    case VREG:
-	typestr = "VREG";
+    case VCREG:
+	typestr = "VCREG";
 	break;
-    case VLNK:
-	typestr = "VLNK";
+    case VCLNK:
+	typestr = "VCLNK";
 	break;
     default:
 	typestr = "????";
@@ -300,7 +300,7 @@ ParseArgs(int argc, char *argv[]) {
 
 void
 Setup() {
-    struct outputArgs msg;
+    union outputArgs msg;
     struct sigaction  sa;
 
     /* Step 1: change to root directory */
@@ -317,10 +317,10 @@ Setup() {
     KernFD = open(KernDevice, O_RDWR, 0);
     assert(KernFD >= 0);
 
-    msg.opcode = CFS_FLUSH;
-    msg.unique = 0;
-    assert (write(KernFD, (char*)&msg, (int)sizeof(unsigned long)*2)
-	    == sizeof(unsigned long)*2);
+    msg.oh.opcode = CFS_FLUSH;
+    msg.oh.unique = 0;
+    assert (write(KernFD, (char*)&msg, sizeof(struct cfs_out_hdr))
+	    == sizeof(struct cfs_out_hdr));
 
 #ifdef __linux__
     if ( fork() == 0 ) {
@@ -356,7 +356,7 @@ Setup() {
     /* Set up a signal handler to dump the contents of the FidTab */
     sa.sa_handler = dump_fids;
     sa.sa_flags = SA_RESTART;
-    sa.sa_mask = 0; /* or -1, who knows? */
+    sigemptyset(&sa.sa_mask);  /* or -1, who knows? */
     assert (!sigaction(SIGUSR1, &sa, NULL));
 
     /* Set umask to zero */
@@ -417,7 +417,8 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
     vbuf->va_fsid = fep->fid.Volume;
     /* vbuf->va_fileid = fep->fid.Vnode; */
     /* va_fileid has to be the vnode number of the cache file.  Sorry. */
-    vbuf->va_fileid = sbuf->st_ino;
+    /*    vbuf->va_fileid = sbuf->st_ino; */
+    vbuf->va_fileid = coda_f2i(&(fep->fid));
     vbuf->va_size = sbuf->st_size;
     vbuf->va_blocksize = V_BLKSIZE;
 #ifdef __linux__
@@ -451,20 +452,20 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
  */
    
 void
-DoRoot(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoRoot(union inputArgs *in, union outputArgs *out, int *reply)
 {
     fid_ent_t       *root;
     if (!RootFid) {
 	root = fid_create(".", NULL);
 	assert(ds_hash_insert(FidTab, root));
-	root->type = VDIR;
+	root->type = VCDIR;
 	RootFep = root;
 	RootFid = &(root->fid);
     }
-    out->d.cfs_root.VFid.Volume = RootFid->Volume;
-    out->d.cfs_root.VFid.Vnode = RootFid->Vnode;
-    out->d.cfs_root.VFid.Unique = RootFid->Unique;
-    out->result = 0;
+    out->cfs_root.VFid.Volume = RootFid->Volume;
+    out->cfs_root.VFid.Vnode = RootFid->Vnode;
+    out->cfs_root.VFid.Unique = RootFid->Unique;
+    out->oh.result = 0;
 
     if (verbose) {
 	printf("Returning root: fid (%x.%x.%x)\n",RootFid->Volume,
@@ -475,7 +476,7 @@ DoRoot(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoOpen(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid              *fp;
     int                  *flags;
@@ -484,8 +485,8 @@ DoOpen(struct inputArgs *in, struct outputArgs *out, int *reply)
     char                 *path=NULL;
     struct stat           sbuf;
 
-    fp = &(in->d.cfs_open.VFid);
-    flags = &(in->d.cfs_open.flags);
+    fp = &(in->cfs_open.VFid);
+    flags = &(in->cfs_open.flags);
 
     dummy.fid = *fp;
     assert((fep = ds_hash_member(FidTab, &dummy)) != NULL);
@@ -497,12 +498,12 @@ DoOpen(struct inputArgs *in, struct outputArgs *out, int *reply)
 	fflush(stdout);
     }
     if (lstat(path,&sbuf)) {
-	out->result = errno;
+	out->oh.result = errno;
 	goto exit;
     }
-    out->d.cfs_open.dev = sbuf.st_dev;
-    out->d.cfs_open.inode = sbuf.st_ino;
-    out->result = 0;
+    out->cfs_open.dev = sbuf.st_dev;
+    out->cfs_open.inode = sbuf.st_ino; 
+    out->oh.result = 0;
     if (verbose) {
 	printf("....found\n");
 	fflush(stdout);
@@ -514,11 +515,11 @@ DoOpen(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoClose(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoClose(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid  *fp;
 
-    fp = &(in->d.cfs_close.VFid);
+    fp = &(in->cfs_close.VFid);
 
     /* Close always succeeds */
     if (verbose) {
@@ -526,17 +527,17 @@ DoClose(struct inputArgs *in, struct outputArgs *out, int *reply)
 	       fp->Vnode, fp->Unique);
 	fflush(stdout);
     }
-    out->result = 0;
+    out->oh.result = 0;
     *reply = VC_OUT_NO_DATA;
     return;
 }
 
 void
-DoAccess(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoAccess(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid  *fp;
 
-    fp = &(in->d.cfs_close.VFid);
+    fp = &(in->cfs_close.VFid);
 
     /* Access always succeeds, for now */
     if (verbose) {
@@ -544,13 +545,13 @@ DoAccess(struct inputArgs *in, struct outputArgs *out, int *reply)
 	       fp->Vnode, fp->Unique);
 	fflush(stdout);
     }
-    out->result = 0;
+    out->oh.result = 0;
     *reply = VC_OUT_NO_DATA;
     return;
 }
 
 void
-DoLookup(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid           *fp;
     char              *name;
@@ -562,9 +563,9 @@ DoLookup(struct inputArgs *in, struct outputArgs *out, int *reply)
     char              *path=NULL;
     struct stat        sbuf;
     
-    fp = &(in->d.cfs_lookup.VFid);
-    assert((int)in->d.cfs_lookup.name == VC_INSIZE(cfs_lookup_in));
-    name = (char*)in + (int)in->d.cfs_lookup.name;
+    fp = &(in->cfs_lookup.VFid);
+    assert((int)in->cfs_lookup.name == VC_INSIZE(cfs_lookup_in));
+    name = (char*)in + (int)in->cfs_lookup.name;
 
     if (verbose) {
 	printf("Doing lookup of (%s) in fid (%x.%x.%x)\n",
@@ -575,8 +576,8 @@ DoLookup(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* We'd better be looking up in a directory */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member (FidTab, &dummy)) != NULL);
-    if (fep->type != VDIR) {
-	out->result = ENOTDIR;
+    if (fep->type != VCDIR) {
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
 
@@ -588,7 +589,7 @@ DoLookup(struct inputArgs *in, struct outputArgs *out, int *reply)
     if (!strcmp(name, "..")) {
 	if (fep == RootFep) {
 	    fprintf(stderr,"AACK!  DoLookup of '..' through root!\n");
-	    out->result = EBADF;
+	    out->oh.result = EBADF;
 	    goto exit;
 	}
 	childp = fep->parent;
@@ -616,7 +617,7 @@ DoLookup(struct inputArgs *in, struct outputArgs *out, int *reply)
 	path = fid_fullname(fep);
 	if (!child_exists(path,name)) {
 	    /* No such child */
-	    out->result = ENOENT;
+	    out->oh.result = ENOENT;
 	    goto exit;
 	}	    
 	/* Create a fid entry for this child */
@@ -626,12 +627,12 @@ DoLookup(struct inputArgs *in, struct outputArgs *out, int *reply)
 	if (path) free(path);
 	path = fid_fullname(childp);
 	if (lstat(path,&sbuf)) {      /* Can't read? */
-	    out->result = ENOENT;
+	    out->oh.result = ENOENT;
 	    goto exit;
 	}
 
 	if (fid_assign_type(childp, &sbuf)) {
-	    out->result = ENOENT;
+	    out->oh.result = ENOENT;
 	    goto exit;
 	}
 
@@ -642,15 +643,15 @@ DoLookup(struct inputArgs *in, struct outputArgs *out, int *reply)
 
  found:
     /* Okay. We now have a valid vnode in childp, we'll succeed */
-    out->d.cfs_lookup.VFid = childp->fid;
-    out->d.cfs_lookup.vtype = childp->type;
-    out->result = 0;
+    out->cfs_lookup.VFid = childp->fid;
+    out->cfs_lookup.vtype = childp->type;
+    out->oh.result = 0;
     if (verbose) {
 	printf("....found\n");
 	fflush(stdout);
     }
  exit:
-    if (out->result && created && childp)    
+    if (out->oh.result && created && childp)    
     {
 	/* Error -- We don't want the child */
 	free(childp);
@@ -663,7 +664,7 @@ DoLookup(struct inputArgs *in, struct outputArgs *out, int *reply)
 /* Phase 2a: Reading/Writing */
 
 void
-DoGetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoGetattr(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid          *fp;
     fid_ent_t        *fep;
@@ -672,8 +673,8 @@ DoGetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
     struct coda_vattr     *vbuf;
     char             *path = NULL;
     
-    fp = &(in->d.cfs_getattr.VFid);
-    vbuf = &(out->d.cfs_getattr.attr);
+    fp = &(in->cfs_getattr.VFid);
+    vbuf = &(out->cfs_getattr.attr);
 
     if (verbose) {
 	printf("Doing getattr for fid (%x.%x.%x)\n",
@@ -685,16 +686,16 @@ DoGetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 
     path = fid_fullname(fep);
     if (lstat(path,&st)) {
-	out->result = errno;
+	out->oh.result = errno;
     } else {
 	if (fid_assign_type(fep, &st)) {
-	    out->result = ENOENT;
+	    out->oh.result = ENOENT;
 	    goto exit;
 	}
 	fill_vattr(&st, fep, vbuf);
     }
     
-    out->result = 0;
+    out->oh.result = 0;
 
  exit:
     if (path) free(path);
@@ -703,25 +704,25 @@ DoGetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoReaddir(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoReaddir(union inputArgs *in, union outputArgs *out, int *reply)
 {
     /* Do nothing: it's handled by FFS/LFS */
-    out->result = EOPNOTSUPP;
+    out->oh.result = EOPNOTSUPP;
     return;
 }
 
 void
-DoRdwr(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoRdwr(union inputArgs *in, union outputArgs *out, int *reply)
 {
     /* Do nothing: it's handled by FFS/LFS */
-    out->result = EOPNOTSUPP;
+    out->oh.result = EOPNOTSUPP;
     return;
 }
 
 /* Phase 2b - namespace changes */
 
 void
-DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid         *fp;
     fid_ent_t       *fep;
@@ -730,7 +731,7 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
     fid_ent_t        dummy;
     struct coda_vattr    *attr;
     struct coda_vattr    *newAttr;
-    struct CodaCred    *cred;
+    struct coda_cred    *cred;
     int              exclp;
     int              mode;
     int              readp;
@@ -747,18 +748,18 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
     uid_t            suid;
     gid_t            sgid;
 
-    fp = &(in->d.cfs_create.VFid);
-    attr = &(in->d.cfs_create.attr);
-    cred = &(in->cred);
-    exclp = in->d.cfs_create.excl;
-    mode = in->d.cfs_create.mode;
+    fp = &(in->cfs_create.VFid);
+    attr = &(in->cfs_create.attr);
+    cred = &(in->ih.cred);
+    exclp = in->cfs_create.excl;
+    mode = in->cfs_create.mode;
     readp = mode & VREAD;
     writep = mode & VWRITE;
     truncp = (attr->va_size == 0);
-    assert((int)in->d.cfs_create.name == VC_INSIZE(cfs_create_in));
-    name = (char*)in + (int)in->d.cfs_create.name;
-    newFp = &(out->d.cfs_create.VFid);
-    newAttr = &(out->d.cfs_create.attr);
+    assert((int)in->cfs_create.name == VC_INSIZE(cfs_create_in));
+    name = (char*)in + (int)in->cfs_create.name;
+    newFp = &(out->cfs_create.VFid);
+    newAttr = &(out->cfs_create.attr);
 
     if (verbose) {
 	printf("Doing create of (%s) in fid (%x.%x.%x) mode 0%o %s\n",
@@ -769,9 +770,9 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Where are we creating this? */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VDIR) {
+    if (fep->type != VCDIR) {
 	printf("Ack!  Trying to create in a non-directory!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
     
@@ -783,7 +784,7 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
 	|| (!strcmp(name, "")))
     {
 	printf("CREATE: create of '.', '..' or ''\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
     
@@ -793,7 +794,7 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
 	&& (name[9] == '.') 
 	&& (name[18] == '.'))
     {
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
 
@@ -806,7 +807,7 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
      */
     if (child_exists(path, name)) {
 	if (exclp) {
-	    out->result = EEXIST;
+	    out->oh.result = EEXIST;
 	    goto exit;
 	}
 	/* Do we know about the child yet? */
@@ -874,7 +875,7 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
 
     /* Do the open */
     if ((fd = open(path, oflags, omode)) < 0) {
-	out->result = errno;
+	out->oh.result = errno;
 	assert(!seteuid(suid));
 	assert(!setgid(sgid));
 	goto exit;
@@ -889,20 +890,20 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Stat the thing so that we can set it's type correctly. */
     /* Complain miserably if it isn't a plain file! */
     if (lstat(path,&sbuf)) {
-	out->result = errno;
+	out->oh.result = errno;
 	goto exit;
     }
     if (fid_assign_type(newFep, &sbuf)) {
-	out->result = ENOENT;
+	out->oh.result = ENOENT;
 	goto exit;
     }
-    if (newFep->type != VREG) {
+    if (newFep->type != VCREG) {
 	printf("AACK!  Create is 'creating' a non-file file of type %d!\n",
 	       newFep->type);
     }
     /* We are now doomed to succeed :-) */
     /* Record this fid, and finish off */
-    out->result = 0;
+    out->oh.result = 0;
     assert(ds_hash_insert(FidTab, newFep));
     assert(ds_list_insert(fep->kids, newFep));
 
@@ -911,7 +912,7 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
     fill_vattr(&sbuf, newFep, newAttr);
 
  exit:
-    if (out->result && created && newFep) {
+    if (out->oh.result && created && newFep) {
 	/* We don't keep the newFep if there was an error */
 	free(newFep);
     }
@@ -921,13 +922,13 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid         *fp;
     fid_ent_t       *fep;
     fid_ent_t       *victimFep=NULL;
     bool             created=FALSE;
-    struct CodaCred    *cred;
+    struct coda_cred    *cred;
     fid_ent_t        dummy;
     char            *name=NULL;
     char            *path=NULL;
@@ -936,10 +937,10 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
     uid_t            suid;
     gid_t            sgid;
 
-    fp = &(in->d.cfs_remove.VFid);
-    cred = &(in->cred);
-    assert((int)in->d.cfs_remove.name == VC_INSIZE(cfs_remove_in));
-    name = (char*)in + (int)in->d.cfs_remove.name;
+    fp = &(in->cfs_remove.VFid);
+    cred = &(in->ih.cred);
+    assert((int)in->cfs_remove.name == VC_INSIZE(cfs_remove_in));
+    name = (char*)in + (int)in->cfs_remove.name;
     
     if (verbose) {
 	printf("Doing remove of (%s) in fid (%x.%x.%x)\n",
@@ -949,9 +950,9 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Get the directory from which we are removing */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VDIR) {
+    if (fep->type != VCDIR) {
 	printf("REMOVE: parent not directory!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
     /* Step 0: Check to ensure that removes don't happen to '.', '..', or '' */
@@ -960,7 +961,7 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
 	|| (!strcmp(name, ""))) 
     {
 	printf("REMOVE: remove of '.', '..' or ''\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
     
@@ -970,7 +971,7 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
 	&& (name[9] == '.') 
 	&& (name[18] == '.'))
     {
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
 
@@ -978,7 +979,7 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Step 1: find the child */
     if (!child_exists(path,name)) {
 	printf("REMOVE: child didn't exist!\n");
-	out->result = ENOENT;
+	out->oh.result = ENOENT;
 	goto exit;
     }
     /* Do we know about the child yet? */
@@ -1006,7 +1007,7 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
      */
     path = fid_fullname(victimFep);
     if (lstat(path,&sbuf)) {
-	out->result = errno;
+	out->oh.result = errno;
 	goto exit;
     }
     switch(sbuf.st_mode & S_IFMT) {
@@ -1016,7 +1017,7 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
 	break;
     case S_IFDIR:
 	printf("REMOVE: trying to remove a directory!\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
 	break;
     case S_IFSOCK:               /* Can't be any of these */
@@ -1024,7 +1025,7 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
     case S_IFCHR:
     case S_IFBLK:
 	printf("REMOVE: trying to remove an esoteric!\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
 	break;
     default:
@@ -1040,7 +1041,7 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert(!seteuid(cred->cr_uid));
 
     if (unlink(path)) {
-	out->result = errno;
+	out->oh.result = errno;
 	assert(!seteuid(suid));
 	assert(!setgid(sgid));
 	goto exit;
@@ -1056,10 +1057,10 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
 	ds_list_remove(fep->kids, victimFep);
 	ds_hash_remove(FidTab, victimFep);
     }
-    out->result = 0;
+    out->oh.result = 0;
 
  exit:
-    if (!out->result) {
+    if (!out->oh.result) {
 	/* If successful, reclaim this fid entry */
 	if (victimFep) free(victimFep);
     } else {
@@ -1073,10 +1074,10 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid          *fp;
-    struct CodaCred     *cred;
+    struct coda_cred     *cred;
     struct coda_vattr     *vap;
     fid_ent_t        *fep;
     fid_ent_t         dummy;
@@ -1085,9 +1086,9 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
     gid_t             sgid;
     struct timeval    times[2];
 
-    fp = &(in->d.cfs_setattr.VFid);
-    cred = &(in->cred);
-    vap = &(in->d.cfs_setattr.attr);
+    fp = &(in->cfs_setattr.VFid);
+    cred = &(in->ih.cred);
+    vap = &(in->cfs_setattr.attr);
 
     if (verbose) {
 	printf("Doing setattr for fid (%x.%x.%x)\n",
@@ -1120,11 +1121,11 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 	(vap->va_mtime.tv_sec == (long)-1) &&
 	(vap->va_ctime.tv_sec == (long)-1))
     {
-	out->result = 0;
+	out->oh.result = 0;
 	goto earlyexit;
     }
 
-    if ((vap->va_type != VNON) ||
+    if ((vap->va_type != VCNON) ||
 	(vap->va_fileid != (long)-1) ||
 	(vap->va_gen != (long)-1) ||
 	(vap->va_bytes != (long)-1) ||
@@ -1133,7 +1134,7 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 	(vap->va_blocksize != (long)-1) ||
 	(vap->va_rdev != (dev_t)-1))
     {
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto earlyexit;
     }
 
@@ -1148,7 +1149,7 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 	(vap->va_mtime.tv_sec == (long)-1) &&
 	(vap->va_ctime.tv_sec == (long)-1))
     {
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	printf("SETATTR: nothing set!\n");
 	goto earlyexit;
     }
@@ -1174,14 +1175,14 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Are we truncating the file? */
     if ((u_long)vap->va_size != (u_long)-1) {
 	/* Is it either a directory or a symlink? */
-	if (fep->type != VREG) {
-	    printf("SETATTR: Setting length of something not VREG\n");
-	    out->result = (fep->type == VDIR) ? EISDIR : EINVAL;
+	if (fep->type != VCREG) {
+	    printf("SETATTR: Setting length of something not VCREG\n");
+	    out->oh.result = (fep->type == VCDIR) ? EISDIR : EINVAL;
 	    goto exit;
 	}
 	/* Try to do the truncate */
 	if (truncate(path, vap->va_size)) {
-	    out->result = errno;
+	    out->oh.result = errno;
 	    printf("SETATTR: Truncate of (%s) failed\n",path);
 	    goto exit;
 	}
@@ -1190,14 +1191,14 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Are we setting owner/group? */
     if ((vap->va_uid != (uid_t)-1) || (vap->va_gid != (gid_t)-1)) {
 	/* As long as it's not a symlink. */
-	if (fep->type == VLNK) {
+	if (fep->type == VCLNK) {
 	    printf("SETATTR: chown(2) of a symlink\n");
-	    out->result = EINVAL;
+	    out->oh.result = EINVAL;
 	    goto exit;
 	}
 	if (chown(path,vap->va_uid,vap->va_gid)) {
 	    printf("SETATTR: chown failed\n");
-	    out->result = errno;
+	    out->oh.result = errno;
 	    goto exit;
 	}
     }
@@ -1206,7 +1207,7 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
     if (vap->va_mode != (u_short)-1) {
 	if (chmod(path,vap->va_mode)) {
 	    printf("SETATTR: chmod failed\n");
-	    out->result = errno;
+	    out->oh.result = errno;
 	    goto exit;
 	}
     }
@@ -1219,13 +1220,13 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 	times[1].tv_usec = vap->va_mtime.tv_nsec/1000;
 	if (utimes(path, times)) {
 	    printf("SETATTR: chmod failed\n");
-	    out->result = errno;
+	    out->oh.result = errno;
 	    goto exit;
 	}
     }
 
     /* We are now going to succeed */
-    out->result = 0;
+    out->oh.result = 0;
     
  exit:
     assert(!seteuid(suid));
@@ -1238,7 +1239,7 @@ DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoRename(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid          *sdfp;
     fid_ent_t        *sdfep;
@@ -1253,17 +1254,17 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
     bool              screated=FALSE;
     fid_ent_t        *tfep=NULL;
     bool              tcreated=FALSE;
-    struct CodaCred     *cred;
+    struct coda_cred     *cred;
     ds_list_iter_t   *iter;
     struct stat       sbuf;
     uid_t             suid;
     gid_t             sgid;
     
-    sdfp = &(in->d.cfs_rename.sourceFid);
-    tdfp = &(in->d.cfs_rename.destFid);
-    cred = &(in->cred);
-    sname = (char*)in + (int)in->d.cfs_rename.srcname;
-    tname = (char*)in + (int)in->d.cfs_rename.destname;
+    sdfp = &(in->cfs_rename.sourceFid);
+    tdfp = &(in->cfs_rename.destFid);
+    cred = &(in->ih.cred);
+    sname = (char*)in + (int)in->cfs_rename.srcname;
+    tname = (char*)in + (int)in->cfs_rename.destname;
 
     if (verbose) {
 	printf("Rename: moving %s from (%x.%x.%x) to %s in (%x.%x.%x)\n",
@@ -1274,18 +1275,18 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Grab source directory, make sure it's a directory. */
     dummy.fid = *sdfp;
     assert((sdfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (sdfep->type != VDIR) {
+    if (sdfep->type != VCDIR) {
 	printf("Ack!  Trying to rename something from a non-directory!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
 
     /* Grab target directory, make sure it's a directory. */
     dummy.fid = *tdfp;
     assert((tdfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (tdfep->type != VDIR) {
+    if (tdfep->type != VCDIR) {
 	printf("Ack!  Trying to rename something from a non-directory!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
 
@@ -1297,7 +1298,7 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
 	|| (!strcmp(tname, "")))
     {
 	printf("CREATE: create of '.', '..' or ''\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
     
@@ -1307,7 +1308,7 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
 	&& (tname[9] == '.') 
 	&& (tname[18] == '.'))
     {
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
 
@@ -1349,7 +1350,7 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
      */
     if (stat(spath,&sbuf)) {
 	printf("RENAME: stat of source failed (%s)\n",strerror(errno));
-	out->result = errno;
+	out->oh.result = errno;
 	goto exit;
     }
 
@@ -1362,7 +1363,7 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
     if (rename(spath,tpath)) {
 	assert(!seteuid(suid));
 	assert(!setgid(sgid));
-	out->result = errno;
+	out->oh.result = errno;
 	printf("RENAME: rename failed %s\n",strerror(errno));
 	goto exit;
     }
@@ -1370,7 +1371,7 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert(!setgid(sgid));
 
     /* We will now succeed */
-    out->result = 0;
+    out->oh.result = 0;
 
     /* If we didn't create the tfep, we must remove it */
     if (tcreated == FALSE) {
@@ -1394,7 +1395,7 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
 
  exit:
     /* If we succeeded, we must toast the tfep */
-    if (!out->result) {
+    if (!out->oh.result) {
 	free(tfep);
     } else {
 	/* 
@@ -1411,7 +1412,7 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid          *fp;
     fid_ent_t        *fep;
@@ -1420,7 +1421,7 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     fid_ent_t         dummy;
     struct coda_vattr     *attr;
     struct coda_vattr     *newAttr;
-    struct CodaCred     *cred;
+    struct coda_cred     *cred;
     int               mode;
     char             *name=NULL;
     char             *path=NULL;
@@ -1428,13 +1429,13 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     uid_t             suid;
     gid_t             sgid;
     
-    fp = &(in->d.cfs_mkdir.VFid);
-    attr = &(in->d.cfs_mkdir.attr);
-    cred = &(in->cred);
-    assert((int)in->d.cfs_mkdir.name == VC_INSIZE(cfs_mkdir_in));
-    name = (char*)in + (int)in->d.cfs_mkdir.name;
-    newFp = &(out->d.cfs_mkdir.VFid);
-    newAttr = &(out->d.cfs_mkdir.attr);
+    fp = &(in->cfs_mkdir.VFid);
+    attr = &(in->cfs_mkdir.attr);
+    cred = &(in->ih.cred);
+    assert((int)in->cfs_mkdir.name == VC_INSIZE(cfs_mkdir_in));
+    name = (char*)in + (int)in->cfs_mkdir.name;
+    newFp = &(out->cfs_mkdir.VFid);
+    newAttr = &(out->cfs_mkdir.attr);
     mode = attr->va_mode & 07777; /* XXX, but probably not */
 
     if (verbose) {
@@ -1445,9 +1446,9 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Where are we creating this? */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VDIR) {
+    if (fep->type != VCDIR) {
 	printf("Ack!  Trying to mkdir in a non-directory!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
 
@@ -1459,7 +1460,7 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
 	|| (!strcmp(name, "")))
     {
 	printf("MKDIR: create of '.', '..' or ''\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
     
@@ -1470,7 +1471,7 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
 	&& (name[18] == '.'))
     {
 	printf("MKDIR: create of fakified-like name\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
 
@@ -1478,7 +1479,7 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     path = fid_fullname(fep);
     if (child_exists(path, name)) {
 	printf("MKDIR: child exists\n");
-	out->result = EEXIST;
+	out->oh.result = EEXIST;
 	goto exit;
     }
 
@@ -1498,7 +1499,7 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Do the mkdir */
     if (mkdir(path,mode)) {
 	printf("MKDIR: mkdir failed (%s)\n",strerror(errno));
-	out->result = errno;
+	out->oh.result = errno;
 	assert(!seteuid(suid));
 	assert(!setgid(sgid));
 	goto exit;
@@ -1512,17 +1513,17 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     if (lstat(path,&sbuf)) {
 	printf("MKDIR: couldn't lstat %s: (%s)\n",
 	       path,strerror(errno));
-	out->result = errno;
+	out->oh.result = errno;
 	goto exit;
     }
     if (fid_assign_type(newFep, &sbuf)) {
-	out->result = ENOENT;
+	out->oh.result = ENOENT;
 	goto exit;
     }
 
     /* We are now doomed to succeed :-) */
     /* Record this fid, and finish off */
-    out->result = 0;
+    out->oh.result = 0;
     assert(ds_hash_insert(FidTab, newFep));
     assert(ds_list_insert(fep->kids, newFep));
 
@@ -1531,20 +1532,20 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     fill_vattr(&sbuf, newFep, newAttr);
 
  exit:
-    if (out->result && newFep) free(newFep);
+    if (out->oh.result && newFep) free(newFep);
     if (path) free (path);
     *reply = VC_OUTSIZE(cfs_mkdir_out);
     return;
 }
 
 void
-DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid           *fp;
     fid_ent_t         *fep;
     fid_ent_t         *victimFep = NULL;
     bool               created=FALSE;
-    struct CodaCred      *cred;
+    struct coda_cred      *cred;
     fid_ent_t          dummy;
     char              *name=NULL;
     char              *path=NULL;
@@ -1553,10 +1554,10 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     uid_t              suid;
     gid_t              sgid;
 
-    fp = &(in->d.cfs_rmdir.VFid);
-    cred = &(in->cred);
-    assert((int)in->d.cfs_rmdir.name == VC_INSIZE(cfs_rmdir_in));
-    name = (char*)in + (int)in->d.cfs_rmdir.name;
+    fp = &(in->cfs_rmdir.VFid);
+    cred = &(in->ih.cred);
+    assert((int)in->cfs_rmdir.name == VC_INSIZE(cfs_rmdir_in));
+    name = (char*)in + (int)in->cfs_rmdir.name;
 
     if (verbose) {
 	printf("Doing rmdir of (%s) in fid (%x.%x.%x)\n",
@@ -1566,9 +1567,9 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Get the directory from which we are removing */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VDIR) {
+    if (fep->type != VCDIR) {
 	printf("RMDIR: parent not directory!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
 
@@ -1578,7 +1579,7 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
 	|| (!strcmp(name, ""))) 
     {
 	printf("RMDIR: remove of '.', '..' or ''\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
     
@@ -1588,7 +1589,7 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
 	&& (name[9] == '.') 
 	&& (name[18] == '.'))
     {
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
 
@@ -1596,7 +1597,7 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Step 1: find the child */
     if (!child_exists(path,name)) {
 	printf("RMDIR: child didn't exist!\n");
-	out->result = ENOENT;
+	out->oh.result = ENOENT;
 	goto exit;
     }
 
@@ -1625,18 +1626,18 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
      */
     path = fid_fullname(victimFep);
     if (lstat(path,&sbuf)) {
-	out->result = errno;
+	out->oh.result = errno;
 	goto exit;
     }
     switch(sbuf.st_mode & S_IFMT) {
     case S_IFREG:
 	printf("RMDIR: trying to remove a file!\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
 	break;
     case S_IFLNK:
 	printf("RMDIR: trying to remove a symlink!\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
 	break;
     case S_IFDIR:
@@ -1647,7 +1648,7 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     case S_IFCHR:
     case S_IFBLK:
 	printf("RMDIR: trying to remove an esoteric!\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
 	break;
     default:
@@ -1663,7 +1664,7 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert(!seteuid(cred->cr_uid));
 
     if (rmdir(path)) {
-	out->result = errno;
+	out->oh.result = errno;
 	assert(!seteuid(suid));
 	assert(!setgid(sgid));
 	goto exit;
@@ -1679,10 +1680,10 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
 	ds_list_remove(fep->kids, victimFep);
 	ds_hash_remove(FidTab, victimFep);
     }
-    out->result = 0;
+    out->oh.result = 0;
     
  exit:
-    if (!out->result) {
+    if (!out->oh.result) {
 	/* If we succeeded, reclaim this fid */
 	if (victimFep) free(victimFep);
     }
@@ -1694,20 +1695,20 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
 /* Phase 3 - esoterics */
 
 void
-DoReadlink(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid            *fp;
     fid_ent_t          *fep;
     fid_ent_t           dummy;
-    struct CodaCred       *cred;
+    struct coda_cred       *cred;
     char               *path;
     int                *count;
     uid_t               suid;
     gid_t               sgid;
 
-    fp = &(in->d.cfs_readlink.VFid);
-    count = &(out->d.cfs_readlink.count);
-    cred = &(in->cred);
+    fp = &(in->cfs_readlink.VFid);
+    count = &(out->cfs_readlink.count);
+    cred = &(in->ih.cred);
 
     if (verbose) {
 	printf("Doing readlink for fid (%x.%x.%x)\n",
@@ -1717,9 +1718,9 @@ DoReadlink(struct inputArgs *in, struct outputArgs *out, int *reply)
     /* Grab the fid to readlink */
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VLNK) {
+    if (fep->type != VCLNK) {
 	printf("Ack!  Trying to readlink something not a symlink!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
     /* Get the full pathname */
@@ -1731,9 +1732,9 @@ DoReadlink(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert(!setgid(cred->cr_gid));
     assert(!seteuid(cred->cr_uid));
 
-    out->d.cfs_readlink.data = (char*)VC_OUTSIZE(cfs_readlink_out);
+    out->cfs_readlink.data = (char*)VC_OUTSIZE(cfs_readlink_out);
     *count = readlink(path,
-		      (char*)out+(int)out->d.cfs_readlink.data,
+		      (char*)out+(int)out->cfs_readlink.data,
 		      VC_DATASIZE-1);
 
     assert(!seteuid(suid));
@@ -1742,13 +1743,13 @@ DoReadlink(struct inputArgs *in, struct outputArgs *out, int *reply)
     if (*count < 0) {
 	printf("READLINK: readlink of %s failed (%s)\n",
 	       path, strerror(errno));
-	out->result = errno;
+	out->oh.result = errno;
 	*count = 0;
 	goto exit;
     }
 
     /* We're done. */
-    out->result = 0;
+    out->oh.result = 0;
  exit:
     if (path) free(path);
     *reply = VC_OUTSIZE(cfs_readlink_out) + *count;
@@ -1756,14 +1757,14 @@ DoReadlink(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoIoctl(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoIoctl(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    out->result = EOPNOTSUPP;
+    out->oh.result = EOPNOTSUPP;
     return;
 }
 
 void
-DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoLink(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid         *dfp;
     fid_ent_t       *dfep;
@@ -1771,18 +1772,18 @@ DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
     fid_ent_t       *tfep;
     fid_ent_t        dummy;
     fid_ent_t       *lfep=NULL;
-    struct CodaCred    *cred;
+    struct coda_cred    *cred;
     char            *name;
     char            *lpath=NULL;
     char            *tpath=NULL;
     uid_t            suid;
     gid_t            sgid;
 
-    dfp = &(in->d.cfs_link.destFid);
-    tfp = &(in->d.cfs_link.sourceFid);
-    cred = &(in->cred);
-    assert((int)in->d.cfs_link.tname == VC_INSIZE(cfs_link_in));
-    name = (char*)in + (int)in->d.cfs_link.tname;
+    dfp = &(in->cfs_link.destFid);
+    tfp = &(in->cfs_link.sourceFid);
+    cred = &(in->ih.cred);
+    assert((int)in->cfs_link.tname == VC_INSIZE(cfs_link_in));
+    name = (char*)in + (int)in->cfs_link.tname;
     
     if (verbose) {
 	printf("Doing hard link to fid (%x.%x.%x) in fid (%x.%x.%x)",
@@ -1809,23 +1810,23 @@ DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert((dfep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
 
     /* Is dfp a directory? */
-    if (dfep->type != VDIR) {
+    if (dfep->type != VCDIR) {
 	printf("Ack!  Trying to hardlink in a non-directory!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
 
     /* Is tfp *not* a directory? */
-    if (tfep->type == VDIR) {
+    if (tfep->type == VCDIR) {
 	printf("Ack!  Trying to hardlink to a directory!\n");
-	out->result = EPERM;
+	out->oh.result = EPERM;
 	goto exit;
     }
 
     /* Is tfp a child of dfp? */
     if (tfep->parent != dfep) {
 	printf("Ack!  Cross directory hardlink!\n");
-	out->result = EXDEV;
+	out->oh.result = EXDEV;
 	goto exit;
     }
 	
@@ -1836,7 +1837,7 @@ DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
 	|| (!strcmp(name, "")))
     {
 	printf("CREATE: create of '.', '..' or ''\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
     
@@ -1846,7 +1847,7 @@ DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
 	&& (name[9] == '.') 
 	&& (name[18] == '.'))
     {
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
 
@@ -1862,7 +1863,7 @@ DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert(!seteuid(cred->cr_uid));
 
     if (link(tpath,lpath)) {
-	out->result = errno;
+	out->oh.result = errno;
 	assert(!seteuid(suid));
 	assert(!setgid(sgid));
 	goto exit;
@@ -1880,14 +1881,14 @@ DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
      * think so.  At least, not for now, and I don't think it'll
      * matter 
      */
-    out->result = 0;
+    out->oh.result = 0;
     lfep->type = tfep->type;  /* Whatever we linked to. */
     assert(ds_hash_insert(FidTab, lfep));
     assert(ds_list_insert(dfep->kids, lfep));
     
  exit:
     /* If the link failed, and we created a fid entry for the link */
-    if (out->result) {
+    if (out->oh.result) {
 	if (lfep) free(lfep);
     }
     if (lpath) free(lpath);
@@ -1897,25 +1898,25 @@ DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
 }
 
 void
-DoSymlink(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid        *fp;
     fid_ent_t      *fep;
     fid_ent_t      *newFep;
     fid_ent_t       dummy;
     struct coda_vattr   *attr;
-    struct CodaCred   *cred;
+    struct coda_cred   *cred;
     char           *name;
     char           *path=NULL;
     char           *contents;
     uid_t           suid;
     gid_t           sgid;
 
-    fp = &(in->d.cfs_symlink.VFid);
-    attr = &(in->d.cfs_symlink.attr);
-    contents = (char*)in + (int)(in->d.cfs_symlink.srcname);
-    name = (char*)in + (int)(in->d.cfs_symlink.tname);
-    cred = &(in->cred);
+    fp = &(in->cfs_symlink.VFid);
+    attr = &(in->cfs_symlink.attr);
+    contents = (char*)in + (int)(in->cfs_symlink.srcname);
+    name = (char*)in + (int)(in->cfs_symlink.tname);
+    cred = &(in->ih.cred);
 
     if (verbose) {
 	printf("Trying to create symlink %s in (%x.%x.%x) to %s\n",
@@ -1924,9 +1925,9 @@ DoSymlink(struct inputArgs *in, struct outputArgs *out, int *reply)
 	
     dummy.fid = *fp;
     assert((fep = (fid_ent_t *) ds_hash_member(FidTab, &dummy)) != NULL);
-    if (fep->type != VDIR) {
+    if (fep->type != VCDIR) {
 	printf("Ack!  Trying to symlink in a non-directory!\n");
-	out->result = ENOTDIR;
+	out->oh.result = ENOTDIR;
 	goto exit;
     }
 
@@ -1936,7 +1937,7 @@ DoSymlink(struct inputArgs *in, struct outputArgs *out, int *reply)
 	|| (!strcmp(name, "")))
     {
 	printf("CREATE: create of '.', '..' or ''\n");
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
     
@@ -1946,7 +1947,7 @@ DoSymlink(struct inputArgs *in, struct outputArgs *out, int *reply)
 	&& (name[9] == '.') 
 	&& (name[18] == '.'))
     {
-	out->result = EINVAL;
+	out->oh.result = EINVAL;
 	goto exit;
     }
 
@@ -1965,7 +1966,7 @@ DoSymlink(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert(!seteuid(cred->cr_uid));
 
     if (symlink(contents, path)) {
-	out->result = errno;
+	out->oh.result = errno;
 	assert(!seteuid(suid));
 	assert(!setgid(sgid));
 	goto exit;
@@ -1975,27 +1976,27 @@ DoSymlink(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert(!setgid(sgid));
 
     /* We know it's a symlink */
-    newFep->type = VLNK;
+    newFep->type = VCLNK;
 
     /* We're going to succeed.  Enter the fid, and set return value */
-    out->result = 0;
+    out->oh.result = 0;
     assert(ds_hash_insert(FidTab, newFep));
     assert(ds_list_insert(fep->kids, newFep));
 
  exit:
     /* Toast the new vnode if we have an error */
-    if (out->result && newFep) free(newFep);
+    if (out->oh.result && newFep) free(newFep);
     if (path) free(path);
     *reply = VC_OUT_NO_DATA;
     return;
 }
 
 void
-DoFsync(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoFsync(union inputArgs *in, union outputArgs *out, int *reply)
 {
     ViceFid  *fp;
     
-    fp = &(in->d.cfs_fsync.VFid);
+    fp = &(in->cfs_fsync.VFid);
 
     /* Fsync always succeeds, for now */
     if (verbose) {
@@ -2003,30 +2004,30 @@ DoFsync(struct inputArgs *in, struct outputArgs *out, int *reply)
 	       fp->Vnode, fp->Unique);
 	fflush(stdout);
     }
-    out->result = 0;
+    out->oh.result = 0;
     *reply = VC_OUT_NO_DATA;
     return;
 }
 
 void
-DoVget(struct inputArgs *in, struct outputArgs *out, int *reply)
+DoVget(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    out->result = EOPNOTSUPP;
+    out->oh.result = EOPNOTSUPP;
     return;
 }
 
 /*************************************************** Dispatch */
 int
-Dispatch(struct inputArgs *in, struct outputArgs *out, int *reply) {
-    out->opcode = in->opcode;
-    out->unique = in->unique;
+Dispatch(union inputArgs *in, union outputArgs *out, int *reply) {
+    out->oh.opcode = in->ih.opcode;
+    out->oh.unique = in->ih.unique;
 
     if (verbose) {
-	fprintf(stdout,"Opcode %d\tUniqe %d\n", in->opcode, in->unique);
+	fprintf(stdout,"Opcode %d\tUniqe %d\n", in->ih.opcode, in->ih.unique);
     }
     fflush(stdout);
 
-    switch(in->opcode) {
+    switch(in->ih.opcode) {
     case CFS_ROOT:
 	DoRoot(in,out,reply);
 	break;
@@ -2076,14 +2077,14 @@ Dispatch(struct inputArgs *in, struct outputArgs *out, int *reply) {
 	DoFsync(in,out,reply);
 	break;
     default:
-	out->result = EOPNOTSUPP;
+	out->oh.result = EOPNOTSUPP;
 	fprintf(stderr,"** Not Supported **");
 	fflush(stderr);
 	*reply = VC_OUT_NO_DATA;
 	break;
     }
 
-    return out->result;
+    return out->oh.result;
 }
 
 /*************************************************** Service */
@@ -2099,12 +2100,12 @@ Service()
     int                reply_size;
     char               inbuf[VC_MAXMSGSIZE];
     char               outbuf[VC_MAXMSGSIZE];
-    struct inputArgs  *in;
-    struct outputArgs *out;
+    union inputArgs  *in;
+    union outputArgs *out;
 
 
-    in = (struct inputArgs *) inbuf;
-    out = (struct outputArgs *) outbuf;
+    in = (union inputArgs *) inbuf;
+    out = (union outputArgs *) outbuf;
     
     while (1) {
         /* Set up arguments for the selects */
@@ -2197,7 +2198,7 @@ coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
 	vattr->va_atime.tv_nsec =  (time_t) -1;
         vattr->va_mtime.tv_nsec = (time_t) -1;
 	vattr->va_ctime.tv_nsec = (time_t) -1;
-        vattr->va_type = VNON;
+        vattr->va_type = VCNON;
 	vattr->va_fileid = (long)-1;
 	vattr->va_gen = (long)-1;
 	vattr->va_bytes = (long)-1;
@@ -2210,14 +2211,14 @@ coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
         /* determine the type */
         mode = iattr->ia_mode;
                 if ( S_ISDIR(mode) ) {
-                vattr->va_type = VDIR; 
+                vattr->va_type = VCDIR; 
         } else if ( S_ISREG(mode) ) {
-                vattr->va_type = VREG;
+                vattr->va_type = VCREG;
         } else if ( S_ISLNK(mode) ) {
-                vattr->va_type = VLNK;
+                vattr->va_type = VCLNK;
         } else {
                 /* don't do others */
-                vattr->va_type = VNON;
+                vattr->va_type = VCNON;
         }
         
         /* set those vattrs that need change */
