@@ -63,28 +63,6 @@ static int pr_offset(offset,stream)
     return tot_chars;
     }
 
-
-#ifdef UNUSED_FUNCTIONS
-/* print time value */
-static int pr_timeval(out_stream,timestamp,usec)
-    FILE            *out_stream;
-    struct timeval  *timestamp;         /* timeval to print */
-    rvm_bool_t      usec;               /* print microsecs if true */
-    {
-    int             err;
-
-    /* print seconds */
-    err = fprintf(out_stream,"%10lu",timestamp->tv_sec);
-    if (err == EOF) return err;
-
-    /* print usec as decimal fraction after seconds if requested */
-    if (usec)
-        err = fprintf(out_stream,".%06lu",timestamp->tv_usec);
-
-    return err;
-    }
-#endif
-
 /* histogram value printer -- handles placement of <= for definition values */
 static int pr_histo_val(out_stream,val,width,is_def,gtr,us)
     FILE            *out_stream;        /* target stream */

@@ -903,8 +903,6 @@ static void pr_char(out_stream,c,width)
 static char         *day_vec[7] = {"Sun","Mon","Tue","Wen","Thu","Fri","Sat"};
 static char         *mon_vec[12] = {"Jan","Feb","Mar","Apr","May","Jun",
                                     "Jul","Aug","Sep","Oct","Nov","Dec"};
-extern struct tm *localtime();
-
 static void pr_timeval(out_stream,timestamp,usec,width)
     FILE            *out_stream;        /* target stream */
     struct timeval  *timestamp;         /* timeval to print */

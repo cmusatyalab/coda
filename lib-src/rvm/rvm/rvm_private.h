@@ -97,14 +97,6 @@ Coda are listed in the file CREDITS.
                             (x).tv_sec = 0; (x).tv_usec = 0; \
                             MACRO_END
 
-/* scatter/gather i/o vector */
-typedef struct
-    {
-    char            *vmaddr;            /* address of buffer */
-    rvm_length_t    length;             /* buffer length */
-    }
-io_vec_t;
-
 /* range monitoring vector */
 typedef struct
     {
@@ -739,8 +731,8 @@ typedef struct
     unsigned long   type;               /* to store device type */
     rvm_bool_t      read_only;          /* true if opened read-only */
 
-    io_vec_t        *iov;               /* gather write io vector */
-    long            iov_len;            /* length of iov array */
+    struct iovec   *iov;                /* gather write io vector */
+    long            iov_length;         /* length of iov array */
     long            iov_cnt;            /* count of entries used in iov */
     rvm_length_t    io_length;          /* accumulated length of i/o */
     rvm_offset_t    last_position;      /* last location seeked or transfered */
@@ -1660,14 +1652,9 @@ tree_node_t *tree_predecessor();        /* [rvm_utils.c] */
 
 extern rvm_bool_t bad_init();                  /* [rvm_init.c] */
 
-extern
-rvm_return_t bad_options();             /* [rvm_status.c] */
-/*  rvm_options_t   *rvm_options;
-    rvm_bool_t            chk_log_dev;
-*/
-extern
-rvm_return_t bad_statistics();          /* [rvm_status.c] */
-/*  rvm_statistics_t   *rvm_statistics; */
+/* [rvm_status.c] */
+rvm_return_t bad_options(rvm_options_t *rvm_options, rvm_bool_t chk_log_dev);
+rvm_return_t bad_statistics(rvm_statistics_t *rvm_statistics);
 
 extern
 rvm_return_t bad_region();              /* [rvm_map.c] */

@@ -105,8 +105,7 @@ static list_entry_t *malloc_list_entry(id)
     register list_entry_t    *cell;
 
     /* allocate the element */
-    cell = (list_entry_t *)
-        malloc((unsigned)cache_type_sizes[ID_INDEX(id)]);
+    cell = (list_entry_t *) calloc(1, cache_type_sizes[ID_INDEX(id)]);
     assert(cell != NULL);
     type_counts[ID_INDEX(id)] ++;       /* count allocations */
 
@@ -425,8 +424,6 @@ region_t *make_region()
     region = (region_t *)alloc_list_entry(region_id);
     if (region != NULL)
         {
-	BZERO((char *)region, sizeof(region_t));
-        region->links.struct_id = region_id;
         init_rw_lock(&region->region_lock);
         mutex_init(&region->count_lock);
         }
@@ -513,7 +510,7 @@ rvm_return_t dev_init(dev,dev_str)
         }
 
     dev->iov = NULL;
-    dev->iov_len = 0;
+    dev->iov_length = 0;
     dev->raw_io = rvm_false;
     dev->read_only = rvm_false;
     dev->wrt_buf = NULL;
@@ -953,11 +950,8 @@ void rvm_free_region(rvm_region)
 void rvm_init_region(rvm_region)
     rvm_region_t    *rvm_region;
     { 
-    if (rvm_region != NULL)
-        {
         BZERO((char *) rvm_region,sizeof(rvm_region_t));
         rvm_region->struct_id = rvm_region_id;
-        }
     }
 
 rvm_region_t *rvm_copy_region(rvm_region)
@@ -1047,8 +1041,8 @@ rvm_options_t *rvm_malloc_options()
 void rvm_free_options(rvm_options)
     rvm_options_t    *rvm_options;
     {
-    if ((!bad_options(rvm_options)) && (free_lists_inited)
-        && (rvm_options->from_heap))
+    if (!bad_options(rvm_options, rvm_false) && free_lists_inited &&
+	rvm_options->from_heap)
         {
         /* release tid_array */
         if (rvm_options->tid_array != NULL)
@@ -1084,7 +1078,7 @@ rvm_options_t *rvm_copy_options(rvm_options)
     {
     rvm_options_t   *new_rvm_options;
     
-    if (bad_options(rvm_options)) return NULL;
+    if (bad_options(rvm_options, rvm_true)) return NULL;
     if (!free_lists_inited) (void)init_utils();
 
     new_rvm_options = (rvm_options_t *)

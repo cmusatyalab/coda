@@ -22,6 +22,7 @@ Coda are listed in the file CREDITS.
 *
 */
 
+#include <sys/uio.h>
 #include <stdio.h>
 #include "rvm_private.h"
 
@@ -988,14 +989,14 @@ rvm_bool_t in_log(addr,log,n)
             }
         }
     /* check i/o vector and pad buffer */
-    if (log->dev.iov_len != 0)
+    if (log->dev.iov_length != 0)
         {
         if (ADDR_INVALID_OR_NULL(log->dev.iov))
             printf("  Log descriptor at %lx has bad dev.iov ptr\n",(long)log);
         else
             {
             if (in_heap(addr,(rvm_length_t)log->dev.iov,
-                        log->dev.iov_len*sizeof(io_vec_t)))
+                        log->dev.iov_length * sizeof(struct iovec)))
                 {
                 printf("  ***  Address is in log at %lx i/o vector\n",
 		       (long)log);

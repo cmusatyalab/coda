@@ -71,7 +71,7 @@ rvm_return_t rvm_set_options(rvm_options)
     if (bad_init()) return RVM_EINIT;
 
     /* must have an options record here */
-    if ((retval=bad_options(rvm_options)) != RVM_SUCCESS)
+    if ((retval=bad_options(rvm_options, rvm_true)) != RVM_SUCCESS)
         return retval;                  /* bad options ptr or record */
     if (rvm_options == NULL)
         return RVM_EOPTIONS;

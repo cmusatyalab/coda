@@ -23,6 +23,7 @@ Coda are listed in the file CREDITS.
 */
 
 #include <sys/time.h>
+#include <sys/uio.h>
 #include "rvm_private.h"
 
 /* global variables */
@@ -53,18 +54,17 @@ static rvm_return_t make_iov(log,length)
     device_t        *dev = &log->dev;   /* device descriptor */
 
     /* test if enough space already available */
-    if (dev->iov_len < length)
+    if (dev->iov_length < length)
         {
         /* no, free old array */
-        dev->iov_len = 0;
+        dev->iov_length = 0;
         if (dev->iov != NULL)
             free((char *)dev->iov);
 
         /* reallocate io vector */
-        dev->iov = (io_vec_t *)malloc((unsigned)(sizeof(io_vec_t)*
-                                          length));
+        dev->iov = (struct iovec *)malloc((sizeof(struct iovec) * length));
         if (dev->iov == NULL) return RVM_ENO_MEMORY;
-        dev->iov_len = length;
+        dev->iov_length = length;
         }
 
     /* initialize */
@@ -114,8 +114,8 @@ static rvm_return_t write_log_wrap(log)
     log->status.tot_wrap++;
 
     /* make iov entry */
-    dev->iov[dev->iov_cnt].vmaddr = (char *)wrap;
-    dev->iov[dev->iov_cnt++].length = sizeof(log_wrap_t);
+    dev->iov[dev->iov_cnt].iov_base = wrap;
+    dev->iov[dev->iov_cnt++].iov_len = sizeof(log_wrap_t);
     dev->io_length += sizeof(log_wrap_t);
 
     /* pad last sector with all 1's to kill previous wrap mark */
@@ -123,11 +123,11 @@ static rvm_return_t write_log_wrap(log)
                                        dev->io_length);
     pad_len = RVM_SUB_OFFSETS(dev->num_bytes,pad_len);
     make_pad_buf(dev,RVM_OFFSET_TO_LENGTH(pad_len));
-    dev->iov[dev->iov_cnt].vmaddr = dev->pad_buf;
-    dev->iov[dev->iov_cnt++].length = RVM_OFFSET_TO_LENGTH(pad_len);
+    dev->iov[dev->iov_cnt].iov_base = dev->pad_buf;
+    dev->iov[dev->iov_cnt++].iov_len = RVM_OFFSET_TO_LENGTH(pad_len);
     dev->io_length += RVM_OFFSET_TO_LENGTH(pad_len);
 
-    assert(dev->iov_cnt <= dev->iov_len);
+    assert(dev->iov_cnt <= dev->iov_length);
 
     if (gather_write_dev(&log->dev,&log->status.log_tail) < 0)
         return RVM_EIO;
@@ -170,8 +170,8 @@ static void build_trans_hdr(tid,is_first,is_last)
     tid->back_link = sizeof(trans_hdr_t);
 
     /* enter in iovec */
-    dev->iov[0].vmaddr = (char *)trans_hdr;
-    dev->iov[0].length = sizeof(trans_hdr_t);
+    dev->iov[0].iov_base = trans_hdr;
+    dev->iov[0].iov_len = sizeof(trans_hdr_t);
     dev->io_length = TRANS_SIZE;
     dev->iov_cnt = 1;
 
@@ -197,10 +197,10 @@ static void build_rec_end(log,timestamp,rec_num,rec_type,back_link)
     rec_end->sub_rec_len = back_link;
 
     /* enter in iovec */
-    dev->iov[dev->iov_cnt].vmaddr = (char *)rec_end;
-    dev->iov[dev->iov_cnt++].length = sizeof(rec_end_t);
+    dev->iov[dev->iov_cnt].iov_base = rec_end;
+    dev->iov[dev->iov_cnt++].iov_len = sizeof(rec_end_t);
 
-    assert(dev->iov_cnt <= dev->iov_len);
+    assert(dev->iov_cnt <= dev->iov_length);
     }
 /* setup nv_range record */
 static void build_nv_range(log,tid,range)
@@ -226,16 +226,15 @@ static void build_nv_range(log,tid,range)
     tid->back_link = nv_range->rec_length;
 
     /* setup header i/o */
-    dev->iov[dev->iov_cnt].vmaddr = (char *)nv_range;
-    dev->iov[dev->iov_cnt++].length = sizeof(nv_range_t);
-    assert(dev->iov_cnt <= dev->iov_len);
+    dev->iov[dev->iov_cnt].iov_base = nv_range;
+    dev->iov[dev->iov_cnt++].iov_len = sizeof(nv_range_t);
+    assert(dev->iov_cnt <= dev->iov_length);
     
     /* setup io for new values */
-    dev->iov[dev->iov_cnt].vmaddr =
-        (char *)CHOP_TO_LENGTH(range->nvaddr);
-    dev->iov[dev->iov_cnt++].length = RANGE_LEN(range);
+    dev->iov[dev->iov_cnt].iov_base = CHOP_TO_LENGTH(range->nvaddr);
+    dev->iov[dev->iov_cnt++].iov_len = RANGE_LEN(range);
 
-    assert(dev->iov_cnt <= dev->iov_len);
+    assert(dev->iov_cnt <= dev->iov_length);
     enter_histogram(nv_range->length,log->status.range_lengths,
                     range_lengths_vec,range_lengths_len);
     }
@@ -484,8 +483,8 @@ static void build_log_special(log,special)
     /* prepare i/o */
     special->rec_num = make_rec_num(log);
     dev->io_length = special->rec_length+sizeof(rec_end_t);
-    dev->iov[dev->iov_cnt].vmaddr = (char *)&special->struct_id;
-    dev->iov[dev->iov_cnt++].length = LOG_SPECIAL_SIZE;
+    dev->iov[dev->iov_cnt].iov_base = &special->struct_id;
+    dev->iov[dev->iov_cnt++].iov_len = LOG_SPECIAL_SIZE;
 
     /* type-specific build operations */
     switch (special->struct_id)
@@ -493,15 +492,14 @@ static void build_log_special(log,special)
       case log_seg_id:                  /* copy segment device name */
             {
             length = special->rec_length-LOG_SPECIAL_SIZE;
-            dev->iov[dev->iov_cnt].vmaddr =
-                special->special.log_seg.name;
-            dev->iov[dev->iov_cnt++].length = length;
+            dev->iov[dev->iov_cnt].iov_base = special->special.log_seg.name;
+            dev->iov[dev->iov_cnt++].iov_len = length;
             break;
             }
        default:         assert(rvm_false); /* unknown record type */
          }
 
-    assert(dev->iov_cnt <= dev->iov_len);
+    assert(dev->iov_cnt <= dev->iov_length);
     }
 /* insure space available in log; truncate if necessary, and initiate
    i/o for special log entries; */

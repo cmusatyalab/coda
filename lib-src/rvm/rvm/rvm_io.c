@@ -381,7 +381,7 @@ static long gather_write_file(dev,offset,wrt_len)
     else
         /* sum lengths for no_update mode */
         for (count=0; count < dev->iov_cnt; count++)
-            *wrt_len += dev->iov[count].length;
+            *wrt_len += dev->iov[count].iov_len;
 
 
     /* update position */
@@ -436,7 +436,7 @@ static long gather_write_partition(dev,offset,wrt_len)
     long            retval = 0;           /* kernel return value */
     long            iov_index = 0;        /* index of current iov entry */
     long            bytes_left;           /* num. bytes left in wrt_buf */
-    io_vec_t        *iov = dev->iov;      /* i/o vector */
+    struct iovec   *iov = dev->iov;      /* i/o vector */
 
     rvm_bool_t      did_wrap = rvm_false; /* debug use only */
     rvm_offset_t    temp;
@@ -454,15 +454,13 @@ static long gather_write_partition(dev,offset,wrt_len)
     while (dev->iov_cnt > 0)
         {
         assert(bytes_left >= 0);
-        if (iov[iov_index].length <= bytes_left)
+        if (iov[iov_index].iov_len <= bytes_left)
             {
             /* copy whole range into wrt_buf */
-            BCOPY(iov[iov_index].vmaddr,dev->ptr,
-                  iov[iov_index].length);
-            bytes_left -= iov[iov_index].length;
-            *wrt_len += iov[iov_index].length;
-            dev->ptr = RVM_ADD_LENGTH_TO_ADDR(dev->ptr,
-                                              iov[iov_index].length);
+            BCOPY(iov[iov_index].iov_base, dev->ptr, iov[iov_index].iov_len);
+            bytes_left -= iov[iov_index].iov_len;
+            *wrt_len += iov[iov_index].iov_len;
+            dev->ptr = RVM_ADD_LENGTH_TO_ADDR(dev->ptr, iov[iov_index].iov_len);
             iov_index++;                /* move to next entry */
             dev->iov_cnt--;
             }
@@ -471,12 +469,11 @@ static long gather_write_partition(dev,offset,wrt_len)
             /* copy what fits and leave remainder in iov entry */
             if (bytes_left != 0)
                 {
-                BCOPY(iov[iov_index].vmaddr,dev->ptr,bytes_left);
-                iov[iov_index].length -= bytes_left;
+                BCOPY(iov[iov_index].iov_base, dev->ptr, bytes_left);
+                iov[iov_index].iov_len -= bytes_left;
                 *wrt_len += bytes_left;
-                iov[iov_index].vmaddr =
-                    RVM_ADD_LENGTH_TO_ADDR(iov[iov_index].vmaddr,
-                                           bytes_left);
+                iov[iov_index].iov_base =
+                    RVM_ADD_LENGTH_TO_ADDR(iov[iov_index].iov_base, bytes_left);
                 }
             /* write what's in wrt_buf & re-init buffer */
             if (dev->buf_start != dev->buf_end)
