@@ -1,5 +1,8 @@
+1999-06-24    <jaharkes@cs.cmu.edu>
+	* ======== Release 5.2.6  =========
+	* Fixed a bug which caused volume creation to fail on new servers.
+
 1999-06-21    <jaharkes@cs.cmu.edu>
-	* ======== Release 5.2.5  =========
 	* Applied patch to libal to work correctly with libdb2's
 	  libdb-1.85 emulation. (Andreas Koenig)
 	* Fixed the repair tool, it now can handle spaces in filenames.

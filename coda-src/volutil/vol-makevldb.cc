@@ -198,7 +198,7 @@ long S_VolMakeVLDB(RPC2_Handle rpcid, RPC2_String formal_infile)
   	return(VFAIL);
     }
 #else
-    snprintf(cmd, sizeof(cmd), "sort > %s", Vol_vicefile("vol/AllVolumes.new"));
+    snprintf(cmd, sizeof(cmd), "sort > %s", ALL_TEMP);
     AllList = (FILE *) popen(cmd, "w");
     if (AllList == NULL) {
 	printf("makevldb:  Unable to \"run %s\"; aborted\n", cmd);
