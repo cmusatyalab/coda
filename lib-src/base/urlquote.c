@@ -32,7 +32,7 @@ int quote(char *dest, char *src, size_t n)
 #else
         /* only do the minimally required characters to keep as much
          * backward compatibility for now */
-        if (*src != ' ' && *src != '%')
+        if (*src != ' ' && *src != '%' && *src != '+')
 #endif
         {
 	    *dest = *src;
