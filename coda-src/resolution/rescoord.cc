@@ -214,12 +214,6 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
 		       mgrp->rrcc.MIp, 0, 0, Fid);
-
-	// I am sure what the use is of returning failure if we can just
-	// as well check if the inconsistency has been resolved.
-	// We might even skip the markinc, because all error paths leaving
-	// this function will also mark the object inconsistent.
-	//return (EINCONS);
     }
     
     // set up buffers to get dir contents & status blocks
@@ -251,7 +245,8 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
     {
 	MRPC_MakeMulti(FetchDirContents_OP, FetchDirContents_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes,
-		       mgrp->rrcc.MIp, 0, 0, Fid, sizevar_ptrs, statusvar_ptrs, sidvar_bufs);
+		       mgrp->rrcc.MIp, 0, 0, Fid, sizevar_ptrs, statusvar_ptrs,
+		       sidvar_bufs);
 	mgrp->CheckResult();
 	if (CheckRetCodes((unsigned long *)mgrp->rrcc.retcodes, mgrp->rrcc.hosts, 
 			  succflags)) {
@@ -469,7 +464,7 @@ long OldDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
 
     /* No resolution logs, we can only try to resolve the trivial cases */
     ret = RegDirResolution(mgrp, Fid, VV, NULL);
-    if (ret) {
+    if (ret && ret != EINCONS) {
 	SLog(9,  "OldDirResolution marking %s as conflict", FID_(Fid));
 	MRPC_MakeMulti(MarkInc_OP, MarkInc_PTR, VSG_MEMBERS,
 		       mgrp->rrcc.handles, mgrp->rrcc.retcodes, 

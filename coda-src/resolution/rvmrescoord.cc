@@ -111,24 +111,31 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
     unsigned long succFlags[VSG_MEMBERS];
     dlist *inclist = NULL;
     dirresstats drstats;
-    long retval = 0;
+    long retval;
     int noinc = -1;		// used only for updating res stats (dept statistics)
     
     SLog(0, "Entering RecovDirResolve %s\n", FID_(Fid));
 
     // Check if regular Directory Resolution can deal with this case
     {	
-	if (RegDirResolution(mgrp, Fid, VV, rstatusp) == 0) {
+	retval = RegDirResolution(mgrp, Fid, VV, rstatusp);
+	if (!retval) {
 	    SLog(0, "RecovDirResolve: RegDirResolution succeeded\n");
 	    // for statistics collection
 	    drstats.dir_nowork++;
 	    drstats.dir_succ++;
 	    noinc = 1;
 
-	    retval = 0;
 	    reserror = 0;
 	    goto Exit;
 	}
+	/* If the group was already marked as inconsistent, there is no need
+	 * to tag them again or retry the log-based resolution */
+	if (retval == EINCONS) {
+	    reserror = 0;
+	    goto Exit;
+	}
+	retval = 0;
     }
 
     // res stats stuff 
@@ -164,7 +171,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 	    goto Exit;
 	}
 	PROBE(tpinfo, RecovCoorP3End);
-
     }
 
     // Phase34
@@ -197,7 +203,6 @@ long RecovDirResolve(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV,
 		       mgrp->rrcc.MIp, 0, 0, Fid);
 	noinc = 0;
 	drstats.dir_conf++;
-	
     }
     // clean up
     {
