@@ -221,7 +221,7 @@ AC_DEFUN(CODA_OPTION_SUBSYS,
     [  --with-$1=<prefix>	Install prefix of $1],
     [ CFLAGS="${CFLAGS} -I`(cd ${withval} ; pwd)`/include"
       CXXFLAGS="${CXXFLAGS} -I`(cd ${withval} ; pwd)`/include"
-      LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`/libs" ])
+      LDFLAGS="${LDFLAGS} -L`(cd ${withval} ; pwd)`/lib" ])
     ])
 
 AC_DEFUN(CODA_OPTION_OPENSSL,
