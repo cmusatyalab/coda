@@ -609,7 +609,7 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 {
 	assert(pb);
 
-	memset(&pb->Header, 0, sizeof(struct RPC2_PacketHeader));
+	memset(&pb->Header, 0, sizeof(struct RPC2_PacketHeader) + bodylen);
 	pb->Header.ProtoVersion = RPC2_PROTOVERSION;
 	pb->Header.Lamport	= RPC2_LamportTime();
 	pb->Header.BodyLength   = bodylen;

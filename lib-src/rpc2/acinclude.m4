@@ -5,19 +5,17 @@ dnl test the cross compilation platform and adjust default settings
 
 AC_DEFUN(CODA_SETUP_BUILD,
 [AC_SUBST(LIBTOOL_LDFLAGS)
-case ${target} in
-  djgpp | dos )  target=i386-pc-msdos 
+case ${host_alias} in
+  djgpp | dos )  host_alias=i386-pc-msdos 
 		 dosmmap=false ;;
-  win95 | win98 ) target=i386-pc-msdos
+  win95 | win98 ) host_alias=i386-pc-msdos
 		  dosmmap=true ;;
-  cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
-  arm ) target=arm-unknown-linux-gnuelf ;;
+  cygwin* | winnt | nt ) host_alias=i386-pc-cygwin ;;
+  arm ) host_alias=arm-unknown-linux-gnuelf ;;
 esac
-AC_CANONICAL_SYSTEM
-host=${target}
-program_prefix=
-if test ${build} != ${target} ; then
-  case ${target} in
+AC_CANONICAL_HOST
+if test ${cross_compiling} == yes ; then
+  case ${host} in
    i386-pc-msdos )
     dnl shared libraries don't work here
     enable_shared=no
@@ -120,7 +118,7 @@ dnl Find the native C compiler in order to generate a working rp2gen
 AC_SUBST(NATIVECC)
 AC_DEFUN(CODA_PROG_NATIVECC,
     if test $cross_compiling = yes ; then
-       [AC_CHECKING([for native C compiler on the build host])
+       [AC_MSG_NOTICE([checking for native C compiler on the build host])
 	AC_CHECK_PROG(NATIVECC, gcc, gcc)
 	if test -z "$NATIVECC" ; then
 	    AC_CHECK_PROG(NATIVECC, cc, cc, , , /usr/ucb/cc)

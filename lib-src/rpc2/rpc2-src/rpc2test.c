@@ -866,6 +866,8 @@ static void GetRoot(void)
     printf("Test dir: ");
     fflush(stdin);
     fgets(TestDir, sizeof(TestDir), stdin);
+    /* strip NL */
+    TestDir[strlen(TestDir)-1] = '\0';
 
     mktee(MakeName("rpc2.log"));
 }
