@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/libal/al.h,v 1.1 1996/11/22 19:08:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/al.h,v 4.1 1997/01/08 21:49:40 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -62,7 +62,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef _AL_
 #define _AL_
 
-#define AL_VERSION "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/libal/al.h,v 1.1 1996/11/22 19:08:32 braam Exp $"
+#define AL_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/al.h,v 4.1 1997/01/08 21:49:40 rvb Exp $"
 
 typedef
     struct
@@ -137,5 +137,8 @@ extern int AL_PrintAlist(AL_AccessList *A);
 extern int AL_PrintExternalAlist(AL_ExternalAccessList E);
 extern int AL_DisableGroup(int gid,  PRS_InternalCPS *ICPS);
 extern int AL_EnableGroup(int gid,  PRS_InternalCPS *ICPS);
+
+int CmpPlus(AL_AccessEntry *a, AL_AccessEntry *b);
+int CmpMinus(AL_AccessEntry *a, AL_AccessEntry *b);
 
 #endif

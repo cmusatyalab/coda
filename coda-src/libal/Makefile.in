@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/Makefile.in,v 4.6 1997/12/20 23:34:25 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/Makefile.in,v 4.7 1998/03/06 20:20:12 braam Exp $";
 
 
 # 
@@ -60,8 +60,8 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 ifneq ($(SHORTSYS),djgpp)
-#EXECUTABLES = pcfgen
-#TESTS	    = altest
+EXECUTABLES = pcfgen
+TESTS	    = altest
 endif
 
 LIBRARIES   = libal.a
@@ -76,7 +76,7 @@ HFILES = al.h parsepdb.h pcf.h prs.h prs_fs.h
 libal.a:  alprocs.o pcfprocs.o parsepdb.o
 
 parsepdb.o: y.tab.c lex.yy.c $(HFILES)
-	$(CXX) -x c++ $(CXXFLAGS) -c y.tab.c; mv y.tab.o parsepdb.o
+	$(CC) $(CFLAGS) -c y.tab.c; mv y.tab.o parsepdb.o
 
 lex.yy.c: parsepdb.lex lexedit.sed
 	$(LEX) -l -i $<
@@ -93,9 +93,9 @@ y.tab.c: parsepdb.yacc
 	rm y.tab.tmp
 
 pcfgen:	pcfgen.o libal.a $(LIBUTIL)
-	$(CXX) $(LIBFLAGS) pcfgen.o libal.a $(LIBUTIL) -o pcfgen
+	$(CC) $(LIBFLAGS) pcfgen.o libal.a $(LIBUTIL) -o pcfgen
 
 altest: altest.o libal.a $(LIBUTIL)
-	$(CXX) ${LIBFLAGS} altest.o libal.a $(LIBUTIL) -o altest
+	$(CC) ${LIBFLAGS} altest.o libal.a $(LIBUTIL) -o altest
 
 include $(MAKDIR)/configs/Makerules

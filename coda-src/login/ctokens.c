@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/login/RCS/cunlog.cc,v 4.1 1997/01/08 21:49:48 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/login/ctokens.cc,v 4.3 1998/03/19 15:17:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,15 +55,12 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-/*
-	unlog -- tell Venus to clean up your connecion
-
-*/
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
 
+#include <sys/types.h>
+#include <errno.h>
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
@@ -71,17 +68,53 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #endif
+#include <stdio.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-
 #include <auth2.h>
 
 
-int main(int argc, char **argv)
-{
-    U_DeleteLocalTokens();
+int main(int argc, char *argv[]) {
+    char OutString[160];
+    char *cp = OutString;
+    ClearToken clear;
+    EncryptedSecretToken secret;
+    int rc;
+
+    /* Header. */
+    sprintf(cp, "\nTokens held by the Cache Manager:\n\n");
+    cp += strlen(cp);
+
+    /* Get the user id. */
+    sprintf(cp, "UID=%d : ", getuid());
+    cp += strlen(cp);
+
+    /* Get the tokens.  */
+    rc = U_GetLocalTokens(&clear, secret);
+    if (rc < 0) {
+	if (errno == ENOTCONN)
+	    sprintf(cp, "Not Authenticated\n");
+	else
+	    sprintf(cp, "\nGetLocalTokens error (%d)\n", errno);
+
+	printf(OutString);
+	exit(-1);
+    }
+
+    /* Check for expiration. */
+    if (clear.EndTimestamp <= time(0))
+	sprintf(cp, "[>> Expired <<]\n");
+    else {
+	char *str = ctime((time_t *)&clear.EndTimestamp);
+	str +=	4;
+	str[12] = '\0';
+	sprintf(cp, "[Expires %s]\n", str);
+    }
+
+    /* Output the string. */
+    printf(OutString);
     exit(0);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/login/ctokens.cc,v 4.2 1997/02/26 16:02:45 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/login/testlog.cc,v 4.2 1997/02/26 16:02:45 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,8 +59,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
-#include <sys/types.h>
-#include <errno.h>
+#include <stdio.h>
+#include <pwd.h>
 #ifdef __MACH__
 #include <sysent.h>
 #include <libc.h>
@@ -68,7 +68,9 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #endif
-#include <stdio.h>
+
+#include <errno.h>
+#include <string.h>
 
 #ifdef __cplusplus
 }
@@ -77,43 +79,68 @@ extern "C" {
 #include <auth2.h>
 
 
-int main(int argc, char *argv[]) {
-    char OutString[160];
-    char *cp = OutString;
+int main(int argc, char **argv)
+{
+    EncryptedSecretToken    sToken;
+    ClearToken		    cToken;
+    EncryptedSecretToken    testSTok;
+    ClearToken		    testCTok;
+    struct passwd	    *pw;
+    static char		    passwd[100] = { '\0' };
 
-    /* Header. */
-    sprintf(cp, "\nTokens held by the Cache Manager:\n\n");
-    cp += strlen(cp);
-
-    /* Get the user id. */
-    sprintf(cp, "UID=%d : ", getuid());
-    cp += strlen(cp);
-
-    /* Get the tokens.  */
-    ClearToken clear;
-    EncryptedSecretToken secret;
-    int rc = U_GetLocalTokens(&clear, secret);
-    if (rc < 0) {
-	if (errno == ENOTCONN)
-	    sprintf(cp, "Not Authenticated\n");
-	else
-	    sprintf(cp, "\nGetLocalTokens error (%d)\n", errno);
-
-	printf(OutString);
-	exit(-1);
+    if (argc < 2) {
+	pw = getpwuid (getuid ());
+	if (pw == NULL) {
+	    fprintf (stderr, "Can't figure out your user id.\n");
+	    fprintf (stderr, "Try \"log user\"\n");
+	    exit (1);
+	}
     }
-
-    /* Check for expiration. */
-    if (clear.EndTimestamp <= time(0))
-	sprintf(cp, "[>> Expired <<]\n");
+    else if (argc == 2 || argc == 3) {
+	pw = getpwnam (argv[1]);
+	if (pw == NULL) {
+	    fprintf (stderr, "%s not a valid user.\n", argv[1]);
+	    exit (1);
+	}
+	if (argc == 3) {
+	    strcpy(passwd, argv[2]);
+	    bzero((char *)&argv[2], strlen(passwd));
+	}
+    }
     else {
-	char *str = ctime((time_t *)&clear.EndTimestamp);
-	str +=	4;
-	str[12] = '\0';
-	sprintf(cp, "[Expires %s]\n", str);
+	fprintf (stderr, "Usage: log [user [password]]\n");
+	exit (1);
     }
 
-    /* Output the string. */
-    printf(OutString);
+/*
+    if (U_InitRPC() != 0) {
+	fprintf (stderr, "%s: problems with RPC.\n", argv[0]);
+	exit (1);
+    }
+*/
+    U_InitRPC();
+
+    if (passwd[0] == '\0') strcpy (passwd, getpass ("Password: "));
+    if ((U_Authenticate(pw->pw_name, passwd, &cToken, sToken)) != 0) {
+	fprintf (stderr, "Invalid login.\n");
+	exit (1);
+    }
+
+    printf ("Sending token to venus\n");
+    if (U_SetLocalTokens(0, &cToken, sToken) < 0)
+	perror("U_SetLocalTokens");
+    printf("Getting tokens back from venus\n");
+    if (U_GetLocalTokens(&testCTok, testSTok) < 0)
+	perror("U_GetLocalTokens");
+
+    printf("Comparing clear token\n");
+    if(bcmp((char *)&cToken,(char *)&testCTok,sizeof(ClearToken)) != 0) {
+	printf("Bad ClearToken\n");
+    }
+    printf("Comparing secret token\n");
+    if(bcmp((char *)sToken,(char *)testSTok,sizeof(EncryptedSecretToken)) != 0) {
+	printf("Bad SecretToken\n");
+    }
+    printf("Done ! ! ! !\n");
     exit(0);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/login/RCS/testlog.cc,v 4.1 1997/01/08 21:49:49 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/login/clog.cc,v 4.3 1997/12/10 16:06:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,10 +55,17 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
+/*
+
+	log -- tell Venus your password
+
+*/
+
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
 
+#include <sys/types.h>
 #include <stdio.h>
 #include <pwd.h>
 #ifdef __MACH__
@@ -69,8 +76,9 @@ extern "C" {
 #include <stdlib.h>
 #endif
 
-#include <errno.h>
 #include <string.h>
+#include <lwp.h>
+#include <rpc2.h>
 
 #ifdef __cplusplus
 }
@@ -83,64 +91,60 @@ int main(int argc, char **argv)
 {
     EncryptedSecretToken    sToken;
     ClearToken		    cToken;
-    EncryptedSecretToken    testSTok;
-    ClearToken		    testCTok;
-    struct passwd	    *pw;
-    static char		    passwd[100] = { '\0' };
+    struct passwd	    pwent;
+    struct passwd	    *pw = &pwent;
+    static char		    passwd[100];
+    long		    rc;
 
+    bzero(passwd, sizeof(passwd));
     if (argc < 2) {
 	pw = getpwuid (getuid ());
 	if (pw == NULL) {
 	    fprintf (stderr, "Can't figure out your user id.\n");
-	    fprintf (stderr, "Try \"log user\"\n");
+	    fprintf (stderr, "Try \"clog user\"\n");
 	    exit (1);
 	}
     }
-    else if (argc == 2 || argc == 3) {
+    else if (argc == 2 && strcmp(argv[1],"-x") != 0) {
 	pw = getpwnam (argv[1]);
 	if (pw == NULL) {
 	    fprintf (stderr, "%s not a valid user.\n", argv[1]);
 	    exit (1);
 	}
-	if (argc == 3) {
+    }
+    else if (argc == 3) {
+	if (strcmp(argv[1],"-x") == 0)
+	    pw->pw_name = argv[2];
+	else {
+	    pw = getpwnam (argv[1]);
+	    if (pw == NULL) {
+		fprintf (stderr, "%s not a valid user.\n", argv[1]);
+	        exit (1);
+	    }
 	    strcpy(passwd, argv[2]);
-	    bzero((char *)&argv[2], strlen(passwd));
+	    bzero((char *)argv[2], strlen(passwd));
 	}
     }
+    else if (argc == 4 && strcmp(argv[1],"-x") == 0) {
+	pw->pw_name = argv[2];
+	strcpy(passwd, argv[3]);
+	bzero((char *)argv[3], strlen(passwd));
+    }
     else {
-	fprintf (stderr, "Usage: log [user [password]]\n");
+	fprintf (stderr, "Usage: log [[-x] user [password]]\n");
 	exit (1);
     }
 
-/*
-    if (U_InitRPC() != 0) {
-	fprintf (stderr, "%s: problems with RPC.\n", argv[0]);
-	exit (1);
-    }
-*/
+    /* set flags to disable cs name resolver */
+
     U_InitRPC();
-
     if (passwd[0] == '\0') strcpy (passwd, getpass ("Password: "));
-    if ((U_Authenticate(pw->pw_name, passwd, &cToken, sToken)) != 0) {
-	fprintf (stderr, "Invalid login.\n");
+    rc = U_Authenticate(pw->pw_name, passwd, &cToken, sToken);
+    if (rc != 0) {
+	fprintf (stderr, "Invalid login (%s).\n", RPC2_ErrorMsg(rc));
 	exit (1);
     }
-
-    printf ("Sending token to venus\n");
-    if (U_SetLocalTokens(0, &cToken, sToken) < 0)
-	perror("U_SetLocalTokens");
-    printf("Getting tokens back from venus\n");
-    if (U_GetLocalTokens(&testCTok, testSTok) < 0)
-	perror("U_GetLocalTokens");
-
-    printf("Comparing clear token\n");
-    if(bcmp((char *)&cToken,(char *)&testCTok,sizeof(ClearToken)) != 0) {
-	printf("Bad ClearToken\n");
-    }
-    printf("Comparing secret token\n");
-    if(bcmp((char *)sToken,(char *)testSTok,sizeof(EncryptedSecretToken)) != 0) {
-	printf("Bad SecretToken\n");
-    }
-    printf("Done ! ! ! !\n");
+    if(U_SetLocalTokens(0, &cToken, sToken))
+	printf("Local login only, could not contact venus\n");
     exit(0);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/libal/pcf.h,v 1.1 1996/11/22 19:08:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/libal/pcf.h,v 4.1 1997/01/08 21:49:46 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,7 +82,7 @@ extern int *Gseeks;	/* Gseeks[i] gives the position in protection data base to l
 				the entry for GID i */
 
 
-extern int CmpUn(IN int *u1, IN int *u2);
+extern int CmpUn(int *u1, int *u2);
 		    /* Takes a pair of pointers to elements in Usorted[] and returns -1, 0, 1 depending 
 		    whether the username corresponding to the  first element is less than, equal to,
 		    or greater than the second  */
