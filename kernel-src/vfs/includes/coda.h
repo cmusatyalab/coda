@@ -101,15 +101,15 @@ typedef struct ViceFid {
 } ViceFid;
 #endif	/* VICEFID */
 
-
 static inline ino_t coda_f2i(struct ViceFid *fid)
 {
-	if ( fid ) {
-		return fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20);
-	} else { 
-		return 0;
-	}
+      if ( fid ) {
+              return (fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
+      } else { 
+              return 0;
+      }
 }
+
 
 #ifndef _VUID_T_
 #define _VUID_T_
