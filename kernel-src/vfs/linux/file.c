@@ -552,7 +552,6 @@ int
 coda_ioctl_open(struct inode *i, struct file *f)
 {
 
-        unsigned short flags = f->f_flags;
 
         ENTRY;
 

@@ -646,7 +646,6 @@ int init_coda_fs(void)
 static void coda_statfs(struct super_block *sb, struct statfs *buf, 
 		       int bufsiz)
 {
-	int error;
 	struct statfs tmp;
 
 #define NB_SFS_SIZ 0x895440
