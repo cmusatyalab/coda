@@ -41,6 +41,10 @@ int RPC2_R2SError(int cerr)
 {
     int sval;
     char *ctxt;
+    
+    if ( cerr < 0 ) 
+	return cerr;
+
     switch ( cerr ) {
     case 0:
 	sval = 0;
@@ -52,7 +56,7 @@ int RPC2_R2SError(int cerr)
 	sval=4711;
     }
     if ( sval == 4711 ) {
-      fprintf(stderr, "Unknown error translation sys %d, net %d\n", sval, cerr);
+      fprintf(stderr, "Unknown R2S error translation sys %d, net %d\n", sval, cerr);
     }
     return sval;
 }
@@ -62,6 +66,10 @@ int RPC2_S2RError(int serr)
 {
     int cval;
     char *ctxt;
+
+    if ( serr < 0 )
+	return serr;
+
     switch ( serr ) {
     case 0:
 	cval = 0 ;
@@ -74,7 +82,7 @@ int RPC2_S2RError(int serr)
 	ctxt =  "Unknown error!";
     }
     if ( cval == 4711 ) {
-      fprintf(stderr, "Unknown error translation sys %d, net %d\n", serr, cval);
+      fprintf(stderr, "Unknown S2R error translation sys %d, net %d\n", serr, cval);
     }
     return cval;
 }

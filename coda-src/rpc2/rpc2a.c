@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.1 1997/01/08 21:50:27 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.2 1997/09/23 15:13:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -813,10 +813,8 @@ BindOver:
     /* quit */
     }
 
-long RPC2_InitSideEffect(IN ConnHandle, IN SDesc)
-    RPC2_Handle ConnHandle;
-    SE_Descriptor *SDesc;
-    {
+long RPC2_InitSideEffect(IN RPC2_Handle ConnHandle, IN SE_Descriptor *SDesc)
+{
     say(0, RPC2_DebugLevel, ("RPC2_InitSideEffect()\n"));
 
 #ifdef RPC2DEBUG
@@ -825,13 +823,11 @@ BindOver:
 
     rpc2_Enter();
     rpc2_Quit(InvokeSE(1, ConnHandle, SDesc, 0));
-    }
+}
 
-long RPC2_CheckSideEffect(IN ConnHandle, INOUT SDesc, IN Flags)
-    RPC2_Handle ConnHandle;
-    SE_Descriptor *SDesc;
-    long Flags;    
-    {
+long RPC2_CheckSideEffect(IN RPC2_Handle ConnHandle, 
+			  INOUT SE_Descriptor *SDesc, IN long Flags)
+{
     say(0, RPC2_DebugLevel, ("RPC2_CheckSideEffect()\n"));
 
 #ifdef RPC2DEBUG
@@ -840,15 +836,12 @@ BindOver:
     
     rpc2_Enter();
     rpc2_Quit(InvokeSE(2, ConnHandle, SDesc, Flags));
-    }
+}
 
-
-PRIVATE int InvokeSE(CallType, ConnHandle, SDesc, Flags)
-    long CallType;  /* 1 ==> Init, 2==> Check */
-    RPC2_Handle ConnHandle;
-    SE_Descriptor *SDesc;
-    long Flags;
-    {
+/* CallType: 1 ==> Init, 2==> Check */
+PRIVATE int InvokeSE(long CallType, RPC2_Handle ConnHandle, 
+		     SE_Descriptor *SDesc, long Flags)
+{
     long rc;
     register struct CEntry *ce;
 
@@ -859,22 +852,19 @@ BindOver:
 
     if (SDesc == NULL || ce->SEProcs == NULL) return(RPC2_FAIL);
 
-    if (CallType == 1)
-	{
+    if (CallType == 1) {
 	if (ce->SEProcs->SE_InitSideEffect == NULL) return(RPC2_FAIL);
 	SetState(ce, S_INSE);
 	rc = (*ce->SEProcs->SE_InitSideEffect)(ConnHandle, SDesc);
-	}
-    else
-	{
+    } else {
 	if (ce->SEProcs->SE_CheckSideEffect == NULL) return(RPC2_FAIL);
 	SetState(ce, S_INSE);
 	rc = (*ce->SEProcs->SE_CheckSideEffect)(ConnHandle, SDesc, Flags);
-	}
+    }
     if (rc < RPC2_FLIMIT) ce->sebroken = TRUE;
     SetState(ce, S_PROCESS);
     return(rc);
-    }
+}
 
 long RPC2_Unbind(whichConn)
     RPC2_Handle whichConn;

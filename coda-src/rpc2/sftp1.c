@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/sftp1.c,v 1.1 1996/11/22 19:07:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.1 1997/01/08 21:50:30 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -772,10 +772,9 @@ GotData:
     }
 
 
-PRIVATE long PutFile(sEntry)
-    register struct SFTP_Entry *sEntry;
-    /* Local file is already opened */
-    {
+/* Local file is already opened */
+PRIVATE long PutFile(register struct SFTP_Entry *sEntry)
+{
     RPC2_PacketBuffer *pb;
     register long i;
 
@@ -792,10 +791,8 @@ PRIVATE long PutFile(sEntry)
     if (sftp_SendStrategy(sEntry) < 0)
 	{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
 
-    while (sEntry->XferState == XferInProgress)
-	{
-	for (i = 0; i < sEntry->RetryCount; i++)
-	    {
+    while (sEntry->XferState == XferInProgress) {
+	for (i = 0; i < sEntry->RetryCount; i++) {
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
 
 	    /* Make sure nothing bad happened while we were waiting */
@@ -818,31 +815,30 @@ PRIVATE long PutFile(sEntry)
 	     * anything else.
 	     */
 	    if (sEntry->RTT) sftp_Backoff(sEntry);
-	    }
+	}
 	sftp_SetError(sEntry, ERROR);
 	QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
 GotAck:
 	if (i == 0) /* got an ack on the first try. allow RTT updates now */
 	    sEntry->Retransmitting = FALSE;
 
-	switch ((int) pb->Header.Opcode)
-	    {
-	    case SFTP_NAK:
-		assert(FALSE);  /* should have already set sEntry state */
-
-	    case SFTP_ACK:
-		if (sftp_AckArrived(pb, sEntry) < 0)
-		    {QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
-		break;
+	switch ((int) pb->Header.Opcode) {
+	case SFTP_NAK:
+	    assert(FALSE);  /* should have already set sEntry state */
 	    
-	    default:
-		SFTP_FreeBuffer(&pb);
-		break;	    
-	    }
+	case SFTP_ACK:
+	    if (sftp_AckArrived(pb, sEntry) < 0)
+		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
+	    break;
+	    
+	default:
+	    SFTP_FreeBuffer(&pb);
+	    break;	    
 	}
+    }
 
     QUIT(sEntry, SE_SUCCESS, RPC2_SUCCESS);
-    }
+}
 
 
 PRIVATE RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
