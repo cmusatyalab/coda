@@ -643,6 +643,7 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
 	blocked.count = 0;
 	lwp_init = (struct lwp_ctl *) malloc(sizeof(struct lwp_ctl));
 	temp = (PROCESS) malloc(sizeof(struct lwp_pcb));
+	memset(temp, 0, sizeof(struct lwp_pcb));
 	if (lwp_init == NULL || temp == NULL)
 		Abort_LWP("Insufficient Storage to Initialize LWP Support");
 
