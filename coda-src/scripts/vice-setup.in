@@ -282,16 +282,7 @@ fi
 #
 # adding stuff to /etc/services if needed
 #
-
-case x`uname`  in
-  xCYGWIN32_NT)
-    ;;
-  xCYGWIN_NT-4.0)
-    ;;
-  x*)
-    vice-setup-ports
-    ;;
-esac
+coda-setup-ports
 
 #
 # startup scripts
