@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  * Implementation of the Venus User abstraction.
@@ -156,13 +150,17 @@ void UserPrint(int fd) {
  */
 int AuthorizedUser(vuid_t thisUser) {
 
-  /* If this user is the primary user of this machine, then this user is authorized */
-  if (PrimaryUser != UNSET_PRIMARYUSER) {
-    if (PrimaryUser == thisUser) {
-       LOG(100, ("AuthorizedUser: User (%d) --> authorized as primary user.\n", thisUser));
-       return(1);
+    /* If this user is the primary user of this machine, then this user is
+     * authorized */
+    if (PrimaryUser != UNSET_PRIMARYUSER) {
+	if (PrimaryUser == thisUser) {
+	    LOG(100, ("AuthorizedUser: User (%d) --> authorized as primary user.\n", thisUser));
+	    return(1);
+	}
+	/* When primary user is set, this overrides console user checks */
+	LOG(100, ("AuthorizedUser: User (%d) --> is not the primary user.\n", thisUser));
+	return(0);
     }
-  }
 
   /* If this user is logged into the console, then this user is authorized */
   if (ConsoleUser(thisUser)) {
@@ -175,29 +173,37 @@ int AuthorizedUser(vuid_t thisUser) {
   return(0);
 }
 
-#define	CONSOLE	    "console"
-
 int ConsoleUser(vuid_t user)
 {
 #ifdef DJGPP
     return(1);
 
 #elif __linux__
-    setutent();
+#define	CONSOLE	    "tty1"
+
     struct utmp w, *u;
+    struct passwd *pw;
+    int found = 0;
+
+    setutent();
+
     strcpy(w.ut_line, CONSOLE);
-    if ((u = getutline(&w))) {
-        struct passwd *pw = getpwnam(u->ut_name);
-        if (pw) return (user == pw->pw_uid);
+    while (!found && (u = getutline(&w))) {
+	struct passwd *pw = getpwnam(u->ut_name);
+	if (pw) found = (user == pw->pw_uid);
     }
     endutent();
-    return(0);
+
+    return(found);
 
 #else /* Look up console user in utmp. */
+
+#define	CONSOLE	    "console"
 
 #ifndef UTMP_FILE
 #define	UTMP_FILE   "/etc/utmp"
 #endif
+
     vuid_t vuid = ALL_UIDS;
 
     FILE *fp = fopen(UTMP_FILE, "r");
@@ -290,9 +296,8 @@ long userent::GetTokens(SecretToken *asecret, ClearToken *aclear) {
 
     if (!tokensvalid) return(ENOTCONN);
 
-    /* N.B. Using direct assignment to the Token structs rather than the bcopys doesn't seem to work! */
-    bcopy((const void *)&secret, (void *) asecret, (int)sizeof(SecretToken));
-    bcopy((const void *)&clear, (void *) aclear, (int)sizeof(ClearToken));
+    if (asecret) memcpy(asecret, &secret, sizeof(SecretToken));
+    if (aclear)  memcpy(aclear, &clear, sizeof(ClearToken));
 
     return(0);
 }

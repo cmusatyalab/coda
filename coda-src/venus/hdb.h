@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *  Hoard database management: first part used by Venus & hoard, latter only by Venus
  */
@@ -69,39 +63,39 @@ extern "C" {
 /* Should be in venusioctl.h! -JJK */
 
 struct hdb_clear_msg {
-    vuid_t  cuid;
-    vuid_t  ruid;
+    vuid_t cuid;
+    int    spare;
 };
 
 struct hdb_add_msg {
     VolumeId volno;
-    char name[CODA_MAXPATHLEN];
-    int priority;
-    int attributes;
-    vuid_t ruid;
+    char     name[CODA_MAXPATHLEN];
+    int      priority;
+    int      attributes;
+    int      spare;
 };
 
 struct hdb_delete_msg {
     VolumeId volno;
-    char name[CODA_MAXPATHLEN];
-    vuid_t ruid;
+    char     name[CODA_MAXPATHLEN];
+    int      spare;
 };
 
 struct hdb_list_msg {
-    char outfile[CODA_MAXPATHLEN];
+    char   outfile[CODA_MAXPATHLEN];
     vuid_t luid;
-    vuid_t ruid;
+    int    spare;
 };
 
 struct hdb_walk_msg {
-    vuid_t ruid;
+    int spare;
 };
 
 struct hdb_verify_msg {
-    char outfile[CODA_MAXPATHLEN];
+    char   outfile[CODA_MAXPATHLEN];
     vuid_t luid;
-    vuid_t ruid;
-    int   verbosity;
+    int    spare;
+    int    verbosity;
 };
 
 
@@ -226,14 +220,14 @@ class hdb {
     hdbent *Find(VolumeId, char *);
 
     /* The external interface. */
-    int Add(hdb_add_msg *);
-    int Delete(hdb_delete_msg *);
-    int Clear(hdb_clear_msg *);
-    int List(hdb_list_msg *);
-    int Walk(hdb_walk_msg *);
-    int Verify(hdb_verify_msg *);
-    int Enable(hdb_walk_msg *);
-    int Disable(hdb_walk_msg *);
+    int Add(hdb_add_msg *, vuid_t local_id, vuid_t coda_id);
+    int Delete(hdb_delete_msg *, vuid_t local_id, vuid_t coda_id);
+    int Clear(hdb_clear_msg *, vuid_t local_id, vuid_t coda_id);
+    int List(hdb_list_msg *, vuid_t local_id, vuid_t coda_id);
+    int Walk(hdb_walk_msg *, vuid_t local_id, vuid_t coda_id);
+    int Verify(hdb_verify_msg *, vuid_t local_id, vuid_t coda_id);
+    int Enable(hdb_walk_msg *, vuid_t local_id, vuid_t coda_id);
+    int Disable(hdb_walk_msg *, vuid_t local_id, vuid_t coda_id);
      
     void ResetUser(vuid_t);
 
@@ -421,7 +415,7 @@ extern int NC_PriorityFN(bsnode *, bsnode *);
 
 /* hdb_daemon.c */
 extern void HDBD_Init();
-extern int HDBD_Request(hdbd_request, void *, vuid_t, vuid_t);
+extern int HDBD_Request(hdbd_request, void *, struct uarea *u);
 extern long HDBD_GetNextHoardWalkTime();
 
 #define	PRINT_HDBDREQTYPE(type)\

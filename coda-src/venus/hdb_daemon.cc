@@ -68,6 +68,8 @@ struct hdbd_msg : public olink {
     enum hdbd_request type;
     void *request;
     int result;
+    vuid_t local_id;
+    vuid_t coda_id;
 };
 
 
@@ -122,8 +124,7 @@ LOG(0, ("HDBDaemon just woke up\n"));
 	    /* Walk HDB. */
 	    if (curr_time - LastHdbWalk >= HdbWalkInterval) {
 		struct hdb_walk_msg m;
-		m.ruid = V_UID;
-		(void)HDB->Walk(&m);
+		(void)HDB->Walk(&m, V_UID, 0);
 		LastHdbWalk = curr_time;
 	    }
 	}
@@ -141,19 +142,35 @@ LOG(0, ("HDBDaemon just woke up\n"));
 }
 
 
-int HDBD_Request(hdbd_request type, void *request, vuid_t euid, vuid_t ruid) {
+int HDBD_Request(hdbd_request type, void *request, struct uarea *u) {
     /* Ensure request was issued by "locally authoritative" entity. */
+    vuid_t euid = CRTOEUID(u->u_cred);
+    vuid_t ruid = CRTORUID(u->u_cred);
+    userent *uent;
+    ClearToken token;
+
     if (euid != V_UID && !AuthorizedUser(ruid)) {
-	LOG(0, ("HDBD_Request (%s): <%d, %d> not authorized\n",
+	LOG(0, ("HDBD_Request (%s): <%d, %d> Not an authorized user\n",
 		PRINT_HDBDREQTYPE(type), euid, ruid));
+	return(EACCES);
+    }
+
+    /* obtain the coda identity of the user */
+    /* Use ruid, so that hoarding can be allowed to everybody by making the
+     * hoard application setuid root */
+    if ((uent = FindUser(ruid)) == NULL || uent->GetTokens(NULL, &token) != 0) {
+	LOG(0, ("HDBD_Request (%s): No authentication token for %d\n",
+		PRINT_HDBDREQTYPE(type), ruid));
 	return(EACCES);
     }
 
     /* Form message. */
     hdbd_msg m;
-    m.type = type;
-    m.request = request;
-    m.result = 0;
+    m.type     = type;
+    m.request  = request;
+    m.result   = 0;
+    m.local_id = ruid;
+    m.coda_id  = token.ViceId;
 
     /* Send it, and wait for reply. */
     hdbd_msgq.append(&m);
@@ -174,35 +191,43 @@ static void HDBD_HandleRequests() {
     while (m = (hdbd_msg *)hdbd_msgq.get()) {
 	switch(m->type) {
 	    case HdbAdd:
-		m->result = HDB->Add((hdb_add_msg *)m->request);
+		m->result = HDB->Add((hdb_add_msg *)m->request,
+				     m->local_id, m->coda_id);
 		break;
 
 	    case HdbDelete:
-		m->result = HDB->Delete((hdb_delete_msg *)m->request);
+		m->result = HDB->Delete((hdb_delete_msg *)m->request,
+					m->local_id, m->coda_id);
 		break;
 
 	    case HdbClear:
-		m->result = HDB->Clear((hdb_clear_msg *)m->request);
+		m->result = HDB->Clear((hdb_clear_msg *)m->request,
+				       m->local_id, m->coda_id);
 		break;
 
 	    case HdbList:
-		m->result = HDB->List((hdb_list_msg *)m->request);
+		m->result = HDB->List((hdb_list_msg *)m->request,
+				      m->local_id, m->coda_id);
 		break;
 
 	    case HdbWalk:
-		m->result = HDB->Walk((hdb_walk_msg *)m->request);
+		m->result = HDB->Walk((hdb_walk_msg *)m->request,
+				      m->local_id, m->coda_id);
 		break;
 
 	    case HdbEnable:
-		m->result = HDB->Enable((hdb_walk_msg *)m->request);
+		m->result = HDB->Enable((hdb_walk_msg *)m->request,
+					m->local_id, m->coda_id);
 		break;
 
 	    case HdbDisable:
-		m->result = HDB->Disable((hdb_walk_msg *)m->request);
+		m->result = HDB->Disable((hdb_walk_msg *)m->request,
+					 m->local_id, m->coda_id);
 		break;
 		
 	    case HdbVerify:
-		m->result = HDB->Verify((hdb_verify_msg *)m->request);
+		m->result = HDB->Verify((hdb_verify_msg *)m->request,
+					m->local_id, m->coda_id);
 		break;
 
 	    default:

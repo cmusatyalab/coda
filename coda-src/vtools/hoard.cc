@@ -113,7 +113,6 @@ class clear_entry : public olink {
 
     clear_entry(vuid_t cuid) {
 	msg.cuid = cuid;
-	msg.ruid = ruid;
     }
 };
 
@@ -126,7 +125,6 @@ class add_entry : public olink {
 	strcpy(msg.name, name);
 	msg.priority = priority;
 	msg.attributes = attributes;
-	msg.ruid = ruid;
     }
 };
 
@@ -137,7 +135,6 @@ class delete_entry : public olink {
     delete_entry(VolumeId volno, char *name) {
 	msg.volno = volno;
 	strcpy(msg.name, name);
-	msg.ruid = ruid;
     }
 };
 
@@ -152,7 +149,6 @@ class listentry : public olink {
 
 	strcpy(tname, lname);
 	msg.luid = luid;
-	msg.ruid = ruid;
     }
 };
 
@@ -161,7 +157,6 @@ class walk_entry : public olink {
     hdb_walk_msg msg;
 
     walk_entry() {
-	msg.ruid = ruid;
     }
 };
 
@@ -171,7 +166,6 @@ class enable_entry : public olink {
     hdb_walk_msg msg;
 
     enable_entry() {
-	msg.ruid = ruid;
     }
 };
 
@@ -180,7 +174,6 @@ class disable_entry : public olink {
     hdb_walk_msg msg;
 
     disable_entry() {
-	msg.ruid = ruid;
     }
 };
 
@@ -195,7 +188,6 @@ class verify_entry : public olink {
 
 	strcpy(tname, vname);
 	msg.luid = vuid;
-	msg.ruid = ruid;
 	msg.verbosity = verbosity;
     }
 };

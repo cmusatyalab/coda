@@ -1013,8 +1013,7 @@ V_FreeLocks:
 		    if (data->in_size != (int)sizeof(struct hdb_add_msg))
 			{ u.u_error = EINVAL; break; }
 
-		    u.u_error = HDBD_Request(HdbAdd, msgp,
-					     CRTOEUID(u.u_cred), CRTORUID(u.u_cred));
+		    u.u_error = HDBD_Request(HdbAdd, msgp, &u);
 
 		    break;
 		    }
@@ -1025,8 +1024,7 @@ V_FreeLocks:
 		    if (data->in_size != (int)sizeof(struct hdb_delete_msg))
 			{ u.u_error = EINVAL; break; }
 
-		    u.u_error = HDBD_Request(HdbDelete, msgp,
-					     CRTOEUID(u.u_cred), CRTORUID(u.u_cred));
+		    u.u_error = HDBD_Request(HdbDelete, msgp, &u);
 
 		    break;
 		    }
@@ -1037,8 +1035,7 @@ V_FreeLocks:
 		    if (data->in_size != (int)sizeof(struct hdb_clear_msg))
 			{ u.u_error = EINVAL; break; }
 
-		    u.u_error = HDBD_Request(HdbClear, msgp,
-					     CRTOEUID(u.u_cred), CRTORUID(u.u_cred));
+		    u.u_error = HDBD_Request(HdbClear, msgp, &u);
 
 		    break;
 		    }
@@ -1049,8 +1046,7 @@ V_FreeLocks:
 		    if (data->in_size != (int)sizeof(struct hdb_list_msg))
 			{ u.u_error = EINVAL; break; }
 
-		    u.u_error = HDBD_Request(HdbList, msgp,
-					     CRTOEUID(u.u_cred), CRTORUID(u.u_cred));
+		    u.u_error = HDBD_Request(HdbList, msgp, &u);
 
 		    break;
 		    }
@@ -1061,8 +1057,7 @@ V_FreeLocks:
 		    if (data->in_size != (int)sizeof(struct hdb_walk_msg))
 			{ u.u_error = EINVAL; break; }
 
-		    u.u_error = HDBD_Request(HdbWalk, msgp,
-					     CRTOEUID(u.u_cred), CRTORUID(u.u_cred));
+		    u.u_error = HDBD_Request(HdbWalk, msgp, &u);
 
 		    break;
 		    }
@@ -1074,8 +1069,7 @@ V_FreeLocks:
 		    if (data->in_size != (int)sizeof(struct hdb_verify_msg))
 			{ u.u_error = EINVAL; break; }
 
-		    u.u_error = HDBD_Request(HdbVerify, msgp,
-					     CRTOEUID(u.u_cred), CRTORUID(u.u_cred));
+		    u.u_error = HDBD_Request(HdbVerify, msgp, &u);
 
 		    break;
 		    }
@@ -1086,8 +1080,7 @@ V_FreeLocks:
 		    if (data->in_size != (int)sizeof(struct hdb_walk_msg))
 			{ u.u_error = EINVAL; break; }
 
-		    u.u_error = HDBD_Request(HdbEnable, msgp,
-					     CRTOEUID(u.u_cred), CRTORUID(u.u_cred));
+		    u.u_error = HDBD_Request(HdbEnable, msgp, &u);
 
 		    break;
 		    }
@@ -1098,8 +1091,7 @@ V_FreeLocks:
 		    if (data->in_size != (int)sizeof(struct hdb_walk_msg))
 			{ u.u_error = EINVAL; break; }
 
-		    u.u_error = HDBD_Request(HdbDisable, msgp,
-					     CRTOEUID(u.u_cred), CRTORUID(u.u_cred));
+		    u.u_error = HDBD_Request(HdbDisable, msgp, &u);
 
 		    break;
 		    }
