@@ -1335,8 +1335,8 @@ int fsdb::DirtyBlockCount() {
     fso_iterator next(NL);
     fsobj *f;
     while ((f = next())) {
-        if (!REPLACEABLE(f)) {
-	    count += BLOCKS(f);
+        if (!REPLACEABLE(f) && !f->IsSymLink()) {
+	    count += NBLOCKS(f->cf.Length());
 	}
     }
 

@@ -557,7 +557,7 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
 
 wait_for_reintegration:
 	free_mles   = VDB->FreeMLECount();
-	free_blocks = CacheBlocks; // - FSDB->DirtyBlockCount();
+	free_blocks = CacheBlocks - FSDB->DirtyBlockCount();
 
 	/* the redzone and yellow zone thresholds are pretty arbitrary at the
 	 * moment. I am guessing that the number of worker threads might be a
