@@ -1954,6 +1954,8 @@ int mgrpent::PickDH(vv_t **RVVs)
     srvent *s;
     unsigned long bw, bwmax = 0;
 
+    CODA_ASSERT(rocc.HowMany != 0);
+
     /* find strongest host in the dominant set. */
     for (i = 0; i < VSG_MEMBERS; i++) {
 	if (DOMINANT(i)) {
@@ -1961,15 +1963,12 @@ int mgrpent::PickDH(vv_t **RVVs)
             s->GetBandwidth(&bw);
             PutServer(&s);
 
-            if (bw > bwmax) {
+            if (bw >= bwmax) {
                 bwmax = bw;
                 chosen = i;
             }
         }
     }
-
-    if (bwmax == 0)
-        CHOKE("mgrpent::PickDH: dominant set is empty");
 
     return chosen;
 }

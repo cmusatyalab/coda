@@ -1715,8 +1715,8 @@ int cmlent::cancel()
 	return 0;
     }
 
-    LOG(0/*10*/, ("cmlent::cancel: age = %d\n", curTime-time));
-    if (LogLevel >= 0/*10*/) print(logFile);
+    LOG(10, ("cmlent::cancel: age = %d\n", curTime-time));
+    if (LogLevel >= 10) print(logFile);
 
     /* Parameters for possible utimes to be done AFTER cancelling this record. */
     int DoUtimes = 0;

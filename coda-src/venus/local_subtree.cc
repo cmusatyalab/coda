@@ -742,8 +742,8 @@ lgment::lgment(ViceFid *l, ViceFid *g)
 	       l->Volume, l->Vnode, l->Unique, g->Volume, g->Vnode, g->Unique));
 
     RVMLIB_REC_OBJECT(*this);
-    memmove((void *) &local, (const void *)l, (int)sizeof(ViceFid));
-    memmove((void *) &global, (const void *)g, (int)sizeof(ViceFid));
+    memcpy(&local, l, sizeof(ViceFid));
+    memcpy(&global, g, sizeof(ViceFid));
 }
 
 lgment::~lgment()
@@ -774,7 +774,7 @@ void lgment::SetLocalFid(ViceFid *lfid)
 {
     OBJ_ASSERT(this, lfid);
     RVMLIB_REC_OBJECT(local);
-    memmove((void *) &local, (const void *)lfid, (int)sizeof(ViceFid));
+    memcpy(&local, lfid, sizeof(ViceFid));
 }
 
 /* must be called from within a transation */
@@ -782,7 +782,7 @@ void lgment::SetGlobalFid(ViceFid *gfid)
 {
     OBJ_ASSERT(this, gfid);
     RVMLIB_REC_OBJECT(global);
-    memmove((void *) &global, (const void *)gfid, (int)sizeof(ViceFid));
+    memcpy(&global, gfid, sizeof(ViceFid));
 }
 
 void lgment::print(FILE *fp)
@@ -842,12 +842,12 @@ rfment::rfment(ViceFid *Fake, ViceFid *Global, ViceFid *Local, ViceFid *Parent,
 
 
     RVMLIB_REC_OBJECT(*this);
-    memmove((void *) &fake_root_fid, (const void *)Fake, (int)sizeof(ViceFid));
-    memmove((void *) &global_root_fid, (const void *)Global, (int)sizeof(ViceFid));
-    memmove((void *) &local_root_fid, (const void *)Local, (int)sizeof(ViceFid));
-    memmove((void *) &root_parent_fid, (const void *)Parent, (int)sizeof(ViceFid));
-    memmove((void *) &global_child_fid, (const void *)GlobalChild, (int)sizeof(ViceFid));
-    memmove((void *) &local_child_fid, (const void *)LocalChild, (int)sizeof(ViceFid));
+    memcpy(&fake_root_fid, Fake, sizeof(ViceFid));
+    memcpy(&global_root_fid, Global, sizeof(ViceFid));
+    memcpy(&local_root_fid, Local, sizeof(ViceFid));
+    memcpy(&root_parent_fid, Parent, sizeof(ViceFid));
+    memcpy(&global_child_fid, GlobalChild, sizeof(ViceFid));
+    memcpy(&local_child_fid, LocalChild, sizeof(ViceFid));
     name = (char *)rvmlib_rec_malloc((int)(strlen(CompName) + 1));
     CODA_ASSERT(name);
     strcpy(name, CompName);

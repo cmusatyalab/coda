@@ -531,9 +531,9 @@ int fsdb::Get(fsobj **f_addr, ViceFid *key, vuid_t vuid, int rights,
 	    ViceFid *gfid;
 	    while ((lgm = next())) {
 		gfid = lgm->GetGlobalFid();
-		if (!memcmp((const void *)gfid, (const void *)key, (int)sizeof(ViceFid))) {
-		    LOG(0, ("fsdb::Get: trying to access localied object 0x%x.%x.%x\n",
-			    key->Volume, key->Vnode, key->Unique));
+		if (FID_EQ(gfid, key)) {
+		    LOG(0, ("fsdb::Get: trying to access localized object %s\n",
+			    FID_(key)));
 		    return EACCES;
 		}
 	    }
@@ -1419,7 +1419,6 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 	UpdateCacheStats((f->IsDir() ? &DirDataStats : &FileDataStats),
 			 REPLACE, BLOCKS(f));
 
-
 	if (SkkEnabled)
 	  f->RecordReplacement(FALSE, TRUE);
 
@@ -1508,7 +1507,7 @@ void fsdb::print(int fd, int SummaryOnly) {
 			CHOKE("fsdb::print: bogus vnode type");
 		}
 	    }
-	fdprint(fd, "Real Blocks: %d, %d, %d\n", got_blocks, normal_blocks, udir_blocks, ow_blocks);
+	fdprint(fd, "Real Blocks: validdata %d, allocated %d, directory %d, owrite %d\n", got_blocks, normal_blocks, udir_blocks, ow_blocks);
     }
 #endif	VENUSDEBUG
     fdprint(fd, "Cache Statistics:  [ count : blocks ]\n");

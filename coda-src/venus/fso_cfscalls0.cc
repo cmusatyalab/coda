@@ -1558,6 +1558,17 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
                 NewMode= vap->va_mode;
         }
 
+	/* When we are truncating to zero length, should create any missing
+	 * container files */
+	if (NewLength == 0 && !HAVEDATA(this)) {
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(data.file);
+	    RVMLIB_REC_OBJECT(cf);
+	    data.file = &cf;
+            data.file->Create();
+	    Recov_EndTrans(MAXFP);
+	}
+	
 	/* Only update cache file when truncating and open for write! */
 	if (NewLength != (unsigned long)-1 && WRITING(this)) {
 		Recov_BeginTrans();
@@ -1566,16 +1577,6 @@ int fsobj::SetAttr(struct coda_vattr *vap, vuid_t vuid, RPC2_CountedBS *acl)
 		NewLength = (unsigned long)-1;
 	}
 
-	/* If we are truncating to zero length, we have valid data */
-	if (NewLength == 0) {
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(data.file);
-	    RVMLIB_REC_OBJECT(cf);
-	    data.file = &cf;
-            data.file->Create(0);
-	    Recov_EndTrans(MAXFP);
-	}
-	
 	/* Avoid performing action where possible. */
 	if (NewLength == (unsigned long)-1 && NewDate == (Date_t)-1 &&
 	    NewOwner == (vuid_t)-1 && NewMode == (unsigned short)-1) {
