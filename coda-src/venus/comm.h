@@ -135,7 +135,6 @@ class connent {
   friend class mgrpent;
   friend class fsobj;
   friend int GetTime(long *, long *);
-  friend int GetRootVolName(Realm *, char *);
   friend class vdb;
   friend class volent;
   friend void repvol::Resolve(void);
@@ -153,7 +152,6 @@ class connent {
     //struct in_addr Host;	/* Who to contact. */
     srvent *srv;
     vuid_t uid;			/* UID to validate with respect to. */
-    RPC2_Handle connid;		/* RPC connid. */
     unsigned authenticated : 1;
 
     /* Dynamic state; varies with each call. */
@@ -171,6 +169,7 @@ class connent {
     static int allocs;
     static int deallocs;
 #endif /* VENUSDEBUG */
+    RPC2_Handle connid;		/* RPC connid. */
 
     int	Suicide(int);		/* 1 --> dead, 0 --> dying */
     int CheckResult(int, VolumeId, int TranslateEINCOMP = 1);

@@ -1019,7 +1019,6 @@ extern char VCBEnabled;
 /* venusvol.c */
 extern void VolInit();
 extern int VOL_HashFN(void *);
-extern int GetRootVolume();
 
 /* vol_COP2.c */
 const int COP2SIZE = 1024;

@@ -926,7 +926,7 @@ int fsobj::LocalFakeify()
     Recov_EndTrans(MAXFP);
 
     vproc *vp = VprocSelf();
-    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, NL, vp->u.u_priority, comp);
+    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, vp->u.u_priority, comp);
     if (NULL == FakeRoot) {
 	LOG(0, ("fsobj::LocalFakeify: can not create Fake Root for %s\n",
 		FID_(&GlobalRootFid)));
@@ -970,9 +970,7 @@ int fsobj::LocalFakeify()
     FakeRoot->pfso = pf;
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
-    FakeRoot->stat.Length = FakeRoot->dir_Length();
-    FakeRoot->RcRights = RC_DATA | RC_STATUS;
-    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
+    FakeRoot->SetRcRights(RC_DATA | RC_STATUS);
     
     /* Create the "global" and "local" children. */
     FakeRoot->dir_Create("global", &GlobalChildFid);
@@ -1005,6 +1003,8 @@ int fsobj::LocalFakeify()
     LRDB->RFM_Insert(&FakeRootFid, &GlobalRootFid, &fid, &pf->fid,
 		     &GlobalChildFid, &LocalChildFid, comp);
     Recov_EndTrans(MAXFP);
+
+    FSDB->Put(&FakeRoot);
 
     return(0);
 }
@@ -1088,7 +1088,7 @@ int fsobj::LocalFakeifyRoot()
     FakeRootFid.Realm = GlobalChildFid.Realm = LocalChildFid.Realm = pf->fid.Realm;
     FakeRootFid.Volume = GlobalChildFid.Volume = LocalChildFid.Volume = pf->fid.Volume;
     vproc *vp = VprocSelf();
-    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, NL, vp->u.u_priority, comp);
+    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, vp->u.u_priority, comp);
     if (NULL == FakeRoot) {
 	LOG(0, ("fsobj::LocalFakeifyRoot: can not create FakeRoot for %s\n",
 		FID_(&GlobalRootFid)));
@@ -1134,9 +1134,7 @@ int fsobj::LocalFakeifyRoot()
     FakeRoot->pfso = pf;
     /* Create the target directory. */
     FakeRoot->dir_MakeDir();
-    FakeRoot->stat.Length = FakeRoot->dir_Length();
-    FakeRoot->RcRights = RC_DATA | RC_STATUS;
-    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(FakeRoot));
+    FakeRoot->SetRcRights(RC_DATA | RC_STATUS);
     
     /* Create the "global" and "local" children. */
     
@@ -1149,6 +1147,8 @@ int fsobj::LocalFakeifyRoot()
     rfm->SetRootMtPt(MtPt);
     LRDB->root_fid_map.insert(rfm);
     Recov_EndTrans(MAXFP);
+
+    FSDB->Put(&FakeRoot);
 
     return(0);
 }

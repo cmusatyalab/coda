@@ -144,6 +144,8 @@ fsobj::fsobj(VenusFid *key, char *name) : cf() {
 	mvstat = ROOT;
     ResetTransient();
 
+    Lock(WR);
+
     /* Insert into hash table. */
     (FSDB->htab).append(&fid, &primary_handle);
 }
@@ -241,7 +243,7 @@ void fsobj::ResetTransient()
     /* Add to volume list */
     vol->fso_list->append(&vol_handle);
 
-    if (flags.local == 1) {
+    if (IsLocalObj()) {
 	/* set valid RC status for local object */
 	SetRcRights(RC_DATA | RC_STATUS);
     }
@@ -468,7 +470,7 @@ void fsobj::Recover()
     /* Get rid of fake objects, and other objects that are not likely to be
      * useful anymore. */
     if ((IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) ||
-	(!IsFake() && !vol->IsReplicated()))
+	(!IsFake() && !vol->IsReplicated() && !IsLocalObj()))
 	goto Failure;
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
@@ -534,7 +536,7 @@ Failure:
                 DiscardData();
                 Recov_EndTrans(MAXFP);
 	    }
-            else if (cf.Length() != 0) {
+            if (cf.Length()) {
                 /* Reclaim cache-file blocks. */
                 FSDB->FreeBlocks(NBLOCKS(cf.Length()));
 		cf.Reset();
@@ -1102,7 +1104,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
     int code = 0;
 
     /* Don't cover mount points in backup volumes! */
-    if (vol->IsBackup())
+    if (!IsLocalObj() && vol->IsBackup())
 	return(ENOENT); /* ELOOP? */
 
     /* Check for bogosities. */
@@ -1143,7 +1145,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
     }
     else {
 	/* Turn volume name into a proper string. */
-	data.symlink[len - 1] = 0;				/* punt transaction! */
+	data.symlink[len-1] = '\0';
 	code = VDB->Get(&tvol, vol->realm, &data.symlink[1]);
     }
     if (code != 0) {
@@ -1163,13 +1165,10 @@ int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid)
 	return(ELOOP);
     }
 
-    /* Only allow cross-realm mountpoints from our default realm. */
+    /* Only allow cross-realm mountpoints to or from the local realm. */
     if (vol->GetRealmId() != tvol->GetRealmId()) {
-	Realm *r = REALMDB->GetRealm("");
-	RealmId r_id = r->Id();
-	r->PutRef();
-
-	if (r_id != vol->GetRealmId()) {
+	if (vol->GetRealmId() != LocalRealm->Id() &&
+	    tvol->GetRealmId() != LocalRealm->Id()) {
 	    VDB->Put(&tvol);
 	    return ELOOP;
 	}
@@ -1978,20 +1977,25 @@ int fsobj::Fakeify()
 
     fsobj *pf = 0;
     if (!IsRoot()) {
-	/* Laboriously scan database to find our parent! */
-	fso_vol_iterator next(NL, vol);
-	while ((pf = next())) {
-	    if (!pf->IsDir() || pf->IsMtPt()) continue;
-	    if (!HAVEALLDATA(pf)) continue;
-	    if (!pf->dir_IsParent(&fid)) continue;
+	if (fid.Volume == FakeRootVolumeId && !IsVenusRoot())
+	    pf = FSDB->Find(&rootfid);
 
-	    /* Found! */
-	    break;
-	}
-	if (pf == 0) {
-	    LOG(0, ("fsobj::Fakeify: %s, (%s), parent not found\n",
-		    comp, FID_(&fid)));
-	    return(ENOENT);
+	else {
+	    /* Laboriously scan database to find our parent! */
+	    fso_vol_iterator next(NL, vol);
+	    while ((pf = next())) {
+		if (!pf->IsDir() || pf->IsMtPt()) continue;
+		if (!HAVEALLDATA(pf)) continue;
+		if (!pf->dir_IsParent(&fid)) continue;
+
+		/* Found! */
+		break;
+	    }
+	    if (!pf) {
+		LOG(0, ("fsobj::Fakeify: %s, (%s), parent not found\n",
+			comp, FID_(&fid)));
+		return(ENOENT);
+	    }
 	}
     }
 
@@ -1999,32 +2003,41 @@ int fsobj::Fakeify()
 
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(*this);
+
+    /* Initialize status. */
+    stat.DataVersion = 1;
+    stat.Owner = V_UID;
+    stat.Date = Vtime();
     
-    flags.fake = 1;
-    if (!IsRoot())  // If we're not the root, pf != 0
-	    pf->AttachChild(this);
+    if (pf) {
+	pfid = pf->fid;
+	pfso = pf;
+	pf->AttachChild(this);
+    }
 
-    CODA_ASSERT(vol->IsReplicated());
-    repvol *vp = (repvol *)vol;
-
-    struct in_addr volumehosts[VSG_MEMBERS];
-    srvent *s;
-    int i;
     if (FID_IsFakeRoot(MakeViceFid(&fid))) {		/* Fake MTLink */
+	stat.Mode = 0644;
+	stat.LinkCount = 1;
+	stat.VnodeType = SymbolicLink;
+
+	if (fid.Volume == FakeRootVolumeId) {
+	    Realm *realm = REALMDB->GetRealm((RealmId)fid.Unique);
+	    CODA_ASSERT(realm);
+
+	    flags.local = 1;
+
+	    /* "#@RRRRRRRRR." */
+	    stat.Length = strlen(realm->Name()) + 3;
+	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
+	    rvmlib_set_range(data.symlink, stat.Length+1);
+	    sprintf(data.symlink, "#@%s.", realm->Name());
+
+	    realm->PutRef();
+	} else {
 	    ViceFid LinkFid;
 	    const char *realmname;
 
-	    /* Initialize status. */
-	    stat.DataVersion = 1;
-	    stat.Mode = 0644;
-	    stat.Owner = V_UID;
-	    /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRRR" */
-	    stat.Length = 28; /* we'll add the strlen(realmname) later */
-	    stat.Date = Vtime();
-	    stat.LinkCount = 1;
-	    stat.VnodeType = SymbolicLink;
-	    pfid = pf->fid;
-	    pfso = pf;
+	    flags.fake = 1;
 
 	    /* local-repair modification */
 	    if (STREQ(comp, "local")) {
@@ -2035,13 +2048,10 @@ int fsobj::Fakeify()
 			 FID_(&pfid)));
 		flags.local = 1;
 		VenusFid *Fid = LRDB->RFM_LookupLocalRoot(&pfid);
-		FSO_ASSERT(this, Fid);
+		FSO_ASSERT(this, Fid && Fid->Realm == vol->realm->Id());
 
 		LinkFid = *MakeViceFid(Fid);
-		Realm *realm = REALMDB->GetRealm(Fid->Realm);
-		CODA_ASSERT(realm);
-		realmname = realm->Name();
-		realm->PutRef();
+		realmname = vol->realm->Name();
 	    }
 	    else if (STREQ(comp, "global")) {
 		/* the second specical case, fake link for a global object */
@@ -2051,13 +2061,10 @@ int fsobj::Fakeify()
 			  FID_(&pfid)));
 		flags.local = 1;
 		VenusFid *Fid = LRDB->RFM_LookupGlobalRoot(&pfid);
-		FSO_ASSERT(this, Fid);
+		FSO_ASSERT(this, Fid && Fid->Realm == vol->realm->Id());
 
 		LinkFid = *MakeViceFid(Fid);
-		Realm *realm = REALMDB->GetRealm(Fid->Realm);
-		CODA_ASSERT(realm);
-		realmname = realm->Name();
-		realm->PutRef();
+		realmname = vol->realm->Name();
 	    }
 	    else if (STREQ(comp, "localhost")) {
 		/* another special case, fake link for the cached object */
@@ -2066,13 +2073,16 @@ int fsobj::Fakeify()
 		LOG(0, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
 			FID_(&pfid)));
 
-		LinkFid.Volume = vp->GetVolumeId();
+		LinkFid.Volume = vol->GetVolumeId();
 		LinkFid.Vnode  = pfid.Vnode;
 		LinkFid.Unique = pfid.Unique;
-		realmname = vp->realm->Name();
+		realmname = vol->realm->Name();
 	    }
 	    else {
+		CODA_ASSERT(vol->IsReplicated());
+		repvol *vp = (repvol *)vol;
 		struct in_addr host;
+		int i;
 
 		/* the normal fake link */
 		/* get the volumeid corresponding to the server name */
@@ -2080,10 +2090,9 @@ int fsobj::Fakeify()
 		    if (!vp->volreps[i]) continue;
 		    vp->volreps[i]->Host(&host);
 
-		    if ((s = FindServer(&host)) && s->name &&
-			STREQ(s->name, comp)) {
+		    srvent *s = FindServer(&host);
+		    if (s && s->name && STREQ(s->name, comp))
 			break;
-		    }
 		}
 		if (i == VSG_MEMBERS) // server not found 
 		    CHOKE("fsobj::fakeify couldn't find the server for %s\n",
@@ -2096,42 +2105,54 @@ int fsobj::Fakeify()
 	    }
 
 	    /* Write out the link contents. */
-	    stat.Length += strlen(realmname);
+	    /* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRRR." */
+	    stat.Length = 29 + strlen(realmname);
 	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
 	    rvmlib_set_range(data.symlink, stat.Length+1);
-	    sprintf(data.symlink, "@%s@%s", FID_(&LinkFid), realmname);
-
-	    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
-		      FID_(&fid), data.symlink));
-
-	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
-	    /* notify blocked threads that the fso is ready. */
-	    Matriculate();
+	    sprintf(data.symlink, "@%08lx.%08lx.%08lx@%s.",
+		    LinkFid.Volume, LinkFid.Vnode, LinkFid.Unique, realmname);
 	}
-	else {				/* Fake Directory */
-	    /* Initialize status. */
-	    stat.DataVersion = 1;
-	    stat.Mode = 0444;
-	    stat.Owner = V_UID;
-	    stat.Length = 0;
-	    stat.Date = Vtime();
-	    stat.LinkCount = 2;
-	    stat.VnodeType = Directory;
-	    /* Access rights are not needed! */
-	    Matriculate();
-	    if (pf != 0) {
-		pfid = pf->fid;
-		pfso = pf;
-	    }
 
-	    /* Create the target directory. */
-	    dir_MakeDir();
-	    stat.Length = dir_Length();
-	    UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(this));
+	LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
+		  FID_(&fid), data.symlink));
+
+	UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
+    } else {				/* Fake Directory */
+	stat.Mode = 0444;
+	stat.LinkCount = 2;
+	stat.VnodeType = Directory;
+	/* Access rights are not needed, this whole volume is readonly! */
+
+	/* Create the target directory. */
+	dir_MakeDir();
+
+	if (fid.Volume == FakeRootVolumeId) {
+	    struct dllist_head *p;
+
+	    flags.local = 1;
+
+	    list_for_each(p, REALMDB->realms) {
+		Realm *realm = list_entry(p, Realm, realms);
+		if (!realm->rootservers) continue;
+
+		VenusFid Fid = fid;
+		Fid.Vnode = 0xfffffffc;
+		Fid.Unique = realm->Id();
+		char *realmname = strdup(realm->Name());
+		CODA_ASSERT(realmname);
+		dir_Create(realmname, &Fid);
+		free(realmname);
+	    }
+	} else {
+	    CODA_ASSERT(vol->IsReplicated());
+	    repvol *vp = (repvol *)vol;
+	    struct in_addr volumehosts[VSG_MEMBERS];
+
+	    flags.fake = 1;
 
 	    /* Make entries for each of the rw-replicas. */
 	    vp->GetHosts(volumehosts);
-	    for (i = 0; i < VSG_MEMBERS; i++) {
+	    for (int i = 0; i < VSG_MEMBERS; i++) {
 		if (!volumehosts[i].s_addr) continue;
 		srvent *s = FindServer(&volumehosts[i]);
 		char Name[CODA_MAXNAMLEN+1], *name;
@@ -2154,9 +2175,11 @@ int fsobj::Fakeify()
 	    }
 #endif
 	}
+    }
 
-    Reference();
-    ComputePriority();
+    /* notify blocked threads that the fso is ready. */
+    Matriculate();
+
     Recov_EndTrans(CMFP);
 
     return(0);
@@ -2335,7 +2358,7 @@ void fsobj::GetPath(char *buf, int fullpath) {
 	if (!fullpath)
 	    { strcpy(buf, "."); return; }
 
-	if (FID_VolEQ(&fid, &rootfid))
+	if (IsVenusRoot())
 	    { strcpy(buf, venusRoot); return; }
 
 	if (u.mtpoint == 0)

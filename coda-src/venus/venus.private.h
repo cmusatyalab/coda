@@ -332,7 +332,6 @@ extern char *CacheDir;
 extern char *CachePrefix;
 extern int CacheBlocks;
 extern char *SpoolDir;
-extern char *RootVolName;
 extern vuid_t PrimaryUser;
 extern char *VenusPidFile;
 extern char *VenusControlFile;

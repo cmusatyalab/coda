@@ -70,7 +70,7 @@ struct hdb_clear_msg {
 
 struct hdb_add_msg {
     VolumeId vid;
-    char     realm[MAXHOSTNAMELEN];
+    char     realm[MAXHOSTNAMELEN+1];
     char     name[CODA_MAXPATHLEN];
     int      priority;
     int      attributes;
@@ -78,7 +78,7 @@ struct hdb_add_msg {
 
 struct hdb_delete_msg {
     VolumeId vid;
-    char     realm[MAXHOSTNAMELEN];
+    char     realm[MAXHOSTNAMELEN+1];
     char     name[CODA_MAXPATHLEN];
 };
 

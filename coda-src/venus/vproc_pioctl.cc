@@ -418,7 +418,7 @@ O_FreeLocks:
 		    }
 		    /* Backup and use volroot's mount point if directed. */
 		    if (data->in_size == sizeof(int) && *(int *)data->in != 0) {
-			if (FID_VolEQ(&f->fid, &rootfid) ||
+			if (FID_EQ(&f->fid, &rootfid) ||
 			    !FID_IsVolRoot(&f->fid) || f->u.mtpoint == 0) {
 			    u.u_error = EINVAL;
 			    break;

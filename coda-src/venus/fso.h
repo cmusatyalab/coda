@@ -136,6 +136,7 @@ class fsdb {
   friend void RecovInit();
   friend class volent;
   friend class repvol;
+  friend class RealmDB; // RebuildRoot();
 
     int MagicNumber;
     int DataVersion;
@@ -200,7 +201,7 @@ class fsdb {
     ~fsdb() { abort(); }
 
     /* Allocation/Deallocation routines. */
-    fsobj *Create(VenusFid *, LockLevel, int, char *);
+    fsobj *Create(VenusFid *, int, char *);
     int FreeFsoCount();
     int AllocFso(int, fsobj **);
     int GrabFreeFso(int, fsobj **);
@@ -403,6 +404,7 @@ class fsobj {
   friend class mgrpent;
   friend class hdb;
   friend class lrdb;
+  friend class RealmDB; /* RebuildRoot */
   friend void RecoverPathName(char *, VenusFid *, ClientModifyLog *, cmlent *);
 
     int MagicNumber;

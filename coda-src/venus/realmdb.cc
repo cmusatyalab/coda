@@ -17,6 +17,7 @@ listed in the file CREDITS.
 #*/
 
 #include "realmdb.h"
+#include "fso.h"
 
 /* This is initialized by RealmDBInit() */
 Realm *LocalRealm;
@@ -37,7 +38,9 @@ void RealmDB::ResetTransient(void)
 {
     struct dllist_head *p;
     Realm *realm;
+    int nrealms = 0;
 
+    eprint("Starting RealmDB scan");
     PersistentObject::ResetTransient();
 
     for(p = realms.next; p != &realms;) {
@@ -45,6 +48,11 @@ void RealmDB::ResetTransient(void)
 	p = p->next;
 	realm->ResetTransient();
     }
+
+    list_for_each(p, realms)
+	nrealms++;
+
+    eprint("\tFound %d realms", nrealms);
 }
 
 Realm *RealmDB::GetRealm(const char *realmname)
@@ -52,7 +60,7 @@ Realm *RealmDB::GetRealm(const char *realmname)
     struct dllist_head *p;
     Realm *realm;
 
-    if (realmname[0] == '\0')
+    if (!realmname || realmname[0] == '\0')
 	realmname = default_realm;
 
     CODA_ASSERT(strlen(realmname) <= MAXHOSTNAMELEN);
@@ -88,6 +96,53 @@ Realm *RealmDB::GetRealm(const RealmId realmid)
     return NULL;
 }
 
+void RealmDB::GetDown(void)
+{
+    struct dllist_head *p;
+    Realm *realm;
+
+    for(p = realms.next; p != &realms;) {
+	realm = list_entry(p, Realm, realms);
+	p = p->next;
+	realm->GetRef();
+	realm->PutRef();
+    }
+}
+
+void RealmDB::RebuildRoot(void)
+{
+    struct dllist_head *p;
+    Realm *realm;
+    VenusFid Fid;
+    fsobj *f;
+
+    Fid.Realm = LocalRealm->Id();
+    Fid.Volume = FakeRootVolumeId;
+    Fid.Vnode = 1;
+    Fid.Unique = 1;
+
+    f = FSDB->Find(&Fid);
+    if (!f) return;
+
+    Fid.Vnode = 0xfffffffc;
+
+    f->Lock(WR);
+    f->DiscardData();
+    if (f->cf.Length()) {
+	FSDB->FreeBlocks(NBLOCKS(f->cf.Length()));
+	f->cf.Reset();
+    }
+    f->dir_MakeDir();
+    
+    list_for_each(p, realms) {
+	realm = list_entry(p, Realm, realms);
+	Fid.Unique = realm->Id();
+	f->dir_Create((char *)realm->Name(), &Fid);
+    }
+
+    f->UnLock(WR);
+}
+
 void RealmDB::print(FILE *f)
 {
     struct dllist_head *p;
@@ -103,7 +158,6 @@ void RealmDB::print(FILE *f)
     fprintf(f, "*** END RealmDB ***\n");
 }
 
-
 void RealmDBInit(void)
 {
     if (InitMetaData) {
@@ -113,6 +167,7 @@ void RealmDBInit(void)
 	REALMDB->Rec_GetRef();
 	Recov_EndTrans(0);
     }
+    REALMDB->ResetTransient();
 
     LocalRealm = REALMDB->GetRealm(LOCALREALM);
 }

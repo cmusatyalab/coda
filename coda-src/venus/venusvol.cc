@@ -188,19 +188,6 @@ void VolInit()
 	Recov_EndTrans(0);
     }
 
-    /* Create/reinstall local fake volumes */
-    VolumeInfo LocalVol;
-    memset(&LocalVol, 0, sizeof(VolumeInfo));
-    LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
-
-    /* Fake root volume, contains available realms */
-    LocalVol.Vid = FakeRootVolumeId;
-    VDB->Create(LocalRealm, &LocalVol, "CodaRoot")->hold();
-
-    /* Fake repair volume to expand objects in conflict during repair */
-    LocalVol.Vid = FakeRepairVolumeId;
-    VDB->Create(LocalRealm, &LocalVol, "Repair")->hold();
-
     /* Initialize transient members. */
     VDB->ResetTransient();
 
@@ -250,6 +237,24 @@ void VolInit()
 		VDB->AllocatedMLEs, VDB->mlefreelist.count(), VDB->MaxMLEs);
     }
 
+    /* Create/reinstall local fake volumes */
+    VolumeInfo LocalVol;
+    memset(&LocalVol, 0, sizeof(VolumeInfo));
+    LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
+
+    /* Fake root volume, contains available realms */
+    LocalVol.Vid = FakeRootVolumeId;
+    VDB->Create(LocalRealm, &LocalVol, "CodaRoot")->hold();
+
+    /* update the global 'rootfid' variable */
+    rootfid.Realm = LocalRealm->Id();
+    rootfid.Volume = FakeRootVolumeId;
+    FID_MakeRoot(MakeViceFid(&rootfid));
+
+    /* Fake repair volume to expand objects in conflict during repair */
+    LocalVol.Vid = FakeRepairVolumeId;
+    VDB->Create(LocalRealm, &LocalVol, "Repair")->hold();
+
     RecovFlush(1);
     RecovTruncate(1);
 
@@ -264,7 +269,7 @@ int VOL_HashFN(const void *key)
     return volid->Realm + volid->Volume;
 }
 
-int GetRootVolName(Realm *realm, char buf[V_MAXVOLNAMELEN])
+static int GetRootVolume(Realm *realm, char buf[V_MAXVOLNAMELEN])
 {
     connent *c = NULL;
     int code = ENOENT;
@@ -278,7 +283,7 @@ int GetRootVolName(Realm *realm, char buf[V_MAXVOLNAMELEN])
 
     /* Get the connection. */
     if (realm->GetAdmConn(&c) != 0) {
-	LOG(100, ("GetRootVolName: can't get admin connection for realm %s!\n",
+	LOG(100, ("GetRootVolume: can't get admin connection for realm %s!\n",
 		  realm->Name()));
 	RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
 	return ENOENT;
@@ -289,7 +294,7 @@ int GetRootVolName(Realm *realm, char buf[V_MAXVOLNAMELEN])
     UNI_START_MESSAGE(ViceGetRootVolume_OP);
     code = (int) ViceGetRootVolume(c->connid, &RVN);
     UNI_END_MESSAGE(ViceGetRootVolume_OP);
-    MarinerLog("store::getrootvolume done\n");
+    MarinerLog("store::GetRootVolume done\n");
     code = c->CheckResult(code, 0);
     UNI_RECORD_STATS(ViceGetRootVolume_OP);
 
@@ -300,79 +305,6 @@ int GetRootVolName(Realm *realm, char buf[V_MAXVOLNAMELEN])
 
     return code;
 }
-
-int GetRootVolume()
-{
-    if (RootVolName)
-	goto found_rootvolname;
-
-    /* By using the copy of the rootvolume name stored in RVM we avoid the 15
-     * second timeout when starting disconnected. But we do lose the ability to
-     * verify whether the rootvolume has changed. This is not a real problem,
-     * since the cached state often is wrong if the rootvolume changes without
-     * reinitializing venus. */
-
-    /* Dig RVN out of recoverable store if possible. */
-    if (rvg->recov_RootVolName[0] != '\0') {
-	RootVolName = new char[V_MAXVOLNAMELEN];
-	strncpy(RootVolName, rvg->recov_RootVolName, V_MAXVOLNAMELEN);
-	goto found_rootvolname;
-    }
-
-    /* If we don't already know the root volume name ask the servers for it. */
-    {
-	char buf[V_MAXVOLNAMELEN];
-	Realm *r = REALMDB->GetRealm(default_realm);
-	int code;
-
-	code = GetRootVolName(r, buf);
-
-	r->PutRef();
-
-	if (code != 0) {
-	    eprint("GetRootVolume: can't get root volume name!");
-	    return 0;
-	}
-
-	RootVolName = new char[V_MAXVOLNAMELEN];
-	strncpy(RootVolName, buf, V_MAXVOLNAMELEN);
-    }
-
-found_rootvolname:
-    /* Make sure the rootvolume name is stored in RVM. */
-    if (rvg->recov_RootVolName[0] == '\0' ||
-	 !STRNEQ(RootVolName, rvg->recov_RootVolName, V_MAXVOLNAMELEN)) {
-	Recov_BeginTrans();
-	    rvmlib_set_range(rvg->recov_RootVolName, V_MAXVOLNAMELEN);
-	    strncpy(rvg->recov_RootVolName, RootVolName, V_MAXVOLNAMELEN);
-	Recov_EndTrans(MAXFP);
-    }
-
-    /* Retrieve the volume. */
-    volent *v;
-    int code;
-    Realm *realm = REALMDB->GetRealm(default_realm);
-    CODA_ASSERT(realm);
-
-    code = VDB->Get(&v, realm, RootVolName);
-    realm->PutRef();
-
-    if (code != 0) {
-	eprint("GetRootVolume: can't get volinfo for root volume %s(@%s)!",
-	       RootVolName, default_realm);
-	return 0;
-    }
-
-    rootfid.Realm = v->GetRealmId();
-    rootfid.Volume = v->GetVolumeId();
-    VDB->Put(&v);
-
-    FID_MakeRoot(MakeViceFid(&rootfid));
-
-    return(1);
-}
-
-
 
 /* Allocate database from recoverable store. */
 void *vdb::operator new(size_t len)
@@ -650,7 +582,7 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
 	volname = (char *)malloc(V_MAXVOLNAMELEN);
 	CODA_ASSERT(volname);
 
-	code = GetRootVolName(realm, volname);
+	code = GetRootVolume(realm, volname);
 	if (code != 0)
 	    goto error_exit;
     }
@@ -2373,9 +2305,7 @@ void repvol::SetStagingServer(struct in_addr *srvr)
 	(&StagingVol.Type0)[replicatedVolume] = vid;
 	StagingVol.Server0 = ntohl(srvr->s_addr);
 
-	Realm *realm = REALMDB->GetRealm("");
 	ro_replica = (volrep *)VDB->Create(realm, &StagingVol, stagingname);
-	realm->PutRef();
 
 	if (ro_replica) {
 	    ro_replica->hold();

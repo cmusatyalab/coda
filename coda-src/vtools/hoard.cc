@@ -95,7 +95,7 @@ static char *GetToken(char *, char *, char **);
 static int my_atoi(char *, int *);
 static int canonicalize(char *path, VolumeId *vid, char *realm, char *name,
 			char *fullname, VolumeId *svid,
-			char (*srealm)[MAXHOSTNAMELEN],
+			char (*srealm)[MAXHOSTNAMELEN+1],
 			char (*spath)[MAXPATHLEN]);
 static char *vol_getwd(VolumeId *vid, char *realm, char *head, char *tail);
 static int  GetVid(VolumeId *, char *, char *);
@@ -359,7 +359,7 @@ next_cmd:
 		/* Parse <volume-number> <hoard-filename>. */
 		/* Also record <fullname> for later meta-expansion. */
 		VolumeId vid, svidlist[CODA_MAXSYMLINK];
-		char realm[MAXHOSTNAMELEN], srealmlist[CODA_MAXSYMLINK][MAXHOSTNAMELEN];
+		char realm[MAXHOSTNAMELEN+1], srealmlist[CODA_MAXSYMLINK][MAXHOSTNAMELEN+1];
 		char name[MAXPATHLEN], snamelist[CODA_MAXSYMLINK][MAXPATHLEN];
 		char fullname[MAXPATHLEN];
 		if (GetToken(cp, token, &cp) == NULL) {
@@ -453,7 +453,7 @@ next_cmd:
 
 		/* Parse <volume-number>@<realm> <hoard-filename>. */
 		VolumeId vid;
-		char realm[MAXHOSTNAMELEN];
+		char realm[MAXHOSTNAMELEN+1];
 		char name[MAXPATHLEN];
 		if (GetToken(cp, token, &cp) == NULL) {
 		    parse_error(line);
@@ -686,7 +686,7 @@ static int my_atoi(char *token, int *ip) {
 /* Returns 1 on success, 0 on failure. */
 static int canonicalize(char *path, VolumeId *vp, char *vrealm, char *vname,
 			char *fullname, VolumeId *svp,
-			char (*svrealm)[MAXHOSTNAMELEN],
+			char (*svrealm)[MAXHOSTNAMELEN+1],
 			char (*sname)[MAXPATHLEN])
 {
 /*
@@ -894,7 +894,7 @@ static char *vol_getwd(VolumeId *vp, char *realm, char *head, char *tail)
 	    ;
 
 	VolumeId tvid;
-	char trealm[MAXHOSTNAMELEN];
+	char trealm[MAXHOSTNAMELEN+1];
 	int err = GetVid(&tvid, trealm, tname);
 	if (err || tvid != *vp || strcmp(trealm, realm) != 0) {
 	    if (err) {
@@ -932,7 +932,7 @@ static int GetVid(VolumeId *vid, char *realm, char *name)
     struct getfid_msg {
 	ViceFid fid;
 	ViceVersionVector vv;
-	char realm[MAXHOSTNAMELEN];
+	char realm[MAXHOSTNAMELEN+1];
     } gf_msg;
 
     struct ViceIoctl vi;
@@ -1127,7 +1127,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 	goto done;
     }
     VolumeId vid;
-    char realm[MAXHOSTNAMELEN];
+    char realm[MAXHOSTNAMELEN+1];
     char VRPath[MAXPATHLEN];
     char NodeName[MAXPATHLEN];
     if (vol_getwd(&vid, realm, VRPath, NodeName) == 0)
@@ -1194,7 +1194,7 @@ static void ExpandNode(char *mtpt, VolumeId vid, char *realm, char *name,
 		if (STREQ(".", dp->d_name) || STREQ("..", dp->d_name)) continue;
 
 		VolumeId tmp;
-		char tmprealm[MAXHOSTNAMELEN];
+		char tmprealm[MAXHOSTNAMELEN+1];
 		int err = GetVid(&tmp, tmprealm, dp->d_name);
 		if (err || tmp != vid || strcmp(tmprealm, realm) != 0)
 		    continue;
@@ -1238,7 +1238,7 @@ static int CreateOutFile(char *in, char *out) {
 	int status;
 	int rc;
 	VolumeId tmp;
-	char tmprealm[MAXHOSTNAMELEN];
+	char tmprealm[MAXHOSTNAMELEN+1];
 
 	while ((rc = wait(&status)) != child)
 	    if (rc < 0) return(-1);
@@ -1258,7 +1258,7 @@ static int CreateOutFile(char *in, char *out) {
 	    struct GetFid {
 		ViceFid fid;
 		ViceVersionVector vv;
-		char realm[MAXHOSTNAMELEN];
+		char realm[MAXHOSTNAMELEN+1];
 	    } gf;
 	    memset((void *)&gf, 0, sizeof(struct GetFid));
 

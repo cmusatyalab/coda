@@ -25,6 +25,7 @@ class connent;
 
 class Realm : public PersistentObject {
     friend class RealmDB;
+    friend class fsobj; // Fakeify
 
 public:
     Realm(const char *realm);

@@ -82,9 +82,25 @@ static void ResolveRootServers(char *servers, const char *service,
     }
 }
 	
+static int isbadaddr(struct in_addr *ip, const char *name)
+{
+    if (ip->s_addr == INADDR_ANY ||
+	ip->s_addr == INADDR_NONE ||
+	ip->s_addr == htonl(INADDR_LOOPBACK) ||
+	(ip->s_addr & IN_CLASSA_NET) == IN_LOOPBACKNET ||
+	IN_MULTICAST(ip->s_addr) ||
+	IN_BADCLASS(ip->s_addr))
+    {
+	fprintf(stderr, "An address in realm '%s' resolved to bad or unusable address '%s', ignoring it\n", name, inet_ntoa(*ip));
+	return 1;
+    }
+    return 0;
+}
+
 void GetRealmServers(const char *name, const char *service,
 		     struct coda_addrinfo **res)
 {
+    struct coda_addrinfo *tmp = NULL;
     char *realmtab = NULL;
     FILE *f;
     int namelen, found = 0;
@@ -92,6 +108,8 @@ void GetRealmServers(const char *name, const char *service,
     if (!name || name[0] == '\0')
 	CONF_STR(name, "realm", "DEFAULT");
 
+    if (strcmp(name, "localhost") == 0)
+	return;
 
     CONF_STR(realmtab, "realmtab", SYSCONFDIR "/realms");
 
@@ -103,7 +121,7 @@ void GetRealmServers(const char *name, const char *service,
 	    if (line[0] == '#') continue;
 
 	    if (strncmp(line, name, namelen) == 0 && isspace(line[namelen])) {
-		ResolveRootServers(&line[namelen], service, res);
+		ResolveRootServers(&line[namelen], service, &tmp);
 		found = 1;
 	    }
 	}
@@ -115,8 +133,28 @@ void GetRealmServers(const char *name, const char *service,
 	if (fullname) {
 	    strcpy(fullname, name);
 	    strcat(fullname, ".");
-	    simpleaddrinfo(fullname, service, res);
+	    simpleaddrinfo(fullname, service, &tmp);
 	    free(fullname);
+	}
+    }
+
+    while (*res)
+	res = &(*res)->ai_next;
+
+    while (tmp) {
+	struct sockaddr_in *sin;
+	struct coda_addrinfo *cur = tmp;
+
+	tmp = tmp->ai_next;
+	cur->ai_next = NULL;
+
+	sin = (struct sockaddr_in *)cur->ai_addr;
+
+	if (isbadaddr(&sin->sin_addr, name))
+	    coda_freeaddrinfo(cur);
+	else {
+	    *res = cur;
+	    res = &(*res)->ai_next;
 	}
     }
 }

@@ -178,10 +178,10 @@ void RecovVenusGlobals::print(FILE *fp) {
 /* local-repair modification */
 void RecovVenusGlobals::print(int fd) {
     fdprint(fd, "RVG values: what they are (what they should be)\n");    
-    fdprint(fd, "Magic = %x(%x), Version = %d(%d), CleanShutDown= %d(0 or 1), RootVolName = %s\n",
+    fdprint(fd, "Magic = %x(%x), Version = %d(%d), CleanShutDown= %d(0 or 1)\n",
 	    recov_MagicNumber, RecovMagicNumber,
 	    recov_VersionNumber, RecovVersionNumber,
-	    recov_CleanShutDown, recov_RootVolName);
+	    recov_CleanShutDown);
     fdprint(fd, "The following pointers should be between %p and %p:\n",
 	    recov_HeapAddr, recov_HeapAddr + recov_HeapLength);
     fdprint(fd, "Ptrs = [%p %p %p %p %p], Heap = [%p] HeapLen = %x\n",

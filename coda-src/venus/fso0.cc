@@ -472,13 +472,13 @@ fsobj *fsdb::Find(const VenusFid *key)
 /* MUST NOT be called from within transaction! */
 /* Caller MUST guarantee that the volume is cached and stable! */
 /* Should priority be an implicit argument? -JJK */
-fsobj *fsdb::Create(VenusFid *key, LockLevel level, int priority, char *comp)
+fsobj *fsdb::Create(VenusFid *key, int priority, char *comp)
 {
     fsobj *f = 0;
     int rc = 0;
 
     /* Check whether the key is already in the database. */
-    if ((f = Find(key)) != 0)
+    if ((f = Find(key)) != NULL)
 	{ f->print(logFile); CHOKE("fsdb::Create: key found"); }
 
     /* Fashion a new object.  This could be a long-running and wide-ranging transaction! */
@@ -492,10 +492,8 @@ fsobj *fsdb::Create(VenusFid *key, LockLevel level, int priority, char *comp)
         f = new (FROMFREELIST, priority) fsobj(key, comp);
     }
     Recov_EndTrans(MAXFP);
-    if (f != 0)
-	if (level != NL) f->Lock(level);
 
-    if (f == NULL)
+    if (!f)
 	LOG(0, ("fsdb::Create: (%s, %d) failed\n", FID_(key), priority));
     return(f);
 }
@@ -614,15 +612,7 @@ RestartFind:
 		return ETIMEDOUT;
 	}
 
-	/* process possible un-cached local objects */
-	if (FID_IsLocalFake(key)) {
-		LOG(0, ("fsdb::Get: Un-cached Local object %s\n",
-			FID_(key)));
-		return ETIMEDOUT;
-	}
-
         /* Must ensure that the volume is cached. */
-retry_vdbget:
         volent *v = 0;
         if (VDB->Get(&v, MakeVolid(key))) {
             LOG(100, ("Volume not cached and we couldn't get it...\n"));
@@ -649,18 +639,16 @@ retry_vdbget:
         }
 
 	/* Attempt the create. */
-	f = Create(key, RD, vp->u.u_priority, comp);
-	if (!f) {
-	    VDB->Put(&v);
-	    return(ENOSPC);
-	}
+	f = Create(key, vp->u.u_priority, comp);
 
 	/* Release the volume. */
 	VDB->Put(&v);
 
+	if (!f)
+	    return(ENOSPC);
+
 	/* Transform object into fake mtpt if necessary. */
-	if (FID_IsFakeRoot(MakeViceFid(key))) {
-	    f->PromoteLock();
+	if (FID_IsLocalFake(key)) {
 	    if (f->Fakeify()) {
 		LOG(0, ("fsdb::Get: can't transform %s (%s) into fake mt pt\n",
 			f->comp, FID_(&f->fid)));
@@ -670,8 +658,8 @@ retry_vdbget:
 		Put(&f);  		 /* will unlock and garbage collect */
 		return(EIO);
 	    }
-	    f->DemoteLock();
 	}
+	f->DemoteLock();
     }
     else {
 	/* Object without status must be matriculating now.  Wait for it to complete. */
@@ -713,7 +701,8 @@ retry_vdbget:
     }
 
     /* Consider fetching status and/or data. */
-    if ((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f))) {
+    if (!f->IsLocalObj() &&
+	((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f)))) {
 	/* Note that we CANNOT fetch, and must use whatever status/data we have, if : */
 	/*     - the file is being exec'ed (or the VM system refuses to release its pages) */
 	/*     - the file is open for write */
@@ -780,19 +769,18 @@ retry_vdbget:
 		       and if the refcnt test above didn't catch that
 		       the Put wouldn't, we're hosed!  We'll most likely
 		       get a "Create: key found" fatal error. */
-		    f = Create(key, RD, vp->u.u_priority, comp);
+		    f = Create(key, vp->u.u_priority, comp);
 		    if (!f)
 			return(ENOSPC);
 
 		    /* 
-		     * Transform object into fake directory.  If that doesn't work,
-		     * return EIO...NOT EINCONS, which will get passed back to the 
-		     * user as ENOENT (too alarming).  We must kill the object here, 
-		     * otherwise Venus will think it is "matriculating" and wait 
-		     * (forever) for it to finish.
+		     * Transform object into fake directory.  If that doesn't
+		     * work, return EIO...NOT EINCONS, which will get passed
+		     * back to the user as ENOENT (too alarming).  We must kill
+		     * the object here, otherwise Venus will think it is
+		     * "matriculating" and wait (forever) for it to finish.
 		     */
 		    eprint("%s (%s) inconsistent!", f->comp, FID_(&f->fid));
-		    f->PromoteLock();
 		    if (f->Fakeify()) {
 			Recov_BeginTrans();
 			f->Kill();

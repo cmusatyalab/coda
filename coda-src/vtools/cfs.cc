@@ -1231,7 +1231,7 @@ static int pioctl_GetFid(char *path, ViceFid *fid, char *realm, ViceVersionVecto
     struct GetFid {
         ViceFid           fid;
         ViceVersionVector vv;
-	char		  realm[MAXHOSTNAMELEN];
+	char		  realm[MAXHOSTNAMELEN+1];
     }                out;
     struct ViceIoctl vio;
     int              rc;
@@ -1264,7 +1264,7 @@ static void GetFid(int argc, char *argv[], int opslot)
 {
     int i, rc, w;
     ViceFid fid;
-    char realmname[MAXHOSTNAMELEN];
+    char realmname[MAXHOSTNAMELEN+1];
     ViceVersionVector vv;
     char buf[100];
 
@@ -1583,7 +1583,7 @@ static void GetMountPoint(int argc, char *argv[], int opslot)
   struct ViceIoctl vio;
   struct {
       VolumeId volume;
-      char realm[MAXHOSTNAMELEN];
+      char realm[MAXHOSTNAMELEN+1];
   } arg;
 
   memset(&arg, 0, sizeof(arg));

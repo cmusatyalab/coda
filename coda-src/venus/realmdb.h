@@ -31,6 +31,7 @@ extern Realm *LocalRealm;
 
 class RealmDB : protected PersistentObject {
     friend void RealmDBInit(void);
+    friend class fsobj; // Fakeify
 
 public:
     RealmDB(void);
@@ -40,6 +41,10 @@ public:
 
     Realm *GetRealm(const char *realm);
     Realm *GetRealm(const RealmId realmid);
+
+    void GetDown(void);
+
+    void RebuildRoot(void);
 
     void print(FILE *f);
     void print(void) { print(stdout); }

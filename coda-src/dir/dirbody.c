@@ -63,7 +63,7 @@ int dir_data_in_rvm;
 void DIR_Print(PDirHeader, FILE *f);
 static int dir_FindBlobs (struct DirHeader **dh, int nblobs);
 static int dir_AddPage (struct DirHeader **dir);
-static int dir_NameBlobs(char *);
+static int dir_NameBlobs(const char *);
 static struct DirEntry *dir_FindItem (struct DirHeader *dir, char *ename, 
 				       struct DirEntry **preventry, int *index,
 				       int flags);
@@ -126,7 +126,7 @@ int DIR_rvm(void)
 
 
 /* Find out how many entries are required to store a name. */
-static int dir_NameBlobs (char *name)
+static int dir_NameBlobs (const char *name)
 {
     int i;
     i = strlen(name)+1;
@@ -1011,7 +1011,7 @@ struct DirEntry *dir_GetBlob (struct DirHeader *dir, long blobno)
 }
 
 /* Hash a string to a number between 0 and NHASH. */
-int DIR_Hash (char *string)
+int DIR_Hash (const char *string)
 {
     char tc;
     int hval, tval;

@@ -490,6 +490,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
     int code = 0;
     *target_fso_addr = 0;
     int	traverse_mtpts = (inc_fid != 0);	/* ? -JJK */
+    Realm *realm = NULL;
 
     fsobj *target_fso = 0;
     VenusFid target_fid;
@@ -548,13 +549,42 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t
 	}
 	else {
 	    code = dir_Lookup(name, &target_fid, flags);
-	    if (code) return(code);
+
+	    if (code) {
+		if (!(FID_IsLocalFake(&fid) && fid.Volume == FakeRootVolumeId))
+		    return code;
+
+		/* regular lookup failed, but we're in the fake root volume, so we
+		 * can try to check for a new realm */
+
+		// don't even bother to follow lookups of dangling symlinks
+		if (name[0] == '#')
+		    return ENOENT;
+
+		// Get the realm. If it doesn't resolve, it doesn't exist
+		realm = REALMDB->GetRealm(name);
+		if (!realm->rootservers) {
+		    realm->PutRef();
+		    return ENOENT;
+		}
+
+		target_fid = fid;
+		target_fid.Vnode = 0xfffffffc;
+		target_fid.Unique = realm->Id();
+
+		/* Found a new realm, we should add this realm */
+		Recov_BeginTrans();
+		dir_Create(name, &target_fid);
+		Recov_EndTrans(CMFP);
+	    }
 	}
     }
 
     /* Map fid --> fso. */
     {
 	code = FSDB->Get(&target_fso, &target_fid, vuid, RC_STATUS, name);
+
+	if (realm) realm->PutRef();
 	if (code) {
 	    if (code == EINCONS && inc_fid != 0) *inc_fid = target_fid;
 

@@ -55,7 +55,7 @@ public:
 	refcount = 1;
     }
 
-    virtual ~PersistentObject(void)
+    ~PersistentObject(void)
     {
 	CODA_ASSERT(!rec_refcount && refcount <= 1);
     }
@@ -68,14 +68,14 @@ public:
 	    delete this;
     }
 
-    virtual void Rec_GetRef(void)
+    void Rec_GetRef(void)
     {
 	/* Assume we already have a 'volatile' refcount on this object */
 	RVMLIB_REC_OBJECT(rec_refcount);
 	rec_refcount++;
     }
 
-    virtual void Rec_PutRef(void)
+    void Rec_PutRef(void)
     {
 	CODA_ASSERT(rec_refcount);
 	RVMLIB_REC_OBJECT(rec_refcount);
@@ -84,12 +84,12 @@ public:
 	    delete this;
     }
 
-    virtual void GetRef(void)
+    void GetRef(void)
     {
 	refcount++;
     }
 
-    virtual void PutRef(void)
+    void PutRef(void)
     {
 	CODA_ASSERT(refcount);
 	refcount--;

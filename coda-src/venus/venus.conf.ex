@@ -3,27 +3,15 @@
 # command-line flags.
 
 #
-# What is our default realm.
+# What is the default realm, this is only used by clog/ctokens etc.
 #
-realm=DEFAULT
+realm=
 
 #
-# Which file is used for realm lookups.
+# Which file is used for realm lookups, before we look at dns SRV and A
+# records.
 #
 realmtab=/etc/coda/realms
-
-#
-# Which are the root servers we should contact for volume location
-# information. When specifying multiple servers, uses ',' to separate,
-# no extra spaces! (f.i. server1,server2,server3)
-#
-rootservers=testserver.coda.cs.cmu.edu
-
-#
-# Which are the root servers we should contact for user authentication.
-# When not specified, the rootservers are contacted.
-#
-#authservers=testserver.coda.cs.cmu.edu
 
 #
 # What should the size of the local cache be in 1k blocks. If this is

@@ -153,6 +153,9 @@ void fsobj::dir_MakeDir()
 	}
 
 	data.dir->udcfvalid = 0;
+
+	stat.Length = dir_Length();
+	UpdateCacheStats(&FSDB->DirDataStats, CREATE, BLOCKS(this));
 }
 
 

@@ -121,7 +121,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 	SkipSlashes(&pptr, &plen);
 
 	/* Handle ".." out of venus here! */
-	if (FID_EQ(&(pvp.c_fid), &rootfid) && STREQ(comp, "..")) {
+	if (FID_EQ(&pvp.c_fid, &rootfid) && STREQ(comp, "..")) {
 	    LOG(100, ("vproc::namev: .. out of this venus\n"));
 
 	    u.u_error = ENOENT;
@@ -300,7 +300,7 @@ void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath) {
 	    goto Exit;
 	}
 
-	if (FID_VolEQ(fid, &rootfid)) {
+	if (FID_EQ(fid, &rootfid)) {
 	    strcpy(out, venusRoot);
 	    *outlen = strlen(venusRoot) + 1;
 	    goto Exit;
@@ -369,7 +369,7 @@ void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath) {
 		    goto FreeLocks;
 		}
 
-		if (FID_VolEQ(&f->fid, &rootfid)) {
+		if (FID_EQ(&f->fid, &rootfid)) {
 		    char tbuf[MAXPATHLEN];
 		    strcpy(tbuf, out);
 		    strcpy(out, venusRoot);

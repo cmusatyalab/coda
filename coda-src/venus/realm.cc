@@ -46,11 +46,20 @@ Realm::Realm(const char *realm_name)
     RVMLIB_REC_OBJECT(name);
     name = (char *)rvmlib_rec_malloc(len); 
     CODA_ASSERT(name);
+    rvmlib_set_range(name, len);
     strcpy(name, realm_name);
 
     rec_list_head_init(&realms);
 
     rootservers = NULL;
+
+    if (strcmp(name, LOCALREALM) != 0) {
+	GetRealmServers(name, "codasrv", &rootservers);
+	if (rootservers)
+	    eprint("Created realm '%s'", name);
+	else
+	    eprint("Failed to find servers for realm '%s'", name);
+    }
 }
 
 void Realm::ResetTransient(void)
@@ -64,13 +73,16 @@ void Realm::ResetTransient(void)
 Realm::~Realm(void)
 {
     struct dllist_head *p;
+    eprint("Removing realm %s", name);
 
     rec_list_del(&realms);
     if (rootservers) {
-	free(rootservers);
+	coda_freeaddrinfo(rootservers);
 	rootservers = NULL;
     }
     rvmlib_rec_free(name); 
+
+    REALMDB->RebuildRoot();
 }
 
 void Realm::print(FILE *f)
@@ -86,50 +98,34 @@ void Realm::print(FILE *f)
     }
 }
 
-static int isbadaddr(struct in_addr *ip, char *name)
-{
-	if (ip->s_addr == INADDR_ANY ||
-	    ip->s_addr == INADDR_NONE ||
-	    ip->s_addr == INADDR_LOOPBACK ||
-	    (ip->s_addr & IN_CLASSA_NET) == IN_LOOPBACKNET ||
-	    IN_MULTICAST(ip->s_addr) ||
-	    IN_BADCLASS(ip->s_addr))
-	{
-	    fprintf(stderr, "An address in realm '%s' resolved to bad or unusable address '%s', ignoring it\n", name, inet_ntoa(*ip));
-	    return 1;
-	}
-	return 0;
-}
-
 /* Get a connection to any server (as root). */
 int Realm::GetAdmConn(connent **cpp)
 {
     struct coda_addrinfo *p;
     int code = 0;
-    int tryagain = 0;
+    int tryagain;
 
     LOG(100, ("GetAdmConn: \n"));
 
-    CODA_ASSERT(this != LocalRealm);
+    if (this == LocalRealm)
+	return ETIMEDOUT;
 
     *cpp = 0;
 
 retry:
+    tryagain = 0;
     if (!rootservers)
 	GetRealmServers(name, "codasrv", &rootservers);
     else
 	coda_reorder_addrs(&rootservers);
 
-    if (!rootservers) {
-	eprint("Failed to find servers for realm '%s'", name);
+    if (!rootservers)
 	return ETIMEDOUT;
-    }
 
     /* Get a connection to any custodian. */
     for (p = rootservers; p; p = p->ai_next) {
 	struct sockaddr_in *sin = (struct sockaddr_in *)p->ai_addr;
 	srvent *s;
-	if (isbadaddr(&sin->sin_addr, name)) continue;
 	s = ::GetServer(&sin->sin_addr, Id());
 	code = s->GetConn(cpp, V_UID);
 	switch(code) {
@@ -140,12 +136,12 @@ retry:
 
 	case 0:
 	case EINTR:
-	    return(code);
+	    return code;
 
 	default:
 	    if (code < 0)
 		eprint("GetAdmConn: bogus code (%d)", code);
-	    return(code);
+	    return code;
 	}
     }
     if (tryagain) {
@@ -153,5 +149,6 @@ retry:
 	rootservers = NULL;
 	goto retry;
     }
+    return ETIMEDOUT;
 }
 

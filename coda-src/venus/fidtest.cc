@@ -43,7 +43,7 @@ extern "C" {
 struct GetFid {
     ViceFid fid;
     ViceVersionVector vv;
-    char realm[MAXHOSTNAMELEN];
+    char realm[MAXHOSTNAMELEN+1];
 };
 
 

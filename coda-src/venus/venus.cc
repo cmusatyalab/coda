@@ -88,7 +88,6 @@ char *realmtab;
 char *CacheDir;
 char *CachePrefix;
 int   CacheBlocks;
-char *RootVolName;
 vuid_t PrimaryUser = (vuid_t)UNSET_PRIMARYUSER;
 char *SpoolDir;
 char *VenusPidFile;
@@ -194,16 +193,8 @@ int main(int argc, char **argv) {
     //    VFSMount();
 
     /* Get the Root Volume. */
-    eprint("Getting Root Volume information...");
-    while (!GetRootVolume()) {
-	ServerProbe();
+    eprint("Mounting root volume...");
 
-	struct timeval tv;
-	tv.tv_sec = 15;
-	tv.tv_usec = 0;
-	VprocSleep(&tv);
-    }
-    
     VFSMount();
 #ifdef DJGPP
     k_Purge();
@@ -279,8 +270,6 @@ static void ParseCmdline(int argc, char **argv) {
 		lwp_debug =atoi(argv[i]);
 	    } else if (STREQ(argv[i], "-rdstrace"))     /* RDS heap tracing */
 		MallocTrace = 1;
-	    else if (STREQ(argv[i], "-r"))     /* name of root volume */
-		i++, RootVolName = argv[i];
 	    else if (STREQ(argv[i], "-f"))     /* location of cache files */
 		i++, CacheDir = argv[i];
 	    else if (STREQ(argv[i], "-m"))
@@ -427,9 +416,8 @@ static void DefaultCmdlineParms()
     CONF_INT(masquerade_port,	"masquerade_port", 0);
     CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
     CONF_INT(PrimaryUser,       "primaryuser",   UNSET_PRIMARYUSER);
-    CONF_STR(default_realm,     "realm",	 "DEFAULT");
+    CONF_STR(default_realm,     "realm",	 "testserver.coda.cs.cmu.edu");
     CONF_STR(realmtab,          "realmtab",	 "/etc/coda/realms");
-    CONF_STR(RootVolName,       "rootvolume",    NULL);
     CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");
     CONF_STR(VenusDataDevice,   "rvm_data",      "/usr/coda/DATA");
     CONF_INT(T1Interval,	"serverprobe",   12 * 60);

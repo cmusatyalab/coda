@@ -930,9 +930,6 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 
 	/* Create the target directory. */
 	target_fso->dir_MakeDir();
-	target_fso->stat.Length = target_fso->dir_Length();
-	UpdateCacheStats(&FSDB->DirDataStats, CREATE,
-			 BLOCKS(target_fso));
 
 	target_fso->Reference();
 	target_fso->ComputePriority();
@@ -985,7 +982,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	if (code != 0) goto RepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, WR, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->DirAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -1115,7 +1112,7 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, WR, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->DirAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -1175,7 +1172,7 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
-    target_fso = FSDB->Create(&target_fid, WR, target_pri, name);
+    target_fso = FSDB->Create(&target_fid, target_pri, name);
     if (target_fso == 0) {
 	UpdateCacheStats(&FSDB->DirAttrStats, NOSPACE,
 			 NBLOCKS(sizeof(fsobj)));
@@ -1580,7 +1577,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	if (code != 0) goto RepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, WR, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -1709,7 +1706,7 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, WR, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -1770,7 +1767,7 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
-    target_fso = FSDB->Create(&target_fid, WR, target_pri, name);
+    target_fso = FSDB->Create(&target_fid, target_pri, name);
     if (target_fso == 0) {
 	UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			 NBLOCKS(sizeof(fsobj)));
