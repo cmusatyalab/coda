@@ -1,3 +1,7 @@
+New in 1.23:
+
+* Don't assume RPC2_EAI_ errorcodes are identical to the EAI_ errors.
+
 New in 1.22:
 
 * Fixed some small memory leaks in error conditions.

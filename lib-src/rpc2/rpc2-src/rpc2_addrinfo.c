@@ -366,8 +366,22 @@ int RPC2_getaddrinfo(const char *node, const char *service,
     int ret;
 
     ret = getaddrinfo(node, service, (const struct addrinfo *)hints, &ai);
-    if (ret)
-	return ret;
+    /* map getaddrinfo error codes into RPC2_getaddrinfo errorcodes */
+    switch (ret) {
+    case 0:		 break;
+    case EAI_FAMILY:	 return RPC2_EAI_FAMILY;
+    case EAI_SOCKTYPE:	 return RPC2_EAI_SOCKTYPE;
+    case EAI_BADFLAGS:	 return RPC2_EAI_BADFLAGS;
+    case EAI_NONAME:	 return RPC2_EAI_NONAME;
+    case EAI_SERVICE:	 return RPC2_EAI_SERVICE;
+    case EAI_ADDRFAMILY: return RPC2_EAI_ADDRFAMILY;
+    case EAI_NODATA:	 return RPC2_EAI_NODATA;
+    case EAI_MEMORY:	 return RPC2_EAI_MEMORY;
+    case EAI_FAIL:	 return RPC2_EAI_FAIL;
+    case EAI_AGAIN:	 return RPC2_EAI_AGAIN;
+    case EAI_SYSTEM:	 return RPC2_EAI_SYSTEM;
+    default:		 return RPC2_EAI_FAIL;
+    }
 
     head = ai;
     new = &list;
