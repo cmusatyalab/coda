@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/trace.h,v 4.2 98/06/04 22:38:06 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/trace.h,v 4.3 1998/11/24 15:34:45 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -478,7 +478,7 @@ struct TraceElem
 	strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);\
 	tea->HowMany = HowMany;\
 	tea->ConnArray0 = ConnArray[0];\
-	tea->ConnArray0_UniqueCID = (ConnArray[0])->UniqueCID;\
+	tea->ConnArray0_UniqueCID = (ConnArray[0]) ? (ConnArray[0])->UniqueCID: 0;\
 	tea->PacketArray0_Address = PacketArray[0];\
 	tea->PacketArray0 = *(PacketArray[0]);  /* structure assignment */\
 	if (TimeOut == NULL) tea->IsNullTimeout = 1;\
