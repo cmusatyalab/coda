@@ -376,10 +376,15 @@ void VInitThisHost(char *host)
 /* Find the server id */
 void VInitServerList(char *host) 
 {
-    char hostname[MAXHOSTNAMELEN];
     char line[200];
     char *serverList = SERVERLISTPATH;
     FILE *file;
+
+    memset(HostAddress, 0, sizeof(bit32) * N_SERVERIDS);
+
+    /* put something in the 'reserved' id slots to prevent anyone from
+     * using them */
+    HostAddress[0] = HostAddress[127] = HostAddress[255] = 0x7F000001;
 
     VInitThisHost(host);
 
@@ -389,23 +394,12 @@ void VInitServerList(char *host)
 	VLog(0, "VInitServerList: unable to read file %s; aborted", serverList);
 	exit(1);
     }
-    gethostname(hostname, sizeof(hostname)-1);
-#ifdef __CYGWIN32__
-    /* HACK --JJK */
-    /* There should be a get_canonical_hostname routine! */
-    {
-	char *cp = hostname;
-	while (*cp) {
-	    *cp = tolower(*cp);
-	    cp++;
-	}
-    }
-#endif
 
     while (fgets(line, sizeof(line), file) != NULL) {
         char sname[50];
-	struct hostent *hostent;
         unsigned int sid;
+	long netaddress;
+
 	if (sscanf(line, "%s%u", sname, &sid) == 2) {
 	    if (sid >= N_SERVERIDS) {
 		VLog(0, "Host %s is assigned a bogus server number (%x) in %s. Exit.",
@@ -413,51 +407,50 @@ void VInitServerList(char *host)
 		exit(1);
 	    }
 	    /* catch several `special cased' host-id's */
-	    switch (sid) {
-	    case 0:
-	    case 127:
-	    case 255:
+	    if (sid == 0 || sid == 127 || sid == 255) {
 		VLog(0, "Warning: host %s is using a reserved server number (%lu) in %s. Exit",
 		       sname, sid, serverList);
 		exit(1);
-	    default:
-		break;
 	    }
-
-	    hostent = gethostbyname(sname);
-	    if (hostent == NULL) {
-		VLog(0, "Host %s (listed in %s) cannot be resolved. Exiting.", sname, serverList);
+	    /* make sure we don't get duplicate ids */
+	    if (HostAddress[sid]) {
+		VLog(0, "Warning: host %s is using a an already assigned "
+			"server-id (%lu) in %s. Exit", sname, sid, serverList);
 		exit(1);
-	    } else {
-		long netaddress;
-		CODA_ASSERT(hostent->h_length == sizeof(struct in_addr));
-
-		/* check whether we got an address in the 127.x.x.x range */
-		if (inet_netof(*(struct in_addr *)hostent->h_addr) == 0x7f) {
-		    if (!CodaSrvIp) {
-			VLog(0,
-"ERROR: gethostbyname(%s) returned a loopback address (%s).\n"
-"This address is not routeable. Please set a routeable address\n"
-"for this server by adding a ipaddress=\"xxx.xxx.xxx.xxx\" option\n"
-"to server.conf",	sname, inet_ntoa(*(struct in_addr *)hostent->h_addr));
-			exit(1);
-		    }
-		    struct in_addr ipaddr;
-		    if (!inet_aton(CodaSrvIp, &ipaddr)) {
-			VLog(0, "ERROR: failed to parse %s as an ip-address",
-			     CodaSrvIp);
-			exit(1);
-		    }
-		    memcpy(&netaddress, &ipaddr, sizeof(struct in_addr));
-		} else
-		    memcpy(&netaddress, hostent->h_addr,sizeof(struct in_addr));
-
-		HostAddress[sid] = ntohl(netaddress);
 	    }
+
+	    struct hostent *hostent = gethostbyname(sname);
+	    if (!hostent || hostent->h_length != sizeof(struct in_addr) ||
+		!hostent->h_addr)
+	    {
+		VLog(0, "Host %s (listed in %s) cannot be resolved (to an IPv4 address). Exiting.", sname, serverList);
+		exit(1);
+	    }
+
+	    /* check whether we got an address in the 127.x.x.x range */
+	    if (inet_netof(*(struct in_addr *)hostent->h_addr) == 0x7f) {
+		if (!CodaSrvIp) {
+		    VLog(0,
+			 "ERROR: gethostbyname(%s) returned a loopback address (%s).\n"
+			 "This address is not routeable. Please set a routeable address\n"
+			 "for this server by adding a ipaddress=\"xxx.xxx.xxx.xxx\" option\n"
+			 "to server.conf",	sname, inet_ntoa(*(struct in_addr *)hostent->h_addr));
+		    exit(1);
+		}
+		struct in_addr ipaddr;
+		if (!inet_aton(CodaSrvIp, &ipaddr)) {
+		    VLog(0, "ERROR: failed to parse %s as an ip-address",
+			 CodaSrvIp);
+		    exit(1);
+		}
+		memcpy(&netaddress, &ipaddr, sizeof(struct in_addr));
+	    } else
+		memcpy(&netaddress, hostent->h_addr,sizeof(struct in_addr));
+
+	    HostAddress[sid] = ntohl(netaddress);
 
 	    if (UtilHostEq(ThisHost, sname))
 		ThisServerId = sid;
-
 	}
     }
     if (ThisServerId == -1) {
