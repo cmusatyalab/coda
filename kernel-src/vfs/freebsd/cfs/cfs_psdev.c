@@ -23,7 +23,10 @@
 
 /*
  * HISTORY
- * $Log:	cfs_psdev.c,v $
+ * $Log: cfs_psdev.c,v $
+ * Revision 1.6  1998/01/23 11:53:41  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ *
  * Revision 1.5.2.8  98/01/23  11:21:04  rvb
  * Sync with 2.2.5
  * 

@@ -13,7 +13,10 @@
 
 /* 
  * HISTORY
- * $Log:	cfsnc.h,v $
+ * $Log: cfsnc.h,v $
+ * Revision 1.5  1998/01/23 11:53:51  rvb
+ * Bring RVB_CFS1_1 to HEAD
+ *
  * Revision 1.4.2.1  97/12/16  12:40:23  rvb
  * Sync with 1.3
  * 
