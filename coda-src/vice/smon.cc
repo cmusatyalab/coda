@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/smon.cc,v 1.2 1996/12/03 00:43:02 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/vice/RCS/smon.cc,v 4.1 1997/01/08 21:51:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,7 +59,14 @@ extern "C" {
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
 extern int nlist(const char*, struct nlist[]);
 
+#ifdef __MACH__
 #include <libc.h>
+#include <sysent.h>
+#endif /* __MACH__ */
+#if defined(__NetBSD__) || defined(__linux__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || __linux__ */
 #include <lwp.h>
 #include <rpc2.h>
 #ifdef __cplusplus
@@ -112,6 +119,8 @@ struct rvmrese : public olink {
     
     void Init(RPC2_Unsigned time, resstats *sp)
     {
+      int i;
+
 	Vice = MyViceId;
 	Time = time;
 	VolID = sp->vid;
@@ -134,7 +143,7 @@ struct rvmrese : public olink {
 	DirRes.NumNoWork = sp->dir.dir_nowork;
 	DirRes.Problems = sp->dir.dir_problems;
 	DirRes.PartialVSG = sp->dir.dir_incvsg;
-	for (int i=0; i<SHIPHISTOSIZE; i++)
+	for (i=0; i<SHIPHISTOSIZE; i++)
 	    LogSizeHisto[i].bucket = sp->dir.logshipstats.totalsize[i];
 	for (i=0; i<NENTRIESHISTOSIZE; i++)
 	    LogMaxHisto[i].bucket = sp->dir.logshipstats.maxentries[i];

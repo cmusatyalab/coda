@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/codaproc.cc,v 1.3 1996/12/09 22:42:10 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/vice/RCS/codaproc.cc,v 4.1 1997/01/08 21:51:54 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ extern "C" {
 #include <netinet/in.h>
 #include <sysent.h>
 #include <struct.h>
-#include <cfs/ifs.h>
+#include <inodefs.h>
 
 #if defined(__linux__) || defined(__NetBSD__)
 #include <stdlib.h>
@@ -1041,7 +1041,7 @@ int SetRights(Vnode *vptr, char *name, int rights)
     /* didnt find the entry - create one */
     if (aCL->PlusEntriesInUse + aCL->MinusEntriesInUse == aCL->TotalNoOfEntries){
 	/* allocate some more entries */
-	for (i = aCL->TotalNoOfEntries - 1; 
+	for (int i = aCL->TotalNoOfEntries - 1; 
 	     i > (aCL->TotalNoOfEntries - aCL->MinusEntriesInUse - 1); 
 	     i--)
 	    bcopy(&(aCL->ActualEntries[i]), &(aCL->ActualEntries[i+1]), (int) sizeof(AL_AccessEntry));
@@ -1102,7 +1102,7 @@ int SetNRights(Vnode *vptr, char *name, int rights)
     /* didnt find the entry - create one */
     if ((m + p) == t){
 	/* all entries are taken - create one */
-	for (i = t - 1; i > t - m - 1; i--)
+	for (int i = t - 1; i > t - m - 1; i--)
 	    bcopy(&(aCL->ActualEntries[i]), &(aCL->ActualEntries[i+1]), 
 		  (int) sizeof(AL_AccessEntry));
 	t = ++aCL->TotalNoOfEntries;
@@ -2439,12 +2439,13 @@ PRIVATE void COP2Update(Volume *volptr, Vnode *vptr,
 	     V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, vptr->disk.uniquifier);
 
     /* if the result was success everywhere, truncate the log */
+    int i;
     if (vptr->disk.type == vDirectory) {
 	unsigned long Hosts[VSG_MEMBERS];
 	vv_t checkvv;
 	vre->GetHosts(Hosts);
 	vre->HostListToVV(Hosts, &checkvv);
-	for (int i = 0; i < VSG_MEMBERS; i++) 
+	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (((&(checkvv.Versions.Site0))[i]) ^ 
 		((&(UpdateSet->Versions.Site0))[i]))
 		break;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vice/RCS/clientproc.cc,v 1.2 1996/12/03 00:37:48 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/vice/RCS/clientproc.cc,v 4.1 1997/01/08 21:51:54 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -201,12 +201,14 @@ PRIVATE HostTable *GetVenusId(RPC2_Handle RPCid) {
 
     /* Look up the Peer info corresponding to the given RPC handle. */
     RPC2_PeerInfo peer;
+    int i;
+
     assert(RPC2_GetPeerInfo(RPCid, &peer) == 0);
     assert(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
     assert(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
 
     /* Look for a corresponding host entry. */
-    for (int i = 0; i < maxHost; i++)
+    for (i = 0; i < maxHost; i++)
 	if (hostTable[i].host == (unsigned int) peer.RemoteHost.Value.InetAddress &&
 	    hostTable[i].port == peer.RemotePortal.Value.InetPortNumber)
 	    break;

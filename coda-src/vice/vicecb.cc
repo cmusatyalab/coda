@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vice/vicecb.cc,v 1.1 1996/11/22 19:14:46 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/vice/RCS/vicecb.cc,v 4.1 1997/01/08 21:52:01 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -317,7 +317,8 @@ CallBackStatus AddCallBack(HostTable *aconnid, ViceFid *afid) {
     }
 
     /* Don't add it if it is already in the list. */
-    for (struct CallBackEntry *tc = tf->callBacks; tc; tc = tc->next)
+    struct CallBackEntry *tc;
+    for (tc = tf->callBacks; tc; tc = tc->next)
 	if (tc->conn == aconnid) return(CallBackSet);
 
     /* Otherwise, set it up and add it to the head of the linked list */
@@ -339,6 +340,8 @@ CallBackStatus AddCallBack(HostTable *aconnid, ViceFid *afid) {
   END_HTML 
 */
 void BreakCallBack(HostTable *aconnid, ViceFid *afid) {
+    struct CallBackEntry *tc;
+
     LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack for Fid 0x%x.%x.%x",
 	     afid->Volume, afid->Vnode, afid->Unique);
     if (aconnid) LogMsg(3, SrvDebugLevel, stdout, "Venus %s.%d",
@@ -389,7 +392,7 @@ void BreakCallBack(HostTable *aconnid, ViceFid *afid) {
     
     /* how many client entries, other than us?  fill conn id list */
     int nhosts = 0;
-    for (struct CallBackEntry *tc = tf->callBacks; tc; tc = tc->next) 
+    for (tc = tf->callBacks; tc; tc = tc->next) 
 	if (tc->conn && tc->conn != aconnid && tc->conn->id)
 	    cidlist[nhosts++] = tc->conn->id;
 
@@ -695,13 +698,16 @@ void PrintCallBackState(FILE *fp) {
 	fprintf(fp, "Callback statistics by volume: %d volumes\n", numVolumes);
 	qsort((void *)CBStats, numVolumes, sizeof(struct CBStat), 
 	      (int (*)(const void *, const void *))CompareCBSEnts);
-	for (i = 0;  i < numVolumes; i++) {
-	    fprintf(fp, "\t0x%x  %d FEs (%d VEs), %d CBEs (%d VCBEs)\n",
-		    CBStats[i].volid, CBStats[i].FEs, CBStats[i].VEs,
-		    CBStats[i].CBEs, CBStats[i].VCBEs);
+	{
+	int i;
+            for (i = 0;  i < numVolumes; i++) {
+	        fprintf(fp, "\t0x%x  %d FEs (%d VEs), %d CBEs (%d VCBEs)\n",
+		        CBStats[i].volid, CBStats[i].FEs, CBStats[i].VEs,
+		        CBStats[i].CBEs, CBStats[i].VCBEs);
 	    
-	    UpdateHisto(&CBGram, (double) CBStats[i].CBEs);
-	    UpdateHisto(&VCBGram, (double) CBStats[i].VCBEs);
+	        UpdateHisto(&CBGram, (double) CBStats[i].CBEs);
+	        UpdateHisto(&VCBGram, (double) CBStats[i].VCBEs);
+            }
         }
 	fprintf(fp, "\nHistogram of number of callbacks per volume\n");
 	PrintHisto(fp, &CBGram);

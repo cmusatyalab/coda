@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/vtools/RCS/hoard.cc,v 1.2 1996/12/09 17:38:15 braam Exp $";
+static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/vtools/RCS/hoard.cc,v 4.1 1997/01/08 21:52:40 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,12 +63,17 @@ extern "C" {
 #include <ctype.h>
 #include <errno.h>
 extern FILE *_findiop();
-#include <libc.h>
 #ifdef __MACH__
 extern int execvp(const char *, const char **);
-#endif
+#include <libc.h>
 #include <sysent.h>
+#endif /* __MACH__ */
+#if defined(__NetBSD__) || defined(__linux__)
+#include <unistd.h>
+#include <stdlib.h>
+#endif /* __NetBSD__ || __linux__ */
 #include <stdarg.h>
+#include <inodefs.h>
 
 #ifdef __cplusplus
 }
