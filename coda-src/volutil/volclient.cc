@@ -767,7 +767,7 @@ static void restorefromback(void)
     rock->numbytes = 0;
 
     if (!filename) outf = stdin;
-    else	   outf = fopen(this_argp[3], "w");
+    else	   outf = fopen(filename, "r");
 
     rock->fd = fileno(outf);
     if (rock->fd < 0) {
@@ -783,7 +783,7 @@ static void restorefromback(void)
 	exit(-1);
     }
 
-    rc = VolRestore(rpcid, (RPC2_String)this_argp[3], (RPC2_String)volname, (RPC2_Unsigned *)&volid);
+    rc = VolRestore(rpcid, (RPC2_String)this_argp[2], (RPC2_String)volname, (RPC2_Unsigned *)&volid);
     if (rc != RPC2_SUCCESS){
 	fprintf(stderr, "VolRestore failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
