@@ -455,7 +455,8 @@ int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BW,
     if (ce == NULL) 
 	return(RPC2_NOCONNECTION);
 
-    if (BW)    *BW    = 1000000000 / (ce->HostInfo->BW >> RPC2_BW_SHIFT);
+    /* Adding 1 to the BW to avoid divide by zero errors --JH */
+    if (BW)    *BW    = 1000000000 / ((ce->HostInfo->BW >> RPC2_BW_SHIFT) + 1);
     if (BWvar) *BWvar = ce->HostInfo->BWVar >> RPC2_BWVAR_SHIFT;
 
     return(RPC2_SUCCESS);
