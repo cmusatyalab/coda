@@ -62,7 +62,7 @@ static rvm_return_t make_iov(log,length)
             free((char *)dev->iov);
 
         /* reallocate io vector */
-        dev->iov = (struct iovec *)malloc((sizeof(struct iovec) * length));
+        dev->iov = (struct iovec *)malloc(sizeof(struct iovec) * length);
         if (dev->iov == NULL) return RVM_ENO_MEMORY;
         dev->iov_length = length;
         }

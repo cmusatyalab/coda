@@ -128,7 +128,10 @@ list_entry_t *move_list_entry(fromptr, toptr, victim)
     register list_entry_t *victim;      /* pointer to entry to be moved */
     {
 
-    if (fromptr != NULL)
+    if (!fromptr && victim)
+	fromptr = victim->list.name;
+
+    if (fromptr)
         {
         assert(fromptr->is_hdr);
         if ((victim == NULL) && LIST_EMPTY((*fromptr)))
@@ -195,8 +198,8 @@ void insert_list_entry(entry,new_entry)
     assert(new_entry->struct_id == list_hdr->struct_id);
 
     /* remove list_entry from any list it might be on */
-    if (new_entry->list.name != NULL)
-        (void)move_list_entry(NULL,NULL,new_entry);
+    if (new_entry->list.name)
+        (void)move_list_entry(NULL, NULL, new_entry);
 
     /* do insertion into target list */
     new_entry->list.name = list_hdr;
@@ -256,8 +259,8 @@ static void kill_list_entry(cell)
     assert(cell != NULL);
 
     /* unlink from present list */
-    if (cell->list.name != NULL)
-        (void)move_list_entry(cell->list.name,NULL,cell);
+    if (cell->list.name)
+        (void)move_list_entry(NULL, NULL, cell);
 
     /* terminate with extreme prejudice */
     type_counts[ID_INDEX(cell->struct_id)] --;
