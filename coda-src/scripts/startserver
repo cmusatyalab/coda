@@ -30,10 +30,10 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/startserver,v 4.6 1998/01/13 00:23:07 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/startserver,v 4.7 1998/01/15 21:59:17 braam Exp $";
 #endif /*_BLURB_*/
 
-if [ -f /vice/srv/pid -o -f /vice/srv/CRASH ]; then
+if [ -f /vice/srv/pid ]; then
     echo "Can't start file server, one is already running!"
     exit 1 
 fi 
@@ -41,7 +41,7 @@ fi
 # Remove outdated logfiles
 rm -f /vice/srv/SrvErr
 rm -f /vice/srv/SrvLog-7
-rm -f /vice/src/CRASH
+rm -f /vice/srv/CRASH
 
 # pass on arguments to srv
 # The -rvm flag takes 3 arguments. The first is the log device/file,
@@ -52,4 +52,3 @@ rm -f /vice/src/CRASH
 srv $* -nodumpvm `grep '^\-rvm ' /vice/srv.conf`
 
 rm -f /vice/srv/pid
-rm -f /vice/srv/CRASH
