@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.private.h,v 4.3 1998/05/15 01:29:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.private.h,v 4.4 1998/08/26 15:39:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -75,9 +75,22 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #ifdef OLDLWP
+#if defined(__powerpc__)
 struct lwp_context {	/* saved context for dispatcher */
     char *topstack;	/* ptr to top of process stack */
+    char *returnadd;	/* return address ? */
+
+    char *ccr;		/* Condition code register */
 };
+#define STACK_PAD 64	/* make stacks 16 byte aligned and leave space for
+			   silly LinuxPPC linkage, or we segfault entering
+			   functions --troy */
+#else
+struct lwp_context {    /* saved context for dispatcher */
+    char *topstack;     /* ptr to top of process stack */
+};
+#define STACK_PAD 4
+#endif defined(__powerpc__)
 #endif OLDLWP
 
 struct rock

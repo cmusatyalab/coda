@@ -162,9 +162,9 @@ ifdef SUBDIRS
 endif
 
 realclean:
-	-$(RM) *.o *.a  .depfiles/*.d
+	-$(RM) *.o *.a  .depfiles/*.d *.d
 	-rmdir .depfiles
-	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c $(RP2HEADERS)
+	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c *.print.c $(RP2HEADERS)
 	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) core
 	-$(RM) lex.yy.c y.tab.c y.tab.h
 	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \
@@ -176,6 +176,7 @@ distclean: clean
 	-rm -f coda-src/rpc2/errorsdefs.h
 	-rm -f coda-src/rpc2/switchc2s.h
 	-rm -f coda-src/rpc2/switchs2c.h
+	-rm -f coda-src/guitools/translate.sed
 	-rm -f config.cache config.log config.status
 	-rm -f Makeconf.setup `find . -name "Makefile" | grep -v linux`
 

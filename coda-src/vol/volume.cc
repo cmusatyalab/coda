@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.13 1998/10/07 20:29:57 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.14 1998/10/09 21:57:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -185,7 +185,7 @@ int VInitVolUtil(ProgramType pt) {
     fslock = -1;
     fvlock = -1;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VInitVolUtil");
+    VLog(9, "Entering VInitVolUtil");
     fslock = open("/vice/vol/fs.lock", O_CREAT|O_RDWR, 0666);
     assert(fslock >= 0);
     fvlock = open ("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
@@ -194,36 +194,36 @@ int VInitVolUtil(ProgramType pt) {
     if (pt != salvager) {
 	/* wait until file server is initialized */
 	if (VInit != 1) {
-	    LogMsg(0, VolDebugLevel, stdout, "VInitVolUtil: File Server not initialized! Aborted");
+	    VLog(0, "VInitVolUtil: File Server not initialized! Aborted");
 	    close(fslock);
 	    close(fvlock);
 	    return(VNOSERVER);
 	}
 	if (flock(fvlock, LOCK_SH |LOCK_NB) != 0) {
-	    LogMsg(0, VolDebugLevel, stdout, "VInitvolUtil: can't grab volume utility lock");
+	    VLog(0, "VInitvolUtil: can't grab volume utility lock");
 	    close(fslock);
 	    close(fvlock);
 	    return(VFAIL);
 	}
 
 	if (!VConnectFS()) {
-	    LogMsg(0, VolDebugLevel, stdout, "Unable to synchronize with file server; aborted");
+	    VLog(0, "Unable to synchronize with file server; aborted");
 	    close(fslock);
 	    close(fvlock);
 	    return(VFAIL);
 	}
     }
     else {  /* pt == salvager */
-	LogMsg(9, VolDebugLevel, stdout, "VInitVolUtil: getting exclusive locks");
+	VLog(9, "VInitVolUtil: getting exclusive locks");
 	if (flock(fslock, LOCK_EX | LOCK_NB) != 0) {
-	    LogMsg(0, VolDebugLevel, stdout, "VInitVolUtil: File Server is running: can't run full salvage");
+	    VLog(0, "VInitVolUtil: File Server is running: can't run full salvage");
 	    close(fslock);
 	    close(fvlock);
 	    return(VFAIL);
 	}
 
 	if (flock(fvlock, LOCK_EX |LOCK_NB) != 0) {
-	    LogMsg(0, VolDebugLevel, stdout, "VInitVolUtil: salvage aborted- someone else is running!");
+	    VLog(0, "VInitVolUtil: salvage aborted- someone else is running!");
 	    close(fslock);
 	    close(fvlock);
 	    return(VFAIL);
@@ -242,7 +242,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     ProgramType *pt;
     long rc = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VInitVolumePackage(%d, %d, %d)",
+    VLog(9, "Entering VInitVolumePackage(%d, %d, %d)",
 	nLargeVnodes, nSmallVnodes, DoSalvage);
 
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
@@ -273,10 +273,10 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     
     /* check VLDB */
     if (VCheckVLDB() == 0) {
-	LogMsg(29, VolDebugLevel, stdout, "VInitVolPackage: successfully finished checking VLDB");
+	VLog(29, "VInitVolPackage: successfully finished checking VLDB");
     }
     else {
-	LogMsg(0, VolDebugLevel, stdout, "VInitVolPackage: no VLDB! Create a new one.");
+	VLog(0, "VInitVolPackage: no VLDB! Create a new one.");
     }
 
     /* Setting Debug to 1 and List to 0; maybe remove later ***ehs***/
@@ -310,7 +310,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	RVMLIB_BEGIN_TRANSACTION(restore)
 	for (i = 0; (i < maxid) && (i < MAXVOLS); i++) {
 	    if (VolHeaderByIndex(i, &header) == -1) {
-		LogMsg(0, VolDebugLevel, stdout, "Bogus volume index %d (shouldn't happen)", i);
+		VLog(0, "Bogus volume index %d (shouldn't happen)", i);
 		continue;
 	    }
 
@@ -318,10 +318,10 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 		continue;
 
 	    /* Make sure volume is in the volid hashtable */
-	    LogMsg(9, VolDebugLevel, stdout, "VInitVolumePackage: inserting vol %x into hashtable for index %d",
+	    VLog(9, "VInitVolumePackage: inserting vol %x into hashtable for index %d",
 		header.id, i);
 	    if (HashInsert(header.id, i) == -1) {
-		LogMsg(10, VolDebugLevel, stdout, "VInitVolPackage: HashInsert failed! Two %x volumes exist!", header.id);
+		VLog(10, "VInitVolPackage: HashInsert failed! Two %x volumes exist!", header.id);
 	    }
 	    
 	    GetVolPartition(&error, header.id, i, thispartition);
@@ -329,7 +329,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	    vp = VAttachVolumeById(&error, thispartition, header.id, V_UPDATE);
 	    (*(vp?&nAttached:&nUnattached))++;
 	    if (error == VOFFLINE)
-		LogMsg(0, VolDebugLevel, stdout, "Volume %x stays offline (/vice/offline/%s exists)", 
+		VLog(0, "Volume %x stays offline (/vice/offline/%s exists)", 
 			    header.id, VolumeExternalName(header.id));
 	    /* if volume was not salvaged force it offline. */
 	    /* a volume is not salvaged if it exists in the 
@@ -337,7 +337,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 		*/
 	    if (vp && skipvolnums != NULL && 
 		InSkipVolumeList(header.parent, skipvolnums, nskipvols)){
-		LogMsg(0, VolDebugLevel, stdout, "Forcing Volume %x Offline", header.id);
+		VLog(0, "Forcing Volume %x Offline", header.id);
 		VForceOffline(vp);
 	    }
 	    else if (vp) {
@@ -354,7 +354,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	    if (vp)
 		VPutVolume(vp);
 	}
-	LogMsg(0, VolDebugLevel, stdout, "Attached %d volumes; %d volumes not attached",
+	VLog(0, "Attached %d volumes; %d volumes not attached",
 				nAttached, nUnattached);
 	VListVolumes();			/* Update list in /vice/vol/VolumeList */
     RVMLIB_END_TRANSACTION(flush, &(camstatus));
@@ -371,7 +371,7 @@ int VConnectFS() {
     int rc;
     ProgramType *pt;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VConnectFS");
+    VLog(9, "Entering VConnectFS");
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     assert(VInit == 1 && *pt == volumeUtility);
     rc = FSYNC_clientInit();
@@ -381,7 +381,7 @@ int VConnectFS() {
 void VDisconnectFS() {
     ProgramType *pt;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VDisconnectFS");
+    VLog(9, "Entering VDisconnectFS");
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     assert(VInit == 1 && *pt == volumeUtility);
     FSYNC_clientFinis();
@@ -410,7 +410,7 @@ void VInitThisHost()
 	strcpy(ThisHost, hostname);
 	hostent = gethostbyname(ThisHost);
 	if (hostent == NULL) {
-		LogMsg(0, VolDebugLevel, stdout, "Host %s cannot be resolved. Exiting.", ThisHost);
+		VLog(0, "Host %s cannot be resolved. Exiting.", ThisHost);
 		exit(1);
 	}
 }
@@ -427,10 +427,10 @@ void VInitServerList()
 
     VInitThisHost();
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VInitServerList");
+    VLog(9, "Entering VInitServerList");
     file = fopen(serverList, "r");
     if (file == NULL) {
-	LogMsg(0, VolDebugLevel, stdout, "VInitServerList: unable to read file %s; aborted", serverList);
+	VLog(0, "VInitServerList: unable to read file %s; aborted", serverList);
 	exit(1);
     }
     gethostname(hostname, sizeof(hostname)-1);
@@ -454,7 +454,7 @@ void VInitServerList()
         int sid;
 	if (sscanf(line, "%s%d", sname, &sid) == 2) {
 	    if (sid > N_SERVERIDS) {
-		LogMsg(0, VolDebugLevel, stdout, "Host %s is assigned a bogus server number (%x) in %s. Exit.",
+		VLog(0, "Host %s is assigned a bogus server number (%x) in %s. Exit.",
 		  sname, sid, serverList);
 		exit(1);
 	    }
@@ -462,7 +462,7 @@ void VInitServerList()
 		ThisServerId = sid;
 	    hostent = gethostbyname(sname);
 	    if (hostent == NULL) {
-		LogMsg(0, VolDebugLevel, stdout, "Host %s (listed in %s) cannot be resolved. Exiting.", sname, serverList);
+		VLog(0, "Host %s (listed in %s) cannot be resolved. Exiting.", sname, serverList);
 		exit(1);
 	    } else {
 		long netaddress;
@@ -473,7 +473,7 @@ void VInitServerList()
 	}
     }
     if (ThisServerId == -1) {
-	LogMsg(0, VolDebugLevel, stdout, "Hostname of this server (%s) is not listed in %s. Exiting.", ThisHost, serverList);
+	VLog(0, "Hostname of this server (%s) is not listed in %s. Exiting.", ThisHost, serverList);
 	exit(1);
     }
     fclose(file);
@@ -481,7 +481,7 @@ void VInitServerList()
 
 void VCheckVolumes()
 {
-    LogMsg(9, VolDebugLevel, stdout, "Entering VCheckVolumes()");
+    VLog(9, "Entering VCheckVolumes()");
     VListVolumes();
     /* Note: removed body surrounded by "#ifdef undef"; recover from version 2.2*/
 }
@@ -493,14 +493,14 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
     register int i, nReported;
     bit32 *serverList;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VGetVolumeInfo, key = %s", key);
+    VLog(9, "Entering VGetVolumeInfo, key = %s", key);
 
     *ec = 0;
     bzero((void *)info, sizeof(VolumeInfo));
     vldp = VLDBLookup(key);
     if (vldp == NULL) {
 	*ec = VNOVOL;
-	LogMsg(9, VolDebugLevel, stdout, "VGetVolumeInfo: VLDBLookup failed");
+	VLog(9, "VGetVolumeInfo: VLDBLookup failed");
 	return;
     }
     assert(vldp->volumeType < MAXVOLTYPES);
@@ -518,7 +518,7 @@ void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info)
     }
     if (nReported == 0) {
 	*ec = VNOVOL;
-	LogMsg(9, VolDebugLevel, stdout, "VGetVolumeInfo: no reported servers for volume %x",
+	VLog(9, "VGetVolumeInfo: no reported servers for volume %x",
 			info->Vid);
 	return;
     }
@@ -548,7 +548,7 @@ static void VListVolume(register FILE *file, register Volume *vp)
 {
     register int volumeusage, i;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VListVolume for volume %x", V_id(vp));
+    VLog(9, "Entering VListVolume for volume %x", V_id(vp));
 
     VAdjustVolumeStatistics(vp);
     for (volumeusage = i = 0; i<7; i++)
@@ -568,7 +568,7 @@ void VListVolumes() {
     register struct DiskPartition *part;
     int i;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VListVolumes()");
+    VLog(9, "Entering VListVolumes()");
 
     file = fopen("/vice/vol/VolumeList.temp", "w");
     assert(file != NULL);
@@ -597,7 +597,7 @@ static void VAppendVolume(Volume *vp)
 {
     FILE *file;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VAppendVolume for volume %x", V_id(vp));
+    VLog(9, "Entering VAppendVolume for volume %x", V_id(vp));
     file = fopen("/vice/vol/VolumeList", "a");
     if (file == NULL)
         return;
@@ -616,7 +616,7 @@ void dumpvm()
     
     int fd = open("/vicepa/dumpvm", O_TRUNC | O_WRONLY | O_CREAT, 0666);
     if (fd < 1) {
-	LogMsg(0, VolDebugLevel, stdout, "Couldn't open dumpvm %d", errno);
+	VLog(0, "Couldn't open dumpvm %d", errno);
 	return;
     }
 
@@ -624,14 +624,14 @@ void dumpvm()
     char *p = rds_startaddr;
     for (i = 0, j = 102400; j < rds_rvmsize; i+=102400, j += 102400, p+= 102400) {
 	if (write(fd, (char *)p, 102400) != 102400) {
-	    LogMsg(0, VolDebugLevel, stdout, "Write failed i %d, err %d", i, errno);
+	    VLog(0, "Write failed i %d, err %d", i, errno);
 	    return ;
 	}
     }
     long nbytes = rds_rvmsize - i;
     if (nbytes) 
 	if (write(fd, (char *)p, (int)nbytes) != nbytes) {
-	    LogMsg(0, VolDebugLevel, stdout, "Write failed for address 0x%x size %d", 
+	    VLog(0, "Write failed for address 0x%x size %d", 
 		p, nbytes);
 	}
 
@@ -641,7 +641,7 @@ void dumpvm()
 void VShutdown() {
     int i, camstatus = 0;
 
-    LogMsg(0, VolDebugLevel, stdout, "VShutdown:  shutting down on-line volumes...");
+    VLog(0, "VShutdown:  shutting down on-line volumes...");
 
     for (i=0; i<VOLUME_HASH_TABLE_SIZE; i++) {
         register Volume *vp, *p;
@@ -651,14 +651,14 @@ void VShutdown() {
 	    RVMLIB_BEGIN_TRANSACTION(restore)
 	    vp = VGetVolume(&error, p->hashid);
 	    if ((error != 0) || (!vp)) {
-		LogMsg(0, VolDebugLevel, stdout, "VShutdown: Error %d getting volume %x!",error,p->hashid);
+		VLog(0, "VShutdown: Error %d getting volume %x!",error,p->hashid);
 		rvmlib_abort(-1);
 	    }
-	    LogMsg(0, VolDebugLevel, stdout, "VShutdown: Taking volume %s(0x%x) offline...",
+	    VLog(0, "VShutdown: Taking volume %s(0x%x) offline...",
 		V_name(vp), V_id(vp));
 	    if (vp)
 	        VOffline(vp, "File server was shut down");
-	    LogMsg(0, VolDebugLevel, stdout, "... Done");
+	    VLog(0, "... Done");
 	    RVMLIB_END_TRANSACTION(flush, &(camstatus));
 	    p = p->hashNext;
 	}
@@ -675,29 +675,29 @@ void VShutdown() {
 	    rvm_init_options(&curopts);
 	    ret = rvm_query(&curopts, NULL);
 	    if (ret != RVM_SUCCESS)
-		LogMsg(0, 0, stdout,  "rvm_query returned %s", rvm_return(ret));  
+		VLog(0, 0, stdout,  "rvm_query returned %s", rvm_return(ret));  
 	    else {
-		LogMsg(0, 0, stdout,  "Uncommitted transactions: %d", curopts.n_uncommit);
+		VLog(0, 0, stdout,  "Uncommitted transactions: %d", curopts.n_uncommit);
 	
 		for (i = 0; i < curopts.n_uncommit; i++) {
 		    rvm_abort_transaction(&(curopts.tid_array[i]));
 		    if (ret != RVM_SUCCESS) 
-			LogMsg(0, 0, stdout,
+			VLog(0, 0, stdout,
 			       "ERROR: abort failed, code: %s", rvm_return(ret));
 		}
 	    
 		ret = rvm_query(&curopts, NULL);
 		if (ret != RVM_SUCCESS)
-		    LogMsg(0, 0, stdout,  "rvm_query returned %s", rvm_return(ret));	
+		    VLog(0, 0, stdout,  "rvm_query returned %s", rvm_return(ret));	
 		else 
-		    LogMsg(0, 0, stdout,  "Uncommitted transactions: %d", curopts.n_uncommit);
+		    VLog(0, 0, stdout,  "Uncommitted transactions: %d", curopts.n_uncommit);
 	    }
 	    rvm_free_options(&curopts);
 	}
 
 	dumpvm();
     }    
-    LogMsg(0, VolDebugLevel, stdout, "VShutdown:  complete.");
+    VLog(0, "VShutdown:  complete.");
 }
 
 
@@ -705,8 +705,15 @@ private void WriteVolumeHeader(Error *ec, Volume *vp)
 {
     *ec = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering WriteVolumeHeader for volume %x", V_id(vp));
-    ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
+    VLog(9, "Entering WriteVolumeHeader for volume %x", V_id(vp));
+    if ( rvmlib_in_transaction() ) 
+	    ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
+    else {
+	    RVMLIB_BEGIN_TRANSACTION(restore);
+	    ReplaceVolDiskInfo(ec, V_volumeindex(vp), &V_disk(vp));
+	    RVMLIB_END_TRANSACTION(flush, ec);
+    }
+
     if (*ec != 0)
 	*ec = VSALVAGE;
 }
@@ -729,20 +736,20 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
     char name[32];
     ProgramType *pt;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VAttachVolumeById() for volume %x", volid);
+    VLog(9, "Entering VAttachVolumeById() for volume %x", volid);
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     *ec = 0;
     if (*pt == volumeUtility) {
-	LogMsg(19, VolDebugLevel, stdout, "running as volume utility");
+	VLog(19, "running as volume utility");
 	assert(VInit == 1);
 	DP_LockPartition(partition);
     }
     if (*pt == fileServer) {
-	LogMsg(19, VolDebugLevel, stdout, "running as fileserver");
+	VLog(19, "running as fileserver");
 	vp = VGetVolume(ec, volid);
 	if (vp) {
 	    if (V_inUse(vp)) {
-		LogMsg(1, VolDebugLevel, stdout, "VAttachVolumeById: volume %x already in use",
+		VLog(1, "VAttachVolumeById: volume %x already in use",
 		    V_id(vp));
 		return vp;
 	    }
@@ -759,18 +766,18 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
     strcat(path, "/");
     strcat(path, name);
     if (ExtractVolHeader(volid, &header) != 0) {
-	LogMsg(0, VolDebugLevel, stdout, "VAttachVolumeById: Cannot read volume header %s", path);
+	VLog(0, "VAttachVolumeById: Cannot read volume header %s", path);
 	*ec = VNOVOL;
 	return NULL;
     }
 
     if (header.stamp.magic != VOLUMEHEADERMAGIC) {
-	LogMsg(0, VolDebugLevel, stdout, "VAttachVolumeById: Error reading volume header for %s", path);
+	VLog(0, "VAttachVolumeById: Error reading volume header for %s", path);
 	*ec = VSALVAGE;
 	return NULL;
     }
     if (header.stamp.version != VOLUMEHEADERVERSION) {
-	LogMsg(0, VolDebugLevel, stdout, "VAttachVolumeById: Volume %s, version number %u is incorrect; volume needs salvage",path, header.stamp.version);
+	VLog(0, "VAttachVolumeById: Volume %s, version number %u is incorrect; volume needs salvage",path, header.stamp.version);
 	*ec = VSALVAGE;
 	return NULL;
     }
@@ -780,7 +787,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	rc = FSYNC_askfs(header.id, FSYNC_NEEDVOLUME, mode);
 	*pt = volumeUtility;
 	if (rc == FSYNC_DENIED) {
-	    LogMsg(0, VolDebugLevel, stdout, "VAttachVolumeById: attach of volume %x apparently denied by file server",
+	    VLog(0, "VAttachVolumeById: attach of volume %x apparently denied by file server",
 	        header.id);
 	    *ec = VNOVOL; /* XXXX */
 	    return NULL;
@@ -789,7 +796,7 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
     assert(stat(partition, &status) == 0);
     vp = attach2(ec, path, &header, status.st_dev, partition);
     if (vp == NULL)
-	LogMsg(9, VolDebugLevel, stdout, "VAttachVolumeById: attach2 returns vp == NULL");
+	VLog(9, "VAttachVolumeById: attach2 returns vp == NULL");
 
     if (*pt == volumeUtility && vp == NULL && mode != V_SECRETLY) {
 	/* masquerade as fileserver for FSYNC_askfs call */
@@ -822,12 +829,12 @@ VAttachVolumeById(Error *ec, char *partition, VolumeId volid, int mode)
 	    }
 	}
 	if (VolDebugLevel)
-	    LogMsg(0, VolDebugLevel, stdout, "VAttachVolumeById:  volume %x (%s) attached and online",
+	    VLog(0, "VAttachVolumeById:  volume %x (%s) attached and online",
 		V_id(vp), V_name(vp));
 	if (listVolume && VInit)
 	    VAppendVolume(vp);
     }
-    LogMsg(29, VolDebugLevel, stdout, "returning from VAttachVolumeById()");
+    VLog(29, "returning from VAttachVolumeById()");
     return vp;
 }
 
@@ -838,7 +845,7 @@ static Volume *attach2(Error *ec, char *path, register struct VolumeHeader *head
     ProgramType *pt;
 
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
-    LogMsg(9, VolDebugLevel, stdout, "Entering attach2(); %s running as fileServer",
+    VLog(9, "Entering attach2(); %s running as fileServer",
 	    (*pt==fileServer)?"":"not");
 
 
@@ -868,35 +875,35 @@ static Volume *attach2(Error *ec, char *path, register struct VolumeHeader *head
     /* get the volume index and the VolumeDiskInfo from recoverable storage */
     vp ->vol_index = VolDiskInfoById(ec, header->id, &V_disk(vp));
     if (*ec) {
-	LogMsg(0, VolDebugLevel, stdout, "returned from VolDiskInfoById for id %x with *ec = %d",
+	VLog(0, "returned from VolDiskInfoById for id %x with *ec = %d",
 	    header->id, *ec);
-	LogMsg(0, VolDebugLevel, stdout, "VAttachVolume: Error attaching volume %s; salvage volume!",
+	VLog(0, "VAttachVolume: Error attaching volume %s; salvage volume!",
 	    path);
 	FreeVolume(vp);
 	return NULL;
     }
     
     if (V_needsSalvaged(vp)) {
-	LogMsg(0, VolDebugLevel, stdout, "VAttachVolume: volume salvage flag is ON for %s; volume needs salvage", path);
+	VLog(0, "VAttachVolume: volume salvage flag is ON for %s; volume needs salvage", path);
 	*ec = VSALVAGE;
 	return NULL;
     }
     if (*pt == fileServer) {
 	if (V_inUse(vp) && VolumeWriteable(vp)) {
 	    FreeVolume(vp);
-	    LogMsg(0, VolDebugLevel, stdout, "VAttachVolume: volume %s needs to be salvaged; not attached.", path);
+	    VLog(0, "VAttachVolume: volume %s needs to be salvaged; not attached.", path);
 	    *ec = VSALVAGE;
 	    return NULL;
 	}
 	if (V_destroyMe(vp) == DESTROY_ME) {
 	    FreeVolume(vp);
-	    LogMsg(0, VolDebugLevel, stdout, "VAttachVolume: volume %s is junk; it should be destoyed at next salvage", path);
+	    VLog(0, "VAttachVolume: volume %s is junk; it should be destoyed at next salvage", path);
 	    *ec = VNOVOL;
 	    return NULL;
 	}
     	V_inUse(vp) =
             (V_blessed(vp) && V_inService(vp) && !V_needsSalvaged(vp));
-	LogMsg(9, VolDebugLevel, stdout, "VAttachVolume: setting V_inUse(vp) = %d for volume %x",
+	VLog(9, "VAttachVolume: setting V_inUse(vp) = %d for volume %x",
 		    V_inUse(vp), V_id(vp));
     	if (V_inUse(vp))
     	    V_offlineMessage(vp)[0] = '\0';
@@ -917,7 +924,7 @@ static Volume *attach2(Error *ec, char *path, register struct VolumeHeader *head
 	    }
 	}
     }
-    LogMsg(29, VolDebugLevel, stdout, "Leaving attach2()");
+    VLog(29, "Leaving attach2()");
     return vp;
 }
 
@@ -932,9 +939,9 @@ VAttachVolume(Error *ec, VolumeId volumeId, int mode)
     char part[VMAXPATHLEN];
     int myind;
     
-    LogMsg(9, VolDebugLevel, stdout, "Entering VAttachVolume() for volume %x", volumeId);
+    VLog(9, "Entering VAttachVolume() for volume %x", volumeId);
     if ((myind = HashLookup(volumeId)) == -1) {
-	LogMsg(0, VolDebugLevel, stdout, "VAttachVolume: Volume %x not in index hash table!", volumeId);
+	VLog(0, "VAttachVolume: Volume %x not in index hash table!", volumeId);
 	*ec = VNOVOL;
 	return NULL;
     }
@@ -963,32 +970,31 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
     struct stat status;	/* temp debugging stuff */
     int headerExists = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VGetVolume for volume %x", volumeId);
+    VLog(9, "Entering VGetVolume for volume %x", volumeId);
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     for(;;) {
 	*ec = 0;
 	for (vp = VolumeHashTable[VOLUME_HASH(volumeId)];
 	     vp && vp->hashid != volumeId; vp = vp->hashNext)
-	    ;
+		;
 	if (!vp) {
-	    LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Didnt find volume id %x in hashtable",
-		volumeId);
+	    VLog(29, "VGetVolume: Didnt find id %x in hashtable",
+		 volumeId);
 	    *ec = VNOVOL;
 	    break;
 	}
 	VolumeGets++;
-	LogMsg(19, VolDebugLevel, stdout, "VGetVolume: nUsers == %d", vp->nUsers);
+	VLog(19, "VGetVolume: nUsers == %d", vp->nUsers);
 	if (vp->nUsers == 0) {
-	    LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Calling AvailVolumeHeader()");
+	    VLog(29, "VGetVolume: Calling AvailVolumeHeader()");
 	    if (AvailVolumeHeader(vp)){
-		LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Calling GetVolumeHeader()");
+		VLog(29, "VGetVolume: Calling GetVolumeHeader()");
 		headerExists = GetVolumeHeader(vp);
-		LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Finished GetVolumeHeader()");
-	    }
-	    else if (vp->nUsers == 0) {
+		VLog(29, "VGetVolume: Finished GetVolumeHeader()");
+	    } else if (vp->nUsers == 0) {
 		/* must wrap transaction around volume replacement */
 		int cstat = 0;
-		LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Calling GetVolumeHeader()");
+		VLog(29, "VGetVolume: Calling GetVolumeHeader()");
 		if (rvmlib_in_transaction()) 
 		    headerExists = GetVolumeHeader(vp);
 		else {
@@ -996,9 +1002,9 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 		    headerExists = GetVolumeHeader(vp);
 		    RVMLIB_END_TRANSACTION(flush, &(cstat));
 		}
-		LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Finished GetVolumeHeader()");
+		VLog(29, "VGetVolume: Finished GetVolumeHeader()");
 		if (cstat){
-   		    LogMsg(0, VolDebugLevel, stdout, "VGetVolume: WriteVolumeHeader failed!");
+   		    VLog(0, "VGetVolume: WriteVolumeHeader failed!");
 		    assert(0);
 		}
 	    }
@@ -1012,7 +1018,7 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 		     * by the volume being deleted
 		     */
 		    if (errno != ENXIO || VolDebugLevel)
-			LogMsg(0, VolDebugLevel, stdout, "Volume %x: couldn't reread volume header",
+			VLog(0, "Volume %x: couldn't reread volume header",
 								vp->hashid);
 		    FreeVolume(vp);
 		    vp = 0;
@@ -1022,38 +1028,38 @@ Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 	}
 	
     /* temp debugging stuff */
-	LogMsg(39, VolDebugLevel, stdout, "VGetVolume: partition name for volume %x is %s",
+	VLog(39, "VGetVolume: partition name for volume %x is %s",
 				V_id(vp), V_partname(vp));
 	assert(stat(V_partname(vp), &status) == 0);
-	LogMsg(39, VolDebugLevel, stdout, "VGetVolume: vp->device = %u, disk.device = %u",
+	VLog(39, "VGetVolume: vp->device = %u, disk.device = %u",
 				V_device(vp),  status.st_dev);
 
 	if (vp->shuttingDown) {
-	    LogMsg(29, VolDebugLevel, stdout, "VGetVolume: volume %x is shutting down",
+	    VLog(29, "VGetVolume: volume %x is shutting down",
 		V_id(vp));
 	    *ec = VNOVOL;
 	    vp = 0;
 	    break;
 	}
 	if (vp->goingOffline) {
-	    LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Volume %x is going offline",
+	    VLog(29, "VGetVolume: Volume %x is going offline",
 		V_id(vp));
 	    LWP_WaitProcess((char *)VPutVolume);
 	    continue;
 	}
 	if (vp->specialStatus){
-	    LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Volume %x has special status",
+	    VLog(29, "VGetVolume: Volume %x has special status",
 		V_id(vp));
 	    *ec = vp->specialStatus;
 	}
 	else if (V_inService(vp)==0 || V_blessed(vp)==0){
-	    LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Vol %x not in service",
+	    VLog(29, "VGetVolume: Vol %x not in service",
 		V_id(vp));
 	    *ec = VNOSERVICE; /* Either leave vp set or do ReleaseVolHeader */
 	    /* Not sure which is better... */
 	}
 	else if (V_inUse(vp)==0){
-	    LogMsg(29, VolDebugLevel, stdout, "VGetVolume: Vol %x is offline", V_id(vp));
+	    VLog(29, "VGetVolume: Vol %x is offline", V_id(vp));
 	    *ec = VOFFLINE;
 	}
 	vp->nUsers++;               
@@ -1076,7 +1082,7 @@ void VPutVolume(register Volume *vp)
 {
     ProgramType *pt;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VPutVolume for volume %x", V_id(vp));
+    VLog(9, "Entering VPutVolume for volume %x", V_id(vp));
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     assert(--(vp->nUsers) >= 0);
     if (vp->nUsers == 0) {
@@ -1087,14 +1093,14 @@ void VPutVolume(register Volume *vp)
 	    assert(*pt == fileServer);
 	    vp->goingOffline = 0;
 	    V_inUse(vp) = 0;
-	    LogMsg(1, VolDebugLevel, stdout, "VPutVolume: writing volume %x; going offline", V_id(vp));
+	    VLog(1, "VPutVolume: writing volume %x; going offline", V_id(vp));
 	    VUpdateVolume(&error, vp);	 /* write out the volume disk data */
 	    if (VolDebugLevel) {
-		LogMsg(0, VolDebugLevel, stdout, "VPutVolume: Volume %x (%s) is now offline",
+		VLog(0, "VPutVolume: Volume %x (%s) is now offline",
 		    V_id(vp), V_name(vp));
 		if (V_offlineMessage(vp)[0])
-		    LogMsg(0, VolDebugLevel, stdout, " (%s)", V_offlineMessage(vp));
-		LogMsg(0, VolDebugLevel, stdout, "");
+		    VLog(0, " (%s)", V_offlineMessage(vp));
+		VLog(0, "");
 	    }
 	    LWP_SignalProcess((char *)VPutVolume);
 	}
@@ -1104,7 +1110,7 @@ void VPutVolume(register Volume *vp)
 	        LWP_SignalProcess((char *)VPutVolume);
 	}
     }
-    else LogMsg(1, VolDebugLevel, stdout, "VPutVolume (%x): NO-OP since vp->nUsers = %d", 
+    else VLog(1, "VPutVolume (%x): NO-OP since vp->nUsers = %d", 
 						V_id(vp), vp->nUsers + 1);
 }
 
@@ -1114,13 +1120,13 @@ void VForceOffline(Volume *vp)
 {
     Error error;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VForceOffline() for volume %x", V_id(vp));
+    VLog(9, "Entering VForceOffline() for volume %x", V_id(vp));
     if (!V_inUse(vp))
        return;
     strcpy(V_offlineMessage(vp), "Forced offline due to internal error: volume needs to be salvaged");
-    LogMsg(0, VolDebugLevel, stdout, "Volume %x forced offline:  it needs to be salvaged!", V_id(vp));
+    VLog(0, "Volume %x forced offline:  it needs to be salvaged!", V_id(vp));
     V_inUse(vp) = 0;
-    LogMsg(1, VolDebugLevel, stdout, "VForceOffline: setting V_inUse(%x) = 0 and writing out voldiskinfo", V_id(vp));
+    VLog(1, "VForceOffline: setting V_inUse(%x) = 0 and writing out voldiskinfo", V_id(vp));
     vp->goingOffline = 0;    
     V_needsSalvaged(vp) = 1;
     VUpdateVolume(&error, vp);
@@ -1138,13 +1144,13 @@ void VOffline(Volume *vp, char *message)
     ProgramType *pt;
 
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
-    LogMsg(9, VolDebugLevel, stdout, "Entering VOffline for volume %x, running as %s",
+    VLog(9, "Entering VOffline for volume %x, running as %s",
 			V_id(vp), (*pt == fileServer)?"fileServer":((*pt == volumeUtility)?"volumeUtility":"fileUtility"));
 
     /* if called by volumeUtility, have fileserver put volume */
     /* back on line */
     if (*pt == volumeUtility) {
-	LogMsg(9, VolDebugLevel, stdout, "VOffline: volumeUtility relinquishing volume %x to fileServer",
+	VLog(9, "VOffline: volumeUtility relinquishing volume %x to fileServer",
 		V_id(vp));
 	*pt = fileServer;
 	FSYNC_askfs(V_id(vp), FSYNC_ON, 0);
@@ -1177,7 +1183,7 @@ void VDetachVolume(Error *ec, Volume *vp)
     int notifyServer;
     ProgramType *pt;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VDetachVolume() for volume %x", V_id(vp));
+    VLog(9, "Entering VDetachVolume() for volume %x", V_id(vp));
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     *ec = 0;	/* always "succeeds" */
     if (*pt == volumeUtility)
@@ -1209,17 +1215,17 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
 {
     *ec = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "VAllocBitmapEntry: volume = %x, count = %d, stride = %d, ix = %d",
+    VLog(9, "VAllocBitmapEntry: volume = %x, count = %d, stride = %d, ix = %d",
 	 V_id(vp), count, stride, ix);
     assert(count > 0 && stride > 0 && ix >= 0);
 
     if (index->bitmap == NULL) {
-	LogMsg(0, VolDebugLevel, stdout, "VAllocBitmapEntry: uninitialized bitmap");
+	VLog(0, "VAllocBitmapEntry: uninitialized bitmap");
 	*ec = VFAIL;
 	return(0);
     }
 
-    LogMsg(19, VolDebugLevel, stdout, "VAllocBitmapEntry: bitmapOffset = %d, bitmapSize = %d",
+    VLog(19, "VAllocBitmapEntry: bitmapOffset = %d, bitmapSize = %d",
 	 index->bitmapOffset, index->bitmapSize);
     byte *bp = index->bitmap + index->bitmapOffset;	/* ptr to first byte of first word */
 							/* containing a free bit */
@@ -1249,7 +1255,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
 	    }
 	}
     }
-    LogMsg(19, VolDebugLevel, stdout, "VAllocBitmapEntry: sbn = %d (bbn = %d, ebn = %d)", sbn, bbn, ebn);
+    VLog(19, "VAllocBitmapEntry: sbn = %d (bbn = %d, ebn = %d)", sbn, bbn, ebn);
 
     /* Compute the number of bitmap bytes needed to satisfy this allocation, and grow the map if needed. */
     int newsize = (((sbn + (count - 1) * stride) / 32 + 1) * 4);
@@ -1260,7 +1266,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
 	    newsize = index->bitmapSize + growsize;
 	}
 
-	LogMsg(1, VolDebugLevel, stdout, "VAllocBitmapEntry: realloc'ing from %x to %x",
+	VLog(1, "VAllocBitmapEntry: realloc'ing from %x to %x",
 	    index->bitmapSize, newsize);
 	index->bitmap = (byte *)realloc(index->bitmap, newsize);
 	assert(index->bitmap != NULL);
@@ -1290,16 +1296,16 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index,
 int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index, VnodeId vnode) {
     *ec = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "VAllocBitmapEntry: volume = %x, vnode = %x",
+    VLog(9, "VAllocBitmapEntry: volume = %x, vnode = %x",
 	 V_id(vp), vnode);
 
     if (index->bitmap == NULL) {
 	*ec = VFAIL;
-	LogMsg(0, VolDebugLevel, stdout, "VAllocBitmapEntry: uninitialized bitmap");
+	VLog(0, "VAllocBitmapEntry: uninitialized bitmap");
 	return(0);
     }
 
-    LogMsg(19, VolDebugLevel, stdout, "VAllocBitmapEntry: bitmapOffset = %d, bitmapSize = %d",
+    VLog(19, "VAllocBitmapEntry: bitmapOffset = %d, bitmapSize = %d",
 	 index->bitmapOffset, index->bitmapSize);
     int cbn = (int)vnodeIdToBitNumber(vnode);
     byte *cbp = index->bitmap + (cbn / 8);		/* ptr to byte containing requested bit */
@@ -1317,7 +1323,7 @@ int VAllocBitmapEntry(Error *ec, Volume *vp, struct vnodeIndex *index, VnodeId v
 	    newsize = index->bitmapSize + growsize;
 	}
 
-	LogMsg(1, VolDebugLevel, stdout, "VAllocBitmapEntry: realloc'ing from %x to %x",
+	VLog(1, "VAllocBitmapEntry: realloc'ing from %x to %x",
 	    index->bitmapSize, newsize);
 	index->bitmap = (byte *)realloc(index->bitmap, newsize);
 	assert(index->bitmap != NULL);
@@ -1346,7 +1352,7 @@ void VFreeBitMapEntry(Error *ec, register struct vnodeIndex *index, int bitNumbe
      int offset;
      *ec = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VFreeBitMapEntry() for bitNumber %d", bitNumber);
+    VLog(9, "Entering VFreeBitMapEntry() for bitNumber %d", bitNumber);
      offset = bitNumber>>3;
      if (offset > index->bitmapSize) {
 	*ec = VNOVNODE;
@@ -1364,17 +1370,14 @@ void VUpdateVolume(Error *ec,Volume *vp)
 {
     ProgramType *pt;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VUpdateVolume() for volume %x", V_id(vp));
+    VLog(9, "Entering VUpdateVolume() for volume %x", V_id(vp));
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     *ec = 0;
-/*
-    if (*pt == fileServer) 
-   	V_uniquifier(vp) = (V_inUse(vp)? V_nextVnodeUnique(vp) + 200: V_nextVnodeUnique(vp));
-*/
+
     WriteVolumeHeader(ec, vp);
     if (*ec) {
-	LogMsg(0, VolDebugLevel, stdout, 	  "VUpdateVolume: error updating volume header, volume %x (%s)",
-	    V_id(vp), V_name(vp));
+	VLog(0, "VUpdateVolume: error updating volume header, volume %x (%s)",
+	     V_id(vp), V_name(vp));
         VForceOffline(vp);
     }
 }
@@ -1407,7 +1410,7 @@ void FreeVolume(Volume *vp)
     int i;
     ProgramType *pt;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering FreeVolume for volume %x", V_id(vp));
+    VLog(9, "Entering FreeVolume for volume %x", V_id(vp));
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
     if (!vp)
     	return;
@@ -1433,7 +1436,7 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
     register Unique_t unique = 0;
     int bitNumber = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering GetBitmap() for volume %x, vclass = %d",
+    VLog(9, "Entering GetBitmap() for volume %x, vclass = %d",
 						    V_id(vp), vclass);
     *ec = 0;
     vindex vol_index(V_id(vp), vclass, vp->device, vcp->diskSize);
@@ -1455,13 +1458,13 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
     vnode = (VnodeDiskObject *)bigbuf;
 
     vip->bitmap = (byte *) malloc(vip->bitmapSize);
-    LogMsg(9, VolDebugLevel, stdout, "GetBitmap: allocating bitmap of %d bytes; array size %d",
+    VLog(9, "GetBitmap: allocating bitmap of %d bytes; array size %d",
 					    vip->bitmapSize, slots);
     assert(vip->bitmap != NULL);
     bzero(vip->bitmap, vip->bitmapSize);
     vip->bitmapOffset = 0;
     if ((vip->bitmapSize << 3) > slots) {
-	LogMsg(1, VolDebugLevel, stdout, "GetBitmap: bitmapSize = %d bits, only %d array slots",
+	VLog(1, "GetBitmap: bitmapSize = %d bits, only %d array slots",
 		(vip->bitmapSize << 3), slots);
 	GrowVnodes(V_id(vp), vclass, vip->bitmapSize);
     }
@@ -1470,33 +1473,33 @@ static void GetBitmap(Error *ec, Volume *vp, VnodeClass vclass)
     bitmap_flag = 1;
     while ((bitNumber = vnext(vnode)) != -1) {
         if (vnode->vnodeMagic != vcp->magic) {
-	    LogMsg(0, VolDebugLevel, stdout, "GetBitmap: addled vnode index in volume %s; volume needs salvage", V_name(vp));
-	    LogMsg(0, VolDebugLevel, stdout, "GetBitmap: vnodeMagic = 0x%x; vcp magic = 0x%x", 
+	    VLog(0, "GetBitmap: addled vnode index in volume %s; volume needs salvage", V_name(vp));
+	    VLog(0, "GetBitmap: vnodeMagic = 0x%x; vcp magic = 0x%x", 
 		vnode->vnodeMagic, vcp->magic);
-	    LogMsg(0, VolDebugLevel, stdout, "GetBitmap: Printing vnode(addr: 0x%x) at bitnumber = 0x%x",
+	    VLog(0, "GetBitmap: Printing vnode(addr: 0x%x) at bitnumber = 0x%x",
 		vnode, bitNumber);
 	    print_VnodeDiskObject(vnode);
-	    LogMsg(0, VolDebugLevel, stdout, "GetBitmap: Print Vnode returned");
+	    VLog(0, "GetBitmap: Print Vnode returned");
 	    *ec = VSALVAGE;
 	    break;
 	}
-	LogMsg(29, VolDebugLevel, stdout, "GetBitmap: found vnode at index %d", bitNumber);
+	VLog(29, "GetBitmap: found vnode at index %d", bitNumber);
 	*(vip->bitmap + (bitNumber>>3)) |= (1 << (bitNumber & 0x7));
-	LogMsg(29, VolDebugLevel, stdout, "results of or: *(vip->bitmap + bitNumber >> 3) = %o",
+	VLog(29, "results of or: *(vip->bitmap + bitNumber >> 3) = %o",
 				*(vip->bitmap + (bitNumber >> 3)));
 	if (unique <= vnode->uniquifier)
 	    unique = vnode->uniquifier + 1; 
     }
 
     if (vp->nextVnodeUnique < unique) {
-	LogMsg(0, VolDebugLevel, stdout, "GetBitmap: bad volume uniquifier for volume %s; volume needs salvage", V_name(vp));
+	VLog(0, "GetBitmap: bad volume uniquifier for volume %s; volume needs salvage", V_name(vp));
 	*ec = VSALVAGE;
     }
 }
 
 int VolumeNumber(char *name)
 {
-    LogMsg(9, VolDebugLevel, stdout, "Entering VolumeNumber for volume %s", name);
+    VLog(9, "Entering VolumeNumber for volume %s", name);
     if (*name == '/')
         name++;
     return atoi(name+1);
@@ -1505,7 +1508,7 @@ int VolumeNumber(char *name)
 char *VolumeExternalName(VolumeId volumeId)
 {
     static char name[15];
-    LogMsg(9, VolDebugLevel, stdout, "Entering VolumeExternalName for volume %x", volumeId);
+    VLog(9, "Entering VolumeExternalName for volume %x", volumeId);
     sprintf(name,VFORMAT,volumeId);
     return name;
 }
@@ -1517,7 +1520,7 @@ static void VAdjustVolumeStatistics(register Volume *vp)
 {
     unsigned int now = FT_ApproxTime();
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VAdjustVolumeStatistics for volume %x", V_id(vp));
+    VLog(9, "Entering VAdjustVolumeStatistics for volume %x", V_id(vp));
     if (now - V_dayUseDate(vp) > OneDay) {
         register long ndays, i;
 	ndays = (now - V_dayUseDate(vp)) / OneDay;
@@ -1537,12 +1540,12 @@ void VBumpVolumeUsage(register Volume *vp)
     unsigned int now = FT_ApproxTime();
     int status = 0;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VBumpVolumeUsage for volume %x", V_id(vp));
+    VLog(9, "Entering VBumpVolumeUsage for volume %x", V_id(vp));
     if (now - V_dayUseDate(vp) > OneDay)
 	VAdjustVolumeStatistics(vp);
     if ((V_dayUse(vp)++ & 127) == 0) {
 	Error error;
-	LogMsg(1, VolDebugLevel, stdout, "VBumpVolumeUsage: writing out VolDiskInfo (vol %x)",
+	VLog(1, "VBumpVolumeUsage: writing out VolDiskInfo (vol %x)",
 			V_id(vp));
 	RVMLIB_BEGIN_TRANSACTION(restore)
 	VUpdateVolume(&error, vp);
@@ -1553,7 +1556,7 @@ void VBumpVolumeUsage(register Volume *vp)
 void VSetDiskUsage() {
     static FifteenMinuteCounter;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VSetDiskUsage()");
+    VLog(9, "Entering VSetDiskUsage()");
     DP_ResetUsage();
     if (++FifteenMinuteCounter == 3) {
 	FifteenMinuteCounter = 0;
@@ -1573,13 +1576,13 @@ static int updateSize;		/* number of entries possible */
 
 void VAddToVolumeUpdateList(Error *ec, register Volume *vp)
 {
-    LogMsg(9, VolDebugLevel, stdout, "Entering VAddToVolumeUpdateList for volume %x", V_id(vp));
+    VLog(9, "Entering VAddToVolumeUpdateList for volume %x", V_id(vp));
 
     *ec = 0;
     vp->updateTime = FT_ApproxTime();
     if (V_dontSalvage(vp) == 0){
-	LogMsg(29, VolDebugLevel, stdout, "VAddToVolumeUpdateList: salvage was 0 - so not updating volume");
-	LogMsg(29, VolDebugLevel, stdout, "Leaving VAddToVolumeUpdateList()");
+	VLog(29, "VAddToVolumeUpdateList: salvage was 0 - so not updating volume");
+	VLog(29, "Leaving VAddToVolumeUpdateList()");
 	return;
     }
     V_dontSalvage(vp) = 0;
@@ -1588,7 +1591,7 @@ void VAddToVolumeUpdateList(Error *ec, register Volume *vp)
     VUpdateVolume(ec, vp);
 
     if (*ec || camstatus){
-	LogMsg(29, VolDebugLevel, stdout, "VAddToVolumeUpdateList: Error during Update Volume; returning");
+	VLog(29, "VAddToVolumeUpdateList: Error during Update Volume; returning");
 	return;
     }
     if (!UpdateList) {
@@ -1600,10 +1603,10 @@ void VAddToVolumeUpdateList(Error *ec, register Volume *vp)
 	    UpdateList = (VolumeId *) realloc((char *)UpdateList, sizeof (VolumeId) * updateSize);
 	}
     }
-    LogMsg(29, VolDebugLevel, stdout, "VAddToVolumeUpdateList: Adding volume %x to update list", 
+    VLog(29, "VAddToVolumeUpdateList: Adding volume %x to update list", 
 	 V_id(vp));
     UpdateList[nUpdatedVolumes++] = V_id(vp);
-    LogMsg(29, VolDebugLevel, stdout, "Leaving VAddToVolumeUpdateList()");
+    VLog(29, "Leaving VAddToVolumeUpdateList()");
 }
 
 static void VScanUpdateList() {
@@ -1612,38 +1615,38 @@ static void VScanUpdateList() {
     Error error;
     long now = FT_ApproxTime();
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering VScanUpdateList()");
+    VLog(9, "Entering VScanUpdateList()");
     /* Be careful with this code, since it works with interleaved calls to AddToVolumeUpdateList */
     for (i = gap = 0; i<nUpdatedVolumes; i++) {
-	LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: Going to call VGetVolume ");
+	VLog(29, "ScanUpdateList: Going to call VGetVolume ");
         vp = VGetVolume(&error, UpdateList[i-gap] = UpdateList[i]);
-	LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: Just returned from VGetVolume");
+	VLog(29, "ScanUpdateList: Just returned from VGetVolume");
 	if (error) {
-	    LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: Error %d in VGetVolume", error);
+	    VLog(29, "ScanUpdateList: Error %d in VGetVolume", error);
 	    gap++;
 	}
 	else if (vp->nUsers == 1 && now - vp->updateTime > SALVAGE_INTERVAL) {
-	    LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: Going to set salvage flag for volume %x", V_id(vp));
+	    VLog(29, "ScanUpdateList: Going to set salvage flag for volume %x", V_id(vp));
 	    int cstat = 0;
 	    V_dontSalvage(vp) = DONT_SALVAGE;
 	    RVMLIB_BEGIN_TRANSACTION(restore)
 	    VUpdateVolume(&error, vp); /* No need to fsync--not critical */
 	    RVMLIB_END_TRANSACTION(flush, &(cstat));
-	      LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: Finished UPdating Volume %x",
+	      VLog(29, "ScanUpdateList: Finished UPdating Volume %x",
 		  V_id(vp));
 	    gap++;
 	}
 	if (vp){
-	    LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: Going to Put volume %x", 
+	    VLog(29, "ScanUpdateList: Going to Put volume %x", 
 		V_id(vp));
 	    VPutVolume(vp);
 	}
 	LWP_DispatchProcess();
     }
     nUpdatedVolumes -= gap;
-    LogMsg(29, VolDebugLevel, stdout, "ScanUpdateList: nUpdatedVolumes = %d",
+    VLog(29, "ScanUpdateList: nUpdatedVolumes = %d",
 	 nUpdatedVolumes);
-    LogMsg(29, VolDebugLevel, stdout, "Leaving ScanUpdateList()");
+    VLog(29, "Leaving ScanUpdateList()");
 }
 
 /***************************************************/
@@ -1663,73 +1666,68 @@ void InitLRU(int howMany)
 }
 
 /* Get a volume header from the LRU list; update the old one if necessary */
-/* Returns 1 if there was already a header, which is removed from the LRU list */
+/* Returns 1 if there was already a header, 
+   which is removed from the LRU list */
 static int GetVolumeHeader(register Volume *vp)
 {
-    Error error;
-    register struct volHeader *hd;
-    int old;
-
-    LogMsg(9, VolDebugLevel, stdout, "Entering GetVolumeHeader()");
-    old = (vp->header != 0);
-
-    if (old) {
-	hd = vp->header;
-	if (volumeLRU == hd)
-	    volumeLRU = hd->next;
-	assert(hd->back == vp);
-    }
-    else {
-	hd = volumeLRU->prev; /* not currently in use and least recently used */
-	if (hd->back) {
-	    if (hd->diskstuff.inUse) {
-		LogMsg(1, VolDebugLevel, stdout, "storing VolumeDiskInfo (%x) to reclaim cache slot",
-			    hd->diskstuff.id);
-		WriteVolumeHeader(&error, hd->back);
-		/* Ignore errors; catch them later */
-	    }
-	    hd->back->header = 0;
+	Error error;
+	register struct volHeader *hd;
+	int old;
+	
+	VLog(9, "Entering GetVolumeHeader()");
+	old = (vp->header != 0);
+	
+	if (old) {
+		hd = vp->header;
+		if (volumeLRU == hd)
+			volumeLRU = hd->next;
+		assert(hd->back == vp);
+	} else {
+		/* not currently in use and least recently used */
+		hd = volumeLRU->prev; 
+		if (hd->back) {
+			if (hd->diskstuff.inUse) {
+				VLog(1, "storing VolumeDiskInfo (%x) to reclaim cache slot",
+				     hd->diskstuff.id);
+				WriteVolumeHeader(&error, hd->back);
+				/* Ignore errors; catch them later */
+			}
+			hd->back->header = 0;
+		}
+		hd->back = vp;
+		vp->header = hd;
 	}
-	hd->back = vp;
-    	vp->header = hd;
-    }
-    LogMsg(29, VolDebugLevel, stdout, "GVH: setting hd->prev->next = ");
-    hd->prev->next = hd->next;
-    LogMsg(29, VolDebugLevel, stdout, "%x", hd->prev->next);
-    LogMsg(29, VolDebugLevel, stdout, "GetVolumeHeader: hd->next = 0x%x, hd->prev = 0x%x",
-		    hd->next, hd->prev);
-    LogMsg(29, VolDebugLevel, stdout, "GetVolumeHeader: hd->next->prev = ");
-    LogMsg(29, VolDebugLevel, stdout, "0x%x", hd->next->prev);
-    hd->next->prev = hd->prev;
-    hd->next = hd->prev = 0;
+	hd->prev->next = hd->next;
+	hd->next->prev = hd->prev;
+	hd->next = hd->prev = 0;
 
-    return old;
+	return old;
 }
 
 static int AvailVolumeHeader(register Volume *vp)
 {
     register struct volHeader *hd;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering AvailVolumeHeader()");
+    VLog(9, "Entering AvailVolumeHeader()");
 
     if (vp->header == 0) {
 	hd = volumeLRU->prev;/* not currently in use and least recently used */
 	if (hd->back) {
 	    if (hd->diskstuff.inUse) {
-		LogMsg(29, VolDebugLevel, stdout, "AvailVolumeHeader returns 0");
+		VLog(29, "AvailVolumeHeader returns 0");
 		return(0);
 	    }
 	}
     }
 
-    LogMsg(29, VolDebugLevel, stdout, "AvailVolumeHeader returns 1");
+    VLog(29, "AvailVolumeHeader returns 1");
     return (1);
 }
 
 /* Put it at the top of the LRU chain */
 static void ReleaseVolumeHeader(register struct volHeader *hd)
 {
-    LogMsg(61, VolDebugLevel, stdout, "Entering ReleaseVolumeHeader");
+    VLog(61, "Entering ReleaseVolumeHeader");
     if (!hd || hd->next) /* no header, or header already released */
 	return;
     if (!volumeLRU) {
@@ -1747,7 +1745,7 @@ void FreeVolumeHeader(register Volume *vp)
 {
     register struct volHeader *hd = vp->header;
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering FreeVolumeHeader for volume %x", V_id(vp));
+    VLog(9, "Entering FreeVolumeHeader for volume %x", V_id(vp));
     if (!hd)
 	return;
 
@@ -1773,20 +1771,19 @@ static void AddVolumeToHashTable(register Volume *vp, int hashid)
 {
     int hash = VOLUME_HASH(hashid);
     Volume *vptr;
-    LogMsg(9, VolDebugLevel, stdout, "Entering AddVolumeToHashTable for volume %x, hashid %u",
+    VLog(9, "Entering AddVolumeToHashTable for volume %x, hashid %u",
 					V_id(vp), hashid);
 
     /* Do some sanity checking before performing insert. */
     if (hashid != V_id(vp)) {
-	LogMsg(0, VolDebugLevel, stdout, "VolHashTable: hashid %x != V_id(vp).", hashid, V_id(vp));
-	LogMsg(0, VolDebugLevel, stderr, "VolHashTable: hashid %x != V_id(vp).", hashid, V_id(vp));
+	VLog(0, "VolHashTable: hashid %x != V_id(vp).", hashid, V_id(vp));
+	VLog(0, VolDebugLevel, stderr, "VolHashTable: hashid %x != V_id(vp).", hashid, V_id(vp));
     }
 
     vptr = VolumeHashTable[hash];	/* Check the bucket for duplicates. */
     while (vptr) {
 	if (vptr->hashid == vp->hashid) {
-	    LogMsg(0, VolDebugLevel, stdout, "VolHashTable: Adding another volume with id %x.", hashid);
-	    LogMsg(0, VolDebugLevel, stderr, "VolHashTable: Adding another volume with id %x.", hashid);
+	    VLog(0, "VolHashTable: Adding another volume with id %x.", hashid);
 	}
 	vptr = vptr->hashNext;
     }
@@ -1807,13 +1804,13 @@ void DeleteVolumeFromHashTable(register Volume *vp)
 {
     unsigned long hash = VOLUME_HASH(vp->hashid);
 
-    LogMsg(9, VolDebugLevel, stdout, "Entering DeleteVolumeFromHashTable");
+    VLog(9, "Entering DeleteVolumeFromHashTable");
 
     if (vp->header)			  /* Put LRU entry back on queue */
 	ReleaseVolumeHeader(vp->header);
 
     if (VolumeHashTable[hash] == vp){
-	LogMsg(29, VolDebugLevel, stdout, "DeleteVolumeFromHashTable: Deleting volume %x from hash table",
+	VLog(29, "DeleteVolumeFromHashTable: Deleting volume %x from hash table",
 	    vp->hashid);
 	VolumeHashTable[hash] = vp->hashNext;
     }
@@ -1826,7 +1823,7 @@ void DeleteVolumeFromHashTable(register Volume *vp)
 	if (tvp->hashNext == NULL)
 	    return;
 	tvp->hashNext = vp->hashNext;
-	LogMsg(29, VolDebugLevel, stdout, "DeleteVolumeHashTable: Deleting volume %x from hashtable", vp->hashid);
+	VLog(29, "DeleteVolumeHashTable: Deleting volume %x from hashtable", vp->hashid);
     }
     vp->hashid = 0;
 }
@@ -1834,14 +1831,14 @@ void DeleteVolumeFromHashTable(register Volume *vp)
 void VPrintCacheStats(FILE *fp) {
     register struct VnodeClassInfo *vcp;
     vcp = &VnodeClassInfo_Array[vLarge];
-    LogMsg(0, 0, fp, 
+    VLog(0,
 	   "Large vnode cache, %d entries, %d allocs, %d gets (%d reads), %d writes",
 	   vcp->cacheSize, vcp->allocs, vcp->gets, vcp->reads, vcp->writes);
     vcp = &VnodeClassInfo_Array[vSmall];
-    LogMsg(0, 0, fp, 
+    VLog(0,
 	   "Small vnode cache,%d entries, %d allocs, %d gets (%d reads), %d writes",
 	   vcp->cacheSize, vcp->allocs, vcp->gets, vcp->reads, vcp->writes);
-    LogMsg(0, 0, fp, 
+    VLog(0,
 	   "Volume header cache, %d entries, %d gets, %d replacements",
 	   VolumeCacheSize, VolumeGets, VolumeReplacements);
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/compops.cc,v 4.3 1998/08/31 12:23:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/compops.cc,v 4.4 1998/10/05 17:15:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -79,7 +79,8 @@ static void PrintArrList(arrlist *, char *);
 static void PrintRemoteLogs(olist **, int );
 static void PrintLogList(olist *);
 
-arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid) {
+arrlist *ComputeCompOps(olist *AllLogs, ViceFid *Fid) 
+{
     int nrmtsites = 0;
     arrlist *sllog = NULL;
     olist **rmtlogs = NULL;
@@ -437,7 +438,8 @@ static int IsLater(rsle *a, rsle *b) {
 
 // routines to print out different logs 
 // for debugging
-static void PrintArrList(arrlist *a, char *s) {
+static void PrintArrList(arrlist *a, char *s) 
+{
     printf("*** %s Begin *** \n", s);
     arrlist_iterator next(a);
     rsle *r;

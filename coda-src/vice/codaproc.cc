@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.15 1998/10/21 22:23:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.16 1998/10/28 19:58:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -185,7 +185,7 @@ long ViceProbe(RPC2_Handle cid, RPC2_CountedBS *Vids, RPC2_CountedBS *VVs)
 
     VVs->SeqLen = 0;
 
-    LogMsg(1, SrvDebugLevel, stdout,  "ViceProbe, ");
+    SLog(1,  "ViceProbe, ");
 
     return(errorCode);
 }
@@ -205,7 +205,7 @@ long ViceAllocFids(RPC2_Handle cid, VolumeId Vid,
     int	stride, ix;
 
 START_TIMING(AllocFids_Total);
-    LogMsg(1, SrvDebugLevel, stdout,  "ViceAllocFids: Vid = %x, Type = %d, Count = %d, AllocHost = %x",
+    SLog(1,  "ViceAllocFids: Vid = %x, Type = %d, Count = %d, AllocHost = %x",
 	     Vid, Type, Range->Count, AllocHost);
 
     /* Validate parameters. */
@@ -224,7 +224,7 @@ START_TIMING(AllocFids_Total);
 	/* Translate the GroupVol into this host's RWVol. */
 	/* This host's {stride, ix} are returned as side effects; they will be needed in the Alloc below. */
 	if (!XlateVid(&Vid, &stride, &ix)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "ViceAllocFids: XlateVid (%x) failed", VSGVolnum);
+	    SLog(0,  "ViceAllocFids: XlateVid (%x) failed", VSGVolnum);
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
@@ -246,7 +246,7 @@ START_TIMING(AllocFids_Total);
     if (ThisHostAddr == AllocHost) {
 	/* Get the volume. */
 	if (errorCode = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "ViceAllocFids: GetVolObj error %s", ViceErrorMsg((int) errorCode));
+	    SLog(0,  "ViceAllocFids: GetVolObj error %s", ViceErrorMsg((int) errorCode));
 	    goto FreeLocks;
 	}
 
@@ -254,7 +254,7 @@ START_TIMING(AllocFids_Total);
 	if (Range->Count > MaxFidAlloc)
 	    Range->Count = MaxFidAlloc;
 	if (errorCode = VAllocFid(volptr, Type, Range, stride, ix)) {
-	    LogMsg(0, SrvDebugLevel, stdout,  "ViceAllocFids: VAllocVnodes error %s", ViceErrorMsg((int) errorCode));
+	    SLog(0,  "ViceAllocFids: VAllocVnodes error %s", ViceErrorMsg((int) errorCode));
 	    goto FreeLocks;
 	}
     }
@@ -265,7 +265,7 @@ START_TIMING(AllocFids_Total);
 FreeLocks:
     PutVolObj(&volptr, VOL_NO_LOCK);
 
-    LogMsg(2, SrvDebugLevel, stdout,  "ViceAllocFids returns %s (count = %d)",
+    SLog(2,  "ViceAllocFids returns %s (count = %d)",
 	     ViceErrorMsg((int) errorCode), Range->Count);
 END_TIMING(AllocFids_Total);
     return(errorCode);
@@ -331,10 +331,11 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
     ResPathElem *pathelembuf = NULL;
     int j;
 
-    if ( Fid ) 
-        VSGVolnum = Fid->Volume;
-    else { 
-	LogMsg(0, SrvDebugLevel, stdout, "ViceResolve: I was handed NULL Fid");
+    if ( Fid ) { 
+	    SLog(2,  "ViceResolve(%d, %s)", cid, FID_(Fid));
+	    VSGVolnum = Fid->Volume;
+    } else { 
+	SLog(0, "ViceResolve: I was handed NULL Fid");
 	assert(0);
     }
 
@@ -344,8 +345,6 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 	PROBE(FileresTPinfo, COORDSTARTVICERESOLVE);
     }
     
-    LogMsg(100, SrvDebugLevel, stdout,  "ViceResolve(%d, (%x.%x.%x))", cid, 
-	     Fid->Volume, Fid->Vnode, Fid->Unique);
 
     /* get a mgroup */
     unsigned long vsgaddr;
@@ -354,22 +353,22 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 	goto FreeGroups;
     }
     if (!XlateVid(&tmpvid)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "ViceResolve: Couldn't xlate vid %x", tmpvid);
+	SLog(0,  "ViceResolve: Couldn't xlate vid %x", tmpvid);
 	errorCode = EINVAL;
 	goto FreeGroups;
     }
     reson = GetResFlag(tmpvid);
-    LogMsg(9, SrvDebugLevel, stdout,  "ViceResolve: Getting Mgroup for VSG %x", vsgaddr);
+    SLog(9,  "ViceResolve: Getting Mgroup for VSG %x", vsgaddr);
     if (GetResMgroup(&mgrp, vsgaddr, 0)){
 	/* error getting mgroup */
-	LogMsg(0, SrvDebugLevel, stdout,  "ViceResolve: Couldnt get mgroup for vsg %x", 
+	SLog(0,  "ViceResolve: Couldnt get mgroup for vsg %x", 
 		vsgaddr);
 	errorCode = EINVAL;
 	goto FreeGroups;
     }
 
     /* lock volumes at all servers and fetch the vnode vv */
-    LogMsg(9, SrvDebugLevel, stdout,  "ViceResolve: Going to fetch vv from different sites ");
+    SLog(9,  "ViceResolve: Going to fetch vv from different sites ");
     ARG_MARSHALL(OUT_MODE, ViceVersionVector, VVvar, VV, VSG_MEMBERS);
     ARG_MARSHALL(OUT_MODE, ResStatus, rstatusvar, rstatus, VSG_MEMBERS);
     ARG_MARSHALL(OUT_MODE, RPC2_Integer, logsizesvar, logsizes, VSG_MEMBERS);
@@ -396,25 +395,36 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
     errorCode = mgrp->GetHostSet(hosts);
 
     // call resolve on object  only if no locking errors 
-    if (!lockerror && !errorCode) {
-	if (ISDIR(*Fid)){
-	    LogMsg(9, SrvDebugLevel, stdout,  "ViceResolve: Going to call Dirresolve");
-	    if (reson == VMRES) 
-		resError = DirResolve(mgrp, Fid, VVvar_ptrs, 
-				      (int *)logsizesvar_bufs);
-	    else if (reson == RVMRES) 
-		resError = RecovDirResolve(mgrp, Fid, VVvar_ptrs, 
-					   rstatusvar_ptrs, (int *)logsizesvar_bufs, 
-					   (int *)pathsizevar_bufs, pathelem_ptrs, 1);
-	    else 
-		resError = OldDirResolve(mgrp, Fid, VVvar_ptrs);
-	}
-	else{
-	    LogMsg(9, SrvDebugLevel, stdout, "ViceResolve: Going to call Fileresolve");
+    if ( errorCode ) 
+	    goto UnlockExit;
+    if ( lockerror && lockerror != VNOVNODE )
+	    goto UnlockExit;
+
+    if (ISDIR(*Fid)) {
+	    SLog(9,  "ViceResolve: Going to call Dirresolve");
+	    switch (reson) {
+	    case VMRES:
+		    resError = DirResolve(mgrp, Fid, VVvar_ptrs, 
+					  (int *)logsizesvar_bufs);
+		    break;
+		    
+	    case RVMRES: 
+		    resError = RecovDirResolve(mgrp, Fid, VVvar_ptrs, 
+					       rstatusvar_ptrs, 
+					       (int *)logsizesvar_bufs, 
+					       (int *)pathsizevar_bufs, 
+					       pathelem_ptrs, 1);
+		    break;
+	    default:
+		    resError = OldDirResolve(mgrp, Fid, VVvar_ptrs);
+	    }
+    } else {
+	    SLog(9, "ViceResolve: Going to call Fileresolve");
 	    resError = FileResolve(mgrp, Fid, VVvar_ptrs);
-	}
     }
+
     
+ UnlockExit:
     // reget the host set - want to unlock wherever we locked volume 
     mgrp->GetHostSet(hosts);
     MRPC_MakeMulti(UnlockVol_OP, UnlockVol_PTR, VSG_MEMBERS, 
@@ -422,15 +432,14 @@ long ViceResolve(RPC2_Handle cid, ViceFid *Fid) {
 		   mgrp->rrcc.MIp, 0, 0, 
 		   Fid->Volume);
 
-FreeGroups:
+ FreeGroups:
     if (pathelembuf) free(pathelembuf);
     if (mgrp)
 	PutResMgroup(&mgrp);
     PROBE(FileresTPinfo, COORDENDVICERESOLVE);
     if (lockerror){
-	LogMsg(0, SrvDebugLevel, stdout,  
-	       "ViceResolve:Couldnt lock volume %x at all accessible servers",
-		Fid->Volume);
+	    SLog(0,  "ViceResolve:Couldnt lock volume %x at all accessible servers",
+		 Fid->Volume);
 	if ( lockerror != VNOVNODE ) 
 	    lockerror = EWOULDBLOCK;
 	return(lockerror);
@@ -450,7 +459,7 @@ void ForceUnlockVol(VolumeId Vid) {/* Vid is the rw id */
     int error = 0;
     Volume *volptr;
     if (GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "ForceUnlockVol: GetVolObj %x error", Vid);
+	SLog(0,  "ForceUnlockVol: GetVolObj %x error", Vid);
 	return;
     }
     PutVolObj(&volptr, VOL_EXCL_LOCK, 0);
@@ -471,7 +480,7 @@ long ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Counte
     long errorCode = 0;
     int	camstatus = 0;
 
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering ViceSetVV(%u.%d.%d)", Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(9,  "Entering ViceSetVV(%u.%d.%d)", Fid->Volume, Fid->Vnode, Fid->Unique);
     
     /* translate replicated fid to rw fid */
     XlateVid(&Fid->Volume);		/* dont bother checking for errors */
@@ -482,14 +491,14 @@ long ViceSetVV(RPC2_Handle cid, ViceFid *Fid, ViceVersionVector *VV, RPC2_Counte
     if ((PiggyBS->SeqLen > 0) && (errorCode = ViceCOP2(cid, PiggyBS)))
 	goto FreeLocks;
     if (errorCode = GetFsObj(Fid, &volptr, &vptr, WRITE_LOCK, NO_LOCK, 1, 0, 0)){
-	LogMsg(0, SrvDebugLevel, stdout,  "ViceSetVV: Error %d in GetFsObj", errorCode);
+	SLog(0,  "ViceSetVV: Error %d in GetFsObj", errorCode);
 	goto FreeLocks;
     }
     
     /* if volume is being repaired check if repairer is same as client */
     if (V_VolLock(volptr).IPAddress){
 	if (V_VolLock(volptr).IPAddress != client->VenusId->host){
-	    LogMsg(0, SrvDebugLevel, stdout,  "ViceSetVV: Volume Repairer != Locker");
+	    SLog(0,  "ViceSetVV: Volume Repairer != Locker");
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
@@ -507,10 +516,10 @@ FreeLocks:
 	   PutVolObj(&volptr, NO_LOCK);
     RVMLIB_END_TRANSACTION(flush, &(camstatus));       
     if (camstatus){
-	LogMsg(0, SrvDebugLevel, stdout,  "ViceSetVV: Error during transaction");
+	SLog(0,  "ViceSetVV: Error during transaction");
 	return(camstatus);
     }
-    LogMsg(9, SrvDebugLevel, stdout,  
+    SLog(9,  
 	   "ViceSetVV finished with errorcode %d", errorCode);
     return(errorCode);
 }
@@ -541,7 +550,7 @@ long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     char    filename[100];  		/* for transfer by name */
     int	vmresolutionOn = 0;
 
-    LogMsg(1, SrvDebugLevel, stdout,  "ViceRepair: Fid = %u.%d.%d", Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(1,  "ViceRepair: Fid = %u.%d.%d", Fid->Volume, Fid->Vnode, Fid->Unique);
     
     /* 1. validate parameters */
     {
@@ -613,13 +622,13 @@ long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
 	    int replicaCount;
 	    /* parse repair file */
 	    if (errorCode = repair_getdfile(filename, &replicaCount, &replicaList)){
-		LogMsg(0, SrvDebugLevel, stdout,  "CheckDirRepairSemantics: Error %d in getdfile", errorCode);
+		SLog(0,  "CheckDirRepairSemantics: Error %d in getdfile", errorCode);
 		goto FreeLocks;
 	    }
 	    unlink(filename);
 	    if (errorCode = GetMyRepairList(&(ov->fid), replicaList, replicaCount, 
 					    &myRepairList, &myRepairCount)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "CheckDirRepairSemantics: Error %d in getmyrepairlist",
+		SLog(0,  "CheckDirRepairSemantics: Error %d in getmyrepairlist",
 			errorCode);
 		if (replicaList) free(replicaList);
 		goto FreeLocks;
@@ -669,7 +678,7 @@ long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     if (AllowResolution && vmresolutionOn) {
 	/* For directory repair append log record */
 	if (!FRep) {
-	    LogMsg(9, SrvDebugLevel, stdout,  "ViceRepair: Spooling Repair Log Record");
+	    SLog(9,  "ViceRepair: Spooling Repair Log Record");
 	    int ind;
 	    ind = InitVMLogRecord(V_volumeindex(volptr), &ov->fid, 
 				  StoreId, ViceRepair_OP, 0);
@@ -694,11 +703,11 @@ long ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     if (AllowResolution && V_RVMResOn(volptr)) {
 	// append a new log record 
 	if (!FRep) {
-	    LogMsg(9, SrvDebugLevel, stdout, 
+	    SLog(9, 
 		   "ViceRepair: Spooling Repair Log Record");
 	    if (errorCode = SpoolVMLogRecord(vlist, ov, volptr, StoreId, 
 					     ViceRepair_OP, 0)) {
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
 		       errorCode, Fid->Vnode, Fid->Unique);
 		goto FreeLocks;
@@ -790,7 +799,7 @@ int GetMyRepairList(ViceFid *Fid, struct listhdr *replicaList, int
 	    else /* duplicate entry */
 		return EINVAL;
     if (found != -1){
-	LogMsg(9, SrvDebugLevel, stdout,  "GetMyRepairList found an entry ");
+	SLog(9,  "GetMyRepairList found an entry ");
 	*myCount = replicaList[found].repairCount;
 	*myList = replicaList[found].repairList;
     }
@@ -816,7 +825,7 @@ int CheckRepairSemantics(vle *ov, Volume *volptr, dlist *vlist,
     /* check if object is really inconsistent */
     Vnode *vptr = ov->vptr;
     if (!IsIncon(vptr->disk.versionvector)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "CheckRepairSemantics: Object(%x.%x)under repair is not inc",
+	SLog(0,  "CheckRepairSemantics: Object(%x.%x)under repair is not inc",
 		vptr->vnodeNumber, vptr->disk.uniquifier);
 	return(EINVAL);
     }
@@ -824,7 +833,7 @@ int CheckRepairSemantics(vle *ov, Volume *volptr, dlist *vlist,
     /* check if new vv is legal */
     int res = VV_Cmp_IgnoreInc(&Vnode_vv(vptr), &status->VV);
     if (res != VV_EQ && res != VV_SUB) {
-	LogMsg(0, SrvDebugLevel, stdout,  "CheckRepairSemantics: %x.%x VV's are in conflict",
+	SLog(0,  "CheckRepairSemantics: %x.%x VV's are in conflict",
 		vptr->vnodeNumber, vptr->disk.uniquifier);
 	return(EINCOMPATIBLE);
     }
@@ -833,7 +842,7 @@ int CheckRepairSemantics(vle *ov, Volume *volptr, dlist *vlist,
     if (vptr->disk.type != vFile && 
 	vptr->disk.type != vDirectory && 
 	vptr->disk.type != vSymlink) {
-	LogMsg(0, SrvDebugLevel, stdout,  "CheckRepairSemantics: Unknown Object type(%x.%x)",
+	SLog(0,  "CheckRepairSemantics: Unknown Object type(%x.%x)",
 		vptr->vnodeNumber, vptr->disk.uniquifier);
 	return(EINVAL);
     }
@@ -878,7 +887,7 @@ int CheckFileRepairSemantics(vle *ov, vle *pv, Volume *volptr,
 	  File should be writable by the client.
 	  */
     if (!(*rights & PRSFS_WRITE)){
-	LogMsg(0, SrvDebugLevel, stdout,  "CheckFileRepairSem: Client doesnt have write rights");
+	SLog(0,  "CheckFileRepairSem: Client doesnt have write rights");
 	return(EACCES);
     }
     // I am taking this out for now... it doesn't seem to make sense.
@@ -888,7 +897,7 @@ int CheckFileRepairSemantics(vle *ov, vle *pv, Volume *volptr,
     if (ov->vptr->disk.owner != status->Owner){
 	/* client is trying to modify the owner */
 	if (SystemUser(client)){
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckFileRepairSem: Ownership violation ");
+	    SLog(0,  "CheckFileRepairSem: Ownership violation ");
 	    return(EACCES);
 	}
     }
@@ -902,7 +911,7 @@ int CheckRepairACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr,
 {
     Rights  rights, anyrights;
     
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering CheckACLSemantics");
+    SLog(9,  "Entering CheckACLSemantics");
 
     SetAccessList(vptr, *aCL, *aCLSize);
 
@@ -910,7 +919,7 @@ int CheckRepairACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr,
     if (!(rights & PRSFS_ADMINISTER) &&
 	 (client->Id != vptr->disk.owner) &&
 	 (SystemUser(client))){
-	LogMsg(0, SrvDebugLevel, stdout,  "CheckACLSemantics: No access ");
+	SLog(0,  "CheckACLSemantics: No access ");
 	return(EACCES);
     }
     return(0);
@@ -933,21 +942,21 @@ int CheckRepairSetACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr,
     /* acl integrity checks */
     {
 	if (AL_NameToId(name, &Id) < 0){
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckRepairSetACLSemantics: Couldnt convert name to id ");
+	    SLog(0,  "CheckRepairSetACLSemantics: Couldnt convert name to id ");
 	    return(-1);
 	}
 
 	/* check if new entry can be accomodated in list */
 	for (int i = 0; i < aCL->PlusEntriesInUse; i++)
 	    if (aCL->ActualEntries[i].Id == Id){
-		LogMsg(9, SrvDebugLevel, stdout,  "CheckRepairSetACLSemantics: Found Id for %s in access list", name);
+		SLog(9,  "CheckRepairSetACLSemantics: Found Id for %s in access list", name);
 		return(0);
 	    }
 
 	/* didnt find the entry - if we are deleting rights then it is an error; */
 	/* else, see if one can be inserted */
 	if (!rights) return(EINVAL);
-	LogMsg(9, SrvDebugLevel, stdout,  "CheckRepairSetACLSemantics: +entries = %d, -entries = %d, total = %d", 
+	SLog(9,  "CheckRepairSetACLSemantics: +entries = %d, -entries = %d, total = %d", 
 		aCL->PlusEntriesInUse, aCL->MinusEntriesInUse, aCL->TotalNoOfEntries);
 	if ((aCL->MySize + sizeof(AL_AccessEntry)) < VAclSize(vptr)) 
 	    return(0);
@@ -972,7 +981,7 @@ int CheckRepairSetNACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr
     /* acl integrity checks */
     {
 	if (AL_NameToId(name, &Id) < 0){
-	    LogMsg(0, SrvDebugLevel, stdout,  "CheckSetACLSemantics: Couldnt convert name to id ");
+	    SLog(0,  "CheckSetACLSemantics: Couldnt convert name to id ");
 	    return(-1);
 	}
 	/* check if new entry can be accomodated in negative rights list */
@@ -1004,7 +1013,7 @@ static int CheckRepairRenameSemantics(ClientEntry *client, Volume *volptr, vle *
     // make sure atleast one of src/target is incon
     if (!IsIncon(sdv->vptr->disk.versionvector) &&  
 	!IsIncon(tdv->vptr->disk.versionvector)) {
-	LogMsg(0, SrvDebugLevel, stdout,  
+	SLog(0,  
 	       "CheckRepairRenameSemantics: Neither of src/target are inconsistent\n");
 	return(EINVAL);
     }
@@ -1018,9 +1027,9 @@ int SetRights(Vnode *vptr, char *name, int rights)
     AL_AccessList *aCL = 0;
     int	aCLSize = 0;
 
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering SetRights(%s %d)", name, rights);
+    SLog(9,  "Entering SetRights(%s %d)", name, rights);
     if (AL_NameToId(name, &Id) < 0){
-	LogMsg(0, SrvDebugLevel, stdout,  "SetRights: couldnt get id for %s ", name);
+	SLog(0,  "SetRights: couldnt get id for %s ", name);
 	return -1;
     }
     /* set the ACL */
@@ -1076,9 +1085,9 @@ int SetNRights(Vnode *vptr, char *name, int rights)
     int	aCLSize = 0;
     int p, m, t;
 
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering SetNRights(%s %d)", name, rights);
+    SLog(9,  "Entering SetNRights(%s %d)", name, rights);
     if (AL_NameToId(name, &Id) < 0){
-	LogMsg(0, SrvDebugLevel, stdout,  "SetRights: couldnt get id for %s ", name);
+	SLog(0,  "SetRights: couldnt get id for %s ", name);
 	return -1;
     }
     /* set the ACL */
@@ -1159,7 +1168,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    if (ObjectExists(V_volumeindex(volptr), vSmall, 
 			     vnodeIdToBitNumber(repairent.parms[1]),
 			     repairent.parms[2], &ParentFid)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "Object %s(%x.%x) already exists in parent %x.%x",
+		SLog(0,  "Object %s(%x.%x) already exists in parent %x.%x",
 			repairent.name, repairent.parms[1], repairent.parms[2],
 			ParentFid.Vnode, ParentFid.Unique);
 		return(EINVAL);
@@ -1175,7 +1184,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    if (ObjectExists(V_volumeindex(volptr), vLarge, 
 				 vnodeIdToBitNumber(repairent.parms[1]),
 				 repairent.parms[2], &ParentFid)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "Object %s(%x.%x) already exists in parent %x.%x",
+		SLog(0,  "Object %s(%x.%x) already exists in parent %x.%x",
 			repairent.name, repairent.parms[1], repairent.parms[2],
 			ParentFid.Vnode, ParentFid.Unique);
 		return(EINVAL);
@@ -1191,7 +1200,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    if (ObjectExists(V_volumeindex(volptr), vSmall, 
 			     vnodeIdToBitNumber(repairent.parms[1]),
 			     repairent.parms[2], &ParentFid)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "Object %s(%x.%x) already exists in parent %x.%x",
+		SLog(0,  "Object %s(%x.%x) already exists in parent %x.%x",
 			repairent.name, repairent.parms[1], repairent.parms[2],
 			ParentFid.Vnode, ParentFid.Unique);
 		return(EINVAL);
@@ -1293,7 +1302,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	  case REPAIR_SETOWNER:
 	    /* must be a system administrator */
 	    if (SystemUser(client)) {
-		LogMsg(0, SrvDebugLevel, stdout,  "DirRepairSemantics: Error for REPAIR_SETOWNER; need to be system administrator");
+		SLog(0,  "DirRepairSemantics: Error for REPAIR_SETOWNER; need to be system administrator");
 		return(EACCES);
 	    }
 	    break;
@@ -1304,11 +1313,11 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    /* protection checks */
 	    {
 		if (!(*rights & PRSFS_WRITE)){
-		    LogMsg(0, SrvDebugLevel, stdout,  "DirRepairSemantics: Insufficient rights for REPAIR_SETMODE(TIME)");
+		    SLog(0,  "DirRepairSemantics: Insufficient rights for REPAIR_SETMODE(TIME)");
 		    return(EACCES);
 		}
 		if (!(*rights & PRSFS_DELETE) && !(*rights & PRSFS_INSERT)){
-		    LogMsg(0, SrvDebugLevel, stdout,  "DirRepairSemantics: Insufficient rights for REPAIR_SETMODE(TIME)");
+		    SLog(0,  "DirRepairSemantics: Insufficient rights for REPAIR_SETMODE(TIME)");
 		    return(EACCES);
 		}
 	    }
@@ -1456,7 +1465,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 
 		/* make sure vnode hasnt been deleted */
 		if (cv->vptr->disk.linkCount <= 0) {
-		    LogMsg(0, SrvDebugLevel, stdout,  "ViceRepair: Createl - LINKING TO A DELETED VNODE");
+		    SLog(0,  "ViceRepair: Createl - LINKING TO A DELETED VNODE");
 		    return(EINVAL);
 		}
 
@@ -1584,7 +1593,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		// the ov's repair record gets spooled at the end 
 		if (tdv != ov) {
 		    if (AllowResolution && V_VMResOn(volptr)) {
-			LogMsg(9, SrvDebugLevel, stdout,  "ViceRepair: Spooling Repair Log Record");
+			SLog(9,  "ViceRepair: Spooling Repair Log Record");
 			int ind;
 			ind = InitVMLogRecord(V_volumeindex(volptr), &tdv->fid, 
 					      StoreId, ViceRepair_OP, 0);
@@ -1592,11 +1601,11 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 			tdv->sl.append(SLE);
 		    }
 		    if (AllowResolution && V_RVMResOn(volptr)) {
-			LogMsg(0, SrvDebugLevel, stdout, 
+			SLog(0, 
 			       "PerformRepair: Spooling Repair(rename - target) Log Record");
 			if (errorCode = SpoolVMLogRecord(vlist, tdv, volptr, StoreId, 
 							 ViceRepair_OP, 0)) {
-			    LogMsg(0, SrvDebugLevel, stdout, 
+			    SLog(0, 
 				   "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
 				   errorCode, tdv->vptr->vnodeNumber, tdv->vptr->disk.uniquifier);
 			    return(errorCode);
@@ -1605,7 +1614,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		}
 		if (sdv != ov) {
 		    if (AllowResolution && V_VMResOn(volptr)) {
-			LogMsg(9, SrvDebugLevel, stdout,  "ViceRepair: Spooling Repair Log Record");
+			SLog(9,  "ViceRepair: Spooling Repair Log Record");
 			int ind;
 			ind = InitVMLogRecord(V_volumeindex(volptr), &sdv->fid, 
 					      StoreId, ViceRepair_OP, 0);
@@ -1613,11 +1622,11 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 			sdv->sl.append(SLE);
 		    }
 		    if (AllowResolution && V_RVMResOn(volptr)) {
-			LogMsg(0, SrvDebugLevel, stdout, 
+			SLog(0, 
 			       "PerformRepair: Spooling Repair(rename - source) Log Record");
 			if (errorCode = SpoolVMLogRecord(vlist, sdv, volptr, StoreId, 
 							 ViceRepair_OP, 0)) {
-			    LogMsg(0, SrvDebugLevel, stdout, 
+			    SLog(0, 
 				   "ViceRepair: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
 				   errorCode, sdv->vptr->vnodeNumber, sdv->vptr->disk.uniquifier);
 			    return(errorCode);
@@ -1715,7 +1724,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			return(EINVAL);
 		    }
 		    if (vid != repairent.parms[0]) {
-			LogMsg(0, SrvDebugLevel, stdout,  "GetRepairObjects: Vid is not correct");
+			SLog(0,  "GetRepairObjects: Vid is not correct");
 			return(EINVAL);
 		    }
 		}
@@ -1748,7 +1757,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			dh = VN_SetDirHandle(ov->vptr);
 			if (DH_Lookup(dh, repairent.name, 
 				   (struct ViceFid *)&(repairent.parms[0])) != 0) {
-			    LogMsg(0, SrvDebugLevel, stdout,  "REMOVEFSL: No name %s in directory",
+			    SLog(0,  "REMOVEFSL: No name %s in directory",
 				    repairent.name);
 			    return(ENOENT);
 			}
@@ -1762,7 +1771,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			dh = VN_SetDirHandle(ov->vptr);
 			if (DH_Lookup(dh, repairent.name, 
 				      (struct ViceFid *)&(repairent.parms[0])) != 0) {
-			    LogMsg(0, SrvDebugLevel, stdout,  
+			    SLog(0,  
 				   "REMOVED: No name %s in directory",
 				    repairent.name);
 			    return(ENOENT);
@@ -1772,7 +1781,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 			errorCode = GetSubTree((ViceFid *)&(repairent.parms[0]),
 					       volptr, vlist);
 			if (errorCode) {
-			    LogMsg(0, SrvDebugLevel, stdout,  "GetRepairObjects: Error %d in GetSubTree",
+			    SLog(0,  "GetRepairObjects: Error %d in GetSubTree",
 				    errorCode);
 			    return(errorCode);
 			}
@@ -1801,7 +1810,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 		    break;
 		  default:
 		    {
-			LogMsg(0, SrvDebugLevel, stdout,  "Illegal OPCODE for GetRepairObjects");
+			SLog(0,  "Illegal OPCODE for GetRepairObjects");
 			return(EINVAL);
 		    }
 		}
@@ -1823,7 +1832,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 	dlist_iterator next(*vlist);
 	vle *v;
 	while (v = (vle *)next()) {
-	    LogMsg(10, SrvDebugLevel, stdout,  "GetRepairObjects: acquiring (%x.%x.%x)",
+	    SLog(10,  "GetRepairObjects: acquiring (%x.%x.%x)",
 		    v->fid.Volume, v->fid.Vnode, v->fid.Unique);
 	    if (errorCode = GetFsObj(&v->fid, &volptr, &v->vptr, 
 				     WRITE_LOCK, SHARED_LOCK, 1, 0, 
@@ -1909,7 +1918,7 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
 
 static int getFids(dlist *flist, char *name, long vnode, long unique)
 {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering GetFid for %s", name);
+    SLog(9,  "Entering GetFid for %s", name);
     if (!strcmp(name, ".") || !strcmp(name, ".."))
 	return 0;
 
@@ -1919,7 +1928,7 @@ static int getFids(dlist *flist, char *name, long vnode, long unique)
     fid.Unique = unique;
     AddVLE(*flist, &fid);
 
-    LogMsg(9, SrvDebugLevel, stdout,  "Leaving GetFid for %s ", name);
+    SLog(9,  "Leaving GetFid for %s ", name);
     return(0);
 }
 
@@ -2120,7 +2129,7 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 							      name, vnode, unique, (int)(pl->head),
 							      pl->cnt + cv->sl.count(), &(vnlog->LCP),
 							      &cv->vptr->disk.versionvector.StoreId);
-					LogMsg(9, SrvDebugLevel, stdout,  "TreeRemove: Spooling Log Record for removing dir %s",
+					SLog(9,  "TreeRemove: Spooling Log Record for removing dir %s",
 					       name);
 					sle *SLE = new sle(ind);
 					pv->sl.append(SLE);
@@ -2134,14 +2143,14 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		    ViceStoreId *rmtstid = GetRemoteRemoveStoreId(pkdparm->hvlog, pkdparm->srvrid,
 								  &pFid, &cFid, name);
 		    if (!rmtstid) {
-			LogMsg(0, SrvDebugLevel, stdout,
+			SLog(0,
 			       "PerformTreeRemoval: No rm record found for %s 0x%x.%x.%x\n",
 			       name, V_id(pkdparm->volptr), vnode, unique);
 			AllocStoreId(&stid);
 		    }
 		    else stid = *rmtstid;
 
-		    LogMsg(9, SrvDebugLevel, stdout,  
+		    SLog(9,  
 			   "TreeRemove: Spooling Log Record for removing dir %s",
 			   name);
 		    int errorCode = 0;
@@ -2151,7 +2160,7 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 						     vnode, unique, 
 						     VnLog(cv->vptr), &(Vnode_vv(cv->vptr).StoreId),
 						     &(Vnode_vv(cv->vptr).StoreId)))
-			LogMsg(0, SrvDebugLevel, stdout, 
+			SLog(0, 
 			       "PerformTreeRemoval: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
 			       errorCode, vnode, unique);
 		}
@@ -2184,7 +2193,7 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 					  ResolveViceRemove_OP,
 					  name, vnode, unique, 
 					  &cv->vptr->disk.versionvector);
-		    LogMsg(9, SrvDebugLevel, stdout,  "TreeRemove: Spooling Log Record for removing file %s",
+		    SLog(9,  "TreeRemove: Spooling Log Record for removing file %s",
 			    name);
 		    sle *SLE = new sle(ind);
 		    pv->sl.append(SLE);
@@ -2198,25 +2207,24 @@ int PerformTreeRemoval(PDirEntry de, void *data)
 		    ViceStoreId *rmtstid = GetRemoteRemoveStoreId(pkdparm->hvlog, pkdparm->srvrid,
 								  &pFid, &cFid, name);
 		    if (!rmtstid) {
-			LogMsg(0, SrvDebugLevel, stdout,
+			SLog(0,
 			       "PerformTreeRemoval: No rm record found for %s 0x%x.%x.%x\n",
 			       name, V_id(pkdparm->volptr), vnode, unique);
 			AllocStoreId(&stid);
 		    }
 		    else stid = *rmtstid;
 
-		    LogMsg(9, SrvDebugLevel, stdout,  
-			   "TreeRemove: Spooling Log Record for removing %s",
-			   name);
+		    SLog(9,  "TreeRemove: Spooling Log Record for removing %s",
+			 name);
 		    int errorCode = 0;
 		    if (errorCode = SpoolVMLogRecord(pkdparm->vlist, pv, 
 						     pkdparm->volptr, &stid,
 						     ResolveViceRemove_OP, name, 
 						     vnode, unique, 
 						     &(Vnode_vv(cv->vptr))))
-			LogMsg(0, SrvDebugLevel, stdout, 
-			       "PerformTreeRemoval: error %d in SpoolVMLogRecord for (0x%x.%x)\n",
-			       errorCode, vnode, unique);
+			SLog(0, "PerformTreeRemoval: error %d in"
+			     " SpoolVMLogRecord for (0x%x.%x)\n",
+			     errorCode, vnode, unique);
 		}
 	    }
 	}
@@ -2242,7 +2250,7 @@ long InternalCOP2(RPC2_Handle cid, ViceStoreId *StoreId, ViceVersionVector *Upda
 START_TIMING(COP2_Total);
 
 
-    LogMsg(1, SrvDebugLevel, stdout,  "InternalCOP2, StoreId = (%x.%x), UpdateSet = []",
+    SLog(1,  "InternalCOP2, StoreId = (%x.%x), UpdateSet = []",
 	     StoreId->Host, StoreId->Uniquifier);
 
     /* Dequeue the cop pending entry and sort the fids. */
@@ -2290,9 +2298,7 @@ START_TIMING(COP2_Transaction);
 
     /* Put the volume. */
     PutVolObj(&volptr, NO_LOCK);
-    SLog(10, "About to call END_TRANSACTION");
     RVMLIB_END_TRANSACTION(flush, &(status));
-    SLog(10, "InternalCOP2: Transaction finished, removing %p", cpe);
 END_TIMING(COP2_Transaction);
 
     if (cpe) {
@@ -2300,7 +2306,6 @@ END_TIMING(COP2_Transaction);
 	delete cpe;
     }
 
-    SLog(10, "InternalCOP2: remove successful, errorCode %d, status %d, vollog %p");
 
     if ((status == 0) && !errorCode && vollog) {
 	/* the transaction was successful -
@@ -2312,7 +2317,7 @@ END_TIMING(COP2_Transaction);
 	    vollog->DeallocRecord((int)ind);
     }
 
-    LogMsg(2, SrvDebugLevel, stdout,  "InternalCOP2 returns %s", ViceErrorMsg(errorCode));
+    SLog(2,  "InternalCOP2 returns %s", ViceErrorMsg(errorCode));
 END_TIMING(COP2_Total);
 
     return(errorCode);
@@ -2325,7 +2330,7 @@ static int GetResFlag(VolumeId Vid) {
 
     if (!AllowResolution) return(0);
     if (error = GetVolObj(Vid, &volptr, VOL_NO_LOCK, 0, 0)) {
-	LogMsg(0, SrvDebugLevel, stdout,  "GetResFlag:: GetVolObj failed (%d) for %x",
+	SLog(0,  "GetResFlag:: GetVolObj failed (%d) for %x",
 		error, Vid);
 	return(0);
     }
@@ -2339,11 +2344,11 @@ static int FidSort(ViceFid *fids) {
     int i, j;
 
     if (SrvDebugLevel >= 9) {
-	LogMsg(9, SrvDebugLevel, stdout,  "FidSort: nfids = %d", nfids);
+	SLog(9,  "FidSort: nfids = %d", nfids);
 	for (int k = 0; k < MAXFIDS; k++)
-	    LogMsg(9, SrvDebugLevel, stdout,  ", Fid[%d] = (%x.%x.%x)",
+	    SLog(9,  ", Fid[%d] = (%x.%x.%x)",
 		    k, fids[k].Volume, fids[k].Vnode, fids[k].Unique);
-	LogMsg(9, SrvDebugLevel, stdout,  "");
+	SLog(9,  "");
     }
 
     /* First remove any duplicates.  Also determine the number of unique, non-null fids. */
@@ -2369,11 +2374,11 @@ static int FidSort(ViceFid *fids) {
 	    }
 
     if (SrvDebugLevel >= 9) {
-	LogMsg(9, SrvDebugLevel, stdout,  "FidSort: nfids = %d", nfids);
+	SLog(9,  "FidSort: nfids = %d", nfids);
 	for (int k = 0; k < MAXFIDS; k++)
-	    LogMsg(9, SrvDebugLevel, stdout,  ", Fid[%d] = (%x.%x.%x)",
+	    SLog(9,  ", Fid[%d] = (%x.%x.%x)",
 		    k, fids[k].Volume, fids[k].Vnode, fids[k].Unique);
-	LogMsg(9, SrvDebugLevel, stdout,  "");
+	SLog(9,  "");
     }
 
     return(nfids);
@@ -2404,7 +2409,7 @@ void NewCOP1Update(Volume *volptr, Vnode *vptr,
 
     /* If a volume version stamp was sent in, and if it matches, update it. */
     if (vsptr) {
-	    LogMsg(2, SrvDebugLevel, stdout, "COP1Update: client VS %d", *vsptr);
+	    SLog(2, "COP1Update: client VS %d", *vsptr);
 	    if (*vsptr == (&(V_versionvector(volptr).Versions.Site0))[ix])
 		    (*vsptr)++;
 	    else 
@@ -2425,25 +2430,27 @@ void NewCOP1Update(Volume *volptr, Vnode *vptr,
 }
 
 /*
-  BEGIN_HTML
-  <a name="COP2Update"><strong>Increment the version vector 
-  of an object.</strong></a><br>
+  COP2Update: Increment the version vector of an object.
   Only increment slots for servers that succeeded in COP1. 
-  END_HTML
 */
 
 static void COP2Update(Volume *volptr, Vnode *vptr, 
-			ViceVersionVector *UpdateSet, vmindex *freed_indices) {
+			ViceVersionVector *UpdateSet, 
+		       vmindex *freed_indices) 
+{
     /* Look up the VRDB entry. */
     vrent *vre = VRDB.find(V_groupId(volptr));
-    if (!vre) Die("COP2Update: VSG not found!");
+    if (!vre) 
+	    Die("COP2Update: VSG not found!");
 
     /* Look up the index of this host. */
     int ix = vre->index(ThisHostAddr);
-    if (ix < 0) Die("COP2Update: this host not found!");
+    if (ix < 0) 
+	    Die("COP2Update: this host not found!");
 
-    LogMsg(2, SrvDebugLevel, stdout,  "COP2Update: Fid = (%x),(%x.%x.%x)",
-	     V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, vptr->disk.uniquifier);
+    SLog(2,  "COP2Update: Fid = (%x),(%x.%x.%x)",
+	 V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, 
+	 vptr->disk.uniquifier);
 
     /* if the result was success everywhere, truncate the log */
     int i;
@@ -2454,8 +2461,10 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
 	vre->HostListToVV(Hosts, &checkvv);
 	for (i = 0; i < VSG_MEMBERS; i++) 
 	    if (((&(checkvv.Versions.Site0))[i]) ^ 
-		((&(UpdateSet->Versions.Site0))[i]))
-		break;
+		((&(UpdateSet->Versions.Site0))[i])) {
+		    SLog(2, "Incomplete host set in COP2.\n");
+		    break;
+	    }
 	if (i == VSG_MEMBERS && AllowResolution && V_VMResOn(volptr)) {
 	    /* update set has 1 for all hosts */
 	    extern void TruncResLog(int, VnodeId, Unique_t);
@@ -2463,14 +2472,15 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
 			vptr->disk.uniquifier);
 	}
 
-	if (i == VSG_MEMBERS && AllowResolution && V_RVMResOn(volptr) && freed_indices) 
+	if (i == VSG_MEMBERS && AllowResolution && V_RVMResOn(volptr) 
+	    && freed_indices) 
 	    TruncateLog(volptr, vptr, freed_indices);
 
     }
     
     /* do a cop2 only if the cop2 pending flag is set */
     if (COP2Pending(Vnode_vv(vptr))) {
-	LogMsg(1, SrvDebugLevel, stdout,  "Cop2 is pending for fid 0x%x.%x.%x", 
+	SLog(1,  "Cop2 is pending for fid 0x%x.%x.%x", 
 		V_id(volptr), vptr->vnodeNumber, vptr->disk.uniquifier);
 	/* Extract ThisHost from the UpdateSet. */
 	int tmp = (int)(&(UpdateSet->Versions.Site0))[ix];
@@ -2482,10 +2492,9 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
 	
 	/* clear the pending flag */
 	ClearCOP2Pending(Vnode_vv(vptr));
-    }
-    else {
-	LogMsg(1, SrvDebugLevel, stdout,  "Cop2 is not pending for 0x%x.%x.%x",
-		V_id(volptr), vptr->vnodeNumber, vptr->disk.uniquifier);
+    } else {
+	SLog(1,  "Cop2 is not pending for 0x%x.%x.%x",
+	     V_id(volptr), vptr->vnodeNumber, vptr->disk.uniquifier);
     }
 
 }
@@ -2493,17 +2502,17 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
 
 void UpdateVVs(ViceVersionVector *VVV, ViceVersionVector *VV, ViceVersionVector *US) {
     if (SrvDebugLevel >= 2) {
-	LogMsg(2, SrvDebugLevel, stdout,  "\tVVV = [%d %d %d %d %d %d %d %d]",
+	SLog(2,  "\tVVV = [%d %d %d %d %d %d %d %d]",
 		VVV->Versions.Site0, VVV->Versions.Site1,
 		VVV->Versions.Site2, VVV->Versions.Site3,
 		VVV->Versions.Site4, VVV->Versions.Site5,
 		VVV->Versions.Site6, VVV->Versions.Site7);
-	LogMsg(2, SrvDebugLevel, stdout,  "\tVV = [%d %d %d %d %d %d %d %d]",
+	SLog(2,  "\tVV = [%d %d %d %d %d %d %d %d]",
 		VV->Versions.Site0, VV->Versions.Site1,
 		VV->Versions.Site2, VV->Versions.Site3,
 		VV->Versions.Site4, VV->Versions.Site5,
 		VV->Versions.Site6, VV->Versions.Site7);
-	LogMsg(2, SrvDebugLevel, stdout,  "\tUS = [%d %d %d %d %d %d %d %d]",
+	SLog(2,  "\tUS = [%d %d %d %d %d %d %d %d]",
 		US->Versions.Site0, US->Versions.Site1,
 		US->Versions.Site2, US->Versions.Site3,
 		US->Versions.Site4, US->Versions.Site5,
@@ -2522,13 +2531,13 @@ void PollAndYield() {
     /* Do a polling select first to make threads with pending I/O runnable. */
     (void)IOMGR_Poll();
 
-    LogMsg(100, SrvDebugLevel, stdout,  "Thread Yielding");
+    SLog(100,  "Thread Yielding");
     int lwprc = LWP_DispatchProcess();
     if (lwprc != LWP_SUCCESS)
-	LogMsg(0, SrvDebugLevel, stdout,  
+	SLog(0,  
 		"PollAndYield: LWP_DispatchProcess failed (%d)", 
 		lwprc);
-    LogMsg(100, SrvDebugLevel, stdout,  "Thread Yield Returning");
+    SLog(100,  "Thread Yield Returning");
 }
 
 
@@ -2548,27 +2557,27 @@ long ViceGetVolVS(RPC2_Handle cid, VolumeId Vid, RPC2_Integer *VS,
     ClientEntry *client = 0;
     int ix, count;
 
-    LogMsg(1, SrvDebugLevel, stdout, "ViceGetVolVS for volume 0x%x", Vid);
+    SLog(1, "ViceGetVolVS for volume 0x%x", Vid);
 
     errorCode = RPC2_GetPrivatePointer(cid, (char **)&client);
     if(!client || errorCode) {
-	LogMsg(0, SrvDebugLevel, stdout, "No client structure built by ViceConnectFS");
+	SLog(0, "No client structure built by ViceConnectFS");
 	return(errorCode);
     }
 
     /* now get the version stamp for Vid */
     rwVid = Vid;
     if (!XlateVid(&rwVid, &count, &ix)) {
-	LogMsg(1, SrvDebugLevel, stdout, "GetVolVV: Couldn't translate VSG %u", Vid);
+	SLog(1, "GetVolVV: Couldn't translate VSG %u", Vid);
 	errorCode = EINVAL;
 	goto Exit;
     }
 
-    LogMsg(9, SrvDebugLevel, stdout, "GetVolVS: Going to get volume %u pointer", rwVid);
+    SLog(9, "GetVolVS: Going to get volume %u pointer", rwVid);
     volptr = VGetVolume((Error *) &errorCode, rwVid);
-    LogMsg(1, SrvDebugLevel, stdout, "GetVolVS: Got volume %u: error = %d", rwVid, errorCode);
+    SLog(1, "GetVolVS: Got volume %u: error = %d", rwVid, errorCode);
     if (errorCode) {
-	LogMsg(0, SrvDebugLevel, stdout,  "ViceGetVolVV, VgetVolume error %s", ViceErrorMsg((int)errorCode));
+	SLog(0,  "ViceGetVolVV, VgetVolume error %s", ViceErrorMsg((int)errorCode));
 	/* should we check to see if we must do a putvolume here */
 	goto Exit;
     }
@@ -2588,7 +2597,7 @@ long ViceGetVolVS(RPC2_Handle cid, VolumeId Vid, RPC2_Integer *VS,
 	*CBStatus = CallBackSet;
 
  Exit:
-    LogMsg(2, SrvDebugLevel, stdout, "ViceGetVolVS returns %s\n",
+    SLog(2, "ViceGetVolVS returns %s\n",
 	   ViceErrorMsg((int)errorCode));
 
     return(errorCode);
@@ -2611,7 +2620,7 @@ void GetMyVS(Volume *volptr, RPC2_CountedBS *VSList, RPC2_Integer *MyVS) {
     /* get the version stamp from our slot in the vector */
     *MyVS = ((RPC2_Unsigned *) VSList->SeqBody)[ix];
 
-    LogMsg(1, SrvDebugLevel, stdout, "GetMyVS: 0x%x, incoming stamp %d", 
+    SLog(1, "GetMyVS: 0x%x, incoming stamp %d", 
 	   V_id(volptr), *MyVS);
 
     return;
@@ -2630,7 +2639,7 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
 
     *VCBStatus = NoCallBack;
 
-    LogMsg(1, SrvDebugLevel, stdout, "SetVSStatus: 0x%x, client %d, server %d", 
+    SLog(1, "SetVSStatus: 0x%x, client %d, server %d", 
 	   V_id(volptr), *NewVS, (&(V_versionvector(volptr).Versions.Site0))[ix]);
 
     /* check the version stamp in our slot in the vector */
@@ -2646,7 +2655,7 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
     } else 
 	*NewVS = 0;
 
-    LogMsg(1, SrvDebugLevel, stdout, "SetVSStatus: 0x%x, NewVS %d, CBstatus %d", 
+    SLog(1, "SetVSStatus: 0x%x, NewVS %d, CBstatus %d", 
 		V_id(volptr), *NewVS, *VCBStatus);
     return;
 }
@@ -2667,11 +2676,11 @@ long ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
     long errorCode = 0;
     ClientEntry *client = 0;
 
-    LogMsg(1, SrvDebugLevel, stdout, "ViceValidateVols, (%d volumes)", numVids);
+    SLog(1, "ViceValidateVols, (%d volumes)", numVids);
 
     errorCode = RPC2_GetPrivatePointer(cid, (char **)&client);
     if(!client || errorCode) {
-	LogMsg(0, SrvDebugLevel, stdout, "No client structure built by ViceConnectFS");
+	SLog(0, "No client structure built by ViceConnectFS");
 	return(errorCode);
     }
 
@@ -2689,18 +2698,18 @@ long ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 
     	rwVid = Vids[i].Vid;
 	if (!XlateVid(&rwVid, &count, &ix)) {
-	    LogMsg(1, SrvDebugLevel, stdout, "ValidateVolumes: Couldn't translate VSG %x", 
+	    SLog(1, "ValidateVolumes: Couldn't translate VSG %x", 
 		   Vids[i].Vid);
 	    goto InvalidVolume;
         }
 
-	LogMsg(9, SrvDebugLevel, stdout,  "ValidateVolumes: Going to get volume %x pointer", 
+	SLog(9,  "ValidateVolumes: Going to get volume %x pointer", 
 	       rwVid);
 	volptr = VGetVolume((Error *) &error, rwVid);
-	LogMsg(1, SrvDebugLevel, stdout, "ValidateVolumes: Got volume %x: error = %d ", 
+	SLog(1, "ValidateVolumes: Got volume %x: error = %d ", 
 	       rwVid, error);
 	if (error){
-	    LogMsg(0, SrvDebugLevel, stdout,  "ViceValidateVolumes, VgetVolume error %s", 
+	    SLog(0,  "ViceValidateVolumes, VgetVolume error %s", 
 		   ViceErrorMsg((int)error));
 	    /* should we check to see if we must do a putvolume here */
 	    goto InvalidVolume;
@@ -2712,7 +2721,7 @@ long ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
 	/* check the version stamp in our slot in the vector */
 	index = i * count + ix;
 	if (ntohl(((RPC2_Unsigned *) VSBS->SeqBody)[index]) == myVS) {
-	    LogMsg(8, SrvDebugLevel, stdout, "ValidateVolumes: 0x%x ok, adding callback", 
+	    SLog(8, "ValidateVolumes: 0x%x ok, adding callback", 
 		   Vids[i].Vid);
 	    /* 
 	     * add a volume callback. don't need to use CodaAddCallBack because 
@@ -2727,11 +2736,11 @@ long ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
         }
 
  InvalidVolume:
-	LogMsg(0, SrvDebugLevel, stdout, "ValidateVolumes: 0x%x failed!", Vids[i].Vid);
+	SLog(0, "ValidateVolumes: 0x%x failed!", Vids[i].Vid);
 	VFlagBS->SeqBody[i] = 255;
     }
 
-    LogMsg(2, SrvDebugLevel, stdout, "ValidateVolumes returns %s\n", 
+    SLog(2, "ValidateVolumes returns %s\n", 
 	   ViceErrorMsg((int)errorCode));
 
     return(errorCode);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.7 1998/09/29 16:38:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/subresphase3.cc,v 4.8 1998/10/21 22:05:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -165,7 +165,7 @@ long RS_ResPhase3(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer size,
 	PROBE(tpinfo, RecovCompOpsEnd);
 	if (!CompOps) {
 	    SLog(0,
-		   "RS_ResPhase3 - Coulnt find common point with all sites\n");
+		   "RS_ResPhase3 - Couldn't find common point with all sites\n");
 	    errorCode = EINCONS;
 
 	    // update res stats

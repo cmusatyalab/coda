@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.8 1998/08/31 12:23:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resforce.cc,v 4.9 1998/10/21 22:05:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -510,7 +510,8 @@ int ObtainDirOps(PDirEntry de, void *data)
 }
 
 /* opens the file <filename> and returns the list of dir operations in List */
-int GetOpList(char *filename, olist *List) {
+int GetOpList(char *filename, olist *List) 
+{
     SLog(49, "In GetOpList: Filename (%s), List(0x%x)",
 	    filename, List);
     int fd = ::open(filename, O_RDONLY, 0644);
@@ -607,11 +608,13 @@ int ForceDir(vle *pv, Volume *volptr, VolumeId repvolid,
 	switch(p->op) {
 	  case CreateD:
 	    {
-		SLog(9,  "ForceDir: CreateD: %x.%x.%x %s",
-			cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
+		    SLog(9,  "ForceDir: CreateD: %x.%x.%x %s",
+			 cFid.Volume, cFid.Vnode, cFid.Unique, p->name);
 		int tblocks = 0;
 		vle *cv = AddVLE(*vlist, &cFid);
-		if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory, &cFid, 
+		cv->d_inodemod = 1;
+		if (errorCode = AllocVnode(&cv->vptr, volptr, 
+					   (ViceDataType)vDirectory, &cFid, 
 					   &parentFid, 0, 1, &tblocks)) 
 		    return(errorCode);
 		*deltablocks += tblocks;

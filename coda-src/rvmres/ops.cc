@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/ops.cc,v 4.2 1997/10/01 21:08:38 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rvmres/ops.cc,v 4.3 1998/04/14 21:08:29 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -95,7 +95,7 @@ void ststore::init(UserId o, RPC2_Unsigned m,
 
 void ststore::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "ststore:print Owner %u, Mode %u\n",
 	   owner, mode);
     sprintf(buf, "    stType = status; Owner: %u Mode %u Author %u Date %u \n", 
@@ -103,12 +103,12 @@ void ststore::print(int fd) {
     write(fd, buf, (int)strlen(buf));
     FILE *fp = fdopen(fd, "w");
     if (fp) {
-	LogMsg(1, SrvDebugLevel, stdout,
+	SLog(1,
 	       "ststore:print going to print vv\n");
 	PrintVV(fp, &vv);
     }
     else 
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "ststore::print Couldnt fdopen file\n");
 }
 
@@ -128,7 +128,7 @@ void newstore::init(UserId o, RPC2_Unsigned m, UserId a, Date_t d,
 
 void newstore::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "newstore:print Owner %u, Mode %u\n",
 	   owner, mode);
     sprintf(buf, "    newstore Owner: %u Mode %u Author %u Date %u Mask %o \n",
@@ -136,12 +136,12 @@ void newstore::print(int fd) {
     write(fd, buf, (int)strlen(buf));
     FILE *fp = fdopen(fd, "w");
     if (fp) {
-	LogMsg(1, SrvDebugLevel, stdout,
+	SLog(1,
 	       "newstore:print going to print vv\n");
 	PrintVV(fp, &vv);
     }
     else 
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "ststore::print Couldnt fdopen file\n");
 }
 
@@ -154,7 +154,7 @@ void create_rle::init(VnodeId v, Unique_t u, UserId o, char *s) {
 
 void create_rle::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "create_rle::print name %s, vn 0x%x.%x\n",
 	   name, cvnode, cunique);
     sprintf(buf, "    %s [0x%x.%x] owner %u\n", &name[0], cvnode, cunique, owner);
@@ -170,7 +170,7 @@ void symlink_rle::init(VnodeId v, Unique_t u, UserId o, char *s) {
 
 void symlink_rle::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "symlink_rle::print name %s 0x%x.%x\n",
 	   name, cvnode, cunique);
     sprintf(buf, "    %s [0x%x.%x] owner %u\n", &name[0], cvnode, cunique, owner);
@@ -187,7 +187,7 @@ void link_rle::init(VnodeId v, Unique_t u, ViceVersionVector *vv, char *s) {
 
 void link_rle::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "link_rle::print name %s vnode 0x%x.%x\n",
 	   name, cvnode, cunique);
     sprintf(buf, "    %s [0x%x.%x][%d %d %d %d %d %d %d %d (%x.%x)(0x%x)]\n",
@@ -211,7 +211,7 @@ void mkdir_rle::init(VnodeId v, Unique_t u, UserId o, char *s) {
 
 void mkdir_rle::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "mkdir_rle:print name is %s, vn = %d, unique = %d\n",
 	   name, cvnode, cunique);
     sprintf(buf, "    %s [0x%x.%x] owner %u\n", &name[0], cvnode, cunique, owner);
@@ -227,7 +227,7 @@ void rm_rle::init(VnodeId v, Unique_t u, ViceVersionVector *vv, char *s) {
 
 void rm_rle::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "rm_rle::print name %s vnode 0x%x.%x\n",
 	   name, cvnode, cunique);
     sprintf(buf, "    %s [0x%x.%x][%d %d %d %d %d %d %d %d (%x.%x)(0x%x)]\n",
@@ -253,7 +253,7 @@ void rmdir_rle::init(VnodeId v, Unique_t u, rec_dlist *rdl, ViceStoreId *lcp,
 
 void rmdir_rle::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "rmdir_rle::print name %s vnode 0x%x.%x\n",
 	   name, cvnode, cunique);
     sprintf(buf, "    %s [0x%x.%x] del storeid [0x%x.%x]\n", 
@@ -287,7 +287,7 @@ void rename_rle::init(unsigned short srctgt, VnodeId odv, Unique_t odu, VnodeId 
 
 void rename_rle::print(int fd) {
     char buf[512];
-    LogMsg(1, SrvDebugLevel, stdout, 
+    SLog(1, 
 	   "name %s dir 0x%x.%x\n",
 	   oldname, otherdirv, otherdiru);
     sprintf(buf, "    %s other dir (0x%x.%x) %s (0x%x.%x)[%d %d %d %d %d %d %d %d 0x%x.%x 0x%x]\n renamed to %s\n",
@@ -315,7 +315,7 @@ void rename_rle::print(int fd) {
 
 
 void setquota_rle::init(int oquota, int nquota) {
-    LogMsg(0, SrvDebugLevel, stdout,
+    SLog(0,
            "setquota_rle::init quota changed from %d to %d\n",
 	   oquota, nquota);
     oldquota = oquota;
@@ -326,7 +326,7 @@ void setquota_rle::init(int oquota, int nquota) {
 void setquota_rle::print(int fd) {
     char buf[512];
 
-    LogMsg(1, SrvDebugLevel, stdout,
+    SLog(1,
            "setquota_rle::print quota changed from %d to %d\n",
 	   oldquota, newquota);
 
@@ -383,16 +383,14 @@ void CreateResLog(Volume *vol, Vnode *vptr) {
 }
 
 /*
-  BEGIN_HTML
-  <a name="SpoolVMLogRecord"><strong>Create a log record in VM and reserve a slot
-  for it in recoverable storage.</strong></a><br>
-  <cite>Note that this routine is overloaded.</cite>
-  END_HTML
+  SpoolVMLogRecord: Create a log record in VM and reserve a slot
+  for it in recoverable storage.
+  Note that this routine is overloaded.
  */
 
 int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap) {
     assert(v);
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
+    SLog(9,  "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
     int errorcode = 0;
@@ -401,9 +399,9 @@ int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap)
 
     /* reserve a slot for the record in volume log */
     if (V_VolLog(vol)->AllocRecord(&index, &seqno)) {
-	LogMsg(0, SrvDebugLevel, stdout, 
+	SLog(0, 
 	       "SpoolVMLogRecord - no space left in volume");
-	LogMsg(0, SrvDebugLevel, stdout, "- returns ENOSPC\n");
+	SLog(0, "- returns ENOSPC\n");
 	return(ENOSPC);
     }
 
@@ -415,13 +413,13 @@ int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op, va_list ap)
     //append record to intention list 
     v->rsl.append(rsl);
 
-    LogMsg(9, SrvDebugLevel, stdout,  
+    SLog(9,  
 	   "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
     return(0);
 }
 
 int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op ...) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
+    SLog(9,  "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
     va_list ap;
@@ -429,14 +427,14 @@ int SpoolVMLogRecord(vle *v, Volume *vol, ViceStoreId *stid, int op ...) {
     int errorCode = SpoolVMLogRecord(v, vol, stid, op, ap);
     va_end(ap);
 
-    LogMsg(9, SrvDebugLevel, stdout,  
+    SLog(9,  
 	   "Leaving SpoolVMLogRecord() - returns %d\n",
 	   errorCode);
     return(errorCode);
 }
 
 int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid, int op ...) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering SpoolVMLogRecord_dlist(0x%x.%x.%x) ",
+    SLog(9,  "Entering SpoolVMLogRecord_dlist(0x%x.%x.%x) ",
 	    V_id(vol), vptr->vnodeNumber, vptr->disk.uniquifier);
 
     va_list ap;
@@ -444,14 +442,14 @@ int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid, 
     int errorCode = SpoolVMLogRecord(vlist, vptr, vol, stid, op, ap);
     va_end(ap);
 
-    LogMsg(9, SrvDebugLevel, stdout,  
+    SLog(9,  
 	   "Leaving SpoolVMLogRecord() - returns %d\n",
 	   errorCode);
     return(errorCode);
 }
 
 int SpoolVMLogRecord(dlist *vlist, vle *v,  Volume *vol, ViceStoreId *stid, int op ...) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entering SpoolVMLogRecord_dlist(0x%x.%x.%x) ",
+    SLog(9,  "Entering SpoolVMLogRecord_dlist(0x%x.%x.%x) ",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
     va_list ap;
@@ -459,9 +457,7 @@ int SpoolVMLogRecord(dlist *vlist, vle *v,  Volume *vol, ViceStoreId *stid, int 
     int errorCode = SpoolVMLogRecord(vlist, v, vol, stid, op, ap);
     va_end(ap);
 
-    LogMsg(9, SrvDebugLevel, stdout,  
-	   "Leaving SpoolVMLogRecord() - returns %d\n",
-	   errorCode);
+    SLog(9,  "Leaving SpoolVMLogRecord() - returns %d\n", errorCode);
     return(errorCode);
 }
 
@@ -471,9 +467,8 @@ int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid,
     FormFid(fid, V_id(vol), vptr->vnodeNumber, vptr->disk.uniquifier);
     vle *v = FindVLE(*vlist, &fid);
     if (!v) {
-	LogMsg(0, SrvDebugLevel, stdout,
-	       "SpoolVMLogRecord_dlist - no vle found for (0x%x.%x.%x)\n",
-	       fid.Volume, fid.Vnode, fid.Unique);
+	SLog(0, "SpoolVMLogRecord_dlist - no vle found for %s\n",
+	       FID_(&fid));
 	return(EINVAL);
     }
     return(SpoolVMLogRecord(vlist, v, vol, stid, op, ap));
@@ -482,7 +477,7 @@ int SpoolVMLogRecord(dlist *vlist, Vnode *vptr, Volume *vol, ViceStoreId *stid,
 int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid, 
 		     int op, va_list ap) {
     assert(v);
-    LogMsg(9, SrvDebugLevel, stdout,  
+    SLog(9,  
 	   "Entering SpoolVMLogRecord_vle(0x%x.%x.%x)",
 	    V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
@@ -493,9 +488,9 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
     /* reserve a slot for the record in volume log */
     if (V_VolLog(vol)->AllocRecord(&index, &seqno)) {
 	if (V_VolLog(vol)->AllocViaWrapAround(&index, &seqno, vol, vlist)) {
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    SLog(0, 
 		   "SpoolVMLogRecord - no space left in volume");
-	    LogMsg(0, SrvDebugLevel, stdout, "- returns ENOSPC\n");
+	    SLog(0, "- returns ENOSPC\n");
 	    return(ENOSPC);
 	}
     }
@@ -507,7 +502,7 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
     rsl->init(op, ap);
     //append record to intention list 
     v->rsl.append(rsl);
-    LogMsg(9, SrvDebugLevel, stdout,  
+    SLog(9,  
 	   "Leaving SpoolVMLogRecord_vle() - returns SUCCESS\n");
     return(0);
 }
@@ -531,7 +526,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode,
 						 &(Vnode_vv(svnode)), 1 /* target exists */,
 						 (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
 						 &(Vnode_vv(tvnode)), VnLog(tvnode))) {
-		    LogMsg(0, SrvDebugLevel, stdout, 
+		    SLog(0, 
 			   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
 			   errorCode);
 		    return(errorCode);
@@ -546,7 +541,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode,
 						 &(Vnode_vv(svnode)), 1 /* target exists */,
 						 (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
 						 &(Vnode_vv(tvnode)), NULL/* attach deleted objects log to its parent*/)) {
-		    LogMsg(0, SrvDebugLevel, stdout, 
+		    SLog(0, 
 			   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
 			   errorCode);
 		    return(errorCode);
@@ -560,7 +555,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode,
 						 &(Vnode_vv(svnode)), 1 /* target exists */,
 						 (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
 						 &(Vnode_vv(tvnode)), VnLog(tvnode))) {
-		    LogMsg(0, SrvDebugLevel, stdout, 
+		    SLog(0, 
 			   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
 			   errorCode);
 		    return(errorCode);
@@ -577,7 +572,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode,
 					     &(Vnode_vv(svnode)), 1 /* target exists */,
 					     (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
 					     &(Vnode_vv(tvnode)), NULL)) {
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
 		       errorCode);
 		return(errorCode);
@@ -591,7 +586,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode,
 						 &(Vnode_vv(svnode)), 1 /* target exists */,
 						 (VnodeId)tvnode->vnodeNumber, (Unique_t)tvnode->disk.uniquifier, 
 						 &(Vnode_vv(tvnode)), NULL)) {
-		    LogMsg(0, SrvDebugLevel, stdout, 
+		    SLog(0, 
 			   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
 			   errorCode);
 		    return(errorCode);
@@ -608,7 +603,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode,
 					 (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
 					 &(Vnode_vv(svnode)), 0 /* target does not exist */,
 					 0, 0, NULL, NULL)) {
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    SLog(0, 
 		   "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
 		   errorCode);
 	    return(errorCode);
@@ -621,7 +616,7 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode,
 					     (VnodeId)svnode->vnodeNumber, (Unique_t)svnode->disk.uniquifier, 
 					     &(Vnode_vv(svnode)), 0 /* target does not exist */,
 					     0, 0, NULL, NULL)) {
-		LogMsg(0, SrvDebugLevel, stdout, 
+		SLog(0, 
 		       "SpoolRenameLogRecord: Error %d in SpoolVMLogRecord\n", 
 		       errorCode);
 		return(errorCode);
@@ -634,12 +629,14 @@ int SpoolRenameLogRecord(int opcode, dlist *vl, Vnode *svnode, Vnode *tvnode,
 /* called from within a transaction */
 /* return list of indices (ind parameter below) freed from volume log 
    so that the vm bitmap can also be modified if xaction succeeds */
-void TruncateLog(Volume *vol, Vnode *vptr, vmindex *ind) {
-    LogMsg(9, SrvDebugLevel, stdout, "Entering TruncRVMLog (0x%x.%x.%x)\n",
-	    V_id(vol), vptr->vnodeNumber, vptr->disk.uniquifier);
+void TruncateLog(Volume *vol, Vnode *vptr, vmindex *ind) 
+{
+    SLog(9, "Entering TruncRVMLog (0x%x.%x.%x)\n",
+	 V_id(vol), vptr->vnodeNumber, vptr->disk.uniquifier);
 	   
     rec_dlist *log = VnLog(vptr);
-    int count = log->count() - 1;	/* number of entries that will be freed */
+    /* number of entries that will be freed */
+    int count = log->count() - 1;	
     if (count > 0) 
 	for (int i= 0; i < count; i++) {
 	    /* remove entry from list */
@@ -651,7 +648,8 @@ void TruncateLog(Volume *vol, Vnode *vptr, vmindex *ind) {
 
 	    // RESSTATS
 	    VarlHisto(*(V_VolLog(vol)->vmrstats)).countdealloc(le->size);
-	    Lsize(*(V_VolLog(vol)->vmrstats)).chgsize(-(le->size + sizeof(recle)));
+	    Lsize(*(V_VolLog(vol)->vmrstats)).chgsize(-(le->size + 
+							sizeof(recle)));
 
 	    /* destroy the variable length part */
 	    le->FreeVarl();
@@ -663,18 +661,20 @@ void TruncateLog(Volume *vol, Vnode *vptr, vmindex *ind) {
 	    ind->add(le->index);
 	}
     
-    LogMsg(9, SrvDebugLevel, stdout, "Leaving TruncRVMLog()\n");
+    SLog(9, "Leaving TruncRVMLog()\n");
 }
 
 /* free up space in vm bitmap */
-void FreeVMIndices(Volume *vol, vmindex *ind) {
+void FreeVMIndices(Volume *vol, vmindex *ind) 
+{
     vmindex_iterator next(ind);
     int i;
     while ((i = next()) != -1) 
 	V_VolLog(vol)->DeallocRecord(i);
 }
 
-void PurgeLog(rec_dlist *list, Volume *vol, vmindex *ind) {
+void PurgeLog(rec_dlist *list, Volume *vol, vmindex *ind) 
+{
     recle *le;
     while (le = (recle *)list->get()) {
 	// recursively purge all children logs too 
@@ -758,7 +758,7 @@ void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries
     *bufsize = lastentry;
 }
 void PrintLog(rec_dlist *log, FILE *fp) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entered PrintLog for log = 0x%x",
+    SLog(9,  "Entered PrintLog for log = 0x%x",
 	   log);
     rec_dlist_iterator next(*log);
     recle *r;
@@ -771,15 +771,15 @@ void PrintLog(rec_dlist *log, FILE *fp) {
 	    fprintf(fp, "####### Finished Subtree ##########\n");
 	}
     }
-    LogMsg(9, SrvDebugLevel, stdout, "Leaving PrintLog(log *, FILE *)\n");
+    SLog(9, "Leaving PrintLog(log *, FILE *)\n");
 }
 
 void PrintLog(Vnode *vptr, FILE *fp) {
-    LogMsg(9, SrvDebugLevel, stdout,  "Entered PrintLog for (0x%x.%x.%x)",
+    SLog(9,  "Entered PrintLog for (0x%x.%x.%x)",
 	   V_id(vptr->volumePtr), vptr->vnodeNumber, vptr->disk.uniquifier);
     if (VnLog(vptr)) 
 	PrintLog(VnLog(vptr), fp);
-    LogMsg(9, SrvDebugLevel, stdout, "Leaving PrintLog()\n");
+    SLog(9, "Leaving PrintLog()\n");
 }
 
 

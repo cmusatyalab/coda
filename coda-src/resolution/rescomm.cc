@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.cc,v 4.6 1998/08/31 12:23:19 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.cc,v 4.7 1998/10/05 17:15:07 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -244,25 +244,23 @@ void res_mgrpent::KillMember(unsigned long host, int forcibly) {
 }
 
 /* Assumes supplied host set has hosts in canonical order */
-int res_mgrpent::GetHostSet(unsigned long *HostSet) {
-    
+int res_mgrpent::GetHostSet(unsigned long *HostSet) 
+{
+    int i;
     if (HostSet == 0) HostSet = Hosts;
     
     /* Create Members already not members */
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (HostSet[i] != 0 && rrcc.hosts[i] == 0)
-	    CreateMember(HostSet[i]);
+    for (i = 0; i < VSG_MEMBERS; i++)
+	    if (HostSet[i] != 0 && rrcc.hosts[i] == 0)
+		    CreateMember(HostSet[i]);
     /* Kill Members not in the host set */
-  { /* drop scope for int i below; to avoid identifier clash */
-    for (int i = 0; i < VSG_MEMBERS; i++) 
-	if (HostSet[i] == 0 && rrcc.hosts[i] != 0)
-	    KillMember(rrcc.hosts[i], 1);
-  } /* drop scope for int i above; to avoid identifier clash */
+    for (i = 0; i < VSG_MEMBERS; i++) 
+	    if (HostSet[i] == 0 && rrcc.hosts[i] != 0)
+		    KillMember(rrcc.hosts[i], 1);
     
     /* Make sure at least 1 server is up */
     if (rrcc.HowMany == 0) return(ETIMEDOUT);
     
-    /* Set Primary Host???? - Puneet */
     return(0);
 }
 

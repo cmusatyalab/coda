@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.23 1998/10/07 20:29:55 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.24 1998/10/09 21:57:41 braam Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -286,11 +286,11 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 #endif
 
 #ifndef  __BSD44__
-    LogMsg(0, 0, stdout,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d ******", sig);
+    SLog(0,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d ******", sig);
 #else
-    LogMsg(0, 0, stdout,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
+    SLog(0,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
 #endif    
-    LogMsg(0, 0, stdout,  "****** Aborting outstanding transactions, stand by...");
+    SLog(0,  "****** Aborting outstanding transactions, stand by...");
     /* leave a sign to prevent automatic restart, ignore failures */
     creat("CRASH", 00600);
     /* Abort all transactions before suspending... */
@@ -302,21 +302,21 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	rvm_init_options(&curopts);
 	ret = rvm_query(&curopts, NULL);
 	if (ret != RVM_SUCCESS)
-	    LogMsg(0, 0, stdout,  "rvm_query returned %s", rvm_return(ret));	
+	    SLog(0,  "rvm_query returned %s", rvm_return(ret));	
 	else {
-	    LogMsg(0, 0, stdout,  "Uncommitted transactions: %d", curopts.n_uncommit);
+	    SLog(0,  "Uncommitted transactions: %d", curopts.n_uncommit);
 	
 	    for (i = 0; i < curopts.n_uncommit; i++) {
 		rvm_abort_transaction(&(curopts.tid_array[i]));
 		if (ret != RVM_SUCCESS) 
-		    LogMsg(0, 0, stdout,  "ERROR: abort failed, code: %s", rvm_return(ret));
+		    SLog(0,  "ERROR: abort failed, code: %s", rvm_return(ret));
 	    }
 	    
 	    ret = rvm_query(&curopts, NULL);
 	    if (ret != RVM_SUCCESS)
-		LogMsg(0, 0, stdout,  "rvm_query returned %s", rvm_return(ret));	
+		SLog(0,  "rvm_query returned %s", rvm_return(ret));	
 	    else 
-		LogMsg(0, 0, stdout,  "Uncommitted transactions: %d", curopts.n_uncommit);
+		SLog(0,  "Uncommitted transactions: %d", curopts.n_uncommit);
 	}
 	rvm_free_options(&curopts);
 
@@ -324,8 +324,8 @@ void zombie(int sig, int code, struct sigcontext *scp) {
 	    dumpvm(); /* sanity check rvm recovery. */
     }
     
-    LogMsg(0, 0, stdout, "Becoming a zombie now ........");
-    LogMsg(0, 0, stdout, "You may use gdb to attach to %d", getpid());
+    SLog(0, "Becoming a zombie now ........");
+    SLog(0, "You may use gdb to attach to %d", getpid());
     {
 	int      living_dead = 1;
 	sigset_t mask;
@@ -359,24 +359,24 @@ main(int argc, char *argv[])
 
 
     if(ParseArgs(argc,argv)) {
-	LogMsg(0, 0, stdout, "usage: srv [-d (debug level)] [-p (number of processes)] ");
-	LogMsg(0, 0, stdout, "[-b (buffers)] [-l (large vnodes)] [-s (small vnodes)]");
-	LogMsg(0, 0, stdout, "[-k (stack size)] [-w (call back wait interval)]");
-	LogMsg(0, 0, stdout, "[-r (RPC retry count)] [-o (RPC timeout value)]");
-	LogMsg(0, 0, stdout, "[-c (check interval)] [-t (number of RPC trace buffers)]");
-	LogMsg(0, 0, stdout, "[-noauth] [-forcesalvage] [-quicksalvage]");
-	LogMsg(0, 0, stdout, "[-cp (connections in process)] [-cm (connections max)");
-	LogMsg(0, 0, stdout, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
-	LogMsg(0, 0, stdout, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondportal portalnumber]");
-	LogMsg(0, 0, stdout, "[-debarrenize] [-optstore]");
-	LogMsg(0, 0, stdout, " [-rvmopt] [-newchecklevel checklevel] [-canonicalize] [-usenscclock");
+	SLog(0, "usage: srv [-d (debug level)] [-p (number of processes)] ");
+	SLog(0, "[-b (buffers)] [-l (large vnodes)] [-s (small vnodes)]");
+	SLog(0, "[-k (stack size)] [-w (call back wait interval)]");
+	SLog(0, "[-r (RPC retry count)] [-o (RPC timeout value)]");
+	SLog(0, "[-c (check interval)] [-t (number of RPC trace buffers)]");
+	SLog(0, "[-noauth] [-forcesalvage] [-quicksalvage]");
+	SLog(0, "[-cp (connections in process)] [-cm (connections max)");
+	SLog(0, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
+	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondportal portalnumber]");
+	SLog(0, "[-debarrenize] [-optstore]");
+	SLog(0, " [-rvmopt] [-newchecklevel checklevel] [-canonicalize] [-usenscclock");
 
 	exit(-1);
     }
 
 
     if(chdir("/vice/srv")) {
-	LogMsg(0, 0, stdout, "could not cd to /vice/srv - exiting");
+	SLog(0, "could not cd to /vice/srv - exiting");
 	exit(-1);
     }
 
@@ -414,16 +414,16 @@ main(int argc, char *argv[])
 
     /* Notify log of sizes of text and data regions. */
 #ifndef __CYGWIN32__
-    LogMsg(0, 0, stdout, "Server etext 0x%x, edata 0x%x", &etext, &edata);
+    SLog(0, "Server etext 0x%x, edata 0x%x", &etext, &edata);
 #endif
     switch (RvmType) {
         case UFS	   :
- 	case RAWIO     	   : LogMsg(0, 0, stdout, "RvmType is Rvm"); break;
-	case VM		   : LogMsg(0, 0, stdout, "RvmType is NoPersistence"); break;
-	case UNSET	   : LogMsg(0, 0, stdout, "No RvmType selected!"); exit(-1);
+ 	case RAWIO     	   : SLog(0, "RvmType is Rvm"); break;
+	case VM		   : SLog(0, "RvmType is NoPersistence"); break;
+	case UNSET	   : SLog(0, "No RvmType selected!"); exit(-1);
     }
 
-    LogMsg(0, SrvDebugLevel, stdout, "Main process doing a LWP_Init()");
+    SLog(0, "Main process doing a LWP_Init()");
     assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,&parentPid)==LWP_SUCCESS);
 
     /* using rvm - so set the per thread data structure for executing
@@ -436,7 +436,7 @@ main(int argc, char *argv[])
 	rvmptt.list.size = 0;
 	rvmlib_init_threaddata(&rvmptt);
 	assert(rvmlib_thread_data() != 0);
-	LogMsg(0, SrvDebugLevel, stdout, 
+	SLog(0, 
 	       "Main thread just did a RVM_SET_THREAD_DATA\n");
     }
     InitializeServerRVM("codaserver"); 
@@ -568,11 +568,11 @@ main(int argc, char *argv[])
 			      LWP_NORMAL_PRIORITY, (char *)&i, 
 			      sname, &resworkerPid) == LWP_SUCCESS);
     /* Set up volume utility subsystem (spawns 2 lwps) */
-    LogMsg(29, SrvDebugLevel, stdout, "fileserver: calling InitvolUtil");
+    SLog(29, "fileserver: calling InitvolUtil");
     extern void InitVolUtil(int stacksize);
 
     InitVolUtil(stack*1024);
-    LogMsg(29, SrvDebugLevel, stdout, "fileserver: returning from InitvolUtil");
+    SLog(29, "fileserver: returning from InitvolUtil");
 
     extern void SmonDaemon();
     sprintf(sname, "SmonDaemon");
@@ -583,18 +583,18 @@ main(int argc, char *argv[])
 #ifndef OLDLWP
     /* initialize global array of thread_t for timing - Puneet */
     if (task_threads(task_self(), &thread_list, &thread_count) != KERN_SUCCESS)
-	LogMsg(0, 0, stdout, "*****Couldn't get threads for task ");
+	SLog(0, "*****Couldn't get threads for task ");
     else
-	LogMsg(0, 0, stdout, "Thread ids for %d threads initialized", thread_count);
+	SLog(0, "Thread ids for %d threads initialized", thread_count);
 #endif
 #endif PERFORMANCE
     struct timeval tp;
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
 #ifdef	__linux__
-    LogMsg(0, 0, stdout,"File Server started %s", ctime((const long int *)&tp.tv_sec));
+    SLog(0,"File Server started %s", ctime((const long int *)&tp.tv_sec));
 #else
-    LogMsg(0, 0, stdout,"File Server started %s", ctime(&tp.tv_sec));
+    SLog(0,"File Server started %s", ctime(&tp.tv_sec));
 #endif
     StartTime = (unsigned int)tp.tv_sec;
     assert(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
@@ -619,13 +619,13 @@ static void ServerLWP(int *Ident)
     /* using rvm - so set the per thread data structure */
     rvm_perthread_t rvmptt;
     rvmlib_init_threaddata(&rvmptt);
-    LogMsg(0, SrvDebugLevel, stdout, "ServerLWP %d just did a rvmlib_set_thread_data()\n", *Ident);
+    SLog(0, "ServerLWP %d just did a rvmlib_set_thread_data()\n", *Ident);
 
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
     myfilter.ConnOrSubsys.SubsysId = SUBSYS_SRV;
     lwpid = *Ident;
-    LogMsg(1, SrvDebugLevel, stdout, "Starting Worker %d", lwpid);
+    SLog(1, "Starting Worker %d", lwpid);
 
     /* tag fileserver lwps with rock */
     pt = (ProgramType *) malloc(sizeof(ProgramType));
@@ -641,7 +641,7 @@ static void ServerLWP(int *Ident)
 		client = 0;
 	    
 	    if (client && client->RPCid != mycid) {
-	        LogMsg(0, 0, stdout, "Invalid client pointer from GetPrivatePointer");
+	        SLog(0, "Invalid client pointer from GetPrivatePointer");
 		myrequest->Header.Opcode = BADCLIENT; /* ignore request & Unbind */
 		client = 0;
 	    }
@@ -662,7 +662,7 @@ static void ServerLWP(int *Ident)
 		client->LastOp = (int)myrequest->Header.Opcode;
      	    }
 
-	    LogMsg(5, SrvDebugLevel, stdout, "Worker %d received request %d on cid %d for %s at %s",
+	    SLog(5, "Worker %d received request %d on cid %d for %s at %s",
 		    lwpid, myrequest->Header.Opcode, mycid, userName, workName);
 	    if (myrequest->Header.Opcode > 0 && myrequest->Header.Opcode < FETCHDATA) {
 		Counters[TOTAL]++;
@@ -677,15 +677,15 @@ static void ServerLWP(int *Ident)
 	    if (SrvDebugLevel > 0){
 		/* check how much time it took for call */
 		if(thread_info(th_id, THREAD_BASIC_INFO, (thread_info_t)thrinfo, &info_cnt) != KERN_SUCCESS)
-		    LogMsg(1, SrvDebugLevel, stdout, "Thread Info failed for %d", *Ident);
+		    SLog(1, "Thread Info failed for %d", *Ident);
 		else{
 		    time_value_sub(thrinfo->user_time, save_utime, ptime);
-		    LogMsg(1, SrvDebugLevel, stdout, "RES_USAGE: utime = %d secs, %d usecs", ptime.seconds, ptime.microseconds);
+		    SLog(1, "RES_USAGE: utime = %d secs, %d usecs", ptime.seconds, ptime.microseconds);
 		    /* save new time in save area */
 		    save_utime.seconds = thrinfo->user_time.seconds;
 		    save_utime.microseconds = thrinfo->user_time.microseconds;
 		    time_value_sub(thrinfo->system_time, save_stime, ptime);
-		    LogMsg(1, SrvDebugLevel, stdout, " stime = %d secs, %d usecs", ptime.seconds, ptime.microseconds);
+		    SLog(1, " stime = %d secs, %d usecs", ptime.seconds, ptime.microseconds);
 		    save_stime.seconds = thrinfo->system_time.seconds;
 		    save_stime.microseconds = thrinfo->system_time.microseconds;
 		}
@@ -693,7 +693,7 @@ static void ServerLWP(int *Ident)
 #endif OLDLWP
 #endif PERFORMANCE
 	    if (rc) {
-		LogMsg(0, 0, stdout, "srv.c request %d for %s at %s failed: %s",
+		SLog(0, "srv.c request %d for %s at %s failed: %s",
 			myrequest->Header.Opcode, userName, workName, ViceErrorMsg((int)rc));
 		if(rc <= RPC2_ELIMIT) {
 		    if(client && client->RPCid == mycid && !client->DoUnbind) {
@@ -705,7 +705,7 @@ static void ServerLWP(int *Ident)
 	    }
 	    if(client) {
 		if(client->DoUnbind) {
-		    LogMsg(0, 0, stdout, "Worker%d: Unbinding RPC connection %d",
+		    SLog(0, "Worker%d: Unbinding RPC connection %d",
 							    lwpid, mycid);
 		    RPC2_Unbind(mycid);
 		    AL_FreeCPS(&(client->CPS));
@@ -717,13 +717,13 @@ static void ServerLWP(int *Ident)
 		}
 	    }
 	    if (myrequest->Header.Opcode == BADCLIENT) /* if bad client ptr Unbind */ {
-		LogMsg(0, 0, stdout, "Worker%d: Unbinding RPC connection %d (BADCLIENT)",
+		SLog(0, "Worker%d: Unbinding RPC connection %d (BADCLIENT)",
 					    lwpid, mycid);
 		RPC2_Unbind(mycid);
 	    }
 	}
 	else {
-	    LogMsg(0, 0, stdout,"RPC2_GetRequest failed with %s",ViceErrorMsg((int)rc));
+	    SLog(0,"RPC2_GetRequest failed with %s",ViceErrorMsg((int)rc));
 	}
     }
 }
@@ -739,7 +739,7 @@ static void ResLWP(int *Ident){
     /* using rvm - so set the per thread data structure for executing
        transactions */
     rvmlib_init_threaddata(&rvmptt);
-    LogMsg(0, SrvDebugLevel, stdout, "ResLWP-%d just did a rvmlib_set_thread_data()\n", *Ident);
+    SLog(0, "ResLWP-%d just did a rvmlib_set_thread_data()\n", *Ident);
 
     pt = fileServer;
     assert(LWP_NewRock(FSTAG, (char *)&pt) == LWP_SUCCESS);
@@ -747,22 +747,22 @@ static void ResLWP(int *Ident){
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
     myfilter.ConnOrSubsys.SubsysId = RESOLUTIONSUBSYSID;
-    LogMsg(1, SrvDebugLevel, stdout, "Starting ResLWP worker %d", *Ident);
+    SLog(1, "Starting ResLWP worker %d", *Ident);
 
     while(1) {
 	mycid = 0;
 	rc = RPC2_GetRequest(&myfilter, &mycid, &myrequest, 
 			     NULL, NULL, 0, NULL);
 	if (rc == RPC2_SUCCESS) {
-	    LogMsg(9, SrvDebugLevel, stdout, "ResLWP %d Received request %d", 
+	    SLog(9, "ResLWP %d Received request %d", 
 		    *Ident, myrequest->Header.Opcode);
 	    rc = resolution_ExecuteRequest(mycid, myrequest, NULL);
 	    if (rc) 
-		LogMsg(0, 0, stdout, "ResLWP %d: request %d failed with %s",
+		SLog(0, "ResLWP %d: request %d failed with %s",
 			*Ident, ViceErrorMsg((int)rc));
 	}
 	else 
-	    LogMsg(0, 0, stdout, "RPC2_GetRequest failed with %s", 
+	    SLog(0, "RPC2_GetRequest failed with %s", 
 		    ViceErrorMsg((int)rc));
     }
 
@@ -782,17 +782,17 @@ static void CallBackCheckLWP()
     /* using rvm - so set the per thread data structure for executing
        transactions */
     rvmlib_init_threaddata(&rvmptt);
-    LogMsg(0, SrvDebugLevel, stdout, "CallBackCheckLWP just did a rvmlib_set_thread_data()\n");
+    SLog(0, "CallBackCheckLWP just did a rvmlib_set_thread_data()\n");
 
-    LogMsg(1, SrvDebugLevel, stdout, "Starting CallBackCheck process");
+    SLog(1, "Starting CallBackCheck process");
     time.tv_sec = cbwait;
     time.tv_usec = 0;
 
     while (1) {
 	if (IOMGR_Select(0, 0, 0, 0, &time) == 0) {
-	    LogMsg(2, SrvDebugLevel, stdout, "Checking for dead venii");
+	    SLog(2, "Checking for dead venii");
 	    CLIENT_CallBackCheck();
-	    LogMsg(2, SrvDebugLevel, stdout, "Set disk usage statistics");
+	    SLog(2, "Set disk usage statistics");
 	    VSetDiskUsage();
 	    if(time.tv_sec != cbwait) time.tv_sec = cbwait;
 	}
@@ -811,7 +811,7 @@ static void CheckLWP()
     /* using rvm - so set the per thread data structure for executing
        transactions */
     rvmlib_init_threaddata(&rvmptt);
-    LogMsg(0, SrvDebugLevel, stdout, "CheckLWP just did a rvmlib_set_thread_data()\n");
+    SLog(0, "CheckLWP just did a rvmlib_set_thread_data()\n");
 
     
     /* tag lwps as fsUtilities */
@@ -820,7 +820,7 @@ static void CheckLWP()
     assert(LWP_NewRock(FSTAG, (char *)pt) == LWP_SUCCESS);
 
 
-    LogMsg(1, SrvDebugLevel, stdout, "Starting Check process");
+    SLog(1, "Starting Check process");
     time.tv_sec = chk;
     time.tv_usec = 0;
 
@@ -831,9 +831,9 @@ static void CheckLWP()
 
 		TM_GetTimeOfDay(&tpl, &tspl);
 #ifdef	__linux__
-		LogMsg(0, 0, stdout, "Shutting down the File Server %s", ctime((const long int *)&tpl.tv_sec));
+		SLog(0, "Shutting down the File Server %s", ctime((const long int *)&tpl.tv_sec));
 #else
-		LogMsg(0, 0, stdout, "Shutting down the File Server %s", ctime(&tpl.tv_sec));
+		SLog(0, "Shutting down the File Server %s", ctime(&tpl.tv_sec));
 #endif
 		assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 		/* masquerade as fileServer lwp */
@@ -856,11 +856,11 @@ static void ShutDown()
     PrintCounters(stdout);
 
     if (SalvageOnShutdown) {
-	LogMsg(9, SrvDebugLevel, stdout, "Unlocking volutil lock...");
+	SLog(9, "Unlocking volutil lock...");
 	int fvlock = open("/vice/vol/volutil.lock", O_CREAT|O_RDWR, 0666);
 	assert(fvlock >= 0);
 	while (flock(fvlock, LOCK_UN) != 0);
-	LogMsg(9, SrvDebugLevel, stdout, "Done");
+	SLog(9, "Done");
 	close(fvlock);
 	
 	ProgramType *pt, tmppt;
@@ -905,7 +905,7 @@ void ViceUpdateDB()
     VCheckVLDB();
     CheckVRDB();
     CheckVSGDB();
-    LogMsg(0, 0, stdout, "New Data Base received");
+    SLog(0, "New Data Base received");
 
 }
 
@@ -929,57 +929,57 @@ void PrintCounters(FILE *fp)
 
     TM_GetTimeOfDay(&tpl, &tspl);
     Statistics = 1;
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "Total operations for File Server = %d : time = %s",
 	    Counters[TOTAL], ctime((long *)&tpl.tv_sec));
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "Vice was last started at %s", ctime((long *)&StartTime));
 
-    LogMsg(0, 0, fp, "ConnectFS %d", Counters[CONNECT]);
-    LogMsg(0, 0, fp, "NewConnectFS %d", Counters[NEWCONNECTFS]);
-    LogMsg(0, 0, fp, "DisconnectFS %d", Counters[DISCONNECT]);
+    SLog(0, "ConnectFS %d", Counters[CONNECT]);
+    SLog(0, "NewConnectFS %d", Counters[NEWCONNECTFS]);
+    SLog(0, "DisconnectFS %d", Counters[DISCONNECT]);
 
-    LogMsg(0, 0, fp, "Fetch %d", Counters[ViceFetch_OP]);
-    LogMsg(0, 0, fp, "Store %d", Counters[ViceNewStore_OP] + Counters[ViceNewVStore_OP]);
-    LogMsg(0, 0, fp, "ValidateAttrs %d", Counters[VALIDATEATTRS]);
+    SLog(0, "Fetch %d", Counters[ViceFetch_OP]);
+    SLog(0, "Store %d", Counters[ViceNewStore_OP] + Counters[ViceNewVStore_OP]);
+    SLog(0, "ValidateAttrs %d", Counters[VALIDATEATTRS]);
 
-    LogMsg(0, 0, fp, "Remove %d", Counters[REMOVE]);
-    LogMsg(0, 0, fp, "Create %d", Counters[CREATE]);
-    LogMsg(0, 0, fp, "Rename %d", Counters[RENAME]);
-    LogMsg(0, 0, fp, "SymLink %d", Counters[SYMLINK]);
-    LogMsg(0, 0, fp, "Link %d", Counters[LINK]);
-    LogMsg(0, 0, fp, "MakeDir %d", Counters[MAKEDIR]);
-    LogMsg(0, 0, fp, "RemoveDir %d", Counters[REMOVEDIR]);
-    LogMsg(0, 0, fp, "RemoveCallBack %d", Counters[REMOVECALLBACK]);
-    LogMsg(0, 0, fp, "GetRootVolume %d", Counters[GETROOTVOLUME]);
-    LogMsg(0, 0, fp, "SetRootVolume %d", Counters[SETROOTVOLUME]);
-    LogMsg(0, 0, fp, "GetVolumeStatus %d", Counters[GETVOLUMESTAT]);
-    LogMsg(0, 0, fp, "SetVolumeStatus %d", Counters[SETVOLUMESTAT]);
+    SLog(0, "Remove %d", Counters[REMOVE]);
+    SLog(0, "Create %d", Counters[CREATE]);
+    SLog(0, "Rename %d", Counters[RENAME]);
+    SLog(0, "SymLink %d", Counters[SYMLINK]);
+    SLog(0, "Link %d", Counters[LINK]);
+    SLog(0, "MakeDir %d", Counters[MAKEDIR]);
+    SLog(0, "RemoveDir %d", Counters[REMOVEDIR]);
+    SLog(0, "RemoveCallBack %d", Counters[REMOVECALLBACK]);
+    SLog(0, "GetRootVolume %d", Counters[GETROOTVOLUME]);
+    SLog(0, "SetRootVolume %d", Counters[SETROOTVOLUME]);
+    SLog(0, "GetVolumeStatus %d", Counters[GETVOLUMESTAT]);
+    SLog(0, "SetVolumeStatus %d", Counters[SETVOLUMESTAT]);
     
-    LogMsg(0, 0, fp, "GetTime %d", Counters[GETTIME]); 
-    LogMsg(0, 0, fp, "GetStatistics %d", Counters[GETSTATISTICS]); 
-    LogMsg(0, 0, fp, "GetVolumeInfo %d", Counters[ViceGetVolumeInfo_OP]); 
-    LogMsg(0, 0, fp, "EnableGroup %d", Counters[ViceEnableGroup_OP]); 
-    LogMsg(0, 0, fp, "DisableGroup %d", Counters[ViceDisableGroup_OP]); 
-    LogMsg(0, 0, fp, "Probe %d", Counters[ViceProbe_OP]); 
-    LogMsg(0, 0, fp, "AllocFids %d", Counters[ALLOCFIDS]); 
-    LogMsg(0, 0, fp, "COP2 %d", Counters[ViceCOP2_OP]); 
-    LogMsg(0, 0, fp, "Resolve %d", Counters[RESOLVE]);
-    LogMsg(0, 0, fp, "Repair %d", Counters[REPAIR]);
-    LogMsg(0, 0, fp, "SetVV %d", Counters[SETVV]);
-    LogMsg(0, 0, fp, "Reintegrate %d", Counters[REINTEGRATE]);
+    SLog(0, "GetTime %d", Counters[GETTIME]); 
+    SLog(0, "GetStatistics %d", Counters[GETSTATISTICS]); 
+    SLog(0, "GetVolumeInfo %d", Counters[ViceGetVolumeInfo_OP]); 
+    SLog(0, "EnableGroup %d", Counters[ViceEnableGroup_OP]); 
+    SLog(0, "DisableGroup %d", Counters[ViceDisableGroup_OP]); 
+    SLog(0, "Probe %d", Counters[ViceProbe_OP]); 
+    SLog(0, "AllocFids %d", Counters[ALLOCFIDS]); 
+    SLog(0, "COP2 %d", Counters[ViceCOP2_OP]); 
+    SLog(0, "Resolve %d", Counters[RESOLVE]);
+    SLog(0, "Repair %d", Counters[REPAIR]);
+    SLog(0, "SetVV %d", Counters[SETVV]);
+    SLog(0, "Reintegrate %d", Counters[REINTEGRATE]);
 
-    LogMsg(0, 0, fp, "GetVolVS %d", Counters[GETVOLVS]);
-    LogMsg(0, 0, fp, "ValidateVols %d", Counters[VALIDATEVOLS]);
+    SLog(0, "GetVolVS %d", Counters[GETVOLVS]);
+    SLog(0, "ValidateVols %d", Counters[VALIDATEVOLS]);
 
     seconds = Counters[FETCHTIME]/1000;
     if(seconds <= 0) 
 	seconds = 1;
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "Total FetchDatas = %d, bytes transfered = %d, transfer rate = %d bps",
 	   Counters[FETCHDATAOP], Counters[FETCHDATA],
 	   Counters[FETCHDATA]/seconds);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "Fetched files <%dk = %d; <%dk = %d; <%dk = %d; <%dk = %d; >%dk = %d.",
 	   SIZE1 / 1024, Counters[FETCHD1], SIZE2 / 1024,
 	   Counters[FETCHD2], SIZE3 / 1024, Counters[FETCHD3], SIZE4 / 1024,
@@ -987,11 +987,11 @@ void PrintCounters(FILE *fp)
     seconds = Counters[STORETIME]/1000;
     if(seconds <= 0) 
 	seconds = 1;
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "Total StoreDatas = %d, bytes transfered = %d, transfer rate = %d bps",
 	   Counters[STOREDATAOP], Counters[STOREDATA],
 	   Counters[STOREDATA]/seconds);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "Stored files <%dk = %d; <%dk = %d; <%dk = %d; <%dk = %d; >%dk = %d.",
 	   SIZE1 / 1024, Counters[STORED1], SIZE2 / 1024,
 	   Counters[STORED2], SIZE3 / 1024, Counters[STORED3], SIZE4 / 1024,
@@ -999,82 +999,82 @@ void PrintCounters(FILE *fp)
     VPrintCacheStats();
     DP_PrintStats(fp);
     DH_PrintStats(fp);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC Total bytes:     sent = %u, received = %u",
 	   rpc2_Sent.Bytes + rpc2_MSent.Bytes + sftp_Sent.Bytes + sftp_MSent.Bytes,
 	   rpc2_Recvd.Bytes + rpc2_MRecvd.Bytes + sftp_Recvd.Bytes + sftp_MRecvd.Bytes);
-    LogMsg(0, 0, fp, 
+    SLog(0, 
 	   "\tbytes sent: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
 	   rpc2_Sent.Bytes, rpc2_MSent.Bytes, sftp_Sent.Bytes, sftp_MSent.Bytes);
-    LogMsg(0, 0, fp, 
+    SLog(0, 
 	   "\tbytes received: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
 	   rpc2_Recvd.Bytes, rpc2_MRecvd.Bytes, sftp_Recvd.Bytes, sftp_MRecvd.Bytes);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC Total packets:   sent = %d, received = %d",
 	   rpc2_Sent.Total + rpc2_MSent.Total + sftp_Sent.Total + sftp_MSent.Total,
 	   rpc2_Recvd.Total + rpc2_MRecvd.Total + sftp_Recvd.Total + sftp_MRecvd.Total);
-    LogMsg(0, 0, fp, 
+    SLog(0, 
 	   "\tpackets sent: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
 	   rpc2_Sent.Total, rpc2_MSent.Total, sftp_Sent.Total, sftp_MSent.Total);
-    LogMsg(0, 0, fp, 
+    SLog(0, 
 	   "\tpackets received: rpc = %d, multirpc = %d, sftp = %d, sftp multicasted = %d",
 	   rpc2_Recvd.Total, rpc2_MRecvd.Total, sftp_Recvd.Total, sftp_MRecvd.Total);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC Packets retried = %d, Invalid packets received = %d, Busies sent = %d",
 	   rpc2_Sent.Retries - rpc2_Recvd.GoodBusies,
 	   rpc2_Recvd.Total + rpc2_MRecvd.Total - 
 	        rpc2_Recvd.GoodRequests - rpc2_Recvd.GoodReplies - 
 		rpc2_Recvd.GoodBusies - rpc2_MRecvd.GoodRequests,
 	   rpc2_Sent.Busies);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC Requests %d, Good Requests %d, Replies %d, Busies %d",
 	   rpc2_Recvd.Requests, rpc2_Recvd.GoodRequests, 
 	   rpc2_Recvd.GoodReplies, rpc2_Recvd.GoodBusies);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC Counters: CCount %d; Unbinds %d; FConns %d; AConns %d; GCConns %d",
 	   rpc2_ConnCount, rpc2_Unbinds, rpc2_FreeConns, 
 	   rpc2_AllocConns, rpc2_GCConns);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC Creation counts: Conn %d; SL %d; PB Small %d, Med %d, Large %d; SS %d",
 	   rpc2_ConnCreationCount, rpc2_SLCreationCount, rpc2_PBSmallCreationCount,
 	   rpc2_PBMediumCreationCount, rpc2_PBLargeCreationCount, rpc2_SSCreationCount);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC2 In Use: Conn %d; SS %d",
 	   rpc2_ConnCount, rpc2_SSCount);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC2 PB: InUse %d, Hold %d, Freeze %d, SFree %d, MFree %d, LFree %d", 
 	   rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount,
 	   rpc2_PBSmallFreeCount, rpc2_PBMediumFreeCount, rpc2_PBLargeFreeCount);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "RPC2 HW:  Freeze %d, Hold %d", rpc2_FreezeHWMark, rpc2_HoldHWMark);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "SFTP:	datas %d, datar %d, acks %d, ackr %d, retries %d, duplicates %d",
 	   sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_retries, sftp_duplicates);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "SFTP:  timeouts %d, windowfulls %d, bogus %d, didpiggy %d",
 	   sftp_timeouts, sftp_windowfulls, sftp_bogus, sftp_didpiggy);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "Total CB entries= %d, blocks = %d; and total file entries = %d, blocks = %d",
 	   CBEs, CBEBlocks, FEs, FEBlocks);
     /*    ProcSize = sbrk(0) >> 10;*/
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "There are currently %d connections in use",
 	   CurrentConnections);
     CLIENT_GetWorkStats(&workstations, &activeworkstations, (unsigned)tpl.tv_sec-15*60);
-    LogMsg(0, 0, fp,
+    SLog(0,
 	   "There are %d workstations and %d are active (req in < 15 mins)",
 	   workstations, activeworkstations);
     if(supported && !GetEtherStats()) {
-	LogMsg(0, 0, fp,
+	SLog(0,
 	       "Ether Total bytes: sent = %u, received = %u",
 	       etherBytesWritten, etherBytesRead);
-	LogMsg(0, 0, fp,
+	SLog(0,
 	       "Ether Packets:     sent = %d, received = %d, errors = %d",
 	       etherWrites, etherInterupts, etherRetries);
     }
     
     if (RvmType == RAWIO || RvmType == UFS) {
-	LogMsg(0, SrvDebugLevel, stdout,
+	SLog(0,
 	       "Printing RVM statistics\n");
 	rvm_statistics_t rvmstats;
         rvm_init_statistics(&rvmstats);
@@ -1083,49 +1083,49 @@ void PrintCounters(FILE *fp)
 	rvm_free_statistics(&rvmstats);
     }
     Statistics = 0;
-    LogMsg(0,0,fp, "done\n");
+    SLog(0, "done\n");
 #ifdef _TIMECALLS_
     /* print the histograms timing the operations */
-    LogMsg(0, SrvDebugLevel, fp, "Operation histograms\n");
-    LogMsg(0, SrvDebugLevel, fp, "Create histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "Operation histograms\n");
+    SLog(0, SrvDebugLevel, fp, "Create histogram:\n");
     PrintHisto(fp, &Create_Total_hg);
     ClearHisto(&Create_Total_hg);
-    LogMsg(0, SrvDebugLevel, fp, "Remove histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "Remove histogram:\n");
     PrintHisto(fp, &Remove_Total_hg);
     ClearHisto(&Remove_Total_hg);
-    LogMsg(0, SrvDebugLevel, fp, "Link histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "Link histogram:\n");
     PrintHisto(fp, &Link_Total_hg);
     ClearHisto(&Link_Total_hg);
-    LogMsg(0, SrvDebugLevel, fp, "Rename histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "Rename histogram:\n");
     PrintHisto(fp, &Rename_Total_hg);
     ClearHisto(&Rename_Total_hg);
-    LogMsg(0, SrvDebugLevel, fp, "MakeDir histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "MakeDir histogram:\n");
     PrintHisto(fp, &MakeDir_Total_hg);
     ClearHisto(&MakeDir_Total_hg);
-    LogMsg(0, SrvDebugLevel, fp, "RemoveDir histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "RemoveDir histogram:\n");
     PrintHisto(fp, &RemoveDir_Total_hg);
     ClearHisto(&RemoveDir_Total_hg);
-    LogMsg(0, SrvDebugLevel, fp, "SymLink histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "SymLink histogram:\n");
     PrintHisto(fp, &SymLink_Total_hg);
     ClearHisto(&SymLink_Total_hg);
-    LogMsg(0, SrvDebugLevel, fp, "SpoolVMLogRecord histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "SpoolVMLogRecord histogram:\n");
     PrintHisto(fp, &SpoolVMLogRecord_hg);
     ClearHisto(&SpoolVMLogRecord_hg);
 
-    LogMsg(0, SrvDebugLevel, fp, "PutObjects_Transaction_hg histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "PutObjects_Transaction_hg histogram:\n");
     PrintHisto(fp, &PutObjects_Transaction_hg);
     ClearHisto(&PutObjects_Transaction_hg);
 
-    LogMsg(0, SrvDebugLevel, fp, "PutObjects_TransactionEnd_hg histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "PutObjects_TransactionEnd_hg histogram:\n");
     PrintHisto(fp, &PutObjects_TransactionEnd_hg);
     ClearHisto(&PutObjects_TransactionEnd_hg);
 
-    LogMsg(0, SrvDebugLevel, fp, "PutObjects_RVM_hg histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "PutObjects_RVM_hg histogram:\n");
     PrintHisto(fp, &PutObjects_RVM_hg);
     ClearHisto(&PutObjects_RVM_hg);
 
 
-    LogMsg(0, SrvDebugLevel, fp, "PutObjects_Inodes_hg histogram:\n");
+    SLog(0, SrvDebugLevel, fp, "PutObjects_Inodes_hg histogram:\n");
     PrintHisto(fp, &PutObjects_Inodes_hg);
     ClearHisto(&PutObjects_Inodes_hg);
 #endif _TIMECALLS_
@@ -1145,7 +1145,7 @@ static void SetDebug()
     AL_DebugLevel = SrvDebugLevel/10;
     RPC2_DebugLevel = (long)SrvDebugLevel/10;
     VolDebugLevel = DirDebugLevel = SrvDebugLevel;
-    LogMsg(0, 0, stdout, "Set Debug On level = %d, RPC level = %d",
+    SLog(0, "Set Debug On level = %d, RPC level = %d",
 	    SrvDebugLevel, RPC2_DebugLevel);
 }
 
@@ -1155,7 +1155,7 @@ static void ResetDebug()
     AL_DebugLevel = 0;
     RPC2_DebugLevel = 0;
     DirDebugLevel = VolDebugLevel = 0;
-    LogMsg(0, 0, stdout, "Reset Debug levels to 0");
+    SLog(0, "Reset Debug levels to 0");
 }
 
 /*
@@ -1176,8 +1176,8 @@ void SwapMalloc()
   }
 }
 
-/* Note  TimeStamp and rds_printer are stolen directly from the LogMsg
-   implementation.  I couldn't get LogMsg to work directly, because
+/* Note  TimeStamp and rds_printer are stolen directly from the SLog
+   implementation.  I couldn't get SLog to work directly, because
    of problem relating to varargs.  SMN
    */
 static void RdsTimeStamp(FILE *f)
@@ -1216,26 +1216,26 @@ void SwapLog()
 
     /* Need to chdir() again, since salvage may have put me elsewhere */
     if(chdir("/vice/srv")) {
-	LogMsg(0, 0, stdout, "Could not cd to /vice/srv; not swapping logs");
+	SLog(0, "Could not cd to /vice/srv; not swapping logs");
 	return;
     }
 #ifndef __CYGWIN32__
     if (pushlog() != 0){
-	LogMsg(0, 0, stderr, 
+	SLog(0, 0, stderr, 
 	       "Log file names out of order or malformed; not swapping logs");
 	return;
     }
 #endif
 
-    LogMsg(0, 0, stdout, "Starting new SrvLog file");
+    SLog(0, "Starting new SrvLog file");
     freopen("/vice/srv/SrvLog","a+",stdout);
     
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
 #ifdef	__linux__
-    LogMsg(0, 0, stdout, "New SrvLog started at %s", ctime((const long int *)&tp.tv_sec));
+    SLog(0, "New SrvLog started at %s", ctime((const long int *)&tp.tv_sec));
 #else
-    LogMsg(0, 0, stdout, "New SrvLog started at %s", ctime(&tp.tv_sec));
+    SLog(0, "New SrvLog started at %s", ctime(&tp.tv_sec));
 #endif
 }
 
@@ -1308,11 +1308,11 @@ static void FileMsg()
     int srvpid;
     
     srvpid = getpid();
-    LogMsg(0, 0, stdout, "The server (pid %d) can be controlled using volutil commands", srvpid);
-    LogMsg(0, 0, stdout, "\"volutil -help\" will give you a list of these commands");
-    LogMsg(0, 0, stdout, "If desperate,\n\t\t\"kill -SIGWINCH %d\" will increase debugging level", srvpid);
-    LogMsg(0, 0, stdout, "\t\"kill -SIGUSR2 %d\" will set debugging level to zero", srvpid);
-    LogMsg(0, 0, stdout, "\t\"kill -9 %d\" will kill a runaway server", srvpid);
+    SLog(0, "The server (pid %d) can be controlled using volutil commands", srvpid);
+    SLog(0, "\"volutil -help\" will give you a list of these commands");
+    SLog(0, "If desperate,\n\t\t\"kill -SIGWINCH %d\" will increase debugging level", srvpid);
+    SLog(0, "\t\"kill -SIGUSR2 %d\" will set debugging level to zero", srvpid);
+    SLog(0, "\t\"kill -9 %d\" will kill a runaway server", srvpid);
     }
 
 /*
@@ -1324,7 +1324,7 @@ static void FileMsg()
 void ViceTerminate()
     {
     ViceShutDown = 1;
-    LogMsg(0, 0, stdout, "Shutdown received");
+    SLog(0, "Shutdown received");
     }
 
 
@@ -1443,7 +1443,7 @@ static int ParseArgs(int argc, char *argv[])
 	else
 	    if (!strcmp(argv[i], "-nc")){
 		if (RvmType != UNSET) {
-		    LogMsg(0, 0, stdout, "Multiple Persistence methods selected.");
+		    SLog(0, "Multiple Persistence methods selected.");
 		    exit(-1);
 		}
 		RvmType = VM;
@@ -1452,17 +1452,17 @@ static int ParseArgs(int argc, char *argv[])
 	else
 	    if (!strcmp(argv[i], "-cam")) {
 		if (RvmType != UNSET) {
-		    LogMsg(0, 0, stdout, "Multiple Persistence methods selected.");
+		    SLog(0, "Multiple Persistence methods selected.");
 		    exit(-1);
 		}
-		LogMsg(0, 0, stdout, "Camelot not supported any more\n");
+		SLog(0, "Camelot not supported any more\n");
 		exit(-1);
 	    }
 	else
 	    if (!strcmp(argv[i], "-rvm")) {
 		struct stat buf;
 		if (RvmType != UNSET) {
-		    LogMsg(0, 0, stdout, "Multiple Persistence methods selected.");
+		    SLog(0, "Multiple Persistence methods selected.");
 		    exit(-1);
 		}
 
@@ -1537,7 +1537,7 @@ static void NewParms(int initializing)
 	if(parms == 0) return;
 	fd = open("parms", O_RDONLY, 0666);
 	if(fd <= 0) {
-	    LogMsg(0, 0, stdout, "Open for parms failed with %s", (char *) ViceErrorMsg(errno));
+	    SLog(0, "Open for parms failed with %s", (char *) ViceErrorMsg(errno));
 	    return;
 	}
 
@@ -1545,9 +1545,9 @@ static void NewParms(int initializing)
 	close(fd);
 	if(i != sbuf.st_size) {
 	    if (i < 0 )
-		LogMsg(0, 0, stdout, "Read on parms failed with %s", (char *) ViceErrorMsg(errno));
+		SLog(0, "Read on parms failed with %s", (char *) ViceErrorMsg(errno));
 	    else
-		LogMsg(0, 0, stdout, "Read on parms failed should have got %d bytes but read %d",
+		SLog(0, "Read on parms failed should have got %d bytes but read %d",
 			(char *) sbuf.st_size, (char *) i);
 	    free(parms);
 	    return;
@@ -1568,18 +1568,18 @@ static void NewParms(int initializing)
 	    }
 	}
 	if(ParseArgs(argc, argv) == 0)
-	    LogMsg(0, 0, stdout, "Change parameters to:");
+	    SLog(0, "Change parameters to:");
 	else
-	    LogMsg(0, 0, stdout, "Invalid parameter in:");
+	    SLog(0, "Invalid parameter in:");
 	for(i = 0; i < argc; i++) {
-	    LogMsg(0, 0, stdout, " %s", argv[i]);
+	    SLog(0, " %s", argv[i]);
 	}
-	LogMsg(0, 0, stdout,"");
+	SLog(0,"");
 	free(parms);
     }
     else
 	if(!initializing)
-	    LogMsg(0, 0, stdout, "Received request to change parms but no parms file exists");
+	    SLog(0, "Received request to change parms but no parms file exists");
 }
 
 /*char	* fkey1;		 name of file that contains key1 (normally KEY1) */
@@ -1621,7 +1621,7 @@ static void InitServerKeys(char *fkey1, char *fkey2)
 
     /* no keys */
     if ( NoKey1 && NoKey2 ) {
-	LogMsg(0, 0, stderr, "No Keys found. Zombifying..");
+	SLog(0, 0, stderr, "No Keys found. Zombifying..");
 	assert(0);
     }
 
@@ -1644,7 +1644,7 @@ static void InitServerKeys(char *fkey1, char *fkey2)
 
 void Die(char *msg)
 {
-    LogMsg(0, 0, stdout,"%s",msg);
+    SLog(0,"%s",msg);
     assert(0);
 }
 
@@ -1658,7 +1658,7 @@ static void DaemonizeSrv() {
         perror("getrlimit"); exit(-1);
     }
     rl.rlim_cur = rl.rlim_max;
-    LogMsg(0, 0, stdout, 
+    SLog(0, 
 	   "Resource limit on data size are set to %d\n", rl.rlim_cur);
     if (setrlimit(RLIMIT_DATA, &rl) < 0) {
 	perror("setrlimit"); exit(-1); 
@@ -1725,7 +1725,7 @@ static void InitializeServerRVM(char *name)
 	if (prottrunc)							    
 	   options->truncate = 0;					    
 	else if (_Rvm_Truncate > 0 && _Rvm_Truncate < 100) {		    
-	    LogMsg(0, 0, stdout, 
+	    SLog(0, 
 		   "Setting Rvm Truncate threshhold to %d.\n", _Rvm_Truncate); 
 	    options->truncate = _Rvm_Truncate;				    
 	}
@@ -1738,12 +1738,12 @@ static void InitializeServerRVM(char *name)
 #endif
         err = RVM_INIT(options);                   /* Start rvm */           
         if ( err == RVM_ELOG_VERSION_SKEW ) {                                
-            LogMsg(0, 0, stdout, 
+            SLog(0, 
 		   "rvm_init failed because of skew RVM-log version."); 
-            LogMsg(0, 0, stdout, "Coda server not started.");                  
+            SLog(0, "Coda server not started.");                  
             exit(-1);                                                          
 	} else if (err != RVM_SUCCESS) {                                     
-	    LogMsg(0, 0, stdout, "rvm_init failed %s",rvm_return(err));	    
+	    SLog(0, "rvm_init failed %s",rvm_return(err));	    
             assert(0);                                                       
 	}                                                                    
 	assert(_Rvm_Data_Device != NULL);	   /* Load in recoverable mem */ 
@@ -1751,7 +1751,7 @@ static void InitializeServerRVM(char *name)
 		      _Rvm_DataLength,(char **)&camlibRecoverableSegment, 
 		      (int *)&err);  
 	if (err != RVM_SUCCESS)						    
-	    LogMsg(0, SrvDebugLevel, stdout, 
+	    SLog(0, 
 		   "rds_load_heap error %s",rvm_return(err));	    
 	assert(err == RVM_SUCCESS);                                         
         /* Possibly do recovery on data structures, coalesce, etc */	    

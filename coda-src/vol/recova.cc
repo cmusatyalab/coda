@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.7 1998/01/10 18:39:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recova.cc,v 4.8 1998/08/26 21:22:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -101,7 +101,7 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
     char tmp_svnodes[sizeof(rec_smolist) * SMALLGROWSIZE];
     char tmp_lvnodes[sizeof(rec_smolist) * LARGEGROWSIZE];
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering NewVolHeader");
+    VLog(9,  "Entering NewVolHeader");
     if (HashLookup(header->id) != -1) {
 	*err = VVOLEXISTS;
 	return -1;
@@ -115,40 +115,40 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
 	}
 	if (i >= MAXVOLS) {
 	    *err = VNOVOL;
-	    LogMsg(0, VolDebugLevel, stdout,  "NewVolHeader: No free volume slots in recoverable storage!!");
+	    VLog(0,  "NewVolHeader: No free volume slots in recoverable storage!!");
 	    rvmlib_abort (VFAIL);
 	}
 
-    LogMsg(29, VolDebugLevel, stdout,  "NewVolHeader: found empty slot %d", i);
+    VLog(29,  "NewVolHeader: found empty slot %d", i);
 
 	/* if someone else already grabbed the slot, release the lock and try again */
 	if (SRV_RVM(VolumeList[i]).header.stamp.magic == VOLUMEHEADERMAGIC) {
-	    LogMsg(0, VolDebugLevel, stdout,  "NewVolHeader: releasing locks on slot %d", i);
+	    VLog(0,  "NewVolHeader: releasing locks on slot %d", i);
 	    continue;
 	}
 	else {
 	    break;
 	}
     }
-    LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Going to stamp new header ");
+    VLog(9,  "NewVolHeader: Going to stamp new header ");
     /* initialize header version stamp */
     header->stamp.magic = VOLUMEHEADERMAGIC;
     header->stamp.version = VOLUMEHEADERVERSION;
 
     /* Dynamically allocate the volumeDiskData */
-    LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Going to Allocate VolumeDiskData ");
+    VLog(9,  "NewVolHeader: Going to Allocate VolumeDiskData ");
     bzero((void *)&data, sizeof(data));
     data.volumeInfo = (VolumeDiskData *)rvmlib_rec_malloc(sizeof(VolumeDiskData));
     /* zero out the allocated memory */
     bzero((char *)&tmpinfo, sizeof(tmpinfo));
     rvmlib_modify_bytes(data.volumeInfo, &tmpinfo, sizeof(tmpinfo));
 
-    LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Going to allocate vnode arrays");
+    VLog(9,  "NewVolHeader: Going to allocate vnode arrays");
     /* Dynamically allocate the small vnode array and zero it out */
     data.smallVnodeLists = (rec_smolist *)
             rvmlib_rec_malloc(sizeof(rec_smolist) * SMALLGROWSIZE);
     bzero(tmp_svnodes, sizeof(tmp_svnodes));
-    LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Zeroing out small vnode array of size %d", 
+    VLog(9,  "NewVolHeader: Zeroing out small vnode array of size %d", 
 	 sizeof(tmp_svnodes));
     rvmlib_modify_bytes(data.smallVnodeLists, tmp_svnodes, sizeof(tmp_svnodes));
     data.nsmallvnodes = 0;
@@ -158,20 +158,20 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
     data.largeVnodeLists = (rec_smolist *)
             rvmlib_rec_malloc(sizeof(rec_smolist) * LARGEGROWSIZE);
     bzero(tmp_lvnodes, sizeof(tmp_lvnodes));
-    LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Zeroing out large vnode array of size %d",
+    VLog(9,  "NewVolHeader: Zeroing out large vnode array of size %d",
 	 sizeof(tmp_lvnodes));
     rvmlib_modify_bytes(data.largeVnodeLists, tmp_lvnodes, sizeof(tmp_lvnodes));
     data.nlargevnodes = 0;
     data.nlargeLists = LARGEGROWSIZE;
 
     /* write out new header and data in recoverable storage */
-    LogMsg(9, VolDebugLevel, stdout,  "NewVolHeader: Going to write header in recoverable storage ");
+    VLog(9,  "NewVolHeader: Going to write header in recoverable storage ");
     rvmlib_modify_bytes(&(SRV_RVM(VolumeList[i]).header), header,
 				    sizeof(struct VolumeHeader));
     rvmlib_modify_bytes(&(SRV_RVM(VolumeList[i]).data), &data,
 				sizeof(struct VolumeData));
 
-    LogMsg(29, VolDebugLevel, stdout,  "NewVolHeader: adding new entry %x to slot %d", header->id, i);
+    VLog(29,  "NewVolHeader: adding new entry %x to slot %d", header->id, i);
     HashInsert(header->id, i);	    // add new entry to volume hash table
     assert(HashLookup(header->id) == i);
     PrintCamVolume(29, i);
@@ -185,7 +185,7 @@ int ExtractVolHeader(VolumeId volid, struct VolumeHeader *header)
 {
     int myind = HashLookup(volid);
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering ExtractVolHeader for volume %x", volid);
+    VLog(9,  "Entering ExtractVolHeader for volume %x", volid);
     if (myind == -1) return (-1);  /* volume not found */
     return(VolHeaderByIndex(myind, header));
 }
@@ -196,21 +196,21 @@ int VolHeaderByIndex(int myind, struct VolumeHeader *header) {
     VolumeId maxid = 0;
     int status = 0;	/* transaction status variable */
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering VolHeaderByIndex for index %d", myind);
+    VLog(9,  "Entering VolHeaderByIndex for index %d", myind);
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS)) {
-	LogMsg(1, VolDebugLevel, stdout,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
+	VLog(1,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
 	return(-1);
     }
     bcopy((const void *)&(SRV_RVM(VolumeList[myind]).header), (void *) header,
 					    sizeof(struct VolumeHeader));
     if (header->stamp.magic != VOLUMEHEADERMAGIC) {
-	LogMsg(19, VolDebugLevel, stdout,  "VolHeaderByIndex: stamp.magic = %u, VHMAGIC = %u",
+	VLog(19,  "VolHeaderByIndex: stamp.magic = %u, VHMAGIC = %u",
 		header->stamp.magic, VOLUMEHEADERMAGIC);
     }
     if (header->stamp.version != VOLUMEHEADERVERSION) {
-	LogMsg(19, VolDebugLevel, stdout,  "VolHeaderByIndex: stamp.version = %u, VHVERSION = %u",
+	VLog(19,  "VolHeaderByIndex: stamp.version = %u, VHVERSION = %u",
 		header->stamp.version, VOLUMEHEADERVERSION);
     }
 
@@ -223,7 +223,7 @@ int VolHeaderByIndex(int myind, struct VolumeHeader *header) {
 int DeleteVolume(Volume *vp) {
     int status = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteVolume for volume %x", V_id(vp));
+    VLog(9,  "Entering DeleteVolume for volume %x", V_id(vp));
     unsigned int myind = V_volumeindex(vp);
     Device dev = V_device(vp);
 
@@ -253,7 +253,7 @@ int DeleteVolume(Volume *vp) {
 int DeleteRvmVolume(unsigned int myind, Device dev) {
     int status = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteRvmVolume for volume %x", SRV_RVM(VolumeList[myind].header.id));
+    VLog(9,  "Entering DeleteRvmVolume for volume %x", SRV_RVM(VolumeList[myind].header.id));
 
     if ((status = DeleteVnodes(myind, dev, vSmall)) != 0) return status;
     if ((status = DeleteVnodes(myind, dev, vLarge)) != 0) return status;
@@ -295,7 +295,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 
     /* Check integrity of volume. */
     if (vnlist == NULL) {
-	LogMsg(0, VolDebugLevel, stdout,  "Volume to be deleted didn't have a %s VnodeIndex.",
+	VLog(0,  "Volume to be deleted didn't have a %s VnodeIndex.",
 	    (vclass == vSmall) ? "small" : "large");
 	return 0;
     }
@@ -332,7 +332,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 	    vdo = strbase(VnodeDiskObject, p, nextvn);
 	    
 	    if ((vdo->type != vNull) && (vdo->vnodeMagic != vcp->magic)){
-		LogMsg(0, VolDebugLevel, stdout, "DeleteVnodes:VnodeMagic field incorrect for vnode %d",i);
+		VLog(0, "DeleteVnodes:VnodeMagic field incorrect for vnode %d",i);
 		assert(0);
 	    }
 
@@ -348,21 +348,21 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 	    /* Delete the vnode */
 	    if ((vclass == vSmall) &&
 	        (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1)) {
-		LogMsg(29, VolDebugLevel, stdout, "DeleteVnodes: Adding small vnode index %d to free list", i);
+		VLog(29, "DeleteVnodes: Adding small vnode index %d to free list", i);
 		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_SMALLDISKVNODE);
 		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
 			      SRV_RVM(SmallVnodeIndex) + 1);
 		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]), vdo);
 	    }  else if ((vclass == vLarge) &&
 			(SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1)) {
-		LogMsg(29, VolDebugLevel, stdout, 	"DeleteVnodes:	Adding large vnode index %d to free list",i);
+		VLog(29, 	"DeleteVnodes:	Adding large vnode index %d to free list",i);
 		rvmlib_modify_bytes(vdo, zerovn, SIZEOF_LARGEDISKVNODE);
 		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
 			      SRV_RVM(LargeVnodeIndex) + 1);
 		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), vdo);
 	    } else {
 		rvmlib_rec_free((char *)vdo);
-		LogMsg(29, VolDebugLevel, stdout,  "DeleteVnodes: Freeing small vnode index %d", i);
+		VLog(29,  "DeleteVnodes: Freeing small vnode index %d", i);
 	    }
 	}	    
 
@@ -377,19 +377,19 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 		 */
 		if (DeadInodes[j])
 		    if (idec((int)dev, DeadInodes[j], (vdata->volumeInfo)->parentId))
-			LogMsg(0, 0, stdout,
+			VLog(0, 0, stdout,
 			       "VolBackup: idec failed with %d", errno);
 	    }	
 	}
 	
-	LogMsg(9, VolDebugLevel, stdout,  "DeleteVnodes: finished deleting %d %s vnodes", count,
+	VLog(9,  "DeleteVnodes: finished deleting %d %s vnodes", count,
 	    (vclass == vLarge?"Large":"Small"));
 	PollAndYield();
     }
 
     free(DeadInodes);
 
-    LogMsg(9, VolDebugLevel, stdout,  "DeleteVnodes: Deleted all %s vnodes.",
+    VLog(9,  "DeleteVnodes: Deleted all %s vnodes.",
 	(vclass==vLarge?"Large":"Small"));
 
     /* free the empty array (of pointers) for the vnodes */
@@ -415,7 +415,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 static int DeleteVolData(int myind) {
     struct VolumeData *vdata, tmpdata;
     int status = 0;
-    LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteVolData for index %d", myind);
+    VLog(9,  "Entering DeleteVolData for index %d", myind);
 
     RVMLIB_BEGIN_TRANSACTION(restore)
     
@@ -423,19 +423,19 @@ static int DeleteVolData(int myind) {
     vdata = &(SRV_RVM(VolumeList[myind]).data);
 
     /* dynamically free the volume disk data structure */
-    LogMsg(9, VolDebugLevel, stdout,  "DeleteVolData: Freeing VolumeDiskObject for volume 0x%x",
+    VLog(9,  "DeleteVolData: Freeing VolumeDiskObject for volume 0x%x",
 	 vdata->volumeInfo->id);
     rvmlib_rec_free((char *)vdata->volumeInfo);
 
     /* zero out VolumeData structure */
-    LogMsg(9, VolDebugLevel, stdout,  "DeleteVolData: Zeroing out VolumeData at index %d", myind);
+    VLog(9,  "DeleteVolData: Zeroing out VolumeData at index %d", myind);
     bzero((void *)&tmpdata, sizeof(struct VolumeData));
     rvmlib_modify_bytes(&(SRV_RVM(VolumeList[myind]).data), &tmpdata,
 				sizeof(struct VolumeData));
 
     RVMLIB_END_TRANSACTION(flush, &(status));
     
-    LogMsg(9, VolDebugLevel, stdout,  "Leaving DeleteVolData()");
+    VLog(9,  "Leaving DeleteVolData()");
     return status;
 }
 
@@ -446,7 +446,7 @@ static int DeleteVolHeader(int myind) {
     VolumeHeader tmpheader;
     int status = 0;
     
-    LogMsg(9, VolDebugLevel, stdout,  "Entering DeleteVolHeader for index %d", myind);
+    VLog(9,  "Entering DeleteVolHeader for index %d", myind);
 
     RVMLIB_BEGIN_TRANSACTION(restore)
 	/* Sanity check */

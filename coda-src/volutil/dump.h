@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/volutil/dump.h,v 1.1 1996/11/22 19:13:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dump.h,v 4.1 1997/01/08 21:52:24 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -102,7 +102,7 @@ extern int DumpTag(DumpBuffer_t *, register byte tag);
 extern int DumpEnd(DumpBuffer_t *);
 
 /* Exported Routines (from readstuff.c) */
-extern char ReadTag(DumpBuffer_t *);
+extern signed char ReadTag(DumpBuffer_t *);
 extern int PutTag(char, DumpBuffer_t *);
 extern int ReadShort(DumpBuffer_t *,  unsigned short *sp); 
 extern int ReadLong(DumpBuffer_t *, unsigned long *lp);

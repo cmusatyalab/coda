@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.23 1998/10/13 16:49:27 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.24 1998/10/21 22:05:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -257,7 +257,7 @@ void CommInit() {
 
     /* Portal initialization. */
     /* Multicast requires that (sftp_portal = rpc2_portal + 1). */
-    struct servent *s = getservbyname("venus", 0);
+    struct servent *s = getservbyname("venus", "udp");
     if (s == 0) 
 	Choke("CommInit: getservbyname failed; check /etc/services");
     RPC2_PortalIdent portal1;

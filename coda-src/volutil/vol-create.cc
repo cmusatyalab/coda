@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.8 1998/10/09 21:57:47 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.9 1998/10/21 22:06:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -293,6 +293,7 @@ static int ViceCreateRoot(Volume *vp)
     vn->volumePtr = vp;
     bcopy((const void *)vnode, (void *)&vn->disk, sizeof(VnodeDiskObject));
     VN_DCommit(vn);   
+    DC_SetDirty(vn->dh, 0);
     VN_PutDirHandle(vn);
 
     bcopy((const void *)&(vn->disk), (void *) vnode, sizeof(VnodeDiskObject));

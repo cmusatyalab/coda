@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.12 98/09/23 20:26:32 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.13 1998/09/29 21:04:44 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -382,13 +382,13 @@ static void FatalSignal(int sig, int code, struct sigcontext *contextPtr)
     {
 	fprintf(logFile, "sig=%d\n", sig);
 	fprintf(logFile, "code=%d\n", code);
-#ifndef	i386
+#if !defined(i386) && !defined(powerpc)
 #if defined(sparc) && defined(__linux__)
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sigc_pc);
 #else
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sc_pc);
 #endif
-#endif	/* !defined(i386) */
+#endif	/* !defined(i386) && !defined(powerpc) */
 
 #ifndef __BSD44__
 	for (int i = 0; i < sizeof(struct sigaction) / sizeof(int); i++)

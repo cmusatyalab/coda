@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dumpstream.cc,v 4.4 1998/09/07 15:57:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/dumpstream.cc,v 4.5 1998/09/29 16:38:38 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -414,7 +414,7 @@ int dumpstream::EndOfDump()
 
 int dumpstream::getVnodeIndex(VnodeClass Type, long *nVnodes, long *listsize)
 {
-    register char tag;
+    register signed char tag;
     /* Skip over whatever garbage exists on the stream (remains of last vnode) */
     skip_vnode_garbage();
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.11 98/09/23 16:56:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/mariner.cc,v 4.12 1998/09/23 20:26:32 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -82,6 +82,7 @@ extern "C" {
 const int MarinerStackSize = 65536;
 const int MaxMariners = 5;
 const char MarinerService[] = "venus";
+const char MarinerProto[] = "tcp";
 int MarinerMask = 0;
 
 
@@ -106,7 +107,7 @@ void MarinerInit() {
 	eprint("MarinerInit: setsockopt failed (%d)", errno);
 #endif
     /* Look up the well-known CODA mariner service. */
-    struct servent *serventp = getservbyname(MarinerService, 0);
+    struct servent *serventp = getservbyname(MarinerService, MarinerProto);
     if (!serventp) {
       eprint("MarinerInit: mariner service lookup failed!");
       return;

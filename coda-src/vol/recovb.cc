@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.5 1998/01/10 18:39:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/recovb.cc,v 4.6 1998/08/26 21:22:26 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -48,13 +48,8 @@ extern "C" {
 #include <string.h>
 #include <stdio.h>
 #include <setjmp.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <struct.h>
 
@@ -99,21 +94,21 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 	int status = 0;	// transaction status variable
 	VolumeId maxid = 0;
 
-	LogMsg(9, VolDebugLevel, stdout,  "Entering ExtractVnode(volindex = %d, vclass = %d, vnodeindex = %x, Unique = %x vnode = 0x%x)",
+	VLog(9,  "Entering ExtractVnode(volindex = %d, vclass = %d, vnodeindex = %x, Unique = %x vnode = 0x%x)",
 	       volindex, vclass, vnodeindex, uniquifier, vnode);
 
 	*ec = 0;
 	
 	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
 	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
-		LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus volume index %d", volindex);
+		VLog(0,  "ExtractVnode: bogus volume index %d", volindex);
 		return(-1);
 	}
 
 
 	if (vclass == vSmall) {
 		if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
-			LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus small vnode index %d", vnodeindex);
+			VLog(0,  "ExtractVnode: bogus small vnode index %d", vnodeindex);
 			return(-1);
 		}
 		vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
@@ -128,7 +123,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 			}
 		}
 		if (!p) {
-			LogMsg(9, VolDebugLevel, stdout,  "No Vnode with uniq %x at index %x",
+			VLog(9,  "No Vnode with uniq %x at index %x",
 			       uniquifier, vnodeindex);
 			return(-1);
 		}
@@ -136,7 +131,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 	else {
 		if (vclass == vLarge) {
 			if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
-				LogMsg(0, VolDebugLevel, stdout,  "ExtractVnode: bogus large vnode index %d", vnodeindex);
+				VLog(0,  "ExtractVnode: bogus large vnode index %d", vnodeindex);
 				return(-1);
 			}
 			vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
@@ -150,7 +145,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 				}
 			}
 			if (!p) {
-				LogMsg(9, VolDebugLevel, stdout,  "No Vnode with uniq %x at index %x",
+				VLog(9,  "No Vnode with uniq %x at index %x",
 				       uniquifier, vnodeindex);
 				return(-1);
 			}
@@ -159,7 +154,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 
 	
 	if (vnode->type != vNull)
-		LogMsg(59, VolDebugLevel, stdout,  "ExtractVnode: vnode->type = %u", vnode->type);
+		VLog(59,  "ExtractVnode: vnode->type = %u", vnode->type);
 	return(0);
 }
 /*
@@ -173,14 +168,14 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
     VolumeId maxid = 0;
     VnodeDiskObject *vind;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering ObjectExists(volindex= %d, (%x.%x)",
+    VLog(9,  "Entering ObjectExists(volindex= %d, (%x.%x)",
 	volindex, vnodeindex, u);
 
     /* check volume index */
     {    
 	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
 	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
-	    LogMsg(0, VolDebugLevel, stdout,  "ObjectExists: bogus volume index %d", volindex);
+	    VLog(0,  "ObjectExists: bogus volume index %d", volindex);
 	    return(0);
 	}
     }
@@ -188,7 +183,7 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 
     if (vclass == vSmall) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "ObjectExists: bogus small vnode index %d", vnodeindex);
+	    VLog(0,  "ObjectExists: bogus small vnode index %d", vnodeindex);
 	    return(0);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
@@ -206,13 +201,13 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 		return(1);
 	    }
 	}
-	LogMsg(9, VolDebugLevel, stdout,  "ObjectExists: NO  object %x.%x",
+	VLog(9,  "ObjectExists: NO  object %x.%x",
 	    vnodeindex, u);
 	return(0);
     }
     else if (vclass == vLarge) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "ObjectExists: bogus large vnode index %d", vnodeindex);
+	    VLog(0,  "ObjectExists: bogus large vnode index %d", vnodeindex);
 	    return(0);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
@@ -236,7 +231,7 @@ int ObjectExists(int volindex, int vclass, VnodeId vnodeindex, Unique_t u,
 		return(1);
 	    }
 	}
-	LogMsg(9, VolDebugLevel, stdout,  "ObjectExists: NO  object %x.%x",
+	VLog(9,  "ObjectExists: NO  object %x.%x",
 	    vnodeindex, u);
 	
 	return(0);
@@ -255,14 +250,14 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
     VolumeId maxid = 0;
     VnodeDiskObject *vind;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering GetParentFid(%x.%x)", cFid->Vnode, cFid->Unique);
+    VLog(9,  "Entering GetParentFid(%x.%x)", cFid->Vnode, cFid->Unique);
 
     int volindex = V_volumeindex(vp);
     /* check volume index */
     {    
 	maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
 	if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
-	    LogMsg(0, VolDebugLevel, stdout,  "GetParentFid: bogus volume index %d", volindex);
+	    VLog(0,  "GetParentFid: bogus volume index %d", volindex);
 	    return(0);
 	}
     }
@@ -271,7 +266,7 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
     unsigned long vnodeindex = vnodeIdToBitNumber(cFid->Vnode);
     if (vclass == vSmall) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "GetParentFid: bogus small vnode index %x", vnodeindex);
+	    VLog(0,  "GetParentFid: bogus small vnode index %x", vnodeindex);
 	    return(0);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
@@ -288,12 +283,12 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
 		return(1);
 	    }
 	}
-	LogMsg(9, VolDebugLevel, stdout,  "GetParentFid: NO  object %x.%x", cFid->Vnode, cFid->Unique);
+	VLog(9,  "GetParentFid: NO  object %x.%x", cFid->Vnode, cFid->Unique);
 	return(0);
     }
     else if (vclass == vLarge) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "GetParentFid: bogus large vnode index %x", vnodeindex);
+	    VLog(0,  "GetParentFid: bogus large vnode index %x", vnodeindex);
 	    return(0);
 	}
 	vlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
@@ -312,7 +307,7 @@ int GetParentFid(Volume *vp, ViceFid *cFid, ViceFid *pFid) {
 		return(1);
 	    }
 	}
-	LogMsg(9, VolDebugLevel, stdout,  "GetParentFid: NO  object %x.%x", cFid->Vnode, cFid->Unique);
+	VLog(9,  "GetParentFid: NO  object %x.%x", cFid->Vnode, cFid->Unique);
 	return(0);
     }
     return(0);
@@ -324,18 +319,18 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
     VnodeDiskObject *zerovnode;
     VolumeId maxid = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering ReplaceVnode(%u, %u, %u, %ld)", volindex, vclass,
+    VLog(9,  "Entering ReplaceVnode(%u, %u, %u, %ld)", volindex, vclass,
 			    vnodeindex, vnode);
     /* if it's been zeroed out, delete the slot */
     if (vnode->type == vNull) {
-	LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: bogus vnode %u.%u, deleting");
+	VLog(9,  "ReplaceVnode: bogus vnode %u.%u, deleting");
 	return(DeleteVnode(volindex, vclass, vnodeindex, u, vnode));
     }
 
 
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
-	LogMsg(0, VolDebugLevel, stdout,  "ReplaceVnode: bogus volume index %d", volindex);
+	VLog(0,  "ReplaceVnode: bogus volume index %d", volindex);
 	rvmlib_abort(VFAIL);	// invalid volume index
 	return VNOVOL;
     }
@@ -345,18 +340,18 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 
     if (vclass == vSmall) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "ReplaceVnode: bogus small vnode index %d", vnodeindex);
+	    VLog(0,  "ReplaceVnode: bogus small vnode index %d", vnodeindex);
 	    rvmlib_abort(VFAIL);	// invalid vnode index
 	}
 	rec_smolist *vnlist = &(SRV_RVM(VolumeList[volindex]).data.smallVnodeLists[vnodeindex]);
 	/* check if vnode already exists */
 	VnodeDiskObject *vdo = FindVnode(vnlist, u);
 	if (vdo == NULL) {
-	    LogMsg(39, VolDebugLevel, stdout,  "ReplaceVnode: no small vnode at index %d; allocating",
+	    VLog(39,  "ReplaceVnode: no small vnode at index %d; allocating",
 				    vnodeindex);
 	    /* take a vnode off the free list if one exists */
 	    if (SRV_RVM(SmallVnodeIndex) >= 0) {
-		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: taking small vnode from FreeList");
+		VLog(9,  "ReplaceVnode: taking small vnode from FreeList");
 		vdo = SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]);
 		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]),
 									NULL);
@@ -364,7 +359,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 			      SRV_RVM(SmallVnodeIndex) - 1);
 	    }
 	    else { /* otherwise, malloc a new one and zero it out */
-		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: malloc'ing small vnode");
+		VLog(9,  "ReplaceVnode: malloc'ing small vnode");
 		vdo = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
 		zerovnode = (VnodeDiskObject *)buf1;
 		bzero((void *)zerovnode, sizeof(buf1));
@@ -377,7 +372,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    char buf[sizeof(rec_smolink)];
 	    bzero(buf, sizeof(rec_smolink));
 	    if (bcmp((const void *)&(vdo->nextvn), (const void *) buf, sizeof(rec_smolink))){
-		LogMsg(0, VolDebugLevel, stdout,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
+		VLog(0,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
 		rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
 	    vnlist->append(&(vdo->nextvn));
@@ -387,19 +382,19 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
     }
     else if (vclass == vLarge) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "ReplaceVnode: bogus large vnode index %d", vnodeindex);
+	    VLog(0,  "ReplaceVnode: bogus large vnode index %d", vnodeindex);
 	    rvmlib_abort(VFAIL);	// invalid vnode index
 	}
 	rec_smolist *vnlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
 	/* check if vnode already exists */
 	VnodeDiskObject *vdo = FindVnode(vnlist, u);
 	if (vdo == NULL){
-	    LogMsg(39, VolDebugLevel, stdout,  "ReplaceVnode: no large vnode at index %d; allocating",
+	    VLog(39,  "ReplaceVnode: no large vnode at index %d; allocating",
 				    vnodeindex);
 	    /* take a vnode off the free list if one exists */
 	    if (SRV_RVM(LargeVnodeIndex) >= 0) {
-		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: taking large vnode from freelist");
-		LogMsg(19, VolDebugLevel, stdout,  "Taking vnode off of largefreelist[%d] for index %d",
+		VLog(9,  "ReplaceVnode: taking large vnode from freelist");
+		VLog(19,  "Taking vnode off of largefreelist[%d] for index %d",
 				    SRV_RVM(LargeVnodeIndex), vnodeindex);
 		vdo = SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]);
 		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), NULL);
@@ -407,7 +402,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 			      SRV_RVM(LargeVnodeIndex) - 1);
 	    }
 	    else { /* otherwise, malloc a new one */
-		LogMsg(9, VolDebugLevel, stdout,  "ReplaceVnode: malloc'ing large vnode");
+		VLog(9,  "ReplaceVnode: malloc'ing large vnode");
 		vdo = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
 		zerovnode = (VnodeDiskObject *)buf2;
 		bzero((void *)zerovnode, sizeof(buf2));
@@ -419,7 +414,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    char buf[sizeof(rec_smolink)];
 	    bzero(buf, sizeof(rec_smolink));
 	    if (bcmp((const void *)&(vdo->nextvn),(const void *) buf, sizeof(rec_smolink))){
-		LogMsg(0, VolDebugLevel, stdout,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
+		VLog(0,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
 		rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
 	    vnlist->append(&(vdo->nextvn));
@@ -434,7 +429,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 	rvmlib_modify_bytes(vdo, vnode, SIZEOF_LARGEDISKVNODE);
     }
     else assert(0);	/* vclass is neither vSmall nor vLarge */
-    LogMsg(19, VolDebugLevel, stdout, "Replace vnode - VnodeDiskObject passed to rtn:");
+    VLog(19, "Replace vnode - VnodeDiskObject passed to rtn:");
     if (VolDebugLevel > 19)  
 	print_VnodeDiskObject(vnode);
     PrintCamVnode(19, volindex, vclass, vnodeindex, u);
@@ -446,18 +441,18 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 {
     VolumeId maxid = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  
+    VLog(9,  
 	   "Entering DeleteVnode(%d, %d, %d, <struct>)", 
 	   volindex, vclass, vnodeindex);
     maxid = (SRV_RVM(MaxVolId) & 0x00FFFFFF);
     if (volindex < 0 || volindex > maxid || volindex > MAXVOLS) {
-	LogMsg(0, VolDebugLevel, stdout,  "DeleteVnode: bogus volume index %d", volindex);
+	VLog(0,  "DeleteVnode: bogus volume index %d", volindex);
 	rvmlib_abort(VFAIL);	// invalid volume index
     }
 
     if (vclass == vSmall) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nsmallLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "DeleteVnode: deleting nonexistent vnode (index %d)", vnodeindex);
+	    VLog(0,  "DeleteVnode: deleting nonexistent vnode (index %d)", vnodeindex);
 	    rvmlib_abort(VFAIL);
 	}
 
@@ -468,7 +463,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    vnlist->remove(&(vdo->nextvn));
 	    /* put the freed vnode on the free list if there's room */
 	    if (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1) {
-		LogMsg(9, VolDebugLevel, stdout,  "DeleteVnode: putting small vnode on freelist");
+		VLog(9,  "DeleteVnode: putting small vnode on freelist");
 		bzero((void *)vnode, SIZEOF_SMALLDISKVNODE); /* just to be sure */
 		rvmlib_modify_bytes(vdo, vnode, SIZEOF_SMALLDISKVNODE);
 		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
@@ -476,7 +471,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 		RVMLIB_MODIFY(SRV_RVM(SmallVnodeFreeList[SRV_RVM(SmallVnodeIndex)]), vdo);
 	    }
 	    else {
-		LogMsg(9, VolDebugLevel, stdout,  "DeleteVnode: freeing small vnode structure");
+		VLog(9,  "DeleteVnode: freeing small vnode structure");
 		rvmlib_rec_free((char *)vdo);
 	    }
 	
@@ -488,7 +483,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 
     if (vclass == vLarge) {
 	if (vnodeindex >= SRV_RVM(VolumeList[volindex]).data.nlargeLists) {
-	    LogMsg(0, VolDebugLevel, stdout,  "DeleteVnode: deleting nonexistent vnode (index %d)", vnodeindex);
+	    VLog(0,  "DeleteVnode: deleting nonexistent vnode (index %d)", vnodeindex);
 	    rvmlib_abort(VFAIL);
 	}
 	rec_smolist *vnlist = &(SRV_RVM(VolumeList[volindex]).data.largeVnodeLists[vnodeindex]);
@@ -497,7 +492,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    vnlist->remove(&(vdo->nextvn));
 	    /* put the removed vnode on the free list if there's room */
 	    if (SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1) {
-		LogMsg(9, VolDebugLevel, stdout,  "DeleteVnode: putting large vnode on free list");
+		VLog(9,  "DeleteVnode: putting large vnode on free list");
 		bzero((void *)vnode, SIZEOF_LARGEDISKVNODE);    /* just to be sure */
 		rvmlib_modify_bytes(vdo, vnode,	SIZEOF_LARGEDISKVNODE);
 		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
@@ -505,7 +500,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 		RVMLIB_MODIFY(SRV_RVM(LargeVnodeFreeList[SRV_RVM(LargeVnodeIndex)]), vdo);
 	    }
 	    else {
-		LogMsg(9, VolDebugLevel, stdout,  "DeleteVnode: freeing large vnode");
+		VLog(9,  "DeleteVnode: freeing large vnode");
 		rvmlib_rec_free((char *)vdo);
 	    }
 	    /* decrement large vnode count */
@@ -527,7 +522,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 /* Note: volindex is checked in ReplaceVolDiskInfo */
 void NewVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
 {
-    LogMsg(9, VolDebugLevel, stdout,  "Entering NewVolDiskInfo for index %d, volume %x",
+    VLog(9,  "Entering NewVolDiskInfo for index %d, volume %x",
 						volindex, vol->id);
     /* how much needs to be initalized here? */
     InitVV(&(vol->versionvector));
@@ -544,17 +539,17 @@ int VolDiskInfoById(Error *ec, VolumeId volid, VolumeDiskData *vol) {
 
     *ec = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering VolDiskInfoById for volume %x", volid);
+    VLog(9,  "Entering VolDiskInfoById for volume %x", volid);
     myind = HashLookup(volid);
     if (myind == -1) {
-	LogMsg(0, VolDebugLevel, stdout,  "VolDiskInfoById: HashLookup failed for volume %x", volid);
+	VLog(0,  "VolDiskInfoById: HashLookup failed for volume %x", volid);
 	*ec = VNOVOL;  /* volume not found */
     }
     else {
 	ExtractVolDiskInfo(ec, myind, vol);
     }
 
-    LogMsg(29, VolDebugLevel, stdout,  "VolDiskInfoById: vol->stamp.magic = %u, vol->stamp.version = %u",
+    VLog(29,  "VolDiskInfoById: vol->stamp.magic = %u, vol->stamp.version = %u",
 					vol->stamp.magic, vol->stamp.version);
     return (myind);
 }
@@ -566,7 +561,7 @@ void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
     VolumeId maxid = 0;
     *ec = 0;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering ReplaceVolDiskInfo for volume index %d", volindex);
+    VLog(9,  "Entering ReplaceVolDiskInfo for volume index %d", volindex);
     /* consistency check */
     assert(vol->stamp.magic == VOLUMEINFOMAGIC);
     assert(vol->stamp.version == VOLUMEINFOVERSION);
@@ -575,17 +570,17 @@ void ReplaceVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol)
     if ((volindex < 0) || (volindex > maxid) || (volindex > MAXVOLS)) {
 	char volname[32];
 	sprintf(volname, VFORMAT, vol->id);
-	LogMsg(0, VolDebugLevel, stdout,  "ReplaceVolDiskInfo: bogus volume index %d for volume %s",
+	VLog(0,  "ReplaceVolDiskInfo: bogus volume index %d for volume %s",
 			    volindex, volname);
 	*ec = VNOVOL;	// invalid volume index
 	rvmlib_abort(VFAIL);
     }
 
-    LogMsg(1, VolDebugLevel, stdout,  "ReplaceVolDiskInfo: about to acquire locks");
-    LogMsg(1, VolDebugLevel, stdout,  "ReplacevolDiskInfo: got locks!");
+    VLog(1,  "ReplaceVolDiskInfo: about to acquire locks");
+    VLog(1,  "ReplacevolDiskInfo: got locks!");
     rvmlib_modify_bytes(SRV_RVM(VolumeList[volindex]).data.volumeInfo,
 				    vol, sizeof(VolumeDiskData));
-    LogMsg(29, VolDebugLevel, stdout,  "ReplaceVolDiskInfo: recoverable stamp = %u, %u",
+    VLog(29,  "ReplaceVolDiskInfo: recoverable stamp = %u, %u",
 	    SRV_RVM(VolumeList[volindex]).data.volumeInfo->stamp.magic,
 	    SRV_RVM(VolumeList[volindex]).data.volumeInfo->stamp.version);
 

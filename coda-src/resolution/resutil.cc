@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.6 1998/08/31 12:23:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resutil.cc,v 4.7 1998/10/21 22:05:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -157,32 +157,39 @@ long CheckRetCodes(unsigned long *rc, unsigned long *rh,
     return(error);
 }
 
-/* check for return codes for resolution other than time outs; 
-   This routine will return VNOVNODE if that was the only error
-   returned by the available servers */
+/* check for return codes for resolution other than time outs:
+
+   - hosts will hold the ip address of hosts that responded
+   - result will be VNOVNODE if that was the only error
+     returned by the available servers
+   - result may also hold the first error encountered if not VNOVNODE
+*/
+
 long CheckResRetCodes(unsigned long *rc, unsigned long *rh, 
 		      unsigned long *hosts) 
 {
     struct in_addr addr;
     long error = 0, result = 0;
-    for (int i = 0; i < VSG_MEMBERS; i++){
-	hosts[i] = rh[i];
-	if (rc[i] == ETIMEDOUT) hosts[i] = 0;
-	if (rh[i] && rc[i] && rc[i] != ETIMEDOUT){
-	    /* non rpc error - drop this host too */
-	    hosts[i] = 0;
-	    error = rc[i];
-	    addr.s_addr = rh[i];
+
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+	    hosts[i] = rh[i];
+	    if (rc[i] == ETIMEDOUT) 
+		    hosts[i] = 0;
+	    if (rh[i] && rc[i] && rc[i] != ETIMEDOUT) {
+		    /* non rpc error - drop this host too */
+		    hosts[i] = 0;
+		    error = rc[i];
+		    addr.s_addr = rh[i];
 #ifndef __CYGWIN32__
-	    SLog(0,  "CheckRetCodes - an accessible server returned an error (server %s error %d)",
-		   inet_ntoa(addr), rc[i]);
+		    SLog(0,  "CheckRetCodes: server %s returned error %d)",
+			 inet_ntoa(addr), rc[i]);
 #else
-	    SLog(0,  "CheckRetCodes - an accessible server returned an error (server %x error %d)",
-		   rh[i], rc[i]);
+		    SLog(0,  "CheckRetCodes: server %s returned error  %d)",
+			 rh[i], rc[i]);
 #endif
-	}
-	if ( result == 0 ||  result == VNOVNODE )
-	    result = error;
+	    }
+	    if ( result == 0 ||  result == VNOVNODE )
+		    result = error;
     }
     return(result);
 }

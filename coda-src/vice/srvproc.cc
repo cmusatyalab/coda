@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.16 1998/10/21 22:23:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.17 1998/10/28 19:58:08 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1858,7 +1858,8 @@ START_TIMING(MakeDir_Total);
     
     /* Validate parameters. */
     {
-	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, &Did->Volume, PiggyBS))
+	if (errorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
+				      &Did->Volume, PiggyBS))
 	    goto FreeLocks;
 
 	/* Child/Parent volume match. */
@@ -2016,7 +2017,6 @@ END_TIMING(MakeDir_Total);
     return(errorCode);
 }
 
-
 /*
   BEGIN_HTML
   <a name="ViceRemoveDir"><strong>Obsoleted by ViceVRemoveDir</strong></a> 
@@ -2038,6 +2038,7 @@ long ViceRemoveDir(RPC2_Handle RPCid, ViceFid *Did, RPC2_String Name,
 			      PrimaryHost, StoreId, &OldVS, &NewVS,
 			      &VCBStatus, PiggyBS));
 }
+
 
 /*
   ViceVRemoveDir: Delete an empty directory
@@ -2907,7 +2908,8 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
 
 
 int AllocVnode(Vnode **vptr, Volume *volptr, ViceDataType vtype, ViceFid *Fid,
-		ViceFid *pFid, UserId ClientId, RPC2_Unsigned AllocHost, int *blocks) {
+		ViceFid *pFid, UserId ClientId, RPC2_Unsigned AllocHost, int *blocks) 
+{
     int errorCode = 0;
     Error fileCode = 0;
     VolumeId VSGVolnum = 0;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.9 1998/10/09 21:57:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.10 1998/10/29 15:29:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -436,7 +436,7 @@ static int ReadLargeVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     rec_smolist *rlist;
     DirInode *dinode = NULL;
     DirInode *camdInode = NULL;
-    register char tag;
+    register signed char tag;
     int volindex = V_volumeindex(vp);
 
     VLog(9, "Restore: Reading in large vnode array.");
@@ -531,7 +531,7 @@ static int ReadSmallVnodeIndex(DumpBuffer_t *buf, Volume *vp)
     int	nvnodes = 0;
     char    vbuf[SIZEOF_SMALLDISKVNODE];
     VnodeDiskObject *vdo = (VnodeDiskObject *)vbuf;
-    register char tag;
+    register signed char tag;
     rec_smolist *rlist;
     int volindex = V_volumeindex(vp);
 
@@ -613,7 +613,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 				DirInode **dinode, Volume *vp, 
 				long *vnodeNumber)
 {
-    register char tag;
+    register signed char tag;
     *vnodeNumber = -1;
     tag = ReadTag(buf);
     if (tag == D_NULLVNODE){

@@ -138,7 +138,7 @@ typedef void *register_t;
 /*----------------------------------------*/
 
 FILE *lwp_logfile = NULL;
-char    lwp_debug;
+signed char    lwp_debug;
 FILE   *lwp_logfile;
 int 	LWP_TraceProcesses = 0;
 PROCESS	lwp_cpptr;
@@ -637,8 +637,8 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
 		perror("stack: ");
 		assert(0);
 	}
-	sprintf(msg, "STACK: from %p to %p, for %s\n", lwp_stackbase, lwp_stackbase + stacksize, name);
 #if 0
+	sprintf(msg, "STACK: from %p to %p, for %s\n", lwp_stackbase, lwp_stackbase + stacksize, name);
 	write(2, msg, strlen(msg));
 #endif
 	lwp_stackbase += ((stacksize/pagesize) + 2) * pagesize;
@@ -663,7 +663,7 @@ int LWP_CreateProcess(ep, stacksize, priority, parm, name, pid)
 	/* Gross hack: beware! */
 	PRE_Block = 1;
 	lwp_cpptr = temp;
-	savecontext(Create_Process_Part2, &temp2->context, stackptr+stacksize-4);
+	savecontext(Create_Process_Part2, &temp2->context, stackptr+stacksize-STACK_PAD);
 	/* End of gross hack */
 
 	Set_LWP_RC();
@@ -755,7 +755,7 @@ int LWP_DestroyProcess(pid)
 	    lwpmove(pid, &runnable[pid->priority], &blocked);
 	    temp = lwp_cpptr;
 	    savecontext(Dispatcher, &(temp -> context),
-			&(LWPANCHOR.dsptchstack[(sizeof LWPANCHOR.dsptchstack)-4]));
+			&(LWPANCHOR.dsptchstack[(sizeof LWPANCHOR.dsptchstack)-STACK_PAD]));
 	}
 
     return LWP_SUCCESS;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.7 1998/10/08 17:25:28 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resclient.cc,v 4.8 1998/10/21 22:05:45 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2491,6 +2491,7 @@ static int PerformResOp(rlent *r, dlist *vlist, olist *hvlog,
 	    SLog(9,  "PerformResOP: MakeDir %s(%x.%x)",
 		    name, cFid.Vnode, cFid.Unique);
 	    vle *cv = AddVLE(*vlist, &cFid);
+	    cv->d_inodemod = 1;
 	    assert(!cv->vptr);
 	    /* allocate the vnode */
 	    if (errorCode = AllocVnode(&cv->vptr, volptr, (ViceDataType)vDirectory,

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readstuff.cc,v 4.3 1997/11/14 13:32:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/readstuff.cc,v 4.4 1998/08/31 12:23:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -202,7 +202,7 @@ static char *put(DumpBuffer_t *buf, int size, int *error)
     return (char *) buf->DumpBufPtr;
 }
 
-char ReadTag(DumpBuffer_t *buf)
+signed char ReadTag(DumpBuffer_t *buf)
 {
     int error = 0;
     register byte *p = (byte *)get(buf, 1, &error);
