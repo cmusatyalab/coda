@@ -27,7 +27,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: Makefile.in,v 4.3 97/02/05 11:39:43 lily Exp $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/kernel-src/inodefs/common/RCS/Makefile.in,v 4.4 1997/04/29 21:27:25 rvb Exp braam $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -39,7 +39,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-HEADERS   = inodefs.h
+HEADERS   = inodefs.h uifs.h
 OBJS = inodefsulib.o
 LIBRARIES = libuinodefs.a
 
