@@ -77,8 +77,8 @@ mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 	$RPM_BUILD_ROOT/coda $RPM_BUILD_ROOT/etc/rc.d/init.d\
 	$RPM_BUILD_ROOT/usr/lib/coda $RPM_BUILD_ROOT/etc/rc.d/init.d
 
-make prefix=$RPM_BUILD_ROOT client-install
-make prefix=$RPM_BUILD_ROOT server-install
+make prefix=$RPM_BUILD_ROOT/usr client-install
+make prefix=$RPM_BUILD_ROOT/usr server-install
 
 mknod $RPM_BUILD_ROOT/dev/cfs0 c 67 0
 touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
