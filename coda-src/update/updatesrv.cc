@@ -159,7 +159,7 @@ int main(int argc, char **argv)
     
     freopen("UpdateSrvLog","a+",stdout);
     freopen("UpdateSrvLog","a+",stderr);
-    fprintf(stderr, "%s Updatesrv started!\n", ctime(time(NULL)));
+    fprintf(stderr, "Updatesrv started!\n");
 
     if (chdir(prefix)) {
 	    perror("could not chdir to prefix directory");
