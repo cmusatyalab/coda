@@ -120,6 +120,18 @@ int readmissAnswer;
 char ProgramAccessLog[MAXPATHLEN];
 char ReplacementLog[MAXPATHLEN];
 
+#ifdef sun
+/* setenv replacement ... uses putenv */
+static  int
+setenv(const char *name, const char *value, int overwrite)
+{
+  char string[MAXPATHLEN];
+  snprintf (string, MAXPATHLEN, "%s=%s", name, value);
+  return putenv(string);
+}
+#endif
+
+
 /* Command-Line Argument Routines */
 void PrintUsage() {
   fprintf(stderr, "advice_srv [-d <LogLevel>] [i] [-v]\n");

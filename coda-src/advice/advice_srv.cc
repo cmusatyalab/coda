@@ -36,7 +36,11 @@ extern "C" {
 #include <sys/time.h>
 #include "coda_assert.h" 
 #include <struct.h>
+#ifdef sun
+#include "/usr/ucbinclude/sys/wait.h"
+#else
 #include <sys/wait.h> 
+#endif
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <pwd.h>
