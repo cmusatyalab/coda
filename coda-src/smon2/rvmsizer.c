@@ -171,9 +171,12 @@ void scantree(char * const *root)
     printf("average directory size %llu bytes\n",
 	   (totalsize - filesize) / large_vnodes);
 
-    tmpsize = (unsigned long long)small_vnodes * FILERVMSIZE +
-	      (unsigned long long)large_vnodes * DIRSIZE +
-	      (unsigned long long)dirpages * DIRPAGE;
+    tmpsize = (unsigned long long) dirpages * DIRPAGE;
+    printf("estimated RVM used by directory data, %llu bytes (%.2fMB)\n",
+	   tmpsize, MB(tmpsize));
+
+    tmpsize += (unsigned long long)small_vnodes * FILERVMSIZE +
+	      (unsigned long long)large_vnodes * DIRSIZE;
     printf("estimated RVM usage based on object counts, %llu bytes (%.2fMB)\n",
 	   tmpsize, MB(tmpsize));
 
