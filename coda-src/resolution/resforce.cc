@@ -83,6 +83,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
     RPC2_BoundedBS al;
     char buf[(SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE)];
     FILE *tmp;
+    int tmpfd;
 
     /* check if there are any runts */
     {
@@ -104,10 +105,11 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	SLog(0, "UpdateRunts: failed to create temporary file");
 	return;
     }
+    tmpfd = fileno(tmp); /* I'm assuming that fileno doesn't dup the fd. */
 
     /* fetch directory ops from the non-runt site */
     {
-	SE_Descriptor	sid;
+	SE_Descriptor sid;
 	
 	al.MaxSeqLen = (SIZEOF_LARGEDISKVNODE - SIZEOF_SMALLDISKVNODE);
 	al.SeqLen  = 0;
@@ -117,10 +119,12 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	sid.Value.SmartFTPD.ByteQuota = -1;
 	sid.Value.SmartFTPD.Tag = FILEBYFD;
-	sid.Value.SmartFTPD.FileInfo.ByFD.fd = fileno(tmp);
+	sid.Value.SmartFTPD.FileInfo.ByFD.fd = tmpfd;
 	SLog(9,  "UpdateRunts: Going to GetForceDirOps");
 	if (Res_GetForceDirOps(mgrp->rrcc.handles[nonruntdir], Fid, &vstatus,
-			       &al, &sid)) {
+			       &al, &sid))
+	{
+	    fclose(tmp);
 	    return;
 	}
     }
@@ -129,19 +133,21 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	for (int i = 0; i < VSG_MEMBERS; i++)
 	    if (VV[i] && !isrunt[i])
 		mgrp->KillMember(mgrp->Hosts[i], 0);
+
+	lseek(tmpfd, 0, SEEK_SET);
     }
     /* force directory ops onto runt sites */
     {
-	SLog(9,  "UpdateRunts: Forcing Directories onto runts");
+	SLog(9, "UpdateRunts: Forcing Directories onto runts");
 	int forceError;
-	SE_Descriptor	sid;
+	SE_Descriptor sid;
 
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.ByteQuota = -1;
 	sid.Value.SmartFTPD.Tag = FILEBYFD;
-	sid.Value.SmartFTPD.FileInfo.ByFD.fd = fileno(tmp);
+	sid.Value.SmartFTPD.FileInfo.ByFD.fd = tmpfd;
 	ARG_MARSHALL(OUT_MODE, RPC2_Integer, forceErrorvar, forceError, VSG_MEMBERS);
 	ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sidvar, sid, VSG_MEMBERS);
 
