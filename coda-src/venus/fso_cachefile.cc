@@ -175,7 +175,7 @@ int CacheFile::Copy(CacheFile *destination)
     return 0;
 }
 
-int CacheFile::Copy(char *destname, ino_t *ino)
+int CacheFile::Copy(char *destname, ino_t *ino, int recovering = 0)
 {
     LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s\n",
 	     name, inode, validdata, length, destname));
@@ -221,7 +221,7 @@ int CacheFile::Copy(char *destname, ino_t *ino)
     if (::close(ffd) < 0)
 	CHOKE("CacheFile::Copy: source close failed (%d)", errno);
     
-    CODA_ASSERT((off_t)length == tstat.st_size);
+    CODA_ASSERT(recovering || (off_t)length == tstat.st_size);
     if (ino)
         *ino = tstat.st_ino;
 

@@ -464,13 +464,13 @@ void fsobj::Recover()
 	eprint("\t(%s, %s) found owrite object, discarding", comp, FID_(&fid));
 	if (IsFile()) {
 	    char spoolfile[MAXPATHLEN];
+	    int idx = 0;
 
 	    do {
-		int idx = 0;
 		snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,comp,idx++);
 	    } while (::access(spoolfile, F_OK) == 0 || errno != ENOENT); 
 
-	    data.file->Copy(spoolfile);
+	    data.file->Copy(spoolfile, NULL, 1);
 	    eprint("\t(lost file data backed up to %s)", spoolfile);
 	}
 	Recov_BeginTrans();
