@@ -1,3 +1,12 @@
+New in 1.14:
+
+* Fixed readline includes.
+* Fixed gcc-3.2 compilation problems.
+* Don't recursively generate code for included files in .rpc2 files.
+* Fixed bison/yacc grammar problems.
+* Experimental code to get correct timeouts on asynchronous links (ADSL).
+* Always 'byteswap' packets.
+
 New in 1.13:
 
 * Fixed crash when an expired connection receives a NAK.
