@@ -34,15 +34,12 @@
 
 <refsect1>
     <title>DESCRIPTION</title>
-    <para>This command sets the password associated with the current user, or
-    user <option>username</option> if explicitly named.  Only the user or a
-    System Administrator may change a password.  
+    <para>This command sets the Coda password for the current user.
     </para>
-    <para><command>cpasswd</command> prompts for the users old password, or
-    the password of the administrator performing the change, and then for the
-    new one.  The new password must be typed twice, to forestall mistakes.
-    Change requests can be aborted by typing a carriage return when prompted
-    for the new password.
+    <para><command>cpasswd</command> prompts for the users old password, and
+    then for the new one. The new password must be typed twice, to forestall
+    mistakes. Change requests can be aborted by typing a carriage return when
+    prompted for the new password.
     </para>
     <!-- <para>New passwords must be at least four characters long if they use a
     sufficiently rich alphabet and at least six characters long if monocase.
