@@ -161,7 +161,7 @@ else
 # Coda server port numbers
 coda_opcons     1355/udp                        # Coda opcons
 coda_auth       1357/udp                        # Coda auth
-coda_updsrv     1359/udp                        # Coda updsrv
+coda_udpsrv     1359/udp                        # Coda updsrv
 coda_filesrv    1361/udp                        # Coda filesrv
 coda_venus      1363/udp                        # Coda venus
 EOF

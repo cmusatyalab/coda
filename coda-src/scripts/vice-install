@@ -83,7 +83,7 @@ mv bin bin.old
 # make new bin and install
 ln -s $NEW bin
 cd $OBJS
-make TOPOBJ=$OBJS SBINDIR=$NEW BINDIR=$NEW server-install
+make TOPOBJ=$OBJS SBINDIR=$NEW BINDIR=$NEW qserver-install
 
 if [ $? != 0 ]; then
 	echo "***** WARNING: install failed. *******"
