@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_loadseg.c,v 4.1 1997/01/08 21:54:45 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/seg/rvm_loadseg.c,v 4.2 1998/03/06 20:21:53 braam Exp $";
 #endif _BLURB_
 
 #include <stdlib.h>
@@ -121,7 +121,7 @@ rvm_load_segment(DevName, DevLength, options, nregions, regions)
 	    if (err != RVM_SUCCESS)
 		return err; 	/* Some error condition exists, abort */
 
-/*    printf("Just mapped in region (%x,%d)\n",region->vmaddr, region->length); */
+	    printf("Just mapped in region (%x,%d)\n",region->vmaddr, region->length);
 	}
 
     /* Clean up, we no longer need the header region */

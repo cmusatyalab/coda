@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/testrvm.c,v 4.2 1998/01/10 18:40:52 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/tests/testrvm.c,v 4.3 1998/03/06 20:21:58 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -608,7 +608,9 @@ rvm_bool_t test_complex_range_commit(tid)
 
     return rvm_false;
     }
-main()
+
+
+main()
     {
     rvm_return_t        retval;         /* rvm return code */
     long                i;              /* loop counter */

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/MS/rvm-src/rvm/RCS/rvm_utils.c,v 4.3 1997/04/01 01:55:57 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.7 1998/03/06 20:21:49 braam Exp $";
 #endif _BLURB_
 
 /*
@@ -368,7 +368,11 @@ long init_unames()
     long            retval;
 
     retval= gettimeofday(&new_uname,(struct timezone *)NULL);
-    if (retval != 0) return retval;
+    if ( retval ) {
+	    printf("init_unames: retval %d\n");
+	    perror("init_names:");
+	    return retval;
+    }
     
     CRITICAL(uname_lock,
         {

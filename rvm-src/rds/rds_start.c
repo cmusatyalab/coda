@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: rds_start.c,v 1.1 96/11/22 13:39:55 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_start.c,v 4.1 1997/01/08 21:54:28 rvb Exp $";
 #endif _BLURB_
 
 #include <stdlib.h>
@@ -104,8 +104,9 @@ rds_load_heap(DevName, DevLength, static_addr, err)
     rvmret = rvm_load_segment(DevName, DevLength, NULL,
                               &NRegionDefs, &RegionDefs);
     if (rvmret != RVM_SUCCESS) {
-	(*err) = (int) rvmret;
-	return -1;
+	    printf("Error rvm_load_segment returns %d\n", rvmret);
+	    (*err) = (int) rvmret;
+	    return -1;
     }
 
     if (NRegionDefs != 2) {
@@ -117,15 +118,6 @@ rds_load_heap(DevName, DevLength, static_addr, err)
     (*static_addr) = (char *)RegionDefs[1].vmaddr;
 
     rds_start_heap(RegionDefs[0].vmaddr, err);
-
-    /* God only knows why this is here. */
-/*
-    if (!rds_testsw) {
-        free(RegionDefs);
-        RegionDefs = NULL;
-	return -1;
-    }
-*/
 
     return 0;
 }
