@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.24 1998/10/05 02:10:40 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/worker.cc,v 4.25 1998/10/05 17:15:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1129,7 +1129,7 @@ void worker::main(void *parm) {
 			char *slash;
 			char *begin = (char *)(&out->coda_open_by_path.path + 1);
 			out->coda_open_by_path.path = begin - (char *)out;
-			sprintf(begin, "%s/%s/%s", CF_PREFIX, CacheDir, 
+			sprintf(begin, "%s%s/%s", CF_PREFIX, CacheDir, 
 				vtarget.c_cfname);
 			LOG(100, ("CODA_OPEN_BY_PATH: returning %s", begin));
 #if defined(DJGPP) || defined(__CYGWIN32__)
