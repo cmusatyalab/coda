@@ -1,3 +1,4 @@
+#define _SCALAR_T_
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,14 +13,10 @@
 #include <dirent.h>
 
 #ifdef __linux__
-#define __KERNEL__
-#include <linux/fs.h>
-#undef __KERNEL__
 #include <mntent.h>
 #else /* __linux__ */
 #include <sys/file.h>
 #include <sys/uio.h>
-
 #endif /* __linux__ */
 
 #include <ds_list.h>
@@ -119,7 +116,7 @@ fid_fullname(fid_ent_t *fep)
     char             *result;    /* Where we put the answer */
     int               length=0;  /* How long the pathname is so far */
     int               depth=0;   /* How deep the requested fid is */
-    fid_ent_t         *fidlist[MAXPATHLEN];
+    fid_ent_t         *fidlist[MAXNAMLEN];
     char              *dest;     /* Where to copy next component. */
     char              *src;      /* Where to copy component from */
     int                i;
@@ -129,18 +126,18 @@ fid_fullname(fid_ent_t *fep)
      * each entry is minimally "/" 
      */
 
-    result = malloc(sizeof(char)*MAXPATHLEN);
+    result = malloc(sizeof(char)*MAXNAMLEN);
     dest = result;
 
     do {
 	fidlist[depth++] = fep;
 	fep = fep->parent;
-	assert(depth <= MAXPATHLEN);
+	assert(depth <= MAXNAMLEN);
     } while (fep != NULL);
 
     for (i=depth-1; i>=0; --i) {
 	length += strlen(fidlist[i]->name)+1;  /* component + '/' or '\0' */
-	assert(length < (MAXPATHLEN-1));
+	assert(length < (MAXNAMLEN-1));
 	src = fidlist[i]->name;
 	while (*src) {
 	    *dest++ = *src++;   /* component */
@@ -325,7 +322,7 @@ Setup() {
     assert (write(KernFD, (char*)&msg, (int)sizeof(unsigned long)*2)
 	    == sizeof(unsigned long)*2);
 
-#ifdef LINUX
+#ifdef __linux__
     if ( fork() == 0 ) {
       int error;
       error = mount("coda", MountPt, "coda",  MS_MGC_VAL , &KernDevice);
@@ -386,7 +383,7 @@ child_exists(char *path, char *name) {
     do {
 	dep = readdir(dirp);
 	if (dep 
-#ifndef LINUX
+#ifndef __linux__
 	    && (dep->d_namlen == length) 
 #endif
 	    && (!strcmp(dep->d_name, name)))
@@ -404,13 +401,13 @@ child_exists(char *path, char *name) {
 }
 
 /*
- * fill_vattr
+ * fill_coda_vattr
  *
  * Given a stat structure and a fid for a new vnode, fill in it's
- * vattr structure.  WARNING: fep must be completely filled.
+ * coda_vattr structure.  WARNING: fep must be completely filled.
  */
 void
-fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct vattr *vbuf) 
+fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf) 
 {
     vbuf->va_type = fep->type;
     vbuf->va_mode = sbuf->st_mode;
@@ -423,7 +420,7 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct vattr *vbuf)
     vbuf->va_fileid = sbuf->st_ino;
     vbuf->va_size = sbuf->st_size;
     vbuf->va_blocksize = V_BLKSIZE;
-#ifdef LINUX
+#ifdef __linux__
     vbuf->va_atime.tv_sec = sbuf->st_atime;
     vbuf->va_mtime.tv_sec = sbuf->st_mtime;
     vbuf->va_ctime.tv_sec = sbuf->st_ctime;
@@ -672,7 +669,7 @@ DoGetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
     fid_ent_t        *fep;
     fid_ent_t         dummy;
     struct stat       st;
-    struct vattr     *vbuf;
+    struct coda_vattr     *vbuf;
     char             *path = NULL;
     
     fp = &(in->d.cfs_getattr.VFid);
@@ -731,9 +728,9 @@ DoCreate(struct inputArgs *in, struct outputArgs *out, int *reply)
     ViceFid         *newFp;
     fid_ent_t       *newFep=NULL;
     fid_ent_t        dummy;
-    struct vattr    *attr;
-    struct vattr    *newAttr;
-    struct ucred    *cred;
+    struct coda_vattr    *attr;
+    struct coda_vattr    *newAttr;
+    struct CodaCred    *cred;
     int              exclp;
     int              mode;
     int              readp;
@@ -930,7 +927,7 @@ DoRemove(struct inputArgs *in, struct outputArgs *out, int *reply)
     fid_ent_t       *fep;
     fid_ent_t       *victimFep=NULL;
     bool             created=FALSE;
-    struct ucred    *cred;
+    struct CodaCred    *cred;
     fid_ent_t        dummy;
     char            *name=NULL;
     char            *path=NULL;
@@ -1079,8 +1076,8 @@ void
 DoSetattr(struct inputArgs *in, struct outputArgs *out, int *reply)
 {
     ViceFid          *fp;
-    struct ucred     *cred;
-    struct vattr     *vap;
+    struct CodaCred     *cred;
+    struct coda_vattr     *vap;
     fid_ent_t        *fep;
     fid_ent_t         dummy;
     char             *path=NULL;
@@ -1256,7 +1253,7 @@ DoRename(struct inputArgs *in, struct outputArgs *out, int *reply)
     bool              screated=FALSE;
     fid_ent_t        *tfep=NULL;
     bool              tcreated=FALSE;
-    struct ucred     *cred;
+    struct CodaCred     *cred;
     ds_list_iter_t   *iter;
     struct stat       sbuf;
     uid_t             suid;
@@ -1421,9 +1418,9 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     ViceFid          *newFp;
     fid_ent_t        *newFep=NULL;
     fid_ent_t         dummy;
-    struct vattr     *attr;
-    struct vattr     *newAttr;
-    struct ucred     *cred;
+    struct coda_vattr     *attr;
+    struct coda_vattr     *newAttr;
+    struct CodaCred     *cred;
     int               mode;
     char             *name=NULL;
     char             *path=NULL;
@@ -1511,7 +1508,7 @@ DoMkdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     assert(!seteuid(suid));
     assert(!setgid(sgid));
 
-    /* Stat it so we can set type, return vattr correctly */
+    /* Stat it so we can set type, return coda_vattr correctly */
     if (lstat(path,&sbuf)) {
 	printf("MKDIR: couldn't lstat %s: (%s)\n",
 	       path,strerror(errno));
@@ -1547,7 +1544,7 @@ DoRmdir(struct inputArgs *in, struct outputArgs *out, int *reply)
     fid_ent_t         *fep;
     fid_ent_t         *victimFep = NULL;
     bool               created=FALSE;
-    struct ucred      *cred;
+    struct CodaCred      *cred;
     fid_ent_t          dummy;
     char              *name=NULL;
     char              *path=NULL;
@@ -1702,7 +1699,7 @@ DoReadlink(struct inputArgs *in, struct outputArgs *out, int *reply)
     ViceFid            *fp;
     fid_ent_t          *fep;
     fid_ent_t           dummy;
-    struct ucred       *cred;
+    struct CodaCred       *cred;
     char               *path;
     int                *count;
     uid_t               suid;
@@ -1774,7 +1771,7 @@ DoLink(struct inputArgs *in, struct outputArgs *out, int *reply)
     fid_ent_t       *tfep;
     fid_ent_t        dummy;
     fid_ent_t       *lfep=NULL;
-    struct ucred    *cred;
+    struct CodaCred    *cred;
     char            *name;
     char            *lpath=NULL;
     char            *tpath=NULL;
@@ -1906,8 +1903,8 @@ DoSymlink(struct inputArgs *in, struct outputArgs *out, int *reply)
     fid_ent_t      *fep;
     fid_ent_t      *newFep;
     fid_ent_t       dummy;
-    struct vattr   *attr;
-    struct ucred   *cred;
+    struct coda_vattr   *attr;
+    struct CodaCred   *cred;
     char           *name;
     char           *path=NULL;
     char           *contents;
@@ -2182,9 +2179,9 @@ main(int argc, char *argv[])
     return 0;
 }
 
-#ifdef LINUX
+#ifdef __linux__
 void
-coda_iattr_to_vattr(struct iattr *iattr, struct vattr *vattr)
+coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
 {
         umode_t mode;
         unsigned int valid;
