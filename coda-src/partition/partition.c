@@ -279,9 +279,12 @@ DP_LockPartition(char *name)
     register struct DiskPartition *dp = DP_Get(name);
     CODA_ASSERT(dp != NULL);
     if (dp->lock_fd == -1) {
+	/* Cannot writelock a directory using fcntl, disabling for now --JH */
+#if 0
 	dp->lock_fd = open(dp->name, O_RDONLY, 0);
 	CODA_ASSERT(dp->lock_fd != -1);
 	CODA_ASSERT (myflock(dp->lock_fd, MYFLOCK_EX, MYFLOCK_BL) == 0);
+#endif
     }
 }
 
@@ -290,7 +293,8 @@ DP_UnlockPartition(char *name)
 {
     register struct DiskPartition *dp = DP_Get(name);
     CODA_ASSERT(dp != NULL);
-    close(dp->lock_fd);
+    if (dp->lock_fd != -1)
+	close(dp->lock_fd);
     dp->lock_fd = -1;
 }
 

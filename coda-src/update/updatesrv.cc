@@ -307,10 +307,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
     long    rc;			/* return code to caller */
     SE_Descriptor sid;		/* sid to use to transfer */
     char    name[1024];		/* area to hold the name */
-    char    dirname[1024];	/* area to hold the directory name */
     struct stat buff;		/* buffer for stat */
-    int     fd = 0;
-    char    * end;
 
     rc = 0;
 
@@ -327,16 +324,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
     *NewTime = buff.st_mtime;
     if (((buff.st_mode & S_IFMT) == S_IFREG) &&
 	    (Time != *NewTime)) {
-	strcpy(dirname, name);
-	end = rindex(dirname, '/');
-	if(end) *end = '\0';
-	fd = open(dirname, O_RDONLY, 0);
-	if(fd <= 0) {
-	    perror("open for directory failed");
-	    fd = 0;
-	} else {
-	    myflock(fd, MYFLOCK_SH, MYFLOCK_BL);
-	}
+
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
 	sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
@@ -368,10 +356,6 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
     }
 
 Final:
-    if(fd) {
-	myflock(fd, MYFLOCK_UN, MYFLOCK_BL);
-	close(fd);
-    }
     gettimeofday(&tp, &tsp);
     *CurrentSecs = tp.tv_sec;
     *CurrentUsecs = tp.tv_usec;

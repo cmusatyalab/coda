@@ -551,7 +551,7 @@ END_TIMING(GetACL_Total);
 
 
 /*
-  ViceNewVStore: Store a file or directory
+  ViceStore: Store a file or directory
 */
 long FS_ViceStore(RPC2_Handle RPCid, ViceFid *Fid,
 		  ViceStatus *Status, RPC2_Integer Length,
@@ -573,7 +573,7 @@ long FS_ViceStore(RPC2_Handle RPCid, ViceFid *Fid,
     vle *av = 0;
 
 START_TIMING(Store_Total);
-    SLog(1, "ViceNewVStore: Fid = (%x.%x.%x)",
+    SLog(1, "ViceStore: Fid = (%x.%x.%x)",
 	     Fid->Volume, Fid->Vnode, Fid->Unique);
 
     /* Validate parameters. */
@@ -663,7 +663,7 @@ FreeLocks:
 	PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
     }
 
-    SLog(2, "ViceNewVStore returns %s", ViceErrorMsg(errorCode));
+    SLog(2, "ViceStore returns %s", ViceErrorMsg(errorCode));
 END_TIMING(Store_Total);
     return(errorCode);
 }

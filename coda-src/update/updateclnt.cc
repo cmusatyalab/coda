@@ -137,10 +137,8 @@ int main(int argc, char **argv)
 {
     struct timeval  time;
     FILE * file;
-    int     i,
-	    dirfd,
-            len,
-
+    int     i, len, rc;
+    
     rc = chdir("/vice/db");
     if ( rc ) {
 	    perror("Cannot cd to /vice/db");
@@ -202,12 +200,6 @@ int main(int argc, char **argv)
 	    i = reps;
 	}
 
-	dirfd = open("/vice",O_RDONLY,0);
-	if(dirfd > 0)
-	    myflock(dirfd,MYFLOCK_EX, MYFLOCK_BL);
-	else
-	    dirfd = 0;
-
 	if (CheckDir("/vice/db", 0644)) {
 	    operatorSecs = 0;	/* if something changed time has elapsed */
 	    /* signal file server to check data bases */
@@ -248,11 +240,6 @@ int main(int argc, char **argv)
 		settimeofday(&tp, &tsp);
 		*/
 	    }
-	}
-
-	if(dirfd) {
-	    close(dirfd);
-	    dirfd = 0;
 	}
 
 	if (Reexec) {
