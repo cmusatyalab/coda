@@ -160,17 +160,11 @@ long RPC2_Init(char *VId,		/* magic version string */
 }
 
 /* set the IP Addr to bind to */
-struct in_addr RPC2_setip(char *host)
+struct in_addr RPC2_setip(struct in_addr *ip)
 {
-	struct hostent *he = NULL;
 	rpc2_bindaddr.s_addr = INADDR_ANY;
 
-	if (! host ) 
-		return rpc2_bindaddr;
-
-	he = gethostbyname(host);
-	if ( he )
-		rpc2_bindaddr = *(struct in_addr *)he->h_addr_list[0];
+	if (ip) memcpy(&rpc2_bindaddr, ip, sizeof(struct in_addr));
 
 	return rpc2_bindaddr;
 }

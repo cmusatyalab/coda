@@ -8,6 +8,7 @@ New in 1.9:
 * Allow for sending and receiving SFTP packets through the RPC2 socket when
   the user has not specified a specific SFTP port.
 * Fixed connection and packet leaks when unmarshalling a request fails.
+* Changed RPC2_setip to accept struct in_addr instead of hostname.
 
 New in 1.8:
 
