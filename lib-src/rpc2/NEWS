@@ -1,3 +1,7 @@
+New in 1.16:
+
+* Fix for missing lseek that caused truncated backup files.
+
 New in 1.15:
 
 * Remove noisy debugging printf.
