@@ -82,7 +82,7 @@ LIBS :=	${LIBRPC2}\
 	${LIBKERNDEP} \
 	${LIBAUSER}\
 	${LIBCOMPAT}\
-	${LIBBASE}\
+	${LIBBASE}
 
 
 LIBRARIES   = libauth2.a libauser.a
@@ -104,8 +104,8 @@ initpw: initpw.o $(LIBS)
 $(AU): au.o libauser.a $(LIBS)
 	$(CC) $(LIBFLAGS) au.o libauser.a $(LIBS) $(LIBKRBS) $(LIBFIXUP) -o $(AU)
 
-$(CLOG): clog.o libauser.a ${LIBS}
-	${CC} $(LIBFLAGS) clog.o libauser.a ${LIBS} $(LIBKRBS) $(LIBFIXUP) -o $(CLOG)
+$(CLOG): clog.o tokenfile.o libauser.a ${LIBS}
+	${CC} $(LIBFLAGS) clog.o tokenfile.o libauser.a ${LIBS} $(LIBKRBS) $(LIBFIXUP) -o $(CLOG)
 
 cunlog: cunlog.o libauser.a ${LIBS}
 	${CC} $(LIBFLAGS) cunlog.o libauser.a ${LIBS} $(LIBFIXUP) -o cunlog

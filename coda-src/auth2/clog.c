@@ -60,6 +60,7 @@ extern "C" {
 
 #include "avenus.h"
 #include "auser.h"
+#include "tokenfile.h"
 
 #ifdef __cplusplus
 }
@@ -75,138 +76,6 @@ void printusage(void)
                             "Usage clog [-pipe] [-test] [-host authserver]"
                             "[{-kerberos4,-kerberos5,-coda}]\n\t"
                             "[-tofile <file>] [-fromfile <file>] [username]\n");
-}
-
-/* base 64 encoding/decoding to store the tokens in a convenient fileformat */
-char *b2e = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-void base64_encode(FILE *out, char *in, int len)
-{
-    int i;
-
-    fputs("*** Coda Token ***", out);
-    for (i = 0; i < len; i += 3) {
-        if ((i % 54) == 0) fputc('\n', out);
-
-        fputc(b2e[(in[i] >> 2) & 0x3f], out);
-
-        if (i+1 < len)
-            fputc(b2e[((in[i] << 4) & 0x30) | ((in[i+1] >> 4) & 0xf)], out);
-        else {
-            fputc(b2e[((in[i] << 4) & 0x30)], out);
-            fputc('=', out);
-            fputc('=', out);
-            break;
-        }
-
-        if (i+2 < len) {
-            fputc(b2e[((in[i+1] << 2) & 0x3c) | ((in[i+2] >> 6) & 0x3)], out);
-            fputc(b2e[in[i+2] & 0x3f], out);
-        } else {
-            fputc(b2e[((in[i+1] << 2) & 0x3c)], out);
-            fputc('=', out);
-        }
-    }
-    fputc('\n', out);
-}
-
-void base64_decode(FILE *in, char **out, int *len)
-{
-    int val = 0, s = 18, n = 0, c, header = 1, done = 0;
-        
-    *len = 24; *out = malloc(*len);
-
-    while((c = fgetc(in)) != EOF) {
-        if (c == '\n' || c == '\r') {
-            header = 0; /* we are now past the first line */
-            continue;
-        }
-
-        /* skip the first line */
-        if (header)
-            continue;
-
-        if (c != '=') {
-            if      (c >= 'A' && c <= 'Z') c =  c - 'A';
-            else if (c >= 'a' && c <= 'z') c = (c - 'a') + 26;
-            else if (c >= '0' && c <= '9') c = (c - '0') + 52;
-            else if (c == '+')             c = 62;
-            else if (c == '/')             c = 63;
-            val = val | (c << s);
-        } else
-            done = 1;
-
-        if ((s -= 6) < 0) {
-            (*out)[n]   = (val >> 16) & 0xff;
-            (*out)[n+1] = (val >> 8) & 0xff;
-            (*out)[n+2] = val & 0xff;
-            val = 0; s = 18;
-            if (done) break;
-
-            if ((n += 3) == *len) {
-                *len += 24; *out = realloc(*out, *len);
-            }
-        }
-    }
-    *len = n;
-}
-
-void export(ClearToken *cToken)
-{
-    cToken->AuthHandle     = htonl(cToken->AuthHandle);
-    cToken->ViceId         = htonl(cToken->ViceId);
-    cToken->BeginTimestamp = htonl(cToken->BeginTimestamp);
-    cToken->EndTimestamp   = htonl(cToken->EndTimestamp);
-}
-
-void import(ClearToken *cToken)
-{
-    cToken->AuthHandle     = ntohl(cToken->AuthHandle);
-    cToken->ViceId         = ntohl(cToken->ViceId);
-    cToken->BeginTimestamp = ntohl(cToken->BeginTimestamp);
-    cToken->EndTimestamp   = ntohl(cToken->EndTimestamp);
-}
-
-void WriteTokenToFile(char *filename, ClearToken *cToken,
-                      EncryptedSecretToken sToken)
-{
-    FILE *f;
-    char *buf;
-    int len;
-
-    len = sizeof(ClearToken) + sizeof(EncryptedSecretToken);
-    buf = malloc(len);
-    export(cToken);
-    memcpy(buf, (char *)cToken, sizeof(ClearToken));
-    memcpy(buf + sizeof(ClearToken), sToken, sizeof(EncryptedSecretToken));
-    import(cToken);
-
-    f = fopen(filename, "w");
-    base64_encode(f, buf, len);
-    fclose(f);
-    free(buf);
-}
-
-void ReadTokenFromFile(char *filename, ClearToken *cToken,
-                       EncryptedSecretToken sToken)
-{
-    FILE *f;
-    char *buf;
-    int len;
-
-    f = fopen(filename, "r");
-    base64_decode(f, &buf, &len);
-    fclose(f);
-
-    if (len == (sizeof(ClearToken) + sizeof(EncryptedSecretToken))) {
-        fprintf(stderr, "Corrupted token file?\n");
-        free(buf);
-        exit(-EINVAL);
-    }
-    memcpy((char *)cToken, buf, sizeof(ClearToken));
-    memcpy(sToken, buf + sizeof(ClearToken), sizeof(EncryptedSecretToken));
-    import(cToken);
-    free(buf);
 }
 
 int main(int argc, char **argv)
