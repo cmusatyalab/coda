@@ -183,11 +183,11 @@ static int parse_res_reply(char *answer, int alen,
 	    for (p = cur; p; p = p->ai_next) {
 		switch(p->ai_family) {
 		case PF_INET:
-		    ((struct sockaddr_in *)p->ai_addr)->sin_port = port;
+		    ((struct sockaddr_in *)p->ai_addr)->sin_port = htons(port);
 		    break;
 #ifdef PF_INET6
 		case PF_INET6:
-		    ((struct sockaddr_in6 *)p->ai_addr)->sin6_port = port;
+		    ((struct sockaddr_in6 *)p->ai_addr)->sin6_port = htons(port);
 		    break;
 #endif
 		}
