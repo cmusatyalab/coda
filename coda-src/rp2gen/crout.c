@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.8 1998/06/04 17:30:03 shafeeq Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.9 1998/06/05 19:43:52 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -71,6 +71,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #define _PAD(n)((((n)-1) | 3) + 1)
+#define BUFFEROVERFLOW  "        fprintf(stderr,\"%%s:%%d Buffer overflow in (un)marshalling !\\n\",__FILE__,__LINE__);\n        return 0;\n"
+
 
 static dump_procs(PROC *head, FILE *where);
 static print_type(RPC2_TYPE *t, FILE *where, char *name);
@@ -457,7 +459,6 @@ static common(where)
 	fputs("\n#ifdef __cplusplus\n}\n#endif __cplusplus\n", where);
 
     fputs("\n#define _PAD(n)\t((((n)-1) | 3) + 1)\n", where);
-
 }
 
 static client_procs(head, where)
@@ -740,6 +741,7 @@ static spit_body(proc, in_parms, out_parms, where)
     /* Unpack arguments */
     if (out_parms) {
 	fprintf(where, "\n    /* Unpack arguments */\n    %s = %s->Body;\n", ptr, rspbuffer);
+	fprintf(where,"     _EOB = (char *) %s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", rspbuffer, rspbuffer);
 	for (parm=proc->formals; *parm!=NIL; parm++)
 	    if ((*parm)->mode != IN_MODE) unpack(CLIENT, *parm, "", ptr, where);
     }
@@ -935,8 +937,9 @@ static checkbuffer(where, what, size)
     FILE *where;
     int32_t size;
 {
-	fprintf(where, "    if ( (char *)%s + %d > _EOB)\n"
-		 "        return 0;\n", what,size);
+	fprintf(where, "    if ( (char *)%s + %d > _EOB) {\n"
+		 BUFFEROVERFLOW
+		 "    }\n", what,size,what);
 }
 
 static set_timeout(proc, where)
@@ -1018,8 +1021,9 @@ static pack(who, parm, prefix, ptr, where)
 	    break;
     case RPC2_STRING_TAG:		
 	    fprintf(where, "    %s = strlen((char *)%s);\n", length, name);
-	    fprintf(where, "    if ( (char *)%s + _PAD(%s+1) + 4 > _EOB)\n"
-		    "        return 0;\n", ptr,length);
+	    fprintf(where, "    if ( (char *)%s + _PAD(%s+1) + 4 > _EOB) {\n"
+		    BUFFEROVERFLOW
+		    "    }\n", ptr,length);
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s);\n", ptr, length);
 	    fprintf(where, "    strcpy((char *)(%s+4), (char *)%s);\n", ptr, name);
 	    fprintf(where, "    *(%s+4+%s) = '\\0';\n", ptr, length);
@@ -1028,7 +1032,9 @@ static pack(who, parm, prefix, ptr, where)
     case RPC2_COUNTEDBS_TAG:	
 	    fprintf(where, "    if ( (char *)%s +",ptr);
 	    print_size(who,parm,prefix,where);
-	    fprintf(where, "> _EOB)\n        return 0;\n");
+	    fprintf(where, "> _EOB) {\n"        
+		           BUFFEROVERFLOW
+		           "    }\n");
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sSeqLen);\n",
 		    ptr, name, select);
 	    fprintf(where, "    bcopy((char *)%s%sSeqBody, (char *)(%s+4), (long)%s%sSeqLen);\n",
@@ -1040,7 +1046,9 @@ static pack(who, parm, prefix, ptr, where)
     case RPC2_BOUNDEDBS_TAG:
 	    fprintf(where, "    if ( (char *)%s +",ptr);
 	    print_size(who,parm,prefix,where);
-	    fprintf(where, "> _EOB)\n        return 0;\n");	
+	    fprintf(where, "> _EOB) {\n"        
+		           BUFFEROVERFLOW
+		           "    }\n",ptr);
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sMaxSeqLen);\n",
 		    ptr, name, select);
 	    fprintf(where, "    *(RPC2_Integer *) (%s+4) = htonl(%s%sSeqLen);\n",
@@ -1156,12 +1164,13 @@ static unpack(who, parm, prefix, ptr, where)
 	    break;
     case RPC2_STRING_TAG:		/* 1st get length */
 	    checkbuffer(where,ptr,4);
-	    fprintf(where, "    %s = ntohl(*(RPC2_Integer *) %s) + 1;\n", length, ptr);
+	    fprintf(where, "    %s = 1 + ntohl(*(RPC2_Integer *) %s); "
+		    "/* deliberate, see crout.c */\n", length, ptr);
 	    inc4(ptr, where);
-	    fprintf(where, "    if ( (char *)%s + _PAD(%s) > _EOB)\n"
-		    "        return 0;\n", ptr,length);
-	    fprintf(where, "    if (*(%s+%s) != 0)"
-		           "        return 0;\n",ptr,length);
+	    fprintf(where, "    if ( (char *)%s + _PAD(%s) > _EOB) {\n"
+		           BUFFEROVERFLOW
+		           "    }\n",ptr,length);
+	    fprintf(where, "    if (*((char*)%s+%s - 1) != 0) { \n" BUFFEROVERFLOW "\n } \n",ptr,length);
 	    /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
 	    /* So mode should not be examined here. */
 	    /* if (mode == IN_OUT_MODE && who == CLIENT) { */
@@ -1184,8 +1193,9 @@ static unpack(who, parm, prefix, ptr, where)
 			/* Special hack */
 			fprintf(where, "    %s.SeqLen = ntohl(*(RPC2_Integer *) %s);\n", name, ptr);
 			inc4(ptr, where);
-			fprintf(where, "    if ( (char *)%s + _PAD(%s.SeqLen) > _EOB)\n"
-				"        return 0;\n", ptr,name);
+			fprintf(where, "    if ( (char *)%s + _PAD(%s.SeqLen) > _EOB) {\n"
+				       BUFFEROVERFLOW
+				       "    }\n", ptr,name);
 			fprintf(where, "    %s.SeqBody = %s;\n", name, ptr);
 			fprintf(where, "    %s += _PAD(%s.SeqLen);\n", ptr, name);
 			break;
@@ -1210,8 +1220,9 @@ static unpack(who, parm, prefix, ptr, where)
 	    fprintf(where, "    %s%sSeqLen = ntohl(*(RPC2_Integer *) %s);\n",
 						name, select, ptr);
 	    inc4(ptr, where);
-	    fprintf(where, "    if ( (char *)%s + _PAD(%s%sSeqLen) > _EOB)\n"
-		    "        return 0;\n", ptr,name,select);
+	    fprintf(where, "    if ( (char *)%s + _PAD(%s%sSeqLen) > _EOB) {\n"
+		           BUFFEROVERFLOW
+		           "    }\n", ptr,name,select);
 	    if (who == CLIENT /* && mode == IN_OUT_MODE */) {
 		    fprintf(where, "    bcopy((char *)%s, (char *)%s%sSeqBody, (long)%s%sSeqLen);\n",
 			    ptr, name, select, name, select);
@@ -1264,8 +1275,9 @@ static unpack(who, parm, prefix, ptr, where)
     }
     break;
     case RPC2_ENCRYPTIONKEY_TAG: {
-	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE > _EOB)\n"
-			    "        return 0;\n", ptr);
+	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE > _EOB) {\n"
+		           BUFFEROVERFLOW
+			    "    }\n", ptr);
 	    fputs("    ", where);
 	    fprintf(where, "bcopy((char *)%s, (char *)%s, (int)%s);\n", ptr, name, "RPC2_KEYSIZE");
 	    inc(ptr, "RPC2_KEYSIZE", where);
@@ -1452,6 +1464,8 @@ static one_server_proc(proc, where)
 	/* Pack return parameters */
 	fputs("\n    /* Pack return parameters */\n", where);
 	fprintf(where, "    %s = %s->Body;\n", ptr, rspbuffer);
+	fprintf(where, "    _EOB = (char *) %s + %s->Prefix.BufferSize;\n", 
+		rspbuffer, rspbuffer);
     }
 
     for (formals=proc->formals; *formals!=NIL; formals++) {
