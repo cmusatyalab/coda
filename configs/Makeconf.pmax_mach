@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-rvb/changes/configs/RCS/Makeconf.pmax_mach,v 4.8 97/04/23 13:32:40 rvb Exp Locker: rvb $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.pmax_mach,v 4.9 97/05/05 14:38:56 rvb Exp $";
 
 SHELL	      = /usr/local/bin/bash
 MACHINE_FLAGS =
@@ -53,7 +53,7 @@ LIBMACH       = /usr/mach/lib/libmach.a
 LEX 	      = flex
 
 # -- PLUMBERs -- not built for Linux and netbsd yet
-LIBPLUMBER    = $(LIBSPECIAL)/libplumber.a
-LIBNEWPLUMBER = $(LIBSPECIAL)/libnewplumb.a
+LIBPLUMBER    = $(SHOB_LIB_SPECIAL)/libplumber.a
+LIBNEWPLUMBER = $(SHOB_LIB_SPECIAL)/libnewplumb.a
 
 #ALPHACI = $(SCRIPTDIR)/alphaci

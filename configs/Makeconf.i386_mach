@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: Makeconf.i386_mach,v 4.9 97/04/23 10:30:47 raiff Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/configs/Makeconf.i386_mach,v 4.10 97/05/05 14:38:56 rvb Exp $";
 
 SHELL	      = /usr/local/bin/bash
 MACHINE_FLAGS = -D__MACH__
@@ -52,7 +52,7 @@ LIBTHREADS    = /usr/mach/lib/libthreads.a
 LIBMACH       = /usr/mach/lib/libmach.a
 
 # -- PLUMBERs -- not built for Linux and netbsd yet
-LIBPLUMBER    = $(LIBSPECIAL)/libplumber.a
-LIBNEWPLUMBER = $(LIBSPECIAL)/libnewplumb.a
+LIBPLUMBER    = $(SHOB_LIB_SPECIAL)/libplumber.a
+LIBNEWPLUMBER = $(SHOB_LIB_SPECIAL)/libnewplumb.a
 
 #ALPHACI = $(SCRIPTDIR)/alphaci

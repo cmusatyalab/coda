@@ -10,11 +10,7 @@
 
 # the following may need editing depending on your preferences
 PERL=/usr/bin/perl
-BINDIR = $(exec_prefix)/bin
-SBINDIR = $(exec_prefix)/sbin
-MANDIR = $(exec_prefix)/man
-
-
+SBINDIR = $(prefix)/sbin
 
 MACHINE_FLAGS = -DLINUX
 SHORTSYS      = linux
@@ -34,4 +30,3 @@ LIBTHREADS    =
 LIBMACH       = 
 
 LEX           = flex
-

@@ -14,7 +14,7 @@
 # Where to install binaries -- usual configure flags
 # 
 
-exec_prefix = @prefix@
+prefix = @prefix@
 
 #
 # Platform, uncomment your choice; 
@@ -34,7 +34,6 @@ SYS = @PLATFORM@
 
 
 SHOB=@SHOB@
-ROOT:= $(SHOB)/$(SYS)
 
 #
 # Second shadow dir -- for your private sources, visible from where

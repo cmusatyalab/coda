@@ -49,7 +49,7 @@ endif
 ###############################################################
 
 client-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 hdrinstall installclient
+	 hdrinstall installclient mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    echo "----> Entering $$d"; \
@@ -64,7 +64,7 @@ endif
 ###############################################################
 
 server-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 hdrinstall installserver
+	 hdrinstall installserver mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    echo "----> Entering $$d"; \
@@ -86,38 +86,45 @@ man-install:
 #####################
 bininstall: $(EXECUTABLES)
 ifdef EXECUTABLES
-	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
+ ifdef SHOB
+	$(TOPDIR)/tools/our-install 755 $(SHOB_BIN_DIR) $?
 	-touch bininstall
+ else
+	@echo SHOB not set\; Can not \"bininstall\"
+	exit 1
+ endif
 endif
 
 #####################
 # install  client or server executables 
 #####################
 
-installclient: cbininstall csbininstall
+installclient: c_bin_install c_sbin_install
 
-cbininstall: $(CBINS) 
+c_bin_install: $(CBINS) 
 ifdef CBINS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
+	-touch c_bin_install
 endif
 
-csbininstall: $(CSBINS)
+c_sbin_install: $(CSBINS)
 ifdef CSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
+	-touch c_sbin_install
 endif
 
-installserver: sbininstall ssbininstall
+installserver: s_bin_install s_sbin_install
 
-sbininstall: $(SBINS)
+s_bin_install: $(SBINS)
 ifdef SBINS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
-	-touch bininstall
+	-touch s_bin_install
 endif
 
-ssbininstall: $(SSBINS)
+s_sbin_install: $(SSBINS)
 ifdef SSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
-	-touch bininstall
+	-touch s_sbin_install
 endif
 
 #####################
@@ -125,8 +132,13 @@ endif
 #####################
 scriptinstall: $(SCRIPTS)
 ifdef SCRIPTS
-	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
-	touch scriptinstall
+ ifdef SHOB
+	$(TOPDIR)/tools/our-install 755 $(SHOB_BIN_DIR) $?
+	-touch scriptinstall
+ else
+	@echo SHOB not set\; Can not \"scriptinstall\"
+	exit 1
+ endif
 endif
 
 #####################
@@ -134,8 +146,13 @@ endif
 #####################
 libinstall: $(LIBRARIES)
 ifdef LIBRARIES
-	$(TOPDIR)/tools/our-install 644 $(LIBDIR) $?
-	touch libinstall
+ ifdef SHOB
+	$(TOPDIR)/tools/our-install 644 $(SHOB_LIB_DIR) $?
+	-touch libinstall
+ else
+	@echo SHOB not set\; Can not \"libinstall\"
+	exit 1
+ endif
 endif
 
 #####################
@@ -143,12 +160,8 @@ endif
 #####################
 hdrinstall: $(HEADERS)
 ifdef HEADERS
-ifdef INCLSUBDIR
-	$(TOPDIR)/tools/our-install 644 $(INCLDIR)/$(INCLSUBDIR) $?
-else
 	$(TOPDIR)/tools/our-install 644 $(INCLDIR) $?
-endif
-	touch hdrinstall
+	-touch hdrinstall
 endif
 
 
@@ -157,7 +170,8 @@ endif
 ###############################################################
 reinstall: clean-install install
 clean-install:
-	$(RM) bininstall scriptinstall hdrinstall libinstall
+	$(RM) bininstall scriptinstall hdrinstall libinstall \
+	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
 
 ##################
 # cleaning: important too
@@ -177,7 +191,8 @@ realclean:
 	$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c $(RP2HEADERS)
 	$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) core
 	$(RM) lex.yy.c y.tab.c y.tab.h
-	$(RM) hdrinstall libinstall bininstall scriptinstall
+	$(RM) hdrinstall libinstall bininstall scriptinstall \
+	      c_bin_install c_sbin_install s_bin_install s_sbin_install 
 	$(RM) *.l.c *.pt.c *.l.o *.pt.o
 
 #####################

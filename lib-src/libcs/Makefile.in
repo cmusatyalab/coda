@@ -38,7 +38,7 @@
 # Export of Technical Data.
 
 #
-# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:53:45 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/libcs/Makefile.in,v 4.2 97/04/29 21:27:25 rvb Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -51,8 +51,8 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 # presto changeo!
-LIBDIR := $(LIBSPECIAL)
 INCLDIR := $(INCLSPECIAL)
+SHOB_LIB_DIR := $(SHOB_LIB_SPECIAL)
 
 LIBRARIES = libcs.a
 HEADERS   = ci.h del.h libcs.h

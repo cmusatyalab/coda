@@ -14,6 +14,12 @@
 #########################################################
 
 include $(TOPOBJ)/Makeconf.setup
+
+# the following may need overriden on a particular platform
+BINDIR = $(prefix)/bin
+SBINDIR = $(prefix)/etc
+MANDIR = $(prefix)/man
+
 include $(MAKDIR)/Makeconf.$(SYS)
 
 ##############################
@@ -54,18 +60,19 @@ PCFGEN=../pcfgen/pcfgen
 
 else
 
-BINSPECIAL = ${ROOT}/BIN-SPECIAL
-BINDIR = ${ROOT}/bin
-LIBSPECIAL = ${ROOT}/LIB-SPECIAL
-LIBDIR=	 ${ROOT}/lib
-INCLSPECIAL= ${ROOT}/INCLUDE-SPECIAL
-INCLDIR = ${ROOT}/include
-MANDIR = ${ROOT}/man
-SCRIPTDIR = ${BINDIR}
-DOCDIR = ${ROOT}/doc
+SHOB_BIN_SPECIAL = ${SHOB}/${SYS}/BIN-SPECIAL
+SHOB_BIN_DIR = ${SHOB}/${SYS}/bin
+SHOB_LIB_SPECIAL = ${SHOB}/${SYS}/LIB-SPECIAL
+SHOB_LIB_DIR=	 ${SHOB}/${SYS}/lib
 
-RP2GEN = $(BINDIR)/rp2gen
-PCFGEN = $(BINDIR)/pcfgen
+SHOB_MAN_DIR = ${SHOB}/${SYS}/man
+SHOB_SCRIPT_DIR = ${SHOB_BIN_DIR}
+SHOB_DOC_DIR = ${SHOB}/${SYS}/doc
+
+INCLSPECIAL= ${SHOB}/${SYS}/INCLUDE-SPECIAL
+INCLDIR = ${SHOB}/${SYS}/include
+RP2GEN = $(SHOB_BIN_DIR)/rp2gen
+PCFGEN = $(SHOB_BIN_DIR)/pcfgen
 
 endif
 ##############################
@@ -96,6 +103,7 @@ RP2FLAGS  = -n -I . -I $(srcdir) -I $(INCLDIR)
 
 vpath %.h $(INCLPATH)
 vpath %.rpc2 $(INCLPATH)
+
 ##############################
 # Library definitions
 ##############################
@@ -163,58 +171,58 @@ ADSRV_RPC2 = ../vicedep/adsrv.rpc2
 
 else
 ##############################
-# CASE 2: using shared SHOBJ
+# CASE 2: using shared SHOB
 ##############################
 
 # -- INODEFS --
 # platform dependent: choice from user level and kernel level version
 # defined in configs/Makeconf.$(SYS)
-LIBINODEFS = $(LIBDIR)/$(INODEFSNAME)
+LIBINODEFS = $(SHOB_LIB_DIR)/$(INODEFSNAME)
 
 # -- CS --
-LIBCS = $(LIBSPECIAL)/libcs.a
+LIBCS = $(SHOB_LIB_SPECIAL)/libcs.a
 
 # -- LWP --
-# LIBNEWLWP = ${LIBSPECIAL}/libnewlwp.a	(should not be used)
-LIBOLDLWP = ${LIBSPECIAL}/liboldlwp.a			
+# LIBNEWLWP = ${SHOB_LIB_SPECIAL}/libnewlwp.a	(should not be used)
+LIBOLDLWP = ${SHOB_LIB_SPECIAL}/liboldlwp.a			
 
 # -- RVM --
-LIBRVM = $(LIBSPECIAL)/librvm.a
-LIBRDS = $(LIBSPECIAL)/librds.a	 		
+LIBRVM = $(SHOB_LIB_SPECIAL)/librvm.a
+LIBRDS = $(SHOB_LIB_SPECIAL)/librds.a	 		
 # threaded
-LIBRVMLWP = $(LIBSPECIAL)/librvmlwp.a		
-LIBRDSLWP = $(LIBSPECIAL)/librdslwp.a
+LIBRVMLWP = $(SHOB_LIB_SPECIAL)/librvmlwp.a		
+LIBRDSLWP = $(SHOB_LIB_SPECIAL)/librdslwp.a
 # libseg doesn't use threads.
-LIBSEG = $(LIBSPECIAL)/libseg.a 			
+LIBSEG = $(SHOB_LIB_SPECIAL)/libseg.a 			
 
 # -- CODA --
 LIBCODARVM = $(LIBRVMLWP)
 LIBCODARDS = $(LIBRDSLWP)
-LIBKERNDEP = $(LIBDIR)/libkerndep.a   # --- (pioctl, setpag)
-LIBAUTH2 = $(LIBDIR)/libauth2.a
-LIBAL = $(LIBDIR)/libal.a
-LIBVOL = ${LIBDIR}/libvol.a
-LIBVICEDEP= $(LIBDIR)/libvicedep.a
-LIBVOLUTIL = ${LIBDIR}/libvolutil.a
-LIBVOLSERV = ${LIBDIR}/libvolserv.a
-LIBVV = $(LIBDIR)/libvv.a
-LIBRESOLVE = $(LIBDIR)/libresolve.a
-LIBRESLIB = ${LIBDIR}/libreslib.a
-LIBGROUP = $(LIBDIR)/libgroup.a
-LIBUTIL = $(LIBDIR)/libutil.a
-LIBRPC2 = $(LIBDIR)/librpc2.a
-LIBRPCLIB = $(LIBDIR)/librpclib.a
-LIBSE = $(LIBDIR)/libse.a
-LIBFAIL = $(LIBDIR)/libfail.a
-LIBMTCORE = $(LIBSPECIAL)/libmtcore.a
-LIBCOMM = $(LIBDIR)/libcomm.a
-LIBRVMRES = $(LIBDIR)/librvmres.a
-LIBDIRLIB= $(LIBDIR)/libdir.a
-LIBSETPAG = $(LIBDIR)/libsetpag.a
-LIBVICEERROR  = $(LIBDIR)/libviceerror.a
+LIBKERNDEP = $(SHOB_LIB_DIR)/libkerndep.a   # --- (pioctl, setpag)
+LIBAUTH2 = $(SHOB_LIB_DIR)/libauth2.a
+LIBAL = $(SHOB_LIB_DIR)/libal.a
+LIBVOL = ${SHOB_LIB_DIR}/libvol.a
+LIBVICEDEP= $(SHOB_LIB_DIR)/libvicedep.a
+LIBVOLUTIL = ${SHOB_LIB_DIR}/libvolutil.a
+LIBVOLSERV = ${SHOB_LIB_DIR}/libvolserv.a
+LIBVV = $(SHOB_LIB_DIR)/libvv.a
+LIBRESOLVE = $(SHOB_LIB_DIR)/libresolve.a
+LIBRESLIB = ${SHOB_LIB_DIR}/libreslib.a
+LIBGROUP = $(SHOB_LIB_DIR)/libgroup.a
+LIBUTIL = $(SHOB_LIB_DIR)/libutil.a
+LIBRPC2 = $(SHOB_LIB_DIR)/librpc2.a
+LIBRPCLIB = $(SHOB_LIB_DIR)/librpclib.a
+LIBSE = $(SHOB_LIB_DIR)/libse.a
+LIBFAIL = $(SHOB_LIB_DIR)/libfail.a
+LIBMTCORE = $(SHOB_LIB_SPECIAL)/libmtcore.a
+LIBCOMM = $(SHOB_LIB_DIR)/libcomm.a
+LIBRVMRES = $(SHOB_LIB_DIR)/librvmres.a
+LIBDIRLIB= $(SHOB_LIB_DIR)/libdir.a
+LIBSETPAG = $(SHOB_LIB_DIR)/libsetpag.a
+LIBVICEERROR  = $(SHOB_LIB_DIR)/libviceerror.a
 
 # -- Dynamic sets for Potemkin --
-LIBDS = $(LIBDIR)/libds.a
+LIBDS = $(SHOB_LIB_DIR)/libds.a
 
 ##############################
 # RPC2 interface definitions in module vicedep
