@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.8 1998/08/05 23:49:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.9 1998/08/26 17:08:12 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -134,7 +134,7 @@ void SFTP_SetDefaults(initPtr)
     {
     initPtr->PacketSize = SFTP_DEFPACKETSIZE;
     initPtr->WindowSize = SFTP_DEFWINDOWSIZE;
-    initPtr->RetryCount = 6;
+    initPtr->RetryCount = 10;
     initPtr->RetryInterval = 2000;	/* milliseconds */
     initPtr->SendAhead = SFTP_DEFSENDAHEAD;   /* make sure it is less than 16, for readv() */
     initPtr->AckPoint = SFTP_DEFSENDAHEAD;    /* same as SendAhead */
@@ -715,6 +715,13 @@ static long GetFile(sEntry)
 	    /* Did we receive a packet? */
 	    if (pb == NULL)
 		{
+		/*
+		 * if we have retried at least once, and we waited for more
+		 * than 15 seconds. Give up.  -JH
+		 */
+		if (i > 1 && sEntry->RInterval.tv_sec >= 15)
+			break;
+
 		/* 
 		 * don't back off unless we have a rtt estimate. This is 
 		 * this is more for dealing with old clients/servers than

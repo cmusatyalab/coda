@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.6 1998/01/10 18:40:13 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vtools/cfs.cc,v 4.7 1998/08/31 12:23:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -180,7 +180,7 @@ struct command cmdarray[] =
 	   "Expose replicas of inc. objects",
 	   NULL
      	},
-	{"checkservers", NULL, CheckServers, 
+	{"checkservers", "cs", CheckServers, 
 	    "cfs checkservers <servernames>",
 	    "Check up/down status of servers",
 	    NULL

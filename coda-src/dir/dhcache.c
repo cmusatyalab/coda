@@ -68,7 +68,7 @@ static PDCEntry dc_GetFree()
  again:
 	ObtainWriteLock(&dlock); 
 	if ( !list_empty(&dfreelist) ) {
-		pdce = list_entry(&(dfreelist.next), struct DCEntry, dc_hash);
+		pdce = list_entry(dfreelist.next, struct DCEntry, dc_list);
 		list_del(&pdce->dc_list);
 		list_del(&pdce->dc_hash);
 
