@@ -77,16 +77,16 @@ function MakeMakefile () {
 @NetBSD # \$NetBSD\$
 @NetBSD #
 @FreeBSD # New ports collection makefile for:	rvm
-@FreeBSD # Version required:			@VERSION@
+@FreeBSD # Version required:			1.3
 @FreeBSD # Date created:				@DATE@
 @FreeBSD # Whom:					@USER@
 @FreeBSD # \$FreeBSD\$
 @FreeBSD #
 
-DISTNAME=	rvm-@VERSION@
-@NetBSD PKGNAME=	rvm-@VERSION@
+DISTNAME=	rvm-1.3
+@NetBSD PKGNAME=	rvm-1.3
 @FreeBSD PORTNAME=	rvm
-@FreeBSD PORTVERSION=	@VERSION@
+@FreeBSD PORTVERSION=	1.3
 CATEGORIES=	devel
 MASTER_SITES=	ftp://ftp.coda.cs.cmu.edu/pub/rvm/src/
 EXTRACT_SUFX=	.tar.gz
@@ -111,7 +111,7 @@ USE_LIBTOOL=	yes
 @FreeBSD .include <bsd.port.mk>
 EOF
 
-    cat /tmp/mf | sed -e "s/@VERSION@/${version}/" | \
+    cat /tmp/mf | sed -e "s/1.3/${version}/" | \
 		  sed -e "s/@DATE@/`date`/" | \
 		  sed -e "s/@USER@/${USER}/" | \
 		  sed -e "/^@${REMOVE} .*$/d" | \
@@ -127,24 +127,24 @@ function MakePLIST () {
     then
 	cat > ${dst} << EOF
 @comment \$NetBSD\$
-lib/librvm.so.1.0
-lib/librvmlwp.so.1.0
+lib/librvm.so.2.0
+lib/librvmlwp.so.2.0
 lib/libseg.so.2.0
-lib/librds.so.1.2
-lib/librdslwp.so.1.2
+lib/librds.so.2.0
+lib/librdslwp.so.2.0
 EOF
     else
 	cat > ${dst} << EOF
 lib/librvm.so
-lib/librvm.so.1
+lib/librvm.so.2
 lib/librvmlwp.so
-lib/librvmlwp.so.1
+lib/librvmlwp.so.2
 lib/libseg.so
 lib/libseg.so.2
 lib/librds.so
-lib/librds.so.1
+lib/librds.so.2
 lib/librdslwp.so
-lib/librdslwp.so.1
+lib/librdslwp.so.2
 EOF
     fi
 

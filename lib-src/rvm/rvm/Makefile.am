@@ -23,14 +23,14 @@ INCLUDES = -I$(top_srcdir)/include
 librvm_la_SOURCES = rvm_init.c rvm_map.c rvm_unmap.c rvm_trans.c \
     rvm_logstatus.c rvm_logflush.c rvm_logrecovr.c rvm_utils.c rvm_io.c \
     rvm_status.c rvm_debug.c rvm_printers.c rvm_private.h
-librvm_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS)
+librvm_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
 
 librvmlwp_la_SOURCES =
 librvmlwp_la_LIBADD = rvm_init_lwp.lo rvm_map_lwp.lo rvm_unmap_lwp.lo \
     rvm_trans_lwp.lo rvm_logstatus_lwp.lo rvm_logflush_lwp.lo \
     rvm_logrecovr_lwp.lo rvm_utils_lwp.lo rvm_io_lwp.lo rvm_status_lwp.lo \
     rvm_debug_lwp.lo rvm_printers_lwp.lo
-librvmlwp_la_LDFLAGS = -version-info 1:0:0 $(LIBTOOL_LDFLAGS) $(LIBLWP)
+librvmlwp_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS) $(LIBLWP)
 
 sbin_PROGRAMS = rvmutl
 rvmutl_LDADD = librvm.la
