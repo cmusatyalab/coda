@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 #elif defined(DJGPP)
     __djgpp_set_quiet_socket(1);	
 #else
-    pw = getpwuid (getuid ());
+    pw = getpwuid(geteuid());
     if (pw) {
         username=pw->pw_name;
     }

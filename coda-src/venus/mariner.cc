@@ -60,6 +60,7 @@ extern "C" {
 }
 #endif __cplusplus
 
+#include <mkpath.h>
 
 /* from venus */
 #include "fso.h"
@@ -92,6 +93,8 @@ void MarinerInit() {
     /* use unix domain sockets wherever available */
     struct sockaddr_un s_un;
 
+    /* make sure the path leading to the mariner socket is there */
+    mkpath(MarinerSocketPath, 0755);
     unlink(MarinerSocketPath);
     
     memset(&s_un, 0, sizeof(struct sockaddr_un));
