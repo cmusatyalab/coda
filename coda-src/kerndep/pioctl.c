@@ -293,6 +293,7 @@ int pioctl(const char *path, unsigned long cmd,
 	}
 	// Make a control file name.
 	strcpy (ctl_file, mountPoint);
+	strcat (ctl_file, "\\");
 	strcat (ctl_file, CODA_CONTROL);
     }
 
