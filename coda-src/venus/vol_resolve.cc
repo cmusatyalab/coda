@@ -319,8 +319,8 @@ class resolver : public vproc {
     int operator=(resolver&);	/* not supported! */
     ~resolver();
 
-  public:
-    void main(void *);
+  protected:
+    virtual void main(void);
 };
 
 olist resolver::freelist;
@@ -350,11 +350,12 @@ void Resolve(volent *v) {
 
 
 resolver::resolver() :
-	vproc("Resolver", (PROCBODY) &resolver::main, VPT_Resolver, ResolverStackSize) {
+	vproc("Resolver", NULL, VPT_Resolver, ResolverStackSize)
+{
     LOG(100, ("resolver::resolver(%#x): %-16s : lwpid = %d\n", this, name, lwpid));
 
     /* Poke main procedure. */
-    VprocSignal((char *)this, 1);
+    start_thread();
 }
 
 
@@ -375,10 +376,8 @@ resolver::~resolver() {
 }
 
 
-void resolver::main(void *parm) {
-    /* Wait for ctor to poke us. */
-    VprocWait((char *)this);
-
+void resolver::main()
+{
     for (;;) {
 	/* Wait for new request. */
 	idle = 1;

@@ -101,7 +101,9 @@ void AdviceInit() {
   LOG(100, ("L AdviceInit()\n"));
 }
 
-adviceserver::adviceserver() : vproc("AdviceServer", (PROCBODY) &adviceserver::main, VPT_AdviceDaemon, AdviceDaemonStackSize) {
+adviceserver::adviceserver() :
+    vproc("AdviceServer", NULL, VPT_AdviceDaemon, AdviceDaemonStackSize)
+{
 
   LOG(0, ("E adviceserver::adviceserver: %-16s\n", name));
 
@@ -113,7 +115,7 @@ adviceserver::adviceserver() : vproc("AdviceServer", (PROCBODY) &adviceserver::m
   packet = 0;
 
   /* Poke main procedure. */
-  VprocSignal((char *)this, 1);
+  start_thread();
 
   LOG(100, ("L adviceserver::adviceserver()\n"));
 }
@@ -122,7 +124,7 @@ adviceserver::adviceserver() : vproc("AdviceServer", (PROCBODY) &adviceserver::m
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
-adviceserver::adviceserver(adviceserver &a) : vproc(*((vproc *)&a)) {
+adviceserver::adviceserver(adviceserver &a) : vproc(*(vproc *)&a) {
    abort();
 }
 
@@ -136,9 +138,8 @@ adviceserver::~adviceserver() {
   LOG(100, ("adviceserver::~adviceserver: %-16s : lwpid = %d\n", name, lwpid));
 }
 
-void adviceserver::main(void *parm) {
-  /* Wait for ctor to poke us. */
-  VprocWait((char *)this);
+void adviceserver::main(void)
+{
   LOG(0, ("adviceserver::main()\n"));
 
   for (;;) {

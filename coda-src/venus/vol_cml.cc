@@ -4302,7 +4302,6 @@ int cmlent::Aged() {
  * bytes/second.
  */
 unsigned long cmlent::ReintTime(unsigned long bw) {
-    volent *vol = strbase(volent, log, CML);
     double time = 0;
 
     if (bw > 0) {

@@ -74,17 +74,19 @@ void WritebackInit() {
 }
 
 writebackserver::writebackserver() :
-    vproc("WritebackServer", (PROCBODY) &writebackserver::main, VPT_WriteBack, WritebackServerStackSize) {
-    LOG(100, ("writebackserver::writebackserver(%#x): %-16s : lwpid = %d\n", this, name, lwpid));
-
+    vproc("WritebackServer", NULL, VPT_WriteBack, WritebackServerStackSize)
+{
     filter.FromWhom = ONESUBSYS;
     filter.OldOrNew = OLDORNEW;
     filter.ConnOrSubsys.SubsysId = SUBSYS_WB;
     handle = 0;
     packet = 0;
 
-    /* Poke main procedure. */
-    VprocSignal((char *)this, 1);
+    /* And start the new thread */
+    start_thread();
+
+    LOG(100, ("writebackserver::writebackserver(%#x): %-16s : lwpid = %d\n",
+	      this, name, lwpid));
 }
 
 /* 
@@ -107,10 +109,8 @@ writebackserver::~writebackserver() {
 }
 
 
-void writebackserver::main(void *parm) {
-    /* Wait for ctor to poke us. */
-    VprocWait((char *)this);
-
+void writebackserver::main(void)
+{
     for(;;) {
 	idle = 1;
 	long code = RPC2_GetRequest(&filter, &handle, &packet,

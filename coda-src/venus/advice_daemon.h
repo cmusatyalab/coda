@@ -61,8 +61,10 @@ class adviceserver : public vproc {
   int operator=(adviceserver&);       /* not supported! */
   ~adviceserver();
 
+ protected:
+  virtual void main(void); /* entry point */
+
  public:
-  void main(void *);
   void CheckConnections();
 };
 

@@ -879,12 +879,12 @@ static const int RecovDaemonStackSize = 262144;    /* MUST be big to handle rvm_
 
 static char recovdaemon_sync;
 
-void RECOVD_Init() {
-    (void)new vproc("RecovDaemon", (PROCBODY)&RecovDaemon,
-		     VPT_RecovDaemon, RecovDaemonStackSize);
+void RECOVD_Init(void) {
+    (void)new vproc("RecovDaemon", &RecovDaemon, VPT_RecovDaemon,
+		    RecovDaemonStackSize);
 }
 
-void RecovDaemon() {
+void RecovDaemon(void) {
     /* Hack!!!  Vproc must yield before data members become valid! */
     /* suspect interaction between LWP creation/dispatch and C++ initialization. */
     VprocYield();

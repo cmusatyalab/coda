@@ -252,7 +252,7 @@ extern int ConsoleUser(vuid_t user);
 
 
 /* user_daemon.c */
-extern void USERD_Init();
-extern void UserDaemon();
+extern void USERD_Init(void);
+extern void UserDaemon(void);
 
 #endif	not _VENUS_USER_H_

@@ -767,6 +767,8 @@ int lrdb::FindRepairObject(ViceFid *fid, fsobj **global, fsobj **local)
 	i++;
 	rc = do_FindRepairObject(fid, global, local);
     } while((rc == ERETRY || rc == ESYNRESOLVE) && i <= 5);
+
+    return(rc);
 }
 
 /* need not be called from within a transaction */

@@ -772,7 +772,8 @@ void PrintWorkers(int fd) {
 
 /* -------------------------------------------------- */
 
-worker::worker() : vproc("Worker", (PROCBODY) &worker::main, VPT_Worker, WorkerStackSize) {
+worker::worker() : vproc("Worker", NULL, VPT_Worker, WorkerStackSize)
+{
     LOG(100, ("worker::worker(%#x): %-16s : lwpid = %d\n", this, name, lwpid));
 
     nworkers++;	    /* Ought to be a lock protecting this! -JJK */
@@ -783,7 +784,7 @@ worker::worker() : vproc("Worker", (PROCBODY) &worker::main, VPT_Worker, WorkerS
     opcode = 0;
     
     /* Poke main procedure. */
-    VprocSignal((char *)this, 1);
+    start_thread();
 }
 
 
@@ -925,16 +926,14 @@ void worker::Return(int code) {
 }
 
 
-void worker::main(void *parm) {
+void worker::main(void)
+{
     struct venus_cnode vparent;
     struct venus_cnode vtarget;
     ViceFid saveFid;
     int     saveFlags;
     int     opcode;
     int     size;
-
-    /* Wait for ctor to poke us. */
-    VprocWait((char *)this);
 
     for (;;) {
 	/* Wait for new request. */

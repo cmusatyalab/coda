@@ -571,15 +571,15 @@ class vcbd_iterator : public rec_ohashtab_iterator {
     vcbdent *operator()();
 };
 
-void VolDaemon() /* used to be member of class vdb (Satya 3/31/95) */;
+void VolDaemon(void) /* used to be member of class vdb (Satya 3/31/95) */;
 void TrickleReintegrate(); /* used to be in class vdb (Satya 5/20/95) */
 
 
 /* Volume Database.  Dictionary for volume entries (volents). */
 class vdb {
   friend void VolInit();
-  friend void VOLD_Init();
-  friend void VolDaemon();
+  friend void VOLD_Init(void);
+  friend void VolDaemon(void);
   friend class cmlent;
   friend class volent;
   friend class vol_iterator;
@@ -1145,7 +1145,7 @@ extern int GetRootVolume();
 const int COP2SIZE = 1024;
 
 /* vol_daemon.c */
-extern void VOLD_Init();
+extern void VOLD_Init(void);
 
 /* vol_reintegrate.c */
 extern void Reintegrate(volent *);

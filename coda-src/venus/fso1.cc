@@ -1435,7 +1435,7 @@ void fsobj::ComputePriority() {
 	int LastRef = (int) FSDB->LastRef[ix];
 	if (LastRef > 0) {
 	    int spread = (int) FSDB->RefCounter - LastRef - 1;
-	    int rank;
+	    int rank = spread;
 	    {
 		/* "rank" depends upon FSO_MAX_SPRI, fsdb::MaxFiles, and a scaling factor. */
 		static int initialized = 0;
@@ -2661,7 +2661,7 @@ void fsobj::print(int fdes) {
 	    fdprint(fdes, "\tdirectory = 0\n");
 	}
 	else {
-	    int pagecount;
+	    int pagecount = -1;
 	    fdprint(fdes, "\tdirectory = %x, udcf = [%x, %d]\n",
 		    data.dir, data.dir->udcf, data.dir->udcfvalid);
 	    fdprint(fdes, "\tpages = %d, malloc bitmap = [ ", pagecount);

@@ -36,8 +36,8 @@ class lgment;
 
 extern void LRInit();								/*U*/
 /* lrdb daemon */
-extern void LRD_Init();
-void LRDBDaemon();/*N*/ /* used to be member of class lrdb (Satya 3/31/95) */
+extern void LRD_Init(void);
+void LRDBDaemon(void);/*N*/ /* used to be member of class lrdb (Satya 3/31/95) */
 
 
 #define LRDB	(rvg->recov_LRDB)

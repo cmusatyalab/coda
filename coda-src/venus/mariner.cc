@@ -237,8 +237,9 @@ void PrintMariners(int fd) {
 }
 
 
-mariner::mariner(int afd) : vproc("Mariner", (PROCBODY) &mariner::main,
-			      VPT_Mariner, MarinerStackSize) {
+mariner::mariner(int afd) :
+    vproc("Mariner", NULL, VPT_Mariner, MarinerStackSize)
+{
     LOG(100, ("mariner::mariner(%#x): %-16s : lwpid = %d, fd = %d\n",
 	     this, name, lwpid, afd));
 
@@ -254,7 +255,7 @@ mariner::mariner(int afd) : vproc("Mariner", (PROCBODY) &mariner::main,
     MarinerMask |= (1 << fd);
 
     /* Poke main procedure. */
-    VprocSignal((char *)this, 1);
+    start_thread();
 }
 
 
@@ -337,11 +338,9 @@ void mariner::Resign(int code) {
 }
 
 
-void mariner::main(void *parm) {
+void mariner::main(void)
+{
     static FILE *rpc2trace = 0;
-
-    /* Wait for ctor to poke us. */
-    VprocWait((char *)this);
 
 #define	MAXARGS	10
     int argc = 0;

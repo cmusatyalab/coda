@@ -48,7 +48,7 @@ static const int CheckSubtreeInterval = 5 * 60;
 /* ***** Private variables ***** */
 static char lrdaemon_sync;
 
-void LRDBDaemon() 
+void LRDBDaemon(void) 
 {
 
     /* Hack! Vproc must yield before data member become valid */
@@ -127,7 +127,6 @@ void lrdb::CheckLocalSubtree()
     ReleaseReadLock(&rfm_lock);
 }
 
-void LRD_Init() {
-    (void)new vproc("LRDaemon", (PROCBODY) &LRDBDaemon,
-		    VPT_LRDaemon, LRDaemonStackSize);
+void LRD_Init(void) {
+    (void)new vproc("LRDaemon", &LRDBDaemon, VPT_LRDaemon, LRDaemonStackSize);
 }

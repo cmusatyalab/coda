@@ -57,11 +57,11 @@ class writebackserver : public vproc {
 
     writebackserver();
     writebackserver(writebackserver&); // not supported!
-    operator=(writebackserver&); // not supported!
+    int operator=(writebackserver&); // not supported!
     ~writebackserver();
 
-  public:
-    void main(void *);
+  protected:
+    virtual void main(void);
 };
 
 extern int MaxWBServers;

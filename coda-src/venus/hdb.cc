@@ -769,11 +769,12 @@ int hdb::GetSuspectPriority(int vid, char *pathname, int uid) {
 /* Walk the priority queue.  Enter clean-up mode upon ENOSPC failure. */
 void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
     bstree_iterator next(*prioq, BstDescending);
-    bsnode *b;
+    bsnode *b, *bnext;
     int cleaning = 0;
-    int readahead = 0;
-    while (readahead || (b = next())) {
-	readahead = 0;
+
+    bnext = next();
+    while ((b = bnext) != NULL) {
+	bnext = next();
 	namectxt *n = strbase(namectxt, b, prio_handle);
 	n->hold();
 
@@ -795,11 +796,6 @@ void hdb::WalkPriorityQueue(vproc *vp, int *expansions, int *enospc_failure) {
 	if (vp->u.u_error == ENOSPC) {
 	    cleaning = 1;
 	    (*enospc_failure) = 1;
-        }
-
-	/* Readahead before transition to valid state. */
-	if (next_state == PeValid) {
-	    readahead = ((b = next()) != 0);
         }
 
 	/* Take transition and release context. */

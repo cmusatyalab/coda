@@ -81,9 +81,9 @@ static void HDBD_HandleRequests();
 
 /*  *****  The HDB Daemon  *****  */
 
-void HDBD_Init() {
-    (void)new vproc("HDBDaemon", (PROCBODY) &HDBDaemon,
-		     VPT_HDBDaemon, HDBDaemonStackSize, HDBDaemonPriority);
+void HDBD_Init(void) {
+    (void)new vproc("HDBDaemon", &HDBDaemon, VPT_HDBDaemon, HDBDaemonStackSize,
+		    HDBDaemonPriority);
 }
 
 long HDBD_GetNextHoardWalkTime() {
@@ -93,8 +93,8 @@ long HDBD_GetNextHoardWalkTime() {
   return(LastHdbWalk + (long)HdbWalkInterval - currTime);
 }
 
-void HDBDaemon() {
-
+void HDBDaemon(void)
+{
     /* Hack!  Vproc must yield before data members become valid! */
     VprocYield();
 

@@ -174,7 +174,7 @@ FREE_ENTRY: /* release entry from namelist */
 	    /* Do this in a loop to avoid one mongo transaction! */
 		for (i = 0; i < FSDB->MaxFiles; i++) {
 			Recov_BeginTrans();
-			fsobj *f = new (FROMHEAP) fsobj(i);
+			(void)new (FROMHEAP) fsobj(i);
 			Recov_EndTrans(MAXFP);
 		}
 	}
@@ -1531,10 +1531,11 @@ void fsdb::ReclaimFsos(int priority, int count) {
     vproc *vp = VprocSelf();
     int reclaimed = 0;
     bstree_iterator next(*prioq);
-    bsnode *b;
-    int readahead = 0;
-    while (readahead || (b = next())) {
-	readahead = 0;
+    bsnode *b, *bnext;
+
+    bnext = next();
+    while ((b = bnext) != NULL) {
+	bnext = next();
 	fsobj *f = strbase(fsobj, b, prio_handle);
 
 	if (!REPLACEABLE(f))
@@ -1548,7 +1549,6 @@ void fsdb::ReclaimFsos(int priority, int count) {
 	if (BUSY(f)) continue;
 
 	/* Reclaim fso and data. */
-	readahead = ((b = next()) != 0);
 	MarinerLog("cache::Replace [%s] %s [%d, %d]\n",
 		   (HAVEDATA(f) ? "status/data" : "status"),
 		   f->comp, f->priority, NBLOCKS(f->cf.Length()));

@@ -69,13 +69,13 @@ static const int AutoWBPermitRequestInterval = 30;
 
 char vol_sync;
 
-void VOLD_Init() {
-    (void)new vproc("VolDaemon", (PROCBODY) &VolDaemon,
-		     VPT_VolDaemon, VolDaemonStackSize);
+void VOLD_Init(void)
+{
+    (void)new vproc("VolDaemon", &VolDaemon, VPT_VolDaemon, VolDaemonStackSize);
 }
 
-void VolDaemon() {
-
+void VolDaemon(void)
+{
     /* Hack!  Vproc must yield before data members become valid! */
     VprocYield();
 

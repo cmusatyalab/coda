@@ -174,13 +174,12 @@ enum hdbd_request { HdbAdd,
 
 extern char PeriodicWalksAllowed;
   
-void HDBDaemon() /* used to be member of class hdb (Satya 3/31/95) */;
-
+void HDBDaemon(void) /* used to be member of class hdb (Satya 3/31/95) */;
 
 class hdb {
-  friend void HDB_Init();
-  friend void HDBD_Init();
-  friend void HDBDaemon();
+  friend void HDB_Init(void);
+  friend void HDBD_Init(void);
+  friend void HDBDaemon(void);
   friend class hdbent;
   friend class hdb_iterator;
   friend class namectxt;
@@ -410,11 +409,11 @@ extern int IndigentCount;
 /*  *****  Functions/Procedures  *****  */
 
 /* hdb.c */
-extern void HDB_Init();
+extern void HDB_Init(void);
 extern int NC_PriorityFN(bsnode *, bsnode *);
 
 /* hdb_daemon.c */
-extern void HDBD_Init();
+extern void HDBD_Init(void);
 extern int HDBD_Request(hdbd_request, void *, struct uarea *u);
 extern long HDBD_GetNextHoardWalkTime();
 

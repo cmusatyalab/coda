@@ -703,7 +703,7 @@ void PutServer(srvent **spp) {
  */
 
 probeslave::probeslave(ProbeSlaveTask Task, void *Arg, void *Result, char *Sync) :
-	vproc("ProbeSlave", (PROCBODY) &probeslave::main, VPT_ProbeDaemon, 16384) {
+	vproc("ProbeSlave", NULL, VPT_ProbeDaemon, 16384) {
     LOG(100, ("probeslave::probeslave(%#x): %-16s : lwpid = %d\n", this, name, lwpid));
 
     task = Task;
@@ -712,14 +712,12 @@ probeslave::probeslave(ProbeSlaveTask Task, void *Arg, void *Result, char *Sync)
     sync = Sync;
 
     /* Poke main procedure. */
-    VprocSignal((char *)this, 1);
+    start_thread();
 }
 
 
-void probeslave::main(void *parm) {
-    /* Wait for ctor to poke us. */
-    VprocWait((char *)this);
-
+void probeslave::main(void)
+{
     switch(task) {
 	case ProbeUpServers:
 	    ProbeServers(1);
@@ -889,8 +887,7 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles) {
     MULTI_START_MESSAGE(ViceGetTime_OP);
     int code = (int) MRPC_MakeMulti(ViceGetTime_OP, ViceGetTime_PTR,
 			       HowMany, Handles, (RPC2_Integer *)0, 0,
-			       (long (*)())HandleProbe, 0,
-			       secs_ptrs, usecs_ptrs);
+			       (long (*)(...))&HandleProbe, 0, secs_ptrs, usecs_ptrs);
     MULTI_END_MESSAGE(ViceGetTime_OP);
     MarinerLog("fetch::probe done\n");
 

@@ -93,7 +93,8 @@ void CallBackInit() {
 
 
 callbackserver::callbackserver() :
-    vproc("CallBackServer", (PROCBODY) &callbackserver::main, VPT_CallBack, CallBackServerStackSize) {
+    vproc("CallBackServer", NULL, VPT_CallBack, CallBackServerStackSize)
+{
     LOG(100, ("callbackserver::callbackserver(%#x): %-16s : lwpid = %d\n", this, name, lwpid));
 
     filter.FromWhom = ONESUBSYS;
@@ -103,7 +104,7 @@ callbackserver::callbackserver() :
     packet = 0;
 
     /* Poke main procedure. */
-    VprocSignal((char *)this, 1);
+    start_thread();
 }
 
 
@@ -127,10 +128,8 @@ callbackserver::~callbackserver() {
 }
 
 
-void callbackserver::main(void *parm) {
-    /* Wait for ctor to poke us. */
-    VprocWait((char *)this);
-
+void callbackserver::main(void)
+{
     for(;;) {
 	idle = 1;
 	long code = RPC2_GetRequest(&filter, &handle, &packet,

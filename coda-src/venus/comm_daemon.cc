@@ -59,12 +59,14 @@ static const int ProbeInterval	= CommCheckInterval; /* min(T1, T2, Comm) */
 
 static char probe_sync;
 
-void PROD_Init() {
-    (void)new vproc("ProbeDaemon", (PROCBODY)&ProbeDaemon,
-		     VPT_ProbeDaemon, ProbeDaemonStackSize);    
+void PROD_Init(void)
+{
+    (void)new vproc("ProbeDaemon", &ProbeDaemon, VPT_ProbeDaemon,
+		    ProbeDaemonStackSize);    
 }
 
-void ProbeDaemon() {
+void ProbeDaemon(void)
+{
     /* Hack!  Vproc must yield before data members become valid! */
     VprocYield();
 
@@ -204,12 +206,13 @@ static const int VSGGetDownInterval = 300;
 
 static char vsg_sync;
 
-void VSGD_Init() {
-    (void)new vproc("VSGDaemon", (PROCBODY) &VSGDaemon,
-		     VPT_VSGDaemon, VSGDaemonStackSize);
+void VSGD_Init(void)
+{
+    (void)new vproc("VSGDaemon", &VSGDaemon, VPT_VSGDaemon, VSGDaemonStackSize);
 }
 
-void VSGDaemon() {
+void VSGDaemon(void)
+{
     /* Hack!  Vproc must yield before data members become valid! */
     VprocYield();
 
@@ -251,21 +254,21 @@ void vsgdb::GetDown() {
 #define	VSGThreshold	(CacheFiles >> 4)
     if (VSGDB->htab.count() >= VSGThreshold) {
 	vsg_iterator next;
-	vsgent *v;
-	int readahead = 0;
-	while ((VSGDB->htab.count() >= VSGThreshold) && (readahead || (v = next()))) {
-	    readahead = 0;
+	vsgent *v, *vnext;
+
+	vnext = next();
+	while (VSGDB->htab.count() >= VSGThreshold) {
+	    v = vnext;
+	    if (!v) break;
+
+	    vnext = next();
 
 	    if (v->refcnt > 0) continue;
-
-	    vsgent *tv = 0;
-	    readahead = ((tv = next()) != 0);
 
 	    LOG(10, ("vsgdb::GetDown: GC'ing %x\n", v->Addr));
 	    Recov_BeginTrans();
 	    delete v;
 	    Recov_EndTrans(0);
-	    if (readahead) v = tv;
 	}
     }
 

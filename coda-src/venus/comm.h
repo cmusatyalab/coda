@@ -318,9 +318,11 @@ class probeslave : public vproc {
     void *result;		/* optional */
     char *sync;			/* write TRUE here and signal when finished */
 
+  protected:
+    virtual void main(void); /* entry point */
+
   public:
     probeslave::probeslave(ProbeSlaveTask, void *, void *, char *);
-    void main(void *);
 };
 
 
@@ -457,7 +459,7 @@ class mgrp_iterator : public olist_iterator {
 class vsgdb {
   friend void VSGInit();
   friend void VSGD_Init();
-  friend void VSGDaemon();
+  friend void VSGDaemon(void);
   friend class vsgent;
   friend class vsg_iterator;
 
@@ -616,10 +618,10 @@ extern int FailReconnect(int, unsigned long *);
 extern int FailSlow(unsigned *);
 
 /* comm_daemon.c */
-extern void PROD_Init();
-extern void ProbeDaemon();
-extern void VSGDaemon(); /* used to be member of class vsgdb */
-extern void VSGD_Init();
+extern void PROD_Init(void);
+extern void ProbeDaemon(void);
+extern void VSGDaemon(void); /* used to be member of class vsgdb */
+extern void VSGD_Init(void);
 
 /* comm synchronization */
 struct CommQueueStruct {

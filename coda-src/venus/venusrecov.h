@@ -174,8 +174,8 @@ extern void RecovTerminate();
 extern void RecovPrint(int);
 extern RPC2_String Copy_RPC2_String(RPC2_String&);
 extern void Free_RPC2_String(RPC2_String&);
-extern void RECOVD_Init();
-extern void RecovDaemon();
+extern void RECOVD_Init(void);
+extern void RecovDaemon(void);
 
 #define	VALID_REC_PTR(rec_ptr)\
     ((char *)(rec_ptr) >= rvg->recov_HeapAddr &&\

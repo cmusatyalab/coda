@@ -61,8 +61,8 @@ class callbackserver : public vproc {
     int operator=(callbackserver&);		/* not supported! */
     ~callbackserver();
 
-  public:
-    void main(void *);
+  protected:
+    virtual void main(void);
 };
 
 extern int MaxCBServers;

@@ -156,7 +156,7 @@ struct uarea {
     }
 };
 
-typedef void (*PROCBODY)(void *);
+typedef void (*PROCBODY)(void);
 
 class vproc : public olink {
   friend void VprocInit();
@@ -179,17 +179,27 @@ class vproc : public olink {
 
     void do_ioctl(ViceFid *, unsigned int, struct ViceIoctl *);
 
+    void init(void);
+
   protected:
     int lwpid;
     char *name;
-    PROCBODY func;
+    PROCBODY func; /* function should be set if vproc::main isn't overloaded */
     int vpid;
     rvm_perthread_t rvm_data;
     struct Lock init_lock;
 
+    /* derived classes should call this function once they have finished their
+     * constructor. */
+    void start_thread(void);
+
+    /* entry point, should be overloaded by derived classes */
+    virtual void main(void);
+
   public:
     /* Public for the time being. -JJK */
     vproctype type;
+    int stacksize;
     int lwpri;
     int seq;
     struct uarea u;
@@ -198,7 +208,8 @@ class vproc : public olink {
     struct vcbevent *ve;
 
     vproc(char *, PROCBODY, vproctype, int =VPROC_DEFAULT_STACK_SIZE, int =LWP_NORMAL_PRIORITY);
-    int operator=(vproc&);	/* not supported! */
+    vproc(vproc&);		// not supported
+    int operator=(vproc&);	// not supported
     virtual ~vproc();
 
     /* Volume-level concurrency control. */

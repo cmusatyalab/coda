@@ -73,7 +73,7 @@ static char fsdaemon_sync;
 
 /* ***** Private routines  ***** */
 
-void FSODaemon() {
+void FSODaemon(void) {
     /* Hack!  Vproc must yield before data members become valid! */
     VprocYield();
 
@@ -151,10 +151,10 @@ void fsdb::GarbageCollect() {
 	int gced = 0;
 
 	dlist_iterator next(*delq);
-	dlink *d;
-	int readahead = 0;
-	while (readahead || (d = next())) {
-	    readahead = 0;
+	dlink *d, *dnext;
+	dnext = next();
+	while ((d = dnext) != NULL) {
+	    dnext = next();
 	    fsobj *f = strbase(fsobj, d, del_handle);
 
 	    if (!DYING(f))
@@ -166,8 +166,7 @@ void fsdb::GarbageCollect() {
 		continue;
 	    }
 
-	    /* Reclaim the object.  Readahead is necessary since iterator would otherwise be invalid. */
-	    readahead = ((d = next()) != 0);
+	    /* Reclaim the object. */
 	    gced++;
 	    f->GC();
 	}
@@ -219,7 +218,6 @@ void fsdb::FlushRefVec() {
 }
 
 
-void FSOD_Init() {
-    (void)new vproc("FSODaemon", (PROCBODY) &FSODaemon,
-		     VPT_FSODaemon, FSODaemonStackSize);
+void FSOD_Init(void) {
+    (void)new vproc("FSODaemon", &FSODaemon, VPT_FSODaemon, FSODaemonStackSize);
 }

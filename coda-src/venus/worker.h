@@ -136,7 +136,8 @@ class worker : public vproc {
     void Return(msgent *, int);
     void Return(int);
 
-    void main(void *);
+  protected:
+    virtual void main(void);
 };
 
 class worker_iterator : public vproc_iterator {

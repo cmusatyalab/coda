@@ -89,7 +89,7 @@ extern void VmonEnqueueSession(VmonSessionId, VolumeId, UserId, VmonAVSG *,
 				CacheStatistics *);
 extern void VmonEnqueueCommEvent(RPC2_Unsigned, RPC2_Unsigned, VmonCommEventType);
 
-extern void VMOND_Init();
-extern void VmonDaemon();
+extern void VMOND_Init(void);
+extern void VmonDaemon(void);
 
 #endif	not _VENUSVM_H_

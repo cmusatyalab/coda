@@ -77,6 +77,8 @@ extern const int  RVM_THREAD_DATA_ROCK_TAG;
 static const int VPROC_ROCK_TAG = 1776;
 
 
+static void DoNothing(void) { return; }
+
 void VprocInit() {
     vproc::counter = 0;
 
@@ -85,7 +87,7 @@ void VprocInit() {
      * This call initializes LWP and IOMGR support. 
      * That's why it doesn't pass in a function.
      */
-    Main = new vproc("Main", (PROCBODY)0, VPT_Main);
+    Main = new vproc("Main", &DoNothing, VPT_Main);
 
     VprocSetRetry();
 }
@@ -116,14 +118,13 @@ vproc *FindVproc(int vpid) {
 
 
 /* This code gets control when the new vproc starts running. */
-/* It's job is to initialize state which needs to be set in the context of the new vproc. */
-/* Certain things can't be done in the vproc::ctor because that may be executed in a different context! */
+/* It's job is to initialize state which needs to be set in the context of the
+ * new vproc. Certain things can't be done in the vproc::ctor because that may
+ * be executed in a different context! */
 void VprocPreamble(struct Lock *init_lock) {
 
-    /* Yield is required so stupid LWP package can set our lwpid! */
-    /* VprocYield();*/
-    /* Changed to use exclusive locks; yield doesn't work if priority of creating
-       thread is lower than created thread */
+    /* This lock is released by start_thread, as soon as the initialization has
+     * finalized (aka. this->lwpid has been set */
     ObtainWriteLock(init_lock);  /* we never have to give it up. */
 
     /* VPROC rock permits mapping back to vproc object. */
@@ -146,13 +147,11 @@ void VprocPreamble(struct Lock *init_lock) {
     if (lwprc != LWP_SUCCESS)
 	CHOKE("VprocPreamble: LWP_NewRock(RVM_THREAD) failed (%d)", lwprc);
 
-    /* Invoke main procedure.  (func == NULL) --> we're running in the root LWP. */
-    /* Passing vp as the first arg is a hacky way of setting the "this" pointer */
-    /* in the common case where f is a member of a class derived from vproc. */
-    /* It's a horrible hack though, and should be changed! -JJK */
-    if (vp->func != 0)
-	vp->func(vp);
-
+    /* Call the entry point for the new thread. main() is a virtual function of
+     * the vproc class, and should be overloaded by any classes that inherit
+     * from vproc. Others should pass a function pointer to indicate the entry
+     * point when initializing a new vproc */
+    vp->main();
 }
 
 
@@ -361,12 +360,10 @@ void PrintVprocs(int fd) {
     fdprint(fd, "\n");
 }
 
-
-vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
-
-    static int initialized = 0;
-
-    /* Initialize the data members.  LWPid is filled in as a side effect of LWP operations below. */
+vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority)
+{
+    /* Initialize the data members. LWPid is filled in as a side effect of
+     * LWP operations in start_thread. */
     lwpid = 0;
     name = new char[strlen(n) + 1];
     strcpy(name, n);
@@ -375,6 +372,7 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
     bzero((void *)&rvm_data, (int) sizeof(rvm_perthread_t));
     /*    rvm_data.die = &CHOKE; */
     type = t;
+    stacksize = stksize;
     lwpri = priority;
     seq = 0;
     idle = 0;
@@ -386,26 +384,38 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
 
     /* Insert the new vproc into the table. */
     tbl.insert(this);
-    
+
+    /* This start_thread call is way too early for derived classes, the
+     * constructors haven't finished yet. Overloaded virtual functions in
+     * derived classes will definitely not be available yet. So derived classes
+     * should run start_thread around the end of their constructor */
+    if (f) start_thread();
+}
+
+/* Fork off the new thread */
+void vproc::start_thread(void)
+{
+    static int initialized = 0;
+
     if (initialized) {
 	/* grab the lock */
 	ObtainWriteLock(&init_lock);
-
 	/* Create an LWP for this vproc. */
-	/* pass the lock, instead of the function; we can get back to the function
-	   once we know which vproc the new lwp is */
-	int lwprc = LWP_CreateProcess((PFIC)VprocPreamble, stksize, priority,
+	/* pass the lock, instead of the function; we can get back to the
+	 * function once we know which vproc the new lwp is */
+	int lwprc = LWP_CreateProcess((PFIC)VprocPreamble, stacksize, lwpri,
 				      (char *)&init_lock, name, (PROCESS *)&lwpid);
 	if (lwprc != LWP_SUCCESS)
-	    CHOKE("vproc::vproc: LWP_CreateProcess(%d, %s) failed (%d)", stksize, name, lwprc);
+	    CHOKE("vproc::start_thread: LWP_CreateProcess(%d, %s) failed (%d)",
+		  stacksize, name, lwprc);
 
-	/* Bogus handshaking so that new LWP continues after its (bogus) yield! */
+	/* Bogus handshaking so that new LWP continues after its yield! */
 	ReleaseWriteLock(&init_lock);
 	VprocYield();
-    }
-    else {
+    } else {
 	/* Initialize the LWP subsystem. */
-	int lwprc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, (PROCESS *)&lwpid);
+	int lwprc = LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY,
+			     (PROCESS *)&lwpid);
 	if (lwprc != LWP_SUCCESS)
 	    CHOKE("VprocInit: LWP_Init failed (%d)", lwprc);
 
@@ -413,23 +423,30 @@ vproc::vproc(char *n, PROCBODY f, vproctype t, int stksize, int priority) {
 	if (iomgrrc != LWP_SUCCESS)
 	    CHOKE("VprocInit: IOMGR_Initialize failed (%d)", iomgrrc);
 
-	VprocPreamble(&init_lock);
-
 	initialized = 1;
+	VprocPreamble(&init_lock);
     }
 }
 
-
+void vproc::main(void)
+{
+    CODA_ASSERT(func != NULL);
+    
+    func();
+}
 
 /* 
  * we don't support assignments to objects of this type.
  * bomb in an obvious way if it inadvertently happens.
  */
+vproc::vproc(vproc &) {
+    abort();
+}
+
 int vproc::operator=(vproc& vp) {
     abort();
     return(0);
 }
-
 
 vproc::~vproc() {
     if (LogLevel >= 1)

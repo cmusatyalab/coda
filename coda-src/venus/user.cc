@@ -596,12 +596,14 @@ static const int UserDaemonStackSize = 16384;
 
 static char userdaemon_sync;
 
-void USERD_Init() {
-    (void)new vproc("UserDaemon", (PROCBODY)&UserDaemon,
-    		     VPT_UserDaemon, UserDaemonStackSize);
+void USERD_Init(void)
+{
+    (void)new vproc("UserDaemon", UserDaemon, VPT_UserDaemon,
+		    UserDaemonStackSize);
 }
 
-void UserDaemon() {
+void UserDaemon(void)
+{
     /* Hack!  Vproc must yield before data members become valid! */
     VprocYield();
 

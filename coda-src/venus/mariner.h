@@ -94,8 +94,8 @@ class mariner : public vproc {
     void FidStat(ViceFid *);
     void Rpc2Stat();
 
-  public:
-    void main(void *);
+  protected:
+    virtual void main(void);
 };
 
 

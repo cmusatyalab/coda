@@ -126,7 +126,7 @@ const int CPSIZE = 8;
 /*  *****  Types  ***** */
 /* Cache stuff was removed here to move to venus.private.h  5/14/92 */
 
-void FSODaemon(); /* used to be member of class fsdb (Satya 3/31/95) */
+void FSODaemon(void); /* used to be member of class fsdb (Satya 3/31/95) */
 
 
 /* The (cached) file-system database. */
@@ -779,7 +779,7 @@ extern void PrintCacheStats(char* description, CacheStats *, int);
 extern void VenusToViceStatus(VenusStat *, ViceStatus *);
 
 /* fso_daemon.c */
-extern void FSOD_Init();
+extern void FSOD_Init(void);
 
 /* More locking macros. */
 #define	FSO_HOLD(f)	    { (f)->refcnt++; }

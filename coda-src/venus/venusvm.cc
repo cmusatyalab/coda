@@ -1050,13 +1050,15 @@ static const int VmonDaemonStackSize = 32768;
 
 static char vmondaemon_sync;
 
-void VMOND_Init() {
-    (void)new vproc("VmonDaemon", (PROCBODY)&VmonDaemon,
-		     VPT_VmonDaemon, VmonDaemonStackSize);
+void VMOND_Init(void)
+{
+    (void)new vproc("VmonDaemon", &VmonDaemon, VPT_VmonDaemon,
+		    VmonDaemonStackSize);
 }
 
 
-void VmonDaemon() {
+void VmonDaemon(void)
+{
     /* Hack!  Vproc must yield before data members become valid! */
     VprocYield();
 

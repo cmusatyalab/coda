@@ -664,8 +664,8 @@ class reintegrator : public vproc {
     int operator=(reintegrator&) { abort();	return(0); }	/* not supported! */
     ~reintegrator();
 
-  public:
-    void main(void *);
+  protected:
+    virtual void main(void);
 };
 
 olist reintegrator::freelist;
@@ -705,12 +705,14 @@ void Reintegrate(volent *v) {
 
 
 reintegrator::reintegrator() :
-	vproc("Reintegrator", (PROCBODY) &reintegrator::main,
-		VPT_Reintegrator, ReintegratorStackSize, ReintegratorPriority) {
+	vproc("Reintegrator", NULL, VPT_Reintegrator, ReintegratorStackSize,
+	      ReintegratorPriority)
+{
     LOG(100, ("reintegrator::reintegrator(%#x): %-16s : lwpid = %d\n",
 	       this, name, lwpid));
 
     idle = 1;
+    start_thread();
 }
 
 
@@ -738,7 +740,8 @@ reintegrator::~reintegrator() {
  * In this case, the yield below allows the creator to fill in
  * the context.
  */
-void reintegrator::main(void *parm) {
+void reintegrator::main(void)
+{
     /* Hack!  Vproc must yield before data members become valid! */
     VprocYield();
 
