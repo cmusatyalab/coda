@@ -156,7 +156,7 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 		vn->dh = pdce;
 	} else {
 		pdce = vn->dh;
-		DC_IncCount(pdce);
+		DC_SetCount(pdce, DC_Count(pdce) + 1);
 		SLog(0, "VN_GetDirHandle NEW-seen Vnode %#x Uniq %#x cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
 	}
@@ -202,22 +202,26 @@ void VN_DropDirHandle(struct Vnode *vn)
 */
 void VN_CopyOnWrite(struct Vnode *vptr)
 {
-		PDCEntry pdce = DC_New();
-		PDirHeader pdirh;
-		
-		assert(pdce);
-		assert(vptr->disk.inodeNumber != 0);
-		pdirh = DI_DiToDh((PDirInode)vptr->disk.inodeNumber);
-		assert(pdirh);
-		DC_SetDirh(pdce, pdirh);
-		DC_SetCowpdi(pdce, (PDirInode)vptr->disk.inodeNumber);
-		DC_SetDirty(pdce, 1);
-		SLog(0, "CopyOnWrite: New dce= %p new dirheader = %p", 
-		     (void *) pdce, (void *) pdirh);
-		vptr->disk.inodeNumber = 0;
-		vptr->disk.cloned = 0;
-		if ( vptr->dh ) 
-			VN_PutDirHandle(vptr);
-		vptr->dh = pdce;
+	PDCEntry pdce = DC_New();
+	PDCEntry oldpdce;
+	PDirHeader pdirh;
+	PDirHandle pdh;
+	
+	assert(pdce);
+	assert(vptr->disk.inodeNumber != 0);
+	pdh = VN_SetDirHandle(vptr);
+	pdirh = DH_Data(pdh);
+	assert(pdh);
+
+	DC_SetDirh(pdce, pdirh);
+	DC_SetCowpdi(pdce, (PDirInode)vptr->disk.inodeNumber);
+	DC_SetDirty(pdce, 1);
+	DC_SetCount(pdce, DC_Count(oldpdce));
+	SLog(0, "CopyOnWrite: New dce= %p new dirheader = %p", 
+	     (void *) pdce, (void *) pdirh);
+	vptr->disk.inodeNumber = 0;
+	vptr->disk.cloned = 0;
+	VN_PutDirHandle(vptr);
+	vptr->dh = pdce;
 
 }

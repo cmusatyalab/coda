@@ -213,9 +213,9 @@ int DC_Count(PDCEntry pdce)
 	return pdce->dc_count;
 }
 
-void DC_IncCount(PDCEntry pdce) 
+void DC_SetCount(PDCEntry pdce, int count) 
 {
-	pdce->dc_count++;
+	pdce->dc_count = count; 
 }
 
 
