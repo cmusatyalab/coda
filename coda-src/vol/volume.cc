@@ -529,6 +529,7 @@ retry:
     if (n == -1) {
 	*buflen += 1024;
 	*buf = (char *)realloc(*buf, *buflen);
+	CODA_ASSERT(*buf);
 	goto retry;
     }
     *offset += n;
@@ -555,6 +556,7 @@ retry:
 	if (n == -1) {
 	    buflen += 1024;
 	    *buf = (char *)realloc(*buf, buflen);
+	    CODA_ASSERT(*buf);
 	    goto retry;
 	}
 	*offset += n;

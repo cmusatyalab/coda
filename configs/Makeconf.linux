@@ -1,16 +1,2 @@
-#
-# sets:
-#	variables, libraries for Linux build
-
-# definitions for Linux make and install of Coda
-# first draft
-
-# Peter Braam
-# Josh Raiff, modified for configure
-
-# the following may need editing depending on your preferences
-
-SHORTSYS      = linux
-GUIDIR        = /usr/lib/coda
 KRBINCLFLAGS  = -I/usr/include/kerberosIV
 LIBKRBS       = -lkrb5 -lcrypto -lcom_err -lkrb4
