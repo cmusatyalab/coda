@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.14 1998/09/29 21:04:41 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso0.cc,v 4.15 98/11/02 16:46:01 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -466,6 +466,7 @@ fsobj *fsdb::Find(ViceFid *key) {
 /* Should priority be an implicit argument? -JJK */
 fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
     fsobj *f = 0;
+    int rc = 0;
 
     /* Check whether the key is already in the database. */
     if ((f = Find(key)) != 0)
@@ -473,7 +474,14 @@ fsobj *fsdb::Create(ViceFid *key, LockLevel level, int priority, char *comp) {
 
     /* Fashion a new object.  This could be a long-running and wide-ranging transaction! */
     Recov_BeginTrans();
-    f = new (FROMFREELIST, priority) fsobj(key, comp);
+    /* try to make sure we have at least one object available, so we won't
+     * crash on the C++-initializers. */
+    rc = FSDB->AllocFso(priority, &f);
+    if (rc != ENOSPC)
+    {
+	FSDB->FreeFso(f);
+        f = new (FROMFREELIST, priority) fsobj(key, comp);
+    }
     Recov_EndTrans(MAXFP);
     if (f != 0)
 	if (level != NL) f->Lock(level);
