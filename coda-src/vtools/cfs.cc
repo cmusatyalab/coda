@@ -1957,7 +1957,7 @@ static void ReplayClosure(int argc, char *argv[], int opslot)
 
 static void RmMount(int argc, char *argv[], int opslot)
     {
-    int  i, rc, w;
+    int  i, rc, w, n;
     struct ViceIoctl vio;
     char *prefix, *suffix;
 
@@ -1972,10 +1972,16 @@ static void RmMount(int argc, char *argv[], int opslot)
 
         /* First set up the prefix and suffix correctly */
         prefix = argv[i];
-        suffix = rindex(prefix, '/');
-        if (suffix) *suffix = 0; /* delimit the prefix */
 
-	if (suffix && suffix[1] != '\0') {
+	n = strlen(prefix) - 1;
+	/* strip useless /'s at the end of prefix. */
+	while (n >= 0 && prefix[n] == '/') {
+	    prefix[n] = '\0'; n--;
+	}
+
+        suffix = rindex(prefix, '/');
+        if (suffix) {
+	    *suffix = 0; /* delimit the prefix */
             suffix++;  /* and set the suffix pointer correctly */
 	} else {
             suffix = prefix;  
