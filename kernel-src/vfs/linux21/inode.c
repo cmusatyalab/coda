@@ -211,7 +211,7 @@ static void coda_delete_inode(struct inode *inode)
 	EXIT;
 }
 
-static int  coda_notify_change(struct dentry *de, struct iattr *iattr)
+static int coda_notify_change(struct dentry *de, struct iattr *iattr)
 {
 	struct inode *inode = de->d_inode;
         struct coda_inode_info *cii;
@@ -240,21 +240,36 @@ static int  coda_notify_change(struct dentry *de, struct iattr *iattr)
         return error;
 }
 
-/*  we need _something_ for this routine. Let's mimic AFS */
 static int coda_statfs(struct super_block *sb, struct statfs *buf, 
 		       int bufsiz)
 {
 	struct statfs tmp;
+	struct coda_statfs sfs;
+	int error;
+
+	error = venus_statfs(sb, &sfs);
+
+	if (!error) {
+	    tmp.f_blocks = sfs.f_blocks;
+	    tmp.f_bfree = sfs.f_bfree;
+	    tmp.f_bavail = sfs.f_bavail;
+	    tmp.f_files = sfs.f_files;
+	    tmp.f_ffree = sfs.f_ffree;
+	} else {
+	    /* fake something like AFS does */
+	    tmp.f_blocks = 9000000;
+	    tmp.f_bfree = 9000000;
+	    tmp.f_bavail = 9000000 ;
+	    tmp.f_files = 9000000;
+	    tmp.f_ffree = 9000000;
+	}
 
 	tmp.f_type = CODA_SUPER_MAGIC;
 	tmp.f_bsize = 1024;
-	tmp.f_blocks = 9000000;
-	tmp.f_bfree = 9000000;
-	tmp.f_bavail = 9000000 ;
-	tmp.f_files = 9000000;
-	tmp.f_ffree = 9000000;
-	tmp.f_namelen = 0;
+	tmp.f_namelen = CODA_MAXNAMLEN;
+
 	copy_to_user(buf, &tmp, bufsiz);
+
 	return 0; 
 }
 
