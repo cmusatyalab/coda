@@ -13,7 +13,10 @@
 
 /* 
  * HISTORY
- * $Log: cfsnc.h,v $
+ * $Log:	cfsnc.h,v $
+ * Revision 1.2  96/01/02  16:57:19  bnoble
+ * Added support for Coda MiniCache and raw inode calls (final commit)
+ * 
  * Revision 1.1.2.1  1995/12/20 01:57:45  bnoble
  * Added CFS-specific files
  *
@@ -204,6 +207,5 @@ extern int cfsnc_debug;
 #define CFSNC_FLUSH		((u_long) 11)
 #define CFSNC_PRINTCFSNC	((u_long) 12)
 #define CFSNC_PRINTSTATS	((u_long) 13)
-#define CFSNC_REPLACE		((u_long) 14)
 
 #endif _CFSNC_HEADER_

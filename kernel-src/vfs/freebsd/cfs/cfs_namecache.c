@@ -1,3 +1,37 @@
+#ifndef _BLURB_
+#define _BLURB_
+/*
+
+            Coda: an Experimental Distributed File System
+                             Release 3.1
+
+          Copyright (c) 1987-1995 Carnegie Mellon University
+                         All Rights Reserved
+
+Permission  to  use, copy, modify and distribute this software and its
+documentation is hereby granted,  provided  that  both  the  copyright
+notice  and  this  permission  notice  appear  in  all  copies  of the
+software, derivative works or  modified  versions,  and  any  portions
+thereof, and that both notices appear in supporting documentation, and
+that credit is given to Carnegie Mellon University  in  all  documents
+and publicity pertaining to direct or indirect use of this code or its
+derivatives.
+
+CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
+SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
+DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
+RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+ANY DERIVATIVE WORK.
+
+Carnegie  Mellon  encourages  users  of  this  software  to return any
+improvements or extensions that  they  make,  and  to  grant  Carnegie
+Mellon the rights to redistribute these changes without encumbrance.
+*/
+
+static char *rcsid = "$Header: /coda/project/coda/kernel/cfs/RCS/cfs_namecache.c,v 3.3 95/10/09 19:24:59 satya Exp $";
+#endif /*_BLURB_*/
+
 /* 
  * Mach Operating System
  * Copyright (c) 1990 Carnegie-Mellon University
@@ -13,7 +47,10 @@
 
 /*
  * HISTORY
- * $Log: cfs_namecache.c,v $
+ * $Log:	cfs_namecache.c,v $
+ * Revision 1.4  96/12/12  22:10:57  bnoble
+ * Fixed the "downcall invokes venus operation" deadlock in all known cases.  There may be more
+ * 
  * Revision 1.3  1996/11/08 18:06:09  bnoble
  * Minor changes in vnode operation signature, VOP_UPDATE signature, and
  * some newly defined bits in the include files.
@@ -642,42 +679,6 @@ cfsnc_flush(dcstat)
 
 	for (i = 0; i < cfsnc_hashsize; i++)
 	  cfsnchash[i].length = 0;
-}
-
-/*
- * This routine replaces a ViceFid in the name cache with another.
- * It is added to allow Venus during reintegration to replace 
- * locally allocated temp fids while disconnected with global fids 
- * even when the reference count on those fids are not zero.
- */
-void
-cfsnc_replace(f1, f2)
-	ViceFid *f1; ViceFid *f2;
-{
-        /* 
-	 * Replace f1 with f2 throughout the name cache
-	 */
-	int hash;
-	register struct cfscache *cncp;
-	
-	CFSNC_DEBUG(CFSNC_REPLACE,
-		    myprintf(("cfsnc_replace fid_1 = (%x.%x.%x) and fid_2 = (%x.%x.%x)\n",
-			      f1->Volume, f1->Vnode, f1->Unique, 
-			      f2->Volume, f2->Vnode, f2->Unique)););
-		
-	for (hash = 0; hash < cfsnc_hashsize; hash++) {
-		for (cncp = cfsnchash[hash].hash_next; 
-		     cncp != (struct cfscache *)&cfsnchash[hash];
-		     cncp = cncp->hash_next) {
-			if (!bcmp(&cncp->cp->c_fid, f1, sizeof(ViceFid))) {
-				bcopy(f2, &cncp->cp->c_fid, sizeof(ViceFid));
-				/* no need to check cncp->dcp now */
-				continue; 	
-			}
-			if (!bcmp(&cncp->dcp->c_fid, f1, sizeof(ViceFid)))
-				bcopy(f2, &cncp->dcp->c_fid, sizeof(ViceFid));
-		}
-	}
 }
 
 /*
