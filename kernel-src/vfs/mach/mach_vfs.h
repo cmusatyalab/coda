@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/mach_vfs.h,v 4.1 1997/01/08 21:53:32 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/kernel-src/vfs/mach/Attic/mach_vfs.h,v 4.2 1997/02/26 16:04:41 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -43,6 +43,9 @@ static char *rcsid = "$Header: /usr/rvb/XX/src/kernel-src/vfs/mach/RCS/mach_vfs.
 /*
  * HISTORY
  * $Log: mach_vfs.h,v $
+ * Revision 4.2  1997/02/26 16:04:41  rvb
+ * NetBSD -> BSD44 (where appropriate) + integrate Hiroshi Inamura's FreeBSD support
+ *
  * Revision 4.1  1997/01/08 21:53:32  rvb
  * r = 4.1; fix $ HEADERS
  *
