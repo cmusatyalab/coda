@@ -134,9 +134,9 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV,
 	    if (VV[i] && !isrunt[i])
 		mgrp->KillMember(mgrp->Hosts[i], 0);
 
-	lseek(tmpfd, 0, SEEK_SET);
     }
     /* force directory ops onto runt sites */
+    lseek(tmpfd, 0, SEEK_SET);
     {
 	SLog(9, "UpdateRunts: Forcing Directories onto runts");
 	int forceError;
