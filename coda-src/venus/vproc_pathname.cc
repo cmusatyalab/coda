@@ -412,8 +412,7 @@ Exit:
 
 void vproc::verifyname(char *name, int flags)
 {
-    char *ptr;
-    int   length = strlen(name);
+    int length = strlen(name);
 
     /* Disallow '.', '..', and '/' */
     if (flags & NAME_NO_DOTS)
@@ -444,7 +443,7 @@ void vproc::verifyname(char *name, int flags)
     }
 
     /* Disallow names ending in anything like "@sys/@cpu" (@???). */
-    if ((flags & NAME_NO_EXPANSION) && (length >= 4) && (ptr[length-4] == '@'))
+    if ((flags & NAME_NO_EXPANSION) && (length >= 4) && (name[length-4] == '@'))
     {
 	u.u_error = EINVAL;
 	return;
