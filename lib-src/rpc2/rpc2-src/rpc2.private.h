@@ -624,6 +624,14 @@ do {\
       { (top)->tv_sec++; (top)->tv_usec -= 1000000; }\
 } while(0);
 
+#define CMPTIME(a, b, CMP)\
+  (((a)->tv_sec == (b)->tv_sec) ?\
+   ((a)->tv_usec CMP (b)->tv_usec) :\
+   ((a)->tv_sec CMP (b)->tv_sec))
+
+#define CLRTIME(tm) ((tm)->tv_sec = 0, (tm)->tv_usec = 0)
+#define TIMERISSET(tm) ((tm)->tv_sec || (tm)->tv_usec)
+
 /* macros to convert between timeval and timestamp */
 #define TVTOTS(_tvp_, _ts_)\
 do {\

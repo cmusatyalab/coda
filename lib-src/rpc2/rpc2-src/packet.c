@@ -54,14 +54,6 @@ Pittsburgh, PA.
 #include "cbuf.h"
 #include "trace.h"
 
-#ifdef __CYGWIN32__
-#define timercmp(tm1, tm2, op) ( \
-    ((tm1)->tv_sec == (tm2)->tv_sec \
-    ? (int) (tm1)->tv_usec - (int) (tm2)->tv_usec \
-    : (int) (tm1)->tv_sec - (int) (tm2)->tv_sec) op 0)
-#define timerisset(tm) ((tm)->tv_sec || (tm)->tv_usec)
-#endif
-
 extern int errno;
 
 static long DefaultRetryCount = 6;
@@ -444,14 +436,14 @@ long rpc2_CancelRetry(IN Conn, IN Sle)
     if ((Conn->SEProcs != NULL) && 
 	(Conn->SEProcs->SE_GetSideEffectTime != NULL) &&
 	(Conn->SEProcs->SE_GetSideEffectTime(Conn->UniqueCID, &lastword) == RPC2_SUCCESS) &&
-	timerisset(&lastword)) {  /* don't bother unless we've actually heard */
+	TIMERISSET(&lastword)) {  /* don't bother unless we've actually heard */
 	FT_GetTimeOfDay(&now, (struct timezone *)0);
 	SUBTIME(&now, &lastword);
 	say(9, RPC2_DebugLevel,
 	    "Heard from side effect on 0x%lx %ld.%06ld ago, retry interval was %ld.%06ld\n",
 	     Conn->UniqueCID, now.tv_sec, now.tv_usec, 
 	     retry[Sle->RetryIndex].tv_sec, retry[Sle->RetryIndex].tv_usec);
-	if (timercmp(&now, &retry[Sle->RetryIndex], <)) {
+	if (CMPTIME(&now, &retry[Sle->RetryIndex], <)) {
 	    timeout = retry[0];
 	    SUBTIME(&timeout, &now);
 	    say(/*9*/4, RPC2_DebugLevel,

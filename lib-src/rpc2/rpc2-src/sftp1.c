@@ -68,10 +68,6 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "sftp.h"
 
-#ifdef __CYGWIN32__
-#define timerclear(tm) ((tm)->tv_sec = 0, (tm)->tv_usec = 0)
-#endif
-
 /*----------------------- Local procedure specs  ----------------------*/
 static long GetFile();
 static long PutFile();
@@ -1174,7 +1170,7 @@ struct SFTP_Entry *sftp_AllocSEntry(void)
     sfp->RInterval.tv_usec = (SFTP_RetryInterval*1000) % 1000000;
     sfp->Retransmitting = FALSE;
     sfp->RequestTime = 0;
-    timerclear(&sfp->LastWord);
+    CLRTIME(&sfp->LastWord);
     return(sfp);
     }
 
