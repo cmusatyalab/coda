@@ -13,7 +13,7 @@ VICESRV=${VICE}/srv
 
 OSTYPE=`uname`
 
-if [ x${OSTYPE} = NetBSD ]; then
+if [ x${OSTYPE} = xNetBSD ]; then
 	CODABASE=/usr/pkg
 	PATH=/sbin:/usr/sbin:/usr/pkg/sbin:$PATH
 else	# Assume FreeBSD...
@@ -36,11 +36,11 @@ case "$1" in
     	echo -n "Starting Coda Services: "
 	if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
  		auth2 &
-		echo -n " auth2,"
+		echo -n " auth2"
 		
 	else 	# for non-scm machines.
 		auth2 -chk &
-		echo -n " auth2(ro),"
+		echo -n " auth2(ro)"
 	fi
 
 	# update srv and updatemon run on all servers
