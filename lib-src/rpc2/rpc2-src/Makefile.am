@@ -41,7 +41,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 SUFFIXES = .txt
 
-errors.c: switchc2s.h switchs2c.h errorsdefs.h
+$(srcdir)/errors.c: switchc2s.h switchs2c.h errorsdefs.h
 switchc2s.h switchs2c.h errorsdefs.h: errordb.txt
 	${PERL} ${srcdir}/makeinc.pl < ${srcdir}/errordb.txt && \
 	${CP} errorsdefs.h $(top_srcdir)/include/rpc2
