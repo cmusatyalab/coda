@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.3 1997/04/01 01:55:57 clement Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvm_utils.c,v 4.4 97/10/18 05:09:07 clement Exp $";
 #endif _BLURB_
 
 /*
@@ -669,6 +669,9 @@ log_t *make_log(log_dev_name,retval)
             free(log);
             return NULL;                /* no space for device name */
             }
+	/* first and foremost */
+	log->trunc_thread = (cthread_t) 0;
+
         log->status.valid = rvm_false;
         log->status.log_empty = rvm_false;
         log->status.trunc_state = 0;
