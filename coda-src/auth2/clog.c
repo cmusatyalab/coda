@@ -241,6 +241,7 @@ int main(int argc, char **argv)
     username = getlogin();	 
 #elif DJGPP
     chdir("c:\\usr\\coda\\bin");
+    __djgpp_set_quiet_socket(1);	
 #else
     pw = getpwuid (getuid ());
     if (pw) {
