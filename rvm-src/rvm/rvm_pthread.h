@@ -51,7 +51,17 @@ extern int       rvm_join_res;
  * explicit to pthreads clients.
  */
 
-#define MUTEX_INITIALIZER  BOGUSCODE
+/* That's nonsense, the following is from pthread_mutex(3):
+ * 
+ *    Variables of type pthread_mutex_t can also be initialized statically
+ *    using the constants PTHREAD_MUTEX_INITIALIZER (for fast mutexes),
+ *    PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP (for recursive mutexes), and
+ *    PTHREADS_ERRORCHECK_MUTEX_INITIALIZER_MP (for error checking mutexes).
+ *    
+ * --JH
+ */
+
+#define MUTEX_INITIALIZER  PTHREAD_MUTEX_INITIALIZER
 
 /* Supported cthread definitions: */
 

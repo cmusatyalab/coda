@@ -72,11 +72,7 @@ long cache_type_sizes[NUM_CACHE_TYPES] = {CACHE_TYPE_SIZES};
 
 /* initialization lock & flag */
 /* cannot be statically allocated if using pthreads */
-#ifndef RVM_USEPT
 static RVM_MUTEX        free_lists_init_lock = MUTEX_INITIALIZER;
-#else
-static RVM_MUTEX        free_lists_init_lock;
-#endif
 static rvm_bool_t       free_lists_inited = rvm_false;
 /*  Routines to allocate and manipulate the doubly-linked circular lists 
     used in RVM (derived from rpc2 routines)
@@ -321,11 +317,7 @@ void clear_free_lists()
     }
 /* unique name generator */
 /* Cannot be statically allocated in pthreads */
-#ifndef RVM_USEPT
 static RVM_MUTEX     uname_lock = MUTEX_INITIALIZER;
-#else
-static RVM_MUTEX     uname_lock;
-#endif
 static struct timeval   uname = {0,0};
 
 void make_uname(new_uname)
@@ -370,10 +362,6 @@ long init_unames()
 /* Locks cannot be statically allocated in pthreads. */
 long init_utils()
     {
-#ifdef RVM_USEPT
-    mutex_init(&free_lists_init_lock);
-    mutex_init(&uname_lock);
-#endif
     CRITICAL(free_lists_init_lock,
         {
         if (!free_lists_inited)

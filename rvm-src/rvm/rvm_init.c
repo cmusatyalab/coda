@@ -33,11 +33,7 @@ char                rvm_errmsg;         /* internal error message ptr */
 
 /* initialization control */
 /* Cannot statically initialize locks with pthreads. */
-#ifndef RVM_USEPT
 static RVM_MUTEX    init_lock = MUTEX_INITIALIZER;
-#else
-static RVM_MUTEX    init_lock;
-#endif
 static rvm_bool_t   inited = rvm_false;     /* initialization complete flag */
 static rvm_bool_t   terminated = rvm_false; /* shutdown flag -- no
                                                restart allowed */
@@ -63,10 +59,6 @@ rvm_return_t rvm_initialize(char *rvm_version, rvm_options_t *rvm_options)
 {
     rvm_return_t    retval = RVM_SUCCESS;
 
-#ifdef RVM_USEPT
-    /* have to init the init_lock */
-    mutex_init(&init_lock);
-#endif
     rvm_debug(0);                       /* only causes module loading */
     if (strcmp(rvm_version,RVM_VERSION) != 0)
         return RVM_EVERSION_SKEW;       /* version skew */
@@ -97,12 +89,8 @@ rvm_return_t rvm_initialize(char *rvm_version, rvm_options_t *rvm_options)
 
         if (rvm_options && rvm_options->create_log_file)
         {
-            /* we need to pretend were already initialized, and for all
-             * purposes of rvm_create_log, we are. */
-            inited = rvm_true;
             retval = rvm_create_log(rvm_options, &rvm_options->create_log_size,
                                     rvm_options->create_log_mode);
-            inited = rvm_false;
 
             if (retval != RVM_SUCCESS) {
 		printf("rvm_create_log failed\n");
