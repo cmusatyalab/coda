@@ -11,7 +11,7 @@ case ${host_alias} in
   arm ) host_alias=arm-unknown-linux-gnuelf ;;
 esac
 AC_CANONICAL_HOST
-if test ${cross_compiling} == yes ; then
+if test ${cross_compiling} = yes ; then
   dnl We have to override some things the configure script tends to
   dnl get wrong as it tests the build platform feature
   ac_cv_func_mmap_fixed_mapped=yes
