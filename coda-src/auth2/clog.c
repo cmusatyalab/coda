@@ -153,18 +153,18 @@ void base64_decode(FILE *in, char **out, int *len)
 
 void export(ClearToken *cToken)
 {
-    cToken.AuthHandle     = htonl(cToken.AuthHandle);
-    cToken.ViceId         = htonl(cToken.ViceId);
-    cToken.BeginTimeStamp = htonl(cToken.BeginTimeStamp);
-    cToken.EndTimeStamp   = htonl(cToken.EndTimeStamp);
+    cToken->AuthHandle     = htonl(cToken->AuthHandle);
+    cToken->ViceId         = htonl(cToken->ViceId);
+    cToken->BeginTimeStamp = htonl(cToken->BeginTimeStamp);
+    cToken->EndTimeStamp   = htonl(cToken->EndTimeStamp);
 }
 
 void import(ClearToken *cToken)
 {
-    cToken.AuthHandle     = ntohl(cToken.AuthHandle);
-    cToken.ViceId         = ntohl(cToken.ViceId);
-    cToken.BeginTimeStamp = ntohl(cToken.BeginTimeStamp);
-    cToken.EndTimeStamp   = ntohl(cToken.EndTimeStamp);
+    cToken->AuthHandle     = ntohl(cToken->AuthHandle);
+    cToken->ViceId         = ntohl(cToken->ViceId);
+    cToken->BeginTimeStamp = ntohl(cToken->BeginTimeStamp);
+    cToken->EndTimeStamp   = ntohl(cToken->EndTimeStamp);
 }
 
 void WriteTokenToFile(char *filename, ClearToken *cToken,
