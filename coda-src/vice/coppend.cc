@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/coppend.cc,v 4.5 1998/06/04 22:40:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/coppend.cc,v 4.6 1998/08/31 12:23:35 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -185,10 +185,10 @@ void cpman::add(cpent *cpe) {
     LogMsg(9, SrvDebugLevel, stdout,  "StoreId = (0x%x.%x)", 
 	    cpe->StoreId.Host, cpe->StoreId.Uniquifier);	
     for (int i = 0; i < MAXFIDS; i++) 
-	if (!FID_EQ(&cpe->fids[i], &NullFid))
-	    LogMsg(9, SrvDebugLevel, stdout,  ", fids[%d] = (0x%x.%x.%x)",
-		    i, cpe->fids[i].Volume, 
-		    cpe->fids[i].Vnode, cpe->fids[i].Unique);
+	    if (!FID_EQ(&cpe->fids[i], &NullFid))
+		    LogMsg(9, SrvDebugLevel, stdout,  ", fids[%d] = (0x%x.%x.%x)",
+			   i, cpe->fids[i].Volume, 
+			   cpe->fids[i].Vnode, cpe->fids[i].Unique);
     LogMsg(9, SrvDebugLevel, stdout,  ", added to BusyQueue");
     
     objects.append(&cpe->StoreId, cpe);

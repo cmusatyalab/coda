@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vicedep/mond.rpc2,v 1.1 1996/11/22 19:09:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/mond.rpc2,v 4.1 1997/01/08 21:52:03 rvb Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -488,7 +488,7 @@ typedef RPC2_Struct  /* used because arrays can only be arrays of structs. */
    compatibility sucks...
  */
 
-MondEstablishConn(IN RPC2_Unsigned Version,     /* Version number of client */
+1: MondEstablishConn(IN RPC2_Unsigned Version,     /* Version number of client */
 		  IN RPC2_Integer ClientType,   /* Venus or Server */
 		  IN SpareEntry Expansion[]);   /* spare */
 
@@ -505,7 +505,7 @@ MondEstablishConn(IN RPC2_Unsigned Version,     /* Version number of client */
 ** field is a serial number denoting changes in the AVSG.
 */
 
-VmonReportSession	(IN VmonVenusId Venus,           /* unique venus id */
+2: VmonReportSession	(IN VmonVenusId Venus,           /* unique venus id */
 			 IN VmonSessionId Session,       /* strictly increasing id per venus/volume/user */
 			 IN VolumeId Volume,             /* volume id of this session */
 			 IN UserId User,                 /* user id of this session */
@@ -526,7 +526,7 @@ VmonReportSession	(IN VmonVenusId Venus,           /* unique venus id */
 ** and that the end time of those sessions will match the timestamp of the comm event
 */
 
-VmonReportCommEvent	(IN VmonVenusId Venus,             /* Unique venus id */
+3: VmonReportCommEvent	(IN VmonVenusId Venus,             /* Unique venus id */
 			 IN RPC2_Unsigned ServerIPAddress, /* IP Address of server generating this event */
 			 IN RPC2_Integer SerialNumber,     /* bouncing servers can have the otherwise identical */
                                                            /* timestamps - SN ensures they are recognized as */
@@ -546,12 +546,12 @@ VmonReportCommEvent	(IN VmonVenusId Venus,             /* Unique venus id */
 ** Because of the 
 */
 
-VmonReportCallEvent	(IN VmonVenusId Venus,          
+4: VmonReportCallEvent	(IN VmonVenusId Venus,          
 			 IN RPC2_Integer Time,          /* Time event was reported - used to order reports */
 			 IN CallCountEntry SrvCount[]); /* Single-host calls to vice subsystem */
                          
 
-VmonReportMCallEvent    (IN VmonVenusId Venus,           /* Unique venus id */
+5: VmonReportMCallEvent    (IN VmonVenusId Venus,           /* Unique venus id */
                          IN RPC2_Integer Time,           /* Time event was reported - used to order reports */
 			 IN MultiCallEntry MSrvCount[]); /* Multicasts calls to vice subsystem */
 
@@ -562,7 +562,7 @@ VmonReportMCallEvent    (IN VmonVenusId Venus,           /* Unique venus id */
 **
 */
 
-VmonReportRVMStats      (IN VmonVenusId Venus,          /* Unique venus id */
+6: VmonReportRVMStats      (IN VmonVenusId Venus,          /* Unique venus id */
                          IN RPC2_Integer Time,          /* Time event was reported - used to order reports */
 			 IN RvmStatistics Stats);       /* RVM usage so far */
 
@@ -572,7 +572,7 @@ VmonReportRVMStats      (IN VmonVenusId Venus,          /* Unique venus id */
 **
 */
 
-VmonReportAdviceStats	(IN VmonVenusId Venus,		   /* Unique venus id */
+7: VmonReportAdviceStats	(IN VmonVenusId Venus,		   /* Unique venus id */
 			 IN RPC2_Integer Time,		   /* timestamp */
 			 IN UserId User,                   /* user id for this data*/
 			 IN AdviceStatistics Stats,        /* Advice information */
@@ -586,7 +586,7 @@ VmonReportAdviceStats	(IN VmonVenusId Venus,		   /* Unique venus id */
 ** and vnodeop level.
 */
 
-VmonReportMiniCache    (IN VmonVenusId Venus,               /* venus making this call */
+8: VmonReportMiniCache    (IN VmonVenusId Venus,               /* venus making this call */
                         IN RPC2_Integer Time,               /* timestamp */
 			IN VmonMiniCacheStat VnodeOps[],    /* vnode operations */
 			IN VmonMiniCacheStat VfsOps[]);     /* vfs operations */
@@ -597,7 +597,7 @@ VmonReportMiniCache    (IN VmonVenusId Venus,               /* venus making this
 ** to carrying the information, after that info is dropped.
 */
 
-VmonReportOverflow	(IN VmonVenusId Venus,          /* Unique venus id */
+9: VmonReportOverflow	(IN VmonVenusId Venus,          /* Unique venus id */
 			 IN RPC2_Unsigned VMStartTime,  /* Time VM records began to be dropped */
 			 IN RPC2_Unsigned VMEndTime,    /* Time connection was reestablished */
 			 IN RPC2_Integer VMCount,       /* Number of dropped VM records */
@@ -611,7 +611,7 @@ VmonReportOverflow	(IN VmonVenusId Venus,          /* Unique venus id */
 ** crash the data collector.
 */
 
-SmonNoop();
+10: SmonNoop();
 
 /*
 ** ReportCall
@@ -621,7 +621,7 @@ SmonNoop();
 ** by any particular server need be kept.  It is not event driven.
 */
 
-SmonReportCallEvent(IN SmonViceId Vice,             /* Unique server id */
+11: SmonReportCallEvent(IN SmonViceId Vice,             /* Unique server id */
 		    IN RPC2_Unsigned Time,          /* Timestamp -used to order records */
 		    IN CallCountEntry CBCount[],    /* Call back subsystem */
 		    IN CallCountEntry ResCount[],   /* Resolution subsystem */
@@ -636,7 +636,7 @@ SmonReportCallEvent(IN SmonViceId Vice,             /* Unique server id */
 ** Currently lobotomized - unused
 */
 
-SmonReportResEvent(IN SmonViceId Vice, IN RPC2_Unsigned Time,
+12: SmonReportResEvent(IN SmonViceId Vice, IN RPC2_Unsigned Time,
 		IN VolumeId Volid,
 		IN RPC2_Integer HighWaterMark,
 		IN RPC2_Integer AllocNumber,
@@ -651,13 +651,13 @@ SmonReportResEvent(IN SmonViceId Vice, IN RPC2_Unsigned Time,
 ** are kept in rvm (servers don't operate disconnected...)
 */
 
-SmonReportOverflow(IN SmonViceId Vice,         /* Unique Server identifier */
+13: SmonReportOverflow(IN SmonViceId Vice,         /* Unique Server identifier */
 		   IN RPC2_Unsigned Time,      /* Timestamp */
 		   IN RPC2_Unsigned StartTime, /* Time first record was dropped */
 		   IN RPC2_Unsigned EndTime,   /* Time connection reestablished */
 		   IN RPC2_Integer Count);     /* Number of records dropped */
 
-SmonReportRVMResStats (IN SmonViceId Vice,            /* Unique server id */
+14: SmonReportRVMResStats (IN SmonViceId Vice,            /* Unique server id */
                        IN RPC2_Unsigned Time,         /* Timestamp */
                        IN RPC2_Integer VolID,         /* Volume id */
 		       IN FileResStats FileRes,       /* File resolutions for this volume/server */
@@ -676,7 +676,7 @@ SmonReportRVMResStats (IN SmonViceId Vice,            /* Unique server id */
 ** Report IOT Event
 ** Each call reports information about only one transaction
 */
-VmonReportIotInfo      	(IN VmonVenusId Venus,  	/* Unique venus id */
+15: VmonReportIotInfo      	(IN VmonVenusId Venus,  	/* Unique venus id */
 			 IN IOT_INFO Info,		/* Fixed IOT Info */
 			 IN RPC2_Integer AppNameLenth,	/* Variable AppName length */
 			 IN RPC2_String AppName);
@@ -684,21 +684,21 @@ VmonReportIotInfo      	(IN VmonVenusId Venus,  	/* Unique venus id */
 /*
 ** Report IOT Statistics
 */
-VmonReportIotStats	(IN VmonVenusId Venus,		/* Unique venus id */
+16: VmonReportIotStats	(IN VmonVenusId Venus,		/* Unique venus id */
 			 IN RPC2_Integer Time,		/* timestamp */
 			 IN IOT_STAT Stats);		/* IOT Stats */
 
 /*
 ** Report Local Subtree Stats
 */
-VmonReportSubtreeStats	(IN VmonVenusId Venus,		/* Unique venus id */
+17: VmonReportSubtreeStats	(IN VmonVenusId Venus,		/* Unique venus id */
 			 IN RPC2_Integer Time,		/* timestamp */
 			 IN LocalSubtreeStats Stats);	/* Subtree Stats */
 
 /*
 ** Report Local-Global Repair Session Stats
 */
-VmonReportRepairStats	(IN VmonVenusId Venus,		/* Unique venus id */
+18: VmonReportRepairStats	(IN VmonVenusId Venus,		/* Unique venus id */
 			 IN RPC2_Integer Time,		/* timestamp */
 			 IN RepairSessionStats Stats);	/* Repair Session Stats */
 
@@ -714,7 +714,7 @@ typedef RPC2_Struct	/* disconnected read-write sharing stats */
 /*
 ** Report stats about disconnected read/write sharing 
 */
-VmonReportRwsStats	(IN VmonVenusId Venus,		/* Unique venus id */
+19: VmonReportRwsStats	(IN VmonVenusId Venus,		/* Unique venus id */
 			 IN RPC2_Integer Time,		/* timestamp */
 			 IN ReadWriteSharingStats Stats);/* Read/Write Sharing Stats */
 
@@ -724,7 +724,7 @@ VmonReportRwsStats	(IN VmonVenusId Venus,		/* Unique venus id */
 **
 */
 
-VmonReportVCBStats	(IN VmonVenusId Venus,		/* Unique Venus ID */
+20: VmonReportVCBStats	(IN VmonVenusId Venus,		/* Unique Venus ID */
 			 IN RPC2_Integer VenusInit,	/* Time of last Venus initialization */
 			 IN RPC2_Integer Time,		/* Time event was reported - used to order reports */
 			 IN VolumeId Volume,		/* Volume ID */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.7 1998/10/01 22:21:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.8 1998/10/08 17:23:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -230,7 +230,7 @@ delete_name(int volid, int vnum, int unique, char *name, int flag)
     }
 
     // ignore changing the length for now
-    pdi = DI_DhToDi(dc, pdi);
+    pdi = DI_DhToDi(dc);
     
     if ( pdi != (PDirInode) vnode->inodeNumber ) {
 	    printf("WARNING: directory inode has changed!\n");
@@ -355,7 +355,7 @@ create_name(int volid, int vnum, int unique, char *name, int cvnum,
     cvnode->vparent = vnum;
     cvnode->uparent = unique;
     
-    pdi = DI_DhToDi(dc, pdi);
+    pdi = DI_DhToDi(dc);
     
     if ( pdi != (PDirInode) vnode->inodeNumber ) {
 	    printf("WARNING: directory inode has changed!\n");

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.16 98/09/29 16:38:15 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso1.cc,v 4.17 1998/09/29 21:04:42 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -609,7 +609,8 @@ void fsobj::Matriculate() {
 /* Need not be called from within transaction. */
 /* Call with object write-locked. */
 /* CallBack handler calls this with NoLock (to avoid deadlock)! -JJK */
-void fsobj::Demote(int TellServers) {
+void fsobj::Demote(int TellServers) 
+{
     if (!HAVESTATUS(this) || DYING(this)) return;
     if (flags.readonly || IsMtPt() || IsFakeMTLink()) return;
 
@@ -636,40 +637,38 @@ void fsobj::Demote(int TellServers) {
 
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
-void fsobj::Kill(int TellServers) {
-#ifdef	VENUSDEBUG
-    /* Sanity check. */
-    if ((DYING(this) && *((dlink **)&del_handle) == 0) ||
-	 (!DYING(this) && *((dlink **)&del_handle) != 0))
-	{ print(logFile); Choke("fsobj::Delete: state != link"); }
-#endif	VENUSDEBUG
-    if (DYING(this)) return;
+void fsobj::Kill(int TellServers) 
+{
 
-    LOG(10, ("fsobj::Kill: (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique));
+	if (DYING(this)) 
+		return;
+
+	LOG(10, ("fsobj::Kill: (%x.%x.%x)\n",
+		 fid.Volume, fid.Vnode, fid.Unique));
 
 
-    DisableReplacement();
+	DisableReplacement();
+	
+	FSDB->delq->append(&del_handle);
+	RVMLIB_REC_OBJECT(state);
+	state = FsoDying;
 
-    FSDB->delq->append(&del_handle);
-    RVMLIB_REC_OBJECT(state);
-    state = FsoDying;
-
-    /* Only return RC rights if the servers don't know that we're demoting! */
-    if (TellServers)
-	ReturnRcRights();
-    else
-	ClearRcRights();
-
-    if (IsDir())
-	DemoteAcRights(ALL_UIDS);
-
-    /* Inform advice servers of loss of availability of this object */
-    NotifyUsersOfKillEvent(hdb_bindings, NBLOCKS(stat.Length));
-
-    DetachHdbBindings();
-
-    k_Purge(&fid, 1);
+	/* Only return RC rights if the servers don't know that we're
+           demoting! */
+	if (TellServers)
+		ReturnRcRights();
+	else
+		ClearRcRights();
+	
+	if (IsDir())
+		DemoteAcRights(ALL_UIDS);
+	
+	/* Inform advice servers of loss of availability of this object */
+	NotifyUsersOfKillEvent(hdb_bindings, NBLOCKS(stat.Length));
+	
+	DetachHdbBindings();
+	
+	k_Purge(&fid, 1);
 }
 
 

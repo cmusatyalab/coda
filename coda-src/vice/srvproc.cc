@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.14 1998/10/09 21:57:42 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.15 1998/10/21 22:05:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -4822,7 +4822,8 @@ static void Perform_RR(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
     /* Await COP2 message. */
     if (ReplicatedOp) {
-	    ViceFid fids[MAXFIDS]; bzero((void *)fids, (int) (MAXFIDS * sizeof(ViceFid)));
+	    ViceFid fids[MAXFIDS]; 
+	    bzero((void *)fids,  (MAXFIDS * sizeof(ViceFid)));
 	    fids[0] = Did;
 	    SLog(3, "Perform_RR: delete_me = %d, !delete_me = %d",
 		 vptr->delete_me, !vptr->delete_me);

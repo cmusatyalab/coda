@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/fssync.cc,v 4.4 1997/10/23 19:25:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/fssync.cc,v 4.5 1998/08/26 21:22:25 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,17 +66,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
-
-#ifdef	__linux__
 #include <stdio.h>
-#endif
 
 #include <lwp.h>
 #include <lock.h>
@@ -96,15 +88,20 @@ extern "C" {
 
 #define USUAL_PRIORITY (LWP_MAX_PRIORITY - 2)
 
-#define MAXUTILITIES	2	/* Up to 2 clients; must be at least 2, so that */
-				/* move = dump+restore can run on single server */
-				/* NOTE: this code assumes MAXUTILITES lwps are assigned */
+#define MAXUTILITIES	2	/* Up to 2 clients; must be at least
+				   2, so that */
+				/* move = dump+restore can run on
+                                   single server */
+				/* NOTE: this code assumes MAXUTILITES
+                                   lwps are assigned */
 				/* to handle volume utility requests */
-#define MAXOFFLINEVOLUMES 30	/* This needs to be as big as the maximum
-				   number that would be offline for 1 operation.
-				   Current winner is salvage, which needs all
-				   cloned read-only copies offline when salvaging
-				   a single read-write volume */
+#define MAXOFFLINEVOLUMES 30	/* This needs to be as big as the
+				   maximum number that would be
+				   offline for 1 operation.  Current
+				   winner is salvage, which needs all
+				   cloned read-only copies offline
+				   when salvaging a single read-write
+				   volume */
 
 #define MAXRELOCATIONS	20	/* Maximum number of volume relocations that may be
 				   extant at any time */
@@ -197,8 +194,8 @@ int FSYNC_askfs(VolumeId volume, int command, int reason) {
     register VolumeId *volumes, *v;
     Volume *vp;
 
-    LogMsg(9, VolDebugLevel, stdout,  "Entering FSYNC_askfs(%x, %d, %d)", volume,
-					    command, reason);
+    LogMsg(9, VolDebugLevel, stdout, "Entering FSYNC_askfs(%x, %d,%d)", 
+	   volume, command, reason);
 
     volumes = OfflineVolumes[FindUtility(LWP_Index())];
     for (v = 0, i = 0; i<MAXOFFLINEVOLUMES; i++) {

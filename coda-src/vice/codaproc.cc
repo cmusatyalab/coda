@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.13 1998/10/09 21:57:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.14 1998/10/21 22:05:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2394,33 +2394,35 @@ static int FidSort(ViceFid *fids) {
 }
 
 /*
-  BEGIN_HTML
-  <a name="NewCOP1Update"><strong>Increment the version number and update the
-  storeid of an object.</strong></a><br>
+  NewCOP1Update: Increment the version number and update the
+  storeid of an object.
+
   Only the version number of this replica is incremented.  The
-  other replicas's version numbers are incremented by <a
-  href="#COP2Update">COP2Update</a>. 
-  END_HTML
+  other replicas's version numbers are incremented by COP2Update
 */
-void NewCOP1Update(Volume *volptr, Vnode *vptr, ViceStoreId *StoreId, RPC2_Integer *vsptr) {
+void NewCOP1Update(Volume *volptr, Vnode *vptr, 
+		   ViceStoreId *StoreId, RPC2_Integer *vsptr) 
+{
     /* Look up the VRDB entry. */
     vrent *vre = VRDB.find(V_groupId(volptr));
     if (!vre) Die("COP1Update: VSG not found!");
 
     /* Look up the index of this host. */
     int ix = vre->index(ThisHostAddr);
-    if (ix < 0) Die("COP1Update: this host not found!");
+    if (ix < 0) 
+	    Die("COP1Update: this host not found!");
 
-    LogMsg(2, SrvDebugLevel, stdout,  "COP1Update: Fid = (%x),(%x.%x.%x), StoreId = (%x.%x)",
-	     V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, 
-	    vptr->disk.uniquifier, StoreId->Host, StoreId->Uniquifier);
+    SLog(2, "COP1Update: Fid = (%x),(%x.%x.%x), StoreId = (%x.%x)",
+	 V_groupId(volptr), V_id(volptr), vptr->vnodeNumber, 
+	 vptr->disk.uniquifier, StoreId->Host, StoreId->Uniquifier);
 
     /* If a volume version stamp was sent in, and if it matches, update it. */
     if (vsptr) {
 	    LogMsg(2, SrvDebugLevel, stdout, "COP1Update: client VS %d", *vsptr);
 	    if (*vsptr == (&(V_versionvector(volptr).Versions.Site0))[ix])
 		    (*vsptr)++;
-	    else *vsptr = 0;
+	    else 
+		    *vsptr = 0;
     }
 		
     /* Fashion an UpdateSet using just ThisHost. */

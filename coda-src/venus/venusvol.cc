@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.15 98/10/02 11:15:29 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.16 1998/10/07 19:53:39 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -38,16 +38,17 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
 
 
 
-/*
- *    Bugs:
- *       1. Currently, the binding of volent <--> VSG is static (i.e., fixed at construction of the
- *          volent).  We need a mechanism for changing this binding over time, due to:
- *          - commencement of a new "epoch" for a REPVOL (i.e., adding/deleting a replica)
+/* * Bugs: 1. Currently, the binding of volent <--> VSG is static
+ *       (i.e., fixed at construction of the volent).  We need a
+ *       mechanism for changing this binding over time, due to:
+ *
+ *          - commencement of a new "epoch" for a REPVOL (i.e.,
+ *            adding/deleting a replica)  
  *          - movement of a {RWR,RO} volume from one host to another
  *          - addition/deletion of a host from a RO replica suite
- *       2. There is a horrible hack involving the derivation of VSGs for ROVOLs.  This can be
- *          fixed with some modification to the ViceGetVolumeInfo call.
- *
+ *       2. There is a horrible hack involving the derivation of VSGs
+ *             for ROVOLs.  This can be fixed with some modification to
+ * 	      the ViceGetVolumeInfo call. 
  */
 
 
@@ -56,22 +57,25 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
  *    Implementation of the Venus Volume abstraction.
  *
  *
- *    Each volume is always in one of five states.  These states, and the next state table are:
- *    (there are some caveats, which are discussed prior to the TakeTransition function)
+ *    Each volume is always in one of five states.  These states, and
+ *    the next state table are: (there are some caveats, which are
+ *    discussed prior to the TakeTransition function)
  *
  *    Hoarding	(H)	(|AVSG| > 0) ? (logv ? L : (CML_Count > 0) ? L : (res_cnt > 0) ? S : H) : E
  *    Resolving	(S)	(|AVSG| > 0) ? (logv ? L : (CML_Count > 0) ? L : H) : E
  *    Emulating	(E)	(|AVSG| > 0) ? (logv ? L : (CML_Count > 0) ? L : (res_cnt > 0) ? S : H) : E
  *    Logging   (L)     (|AVSG| > 0) ? ((res_cnt > 0) ? S : logv ? L : (CML_Count > 0) ? L : H) : E
  *
- *    State is initialized to Hoarding at startup, unless the volume is "dirty" in which case 
- *    it is Emulating.
+ *    State is initialized to Hoarding at startup, unless the volume
+ *    is "dirty" in which case it is Emulating.
  *
- *    Logging state may be triggered by discovery of weak connectivity, an application-specific
- *    resolution, or the beginning of an IOT.  All of these are rolled into the flag "logv".
- *    In this state, cache misses may be serviced, but modify activity (or other activity in the
- *    case of IOTs) is recorded in the CML.  Resolution must be permitted in logging state 
- *    because references resulting in cache misses may require it.
+ *    Logging state may be triggered by discovery of weak
+ *    connectivity, an application-specific resolution, or the
+ *    beginning of an IOT.  All of these are rolled into the flag
+ *    "logv".  In this state, cache misses may be serviced, but modify
+ *    activity (or other activity in the case of IOTs) is recorded in
+ *    the CML.  Resolution must be permitted in logging state because
+ *    references resulting in cache misses may require it.
  *
  *    Note that non-replicated volumes have only two states, {Hoarding, Emulating}.
  *
@@ -82,16 +86,20 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
  *       3. End of reintegration session
  *       4. Begin/End modify logging session
  *
- *    Volume state is an attempt to separate the logical state of the system---represented
- *    by the volume state---from the physical---represented by RPC connectivity.  It also serves
- *    to enforce some mutual exclusion constraints, such as the need to exclude read/write
- *    activity during resolution.
+
+ *    Volume state is an attempt to separate the logical state of the
+ *    system---represented by the volume state---from the
+ *    physical---represented by RPC connectivity.  It also serves to
+ *    enforce some mutual exclusion constraints, such as the need to
+ *    exclude read/write activity during resolution.
  *
- *    Separating connectivity state into volume and RPC levels has the advantage that changes in
- *    RPC (aka communication) connectivity, which are largely asynchronous, need not be
- *    immediately reflected throughout Venus.  Coping with the asynchrony is much easier if we
- *    can limit state changes to well-defined points.
+ *    Separating connectivity state into volume and RPC levels has the
+ *    advantage that changes in RPC (aka communication) connectivity,
+ *    which are largely asynchronous, need not be immediately
+ *    reflected throughout Venus.  Coping with the asynchrony is much
+ *    easier if we can limit state changes to well-defined points.
  *
+
  * Our basic strategy is the following: * - the top layer, VFS,
  *          processes Vnode/VFS calls.  A VFS call begins by invoking
  *          volent::Enter on the appropriate volume.  This routine
@@ -121,21 +129,28 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/
  *        return ERETRY in such cases, which is to be passed up to the
  *        VFS layer.
  *
- *        - the bottom layer, Comms, immediately reflects RPC state changes by setting the 
- *          "transition pending" flag in affected volumes.  It also will set a volume's "demotion 
- *          pending" flag if the volume data needs to be demoted as a result of the Comms event.  
- *          The actions implied by these flags are performed either in volent::Exit when the last 
- *          active user exits (as described above), or in the next volent::Enter call if there were
- *          no active users at the time the flags were set.  A daemon gratuitously enters every 
- *          volume periodically so that transitions are taken within reasonable bounds.
+ *        - the bottom layer, Comms, immediately reflects RPC state
+ *        changes by setting the "transition pending" flag in affected
+ *        volumes.  It also will set a volume's "demotion pending"
+ *        flag if the volume data needs to be demoted as a result of
+ *        the Comms event.  The actions implied by these flags are
+ *        performed either in volent::Exit when the last active user
+ *        exits (as described above), or in the next volent::Enter
+ *        call if there were no active users at the time the flags
+ *        were set.  A daemon gratuitously enters every volume
+ *        periodically so that transitions are taken within reasonable
+ *        bounds.
  *
  *
- *    A volume in {Hoarding, Emulating, Logging} state may be entered in either Mutating or 
- *    Observing mode. There may be only one mutating user in a volume at a time, although that user
- *    may have multiple mutating threads.  Observers do not conflict with each other, nor with the 
- *    mutator (if present). Thus, this scheme differs from classical Shared/Exclusive locking.  Also
- *    note that no user threads, mutating or not, may enter a volume in {Reintegrating, Resolving} 
- *    state. These restrictions do not apply to non-rw-replicated volumes, of course.
+ *    A volume in {Hoarding, Emulating, Logging} state may be entered
+ *    in either Mutating or Observing mode. There may be only one
+ *    mutating user in a volume at a time, although that user may have
+ *    multiple mutating threads.  Observers do not conflict with each
+ *    other, nor with the mutator (if present). Thus, this scheme
+ *    differs from classical Shared/Exclusive locking.  Also note that
+ *    no user threads, mutating or not, may enter a volume in
+ *    {Reintegrating, Resolving} state. These restrictions do not
+ *    apply to non-rw-replicated volumes, of course.
  * */
 
 #ifdef __cplusplus
@@ -177,8 +192,6 @@ extern "C" {
 
 
 int MLEs = UNSET_MLE;
-
-static void DeriveVSGInfo(VolumeInfo *);   /* HACK!  Until server returns VSGAddr for ROVOL. */
 
 
 /* local-repair modification */
@@ -331,92 +344,6 @@ CheckRootVolume:
     return(1);
 }
 
-
-/* We need to hardwire a VSGDB until GetVolumeInfo returns VSGAddr for ROVOLs! -JJK */
-static void DeriveVSGInfo(VolumeInfo *volinfo) {
-    int i, j, k;
-    struct vsge {
-	unsigned long vsgid;
-	unsigned long hosts[MAXHOSTS];
-    };
-    static vsge HW_VSGDB[] = {
-	{ 0xe0000100, { 0, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000101, { 0x8002de0b, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000102, { 0x8002de10, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000103, { 0x8002de0b, 0x8002de10, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000104, { 0x8002ded7, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000105, { 0x8002de0b, 0x8002ded7, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000106, { 0x8002de10, 0x8002ded7, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000107, { 0x8002de0b, 0x8002de10, 0x8002ded7, 0, 0, 0, 0, 0 }},
-	{ 0xe0000108, { 0x8002d1ca, 0x8002d1cb, 0x8002d1cc, 0, 0, 0, 0, 0 }},
-	{ 0xe0000109, { 0x8002d1ca, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe000010a, { 0x8002d1cb, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe000010b, { 0x8002d1cc, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe000010c, { 0x8002d1ca, 0x8002d1cb, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe000010d, { 0x8002d1cb, 0x8002d1cc, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe000010d, { 0x8002d1ca, 0x8002d1cc, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe000010f, { 0x8002f2ef, 0x8002fa30, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000110, { 0x8002f2ef, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000111, { 0x8002fa30, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000112, { 0x8002f2ef, 0x8002fa30, 0x8002faa0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000113, { 0x8002f2ef, 0x8002faa0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000114, { 0x8002fa30, 0x8002faa0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000115, { 0x8002faa0, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000116, { 0, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000117, { 0x8002de0b, 0x8002ded7, 0x8002de10, 0x8002f2ef, 0, 0, 0, 0 }},
-	{ 0xe0000118, { 0x8002de0b, 0x8002ded7, 0x8002de10, 0x8002f2ef, 0x8002fa30, 0, 0, 0 }},
-	{ 0xe0000119, { 0x8002f2ef, 0x8002fa30, 0x8002de10, 0x8002d1d5, 0, 0, 0, 0 }},
-	{ 0xe000011a, { 0x8002f2ef, 0x8002fa30, 0x8002de10, 0x8002d1d5, 0x8002de1a, 0, 0, 0 }},
-	{ 0xe000011b, { 0x8002d1d5, 0x8002fa30, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe000011c, { 0x8002d1d5, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe000011d, { 0x8002ce26, 0, 0, 0, 0, 0, 0, 0 }},
-/*
-	{ 0xe000011e, { 0x8002ce50, 0x8002ce4f, 0x8002ce4d, 0, 0, 0, 0, 0 }},
-	{ 0xe000011f, { 0x8002ce50, 0x8002ce4f, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000120, { 0x8002ce50, 0x8002ce4d, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000121, { 0x8002ce4f, 0x8002ce4d, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000122, { 0x8002ce4d, 0x8002ce26, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000123, { 0x8002ce50, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000124, { 0x8002ce4f, 0, 0, 0, 0, 0, 0, 0 }},
-	{ 0xe0000125, { 0x8002ce4d, 0, 0, 0, 0, 0, 0, 0 }},
-*/
-    };
-    static int nvsges = (int) (sizeof(HW_VSGDB) / sizeof(struct vsge));
-
-    /* This matching algorithm ignores duplicates! */
-    unsigned long *Hosts = (unsigned long *)&(volinfo->Server0);
-    for (i = 0; i < nvsges; i++) {
-	/* First, verify that every (non-zero) host in volinfo is in candidate VSG entry. */
-	for (j = 0; j < MAXHOSTS; j++) {
-	    if (Hosts[j] == 0) continue;
-
-	    for (k = 0; k < MAXHOSTS; k++)
-		if (Hosts[j] == HW_VSGDB[i].hosts[k]) break;
-	    if (k == MAXHOSTS) break;
-	}
-	if (j < MAXHOSTS) continue;	    /* match failed */
-
-	/* Second, verify that every (non-zero) host in candidate VSG entry is in volinfo. */
-	for (j = 0; j < MAXHOSTS; j++) {
-	    if (HW_VSGDB[i].hosts[j] == 0) continue;
-
-	    for (k = 0; k < MAXHOSTS; k++)
-		if (HW_VSGDB[i].hosts[j] == Hosts[k]) break;
-	    if (k == MAXHOSTS) break;
-	}
-	if (j < MAXHOSTS) continue;	    /* match failed */
-
-	break;
-    }
-    if (i == nvsges)
-	Choke("volent::DeriveVSGInfo: VSG not found [%x %x %x %x %x %x %x %x]",
-	    Hosts[0], Hosts[1], Hosts[2], Hosts[3],
-	    Hosts[4], Hosts[5], Hosts[6], Hosts[7]);
-
-    /* Eureka!  Record VSGAddr and canonicalize volinfo hosts. */
-    volinfo->VSGAddr = HW_VSGDB[i].vsgid;
-    bcopy((const void *)HW_VSGDB[i].hosts, (void *) &volinfo->Server0, (int) (MAXHOSTS * sizeof(unsigned long)));
-}
 
 
 /* Allocate database from recoverable store. */
@@ -598,7 +525,7 @@ int vdb::Get(volent **vpp, char *volname) {
     if (volinfo.Type == ROVOL || volinfo.Type == REPVOL) {
 	/* HACK! VolumeInfo doesn't yet contain vsg info for ROVOLs; fake it! */
 	if (volinfo.Type == ROVOL && volinfo.VSGAddr == 0)
-	    DeriveVSGInfo(&volinfo);
+		Choke("Fix GetVolInfo to return a VSGAddr for ROVOLS\n");
 
 	/* Pin the vsg entry. */
 	if (VSGDB->Get(&vsg, volinfo.VSGAddr, (unsigned long *)&(volinfo.Server0)) != 0)
@@ -979,24 +906,28 @@ void volent::release() {
 }
 
 
-/*
- *    See the notes on volume synchronization at the head of this file.
+/* See the notes on volume synchronization at the head of this file.
  *
- *    It's important to note that transitions and/or demotions may be pending at Enter time even 
- *    though there are no "active users".  Also note that a "transition pending" situation does not
- *    mean that the next state won't be the same as the current.  This can happen, for instance, if
- *    multiple transitions are signalled while a volume is inactive.  If the volume is active with 
- *    transition pending we can rely on the last exiter taking the transition and resetting the 
- *    flag.
+ *    It's important to note that transitions and/or demotions may be
+ *    pending at Enter time even though there are no "active users".
+ *    Also note that a "transition pending" situation does not mean
+ *    that the next state won't be the same as the current.  This can
+ *    happen, for instance, if multiple transitions are signalled
+ *    while a volume is inactive.  If the volume is active with
+ *    transition pending we can rely on the last exiter taking the
+ *    transition and resetting the flag.
  *
  *    Replicated volumes are complicated by two additional factors.
- *       1. transitions to two new states, reintegrating and resolving, may be indicated;
- *          user threads need to be excluded from the volume during these states
- *       2. only one mutating user, the "owner," is allowed in a volume at a time; this is to 
- *          avoid nasty interdependencies that might otherwise arise during reintegration; note 
- *          that a user is still the owner as long as he has active mutating threads or records 
- *          in the ModifyLog.
- */
+ *        1. transitions to two new states, reintegrating and
+ *        resolving, may be indicated; user threads need to be
+ *        excluded from the volume during these states
+ *        2. only one mutating user, the "owner," is allowed in a
+ *        volume at a time; this is to avoid nasty interdependencies
+ *        that might otherwise arise during reintegration; note that
+ *        a user is still the owner as long as he has active mutating
+ *        threads or records in the ModifyLog.  
+*/
+
 #define	VOLBUSY(vol)\
     ((vol)->resolver_count > 0 || (vol)->mutator_count > 0 || (vol)->observer_count > 0)
 /* MUST NOT be called from within transaction! */
@@ -1006,12 +937,11 @@ int volent::Enter(int mode, vuid_t vuid) {
 		flags.demotion_pending, PRINT_VOLMODE(mode), vuid));
 
     int just_transitioned = 0;
-    /* 
-     * Step 1 is to demote objects in volume if AVSG enlargement or shrinking has made this 
-     * necessary.  The two cases that require this are: 
+    /*  Step 1 is to demote objects in volume if AVSG enlargement or
+     * shrinking has made this necessary.  The two cases that require
+     * this are:
      *    1. |AVSG| for read-write replicated volume increasing. 
-     *    2. |AVSG| for non-replicated volume falling to 0. 
-     */
+     *    2. |AVSG| for non-replicated volume falling to 0.  */
     if (flags.demotion_pending) {
 	LOG(1, ("volent::Enter: demoting %s\n", name));
 	flags.demotion_pending = 0;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.19 1998/10/07 20:29:51 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.20 1998/10/09 21:57:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -245,7 +245,8 @@ int fsobj::Close(int writep, int execp, vuid_t vuid)
 	    { print(logFile); Choke("fsobj::Close: !WRITING"); }
 	Writers--;
 
-	/* The object only gets sent to the server(s) if we are the last writer to close. */
+	/* The object only gets sent to the server(s) if we are the
+           last writer to close. */
 	if (WRITING(this)) {
 	    FSO_RELE(this);		    /* Unpin object. */
 	    return(0);
