@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.14 98/09/29 21:04:46 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.15 98/10/02 11:15:29 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2187,34 +2187,26 @@ ViceFid volent::GenerateLocalFid(ViceDataType fidtype) {
 }
 
 
+/* MUST be called from within a transaction */
 ViceFid volent::GenerateFakeFid() 
 {
     ViceFid fid;
     FID_MakeSubtreeRoot(&fid, vid, FidUnique);
 
-    Recov_BeginTrans();
     RVMLIB_REC_OBJECT(FidUnique);
     FidUnique++;
-    Recov_EndTrans(MAXFP);
 
     return(fid);
 }
 
-/* This function is called from multiple places outside of a transaction,
-   but from vol_cml.cc we're suddenly called inside a transaction. The flag
-   recov, which normally defaults to 0, tells us that we are called from
-   within a transaction. --JH */
-
-ViceStoreId volent::GenerateStoreId(int recov) {
+/* MUST be called from within a transaction */
+ViceStoreId volent::GenerateStoreId() {
     ViceStoreId sid;
 
-    if (!recov) { Recov_BeginTrans(); }
+    sid.Host = (RPC2_Unsigned)myHostId;
 
     RVMLIB_REC_OBJECT(SidUnique);
-    sid.Host = (RPC2_Unsigned)myHostId;
     sid.Uniquifier = (RPC2_Unsigned)SidUnique++;
-
-    if (!recov) { Recov_EndTrans(MAXFP); }
 
     return(sid);
 }
@@ -2354,7 +2346,11 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	    /* Acquire an Mgroup. */
 	    mgrpent *m = 0;
 	    vv_t UpdateSet;
+
+	    Recov_BeginTrans();
             ViceStoreId sid = GenerateStoreId();
+	    Recov_EndTrans(MAXFP);
+
   	    code = GetMgrp(&m, vuid, (PIGGYCOP2 ? &PiggyBS : 0));
 	    if (code != 0) goto RepExit;
 

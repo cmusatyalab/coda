@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls1.cc,v 4.5 98/08/26 21:24:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls1.cc,v 4.6 98/09/23 20:26:30 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -152,7 +152,10 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
 	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -386,7 +389,10 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
 	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -690,7 +696,10 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
 	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -998,7 +1007,10 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
 	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
  	    vol->PackVS(m->nhosts, &OldVS);
@@ -1311,7 +1323,10 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
 	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -1582,7 +1597,10 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
 	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
  	    vol->PackVS(m->nhosts, &OldVS);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.h,v 4.7 98/09/29 21:04:47 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.h,v 4.8 98/10/02 11:15:29 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -861,7 +861,7 @@ class volent {
     int AllocFid(ViceDataType, ViceFid *, RPC2_Unsigned *, vuid_t, int =0);
     ViceFid GenerateLocalFid(ViceDataType);
     ViceFid GenerateFakeFid();
-    ViceStoreId GenerateStoreId(int recov = 0);
+    ViceStoreId GenerateStoreId();
 
     /* User-visible volume status. */
     int GetVolStat(VolumeStatus *, RPC2_BoundedBS *,

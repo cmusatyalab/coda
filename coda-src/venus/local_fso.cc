@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_fso.cc,v 4.4 98/08/26 21:24:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/local_fso.cc,v 4.5 98/09/27 13:01:20 rnw Exp $";
 #endif /*_BLURB_*/
 
 
@@ -149,7 +149,10 @@ int fsobj::RepairStore()
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
 	vv_t UpdateSet;
+
+	Recov_BeginTrans();
 	sid = vol->GenerateStoreId();
+	Recov_EndTrans(MAXFP);
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
 	    int ph_ix; unsigned long ph; ph = m->GetPrimaryHost(&ph_ix);
@@ -940,8 +943,12 @@ int fsobj::LocalFakeify()
 	LOG(0, ("fsobj::LocalFakeify: can not alloc fid for the root object\n"));
 	return code;
     }
+
+    Recov_BeginTrans();
     GlobalChildFid = vol->GenerateFakeFid();
     LocalChildFid = vol->GenerateFakeFid();
+    Recov_EndTrans(MAXFP);
+
     vproc *vp = VprocSelf();
     fsobj *FakeRoot = FSDB->Create(&FakeRootFid, NL, vp->u.u_priority, comp);
     if (NULL == FakeRoot) {
@@ -1071,8 +1078,12 @@ int fsobj::LocalFakeifyRoot()
 	LOG(0, ("fsobj::LocalFakeifyRoot: can not alloc fid for root object\n"));
 	return code;
     }
+
+    Recov_BeginTrans();
     GlobalChildFid = vol->GenerateFakeFid();
     LocalChildFid = vol->GenerateFakeFid();
+    Recov_EndTrans(MAXFP);
+
     FakeRootFid.Volume = pf->fid.Volume;
     GlobalChildFid.Volume = pf->fid.Volume;
     LocalChildFid.Volume = pf->fid.Volume;

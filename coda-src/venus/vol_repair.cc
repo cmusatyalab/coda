@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.5 98/08/26 21:24:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_repair.cc,v 4.6 98/09/15 14:28:07 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -205,7 +205,10 @@ int volent::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	}
     }
 
+    Recov_BeginTrans();
     ViceStoreId sid = GenerateStoreId();
+    Recov_EndTrans(MAXFP);
+
     mgrpent *m = 0;
     int asy_resolve = 0;
 
