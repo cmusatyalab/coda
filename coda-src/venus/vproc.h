@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: blurb.doc,v 1.1 96/11/22 13:29:31 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/venus/RCS/vproc.h,v 1.1 1996/11/22 19:12:01 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -460,6 +460,7 @@ extern int vnode_deallocs;
 #define VA_CTIME_2(va)	(va)->va_ctime.tv_sec
 #endif __MACH__
 
+#if 0
 #ifdef __NetBSD__ 
 #define VA_ID(va)	(va)->va_fileid
 #define VA_STORAGE(va)	(va)->va_bytes
@@ -470,6 +471,7 @@ extern int vnode_deallocs;
 #define VA_CTIME_1(va)	(va)->va_ctime.ts_sec
 #define VA_CTIME_2(va)	(va)->va_ctime.ts_nsec
 #endif __NetBSD__
+#endif
 
 
 #ifdef LINUX
