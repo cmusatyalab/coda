@@ -2004,14 +2004,8 @@ void repvol::GetBandwidth(unsigned long *bw)
     *bw = 0;
 
     if (ro_replica) {
-        ro_replica->Host(&host);
-        if (host.s_addr) {
-	    GetServer(&s, &host);
-	    s->GetBandwidth(bw);
-	    PutServer(&s);
-	    if (*bw == 0) *bw = INIT_BW;
-	    return;
-	}
+        ro_replica->GetBandwidth(bw);
+        return;
     }
 
     for (int i = 0; i < VSG_MEMBERS; i++) {
@@ -2021,9 +2015,7 @@ void repvol::GetBandwidth(unsigned long *bw)
         vsg[i]->Host(&host);
         if (!host.s_addr) continue;
 
-        GetServer(&s, &host);
-        s->GetBandwidth(&tmpbw);
-        PutServer(&s);
+        vsg[i]->GetBandwidth(&tmpbw);
 
         if (tmpbw && (!*bw || tmpbw < *bw))
             *bw = tmpbw;

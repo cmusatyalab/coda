@@ -1069,7 +1069,7 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
     rootserver = isrootserver;
     isweak = 0;
     bw     = INIT_BW;
-    bwmax  = 0;
+    bwmax  = INIT_BW;
     timerclear(&lastobs);
 
 #ifdef	VENUSDEBUG
@@ -1353,8 +1353,7 @@ long srvent::GetLiveness(struct timeval *tp)
 long srvent::GetBandwidth(unsigned long *Bandwidth)
 {
     long rc = 0;
-    unsigned long oldbw    = bw;
-    unsigned long oldbwmax = bwmax;
+    unsigned long oldbw = bw;
     unsigned long bwmin;
 
     LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
@@ -1395,7 +1394,7 @@ long srvent::GetBandwidth(unsigned long *Bandwidth)
     }
 	
     *Bandwidth = bw;
-    if (bw != oldbw || bwmax != oldbwmax) {
+    if (bw != oldbw) {
 	MarinerLog("connection::bandwidth %s %d %d %d\n", name,bwmin,bw,bwmax);
         adv_mon.ServerBandwidthEstimate(name, *Bandwidth);
     }
@@ -1932,24 +1931,28 @@ int mgrpent::RVVCheck(vv_t **RVVs, int EqReq)
 
 int mgrpent::PickDH(vv_t **RVVs)
 {
-    int i, dominators = 0, chosen;
+    int i, chosen = 0;
+    srvent *s;
+    unsigned long bw, bwmax = 0;
 
-    /* count % of hosts in the dominant set. */
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (DOMINANT(i))
-            dominators++;
+    /* find strongest host in the dominant set. */
+    for (i = 0; i < VSG_MEMBERS; i++) {
+	if (DOMINANT(i)) {
+            GetServer(&s, &rocc.hosts[i]);
+            s->GetBandwidth(&bw);
+            PutServer(&s);
 
-    /* randomly choose one. If not only for lack of information, then simply
-     * to improve load balancing of the clients */
-    chosen = rpc2_NextRandom(NULL) % dominators;
+            if (bw > bwmax) {
+                bwmax = bw;
+                chosen = i;
+            }
+        }
+    }
 
-    /* And walk the hosts again to find the one we chose */
-    for (i = 0; i < VSG_MEMBERS; i++)
-	if (DOMINANT(i) && (chosen-- == 0))
-                return(i);
+    if (bwmax == 0)
+        CHOKE("mgrpent::PickDH: dominant set is empty");
 
-    CHOKE("mgrpent::PickDH: dominant set is empty");
-    return(0);
+    return chosen;
 }
 
 /* Validate the existence of a dominant host; return its index in OUT parameter. */

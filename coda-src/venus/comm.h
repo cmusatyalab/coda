@@ -244,7 +244,7 @@ class srvent {
     unsigned rootserver : 1;	/* the server is specified in vstab and can
                                    be queried for volume-location information */
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
-    unsigned long bwmax;	/* upper bound of the bandwidth estimate */
+    unsigned long bwmax;	/* max bandwidth estimate, Bytes/sec */
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */

@@ -68,7 +68,6 @@ void DI_DhToDi(PDCEntry pdce)
 	if (pdi == NULL) {
 		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(*pdi));
 		CODA_ASSERT(pdi);
-		memset(pdi, 0, sizeof(*pdi));
 		DC_SetDI(pdce, pdi);
 	} 
 
