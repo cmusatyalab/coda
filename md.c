@@ -30,6 +30,10 @@
  *	/usr/cs/include).
  *
  * $Log: md.c,v $
+ * Revision 4.5.2.1  1999/01/21 19:43:39  jaharkes
+ * Included some of the Alpha patches, didn't see much point in doing the
+ * printf's in rvm-src, or the heavily changed linux-kernel code.
+ *
  * Revision 4.5  1998/10/07 20:29:37  rvb
  * Flush sys/dir.h where possible; Fix process.s
  *
