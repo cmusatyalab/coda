@@ -348,14 +348,15 @@ ReadConfigFile()
     vice_dir_init(vicedir, 0);
 
     /* Host name list from multiple configs. */
-    hostlist = (char **)malloc(sizeof(char *)*nservers);
+    hostlist = new char*[nservers];
     if (nservers == 1) {
         hostlist[0] = new char[256];
 	hostname(hostlist[0]);
     }
     else {
         for (int i = 0; i<nservers; i++) {
-	    hostlist[i] = (char *)malloc(sizeof(char)*256);
+	    hostlist[i] = new char[256];
+	    hostlist[i][0] = '\0';
 	    sprintf (confname, "%s_%d.conf", serverconf, i+1);
 	    (void) conf_init(confname);
 	    CONF_STR(hostlist[i],  "hostname",  "");
@@ -368,6 +369,7 @@ ReadConfigFile()
 	}
     }
 
+    for (int i = 0; i<nservers; i++) printf ("hostlist[%d] is %s\n", i, hostlist[i]);
 }
 
 static void CheckLibStructure()
