@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.24 1998/12/02 22:07:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.25 1998/12/08 15:07:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2551,12 +2551,15 @@ int ValidateParms(RPC2_Handle RPCid, ClientEntry **client,
     }
 
     /* 3. Translate group to read/write volume id. */
-    GroupVid = *Vidp;
-	    
-    if ( XlateVid(Vidp) )
+    if (ReplicatedOp) {
+	    GroupVid = *Vidp;
+	    if (!XlateVid(Vidp)) {
+		    SLog(1, "ValidateParms: failed to translate VSG %x", 
+			 GroupVid);
+		    return(EINVAL);
+	    }
 	    SLog(10, "ValidateParms: %x --> %x", GroupVid, *Vidp);
-    else 
-	    SLog(10, "ValidateParms: using replica %s", *Vidp);
+     }
 
     return(0);
 }
