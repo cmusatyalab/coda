@@ -31,7 +31,6 @@ DUMPLIST=/vice/db/dumplist
 
 # send Henry and the robot the dumplist
 mail -s dumplist weblist@coda.cs.cmu.edu < $DUMPLIST
-mail -s dumplist hmpierce@cs.cmu.edu < $DUMPLIST
 
 # run backup
 backup -t 135 /vice/db/dumplist /backup > $BACKUPLOG 2>&1
