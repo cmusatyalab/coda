@@ -257,10 +257,10 @@ class srvent {
     int	EventCounter;		/* incremented on every Up/Down event */
     unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
-    unsigned userbw : 1;	/* is current BW set by the user? */
+    unsigned forcestrong : 1;	/* the user can force strong connectivity */
     unsigned isweak : 1;	/* is this server considered weak */
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
-    unsigned long bwvar;	/* variance of the bandwidth estimate */
+    unsigned long bwmax;	/* upper bound of the bandwidth estimate */
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
@@ -281,7 +281,7 @@ class srvent {
     int GetEventCounter() { return(EventCounter); }
     long GetLiveness(struct timeval *);
     long GetBandwidth(unsigned long *);
-    long InitBandwidth(unsigned long);
+    void ForceStrong(int on);
     void Reset();
 
     void ServerError(int *);

@@ -804,11 +804,11 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
     if (u.u_error) return;
 
     /* verify that the target parent is a directory */
-    if (ISDIR(dcp->c_fid))
+    if (!ISDIR(dcp->c_fid))
         { u.u_error = ENOTDIR; return; }
 
     /* Verify that the source is a file. */
-    if (!ISDIR(scp->c_fid))
+    if (ISDIR(scp->c_fid))
 	{ u.u_error = EISDIR; return; }
 
     /* Verify that the source is in the same volume as the target parent. */

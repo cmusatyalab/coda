@@ -795,7 +795,8 @@ V_FreeLocks:
         case VIOC_DISCONNECT:
         case VIOC_RECONNECT:
         case VIOC_SLOW:
-	case VIOC_BWHINT:
+	case VIOC_STRONG:
+	case VIOC_ADAPTIVE:
 	case VIOC_LISTCACHE:
 	case VIOC_GET_MT_PT:
         case VIOC_WD_ALL:
@@ -1174,27 +1175,25 @@ V_FreeLocks:
 		    break;
 		    }
 
-	        case VIOC_BWHINT:
+		/* cfs strong: Force strong connectivity to all servers */
+	        case VIOC_STRONG:
 		    {
 		    srv_iterator next;
 		    srvent *s;
-
-		    if (data->in_size != (int)sizeof(long))
-			{ u.u_error = EINVAL; break; }
-		    
-		    /* this should go away */
-		    rpc2_Bandwidth = *((unsigned *)data->in);
-		    
-		    while ((s = next())) {
-			/* need bytes/sec */
-			if (s->InitBandwidth(*((long *)data->in) >> 3)) {
-			    u.u_error = EINVAL;
-			    break;
-			}
-		    }
-		    
+		    while ((s = next()))
+			s->ForceStrong(1);
 		    break;
 		    }
+		/* cfs adaptive: Allow dynamic adaptation of connectivity */
+	        case VIOC_ADAPTIVE:
+		    {
+		    srv_iterator next;
+		    srvent *s;
+		    while ((s = next()))
+			s->ForceStrong(0);
+		    break;
+		    }
+
 		case VIOC_WD_ALL:
 		    {
 		    char *startp = (char *) data->in;

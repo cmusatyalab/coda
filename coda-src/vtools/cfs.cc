@@ -92,7 +92,7 @@ struct command
 
 
 /* One handler routine for each opcode */
-static void Bandwidth(int, char**, int);
+static void Adaptive(int, char**, int);
 static void BeginRepair(int, char**, int);
 static void CheckServers(int, char**, int);
 static void CheckPointML(int, char**, int);
@@ -126,6 +126,7 @@ static void SetACL(int, char**, int);
 static void SetQuota(int, char **, int);
 static void SetVolume(int, char **, int);
 static void Slow(int, char **, int);
+static void Strong(int, char**, int);
 static void TruncateLog(int, char **, int);
 static void Uncompress(int, char**, int);
 static void WaitForever(int, char**, int);
@@ -147,9 +148,14 @@ static void At_CPU(int, char **, int);
 
 struct command cmdarray[] =
     {
-	{"bandwidth", "bw", Bandwidth, 
-	   "cfs bandwidth <speed>",
-	   "Provide a hint about network speed",
+	{"adaptive", NULL, Adaptive, 
+	   "cfs adaptive",
+	   "allow venus to automatically adapt to bandwidth changes",
+	   NULL
+     	},
+	{"strong", NULL, Strong, 
+	   "cfs strong",
+	   "force venus to consider all connections strong",
 	   NULL
      	},
 	{"beginrepair", "br", BeginRepair, 
@@ -2059,25 +2065,42 @@ static void Slow(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("  VIOC_SLOW"); exit(-1);}    
     }
 
-static void Bandwidth(int argc, char *argv[], int opslot) 
+static void Strong(int argc, char *argv[], int opslot) 
     {
     int rc;
     struct ViceIoctl vio;
-    long speed;
 
-    if (argc < 3)
+    if (argc < 2)
 	{
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
 	}
 
-    speed = atoi(argv[2]);
-    vio.in = (char *)&speed;
-    vio.in_size = (int) sizeof(speed);
+    vio.in = 0;
+    vio.in_size = 0;
     vio.out = 0;
     vio.out_size = 0;
-    rc = pioctl("/coda", VIOC_BWHINT, &vio, 1);
-    if (rc < 0){fflush(stdout); perror("  VIOC_BWHINT"); exit(-1);}    
+    rc = pioctl("/coda", VIOC_STRONG, &vio, 1);
+    if (rc < 0){fflush(stdout); perror("  VIOC_STRONG"); exit(-1);}    
+    }
+
+static void Adaptive(int argc, char *argv[], int opslot) 
+    {
+    int rc;
+    struct ViceIoctl vio;
+
+    if (argc < 2)
+	{
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
+	}
+
+    vio.in = 0;
+    vio.in_size = 0;
+    vio.out = 0;
+    vio.out_size = 0;
+    rc = pioctl("/coda", VIOC_ADAPTIVE, &vio, 1);
+    if (rc < 0){fflush(stdout); perror("  VIOC_ADAPTIVE"); exit(-1);}    
     }
 
 static void TruncateLog(int argc, char *argv[], int opslot)

@@ -1012,10 +1012,6 @@ void CheckServerBW(long curr_time) {
     while ((s = next())) {
 	if (s->ServerIsUp()) 
 	    (void) s->GetBandwidth(&bw);
-
-	if (s->ServerIsWeak() && 
-	    (s->lastobs.tv_sec + WCStale < curr_time))
-	    (void) s->InitBandwidth(INIT_BW);
     }
 }
 
@@ -1066,10 +1062,10 @@ srvent::srvent(unsigned long Host) {
     Xbinding = 0;
     probeme = 0;
     EventCounter = 0;
-    userbw = 0;
+    forcestrong = 0;
     isweak = 0;
     bw     = INIT_BW;
-    bwvar  = 0;
+    bwmax  = 0;
     timerclear(&lastobs);
 
 #ifdef	VENUSDEBUG
@@ -1296,14 +1292,6 @@ void srvent::ServerUp(RPC2_Handle newconnid) {
 	VSGDB->UpEvent(host);
     }
 
-    /* 
-     * if this is the first connection to this server, and we have a
-     * saved static estimate, deposit the estimate into the host log.
-     */
-    if (userbw) /* is this necessary? Userbw can only be true when bw has been
-		   initialized already. -JH */
-	(void) InitBandwidth(bw);
-
     /* Poke any threads waiting for a change in communication state. */
     Rtry_Signal();
 }
@@ -1346,8 +1334,9 @@ long srvent::GetLiveness(struct timeval *tp) {
 /* returns bandwidth in Bytes/sec, or INIT_BW if it couldn't be obtained */
 long srvent::GetBandwidth(unsigned long *Bandwidth) {
     long rc = 0;
-    unsigned long oldbw = bw;
-    unsigned long bwmin, bwmax;
+    unsigned long oldbw    = bw;
+    unsigned long oldbwmax = bwmax;
+    unsigned long bwmin;
 
     LOG(1, ("srvent::GetBandwidth (%s) lastobs %ld.%06ld\n", 
 	      name, lastobs.tv_sec, lastobs.tv_usec));
@@ -1358,13 +1347,6 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
     if (connid <= 0) 
 	return(ETIMEDOUT);
     
-    if (userbw)
-    {
-        LOG(1, ("srvent:GetBandWidth: user defined BW %d bytes/sec\n", bw));
-	*Bandwidth = bw;
-	return(0);
-    }
-
     /* retrieve the bandwidth information from RPC2 */
     if ((rc = RPC2_GetBandwidth(connid, &bwmin, &bw, &bwmax)) != RPC2_SUCCESS)
 	return(rc);
@@ -1377,8 +1359,12 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
     /* 
      * Signal if we've crossed the weakly-connected threshold. Note
      * that the connection is considered strong until proven otherwise.
+     *
+     * The user can block the strong->weak transition using the
+     * 'cfs strong' command. (and turn adaptive mode back on with
+     * 'cfs adaptive'
      */
-    if (!isweak && bwmax < WCThresh) {
+    if (!isweak && !forcestrong && bwmax < WCThresh) {
 	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
 	VSGDB->WeakEvent(host);
@@ -1392,9 +1378,9 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
     }
 	
     *Bandwidth = bw;
-    MarinerLog("connection::bandwidth %s %d %d %d\n", name,bwmin,bw,bwmax);
-    if (bw != oldbw) {
-        NotifyUsersOfServerBandwidthEvent(name,*Bandwidth);
+    if (bw != oldbw || bwmax != oldbwmax) {
+	MarinerLog("connection::bandwidth %s %d %d %d\n", name,bwmin,bw,bwmax);
+        NotifyUsersOfServerBandwidthEvent(name, *Bandwidth);
     }
     LOG(1, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
 	      name, *Bandwidth));
@@ -1403,47 +1389,31 @@ long srvent::GetBandwidth(unsigned long *Bandwidth) {
 
 
 /* 
- * Initialize the bandwidth to a server.
- * If an estimate is supplied, we disable any automatic updates to the
- * bandwidth estimates until this function is called with `0' to reset the
- * fixed bandwidth.
- *
- * Note that the ServerIsUp check is not sufficient because it 
- * does not exclude "quasi-up" states, which have no associated 
- * connection ids.  Finally, provoke a transition if necessary.
+ * Force server connectivity to strong, or resume with the normal bandwidth
+ * adaptive mode (depending on the `on' flag).
  */
-long srvent::InitBandwidth(unsigned long b) {
-    long rc = 0;
-    unsigned long oldbw = bw;
+void srvent::ForceStrong(int on) {
+    unsigned long bw;
 
-    /* check if the user is specifying some fixed bandwidth. */
-    userbw = (b != 0);
+    forcestrong = on;
 
-    /* 
-     * Install the new estimate and signal weak/strong transitions.
-     * Note that the "unset" value is considered strong. Unlike in 
-     * srvent::GetBandwidth, it is possible to go from the "set" to 
-     * "unset" state.
-     */
-    bw    = userbw ? b : INIT_BW;
-    bwvar = 0;
-    if (!isweak && bw <= WCThresh) {
-	isweak = 1;
-	MarinerLog("connection::weak %s\n", name);
-	VSGDB->WeakEvent(host);
-        NotifyUsersOfServerWeakEvent(name);
-    }
-    else if (isweak && bw > WCThresh) {
+    /* forced switch to strong mode */
+    if (forcestrong && isweak) {
 	isweak = 0;
 	MarinerLog("connection::strong %s\n", name);
 	VSGDB->StrongEvent(host);
         NotifyUsersOfServerStrongEvent(name);
     }
 
-    MarinerLog("connection::bandwidth %s %d\n", name, bw);
-    NotifyUsersOfServerBandwidthEvent(name,bw);
+    /* switch back to adaptive mode */
+    if (!forcestrong && !isweak && bwmax < WCThresh) {
+	isweak = 1;
+	MarinerLog("connection::weak %s\n", name);
+	VSGDB->WeakEvent(host);
+        NotifyUsersOfServerWeakEvent(name);
+    }
 
-    return(rc);
+    return;
 }
 
 

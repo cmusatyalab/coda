@@ -150,7 +150,7 @@ extern "C" {
 #define VIOC_ENDML              _VICEIOCTL(CFS_IOCTL_BASE + 29) /* Stop logging (write back) */
 
 #define	VIOC_HDB_VERIFY		_VICEIOCTL(CFS_IOCTL_BASE + 30)	/* Compare hoard database to cache contents */
-#define	VIOC_BWHINT		_VICEIOCTL(CFS_IOCTL_BASE + 31)	/* Give a bandwidth hint */
+/* #define	VIOC_BWHINT		_VICEIOCTL(CFS_IOCTL_BASE + 31)	/* Give a bandwidth hint */
 
 #define VIOC_HDB_ENABLE		_VICEIOCTL(CFS_IOCTL_BASE + 32)	/* Enable hoard walks */
 #define VIOC_HDB_DISABLE	_VICEIOCTL(CFS_IOCTL_BASE + 33)	/* Disable hoard walks */
@@ -170,6 +170,8 @@ extern "C" {
 #define VIOC_SET_MIXED_VIEW     _VICEIOCTL(CFS_IOCTL_BASE + 45) /* Set mixed repair session view */
 #define VIOC_WD_ALL 		_VICEIOCTL(CFS_IOCTL_BASE + 46) /* Write-disconnect all volumes */
 #define VIOC_WR_ALL     	_VICEIOCTL(CFS_IOCTL_BASE + 47) /* Write-reconnect all volumes */
+#define	VIOC_STRONG		_VICEIOCTL(CFS_IOCTL_BASE + 48)	/* Force strong connectivity */
+#define	VIOC_ADAPTIVE		_VICEIOCTL(CFS_IOCTL_BASE + 49)	/* Allow bandwidth adaptation driven connectivity */
 #define	VIOC_LISTCACHE		_VICEIOCTL(CFS_IOCTL_BASE + 50)	/* List cache status */
 #define	VIOC_GET_MT_PT		_VICEIOCTL(CFS_IOCTL_BASE + 51)	/* Get mount point path from volume id */
 
