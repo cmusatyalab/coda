@@ -74,7 +74,7 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
     unsigned char ip1, ip2, ip3, ip4;
     unsigned char color;
     struct sockaddr_in *sin;
-    unsigned char *inaddr
+    unsigned char *inaddr;
 
     if (!predicate)
 	return 0;
@@ -83,7 +83,7 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
     if (addr->ai_family != PF_INET)
 	return 0;
 
-    sin =(struct sockaddr_in *)addr->ai_addr;
+    sin = (struct sockaddr_in *)addr->ai_addr;
     inaddr = (unsigned char *)&sin->sin_addr;
 
     ip1 = inaddr[0]; ip2 = inaddr[1]; ip3 = inaddr[2]; ip4 = inaddr[3]; 
