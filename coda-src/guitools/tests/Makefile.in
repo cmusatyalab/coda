@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/tests/Makefile.in,v 1.5 97/12/16 22:51:14 mre Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/guitools/Makefile.in,v 1.2 97/12/16 16:47:32 mre Exp $";
 
 
 TOPDIR = @top_srcdir@
@@ -38,36 +38,11 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-LIBS =  ../$(LIBFAIL)\
-	../$(LIBUTIL)\
-	../$(LIBVICEDEP)\
-	../$(LIBSE)\
-	../$(LIBRPC2)\
-	$(LIBOLDLWP)\
-	$(LIBCOMPAT)\
-	../$(LIBKERNDEP)\
-	$(LIBGDBM)
 
+CodaDemo.tcl: CodaDemo.tcl.in
+	cp $< $@
 
-OTHERLIBS = $(LIBSYS) $(LIBKVM)
-
-OBJECTS = replacementlog_test.o programspy_test.o
-VOBJS = fake_venus.o demo_handler.o ../conversions.o
-
-TESTS = replacementlog_test programspy_test fake_advice fake_venus
-
-
-replacementlog_test: replacementlog_test.o ../libadvice.a
-	$(CXX) $(CFLAGS) -o replacementlog_test replacementlog_test.o ../libadvice.a $(LIBS)
-
-programspy_test: programspy_test.o ../libadvice.a
-	$(CXX) $(CFLAGS) -o programspy_test programspy_test.o ../libadvice.a $(LIBS)
-
-fake_advice: $(LIBS) $(OTHERLIBS) ../libfakeadvice.a ../advice_srv
-	$(CXX) $(LIBFLAGS) ../advice_srv.o ../libfakeadvice.a $(LIBS) $(OTHERLIBS) -o fake_advice
-	
-
-fake_venus: $(VOBJS) $(LIBS) $(OTHERLIBS)
-	$(CXX) $(CFLAGS) $(LIBFLAGS) $(VOBJS) $(LIBS) $(OTHERLIBS) -o fake_venus
+DemoSetup: DemoSetup.in
+	cp $< $@
 
 include $(MAKDIR)/configs/Makerules

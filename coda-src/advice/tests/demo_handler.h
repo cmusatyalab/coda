@@ -1,5 +1,5 @@
 
-#define CODADEMO "/usr/mre/russianSave/coda-src/guitools/CodaDemo.tcl"
+#define CODADEMO "../../guitools/tests/CodaDemo.tcl"
 #define CODACONSOLEOUT "/usr/local/bin/tixwish"
 
 extern void InitializeCodaDemo();

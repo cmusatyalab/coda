@@ -28,7 +28,7 @@ extern "C" {
 #include "adsrv.h"
 
 #include "demo_handler.h"
-#include "globals.h"
+#include "../globals.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -175,6 +175,7 @@ void ProcessInputFromDemo() {
     count++;
     rfd = ReadFromDemo();
     while (rfd != NULL) {
+      printf("Line: %s\n", rfd); fflush(stdout);
         if (CompareInputCommand(rfd, "LostConnection") == TRUE) {
 	    C_LostConnection(handle);
 	    fflush(stdout);

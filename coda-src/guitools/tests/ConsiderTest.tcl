@@ -1,7 +1,18 @@
 
-lappend auto_path /usr/mre/russianSave/coda-src/guitools
+source ../OutsideWorld.tcl
+source ../Helper.tcl
+source ../ConsiderAdding.tcl
+source ../ConsiderRemoving.tcl
+source ../Consider.tcl
+
+
+
 wm withdraw .
 set Pathnames(newHoarding) /coda/usr/mre/newHoarding
+
+set DisplayStyle(Centered) \
+    [tixDisplayStyle text -font *times-medium-r-*-*-14* -background gray92 -anchor c]
+
 
 set DisplayStyle(Header) \
     [tixDisplayStyle text \
@@ -21,11 +32,10 @@ set DisplayStyle(Normal) \
 
 Consider_Init
 
-
-Consider_ProcessVenusInput /tmp/usage3
-#ConsiderAdding
-#tkwait window $ConsiderAdding(MainWindow)
-#update idletasks
-#Consider_ProcessVenusInput /tmp/usage4 
+Consider_ProcessVenusInput ./usage_statistics
+ConsiderAdding
+update idletasks
 ConsiderRemoving
+
+exit
 
