@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vtools/RCS/cfs.cc,v 1.1 1996/11/22 19:14:27 braam Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir/coda-src/vtools/RCS/cfs.cc,v 1.2 1996/12/09 21:05:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -451,7 +451,7 @@ PRIVATE void CheckServers(int argc, char *argv[], int opslot)
     {
     int rc, i; 
     unsigned long *downsrvarray;
-    char *insrv;
+    char *insrv=0;
     struct ViceIoctl vio;
 
     if (argc < 2 || argc > 10)
@@ -490,7 +490,7 @@ PRIVATE void CheckServers(int argc, char *argv[], int opslot)
     if (rc < 0){fflush(stdout); perror("  VIOCCKSERV"); exit(-1);}
 
     /* See if there are any dead servers */
-    free(insrv);
+    if (insrv) free(insrv); /* free insrv only if it was alloc before */
     downsrvarray = (unsigned long *) piobuf;
     if (downsrvarray[0] == 0) {printf("All servers up\n"); return;}
     
