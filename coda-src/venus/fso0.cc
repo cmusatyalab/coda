@@ -620,8 +620,14 @@ RestartFind:
 	    goto RestartFind;
 	}
 
+        if (v->state == Resolving) {
+            LOG(0, ("Volume resolving and file not cached, retrying VDB->Get!\n"));
+            VDB->Put(&v);
+	    return(ERETRY);
+        }
+
         /* Cut-out early if volume is disconnected! */
-        if (v->state != Hoarding && v->state != Logging) {
+        if (v->state == Emulating) {
             LOG(100, ("Volume disconnected and file not cached!\n"));
             VDB->Put(&v);
             return(ETIMEDOUT);
