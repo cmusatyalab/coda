@@ -1,4 +1,25 @@
-2003-07-??	<jaharkes@cs.cmu.edu>
+2003-08-26	<jaharkes@cs.cmu.edu>
+        * ======== Release 6.0.3 =========
+	* clog -as <user>, clog uses setuid to switch to the specified user
+	  before obtaining tokens. This simplifies getting tokens while
+	  keeping passwords safe from a root crontab entry.
+	    clog -as www-data [webuser] < /.../passwordfile
+	* Fix rounding error in GrowVnodes which was causing a server crash
+	  during backups.
+	* Runt-resolution fixes.
+	* When repairing a directory, set the author on all replicas.
+	* Ignore failures when stale directories are already purged.
+	* Call endrepair on correct object.
+	* Repairing a directory no longer sets the mode to 0644.
+	* Incorrect htonl in repair messed up the hostnames in the fixfile.
+	* Avoid endless recursion when a primary host disappears.
+	* Make logrotate script quieter.
+	* Improved volutil create_rep usage message.
+	* Fixed RPM spec file to include missing files.
+	* Redirect stdout/stderr to /dev/null to work around init issues.
+	* Fail when libreadline is not found.
+
+2003-08-01	<jaharkes@cs.cmu.edu>
         * ======== Release 6.0.2 =========
 	* Make sure the server stays responsive while computing SHA
 	  checksums by occasionally yielding to other threads.
