@@ -158,7 +158,7 @@ long FS_TokenExpired(RPC2_Handle RPCid)
     SLog(100, "TokenExpired");
     FS_ViceDisconnectFS(RPCid);
 
-    return(RPC2_FAIL);
+    return(RPC2_NAKED);
 }
 
 long FS_ViceGetOldStatistics(RPC2_Handle RPCid, ViceStatistics *Statistics)
