@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/advice_srv.h,v 1.2 1996/11/24 21:25:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.h,v 4.1 1997/01/08 21:49:15 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,7 +41,7 @@ static char *rcsid = "$Header: /home/braam/src/coda-src/advice/RCS/advice_srv.h,
 /*****  Definitions  *****/
 #define FALSE 0
 #define TRUE 1
-#define DFTSTACKSIZE  8            /* 8 k is the default stacksize for lwp's */
+#define DFTSTACKSIZE  16            /* 8 k is the default stacksize for lwp's */
 #define STARTASR_INTERVAL  300   /* Number seconds before asr can be retired */
 
 /* Definitions:  Pathnames to other executables... */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/advice/RCS/advice_srv.cc,v 4.1 1997/01/08 21:49:15 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.2 1997/02/26 16:02:26 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -765,9 +765,14 @@ char* getcommandname(int pid) {
 
     snprintf(tmpfile, MAXPATHLEN, "/tmp/advice_srv.%d", thisPID);
 	
+#ifdef __NetBSD__
+    snprintf(commandString, MAXPATHLEN, "ps axc -p %d | awk '{ if ($5 == \"COMMAND\") next; print $5 > \"%s\"}'", pid, tmpfile);
+#else
     snprintf(commandString, MAXPATHLEN, "ps axc %d | awk '{ if ($5 == \"COMMAND\") next; print $5 > \"%s\"}'", pid, tmpfile);
-
+#endif
     rc = system(commandString);
+    if (rc) 
+	return(NULL);
     f = fopen(tmpfile, "r");
     fscanf(f, "%s", commandname);
     fclose(f);
@@ -781,13 +786,14 @@ char *GetCommandName(int pid) {
     static char CommandName[MAXPATHLEN];
 
     commandname = getcommandname(pid);
-    assert(strlen(commandname) < MAXPATHLEN);
     if (commandname == NULL) 
 	snprintf(CommandName, MAXPATHLEN, "Unknown");
     else if (strcmp(commandname, "") == 0) 
 	snprintf(CommandName, MAXPATHLEN, "Unknown");
-    else
+    else {
+	assert(strlen(commandname) < MAXPATHLEN);
 	snprintf(CommandName, MAXPATHLEN, "%s", commandname);
+    }
     return(CommandName);
 }
 
@@ -1369,7 +1375,7 @@ long ReadDisconnectedMiss(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer p
 
 	args[0] = READMISS;
 	args[1] = (char*)pathname;
-	args[2] = GetCommandName((int)pid);
+	args[2] = thisProgName;
 	args[3] = NULL;
 
 	int rc = execute_tcl(READMISS, args);
@@ -1515,28 +1521,21 @@ long DisconnectedMiss(RPC2_Handle _cid, DisconnectedMissQuestionnaire *questionn
 
 long WeaklyConnectedMiss(RPC2_Handle _cid, WeaklyConnectedInformation *information, RPC2_Integer *advice)
 {
-    static char lastPathname[MAXPATHLEN]; char thisPathname[MAXPATHLEN];
-    static char lastProgName[MAXPATHLEN]; char thisProgName[MAXPATHLEN];
-    static int lastAdvice;
+    static char thisPathname[MAXPATHLEN];
+    static char thisProgName[MAXPATHLEN];
     miss *m;
 
     *advice = WeaklyUnknown;
-
-    /* Filter out duplicates -- if it's the same as the last one... */
     assert(information != NULL);
+    int pid = information->pid;
+    int expectedtime = information->ExpectedFetchTime;
+
     strncpy(thisPathname, (char*)information->Pathname, MAXPATHLEN);
-    strncpy(thisProgName, GetCommandName((int)information->pid), MAXPATHLEN);
-    if ((strcmp(thisPathname,lastPathname) == 0) && 
-	(strcmp(thisProgName,lastProgName) == 0)) {
-	*advice = lastAdvice;
-	return(RPC2_SUCCESS);
-    }
-    strncpy(lastPathname, thisPathname, MAXPATHLEN);
-    strncpy(lastProgName, thisProgName, MAXPATHLEN);
+    strncpy(thisProgName, GetCommandName(pid), MAXPATHLEN);
 
-    LogMsg(100,LogLevel,LogFile,"E WeaklyConnectedMiss: %s %d", (char*)information->Pathname, (int)information->pid);
+    LogMsg(100,LogLevel,LogFile,"E WeaklyConnectedMiss: %s %d %d", thisPathname, pid, expectedtime);
 
-    m = new miss((char*)information->Pathname,GetCommandName((int)information->pid));
+    m = new miss(thisPathname,thisProgName);
 
     IncrementCounter(&WCMcount, PRESENTED);
 
@@ -1545,9 +1544,9 @@ long WeaklyConnectedMiss(RPC2_Handle _cid, WeaklyConnectedInformation *informati
 	char *args[5];
 
 	args[0] = WEAKMISS;
-	args[1] = (char*)information->Pathname;
-	args[2] = GetCommandName((int)information->pid); 
-	snprintf(arg, smallStringLength, "%d", information->ExpectedFetchTime);
+	args[1] = thisPathname;
+	args[2] = thisProgName;
+	snprintf(arg, smallStringLength, "%d", expectedtime);
 	args[3] = arg;
 	args[4] = NULL;
 
@@ -1575,7 +1574,6 @@ long WeaklyConnectedMiss(RPC2_Handle _cid, WeaklyConnectedInformation *informati
     PrintCounters();
 
     LogMsg(100,LogLevel,LogFile, "L WeaklyConnectedMiss(advice = %d)", *advice);
-    lastAdvice = *advice;
     return(RPC2_SUCCESS);
 }
 
