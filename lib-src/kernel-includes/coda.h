@@ -125,6 +125,11 @@ typedef unsigned long long u_quad_t;
 #define __BIT_TYPES_DEFINED__
 #endif
 
+/* FreeBSD 5.0 */
+#if __FreeBSD__ >= 5
+#define __BIT_TYPES_DEFINED__
+#endif
+
 #ifndef __BIT_TYPES_DEFINED__
 #define __BIT_TYPES_DEFINED__
 typedef signed char	      int8_t;
