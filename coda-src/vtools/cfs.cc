@@ -516,6 +516,23 @@ static int brave(int slot)
         }
     }
 
+static int parseHost(char *name_or_ip, struct in_addr *addr)
+{
+    struct hostent *h;
+
+    if (inet_aton(name_or_ip, addr))
+	return 1;
+
+    h = gethostbyname(name_or_ip);
+    if (!h) {
+	addr->s_addr = INADDR_ANY;
+	return 0;
+    }
+
+    *addr = *(struct in_addr *)h->h_addr;
+    return 1;
+}
+
 
 #define MAXHOSTS 8  /* from venus.private.h, should be in vice.h! */
 
@@ -543,12 +560,13 @@ static void CheckServers(int argc, char *argv[], int opslot)
 
     int hcount = 0;
     for (i = 2; i < argc; i++) {
-        struct hostent *h = gethostbyname(argv[i]);
         int ix = (int) (hcount * sizeof(struct in_addr) + sizeof(int));
-        if (h) {
-            *((struct in_addr *) &insrv[ix]) = *(struct in_addr *)(h->h_addr);
-            hcount++;
-        }
+	struct in_addr host;
+
+	if (!parseHost(argv[i], &host)) continue;
+
+	*((struct in_addr *) &insrv[ix]) = host;
+	hcount++;
     }       
     if (hcount) {
         ((int *) insrv)[0] = hcount;
@@ -709,21 +727,23 @@ static void Redir (int argc, char *argv[], int opslot)
 {
     int rc;
     struct ViceIoctl vio;
-    struct in_addr whereto;
+    struct in_addr whereto = { INADDR_ANY };
 
-    if (argc != 4) {
+    if (argc != 3 || argc != 4) {
         printf("Usage: %s\n", cmdarray[opslot].usetxt);
         exit(-1);
     }
 
     /* Set up parms to pioctl */
-    inet_aton(argv[3], &whereto);
+    if (argc == 4)
+	(void)parseHost(argv[3], &whereto);
+
     vio.in = (char *)&whereto;
     vio.in_size = sizeof(struct in_addr);
     vio.out_size = 0;
     vio.out = NULL;
 
-        /* Do the pioctl */
+    /* Do the pioctl */
     rc = pioctl(argv[2], VIOC_REDIR, &vio, 1);
     if (rc <0) {fflush(stdout); perror(argv[2]);}
 }
@@ -754,12 +774,13 @@ static void Disconnect(int argc, char *argv[], int opslot)
 
     int hcount = 0;
     for (int i = 2; i < argc; i++) {
-        struct hostent *h = gethostbyname(argv[i]);
         int ix = (int) (hcount * sizeof(unsigned long) + sizeof(int));
-        if (h) {
-            *((unsigned long *) &insrv[ix]) = ntohl(*((unsigned long *)h->h_addr));
-            hcount++;
-        }
+	struct in_addr host;
+
+	if (!parseHost(argv[i], &host)) continue;
+
+	*((unsigned long *) &insrv[ix]) = ntohl(host.s_addr);
+	hcount++;
     }       
     if (hcount) {
         ((int *) insrv)[0] = hcount;
@@ -1995,12 +2016,13 @@ static void Reconnect(int argc, char *argv[], int opslot)
 
     int hcount = 0;
     for (int i = 2; i < argc; i++) {
-        struct hostent *h = gethostbyname(argv[i]);
         int ix = (int) (hcount * sizeof(unsigned long) + sizeof(int));
-        if (h) {
-            *((unsigned long *) &insrv[ix]) = ntohl(*((unsigned long *)h->h_addr));
-            hcount++;
-        }
+	struct in_addr host;
+
+	if (!parseHost(argv[i], &host)) continue;
+
+	*((unsigned long *) &insrv[ix]) = ntohl(host.s_addr);
+	hcount++;
     }       
     if (hcount) {
         ((int *) insrv)[0] = hcount;
