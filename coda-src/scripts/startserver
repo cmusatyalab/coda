@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/startserver,v 4.5 1998/01/04 14:58:35 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/startserver,v 4.6 1998/01/13 00:23:07 braam Exp $";
 #endif /*_BLURB_*/
 
 if [ -f /vice/srv/pid -o -f /vice/srv/CRASH ]; then
@@ -51,5 +51,5 @@ rm -f /vice/src/CRASH
 
 srv $* -nodumpvm `grep '^\-rvm ' /vice/srv.conf`
 
-rm /vice/srv/pid
-rm /vice/srv/CRASH
+rm -f /vice/srv/pid
+rm -f /vice/srv/CRASH
