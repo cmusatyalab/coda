@@ -901,7 +901,7 @@ void volent::ResetVolTransients()
     excl_count = 0;
     excl_pgid = 0;
     resolver_count = 0;
-    flags.transition_pending = 0;
+    flags.transition_pending = 1;
     flags.demotion_pending = 0;
     flags.allow_asrinvocation = 1;
     flags.asr_running = 0;
