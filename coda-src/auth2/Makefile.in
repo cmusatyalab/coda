@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda/coda-4.0.1/coda-src/auth2/RCS/Makefile.in,v 4.3 97/04/29 21:27:25 rvb Exp Locker: rvb $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/auth2/Makefile.in,v 4.4 1997/05/22 10:32:05 rvb Exp $";
 
 # 
 #                          IBM COPYRIGHT NOTICE
@@ -58,7 +58,8 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 EXECUTABLES = auth2 authmon initpw au oldtokens
-SSBINS      = auth2 authmon initpw au
+SSBINS      = auth2 authmon initpw 
+CSBINS      = au
 LIBRARIES   = libauth2.a
 HEADERS     = ${RP2FILES} ${RP2HEADERS}
 
