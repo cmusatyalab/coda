@@ -32,14 +32,15 @@ extern "C" {
 #include <errno.h>
 #include <pioctl.h>
 
+#include "codaconf.h"    
+#include "coda_config.h"
+#include "coda.h"
+
 #if defined(__CYGWIN32__) || defined(DJGPP)
 
 #ifdef __CYGWIN32__
 #include <ctype.h>
 #include <windows.h>
-#include "coda.h"
-#include "codaconf.h"    
-#include "coda_config.h"
 // XXX should fix the following!
 #include "../venus/nt_util.h"
 #endif
@@ -418,6 +419,7 @@ int pioctl(const char *path, unsigned long com,
      */
     struct PioctlData data;
     int code;
+    static char *ctlfile = NULL;
 
     /* Must change the size field of the command to match 
        that of the new structure. */
@@ -430,7 +432,15 @@ int pioctl(const char *path, unsigned long com,
     data.follow = follow;
     data.vi = *vidata;
 
-    code = _pioctl(CTL_FILE, cmd, &data);
+    if (!ctlfile) {
+	char *mtpt = NULL;
+	conf_init(SYSCONFDIR "/venus.conf");
+	CONF_STR(mtpt, "mountpoint", "/coda");
+	ctlfile = malloc(strlen(mtpt) + strlen(CODA_CONTROL) + 2);
+	sprintf(ctlfile, "%s/%s", mtpt, CODA_CONTROL);
+    }
+
+    code = _pioctl(ctlfile, cmd, &data);
 
     /* Return result of ioctl. */
     return(code);
