@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.17 1998/10/21 22:23:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvol.cc,v 4.18 98/11/02 16:46:23 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -480,7 +480,7 @@ int vdb::Get(volent **vpp, char *volname) {
 
 	PutConn(&c);
 
-	if (code == 0 || code == ENXIO) break;
+	if (code == 0) break; /* used to || with ENXIO (VNOVOL) */
 
 	if (code != 0 && code != ETIMEDOUT) return(code);
     }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vicedep/operations.h,v 1.1 1996/11/22 19:09:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/operations.h,v 4.1 97/01/08 21:52:04 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -42,7 +42,8 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 
 typedef int (*VCP)(int, VnodeType, void *, void *);
 
-extern int ValidateParms(RPC2_Handle, ClientEntry **, int, VolumeId *, RPC2_CountedBS *);
+extern int ValidateParms(RPC2_Handle, ClientEntry **, int *ReplicatedOp,
+			 VolumeId *, RPC2_CountedBS *, int *Nservers);
 extern int AllocVnode(Vnode **, Volume *, ViceDataType,
 		       ViceFid *, ViceFid *, UserId, RPC2_Unsigned, int *);
 extern int CheckFetchSemantics(ClientEntry *, Vnode **, Vnode **,

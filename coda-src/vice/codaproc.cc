@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.20 1998/11/25 19:23:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.21 98/12/04 21:01:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -554,7 +554,8 @@ long FS_ViceRepair(RPC2_Handle cid, ViceFid *Fid, ViceStatus *status,
     
     /* 1. validate parameters */
     {
-	if (errorCode = ValidateParms(cid, &client, 1, &Fid->Volume, NULL))
+	if (errorCode = ValidateParms(cid, &client, NULL, &Fid->Volume, NULL,
+				      NULL))
 	    goto FreeLocks;
     }
     

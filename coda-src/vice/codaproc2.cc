@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.13 1998/11/11 15:59:05 smarc Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc2.cc,v 4.14 98/11/25 19:23:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -362,7 +362,7 @@ long FS_ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid,
     SLog(0/*1*/, "ViceOpenReintHandle: Fid = (%x.%x.%x)",
 	     Fid->Volume, Fid->Vnode, Fid->Unique);
 
-    if (errorCode = ValidateParms(RPCid, &client, 1, &Fid->Volume, 0))
+    if (errorCode = ValidateParms(RPCid, &client, NULL, &Fid->Volume, 0, NULL))
 	goto FreeLocks;
 
     v = AddVLE(*vlist, Fid);

@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.6 1998/04/02 13:18:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.7 98/11/02 16:47:52 rvb Exp $";
 #endif _BLURB_
 
 /*
@@ -4222,7 +4222,7 @@ static rvm_bool_t do_init_log()
         perror("? could not initialize log data area");
         exit(1);
         }
-    page_free(buf,log_buf->length);
+    page_free((char *)buf,log_buf->length);
 
     /* leave version string in local status i/o area for status printing */
     (void)strcpy(((log_dev_status_t *)status_io)->version,

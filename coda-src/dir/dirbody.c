@@ -51,6 +51,7 @@ extern "C" {
 #include <lwp.h>
 #include <lock.h>
 #include <rvmlib.h>
+#include <ctype.h>
 #include "codadir.h"
 #include "dirbody.h"
 #ifdef __cplusplus
@@ -799,10 +800,13 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	int fd;
 	int len;
 	struct venus_dirent *vd;
-	int i, rc;
+	int i;
 	int num;
 	char *buf;
 	int offset = 0;
+#ifdef DJGPP
+	int rc;
+#endif
 
 	if ( !dir ) 
 		return ENOENT;
