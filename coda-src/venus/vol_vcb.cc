@@ -292,50 +292,52 @@ int repvol::GetVolAttr(uid_t uid)
 	    volid.Realm = realm->Id();
 
 	    /* now set status of volumes */
-	    for (i = 0; i < numVFlags; i++)  /* look up the object */
+	    for (i = 0; i < numVFlags; i++)  { /* look up the object */
 		volid.Volume = VidList[i].Vid;
 		v = VDB->Find(&volid);
-		if (v) {
-                    CODA_ASSERT(v->IsReplicated());
-                    repvol *vp = (repvol *)v;
-		    fso_vol_iterator next(NL, vp);
-		    fsobj *f;
-
-		    switch (VFlags[i]) {
-		    case 1:  /* OK, callback */
-			if (cbtemp == cbbreaks) {
-			    LOG(1000, ("volent::GetVolAttr: vid 0x%x valid\n",
-                                       vp->GetVolumeId()));
-	                    vp->SetCallBack();
-
-			    /* validate cached access rights for the caller */
-			    while ((f = next())) 
-				if (f->IsDir()) {
-				    f->PromoteAcRights(ALL_UIDS);
-				    f->PromoteAcRights(uid);
-			        }
-		        } 
-			break;
-		    case 0:  /* OK, no callback */
-			LOG(0, ("volent::GetVolAttr: vid 0x%x valid, no "
-                                "callback\n", vp->GetVolumeId()));
-			vp->ClearCallBack();
-			break;
-		    default:  /* not OK */
-			LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n",
-                                vp->GetVolumeId()));
-			vp->ClearCallBack();
-			Recov_BeginTrans();
-			    RVMLIB_REC_OBJECT(vp->VVV);
-			    vp->VVV = NullVV;   
-			Recov_EndTrans(MAXFP);
-			break;
-		    }
-		    v->release();
-		} else {
+		if (!v) {
 		    LOG(0, ("volent::GetVolAttr: couldn't find vid 0x%x\n", 
 			    VidList[i].Vid));
+		    continue;
 		}
+
+		CODA_ASSERT(v->IsReplicated());
+		repvol *vp = (repvol *)v;
+		fso_vol_iterator next(NL, vp);
+		fsobj *f;
+
+		switch (VFlags[i]) {
+		case 1:  /* OK, callback */
+		    if (cbtemp == cbbreaks) {
+			LOG(1000, ("volent::GetVolAttr: vid 0x%x valid\n",
+				   vp->GetVolumeId()));
+			vp->SetCallBack();
+
+			/* validate cached access rights for the caller */
+			while ((f = next())) 
+			    if (f->IsDir()) {
+				f->PromoteAcRights(ALL_UIDS);
+				f->PromoteAcRights(uid);
+			    }
+		    } 
+		    break;
+		case 0:  /* OK, no callback */
+		    LOG(0, ("volent::GetVolAttr: vid 0x%x valid, no "
+			    "callback\n", vp->GetVolumeId()));
+		    vp->ClearCallBack();
+		    break;
+		default:  /* not OK */
+		    LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n",
+			    vp->GetVolumeId()));
+		    vp->ClearCallBack();
+		    Recov_BeginTrans();
+		    RVMLIB_REC_OBJECT(vp->VVV);
+		    vp->VVV = NullVV;   
+		    Recov_EndTrans(MAXFP);
+		    break;
+		}
+		v->release();
+	    }
         }
     }
 
