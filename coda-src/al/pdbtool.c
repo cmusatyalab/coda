@@ -491,7 +491,7 @@ again:
 		fprintf(ldiffile,
 			"dn: uid=%s, %s\nobjectClass: top\n"
                         "objectClass: account\nobjectClass: posixAccount\n"
-			"cn: %s\nuid: %s\nuidNumber: %d\ngidNumber=65535\n"
+			"cn: %s\nuid: %s\nuidNumber: %d\ngidNumber: 65535\n"
 			"homeDirectory: /coda/usr/%s\n\n",
 			rec.name, basedn, rec.name, rec.name, rec.id, rec.name);
 	    } else {
