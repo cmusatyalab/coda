@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/res/resc.c,v 1.1 1996/11/22 19:12:55 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/resc.c,v 4.1 1997/01/08 21:49:59 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -138,8 +138,8 @@ void main(int argc, char **argv)
 	strcpy(hi.Value.Name, mcname);
 	pi.Tag = RPC2_PORTALBYINETNUMBER;
 	pi.Value.InetPortNumber = htons(1361); 
-	si.Tag = RPC2_SUBSYSBYNAME;
-	strcpy(si.Value.Name, "Vice2-FileServer");
+	si.Tag = RPC2_SUBSYSBYID;
+	si.Value.Id = SUBSYS_SRV;
 	rc = RPC2_Bind(RPC2_OPENKIMONO, NULL, &hi, &pi, &si, 
 		       NULL, NULL, (RPC2_EncryptionKey)NULL, 
 		       &cid);
@@ -260,8 +260,8 @@ void cbserver()
     RPC2_Handle cid;
     int rc;
 
-    cbs.Tag = RPC2_SUBSYSBYNAME;
-    strcpy(cbs.Value.Name, "Vice2-CallBack");
+    cbs.Tag = RPC2_SUBSYSBYID;
+    cbs.Value.Id = SUBSYS_CB;
     rc = RPC2_Export(&cbs);
     if (rc != RPC2_SUCCESS)
     	{printf("RPC2_Export: %s\n", RPC2_ErrorMsg(rc)); exit(-1);}

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.h,v 4.5 1998/02/10 16:01:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rvmlib.h,v 4.6 1998/03/06 20:20:34 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -83,14 +83,11 @@ typedef enum {	UNSET =	0,		/* uninitialized */
 } rvm_type_t;
 
 typedef struct {
-    rvm_tid_t *tid;
-    jmp_buf abort;
-    intentionList_t list;
-#ifdef	__linux__
-  void (*die)(char *arg, ...);
-#else
-  void (*die)(char * ...);
-#endif
+	rvm_tid_t *tid;
+	jmp_buf abort;
+	intentionList_t list;
+	rvm_tid_t thetid;
+	void (*die)(char *arg, ...);
 } rvm_perthread_t;
 
 

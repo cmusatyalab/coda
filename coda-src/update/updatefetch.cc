@@ -55,7 +55,7 @@ extern "C" {
 #include <se.h>
 #include "timer.h"
 #include "sftp.h"
-
+#include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -202,8 +202,8 @@ PRIVATE void Connect()
     strcpy(hid.Value.Name, host);
     sid.Tag = RPC2_PORTALBYNAME;
     strcpy(sid.Value.Name, pname);
-    ssid.Tag = RPC2_SUBSYSBYNAME;
-    strcpy(ssid.Value.Name, "Vice2-UpdateServer");
+    ssid.Tag = RPC2_SUBSYSBYID;
+    ssid.Value.SubsysId = SUBSYS_UPDATE;
     dummy.SeqLen = 0;
 
 
@@ -240,7 +240,7 @@ PRIVATE void U_InitRPC()
     sftpi.SendAhead = 4;
     sftpi.AckPoint = 4;
     SFTP_Activate(&sftpi);
-    rcode = RPC2_Init(RPC2_VERSION, 0, NULL, 1, -1, 0);
+    rcode = RPC2_Init(RPC2_VERSION, 0, NULL, -1, 0);
     if (rcode != RPC2_SUCCESS) {
 	LogMsg(0, SrvDebugLevel, stdout, "RPC2_Init failed with %s\n", RPC2_ErrorMsg((int)rcode));
 	exit(-1);

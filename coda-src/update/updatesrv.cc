@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.6 1998/02/18 18:38:17 hmpierce Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updatesrv.cc,v 4.7 1998/03/19 15:16:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,7 +90,7 @@ extern "C" {
 #include <se.h>
 extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
 extern void SFTP_Activate (SFTP_Initializer *initPtr);
-
+#include <vice.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -183,7 +183,6 @@ int main(int argc, char **argv)
     portal1.Tag = RPC2_PORTALBYNAME;
     strcpy(portal1.Value.Name, "coda_udpsrv");
 #endif
-    portallist[0] = &portal1;
 
     SFTP_SetDefaults(&sftpi);
     sftpi.PacketSize = 1024;
@@ -194,10 +193,10 @@ int main(int argc, char **argv)
     RPC2_Trace = 0;
     tp.tv_sec = 80;
     tp.tv_usec = 0;
-    assert(RPC2_Init(RPC2_VERSION, 0, portallist, 1, 6, &tp) == RPC2_SUCCESS);
+    assert(RPC2_Init(RPC2_VERSION, 0, &portal1, 6, &tp) == RPC2_SUCCESS);
 
-    server.Tag = RPC2_SUBSYSBYNAME;
-    strcpy(server.Value.Name, "Vice2-UpdateServer");
+    server.Tag = RPC2_SUBSYSBYID;
+    server.Value.SubsysId = SUBSYS_UPDATE;
     assert(RPC2_Export(&server) == RPC2_SUCCESS);
 
     for (i = 0; i < lwps; i++) {
@@ -253,7 +252,7 @@ PRIVATE void ServerLWP(int *Ident)
 
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
-    myfilter.ConnOrSubsys.SubsysId = getsubsysbyname("Vice2-UpdateServer");
+    myfilter.ConnOrSubsys.SubsysId = SUBSYS_UPDATE;
     lwpid = *Ident;
     LogMsg(0, SrvDebugLevel, stdout,"Starting Update Worker %d\n", lwpid);
 

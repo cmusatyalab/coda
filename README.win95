@@ -1,0 +1,181 @@
+Coda for Windows 95
+-------------------
+
+========
+WARNING:
+========
+The software provided to run Coda on Windows 95 is an early pre-alpha
+snapshot, made available to those interested.  Coda runs kernel level
+code and priviliged processes which can cause damage to your system.
+Backup all data before playing with Coda.
+
+====================================
+Credits & History (Windows specific)
+====================================
+
+Coda was developed at Carnegie Mellon University in the group of
+M. Satyanarayanan.  Numerous people contributed to Coda, see the
+CREDITS file for details.
+
+Michael Callahan ported Coda to Windows 95.  Most importantly he wrote
+the Windows 95 kernel support for DPMI (Dos Protected Mode Interface)
+sockets, memory mapping as well as Coda specific file system code.  He
+used the djgpp compiler and libraries, and extended these to exploit
+the new memory mapping and socket kernel code.  All compilation is
+done with a Linux to DOS cross compiler.  The end result was a state
+of affairs where the Coda client could list some directories and read
+and write files, i.e. almost everything worked, but much debugging and
+extending remains to be done.
+
+Peter Braam assisted in the debugging, adapted the Coda code to
+accomodate Michael's changes most easily. He ported the server and
+utilities to Win32 (i.e. they run on Windows NT and Windows 95 but
+need to be differently configured for each platform).  Jay Kistler
+discovered the correct memory settings for the servers and debugged
+problems with memory mapping and rvm. Michael was helpful at throughout.
+Here the cygwin POSIX library for Windows 32 was used and again cross
+compilation from Linux was exploited.  As yet there is no client for
+Windows NT.
+
+Peter put all the releases together.
+
+
+===========
+To install:
+===========
+
+Fetch
+ftp://ftp.coda.cs.cmu.edu/pub/coda/win95/coda-client-4.5.1.exe
+ftp://ftp.coda.cs.cmu.edu/pub/coda/win95/dpmi-win95ext-2.0.1.exe
+
+Run the installer: it installs the following (all of which are needed):
+
+From the DPMI extender package:
+vxd's in C:\dpmi95
+ mmap.vxd
+ sock.vxd
+
+All further files are installed by the coda-client package:
+
+a) vxd's: in C:\coda-4.5.1\bin
+ mc.vxd
+ mcstub.vxd
+
+b) DOS-type user level code:
+
+ - mount utilities in C:\coda-4.5.1\bin
+ mount.exe
+ relay.exe
+ unmount.exe
+ 
+ - the cache manager in C:\coda-4.5.1\bin
+ venus.exe
+ 
+c) Win32 console applications C:\coda-4.5.1\bin
+ 
+The install script adds the vxd to your c:\windows\win.ini file and
+installs a coda configuration directory: 
+c:\usr\coda
+with a default layout.
+
+====================
+Manual Configuration
+====================
+You will need to edit the files:
+
+and put the ip of your host in it. 
+
+Also edit: 
+c:\usr\coda\etc\vstab
+and edit the server if you do not want to contact the testserver
+
+=============
+Starting Coda
+=============
+
+After installing the packages you must restart your computer.
+
+1. start relay
+c:\coda-4.5.1\bin\relay
+
+2. initialize Venus
+c:\coda-4.5.1\bin\venus -child
+
+3. start venus (first time -- very few cache files just to play)
+c:\coda-4.5.1\bin\venus -init -cf 500 
+
+4. mount N:
+Coda is mounted on the Z: drive and should work. 
+
+To restart venus, do not give any flags.
+
+===============
+Short rationale
+===============
+
+Why DOS applications??  It would seem more straightforward to
+implement the Coda client cache manager, a user level program named
+Venus, as a Win32 application.  Sadly on Windows 95 we ran into the
+following (fairly well known) problem.  When a user application calls
+a Win32 file system call, the application may acquire a mutex in a
+win16 system dll.  The request should reach the kernel, and make its
+way up to Venus.  Venus is then unable to service the request because
+it cannot grab the mutex. Deadlock results.
+
+Implementing all of Venus as a kernel level cache manager seemed an
+invitation for disaster.  Instead, by running the cache manager in a
+virtual DOS machine, as a DOS Protected Mode Interface application,
+one can bypass these problems, since such applications do not share
+the Windows dynamic libraries which gain the mutex.  The price of
+following this path is high.  There was no freely available socket
+support for such DPMI applications and no memory mapping support.
+These are provided by Michaels VXD's and standard library calls are
+now incorporated in the DJGPP toolchain.
+
+
+============================
+BUILDING Coda for Windows 95
+============================
+
+1) Building the user level Code
+
+What do you need: 
+
+a) for the user level code: a Linux machine with a few 100M of free
+space.
+
+download the tool chains made available under:
+ftp://ftp.coda.cs.cmu.edu/pub/tools/
+
+You need the rpms for:
+- djgpp package
+- djgpp-win95ext
+- cygwin
+- gdbm-nt
+- gdb-djgpp a "remote debugging" environment for DPMI applications. 
+
+Make sure to install 
+
+It is highly recommended to set up Samba to share Linux generated
+binaries with the Windows box.
+
+b) for the VXD's: Visual C++ 5.0, MS assembler 6.11, the Win95 DDK
+(comes with professional MSDN).  Also you need to download a
+collection of header files vxdtdi.zip for networking
+from 
+ftp.microsoft.com://developr/drg/WinSock/MS-Extensions/VXDTDI.ZIP.
+
+Note that the 95DDK needs the VC2.0 linker.
+
+c) Coda specific source code.
+Get the latest tarball of Coda sources.
+
+ftp://ftp.coda.cs.cmu.edu/pub/coda/sources/coda-4.5.1.tgz
+
+Also get:
+
+ftp://ftp.coda.cs.cmu.edu/pub/coda/sources/coda-vxds.zip
+
+You can rebuild Venus with ./configure --host=windows95 ; make coda
+and the client utilities and server with
+./configure --host=nt (the Venus built here is unusable on Win95).

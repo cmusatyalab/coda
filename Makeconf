@@ -9,7 +9,7 @@
 
 
 #########################################################
-#  Coda 4.0.1 build environment
+#  Coda 4.5.0 build environment
 #  little here should need editing
 #########################################################
 
@@ -42,6 +42,9 @@ VPATHTAIL := $(subst $(TOPDIR),,$(VPATH))
 OLDVPATH := $(VPATH)
 NEWVPATH := $(SECSRC)$(VPATHTAIL):$(VPATH)
 VPATH := $(NEWVPATH)
+else
+OLDVPATH := $(VPATH)
+VPATH := .:$(OLDVPATH)
 endif
 
 ifneq ($(VPATH),)
@@ -54,62 +57,32 @@ endif
 # Location of objects
 ##############################
 
-ifeq ($(SHOB),)
 INCLDIR=$(TOPOBJ)/include
 INCLSPECIAL=$(INCLDIR)
 RP2GEN=../rp2gen/rp2gen
-PCFGEN=../pcfgen/pcfgen
 
-else
-
-SHOB_BIN_SPECIAL = ${SHOB}/${SYS}/BIN-SPECIAL
-SHOB_BIN_DIR = ${SHOB}/${SYS}/bin
-SHOB_LIB_SPECIAL = ${SHOB}/${SYS}/LIB-SPECIAL
-SHOB_LIB_DIR=	 ${SHOB}/${SYS}/lib
-
-SHOB_MAN_DIR = ${SHOB}/${SYS}/man
-SHOB_SCRIPT_DIR = ${SHOB_BIN_DIR}
-SHOB_DOC_DIR = ${SHOB}/${SYS}/doc
-
-INCLSPECIAL= ${SHOB}/${SYS}/INCLUDE-SPECIAL
-INCLDIR = ${SHOB}/${SYS}/include
-RP2GEN = $(SHOB_BIN_DIR)/rp2gen
-PCFGEN = $(SHOB_BIN_DIR)/pcfgen
-
-endif
 ##############################
 # Machine independent FLAGS
 ##############################
 
 
-ifeq ($(INCLDIR),$(INCLSPECIAL))
-INCLFLAGS := -I- -I. $(SHADOWINCLS) -I$(INCLDIR) $(INCLFLAGS)
+INCLFLAGS :=  -I. $(SHADOWINCLS) -I$(INCLDIR) $(INCLFLAGS)
 INCLPATH  := .:$(SHADOWPATH):$(INCLDIR)
-else
-INCLFLAGS := -I- -I. $(SHADOWINCLS) -I$(INCLDIR) -I$(INCLSPECIAL) $(INCLFLAGS)
-INCLPATH  := .:$(SHADOWPATH):$(INCLDIR):$(INCLSPECIAL)
-endif
+
 DEPFLAG   := -MD
-#MYFLAGS   := -O -Wchar-subscripts -Wcomment -Wimplicit -Wparentheses -Wreturn-type -Wswitch -Wuninitialized  -Wreorder -W -Wtraditional -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align -Winline 
 OPTFLAG   := -g
 LIBFLAGS  := $(OPTLFLAG)
 AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
 CFLAGS	  := $(OPTFLAG) $(AFLAGS) -DPRIVATE=static
 CXXFLAGS  := $(CFLAGS)
-C++FLAGS  := $(CFLAGS)	# Mach uses c++ flags, not CXX
 
-RP2FLAGS  = -n -e  -I . -I $(srcdir) -I $(INCLDIR)
+RP2FLAGS  = -e  -I . -I $(srcdir) -I $(INCLDIR)
 
 vpath %.h $(INCLPATH)
 vpath %.rpc2 $(INCLPATH)
 
 ##############################
 # Library definitions
-##############################
-ifeq	($(SHOB),)
-
-##############################
-# CASE 1: use binaries and libraries from tree
 ##############################
 
 # -- INODEFS --
@@ -168,77 +141,5 @@ VOLUTIL_RPC2 = ../vicedep/volutil.rpc2
 RES_RPC2 = ../vicedep/res.rpc2
 ADMON_RPC2 = ../vicedep/admon.rpc2
 ADSRV_RPC2 = ../vicedep/adsrv.rpc2
-
-else
-##############################
-# CASE 2: using shared SHOB
-##############################
-
-# -- INODEFS --
-# platform dependent: choice from user level and kernel level version
-# defined in configs/Makeconf.$(SYS)
-# LIBINODEFS = $(SHOB_LIB_DIR)/$(INODEFSNAME)
-
-# -- CS --
-LIBCS = $(SHOB_LIB_SPECIAL)/libcs.a
-
-# -- LWP --
-# LIBNEWLWP = ${SHOB_LIB_SPECIAL}/libnewlwp.a	(should not be used)
-LIBOLDLWP = ${SHOB_LIB_SPECIAL}/liboldlwp.a			
-
-# -- RVM --
-LIBRVM = $(SHOB_LIB_SPECIAL)/librvm.a
-LIBRDS = $(SHOB_LIB_SPECIAL)/librds.a	 		
-# threaded
-LIBRVMLWP = $(SHOB_LIB_SPECIAL)/librvmlwp.a		
-LIBRDSLWP = $(SHOB_LIB_SPECIAL)/librdslwp.a
-# libseg doesn't use threads.
-LIBSEG = $(SHOB_LIB_SPECIAL)/libseg.a 			
-
-# -- CODA --
-LIBCODARVM = $(LIBRVMLWP)
-LIBCODARDS = $(LIBRDSLWP)
-LIBKERNDEP = $(SHOB_LIB_DIR)/libkerndep.a   # --- (pioctl, setpag)
-LIBAUTH2 = $(SHOB_LIB_DIR)/libauth2.a
-LIBAL = $(SHOB_LIB_DIR)/libal.a
-LIBVOL = ${SHOB_LIB_DIR}/libvol.a
-LIBVICEDEP= $(SHOB_LIB_DIR)/libvicedep.a
-LIBVOLUTIL = ${SHOB_LIB_DIR}/libvolutil.a
-LIBVOLSERV = ${SHOB_LIB_DIR}/libvolserv.a
-LIBVV = $(SHOB_LIB_DIR)/libvv.a
-LIBRESOLVE = $(SHOB_LIB_DIR)/libresolve.a
-LIBRESLIB = ${SHOB_LIB_DIR}/libreslib.a
-LIBGROUP = $(SHOB_LIB_DIR)/libgroup.a
-LIBUTIL = $(SHOB_LIB_DIR)/libutil.a
-LIBRPC2 = $(SHOB_LIB_DIR)/librpc2.a
-LIBRPCLIB = $(SHOB_LIB_DIR)/librpclib.a
-LIBSE = $(SHOB_LIB_DIR)/libse.a
-LIBFAIL = $(SHOB_LIB_DIR)/libfail.a
-LIBMTCORE = $(SHOB_LIB_SPECIAL)/libmtcore.a
-LIBCOMM = $(SHOB_LIB_DIR)/libcomm.a
-LIBRVMRES = $(SHOB_LIB_DIR)/librvmres.a
-LIBDIRLIB= $(SHOB_LIB_DIR)/libdir.a
-LIBSETPAG = $(SHOB_LIB_DIR)/libsetpag.a
-LIBVICEERROR  = $(SHOB_LIB_DIR)/libviceerror.a
-LIBPARTITION = $(SHOB_LIB_DIR)/libpartition.a
-
-# -- Dynamic sets for Potemkin --
-LIBDS = $(SHOB_LIB_DIR)/libds.a
-
-##############################
-# RPC2 interface definitions in module vicedep
-##############################
-
-CALLBACK_RPC2 = $(INCLDIR)/callback.rpc2
-MOND_RPC2 = $(INCLDIR)/mond.rpc2
-VCRCOMMON_RPC2 = $(INCLDIR)/vcrcommon.rpc2
-VICE_RPC2 = $(INCLDIR)/vice.rpc2
-VOLDUMP_RPC2 = $(INCLDIR)/voldump.rpc2
-VOLUTIL_RPC2 = $(INCLDIR)/volutil.rpc2
-RES_RPC2 = $(INCLDIR)/res.rpc2
-ADMON_RPC2 = $(INCLDIR)/admon.rpc2
-ADSRV_RPC2 = $(INCLDIR)/adsrv.rpc2
-
-endif
 
 all: 
