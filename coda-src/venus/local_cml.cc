@@ -70,7 +70,7 @@ void cmlent::TranslateFid(VenusFid *global, VenusFid *local)
         /* Check if Fids[i] is global */
 	if (Fids[i] && FID_EQ(Fids[i], global)) {
             RVMLIB_REC_OBJECT(*Fids[i]);
-            Fids[i] = local;
+            *Fids[i] = *local;
             count++;
 	}
     }
@@ -81,9 +81,8 @@ void cmlent::TranslateFid(VenusFid *global, VenusFid *local)
 int cmlent::LocalFakeify()
 {
     int rc;
-    ViceVersionVector *VVs[3];
     VenusFid *Fids[3];
-    GetVVandFids(VVs, Fids);
+    GetAllFids(Fids);
     /* 
      * note that for each cmlent, Fids[0] is always the root fid of the
      * subtree that are affected by the IFT. the only exception is 
@@ -984,8 +983,7 @@ int cmlent::InLocalRepairSubtree(VenusFid *LocalRootFid)
 	      FID_(LocalRootFid)));
     VenusFid *Fids[3];
     fsobj *OBJ;
-    ViceVersionVector *VVs[3];
-    GetVVandFids(VVs, Fids);
+    GetAllFids(Fids);
 
     for (int i = 0; i < 3; i++) {
 	if (!Fids[i]) continue;
@@ -1021,9 +1019,8 @@ int cmlent::InGlobalRepairSubtree(VenusFid *GlobalRootFid)
     }
 
     VenusFid *Fids[3];
-    ViceVersionVector *VVs[3];
-    GetVVandFids(VVs, Fids);
     fsobj *OBJ;
+    GetAllFids(Fids);
 
     for (int i = 0; i < 3; i++) {
 	if (!Fids[i]) continue;

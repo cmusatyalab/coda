@@ -1089,7 +1089,7 @@ int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 	fsobj *f = 0;
 	VenusFid pFid;
 
-	LOG(100, ("fsdb::TranslateFid: %s --> %s", FID_(OldFid), 
+	LOG(100, ("fsdb::TranslateFid: %s --> %s\n", FID_(OldFid), 
 		  FID_(NewFid)));
 
 	/* cross volume replacements are for local fids */

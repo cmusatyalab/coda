@@ -3860,8 +3860,7 @@ void ClientModifyLog::AttachFidBindings()
 void cmlent::AttachFidBindings()
 {
     VenusFid *fids[3];
-    ViceVersionVector *vvs[3];
-    GetVVandFids(vvs, fids);
+    GetAllFids(fids);
 
     for (int i = 0; i < 3; i++) {
 	VenusFid *fidp = fids[i], *local;
