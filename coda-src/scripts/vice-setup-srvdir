@@ -44,7 +44,7 @@ while [ $n -le $numservers ]; do
     # server information prefix
     if [ $numservers -gt 1 ]; then
 	srvprefix=${vicedir}/server_$n
-	. "codaconfedit server_$n.conf`"
+	. "`codaconfedit server_$n.conf`"
 	bn=$hostname
     else
 	srvprefix=${vicedir}
@@ -82,8 +82,8 @@ while [ $n -le $numservers ]; do
     else
 	mkdir "$srvdir"
 	if [ $? != 0 ]; then
-	    echo Could not make $srvdir as a directory. Exiting.
-	    echo Run vice-setup-srvdir to repeat this step.
+	    echo "Could not make $srvdir as a directory. Exiting."
+	    echo "Run vice-setup-srvdir to repeat this step."
 	    exit 1
 	fi
     fi
