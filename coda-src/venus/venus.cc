@@ -101,7 +101,7 @@ int masquerade_port;
 int PiggyValidations;
 
 
-#ifdef HAVE_SYS_UN_H
+#if defined(HAVE_SYS_UN_H) && !defined(__CYGWIN32__)
 int mariner_tcp_enable = 0;
 #else
 int mariner_tcp_enable = 1;

@@ -62,6 +62,10 @@ extern "C" {
 
 #include <mkpath.h>
 
+#ifndef INADDR_LOOPBACK
+#define INADDR_LOOPBACK 0x7f000001
+#endif
+
 /* from venus */
 #include "fso.h"
 #include "venus.private.h"
@@ -147,7 +151,7 @@ Next:
         /* Bind to it. */
         struct sockaddr_in sin;
         sin.sin_family = AF_INET;
-        sin.sin_addr.s_addr = INADDR_ANY;
+        sin.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
         sin.sin_port = marinerport;
         if (bind(sock, (struct sockaddr *)&sin, (socklen_t) sizeof(sin)) < 0) {
             eprint("MarinerInit: bind failed (%d)", errno);
