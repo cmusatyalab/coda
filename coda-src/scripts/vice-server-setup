@@ -1,9 +1,6 @@
 #!/bin/sh
 
 vice-configs
-vice-srvdirsetup
-vice-user-setup
-vice-rvmsetup
 
 
 

@@ -1,13 +1,14 @@
-#!/bin/sh
+#!/bin/sh -x
 
 #
 # Setting up the server directory
 #
 
-echo Your server directory will hold the files \(not directories\). 
-echo It must be "/vicepa" in this initial release of Coda, but
-echo I can make that a symlink to another directory.
+echo 
+echo Your server directories will hold the files \(not directories\). 
+echo You can currently only have one directory per disk partition.
 echo
+
 echo -n 'Where shall we store your data [/vicepa]? '
 srvdir=/vicepa
 read srvdir
@@ -16,43 +17,41 @@ if [ x$srvdir = x ]; then
     srvdir=/vicepa
 fi
 
-if [ x$srvdir != x/vicepa ]; then
-    symlink=y
-else
-    symlink=n
+# set up a symlink if needed
+
+if [  -e $srvdir -a ! -d $srvdir ]; then
+   echo $srvdir exists, but is not a directory. Exiting.
+   exit 1
 fi
 
-# set up a symlink if needed
-if [ $symlink = y ]; then
-    # does srvdir exist? if so, exit
-    if [ ! -d $srvdir ]; then
-	mkdir $srvdir
-	if [ $? != 0 ]; then
-	    echo "Cannot create $srvdir. Exiting."
-	    exit 1
-	fi
-    fi
-    if [ -d /vicepa ]; then
-	echo /vicepa exists as directory. Exiting.
-	exit 1
-    fi
-    ln -sf $srvdir /vicepa
-    ln -sf /vicepa /mnt/vice
-    if [ $? != 0 ]; then
-	echo Cannot create symlink /vicepa pointing to $srvdir.
-	    echo Exiting.
-	    exit 1
-    fi
-else # use /vicepa as a directory
-    if [  -e /vicepa -a ! -d /vicepa ]; then
-	echo /vicepa exists, but is not a directory. Exiting.
-	exit 1
-    fi
-    if [ ! -d /vicepa ]; then
-	mkdir /vicepa
-	ln -sf /vicepa /mnt/vice
-    fi
+mkdir $srvdir
+touch $srvdir/FTREEDB
+
+hn=`hostname`
+bn=${hn%%.*}
+if [ x$bn = x ]; then
+    bn=$hn
 fi
+
+until [ x$yesno != x ]; do
+   echo -n "Shall I set up a vicetab entry for approx 256000 files for $srvdir (y/n) "
+   read yesno
+   if [  x$yesno = xy -o  x$yesno = xyes  ]; then
+       grep $srvdir /vice/db/vicetab
+       if [ $? = 0 ]; then
+          echo "$srvdir already in /vice/db/vicetab. Please clean up first."
+	  exit 1
+       fi
+
+       echo "$bn   $srvdir   ftree   width=64,depth=3" >> /vice/db/vicetab
+       echo "Now initializing the partition. This takes a while...."
+       makeftree /vice/db/vicetab $srvdir
+       echo "done."
+   else
+       echo
+       echo  "Read vicetab(5) and makeftree(8) for set up info."
+   fi
+done
 
 echo Server directory is set up!
 echo

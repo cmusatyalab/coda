@@ -69,15 +69,21 @@ kernel with inode system calls.
 %setup -n coda-@CVER@
 
 %build
-./configure --prefix=/usr
+chown -R root.bin $RPM_BUILD_DIR/coda-@CVER@
+rm -rf $RPM_BUILD_DIR/obj-@CVER@
+mkdir $RPM_BUILD_DIR/obj-@CVER@
+cd $RPM_BUILD_DIR/obj-@CVER@
+../coda-@CVER@/configure --prefix=/usr
 make GFLAG="" coda
 
 %install
+cd $RPM_BUILD_DIR/obj-@CVER@
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT/usr/coda/venus.cache $RPM_BUILD_ROOT/dev \
 	$RPM_BUILD_ROOT/usr/coda/etc $RPM_BUILD_ROOT/lib/modules/@KVER@/fs \
 	$RPM_BUILD_ROOT/coda $RPM_BUILD_ROOT/etc/rc.d/init.d\
-	$RPM_BUILD_ROOT/usr/man
+	$RPM_BUILD_ROOT/usr/man $RPM_BUILD_ROOT/$RPM_BUILD_DIR\
+	$RPM_BUILD_ROOT/usr/lib/coda
 
 # make prefix=$RPM_BUILD_ROOT/usr man-install
 
@@ -86,27 +92,26 @@ make prefix=$RPM_BUILD_ROOT/usr exec_prefix=$RPM_BUILD_ROOT/usr GFLAG="" \
 make SBINDIR=$RPM_BUILD_ROOT/vice/bin BINDIR=$RPM_BUILD_ROOT/vice/bin  \
 	GFLAG=""  server-install
 
+
 install -m755 $RPM_SOURCE_DIR/venus.init \
 	$RPM_BUILD_ROOT/etc/rc.d/init.d/venus.init
 
 
-cp kernel-src/vfs/linux/coda.o $RPM_BUILD_ROOT/lib/modules/@KVER@/fs/coda.o
+# cp kernel-src/vfs/linux@KV@/coda.o $RPM_BUILD_ROOT/lib/modules/@KVER@/fs/coda.o
 
 touch $RPM_BUILD_ROOT/usr/coda/etc/vstab
 touch $RPM_BUILD_ROOT/usr/coda/venus.cache/INIT
 mknod $RPM_BUILD_ROOT/dev/cfs0 c 67 0
 touch $RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
 
-make clean
 
 # for non debuging versions
 if [ X@DEBUG@ != X1 ]; then
    strip $RPM_BUILD_ROOT/usr/bin/* $RPM_BUILD_ROOT/vice/bin/* $RPM_BUILD_ROOT/usr/sbin/* || :
 fi
 
-mkdir -p $RPM_BUILD_ROOT/usr/src/redhat/BUILD/
-cd /usr/src/redhat/BUILD
-tar zcf $RPM_BUILD_ROOT/usr/src/redhat/BUILD/coda-@CVER@.tgz coda-@CVER@
+cd $RPM_BUILD_DIR
+tar zcf $RPM_BUILD_ROOT/$RPM_BUILD_DIR/coda-@CVER@.tgz coda-@CVER@
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -142,10 +147,7 @@ tar zxf coda-@CVER@.tgz
 /usr/sbin/vutil
 /usr/sbin/venus
 /usr/sbin/au
-/usr/sbin/coda-cache
-/usr/sbin/coda-flush
 /usr/sbin/coda-debug
-/usr/sbin/coda-resize
 /usr/sbin/coda-trace
 /usr/bin/advice_srv
 /usr/bin/filcon
@@ -211,6 +213,7 @@ tar zxf coda-@CVER@.tgz
 /vice/bin/volutil
 /vice/bin/parserecdump
 /vice/bin/backup
+/vice/bin/makeftree
 /vice/bin/readdump
 /vice/bin/merge
 /vice/bin/srv
@@ -229,10 +232,12 @@ tar zxf coda-@CVER@.tgz
 /vice/bin/createvol
 /vice/bin/createvol_rep
 /vice/bin/createvol_rep_ss
+/vice/bin/rc.vice
 /vice/bin/vice-configs
 /vice/bin/vice-makerootvol
 /vice/bin/vice-rvmsetup
 /vice/bin/vice-server-setup
+/vice/bin/vice-scm-setup
 /vice/bin/vice-srvdirsetup
 /vice/bin/vice-user-setup
 /vice/bin/vice-killvolumes

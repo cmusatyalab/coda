@@ -25,28 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.11.2.1 1997/11/26 18:05:31 braam Exp $";
-
-# 
-#                          IBM COPYRIGHT NOTICE
-# 
-#                           Copyright (C) 1986
-#              International Business Machines Corporation
-#                          All Rights Reserved
-# 
-# This  file  contains  some  code identical to or derived from the 1986
-# version of the Andrew File System ("AFS"), which is owned by  the  IBM
-# Corporation.    This  code is provded "AS IS" and IBM does not warrant
-# that it is free of infringement of  any  intellectual  rights  of  any
-# third  party.    IBM  disclaims  liability of any kind for any damages
-# whatsoever resulting directly or indirectly from use of this  software
-# or  of  any  derivative work.  Carnegie Mellon University has obtained
-# permission to distribute this code, which is based on Version 2 of AFS
-# and  does  not  contain the features and enhancements that are part of
-# Version 3 of AFS.  Version 3 of  AFS  is  commercially  available  and
-# supported by Transarc Corporation, Pittsburgh, PA.
-# 
-
+# static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/Makefile.in,v 4.13 1997/12/10 16:46:16 braam Exp $";
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -58,20 +37,26 @@ TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
 include $(MAKDIR)/Makeconf
-VENUS-SCRIPTS	= vutil newvenus volmunge venus-setup
 
-VOL-SCRIPTS	= createvol createvol_rep createvol_rep_ss purgevol purgevol_rep bldvldb.sh
-VICE-SCRIPTS	= startserver rc.vice
+VENUS-SCRIPTS	= vutil volmunge venus-setup venus.init
+
+VOL-SCRIPTS	= createvol createvol_rep purgevol purgevol_rep bldvldb.sh
+VICE-SCRIPTS	= startserver vice.init
 REINIT-SCRIPTS	= partial-reinit.sh reinit.sh recreatevol recreatevol_rep
-VICE-SETUP      = vice-configs vice-rvmsetup vice-killvolumes vice-makerootvol vice-server-setup vice-srvdirsetup vice-user-setup vice-install 
+VICE-SETUP      = vice-rvmsetup vice-killvolumes vice-makerootvol vice-server-setup vice-srvdirsetup vice-user-setup vice-install 
 
-BACKUP-SCRIPTS	= backup.sh extract.sh restore.sh tape.pl
+BACKUP-SCRIPTS	= backup.sh tape.pl
+
+# init scripts are installed here
+CBINS = venus.init
+SBINS = vice.init
+BINDIR :=$(INITDIR)
 
 SCRIPTS := $(VENUS-SCRIPTS) $(BACKUP-SCRIPTS)\
 	   $(VOL-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS)
 
 CSBINS = newvenus vutil $(VENUS-SCRIPTS)
 SSBINS = $(BACKUP-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS) $(VOL-SCRIPTS) $(VICE-SETUP)
-BBINS = $(BACKUP-SCRIPTS)
+
 include $(MAKDIR)/configs/Makerules
 

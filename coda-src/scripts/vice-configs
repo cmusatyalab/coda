@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/bin/sh 
 
 #
-# Configuration directory
+# Configuration directories:
 # 
 
 echo Setting up config files \(under /vice\).
@@ -35,6 +35,7 @@ cd /vice/db
 for which in auth2 volutil; do
     token=""
     until [ x$token != x ]; do
+	echo "The following tokens must be identical on all servers."
 	echo -n "Enter a random token for $which authentication : "
 	read token
 	if [ x$token != x ]; then
@@ -45,7 +46,7 @@ for which in auth2 volutil; do
         fi
     done
 done
-echo done!
+echo tokens done!
 
 #
 # files file for update
@@ -70,83 +71,17 @@ VSGDB
 dumplist
 EOF
 
+echo filelist for update ready. 
+
 #
 # populating /vice/vol
 #
 
 echo
 echo Populating /vice/vol...
-cd /vice/vol
-echo 2130706432 > maxgroupid
-echo VolumeList > .anonr
 touch fs.lock
 touch volutil.lock
-echo done!
-
-
-#
-# setting up servers file
-#
-
-id=""
-echo
-echo Setting up servers file.
-cd /vice/db
-until [ x$id != x ]; do
-   echo -n 'Enter an id for this server (a number > 0 < 255) : '
-   read id
-   if [ x$id != x ]; then
-      echo "Coda servers file" > servers
-      echo -n "`hostname`		$id" >> servers
-   fi
-done
-echo done!
-
-#
-# making hosts file
-#
-
-hn=`hostname`
-bn=${hn%%.*}
-if [ x$bn = x ]; then
-    bn=hn
-fi
-
-
-ip=""
-
-echo 
-echo We are setting up a hostfile.  Sorry this is a bit primitive right now!
-until [ x$ip != x ]; do
-    echo -n "Enter the ip address of this host : "
-    read ip
-    if [ x$ip != x ]; then
-       echo "$ip	$bn scm localhost" > /vice/db/hosts
-    fi
-done
-
-#
-# Horrible hack needed:
-#
-ln -s `which auth2` /vice/bin
-
-#
-# /vice/.hostname /vice/.scm and 
-# 
-
-cd /vice
-echo $bn > /vice/.hostname
-echo $bn > /vice/.scm
-if [ ! -e /.hostname ]; then
-    ln -s /vice/.hostname /
-fi
-if [ ! -e /.scm ]; then
-    ln -s /vice/.scm /
-fi
-
-
-echo E0000100 $bn > /vice/db/VSGDB
-echo /vice/db/VSGDB set up
+echo lockfiles created.
 
 #
 # adding stuff to /etc/services if needed
@@ -165,8 +100,86 @@ coda_udpsrv     1359/udp                        # Coda updsrv
 coda_filesrv    1361/udp                        # Coda filesrv
 coda_venus      1363/udp                        # Coda venus
 EOF
-echo done!
+echo /etc/services set up.
 fi
+
+
+#
+# startup scripts
+#
+yesno=""
+until [ x$yesno != x ]; do
+   echo -n 'Do you want to start the server at boot time? (y/n) '
+   read yesno
+   if [ x$yesno = xy  -o  x$yesno = xyes ]; then
+       if [ `uname` = Linux ]; then
+	    ln -s /etc/rc.d/init.d/vice.init /etc/rc.d/rc3.d/S98vice
+       fi
+       if [ `uname` = NetBSD ]; then
+	    echo 'if [ -e /etc/rc.vice ]; then /etc/rc.vice start ; fi' >> /etc/rc.local 
+       fi
+       echo "Startup scripts now installed."
+   fi
+done
+
+#
+# /.hostname 
+# 
+hn=`hostname`
+bn=${hn%%.*}
+# to prevent killing the hostname if it wasn't fully qualified.
+if [ x$bn = x ]; then
+    bn=$hn
+fi
+
+echo $bn > /.hostname
+
+#
+# end of common setup area, now specialize to scm or non scm
+# 
+
+isscm=N
+yesno=""
+until [ x$yesno != x ]; do
+   echo -n 'Is this the master server, aka the SCM machine? (y/n) '
+   read yesno
+   if [ x$yesno = xy  -o  x$yesno = xyes ]; then
+      isscm=Y
+      echo -n "Now installing files specific to the SCM..."
+   else
+      echo -n "Now installing things specific to non-SCM mahines..."
+   fi
+done
+
+
+if [ $isscm = Y ]; then
+    vice-scm-setup
+    vice-user-setup
+    vice-rvmsetup
+    vice-srvdirsetup
+    exit 0 
+fi
+
+#
+# specifics for non SCM servers only 
+# 
+
+until [ x$scmhost != x ]; do
+    echo -n "Enter the hostname of the SCM machine : "
+    read scmhost
+    if [ x$scmhost != x ]; then
+       echo $scmhost > /.scm
+    fi
+done
+
+vice-rvmsetup
+vice-srvdirsetup
+
+echo "You have set up " `cat /.hostname`
+echo "Your scm is " `cat /.scm`
+echo "Other config files will be fetched from the SCM by updateclnt."
+
+
 
 
 

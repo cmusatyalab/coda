@@ -30,25 +30,13 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/startserver,v 4.4 1997/12/29 15:45:53 hmpierce Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/startserver,v 4.5 1998/01/04 14:58:35 braam Exp $";
 #endif /*_BLURB_*/
 
-echo "BEFORE USE EDIT ME TO SET UP DIFFERENTLY FOR EACH SERVER"
-exit
-
-if [ -f /vice/srv/pid ]; then
+if [ -f /vice/srv/pid -o -f /vice/srv/CRASH ]; then
     echo "Can't start file server, one is already running!"
     exit 1 
 fi 
-
-# Install a new file server. Using this hopefully prevents one from
-# overwritting an executing binary.
-
-if [ -f /vice/bin/srv.new ]; then
-    echo "Installing new file server."
-    mv /vice/bin/srv /vice/bin/srv.old
-    mv /vice/bin/srv.new /vice/bin/srv
-fi
 
 # Remove outdated logfiles
 rm -f /vice/srv/SrvErr
@@ -58,12 +46,10 @@ rm -f /vice/src/CRASH
 # pass on arguments to srv
 # The -rvm flag takes 3 arguments. The first is the log device/file,
 # the second is the data segment device/file, and the third is the
-# length of the data segment file or device (Note: not the amount of
-# data in the segment)
-# The values used below are the default values used at CMU.
+# length of the file or device holding the RVM data segment.
+# These parameters are taken from /vice/srv.conf
 
-#/vice/bin/srv $* -nodumpvm -rvm /dev/rrz0g /dev/rrz0h 69206016
-echo You need to edit this script to set the parameters appropriately\!
+srv $* -nodumpvm `grep '^\-rvm ' /vice/srv.conf`
 
 rm /vice/srv/pid
 rm /vice/srv/CRASH

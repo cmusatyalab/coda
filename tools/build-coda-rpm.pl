@@ -25,6 +25,8 @@ print "DEBUG is $debug, name is $codaname\n";
 
 $kernel =`uname -r`;
 chop $kernel;
+$kv=$kernel;
+$kv=~ s/\.[0-9]*$//;
 
 print "kernel: $kernel\n";
 
@@ -39,6 +41,7 @@ while ( <FD> ) {
     ~ s/\@REL\@/$rel/g;
     ~ s/\@CVER\@/$version/g;
     ~ s/\@KVER\@/$kernel/g;
+    ~ s/\@KV\@/$kv/g;
     ~ s/\@LIBC\@/$libc/g;
     ~ s/\@DEBUG\@/$debug/g;
     ~ s/\@CODA\@/$codaname/g;

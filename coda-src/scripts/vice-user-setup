@@ -13,6 +13,6 @@ pwd2pdb -u user.coda -g group.coda > vice.pdb
 pcfgen vice.pdb
 
 echo "500	changeme	admin user" > passwd.coda
-initpw -k "drseussw " < passwd.coda > auth2.pw
+initpw -k "drseuss " < passwd.coda > auth2.pw
 
 echo "An initial administrative user "admin" with passwod "changeme" now exists."
