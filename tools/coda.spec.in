@@ -189,6 +189,7 @@ exit 0
 /usr/sbin/bldvldb.sh
 /usr/sbin/codaconfedit
 /usr/sbin/codasrv
+/usr/sbin/codastart
 /usr/sbin/coda-server-logrotate
 /usr/sbin/createvol_rep
 /usr/sbin/initpw
