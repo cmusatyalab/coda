@@ -175,7 +175,7 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
 	
     case FILEBYFD:
 	/* trust the user to have given a good fd! */
-	sEntry->openfd = sftpd->FileInfo.ByFD.fd;
+	sEntry->openfd = dup(sftpd->FileInfo.ByFD.fd);
 
 	/* the fd might be shared, so we need to save/restore the fileoffset
 	   around every operation */

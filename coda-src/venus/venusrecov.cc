@@ -650,13 +650,13 @@ void RecovFlush(int Force) {
     Recov_TimeToFlush = MAXFP;
     if (FlushSize == 0) return;
 
-    MarinerLog("cache::BeginRvmFlush (%d, %d, %s)\n", FlushCount, FlushSize, reason);
+    LOG(0, ("BeginRvmFlush (%d, %d, %s)\n", FlushCount, FlushSize, reason));
     START_TIMING();
     rvm_return_t ret = rvm_flush();
     if (ret != RVM_SUCCESS)
 	CHOKE("RecovFlush: rvm_flush failed (%d)", ret);
     END_TIMING();
-    MarinerLog("cache::EndRvmFlush\n");
+    LOG(0, ("EndRvmFlush\n"));
 
     LOG(1, ("RecovFlush: count = %d, size = %d, elapsed = %3.1f\n",
 	    FlushCount, FlushSize, elapsed));
@@ -676,13 +676,13 @@ void RecovTruncate(int Force) {
 
     if (TruncateSize == 0) return;
 
-    MarinerLog("cache::BeginRvmTruncate (%d, %d, %s)\n", TruncateCount, TruncateSize, reason);
+    LOG(0, ("BeginRvmTruncate (%d, %d, %s)\n", TruncateCount, TruncateSize, reason));
     START_TIMING();
     rvm_return_t ret = rvm_truncate();
     if (ret != RVM_SUCCESS)
 	CHOKE("RecovTruncate: rvm_truncate failed (%d)", ret);
     END_TIMING();
-    MarinerLog("cache::EndRvmTruncate\n");
+    LOG(0, ("cache::EndRvmTruncate\n"));
 
 /*    if (post_vm_usage - pre_vm_usage != 0)*/
     LOG(1, ("RecovTruncate: count = %d, size = %d, elapsed = %3.1f\n",
