@@ -29,9 +29,9 @@ if [ ! -f /etc/coda/venus.conf ] ; then
 fi
 
 db_get coda/rootservers
-codaconfedit /etc/coda/venus.conf rootservers "$RET"
+codaconfedit venus.conf rootservers "$RET"
 db_get coda/cachesize
-codaconfedit /etc/coda/venus.conf cacheblocks "$RET"
+codaconfedit venus.conf cacheblocks "$RET"
 
 # summary of how this script can be called:
 #        * <postinst> `configure' <most-recently-configured-version>
