@@ -323,7 +323,7 @@ int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType,
 		if (Krb5GetSecret(AuthHost->ai_canonname, &uName, &uNamelen,
 				  &uPasswd, &uPasswdlen, interactive))
 		{
-		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost);
+		    fprintf(stderr, "Failed to get secret for %s\n", AuthHost->ai_canonname);
 		    continue;
 		}
 	    }

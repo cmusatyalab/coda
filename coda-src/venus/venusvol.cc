@@ -591,7 +591,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
     if (volname[0] == '\0' && realm == prealm) {
 	free(volname);
 	volname = (char *)malloc(MAXPATHLEN);
-	if (!f) goto error_exit;
+	if (!volname) goto error_exit;
 	f->GetPath(volname, PATH_REALM);
     }
 
