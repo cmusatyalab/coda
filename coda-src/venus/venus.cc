@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.11 1998/04/14 21:03:06 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.11.6.1 98/09/14 22:26:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -130,8 +130,8 @@ int main(int argc, char **argv) {
 #ifndef DJGPP
     freopen("/dev/console", "w", stderr);
 #endif
-    fprintf(stderr, "Coda Venus, version %d.%d (%d)\n\r",
-	    VenusMajorVersion, VenusMinorVersion, RecovVersionNumber);
+    fprintf(stderr, "Coda Venus, version %d.%d.%d\n\r",
+	    VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
     fflush(stderr);
 
     ParseCmdline(argc, argv);
@@ -410,8 +410,8 @@ PRIVATE void ParseCmdline(int argc, char **argv) {
     if (consoleFile == UNSET_CONSOLE) consoleFile = DFLT_CONSOLE;
     if (SpoolDir == UNSET_SPOOLDIR) SpoolDir = DFLT_SPOOLDIR;
     freopen(consoleFile, "w", stderr);
-    fprintf(stderr, "Coda Venus, version %d.%d (%d)\n",
-             VenusMajorVersion, VenusMinorVersion, RecovVersionNumber);
+    fprintf(stderr, "Coda Venus, version %d.%d.%d\n",
+             VenusMajorVersion, VenusMinorVersion, VenusReleaseVersion);
     fflush(stderr);
 
     if (Simulating) {
