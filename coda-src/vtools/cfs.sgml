@@ -1,11 +1,4 @@
-<!doctype refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
-
-<!-- Process this file with docbook2man to generate an nroff manual page.
-
-manpage.1: manpage.sgml
-	docbook2man $<
-  -->
-
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
   <!ENTITY package "cfs">
   <!ENTITY date    "April 2004">
 ]>
@@ -67,22 +60,22 @@ manpage.1: manpage.sgml
     <cmdsynopsis>
 	<command>cfs flushobject</command>
 	<arg choice=req><replaceable>path</replaceable></arg>
-	<arg><replaceable>path</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>path</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs flushvolume</command>
 	<arg choice=req><replaceable>path</replaceable></arg>
-	<arg><replaceable>path</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>path</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs getfid</command>
 	<arg choice=req><replaceable>path</replaceable></arg>
-	<arg><replaceable>path</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>path</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs getpath</command>
 	<arg choice=req><replaceable>fid</replaceable></arg>
-	<arg><replaceable>fid</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>fid</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs getmountpoint</command>
@@ -91,22 +84,22 @@ manpage.1: manpage.sgml
     <cmdsynopsis>
 	<command>cfs listacl</command>
 	<arg choice=req><replaceable>dir</replaceable></arg>
-	<arg><replaceable>dir</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>dir</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs listcache</command>
 	<arg choice=req><replaceable>dir</replaceable></arg>
-	<arg><replaceable>dir</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>dir</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs listvol</command>
 	<arg choice=req><replaceable>dir</replaceable></arg>
-	<arg><replaceable>dir</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>dir</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs lsmount</command>
 	<arg choice=req><replaceable>dir</replaceable></arg>
-	<arg><replaceable>dir</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>dir</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs mkmount</command>
@@ -123,7 +116,7 @@ manpage.1: manpage.sgml
     <cmdsynopsis>
 	<command>cfs rmmount</command>
 	<arg choice=req><replaceable>dir</replaceable></arg>
-	<arg><replaceable>dir</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>dir</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs setacl</command>
@@ -132,7 +125,7 @@ manpage.1: manpage.sgml
 	<arg choice=req><replaceable>dir</replaceable></arg>
 	<arg choice=req><replaceable>id</replaceable></arg>
 	<arg choice=req><replaceable>rights</replaceable></arg>
-	<arg><replaceable>id</replaceable> <replaceable>rights</replaceable> ...</arg>
+	<arg rep=repeat><replaceable>id</replaceable> <replaceable>rights</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs truncatelog</command>
@@ -145,7 +138,7 @@ manpage.1: manpage.sgml
     <cmdsynopsis>
 	<command>cfs whereis</command>
 	<arg choice=req><replaceable>dir</replaceable></arg>
-	<arg><replaceable>dir</replaceable> ... </arg>
+	<arg rep=repeat><replaceable>dir</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis>
 	<command>cfs disconnect</command>
@@ -172,7 +165,10 @@ manpage.1: manpage.sgml
     protection on their personal directories.  <command>cfs</command> will
     change the protection or "rights" on directories but not on individual
     files. To change permissions on individual files, use
-    <command>chmod(1)</command>.
+    <citerefentry>
+	<refentrytitle>chmod</refentrytitle>
+	<manvolnum>1</manvolnum>
+    </citerefentry>.
     </para>
 
 <variablelist>
@@ -516,13 +512,16 @@ manpage.1: manpage.sgml
 
 <refsect1>
     <title>SEE ALSO</title>
-    <para>chmod (1)
+    <para>
+    <citerefentry>
+	<refentrytitle>chmod</refentrytitle>
+	<manvolnum>1</manvolnum>
+    </citerefentry>
     </para>
 </refsect1>
 
 <refsect1>
     <title>AUTHORS</title>
-    <para>
     <itemizedlist>
     <listitem><para>1987, Adapted from AFS-2s fs</para>
     </listitem>
@@ -537,7 +536,6 @@ manpage.1: manpage.sgml
     <listitem><para>Jan Harkes, 2004, Converted to DocBook 4.1</para>
     </listitem>
     </itemizedlist>
-    </para>
 </refsect1>
 </refentry>
 

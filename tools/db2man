@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+
+if [ "`which docbook-to-man`" ] ; then
+    docbook-to-man < "$1" > "$2"
+    exit 0
+fi
+
+DOCBOOK2MAN=`which docbook2man`
+if [ "`which docbook2man`" ] ; then
+    docbook2man "$1"
+
+    # Correct dash/hyphen escaping.
+    if [ -f "$2" ] ; then
+	sed 's/\([^\\]\)-/\1\\-/g' < "$2" > "$2.tmp"
+	mv -f "$2.tmp" "$2"
+    fi
+    exit 0
+fi
+
+# Hmm, no docbook formatters found. Let's at least create an empty file to
+# avoid problems.
+touch "$2"
+

@@ -304,20 +304,10 @@ show showvar:
 	${RP2GEN} ${RP2FLAGS} $<
 
 %.1: %.sgml
-	${DB2MAN} "$<"
-	# Fix escaping of dashes/hyphens.
-	if [ -f "$@" ] ; then \
-	    ${SED} 's/\([^\\]\)-/\1\\-/g' < "$@" > "$@.tmp" ; \
-	    ${MV} "$@.tmp" "$@" ; \
-	fi
+	${TOPDIR}/tools/db2man $< $@
 
 %.8: %.sgml
-	${DB2MAN} "$<"
-	# Fix escaping of dashes/hyphens.
-	if [ -f "$@" ] ; then \
-	    ${SED} 's/\([^\\]\)-/\1\\-/g' < "$@" > "$@.tmp" ; \
-	    ${MV} "$@.tmp" "$@" ; \
-	fi
+	${TOPDIR}/tools/db2man $< $@
 
 .PHONY FORCE:
 
