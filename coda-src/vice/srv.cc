@@ -142,6 +142,7 @@ const int MaxVols = MAXVOLS;          /* so we can use it in vicecb.c. yuck. */
 
 /* defaults set by ReadConfigFile() */
 int probingon;			// default 0
+int optimizationson;		// default 0
 int Authenticate;		// default 1
 int AllowResolution;		// default 1, controls directory resolution 
 int comparedirreps;		// default 1 
@@ -151,7 +152,6 @@ char *CodaSrvIp;		// default NULL ('ipaddress' in server.conf)
 
 /* local */
 static int MapPrivate;		// default 0
-static int optimizationson;
 
 /* imported */
 extern rvm_length_t rvm_test;
