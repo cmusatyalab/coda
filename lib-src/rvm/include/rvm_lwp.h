@@ -37,10 +37,10 @@ Coda are listed in the file CREDITS.
 /* Supported cthread definitions */
 
 #define cthread_t			PROCESS
-static inline PROCESS cthread_fork(int (*fname)(void *), void *arg)
+static inline PROCESS cthread_fork(void (*fname)(void *), void *arg)
 {
     PROCESS rvm_lwppid;
-    LWP_CreateProcess((PFIC)fname, RVM_STACKSIZE, LWP_NORMAL_PRIORITY,
+    LWP_CreateProcess(fname, RVM_STACKSIZE, LWP_NORMAL_PRIORITY,
 		      arg, "rvm_thread", &rvm_lwppid);
     return rvm_lwppid;
 }
