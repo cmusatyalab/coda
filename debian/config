@@ -1,0 +1,17 @@
+#!/bin/sh -e
+
+. /usr/share/debconf/confmodule
+
+db_input medium coda/rootservers || true
+db_input medium coda/cachesize || true
+if [ ! -c /dev/cfs0 ] ; then
+    db_input high coda/cfs0 || true
+fi
+db_go
+
+if [ "$1" = reconfigure ] ; then
+    db_get coda/rootservers
+    codaconfedit /etc/coda/venus.conf rootservers "$RET"
+    db_get coda/cachesize
+    codaconfedit /etc/coda/venus.conf cachesize "$RET"
+fi
