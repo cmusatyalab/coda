@@ -778,11 +778,11 @@ GotData:
 	startmode = FALSE;
 
 	if (sftp_DataArrived(pb, sEntry) < 0) {
-	    SFTP_FreeBuffer(&pb);
 	    if (sEntry->WhoAmI == DISKERROR) {
 		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);
 	    }
 	    else {
+		SFTP_FreeBuffer(&pb);
 		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
 	    }
 	}
