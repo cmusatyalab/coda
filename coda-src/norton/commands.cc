@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/norton/RCS/commands.cc,v 4.1 1997/01/08 21:49:49 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/commands.cc,v 4.2 1997/02/26 16:02:46 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,7 +56,12 @@ command_t del_commands[] = {
 //    { "inode",		notyet,		0},
     { "name",		delete_name,		0},
 //    { "vnode",		notyet,		0},
-//    { "volume",		notyet,		0},
+    { "volume",		sh_delete_volume,	0},
+    { 0, 0, 0}
+};
+
+command_t create_commands[] = {
+    { "name",		sh_create_name,		0},
     { 0, 0, 0}
 };
 
@@ -103,6 +108,7 @@ command_t set_cmds[] = {
 command_t commands[] = {
     { "?",		quick_help, 	0},
     { "delete",	 	0,		del_commands},
+    { "create",         0,              create_commands},
     { "examine",	examine,	0},
     { "exit",		exit_parser,	0},
     { "help",		quick_help,	0},

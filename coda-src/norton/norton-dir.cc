@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/norton/norton-dir.cc,v 1.1 1996/11/22 19:14:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-dir.cc,v 4.1 1997/01/08 21:49:50 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -133,8 +133,16 @@ void show_dir(int argc, char *argv[]) {
 }
 
 
-void show_dir(int volid, int vnum, int unique) {
+void 
+show_dir(int volid, int vnum, int unique) 
+{
     DirHandle dir;
+    int     vclass = vnodeIdToClass(vnum);
+
+    if ( vclass != vLarge ) {
+	printf("Not a directory fid!\n");
+	return;
+    }
 
     if (!SetDirHandle(&dir, volid, vnum, unique)) {
 	return;
@@ -150,9 +158,11 @@ void show_dir(int volid, int vnum, int unique) {
 
 
 
-
-PRIVATE void delete_name(int volid, int vnum, int unique, char *name) {
-    // remove name from the given directory and mark its vnode in conflict
+// remove name from the given directory and mark its vnode in conflict
+// if flag not null, decrease linkCount of directory vnode
+PRIVATE void 
+delete_name(int volid, int vnum, int unique, char *name, int flag) 
+{
     char buf[SIZEOF_LARGEDISKVNODE];
     struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
     DirHandle dirh;
@@ -190,7 +200,13 @@ PRIVATE void delete_name(int volid, int vnum, int unique, char *name) {
 	return;
     }
     
+    // flush the buffer pages
     DFlush();
+
+    if ( flag ) {
+	vnode->linkCount--;
+    }
+
     // ignore changing the length for now
     fid.volume = dirh.volume;
     fid.vnode = dirh.vnode;
@@ -219,17 +235,147 @@ PRIVATE void delete_name(int volid, int vnum, int unique, char *name) {
 void delete_name(int argc, char *argv[]) {
     int volid,
 	vnode,
-	unique;
+	unique,
+	flag = 0;
 
-    if ((argc != 6) ||
+    if ((argc != 7) ||
 	(parse_int(argv[2], &volid) != 1) ||
 	(parse_int(argv[3], &vnode) != 1) ||
-	(parse_int(argv[4], &unique) != 1)) {
+	(parse_int(argv[4], &unique) != 1) ||
+	(parse_int(argv[6], &flag) != 1)) {
 	fprintf(stderr, "Usage: delete name <parent_volid> ");
-	fprintf(stderr, "<parent_vnode> <parent_unique> <name>\n"); 
+	fprintf(stderr, "<parent_vnode> <parent_unique> <name> <flag>\n"); 
 	return;
     }
 
-    delete_name(volid, vnode, unique, argv[5]);
+    delete_name(volid, vnode, unique, argv[5], flag);
+
+}
+
+
+PRIVATE void 
+create_name(int volid, int vnum, int unique, char *name, int cvnum, 
+	    int cunique) 
+{
+    /* remove name from the given directory and mark its vnode in conflict */
+    char buf[SIZEOF_LARGEDISKVNODE];
+    char cbuf[SIZEOF_LARGEDISKVNODE];
+    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    struct VnodeDiskObject *cvnode = (struct VnodeDiskObject *)cbuf;
+    DirHandle dirh;
+    struct VFid fid;
+    Error   error;
+    VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
+    VnodeId cvnodeindex = vnodeIdToBitNumber(cvnum);
+    int     vclass = vnodeIdToClass(vnum);
+    int     cvclass = vnodeIdToClass(cvnum);
+    int	    volindex;
+    long    vfid[2];
+    
+    volindex = GetVolIndex(volid);
+    if (volindex < 0) {
+	fprintf(stderr, "Unable to get volume 0x%x\n", volid);
+	return;
+    }
+
+    if (vclass != vLarge) {
+	fprintf(stderr, "Not a directory (i.e. large) vnode.\n");
+    }
+
+    if (!SetDirHandle(&dirh, volid, vnum, unique)) {
+	return;
+    }
+    dirh.cacheCheck = 1; // XXX hack 
+
+    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	    
+    if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
+		     (Unique_t)unique, vnode) < 0) {
+	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
+		unique);
+	CAMLIB_ABORT(VFAIL);
+	return;
+    }
+
+    if (ExtractVnode(&error, volindex, cvclass, (VnodeId)cvnodeindex,
+		     (Unique_t)cunique, cvnode) < 0) {
+	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, cvnum,
+		cunique);
+	CAMLIB_ABORT(VFAIL);
+	return;
+    }
+
+
+    vfid[1] = cvnum;
+    vfid[2] = cunique;
+    if ((error = Create((long *)&dirh, name, vfid)) != 0) {
+	fprintf(stderr, "ERROR: Create() returns %d, aborting\n", error);
+	CAMLIB_ABORT(VFAIL);
+	return;
+    }
+
+    // if child is directory increase linkCount of parent
+    if ( cvclass == vLarge ) {
+	vnode->linkCount++;
+    }
+
+    // adjust parent of child
+    cvnode->vparent = vnum;
+    cvnode->uparent = unique;
+    
+    DFlush();
+    // 
+
+    // ignore changing the length for now
+    fid.volume = dirh.volume;
+    fid.vnode = dirh.vnode;
+    fid.vunique = dirh.unique;
+    ICommit(&fid, (long *)vnode->inodeNumber);
+
+    // mark the vnode with inconsistent flag
+    SetIncon(vnode->versionvector);
+
+    if (error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
+			     (Unique_t)unique, vnode)) {
+	fprintf(stderr, "ReplaceVnode returns %d, for parent, aborting\n", 
+		error);
+	CAMLIB_ABORT(VFAIL);
+	return;
+    }
+
+    if (error = ReplaceVnode(volindex, cvclass, (VnodeId)cvnodeindex,
+			     (Unique_t)cunique, cvnode)) {
+	fprintf(stderr, "ReplaceVnode returns %d, for child, abort\n", 
+		error);
+	CAMLIB_ABORT(VFAIL);
+	return;
+    }
+	    
+    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, error)
+
+    if (error) {
+	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",
+		error);
+    }
+}
+
+void sh_create_name(int argc, char **argv) {
+    int volid, vnode, unique;
+    int cvnode, cunique;
+    
+
+    if ((argc != 8) ||
+	(parse_int(argv[2], &volid) != 1) ||
+	(parse_int(argv[3], &vnode) != 1) ||
+	(parse_int(argv[4], &unique) != 1) ||
+	(parse_int(argv[6], &cvnode) != 1) ||
+	(parse_int(argv[7], &cunique) != 1))  {
+	fprintf(stderr, "Usage: create name <parent_volid> ");
+	fprintf(stderr, "<parent_vnode> <parent_unique> <name>");
+	fprintf(stderr, " <newvnode> <newunique>\n"); 
+	return;
+    }
+
+    create_name(volid, vnode, unique, argv[5], cvnode, cunique);
 
 }

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/norton/norton.h,v 1.1 1996/11/22 19:15:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton.h,v 4.1 1997/01/08 21:49:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,7 +69,7 @@ extern void show_volume_details(char *);
 extern void show_index(int, char **);
 extern void show_index(int);
 extern void show_index(char *);
-extern void delete_volume(int, char **);
+extern void sh_delete_volume(int, char **);
 extern void undelete_volume(int, char **);
 
 /* norton-vnode.c */
@@ -88,6 +88,8 @@ extern VolHead *VolByIndex(int);
 extern void show_dir(int, char **);
 extern void show_dir(int, int, int);
 extern void delete_name(int, char **);
+extern void sh_create_name(int, char **);
+
 
 /* norton-rds.c */
 extern void show_heap(int, char **);

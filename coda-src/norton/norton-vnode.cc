@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/norton/norton-vnode.cc,v 1.1 1996/11/22 19:14:59 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/norton/norton-vnode.cc,v 4.1 1997/01/08 21:49:51 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -212,3 +212,49 @@ void show_free(int argc, char *argv[]) {
 	}
     }
 }    
+
+
+#if 0
+// delete the RVM held vnode
+PRIVATE void 
+delete_smallvnode(int volid, int vnum, int unique)
+{
+    char buf[SIZEOF_SMALLDISKVNODE];
+    struct VnodeDiskObject *vnode = (struct VnodeDiskObject *)buf;
+    Error   error;
+    VnodeId vnodeindex = vnodeIdToBitNumber(vnum);
+    int     vclass = vnodeIdToClass(vnum);
+    int	    volindex;
+    
+    volindex = GetVolIndex(volid);
+    if (volindex < 0) {
+	fprintf(stderr, "Unable to get volume 0x%x\n", volid);
+	return;
+    }
+
+    CAMLIB_BEGIN_TOP_LEVEL_TRANSACTION_2(CAM_TRAN_NV_SERVER_BASED)
+	    
+    if (ExtractVnode(&error, volindex, vclass, (VnodeId)vnodeindex,
+		     (Unique_t)unique, vnode) < 0) {
+	fprintf(stderr, "Unable to get vnode 0x%x.0x%x.0x%x\n", volid, vnum,
+		unique);
+	CAMLIB_ABORT(VFAIL);
+	return;
+    }
+
+
+    if (error = ReplaceVnode(volindex, vclass, (VnodeId)vnodeindex,
+			     (Unique_t)unique, vnode)) {
+	fprintf(stderr, "ERROR: ReplaceVnode returns %d, aborting\n", error);
+	CAMLIB_ABORT(VFAIL);
+	return;
+    }
+	    
+    CAMLIB_END_TOP_LEVEL_TRANSACTION_2(CAM_PROT_TWO_PHASED, error)
+
+    if (error) {
+	fprintf(stderr, "ERROR: Transaction aborted with status %d\n",
+		error);
+    }
+}
+#endif
