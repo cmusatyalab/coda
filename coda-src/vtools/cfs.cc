@@ -1973,16 +1973,14 @@ static void RmMount(int argc, char *argv[], int opslot)
         /* First set up the prefix and suffix correctly */
         prefix = argv[i];
         suffix = rindex(prefix, '/');
-        if (suffix)
-            {
-            *suffix = 0; /* shorten the prefix */
-            suffix++;  /* and skip the null */
-            }
-        else
-            {
+        if (suffix) *suffix = 0; /* delimit the prefix */
+
+	if (suffix && suffix[1] != '\0') {
+            suffix++;  /* and set the suffix pointer correctly */
+	} else {
             suffix = prefix;  
             prefix = ".";
-            }
+	}
     
         /* Then do the pioctl */
         vio.in_size = (int) strlen(suffix) + 1;

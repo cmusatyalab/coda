@@ -429,10 +429,10 @@ void mariner::main(void)
 	argc = sscanf(commbuf, "%80s %80s %80s %80s %80s %80s %80s %80s %80s %80s",
 		      argv[0], argv[1], argv[2], argv[3], argv[4],
 		      argv[5], argv[6], argv[7], argv[8], argv[9]);
-	if (STREQ(argv[0], "help")) {
+	if (argc < 1 || STREQ(argv[0], "help")) {
 	    Write("Commands are:\n");
 	    Write("\thelp, debugon, debugoff, dumpcore, quit, rpcon, rpcoff, rpc2t\n");
-	    Write("\tera, cop <modes>, umc, set:fetch, clear:fetch\n, reporton <uid>, reportoff\n");
+	    Write("\tera, cop <modes>, umc, set:fetch, clear:fetch, reporton <uid>, reportoff\n");
 	    Write("\t, fd <fd>pathstat <pathname>, fidstat <fid>, rpc2stat, print <args>\n");
 	}
 	else if (STREQ(argv[0], "debugon")) {
@@ -530,7 +530,7 @@ void mariner::main(void)
 	    VenusPrint(fd, argc - 1, &argv[1]);
 	}
 	else {
-	    Write("bad mariner command %-80s\n", argv[0]);
+	    Write("bad mariner command '%-80s'\n", argv[0]);
 	}
 
 	Resign(0);

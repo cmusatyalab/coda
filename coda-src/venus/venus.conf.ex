@@ -59,6 +59,11 @@ primaryuser=0
 # What are the locations of the rvm log and data files or partitions.
 # (default /usr/coda/{LOG,DATA}
 #
+# CAUTION: these are _unrelated_ to the server's rvm log and data. Also
+# when specifying partitions, do NOT specify any partions which might
+# have an existing filesystem, as you WILL lose all data during
+# initialization.
+#
 rvm_log=/usr/coda/LOG
 rvm_data=/usr/coda/DATA
 

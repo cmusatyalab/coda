@@ -46,7 +46,7 @@ coda_assert(char *pred, char *file, int line)
 	break;
 
     case CODA_ASSERT_EXIT:
-	fprintf(stderr, "VENUS IS EXITTING! Bye!\n");
+	fprintf(stderr, "VENUS IS EXITING! Bye!\n");
 	fflush(stderr);
     	exit(77);
 	break;

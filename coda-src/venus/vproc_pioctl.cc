@@ -206,7 +206,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			char *target_name = (char *) data->in;
 
 			/* Disallow deletion of ".". */
-			if (STREQ(target_name, "."))
+			if (STREQ(target_name, "") || STREQ(target_name, "."))
 			    { u.u_error = EINVAL; break; }
 
 			/* Verify that parent is a directory. */
