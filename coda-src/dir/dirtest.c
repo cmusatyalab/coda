@@ -3,7 +3,7 @@
 #include <sys/param.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <readline/readline.h>
+#include <readline.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/types.h>
