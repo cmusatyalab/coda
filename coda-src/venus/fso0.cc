@@ -137,7 +137,7 @@ void FSOInit() {
 	   have changed completely between 4.3BSD and 4.4BSD  (Satya, 8/12/96)
         */
 #ifdef __BSD44__
-	DIR *dir
+	DIR *dir;
 	struct dirent *entry;
 
 	dir = opendir(".");
@@ -153,7 +153,6 @@ void FSOInit() {
 	abspath = strncpy(abspath, cwd, MAXPATHLEN);
 	abspath = strncat(abspath,"/",2);
 	eos = abspath + strlen(abspath) + 1;
-	free(cwd);
 
 	/* Examine each entry and decide to keep or delete it */
 	while ((entry = readdir(dir)) != NULL)
@@ -178,6 +177,7 @@ void FSOInit() {
 	}
 	free(abspath);
 	closedir(dir);
+	free(cwd);
 #endif /* __BSD44__ */
 
 	/* Allocate the fsobj's if requested. */
