@@ -68,6 +68,7 @@ extern "C" {
 #include <unistd.h>
 #include "coda_flock.h"
 #include "scandir.h"
+#include "codaconf.h"
 
 #include <ports.h>
 #include <lwp/lwp.h>
@@ -134,25 +135,26 @@ extern "C" void SetServerKeys(RPC2_EncryptionKey, RPC2_EncryptionKey);
 int SystemId = 0;
 unsigned StartTime = 0;
 int CurrentConnections = 0;
-int Authenticate = 1;
 int Counters[MAXCNTRS];
 ViceFid NullFid = {0, 0, 0};
-int AllowResolution = 1;	/* controls directory resolution */
-int comparedirreps = 1;
-int pathtiming = 0;
-int pollandyield = 1; 
-int probingon = 0;
 int optimizationson = 0;
-int OptimizeStore = 0;
-int MapPrivate = 0;
+int probingon = 0;
 int MaxVols = MAXVOLS;          /* so we can use it in vicecb.c. yuck. */
+
+				// set by ReadConfigFile()
+int Authenticate = 0;		// default 1
+int AllowResolution = 0;	// default 1, controls directory resolution 
+int comparedirreps = 0;		// default 1 
+int pathtiming = 0;		// default 0 
+int pollandyield = 0;		// default 1 
+int OptimizeStore = 0;		// default 0
+int MapPrivate = 0;		// default 0
+
 
 extern rvm_length_t rvm_test;
 extern int canonicalize;	/* controls if vrdb - Getvolumeinfo
 				   should return hosts in canonical
 				   order - this is only temporary */
-static char *vicedir = "/vice"; /* for /vice  */
-static char *srvhost = NULL;
 
 #ifdef _TIMECALLS_
 int clockFD = 0;		/* for timing with the NSC clock board */
@@ -162,8 +164,8 @@ struct hgram SpoolVMLogRecord_hg, PutObjects_Transaction_hg, PutObjects_Transact
 	PutObjects_Inodes_hg, PutObjects_RVM_hg; 
 #endif _TIMECALLS_
 
-int large = 500;		/* control size of lru cache for large vnode */
-int small = 500;		/* control size of lru cache for small vnodes */
+int large = 0;	  // default 500, control size of lru cache for large vnodes 
+int small = 0;	  // default 500, control size of lru cache for small vnodes
 
 extern char *SmonHost;
 extern int SmonPort; 
@@ -179,23 +181,34 @@ int thread_count;
 
 /* *****  Private variables  ***** */
 
-/* File server parameters. */
-static int trace = 0;
-static int SrvWindowSize = 32;
-static int SrvSendAhead = 8;
-static int timeout = 15;	/* formerly 30, then 60 */
-static int retrycnt = 4;	/* formerly 20, then 6 */
-static int Statistics;
-static int debuglevel = 0;
-static int lwps = 6;
-static int buffs = 100;	/* formerly 200 */
-int stack = 96;
-static int cbwait = 240;
-static int chk = 30;
-/* static int ProcSize = 0; */
-static int ForceSalvage = 1;
-static int SalvageOnShutdown = 1;
+static int ServerNumber = 0;	/* 0 => single server,
+				   1,2,3 => number in multi server */
+
+static char *serverconf = SYSCONFDIR "/server.conf";
+
+/* File server parameters.   Defaults set by ReadConfigFile. */
+
+static char *vicedir = NULL;	// default "/vice"
+static char *srvhost = NULL;	// default NULL
+
+static int trace = 0;		// default 0 
+static int SrvWindowSize = 0;	// default 32
+static int SrvSendAhead = 0;	// default 8
+static int timeout = 0;		// default 15, formerly 30, then 60
+static int retrycnt = 0;	// default 4, formerly 20, then 6
+static int debuglevel = 0;	// Command line set only.
+static int lwps = 0;		// default 6
+static int buffs = 0;		// default 100, formerly 200
+       int stack = 0;		// default 96
+static int cbwait = 0;		// default 240
+static int chk = 0;		// default 30
+static int ForceSalvage = 0;	// default 1
+static int SalvageOnShutdown = 0; // default 1 */
+
 static int ViceShutDown = 0;
+static int Statistics;
+
+/* static int ProcSize = 0; */
 
 /* Camelot/RVM stuff. */
 struct camlib_recoverable_segment *camlibRecoverableSegment;
@@ -204,12 +217,12 @@ extern int etext, edata;	/* Info to be used in creating rvm segment */
 /*static */char *_Rvm_Log_Device;
 /*static */char *_Rvm_Data_Device;
 /*static */rvm_offset_t _Rvm_DataLength;
-/*static */int _Rvm_Truncate = 0;
+/*static */int _Rvm_Truncate = 0;	// default 0 
 /*static */char *cam_log_file;
 /*static */int camlog_fd;
 /*static */char camlog_record[SIZEOF_LARGEDISKVNODE + 8 + sizeof(VolumeDiskData)];
 /* static */ char *_DEBUG_p;
-/*static */int nodumpvm = FALSE;
+/*static */int nodumpvm = FALSE;	// default 0 (aka FALSE)
 int prottrunc = FALSE;
 /* static */int MallocTrace = FALSE;
 /* static */void rds_printer(char *fmt ...);
@@ -247,6 +260,7 @@ static void ResetDebug();
 static void ShutDown();
 static int pushlog();
 
+static int ReadConfigFile(void);
 static int ParseArgs(int, char **);
 static void NewParms(int);
 static void InitServerKeys(char *, char *);
@@ -362,6 +376,7 @@ int main(int argc, char *argv[])
 	exit(-1);
     }
 
+    (void)ReadConfigFile();
 
     Vol_Init_vicedir(vicedir);
     if(chdir(Vol_vicefile("srv"))) {
@@ -1322,6 +1337,100 @@ void ViceTerminate()
     }
 
 
+static int ReadConfigFile(void)
+{
+    char confname[80];
+    int  datalen = 0;
+    int  dumpvm = 0;
+
+    /* Load configuration file. */
+    (void) conf_init(serverconf);
+
+    /* srv.cc defined values ... */
+    CONF_INT(Authenticate,	"authenticate",	   1); 
+    CONF_INT(AllowResolution,	"resolution",	   1); 
+    CONF_INT(comparedirreps,	"comparedirreps",  1); 
+    CONF_INT(pollandyield,	"pullandyield",    1); 
+    CONF_INT(OptimizeStore,	"optstore",	   0); 
+    CONF_INT(pathtiming,	"pathtiming",	   1);
+    CONF_INT(MapPrivate,	"mapprivate",	   0);
+
+    CONF_INT(large,		"large",	   500);
+    CONF_INT(small,		"small",	   500);
+
+    CONF_STR(vicedir,		"vicedir",	   "/vice");
+
+    CONF_INT(trace,		"trace",	   0);
+    CONF_INT(SrvWindowSize,	"windowsize",	   32);
+    CONF_INT(SrvSendAhead,	"sendahead",	   8);
+    CONF_INT(timeout,		"timeout",	   15);
+    CONF_INT(retrycnt,		"retrycnt",	   4);
+    CONF_INT(lwps,		"lwps",		   6);
+    if (lwps > MAXLWP)
+        lwps = MAXLWP;
+    CONF_INT(buffs,		"buffs",	   100);
+    CONF_INT(stack,		"stack",	   96);
+    CONF_INT(cbwait,		"cbwait",	   240);
+    CONF_INT(chk,		"chk",		   30);
+    CONF_INT(ForceSalvage,	"forcesalvage",	   1);
+    CONF_INT(SalvageOnShutdown,	"salvageonshutdown", 1);
+    CONF_INT(dumpvm,		"dumpvm",	   1);
+    if (!nodumpvm)
+      nodumpvm = !dumpvm;
+
+
+    /* Rvm parameters */
+    CONF_INT(_Rvm_Truncate, 	"rvmtruncate",	   0);
+    if (ServerNumber == 0) {
+        if (RvmType == UNSET) {
+	    CONF_STR(_Rvm_Log_Device,   "rvm_log",         "");
+	    CONF_STR(_Rvm_Data_Device,  "rvm_data",        "");
+	    CONF_INT(datalen,		"rvm_data_length", 0);
+	    CONF_STR(srvhost,  	        "hostname",	   NULL);
+	}
+    } else {
+        if (RvmType == UNSET) {
+            sprintf (confname, "rvm_log_%d", ServerNumber);
+	    CONF_STR(_Rvm_Log_Device,   confname,	"");
+	    
+	    sprintf (confname, "rvm_data_%d", ServerNumber);
+	    CONF_STR(_Rvm_Data_Device,  confname,	"");
+	    
+	    sprintf (confname, "rvm_data_length_%d", ServerNumber);
+	    CONF_INT(datalen,	        confname, 	0);
+	    
+	    sprintf (confname, "hostname_%d", ServerNumber);
+	    CONF_STR(srvhost,  	        confname,	NULL);
+	}
+	if (srvhost == NULL || *srvhost == 0) {
+	    SLog(0, "Multiple servers specified, must specify hostname.\n");
+	    exit(-1);
+	}
+    }
+    if (datalen != 0) {
+        _Rvm_DataLength = RVM_MK_OFFSET(0, datalen);
+	RvmType = RAWIO;
+	/* Checks ... */
+	if (_Rvm_Log_Device == NULL || *_Rvm_Log_Device == 0) {
+	    SLog(0, "Must specify a RVM log file/device\n");
+	    exit(-1);
+	}
+	if (_Rvm_Data_Device == NULL || *_Rvm_Data_Device == 0) {
+	    SLog(0, "Must specify a RVM data file/device\n");
+	    exit(-1);
+	}
+    }
+
+    /* Other command line parameters ... */
+    extern int debarrenize;
+
+    CONF_INT(debarrenize,	"debarrenize",	   1);
+    CONF_INT(OpenWritebackConn, "writeback",	   1);
+
+
+    return 0;
+}
+
 
 static int ParseArgs(int argc, char *argv[])
 {
@@ -1446,7 +1555,7 @@ static int ParseArgs(int argc, char *argv[])
 	else
 	    if (!strcmp(argv[i], "-nc")){
 		if (RvmType != UNSET) {
-		    SLog(0, "Multiple Persistence methods selected.");
+		    SLog(0, "Multiple Persistence methods selected.\n");
 		    exit(-1);
 		}
 		RvmType = VM;
@@ -1455,7 +1564,7 @@ static int ParseArgs(int argc, char *argv[])
 	else
 	    if (!strcmp(argv[i], "-cam")) {
 		if (RvmType != UNSET) {
-		    SLog(0, "Multiple Persistence methods selected.");
+		    SLog(0, "Multiple Persistence methods selected.\n");
 		    exit(-1);
 		}
 		SLog(0, "Camelot not supported any more\n");
@@ -1518,13 +1627,15 @@ static int ParseArgs(int argc, char *argv[])
 	    }
 	else 
 	    if (!strcmp(argv[i], "-optstore")) {
-		extern int OptimizeStore;
 		OptimizeStore = 1;
 	    }
 	else 
 	    if (!strcmp(argv[i], "-mapprivate")) {
 		MapPrivate = 1;
 	    }
+	else
+	    if (!strcmp(argv[i], "-n"))
+		ServerNumber = atoi(argv[++i]);
 	else {
 	    return(-1);
 	}
