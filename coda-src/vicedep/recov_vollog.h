@@ -81,7 +81,7 @@ class recov_vol_log {
     int reserved[10];		// for future use
 
     void *operator new(size_t);
-    recov_vol_log(VolumeId =0, int adm =2048);	// default: max 2k log entries 
+    recov_vol_log(VolumeId =0, int adm =4096);	// default: max 4k log entries 
     ~recov_vol_log();
     void operator delete(void *, size_t);
     int init(int);

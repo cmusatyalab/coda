@@ -312,7 +312,8 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 	 * otherwise we are trying get back to connected state. --JH */
 
 	/* Ignore BW in case of forced reintegration  */
-	if (!(vol->asr_running()) && vol->flags.logv && !(vol->flags.writebackreint) &&
+	if (!vol->asr_running() && vol->flags.logv &&
+            !vol->flags.writebackreint &&
 	    (this_time + cur_reintegration_time > vol->ReintLimit))
 		break;
 	/* 

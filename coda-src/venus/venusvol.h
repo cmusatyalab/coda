@@ -535,31 +535,30 @@ typedef enum {	Hoarding,
 
 
 /* We save some space by packing booleans into a bit-vector. */
+/* R - replicated volumes */
+/* V - volume replicas */
+/* T - transients */
 struct VolFlags {
-    /*T*/unsigned transition_pending : 1;
-    /*T*/unsigned demotion_pending : 1;
-    /*T*/unsigned valid : 1;			/* not used yet */
-    /*T*/unsigned online : 1;			/* not used yet */
-    unsigned logv : 1;				/* log mutations, allow fetches */
-    unsigned allow_asrinvocation : 1;		/* asr's allowed in this volume */
-    unsigned asr_running : 1;                   /* only 1 ASR allowed per volume at a time */
-    unsigned has_local_subtree : 1;		/* indicating whehter this volume contains local subtrees */
-    /*T*/unsigned reintegratepending : 1;	/* are we waiting for tokens? */
-    /*T*/unsigned reintegrating : 1;		/* are we reintegrating now? */
-    /*T*/unsigned repair_mode : 1;		/* 0 --> normal, 1 --> repair */
-    /*T*/unsigned resolve_me: 1;		/* resolve reintegrated objects */
-    /*T*/unsigned weaklyconnected : 1;		/* are we weakly connected? */ 
-    /*T*/unsigned writebacking : 1;             /* writeback mode */
-    /*T*/unsigned writebackreint :1;            /* is reint due to permit revoke? */
-    /*T*/unsigned sync_reintegrate :1;          /* perform reintegration synchronously*/
-    /*T*/unsigned sync_reintegrate_done :1;     /* synchronous reintegration done */
-    /*T*/unsigned autowriteback :1;             /* auto try to get wb permit */
-    /*T*/unsigned staylogging : 1;              /* keep logging after |cml| == 0*/
-    unsigned replicated : 1;                    /* is this a replicated vol or
-                                                   a volume replica */
-    unsigned readonly : 1;                      /* is this a readonly (backup)
-                                                   volume replica */
-    unsigned reserved : 11;
+      unsigned replicated : 1;  /* is this a replicated vol or a vol replica */
+/* T*/unsigned transition_pending : 1;
+/* T*/unsigned demotion_pending : 1;
+/*R */unsigned logv : 1;        /* log mutations, allow fetches */
+/*RT*/unsigned allow_asrinvocation : 1; /* asr's allowed in this volume */
+/*RT*/unsigned asr_running : 1; /* only 1 ASR allowed per volume at a time */
+/*R */unsigned has_local_subtree : 1; /* indicating whether this volume contains local subtrees */
+/*RT*/unsigned reintegratepending : 1;	/* are we waiting for tokens? */
+/*RT*/unsigned reintegrating : 1; /* are we reintegrating now? */
+/*RT*/unsigned repair_mode : 1;	/* 0 --> normal, 1 --> repair */
+/*RT*/unsigned resolve_me: 1;   /* resolve reintegrated objects */
+/*RT*/unsigned weaklyconnected : 1; /* are we weakly connected? */ 
+/*R */unsigned writebacking : 1; /* writeback mode */
+/*R */unsigned writebackreint : 1; /* is reint due to permit revoke? */
+/*R */unsigned sync_reintegrate : 1; /* perform reintegration synchronously*/
+/*R */unsigned autowriteback : 1; /* auto try to get wb permit */
+/*R */unsigned staylogging : 1; /* keep logging after |cml| == 0*/
+/*V */unsigned readonly : 1;    /* is this a readonly (backup) volume replica */
+/*VT*/unsigned available : 1;   /* is the server for this volume online? */
+      unsigned reserved : 13;
 };
 
 
@@ -712,7 +711,7 @@ class volrep : public volent {
 
     /* Utility routines. */
     void Host(struct in_addr *addr) { *addr = host; }
-    int IsAvailable();
+    int IsAvailable() { return flags.available; }
     int IsHostedBy(const struct in_addr *addr)
         { return (addr->s_addr == host.s_addr); }
 
@@ -753,7 +752,7 @@ class repvol : public volent {
     /*T*/int RecordsAborted;
     /*T*/int FidsRealloced;
     /*T*/long BytesBackFetched;
-    /*?*/cmlent * reintegrate_until;    /* WriteBack Caching */
+    /*?*/cmlent * reintegrate_done;    /* WriteBack Caching */
 
     /* Resolution stuff. */
     /*T*/olist *res_list;

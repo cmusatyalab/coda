@@ -197,7 +197,7 @@ long WriteBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
 
     unsigned long host = ntohl(thePeer.RemoteHost.Value.InetAddress.s_addr);
     unsigned short port = ntohs(thePeer.RemotePort.Value.InetPortNumber);
-    LOG(100, ("WriteBackConnect: host = %x, port = %d\n",
+    LOG(100, ("WriteBackConnect: host = %s, port = %d\n",
 	      inet_ntoa(thePeer.RemoteHost.Value.InetAddress), port));
 
     /* we don't do this here because this isn't a callback connection.

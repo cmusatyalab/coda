@@ -474,9 +474,6 @@ class fsobj {
     /*T*/short Writers;				/* object writers */
     /*T*/short Execers;				/* object execers (we don't know this under VFS!) */
     /*T*/short refcnt;				/* readers + writers + openers + temporary_refs */   
-    CacheEventRecord cachehit;                  /* cache reference count */
-    CacheEventRecord cachemiss;                 /* cache miss count */
-    CacheEventRecord cachenospace;              /* cache no space */
 
     // for asr invocation
     /*T*/long lastresolved;			// time when object was last resolved
@@ -759,7 +756,7 @@ extern int FSO_SSF;
 /* fso0.c */
 extern void FSOInit();
 extern int FSO_PriorityFN(bsnode *, bsnode *);
-extern void UpdateCacheStats(CacheStats *, enum CacheEvent, unsigned long);
+extern void UpdateCacheStats(CacheStats *c, enum CacheEvent event, unsigned long blocks);
 extern void PrintCacheStats(char* description, CacheStats *, int);
 extern void VenusToViceStatus(VenusStat *, ViceStatus *);
 

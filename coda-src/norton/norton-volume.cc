@@ -119,10 +119,9 @@ void print_volume_details(VolHead *vol) {
     printf("    destroyMe: 0x%x\tdontSalvage: 0x%x\n",
 	   vol->data.volumeInfo->destroyMe, vol->data.volumeInfo->dontSalvage);
 //    PrintVV(vol->data.volumeInfo->versionvector);
-    printf("    needsCallback: %s\tResOn: %s\tmaxlogentries: 0x%x\n",
+    printf("    needsCallback: %s\tResOn: %s\n",
 	   vol->data.volumeInfo->needsCallback ? "TRUE" : "FALSE",
-	   vol->data.volumeInfo->ResOn ? "TRUE" : "FALSE",
-	   vol->data.volumeInfo->maxlogentries);
+	   vol->data.volumeInfo->ResOn ? "TRUE" : "FALSE");
     printf("    minquota: %d\tmaxquota: %d\tmaxfiles: %d\n",
 	   vol->data.volumeInfo->minquota,
 	   vol->data.volumeInfo->maxquota,

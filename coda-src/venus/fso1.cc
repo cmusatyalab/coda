@@ -230,13 +230,6 @@ void fsobj::ResetTransient()
     Execers = 0;
     refcnt = 0;
 
-    cachehit.count = 0;
-    cachehit.blocks = 0;
-    cachemiss.count = 0;
-    cachemiss.blocks = 0;
-    cachenospace.count = 0;
-    cachenospace.blocks = 0;
-
     lastresolved = 0;
 
     /* Link to volume, and initialize volume specific members. */

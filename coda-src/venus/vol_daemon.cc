@@ -163,39 +163,32 @@ void VolDaemon(void)
 /* local-repair modification */
 void vdb::GetDown()
 {
-    LOG(100, ("vdb::GetDown: \n"));
+    LOG(10, ("vdb::GetDown: \n"));
 
-#if 0
-    /* We need to GC unreferenced volume entries when some reasonable threshold is passed. */
-    /* The threshold is assumed to be high enough that it will almost never be hit. */
-    /* Therefore, we don't do anything special to prioritize the set of candidate entries. */
-#define	VOLThreshold	(CacheFiles >> 2)
-    if (VDB->volrep_hash.count() + VDB->repvol_hash.count() >= VOLThreshold) {
-	vol_iterator next;
-	volent *v;
-	int readahead = 0;
-	while ((VDB->htab.count() >= VOLThreshold) && (readahead || (v = next()))) {
-	    readahead = 0;
-	    if (v->IsFake() || v->refcnt > 0) continue;
-	    
-	    volent *tv = 0;
-	    readahead = ((tv = next()) != 0);
-
-	    LOG(10, ("vdb::GetDown: GC'ing (%x, %s)\n", v->GetVid(), v->name));
-	    Recov_BeginTrans();
-	    delete v;
-	    Recov_EndTrans(0);
-
-	    if (readahead) v = tv;
-	}
+    Recov_BeginTrans();
+    { /* find reclaimable replicated volumes */
+        repvol_iterator next;
+        repvol *v, *n = next();
+        while ((v = n) != NULL) {
+            n = next();
+            if (v->refcnt == 0) {
+                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVid()));
+                delete v;
+            }
+        }
     }
-
-    /* The number of referenced volumes is bounded by the number of allocated fsobjs.  However, it is */
-    /* extremely unlikely that this bound will ever be hit in the course of normal operation.  It is far more */
-    /* likely that if the bound is reached then we have a programming error.  Thus, we panic in such event. */
-    if (VDB->htab.count() >= CacheFiles)
-	CHOKE("vdb::GetDown: volume entries >= CacheFiles");
-#endif
+    { /* find reclaimable volume replicas */
+        volrep_iterator next;
+        volrep *v, *n = next();
+        while ((v = n) != NULL) {
+            n = next();
+            if (v->refcnt == 0) {
+                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVid()));
+                delete v;
+            }
+        }
+    }
+    Recov_EndTrans(0);
 }
 
 

@@ -172,8 +172,7 @@ typedef struct VolumeDiskData {
 
     ViceVersionVector versionvector;	/* CODA version vector for this volume */
     int		ResOn;		/* Flag to turn on resolution */
-    int		maxlogentries;	/* max number of entries allowed in log */
-    bit32	reserved1[4];
+    bit32	reserved1[5];
 
 
     /* Administrative stuff */
@@ -376,7 +375,6 @@ struct volHeader {
 #define V_motd(vp)		((vp)->header->diskstuff.motd)
 #define V_disk(vp)		((vp)->header->diskstuff)
 #define V_RVMResOn(vp)		((vp)->header->diskstuff.ResOn & RVMRES)
-#define V_maxlogentries(vp)	((vp)->header->diskstuff.maxlogentries)
 #define V_VolLog(vp)		((vp)->header->diskstuff.log)
 #define V_WriteBackEnable(vp)   ((vp)->header->diskstuff.WriteBackEnable)
 

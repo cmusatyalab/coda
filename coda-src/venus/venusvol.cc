@@ -23,12 +23,14 @@ listed in the file CREDITS.
  *          - commencement of a new "epoch" for a ReplicatedVolume
  *            (i.e., adding/deleting a replica)  
  *          - movement of a volume from one host to another
+ *
+ *
+ *  This is complicated by the fact that servers allocate fids in `strides'
+ *  according to the current replication factor of the volume. --JH
  */
 
 /*
- *
  *    Implementation of the Venus Volume abstraction.
- *
  *
  *    Each volume is always in one of five states.  These states, and
  *    the next state table are: (there are some caveats, which are
@@ -42,16 +44,14 @@ listed in the file CREDITS.
  *    State is initialized to Hoarding at startup, unless the volume
  *    is "dirty" in which case it is Emulating.
  *
- *    Logging state may be triggered by discovery of weak
- *    connectivity, an application-specific resolution, or the
- *    beginning of an IOT.  All of these are rolled into the flag
- *    "logv".  In this state, cache misses may be serviced, but modify
- *    activity (or other activity in the case of IOTs) is recorded in
- *    the CML.  Resolution must be permitted in logging state because
- *    references resulting in cache misses may require it.
+ *    Logging state may be triggered by discovery of weak connectivity, or an
+ *    application-specific resolution.
+ *    All of these are rolled into the flag "logv".  In this state, cache
+ *    misses may be serviced, but modify activity is recorded in the CML.
+ *    Resolution must be permitted in logging state because references
+ *    resulting in cache misses may require it.
  *
  *    Note that non-replicated volumes have only two states, {Hoarding, Emulating}.
- *
  *
  *    Events which prompt state transition are:
  *       1. Communications state change
@@ -59,7 +59,6 @@ listed in the file CREDITS.
  *       3. End of reintegration session
  *       4. Begin/End modify logging session
  *
-
  *    Volume state is an attempt to separate the logical state of the
  *    system---represented by the volume state---from the
  *    physical---represented by RPC connectivity.  It also serves to
@@ -72,7 +71,6 @@ listed in the file CREDITS.
  *    reflected throughout Venus.  Coping with the asynchrony is much
  *    easier if we can limit state changes to well-defined points.
  *
-
  * Our basic strategy is the following: * - the top layer, VFS,
  *          processes Vnode/VFS calls.  A VFS call begins by invoking
  *          volent::Enter on the appropriate volume.  This routine
@@ -168,9 +166,7 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 
-
 int MLEs = 0;
-
 
 /* local-repair modification */
 void VolInit()
@@ -241,6 +237,12 @@ void VolInit()
 
     RecovFlush(1);
     RecovTruncate(1);
+
+    /* Grab a refcount on the local (repair) volume to avoid automatic garbage
+     * collection */
+    VolumeId LocalVid;
+    FID_MakeVolFake(&LocalVid);
+    VDB->Find(LocalVid)->hold();
 
     /* Fire up the daemon. */
     VOLD_Init();
@@ -434,18 +436,17 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname)
             if (!err) err = vsg[i]->IsReplicated();
         }
 
-        /* in case of an error put them again */
-        if (err) {
-            for (i = 0; i < VSG_MEMBERS; i++)
-                if (vsg[i]) VDB->Put((volent **)&vsg[i]);
-            break;
+        if (!err) {
+            /* instantiate the new replicated volume */
+            Recov_BeginTrans();
+            vp = new repvol(volinfo->Vid, volname, vsg);
+            v = vp;
+            Recov_EndTrans(MAXFP);
         }
-
-        /* instantiate the new replicated volume */
-        Recov_BeginTrans();
-        vp = new repvol(volinfo->Vid, volname, vsg);
-        v = vp;
-        Recov_EndTrans(MAXFP);
+        /* we can safely put the replicas as the new repvol has grabbed
+         * refcounts on all of them */
+        for (i = 0; i < VSG_MEMBERS; i++)
+            if (vsg[i]) VDB->Put((volent **)&vsg[i]);
         break;
         }
 
@@ -603,9 +604,9 @@ void vdb::Put(volent **vpp)
     volent *v = *vpp;
     LOG(100, ("vdb::Put: (%x, %s), refcnt = %d\n",
 	       v->GetVid(), v->GetName(), v->refcnt));
+    *vpp = 0;
 
     v->release();
-    *vpp = 0;
 }
 
 
@@ -761,8 +762,12 @@ void vdb::MgrpPrint(int fd)
 {
     repvol *v = 0;
     repvol_iterator next;
+
+    fdprint(fd, "Mgroups:\n");
     while ((v = next()))
         v->MgrpPrint(fd);
+    fdprint(fd, "\n");
+
 }
 
 void repvol::MgrpPrint(int fd)
@@ -773,8 +778,6 @@ void repvol::MgrpPrint(int fd)
         mgrpent *m = list_entry(p, mgrpent, volhandle);
         m->print(fd);
     }
-
-    fdprint(fd, "\n");
 }
 
 
@@ -810,7 +813,6 @@ volent::volent(VolumeId volid, char *volname)
     flags.writebacking = 0;
     flags.writebackreint = 0;
     flags.sync_reintegrate = 0;
-    flags.sync_reintegrate_done = 0;
     flags.staylogging = 0;
     flags.autowriteback = 0;
 }
@@ -829,14 +831,14 @@ void volent::ResetVolTransients()
     resolver_count = 0;
     flags.transition_pending = 0;
     flags.demotion_pending = 0;
-    flags.valid = 0;
-    flags.online = 1;
     flags.allow_asrinvocation = 1;
+    flags.asr_running = 0;
     flags.reintegratepending = 0;
     flags.reintegrating = 0;
     flags.repair_mode = 0;		    /* normal mode */
     flags.resolve_me = 0;
     flags.weaklyconnected = 0;
+    flags.available = 0;
 
     fso_list = new olist;
 
@@ -879,8 +881,7 @@ void volent::hold() {
 void volent::release() {
     refcnt--;
 
-    if (refcnt < 0)
-	{ print(logFile); CHOKE("volent::release: refcnt < 0"); }
+    CODA_ASSERT(refcnt >= 0);
 }
 
 int volent::IsReadWriteReplica()
@@ -1298,6 +1299,7 @@ void volrep::DownMember(void)
     LOG(10, ("volrep::DownMember: vid = %08x\n", vid));
 
     flags.transition_pending = 1;
+    flags.available = 0;
 	
     /* Coherence is now suspect for all objects in read-write volumes. */
     if (!IsBackup())
@@ -1331,6 +1333,7 @@ void volrep::UpMember(void)
 {
     LOG(10, ("volrep::UpMember: vid = %08x\n", vid));
     flags.transition_pending = 1;
+    flags.available = 1;
 
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
@@ -1496,8 +1499,8 @@ int repvol::SyncCache(ViceFid * fid)
 
     flags.transition_pending = 1;
     flags.sync_reintegrate = 1;
-    reintegrate_until = NULL;   //do the whole volume	    
-    /* reintegrate_until = findDepenents(fid); */
+    reintegrate_done = NULL;   //do the whole volume	    
+    /* reintegrate_done = findDepenents(fid); */
 
     if (flags.transition_pending) { 
         // make sure no one else took our transition
@@ -1679,7 +1682,6 @@ void repvol::ResetTransient(void)
     Lock_Init(&CML_lock);
     CML.ResetTransient();
 
-    flags.asr_running = 0;
     RecordsCancelled = 0;
     RecordsCommitted = 0;
     RecordsAborted = 0;
@@ -1706,6 +1708,10 @@ void repvol::ResetTransient(void)
 	    SymlinkFids.Count = 0;
 	Recov_EndTrans(MAXFP);
     }
+
+    /* grab a refcount on the underlying replicas */
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        if (vsg[i]) vsg[i]->hold();
 
     ResetVolTransients();
 }
@@ -2587,20 +2593,6 @@ NonRepExit:
 }
 
 
-int volrep::IsAvailable(void)
-{
-    int available = 0;
-
-    if (host.s_addr) {
-        srvent *s = 0;
-        GetServer(&s, &host);
-        available = s->ServerIsUp();
-        PutServer(&s);
-    }
-    return available;
-}
-
-
 void volent::GetMountPath(char *buf, int ok_to_assert)
 {
     /* Need to suppress assertion when called via hoard verify,
@@ -2627,20 +2619,14 @@ void volent::print(int afd)
 {
     fdprint(afd, "%#08x : %-16s : vol = %x\n", (long)this, name, vid);
 
-    fdprint(afd, "\trefcnt = %d, fsos = %d, valid = %d, online = %d, logv = %d, weak = %d\n",
-	    refcnt, fso_list->count(), flags.valid, flags.online, flags.logv,
-	    flags.weaklyconnected);
+    fdprint(afd, "\trefcnt = %d, fsos = %d, logv = %d, weak = %d\n",
+	    refcnt, fso_list->count(), flags.logv, flags.weaklyconnected);
     fdprint(afd, "\tstate = %s, t_p = %d, d_p = %d, counts = [%d %d %d %d], repair = %d\n",
 	    PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
 	    observer_count, mutator_count, waiter_count, resolver_count, 
 	    flags.repair_mode);
     fdprint(afd, "\tshrd_count = %d and excl_count = %d excl_pgid = %d\n",
 	    shrd_count, excl_count, excl_pgid);
-
-    fdprint(afd, "\tage limit = %u (sec), reint limit = %u (msec)\n", 
-	    AgeLimit, ReintLimit);
-    fdprint(afd, "\thas_local_subtree = %d, resolve_me = %d\n", 
-	    flags.has_local_subtree, flags.resolve_me);
 
     if (IsReplicated())
         ((repvol *)this)->print_repvol(afd);
@@ -2650,16 +2636,26 @@ void volent::print(int afd)
 
 void volrep::print_volrep(int afd)
 {
-    fdprint(afd, "\thost: %x ", host);
+
+    fdprint(afd, "\thost: %s, available %d", inet_ntoa(host), flags.available);
     fdprint(afd, "replicated parent volume = %x\n", replicated);
 }
 
 void repvol::print_repvol(int afd)
 {
+    fdprint(afd, "\tage limit = %u (sec), reint limit = %u (msec)\n", 
+	    AgeLimit, ReintLimit);
+    fdprint(afd, "\tasr allowed %d, running %d\n", 
+	    flags.allow_asrinvocation, flags.asr_running);
+    fdprint(afd, "\treintegrate pending %d, reintegrating = %d\n", 
+	    flags.reintegratepending, flags.reintegrating);
+    fdprint(afd, "\thas_local_subtree = %d, resolve_me = %d\n", 
+	    flags.has_local_subtree, flags.resolve_me);
+
     /* Replicas */
     fdprint(afd, "\tvolume replicas: [ ");
     for (int i = 0; i < VSG_MEMBERS; i++)
-        fdprint(afd, "%x, ", vsg[i]);
+        fdprint(afd, "%x, ", vsg[i] ? vsg[i]->GetVid() : 0);
     fdprint(afd, "]\n");
 
     fdprint(afd, "\tVersion stamps = [");

@@ -124,7 +124,7 @@ int repvol::COP2(mgrpent *m, ViceStoreId *StoreId, vv_t *UpdateSet)
 int repvol::FlushCOP2(time_t window)
 {
     CODA_ASSERT(!IsFake());
-    LOG(100, ("volent::FlushCOP2: vol = %x, window = %d\n",
+    LOG(100, ("repvol::FlushCOP2: vol = %x, window = %d\n",
 	       vid, window));
 
     int code = 0;

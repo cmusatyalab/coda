@@ -575,8 +575,8 @@ int repvol::ReadyToReintegrate()
 	    cmlent *m;
 	    cml_iterator next(CML, CommitOrder);
 
-	    while ((m = next())) 
-		ready += m->ReintReady();
+	    while ((m = next()) && m->ReintReady()) 
+		ready++;
     }
 
     PutUser(&u);
@@ -626,17 +626,10 @@ int cmlent::ReintReady()
 	return 0; 
     }
 
-    /* if cmlent is last one needing to be flushed after writeback revocation */
-    if ((this == vol->reintegrate_until) && (vol->flags.sync_reintegrate) && (vol->flags.writebackreint)){
-	LOG(100, ("cmlent::ReintReady: last record needing to be written synchronously\n"));
-	vol->flags.sync_reintegrate_done = 1;
-	return 1;
-    }
-
-    /* we want to stop on the record after the one above */
-    if (vol->flags.sync_reintegrate_done) {
-	LOG(100, ("cmlent::ReintReady: record doesn't need to be written synchronously\n"));
-	vol->flags.sync_reintegrate_done = 0;
+    /* if cmlent is beyond the last one needing to be flushed after writeback
+     * revocation */
+    if ((this == vol->reintegrate_done) && (vol->flags.sync_reintegrate) && (vol->flags.writebackreint)){
+	LOG(100, ("cmlent::ReintReady: beyond last record needing to be written synchronously\n"));
 	return 0;
     }
 

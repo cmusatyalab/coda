@@ -108,7 +108,9 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	int rc = 0;
 	int volidx;
 	ProgramType *pt;
-	int resflag = RVMRES;
+	int resflag = repvol ? RVMRES : 0;
+        int rvmlogsize = 4096; /* when resolution is enabled, default to 4k
+                                  log entries */
 
 	/* To keep C++ 2.0 happy */
 	char *partition = (char *)formal_partition;
@@ -162,8 +164,8 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 
     /* If we are creating a replicated volume, pass along group id */
 	vp = VCreateVolume(&error, partition, volumeId, parentId, 
-			   repvol?grpId:0, readwriteVolume, 
-			   repvol? resflag : 0);
+			   repvol ? grpId : 0, readwriteVolume, 
+			   resflag ? rvmlogsize : 0);
 	if (error) {
 		VLog(0, "Unable to create the volume; aborted");
 		rvmlib_abort(VNOVOL);
@@ -196,16 +198,6 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
 	if (status == 0) {
 		VLog(0, "create: volume %x (%s) created", volumeId, volname);
 		*volid = volumeId;	    /* set value of out parameter */
-#if 0
-		if (SRV_RVM(VolumeList[volidx]).data.volumeInfo)
-			if (SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries)
-				LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx,
-							       SRV_RVM(VolumeList[volidx]).data.volumeInfo->maxlogentries);
-			else
-				LogStore[volidx] = new PMemMgr(sizeof(rlent), 0, volidx, MAXLOGSIZE);
-		else
-			CODA_ASSERT(0);
-#endif
 	}
 	else {
 		VLog(0, "create: volume creation failed for volume %x", volumeId);
@@ -241,7 +233,8 @@ static int ViceCreateRoot(Volume *vp)
     /* set up the physical directory */
     CODA_ASSERT(!(DH_MakeDir(dir, &did, &did)));
 
-    /* build a single entry ACL that gives all rights to everyone */
+    /* build a two entry ACL that gives all rights to system:admininstrators
+     * and read-lookup rights to system:anyuser */
     ACL = VVnodeDiskACL(vnode);
     ACL->MySize = sizeof(AL_AccessList);
     ACL->Version = AL_ALISTVERSION;

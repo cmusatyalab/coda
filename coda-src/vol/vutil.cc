@@ -135,10 +135,9 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
 				   Creation date does not mean this */
     if (AllowResolution && rvmlogsize) {
 	LogMsg(1, SrvDebugLevel, stdout, "Creating log for volume\n");
-	vol.log = new recov_vol_log(volumeId);
+	vol.log = new recov_vol_log(volumeId, rvmlogsize);
 	CODA_ASSERT(vol.log);
 	vol.ResOn = RVMRES;
-	vol.maxlogentries = rvmlogsize;
     }
 
     /* set up volume header info */
@@ -212,7 +211,6 @@ void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to)
     to->stamp.version = VOLUMEINFOVERSION;
     to->log = NULL;
     to->ResOn = 0;
-    to->maxlogentries = 0;
 }
 
 void ClearVolumeStats(register VolumeDiskData *vol)

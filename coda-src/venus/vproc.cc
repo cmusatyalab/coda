@@ -553,7 +553,8 @@ void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode)
 #endif	TIMING
 
     /* Kick out non-ASR processes if an ASR is running */
-    if (u.u_vol->IsReplicated() && ((repvol *)u.u_vol)->asr_running() &&
+    if (u.u_vol->IsReplicated() && vfsop != CODA_RESOLVE && 
+        ((repvol *)u.u_vol)->asr_running() &&
         (u.u_pgid != ((repvol *)u.u_vol)->asr_id()))
       u.u_error = EAGAIN;
     else /* Attempt to enter the volume. */
