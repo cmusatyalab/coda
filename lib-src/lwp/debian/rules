@@ -4,23 +4,16 @@
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
-
-# This is the debhelper compatability version to use.
-export DH_COMPAT=1
+export DH_ALWAYS_EXCLUDE=CVS:.pc
 
 DEB_BUILD_GNU_TYPE := $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE )
 DEB_HOST_GNU_TYPE  := $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE )
 
 # As we're not yet 'stable' we default to building unstripped binaries.
 # This can be overridden by setting an empty DEB_BUILD_OPTIONS.
-${DEB_BUILD_OPTIONS=debug,nostrip}
+${DEB_BUILD_OPTIONS=nostrip}
 export DEB_BUILD_OPTIONS
-
-# avoid '-g' flag when 'DEB_BUILD_OPTIONS=debug' is not set.
-ifeq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-CFLAGS += -O2
-export CFLAGS
-endif
+CFLAGS += -Wall
 
 build: build-stamp
 build-stamp:

@@ -22,7 +22,7 @@ lib_LTLIBRARIES = liblwp.la
 INCLUDES = -I$(top_srcdir)/include
 liblwp_la_SOURCES = fasttime.c iomgr.c lock.c lwp.c timer.c process.S \
     lwp.private.h
-liblwp_la_CFLAGS = -DLWP_DEBUG
+liblwp_la_CFLAGS =-DLWP_DEBUG
 liblwp_la_LDFLAGS = -version-info $(LIBTOOL_VERSION) $(LIBTOOL_LDFLAGS)
 
 noinst_PROGRAMS = cswitch testlwp testlwp-static tdb rw
