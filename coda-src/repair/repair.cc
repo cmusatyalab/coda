@@ -16,7 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-#include <venusfid.h>
 #include "repair.h"
 
 int allowclear = 0, session = NOT_IN_SESSION, repair_DebugFlag = 0;

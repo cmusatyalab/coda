@@ -61,7 +61,6 @@ extern "C" {
 #include <codaconf.h>
 #include <inconsist.h>
 #include <coda_config.h>
-#include <venusfid.h>
 
 /* From venusvol.h.  A volume is in exactly one of these states. */
 typedef enum {	Hoarding,

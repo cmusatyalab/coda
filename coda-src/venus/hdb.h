@@ -38,7 +38,6 @@ extern "C" {
 /* interfaces */
 #include <vice.h>
 #include <coda.h>
-#include <venusfid.h>
 
 #define HDB_ASSERT(ex) \
 {\

@@ -24,7 +24,6 @@ listed in the file CREDITS.
             October 1989
 */
 
-#include <venusfid.h>
 #include "repcmds.h"
 
 static char *repair_abspath(char *result, unsigned int len, char *name);

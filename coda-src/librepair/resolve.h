@@ -24,8 +24,6 @@ listed in the file CREDITS.
  * Created 09/18/89  Puneet Kumar
  */
 
-#include <venusfid.h>
-
 /* Header file for definitions used by the 
  * resolution subsystem  
  */

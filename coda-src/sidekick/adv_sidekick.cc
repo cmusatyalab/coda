@@ -16,7 +16,6 @@ listed in the file CREDITS.
 #*/
 
 #include <coda_config.h>
-#include <venusfid.h>
 
 #include "adv_sidekick.h"
 
