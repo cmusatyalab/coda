@@ -325,12 +325,17 @@ static void Recov_CheckParms() {
 	    { eprint("setting CacheFiles requires InitMetaData"); exit(-1); }
 
 	/* CacheFiles is not set to default unless brain-wipe has been requested! */
-	if (CacheFiles == UNSET_CF && InitMetaData)
+	if (CacheFiles == UNSET_CF && InitMetaData) {
 	    CacheFiles = CacheBlocks / BLOCKS_PER_FILE;
+#ifdef DJGPP
+            if (CacheFiles > 1500) CacheFiles = 1500;
+#endif
+        }
 	if (CacheFiles != UNSET_CF && CacheFiles < MIN_CF) {
 	    eprint("Cannot start: minimum cache files is %d", MIN_CF); 
 	    exit(-1); 
 	}
+
     }
 
     /* From HDB module. */
