@@ -11,25 +11,25 @@ UPDATESRV=/usr/sbin/updatesrv
 
 FLAGS="defaults 40"
 
-test -f $RPC2PORTMAP || exit 0
-test -f $UPDATECLNT || exit 0
-test -f $UPDATESRV || exit 0
 test -d $vicedir/db || exit 0
 test -f $vicedir/db/scm || exit 0
-
 SCM=`cat /vice/db/scm`
 HOST=`hostname`
 
+test -f $UPDATECLNT || exit 0
+test $SCM != $HOST -o -f $RPC2PORTMAP || exit 0
+test $SCM != $HOST -o -f $UPDATESRV || exit 0
+
 case "$1" in
   start)
-    start-stop-daemon --start --verbose --exec $RPC2PORTMAP
+    [ $SCM != $HOST ] || start-stop-daemon --start --verbose --exec $RPC2PORTMAP
     [ $SCM != $HOST ] || start-stop-daemon --start --verbose --exec $UPDATESRV
     start-stop-daemon --start --verbose --exec $UPDATECLNT
     ;;
   stop)
     start-stop-daemon --stop --verbose --exec $UPDATECLNT
     [ $SCM != $HOST ] || start-stop-daemon --stop --verbose --exec $UPDATESRV
-    start-stop-daemon --stop --verbose --exec $RPC2PORTMAP
+    [ $SCM != $HOST ] || start-stop-daemon --stop --verbose --exec $RPC2PORTMAP
     ;;
   #reload)
     #
@@ -44,16 +44,9 @@ case "$1" in
     # start-stop-daemon --stop --signal 1 --verbose --exec $UPDATECLNT
     # ;;
   restart|force-reload)
-  #
-  # If the "reload" option is implemented, move the "force-reload"
-  # option to the "reload" entry above. If not, "force-reload" is
-  # just the same as "restart".
-  #
-    start-stop-daemon --stop --verbose --exec $UPDATECLNT
-    [ $SCM != $HOST ] || start-stop-daemon --stop --verbose --exec $UPDATESRV
+    $0 stop
     sleep 1
-    [ $SCM != $HOST ] || start-stop-daemon --start --verbose --exec $UPDATESRV
-    start-stop-daemon --start --verbose --exec $UPDATECLNT
+    $0 start
     ;;
   *)
     echo "Usage: /etc/init.d/coda-update {start|stop|restart|force-reload}"
