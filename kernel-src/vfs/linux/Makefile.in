@@ -46,3 +46,5 @@ clean:
 	rm -f core *.o *.a *.s 
 	rm -f types/* typedir types.a
 
+include $(TOPDIR)/Makerules
+

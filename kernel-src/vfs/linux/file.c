@@ -87,7 +87,7 @@ struct file_operations coda_dir_operations = {
         NULL,                   /* fsync */
 };
 
-/* ask venus to cache the file and return the inode of the cached file,
+/* ask venus to cache the file and return the inode of the container file,
    put this inode pointer in the cnode for future reference */
 int
 coda_open(struct inode *i, struct file *f)
@@ -98,7 +98,7 @@ coda_open(struct inode *i, struct file *f)
         struct inputArgs *inp = NULL;
         int outsize;
         int error = 0;
-        struct inode *open_inode = NULL;
+        struct inode *cont_inode = NULL;
         unsigned short flags = f->f_flags;
 
         ENTRY;
@@ -149,15 +149,15 @@ coda_open(struct inode *i, struct file *f)
 
         if ( ! cnp->c_ovp ) {
                 error = coda_inode_grab(out->d.cfs_open.dev, 
-                                        out->d.cfs_open.inode, &open_inode);
+                                        out->d.cfs_open.inode, &cont_inode);
                 
                 if ( error ){
                         printk("coda_open: coda_inode_grab error %d.", error);
-                        if (open_inode) iput(open_inode);
+                        if (cont_inode) iput(cont_inode);
                         goto exit;
                 } 
-                DEBUG("GRAB: coda_inode_grab: ino %ld\n", open_inode->i_ino);
-                cnp->c_ovp = open_inode; 
+                DEBUG("GRAB: coda_inode_grab: ino %ld\n", cont_inode->i_ino);
+                cnp->c_ovp = cont_inode; 
         } 
 
         cnp->c_ocount++;
@@ -443,7 +443,7 @@ coda_file_read(struct inode *coda_inode, struct file *coda_file,
                char *buff, int count)
 {
         struct cnode *cnp;
-        struct inode *open_inode = NULL;
+        struct inode *cont_inode = NULL;
         struct file  open_file;
         int result = 0;
 
@@ -459,9 +459,9 @@ coda_file_read(struct inode *coda_inode, struct file *coda_file,
 
         /* control object */
 
-        open_inode = cnp->c_ovp;
+        cont_inode = cnp->c_ovp;
 
-        if ( open_inode == NULL ) {
+        if ( cont_inode == NULL ) {
                 /* I don't understand completely if Linux has the file open 
                    for every possible read operation -- if not there may be no
                    open inode pointer in the cnode. The netbsd code seems
@@ -473,7 +473,7 @@ coda_file_read(struct inode *coda_inode, struct file *coda_file,
                 return 0; /* ??? */
         }
 
-        coda_prepare_openfile(coda_inode, coda_file, open_inode, &open_file);
+        coda_prepare_openfile(coda_inode, coda_file, cont_inode, &open_file);
 
         if ( ! open_file.f_op ) { 
                 DEBUG("cached file has not file operations.\n");
@@ -485,11 +485,11 @@ coda_file_read(struct inode *coda_inode, struct file *coda_file,
                 return 0;
         }
          
-        result = open_file.f_op->read(open_inode, &open_file , buff, count);
+        result = open_file.f_op->read(cont_inode, &open_file , buff, count);
         DEBUG(" result %d, count %d, position: %ld\n", result, count, open_file.f_pos);
 
 
-        coda_restore_codafile(coda_inode, coda_file, open_inode, &open_file);
+        coda_restore_codafile(coda_inode, coda_file, cont_inode, &open_file);
         
         return result;
 }

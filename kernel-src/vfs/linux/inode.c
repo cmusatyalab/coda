@@ -324,11 +324,16 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
 
         size = payload_offset + length + 1;
         error = coda_upcall(coda_sbp(dir->i_sb), size, &size, buf);
-        if (!error)
-                error =out->result;
-        
+        if (!error) {
+	  error =out->result;
+        } else {
+	  DEBUG("upcall returns error: %d\n", error);
+	  *res_inode = (struct inode *) NULL;
+	  goto exit;
+	}
+
         if ( error) {
-                DEBUG("lookup error on %lx.%lx.%lx(%s)%d\n",
+                DEBUG("venus returns error for %lx.%lx.%lx(%s)%d\n",
                       dircnp->c_fid.Volume, 
                       dircnp->c_fid.Vnode, 
                       dircnp->c_fid.Unique, 
@@ -344,9 +349,9 @@ static int coda_lookup(struct inode *dir, const char *name, int length,
 
                 *res_inode = coda_cinode_make(&out->d.cfs_lookup.VFid, 
                                              dir->i_sb);
-                if (buf) 
-                        CODA_FREE(buf, (VC_INSIZE(cfs_lookup_in) + 
-                                        CFS_MAXNAMLEN + 1));
+		if (buf) 
+		  CODA_FREE(buf, (VC_INSIZE(cfs_lookup_in) + 
+				  CFS_MAXNAMLEN + 1));
                 iput(dir);
                 EXIT;
                 return 0;
@@ -368,10 +373,11 @@ coda_unlink(struct inode *dir_inode, const char *name, int length)
         struct cnode *dircnp;
         struct inputArgs *inp;
         struct outputArgs *out;
+	int payload_offset;
         int result = 0, s;
         char *buff = NULL;
 
-ENTRY;
+	ENTRY;
         dircnp = ITOC(dir_inode);
         CHECK_CNODE(dircnp);
 
@@ -397,16 +403,29 @@ ENTRY;
         inp->d.cfs_remove.VFid = dircnp->c_fid;
         coda_load_creds(&(inp->cred));
 
-        inp->d.cfs_remove.name = (char *)(VC_INSIZE(cfs_remove_in));
-        s = strlen(name) + 1;
-        strncpy((char *)inp + (int)inp->d.cfs_remove.name, name, s);
-        s += VC_INSIZE(cfs_remove_in);
+	payload_offset = VC_INSIZE(cfs_remove_in); 
+        inp->d.cfs_remove.name = (char *)(payload_offset);
+
+        /* Venus must get null terminated string */
+        memcpy((char *)inp + payload_offset, name, length);
+        *( (char *)inp + payload_offset + length ) = '\0';
+
+        s = payload_offset + length + 1;
 
         result = coda_upcall(coda_sbp(dir_inode->i_sb), s, &s, (char *)inp);
 
-        if ( !result ) 
-                result = out->result;
+        if ( result ) {
+	       printk("coda_unlink: upcall error: %d\n", result);
+	       goto exit;
+	} else {
+	      result = -out->result;
+	      if ( result ) {
+		      printk("coda_unlink: Venus returns error: %d\n", result);
+		      goto exit;
+	      }
+	}
         
+exit:
         if (buff) CODA_FREE(buff, CFS_MAXNAMLEN + sizeof(struct inputArgs));
         DEBUG("returned %d\n", result);
         iput(dir_inode);

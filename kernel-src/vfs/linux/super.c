@@ -355,27 +355,29 @@ ENTRY;
         outp = (struct outputArgs *) inp;
 
         INIT_IN(inp, CFS_GETATTR);
+        coda_load_creds(&(inp->cred));
         inp->d.cfs_getattr.VFid = vfid;
         size = VC_OUTSIZE(cfs_getattr_out);
         error = coda_upcall(coda_sbp, VC_INSIZE(cfs_getattr_in), 
                             &size, (caddr_t *)inp);
-        if (!error) {
-                error = outp->result;
-                if (error)
-                        printk ("coda_getvattr: GETATTR result = %ld\n", outp->result); 
-        }
-        if (error) {
-                printk ("coda_getvattr: error %d\n", error);
+     
+	if ( error ) {
+	        printk("coda_getvattr: upcall returns %d\n", error);
+		goto exit;
+	} else {
+	        error = outp->result;
+                if (error) {
+		        DEBUG ("result: %ld\n", outp->result); 
+		        goto exit;
+		}
         }
 
-        if (!error) {
-                *attr = (struct vattr) outp->d.cfs_getattr.attr;
-        }
+	*attr = (struct vattr) outp->d.cfs_getattr.attr;
 
+exit:
         if (inp) CODA_FREE(inp, sizeof(struct inputArgs));
         EXIT;
-        return error;
-
+        return -error;
 }
 
 
@@ -454,8 +456,9 @@ ENTRY;
 
         inp->d.cfs_setattr.VFid = cnp->c_fid;
         coda_iattr_to_vattr(iattr, &vattr);
-        DEBUG("vattr.va_mode %o\n", vattr.va_mode);
-        inp->d.cfs_setattr.attr = vattr;
+        vattr.va_type = VNON; /* cannot set type */
+	DEBUG("vattr.va_mode %o\n", vattr.va_mode);
+	inp->d.cfs_setattr.attr = vattr;
         size = VC_INSIZE(cfs_setattr_in);
 
         
@@ -464,19 +467,22 @@ ENTRY;
         error = coda_upcall(coda_sbp(inode->i_sb), size, &size, 
                             (caddr_t *) inp);
         
-        if ( !error ) {
-                error = out->result;
-        }
         if ( error ) {
-                DEBUG("returned error %d\n", error);
-                if ( inp ) CODA_FREE(inp , buffer_size);
-                return error;
+	        printk("coda_notify_change: upcall returns: %d\n", error);
+		goto exit;
+	} else {
+	        error = out->result;
+		if ( error ) {
+		        DEBUG("venus returned  %d\n", error);
+			goto exit;
+		}
         }
-         
+        
+exit: 
         DEBUG(" result %ld\n", out->result); 
-EXIT;
+	EXIT;
         if ( inp ) CODA_FREE(inp, buffer_size);
-        return error;
+        return -error;
 
 }
 
@@ -565,7 +571,7 @@ coda_iattr_to_vattr(struct iattr *iattr, struct vattr *vattr)
                 /* don't do others */
                 vattr->va_type = VNON;
         }
-        
+
         /* set those vattrs that need change */
         valid = iattr->ia_valid;
         if ( valid & ATTR_MODE ) 

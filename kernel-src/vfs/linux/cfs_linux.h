@@ -55,6 +55,11 @@ struct venus_dirent {
 
 #define panic printk
 
+
+#define D_VENUSRET  1   /* print results returned by Venus */ 
+#define D_ENTRY     2   /* print entry and exit into procedure */
+#define D_MALLOC    4   /* print malloc, de-alloc information */
+
 #define myprintf(ARG)  printk ARG
 
 #define COMPLAIN_BITTERLY(OP, FID)                             \
@@ -67,20 +72,25 @@ do {                                                           \
 } while (0) ;
 
 
-#define DEBUG(format, a...)                                                \
+#define DEBUG(format, a...)                                       \
   do {                                                            \
   if (coda_debug) {                                               \
-    printk("%s, line: %d ",  __FUNCTION__, __LINE__);\
-    printk(format, ## a); }                                                 \
+    printk("%s, line: %d ",  __FUNCTION__, __LINE__);             \
+    printk(format, ## a); }                                       \
+} while (0) ;                            
+ 
+#define CDEBUG(mask, format, a...)                                \
+  do {                                                            \
+  if (coda_debug & mask) {                                        \
+    printk("(%s,l. %d): ",  __FUNCTION__, __LINE__);              \
+    printk(format, ## a); }                                       \
 } while (0) ;                            
 
-
 #define ENTRY    \
-    if(coda_print_entry) printk("Process %d entered %s\n",current->pid,__FUNCTION__)
+    if(coda_debug & D_ENTRY) printk("Process %d entered %s\n",current->pid,__FUNCTION__)
 
 #define EXIT    \
-    if(coda_print_entry) printk("Process %d leaving %s\n",current->pid,__FUNCTION__)
-
+    if(coda_debug & D_ENTRY) printk("Process %d leaving %s\n",current->pid,__FUNCTION__)
 
 
 /* 
@@ -184,7 +194,7 @@ struct cfid {
 do {                                                                      \
     if (size < 3000) {                                                    \
         ptr = (cast)kmalloc((unsigned long) size, GFP_KERNEL);            \
-                DEBUG("alloced: %x at %x.\n", (int) size, (int) ptr);     \
+                CDEBUG(D_MALLOC, "alloced: %x at %x.\n", (int) size, (int) ptr);\
      }  else                                                              \
         ptr = (cast)vmalloc((unsigned long) size);                        \
     if (ptr == 0) {                                                       \
@@ -194,7 +204,7 @@ do {                                                                      \
 } while (0)
 
 
-#define CODA_FREE(ptr, size) do {if (size < 3000) { kfree_s((ptr), size); DEBUG("de-alloced: %x at %x.\n", (int) size, (int) ptr); } else vfree((ptr));} while (0)
+#define CODA_FREE(ptr, size) do {if (size < 3000) { kfree_s((ptr), size); CDEBUG(D_MALLOC, "de-alloced: %x at %x.\n", (int) size, (int) ptr); } else vfree((ptr));} while (0)
 
 
 
@@ -235,13 +245,22 @@ enum vtype      { VNON, VREG, VDIR, VBLK, VCHR, VLNK, VSOCK, VFIFO, VBAD };
  *  perhaps too little:
  */
 
-#ifndef VUID_T
-#define VUID_T
+#ifndef _VUID_T_
+#define _VUID_T_
 typedef unsigned int vuid_t;
 typedef unsigned int vgid_t;
-#endif VUID_T
+#endif _VUID_T
 
 #ifdef KERNEL
+
+/* Venus - Kernel communication macros */
+
+#define HANDLE_ERROR( errorp, out, label)  \
+if ( coda_upcallerror( errorp, out, __FUNCTION__) ) goto label ; 
+
+
+
+
 #define DIRBLKSIZ 1024  /*  from NetBSD 1.2 dirent.h */
 
 
@@ -254,11 +273,11 @@ struct timespec {
 
 #define u_quad_t u_long
 
-#ifndef VUID_T
-#define VUID_T
+#ifndef _VUID_T_
+#define _VUID_T_
 typedef unsigned int vuid_t;
 typedef unsigned int vgid_t;
-#endif VUID_T
+#endif _VUID_T_
 
 struct vattr {
         enum vtype      va_type;        /* vnode type (for create) */
