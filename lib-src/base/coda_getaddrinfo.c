@@ -343,7 +343,9 @@ int coda_getaddrinfo(const char *node, const char *service,
 	is_ip = inet_aton(tmpnode, &addr);
 	if (!is_ip)
 	    tmpnode[len-1] = '.';
-    }
+    } else
+	is_ip = inet_aton(tmpnode, &addr);
+
     port = strtol(service, &end, 10);
     if (*service == '\0' || *end != '\0')
 	port = 0;
