@@ -13,6 +13,17 @@
 extern int coda_debug;
 extern int coda_print_entry;
 
+inline int coda_fideq(ViceFid *fid1, ViceFid *fid2)
+{
+	if (fid1->Vnode != fid2->Vnode)
+		return 0;
+	if (fid1->Volume != fid2->Volume)
+		return 0;
+	if (fid1->Unique != fid2->Unique)
+		return 0;
+	return 1;
+}
+
 /* cnode.c */
 static void coda_fill_inode(struct inode *inode, struct coda_vattr *attr)
 {
@@ -83,8 +94,14 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
         }
 
 	cnp = ITOC(*inode);
-       if  ( cnp->c_magic != 0 ) {
-               printk("coda_cnode make on initialized inode %ld, old %s new
+	/* see if we've got it already */
+	if  ( cnp->c_magic != 0 && coda_fideq(fid, &cnp->c_fid)) {
+		iput(*inode);
+	}
+
+	/* not fresh: collision */
+	if  ( cnp->c_magic != 0 ) {
+               printk("coda_cnode_make on initialized inode %ld, old %s new
 %s!\n",
                       (*inode)->i_ino, coda_f2s(&cnp->c_fid), coda_f2s2(fid));
                iput(*inode);
@@ -118,14 +135,6 @@ int coda_cnode_make(struct inode **inode, ViceFid *fid, struct super_block *sb)
         return 0;
 }
 
-inline int coda_fideq(ViceFid *fid1, ViceFid *fid2)
-{
-	int eq;
-	eq =   ( (fid1->Vnode == fid2->Vnode) &&
-		 (fid1->Volume == fid2->Volume) &&
-		 (fid1->Unique == fid2->Unique) );
-	return eq;
-}
 
 void coda_replace_fid(struct inode *inode, struct ViceFid *oldfid, 
 		      struct ViceFid *newfid)

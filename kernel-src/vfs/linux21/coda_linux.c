@@ -215,6 +215,8 @@ void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
         if (attr->va_ctime.tv_sec != -1)
 	        inode->i_ctime = attr->va_ctime.tv_sec;
 }
+
+
 /* 
  * BSD sets attributes that need not be modified to -1. 
  * Linux uses the valid field to indicate what should be
