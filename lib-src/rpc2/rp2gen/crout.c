@@ -53,8 +53,10 @@ Pittsburgh, PA.
 
 
 #define _PAD(n)((((n)-1) | 3) + 1)
-#define BUFFEROVERFLOW  "        fprintf(stderr,\"%%s:%%d Buffer overflow in (un)marshalling !\\n\",__FILE__,__LINE__);\n        return 0;\n"
+#define BUFFEROVERFLOW  "        goto bufferoverflow;\n"
+#define BUFFEROVERFLOW_END  "bufferoverflow:\n    fprintf(stderr,\"%%s:%%d Buffer overflow in (un)marshalling !\\n\",__FILE__,__LINE__);\n    return 0;\n"
 
+static int buffer_checked = 0;
 
 static dump_procs(PROC *head, FILE *where);
 static print_type(RPC2_TYPE *t, FILE *where, char *name);
@@ -406,7 +408,6 @@ static char timeoutval[] = "_timeoutval";
 static char timeout[] = "_timeout";
 static char code[] = "_code";
 static char iterate[] = "_iterate";
-static char timesec[] = "_timesec";
 static char timestart[] = "_timestart";
 static char timeend[] = "_timeend";
 
@@ -414,7 +415,7 @@ static char timeend[] = "_timeend";
 static locals(where)
     FILE *where;
 {
-    fprintf(where, "    register RPC2_Byte *%s;\n", ptr);
+    fprintf(where, "    RPC2_Byte *%s;\n", ptr);
     fprintf(where, "    long %s, %s, %s;\n", length, rpc2val, code);
     fprintf(where, "    RPC2_PacketBuffer *%s;\n", rspbuffer);
 
@@ -622,7 +623,7 @@ static spit_body(proc, in_parms, out_parms, where)
     }
     if (array_parms)
         fprintf(where, "    long %s;\n", iterate);
-    fprintf(where, "    long opengate, %s;\n", timesec); 
+    fprintf(where, "    long opengate;\n"); 
     fprintf(where, "    struct timeval %s, %s;\n", timestart, timeend);
     /* Packet Buffer */
     fprintf(where, "    RPC2_PacketBuffer *%s;\n", reqbuffer);
@@ -734,10 +735,17 @@ static spit_body(proc, in_parms, out_parms, where)
     fprintf(where, "    /* END_ELAPSE */\n");
     fprintf(where, "    if (opengate) {\n");
     fprintf(where, "        gettimeofday(&_timeend, 0);\n");
+    fprintf(where, "        %s_CallCount[%d].tsec += _timeend.tv_sec - _timestart.tv_sec;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "        %s_CallCount[%d].tusec += _timeend.tv_usec - _timestart.tv_usec;\n", subsystem.subsystem_name, proc->op_number);
 
-    fprintf(where, "        _timesec = (%s_CallCount[%d].tusec += (_timeend.tv_sec-_timestart.tv_sec)*1000000+(_timeend.tv_usec-_timestart.tv_usec))/1000000;\n", subsystem.subsystem_name, proc->op_number);
-    fprintf(where, "        %s_CallCount[%d].tusec -= _timesec*1000000;\n", subsystem.subsystem_name, proc->op_number);
-    fprintf(where, "        %s_CallCount[%d].tsec += _timesec;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "        if (%s_CallCount[%d].tusec < 0) {\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "            %s_CallCount[%d].tusec += 1000000;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "            %s_CallCount[%d].tsec--;\n", subsystem.subsystem_name, proc->op_number);
+
+    fprintf(where, "        } else if (%s_CallCount[%d].tusec >= 1000000) {\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "            %s_CallCount[%d].tusec -= 1000000;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "            %s_CallCount[%d].tsec++;\n", subsystem.subsystem_name, proc->op_number);
+    fprintf(where, "        }\n");
     fprintf(where, "        %s_CallCount[%d].counttime++;\n", subsystem.subsystem_name, proc->op_number);
     fprintf(where, "    }\n");
     fprintf(where, "    %s_CallCount[%d].countexit++;\n", subsystem.subsystem_name, proc->op_number);
@@ -745,6 +753,10 @@ static spit_body(proc, in_parms, out_parms, where)
 
     /* Quit */
     fprintf(where, "    return %s;\n", code);
+
+    if (buffer_checked)
+        fprintf(where, BUFFEROVERFLOW_END);
+    buffer_checked = 0;
 
     /* Close off routine */
     fputs("}\n", where);
@@ -912,6 +924,7 @@ static checkbuffer(where, what, size)
 	fprintf(where, "    if ( (char *)%s + %d > _EOB) {\n"
 		 BUFFEROVERFLOW
 		 "    }\n", what,size);
+        buffer_checked = 1;
 }
 
 static set_timeout(proc, where)
@@ -1005,24 +1018,12 @@ static pack(who, parm, prefix, ptr, where)
 	    break;
     case RPC2_STRING_TAG:		
 	    fprintf(where, "    %s = strlen((char *)%s);\n", length, name);
-#ifdef RP2GEN_DEBUG
-	    fprintf(where, "    if ( (char *)%s + _PAD(%s+1) + 4 > _EOB) {\n"
-		    BUFFEROVERFLOW
-		    "    }\n", ptr,length);
-#endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s);\n", ptr, length);
 	    fprintf(where, "    strcpy((char *)(%s+4), (char *)%s);\n", ptr, name);
 	    fprintf(where, "    *(%s+4+%s) = '\\0';\n", ptr, length);
 	    fprintf(where, "    %s += 4 + _PAD(%s+1);\n", ptr, length);
 	    break;
     case RPC2_COUNTEDBS_TAG:	
-#ifdef RP2GEN_DEBUG
-	    fprintf(where, "    if ( (char *)%s +",ptr);
-	    print_size(who,parm,prefix,where);
-	    fprintf(where, "> _EOB) {\n"        
-		           BUFFEROVERFLOW
-		           "    }\n");
-#endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sSeqLen);\n",
 		    ptr, name, select);
 	    fprintf(where, "    memcpy((char *)(%s+4), (char *)%s%sSeqBody, (long)%s%sSeqLen);\n",
@@ -1032,13 +1033,6 @@ static pack(who, parm, prefix, ptr, where)
 	    fputs(";\n", where);
 	    break;
     case RPC2_BOUNDEDBS_TAG:
-#ifdef RP2GEN_DEBUG
-	    fprintf(where, "    if ( (char *)%s +",ptr);
-	    print_size(who,parm,prefix,where);
-	    fprintf(where, "> _EOB) {\n"        
-		           BUFFEROVERFLOW
-		           "    }\n");
-#endif
 	    fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s%sMaxSeqLen);\n",
 		    ptr, name, select);
 	    fprintf(where, "    *(RPC2_Integer *) (%s+4) = htonl(%s%sSeqLen);\n",
@@ -1164,6 +1158,7 @@ static unpack(who, parm, prefix, ptr, where)
 		           BUFFEROVERFLOW
 		           "    }\n",ptr,length);
 	    fprintf(where, "    if (*((char*)%s+%s - 1) != 0) { \n" BUFFEROVERFLOW "\n } \n",ptr,length);
+            buffer_checked = 1;
 	    /* If RPC2_String is the element of RPC2_Struct, mode should be NO_MODE. */
 	    /* So mode should not be examined here. */
 	    /* if (mode == IN_OUT_MODE && who == CLIENT) { */
@@ -1189,6 +1184,7 @@ static unpack(who, parm, prefix, ptr, where)
 			fprintf(where, "    if ( (char *)%s + _PAD(%s.SeqLen) > _EOB) {\n"
 				       BUFFEROVERFLOW
 				       "    }\n", ptr,name);
+                        buffer_checked = 1;
 			fprintf(where, "    %s.SeqBody = %s;\n", name, ptr);
 			fprintf(where, "    %s += _PAD(%s.SeqLen);\n", ptr, name);
 			break;
@@ -1216,6 +1212,7 @@ static unpack(who, parm, prefix, ptr, where)
 	    fprintf(where, "    if ( (char *)%s + _PAD(%s%sSeqLen) > _EOB) {\n"
 		           BUFFEROVERFLOW
 		           "    }\n", ptr,name,select);
+            buffer_checked = 1;
 	    if (who == CLIENT /* && mode == IN_OUT_MODE */) {
 		    fprintf(where, "    memcpy((char *)%s%sSeqBody, (char *)%s, (long)%s%sSeqLen);\n",
 			    name, select, ptr, name, select);
@@ -1271,6 +1268,7 @@ static unpack(who, parm, prefix, ptr, where)
 	    fprintf(where, "    if ( (char *)%s + RPC2_KEYSIZE > _EOB) {\n"
 		           BUFFEROVERFLOW
 			    "    }\n", ptr);
+            buffer_checked = 1;
 	    fputs("    ", where);
 	    fprintf(where, "memcpy((char *)%s, (char *)%s, (int)%s);\n", name, ptr, "RPC2_KEYSIZE");
 	    inc(ptr, "RPC2_KEYSIZE", where);
@@ -1321,7 +1319,6 @@ static check_new_connection(proc)
 	formals[1]->type->type->tag != RPC2_INTEGER_TAG || /* SecurityLevel */
 	formals[2]->type->type->tag != RPC2_INTEGER_TAG || /* EncryptionType */
 	formals[3]->type->type->tag != RPC2_INTEGER_TAG || /* AuthType */
-/*	formals[4]->type->type->tag != RPC2_INTEGER_TAG || * BirthTime */
 	formals[4]->type->type->tag != RPC2_COUNTEDBS_TAG) { /* ClientIdent */
 	puts("RP2GEN: bad parameters for NEW_CONNECTION procedure");
 	exit(1);
@@ -1480,6 +1477,10 @@ static one_server_proc(proc, where)
     }
 
     fprintf(where, "    return %s;\n", rspbuffer);
+
+    if (buffer_checked)
+        fprintf(where, BUFFEROVERFLOW_END);
+    buffer_checked = 0;
 
     /* Close routine */
     fputs("}\n", where);

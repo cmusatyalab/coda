@@ -3,6 +3,7 @@ New in 1.12:
 * Fixed gcc-3.0 compiler warnings.
 * Added support for libreadline v4.2.
 * Stricter prototyping for callback functions.
+* Fixed the very infrequent SFTP_SendResponse crash.
 
 New in 1.11:
 

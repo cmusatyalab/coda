@@ -12,7 +12,7 @@ dnl - when interfaces were added/removed changed, increment second and set
 dnl   first to 0
 dnl - if any interfaces were added, increment third
 dnl - if any interfaces were removed, set third to 0
-CODA_LIBRARY_VERSION(1, 4, 1)
+CODA_LIBRARY_VERSION(2, 4, 1)
 
 CODA_OPTION_LWP
 

@@ -107,6 +107,7 @@ NOTE 1
     which are useful independent of RPC2.  
 */
 
+#define HAVE_SE_FUNC(xxx) (ce->SEProcs && ce->SEProcs->xxx)
 
 void SavePacketForRetry();
 static int InvokeSE(), ResolveBindParms(), ServerHandShake();
@@ -147,7 +148,7 @@ static void rpc2_StampPacket(struct CEntry *ce, struct RPC2_PacketBuffer *pb)
 long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 {
     RPC2_PacketBuffer *preply, *pretry;
-    struct CEntry *ceaddr;
+    struct CEntry *ce;
     long rc;
 
     rpc2_Enter();
@@ -155,13 +156,13 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
     assert(!Reply || Reply->Prefix.MagicNumber == OBJ_PACKETBUFFER);
 
     /* Perform sanity checks */
-    ceaddr = rpc2_GetConn(ConnHandle);
-    if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
-    if (!TestState(ceaddr, SERVER, S_PROCESS)) 	rpc2_Quit(RPC2_NOTWORKER);
+    ce = rpc2_GetConn(ConnHandle);
+    if (!ce) rpc2_Quit(RPC2_NOCONNECTION);
+    if (!TestState(ce, SERVER, S_PROCESS)) 	rpc2_Quit(RPC2_NOTWORKER);
 
     /* set connection state */
-    SetState(ceaddr, S_AWAITREQUEST);
-    if (ceaddr->Mgrp != NULL) SetState(ceaddr->Mgrp, S_AWAITREQUEST);
+    SetState(ce, S_AWAITREQUEST);
+    if (ce->Mgrp) SetState(ce->Mgrp, S_AWAITREQUEST);
 
     /* return if we have no reply to send */
     if (!Reply) rpc2_Quit(RPC2_FAIL);
@@ -175,43 +176,35 @@ long RPC2_SendResponse(IN RPC2_Handle ConnHandle, IN RPC2_PacketBuffer *Reply)
 
     
     rc = preply->Header.ReturnCode; /* InitPacket clobbers it */
-    rpc2_InitPacket(preply, ceaddr, preply->Header.BodyLength);
+    rpc2_InitPacket(preply, ce, preply->Header.BodyLength);
     preply->Header.ReturnCode = rc;
     preply->Header.Opcode = RPC2_REPLY;
-    preply->Header.SeqNumber = ceaddr->NextSeqNumber-1;
+    preply->Header.SeqNumber = ce->NextSeqNumber-1;
     			/* SocketListener has already updated NextSeqNumber */
 
     rc = RPC2_SUCCESS;	/* tentative, for sendresponse */
     /* Notify side effect routine, if any */
-    if (ceaddr->SEProcs != NULL && ceaddr->SEProcs->SE_SendResponse != NULL)
-    	{
-	rc = (*ceaddr->SEProcs->SE_SendResponse)(ConnHandle, &preply);
-	}
-
-#if 0 /* moved up to handle error case without Reply packet buffer */
-    /* set connection state */
-    SetState(ceaddr, S_AWAITREQUEST);
-    if (ceaddr->Mgrp != NULL) SetState(ceaddr->Mgrp, S_AWAITREQUEST);
-#endif
+    if (HAVE_SE_FUNC(SE_SendResponse))
+	rc = (*ce->SEProcs->SE_SendResponse)(ConnHandle, &preply);
 
     /* Allocate retry packet before encrypting Bodylength */ 
     RPC2_AllocBuffer(preply->Header.BodyLength, &pretry); 
 
-    if (ceaddr->TimeStampEcho) /* service time is now-requesttime */
-	rpc2_StampPacket(ceaddr, preply);
+    if (ce->TimeStampEcho) /* service time is now-requesttime */
+	rpc2_StampPacket(ce, preply);
 
     /* Sanitize packet */
     rpc2_htonp(preply);
-    rpc2_ApplyE(preply, ceaddr);
+    rpc2_ApplyE(preply, ce);
 
     /* Send reply */
     say(9, RPC2_DebugLevel, "Sending reply\n");
-    rpc2_XmitPacket(rpc2_RequestSocket, preply, &ceaddr->PeerHost, &ceaddr->PeerPort);
+    rpc2_XmitPacket(rpc2_RequestSocket, preply, &ce->PeerHost, &ce->PeerPort);
 
     /* Save reply for retransmission */
     memcpy(&pretry->Header, &preply->Header, preply->Prefix.LengthOfPacket);
     pretry->Prefix.LengthOfPacket = preply->Prefix.LengthOfPacket;
-    SavePacketForRetry(pretry, ceaddr);
+    SavePacketForRetry(pretry, ce);
     
     if (preply != Reply) RPC2_FreeBuffer(&preply);  /* allocated by SE routine */
     rpc2_Quit(rc);
@@ -284,7 +277,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 	rc = RPC2_SUCCESS;
 	
 	/* Notify side effect routine, if any */
-	if (ce->SEProcs && ce->SEProcs->SE_GetRequest)
+	if (HAVE_SE_FUNC(SE_GetRequest))
 	    {
 	    rc = (*ce->SEProcs->SE_GetRequest)(*ConnHandle, *Request);
 	    if (rc != RPC2_SUCCESS)
@@ -335,7 +328,7 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
     SetState(ce, S_AWAITENABLE); 
 
     /* Call side effect routine if present */
-    if (ce->SEProcs && ce->SEProcs->SE_NewConnection)
+    if (HAVE_SE_FUNC(SE_NewConnection))
     {
 	rc = (*ce->SEProcs->SE_NewConnection)(*ConnHandle, &cident);
 	if (rc < RPC2_FLIMIT) { DROPIT(); }
@@ -388,10 +381,10 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     while(TRUE)
 	{
 	ce = rpc2_GetConn(ConnHandle);
-	if (ce == NULL) rpc2_Quit(RPC2_NOCONNECTION);
+	if (!ce) rpc2_Quit(RPC2_NOCONNECTION);
 	if (TestState(ce, CLIENT, C_HARDERROR)) rpc2_Quit(RPC2_FAIL);
 	if (TestState(ce, CLIENT, C_THINK)) break;
-	if (SDesc != NULL && ce->sebroken) rpc2_Quit(RPC2_SEFAIL2);
+	if (SDesc && ce->sebroken) rpc2_Quit(RPC2_SEFAIL2);
 
 	if (!EnqueueRequest) rpc2_Quit(RPC2_CONNBUSY);
 	say(0, RPC2_DebugLevel, "Enqueuing on connection 0x%lx\n",ConnHandle);
@@ -415,7 +408,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
     if (ce->RTT && preq->Header.BindTime == 0) preq->Header.BindTime = 1;  /* ugh */
 
     /* Notify side effect routine, if any */
-    if (SDesc != NULL && ce->SEProcs != NULL && ce->SEProcs->SE_MakeRPC1 != NULL)
+    if (SDesc && HAVE_SE_FUNC(SE_MakeRPC1))
 	if ((secode = (*ce->SEProcs->SE_MakeRPC1)(ConnHandle, SDesc, &preq)) != RPC2_SUCCESS)
 	    {
 	    if (secode > RPC2_FLIMIT)
@@ -448,8 +441,7 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 				rpc2_FreeSle(&sl);
 				/* release packet allocated by SE routine */
 				if (preq != Request) RPC2_FreeBuffer(&preq);
-				finalrc = RPC2_TIMEOUT;
-				goto QuitMRPC;
+				goto SendReliablyError;
 
 	default:		assert(FALSE);
 	}
@@ -493,7 +485,8 @@ long RPC2_MakeRPC(RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 	SocketListener has already decrypted it */
 
     /* Notify side effect routine, if any.  It may modify the received packet. */
-    if (SDesc != NULL && ce->SEProcs != NULL && ce->SEProcs->SE_MakeRPC2 != NULL)
+SendReliablyError:
+    if (SDesc && HAVE_SE_FUNC(SE_MakeRPC2))
 	{
 	secode = (*ce->SEProcs->SE_MakeRPC2)(ConnHandle, SDesc, (rc == RPC2_SUCCESS)? preply : NULL);
 
@@ -609,7 +602,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 	    ce->SEProcs = NULL;
 
     /* Call side effect routine if present */
-    if (ce->SEProcs != NULL && ce->SEProcs->SE_Bind1 != NULL) {
+    if (HAVE_SE_FUNC(SE_Bind1)) {
 	    rc = (*ce->SEProcs->SE_Bind1)(*ConnHandle, Bparms->ClientIdent);
 	    if (rc != RPC2_SUCCESS) {
 		    DROPCONN();
@@ -836,7 +829,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
 
 BindOver:
     /* Call side effect routine if present */
-    if (ce->SEProcs != NULL && ce->SEProcs->SE_Bind2 != NULL) {
+    if (HAVE_SE_FUNC(SE_Bind2)) {
 	RPC2_Unsigned BindTime;
 
 	BindTime = ce->RTT >> RPC2_RTT_SHIFT;
@@ -884,18 +877,18 @@ static int InvokeSE(long CallType, RPC2_Handle ConnHandle,
     struct CEntry *ce;
 
     ce = rpc2_GetConn(ConnHandle);
-    if (ce == NULL) rpc2_Quit(RPC2_NOCONNECTION);
+    if (!ce) rpc2_Quit(RPC2_NOCONNECTION);
     if (!TestState(ce, SERVER, S_PROCESS)) return(RPC2_FAIL);
     if (ce->sebroken) return(RPC2_SEFAIL2);  
 
-    if (SDesc == NULL || ce->SEProcs == NULL) return(RPC2_FAIL);
+    if (!SDesc || !ce->SEProcs) return(RPC2_FAIL);
 
     if (CallType == 1) {
-	if (ce->SEProcs->SE_InitSideEffect == NULL) return(RPC2_FAIL);
+	if (!ce->SEProcs->SE_InitSideEffect) return(RPC2_FAIL);
 	SetState(ce, S_INSE);
 	rc = (*ce->SEProcs->SE_InitSideEffect)(ConnHandle, SDesc);
     } else {
-	if (ce->SEProcs->SE_CheckSideEffect == NULL) return(RPC2_FAIL);
+	if (!ce->SEProcs->SE_CheckSideEffect) return(RPC2_FAIL);
 	SetState(ce, S_INSE);
 	rc = (*ce->SEProcs->SE_CheckSideEffect)(ConnHandle, SDesc, Flags);
     }
@@ -926,9 +919,8 @@ long RPC2_Unbind(RPC2_Handle whichConn)
 	}
 
 	/* Call side effect routine and ignore return code */
-	if (ce->SEProcs != NULL && ce->SEProcs->SE_Unbind != NULL) {
+	if (HAVE_SE_FUNC(SE_Unbind))
 		(*ce->SEProcs->SE_Unbind)(whichConn);
-	}
 	
 	/* Remove ourselves from our Mgrp if we have one. */
 	me = ce->Mgrp;
@@ -1242,7 +1234,7 @@ static int ServerHandShake(IN struct CEntry *ce,
 
     /* Send Init2 packet and await Init3 */
     pb = Send2Get3(ce, SharedSecret, xrand, &saveYRandom);
-    if (pb == NULL) return(RPC2_NOTAUTHENTICATED);
+    if (!pb) return(RPC2_NOTAUTHENTICATED);
 
     /* Validate Init3 */
     rc = Test3(pb, ce, saveYRandom, SharedSecret);
