@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/venus.private.h,v 1.1 1996/11/22 19:11:50 braam Exp braam $";
+static char *rcsid = "$Header: /home/braam/coda/src/coda-4.0.1/coda-src/venus/RCS/venus.private.h,v 1.2 1996/11/24 21:06:13 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -253,6 +253,8 @@ enum LockLevel { NL, RD, SH, WR };
 enum CacheType {    ATTR,
 		    DATA
 };
+
+#undef WRITE
 
 enum CacheEvent	{   HIT,
 		    MISS,
