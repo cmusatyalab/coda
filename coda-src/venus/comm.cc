@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.26 98/11/02 16:45:58 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.27 1998/11/24 15:34:49 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -2046,6 +2046,8 @@ int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible) {
     int code = 0;
     int i;
 
+    InitVV(UpdateSet);
+
     CheckResult();
     
     /* check for this here because CheckResult may nuke hosts */
@@ -2064,7 +2066,6 @@ int mgrpent::CheckCOP1(int acode, vv_t *UpdateSet, int TranslateEincompatible) {
     }
 
     /* Record successes in the UpdateSet. */
-    InitVV(UpdateSet);
     for (i = 0; i < VSG_MEMBERS; i++) {
 	if (rocc.hosts[i] == 0) continue;
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.17 1998/11/02 16:46:21 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusutil.cc,v 4.18 1998/12/03 21:52:50 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -739,12 +739,9 @@ LOG(0, ("E StatsInit()\n"));
 
     bzero((void *)&RPCOpStats, (int)sizeof(RPCOpStatistics));
     for (i = 0; i < srvOPARRAYSIZE; i++) {
-	    if (srv_CallCount[i].name)
-		    strncpy(RPCOpStats.RPCOps[i].name, 
-			    (char *) srv_CallCount[i].name+4, 
-			    RPCOPSTATNAMELEN);
-	    else
-		    strcpy(RPCOpStats.RPCOps[i].name, "undef");
+	    strncpy(RPCOpStats.RPCOps[i].name, 
+		    (char *) srv_CallCount[i].name+4, 
+		    RPCOPSTATNAMELEN);
     }
     LOG(0, ("L StatsInit()\n"));
 }

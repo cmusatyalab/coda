@@ -1,7 +1,6 @@
 #ifndef _BLURB_
 #define _BLURB_
-/*
-
+/* 
             Coda: an Experimental Distributed File System
                              Release 4.0
 
@@ -29,7 +28,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.4 1998/09/29 16:38:20 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_COP2.cc,v 4.5 1998/11/02 16:46:25 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -227,6 +226,13 @@ void volent::GetCOP2(RPC2_CountedBS *BS) {
 	BS->SeqLen += sizeof(ViceStoreId);
 	htonvv(&c->updateset, (ViceVersionVector *)&BS->SeqBody[BS->SeqLen]);
 	BS->SeqLen += sizeof(ViceVersionVector);
+
+        LOG(10, ("GetCOP2, %x.%x %d.%d.%d.%d.%d.%d.%d.%d\n",
+                c->sid.Host, c->sid.Uniquifier,
+		c->updateset.Versions.Site0, c->updateset.Versions.Site1,
+	        c->updateset.Versions.Site2, c->updateset.Versions.Site3,
+	        c->updateset.Versions.Site4, c->updateset.Versions.Site5,
+	        c->updateset.Versions.Site6, c->updateset.Versions.Site7));
     }
 
     LOG(100, ("volent::GetCOP2: vol = %x, entries = %d\n",
