@@ -567,7 +567,7 @@ long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
     *ConnHandle = ce->UniqueCID;
     say(9, RPC2_DebugLevel, "Allocating connection 0x%lx\n", *ConnHandle);
     SetRole(ce, CLIENT);
-    SetState(ce, C_AWAITINIT2);	
+    SetState(ce, C_AWAITINIT2);
     ce->PeerUnique = rpc2_NextRandom(NULL);
 
     switch((int) Bparms->SecurityLevel)  {

@@ -177,7 +177,9 @@ void rpc2_ProcessPackets()
 		ce = FindOrNak(pb);
 		if (ce == NULL) 
 			return;
-		if (!TestState(ce, SERVER, S_AWAITINIT3))
+		if (!TestState(ce, CLIENT, C_AWAITINIT2) &&
+		    !TestState(ce, SERVER, S_AWAITINIT3) &&
+		    !TestState(ce, CLIENT, C_AWAITINIT4))
 			rpc2_ApplyD(pb,  ce);
 	}
 
