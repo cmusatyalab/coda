@@ -423,8 +423,16 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	mcid.Tag = RPC2_MGRPBYINETADDR;
 	mcid.Value.InetAddress.s_addr = htonl(host);
 	RPC2_PortIdent pid;
-	pid.Tag = RPC2_PORTBYNAME;
-	strcpy(pid.Value.Name, "codasrv");
+	pid.Tag = RPC2_PORTBYINETNUMBER;
+
+	struct servent *s = getservbyname("codasrv", "udp");
+	if (s != 0)
+	    pid.Value.InetPortNumber = s->s_port;
+	else {
+	    eprint("getservbyname(codasrv,udp) failed, using 2432/udp.\n");
+	    pid.Value.InetPortNumber = htons(2432);
+	}
+
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
 	ssid.Value.SubsysId = SUBSYS_SRV;
@@ -465,8 +473,16 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	hid.Tag = RPC2_HOSTBYINETADDR;
 	hid.Value.InetAddress.s_addr = htonl(host);
 	RPC2_PortIdent pid;
-	pid.Tag = RPC2_PORTBYNAME;
-	strcpy(pid.Value.Name, "codasrv");
+	pid.Tag = RPC2_PORTBYINETNUMBER;
+
+	struct servent *s = getservbyname("codasrv", "udp");
+	if (s != 0)
+	    pid.Value.InetPortNumber = s->s_port;
+	else {
+	    eprint("getservbyname(codasrv,udp) failed, using 2432/udp\n");
+	    pid.Value.InetPortNumber = htons(2432);
+	}
+
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
 	ssid.Value.SubsysId = SUBSYS_SRV;

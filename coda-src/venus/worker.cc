@@ -732,7 +732,7 @@ void WorkerInit()
             exit(-1);
         }
     } else {
-        eprint("Kernel version ioctl failed (%s)!", strerror(errno));
+        eprint("Kernel version ioctl failed.", strerror(errno));
     }
 #endif
 

@@ -223,7 +223,7 @@ void CommInit() {
 	port1.Value.InetPortNumber = s->s_port;
     else {
 	eprint("getservbyname(venus,udp) failed, using 2430/udp\n");
-	port1.Value.InetPortNumber = htonl(2430);
+	port1.Value.InetPortNumber = htons(2430);
     }
 
     /* SFTP initialization. */
@@ -240,7 +240,7 @@ void CommInit() {
 	sei.Port.Value.InetPortNumber = s->s_port;
     else {
 	eprint("getservbyname(venus-se,udp) failed, using 2431/udp\n");
-	port1.Value.InetPortNumber = htonl(2431);
+	sei.Port.Value.InetPortNumber = htons(2431);
     }
 
     SFTP_Activate(&sei);
