@@ -737,8 +737,6 @@ static void MC_AppendParmsToPacket(mse, sse, req)
     RPC2_PacketBuffer **req;
     {
     struct SFTP_MCParms mcp;
-
-    /* We piggyback multicast connection parameters on the packet and force the server to update (or
 	initialize) its SINGLECAST parameter block with them.  This serves two purposes:
 	    1/ all servers which we multicast to have the same parameters (essential only for some parms,
 		such as packet size)
