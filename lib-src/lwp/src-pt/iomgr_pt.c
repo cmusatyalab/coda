@@ -44,24 +44,15 @@ int IOMGR_Initialize(void)
     return 0;
 }
 
-int IOMGR_Select(int fds, int *readfds, int *writefds, int *exceptfds,
+int IOMGR_Select(int fds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
                  struct timeval *timeout)
 {
     PROCESS pid;
     int retval, i, m;
     struct timeval to = {0,0}, *tp = NULL;
-    fd_set rd, wr, ex;
 
     if (LWP_CurrentProcess(&pid))
         return LWP_EBADPID;
-
-    /* copy the arguments into a proper fdset */
-    FD_ZERO(&rd); FD_ZERO(&wr); FD_ZERO(&ex);
-    for (i = 0; i < fds; i++) { m = 1 << i;
-        if (readfds   && (*readfds   & m)) FD_SET(i, &rd);
-        if (writefds  && (*writefds  & m)) FD_SET(i, &wr);
-        if (exceptfds && (*exceptfds & m)) FD_SET(i, &ex);
-    }
 
     /* avoid clobbering of timeout, existing programs using LWP don't
      * like that behaviour */
@@ -71,18 +62,8 @@ int IOMGR_Select(int fds, int *readfds, int *writefds, int *exceptfds,
     }
 
     if (pid->havelock) lwp_LEAVE(pid);
-    retval = select(fds, &rd, &wr, &ex, tp);
+    retval = select(fds, readfds, writefds, exceptfds, tp);
     if (!pid->concurrent) lwp_JOIN(pid);
-
-    /* copy the results back into the arguments */
-    if (readfds)   *readfds   = 0;
-    if (writefds)  *writefds  = 0;
-    if (exceptfds) *exceptfds = 0;
-    for (i = 0; i < fds; i++) { m = 1 << i;
-        if (readfds   && FD_ISSET(i, &rd)) *readfds   |= m;
-        if (writefds  && FD_ISSET(i, &wr)) *writefds  |= m;
-        if (exceptfds && FD_ISSET(i, &ex)) *exceptfds |= m;
-    }
 
     return retval;
 }

@@ -151,8 +151,8 @@ extern int IOMGR_SoftSig (PFIC aproc, char *arock);
 extern int IOMGR_Initialize();
 extern int IOMGR_Finalize();
 extern int IOMGR_Poll();
-extern int IOMGR_Select (int fds, int *readfds, int *writefds, 
-                         int *exceptfds, struct timeval *timeout);
+extern int IOMGR_Select (int fds, fd_set *readfds, fd_set *writefds, 
+                         fd_set *exceptfds, struct timeval *timeout);
 extern int IOMGR_Cancel (PROCESS pid);
 extern int IOMGR_Signal (int signo, char *event);
 extern int IOMGR_CancelSignal (int signo);

@@ -24,7 +24,10 @@ AC_SUBST(LIBPTHREAD)
 AM_CONDITIONAL(build_pthread, test "x$LIBPTHREAD" != x)
 
 dnl Checks for header files.
+
 dnl Checks for typedefs.
+AC_CHECK_TYPE(register_t, int)
+
 dnl Checks for compiler characteristics.
 
 dnl Checks for library functions.

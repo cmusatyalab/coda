@@ -105,8 +105,8 @@ next process in that queue that should run. */
 #define Set_LWP_RC() savecontext(Dispatcher, &lwp_cpptr->context, NULL)
 
 /* internal procedure declarations */
-static void lwpremove(register PROCESS p, register struct QUEUE *q);
-static void lwpinsert(register PROCESS p, register struct QUEUE *q);
+static void lwpremove(PROCESS p, struct QUEUE *q);
+static void lwpinsert(PROCESS p, struct QUEUE *q);
 static void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to);
 static void Dispatcher();
 static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, PFIC ep, char *parm, char *name);
@@ -116,19 +116,15 @@ static void Exit_LWP();
 static void Dump_One_Process (PROCESS pid, FILE *fp, int dofree);
 static void Dump_Processes (int magic);
 static void purge_dead_pcbs();
-static void Delete_PCB(register PROCESS pid);
+static void Delete_PCB(PROCESS pid);
 static void Free_PCB(PROCESS pid);
 static void Dispose_of_Dead_PCB(PROCESS cur);
 
 static void Create_Process_Part2 ();
 static void Overflow_Complain ();
 static void Initialize_Stack (char *stackptr, int stacksize);
-static int  Stack_Used (register char *stackptr, int stacksize);
+static int  Stack_Used (char *stackptr, int stacksize);
 static int  InitializeProcessSupport();
-
-#ifdef DJGPP
-typedef void *register_t;
-#endif
 
 /*----------------------------------------*/
 /* Globals identical in  OLD and NEW lwps */
@@ -188,9 +184,7 @@ int stack_offset;			/* Offset of stack field within pcb */
 	}
 
 /* removes PROCESS p from a QUEUE pointed at by q */
-static void lwpremove(p, q)
-    register PROCESS p;
-    register struct QUEUE *q;
+static void lwpremove(PROCESS p, struct QUEUE *q)
 {
     /* Special test for only element on queue */
     if (q->count == 1)
@@ -206,9 +200,7 @@ static void lwpremove(p, q)
     p -> next = p -> prev = NULL;
 }
 
-static void lwpinsert(p, q)
-    register PROCESS p;
-    register struct QUEUE *q;
+static void lwpinsert(PROCESS p, struct QUEUE *q)
 {
     if (q->head == NULL) {	/* Queue is empty */
 	q -> head = p;
@@ -234,7 +226,7 @@ static void lwpmove(p, from, to)
 
 int LWP_TerminateProcessSupport()       /* terminate all LWP support */
 {
-    register int i;
+    int i;
 
     lwpdebug(0, "Entered Terminate_Process_Support");
     if (lwp_init == NULL) return LWP_EINIT;
@@ -259,8 +251,8 @@ int LWP_GetRock(int Tag, char **Value)
             LWP_SUCCESS    if specified rock exists and Value has been filled
             LWP_EBADROCK   rock specified does not exist
     */
-    register int i;
-    register struct rock *ra;
+    int i;
+    struct rock *ra;
 
     ra = lwp_cpptr->rlist;
 
@@ -287,8 +279,8 @@ int LWP_NewRock(int Tag, char *Value)
         clobbering others.  You can always use one level of
         indirection to obtain a rock whose contents can change.  */
     
-    register int i;
-    register struct rock *ra;   /* rock array */
+    int i;
+    struct rock *ra;   /* rock array */
 
     ra = lwp_cpptr->rlist;
 
@@ -363,7 +355,7 @@ int LWP_WaitProcess(void *event)
     return LWP_MwaitProcess(1, tempev);
 }
 
-static void Delete_PCB(register PROCESS pid)
+static void Delete_PCB(PROCESS pid)
 {
     lwpdebug(0, "Entered Delete_PCB");
     lwpremove(pid, (pid->blockflag || pid->status==WAITING || pid->status==DESTROYED
@@ -393,7 +385,7 @@ static void Dump_Processes(int magic)
     if (magic != 0xdeadbeef) return;
 
     if (lwp_init) {
-	register int i;
+	int i;
 	for (i=0; i<MAX_PRIORITIES; i++)
 	    for_all_elts(x, runnable[i], {
 		fprintf(lwp_logfile, "[Priority %d]\n", i);
@@ -522,7 +514,7 @@ static void CheckRunWaitTime(PROCESS thread)
  */
 int LWP_QWait()
 {
-    register PROCESS tp;
+    PROCESS tp;
     (tp=lwp_cpptr) -> status = QWAITING;
     lwpremove(tp, &runnable[tp->priority]);
     timerclear(&tp->lastReady);
@@ -532,7 +524,7 @@ int LWP_QWait()
 
 
 /* signal the PROCESS pid - by adding it to the runnable queue */
-int LWP_QSignal(register PROCESS pid)
+int LWP_QSignal(PROCESS pid)
 {
 
     if (pid->status == QWAITING) {
@@ -687,7 +679,7 @@ static int InitializeProcessSupport(int priority, PROCESS *pid)
 {
 	PROCESS temp;
 	struct lwp_pcb dummy;
-	register int i;
+	int i;
 	
 	lwpdebug(0, "Entered InitializeProcessSupport");
 	if (lwp_init != NULL) 
@@ -737,7 +729,7 @@ int LWP_INTERNALSIGNAL(void *event, int yield)
 /* wait on m of n events */
 int LWP_MwaitProcess(int wcount, char **evlist)
 {
-	register int ecount, i;
+	int ecount, i;
 
 	lwpdebug(0, "Entered Mwait_Process [waitcnt = %d]", wcount);
 	if (evlist == NULL) {
@@ -813,10 +805,6 @@ static void Create_Process_Part2()
 /* set lwp_trace_depth to < 0 to trace the complete stack.
  * set it to > 0 to set the maximum trace depth. */
 static int lwp_trace_depth=-1;
-
-#if defined(sun)
-typedef long register_t;
-#endif
 
 /* Stack crawling bits */
 
@@ -941,7 +929,7 @@ static void Dump_One_Process(pid, fp, dofree)
 
 static void Dispatcher()		/* Lightweight process dispatcher */
 {
-    register int i;
+    int i;
     static int dispatch_count = 0;
     PROCESS old_cpptr;
 
@@ -1032,7 +1020,7 @@ static void Free_PCB(PROCESS pid)
 static void Initialize_PCB(PROCESS temp, int priority, char *stack, 
 			   int stacksize, PFIC ep, char *parm, char *name)
 {
-	register int i = 0;
+	int i = 0;
 
 	lwpdebug(0, "Entered Initialize_PCB");
 	if (name != NULL)
@@ -1115,7 +1103,7 @@ static void Initialize_Stack(char *stackptr, int stacksize)
 {
 /* This can be any unlikely pattern except 0x00010203 or the reverse. */
 #define STACKMAGIC	0xBADBADBA
-    register int i;
+    int i;
 
     lwpdebug(0, "Entered Initialize_Stack");
     if (lwp_stackUseEnabled)
@@ -1125,11 +1113,9 @@ static void Initialize_Stack(char *stackptr, int stacksize)
 	*(long *)stackptr = STACKMAGIC;
 }
 
-static int Stack_Used(stackptr, stacksize)
-    register char *stackptr;
-    int stacksize;
+static int Stack_Used(char *stackptr, int stacksize)
 {
-    register int    i;
+    int    i;
 
     if (*(long *) stackptr == STACKMAGIC)
 	return 0;

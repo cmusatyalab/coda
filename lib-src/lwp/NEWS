@@ -5,6 +5,8 @@ New in 1.5:
 * Moved process.ss to process.S, to use correct compilation flags.
 * Ported to NetBSD-mips.
 * Fixed shared library problems for mips and sparc (and arm?).
+* Using fd_set for IOMGR_Select.
+* Fixed broken handling of the select timeout.
 
 New in 1.4:
 

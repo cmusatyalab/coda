@@ -77,9 +77,15 @@ struct IoRequest {
     PROCESS		pid;
 
     /* Descriptor masks for requests */
-    int		readfds;
-    int		writefds;
-    int		exceptfds;
+    int			nfds;
+    fd_set		readfds;
+    fd_set		writefds;
+    fd_set		exceptfds;
+
+    /* returned descriptors */
+    fd_set		rreadfds;
+    fd_set		rwritefds;
+    fd_set		rexceptfds;
 
     struct TM_Elem	timeout;
 
@@ -101,7 +107,6 @@ struct IoRequest {
 
 extern int errno;
 
-static long openMask;			/* mask of open files on an IOMGR abort */
 static long sigsHandled;		/* sigmask(signo) is on if we handle signo */
 static int anySigsDelivered;		/* true if any have been delivered. */
 static struct sigaction oldVecs[NSIG];	/* the old signal vectors */
@@ -130,8 +135,8 @@ static int IOMGR_CheckSignals ();
 static int IOMGR_CheckTimeouts ();
 static int IOMGR_CheckDescriptors(int PollingCheck);
 static void IOMGR(char *dummy);
-static int SignalIO (int fds, int readfds, int writefds, int exceptfds);
-static int SignalTimeout(int fds, struct timeval *timeout);
+static int SignalIO (fd_set *readfds, fd_set *writefds, fd_set *exceptfds);
+static int SignalTimeout(struct timeval *timeout);
 static int SignalSignals ();
 
 
@@ -149,8 +154,6 @@ static struct IoRequest *NewRequest()
 }
 
 #define Purge(list) FOR_ALL_ELTS(req, list, { free(req->BackPointer); })
-
-#define MAX_FDS 32
 
 /*
  *    The IOMGR module manages three types of IO for the LWPs in the process: 
@@ -184,10 +187,8 @@ static int IOMGR_CheckTimeouts()
 
 	woke_someone = TRUE;
 	req = (struct IoRequest *) expired -> BackPointer;
-	req->readfds = 0;
-	req->writefds = 0;
-	req->exceptfds = 0;
-	req->result = 0;					/* no fds ready */
+	req->nfds = 0;
+	req->result = 0;	/* no fds ready */
 	TM_Remove(Requests, &req->timeout);
 	LWP_QSignal(req->pid);
 	req->pid->iomgrRequest = 0;
@@ -202,8 +203,8 @@ static int IOMGR_CheckTimeouts()
    prior to the select. */
 static int IOMGR_CheckDescriptors(int PollingCheck)
 {
-    int fds;
-    int readfds, writefds, exceptfds;
+    int result, nfds, rf, wf, ef;
+    fd_set readfds, writefds, exceptfds;
     struct TM_Elem *earliest;
     struct timeval timeout, tmp_timeout, junk;
 
@@ -212,16 +213,24 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
 	    return(0);
 
     /* Merge active descriptors. */
-    readfds = 0;
-    writefds = 0;
-    exceptfds = 0;
-    FOR_ALL_ELTS(r, Requests, {
-		  struct IoRequest *req;
-		  req = (struct IoRequest *) r -> BackPointer;
-		  readfds |= req -> readfds;
-		  writefds |= req -> writefds;
-		  exceptfds |= req -> exceptfds;
-		  });
+    rf = wf = ef = 0; /* set whenever a fd in a fd_set is set */
+    nfds = 0;
+    FD_ZERO(&readfds);
+    FD_ZERO(&writefds);
+    FD_ZERO(&exceptfds);
+    FOR_ALL_ELTS(r, Requests,
+    {
+	int i;
+	struct IoRequest *req;
+	req = (struct IoRequest *) r -> BackPointer;
+
+	for (i = 0; i < req->nfds; i++) {
+	    if (FD_ISSET(i, &req->readfds))   { FD_SET(i, &readfds);   rf = 1; }
+	    if (FD_ISSET(i, &req->writefds))  { FD_SET(i, &writefds);  wf = 1; }
+	    if (FD_ISSET(i, &req->exceptfds)) { FD_SET(i, &exceptfds); ef = 1; }
+	}
+	if (req->nfds > nfds) nfds = req->nfds;
+    });
 
     /* Set timeout for select syscall. */
     if (PollingCheck) {
@@ -249,7 +258,7 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
 	    return(-1);
 
     lwpdebug(0, "[select(%d, 0x%x, 0x%x, 0x%x, <%d, %d>)]\n",
-		  MAX_FDS, readfds, writefds, exceptfds, (int)timeout.tv_sec, 
+		 nfds, readfds, writefds, exceptfds, (int)timeout.tv_sec, 
 		 (int)timeout.tv_usec);
 
     if (iomgr_timeout.tv_sec != 0 || iomgr_timeout.tv_usec != 0)  {
@@ -268,46 +277,42 @@ static int IOMGR_CheckDescriptors(int PollingCheck)
        return. */
 
     tmp_timeout = iomgr_timeout;
-    fds = select(MAX_FDS, (fd_set *)(readfds ? &readfds : 0), 
-		  (fd_set *)(writefds ? &writefds : 0), 
-		  (fd_set *)(exceptfds ? &exceptfds : 0), 
-		  &tmp_timeout);
+    result = select(nfds, rf ? &readfds : NULL, wf ? &writefds : NULL,
+		    ef ? &exceptfds : NULL, &tmp_timeout);
 
-    if ( fds < 0 ) 
-	    lwpdebug(-1, "Select returns error: %d\n", errno);
+    if (result < 0) {
+	lwpdebug(-1, "Select returns error: %d\n", errno);
 
-
-    if (fds < 0 && errno != EINTR) {
-    	    for(fds=0;fds<MAX_FDS;fds++) {
-		    if (fcntl(fds, F_GETFD, 0) < 0 && errno == EBADF) { 
-			    if ( FD_ISSET(fds, (fd_set *)&readfds) )
-				    lwpdebug(0, "BADF readfds for %d", fds);
-			    if ( FD_ISSET(fds, (fd_set *) &writefds) )
-				    lwpdebug(0, "BADF writefds for %d", fds);
-			    if ( FD_ISSET(fds, (fd_set *) &exceptfds) )
-				    lwpdebug(0, "BADF exceptfds for %d", fds);
-			    openMask |= (1<<fds);
-		    } 
-
+	/* some debugging code to catch bad filedescriptors.
+	 * i.e. in most cases someone closed an FD we were waiting on. */
+	if (errno != EINTR) {
+	    int i;
+	    for (i = 0; i < nfds; i++) {
+		if ((FD_ISSET(i, &readfds)   ||
+		     FD_ISSET(i, &writefds)  ||
+		     FD_ISSET(i, &exceptfds)) &&
+		    fcntl(i, F_GETFD, 0) < 0 &&
+		    errno == EBADF)
+		{ 
+		    lwpdebug(0, "BADF fd %d", i);
+		}
 	    }
 	    assert(0);
+	}
+	return(0);
     }
 
-    /* Force a new gettimeofday call so FT_AGetTimeOfDay calls work. */
-    FT_GetTimeOfDay(&junk, 0);
-
     /* See what happened. */
-    if (fds > 0)
+    if (result > 0)
 	/* Action -- wake up everyone involved. */
-	return(SignalIO(fds, readfds, writefds, exceptfds));
-    else if (fds == 0 && 
-	     (iomgr_timeout.tv_sec != 0 || 
-	      iomgr_timeout.tv_usec != 0))
+	return(SignalIO(&readfds, &writefds, &exceptfds));
+
+    if (iomgr_timeout.tv_sec != 0 || iomgr_timeout.tv_usec != 0)
 	/* Real timeout only if signal handler hasn't set
            iomgr_timeout to zero. */
-	return(SignalTimeout(fds, &timeout));
-    else
-	return(0);
+	return(SignalTimeout(&iomgr_timeout));
+
+    return(0);
 }
 
 
@@ -360,40 +365,49 @@ static void IOMGR(char *dummy)
 * 			 *
 \************************/
 
-static int SignalIO(fds, readfds, writefds, exceptfds)
-    int fds;
-    int readfds;
-    int writefds;
-    int exceptfds;
+static int SignalIO(fd_set *readfds, fd_set *writefds,
+		    fd_set *exceptfds)
 {
     int woke_someone = FALSE;
 
     /* Look at everyone who's bit mask was affected */
-    FOR_ALL_ELTS(r, Requests, {
+    FOR_ALL_ELTS(r, Requests,
+    {
+	int i;
+	int wakethisone = 0;
 	struct IoRequest *req;
 	PROCESS pid;
 	req = (struct IoRequest *) r -> BackPointer;
-	if ((req->readfds & readfds) ||
-	    (req->writefds & writefds) ||
-	    (req->exceptfds & exceptfds)) {
 
-	    woke_someone = TRUE;
-	    req -> readfds &= readfds;
-	    req -> writefds &= writefds;
-	    req -> exceptfds &= exceptfds;
-	    req -> result = fds;
+	for (i = 0; i < req->nfds; i++) {
+	    if (FD_ISSET(i, readfds) && FD_ISSET(i, &req->readfds)) {
+		FD_SET(i, &req->rreadfds);
+		req->result += 1;
+		wakethisone = 1;
+	    }
+	    if (FD_ISSET(i, writefds) && FD_ISSET(i, &req->writefds)) {
+		FD_SET(i, &req->rwritefds);
+		req->result += 1;
+		wakethisone = 1;
+	    }
+	    if (FD_ISSET(i, exceptfds) && FD_ISSET(i, &req->exceptfds)) {
+		FD_SET(i, &req->rexceptfds);
+		req->result += 1;
+		wakethisone = 1;
+	    }
+	}
+	if (wakethisone) {
 	    TM_Remove(Requests, &req->timeout);
 	    LWP_QSignal(pid=req->pid);
 	    pid->iomgrRequest = 0;
+	    woke_someone = TRUE;
 	}
     })
 
     return(woke_someone);
 }
 
-static int SignalTimeout(fds, timeout)
-    int fds;
-    struct timeval *timeout;
+static int SignalTimeout(struct timeval *timeout)
 {
     int woke_someone = FALSE;
 
@@ -401,10 +415,11 @@ static int SignalTimeout(fds, timeout)
     FOR_ALL_ELTS(r, Requests, {
 	struct IoRequest *req;
 	PROCESS pid;
-	req = (struct IoRequest *) r -> BackPointer;
+	req = (struct IoRequest *) r->BackPointer;
 	if (TM_eql(&r->TimeLeft, timeout)) {
 	    woke_someone = TRUE;
-	    req -> result = fds;
+	    req->nfds = 0;
+	    req->result = 0;
 	    TM_Remove(Requests, &req->timeout);
 	    LWP_QSignal(pid=req->pid);
 	    pid->iomgrRequest = 0;
@@ -423,7 +438,6 @@ static int SignalTimeout(fds, timeout)
 \*****************************************************/
 static void SigHandler (int signo)
 {
-
 	if (badsig(signo) || (sigsHandled & mysigmask(signo)) == 0)
 		return;		/* can't happen. */
 	sigDelivered[signo] = TRUE;
@@ -496,7 +510,7 @@ int IOMGR_SoftSig(aproc, arock)
 int IOMGR_Initialize()
 {
 
-    /* If lready initialized, just return */
+    /* If already initialized, just return */
     if (IOMGR_Id != NULL) return LWP_SUCCESS;
 
     /* Initialize request lists */
@@ -552,40 +566,58 @@ int IOMGR_Poll()
     return(woke_someone);
 }
 
-int IOMGR_Select(fds, readfds, writefds, exceptfds, timeout)
-    int fds;
-    int *readfds;
-    int *writefds;
-    int *exceptfds;
-    struct timeval *timeout; 
+int IOMGR_Select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+		 struct timeval *timeout)
 {
-
     struct IoRequest *request;
-    int result;
+    int result, i;
 
     /* See if polling request. If so, handle right here */
     if (timeout != NULL && timeout->tv_sec == 0 && timeout->tv_usec == 0) {
-	int nfds;
 	lwpdebug(0, "[Polling SELECT]");
-	nfds = select(MAX_FDS, (fd_set *)readfds, (fd_set *)writefds, (fd_set *)exceptfds, timeout);
-	return (nfds > 1 ? 1 : nfds);
+	result = select(nfds, readfds, writefds, exceptfds, timeout);
+	return(result);
     }
 
     /* Construct request block & insert */
     request = NewRequest();
-    request -> readfds = (readfds != NULL ? *readfds : 0);
-    request -> writefds = (writefds != NULL ? *writefds : 0);
-    request -> exceptfds = (exceptfds != NULL ? *exceptfds : 0);
-    if (timeout == NULL) {
-	    request -> timeout.TotalTime.tv_sec = -1;
-	    request -> timeout.TotalTime.tv_usec = -1;
-    } else
-	    request -> timeout.TotalTime = *timeout;
 
-    request -> timeout.BackPointer = (char *) request;
+    FD_ZERO(&request->readfds);
+    FD_ZERO(&request->writefds);
+    FD_ZERO(&request->exceptfds);
+    request->nfds = 0;
+
+    for (i = 0; i < nfds; i++) {
+	if (readfds && FD_ISSET(i, readfds)) {
+	    FD_SET(i, &request->readfds);
+	    request->nfds = i;
+	}
+	if (writefds  && FD_ISSET(i, writefds)) {
+	    FD_SET(i, &request->writefds);
+	    request->nfds = i;
+	}
+	if (exceptfds && FD_ISSET(i, exceptfds)) {
+	    FD_SET(i, &request->exceptfds);
+	    request->nfds = i;
+	}
+    }
+    request->nfds++;
+
+    FD_ZERO(&request->rreadfds);
+    FD_ZERO(&request->rwritefds);
+    FD_ZERO(&request->rexceptfds);
+
+    if (timeout == NULL) {
+	    request->timeout.TotalTime.tv_sec = -1;
+	    request->timeout.TotalTime.tv_usec = -1;
+    } else
+	    request->timeout.TotalTime = *timeout;
+
+    request->timeout.BackPointer = (char *) request;
 
     /* Insert my PID in case of IOMGR_Cancel */
-    request -> pid = lwp_cpptr;
+    request->pid = lwp_cpptr;
+    request->result = 0;
     lwp_cpptr -> iomgrRequest = request;
     TM_Insert(Requests, &request->timeout);
 
@@ -593,12 +625,20 @@ int IOMGR_Select(fds, readfds, writefds, exceptfds, timeout)
     LWP_QWait();
 
     /* Update parameters & return */
-    if (readfds != NULL) *readfds = request -> readfds;
-    if (writefds != NULL) *writefds = request -> writefds;
-    if (exceptfds != NULL) *exceptfds = request -> exceptfds;
+    if (readfds)   FD_ZERO(readfds);
+    if (writefds)  FD_ZERO(writefds);
+    if (exceptfds) FD_ZERO(exceptfds);
+
+    for (i = 0; i < request->nfds; i++) {
+	if (readfds   && FD_ISSET(i,&request->rreadfds))   FD_SET(i, readfds);
+	if (writefds  && FD_ISSET(i,&request->rwritefds))  FD_SET(i, writefds);
+	if (exceptfds && FD_ISSET(i,&request->rexceptfds)) FD_SET(i, exceptfds);
+    }
+
     result = request -> result;
     FreeRequest(request);
-    return (result > 1 ? 1 : result);
+
+    return(result);
 }
 
 int IOMGR_Cancel(PROCESS pid)
@@ -608,10 +648,11 @@ int IOMGR_Cancel(PROCESS pid)
 	if ((request = pid->iomgrRequest) == 0) 
 		return -1;
 
-	request -> readfds = 0;
-	request -> writefds = 0;
-	request -> exceptfds = 0;
-	request -> result = -2;
+	request->nfds = 0;
+	FD_ZERO(&request->readfds);
+	FD_ZERO(&request->writefds);
+	FD_ZERO(&request->exceptfds);
+	request->result = -2;
 	TM_Remove(Requests, &request->timeout);
 	LWP_QSignal(request->pid);
 	pid->iomgrRequest = 0;
@@ -623,7 +664,6 @@ int IOMGR_Cancel(PROCESS pid)
    event. */
 int IOMGR_Signal (int signo, char *event)
 {
-
 	struct sigaction sv;
 
 	if (badsig(signo))
