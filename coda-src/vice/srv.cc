@@ -212,7 +212,7 @@ int prottrunc = FALSE;
 
 /* PDB stuff. */
 static int pdbtime = 0;
-#define CODADB "/vice/db/vice.db"
+#define CODADB "/vice/db/prot_users.db"
 
 /* Token stuff. */
 static int keytime = 0;
