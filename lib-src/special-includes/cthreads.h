@@ -7,6 +7,9 @@
 /*
  * HISTORY
  * $Log: cthreads.h,v $
+ * Revision 4.1  1997/01/08 21:54:22  rvb
+ * r = 4.1; fix $ HEADERS
+ *
  * Revision 1.1  1996/11/22 19:19:06  braam
  * First Checkin (pre-release)
  *
