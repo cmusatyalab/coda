@@ -184,8 +184,8 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 		/* Note that the result of ReadLink is not necessarily a proper string. */
 
 		/* Get the link contents. */
-		char linkdata[MAXPATHLEN];
-		int linklen = MAXPATHLEN;
+		char linkdata[CODA_MAXPATHLEN];
+		int linklen = CODA_MAXPATHLEN;
 		struct coda_string string;
 		string.cs_buf = linkdata;
 		string.cs_maxlen = linklen;

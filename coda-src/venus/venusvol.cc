@@ -975,14 +975,15 @@ int volent::Enter(int mode, vuid_t vuid) {
     }
 
     /* Step 3 is to try to get a volume callback. */
-    /* We allow only the hoard thread to fetch new version stamps if
-     * we do not already have one.  If we do have stamps, we let other
-     * threads validate them with one condition.  
+    /* We allow only the hoard thread to fetch new version stamps if we do not
+     * already have one. If we do have stamps, we let other threads validate
+     * them with one condition.  
      * The wierd condition below is to prevent the vol daemon from validating
-     * volumes one at a time.  That is, if the volume has just taken a transition
-     * or was just demoted, there is a good chance some other volumes have as well.  
+     * volumes one at a time.  That is, if the volume has just taken a
+     * transition or was just demoted, there is a good chance some other
+     * volumes have as well.
      * We'd like them all to take transitions/demotions first so we can check
-     * them en masse.  We risk sticking a real request with this overhead, but 
+     * them en masse.  We risk sticking a real request with this overhead, but
      * only if a request arrives in the next few (5) seconds!  
      */
     vproc *vp = VprocSelf();
@@ -994,10 +995,11 @@ int volent::Enter(int mode, vuid_t vuid) {
 	    vcbevent ve(fso_list->count());
 	    ReportVCBEvent(NoStamp, vid, &ve);
 	}
-	if ((!HaveStamp() && (vp->type == VPT_HDBDaemon)) ||
-	    (HaveStamp() && ((vp->type != VPT_VolDaemon) || !just_transitioned))) {
+	if ((!HaveStamp() && vp->type == VPT_HDBDaemon) ||
+	    (HaveStamp() && (vp->type != VPT_VolDaemon || !just_transitioned))) {
 	    int code = GetVolAttr(vuid);
-	    LOG(100, ("volent::Enter: GetVolAttr(0x%x) returns %s\n", vid, VenusRetStr(code)));
+	    LOG(100, ("volent::Enter: GetVolAttr(0x%x) returns %s\n",
+		      vid, VenusRetStr(code)));
         }
     }
 
@@ -1011,7 +1013,6 @@ int volent::Enter(int mode, vuid_t vuid) {
 		 * block while resolution is going on, while the CML is locked,
 		 * or volume state transition is pending.
 		 */
-		vproc *vp = VprocSelf();
 		int proc_key = vp->u.u_pgid;
 		while ((excl_count > 0 && proc_key != excl_pgid) || state == Resolving
 		        || WriteLocked(&CML_lock) || flags.transition_pending) {
@@ -1028,12 +1029,13 @@ int volent::Enter(int mode, vuid_t vuid) {
 		if (type == REPVOL) {
 		    /* 
 		     * Claim ownership if the volume is free. 
-		     * The CML lock is used to prevent checkpointers and mutators
-		     * from executing in the volume simultaneously, because
-		     * the CML must not change during a checkpoint.  We want
-		     * shared/exclusive behavior, so all mutators obtain a shared
-		     * (read) lock on the CML to prevent the checkpointer from entering.
-		     * Note observers don't lock at all. 
+		     * The CML lock is used to prevent checkpointers and
+		     * mutators from executing in the volume simultaneously,
+		     * because the CML must not change during a checkpoint.
+		     * We want shared/exclusive behavior, so all mutators
+		     * obtain a shared (read) lock on the CML to prevent the
+		     * checkpointer from entering. Note observers don't lock at
+		     * all. 
 		     */
 		    if (CML.owner == UNSET_UID) {
 			if (mutator_count != 0 || CML.count() != 0 || IsReintegrating())
@@ -1047,7 +1049,8 @@ int volent::Enter(int mode, vuid_t vuid) {
 		    }
 
 		    /* Continue using the volume if possible. */
-		    /* We might need to do something about fairness here eventually! -JJK */
+		    /* We might need to do something about fairness here
+		     * eventually! -JJK */
 		    if (CML.owner == vuid) {
 			if (mutator_count == 0 && CML.count() == 0 && !IsReintegrating())
 			    { print(logFile); CHOKE("volent::Enter: mutating, CML owner == %d\n", CML.owner); }
@@ -1082,7 +1085,6 @@ int volent::Enter(int mode, vuid_t vuid) {
 		 * block while resolution is going on, or volume state 
 		 * transition is pending.
 		 */
-		vproc *vp = VprocSelf();
 		int proc_key = vp->u.u_pgid;
 		while ((excl_count > 0 && proc_key != excl_pgid) || state == Resolving
 		        || flags.transition_pending) {
@@ -1108,7 +1110,6 @@ int volent::Enter(int mode, vuid_t vuid) {
 		{ print(logFile); CHOKE("volent::Enter: resolving"); }
 
 	    /* acquire exclusive volume-pgid-lock for RESOLVING */
-	    vproc *vp = VprocSelf();
 	    int proc_key = vp->u.u_pgid;
 	    while (shrd_count > 0 || (excl_count > 0 && proc_key != excl_pgid)) {
 		/* 
@@ -1140,8 +1141,8 @@ void volent::Exit(int mode, vuid_t vuid) {
 		flags.demotion_pending, PRINT_VOLMODE(mode), vuid));
 
     /* 
-     * Step 1 is to demote objects in volume if AVSG enlargement or shrinking has made this 
-     * necessary.  The two cases that require this are: 
+     * Step 1 is to demote objects in volume if AVSG enlargement or shrinking
+     * has made this necessary.  The two cases that require this are: 
      *    1. |AVSG| for read-write replicated volume increasing. 
      *    2. |AVSG| for non-replicated volume falling to 0. 
      */

@@ -1310,7 +1310,7 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
     string->cs_len = 0;
 
     if (len > CODA_MAXPATHLEN)
-	{ u.u_error = EINVAL; return; }
+	len = CODA_MAXPATHLEN;
 
     fsobj *f = 0;
 
