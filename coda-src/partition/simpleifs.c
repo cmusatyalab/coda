@@ -108,13 +108,13 @@ static int s_magic()
 
 static void inotostr(struct DiskPartition *dp, Inode ino, char *filename)
 {
-    sprintf(filename,"%s/%lu", dp->name, ino);
+    sprintf(filename,"%s/%u", dp->name, ino);
 }
 
 
 static void inotores(struct DiskPartition *dp, Inode ino, char *filename)
 {
-        sprintf(filename,"%s/.%lu", dp->name, ino);
+        sprintf(filename,"%s/.%u", dp->name, ino);
 }
 
 
@@ -223,14 +223,14 @@ s_icreate(struct DiskPartition *dp, u_long volume, u_long vnode, u_long unique,
 	/* write header */
 	inotores(dp, i, resfilename);
 	if ( (fd = open(resfilename, O_CREAT | O_EXCL | O_RDWR, mode) ) < 0 ){
-        printf("Error opening resource for inode file %ld\n",i);
+        printf("Error opening resource for inode file %u\n",i);
         unlink(filename);
         return 0;
 	} else { 
         rc = write(fd, (char *)&header, sizeof(struct i_header)); 
         if ( rc != sizeof(struct i_header)) {
             close (fd);
-            printf("Error writing header for inode file %ld\n",i);
+            printf("Error writing header for inode file %u\n",i);
             return 0;
         }
 	}
@@ -248,13 +248,13 @@ s_put_header(struct DiskPartition *dp, struct i_header *header, Inode ino)
 
     inotores(dp, ino, resfilename);
     if ( (fd = open(resfilename, O_RDWR)) < 0 ){
-        printf("Error opening resource for inode file %ld\n",ino);
+        printf("Error opening resource for inode file %u\n", ino);
         return -1;
     } else { 
         rc = write(fd, (char *)header, sizeof(struct i_header)); 
         if ( rc != sizeof(struct i_header)) {
             close (fd);
-            printf("Error writing header for inode file %ld\n",ino);
+            printf("Error writing header for inode file %u\n", ino);
             return -1;
         }
     }
@@ -272,13 +272,13 @@ s_get_header(struct DiskPartition *dp, struct i_header *header, Inode ino)
 
     inotores(dp, ino, resfilename);
     if ( (fd = open(resfilename, O_RDONLY) ) < 0 ){
-        printf("Error opening resource for inode file %ld\n",ino);
+        printf("Error opening resource for inode file %u\n",ino);
         return -1;
     } else { 
         rc = read(fd, (char *)header, sizeof(struct i_header)); 
         if ( rc != sizeof(struct i_header)) {
             close (fd);
-            printf("Error reading header for inode file %ld\n",ino);
+            printf("Error reading header for inode file %u\n",ino);
             return -1;
         }
     }
@@ -302,13 +302,13 @@ set_link(struct DiskPartition *dp, long *count, Inode ino)
 
     inotores(dp, ino, resfilename);
     if ( (fd = open(resfilename, O_RDWR)) < 0 ){
-        printf("Error opening resource for inode file %ld\n",ino);
+        printf("Error opening resource for inode file %u\n",ino);
         return -1;
     } else { 
         rc = write(fd, (char *)count, sizeof(long)); 
         if ( rc != sizeof(long)) {
             close (fd);
-            printf("Error reading header for inode file %ld\n",ino);
+            printf("Error reading header for inode file %u\n",ino);
             return -1;
         }
     }
