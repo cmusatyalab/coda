@@ -38,8 +38,8 @@ LIBOBS =
 EXECUTABLES = rpc2portmap simpleclient
 SSBINS=rpc2portmap
 
-DEPLIBS = ${LIBRPC2} ${LIBBASE}
-LIBS := $(DEPLIBS) ${LIBLWP} ${LIBDL} $(LIBS)
+DEPLIBS := ${LIBBASE}
+LIBS := $(DEPLIBS) ${LIBRPC2} ${LIBLWP} ${LIBDL} $(LIBS)
 
 libportmap.a: $(OBJS)
 

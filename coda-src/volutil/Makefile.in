@@ -49,24 +49,11 @@ SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libvolutil.a libvolserv.a
 HEADERS     = volutil.private.h
 
-VLIBS =	${LIBVOL} \
-	${LIBVV} \
-	$(LIBVICEDEP)\
-	${LIBRPC2} \
-	${LIBSE} \
-	${LIBRDSLWP} \
-	${LIBSEG} \
-	${LIBRVMLWP} \
-	${LIBPARTITION}\
-	${LIBUTIL} \
-	${LIBSYSENT} \
-	${LIBBASE}
+DEPLIBS := ${LIBVOL} ${LIBVV} $(LIBVICEDEP) ${LIBPARTITION} ${LIBUTIL} \
+	   ${LIBSYSENT} ${LIBBASE}
 
-LIBS:=	${LIBREADLINE} \
-	${LIBLWP} \
-	$(LIBUTIL) \
-	$(LIBTERMCAP) \
-	$(LIBS)
+LIBS := ${DEPLIBS} ${LIBRDSLWP} ${LIBSEG} ${LIBRVMLWP} ${LIBRPC2} ${LIBSE} \
+	${LIBLWP} ${LIBREADLINE} $(LIBTERMCAP) $(LIBS)
 
 
 LOCALOBJS = readstuff.o dumpstuff.o vvlist.o
@@ -118,19 +105,19 @@ parserecdump.o:	parserecdump.cc
 local.a: ${LOCALOBJS}
 
 
-volutil:    ${VOLCLIENTOBJS} ${VLIBS}
-	${CXX} $(LDFLAGS) ${VOLCLIENTOBJS} ${VLIBS} ${LIBS} -lm -o volutil
+volutil:    ${VOLCLIENTOBJS} ${DEPLIBS}
+	${CXX} $(LDFLAGS) ${VOLCLIENTOBJS} ${LIBS} -lm -o volutil
 
-merge:	merge.o dumpstream.o dumpstuff.o ${VLIBS}
-	$(CXX) $(LDFLAGS) merge.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o merge
+merge:	merge.o dumpstream.o dumpstuff.o ${DEPLIBS}
+	$(CXX) $(LDFLAGS) merge.o dumpstream.o dumpstuff.o ${LIBS} -o merge
 
-backup: backup.o ${VLIBS}
-	$(CXX) $(LDFLAGS) backup.o ${VLIBS} ${LIBS} -lm -o backup
+backup: backup.o ${DEPLIBS}
+	$(CXX) $(LDFLAGS) backup.o ${LIBS} -lm -o backup
 
-readdump: readdump.o dumpstream.o dumpstuff.o ${VLIBS}
-	$(CXX) $(LDFLAGS) readdump.o dumpstream.o dumpstuff.o ${VLIBS} ${LIBS} -o readdump
+readdump: readdump.o dumpstream.o dumpstuff.o ${DEPLIBS}
+	$(CXX) $(LDFLAGS) readdump.o dumpstream.o dumpstuff.o ${LIBS} -o readdump
 
-parserecdump: parserecdump.o ${VLIBS} 
-	$(CXX) $(LDFLAGS) parserecdump.o ${VLIBS} ${LIBS} -o parserecdump
+parserecdump: parserecdump.o ${DEPLIBS} 
+	$(CXX) $(LDFLAGS) parserecdump.o ${LIBS} -o parserecdump
 
 

@@ -28,8 +28,8 @@ include $(TOPDIR)/Makeconf
 EXECUTABLES = smon2 rpc2ping
 SBINS       = smon2 rpc2ping
 
-DEPLIBS = $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) $(LIBSYS) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBS)
+DEPLIBS = $(LIBVICEDEP) $(LIBSYS) $(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBLWP) $(LIBS)
 
 include $(TOPDIR)/configs/Makerules
 

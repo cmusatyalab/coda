@@ -50,19 +50,18 @@ SSBINS      = $(EXECUTABLES)
 RP2FILES    = update.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 
-DEPLIBS = ${LIBVICEERROR}\
+DEPLIBS := ${LIBVICEERROR}\
 	${LIBUTIL}\
 	${LIBPORTMAP}\
 	$(LIBVICEDEP)\
-	${LIBRPC2}\
-	${LIBSE}\
 	$(LIBIFS)\
 	${LIBVV}\
 	${LIBPARTITION}\
 	${LIBUTIL}\
 	${LIBKERNDEP}\
 	$(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBMATH) $(LIBS)
+LIBS := $(DEPLIBS) ${LIBRPC2} ${LIBSE} $(LIBLWP) $(LIBMATH) $(LIBS)
+
 
 include $(TOPDIR)/configs/Makerules
 

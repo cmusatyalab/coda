@@ -30,9 +30,9 @@ LIBRARIES = libadvice.a libfakeadvice.a
 CBINS      = $(EXECUTABLES)
 
 
-DEPLIBS = $(LIBFAIL) $(LIBUTIL) $(LIBVICEDEP) $(LIBSE) $(LIBRPC2) \
-    $(LIBKERNDEP) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBSYS) $(LIBKVM) $(LIBDB) $(LIBS)
+DEPLIBS := $(LIBUTIL) $(LIBVICEDEP) $(LIBKERNDEP) $(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBFAIL) $(LIBLWP) $(LIBSYS) \
+	$(LIBKVM) $(LIBDB) $(LIBS)
 
 AOBJS = console_handler.o counters.o daemon.o data.o \
 	fail.o filecopy.o globals.o helpers.o conversions.o miss.o \

@@ -284,24 +284,24 @@ void VenusPrint(int fd, int argc, char **argv) {
     }
 
     fdprint(fd, "*****  VenusPrint  *****\n\n");
-    if (rusagep || allp) RusagePrint(fd);
-    if (recovp || allp) if (RecovInited) RecovPrint(fd);
-    if (vprocp || allp) PrintVprocs(fd);
-    if (userp || allp) UserPrint(fd);
-    if (serverp || allp) ServerPrint(fd);
-    if (connp || allp) ConnPrint(fd);
-    if (vsgp || allp) if (RecovInited) VSGDB->print(fd);
-    if (mgrpp || allp) MgrpPrint(fd);
-    if (volumep || allp) if (RecovInited) VDB->print(fd);
-    if (fsop || allp) if (RecovInited) FSDB->print(fd);
-    if (fsosump && !allp) if (RecovInited) FSDB->print(fd, 1);
-    if (vfsp || allp) VFSPrint(fd);
-    if (rpcp || allp) RPCPrint(fd);
-    if (hdbp || allp) if (RecovInited) HDB->print(fd);
-    if (vmonp || allp) VmonPrint(fd);
-    if (mallocp || allp) MallocPrint(fd);
-    if (lrdbp || allp) if (RecovInited) LRDB->print(fd);
-    if (vcbdbp || allp) if (RecovInited) VCBDB->print(fd);
+    if (rusagep || allp)  RusagePrint(fd);
+    if (recovp || allp)   if (RecovInited) RecovPrint(fd);
+    if (vprocp || allp)   PrintVprocs(fd);
+    if (userp || allp)    UserPrint(fd);
+    if (serverp || allp)  ServerPrint(fd);
+    if (connp || allp)    ConnPrint(fd);
+    if (vsgp || allp)     if (RecovInited && VSGDB) VSGDB->print(fd);
+    if (mgrpp || allp)    MgrpPrint(fd);
+    if (volumep || allp)  if (RecovInited && VDB) VDB->print(fd);
+    if (fsop || allp)     if (RecovInited && FSDB) FSDB->print(fd);
+    if (fsosump && !allp) if (RecovInited && FSDB) FSDB->print(fd, 1);
+    if (vfsp || allp)     VFSPrint(fd);
+    if (rpcp || allp)     RPCPrint(fd);
+    if (hdbp || allp)     if (RecovInited && HDB) HDB->print(fd);
+    if (vmonp || allp)    VmonPrint(fd);
+    if (mallocp || allp)  MallocPrint(fd);
+    if (lrdbp || allp)    if (RecovInited && LRDB) LRDB->print(fd);
+    if (vcbdbp || allp)   if (RecovInited && VCBDB) VCBDB->print(fd);
     fdprint(fd, "************************\n\n");
 }
 

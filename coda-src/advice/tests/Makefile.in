@@ -25,9 +25,8 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-DEPLIBS =  ../$(LIBFAIL) ../$(LIBUTIL) ../$(LIBVICEDEP) ../$(LIBSE)\
-	../$(LIBRPC2) ../$(LIBKERNDEP)
-LIBS := $(LIBLWP) $(LIBGDBM) $(LIBS)
+DEPLIBS :=  ../$(LIBUTIL) ../$(LIBVICEDEP) ../$(LIBKERNDEP)
+LIBS := $(DEPLIBS) $(LIBRPC2) $(LIBSE) $(LIBFAIL) $(LIBLWP) $(LIBGDBM) $(LIBS)
 OTHERLIBS = $(LIBSYS) $(LIBKVM)
 
 OBJECTS = replacementlog_test.o programspy_test.o

@@ -75,7 +75,7 @@ static int WEResPhase2(res_mgrpent *, ViceFid *, unsigned long *,
 		       ViceStoreId *);
 
 
-/* two VV's are weakly equal if they have the same version vector: 
+/* two VV's are weakly equal if they have the same store-id: 
    this means that the files are identical, but the COP2 never made 
    it to the server
 */
@@ -277,4 +277,4 @@ int WERes(ViceFid *Fid, ViceVersionVector **VV, ResStatus **rstatusp,
     }
     return(errorcode);
 }
-	    
+    

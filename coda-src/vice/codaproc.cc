@@ -2396,11 +2396,11 @@ static void COP2Update(Volume *volptr, Vnode *vptr,
 	SLog(1,  "Cop2 is not pending for 0x%x.%x.%x",
 	     V_id(volptr), vptr->vnodeNumber, vptr->disk.uniquifier);
     }
-
 }
 
 
-void UpdateVVs(ViceVersionVector *VVV, ViceVersionVector *VV, ViceVersionVector *US) {
+void UpdateVVs(ViceVersionVector *VVV, ViceVersionVector *VV, ViceVersionVector *US)
+{
     if (SrvDebugLevel >= 2) {
 	SLog(2,  "\tVVV = [%d %d %d %d %d %d %d %d]",
 		VVV->Versions.Site0, VVV->Versions.Site1,

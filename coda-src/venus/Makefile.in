@@ -37,10 +37,10 @@ CCONFFILES  = venus.conf.ex
 
 CXXFLAGS := $(CXXFLAGS) -DVENUS -DTIMING -DDISABLE_VMON -DVENUSDEBUG -DRVM_USELWP -DSYSCONFDIR=\"${sysconfdir}\"
 
-DEPLIBS = $(LIBUTIL) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBFAIL) \
-   $(LIBKERNDEP) $(LIBVV) $(LIBDIRLIB) $(LIBVICEDEP) $(LIBRPC2) $(LIBSE) \
-   $(LIBBASE) $(LIBRELAY)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBSYS) $(LIBKVM) $(LIBMATH) $(LIBS)
+DEPLIBS := $(LIBUTIL) $(LIBKERNDEP) $(LIBVV) $(LIBDIRLIB) \
+	   $(LIBVICEDEP) $(LIBBASE) $(LIBRELAY)
+LIBS := $(DEPLIBS) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBSE) \
+	$(LIBFAIL) $(LIBLWP) $(LIBSYS) $(LIBKVM) $(LIBMATH) $(LIBS)
 
 HFILES= advice.h adviceconn.h advice_daemon.h binding.h comm.h fso.h hdb.h local.h mariner.h venusrecov.h sighand.h tallyent.h user.h venuscb.h venusstats.h venusvm.h venus.private.h venus.version.h venusvol.h vproc.h vstab.h worker.h venuswb.h
 

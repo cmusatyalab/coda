@@ -1,5 +1,3 @@
-
-
 #
 # BLURB gpl
 # 
@@ -36,8 +34,8 @@ EXECUTABLES = makeftree inoder
 SSBINS=makeftree inoder
 
 LIBRARIES = libpartition.a
-DEPLIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBBASE)
-LIBS := $(DEPLIBS) $(LIBLWP) $(LIBMATH) $(LIBS)
+DEPLIBS = $(LIBPARTITION) $(LIBUTIL) $(LIBBASE)
+LIBS := $(DEPLIBS) $(LIBRDS) $(LIBSEG) $(LIBRVM) $(LIBLWP) $(LIBMATH) $(LIBS)
 
 
 libpartition.a: $(LIBOBS)

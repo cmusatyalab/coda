@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/Makefile.in,v 3.4 1999/09/14 19:02:54 jaharkes Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/Makefile.in,v 3.5 1999/12/14 05:41:46 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,10 +80,10 @@ mond: ${MONDOBJS} ${HEADERS} ${RPC2HEADERS} dummy.o
 mond.plumber: ${MONDOBJS} ${HEADERS} ${RPC2HEADERS} ${LIBPLUMBER} ${LIBNEWPLUMBER}
 	${CC} ${CFLAGS} $(LIBFLAGS) -o mond.plumber ${MONDOBJS} ${RPCLIBS} ${LIBS} ${LIBPLUMBER} ${LIBNEWPLUMBER}
 
-unwind: ${UNWINDOBJS} ${HEADERS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS}
+unwind: ${UNWINDOBJS} ${HEADERS} ${SCYLLALIBS} ${LIBS}
 	${CC} ${CFLAGS} $(LIBFLAGS) -o unwind ${UNWINDOBJS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS}
 
-advice_unwind: ${ADVICEUNWINDOBJS} ${HEADERS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS} 
+advice_unwind: ${ADVICEUNWINDOBJS} ${HEADERS} ${SCYLLALIBS} ${LIBS} 
 	${CC} ${CFLAGS} $(LIBFLAGS) -o advice_unwind ${ADVICEUNWINDOBJS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS}
 
 parselog: ${PARSELOGOBJS} ${HEADERS} ${LIBS}
