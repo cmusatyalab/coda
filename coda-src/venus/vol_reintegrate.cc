@@ -168,7 +168,7 @@ void volent::Reintegrate()
      * but we don't want to interfere with trickle reintegration so we test
      * whether a full block has been sent (see also cmlent::GetReintegrateable)
      */
-    } while(((nrecs == 100) || ((nrecs > 0) && flags.writebackreint))  && !code);
+    } while(code == 0 && ((flags.writebackreint && nrecs) || nrecs == 100));
 
     flags.reintegrating = 0;
 

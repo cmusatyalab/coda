@@ -997,7 +997,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 		while ((excl_count > 0 && proc_key != excl_pgid) || state == Resolving
 		        || WriteLocked(&CML_lock) || flags.transition_pending) {
 		    if (mode & VM_NDELAY) return (EWOULDBLOCK);
-		    LOG(0, ("volent::Enter: mutate or observe with proc_key = %d\n",
+		    LOG(0, ("volent::Enter: mutate with proc_key = %d\n",
 			    proc_key));
 		    Wait();
 		    if (VprocInterrupted()) return (EINTR);
@@ -1068,7 +1068,7 @@ int volent::Enter(int mode, vuid_t vuid) {
 		while ((excl_count > 0 && proc_key != excl_pgid) || state == Resolving
 		        || flags.transition_pending) {
 		    if (mode & VM_NDELAY) return (EWOULDBLOCK);
-		    LOG(0, ("volent::Enter: mutate or observe with proc_key = %d\n",
+		    LOG(0, ("volent::Enter: observe with proc_key = %d\n",
 			    proc_key));
 		    Wait();
 		    if (VprocInterrupted()) return (EINTR);

@@ -79,7 +79,7 @@ void volent::Resolve() {
     if (code != 0) goto Exit;
 
     resent *r;
-    while ((r = (resent *)res_list->get())) {
+    while (code == 0 && (r = (resent *)res_list->get())) {
 	mgrpent *m = 0;
 	connent *c = 0;
 
