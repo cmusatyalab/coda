@@ -58,6 +58,7 @@ void base64_decode(FILE *in, char **out, int *len)
     *len = 24; *out = malloc(*len);
 
     while((c = fgetc(in)) != EOF) {
+        if (c == '\n') continue;
         if (c != '=') {
             if      (c >= 'A' && c <= 'Z') c =  c - 'A';
             else if (c >= 'a' && c <= 'z') c = (c - 'a') + 26;
@@ -66,19 +67,57 @@ void base64_decode(FILE *in, char **out, int *len)
             else if (c == '/')             c = 63;
             val = val | (c << s);
         } else
-            done = 1;
+            done = (s / 6) + 1;
 
-        if ((s -= 6) < 0) {
+        if ((s -= 6) < 0 || done) {
             (*out)[n]   = (val >> 16) & 0xff;
             (*out)[n+1] = (val >> 8) & 0xff;
             (*out)[n+2] = val & 0xff;
             val = 0; s = 18;
+            n += 3 - done;
             if (done) break;
 
-            if ((n += 3) == *len) {
+            if (n == *len) {
                 *len += 24; *out = realloc(*out, *len);
             }
         }
     }
     *len = n;
 }
+
+#ifdef TESTING
+#include <sys/stat.h>
+#include <stdio.h>
+
+#define TESTFILE "/tmp/base64_test"
+
+void main(int argc, char **argv)
+{
+    FILE *fp;
+    struct stat sb;
+    char *outbuf = "testing the encoding", *inbuf;
+    int   outlen, inlen;
+
+    if (argc > 1)
+        outbuf = argv[1];
+    outlen = strlen(outbuf);
+
+    if (stat(TESTFILE, &sb) == 0) {
+        unlink(TESTFILE);
+    }
+
+    fp = fopen(TESTFILE, "w");
+    base64_encode(fp, outbuf, outlen);
+    fclose(fp);
+    
+    fp = fopen(TESTFILE, "r");
+    base64_decode(fp, &inbuf, &inlen);
+    fclose(fp);
+
+    if (outlen != inlen || memcmp(outbuf, inbuf, outlen) != 0)
+        puts("Error encoding/decoding: ");
+
+    puts(inbuf);
+    putchar('\n');
+}
+#endif
