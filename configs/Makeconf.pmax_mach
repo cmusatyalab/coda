@@ -30,7 +30,7 @@
 # Mellon the rights to redistribute these changes without encumbrance.
 # */
 # 
-# static char *rcsid = "$Header: Makeconf.pmax_mach,v 4.5 97/02/04 12:11:50 lily Exp $";
+# static char *rcsid = "$Header: Makeconf.pmax_mach,v 4.6 97/02/09 22:23:20 raiff Locked $";
 
 MACHINE_FLAGS =
 SHORTSYS      = mach
@@ -48,6 +48,8 @@ machine_inodefs   = mach
 #for rvm
 LIBTHREADS    = /usr/mach/lib/libthreads.a
 LIBMACH       = /usr/mach/lib/libmach.a
+
+LEX 	      = flex
 
 # -- PLUMBERs -- not built for Linux and netbsd yet
 LIBPLUMBER    = $(LIBSPECIAL)/libplumber.a
