@@ -470,9 +470,48 @@ void VFSUnmount()
 #ifdef sun
     {
       int res;
+      char line[1024];
+      int lfd, mfd;
+      int lck;
+      FILE *mnttab;
+      FILE *newtab;
+
       res = umount (venusRoot);
       if (res)
         eprint ("Unmount failed.");
+      /* Remove CODA entry from /etc/mnttab */
+
+      lfd = open ("/etc/.mnttab.lock", O_WRONLY|O_CREAT, 0600);
+      if (lfd >= 0) {
+
+	lck = lockf(lfd, F_LOCK, 0);
+	if (lck == 0) {
+	
+	  mnttab = fopen(MNTTAB, "r+");
+	  if (mnttab != NULL) {
+	    newtab = fopen("/etc/newmnttab", "w+");
+	    if (newtab != NULL) {
+	      while (fgets(line, 1024, mnttab)) {
+		if (strncmp("CODA", line, 4) != 0) {
+		  fprintf (newtab, "%s", line);
+		}
+	      }
+	      fclose(newtab);
+	      fclose(mnttab);
+	      unlink(MNTTAB);
+	      rename("/etc/newmnttab", MNTTAB);
+	    } else {
+	      eprint ("Could not remove Coda from /etc/mnttab");
+	      fclose(mnttab);
+	    }
+	  } else
+	    eprint ("Could not remove CODA from /etc/mnttab.");
+	  (void) lockf(lfd, F_ULOCK, 0);
+	} else
+	  eprint ("Could not remove CODA from /etc/mnttab.");
+	close(lfd);
+      } else
+	eprint ("Could not remove CODA from /etc/mnttab.");
       sync();
     }
 #endif
