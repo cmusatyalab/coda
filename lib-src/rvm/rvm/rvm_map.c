@@ -86,8 +86,15 @@ void init_map_roots()
     init_tree_root(&region_tree);
     mutex_init(&seg_code_lock);
 
+#ifdef HAVE_MMAP
     /* get page size */
     page_size = (rvm_length_t)getpagesize();
+#else
+    { SYSTEM_INFO nt_info;
+      GetSystemInfo(&nt_info);
+      page_size = (rvm_length_t)nt_info.dwAllocationGranularity;
+    }
+#endif
     page_mask = ~(page_size - 1);
     mutex_init(&page_list_lock);
     init_list_header(&page_list,free_page_id);
