@@ -86,7 +86,7 @@ int numLWPs = 0;		/* Number of LWPs created */
 int availableLWPs = 0;		/* Number of LWPs serving requests */
 int maxLWPs = MAXLWPS;		/* Max number of LWPs to create */
 PROCESS pids[MAXLWPS] = { NULL }; /* Pid of each LWP */
-void HandleRequests();		/* Routine to serve requests */
+void HandleRequests(void *);		/* Routine to serve requests */
 
 long VerboseFlag;
 RPC2_PortIdent ThisPort;
@@ -124,7 +124,8 @@ int main(argc, argv)
 	       maxLWPs, MAXLWPS);
 	exit(-1);
     }
-    HandleRequests(numLWPs++);
+    HandleRequests((void *)numLWPs);
+    numLWPs++;
     
     return 0; /* make compiler happy */
 }
@@ -132,9 +133,9 @@ int main(argc, argv)
 /*
  * Routine to server requests.
  */
-void HandleRequests(lwp)
-    int lwp;
+void HandleRequests(void *arg)
 {
+    int lwp = (int)arg;
     RPC2_PacketBuffer *InBuff, *OutBuff;
 #if REQFILTER
     RPC2_RequestFilter reqfilter;
@@ -170,14 +171,8 @@ void HandleRequests(lwp)
 	 */
 	if ((--availableLWPs <= 0) &&
 	    (numLWPs < maxLWPs)) {
-#if	__GNUC__ >= 2
-	    i = LWP_CreateProcess((PFIC)HandleRequests, STESTSTACK, LWP_NORMAL_PRIORITY,
-			      (char *)numLWPs, "server", &pids[numLWPs]);
-/* ??? */
-#else
 	    i = LWP_CreateProcess(HandleRequests, STESTSTACK, LWP_NORMAL_PRIORITY,
-			      numLWPs, "server", &pids[numLWPs]);
-#endif
+				  (void *)numLWPs, "server", &pids[numLWPs]);
 	    assert(i == LWP_SUCCESS);
 	    printf("New LWP %d (%p)\n", numLWPs, pids[numLWPs]);
 	    numLWPs++;

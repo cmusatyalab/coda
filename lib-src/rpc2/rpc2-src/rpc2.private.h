@@ -537,7 +537,8 @@ void rpc2_HoldPacket(), rpc2_UnholdPacket();
 int rpc2_FilterMatch();
 
 /* Autonomous LWPs */
-void rpc2_SocketListener(), rpc2_ClockTick();
+void rpc2_SocketListener(void *);
+void rpc2_ClockTick(void *);
 
 /* rpc2_SocketListener packet handlers */
 void SL_RegisterHandler(unsigned int proto, void (*func)(RPC2_PacketBuffer *));

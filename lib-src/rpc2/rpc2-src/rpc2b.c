@@ -157,12 +157,11 @@ long RPC2_Init(char *VId,		/* magic version string */
 	    }
 
     c = "SocketListener";
-    LWP_CreateProcess((PFIC)rpc2_SocketListener, 32768, 
-		      LWP_NORMAL_PRIORITY, NULL,
+    LWP_CreateProcess(rpc2_SocketListener, 32768, LWP_NORMAL_PRIORITY, NULL,
 		      c, &rpc2_SocketListenerPID);
 
     c = "ClockTick";
-    LWP_CreateProcess((PFIC)rpc2_ClockTick, 16384, LWP_NORMAL_PRIORITY, NULL,
+    LWP_CreateProcess(rpc2_ClockTick, 16384, LWP_NORMAL_PRIORITY, NULL,
 		      c, (PROCESS *)&ctpid);
 
     if (rc != RPC2_SUCCESS)

@@ -118,7 +118,7 @@ void SL_RegisterHandler(unsigned int pv, void (*handler)(RPC2_PacketBuffer *pb))
     nPacketHandlers++;
 }
 
-void rpc2_SocketListener(void)
+void rpc2_SocketListener(void *dummy)
 {
     int fd;
 

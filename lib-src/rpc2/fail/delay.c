@@ -58,7 +58,7 @@ struct {
     int size;
 } DelayQueues = {0,0,0};
 
-static int Delay_LWP();
+static void Delay_LWP(void *arg);
 static void AddToTime(struct timeval *top, struct timeval *amtp);
 PROCESS DelayLWPPid;
 
@@ -71,7 +71,7 @@ int Delay_Init()
     memset(DelayQueues.queues, 0, 4 * sizeof(delayQueueInfo));
     DelayQueues.count = 0;
     DelayQueues.size = 4;	/* Good number to start with! */
-    LWP_CreateProcess((PFIC) Delay_LWP, 4096, LWP_NORMAL_PRIORITY,
+    LWP_CreateProcess(Delay_LWP, 4096, LWP_NORMAL_PRIORITY,
 		      NULL, "Delay_LWP", &DelayLWPPid);
     return 0;
 }
@@ -262,7 +262,7 @@ static int CompareTime(struct timeval *a, struct timeval *b)
         return 0;
 }
 
-static int Delay_LWP()
+static void Delay_LWP(void *arg)
 {
     int i;
     struct timeval timeToNext, now;

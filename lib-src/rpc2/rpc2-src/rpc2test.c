@@ -86,9 +86,9 @@ static long rpc2rc;
 
 #define TBSIZE 1000 /* Size of RPC2 trace buffer, if enabled */
 
-static long ListenerBody(char *listenerName);
-static long WorkerBody(char *workerName);
-static long ClientBody(char *clientName);
+static void ListenerBody(void *arg);
+static void WorkerBody(void *arg);
+static void ClientBody(void *arg);
 static long GetPasswd(RPC2_Integer *AuthenticationType, RPC2_CountedBS *Who,
 		      RPC2_EncryptionKey Key1, RPC2_EncryptionKey Key2);
 static void GetVar(long *gVar, char *gPrompt);
@@ -192,7 +192,7 @@ int main(void)
 }
 
 
-static long WorkerBody(char *workerName)
+static void WorkerBody(void *arg)
 {
     long i, rc;
     RPC2_RequestFilter reqfilter;
@@ -206,7 +206,7 @@ static long WorkerBody(char *workerName)
     memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
 
-    strcpy(myprivatefile, MakeName(workerName));
+    strcpy(myprivatefile, MakeName(LWP_Name()));
     myhashmark = NextHashMark++;
 
     LWP_DispatchProcess();	/* initial courtesy to parent */
@@ -376,10 +376,7 @@ static void BulkErr(RPC2_Handle cid, SE_Descriptor *sed, int retcode, int op)
     DumpAndQuit(op);  
 }
 
-
-
-
-static long ListenerBody(char *listenerName)
+static void ListenerBody(void *arg)
 {
     long i;
     RPC2_RequestFilter reqfilter;
@@ -431,7 +428,7 @@ static long ListenerBody(char *listenerName)
 }
 
 
-static long ClientBody(char *clientName)
+static void ClientBody(void *arg)
 {
     long thisconn, thisopcode;
     RPC2_PacketBuffer *request, *reply;
@@ -453,7 +450,7 @@ static long ClientBody(char *clientName)
     memset(&sed, 0, sizeof(SE_Descriptor));
     sed.Tag = SMARTFTP;
 
-    strcpy(myprivatefile, MakeName(clientName));
+    strcpy(myprivatefile, MakeName(LWP_Name()));
     myhashmark = NextHashMark++;
 
     LWP_DispatchProcess();	/* initial courtesy to parent */
@@ -808,7 +805,7 @@ static void MakeWorkers(void)
     for (i = 0; i < Workers; i++)
 	{
 	sprintf(thisname, "Worker%02d", i);
-	LWP_CreateProcess((PFIC)WorkerBody, 16384, LWP_NORMAL_PRIORITY, thisname, thisname, &thispid);
+	LWP_CreateProcess(WorkerBody, 16384, LWP_NORMAL_PRIORITY, NULL, thisname, &thispid);
 	}
 }
 
@@ -822,7 +819,7 @@ static void MakeClients(void)
     for (i = 0; i < Clients; i++)
 	{
 	sprintf(thisname, "Client%02d", i);
-	LWP_CreateProcess((PFIC)ClientBody, 16384, LWP_NORMAL_PRIORITY, thisname, thisname, &thispid);
+	LWP_CreateProcess(ClientBody, 16384, LWP_NORMAL_PRIORITY, NULL, thisname, &thispid);
 	}
 }
 
@@ -856,7 +853,7 @@ static void InitRPC(void)
     RPC2_Export(&SubsysId);
 
     cstring = "Listener1";
-    LWP_CreateProcess((PFIC)ListenerBody, 16384, LWP_NORMAL_PRIORITY, cstring, cstring, &ListenerPid);
+    LWP_CreateProcess(ListenerBody, 16384, LWP_NORMAL_PRIORITY, NULL, cstring, &ListenerPid);
 }
 
 
@@ -996,7 +993,6 @@ static void SelectParms(long *cid, long *opcode)
 void DumpAndQuit(int opcode) /* of failing call; 0 if not an RPC call */
 {
     FILE *tracefile;
-    
     
     if (RPC2_Trace)
 	{

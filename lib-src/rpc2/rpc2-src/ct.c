@@ -61,7 +61,7 @@ Pittsburgh, PA.
 
 int RPC2_enableReaping = 0;
 
-void rpc2_ClockTick()
+void rpc2_ClockTick(void *dummy)
 {/* Non terminating LWP */
     struct SL_Entry *sl;
     struct timeval tval;

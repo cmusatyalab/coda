@@ -4,7 +4,7 @@ Version: @VERSION@
 Release: 1
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/@PACKAGE@-@VERSION@.tar.gz
 Copyright: LGPL
-BuildRoot: /usr/src/redhat/BUILD/@PACKAGE@-@VERSION@/Root
+BuildRoot: %{_buildroot}/@PACKAGE@-@VERSION@/Root
 Group: Development/Libraries
 %description
 The RPC2 library.

@@ -1,3 +1,7 @@
+New in 1.27:
+
+* Fixes for LWP-2.0
+
 New in 1.26:
 
 * SFTP was agressively dropping incoming packets that didn't come back

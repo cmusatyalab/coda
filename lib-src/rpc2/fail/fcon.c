@@ -32,7 +32,7 @@ listed in the file CREDITS.
 #include "fail.h"
 
 
-int Fcon_LWP();
+void Fcon_LWP(void *arg);
 static void PrintRPCError(int, RPC2_Handle); /* forward decl to pacify gcc */
 
 
@@ -44,12 +44,12 @@ int Fcon_Init()
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = FCONSUBSYSID;
     assert(RPC2_Export(&subsysid) == RPC2_SUCCESS);
-    LWP_CreateProcess((PFIC) Fcon_LWP, 4096, LWP_NORMAL_PRIORITY,
+    LWP_CreateProcess(Fcon_LWP, 4096, LWP_NORMAL_PRIORITY,
 		      NULL, "Fcon_LWP", &mypid);
     return 0;
 }
 
-int Fcon_LWP()
+void Fcon_LWP(void *arg)
 {
     RPC2_RequestFilter reqfilter;
     RPC2_PacketBuffer *reqbuffer;
