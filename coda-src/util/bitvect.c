@@ -26,7 +26,6 @@ listed in the file CREDITS.
 
 struct Bitv_s {
     int length;
-    unsigned char *bytes;
     unsigned long *words;
     Lock lock;
 };
@@ -34,7 +33,7 @@ struct Bitv_s {
 #define BPW (8 * sizeof(unsigned long))
 #define nwords(len) (( ((len) + BPW -1 ) & (~(BPW - 1)) )/BPW)
 #define ALLOCMASK (~((unsigned long) 0))
-#define HIGHBIT 1<<(8*sizeof(unsigned long) - 1)
+#define HIGHBIT 1<<(BPW - 1)
 #define HIGHCBIT 128
 
 Bitv Bitv_new(int len)
@@ -51,7 +50,6 @@ Bitv Bitv_new(int len)
     } else {
 	set->words = NULL;
     }
-    set->bytes = (unsigned char *) set->words;
     set->length = len;
     Lock_Init(&set->lock);
 
@@ -60,8 +58,6 @@ Bitv Bitv_new(int len)
 
 void Bitv_free(Bitv *b)
 {
-
-
     if ( !(b && *b) ) {
 	PRE_EndCritical();
 	eprint("Trying to free NULL Bitv.\n");
@@ -71,27 +67,30 @@ void Bitv_free(Bitv *b)
     if ((*b)->words)
 	free((*b)->words);
     free(*b);
-
 }
 
 int Bitv_length(Bitv b)
 {
+    int len;
     CODA_ASSERT(b);
     U_rlock(b);
-    return(b->length);
+    len = b->length;
     U_runlock(b);
+    return len;
 }
 
 int Bitv_get(Bitv b, int n)
 {
-    int index = n/8;
-    int bitoffset = n%8;
+    int index = n/BPW;
+    int bitoffset = n%BPW;
+    int retval;
     CODA_ASSERT(b);
     CODA_ASSERT(0 <= n && n < b->length);
 
     U_rlock(b);
-    return ((b->bytes[index] >> bitoffset) & 1);
+    retval = ((b->words[index] >> bitoffset) & 1);
     U_runlock(b);
+    return retval;
 }
 
 int Bitv_put(Bitv b, int n, int bit)
@@ -103,12 +102,12 @@ int Bitv_put(Bitv b, int n, int bit)
     CODA_ASSERT(0 <= n && n < b->length);
 
     U_wlock(b);
-    previous = ((b->bytes[n/8] >> (n%8)) & 1);
+    previous = ((b->words[n/BPW] >> (n%BPW)) & 1);
 
     if ( bit == 1 ) 
-	b->bytes[n/8] |= 1 << (n%8);
+	b->words[n/BPW] |= 1 << (n%BPW);
     else
-	b->bytes[n/8] &= ~(1 << (n%8));
+	b->words[n/BPW] &= ~(1 << (n%BPW));
     U_wunlock(b);
 
     return previous;
@@ -135,10 +134,10 @@ int Bitv_getfree(Bitv b)
 	if ( (~(b->words[i])) & ALLOCMASK ) {
 	    unsigned long availbits = ~(b->words[i]);
 
-	    for ( j=0 ; j < 8*sizeof(unsigned long); j++ ) 
+	    for ( j=0 ; j < BPW; j++ ) 
 		if ( (1<<j) & availbits ) 
 		    break;
-	    CODA_ASSERT( j < 8*sizeof(unsigned long));
+	    CODA_ASSERT( j < BPW);
 	    loc = (i<<3)*sizeof(unsigned long) + j;
 	    b->words[i] |= (1 << j);
 	    U_wunlock(b);
@@ -155,8 +154,8 @@ int Bitv_count(Bitv b)
     CODA_ASSERT(b);
     U_rlock(b);
     for (i = 0; i < nwords(b->length) ; i++) 
-	for (j = 0; j < 8 * sizeof(unsigned long); j++) 
-	    if (b->bytes[i] & (1 << j)) 
+	for (j = 0; j < BPW; j++) 
+	    if (b->words[i] & (1 << j)) 
 		count++;
     U_runlock(b);
     return(count);
