@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/bitmap.cc,v 4.1 1997/01/08 21:51:01 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/bitmap.cc,v 4.2 1997/02/26 16:03:00 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -305,7 +305,7 @@ int bitmap::operator!=(bitmap& b) {
 }
 
 void bitmap::print() {
-    print(stdout);
+    print(stderr);
 }
 void bitmap::print(FILE *fp) {
     print(fileno(fp));

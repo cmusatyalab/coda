@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/scripts/RCS/vutil,v 4.1 1997/01/08 21:50:54 rvb Exp braam $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/vutil,v 4.2 1997/04/21 21:31:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/scripts/RCS/vutil,v 4.1 1997/01/08 21:50:54 rvb Exp braam $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/vutil,v 4.2 1997/04/21 21:31:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -85,7 +85,7 @@ while ($#argv > 0)
     switch ("$argv[1]")
 	case "-ckp":
 	    echo > ${ckpfile}
-	    ${kill} -SYS ${vpid}
+	    ${kill} -USR1 ${vpid}
 	    breaksw
 
 	case "-m":
@@ -95,7 +95,7 @@ while ($#argv > 0)
 	    set val="$argv[1]"
 	    if ("$val" != 0 && "$val" != 2 && "$val" != 3 && "$val" != 6 && "$val" != 7) goto usage
 	    echo "$val" > ${copfile}
-	    ${kill} -SYS ${vpid}
+	    ${kill} -USR1 ${vpid}
 	    breaksw
 
 	case "-cs":
@@ -105,10 +105,10 @@ while ($#argv > 0)
 	case "-d":
 	    shift
 	    if ($#argv == 0) goto usage
-	    set val="$argv[1]"
-	    if ("$val" < 0) goto usage
-	    echo "$val" > ${debugfile}
-	    ${kill} -SYS ${vpid}
+	    echo "$argv" > ${debugfile}
+            if ($#argv == 3) shift
+            if ($#argv == 2) shift
+	    ${kill} -USR1 ${vpid}
 	    breaksw
 
 	case "-mc":
@@ -117,7 +117,7 @@ while ($#argv > 0)
 	    set val="$argv[1]"
 	    if ("$val" != 0 && "$val" != 1) goto usage
 	    echo "$val" > ${mcfile}
-	    ${kill} -SYS ${vpid}
+	    ${kill} -USR1 ${vpid}
 	    breaksw
 
 	case "-p":
@@ -144,10 +144,6 @@ while ($#argv > 0)
 	    ${kill} -VTALRM ${vpid}
 	    breaksw
 
-	case "-malloc":
-	    ${kill} -USR1 ${vpid}
-	    breaksw
-
 	default:
 	    echo "${prog}: unknown switch ($argv[1])"
 	    goto usage
@@ -161,5 +157,5 @@ exit 0
 
 
 usage:
-echo "Usage: ${prog} [-ckp] [-cs] [-d <debug_level>] [-m <0|2|3|6|7>] [-mc <0|1>] [-p <0|1>] [-shutdown] [-stats] [-swap] [-malloc]"
+echo "Usage: ${prog} [-ckp] [-cs] [-d <debug_level>] [-m <0|2|3|6|7>] [-mc <0|1>] [-p <0|1>] [-shutdown] [-stats] [-swap]"
 exit 0

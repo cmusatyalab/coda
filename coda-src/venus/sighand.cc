@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.8 1998/01/10 18:38:56 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.9 1998/03/06 20:20:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,13 +87,11 @@ PRIVATE void EMT(int, int, struct sigcontext *);
 PRIVATE void FPE(int, int, struct sigcontext *);
 PRIVATE void BUS(int, int, struct sigcontext *);
 PRIVATE void SEGV(int, int, struct sigcontext *);
-PRIVATE void SYS(int, int, struct sigcontext *);
+PRIVATE void USR1(int, int, struct sigcontext *);
 PRIVATE void TERM(int, int, struct sigcontext *);
-PRIVATE void TSTP(int, int, struct sigcontext *);
 PRIVATE void XCPU(int, int, struct sigcontext *);
 PRIVATE void XFSZ(int, int, struct sigcontext *);
 PRIVATE void VTALRM(int, int, struct sigcontext *);
-PRIVATE void USR1(int, int, struct sigcontext *);
 PRIVATE void FatalSignal(int, int, struct sigcontext *);
 
 
@@ -119,14 +117,14 @@ void SigInit() {
     signal(SIGFPE, SIG_IGN);                    /* Ignore */
     signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
     signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
-    signal(SIGSYS, (void (*)(int))SYS);		/* set {COPmode, Mcast, DebugLevel} */
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
     signal(SIGTERM, (void (*)(int))TERM);	/* exit */
-    signal(SIGTSTP, (void (*)(int))TSTP);	/* turn off debugging */
+    signal(SIGINT, (void (*)(int))TERM);	/* exit */
+    /*signal(SIGTSTP, (void (*)(int))TSTP);*/	/* turn off debugging */
     signal(SIGXCPU, (void (*)(int))XCPU);	/* dump state */
     signal(SIGXFSZ, (void (*)(int))XFSZ);	/* initialize statistics */
     signal(SIGVTALRM, (void (*)(int))VTALRM);	/* swap log */
-    signal(SIGUSR1, (void (*)(int))USR1);	/* Toggle malloc trace */
+    signal(SIGUSR1, (void (*)(int))USR1);	/* set {COPmode, Mcast, DebugLevel} */
 #endif
 
 #if  defined(__linux__) 
@@ -134,18 +132,19 @@ void SigInit() {
     signal(SIGILL, (void (*)(int))ILL);		/* Choke */
     signal(SIGTRAP, (void (*)(int))TRAP);	/* Choke */
     signal(SIGIOT, (void (*)(int))IOT);		/* turn on profiling */
-    /* SIGFPE is ignored for the short term */
-    /* signal(SIGFPE, (void (*)(int))FPE);*/		/* Choke */
-    signal(SIGFPE, SIG_IGN);                    /* Ignore */
+    /* SIGFPE was ignored for the `short term' */
+    /*signal(SIGFPE, SIG_IGN);*/                    /* Ignore */
+    signal(SIGFPE, (void (*)(int))FPE);		/* Choke */
     signal(SIGBUS, (void (*)(int))BUS);		/* Choke */
     signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
     signal(SIGTERM, (void (*)(int))TERM);	/* exit */
-    signal(SIGTSTP, (void (*)(int))TSTP);	/* turn off debugging */
+    signal(SIGINT, (void (*)(int))TERM);	/* exit */
+    /*signal(SIGTSTP, (void (*)(int))TSTP);*/	/* turn off debugging */
     signal(SIGXCPU, (void (*)(int))XCPU);	/* dump state */
     signal(SIGXFSZ, (void (*)(int))XFSZ);	/* initialize statistics */
     signal(SIGVTALRM, (void (*)(int))VTALRM);	/* swap log */
-    signal(SIGUSR1, (void (*)(int))USR1);	/* Toggle malloc trace */
+    signal(SIGUSR1, (void (*)(int))USR1);	/* set {COPmode, Mcast, DebugLevel} */
 #endif
 
 #ifdef __CYWIN32__
@@ -160,8 +159,9 @@ void SigInit() {
     signal(SIGSEGV, (void (*)(int))SEGV);	/* Choke */
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
     signal(SIGTERM, (void (*)(int))TERM);	/* exit */
-    signal(SIGTSTP, (void (*)(int))TSTP);	/* turn off debugging */
-    signal(SIGUSR1, (void (*)(int))USR1);	/* Toggle malloc trace */
+    signal(SIGINT, (void (*)(int))TERM);	/* exit */
+    /*signal(SIGTSTP, (void (*)(int))TSTP);*/	/* turn off debugging */
+    signal(SIGUSR1, (void (*)(int))USR1);	/* set {COPmode, Mcast, DebugLevel} */
 #endif
 
     if (!Simulating) {
@@ -230,20 +230,19 @@ PRIVATE void SEGV(int sig, int code, struct sigcontext *contextPtr) {
     FatalSignal(sig, code, contextPtr);
 }
 
-#ifdef	__BSD44__
-PRIVATE void SYS(int sig, int code, struct sigcontext *contextPtr) {
-    int RealSigSys = 1;
+PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
     struct stat tstat;
     if (stat("COPMODES", &tstat) == 0) {
-	RealSigSys = 0;
-
+#if 0
 	int NewModes = 0;
 	FILE *fp = fopen("COPMODES", "r+");
-	if (fp == NULL) Choke("SYS: fopen(COPMODES)");
+	if (fp == NULL) Choke("USR1: fopen(COPMODES)");
 	(void)fscanf(fp, "%d", &NewModes);
-	if (fclose(fp) == EOF) Choke("SYS: fclose(COPMODES)");
-	if (unlink("COPMODES") < 0) Choke("SYS: unlink(COPMODES)");
+	if (fclose(fp) == EOF) Choke("USR1: fclose(COPMODES)");
+#endif
+	if (unlink("COPMODES") < 0) Choke("USR1: unlink(COPMODES)");
 
+#if 0
 	/* This is a hack! -JJK */
 	int OldModes = COPModes;
 	COPModes = NewModes;
@@ -251,45 +250,59 @@ PRIVATE void SYS(int sig, int code, struct sigcontext *contextPtr) {
 	    eprint("Bogus modes (%x)\n", COPModes);
 	    COPModes = OldModes;
 	}
+#endif
 	LOG(100, ("COPModes = %x\n", COPModes));
     }
     if (stat("MCAST", &tstat) == 0) {
-	RealSigSys = 0;
-
+#if 0
 	FILE *fp = fopen("MCAST", "r+");
-	if (fp == NULL) Choke("SYS: fopen(MCAST)");
+	if (fp == NULL) Choke("USR1: fopen(MCAST)");
 	(void)fscanf(fp, "%d", &UseMulticast);
-	if (fclose(fp) == EOF) Choke("SYS: fclose(MCAST)");
-	if (unlink("MCAST") < 0) Choke("SYS: unlink(MCAST)");
-
+	if (fclose(fp) == EOF) Choke("USR1: fclose(MCAST)");
+#endif
+	if (unlink("MCAST") < 0) Choke("USR1: unlink(MCAST)");
 	LOG(100, ("UseMulticast is now %d.\n", UseMulticast));
     }
-    if (stat("DEBUG", &tstat) == 0) {
-	RealSigSys = 0;
 
+    if (stat("DEBUG", &tstat) == 0) {
 	FILE *fp = fopen("DEBUG", "r+");
-	if (fp == NULL) Choke("SYS: fopen(DEBUG)");
-	(void)fscanf(fp, "%d", &LogLevel);
-	if (fclose(fp) == EOF) Choke("SYS: fclose(DEBUG)");
-	if (unlink("DEBUG") < 0) Choke("SYS: unlink(DEBUG)");
+	int found, loglevel, rpc2level, lwplevel;
+
+	if (fp == NULL) Choke("USR1: fopen(DEBUG)");
+
+	found = fscanf(fp, "%d %d %d", &loglevel, &rpc2level, &lwplevel);
+
+	if (found > 0 && loglevel >= 0)
+	{
+		LogLevel = loglevel;
+	}
+
+	if (found > 1 && rpc2level >= 0)
+	{
+		RPC2_DebugLevel = rpc2level;
+		RPC2_Trace = (rpc2level > 0) ? 1 : 0;
+	}
+
+	if (found > 2 && lwplevel >= 0)
+	{
+		lwp_debug = lwplevel;
+	}
+
+	if (fclose(fp) == EOF) Choke("USR1: fclose(DEBUG)");
+	if (unlink("DEBUG") < 0) Choke("USR1: unlink(DEBUG)");
 
 	LOG(0, ("LogLevel is now %d.\n", LogLevel));
+	LOG(0, ("RPC2_DebugLevel is now %d.\n", RPC2_DebugLevel));
+	LOG(0, ("lwp_debug is now %d.\n", lwp_debug));
     }
+
     if (stat("DUMP", &tstat) == 0) {
-	RealSigSys = 0;
-
 	/* No longer used! -JJK */
-
-	if (unlink("DUMP") < 0) Choke("SYS: unlink(DUMP)");
+	if (unlink("DUMP") < 0) Choke("USR1: unlink(DUMP)");
     }
 
-    if (RealSigSys)
-	FatalSignal(sig, code, contextPtr);
-
-    signal(SIGSYS, (void (*)(int))SYS);
+    signal(SIGUSR1, (void (*)(int))USR1);
 }
-
-#endif
 
 PRIVATE void TERM(int sig, int code, struct sigcontext *contextPtr) {
     LOG(0, ("TERM: Venus exiting\n"));
@@ -309,7 +322,9 @@ PRIVATE void TERM(int sig, int code, struct sigcontext *contextPtr) {
 }
 
 
-#ifdef SIGTSTP
+#ifdef NOTUSED
+/* This handler is now deactivated, as we would sometimes really like to put a
+ * venus in the background */
 PRIVATE void TSTP(int sig, int code, struct sigcontext *contextPtr) {
     DebugOff();
 
@@ -343,11 +358,16 @@ PRIVATE void VTALRM(int sig, int code, struct sigcontext *contextPtr) {
 }
 #endif
 
+#ifdef UNUSED
+/* the signal of this handler has been taken by the former SIGSYS handler.
+   mainly because SIGSYS provided more useful stuff, but was only supported on
+   BSD systems. */
 PRIVATE void USR1(int sig, int code, struct sigcontext *contextPtr) {
     ToggleMallocTrace();
 
     signal(SIGUSR1, (void (*)(int))USR1);
 }
+#endif
 #endif
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/rec_bstree.cc,v 4.1 1997/01/08 21:51:07 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/rec_bstree.cc,v 4.2 1997/02/26 16:03:05 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -421,7 +421,7 @@ int rec_bstree::IsOrdered() {
 
 
 void rec_bstree::print() {
-    print(stdout);
+    print(stderr);
 }
 
 
@@ -497,7 +497,7 @@ rec_bstree *rec_bsnode::tree() {
 
 
 void rec_bsnode::print() {
-    print(stdout);
+    print(stderr);
 }
 
 

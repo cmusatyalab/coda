@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/util/RCS/process.cc,v 4.1 1997/01/08 21:51:06 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/util/process.cc,v 4.2 1997/02/26 16:03:04 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,7 +91,7 @@ process::~process() {
 
 
 void process::print() {
-    print(stdout);
+    print(stderr);
 }
 
 
