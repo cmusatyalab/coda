@@ -555,7 +555,7 @@ START_TIMING(ViceValidateAttrs_Total);
 	}
 
 InvalidObj:
-	SLog(0, "ViceValidateAttrs: (%x.%x.%x) failed (%s)!",
+	SLog(1, "ViceValidateAttrs: (%x.%x.%x) failed (%s)!",
 	     Piggies[i].Fid.Volume, Piggies[i].Fid.Vnode, 
 	     Piggies[i].Fid.Unique, why_failed);
     }
