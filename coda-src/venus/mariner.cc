@@ -526,9 +526,7 @@ void mariner::main(void)
 		char *realmname = strrchr(argv[1], '@')+1;
 		Realm *realm = REALMDB->GetRealm(realmname);
 		fid.Realm = realm->Id();
-
 		FidStat(&fid);
-
 		realm->PutRef();
 	    }
 	    else

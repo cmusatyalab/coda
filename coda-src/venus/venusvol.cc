@@ -645,7 +645,10 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 
 	goto error_exit;
     }
-    if (v && v->GetVolumeId() != volinfo.Vid) {
+    if (v) {
+	if (v->GetVolumeId() == volinfo.Vid)
+	    goto Exit;
+
 	eprint("Mapping changed for volume %s@%s (%x --> %x)",
 	       volname, realm->Name(), v->GetVolumeId(), volinfo.Vid);
 
@@ -955,14 +958,37 @@ void volent::operator delete(void *deadobj, size_t len)
     rvmlib_rec_free(deadobj);
 }
 
-void volent::hold() {
+void volent::hold(void)
+{
     refcnt++;
 }
 
-void volent::release() {
+void volent::release(void)
+{
+    int intrans;
+
     refcnt--;
 
     CODA_ASSERT(refcnt >= 0);
+
+    if (refcnt > 0)
+	return;
+
+    /* special test needed for volumes with local repair conflict */
+    if (IsReplicated() && ((repvol *)this)->CML.count() != 0)
+	return;
+
+    /* we could be called when there already is a transaction ongoing or we
+     * might have to start our own transaction... */
+    intrans = rvmlib_in_transaction();
+    if (!intrans)
+	Recov_BeginTrans();
+
+    if (IsReplicated()) delete (repvol *)this;
+    else	        delete (volrep *)this;
+
+    if (!intrans)
+	Recov_EndTrans(MAXFP);
 }
 
 int volent::IsReadWriteReplica()
@@ -2410,7 +2436,7 @@ VenusFid repvol::GenerateLocalFid(ViceDataType fidtype)
 
 
 /* MUST be called from within a transaction */
-VenusFid repvol::GenerateFakeFid() 
+VenusFid repvol::GenerateFakeFid()
 {
     VenusFid fid;
     FID_MakeSubtreeRoot(MakeViceFid(&fid), vid, FidUnique);

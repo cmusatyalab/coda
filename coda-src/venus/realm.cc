@@ -76,15 +76,11 @@ Realm::~Realm(void)
     }
     rvmlib_rec_free(name); 
 
-    Realm *localrealm = REALMDB->GetRealm(LOCALREALM);
-
     /* kill the fake object that represents our mountlink */
-    Fid.Realm = localrealm->Id();
+    Fid.Realm = LocalRealm->Id();
     Fid.Volume = FakeRootVolumeId;
     Fid.Vnode = 0xfffffffc;
     Fid.Unique = Id();
-
-    localrealm->PutRef();
 
     f = FSDB->Find(&Fid);
     if (f) f->Kill();
@@ -113,15 +109,22 @@ void Realm::Rec_PutRef(void)
 /* MAY be called from within a transaction */
 void Realm::PutRef(void)
 {
+    int intrans;
+
     CODA_ASSERT(refcount);
     refcount--;
-    /*
-     * Only destroy the object if we happen to be in a transaction,
-     * otherwise we'll destroy ourselves later during ResetTransient,
-     * or when a reference is regained and then dropped in a transaction.
-     */
-    if (rvmlib_in_transaction() && !refcount && !rec_refcount)
-	delete this;
+
+    if (refcount || rec_refcount)
+	return;
+
+    intrans = rvmlib_in_transaction();
+    if (!intrans)
+	Recov_BeginTrans();
+    
+    delete this;
+
+    if (!intrans)
+	Recov_EndTrans(MAXFP);
 }
 
 /* Get a connection to any server (as root). */
@@ -173,18 +176,15 @@ retry:
 	case EINTR:
 	    /* We might have discovered a new realm */
 	    if (unknown) {
-		Realm *localrealm;
 		VenusFid Fid;
 		fsobj *f;
 
 		eprint("Resolved realm '%s'", name);
 
-		localrealm = REALMDB->GetRealm(LOCALREALM);
 		Fid.Realm = LocalRealm->Id();
 		Fid.Volume = FakeRootVolumeId;
 		Fid.Vnode = 1;
 		Fid.Unique = 1;
-		localrealm->PutRef();
 
 		f = FSDB->Find(&Fid);
 		if (f) {

@@ -690,6 +690,7 @@ class srvent;
 /* A volume replica entry. */
 class volrep : public volent {
     friend class vdb;
+    friend class volent;
     friend void VolInit(void);
 
     VolumeId replicated;        /* replicated `parent' volume */
