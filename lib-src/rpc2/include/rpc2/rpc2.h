@@ -716,6 +716,9 @@ int RPC2_GetBandwidth(RPC2_Handle handle, unsigned long *BWlow,
 		      unsigned long *BWavg, unsigned long *BWhigh);
 int RPC2_GetLastObs(RPC2_Handle handle, struct timeval *tv);
 
+int RPC2_SetTimeout(RPC2_Handle whichConn, struct timeval timeout);
+
+
 int struct_len(ARG **a_types, PARM **args);
 
 /* These shouldn't really be here: they are internal RPC2 routines

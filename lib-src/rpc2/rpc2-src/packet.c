@@ -389,6 +389,13 @@ long rpc2_SetRetry(IN Conn)
     return(0);
     }
 
+int RPC2_SetTimeout(RPC2_Handle whichConn, struct timeval timeout)
+{
+    struct CEntry *Conn = rpc2_GetConn(whichConn);
+    if (!Conn) return RPC2_NOCONNECTION;
+    Conn->Retry_Beta[0] = timeout;
+    return rpc2_SetRetry(Conn);
+}
 
 /* HACK. if bandwidth is low, increase retry intervals appropriately */
 void rpc2_ResetLowerLimit(IN Conn, IN Packet)
