@@ -50,7 +50,7 @@ HEADERS     = ${EXPHEADERS} ${PRIVHEADERS}
 librds.a: $(LIBOBJ)
 
 rdsinit: $(OBJ) librds.a $(RDSINIT_LIBS)
-	$(CC) -o rdsinit $? 
+	$(CC) -o rdsinit $(OBJ) librds.a $(RDSINIT_LIBS)
 endif
 
 
