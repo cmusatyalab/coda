@@ -145,9 +145,12 @@ int fsobj::LookAside(void)
     if (fd != -1) {
 	memset(emsg, 0, sizeof(emsg));
 
-	lka_successful = LookAsideAndFillContainer(VenusSHA, fd,
-						   stat.Length, venusRoot,
-						   emsg, sizeof(emsg)-1);
+	/* lookaside always returns success for 0-length files, first of all
+	 * there really is nothing to fetch, and secondly we would otherwise
+	 * trigger the HAVEALLDATA assert in fsobj::Fetch */
+	lka_successful = LookAsideAndFillContainer(VenusSHA, fd, stat.Length,
+						   venusRoot, emsg,
+						   sizeof(emsg)-1);
 	data.file->Close(fd);
 
 	if (emsg[0])
@@ -162,10 +165,8 @@ int fsobj::LookAside(void)
     RVMLIB_REC_OBJECT(flags);
     flags.fetching = 0;
 
-    if (lka_successful) {
-	data.file->SetLength(stat.Length);
+    if (lka_successful)
 	cf.SetValidData(cf.Length()); 
-    }
     Recov_EndTrans(CMFP);
 
     /* If we received any callbacks during the lookaside, the validity of the

@@ -79,6 +79,10 @@ int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
 
   emsgbuf[0] = '\0'; /* null message, anticipating success */
 
+  /* duh, 0-length files are easy! */
+  if (expectedlength == 0)
+      return 1;
+
   list_for_each(p, lkdbchain) {
       dbp = list_entry(p, struct lkdb, chain);
 
