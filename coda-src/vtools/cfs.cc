@@ -1709,11 +1709,11 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	ptr += sizeof(VolumeStatus);
         volname = ptr;
 	ptr += strlen(volname)+1;
-	conn_state = *(VolumeStateType *)ptr;
+	memcpy ((void *)&conn_state, (void *)ptr, sizeof(int));
 	ptr += sizeof(int);
-	conflict = *(int *)ptr;
+	memcpy ((void *)&conflict, (void *)ptr, sizeof(int));
 	ptr += sizeof(int);
-	cml_count = *(int *)ptr;
+	memcpy ((void *)&cml_count, (void *)ptr, sizeof(int));
 	ptr += sizeof(int);
         omsg = ptr;
 	ptr += strlen(omsg)+1;
