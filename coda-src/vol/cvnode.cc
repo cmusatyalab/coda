@@ -420,7 +420,7 @@ static Vnode *VAllocVnodeCommon(Error *ec, Volume *vp, VnodeType type,
 	moveHash(vnp, newHash);
 	
 	/* Initialize the VM copy of the vnode. */
-	bzero((char *)&vnp->disk, sizeof(vnp->disk));
+	memset((char *)&vnp->disk, 0, sizeof(vnp->disk));
 	vnp->changed = 1;	/* Eventually write this thing out */
 	vnp->delete_me = 0;
 	vnp->vnodeNumber = vnode;

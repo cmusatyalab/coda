@@ -123,7 +123,7 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     DP_LockPartition(partition);
 
     /* set up volume disk info */
-    bzero((char *)&vol, sizeof (vol));
+    memset((char *)&vol, 0, sizeof (vol));
     vol.id = volumeId;
     vol.parentId = parentId;
     // This is always NULL unless volume is replicated.
@@ -142,7 +142,7 @@ Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId,
     }
 
     /* set up volume header info */
-    bzero((char *)&tempHeader, sizeof (tempHeader));
+    memset((char *)&tempHeader, 0, sizeof (tempHeader));
     tempHeader.id = vol.id;
     tempHeader.parent = vol.parentId;
     tempHeader.type = type;
@@ -202,7 +202,7 @@ void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to)
     parent = to->parentId;
     group = to->groupId;
     copydate = to->copyDate;
-    bcopy((char *)from, (char *)to, sizeof(*from));
+    memmove((char *)to, (char *)from, sizeof(*from));
     to->id = id;
     to->parentId = parent;
     to->groupId = group;
@@ -217,7 +217,7 @@ void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to)
 
 void ClearVolumeStats(register VolumeDiskData *vol)
 {
-    bzero((char *)vol->weekUse, sizeof(vol->weekUse));
+    memset((char *)vol->weekUse, 0, sizeof(vol->weekUse));
     vol->dayUse = 0;
     vol->dayUseDate = 0;
 }

@@ -122,7 +122,7 @@ void PurgeIndex(Volume *vp, VnodeClass vclass)
 	nLists = vdata->nlargeLists;
     }
     
-    bzero(zerovn, SIZEOF_LARGEDISKVNODE);
+    memset(zerovn, 0, SIZEOF_LARGEDISKVNODE);
 
     for (int i = 0; i < nLists; i++) {
 	rec_smolink *p;

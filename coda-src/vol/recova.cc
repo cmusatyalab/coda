@@ -119,17 +119,17 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
 
     /* Dynamically allocate the volumeDiskData */
     VLog(9,  "NewVolHeader: Going to Allocate VolumeDiskData ");
-    bzero((void *)&data, sizeof(data));
+    memset((void *)&data, 0, sizeof(data));
     data.volumeInfo = (VolumeDiskData *)rvmlib_rec_malloc(sizeof(VolumeDiskData));
     /* zero out the allocated memory */
-    bzero((char *)&tmpinfo, sizeof(tmpinfo));
+    memset((char *)&tmpinfo, 0, sizeof(tmpinfo));
     rvmlib_modify_bytes(data.volumeInfo, &tmpinfo, sizeof(tmpinfo));
 
     VLog(9,  "NewVolHeader: Going to allocate vnode arrays");
     /* Dynamically allocate the small vnode array and zero it out */
     data.smallVnodeLists = (rec_smolist *)
             rvmlib_rec_malloc(sizeof(rec_smolist) * SMALLGROWSIZE);
-    bzero(tmp_svnodes, sizeof(tmp_svnodes));
+    memset(tmp_svnodes, 0, sizeof(tmp_svnodes));
     VLog(9,  "NewVolHeader: Zeroing out small vnode array of size %d", 
 	 sizeof(tmp_svnodes));
     rvmlib_modify_bytes(data.smallVnodeLists, tmp_svnodes, sizeof(tmp_svnodes));
@@ -139,7 +139,7 @@ int NewVolHeader(struct VolumeHeader *header, Error *err)
     /* Dynamically allocate the large vnode array */
     data.largeVnodeLists = (rec_smolist *)
             rvmlib_rec_malloc(sizeof(rec_smolist) * LARGEGROWSIZE);
-    bzero(tmp_lvnodes, sizeof(tmp_lvnodes));
+    memset(tmp_lvnodes, 0, sizeof(tmp_lvnodes));
     VLog(9,  "NewVolHeader: Zeroing out large vnode array of size %d",
 	 sizeof(tmp_lvnodes));
     rvmlib_modify_bytes(data.largeVnodeLists, tmp_lvnodes, sizeof(tmp_lvnodes));
@@ -185,8 +185,9 @@ int VolHeaderByIndex(int myind, struct VolumeHeader *header)
 		VLog(1,  "VolHeaderByIndex: bogus volume index %d - maxid %d (ok if volume was purged or deleted)", myind, maxid);
 		return(-1);
 	}
-	bcopy((const void *)&(SRV_RVM(VolumeList[myind]).header), 
-	      (void *) header, sizeof(struct VolumeHeader));
+	memmove((void *) header,
+		(const void *)&(SRV_RVM(VolumeList[myind]).header),
+		sizeof(struct VolumeHeader));
     if (header->stamp.magic != VOLUMEHEADERMAGIC) {
 	    VLog(19,  "VolHeaderByIndex: stamp.magic = %u, VHMAGIC = %u",
 		 header->stamp.magic, VOLUMEHEADERMAGIC);
@@ -287,7 +288,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
     }
     if (vdata->volumeInfo == NULL) return -1; /* WRONG! no VolumeDiskData! */
     
-    bzero((void *)zerovn, SIZEOF_LARGEDISKVNODE);
+    memset((void *)zerovn, 0, SIZEOF_LARGEDISKVNODE);
 
     int i = 0;
     rec_smolink *p;
@@ -302,7 +303,7 @@ static int DeleteVnodes(unsigned int myind, Device dev, VnodeClass vclass)
 	int count = 0;
 	rvmlib_begin_transaction(restore);
 
-	bzero((void *)DeadInodes, MaxVnodesPerTransaction * sizeof(Inode));
+	memset((void *)DeadInodes, 0, MaxVnodesPerTransaction * sizeof(Inode));
 
 	while (count < MaxVnodesPerTransaction) {
 		/* Pull the vnode off the list. */
@@ -418,7 +419,7 @@ static int DeleteVolData(int myind)
 
     /* zero out VolumeData structure */
     VLog(9,  "DeleteVolData: Zeroing out VolumeData at index %d", myind);
-    bzero((void *)&tmpdata, sizeof(struct VolumeData));
+    memset((void *)&tmpdata, 0, sizeof(struct VolumeData));
     rvmlib_modify_bytes(&(SRV_RVM(VolumeList[myind]).data), &tmpdata,
 				sizeof(struct VolumeData));
 
@@ -442,7 +443,7 @@ static int DeleteVolHeader(int myind)
 	/* Sanity check */
     CODA_ASSERT(SRV_RVM(VolumeList[myind]).header.stamp.magic
 		== VOLUMEHEADERMAGIC);
-    bzero((void *)&tmpheader, sizeof(struct VolumeHeader));
+    memset((void *)&tmpheader, 0, sizeof(struct VolumeHeader));
     RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).header, tmpheader);
     rvmlib_end_transaction(flush, &(status));
     return (int)status;

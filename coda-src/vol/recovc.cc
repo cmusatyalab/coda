@@ -97,9 +97,9 @@ void checkvm() {
 	    readerror = 1;
 	    break;
 	}
-	if (bcmp(buf, p, 4096) != 0) 
+	if (memcmp(buf, p, 4096) != 0) 
 	    for (int k = 0; k < 4096; k += 4) 
-		if (bcmp(&buf[k], &p[k], 4)) {
+		if (memcmp(&buf[k], &p[k], 4)) {
 		    LogMsg(0, VolDebugLevel, stdout,  "CheckVM: Addr = 0x%x Dataseg value = 0x%x, Dumpfile value = 0x%x",
 			&p[k], *((int *)&p[k]), (*(int *)&buf[k]));
 		    errorsfound++;
@@ -115,7 +115,7 @@ void checkvm() {
 		p, nbytes);
 	    readerror = 1;
 	}
-	if (!readerror && bcmp(buf, p, nbytes) != 0) 
+	if (!readerror && memcmp(buf, p, nbytes) != 0) 
 	    for (int k = 0; k < nbytes; k++) 
 		if ((int)buf[k] != (int)p[k]) {
 		    errorsfound++;
@@ -171,7 +171,7 @@ int coda_init()
     /* allocate vnodediskobject structures to fill the large and small */
     /* vnode free lists, and set freelist pointers */
     zerovnode = (VnodeDiskObject *)buf1;
-    bzero((void *)zerovnode, sizeof(buf1));
+    memset((void *)zerovnode, 0, sizeof(buf1));
     for(i = 0; i < SMALLFREESIZE; i++) {
 	    svnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
 	    rvmlib_modify_bytes(svnodes[i], zerovnode, sizeof(buf1));
@@ -181,7 +181,7 @@ int coda_init()
     VLog(29, "Storing SmallVnodeIndex = %d", SRV_RVM(SmallVnodeIndex));
 
     zerovnode = (VnodeDiskObject *)buf2;
-    bzero((void *)zerovnode, sizeof(buf2));
+    memset((void *)zerovnode, 0, sizeof(buf2));
     for(i = 0; i < LARGEFREESIZE; i++) {
 	    lvnodes[i] = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
 	    rvmlib_modify_bytes(lvnodes[i], zerovnode, sizeof(buf2));
@@ -375,7 +375,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize)
 
 	char *tmpslist = (char *)malloc(sizeof(rec_smolist) * (int)(newsize - cursize));
 	CODA_ASSERT(tmpslist);
-	bzero(tmpslist, sizeof(rec_smolist) * (int)(newsize - cursize));
+	memset(tmpslist, 0, sizeof(rec_smolist) * (int)(newsize - cursize));
 	rvmlib_modify_bytes(&(newvlist[cursize]), tmpslist,
 			    sizeof(rec_smolist) * (newsize-cursize));
 	free(tmpslist);
@@ -406,7 +406,7 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize)
 
 	char *tmpllist = (char *)malloc(sizeof(rec_smolist) * (int)(newsize - cursize));
 	CODA_ASSERT(tmpllist);
-	bzero(tmpllist, sizeof(rec_smolist) * (int)(newsize - cursize));
+	memset(tmpllist, 0, sizeof(rec_smolist) * (int)(newsize - cursize));
 	rvmlib_modify_bytes(&(newvlist[cursize]), tmpllist, 
 			    sizeof(rec_smolist) * (newsize - cursize));
 	free(tmpllist);
@@ -441,8 +441,9 @@ void ExtractVolDiskInfo(Error *ec, int volindex, VolumeDiskData *vol) {
     }
 
 
-    bcopy((char *)SRV_RVM(VolumeList[volindex]).data.volumeInfo, (char *)vol,
-						    sizeof(VolumeDiskData));
+    memmove((void *)vol,
+	    (void *)SRV_RVM(VolumeList[volindex]).data.volumeInfo, 
+	    sizeof(VolumeDiskData));
     if (vol->stamp.magic != VOLUMEINFOMAGIC ||
 		    vol->stamp.version != VOLUMEINFOVERSION) {
 	LogMsg(0, VolDebugLevel, stdout,  "ExtractVolDiskInfo: bogus version stamp!");

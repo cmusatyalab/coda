@@ -105,7 +105,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 		while((p = next())){
 			vind = strbase(VnodeDiskObject, p, nextvn);
 			if (vind->uniquifier == uniquifier){
-				bcopy((const void *)vind, (void *)vnode, SIZEOF_SMALLDISKVNODE);
+				memmove((void *)vnode, (const void *)vind, SIZEOF_SMALLDISKVNODE);
 				break;
 			}
 		}
@@ -127,7 +127,7 @@ int ExtractVnode(Error *ec, int volindex, int vclass,
 			while((p = next())) {
 				vind = strbase(VnodeDiskObject, p, nextvn);
 				if (vind->uniquifier == uniquifier) {
-					bcopy((const void *)vind, (void *)vnode, SIZEOF_LARGEDISKVNODE);
+					memmove((void *)vnode, (const void *)vind, SIZEOF_LARGEDISKVNODE);
 					break;
 				}
 			}
@@ -349,7 +349,7 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 		VLog(9,  "ReplaceVnode: malloc'ing small vnode");
 		vdo = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_SMALLDISKVNODE);
 		zerovnode = (VnodeDiskObject *)buf1;
-		bzero((void *)zerovnode, sizeof(buf1));
+		memset((void *)zerovnode, 0, sizeof(buf1));
 		rvmlib_modify_bytes(vdo, zerovnode, sizeof(buf1));
 	    }
 	    /* increment vnode count */
@@ -357,14 +357,14 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 			(SRV_RVM(VolumeList[volindex]).data.nsmallvnodes) + 1);
     	    /* append vnode into the appropriate rec_smolist */
 	    char buf[sizeof(rec_smolink)];
-	    bzero(buf, sizeof(rec_smolink));
-	    if (bcmp((const void *)&(vdo->nextvn), (const void *) buf, sizeof(rec_smolink))){
+	    memset(buf, 0, sizeof(rec_smolink));
+	    if (memcmp((const void *)&(vdo->nextvn), (const void *) buf, sizeof(rec_smolink))){
 		VLog(0,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
 		rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
 	    vnlist->append(&(vdo->nextvn));
 	}
-	bcopy( (const void *)&(vdo->nextvn), (void *)&(vnode->nextvn), sizeof(rec_smolink));
+	memmove((void *)&(vnode->nextvn), (const void *)&(vdo->nextvn), sizeof(rec_smolink));
 	rvmlib_modify_bytes(vdo, vnode, SIZEOF_SMALLDISKVNODE);
     }
     else if (vclass == vLarge) {
@@ -392,21 +392,21 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 		VLog(9,  "ReplaceVnode: malloc'ing large vnode");
 		vdo = (VnodeDiskObject *)rvmlib_rec_malloc(SIZEOF_LARGEDISKVNODE);
 		zerovnode = (VnodeDiskObject *)buf2;
-		bzero((void *)zerovnode, sizeof(buf2));
+		memset((void *)zerovnode, 0, sizeof(buf2));
 		rvmlib_modify_bytes(vdo, zerovnode, sizeof(buf2));
 	    }
 	    /* increment vnode count */
 	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes,
 		  (SRV_RVM(VolumeList[volindex]).data.nlargevnodes) + 1);
 	    char buf[sizeof(rec_smolink)];
-	    bzero(buf, sizeof(rec_smolink));
-	    if (bcmp((const void *)&(vdo->nextvn),(const void *) buf, sizeof(rec_smolink))){
+	    memset(buf, 0, sizeof(rec_smolink));
+	    if (memcmp((const void *)&(vdo->nextvn),(const void *) buf, sizeof(rec_smolink))){
 		VLog(0,  "ERROR: REC_SMOLINK ON VNODE DURING ALLOCATION WAS NOT ZERO");
 		rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
 	    vnlist->append(&(vdo->nextvn));
 	}
-	bcopy((char *)&(vdo->nextvn), (char *)&(vnode->nextvn), sizeof(rec_smolink));
+	memmove((char *)&(vnode->nextvn), (char *)&(vdo->nextvn), sizeof(rec_smolink));
 	/* store the data into recoverable storage */
 	rvmlib_modify_bytes(vdo, vnode, SIZEOF_LARGEDISKVNODE);
     }
@@ -446,7 +446,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    /* put the freed vnode on the free list if there's room */
 	    if (SRV_RVM(SmallVnodeIndex) < SMALLFREESIZE - 1) {
 		VLog(9,  "DeleteVnode: putting small vnode on freelist");
-		bzero((void *)vnode, SIZEOF_SMALLDISKVNODE); /* just to be sure */
+		memset((void *)vnode, 0, SIZEOF_SMALLDISKVNODE); /* just to be sure */
 		rvmlib_modify_bytes(vdo, vnode, SIZEOF_SMALLDISKVNODE);
 		RVMLIB_MODIFY(SRV_RVM(SmallVnodeIndex),
 			      SRV_RVM(SmallVnodeIndex) + 1);
@@ -475,7 +475,7 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    /* put the removed vnode on the free list if there's room */
 	    if (SRV_RVM(LargeVnodeIndex) < LARGEFREESIZE - 1) {
 		VLog(9,  "DeleteVnode: putting large vnode on free list");
-		bzero((void *)vnode, SIZEOF_LARGEDISKVNODE);    /* just to be sure */
+		memset((void *)vnode, 0, SIZEOF_LARGEDISKVNODE);    /* just to be sure */
 		rvmlib_modify_bytes(vdo, vnode,	SIZEOF_LARGEDISKVNODE);
 		RVMLIB_MODIFY(SRV_RVM(LargeVnodeIndex),
 			      SRV_RVM(LargeVnodeIndex) + 1);

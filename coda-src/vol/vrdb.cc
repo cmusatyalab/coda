@@ -233,10 +233,10 @@ unsigned long XlateVidToVSG(VolumeId vid) {
 
 
 vrent::vrent() {
-    bzero(key, sizeof(key));
+    memset(key, 0, sizeof(key));
     volnum = 0;
     nServers = 0;
-    bzero((void *)ServerVolnum, sizeof(ServerVolnum));
+    memset((void *)ServerVolnum, 0, sizeof(ServerVolnum));
     addr = 0;
 }
 
@@ -245,7 +245,7 @@ vrent::vrent(vrent& vre) {
     strcpy(key, vre.key);
     volnum = vre.volnum;
     nServers = vre.nServers;
-    bcopy((const void *)vre.ServerVolnum, (void *) ServerVolnum, sizeof(ServerVolnum));
+    memmove((void *) ServerVolnum, (const void *)vre.ServerVolnum, sizeof(ServerVolnum));
     addr = vre.addr;
 }
 
@@ -261,7 +261,7 @@ vrent::~vrent() {
 
 
 void vrent::GetHosts(unsigned long *Hosts) {
-    bzero((void *)Hosts, VSG_MEMBERS * sizeof(unsigned long));
+    memset((void *)Hosts, 0, VSG_MEMBERS * sizeof(unsigned long));
 
     for (int i = 0; i < nServers; i++)
 	Hosts[i] = VolToHostAddr(ServerVolnum[i]);
@@ -278,7 +278,7 @@ int vrent::index(unsigned long hostaddr) {
 
 
 void vrent::HostListToVV(unsigned long *Hosts, vv_t *VV) {
-    bzero((void *)VV, sizeof(vv_t));
+    memset((void *)VV, 0, sizeof(vv_t));
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (Hosts[i]) {
 	    int ix = index(Hosts[i]);
@@ -296,7 +296,7 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
 	return(VNOVOL);
     }
 
-    bzero((void *)Info, sizeof(VolumeInfo));
+    memset((void *)Info, 0, sizeof(VolumeInfo));
     Info->Vid = volnum;
     Info->Type = REPVOL;
     (&Info->Type0)[REPVOL] = volnum;
