@@ -46,8 +46,10 @@ extern "C" {
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/types.h>
 #include <time.h>
+#if	defined(__FreeBSD__) && !defined(__FreeBSD__version)
+#include <sys/time.h>
+#endif
 
 #include <cfs/coda.h>
 #include <lwp.h>
