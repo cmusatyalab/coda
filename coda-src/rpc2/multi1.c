@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.1 1997/01/08 21:50:24 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.2 1997/09/23 15:13:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -277,7 +277,11 @@ PRIVATE void mrpc_ProcessRC(long *in, long *out, int howmany)
 #ifdef ERRORTR
     int host;
     for ( host = 0 ; host < howmany ; host++ )
-	out[host] = RPC2_R2SError(in[host]);
+	if ( in[host] > 0 ) {
+	    out[host] = RPC2_R2SError(in[host]);
+	} else {
+	    out[host] = in[host];
+	}
 #else
     bcopy(in, out, sizeof(long) * howmany);
 #endif 
