@@ -29,30 +29,19 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: Makeconf,v 3.5.1.1 96/08/26 12:07:47 raiff Exp $";
+#static char *rcsid = "$Header: Makeconf.Mach,v 1.1 96/11/22 19:20:04 raiff Locked $";
 #endif /*_BLURB_*/
 
 # For mach, make sure we are using gcc
 CC=gcc
 CXX = g++
+SHORTSYS=mach
 
-SYS=pmax_mach
+# 
 
-#THis is the real place for now, but...
-#ROOT = /afs/cs/project/coda-braam/mach-coda
-ROOT = /afs/cs/project/coda-raiff
+# ROOT = /afs/cs/project/coda-raiff/
 
-BINSPECIAL = ${ROOT}/BIN-SPECIAL
-BINDIR = ${ROOT}/bin
-INCLSPECIAL= ${ROOT}/INCLUDE-SPECIAL
-INCLSPECIALSUBDIR= ${ROOT}/INCLUDE-SPECIAL/readline -I${ROOT}/INCLUDE-SPECIAL/sets
-INCLDIR= ${ROOT}/include
-LIBSPECIAL = ${ROOT}/LIB-SPECIAL
-LIBDIR=	 ${ROOT}/lib
-MANDIR = ${ROOT}/man
-SCRIPTDIR = ${BINDIR}
-SRCDIR = $(TOPDIR)
-DOCDIR = ${ROOT}/doc
+INCLSPECIALSUBDIR= ${INCLSPECIAL}/readline -I${INCLSPECIAL}/sets
 
 # these are all the subdirectories in INCLDIR.
 # need to reset the mode bits after chmoding INCLDIR/* to 644
@@ -62,81 +51,59 @@ INCLSUBS = ${INCLDIR}/camlib ${INCLDIR}/cfs ${INCLDIR}/rpc ${INCLDIR}/vfs
 MACHDIR = /usr/mach
 CSDIR = /usr/cs
 KERNELDIR = /coda/project/coda/kernel
-PERSONAL_INCLUDE = .
-GNUCOMPDIR = /usr/misc/.gnu-comp
+GNUCOMPDIR=/usr/misc/.gnu-comp
+
+#ALPHACI = $(SCRIPTDIR)/alphaci
 
 #
-INCLFLAGS = -I- -I$(PERSONAL_INCLUDE) -I. -I$(srcdir) \
-	-I$(INCLDIR) -I$(INCLSPECIAL)  -I$(INCLSPECIALSUBDIR) \
-	-I$(CSDIR)/include -I$(MACHDIR)/include -I/usr/include
 
-LIBFLAGS = -L$(LIBDIR) -L$(LIBSPECIAL) -L$(MACHDIR)/lib -L$(CSDIR)/lib -L$(GNUCOMPDIR)/lib
+
+INCLFLAGS = -I- -I.  $(SHADOWINCLS)  -I$(srcdir) \
+	-I$(INCLDIR)  -I$(INCLSPECIAL)  -I$(INCLSPECIALSUBDIR) \
+	-I$(MACHDIR)/include -I$(CSDIR)/include  -I/usr/include
+
+LIBFLAGS = -L$(MACHDIR)/lib -L$(CSDIR)/lib -L$(GNUCOMPDIR)/lib
 
 RP2FLAGS :=  -I $(srcdir) -I .  `printenv MAKEPSD | awk -F:  '{for (i=1; i<NF+1; i++) {printf("-I %s ", $$i)}}'` -I $(INCLDIR)
 
 
-CFLAGS := -g $(INCLFLAGS) -DPRIVATE=static  $(PERSONAL_FLAGS)
+CFLAGS := -g $(INCLFLAGS) -DPRIVATE=static 
 CXXFLAGS := $(CFLAGS)
 C++FLAGS := $(CFLAGS)	# Mach uses c++ flags, not CXX
 
 INSTALL= cp -p
 CPP= /usr/cs/lib/cpp
 
-#SYS is now defined by Makeconf.sys, using venus itself.
-#SYS = $(target_machine:ibmrt=rt)
-#SYS = $(SYS:at386=i386)_mach
 
+# These libraries have something system dependent in them
+# system dependent libraries
+# -- LIBMACH --
+LIBMACH=/usr/mach/lib/libmach.a
 
-LIBCURSES =-lcurses
-
-# Define each library individually for easy substitution
-LIBAUTH2 = 	$(LIBDIR)/libauth2.a
-LIBAL = 	$(LIBDIR)/libal.a		
-LIBVOLUTIL = 	${LIBDIR}/libvolutil.a
-LIBVOL = 	${LIBDIR}/libvol.a			
-LIBVV = 	$(LIBDIR)/libvv.a		
-LIBCODASYS =	$(LIBDIR)/libcodasys.a	
-LIBRESOLVE =	$(LIBDIR)/libresolve.a	
-LIBRESLIB =	${LIBDIR}/libreslib.a			
-LIBGROUP =	$(LIBDIR)/libgroup.a		
-LIBUTIL =	$(LIBDIR)/libutil.a		
-LIBRDS =        $(LIBSPECIAL)/librdslwp.a	 		
-LIBSEG = 	$(LIBSPECIAL)/libseg.a 			
-LIBRVMLWP =	$(LIBSPECIAL)/librvmlwp.a		
-LIBRPC2 =	$(LIBDIR)/librpc2.a		
-LIBRPCLIB =	$(LIBDIR)/librpclib.a		
-LIBSE =		$(LIBDIR)/libse.a		
-LIBFAIL =	$(LIBDIR)/libfail.a		
-LIBNEWLWP =	${LIBDIR}/libnewlwp.a			
-LIBOLDLWP =	${LIBDIR}/liboldlwp.a			
-LIBMTCORE =	$(LIBSPECIAL)/libmtcore.a
-LIBCOMM =	$(LIBDIR)/libcomm.a		
-LIBPLUMBER =	$(LIBSPECIAL)/libplumber.a
-LIBNEWPLUMBER =	$(LIBSPECIAL)/libnewplumb.a
-LIBTRACE =	$(LIBSPECIAL)/libtrace.a
-LIBRVMRES =	$(LIBDIR)/librvmres.a
-LIBMACH=        /usr/mach/lib/libmach.a
-LIBDIRLIB=	$(LIBDIR)/libdir.a
-LIBSETPAG=      $(LIBDIR)/libsetpag.a
-LIBIFS=		$(LIBDIR)/libifs.a
 #If not at CMU, uncomment this.
 #LIBCS = 	$(LIBSPECIAL)/libcs.a
 
-# Don't put all the binaries here; just ones that get used in compiling the code
-RP2GEN = $(BINDIR)/rp2gen
-PCFGEN = $(BINDIR)/pcfgen
-#ALPHACI = $(SCRIPTDIR)/alphaci
+LIBSYS = -lsys
+LIBCURSES =-lcurses
 
-# RPC2 interface definitions in module vicedep
-CALLBACK_RPC2 = $(INCLDIR)/callback.rpc2
-MOND_RPC2 = $(INCLDIR)/mond.rpc2
-VCRCOMMON_RPC2 = $(INCLDIR)/vcrcommon.rpc2
-VICE_RPC2 = $(INCLDIR)/vice.rpc2
-VOLDUMP_RPC2 = $(INCLDIR)/voldump.rpc2
-VOLUTIL_RPC2 = $(INCLDIR)/volutil.rpc2
-RES_RPC2 = $(INCLDIR)/res.rpc2
-ADMON_RPC2 = $(INCLDIR)/admon.rpc2
-ADSRV_RPC2 = $(INCLDIR)/adsrv.rpc2
+
+# platform dependent libraries
+ifeq ($(SHOB),)
+LIBIFS          =$(TOPOBJ)/kernel-src/ifs/mach/libifs.a
+LIBTRACE = ../venus/libfaketrace.a
+else
+LIBTRACE = ../venus/libfaketrace.a
+LIBIFS          =$(LIBDIR)/libifs.a
+
+endif
+
+# -- PLUMBERs -- not built for Linux and netbsd yet
+LIBPLUMBER =$(LIBSPECIAL)/libplumber.a
+LIBNEWPLUMBER =$(LIBSPECIAL)/libnewplumb.a
+
+
+# -- CURSES --
+
 
 #on exit from the program write the source directory and path of Makeconf into the
 #object directory
@@ -145,3 +112,5 @@ ADSRV_RPC2 = $(INCLDIR)/adsrv.rpc2
 	@echo set SOURCEDIR = $(VPATH) > .SRCDIRS
 	@echo -n "setenv MAKECONF " >> .SRCDIRS
 	@printenv MAKECONF >> .SRCDIRS
+
+all:
