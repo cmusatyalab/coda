@@ -112,6 +112,15 @@ cacheblocks=100000
 #marinersocket=/usr/coda/spool/mariner
 
 #
+# Dont use RVM,
+# Avoid using persistent storage for metadata. Only useful on diskless
+# clients or small handhelds when the venus.cache is stored in a ramdisk
+# or ram filesystem. Beware, if you enable this option, venus will loose
+# all not reintegrated modifications when it dies.
+#
+#dontuservm=0
+
+#
 # Map private,
 # Whether to use a private mmaping of the RVM data file instead of a
 # anonymous mmap. Using a private mmap will reduce startup times, since

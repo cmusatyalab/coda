@@ -406,6 +406,8 @@ static void ParseCmdline(int argc, char **argv) {
  * parameters as appropriate. */
 static void DefaultCmdlineParms()
 {
+    int DontUseRVM = 0;
+
     /* Load the venusdotconf file */
     conf_init(venusdotconf);
 
@@ -423,6 +425,12 @@ static void DefaultCmdlineParms()
     CONF_STR(RootVolName,       "rootvolume",    NULL);
     CONF_STR(VenusLogDevice,    "rvm_log",       "/usr/coda/LOG");
     CONF_STR(VenusDataDevice,   "rvm_data",      "/usr/coda/DATA");
+
+    CONF_INT(DontUseRVM,	"dontuservm",	 0);
+    {
+	if (DontUseRVM)
+	    RvmType = VM;
+    }
 
     CONF_INT(CacheFiles,	"cachefiles",	 0);
     {
