@@ -169,7 +169,7 @@ static int parse_res_reply(char *answer, int alen,
 	/* according to the RFC, if there is a SRV record that has '.' as the
 	 * target, the service is decidedly not available at this domain */
 	if (name[0] == '.' && name[1] == '\0') {
-	    err = RPC2_EAI_FAIL; /* SERVICE, NODATA, or FAIL? */
+	    err = RPC2_EAI_NODATA;
 	    break;
 	}
 
@@ -360,7 +360,7 @@ int coda_getaddrinfo(const char *node, const char *service,
 #ifdef HAVE_RES_SEARCH
 	/* try to find SRV records */
 	err = do_srv_lookup(node, service, hints, &srvs);
-	if (err == RPC2_EAI_FAIL) /* found a SRV record with a '.' target? */
+	if (err == RPC2_EAI_NODATA) /* found a SRV record with a '.' target? */
 	    goto Exit;
 
 	if (!err) {
