@@ -42,8 +42,6 @@ extern "C" {
 #include <res.h>
 #include <operations.h>
 #include <resutil.h>
-#include <reslog.h>
-#include <remotelog.h>
 #include <treeremove.h>
 #include <timing.h>
 #include "rsle.h"

@@ -44,6 +44,9 @@ extern "C" {
 #include <inodeops.h>
 #include <util.h>
 #include <codadir.h>
+
+#include <res.h>
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -60,8 +63,6 @@ extern "C" {
 
 #include "rescomm.h"
 #include "resutil.h"
-#include "pdlist.h"
-#include "remotelog.h"
 #include "timing.h"
 
 class RUParm {	
@@ -360,18 +361,6 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    CODA_ASSERT(cv->f_sinode > 0);
 		    cv->vptr->disk.inodeNumber = cv->f_sinode;
 		    cv->f_sinode = 0;
-		    /* append log record */	
-		    if (AllowResolution && V_VMResOn(vp)) {
-			SLog(9,  
-			       "CreateIncObj: Spooling log record Create(%s)",
-			       name);
-			int ind;
-			ind = InitVMLogRecord(V_volumeindex(vp), &pv->fid, 
-					      &stid, ResolveViceCreate_OP,
-					      name, cFid->Vnode, cFid->Unique);
-			sle *SLE = new sle(ind);
-			pv->sl.append(SLE);
-		    }
 		    if (AllowResolution && V_RVMResOn(vp)) {
 			// spool log record for recoverable res logs 
 			if ((errorCode = SpoolVMLogRecord(vlist, pv->vptr, 
@@ -438,14 +427,6 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    cv->vptr->disk.inodeNumber = cv->f_finode;
 		    
 		    // spool log record 
-		    if (AllowResolution && V_VMResOn(vp)) {
-			int ind;
-			ind = InitVMLogRecord(V_volumeindex(vp),
-					      dFid, &stid, ResolveViceCreate_OP,
-					      name, cFid->Vnode, cFid->Unique);
-			sle *SLE = new sle(ind);
-			pv->sl.append(SLE);
-		    }
 		    if (AllowResolution && V_RVMResOn(vp)) {
 			if ((errorCode = SpoolVMLogRecord(vlist, pv->vptr, vp, 
 							 &stid, ResolveViceCreate_OP, 
@@ -480,14 +461,6 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 		    CODA_ASSERT(cv->f_finode > 0);
 		    cv->vptr->disk.inodeNumber = cv->f_finode;
 		    
-		    if (AllowResolution && V_VMResOn(vp)) {
-			int ind;
-			ind = InitVMLogRecord(V_volumeindex(vp),
-					      dFid, &stid, ResolveViceSymLink_OP,
-					      name, cFid->Vnode, cFid->Unique);
-			sle *SLE = new sle(ind);
-			pv->sl.append(SLE);
-		    }
 		    if (AllowResolution && V_RVMResOn(vp)) {
 			if ((errorCode = SpoolVMLogRecord(vlist, pv->vptr, vp, 
 							 &stid, 
@@ -516,20 +489,6 @@ int CreateObjToMarkInc(Volume *vp, ViceFid *dFid, ViceFid *cFid,
 				 pv->vptr->disk.modeBits,
 				 0, &stid, &pv->d_cinode, &tblocks);
 		    *blocks += tblocks;
-		    if (AllowResolution && V_VMResOn(vp)) {
-			int ind;
-			ind = InitVMLogRecord(V_volumeindex(vp),
-					      dFid, &stid, ResolveViceMakeDir_OP,
-					      name, cFid->Vnode, cFid->Unique);
-			sle *SLE = new sle(ind);
-			pv->sl.append(SLE);
-			
-			ind = InitVMLogRecord(V_volumeindex(vp),
-					      cFid, &stid, ResolveViceMakeDir_OP,
-					      ".", cFid->Vnode, cFid->Unique);
-			SLE = new sle(ind);
-			cv->sl.append(SLE);
-		    }
 		    if (AllowResolution && V_RVMResOn(vp)) {
 			if ((errorCode = SpoolVMLogRecord(vlist, pv->vptr, vp, &stid,
 							 ResolveViceMakeDir_OP, name, 
@@ -684,209 +643,7 @@ int CreateResPhase2Objects(ViceFid *pfid, dlist *vlist, dlist *inclist,
     return(errorCode);
 }
 
-void GetRemoteRemoveStoreId(ViceStoreId *stid, olist *hvlog, unsigned long serverid, 
-			    ViceFid *pFid, ViceFid *cFid, char *cname) {
-    SLog(9,  "Entering GetRemoteRemoveStoreId: Parent = %x.%x; Child = %x.%x %s",
-	    pFid->Vnode, pFid->Unique, cFid->Vnode, cFid->Unique, cname);
-    int i = 0;
 
-    stid->Host = 0;
-    stid->Uniquifier = 0;
-    he *rhe = FindHE(hvlog, serverid);
-    if (!rhe) {
-	SLog(0,  "GetRemoteRemoveStoreId: Couldnt get host list for host %x",
-		serverid);
-	return;
-    }
-    rmtle *r = FindRMTLE(&rhe->vlist, pFid->Vnode, pFid->Unique);
-    if (!r) {
-	SLog(0,  "GetRemoteRemoveStoreId: Couldnt get remote parent's log %x.%x",
-		pFid->Vnode, pFid->Unique);
-	return;
-    }
-    for (i = 0; i < r->u.remote.nentries; i++) {
-	rlent *rle = &(r->u.remote.log[i]);
-	if ((rle->opcode == RES_Remove_OP ||
-	     rle->opcode == ResolveViceRemove_OP) &&
-	    (rle->u.u_remove.cvnode == cFid->Vnode) &&
-	    (rle->u.u_remove.cunique == cFid->Unique) &&
-	    (!strcmp(rle->u.u_remove.name, cname))) {
-	    *stid = rle->storeid;
-	    break;
-	}
-	if ((rle->opcode == RES_RemoveDir_OP ||
-	     rle->opcode == ResolveViceRemoveDir_OP) &&
-	    (rle->u.u_removedir.cvnode == cFid->Vnode) &&
-	    (rle->u.u_removedir.cunique == cFid->Unique) &&
-	    (!strcmp(rle->u.u_removedir.name, cname))) {
-	    *stid = rle->storeid;
-	    break;
-	}
-
-    }
-    if (i == r->u.remote.nentries) 
-	SLog(0,  "GetRemoteRemoveStoreId: Couldnt find remove entry for %x.%x",
-		cFid->Vnode, cFid->Unique);
-    SLog(9,  "GetRemoteRemoveStoreId : returning storeid = %x.%x",
-	    stid->Host, stid->Uniquifier);
-}
-/* DirRUConf:
- *	Called on each child via Enumerate Dir 
- *	Detects remove/update conflicts on objects.
- */
-int EDirRUConf(PDirEntry de, void *data) 
-{
-    VnodeId vnode;
-    Unique_t unique;
-    char *name = de->name;
-    RUParm *rup = (RUParm *)data;
-    FID_NFid2Int(&de->fid, &vnode, &unique);
-    
-    return DirRUConf(rup, name, vnode, unique);
-}
-
-int DirRUConf(RUParm *rup, char *name, long vnode, long unique)
-{
-    if (rup->rcode) return(1);
-    if (!strcmp(name, ".") || !strcmp(name, "..")) return(0);
-    
-    ViceFid cFid, pFid;
-    vle *cv = 0;
-    vle *pv = 0;
-    /* get object and parent's object */
-    {
-	cFid.Volume = pFid.Volume = rup->vid;
-	cFid.Vnode = vnode;
-	cFid.Unique = unique;
-	
-	cv = FindVLE(*(rup->vlist), &cFid);
-	CODA_ASSERT(cv);
-	
-	pFid.Vnode = cv->vptr->disk.vparent;
-	pFid.Unique = cv->vptr->disk.uparent;
-	pv = FindVLE(*(rup->vlist), &pFid);
-	CODA_ASSERT(pv);
-    }
-
-    /* do file ruconflict detection */
-    {
-	if (cv->vptr->disk.type != vDirectory) {
-	    /* get deleted object's vv for remote site */
-	    ViceVersionVector *VV;
-	    {
-		/* find the remote parent's log */
-		CODA_ASSERT(rup->srvrid != ThisHostAddr);
-		he *rhe = FindHE(rup->hvlog, rup->srvrid);
-		CODA_ASSERT(rhe);
-		rmtle *r = FindRMTLE(&rhe->vlist, pFid.Vnode, 
-				     pFid.Unique);
-		CODA_ASSERT(r);
-
-		/* search log for child's deletion entry */
-		VV = 0;
-		for (int i = 0; i < r->u.remote.nentries; i++) {
-		    rlent *rle = &(r->u.remote.log[i]);
-		    if ((rle->opcode == RES_Remove_OP ||
-			 rle->opcode == ResolveViceRemove_OP) &&
-			(rle->u.u_remove.cvnode == cFid.Vnode) &&
-			(rle->u.u_remove.cunique == cFid.Unique) &&
-			(!strcmp(rle->u.u_remove.name, name))) {
-			VV = &(rle->u.u_remove.cvv);
-			break;
-		    }
-		    if ((rle->opcode == RES_Rename_OP ||
-			 rle->opcode == ResolveViceRename_OP) &&
-			(rle->u.u_rename.rename_tgt.tgtexisted) &&
-			(rle->u.u_rename.rename_tgt.TgtVnode == cFid.Vnode) &&
-			(rle->u.u_rename.rename_tgt.TgtUnique == cFid.Unique) &&
-			(!strcmp(rle->u.u_rename.rename_tgt.newname, name))) {
-			VV = &(rle->u.u_rename.rename_tgt.TgtGhost.TgtGhostVV);
-			break;
-		    }
-		}
-		if (!VV) {
-		    /* object did not exist when tree was removed - ru conflict */
-		    rup->rcode = 1;
-		    return(1);
-		}
-	    }
-	    
-	    int result = VV_Cmp(&Vnode_vv(cv->vptr), VV);
-	    if (result == VV_EQ || result == VV_SUB)
-		return(0);
-	    else {
-		rup->rcode = 1;
-		return(1);
-	    }
-	}
-    }
-    
-    /* do directory ruconflict detection */
-    {
-	/* get log for directory where it was removed */
-	rlent *rmtlog = 0;
-	int nrmtentries = 0;
-	{
-	    CODA_ASSERT(rup->srvrid != ThisHostAddr);
-	    he *rhe = FindHE(rup->hvlog, rup->srvrid);
-	    CODA_ASSERT(rhe);
-	    rmtle *r = FindRMTLE(&rhe->vlist, cFid.Vnode, cFid.Unique);
-	    if (!r) {
-		/* object didnt exist to be removed */
-		SLog(0, "DirRUConflict: %x.%x doesnt exist in rmt log",
-			cFid.Vnode, cFid.Unique);
-		rup->rcode = 1;
-		return(1);
-	    }
-	    rmtlog = r->u.remote.log;
-	    nrmtentries = r->u.remote.nentries;
-	}
-	CODA_ASSERT(rmtlog);
-	
-	/* get last entry of local log for directory */
-	rlent *lastrle;
-	{	
-	    VNResLog *vnlog;
-	    pdlist *plist = GetResLogList(cv->vptr->disk.vol_index,
-					  vnode, unique, &vnlog);
-	    CODA_ASSERT(plist);
-	    if (plist->count() == 0) 
-		CreateAfterCrashLogRecord(cv->vptr, plist);
-	    pdlink *pl = plist->last();
-	    CODA_ASSERT(pl);
-	    lastrle = strbase(rlent, pl, link);
-	}
-    	/* check if last entry is in remote log */
-	{
-	    int i = 0;
-
-	    CODA_ASSERT(nrmtentries > 0);
-	    for (i = nrmtentries - 1; i >= 0 && lastrle ; i--) 
-		if (SID_EQ(rmtlog[i].storeid, lastrle->storeid) &&
-		    ((rmtlog[i].opcode == lastrle->opcode) ||
-		     (lastrle->opcode == ResolveAfterCrash_OP))) {
-		    rup->rcode = 0;
-		    break;
-		}
-	    if (i < 0 || !lastrle) {
-		SLog(0,  "DirRUConflict: Last log entry for %x.%x doesnt exist in rmt log",
-			cFid.Vnode, cFid.Unique);
-		rup->rcode = 1;
-		return(1);
-	    }
-	}
-	
-	/* check ru conflict for children */
-	{
-	    PDirHandle dh;
-	    dh = VN_SetDirHandle(cv->vptr);
-	    if (DH_IsEmpty(dh)) 
-                    DH_EnumerateDir(dh, EDirRUConf, (void *)rup);
-	    VN_PutDirHandle(cv->vptr);
-	}
-    }
-    return(0);
-}
 
 /* warning: name must have size MAXNAMELEN or larger */
 /* Find the name of a vnode in its parent directory:

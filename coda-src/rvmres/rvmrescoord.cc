@@ -47,7 +47,6 @@ extern "C" {
 #include <vrdb.h>
 #include <resutil.h>
 #include <rescomm.h>
-#include <reslog.h>
 #include <resforce.h>
 #include <timing.h>
 #include "rvmrestiming.h"

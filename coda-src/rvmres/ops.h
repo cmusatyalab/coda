@@ -43,7 +43,7 @@ extern "C" {
 #include <cvnode.h>
 #include <vlist.h>
 #include <res.h>
-#include <reslog.h>
+#include <resutil.h>
 
 class rsle;
 class res_mgrpent;

@@ -69,7 +69,6 @@ extern "C" {
 #include <codadir.h>
 #include <dlist.h>
 #include <operations.h>
-#include <reslog.h>
 #include <resutil.h>
 #include <ops.h>
 #include <rsle.h>
@@ -2383,7 +2382,6 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 		CODA_ASSERT(AllowResolution && V_RVMResOn(volptr));
 		AllocStoreId(&UniqueSid);
 		FinalSid = &UniqueSid;
-		MakeLogNonEmpty(v->vptr);
 	} else {
 		FinalSid = &Vnode_vv(v->vptr).StoreId;
 	}

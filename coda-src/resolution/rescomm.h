@@ -33,9 +33,6 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#if 0
-#include <cthreads.h>
-#endif 
 #include <rpc2.h>
 
 #ifdef __cplusplus

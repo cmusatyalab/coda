@@ -401,11 +401,6 @@ int ReplaceVnode(int volindex, int vclass, VnodeId vnodeindex,
 		rvmlib_modify_bytes(&(vdo->nextvn), buf, sizeof(rec_smolink));
 	    }
 	    vnlist->append(&(vdo->nextvn));
-	    if (AllowResolution) {
-		/* allocate res log header */
-		CODA_ASSERT(AllocateResLog(volindex, 
-		    bitNumberToVnodeNumber(vnodeindex, vLarge), u));
-	    }
 	}
 	bcopy((char *)&(vdo->nextvn), (char *)&(vnode->nextvn), sizeof(rec_smolink));
 	/* store the data into recoverable storage */
@@ -489,10 +484,6 @@ static int DeleteVnode(int volindex, int vclass, VnodeId vnodeindex,
 	    /* decrement large vnode count */
 	    RVMLIB_MODIFY(SRV_RVM(VolumeList[volindex]).data.nlargevnodes,
 		  (SRV_RVM(VolumeList[volindex]).data.nlargevnodes) - 1);
-	    if (AllowResolution) 
-		/* delete the resolution log list header */
-		DeAllocateVMResLogListHeader(volindex, 
-			bitNumberToVnodeNumber(vnodeindex, vLarge), u);
 	}
     }
     PrintCamVnode(19, volindex, vclass, vnodeindex, u);

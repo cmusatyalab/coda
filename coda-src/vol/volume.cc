@@ -246,9 +246,6 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
     VInitVnodes(vLarge, nLargeVnodes);
     VInitVnodes(vSmall, nSmallVnodes);
 
-    if (AllowResolution)
-	/* Initialize the resolution storage structures */
-	InitLogStorage();
     
     /* check VLDB */
     if (VCheckVLDB() == 0) {
@@ -312,9 +309,6 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage)
 		VLog(0, "Forcing Volume %x Offline", header.id);
 		VForceOffline(vp);
 	    } else if (vp) {
-		    extern void InitVolLog(int);
-		    /* initialize the VM log/vnode for resolution */
-		    InitVolLog(i);
 		    /* initialize the RVM log vm structures */
 		    if (V_RVMResOn(vp)) {
 			    V_VolLog(vp)->ResetTransients(V_id(vp));

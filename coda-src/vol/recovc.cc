@@ -53,7 +53,6 @@ extern "C" {
 #include "coda_globals.h"
 #include "volhash.h"
 
-extern olist *VolLogPtrs[MAXVOLS];
 extern void dump_storage(int, char*);
 
 unsigned long VMCounter = 0;
@@ -420,19 +419,6 @@ void GrowVnodes(VolumeId volid, int vclass, short newBMsize)
 	RVMLIB_MODIFY(SRV_RVM(VolumeList[myind]).data.nlargeLists,
 		      newsize);
 
-	/* grow the res log vm headers too */
-	/* THERE IS A PROBLEM IF THIS TRANSACTION ABORTS */
-	/* THIS IS ONLY TEMPORARY ANYWAY */
-	if (AllowResolution && VolLogPtrs[myind]) {
-	    olist *newrl = new olist[newsize];
-	    bcopy((const void *)VolLogPtrs[myind], (void *) newrl, sizeof(olist) * (int)cursize);
-	    /* DO NOT DELETE THIS BECAUSE the destructor deallocates the 
-	       entire list;
-	    delete[cursize] VolLogPtrs[myind];
-	    THIS IS A MEMORY LEAK IN THE RESOLUTION SYSTEM 
-	    */
-	    VolLogPtrs[myind] = newrl;
-	}
     }
 }
 

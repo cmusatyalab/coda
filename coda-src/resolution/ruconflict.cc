@@ -38,7 +38,6 @@ extern "C" {
 #include <vlist.h>
 #include <inconsist.h>
 #include <resutil.h>
-#include <remotelog.h>
 #include "rsle.h"
 #include "ruconflict.h"
 #include "parselog.h"

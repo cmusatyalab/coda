@@ -388,6 +388,7 @@ void rsle::InitFromRecleBuf(char **buf) {
 	    u.mkdir.name[0] = '\0';
 	    name1 = &(mp->name[0]);
 	}
+
 	break;
       case ResolveViceRemove_OP:
       case RES_Remove_OP:

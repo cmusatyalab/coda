@@ -48,11 +48,17 @@ extern "C" {
 #include <vrdb.h>
 
 #include "rescomm.h"
-#include "pdlist.h"
-#include "reslog.h"
-#include "remotelog.h"
 #include "resutil.h"
 
+he *FindHE(olist *list, long hostaddress) {
+    olist_iterator next(*list);
+    he *h;
+    while ( (h = (he *)next())) {
+	if (h->hid == hostaddress)
+	    return(h);
+    }
+    return(0);
+}
 
 long RS_NewConnection(RPC2_Handle RPCid, RPC2_Integer set, 
 		      RPC2_Integer sl, RPC2_Integer et, 

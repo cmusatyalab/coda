@@ -50,9 +50,6 @@ extern "C" {
 
 #include "rescomm.h"
 #include "resutil.h"
-#include "pdlist.h"
-#include "reslog.h"
-#include "remotelog.h"
 #include "resforce.h"
 
 #define	EMPTYDIRBLOCKS	    2
@@ -288,17 +285,6 @@ long RS_DoForceDirOps(RPC2_Handle RPCid, ViceFid *Fid,
 	pv->vptr->disk.versionvector = status->VV;
     }
 
-    /* spool resolution log record */
-    if (AllowResolution && V_VMResOn(volptr)) {
-	SLog(29,  
-	       "RS_DoForceDirOps: Going to spool log record \n");
-	int ind;
-	ind = InitVMLogRecord(V_volumeindex(volptr), &pv->fid, 
-			      &status->VV.StoreId, ResolveAfterCrash_OP, 0);
-	CODA_ASSERT(ind != -1);
-	sle *SLE = new sle(ind);
-	pv->sl.append(SLE);
-    }
     if (AllowResolution && V_RVMResOn(volptr) && !errorCode) {
 	SLog(9,  
 	       "RS_DoForceDirOps: Going to spool recoverable log record \n");

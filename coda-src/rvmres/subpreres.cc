@@ -43,7 +43,6 @@ extern "C" {
 #include <srv.h>
 #include <codadir.h>
 #include <vrdb.h>
-#include <remotelog.h>
 #include <rescomm.h>
 
 #include "resutil.h"

@@ -45,6 +45,7 @@ extern "C" {
 #endif __cplusplus
 
 #include "timing.h"
+
 /* c = a - b where a, b, c are timevals */
 void tvaminustvb(struct timeval *a,
                  struct timeval *b,

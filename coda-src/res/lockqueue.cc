@@ -70,7 +70,7 @@ lqman::~lqman() {
     LWP_DestroyProcess((PROCESS) pid);
 }
 
-void lqman::func(int parm) {
+int lqman::func(void *parm) {
     ProgramType *pt;
     rvm_perthread_t rvmptt;
 
@@ -112,6 +112,7 @@ void lqman::func(int parm) {
 	LogMsg(1, SrvDebugLevel, stdout,  "LockQueue Manager sleeping for %d seconds", LQINTERVAL);
 	VSLEEP(LQINTERVAL);
     }
+    return 0;
 }
 
 void lqman::add(lqent *lqe) {

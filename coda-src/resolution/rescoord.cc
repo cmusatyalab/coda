@@ -55,11 +55,7 @@ extern "C" {
 
 #include "rescomm.h"
 #include "resutil.h"
-#include "pdlist.h"
-#include "reslog.h" 
-#include "remotelog.h"
 #include "resforce.h"
-#include "reslog.h"
 #include "timing.h"
 
 timing_path *tpinfo = 0;

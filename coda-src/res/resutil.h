@@ -30,11 +30,91 @@ listed in the file CREDITS.
 
 #include <res.h>
 
+/* 
+ * class he:
+ * Elements of a linked list.
+ * One element / host in the log buffer.
+ * Each element has a list of vnode-res log headers(rmtle)
+ */
+
+struct he : public olink {
+    olist vlist;
+    long    hid;
+    
+    he(long id) {
+        hid = id;
+    }
+};
+he *FindHE(olist *list, long hostaddress);
+
+
+#define DIROPNAMESIZE	256
+
+/* define opcodes for log records spooling */
+/* The weird numbering is for compatibility with pre-coda-5.2 servers */
+#define	RES_Remove_OP           4
+#define RES_Create_OP           5
+#define	RES_Rename_OP           6
+#define	RES_SymLink_OP          7
+#define	RES_Link_OP             8
+#define	RES_MakeDir_OP          9
+#define	RES_RemoveDir_OP        10
+#define RES_SetVolumeStatus_OP  18
+#define	RES_Repair_OP           33
+#define	RES_NewStore_OP         52
+
+#define	RESOLVE_OPERATION_BASE	128
+#define ResolveStoreAcl_OP	RESOLVE_OPERATION_BASE + 2
+#define	ResolveViceRemove_OP	RESOLVE_OPERATION_BASE + 3
+#define	ResolveViceCreate_OP	RESOLVE_OPERATION_BASE + 4
+#define	ResolveViceRename_OP	RESOLVE_OPERATION_BASE + 5
+#define	ResolveViceSymLink_OP	RESOLVE_OPERATION_BASE + 6 
+#define	ResolveViceLink_OP	RESOLVE_OPERATION_BASE + 7 
+#define	ResolveViceMakeDir_OP	RESOLVE_OPERATION_BASE + 8 
+#define	ResolveViceRemoveDir_OP	RESOLVE_OPERATION_BASE + 9 
+#define ResolveNULL_OP		RESOLVE_OPERATION_BASE + 10
+#define ResolveViceSetVolumeStatus_OP RESOLVE_OPERATION_BASE + 11
+
+#define	ResolveViceNewStore_OP	RESOLVE_OPERATION_BASE + 12
+
+#define ResolveAfterCrash_OP	RESOLVE_OPERATION_BASE - 1
+
+#define	PRINTOPCODE(op)    ((op) == RES_Create_OP ? "Create" :\
+			    (op) == ResolveViceCreate_OP ? "ResolveCreate" :\
+			    (op) == RES_Remove_OP ? "Remove" :\
+			    (op) == ResolveViceRemove_OP ? "ResolveRemove" :\
+			    (op) == RES_Link_OP ? "Link" :\
+			    (op) == ResolveViceLink_OP ? "ResolveLink" :\
+			    (op) == RES_Rename_OP ? "Rename" :\
+			    (op) == ResolveViceRename_OP ? "ResolveRename" :\
+			    (op) == RES_MakeDir_OP ? "Mkdir" :\
+			    (op) == ResolveViceMakeDir_OP ? "ResolveMkdir" :\
+			    (op) == RES_RemoveDir_OP ? "Rmdir" :\
+			    (op) == ResolveViceRemoveDir_OP ? "ResolveRmdir" :\
+			    (op) == RES_SymLink_OP ? "Symlink" :\
+			    (op) == ResolveViceSymLink_OP ? "ResolveSymlink" :\
+			    (op) == ResolveNULL_OP ? "ResolveNULL_OP" :\
+			    (op) == RES_Repair_OP ? "Repair_OP" :\
+			    (op) == ResolveViceSetVolumeStatus_OP ? "ResolveViceSetVolumeStatus_OP" :\
+			    (op) == RES_SetVolumeStatus_OP ? "SetVolumeStatus_OP" :\
+			    (op) == RES_NewStore_OP ? "NewStore" :\
+			    (op) == ResolveViceNewStore_OP ? "ResolveNewStore" :\
+			    "???")
+
 
 #define ISNONRESOLVEOP(a)	(((a) < RESOLVE_OPERATION_BASE) || \
 				 ((a) == ResolveNULL_OP))
 #define FormFid(fid, vol, vn, un)	\
 {(fid).Volume = (vol); (fid).Vnode = (vn); (fid).Unique= (un);}
+
+// for validating a resolution operation 
+#define PERFORMOP	0
+#define NULLOP		1
+#define	MARKPARENTINC	2
+#define	MARKOBJINC	3
+#define CREATEINCOBJ	4
+
+
 
 
 #define MAXCOMPS	100	// defined by Kudo in rp2gen - 

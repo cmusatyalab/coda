@@ -37,8 +37,6 @@ extern "C" {
 #include <util.h>
 #include <olist.h>
 #include <srv.h>
-#include <reslog.h>
-#include <remotelog.h>
 #include "rsle.h"
 #include "compops.h"
 #include "parselog.h"

@@ -71,7 +71,6 @@ extern "C" {
 #include <res.h>
 #include <resutil.h>
 #include <rescomm.h>
-#include <reslog.h>
 #include <ops.h>
 #include <timing.h>
 
@@ -674,13 +673,6 @@ FreeLocks:
     if (myRepairList) free(myRepairList);
     PutObjects(errorCode, volptr, SHARED_LOCK, vlist, deltablocks, 1);
 
-    /* truncate log of object being repaired - only leave repair record */
-#if 0
-    if (!errorCode && !FRep && AllowResolution && vmresolutionOn) {
-	CODA_ASSERT(volindex != -1);
-	TruncResLog(volindex, Fid->Vnode, Fid->Unique);
-    }
-#endif
     return(errorCode);
 }
 

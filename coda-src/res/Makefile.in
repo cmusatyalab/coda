@@ -26,37 +26,17 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 CXXFLAGS += -Wall
 LIBRARIES  = libreslib.a
-HEADERS	   =  rescomm.h logalloc.h pdlist.h remotelog.h resforce.h \
-	      reslog.h resutil.h lockqueue.h timing.h
+HEADERS	   =  rescomm.h  resforce.h \
+	       resutil.h lockqueue.h timing.h
 
 RESC_LIBS  = ${LIBKERNDEP} ${LIBRPC2} ${LIBOLDLWP}
 
-RESLIBOBJS = logalloc.o pdlist.o remotelog.o resclient.o lockqueue.o\
-             rescoord.o  resforce.o reslock.o reslog.o \
+RESLIBOBJS = resclient.o lockqueue.o\
+             rescoord.o  resforce.o reslock.o  \
              resutil.o rescomm.o timing.o weres.o 
 
 libreslib.a:	${RESLIBOBJS}
 
-# Test programs
-resc: resc.o  vice.client.o callback.server.o $(RESC_LIBS) ${LIBFIXUP}
-	$(CXX) $(LIBFLAGS) resc.o vice.client.o callback.server.o $(RESC_LIBS) ${LIBFIXUP} -o resc
-
-testpdlist: testpdlist.o pdlist.o logalloc.o $(LIBUTIL) ${LIBFIXUP}
-	$(CXX) $(LIBFLAGS) testpdlist.o pdlist.o logalloc.o ${LIBUTIL} ${LIBFIXUP} -o testpdlist
-
-test: test.o logalloc.o ${LIBUTIL} ${LIBFIXUP}
-	$(CXX) $(LIBFLAGS) test.o logalloc.o ${LIBUTIL} ${LIBFIXUP} -o test
-
-timetest: timetest.o timing.o ${LIBUTIL} ${LIBFIXUP}
-	$(CXX) $(LIBFLAGS) timetest.o timing.o ${LIBUTIL} ${LIBFIXUP} -o timetest
-
-
 ${RESLIBOBJS}: ${HEADERS}
-
-pdlist.o: logalloc.h 
-
-resc.o: vice.h callback.h
-
-reslog.o: logalloc.h
 
 include $(TOPDIR)/configs/Makerules

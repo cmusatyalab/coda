@@ -88,7 +88,6 @@ extern "C" {
 #include <repio.h>
 #include <codadir.h>
 #include <operations.h>
-#include <reslog.h>
 #include <lockqueue.h>
 #include <resutil.h>
 #include <ops.h>
@@ -4760,12 +4759,7 @@ START_TIMING(PutObjects_Inodes);
 	    }
 	    if (AllowResolution) {
 		/* clean up spooled log record list */
-		sle *s;
 		rsle *rs;
-		while ((s = (sle *)v->sl.get())) {
-		    s->rec_index = -1;
-		    delete s;
-		}
 		while ((rs = (rsle *)v->rsl.get())) 
 		    delete rs;
 	    }
