@@ -782,23 +782,25 @@ int hdb::GetSuspectPriority(Volid *vid, char *pathname, int uid)
 	    n->cdir.Volume == vid->Volume &&
 	    ((n->vuid == uid) || (n->vuid == ALL_UIDS))) {
 	    /* First, deal with direct match */
-	    if (strcmp(n->path, pathname) == 0) {
+	    if (STREQ(n->path, pathname)) {
 		fflush(logFile);
 		LOG(100, ("We found a direct match! priority = %d\n", n->priority));
 		return(n->priority);
 	    }
 
 	    /* Second, deal with descendent expansion. */
-	    if ((strncmp(n->path, pathname, strlen(n->path)) == 0) &&
-		(n->expand_descendents)) {
-		    fflush(logFile);
-		    LOG(100, ("We found a descendant match! priority = %d\n", n->priority));
-		    return(n->priority);
+	    if (STRNEQ(n->path, pathname, strlen(n->path)) &&
+		n->expand_descendents)
+	    {
+		fflush(logFile);
+		LOG(100, ("We found a descendant match! priority = %d\n", n->priority));
+		return(n->priority);
 	    }
 
 	    /* Finally, deal with children expansion. */
-	    if ((strncmp(n->path, pathname, strlen(parentpath)) == 0) &&
-		(n->expand_children)) {
+	    if (STRNEQ(n->path, pathname, strlen(parentpath)) &&
+		n->expand_children)
+	    {
 		fflush(logFile);
 		LOG(100, ("We found a children match! priority = %d\n", n->priority));
 		return(n->priority);
@@ -2450,10 +2452,13 @@ void namectxt::print(int fd, void *filter) {
 void namectxt::getpath(char *buf) {
         volent *v = VDB->Find(MakeVolid(&cdir));
 	if (v) v->GetMountPath(buf, 0);
-	if (!v || !strcmp(buf, "???")) sprintf(buf, "%lx.%lx", cdir.Realm, cdir.Volume);
+	if (!v || STREQ(buf, "???"))
+	    sprintf(buf, "%lx.%lx", cdir.Realm, cdir.Volume);
+
 	strcat(buf, "/");
 	if (path[0] == '.') strcat(buf, &path[2]); /* strip leading "./" */
 	else strcat(buf, path);
+	if (v) v->release();
 	return;
 }
 

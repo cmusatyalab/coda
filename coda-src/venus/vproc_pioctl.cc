@@ -1043,7 +1043,8 @@ V_FreeLocks:
 			break;
 		      }
 		      vv->GetMountPath((char *)data->out, 0);
-		      if (strcmp((char *)data->out, "???") == 0) {
+		      vv->release();
+		      if (STREQ((char *)data->out, "???")) {
 			MarinerLog("Could not get mount point path for %x.%x\n",
 				   volid.Realm, volid.Volume);
 			u.u_error = EINVAL;

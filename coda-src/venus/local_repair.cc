@@ -58,7 +58,7 @@ void lrdb::BeginRepairSession(VenusFid *RootFid, int RepMode, char *msg)
      *	    RepMode is the mode (scratch or direct) of the repair session.
      * OUT: msg is the string that contains the error code to the caller.
      */
-    OBJ_ASSERT(this, RootFid && !FID_VolIsLocal(RootFid) && msg);
+    OBJ_ASSERT(this, RootFid && !FID_IsLocalFake(RootFid) && msg);
     LOG(100, ("lrdb::BeginRepairSession: RootFid = %s RepMode = %d\n",
 	      FID_(RootFid), RepMode));
 
@@ -457,11 +457,11 @@ void lrdb::InitCMLSearch(VenusFid *FakeRootFid)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    VenusFid *LFid = &obj->fid;
 	    VenusFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_IsLocalFake(LFid) && GFid != NULL);	    
 
 	    {	/* built repair_vol_list */
 		volent *Vol = VDB->Find(MakeVolid(GFid));
-                CODA_ASSERT(Vol->IsReplicated());
+                CODA_ASSERT(Vol && Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(repair_vol_list);
 		vptent *vpt;
@@ -473,6 +473,7 @@ void lrdb::InitCMLSearch(VenusFid *FakeRootFid)
 		    vpt = new vptent(vp);	
 		    repair_vol_list.append(vpt);
 		}
+		vp->release();
 	    }
 
 	    if (obj->children != 0) {		/* Push the Stack */
@@ -558,11 +559,11 @@ void lrdb::ListCML(VenusFid *FakeRootFid, FILE *fp)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    VenusFid *LFid = &obj->fid;
 	    VenusFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_IsLocalFake(LFid) && GFid != NULL);	    
 
 	    {	/* built vol_list */
 		volent *Vol = VDB->Find(MakeVolid(GFid));
-                CODA_ASSERT(Vol->IsReplicated());
+                CODA_ASSERT(Vol && Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(vol_list);
 		vptent *vpt;
@@ -574,6 +575,7 @@ void lrdb::ListCML(VenusFid *FakeRootFid, FILE *fp)
 		    vpt = new vptent(vp);	
 		    vol_list.append(vpt);
 		}
+		vp->release();
 	    }
 	    
 	    if (obj->children != 0) {		/* Push the Stack */
@@ -673,11 +675,11 @@ void lrdb::DeLocalization()
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
 	    VenusFid *lfid = &obj->fid;
-	    OBJ_ASSERT(this, FID_VolIsLocal(lfid));
+	    OBJ_ASSERT(this, FID_IsLocalFake(lfid));
 	    
 	    {   /* remove the LGM entry */
 		VenusFid *gfid = LGM_LookupGlobal(lfid);
-		OBJ_ASSERT(this, gfid && !FID_VolIsLocal(gfid));
+		OBJ_ASSERT(this, gfid && !FID_IsLocalFake(gfid));
 		Recov_BeginTrans();
 		LGM_Remove(lfid, gfid);
 		Recov_EndTrans(MAXFP);
@@ -751,7 +753,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
     LOG(100, ("lrdb::FindRepairObject: %s\n", FID_(fid)));
     
     /* first step: obtain local and global objects according to "fid" */
-    if (FID_VolIsLocal(fid)) {
+    if (FID_IsLocalFake(fid)) {
 	OBJ_ASSERT(this, *local = FSDB->Find(fid));	/* local object always cached */
 	*global = (fsobj *)NULL;			/* initialized global object */
 
@@ -876,7 +878,7 @@ fsobj *lrdb::GetGlobalParentObj(VenusFid *GlobalChildFid)
      * (must be in FSDB) and its local parent Fid, and then the global parent Fid 
      * and finally use FSDB::Get() to get the global parent.
      */
-    OBJ_ASSERT(this, GlobalChildFid && !FID_VolIsLocal(GlobalChildFid));
+    OBJ_ASSERT(this, GlobalChildFid && !FID_IsLocalFake(GlobalChildFid));
     LOG(100, ("lrdb::GetGlobalParentObj: GlobalChildFid = %s\n",
 	      FID_(GlobalChildFid)));
 
@@ -1118,11 +1120,11 @@ void lrdb::RemoveSubtree(VenusFid *FakeRootFid)
 	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    VenusFid *LFid = &obj->fid;
 	    VenusFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_VolIsLocal(LFid) && GFid != NULL);	    
+	    OBJ_ASSERT(this, FID_IsLocalFake(LFid) && GFid != NULL);	    
 
 	    {	/* built gc_vol_list */
 		volent *Vol = VDB->Find(MakeVolid(GFid));
-		OBJ_ASSERT(this, Vol != NULL && Vol->IsReplicated());
+		OBJ_ASSERT(this, Vol && Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(gc_vol_list);
 		vptent *vpt;
@@ -1134,6 +1136,7 @@ void lrdb::RemoveSubtree(VenusFid *FakeRootFid)
 		    vpt = new vptent(vp);	
 		    gc_vol_list.append(vpt);
 		}
+		vp->release();
 	    }
 
 	    if (obj->children != 0) {		/* Push the Stack */
@@ -1202,11 +1205,11 @@ void lrdb::RemoveSubtree(VenusFid *FakeRootFid)
 	    fsobj *obj = opt->GetFso();
 	    OBJ_ASSERT(this, obj);
 	    VenusFid *lfid = &obj->fid;
-	    OBJ_ASSERT(this, FID_VolIsLocal(lfid));
+	    OBJ_ASSERT(this, FID_IsLocalFake(lfid));
 	    
 	    {   /* remove the LGM entry */
 		VenusFid *gfid = LGM_LookupGlobal(lfid);
-		OBJ_ASSERT(this, gfid && !FID_VolIsLocal(gfid));
+		OBJ_ASSERT(this, gfid && !FID_IsLocalFake(gfid));
 		Recov_BeginTrans();
 		       LGM_Remove(lfid, gfid);
 		Recov_EndTrans(MAXFP);

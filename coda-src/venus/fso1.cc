@@ -233,10 +233,9 @@ void fsobj::ResetTransient()
     lastresolved = 0;
 
     /* Link to volume, and initialize volume specific members. */
-    {
-	if ((vol = VDB->Find(MakeVolid(&fid))) == 0)
-	    { print(logFile); CHOKE("fsobj::ResetTransient: couldn't find volume"); }
-	vol->hold();
+    if ((vol = VDB->Find(MakeVolid(&fid))) == 0) {
+	print(logFile);
+	CHOKE("fsobj::ResetTransient: couldn't find volume");
     }
 
     /* Add to volume list */
@@ -2028,7 +2027,7 @@ int fsobj::Fakeify()
 	    pfso = pf;
 
 	    /* local-repair modification */
-	    if (strcmp(comp, "local") == 0) {
+	    if (STREQ(comp, "local")) {
 		/* the first special case, fake link for a local object */
 		LOG(100,("fsobj::Fakeify: fake link for a local object %s\n",
 			 FID_(&fid)));
@@ -2044,7 +2043,7 @@ int fsobj::Fakeify()
 		realmname = realm->Name();
 		realm->PutRef();
 	    }
-	    else if (strcmp(comp, "global") == 0) {
+	    else if (STREQ(comp, "global")) {
 		/* the second specical case, fake link for a global object */
 		LOG(100, ("fsobj::Fakeify: fake link for a global object %s\n",
 			  FID_(&fid)));
@@ -2060,7 +2059,7 @@ int fsobj::Fakeify()
 		realmname = realm->Name();
 		realm->PutRef();
 	    }
-	    else if (strcmp(comp, "localhost") == 0) {
+	    else if (STREQ(comp, "localhost")) {
 		/* another special case, fake link for the cached object */
 		LOG(0, ("fsobj::Fakeify: fake link for a cached object %s\n",
 			FID_(&fid)));
@@ -2082,7 +2081,7 @@ int fsobj::Fakeify()
 		    vp->volreps[i]->Host(&host);
 
 		    if ((s = FindServer(&host)) && s->name &&
-			strcmp(s->name, comp) == 0) {
+			STREQ(s->name, comp)) {
 			break;
 		    }
 		}

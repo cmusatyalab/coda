@@ -186,17 +186,20 @@ void VolInit()
 	RVMLIB_REC_OBJECT(VDB);
 	VDB = new vdb;
 	Recov_EndTrans(0);
-
-	/* Create the local fake volume */
-	VolumeInfo LocalVol;
-	memset(&LocalVol, 0, sizeof(VolumeInfo));
-	FID_MakeVolFake(&LocalVol.Vid);
-        LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
-	Realm *realm = REALMDB->GetRealm(""); /* empty string gets default realm */
-	CODA_ASSERT(realm);
-	CODA_ASSERT(VDB->Create(realm, &LocalVol, "Local"));
-	realm->PutRef();
     }
+
+    /* Create/reinstall local fake volumes */
+    VolumeInfo LocalVol;
+    memset(&LocalVol, 0, sizeof(VolumeInfo));
+    LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
+
+    /* Fake root volume, contains available realms */
+    LocalVol.Vid = FakeRootVolumeId;
+    VDB->Create(LocalRealm, &LocalVol, "CodaRoot")->hold();
+
+    /* Fake repair volume to expand objects in conflict during repair */
+    LocalVol.Vid = FakeRepairVolumeId;
+    VDB->Create(LocalRealm, &LocalVol, "Repair")->hold();
 
     /* Initialize transient members. */
     VDB->ResetTransient();
@@ -249,20 +252,6 @@ void VolInit()
 
     RecovFlush(1);
     RecovTruncate(1);
-
-    /* Grab a refcount on the local (repair) volume to avoid automatic garbage
-     * collection */
-    VolumeId LocalVid;
-    Volid volid;
-
-    Realm *realm = REALMDB->GetRealm("");
-    CODA_ASSERT(realm);
-
-    volid.Realm = realm->Id();
-    FID_MakeVolFake(&LocalVid);
-    volid.Volume = LocalVid;
-    VDB->Find(&volid)->hold();
-    realm->PutRef();
 
     /* Fire up the daemon. */
     VOLD_Init();
@@ -425,10 +414,14 @@ volent *vdb::Find(Volid *volid)
     volrep_iterator vrnext(volid);
     volent *v;
 
-    while ((v = rvnext()) || (v = vrnext()))
+    while ((v = rvnext()) || (v = vrnext())) {
         if (v->GetRealmId() == volid->Realm &&
 	    v->GetVolumeId() == volid->Volume)
+	{
+	    v->hold();
 	    return(v);
+	}
+    }
 
     return(0);
 }
@@ -440,9 +433,13 @@ volent *vdb::Find(Realm *realm, const char *volname)
     volrep_iterator vrnext;
     volent *v;
 
-    while ((v = rvnext()) || (v = vrnext()))
+    while ((v = rvnext()) || (v = vrnext())) {
         if (v->realm == realm && STREQ(v->GetName(), volname))
+	{
+	    v->hold();
 	    return(v);
+	}
+    }
 
     return(0);
 }
@@ -583,8 +580,9 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
         }
     }
 
-    if (v == 0)
-	LOG(0, ("vdb::Create: (%x.%x, %s, %d) failed\n", realm->Id(), volinfo->Vid, volname, 0/*AllocPriority*/));
+    if (v) v->hold();
+    else LOG(0, ("vdb::Create: (%x.%x, %s, %d) failed\n", realm->Id(),
+		 volinfo->Vid, volname, 0/*AllocPriority*/));
     return(v);
 }
 
@@ -602,7 +600,6 @@ int vdb::Get(volent **vpp, Volid *volid)
     /* First see if it's already in the table by number. */
     volent *v = Find(volid);
     if (v) {
-	v->hold();
 	*vpp = v;
 	return(0);
     }
@@ -716,6 +713,7 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
 
 	/* Forget about the old volent for now, it should disappear
 	 * 'gracefully' once all it's FSO's have been recycled. */
+	v->release();
     }
 
     /* Attempt the create. */
@@ -730,7 +728,6 @@ int vdb::Get(volent **vpp, Realm *realm, const char *name)
     }
 
 Exit:
-    v->hold();
     *vpp = v;
     code = 0;
 
@@ -1442,6 +1439,7 @@ void volrep::DownMember(struct in_addr *host)
         if (v) {
             CODA_ASSERT(v->IsReplicated());
             ((repvol *)v)->DownMember(host);
+	    v->release();
         }
     }
 }
@@ -1482,6 +1480,7 @@ void volrep::UpMember(void)
         if (v) {
             CODA_ASSERT(v->IsReplicated());
             ((repvol *)v)->UpMember();
+	    v->release();
         }
     }
 }
@@ -1528,6 +1527,7 @@ void volrep::WeakMember()
         if (v) {
             CODA_ASSERT(v->IsReplicated());
             ((repvol *)v)->WeakMember();
+	    v->release();
         }
     }
 }
@@ -1557,6 +1557,7 @@ void volrep::StrongMember()
         if (v) {
             CODA_ASSERT(v->IsReplicated());
             ((repvol *)v)->StrongMember();
+	    v->release();
         }
     }
 }
@@ -2508,6 +2509,8 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
                        int*cml_count, RPC2_BoundedBS *msg,
                        RPC2_BoundedBS *motd, vuid_t vuid, int local_only)
 {
+    int code = 0;
+
     LOG(100, ("volent::GetVolStat: vid = %x, vuid = %d\n", vid, vuid));
 
     *conn_state = state;
@@ -2519,51 +2522,25 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
         *conflict = rv->HasLocalSubtree();
         *cml_count = rv->GetCML()->count();
     }
-    if (state == Hoarding && *conflict && *cml_count > 0) {
+    if (state == Hoarding && (*conflict || *cml_count > 0)) {
 	LOG(0, ("volent::GetVolStat: Strange! A connected volume 0x%x has "
 		"conflict or cml_count != 0 (=%d)?\n", vid, *cml_count));
     }
 
-    if (IsFake()) {
-	/* make up some numbers for the local-fake volume */
-	LOG(100, ("volent::GetVolStat: Local Volume vuid = %d\n", vuid));	
-	FID_MakeVolFake(&volstat->Vid);
-	volstat->ParentId = 0xfffffffe; /* NONSENSE, but what is right? pjb */
-	volstat->InService = 1;
-    	volstat->Blessed = 1;
-	volstat->NeedsSalvage = 1;
-	volstat->Type = ReadOnly;
-	volstat->MinQuota = 0;
-	volstat->MaxQuota = 0;
-	volstat->BlocksInUse = 5000;
-	volstat->PartBlocksAvail = 5000;
-	volstat->PartMaxBlocks = 10000;
-	const char fakevolname[]="A_Local_Fake_Volume";
-	strcpy((char *)Name->SeqBody, fakevolname);
-	Name->SeqLen = strlen((char *)fakevolname) + 1;
-	/* Overload offline message to print some more message for users */
-	const char fakemsg[]=
-	    "This directory is made a fake volume because there is a conflict";
-	strcpy((char *)msg->SeqBody, fakemsg);
-	msg->SeqLen = strlen((char *)fakemsg) + 1;
-	motd->SeqBody[0] = 0;
-	motd->SeqLen = 1;
-	
-	return 0;
-    }
-
-    int code = 0;
-
-    if (state == Emulating || local_only) {
+    if (IsFake() || state == Emulating || local_only) {
 	memset(volstat, 0, sizeof(VolumeStatus));
 	volstat->Vid = vid;
 	volstat->Type = VolStatType();	
-	/* We do not know are about quota and block usage, but should be ok. */
+	volstat->InService = 1;
+    	volstat->Blessed = 1;
+
+	/* We do not know about quota and block usage, but should be ok. */
+
 	strcpy((char *)Name->SeqBody, name);
 	Name->SeqLen = strlen((char *)name) + 1;
-	msg->SeqBody[0] = 0;
+	msg->SeqBody[0] = '\0';
 	msg->SeqLen = 1;
-	motd->SeqBody[0] = 0;
+	motd->SeqBody[0] = '\0';
 	motd->SeqLen = 1;
 	code = 0;
     }

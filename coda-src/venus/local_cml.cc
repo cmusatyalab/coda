@@ -103,7 +103,7 @@ int cmlent::LocalFakeify()
      * another subtree that is affected by the operation.
      */
     VenusFid *fid = Fids[0];
-    OBJ_ASSERT(this, !FID_VolIsLocal(fid));
+    OBJ_ASSERT(this, !FID_IsLocalFake(fid));
     fsobj *root;
     OBJ_ASSERT(this, root = FSDB->Find(fid));
     if (DYING(root)) {
@@ -118,7 +118,7 @@ int cmlent::LocalFakeify()
     if (rc != 0) return rc;
     
     fid = Fids[2];
-    if (!fid || FID_VolIsLocal(fid)) {
+    if (!fid || FID_IsLocalFake(fid)) {
 	SetRepairFlag();
 	return (0);
     }
@@ -992,7 +992,7 @@ int cmlent::InLocalRepairSubtree(VenusFid *LocalRootFid)
      * check whether the objects mutated by this cmlent belongs to
      * the subtree rooted at the object whose fid equals RootFid.
      */
-    OBJ_ASSERT(this, LocalRootFid && FID_VolIsLocal(LocalRootFid));
+    OBJ_ASSERT(this, LocalRootFid && FID_IsLocalFake(LocalRootFid));
     LOG(100, ("cmlent::InLocalRepairSubtree: LocalRootFid = %s\n",
 	      FID_(LocalRootFid)));
     VenusFid *Fids[3];
@@ -1002,7 +1002,7 @@ int cmlent::InLocalRepairSubtree(VenusFid *LocalRootFid)
 
     for (int i = 0; i < 3; i++) {
 	if (!Fids[i]) continue;
-	if (!FID_VolIsLocal(Fids[i])) continue;
+	if (!FID_IsLocalFake(Fids[i])) continue;
 	OBJ_ASSERT(this, OBJ = FSDB->Find(Fids[i]));
 	if (OBJ->IsAncestor(LocalRootFid)) return 1;
     }
@@ -1024,7 +1024,7 @@ int cmlent::InGlobalRepairSubtree(VenusFid *GlobalRootFid)
      * also works on dying objects because parent/child relationship is destroyed 
      * only at GC time.
      */
-    OBJ_ASSERT(this, GlobalRootFid && !FID_VolIsLocal(GlobalRootFid));
+    OBJ_ASSERT(this, GlobalRootFid && !FID_IsLocalFake(GlobalRootFid));
     LOG(100, ("cmlent::InGlobalRepairSubtree: GlobalRootFid = %s\n",
 	      FID_(GlobalRootFid)));
 
@@ -1040,7 +1040,7 @@ int cmlent::InGlobalRepairSubtree(VenusFid *GlobalRootFid)
 
     for (int i = 0; i < 3; i++) {
 	if (!Fids[i]) continue;
-	if (FID_VolIsLocal(Fids[i])) break;
+	if (FID_IsLocalFake(Fids[i])) break;
 	OBJ = FSDB->Find(Fids[i]);
 	if (!OBJ) continue;
 	if (OBJ->IsAncestor(GlobalRootFid)) return 1;
@@ -1215,7 +1215,7 @@ int cmlent::ContainLocalFid()
     GetAllFids(Fids);
     for (int i = 0; i < 3; i++) {
 	if (Fids[i] == NULL) continue;
-	if (FID_VolIsLocal(Fids[i])) {
+	if (FID_IsLocalFake(Fids[i])) {
 	    return 1;
 	}
     }

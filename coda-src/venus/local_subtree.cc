@@ -444,7 +444,7 @@ void lrdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 	      FID_(OldFid), FID_(NewFid)));
 
     {	/* translate fid for the local-global fid map list */
-	if (!FID_VolIsLocal(MakeViceFid(NewFid))) {
+	if (!FID_IsLocalFake(NewFid)) {
 	    /* 
 	     * only when NewFid is not a local fid, i.e., the fid replacement
 	     * was caused cmlent::realloc, instead of cmlent::LocalFakeify. 
@@ -527,7 +527,7 @@ void lrdb::DirList_Process(fsobj *DirObj)
     vdirent *dir;
     while ((dir = next())) {
 	char *ChildName = dir->GetName();
-	if (!strcmp(ChildName, ".") || !strcmp(ChildName, ".."))
+	if (STREQ(ChildName, ".") || STREQ(ChildName, ".."))
 	  continue;
 	VenusFid *ChildFid = dir->GetFid();
 	if (FSDB->Find(ChildFid) == NULL) {

@@ -59,7 +59,7 @@ extern "C" {
 
 /* from venus */
 #include "venusrecov.h"
-#include "realm.h"
+#include "realmdb.h"
 #include "venus.private.h"
 #include "vsg.h"
 
@@ -668,7 +668,7 @@ class volent {
     int IsDisconnected() { return (state == Emulating); }
     int IsWriteDisconnected() { return (state == Logging); }
     int IsWeaklyConnected() { return flags.weaklyconnected; }
-    int IsFake() { return FID_VolIsFake(vid); }
+    int IsFake() { return (realm == LocalRealm); }
     void GetMountPath(char *, int =1);
     void GetBandwidth(unsigned long *bw);
 

@@ -330,8 +330,8 @@ void VFSMount()
 	fd = setmntent("/etc/mtab", "r");
 	if ( fd > 0 ) { 
 	  while (!mounted && (ent = getmntent(fd))) {
-	      if (strcmp(ent->mnt_fsname, "Coda") == 0 &&
-		  strcmp(ent->mnt_dir, venusRoot) == 0) {
+	      if (STREQ(ent->mnt_fsname, "Coda") &&
+		  STREQ(ent->mnt_dir, venusRoot)) {
                   mounted = 1;
 	      }
 	  }

@@ -67,9 +67,15 @@ int vdb::CallBackBreak(Volid *volid)
     int rc = 0;
     volent *v = VDB->Find(volid);
 
-    if (v && v->IsReplicated() &&
-        (rc = ((repvol *)v)->CallBackBreak()))
-	vcbbreaks++;    
+    if (!v) return 0;
+
+    if (v->IsReplicated()) {
+	repvol *vp = (repvol *)v;
+        rc = vp->CallBackBreak();
+    }
+    if (rc) vcbbreaks++;
+
+    v->release();
 
     return(rc);
 }
@@ -289,7 +295,8 @@ int repvol::GetVolAttr(vuid_t vuid)
 	    /* now set status of volumes */
 	    for (i = 0; i < numVFlags; i++)  /* look up the object */
 		volid.Volume = VidList[i].Vid;
-		if ((v = VDB->Find(&volid))) {
+		v = VDB->Find(&volid);
+		if (v) {
                     CODA_ASSERT(v->IsReplicated());
                     repvol *vp = (repvol *)v;
 		    fso_vol_iterator next(NL, vp);
@@ -325,6 +332,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 			Recov_EndTrans(MAXFP);
 			break;
 		    }
+		    v->release();
 		} else {
 		    LOG(0, ("volent::GetVolAttr: couldn't find vid 0x%x\n", 
 			    VidList[i].Vid));

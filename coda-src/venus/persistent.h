@@ -68,14 +68,14 @@ public:
 	    delete this;
     }
 
-    void Rec_GetRef(void)
+    virtual void Rec_GetRef(void)
     {
 	/* Assume we already have a 'volatile' refcount on this object */
 	RVMLIB_REC_OBJECT(rec_refcount);
 	rec_refcount++;
     }
 
-    void Rec_PutRef(void)
+    virtual void Rec_PutRef(void)
     {
 	CODA_ASSERT(rec_refcount);
 	RVMLIB_REC_OBJECT(rec_refcount);
@@ -84,12 +84,13 @@ public:
 	    delete this;
     }
 
-    void GetRef(void)
+    virtual void GetRef(void)
     {
 	refcount++;
     }
 
-    void PutRef(void) {
+    virtual void PutRef(void)
+    {
 	CODA_ASSERT(refcount);
 	refcount--;
 	/*

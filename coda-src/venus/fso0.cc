@@ -472,7 +472,8 @@ fsobj *fsdb::Find(const VenusFid *key)
 /* MUST NOT be called from within transaction! */
 /* Caller MUST guarantee that the volume is cached and stable! */
 /* Should priority be an implicit argument? -JJK */
-fsobj *fsdb::Create(VenusFid *key, LockLevel level, int priority, char *comp) {
+fsobj *fsdb::Create(VenusFid *key, LockLevel level, int priority, char *comp)
+{
     fsobj *f = 0;
     int rc = 0;
 
@@ -532,21 +533,23 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, vuid_t vuid, int rights,
 
     { 	/* a special check for accessing already localized object */
 	volent *vol = VDB->Find(MakeVolid(key));
-	if (vol && vol->IsReplicated() &&
-            !((repvol *)vol)->IsUnderRepair(ALL_UIDS) &&
-            ((repvol *)vol)->HasLocalSubtree()) {
-	    lgm_iterator next(LRDB->local_global_map);
-	    lgment *lgm;
-	    VenusFid *gfid;
-	    while ((lgm = next())) {
-		gfid = lgm->GetGlobalFid();
-		if (FID_EQ(gfid, key)) {
-		    LOG(0, ("fsdb::Get: trying to access localized object %s\n",
-			    FID_(key)));
-		    return EACCES;
+	if (vol && vol->IsReplicated()) {
+	    repvol *vp = (repvol *)vol;
+	    if (!vp->IsUnderRepair(ALL_UIDS) && vp->HasLocalSubtree()) {
+		lgm_iterator next(LRDB->local_global_map);
+		lgment *lgm;
+		VenusFid *gfid;
+		while ((lgm = next())) {
+		    gfid = lgm->GetGlobalFid();
+		    if (FID_EQ(gfid, key)) {
+			LOG(0, ("fsdb::Get: trying to access localized object %s\n",
+				FID_(key)));
+			return EACCES;
+		    }
 		}
 	    }
 	}
+	if (vol) vol->release();
     }
 
     int code = 0;
@@ -612,7 +615,7 @@ RestartFind:
 	}
 
 	/* process possible un-cached local objects */
-	if (FID_VolIsLocal(key)) {
+	if (FID_IsLocalFake(key)) {
 		LOG(0, ("fsdb::Get: Un-cached Local object %s\n",
 			FID_(key)));
 		return ETIMEDOUT;
@@ -1059,7 +1062,7 @@ void fsdb::Flush(Volid *vid)
 {
     volent *v;
     v = VDB->Find(vid);
-    CODA_ASSERT(v);
+    if (!v) return;
     
     /* comment in fsdb::Flush applies here */
     int restart = 1;
@@ -1074,6 +1077,7 @@ void fsdb::Flush(Volid *vid)
 		break;
 	    }
     }
+    v->release();
 }
 
 
@@ -1103,7 +1107,7 @@ int fsdb::TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 		  FID_(NewFid)));
 
 	/* cross volume replacements are for local fids */
-	if (!FID_VolEQ(OldFid, NewFid) && !FID_VolIsLocal(NewFid))
+	if (!FID_VolEQ(OldFid, NewFid) && NewFid->Realm != LocalRealm->Id())
 		CHOKE("fsdb::TranslateFid: X-VOLUME, %s --> %s",
 		      FID_(OldFid), FID_(NewFid));
 

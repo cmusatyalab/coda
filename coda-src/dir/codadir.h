@@ -140,11 +140,6 @@ void FID_MakeLocalDir(struct ViceFid *fid, Unique_t unique);
 void FID_MakeLocalFile(struct ViceFid *fid, Unique_t unique);
 void FID_MakeLocalSubtreeRoot(struct ViceFid *fid, Unique_t unique);
 
-/* check if the volume is local */
-void FID_MakeVolFake(VolumeId *id);
-int  FID_VolIsLocal(const struct ViceFid *x);
-int FID_VolIsFake(const VolumeId id);
-
 /* compare parts of fids */
 int FID_EQ(const struct ViceFid *fa, const struct ViceFid *fb);
 int FID_VolEQ(const struct ViceFid *fa, const struct ViceFid *fb);

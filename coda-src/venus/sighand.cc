@@ -163,7 +163,7 @@ static void SigControl(int sig)
 
     (void)fscanf(fp, "%79s", &command);
 
-    if (strcmp(command, "COPMODES") == 0) {
+    if (STREQ(command, "COPMODES")) {
 #if 0
 	int NewModes = 0;
 	(void)fscanf(fp, "%d", &NewModes);
@@ -179,14 +179,14 @@ static void SigControl(int sig)
 	LOG(100, ("COPModes = %x\n", COPModes));
     }
 
-    if (strcmp(command, "MCAST") == 0) {
+    if (STREQ(command, "MCAST")) {
 #if 0
 	(void)fscanf(fp, "%d", &UseMulticast);
 #endif
 	LOG(100, ("UseMulticast is now %d.\n", UseMulticast));
     }
 
-    if (strcmp(command, "DEBUG") == 0) {
+    if (STREQ(command, "DEBUG")) {
 	int found, loglevel, rpc2level, lwplevel;
 
 	found = fscanf(fp, "%d %d %d", &loglevel, &rpc2level, &lwplevel);
@@ -207,16 +207,16 @@ static void SigControl(int sig)
 	LOG(0, ("lwp_debug is now %d.\n", lwp_debug));
     }
 
-    if (strcmp(command, "SWAPLOGS") == 0) {
+    if (STREQ(command, "SWAPLOGS")) {
 	SwapLog();
 	adv_mon.SwapProgramLog();
 	adv_mon.SwapReplacementLog();
     }
 
-    if (strcmp(command, "STATSINIT") == 0)
+    if (STREQ(command, "STATSINIT"))
 	StatsInit();
 
-    if (strcmp(command, "STATS") == 0)
+    if (STREQ(command, "STATS"))
 	DumpState();
 
 Exit:

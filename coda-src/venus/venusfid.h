@@ -69,11 +69,6 @@ inline int FID_VolEQ(const VenusFid *a, const VenusFid *b)
 	return FID_VolEQ((Volid *)a, (Volid *)b);
 }
 
-inline int FID_VolIsLocal(VenusFid *fid)
-{
-    return FID_VolIsLocal(MakeViceFid(fid));
-}
-
 inline int FID_IsVolRoot(VenusFid *fid)
 {
     return FID_IsVolRoot(MakeViceFid(fid));
@@ -81,7 +76,7 @@ inline int FID_IsVolRoot(VenusFid *fid)
 
 inline char *FID_(const VenusFid *fid)
 {
-    static char buf[2][28];
+    static char buf[2][37];
     static int i = 0;
     i = 1 - i;
     sprintf(buf[i], "%x.%x.%x.%x",
@@ -96,6 +91,12 @@ inline void MakeVenusFid(VenusFid *vf, const u_int32_t realm, const ViceFid *fid
     vf->Vnode  = fid->Vnode;
     vf->Unique = fid->Unique;
 }
+
+#define FakeRootVolumeId   ((VolumeId)0xff000001)
+#define FakeRepairVolumeId ((VolumeId)0xffffffff)
+
+/* from realmdb.cc */
+int FID_IsLocalFake(VenusFid *fid);
 
 #endif /* _VENUSFID_H_ */
 

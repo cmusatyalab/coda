@@ -35,7 +35,7 @@ extern "C" {
 #include <rvmlib.h>
 #include "rec_dllist.h"
 #include "realm.h"
-#include "server.h"
+#include "realmdb.h"
 #include "comm.h"
 #include "parse_realms.h"
 
@@ -51,13 +51,12 @@ Realm::Realm(const char *realm_name)
     rec_list_head_init(&realms);
 
     rootservers = NULL;
-    list_head_init(&servers);
 }
 
 void Realm::ResetTransient(void)
 {
     rootservers = NULL;
-    list_head_init(&servers);
+
     /* this might destroy the object, so it has to be called last */
     PersistentObject::ResetTransient();
 }
@@ -73,34 +72,6 @@ Realm::~Realm(void)
 	rootservers = NULL;
     }
     rvmlib_rec_free(name); 
-
-    for (p = servers.next; p != &servers; ) {
-	s = list_entry(p, Server, servers);
-	p = p->next;
-	s->PutRef();
-    }
-    CODA_ASSERT(list_empty(&servers));
-}
-
-Server *Realm::GetServer(struct in_addr *host)
-{
-    struct dllist_head *p;
-    Server *s;
-
-    CODA_ASSERT(host && host->s_addr);
-
-    list_for_each(p, servers) {
-	s = list_entry(p, Server, servers);
-	if (s->ipaddr()->s_addr == host->s_addr) {
-	    s->GetRef();
-	    return s;
-	}
-    }
-
-    s = new Server(host, this);
-    list_add(&s->servers, &servers);
-
-    return s;
 }
 
 void Realm::print(FILE *f)
@@ -139,6 +110,8 @@ int Realm::GetAdmConn(connent **cpp)
     int tryagain = 0;
 
     LOG(100, ("GetAdmConn: \n"));
+
+    CODA_ASSERT(this != LocalRealm);
 
     *cpp = 0;
 

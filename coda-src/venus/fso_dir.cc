@@ -231,8 +231,8 @@ void fsobj::dir_TranslateFid(VenusFid *OldFid, VenusFid *NewFid)
 		      FID_(OldFid), FID_(NewFid));
 	}
 
-	if ((!FID_VolEQ(&fid, OldFid) && !FID_VolIsLocal(OldFid) && !FID_VolIsLocal(&fid)) ||
-	    (!FID_VolEQ(&fid, NewFid) && !FID_VolIsLocal(NewFid) && !FID_VolIsLocal(&fid))) {
+	if ((!FID_VolEQ(&fid, OldFid) && !FID_IsLocalFake(OldFid) && !FID_IsLocalFake(&fid)) ||
+	    (!FID_VolEQ(&fid, NewFid) && !FID_IsLocalFake(NewFid) && !FID_IsLocalFake(&fid))) {
 		print(logFile); 
 		CHOKE("fsobj::dir_TranslateFid: %s -> %s cross-volume", 
 		      FID_(OldFid), FID_(NewFid)); 

@@ -235,9 +235,9 @@ char *U_AuthErrorMsg(const int rc)
     }
 }
 
-static struct addrinfo *GetAuthServers(const char *realm)
+static struct coda_addrinfo *GetAuthServers(const char *realm)
 {
-    struct addrinfo *res = NULL;
+    struct coda_addrinfo *res = NULL;
 
     codaconf_init("venus.conf");
 
@@ -254,7 +254,7 @@ static struct addrinfo *GetAuthServers(const char *realm)
 static int TryBinding(const RPC2_Integer AuthenticationType,
 		      const char *viceName, const int viceNamelen,
 		      const char *vicePasswd, const int vicePasswdlen,
-		      const struct addrinfo *AuthHost, RPC2_Handle *RPCid)
+		      const struct coda_addrinfo *AuthHost, RPC2_Handle *RPCid)
 {
     RPC2_BindParms bp;
     RPC2_HostIdent hident;
@@ -304,7 +304,7 @@ int U_BindToServer(const char *realm, const RPC2_Integer AuthenticationType,
 		   const char *uPasswd, const int uPasswdlen,
 		   RPC2_Handle *RPCid, const int interactive)
 {
-	struct addrinfo *AuthHost, *srvs;
+	struct coda_addrinfo *AuthHost, *srvs;
 	int bound = RPC2_FAIL;
 
 	/* fill in the host array */

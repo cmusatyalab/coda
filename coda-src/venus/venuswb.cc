@@ -184,8 +184,14 @@ long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
     vid.Volume = Vid;
 
     v = VDB->Find(&vid);
-    if (v && v->IsReplicated())
-	((repvol *)v)->StopWriteback(NULL);
+    if (!v) return 0;
+
+    if (v->IsReplicated()) {
+	repvol *vp = (repvol *)v;
+	vp->StopWriteback(NULL);
+    }
+
+    v->release();
 
     return 0;
 }

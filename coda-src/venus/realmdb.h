@@ -20,8 +20,14 @@ listed in the file CREDITS.
 #define _REALMDB_H_
 
 #include "persistent.h"
+#include "realm.h"
 
-class Realm;
+/* special realm used for local 'fake' volumes */
+#define LOCALREALM "localhost"
+extern Realm *LocalRealm;
+
+/* persistent reference to the RealmDB object */
+#define REALMDB (rvg->recov_REALMDB)
 
 class RealmDB : protected PersistentObject {
     friend void RealmDBInit(void);
@@ -43,7 +49,6 @@ private:
 };
 
 void RealmDBInit(void);
-#define REALMDB (rvg->recov_REALMDB)
 
 #endif /* _REALMDB_H_ */
 

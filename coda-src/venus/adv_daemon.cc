@@ -282,6 +282,7 @@ long S_ResultOfASR(RPC2_Handle _cid, RPC2_Integer realm, VolumeId volume, RPC2_I
   }
   /* unlock the volume */
   vp->unlock_asr();
+  vol->release();
 
   return RPC2_SUCCESS;
 }

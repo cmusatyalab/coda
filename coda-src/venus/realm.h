@@ -21,10 +21,9 @@ listed in the file CREDITS.
 
 #include "persistent.h"
 
-class Server;
 class connent;
 
-class Realm : protected PersistentObject {
+class Realm : public PersistentObject {
     friend class RealmDB;
 
 public:
@@ -33,15 +32,7 @@ public:
 
     void ResetTransient(void);
 
-    void GetRef(void) { PersistentObject::GetRef(); }
-    void PutRef(void) { PersistentObject::PutRef(); }
-
-    void Rec_GetRef(void) { PersistentObject::Rec_GetRef(); }
-    void Rec_PutRef(void) { PersistentObject::Rec_PutRef(); }
-
     int GetAdmConn(connent **cpp);
-
-    Server *GetServer(struct in_addr *ipv4addr);
 
     const char *Name(void) { return name; }
     const RealmId Id(void) { return (RealmId)this; }
@@ -52,7 +43,6 @@ private:
     struct dllist_head realms;
 
 /*T*/struct coda_addrinfo *rootservers;
-/*T*/struct dllist_head servers;
 };
 
 #endif /* _REALM_H_ */

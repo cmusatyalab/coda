@@ -17,7 +17,9 @@ listed in the file CREDITS.
 #*/
 
 #include "realmdb.h"
-#include "realm.h"
+
+/* This is initialized by RealmDBInit() */
+Realm *LocalRealm;
 
 RealmDB::RealmDB(void)
 {
@@ -57,7 +59,7 @@ Realm *RealmDB::GetRealm(const char *realmname)
 
     list_for_each(p, realms) {
 	realm = list_entry(p, Realm, realms);
-	if (strcmp(realm->Name(), realmname) == 0) {
+	if (STREQ(realm->Name(), realmname)) {
 	    realm->GetRef();
 	    return realm;
 	}
@@ -111,5 +113,12 @@ void RealmDBInit(void)
 	REALMDB->Rec_GetRef();
 	Recov_EndTrans(0);
     }
+
+    LocalRealm = REALMDB->GetRealm(LOCALREALM);
+}
+
+int FID_IsLocalFake(VenusFid *fid)
+{
+    return (fid->Realm == LocalRealm->Id());
 }
 

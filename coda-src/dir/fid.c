@@ -117,22 +117,6 @@ int FID_VolEQ(const struct ViceFid *fa, const struct ViceFid *fb)
 
 /* to determine if the volume is the local copy during a repair/conflict */
 static VolumeId LocalFakeVid = 0xffffffff;
-int  FID_VolIsLocal(const struct ViceFid *x) 
-{
-	return (x->Volume == LocalFakeVid);
-}
-
-void FID_MakeVolFake(VolumeId *id)
-{
-	*id = LocalFakeVid;
-}
-
-int FID_VolIsFake(const VolumeId id)
-{
-	return(id == LocalFakeVid);
-}
-
-
 
 /* was this fid created during a disconnection */
 static VnodeId LocalFileVnode = 0xfffffffe;
