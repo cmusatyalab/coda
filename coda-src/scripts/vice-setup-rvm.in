@@ -17,8 +17,6 @@
 # 
 #*/
 
-set -e
-
 echon() {
     if [ "`echo -n`" = "-n" ] ; then
         echo "$@"'\c'
@@ -27,10 +25,28 @@ echon() {
     fi
 }
 
+# exit if errors
+set -e
+
+#
+# Configuration
+#
+conf=@prefix@/etc/coda/server.conf
+if [ -f ${conf} ] ; then
+  . ${conf}
+  haveconf=1
+else
+  haveconf=0
+fi
+
+if [ x${vicedir} = x ] ; then
+  vicedir=/vice
+fi
+
 # test on Solaris doesn't have a -e flag :-(
-# if [ -e /vice/srv.conf ]; then
-if [ -f /vice/srv.conf ]; then  
-   grep '^\-rvm ' /vice/srv.conf
+# if [ -e ${vicedir}/srv.conf ]; then
+if [ -f ${vicedir}/srv.conf ]; then  
+   grep '^\-rvm ' ${vicedir}/srv.conf
    if [ $? = 0 ]; then
        echo "You already have rvm parameters in srv.conf."
        echo "Remove these first."
@@ -134,6 +150,7 @@ if [ $? != 0 ]; then
 fi
 
 echo LOG file has been initialized!
+
 echo
 
 case "$datasize" in 
@@ -161,10 +178,17 @@ case "$datasize" in
  	dsparm=330301440
  	heapsize=0x13000000
  	;;
+    500[mM] )
+	dsparm=524288000
+	heapsize=0x1e000000
+	;;
+    1[gG] )
+        dsparam=1073741824
+	heapsize=0x3FF00000
     * )
 	echo 'Read rdsinit(8) and rdsinit to configure your data area.'
 	echo 'After configuring the RVM data area you also need to create'
-	echo 'a file /vice/srv.conf containing:'
+	echo 'a file ${vicedir}/srv.conf containing:'
 	echo
 	echo "-rvm $log $data <size of rvm data in bytes>"
 	echo
@@ -181,7 +205,14 @@ chunk=32
 
 parms="$dsparm $rvmstart $heapsize $staticsize $nlists $chunk"
 
-echo "-rvm $log $data $dsparm" >> /vice/srv.conf
+if [ ${haveconf} = 1 ] ; then
+  echo "rvm_log=$log" >> ${conf}
+  echo "rvm_data=$data" >> ${conf}
+  echo "rvm_data_length=$dsparm" >> ${conf}
+  # hostname ....
+else
+  echo "-rvm $log $data $dsparm" >> ${vicedir}/srv.conf
+fi
 
 echo
 echo Rdsinit will initialize data and log.
