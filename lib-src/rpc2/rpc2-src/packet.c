@@ -58,6 +58,15 @@ Pittsburgh, PA.
 #define MSG_CONFIRM 0
 #endif
 
+/* The MSG_CONFIRM flag significantly reduces arp traffic with linux-2.4 and
+ * higher. However... a precompiled binary that uses this flag fails to send
+ * any packets when run on linux-2.2 kernels. So we initially set msg_confirm
+ * to match the flag, but if we get an EINVAL error back from sendto we clear
+ * it. This way we lose the first packet after startup, but retransmission
+ * should fix that automatically. --JH
+ */
+static int msg_confirm = MSG_CONFIRM;
+
 static long DefaultRetryCount = 6;
 static struct timeval DefaultRetryInterval = {60, 0};
 
@@ -145,16 +154,8 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
     if (FailPacket(Fail_SendPredicate, whichPB, addr, whichSocket))
 	return;
 
-#if 0
-    /* The MSG_CONFIRM flag significantly reduces arp traffic with linux-2.4
-     * and higher. However... a precompiled binary that uses this flag fails
-     * to send any packets when run on linux-2.2 kernels. As I don't want to
-     * add a run-time check (yet), so I'm disabling the setting of this flag
-     * for now. --JH
-     */
     if (confirm)
-	flags = MSG_CONFIRM;
-#endif
+	flags = msg_confirm;
 
     n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket,
 	       flags, addr->ai_addr, addr->ai_addrlen);
@@ -178,10 +179,15 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
     {
 	/* operation failed probably because the send buffer was full. we could
 	 * try to select for write and retry, or we could just consider this
-	 * packet lost somewhere on the network and have the normal
-	 * retransmission kick in.
+	 * packet lost on the network.
 	 */
     } else
+
+    if (n == -1 && errno == EINVAL && msg_confirm) {
+	/* maybe the kernel didn't like the MSG_CONFIRM flag. */
+	msg_confirm = 0;
+    }
+    else
 
     if (RPC2_Perror && n != whichPB->Prefix.LengthOfPacket)
     {

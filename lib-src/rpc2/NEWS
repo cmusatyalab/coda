@@ -3,6 +3,10 @@ New in 1.24:
 * Set the UDP sockets to non-blocking. A bad UDP checksum could cause
   recvfrom/recvmsg to block.
 * Try to bind listen sockets to the same portnumber.
+* The MSG_CONFIRM flag (see 1.20) code was commented out because of a
+  compatibility problem with older Linux kernels (2.2.x).
+  Now it is reenabled, however as soon as sendto fails with EINVAL we
+  revert back to the old behaviour.
 
 New in 1.23:
 
