@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.7 1998/04/14 21:00:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.8 1998/08/31 12:23:49 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -154,7 +154,7 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     }
 
     /* Avoid using a bogus partition. */
-    if (VGetPartition(partition) == NULL) {
+    if (DP_Get(partition) == NULL) {
 	LogMsg(0, VolDebugLevel, stdout, "VolRestore: %s is not in the partition list; not restored.", partition);
 	return VFAIL;
     }

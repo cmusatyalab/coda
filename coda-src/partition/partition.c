@@ -62,13 +62,13 @@ extern "C" {
 
 struct DiskPartition *DiskPartitionList;
 
-static struct inodeops *InodeOpsByType(char *type);
+static struct inodeops *DP_InodeOpsByType(char *type);
 /* InitPartitions reads the vicetab file. For each server partition it finds
    on the invoking host it initializes this partition with the correct
    method.  When the partition has been initialized successfully, it is
    inserted in the DiskPartitionList, a linked list of DiskPartitions.
    */
-void InitPartitions(const char *tabfile)
+void DP_Init(const char *tabfile)
 {
     char myname[256];
     int rc;
@@ -90,7 +90,7 @@ void InitPartitions(const char *tabfile)
 	    continue;
 	}
 
-	operations = InodeOpsByType(Partent_type(entry));
+	operations = DP_InodeOpsByType(Partent_type(entry));
 	if ( !operations ) {
 	    eprint("Partition entry %s, %s has unknown type %s.\n",
 		   Partent_host(entry), Partent_dir(entry), 
@@ -107,16 +107,16 @@ void InitPartitions(const char *tabfile)
 	}
 
 
-        VInitPartition(entry, operations, data, devno);
+        DP_InitPartition(entry, operations, data, devno);
     }
     Partent_end(tabhandle);
 
     /* log the status */
-    VPrintDiskStats(stdout);
+    DP_PrintStats(stdout);
 }
 
 void
-VInitPartition(Partent entry, struct inodeops *operations,
+DP_InitPartition(Partent entry, struct inodeops *operations,
 	       union PartitionData *data, Device devno)
 {
     struct DiskPartition *dp, *pp;
@@ -151,11 +151,11 @@ VInitPartition(Partent entry, struct inodeops *operations,
     dp->ops = operations;
     dp->d = data;
 
-    VSetPartitionDiskUsage(dp);
+    DP_SetUsage(dp);
 }
 
 struct DiskPartition *
-FindPartition(Device devno)
+DP_Find(Device devno)
 {
     register struct DiskPartition *dp;
 
@@ -171,7 +171,7 @@ FindPartition(Device devno)
 }
 
 struct DiskPartition *
-VGetPartition(char *name)
+DP_Get(char *name)
 {
     register struct DiskPartition *dp;
 
@@ -188,7 +188,7 @@ VGetPartition(char *name)
 
 
 void 
-VSetPartitionDiskUsage(register struct DiskPartition *dp)
+DP_SetUsage(register struct DiskPartition *dp)
 {
 #if defined(__CYGWIN32__) || defined(DJGPP)
     dp->free = 10000000;  /* free blocks for non s-users */
@@ -215,17 +215,17 @@ VSetPartitionDiskUsage(register struct DiskPartition *dp)
 }
 
 void 
-VResetDiskUsage() 
+DP_ResetUsage() 
 {
     struct DiskPartition *dp;
     for (dp = DiskPartitionList; dp; dp = dp->next) {
-	VSetPartitionDiskUsage(dp);
+	DP_SetUsage(dp);
 	LWP_DispatchProcess();
     }
 }
 
 void 
-VPrintDiskStats(FILE *fp) 
+DP_PrintStats(FILE *fp) 
 {
     struct DiskPartition *dp;
     for (dp = DiskPartitionList; dp; dp = dp->next) {
@@ -241,9 +241,9 @@ VPrintDiskStats(FILE *fp)
 }
 
 void 
-VLockPartition(char *name)
+DP_LockPartition(char *name)
 {
-    register struct DiskPartition *dp = VGetPartition(name);
+    register struct DiskPartition *dp = DP_Get(name);
     assert(dp != NULL);
     if (dp->lock_fd == -1) {
 	dp->lock_fd = open(dp->name, O_RDONLY, 0);
@@ -253,16 +253,16 @@ VLockPartition(char *name)
 }
 
 void 
-VUnlockPartition(char *name)
+DP_UnlockPartition(char *name)
 {
-    register struct DiskPartition *dp = VGetPartition(name);
+    register struct DiskPartition *dp = DP_Get(name);
     assert(dp != NULL);
     close(dp->lock_fd);
     dp->lock_fd = -1;
 }
 
 
-static struct inodeops *InodeOpsByType(char *type) 
+static struct inodeops *DP_InodeOpsByType(char *type) 
 {
   
     if ( strcmp(type, "simple") == 0  ) {

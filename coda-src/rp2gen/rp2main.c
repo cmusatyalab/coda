@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.4 1998/06/04 17:30:04 shafeeq Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.5 1998/09/29 16:38:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,6 +61,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "rp2.h"
 
 int32_t yydebug;
+
+static int32_t SetupFiles();
+
 
 extern char * coda_rp2_basename(char * name);
 

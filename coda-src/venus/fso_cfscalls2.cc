@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.18 1998/10/01 22:21:43 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/fso_cfscalls2.cc,v 4.19 1998/10/07 20:29:51 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -151,7 +151,7 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 
 	    /* XXX I reactivated this code. It seems a good idea
 	       pjb 9/21/98 */
-
+#if 0
 	    /* Reset a cache entry that others are still reading, but
                that we must now change. */
 	    if (openers > 1) {
@@ -176,7 +176,7 @@ int fsobj::Open(int writep, int execp, int truncp, venus_cnode *cp, vuid_t vuid)
 		if (::close(tfd) < 0) Choke("fsobj::Open: close");
 		data.dir->udcf->inode = tstat.st_ino;
 	    }
-
+#endif 0
 	    /* (Re)Build the Unix-format directory. */
 	    dir_Rebuild();
 	    struct stat tstat;

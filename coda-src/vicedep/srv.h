@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.3 1998/03/06 20:21:05 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/srv.h,v 4.4 1998/08/26 21:16:56 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -100,7 +100,6 @@ extern long rvm_no_yield;
 extern void VAdjustDiskUsage(Error *, Volume *, int);
 extern int  VCheckVLDB();
 extern void VPrintCacheStats(FILE * =stdout);
-extern void VPrintDiskStats(FILE * =stdout);
 extern void ViceUpdateDB();
 extern void SwapLog();
 extern void SwapMalloc();

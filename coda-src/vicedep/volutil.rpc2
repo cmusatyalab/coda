@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vicedep/volutil.rpc2,v 1.1 1996/11/22 19:09:40 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vicedep/volutil.rpc2,v 4.1 1997/01/08 21:52:07 rvb Exp $";
 #endif /*_BLURB_*/%}
 
 
@@ -59,83 +59,83 @@ typedef RPC2_Struct {
     RPC2_Integer VolumeSize;
 } RVMSize_data;
 
-VolSalvage(IN RPC2_String partition, IN RPC2_Unsigned VolumeNumber, IN RPC2_Integer force, IN RPC2_Integer debug, IN RPC2_Integer list);
+1: VolSalvage(IN RPC2_String partition, IN RPC2_Unsigned VolumeNumber, IN RPC2_Integer force, IN RPC2_Integer debug, IN RPC2_Integer list);
 
-VolCreate(IN RPC2_String partition, IN RPC2_String volname, IN OUT VolumeId volid, IN RPC2_Integer repvol, IN VolumeId grpid);
+2 :VolCreate(IN RPC2_String partition, IN RPC2_String volname, IN OUT VolumeId volid, IN RPC2_Integer repvol, IN VolumeId grpid);
 
-VolInfo(IN RPC2_String volname, IN RPC2_Integer all, IN OUT SE_Descriptor sed);
+3: VolInfo(IN RPC2_String volname, IN RPC2_Integer all, IN OUT SE_Descriptor sed);
 
-VolMakeVLDB(IN RPC2_String infile);
+4: VolMakeVLDB(IN RPC2_String infile);
 
-VolMakeVRDB(IN RPC2_String infile);
+5: VolMakeVRDB(IN RPC2_String infile);
 
-VolShowVnode(IN RPC2_Unsigned volnumber, IN RPC2_Unsigned vnodeNumber, IN RPC2_Unsigned unique, IN OUT SE_Descriptor sed);
+6: VolShowVnode(IN RPC2_Unsigned volnumber, IN RPC2_Unsigned vnodeNumber, IN RPC2_Unsigned unique, IN OUT SE_Descriptor sed);
 
-VolSetVV(IN RPC2_Unsigned volnumber, IN RPC2_Unsigned vnodeNumber, IN RPC2_Unsigned unique, IN  ViceVersionVector vv);
+7: VolSetVV(IN RPC2_Unsigned volnumber, IN RPC2_Unsigned vnodeNumber, IN RPC2_Unsigned unique, IN  ViceVersionVector vv);
 
-VolPurge(IN RPC2_Unsigned volid, IN RPC2_String volname);
+8: VolPurge(IN RPC2_Unsigned volid, IN RPC2_String volname);
 
-VolLookup(IN RPC2_String vol, IN OUT SE_Descriptor sed);
+9: VolLookup(IN RPC2_String vol, IN OUT SE_Descriptor sed);
 
-VolUpdateDB();
+10: VolUpdateDB();
 
-VolShutdown();
+11: VolShutdown();
 
-VolSwaplog();
+12: VolSwaplog();
 
-VolSetDebug(IN RPC2_Integer debuglevel);
+13: VolSetDebug(IN RPC2_Integer debuglevel);
 
-VolDump();	/* Place holder, replaced by next call. */
+14 : VolDump();	/* Place holder, replaced by next call. */
 
-VolNewDump(IN RPC2_Unsigned volid, IN OUT RPC2_Unsigned Incremental);
+15: VolNewDump(IN RPC2_Unsigned volid, IN OUT RPC2_Unsigned Incremental);
 
-VolClone(IN RPC2_Unsigned ovolid, IN RPC2_String newvolname, OUT RPC2_Unsigned cloneId);
+16: VolClone(IN RPC2_Unsigned ovolid, IN RPC2_String newvolname, OUT RPC2_Unsigned cloneId);
 
-VolRestore(IN RPC2_String partname, IN RPC2_String volname, IN OUT RPC2_Unsigned volid);
+17: VolRestore(IN RPC2_String partname, IN RPC2_String volname, IN OUT RPC2_Unsigned volid);
 
-VolMerge();
+18: VolMerge();
 
-VolMakeBackups(IN VolumeId Vid, OUT VolumeId BackupVid);
+19: VolMakeBackups(IN VolumeId Vid, OUT VolumeId BackupVid);
 
-VolMarkAsAncient(IN VolumeId GroupId, IN VolumeId RepId);   /* In vol-backup.c */
+20: VolMarkAsAncient(IN VolumeId GroupId, IN VolumeId RepId);   /* In vol-backup.c */
 
 /* VolChkRec(IN RPC2_Unsigned volid); */
 
-VolDumpMem(IN  RPC2_String filename, IN RPC2_Unsigned address, IN RPC2_Unsigned size);
+21: VolDumpMem(IN  RPC2_String filename, IN RPC2_Unsigned address, IN RPC2_Unsigned size);
 
 /* VolDumpRecStore(IN RPC2_Unsigned volid, IN RPC2_String fname); */
 
-VolLock(IN VolumeId Vid, OUT ViceVersionVector VolVV);
+22: VolLock(IN VolumeId Vid, OUT ViceVersionVector VolVV);
 
-VolUnlock(IN VolumeId Vid);
+23: VolUnlock(IN VolumeId Vid);
 
-VolRVMSize(IN VolumeId VolID, OUT RVMSize_data data);
+24: VolRVMSize(IN VolumeId VolID, OUT RVMSize_data data);
 
-VolSetLogParms(IN VolumeId Vid, IN RPC2_Integer OnFlag, IN RPC2_Integer maxentries);
+25: VolSetLogParms(IN VolumeId Vid, IN RPC2_Integer OnFlag, IN RPC2_Integer maxentries);
 
-VolTiming(IN RPC2_Integer on, IN OUT SE_Descriptor sed);
+26: VolTiming(IN RPC2_Integer on, IN OUT SE_Descriptor sed);
 
-VolElapse(IN RPC2_Integer on, IN RPC2_Integer subid, IN RPC2_Integer multi);
+27: VolElapse(IN RPC2_Integer on, IN RPC2_Integer subid, IN RPC2_Integer multi);
 
-PrintStats(IN OUT SE_Descriptor sed);
+28: PrintStats(IN OUT SE_Descriptor sed);
 
-TraceRpc(IN OUT SE_Descriptor sed);
+29: TraceRpc(IN OUT SE_Descriptor sed);
 
-ShowCallbacks	(IN ViceFid fid,
+30: ShowCallbacks	(IN ViceFid fid,
 		 IN OUT SE_Descriptor sed);
 
-TruncateRVMLog();
+31: TruncateRVMLog();
 
-VolGetMaxVolId(OUT RPC2_Integer maxid);
+32: VolGetMaxVolId(OUT RPC2_Integer maxid);
 
-VolSetMaxVolId(IN RPC2_Integer newid);
+33: VolSetMaxVolId(IN RPC2_Integer newid);
 
-VolPeekInt(IN RPC2_String address, OUT RPC2_Integer pvalue);
+34: VolPeekInt(IN RPC2_String address, OUT RPC2_Integer pvalue);
 
-VolPokeInt(IN RPC2_String address, IN RPC2_Integer value);
+35: VolPokeInt(IN RPC2_String address, IN RPC2_Integer value);
 
-VolPeekMem(IN RPC2_String address, IN OUT RPC2_BoundedBS buf);
+36: VolPeekMem(IN RPC2_String address, IN OUT RPC2_BoundedBS buf);
 
-VolPokeMem(IN RPC2_String address, IN RPC2_CountedBS buf);
+37: VolPokeMem(IN RPC2_String address, IN RPC2_CountedBS buf);
 
-VolSwapmalloc();
+38: VolSwapmalloc();

@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.22 1998/10/01 22:21:44 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.23 1998/10/07 20:29:55 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -484,7 +484,7 @@ main(int argc, char *argv[])
     RPC2_InitTraceBuffer(trace);
     RPC2_Trace = trace;
 
-    InitPartitions(VCT);
+    DP_Init(VCT);
     DIR_Init(DIR_DATA_IN_VM);
     DC_HashInit();
 
@@ -997,7 +997,7 @@ void PrintCounters(FILE *fp)
 	   Counters[STORED2], SIZE3 / 1024, Counters[STORED3], SIZE4 / 1024,
 	   Counters[STORED4], SIZE4 / 1024, Counters[STORED5]);
     VPrintCacheStats();
-    VPrintDiskStats();
+    DP_PrintStats(fp);
     DH_PrintStats(fp);
     LogMsg(0, 0, fp,
 	   "RPC Total bytes:     sent = %u, received = %u",

@@ -9,7 +9,7 @@ icreate (Device devno, Inode ino, u_long volume, u_long vnode,
     struct DiskPartition *dp;
     Inode rc = 0;
     
-    dp = FindPartition(devno);
+    dp = DP_Find(devno);
 
     if ( dp )
 	rc = dp->ops->icreate(dp, ino, volume, vnode, unique, dataversion);
@@ -23,7 +23,7 @@ iopen(Device devno, Inode inode, int flag)
     struct DiskPartition *dp;
     int rc = -1;
     
-    dp = FindPartition(devno);
+    dp = DP_Find(devno);
 
     if ( dp )
 	rc = dp->ops->iopen(dp, inode, flag);
@@ -37,7 +37,7 @@ idec(Device devno, Inode inode, Inode parent_vol)
     struct DiskPartition *dp;
     int rc = -1;
     
-    dp = FindPartition(devno);
+    dp = DP_Find(devno);
 
     if ( dp )
 	rc = dp->ops->idec(dp, inode, parent_vol);
@@ -51,7 +51,7 @@ iinc(Device devno, Inode  inode, Inode parent_vol)
     struct DiskPartition *dp;
     int rc = -1;
     
-    dp = FindPartition(devno);
+    dp = DP_Find(devno);
 
     if ( dp )
 	rc = dp->ops->iinc(dp, inode, parent_vol);
@@ -66,7 +66,7 @@ iwrite(Device devno, Inode inode, Inode  parent_vol,
     struct DiskPartition *dp;
     int rc = -1;
     
-    dp = FindPartition(devno);
+    dp = DP_Find(devno);
 
     if ( dp )
 	rc = dp->ops->iwrite(dp, inode, parent_vol, offset, buf, count);
@@ -82,7 +82,7 @@ iread(Device devno, Inode inode, Inode parent_vol,
     struct DiskPartition *dp;
     int rc = -1;
     
-    dp = FindPartition(devno);
+    dp = DP_Find(devno);
 
     if ( dp )
 	rc = dp->ops->iread(dp, inode, parent_vol, offset, buf, count);

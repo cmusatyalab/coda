@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.4 1998/04/14 21:00:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-info.cc,v 4.5 1998/08/31 12:23:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -144,17 +144,18 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
 	if (index == -1) {
 	    LogMsg(0, VolDebugLevel, stdout, "Info: Invalid name or volid %s!", volkey);
 	    rvmlib_abort(-1);
+	status = -1;
+	goto exit;
 	}
     }
 
     vp = VGetVolume(&error, volid);
     if (vp == NULL) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolInfo: failure attaching volume %x", volid);
+	SLog(0, "Vol-Info: VGetVolume returned error %d for %x", 
+	     error, volid);
         rvmlib_abort(error);
-    }
-
-    if (error) {
-	LogMsg(0, VolDebugLevel, stdout, "Vol-Info: VGetVolume returned error %d for %x", error, volid);
+	status = error;
+	goto exit;
     }
 
     infofile = fopen(INFOFILE, "w");
@@ -187,15 +188,20 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) {
 	LogMsg(0, VolDebugLevel, stdout, "VolInfo: InitSideEffect failed with %s", RPC2_ErrorMsg(rc));
 	rvmlib_abort(VFAIL);
+	status = VFAIL;
+	goto exit;
     }
 
     if ((rc = RPC2_CheckSideEffect(rpcid, &sed, SE_AWAITLOCALSTATUS)) <=
 		RPC2_ELIMIT) {
-	LogMsg(0, VolDebugLevel, stdout, "VolInfo: CheckSideEffect failed with %s", RPC2_ErrorMsg(rc));
+	VLog(0, "VolInfo: CheckSideEffect failed with %s", 
+	     RPC2_ErrorMsg(rc));
 	rvmlib_abort(VFAIL);
     }
 
     RVMLIB_END_TRANSACTION(flush, &(status));
+ exit:
+
     VDisconnectFS();
 
     if (status)

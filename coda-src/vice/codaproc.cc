@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.11 1998/08/31 12:23:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/codaproc.cc,v 4.12 1998/09/29 16:38:30 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -176,9 +176,7 @@ static void COP2Update(Volume *, Vnode *, ViceVersionVector *, vmindex * =NULL);
 
 
 /*
-  BEGIN_HTML
-  <a name="ViceProbe"><strong>Empty routine - simply return the probe</strong></a> 
-  END_HTML
+  ViceProbe: Empty routine - simply return the probe 
 */
 
 long ViceProbe(RPC2_Handle cid, RPC2_CountedBS *Vids, RPC2_CountedBS *VVs) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.12 1998/08/31 12:23:37 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.13 1998/09/29 16:38:32 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -417,10 +417,11 @@ long ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
     vle *v = 0;
     vle *av = 0;
     int iErrorCode = 0;
+    int i;
 
 START_TIMING(ViceValidateAttrs_Total);
-    LogMsg(1, SrvDebugLevel, stdout, "ViceValidateAttrs: Fid = (%x.%x.%x), %d piggy fids",
-	   PrimaryFid->Volume, PrimaryFid->Vnode, PrimaryFid->Unique, NumPiggyFids);
+    SLog(1, "ViceValidateAttrs: Fid = %s, %d piggy fids", 
+	 FID_(PrimaryFid), NumPiggyFids);
 
     /* Do a real getattr for primary fid. */
     {
@@ -428,26 +429,34 @@ START_TIMING(ViceValidateAttrs_Total);
 		goto Exit;
     }
 
-    bzero((void *)(char *) VFlagBS->SeqBody, (int) NumPiggyFids);
+    if ( NumPiggyFids != VFlagBS->SeqLen ) {
+	    SLog(0, "Client sending wrong output buffer while validating"
+		 ": %s; SeqLen %d, should be %d", 
+		 FID_(PrimaryFid), VFlagBS->SeqLen, NumPiggyFids);
+	    errorCode = EINVAL;
+	    goto Exit;
+    }
+
+    bzero((char *) VFlagBS->SeqBody, (int) NumPiggyFids);
 
     /* now check piggyback fids */
-    for (VFlagBS->SeqLen = 0; VFlagBS->SeqLen < NumPiggyFids; VFlagBS->SeqLen++) {
+    for (i = 0; i < NumPiggyFids; i++) {
 
 	/* save the replicated volume ID for the AddCallBack */    
-	VolumeId VSGVolnum = Piggies[VFlagBS->SeqLen].Fid.Volume;
+	VolumeId VSGVolnum = Piggies[i].Fid.Volume;
 
 	/* Validate parameters. */
         {
 	    /* We've already dealt with the PiggyBS in the GetAttr above. */
 	    if (iErrorCode = ValidateParms(RPCid, &client, ReplicatedOp, 
-					   &Piggies[VFlagBS->SeqLen].Fid.Volume, NULL))
+					   &Piggies[i].Fid.Volume, NULL))
 		goto InvalidObj;
         }
 
 	/* Get objects. */
 	{
-	    v = AddVLE(*vlist, &Piggies[VFlagBS->SeqLen].Fid);
-	    if (iErrorCode = GetFsObj(&Piggies[VFlagBS->SeqLen].Fid, &volptr, 
+	    v = AddVLE(*vlist, &Piggies[i].Fid);
+	    if (iErrorCode = GetFsObj(&Piggies[i].Fid, &volptr, 
 				      &v->vptr, READ_LOCK, NO_LOCK, 0, 0))
 		goto InvalidObj;
 
@@ -456,7 +465,7 @@ START_TIMING(ViceValidateAttrs_Total);
 		av = v;
 	    } else {
 		ViceFid pFid;
-		pFid.Volume = Piggies[VFlagBS->SeqLen].Fid.Volume;
+		pFid.Volume = Piggies[i].Fid.Volume;
 		pFid.Vnode = v->vptr->disk.vparent;
 		pFid.Unique = v->vptr->disk.uparent;
 		av = AddVLE(*vlist, &pFid);
@@ -476,7 +485,7 @@ START_TIMING(ViceValidateAttrs_Total);
 
 	/* Do it. */
 	{
-	    if (VV_Cmp(&Piggies[VFlagBS->SeqLen].VV, &v->vptr->disk.versionvector) == VV_EQ) {
+	    if (VV_Cmp(&Piggies[i].VV, &v->vptr->disk.versionvector) == VV_EQ) {
 		    /* this is a writeable volume, o.w. we wouldn't be in this call */
 		    /* Until CVVV probes? -JJK */
 		    if (1/*!ReplicatedOp || PrimaryHost == ThisHostAddr*/) {
@@ -486,23 +495,23 @@ START_TIMING(ViceValidateAttrs_Total);
 			     * doesn't matter too much with this call, 
 			     * because getting a callback is refetching.
 			     */
-			    VFlagBS->SeqBody[VFlagBS->SeqLen] = (RPC2_Byte)
+			    VFlagBS->SeqBody[i] = (RPC2_Byte)
 				    CodaAddCallBack(client->VenusId, 
-						    &Piggies[VFlagBS->SeqLen].Fid, 
+						    &Piggies[i].Fid, 
 						    VSGVolnum);
 		    }
 
 		    LogMsg(8, SrvDebugLevel, stdout, "ViceValidateAttrs: (%x.%x.%x) ok",
-			   Piggies[VFlagBS->SeqLen].Fid.Volume, 
-			   Piggies[VFlagBS->SeqLen].Fid.Vnode, 
-			   Piggies[VFlagBS->SeqLen].Fid.Unique);
+			   Piggies[i].Fid.Volume, 
+			   Piggies[i].Fid.Vnode, 
+			   Piggies[i].Fid.Unique);
 		    continue;
 	    }
 
 InvalidObj:
 	    LogMsg(0, SrvDebugLevel, stdout, "ViceValidateAttrs: (%x.%x.%x) failed!",
-		   Piggies[VFlagBS->SeqLen].Fid.Volume, Piggies[VFlagBS->SeqLen].Fid.Vnode, 
-		   Piggies[VFlagBS->SeqLen].Fid.Unique);
+		   Piggies[i].Fid.Volume, Piggies[i].Fid.Vnode, 
+		   Piggies[i].Fid.Unique);
 	}
     }
 

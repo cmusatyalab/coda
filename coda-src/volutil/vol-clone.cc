@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.7 1998/08/31 12:23:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-clone.cc,v 4.8 1998/09/29 16:38:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -208,7 +208,8 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	     "volume not cloned");
 	VPutVolume(originalvp);
 	rvmlib_abort(VNOVOL);
-	return VNOVOL;
+	status = VNOVOL;
+	goto exit1;
     }
     newvp = VCreateVolume(&error, V_partname(originalvp), newId, 
 			  originalId, 0, readonlyVolume);
@@ -216,7 +217,8 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	VLog(0, "S_VolClone:Unable to create the volume; aborted");
 	VPutVolume(originalvp);
 	rvmlib_abort(VNOVOL);
-	return VNOVOL;
+	status = VNOVOL;
+	goto exit1;
     }
 
     V_blessed(newvp) = 0;
@@ -225,9 +227,12 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: Volume %x can't be unblessed!", newId);
 	VPutVolume(originalvp);
 	rvmlib_abort(VFAIL);
+	status = VFAIL;
+	goto exit1;
     }
     
     RVMLIB_END_TRANSACTION(flush, &(status));
+ exit1:
     if (status != 0) {
 	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: volume creation failed for volume %x", originalId);
 	V_VolLock(originalvp).IPAddress = 0;
@@ -255,9 +260,11 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     if (V_type(originalvp) == readwriteVolume)
 	V_cloneId(originalvp) = newId;
     
-    /* assign a name to the clone. if the user requested a name then that is used.
-     * otherwise the new name is obtained by appending ".readonly" to the
-     * original name.  If it already has ".readonly" then it doesnt change */
+    /* assign a name to the clone. if the user requested a name then
+     * that is used.  otherwise the new name is obtained by appending
+     * ".readonly" to the original name.  If it already has
+     * ".readonly" then it doesnt change */
+
     if (newvolname){
 	char name[VNAMESIZE];
 	strncpy(name, newvolname, VNAMESIZE);
@@ -284,18 +291,19 @@ long S_VolClone(RPC2_Handle rpcid, RPC2_Unsigned formal_ovolid,
     V_VolLock(originalvp).IPAddress = 0;
     ReleaseWriteLock(&(V_VolLock(originalvp).VolumeLock)); 
     VPutVolume(originalvp);
-    VListVolumes();			/* Create updated /vice/vol/VolumeList */
+    VListVolumes();	/* Create updated /vice/vol/VolumeList */
     RVMLIB_END_TRANSACTION(flush, &(status));
     VDisconnectFS();
-    if (status == 0) {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: volume %x cloned", originalId);
-	*cloneId = newId;	    /* set value of out parameter */
-    }
-    else {
-	LogMsg(0, VolDebugLevel, stdout, "S_VolClone: volume clone failed for volume %x", originalId);
-    }
-    return(status?status:0);
 
+    if (status == 0) {
+	    VLog(0, "S_VolClone: volume %x cloned", originalId);
+	    *cloneId = newId;	    /* set value of out parameter */
+    } else {
+	    VLog(0, "S_VolClone: volume clone failed for volume %x", 
+		 originalId);
+    }
+
+    return status;
 }
 
 /* Clones the Volume contents from rwVp to cloneVp */
@@ -310,10 +318,6 @@ void VUCloneVolume(Error *error, Volume *rwVp, Volume *cloneVp)
 }
 
 int MaxVnodesPerTransaction = 8;
-
-#ifdef DCS
-#include <rvmtesting.h>
-#endif DCS
 
 static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass vclass)
 {
@@ -400,9 +404,6 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
     *error = 0;
     
     while(moreVnodes) {
-#ifdef DCS
-	rec_smolist_iterator *DecrementBug;
-#endif DCS
 	
 	RVMLIB_BEGIN_TRANSACTION(restore)
 	for (int count = 0; count < MaxVnodesPerTransaction; count++) {
@@ -410,25 +411,11 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 		moreVnodes = FALSE;
 		break;
 	    }
-#ifdef DCS	    
-	    DecrementBug = /*vnext.nextlink*/(rec_smolist_iterator *)((int *)&vnext)[4];
-#endif DCS
 
 	    *error = CloneVnode(rwVp, cloneVp, vnodeindex, rvlist, vnode, vclass);
 	    if (*error)
 		rvmlib_abort(VFAIL);
 
-#ifdef	DCS
-	    /* Code to check for corruption of rec_smolist iterator. -JJK */
-	    {
-		/*DecrementBug->clist*/		
-		assert(((unsigned int)(((int *)DecrementBug)[0]) & 3) == 0);
-		/*DecrementBug->clink*/
-		assert(((unsigned int)(((int *)DecrementBug)[1]) & 3) == 0);
-		/*DecrementBug->plink*/
-		assert(((unsigned int)(((int *)DecrementBug)[2]) & 3) == 0);
-	    }
-#endif DCS
 
 	} 
 	RVMLIB_END_TRANSACTION(flush, &(status));
@@ -445,39 +432,13 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 	    LogMsg(9, VolDebugLevel, stdout, "Finished cloning %s vnodes.",vclass==vLarge?"Large":"Small");
 	}
 
-#ifdef	DCS
-	    /* Code to check for corruption of rec_smolist iterator. -JJK */
-	    {
-		/*DecrementBug->clist*/		
-		assert(((unsigned int)(((int *)DecrementBug)[0]) & 3) == 0);
-		/*DecrementBug->clink*/
-		assert(((unsigned int)(((int *)DecrementBug)[1]) & 3) == 0);
-		/*DecrementBug->plink*/
-		assert(((unsigned int)(((int *)DecrementBug)[2]) & 3) == 0);
-		protect_page((int)DecrementBug);
-	    }
-#endif	DCS
-
 	if (!rvm_no_yield)  /* DEBUG */
 	    PollAndYield();
 
-#ifdef	DCS
-        /* Code to check for corruption of rec_smolist iterator. -JJK */
-        {
-	    /*DecrementBug->clist*/		
-	    assert(((unsigned int)(((int *)DecrementBug)[0]) & 3) == 0);
-	    /*DecrementBug->clink*/
-	    assert(((unsigned int)(((int *)DecrementBug)[1]) & 3) == 0);
-	    /*DecrementBug->plink*/
-	    assert(((unsigned int)(((int *)DecrementBug)[2]) & 3) == 0);
-	    unprotect_page((int)DecrementBug);
-	}
-#endif	DCS
 	
     }		/* moreVnodes */
 }
 
-
 
 
 /* This must be called from within a transaction! */

@@ -176,7 +176,7 @@ void dt_free(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(i);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", i);
 		return ;
 	}
@@ -209,7 +209,7 @@ void dt_create(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -252,7 +252,7 @@ void dt_lookup(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -287,7 +287,7 @@ void dt_fidlookup(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -322,12 +322,12 @@ void dt_printchain(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
 
-	DIR_PrintChain(dh->dh_rvmdata, atoi(argv[2]));
+	DIR_PrintChain(dh->dh_data, atoi(argv[2]));
 
 	return;
 }
@@ -350,7 +350,7 @@ void dt_convert(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -380,7 +380,7 @@ void dt_length(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -410,7 +410,7 @@ void dt_compare(int argc, char **argv)
 	dh1 = dt_dh(dirno);
 
 
-	if ( !dh1->dh_rvmdata ) {
+	if ( !dh1->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -423,12 +423,12 @@ void dt_compare(int argc, char **argv)
 	dh2 = dt_dh(dirno);
 
 
-	if ( !dh2->dh_rvmdata ) {
+	if ( !dh2->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
 
-	printf("comparison: %d\n", DIR_Compare(dh1->dh_rvmdata, dh2->dh_rvmdata));
+	printf("comparison: %d\n", DIR_Compare(dh1->dh_data, dh2->dh_data));
 
 	return;
 }
@@ -450,7 +450,7 @@ void dt_empty(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -491,7 +491,7 @@ void dt_list(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -518,12 +518,12 @@ void dt_ok(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
 
-	if ( DIR_DirOK(dh->dh_rvmdata) ) {
+	if ( DIR_DirOK(dh->dh_data) ) {
 		printf("Directory is OK!\n");
 	} else {
 		printf("Directory %d not OK\n", dirno);
@@ -551,7 +551,7 @@ void dt_delete(int argc, char **argv)
 		return;
 	}
 	dh = dt_dh(dirno);
-	if ( !dh->dh_rvmdata ) {
+	if ( !dh->dh_data ) {
 		printf("Directory %d not allocated\n", dirno);
 		return ;
 	}
@@ -611,7 +611,7 @@ void dt_mdir(int argc, char **argv)
 
 	while ( i < NDIRS ) {
 		dh = dt_dh(i);
-		if ( ! dh->dh_rvmdata ) 
+		if ( ! dh->dh_data ) 
 			break;
 		i++;
 	}
@@ -628,7 +628,7 @@ void dt_mdir(int argc, char **argv)
 		printf("ERROR in DIR_MakeDir\n");
 		abort();
 	}
-	printf("Assigned directory %d at %p\n", i, dh->dh_rvmdata);
+	printf("Assigned directory %d at %p\n", i, dh->dh_data);
 
 	rvmlib_end_transaction(flush, &status);
 

@@ -62,7 +62,7 @@ PDirInode DI_DhToDi(PDCEntry pdce, PDirInode pdi)
 			assert(lpdi->di_pages[i]); 
 		}
 		rvmlib_set_range(lpdi->di_pages[i], DIR_PAGESIZE);
-		bcopy((const void *)DIR_Page(pdh->dh_vmdata, i), 
+		bcopy((const void *)DIR_Page(pdh->dh_data, i), 
 		      lpdi->di_pages[i], DIR_PAGESIZE);
 	}
 

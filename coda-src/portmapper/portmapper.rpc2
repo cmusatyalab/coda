@@ -1,5 +1,5 @@
 /*
- *	$Id: portmapper.rpc2,v 1.1 1998/04/14 20:54:07 braam Exp $
+ *	$Id: portmapper.rpc2,v 1.2 1998/08/05 23:49:32 braam Exp $
  *
  *	A simple portmapper for RPC2
  */
@@ -39,39 +39,39 @@ typedef RPC2_String	PM_Name;
 /* Register a mapping between a name and port number -- only accepted from
    localhost -- this version of the call does not remove an old entry with
    the same name, etc.  Instead it returns PM_COLLISION */
-register_excl(IN PM_Name name,
+1: register_excl(IN PM_Name name,
 	IN PM_Version version,
 	IN PM_Protocol protocol,
 	IN PM_Port port);
 
 /* As with register_excl, except that it removes the old entry silently if
    there is a collision */
-register_sqsh(IN PM_Name name,
+2: register_sqsh(IN PM_Name name,
 	IN PM_Version version,
 	IN PM_Protocol protocol,
 	IN PM_Port port);
 
 /* Remove a mapping between a name and a port number -- only accepted from
    localhost */
-delete(IN PM_Name name,
+3: delete(IN PM_Name name,
 	IN PM_Version version,
 	IN PM_Protocol protocol);
 
 /* Lookup port based on name, version, protocol */
-lookup_pbynvp(IN PM_Name name,
+4: lookup_pbynvp(IN PM_Name name,
 	IN PM_Version version,
 	IN PM_Protocol protocol,
 	OUT PM_Port port);
 
 /* lookup a port/protocol based on name, version */
-lookup_pbynv(IN PM_Name name,
+5: lookup_pbynv(IN PM_Name name,
 	IN PM_Version version,
 	OUT PM_Protocol protocol,
 	OUT PM_Port port);
 
 /* lookup a name, return the highest version available on the first protocol
    available */
-lookup_pbyn(IN PM_Name name,
+6: lookup_pbyn(IN PM_Name name,
 	OUT PM_Version version,
 	OUT PM_Protocol protocol,
 	OUT PM_Port port);

@@ -29,7 +29,6 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/partition/partition.h,v 1.2 1997/11/18 12:59:27 braam Exp $";
 #endif /*_BLURB_*/
 
 #ifndef PARTITION_INCLUDED
@@ -80,16 +79,21 @@ struct DiskPartition {
     union PartitionData *d;       /* private data stored with the partition */
 };
 
-void InitPartitions(const char *tabfile);
-void VInitPartition(Partent entry, struct inodeops *operations,
+
+
+void DP_Init(const char *tabfile);
+void DP_InitPartition(Partent entry, struct inodeops *operations,
 		    union PartitionData *data, Device devno);
-struct DiskPartition *FindPartition(Device devno);
-struct DiskPartition *VGetPartition(char *name);
-void VSetPartitionDiskUsage(register struct DiskPartition *dp);
-void VResetDiskUsage();
-void VPrintDiskStats(FILE *fp);
-void VLockPartition(char *name);
-void VUnlockPartition(char *name);
+void DP_LockPartition(char *name);
+void DP_UnlockPartition(char *name);
+
+struct DiskPartition *DP_Find(Device devno);
+struct DiskPartition *DP_Get(char *name);
+void DP_SetUsage(register struct DiskPartition *dp);
+void DP_ResetUsage();
+void DP_PrintStats(FILE *fp);
+void DP_LockPartition(char *name);
+void DP_UnlockPartition(char *name);
 
 #include <simpleifs.h>
 #include <ftreeifs.h>

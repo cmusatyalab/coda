@@ -17,7 +17,7 @@
 struct DCEntry {
 	struct dllist_chain   dc_hash;
 	struct dllist_chain   dc_list;
-	int                   dc_count;  /* number of vnodes referencing us */
+	int                   dc_count;   /* number of vnodes referencing us */
 	int                   dc_refcount; /* new refcount upon commit */
 	struct DirHandle      dc_dh;
 	PDirInode             dc_pdi;
@@ -109,9 +109,9 @@ PDCEntry DC_Get(PDirInode pdi)
 				list_del(&pdce->dc_list);
 
 			/* if data was flushed, refresh it */
-			if ( !pdce->dc_dh.dh_vmdata) {
-				pdce->dc_dh.dh_vmdata = DI_DiToDh(pdi);
-				pdce->dc_dh.dh_refcount = pdi->di_refcount;
+			if ( !pdce->dc_dh.dh_data) {
+				pdce->dc_dh.dh_data = DI_DiToDh(pdi);
+				pdce->dc_refcount = pdi->di_refcount;
 			}
 
 			ReleaseWriteLock(&dlock);
@@ -132,7 +132,7 @@ PDCEntry DC_Get(PDirInode pdi)
 	list_add(&pdce->dc_hash, &dcache[hash]);
 
 	/* copy in the directory handle, init lock, and copy data */
-	pdce->dc_dh.dh_vmdata = DI_DiToDh(pdi);
+	pdce->dc_dh.dh_data = DI_DiToDh(pdi);
 	pdce->dc_refcount = pdi->di_refcount;
 
 	ReleaseWriteLock(&dlock);
@@ -242,7 +242,7 @@ PDirInode DC_DC2DI(PDCEntry pdce)
 void DC_SetDirh(PDCEntry pdce, PDirHeader pdh)
 {
 	assert(pdce);
-	pdce->dc_dh.dh_vmdata = pdh;
+	pdce->dc_dh.dh_data = pdh;
 }
 
 
@@ -278,8 +278,8 @@ int DC_Dirty(PDCEntry pdce)
 /* called by PutObjects to move the directory handle after copy on write */
 void DC_MoveDH(PDCEntry source, PDCEntry target)
 {
-	target->dc_dh.dh_vmdata = source->dc_dh.dh_vmdata;
-	source->dc_dh.dh_vmdata = NULL;
+	target->dc_dh.dh_data = source->dc_dh.dh_data;
+	source->dc_dh.dh_data = NULL;
 }
 
 

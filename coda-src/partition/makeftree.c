@@ -16,7 +16,7 @@ int
 main(int argc, char **argv)
 {
     int level = 1, rc;
-    int depth, width, d;
+    int depth, width;
     struct DiskPartition *dp;
 
     if ( argc != 3 ) {
@@ -24,9 +24,9 @@ main(int argc, char **argv)
 	exit(1);
     }
     
-    InitPartitions(argv[1]);
+    DP_Init(argv[1]);
 
-    dp = VGetPartition(argv[2]);
+    dp = DP_Get(argv[2]);
     
     if ( !dp ) {
 	printf("Error getting partition named %s. Check vicetab.\n", argv[2]);

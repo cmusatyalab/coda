@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.6 1998/08/31 12:23:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-create.cc,v 4.7 1998/10/02 15:11:33 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -140,8 +140,11 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     RVMLIB_BEGIN_TRANSACTION(restore)
 
     rc = VInitVolUtil(volumeUtility);
-    if (rc != 0)
+    if (rc != 0) {
 	    rvmlib_abort(rc);
+	    status = rc;
+	    goto exit;
+    }
 
     /* Use a new volumeId only if the user didn't specify any */
     if (!volid  || !(*volid) )
@@ -160,6 +163,8 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "Unable to allocate a volume number; volume not created");
 	rvmlib_abort(VNOVOL);
+	status = VNOVOL;
+	goto exit;
     }
 
     parentId = volumeId;    // we are creating a readwrite (or replicated) volume
@@ -167,6 +172,8 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     if (repvol && grpId == 0) {
         LogMsg(0, VolDebugLevel, stdout, "S_VolCreate: can't create replicated volume without group id");
 	rvmlib_abort(VFAIL);
+	status = VFAIL;
+	goto exit;
     }
 
     /* If we are creating a replicated volume, pass along group id */
@@ -174,6 +181,8 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     if (error) {
 	LogMsg(0, VolDebugLevel, stdout, "Unable to create the volume; aborted");
 	rvmlib_abort(VNOVOL);
+	status = VNOVOL;
+	goto exit;
     }
     V_uniquifier(vp) = 1;
     V_creationDate(vp) = V_copyDate(vp);
@@ -191,6 +200,7 @@ long S_VolCreate(RPC2_Handle rpcid, RPC2_String formal_partition,
     VDetachVolume(&error, vp);	/* Allow file server to grab it */
     assert(error == 0);
     RVMLIB_END_TRANSACTION(flush, &(status));
+ exit: 
 
     /* to make sure that rvm records are getting flushed - to find this bug */
     assert(rvm_flush() == RVM_SUCCESS);

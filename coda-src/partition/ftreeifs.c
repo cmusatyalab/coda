@@ -578,7 +578,7 @@ static int inosort(const struct dirent * const *a, const struct dirent * const *
     
     if ( inoa == inob ) return 0;
     if ( inoa > inob ) return 1;
-    if ( inoa < inob ) return -1;
+    return -1;
 }
 
 

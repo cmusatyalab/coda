@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.18 1998/10/05 15:33:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-salvage.cc,v 4.19 1998/10/07 20:30:00 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -286,7 +286,7 @@ static int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	return(VFAIL);
     }
 
-    VLockPartition(path);
+    DP_LockPartition(path);
 
     /* house keeping to deal with FORCESALVAGE */
     if ( (strlen(path) + strlen("/FORCESALVAGE")) >= MAXPATHLEN ) {
@@ -1515,7 +1515,7 @@ static int GetInodeSummary(char *fspath, char *path, VolumeId singleVolumeNumber
     struct InodeSummary summary;
     FILE *summaryFile;
     char *dev = fileSysDeviceName;
-    struct DiskPartition *dp = VGetPartition(fspath);
+    struct DiskPartition *dp = DP_Get(fspath);
 
     if ( dp == NULL ) {
 	LogMsg(0, VolDebugLevel, stdout, 

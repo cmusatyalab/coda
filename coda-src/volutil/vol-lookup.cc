@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lookup.cc,v 4.5 1998/04/14 21:00:38 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-lookup.cc,v 4.6 1998/08/31 12:23:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -39,7 +39,8 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/voluti
 
 
 /* lookup.c
-   Manual lookup of volume location data base information for a particular volume.
+   Manual lookup of volume location data base information 
+   for a particular volume.
  */
 
 #ifdef __cplusplus
@@ -97,9 +98,8 @@ struct hostent *gethostent();
 char *voltypes[] = {"read/write", "read only", "backup", "unknown type", "unknown type"};
 
 /*
-  BEGIN_HTML
-  <a name="S_VolLookup"><strong>Return information for a volume specified by name or volume-id </strong></a>
-  END_HTML
+  S_VolLookup: Return information for a volume specified 
+  by name or volume-id
 */
 long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *formal_sed) {
     VolumeInfo info;

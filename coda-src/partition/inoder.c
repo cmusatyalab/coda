@@ -17,7 +17,7 @@ int mdirs(int);
 int
 main(int argc, char **argv)
 {
-    int level = 1, rc, dev;
+    int rc, dev;
     int depth, width;
     struct DiskPartition *dp;
 
@@ -26,9 +26,9 @@ main(int argc, char **argv)
 	exit(1);
     }
     
-    InitPartitions(argv[1]);
+    DP_Init(argv[1]);
 
-    dp = VGetPartition(argv[2]);
+    dp = DP_Get(argv[2]);
     
     if ( !dp ) {
 	printf("Error getting partition named %s. Check vicetab.\n", argv[2]);
@@ -77,7 +77,7 @@ main(int argc, char **argv)
 		printf(" magic %ld\n", header.magic);
 		exit(0);
 	    } else {
-		printf("Error getting inode header %d\n", ino);
+		printf("Error getting inode header %ld\n", ino);
 		exit(1);
 	    }
 	} else {

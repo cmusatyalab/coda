@@ -43,7 +43,10 @@ Mellon the rights to redistribute these changes without encumbrance.
 
 /* bytes per page */
 #define DIR_PAGESIZE 2048	
+
+/* maximum pages of a directory */
 #define DIR_MAXPAGES  128
+
 /* where is directory data */
 #define DIR_DATA_IN_RVM 1
 #define DIR_DATA_IN_VM  0
@@ -54,35 +57,11 @@ typedef struct DirHeader *PDirHeader;
 typedef struct DirHandle *PDirHandle;
 typedef struct DCEntry *PDCEntry;
 
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
-
-#if 0
-/* moved from vice/file.h to remove circular dependency */
-typedef struct ODirHandle {
-    /* device+inode+vid are low level disk addressing + validity check */
-    /* vid+vnode+unique+cacheCheck are to guarantee validity of cached copy */
-    /* ***NOTE*** size of this stucture must not exceed size in buffer
-       package (dir/buffer.cc) */
-    bit16	device;
-    bit16 	cacheCheck;
-    Inode	inode;
-    VolumeId 	volume;
-    Unique_t 	unique;
-    VnodeId	vnode;	/* Not really needed; conservative AND
-			   protects us against non-unique uniquifiers
-			   that were generated in days of old */
-} ODirHandle;
-#endif
-
 
 struct DirHandle {
 	Lock              dh_lock;
-	PDirHeader        dh_vmdata;
-	PDirHeader        dh_rvmdata;
-	int               dh_refcount;
-	int               dh_dirty;
+	PDirHeader        dh_data;
+	int               dh_dirty;  /* used by server only */
 };
 /* A file identifier in host order. */
 struct DirFid {
@@ -104,8 +83,6 @@ struct DirEntry    {
     struct DirNFid fid;
     char name[16];
 };
-
-
 
 
 /* DH interface */
@@ -201,29 +178,12 @@ char *FID_(struct ViceFid *);
 char *FID_2(struct ViceFid *);
 
 
-/* extern definitions for dir.c */
+/* extern definitions for dirbody.c */
+int DIR_init(int);
+int DIR_Compare (PDirHeader, PDirHeader);
+int DIR_Length(PDirHeader);
 #define DIR_intrans()  DIR_check_trans(__FUNCTION__, __FILE__)
 inline void DIR_check_trans(char *where, char *file);
-extern int DIR_init(int);
-extern void DIR_Free(struct DirHeader *, int);
-extern int DirHash (char *);
-extern int DirToNetBuf(long *, char *, int, int *);
-void DIR_CpyVol(struct ViceFid *target, struct ViceFid *source);
-int DIR_MakeDir(struct DirHeader **dir, struct DirFid *me, struct DirFid *parent);
-int DIR_LookupByFid(PDirHeader dhp, char *name, struct DirFid *fid);
-int DIR_Lookup(struct DirHeader *dir, char *entry, struct DirFid *fid);
-int DIR_EnumerateDir(struct DirHeader *dhp, 
-		     int (*hookproc)(struct DirEntry *de, void *hook), void *hook);
-int DIR_Create(struct DirHeader **dh, char *entry, struct DirFid *fid);
-int DIR_Length(struct DirHeader *dir);
-int DIR_Delete(struct DirHeader *dir, char *entry);
-int DIR_Init(int data_loc);
-void DIR_PrintChain(PDirHeader dir, int chain);
-int DIR_Hash (char *string);
-int DIR_DirOK (PDirHeader pdh);
-int DIR_Convert (PDirHeader dir, char *file, VolumeId vol);
-int DIR_Compare (PDirHeader, PDirHeader);
-void DIR_Setpages(PDirHeader, int);
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page);
 
 
@@ -262,12 +222,5 @@ PDirHandle DC_DC2DH(PDCEntry);
 void DC_Commit(PDCEntry);
 void DC_HashInit();
 
-
-/* old stuff */
-extern int DirOK (long *);
-extern int DirSalvage (long *, long *);
-extern void DStat (int *, int *, int *);
-extern int DInit (int );
-extern void DFlushEntry (long *);
 
 #endif _DIR_H_
