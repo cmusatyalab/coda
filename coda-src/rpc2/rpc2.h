@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.3 1998/03/06 20:20:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.4 1998/04/14 21:07:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,7 +77,7 @@ Used in inital packet exchange to verify that the client and server
 speak exactly the same protocol.  Orthogonal to RPC2_VERSION.  We need
 this in the header at the very beginning, else we cannot change packet
 formats in a detectable manner.  */
-#define RPC2_PROTOVERSION 7
+#define RPC2_PROTOVERSION 8
 
 
 /*
@@ -260,6 +260,9 @@ typedef
 
 typedef
     unsigned char RPC2_Byte;      /*A single 8-bit byte.*/
+
+typedef
+    double RPC2_Double;      /*A single 8-bit byte.*/
 
 typedef
     RPC2_Byte *RPC2_ByteSeq;
@@ -527,7 +530,7 @@ typedef enum{ NO_MODE=0, IN_MODE=1, OUT_MODE=2, IN_OUT_MODE=3, C_END=4 } MODE;
 typedef enum{ RPC2_INTEGER_TAG=0,	RPC2_UNSIGNED_TAG=1,	RPC2_BYTE_TAG=2,
 	      RPC2_STRING_TAG=3,	RPC2_COUNTEDBS_TAG=4,	RPC2_BOUNDEDBS_TAG=5,
 	      RPC2_BULKDESCRIPTOR_TAG=6,			RPC2_ENCRYPTIONKEY_TAG=7,
-	      RPC2_STRUCT_TAG=8,	RPC2_ENUM_TAG=9 } TYPE_TAG;
+	      RPC2_STRUCT_TAG=8,	RPC2_ENUM_TAG=9, RPC2_DOUBLE_TAG=10 } TYPE_TAG;
 
 
  /* struct for MakeMulti argument packing and unpacking */

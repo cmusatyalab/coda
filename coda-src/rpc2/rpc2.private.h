@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.1 1997/01/08 21:50:26 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.private.h,v 4.2 1998/04/14 21:07:02 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -170,14 +170,13 @@ struct CEntry		/* describes a single RPC connection */
 #define LOWERLIMIT 300000               /* floor on lower limit, usec. */
     unsigned long LowerLimit;           /* minimum retry interval, usec */
 
-#define RPC2_RTT_SCALE 8                /* Scale of stored RTT. (alpha = .875) */
 #define RPC2_RTT_SHIFT 3                /* Bits to right of binary point of RTT */
-    long RTT;                           /* Smoothed RTT estimate, 10msec units. */
+    long RTT;                           /* Smoothed RTT estimate, 1msec units. */
 #define TimeStampEcho RTT           	/* If Role == SERVER, cannabalize for 
 					   rpc timing */
 #define RPC2_RTTVAR_SCALE 4             /* Scale of stored RTTVar (alpha = .75) */
 #define RPC2_RTTVAR_SHIFT 2             /* Bits to right of binary point of RTTVar */
-    long RTTVar;                        /* Variance of RTT, 10msec units. */
+    long RTTVar;                        /* Variance of RTT, 1msec units. */
 #define RequestTime RTTVar              /* If Role == SERVER, cannabalize for
 					   rpc timing */
     long Retry_N;                       /* Number of retries for this connection. */
@@ -629,12 +628,12 @@ do {\
 /* macros to convert from timeval to timestamp */
 #define TVTOTS(_tvp_, _ts_)\
 do {\
-    _ts_ = ((_tvp_)->tv_sec * 100 + (_tvp_)->tv_usec / 10000);\
+    _ts_ = ((_tvp_)->tv_sec * 1000 + (_tvp_)->tv_usec / 1000);\
 } while(0);
 
 #define TSTOTV(_tvp_, _ts_)\
 do {\
-    (_tvp_)->tv_sec = (_ts_) / 100;\
-    (_tvp_)->tv_usec = ((_ts_) * 10000) % 1000000;\
+    (_tvp_)->tv_sec = (_ts_) / 1000;\
+    (_tvp_)->tv_usec = ((_ts_) * 1000) % 1000000;\
 } while(0);
 
