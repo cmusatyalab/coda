@@ -66,9 +66,9 @@ void DI_DhToDi(PDCEntry pdce)
 	pages = DH_Length(pdh)/DIR_PAGESIZE;
 
 	if (pdi == NULL) {
-		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(PDirInode));
+		pdi = (PDirInode) rvmlib_rec_malloc(sizeof(*pdi));
 		CODA_ASSERT(pdi);
-		memset(pdi, 0, sizeof(PDirInode));
+		memset(pdi, 0, sizeof(*pdi));
 		DC_SetDI(pdce, pdi);
 	} 
 
@@ -89,7 +89,7 @@ void DI_DhToDi(PDCEntry pdce)
 	/* free pages which have disappeared */
 	for (i=pages ; i<DIR_MAXPAGES ; i++) {
 		if (pdi->di_pages[i]) {
-			rvmlib_rec_free(pdi->di_pages);
+			rvmlib_rec_free(pdi->di_pages[i]);
                         pdi->di_pages[i] = NULL;
                 }
 	}
