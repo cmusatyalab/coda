@@ -59,6 +59,11 @@ Pittsburgh, PA.
 #include "trace.h"
 #include "cbuf.h"
 
+/* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
+#ifndef INADDR_LOOPBACK
+#define INADDR_LOOPBACK 0x7f000001
+#endif
+
 extern int errno;
 struct in_addr rpc2_bindaddr;
 

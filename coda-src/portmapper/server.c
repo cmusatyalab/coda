@@ -24,6 +24,11 @@ listed in the file CREDITS.
 #include "portmapper.h"
 #include "map.h"
 
+/* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
+#ifndef INADDR_LOOPBACK
+#define INADDR_LOOPBACK 0x7f000001
+#endif
+
 /* return 1 if is a connection from localhost, else return 0 */
 int portmapper_is_local_connection(RPC2_Handle cid)
 {

@@ -38,6 +38,11 @@ extern "C" {
 }
 #endif __cplusplus
 
+/* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
+#ifndef INADDR_LOOPBACK
+#define INADDR_LOOPBACK 0x7f000001
+#endif
+
 const char MarinerService[] = "venus";
 #define MARINERBUFSIZE 1000
 

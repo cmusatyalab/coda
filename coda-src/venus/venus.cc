@@ -59,6 +59,10 @@ extern int rpause(int, int, int);  /* why isn't this in sys/resource.h? */
 #include "vstab.h"
 #include "worker.h"
 
+/* FreeBSD 2.2.5 defines this in rpc/types.h, all others in netinet/in.h */
+#ifndef INADDR_LOOPBACK
+#define INADDR_LOOPBACK 0x7f000001
+#endif
 
 /* *****  Exported variables  ***** */
 vproc *Main;

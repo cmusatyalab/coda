@@ -164,7 +164,7 @@ long CheckResRetCodes(unsigned long *rc, unsigned long *rh,
 		    SLog(0,  "CheckRetCodes: server %s returned error %d)",
 			 inet_ntoa(addr), rc[i]);
 	    }
-	    if ( result == 0 ||  result == VNOVNODE )
+	    if ( result == 0 || result == VNOVNODE )
 		    result = error;
     }
     return(result);
