@@ -576,12 +576,12 @@ void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries
 		newmaxsize = maxsize * 2;
 	    char *newbuf = (char *)malloc(newmaxsize);
 	    CODA_ASSERT(newbuf);
-	    memmove((void *)newbuf, (const void *)*buf, lastentry);
+	    memcpy(newbuf, *buf, lastentry);
 	    free(*buf);
 	    *buf = newbuf;
 	    maxsize = newmaxsize;
 	}
-	memmove((void *)&((*buf)[lastentry]), (const void *)rbuf, rbufsize);
+	memcpy(&((*buf)[lastentry]), rbuf, rbufsize);
 	delete[] rbuf;
 	lastentry += rbufsize;
 
@@ -599,18 +599,19 @@ void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries
 		    newmaxsize = maxsize * 2;
 		char *newbuf = (char *)malloc(newmaxsize);
 		CODA_ASSERT(newbuf);
-		memmove((void *)newbuf, (const void *)*buf, lastentry);
+		memcpy(newbuf, *buf, lastentry);
 		free(*buf);
 		*buf = newbuf;
 		maxsize = newmaxsize;
 	    }
-	    memmove((void *)&((*buf)[lastentry]), (const void *)childdump, childdumplength);
+	    memcpy(&((*buf)[lastentry]), childdump, childdumplength);
 	    lastentry += childdumplength;
 	    free(childdump);
 	}
     }
     *bufsize = lastentry;
 }
+
 void PrintLog(rec_dlist *log, FILE *fp) {
     SLog(9,  "Entered PrintLog for log = 0x%lx",
 	   log);

@@ -247,17 +247,19 @@ int recle::GetDumpSize() {
     return(dumpsize);
 }
 
-char *recle::DumpToBuf(int *bufsize) {
+char *recle::DumpToBuf(int *bufsize)
+{
     *bufsize = GetDumpSize();
     char *buf = new char[*bufsize];
     CODA_ASSERT(buf);
+    memset(buf, 0, *bufsize);
     long *l = (long *)buf;
     long *lastlong = (long *)(buf + *bufsize - sizeof(long));
     l[0] = DUMP_ENTRY_BEGIN_STAMP;
     l[1] = *bufsize;
     char *rlep = &(buf[2 * sizeof(long)]);
     /* copy the fixed length part */
-    memmove((void *)rlep, (const void *)this, (int) sizeof(recle));
+    memcpy(rlep, this, sizeof(recle));
     rlep += (int) sizeof(recle);
 
     /* word align the variable length part */
@@ -265,7 +267,7 @@ char *recle::DumpToBuf(int *bufsize) {
 	rlep++;
 
     CODA_ASSERT((long)(rlep + size) <= (long)lastlong);
-    memmove((void *) rlep, (const void *)&(vle->vfld[0]), size);
+    memcpy(rlep, &(vle->vfld[0]), size);
     
     *lastlong = DUMP_ENTRY_END_STAMP;
     return(buf);
