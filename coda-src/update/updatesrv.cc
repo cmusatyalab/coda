@@ -79,6 +79,7 @@ extern "C" {
 #include <lwp/lwp.h>
 #include <lwp/lock.h>
 #include <rpc2/rpc2.h>
+#include <rpc2/rpc2_addrinfo.h>
 #include <map.h>
 #include <portmapper.h>
 #include <rpc2/se.h>
@@ -180,6 +181,7 @@ int main(int argc, char **argv)
     RPC2_PortIdent port1;
     RPC2_SubsysIdent server;
     SFTP_Initializer sftpi;
+    RPC2_Options options;
     int rc;
     long portmapid;
     struct stat statbuf;
@@ -271,7 +273,9 @@ int main(int argc, char **argv)
     RPC2_Trace = 0;
     tp.tv_sec = 80;
     tp.tv_usec = 0;
-    CODA_ASSERT(RPC2_Init(RPC2_VERSION, 0, &port1, 6, &tp) == RPC2_SUCCESS);
+    memset(&options, 0, sizeof(options));
+    options.Flags = RPC2_OPTION_IPV6;
+    CODA_ASSERT(RPC2_Init(RPC2_VERSION, &options, &port1, 6, &tp) == RPC2_SUCCESS);
     RPC2_enableReaping = 1;
 
     /* register the port with the portmapper */
@@ -366,8 +370,13 @@ static long Update_AuthFail(RPC2_Integer authtype,
 			    RPC2_HostIdent *host,
 			    RPC2_PortIdent *port)
 {
+    char buf[RPC2_ADDRSTRLEN];
+
+    CODA_ASSERT(host->Tag == RPC2_HOSTBYADDRINFO);
+    RPC2_formataddrinfo(host->Value.AddrInfo, buf, RPC2_ADDRSTRLEN);
+
     LogMsg(0, SrvDebugLevel, stdout, "Access from %s failed with bad token",
-	   inet_ntoa(host->Value.InetAddress));
+	   buf);
     return 0;
 }
 
@@ -377,8 +386,9 @@ static void ServerLWP(int *Ident)
     RPC2_PacketBuffer * myrequest;
     RPC2_Handle mycid;
     RPC2_PeerInfo peer;
-    long     rc;
-    int     lwpid;
+    char buf[RPC2_ADDRSTRLEN];
+    long rc;
+    int lwpid;
 
     myfilter.FromWhom = ONESUBSYS;
     myfilter.OldOrNew = OLDORNEW;
@@ -398,6 +408,8 @@ static void ServerLWP(int *Ident)
                 LogMsg(0, SrvDebugLevel, stdout,
                        "Receiving unauthenticated request %d, "
                        "update rpc2 library!", myrequest->Header.Opcode);
+		CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+		RPC2_freeaddrinfo(peer.RemoteHost.Value.AddrInfo);
                 RPC2_Unbind(mycid);
                 continue;
             }
@@ -408,16 +420,17 @@ static void ServerLWP(int *Ident)
 
 	    if (rc)
 	    {
-		LogMsg(0, SrvDebugLevel, stdout,
-		       "Request %d from %s:%d failed: %s",
-		       myrequest->Header.Opcode,
-		       inet_ntoa(peer.RemoteHost.Value.InetAddress),
-		       ntohs(peer.RemotePort.Value.InetPortNumber),
-		       ViceErrorMsg((int)rc));
+		RPC2_formataddrinfo(peer.RemoteHost.Value.AddrInfo, buf,
+				    RPC2_ADDRSTRLEN);
+
+		LogMsg(0, SrvDebugLevel, stdout,"Request %d from %s failed: %s",
+		       myrequest->Header.Opcode, buf, ViceErrorMsg((int)rc));
 
 		if(rc <= RPC2_ELIMIT)
 		    RPC2_Unbind(mycid);
 	    }
+	    CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
+	    RPC2_freeaddrinfo(peer.RemoteHost.Value.AddrInfo);
 	} else
 	    LogMsg(0, SrvDebugLevel, stdout,
 		   "RPC2_GetRequest failed with %s",ViceErrorMsg((int)rc));
@@ -529,12 +542,14 @@ long UpdateNewConnection(RPC2_Handle cid, RPC2_Integer SideEffectType,
 			 RPC2_Integer AuthType, 
 			 RPC2_CountedBS *ClientIdent)
 {
+    char buf[RPC2_ADDRSTRLEN];
     RPC2_PeerInfo peer;
-    RPC2_GetPeerInfo(cid, &peer);
 
-    LogMsg(0, SrvDebugLevel, stdout, "Connection from %s:%d.",
-	   inet_ntoa(peer.RemoteHost.Value.InetAddress),
-	   ntohs(peer.RemotePort.Value.InetPortNumber));
+    RPC2_GetPeerInfo(cid, &peer);
+    RPC2_formataddrinfo(peer.RemoteHost.Value.AddrInfo, buf, RPC2_ADDRSTRLEN);
+    RPC2_freeaddrinfo(peer.RemoteHost.Value.AddrInfo);
+
+    LogMsg(0, SrvDebugLevel, stdout, "Connection from %s.", buf);
 
     return 0;
 }

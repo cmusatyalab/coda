@@ -585,9 +585,9 @@ static int CheckFile(char *fileName, int mode)
 static void ReConnect()
 {
     long     rc;
-    RPC2_PortIdent sid;
     RPC2_SubsysIdent ssid;
-    RPC2_HostIdent hid;
+    RPC2_HostIdent hident;
+    RPC2_PortIdent pident;
     RPC2_CountedBS cident;
     RPC2_EncryptionKey secret;
     char hostname[64];
@@ -615,10 +615,10 @@ static void ReConnect()
 	return;
     }
 
-    hid.Tag = RPC2_HOSTBYNAME;
-    strcpy(hid.Value.Name, host);
-    sid.Tag = RPC2_PORTBYINETNUMBER;
-    sid.Value.InetPortNumber = htons(port);
+    hident.Tag = RPC2_HOSTBYNAME;
+    strcpy(hident.Value.Name, host);
+    pident.Tag = RPC2_PORTBYINETNUMBER;
+    pident.Value.InetPortNumber = htons(port);
     ssid.Tag = RPC2_SUBSYSBYID;
     ssid.Value.SubsysId= SUBSYS_UPDATE;
 
@@ -636,7 +636,7 @@ static void ReConnect()
     GetSecret(vice_sharedfile("db/update.tk"), secret);
     bparms.SharedSecret = &secret;
 
-    rc = RPC2_NewBinding(&hid, &sid, &ssid, &bparms, &con);
+    rc = RPC2_NewBinding(&hident, &pident, &ssid, &bparms, &con);
     if (rc) {
 	LogMsg(0, SrvDebugLevel, stdout, "Bind failed with %s\n", 
 	       (char *)ViceErrorMsg((int)rc));
@@ -703,6 +703,7 @@ static void U_InitRPC()
     FILE *tokfile;
     SFTP_Initializer sftpi;
     long rcode;
+    RPC2_Options options;
 
     /* store authentication key */
     tokfile = fopen(vice_sharedfile(VolTKFile), "r");
@@ -718,7 +719,11 @@ static void U_InitRPC()
     sftpi.SendAhead = 4;
     sftpi.AckPoint = 4;
     SFTP_Activate(&sftpi);
-    rcode = RPC2_Init(RPC2_VERSION, 0, NULL, -1, 0);
+
+    memset(&options, 0, sizeof(options));
+    options.Flags = RPC2_OPTION_IPV6;
+
+    rcode = RPC2_Init(RPC2_VERSION, &options, NULL, -1, 0);
     if (rcode != RPC2_SUCCESS) {
 	LogMsg(0, SrvDebugLevel, stdout, "RPC2_Init failed with %s\n", RPC2_ErrorMsg((int)rcode));
 	exit(-1);
@@ -734,7 +739,7 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
     RPC2_EncryptionKey secret;
-    long     rcode;
+    long rcode;
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
