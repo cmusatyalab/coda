@@ -202,7 +202,8 @@ for  SERVER in $SERVERS ; do
 	fi
 
 	# grab the volume number.
-	ENTRY="$ENTRY `cut -d' ' -f2 /tmp/out`"
+	volnum=`cut -d' ' -f2 /tmp/out`
+	ENTRY="$ENTRY $volnum"
 	rm -f /tmp/out
 
 	N=`expr $N + 1`
@@ -211,7 +212,7 @@ done
 # HACK, disable resolution on singly replicated volumes. The server should
 # really be doing this.
 if [ $N -eq 1 ] ; then
-    volutil -h $SERVERS setlogparms $ENTRY reson 0
+    volutil -h $SERVERS setlogparms $volnum reson 0
 fi
 
 # Rebuild the VLDB
