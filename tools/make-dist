@@ -55,7 +55,7 @@ function create-releasetar () {
 
   if [ x$ok = xy -o x$ok = xY ]
   then
-    echo "Tagging source tree (as $USER@sparta.odyssey.cs.cmu.edu)"
+    echo "Tagging source tree \(as $USER@sparta.odyssey.cs.cmu.edu\)"
     cvs tag -F $reltag
   elif [ x$ok != xn -a x$ok != xN ]
   then
@@ -74,19 +74,20 @@ function create-releasetar () {
   fi
 
   # create the sourcetar
-  ssh root@localhost rm -rf /usr/tmp/coda-$fversion
-  mkdir -p /usr/tmp/coda-$fversion
-  echo Copying $curdir to /usr/tmp/coda-$fversion
-  ( tar -cf - . ) | ( cd /usr/tmp/coda-$fversion ; tar -xf - )
+  ssh root@localhost rm -rf /usr/src/coda-$fversion
+  ssh root@localhost mkdir -p /usr/src/coda-$fversion
+  echo Copying $curdir to /usr/src/coda-$fversion
+  ( tar -cf - . ) | ( ssh root@localhost cd /usr/src/coda-$fversion \; tar -xf - )
 
-  echo Setting file ownership
-  ssh root@localhost chown -R root.root /usr/tmp/coda-$fversion
+  echo Setting file ownership and permissions
+  ssh root@localhost chown -R root.root /usr/src/coda-$fversion
+  ssh root@localhost chmod -R a+rX /usr/src/coda-$fversion
   
   echo Creating $reltar
-  ( cd /usr/tmp ; tar -czf $reltar coda-$fversion )
+  ( cd /usr/src ; tar -czf $reltar coda-$fversion )
 
-  echo Cleaning up /usr/tmp/coda-$fversion
-  ssh root@localhost rm -rf /usr/tmp/coda-$fversion
+  echo Cleaning up /usr/src/coda-$fversion
+  ssh root@localhost rm -rf /usr/src/coda-$fversion
 }
 
 # create the linux-i386 rpm's
