@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.2 1997/09/23 15:13:31 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2.h,v 4.2.6.1 1998/05/02 21:40:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,7 +77,7 @@ Used in inital packet exchange to verify that the client and server
 speak exactly the same protocol.  Orthogonal to RPC2_VERSION.  We need
 this in the header at the very beginning, else we cannot change packet
 formats in a detectable manner.  */
-#define RPC2_PROTOVERSION 7
+#define RPC2_PROTOVERSION 8
 
 
 /*
