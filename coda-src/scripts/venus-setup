@@ -149,8 +149,13 @@ else
   fi
 
   # make the psdev
-  if [ ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
+  if [ ! -c /dev/cfs0 -o ! -c /dev/coda/0 ] ; then
+    if [ | -x /dev/MAKEDEV ]
+      echo 'You need a character device for the Coda kernel module'
+      echo 'On *BSD systems you probably have to run "mknod /dev/cfs0 c 93 0"'
+    else
       ( cd /dev ; ./MAKEDEV cfs )
+    fi
   fi
 fi
 
@@ -181,6 +186,6 @@ if [ X$OS = XLinux -a ! -f /etc/debian_version ]; then
     /sbin/depmod -a
 fi
 
-# Setup the ports
+# Make sure the ports are listed in /etc/services (Debian already has them)
 [ ! -f /etc/debian_version ] && coda-setup-ports
 

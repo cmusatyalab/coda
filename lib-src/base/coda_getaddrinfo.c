@@ -61,7 +61,11 @@ Coda are listed in the file CREDITS.
 #define NS_HFIXEDSZ HFIXEDSZ
 #define ns_t_srv T_SRV
 #define ns_c_in  C_IN
-#endif
+
+#ifndef T_SRV /* MacOS X */
+#define T_SRV 33
+#endif /* !T_SRV */
+#endif /* !NS_INT32SZ */
 
 #include "coda_getaddrinfo.h"
 
