@@ -61,7 +61,7 @@ case "$1" in
 	fi
 
 	echon "updateclnt "
-	updateclnt  -h `cat $DBDIR/scm`  -q coda_udpsrv &
+	updateclnt  -h `cat $DBDIR/scm` &
 
 	echo "done."
 	;;
