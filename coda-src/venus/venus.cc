@@ -161,6 +161,7 @@ int main(int argc, char **argv) {
     //    VFSMount();
 
     /* Get the Root Volume. */
+    eprint("Getting Root Volume information...");
     while (!GetRootVolume()) {
 	ServerProbe();
 
