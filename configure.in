@@ -52,7 +52,7 @@ CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(strerror select statfs setpgrp)
+AC_CHECK_FUNCS(strerror select statfs setpgrp inet_aton inet_ntoa)
 AC_FUNC_MMAP
 AC_FUNC_SELECT_ARGTYPES
 CODA_FUNC_SETPGRP
@@ -60,8 +60,6 @@ CODA_CHECK_FILE_LOCKING
 CODA_CHECK_BCOPY
 CODA_CHECK_SETENV
 CODA_CHECK_SCANDIR
-CODA_CHECK_INET_ATON
-CODA_CHECK_INET_NTOA
 
 dnl Checks for system services.
 
