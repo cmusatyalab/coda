@@ -81,9 +81,9 @@ Pittsburgh, PA.
 #define	 MAX_PRIORITIES	(LWP_MAX_PRIORITY+1)
 
 /* simple test, we normally want to mmap our stacks whenever possible, except
- * when we compile venus for Win95 */
+ * when we compile venus for Win95 and Solaris */
 #undef MMAP_LWP_STACKS
-#if defined(HAVE_MMAP) && !defined(DJGPP)
+#if defined(HAVE_MMAP) && !defined(DJGPP) && !defined(sun)
 #define MMAP_LWP_STACKS 1
 
 #ifdef __BSD44__
