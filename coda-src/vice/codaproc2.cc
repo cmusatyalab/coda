@@ -2505,7 +2505,7 @@ static int ValidateRHandle(VolumeId Vid, int numHandles,
 	SLog(0, "ValidateRHandle: Bad device (%d,%d)",
 	       V_device(volptr), RHandle[ix].Device);
 	error = EBADF;
-	goto Exit;
+	goto FreeObj;
     }
 
     /* check age of handle */
@@ -2513,10 +2513,13 @@ static int ValidateRHandle(VolumeId Vid, int numHandles,
 	SLog(0, "ValidateRHandle: Old handle (%d,%d,%d)",
 	       RHandle[ix].BirthTime, RHandle[ix].Device, RHandle[ix].Inode);
 	error = EBADF;
-	goto Exit;
+	goto FreeObj;
     }
 
     *MyHandle = &RHandle[ix];
+    
+ FreeObj:
+    VPutVolume(volptr);
 
  Exit:
     return(error);

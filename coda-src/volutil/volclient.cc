@@ -119,6 +119,7 @@ static void peekmem();
 static void pokemem();
 static void peekxmem();
 static void pokexmem();
+static void setwb(RPC2_Integer wbflag);
 
 #define ROCKTAG 12345
 struct rockInfo {
@@ -147,7 +148,7 @@ int main(int argc, char **argv) {
 	printf("ancient, backup, create, create_rep, clone, dump, info, lock, ");
 	printf("lookup, makevldb, makevrdb, purge, restore, salvage, ");
 	printf("setvv, showvnode, shutdown, swaplog, setdebug, updatedb, ");
-	printf("unlock, dumpmem, rvmsize, timing, ");
+	printf("unlock, dumpmem, rvmsize, timing, enablewb, disablewb, ");
 	printf("elapse, truncatervmlog, togglemalloc, ");
 	printf("getmaxvol, setmaxvol, peek, poke, peeks, pokes, peekx, pokex\n");
 	exit(-1);
@@ -192,7 +193,7 @@ int main(int argc, char **argv) {
 	printf("ancient, backup, create, create_rep, clone, dump, info, lock, ");
 	printf("lookup, makevldb, makevrdb, purge, restore, salvage, ");
 	printf("setvv, showvnode, shutdown, swaplog, setdebug, updatedb, ");
-	printf("unlock, dumpmem, rvmsize, timing, elapse, \n");
+	printf("unlock, dumpmem, rvmsize, timing, elapse, enablewb, disablewb,\n");
 	printf("printstatus, showcallbacks, truncatervmlog, togglemalloc, ");
 	printf("getmaxvol, setmaxvol, peek, poke, peeks, pokes, peekx, pokex\n");
 	exit(-1);
@@ -283,6 +284,10 @@ int main(int argc, char **argv) {
 	peekxmem();
     else if (strcmp(argv[1], "pokex") == 0)
 	pokexmem();
+    else if (strcmp(argv[1], "enablewb") == 0)
+	setwb(1);
+    else if (strcmp(argv[1], "disablewb") == 0)
+	setwb(0);
 /*    else if (strcmp(argv[1], "checkrec") == 0)
  *	checkrec();
  *    else if (strcmp(argv[1], "dumprecstore") == 0)
@@ -294,7 +299,7 @@ int main(int argc, char **argv) {
 	printf("lookup, makevldb, makevrdb, purge, restore, salvage, ");
 	printf("setvv, showvnode, shutdown, swaplog, setdebug, updatedb, ");
 	printf("unlock, dumpmem, rvmsize, setlogparms, tracerpc, printstats, ");
-	printf("showcallbacks, truncatervmlog, getmaxvol, setmaxvol, ");
+	printf("showcallbacks, truncatervmlog, getmaxvol, setmaxvol,  enablewb, disablewb,");
 	printf("peek, poke, peeks, pokes, peekx, togglemalloc, pokex\n");
 	exit(-1);
     }
@@ -2019,6 +2024,35 @@ static void pokexmem() {
 	exit(0);
 }
 
+static void setwb(RPC2_Integer wbflag) {
+    long Vid, backupVid;
+
+    if (these_args != 3) {
+	printf("Usage: volutil [en,dis]ablewb volumeId\n");
+	exit(-1);
+    }
+
+    if (sscanf(this_argp[2], "%lX", &Vid) != 1){
+	printf("VolSetWBParms: Bogus volume number %s\n", this_argp[2]);
+	exit(-1);
+    }
+    /*
+      BEGIN_HTML
+      <pre>
+      <a href="vol-backup.c.html#S_VolMakeBackups">Server implementation of VolMakeBackups()</a></pre>
+      END_HTML
+    */
+    rc = VolSetWBParms(rpcid, Vid, wbflag);
+    if (rc != RPC2_SUCCESS) {
+	printf("VolMakeBackups failed with %s\n", RPC2_ErrorMsg((int)rc));
+	exit(-1);
+    }
+    if (wbflag)
+	printf("WriteBack allowed for Volume %lx\n",Vid);
+    else
+	printf("WriteBack disallowed for Volume %lx\n",Vid);
+    exit(0);
+}
 
 static void V_InitRPC(int timeout)
 {

@@ -176,8 +176,7 @@ long FS_ViceGetWBPermit(RPC2_Handle cid, VolumeId Vid,
     }
 
     /* Check to see if we can enable WB caching */
-    if ((((volptr->header)->diskstuff.WriteBackEnable) ||
-	(1==1)) && OpenWritebackConn) /* XXX fix me XXX */{
+    if (((volptr->header)->diskstuff.WriteBackEnable) && OpenWritebackConn) {
 	CODA_ASSERT(client->VenusId);
 	if (!list_empty(&volptr->WriteBackHolders)) {	  /* another client has it  */
 	    SLog(1, "GetWBPermit: Client %x already has it",

@@ -332,6 +332,7 @@ struct volHeader {
 #define V_lock(vp)		((vp)->lock)
 #define V_writer(vp)		((vp)->writer)
 #define	V_VolLock(vp)		(((vp)->VolLock))
+#define V_WriteBackHolders(vp)   ((vp)->WriteBackHolders)
 
 /* N.B. V_id must be this, rather than vp->id, or some programs will
    break, probably */
@@ -378,6 +379,7 @@ struct volHeader {
 #define V_RVMResOn(vp)		((vp)->header->diskstuff.ResOn & RVMRES)
 #define V_maxlogentries(vp)	((vp)->header->diskstuff.maxlogentries)
 #define V_VolLog(vp)		((vp)->header->diskstuff.log)
+#define V_WriteBackEnable(vp)   ((vp)->header->diskstuff.WriteBackEnable)
 
 /* File offset computations.  The offset values in the volume header are
    computed with these macros -- when the file is written only!! */

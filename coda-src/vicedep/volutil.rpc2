@@ -121,3 +121,5 @@ typedef RPC2_Struct {
 37: VolPokeMem(IN RPC2_String address, IN RPC2_CountedBS buf);
 
 38: VolSwapmalloc();
+
+39: VolSetWBParms(IN VolumeId Vid, IN RPC2_Integer newWBFlag);
