@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/merge.cc,v 4.2 1997/02/26 16:04:02 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/merge.cc,v 4.3 1997/10/23 19:25:57 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -96,15 +96,16 @@ PRIVATE void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *, struct Dump
 
 void main(int argc, char **argv)
 {
-    if (strcmp(argv[1], "-d") == 0) {
-	VolDebugLevel = atoi(argv[2]);
-	argv+=2;
-	argc-=2;
-    }
     
     if (argc < 4) {
 	LogMsg(0, VolDebugLevel, stderr, "Usage: %s <outfile> <full dump> <incremental dump>", argv[0]);
 	exit(-1);
+    }
+
+    if (strcmp(argv[1], "-d") == 0) {
+	VolDebugLevel = atoi(argv[2]);
+	argv+=2;
+	argc-=2;
     }
 
     dumpstream fdump(argv[2]);

@@ -8,28 +8,27 @@
           Copyright (c) 1987-1996 Carnegie Mellon University
                          All Rights Reserved
 
-Permission  to  use, copy, modify and distribute this software and its
-documentation is hereby granted,  provided  that  both  the  copyright
-notice  and  this  permission  notice  appear  in  all  copies  of the
-software, derivative works or  modified  versions,  and  any  portions
+Permission to use, copy, modify and distribute this software and its
+documentation is hereby granted, provided that both the copyright
+notice and this permission notice appear in all copies of the
+software, derivative works or modified versions, and any portions
 thereof, and that both notices appear in supporting documentation, and
-that credit is given to Carnegie Mellon University  in  all  documents
+that credit is given to Carnegie Mellon University in all documents
 and publicity pertaining to direct or indirect use of this code or its
 derivatives.
 
-CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS  KNOWN  TO  HAVE  BUGS,
-SOME  OF  WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
-FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.   CARNEGIE  MELLON
-DISCLAIMS  ANY  LIABILITY  OF  ANY  KIND  FOR  ANY  DAMAGES WHATSOEVER
-RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE  OR  OF
+CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM AND IS KNOWN TO HAVE BUGS,
+SOME OF WHICH MAY HAVE SERIOUS CONSEQUENCES.  CARNEGIE MELLON ALLOWS
+FREE USE OF THIS SOFTWARE IN ITS "AS IS" CONDITION.  CARNEGIE MELLON
+DISCLAIMS ANY LIABILITY OF ANY KIND FOR ANY DAMAGES WHATSOEVER
+RESULTING DIRECTLY OR INDIRECTLY FROM THE USE OF THIS SOFTWARE OR OF
 ANY DERIVATIVE WORK.
 
-Carnegie  Mellon  encourages  users  of  this  software  to return any
-improvements or extensions that  they  make,  and  to  grant  Carnegie
-Mellon the rights to redistribute these changes without encumbrance.
-*/
+Carnegie Mellon encourages users of this software to return any
+improvements or extensions that they make, and to grant Carnegie
+Mellon the rights to redistribute these changes without encumbrance.  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.3 97/06/13 14:41:20 raiff Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.4 1997/09/26 16:43:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -41,17 +40,14 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/voluti
 /*	   - Coordinator for backup subsystem.	  */
 /**************************************************/
 
-/*
- * To handle dead servers without waiting for such long timeouts to occur,
- * mark servers for which connections are broken as dead. Have an asynchronous
- * thread periodically poll the dead servers. When making calls, only send
- * the rpc if we think the server is up.
- */
+/* To handle dead servers without waiting for such long timeouts to
+ * occur, mark servers for which connections are broken as dead. Have
+ * an asynchronous thread periodically poll the dead servers. When
+ * making calls, only send the rpc if we think the server is up.  */
 
-/* Would it be possible to increase availability by unlocking the volume
-   when the clone succeeds? There's no reason to keep it locked after the
-   state has been captured...
-   */
+/* Would it be possible to increase availability by unlocking the
+   volume when the clone succeeds? There's no reason to keep it 
+   locked after the state has been captured...  */
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,7 +82,8 @@ extern "C" {
 #include <se.h>
 #include <sftp.h>
 #include <histo.h>
-
+#include <util.h>
+#include <partition.h>
 
 #ifdef __cplusplus
 }
@@ -111,22 +108,22 @@ PRIVATE int Debug = 0;		      /* Global debugging flag */
 PRIVATE int Naptime = 30;	      /* Sleep period for PollLWP */
 
 struct hostinfo {
-    bit32      	address;	/* Assume host IP addresses are 32 bits */
-    RPC2_Handle rpcid;		/* should be -1 if connection is dead. */
+    bit32      	address;  /* Assume host IP addresses are 32 bits */
+    RPC2_Handle rpcid;	  /* should be -1 if connection is dead. */
     char	name[36];
 }  Hosts[N_SERVERIDS];
 
 #define BADCONNECTION	(RPC2_Handle) -1
 
 bit32 HostAddress[N_SERVERIDS];		/* Need these for macros in vrdb.c */
-char *ThisHost;				/* This machine's hostname */
+char *ThisHost;			/* This machine's hostname */
 int ThisServerId = -1;	       	/* this server id, as found in /vice/db/servers */
 
 /* Rock info for communicating with the DumpLWP. */
 #define ROCKTAG 12345
 struct rockInfo {
     char dumpfile[MAXPATHLEN];
-    VolumeId volid;	    /* Volume being dumped. */
+    VolumeId volid;	      /* Volume being dumped. */
     unsigned long numbytes; /* Number of bytes already written to the file. */
 } Rock;
 
@@ -155,11 +152,12 @@ typedef struct {
 /* Per volume info. */
 #define INCREMENTAL 0x10
 #define REPLICATED  0x20
-#define BADNESS	    0x40	/* Indicates an operation on a replica failed.
-				 * Used to signal a retry. On the first pass,
-				 * dumps should be attempted if any clone succeeded
-				 * and marks on any successful dump.
-				 */
+#define BADNESS	    0x40	/* Indicates an operation on a replica
+				   failed.  * Used to signal a
+				   retry. On the first pass, * dumps
+				   should be attempted if any clone
+				   succeeded * and marks on any
+				   successful dump.  */
                             
 
 typedef struct volinfo {
@@ -172,16 +170,12 @@ typedef struct volinfo {
     repinfo_t *replicas;
 } volinfo_t;
 
-/* Information on the local disk partitions where dump files will be stored. */
-typedef struct partitionInfo {
-    char name[MAXPATHLEN];		/* Name of dir on partition */
-    char devName[MAXPATHLEN];		/* Name of special file */
-    dev_t device;			/* Device number */
-    unsigned long free;			/* Number of free blocks */
-    struct partitionInfo *next;
-} partitionInfo_t;
 
-partitionInfo_t *Partitions = NULL;
+/* a dummy partition type "backup" is used by backup.cc 
+ * leveraging on the partition package 
+ */
+struct DiskPartition *DiskPartitionList = NULL;
+struct DiskPartition *Partitions = NULL;
 
 /* Procedure definitions. */
 PRIVATE void V_InitRPC();
@@ -193,15 +187,13 @@ PRIVATE int lockReplicas(volinfo_t *vol);
 PRIVATE void unlockReplicas(volinfo_t *vol);
 PRIVATE int backup(volinfo_t *vol);
 PRIVATE void VUInitServerList();
-extern int volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,SE_Descriptor*);
+extern int volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,
+				  SE_Descriptor*);
 
-
 
-/*
- * get_volId parses the VolumeList file to obtain the volId and whether 
- * to do a full dump or an incremental dump of the volume. It returns 
- * zero if no errors occured.
- */
+/* get_volId parses the VolumeList file to obtain the volId and
+ * whether to do a full dump or an incremental dump of the volume. It
+ * returns zero if no errors occured.  */
 
 #define LINELENGTH 81
 int getVolId(FILE *VolumeList, VolumeId *volId, int *flags, char *comment)
@@ -226,10 +218,9 @@ int getVolId(FILE *VolumeList, VolumeId *volId, int *flags, char *comment)
 	return(-1);
     }
 
-    /* To determine the place in the dump cycle, first number today modulo
-     * the length of the cycle. Cycles of size 7 are offset so Sunday is
-     * day 0.
-     */
+    /* To determine the place in the dump cycle, first number today
+     * modulo the length of the cycle. Cycles of size 7 are offset so
+     * Sunday is day 0.  */
     struct timeval tp;
     gettimeofday(&tp, 0);
     long day = tp.tv_sec / 86400; /* Find count of days (int div by seconds/day)*/
@@ -248,10 +239,10 @@ int getVolId(FILE *VolumeList, VolumeId *volId, int *flags, char *comment)
 }
 
 
-/* The rpcid is either bound already (we have a connection) or we should
- * attempt to bind to the server. I am assuming the vldb entry has the
- * server storage information for r/w volumes in the first slot (0).
- */
+/* The rpcid is either bound already (we have a connection) or we
+ * should attempt to bind to the server. I am assuming the vldb entry
+ * has the server storage information for r/w volumes in the first
+ * slot (0).  */
 
 RPC2_Handle getrpcId(struct vldb *vldbp) {
     /* Maybe we already have it? */
@@ -286,10 +277,9 @@ RPC2_Handle getrpcId(struct vldb *vldbp) {
     return 0;
 }    
 
-/*
- * Given the id of a replica, look up the volume information in the VLDB.
- * Fill in the repinfo_t structure, returning the connectionid of the server.
- */
+/* Given the id of a replica, look up the volume information in the
+ * VLDB.  Fill in the repinfo_t structure, returning the connectionid
+ * of the server.  */
 
 getReplica(repinfo_t *rep) {
     char volIdstr[11];		    /* The ascii (decimal) version of the VolId */
@@ -313,131 +303,43 @@ getReplica(repinfo_t *rep) {
     return getrpcId(vldbp);
 }
 
-
 
-/*** Procedures to read DumpFile and build the partition and volume lists. ***/
-
-
-    /* Note: For now I'm not going to bother syncing to get acurate figures.
-     * This is just for a heuristic anyway. This might change if overfilling
-     * a partition becomes a problem (like the whole mess hangs)
-     */
-
-void SetPartitionDiskUsage(register partitionInfo_t *dp)
+/* change the partition name entry to have the todayName appended */
+int PreparePartitionEntries(struct DiskPartition *part)
 {
-#ifdef __MACH__
-    static struct fs sblock;  /*Static because of constraints on lwp proc size*/
-    int fd;
-    long totalblks, free, used, availblks;
-    fd = open(dp->devName, O_RDONLY, 0);
-    if (fd < 0) {
-	printf("SetPartitionDiskUsage: open on %s failed with %s\n",
-	       dp->devName, strerror(errno));
-	assert(0);
-    }
+    long t = time(0);
+    char m[4], d[3], y[5];
+    sscanf(ctime(&t), "%*3s %3s %2s %*8s %4s", m, d, y);
+    char todayName[11];
+    sprintf(todayName, "/%s%s%s", d, m, y);
+    struct DiskPartition *dp = 0;
+    char *name = dp->name;
 
-    assert(lseek(fd, dbtob(SBLOCK), L_SET) >= 0);
-    assert(read(fd, (char *)&sblock, sizeof(sblock)) == sizeof(sblock));
-    close(fd);
-    
-    /* Cribbed from df.c */
-    totalblks = sblock.fs_dsize;
-    free = sblock.fs_cstotal.cs_nbfree * sblock.fs_frag +
-	sblock.fs_cstotal.cs_nffree;
-    used = totalblks - free;
-    availblks = totalblks * (100 - sblock.fs_minfree) / 100;
+    assert(part);
 
-    dp->free = availblks - used; /* May be negative, which is OK */
-#endif /* __MACH__ */
-
-#if	defined(__linux__) || defined(__FreeBSD__)
-    dp->free =0;
-#endif /* __linux__ */
-
-#if	defined(__BSD44__) && ! defined(__FreeBSD__)
-    LogMsg(0, 0, stdout, "Arrgghh... SetPartitionDiskUsage() not ported yet");
-    assert(0);
-#endif /* __BSD44__ */
-}
-
-InitPartitionEntry(partitionInfo_t **table, char *name, char *todayName)
-{
-    partitionInfo_t *part;
-    
-    /* First, make sure the file really exists. */
-    struct stat sbuf;
-    if (stat(name, &sbuf) == -1) {
-	LogMsg(0, 0, stdout, "Could not find file %s; ignored\n", name);
-	return -1;
-    }
-
-    /* Second, Make sure that this filesystem isn't already being used. */
-    for (part = *table; part; part = part->next) {
-	if (part->device == sbuf.st_dev) {
-	    LogMsg(0,0,stdout, "%s and %s are on same file system, skipping %s", name, part->name, name);
-	    return -1;
-	}
-    }
-    
-    /* Create an entry for this partition. */
-    part = (partitionInfo_t *) malloc(sizeof(partitionInfo_t));
-    part->device = sbuf.st_dev;
-
-    /* Locate the fsentry for this partition. */
-    /*This is slow, but the it is easier to read and backup will be slow anyway.*/
-    {
-	part->devName[0] = 0;
-#ifdef __MACH__
-	setfsent();
-	struct fstab *fsent;
-	while (fsent = getfsent()) {
-	    if (stat(fsent->fs_spec, &sbuf) != -1)
-		if (sbuf.st_rdev == part->device) {
-		    strcpy(part->devName, fsent->fs_spec);
-		    break;
-		}
-	}
-	endfsent();
-#endif
-
-	if (part->devName[0] == 0) {
-	    LogMsg(0,0,stdout, "Error: Couldn't find device name for %s.", name);
-	    free(part);
+    for (dp = part; dp ; dp = dp->next) {
+	name = dp->name;
+	if ((strlen(todayName) + strlen(name) < sizeof(part->name))) {
+	    strcat(part->name, todayName);
+	    if (mkdir(part->name, 0755) != 0) {
+		LogMsg(0, 0, stdout, 
+		       "Error '%s' creating directory %s.", 
+		       strerror(errno), part->name);
+		return -1;
+	    }
+	} else {
+	    LogMsg(0, 0, stdout, "Name too long! %s", part->name);
 	    return -1;
 	}
     }
 
-    /* create a date-dependent subdir in the partition */
-    if ((sizeof(name) < sizeof(part->name)) &&
-	(strlen(todayName) + strlen(name) < sizeof(part->name))) {
-	strcpy(part->name, name);
-	strcat(part->name, todayName);
-	if (mkdir(part->name, 0755) != 0) {
-	    LogMsg(0, 0, stdout, "Error '%s' creating directory %s.", strerror(errno), part->name);
-	    free(part);
-	    return -1;
-	}
-    } else {
-	LogMsg(0, 0, stdout, "Name too long! %s", part->name);
-	free(part);
-	return -1;
-    }
-
-    /* Set the amount of free space on this partition. */
-    SetPartitionDiskUsage(part); 
-    
-    /* Add this entry to the list. */
-    part->next = *table;
-    *table = part;
     return 0;
 }
 
-/* Parse the VolumeList file to get the list of local partitions to dump to.*/
-int ParseDumpList(char *VolumeListFile, partitionInfo_t **Parts, volinfo_t **vols)
+/* Parse the VolumeList file to get the list volumes to dump */
+int ParseDumpList(char *VolumeListFile, volinfo_t **vols)
 {
-    char string[LINELENGTH];
     *vols = NULL;
-    *Parts = NULL;
     
     FILE *VolumeList = fopen(VolumeListFile, "r");
     if (VolumeList == NULL) {
@@ -445,50 +347,10 @@ int ParseDumpList(char *VolumeListFile, partitionInfo_t **Parts, volinfo_t **vol
         return -1;
     }
     
-    if (fgets(string, LINELENGTH, VolumeList) == NULL) {
-	LogMsg(0, 0, stdout, "Parse error processing %s.", VolumeListFile);
-	return -1;
-    }
-    
-    if (strncmp(string, "Partitions", 10) != 0) {
-	LogMsg(0, 0, stdout, "Bad VolumeList file: missing keyword Partitions.");
-	return -1;
-    }
-
-    /* create a date-dependent name ddmmmyyyy */
-    long t = time(0);
-    char m[4], d[3], y[5];
-    sscanf(ctime(&t), "%*3s %3s %2s %*8s %4s", m, d, y);
-    char todayName[11];
-    sprintf(todayName, "/%s%s%s", d, m, y);
-
-    /* Fill the pipe. */
-    if (fgets(string, LINELENGTH, VolumeList) == NULL) { 
-	LogMsg(0, 0, stdout, "Parse error processing %s.", VolumeListFile);
-	return -1;
-    }
-
-    while (strncmp(string, "Volumes", 7) != 0) {
-	char name[MAXPATHLEN];
-	sscanf(string, "%s", name);
-
-	InitPartitionEntry(Parts, name, todayName);
-	
-	if (fgets(string, LINELENGTH, VolumeList) == NULL) {
-	    LogMsg(0, 0, stdout, "Parse error processing %s.", VolumeListFile);
-	    return -1;
-	}	
-    }
-
-    /* If we have no other option, use the current directory. */
-    if (!*Parts) {
-	char name[80];
-	getwd(name);
-	LogMsg(0,0,stdout, "Warning: no valid partition specified, using %s", name);
-    }
-    
-    /* Read in the list of volumes to be backed up from the input file. */
-    /* Note: this list will be in the reverse order from the list in the file. */
+    /* Read in the list of volumes to be backed up from the input
+       file. */
+    /* Note: this list will be in the reverse order from the list in
+       the file. */
 
     volinfo_t *vol, *Vols = 0x0;
     
@@ -611,12 +473,11 @@ PRIVATE void unlockReplicas(volinfo_t *vol)
     }
 }
 
-/*
- * Clone the replicas. First lock as many as you can. Only clone those that
- * were locked. Although this may not capture latest state, all the assumptions
- * that make optomistic replication work also apply here. Unlock all the replicas
- * after cloning. Store the # of cloned replicas in the volinfo_t.
- */
+/* Clone the replicas. First lock as many as you can. Only clone those
+ * that were locked. Although this may not capture latest state, all
+ * the assumptions that make optomistic replication work also apply
+ * here. Unlock all the replicas after cloning. Store the # of cloned
+ * replicas in the volinfo_t.  */
 PRIVATE int backup(volinfo_t *vol) {
     VolumeId volId = vol->volId;
     int Incremental = (vol->flags & INCREMENTAL);
@@ -664,9 +525,12 @@ PRIVATE int backup(volinfo_t *vol) {
     return 0;
 }
 
-partitionInfo_t *findBestPartition(partitionInfo_t *Parts) {
+struct DiskPartition *findBestPartition(struct DiskPartition *Parts) 
+{
     unsigned long space;
-    partitionInfo_t *best, *part = 0;
+    struct DiskPartition *best, *part = 0;
+
+    assert(Parts);
 
     best = Parts;
     space = Parts->free;
@@ -681,25 +545,27 @@ partitionInfo_t *findBestPartition(partitionInfo_t *Parts) {
 }
 
 /* Turns out the VVV isn't maintained across repairs or resolves. So
- * after either of these operations, the VVVs won't agree. In addition,
- * it is unclear how to deal when for one incremental the VVVs agree
- * and for another in the same series they don't. For the second incremental,
- * a vvlist file won't exist, so it'll look like a full and the first
- * incremental won't be in the ordering, although it'll appear to the user
- * like it should be since it succeded. A fix to this would be to force
- * the vvlist file over as part of MarkAsAncient, or to produce the vvlist
- * file during cloning. For now though, I'm turning off this optimization.
+ * after either of these operations, the VVVs won't agree. In
+ * addition, it is unclear how to deal when for one incremental the
+ * VVVs agree and for another in the same series they don't. For the
+ * second incremental, a vvlist file won't exist, so it'll look like a
+ * full and the first incremental won't be in the ordering, although
+ * it'll appear to the user like it should be since it succeded. A fix
+ * to this would be to force the vvlist file over as part of
+ * MarkAsAncient, or to produce the vvlist file during cloning. For
+ * now though, I'm turning off this optimization.
  *
- * The Incremental flag I is passed by reference since the server can force
- * an incremental to be a full if the *ancient* file cannot be found. If this
- * is the case, we are notified so that today's tape will be saved.
+ * The Incremental flag I is passed by reference since the server can
+ * force an incremental to be a full if the *ancient* file cannot be
+ * found. If this is the case, we are notified so that today's tape
+ * will be saved.
  *
- * Here's the deal: for each replica, create a dump file on the emptiest
- * partition in Parts (or in the current directory if no Parts were specified).
- * If the replica wasn't cloned, or was already dumped, skip it.
- */
+ * Here's the deal: for each replica, create a dump file on the
+ * emptiest partition in Parts (or in the current directory if no
+ * Parts were specified).  If the replica wasn't cloned, or was
+ * already dumped, skip it.  */
 
-int dumpVolume(volinfo_t *vol, partitionInfo_t *Parts)
+int dumpVolume(volinfo_t *vol, struct DiskPartition  *Parts)
 {
     repinfo_t *reps = vol->replicas;
     VolumeId volId = vol->volId;
@@ -720,7 +586,7 @@ int dumpVolume(volinfo_t *vol, partitionInfo_t *Parts)
 	assert(reps[i].backupId > 0);
 	
 	/* get the name of the dumpfile. */
-	partitionInfo_t *part = NULL;
+	struct DiskPartition *part = NULL;
 	char buf[MAXPATHLEN];
 
 	if (Parts == 0) {	/* No partitions specified. */
@@ -739,10 +605,10 @@ int dumpVolume(volinfo_t *vol, partitionInfo_t *Parts)
 		sprintf(buf, "%s/%s-%x", part->name, Hosts[reps[i].serverNum].name, volId);
 	}
 
-	/* Remove the file if it already exists. Since we made the dump dir
-	 * it can only exist if we are retrying the replicated dump even though
-	 * it succeeded for this replica last time around. Don't care if it fails.
-	 */
+	/* Remove the file if it already exists. Since we made the
+	 * dump dir it can only exist if we are retrying the
+	 * replicated dump even though it succeeded for this replica
+	 * last time around. Don't care if it fails.  */
 	unlink(buf);
 	
 	/* Setup the write thread to handle this operation. */
@@ -779,7 +645,8 @@ int dumpVolume(volinfo_t *vol, partitionInfo_t *Parts)
 	    else
 		sprintf(link, "%s/%x", Hosts[reps[i].serverNum].name, volId);
 	    
-	    /* Remove the link if it exists. See comment by previous unlink. */
+	    /* Remove the link if it exists. See comment by previous
+               unlink. */
 	    unlink(link);
 	    
 	    if (symlink(buf, link) == -1) {
@@ -794,7 +661,7 @@ int dumpVolume(volinfo_t *vol, partitionInfo_t *Parts)
 	    }
 
 	    /* Reset diskusage for the partition that was used */
-	    SetPartitionDiskUsage(part);
+	    VSetPartitionDiskUsage(part);
 	}
 
 	/* At this point, we know everything worked for this replica. */
@@ -808,9 +675,9 @@ int dumpVolume(volinfo_t *vol, partitionInfo_t *Parts)
     return ndumped;
 }
 
-/* At this point we're convinced that the Volume has been successfully backed up.
- * Tell the server the backup was successful if the backup was a full.
- */
+/* At this point we're convinced that the Volume has been successfully
+   * backed up.  Tell the server the backup was successful if the *
+   backup * was a full.  */
 MarkAsAncient(volinfo_t *vol) {
     long rc;
     repinfo_t *reps = vol->replicas;
@@ -827,11 +694,11 @@ MarkAsAncient(volinfo_t *vol) {
 	/* If it is dumped, unmarked, and a full -- mark it */
 	} else if (ISDUMPED(reps[i].flags)) {
 
-	    /* If the dump was incremental, it doesn't need to be marked. We
-	     * now only mark fulls, so all incrementals are wrt the last full,
-	     * not the last dump. But people think "M" indicates success, so
-	     * set the flag to make the reporting look consistent.
-	     */
+	    /* If the dump was incremental, it doesn't need to be
+	     * marked. We now only mark fulls, so all incrementals are
+	     * wrt the last full, not the last dump. But people think
+	     * "M" indicates success, so set the flag to make the
+	     * reporting look consistent.  */
 	    if (vol->flags & INCREMENTAL) {
 		nmarked++;
 		reps[i].flags |= MARKED;
@@ -897,7 +764,7 @@ int main(int argc, char **argv) {
 	}
     }
     
-    if (filename == NULL) {	/* Definately need a file for the VolumeList. */
+    if (filename == NULL) {	/* Definitely need a file for the VolumeList. */
 	printf("Usage: %s [-p pollPeriod] [-t timeout] [-d debuglevel] <filename> [<backup dir>]\n", myname);
 	exit(1);
     }
@@ -913,13 +780,25 @@ int main(int argc, char **argv) {
     V_InitRPC();
     CheckVRDB();
     VUInitServerList();
+
+    /* initialize the partitions */
+    InitPartitions("/vice/db/vicetab");
+    Partitions = DiskPartitionList;
+    /* change the name */
+    if ( PreparePartitionEntries(Partitions) != 0 ) {
+	eprint("Malformed partitions! Names too long.");
+	exit(1);
+    }
+
     InitHisto(&DataRate, 0, 1048576, 20, LINEAR); /* 1 == LINEAR */
     InitHisto(&DataTransferred, 1, 104857600, 10, LOG10); /* 3 == Log 10 */
 
     /* Parse BackupList file. */
     volinfo_t *Volumes;
-    if (ParseDumpList(filename, &Partitions, &Volumes) != 0)
+    if (ParseDumpList(filename, &Volumes) != 0) {
+	eprint("Error parsing %s for volumes!", filename);
 	exit(-1);
+    }
 
     /* Start up thread to handle WriteDump requests. */
     PROCESS dumpPid;
@@ -932,9 +811,9 @@ int main(int argc, char **argv) {
     LWP_CreateProcess((PFIC)PollLWP, 5 * 1024, LWP_NORMAL_PRIORITY - 1,
 		      (char *)Naptime, "PollLWP", &pollPid);
 
-    /* First try to backup (clone, dump, and mark) all volumes. Do all volumes
-     * for a phase before starting the next phase to localize disruption.
-     */
+    /* First try to backup (clone, dump, and mark) all volumes. Do all
+     * volumes for a phase before starting the next phase to localize
+     * disruption.  */
     /* Backup (clone) Phase */
 
     for (vol = Volumes; vol; vol = vol->next) {
@@ -968,10 +847,9 @@ int main(int argc, char **argv) {
     LogMsg(0, 0, stdout, "Attempting to retry any failed operations.");
     LogMsg(0, 0, stdout, "");
 
-    /* force an attempt to connect to any down servers. If we paused for a
-     * long period of time, servers may have gone down and back up. We should
-     * get a chance to rebind.
-     */
+    /* force an attempt to connect to any down servers. If we paused
+     * for a long period of time, servers may have gone down and back
+     * up. We should get a chance to rebind.  */
     PollServers();
 
     for (vol = Volumes; vol; vol = vol->next) {
@@ -990,32 +868,28 @@ int main(int argc, char **argv) {
 	    /* Only attempt it again if we think we can do better than we did. */
 	    if ((vol->flags & BADNESS) || (up > vol->nCloned)) {
 
-		/* Clear the appropriate flags. If not all replicas were included,
-		 * try the whole thing again.
-		 */
+		/* Clear the appropriate flags. If not all replicas
+		 * were included, try the whole thing again.  */
 		vol->flags &= ~BADNESS;
 
-		/* Only retry it if this stage failed last time. If it was never
-		 * attempted, nCloned == 0.
-		 */
+		/* Only retry it if this stage failed last time. If it
+		 * was never attempted, nCloned == 0.  */
 		if (vol->nCloned < vol->nReplicas) {
 		    if (backup(vol) != 0) {
 			LogMsg(0, 0, stdout, "Backup of replicated volume %x failed again\n",vol->volId);
 		    }
 		}
 
-		/* dumpVolume will only try those reps that haven't been dumped
-		 * since the last clone.
-		 */
+		/* dumpVolume will only try those reps that haven't
+		 * been dumped since the last clone.  */
 		int ndumped;
 		if ((ndumped = dumpVolume(vol, Partitions)) < vol->nCloned) {
 		    vol->flags |= BADNESS;
 		    LogMsg(0, 0, stdout,"Dump of volume %x failed again!\n",vol->volId);
 		}
 
-		/* MarkAsAncient will only try those reps that haven't been dumped
-		 * since the last clone.
-		 */
+		/* MarkAsAncient will only try those reps that haven't
+		 * been dumped since the last clone.  */
 		if (MarkAsAncient(vol) < ndumped) {
 		    vol->flags |= BADNESS;
 		    LogMsg(0, 0, stdout, "MarkAsAncient of volume %x failed again!\n", vol->volId);
@@ -1024,17 +898,17 @@ int main(int argc, char **argv) {
 	}
     }
 
-    /* While postprocessing the volumes, create a file called FULLDUMP to notify
-     * the backup script that a full dump occured. The script then can change
-     * it's behaviour in regards to the treatment of the tape it will write.
-     */
+    /* While postprocessing the volumes, create a file called FULLDUMP
+     * to notify the backup script that a full dump occured. The
+     * script then can change it's behaviour in regards to the
+     * treatment of the tape it will write.  */
     int fullDump = 0;
     
     
-    /* Output the results. With each unsuccessfully backed up volume report
-     * the last successsful stage of the replicas, since a 3-way replicated
-     * volume on which 2 sites completely succeed is still a failure.
-     */
+    /* Output the results. With each unsuccessfully backed up volume
+     * report the last successsful stage of the replicas, since a
+     * 3-way replicated volume on which 2 sites completely succeed is
+     * still a failure.  */
     LogMsg(0, 0, stdout, "Successfully backed-up Volumes:");
     for (vol = Volumes; vol; vol = vol->next) {
 
@@ -1154,7 +1028,8 @@ int main(int argc, char **argv) {
     LogMsg(0, 0, stdout, "\n");
 }
 
-/* copied from VInitServerList() in vol/volume.c and modified to suit my needs. */
+/* copied from VInitServerList() in vol/volume.c and modified to suit
+   my needs. */
 PRIVATE void VUInitServerList() {
     /* Find the server id */
     char hostname[100];
@@ -1167,7 +1042,8 @@ PRIVATE void VUInitServerList() {
 
     file = fopen(serverList, "r");
     if (file == NULL) {
-	LogMsg(0, Debug, stdout, "VUInitServerList: unable to read file %s; aborted", serverList);
+	LogMsg(0, Debug, stdout, 
+	       "VUInitServerList: unable to read file %s; aborted", serverList);
 	exit(1);
     }
     gethostname(hostname, sizeof(hostname)-1);
@@ -1311,8 +1187,8 @@ PRIVATE void PollLWP(int naptime)
 	PollServers();
 
 	/* Recheck the disk usage for the partitions we are using. */
-	for (partitionInfo_t *part = Partitions; part ; part = part->next) {
-	    SetPartitionDiskUsage(part);
+	for (struct DiskPartition *part = Partitions; part ; part = part->next) {
+	    VSetPartitionDiskUsage(part);
 	}
 
 	(void)IOMGR_Poll();
@@ -1457,14 +1333,5 @@ long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, Vol
 {
     LogMsg(0, 0, stdout, "GOT A READDUMP CALL!!!!\n");
     assert(0);
-
-    /* To appease a nitpicky compiler. Control will never get here. */
-    int i = 0;
-    if (rpcid == 1 && volid == 1)
-	offset = i;
-    if (BD)
-	if (nbytes)
-	    i = 1;
-    return 0;
 }
 
