@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.8 1998/07/22 18:47:24 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp3.c,v 4.9 1998/08/23 16:40:20 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -105,7 +105,7 @@ long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,
 struct sftpStats sftp_Sent, sftp_MSent;
 struct sftpStats sftp_Recvd, sftp_MRecvd;
 
-PRIVATE CheckWorried(), ResendWorried(), SendSendAhead(), WinIsOpen();
+static CheckWorried(), ResendWorried(), SendSendAhead(), WinIsOpen();
 
 #ifdef RPC2DEBUG
 #define BOGOSITY(se, pb)  (printf("SFTP bogosity:  file %s, line %d\n", __FILE__, __LINE__), PrintDb(se, pb))
@@ -797,7 +797,7 @@ sftp_SendStrategy(sEntry)
     }
 
 
-PRIVATE CheckWorried(sEntry)
+static CheckWorried(sEntry)
     register struct SFTP_Entry *sEntry;
     /* Check the packets from SendWorriedLimit to SendAckLimit, and
        see if we should be Worried about any of them.  */
@@ -831,7 +831,7 @@ PRIVATE CheckWorried(sEntry)
 				  sEntry->SendLastContig, sEntry->SendWorriedLimit, sEntry->SendAckLimit, sEntry->SendMostRecent);
     }
 
-PRIVATE ResendWorried(sEntry, ackLast)
+static ResendWorried(sEntry, ackLast)
     register struct SFTP_Entry *sEntry;
     long ackLast;
     /* Resend worried set for sEntry.  Ack the last member of the set
@@ -931,7 +931,7 @@ SendFirstUnacked(sEntry)
     return(0);
     }
 
-PRIVATE SendSendAhead(sEntry)
+static SendSendAhead(sEntry)
     register struct SFTP_Entry *sEntry;
     /* Send out SendAhead set, adds to the InTransit set and requests
        ack for AckPoint packet.  Caller should ensure that sending
@@ -1260,7 +1260,7 @@ sftp_SendTrigger(sEntry)
     }
 
 
-PRIVATE WinIsOpen(sEntry)
+static WinIsOpen(sEntry)
     struct SFTP_Entry *sEntry;
     {
     if ((sEntry->SendAhead + sEntry->SendMostRecent - sEntry->SendLastContig) > sEntry->WindowSize)

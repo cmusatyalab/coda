@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.3 98/06/11 15:29:21 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.4 1998/06/16 15:43:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,19 +73,19 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "test.h"
 
 #define SUBSYS_SRV 1001
-
+#define STESTSTACK 0x10000
 extern etext();
 extern long RPC2_Perror;
 extern long RPC2_DebugLevel;
 extern long SFTP_DebugLevel;
 extern long SFTP_RetryInterval;
 
-PRIVATE char ShortText[200];
-PRIVATE char LongText[3000];
+static char ShortText[200];
+static char LongText[3000];
 
 long FindKey();	/* To obtain keys from ClientIdent */
 long NoteAuthFailure();	/* To note authentication failures */
-PRIVATE void PrintHostIdent(), PrintPortalIdent();
+static void PrintHostIdent(), PrintPortalIdent();
 
 #define DEFAULTLWPS	1	/* The default number of LWPs */
 #define MAXLWPS		32	/* The maximum number of LWPs */
@@ -176,11 +176,11 @@ void HandleRequests(lwp)
 	if ((--availableLWPs <= 0) &&
 	    (numLWPs < maxLWPs)) {
 #if	__GNUC__ >= 2
-	    i = LWP_CreateProcess((PFIC)HandleRequests, 16384, LWP_NORMAL_PRIORITY,
+	    i = LWP_CreateProcess((PFIC)HandleRequests, STESTSTACK, LWP_NORMAL_PRIORITY,
 			      (char *)numLWPs, "server", &pids[numLWPs]);
 /* ??? */
 #else
-	    i = LWP_CreateProcess(HandleRequests, 16384, LWP_NORMAL_PRIORITY,
+	    i = LWP_CreateProcess(HandleRequests, STESTSTACK, LWP_NORMAL_PRIORITY,
 			      numLWPs, "server", &pids[numLWPs]);
 #endif
 	    assert(i == LWP_SUCCESS);
@@ -253,7 +253,7 @@ long NoteAuthFailure(cIdent, eType, pHost, pPortal)
     }
 
 
-PRIVATE void PrintHostIdent(hPtr, tFile)
+static void PrintHostIdent(hPtr, tFile)
     register RPC2_HostIdent *hPtr;
     FILE *tFile;
     {
@@ -278,7 +278,7 @@ PRIVATE void PrintHostIdent(hPtr, tFile)
     (void) fflush(tFile);
     }
 
-PRIVATE void PrintPortalIdent(pPtr, tFile)
+static void PrintPortalIdent(pPtr, tFile)
     register RPC2_PortalIdent *pPtr;
     FILE *tFile;
     {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.3 1997/10/01 18:55:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.4 1998/04/14 21:06:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,6 +69,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <netdb.h>
 #include <sys/time.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "lwp.h"
 #include "timer.h"
 #include "preempt.h"
@@ -103,17 +106,17 @@ typedef struct	{
 		long		    *indexlist;
 		} PacketCon;
 
-PRIVATE void SetupConns();
-PRIVATE void SetupPackets();
+static void SetupConns();
+static void SetupPackets();
 #define MaxLWPs	  8    /* lwp's enabled to make simultaneous MultiRPC calls */
-PRIVATE MultiCon *mcon[MaxLWPs] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-PRIVATE MultiCon *get_multi_con();
-PRIVATE void cleanup();
-PRIVATE long mrpc_SendPacketsReliably();
-PRIVATE PacketCon *spcon[MaxLWPs] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-PRIVATE PacketCon *get_packet_con();
-PRIVATE void MSend_Cleanup();
-PRIVATE void mrpc_ProcessRC(long *in, long *out, int howmany);
+static MultiCon *mcon[MaxLWPs] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+static MultiCon *get_multi_con();
+static void cleanup();
+static long mrpc_SendPacketsReliably();
+static PacketCon *spcon[MaxLWPs] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+static PacketCon *get_packet_con();
+static void MSend_Cleanup();
+static void mrpc_ProcessRC(long *in, long *out, int howmany);
 static inline long  EXIT_MRPC(long code, long *retcode, long *RCList, 
 			      int HowMany, struct RPC2_PacketBuffer **req, 
 			      RPC2_PacketBuffer **preq, 
@@ -272,7 +275,7 @@ EXIT_MRPC(long code, long *retcode, long *RCList, int HowMany,
 
 /* copy arguments into the return code lists, possibly translating 
    error codes */
-PRIVATE void mrpc_ProcessRC(long *in, long *out, int howmany) 
+static void mrpc_ProcessRC(long *in, long *out, int howmany) 
 {
 #ifdef ERRORTR
     int host;
@@ -287,7 +290,7 @@ PRIVATE void mrpc_ProcessRC(long *in, long *out, int howmany)
 #endif 
 }
 
-PRIVATE void SetupConns(HowMany, ConnHandleList, ceaddr, MCast, me, SDescList, retcode)
+static void SetupConns(HowMany, ConnHandleList, ceaddr, MCast, me, SDescList, retcode)
     int		    HowMany;
     RPC2_Handle	    ConnHandleList[];
     struct CEntry   **ceaddr;
@@ -385,7 +388,7 @@ PRIVATE void SetupConns(HowMany, ConnHandleList, ceaddr, MCast, me, SDescList, r
     }
 
 
-PRIVATE void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
+static void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
 		    me, req, preq, retcode, SDescList, Request)
     int			HowMany;
     RPC2_Handle		ConnHandleList[];
@@ -580,7 +583,7 @@ PRIVATE void SetupPackets(HowMany, ConnHandleList, ceaddr, slarray, MCast,
 	
 /* Get a free context from the pool or allocate an unused one */
 /* locking is not a problem since LWPs are nonpreemptive */
-PRIVATE MultiCon *get_multi_con(count)
+static MultiCon *get_multi_con(count)
 long count;
 {
     long buffsize;
@@ -626,7 +629,7 @@ long count;
 
 
 /* deallocate buffers and free allocated arrays */
-PRIVATE void cleanup(curhost, req, preq, slarray, context, me)
+static void cleanup(curhost, req, preq, slarray, context, me)
 long curhost;
 RPC2_PacketBuffer *req[], *preq[];
 struct SL_Entry *slarray[];
@@ -663,7 +666,7 @@ struct MEntry *me;
 
 
 	/* MultiRPC version */
-PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
+static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		ConnArray, SLArray, PacketArray, ArgInfo, SDescList, UnpackMulti, TimeOut, RCList)
     int HowMany;			/* how many servers to send to */
     RPC2_Handle ConnHandleList[];	/* array of connection ids */
@@ -817,7 +820,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 
 		case ARRIVED:
 		    /* know this hasn't yet been processd */
-		    say(9, RPC2_DebugLevel, "Request reliably sent on 0x%lx\n", c_entry);
+		    say(9, RPC2_DebugLevel, "Request reliably sent on 0x%p\n", c_entry);
 		    /* remove current connection from future examination */
 		    i = exchange(indexlist, i, finalind--);
 
@@ -873,7 +876,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		    break;	/* switch */
 		    
 		case NAKED:	/* explicitly NAK'ed this time or earlier */
-		    say(9, RPC2_DebugLevel, "Request NAK'ed on 0x%lx\n", c_entry);
+		    say(9, RPC2_DebugLevel, "Request NAK'ed on 0x%p\n", c_entry);
 		    rpc2_SetConnError(c_entry);	    /* does signal on ConnHandle also */
 		    i = exchange(indexlist, i, finalind--);
 		    finalrc = RPC2_FAIL;
@@ -890,7 +893,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		        break;
 
 		case TIMEOUT:
-		    if (hopeleft = rpc2_CancelRetry(c_entry, slp))
+		    if ((hopeleft = rpc2_CancelRetry(c_entry, slp)))
 			    break;    /* switch, we heard from side effect */
 		    /* 
 		     * check if all retries exhausted, if not check if later
@@ -900,7 +903,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 			((c_entry->Retry_Beta[slp->RetryIndex+1].tv_sec <= 0) &&
 			 (c_entry->Retry_Beta[slp->RetryIndex+1].tv_usec <= 0)))
 			{
-			say(9, RPC2_DebugLevel, "Request failed on 0x%lx\n", c_entry);
+			say(9, RPC2_DebugLevel, "Request failed on 0x%p\n", c_entry);
 			rpc2_SetConnError(c_entry); /* does signal on ConnHandle also */
 			/* remote site is now declared dead; mark all inactive connections to there likewise */
 			i = exchange(indexlist, i, finalind--);
@@ -941,7 +944,7 @@ PRIVATE long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
     }
 
 
-PRIVATE PacketCon *get_packet_con(count)
+static PacketCon *get_packet_con(count)
 long count;
 {
     long buffsize;
@@ -1000,7 +1003,7 @@ int cur_ind, final_ind;
 
 
 /* Clean up state before exiting mrpc_SendPacketsReliably */
-PRIVATE void MSend_Cleanup(SLArray, ConnArray, SDescList, indexlist, finalind,
+static void MSend_Cleanup(SLArray, ConnArray, SDescList, indexlist, finalind,
 	HowMany,Timeout, context)
     struct SL_Entry *SLArray[];
     struct CEntry *ConnArray[];

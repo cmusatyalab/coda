@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.1 1997/01/08 21:50:22 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.2 1998/04/14 21:06:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,6 +61,10 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "lwp.h"
 #include "timer.h"
 #include "rpc2.h"
@@ -95,202 +99,183 @@ of the Coda License.
    are in network order, and are assumed to be numbers, not names.  */
  
 #define HOSTHASHBUCKETS 64
-#define HASHHOST(h,p) (((p & 0x0f00) >> 4 | (h & 0x0f000000) >> 24) \
-		       & (HOSTHASHBUCKETS-1))
+#define HASHHOST(h,p) (((p & 0x0f00) >> 4 | (h & 0x0f000000) >> 24) & (HOSTHASHBUCKETS-1))
                                         /* mod HOSTHASHBUCKETS */
-PRIVATE struct HEntry **HostHashTable;	/* to malloc'ed hash table of size CurrentLength entries */
+static struct HEntry **HostHashTable;	/* malloc'ed hash table static stize */
 
 void rpc2_InitHost()
 {
-    HostHashTable = (struct HEntry **)malloc(HOSTHASHBUCKETS*sizeof(struct HEntry *));
-    assert(HostHashTable != 0);
-    /* all entries initially NULL */
-    bzero(HostHashTable, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
+	HostHashTable = (struct HEntry **)malloc(HOSTHASHBUCKETS*sizeof(struct HEntry *));
+	assert(HostHashTable != 0);
+	bzero(HostHashTable, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
 }
 
-struct HEntry *rpc2_FindHEAddr(IN whichHost, IN whichPortal)
-    register unsigned long whichHost;
-    register unsigned short whichPortal;
-    /* Returns pointer to the host entry corresponding to (hostid, portalid)
-	    Returns NULL if (host,portal) does not exist.
-    */
-    {
-    register long bucket;
-    register struct HEntry *headdr;
+/* Returns pointer to the host entry corresponding to (hostid,
+   portalid) Returns NULL if (host,portal) does not exist.  */
+struct HEntry *rpc2_FindHEAddr(IN unsigned long whichHost, IN unsigned short whichPortal)
+{
+	register long bucket;
+	register struct HEntry *headdr;
+	
+	if (whichHost == 0 || whichPortal == 0) 
+		return(NULL);
 
-    if (whichHost == 0 || whichPortal == 0) return(NULL);
-
-    bucket = HASHHOST(whichHost,whichPortal);
-    headdr = HostHashTable[bucket];
-    while (headdr) 
-        {
-	if ((headdr->Host == whichHost) && (headdr->Portal == whichPortal))
-	    return(headdr);
-	headdr = headdr->HLink;
-        }
-
-    return(NULL);
-    }
+	bucket = HASHHOST(whichHost,whichPortal);
+	headdr = HostHashTable[bucket];
+	while (headdr)  {
+		if ((headdr->Host == whichHost) && (headdr->Portal == whichPortal))
+			return(headdr);
+		headdr = headdr->HLink;
+	}
+	
+	return(NULL);
+}
 
 
 /* 
  * search the table looking for an HEntry with the given host
  * and type.  This is approximate in that there may be more than
  * one; this routine returns the first one it finds.
- * This would be a nice spot for overloading.
  */
-struct HEntry *rpc2_FindHEAddrByType(IN whichHost, IN type)
-    register unsigned long whichHost;
-    HEType type;
-    /* Returns pointer to a host entry corresponding to (hostid, portalid)
-       with a matching type. Returns NULL if (host,portal) does not exist.
-    */
-    {
-    register long bucket;
-    register struct HEntry *headdr;
 
-    if (whichHost == 0 || type == UNSET_HE) return(NULL);
+struct HEntry *rpc2_FindHEAddrByType(IN unsigned long whichHost, IN HEType type)
+{
+	register long bucket;
+	register struct HEntry *headdr;
+	
+	if (whichHost == 0 || type == UNSET_HE) 
+		return(NULL);
 
-    for (bucket = 0; bucket < HOSTHASHBUCKETS; bucket++) {
-	headdr = HostHashTable[bucket];
-	while (headdr) {
-	    if ((headdr->Host == whichHost) && (headdr->Type == type))
-		return(headdr);
-	    headdr = headdr->HLink;
+	for (bucket = 0; bucket < HOSTHASHBUCKETS; bucket++) {
+		headdr = HostHashTable[bucket];
+		while (headdr) {
+			if ((headdr->Host == whichHost) && (headdr->Type == type))
+				return(headdr);
+			headdr = headdr->HLink;
+		}
 	}
-    }
-
-    return(NULL);
-    }
-
-
-struct HEntry *rpc2_GetHost(host, portal) 
-    RPC2_HostIdent *host;
-    RPC2_PortalIdent *portal;
-    {
-    register struct HEntry *he;
-    he = rpc2_FindHEAddr(host->Value.InetAddress, portal->Value.InetPortNumber);
-    if (he == NULL) return(NULL);
-    assert(he->MagicNumber == OBJ_HENTRY);
-    return(he);
-    }
+	
+	return(NULL);
+}
 
 
-struct HEntry *rpc2_GetHostByType(host, type) 
-    RPC2_HostIdent *host;
-    HEType type;
-    {
-    register struct HEntry *he;
-    he = rpc2_FindHEAddrByType(host->Value.InetAddress, type);
-    if (he == NULL) return(NULL);
-    assert(he->MagicNumber == OBJ_HENTRY);
-    return(he);
-    }
+struct HEntry *rpc2_GetHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal) 
+{
+	register struct HEntry *he;
+	he = rpc2_FindHEAddr(host->Value.InetAddress, portal->Value.InetPortNumber);
+	if (he == NULL) 
+		return(NULL);
+	assert(he->MagicNumber == OBJ_HENTRY);
+	return(he);
+}
 
 
-struct HEntry *rpc2_AllocHost(host, portal, type)
-    RPC2_HostIdent *host;
-    RPC2_PortalIdent *portal;
-    HEType type;
-    {
-    register long bucket;
-    struct HEntry *he;
+struct HEntry *rpc2_GetHostByType(RPC2_HostIdent *host, HEType type) 
+{
+	register struct HEntry *he;
+	he = rpc2_FindHEAddrByType(host->Value.InetAddress, type);
+	if (he == NULL) 
+		return(NULL);
+	assert(he->MagicNumber == OBJ_HENTRY);
+	return(he);
+}
 
-    if (rpc2_HostFreeCount == 0)
-	    rpc2_Replenish(&rpc2_HostFreeList, &rpc2_HostFreeCount, sizeof(struct HEntry),
-	    &rpc2_HostCreationCount, OBJ_HENTRY);
 
-    he = (struct HEntry *)rpc2_MoveEntry(&rpc2_HostFreeList, &rpc2_HostList,
-		 (struct HEntry *)NULL, &rpc2_HostFreeCount, &rpc2_HostCount);
-    assert (he->MagicNumber == OBJ_HENTRY);
+struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal, HEType type)
+{
+	register long bucket;
+	struct HEntry *he;
+	
+	if (rpc2_HostFreeCount == 0)
+		rpc2_Replenish(&rpc2_HostFreeList, &rpc2_HostFreeCount, sizeof(struct HEntry),
+			       &rpc2_HostCreationCount, OBJ_HENTRY);
+	
+	he = (struct HEntry *)rpc2_MoveEntry(&rpc2_HostFreeList, &rpc2_HostList,
+					     (struct HEntry *)NULL, &rpc2_HostFreeCount, &rpc2_HostCount);
+	assert (he->MagicNumber == OBJ_HENTRY);
 
-    /* Initialize */
-    he->Host = host->Value.InetAddress;
-    he->Portal = portal->Value.InetPortNumber;
-    he->Type = type;
-    he->LastWord.tv_sec = he->LastWord.tv_usec = 0;
-    bzero(he->Log, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
-    he->NumEntries = 0;
+	/* Initialize */
+	he->Host = host->Value.InetAddress;
+	he->Portal = portal->Value.InetPortNumber;
+	he->Type = type;
+	he->LastWord.tv_sec = he->LastWord.tv_usec = 0;
+	bzero(he->Log, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
+	he->NumEntries = 0;
 
-    /* insert into hash table */
-    bucket = HASHHOST(he->Host, he->Portal);
-    he->HLink = HostHashTable[bucket];
-    HostHashTable[bucket] = he;
+	/* insert into hash table */
+	bucket = HASHHOST(he->Host, he->Portal);
+	he->HLink = HostHashTable[bucket];
+	HostHashTable[bucket] = he;
+	
+	return(he);
+}
 
-    return(he);
-    }
-
-void rpc2_FreeHost(whichHost)
-    register struct HEntry **whichHost;
-    /* releases the host entry pointed to by whichHost.
-       Sets whichHost to NULL. */
-    {
-    register long bucket;
-    struct HEntry **link;
-
-    assert((*whichHost)->MagicNumber == OBJ_HENTRY);
-    rpc2_MoveEntry((struct LinkEntry **)&rpc2_HostList,
-		(struct LinkEntry **)&rpc2_HostFreeList,
-		(struct LinkEntry *)*whichHost,
-		&rpc2_HostCount, &rpc2_HostFreeCount);
-
-    /* remove from hash table */
-    bucket = HASHHOST((*whichHost)->Host,(*whichHost)->Portal);
-    link = &HostHashTable[bucket];
-    while (*link) {
-	if (*link == *whichHost) {
-	    *link = (*whichHost)->HLink;
-	    *whichHost = NULL;
+/* releases the host entry pointed to by whichHost.
+   Sets whichHost to NULL. */
+void rpc2_FreeHost(register struct HEntry **whichHost)
+{
+	register long bucket;
+	struct HEntry **link;
+	
+	assert((*whichHost)->MagicNumber == OBJ_HENTRY);
+	rpc2_MoveEntry((struct LinkEntry **)&rpc2_HostList,
+		       (struct LinkEntry **)&rpc2_HostFreeList,
+		       (struct LinkEntry *)*whichHost,
+		       &rpc2_HostCount, &rpc2_HostFreeCount);
+	
+	/* remove from hash table */
+	bucket = HASHHOST((*whichHost)->Host,(*whichHost)->Portal);
+	link = &HostHashTable[bucket];
+	while (*link) {
+		if (*link == *whichHost) {
+			*link = (*whichHost)->HLink;
+			*whichHost = NULL;
+		}
+		link = &(*link)->HLink;
 	}
-	link = &(*link)->HLink;
-    }
-    }
+}
 
 
-void rpc2_GetHostLog(whichHost, log)
-    register struct HEntry *whichHost;
-    RPC2_NetLog *log;
-    {
-    unsigned long quantum = 0;
-    unsigned wontexceed = RPC2_MAXLOGLENGTH;  /* as many as we can return */
-    int head, tail, ix;
+void rpc2_GetHostLog(register struct HEntry *whichHost, RPC2_NetLog *log)
+{
+	unsigned long quantum = 0;
+	unsigned wontexceed = RPC2_MAXLOGLENGTH;  /* as many as we can return */
+	int head, tail, ix;
+	
+	assert(whichHost->MagicNumber == OBJ_HENTRY);
 
-    assert(whichHost->MagicNumber == OBJ_HENTRY);
-
-    /* figure out how many entries to send back */
-    if (wontexceed > log->NumEntries) 
-	wontexceed = log->NumEntries;  		/* asked for less */
-    if (wontexceed > whichHost->NumEntries)
-	wontexceed = whichHost->NumEntries;	/* we have less */
-    if (wontexceed == 0) return; 	/* don't touch anything */
-
-    head = whichHost->NumEntries - wontexceed;
-    tail = whichHost->NumEntries - 1;	
-
-    /* walk back through log and copy them out */
-    while (tail >= head) {
-	ix = tail & (RPC2_MAXLOGLENGTH-1);
-	log->Entries[log->ValidEntries++] = whichHost->Log[ix];
-	switch(whichHost->Log[ix].Tag) 
-	    {
-	    case RPC2_MEASURED_NLE:
-		quantum += whichHost->Log[ix].Value.Measured.ElapsedTime;
-		break;
-	    case RPC2_STATIC_NLE:	/* static estimates are free */
-	    default:
-		break;
-	    }
-
-	if (quantum >= log->Quantum)
-	    break;
-
-	tail--;
-    }
-    }
+	/* figure out how many entries to send back */
+	if (wontexceed > log->NumEntries) 
+		wontexceed = log->NumEntries;  		/* asked for less */
+	if (wontexceed > whichHost->NumEntries)
+		wontexceed = whichHost->NumEntries;	/* we have less */
+	if (wontexceed == 0) return; 	/* don't touch anything */
+	
+	head = whichHost->NumEntries - wontexceed;
+	tail = whichHost->NumEntries - 1;	
+	
+	/* walk back through log and copy them out */
+	while (tail >= head) {
+		ix = tail & (RPC2_MAXLOGLENGTH-1);
+		log->Entries[log->ValidEntries++] = whichHost->Log[ix];
+		switch(whichHost->Log[ix].Tag)  {
+		case RPC2_MEASURED_NLE:
+			quantum += whichHost->Log[ix].Value.Measured.ElapsedTime;
+			break;
+		case RPC2_STATIC_NLE:	/* static estimates are free */
+		default:
+			break;
+		}
+		
+		if (quantum >= log->Quantum)
+			break;
+		
+		tail--;
+	}
+}
 
 
-#define GOOD_NLE(e) ((e->Tag == RPC2_STATIC_NLE || \
-		      e->Tag == RPC2_MEASURED_NLE))
+#define GOOD_NLE(e) ((e->Tag == RPC2_STATIC_NLE || e->Tag == RPC2_MEASURED_NLE))
 
 /* 
  * dumb routine to add a record to the host log.  Returns 1 if it
@@ -300,31 +285,29 @@ void rpc2_GetHostLog(whichHost, log)
  * assumes the variable length part of the record  has been 
  * constructed elsewhere. 
  */
-rpc2_AppendHostLog(whichHost, entry)
-    register struct HEntry *whichHost;
-    RPC2_NetLogEntry *entry;
-    {
-    unsigned long ix = whichHost->NumEntries & (RPC2_MAXLOGLENGTH-1);
+int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry)
+{
+	unsigned long ix = whichHost->NumEntries & (RPC2_MAXLOGLENGTH-1);
 
-    assert(whichHost->MagicNumber == OBJ_HENTRY);
+	assert(whichHost->MagicNumber == OBJ_HENTRY);
+	
+	if (!GOOD_NLE(entry)) 
+		return(0);
 
-    if (!GOOD_NLE(entry)) return(0);
-
-    whichHost->Log[ix] = *entry;	/* structure assignment */
-
-    /* stamp it. use the approximate version */
-    FT_AGetTimeOfDay(&(whichHost->Log[ix].TimeStamp),
-		     (struct timezone *)0);
-    whichHost->NumEntries++;
-    return(1);
-    }
+	whichHost->Log[ix] = *entry;	/* structure assignment */
+	
+	/* stamp it. use the approximate version */
+	FT_AGetTimeOfDay(&(whichHost->Log[ix].TimeStamp),
+			 (struct timezone *)0);
+	whichHost->NumEntries++;
+	return(1);
+}
 
 
 /* clear the log */
-void rpc2_ClearHostLog(whichHost)
-    register struct HEntry *whichHost;
-    {
-    assert(whichHost->MagicNumber == OBJ_HENTRY);
-    whichHost->NumEntries = 0;
-    bzero(whichHost->Log, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
-    }
+void rpc2_ClearHostLog(register struct HEntry *whichHost)
+{
+	assert(whichHost->MagicNumber == OBJ_HENTRY);
+	whichHost->NumEntries = 0;
+	bzero(whichHost->Log, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
+}

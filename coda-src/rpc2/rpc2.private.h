@@ -471,11 +471,16 @@ extern void rpc2_IncrementSeqNumber(struct CEntry *);
 /*  XXX where is this baby extern bool rpc2_TestState(); */
 
 /* Host manipulation routines */
-extern void rpc2_InitHost(), rpc2_FreeHost();
-extern struct HEntry *rpc2_AllocHost(), *rpc2_FindHEAddr(), *rpc2_GetHost(),
-        *rpc2_FindHEAddrByType(), *rpc2_GetHostByType();
-extern void rpc2_GetHostLog(), rpc2_ClearHostLog();
-extern int rpc2_AppendHostLog();
+void rpc2_InitHost(void);
+struct HEntry *rpc2_FindHEAddr(unsigned long whichHost, unsigned short whichPortal);
+struct HEntry *rpc2_FindHEAddrByType(unsigned long whichHost, HEType type);
+struct HEntry *rpc2_GetHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal);
+struct HEntry *rpc2_GetHostByType(RPC2_HostIdent *host, HEType type);
+struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal, HEType type);
+void rpc2_FreeHost(register struct HEntry **whichHost);
+void rpc2_GetHostLog(register struct HEntry *whichHost, RPC2_NetLog *log);
+int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry);
+void rpc2_ClearHostLog(register struct HEntry *whichHost);
 
 /* Multicast group manipulation routines */
 extern void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), 
@@ -570,7 +575,7 @@ extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
 #define INOUT	/* Obvious */
 
 
-/* Conditional debugging output macros */
+/* Conditional debugging output macros: no side effect in these! */
 extern FILE *rpc2_logfile;
 extern FILE *rpc2_tracefile;
 extern char *rpc2_timestring();
@@ -581,9 +586,8 @@ extern char *rpc2_timestring();
 			fprintf(rpc2_logfile, ## how);(void) fflush(rpc2_logfile);}\
 	else
 #else 
-#define say(when, what, how)	/* null macro; BEWARE: avoid side effects in say() */
+#define say(when, what, how)	
 #endif RPC2DEBUG
-
 
 #include <signal.h>
 #include <assert.h>

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.7 1998/06/07 20:15:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.8 1998/08/05 23:49:47 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,7 +81,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #define NETWORKS 8
-PRIVATE long get_netaddr();
+static long get_netaddr();
 extern int errno;
 
 
@@ -235,24 +235,23 @@ long RPC2_DeExport(IN Subsys)
     }
 
 
-PRIVATE RPC2_PacketBuffer *Gimme(size, flist, count, creacount)
-    long size;
-    RPC2_PacketBuffer **flist;
-    long *count;
-    long *creacount;
-    {
-    RPC2_PacketBuffer *pb;
-
-    if (*flist== NULL)
-	{
-	rpc2_Replenish(flist, count, size, creacount, OBJ_PACKETBUFFER);
-	(*flist)->Prefix.BufferSize = size;
+static RPC2_PacketBuffer *Gimme(long size, RPC2_PacketBuffer **flist, 
+				long *count, long *creacount)
+{
+	RPC2_PacketBuffer *pb;
+	
+	if (*flist== NULL)	{
+		rpc2_Replenish(flist, count, size, creacount, OBJ_PACKETBUFFER);
+		assert(*flist);
+		(*flist)->Prefix.BufferSize = size;
 	}
-    pb = (RPC2_PacketBuffer *)rpc2_MoveEntry(flist, &rpc2_PBList, NULL, count, &rpc2_PBCount);
-    return(pb);
-    }
+	pb = (RPC2_PacketBuffer *) rpc2_MoveEntry(flist, &rpc2_PBList, NULL, 
+						  count, &rpc2_PBCount);
+	assert(pb->Prefix.Qname == &rpc2_PBList);
+	return(pb);
+}
 
-PRIVATE RPC2_PacketBuffer *GetPacket(psize)
+static RPC2_PacketBuffer *GetPacket(psize)
     long psize;
     {
     if (psize <= SMALLPACKET)
@@ -335,7 +334,7 @@ long RPC2_FreeBuffer(INOUT BuffPtr)
 	
 	default:    assert(FALSE);
 	}
-
+    assert((*BuffPtr)->Prefix.Qname == &rpc2_PBList);
     rpc2_MoveEntry(&rpc2_PBList, tolist, *BuffPtr, &rpc2_PBCount, tocount);
     *BuffPtr = NULL;
     rpc2_Quit(RPC2_SUCCESS);
@@ -348,7 +347,7 @@ char *RPC2_ErrorMsg(rc)
 	violates the RPC2 tradition of stuffing an OUT parameter. 
     */
     {
-    PRIVATE char msgbuf[100];
+    static char msgbuf[100];
 
     switch((int) rc)
 	{
@@ -530,9 +529,10 @@ long RPC2_DumpState(DumpFile, Verbosity)
     long when = rpc2_time();
     char where[100];
     
-    if (DumpFile == NULL) DumpFile = stdout;	/* it's ok, call-by-value */
+    if (DumpFile == NULL) 
+	    DumpFile = stdout;	/* it's ok, call-by-value */
     gethostname(where, sizeof(where));
-    fprintf(DumpFile, "\n\n\t\t\tRPC2 Runtime State on %s at %s\n", where, ctime((time_t)&when));
+    fprintf(DumpFile, "\n\n\t\t\tRPC2 Runtime State on %s at %s\n", where, ctime((time_t *)&when));
     fprintf(DumpFile, "rpc2_ConnCreationCount = %ld  rpc2_ConnCount = %ld  rpc2_ConnFreeCount = %ld\n",
     	rpc2_ConnCreationCount, rpc2_ConnCount, rpc2_ConnFreeCount);
     fprintf(DumpFile, "rpc2_PBCount = %ld  rpc2_PBHoldCount = %ld  rpc2_PBFreezeCount = %ld\n", rpc2_PBCount, rpc2_PBHoldCount, rpc2_PBFreezeCount);
@@ -807,8 +807,6 @@ long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortalIdent *pva
 {
 	struct sockaddr_in bindaddr;
 	struct servent *sentry;
-	int rc;
-	struct protoent *pe;
 	int blen = 0x8000 ;
 
 
@@ -909,7 +907,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortalIdent *pva
 }
 
 /* get internet address from kernel, zero on error */
-PRIVATE long get_netaddr(long sock)
+static long get_netaddr(long sock)
 {
 #ifdef DJGPP
       return __djgpp_get_my_host();   /* MJC--hack! */

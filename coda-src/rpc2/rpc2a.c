@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.5.2.1 1998/05/15 16:50:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.9 1998/08/05 23:49:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -127,14 +127,14 @@ NOTE 1
 
 
 void SavePacketForRetry();
-PRIVATE int InvokeSE(), ResolveBindParms(), ServerHandShake();
-PRIVATE void SendOKInit2(), RejectBind(), Send4AndSave();
-PRIVATE RPC2_PacketBuffer *Send2Get3();
+static int InvokeSE(), ResolveBindParms(), ServerHandShake();
+static void SendOKInit2(), RejectBind(), Send4AndSave();
+static RPC2_PacketBuffer *Send2Get3();
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce);
-PRIVATE bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
-PRIVATE long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce);
-PRIVATE long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenTicationType, OUT long *xrand, OUT RPC2_CountedBS *cident);
-PRIVATE long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_EncryptionKey ekey);
+static bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf);
+static long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce);
+static long MakeFake(INOUT RPC2_PacketBuffer *pb, IN struct CEntry *ce, RPC2_Integer *AuthenTicationType, OUT long *xrand, OUT RPC2_CountedBS *cident);
+static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_EncryptionKey ekey);
 
 FILE *rpc2_logfile;
 FILE *rpc2_tracefile;
@@ -879,7 +879,7 @@ long RPC2_CheckSideEffect(IN RPC2_Handle ConnHandle,
 }
 
 /* CallType: 1 ==> Init, 2==> Check */
-PRIVATE int InvokeSE(long CallType, RPC2_Handle ConnHandle, 
+static int InvokeSE(long CallType, RPC2_Handle ConnHandle, 
 		     SE_Descriptor *SDesc, long Flags)
 {
     long rc;
@@ -967,7 +967,7 @@ void SavePacketForRetry(pb, ce)
 
 
 
-PRIVATE int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN whichSubsys)
+static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN whichSubsys)
     register struct CEntry *whichConn;
     register RPC2_HostIdent *whichHost;
     register RPC2_PortalIdent *whichPortal;
@@ -1042,7 +1042,7 @@ PRIVATE int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN whic
     return(RPC2_SUCCESS);
     }
 
-PRIVATE bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf)
+static bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf)
 {
 	register struct SubsysEntry *ss;
 	register struct CEntry *ce;
@@ -1111,7 +1111,7 @@ static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce
 }
 
 
-PRIVATE long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce)
+static long GetNewRequest(IN RPC2_RequestFilter *filter, IN struct timeval *timeout, OUT struct RPC2_PacketBuffer **pb, OUT struct CEntry **ce)
 {
     struct SL_Entry *sl;
 
@@ -1154,7 +1154,7 @@ TryAnother:
     }
 
 
-PRIVATE long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cident)
+static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cident)
     RPC2_PacketBuffer *pb;
     struct CEntry *ce;
     long *xrand;
@@ -1202,7 +1202,7 @@ PRIVATE long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT ci
     }
 
 
-PRIVATE void SendOKInit2(IN ce)
+static void SendOKInit2(IN ce)
     register struct CEntry *ce;
     {
     RPC2_PacketBuffer *pb;
@@ -1224,7 +1224,7 @@ PRIVATE void SendOKInit2(IN ce)
     SavePacketForRetry(pb, ce);
     }
 
-PRIVATE int ServerHandShake(IN ce, IN authenticationtype, IN cident, IN xrand, IN KeyProc, IN emask)
+static int ServerHandShake(IN ce, IN authenticationtype, IN cident, IN xrand, IN KeyProc, IN emask)
     struct CEntry *ce;
     RPC2_Integer *authenticationtype;
     RPC2_CountedBS *cident;
@@ -1268,7 +1268,7 @@ PRIVATE int ServerHandShake(IN ce, IN authenticationtype, IN cident, IN xrand, I
     }
 
 
-PRIVATE void RejectBind(ce, bodysize, opcode)
+static void RejectBind(ce, bodysize, opcode)
     struct CEntry *ce;
     long bodysize, opcode;
     {
@@ -1286,7 +1286,7 @@ PRIVATE void RejectBind(ce, bodysize, opcode)
     RPC2_FreeBuffer(&pb);
     }
 
-PRIVATE RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
+static RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
     struct CEntry *ce;
     RPC2_EncryptionKey key;
     long xrand;
@@ -1351,7 +1351,7 @@ PRIVATE RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
     }
 
 
-PRIVATE long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_EncryptionKey ekey)
+static long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_EncryptionKey ekey)
 {
     struct Init3Body *ib3;
 
@@ -1363,7 +1363,7 @@ PRIVATE long Test3(RPC2_PacketBuffer *pb, struct CEntry *ce, long yrand, RPC2_En
     else return(RPC2_NOTAUTHENTICATED);	
     }
 
-PRIVATE void Send4AndSave(ce, xrand, ekey)
+static void Send4AndSave(ce, xrand, ekey)
     struct CEntry *ce;
     int xrand;
     RPC2_EncryptionKey ekey;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/conn.c,v 4.2 1998/04/14 21:06:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/conn.c,v 4.3 1998/06/07 20:14:54 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -73,12 +73,12 @@ supported by Transarc Corporation, Pittsburgh, PA.
 /* This code assumes that longs are 32 bits in length */
 #define  MAXHASHLENGTH  65536	/* of hash table; 2**16; max possible number of connections concurrently in use  */
 #define  INITHASHLENGTH 64	/* of hash table; should be power of two; small for testing */
-PRIVATE long CurrentLength;	/* of hash table; should be power of two; never decreases */
-PRIVATE long EntriesInUse;
-PRIVATE RPC2_Handle LastHandleAllocated;
+static long CurrentLength;	/* of hash table; should be power of two; never decreases */
+static long EntriesInUse;
+static RPC2_Handle LastHandleAllocated;
 
 /* the malloc'ed hash table of size CurrentLength entries */
-PRIVATE struct CEntry **HashTable;	
+static struct CEntry **HashTable;	
 
 
 /* Hash algorithm (courtesy Bob Sidebotham): Start table at
@@ -138,7 +138,7 @@ struct CEntry *rpc2_FindCEAddr(IN register RPC2_Handle whichHandle)
 
 /* Allocates a new handle corresponding to ceaddr, and sets the
    UniqueCID field of ceaddr. */
-PRIVATE void Uniquefy(IN register struct CEntry *ceaddr)
+static void Uniquefy(IN register struct CEntry *ceaddr)
 {
     register long i;
     long first = (++LastHandleAllocated) & (MAXHASHLENGTH-1);
@@ -273,7 +273,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
 }
 
 
-PRIVATE void PrintHashTable()
+static void PrintHashTable()
 {
     register long i;
     printf("CurrentLength = %ld\tEntriesInUse = %ld\tMAXHASHLENGTH = %d\n", CurrentLength, EntriesInUse, MAXHASHLENGTH);
@@ -335,11 +335,11 @@ struct RecentBind
 
 #define RBSIZE 300	/* max size of RBCache for large RPC */
 #define RBCACHE_THRESHOLD 50	/* RBCache never used for less than RBCACHE_THRESHOLD connections */
-PRIVATE struct RecentBind *RBCache;	/* Wraps around; reused in LRU order.
+static struct RecentBind *RBCache;	/* Wraps around; reused in LRU order.
 					Conditionally allocated. */
-PRIVATE int RBWrapped = 0;	/* RBCache is full and has wrapped around */
-PRIVATE int NextRB = 0;		/* Index of entry to be used for the next bind */
-PRIVATE int RBCacheOn = 0;	/* 0 = RBCacheOff, 1 = RBCacheOn */
+static int RBWrapped = 0;	/* RBCache is full and has wrapped around */
+static int NextRB = 0;		/* Index of entry to be used for the next bind */
+static int RBCacheOn = 0;	/* 0 = RBCacheOff, 1 = RBCacheOn */
 
 /* Adds information about a new bind to the RBCache; throws out the
    oldest entry if needed */

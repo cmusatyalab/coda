@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp2.c,v 4.1 1997/01/08 21:50:30 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp2.c,v 4.2 1998/04/14 21:07:04 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,13 +80,13 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 extern errno;
 
-PRIVATE void ClientPacket();
-PRIVATE void ServerPacket();
-PRIVATE void ExaminePacket();
-PRIVATE void SFSendNAK();
-PRIVATE void sftp_ProcessPackets();
-PRIVATE bool sftp_MorePackets();
-PRIVATE ScanTimerQ(), AwaitEvent(), hostcmp();
+static void ClientPacket();
+static void ServerPacket();
+static void ExaminePacket();
+static void SFSendNAK();
+static void sftp_ProcessPackets();
+static bool sftp_MorePackets();
+static ScanTimerQ(), AwaitEvent(), hostcmp();
 
 #define NAKIT(se)\
     SFSendNAK((se)->PInfo.RemoteHandle, &((se)->PInfo.RemoteHost), &((se)->PeerPortal))
@@ -131,7 +131,7 @@ SFTP_DispatchProcess()
     LWP_DispatchProcess();
     }
 
-PRIVATE void sftp_ProcessPackets()
+static void sftp_ProcessPackets()
 {
     RPC2_PacketBuffer *pb;
     RPC2_HostIdent rhost;
@@ -158,7 +158,7 @@ PRIVATE void sftp_ProcessPackets()
     ExaminePacket(pb, &rhost, &rportal);
 }
 
-PRIVATE ScanTimerQ()
+static ScanTimerQ()
     {
     register int i;
     register struct SLSlot *s;
@@ -176,7 +176,7 @@ PRIVATE ScanTimerQ()
     }
 
 
-PRIVATE bool sftp_MorePackets(rpc2, sftp)
+static bool sftp_MorePackets(rpc2, sftp)
 bool *rpc2, *sftp;
     {
     struct timeval tv;
@@ -196,7 +196,7 @@ bool *rpc2, *sftp;
     else return(FALSE);
     }
 
-PRIVATE AwaitEvent()
+static AwaitEvent()
     /* Awaits for a packet or earliest timeout and returns code from IOMGR_Select() */
     {
     int emask, rmask, wmask, rc;
@@ -217,7 +217,7 @@ PRIVATE AwaitEvent()
     }
 
 
-PRIVATE void ExaminePacket(whichPacket, whichHost, whichPortal)
+static void ExaminePacket(whichPacket, whichHost, whichPortal)
     RPC2_PacketBuffer *whichPacket;
     RPC2_HostIdent *whichHost;
     RPC2_PortalIdent *whichPortal;
@@ -321,7 +321,7 @@ PRIVATE void ExaminePacket(whichPacket, whichHost, whichPortal)
     }
 
 
-PRIVATE void ServerPacket(whichPacket, whichEntry)
+static void ServerPacket(whichPacket, whichEntry)
     RPC2_PacketBuffer *whichPacket;
     register struct SFTP_Entry *whichEntry;
     /* Find a sleeping LWP to deal with this packet */
@@ -347,7 +347,7 @@ PRIVATE void ServerPacket(whichPacket, whichEntry)
     }
 
 
-PRIVATE void ClientPacket(whichPacket, whichEntry)
+static void ClientPacket(whichPacket, whichEntry)
     RPC2_PacketBuffer *whichPacket;
     register struct SFTP_Entry *whichEntry;
     {
@@ -414,7 +414,7 @@ PRIVATE void ClientPacket(whichPacket, whichEntry)
     }
 
 
-PRIVATE void SFSendNAK(remoteHandle, whichHost, whichPortal)
+static void SFSendNAK(remoteHandle, whichHost, whichPortal)
     RPC2_Handle remoteHandle;
     RPC2_HostIdent *whichHost;
     RPC2_PortalIdent *whichPortal;
@@ -437,7 +437,7 @@ PRIVATE void SFSendNAK(remoteHandle, whichHost, whichPortal)
     }
 
 
-PRIVATE hostcmp(host1, host2)
+static hostcmp(host1, host2)
     register RPC2_HostIdent *host1;
     register RPC2_HostIdent *host2;
     /* Returns TRUE iff host1 and host2 are the same. FALSE otherwise */

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp4.c,v 4.1 1997/01/08 21:50:31 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp4.c,v 4.2 1998/04/14 21:07:07 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -223,7 +223,7 @@ void sftp_TraceBogus(long filenum, long linenum)
 
 
 
-PRIVATE PrintSFEntry(tEntry, tId, outFile)
+static PrintSFEntry(tEntry, tId, outFile)
     struct TraceEntry *tEntry;
     long tId;
     FILE *outFile;    

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/se.c,v 1.1 1996/11/22 19:07:34 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/se.c,v 4.1 1997/01/08 21:50:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -71,7 +71,7 @@ char *SE_ErrorMsg(rc)
     long rc;
     /* Returns a pointer to a static string describing error rc. */
     {
-    PRIVATE char msgbuf[100];
+    static char msgbuf[100];
 
     switch((enum SE_Status)rc)
 	{

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2test.c,v 4.2 1997/09/23 15:13:33 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2test.c,v 4.3 1998/04/14 21:07:03 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,13 +87,13 @@ long lostunbinds;  /* no of times a NAK was received because of lost
 			reply to an Unbind RPC */
 long connbusies;  /* no of times an RPC2_CONNBUSY was seen */
 
-PRIVATE PROCESS ParentPid;
-PRIVATE PROCESS ListenerPid;
+static PROCESS ParentPid;
+static PROCESS ListenerPid;
 
-PRIVATE long Workers, Clients;
-PRIVATE long MaxThinkTime, MaxComputeTime, MaxListenPause;
-PRIVATE long AvoidUnbinds, Announce, AvoidBulk;
-PRIVATE long rpc2rc;
+static long Workers, Clients;
+static long MaxThinkTime, MaxComputeTime, MaxListenPause;
+static long AvoidUnbinds, Announce, AvoidBulk;
+static long rpc2rc;
 
 #define WhatHappened(X) ((rpc2rc = X), printf("%s\n", RPC2_ErrorMsg(rpc2rc)), rpc2rc)
 #define FLUSH() (fflush(stdout))
@@ -102,14 +102,14 @@ PRIVATE long rpc2rc;
 
 #define TBSIZE 1000 /* Size of RPC2 trace buffer, if enabled */
 
-PRIVATE long ListenerBody(), WorkerBody(), ClientBody(), GetPasswd();
-PRIVATE void GetVar(), GetStringVar();
-PRIVATE BulkErr(), mytime(), MakeFiles(), GetConns(), DoBindings(),
+static long ListenerBody(), WorkerBody(), ClientBody(), GetPasswd();
+static void GetVar(), GetStringVar();
+static BulkErr(), mytime(), MakeFiles(), GetConns(), DoBindings(),
 	MakeWorkers(), MakeClients(), InitRPC(), GetRoot(), GetParms(),
 	RanDelay(), HandleRPCFailure(), PrintStats(), SelectParms();
 
-PRIVATE char **SysFiles;	/* list of files to be used */
-PRIVATE SysFileCount;    /* How many there are */
+static char **SysFiles;	/* list of files to be used */
+static SysFileCount;    /* How many there are */
 
 struct CVEntry
     {
@@ -124,8 +124,8 @@ struct CVEntry
     };
 
 #define MAXCON 100
-PRIVATE struct CVEntry ConnVector[MAXCON];
-PRIVATE long CVCount;	/* actual number in use */
+static struct CVEntry ConnVector[MAXCON];
+static long CVCount;	/* actual number in use */
 #define OPCODESINUSE 7	/* excludes 999 for quit and 8 for rebind */
 
 FILE *LogFile;	/* in "/tmp/rpc2test/rpc2test.log" */
@@ -137,7 +137,7 @@ RPC2_SubsysIdent SubsysId;
 char TestDir[256];
 
 
-PRIVATE long ClientsReady;  /* How many clients are ready; will be signalled by main() to start real action  */
+static long ClientsReady;  /* How many clients are ready; will be signalled by main() to start real action  */
 
 char *TimeNow()
     {
@@ -187,7 +187,7 @@ main()
     }
 
 
-PRIVATE long WorkerBody(workerName)
+static long WorkerBody(workerName)
     char *workerName;
     {
     long i, rc;
@@ -351,7 +351,7 @@ PRIVATE long WorkerBody(workerName)
 	}
     }
 	
-PRIVATE BulkErr(cid, sed, retcode, op)
+static BulkErr(cid, sed, retcode, op)
     RPC2_Handle cid;
     SE_Descriptor *sed;
     int retcode;
@@ -373,7 +373,7 @@ PRIVATE BulkErr(cid, sed, retcode, op)
 
 
 
-PRIVATE long ListenerBody(listenerName)
+static long ListenerBody(listenerName)
     char *listenerName;
     {
     long i;
@@ -424,7 +424,7 @@ PRIVATE long ListenerBody(listenerName)
     }
 
 
-PRIVATE long ClientBody(clientName)
+static long ClientBody(clientName)
     char *clientName;
     {
     long thisconn, thisopcode;
@@ -670,7 +670,7 @@ iopen()
     assert(1 == 0);
     }
 
-PRIVATE struct Password 
+static struct Password 
     {
     char *name;
     char *password;
@@ -680,7 +680,7 @@ PRIVATE struct Password
 	
 
 
-PRIVATE long GetPasswd(Who, Key1, Key2)
+static long GetPasswd(Who, Key1, Key2)
     RPC2_CountedBS *Who;
     RPC2_EncryptionKey Key1, Key2;
     {
@@ -698,7 +698,7 @@ PRIVATE long GetPasswd(Who, Key1, Key2)
     return(-1);
     }
 
-PRIVATE mytime()
+static mytime()
     {
     struct timeval t;
     TM_GetTimeOfDay(&t, NULL);
@@ -706,7 +706,7 @@ PRIVATE mytime()
     }
 
 
-PRIVATE MakeFiles()
+static MakeFiles()
     {
     /* Variety of sizes to test file transfer ability
 	Files get created in test directory  */
@@ -729,7 +729,7 @@ PRIVATE MakeFiles()
 
 
 
-PRIVATE GetConns()
+static GetConns()
     {
     int i;
     char myname[30];
@@ -752,7 +752,7 @@ PRIVATE GetConns()
     }
 
 
-PRIVATE DoBindings()
+static DoBindings()
     {
     int i, rc;
     RPC2_BindParms bp;
@@ -777,7 +777,7 @@ PRIVATE DoBindings()
     
     }
 
-PRIVATE MakeWorkers()
+static MakeWorkers()
     {
     int i;
     char thisname[20];
@@ -791,7 +791,7 @@ PRIVATE MakeWorkers()
     }
 
 
-PRIVATE MakeClients()
+static MakeClients()
     {
     int i;
     char thisname[20];
@@ -805,7 +805,7 @@ PRIVATE MakeClients()
     }
 
 
-PRIVATE InitRPC()
+static InitRPC()
     {
     SFTP_Initializer sftpi;
     char *cstring;
@@ -838,7 +838,7 @@ PRIVATE InitRPC()
     }
 
 
-PRIVATE GetRoot()
+static GetRoot()
     {
 
     printf("Test dir: ");
@@ -848,7 +848,7 @@ PRIVATE GetRoot()
     mktee(MakeName("rpc2.log"));
     }
 
-PRIVATE GetParms()
+static GetParms()
     {
     GetVar(&RPC2_DebugLevel, "Debug level? (0): ");
     GetVar(&VerboseFlag, "Verbosity (0): ");
@@ -863,7 +863,7 @@ PRIVATE GetParms()
     }
 
 
-PRIVATE RanDelay(t)
+static RanDelay(t)
     int t;	/* milliseconds */
     {
     int tx;
@@ -882,7 +882,7 @@ PRIVATE RanDelay(t)
     }
 
 
-PRIVATE void GetVar(gVar, gPrompt)
+static void GetVar(gVar, gPrompt)
     long *gVar;
     char *gPrompt;
     {
@@ -893,7 +893,7 @@ PRIVATE void GetVar(gVar, gPrompt)
     if (!isatty(fileno(stdin))) printf( "%s%ld\n", gPrompt, *gVar);
     }
 
-PRIVATE void GetStringVar(gSVar, gPrompt)
+static void GetStringVar(gSVar, gPrompt)
     char *gSVar, *gPrompt;
     {
     if (isatty(fileno(stdin))) printf(gPrompt);
@@ -902,7 +902,7 @@ PRIVATE void GetStringVar(gSVar, gPrompt)
     if (!isatty(fileno(stdin))) printf( "%s%s\n", gPrompt, gSVar);
     }
 
-PRIVATE HandleRPCFailure(cid, rcode, op)
+static HandleRPCFailure(cid, rcode, op)
     long cid, rcode, op;
     {
 
@@ -930,7 +930,7 @@ PRIVATE HandleRPCFailure(cid, rcode, op)
     }
 
 
-PRIVATE PrintStats()
+static PrintStats()
     {
     printf("Packets:    Sent=%ld  Retries=%ld  Received=%ld  Bogus=%ld\n",
 	rpc2_Sent.Total, rpc2_Sent.Retries, rpc2_Recvd.Total, rpc2_Recvd.Bogus);
@@ -949,7 +949,7 @@ PRIVATE PrintStats()
     FLUSH();
     }
 
-PRIVATE SelectParms(cid, opcode)
+static SelectParms(cid, opcode)
     long *cid, *opcode;
     {
     do

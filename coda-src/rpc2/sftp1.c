@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.7 1998/07/09 11:01:52 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.8 1998/08/05 23:49:48 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,11 +84,11 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 /*----------------------- Local procedure specs  ----------------------*/
-PRIVATE long GetFile();
-PRIVATE long PutFile();
-PRIVATE RPC2_PacketBuffer *AwaitPacket();
-PRIVATE void AddTimerEntry();
-PRIVATE long MakeBigEnough();
+static long GetFile();
+static long PutFile();
+static RPC2_PacketBuffer *AwaitPacket();
+static void AddTimerEntry();
+static long MakeBigEnough();
 
 /*---------------------------  Local macros ---------------------------*/
 #define FAIL(whichS, rCode)\
@@ -681,7 +681,7 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
 
 
 /*-------------------- Data transmission routines -----------------------*/
-PRIVATE long GetFile(sEntry)
+static long GetFile(sEntry)
     register struct SFTP_Entry *sEntry;
     /* Local file is already opened */
     {
@@ -775,7 +775,7 @@ GotData:
 
 
 /* Local file is already opened */
-PRIVATE long PutFile(register struct SFTP_Entry *sEntry)
+static long PutFile(register struct SFTP_Entry *sEntry)
 {
     RPC2_PacketBuffer *pb;
     struct CEntry     *ce;
@@ -854,7 +854,7 @@ GotAck:
 }
 
 
-PRIVATE RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
+static RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
     register struct timeval *tOut;
     register struct SFTP_Entry *sEntry;
     
@@ -894,7 +894,7 @@ PRIVATE RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
     }
     
 
-PRIVATE void AddTimerEntry(whichElem)
+static void AddTimerEntry(whichElem)
     register struct TM_Elem *whichElem;
     {
     register struct TM_Elem *t;
@@ -940,7 +940,7 @@ int sftp_AddPiggy(whichP, dPtr, dSize, maxSize)
     }
 
 
-PRIVATE long MakeBigEnough(whichP, extraBytes, maxSize)
+static long MakeBigEnough(whichP, extraBytes, maxSize)
     RPC2_PacketBuffer **whichP;
     long extraBytes;
     long maxSize;

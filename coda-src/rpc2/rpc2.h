@@ -400,7 +400,7 @@ typedef
 	    struct RPC2_PacketBuffer *Next;	/* pointer to next element in buffer chain */
 	    struct RPC2_PacketBuffer *Prev;	/* pointer to prev element in buffer chain */
 	    enum {OBJ_PACKETBUFFER = 3247517}  MagicNumber;	/* to detect storage corruption */
-	    struct RPC2_PacketBuffer *Qname;	/* name of queue this packet is on */
+	    struct RPC2_PacketBuffer **Qname;	/* name of queue this packet is on */
 	    long  BufferSize;	/* Set at malloc() time; size of entire packet, including prefix. */
 	    long  LengthOfPacket;	/* size of data actually transmitted: header+body */
 	    long File[3];
@@ -684,6 +684,7 @@ extern long getsubsysbyname (char *subsysName);
 extern int RPC2_R2SError (int error);
 extern int RPC2_S2RError (int error);
 
+int struct_len(register ARG **a_types, register PARM **args);
 
 /* These shouldn't really be here: they are internal RPC2 routines
    But some applications (e.g. Coda auth server) use them */

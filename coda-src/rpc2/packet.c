@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.2 1998/04/14 21:07:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.3 1998/07/09 11:01:50 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,8 +77,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 extern int errno;
 
-PRIVATE long DefaultRetryCount = 6;
-PRIVATE struct timeval DefaultRetryInterval = {60, 0};
+static long DefaultRetryCount = 6;
+static struct timeval DefaultRetryInterval = {60, 0};
 
 /* Hooks for failure emulation package (libfail)
 
@@ -90,7 +90,7 @@ PRIVATE struct timeval DefaultRetryInterval = {60, 0};
 int (*Fail_SendPredicate)() = NULL,
     (*Fail_RecvPredicate)() = NULL;
 
-PRIVATE long DontFailPacket(predicate, pb, addr, sock)
+static long DontFailPacket(predicate, pb, addr, sock)
     int (*predicate)();
     RPC2_PacketBuffer *pb;
     struct sockaddr_in *addr;
@@ -199,8 +199,6 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff,
     long rc, len;
     int fromlen;
     struct sockaddr_in sa;
-    int error = 0;
-    char errbuf[128];
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");
     assert(whichBuff->Prefix.MagicNumber == OBJ_PACKETBUFFER);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/debug.c,v 4.3 1998/04/14 21:06:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/debug.c,v 4.4 1998/08/05 23:49:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -91,9 +91,9 @@ char *rpc2_timestring()
 		
 	
 
-PRIVATE char *WhichMagic(x)
+static char *WhichMagic(x)
     {
-    PRIVATE char buf[20];
+    static char buf[20];
     switch(x)
 	{
 	case OBJ_PACKETBUFFER:	return("OBJ_PACKETBUFFER");
@@ -524,7 +524,7 @@ void rpc2_PrintPacketHeader(pb, tFile)
 
 
 
-PRIVATE char *CallName(x)
+static char *CallName(x)
     {
     switch(x)
 	{

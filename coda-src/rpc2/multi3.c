@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.1 1997/01/08 21:50:25 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi3.c,v 4.2 1998/04/14 21:07:01 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -90,14 +90,13 @@ extern void SavePacketForRetry();  /* rpc2a.c */
     RPC2_FreeBuffer(&p);
 
 #define	MGRPHASHLENGTH	256		    /* must be power of 2 */
-PRIVATE	struct bucket
+static struct bucket
     {
     struct MEntry   *chain;
     int		    count;
     } MgrpHashTable[MGRPHASHLENGTH];
-PRIVATE	RPC2_Handle	LastMgrpidAllocated;
+static RPC2_Handle	LastMgrpidAllocated;
 #define	LISTENERALLOCSIZE   8		    /* malloc/realloc granularity */
-
 
 /* Initialize the multicast group data structures; all this requires
    is zeroing the hash table. */
@@ -111,7 +110,7 @@ void rpc2_InitMgrp()
 
 
 /* Implements simple hash algorithm. */
-PRIVATE struct bucket *rpc2_GetBucket(host, portal, mgrpid)
+static struct bucket *rpc2_GetBucket(host, portal, mgrpid)
     RPC2_HostIdent	*host;
     RPC2_PortalIdent	*portal;
     RPC2_Handle		mgrpid;
@@ -872,7 +871,7 @@ bool XlateMcastPacket(pb, ThisHost, ThisPortal)
     assert(h_LocalHandle == 0);	/* extra sanity check */
     me = rpc2_GetMgrp(ThisHost, ThisPortal, h_RemoteHandle, SERVER);
     if (me == NULL) {BOGUS(pb); return(FALSE);}
-/*    assert(TestRole(me, SERVER));	/* redundant check */
+    assert(TestRole(me, SERVER));	/* redundant check */
     ce = me->conn;
     assert(ce != NULL && TestRole(ce, SERVER) && ce->Mgrp == me);
 
