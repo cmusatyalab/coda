@@ -16,11 +16,12 @@
 include $(TOPOBJ)/Makeconf.setup
 
 # the following may need overriden on a particular platform
+LIBDIR = $(prefix)/lib
 BINDIR = $(prefix)/bin
 SBINDIR = $(prefix)/etc
 MANDIR = $(prefix)/man
 
-include $(MAKDIR)/configs/Makeconf.$(SYS)
+include $(MAKDIR)/Makeconf.$(SYS)
 
 
 ##############################
@@ -87,7 +88,7 @@ endif
 DEPFLAG   := -MD
 #MYFLAGS   := -O -Wchar-subscripts -Wcomment -Wimplicit -Wparentheses -Wreturn-type -Wswitch -Wuninitialized  -Wreorder -W -Wtraditional -Wshadow -Wpointer-arith -Wbad-function-cast -Wcast-qual -Wcast-align -Winline 
 OPTFLAG   := -g
-LIBFLAGS  :=
+LIBFLAGS  := $(OPTLFLAG)
 AFLAGS	  := $(GFLAG) $(DEPFLAG) $(MACHINE_FLAGS) $(MYFLAGS) $(INCLFLAGS)
 CFLAGS	  := $(OPTFLAG) $(AFLAGS) -DPRIVATE=static
 CXXFLAGS  := $(CFLAGS)
