@@ -230,7 +230,7 @@ int cmlent::Freeze()
     int err;
 
     /* already frozen, nothing to do */
-    //if (flags.frozen) return 0;
+    if (flags.frozen) return 0;
 
     if (opcode == OLDCML_NewStore_OP)
     {
@@ -244,10 +244,8 @@ int cmlent::Freeze()
 	/* sanity checks, this better be an fso */
 	CODA_ASSERT(f && (f->MagicNumber == FSO_MagicNumber));
 
-	if (!f->shadow) {
-	    err = f->MakeShadow();
-	    if (err) return err;
-	}
+	err = f->MakeShadow();
+	if (err) return err;
     }
 
     RVMLIB_REC_OBJECT(flags);
@@ -4064,6 +4062,9 @@ void cmlent::AttachFidBindings() {
 	    fid_bindings = new dlist;
 	fid_bindings->append(&b->binder_handle);
 	f->AttachMleBinding(b);
+
+	if (opcode == OLDCML_NewStore_OP && IsFrozen())
+	    f->MakeShadow();
     }
 }
 

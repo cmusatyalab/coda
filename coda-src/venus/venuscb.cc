@@ -236,8 +236,11 @@ long CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD) {
      * file just in case. This is a choke for now, because it really is not
      * supposed to happen.
      */
-    if (!f->shadow) 
-	CHOKE("CallBackFetch: no shadow file! (%s)\n", FID_(&f->fid));
+    if (!f->shadow) {
+	eprint("CallBackFetch: no shadow file! (%s). Attempting to fix up.\n",
+	       FID_(&f->fid));
+	f->MakeShadow();
+    }
 
     /* Sanity checks. */
     if (!f->IsFile() || !HAVEALLDATA(f)) {
