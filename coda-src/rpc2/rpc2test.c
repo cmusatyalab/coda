@@ -502,9 +502,9 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, " %s says square of %ld is %ld (%ld msecs)\n",
+		    say(0, VerboseFlag, " %s says square of %ld is %lu (%ld msecs)\n",
 			ConnVector[thisconn].RemoteHost.Value.Name, x,
-			ntohl(*(long *)reply->Body), rpctime);
+			(unsigned long)ntohl(*(long *)reply->Body), rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -520,8 +520,9 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, "%s says cube of %ld is %ld (%ld msecs)\n",
-		    	ConnVector[thisconn].RemoteHost.Value.Name, x, ntohl(*(long *)reply->Body), rpctime);
+		    say(0, VerboseFlag, "%s says cube of %ld is %lu (%ld msecs)\n",
+			ConnVector[thisconn].RemoteHost.Value.Name, x,
+			(unsigned long)ntohl(*(long *)reply->Body), rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));

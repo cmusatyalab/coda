@@ -41,6 +41,10 @@ Pittsburgh, PA.
 #ifndef _RPC2_
 #define _RPC2_
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/time.h>  
 #include <netinet/in.h>
 

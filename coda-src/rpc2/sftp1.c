@@ -688,7 +688,7 @@ static long GetFile(struct SFTP_Entry *sEntry)
     long packetsize;
     long startmode = TRUE;
     RPC2_PacketBuffer *pb;
-    int i, rc = 0;
+    int i;
     
     sEntry->XferState = XferInProgress;
     sftp_Progress(sEntry->SDesc, 0);
@@ -776,10 +776,9 @@ static long GetFile(struct SFTP_Entry *sEntry)
 
 GotData:
 	startmode = FALSE;
-	rc = sftp_DataArrived(pb, sEntry);
-	SFTP_FreeBuffer(&pb);
 
-	if (rc < 0) { /* sftp_DataArrived failed */
+	if (sftp_DataArrived(pb, sEntry) < 0) {
+	    SFTP_FreeBuffer(&pb);
 	    if (sEntry->WhoAmI == DISKERROR) {
 		QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL3);
 	    }

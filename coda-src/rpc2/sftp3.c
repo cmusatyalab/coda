@@ -97,7 +97,7 @@ static int ResendWorried(struct SFTP_Entry *sEntry, long ackLast);
 static int SendSendAhead(struct SFTP_Entry *sEntry);
 static int SendFirstUnacked(struct SFTP_Entry *sEntry, long ackMe);
 static int WinIsOpen(struct SFTP_Entry *sEntry);
-static int sftp_SendAck(struct SFTP_Entry *sEntry);
+static void sftp_SendAck(struct SFTP_Entry *sEntry);
 static int sftp_vfwritev(SE_Descriptor *sdesc, long openfd,
 			 struct iovec *iovarray, long howMany);
 static int sftp_vfreadv(SE_Descriptor *sdesc, long openfd,
@@ -299,13 +299,16 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	contention resolution algorithms are a pain and not likely to
 	be really useful.  */
 	sftp_starved++; 
+	SFTP_FreeBuffer(&pBuff);
 	return(0); 
     }
 
     moffset = pBuff->Header.SeqNumber-sEntry->RecvLastContig;
 
-    if (moffset > sEntry->WindowSize)
-	{ BOGOSITY(sEntry, pBuff); return(-1); }
+    if (moffset > sEntry->WindowSize) {
+	BOGOSITY(sEntry, pBuff);
+	return(-1);
+    }
 
     if (moffset <= 0 || TESTBIT(sEntry->RecvTheseBits, moffset)) {
 	/* we have already seen this packet */
@@ -320,11 +323,12 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 	    /* we already saw this packet, so this must be considered
 	     * as a retransmission. -JH */
 	    sEntry->Retransmitting = TRUE;
-	    if (sftp_SendAck(sEntry) < 0) return(-1);
+	    sftp_SendAck(sEntry);
 	    /* we need write here 'cause we may not flush buffers otherwise */
 	    if (sftp_WriteStrategy(sEntry) < 0) return(-1);
 	    sEntry->DupsSinceAck = 0;
 	}
+	SFTP_FreeBuffer(&pBuff);
 	return(0);
     }
 
@@ -388,7 +392,7 @@ int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
     if ((pBuff->Header.Flags & SFTP_ACKME) ||
 	(sEntry->RecvSinceAck >= sEntry->WindowSize)) {
 
-	if (sftp_SendAck(sEntry) < 0) return(-1);
+	sftp_SendAck(sEntry);
 
 	/* WriteStrategy may modify RecvLastContig and RecvTheseBits */
 	if (sftp_WriteStrategy(sEntry) < 0) return(-1);
@@ -493,7 +497,7 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 }
 
 
-static int sftp_SendAck(struct SFTP_Entry *sEntry)
+static void sftp_SendAck(struct SFTP_Entry *sEntry)
     /* Send out an ack for the current state of sEntry.  The ack will
 	have GotEmAll as high as possible (leading 1's are gobbled)
 
@@ -549,7 +553,7 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
 	    (unsigned long)ntohl(pb->Header.TimeEcho),
 	    (unsigned long)ntohl(pb->Header.GotEmAll));
     SFTP_FreeBuffer(&pb);
-    return(0);
+    return;
 }
 
 /* -------------------- Source Side Common Routines -------------------- */
@@ -1299,7 +1303,7 @@ int sftp_SendTrigger(struct SFTP_Entry *sEntry)
     sftp_triggers++; 
     sEntry->Retransmitting = TRUE;
     if (sftp_WriteStrategy(sEntry) < 0) return(-1);	/* to flush buffers */
-    if (sftp_SendAck(sEntry) < 0) return(-1);
+    sftp_SendAck(sEntry);
     return(0);
 }
 

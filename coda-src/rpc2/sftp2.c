@@ -381,8 +381,8 @@ static void ClientPacket(RPC2_PacketBuffer *whichPacket,
 		if (sEntry->WhoAmI != DISKERROR)
 		    sftp_SetError(sEntry, ERROR);
 		SFSendNAK(whichPacket); /* NAK this packet */
+		SFTP_FreeBuffer(&whichPacket);
 	    }
-	    SFTP_FreeBuffer(&whichPacket);
 	} else {
 	    BOGUS(whichPacket);
 	}
