@@ -68,8 +68,7 @@ coda-src/librepair/Makefile
 coda-src/venus/Makefile 
 coda-src/advice/Makefile 
 coda-src/repair/Makefile 
-coda-src/res/Makefile 
-coda-src/rvmres/Makefile 
+coda-src/resolution/Makefile 
 coda-src/volutil/Makefile 
 coda-src/vtools/Makefile 
 coda-src/guitools/Makefile 
