@@ -74,7 +74,7 @@ char compOutputFile[MAXPATHLEN];// filename for output of last docompare
 struct stat compOutputStatBuf;	// file information for the repair
 				// commands file
 struct stat doInputStatBuf;
-
+int interactive = 1;
 
 static void	SetDefaultPaths();
 static int	compareVV(int, char **, struct repvol *);
@@ -137,7 +137,8 @@ command_t list[] = {
 
 main(int argc, char *argv[])
 {
-
+    int i;
+  
     /* parse args */
 
     SetDefaultPaths();
@@ -149,6 +150,34 @@ main(int argc, char *argv[])
     /*    if (access(HELPDIR, R_OK|X_OK) < 0)	{
 	printf("The help directory \"%s\" is not accessible\n", HELPDIR);
     } */
+
+    for (i = 0; i < argc; i++) {
+      if (strcmp(argv[i], "-remove") == 0) {
+	interactive = 0;
+	if ((i != 2) || (argc < 3)) {
+	  fprintf(stderr, "Usage:  %s [-d] [<pathname> -remove]\n", argv[0]);
+	  exit(1);
+	}
+	else {
+	  beginRepair(2, &argv[0]);
+	  switch (session) {
+	  case LOCAL_GLOBAL:
+	    discardAllLocal(1, &argv[0]);
+	    break;
+	  case SERVER_SERVER:
+	    removeInc(2, &argv[0]);
+	    break;
+ 	  case NOT_IN_SESSION:
+	  default:
+	    fprintf(stderr, "Error beginning repair\n");
+	    exit(1);
+	    break;
+	  }
+	  quit(0, NULL);	  
+	  return 0;
+	}
+      }
+    }
 
     /* Sit in command loop */
     if ( argc >= 3 ) {
@@ -945,11 +974,12 @@ void endRepair(int largc, char **largv)
 	    int rc;
 	    int commit;
 
-	    if (Parser_getbool("commit the local/global repair session?", 1)) {
-		commit = 1;
-	    } else {
-		commit = 0;
-	    }
+	    if (!interactive) 
+	      commit = 1;
+	    else if (Parser_getbool("commit the local/global repair session?", 1))
+	      commit = 1;
+	    else 
+	      commit = 0;
 
 	    char space[2048];
 	    char choice[10];
