@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/scripts/RCS/Makefile.in,v 4.3 1997/04/17 12:36:49 braam Exp braam $";
+# static char *rcsid = "$Header: /home/sparta/Peter/cs/coda-src/scripts/RCS/Makefile.in,v 4.4 97/04/17 12:46:30 braam Exp $";
 
 
 # 
@@ -50,12 +50,15 @@
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 UPDATE-SCRIPTS	= files.bin files.db files.etc files.lib files.root
 VOL-SCRIPTS	= clone createvol createvol_rep purgevol purgevol_rep bldvldb.sh
@@ -78,5 +81,5 @@ SCRIPTS := $(UPDATE-SCRIPTS) $(VOL-SCRIPTS) $(SUP-SCRIPTS)\
 CSBINS = newvenus vutil $(VENUS-SETUP)
 SSBINS = $(BACKUP-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCIPTS) $(VOL-SCRIPTS) $(VICE-SETUP)
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules
 

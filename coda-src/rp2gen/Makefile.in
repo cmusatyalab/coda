@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:38 raiff Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:50:11 rvb Exp $";
 
 
 # 
@@ -52,11 +52,14 @@
 # The REAL Makefile
 # The other Makefiles invoke this after setting: CC CFLAGS LFLAGS
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = rp2gen
 
@@ -84,4 +87,4 @@ crout.o: crout.c rp2.h
 
 util.o	: util.c rp2.h
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

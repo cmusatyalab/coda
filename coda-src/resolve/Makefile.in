@@ -25,15 +25,18 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/resolve/RCS/Makefile.in,v 4.1 1997/01/08 21:50:07 rvb Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.2 97/01/28 11:50:04 satya Exp $";
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 LIBRARIES = libresolve.a
 HEADERS   = resolve.h repio.h
@@ -50,4 +53,4 @@ libresolve.a: $(OFILES)
 HFILES = resolve.h predicate.h cure.h repio.h
 $(OFILES): $(HFILES)
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

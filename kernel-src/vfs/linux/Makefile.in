@@ -5,36 +5,29 @@
 #
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
-VPATH = @srcdir@
-TOPOBJ= @TOPOBJ@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
-# presto changeo!
-INCLDIR := $(INCLDIR)/cfs
+INCLDIR     := $(INCLDIR)/cfs
+BINDIR      =  /lib/modules/`uname -r`/fs
+CBINS       =  coda.o
+EXECUTABLES =  coda.o
+HEADERS     =  odytypes.h cnode.h cfs_linux.h cfs.h cfs_opstats.h
+OBJS        =  psdev.o cnode.o comm.o super.o inode.o file.o
 
-EXECUTABLES = coda.o
-HEADERS     = odytypes.h cnode.h cfs_linux.h cfs.h cfs_opstats.h
+DEFINES =  -DMODULE  -DLINUX -DMODVERSIONS -Wstrict-prototypes -Wall -O2
+INCL    =  -I/usr/src/linux/include  -include /usr/src/linux/include/linux/modversions.h
+CFLAGS  := -D__KERNEL__ $(INCL)   $(DEFINES)  $(CFLAGS)
 
-CC=gcc
-
-DEFINES=  -DMODULE  -DLINUX -DCODA  -DMODVERSIONS -Wstrict-prototypes -Wall -O2
-INCL=-I/usr/src/linux/include -I. -include /usr/src/linux/include/linux/modversions.h
-CFLAGS=-D__KERNEL__ $(INCL)   $(DEFINES)  -g
-XCFLAGS=
-
-OBJS=	  psdev.o cnode.o comm.o super.o inode.o file.o
-
-types: dummy
-	mkdir types
 
 coda.o: $(OBJS)
 	$(LD) -m elf_i386 -r -o $@ $(OBJS)
 
-BINDIR = /lib/modules/`uname -r`/fs
-#install: coda.o
-#	cp coda.o /lib/modules/`uname -r`/fs
-
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules
 

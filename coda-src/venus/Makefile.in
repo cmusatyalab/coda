@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/venus/RCS/Makefile.in,v 4.5 1997/02/18 15:28:21 lily Exp $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/coda-src/venus/RCS/Makefile.in,v 4.6 1997/02/26 16:03:09 rvb Exp $";
 
 
 # 
@@ -49,11 +49,14 @@
 # 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = venus
 CSBINS      = venus
@@ -243,4 +246,4 @@ faketrace.o: faketrace.c
 testjmp: testjmp.cc
 	$(CXX) $(CXXFLAGS) -o testjmp testjmp.cc
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

@@ -25,15 +25,18 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/coda-src/rvmres/RCS/Makefile.in,v 1.2 1996/12/09 21:54:40 braam Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:50:34 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 LIBRARIES = librvmres.a
 HEADERS	  = ops.h recle.h rsle.h compops.h parselog.h ruconflict.h resstats.h
@@ -70,4 +73,4 @@ rename.o: ruconflict.h ops.h rsle.h
 
 resstats.o: resstats.h 
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

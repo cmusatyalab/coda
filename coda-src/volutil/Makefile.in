@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/volutil/RCS/Makefile.in,v 4.1 1997/01/08 21:52:23 rvb Exp lily $";
+# static char *rcsid = "$Header: Makefile.in,v 4.2 97/01/29 18:12:23 lily Exp $";
 
 
 # 
@@ -50,11 +50,14 @@
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = volutil parserecdump backup readdump merge
 SSBINS      = $(EXECUTABLES)
@@ -159,7 +162,7 @@ readdump: readdump.o dumpstream.o dumpstuff.o ${LIBS}
 parserecdump: parserecdump.o ${LIBS}
 	$(CXX) $(LIBFLAGS) parserecdump.o ${LIBS} -o parserecdump
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules
 
 
 

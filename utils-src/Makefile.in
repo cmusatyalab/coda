@@ -1,5 +1,7 @@
-# BUILD for a specific architecture
-#	MACH & BSD44 are the same except for HEADERS
+# 		Coda Utilities
+
+# Josh Raiff
+# Moved up further Peter Braam
 
 TOPDIR = @top_srcdir@
 ifndef MAKDIR
@@ -11,6 +13,7 @@ TOPOBJ = @TOPOBJ@
 
 include $(MAKDIR)/Makeconf
 
-SUBDIRS = $(SHORTSYS)
+
+SUBDIRS = potemkin
 
 include $(MAKDIR)/Makerules

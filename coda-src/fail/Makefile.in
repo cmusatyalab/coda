@@ -25,14 +25,17 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:42 raiff Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:49:35 rvb Exp $";
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = ttyfcon partition heal slow
 CBINS       = $(EXECUTABLES)
@@ -75,4 +78,4 @@ fcon.client.o: fcon.client.c
 fcon.server.o: fcon.server.c
 ttyfcon.o: ttyfcon.c fcon.h
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

@@ -27,14 +27,17 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/kernel-src/inodefs/common/RCS/Makefile.in,v 4.2 1997/01/28 11:36:33 satya Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.3 97/02/05 11:39:43 lily Exp $";
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 HEADERS   = inodefs.h
 OBJS = inodefsulib.o
@@ -42,4 +45,4 @@ LIBRARIES = libuinodefs.a
 
 libuinodefs.a: inodefsulib.o
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

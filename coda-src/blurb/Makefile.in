@@ -25,15 +25,18 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:40 raiff Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:49:28 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = blurb
 SCRIPTS     = blurb-ansify
@@ -44,4 +47,4 @@ LIBS = $(LIBUTIL)
 blurb:	blurb.o $(LIBS)
 	$(CC) $(LIBFLAGS) blurb.o $(LIBS) -o blurb
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

@@ -10,15 +10,18 @@
 # Unlicensed use or distribution of this code is illegal.
 # 
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:49:49 lily Locked $";
+# static char *rcsid = "$Header: Makefile.in,v 4.2 97/02/05 11:46:45 lily Exp $";
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = norton norton-reinit
 SCRIPTS     = reinit
@@ -65,4 +68,4 @@ parser.o: parser.cc parser.h
 
 commands.o: commands.cc parser.h
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

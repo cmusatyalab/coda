@@ -36,14 +36,17 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 #
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/lib-src/mlwp/RCS/Makefile.in,v 1.2 1996/12/09 19:22:23 braam Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:54:10 rvb Exp $";
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 # presto changeo!
 LIBDIR := $(LIBSPECIAL)
@@ -111,4 +114,4 @@ newrw:	rw.o $(NEW_LIBS)
 	rm rw.o
 	$(CC) $(LIBFLAGS) rw.o $(NEW_LIBS) -o newrw
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

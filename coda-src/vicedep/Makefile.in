@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:43 raiff Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:52:02 rvb Exp $";
 
 
 # 
@@ -50,11 +50,14 @@
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 HEADERS     = $(RP2HEADERS) $(OTHERHEADERS) $(RP2FILES)
 RP2FILES    = res.rpc2 vcrcommon.rpc2 callback.rpc2 vice.rpc2 volutil.rpc2 \
@@ -87,4 +90,4 @@ OTHERHEADERS = venusioctl.h srv.h operations.h recov_vollog.h
 
 
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

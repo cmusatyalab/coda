@@ -25,16 +25,19 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/kerndep/RCS/Makefile.in,v 4.3 1997/01/28 11:44:36 satya Exp $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/coda-src/kerndep/RCS/Makefile.in,v 4.4 1997/02/26 16:02:39 rvb Exp $";
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 # presto changeo!
 INCLDIR := $(INCLDIR)/cfs
@@ -62,4 +65,4 @@ endif
 OFILES= setpag.o pioctl.o
 $(OFILES): $(HEADERS)
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

@@ -10,6 +10,9 @@
 # Moved up further Peter Braam
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 
@@ -17,7 +20,9 @@ SECSRC = @SECSRC@
 SHOB   = @SHOB@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
+
+EXECUTABLES = md
 
   I =  kernel-src
  II =  lib-src
@@ -27,7 +32,10 @@ III =  rvm-src
 
 SUBDIRS = $(I) $(II) $(III) $(IV) $(V)
 
-include $(TOPDIR)/Makerules
+md: md.o
+	$(CC) $(LIBFLAGS) -o md md.o
+
+include $(MAKDIR)/Makerules
 
 rcs RCS:
 	ln -s $(TOPDIR)/RCSLINK RCSLINK

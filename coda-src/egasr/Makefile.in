@@ -25,15 +25,18 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /coda/usr/satya/STM/coda-4.0.1/coda-src/egasr/RCS/Makefile.in,v 4.1 1997/01/08 21:49:34 rvb Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.2 97/01/28 11:43:58 satya Exp $";
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = filerepair removeinc
 SCRIPTS     = xfrepair xaskuser
@@ -47,4 +50,4 @@ removeinc: removeinc.o $(LIBS)
 filerepair: filerepair.o $(LIBS)
 	$(CXX) $(LIBFLAGS) $^ ${LIBS} -o filerepair
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

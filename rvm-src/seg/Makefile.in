@@ -38,18 +38,21 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/seg/RCS/Makefile.in,v 1.2 1996/12/09 19:19:41 braam Exp $
+# rcsid = $Header: Makefile.in,v 4.1 97/01/08 21:54:44 rvb Exp $
 #
 
 #   	SEG Makefile : depends on csmake
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 # presto changeo!
 LIBDIR := $(LIBSPECIAL)
@@ -98,4 +101,4 @@ Depend: ${DEPDEP}
 #	export SRCDIR; export SYS;    \
 #        $(DOSRCINSTALL)	
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

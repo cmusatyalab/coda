@@ -9,7 +9,7 @@
 # Unlicensed use or distribution of this code is illegal.
 #
 #
-# static char *rcsid = "$Header: /afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/plumber/Makefile.in,v 1.1 1997/01/06 21:29:02 rvb Exp $";
+# static char *rcsid = "$Header: /afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/plumber/Makefile.in,v 1.3 1997/01/10 03:47:51 rvb Exp $";
 #endif _BLURB_
 
 #                    IBM COPYRIGHT NOTICE
@@ -21,7 +21,15 @@
 # of the Coda License.
 #
 
-include $(TOPDIR)/Makeconf
+TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
+srcdir = @srcdir@
+VPATH  = @srcdir@
+TOPOBJ = @TOPOBJ@
+
+include $(MAKDIR)/Makeconf
 
 LIBRARIES = libplumber.a
 
@@ -37,4 +45,4 @@ plumber.o: plumber.ci
 pmalloc.o: malloc.ci
 pplumber.o: plumber.ci
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf

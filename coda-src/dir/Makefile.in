@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 1.1 96/12/09 14:40:33 raiff Exp $";
+# static char *rcsid = "$Header: Makefile.in,v 4.1 97/01/08 21:49:31 rvb Exp $";
 
 
 # 
@@ -50,12 +50,15 @@
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 LIBRARIES = libdir.a salvage.o buffer.o dir.o 
 HEADERS   = coda_dir.h dir.private.h
@@ -69,5 +72,5 @@ libdir.a:  $(OFILES)
 
 $(OFILES): $(HEADERS)
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules
 

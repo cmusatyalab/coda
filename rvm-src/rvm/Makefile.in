@@ -42,15 +42,18 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /usr/rvb/XX/src/rvm-src/rvm/RCS/Makefile.in,v 4.1 1997/01/08 21:54:30 rvb Exp $
+# rcsid = $Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/rvm-src/rvm/RCS/Makefile.in,v 4.2 1997/02/26 16:05:01 rvb Exp $
 #
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 # presto changeo!
 LIBDIR := $(LIBSPECIAL)
@@ -189,4 +192,4 @@ nothing:
 	@echo $(LIBS)
 	@echo $(CTHREAD_${SYS})
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

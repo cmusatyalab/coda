@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/vice/RCS/Makefile.in,v 4.1 1997/01/08 21:51:53 rvb Exp lily $";
+# static char *rcsid = "$Header: Makefile.in,v 4.2 97/01/29 18:10:15 lily Exp $";
 
 
 # 
@@ -49,11 +49,14 @@
 # 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = srv printvrdb
 SSBINS      = $(EXECUTABLES)
@@ -131,4 +134,4 @@ libviceerror.a: ViceErrorMsg.o
 
 ${objects}:${headers} ${HFILES}
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules

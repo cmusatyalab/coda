@@ -35,18 +35,21 @@
 # changes  without  encumbrance.   Such improvements and extensions
 # should be returned to Software.Distribution@cs.cmu.edu.
 #
-# rcsid = $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/tests/RCS/Makefile.in,v 1.3 1996/12/09 20:13:21 braam Exp $
+# rcsid = $Header: Makefile.in,v 4.1 97/01/08 21:54:47 rvb Exp $
 #
 
 #   	RVM Test Programs Makefile
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
 # Need to conditionalize this
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = testrvm rvm_basher
 TESTS = testrvm rvm_basher
@@ -95,5 +98,5 @@ installlwp:
 
 lwp:	lwp_basher
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules
 

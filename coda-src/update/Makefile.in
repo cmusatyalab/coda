@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /coda/usr/lily/newbuild/src/coda-src/update/RCS/Makefile.in,v 4.2 1997/01/28 11:52:14 satya Exp lily $";
+# static char *rcsid = "$Header: Makefile.in,v 4.3 97/01/29 18:11:19 lily Exp $";
 
 
 # 
@@ -50,11 +50,14 @@
 
 
 TOPDIR = @top_srcdir@
+ifndef MAKDIR
+MAKDIR = @top_srcdir@/configs
+endif
 srcdir = @srcdir@
 VPATH  = @srcdir@
 TOPOBJ = @TOPOBJ@
 
-include $(TOPDIR)/Makeconf
+include $(MAKDIR)/Makeconf
 
 EXECUTABLES = updatemon updatesrv updateclnt
 HEADERS	    = update.h update.rpc2
@@ -93,4 +96,4 @@ updatesrv.o: ${HFILES}
 updateclnt.o: ${HFILES} $(INCLDIR)/volutil.rpc2
 updatemon.o: ${HFILES}
 
-include $(TOPDIR)/Makerules
+include $(MAKDIR)/Makerules
