@@ -128,6 +128,11 @@ typedef RPC2_Enum
 	CallBackSet = 1
 } 	CallBackStatus;
 
+typedef RPC2_Enum
+{
+	NoPermit = 0,
+	PermitSet = 1
+} 	PermitStatus;
 
 typedef RPC2_Struct
 {

@@ -53,7 +53,6 @@ extern "C" {
 #ifndef _FID_T_
 #define _FID_T_
 
-
 typedef RPC2_Unsigned VolumeId;
 
 typedef RPC2_Unsigned VnodeId;
