@@ -87,7 +87,22 @@ char *VMFileBuf;    /* for FILEINVM transfers */
 long rpc2rc;
 #define WhatHappened(X,Y) ((rpc2rc = X), printf("%s: %s\n", Y, RPC2_ErrorMsg(rpc2rc)), rpc2rc)
 
+FILE *ifd;
+int fflag = 0;
+int qflag = 0;
+int bwflag = 0;
+char *bwfile;
+struct timeval start, middle;
+FILE *BW_f;
 
+int bwi = 0;
+void bwcb(void *userp, unsigned int offset)
+{
+	bwi++;
+	gettimeofday(&middle, (struct timezone *)0);
+        timersub(&middle, &start, &middle);
+        fprintf(BW_f,"%ld.%06ld %d\n", middle.tv_sec, middle.tv_usec, offset);
+}
 
 int main(int arg, char **argv)
 {
@@ -105,6 +120,37 @@ int main(int arg, char **argv)
 	
 	SE_Descriptor sed;
 
+	while (arg > 1 && argv[1][0] == '-') {
+		if (!strcmp(argv[1], "-q")) {
+			qflag++;
+			arg--; argv++;
+			continue;
+		} else if (!strcmp(argv[1], "-b")) {
+			bwflag++;
+			arg--; argv++;
+			bwfile = argv[1];
+			if ((BW_f = fopen(argv[1], "w")) == NULL) {
+				printf("ctest: can not open bandwidth file \"%s\"\n",
+					bwfile);
+				perror("fopen");
+				BW_f = stdout;
+			}
+			arg--; argv++;
+			continue;
+		}
+	}
+	if (arg > 1) {
+		if ((ifd = fopen(argv[1], "r")) == NULL) {
+			printf("ctest: can not open script file \"%s\"\n", argv[1]);
+			perror("fopen");
+			exit(1);
+		} else {
+			fflag++;
+		}
+	} else {
+		ifd = stdin;
+	}
+
 	ErrorLogFile = stderr;
 	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mypid) == LWP_SUCCESS);
 
@@ -120,8 +166,9 @@ int main(int arg, char **argv)
 		(void) strcat(LongText, ShortText);
 
 
-	printf("Debug level? ");
-	(void) scanf("%ld", &RPC2_DebugLevel);
+	if (!qflag) printf("Debug level? ");
+	(void) fscanf(ifd, "%ld", &RPC2_DebugLevel);
+	if (!qflag && fflag) printf(" %ld\n", RPC2_DebugLevel);
 
 #ifndef FAKESOCKETS
 	SFTP_SetDefaults(&sftpi);
@@ -138,7 +185,7 @@ int main(int arg, char **argv)
 #endif PROFILE
 
 	if(WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, 
-				  (RPC2_PortIdent *)NULL, 0, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
+				  (RPC2_PortIdent *)NULL, -1, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
 	exit(-1);
 
 #ifdef OLDLWP
@@ -155,8 +202,9 @@ int main(int arg, char **argv)
 
     while (TRUE)
 	{
-	printf("RPC operation (%d for help)? ", HELP);
-	(void) scanf("%ld", &opcode);
+	if (!qflag) printf("RPC operation (%d for help)? ", HELP);
+	(void) fscanf(ifd, "%ld", &opcode);
+	if (!qflag && fflag) printf(" %ld\n", opcode);
 
 	Buff1->Header.Opcode = opcode;
 	switch((int) opcode)
@@ -187,15 +235,18 @@ int main(int arg, char **argv)
 		break;
 
 	    case SETVMFILESIZE:
-		printf("Local buffer size? ");  (void) scanf("%ld", &VMMaxFileSize);
+		if (!qflag) printf("Local buffer size? ");
+		(void) fscanf(ifd, "%ld", &VMMaxFileSize);
+		if (!qflag && fflag) printf(" %ld\n", VMMaxFileSize);
 		if (VMFileBuf) free(VMFileBuf);
 		CODA_ASSERT(VMFileBuf = (char *)malloc((unsigned)VMMaxFileSize));
 		break;
 		
 	    case SETREMOTEVMFILESIZE:
 		{
-		printf("Remote buffer size? ");
-		(void) scanf("%ld", &tt);
+		if (!qflag) printf("Remote buffer size? ");
+		(void) fscanf(ifd, "%ld", &tt);
+		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
 		bcopy((char *)&tt, (char *)Buff1->Body, sizeof(long));
 		Buff1->Header.BodyLength = sizeof(long);
@@ -215,7 +266,9 @@ int main(int arg, char **argv)
 	    case DUMPTRACE:
 		{
 		long count;
-		printf("How many elements? "); (void) scanf("%ld", &count);
+		if (!qflag) printf("How many elements? ");
+		(void) fscanf(ifd, "%ld", &count);
+		if (!qflag && fflag) printf(" %ld\n", count);
 		(void) RPC2_DumpTrace(stdout, count);
 		break;
 		}
@@ -227,21 +280,31 @@ int main(int arg, char **argv)
 		sed.Value.SmartFTPD.Tag = FILEBYNAME;
 		sed.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0644;
 	
+		if (bwflag) {
+			sed.userp = (void *)0x12344321;
+			sed.XferCB = bwcb;
+		}
+
 		if (opcode  == (long) STOREFILE)
 			sed.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 		else sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 	
-		printf("Request body length (0 unless testing piggybacking): ");
-		(void) scanf("%lu", &Buff1->Header.BodyLength);		
+		if (!qflag) printf("Request body length (0 unless testing piggybacking): ");
+		(void) fscanf(ifd, "%lu", &Buff1->Header.BodyLength);
+		if (!qflag && fflag) printf(" %ld\n", Buff1->Header.BodyLength);
 
-		printf("Local seek offset? (0): ");
-		(void) scanf("%ld", &sed.Value.SmartFTPD.SeekOffset);
+		if (!qflag) printf("Local seek offset? (0): ");
+		(void) fscanf(ifd, "%ld", &sed.Value.SmartFTPD.SeekOffset);
+		if (!qflag && fflag) printf(" %ld\n", sed.Value.SmartFTPD.SeekOffset);
 
-		printf("Local byte quota? (-1): ");
-		(void) scanf("%ld", &sed.Value.SmartFTPD.ByteQuota);
+		if (!qflag) printf("Local byte quota? (-1): ");
+		(void) fscanf(ifd, "%ld", &sed.Value.SmartFTPD.ByteQuota);
+		if (!qflag && fflag) printf(" %ld\n", sed.Value.SmartFTPD.ByteQuota);
 
-		printf("Local file name ('-' for stdin/stdout, '/dev/mem' for VM file): ");
-		(void) scanf("%s", sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName);
+		if (!qflag) printf("Local file name ('-' for stdin/stdout, '/dev/mem' for VM file): ");
+		(void) fscanf(ifd, "%s", sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName);
+		if (!qflag && fflag) printf(" %s\n", sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName);
+
 		if (strcmp(sed.Value.SmartFTPD.FileInfo.ByName.LocalFileName, "-") == 0)
 		    {
 		    sed.Value.SmartFTPD.Tag = FILEBYFD;
@@ -262,30 +325,35 @@ int main(int arg, char **argv)
 
 		/* Request packet contains: reply length, remote seek offset, remote byte quota, 
 			hash mark, remote name*/
-		printf("Reply body length (0 unless testing piggybacking): ");
-		(void) scanf("%ld", &tt);
+		if (!qflag) printf("Reply body length (0 unless testing piggybacking): ");
+		(void) fscanf(ifd, "%ld", &tt);
+		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
 		bcopy((char *)&tt, (char *)Buff1->Body, sizeof(long));
 
-		printf("Remote seek offset (0) : ");
-		(void) scanf("%ld", &tt);
+		if (!qflag) printf("Remote seek offset (0) : ");
+		(void) fscanf(ifd, "%ld", &tt);
+		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
 		bcopy((char *)&tt, (char *)Buff1->Body + sizeof(long), sizeof(long));
 
-		printf("Remote byte quota (-1): ");
-		(void) scanf("%ld", &tt);
+		if (!qflag) printf("Remote byte quota (-1): ");
+		(void) fscanf(ifd, "%ld", &tt);
+		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
 		bcopy((char *)&tt, (char *)Buff1->Body + 2*sizeof(long), sizeof(long));
 
-		printf("Remote file name ('-' for stdin/stdout, '/dev/mem' for VM file): ");
-		(void) scanf("%s", (char *)Buff1->Body+1+3*sizeof(long));
+		if (!qflag) printf("Remote file name ('-' for stdin/stdout, '/dev/mem' for VM file): ");
+		(void) fscanf(ifd, "%s", (char *)Buff1->Body+1+3*sizeof(long));
+		if (!qflag && fflag) printf(" %s\n", (char *)Buff1->Body+1+3*sizeof(long));
 		Buff1->Header.BodyLength += 3*sizeof(long)+2+strlen((char *)(Buff1->Body+1+3*sizeof(long)));
 
-		printf("Hash mark: ");
+		if (!qflag) printf("Hash mark: ");
 #ifndef	__linux__
 		CODA_ASSERT(fseek(stdin, (long) 0, 2) == 0);
 #endif
-		(void) scanf("%c", &sed.Value.SmartFTPD.hashmark);
+		(void) fscanf(ifd, "%c", &sed.Value.SmartFTPD.hashmark);
+		if (!qflag && fflag) printf(" %c\n", sed.Value.SmartFTPD.hashmark);
 		if (sed.Value.SmartFTPD.hashmark == '0')
 			sed.Value.SmartFTPD.hashmark = 0;
 		*(Buff1->Body + 3*sizeof(long)) = sed.Value.SmartFTPD.hashmark;
@@ -298,7 +366,9 @@ int main(int arg, char **argv)
 #ifdef PROFILE
 		ProfilingOn();
 #endif PROFILE
+		gettimeofday(&start, (struct timezone *)0);
 		tt = RPC2_MakeRPC(cid, Buff1, &sed, &Buff2, (struct timeval *)NULL, (long) 0);
+		if (bwflag) fclose(BW_f);
 #ifdef PROFILE
 		ProfilingOff();
 #endif PROFILE
@@ -346,8 +416,9 @@ int main(int arg, char **argv)
 	    break;
 
 	    case MANYPINGS:
-		printf("How many pings?: ");
-		(void) scanf("%ld", &i);
+		if (!qflag) printf("How many pings?: ");
+		(void) fscanf(ifd, "%ld", &i);
+		if (!qflag && fflag) printf(" %ld\n", i);
 		ClearStats();
 		FT_GetTimeOfDay(&t1, NULL);
 #ifdef PROFILE
@@ -374,8 +445,9 @@ int main(int arg, char **argv)
 	    break;
 
 	    case LENGTHTEST:
-		printf("Length? ");
-		(void) scanf("%ld", &tt);
+		if (!qflag) printf("Length? ");
+		(void) fscanf(ifd, "%ld", &tt);
+		if (!qflag && fflag) printf(" %ld\n", tt);
 		tt = (long) htonl((unsigned long)tt);
 		bcopy((char *)&tt, (char *)Buff1->Body, sizeof(long));
 		tt = (long) ntohl((unsigned long)tt);
@@ -488,8 +560,9 @@ void GetHost(RPC2_HostIdent *h)
 
     do {
 	h->Tag = RPC2_HOSTBYINETADDR;
-	printf("Host id? ");
-	(void) scanf("%s", buff);
+	if (!qflag) printf("Host id? ");
+	(void) fscanf(ifd, "%s", buff);
+	if (!qflag && fflag) printf(" %s\n", buff);
     } while (inet_aton(buff, &h->Value.InetAddress) != 0);
 }
 
@@ -498,7 +571,9 @@ void GetPort(    RPC2_PortIdent *p)
     long i;
 
     p->Tag = RPC2_PORTBYINETNUMBER;
-    printf("Port number? "); (void) scanf("%ld", &i);
+    if (!qflag) printf("Port number? ");
+    (void) fscanf(ifd, "%ld", &i);
+    if (!qflag && fflag) printf(" %ld\n", i);
     p->Value.InetPortNumber = i;
     p->Value.InetPortNumber = htons(p->Value.InetPortNumber);
     }
@@ -507,17 +582,19 @@ void GetWho(RPC2_CountedBS *w, long s, RPC2_EncryptionKey e)
 {
     if (s != RPC2_OPENKIMONO)
 	{
-	printf("Identity? ");
-	(void) scanf("%s", (char *)w->SeqBody);
+	if (!qflag) printf("Identity? ");
+	(void) fscanf(ifd, "%s", (char *)w->SeqBody);
+	if (!qflag && fflag) printf(" %s\n", (char *)w->SeqBody);
 	w->SeqLen = 1+strlen((char *)w->SeqBody);
 	printf("Encryption Key (7 chars)? ");
 	(void) sprintf((char *)e, "       ");
-	(void) scanf("%s", (char *)e);
+	(void) fscanf(ifd, "%s", (char *)e);
 	}
     else
 	{
-	printf("Identity [.]? ");
-	(void) scanf("%s", (char *)w->SeqBody);
+	if (!qflag) printf("Identity [.]? ");
+	(void) fscanf(ifd, "%s", (char *)w->SeqBody);
+	if (!qflag && fflag) printf(" %s\n", (char *)w->SeqBody);
 	w->SeqLen = 1+strlen((char *)w->SeqBody);
 	}
     }
@@ -544,16 +621,21 @@ void DoBinding(RPC2_Handle *cid)
     char whobuff[100];
 
     hid.Tag = RPC2_HOSTBYNAME;
-    printf("Host? "); (void) scanf("%s", hid.Value.Name);
+    if (!qflag) printf("Host? ");
+    (void) fscanf(ifd, "%s", hid.Value.Name);
+    if (!qflag && fflag) printf(" %s\n", hid.Value.Name);
+
     GetPort(&sid);
     ssid.Tag = RPC2_SUBSYSBYID;
     ssid.Value.SubsysId = SUBSYS_SRV;
 
-    printf("Side Effect Type (%d or %d)? ", 0, SMARTFTP);
-    (void) scanf("%ld", &bparms.SideEffectType);
+    if (!qflag) printf("Side Effect Type (%d or %d)? ", 0, SMARTFTP);
+    (void) fscanf(ifd, "%ld", &bparms.SideEffectType);
+    if (!qflag && fflag) printf(" %ld\n", bparms.SideEffectType);
 
-    printf("Security [98(OK), 12(AO), 73(HO), 66(S)]? ");
-    (void) scanf("%ld", &bparms.SecurityLevel);
+    if (!qflag) printf("Security [98(OK), 12(AO), 73(HO), 66(S)]? ");
+    (void) fscanf(ifd, "%ld", &bparms.SecurityLevel);
+    if (!qflag && fflag) printf(" %ld\n", bparms.SecurityLevel);
 
     who.SeqLen = 0;
     who.SeqBody = (RPC2_Byte *)whobuff;
@@ -579,19 +661,3 @@ void DoBinding(RPC2_Handle *cid)
 	exit(-1);
 
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
