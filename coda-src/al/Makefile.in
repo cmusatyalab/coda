@@ -45,9 +45,9 @@ HFILES = al.h prs.h pdb.h pdbarray.h
 libal.a:  pdbdb.o pdbpack.o alprocs.o pdb.o pdbdb.o pdbpack.o pdbprofile.o pdbarray.o 
 
 altest: altest.o libal.a $(LIBUTIL) $(HFILES)
-	$(CC) ${LIBFLAGS} altest.o libal.a -lgdbm $(LIBUTIL) $(LIBBASE) -o altest
+	$(CC) ${LIBFLAGS} altest.o libal.a -lgdbm $(LIBUTIL) $(LIBBASE) $(LGDBM)-lgdbm  -o altest
 
 pdbtool: pdbtool.o libal.a
-	$(CC) ${LIBFLAGS} pdbtool.o libal.a -lgdbm $(LIBREADLINE) $(LIBBASE) -o pdbtool
+	$(CC) ${LIBFLAGS} pdbtool.o libal.a -lgdbm $(LIBREADLINE) $(LIBBASE) $(LGDBM) -lgdbm -o pdbtool
 
 include $(MAKDIR)/configs/Makerules

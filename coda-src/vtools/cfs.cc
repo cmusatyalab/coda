@@ -57,7 +57,7 @@ extern "C" {
 #include <util.h>
 #include <vice.h>
 #include <venusioctl.h>
-#include <prs_fs.h>
+#include <prs.h>
 
 
 #ifdef	__linux__

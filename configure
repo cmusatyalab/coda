@@ -1536,9 +1536,8 @@ coda-src/dir/Makefile
 coda-src/rpc2/Makefile 
 coda-src/portmapper/Makefile 
 coda-src/util/Makefile 
-coda-src/libal/Makefile 
+coda-src/al/Makefile 
 coda-src/rp2gen/Makefile 
-coda-src/pdbstuff/Makefile 
 coda-src/blurb/Makefile 
 coda-src/fail/Makefile 
 coda-src/vicedep/Makefile  
@@ -1704,9 +1703,8 @@ coda-src/dir/Makefile
 coda-src/rpc2/Makefile 
 coda-src/portmapper/Makefile 
 coda-src/util/Makefile 
-coda-src/libal/Makefile 
+coda-src/al/Makefile 
 coda-src/rp2gen/Makefile 
-coda-src/pdbstuff/Makefile 
 coda-src/blurb/Makefile 
 coda-src/fail/Makefile 
 coda-src/vicedep/Makefile  

@@ -42,7 +42,7 @@ extern "C" {
 #include <stdlib.h>
 
 #include <auth2.h>
-#include <prs_fs.h>
+#include <prs.h>
 #include <rpc2.h>
 #include <fail.h>
 

@@ -59,9 +59,9 @@ norton_objs =	norton.o ${common_objects}
 reinit_objs =	norton-reinit.o ${common_objects}
 
 norton: ${norton_objs} ${NLIBS}
-	$(CXX) $(LIBFLAGS) ${norton_objs} ${NLIBS} -o norton
+	$(CXX) $(LIBFLAGS) ${norton_objs} ${NLIBS} $(LGDBM) -lgdbm -o norton
 
 norton-reinit: ${reinit_objs} ${NLIBS}
-	$(CXX) $(LIBFLAGS) ${reinit_objs} ${NLIBS} -o norton-reinit
+	$(CXX) $(LIBFLAGS) ${reinit_objs} ${NLIBS} $(LGDBM) -lgdbm -o norton-reinit
 
 include $(TOPDIR)/configs/Makerules

@@ -110,6 +110,8 @@ int VN_DAbort(Vnode *vnp)
 	}
     
 	DH_FreeData(DC_DC2DH(vnp->dh));
+	DC_SetDirty(vnp->dh, 0);
+
 
 	return(0);
 }

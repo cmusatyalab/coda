@@ -44,7 +44,7 @@ extern "C" {
 #include <rpc2.h>
 #include <vice.h>
 /* from libal */
-#include <prs_fs.h>
+#include <prs.h>
 
 #ifdef __cplusplus
 }

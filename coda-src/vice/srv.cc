@@ -94,7 +94,7 @@ extern "C" {
 
 
 #include <prs.h>
-#include <prs_fs.h>
+#include <prs.h>
 #include <al.h>
 
 #include <auth2.h>

@@ -70,7 +70,7 @@ extern "C" {
 #include <partition.h>
 #include <util.h>
 #include <prs.h>
-#include <prs_fs.h>
+#include <prs.h>
 #include <al.h>
 #include <callback.h>
 #include <vice.h>

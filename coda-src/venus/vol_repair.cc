@@ -47,7 +47,7 @@ extern "C" {
 #include <inconsist.h>
 
 /* from libal */
-#include <prs_fs.h>
+#include <prs.h>
 
 /* from venus */
 #include "comm.h"

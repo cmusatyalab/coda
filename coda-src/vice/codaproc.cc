@@ -54,7 +54,6 @@ extern "C" {
 #include <rvmlib.h>
 
 #include <prs.h>
-#include <prs_fs.h>
 #include <al.h>
 #include <vice.h>
 #ifdef __cplusplus
@@ -150,7 +149,7 @@ static int GetMyRepairList(ViceFid *, struct listhdr *, int ,
 static int CheckTreeRemoveSemantics(ClientEntry *, Volume *, 
 				     ViceFid *, dlist *);
 
-static int getFids(dlist *, char *, long , long );
+static int getFids(struct DirEntry *dirent, void * data);
 
 
 static int GetRepairObjects(Volume *, vle *, dlist *, 
@@ -1862,21 +1861,26 @@ int GetSubTree(ViceFid *fid, Volume *volptr, dlist *vlist) {
     }
     return(errorCode);
 }
-
-static int getFids(dlist *flist, char *name, long vnode, long unique)
+static int getFids(struct DirEntry *de, void * data)
 {
-    SLog(9,  "Entering GetFid for %s", name);
-    if (!strcmp(name, ".") || !strcmp(name, ".."))
-	return 0;
+        dlist *flist = (dlist *)data;
+	char *name = de->name;
+	long vnode, unique;
+	ViceFid fid;
 
-    ViceFid fid;
-    fid.Volume = 0;
-    fid.Vnode = vnode;
-    fid.Unique = unique;
-    AddVLE(*flist, &fid);
+	SLog(9,  "Entering GetFid for %s", name);
 
-    SLog(9,  "Leaving GetFid for %s ", name);
-    return(0);
+	FID_NFid2Int(&de->fid, &vnode, &unique);
+	if (!strcmp(name, ".") || !strcmp(name, ".."))
+		return 0;
+
+	fid.Volume = 0;
+	fid.Vnode = vnode;
+	fid.Unique = unique;
+	AddVLE(*flist, &fid);
+
+	SLog(9,  "Leaving GetFid for %s ", name);
+	return(0);
 }
 
 class rmblk {
