@@ -47,7 +47,7 @@ int Parser_execarg(int argc, char **argv, argcmd_t cmds[]);
 void execute_line(char * line);
 
 /* Converts a string to an integer */
-int Parser_int(char *, int *);
+int Parser_uint(char *, unsigned int *);
 
 /* Prompts for a string, with default values and a maximum length */
 char *Parser_getstr(const char *prompt, const char *deft, char *res, 

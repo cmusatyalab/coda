@@ -345,13 +345,13 @@ void Parser_exit(int argc, char *argv[])
     parser_prompt = NULL;
 }
 
-/* convert a string to an integer */
-int Parser_int(char *s, int *val)
+/* convert a string to an unsigned integer */
+int Parser_uint(char *s, unsigned int *val)
 {
     int ret;
 
     if (*s != '0')
-	ret = sscanf(s, "%d", val);
+	ret = sscanf(s, "%u", val);
     else if (*(s+1) != 'x')
 	ret = sscanf(s, "%o", val);
     else {
