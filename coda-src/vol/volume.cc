@@ -85,7 +85,6 @@ extern "C" {
 #include "lockqueue.h"
 #include <recov_vollog.h>
 #include "vldb.h"
-#include "srvsignal.h"
 #include "vutil.h"
 #include "fssync.h"
 #include "index.h"

@@ -59,7 +59,6 @@ extern "C" {
 #include "volume.h"
 #include "vldb.h"
 #include "partition.h"
-#include "srvsignal.h"
 #include "vutil.h"
 #include "fssync.h"
 #include "index.h"
