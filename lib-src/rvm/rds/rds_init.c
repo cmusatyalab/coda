@@ -84,8 +84,7 @@ rds_init_heap(base, length, chunk_size, nlists, tid, err)
     /* determine where the first block will start */
     fbp = (free_block_t *)((char *)&(hdrp->lists[nlists]) + sizeof(free_list_t)); 
     /* Round this up to the chunk size */
-    fbp = (free_block_t *)((((char *)fbp + chunk_size - 1) /
-                            chunk_size) * chunk_size);
+    fbp = (free_block_t *)(((long)((char *)fbp + chunk_size - 1) / chunk_size) * chunk_size);
 
     rvmret = rvm_set_range(tid, fbp, sizeof(free_block_t));
     if (rvmret != RVM_SUCCESS) {
