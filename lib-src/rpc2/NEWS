@@ -3,6 +3,8 @@ New in 1.6:
 * Cross compilation stuff for the Itsy (SA-1100). (Jason Flinn)
 * Corrected byteswapping of incoming/outgoing packets on Itsy's. (Jason Flinn)
 * Linking against the updated liblwp in lwp-1.5.
+* Limit the size of piggybacked sftp data to the requested sftp_maxpacketsize
+  to avoid ip-layer fragmentation.
 
 New in 1.5:
 
