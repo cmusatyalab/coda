@@ -42,7 +42,7 @@ extern "C" {
 
 const int  LQTIMEOUT = 300;	/* seconds */
 const int  LQINTERVAL =	60;	/* seconds */
-const int  LockQueManStkSize = 8192;
+const int  LockQueManStkSize = 16384;
 lqman *LockQueueMan;
 
 
