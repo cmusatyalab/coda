@@ -1191,6 +1191,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 							     vlist))
 			return(errorCode);
 		}
+		VN_PutDirHandle(cv->vptr);
 	    }
 	    break;
 	  case REPAIR_RENAME:
@@ -1213,6 +1214,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		sdh = VN_SetDirHandle(sdv->vptr);
 
 		CODA_ASSERT(DH_Lookup(sdh, repairent.name, &sfid, CLU_CASE_SENSITIVE) == 0);
+		VN_PutDirHandle(sdv->vptr);
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
@@ -1226,6 +1228,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 		    tv = FindVLE(*vlist, &tfid);
 		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
 		}
+		VN_PutDirHandle(tv->vptr);
 		if (errorCode = CheckRepairRenameSemantics(client, volptr, sdv, tdv, 
 							   sv, tv, repairent.name, repairent.newname))
 		    return(errorCode);
@@ -1462,7 +1465,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 			*deltablocks += tblocks;
 		    }
 		}
-		
+		VN_PutDirHandle(cv->vptr);
 		/* remove the empty directory */
 		{
 		    CODA_ASSERT(DH_IsEmpty(cdir));
@@ -1501,6 +1504,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		sfid.Volume = repairent.parms[0];
 		vle *sv = FindVLE(*vlist, &sfid);
 		CODA_ASSERT(sv); CODA_ASSERT(sv->vptr);
+		VN_SetDirHandle(sdv->vptr);
 
 		// get target vnode 
 		PDirHandle tdh;
@@ -1511,7 +1515,7 @@ static int PerformDirRepair(ClientEntry *client, vle *ov, Volume *volptr,
 		    tv = FindVLE(*vlist, &tfid);
 		    CODA_ASSERT(tv); CODA_ASSERT(tv->vptr);
 		}
-		
+		VN_PutDirHandle(tdv->vptr);
 		int tblocks = 0;
 		PerformRename(client, VSGVolnum, volptr,
 			      sdv->vptr, tdv->vptr, sv->vptr, 
@@ -1690,6 +1694,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 				    repairent.name);
 			    return(ENOENT);
 			}
+			VN_PutDirHandle(ov->vptr);
 			repairent.parms[0] = (unsigned int)vid;
 			AddVLE(*vlist, (ViceFid *)&(repairent.parms[0]));
 		    }
@@ -1705,6 +1710,7 @@ static int GetRepairObjects(Volume *volptr, vle *ov, dlist *vlist,
 				    repairent.name);
 			    return(ENOENT);
 			}
+			VN_PutDirHandle(ov->vptr);
 			repairent.parms[0] = (unsigned int)vid;
 			int errorCode = 0;
 			errorCode = GetSubTree((ViceFid *)&(repairent.parms[0]),
@@ -1946,6 +1952,7 @@ static int RecursiveCheckRemoveSemantics(PDirEntry de, void * data)
 	    td = VN_SetDirHandle(ov->vptr);
 	    if (!DH_IsEmpty(td)) 
 		DH_EnumerateDir(td, RecursiveCheckRemoveSemantics, (void *)rb);
+	    VN_PutDirHandle(ov->vptr);
 	}
     }
 
@@ -1976,6 +1983,7 @@ static int CheckTreeRemoveSemantics(ClientEntry *client, Volume *volptr,
 		if (!DH_IsEmpty(td)) 
 			DH_EnumerateDir(td, RecursiveCheckRemoveSemantics, 
 					(void *)&enumparm);
+		VN_PutDirHandle(tv->vptr);
 		return(enumparm.result);
 	}
 }

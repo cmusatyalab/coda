@@ -233,6 +233,10 @@ static void U_InitRPC()
 
     /* store authentication key */
     tokfile = fopen(TKFile, "r");
+    if ( !tokfile ) {
+	    fprintf(stderr, "No tokenfile: %s\n", TKFile);
+	    exit(1);
+    }
     fscanf(tokfile, "%s", vkey);
     fclose(tokfile);
 

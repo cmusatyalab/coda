@@ -35,7 +35,7 @@ listed in the file CREDITS.
 struct DCEntry {
 	struct dllist_chain   dc_hash;
 	struct dllist_chain   dc_list;
-	int                   dc_count;   /* number of vnodes referencing us */
+	int                   dc_count;/* number of VM vnodes referencing us */
 	int                   dc_refcount; /* new refcount upon commit */
 	struct DirHandle      dc_dh;
 	PDirInode             dc_pdi;
@@ -260,6 +260,11 @@ PDCEntry DC_New()
 inline int DC_Refcount(PDCEntry pdc)
 {
 	return pdc->dc_refcount;
+}
+
+inline void DC_SetRefcount(PDCEntry pdc, int count)
+{
+	pdc->dc_refcount = count;
 }
 
 PDirHandle DC_DC2DH(PDCEntry pdce)

@@ -188,6 +188,7 @@ void DI_VMCopy(PDirInode oldinode, PDirInode *newinode);
 void DI_VMFree(PDirInode pdi);
 void DI_VMDec(PDirInode pdi);
 void DC_SetCount(PDCEntry pdce, int count);
+void DC_SetRefcount(PDCEntry pdc, int count);
 
 /* dir handle cache */
 PDirInode DC_DC2DI(PDCEntry pdce);

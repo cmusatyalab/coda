@@ -111,7 +111,12 @@ int VN_DAbort(Vnode *vnp)
     
 	DH_FreeData(DC_DC2DH(vnp->dh));
 	DC_SetDirty(vnp->dh, 0);
-
+	
+	/* if this was a new directory, clean up further */
+	if ( !vnp->disk.inodeNumber ) {
+		vnp->dh_refc = 0;
+		DC_Drop(vnp->dh);
+	}
 
 	return(0);
 }
@@ -196,7 +201,7 @@ void VN_DropDirHandle(struct Vnode *vn)
    NOTES:
    - afterwards the vptr->dh  will have VM data, 
      but no RVM data.
-   - the refcounts of the vnode and the cache entries
+   - the reference counts of the vnode and the cache entries
      are split appropriately.
 
 */
@@ -219,6 +224,7 @@ void VN_CopyOnWrite(struct Vnode *vn)
 	   merely prepare for cloning the RVM directory inode */
 	if ( ! others_count ) {
 		DC_SetCowpdi(oldpdce, (PDirInode)vn->disk.inodeNumber);
+		DC_SetRefcount(oldpdce, 1);
 		DC_SetDirty(oldpdce, 1);
 	}
 

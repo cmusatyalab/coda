@@ -195,6 +195,9 @@ void DH_FreeData(PDirHandle dh)
 {
 	DH_LockW(dh);
 
+	if (!dh->dh_data)
+		return;
+
 	if ( DIR_rvm() ) {
 		rvmlib_rec_free(dh->dh_data);
 	} else {

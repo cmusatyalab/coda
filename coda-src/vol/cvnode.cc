@@ -730,8 +730,9 @@ void VPutVnode(Error *ec,register Vnode *vnp)
  * put back a vnode but dont write it to RVM - 
  * simulate an abort with release lock 
  */
-void VFlushVnode(Error *ec, Vnode *vnp) {
-    LogMsg(0, VolDebugLevel, stdout,  "Entering VFlushVnode for vnode %u", vnp->vnodeNumber);
+void VFlushVnode(Error *ec, Vnode *vnp) 
+{
+    VLog(0,  "Entering VFlushVnode for vnode 0x%x", vnp->vnodeNumber);
     *ec = 0;
 
     /* Sanity checks. */
@@ -748,7 +749,8 @@ void VFlushVnode(Error *ec, Vnode *vnp) {
     PROCESS thisProcess;
     LWP_CurrentProcess(&thisProcess);
     if (thisProcess != vnp->writer){
-	LogMsg(-1, 0, stdout, "VFlushVnode: Vnode at %x locked by another process!", vnp);
+	VLog(-1, "VFlushVnode: Vnode at 0x%x locked by other thread!", 
+	     vnp->vnodeNumber);
 	CODA_ASSERT(0);
     }
 
@@ -767,8 +769,7 @@ void VFlushVnode(Error *ec, Vnode *vnp) {
 		     vnodeIdToBitNumber(vnp->vnodeNumber),
 		     vnp->disk.uniquifier)) {
 	CODA_ASSERT(v_index.get(vnp->vnodeNumber, vnp->disk.uniquifier, &vnp->disk) == 0);
-    }
-    else {
+    } else {
 	/* Ensure that lock waiters (in VGetVnode) abandon this object. */
 	vnp->disk.type = vNull;
 
@@ -780,7 +781,6 @@ void VFlushVnode(Error *ec, Vnode *vnp) {
 	    VFreeBitMapEntry(ec, &vp->vnIndex[vclass],
 			     vnodeIdToBitNumber(vnp->vnodeNumber));
     }
-	
 	
     /* Re-init the in-memory part of the vnode and unlock. */
     vnp->changed = 0;
