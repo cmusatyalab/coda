@@ -52,6 +52,27 @@ static int read_int(char *question)
     return atoi(input_str);
 }
 
+static float read_float(char *question)
+{
+    char input_str[80+1];
+
+    while (1) {
+        if (feof(stdin)) exit(-1);
+
+	fprintf(stdout, question);
+	fflush(stdout);
+
+	fgets(input_str, 80, stdin);
+	fflush(stdin);
+	if (input_str[0] >= '0' && input_str[0] <= '9')
+	    break;
+
+	fprintf(stdout, "*** Not a number?");
+	continue;
+    }
+    return atof(input_str);
+}
+
 char *read_string(char *question)
 {
     char *resp = (char *)malloc(80+1);
@@ -68,7 +89,7 @@ char *read_string(char *question)
 int main(int argc, char **argv)
 {
     int   viceid;
-    int   duration;
+    float duration;
     char *tokenkey;
     char *filename;
     int   i, len;
@@ -79,9 +100,15 @@ int main(int argc, char **argv)
 
     /* query user for important information */
     viceid   = read_int   ("ViceID                   ? ");
-    duration = read_int   ("Token validity (hours)   ? ");
+    duration = read_float ("Token validity (hours)   ? ");
     tokenkey = read_string("Shared secret (auth2.tk) ? ");
     filename = read_string("Output token file name   ? ");
+
+    if (filename[0] == '\0') {
+	free(tokenkey);
+	free(filename);
+	exit(-1);
+    }
 
     /* truncate the shared secret */
     memset(authkey, 0, sizeof(RPC2_KEYSIZE));
@@ -94,7 +121,7 @@ int main(int argc, char **argv)
 
     /* construct the clear token */
     ctoken.ViceId       = viceid;
-    ctoken.EndTimestamp = time(0) + (60 * 60 * duration);
+    ctoken.EndTimestamp = time(0) + (int)(60.0 * 60.0 * duration);
 
     ctoken.AuthHandle     = -1;
     ctoken.BeginTimestamp = 0;
