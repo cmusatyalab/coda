@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vol/index.h,v 1.1 1996/11/22 19:10:09 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/index.h,v 4.1 1997/01/08 21:52:11 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -45,12 +45,12 @@ static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1
 class vindex {
   friend class vindex_iterator;
     Device  unix_dev;
-    VolId   vol_id;	    /* unique volume id of object's volume */
+    VolumeId   vol_id;	    /* unique volume id of object's volume */
     int	    vol_index;	    /* index of object's volume in recoverable storage */
     int	    vtype;	    /* vLarge (= 0) or vSmall (= 1) (from cvnode.h) */
     int	    camindex;
 public:
-    vindex(VolId volid = -1, int vnodetype = -1, Device dev = -1,
+    vindex(VolumeId volid = -1, int vnodetype = -1, Device dev = -1,
 	   int size = -1, int volindex = -1);
     operator=(vindex&);
     ~vindex();

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.5 1997/09/05 12:45:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.cc,v 4.6 1997/10/23 19:25:43 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -252,11 +252,6 @@ int VInitVolUtil(ProgramType pt) {
 
 /* one time initialization for file server only */
 void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
-#ifdef	__linux__
-    FILE *mnt_handle;
-    struct mntent *mntent;
-#endif
-    struct fstab *fsent;
     struct timeval tv;
     struct timezone tz;
     ProgramType *pt;
@@ -299,85 +294,6 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	LogMsg(0, VolDebugLevel, stdout, "VInitVolPackage: no VLDB! Create a new one.");
     }
 
-#if 0
-    /* Find all partitions named /vicep* */
-    /* this is rather platform depentdent... Grr.. */
-#ifndef __linux__
-    setfsent();
-    while (fsent = getfsent()) {
-        char *part = fsent->fs_file;
-	DIR *dirp;
-	struct stat status;
-	if (stat(part, &status) == -1) {
-        LogMsg(0, VolDebugLevel, stdout, "VInitVolumePackage: Couldn't find file system %s; ignored", part);
-	    continue;
-	}
-	/* Satya (8/2/96): test below used to be a simple test
-		(status.st_ino != ROOTINO) on Mach; unfortunately
-		ROOTINO is defined in sys/fs.h which doesn't exist in
-		BSD44; MountedAtRoot() is a more portable test for the
-		same */
-	if (!MountedAtRoot(part)) {
-	    LogMsg(0, VolDebugLevel, stdout, "%s is not a mounted file system; ignored", part);
-	    continue;
-	}
-	assert((dirp = opendir(part)) != NULL);
-	closedir(dirp);
-
-	VInitPartition(part, fsent->fs_spec, status.st_dev);
-    }
-    endfsent();
-#else 
-    /* go through the mounted file systems, act sensibly */
-    mnt_handle = setmntent("/etc/mtab", "r");
-    while ( mntent = getmntent(mnt_handle)) {
-            char *part = mntent->mnt_dir;
-	    DIR *dirp;
-	    struct stat status;
-	    struct statfs statfsbuf;
-	    
-	    if (strncmp(part, VICE_PARTITION_PREFIX, VICE_PREFIX_SIZE) != 0) {
-	      continue;
-	    }
-
-	    if (stat(part, &status) == -1) {
-	      LogMsg(0, VolDebugLevel, stdout, 
-		     "VInitVolumePackage: Couldn't find file system %s; 
-                          ignored", part);
-	      continue;
-	    }
-
-	    if ( statfs(part, &statfsbuf) ) {
-	      LogMsg(0, VolDebugLevel, stdout, 
-		     "VInitVolumePackage: Couldn't statfs file system %s; 
-                             ignored", part);
-	      continue;
-	    }
-
-	    if ( statfsbuf.f_type !=  EXT2_SUPER_MAGIC ) {
-	      LogMsg(0, VolDebugLevel, stdout, 
-		     "VInitVolumePackage: File system %s not of type 'ext2'; 
-                             ignored", part);
-	      continue;
-	    }
-
-	    /* I think we are paranoia, but maybe that's good */
-#if 0
-	    if (!MountedAtRoot(part)) {
-	      LogMsg(0, VolDebugLevel, stdout, 
-		     "%s is not a mounted file system; ignored", part);
-	      continue;
-	    }
-#endif
-	    assert((dirp = opendir(part)) != NULL);
-	    closedir(dirp);
-
-	    VInitPartition(part, mntent->mnt_fsname, status.st_dev);
-    }
-    endmntent(mnt_handle);
-#endif
-
-#endif /*obsolete section */
     /* Setting Debug to 1 and List to 0; maybe remove later ***ehs***/
     /* invoke salvager for full salvage */
     *pt = salvager;	/* MUST set *pt to salvager before vol_salvage */
@@ -420,8 +336,7 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
 	    LogMsg(9, VolDebugLevel, stdout, "VInitVolumePackage: inserting vol %x into hashtable for index %d",
 		header.id, i);
 	    if (HashInsert(header.id, i) == -1) {
-		LogMsg(0, VolDebugLevel, stdout, "VInitVolPackage: HashInsert failed! Two %x volumes exist!", header.id);
-		LogMsg(0, VolDebugLevel, stderr, "VInitVolPackage: HashInsert failed! Two %x volumes exist!", header.id);
+		LogMsg(10, VolDebugLevel, stdout, "VInitVolPackage: HashInsert failed! Two %x volumes exist!", header.id);
 	    }
 	    
 	    GetVolPartition(&error, header.id, i, thispartition);
@@ -1010,7 +925,7 @@ VAttachVolume(Error *ec, VolumeId volumeId, int mode)
 /* Get a pointer to an attached volume.  The pointer is returned regardless
    of whether or not the volume is in service or on/off line.  An error
    code, however, is returned with an indication of the volume's status */
-Volume *VGetVolume(Error *ec, register VolId volumeId)
+Volume *VGetVolume(Error *ec, register VolumeId volumeId)
 {
     register Volume *vp;
     ProgramType *pt;

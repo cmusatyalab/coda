@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/vutil.h,v 4.1 1997/01/08 21:52:22 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.h,v 4.2 1997/04/30 19:54:37 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -59,7 +59,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define _VUTIL_H_ 1
 #include "voldefs.h"
 
-extern Volume *VCreateVolume(Error *ec, char *partition, VolId volumeId, VolId parentId, VolId groupId, int type =readwriteVolume, int rvmlogsize =0);
+extern Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId, VolumeId parentId, VolumeId groupId, int type =readwriteVolume, int rvmlogsize =0);
 extern Volume *MakeBackupVolume(register Volume *vp, Volume *sacrifice, int verbose);
 extern void AssignVolumeName(VolumeDiskData *vol, char *name, char *ext);
 extern void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.cc,v 4.2 1997/02/26 16:03:59 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/vutil.cc,v 4.3 1997/10/23 19:25:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,10 +107,10 @@ struct VolumeHeader tempHeader;
    file server and WILL BE DESTROYED the next time a system salvage is performed */
 
 /* This must be called from within a transaction! */
-Volume *VCreateVolume(Error *ec, char *partition, VolId volumeId, VolId parentId, 
-		      VolId groupId, int type, int rvmlogsize) {
+Volume *VCreateVolume(Error *ec, char *partition, VolumeId volumeId, VolumeId parentId, 
+		      VolumeId groupId, int type, int rvmlogsize) {
 
-    /*    VolId parentId;  Should be the same as volumeId if volume is readwrite */
+    /*    VolumeId parentId;  Should be the same as volumeId if volume is readwrite */
     /* type is the type of the volume we are creating */
 
     VolumeDiskData vol;

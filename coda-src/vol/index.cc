@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/vol/RCS/index.cc,v 4.1 1997/01/08 21:52:11 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/index.cc,v 4.2 1997/02/26 16:03:52 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,7 +92,7 @@ extern "C" {
 
 /* Initialize the vindex structure with client supplied parameters */
 /* if no arguments are supplied, they are initialized to -1 */
-vindex::vindex(VolId volid, int vnodetype, Device dev, int size, int volindex)
+vindex::vindex(VolumeId volid, int vnodetype, Device dev, int size, int volindex)
 /*    volid	    unique identifier of object's volume */
 /*    vnodetype	    vLarge or vSmall */
 /*    dev	    device on which index file resides */

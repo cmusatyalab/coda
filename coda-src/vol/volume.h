@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.h,v 4.2 1997/09/05 12:45:18 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vol/volume.h,v 4.3 1997/10/23 19:25:44 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -147,17 +147,17 @@ typedef struct VolumeDiskData {
 				   line. */
     bit32	uniquifier;	/* Next vnode uniquifier for this volume */
     int		type;		/* RWVOL, ROVOL, BACKVOL */
-    VolId	parentId;	/* Id of parent, if type==readonly */
-    VolId	groupId;	/* Id of replication group, or 0 if not replicated */
-    VolId	cloneId;	/* Latest read-only clone, if
+    VolumeId	parentId;	/* Id of parent, if type==readonly */
+    VolumeId	groupId;	/* Id of replication group, or 0 if not replicated */
+    VolumeId	cloneId;	/* Latest read-only clone, if
     				   type==readwrite, 0 if the volume
     				   has never been cloned.  Note: the
     				   indicated volume does not
     				   necessarily exist (it may have been
     				   deleted since cloning). */
-    VolId	backupId;	/* Latest backup copy of this read
+    VolumeId	backupId;	/* Latest backup copy of this read
 				   write volume */
-    VolId	restoredFromId; /* The id in the dump this volume was
+    VolumeId	restoredFromId; /* The id in the dump this volume was
 				   restored from--used simply to make
 				   sure that an incremental dump is
 				   not restored on top of something
@@ -415,7 +415,7 @@ extern void VCheckVolumes();
 extern void VUCloneVolume(Error *, Volume *, Volume *);
 extern void VListVolumes();
 extern void VGetVolumeInfo(Error *ec, char *key, register VolumeInfo *info);
-extern Volume * VGetVolume(Error *ec, VolId volumeId);
+extern Volume * VGetVolume(Error *ec, VolumeId volumeId);
 extern void VPutVolume(Volume *vp);
 extern Volume * VAttachVolume(Error *ec, VolumeId volumeId, int mode);
 extern void VDetachVolume(Error *ec, Volume *vp);
