@@ -451,7 +451,6 @@ int fsobj::Access(long rights, int modes, uid_t uid)
     /* !!! important point, this is where we map unauthenticated users to
      * System:AnyUser !!! */
     userent *ue = vol->realm->GetUser(uid);
-    int tokensvalid = ue->TokensValid();
     uid_t CheckVuid = ue->GetUid();
     PutUser(&ue);
 

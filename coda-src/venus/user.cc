@@ -369,8 +369,10 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 	connent *c = 0;
 	connent *tc = 0;
 	for (c = next(); c != 0; c = tc) {
-	    tc = next();		/* read ahead */
+	    tc = next(); /* read ahead */
+	    if (tc) tc->GetRef(); /* make sure we don't lose the next connent */
 	    (void)c->Suicide(1);
+	    if (tc) tc->PutRef();
 	}
     }
 

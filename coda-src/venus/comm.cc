@@ -210,11 +210,9 @@ int srvent::GetConn(connent **cpp, uid_t uid, int Force)
 	/* Check whether there is already a free connection. */
 	struct ConnKey Key; Key.host = host; Key.uid = uid;
 	conn_iterator next(&Key);
-	int count = 0;
 	while ((c = next())) {
-	    count++;
-	    if (!c->inuse) {
-		c->inuse = 1;
+	    if (!c->HasRef()) {
+		c->GetRef();
                 *cpp = c;
                 return 0;
 	    }
@@ -238,7 +236,7 @@ int srvent::GetConn(connent **cpp, uid_t uid, int Force)
     c = new connent(this, uid, ConnHandle, auth);
     if (!c) return(ENOMEM);
 
-    c->inuse = 1;
+    c->GetRef();
     connent::conntab->insert(&c->tblhandle);
     *cpp = c;
     return(0);
@@ -257,16 +255,15 @@ void PutConn(connent **cpp)
     LOG(100, ("PutConn: host = %s, uid = %d, cid = %d, auth = %d\n",
 	      c->srv->Name(), c->uid, c->connid, c->authenticated));
 
-    if (!c->inuse)
+    if (!c->HasRef())
 	{ c->print(logFile); CHOKE("PutConn: conn not in use"); }
 
     if (c->dying) {
 	connent::conntab->remove(&c->tblhandle);
 	delete c;
     }
-    else {
-	c->inuse = 0;
-    }
+    else
+	c->PutRef();
 }
 
 
@@ -340,9 +337,9 @@ int connent::Suicide(int disconnect)
     dying = 1;
 
     /* Can't do any more if it is busy. */
-    if (inuse) return(0);
+    if (HasRef()) return(0);
 
-    inuse = 1;
+    GetRef();
 
     /* Be nice and disconnect if requested. */
     if (disconnect) {
@@ -426,7 +423,7 @@ int connent::CheckResult(int code, VolumeId vid, int TranslateEINCOMP) {
 
 
 void connent::print(int fd) {
-    fdprint(fd, "%#08x : host = %s, uid = %d, cid = %d, auth = %d, inuse = %d, dying = %d\n",
+    fdprint(fd, "%#08x : host = %s, uid = %d, cid = %d, auth = %d, inuse = %u, dying = %d\n",
 	     (long)this, srv->Name(), uid, connid, authenticated, inuse, dying);
 }
 
@@ -1057,7 +1054,9 @@ void srvent::Reset()
 	connent *tc = 0;
 	for (c = conn_next(); c != 0; c = tc) {
 	    tc = conn_next();		/* read ahead */
+	    if (tc) tc->GetRef();
 	    (void)c->Suicide(0);
+	    if (tc) tc->PutRef();
 	}
     }
 

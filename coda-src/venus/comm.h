@@ -155,8 +155,8 @@ class connent {
     unsigned authenticated : 1;
 
     /* Dynamic state; varies with each call. */
-    unsigned inuse : 1;
     unsigned dying : 1;
+    unsigned int inuse;
 
     /* Constructors, destructors, and private utility routines. */
     connent(srvent *, uid_t, RPC2_Handle, int);
@@ -173,6 +173,9 @@ class connent {
 
     int	Suicide(int);		/* 1 --> dead, 0 --> dying */
     int CheckResult(int, VolumeId, int TranslateEINCOMP = 1);
+    void GetRef(void) { inuse++; }
+    void PutRef(void) { CODA_ASSERT(inuse); inuse--; }
+    int HasRef(void) { return inuse; }
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
