@@ -27,6 +27,7 @@ testrvm_LDADD = $(top_builddir)/rvm/librvm.la
 rvm_basher_LDADD = $(top_builddir)/rds/librds.la \
     $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvm.la
 
+lwp_basher_SOURCES = rvm_basher.c
 lwp_basher_LDFLAGS = -static
 lwp_basher_LDADD = $(top_builddir)/rds/librdslwp.la \
     $(top_builddir)/seg/libseg.la $(top_builddir)/rvm/librvmlwp.la \
