@@ -1,9 +1,5 @@
 dnl Process this file with autoconf to produce a configure script
 
-dnl automake 1.4
-dnl autoconf 2.13
-dnl libtool  1.2f
-
 dnl Initialization
 AC_INIT(src/lwp.c)
 CODA_SETUP_BUILD

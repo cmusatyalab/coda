@@ -2,7 +2,7 @@
 #
 # Running this should create the following files:
 # 
-# touch      - AUTHORS ChangeLog NEWS README
+# touch      - ChangeLog
 # autoheader - config.h.in
 # aclocal    - aclocal.m4
 # automake   - COPYING INSTALL Makefile.in config.guess config.sub install-sh
@@ -10,7 +10,7 @@
 # autoconf   - configure
 #
 
-touch AUTHORS ChangeLog NEWS README
+touch ChangeLog
 autoheader
 aclocal
 automake --add-missing

@@ -1,0 +1,5 @@
+Makefile
+Makefile.in
+lwp.spec
+lwp-nt.spec
+lwp-dos.spec

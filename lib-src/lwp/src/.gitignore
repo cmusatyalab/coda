@@ -1,0 +1,12 @@
+Makefile
+Makefile.in
+cswitch
+liblwp.la
+lwptest
+lwptest-static
+process.s
+rw
+tdb
+*.lo
+.deps
+.libs

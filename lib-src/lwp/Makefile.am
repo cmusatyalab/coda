@@ -25,7 +25,7 @@ SUBDIRS = include src $(EXTRA) pkgs
 
 EXTRA_DIST = PORTING acinclude.m4 bootstrap.sh configure
 
-MAINTAINERCLEANFILES = ChangeLog INSTALL Makefile.in aclocal.m4 config.guess \
+MAINTAINERCLEANFILES = ChangeLog Makefile.in aclocal.m4 config.guess \
     config.h.in config.sub configure install-sh libtool ltconfig ltmain.sh \
     missing mkinstalldirs stamp-h.in
 
