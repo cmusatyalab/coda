@@ -133,6 +133,7 @@ int venus_lookup(struct super_block *sb, struct ViceFid *fid,
 
         inp->coda_lookup.VFid = *fid;
 	inp->coda_lookup.name = offset;
+	inp->coda_lookup.flags = CLU_CASE_SENSITIVE;
         /* send Venus a null terminated string */
         memcpy((char *)(inp) + offset, name, length);
         *((char *)inp + offset + length) = '\0';
