@@ -206,7 +206,7 @@ void fsobj::ResetTransient()
 
     pfso = 0;
     children = 0;
-    memset((void *)&child_link, 0, (int)sizeof(child_link));
+    child_link.clear();
 
     priority = -1;
     HoardPri = 0;
@@ -1330,7 +1330,7 @@ void fsobj::AttachChild(fsobj *child) {
 
     DisableReplacement();
 
-    if (*((dlink **)&child->child_link) != 0)
+    if (child->child_link.is_linked())
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::AttachChild: bad child"); }
     if (children == 0)
 	children = new dlist;
@@ -1350,7 +1350,7 @@ void fsobj::DetachChild(fsobj *child) {
 
     DemoteHdbBindings();	    /* in case an expansion would no longer be satisfied! */
 
-    if (child->pfso != this || *((dlink **)&child->child_link) == 0 ||
+    if (child->pfso != this || child->child_link.is_linked() ||
 	 children == 0 || children->count() == 0)
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::DetachChild: bad child"); }
     if (children->remove(&child->child_link) != &child->child_link)

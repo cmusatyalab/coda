@@ -194,6 +194,8 @@ class dlink {		    // objects are derived from this class
     dlink *prev;
   public:
     dlink();
+    void clear() { next = prev = NULL; };
+    int is_linked() { return next != NULL; };
     virtual ~dlink();
     virtual void print();
     virtual void print(FILE *);
