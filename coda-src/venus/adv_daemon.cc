@@ -151,7 +151,6 @@ long S_NewAdviceService(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer use
   rc = adv_mon.NewConnection((char *)hostname, (int)port, (int)pgrp);
 
   if (rc == RPC2_SUCCESS) {
-    adv_mon.InitializeProgramLog((uid_t)userId);
     adv_mon.InitializeReplacementLog((uid_t)userId);
 
     static char version[] = PACKAGE_VERSION, *p;

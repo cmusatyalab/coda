@@ -150,7 +150,6 @@ static void SigControl(int sig)
 
     if (stat(VenusControlFile, &tstat) != 0) {
 	SwapLog();
-	adv_mon.SwapProgramLog();
 	adv_mon.SwapReplacementLog();
         return;
     }
@@ -202,7 +201,6 @@ static void SigControl(int sig)
 
     if (STREQ(command, "SWAPLOGS")) {
 	SwapLog();
-	adv_mon.SwapProgramLog();
 	adv_mon.SwapReplacementLog();
     }
 

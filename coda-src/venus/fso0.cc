@@ -51,9 +51,6 @@ extern "C" {
 /* interfaces */
 #include <vcrcommon.h>
 
-/* from util */
-#include <proc.h>
-
 /* from venus */
 #include "advice.h"
 #include "adv_monitor.h"

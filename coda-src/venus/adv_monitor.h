@@ -23,7 +23,6 @@ listed in the file CREDITS.
 #include "advice.h"
 #include "fso.h"
 #include <lwp/lock.h>
-#include <proc.h>
 #include "venus.private.h"
 #include "vproc.h" 
 
@@ -84,9 +83,6 @@ class adv_monitor {
     int RequestASRInvokation(repvol *vol, char *pathname, uid_t uid);
 
     /* Log stuff */
-    void InitializeProgramLog(uid_t uid);
-    void SwapProgramLog();
-    void LogProgramAccess(int pid, int pgid, VenusFid *fid);
     void InitializeReplacementLog(uid_t uid);
     void SwapReplacementLog();
     void LogReplacement(char *path, int status, int data);

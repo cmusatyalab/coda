@@ -256,56 +256,6 @@ int adv_monitor::RegisterInterest(uid_t uid, long numEvents, InterestValuePair e
     return(0);
 }
 
-void adv_monitor::InitializeProgramLog(uid_t uid) {
-    char UserSpoolDir[MAXPATHLEN];
-
-    if (programFILE != NULL)
-      return;
-
-    MakeUserSpoolDir(UserSpoolDir, uid);
-    snprintf(programLogName, MAXPATHLEN, "%s/%s", UserSpoolDir, PROGRAMLOG);
-    unlink(programLogName);
-    LOG(0, ("Opening %s\n", programLogName));
-
-    programFILE = fopen(programLogName, "a");
-    if (programFILE == NULL) 
-      LOG(0, ("InitializeProgramLog(%d) failed\n", uid));
-
-    numLines = 0;
-    return;
-}
-
-void adv_monitor::SwapProgramLog() {
-    char oldName[MAXPATHLEN];
-
-    if (programFILE == NULL) return;
-
-    fflush(programFILE);
-    snprintf(oldName, MAXPATHLEN, "%s.old", programLogName);
-    LOG(0, ("Moving %s to %s\n", programLogName, oldName));
-
-    if (rename(programLogName, oldName) < 0) {
-        LOG(0, ("rename(%s, %s) failed (%d)\n",
-		programLogName, oldName, errno));
-        return;
-    }
-    freopen(programLogName, "a", programFILE);
-    resetpid();
-    numLines = 0;
-}
-
-void adv_monitor::LogProgramAccess(int pid, int pgid, VenusFid *fid) {
-    if (programFILE != NULL) {
-      /*       outputcommandname(programFILE, pgid);     
-	   s/pgid/pid/   Why was the pgid being passed here???  -Remi */
-        outputcommandname(programFILE, pid);
-        fprintf(programFILE, "%d %d %s\n", pid, pgid, FID_(fid));
-
-	if (++numLines > MAX_LOGFILE_LINES) 
-	    SwapProgramLog();
-    }
-}
-
 void adv_monitor::InitializeReplacementLog(uid_t uid) {
     char UserSpoolDir[MAXPATHLEN];
 
@@ -340,7 +290,6 @@ void adv_monitor::SwapReplacementLog() {
     }
 
     freopen(replacementLogName, "a", replacementFILE);
-    resetpid();
     numLines = 0;
 }
 
