@@ -43,6 +43,8 @@ int coda_fetch_inode(struct inode *, struct vattr *);
 static int  coda_notify_change(struct inode *inode, struct iattr *attr);
 static void coda_put_inode(struct inode *);
 static void coda_put_super(struct super_block *);
+static void coda_statfs(struct super_block *sb, struct statfs *buf, 
+		       int bufsiz);
 
 
 /* helper functions */
@@ -65,7 +67,6 @@ extern struct inode_operations coda_file_inode_operations;
 extern struct inode_operations coda_dir_inode_operations;
 extern struct inode_operations coda_ioctl_inode_operations;
 extern struct inode_operations coda_symlink_inode_operations;
-
 /* exported operations */
 struct super_operations coda_super_operations =
 {
@@ -75,7 +76,7 @@ struct super_operations coda_super_operations =
 	coda_put_inode,	        /* put_inode */
 	coda_put_super,	        /* put_super */
 	NULL,			/* write_super */
-	NULL,       		/* statfs */
+	coda_statfs,   		/* statfs */
 	NULL			/* remount_fs */
 };
 
@@ -446,6 +447,7 @@ DEBUG("XX mtime: %ld\n", inode->i_mtime);
 			goto exit;
 		}
         }
+	coda_vattr_to_iattr(inode, &vattr);
 DEBUG("XX mtime: %ld\n", inode->i_mtime);
 	cfsnc_zapfid(&(cnp->c_fid));
 DEBUG("XX mtime: %ld\n", inode->i_mtime);
@@ -639,5 +641,25 @@ int init_coda_fs(void)
   return register_filesystem(&coda_fs_type);
 }
 
+
+
+static void coda_statfs(struct super_block *sb, struct statfs *buf, 
+		       int bufsiz)
+{
+	int error;
+	struct statfs tmp;
+
+#define NB_SFS_SIZ 0x895440
+
+	tmp.f_type = CODA_SUPER_MAGIC;
+	tmp.f_bsize = 1024;
+	tmp.f_blocks = 9000000;
+	tmp.f_bfree = 9000000;
+	tmp.f_bavail = 9000000 ;
+	tmp.f_files = 9000000;
+	tmp.f_ffree = 9000000;
+	tmp.f_namelen = 0;
+	memcpy_tofs(buf, &tmp, bufsiz);
+}
 
 
