@@ -1305,7 +1305,7 @@ the file, and a file descriptor that is already open in the correct mode */
        SFTP_CheckSE functions (directly and through sftp_piggybackreadfile),
        to check whether the first CLIENTTOSERVER or SERVERTOCLIENT packet is
        able to send the file as well. It returns the filesize _limited to_
-       ByteQuota is a quota has been specified.		- JH
+       ByteQuota if a quota has been specified.		- JH
        !!!!! BEWARE !!!!
     */
 int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd)

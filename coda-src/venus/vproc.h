@@ -346,6 +346,7 @@ struct venus_cnode {
 {\
     (vp).c_fid = fid;\
     (vp).c_type = type;\
+    (vp).c_flags = 0;\
 }
 
 
