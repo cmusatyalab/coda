@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/venus/RCS/sighand.cc,v 4.2 1997/02/26 16:03:23 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/sighand.cc,v 4.3 1997/06/14 21:48:36 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -253,7 +253,11 @@ PRIVATE void TERM(int sig, int code, struct sigcontext *contextPtr) {
     VDB->FlushVolume();
     RecovFlush(1);
     RecovTerminate();
+#ifdef	__NetBSD__
+    WorkerCloseMuxfd();
+#else
     VFSUnmount();
+#endif
     (void)CheckAllocs("TERM");
     fflush(logFile);
     fflush(stderr);

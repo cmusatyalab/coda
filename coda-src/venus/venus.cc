@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /coda/usr/lily/src/coda-src/venus/RCS/venus.cc,v 4.3 97/02/26 16:03:26 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.4 1997/03/06 21:04:54 lily Exp $";
 #endif /*_BLURB_*/
 
 
@@ -186,6 +186,13 @@ int main(int argc, char **argv) {
     }
 
     UnsetInitFile();
+    { FILE *fd = fopen("/dev/console", "w");
+	if (fd != NULL) {
+	    fprintf(fd, "Coda Venus has started!!\n\r");
+	    fflush(fd);
+	    fclose(fd);
+	}
+    }
     eprint("Venus starting...");
 
     /* Act as message-multiplexor/daemon-dispatcher. */
