@@ -107,12 +107,13 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1);
     if (error && error != EIO) {
 	VLog(0, "S_VolSetVV: VGetVnode failed with %d", error);
-	VPutVolume(vp);
-	rvmlib_abort(VFAIL);
-	goto exit;
+	goto errorexit;
     }
 
-    if (error && error == EIO) {
+    if (!error) {
+	memcpy(&Vnode_vv(vnp), vv, sizeof(ViceVersionVector));
+    } else {
+	/* error == EIO */
 	/* barren object - debarrenize it - setvv is overloaded here */
 	vnp = VGetVnode(&error, vp, vnodeid, unique, WRITE_LOCK, 1, 1);
 	CODA_ASSERT(IsBarren(vnp->disk.versionvector));
@@ -134,8 +135,7 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
 					(int)vnp->vnodeNumber,
 					(int)vnp->disk.uniquifier, 
 					(int)vnp->disk.dataVersion);
-    } else 
-	bcopy((const void *)vv, (void *)&(Vnode_vv(vnp)), sizeof(ViceVersionVector));
+    }
 
     /* update volume version vector,  break callbacks */
     vre = VRDB.find(V_groupId(vp));    /* Look up the VRDB entry. */
@@ -153,18 +153,21 @@ long S_VolSetVV(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     CodaBreakCallBack(0, &fid, formal_volid);
 
     VPutVnode((Error *)&error, vnp);
-    if (error){
+
+    if (error) {
 	VLog(0, "S_VolSetVV: VPutVnode failed with %d", error);
-	VPutVolume(vp);
-	rvmlib_abort(VFAIL);
-	goto exit;
+	goto errorexit;
     }
 
     VPutVolume(vp);
     rvmlib_end_transaction(flush, &(status));
+    goto exit; /* hop, skip, and jump */
+
+errorexit:
+    VPutVolume(vp);
+    rvmlib_abort(VFAIL);
 
  exit:
-
     VDisconnectFS();
     if (status)
 	VLog(0, "S_VolSetVV failed with %d", status);
