@@ -287,7 +287,7 @@ int pioctl(const char *path, unsigned long cmd,
 
     if (!mountPoint) {
 	codaconf_init("venus.conf");
-	CONF_STR(mountPoint, "mountpoint", "/coda");
+	CODACONF_STR(mountPoint, "mountpoint", "/coda");
 	mPlen = strlen(mountPoint);
 	if (mPlen == 2 && mountPoint[1] == ':') {
 	    driveletter = tolower(mountPoint[0]);
