@@ -5,20 +5,18 @@ dnl test the cross compilation platform and adjust default settings
 
 AC_DEFUN(CODA_SETUP_BUILD,
 [AC_SUBST(LIBTOOL_LDFLAGS)
-case ${target} in
-  djgpp | win95 | dos )  target=i386-pc-msdos ;;
-  cygwin* | winnt | nt ) target=i386-pc-cygwin ;;
-  arm ) target=arm-unknown-linux-gnuelf ;;
+case ${host_alias} in
+  djgpp | win95 | dos )  host_alias=i386-pc-msdos ;;
+  cygwin* | winnt | nt ) host_alias=i386-pc-cygwin ;;
+  arm ) host_alias=arm-unknown-linux-gnuelf ;;
 esac
-AC_CANONICAL_SYSTEM
-host=${target}
-program_prefix=
-if test ${build} != ${target} ; then
+AC_CANONICAL_HOST
+if test ${cross_compiling} == yes ; then
   dnl We have to override some things the configure script tends to
   dnl get wrong as it tests the build platform feature
   ac_cv_func_mmap_fixed_mapped=yes
 
-  case ${target} in
+  case ${host} in
    i386-pc-msdos )
     dnl shared libraries don't work here
     enable_shared=no
@@ -62,7 +60,6 @@ if test "${CROSS_COMPILE}" ; then
   NM=${CROSS_COMPILE}nm
   OBJDUMP=${CROSS_COMPILE}objdump
   DLLTOOL=${CROSS_COMPILE}dlltool
-
   ac_cv_func_mmap_fixed_mapped=yes
 fi])
 

@@ -814,16 +814,20 @@ static int_tid_t *get_queued_tid(tid)
     int_tid_t       *q_tid;             /* ptr to last queued tid */
     rvm_offset_t    size_temp;
 
+    if (log->flush_list.list.length == 0)
+	return NULL;                   /* no, force re-init of merge */
+
     /* get last queued tid in flush list */
     q_tid = (int_tid_t *)log->flush_list.preventry;
-    size_temp = RVM_ADD_OFFSETS(q_tid->log_size,tid->log_size);
 
     /* see if can legitimately merge */
-    if ((log->flush_list.list.length == 0)
-        || ((q_tid->flags & FLUSH_MARK) != 0)
-        || ((q_tid->flags & RVM_COALESCE_TRANS) == 0)
-        || (RVM_OFFSET_GTR(size_temp,log->status.log_size)))
-        q_tid = NULL;                   /* no, force re-init of merge */
+    if ((q_tid->flags & FLUSH_MARK) != 0 ||
+	(q_tid->flags & RVM_COALESCE_TRANS) == 0)
+	return NULL;                   /* no, force re-init of merge */
+
+    size_temp = RVM_ADD_OFFSETS(q_tid->log_size,tid->log_size);
+    if (RVM_OFFSET_GTR(size_temp,log->status.log_size))
+        return NULL;                   /* no, force re-init of merge */
 
     return q_tid;
     }
