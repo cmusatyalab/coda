@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /home/sparta/Peter/cs/coda-src/scripts/RCS/Makefile.in,v 4.4 97/04/17 12:46:30 braam Exp $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/scripts/RCS/Makefile.in,v 4.5 1997/04/29 21:27:25 rvb Exp braam $";
 
 
 # 
@@ -79,7 +79,7 @@ SCRIPTS := $(UPDATE-SCRIPTS) $(VOL-SCRIPTS) $(SUP-SCRIPTS)\
 # Note scripts that are entirely CMU dependent have been left out
 
 CSBINS = newvenus vutil $(VENUS-SETUP)
-SSBINS = $(BACKUP-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCIPTS) $(VOL-SCRIPTS) $(VICE-SETUP)
+SSBINS = $(BACKUP-SCRIPTS) $(VICE-SCRIPTS) $(REINIT-SCRIPTS) $(VOL-SCRIPTS) $(VICE-SETUP)
 
 include $(MAKDIR)/Makerules
 

@@ -3,6 +3,7 @@
 # Coda client installation script
 # Made for Linux coda-client rpm distribution 
 # Peter J. Braam, Dec 1996
+# included suggestions from Elliot Lee, may 1997.
 #
 # Usage: venus-setup comma,separated,list,of,servers [cachesize in kb]
 #
@@ -37,7 +38,10 @@ VSTAB=/coda:$CFSDEV:$SERVERS:$CACHEDIR:$CACHESIZE:1
 
 # set up the /coda root if it isn't there yet
 if [ ! -d $CODAROOT ]; then mkdir -p $CODAROOT; fi
-if [ ! -f $CODAROOT/NOT_REALLY_CODA ]; then touch $CODAROOT/NOT_REALLY_CODA; fi
+if [ ! -f $CODAROOT/NOT_REALLY_CODA ]; then 
+ echo 'If you can see this file, venus is not running.' > \ 
+	$RPM_BUILD_ROOT/coda/NOT_REALLY_CODA
+fi
 
 # set up a cache directory
 if [ ! -d $CACHEDIR ]; then mkdir -p $CACHEDIR; chmod 700 $CACHEDIR; fi
@@ -59,11 +63,7 @@ else
 cat <<EOF >> /etc/services
 # Coda filesystem port numbers
 coda_opcons     1355/udp                        # Coda opcons
-coda_auth       1357/udp                        # Coda auth
-coda_udpsrv     1359/udp                        # Coda udpsrv
-coda_filesrv    1361/udp                        # Coda filesrv
 coda_venus      1363/udp                        # Coda venus
-coda_backup     1407/tcp                        # coda backup service
 codacon         1423/tcp        venus.cmu       # Coda Console
 coda_aux1       1431/tcp                        # coda auxiliary service
 coda_aux1       1431/udp                        # coda auxiliary service
@@ -76,6 +76,9 @@ fi
 
 # tell the kernel about the new module 
 if [ X`uname` = XLinux ]; then 
-	/sbin/depmod -a
+   if grep coda /etc/conf.modules > /dev/null; then
+	echo 'alias char-major-67 coda' >> /etc/conf.modules
+   fi
+   /sbin/depmod -a
 fi
 
