@@ -70,10 +70,9 @@ void setlength(char *, off_t);
 void settimes(char *, time_t);
 void readblock(hblock&);
 void writeblock(hblock&);
-void usage(const char *prog);
+void usage(void);
 
 static char *EXE;
-#define log(msg, ...) fprintf(stderr, "%s: " msg, EXE, ## __VA_ARGS__)
 
 int main(int argc, char *argv[])
 {
@@ -82,7 +81,7 @@ int main(int argc, char *argv[])
     /* Parse Args. */
     {
 	if (argc != 2 && argc != 3)
-	    usage(argv[0]);
+	    usage();
 
 	for (int i = 0; argv[1][i]; i++)
 	    switch(argv[1][i]) {
@@ -91,7 +90,7 @@ int main(int argc, char *argv[])
 		    break;
 
 		case 's':
-		    log("s option is deprecated\n");
+		    fprintf(stderr, "%s: s option is deprecated\n", EXE);
 		    exit(-1);
 		    sflag++;
 		    break;
@@ -109,14 +108,15 @@ int main(int argc, char *argv[])
 		    break;
 
 		default:
-		    usage(argv[0]);
+		    usage();
 	    }
 	if (rflag + sflag + tflag != 1)
-	    usage(argv[0]);
+	    usage();
 
 	if (argc == 3) {
 	    if (freopen(argv[2], "r", stdin) == NULL) {
-		log("couldn't open %s for reading\n", argv[2]);
+		fprintf(stderr, "%s: couldn't open %s for reading\n",
+			EXE, argv[2]);
 		exit(-1);
 	    }
 	}
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 	    readblock(hdr);
 
 	    if (!ValidateHeader(hdr)) {
-		log("failed header validation\n");
+		fprintf(stderr, "%s: failed header validation\n", EXE);
 		exit(-1);
 	    }
 
@@ -160,61 +160,63 @@ int ValidateHeader(hblock& hdr) {
 	case STOREDATA:
 	    if (tflag || vflag) {
 		fprintf(stderr, "StoreData(%s) [ %o, %d, %d, %lu, %lu ]\n",
-			hdr.dbuf.name, mode, uid, gid, size, mtime);
+			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case LINK:
 	    if (tflag || vflag) {
 		fprintf(stderr, "Link(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
-			hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid, size, mtime);
+			EXE, hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case SYMLINK:
 	    if (tflag || vflag) {
 		fprintf(stderr, "SymLink(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
-			hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid, size, mtime);
+			EXE, hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid,
+			size, mtime);
 	    }
 	    break;
 
 	case STORESTATUS:
 	    if (tflag || vflag) {
 		fprintf(stderr, "StoreStatus(%s) [ %o, %d, %d, %lu, %lu ]\n",
-			hdr.dbuf.name, mode, uid, gid, size, mtime);
+			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case REMOVE:
 	    if (tflag || vflag) {
 		fprintf(stderr, "Remove(%s) [ %o, %d, %d, %lu, %lu ]\n",
-			hdr.dbuf.name, mode, uid, gid, size, mtime);
+			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case RENAME:
 	    if (tflag || vflag) {
 		fprintf(stderr, "Rename(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
-			hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid, size, mtime);
+			EXE, hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid,
+			size, mtime);
 	    }
 	    break;
 
 	case MKDIR:
 	    if (tflag || vflag) {
 		fprintf(stderr, "Mkdir(%s) [ %o, %d, %d, %lu, %lu ]\n",
-			hdr.dbuf.name, mode, uid, gid, size, mtime);
+			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case RMDIR:
 	    if (tflag || vflag) {
 		fprintf(stderr, "Rmdir(%s) [ %o, %d, %d, %lu, %lu ]\n",
-			hdr.dbuf.name, mode, uid, gid, size, mtime);
+			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	default:
-	    log("bogus linkflag %c\n", hdr.dbuf.linkflag);
+	    fprintf(stderr, "%s: bogus linkflag %c\n", EXE, hdr.dbuf.linkflag);
 	    exit(-1);
     }
     
@@ -223,7 +225,7 @@ int ValidateHeader(hblock& hdr) {
     chksum2 = checksum(hdr);
     sprintf(hdr.dbuf.chksum, "%o", chksum1);
     if (chksum1 != chksum2) {
-	log("checksum error (%d != %d)\n", chksum1, chksum2);
+	fprintf(stderr, "%s: checksum error (%d != %d)\n", EXE, chksum1, chksum2);
 	return(0);
     }
 
@@ -253,7 +255,8 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    makeprefix(hdr.dbuf.name);
 	    if (rflag && freopen(hdr.dbuf.name, "w+", stdout) == NULL) {
-		log("could not create %s\n", hdr.dbuf.name);
+		fprintf(stderr, "%s: could not create %s\n",
+			EXE, hdr.dbuf.name);
 		if (hflag) exit(-1);
 		break;
 	    }
@@ -263,7 +266,7 @@ void HandleRecord(hblock& hdr) {
 		writeblock(data);
 	    }
 	    if (rflag && fclose(stdout) == EOF) {
-		log("could not close %s\n", hdr.dbuf.name);
+		fprintf(stderr, "%s: could not close %s\n", EXE, hdr.dbuf.name);
 		exit(-1);
 	    }
 
@@ -282,8 +285,8 @@ void HandleRecord(hblock& hdr) {
 		    unlink(hdr.dbuf.name);
 	    }
 	    if (rflag && link(hdr.dbuf.linkname, hdr.dbuf.name) < 0) {
-		log("can't link %s to %s: ",
-			hdr.dbuf.name, hdr.dbuf.linkname);
+		fprintf(stderr, "%s: can't link %s to %s: ",
+			EXE, hdr.dbuf.name, hdr.dbuf.linkname);
 		perror("");
 		if (hflag) exit(-1);
 	    }
@@ -298,8 +301,8 @@ void HandleRecord(hblock& hdr) {
 		    unlink(hdr.dbuf.name);
 	    }
 	    if (rflag && symlink(hdr.dbuf.linkname, hdr.dbuf.name) < 0) {
-		log("can't symbolic link %s to %s: ",
-			hdr.dbuf.name, hdr.dbuf.linkname);
+		fprintf(stderr, "%s: can't symbolic link %s to %s: ",
+			EXE, hdr.dbuf.name, hdr.dbuf.linkname);
 		perror("");
 		if (hflag) exit(-1);
 	    }
@@ -319,7 +322,8 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    if (rflag && unlink(hdr.dbuf.name) < 0) {
 		if (vflag || hflag) {
-		    log("unlink %s failed: ", hdr.dbuf.name);
+		    fprintf(stderr, "%s: unlink %s failed: ",
+			    EXE, hdr.dbuf.name);
 		    perror("");
 		}
 		if (hflag) exit(-1);
@@ -331,8 +335,8 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    if (rflag && rename(hdr.dbuf.linkname, hdr.dbuf.name) < 0) {
 		if (vflag || hflag) {
-		    log("rename %s to %s failed: ",
-			    hdr.dbuf.linkname, hdr.dbuf.name);
+		    fprintf(stderr, "%s: rename %s to %s failed: ",
+			    EXE, hdr.dbuf.linkname, hdr.dbuf.name);
 		    perror("");
 		}
 		if (hflag) exit(-1);
@@ -344,7 +348,8 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    if (rflag && mkdir(hdr.dbuf.name, mode) < 0) {
 		if (vflag || hflag) {
-		    log("mkdir %s failed: ", hdr.dbuf.name);
+		    fprintf(stderr, "%s: mkdir %s failed: ",
+			    EXE, hdr.dbuf.name);
 		    perror("");
 		}
 		if (hflag) exit(-1);
@@ -356,7 +361,8 @@ void HandleRecord(hblock& hdr) {
 	    {
 	    if (rflag && rmdir(hdr.dbuf.name) < 0) {
 		if (vflag || hflag) {
-		    log("rmdir %s failed: ", hdr.dbuf.name);
+		    fprintf(stderr, "%s: rmdir %s failed: ",
+			    EXE, hdr.dbuf.name);
 		    perror("");
 		}
 		if (hflag) exit(-1);
@@ -365,7 +371,7 @@ void HandleRecord(hblock& hdr) {
 	    }
 
 	default:
-	    log("bogus linkflag %c\n", hdr.dbuf.linkflag);
+	    fprintf(stderr, "%s: bogus linkflag %c\n", EXE, hdr.dbuf.linkflag);
 	    exit(-1);
     }
 }
@@ -424,7 +430,7 @@ void makeprefix(char *name) {
 void setmode(char *path, int mode) {
     if (rflag && chmod(path, mode) < 0) {
 	if (vflag || hflag) {
-	    log("can't set mode on %s: ", path);
+	    fprintf(stderr, "%s: can't set mode on %s: ", EXE, path);
 	    perror("");
 	}
 	if (hflag) exit(-1);
@@ -435,7 +441,7 @@ void setmode(char *path, int mode) {
 void setowner(char *path, int uid, int gid) {
     if (rflag && chown(path, uid, gid) < 0) {
 	if (vflag || hflag) {
-	    log("can't set owner on %s: ", path);
+	    fprintf(stderr, "%s: can't set owner on %s: ", EXE, path);
 	    perror("");
 	}
 	if (hflag) exit(-1);
@@ -447,13 +453,13 @@ void setlength(char *path, off_t size) {
 #ifdef __CYGWIN32__
      int fd = open(path, O_RDWR);
      if ( fd < 0 )
-	    log("can't set length on %s: ", path);
+	    fprintf(stderr, "%s: can't set length on %s: ", EXE, path);
      if ( ftruncate(fd, size) != 0 ) {
 #else
     if (rflag && truncate(path, size) < 0) {
 #endif
 	if (vflag || hflag) {
-	    log("can't set length on %s: ", path);
+	    fprintf(stderr, "%s: can't set length on %s: ", EXE, path);
 	    perror("");
 	}
 	if (hflag) exit(-1);
@@ -472,7 +478,7 @@ void settimes(char *path, time_t mt) {
 	tv[0].tv_usec = tv[1].tv_usec = 0;
 	if (utimes(path, tv) < 0) {
 	    if (vflag || hflag) {
-		log("can't set time on %s: ", path);
+		fprintf(stderr, "%s: can't set time on %s: ", EXE, path);
 		perror("");
 	    }
 	    if (hflag) exit(-1);
@@ -483,7 +489,7 @@ void settimes(char *path, time_t mt) {
 
 void readblock(hblock& blk) {
     if (fread((char *)&blk, sizeof(hblock), 1, stdin) != 1) {
-	log("fread failed\n");
+	fprintf(stderr, "%s: fread failed\n", EXE);
 	exit(-1);
     }
 }
@@ -491,13 +497,13 @@ void readblock(hblock& blk) {
 
 void writeblock(hblock& blk) {
     if (rflag && fwrite((char *)&blk, sizeof(hblock), 1, stdout) != 1) {
-	log("fwrite failed\n");
+	fprintf(stderr, "%s: fwrite failed\n", EXE);
 	exit(-1);
     }
 }
 
-void usage(const char *prog)
+void usage(void)
 {
-    fprintf(stderr, "Usage: %s [rstvh] [filename]\n", prog);
+    fprintf(stderr, "Usage: %s [rstvh] [filename]\n", EXE);
     exit(-1);
 }
