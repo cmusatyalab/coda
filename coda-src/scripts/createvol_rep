@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol_rep,v 4.2 1997/10/15 15:50:20 braam Exp $";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/scripts/createvol_rep,v 4.3 1997/10/16 17:16:23 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -115,7 +115,7 @@ echo HexGroupId is $HEXGROUPID
 set N=0
 foreach SERVER ($SERVERS)
 	echo "creating volume" $VOLNAME.$N on $SERVER
-	/vice/bin/volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID
+	volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID
 	if ( $status != 0 ) then 
 		echo "Failure to make volume on $SERVER!. Abort.".
 		exit 1
@@ -124,7 +124,7 @@ foreach SERVER ($SERVERS)
 end
 
 # Rebuild the VLDB
-/vice/bin/bldvldb.sh $SERVERS
+bldvldb.sh $SERVERS
 
 # Update the VRList and rebuild the VRDB
 set ENTRY=($VOLNAME $HEXGROUPID $NSERVERS 0 0 0 0 0 0 0 0 $VSGADDR)
@@ -136,7 +136,7 @@ foreach SERVER ($SERVERS)
 end
 echo "<echo $ENTRY >> /vice/vol/VRList>"
 echo $ENTRY >> /vice/vol/VRList
-/vice/bin/volutil makevrdb /vice/vol/VRList
+volutil makevrdb /vice/vol/VRList
 
 echo -n "Do you wish this volume to be Backed Up (y/n)? [n] "
 
