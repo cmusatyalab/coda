@@ -69,13 +69,13 @@ touch ${vicedir}/vol/AllVolumes
 touch ${vicedir}/vol/VRList
 
 # Validate the <volname> parameter
-if  [ x$VOLNAME = x`awk ' $1 ~ /^'$1'$/  {print $1}' ${vicedir}/vol/AllVolumes` ]; then
-    echo "$VOLNAME exists as a non replicated volume in ${vicedir}/vol/AllVolumes"
+if  [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'$1'$/  {print $1}' ${vicedir}/vol/BigVolumeList` ]; then
+    echo "$VOLNAME exists as a non replicated volume in ${vicedir}/vol/BigVolumeList"
     exit 1
 fi
 
-if [ x$VOLNAME = x`awk ' $1 ~ /^'$1'\.[0-7]$/  {print $1}' ${vicedir}/vol/AllVolumes` ]; then
-    echo "$VOLNAME exists as a replica in ${vicedir}/vol/AllVolumes"
+if [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'$1'\.[0-7]$/  {print $1}' ${vicedir}/vol/BigVolumeList` ]; then
+    echo "$VOLNAME exists as a replica in ${vicedir}/vol/BigVolumeList"
     exit 1
 fi
 
@@ -126,13 +126,19 @@ echo HexGroupId is $HEXGROUPID
 
 # Create the new volumes
 N=0
+ENTRY="$VOLNAME $HEXGROUPID $NSERVERS"
 for  SERVER in $SERVERS ; do
 	echo "creating volume" $VOLNAME.$N on $SERVER
-	volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID
+	volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID > /tmp/out
 	if [ $? != 0 ]; then 
 		echo "Failure to make volume on $SERVER!. Abort.".
 		exit 1
 	fi
+
+	# grab the volume number.
+	ENTRY="$ENTRY `cut -d' ' -f2 /tmp/out`"
+	rm -f /tmp/out
+
 	N=`expr $N + 1`
 done
 
@@ -140,15 +146,7 @@ done
 bldvldb.sh $SERVERS
 
 # Update the VRList and rebuild the VRDB
-ENTRY="$VOLNAME $HEXGROUPID $NSERVERS"
-N=0
-for SERVER  in $SERVERS ; do
-
-	VOLN=`awk ' $1 ~/'$VOLNAME.$N'$/  {print $2}' ${vicedir}/vol/AllVolumes`
-	ENTRY="$ENTRY $VOLN"
-	N=`expr $N + 1`
-done 
-
+# We already got the replica id's.
 # add nulentries and VSGDB to entry
 while true  ; do
         if [ $N -eq 8 ]; then
