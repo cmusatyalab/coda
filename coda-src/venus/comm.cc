@@ -441,6 +441,7 @@ connent *conn_iterator::operator()() {
     olink *o;
     while ((o = olist_iterator::operator()())) {
 	connent *c = strbase(connent, o, tblhandle);
+	if (c->dying) continue;
 	if (key == (struct ConnKey *)0) return(c);
 	if ((key->host.s_addr == c->srv->host.s_addr ||
              key->host.s_addr == INADDR_ANY) &&
