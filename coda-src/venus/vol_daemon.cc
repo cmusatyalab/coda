@@ -109,16 +109,6 @@ void VolDaemon() {
 	    /* always check if there are transitions to be taken */
 	    VDB->TakeTransition();
 
-	    /* 
-	     * Periodically validate volume data to recognize
-	     * new releases of read-only volumes.
-	     */
-	    if (curr_time - LastVolumeCheck >= VolumeCheckInterval) {
-		LastVolumeCheck = curr_time;
-
-		VDB->Validate();
-	    }
-
 	    /* Periodically and on-demand free up cache resources. */
 	    if (curr_time - LastGetDown >= VolGetDownInterval) {
 		LastGetDown = curr_time;
@@ -133,12 +123,14 @@ void VolDaemon() {
 		VDB->FlushCOP2();
 	    }
 
+#if 0
 	    /* Flush Volume Session Records (VSRs). */
 	    if (curr_time - LastFlushVSRs >= VolFlushVSRsInterval) {
 		LastFlushVSRs = curr_time;
 
 		VDB->FlushVSR();
 	    }
+#endif
 
 	    /* Checkpoint modify logs if necessary. */
 	    if (curr_time - LastCheckPoint >= VolCheckPointInterval) {

@@ -1312,9 +1312,7 @@ void fsobj::MountRoot(fsobj *mtpt_fso) {
     if (u.mtpoint)
 	{ print(logFile); CHOKE("fsobj::MountRoot: u.mtpoint exists!"); }
 
-    LOG(10, ("fsobj::MountRoot: fid = (%x.%x.%x), mtptfid = (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique,
-	      mtpt_fso->fid.Volume, mtpt_fso->fid.Vnode, mtpt_fso->fid.Unique));
+    LOG(10, ("fsobj::MountRoot: fid = %s, mtptfid = %s\n", &fid, &mtpt_fso->fid));
 
     RVMLIB_REC_OBJECT(*this);
 
