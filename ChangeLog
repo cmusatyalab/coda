@@ -1,3 +1,10 @@
+1998-12-11    <jaharkes@cs.cmu.edu>
+	* the lwp fix was not checked out yet.
+
+1998-12-10    <braam@cs.cmu.edu>
+	* removed usage FT_AGetTimeOfDay.
+	* other important fixes.
+
 1998-10-27    <jaharkes@cs.cmu.edu>
 	* fixed null-pointer deref in multi-rpc tracing code.
 	* 2 lwp's could gain access to the same exclusive write lock, this
