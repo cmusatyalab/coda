@@ -35,7 +35,7 @@ int GetMaxVolId()
 
 VolHead *VolByIndex(int myind) 
 {
-	VolumeId maxid = GetMaxVolId();
+	int maxid = GetMaxVolId();
 
 	if ((myind < 0) || (myind >= maxid) || (myind >= MAXVOLS))
 	    return(NULL);

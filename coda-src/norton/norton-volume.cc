@@ -99,7 +99,7 @@ void print_volume_details(VolHead *vol)
 	   vol->data.volumeInfo->inService ? "TRUE" : "FALSE",
 	   vol->data.volumeInfo->blessed ? "TRUE" : "FALSE",
 	   vol->data.volumeInfo->needsSalvaged ? "TRUE" : "FALSE");
-    printf("    Uniquifier: 0x%lx\t", vol->data.volumeInfo->uniquifier);
+    printf("    Uniquifier: 0x%u\t", vol->data.volumeInfo->uniquifier);
     printf("type: ");
     switch (vol->data.volumeInfo->type) {
       case RWVOL: 	printf("rw\n"); 	break;
@@ -122,7 +122,7 @@ void print_volume_details(VolHead *vol)
 	   vol->data.volumeInfo->minquota,
 	   vol->data.volumeInfo->maxquota,
 	   vol->data.volumeInfo->maxfiles);
-    printf("    accountNumber: %d\towner: %d\n",
+    printf("    accountNumber: %u\towner: %u\n",
 	   vol->data.volumeInfo->accountNumber,
 	   vol->data.volumeInfo->owner);
     printf("    filecount: %d\tlinkcount: %d\tdiskused: %d\n",
@@ -317,7 +317,7 @@ void show_volume(VolumeId volid)
     vol = GetVol(volid);
 
     if (vol) print_volume(vol);
-    else printf("Unable to find volume id 0x%x\n", volid);
+    else printf("Unable to find volume id 0x%lx\n", volid);
 }
 
 

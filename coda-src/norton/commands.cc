@@ -222,7 +222,7 @@ void examine(int argc, char *argv[])
 	return;
     }
 
-    for (addr = base; addr - base <len; addr += BYTES_PER_LINE/sizeof(int)) {
+    for (addr = base; addr < base + len; addr += BYTES_PER_LINE/sizeof(int)) {
 	
 	if (!address_ok((vm_address_t)addr,
 			(vm_size_t)BYTES_PER_LINE/(int)sizeof(int),
@@ -235,7 +235,7 @@ void examine(int argc, char *argv[])
 	for (i = 0; i < BYTES_PER_LINE/sizeof(int); i++) {
 	    printf("  %04x", *(addr + i));
 	}
-	
+
 	printf("  |");
 	for (buf = (char *)addr; buf - (char *)addr < BYTES_PER_LINE; buf++) {
 	    if ((*buf >= (char )32 && *buf <= (char)126) || *buf >= (char)161)  
