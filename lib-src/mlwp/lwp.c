@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.8 1998/03/06 20:21:39 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/lwp.c,v 4.9 1998/04/14 20:42:22 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -107,7 +107,7 @@ static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksi
 static int  Internal_Signal(register char *event);
 static void Abort_LWP(char *msg);
 static void Exit_LWP();
-static void Dump_One_Process (PROCESS pid);
+static void Dump_One_Process (PROCESS pid, FILE *fp, int dofree);
 static void Dump_Processes ();
 static void purge_dead_pcbs();
 static void Delete_PCB(register PROCESS pid);
@@ -126,6 +126,10 @@ static void Cal_Highest_runnable_priority ();
 static int InitializeProcessSupport (int, PROCESS *);
 #endif OLDLWP
 
+
+#if defined(DJGPP) || defined(__CYGWIN32__)
+typedef void *register_t;
+#endif
 
 /*----------------------------------------*/
 /* Globals identical in  OLD and NEW lwps */
@@ -388,6 +392,9 @@ static void Exit_LWP()
 }
 
 
+#define FREE_STACKS 1
+#define DONT_FREE   0
+
 static void Dump_Processes()
 {
     if (lwp_init) {
@@ -395,9 +402,22 @@ static void Dump_Processes()
 	for (i=0; i<MAX_PRIORITIES; i++)
 	    for_all_elts(x, runnable[i], {
 		printf("[Priority %d]\n", i);
-		Dump_One_Process(x);
+		Dump_One_Process(x, stdout, FREE_STACKS);
 	    })
-	for_all_elts(x, blocked, { Dump_One_Process(x); })
+	for_all_elts(x, blocked, { Dump_One_Process(x, stdout, FREE_STACKS); })
+    } else
+	printf("***LWP: LWP support not initialized\n");
+}
+void LWP_Print_Processes()
+{
+    if (lwp_init) {
+	register int i;
+	for (i=0; i<MAX_PRIORITIES; i++)
+	    for_all_elts(x, runnable[i], {
+		printf("[Priority %d]\n", i);
+		Dump_One_Process(x, stdout, DONT_FREE);
+	    })
+	for_all_elts(x, blocked, { Dump_One_Process(x, stdout, DONT_FREE); })
     } else
 	printf("***LWP: LWP support not initialized\n");
 }
@@ -1090,47 +1110,122 @@ static void Create_Process_Part2 (temp)
 }
 
 #endif OLDLWP
+static int lwp_trace_depth=3;
 
-static void Dump_One_Process(pid)
+#if defined(i386)
+
+/* Stack crawling bits */
+
+/* register file */
+struct regfile {
+    register_t   edi;
+    register_t   esi;
+    register_t   ebp;
+    register_t   unused;
+    register_t   ebx;
+    register_t   edx;
+    register_t   ecx;
+    register_t   eax;
+};
+
+PRIVATE void Trace_Swapped_Stack(top, fp, depth, name)
+    caddr_t top;
+    FILE    *fp;
+    int     depth;
+    char    *name;
+{
+    struct regfile  reg;
+    register_t      tmp;
+    register_t      ip;
+    register_t      esp;
+    
+    /* Set current stack pointer to top */
+    esp = (register_t)top;
+
+    /* Simulate a POPA */
+    reg = *(struct regfile *)esp;
+    esp += sizeof(struct regfile);
+
+    /* Pop the return address (RET) */
+    ip = *(register_t *)esp;
+    esp+=sizeof(register_t);
+
+    /* 
+     * We are now at the bottom of the frame: 
+     * esp = end of frame.
+     * ebp = beginning of frame.
+     * ip = caller of savecontext 
+     */
+    while (depth--) {
+	fprintf(fp,"\tStack: %s Depth %d - 0x%x\n", name, depth, ip);
+	if (depth) {
+	    /* LEAVE */
+	    esp = reg.ebp;
+	    reg.ebp = *(register_t *)esp;
+	    esp += sizeof(register_t);
+	    /* RET */
+	    ip = *(register_t *)esp;
+	    esp += sizeof(register_t);
+	}
+    }
+}
+#endif
+
+
+PRIVATE void Dump_One_Process(pid, fp, dofree)
     PROCESS pid;
+    FILE    *fp;
+    int     dofree;
 {
     int i;
 
-    printf("***LWP: Process Control Block at %p\n", pid);
-    printf("***LWP: Name: %s\n", pid->name);
+    fprintf(fp,"***LWP: Process Control Block at 0x%x\n", pid);
+    fprintf(fp,"***LWP: Name: %s\n", pid->name);
     if (pid->ep != NULL)
-	printf("***LWP: Initial entry point: %p\n", pid->ep);
-    if (pid->blockflag) printf("BLOCKED and ");
+	fprintf(fp,"***LWP: Initial entry point: 0x%x\n", pid->ep);
+    if (pid->blockflag) fprintf(fp,"BLOCKED and ");
     switch (pid->status) {
-	case READY:	printf("READY");     break;
-	case WAITING:	printf("WAITING");   break;
-	case DESTROYED:	printf("DESTROYED"); break;
-	default:	printf("unknown");
+	case READY:	fprintf(fp,"READY");     break;
+	case WAITING:	fprintf(fp,"WAITING");   break;
+	case DESTROYED:	fprintf(fp,"DESTROYED"); break;
+	default:	fprintf(fp,"unknown");
 	}
-    putchar('\n');
-    printf("***LWP: Priority: %d \tInitial parameter: %p\n",
+    fprintf(fp, "\n");
+    fprintf(fp,"***LWP: Priority: %d \tInitial parameter: 0x%x\n",
 	    pid->priority, pid->parm);
 
 #ifdef OLDLWP
     if (pid->stacksize != 0) {
-	printf("***LWP:  Stacksize: %d \tStack base address: %p\n",
+	fprintf(fp,"***LWP:  Stacksize: %d \tStack base address: 0x%x\n",
 		pid->stacksize, pid->stack);
-	printf("***LWP: HWM stack usage: ");
-	printf("%d\n", Stack_Used(pid->stack,pid->stacksize));
-	free (pid->stack);
+	fprintf(fp,"***LWP: HWM stack usage: ");
+	fprintf(fp,"%d\n", Stack_Used(pid->stack,pid->stacksize));
+	if (dofree == FREE_STACKS) {
+	    free (pid->stack);
+	    }
 	}
-    printf("***LWP: Current Stack Pointer: %p\n", pid->context.topstack);
+    fprintf(fp,"***LWP: Current Stack Pointer: 0x%x\n", pid->context.topstack);
 #endif OLDLWP
 
+    /* Add others here as needed */
+#if defined(i386)
+    if (lwp_cpptr == pid) {
+	    fprintf(fp, "\tCURRENTLY RUNNING\n");
+    } else {
+	    Trace_Swapped_Stack(pid->context.topstack, fp, 
+				lwp_trace_depth, pid->name);
+    }
+#endif    
+
     if (pid->eventcnt > 0) {
-	printf("***LWP: Number of events outstanding: %d\n", pid->waitcnt);
-	printf("***LWP: Event id list:");
+	fprintf(fp,"***LWP: Number of events outstanding: %d\n", pid->waitcnt);
+	fprintf(fp,"***LWP: Event id list:");
 	for (i=0;i<pid->eventcnt;i++)
-	    printf(" %p", pid->eventlist[i]);
-	putchar('\n');
+	    fprintf(fp," 0x%x", pid->eventlist[i]);
+	fprintf(fp,"\n");
     }
     if (pid->wakevent>0)
-	printf("***LWP: Number of last wakeup event: %d\n", pid->wakevent);
+	fprintf(fp,"***LWP: Number of last wakeup event: %d\n", pid->wakevent);
 }
 
 static void Dispatcher()		/* Lightweight process dispatcher */
