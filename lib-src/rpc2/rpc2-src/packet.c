@@ -67,36 +67,30 @@ static struct timeval DefaultRetryInterval = {60, 0};
 int (*Fail_SendPredicate)() = NULL,
     (*Fail_RecvPredicate)() = NULL;
 
-static long DontFailPacket(predicate, pb, addr, sock)
-    int (*predicate)();
-    RPC2_PacketBuffer *pb;
-    struct sockaddr_in *addr;
-    int sock;
-    {
+static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
+			   struct RPC2_addrinfo *addr, int sock)
+{
     long dontFail;
     unsigned char ip1, ip2, ip3, ip4;
     unsigned char color;
 
-    if (predicate)
-	{
-#ifdef CODA_IPV6
-	    say(10, RPC2_DebugLevel, "Error in DontFailPacket: predicate set!");
-	    return(-1);
-	    
-#else /* CODA_IPV6 */
-	ip1 = (ntohl(addr->sin_addr.s_addr) >> 24) & 0x000000ff;
-	ip2 = (ntohl(addr->sin_addr.s_addr) >> 16) & 0x000000ff;
-	ip3 = (ntohl(addr->sin_addr.s_addr) >> 8) & 0x000000ff;
-	ip4 = ntohl(addr->sin_addr.s_addr) & 0x000000ff;
-#endif /* CODA_IPV6 */
-	ntohPktColor(pb);
-	color = GetPktColor(pb);
-	htonPktColor(pb);
-	dontFail = (*predicate)(ip1, ip2, ip3, ip4, color, pb, addr, sock);
-        }
-    else dontFail = TRUE;
-    return (dontFail);
-    }
+    if (!predicate)
+	return RPC2_FALSE;
+
+#warning "fail filters can only handle ipv4 addresses"
+    if (addr->ai_family != PF_INET)
+	return RPC2_FALSE;
+
+    /* I probably messed up the ordering here as it used to be a whole
+     * bunch of nasty cases and ntohl() -JH */
+    char *addr = (char *)&((struct sockaddr_in *)addr->ai_addr)->sin_addr;
+
+    ip1 = addr[3]; ip2 = addr[2]; ip3 = addr[1]; ip4 = addr[0]; 
+    ntohPktColor(pb);
+    color = GetPktColor(pb);
+    htonPktColor(pb);
+    return !(*predicate)(ip1, ip2, ip3, ip4, color, pb, addr, sock);
+}
 
 void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 		     IN struct RPC2_addrinfo *addr)
@@ -132,8 +126,7 @@ void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
 	rpc2_Sent.Bytes += whichPB->Prefix.LengthOfPacket;
     }
 
-#warning "dontfailpacket only expects ipv4"
-    if (!DontFailPacket(Fail_SendPredicate, whichPB, addr->ai_addr,whichSocket))
+    if (FailPacket(Fail_SendPredicate, whichPB, addr, whichSocket))
 	return;
 
     n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket, 0,
@@ -194,12 +187,14 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     }
 
 
-    whichBuff->Prefix.PeerAddr =
-	rpc2_allocaddrinfo((struct sockaddr *)&sa, fromlen);
+    whichBuff->Prefix.PeerAddr = rpc2_allocaddrinfo((struct sockaddr *)&sa,
+						    fromlen);
 
     TR_RECV();
 
-    if (!DontFailPacket(Fail_RecvPredicate, whichBuff, &sa, whichSocket)) {
+    if (FailPacket(Fail_RecvPredicate, whichBuff, whichBuff->Prefix.PeerAddr,
+		   whichSocket))
+    {
 	    errno = 0;
 	    return (-1);
     }

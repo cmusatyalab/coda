@@ -237,6 +237,10 @@ long SFTP_Bind2(IN RPC2_Handle ConnHandle, IN RPC2_Unsigned BindTime)
     assert(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
 
+    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
+     * IPv4 address. Convert it back to the more useful rpc2_addrinfo... */
+    rpc2_simplifyHost(&se->PInfo.RemoteHost, &se->PInfo.RemotePort);
+
     assert(se->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
     se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);
     assert(se->HostInfo);
@@ -282,6 +286,10 @@ long SFTP_NewConn(IN ConnHandle, IN ClientIdent)
     se->WhoAmI = SFSERVER;
     se->LocalHandle = ConnHandle;
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
+
+    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
+     * IPv4 address. Convert it back to the more useful rpc2_addrinfo... */
+    rpc2_simplifyHost(&se->PInfo.RemoteHost, &se->PInfo.RemotePort);
 
     assert(se->PInfo.RemoteHost.Tag == RPC2_HOSTBYADDRINFO);
     se->HostInfo = rpc2_GetHost(se->PInfo.RemoteHost.Value.AddrInfo);

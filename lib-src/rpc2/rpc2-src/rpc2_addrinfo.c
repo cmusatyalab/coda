@@ -63,9 +63,9 @@ void RPC2_formataddrinfo(struct RPC2_addrinfo *ai, char *buf, size_t buflen)
     n = strlen(buf);
     if (n < buflen - 3) {
 	switch (ai->ai_family) {
-	case AF_INET:
+	case PF_INET:
 	    port = ((struct sockaddr_in *)ai->ai_addr)->sin_port; break;
-	case AF_INET6:
+	case PF_INET6:
 	    port = ((struct sockaddr_in6 *)ai->ai_addr)->sin6_port; break;
 	default: break;
 	}
@@ -138,9 +138,9 @@ struct RPC2_addrinfo *rpc2_allocaddrinfo(struct sockaddr *addr, size_t addrlen)
     memset(ai, 0, sizeof(struct RPC2_addrinfo));
 
     if (addrlen == sizeof(struct sockaddr_in))
-	ai->ai_family = AF_INET;
+	ai->ai_family = PF_INET;
     else if (addrlen == sizeof(struct sockaddr_in6))
-	ai->ai_family = AF_INET6;
+	ai->ai_family = PF_INET6;
 
     ai->ai_addr = (struct sockaddr *)&(ai[1]);
     ai->ai_addrlen = addrlen;
@@ -161,15 +161,26 @@ void rpc2_printaddrinfo(struct RPC2_addrinfo *ai, FILE *f)
 struct RPC2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
 {
     struct RPC2_addrinfo hint, *result;
-    char nbuf[INET_ADDRSTRLEN], pbuf[11];
+    char buf[11];
     char *node = NULL, *service = NULL;
     int retval;
 
-    /* shortcut, maybe even too short in some cases */
-    if (Host && Host->Tag == RPC2_HOSTBYADDRINFO)
-	return RPC2_copyaddrinfo(Host->Value.AddrInfo);
+    if (Host) {
+	/* We can easily convert a numeric ip-address to an addrinfo
+	 * structure without having to resolve the whole thing. */
+	if (Host->Tag == RPC2_HOSTBYINETADDR) {
+	    RPC2_HostIdent host = *Host;
+	    rpc2_simplifyHost(&host, Port);
+	    return host.Value.AddrInfo;
+	}
 
-    /* Resolve port */
+	if (Host->Tag == RPC2_HOSTBYADDRINFO)
+	    return RPC2_copyaddrinfo(Host->Value.AddrInfo);
+    }
+
+    /* Here we know that Host is either NULL, or RPC2_HOSTBYNAME
+     * (or RPC2_DUMMYHOST) and we'll have to use the resolver */
+
     if (Port) {
 	switch (Port->Tag) {
 	case RPC2_PORTBYNAME:
@@ -177,40 +188,23 @@ struct RPC2_addrinfo *rpc2_resolve(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
 	    break;
 
 	case RPC2_PORTBYINETNUMBER:
-	    snprintf(pbuf, 11, "%u", ntohs(Port->Value.InetPortNumber));
-	    service = pbuf;
+	    snprintf(buf, 11, "%u", ntohs(Port->Value.InetPortNumber));
+	    service = buf;
 	    break;
 	}
     }
 
     /* Resolve host */
     memset(&hint, 0, sizeof(struct RPC2_addrinfo));
-    hint.ai_family = PF_UNSPEC;
+    hint.ai_family = rpc2_ipv6ready ? PF_UNSPEC : PF_INET;
     hint.ai_socktype = SOCK_DGRAM;
 
-    if (Host) {
-	switch(Host->Tag) {
-	case RPC2_HOSTBYINETADDR:	/* you passed it in in network order! */
-	    if (!inet_ntop(AF_INET, &Host->Value.InetAddress, nbuf,
-			   INET_ADDRSTRLEN)) {
-		say(0, RPC2_DebugLevel, "rpc2_resolve: inet_ntop failed\n");
-		return NULL;
-	    }
-	    node = nbuf;
-	    hint.ai_flags = AI_NUMERICHOST;
-	    break;
-
-	case RPC2_HOSTBYNAME:
-	    node = Host->Value.Name;
-	    break;
-
-	default:
-	    break;
-	}
-    } else /* no host specified, I guess we're resolving for a listener */
+    if (Host && Host->Tag == RPC2_HOSTBYNAME)
+	node = Host->Value.Name;
+    else /* no host specified, we must be resolving for a listener */
 	hint.ai_flags = AI_PASSIVE;
 
-    /* getaddrinfo doesn't allow both to be NULL */
+    /* getaddrinfo doesn't allow both node and service to be NULL */
     if (!node && !service)
 	service = "0";
 
@@ -227,17 +221,24 @@ void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
 			struct RPC2_addrinfo *addr)
 {
     if (Host) {
-	Host->Tag = RPC2_HOSTBYADDRINFO;
-	Host->Value.AddrInfo = RPC2_copyaddrinfo(addr);
+	if (rpc2_ipv6ready) {
+	    Host->Tag = RPC2_HOSTBYADDRINFO;
+	    Host->Value.AddrInfo = RPC2_copyaddrinfo(addr);
+	} else {
+	    assert(addr->ai_family == PF_INET);
+	    Host->Tag = RPC2_HOSTBYINETADDR;
+	    Host->Value.InetAddress = 
+		((struct sockaddr_in *)addr->ai_addr)->sin_addr;
+	}
     }
     if (Port) {
 	Port->Tag = RPC2_PORTBYINETNUMBER;
 	switch (addr->ai_family) {
-	case AF_INET:
+	case PF_INET:
 	    Port->Value.InetPortNumber =
 		((struct sockaddr_in *)addr->ai_addr)->sin_port;
 	    break;
-	case AF_INET6:
+	case PF_INET6:
 	    Port->Value.InetPortNumber =
 		((struct sockaddr_in6 *)addr->ai_addr)->sin6_port;
 	    break;
@@ -245,5 +246,39 @@ void rpc2_splitaddrinfo(RPC2_HostIdent *Host, RPC2_PortIdent *Port,
 	    Port->Tag = RPC2_DUMMYPORT;
 	}
     }
+}
+
+/* We might be getting RPC2_HOSTBYINETADDR, but all the code uses
+ * RPC2_HOSTBYADDRINFO. So this function just simplifies life */
+void rpc2_simplifyHost(RPC2_HostIdent *Host, RPC2_PortIdent *Port)
+{
+    struct sockaddr_in sin;
+
+    if (Host->Tag == RPC2_HOSTBYADDRINFO)
+	return;
+
+    assert(Host->Tag == RPC2_HOSTBYINETADDR);
+    memset(&sin, 0, sizeof(sin));
+    sin.sin_addr = Host->Value.InetAddress;
+
+    if (Port) {
+	struct servent *se;
+
+	switch(Port->Tag) {
+	case RPC2_PORTBYINETNUMBER:
+	    sin.sin_port = Port->Value.InetPortNumber;
+	    break;
+
+	case RPC2_PORTBYNAME:
+	    se = getservbyname(Port->Value.Name, "udp");
+	    if (se)
+		sin.sin_port = se->s_port;
+	    break;
+	}
+    }
+
+    Host->Tag = RPC2_HOSTBYADDRINFO;
+    Host->Value.AddrInfo =
+	rpc2_allocaddrinfo((struct sockaddr *)&sin, sizeof(sin));
 }
 

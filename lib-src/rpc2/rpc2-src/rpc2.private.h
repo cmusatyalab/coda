@@ -423,6 +423,7 @@ extern long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
 
 
 /*------------- Miscellaneous  global data  ------------*/
+extern int rpc2_ipv6ready; /* can userspace handle IPv6 addresses */
 extern long rpc2_RequestSocket;	/* fd of RPC socket  */
 				/* we may need more when we deal with many domains */
 extern struct TM_Elem *rpc2_TimerQueue;
@@ -579,6 +580,8 @@ void                  rpc2_printaddrinfo(struct RPC2_addrinfo *ai, FILE *f);
 void                  rpc2_splitaddrinfo(RPC2_HostIdent *Host,
 					 RPC2_PortIdent *Port,
 					 struct RPC2_addrinfo *addr);
+void		      rpc2_simplifyHost(RPC2_HostIdent *Host,
+					RPC2_PortIdent *Port);
 
 
 /*--------------- Useful definitions that used to be in potpourri.h or util.h ---------------*/

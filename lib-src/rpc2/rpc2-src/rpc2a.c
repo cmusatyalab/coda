@@ -326,7 +326,8 @@ long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 		    rpc2_splitaddrinfo(&Host, &Port, ce->HostInfo->Addr);
 		    (*AuthFail)(AuthenticationType, &cident, ce->EncryptionType,
 				&Host, &Port);
-		    RPC2_freeaddrinfo(Host.Value.AddrInfo);
+		    if (Host.Tag == RPC2_HOSTBYADDRINFO)
+			RPC2_freeaddrinfo(Host.Value.AddrInfo);
 		}
 	    DROPIT();
 	    }

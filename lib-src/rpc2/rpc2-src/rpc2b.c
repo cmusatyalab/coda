@@ -99,6 +99,9 @@ long RPC2_Init(char *VId,		/* magic version string */
     /* rpc2_InitConn returns 0 if we're already initialized */
     if (rpc2_InitConn() == 0) rpc2_Quit(RPC2_SUCCESS);
 
+    if (Options && (Options->Flags & RPC2_OPTION_IPV6))
+	rpc2_ipv6ready = 1;
+
     rpc2_InitMgrp();
     rpc2_InitHost();
 
@@ -478,7 +481,7 @@ long RPC2_SetSEPointer(IN ConnHandle, IN SEPtr)
 long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     RPC2_Handle ConnHandle;
     RPC2_PeerInfo *PeerInfo;
-    {
+{
     struct CEntry *ceaddr;
 
     rpc2_Enter();
@@ -497,7 +500,7 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     memcpy(PeerInfo->SessionKey, ceaddr->SessionKey, RPC2_KEYSIZE);
     PeerInfo->Uniquefier = ceaddr->PeerUnique;
     rpc2_Quit(RPC2_SUCCESS);
-    }
+}
 
 
 long RPC2_DumpTrace(IN OutFile, IN HowMany)
@@ -851,19 +854,13 @@ long rpc2_CreateIPSocket(long *svar, struct RPC2_addrinfo *addr,
 		*svar = -1;
 		continue;
 	    }
-	    Port->Tag = RPC2_PORTBYINETNUMBER;
-	    switch (bindaddr.ss_family) {
-	    case AF_INET:
-		Port->Value.InetPortNumber =
-		    ((struct sockaddr_in *)&bindaddr)->sin_port;
-		break;
-	    case AF_INET6:
-		Port->Value.InetPortNumber =
-		    ((struct sockaddr_in6 *)&bindaddr)->sin6_port;
-		break;
-	    default:
-		assert(FALSE);
+
+	    {
+		struct RPC2_addrinfo *ai = rpc2_allocaddrinfo(&bindaddr, blen);
+		rpc2_splitaddrinfo(NULL, Port, ai);
+		RPC2_freeaddrinfo(ai);
 	    }
+
 #ifdef RPC2DEBUG
 	    if (RPC2_DebugLevel > 9) {
 		rpc2_PrintPortIdent(Port, rpc2_tracefile);

@@ -448,6 +448,10 @@ static void SFSendNAK(RPC2_PacketBuffer *pb)
     rpc2_splitaddrinfo(&fake_se.PInfo.RemoteHost, &fake_se.PInfo.RemotePort,
 		       pb->Prefix.PeerAddr);
 
+    /* Depending on rpc2_ipv6ready, rpc2_splitaddrinfo might return a simple
+     * IPv4 address. Convert it back to the more useful rpc2_addrinfo... */
+    rpc2_simplifyHost(&fake_se.PInfo.RemoteHost, &fake_se.PInfo.RemotePort);
+
     sftp_XmitPacket(&fake_se, nakpb);    /* ignore return code */
     SFTP_FreeBuffer(&nakpb);
 

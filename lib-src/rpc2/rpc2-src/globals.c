@@ -54,6 +54,9 @@ Pittsburgh, PA.
 
 long RPC2_Perror=1, RPC2_DebugLevel=0, RPC2_Trace = 0; /* see rpc2.h */
 
+/* whether the client can handle RPC2_HOSTBYADDRINFO and IPv6 connections */
+int rpc2_ipv6ready;
+
 long rpc2_RequestSocket;
 RPC2_PortIdent rpc2_LocalPort;
 
@@ -108,7 +111,7 @@ long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
 
-char *rpc2_LastEdit = "$Header: /coda-src/rpc2/rpc2-src/globals.c,v 4.9 2000/03/28 17:29:26 jaharkes Exp $";
+char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/rpc2/rpc2-src/globals.c,v 4.9.2.1 2003/03/15 18:58:10 jaharkes Exp $";
 
 long rpc2_errno;
 

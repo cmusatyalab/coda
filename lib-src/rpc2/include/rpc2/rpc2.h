@@ -559,10 +559,11 @@ typedef
 typedef 
     struct 
         {
-	    RPC2_Byte	ScaleTimeouts;
+	    RPC2_Byte	Flags;
 	}
     RPC2_Options;
 
+#define RPC2_OPTION_IPV6 1
 
 /* Structure for passing parameters to RPC2_NewBinding() and its multi clone */
 
