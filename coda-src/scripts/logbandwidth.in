@@ -1,0 +1,135 @@
+#!+TIXWISH+
+
+#
+# initialize chart parameters
+#
+set strip_value1   0
+set strip_value2   0
+set strip_interval 1000
+set strip_log1     [ list ]
+set strip_log2     [ list ]
+set strip_idx      0
+set strip_label    ""
+
+#
+# create graphical stuff
+#
+label .strip_label -text ""
+pack .strip_label
+canvas .strip_graph -height 100 -width 200 \
+		    -relief sunken -border 2
+pack .strip_graph
+
+for { set x 0 } { $x < 200 } { incr x } {
+  lappend strip_log1 0
+  lappend strip_log2 0
+}
+
+proc strip_draw {} {
+  global strip_log1 strip_value1
+  global strip_interval strip_idx strip_label
+
+  set strip_log1 [ lreplace $strip_log1 $strip_idx $strip_idx $strip_value1 ]
+
+  .strip_graph delete data
+
+  set i [ expr 202 - $strip_idx ]
+  foreach v1 $strip_log1 {
+    if { $v1 < 100 } { set v1 100 }
+    set val1 [ expr 102 - ( ( log10($v1) - 3 ) * 20 ) ]
+    .strip_graph create line $i 103 $i $val1 -tags data -fill LightSlateBlue
+
+    incr i
+    if { $i >= 202 } { set i 2 }
+  }
+  # 1,000 Bps (modem 4800-28800)
+  .strip_graph create text 4 99 -text "Modem" -tags data -anchor w -font 5x7
+
+  # 10,000 Bps (ISDN (64k-128k))
+  .strip_graph create line 2 83 202 83 -tags data -fill DarkSlateGray
+  .strip_graph create text 4 79 -text "ISDN" -tags data -anchor w -font 5x7
+
+  # 100,000 Bps
+  .strip_graph create line 2 63 202 63 -tags data -fill DarkSlateGray
+  .strip_graph create text 4 59 -text "Wavelan" -tags data -anchor w -font 5x7
+
+  # 1,000,000 Bps (10base-T)
+  .strip_graph create line 2 43 202 43 -tags data -fill DarkSlateGray
+  .strip_graph create text 4 39 -text "Ethernet" -tags data -anchor w -font 5x7
+
+  # 10,000,000 Bps (100base-T)
+  .strip_graph create line 2 23 202 23 -tags data -fill DarkSlateGray
+  .strip_graph create text 4 19 -text "Fast Ethernet" -tags data -anchor w -font 5x7
+
+  .strip_graph create text 200 10 -text "$strip_label" -tags data -anchor e
+
+  incr strip_idx
+  if { $strip_idx >= 200 } { set strip_idx 0 }
+
+  after $strip_interval strip_draw
+}
+
+proc strip_title {text} {
+  .strip_label configure -text $text
+}
+
+#########################################################################
+#
+# Codacon related stuff
+#
+proc updatestats {} {
+  global input
+  #
+  # Get a line (may be empty or not ready yet)
+  #
+  set n [ gets $input line ]
+  if { $n == -1 } {
+    if [ eof $input ] {
+      puts "Connection to codacon lost"
+      exit 0
+    }
+    return
+  }
+
+  checkline $line
+}
+
+#
+# connect to the codacon port
+#
+set input [ socket localhost codacon ]
+puts "Connected to codacon"
+puts $input "set:fetch"
+flush $input
+
+#
+# set the socket to non-blocking and attach the callback
+#
+fconfigure $input -blocking off
+fileevent $input readable updatestats
+
+#########################################################################
+#
+# Customized stuff
+#
+proc checkline {line} {
+  global who strip_value1 strip_label
+
+  #
+  # match our patterns
+  #
+  if [ string match "connection::bandwidth $who*" $line ] {
+    if { $who == "" } { set who [ lindex $line 1 ] }
+    strip_title [ lindex $line 1]
+    set strip_value1 [ lindex $line 2 ]
+    if { $strip_value1 < 0 } { set strip_value1 0 }
+    set strip_label "[ expr $strip_value1 * 8 ] bps"
+  }
+}
+
+#
+# configure and start drawing
+#
+set who [ lindex $argv 0 ]
+set strip_interval 100
+strip_draw
