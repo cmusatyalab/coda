@@ -58,13 +58,9 @@ Pittsburgh, PA.
 #include <rpc2/se.h>
 #include "sftp.h"
 
-extern int errno;
-
 static void ClientPacket();
 static void ServerPacket();
 static void SFSendNAK(RPC2_PacketBuffer *pb);
-static void ScanTimerQ();
-static int AwaitEvent();
 
 #define BOGUS(pb)\
     (sftp_TraceBogus(2, __LINE__), sftp_bogus++, SFTP_FreeBuffer(&pb))
@@ -72,14 +68,6 @@ static int AwaitEvent();
 #ifndef MAX
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #endif
-
-void sftp_Timer(void)
-{/* LWP that deals with timeouts for SFTP packets */
-    while (TRUE) {
-	ScanTimerQ();	/* wakeup all LWPs with expired timer entries */
-	AwaitEvent();
-    }
-}
 
 /* This function is not called by the sftp code itself */
 void SFTP_DispatchProcess(void)
@@ -98,24 +86,6 @@ void SFTP_DispatchProcess(void)
 
     LWP_DispatchProcess();
     }
-
-static void ScanTimerQ()
-    {
-    int i;
-    struct SLSlot *s;
-    struct TM_Elem *t;
-
-    /* scan timer queue and notify timed out events */
-    for (i = TM_Rescan(sftp_Chain); i > 0; i--)
-	{
-	assert((t = TM_GetExpired(sftp_Chain)) != NULL);
-	s = (struct SLSlot *)t->BackPointer;
-	s->State= S_TIMEOUT;
-	REMOVETIMER(s);
-	LWP_NoYieldSignal((char *)s);
-	}
-    }
-
 
 /* This function is only called by SFTP_DispatchProcess, which is not called
  * by the sftp code itself */
@@ -146,20 +116,6 @@ int sftp_MorePackets(void)
 
     return(0);
 #endif
-}
-
-static int AwaitEvent()
-    /* Awaits for earliest timeout and returns code from IOMGR_Select() */
-{
-    struct timeval *tvp;
-    struct TM_Elem *t;
-    
-    /* wait for earliest timeout */
-    t = TM_GetEarliest(sftp_Chain);
-    if (t == NULL) tvp = NULL;
-    else tvp = &t->TimeLeft;
-
-    return IOMGR_Select(0, NULL, NULL, NULL, tvp);
 }
 
 void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
@@ -271,24 +227,24 @@ void sftp_ExaminePacket(RPC2_PacketBuffer *pb)
 static void ServerPacket(RPC2_PacketBuffer *whichPacket,
 			 struct SFTP_Entry *sEntry)
 {
-    struct SLSlot *sls;
+    struct SL_Entry *sl;
 
     /* WARNING: we are assuming state TIMEOUT is essentially the same as state
      * WAITING from the point of of view of the test below; this will be true
      * if no LWP yields control while its SLSlot state is TIMEOUT.  There
      * could be serious hard-to-find bugs if this assumption is violated. */
 
-    sls = sEntry->Sleeper;
-    if (sls == NULL || (sls->State != S_WAITING && sls->State != S_TIMEOUT))
+    sl = sEntry->Sleeper;
+    if (!sl || (sl->State != S_WAITING && sl->State != S_TIMEOUT))
     {/* no one expects this packet; toss it out; NAK'ing may have race hazards */
 	if (whichPacket) BOGUS(whichPacket);
 	return;
     }
     sEntry->Sleeper = NULL;	/* no longer anyone waiting for a packet */
-    sls->State = S_ARRIVED;
-    sls->Packet = whichPacket;
-    REMOVETIMER(sls);
-    LWP_SignalProcess((char *)sls);
+    sl->State = S_ARRIVED;
+    sl->Packet = whichPacket;
+    rpc2_DeactivateSle(sl, 0);
+    LWP_SignalProcess((char *)sl);
 }
 
 

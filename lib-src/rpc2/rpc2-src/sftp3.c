@@ -74,8 +74,6 @@ long SFTP_DupThreshold;
 long SFTP_MaxPackets;
 
 /* long SFTP_DebugLevel; */	/* defined to RPC2_DebugLevel for now */
-struct TM_Elem *sftp_Chain;
-PROCESS sftp_TimerPID;
 long sftp_PacketsInUse;
 
 long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,
@@ -152,24 +150,24 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
     }
     oflags |= O_BINARY;
 
-
     switch(sftpd->Tag) {
     case FILEBYNAME:
 	sEntry->openfd = open(sftpd->FileInfo.ByName.LocalFileName, oflags,
 			      omode);
+	sEntry->fd_offset = 0;
 	if (sEntry->openfd < 0) {
 	    if (RPC2_Perror) perror(sftpd->FileInfo.ByName.LocalFileName);
 	    return(-1);
 	}
-	    break;
+	break;
 	
     case FILEBYFD:
-	/* trust the user to have given a good fd! */
+	/* trust the user to have given a good fd!
+	 * However the fd might be shared, so we actually need to re-seek to
+	 * the fileoffset that we expect on every operation, so we have to know
+	 * where we currently are */
 	sEntry->openfd = dup(sftpd->FileInfo.ByFD.fd);
-
-	/* the fd might be shared, so we need to save/restore the fileoffset
-	   around every operation */
-	sEntry->fd_offset = (sftpd->SeekOffset > 0) ? sftpd->SeekOffset : 0;
+	sEntry->fd_offset = lseek(sEntry->openfd, 0, SEEK_CUR);
 	break;
 
 
@@ -177,18 +175,23 @@ int sftp_InitIO(struct SFTP_Entry *sEntry)
     case FILEBYINODE:
 	sEntry->openfd = iopen(sftpd->FileInfo.ByInode.Device,
 			       sftpd->FileInfo.ByInode.Inode, oflags);
+	sEntry->fd_offset = 0;
 	if (sEntry->openfd < 0) {
 	    if (RPC2_Perror) perror("iopen");
 	    return(-1);
 	}
-	sEntry->fd_offset = (sftpd->SeekOffset > 0) ? sftpd->SeekOffset : 0;
 	break;
 #endif
         
     default:
 	return(-1);
     }
-    
+
+    if (sftpd->SeekOffset > 0) {
+	sEntry->fd_offset = (off_t)sftpd->SeekOffset;
+	(void)lseek(sEntry->openfd, sEntry->fd_offset, SEEK_SET);
+    }
+
     return(0);
 }
 

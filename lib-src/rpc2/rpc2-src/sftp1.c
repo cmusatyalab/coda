@@ -71,7 +71,6 @@ Pittsburgh, PA.
 static long GetFile();
 static long PutFile();
 static RPC2_PacketBuffer *AwaitPacket();
-static void AddTimerEntry();
 static long MakeBigEnough();
 
 /*---------------------------  Local macros ---------------------------*/
@@ -101,15 +100,6 @@ long SFTP_Init()
     char *sname;
     
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
-
-    /* initialize the sftp timer chain */
-    TM_Init(&sftp_Chain);
-
-    /* Create SFTP listener process, which doesn't really listen anymore.
-     * It deals with retransmission timeouts and such. */
-    sname = "sftp_Timer";
-    LWP_CreateProcess((PFIC)sftp_Timer, 16384, LWP_NORMAL_PRIORITY,
-		      sname, sname, &sftp_TimerPID);
 
     sftp_InitTrace();
 
@@ -894,59 +884,37 @@ GotAck:
 }
 
 
-static RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
-    struct timeval *tOut;
-    struct SFTP_Entry *sEntry;
-    
+static RPC2_PacketBuffer *AwaitPacket(struct timeval *tOut,
+				      struct SFTP_Entry *sEntry)
     /* Awaits for a packet on sEntry or  timeout tOut
 	Returns pointer to arrived packet or NULL
     */
+{
+    struct SL_Entry *sl;
+
+    if (LWP_GetRock(SMARTFTP, (char **)&sl) != LWP_SUCCESS)
     {
-    struct SLSlot *sls;
+	sl = rpc2_AllocSle(OTHER, NULL);
+	assert(LWP_NewRock(SMARTFTP, (char *)sl) == LWP_SUCCESS);
+    }
 
-    if (LWP_GetRock(SMARTFTP, (char **)&sls) != LWP_SUCCESS)
-	{
-	sls = (struct SLSlot *) malloc(sizeof(struct SLSlot));
-	memset(sls, 0, sizeof(struct SLSlot));
-	sls->Magic = SSLMAGIC;
-	LWP_CurrentProcess(&sls->Owner);
-	assert(LWP_NewRock(SMARTFTP, (char *)sls) == LWP_SUCCESS);
-	}
+    sEntry->Sleeper = sl;
+    rpc2_ActiveSle(sl, tOut);
+    LWP_WaitProcess((char *)sl);
 
-    sls->TChain = sftp_Chain;
-    sls->Te.TotalTime = *tOut;	/* structure assignment */
-    sls->Te.BackPointer = (char *)sls;
-    sls->State = S_WAITING;
-    sEntry->Sleeper = sls;
-    AddTimerEntry(&sls->Te);
-    LWP_WaitProcess((char *)sls);
-    switch(sls->State)
+    switch(sl->ReturnCode)
 	{
-	case S_TIMEOUT:	sls->State = S_INACTIVE; return(NULL);
+	case S_TIMEOUT:	sl->State = S_INACTIVE; return(NULL);
     
-	case S_ARRIVED:	sls->State = S_INACTIVE; return(sls->Packet);
+	case S_ARRIVED:	sl->State = S_INACTIVE; return(sl->Packet);
 	
 	default: assert(FALSE);
 	}
     /*NOTREACHED*/
     assert(0);
     return NULL;
-    }
+}
     
-
-static void AddTimerEntry(whichElem)
-    struct TM_Elem *whichElem;
-    {
-    struct TM_Elem *t;
-    long mytime;
-
-    mytime = whichElem->TotalTime.tv_sec*1000000 + whichElem->TotalTime.tv_usec;
-    t = TM_GetEarliest(sftp_Chain);
-    if (t == NULL || (t->TimeLeft.tv_sec*1000000 + t->TimeLeft.tv_usec) > mytime)
-	IOMGR_Cancel(sftp_TimerPID);
-    TM_Insert(sftp_Chain, whichElem);
-    }
-
 
 /*---------------------- Piggybacking routines -------------------------*/
 

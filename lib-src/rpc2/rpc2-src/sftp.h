@@ -215,7 +215,7 @@ struct SFTP_Entry		/* per-connection data structure */
 				   transfer */
     off_t fd_offset;		/* For FILEBYFD transfers, we save the offset
 				   within the file after each read/write */
-    struct SLSlot *Sleeper;	/* SLSlot of LWP sleeping on this connection,
+    struct SL_Entry *Sleeper;	/* SL_Entry of LWP sleeping on this connection,
 				   or NULL */
     long PacketSize;		/* Amount of  data in each packet */
     long WindowSize;		/* Max Number of outstanding packets without
@@ -309,13 +309,13 @@ struct SFTP_Entry		/* per-connection data structure */
 
     Disclaimer (made in total disgust)
     =================================
-	All this stuff dealing with SLSlots etc. is needed because the LWP
+	All this stuff dealing with SL_Entries etc. is needed because the LWP
     package does not provide me with a very fundamental primitive: the ability to wait for
     an arbitrary event or a timeout.  This is apparently impossible to add in an efficient
     manner to the current LWP package.  So I have to fake this using the same strategy used in
     the base RPC2 (SLEntries for communication between SocketListener and the other LWPs).  The
-    difference here is that the number of SLSlots is at most one per LWP, since an LWP can be
-    waiting for at most one packet at a time.  The creation of an SLSlot for an LWP is 
+    difference here is that the number of SL_Entries is at most one per LWP, since an LWP can be
+    waiting for at most one packet at a time.  The creation of an SL_Entry for an LWP is 
     deferred until the first use of this mechanism, since we have no  way to gain control when 
     a LWP_CreateProcess() is done.
 */
@@ -332,19 +332,7 @@ struct SLSlot		/* pointed to by rock in current LWP */
     RPC2_PacketBuffer *Packet;	/* newly arrived packet */
     };
 
-
-#define REMOVETIMER(x)	/* Removes an SLSlot x from a timer chain */\
-	    if (x->TChain != NULL)\
-		{\
-		TM_Remove(x->TChain, &x->Te);\
-		x->TChain = NULL;\
-		}
-
-extern PROCESS sftp_TimerPID;	/* pid of sftp timeout handler */
-extern struct TM_Elem *sftp_Chain;	/* head of linked list of all sleeping LWPs waiting for a packet or a timeout */
 extern long SFTP_DebugLevel;
-
-
 
 int  sftp_XmitPacket(struct SFTP_Entry *sentry, RPC2_PacketBuffer *pb);
 void sftp_Timer(void);
