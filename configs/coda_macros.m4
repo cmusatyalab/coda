@@ -283,3 +283,14 @@ AC_DEFUN(CODA_DARWIN_BROKEN_CPP_WORKAROUND,
 	;;
    esac])
 
+dnl ---------------------------------------------
+dnl find readline functionality
+dnl also test for new functions introduced by readline 4.2
+
+AC_SUBST(HAVE_RL_COMPLETION_MATCHES)
+AC_DEFUN(CODA_CHECK_READLINE,
+  [CODA_FIND_LIB(readline, [#include <stdio.h>
+     #include <readline/readline.h>], [readline((char *)0)], $LIBTERMCAP)
+   AC_CHECK_LIB(readline, rl_completion_matches,
+     [AC_DEFINE(HAVE_RL_COMPLETION_MATCHES, 1, [Define if you have readline 4.2 or later])])])
+

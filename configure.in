@@ -56,10 +56,7 @@ CODA_FIND_LIB(rpc2, [#include <rpc2/rpc2.h>], [RPC2_Init(0,0,0,0,0)], -llwp)
 
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
-
-CODA_FIND_LIB(readline, [#include <stdio.h>
-#include <readline/readline.h>], [readline((char *)0)], $LIBTERMCAP)
-
+CODA_CHECK_READLINE
 CODA_CHECK_LIBDB185
 CODA_CHECK_MD5
 

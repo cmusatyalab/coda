@@ -43,6 +43,12 @@ extern void add_history(char *);
 }
 #endif /* __cplusplus */
 
+#ifndef HAVE_RL_COMPLETION_MATCHES
+/* compatibility for readline libs < v4.2 */
+#define rl_completion_matches completion_matches
+#define rl_compentry_func_t Function
+#endif
+
 #include "parser.h"
 #define CMD_COMPLETE 0
 #define CMD_INCOMPLETE 1

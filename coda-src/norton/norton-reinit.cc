@@ -96,6 +96,19 @@ static int DumpVolHead(int fd, VolHead *vol) {
     return 1;
 }
 
+static int SkipToNextVolHead(int fd)
+{
+    unsigned int magic = 0;
+    int n;
+
+    while (magic != VOLUMEHEADERMAGIC) {
+	n = read(fd, (void *)&magic, sizeof(unsigned int));
+	if (n < sizeof(unsigned int)) return 0;
+    }
+    lseek(fd, -sizeof(unsigned int), SEEK_CUR);
+    return 1;
+}
+
 static int ReadVolHead(int fd, VolHead *vol) {
     int ret;
 
@@ -648,7 +661,8 @@ static int HasBackVols(VolumeId *skipvols, int nskipvols) {
 // So we can add volume headers back to LRU.
 extern void FreeVolumeHeader(register Volume *vp);
 
-static int load_server_state(char *dump_file) {
+static int load_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
+{
     int dump_fd, volindex;
     int res_adm_limit;
     rvm_return_t status;
@@ -682,8 +696,14 @@ static int load_server_state(char *dump_file) {
 	    return 0;
 	}
 
-	printf("Reading volume 0x%x\n", vol_head.header.id);
-	
+	if (InSkipVolumeList(vol_head.header.id, skipvols, nskipvols)) {
+	    printf("Skipping volume 0x%x\n", vol_head.header.id);
+	    SkipToNextVolHead(dump_fd);
+	    continue;
+	}
+	else
+	    printf("Reading volume 0x%x\n", vol_head.header.id);
+
 	rvmlib_begin_transaction(restore);
 
 	if ((vol_type = vol_head.header.type) != RWVOL) {
@@ -801,35 +821,26 @@ static int load_server_state(char *dump_file) {
     return 1;
 }
 
-static int dump_server_state(char *dump_file, char *skipvollist[], int nskipvols) {
+static int dump_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
+{
     VolumeHeader *header;
     VolHead	 *vol;
-    VolumeId	 *skipvols = NULL;
     int		 i,
 		 maxid = GetMaxVolId();
     int 	 dump_fd;
 
-    if (nskipvols > 0) {
-	skipvols = (VolumeId *)malloc(nskipvols * sizeof(VolumeId));
-	GetSkipVols(nskipvols, skipvols, skipvollist);
-    }
-	
     if (HasBackVols(skipvols, nskipvols)) {
-	fprintf(stderr, "This server has backup volumes.  They must be ");
-	fprintf(stderr, "purged before proceeding\n");
-	if (skipvols) free(skipvols);
+	fprintf(stderr, "This server has backup volumes. They must be purged before proceeding.\n");
 	return 0;
     }
     
     if ((dump_fd = open(dump_file, O_CREAT | O_EXCL | O_WRONLY, 0600)) < 0) {
 	perror(dump_file);
-	if (skipvols) free(skipvols);
 	return 0;
     }
 
     if (!DumpGlobalState(dump_fd)) {
 	fprintf(stderr, "Error writing reinit file, Aborting...\n");
-	if (skipvols) free(skipvols);
 	return 0;
     }
     
@@ -866,12 +877,10 @@ static int dump_server_state(char *dump_file, char *skipvollist[], int nskipvols
 	    !DumpVolDiskData(dump_fd, vol->data.volumeInfo) ||
 	    !DumpVolVnodes(dump_fd, &vol->data, i)) {
 	    fprintf(stderr, "Aborting...\n");
-	    if (skipvols) free(skipvols);
 	    return 0;
 	}
     }
 
-    if (skipvols) free(skipvols);
     return 1;
 }
 
@@ -882,9 +891,11 @@ int main(int argc, char * argv[]) {
     char *rvm_log;
     char *rvm_data;
     int  data_len;
-    int  ok;
+    int  ok = 0;
     char *dump_file;
     rvm_return_t 	err;
+    VolumeId *skipvols = NULL;
+    int       nskipvols = 0;
     
     if (argc < 7) {
 	usage(argv[0]);
@@ -901,30 +912,29 @@ int main(int argc, char * argv[]) {
     }
 
     vice_dir_init("/vice", 0);
-    
-    if (!strcmp(argv[5], "-dump")) {
-	if (argc > 8) {
-	    if (strcmp(argv[7], "skip")) {
-		usage(argv[0]);
-		exit(1);
-	    }
+
+    if (argc > 8) {
+	if (strcmp(argv[7], "skip")) {
+	    usage(argv[0]);
+	    exit(1);
 	}
+	nskipvols = argc - 8;
+	skipvols = (VolumeId *)malloc(nskipvols * sizeof(VolumeId));
+	GetSkipVols(nskipvols, skipvols, &argv[8]);
+    }
+
+    if (!strcmp(argv[5], "-dump")) {
 	NortonInit(rvm_log, rvm_data, data_len);
-	ok = dump_server_state(argv[6], &argv[8], argc - 8);
+	ok = dump_server_state(argv[6], skipvols, nskipvols);
+	err = rvm_terminate();
     } else if (!strcmp(argv[5], "-load")) {
 	NortonInit(rvm_log, rvm_data, data_len);
-	ok = load_server_state(argv[6]);
-    } else {
+	ok = load_server_state(argv[6], skipvols, nskipvols);
+	err = rvm_terminate();
+    } else
 	usage(argv[0]);
-	exit(1);
-    }
-    
-    err = rvm_terminate();
-    if (ok) exit(0);
-    else exit (1);
+
+    if (skipvols) free(skipvols);
+    exit(ok ? 0 : 1);
 }
-
-
-
-
 

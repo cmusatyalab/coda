@@ -111,6 +111,9 @@
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
 
+/* Define if you have readline 4.2 or later */
+#undef HAVE_RL_COMPLETION_MATCHES
+
 /* Define if you have ndbm */
 #undef HAVE_NDBM
 
