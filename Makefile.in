@@ -23,7 +23,7 @@ include $(TOPDIR)/Makeconf
 III =  coda-src
 # V =  utils-src
 
-SUBDIRS = $(EXTRAS) $(I) $(II) $(III) $(V)
+SUBDIRS = $(I) $(EXTRAS) $(II) $(III) $(V)
 
 
 include $(TOPDIR)/configs/Makerules
