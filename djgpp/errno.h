@@ -10,6 +10,11 @@ extern "C" {
 
 #include "/usr/lib/gcc-lib/i386-go32-msdos/2.7.2.1/include/errno.h"
 
+/* compilation of coda-src/rpc2 failed because this definition is missing */
+#ifndef ENOTBLK
+#define ENOTBLK 666
+#endif
+
 #include <sys/socket.h>
 
 #define ESUCCESS 0
