@@ -650,21 +650,21 @@ long FS_ViceGetTime(RPC2_Handle RPCid, RPC2_Unsigned *seconds,
 	if (!errorCode && client) {
 		/* set up a callback channel 
 		   if there isn't one for this host */
-		if (client->VenusId->id == 0) {
-			SLog(0, "GetTime: Building callback conn to %s.",
-			     client->VenusId->HostName);
-			errorCode = CLIENT_MakeCallBackConn(client);
-		} else {
+		if (client->VenusId->id != 0) {
 			errorCode = CallBack(client->VenusId->id, &NullFid);
-			if ( errorCode  != RPC2_SUCCESS ) {
-				SLog(0, "GetTime: ReBuilding callback conn for %s",
+			if ( errorCode != RPC2_SUCCESS ) {
+				SLog(0, "GetTime: Destroying callback conn for %s",
 				     client->VenusId->HostName);
 				/* tear down nak'd connection */
 				RPC2_Unbind(client->VenusId->id);
 				client->VenusId->id = 0;
-				errorCode = CLIENT_MakeCallBackConn(client);
 			}
-		}			
+		}
+		if (client->VenusId->id == 0) {
+			SLog(0, "GetTime: Building callback conn to %s.",
+			     client->VenusId->HostName);
+			errorCode = CLIENT_MakeCallBackConn(client);
+		}
 	}
 
 	SLog(2, "GetTime returns %d, %d, errorCode %d", 
@@ -1043,19 +1043,21 @@ long FS_ViceNewConnectFS(RPC2_Handle RPCid, RPC2_Unsigned ViceVersion,
 	return(ENOTCONN);
     }
 
+    /* attempt to send a callback message to this host */
+    if (client->VenusId->id != 0) {
+	errorCode = CallBack(client->VenusId->id, &NullFid);
+	if ( errorCode != RPC2_SUCCESS ) {
+	    /* tear down nak'd connection */
+	    RPC2_Unbind(client->VenusId->id);
+	    client->VenusId->id = 0;
+	}
+    }			
+
     /* set up a callback channel if there isn't one for this host */
     if (client->VenusId->id == 0) {
 	SLog(0, "Building callback conn.");
 	errorCode = CLIENT_MakeCallBackConn(client);
-    } else {
-	errorCode = CallBack(client->VenusId->id, &NullFid);
-	if ( errorCode  != RPC2_SUCCESS ) {
-	    /* tear down nak'd connection */
-	    RPC2_Unbind(client->VenusId->id);
-	    client->VenusId->id = 0;
-	    errorCode = CLIENT_MakeCallBackConn(client);
-	}
-    }			
+    }
 
     SLog(2, "FS_ViceNewConnectFS returns %s", 
          ViceErrorMsg((int) errorCode));
