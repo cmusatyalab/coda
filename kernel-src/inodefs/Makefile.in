@@ -11,6 +11,6 @@ TOPOBJ = @TOPOBJ@
 
 include $(TOPDIR)/Makeconf
 
-SUBDIRS = common $(SHORTSYS)
+SUBDIRS = common $(machine_inodefs)
 
 include $(TOPDIR)/Makerules
