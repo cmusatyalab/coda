@@ -147,41 +147,55 @@ while [ $n -le $numservers ]; do
     #
     log=""
     until [ "x$log" != x ]; do
-        echon "What is your log partition? "
+        echon "What will be your log file (or partition)? "
 	read log
     done
 
     logsize=""
     until [ "x$logsize" != x ]; do
         echo
-	echo "The log size must be smaller than you log partition.  We"
-	echo "recommend not more than 30M log size, and 2M is a good choice."
-	echon "What is your log size? (enter as e.g. '2M') "
+	echo "The log size must be smaller than the available space in the log"
+	echo "partition. A smaller log will be quicker to commit, but the log"
+	echo "needs to be large enough to handle the largest transaction. A"
+	echo "larger log also allows for better optimizations. We recommend"
+	echo "to keep the log under 30M log size, many people have successfully"
+	echo "used as little as 2M, and 20M has worked well with our servers."
+	echon "What is your log size? (enter as e.g. '20M') "
 	read logsize
 	echo
     done
 
     data=""
     until [ x$data != x ]; do
-        echon "What is your data partition (or file)? "
+        echon "Where is your data file (or partition)? "
 	read data
     done
 
     datasize=""
     until [ x$datasize != x ]; do
 	echo
-	echo  "The data size must be approx 4% of you server file space.  We"
-	echo  "have templates for servers of approx: 500M, 1G, 2.2G, 3.3G, 8G"
-	echo  "(you can store less, but not more on such servers)."
-	echo  "The corresponding data sizes are  22M, 44M, 90M, 130M, 315M." 
-	echo  "Pick one of the defaults, otherwise I will bail out"
+	echo  "The amount of RVM we need to store the metadata for a given"
+	echo  "amount file space can vary enormously. If your typical data set"
+	echo  "consists of many small files, you definitely need more RVM, but"
+	echo  "if you tend to store large files (mp3s, videos or image data)"
+	echo  "we don't need all that much RVM."
+	echo
+	echo  "Here are some random samples,"
+	echo  "  mp3 files        ~75MB RVM per GB."
+	echo  "  jpeg images     ~608MB RVM per GB."
+	echo  "  email folders ~23024MB RVM per GB."
+	echo  "  freebsd-src   ~31853MB RVM per GB."
+	echo
+	echo  "To get a more precize number for your dataset there is a small"
+	echo  "tool (rvmsizer) which can reasonably predict the amount of RVM"
+	echo  "data we need for a file tree."
 	echo
 	echo  "Remember that RVM data will have to be mmapped or loaded"
 	echo  "into memory, so if anything fails with an error like"
 	echo  "RVM_EINTERNAL you might have to add more swap space."
 	echo
 	echo "What is the size of you data partition (or file)"
-	echon "[22M, 44M, 90M, 130M, 200M, 315M]: "
+	echon "[22M, 44M, 90M, 130M, 200M, 315M, 500M, 1G]: "
 	read datasize 
 
 	case $datasize in 

@@ -39,6 +39,7 @@ then
 	echo "purgevol_rep volumename"
 	exit 1
 fi
+REPVOLNAME=$1
 
 if [ "$1" = "--kill" ]
 then
@@ -49,56 +50,51 @@ else
     echo "Only testing, use 'purgevol_rep --kill $1' to really purge the volume"
 fi
 
-# Look up the replicated volume name in ${vicedir}/db/VRList to determine the
-# VolIDs of the replicated copies.
-REPVOLNAME=$1
-REPS=`awk '$1 ~ /^'$REPVOLNAME'$/ {for (i=4; i< $3 + 4; i++) printf "%s ", $i}' ${vicedir}/db/VRList`
-
-
-# Check to see if the volume actually exists 
-if [ -z "$REPS" ]
+# Ask the SCM where the volume is located.
+volinfo=`${exec_prefix}/bin/getvolinfo localhost $REPVOLNAME`
+if [ $? -ne 0 ]
 then
-	echo "Volume" $REPVOLNAME "doesn't exist!"
-	exit 1
+    echo "Couldn't get volume location information for $REPVOLNAME"
+    exit 1
 fi
 
-REPVOLID=`awk '$1 ~ /^'$REPVOLNAME'$/ {print $2}' ${vicedir}/db/VRList`
-VSG=`awk '$1 ~ /^'$REPVOLNAME'$/ {print $12}' ${vicedir}/db/VRList`
-HOSTS=`grep -i "^$VSG" ${vicedir}/db/VSGDB | sed "s/$VSG//"`
+NSERVERS=`echo $volinfo | sed 's/.* ServerCount \([^ ]*\) .*/\1/'`
 
-
-# Remove the individual copies
-for host in $HOSTS
+N=0
+while [ $N -ne $NSERVERS ]
 do
-  volumelist=`volutil -h $host getvolumelist 2>/dev/null`
+  REP=`echo $volinfo | sed 's/.* Replica'$N' id \([^,]*\),.*/\1/'`
+  SRV=`echo $volinfo | sed 's/.* Server'$N' \([^ ]*\) .*/\1/'`
+    
+  volumelist=`volutil -h $SRV getvolumelist 2>/dev/null`
+  volumes=`echo "$volumelist" | awk '$8 ~/^W'$REP'$/ { print $2 }'`
 
-  for repid in $REPS 
+  for vid in $volumes
   do
-    volumes=`echo "$volumelist" | awk '$8 ~/^W'$repid'$/ { print $2 }'`
+    volid=`echo $vid | cut -c2-`
+    volname=`echo "$volumelist" | grep "I$volid" | cut -d' ' -f1 | cut -c2-`
 
-    for vid in $volumes
-    do
-      volid=`echo $vid | cut -c2-`
-      volname=`echo "$volumelist" | grep "I$volid" | cut -d' ' -f1 | cut -c2-`
-
-      if [ $dryrun = 0 ] ; then
-        echo "Purging $volname ($volid) from $host"
-        volutil -h "$host" purge "$volid" "$volname" 2>/dev/null
-      else
-        echo "Would have purged $volname ($volid) from $host"
-      fi
-    done
+    if [ $dryrun = 0 ] ; then
+      echo "Purging $volname ($volid) from $host"
+      volutil -h "$SRV" purge "$volid" "$volname" 2>/dev/null
+    else
+      echo "Would have purged $volname ($volid) from $SRV"
+    fi
   done
+  HOSTS="$HOSTS $SRV"
+  N=`expr $N + 1`
 done
 
 if [ $dryrun = 0 ] ; then
-  # Delete the entry for the volume from the VRList
-  awk ' $1 !~ /^'$REPVOLNAME'$/ { print } ' ${vicedir}/db/VRList >${vicedir}/db/VRList.tmp
-  mv ${vicedir}/db/VRList.tmp ${vicedir}/db/VRList
+  REPVOLID=`grep $REPVOLNAME ${vicedir}/db/VRList | cut -d ' ' -f2`
 
   # Delete the entry from the backup list.
   awk ' $1 !~ /^'$REPVOLID'$/ { print } ' ${vicedir}/db/dumplist >${vicedir}/db/dumplist.tmp
   mv ${vicedir}/db/dumplist.tmp ${vicedir}/db/dumplist
+
+  # Delete the entry for the volume from the VRList
+  awk ' $1 !~ /^'$REPVOLNAME'$/ { print } ' ${vicedir}/db/VRList >${vicedir}/db/VRList.tmp
+  mv ${vicedir}/db/VRList.tmp ${vicedir}/db/VRList
 
   # Make sure that the vldb and vrdb are updated.
   volutil makevrdb ${vicedir}/db/VRList

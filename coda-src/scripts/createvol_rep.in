@@ -47,20 +47,19 @@ if [ `cat ${vicedir}/hostname` != `cat ${vicedir}/db/scm` ]; then
 fi
 
 # Parse arguments
-if  [ $# -lt 2 -o $# -gt 4 ]; then
-	echo "bad args:  createvol_rep <volname> <vsgaddr> [<partition-name>] [<groupid>]"
+if  [ $# -lt 2 ]; then
+	echo "bad args:  createvol_rep <volname> <server>[/<partition>] [<server>[/<partition>]]* [groupid]"
 	exit
 fi
 
 # Initialize local variables
 SERVERS=
+PARTITIONS=
 NSERVERS=0
 MAXSERVERS=8
 
 # deal with Parameters 
 VOLNAME="$1"
-VSGADDR="$2"
-PARTITION="$3"
 
 # Hmm, we sometimes need to use the volumename in regular expressions
 # As a result we can't use a lot of special characters, but having at
@@ -80,25 +79,9 @@ if [ ! -f "${vicedir}/db/VRList" -a -f "${vicedir}/vol/VRList" ] ; then
 fi
 touch "${vicedir}/db/VRList"
 
-if [ ! -f "${vicedir}/vol/BigVolumeList" ] ; then
-    echo "Getting initial version of ${vicedir}/vol/BigVolumeList."
-    volutil -h `cat ${vicedir}/db/scm` getvolumelist ${vicedir}/vol/BigVolumeList
-fi
-
-# Validate the <volname> parameter
-if  [ x$VOLNAME = "x`awk ' $1 ~ /^[WRB]'${_VOLNAME}'$/  {print $1}' ${vicedir}/vol/BigVolumeList`" ]; then
-    echo "$VOLNAME exists as a non replicated volume in ${vicedir}/vol/BigVolumeList"
-    exit 1
-fi
-
-if [ x$VOLNAME = x`awk ' $1 ~ /^[WRB]'${_VOLNAME}'\.[0-7]$/  {print $1}' ${vicedir}/vol/BigVolumeList` ]; then
-    echo "$VOLNAME exists as a replica in ${vicedir}/vol/BigVolumeList"
-    exit 1
-fi
-
 # Dump the VRDB from RVM into a temporary VRList list
 rm -f "${vicedir}/db/VRList.new"
-volutil -h `cat ${vicedir}/db/scm` dumpvrdb "${vicedir}/db/VRList.new"
+volutil -h `cat ${vicedir}/db/scm` dumpvrdb "${vicedir}/db/VRList.new" 2>/dev/null
 if [ $? -ne 0 ]; then
     echo "Failed to dump the current VRDB into ${vicedir}/db/VRList.new"
     exit 1
@@ -109,119 +92,115 @@ if [ x$VOLNAME = "x`awk ' $1 ~ /^'${_VOLNAME}'$/  {print $1}' ${vicedir}/db/VRLi
 	exit 1
 fi
 
-# Derive the server list from the <vsgaddr> parameter
-SERVERS=`awk '$1 ~ /^'$VSGADDR'$/ {print $2, $3, $4, $5, $6, $7, $8, $9}' ${vicedir}/db/VSGDB`
-echo Servers are \($SERVERS\)
-NSERVERS=`echo $SERVERS | wc -w` 
+while [ $# -gt 1 ]; do
+	shift
+	PRE=`echo $1 | sed 's/\(..\).*/\1/'`
+	if [ "$PRE" = "7f" -o "$PRE" = "7F" ] ; then
+	    GROUPID="$1"
+	    break
+	fi
+	SERVER="`echo "$1/" | cut -d/ -f1`"
+	PART="/`echo "$1/" | cut -d/ -f2`"
 
-
-# Validate the server list
-if [ $NSERVERS -eq 0 -o  $NSERVERS -gt $MAXSERVERS ]; then
-	echo Specify 1 - $MAXSERVERS servers
-	exit 1
-fi 
-
-
-for SERVER in $SERVERS ; do
+	# Validate the server
 	grep $SERVER ${vicedir}/db/servers > /dev/null 
 	if [ $? -ne 0 ];  then
 		echo Server $SERVER not in servers file
 		exit 1
 	fi
-done
 
-# Check the partitions or find them if not specified.
-PART=""
-for SERVER in $SERVERS ; do
-        grep "^P"  ${vicedir}/vol/BigVolumeList | \
-	      awk "/ H$SERVER[\. ]/ "'{print $1}' | \
-	      sed -e "s/^P//g" > /tmp/cvr.$$  
-	np=`cat /tmp/cvr.$$ | wc -w`
+	volutil -h "$SERVER" getvolumelist "/tmp/vollist.$$" 2>/dev/null
+
+	# Validate the <volname> parameter
+	egrep '^[WRB]'"${_VOLNAME}"' ' "/tmp/vollist.$$" >/dev/null
+	if [ $? -eq 0 ] ; then
+	    echo "$VOLNAME already exists as a non replicated volume on $SERVER"
+	    exit 1
+	fi
+
+	egrep '^[WRB]'"${_VOLNAME}"'\.[0-7] ' "/tmp/vollist.$$" >/dev/null
+	if [ $? -eq 0 ] ; then
+	    echo "$VOLNAME already exists as a replica on $SERVER"
+	    exit 1
+	fi
+
+	grep "^P" "/tmp/vollist.$$" | sed 's/^P\(.*\) H.*/\1/' > "/tmp/part.$$"
+	np=`cat "/tmp/part.$$" | wc -w`
 	if [ $np -eq 0 ]; then
-	    volutil -h $SERVER getvolumelist /tmp/vollist.$$
-	    cat /tmp/vollist.$$ >> ${vicedir}/vol/BigVolumeList
-	    rm -f /tmp/vollist.$$
-	    grep "^P"  ${vicedir}/vol/BigVolumeList | \
-	        awk "/ H$SERVER[\. ]/ "'{print $1}' | \
-	        sed -e "s/^P//g" > /tmp/cvr.$$  
-	    np=`cat /tmp/cvr.$$ | wc -w`
-	    if [ $np -eq 0 ]; then
-		echo Found no partitions for server $SERVER.
-		exit 1
-	    fi
+	    echo Found no partitions for server $SERVER.
+	    exit 1
 	fi 
-        if [ $# -eq 2 ]; then
+        if [ "$PART" = "/" ]; then
 	    if [ $np -gt 1 ]; then
 		echo Found 2 or more partitions for server $SERVER.   You
 		echo must specify a partition.
 		exit 1
 	    fi
-	    PART="$PART"`cat /tmp/cvr.$$`" "
-	else
-	    if ! grep "^$PARTITION\$" /tmp/cvr.$$ > /dev/null ; then
-		volutil -h $SERVER getvolumelist /tmp/vollist.$$
-		cat /tmp/vollist.$$ >> ${vicedir}/vol/BigVolumeList
-		rm -f /tmp/vollist.$$
-		grep "^P"  ${vicedir}/vol/BigVolumeList | \
-		    awk "/ H$SERVER[\. ]/ "'{print $1}' | \
-		    sed -e "s/^P//g" > /tmp/cvr.$$  
-		if ! grep "^$PARTITION\$" /tmp/cvr.$$ > /dev/null ; then
-		    echo Partition $PARTITION not found on server $SERVER.
-		    exit 1;
-		fi
-	    fi
+	    PART="`cat /tmp/part.$$`"
 	fi
+	grep "^$PART\$" "/tmp/part.$$" >/dev/null
+	if [ $? -ne 0 ] ; then
+	    echo Partition $PART not found on server $SERVER.
+	    exit 1;
+	fi
+	rm -f "/tmp/vollist.$$" "/tmp/part.$$"
+
+	NSERVERS=`expr $NSERVERS + 1`
+	SERVERS="$SERVERS $SERVER"
+	PARTS="$PARTS $PART"
 done
-rm -f /tmp/cvr.$$
+
+if [ $NSERVERS -eq 0 -o $NSERVERS -gt $MAXSERVERS ]; then
+	echo Specify 1 - $MAXSERVERS servers
+	exit 1
+fi 
 
 # Allocate a new groupid if necessary
-if  [ $# -le 3 ]; then
+if  [ -z "$GROUPID" ]; then
 # New location for maxgroupid -- move it.
         if  [ -f ${vicedir}/vol/maxgroupid ]; then
 		mv ${vicedir}/vol/maxgroupid ${vicedir}/db/maxgroupid
 	fi
 	if  [ -f ${vicedir}/db/maxgroupid ]; then
-		GROUPID=`cat ${vicedir}/db/maxgroupid`
-		HEXGROUPID=`printf %x $GROUPID`
-		MAXGROUPID=`expr $GROUPID + 1`
+		MAXGROUPID=`cat ${vicedir}/db/maxgroupid`
+		GROUPID=`printf %x $MAXGROUPID`
+		MAXGROUPID=`expr $MAXGROUPID + 1`
 		echo $MAXGROUPID > ${vicedir}/db/maxgroupid
 	else
 		echo ${vicedir}/db/maxgroupid not found
 		exit 1
 	fi
-else
-	HEXGROUPID=$4
 fi
 
-echo HexGroupId is $HEXGROUPID
+echo "Replicated volumeid is $GROUPID"
 
+# strip leading whitespace
+PARTS=${PARTS#* }
 
 # Create the new volumes
 N=0
-ENTRY="$VOLNAME $HEXGROUPID $NSERVERS"
-for  SERVER in $SERVERS ; do
-	if [ $# -eq 2 ]; then
-	    PARTITION=${PART%% *}
-	    PART=${PART#* }
- 	fi
-	echo "creating volume $VOLNAME.$N on $SERVER (partition $PARTITION)" 
-	volutil -h $SERVER create_rep $PARTITION $VOLNAME.$N $HEXGROUPID > /tmp/out
+ENTRY="$VOLNAME $GROUPID $NSERVERS"
+for SERVER in $SERVERS ; do
+        PART=${PARTS%% *}
+	PARTS=${PARTS#* }
+
+	echo "creating volume $VOLNAME.$N on $SERVER (partition $PART)" 
+	volutil -h $SERVER create_rep $PART $VOLNAME.$N $GROUPID > "/tmp/out.$$"
 	if [ $? -ne 0 ]; then 
 		echo "Failure to make volume on $SERVER!. Abort.".
 		exit 1
 	fi
 
 	# grab the volume number.
-	volnum=`cut -d' ' -f2 /tmp/out`
+	volnum=`cut -d' ' -f2 "/tmp/out.$$"`
 	ENTRY="$ENTRY $volnum"
-	rm -f /tmp/out
-
 	N=`expr $N + 1`
 done
+rm -f "/tmp/out.$$"
 
 # HACK, disable resolution on singly replicated volumes. The server should
 # really be doing this.
-if [ $N -eq 1 ] ; then
+if [ $NSERVERS -eq 1 ] ; then
     volutil -h $SERVERS setlogparms $volnum reson 0
 fi
 
@@ -230,16 +209,11 @@ bldvldb.sh $SERVERS
 
 # Update the VRList and rebuild the VRDB
 # We already got the replica id's.
-# add nulentries and VSGDB to entry
-while true  ; do
-        if [ $N -eq 8 ]; then
-	    break
-	fi
+# add nulentries
+while [ $N -lt 8 ] ; do
         ENTRY="$ENTRY 0"
 	N=`expr $N + 1`
 done
-
-ENTRY="$ENTRY $VSGADDR"
 
 echo "<echo $ENTRY >> ${vicedir}/db/VRList.new>"
 echo $ENTRY >> ${vicedir}/db/VRList.new
