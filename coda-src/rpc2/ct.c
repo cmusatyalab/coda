@@ -80,7 +80,7 @@ void rpc2_ClockTick()
 	/* ask for SocketListener to wake me up after TICKINTERVAL seconds */
 	rpc2_ActivateSle(sl, &tval);
 
-	LWP_WaitProcess((char *)&sl);
+	LWP_WaitProcess((char *)sl);
 	timenow = rpc2_time();
 	say(0, RPC2_DebugLevel, "Clock Tick at %ld\n",  timenow);
 
