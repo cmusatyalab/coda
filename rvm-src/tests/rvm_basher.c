@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/rvm-src/tests/RCS/rvm_basher.c,v 1.2 1996/11/23 04:56:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/user/clement/mysrcdir3/rvm-src/tests/RCS/rvm_basher.c,v 4.1 1997/01/08 21:54:48 rvb Exp clement $";
 #endif _BLURB_
 
 /*
@@ -311,7 +311,7 @@ list_entry_t *move_list_ent(fromptr, toptr, victim)
                 victim = fromptr->nextentry;
             ASSERT(!victim->is_header);
             ASSERT(victim->list.name == fromptr);
-            remque(victim);             /* unlink from first list */
+            remque((void *)victim);             /* unlink from first list */
             fromptr->list.length --;
             }
         }
@@ -326,7 +326,7 @@ list_entry_t *move_list_ent(fromptr, toptr, victim)
         {
         ASSERT(toptr->is_header);
         victim->list.name = toptr;
-        insque(victim,toptr->preventry); /* insert at tail of second list */
+        insque((void *)victim,(void *)toptr->preventry); /* insert at tail of second list */
         toptr->list.length ++;
         }
     else victim->list.name = NULL;
@@ -822,8 +822,10 @@ rvm_bool_t chk_vm()
 
     /* check vm heap if required */
 #ifdef RVM_USELWP
+#ifdef HAS_PLUMBER
     if (chk_alloc != 0)
         CheckAllocs("Checking heap before truncation");
+#endif 
 #endif RVM_USELWP
 
     /* truncate to sync segement with vm */
@@ -836,8 +838,10 @@ rvm_bool_t chk_vm()
 
     /* re-check vm heap if required */
 #ifdef RVM_USELWP
+#ifdef HAS_PLUMBER
     if (chk_alloc != 0)
         CheckAllocs("Checking heap after truncation");
+#endif
 #endif RVM_USELWP
 
     /* get current state */
@@ -918,7 +922,14 @@ rvm_bool_t chk_vm()
         }
 
     /* print time */
+/* temporary fix until linux get timeval.tv_sec defined to be long
+ * as everybodies else.   -- clement
+ */
+#ifdef LINUX
+    printf("  time: %s",ctime((time_t *)&time.tv_sec));
+#else
     printf("  time: %s",ctime(&time.tv_sec));
+#endif
     printf("  number of test operations: %d\n",max_op_cnt);
     printf("  elasped time: %d sec.\n",time.tv_sec-init_time.tv_sec);
 
@@ -1188,9 +1199,20 @@ static int scan_int(low_range,high_range,default_val,name_str,err_str)
     val = strtol(cmd_cur,&cmd_cur,0);
 
     /* check range */
+#ifdef 0
+/* I guess this code fragment is wrong, under this, when (low_range != 0)
+ * val will be return no matter whatever value it is.  More reasonable
+ * behaviour should be returning val only when 
+ * (either low_range or high_range is non-zero) AND
+ * (val fall within range) -- clement
+ */
     if ((low_range != 0) || (high_range != 0)
         && ((val >= low_range) && (val <= high_range)))
         return val;
+#endif
+    if ( ((low_range != 0) || (high_range != 0))
+        && ((val >= low_range) && (val <= high_range)) )
+        return val ;
 
     /* out of range - print message, return default */
     printf("?  Warning: %d is out of range %d: %d for %s\n",val,
@@ -1357,11 +1379,18 @@ void set_data_file()
       case S_IFSOCK:
       case S_IFDIR:
       case S_IFLNK:
+/* LINUX use the same block device for raw control */
+#ifndef LINUX
       case S_IFBLK: 
+#endif
 	printf("Illegal file type!\n");
         DataFileName[0] = '\0';
 	return;
 
+/* LINUX use the same block device for raw control */
+#ifdef LINUX
+      case S_IFBLK:
+#endif
       case S_IFCHR:
         while (rvm_true)
             {
@@ -1492,12 +1521,14 @@ static void setup_plumber_file()
 
     /* try to open file if really can use plumber */
 #ifdef RVM_USELWP
+#ifdef HAS_PLUMBER
     PlumberFile = fopen(PlumberFileName,"w");
     if (PlumberFile == NULL)
         printf("?  File %s could not be opened, errno = %d\n",
                PlumberFileName,errno);
     else
         fclose(PlumberFile);
+#endif
 #else  RVM_USELWP
     printf("W  Plumber not available with Cthreads\n");
 #endif RVM_USELWP
@@ -1507,12 +1538,14 @@ static void setup_plumber_file()
 void call_plumber()
     {
 #ifdef RVM_USELWP
+#ifdef HAS_PLUMBER
     PlumberFile = fopen(PlumberFileName,"w");
     if (PlumberFile == NULL)
         printf("?  File %s could not be opened, errno = %d\n",
                PlumberFileName,errno);
     plumber(PlumberFile);
     fclose(PlumberFile);
+#endif
 #else  RVM_USELWP
     printf("?  Plumber not available with Cthreads\n");
 #endif RVM_USELWP
@@ -1865,7 +1898,9 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
 
     /* set LWP options */
 #ifdef RVM_USELWP
+#ifdef HAS_PLUMBER
     SetMallocCheckLevel(chk_alloc);
+#endif
 #endif RVM_USELWP
     
     /* esatblish RVM options */
@@ -1940,7 +1975,14 @@ static str_name_entry_t cmd_vec[MAX_CMDS] = /* command codes vector */
         ASSERT(rvm_false);
         }
     if (time_tests)
+/* temporary fix until linux get timeval.tv_sec defined to be long
+ * as everybodies else.   -- clement
+ */
+#ifdef LINUX
+        printf("\nTests started: %s\n",ctime((time_t *)&init_time.tv_sec));
+#else
         printf("\nTests started: %s\n",ctime(&init_time.tv_sec));
+#endif
     /* start test run with input parameters */
     op_cnt = max_op_cnt;
     threads = (cthread_t *)malloc(sizeof(cthread_t) * nthreads);
