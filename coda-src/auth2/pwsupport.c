@@ -121,7 +121,6 @@ long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionK
 	} else
 		LogMsg(0, AuthDebugLevel, stdout, "Problem statting auth2.pw");
 
-
 	memcpy(hKey, PWArray[vid], RPC2_KEYSIZE);
 	rpc2_Decrypt((char *)hKey, (char *)hKey, RPC2_KEYSIZE, (unsigned char *)FileKey, RPC2_XOR);
 	for (i=0; i < RPC2_KEYSIZE; i++)
@@ -162,6 +161,11 @@ void InitPW(int firsttime)
 		perror(PWFile);
 		abort();
 	}
+
+	/* make sure the auth2.pw file is not world readable */
+	if (stbuf.st_mode & 077)
+	    chmod(PWFile, 0600);
+
 
 	CODA_ASSERT((fbuf = (char *)malloc(1+stbuf.st_size)) != NULL);
 	CODA_ASSERT(stbuf.st_size == read(fd, fbuf, stbuf.st_size));	/* entirefile */

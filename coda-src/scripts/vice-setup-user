@@ -93,9 +93,11 @@ EOF
 pdbtool source pdbsetup
 rm pdbsetup
 
+# make sure we don't make the auth2.pw file world-readable
+( umask 077
 echo "$userid	changeme	admin user" > passwd.coda
 initpw -k "drseuss " < passwd.coda > auth2.pw
-rm passwd.coda
+rm passwd.coda )
 
 echo "An initial administrative user $username (id $userid)"
 echo "with Coda password \"changeme\" now exists."
