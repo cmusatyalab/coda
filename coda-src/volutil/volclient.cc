@@ -452,6 +452,15 @@ static void salvage(void)
     exit(0);
 }
 
+static void stripslash(char *partition)
+{
+    char *end;
+    if (strlen(partition) > 2) {
+	end = partition + strlen(partition) - 1;
+	if (*end == '/') *end = '\0';
+    }
+}
+
 /**
  * create - Create a new non-replicated volume
  * @partitionpath:	Partition to create volume on
@@ -472,13 +481,8 @@ static void create(void)
 	exit(-1);
     }
     partition = this_argp[2];
+    stripslash(partition);
     volumeName = this_argp[3];
-#if 0 /* XXX this needs to go to the server end now */
-    if (strncmp(partition, VICE_PARTITION_PREFIX, VICE_PREFIX_SIZE) != 0) {
-	fprintf(stderr, "Invalid partition specified, %s\n", (int)partition);
-	exit(1);
-    }
-#endif
 
     rc = VolCreate(rpcid, (RPC2_String)partition, (RPC2_String)volumeName, (RPC2_Unsigned *)&volumeid, 0, 0);
     if (rc != RPC2_SUCCESS) {
@@ -733,7 +737,7 @@ long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, V
  */
 static void restorefromback(void)
 {
-    char volname[70];
+    char volname[70], *partition;
     long rc = 0;
     long volid = 0;
     char *filename = NULL;
@@ -752,6 +756,9 @@ static void restorefromback(void)
 	fprintf(stderr, "Usage: volutil restore [-f <file name>] <partition-name> [<volname> [<volid>]]\n");
 	exit(-1);
     }
+
+    partition = this_argp[2];
+    stripslash(partition);
 
     if (these_args < 4) 
 	bzero((void *)volname, 70);
@@ -783,7 +790,7 @@ static void restorefromback(void)
 	exit(-1);
     }
 
-    rc = VolRestore(rpcid, (RPC2_String)this_argp[2], (RPC2_String)volname, (RPC2_Unsigned *)&volid);
+    rc = VolRestore(rpcid, (RPC2_String)partition, (RPC2_String)volname, (RPC2_Unsigned *)&volid);
     if (rc != RPC2_SUCCESS){
 	fprintf(stderr, "VolRestore failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
@@ -980,14 +987,9 @@ static void create_rep(void)
 	exit(-1);
     }
     partition = this_argp[2];
+    stripslash(partition);
     volumeName = this_argp[3];
 
-#if 0 /* needs to be checked on the server */
-    if (strncmp(partition, VICE_PARTITION_PREFIX, VICE_PREFIX_SIZE) != 0) {
-	fprintf(stderr, "Invalid partition specified, %s\n", (int)partition);
-	exit(1);
-    }
-#endif
     if (sscanf(this_argp[4], "%lX", &groupid) != 1){
 	fprintf(stderr, "CreateRep: Bad Group Id %s\n", this_argp[4]);
 	exit(-1);
