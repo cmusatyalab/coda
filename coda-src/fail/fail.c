@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/fail/fail.c,v 1.1 1996/11/22 19:09:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fail.c,v 4.1 1997/01/08 21:49:36 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -128,10 +128,10 @@ long flags;	/* for future use (should be 0) */
     strcpy(clientName, name);
     Fail_SendPredicate = StdSendPredicate;
     Fail_RecvPredicate = StdRecvPredicate;
-    theFilters[(int)sendSide] = (FailFilter *) malloc(0);
-    theFilters[(int)recvSide] = (FailFilter *) malloc(0);
-    theQueues[(int)sendSide] = (int *) malloc(0);
-    theQueues[(int)recvSide] = (int *) malloc(0);
+    theFilters[(int)sendSide] = (FailFilter *) NULL;
+    theFilters[(int)recvSide] = (FailFilter *) NULL;
+    theQueues[(int)sendSide] = (int *) NULL;
+    theQueues[(int)recvSide] = (int *) NULL;
     numFilters[0] = numFilters[1] = 0;
     Delay_Init();
     return 0;
