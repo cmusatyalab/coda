@@ -45,6 +45,10 @@ int lwp_nextindex;
    specified by the user. Also creates junk data files in that directory */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -56,7 +60,7 @@ int lwp_nextindex;
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
-#include <string.h>
+#include "coda_string.h"
 #include "lwp.h"
 #include "timer.h"
 #include "rpc2.h"
@@ -114,7 +118,7 @@ static void PrintStats(void);
 static void mktee(char *logfile);
 
 static char **SysFiles;	/* list of files to be used */
-static SysFileCount;    /* How many there are */
+static int SysFileCount;    /* How many there are */
 
 struct CVEntry
     {
@@ -167,7 +171,7 @@ char *MakeName(char *leaf)
     return(buf);
 }
 
-void main(void)
+int main(void)
 {
     long go;
 
@@ -188,6 +192,8 @@ void main(void)
 
     LWP_NoYieldSignal((char *)&ClientsReady);
     LWP_WaitProcess((char *)main);  /* infinite wait */
+    
+    return 0; /* make compiler happy */
 }
 
 
@@ -496,7 +502,7 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, " %s says square of %ld is %d (%ld msecs)\n",
+		    say(0, VerboseFlag, " %s says square of %ld is %ld (%ld msecs)\n",
 			ConnVector[thisconn].RemoteHost.Value.Name, x,
 			ntohl(*(long *)reply->Body), rpctime);
 		    break;
@@ -514,7 +520,7 @@ static long ClientBody(char *clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, "%s says cube of %ld is %d (%ld msecs)\n",
+		    say(0, VerboseFlag, "%s says cube of %ld is %ld (%ld msecs)\n",
 		    	ConnVector[thisconn].RemoteHost.Value.Name, x, ntohl(*(long *)reply->Body), rpctime);
 		    break;
 		    }

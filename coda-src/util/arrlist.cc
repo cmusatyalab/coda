@@ -16,15 +16,13 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
-#ifdef __MACH__
-#include <libc.h>
-#endif /* __MACH__ */
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #ifdef __BSD44__
 #include <stdlib.h>
@@ -35,11 +33,7 @@ extern "C" {
 }
 #endif __cplusplus
 
-#ifdef	__linux__
 #include "util.h"
-#else
-#include <util.h>
-#endif
 #include "arrlist.h"
 
 arrlist::arrlist(int msz) {

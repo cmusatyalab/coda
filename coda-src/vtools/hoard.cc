@@ -30,18 +30,18 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 
-#ifdef sun
-#include "/usr/ucbinclude/sys/wait.h"
-#else
-#include <sys/wait.h>
-#endif
+#include "coda_wait.h"
 #include <ctype.h>
 #include <errno.h>
 extern FILE *_findiop();
@@ -61,10 +61,6 @@ extern FILE *_findiop();
 #include <venusioctl.h>
 #include <vice.h>
 #include <hdb.h>
-
-#ifdef sun
-extern char *sys_errlist[];
-#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -717,7 +713,7 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
     /* In case of absolute pathname chdir to "/" and strip leading slashes. */
     if (*p == '/') {
 	if (chdir("/") < 0) {
-	    error(!FATAL, "canonicalize: can't chdir(/) (%s)", sys_errlist[errno]);
+	    error(!FATAL, "canonicalize: can't chdir(/) (%s)", strerror(errno));
 	    goto done;
 	}
 	while (*p == '/') p++;
@@ -745,7 +741,8 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 		/* Make sure we can read the link contents */
 		int cc = readlink(next_comp, contents, MAXPATHLEN);
 		if (cc <= 0)
-		    error(FATAL, "canonicalize: readlink(%s) failed (%s)", sys_errlist[errno]);
+		    error(FATAL, "canonicalize: readlink(%s) failed (%s)",
+			  strerror(errno));
 		contents[cc] = '\0';
 
 		/* save symlink name if possible. */
@@ -775,7 +772,8 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 		  /* In case of absolute pathname chdir to "/" and strip leading slashes. */
 		  if (*p == '/') {
 		    if (chdir("/") < 0) {
-		      error(!FATAL, "canonicalize: can't chdir(/) (%s)", sys_errlist[errno]);
+		      error(!FATAL, "canonicalize: can't chdir(/) (%s)",
+			    strerror(errno));
 		      goto done;
 		    }
 		    while (*p == '/') p++;
@@ -790,7 +788,7 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 
 	    if (errno != ENOTDIR && errno != ENOENT) {
 		error(!FATAL, "canonicalize: chdir(%s) failed (%s)",
-		      next_comp, sys_errlist[errno]);
+		      next_comp, strerror(errno));
 		goto done;
 	    }
 
@@ -838,7 +836,7 @@ static int canonicalize(char *path, VolumeId *vp, char *vname, char *fullname,
 
 done:
     if (chdir(cwd) < 0)
-	error(FATAL, "canonicalize: chdir(%s) failed (%s)", cwd, sys_errlist[errno]);
+	error(FATAL, "canonicalize: chdir(%s) failed (%s)", cwd, strerror(errno));
     DEBUG(printf("canonicalize: %s -> %d, <%x, %s>, %s\n",
 		  path, rc, vp ? *vp : 0, vname ? vname : "", fullname ? fullname : "");)
     return(rc);
@@ -864,7 +862,7 @@ static char *vol_getwd(VolumeId *vp, char *head, char *tail) {
     VolumeId vid = GetVid(".");
     if (vid == 0){
 	sprintf(tail, "vol_getwd: can't get volid for %s (%s)",
-		fullname, sys_errlist[errno]);
+		fullname, strerror(errno));
 	return(NULL);
     }
 
@@ -969,7 +967,7 @@ static void DoClears(olist& Clear) {
 
 	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_CLEAR, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Clear(%d, %d): %s",
-		  c->msg.cuid, ruid, sys_errlist[errno]);
+		  c->msg.cuid, ruid, strerror(errno));
 	}
     }
 }
@@ -987,7 +985,7 @@ static void DoAdds(olist& Add) {
 
 	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_ADD, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Add(%x, %s, %d, %d, %d): %s",
-		  a->msg.volno, a->msg.name, a->msg.priority, a->msg.attributes, ruid, sys_errlist[errno]);
+		  a->msg.volno, a->msg.name, a->msg.priority, a->msg.attributes, ruid, strerror(errno));
 	}
     }
 }
@@ -1005,7 +1003,7 @@ static void DoDeletes(olist& Delete) {
 
 	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_DELETE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Delete(%x, %s, %d): %s",
-		  d->msg.volno, d->msg.name, ruid, sys_errlist[errno]);
+		  d->msg.volno, d->msg.name, ruid, strerror(errno));
 	}
     }
 }
@@ -1026,7 +1024,7 @@ static void DoLists(olist& List) {
 	}
 	else {
 	    error(!FATAL, "pioctl:List(%d, %s, %d): %s",
-		  l->msg.luid, l->msg.outfile, ruid, sys_errlist[errno]);
+		  l->msg.luid, l->msg.outfile, ruid, strerror(errno));
 	    unlink(l->msg.outfile);
 	}
     }
@@ -1045,7 +1043,7 @@ static void DoWalks(olist& Walk) {
 
 	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_WALK, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Walk(%d): %s",
-		  ruid, sys_errlist[errno]);
+		  ruid, strerror(errno));
 	}
 
 	/* Only do one walk (since they are all the same at present). */
@@ -1069,7 +1067,7 @@ static void DoVerifies(olist& Verify) {
 	}
 	else {
 	    error(!FATAL, "pioctl:Verify(%d, %s, %d, %d): %s",
-		  v->msg.luid, v->msg.outfile, ruid, v->msg.verbosity, sys_errlist[errno]);
+		  v->msg.luid, v->msg.outfile, ruid, v->msg.verbosity, strerror(errno));
 	    unlink(v->msg.outfile);
 	}
     }
@@ -1089,7 +1087,7 @@ static void DoEnables(olist& Enable) {
 
 	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_ENABLE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Enable(%d): %s",
-		  ruid, sys_errlist[errno]);
+		  ruid, strerror(errno));
 	}
     }
 }
@@ -1108,7 +1106,7 @@ static void DoDisables(olist& Disable) {
 
 	if (pioctl(CODA_MOUNTPOINT, VIOC_HDB_DISABLE, &vi, 0) != 0) {
 	    error(!FATAL, "pioctl:Disable(%d): %s",
-		  ruid, sys_errlist[errno]);
+		  ruid, strerror(errno));
 	}
     }
 }
@@ -1124,7 +1122,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 
     /* Parse the FullName into <VRPath, vid, NodeName>. */
     if (chdir(FullName) < 0) {
-	error(!FATAL, "MetaExpand: chdir(%s) failed (%s)", FullName, sys_errlist[errno]);
+	error(!FATAL, "MetaExpand: chdir(%s) failed (%s)", FullName, strerror(errno));
 	goto done;
     }
     VolumeId vid; vid = 0;
@@ -1135,7 +1133,8 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 
     /* ExpandNode expects to be cd'ed into "FullName/..". */
     if (chdir("..") < 0)
-	error(FATAL, "MetaExpand: chdir(%s/..) failed (%s)", FullName, sys_errlist[errno]);
+	error(FATAL, "MetaExpand: chdir(%s/..) failed (%s)", FullName,
+	      strerror(errno));
     char mtpt[MAXPATHLEN];
     char *cp;
     if ((cp = rindex(VRPath, '/')) == NULL) cp = CODA_MOUNTPOINT;
@@ -1144,7 +1143,7 @@ static void MetaExpand(olist& Add, char *FullName, int priority, int attributes)
 
 done:
     if (chdir(cwd) < 0)
-	error(FATAL, "MetaExpand: chdir(%s) failed (%s)", cwd, sys_errlist[errno]);
+	error(FATAL, "MetaExpand: chdir(%s) failed (%s)", cwd, strerror(errno));
 }
 
 
@@ -1172,7 +1171,8 @@ static void ExpandNode(char *mtpt, VolumeId vid, char *name,
 	    else cp = mtpt;
 	    DEBUG(printf("ExpandNode: chdir(%s)\n", cp););
 	    if (chdir(cp) < 0) {
-		DEBUG(printf("ExpandNode: chdir(%s) failed (%s)\n", cp, sys_errlist[errno]););
+		DEBUG(printf("ExpandNode: chdir(%s) failed (%s)\n", cp,
+			     strerror(errno)););
 		return;
 	    }
 	}
@@ -1200,7 +1200,8 @@ static void ExpandNode(char *mtpt, VolumeId vid, char *name,
 
 	    closedir(dirp);
 	    if (chdir("..") < 0) {
-		error(!FATAL, "ExpandNode: chdir(\"..\") failed(%s)", sys_errlist[errno]);
+		error(!FATAL, "ExpandNode: chdir(\"..\") failed(%s)",
+		      strerror(errno));
 		return;
 	    }
 	}
@@ -1213,7 +1214,7 @@ static void ExpandNode(char *mtpt, VolumeId vid, char *name,
 static int CreateOutFile(char *in, char *out) {
     int child = fork();
     if (child == -1)
-	error(FATAL, "CreateOutFile: fork failed(%s)", sys_errlist[errno]);
+	error(FATAL, "CreateOutFile: fork failed(%s)", strerror(errno));
 
     if (child == 0) {
 	/* Attempt to create/truncate the target file. */
@@ -1226,16 +1227,13 @@ static int CreateOutFile(char *in, char *out) {
     }
     else {
 	/* Wait for child to finish. */
-	union wait status;
+	int status;
 	int rc;
-#ifdef	__linux__
+
 	while ((rc = wait(&status)) != child)
-#else
-	while ((rc = wait(&status.w_status)) != child)
-#endif
 	    if (rc < 0) return(-1);
-	if (status.w_retcode != 0) {
-	    errno = status.w_retcode;
+	if (WEXITSTATUS(status) != 0) {
+	    errno = WEXITSTATUS(status);
 	    return(-1);
 	}
 
@@ -1273,48 +1271,48 @@ static int CreateOutFile(char *in, char *out) {
 static void RenameOutFile(char *from, char *to) {
     int child = fork();
     if (child == -1)
-	error(FATAL, "RenameOutFile: fork failed(%s)", sys_errlist[errno]);
+	error(FATAL, "RenameOutFile: fork failed(%s)", strerror(errno));
 
     if (child == 0) {
 	/* Open the source file. */
 	int infd = open(from, O_RDONLY | O_BINARY, 0);
 	if (infd < 0) {
-	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", from, sys_errlist[errno]);
+	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", from,
+		  strerror(errno));
 	    exit(errno);
 	}
 
 	/* Open the target file. */
 #ifndef __CYGWIN32__
 	if (setreuid(ruid, ruid) < 0) {
-	    error(!FATAL, "RenameOutFile: setreuid(%d, %d) failed(%s)", ruid, ruid, sys_errlist[errno]);
+	    error(!FATAL, "RenameOutFile: setreuid(%d, %d) failed(%s)", ruid,
+		  ruid, strerror(errno));
 	    exit(errno);
 	}
 #endif
 	int outfd = open(to, (O_TRUNC | O_CREAT | O_WRONLY | O_BINARY), 0666);
 	if (outfd < 0) {
-	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", to, sys_errlist[errno]);
+	    error(!FATAL, "RenameOutFile: open(%s) failed(%s)", to,
+		  strerror(errno));
 	    exit(errno);
 	}
 
 	/* Set-up stdin and stdout and invoke "cat". */
 	if (dup2(infd, 0) < 0 || dup2(outfd, 1) < 0) {
-	    error(!FATAL, "RenameOutFile: dup2() failed(%s)", sys_errlist[errno]);
+	    error(!FATAL, "RenameOutFile: dup2() failed(%s)", strerror(errno));
 	    exit(errno);
 	}
 	char *argv[2]; argv[0] = "cat"; argv[1] = 0;
 	if (execvp("cat", argv) < 0) {
-	    error(!FATAL, "RenameOutFile: execvp(\"cat\") failed(%s)", sys_errlist[errno]);
+	    error(!FATAL, "RenameOutFile: execvp(\"cat\") failed(%s)", strerror(errno));
 	    exit(errno);
 	}
     }
     else {
 	/* Wait for child to finish. */
-	union wait status;
-#ifndef __linux__
-	::wait(&status.w_status);
-#else
+	int status;
+
 	::wait(&status);
-#endif
 
 	if (!Debug)
 	    unlink(from);

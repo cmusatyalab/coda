@@ -17,6 +17,22 @@
 # 
 #*/
 
+echon() {
+    if [ -n "$echo_s" ]; then    
+        if (echo -n test; echo 1,2,3) | grep n >/dev/null; then
+            echo_n=
+            echo_c='\c'
+            echo_s=1             
+        else
+            echo_n=-n
+            echo_c=              
+            echo_s=1
+        fi
+    else
+        echo $echo_n "$@" $echo_c
+    fi
+}
+
 # Set up password and group files for Coda
 
 cd /vice/db
@@ -29,7 +45,7 @@ echo "(sort of a Coda super user)"
 echo
  
 until [ x$userid != x ]; do
- 	echo -n "Enter the uid of this user: "
+ 	echon "Enter the uid of this user: "
  	read userid
  	if [ x$userid = x ]; then
  	    echo "Nothing cannot be a Coda administrator"
@@ -45,7 +61,7 @@ until [ x$userid != x ]; do
 done
 
 until [ x$username != x ]; do
- 	echo -n "Enter the username of this user: "
+ 	echon "Enter the username of this user: "
  	read username
  	if [ x$username = x ]; then
  	    echo "Nothing cannot be a Coda administrator"
@@ -74,10 +90,19 @@ if [ -f prot_users.db ] ; then
   echo "Going to rebuild the protection databases"
   echo "moving /vice/db/prot_users.db to /vice/db/prot_users.db.old"
   mv prot_users.db prot_users.db.old
+elif [ -f prot_users.dir ] ; then
+  echo "Going to rebuild the protection databases"
+  echo "moving /vice/db/prot_users.[dir|pag] to /vice/db/prot_users.[dir|pag].old"
+  mv prot_users.dir prot_users.dir.old
+  mv prot_users.pag prot_users.pag.old
 fi
 if [ -f prot_index.db ] ; then
   echo "moving /vice/db/prot_index.db to /vice/db/prot_index.db.old"
   mv prot_index.db prot_index.db.old
+elif [ -f prot_index.dir ] ; then
+  echo "moving /vice/db/prot_index.[dir|pag] to /vice/db/prot_index.[dir|pag].old"
+  mv prot_index.dir prot_index.dir.old
+  mv prot_index.pag prot_index.pag.old
 fi
 
 pdbtool source pdbsetup

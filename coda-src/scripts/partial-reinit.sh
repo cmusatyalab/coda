@@ -4,10 +4,26 @@ REAL_SCRIPT=/tmp/reinit_script	# The script to be run when done
 SCRIPT=$REAL_SCRIPT.$$		# Build the script here, helps prevent re-runs.
 NOCREATE=/tmp/not_created	# List of volumes not being recreated
 
+echon() {
+    if [ -n "$echo_s" ]; then    
+        if (echo -n test; echo 1,2,3) | grep n >/dev/null; then
+            echo_n=
+            echo_c='\c'
+            echo_s=1             
+        else
+            echo_n=-n
+            echo_c=              
+            echo_s=1
+        fi
+    else
+        echo $echo_n "$@" $echo_c
+    fi
+}
+
 # Make sure we aren't running this by mistake!
 if [ -f $REAL_SCRIPT ] ; then
     echo "WARNING: $REAL_SCRIPT exists!"
-    echo -n "Are you sure you want to continue? "
+    echon "Are you sure you want to continue? "
     read _ans_
     case "$_ans_" in
         [Yy] | [Yy][Ee][Ss])

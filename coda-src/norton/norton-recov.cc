@@ -16,27 +16,12 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-#ifdef	__MACH__
-#include <mach/boolean.h>
-#endif
-    
-#ifdef __cplusplus
-}
-#endif __cplusplus
-
 #include <cvnode.h>
 #include <volume.h>
 #include <index.h>
 #include <recov.h>
 #include <camprivate.h>
 #include <coda_globals.h>
-
 
 /* Return the MaxVolId from recoverable storage */
 int GetMaxVolId() 

@@ -53,6 +53,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -65,10 +69,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdarg.h>
 #include <fcntl.h>
-
-#ifdef sun
-#include "sunflock.h"
-#endif
+#include "coda_string.h"
+#include "coda_flock.h"
 
 #include <lock.h>
 #include <lwp.h>
@@ -202,7 +204,7 @@ int main(int argc, char **argv)
 
 	dirfd = open("/vice",O_RDONLY,0);
 	if(dirfd > 0)
-	    flock(dirfd,LOCK_EX);
+	    myflock(dirfd,MYFLOCK_EX, MYFLOCK_BL);
 	else
 	    dirfd = 0;
 

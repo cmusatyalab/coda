@@ -124,7 +124,7 @@ static void checkdump(dumprec_t *a, int size)
     printf("Finished Checking dump\n");
 }
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     if (argc != 2){
 	printf("Usage: parserecdump <filename>\n");

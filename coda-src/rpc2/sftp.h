@@ -41,9 +41,13 @@ Pittsburgh, PA.
 #ifndef _SFTP
 #define _SFTP
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 /*	    
     Features:
 	    1. Windowing with bit masks to avoid unnecessary retransmissions

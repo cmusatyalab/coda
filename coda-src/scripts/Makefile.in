@@ -40,10 +40,16 @@ ifeq ($(SYS),linux)
   CINIT-SCRIPTS   = venus.init
   SINIT-SCRIPTS   = codasrv.init auth2.init update.init
 else
+ifeq ($(SYS),solaris2)
+  # use SYSV style init scripts
+  CINIT-SCRIPTS   = venus.init
+  SINIT-SCRIPTS   = codasrv.init auth2.init update.init
+else
   # use BSD style init scripts
   CINIT-SCRIPTS   = # rc.venus
   SINIT-SCRIPTS   = rc.vice
   INITDIR	  = ${prefix}/etc
+endif
 endif
 
 # all scripts

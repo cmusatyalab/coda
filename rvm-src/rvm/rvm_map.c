@@ -27,8 +27,11 @@ Coda are listed in the file CREDITS.
 #else
 #include <libc.h>
 #endif
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#include <sys/mman.h>
 #if defined(__linux__) && defined(sparc)
 #include <asm/page.h>
 #define getpagesize() PAGE_SIZE
@@ -104,6 +107,7 @@ rvm_return_t bad_region(rvm_region)
 #define PAGE_ALLOC_DEFINED 
 #include <sys/types.h>
 #include <sys/mman.h>
+#include "coda_mmap_anon.h"
 #include <errno.h>
 
 /*
@@ -324,7 +328,9 @@ char *page_alloc(len)
     {
     char           *vmaddr;
     /* printf ("page_alloc(%ul)\n", len); */
-#ifdef __CYGWIN32__
+#ifdef HAVE_MMAP
+    mmap_anon(vmaddr, NULL, len, PROT_READ | PROT_WRITE);
+#else
     {
       HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
                                       PAGE_READWRITE, 0, len, NULL);
@@ -333,20 +339,6 @@ char *page_alloc(len)
       CODA_ASSERT(vmaddr != NULL);
       CloseHandle(hMap);
     }
-#else
-#ifdef sun
-    { int fd;
-      if ((fd = open("/dev/zero", O_RDWR)) == -1)
-	vmaddr = (char *)-1;
-      else {
-	vmaddr = mmap(0, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-	(void) close(fd);
-      }
-    }
-#else
-    vmaddr = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE,
-		  -1, 0);
-#endif
 #endif
     if (vmaddr == (char *)-1) 
         {
@@ -382,12 +374,12 @@ void page_free(vmaddr, length)
     char            *vmaddr;
     rvm_length_t     length;
     {
-#ifdef __CYGWIN32__
-	UnmapViewOfFile(vmaddr);
-#else
+#ifdef HAVE_MMAP
 	if (munmap(vmaddr, length)) {
 	    CODA_ASSERT(0); /* should never fail */
 	}
+#else
+	UnmapViewOfFile(vmaddr);
 #endif
 
 	if (rvm_unregister_page(vmaddr, length) == rvm_false) {

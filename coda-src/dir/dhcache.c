@@ -16,10 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <unistd.h>
-#include <string.h>
+#include "coda_string.h"
 
 #include <lwp.h>
 #include <lock.h>

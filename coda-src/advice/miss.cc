@@ -21,10 +21,14 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include "coda_assert.h" 
 #include <struct.h>
-#include <strings.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 

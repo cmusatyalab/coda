@@ -24,13 +24,16 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "asr.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/param.h>
-#include <strings.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>    

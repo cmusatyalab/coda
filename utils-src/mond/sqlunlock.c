@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/sqlunlock.c,v 3.2 95/10/09 19:27:06 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/sqlunlock.c,v 3.3 98/11/30 11:40:00 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -38,16 +38,21 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/file.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include "coda_flock.h"
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     if (argc < 2) {
 	fprintf (stderr,"Usage: sqlunlock <filename>\n");
@@ -61,9 +66,9 @@ main(int argc, char **argv)
 		     file,errno);
 	    break;
 	}
-	int locked = flock(fd, (LOCK_SH | LOCK_NB));
+	int locked = myflock(fd, MYFLOCK_SH, MYFLOCK_NB);
 	if (!locked) {
-	    flock(fd, LOCK_UN);
+	    myflock(fd, MYFLOCK_UN, MYFLOCK_BL);
 	    fprintf (stderr, "File %s not locked\n",file);
 	    break;
 	}
@@ -72,7 +77,7 @@ main(int argc, char **argv)
 		     file,errno);
 	    break;
 	}
-	if (flock(fd,LOCK_UN)) {
+	if (myflock(fd,MYFLOCK_UN, MYFLOCK_BL)) {
 	    fprintf (stderr, "Unlock of file %s failed [%d]\n",
 		     file,errno);
 	    break;

@@ -18,19 +18,21 @@ listed in the file CREDITS.
 
 /* Simple client to excercise the RPC2 procedure calls */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "coda_assert.h"
 
-#if defined(__BSD44__) || defined(sun)
 #include <sys/types.h>
-#endif
-#if !defined(__CYGWIN32__) && !defined(DJGPP)
+#ifdef HAVE_ARPA_NAMESER_H
 #include <arpa/nameser.h>
 #endif
 #include <netinet/in.h>
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <strings.h>
+#include "coda_string.h"
 
 #include <lwp.h>
 #include <rpc2.h>
@@ -39,7 +41,7 @@ listed in the file CREDITS.
 #include <ports.h>
 #include "portmapper.h"
 
-void main(void)
+int main(void)
 {
 	RPC2_BindParms bp;
 	RPC2_HostIdent hident;
@@ -114,4 +116,6 @@ void main(void)
 	rc= portmapper_client_lookup_pbynvp(cid, "scraw", 0, 17, &port);
 
 	fprintf(stderr, "After third lookup, rc=%ld, port=%ld\n", rc, port);
+	
+	return 0;
 }

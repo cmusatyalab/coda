@@ -28,9 +28,9 @@ EXECUTABLES = repair
 CBINS       = repair
 # TESTS	    = reptest
 
-RLIBS = ${LIBREPAIR} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP} ${LIBUTIL} ${LIBBASE}  $(LIBREADLINE)  ../auth2/libauser.a
+RLIBS = ${LIBREPAIR} ${LIBVV} ${LIBAUTH2} ${LIBKERNDEP} ${LIBUTIL} ${LIBBASE} ../auth2/libauser.a
 
-STD_LIBS = $(LIBTERMCAP) ${LIBFIXUP}
+STD_LIBS = $(LIBREADLINE) $(LIBTERMCAP) ${LIBFIXUP}
 
 OFILES = rvol.o path.o
 

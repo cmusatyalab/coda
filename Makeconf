@@ -18,7 +18,7 @@ include $(TOPOBJ)/Makeconf.setup
 LIBEXECDIR:=$(exec_prefix)/lib/coda
 BINDIR:=$(exec_prefix)/bin
 SBINDIR:=$(exec_prefix)/sbin
-INITDIR:=$(exec_prefix)/$(initsuffix)
+INITDIR:=$(initsuffix)
 MANDIR:=$(mandir)
 
 NATIVECC = cc
@@ -47,9 +47,9 @@ ifneq ($(VPATH),)
 colon=:
 
 INCLPATH  := .:$(VPATH):$(INCLDIR)
-INCLFLAGS :=  -I$(subst $(colon), -I,$(INCLPATH))
+INCLFLAGS :=  -I$(TOPOBJ) -I$(subst $(colon), -I,$(INCLPATH))
 else
-INCLFLAGS :=  -I. -I$(INCLDIR)
+INCLFLAGS :=  -I$(TOPOBJ) -I. -I$(INCLDIR)
 INCLPATH  := .:$(INCLDIR)
 endif
 

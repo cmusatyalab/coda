@@ -20,9 +20,12 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
 #include <stdio.h>
-
 #include <lwp.h>
 #include <rpc2.h>
 
@@ -51,7 +54,7 @@ char ShortHostName[MAXHOSTNAMELEN];
 int uid = -1;
 
 void InitPGID() {
-#ifdef  __linux__
+#ifdef SETPGRP_VOID
         (void) setpgrp();
 #else
         (void) setpgrp(0, thisPID);

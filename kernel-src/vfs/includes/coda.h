@@ -112,9 +112,11 @@ typedef unsigned long long u_quad_t;
 #if defined(sun)
 #include <sys/types.h>
 #include <sys/time.h>
-typedef unsigned long long u_quad_t;
 #define __BIT_TYPES_DEFINED__
+typedef unsigned char       u_int8_t;
+typedef unsigned short     u_int16_t;
 typedef unsigned int       u_int32_t;
+typedef unsigned long long u_quad_t;
 #endif
 
 #ifdef __CYGWIN32__

@@ -32,6 +32,7 @@ extern "C" {
 #endif __cplusplus
 
 #include <stdio.h>
+#include <netdb.h>
 #include <rpc2.h>
 
 #ifdef __cplusplus

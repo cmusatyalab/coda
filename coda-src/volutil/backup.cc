@@ -38,6 +38,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/file.h>
 #include <sys/time.h>
@@ -49,7 +53,7 @@ extern "C" {
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
-#include <strings.h>
+#include "coda_string.h"
 
 #include <dllist.h>
 #include <lwp.h>
@@ -155,11 +159,13 @@ static void VolDumpLWP(struct rockInfo *rock);
 static void PollLWP(int naptime);
 static void PollServers();
 static int lockReplicas(volinfo_t *vol);
-static void unlockReplicas(volinfo_t *vol);
 static int backup(volinfo_t *vol);
 static void VUInitServerList();
 extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,
 				  SE_Descriptor*);
+#ifndef NDEBUG
+static void unlockReplicas(volinfo_t *vol);
+#endif
 
 
 /* get_volId parses the VolumeList file to obtain the volId and
@@ -434,8 +440,10 @@ static int lockReplicas(volinfo_t *vol)
     return 0;
 }
 
+#ifndef NDEBUG
 /*
- * Unlock all the replicas of a volume. We dont care if one fails, just report it.
+ * Unlock all the replicas of a volume. We dont care if one fails, just report
+ * it.
  */
 static void unlockReplicas(volinfo_t *vol)
 {
@@ -460,6 +468,7 @@ static void unlockReplicas(volinfo_t *vol)
 	}
     }
 }
+#endif
 
 /* Clone the replicas. First lock as many as you can. Only clone those
  * that were locked. Although this may not capture latest state, all
@@ -514,7 +523,7 @@ static int backup(volinfo_t *vol) {
 
 struct DiskPartition *findBestPartition(void) 
 {
-	unsigned long space;
+	unsigned long space = 0;
 	struct DiskPartition *best, *part;
 	struct dllist_head *tmp;
 

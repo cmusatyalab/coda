@@ -16,9 +16,13 @@ Coda are listed in the file CREDITS.
 
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "coda_assert.h"
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <stdlib.h>
 
 

@@ -26,9 +26,14 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include "coda_string.h"
 
 #include <netinet/in.h>
 #include "coda_assert.h"

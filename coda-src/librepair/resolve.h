@@ -31,6 +31,9 @@ listed in the file CREDITS.
  * resolution subsystem  
  */
 
+#ifdef MAXNAMELEN
+#undef MAXNAMELEN
+#endif
 #define MAXNAMELEN 255
 #define	AVGDIRENTRYSIZE 12
 #define	GROWSIZE    32

@@ -37,33 +37,49 @@ fi
 [ -x ${CODABASE}/sbin/startserver ] || exit 1
 [ -x ${CODABASE}/sbin/volutil ] || exit 1
 
+echon() {
+    if [ -n "$echo_s" ]; then    
+        if (echo -n test; echo 1,2,3) | grep n >/dev/null; then
+            echo_n=
+            echo_c='\c'
+            echo_s=1             
+        else
+            echo_n=-n
+            echo_c=              
+            echo_s=1
+        fi
+    else
+        echo $echo_n "$@" $echo_c
+    fi
+}
+
 # See how we were called.
 case "$1" in
   start)
 	# start auth2 & update stuff: first the scm case
-    	echo -n "Starting Coda Services: "
+    	echon "Starting Coda Services: "
 	if [ "`cat ${VICE}/hostname`" = "`cat ${VICE}/db/scm`" ]; then
  		${AUTH2} ${FLAGS} &
-		echo -n " auth2"
+		echon " auth2"
 		
 	else 	# for non-scm machines.
 		${AUTH2} ${FLAGS} -chk &
-		echo -n " auth2(ro)"
+		echon " auth2(ro)"
 	fi
 
 	# update srv and updatemon run on all servers
 	rpc2portmap &
-        echo -n " rpc2portmap"
+        echon " rpc2portmap"
 
 	updateclnt -h `cat /vice/db/scm`  -q coda_udpsrv &
-	echo -n " updateclnt"
+	echon " updateclnt"
 
 	updatesrv -p /vice/db &
-	echo -n " updatesrv"
+	echon " updatesrv"
         echo '.'	# Done With Coda Serivces
 
 	# now the server
-	echo -n "Starting Coda:"
+	echon "Starting Coda:"
 	if [  -f ${VICESRV}/STARTFROMBOOT -a ! -f ${VICESRV}/CRASH ]; then
 	      	rm -f $VICESRV/pid
 		startserver &
@@ -76,10 +92,10 @@ case "$1" in
   stop)
 	# Normal Coda FS shutdown:
 	# if pid file doesn't exist, it isn't likely that srv is running.
-	echo -n "Shutting down Coda: "
+	echon "Shutting down Coda: "
 	if [ -f ${VICESRV}/pid ]; then
 	      	volutil shutdown
-		echo -n "$0: sleeping 30 secs to let srv shutdown..."
+		echon "$0: sleeping 30 secs to let srv shutdown..."
 		sleep 30
 		echo "..done"
 	fi

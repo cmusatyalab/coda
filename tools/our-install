@@ -8,17 +8,13 @@ FILES=$@
 
 SYS=`uname -s`
 
-if [ $SYS = SunOS ] ; then
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/ucb
 export PATH
-else
-export PATH=/bin:/usr/bin:/sbin:/usr/sbin
-fi
 
 if [ $SYS = NetBSD -o $SYS = FreeBSD ] ; then
 OWNGRP=root.wheel
 else
-OWNGRP=root.root
+OWNGRP=root:root
 fi
 
 if [ ! -d $DIR ] ;  then mkdir -p $DIR; fi

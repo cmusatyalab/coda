@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 
     struct vrent vre;
     while (read(fd, &vre, sizeof(struct vrent)) == sizeof(struct vrent)) {
-	printf("%32s %u %d %x %x %x %x %x %x %x %x %x\n",
+	printf("%32s %lu %d %lx %lx %lx %lx %lx %lx %lx %lx %lx\n",
 	       vre.key, ntohl(vre.volnum), vre.nServers,
 	       ntohl(vre.ServerVolnum[0]), ntohl(vre.ServerVolnum[1]),
 	       ntohl(vre.ServerVolnum[2]), ntohl(vre.ServerVolnum[3]),

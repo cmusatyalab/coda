@@ -35,12 +35,6 @@ extern "C" {
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <errno.h>
-#ifdef __MACH__
-#include <nlist.h>
-/* nlist.h defines this function but it isnt getting included because it is
-   guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
-extern int nlist(const char*, struct nlist[]);
-#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -181,41 +175,6 @@ struct smoe {
 	Count = count;
     }
 };
-
-
-#ifdef __MACH__
-/* Raw Statistic Entry. */
-static struct nlist RawStats[] = 
-{
-#define CPTIME	0
-    {
-	"_cp_time"
-    },
-#define BOOT	1
-    {
-
-	"_boottime"
-    },
-#define DISK	2
-    {
-
-	"_dk_xfer"
-    },
-#define HZ	3
-    {
-
-	"_hz"
-    },
-#define PHZ	4
-    {
-
-	"_phz"
-    },
-    {
-	0
-    },
-};
-#endif
 
 /* ***** Private variables  ***** */
 

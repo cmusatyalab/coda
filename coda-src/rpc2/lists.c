@@ -38,13 +38,17 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#ifdef __linux__
+#ifdef HAVE_SEARCH_H
 #include <search.h>
 #endif
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

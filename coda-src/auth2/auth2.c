@@ -43,10 +43,13 @@ auth2.c -- authentication server for ViceII.
 
 */
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <stdio.h>
 #include <sys/file.h>
@@ -56,7 +59,7 @@ extern "C" {
 #include <sys/time.h>
 #include <sys/signal.h>
 #include <errno.h>
-#include <string.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -106,11 +109,14 @@ static char *Auth2TKFile = "/vice/db/auth2.tk";	/* name of token key file */
 static int AUTime = 0;			/* used to tell if binaries have changed */
 
 #ifdef KERBEROS5
-static char *krb5_realm = NULL;
 static char *krb5_keytab_file = NULL;
 #endif  /* KERBEROS5 */
 
+#ifdef HAVE_NDBM
+#define CODADB "/vice/db/prot_users.dir"
+#else
 #define CODADB "/vice/db/prot_users.db"
+#endif
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
 static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
@@ -140,11 +146,8 @@ int main(int argc, char **argv)
     InitPW(PWFIRSTTIME);
 #endif	/* CODAAUTH */
 
-#ifdef KERBEROS4
-#endif
-
 #ifdef KERBEROS5
-    Krb5Init(krb5_realm, krb5_keytab_file);
+    Krb5Init(krb5_keytab_file);
 #endif
     
     LogMsg(-1, 0, stdout, "Server successfully started\n");
@@ -291,7 +294,7 @@ static void InitSignals()
 	perror("pid");
 	exit(-1);
 	}
-    fprintf(file,"%d",getpid());
+    fprintf(file,"%d",(int) getpid());
     fclose(file);
     }
 
@@ -498,7 +501,7 @@ long S_AuthQuit(RPC2_Handle cid)
     return(0);
     }
 
-extern hton_SecretToken(SecretToken *);
+extern void hton_SecretToken(SecretToken *);
 long S_AuthGetTokens(RPC2_Handle cid, EncryptedSecretToken est, ClearToken *cToken)
     {
     int i;
@@ -584,6 +587,9 @@ long S_AuthNewUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey init
 
 }
 
+extern int IsAdministrator(struct UserInfo *pU);
+extern char *GetVname(int id, char *s);
+extern int IsAUser(int viceId);
 
 long S_AuthDeleteUser(RPC2_Handle cid, RPC2_Integer viceId)
 {

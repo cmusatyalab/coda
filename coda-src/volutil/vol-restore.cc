@@ -41,6 +41,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/param.h>
@@ -53,6 +57,7 @@ extern "C" {
 
 #include <unistd.h>
 #include <stdlib.h>
+#include "coda_string.h"
 
 #include <struct.h>
 #include <lwp.h>
@@ -213,7 +218,7 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
     VolumeDiskData vol;
     struct DumpHeader header;
     Error error;
-    register Volume *vp;
+    register Volume *vp = NULL;
     VolumeId parentid;
     rvm_return_t status = RVM_SUCCESS;
 
@@ -371,8 +376,8 @@ static int RestoreVolume(DumpBuffer_t *buf, char *partition,
  */
 static void FreeVnodeIndex(Volume *vp, VnodeClass vclass)
 {
-    rec_smolist *list;
-    bit32 listsize;
+    rec_smolist *list = NULL;
+    bit32 listsize = 0;
     int volindex = V_volumeindex(vp);
     VnodeDiskObject *vdo;
     rvm_return_t status = RVM_SUCCESS;

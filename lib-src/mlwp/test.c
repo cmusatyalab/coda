@@ -71,11 +71,7 @@ int main(int argc, char **argv)
     last_context_switch.tv_sec = 0;
     last_context_switch.tv_usec = 0;
 
-#ifdef	__linux__
     CODA_ASSERT(LWP_Init(LWP_VERSION, 0, (PROCESS *)&pid) == LWP_SUCCESS);
-#else
-    CODA_ASSERT(LWP_Init(LWP_VERSION, 0, &pid) == LWP_SUCCESS);
-#endif
     CODA_ASSERT(LWP_CreateProcess((PFI)OtherProcess,4096,0, 0, c, (PROCESS *)&otherpid) == LWP_SUCCESS);
     CODA_ASSERT(IOMGR_Initialize() == LWP_SUCCESS);
     waitarray[0] = &semaphore;

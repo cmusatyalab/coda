@@ -69,7 +69,6 @@ CLIBS =	$(LIBVOLSERV)  \
 	$(LIBOLDLWP)	\
 	$(LIBBASE)	\
 	$(LIBKVM)	\
-	$(LIBMACH)	\
 	$(LIBCOMPAT)
 
 objects=srvproc.o	\

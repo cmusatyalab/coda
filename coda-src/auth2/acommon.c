@@ -48,6 +48,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -55,7 +59,7 @@ extern "C" {
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>

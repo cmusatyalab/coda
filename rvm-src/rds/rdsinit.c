@@ -23,6 +23,10 @@ listed in the file CREDITS.
  * the log.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "coda_assert.h"
 #include <setjmp.h>
 #include <stdlib.h>
@@ -40,7 +44,7 @@ listed in the file CREDITS.
 #include <rds.h>
 
 #ifdef __STDC__
-#include <string.h>
+#include "coda_string.h"
 #define BZERO(D,L)   memset((D),0,(L))
 #else
 #define BZERO(D,L)   bzero((D),(L))

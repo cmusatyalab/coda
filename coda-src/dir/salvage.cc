@@ -45,11 +45,15 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <stdlib.h>
 
 #ifdef __cplusplus

@@ -1,7 +1,11 @@
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <strings.h>
+#include "coda_string.h"
 #include <sys/time.h>
 
 #include <odytypes.h>

@@ -28,7 +28,11 @@ Coda are listed in the file CREDITS.
 *
 */
 
-#ifdef __NetBSD__
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_SEARCH_H
 #include <search.h>
 #endif
 #if defined(hpux) || defined(__hpux)

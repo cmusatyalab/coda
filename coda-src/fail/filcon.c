@@ -24,11 +24,15 @@ listed in the file CREDITS.
   Walter Smith
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "coda_assert.h"
 #include <sys/param.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include "coda_string.h"
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -108,14 +112,15 @@ argcmd_t argcmdlist[] = {
 	{ 0, 0, 0}
 };
 
-int maxFilterID = 999;
+/* static, else it would clash with the maxFilterID *array* in filtutil.c */
+static int maxFilterID = 999;
 /* for convenience, since practically everything uses them */
 int argc;
 char *argv[MAXARGS];
 
 iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
 
-void
+int
 main(int argc, char **argv)
 {
 	if ( argc > 1 ) {

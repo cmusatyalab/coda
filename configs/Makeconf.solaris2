@@ -5,20 +5,19 @@
 
 # the following may need editing depending on your preferences
 
-NATIVECC      = gcc -fno-exceptions
-MACHINE_FLAGS += -DBSD_COMP
-
-SHORTSYS      = sol2
-#OPTFLAG	      = -O2
+CPP           = gcc -E -x c-header -traditional-cpp -D_ASM
+NATIVECC      = gcc
+SHORTSYS      = solaris2
+OPTFLAG	      = -O2 -DRVM_USELWP
 GFLAG         = -g
 # for Solaris ... sockets, nsl ...
 LIBFIXUP      = -lsocket -lnsl 
 LIBDL	      = -ldl
 #
-LIBREADLINE   = /usr/local/lib/libreadline.a
+LIBREADLINE   = -L/usr/local/lib -R/usr/local/lib -lreadline
 INCREADLINE   = -I/usr/local/include/readline
 #for rvm
-LIBTHREADS    =
+LIBTHREADS    = $(TOPDIR)/lib-src/mlwp/liboldlwp.a
 LIBMACH       = 
 #for advice_srv
 #LIBKVM        = /usr/lib/libkvm.a
@@ -28,3 +27,4 @@ LIBMACH       =
 
 LIBMATH       = -lm
 GUIDIR        = /usr/lib/coda
+INITDIR       = /etc/init.d

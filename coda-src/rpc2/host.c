@@ -38,6 +38,10 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -45,7 +49,7 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <string.h>
+#include "coda_string.h"
 
 #include "lwp.h"
 #include "timer.h"
@@ -490,7 +494,7 @@ int RPC2_GetLastObs(RPC2_Handle handle, struct timeval *tv)
     return(RPC2_SUCCESS);
 }
 
-#if defined(DJGPP) || defined(__CYGWIN32__) || defined(sun)
+#ifndef HAVE_INET_ATON
 int inet_aton(const char *str, struct in_addr *out)
 {
         unsigned long l;
@@ -523,7 +527,7 @@ int inet_aton(const char *str, struct in_addr *out)
 }
 #endif
 
-#ifdef DJGPP
+#ifndef HAVE_INET_NTOA
 char *inet_ntoa(struct in_addr in)
 {
         static char buff[18];

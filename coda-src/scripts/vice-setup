@@ -17,6 +17,22 @@
 # 
 #*/
 
+echon() {
+    if [ -n "$echo_s" ]; then    
+        if (echo -n test; echo 1,2,3) | grep n >/dev/null; then
+            echo_n=
+            echo_c='\c'
+            echo_s=1             
+        else
+            echo_n=-n
+            echo_c=              
+            echo_s=1
+        fi
+    else
+        echo $echo_n "$@" $echo_c
+    fi
+}
+
 #
 # Configuration directories:
 # 
@@ -55,7 +71,7 @@ for which in auth2 volutil; do
     token=""
     until [ x$token != x ]; do
 	echo "The following tokens must be identical on all servers."
-	echo -n "Enter a random token for $which authentication : "
+	echon "Enter a random token for $which authentication : "
 	read token
 	if [ x$token != x ]; then
             rm -f $which.tk
@@ -134,7 +150,7 @@ esac
 if [ x$CODABASE != x ]; then
 yesno=""
 until [ x$yesno != x ]; do
-   echo -n 'Do you want to start the server at boot time? (y/n) '
+   echon 'Do you want to start the server at boot time? (y/n) '
    read yesno
    if [ x$yesno = xy  -o  x$yesno = xyes -o x$yesno = xY ]; then
        touch /vice/srv/STARTFROMBOOT
@@ -151,7 +167,7 @@ fi
 # /vice/hostname 
 # 
 hn=`hostname`
-bn=${hn%%.*}
+bn=`echo $hn | cut -f 1 -d .`
 # to prevent killing the hostname if it wasn't fully qualified.
 if [ x$bn = x ]; then
     bn=$hn
@@ -166,7 +182,7 @@ echo $bn > /vice/hostname
 isscm=N
 yesno=""
 until [ x$yesno != x ]; do
-   echo -n 'Is this the master server, aka the SCM machine? (y/n) '
+   echon 'Is this the master server, aka the SCM machine? (y/n) '
    read yesno
    if [ x$yesno = xy  -o  x$yesno = xyes ]; then
       isscm=Y
@@ -205,7 +221,7 @@ fi
 # 
 
 until [ x$scmhost != x ]; do
-    echo -n "Enter the hostname of the SCM machine : "
+    echon "Enter the hostname of the SCM machine : "
     read scmhost
     if [ x$scmhost != x ]; then
        echo $scmhost > /vice/db/scm

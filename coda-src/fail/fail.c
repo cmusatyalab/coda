@@ -23,7 +23,11 @@ listed in the file CREDITS.
 
  */
 
-#include <string.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "coda_string.h"
 #include <stdlib.h>
 #include <sys/types.h>
 #include <netinet/in.h>

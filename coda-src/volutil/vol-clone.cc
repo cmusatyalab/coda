@@ -47,6 +47,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -54,6 +58,7 @@ extern "C" {
 #include <sys/signal.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "coda_string.h"
 
 #include <struct.h>
 #include <lwp.h>
@@ -304,8 +309,8 @@ static void VUCloneIndex(Error *error, Volume *rwVp, Volume *cloneVp, VnodeClass
 {
     rvm_return_t status;
     unsigned int i;
-    bit32 nvnodes;
-    bit32 vnlistSize;
+    bit32 nvnodes = 0;
+    bit32 vnlistSize = 0;
     rec_smolist *rvlist;
     int ovolInd = V_volumeindex(rwVp);
     int cvolInd = V_volumeindex(cloneVp);

@@ -51,10 +51,14 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <signal.h>
-#include <strings.h>
+#include "coda_string.h"
 #include <inodeops.h>
 
 #include <unistd.h>
@@ -361,6 +365,7 @@ long FS_ViceValidateAttrs(RPC2_Handle RPCid, RPC2_Unsigned PrimaryHost,
     vle *av = 0;
     int iErrorCode = 0;
     int i;
+    char why_failed[25] = "";
 
 START_TIMING(ViceValidateAttrs_Total);
     SLog(1, "ViceValidateAttrs: Fid = %s, %d piggy fids", 
@@ -394,17 +399,21 @@ START_TIMING(ViceValidateAttrs_Total);
         {
 	    /* We've already dealt with the PiggyBS in the GetAttr above. */
 	    if ((iErrorCode = ValidateParms(RPCid, &client, &ReplicatedOp, 
-					   &Piggies[i].Fid.Volume, NULL, NULL)))
+					   &Piggies[i].Fid.Volume, NULL, NULL))) {
+		strcpy(why_failed, "ValidateParms");
 		goto InvalidObj;
-	        CheckWriteBack(&Piggies[i].Fid,client);
+	    }
+	    CheckWriteBack(&Piggies[i].Fid,client);
         }
 
 	/* Get objects. */
 	{
 	    v = AddVLE(*vlist, &Piggies[i].Fid);
 	    if ((iErrorCode = GetFsObj(&Piggies[i].Fid, &volptr, 
-				      &v->vptr, READ_LOCK, NO_LOCK, 0, 0, 0)))
+				      &v->vptr, READ_LOCK, NO_LOCK, 0, 0, 0))) {
+		strcpy(why_failed, "GetFsObj 1");
 		goto InvalidObj;
+	    }
 
 	    /* This may violate locking protocol! -JJK */
 	    if (v->vptr->disk.type == vDirectory) {
@@ -416,17 +425,20 @@ START_TIMING(ViceValidateAttrs_Total);
 		pFid.Unique = v->vptr->disk.uparent;
 		av = AddVLE(*vlist, &pFid);
 		if ((iErrorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
-					  READ_LOCK, NO_LOCK, 0, 0, 0)))
+					  READ_LOCK, NO_LOCK, 0, 0, 0))) {
+		    strcpy(why_failed, "GetFsObj 2");
 		    goto InvalidObj;
-
+		}
 	    }
         }
 
 	/* Check semantics. */
 	{
 	    if ((iErrorCode = CheckGetAttrSemantics(client, &av->vptr, &v->vptr,
-						  &volptr, &rights, &anyrights)))
+						  &volptr, &rights, &anyrights))) {
+		strcpy(why_failed, "CheckGetAttrSemantics");
 		goto InvalidObj;
+	    }
 	}
 
 	/* Do it. */
@@ -455,9 +467,9 @@ START_TIMING(ViceValidateAttrs_Total);
 	    }
 
 InvalidObj:
-	    SLog(0, "ViceValidateAttrs: (%x.%x.%x) failed!",
+	    SLog(0, "ViceValidateAttrs: (%x.%x.%x) failed (%s)!",
 		   Piggies[i].Fid.Volume, Piggies[i].Fid.Vnode, 
-		   Piggies[i].Fid.Unique);
+		   Piggies[i].Fid.Unique, why_failed);
 	}
     }
     VFlagBS->SeqLen = NumPiggyFids;

@@ -43,6 +43,10 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -52,6 +56,7 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <sys/uio.h>
 #include <errno.h>
+#include "coda_string.h"
 #include "lwp.h"
 #include "timer.h"
 #include "rpc2.h"
@@ -98,6 +103,13 @@ static int sftp_vfwritev(SE_Descriptor *sdesc, long openfd,
 static int sftp_vfreadv(SE_Descriptor *sdesc, long openfd,
 			struct iovec iovarray[], long howMany);
 
+/* sftp5.c */
+extern void B_ShiftLeft();
+extern void B_ShiftRight();
+extern void B_Assign();
+extern void B_CopyToPacket();
+extern void B_CopyFromPacket();
+
 #ifdef RPC2DEBUG
 void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
 #define BOGOSITY(se, pb)  (printf("SFTP bogosity:  file %s, line %d\n", __FILE__, __LINE__), PrintDb(se, pb))
@@ -107,6 +119,8 @@ void PrintDb(struct SFTP_Entry *se, RPC2_PacketBuffer *pb);
 
 
 /* -------------------- Common file open routine -------------------- */
+
+extern int iopen(long Device, long inode, long oflags);
 
 int sftp_InitIO(struct SFTP_Entry *sEntry)
     /* Fills the openfd field of sEntry by opening and seeking to the
@@ -457,7 +471,7 @@ int sftp_WriteStrategy(struct SFTP_Entry *sEntry)
 	 i < sEntry->RecvLastContig + iovlen + 1; i++)
 	SFTP_FreeBuffer(&sEntry->ThesePackets[PBUFF(i)]);
     sEntry->RecvLastContig += iovlen;
-    B_ShiftLeft(sEntry->RecvTheseBits, iovlen);
+    B_ShiftLeft((unsigned int *)sEntry->RecvTheseBits, iovlen);
 
     /* update the multicast state */
     CODA_ASSERT(mcastlen == iovlen || mcastlen == 0);
@@ -512,7 +526,7 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
 
     sEntry->Retransmitting = FALSE;
 
-    B_Assign(btemp, sEntry->RecvTheseBits);
+    B_Assign((unsigned int *)btemp, (unsigned int *)sEntry->RecvTheseBits);
     
     /* Bump GotEmAll here; this allows write to disk to occur after ack is sent */
     shiftlen = 0;
@@ -523,8 +537,8 @@ static int sftp_SendAck(struct SFTP_Entry *sEntry)
 	    shiftlen++;
 	    }
 	else break;
-    if (shiftlen > 0) B_ShiftLeft(btemp, shiftlen);
-    B_CopyToPacket(btemp, pb);
+    if (shiftlen > 0) B_ShiftLeft((unsigned int *)btemp, shiftlen);
+    B_CopyToPacket((unsigned int *)btemp, pb);
     rpc2_htonp(pb);
     sftp_XmitPacket(sftp_Socket, pb, &sEntry->PInfo.RemoteHost, &sEntry->PeerPort);
     sEntry->RecvSinceAck = 0;
@@ -626,7 +640,7 @@ int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry)
 
     /* Update counters to match other side */
     sEntry->SendLastContig = pBuff->Header.GotEmAll;
-    B_CopyFromPacket(pBuff, sEntry->SendTheseBits);
+    B_CopyFromPacket(pBuff, (unsigned int *)sEntry->SendTheseBits);
 
     /* Handle multicast STOREs here */
     if (sEntry->UseMulticast)

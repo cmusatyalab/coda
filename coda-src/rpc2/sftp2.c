@@ -60,7 +60,7 @@ Pittsburgh, PA.
 #include "se.h"
 #include "sftp.h"
 
-extern errno;
+extern int errno;
 
 static void ClientPacket();
 static void ServerPacket();
@@ -181,7 +181,7 @@ static bool sftp_MorePackets(bool *rpc2, bool *sftp)
     wmask = 0;
     /* We use select rather than IOMGR_Select to avoid overheads. This is acceptable
        only because we are doing a polling select */
-    if (select(8*sizeof(long), &rmask, &wmask, &emask, &tv) > 0)
+    if (select(8*sizeof(long), SELECT_TYPE_ARG234 &rmask, SELECT_TYPE_ARG234 &wmask, SELECT_TYPE_ARG234 &emask, &tv) > 0)
     {
 	*rpc2 = rmask & (1 << rpc2_RequestSocket);
 	*sftp = rmask & (1 << sftp_Socket);

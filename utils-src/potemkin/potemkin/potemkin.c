@@ -16,10 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #define _SCALAR_T_
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h";
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>

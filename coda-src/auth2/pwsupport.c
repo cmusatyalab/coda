@@ -23,6 +23,11 @@ listed in the file CREDITS.
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
 #include <stdio.h>
 #include <sys/file.h>
@@ -30,12 +35,10 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <errno.h>
-#include <string.h>
+#include "coda_string.h"
+#include <unistd.h>
 #include <fcntl.h>
-
-#ifdef sun
-#include "sunflock.h"
-#endif
+#include "coda_flock.h"
 
 #ifdef __cplusplus
 }
@@ -128,7 +131,7 @@ long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionK
 
 int LockParent(char *fName, int lockType)
 {
-	/* lockType:    LOCK_SH or LOCK_EX
+	/* lockType:    MYFLOCK_SH or MYFLOCK_EX
 	   Locks parent directory of fName and returns fd on parent.
 	   Used for syncing with mvdb */
 
@@ -149,7 +152,7 @@ int LockParent(char *fName, int lockType)
 
 	strcat(parent, LockFile);
 	if ((pfd = open(parent, O_CREAT | O_RDONLY, 0)) < 0
-		|| flock(pfd, lockType) < 0)
+		|| myflock(pfd, lockType, MYFLOCK_BL) < 0)
 	{
 		perror(parent);
 		abort();
@@ -183,10 +186,10 @@ void InitPW(int firsttime)
 	   in PWArray.  Frees existing storage coor to PWArray.
 	*/
 
-	pfd = LockParent(PWFile, LOCK_SH);
+	pfd = LockParent(PWFile, MYFLOCK_SH);
 
 	if ((fd = open(PWFile, O_RDONLY, 0)) < 0
-		|| flock(fd, LOCK_SH) < 0	/* locking is superstitious */
+		|| myflock(fd, MYFLOCK_SH, MYFLOCK_BL) < 0	/* locking is superstitious */
 		|| fstat(fd, &stbuf))
 	{
 		perror(PWFile);
@@ -198,8 +201,8 @@ void InitPW(int firsttime)
 
 	PWTime = stbuf.st_mtime;	/* time on file to check for changes */
 	fbuf[stbuf.st_size] = 0;	/* sentinel to stop sscanf() later */
-	flock(fd, LOCK_UN);	close(fd);
-	flock(pfd, LOCK_UN);	close(pfd);
+	myflock(fd, MYFLOCK_UN, MYFLOCK_BL);	close(fd);
+	myflock(pfd, MYFLOCK_UN, MYFLOCK_BL);	close(pfd);
 
 	CODA_ASSERT(AL_NameToId(admin, &AdminID) == 0);
 	for (i = 0; i < RPC2_KEYSIZE; i++)  
@@ -313,9 +316,9 @@ void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
 	sprintf(bnext, "\t# By %d at %s", agentId, ctime(&cl));
 
 	/* Now lock parent and append the line */
-	pfd = LockParent(PWFile, LOCK_EX);
+	pfd = LockParent(PWFile, MYFLOCK_EX);
 	if ((fd = open(PWFile, O_WRONLY|O_APPEND, 0)) < 0
-		|| flock(fd, LOCK_EX) < 0
+		|| myflock(fd, MYFLOCK_EX, MYFLOCK_BL) < 0
 		|| write(fd, buf, strlen(buf)) < 0)
 	{
 		perror(PWFile);
@@ -327,8 +330,8 @@ void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
 	PWTime = buff.st_mtime;
 
 	/* Unlock and quit */
-	flock(fd, LOCK_UN); close(fd);
-	flock(pfd, LOCK_UN); close(pfd);
+	myflock(fd, MYFLOCK_UN, MYFLOCK_BL); close(fd);
+	myflock(pfd, MYFLOCK_UN, MYFLOCK_BL); close(pfd);
 }
 
 

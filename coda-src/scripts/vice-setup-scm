@@ -17,6 +17,21 @@
 # 
 #*/
 
+echon() {
+    if [ -n "$echo_s" ]; then    
+        if (echo -n test; echo 1,2,3) | grep n >/dev/null; then
+            echo_n=
+            echo_c='\c'
+            echo_s=1             
+        else
+            echo_n=-n
+            echo_c=              
+            echo_s=1
+        fi
+    else
+        echo $echo_n "$@" $echo_c
+    fi
+}
 
 # current first maximum replicated volume id
 cd /vice/vol
@@ -34,17 +49,17 @@ echo Setting up servers file.
 #
 
 hn=`hostname`
-bn=${hn%%.*}
+bn=`echo $hn | cut -f 1 -d .`
 if [ x$bn = x ]; then
     bn=$hn
 fi
 cd /vice/db
 
 until [ x$id != x ]; do
-   echo -n 'Enter an id for this server (a number > 0 < 255) : '
+   echon 'Enter an id for this server (a number > 0 < 255) : '
    read id
    if [ x$id != x ]; then
-      echo -n "$bn		$id" >> servers
+      echo "$bn		$id" >> servers
    fi
 done
 echo done!
@@ -66,7 +81,7 @@ echo
 echo Setting up ROOTVOLUME file
 cd /vice/db
 until [ x$id != x ]; do
-   echo -n 'Enter the name of the rootvolume (< 32 chars) : '
+   echon 'Enter the name of the rootvolume (< 32 chars) : '
    read id
    if [ x$id != x ]; then
 	echo $id > /vice/db/ROOTVOLUME

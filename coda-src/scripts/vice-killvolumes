@@ -17,8 +17,24 @@
 # 
 #*/
 
+echon() {
+    if [ -n "$echo_s" ]; then    
+        if (echo -n test; echo 1,2,3) | grep n >/dev/null; then
+            echo_n=
+            echo_c='\c'
+            echo_s=1             
+        else
+            echo_n=-n
+            echo_c=              
+            echo_s=1
+        fi
+    else
+        echo $echo_n "$@" $echo_c
+    fi
+}
+
 echo This will permanently remove all Coda volumes from your system.
-echo -n 'This is useful for a clean start. Proceed? [Y/n]: '
+echon 'This is useful for a clean start. Proceed? [Y/n]: '
 
 read answer 
 

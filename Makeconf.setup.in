@@ -30,6 +30,7 @@ CC=     @CC@
 CPP=    @CPP@ -x c-header
 CXX=    @CXX@
 LIBS=   @LIBS@
+CFLAGS= @CFLAGS@
 YACC=   @YACC@
 LEX=    @LEX@
 LEXLIB= @LEXLIB@
@@ -52,8 +53,7 @@ SYS = @sys@
 # SYS=linux
 # SYS=nbsd
 # SYS=cygwin32
-
-
+# SYS=solaris2
 
 #
 # Second shadow dir -- for your private sources, visible from where

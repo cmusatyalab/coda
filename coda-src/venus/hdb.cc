@@ -42,8 +42,12 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <errno.h>
 #include <sys/file.h>
@@ -101,7 +105,7 @@ int NameCtxt_deallocs = 0;
 
 /*  *****  Private Constants  *****  */
 
-#ifndef __linux__
+#ifndef UTMP_FILE
 #define	UTMP_FILE   "/etc/utmp"
 #endif
 #define	CONSOLE	    "console"

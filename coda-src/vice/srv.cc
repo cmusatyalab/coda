@@ -47,12 +47,17 @@ Pittsburgh, PA.
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/file.h>
-#include <strings.h>
+#include "coda_string.h"
 #include <errno.h>
 #include <signal.h>
 #include <sys/stat.h>
@@ -60,10 +65,9 @@ extern "C" {
 #include <netdb.h>
 #include <stdarg.h>
 #include <stdlib.h>
-
-#ifdef sun
-#include "sunflock.h"
-#endif
+#include <unistd.h>
+#include "coda_flock.h"
+#include "scandir.h"
 
 #include <ports.h>
 #include <lwp.h>
@@ -477,7 +481,7 @@ int main(int argc, char *argv[])
 
 
     CODA_ASSERT(file = fopen("pid","w"));
-    fprintf(file,"%d",getpid());
+    fprintf(file,"%d",(int)getpid());
     fclose(file);
     /* Init per LWP process functions */
     for(i=0;i<MAXLWP;i++)
@@ -576,11 +580,7 @@ int main(int argc, char *argv[])
     struct timeval tp;
     struct timezone tsp;
     TM_GetTimeOfDay(&tp, &tsp);
-#ifdef	__linux__
-    SLog(0,"File Server started %s", ctime((const long int *)&tp.tv_sec));
-#else
-    SLog(0,"File Server started %s", ctime(&tp.tv_sec));
-#endif
+    SLog(0,"File Server started %s", ctime((const time_t *)&tp.tv_sec));
     StartTime = (unsigned int)tp.tv_sec;
     CODA_ASSERT(LWP_WaitProcess((char *)&parentPid) == LWP_SUCCESS);
     exit(0);
@@ -813,11 +813,8 @@ static void CheckLWP()
 		ProgramType *pt, tmp_pt;
 
 		TM_GetTimeOfDay(&tpl, &tspl);
-#ifdef	__linux__
-		SLog(0, "Shutting down the File Server %s", ctime((const long int *)&tpl.tv_sec));
-#else
-		SLog(0, "Shutting down the File Server %s", ctime(&tpl.tv_sec));
-#endif
+		SLog(0, "Shutting down the File Server %s",
+		     ctime((const time_t *)&tpl.tv_sec));
 		CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 		/* masquerade as fileServer lwp */
 		tmp_pt = *pt;
@@ -845,7 +842,7 @@ static void ShutDown()
 	}
 	int fvlock = open("volutil.lock", O_CREAT|O_RDWR, 0666);
 	CODA_ASSERT(fvlock >= 0);
-	while (flock(fvlock, LOCK_UN) != 0);
+	while (myflock(fvlock, MYFLOCK_UN, MYFLOCK_BL) != 0);
 	SLog(9, "Done");
 	close(fvlock);
 	
@@ -915,11 +912,9 @@ void PrintCounters(FILE *fp)
 
     TM_GetTimeOfDay(&tpl, &tspl);
     Statistics = 1;
-    SLog(0,
-	   "Total operations for File Server = %d : time = %s",
-	    Counters[TOTAL], ctime((long *)&tpl.tv_sec));
-    SLog(0,
-	   "Vice was last started at %s", ctime((long *)&StartTime));
+    SLog(0, "Total operations for File Server = %d : time = %s",
+	    Counters[TOTAL], ctime((const time_t *)&tpl.tv_sec));
+    SLog(0, "Vice was last started at %s", ctime((const time_t *)&StartTime));
 
     SLog(0, "NewConnectFS %d", Counters[NEWCONNECTFS]);
     SLog(0, "DisconnectFS %d", Counters[DISCONNECT]);
@@ -1217,24 +1212,18 @@ void SwapLog()
 	     Vol_vicefile("srv"));
 	return;
     }
-#ifndef __CYGWIN32__
     if (pushlog() != 0){
 	SLog(0, 0, stderr, 
 	       "Log file names out of order or malformed; not swapping logs");
 	return;
     }
-#endif
 
     SLog(0, "Starting new SrvLog file");
     freopen("SrvLog","a+",stdout);
     
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
-#ifdef	__linux__
-    SLog(0, "New SrvLog started at %s", ctime((const long int *)&tp.tv_sec));
-#else
-    SLog(0, "New SrvLog started at %s", ctime(&tp.tv_sec));
-#endif
+    SLog(0, "New SrvLog started at %s", ctime((const time_t *)&tp.tv_sec));
 }
 
 /* Filter for scandir(); eliminates all but names of form "SrvLog-" */
@@ -1270,12 +1259,15 @@ static int compar(struct dirent **dp1, struct dirent **dp2) {
    Then "pushes" them, resulting in SrvLog-1, SrvLog-2,....SrvLog-(N+1).
    All work is done in the current directory.
 */
-static int pushlog() { 
-    int i, count;
-    char buf[100], buf2[100]; /* can't believe there will be more logs! */
-    struct dirent **namelist;
+static int pushlog()
+{ 
 #ifndef __CYGWIN32__
-   count = scandir(".", &namelist, (int (*)(const dirent *)) xselect, (int (*)(const void *, const void *)) compar);
+    int i, count = 0;
+    char buf[100], buf2[100]; /* can't believe there will be more logs! */
+    struct dirent **namelist = NULL;
+
+    count = scandir(".", &namelist, (int (*)(const dirent *)) xselect,
+		    (int (*)(const void *, const void *)) compar);
     /* It is safe now to blindly rename */
     for (i = 0; i < count; i++) {
 	sprintf(buf, "SrvLog-%d", count-i);
@@ -1287,7 +1279,6 @@ static int pushlog() {
 	    return(-1);
 	}
     }
-#endif	
     /* Clean up storage malloc'ed by scandir() */
     for (i = 0; i < count; i++) free(namelist[i]);
     free(namelist);
@@ -1297,6 +1288,7 @@ static int pushlog() {
 	perror("SrvLog"); 
 	return(-1);
     }
+#endif	
     return(0);
 }
 

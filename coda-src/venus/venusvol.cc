@@ -141,8 +141,12 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <errno.h>
 #include <struct.h>
@@ -1893,7 +1897,7 @@ void volent::Signal() {
 void volent::Lock(VolLockType l, int pgid)
 {
     /* Sanity Check */
-    if (l != EXCLUSIVE && l != SHARED) {
+    if (l != EX_VOL_LK && l != SH_VOL_LK) {
 	print(logFile); 
 	CHOKE("volent::Lock: bogus lock type");
     }
@@ -1906,12 +1910,12 @@ void volent::Lock(VolLockType l, int pgid)
     LOG(100, ("volent::Lock: (%s) lock = %d pgid = %d excl = %d shrd = %d\n",
 	    name, l, pgid, excl_count, shrd_count));
 
-    while (l == SHARED ? (excl_count > 0 && excl_pgid != pgid) : 
+    while (l == SH_VOL_LK ? (excl_count > 0 && excl_pgid != pgid) : 
 	   (shrd_count > 0 || (excl_count > 0 && excl_pgid != pgid))) {
 	LOG(0, ("volent::Lock: wait\n"));
 	Wait();
     }
-    l == EXCLUSIVE ? (excl_count++, excl_pgid = pgid) : (shrd_count++);
+    l == EX_VOL_LK ? (excl_count++, excl_pgid = pgid) : (shrd_count++);
 }
 
 void volent::UnLock(VolLockType l)
@@ -1920,7 +1924,7 @@ void volent::UnLock(VolLockType l)
 	      name, l, excl_pgid, excl_count, shrd_count));
 
     /* Sanity Check */
-    if (l != EXCLUSIVE && l != SHARED) {
+    if (l != EX_VOL_LK && l != SH_VOL_LK) {
 	print(logFile); 
 	CHOKE("volent::UnLock bogus lock type");
     }
@@ -1930,7 +1934,7 @@ void volent::UnLock(VolLockType l)
 	CHOKE("volent::UnLock pgid = %d excl_count = %d shrd_count = %d",
 	      excl_pgid, excl_count, shrd_count);
     }
-    l == EXCLUSIVE ? (excl_count--) : (shrd_count--);
+    l == EX_VOL_LK ? (excl_count--) : (shrd_count--);
     if (0 == excl_count) 
       excl_pgid = 0;
     Signal();

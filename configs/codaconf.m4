@@ -70,17 +70,23 @@ case ${host_alias} in
 			2.1.* ) os=2.1 ; vfsdir=linux21 ;;
 			2.2.* )	os=2.2 ; vfsdir=linux21 ;;
 		esac
-		initsuffix=../etc/rc.d/init.d
+		if test -f /etc/debian_version
+		then
+			initsuffix=../etc/init.d
+		else
+			initsuffix=../etc/rc.d/init.d
+		fi
  ;;
 	*-*-solaris2* )
-		shortsys=sol2
-		sys=sol2
+		shortsys=solaris2
+		sys=solaris2
 		case ${host_cpu} in
 			i*6 )   arch=i386 ;;
 			sparc ) arch=sparc ;;
 		esac
-		vfsdir=solaris
-		initstuff=../etc
+		fullos=`uname -r`
+		vfsdir=solaris2
+		initstuff=../etc/init.d
 ;;
 esac
 AC_SUBST(shortsys)

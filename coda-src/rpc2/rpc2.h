@@ -44,13 +44,16 @@ Pittsburgh, PA.
 #include <sys/time.h>  
 #include <netinet/in.h>
 
-#if !defined(DJGPP) && !defined(__CYGWIN32__)
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
-#else
- int    inet_aton(const char *str, struct in_addr *out);
-#ifdef DJGPP
- char * inet_ntoa(struct in_addr ip);
 #endif
+
+#ifndef HAVE_INET_ATON
+int inet_aton(const char *str, struct in_addr *out);
+#endif
+
+#ifndef HAVE_INET_NTOA
+char *inet_ntoa(struct in_addr ip);
 #endif
 
 

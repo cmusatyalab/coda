@@ -28,8 +28,12 @@ listed in the file CREDITS.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <coda_assert.h>

@@ -28,8 +28,12 @@ listed in the file CREDITS.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <coda_assert.h>
@@ -87,7 +91,7 @@ void pdb_unpack(PDB_profile *r, void *data, size_t size)
 
 	if(size == 0){
 		r->id = 0;
-		free(data);
+		if (data) free(data);
 		return;
 	}
 	/* Unpack the id and name */
@@ -115,5 +119,5 @@ void pdb_unpack(PDB_profile *r, void *data, size_t size)
 	CODA_ASSERT(off < 1024);
 
 	/* Here we free the data allocated by PDB_db_read */
-	free(data);
+	if (data) free(data);
 }

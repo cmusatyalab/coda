@@ -105,7 +105,7 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
     infofile = fopen (INFOFILE, "w");
 
     /* See if user passed in volid rather than volname */
-    long volid, index;
+    long volid, index = 0;
     if ((sscanf(vol, "%lX", &volid) ==  1) && ((index = HashLookup(volid)) > 0)) {
 	VolumeDiskData *vp = SRV_RVM(VolumeList[index]).data.volumeInfo;
 	VGetVolumeInfo(&error, vp->name, &info);

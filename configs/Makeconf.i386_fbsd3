@@ -15,7 +15,6 @@ INCREADLINE   = -I/usr/include/readline
 LIBTERMCAP    = /usr/lib/aout/libtermcap.a
 #for rvm
 LIBTHREADS    =
-LIBMACH       = 
 
 #for advice_srv
 LIBKVM        = /usr/lib/aout/libkvm.a

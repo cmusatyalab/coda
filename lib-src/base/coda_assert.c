@@ -39,7 +39,7 @@ coda_assert(char *pred, char *file, int line)
 
     case CODA_ASSERT_SLEEP:
 	fprintf(stderr, "Sleeping forever.  You may use gdb to attach to process %d.",
-		getpid());
+		(int)getpid());
 	fflush(stderr);
         for (;;)
 	     sleep(1);

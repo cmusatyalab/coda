@@ -289,8 +289,7 @@ typedef struct
     long            truncate;           /* truncation threshold, % of log */
     rvm_length_t    recovery_buf_len;   /* length of recovery buffer */
     rvm_length_t    flush_buf_len;      /* length of flush buffer (partitions only) */
-    rvm_length_t    max_read_len;       /* maximum single read length (MACH
-                                           only)  */
+    rvm_length_t    max_read_len;       /* maximum single read length */
     rvm_bool_t      log_empty;          /* TRUE  ==> log empty */
     char            *pager;             /* char array for external pager name */
     long            n_uncommit;         /* length of uncommitted tid array */

@@ -32,7 +32,11 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include <string.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "coda_string.h"
 #include <sys/time.h>
 #include <sys/file.h>
 #include <unistd.h>

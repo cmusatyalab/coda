@@ -58,6 +58,9 @@ listed in the file CREDITS.
 #if defined(__CYGWIN32__) || defined(DJGPP)
 #define SYSTYPE CPUTYPE"_win32"
 #endif 
+#ifdef sun					/* Brr. JK */
+#define SYSTYPE CPUTYPE"_solaris2"
+#endif
 #ifndef SYSTYPE
 #define SYSTYPE CPUTYPE"_unknown"
 #endif

@@ -30,13 +30,17 @@ listed in the file CREDITS.
  * 0/4/7/1/.1 and 0/0/0/47/.11
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include <errno.h>
 #include <math.h>
 
@@ -109,7 +113,7 @@ f_inotostr(struct DiskPartition *dp, Inode ino, char *filename)
 
     for ( d = depth-1 ; d >= 0 ; d--  ) {
 	comp = ino >> (d * width);
-	snprintf(str, MAXPATHLEN, "/%x", comp & mask);
+	snprintf(str, MAXPATHLEN, "/%x", (unsigned)(comp & mask));
 	strcat(filename, str);
     }
 	
@@ -522,6 +526,7 @@ f_iwrite(struct DiskPartition *dp, Inode inode_number,Inode  parent_vol,
 	return res;
 }
 
+#if 0
 /*
  * istat,
  * retrieves inode information from the first file in the inode chain.
@@ -553,9 +558,10 @@ istat(struct DiskPartition *dp, Inode  inode_number, struct stat *statbuf)
 #endif
     return 0;
 }
+#endif
 
 
-static int inosort(const struct dirent * const *a, const struct dirent * const *b)
+static int inosort(const struct dirent **a, const struct dirent **b)
 {
     Inode inoa, inob;
     

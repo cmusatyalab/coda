@@ -44,19 +44,24 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#ifdef sun
+#ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
 #endif
 #include <sys/socketvar.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
+#include "coda_string.h"
 #include "lwp.h"
 #include "timer.h"
 #include "rpc2.h"
@@ -67,9 +72,15 @@ Pittsburgh, PA.
 
 extern int errno;
 
+/* sftp5.c */
+extern void B_ShiftLeft();
+extern void B_ShiftRight();
+extern void B_Assign();
+extern void B_And();
+
 static void SFSendBusy();
 static void MC_AppendParmsToPacket();
-static MC_SendStrategy(), SDescCmp(), MC_ExtractParmsFromPacket();
+static int MC_SendStrategy(), SDescCmp(), MC_ExtractParmsFromPacket();
 
 /*----------------------- The procs below interface directly with RPC2 ------------------------ */
 

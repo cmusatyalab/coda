@@ -20,10 +20,14 @@ listed in the file CREDITS.
 
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "coda_assert.h"
 #include <stdio.h>
 #include <sys/types.h>
-#include <strings.h>
+#include "coda_string.h"
 #include <ctype.h>
 #include <netdb.h>
 #include <sys/socket.h>

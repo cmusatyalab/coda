@@ -30,6 +30,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
@@ -40,6 +44,7 @@ extern "C" {
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "coda_string.h"
 
 #include <lwp.h>
 #include <rpc2.h>

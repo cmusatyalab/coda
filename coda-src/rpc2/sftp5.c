@@ -43,9 +43,14 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <errno.h>
 #include <sys/time.h>
+#include "coda_string.h"
 #include "lwp.h"
 #include "timer.h"
 #include "rpc2.h"

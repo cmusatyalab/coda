@@ -85,10 +85,8 @@ class vcbdent;
 class rwsent;
 
 /* volume pgid locking type */
-#ifdef sun
-#define SHARED LkSHARED
-#endif
-enum VolLockType { EXCLUSIVE, SHARED };
+/* Was: EXCLUSIVE, *SHARED*: name clash on Solaris */
+enum VolLockType { EX_VOL_LK, SH_VOL_LK };
 
 /* XXX These should be in vice.h! */
 #define	OLDCML_Truncate_OP	100

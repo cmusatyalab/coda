@@ -17,7 +17,7 @@ listed in the file CREDITS.
 #*/
 
 /* Location of TCL/TK/TIX */
-#ifdef __BSD44__
+#if defined(__BSD44__) || defined(sun)
 #define TCL "/usr/local/lib/tcl7.4"
 #define TK "/usr/local/lib/tk4.0"
 #define TIX "/usrl/ocal/lib/tix4.1"

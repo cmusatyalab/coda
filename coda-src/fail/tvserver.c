@@ -36,9 +36,13 @@ listed in the file CREDITS.
    26 October 1987
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include "coda_assert.h"
-#include <strings.h>
+#include "coda_string.h"
 #include <sys/time.h>
 #include <sys/types.h>
 #include <netinet/in.h>

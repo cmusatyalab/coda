@@ -21,7 +21,6 @@ LIBREADLINE   = -lreadline
 INCREADLINE   = -I/usr/include/readline
 #for rvm
 LIBTHREADS    =
-LIBMACH       = 
 LIBMATH       = -lm
 
 GUIDIR        = /usr/lib/coda

@@ -24,10 +24,12 @@ Coda are listed in the file CREDITS.
 
 #include <fcntl.h>
 #include <sys/file.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include "rvm_private.h"
 

@@ -31,11 +31,8 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 
-HEADERS = ports.h voltypes.h inodeops.h # config.h
-
-ifeq ($(SYS),sol2)
-HEADERS += sunflock.h
-endif
+HEADERS = ports.h voltypes.h inodeops.h coda_db.h coda_mmap_anon.h \
+	  coda_string.h coda_wait.h
 
 include $(TOPDIR)/configs/Makerules
 

@@ -21,6 +21,11 @@ listed in the file CREDITS.
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include "coda_assert.h"
 #include <sys/types.h>
@@ -29,7 +34,7 @@ extern "C" {
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
-#include <string.h>
+#include "coda_string.h"
 #include <stdlib.h>
 
 #include <lwp.h>

@@ -41,6 +41,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -56,10 +60,11 @@ extern "C" {
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/wait.h>
-#include <string.h>
+#include "coda_string.h"
 #include <setjmp.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include <lwp.h>
 #include <lock.h>
@@ -68,10 +73,7 @@ extern "C" {
 #include <rvmlib.h>
 
 #include <vice.h>
-
-#ifdef sun
-#include "sunflock.h"
-#endif
+#include "coda_flock.h"
 
 #ifdef __cplusplus
 }
@@ -217,7 +219,7 @@ int VInitVolUtil(ProgramType pt)
 			close(fvlock);
 			return(VNOSERVER);
 		}
-		if (flock(fvlock, LOCK_SH |LOCK_NB) != 0) {
+		if (myflock(fvlock, MYFLOCK_SH, MYFLOCK_NB) != 0) {
 			VLog(0, "VInitvolUtil: can't grab volume utility lock");
 			close(fslock);
 			close(fvlock);
@@ -232,14 +234,14 @@ int VInitVolUtil(ProgramType pt)
 		}
 	} else {  /* pt == salvager */
 		VLog(9, "VInitVolUtil: getting exclusive locks");
-		if (flock(fslock, LOCK_EX | LOCK_NB) != 0) {
+		if (myflock(fslock, MYFLOCK_EX, MYFLOCK_NB) != 0) {
 			VLog(0, "VInitVolUtil: File Server is running: can't run full salvage");
 			close(fslock);
 			close(fvlock);
 			return(VFAIL);
 		}
 
-		if (flock(fvlock, LOCK_EX |LOCK_NB) != 0) {
+		if (myflock(fvlock, MYFLOCK_EX, MYFLOCK_NB) != 0) {
 			VLog(0, "VInitVolUtil: salvage aborted- someone else is running!");
 			close(fslock);
 			close(fvlock);

@@ -28,9 +28,7 @@ extern "C" {
 
 #include <unistd.h>
 #include <netinet/in.h>
-#ifdef sun
 #include <netdb.h>
-#endif
 
 /* interfaces */
 #include <admon.h>

@@ -43,6 +43,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -51,16 +55,18 @@ extern "C" {
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
+#include "scandir.h"
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
 #include <util.h>
+
 #include "partition.h" /* this includes simpleifs.h */
 
 static int set_link(struct DiskPartition *dp, long *count, Inode ino);
 static Inode maxino(struct DiskPartition *dp);
-static int inosort(const struct dirent * const*a, const struct dirent * const*b);
+static int inosort(const struct dirent **a, const struct dirent **b);
 
 static int s_init (union PartitionData **data, Partent partent, Device *dev);
 static int s_iopen(struct DiskPartition *, Inode inode_number, int flag);
@@ -444,6 +450,7 @@ s_iwrite(struct DiskPartition *dp, Inode inode_number,Inode  parent_vol,
 	return res;
 }
 
+#if 0
 /*
  * istat,
  * retrieves inode information from the first file in the inode chain.
@@ -474,11 +481,9 @@ static int istat(struct DiskPartition *dp, Inode  inode_number, struct stat *sta
 #endif
     return 0;
 }
+#endif
 
-
-
-
-static int inosort(const struct dirent * const*a, const struct dirent * const*b)
+static int inosort(const struct dirent **a, const struct dirent **b)
 {
     Inode inoa, inob;
     
@@ -500,11 +505,8 @@ static Inode maxino(struct DiskPartition *dp)
     int n, i;
     Inode max = 0;
 
-#ifndef __CYGWIN32__    
-    n = scandir(dp->name, &namelist, NULL, &inosort);
-#else
-    CODA_ASSERT(0);
-#endif
+    n = scandir(dp->name, &namelist, NULL, (int (*)(const void *, const void *))inosort);
+    
     if (n < 0)
         perror("scandir");
     else
@@ -514,7 +516,6 @@ static Inode maxino(struct DiskPartition *dp)
     free(namelist) ;
 
     return max;
-
 }
 
 

@@ -113,7 +113,11 @@ int InSkipVolumeList(VolumeId, VolumeId *, int);
 static struct VnodeEssence *CheckVnodeNumber(VnodeId vnodeNumber, Unique_t);
 static int AskOffline(VolumeId volumeId);
 static int AskOnline(VolumeId volumeId);
-static void PrintInodeList();
 static void release_locks(int);
 static void GetSkipVolumeNumbers();
 static void zero_globals();
+
+#ifndef NDEBUG
+static void PrintInodeList(void);
+#endif
+

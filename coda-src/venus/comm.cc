@@ -30,14 +30,20 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/time.h>
 #include <errno.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <struct.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -45,7 +51,6 @@ extern "C" {
 #include <machine/endian.h>
 #endif
 
-#include <netinet/in.h>
 #ifdef __linux__
 #include <endian.h>
 #endif
@@ -187,6 +192,7 @@ void CommInit() {
 	/* Parse the next entry in the hostname list. */
 	char ServerName[MAXHOSTNAMELEN];
 	char *cp = index(hp, ',');
+
 	if (cp) {
 	    /* This is not the last hostname. */
 	    int len = cp - hp;

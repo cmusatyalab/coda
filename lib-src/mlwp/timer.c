@@ -37,9 +37,13 @@ Pittsburgh, PA.
 
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/time.h>
 #include <stdlib.h>
-#ifdef __linux__
+#ifdef HAVE_SEARCH_H
 #include <search.h>
 #endif
 #include "lwp.h"

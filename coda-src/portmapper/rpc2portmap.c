@@ -62,7 +62,7 @@ void InitRPC2(void)
 }
 
 
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	RPC2_PacketBuffer *reqbuffer;
 	RPC2_Handle cid;

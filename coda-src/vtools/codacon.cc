@@ -20,6 +20,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -30,7 +34,7 @@ extern "C" {
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 

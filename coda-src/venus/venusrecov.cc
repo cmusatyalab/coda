@@ -28,8 +28,12 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/param.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -46,6 +50,7 @@ extern "C" {
 #include <rvm_statistics.h>
 
 #include <sys/mman.h>
+#include "coda_mmap_anon.h"
 
 /* function defined in rpc2.private.h, which we need to seed the random
  * number generator, _before_ we create a new VenusGenId. */
@@ -796,7 +801,9 @@ void RecovPrint(int fd) {
 static void Recov_AllocateVM(char **addr, unsigned long length) 
 {
     char *requested_addr = *addr;
-#ifdef __CYGWIN32__
+#ifdef HAVE_MMAP
+    mmap_anon(*addr, *addr, length, (PROT_READ | PROT_WRITE));
+#else
     {
       HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
                                       PAGE_READWRITE, 0, length, NULL);
@@ -807,21 +814,6 @@ static void Recov_AllocateVM(char **addr, unsigned long length)
           *addr = (char *)-1;
       CloseHandle(hMap);
     }
-#else
-#ifdef sun
-    { int fd;
-      if ((fd = open("/dev/zero", O_RDWR)) == -1)
-	*addr = (char *)-1;
-      else {
-	*addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
-		     (MAP_PRIVATE | (*addr ? MAP_FIXED : 0)), fd, 0);
-	(void) close(fd);
-      }
-    }
-#else
-      *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
-  		 (MAP_PRIVATE | MAP_ANON), -1, 0);
-#endif
 #endif
  
     if (*addr == (char *)-1) {
@@ -840,16 +832,16 @@ static void Recov_AllocateVM(char **addr, unsigned long length)
 
 
 static void Recov_DeallocateVM(char *addr, unsigned long length) {
-#if	__CYGWIN32__
-    int ret = UnmapViewOfFile(addr);
-    if (ret == 0)
-  	CHOKE("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
-      LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
-#else
+#ifdef HAVE_MMAP
     if (munmap(addr, length)) {
 	CHOKE("Recov_DeallocateVM: munmap(%x, %x) failed with errno == %d", addr, length, errno);
     }
     LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
+#else
+    int ret = UnmapViewOfFile(addr);
+    if (ret == 0)
+  	CHOKE("Recov_DeallocateVM: deallocate(%x, %x) failed (%d)", addr, length, ret);
+      LOG(0, ("Recov_DeallocateVM: deallocated %x bytes at %x\n", length, addr));
 #endif	
 }
 

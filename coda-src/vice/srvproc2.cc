@@ -43,6 +43,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <netinet/in.h>
@@ -54,9 +58,10 @@ extern "C" {
 #include <linux/if_ether.h>
 #endif
 
-#include <strings.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include <lwp.h>
 #include <lock.h>
@@ -69,10 +74,7 @@ extern "C" {
 #include <al.h>
 #include <callback.h>
 #include <vice.h>
-
-#ifdef sun
-#include "sunflock.h"
-#endif
+#include "coda_flock.h"
 
 #ifdef __cplusplus
 }
@@ -547,9 +549,9 @@ long FS_ViceGetRootVolume(RPC2_Handle RPCid, RPC2_BoundedBS *volume)
 	strcpy((char *)volume->SeqBody, DEFAULTVOLUME);
 	errorCode= VNOVOL;
     } else {
-	flock(fd, LOCK_EX);
+	myflock(fd, MYFLOCK_EX, MYFLOCK_BL);
 	len = read(fd, volume->SeqBody, (int) volume->MaxSeqLen);
-	flock(fd, LOCK_UN);
+	myflock(fd, MYFLOCK_UN, MYFLOCK_BL);
 	close(fd);
 	if (volume->SeqBody[len-1] == '\n')
 	    len--;
@@ -604,10 +606,10 @@ long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 
     fd = open("/vice/db/ROOTVOLUME", O_WRONLY+O_CREAT+O_TRUNC, 0666);
     CODA_ASSERT(fd > 0);
-    flock(fd,LOCK_EX);
+    myflock(fd,MYFLOCK_EX,MYFLOCK_BL);
     write(fd, volume, (int) strlen((char *)volume));
     fsync(fd);
-    flock(fd,LOCK_UN);
+    myflock(fd,MYFLOCK_UN,MYFLOCK_BL);
     close(fd);
 
  Final:

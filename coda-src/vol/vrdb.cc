@@ -20,9 +20,13 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
-#include <string.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <netinet/in.h>
@@ -303,7 +307,7 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
     for (i = 0; i < nServers; i++) {
 	unsigned long hostaddr = VolToHostAddr(ServerVolnum[i]);
 	if (hostaddr == 0) {
-	    LogMsg(0, VolDebugLevel, stdout, "vrent::GetVolumeInfo: no hostaddr for volume (%u)",
+	    LogMsg(0, VolDebugLevel, stdout, "vrent::GetVolumeInfo: no hostaddr for volume (%lx)",
 		    ServerVolnum[i]);
 	    return(VNOVOL);
 	}

@@ -65,7 +65,6 @@ VLIBS =	${LIBVOL} \
 	${LIBUTIL} \
 	${LIBOLDLWP} \
 	${LIBSYSENT} \
-	${LIBMACH}  \
 	${LIBBASE}
 
 LIBS=	${LIBREADLINE} \

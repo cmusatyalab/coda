@@ -38,11 +38,15 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <string.h>
+#include "coda_string.h"
 #include "cbuf.h"
 #include <lwp.h>
 #include <timer.h>

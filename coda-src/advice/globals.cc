@@ -20,6 +20,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 /* System-wide include files */
 #include <sys/param.h>
 #include <sys/types.h>
@@ -27,14 +31,10 @@ extern "C" {
 #include <unistd.h>
 #include <time.h>
 #include <stdio.h>
-#include <strings.h>
-#include <string.h>
+#include "coda_string.h"
 #include <errno.h>
 #include <stdlib.h>
-
-#ifdef sun
 #include <netdb.h>
-#endif
 
 #ifdef __cplusplus
 }
@@ -120,7 +120,7 @@ int readmissAnswer;
 char ProgramAccessLog[MAXPATHLEN];
 char ReplacementLog[MAXPATHLEN];
 
-#ifdef sun
+#ifndef HAVE_SETENV
 /* setenv replacement ... uses putenv */
 static  int
 setenv(const char *name, const char *value, int overwrite)
@@ -231,7 +231,7 @@ void InitEventFile() {
 }
 
 void InitPGID() {
-#if defined(__linux__) || defined(sun)
+#ifdef SETPGRP_VOID
         (void) setpgrp();
 #else
         (void) setpgrp(0, thisPID);

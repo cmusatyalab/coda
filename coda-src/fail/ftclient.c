@@ -25,9 +25,13 @@ listed in the file CREDITS.
  * uses speed part of failure package.
  * -- L. Mummert 3/92
  */
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include "coda_string.h"
 #include "coda_assert.h"
 #include <sys/param.h>
 #include <sys/time.h>

@@ -35,6 +35,10 @@ extern "C" {
 #endif __cplusplus
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -79,10 +83,10 @@ static void FatalSignal(int, int, struct sigcontext *);
 void SigInit() {
     /* Establish/Join our own process group to avoid extraneous signals. */
 #ifndef DJGPP
-#if defined(__linux__) || defined(sun)
+#ifdef SETPGRP_VOID
         if (setpgrp() < 0)
 #else
-                if (setpgrp(0, getpid()) < 0)
+        if (setpgrp(0, getpid()) < 0)
 #endif
 	CHOKE("SigInit: setpgrp failed (%d)", errno);
 #endif /* DJGPP */
@@ -118,6 +122,29 @@ void SigInit() {
     /* SIGFPE was ignored for the `short term' */
     /*signal(SIGFPE, SIG_IGN);*/                    /* Ignore */
     signal(SIGFPE, (void (*)(int))FPE);		/* CHOKE */
+    signal(SIGBUS, (void (*)(int))BUS);		/* CHOKE */
+    signal(SIGSEGV, (void (*)(int))SEGV);	/* CHOKE */
+    signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
+    signal(SIGTERM, (void (*)(int))TERM);	/* exit */
+    signal(SIGINT, (void (*)(int))TERM);	/* exit */
+    /*signal(SIGTSTP, (void (*)(int))TSTP);*/	/* turn off debugging */
+    signal(SIGXCPU, (void (*)(int))XCPU);	/* dump state */
+    signal(SIGXFSZ, (void (*)(int))XFSZ);	/* initialize statistics */
+    signal(SIGVTALRM, (void (*)(int))VTALRM);	/* swap log */
+    signal(SIGUSR1, (void (*)(int))USR1);	/* set {COPmode, Mcast, DebugLevel} */
+#endif
+
+#ifdef sun
+    signal(SIGHUP, (void (*)(int))HUP);		/* turn on debugging */
+    signal(SIGILL, (void (*)(int))ILL);		/* CHOKE */
+    signal(SIGTRAP, (void (*)(int))TRAP);	/* CHOKE */
+#if	0
+    signal(SIGIOT, (void (*)(int))IOT);		/* turn on profiling */
+    signal(SIGEMT, (void (*)(int))EMT);		/* turn off profiling */
+#endif
+    /* SIGFPE is ignored for the short term */
+    /* signal(SIGFPE, (void (*)(int))FPE);*/		/* CHOKE */
+    signal(SIGFPE, SIG_IGN);                    /* Ignore */
     signal(SIGBUS, (void (*)(int))BUS);		/* CHOKE */
     signal(SIGSEGV, (void (*)(int))SEGV);	/* CHOKE */
     signal(SIGPIPE, SIG_IGN);	                /* ignore write on pipe with no one to read */
@@ -373,7 +400,7 @@ static void FatalSignal(int sig, int code, struct sigcontext *contextPtr)
 #else
 	fprintf(logFile, "sc_pc=0x%x\n", contextPtr->sc_pc);
 #endif
-#endif	/* !defined(i386) && !defined(powerpc) */
+#endif	/* !defined(i386) && !defined(powerpc) && !defined(sun) */
 
 #ifndef __BSD44__
 	for (int i = 0; i < (sizeof(struct sigaction) / sizeof(int)); i++)

@@ -24,6 +24,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -31,15 +35,9 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#ifdef sun
-#include "/usr/ucbinclude/sys/wait.h"
-#else
-#include <sys/wait.h>
-#endif
-#include <strings.h>
-#include <string.h>
+#include "coda_string.h"
 #include "coda_assert.h"
+#include "coda_wait.h"
 #include <errno.h>
 #include <venusioctl.h>
 #include <vcrcommon.h>
@@ -256,26 +254,22 @@ int command_t::execute() {
     }
     else if (rc) {
 	// parent process 
-	union wait cstatus;
+	int cstatus;
 	int cpid = rc;
-#ifndef __linux__
-	for (rc = wait(&cstatus.w_status); (rc != -1) && (rc != cpid); rc = wait(&cstatus.w_status))
-#else
 	for (rc = wait(&cstatus); (rc != -1) && (rc != cpid); rc = wait(&cstatus))
-#endif
 	    fprintf(stderr, "Waiting for %d to finish ...\n", cpid);
-	if (cstatus.w_coredump) {
+	if (WCOREDUMP(cstatus)) {
 	    fprintf(stderr, "%s dumped core\n", name);
 	    return(-1);
 	}
-	return(cstatus.w_retcode);
+	return(WEXITSTATUS(cstatus));
     }
     /* else { */
     // child process 
     DEBUG((stdout, "Going to execute command %s ", name));
     if (debug) {
-      for (int i = 0; i < argc; i++) 
-	DEBUG((stdout, "%s ", argv[i + 1]));
+      for (int j = 0; j < argc; j++) 
+	DEBUG((stdout, "%s ", argv[j + 1]));
       DEBUG((stdout, "\n"));
     }
     if (execv(name, argv)) {

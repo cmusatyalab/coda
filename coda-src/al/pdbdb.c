@@ -27,73 +27,89 @@ listed in the file CREDITS.
 
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/param.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <limits.h>
-
-#ifdef HAVE_DB_185_H
-#include <db_185.h>
-#else 
-#include <db.h>
-#endif
-
-
+#include "coda_db.h"
 #include <coda_assert.h>
 #include "pdb.h"
 
-#define PDB_MAIN "/vice/db/prot_users.db"
-#define PDB_NAME "/vice/db/prot_index.db"
+#define PDB_MAIN "/vice/db/prot_users"
+#define PDB_NAME "/vice/db/prot_index"
 
 struct PDB_HANDLE_S {
-	DB *main;
-	DB *name;
+	db_type *main;
+	db_type *name;
 };
 
+#ifndef HAVE_NDBM
 static BTREEINFO btreeinfo = { 0, 0, 0, 0, 1024, NULL, NULL, 4321 };
+#endif
 
+/*
+ * uid's and gid's are packed as:     uid > 0
+ *                                    gid < 0
+ *
+ * I think it was a bad choice...
+ *
+ * ... Sigh. At least let's make the conversions easier:
+ */
+ 
+#define HTONL(x)      (htonl((u_int32_t) x))
+#define NTOHL(x)      ((int32_t)ntohl(x))
 
 PDB_HANDLE PDB_db_open(int mode)
 {
 	struct PDB_HANDLE_S *handle;
+	char pdb_main[MAXPATHLEN] = PDB_MAIN;
+	char pdb_name[MAXPATHLEN] = PDB_NAME;
 
 	handle = malloc(sizeof(*handle));
 	CODA_ASSERT(handle);
 
 	memset(handle, 0, sizeof(*handle));
 
+#ifndef HAVE_NDBM
+	strcat(pdb_main, ".db");
+	strcat(pdb_name, ".db");
+#endif
 	switch (mode) {
 	case O_RDWR: 
 	case O_WRONLY:
-		handle->main = dbopen(PDB_MAIN, O_RDWR, 0600, DB_BTREE,
-                                      &btreeinfo);
-		handle->name = dbopen(PDB_NAME, O_RDWR, 0600, DB_BTREE,
-                                      &btreeinfo);
+		handle->main = db_open(pdb_main, O_RDWR, 0600, DB_BTREE,
+                                       &btreeinfo);
+		handle->name = db_open(pdb_name, O_RDWR, 0600, DB_BTREE,
+                                       &btreeinfo);
 		break;
 	case O_RDONLY:
-		handle->main = dbopen(PDB_MAIN, O_RDONLY, 0600, DB_BTREE,
-                                      &btreeinfo);
-		handle->name = dbopen(PDB_NAME, O_RDONLY, 0600, DB_BTREE,
-                                      &btreeinfo);
+		handle->main = db_open(pdb_main, O_RDONLY, 0600, DB_BTREE,
+                                       &btreeinfo);
+		handle->name = db_open(pdb_name, O_RDONLY, 0600, DB_BTREE,
+                                       &btreeinfo);
 		break;
 	default:
 		return NULL;
 	}
 
 	if (!handle->main) {
-		fprintf(stderr, "Error opening %s databases\n", PDB_MAIN);
+		fprintf(stderr, "Error opening %s databases\n", pdb_main);
 		exit(1);
 	}
 
 	if (!handle->name) {
-		fprintf(stderr, "Error opening %s databases\n", PDB_NAME);
+		fprintf(stderr, "Error opening %s databases\n", pdb_name);
 		exit(1);
 	}
 	
@@ -110,13 +126,22 @@ PDB_HANDLE PDB_db_open(int mode)
 */
 int PDB_db_nextkey(PDB_HANDLE h, int *id)
 {
+#ifdef HAVE_NDBM
+#define R_FIRST		0
+#define R_NEXT		1
+#endif
 	static int which = R_FIRST;
-	DBT key;
+	db_data key, content;
+	u_int32_t uid;
         int rc;
 
-	memset(&key, 0, sizeof(DBT));
+	memset(&key, 0, sizeof(db_data));
 
-        rc = h->main->seq(h->main, &key, NULL, which);
+	if (which == R_FIRST) {
+	    db_first(h->main, &key, &content, rc);
+	} else {
+	    db_next(h->main, &key, &content, rc);
+	}
 
         if ( rc != RET_SUCCESS ) {
             which = R_FIRST;
@@ -125,10 +150,11 @@ int PDB_db_nextkey(PDB_HANDLE h, int *id)
 
         which = R_NEXT;
 
-        if ( key.size != 4 )
+        if ( key.db_datasize != 4 )
             return -1;
 
-        *id = ntohl(*(int *)(key.data));
+	memcpy(&uid, key.db_dataptr, sizeof(u_int32_t));
+        *id = NTOHL(uid);
 
 	return 1;
 }
@@ -138,113 +164,112 @@ void PDB_db_close(PDB_HANDLE h)
 {
 	CODA_ASSERT(h && h->name && h->main);
 
-	h->name->close(h->name);
-	h->main->close(h->main);
+	db_close(h->name);
+	db_close(h->main);
 	free(h);
 }
 
 void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid)
 {
-	DBT key, value;
+	db_data key, value;
 	char zero = 0;
-	int32_t *ids;
+	u_int32_t ids[2];
         int rc;
 
-	memset(&key, 0, sizeof(DBT));
-	key.size = sizeof(zero);
-	key.data = &zero;
+	memset(&key, 0, sizeof(db_data));
+	key.db_datasize = sizeof(zero);
+	key.db_dataptr = &zero;
 	
-	memset(&value, 0, sizeof(DBT));
+	memset(&value, 0, sizeof(db_data));
 
-        rc = h->main->get(h->main, &key, &value, 0);
+        db_get(h->main, &key, &value, 0, rc);
 
 	if ( rc != RET_SUCCESS) {
 		*uid = 0; 
 		*gid = 0;
 	} else {
-		CODA_ASSERT(value.size == 2*sizeof(int32_t));
-		ids = (int32_t *) value.data;
-		*uid = ntohl(ids[0]);
-		*gid = ntohl(ids[1]);
+		CODA_ASSERT(value.db_datasize == 2*sizeof(u_int32_t));
+		memcpy(ids, value.db_dataptr, 2*sizeof(u_int32_t));
+		*uid = NTOHL(ids[0]);
+		*gid = NTOHL(ids[1]);
 	}
 }
 
 
 void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 {
-	DBT key, value;
+	db_data key, value;
 	int rc;
 	char zero = 0;
 	int32_t olduid, oldgid;
-	int32_t ids[2];
+	u_int32_t ids[2];
+	u_int32_t init_ids[2] = { htonl(0), htonl(0) };
 	
 	CODA_ASSERT(uid >= 0 && gid <= 0);
 
-	memset(&key, 0, sizeof(DBT));
-	key.size = sizeof(zero);
-	key.data = &zero;
+	memset(&key, 0, sizeof(db_data));
+	key.db_datasize = sizeof(zero);
+	key.db_dataptr = &zero;
 
-	memset(&value, 0, sizeof(DBT));
+	memset(&value, 0, sizeof(db_data));
 	
-        rc = h->main->get(h->main, &key, &value, 0);
+        db_get(h->main, &key, &value, 0, rc);
 
 	if ( rc != RET_SUCCESS ) {
 		CODA_ASSERT( (uid == 0) && (gid == 0) );
-		ids[0] = htonl(0);
-		ids[1] = htonl(0);
+		memcpy(ids, init_ids, 2*sizeof(u_int32_t));
 	} else {
-		CODA_ASSERT(value.size == 2*sizeof(int32_t));
-		ids[0] = ((int32_t *)value.data)[0];
-		ids[1] = ((int32_t *)value.data)[1];
+		CODA_ASSERT(value.db_datasize == 2*sizeof(u_int32_t));
+		memcpy(ids, value.db_dataptr, 2*sizeof(u_int32_t));
 	}
-	olduid = ntohl(ids[0]);
-	oldgid = ntohl(ids[1]);
+	olduid = NTOHL(ids[0]);
+	oldgid = NTOHL(ids[1]);
 	CODA_ASSERT(olduid >= 0 || oldgid <= 0); 
 
 	if ( mode != PDB_MAXID_FORCE ) {
 		if (  uid > olduid )
-			ids[0] = htonl(uid);
+			ids[0] = HTONL(uid);
 		if (  gid < oldgid ) 
-			ids[1] = htonl(gid);
+			ids[1] = HTONL(gid);
 	}
 	else{
-		ids[0] = htonl(uid);
-		ids[1] = htonl(gid);
+		ids[0] = HTONL(uid);
+		ids[1] = HTONL(gid);
 	}
 
-	value.size = 2 * sizeof(int32_t);
-	value.data = (void *) &ids;
+	value.db_datasize = 2 * sizeof(u_int32_t);
+	value.db_dataptr = (char *) ids;
 
-        rc = h->main->put(h->main, &key, &value, 0);
+        rc = db_put(h->main, &key, &value, DB_PUT_FLAG);
 	CODA_ASSERT(rc == RET_SUCCESS);
 }
 
 void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 {
-	DBT namerec, mainrec, dbdata;
-	int32_t netid;
+	db_data namerec, mainrec, dbdata;
+	u_int32_t netid;
 	int rc;
 
 	CODA_ASSERT(id && name && data);
 
-	netid = htonl(id);
+	netid = HTONL(id);
 
-	memset(&mainrec, 0, sizeof(DBT));
-	mainrec.size = sizeof(netid);
-	mainrec.data = (char *)&netid;
+	memset(&mainrec, 0, sizeof(db_data));
+	mainrec.db_datasize = sizeof(netid);
+	mainrec.db_dataptr = (char *)&netid;
 
-	memset(&namerec, 0, sizeof(DBT));
-	namerec.size = strlen(name);
-	namerec.data = name;
+	memset(&namerec, 0, sizeof(db_data));
+	namerec.db_datasize = strlen(name);
+	namerec.db_dataptr = name;
 
-	memset(&dbdata, 0, sizeof(DBT));
-	dbdata.size = size;
-	dbdata.data = data;
+	memset(&dbdata, 0, sizeof(db_data));
+	dbdata.db_datasize = size;
+	dbdata.db_dataptr = data;
 
-        rc = h->main->put(h->main, &mainrec, &dbdata, 0);
+        rc = db_put(h->main, &mainrec, &dbdata, DB_PUT_FLAG);
 	CODA_ASSERT(rc == RET_SUCCESS);
 
-        rc = h->name->put(h->name, &namerec, &mainrec, 0);
+        rc = db_put(h->name, &namerec, &mainrec, DB_PUT_FLAG);
 	CODA_ASSERT(rc == RET_SUCCESS);
 
 	if (id > 0)
@@ -259,98 +284,107 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *data, size_t size)
 
 void PDB_db_read(PDB_HANDLE h, int32_t id, char *name, void **data,size_t *size)
 {
-	DBT key, value;
-	int32_t realid;
+	db_data key, value;
+	u_int32_t realid;
 	int rc;
 
-	realid = htonl(id);
+	realid = HTONL(id);
 	if ( name ) {
-		memset(&key, 0, sizeof(DBT));
-		key.size = strlen(name);
-		key.data = name; 
+		memset(&key, 0, sizeof(db_data));
+		key.db_datasize = strlen(name);
+		key.db_dataptr = name; 
 
-		memset(&value, 0, sizeof(DBT));
+		memset(&value, 0, sizeof(db_data));
 
-                rc = h->name->get(h->name, &key, &value, 0);
+                db_get(h->name, &key, &value, 0, rc);
 		if ( rc != RET_SUCCESS ) {
 			*data = NULL;
 			*size = 0;
 			return;
                 }
-		realid = *(int32_t *)value.data;
+		memcpy(&realid, value.db_dataptr, sizeof(u_int32_t));
 	}
 		
-	memset(&key, 0, sizeof(DBT));
-	key.size = sizeof(realid);
-	key.data = (char *)&realid;
+	memset(&key, 0, sizeof(db_data));
+	key.db_datasize = sizeof(realid);
+	key.db_dataptr = (char *)&realid;
 
-	memset(&value, 0, sizeof(DBT));
+	memset(&value, 0, sizeof(db_data));
 
-        rc = h->main->get(h->main, &key, &value, 0);
+        db_get(h->main, &key, &value, 0, rc);
         if ( rc != RET_SUCCESS ) {
 		*data = NULL;
 		*size = 0;
 		return;
         }
 
-	*data = malloc(value.size);
+	*data = malloc(value.db_datasize);
 	CODA_ASSERT(*data);
 
-	memcpy(*data, value.data, value.size);
-	*size = value.size;
+	memcpy(*data, value.db_dataptr, value.db_datasize);
+	*size = value.db_datasize;
 	return;
 }
 
 
 void PDB_db_delete(PDB_HANDLE h, int32_t id, char *name)
 {
-	DBT key; 
-	int32_t realid;
+	db_data key; 
+	u_int32_t realid;
 
-	realid = htonl(id);
+	realid = HTONL(id);
 
-	memset(&key, 0, sizeof(DBT));
-	key.size = sizeof(realid); 
-	key.data = (char *)&realid;
+	memset(&key, 0, sizeof(db_data));
+	key.db_datasize = sizeof(realid); 
+	key.db_dataptr = (char *)&realid;
 
-        h->main->del(h->main, &key, 0);
+        db_del(h->main, &key, 0);
 
 	if (!name) return;
 
-	memset(&key, 0, sizeof(DBT));
-	key.size = strlen(name); 
-	key.data = name;
+	memset(&key, 0, sizeof(db_data));
+	key.db_datasize = strlen(name); 
+	key.db_dataptr = name;
 
-        h->name->del(h->name, &key, 0);
+        db_del(h->name, &key, 0);
 }
 
 
 void PDB_db_delete_xfer(PDB_HANDLE h, char *name)
 {
-	DBT key;
+	db_data key;
 
 	CODA_ASSERT (name);
-	key.size = strlen(name); 
-	key.data = name;
+	key.db_datasize = strlen(name); 
+	key.db_dataptr = name;
 
-        h->name->del(h->name, &key, 0);
+        db_del(h->name, &key, 0);
 }
 
 
 int PDB_db_exists(void) 
 {
-	DB *db;
+	db_type *db;
 	int rc1, rc2;
 	struct stat buf;
-	DBT key, value;
+	db_data key, value;
 	char zero = 0;
 	int result;
-   
-	rc1 = stat(PDB_MAIN, &buf);
-	rc2 = stat(PDB_NAME, &buf);
+	char pdb_main[MAXPATHLEN] = PDB_MAIN;
+	char pdb_name[MAXPATHLEN] = PDB_NAME;
+	
+#ifdef HAVE_NDBM
+	strcat(pdb_main, ".dir");
+	strcat(pdb_name, ".dir");
+#else
+	strcat(pdb_main, ".db");
+	strcat(pdb_name, ".db");
+#endif   
+	rc1 = stat(pdb_main, &buf);
+	rc2 = stat(pdb_name, &buf);
 	if ( (rc1 && !rc2) || (!rc1 && rc2)) {
 		fprintf(stderr, "One of %s and %s exists, the other not;"
-			"please cleanup first\n", PDB_MAIN, PDB_NAME);
+			"please cleanup first\n", pdb_main, pdb_name);
 		exit(1);
 	}
 
@@ -361,21 +395,25 @@ int PDB_db_exists(void)
 	/* check the sanity */
 
 	/* this record has a special 1-byte key equal to zero */
-	memset(&key, 0, sizeof(DBT));
-	key.size = sizeof(zero);
-	key.data = &zero;
+	memset(&key, 0, sizeof(db_data));
+	key.db_datasize = sizeof(zero);
+	key.db_dataptr = &zero;
 
 	/* open the profile database in read mode */
-        db = dbopen(PDB_MAIN, O_RDONLY, 0600, DB_BTREE, &btreeinfo);
+#ifdef HAVE_NDBM
+        db = db_open(PDB_MAIN, O_RDONLY, 0600, DB_BTREE, &btreeinfo);
+#else
+        db = db_open(pdb_main, O_RDONLY, 0600, DB_BTREE, &btreeinfo);
+#endif
 	if(!db) {
 		fprintf(stderr, "Error opening %s: %s\n", 
-			PDB_MAIN, strerror(errno));
+			pdb_main, strerror(errno));
 		exit(1);
 	}
 
 	/* check if the record exists */
-        result = db->get(db, &key, &value, 0);
-        db->close(db);
+        db_get(db, &key, &value, 0, result);
+        db_close(db);
    
 	if ( result != RET_SUCCESS ) {
 		fprintf(stderr, 
@@ -398,15 +436,22 @@ void PDB_db_compact(PDB_HANDLE h)
 
 int PDB_setupdb(void)
 {
-	DB *dbmain, *dbname;
+	db_type *dbmain, *dbname;
 	PDB_HANDLE h;
+	char pdb_main[MAXPATHLEN] = PDB_MAIN;
+	char pdb_name[MAXPATHLEN] = PDB_NAME;
+	
+#ifndef HAVE_NDBM
+	strcat(pdb_main, ".db");
+	strcat(pdb_name, ".db");
+#endif   
 
 	if ( PDB_db_exists() ) 
 		return -EEXIST;
 	
-        dbmain = dbopen(PDB_MAIN, O_RDWR | O_CREAT | O_EXCL, 0600, DB_BTREE,
+        dbmain = db_open(pdb_main, O_RDWR | O_CREAT | O_EXCL, 0600, DB_BTREE,
                         &btreeinfo);
-        dbname = dbopen(PDB_NAME, O_RDWR | O_CREAT | O_EXCL, 0600, DB_BTREE,
+        dbname = db_open(pdb_name, O_RDWR | O_CREAT | O_EXCL, 0600, DB_BTREE,
                         &btreeinfo);
 
 	if ( !dbmain || !dbname ) {
@@ -414,8 +459,8 @@ int PDB_setupdb(void)
 		exit(1);
 	}
 
-        dbmain->close(dbmain);
-        dbname->close(dbname);
+        db_close(dbmain);
+        db_close(dbname);
 
 	h = PDB_db_open(O_WRONLY);
 	PDB_db_update_maxids(h, 0, 0, PDB_MAXID_FORCE);

@@ -24,8 +24,13 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdarg.h>
+#include "coda_string.h"
 #include <rpc2.h>
 #ifdef __cplusplus
 }
@@ -280,10 +285,10 @@ void recle::print(int fd) {
 	    serverid, storeid.Host, storeid.Uniquifier);
     write(fd, buf, (int) strlen(buf));
 
-    sprintf(buf, "    Directory(0x%lx.%lx)\n    Opcode: %s \n\0",
+    sprintf(buf, "    Directory(0x%lx.%lx)\n    Opcode: %s \n",
 	    dvnode, dunique, PRINTOPCODE(opcode));
     write(fd, buf, (int) strlen(buf));
-    sprintf(buf, "    index is %ld, sequence number %d, var length is %d\n\0",
+    sprintf(buf, "    index is %ld, sequence number %d, var length is %d\n",
 	    index, seqno, size);
     write(fd, buf, (int) strlen(buf));
 

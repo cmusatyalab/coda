@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 
 
 grep  backup VolumeList | awk '{ print $8 }'  | sed 's/^W//' > /tmp/parents

@@ -1,0 +1,33 @@
+This file is Readme.Solaris.
+
+The build and install was tested on Solaris 7 (SunOS 5.7) only!
+
+To build Coda on a Solaris system, you must first make sure
+that C/C++ compiler, perl, GNU make and readline are installed 
+on your machine. Beware! Solaris make wont' work!
+
+Solaris packages of gcc, perl and GNU make, which can simply be installed
+by pkgadd or admintool, can be downloaded from http://sunfreeware.com/.
+
+To intall readline:
+	get the readline tar.gz
+		ftp to ftp.gnu.org
+		cd /pub/gnu/readline
+		get readline-4.0.tar.gz
+		quit ftp.
+	tar xvzf readline-4.0.tar.gz
+	cd readline-4.0
+	./configure
+	make install
+
+Building Coda:
+
+1. tar xzf coda-5.?.?.tar.gz
+2. cd coda-5.?.?
+3. ./configure
+4. make
+5. make server-install
+6. make clean
+
+Phew...
+

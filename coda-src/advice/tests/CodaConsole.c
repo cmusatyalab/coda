@@ -16,9 +16,13 @@ listed in the file CREDITS.
 
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
-#include <strings.h>
+#include "coda_string.h";
 #include <ctype.h>
 
 #define CODACONSOLE "/coda/usr/mre/src/coda-src/console/CodaConsole"

@@ -56,6 +56,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -65,15 +69,10 @@ extern "C" {
 #include <pioctl.h>
 #include <sys/file.h>
 #include <errno.h>
-#include <string.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
-
-#ifdef sun
-/* XXXXX --- should convert to mem functions .... */
-char *index(const char *s, int c);
-#endif
 
 #ifdef __cplusplus
 }

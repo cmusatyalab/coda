@@ -38,10 +38,14 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -235,6 +239,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     EntriesInUse--;
 }
 
+#if 0
 static void PrintHashTable()
 {
     struct dllist_head *ptr;
@@ -261,7 +266,7 @@ static void PrintHashTable()
         printf("\n");
     }
 }
-
+#endif
 
 void rpc2_SetConnError(IN struct CEntry *ce)
 {

@@ -20,21 +20,21 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <unistd.h>
-#include <string.h>
-#ifdef __linux__
-#include <sys/vfs.h>
-#endif
-#ifdef  __BSD44__
+#include "coda_string.h"
+#include <sys/file.h>
+#include "coda_flock.h"
+#ifdef HAVE_SYS_STATVFS_H
+#include <sys/statvfs.h>
+#elif defined(HAVE_SYS_STATFS_H)
+#include <sys/statfs.h>
+#elif defined(HAVE_SYS_MOUNT_H)
 #include <sys/param.h>
 #include <sys/mount.h>
-#endif
-#include <sys/file.h>
-
-#ifdef sun
-#include <sys/statvfs.h>
-#include "sunflock.h"
 #endif
 
 #ifdef __cplusplus
@@ -175,7 +175,7 @@ DP_Find(Device devno)
 struct DiskPartition *
 DP_Get(char *name)
 {
-    struct DiskPartition *dp;
+    struct DiskPartition *dp = NULL;
     struct dllist_head *tmp;
 
     tmp = &DiskPartitionList;
@@ -198,12 +198,7 @@ DP_Get(char *name)
 void 
 DP_SetUsage(struct DiskPartition *dp)
 {
-#if defined(__CYGWIN32__) || defined(DJGPP) 
-    dp->free = 10000000;  /* free blocks for non s-users */
-    dp->totalUsable = 10000000; 
-    dp->minFree = 10;
-#else
-#if defined(sun)
+#if defined(HAVE_SYS_STATVFS_H)
     struct statvfs vfsbuf;
     int rc;
     int reserved_blocks;
@@ -220,7 +215,7 @@ DP_SetUsage(struct DiskPartition *dp)
     dp->totalUsable = vfsbuf.f_blocks - reserved_blocks; 
     dp->minFree = 100 * reserved_blocks / vfsbuf.f_blocks;
 
-#else
+#elif defined(HAVE_STATFS)
     struct statfs fsbuf;
     int rc;
     long reserved_blocks;
@@ -237,7 +232,10 @@ DP_SetUsage(struct DiskPartition *dp)
     dp->totalUsable = fsbuf.f_blocks - reserved_blocks; 
     dp->minFree = 100 * reserved_blocks / fsbuf.f_blocks;
 
-#endif
+#else
+    dp->free = 10000000;  /* free blocks for non s-users */
+    dp->totalUsable = 10000000; 
+    dp->minFree = 10;
 #endif
 }
 
@@ -281,7 +279,7 @@ DP_LockPartition(char *name)
     if (dp->lock_fd == -1) {
 	dp->lock_fd = open(dp->name, O_RDONLY, 0);
 	CODA_ASSERT(dp->lock_fd != -1);
-	CODA_ASSERT (flock(dp->lock_fd, LOCK_EX) == 0);
+	CODA_ASSERT (myflock(dp->lock_fd, MYFLOCK_EX, MYFLOCK_BL) == 0);
     }
 }
 

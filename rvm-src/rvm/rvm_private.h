@@ -32,9 +32,13 @@ Coda are listed in the file CREDITS.
 #define DEBUG 1
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include "coda_assert.h"
 #include "rvm.h"
 #include "rvm_statistics.h"

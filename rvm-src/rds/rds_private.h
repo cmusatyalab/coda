@@ -21,8 +21,12 @@ Coda are listed in the file CREDITS.
  * Internal type definitions for the Recoverable Dynamic Storage package.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifdef __STDC__
-#include <string.h>
+#include "coda_string.h"
 #include "coda_assert.h"
 #endif 
 

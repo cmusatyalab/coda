@@ -30,6 +30,10 @@ listed in the file CREDITS.
  *   M. Satyanarayanan, June 1990
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <stdio.h>
@@ -38,7 +42,7 @@ listed in the file CREDITS.
 #include <netinet/in.h>
 #include <time.h>
 #include <sys/time.h>
-#include <strings.h>
+#include "coda_string.h"
 #include <errno.h>
 
 #include <ports.h>

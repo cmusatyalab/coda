@@ -25,6 +25,8 @@ listed in the file CREDITS.
 #include <sys/file.h>                   /* for log, segment i/o */
 #include <errno.h>
 #include <sys/param.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <ctype.h>
 #include <stdio.h>                      /* not used for log, segment i/o */
 #include <signal.h>

@@ -21,21 +21,24 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#ifdef __linux__
-#include <netinet/in.h>
-#endif __linux__
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef HAVE_NETINET_IN_H
+#include <netinet/in.h>
+#endif
 
 #include "coda_assert.h"
 #include <dirent.h>
 
 #include <errno.h>
 #include <stdio.h>
-#include <strings.h>
-#include <string.h>
+#include "coda_string.h"
 
 #include <lwp.h>
 #include <rpc2.h>

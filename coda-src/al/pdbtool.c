@@ -28,12 +28,16 @@ listed in the file CREDITS.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include "pdb.h"
 #include <parser.h>
-#include <string.h>
+#include "coda_string.h"
 #include <coda_assert.h>
 
 /* Check if correct number of arguments,Too Few=1,Too Many=2,Just Right=0 */

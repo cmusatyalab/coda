@@ -16,8 +16,14 @@ Coda are listed in the file CREDITS.
 
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <rvm.h>
 #include "rvm_segment.h"
@@ -72,6 +78,7 @@ int overlap(nregions, regionDefs)
 
 #include <sys/types.h>
 #include <sys/mman.h>
+#include "coda_mmap_anon.h"
 #include <errno.h>
 #define ALLOCATE_VM_DEFINED
 
@@ -89,7 +96,9 @@ allocate_vm(addr, length)
 				     it's a location that we HAVE to
 				     be able to map to. */
 
-#ifdef __CYGWIN32__
+#ifdef HAVE_MMAP
+    mmap_anon(*addr, *addr, length, (PROT_READ | PROT_WRITE));
+#else
     {
       HANDLE hMap = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
                                       PAGE_READWRITE, 0, length, NULL);
@@ -100,21 +109,6 @@ allocate_vm(addr, length)
           *addr = (char *)-1;
       CloseHandle(hMap);
     }
-#else
-#ifdef sun
-    { int fd;
-      if ((fd = open("/dev/zero", O_RDWR)) == -1)
-	*addr = (char *)-1;
-      else {
-	*addr = mmap(*addr, length, (PROT_READ | PROT_WRITE),
-		     (MAP_PRIVATE | (*addr ? MAP_FIXED : 0)) , fd, 0);
-	(void) close(fd);
-      }
-    }
-#else
-    *addr = mmap(*addr, length, (PROT_READ | PROT_WRITE), 
-		 (MAP_PRIVATE | MAP_ANON), -1, 0);
-#endif
 #endif
 
     if (*addr == (char*)-1) {
@@ -151,12 +145,12 @@ deallocate_vm(addr, length)
 {
     rvm_return_t   ret = RVM_SUCCESS;
 
-#ifdef __CYGWIN32__
-    UnmapViewOfFile(addr);
-#else
+#ifdef HAVE_MMAP
     if (munmap(addr, length)) {
 	ret = RVM_EINTERNAL;
     }
+#else
+    UnmapViewOfFile(addr);
 #endif
 
     if (rvm_unregister_page(addr, length) == rvm_false) {

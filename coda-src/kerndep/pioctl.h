@@ -24,9 +24,16 @@ Coda are listed in the file CREDITS.
 #ifndef	_PIOCTL_H_
 #define _PIOCTL_H_
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <time.h>
 #include <sys/ioctl.h>
+#ifdef HAVE_SYS_IOCCOM_H
+#include <sys/ioccom.h>
+#endif
 #include <cfs/coda.h>
 
 /* WARNING: don't send more data than allowed by the CFS_MAXMSG size

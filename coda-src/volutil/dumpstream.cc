@@ -28,9 +28,14 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "coda_string.h"
 
 #include <lwp.h>
 #include <lock.h>
@@ -43,6 +48,9 @@ extern "C" {
 #include <vcrcommon.h>
 #include <cvnode.h>
 #include <volume.h>
+#ifdef PAGESIZE
+#undef PAGESIZE
+#endif
 #define PAGESIZE 2048	/* This is a problem, but can't inherit dirvnode.h */
 #include <dump.h>
 #include "dumpstream.h"

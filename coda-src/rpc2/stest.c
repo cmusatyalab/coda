@@ -38,8 +38,12 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/stat.h>
@@ -56,7 +60,6 @@ Pittsburgh, PA.
 
 #define SUBSYS_SRV 1001
 #define STESTSTACK 0x25000
-extern etext();
 extern long RPC2_Perror;
 extern long RPC2_DebugLevel;
 extern long SFTP_DebugLevel;
@@ -90,7 +93,7 @@ long VMMaxFileSize; /* length of VMFileBuf, initially 0 */
 long VMCurrFileSize; /* number of useful bytes in VMFileBuf */
 char *VMFileBuf;    /* for FILEINVM transfers */
 
-void main(argc, argv)
+int main(argc, argv)
     long argc;
     char *argv[];
 {
@@ -120,6 +123,8 @@ void main(argc, argv)
 	exit(-1);
     }
     HandleRequests(numLWPs++);
+    
+    return 0; /* make compiler happy */
 }
 
 /*

@@ -29,13 +29,16 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_parser.c,v 3.3 1998/09/07 15:57:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_parser.c,v 3.4 98/11/02 16:47:59 rvb Exp $";
 #endif /*_BLURB_*/
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 extern "C" {
 #include <stdio.h>
-#include <strings.h>
+#include "coda_string.h"
 #include <sys/param.h>
 #include <sysent.h>
 

@@ -38,14 +38,18 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <sys/socket.h>
-#ifdef sun
+#ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
-#endif 
+#endif
 #include <sys/socketvar.h>
 #include <sys/ioctl.h>
 #include <net/if.h>

@@ -17,8 +17,25 @@
 # 
 #*/
 
+echon() {
+    if [ -n "$echo_s" ]; then    
+        if (echo -n test; echo 1,2,3) | grep n >/dev/null; then
+            echo_n=
+            echo_c='\c'
+            echo_s=1             
+        else
+            echo_n=-n
+            echo_c=              
+            echo_s=1
+        fi
+    else
+        echo $echo_n "$@" $echo_c
+    fi
+}
 
-if [ -e /vice/srv.conf ]; then 
+# test on Solaris doesn't have a -e flag :-(
+# if [ -e /vice/srv.conf ]; then
+if [ -f /vice/srv.conf ]; then  
    grep '^\-rvm ' /vice/srv.conf
    if [ $? = 0 ]; then
        echo "You already have rvm parameters in srv.conf."
@@ -46,7 +63,7 @@ echo
 
 yesno=""
 until [ x$yesno != x ]; do
-   echo -n "Are you ready to set up RVM? [yes/no] "
+   echon "Are you ready to set up RVM? [yes/no] "
    read yesno
    if [  x$yesno = xyes  -o  x$yesno = xy ]; then
        echo ""
@@ -60,7 +77,7 @@ done
 # we need a size and partition for the log.
 #
 until [ x$log != x ]; do
-   echo -n "What is your log partition? "
+   echon "What is your log partition? "
    read log
 done
 
@@ -68,13 +85,13 @@ until [ x$logsize != x ]; do
     echo
     echo  "The log size must be smaller than you log partition."
     echo  "We recommend not more than 30M log size, and 2M is a good choice."
-    echo -n "What is your log size? (enter as e.g. '12M') "
+    echon "What is your log size? (enter as e.g. '12M') "
     read logsize
     echo
 done
 
 until [ x$data != x ]; do
-   echo -n "What is your data partition (or file)? "
+   echon "What is your data partition (or file)? "
    read data
 done
 
@@ -88,7 +105,7 @@ until [ x$datasize != x ]; do
     echo  "Pick one of the defaults, otherwise I will bail out"
     echo
     echo "What is the size of you data partition (or file)"
-    echo -n "[22M,44M, 90M, 130M, 200M, 315M]: "
+    echon "[22M,44M, 90M, 130M, 200M, 315M]: "
     read datasize 
 done
 
@@ -102,7 +119,7 @@ echo "  --- log area: $log, size $logsize."
 echo "  --- data area: $data, size $datasize."
 echo
 until [ x$answer != x ]; do
-    echo -n "Proceed, and wipe out old data? [y/n] "
+    echon "Proceed, and wipe out old data? [y/n] "
     answer=n
     read answer 
     if [  x$answer = xn -o x$answer = xno -o x$answer = xN -o x$answer = xNo ]; then

@@ -41,7 +41,6 @@ LIBTERMCAP    =
 INCREADLINE   = -I/usr/gnuwin32/include/readline
 #for rvm
 LIBTHREADS    =
-LIBMACH       = 
 LIBMATH       = 
 LIBDB         = -ldb
 GUIDIR        = /usr/lib/coda

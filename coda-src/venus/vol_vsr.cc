@@ -27,7 +27,11 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include <string.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "coda_string.h"
 
 #if    defined(__BSD44__)
 #include <sys/dkstat.h>

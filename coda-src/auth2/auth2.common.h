@@ -44,14 +44,4 @@ long Krb5GetSecret(char *hostname, char **identity, int *identitylen,
 long Krb5GetKeys(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);
 #endif
 
-#ifdef sun
-/* XXXXX --- should convert to mem functions .... */
-char *index(const char *s, int c);
-char *rindex(const char *s, int c);
-void  bzero(void *b, size_t len);
-void  bcopy(const void *src, void *dst, size_t len);
-
-int   inet_aton(const char *cp, struct in_addr *addr);
-#endif
-
 #endif

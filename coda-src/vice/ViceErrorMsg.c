@@ -50,6 +50,7 @@ extern "C" {
 
 #include <errno.h>
 #include <errors.h>
+#include "coda_string.h"
 
 #include <rpc2.h>
 
@@ -73,68 +74,8 @@ char *ViceErrorMsg(int errorCode)
 	case VNOSERVICE:	return("Volume is not in service");
 	case VOFFLINE:		return("Volume offline");
 	case VONLINE:		return("Volume is already online");
-	case EPERM:		return("Not owner");
-	case ENOENT:		return("No such file or directory");
-	case ESRCH:		return("No such process");
-	case EINTR:		return("Interupted system call");
-	case EIO:		return("I/O error");
-	case ENXIO:		return("No such device or address");
-	case E2BIG:		return("Argument list too long");
-	case ENOEXEC:		return("Exec format error");
-	case EBADF:		return("Bad file number");
-	case ECHILD:		return("No children");
-	case EAGAIN:		return("No more processes");
-	case ENOMEM:		return("Not enough storage");
-	case EACCES:		return("Permission denied");
-	case EFAULT:		return("Bad address");
-	case ENOTBLK:		return("Block device required");
-	case EBUSY:		return("Mount device busy");
-	case EEXIST:		return("File already exists");
-	case EXDEV:		return("Cross device link");
-	case ENODEV:		return("No such device");
-	case ENOTDIR:		return("Not a directory");
-	case EISDIR:		return("Is a directory");
-	case EINVAL:		return("Invalid argument");
-	case ENFILE:		return("File table overflow");
-	case EMFILE:		return("Too many open files");
-	case ENOTTY:		return("Not a typewriter");
-	case ETXTBSY:		return("Text file busy");
-	case EFBIG:		return("File too large");
-	case ENOSPC:		return("No space left on the device");
-	case ESPIPE:		return("Illegal seek");
-	case EROFS:		return("Read-only file system");
-	case EMLINK:		return("Too many links");
-	case EPIPE:		return("Broken pipe");
-	case EDOM:		return("Math argument");
-	case ERANGE:		return("Result too large");
-#ifdef __MACH__
-    case EWOULDBLOCK:	return("Operation would block");
-#endif
-	case EINPROGRESS:	return("Operation now in progress");
-	case EALREADY:		return("Operation already in progress");
-	case ENOTSOCK:		return("Socket operation on a non-socket");
-	case EDESTADDRREQ:	return("Destination address required");
-	case EMSGSIZE:		return("Message too long");
-	case EPROTONOSUPPORT:	return("Protocol not supported");
-	case EADDRINUSE:	return("Address already in use");
-	case EADDRNOTAVAIL:	return("Cannot assign requested address");
-	case ENETDOWN:		return("Network is down");
-#ifdef __MACH__
-	case ENETUNREACH:	return("Network is unreachable");
-	case ENETRESET:		return("Network dropped connection on reset");
-	case ECONNABORTED:	return("Software caused connection abort");
-	case ECONNRESET:	return("Connection reset by peer");
-	case ENOBUFS:		return("No buffer space available");
-	case EISCONN:		return("Socket is already connected");
-        case ENOTCONN:		return("Socket is not connected");
-#endif
-	case ESHUTDOWN:		return("Cannot send after socket shutdown");
-	case ETIMEDOUT:		return("Connection timed out");
-	case ECONNREFUSED:	return("Connection refused");
-	case ELOOP:		return("Too many levels of symbolic link");
-	case ENAMETOOLONG:	return("Name too long");
-	case ENOTEMPTY:		return("Directory not empty");
 	case EINCONS:		return("Inconsistent Object");
-	default:		return("Unknown error");
     }
+
+    return strerror(errorCode);
 }

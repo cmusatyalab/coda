@@ -26,10 +26,14 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include "coda_assert.h"
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <sys/param.h>
 
@@ -105,7 +109,7 @@ return CommandString;
 /* __BSD44__ */
 
 
-#elif __linux__
+#elif defined(__linux__) || defined(sun)
 
 // This is the Linux way to do this.  It ought to work for any other
 // operating system that has a /proc file system, but I haven't tested

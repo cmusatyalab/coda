@@ -25,8 +25,13 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include "coda_assert.h"
+#include "coda_string.h"
 #include <stdio.h>
 #include <struct.h>
 #include <lwp.h>
@@ -693,6 +698,9 @@ static int CoordPhase34(res_mgrpent *mgrp, ViceFid *Fid,
 
 // XXXXX adapted from dir.private.h
 #define MAXPAGES 128
+#ifdef PAGESIZE
+#undef PAGESIZE
+#endif
 #define PAGESIZE 2048
 
 static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VVGroup) {

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_unwind.c,v 3.6 1998/11/30 11:39:53 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/advice_unwind.c,v 3.7 1999/01/20 19:32:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -40,6 +40,10 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/
  *    Advice Vmon Daemon -- Data Spool Unwinder.
  */
 
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include "mondgen.h"
 #include "mond.h"
@@ -59,7 +63,8 @@ extern "C" {
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
-#include <strings.h>
+#include "coda_string.h"
+#include "scandir.h"
 #include <mach.h>
 #include "db.h"
 

@@ -33,11 +33,6 @@ extern "C" {
 #include <util.h>
 #include <rvmlib.h>
 
-#ifdef sun
-extern int sys_nerr;
-extern char **sys_errlist;
-#endif
-
 #include <volutil.h>
 #ifdef __cplusplus
 }
@@ -60,6 +55,7 @@ long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
 {
     ProgramType *pt;
     int rc = 0;
+    char *errstr;
     
     CODA_ASSERT(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
 
@@ -77,12 +73,11 @@ long S_VolMarkAsAncient(RPC2_Handle rpcid, VolumeId groupId, VolumeId repId)
     getlistfilename(newlistfile, groupId, repId, "ancient");
 
     if (rename(listfile, newlistfile) < 0) {
-#ifndef __CYGWIN32__
-	LogMsg(0, VolDebugLevel, stdout, "MarkAsAncient: rename %s->%s failed, %s", listfile, newlistfile,
-	    errno < sys_nerr? sys_errlist[errno]: "Cannot rename");
-#else
-LogMsg(0, VolDebugLevel, stdout, "MarkAsAncient: rename %s->%s failed.", listfile, newlistfile);
-#endif	VDisconnectFS();
+	errstr = strerror(errno);
+	LogMsg(0, VolDebugLevel, stdout,
+	       "MarkAsAncient: rename %s->%s failed, %s",
+	       listfile, newlistfile, errstr != NULL ? errstr: "Cannot rename");
+	VDisconnectFS();
 	return VFAIL;
     }
 

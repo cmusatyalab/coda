@@ -61,26 +61,142 @@ dnl Find an installed libdb-1.85
 dnl  cygwin and glibc-2.0 have libdb
 dnl  BSD systems have it in libc
 dnl  glibc-2.1 has libdb1 (and libdb is db2)
+dnl  Solaris systems have dbm in libc
 AC_SUBST(LIBDB)
 AC_DEFUN(CODA_CHECK_LIBDB185,
   AC_CHECK_LIB(db, dbopen, [LIBDB="-ldb"],
     [AC_CHECK_LIB(c, dbopen, [LIBDB=""],
-       [AC_MSG_ERROR("failed to find libdb")])])
+       [AC_CHECK_LIB(c, dbm_open, [],
+          [AC_MSG_ERROR("failed to find libdb")])])])
 
-  dnl Check if the found libdb is libdb2 using compatibility mode.
-  AC_MSG_CHECKING("if $LIBDB is libdb 1.85")
-  coda_save_LIBS="$LIBS"
-  LIBS="$LIBDB $LIBS"
-  AC_TRY_LINK([char db_open();], db_open(),
-    [AC_MSG_RESULT("no")
-     AC_CHECK_LIB(db1, dbopen, [LIBDB="-ldb1"],
-       dnl It probably will compile but it wont be compatible..
-       [AC_MSG_WARN([Found libdb2 instead of libdb 1.85. This uses])
-        AC_MSG_WARN([an incompatible disk file format and the programs])
-        AC_MSG_WARN([will not be able to read existing databases.])])
-	sleep 20
-     dnl In any case we should not be using db.h
-     AC_DEFINE(HAVE_DB_185_H)],
-    [AC_MSG_RESULT("yes")])
-  LIBS="$coda_save_LIBS")
+  if test "$ac_cv_lib_c_dbm_open" = yes; then
+    [AC_MSG_WARN([Found ndbm instead of libdb 1.85. This uses])
+     AC_MSG_WARN([an incompatible disk file format and the programs])
+     AC_MSG_WARN([will not be able to read replicated shared databases.])
+     sleep 5
+    AC_DEFINE(HAVE_NDBM)]
+  else
+    dnl Check if the found libdb is libdb2 using compatibility mode.
+    AC_MSG_CHECKING("if $LIBDB is libdb 1.85")
+    coda_save_LIBS="$LIBS"
+    LIBS="$LIBDB $LIBS"
+    AC_TRY_LINK([char db_open();], db_open(),
+      [AC_MSG_RESULT("no")
+       AC_CHECK_LIB(db1, dbopen, [LIBDB="-ldb1"],
+         dnl It probably will compile but it wont be compatible..
+         [AC_MSG_WARN([Found libdb2 instead of libdb 1.85. This uses])
+          AC_MSG_WARN([an incompatible disk file format and the programs])
+          AC_MSG_WARN([will not be able to read replicated shared databases.])])
+	  sleep 5
+       dnl In any case we should not be using db.h
+       AC_DEFINE(HAVE_DB_185_H)],
+      [AC_MSG_RESULT("yes")])
+    LIBS="$coda_save_LIBS"
+  fi)
+
+dnl check wether we have flock or fcntl
+AC_DEFUN(CODA_CHECK_FLOCK,
+  AC_CACHE_CHECK(for file locking by flock,
+    fu_cv_lib_c_flock,
+    [AC_TRY_COMPILE([#include <sys/file.h>
+#include <stdio.h>], [ int fd; flock(fd, LOCK_SH);],
+      fu_cv_lib_c_flock=yes,
+      fu_cv_lib_c_flock=no)])
+  if test $fu_cv_lib_c_flock = yes; then
+    AC_DEFINE(HAVE_FLOCK)
+  else
+    AC_CACHE_CHECK(for file locking by fcntl,
+      fu_cv_lib_c_fcntl,
+      [AC_TRY_COMPILE([#include <fcntl.h>
+#include <stdio.h>], [ int fd; struct flock lk; fcntl(fd, F_SETLK, &lk);],
+        fu_cv_lib_c_fcntl=yes,
+        fu_cv_lib_c_fcntl=no)])
+  fi
+  if test $fu_cv_lib_c_flock = no -a "$fu_cv_lib_c_fcntl" = no; then
+         AC_MSG_ERROR("failed to find flock or fcntl")
+  fi)
+
+dnl check wether bcopy is defined in strings.h
+AC_DEFUN(CODA_CHECK_BCOPY, 
+  AC_CACHE_CHECK(for bcopy in strings.h,
+    fu_cv_lib_c_bcopy,  
+    [AC_TRY_COMPILE([#include <stdlib.h>
+#include <strings.h>], 
+      [ char *str; str = (char *) malloc(5); (void) bcopy("test", str, 5);],
+      fu_cv_lib_c_bcopy=yes,
+      fu_cv_lib_c_bcopy=no)])
+  if test $fu_cv_lib_c_bcopy = yes; then
+    AC_DEFINE(HAVE_BCOPY_IN_STRINGS_H)
+  fi)
+
+dnl check wether we have setenv
+AC_DEFUN(CODA_CHECK_SETENV, 
+  AC_CACHE_CHECK(for setenv,
+    fu_cv_lib_c_setenv,  
+    [AC_TRY_LINK([#include <stdlib.h>], 
+      [ setenv("TEST", "test", 1);],
+      fu_cv_lib_c_setenv=yes,
+      fu_cv_lib_c_setenv=no)])
+  if test $fu_cv_lib_c_setenv = yes; then
+    AC_DEFINE(HAVE_SETENV)
+  fi)
+
+dnl check wether we have scandir
+AC_DEFUN(CODA_CHECK_SCANDIR, 
+  AC_CACHE_CHECK(for scandir,
+    fu_cv_lib_c_scandir,  
+    [AC_TRY_LINK([#include <stdlib.h>
+#include <dirent.h>], 
+      [ struct dirent **namelist; int n; n = scandir("/", &namelist, NULL, NULL);],
+      fu_cv_lib_c_scandir=yes,
+      fu_cv_lib_c_scandir=no)])
+  if test $fu_cv_lib_c_scandir = yes; then
+    AC_DEFINE(HAVE_SCANDIR)
+  else
+   AC_CACHE_CHECK(for d_namlen in dirent,
+    fu_cv_lib_c_dirent_d_namlen,
+    [AC_TRY_COMPILE([#include <dirent.h>],
+       [ struct dirent d; int n; n = (int) d.d_namlen; ],
+       fu_cv_lib_c_dirent_d_namlen=yes,
+       fu_cv_lib_c_dirent_d_namlen=no)])
+   if test $fu_cv_lib_c_dirent_d_namlen = yes; then
+      AC_DEFINE(DIRENT_HAVE_D_NAMLEN)
+   else
+     AC_CACHE_CHECK(for d_reclen in dirent,
+      fu_cv_lib_c_dirent_d_reclen,
+      [AC_TRY_COMPILE([#include <dirent.h>],
+         [ struct dirent d; int n; n = (int) d.d_reclen; ],
+         fu_cv_lib_c_dirent_d_reclen=yes,
+         fu_cv_lib_c_dirent_d_reclen=no)])
+     if test $fu_cv_lib_c_dirent_d_reclen = yes; then
+        AC_DEFINE(DIRENT_HAVE_D_RECLEN)
+     fi
+   fi
+  fi)
+
+dnl check wether we have inet_aton
+AC_DEFUN(CODA_CHECK_INET_ATON, 
+  AC_CACHE_CHECK(for inet_aton,
+    fu_cv_lib_c_inet_aton,  
+    [AC_TRY_LINK([#include <stdlib.h>
+#include <arpa/inet.h>], 
+      [ struct in_addr res; (void) inet_aton("255.255.255.255", &res);],
+      fu_cv_lib_c_inet_aton=yes,
+      fu_cv_lib_c_inet_aton=no)])
+  if test $fu_cv_lib_c_inet_aton = yes; then
+    AC_DEFINE(HAVE_INET_ATON)
+  fi)
+
+dnl check wether we have inet_ntoa
+AC_DEFUN(CODA_CHECK_INET_NTOA, 
+  AC_CACHE_CHECK(for inet_ntoa,
+    fu_cv_lib_c_inet_ntoa,  
+    [AC_TRY_LINK([#include <stdlib.h>
+#include <arpa/inet.h>], 
+      [ struct in_addr res; (void) inet_ntoa(res);],
+      fu_cv_lib_c_inet_ntoa=yes,
+      fu_cv_lib_c_inet_ntoa=no)])
+  if test $fu_cv_lib_c_inet_ntoa = yes; then
+    AC_DEFINE(HAVE_INET_NTOA)
+  fi)
 

@@ -20,6 +20,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -31,7 +35,7 @@ extern "C" {
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include <time.h>
 #include <unistd.h>
 

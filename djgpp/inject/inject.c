@@ -11,7 +11,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
-#include <string.h>
+#include "coda_string.h"
 #include <ctype.h>
 #include <cfs/coda.h>
 

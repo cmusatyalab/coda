@@ -15,7 +15,6 @@ LIBREADLINE   = /usr/pkg/lib/libreadline.a
 INCREADLINE   = -I/usr/pkg/include/readline
 #for rvm
 LIBTHREADS    =
-LIBMACH       = 
 #for advice_srv
 LIBKVM        = /usr/lib/libkvm.a
 

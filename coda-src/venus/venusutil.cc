@@ -34,6 +34,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -42,15 +46,10 @@ extern "C" {
 #include <errno.h>
 #include <stdarg.h>
 #include <math.h>
-#include <string.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <netdb.h>
-
-#ifdef sun
-extern int sys_nerr;
-extern char **sys_errlist;
-#endif
 
 #include <rpc2.h>
 /* interfaces */
@@ -410,15 +409,16 @@ char *IoctlOpStr(int opcode) {
 
 char *VenusRetStr(int retcode) {
     static char	buf[12];    /* This is shaky. */
+    char *errstr;
 
     if (retcode == 0) return("SUCCESS");
     if (retcode < 0) return(RPC2_ErrorMsg(retcode));
-#ifndef __CYGWIN32__
-    if (retcode < sys_nerr) return((char *)sys_errlist[retcode]);
-#endif
     if (retcode == ERETRY) return("Retry");
     if (retcode == EINCONS) return("Inconsistent");
-    snprintf(buf, 12, "%d", retcode); return(buf);
+    if ((errstr = strerror(retcode)) != NULL)
+	return errstr;
+    snprintf(buf, 12, "%d", retcode);
+    return(buf);
 }
 
 

@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 #ifdef __CYGWIN32__
     fprintf(stdout, "Local username: %s\n", getlogin());
 #else
-    fprintf(stdout, "Local uid: %d\n", getuid());
+    fprintf(stdout, "Local uid: %d\n", (int) getuid());
 #endif
 
     /* Get the tokens.  */

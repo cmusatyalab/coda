@@ -26,7 +26,7 @@ TOPOBJ = @TOPOBJ@
 include $(TOPDIR)/Makeconf
 
 # BSD platforms need libcompat.a for insque and deque
-RVMUTL_LIBS = ${LIBCOMPAT} ${LIBTHREADS} ${LIBMACH} ${LIBBASE} ${LIBFIXUP}
+RVMUTL_LIBS = ${LIBCOMPAT} ${LIBTHREADS} ${LIBBASE} ${LIBFIXUP}
 
 EXPHEADERS  = rvm.h rvm_statistics.h rvm_lwp.h rvm_private.h \
               rvm_pthread.h

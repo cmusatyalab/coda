@@ -49,8 +49,7 @@ NLIBS =	$(LIBIBERTY) \
 	$(LIBCODARVM) 	\
 	$(LIBRPC2) 	\
 	$(LIBOLDLWP)	\
-	$(LIBBASE)      \
-	$(LIBMACH)
+	$(LIBBASE)
 
 STD_LIBS = $(LIBCOMPAT)	\
 	$(LIBREADLINE)  \

@@ -16,6 +16,10 @@ listed in the file CREDITS.
 
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "coda_assert.h"
 #include <stdlib.h>
 #include <sys/param.h>
@@ -25,6 +29,7 @@ listed in the file CREDITS.
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>

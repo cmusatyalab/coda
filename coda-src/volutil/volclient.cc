@@ -32,6 +32,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -44,6 +48,7 @@ extern "C" {
 
 #include <unistd.h>
 #include <stdlib.h>
+#include "coda_string.h"
 
 #include <lwp.h>
 #include <lock.h>
@@ -523,18 +528,23 @@ static void clone()
     exit(0);
 }
 
+#ifndef NDEBUG
 static void printSFTPstats()
 {
-    printf("Sent: Total %ld, Starts %ld, Datas %ld, Retries %ld\n", sftp_Sent.Total,
-	   sftp_Sent.Starts, sftp_Sent.Datas, sftp_Sent.DataRetries);
+    printf("Sent: Total %ld, Starts %ld, Datas %ld, Retries %ld\n",
+	   sftp_Sent.Total, sftp_Sent.Starts, sftp_Sent.Datas,
+	   sftp_Sent.DataRetries);
     printf("Sent: Acks %ld, Naks %ld, Busies %ld, Bytes %ld, Timeouts \n",
 	   sftp_Sent.Acks, sftp_Sent.Naks, sftp_Sent.Busies, sftp_Sent.Bytes);
 
-    printf("Recvd: Total %ld, Starts %ld, Datas %ld, Retries %ld\n", sftp_Recvd.Total,
-	   sftp_Recvd.Starts, sftp_Recvd.Datas, sftp_Recvd.DataRetries);
+    printf("Recvd: Total %ld, Starts %ld, Datas %ld, Retries %ld\n",
+	   sftp_Recvd.Total, sftp_Recvd.Starts, sftp_Recvd.Datas,
+	   sftp_Recvd.DataRetries);
     printf("Recvd: Acks %ld, Naks %ld, Busies %ld, Bytes %ld, Timeouts \n",
-	   sftp_Recvd.Acks, sftp_Recvd.Naks, sftp_Recvd.Busies, sftp_Recvd.Bytes);
+	   sftp_Recvd.Acks, sftp_Recvd.Naks, sftp_Recvd.Busies,
+	   sftp_Recvd.Bytes);
 }
+#endif
 
 /*
   BEGIN_HTML
@@ -617,7 +627,7 @@ static void VolDumpLWP(struct rockInfo *rock)
     myfilter.ConnOrSubsys.SubsysId = VOLDUMP_SUBSYSTEMID;
 
     while (1) {
-	rc=RPC2_GetRequest(&myfilter, &mycid, &myrequest, NULL, NULL, NULL, NULL);
+	rc=RPC2_GetRequest(&myfilter, &mycid, &myrequest, NULL, NULL, 0, NULL);
 	if (rc == RPC2_SUCCESS) {
 	    rc = volDump_ExecuteRequest(mycid, myrequest, NULL);
 	    if (rc) {

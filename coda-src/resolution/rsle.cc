@@ -23,9 +23,14 @@ listed in the file CREDITS.
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdarg.h>
-#include <strings.h>
+#include "coda_string.h"
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -461,10 +466,10 @@ void rsle::print(FILE *fp){
 void rsle::print(int fd) {
     char buf[512];
     sprintf(buf, 
-	    "index 0x%x seqno %d stid 0x%lx.%lx\nDir (0x%lx.%lx)\nopcode %s\n\0",
+	    "index 0x%x seqno %d stid 0x%lx.%lx\nDir (0x%lx.%lx)\nopcode %s\n",
 	    index, seqno, storeid.Host, storeid.Uniquifier, dvn, du, 
 	    PRINTOPCODE(opcode));
-    write(fd, buf, (int)strlen(buf));
+    write(fd, buf, strlen(buf));
     switch (opcode) {
       case ResolveViceNewStore_OP:
       case RES_NewStore_OP:

@@ -48,14 +48,14 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <signal.h>
 #include <sys/time.h>
-#ifdef sun
-#include "/usr/ucbinclude/sys/wait.h"
-#else
-#include <sys/wait.h>
-#endif
+#include "coda_wait.h"
 #include <stdlib.h>
 
 #ifdef __cplusplus

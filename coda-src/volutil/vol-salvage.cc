@@ -64,6 +64,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/file.h>
@@ -71,10 +75,9 @@ extern "C" {
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/time.h>
-
-#ifdef sun
-#include "sunflock.h"
-#endif
+#include "coda_string.h"
+#include <fcntl.h>
+#include "coda_flock.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -1154,6 +1157,7 @@ static int AskOnline(VolumeId volumeId)
     return (0);
 }
 
+#ifndef NDEBUG
 /* Prints out a list of all inodes into the Log */
 static void PrintInodeList() {
     register struct ViceInodeInfo *ip;
@@ -1177,6 +1181,8 @@ static void PrintInodeList() {
     }
     free((char *)buf);
 }
+#endif
+
 /* release file server and volume utility locks (for full salvage only) */
 static void release_locks(int volUtil) {
     int fslock;
@@ -1186,7 +1192,7 @@ static void release_locks(int volUtil) {
     }
     fslock = open(Vol_vicefile("vol/fs.lock"), O_CREAT|O_RDWR, 0666);
     CODA_ASSERT(fslock >= 0);
-    if (flock(fslock, LOCK_UN) != 0) {
+    if (myflock(fslock, MYFLOCK_UN, MYFLOCK_BL) != 0) {
 	VLog(0, "release_locks: unable to release file server lock");
     }
     else {
@@ -1196,7 +1202,7 @@ static void release_locks(int volUtil) {
 
     fslock = open (Vol_vicefile("vol/volutil.lock"), O_CREAT|O_RDWR, 0666);
     CODA_ASSERT(fslock >= 0);
-    if (flock(fslock, LOCK_UN) != 0) {
+    if (myflock(fslock, MYFLOCK_UN, MYFLOCK_BL) != 0) {
 	VLog(0, "release_locks: unable to release volume utility lock");
     }
     else {

@@ -29,7 +29,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header$";
+#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/Makefile.in,v 3.3 95/10/09 19:26:33 satya Exp $";
 #endif /*_BLURB_*/
 
 
@@ -47,8 +47,6 @@ CFLAGS= $(CFLAGS) -DVERSION_CONTROL -DMOND -I$(SCYLLADIR)/incl
 RPCLIBS= $(LIBRPC2) $(LIBOLDLWP)
 
 LIBS= $(LIBUTIL)
-
-MACHLIBS= -lmach
 
 SCYLLALIBS=$(SCYLLADIR)/lib/libsql.a		\
 	$(SCYLLADIR)/lib/libutil.a		\
@@ -77,16 +75,16 @@ mondmon: mondmon.o
 	${CC} ${CFLAGS} -o mondmon ${MONDMONOBJS} ${LIBS}
 
 mond: ${MONDOBJS} ${HEADERS} ${RPC2HEADERS} dummy.o
-	${CC} ${CFLAGS} $(LIBFLAGS) -o mond ${MONDOBJS} ${RPCLIBS} ${LIBS} ${MACHLIBS} dummy.o
+	${CC} ${CFLAGS} $(LIBFLAGS) -o mond ${MONDOBJS} ${RPCLIBS} ${LIBS} dummy.o
 
 mond.plumber: ${MONDOBJS} ${HEADERS} ${RPC2HEADERS} ${LIBPLUMBER} ${LIBNEWPLUMBER}
-	${CC} ${CFLAGS} $(LIBFLAGS) -o mond.plumber ${MONDOBJS} ${RPCLIBS} ${LIBS} ${MACHLIBS} ${LIBPLUMBER} ${LIBNEWPLUMBER}
+	${CC} ${CFLAGS} $(LIBFLAGS) -o mond.plumber ${MONDOBJS} ${RPCLIBS} ${LIBS} ${LIBPLUMBER} ${LIBNEWPLUMBER}
 
 unwind: ${UNWINDOBJS} ${HEADERS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS}
-	${CC} ${CFLAGS} $(LIBFLAGS) -o unwind ${UNWINDOBJS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS} ${MACHLIBS}
+	${CC} ${CFLAGS} $(LIBFLAGS) -o unwind ${UNWINDOBJS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS}
 
 advice_unwind: ${ADVICEUNWINDOBJS} ${HEADERS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS} 
-	${CC} ${CFLAGS} $(LIBFLAGS) -o advice_unwind ${ADVICEUNWINDOBJS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS} ${MACHLIBS}
+	${CC} ${CFLAGS} $(LIBFLAGS) -o advice_unwind ${ADVICEUNWINDOBJS} ${SCYLLALIBS} ${RPCLIBS} ${LIBS}
 
 parselog: ${PARSELOGOBJS} ${HEADERS} ${LIBS}
 	${CC} ${CFLAGS} -o parselog ${PARSELOGOBJS} ${LIBS}

@@ -20,9 +20,12 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "coda_assert.h"
-#include <strings.h>
-#include <string.h>
+#include "coda_string.h"
 
 #ifdef __cplusplus
 }

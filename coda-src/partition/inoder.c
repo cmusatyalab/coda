@@ -16,7 +16,11 @@ listed in the file CREDITS.
 
 #*/
 
-#include <string.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "coda_string.h"
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>

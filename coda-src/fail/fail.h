@@ -31,9 +31,7 @@ listed in the file CREDITS.
 #include <netinet/in.h>
 #include <lwp.h>
 #include <rpc2.h>
-#ifdef sun
 #include <netdb.h>
-#endif
 #include "fcon.h"
 
 #ifndef MAXNAMELEN

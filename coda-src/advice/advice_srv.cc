@@ -28,6 +28,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <unistd.h>
 #include <stdlib.h>
 
@@ -35,17 +39,12 @@ extern "C" {
 #include <sys/param.h>
 #include <sys/time.h>
 #include "coda_assert.h" 
+#include "coda_wait.h"
 #include <struct.h>
-#ifdef sun
-#include "/usr/ucbinclude/sys/wait.h"
-#else
-#include <sys/wait.h> 
-#endif
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <pwd.h>
 #include <errno.h>
-#include <strings.h>
 #include <lock.h>
 #include <lwp.h>
 #include <rpc2.h>
@@ -339,32 +338,25 @@ void UserDrivenEvent(int code) {
 
 // Handler for SIGCHLD (to collect result of ASRs)
 void Child(int code) { 
-  union wait status;            /* so we can explain what happend */
+  int status;                 /* so we can explain what happend */
   int pid;                      /* process id */
   int doneone = 0;
 
   LogMsg(1000,LogLevel,LogFile,"Child: SIGCHLD event, code = %d", code);
   
   do {                          /* in case > 1 kid died  */
-#ifdef __BSD44__
-    pid = wait3(&status.w_status, WNOHANG,(struct rusage *)0);
-#endif
-#ifdef __linux__
     pid = wait3(&status, WNOHANG,(struct rusage *)0);
-#endif
-#ifdef __CYGWIN32__
-    pid = wait(&status.w_status);
-#endif
+
     if ( pid == interfacePID ) {
 	    fprintf(stderr, "Tixwish died; exiting\n");
 	    exit(1);
     }
     if (pid>0) {                        /* was a child to reap  */
       LogMsg(100,LogLevel,LogFile,"Child: Child %d died, rc=%d, coredump=%d, termsig=%d",
-	     pid, status.w_retcode, status.w_coredump, status.w_termsig);
+	     pid, WEXITSTATUS(status), WCOREDUMP(status), WTERMSIG(status));
 
       doneone=1;
-      CHILDresult = status.w_retcode;
+      CHILDresult = WEXITSTATUS(status);
       if (pid == childPID) {
 	if (ReconnectionQuestionnaireInProgress == 1) {
 	  LogMsg(100,LogLevel,LogFile, "Child Signal Handler: Reconnection Questionnaire finished.\n");

@@ -28,6 +28,11 @@ listed in the file CREDITS.
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -35,18 +40,11 @@ extern "C" {
 
 #include <unistd.h>
 #include <stdlib.h>
+#include "coda_string.h"
 
 #include <struct.h>
-
 #include <ctype.h>
-#ifdef __MACH__
-#include <nlist.h>
-/* nlist.h defines this function but it isnt getting included because it is
-   guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
-extern int nlist(const char*, struct nlist[]);
-#endif
     
-#include <string.h>
 #include <sys/param.h>
 #include <lwp.h>
 #include <lock.h>

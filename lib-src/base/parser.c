@@ -20,10 +20,14 @@ Coda are listed in the file CREDITS.
 extern "C" {
 #endif /* __cplusplus */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
+#include "coda_string.h"
 #include <stddef.h>
 #include <sys/param.h>
 #include "coda_assert.h"
@@ -61,24 +65,40 @@ static char *command_generator(char *text, int state);
 static char **command_completion(char *text, int start, int end);
 static void print_commands(char *str, command_t *table);
 
+#if 1
 static char * skipwhitespace(char * s) 
 {
     char * t;
     int    len;
-
+    
     len = (int)strlen(s);
+    
     for (t = s; t <= s + len && isspace(*t); t++);
     return(t);
 }
 
-
 static char * skiptowhitespace(char * s) 
 {
     char * t;
-
+    
     for (t = s; *t && !isspace(*t); t++);
     return(t);
 }
+
+#else
+
+char * skipwhitespace(char *a) {
+   while (*a != '\0' && isspace(*a))
+	a++;
+   return a;
+}
+
+char * skiptowhitespace(char *a) {
+   while (*a != '\0' && !isspace(*a))
+	a++;
+   return a;
+}
+#endif
 
 int line2args(char *line, char **argv, int maxargs)
 {

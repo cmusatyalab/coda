@@ -57,6 +57,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
@@ -67,12 +71,9 @@ extern "C" {
 #include <stdarg.h>
 #include "coda_assert.h"
 #include <signal.h>
-#include <string.h>
 #include <fcntl.h>
-
-#ifdef sun
-#include "sunflock.h"
-#endif
+#include "coda_string.h"
+#include "coda_flock.h"
 
 #include <lwp.h>
 #include <lock.h>
@@ -334,7 +335,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 	    perror("open for directory failed");
 	    fd = 0;
 	} else {
-	    flock(fd, LOCK_SH);
+	    myflock(fd, MYFLOCK_SH, MYFLOCK_BL);
 	}
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = SMARTFTP;
@@ -368,7 +369,7 @@ long UpdateFetch(RPC2_Handle RPCid, RPC2_String FileName,
 
 Final:
     if(fd) {
-	flock(fd, LOCK_UN);
+	myflock(fd, MYFLOCK_UN, MYFLOCK_BL);
 	close(fd);
     }
     gettimeofday(&tp, &tsp);

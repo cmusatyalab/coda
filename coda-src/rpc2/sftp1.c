@@ -46,13 +46,17 @@ Pittsburgh, PA.
 */
 
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#ifdef sun
+#ifdef HAVE_SYS_STREAM_H
 #include <sys/stream.h>
 #endif
 #include <sys/socketvar.h>
@@ -60,6 +64,7 @@ Pittsburgh, PA.
 #include <netdb.h>
 #include <errno.h>
 #include "coda_assert.h"
+#include "coda_string.h"
 #include "lwp.h"
 #include "timer.h"
 #include "rpc2.h"

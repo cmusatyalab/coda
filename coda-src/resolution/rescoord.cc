@@ -31,6 +31,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include "coda_assert.h"
 #include <stdio.h>
@@ -39,6 +43,7 @@ extern "C" {
 #include <rpc2.h>
 #include <util.h>
 #include <codadir.h>
+#include "coda_string.h"
 
 #ifdef __cplusplus
 }

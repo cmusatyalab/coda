@@ -35,12 +35,8 @@ extern "C" {
 #include <stdio.h>
 #include <parser.h>
 #include <limits.h>
-#ifdef __MACH__
-#include <sysent.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <lwp.h>
 #include <lock.h>
@@ -54,6 +50,9 @@ extern "C" {
 #include <vcrcommon.h>
 #include <cvnode.h>
 #include <volume.h>
+#ifdef PAGESIZE
+#undef PAGESIZE
+#endif
 #define PAGESIZE 2048	/* This is a problem, but can't inherit dirvnode.h */
 #include "dump.h"
 #include "dumpstream.h"

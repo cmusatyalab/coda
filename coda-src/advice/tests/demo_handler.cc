@@ -18,13 +18,17 @@ listed in the file CREDITS.
 
 extern "C" {
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include "coda_assert.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h";
 #include <stdlib.h>
 #include <unistd.h>
 

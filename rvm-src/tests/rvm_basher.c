@@ -22,11 +22,15 @@ listed in the file CREDITS.
 *
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include <string.h>
+#include "coda_string.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
@@ -69,23 +73,6 @@ listed in the file CREDITS.
 #else /* RVM_USELWP */ /* special thread support for Coda */
 #include "rvm_lwp.h"
 #endif /* RVM_USELWP */
-
-#if 0
-extern int errno;
-#ifdef	__linux__
-#if !defined(__GLIBC__) || __GLIBC__ < 2
-extern char *sys_errlist[]; /* XXX JET MUCKING */
-#endif
-#else
-extern const char *const sys_errlist[]; /* XXX JET MUCKING */
-#endif
-#endif
-
-#ifdef sun
-extern char *sys_errlist[]; /* XXX Is it there? */
-#endif
-
-extern int sys_nerr;
 
 extern rvm_region_def_t *RegionDefs;    /* hooks to rds */
 extern long NRegionDefs;
@@ -1385,10 +1372,9 @@ void set_data_file()
 
     /* get length of segment if partition specified */
     if (stat(DataFileName, &sbuf) < 0) 
-        {
-	printf("%s\n", errno < sys_nerr
-               ? sys_errlist[errno]
-               : "Cannot stat data file");
+    {
+	char *errstr = strerror(errno);
+	printf("%s\n", errstr != NULL ? errstr : "Cannot stat data file");
         DataFileName[0] = '\000';
 	return;
         }

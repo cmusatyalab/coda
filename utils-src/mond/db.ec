@@ -3,6 +3,10 @@
 ** is unhappy with code produced by esql.
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/time.h>
@@ -11,7 +15,7 @@
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include "rpc2.h"
 #include "lwp.h"
 $include sqlca;

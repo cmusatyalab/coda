@@ -142,14 +142,9 @@ _returnto:
 #else
 #ifdef sun	
 /* Solaris */
-#define STACK_ALIGN 8
-#define WINDOWSIZE (4*16)
-#define ARGPUSHSIZE (6*4)
-#define MINFRAME  (WINDOWSIZE+ARGPUSHSIZE+4) /* min frame */
-#define SA(X)     (((X)+(STACK_ALIGN-1)) & ~(STACK_ALIGN-1))
 #define NAME(x) x
 #define FUNCTION  #function	
-#define ENTRY(x) .type x,FUNCTION; .global x; x:
+#include <sys/asm_linkage.h>
 #include <sys/trap.h>
 #else	
 #include <sun4/asm_linkage.h>

@@ -18,9 +18,13 @@ listed in the file CREDITS.
 
 /* structure management for an RPC2 portmapper */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/types.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include "coda_assert.h"
 #include <netinet/in.h>
 

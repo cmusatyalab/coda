@@ -22,10 +22,14 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h";
 #include <struct.h>
 
 #include <lwp.h>

@@ -19,10 +19,14 @@ listed in the file CREDITS.
     tokentool.c -- generate Coda-tokens on the fly
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <sys/param.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "coda_string.h"
 #include <rpc2.h>
 #include "auth2.h"
 #include "tokenfile.h"
@@ -61,7 +65,7 @@ char *read_string(char *question)
     return resp;
 }
 
-void main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     int   viceid;
     int   duration;
@@ -121,4 +125,5 @@ void main(int argc, char **argv)
 
     free(tokenkey);
     free(filename);
+    return 0;
 }

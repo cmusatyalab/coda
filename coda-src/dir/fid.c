@@ -16,8 +16,12 @@ listed in the file CREDITS.
 
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/types.h>
 #include <sys/time.h>
 #include <netinet/in.h>

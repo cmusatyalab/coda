@@ -40,8 +40,10 @@ listed in the file CREDITS.
 */
    
 #define REPAIR_MAX 5  /* Max no of integer parms for a repair entry */
+#ifndef MAXNAMELEN
 #define MAXNAMELEN 255 /* Max len of pathname component: should this be defined 
                           somewhere in /usr/include/sys? */
+#endif
 
 struct repair
     {

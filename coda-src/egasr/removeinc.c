@@ -26,11 +26,15 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <strings.h>
+#include "coda_string.h"
 #include "coda_assert.h"
 #include <errno.h>
 #include <venusioctl.h>
@@ -91,7 +95,7 @@ int IsObjInc(char *name, ViceFid *fid)
     return(1);
 }
 
-void main(int argc, char **argv) 
+int main(int argc, char **argv) 
 {
 	ViceFid fid;
 	char tmpfname[80];

@@ -39,15 +39,14 @@ supported by Transarc Corporation, Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <errno.h>
 #include <stdarg.h>

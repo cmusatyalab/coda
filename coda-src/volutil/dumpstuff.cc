@@ -42,6 +42,10 @@ Pittsburgh, PA.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <ctype.h>
 #include <sys/param.h>
 #include <errno.h>
@@ -50,6 +54,7 @@ extern "C" {
 #include <sys/file.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "coda_string.h"
 
 #include <lwp.h>
 #include <lock.h>

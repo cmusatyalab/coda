@@ -45,6 +45,22 @@ MAXSERVERS=8
 PARTITION=$3
 VSGADDR=$2
 
+echon() {
+    if [ -n "$echo_s" ]; then    
+        if (echo -n test; echo 1,2,3) | grep n >/dev/null; then
+            echo_n=
+            echo_c='\c'
+            echo_s=1             
+        else
+            echo_n=-n
+            echo_c=              
+            echo_s=1
+        fi
+    else
+        echo $echo_n "$@" $echo_c
+    fi
+}
+
 #
 # Create these files if they don't already exist.
 touch /vice/vol/AllVolumes
@@ -90,7 +106,7 @@ done
 
 # Allocate a new groupid if necessary
 if  [ $# = 3 ]; then
-	if  [ -e /vice/vol/maxgroupid ]; then
+	if  [ -f /vice/vol/maxgroupid ]; then
 		GROUPID=`cat /vice/vol/maxgroupid`
 
 		case x`uname` in
@@ -166,12 +182,12 @@ echo "<echo $ENTRY >> /vice/vol/VRList>"
 echo $ENTRY >> /vice/vol/VRList
 volutil makevrdb /vice/vol/VRList
 
-echo -n "Do you wish this volume to be Backed Up (y/n)? [n] "
+echon "Do you wish this volume to be Backed Up (y/n)? [n] "
 
 read _ans_
 
 if  [ x$_ans_ = xy -o x$_ans_ = xyes ]; then
-    echo -n "Day to take full dumps: [Mon] "
+    echon "Day to take full dumps: [Mon] "
 
     read day
 

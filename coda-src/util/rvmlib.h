@@ -24,7 +24,11 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
-#include <string.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "coda_string.h"
 #include <rvm.h>
 #include <unistd.h>
 #include <stdlib.h>

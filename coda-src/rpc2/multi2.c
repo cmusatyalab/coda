@@ -47,8 +47,12 @@ Pittsburgh, PA.
  * routine which gets its type information from definitions in RP2GEN
  * generated include files and client side interface.  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
-#include <string.h>
+#include "coda_string.h"
 #include <sys/file.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -673,7 +677,7 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
     args = ArgInfo->Args;
     if (ArgInfo->HandleResult)
 	ret = mkcall(ArgInfo->HandleResult, ArgInfo->ArgCount, HowMany,
-		     ConnHandleList, offset, rpcval, args);
+		     ConnHandleList, offset, rpcval, (int *)args);
     else ret = 0;
     if (rspbuffer != NULL) {
 	RPC2_FreeBuffer(&rspbuffer);

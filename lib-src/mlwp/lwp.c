@@ -37,18 +37,31 @@ Pittsburgh, PA.
 
 */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
+#include "coda_string.h"
 #include <stdio.h>
 #include "coda_assert.h"
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #ifdef __CYGWIN32__
 #include <time.h>
 #endif
 
 #include <sys/param.h>
 #include <sys/mman.h>
+#include "coda_mmap_anon.h"
+
+/* for netbsd 1.3 and libc5 */
+#ifndef	MAP_FAILED
+#define MAP_FAILED      ((void *) -1)
+#endif
 
 #include "lwp.h"
 #include "lwp.private.h"
@@ -67,7 +80,18 @@ Pittsburgh, PA.
 #define	 LWPANCHOR  (*lwp_init)
 #define	 MAX_PRIORITIES	(LWP_MAX_PRIORITY+1)
 
+/* simple test, we normally want to mmap our stacks whenever possible, except
+ * when we compile venus for Win95 */
+#undef MMAP_LWP_STACKS
+#if defined(HAVE_MMAP) && !defined(DJGPP)
+#define MMAP_LWP_STACKS 1
 
+#ifdef __BSD44__
+char *lwp_stackbase = (char *)0x45000000;
+#else
+char *lwp_stackbase = (char *)0x15000000;
+#endif
+#endif /* MMAP_LWP_STACKS */
 
 struct QUEUE {
     PROCESS	head;
@@ -525,20 +549,13 @@ int LWP_QSignal(register PROCESS pid)
     else return LWP_ENOWAIT;
 }
 
-#ifdef __linux__
-char *lwp_stackbase = (char *)0x15000000;
-#endif
-#ifdef __BSD44__
-char *lwp_stackbase = (char *)0x45000000;
-#endif
-
 int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm, 
 		      char *name, PROCESS *pid)
 {
 
     PROCESS temp, temp2;
     char *stackptr;
-#if defined(__linux__) || defined(__BSD44__)
+#ifdef MMAP_LWP_STACKS
     int pagesize;
 #endif
 
@@ -555,13 +572,11 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 	    stacksize = 1000;
 	else
 	    stacksize = 4 * ((stacksize+3) / 4);
-#if defined(__linux__) || defined(__BSD44__)
+
+#ifdef MMAP_LWP_STACKS
 	pagesize = getpagesize();
-	stackptr = (char *) mmap(lwp_stackbase, stacksize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-#ifndef	MAP_FAILED
-	/* for netbsd 1.3 and libc5 */
-#define MAP_FAILED      ((void *) -1)
-#endif
+	mmap_anon(stackptr, lwp_stackbase, stacksize, PROT_READ | PROT_WRITE);
+
 	if ( stackptr == MAP_FAILED ) {
 		perror("stack: ");
 		CODA_ASSERT(0);
@@ -570,8 +585,10 @@ int LWP_CreateProcess(PFIC ep, int stacksize, int priority, char *parm,
 	sprintf(msg, "STACK: from %p to %p, for %s\n", lwp_stackbase, lwp_stackbase + stacksize, name);
 	write(2, msg, strlen(msg));
 #endif
+
 	lwp_stackbase += ((stacksize/pagesize) + 2) * pagesize;
-#else
+
+#else /* !defined(MMAP_LWP_STACKS) */
 	stackptr = (char *) malloc(stacksize);
 #endif
 	if (stackptr == NULL) {
@@ -878,7 +895,7 @@ static void Dump_One_Process(pid, fp, dofree)
 	fprintf(fp,"***LWP: HWM stack usage: ");
 	fprintf(fp,"%d\n", Stack_Used(pid->stack,pid->stacksize));
 	if (dofree == FREE_STACKS) {
-#if defined(__linux__) || defined(__BSD44__)
+#ifdef MMAP_LWP_STACKS
 	    munmap(pid->stack, pid->stacksize);
 #else
 	    free (pid->stack);
@@ -991,7 +1008,7 @@ static void Free_PCB(PROCESS pid)
     if (pid -> stack != NULL) {
 	lwpdebug(0, "HWM stack usage: %d, [PCB at %p]",
 		   Stack_Used(pid->stack,pid->stacksize), pid);
-#if defined(__linux__) || defined(__BSD44__)
+#ifdef MMAP_LWP_STACKS
 	munmap(pid->stack, pid->stacksize);
 #else
 	free(pid -> stack);

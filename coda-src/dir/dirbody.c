@@ -16,11 +16,14 @@ listed in the file CREDITS.
 
 #*/
 
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif __cplusplus
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include "coda_assert.h"
 #include <sys/param.h>
@@ -29,7 +32,7 @@ extern "C" {
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
-#include <string.h>
+#include "coda_string.h"
 #include <stdlib.h>
 #ifdef __BSD44__
 #include <ufs/ufs/dir.h>
@@ -46,6 +49,11 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif __cplusplus
+
+#undef MMAP_DIR_CONTENTS
+#if defined(HAVE_MMAP) && !defined(DJGPP)
+#define MMAP_DIR_CONTENTS 1
+#endif
 
 /* are we dealing with RVM memory? (yes for Venus, no for Vice)*/
 int dir_data_in_rvm;
@@ -727,7 +735,7 @@ void DIR_Print(PDirHeader dir)
 			bitmap[EPP] = '\0';
 			freecount = ph->freecount;
 			fprintf(stdout, 
-				"page %d, tag %d, freecount %d, set %d, bitmap: \n",
+				"page %d, tag %ld, freecount %d, set %d, bitmap: \n",
 				i, ntohl(ph->tag), freecount, setbits);
 			fprintf(stdout, "%s\n\n", bitmap);
 		}
@@ -804,7 +812,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	int oldoffset = 0;
 	int direntlen;
 
-#ifdef DJGPP
+#ifndef MMAP_DIR_CONTENTS
 	int rc;
 #endif
 
@@ -828,7 +836,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	len += (len / DIRBLKSIZ + 1) * ((sizeof(struct venus_dirent) + 3) & ~3);
 	len = ((len + (DIRBLKSIZ - 1)) & ~(DIRBLKSIZ - 1));
 
-#ifndef DJGPP
+#ifdef MMAP_DIR_CONTENTS
 	CODA_ASSERT( ftruncate(fd, len) == 0 );
 	buf = mmap(0, len, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
 	CODA_ASSERT( (int) buf != -1 );
@@ -875,13 +883,13 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 		((struct venus_dirent *) (buf + oldoffset))->d_reclen += vd->d_reclen;
 	offset += vd->d_reclen;
 
-#ifdef DJGPP
+#ifdef MMAP_DIR_CONTENTS
+	CODA_ASSERT(munmap(buf, len) == 0);
+	CODA_ASSERT( ftruncate(fd, offset) == 0 );
+#else 
 	rc  = write(fd, buf, offset);
 	free(buf);
 	CODA_ASSERT(rc == offset);
-#else 
-	CODA_ASSERT(munmap(buf, len) == 0);
-	CODA_ASSERT( ftruncate(fd, offset) == 0 );
 #endif
 	CODA_ASSERT(close(fd) == 0);
 	return 0;

@@ -30,6 +30,10 @@ listed in the file CREDITS.
 extern "C" {
 #endif __cplusplus
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <sys/param.h>
 #include <sys/file.h>
@@ -43,7 +47,7 @@ extern "C" {
 #endif
 
 #include <errno.h>
-#include <string.h>
+#include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -57,6 +61,12 @@ extern "C" {
 #include <linux/fs.h>
 #endif
 #include <mntent.h>
+#endif
+
+#ifdef sun
+#include <sys/mnttab.h>
+#include <sys/filio.h>
+#include <sys/types.h>
 #endif
 
 #include <vice.h>
@@ -198,6 +208,65 @@ msgent *msg_iterator::operator()()
     return((msgent *)olist_iterator::operator()());
 }
 
+#ifdef sun
+/* Reused (i.e. stolen :-) from the Arla project */
+static int updatemnttab(char *mountp)
+{
+    int ret;
+    int mnttablock;
+    FILE *mnttabfd;
+    struct mnttab mp;
+    struct timeval tp;
+    char timebuf[15];
+
+    mnttablock=open("/etc/.mnttab.lock", O_WRONLY|O_CREAT, 0);
+    if (mnttablock < 0) {
+        perror("open mnttablock");
+        exit(1);
+    }
+
+    ret = lockf(mnttablock, F_LOCK, 0);
+    if (ret) {
+        perror("lockf mnttablock");
+        exit(1);
+    }
+
+    mnttabfd=fopen("/etc/mnttab", "a");
+    if (mnttabfd == NULL) {
+        perror("open mnttablock");
+        exit(1);
+    }
+
+    ret = lockf(fileno(mnttabfd), F_LOCK, 0);
+    if (ret) {
+        perror("lockf mnttab");
+        exit(1);
+    }
+
+    gettimeofday(&tp, NULL);
+    snprintf(timebuf, 15, "%d", tp.tv_sec);
+
+    mp.mnt_special="Coda";
+    mp.mnt_mountp=mountp;
+    mp.mnt_fstype="coda";
+    mp.mnt_mntopts="rw";
+    mp.mnt_time=timebuf;
+
+    ret = putmntent(mnttabfd, &mp);
+    if (ret == EOF) {
+         printf("putmntent returned %d\n", ret);
+        return ret;
+    }
+
+    lockf(fileno(mnttabfd), F_ULOCK, 0);
+    fclose(mnttabfd);
+
+    lockf(mnttablock, F_ULOCK, 0);
+    close(mnttablock);
+
+    return 0;
+}
+#endif /* sun */
 
 /* test if we can open the kernel device and purge the cache,
    BSD systems like to purge that cache */
@@ -328,6 +397,44 @@ void VFSMount() {
 	}
       }
       exit(1);
+    }
+#endif
+
+#ifdef sun
+    {
+        struct sigaction sa;
+        sa.sa_handler = SIG_IGN;
+        sigemptyset(&(sa.sa_mask));
+        sa.sa_flags = 0;
+        if ( sigaction(SIGCHLD, &sa, NULL) ) {
+            eprint("Cannot set signal handler for SIGCHLD");
+            CODA_ASSERT(0);
+        }
+    }
+    if ( fork() == 0 ) {
+        int error;
+        /* child only makes a system call and should not hang on to 
+           a /dev/cfs0 file descriptor */
+        error = WorkerCloseMuxfd();
+        if ( error ) {
+            pid_t parent;
+            LOG(1, ("CHILD: cannot close worker::muxfd. Killing parent.\n"));
+            parent = getppid();
+            kill(parent, SIGKILL);
+            exit(1);
+        }
+        error = mount(kernDevice, venusRoot, MS_DATA, "coda",  NULL, 0);
+        if ( error ) {
+            pid_t parent;
+            LOG(1, ("CHILD: mount system call failed. Killing parent.\n"));
+            parent = getppid();
+            kill(parent, SIGKILL);
+            exit(1);
+        } else {
+            updatemnttab(venusRoot);
+            exit(0);
+        }
+        exit(1);
     }
 #endif
 
