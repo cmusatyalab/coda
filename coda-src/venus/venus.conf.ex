@@ -85,3 +85,8 @@ pid_file=/usr/coda/venus.cache/pid
 #
 run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 
+#
+# Venus log file
+#
+logfile=/usr/coda/venus.cache/venus.log
+
