@@ -666,7 +666,8 @@ static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb)
 		RPC2_AllocBuffer(pb->Header.BodyLength, &pb2);
 		if ( !pb2 ) 
 			return pb;
-		pb2->Prefix.PeerAddr = RPC2_copyaddrinfo(pb->Prefix.PeerAddr);
+		pb2->Prefix.PeerAddr = pb->Prefix.PeerAddr;
+		pb->Prefix.PeerAddr = NULL;
 		pb2->Prefix.RecvStamp = pb->Prefix.RecvStamp;
 		pb2->Prefix.LengthOfPacket = pb->Prefix.LengthOfPacket;
 		memcpy(&pb2->Header, &pb->Header, pb->Prefix.LengthOfPacket);

@@ -160,15 +160,17 @@ void rpc2_FreeHost(struct HEntry **whichHost)
 	    *whichHost = NULL;
 	    return;
 	}
+
+#if 0 // Since we don't actually have a reaper thread for host entries...
 	/* probably dont really want to destroy the host information as soon as
 	 * we lose all connections. I guess we need a reaper that kills of very
 	 * old entries once in a while */
-
 	/* RefCount == 0 means we're waiting for a reaper to finish us off */
 	if ((*whichHost)->RefCount == 0) {
 	    *whichHost = NULL;
 	    return;
 	}
+#endif
 
 	/* free resources */
 	bucket = HASHHOST((*whichHost)->Addr);
@@ -185,11 +187,11 @@ void rpc2_FreeHost(struct HEntry **whichHost)
 	while (*link) {
 		if (*link == *whichHost) {
 			*link = (*whichHost)->HLink;
-			*whichHost = NULL;
 			break;
 		}
 		link = &(*link)->HLink;
 	}
+	*whichHost = NULL;
 }
 
 

@@ -60,7 +60,10 @@ struct CBUF_Header *CBUF_Init(long elemSize, long noofElems, char *printName)
     bufId->TotalElemsAdded = 0;
     strncpy(bufId->PrintName, printName, sizeof(bufId->PrintName) - 1);
     bufId->Buffer = (char *)malloc(elemSize*noofElems);    
-    if (bufId->Buffer == NULL && noofElems != 0) return(NULL);
+    if (bufId->Buffer == NULL && noofElems != 0) {
+	free(bufId);
+	bufId = NULL;
+    }
     return(bufId);
 }
 

@@ -300,7 +300,10 @@ long MRPC_MakeMulti (int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    }
     
     _rpc2val = RPC2_AllocBuffer(_length, &_reqbuffer);
-    if (_rpc2val != RPC2_SUCCESS) return _rpc2val;
+    if (_rpc2val != RPC2_SUCCESS) {
+	free(va_array);
+	return _rpc2val;
+    }
     
     /* Pack arguments */
     _ptr = (PARM *)_reqbuffer->Body;
