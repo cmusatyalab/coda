@@ -1759,6 +1759,10 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 	return(ETIMEDOUT);
     }
 
+    if (IsFake() || IsLocalObj())
+	/* Ignore attempts to set ACLs on fake objects. */
+	return(EPERM);
+
     struct coda_vattr va;
     va_init(&va);
     int code = SetAttr(&va, uid, acl);
