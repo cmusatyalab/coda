@@ -134,6 +134,7 @@ static void ListVolume(int, char **, int);
 static void LsMount(int, char**, int);
 static void MkMount(int, char**, int);
 static void PurgeML(int, char**, int);
+static void Redir(int, char**, int);
 static void ReplayClosure(int, char**, int);
 static void Reconnect(int, char**, int);
 static void RmMount(int, char**, int);
@@ -351,6 +352,11 @@ struct command cmdarray[] =
         {"whereis", NULL, WhereIs, 
             "cfs whereis <dir> [<dir> <dir> ...]",
             "List location of object",
+            NULL
+        },
+        {"redir", NULL, Redir, 
+            "cfs redir <dir> <ip-address>",
+            "Redirect volume to a staging server",
             NULL
         },
         {"disconnect", NULL, Disconnect, 
@@ -698,6 +704,31 @@ static void Compress(int argc, char *argv[], int opslot)
         if (argc > 3) printf("\n");
         }
     }
+
+static void Redir (int argc, char *argv[], int opslot)
+{
+    int rc;
+    struct ViceIoctl vio;
+    struct in_addr whereto;
+
+    if (argc != 4) {
+        printf("Usage: %s\n", cmdarray[opslot].usetxt);
+        exit(-1);
+    }
+
+    /* Set up parms to pioctl */
+    inet_aton(argv[3], &whereto);
+    vio.in = (char *)&whereto;
+    vio.in_size = sizeof(struct in_addr);
+    vio.out_size = 0;
+    vio.out = NULL;
+
+        /* Do the pioctl */
+    rc = pioctl(argv[2], VIOC_REDIR, &vio, 1);
+    if (rc <0) {fflush(stdout); perror(argv[2]);}
+}
+
+
 
 static void Disconnect(int argc, char *argv[], int opslot)
     {

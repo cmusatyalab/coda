@@ -460,6 +460,7 @@ OI_FreeLocks:
         case VIOC_ENDWB:
         case VIOC_AUTOWB:
 	case VIOC_SYNCCACHE:
+	case VIOC_REDIR:
 	    {
 #ifdef    TIMING
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
@@ -895,6 +896,21 @@ OI_FreeLocks:
 		      v->flags.writebackreint = old_wb_flag;
 		  }
               }
+
+	      case VIOC_REDIR:
+	      {
+		  struct in_addr staging_server;
+		  if (data->in_size != (int)sizeof(struct in_addr)) {
+		      u.u_error = EINVAL; break;
+		  }
+		  if (!v->IsReplicated()) {
+		      u.u_error = EINVAL; break;
+		  }
+
+		  staging_server = *(struct in_addr *)data->in;
+		  ((repvol *)v)->SetStagingServer(&staging_server);
+		  break;
+	      }
 	    }
 
 V_FreeLocks:

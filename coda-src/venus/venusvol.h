@@ -642,6 +642,7 @@ class volent {
     int Enter(int, vuid_t);
     void Exit(int, vuid_t);
     void TakeTransition();
+    int TransitionPending() { return flags.transition_pending; }
     void Wait();
     void Signal();
     void Lock(VolLockType, int = 0);		
@@ -731,6 +732,7 @@ class repvol : public volent {
     friend void VolInit(void);
 
     volrep *vsg[VSG_MEMBERS];      /* underlying volume replicas */
+    volrep *ro_replica;		   /* R/O staging replica for this volume */
 /*T*/struct dllist_head mgrpents;  /* list of mgrpents for this volume */
 
     /* Preallocated Fids. */
@@ -777,6 +779,7 @@ class repvol : public volent {
     int GetMgrp(mgrpent **, vuid_t, RPC2_CountedBS * =0);
     void KillMgrpMember(struct in_addr *);
     void KillUserMgrps(vuid_t);
+    void KillMgrps(void);
     void GetBandwidth(unsigned long *bw);
 
     void DownMember();
@@ -797,6 +800,7 @@ class repvol : public volent {
     int AVSGsize();
     int WeakVSGSize();
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
+    void SetStagingServer(struct in_addr *srvr);
 
     /* Allocation routines. */
     ViceFid GenerateLocalFid(ViceDataType);

@@ -1317,6 +1317,10 @@ void volrep::DownMember(void)
 
 void repvol::DownMember(void)
 {
+    /* ignore events from VSG servers when a staging server is used */
+    if (ro_replica && !ro_replica->TransitionPending())
+	return;
+
     LOG(10, ("repvol::DownMember: vid = %08x\n", vid));
 
     ResetStats();
@@ -1347,6 +1351,10 @@ void volrep::UpMember(void)
 
 void repvol::UpMember(void)
 {
+    /* ignore events from VSG servers when a staging server is used */
+    if (ro_replica && !ro_replica->TransitionPending())
+	return;
+
     LOG(10, ("repvol::UpMember: vid = %08x\n", vid));
 
     /* Consider transitting to Hoarding state. */
@@ -1384,7 +1392,9 @@ void volrep::WeakMember()
 
 void repvol::WeakMember()
 {
-    if (!IsWeaklyConnected()) {
+    /* Normally a weakmember event implies that WeakVSGSize > 0, however
+     * we might get weak events from VSG servers when using a staging server. */
+    if (!IsWeaklyConnected() && WeakVSGSize() > 0) {
         WriteDisconnect();
 
         flags.transition_pending = 1;
@@ -1713,9 +1723,12 @@ void repvol::ResetTransient(void)
     for (int i = 0; i < VSG_MEMBERS; i++)
         if (vsg[i]) vsg[i]->hold();
 
+    /* don't grab a refcount to the staging server volume, it will get
+     * purged by the VolDaemon automatically */
+    ro_replica = NULL;
+
     ResetVolTransients();
 }
-
 
 int volent::Collate(connent *c, int code, int TranslateEINCOMP)
 {
@@ -1772,6 +1785,9 @@ repvol::~repvol()
     for (i = 0; i < VSG_MEMBERS; i++)
         VDB->Put((volent **)&vsg[i]);
 
+    if (ro_replica)
+	VDB->Put((volent **)&ro_replica);
+
     if (CML.count() != 0)
         CHOKE("volent::~volent: CML not empty");
 
@@ -1783,13 +1799,18 @@ repvol::~repvol()
         CHOKE("volent::~volent: cop2_list not empty");
     delete cop2_list;
     
+    KillMgrps();
+}
+
+void repvol::KillMgrps(void)
+{
     struct dllist_head *p;
-    p = mgrpents.next;
-    while (p != &mgrpents) {
+    LOG(10, ("repvol::KillMgrps volume = %x\n", vid));
+
+    for (p = mgrpents.next; p != &mgrpents;) {
         mgrpent *m = list_entry(p, mgrpent, volhandle);
         p = m->volhandle.next;
-        list_del(&m->volhandle);
-        delete m;
+        m->Suicide(1);
     }
 }
 
@@ -1875,10 +1896,13 @@ try_again:
     /* Try to connect to the VSG on behalf of the user. */
     {
         RPC2_Handle MgrpHandle = 0;
-        int auth = 0;
+        int auth = 1;
         userent *u = 0;
         struct in_addr mgrpaddr;
         mgrpaddr.s_addr = INADDR_ANY; /* Request to form an mgrp */
+
+	/* set up unauthenticated connections to the staging server */
+	if (ro_replica) auth = 0;
 
         GetUser(&u, vuid);
         code = u->Connect(&MgrpHandle, &auth, &mgrpaddr);
@@ -1975,12 +1999,23 @@ void volrep::GetBandwidth(unsigned long *bw)
 
 void repvol::GetBandwidth(unsigned long *bw)
 {
+    struct in_addr host;
     srvent *s;
     *bw = 0;
 
+    if (ro_replica) {
+        ro_replica->Host(&host);
+        if (host.s_addr) {
+	    GetServer(&s, &host);
+	    s->GetBandwidth(bw);
+	    PutServer(&s);
+	    if (*bw == 0) *bw = INIT_BW;
+	    return;
+	}
+    }
+
     for (int i = 0; i < VSG_MEMBERS; i++) {
         unsigned long tmpbw = 0;
-        struct in_addr host;
         if (!vsg[i]) continue;
 
         vsg[i]->Host(&host);
@@ -2175,6 +2210,12 @@ void volent::GetHosts(struct in_addr hosts[VSG_MEMBERS])
 void repvol::GetHosts(struct in_addr hosts[VSG_MEMBERS])
 {
     memset(hosts, 0, VSG_MEMBERS * sizeof(struct in_addr));
+
+    if (ro_replica) {
+	ro_replica->Host(&hosts[0]);
+	return;
+    }
+
     for (int i = 0; i < VSG_MEMBERS; i++)
         if (vsg[i])
             vsg[i]->Host(&hosts[i]);
@@ -2182,6 +2223,9 @@ void repvol::GetHosts(struct in_addr hosts[VSG_MEMBERS])
 
 int repvol::IsHostedBy(const struct in_addr *host)
 {
+    if (ro_replica)
+	return ro_replica->IsHostedBy(host);
+
     for (int i = 0; i < VSG_MEMBERS; i++)
         if (vsg[i] && vsg[i]->IsHostedBy(host))
             return 1;
@@ -2198,6 +2242,9 @@ int volent::AVSGsize(void)
 int repvol::AVSGsize(void)
 {
     int avsgsize = 0;
+
+    if (ro_replica)
+	return ro_replica->IsAvailable() ? 1 : 0;
     
     for (int i = 0; i < VSG_MEMBERS; i++)
         if (vsg[i] && vsg[i]->IsAvailable())
@@ -2210,11 +2257,46 @@ int repvol::WeakVSGSize()
 {
     int count = 0;
     
+    if (ro_replica)
+	return ro_replica->IsWeaklyConnected() ? 1 : 0;
+
     for (int i = 0; i < VSG_MEMBERS; i++)
         if (vsg[i] && vsg[i]->IsWeaklyConnected())
             count++;
 
     return(count);
+}
+
+/* volume id's for staging volumes */
+static VolumeId stagingvid = 0xFF000000;
+void repvol::SetStagingServer(struct in_addr *srvr)
+{
+    VolumeInfo StagingVol;
+    char stagingname[V_MAXVOLNAMELEN];
+
+    /* Disconnect existing mgrps and force a cache-revalidation */
+    KillMgrps();
+    flags.transition_pending = 1;
+    flags.demotion_pending = 1;
+
+    if (ro_replica)
+	VDB->Put((volent **)&ro_replica);
+
+    if (srvr->s_addr == 0) return;
+
+    strcpy(stagingname, name);
+    /* make sure we don't overflow stagingname when appending ".ro" */
+    stagingname[V_MAXVOLNAMELEN-4] = '\0';
+    strcat(stagingname, ".ro");
+
+    memset(&StagingVol, 0, sizeof(VolumeInfo));
+    StagingVol.Vid = stagingvid++;
+    StagingVol.Type = BACKVOL;
+    (&StagingVol.Type0)[replicatedVolume] = vid;
+    StagingVol.Server0 = ntohl(srvr->s_addr);
+
+    ro_replica = (volrep *)VDB->Create(&StagingVol, stagingname);
+    if (ro_replica) ro_replica->hold();
 }
 
 int repvol::Collate_NonMutating(mgrpent *m, int code)
@@ -2654,8 +2736,9 @@ void repvol::print_repvol(int afd)
     /* Replicas */
     fdprint(afd, "\tvolume replicas: [ ");
     for (int i = 0; i < VSG_MEMBERS; i++)
-        fdprint(afd, "%x, ", vsg[i] ? vsg[i]->GetVid() : 0);
+        fdprint(afd, "%#08x, ", vsg[i] ? vsg[i]->GetVid() : 0);
     fdprint(afd, "]\n");
+    fdprint(afd, "\tstaging volume: %#08x\n",ro_replica?ro_replica->GetVid():0);
 
     fdprint(afd, "\tVersion stamps = [");
     for (int i = 0; i < VSG_MEMBERS; i++)

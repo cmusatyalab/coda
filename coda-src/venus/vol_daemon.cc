@@ -83,7 +83,7 @@ void VolDaemon(void)
     unsigned long curr_time = Vtime();
 
     /* Avoid checks on first firing! */
-    unsigned long LastGetDown = curr_time;
+    unsigned long LastGetDown = 0; /* except for GC'ing empty volumes */
     unsigned long LastCOP2Check = curr_time;
     unsigned long LastCheckPoint = curr_time;
     unsigned long LastRPM = curr_time;

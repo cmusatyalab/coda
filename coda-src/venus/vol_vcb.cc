@@ -252,7 +252,14 @@ int repvol::GetVolAttr(vuid_t vuid)
 	    MULTI_RECORD_STATS(ViceValidateVols_OP);
 	    free(VSBS.SeqBody);
 
-	    if (code) goto RepExit;
+	    if (code) {
+		ClearCallBack();
+		Recov_BeginTrans();
+		   RVMLIB_REC_OBJECT(VVV);
+		   VVV = NullVV;
+		Recov_EndTrans(MAXFP);
+		goto RepExit;
+	    }
 
 	    unsigned numVFlags = 0;
 	    for (i = 0; i < m->nhosts; i++) {

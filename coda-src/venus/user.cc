@@ -367,11 +367,11 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
     /* This may be a request to connect either to a specific host, or to form an mgrp. */
     if (host->s_addr == INADDR_ANY)
     {
-	/* If the user has valid tokens and he is not root, we specify an authenticated mgrp. */
+	/* If the user has valid tokens, we specify an authenticated mgrp.
+	 * exception; when talking to a staging server */
 	/* Otherwise, we specify an unauthenticated mgrp. */
 	long sl;
-	/* root can now own tokens */
-	if (/* uid != V_UID && */tokensvalid) {
+	if (*auth && tokensvalid) {
 	    sl = RPC2_AUTHONLY;
 	    *auth = 1;
 	}
@@ -409,8 +409,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, struct in_addr *host)
 	RPC2_CountedBS clientident;
 	RPC2_BindParms bparms;
 
-	/* root can now own tokens */
-	if (/* uid != V_UID && */ tokensvalid) {
+	if (*auth && tokensvalid) {
 	    clientident.SeqLen = sizeof(SecretToken);
 	    clientident.SeqBody = (RPC2_ByteSeq)&secret;
 	    bparms.SecurityLevel = RPC2_AUTHONLY;

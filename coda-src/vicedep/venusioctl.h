@@ -178,6 +178,7 @@ extern "C" {
 #define VIOC_STATUSWB           _VICEIOCTL(CFS_IOCTL_BASE + 202) /* fetch status from volume id */
 #define VIOC_AUTOWB             _VICEIOCTL(CFS_IOCTL_BASE + 203) /* toggle autowriteback */
 #define VIOC_SYNCCACHE          _VICEIOCTL(CFS_IOCTL_BASE + 204) /* reintegrate now ! */
+#define VIOC_REDIR		_VICEIOCTL(CFS_IOCTL_BASE + 205) /* redirect volume traffic to a staging server */
 
 /*  The following change is made in order to reduce the number of
  * command codes for the local/global repair interface. We now use
@@ -207,3 +208,4 @@ extern "C" {
 #define VIOC_UNLOADKERNEL       _VICEIOCTL(CFS_IOCTL_BASE + 53) /* Unload kernel module, only Win9x so far */
 
 #endif	not _VENUS_IOCTL_H_
+

@@ -369,7 +369,7 @@ int GetConn(connent **cpp, struct in_addr *host, vuid_t vuid, int Force)
 	srvent *s = 0;
 	GetServer(&s, host);
 	RPC2_Handle ConnHandle = 0;
-	int auth = 0;
+	int auth = 1;
 	code = s->Connect(&ConnHandle, &auth, vuid, Force);
 	PutServer(&s);
 
@@ -2043,7 +2043,7 @@ int mgrpent::CreateMember(int idx)
     srvent *s = 0;
     GetServer(&s, &Hosts[idx]);
     RPC2_Handle ConnHandle = 0;
-    int auth = 0;
+    int auth = authenticated;
     code = s->Connect(&ConnHandle, &auth, uid, 0);
     PutServer(&s);
     if (code != 0) return(code);
