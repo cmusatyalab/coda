@@ -1,5 +1,22 @@
+1998-07-14    <jaharkes@telos.odyssey.cs.cmu.edu>
+
+	* ======== Release 4.6.2 =========
+	* coda-src/rpc2: Small piggybacked fragments were rejected by venus.
+	* coda-src/scripts/venus-setup: Creates /coda/tmp as well.
+	* coda-src/update/updateclnt.cc: Stopped the updateclient from
+	changing the systemtime, it now warns you to use xntpd.
+	* coda-src/util/proc.cc: Close a leaked filedescriptor.
+	* coda-src/venus: Modified number of cachefiles/hdb-/cml-entries.
+	* coda-src/volutil/merge.cc: Fixed allocation errors.
+	* coda-src/volutil/vol-dump.cc: Filepointer was sometimes closed twice.
+	* coda-src/volutil/vvlist.cc: Fixed allocation errors. Added check
+	for out-of-bounds array accessing. Corrected off-by-one iterator
+	error.
+	* kernel-src/vfs/linux21: Lots of fixes.
+
 1998-06-30    <jaharkes@telos.odyssey.cs.cmu.edu>
 
+	* ======== Release 4.6.1 =========
 	* coda-src/scripts/createvol_rep: Fixed a bug when using fully
 	qualified hostnames in the servers or VSGDB files.
 	* coda-src/venus/fso_cfscalls0.cc: Solved the EBADF bug.
@@ -57,9 +74,9 @@
 
 1998-06-03  Peter Braam  <braam@motet.coda.cs.cmu.edu>
 
-	* Fix to BOGUS/NAKIT macros. There are many unsafe macros in rpc2.  These are the 
-	most important ones and we have made them safe.  This was responsible for numerous
-	errors.
+	* Fix to BOGUS/NAKIT macros. There are many unsafe macros in rpc2.
+	These are the most important ones and we have made them safe.  This
+	was responsible for numerous errors.
 
 1998-05-27    <braam@carissimi.coda.cs.cmu.edu>
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.15 98/06/24 18:47:43 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.16 98/07/08 22:42:07 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1246,8 +1246,10 @@ void srvent::Reset() {
 	    m->KillMember(host, 0);
     }
 
+#ifdef MAYBENOT
     /* Clear available bandwidth information. */
     InitBandwidth(UNSET_BW);
+#endif
 
     /* Unbind callback connection for this server. */
     int code = (int) RPC2_Unbind(connid);

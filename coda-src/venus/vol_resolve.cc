@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.3 1997/06/14 21:48:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_resolve.cc,v 4.4 98/04/14 21:03:10 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -80,6 +80,7 @@ int resent::deallocs = 0;
 
 void volent::Resolve() {
     LOG(0, ("volent::Resolve: %s\n", name));
+    MarinerLog("resolve::%s\n", name);
 
     int code = 0;
     vproc *v = VprocSelf();
