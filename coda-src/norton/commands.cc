@@ -209,12 +209,13 @@ long address_ok(vm_address_t addr, vm_size_t sz, vm_prot_t perm)
 #endif
 
 #define BYTES_PER_LINE	16
-void examine(int argc, char *argv[]) {
+void examine(int argc, char *argv[])
+{
     int  *base,
 	 *addr;
     char *buf;
-    int  len,
-	i;
+    int len;
+    unsigned int i;
     
     if ((argc != 3) ||
 	(Parser_int(argv[1], (int *)&base) != 1) ||

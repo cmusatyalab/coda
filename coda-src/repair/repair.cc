@@ -412,7 +412,8 @@ void rep_EndRepair(int largc, char **largv) {
     fflush(stdout);
 }
 
-void rep_Exit(int largc, char **largv) {
+void rep_Exit(int largc, char **largv)
+{
     /* terminate the current session, if there is one */
     if (session != NOT_IN_SESSION)
 	rep_EndRepair(0, NULL);
@@ -425,7 +426,8 @@ void rep_Help(int largc, char **largv) {
     fflush(stdout);
 }
 
-void rep_ListLocal(int largc, char **largv) {
+void rep_ListLocal(int largc, char **largv)
+{
     int fd;
     struct ViceIoctl vioc;
     int rc, n;

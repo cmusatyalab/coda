@@ -1162,7 +1162,8 @@ static int AskOnline(VolumeId volumeId)
 
 #ifndef NDEBUG
 /* Prints out a list of all inodes into the Log */
-static void PrintInodeList() {
+static void PrintInodeList()
+{
     struct ViceInodeInfo *ip;
     struct ViceInodeInfo *buf;
     struct stat status;

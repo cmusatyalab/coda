@@ -789,8 +789,9 @@ static void growarray(char ***arrayaddr, int *arraysize) {
 
 /*  Appends expanded entried to (ASCII) fixfile
  *  Returns 0 on success, -1 on failure */
-int glexpand(char *rodir, char *fixfile, char *msg, int msgsize) {
-    int rc, gls = 0, lineno = 0;
+int glexpand(char *rodir, char *fixfile, char *msg, int msgsize)
+{
+    int rc, lineno = 0, gls = 0;
     unsigned int j, k, cnt;
     struct in_addr *custodians;
     VolumeId *repID, sID[VSG_MEMBERS];

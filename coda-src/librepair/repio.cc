@@ -154,8 +154,8 @@ int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **r
      *	When done, caller should  release storage malloc'ed here.
      */
 {
-    register int i, j, k;
-    register unsigned int x;
+    int i, k;
+    unsigned int x, j;
     struct repair *r;
     FILE *ff;
     char *s;
