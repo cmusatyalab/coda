@@ -184,7 +184,7 @@ ENTRY;
                       dircnp->c_fid.Volume, 
                       dircnp->c_fid.Vnode, 
                       dircnp->c_fid.Unique, name);
-                return -EINVAL;
+                return -ENAMETOOLONG;
         }
 
         payload_offset = VC_INSIZE(cfs_create_in);
@@ -323,7 +323,7 @@ CDEBUG(D_INODE, "\n");
                       dircnp->c_fid.Vnode, 
                       dircnp->c_fid.Unique, name);
                 *res_inode = NULL;
-                error = EINVAL;
+                error = ENAMETOOLONG;
                 goto exit;
         }
 		
@@ -691,7 +691,7 @@ ENTRY;
                 if ( buffer ) CODA_FREE(buffer, buffer_size);
                 iput(old_inode);
                 iput(new_inode);
-                return -EINVAL;
+                return -ENAMETOOLONG;
         }
 
         /* Venus must receive an null terminated string */
@@ -705,7 +705,7 @@ ENTRY;
                 if ( buffer ) CODA_FREE(buffer, buffer_size);
                 iput(old_inode);
                 iput(new_inode);
-                return -EINVAL;
+                return -ENAMETOOLONG;
         }
         /* another null terminated string for Venus */
         memcpy((char *)inp + size, new_name, new_length);
@@ -877,7 +877,7 @@ coda_symlink(struct inode *dir_inode, const char *name, int namelen,
         s = (namelen & ~0x3) + 4;	/* Round up to word boundary. */
         if (s > CFS_MAXNAMLEN) {
                 printk("coda_symlink: target name too long.\n");
-                error = EINVAL;
+                error = ENAMETOOLONG;
                 goto exit;
         }
         memcpy((char *)inp + payload_offset, name, namelen);
