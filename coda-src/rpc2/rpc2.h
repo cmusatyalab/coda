@@ -724,7 +724,7 @@ extern long rpc2_NextRandom (char *StatePtr);
 extern long rpc2_Bandwidth;
 
 /* for multihomed servers */
-int RPC2_setip(char *host);
+struct in_addr RPC2_setip(char *host);
 
 
 /*------- Transmission Statistics -------------*/

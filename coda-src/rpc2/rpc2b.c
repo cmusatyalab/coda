@@ -60,7 +60,7 @@ Pittsburgh, PA.
 #include "cbuf.h"
 
 extern int errno;
-int rpc2_bindaddr = INADDR_ANY;
+struct in_addr rpc2_bindaddr;
 
 long RPC2_Init(char *VId,		/* magic version string */
 	       RPC2_Options *Options,
@@ -75,6 +75,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     rpc2_logfile = stderr;
     rpc2_tracefile = stderr;
 
+    rpc2_bindaddr.s_addr = INADDR_ANY;
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_Init()\n");
@@ -154,19 +155,19 @@ long RPC2_Init(char *VId,		/* magic version string */
 }
 
 /* set the IP Addr to bind to */
-int RPC2_setip(char *host)
+struct in_addr RPC2_setip(char *host)
 {
 	struct hostent *he = NULL;
+	rpc2_bindaddr.s_addr = INADDR_ANY;
 
 	if (! host ) 
-		return htonl(INADDR_ANY);
+		return rpc2_bindaddr;
+
 	he = gethostbyname(host);
-	if ( !he ) 
-		return 0;
-	else {
-		rpc2_bindaddr = *(int *)he->h_addr_list[0];
-		return he->h_addr;
-	}
+	if ( he )
+		rpc2_bindaddr = *(struct in_addr *)he->h_addr_list[0];
+
+	return rpc2_bindaddr;
 }
 
 long RPC2_Export(IN Subsys)
@@ -852,7 +853,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_PortIdent *pvar)
 	/* set host address for bind() */
 	bzero(&bindaddr, sizeof(bindaddr));
 	bindaddr.sin_family = AF_INET;
-	bindaddr.sin_addr.s_addr = rpc2_bindaddr;
+	bindaddr.sin_addr = rpc2_bindaddr;
 					
 	/* set port address for bind() */
 	switch (pvar->Tag) {

@@ -135,7 +135,7 @@ extern void InitVolTable(int);
  */
 void NortonInitVolPackage() 
 {
-    VInitServerList();
+    VInitServerList(NULL);
     InitLRU(VOLUMECACHESIZE);
     InitVolTable(HASHTABLESIZE);
 

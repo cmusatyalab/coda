@@ -566,7 +566,7 @@ void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort,
 
 /*------ Other definitions ------*/
 
-extern int rpc2_bindaddr;
+extern struct in_addr rpc2_bindaddr;
 
 /* Allocation constants */
 
