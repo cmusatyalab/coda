@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.1 1997/01/08 21:54:16 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/lib-src/mlwp/process.s,v 4.2 1997/09/23 18:02:18 braam Exp $";
 #endif undef
 #endif /*_BLURB_*/
 
@@ -449,8 +449,13 @@ returnto:
 #define EXT(x) SYMBOL_NAME(x)
 #else
 #ifdef __STDC__	
+#ifdef	__ELF__
+#define SYMB(x)  x:
+#define EXT(x)	x
+#else
 #define SYMB(x)  _##x:
 #define EXT(x)	_##x
+#endif	/*__ELF__*/
 #else
 #define SYMB(x)  _/**/x:
 #define EXT(x)	_/**/x
@@ -464,11 +469,11 @@ returnto:
 #define newsp	44
 #define topstack 0
 
-        .globl  _PRE_Block
+        .globl  EXT(PRE_Block)
 	.text
 
 	.align	2
-	.globl	_savecontext
+	.globl	EXT(savecontext)
 SYMB(savecontext)
 	movl	$1, EXT(PRE_Block)	/* Set PRE_Block to 1 to prevent interruption. */
 
@@ -496,7 +501,7 @@ L1:	call	*%ebp			/* f(); */
 
 
 	.align	2
-	.globl	_returnto
+	.globl	EXT(returnto)
 SYMB(returnto)
 	movl	area2(%esp), %edx	/* address of save area. */
 	movl	topstack(%edx), %esp	/* Restore stack pointer. */
@@ -504,7 +509,7 @@ SYMB(returnto)
 	movl	$0, EXT(PRE_Block)		/* Clear critical condition */
 	ret
 
-#endif 	i386
+#endif 	/* i386 */
 
 
 #ifdef luna88k
