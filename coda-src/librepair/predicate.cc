@@ -61,7 +61,7 @@ int Equal (resdir_entry **deGroup, int nDirEntries)
 {
     int i;
     for (i = 1; i < nDirEntries; i++){
-	if (bcmp((const void *)&(deGroup[i]->VV.StoreId), (const void *)&(deGroup[0]->VV.StoreId), sizeof(ViceStoreId)))
+	if (memcmp((const void *)&(deGroup[i]->VV.StoreId), (const void *)&(deGroup[0]->VV.StoreId), sizeof(ViceStoreId)))
 	    return 0;
 	if (VV_Cmp(&(deGroup[i]->VV), &(deGroup[0]->VV)))
 	    return 0;
@@ -95,7 +95,7 @@ int WeaklyEqual (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nD
 {
     if (nreplicas != nDirEntries) return 0;
     for(int i = 1; i < nDirEntries; i++)
-	if (bcmp((const void *)&((deGroup[i]->VV).StoreId), (const void *)&((deGroup[0]->VV).StoreId), sizeof(ViceStoreId)))
+	if (memcmp((const void *)&((deGroup[i]->VV).StoreId), (const void *)&((deGroup[0]->VV).StoreId), sizeof(ViceStoreId)))
 	    return 0;
     return 1;
 }

@@ -101,8 +101,8 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
 	/* return garbage in VV */
 	return 0;
     }
-    bcopy((void *)buf, (void *) Fid, sizeof(ViceFid));
-    bcopy((char *)buf+sizeof(ViceFid), (void *)VV, sizeof(ViceVersionVector));
+    memmove((void *) Fid, (void *)buf, sizeof(ViceFid));
+    memmove((void *)VV, (char *)buf+sizeof(ViceFid), sizeof(ViceVersionVector));
     return 0;
 }
 
@@ -345,8 +345,8 @@ int InsertListHdr (struct repair *rep, struct listhdr **ops, int index)
     repList = (struct repair *)malloc(sizeof(struct repair) * (size + 1));
     if (repList == 0) return -1;
     if (size > 0) 
-	bcopy((const void *)(*ops)[index].repairList, (void *) repList, (size * sizeof(struct repair))); 
-    bcopy((const void *)rep, (void *)&(repList[size]), sizeof(struct repair)); 
+	memmove((void *) repList, (const void *)(*ops)[index].repairList, (size * sizeof(struct repair))); 
+    memmove((void *)&(repList[size]), (const void *)rep, sizeof(struct repair)); 
     /*    free ((*ops)[index].repairList);  */
     ((*ops)[index]).repairList = repList; 
     ((*ops)[index]).repairCount ++; 
@@ -643,7 +643,7 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
     vi.in_size = sizeof(ViceFid);
     vi.out = junk;
     vi.out_size = sizeof(junk);
-    bzero(junk, sizeof(junk));
+    memset(junk, 0, sizeof(junk));
 
     strcpy(path, "/coda");
     rc = pioctl(path, VIOC_GETPATH, &vi, 0);
@@ -683,6 +683,6 @@ int GetParent(ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *ch
 	printf("Error %d occured while trying to get fid of %s's parent\n", childname);
 	return(rc);
     }
-    bcopy((const void *)junk, (void *)dfid, sizeof(ViceFid));
+    memmove((void *)dfid, (const void *)junk, sizeof(ViceFid));
     return(0);
 }
