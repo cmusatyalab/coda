@@ -760,10 +760,10 @@ void WorkerInit()
     }
     worker::muxfd = sd[0];
     if (!nt_initialize_ipc (sd[1])) {
-            dprint("WorkerInit: nt_initialize_ipc failed.");
+            dprint("WorkerInit: nt_initialize_ipc failed.\n");
             exit (-1);
     }
-    dprint("WorkerInit: muxfd = %d", worker::muxfd);
+    dprint("WorkerInit: muxfd = %d\n", worker::muxfd);
 #else 
     /* Open the communications channel. */
     worker::muxfd = ::open(kernDevice, O_RDWR, 0);

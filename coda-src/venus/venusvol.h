@@ -453,7 +453,7 @@ void TrickleReintegrate(); /* used to be in class vdb (Satya 5/20/95) */
 
 /* Volume Database.  Dictionary for volume entries (volents). */
 class vdb {
-  friend void VolInit();
+  friend void VolInit(void);
   friend void VOLD_Init(void);
   friend void VolDaemon(void);
   friend class cmlent;
@@ -523,6 +523,7 @@ class vdb {
     void print(int, int =0);
 
     void ListCache(FILE *, int long_format=1, unsigned int valid=3);
+    int FreeMLECount(void) { return MaxMLEs - AllocatedMLEs; }
 };
 
 
