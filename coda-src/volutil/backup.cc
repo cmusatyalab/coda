@@ -808,7 +808,7 @@ int main(int argc, char **argv) {
     VUInitServerList();
 
     /* initialize the partitions */
-    DP_Init(vice_sharedfile("db/vicetab"));
+    DP_Init(vice_sharedfile("db/vicetab"), ThisHost);
 
     /* change the name */
     if ( PreparePartitionEntries() != 0 ) {
