@@ -19,6 +19,11 @@ Coda are listed in the file CREDITS.
 #ifndef _DLIST_H_
 #define _DLIST_H_
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <sys/types.h>
 #include <stddef.h>
 
 /*
@@ -37,10 +42,7 @@ struct dllist_head {
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-offsetof(type, member)))
 
-#if 0
-/* I thought this should do the trick for C++ classes, but in some cases
- * results in pointers that are 1 byte off. Strangely enough only in some
- * cases... -JH */
+#ifdef CODA_PTR_TO_MEMBER
 #define list_entry_plusplus(ptr, type, member) \
 	((type *)((char *)(ptr)-(size_t)(&type::member)))
 #else

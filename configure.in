@@ -2,7 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl autoconf 2.5 stuff
 AC_PREREQ(2.50)
-AC_INIT
+AC_INIT(Coda, 6.0.1, [bugs@coda.cs.cmu.edu])
 AC_CONFIG_SRCDIR(coda-src/librepair/resolve.h)
 AC_CONFIG_HEADER(config.h)
 
@@ -101,6 +101,7 @@ CODA_CC_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(no_exceptions, -fno-exceptions)
 CODA_CXX_FEATURE_TEST(no_operator_names, -fno-operator-names)
 CODA_DARWIN_BROKEN_CPP_WORKAROUND
+CODA_CHECK_PTR_TO_MEMBER
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(inet_aton inet_ntoa res_search pread)

@@ -23,7 +23,7 @@ AC_DEFUN(CODA_CXX_FEATURE_TEST,
 AC_SUBST(NATIVECC)
 AC_DEFUN(CODA_PROG_NATIVECC,
     if test $cross_compiling = yes ; then
-       [AC_CHECKING([for native C compiler on the build host])
+       [AC_MSG_CHECKING([for native C compiler on the build host])
 	AC_CHECK_PROG(NATIVECC, gcc, gcc)
 	if test -z "$NATIVECC" ; then
 	    AC_CHECK_PROG(NATIVECC, cc, cc, , , /usr/ucb/cc)
@@ -71,7 +71,7 @@ AC_DEFUN(CODA_CHECK_LIBCURSES,
 	    [AC_MSG_ERROR("failed to find curses library")
 	    ], $LIBTERMCAP)
 	], $LIBTERMCAP)
-    AC_CACHE_CHECK("if curses library requires -ltermcap",
+    AC_CACHE_CHECK([if curses library requires -ltermcap],
 	coda_cv_curses_needs_termcap,
 	[coda_save_LIBS="$LIBS"
 	LIBS="$LIBCURSES $LIBS"
@@ -179,6 +179,27 @@ AC_DEFUN(CODA_CHECK_KERBEROS,
 	AC_MSG_WARN([Couldn't find krb.h and des.h headers, not using kerberos 4])
     fi
    fi])
+
+dnl ---------------------------------------------
+dnl Test for incorrect offsets when using ptr-to-member
+AC_DEFUN(CODA_CHECK_PTR_TO_MEMBER,
+    [AC_MSG_CHECKING(if ptr-to-member works)
+    CODA_PTR_TO_MEMBER=no
+    AC_LANG_PUSH(C++)
+    AC_RUN_IFELSE([
+	AC_LANG_PROGRAM([[
+	    #include <sys/types.h>
+	    struct b { struct b *C; };
+	    class A { public: struct b B; };]],
+	    [[A *a; if (((char *)&a->B - (size_t)(&A::B)) != (char *)a) return 1]])],
+	[if test $? = 0 ; then
+	  AC_DEFINE(CODA_PTR_TO_MEMBER, 1,
+		    [Does (size_t)(&type::member) give correct offset of member in type])
+	  CODA_PTR_TO_MEMBER=yes
+	fi], [], [true])
+    AC_LANG_POP(C++)
+    AC_MSG_RESULT($CODA_PTR_TO_MEMBER)])
+
 
 dnl ---------------------------------------------
 dnl Accept user defined path leading to libraries and headers.
