@@ -76,11 +76,11 @@ case "${1:-start}" in
             rpc2portmap &
             echon " rpc2portmap"
 
-            updatesrv -p ${VICE}/db &
+            updatesrv &
             echon " updatesrv"
     fi
 
-    updateclnt -h `cat ${VICE}/db/scm`  -q coda_udpsrv &
+    updateclnt -h `cat ${VICE}/db/scm` &
     echon " updateclnt"
 
     echo '.'	# Done With Coda Serivces
