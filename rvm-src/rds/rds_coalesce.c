@@ -32,7 +32,7 @@ changes  without  encumbrance.   Such improvements and extensions
 should be returned to Software.Distribution@cs.cmu.edu.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rds/rds_coalesce.c,v 4.1 1997/01/08 21:54:27 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rds/Attic/rds_coalesce.c,v 4.2 1998/11/02 16:47:35 rvb Exp $";
 
 #endif _BLURB_
 

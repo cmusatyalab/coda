@@ -33,7 +33,7 @@ should be returned to Software.Distribution@cs.cmu.edu.
 
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/rvm-src/rvm/rvmutl.c,v 4.7 98/11/02 16:47:52 rvb Exp $";
+static char *rcsid = "$Header: /coda/coda.cs.cmu.edu/project/coda/cvs/coda/rvm-src/rvm/Attic/rvmutl.c,v 4.8 1998/12/09 11:07:46 jaharkes Exp $";
 #endif _BLURB_
 
 /*
