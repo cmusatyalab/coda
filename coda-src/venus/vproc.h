@@ -357,7 +357,7 @@ struct venus_cnode {
 #define VA_IGNORE_GID		((gid_t) -1)
 #define VA_IGNORE_SIZE		((u_quad_t)-1) 
 #define VA_IGNORE_TIME1		((time_t)-1)
-#define VA_IGNORE_FLAGS		((u_long) -1)
+#define VA_IGNORE_FLAGS		((u_long)-1)
 
 #endif /* _VENUS_PROC_H_ */
 

@@ -91,7 +91,7 @@ int repair_isleftmost(char *path, char *realpath, int len, char *msg, int msgsiz
 	    
 	    /* Is this piece a sym link? */
 	    if (readlink(car, symbuf, MAXPATHLEN) > 0) {
-		if (++symlinks >= CODA_MAXSYMLINKS) {
+		if (++symlinks >= CODA_MAXSYMLINK) {
 		    errno = ELOOP;
 		    strerr(msg, msgsize, "%s: %s", path, strerror(errno));	
 		    goto Exit;

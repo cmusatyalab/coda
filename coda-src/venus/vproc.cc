@@ -765,7 +765,7 @@ void va_init(struct coda_vattr *vap) {
     vap->va_mtime = vap->va_atime;
     vap->va_ctime = vap->va_atime;
     vap->va_rdev = (long long unsigned int)VA_IGNORE_RDEV;
-    vap->va_flags = 0; /* must be 0 not IGNORE for BSD */
+    vap->va_flags = 0; /* must be 0, not IGNORE_FLAGS for BSD */
 }
 
 void VPROC_printvattr(struct coda_vattr *vap)

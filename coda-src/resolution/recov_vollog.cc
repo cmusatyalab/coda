@@ -204,9 +204,9 @@ void recov_vol_log::PrintUnreachableRecords(bitmap *shadowbm) {
 	if (recovvalue != shadowvalue) {
 	    if (shadowvalue) 
 		SLog(0, "Log rec at index %d is allocated in vm"
-		     "but not in RVM .... BAD BAD\n", i);
+		     "but not in RVM .... BAD BAD", i);
 	    else {
-		SLog(0, "Log rec at index %d is unreachable\n",i);
+		SLog(0, "Log rec at index %d is unreachable",i);
 		recle *r = (recle *)IndexToAddr(i);
 		CODA_ASSERT(r);
 		r->print(stdout);

@@ -1006,7 +1006,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 		   vsp->header.id, dir.vnodeNumber, dir.unique);
 
 	    if (RecoverableResLogs) {
-		    SLog(9, "DCC: Marking log entries for %#x.%x.%x\n",
+		    SLog(9, "DCC: Marking log entries for %#x.%x.%x",
 			 vid, dirVnodeInfo->vnodes[i].vid, 
 			 dirVnodeInfo->vnodes[i].unique);
 		    MarkLogEntries(dirVnodeInfo->vnodes[i].log, vsp);
@@ -1015,7 +1015,7 @@ void DirCompletenessCheck(struct VolumeSummary *vsp)
 
     // salvage the resolution logs 
     if (RecoverableResLogs) {
-	    SLog(0, "DCC: Salvaging Logs for volume 0x%x\n", vid);
+	    SLog(0, "DCC: Salvaging Logs for volume 0x%x", vid);
 	    vsp->vollog->SalvageLog(vsp->logbm);
 	    delete vsp->logbm;
     }

@@ -2362,7 +2362,6 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
 
     vap->va_nlink = stat.LinkCount;
     vap->va_blocksize = V_BLKSIZE;
-    vap->va_flags = 0;
     vap->va_rdev = 1;
 
     /* If the object is currently open for writing we must physically 
