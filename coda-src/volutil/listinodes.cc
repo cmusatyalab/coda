@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/listinodes.cc,v 4.1 1997/01/08 21:52:25 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/volutil/RCS/listinodes.cc,v 4.2 1997/02/26 16:04:01 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -75,7 +75,7 @@ extern "C" {
 
 #ifdef	__linux__
 #include <linux/fs.h>
-#endif /* __linux*/
+#endif /* __linux__*/
 
 #ifdef __MACH__
 #include <sysent.h>
@@ -83,6 +83,7 @@ extern "C" {
 #else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
+#include <uifs.h>
 #endif
 
 #include <libc.h>
@@ -102,6 +103,8 @@ extern "C" {
 #include <viceinode.h>
 #include <vutil.h>
 
+
+int UifsGetHeader(ino_t ino, struct ViceInodeInfo *info);
 /* Notice:  parts of this module have been cribbed from fsck.c */
 
 
@@ -111,7 +114,8 @@ extern Testing;
 PRIVATE int bread(int fd, char *buf, daddr_t blk, long size);
 
 int ListViceInodes(char *devname, char *mountedOn, char *resultFile,
-			int (*judgeInode)(struct ViceInodeInfo*, VolumeId), int judgeParam)
+		   int (*judgeInode)(struct ViceInodeInfo*, VolumeId), 
+		   int judgeParam)
 {
 #ifdef __MACH__
    union {
@@ -252,3 +256,113 @@ int bread(int fd, char *buf, daddr_t blk, long size)
    assert(0);
 #endif /* __MACH__ */
 }
+
+#if defined(__linux__) || defined(__BSD44__)
+
+int ListCodaInodes(char *devname, char *mountedOn, char *resultFile,
+		   int (*judgeInode)(struct ViceInodeInfo*, VolumeId), 
+		   int judgeParam)
+{
+    DIR *pdir;
+    ino_t ino;
+    struct dirent *ent=NULL;
+    int tfd, i, c, e, bufsize, rc;
+    FILE *inodeFile = NULL;
+    char testFile[50],  err[200];
+    struct dinode *inodes = NULL, *einodes;
+
+    LogMsg(9, VolDebugLevel, stdout, 
+	   "Entering ListCodaInodes(%s, %s, %s, 0x%x, %u)",
+	   devname, mountedOn, resultFile, judgeInode, judgeParam);
+    partition = mountedOn;
+   
+    /* Check that the file system is writeable (not mounted read-only) */
+    sprintf(testFile, "%s/.....zzzzz.....", mountedOn);
+    if ((tfd = open(testFile,O_WRONLY|O_CREAT,0)) == -1) {
+        LogMsg(0, VolDebugLevel, stdout, 
+	       "File system \"%s\" is not writeable.",
+	       mountedOn);
+	return -1;
+    }
+    close(tfd);
+    unlink(testFile);
+    
+    pdir = opendir(mountedOn);
+    if (pdir == NULL) {
+       sprintf(err, "Could not read directory %s to get inode list\n", 
+	       mountedOn);
+       perror(err);
+       return -1;
+   }
+
+    inodeFile = fopen(resultFile, "w");
+    if (inodeFile == NULL) {
+        LogMsg(0, VolDebugLevel, stdout, 
+	       "Unable to create inode description file %s", resultFile);
+	goto out;
+   }
+
+
+    LogMsg(0, VolDebugLevel, stdout, 
+	   "Scanning inodes in directory %s...", mountedOn);
+
+    /* scan the directory for inodes */
+    while ( (ent = readdir(pdir)) != NULL) {
+        struct ViceInodeInfo info;
+        struct stat statbuf;	
+	ino = atol(ent->d_name);
+
+	if ( !isdigit(*(ent->d_name)) )
+	    continue;
+	rc = UifsGetHeader(ino, &info);
+	if ( rc == 0 ) {
+	    if (fwrite((char *)&info, sizeof info, 1, inodeFile) != 1) {
+	        LogMsg(0, VolDebugLevel, stdout, 
+		       "Error writing inode file for partition %s", mountedOn);
+		goto out;
+	  }
+	}
+    }
+    closedir(pdir);
+    fclose(inodeFile);
+    free((char *)inodes);
+    return 0;
+
+out:
+    if (pdir) closedir(pdir);
+    if (ent) free(ent);
+    if (inodeFile) fclose(inodeFile);
+    if (inodes) free((char *)inodes);
+    return -1;
+}
+
+int UifsGetHeader(ino_t ino, struct ViceInodeInfo *info)
+{
+    struct i_header header;
+    struct stat sbuf;
+    int rc;
+    char filename[FNAMESIZE];
+
+    rc = get_header(&header, ino);
+    if ( rc != 0 ) 
+      return -1;
+    
+    inotostr(ino, filename);
+    rc = stat(filename, &sbuf);
+    if ( rc != 0 )
+      return -1;
+
+    if ( (header.magic != VICEMAGIC) || !(S_ISREG(sbuf.st_mode)) ) 
+      return -1;
+    
+    info->inodeNumber = ino;
+    info->byteCount = sbuf.st_size;
+    info->linkCount = header.lnk;
+    info->u.param[0] = header.volume;
+    info->u.param[1] = header.vnode;
+    info->u.param[2] = header.unique;
+    info->u.param[3] = header.dataversion;
+    return 0;
+}
+
+#endif /* linux or BSD44 */

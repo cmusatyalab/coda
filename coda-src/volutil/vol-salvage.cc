@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /usr/rvb/XX/src/coda-src/volutil/RCS/vol-salvage.cc,v 4.2 1997/01/28 11:56:15 satya Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/volutil/RCS/vol-salvage.cc,v 4.3 1997/02/26 16:04:13 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -212,11 +212,6 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
     ProgramType *pt;  /* These are to keep C++ > 2.0 happy */
     char *path = (char *) formal_path;
 
-#ifdef __BSD44__
-      LogMsg(0, VolDebugLevel, stdout, "Arrrgh.... S_VolSalvage() not yet implemented for BSD44!!");
-      assert(0);
-#endif /* __BSD44__ */
-
     LogMsg(9, VolDebugLevel, stdout, "Entering S_VolSalvage (%d, %s, %x, %d, %d, %d)",
 			rpcid, path, singleVolumeNumber, force, Debug, list);
     assert(LWP_GetRock(FSTAG, (char **)&pt) == LWP_SUCCESS);
@@ -251,7 +246,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
     
     if (path == NULL) {
       int didSome = 0;
-#ifdef __MACH__
+#if defined(__MACH__) || defined(__BSD44__)
       struct fstab *fsent;
       setfsent();
       while (fsent = getfsent()) {
@@ -263,9 +258,9 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
 	  didSome++;
 	}
       }
-#endif /* __MACH__ */
+#endif /* __MACH__  and BSD44 */
 
-#ifdef	__linux__
+#if defined(__linux__) 
       struct mntent *mntent;
       FILE *mnt_handle;
       mnt_handle = setmntent("/etc/mtab", "r");
@@ -278,7 +273,7 @@ long S_VolSalvage(RPC2_Handle rpcid, RPC2_String formal_path, VolumeId singleVol
 	  didSome++;
 	}
       }
-#endif /* __linux*/
+#endif /* __linux__ */
 
 
 
@@ -337,10 +332,13 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
 	LogMsg(0, VolDebugLevel, stdout, "Couldn't find file system \"%s\", aborting", path);
 	return(VFAIL);
     }
+    /* this is not the case for inode systems with files */
+#if __MACH__
     if (status.st_ino != ROOTINODE || (name = devName(status.st_dev)) == NULL) {
 	LogMsg(0, VolDebugLevel, stdout, "\"%s\" is not a mounted file system", path);
 	return(VNOVNODE);
     }
+#endif
     VLockPartition(path);
     if (singleVolumeNumber || ForceSalvage)
 	ForceSalvage = 1;
@@ -365,7 +363,8 @@ PRIVATE int SalvageFileSys(char *path, VolumeId singleVolumeNumber)
     fileSysPath = path;
     fileSysDeviceName = name;
     strcpy(inodeListPath, "/tmp/salvage.inodes.");
-    strcat(inodeListPath, name); 
+    if ( name ) 
+      strcat(inodeListPath, name); 
     rc = GetInodeSummary(inodeListPath, singleVolumeNumber);
     if (rc != 0) {
 	if (rc == VNOVOL) {
@@ -634,7 +633,7 @@ PRIVATE int SalvageVolHead(register struct VolumeSummary *vsp)
  */
 PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes, 
 			    struct VolumeSummary *vsp) {
-#ifdef	__MACH__
+
     LogMsg(9, VolDebugLevel, stdout, "Entering VnodeInodeCheck()");    
     VolumeId volumeNumber = vsp->header.id;
     char buf[SIZEOF_SMALLDISKVNODE];
@@ -797,12 +796,7 @@ PRIVATE int VnodeInodeCheck(int RW, struct ViceInodeInfo *ip, int nInodes,
     assert(vnext(vnode) == -1);
     assert(nVnodes == 0);
     return 0;
-#endif /* __MACH__ */
 
-#if defined(__linux__) || defined(__BSD44__)
-    LogMsg(0, VolDebugLevel, stdout, "Arrrgghhh... VnodeInodeCheck() not yet implemented");
-    assert(0);
-#endif /* __linux__ || __BSD44__ */
 }
 /* inodes corresponding to a volume that has been blown away.
  * We need to idec them
@@ -1558,6 +1552,7 @@ PRIVATE int GetInodeSummary(char *path, VolumeId singleVolumeNumber)
     char *dev = fileSysDeviceName;
 
     LogMsg(9, VolDebugLevel, stdout, "Entering GetInodeSummary (%s, %x)", path, singleVolumeNumber);
+#ifdef __MACH__
     if(singleVolumeNumber)
 	rc = ListViceInodes(dev, fileSysPath, path, OnlyOneVolume, singleVolumeNumber);
     else
@@ -1566,6 +1561,18 @@ PRIVATE int GetInodeSummary(char *path, VolumeId singleVolumeNumber)
     if (rc == 0) {
 	LogMsg(9, VolDebugLevel, stdout, "ListViceInodes returns success");
     }
+#else
+    if(singleVolumeNumber)
+	rc = ListCodaInodes(dev, fileSysPath, path, OnlyOneVolume, singleVolumeNumber);
+    else
+	rc = ListCodaInodes(dev, fileSysPath, path, NULL, singleVolumeNumber);
+
+    if (rc == 0) {
+	LogMsg(9, VolDebugLevel, stdout, "ListCodaInodes returns success");
+    }
+#endif
+
+
     if(rc == -1) {
 	LogMsg(0, VolDebugLevel, stdout, "Unable to get inodes for \"%s\"; not salvaged", dev);
 	return(VFAIL);

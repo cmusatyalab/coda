@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/vol/vutil.h,v 1.1 1996/11/22 19:10:22 braam Exp $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/vutil.h,v 4.1 1997/01/08 21:52:22 rvb Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -66,6 +66,7 @@ extern void CopyVolumeHeader(VolumeDiskData *from, VolumeDiskData *to);
 extern void ClearVolumeStats(VolumeDiskData *vol);
 
 extern int ListViceInodes(char *devname, char *mountedOn, char *resultFile, int (*judgeInode)(struct ViceInodeInfo*, VolumeId), int judgeParam);
+extern int ListCodaInodes(char *devname, char *mountedOn, char *resultFile, int (*judgeInode)(struct ViceInodeInfo*, VolumeId), int judgeParam);
 extern int HashString(register char *s, unsigned int size);
 extern void CloneVolume(Error *error, Volume *original, Volume *newv, Volume *old);
 

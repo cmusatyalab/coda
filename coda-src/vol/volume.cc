@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/volume.cc,v 4.2 1997/02/26 16:03:57 rvb Exp braam $";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/vol/RCS/volume.cc,v 4.3 1997/04/28 15:08:41 braam Exp braam $";
 #endif /*_BLURB_*/
 
 
@@ -377,9 +377,9 @@ void VInitVolumePackage(int nLargeVnodes, int nSmallVnodes, int DoSalvage) {
     /* Setting Debug to 1 and List to 0; maybe remove later ***ehs***/
     /* invoke salvager for full salvage */
     *pt = salvager;	/* MUST set *pt to salvager before vol_salvage */
-#ifdef __MACH__
+
     assert(S_VolSalvage(0, NULL, 0, DoSalvage, 1, 0) == 0);
-#endif
+
     *pt = fileServer;
 
     /* grab exclusive lock */
