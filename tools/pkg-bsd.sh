@@ -85,10 +85,8 @@ EXTRACT_SUFX=	.tgz
 MAINTAINER=	rvb@cs.cmu.edu
 @NetBSD HOMEPAGE=	http://www.coda.cs.cmu.edu/
 
-@NetBSD DEPENDS+=	gdbm-1.7.3:../../databases/gdbm
 @NetBSD DEPENDS+=	readline-2.2:../../devel/readline
 @NetBSD DEPENDS+=	perl-5.00404:../../lang/perl5
-@FreeBSD BUILD_DEPENDS=	\${PREFIX}/lib/libgdbm.a:\${PORTSDIR}/databases/gdbm
 
 @NetBSD ONLY_FOR_ARCHS=	arm32 i386 ns32k
 @NetBSD 

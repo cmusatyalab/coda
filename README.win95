@@ -87,7 +87,7 @@ You need the rpms for:
 - djgpp package
 - djgpp-win95ext
 - cygwin
-- gdbm-nt
+- libdb-nt
 - gdb-djgpp a "remote debugging" environment for DPMI applications. 
 
 It is highly recommended to set up Samba to share Linux generated

@@ -25,7 +25,7 @@ INCREADLINE   = -I/usr/include/readline
 LIBTHREADS    =
 LIBMACH       = 
 LIBMATH       = -lm
-LGDBM         = -L/usr/lib
+LIBDB         = -ldb
 PERL          = perl
 
 GUIDIR        = /usr/lib/coda

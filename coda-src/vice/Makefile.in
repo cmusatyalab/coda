@@ -84,7 +84,7 @@ objects=srvproc.o	\
 	ViceErrorMsg.o	
 
 codasrv: ${objects} srv.o dummyplumber.o ${CLIBS} $(LIBFIXUP)
-	$(CXX) $(LIBFLAGS) srv.o ${objects} dummyplumber.o ${CLIBS} $(LGDBM) -lgdbm -lm $(LIBFIXUP) -o codasrv
+	$(CXX) $(LIBFLAGS) srv.o ${objects} dummyplumber.o ${CLIBS} $(LIBDB) -lm $(LIBFIXUP) -o codasrv
 
 printvrdb: printvrdb.o $(LIBFIXUP)
 	$(CXX) ${LIBFLAGS} printvrdb.o $(LIBFIXUP) -o printvrdb

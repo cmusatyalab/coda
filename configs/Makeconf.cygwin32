@@ -43,6 +43,6 @@ INCREADLINE   = -I/usr/gnuwin32/include/readline
 LIBTHREADS    =
 LIBMACH       = 
 LIBMATH       = 
-LGDBM         = -L/usr/gnuwin32/lib
+LIBDB         = -ldb
 PERL          = perl
 GUIDIR        = /usr/lib/coda

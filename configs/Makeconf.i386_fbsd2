@@ -19,8 +19,7 @@ LIBMACH       =
 
 #for advice_srv
 LIBKVM        = /usr/lib/libkvm.a
-INCGDBM       = -I/usr/local/include
-LGDBM         = -L/usr/local/lib
+LIBDB         =
 LIBMATH       = -lm
 GUIDIR        = /usr/lib/coda
 

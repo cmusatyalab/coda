@@ -10,12 +10,12 @@ oldgroups  = "/vice/db/group.coda"
 #**************
 
 # Remove existing pdbtool databases, extreme, but simple
-if os.path.exists('/vice/db/coda.pdb'):
-  os.unlink('/vice/db/coda.pdb')
-  os.unlink('/vice/db/name.pdb')
+if os.path.exists('/vice/db/coda.db'):
+  os.unlink('/vice/db/coda.db')
+  os.unlink('/vice/db/name.db')
 
 # Start a pipe to the pdbtool
-pdbtool = os.popen('./pdbtool', 'w')
+pdbtool = os.popen('pdbtool', 'w')
 
 # Whack in a couple of the (new) default entries
 pdbtool.write("nui Anonymous 776\n")

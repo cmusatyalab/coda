@@ -31,7 +31,7 @@ ifneq ($(SHORTSYS),djgpp)
 TESTS	    = altest
 endif
 
-CFLAGS += -Wall $(INCGDBM)
+CFLAGS += -Wall
 
 ifneq ($(SHORTSYS),djgpp)
 EXECUTABLES = pdbtool altest
@@ -50,8 +50,8 @@ include $(MAKDIR)/configs/Makerules
 libal.a:  pdbdb.o pdbpack.o alprocs.o pdb.o pdbdb.o pdbpack.o pdbprofile.o pdbarray.o 
 
 altest: altest.o libal.a $(LIBUTIL) $(HFILES)
-	$(CC) $(LIBFLAGS) altest.o libal.a $(LGDBM) -lgdbm $(LIBUTIL) $(LIBBASE) $(LIBFIXUP) -o altest
+	$(CC) $(LIBFLAGS) altest.o libal.a $(LIBDB) $(LIBUTIL) $(LIBBASE) $(LIBFIXUP) -o altest
 
 pdbtool: pdbtool.o libal.a 
-	$(CC) $(LIBFLAGS) pdbtool.o libal.a $(LGDBM) -lgdbm $(LIBBASE) $(LIBREADLINE) $(LIBTERMCAP) $(LIBFIXUP) -o pdbtool
+	$(CC) $(LIBFLAGS) pdbtool.o libal.a $(LIBDB) $(LIBBASE) $(LIBREADLINE) $(LIBTERMCAP) $(LIBFIXUP) -o pdbtool
 

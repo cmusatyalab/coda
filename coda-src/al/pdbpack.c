@@ -32,13 +32,13 @@ listed in the file CREDITS.
 #include <string.h>
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <gdbm.h>
+#include <db.h>
 #include <coda_assert.h>
 #include "pdb.h"
 
 void pdb_pack(PDB_profile *r, void **data)
 {
-	datum *d;
+	DBT *d;
 	int32_t tmp[1024];
 	int off, len;
 
@@ -76,21 +76,21 @@ void pdb_pack(PDB_profile *r, void **data)
 	CODA_ASSERT(off < 1024);
 	
 	/* The memory allocated here is freed in PDB_db_write */
-	d = malloc(sizeof(datum));
-	d->dptr = malloc(off * sizeof(int32_t));
-	memcpy(d->dptr, (char *) tmp,off * sizeof(int32_t));
-	d->dsize = off*sizeof(int32_t);
+	d = malloc(sizeof(DBT));
+	d->data = malloc(off * sizeof(int32_t));
+	memcpy(d->data, (char *) tmp,off * sizeof(int32_t));
+	d->size = off*sizeof(int32_t);
 	*data = (void *)d;
 }
 
 
 void pdb_unpack(PDB_profile *r, void *data)
 {
-	datum *d = (datum *) data;
-	int32_t *tmp = (int32_t *) d->dptr;
+	DBT *d = (DBT *) data;
+	int32_t *tmp = (int32_t *) d->data;
 	int off, len;
 
-	if(d->dsize == 0){
+	if(d->size == 0){
 		r->id = 0;
 		free(d);
 		return;
@@ -119,7 +119,7 @@ void pdb_unpack(PDB_profile *r, void *data)
 
 	CODA_ASSERT(off < 1024);
 
-	/* Here we free the data allocated by PDB_db_read and gdbm_fetch */
-	free(d->dptr);
+	/* Here we free the data allocated by PDB_db_read and db_fetch */
+	free(d->data);
 	free(d);
 }

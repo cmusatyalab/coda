@@ -37,20 +37,23 @@ listed in the file CREDITS.
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <limits.h>
 
-#include <gdbm.h>
+#include <db.h>
 
 #include <coda_assert.h>
 
 #include "pdb.h"
 
-#define PDB_MAIN "/vice/db/coda.pdb"
-#define PDB_NAME  "/vice/db/name.pdb"
+#define PDB_MAIN "/vice/db/coda.db"
+#define PDB_NAME "/vice/db/name.db"
 
 struct PDB_HANDLE_S {
-	GDBM_FILE main;
-	GDBM_FILE name;
+	DB *main;
+	DB *name;
 };
+
+static BTREEINFO btreeinfo = { 0, 0, 0, 0, 1024, NULL, NULL, 4321 };
 
 
 PDB_HANDLE PDB_db_open(int mode)
@@ -64,12 +67,16 @@ PDB_HANDLE PDB_db_open(int mode)
 	switch (mode) {
 	case O_RDWR: 
 	case O_WRONLY:
-		handle->main = gdbm_open(PDB_MAIN, 0, GDBM_WRITER, 0, 0);
-		handle->name = gdbm_open(PDB_NAME, 0, GDBM_WRITER, 0, 0);
+		handle->main = dbopen(PDB_MAIN, O_RDWR, 0600, DB_BTREE,
+                                      &btreeinfo);
+		handle->name = dbopen(PDB_NAME, O_RDWR, 0600, DB_BTREE,
+                                      &btreeinfo);
 		break;
 	case O_RDONLY:
-		handle->main = gdbm_open(PDB_MAIN, 0, GDBM_READER, 0, 0);
-		handle->name = gdbm_open(PDB_NAME, 0, GDBM_READER, 0, 0);
+		handle->main = dbopen(PDB_MAIN, O_RDONLY, 0600, DB_BTREE,
+                                      &btreeinfo);
+		handle->name = dbopen(PDB_NAME, O_RDONLY, 0600, DB_BTREE,
+                                      &btreeinfo);
 		break;
 	default:
 		return NULL;
@@ -98,106 +105,92 @@ PDB_HANDLE PDB_db_open(int mode)
 */
 int PDB_db_nextkey(PDB_HANDLE h, int *id)
 {
-	static datum next_id;
-	static datum idd;
-	static int first = 1;
+	static int which = R_FIRST;
+	DBT key;
+        int rc;
 
-	if ( first ) {
-		idd = gdbm_firstkey(h->main);
-		if ( !idd.dptr )
-			return 0;
-		if ( idd.dsize != 4) {
-			first = 0;
-			return -1;
-		}
-		*id = ntohl(*(int *)(idd.dptr));
-		first = 0;
-		return 1;
-	} else {
-		next_id = gdbm_nextkey(h->main, idd);
-		if ( idd.dptr ) 
-			free(idd.dptr);
-		idd = next_id; 
-	}		
+        rc = h->main->seq(h->main, &key, NULL, which);
 
-	if ( !next_id.dptr ) {
-		first = 1;
-		return 0;
-	}
-	*id = ntohl(*(int *)(next_id.dptr));
+        if ( rc != RET_SUCCESS ) {
+            which = R_FIRST;
+            return 0;
+        }
+
+        which = R_NEXT;
+
+        if ( key.size != 4 )
+            return -1;
+
+        *id = ntohl(*(int *)(key.data));
+
 	return 1;
 }
 
 
-
-
 void PDB_db_close(PDB_HANDLE h)
 {
-
 	CODA_ASSERT(h && h->name && h->main);
 
-	gdbm_close(h->name);
-	gdbm_close(h->main);
+	h->name->close(h->name);
+	h->main->close(h->main);
 	free(h);
 }
 
 void PDB_db_maxids(PDB_HANDLE h, int32_t *uid, int32_t *gid)
 {
-	datum d;
-	datum f;
+	DBT key, value;
 	char zero = 0;
 	int32_t *ids;
+        int rc;
 
-	d.dsize = sizeof(zero);
-	d.dptr = &zero;
+	key.size = sizeof(zero);
+	key.data = &zero;
 	
-	f = gdbm_fetch(h->main, d);
+        rc = h->main->get(h->main, &key, &value, 0);
 
-	if ( !f.dptr ) {
+	if ( rc != RET_SUCCESS) {
 		*uid = 0; 
 		*gid = 0;
 	} else {
-		CODA_ASSERT(f.dsize == 2*sizeof(int32_t));
-		ids = (int32_t *) f.dptr;
+		CODA_ASSERT(value.size == 2*sizeof(int32_t));
+		ids = (int32_t *) value.data;
 		*uid = ntohl(ids[0]);
 		*gid = ntohl(ids[1]);
 	}
-
 }
 
 
 void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 {
-	datum d;
-	datum f;
+	DBT key, value;
 	int rc;
 	char zero = 0;
 	int32_t olduid, oldgid;
 	int32_t *ids = NULL;
 	
-	CODA_ASSERT( uid >= 0 && gid <= 0);
+	CODA_ASSERT(uid >= 0 && gid <= 0);
 
-	d.dsize = sizeof(zero);
-	d.dptr = &zero;
+	key.size = sizeof(zero);
+	key.data = &zero;
 	
-	f = gdbm_fetch(h->main, d);
+        rc = h->main->get(h->main, &key, &value, 0);
 
-	if ( !f.dptr ) {
+	if ( rc != RET_SUCCESS ) {
 		CODA_ASSERT( (uid == 0) && (gid == 0) );
 		olduid = -1; 
 		oldgid = 1;
-		f.dsize = 2 * sizeof(int32_t);
-		ids = malloc(f.dsize);
-		f.dptr = (void *) ids;
+		value.size = 2 * sizeof(int32_t);
+		ids = malloc(value.size);
+		value.data = (void *) ids;
 	} else {		
-		CODA_ASSERT(f.dsize == 2*sizeof(int32_t));
-		ids = (int32_t *) f.dptr;
+		CODA_ASSERT(value.size == 2*sizeof(int32_t));
+		ids = (int32_t *) value.data;
 		olduid = ntohl(ids[0]);
 		oldgid = ntohl(ids[1]);
 		CODA_ASSERT(olduid >= 0 || oldgid <= 0); 
 	}
 
-	if(mode != PDB_MAXID_FORCE){
+	if ( mode != PDB_MAXID_FORCE ) {
 		if (  uid > olduid )
 			ids[0] = htonl(uid);
 		if (  gid < oldgid ) 
@@ -208,35 +201,33 @@ void PDB_db_update_maxids(PDB_HANDLE h, int32_t uid, int32_t gid, int mode)
 		ids[1] = htonl(gid);
 	}
 
-	rc = gdbm_store(h->main, d, f, GDBM_REPLACE);
-	CODA_ASSERT(rc == 0);
-
-	free(f.dptr);
+        rc = h->main->put(h->main, &key, &value, 0);
+	CODA_ASSERT(rc == RET_SUCCESS);
 }
 
 void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf)
 {
-	datum namerec, mainrec;
+	DBT namerec, mainrec;
 	int rc;
-	datum *bufd;
+	DBT *bufd;
 	int32_t netid;
 
 	CODA_ASSERT(id && name && buf);
 
 	netid = htonl(id);
-	bufd = (datum *)buf;
+	bufd = (DBT *)buf;
 
-	namerec.dsize = strlen(name);
-	namerec.dptr = name;
+	namerec.size = strlen(name);
+	namerec.data = name;
 
-	mainrec.dsize = sizeof(netid);
-	mainrec.dptr = (char *)&netid;
+	mainrec.size = sizeof(netid);
+	mainrec.data = (char *)&netid;
 
-	rc = gdbm_store(h->main, mainrec, *bufd, GDBM_REPLACE); 
-	CODA_ASSERT(rc == 0);
+        rc = h->main->put(h->main, &mainrec, bufd, 0);
+	CODA_ASSERT(rc == RET_SUCCESS);
 
-	rc = gdbm_store(h->name, namerec, mainrec, GDBM_REPLACE); 
-	CODA_ASSERT(rc == 0);
+        rc = h->name->put(h->name, &namerec, &mainrec, 0);
+	CODA_ASSERT(rc == RET_SUCCESS);
 
 	if (id > 0)
 		PDB_db_update_maxids(h, id, 0, PDB_MAXID_SET);
@@ -244,35 +235,50 @@ void PDB_db_write(PDB_HANDLE h, int32_t id, char *name, void *buf)
 		PDB_db_update_maxids(h, 0, id, PDB_MAXID_SET);
 
 	/* This frees the memory allocated in pdb_pack */
-	free(bufd->dptr);
+	free(bufd->data);
 	free(bufd);
 }
 
 
 void *PDB_db_read(PDB_HANDLE h, int32_t id, char *name)
 {
-	datum d;
-	datum *foundid;
+	DBT d;
+	DBT *foundid;
+	void *data;
 	int32_t realid;
+	int rc;
 
 	/* The data allocated here is freed in pdb_unpack */
-	foundid = (datum *) malloc(sizeof(*foundid));
+	foundid = (DBT *) malloc(sizeof(*foundid));
 	CODA_ASSERT(foundid);
 
 	realid = htonl(id);
 	if ( name ) {
-		d.dsize = strlen(name);
-		d.dptr = name; 
-		*foundid = gdbm_fetch(h->name, d);
-		if (!foundid->dptr) 
+		d.size = strlen(name);
+		d.data = name; 
+                rc = h->name->get(h->name, &d, foundid, 0);
+		if ( rc != RET_SUCCESS ) {
+                        foundid->data = NULL; 
+                        foundid->size = 0; 
 			return (void *)foundid;
-		realid = *(int32_t *)foundid->dptr;
-		free(foundid->dptr);
+                }
+		realid = *(int32_t *)foundid->data;
+                foundid->data = NULL;
+                foundid->size = 0; 
 	}
 		
-	d.dsize = sizeof(realid);
-	d.dptr = (char *)&realid;
-	*foundid = gdbm_fetch(h->main, d);
+	d.size = sizeof(realid);
+	d.data = (char *)&realid;
+        rc = h->main->get(h->main, &d, foundid, 0);
+        if ( rc != RET_SUCCESS ) {
+                foundid->data = NULL;
+                foundid->size = 0; 
+        } else {
+                data = malloc(foundid->size);
+                CODA_ASSERT(data);
+                memcpy(data, foundid->data, foundid->size);
+                foundid->data = data;
+        }
 
 	return (void *)foundid;
 }
@@ -280,43 +286,43 @@ void *PDB_db_read(PDB_HANDLE h, int32_t id, char *name)
 
 void PDB_db_delete(PDB_HANDLE h, int32_t id, char *name)
 {
-	datum key; 
+	DBT key; 
 	int32_t realid;
 
 	realid = htonl(id);
-	key.dsize = sizeof(realid); 
-	key.dptr = (char *)&realid;
+	key.size = sizeof(realid); 
+	key.data = (char *)&realid;
 
-	gdbm_delete(h->main, key);
+        h->main->del(h->main, &key, 0);
 
 	if (!name) 
 		return;
 
-	key.dsize = strlen(name); 
-	key.dptr = name;
+	key.size = strlen(name); 
+	key.data = name;
 
-	gdbm_delete(h->name, key);
+        h->name->del(h->name, &key, 0);
 }
 
 
 void PDB_db_delete_xfer(PDB_HANDLE h, char *name)
 {
-	datum key;
+	DBT key;
 
 	CODA_ASSERT (name);
-	key.dsize = strlen(name); 
-	key.dptr = name;
+	key.size = strlen(name); 
+	key.data = name;
 
-	gdbm_delete(h->name, key);
+        h->name->del(h->name, &key, 0);
 }
 
 
 int PDB_db_exists(void) 
 {
-	GDBM_FILE db;
+	DB *db;
 	int rc1, rc2;
 	struct stat buf;
-	datum key;
+	DBT key;
 	char zero = 0;
 	int result;
    
@@ -335,22 +341,22 @@ int PDB_db_exists(void)
 	/* check the sanity */
 	
 	/* this record has a special 1-byte key equal to zero */
-	key.dsize = 1;
-	key.dptr = &zero;
+	key.size = 1;
+	key.data = &zero;
 
 	/* open the profile database in read mode */
-	db = gdbm_open(PDB_MAIN, 0, GDBM_READER, 0, 0);
+        db = dbopen(PDB_MAIN, O_RDONLY, 0600, DB_BTREE, &btreeinfo);
 	if(!db) {
-		fprintf(stderr, "opening: %s\n", 
-			gdbm_strerror(gdbm_errno));
+		fprintf(stderr, "Error opening %s: %s\n", 
+			PDB_MAIN, strerror(errno));
 		exit(1);
 	}
 
 	/* check if the record exists */
-	result = gdbm_exists(db, key);
-	gdbm_close(db);
+        result = db->get(db, &key, NULL, 0);
+        db->close(db);
    
-	if (! result ) {
+	if ( result != RET_SUCCESS ) {
 		fprintf(stderr, 
 			"base PDB record does not exist. start over.\n");
 		exit(1);
@@ -362,31 +368,33 @@ int PDB_db_exists(void)
 
 void PDB_db_compact(PDB_HANDLE h) 
 {
+#if 0
 	gdbm_reorganize(h->main);
 	gdbm_reorganize(h->name);
+#endif
 }
 
 
 int PDB_setupdb(void)
 {
-	GDBM_FILE dbmain;
-	GDBM_FILE dbname;
+	DB *dbmain, *dbname;
 	PDB_HANDLE h;
 
 	if ( PDB_db_exists() ) 
 		return -EEXIST;
 	
-	dbmain = gdbm_open(PDB_MAIN, 0, GDBM_WRCREAT, 0600, NULL);
-	dbname = gdbm_open(PDB_NAME, 0, GDBM_WRCREAT, 0600, NULL);
+        dbmain = dbopen(PDB_MAIN, O_RDWR | O_CREAT | O_EXCL, 0600, DB_BTREE,
+                        &btreeinfo);
+        dbname = dbopen(PDB_NAME, O_RDWR | O_CREAT | O_EXCL, 0600, DB_BTREE,
+                        &btreeinfo);
 
 	if ( !dbmain || !dbname ) {
 		fprintf(stderr, "Fatal error in PDB creation\n");
 		exit(1);
 	}
 
-	gdbm_close(dbmain);
-	gdbm_close(dbname);
-	
+        dbmain->close(dbmain);
+        dbname->close(dbname);
 
 	h = PDB_db_open(O_WRONLY);
 	PDB_db_update_maxids(h, 0, 0, PDB_MAXID_FORCE);

@@ -1,7 +1,7 @@
 This file is Readme.bsd current as of 01/09/98.
 
 To build Coda on a BSD system (NetBSD/FreeBSD), you must first make
-sure that perl, gdbm, and readline are installed on your machine.
+sure that perl, and readline are installed on your machine.
 Secondly, you must copy the sys/mount.h from the Coda kernel sources
 to /usr/include/sys.  This defines MOUNT_CFS in a way appropriate for
 the particular BSD system.
@@ -11,9 +11,6 @@ Under NetBSD:
 1. To install perl:
 	cd /usr/pkgsrc/languages/perl
 	make install;
-2. To install gdbm:
-	cd /usr/pkgsrc/databases/gbdm
-	make install
 3. To intall readline:
 	get the readline tar.gz
 		ftp to prep.ai.mit.edu

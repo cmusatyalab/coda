@@ -25,7 +25,9 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <gdbm.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <db.h>
 
 #include <lock.h>
 #include <lwp.h>
@@ -45,23 +47,23 @@ char GhostDB[MAXPATHLEN];
 struct Lock GhostLock;
 
 
-MakeDatum(char *string, datum *element) {
-    element->dptr = string;
-    element->dsize = strlen(string) + 1;
+MakeDatum(char *string, DBT *element) {
+    element->data = string;
+    element->size = strlen(string) + 1;
 }
 
 
-StoreDatum(GDBM_FILE db, datum *key, datum *content) {
+StoreDatum(DB *db, DBT *key, DBT *content) {
     int rc; 
 
-    rc = gdbm_store(db, *key, *content, GDBM_REPLACE);
-    if (rc != 0) {
+    rc = db->put(db, key, content, 0);
+    if (rc != RET_SUCCESS) {
         LogMsg(100, LogLevel, LogFile, 
 	       "StoreDatum: Element not inserted into GhDB (Key=%s, Data=%s)\n", 
-	       key->dptr, content->dptr);
+	       key->data, content->data);
         fprintf(stderr, 
 		"StoreDatum: Element not inserted into GhDB (Key=%s, Data=%s)\n", 
-		key->dptr, content->dptr);
+		key->data, content->data);
         fflush(stderr);
         return(-1);
     }
@@ -69,24 +71,25 @@ StoreDatum(GDBM_FILE db, datum *key, datum *content) {
     return(0);
 }
 
-GetDatum(GDBM_FILE db, datum *key, int *status, int *data) {
-  datum content;
+GetDatum(DB *db, DBT *key, int *status, int *data) {
+  DBT content;
+  int rc;
 
   *status = 0;
   *data = 0;
 
-  content = gdbm_fetch(db, *key);
-  if (content.dptr != NULL) {
-      int rc = sscanf(content.dptr, "%d %d", status, data);
+  rc = db->get(db, key, &content, 0);
+  if (rc == RET_SUCCESS) {
+      int rc = sscanf(content.data, "%d %d", status, data);
       CODA_ASSERT(rc == 2);
-      free(content.dptr);
+      // free(content.data);
   }
 }
 
-void UpdateReplacementRecord(GDBM_FILE db, char *path, int status, int data) {
+void UpdateReplacementRecord(DB *db, char *path, int status, int data) {
     int oldStatus, oldData;
     int newStatus, newData;
-    datum key, content;
+    DBT key, content;
     char dataString[DATASIZE];
 
     MakeDatum(path, &key);
@@ -115,7 +118,7 @@ int StringContainsQuestions(char *path) {
 
 void ParseReplacementLog(char *filename) {
     FILE *replacementLog;
-    GDBM_FILE db;
+    DB *db;
     char line[MAXPATHLEN];
     char *returnValue;
     int rc;
@@ -133,13 +136,13 @@ void ParseReplacementLog(char *filename) {
         return;
     }
 
-    db = gdbm_open(GhostDB, DBBLOCKSIZE, GDBM_WRCREAT, 0644, NULL);
+    db = dbopen(GhostDB, O_RDWR | O_CREAT, 0600, DB_BTREE, NULL);
     if (db == NULL) {
         LogMsg(100, LogLevel, LogFile,
 	       "ParseReplacementLog:  Could not open database (%s)\n",
 	       GhostDB);
 	LogMsg(100, LogLevel, LogFile, 
-	       "gdbm error msg: %s\n", gdbm_strerror(gdbm_errno));
+	       "db error msg: %s\n", strerror(errno));
 	fclose(replacementLog);
         return;
     }
@@ -172,7 +175,7 @@ void ParseReplacementLog(char *filename) {
 	returnValue = fgets(line, MAXPATHLEN, replacementLog);
     }
 
-    gdbm_close(db);
+    db->close(db);
     fclose(replacementLog);
 
     ReleaseWriteLock(&GhostLock);
@@ -181,34 +184,38 @@ void ParseReplacementLog(char *filename) {
 }
 
 void PrintGhostDB() {
-  GDBM_FILE db;
-  datum key;
+  DB *db;
+  DBT key, content;
   int status, data;
+  int rc;
 
   ObtainReadLock(&GhostLock);
 
-  db = gdbm_open(GhostDB, DBBLOCKSIZE, GDBM_WRCREAT, 0644, NULL);
+  db = dbopen(GhostDB, O_RDWR | O_CREAT, 0600, DB_BTREE, NULL);
 
   printf("\n\nPrinting the database:\n");
-  key = gdbm_firstkey(db);
-  while (key.dptr) {
-    GetDatum(db, &key, &status, &data);
-    printf("  key=%s content = <%d,%d>\n",key.dptr, status, data);
-    key = gdbm_nextkey(db, key);
+  rc = db->seq(db, &key, &content, R_FIRST);
+  while (rc == RET_SUCCESS) {
+    rc = sscanf(content.data, "%d %d", &status, &data);
+    CODA_ASSERT(rc == 2);
+
+    printf("  key=%s content = <%d, %d>\n",key.data, status, data);
+    rc = db->seq(db, &key, &content, R_NEXT);
   }
 
   printf("\n\n");
 
-  gdbm_close(db);
+  db->close(db);
 
   ReleaseReadLock(&GhostLock);
 }
 
 void OutputReplacementStatistics() {
   FILE *outfile;
-  GDBM_FILE db;
-  datum key;
+  DB *db;
+  DBT key, content;
   int status, data;
+  int rc;
 
   ObtainReadLock(&GhostLock);
 
@@ -218,36 +225,39 @@ void OutputReplacementStatistics() {
       return;
   }
 
-  db = gdbm_open(GhostDB, DBBLOCKSIZE, GDBM_WRCREAT, 0644, NULL);
+  db = dbopen(GhostDB, O_RDWR | O_CREAT, 0600, DB_BTREE, NULL);
 
-  key = gdbm_firstkey(db);
-  while (key.dptr) {
-    GetDatum(db, &key, &status, &data);
+  rc = db->seq(db, &key, &content, R_FIRST);
+  while (rc == RET_SUCCESS) {
+    rc = sscanf(content.data, "%d %d", &status, &data);
+    CODA_ASSERT(rc == 2);
+
     if ((status >= MAXSTATUSREPLACEMENTS) || (data >= MAXDATAREPLACEMENTS))
-	fprintf(outfile, "%s\n",key.dptr);
-    key = gdbm_nextkey(db, key);
+	fprintf(outfile, "%s\n",key.data);
+
+    rc = db->seq(db, &key, &content, R_NEXT);
   }
 
-  gdbm_close(db);
+  db->close(db);
   fflush(outfile);
   fclose(outfile);
   ReleaseReadLock(&GhostLock);
 }
 
 Find(char *path) {
-  GDBM_FILE db;
-  datum key;
+  DB *db;
+  DBT key;
   int oldStatus, oldData;
 
   ObtainReadLock(&GhostLock);
-  db = gdbm_open(GhostDB, DBBLOCKSIZE, GDBM_WRCREAT, 0644, NULL);
+  db = dbopen(GhostDB, O_RDWR | O_CREAT, 0600, DB_BTREE, NULL);
 
   MakeDatum(path, &key);
   GetDatum(db, &key, &oldStatus, &oldData);
   printf("%s (%d) is found with %d and %d\n", 
 	 path, strlen(path), oldStatus, oldData);
 
-  gdbm_close(db);
+  db->close(db);
   ReleaseReadLock(&GhostLock);
 }
 
