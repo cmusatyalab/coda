@@ -92,6 +92,11 @@ int pioctl(const char *path, unsigned long com, struct
 #define IOCSIZE_SHIFT	(_IOC_SIZESHIFT)
 #endif
 
+#if defined(__CYGWIN32__)
+/* Get the _IO... definitions for CYGWIN. */
+#include <asm/socket.h>
+#endif 
+
 
 
 /* people who understand ioctling probably know why this is useful... */
