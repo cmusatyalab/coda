@@ -24,8 +24,6 @@ Headers and static libraries for developing programs using the RPC2 library.
 
 %build
 ./configure --prefix=/usr
-# we need to rebuild rp2gen_lexer.c locally when we don't have stdint.h
-[ -e /usr/include/stdint.h ] || rm -f rp2gen/rp2gen_lexer.c
 make
 
 %install
