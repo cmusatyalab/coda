@@ -11,33 +11,22 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-
-/* Mach definition differs from Linux and NetBSD...  Translate */
-#define O_NONBLOCK FNDELAY
-
-#else   /* __linux__ || __BSD44__ */
 #include <stdlib.h>
 #include <unistd.h>
-#endif
 
 
 #include <lock.h>
 #include <lwp.h>
 #include <rpc2.h>
+#include <adsrv.h>
+#include <admon.h>
+#include <util.h>
 
 #ifdef __cplusplus
 }
 #endif __cplusplus
 
-#include <adsrv.h>
-#include <admon.h>
-#include <util.h>
 
-#include "admon.h"
-#include "adsrv.h"
 #include "advice_srv.h"
 #include "console_handler.h"
 #include "globals.h"

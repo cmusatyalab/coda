@@ -10,6 +10,9 @@ extern "C" {
 #include <lwp.h>
 #include <rpc2.h>
 
+#include "admon.h"
+#include "adsrv.h"
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -21,8 +24,6 @@ extern "C" {
 #include "globals.h"
 #include "helpers.h"
 #include "rpc_setup.h"
-#include "admon.h"
-#include "adsrv.h"
 
 #ifdef __FAKE__
 #define ADSRVPORTAL     1435
@@ -40,7 +41,7 @@ RPC2_Handle VenusCID = -1;
 void Init_RPC(int *mainpid)
 {
   char error_msg[BUFSIZ];
-  RPC2_PortalIdent *portallist[1], portal1;
+  RPC2_PortalIdent port;
   RPC2_SubsysIdent sid;
   long rc ;
 
@@ -50,12 +51,10 @@ void Init_RPC(int *mainpid)
   }
 
   /* Initialize RPC2 Package */
-  portallist[0] = &portal1; 
+  port.Tag = RPC2_PORTALBYINETNUMBER;
+  port.Value.InetPortNumber = (int)NULL;
 
-  portal1.Tag = RPC2_PORTALBYINETNUMBER;
-  portal1.Value.InetPortNumber = (int)NULL;
-
-  rc = RPC2_Init(RPC2_VERSION, NULL, portallist, 1, -1, NULL) ;
+  rc = RPC2_Init(RPC2_VERSION, NULL, &port, -1, NULL) ;
   if (rc != RPC2_SUCCESS) {
     snprintf(error_msg, BUFSIZ, "%s:  Can't Initialize RPC2", RPC2_ErrorMsg((int)rc));
     ErrorReport(error_msg);

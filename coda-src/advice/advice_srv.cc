@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.7 98/01/26 21:38:17 mre Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.8 1998/02/26 11:51:44 mre Exp $";
 #endif /*_BLURB_*/
 
 
@@ -49,13 +49,8 @@ static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice
 extern "C" {
 #endif __cplusplus
 
-#ifdef __MACH__
-#include <sysent.h>
-#include <libc.h>
-#else	/* __linux__ || __BSD44__ */
 #include <unistd.h>
 #include <stdlib.h>
-#endif
 
 #include <stdio.h>
 #include <sys/param.h>
@@ -79,6 +74,10 @@ extern "C" {
 extern int table(int id, int index, char *addr, int nel, int lel);
 extern int ffilecopy(FILE*, FILE*);
 
+/* from vicedep */
+#include "admon.h"
+#include "adsrv.h"
+
 #ifdef __cplusplus
 }
 #endif __cplusplus
@@ -93,9 +92,6 @@ extern void RegisterDaemon(unsigned long, char *);
 #include <proc.h>
 #include <bstree.h>
 
-/* from vicedep */
-#include "admon.h"
-#include "adsrv.h"
 
 /* from venus */
 #include <advice.h>

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/fail.cc,v 4.1 1997/12/16 15:54:48 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/fail.cc,v 4.2 1997/12/23 17:19:18 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -160,7 +160,7 @@ void InitRPC() {
 
     assert(LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &mylpid) == LWP_SUCCESS);
 
-    rc = RPC2_Init(RPC2_VERSION, 0, NULL, 0,  -1, NULL);
+    rc = RPC2_Init(RPC2_VERSION, 0, NULL, -1, NULL);
     if (rc == RPC2_SUCCESS) return;
     if (rc < RPC2_ELIMIT) exit(-1);
 }
