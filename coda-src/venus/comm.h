@@ -416,13 +416,13 @@ class mgrpent {
     int CheckReintegrate(int, vv_t *);
     int RVVCheck(vv_t **, int);
     int DHCheck(vv_t **, int, int *,  int =0);
+    int PickDH(vv_t **RVVs);
 
     int GetHostSet();
     int CreateMember(unsigned long);
     void PutHostSet();
     void KillMember(unsigned long, int);
     unsigned long GetPrimaryHost(int * =0);
-    void SetPrimaryHost(unsigned long =0);
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }

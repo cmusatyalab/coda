@@ -105,7 +105,7 @@ int mrpc2_timeflag = UNSET_MT;
 long WCThresh = UNSET_WCT;  	/* in Bytes/sec */
 int WCStale = UNSET_WCS;	/* seconds */
 
-int RoundRobin = 0;
+int RoundRobin = 1;
 int AllowIPAddrs = 1;
 
 extern long RPC2_Perror;
@@ -2030,6 +2030,34 @@ int mgrpent::RVVCheck(vv_t **RVVs, int EqReq) {
     return(0);
 }
 
+#define DOMINANT(idx) (rocc.hosts[idx] != 0 && rocc.retcodes[idx] == 0 && \
+                       (RVVs == 0 || RVVs[idx] != 0))
+
+int mgrpent::PickDH(vv_t **RVVs)
+{
+    int i, dominators = 0, chosen;
+
+    /* count % of hosts in the dominant set. */
+    for (i = 0; i < VSG_MEMBERS; i++)
+    {
+	if (DOMINANT(i))
+            dominators++;
+    }
+
+    /* randomly choose one. If not only for lack of information, then simply
+     * to improve load balancing of the clients */
+    chosen = rpc2_NextRandom(NULL) % dominators;
+
+    /* And walk the hosts again to find the one we chose */
+    for (i = 0; i < VSG_MEMBERS; i++)
+    {
+	if (DOMINANT(i) && (chosen-- == 0))
+                return(i);
+    }
+
+    CHOKE("mgrpent::PickDH: dominant set is empty");
+    return(0);
+}
 
 /* Validate the existence of a dominant host; return its index in OUT parameter. */
 /* If there are multiple hosts in the dominant set, prefer the primary host. */
@@ -2039,36 +2067,28 @@ int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq) {
     *dh_ixp = -1;
 
     /* Return the primary host if it is in the dominant set. */
-    if (ph_ix != -1) 
-	if (rocc.hosts[ph_ix] != 0 && rocc.retcodes[ph_ix] == 0 &&
-	    (RVVs == 0 || RVVs[ph_ix] != 0))
-	    {
-		*dh_ixp = ph_ix;
-		return(0);
-	    }
+    if (ph_ix != -1 && DOMINANT(ph_ix))
+    {
+        *dh_ixp = ph_ix;
+        return(0);
+    }
 	
     /* Find a non-primary host from the dominant set. */
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	if (rocc.hosts[i] != 0 && rocc.retcodes[i] == 0 && (RVVs == 0 || RVVs[i] != 0)) {
-	    if (PHReq) {
-		LOG(1, ("VSG (%x) PH -> %x", VSGAddr, rocc.hosts[i]));
-		SetPrimaryHost(rocc.hosts[i]);
-		return(ERETRY);
-	    }
+    *dh_ixp = PickDH(RVVs);
 
-	    *dh_ixp = i;
-	    return(0);
-	}
+    if (PHReq) {
+        LOG(1, ("VSG (%x) PH -> %x", VSGAddr, rocc.hosts[*dh_ixp]));
+        rocc.primaryhost = rocc.hosts[*dh_ixp];
+        return(ERETRY);
+    }
 
-    /* Dominant set is empty. */
-    CHOKE("mgrpent::DHCheck: dominant set is empty");
-    return(0);	/* dummy to keep g++ happy */
+    return(0);
 }
 
 
 int mgrpent::GetHostSet()
 {
-    int i;
+    int i, idx;
     LOG(100, ("mgrpent::GetHostSet: vsgaddr = %#08x, uid = %d, mid = %d\n",
 	      VSGAddr, uid, McastInfo.Mgroup));
 
@@ -2097,7 +2117,13 @@ int mgrpent::GetHostSet()
 
     /* Validate primaryhost. */
     if (rocc.primaryhost == 0)
-	SetPrimaryHost();
+    {
+        /* When the rocc.retcodes are all be zero, all available
+         * hosts are Dominant Hosts, and we can use PickDH */
+        memset(rocc.retcodes, 0, sizeof(RPC2_Integer) * VSG_MEMBERS);
+        idx = PickDH(NULL);
+	rocc.primaryhost = rocc.hosts[idx];
+    }
 
     return(0);
 }
@@ -2202,8 +2228,11 @@ unsigned long mgrpent::GetPrimaryHost(int *ph_ixp) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (rocc.hosts[i] == rocc.primaryhost) {
 	    if (ph_ixp != 0) *ph_ixp = i;
-	    /* Add a round robin distribution, primarily to spread fetches across AVSG */
-	    if (RoundRobin) {
+            /* Add a round robin distribution, primarily to spread fetches
+             * across AVSG. */
+            /* Added a random factor to reduce the amount of switching
+             * between servers to only of 1 out of every 32 calls --JH */
+	    if (RoundRobin && ((rpc2_NextRandom(NULL) & 0x1f) == 0)) {
 		int j;
 		for (j = i + 1; j != i; j = (j + 1) % VSG_MEMBERS)
 		    if (rocc.hosts[j] != 0) {
@@ -2221,22 +2250,6 @@ unsigned long mgrpent::GetPrimaryHost(int *ph_ixp) {
 
     CHOKE("mgrpent::GetPrimaryHost: ph (%x) not found", rocc.primaryhost);
     return(0);	/* dummy to keep g++ happy */
-}
-
-
-/* Arg of 0 --> set primary host to any valid host. */
-/* Choice of host ought to be made more intelligently! -JJK */
-void mgrpent::SetPrimaryHost(unsigned long host) {
-    for (int i = 0; i < VSG_MEMBERS; i++) {
-	if (rocc.hosts[i] == 0) continue;
-
-	if (host == 0 || rocc.hosts[i] == host) {
-	    rocc.primaryhost = rocc.hosts[i];
-	    return;
-	}
-    }
-
-    CHOKE("mgrpent::SetPrimaryHost: ph not found");
 }
 
 
