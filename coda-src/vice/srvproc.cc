@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.19 1998/11/02 16:46:45 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc.cc,v 4.20 98/11/03 19:49:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -4945,33 +4945,38 @@ START_TIMING(PutObjects_Transaction);
 		    /* Directory pages.  Be careful with cloned directories! */
                     SLog(10, "--PO: %s", FID_(&v->fid));
                     if (v->vptr->disk.type == vDirectory ) {
-                       /* sanity */
-                       if ( !errorCode && v->d_inodemod ) {
-                            CODA_ASSERT(v->vptr->dh);
-                            SLog(10, "--PO: %s dirty %d", 
-			      FID_(&v->fid), DC_Dirty(v->vptr->dh));
-                       }
-                       if ( !errorCode && v->vptr->dh && DC_Dirty(v->vptr->dh)) {
-                            CODA_ASSERT(v->d_inodemod);
-		       }
-                       if (v->d_inodemod && DC_Dirty(v->vptr->dh)) {
-                            if (errorCode == 0) {
-				    /* Dec the Cow */
-				    PDCEntry pdce = v->vptr->dh;
-				    if (DC_Cowpdi(pdce)) {
-					    DI_Dec(DC_Cowpdi(pdce));
-					    DC_SetCowpdi(pdce, NULL);
-				    }
-                                    CODA_ASSERT(VN_DCommit(v->vptr) == 0);
+			/* sanity */
+			if (errorCode)
+			{
+			   CODA_ASSERT(VN_DAbort(v->vptr) == 0);
+			   if ( v->d_inodemod && v->vptr && v->vptr->dh) 
+			       VN_PutDirHandle(v->vptr);
+			}
+			else if (v->d_inodemod)
+			{
+			    CODA_ASSERT(v->vptr->dh);
+			    SLog(10, "--PO: %s dirty %d", 
+				 FID_(&v->fid), DC_Dirty(v->vptr->dh));
+
+			    if ( DC_Dirty(v->vptr->dh)) {
+				/* Dec the Cow */
+				PDCEntry pdce = v->vptr->dh;
+				if (DC_Cowpdi(pdce)) {
+				    DI_Dec(DC_Cowpdi(pdce));
+				    DC_SetCowpdi(pdce, NULL);
+				}
+				CODA_ASSERT(VN_DCommit(v->vptr) == 0);
+
+				DC_SetDirty(v->vptr->dh, 0);
+
+				SLog(0, "--DC: %s ct: %d\n", 
+				     FID_(&v->fid), DC_Count(v->vptr->dh));
 			    } else {
-				    CODA_ASSERT(VN_DAbort(v->vptr) == 0);
+				SLog(0, "--PO: d_inodemod and !DC_Dirty %s",
+				     FID_(&v->fid));
 			    }
-			    DC_SetDirty(v->vptr->dh, 0);
-                            SLog(0, "--DC: %s ct: %d\n", 
-				 FID_(&v->fid), DC_Count(v->vptr->dh));
-                       }
-		       if ( v->d_inodemod ) 
 			    VN_PutDirHandle(v->vptr);
+			}
 		    }
 		    
 
