@@ -1534,7 +1534,7 @@ static void PreProcessCompOps(arrlist *ops) {
 	    c1fid.Volume = c2fid.Volume = 0;
 	    ExtractChildFidFromrsle(curr, &c1fid);
 	    ExtractChildFidFromrsle(prev, &c2fid);
-	    if (FID_Cmp(&c1fid, &c2fid) &&
+	    if (!FID_Cmp(&c1fid, &c2fid) &&
 		!strcmp(curr->name1, prev->name1)) {
 		curr->opcode = ResolveNULL_OP;
 		prev->opcode = ResolveNULL_OP;
