@@ -92,7 +92,6 @@ extern struct Features HAVE;
 #define MCFD    16                           /* Michael Callahan File Descriptor */
 #endif
 
-#define	DFLT_KD	"/dev/cfs0"		    /* kernel pseudo-device */
 #if defined(DJGPP) 
 #define	DFLT_CD	"C:/usr/coda/venus.cache"    /* Win cache directory */
 #elif  defined(__CYGWIN32__)

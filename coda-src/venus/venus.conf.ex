@@ -20,7 +20,7 @@ cacheblocks=100000
 # or `0' the default value is calculated as 'cacheblocks / 24'.
 # Minimum value is 85.
 #
-cachefiles=0
+#cachefiles=0
 
 #
 # How many modification log entries should venus have. If this is not
@@ -28,7 +28,7 @@ cachefiles=0
 # (with the default number of cachefiles this is '4 * cachefiles')
 # Minimum value is 256.
 #
-cml_entries=0
+#cml_entries=0
 
 #
 # How many hoard database entries should venus have. If this is not
@@ -36,13 +36,13 @@ cml_entries=0
 # (with the default number of cachefiles this is 'cachefiles / 2')
 # Minimum value is 42.
 #
-hoard_entries=0
+#hoard_entries=0
 
 #
 # Which file should receive venus's stderr output.
 # (default is /usr/coda/etc/console).
 #
-errorlog=/usr/coda/etc/console
+#errorlog=/usr/coda/etc/console
 
 #
 # What is the uid of the primary user of this system. The primary user
@@ -53,7 +53,7 @@ errorlog=/usr/coda/etc/console
 # If a non-zero uid is specified here, venus will not attempt to guess
 # who the primary user is.
 #
-primaryuser=0
+#primaryuser=0
 
 #
 # What are the locations of the rvm log and data files or partitions.
@@ -64,36 +64,36 @@ primaryuser=0
 # have an existing filesystem, as you WILL lose all data during
 # initialization.
 #
-rvm_log=/usr/coda/LOG
-rvm_data=/usr/coda/DATA
+#rvm_log=/usr/coda/LOG
+#rvm_data=/usr/coda/DATA
 
 #
 # Where should venus keep it's pool of cached files.
 # (default is /usr/coda/venus.cache)
 #
-cachedir=/usr/coda/venus.cache
+#cachedir=/usr/coda/venus.cache
 
 #
 # Where should venus store snapshots of the modification logs. This is
 # primarily to provide some safe fallback when venus dies or messes up
 # the CML during reintegration. (default is /usr/coda/spool)
 #
-checkpointdir=/usr/coda/spool
+#checkpointdir=/usr/coda/spool
 	
 #
 # Where does venus store it's pidfile
 #
-pid_file=/usr/coda/venus.cache/pid
+#pid_file=/usr/coda/venus.cache/pid
  
 #
 # What file does vutil use to control venus 
 #
-run_control_file=/usr/coda/venus.cache/VENUS_CTRL
+#run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 
 #
 # Venus log file
 #
-logfile=/usr/coda/venus.cache/venus.log
+#logfile=/usr/coda/venus.cache/venus.log
 
 #
 # Mariner socket, 
@@ -101,7 +101,7 @@ logfile=/usr/coda/venus.cache/venus.log
 # codacon and spy use to talk to venus. On other platforms they will
 # connect to venus through tcp port 2430.
 # 
-marinersocket=/usr/coda/spool/mariner
+#marinersocket=/usr/coda/spool/mariner
 
 #
 # Map private,
@@ -114,7 +114,7 @@ marinersocket=/usr/coda/spool/mariner
 # a raw partition. Set to 1 to use private mappings, 0 to use anonymous
 # mappings.
 # 
-mapprivate=0
+#mapprivate=0
 
 #
 # Mountpoint,
@@ -131,6 +131,11 @@ mapprivate=0
 # Standard name is /dev/cfs0, ignored by the Win95/98 port. Maybe we will
 # switch # to using /dev/coda0 at some point to avoid name conflicts.
 #
-kerneldevice=/dev/cfs0
+#kerneldevice=/dev/cfs0
 
+#
+# What is the name of the rootvolume. Normally this is queried from the
+# rootservers, only in very unusual cases does this need to be set.
+#
+#rootvolume=
 

@@ -448,7 +448,7 @@ static void DefaultCmdlineParms()
     CONF_STR(CacheDir,          "cachedir",      DFLT_CD);
     CONF_STR(SpoolDir,          "checkpointdir", "/usr/coda/spool");
     CONF_STR(consoleFile,       "errorlog",      "/usr/coda/etc/console");
-    CONF_STR(kernDevice,        "kerneldevice",  DFLT_KD);
+    CONF_STR(kernDevice,        "kerneldevice",  "/dev/cfs0");
     CONF_INT(MapPrivate,	"mapprivate",	 0);
     CONF_STR(MarinerSocketPath, "marinersocket", "/usr/coda/spool/mariner");
     CONF_STR(venusRoot,         "mountpoint",    DFLT_VR);
