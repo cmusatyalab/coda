@@ -1,6 +1,6 @@
 # This file contains configuration information for venus, the Coda
-# client. Most of the things specified here can be overridden by either
-# command-line flags, or /usr/coda/etc/vstab (if that file exists)
+# client. Most of the things specified here can be overridden by
+# command-line flags.
 
 #
 # Which are the root servers we should contact for volume location

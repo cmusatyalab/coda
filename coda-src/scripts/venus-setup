@@ -11,20 +11,6 @@
 # are present.
 #
 
-
-CODAETC=/usr/coda/etc
-CACHEDIR=/usr/coda/venus.cache
-TMPDIR=/usr/coda/tmp
-CACHESIZE=40000
-# SERVERS=testserver.coda.cs.cmu.edu
-
-
-if [ x$RPM_BUILD_ROOT = x ]; then
-  CODAROOT=/coda
-else
-  CODAROOT=$RPM_BUILD_ROOT/coda
-fi
-
 if [ $# != 2 ]; then
 	echo "Usage: $0 comma,separated,list,of,servers cachesize-in-kb"
 	exit 1
@@ -33,32 +19,84 @@ else
 	CACHESIZE=$2
 fi
 
-
-# set up the /coda root if it isn't there yet
-if [ ! -d $CODAROOT ]; then mkdir -p $CODAROOT; fi
-if [ ! -f $CODAROOT/NOT_REALLY_CODA ]; then 
- echo 'If you can see this file, venus is not running.' > \
-	$CODAROOT/NOT_REALLY_CODA
-fi
-
-# set up a cache directory
-if [ ! -d $CACHEDIR ]; then mkdir -p $CACHEDIR; chmod 700 $CACHEDIR; fi
-# this tempdir currently must have 755 permissions for hoard verify
-if [ ! -d $TMPDIR ]; then mkdir -p $TMPDIR; chmod 755 $TMPDIR; fi
-
-# next run will always initialize
-touch $CACHEDIR/INIT
-
-# set up the etc directory with the vstab
-if [ ! -d $CODAETC ]; then mkdir -p $CODAETC; fi
-
-if [ -f $CODAETC/vstab ] ; then
-    echo "You might want to remove $CODAETC/vstab as we are switching to"
-    echo "the @sysconfdir@/venus.conf file for configuring the client."
-fi
+#
+# Allowing the user to edit venus.conf before creating all the various
+# directories might be nice, but breaks the existing `half-automatic'
+# installation
+#
+#restart=0
+#[ ! -f /etc/coda/venus.conf ] && restart=1
 
 codaconfedit venus.conf rootservers "$SERVERS"
 codaconfedit venus.conf cacheblocks "$CACHESIZE"
+
+#if [ $restart = 1 ] ; then
+#    echo "We just created an initial configuration file /etc/coda/venus.conf"
+#    echo "You might want to look it over and modify some of the default paths"
+#    echo "Rerun 'venus-setup $SERVERS $CACHESIZE' if you're happy"
+#    exit
+#fi
+
+# default paths
+errorlog=/usr/coda/etc/console
+cachedir=/usr/coda/venus.cache
+checkpointdir=/usr/coda/spool
+logfile=/usr/coda/etc/venus.log
+marinersocket=/usr/coda/spool/mariner
+pid_file=/usr/coda/venus.cache/pid
+run_control_file=/usr/coda/venus.cache/VENUS_CTRL
+rvm_log=/usr/coda/LOG
+rvm_data=/usr/coda/DATA
+codatmpdir=/usr/coda/tmp
+
+# override with user defined paths
+if [ -f /etc/coda/venus.conf ] ; then
+    . /etc/coda/venus.conf
+fi
+
+makedir () {
+  mode=$1
+  newdir=$2
+  if [ "$newdir" != "" -a ! -d "$newdir" ] ; then
+    echo "Creating $newdir, mode $mode"
+    mkdir -p "$newdir"
+    chmod $mode "$newdir"
+  fi
+}
+
+errlogdir=`dirname $errorlog`
+logfiledir=`dirname $logfile`
+marinersocketdir=`dirname $marinersocket`
+pid_filedir=`dirname $pid_file`
+run_control_file_dir=`dirname $run_control_file`
+rvm_logdir=`dirname $rvm_log`
+rvm_datadir=`dirname $rvm_data`
+
+makedir 755 $checkpointdir
+makedir 755 $codatmpdir
+makedir 755 $marinersocketdir
+makedir 755 $mountpoint
+makedir 700 $cachedir
+makedir 700 $errorlogdir
+makedir 700 $logfiledir
+makedir 700 $pid_filedir
+makedir 700 $run_crontrol_file_dir
+makedir 700 $rvm_logdir
+makedir 700 $rvm_datadir
+
+# set up the /coda root if it isn't there yet
+if [ ! -f $mountpoint/NOT_REALLY_CODA ]; then 
+ echo 'If you can see this file, venus is not running.' > \
+	$mountpoint/NOT_REALLY_CODA
+fi
+
+# next run will always initialize
+touch $cachedir/INIT
+
+if [ -f /usr/coda/etc/vstab ] ; then
+    echo "Remove /usr/coda/etc/vstab as we have switched to the"
+    echo "@sysconfdir@/venus.conf file for configuring the client."
+fi
 
 # make the psdev
 if [ ! -c /dev/coda0 -a ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
@@ -66,23 +104,16 @@ if [ ! -c /dev/coda0 -a ! -c /dev/cfs0 -a ! -c /dev/coda/0 ] ; then
 fi
 
 # tell the kernel about the new module 
-if [ X`uname` = XLinux ]; then 
-    if [ -d /etc/modutils ]; then
-        MODULES=/etc/modutils/coda-client
-    else
-        MODULES=/etc/conf.modules
-    fi
+if [ X`uname` = XLinux -a ! -f /etc/debian_version ]; then 
+    MODULES=/etc/conf.modules
+    [ -f /etc/modules.conf ] && MODULES=/etc/modules.conf
     if ! grep coda $MODULES > /dev/null; then
         echo >> $MODULES
         echo 'alias char-major-67 coda' >> $MODULES
-        if [ -x /sbin/update-modules ]; then
-            /sbin/update-modules
-        fi
     fi
     /sbin/depmod -a
 fi
 
 # Setup the ports
-coda-setup-ports
-
+[ ! -f /etc/debian_version ] && coda-setup-ports
 
