@@ -74,13 +74,20 @@ ifdef SUBDIRS
 	done
 endif
 
+###############################################################
+#  install the man pages
+###############################################################
+man-install:
+	cd man ; cp -r man* ${prefix}/man
+
+
 #####################
 # install executables
 #####################
 bininstall: $(EXECUTABLES)
 ifdef EXECUTABLES
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
-	touch bininstall
+	-touch bininstall
 endif
 
 #####################
@@ -104,13 +111,13 @@ installserver: sbininstall ssbininstall
 sbininstall: $(SBINS)
 ifdef SBINS
 	$(TOPDIR)/tools/our-install 755 $(BINDIR) $?
-	touch bininstall
+	-touch bininstall
 endif
 
 ssbininstall: $(SSBINS)
 ifdef SSBINS
 	$(TOPDIR)/tools/our-install 755 $(SBINDIR) $?
-	touch bininstall
+	-touch bininstall
 endif
 
 #####################
@@ -204,6 +211,9 @@ showvar:
 	@echo  CFLAGS: $(CFLAGS)
 	@echo  TOPDIR: $(TOPDIR) 
 	@echo  LIBINODEFS: $(LIBINODEFS) 
+	@echo  BINDIR: $(BINDIR)
+	@echo  SBINDIR: $(SBINDIR)
+	@echo  MANDIR:  $(MANDIR)
 
 ##################
 # linting

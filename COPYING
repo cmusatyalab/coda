@@ -1,0 +1,18 @@
+Copying.  
+
+This software is distributed with licenses described in the source
+files.  On the whole there are different licenses in effect, depending
+on the origin of the sources:
+
+1. Unencumbred source from CMU.  For an example see coda-src/repair/repair.h
+
+2. Code which has been inherited from AFS2.  This has an additional
+copyright notice from IBM. See for example: coda-src/vice/srvproc.cc
+
+3. Linux kernel code has used some functions from other Linux kernel
+files and comes under the GNU Public License.
+
+4. NetBSD kernel code has inherited from NetBSD and has some BSD
+licenses.
+
+

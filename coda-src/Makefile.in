@@ -28,7 +28,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: Makefile.in,v 4.3 97/01/28 11:41:19 satya Exp $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-1/coda-4.0.1/coda-src/RCS/Makefile.in,v 4.4 97/04/29 21:27:25 rvb Exp Locker: braam $";
 
 #  Coda top level Makefile
 #  Josh Raiff
@@ -46,7 +46,7 @@ include $(MAKDIR)/Makeconf
   I =  scripts
  II =  kerndep dir 
 III =  rpc2 util
- IV =  libal rp2gen pdbstuff blurb camstuff
+ IV =  libal rp2gen pdbstuff blurb # camstuff
   V =  fail vicedep 
 
 #  The mond data collection module is only intended for the PMax

@@ -1,0 +1,73 @@
+
+
+Building the Coda Filesystem.
+=============================
+
+A very brief overview.
+
+
+
+1. What gets build?
+
+
+1.1 kernel-src
+
+A networked filesystem will contain a fs layer, which can be addressed
+by the VFS layer to get system calls working.
+
+Additionally coda has operations on inodes, which are simple system
+calls implemented at kernel level.  These we hope to fade out when we
+have a btree based user level umulation of these calls. An
+oversimplified example of this user ifs  (inode filesystem) library is
+in the coda-src/sys, and is used by Linux.
+
+These system calls have two legs: the kernel implementation of the
+calls and secondly the stub library to make new system calls.
+
+Finally on Mach only, a pioctl system call was implemented.  
+
+
+1.2 lib-src
+
+First some special include files are installed.  After that a general
+purpose library libcs is built -- eventually we may not need this
+anymore, but some of the coda utility programs use it.
+
+Next is the threads package.  There are two versions of this. Old is
+purely co-routine, new is layered on cthreads.  New is not used by
+coda, but maintained for historical reasons.  A similar layering of
+lwp threads on pthreads might be needed in the future, allowing both
+coroutine behavior and preemption.
+
+The thread package is used by rvm and coda, and must be compiled
+before either of these.
+
+There are two little test programs for the threads, rw and test. The
+latter takes two arguments, the first none.
+
+1.3 rvm-src
+
+In rvm-src are the sources for the transaction package.  All coda
+platforms build the plain and lwp threaded versions of the
+libraries. I believe only the lwp threaded version is used by coda.
+
+For HPUX there is a version of rvm using pthreads, which could be
+useful to coda in the future (doing log truncation in a kernel thread
+could provide a major performance boost.).
+
+A key issue leading to confusion is the file cthreads.h which is
+included by the rvm_basher program.  Since the cthreads version of rvm
+is not used anywhere, we have changed this to a dummy_cthreads. file,
+which is installed when the rvm libraries are built. 
+
+The most realistic test for rvm is the lwp_basher with runs a threaded
+rvm.  
+
+1.4 coda-srv
+
+This builds the whole coda filesystem user level routines.  Major sub
+packages are:
+
+rpc2: containing the multirpc package, venus: the client system, vice:
+the server.
+

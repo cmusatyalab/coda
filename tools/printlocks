@@ -1,43 +1,41 @@
 #!/bin/sh
 
-if [ $# -gt 0 ] ; then
-  echo '$# > 0'
-#  set mail = 1
+if [ x$1 != x ] ; then
+  if [ ! -e $1 ]; then
+    echo "Usage: printlocks [messagefile]"
+    exit 1
+  fi
 fi
 
-/bin/rm -f /tmp/printlocks.out
-touch /tmp/printlocks.out
+msg=$1
+/bin/rm -f /tmp/rcslocks.out
+touch /tmp/rcslocks.out
 
 find . -name RCS -print | \
   while read dir 
     do
       if [ `uname` = "Mach" ] ; then
-        rlog -L ${dir}/* | egrep 'locks: | *,v'
+        rlog -L ${dir}/*,v | egrep 'locks: | *,v' 
       else
-        rlog -L ${dir}/* | grep 'locked\|,v'
+        rlog -L ${dir}/*,v | grep 'locked\|,v' | tee --append /tmp/rcslocks.out
       fi
     done
 
-#set developers = "bnoble braam bumba clement lily mre  raiff rvb satya tilt"
+developers="bnoble braam bumba clement lily mre  raiff rvb satya tilt"
 
-#/bin/rm -f /tmp/printlocks.mail
-#cat << _EOF_ > /tmp/printlocks.mail
-#Here's a list of mainline locks you currently hold.  I will be taking a beta
-#clone Monday (8/26) and will break any remaining locks at that 
-#time.  Please be sure to break them before then.
-#
-#_EOF_
-#
-#foreach i ($developers)
-#  grep {$i}: /tmp/printlocks.out >! /tmp/locks.$i
-#  if ( !  -z /tmp/locks.$i ) then
-#    echo $i has locks
-#
-#    if ( $?mail ) then
-#      cat /tmp/printlocks.mail /tmp/locks.$i | mail -s "Locks you hold" $i
-#    endif
-#  else
-#    echo $i has no locks
-#  endif
-#end
+rm -f /tmp/printlocks.mail
 
+
+for i in  $developers
+do
+  grep -B1 ${i} /tmp/rcslocks.out > /tmp/locks.$i
+  if [   -s /tmp/locks.$i ]; then
+    echo $i has locks
+
+    if [ x$msg != x ]; then
+      cat $msg /tmp/locks.$i | mail -s "Locks you hold" ${i}+@cs.cmu.edu
+    fi
+  else
+    echo $i has no locks
+  fi
+done

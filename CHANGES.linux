@@ -1,0 +1,11 @@
+6/16/97
+4.0.1 --> 4.0.5
+	- kernel code for Linux substantially revised
+	- full name and attribute caching in kernel
+	- servers can salvage and restart
+	- new inode ops for servers
+	- several technical bug fixes in Venus and server
+	- hoarding fixed
+	- manual pages added
+	- rpm package upgraded by Elliot Lee
+	- kernel module loaded through depmod

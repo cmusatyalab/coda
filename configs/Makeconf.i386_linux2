@@ -8,6 +8,14 @@
 # Peter Braam
 # Josh Raiff, modified for configure
 
+# the following may need editing depending on your preferences
+PERL=/usr/bin/perl
+BINDIR = $(exec_prefix)/bin
+SBINDIR = $(exec_prefix)/sbin
+MANDIR = $(exec_prefix)/man
+
+
+
 MACHINE_FLAGS = -DLINUX
 SHORTSYS      = linux
 INCLFLAGS     = -I/usr/include
@@ -27,8 +35,3 @@ LIBMACH       =
 
 LEX           = flex
 
-# ########################################################################
-#	Deep six all this
-# ########################################################################
-
-C++ = g++
