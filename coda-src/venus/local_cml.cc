@@ -34,7 +34,7 @@ extern "C" {
 #endif __cplusplus
 
 /* from libal */
-#include <prs.h>
+#include <prs_fs.h>
 
 /* from vv */
 #include <inconsist.h>

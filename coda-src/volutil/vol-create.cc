@@ -60,7 +60,7 @@ extern "C" {
 
 #include <vice.h>
 #include <volutil.h>
-#include <prs.h>
+#include <prs_fs.h>
 #ifdef __cplusplus
 }
 #endif __cplusplus

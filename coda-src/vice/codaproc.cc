@@ -54,6 +54,7 @@ extern "C" {
 #include <rvmlib.h>
 
 #include <prs.h>
+#include <prs_fs.h>
 #include <al.h>
 #include <vice.h>
 #ifdef __cplusplus

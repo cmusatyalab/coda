@@ -45,6 +45,7 @@ extern "C" {
 #include <partition.h>
 #include <auth2.h>
 #include <prs.h>
+#include <prs_fs.h>
 #include <al.h>
 #include <callback.h>
 #include <vice.h>

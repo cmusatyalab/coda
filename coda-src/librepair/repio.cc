@@ -76,7 +76,7 @@ extern "C" {
 #include <sys/file.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <prs.h>
+#include <prs_fs.h>
 #include <rpc2.h>
 
 #ifdef __cplusplus
