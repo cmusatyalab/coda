@@ -29,6 +29,7 @@ extern void ntohFF(FailFilter *);
 extern void htonFF(FailFilter *);
 void PrintError();
 void PrintUsage();
+static void ParseArgs(int argc, char **argv);
 
 char *host1 = NULL;
 char *host2 = NULL;
@@ -39,7 +40,6 @@ int speed2 = MAXNETSPEED;
 
 int slow(int argc, char** argv)
 {
-	int i;
 	unsigned long cid1, cid2;
 	struct hostent *he1;
 	struct hostent *he2;
@@ -139,9 +139,7 @@ int slow(int argc, char** argv)
 }
 
 
-ParseArgs(argc, argv) 
-int argc;
-char **argv;
+void ParseArgs(int argc, char **argv)
 {
     int i;
     if (argc != 9)

@@ -23,8 +23,7 @@ listed in the file CREDITS.
 /* Removes all filters from all specified targets */
 void clear_targets(target_t *targets, int num_targets)
 {
-  int num, num_filters, filt;
-  FailFilter *filters;
+  int num;
 
   for (num = 0; num < num_targets; num++)
     if (!open_connection(targets[num])) {

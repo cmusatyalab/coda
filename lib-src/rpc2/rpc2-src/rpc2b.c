@@ -95,7 +95,7 @@ long RPC2_Init(char *VId,		/* magic version string */
     }
 
     /* rpc2_InitConn returns 0 if we're already initialized */
-    if (rpc2_InitConn() == 0) return;;
+    if (rpc2_InitConn() == 0) rpc2_Quit(RPC2_SUCCESS);
 
     rpc2_InitMgrp();
     rpc2_InitHost();

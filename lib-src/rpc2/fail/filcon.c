@@ -33,6 +33,7 @@ listed in the file CREDITS.
 #include <sys/socket.h>
 #include <parser.h>
 #include "fail.h"
+#include "filtutil.h"
 
 extern void ntohFF(FailFilter *);
 extern void htonFF(FailFilter *);
@@ -187,7 +188,7 @@ void AddClient(int argc, char **argv)
     name.MaxSeqLen = MAXHOSTNAMELEN;
     name.SeqLen = 1;
     name.SeqBody = (RPC2_ByteSeq) info->clientName;
-    if (rc = /*Fcon_*/GetInfo(cid, &name)) {
+    if ((rc = /*Fcon_*/GetInfo(cid, &name))) {
 	PrintError("Can't get client info", rc);
 	free(info);
 	return;
@@ -466,7 +467,7 @@ void cmdInsertFilter(int argc, char **argv)
 }
 
 /* GetFilters client */
-PrintFilters(FailFilterSide side, int num, FailFilter *filters)
+void PrintFilters(FailFilterSide side, int num, FailFilter *filters)
 {
     int i;
     register FailFilter *f;
@@ -513,7 +514,7 @@ void cmdGetFilters(int argc, char **argv)
     for (i = 0; i < 2; i++) {
 	if (i == 0) side = sendSide;
 	else side = recvSide;
-	if (rc = GetFilters(cid, side, &filtersBS)) {
+	if ((rc = GetFilters(cid, side, &filtersBS))) {
 	    PrintError("Couldn't GetFilters", rc);
 	    return;
 	}
@@ -566,7 +567,7 @@ void cmdPurgeFilters(int argc, char **argv)
     if ((cid = getcid(client)) < 0)
       return;
 
-    if (rc = /*Fcon_*/PurgeFilters(cid, side)) {
+    if ((rc = /*Fcon_*/PurgeFilters(cid, side))) {
 	PrintError("Couldn't PurgeFilters", rc);
 	return;
     }
@@ -610,7 +611,7 @@ void cmdRemoveFilter(int argc, char **argv)
           return;
     }
 
-    if (rc = /*Fcon_*/RemoveFilter(cid, side, which)) {
+    if ((rc = /*Fcon_*/RemoveFilter(cid, side, which))) {
 	PrintError("Couldn't RemoveFilter", rc);
     }
     return;

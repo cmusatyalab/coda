@@ -73,8 +73,7 @@ static struct {
     PROC	*tail;
 } procedures = { NIL, NIL };
 
-insert(proc)
-    PROC *proc;
+void insert(PROC *proc)
 {
     proc -> thread = NIL;
     if (procedures.tail == NIL)

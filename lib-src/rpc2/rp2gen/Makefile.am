@@ -19,10 +19,10 @@
 #*/
 
 CC=${NATIVECC}
-CFLAGS=
+CFLAGS= -Wall
 LDFLAGS=
 EXEEXT=
-YFLAGS=-d
+YFLAGS= -d
 INCLUDES = -I$(top_builddir)/include -I$(top_srcdir)/include
 
 bin_PROGRAMS = rp2gen

@@ -46,6 +46,7 @@ Pittsburgh, PA.
 #include <netinet/in.h>
 #include <math.h>
 #include <assert.h>
+#include <string.h>
 #include <lwp/lwp.h>
 #include <lwp/timer.h>
 #include <rpc2/rpc2.h>
@@ -193,7 +194,7 @@ long FindKey(authenticationtype, ClientIdent, IdentKey, SessionKey)
     {
     long x;
     fprintf(stderr, "*** In FindKey('%s', 0x%lx, 0x%lx) ***\n",
-	    ClientIdent->SeqBody, IdentKey, SessionKey);
+	    ClientIdent->SeqBody, *(long *)IdentKey, *(long *)SessionKey);
     x = -1;
     if (strcmp((char *)ClientIdent->SeqBody, "satya") == 0) x =1;
     if (strcmp((char *)ClientIdent->SeqBody, "bovik") == 0) x = 2;

@@ -31,8 +31,8 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
 make prefix=$RPM_BUILD_ROOT/usr install
 chmod 755 $RPM_BUILD_ROOT/usr/lib/libfail.so.1.0.0
-chmod 755 $RPM_BUILD_ROOT/usr/lib/librpc2.so.1.1.1
-chmod 755 $RPM_BUILD_ROOT/usr/lib/libse.so.1.0.0
+chmod 755 $RPM_BUILD_ROOT/usr/lib/librpc2.so.1.2.1
+chmod 755 $RPM_BUILD_ROOT/usr/lib/libse.so.1.1.0
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -46,8 +46,8 @@ rm -rf $RPM_BUILD_ROOT
 %files
 /usr/bin/filcon
 /usr/lib/libfail.so.1.0.0
-/usr/lib/librpc2.so.1.1.1
-/usr/lib/libse.so.1.0.0
+/usr/lib/librpc2.so.1.2.1
+/usr/lib/libse.so.1.1.0
 
 %files dev
 /usr/bin/rp2gen

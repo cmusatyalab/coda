@@ -40,14 +40,16 @@ Pittsburgh, PA.
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/param.h>
+#include <unistd.h>
 #include "rp2.h"
 
 int32_t yydebug;
 
 static int32_t SetupFiles();
+static void badargs(void);
 
-
-extern char * coda_rp2_basename(char * name);
+extern char *coda_rp2_basename(char * name);
+extern rp2_bool include2(char *name, char *proc);
 
 extern no_storage();
 extern init_lex(), init_table(), yyparse();
@@ -116,10 +118,8 @@ static int32_t do_procs();
 static int32_t SetupFiles();
 
 
-main(argc, argv)
-    int32_t argc;
-    char *argv[];
-    {
+int main(int argc, char *argv[])
+{
     init_lex();
     init_table();
     GetArgs(argc, argv);
@@ -147,7 +147,7 @@ main(argc, argv)
     }
 
     exit(0);
-    }
+}
 
 static int32_t GetArgs(argc, argv)
     int32_t argc;
@@ -166,7 +166,7 @@ static int32_t GetArgs(argc, argv)
     clanguage = C;  
     slanguage = C;
     mlanguage = C;
-    pfile_name == NULL;
+    pfile_name = NULL;
 
     if (argc < 2) badargs();
     for (i = 1; i < argc - 1; i++)
@@ -286,14 +286,14 @@ static int32_t SetupFiles()
     return -1;
     }
 
-badargs()
-    {
+static void badargs(void)
+{
     printf("Usage: rp2gen [-neterrors,-n] [-I incldir] [-s srvstub] [-c clntstub]\n");
     printf("              [-h header] [-m multistub] [-p printstub] \n");
     printf("              [-t tcpdump prettyprint]   file\n");
     exit(-1);
-    }
-
+}
+
 static char uc(c)
     register char c;
 {
@@ -343,18 +343,19 @@ static int32_t header(f, prefix)
 * 			     *
 \****************************/
 
-static cant_happen(type, who, where)
+static int cant_happen(type, who, where)
     ENTRY *type;
     WHO who;
     FILE *where;
 {
     puts("RP2GEN [can't happen]: no specified language");
     abort();
+    return(0);
 }
 
 extern cinclude(), cdefine(), ctype(), cproc(), copcodes();
 
-static no_support();
+static int no_support();
 
 static struct {
     char	*name;		/* Name for printing */
@@ -372,7 +373,7 @@ static struct {
 
 };
 
-static no_support(type, who, where)
+static int no_support(type, who, where)
     ENTRY *type;
     WHO who;
     FILE *where;
@@ -382,7 +383,7 @@ static no_support(type, who, where)
     exit(1);
 }
 
-spit_type(type)
+void spit_type(type)
     ENTRY *type;
 {
     if (clanguage != slanguage || clanguage != mlanguage) {
@@ -392,7 +393,7 @@ spit_type(type)
     (*lang_struct[(int32_t) clanguage].type)(type, CLIENT, hfile);		/* Types always go to .h file */
 }
 
-spit_include(filename)
+void spit_include(filename)
     char *filename;
 {
     if (clanguage != slanguage || clanguage != mlanguage) {
@@ -402,7 +403,7 @@ spit_include(filename)
     (*lang_struct[(int32_t) clanguage].include)(filename, CLIENT, hfile);
 }
 
-spit_define(id, value)
+void spit_define(id, value)
     char *id, *value;
 {
     if (clanguage != slanguage || clanguage != mlanguage) {

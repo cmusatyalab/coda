@@ -37,7 +37,6 @@ static short port2 = 0;
 
 int oldpartition(int argc, char ** argv)
 {
-    int i;
     unsigned long cid1, cid2;
     struct hostent *he1;
     struct hostent *he2;

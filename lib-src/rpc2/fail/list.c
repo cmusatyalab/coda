@@ -17,6 +17,7 @@ listed in the file CREDITS.
 #*/
 
 
+#include <stdlib.h>
 #include "filtutil.h"
 
 

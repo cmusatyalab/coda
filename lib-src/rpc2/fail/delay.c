@@ -22,6 +22,7 @@ listed in the file CREDITS.
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -88,7 +89,6 @@ int DelayPacket(int speed, long socket, struct sockaddr_in *sap,
 {
 	u_int msec;
 	packetInfo *pp;
-	struct timeval tmpTime;
 	delayQueueInfo *dq;
 
 	assert(speed > 0);
@@ -244,7 +244,7 @@ struct timeval *fromp, *amtp;
 
 static int Delay_LWP()
 {
-    int i, j, socket;
+    int i;
     struct timeval timeToNext;
     delayQueueInfo *dq, *nextEvent;
     

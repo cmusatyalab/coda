@@ -52,8 +52,10 @@ extern VAR *make_var();
 extern PROC *make_proc(), *check_proc();
 extern enter();
 extern char *concat();
-
 extern struct subsystem subsystem;
+extern void no_storage(char *);
+extern void spit_define(char *, char *);
+extern void insert(PROC *proc);
 
 /* Structure for handling IDENTIFIER lists */
 
@@ -449,8 +451,7 @@ formal_list		: formal array_spec_var ',' formal_list
 						    exit(1);
 						}
 					        if ($1->type->type->tag != RPC2_STRUCT_TAG) {
-						    printf("RP2GEN: array type unimplemented: %s\n",
-						           $1 /* is this a char *? */);
+						    printf("RP2GEN: array type unimplemented: %s\n", $1->name);
 						    exit(1);
 					        } 
 					        formal_list.formals[formal_list.counter++] = $2;

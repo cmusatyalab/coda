@@ -58,3 +58,6 @@ int Fail_ReplaceFilter (FailFilterSide side,
 int Fail_GetFilters (FailFilterSide side,
 			  RPC2_BoundedBS *filters);
 
+int Fail_CountFilters (FailFilterSide side);
+int Fail_PurgeFilters (FailFilterSide side);
+

@@ -50,3 +50,4 @@ int get_targ_pair(int, char **, target_t *, target_t *);
 void InitRPC();
 int open_connection(target_t);
 void close_connection();
+void PrintError(char *, int);

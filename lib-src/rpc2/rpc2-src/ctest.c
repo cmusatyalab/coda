@@ -59,6 +59,9 @@ Pittsburgh, PA.
 extern int fake;
 #endif FAKESOCKETS
 
+#ifdef RPC2DEBUG
+#include "rpc2.private.h"
+#endif
 
 void DoBinding(RPC2_Handle *cid);
 void PrintHelp(void);

@@ -20,6 +20,7 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <string.h>
 #include <assert.h>
 #include "ports.h"
 #include "filtutil.h"
@@ -29,7 +30,9 @@ listed in the file CREDITS.
 static RPC2_Handle cid;
 static int maxFilterID[2];
 
-void PrintError(char *, int);
+static int target_to_ip(target_t target, int *ip1, int *ip2, int *ip3,int *ip4);
+
+extern void ntohFF(FailFilter *);
 
 
 /***** Filter structures / functions *****/
@@ -80,7 +83,7 @@ void create_filter(filter_type type, FailFilter **filter)
   if (type > MAXFILTERTYPE)
     return;
 
-  if (*filter = (FailFilter *)malloc(sizeof(FailFilter)))
+  if ((*filter = (FailFilter *)malloc(sizeof(FailFilter))))
     memcpy(*filter, &filter_templates[type], sizeof(FailFilter));
 }
 
@@ -141,7 +144,7 @@ show_filter(*filter);
 int match_filters(FailFilter *input, int insize, target_t match,
 		 FailFilter **output, int *outsize)
 {
-  int i, j, ip1, ip2, ip3, ip4;
+  int i, ip1, ip2, ip3, ip4;
 
   if (target_to_ip(match, &ip1, &ip2, &ip3, &ip4))
     return -1;
@@ -167,8 +170,8 @@ void remove_filter(FailFilter filter)
 {
   int rc;
 
-  if (rc = RemoveFilter(cid, recvSide, filter.id))
-    if (rc = RemoveFilter(cid, sendSide, filter.id))
+  if ((rc = RemoveFilter(cid, recvSide, filter.id)))
+    if ((rc = RemoveFilter(cid, sendSide, filter.id)))
       PrintError("Couldn't remove filter", rc);
 }
 
@@ -183,7 +186,7 @@ int clear_filters()
       else
 	side = recvSide;
 
-      if (rc = PurgeFilters(cid, side)) {
+      if ((rc = PurgeFilters(cid, side))) {
         PrintError("Couldn't clear filters", rc);
         return 1;
       }
@@ -219,7 +222,7 @@ int list_filters(FailFilter **filters, int *num_filters)
 	filtersBS.SeqBody = (RPC2_ByteSeq) (*filters + *num_filters);
       }
 
-      if (rc = GetFilters(cid, side, &filtersBS)) {
+      if ((rc = GetFilters(cid, side, &filtersBS))) {
 	PrintError("Couldn't list filters", rc);
 	free(*filters);
 	return -1;

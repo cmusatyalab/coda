@@ -33,7 +33,7 @@ listed in the file CREDITS.
 
 
 int Fcon_LWP();
-static PrintRPCError(int, RPC2_Handle); /* forward decl to pacify gcc */
+static void PrintRPCError(int, RPC2_Handle); /* forward decl to pacify gcc */
 
 
 int Fcon_Init()
@@ -72,7 +72,7 @@ int Fcon_LWP()
     }
 }
 
-Fcon_NewConn(cid, seType, secLevel, encType, cIdent)
+void Fcon_NewConn(cid, seType, secLevel, encType, cIdent)
 RPC2_Handle cid;
 RPC2_Integer seType, secLevel, encType;
 RPC2_CountedBS *cIdent;
@@ -144,9 +144,7 @@ FailFilterSide side;
     return Fail_PurgeFilters(side);
 }
 
-static PrintRPCError(rCode, connId)
-int rCode;
-RPC2_Handle connId;
+static void PrintRPCError(int rCode, RPC2_Handle connId)
 {
     fprintf(stderr, "fcon: %s\n", RPC2_ErrorMsg(rCode));
     if (rCode < RPC2_FLIMIT && connId != 0) RPC2_Unbind(connId);

@@ -46,7 +46,6 @@ int heal(int argc, char ** argv)
     unsigned long cid1, cid2;
     struct hostent *he1;
     struct hostent *he2;
-    FailFilter filter;
     FailFilter filters[32];
     int rc;
 
@@ -98,7 +97,7 @@ int heal(int argc, char ** argv)
 	for (i = 0; i < 2; i++) {
 	    if (i == 0) side = sendSide;
 	    else side = recvSide;
-	    if (rc = GetFilters(cid1, side, &filtersBS)) {
+	    if ((rc = GetFilters(cid1, side, &filtersBS))) {
 		PrintError("Couldn't GetFilters for host 1", rc);
 		exit(-1);
 	    }
@@ -117,7 +116,7 @@ int heal(int argc, char ** argv)
 		if (HOSTADDRESSEQUAL(he2, filters[j].ip1, filters[j].ip2, 
 				     filters[j].ip3, filters[j].ip4)) {
 		    printf("removing filter %d from host1\n", filters[j].id);
-		    if (code = RemoveFilter(cid1, side, filters[j].id)) {
+		    if ((code = RemoveFilter(cid1, side, filters[j].id))) {
 			PrintError("Couldn't remove filter\n", code);
 			break;
 		    }
@@ -131,7 +130,7 @@ int heal(int argc, char ** argv)
 	for (i = 0; i < 2; i++) {
 	    if (i == 0) side = sendSide;
 	    else side = recvSide;
-	    if (rc = GetFilters(cid2, side, &filtersBS)) {
+	    if ((rc = GetFilters(cid2, side, &filtersBS))) {
 		PrintError("Couldn't GetFilters for host2", rc);
 		exit(-1);
 	    }
@@ -150,7 +149,7 @@ int heal(int argc, char ** argv)
 		if (HOSTADDRESSEQUAL(he1, filters[j].ip1, filters[j].ip2, 
 				     filters[j].ip3, filters[j].ip4)) {
 		    printf("removing filter %d from host2\n", filters[j].id);
-		    if (code = RemoveFilter(cid2, side, filters[j].id)) {
+		    if ((code = RemoveFilter(cid2, side, filters[j].id))) {
 			PrintError("Couldn't remove filter from host 2\n", code);
 			break;
 		    }
