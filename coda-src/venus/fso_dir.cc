@@ -72,26 +72,25 @@ void fsobj::dir_Rebuild()
 		DH_Print(&data.dir->dh, stdout);
 	}
 
-	DH_Convert(&data.dir->dh, data.dir->udcf->Name(), fid.Volume);
+	DH_Convert(&data.dir->dh, data.dir->udcf->Name(), fid.Volume, fid.Realm);
 
 	data.dir->udcfvalid = 1;
 }
 
 
 /* TRANS */
-void fsobj::dir_Create(char *Name, ViceFid *Fid) 
+void fsobj::dir_Create(char *Name, VenusFid *Fid) 
 {
 	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
-		CHOKE("fsobj::dir_Create: (%s, %x.%x.%x) no data", 
-		      Name, Fid->Volume, Fid->Vnode, Fid->Unique); 
+		CHOKE("fsobj::dir_Create: (%s, %s) no data", Name, FID_(Fid)); 
 	}
 
 	int oldlength = dir_Length();
 
-	if (DH_Create(&data.dir->dh, Name, Fid) != 0) { 
-		print(logFile); CHOKE("fsobj::dir_Create: (%s, %x.%x.%x) Create failed!", 
-				      Name, Fid->Volume, Fid->Vnode, Fid->Unique); 
+	if (DH_Create(&data.dir->dh, Name, MakeViceFid(Fid)) != 0) { 
+		print(logFile); CHOKE("fsobj::dir_Create: (%s, %s) Create failed!", 
+				      Name, FID_(Fid)); 
 	}
 
 	data.dir->udcfvalid = 0;
@@ -148,7 +147,7 @@ void fsobj::dir_MakeDir()
 	DH_Init(&data.dir->dh);
 
 
-	if (DH_MakeDir(&data.dir->dh, &fid, &pfid) != 0) {
+	if (DH_MakeDir(&data.dir->dh, MakeViceFid(&fid), MakeViceFid(&pfid)) != 0) {
 		print(logFile); 
 		CHOKE("fsobj::dir_MakeDir: MakeDir failed!"); 
 	}
@@ -157,7 +156,7 @@ void fsobj::dir_MakeDir()
 }
 
 
-int fsobj::dir_Lookup(char *Name, ViceFid *Fid, int flags) 
+int fsobj::dir_Lookup(char *Name, VenusFid *Fid, int flags) 
 {
 	
 	if (!HAVEALLDATA(this)) { 
@@ -165,24 +164,25 @@ int fsobj::dir_Lookup(char *Name, ViceFid *Fid, int flags)
 		CHOKE("fsobj::dir_Lookup: (%s) no data", Name); 
 	}
 
-	int code = DH_Lookup(&data.dir->dh, Name, Fid, flags);
+	int code = DH_Lookup(&data.dir->dh, Name, MakeViceFid(Fid), flags);
 	if (code != 0) 
 		return(code);
 
-	FID_CpyVol(Fid, &fid);
+	Fid->Realm = fid.Realm;
+	Fid->Volume = fid.Volume;
 	return(0);
 }
 
 
 /* Name buffer had better be CODA_MAXNAMLEN bytes or more! */
-int fsobj::dir_LookupByFid(char *Name, ViceFid *Fid) 
+int fsobj::dir_LookupByFid(char *Name, VenusFid *Fid) 
 {
 	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_LookupByFid: %s no data", FID_(Fid));
 	}
 
-	return DH_LookupByFid(&data.dir->dh, Name, Fid);
+	return DH_LookupByFid(&data.dir->dh, Name, MakeViceFid(Fid));
 }
 
 
@@ -198,16 +198,15 @@ int fsobj::dir_IsEmpty()
 }
 
 /* determine if target_fid is the parent of this */
-int fsobj::dir_IsParent(ViceFid *target_fid) 
+int fsobj::dir_IsParent(VenusFid *target_fid) 
 {
 	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
-		CHOKE("fsobj::dir_IsParent: (%x.%x.%x) no data", 
-		      target_fid->Volume, target_fid->Vnode, target_fid->Unique); 
+		CHOKE("fsobj::dir_IsParent: (%s) no data", FID_(target_fid));
 	}
 
 	/* Volumes must be the same. */
-	if (fid.Volume != target_fid->Volume) 
+	if (!FID_VolEQ(&fid, target_fid))
 		return(0);
 
 	/* Don't match "." or "..". */
@@ -217,28 +216,26 @@ int fsobj::dir_IsParent(ViceFid *target_fid)
 	/* Lookup the target object. */
 	char Name[MAXPATHLEN];
 
-	return (DH_LookupByFid(&data.dir->dh, Name, target_fid) == 0 );
+	return (!DH_LookupByFid(&data.dir->dh, Name, MakeViceFid(target_fid)));
 }
 
 /* local-repair modification */
 /* TRANS */
-void fsobj::dir_TranslateFid(ViceFid *OldFid, ViceFid *NewFid) 
+void fsobj::dir_TranslateFid(VenusFid *OldFid, VenusFid *NewFid) 
 {
 	char *Name = NULL; 
 
 	if (!HAVEALLDATA(this)) { 
 		print(logFile); 
 		CHOKE("fsobj::dir_TranslateFid: %s -> %s no data", 
-		      FID_(OldFid), FID_2(NewFid));
+		      FID_(OldFid), FID_(NewFid));
 	}
 
-	if ((!FID_VolEQ(&fid, OldFid) && 
-	     !FID_VolIsLocal(OldFid) && !FID_VolIsLocal(&fid)) ||
-	    (!FID_VolEQ(&fid, NewFid) 
-	     && !FID_VolIsLocal(NewFid) && !FID_VolIsLocal(&fid))) {
+	if ((!FID_VolEQ(&fid, OldFid) && !FID_VolIsLocal(OldFid) && !FID_VolIsLocal(&fid)) ||
+	    (!FID_VolEQ(&fid, NewFid) && !FID_VolIsLocal(NewFid) && !FID_VolIsLocal(&fid))) {
 		print(logFile); 
 		CHOKE("fsobj::dir_TranslateFid: %s -> %s cross-volume", 
-		      FID_(OldFid), FID_2(NewFid)); 
+		      FID_(OldFid), FID_(NewFid)); 
 	}
 
 	if (FID_EQ(OldFid, NewFid)) 

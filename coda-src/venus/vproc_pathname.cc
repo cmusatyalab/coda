@@ -94,7 +94,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
     /* Initialize the parent (i.e., the root of the expansion). */
     {
 	struct cfid fid;
-	fid.cfid_len = sizeof(ViceFid);
+	fid.cfid_len = sizeof(VenusFid);
 	fid.cfid_fid = u.u_cdir;
 	vget(&pvp, &fid);
 	if (u.u_error) goto Exit;
@@ -231,7 +231,7 @@ int vproc::namev(char *path, int flags, struct venus_cnode *vpp) {
 
 		    /* Release the parent and reset it to the VenusRoot. */
 		    struct cfid fid;
-		    fid.cfid_len = sizeof(ViceFid);
+		    fid.cfid_len = sizeof(VenusFid);
 		    fid.cfid_fid = rootfid;
 		    vget(&pvp, &fid);
 		    if (u.u_error) goto Exit;
@@ -286,7 +286,7 @@ Exit:
 
 /* Map fid to full or volume-relative pathname.  Kind of like getwd(). */
 /* XXX - Need fsobj::IsRealRoot predicate which excludes "fake" roots! -JJK */
-void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
+void vproc::GetPath(VenusFid *fid, char *out, int *outlen, int fullpath) {
     LOG(1, ("vproc::GetPath: %s, %d\n", FID_(fid), fullpath));
 
     if (*outlen < CODA_MAXPATHLEN)
@@ -300,7 +300,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 	    goto Exit;
 	}
 
-	if (fid->Volume == rootfid.Volume) {
+	if (FID_VolEQ(fid, &rootfid)) {
 	    strcpy(out, venusRoot);
 	    *outlen = strlen(venusRoot) + 1;
 	    goto Exit;
@@ -309,12 +309,12 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 
     for (;;) {
 	fsobj *f = 0;
-	ViceFid currFid;
-	ViceFid prevFid;
+	VenusFid currFid;
+	VenusFid prevFid;
 	out[0] = '\0';
 	*outlen = 0;
 
-	Begin_VFS(fid->Volume, CODA_VGET);
+	Begin_VFS(fid, CODA_VGET);
 	if (u.u_error) goto Exit;
 
 	/* Initialize the "prev" and "current" fids to the target object and its parent, respectively. */
@@ -369,7 +369,7 @@ void vproc::GetPath(ViceFid *fid, char *out, int *outlen, int fullpath) {
 		    goto FreeLocks;
 		}
 
-		if (f->fid.Volume == rootfid.Volume) {
+		if (FID_VolEQ(&f->fid, &rootfid)) {
 		    char tbuf[MAXPATHLEN];
 		    strcpy(tbuf, out);
 		    strcpy(out, venusRoot);

@@ -22,6 +22,7 @@ listed in the file CREDITS.
 #include <sys/types.h>
 #include <time.h>
 #include <coda.h>
+#include <vcrcommon.h>
 #include <dllist.h>
 
 /* bytes per page */
@@ -81,7 +82,7 @@ void DH_Free(PDirHandle dh, int in_rvm);
 void DH_FreeData(PDirHandle dh);
 PDirHandle DH_New(int in_rvm, PDirHeader vmdata, PDirHeader rvmdata);
 int DH_Length(PDirHandle dh);
-int DH_Convert(PDirHandle dh, char *file, VolumeId vol);
+int DH_Convert(PDirHandle dh, char *file, VolumeId vol, RealmId realm);
 int DH_Create(PDirHandle dh, char *entry, struct ViceFid *vfid);
 int DH_IsEmpty(PDirHandle dh);
 int DH_Lookup(PDirHandle dh, char *entry, struct ViceFid *vfid, int flags);
@@ -153,6 +154,7 @@ int FID_Cmp(const struct ViceFid *, const struct ViceFid *);
 void FID_CpyVol(struct ViceFid *target, const struct ViceFid *source);
 void FID_VFid2DFid(const struct ViceFid *vf, struct DirFid *df);
 void FID_DFid2VFid(const struct DirFid *df, struct ViceFid *vf);
+void FID_MakeCodaFid(CodaFid *cf, const RealmId realm, const ViceFid *vf);
 void FID_PrintFid(const struct DirFid *fid);
 void FID_Int2DFid(struct DirFid *fid, const int vnode, const int unique);
 void FID_NFid2Int(const struct DirNFid *fid, VnodeId *vnode, Unique_t *unique);

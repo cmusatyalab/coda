@@ -528,15 +528,17 @@ static int VolModeMap[CODA_NCALLS] = {
     (((vfsop) >= 0 && (vfsop) < NVFSOPS) ? VolModeMap[vfsop] : VM_MUTATING)
 
 /* local-repair modification */    
-void vproc::Begin_VFS(VolumeId vid, int vfsop, int volmode)
+void vproc::Begin_VFS(VolFid *vfid, int vfsop, int volmode)
 {
-    LOG(1, ("vproc::Begin_VFS(%s): vid = %x, u.u_vol = %x, mode = %d\n",
-	    VenusOpStr(vfsop), vid, u.u_vol, volmode));
+    LOG(1, ("vproc::Begin_VFS(%s): vid = %x.%x, u.u_vol = %x, mode = %d\n",
+	    VenusOpStr(vfsop), vfid->Realm, vfid->Volume, u.u_vol, volmode));
     
     /* Set up this thread's volume-related context. */
     if (u.u_vol == 0) {
-	if (VDB->Get(&u.u_vol, vid) != 0)
-	{ u.u_error	= EVOLUME; return; }	    /* ??? -JJK */
+	if (VDB->Get(&u.u_vol, vfid)) {
+	    u.u_error = EVOLUME;	    /* ??? -JJK */
+	    return;
+	}
     }
     u.u_volmode = 
 	(volmode == 
@@ -806,7 +808,7 @@ void VPROC_printvattr(struct coda_vattr *vap)
 	}
 }
 
-long FidToNodeid(ViceFid *fid) 
+long FidToNodeid(VenusFid *fid) 
 {
 	if (FID_EQ(fid, &NullFid))
 		CHOKE("FidToNodeid: null fid");
@@ -818,18 +820,12 @@ long FidToNodeid(ViceFid *fid)
 
 	/* Other volume root.  We need the relevant mount point's fid,
            but we don't know what that is! */
-	if ( FID_IsVolRoot(fid) ) {
-		LOG(0, ("FidToNodeid: volume root (%x); returning bogus nodeid\n", 
-		fid->Volume));
+#endif
+	if (FID_IsVolRoot(fid)) {
+		LOG(0, ("FidToNodeid: called for volume root (%x.%x)!!!\n", 
+			fid->Realm, fid->Volume));
 	}
 
 	/* Non volume root. */
-	return(fid->Unique + (fid->Vnode << 10) + (fid->Volume << 20));
-#else
-	if (FID_IsVolRoot(fid)) {
-		LOG(0, ("FidToNodeid: called for volume root (%x)!!!\n", 
-			fid->Volume));
-	}
-	return coda_f2i(fid);
-#endif
+	return coda_f2i((CodaFid *)fid);
 }

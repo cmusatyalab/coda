@@ -117,19 +117,18 @@ int repvol::EnableRepair(vuid_t vuid, VolumeId *RWVols,
     memset(LockWSs, 0, VSG_MEMBERS * sizeof(unsigned long));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i]) RWVols[i] = volreps[i]->GetVid();
+        if (volreps[i]) RWVols[i] = volreps[i]->GetVolumeId();
 
     return(code);
 }
 
 /* local-repair modification */
 /* Attempt the Repair. */
-int repvol::Repair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
+int repvol::Repair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 		    VolumeId *RWVols, int *ReturnCodes)
 {
-    LOG(100, ("volent::Repair: fid = (%x.%x.%x), file = %s, uid = %d\n",
-	       RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique,
-	       RepairFile, vuid));
+    LOG(100, ("volent::Repair: fid = %s, file = %s, uid = %d\n",
+	       FID_(RepairFid), RepairFile, vuid));
     switch (state) {
     case Hoarding:
 	return ConnectedRepair(RepairFid, RepairFile, vuid, RWVols, ReturnCodes);
@@ -148,21 +147,21 @@ int repvol::Repair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
     return -1;
 }
 
-int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
+int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, vuid_t vuid,
 			    VolumeId *RWVols, int *ReturnCodes)
 {
     int code = 0, i, j, fd, localFake = 0;
     int *LCarr = NULL; /* repLC, mvLC */
     fsobj *RepairF = NULL, *global = NULL, *local = NULL;
-    struct ViceFid gfid, lfid, *rFid = NULL;
-    struct ViceFid *fidarr = NULL; /* entryFid, mvFid, mvPFid */
+    VenusFid gfid, lfid, *rFid = NULL;
+    VenusFid *fidarr = NULL; /* entryFid, mvFid, mvPFid */
     struct listhdr *hlist = NULL, *l = NULL;
     dlist CMLappends;
     
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i]) RWVols[i] = volreps[i]->GetVid();
+        if (volreps[i]) RWVols[i] = volreps[i]->GetVolumeId();
 
     /* Verify that RepairFid is inconsistent. */
     {
@@ -171,8 +170,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	code = FSDB->Get(&f, RepairFid, vuid, RC_STATUS);
 	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
 	    if (code == 0) {
-		eprint("Repair: %s (%x.%x.%x) consistent",
-		       f->comp, RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique);
+		eprint("Repair: %s (%s) consistent", f->comp, FID_(RepairFid));
 		code = EINVAL;	    /* XXX -JJK */
 	    }
 	    FSDB->Put(&f);
@@ -182,7 +180,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	/* Check for local repair expansion */
 	if ((code == 0) && FAKEROOTFID(*RepairFid)) {
 	    localFake = 1;
-	    ViceFid inc; /* Required for getting Lookup() to traverse mount points */
+	    VenusFid inc; /* Required for getting Lookup() to traverse mount points */
 	    code = f->Lookup(&global, &inc, "global", vuid, CLU_CASE_SENSITIVE);
 	    if (code != 0) {
 		FSDB->Put(&f);
@@ -194,8 +192,8 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 		FSDB->Put(&f);
 		return(code);
 	    }
-	    LOG(100, ("Local-Repair expansion, got (%x.%x.%x) inc (%x.%x.%x)\n", 
-		      global->fid.Volume, global->fid.Vnode, global->fid.Unique, inc.Volume, inc.Vnode, inc.Unique));
+	    LOG(100, ("Local-Repair expansion, got (%s) inc (%s)\n", 
+		      FID_(&global->fid), FID_(&inc)));
 	    gfid = global->fid;
 	    lfid = local->fid;
 	    rFid = &gfid;
@@ -215,9 +213,10 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
     /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
     {
-	ViceFid RepairFileFid;
-	if (sscanf(RepairFile, "@%lx.%lx.%lx", &RepairFileFid.Volume,
-	   &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
+	VenusFid RepairFileFid;
+	if (sscanf(RepairFile, "@%lx.%lx.%lx.%lx", &RepairFileFid.Realm,
+		   &RepairFileFid.Volume, &RepairFileFid.Vnode,
+		   &RepairFileFid.Unique) == 4) {
 	    code = FSDB->Get(&RepairF, &RepairFileFid, vuid, RC_DATA);
 	    if (code != 0) { FSDB->Put(&local); FSDB->Put(&global); return(code); }
 
@@ -251,8 +250,9 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 	for (i = 0; i < VSG_MEMBERS; i++)
 	    if (volreps[i]) {
 		fsobj *f = 0;
-		ViceFid rwfid;
-		rwfid.Volume = volreps[i]->GetVid();
+		VenusFid rwfid;
+		rwfid.Realm = volreps[i]->GetRealmId();
+		rwfid.Volume = volreps[i]->GetVolumeId();
 		rwfid.Vnode = rFid->Vnode;
 		rwfid.Unique = rFid->Unique;
 		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)
@@ -363,7 +363,7 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 
 		if (l->repairCount > 0) {
 		    LCarr = (int *)calloc((l->repairCount * 2), sizeof(int));
-		    fidarr = (ViceFid *)calloc((l->repairCount * 3), sizeof(struct ViceFid));
+		    fidarr = (VenusFid *)calloc((l->repairCount * 3), sizeof(VenusFid));
 		    if ((LCarr == NULL) || (fidarr == NULL)) {
 			code = ENOMEM;
 			goto Exit;
@@ -382,8 +382,8 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 			CODA_ASSERT(local != NULL);
 			code = local->Lookup(&e, NULL, rep_ent[i].name, vuid, CLU_CASE_SENSITIVE);
 			if (code != 0) {
-			    LOG(15, ("Repair: local(%x.%x.%x)->Lookup(%s) error", 
-				     local->fid.Volume, local->fid.Vnode, local->fid.Unique, rep_ent[i].name));
+			    LOG(15, ("Repair: local(%s)->Lookup(%s) error", 
+				     FID_(&local->fid), rep_ent[i].name));
 			    goto Exit;
 			}
 			fidarr[i] = e->fid;
@@ -393,8 +393,8 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 			if (rep_ent[i].opcode == REPAIR_RENAME) {
 			    code = local->Lookup(&e, NULL, rep_ent[i].newname, vuid, CLU_CASE_SENSITIVE);
 			    if (code != 0) {
-				LOG(15, ("Repair: (%x.%x.%x)->Lookup(%s) error", 
-					 local->fid.Volume, local->fid.Vnode, local->fid.Unique, rep_ent[i].newname));
+				LOG(15, ("Repair: (%s)->Lookup(%s) error", 
+					 FID_(&local->fid), rep_ent[i].newname));
 				goto Exit;
 			    }
 			    fidarr[(l->repairCount + i)] = e->fid;
@@ -424,13 +424,12 @@ int repvol::ConnectedRepair(ViceFid *RepairFid, char *RepairFile, vuid_t vuid,
 */
 
 	/* Make the RPC call. */
-	MarinerLog("store::Repair (%x.%x.%x)\n",
-		   rFid->Volume, rFid->Vnode, rFid->Unique);
+	MarinerLog("store::Repair (%s)\n", FID_(rFid));
 	MULTI_START_MESSAGE(ViceRepair_OP);
-	code = MRPC_MakeMulti(ViceRepair_OP, ViceRepair_PTR,
-			      VSG_MEMBERS, m->rocc.handles,
-			      m->rocc.retcodes, m->rocc.MIp, 0, 0,
-			      rFid, statusvar_ptrs, &sid, sedvar_bufs);
+	code = MRPC_MakeMulti(ViceRepair_OP, ViceRepair_PTR, VSG_MEMBERS,
+			      m->rocc.handles, m->rocc.retcodes, m->rocc.MIp,
+			      0, 0, MakeViceFid(rFid), statusvar_ptrs, &sid,
+			      sedvar_bufs);
 	MULTI_END_MESSAGE(ViceRepair_OP);
 	MarinerLog("store::repair done\n");
 
@@ -609,7 +608,7 @@ Exit:
   <a name="disablerepair"><strong> unset the volume from the repair state </strong></a>
   END_HTML
 */
-int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
+int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 			       vuid_t vuid, VolumeId *RWVols, int *ReturnCodes)
 {
     int code = 0, i;
@@ -618,22 +617,22 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
     vproc *vp = VprocSelf();
     CODA_ASSERT(vp);
     
-    LOG(10, ("volent::DisConnectedRepair: fid = (%x.%x.%x), file = %s, uid = %d\n",
-	    RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique,
-	    RepairFile, vuid));
+    LOG(10, ("volent::DisConnectedRepair: fid = (%s), file = %s, uid = %d\n",
+	     FID_(RepairFid), RepairFile, vuid));
 
-    ViceFid tpfid;
+    VenusFid tpfid;
+    tpfid.Realm = RepairFid->Realm;
     tpfid.Volume = RepairFid->Volume;
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i]) RWVols[i] = volreps[i]->GetVid();
+        if (volreps[i]) RWVols[i] = volreps[i]->GetVolumeId();
 
     /* Verify that RepairFid is a file fid */
     /* can't repair directories while disconnected */
     if (ISDIR(*RepairFid)) {
-	eprint("DisconnectedRepair: (%x.%x.%x) is a dir - cannot repair\n",
-	       RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique);
+	eprint("DisconnectedRepair: (%s) is a dir - cannot repair\n",
+	       FID_(RepairFid));
 	return(EINVAL);		/* XXX - PK*/
     }
 
@@ -643,8 +642,8 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	code = FSDB->Get(&f, RepairFid, vuid, RC_STATUS);
 	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
 	    if (code == 0) {
-		eprint("DisconnectedRepair: %s (%x.%x.%x) consistent",
-		       f->comp, RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique);
+		eprint("DisconnectedRepair: %s (%s) consistent",
+		       f->comp, FID_(RepairFid));
 		code = EINVAL;	    /* XXX */
 	    }
 	    FSDB->Put(&f);
@@ -657,8 +656,8 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
     }
     /* check rights - can user write the file to be repaired */
     {
-	LOG(100, ("DisconnectedRepair: Going to check access control (%x.%x.%x)\n",
-		  tpfid.Volume, tpfid.Vnode, tpfid.Unique));
+	LOG(100, ("DisconnectedRepair: Going to check access control (%s)\n",
+		  FID_(&tpfid)));
 	if (!tpfid.Vnode) {
 	    LOG(10, ("DisconnectedRepair: Parent fid is NULL - cannot check access control\n"));
 	    return(EACCES);
@@ -669,15 +668,15 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	if (code == 0) {
 	    code = parentf->Access(PRSFS_WRITE, W_OK, CRTORUID(vp->u.u_cred));
 	    if (code) {
-		LOG(10, ("DisconnectedRepair: Access disallowed (%x.%x.%x)\n",
-			 tpfid.Volume, tpfid.Vnode, tpfid.Unique));
+		LOG(10, ("DisconnectedRepair: Access disallowed (%s)\n",
+			 FID_(&tpfid)));
 		FSDB->Put(&parentf);
 		return(code);
 	    }
 	}
 	else {
-	    LOG(100, ("DisconnectedRepair: Couldn't get parent (%x.%x.%x)\n",
-		      tpfid.Volume, tpfid.Vnode, tpfid.Unique));
+	    LOG(100, ("DisconnectedRepair: Couldn't get parent (%s)\n",
+		      FID_(&tpfid)));
 	    if (parentf) FSDB->Put(&parentf);
 	    return(code);
 	}
@@ -686,15 +685,16 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
     LOG(100, ("DisconnectedRepair: going to check repair file %s\n", RepairFile));
     /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */
     {
-	ViceFid RepairFileFid;
-	if (sscanf(RepairFile, "@%lx.%lx.%lx", &RepairFileFid.Volume,
-		   &RepairFileFid.Vnode, &RepairFileFid.Unique) == 3) {
+	VenusFid RepairFileFid;
+	if (sscanf(RepairFile, "@%lx.%lx.%lx.%lx", &RepairFileFid.Realm,
+		   &RepairFileFid.Volume, &RepairFileFid.Vnode,
+		   &RepairFileFid.Unique) == 4) {
 	    code = FSDB->Get(&RepairF, &RepairFileFid, vuid, RC_DATA);
 	    if (code != 0) return(code);
 
 	    if (!RepairF->IsFile()) {
-		eprint("DisconnectedRepair: Repair file (%x.%x.%x) isn't a file\n",
-		       RepairFileFid.Volume, RepairFileFid.Vnode, RepairFileFid.Unique);
+		eprint("DisconnectedRepair: Repair file (%s) isn't a file\n",
+		       FID_(&RepairFileFid));
 		FSDB->Put(&RepairF);
 		return(EINVAL);
 	    }
@@ -711,8 +711,9 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	for (int i = 0; i < VSG_MEMBERS; i++)
 	    if (volreps[i]) {
 		fsobj *f = 0;
-		ViceFid rwfid;
-		rwfid.Volume = volreps[i]->GetVid();
+		VenusFid rwfid;
+		rwfid.Realm = volreps[i]->GetRealmId();
+		rwfid.Volume = volreps[i]->GetVolumeId();
 		rwfid.Vnode = RepairFid->Vnode;
 		rwfid.Unique = RepairFid->Unique;
 		if (FSDB->Get(&f, &rwfid, vuid, RC_STATUS) != 0)
@@ -765,8 +766,7 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	/* first kill the fake directory if it exists */
 	fsobj *f = FSDB->Find(RepairFid);
 	if (f != 0) {
-	    LOG(0, ("DisconnectedRepair: Going to kill %x.%x.%x \n",
-		    RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique));
+	    LOG(0, ("DisconnectedRepair: Going to kill %s\n", FID_(RepairFid)));
 	    f->Lock(WR);
 	    Recov_BeginTrans();
 	       f->Kill();
@@ -778,8 +778,8 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 		 * and ask user to retry */
 		f->ClearRcRights();
 		FSDB->Put(&f);
-		LOG(0, ("DisconnectedRepair: (%x.%x.%x) has active references - cannot repair\n",
-			RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique));
+		LOG(0, ("DisconnectedRepair: (%s) has active references - cannot repair\n",
+			FID_(RepairFid)));
 		code = ERETRY;
 		goto Exit;
 	    }
@@ -787,8 +787,7 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 	    /* Ought to flush its descendents too? XXX -PK */
 	}
 	/* attempt the create now */
-	LOG(100, ("DisconnectedRepair: Going to create %x.%x.%x\n",
-		  RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique)); 
+	LOG(100, ("DisconnectedRepair: Going to create %s\n", FID_(RepairFid)));
 	/* need to get the priority from the vproc pointer */
 	f = FSDB->Create(RepairFid, WR, vp->u.u_priority, (char *)NULL);
 			/* don't know the component name */
@@ -800,8 +799,8 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 
 	Date_t Mtime = Vtime();
 
-	LOG(100, ("DisconnectedRepair: Going to call LocalRepair(%x.%x.%x)\n",
-		  RepairFid->Volume, RepairFid->Vnode, RepairFid->Unique));
+	LOG(100, ("DisconnectedRepair: Going to call LocalRepair(%s)\n",
+		  FID_(RepairFid)));
 	Recov_BeginTrans();
 	   code = LogRepair(Mtime, vuid, RepairFid, status.Length, status.Date,
 			    status.Owner, status.Mode);
@@ -839,9 +838,9 @@ int repvol::DisconnectedRepair(ViceFid *RepairFid, char *RepairFile,
 }
 
 /* MUST be called from within a transaction */
-int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, ViceFid *pfid) {
-    LOG(100, ("LocalRepair: %x.%x.%x local file %s \n",
-	      f->fid.Volume, f->fid.Vnode, f->fid.Unique, fname));
+int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfid) {
+    LOG(100, ("LocalRepair: %s local file %s \n",
+	      FID_(&f->fid), fname));
     RVMLIB_REC_OBJECT(*f);
 
     f->stat.VnodeType = status->VnodeType;

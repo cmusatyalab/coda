@@ -55,6 +55,7 @@ extern "C" {
 
 /* from venus */
 #include "venusstats.h"
+#include "venusfid.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -258,7 +259,6 @@ struct CacheStats {
     CacheEventRecord events[10];	    /* indexed by CacheEvent type! */
 };
 
-
 /*  *****  Misc stuff  *****  */
 #define TRANSLATE_TO_LOWER(s)\
 {\
@@ -312,7 +312,7 @@ extern long int RPC2_DebugLevel;
 extern long int SFTP_DebugLevel;
 extern long int RPC2_Trace;
 extern int MallocTrace;
-extern const ViceFid NullFid;
+extern const VenusFid NullFid;
 extern const vv_t NullVV;
 extern VFSStatistics VFSStats;
 extern RPCOpStatistics RPCOpStats;
@@ -321,7 +321,7 @@ extern struct timeval DaemonExpiry;
 /* venus.c */
 class vproc;
 extern vproc *Main;
-extern ViceFid rootfid;
+extern VenusFid rootfid;
 extern long rootnodeid;
 extern int CleanShutDown;
 extern char *venusRoot;

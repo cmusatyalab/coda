@@ -160,10 +160,10 @@ int fsobj::ConnectedRemove(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_
 	    code = (int) MRPC_MakeMulti(ViceVRemove_OP, ViceVRemove_PTR,
 				  VSG_MEMBERS, m->rocc.handles,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  &fid, name, parent_statusvar_ptrs,
-				  target_statusvar_ptrs, ph, &sid,
-				  &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
-				  &PiggyBS);
+				  MakeViceFid(&fid), name,
+				  parent_statusvar_ptrs, target_statusvar_ptrs,
+				  ph, &sid, &OldVS, VSvar_ptrs,
+				  VCBStatusvar_ptrs, &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVRemove_OP);
 	    CFSOP_POSTLUDE("store::remove done\n");
 
@@ -231,7 +231,7 @@ RepExit:
 	/* Make the RPC call. */
 	CFSOP_PRELUDE("store::Remove %-30s\n", name, target_fso->fid);
 	UNI_START_MESSAGE(ViceVRemove_OP);
-	code = (int) ViceVRemove(c->connid, &fid, (RPC2_String)name, 
+	code = (int) ViceVRemove(c->connid, MakeViceFid(&fid), (RPC2_String)name, 
 				 &parent_status, &target_status, 0, &Dummy, 
 				 &OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVRemove_OP);
@@ -398,10 +398,11 @@ int fsobj::ConnectedLink(Date_t Mtime, vuid_t vuid, char *name, fsobj *source_fs
 	    code = (int) MRPC_MakeMulti(ViceVLink_OP, ViceVLink_PTR,
 				  VSG_MEMBERS, m->rocc.handles,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  &fid, name, &source_fso->fid,
+				  MakeViceFid(&fid), name,
+				  MakeViceFid(&source_fso->fid),
 				  source_statusvar_ptrs, parent_statusvar_ptrs,
-				  ph, &sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
-				  &PiggyBS);
+				  ph, &sid, &OldVS, VSvar_ptrs,
+				  VCBStatusvar_ptrs, &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVLink_OP);
 	    CFSOP_POSTLUDE("store::link done\n");
 
@@ -469,8 +470,8 @@ RepExit:
 	/* Make the RPC call. */
 	CFSOP_PRELUDE("store::Link %-30s\n", name, source_fso->fid);
 	UNI_START_MESSAGE(ViceVLink_OP);
-	code = (int) ViceVLink(c->connid, &fid, (RPC2_String)name,
-			      &source_fso->fid, &source_status,
+	code = (int) ViceVLink(c->connid, MakeViceFid(&fid), (RPC2_String)name,
+			      MakeViceFid(&source_fso->fid), &source_status,
 			      &parent_status, 0, &Dummy, 
 			      &OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVLink_OP);
@@ -709,11 +710,13 @@ int fsobj::ConnectedRename(Date_t Mtime, vuid_t vuid, fsobj *s_parent_fso,
 	    code = (int) MRPC_MakeMulti(ViceVRename_OP, ViceVRename_PTR,
 				  VSG_MEMBERS, m->rocc.handles,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  &s_parent_fso->fid, s_name, &fid, t_name,
-				  s_parent_statusvar_ptrs, t_parent_statusvar_ptrs,
+				  MakeViceFid(&s_parent_fso->fid), s_name,
+				  MakeViceFid(&fid), t_name,
+				  s_parent_statusvar_ptrs,
+				  t_parent_statusvar_ptrs,
 				  source_statusvar_ptrs, target_statusvar_ptrs,
-				  ph, &sid, &OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
-				  &PiggyBS);
+				  ph, &sid, &OldVS, VSvar_ptrs,
+				  VCBStatusvar_ptrs, &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVRename_OP);
 	    CFSOP_POSTLUDE("store::rename done\n");
 
@@ -791,11 +794,12 @@ RepExit:
 	/* Make the RPC call. */
 	CFSOP_PRELUDE("store::Rename %-30s\n", s_name, s_fso->fid);
 	UNI_START_MESSAGE(ViceVRename_OP);
-	code = (int) ViceVRename(c->connid, &s_parent_fso->fid, 
-				(RPC2_String)s_name, &fid, (RPC2_String)t_name,
-				&s_parent_status, &t_parent_status,
-				&source_status, &target_status, 0, &Dummy,
-				&OldVS, &VS, &VCBStatus, &PiggyBS);
+	code = (int) ViceVRename(c->connid, MakeViceFid(&s_parent_fso->fid),
+				 (RPC2_String)s_name, MakeViceFid(&fid),
+				 (RPC2_String)t_name, &s_parent_status,
+				 &t_parent_status, &source_status,
+				 &target_status, 0, &Dummy, &OldVS, &VS,
+				 &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVRename_OP);
 	CFSOP_POSTLUDE("store::rename done\n");
 
@@ -942,7 +946,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
     int code = 0;
     fsobj *target_fso = 0;
-    ViceFid target_fid;
+    VenusFid target_fid;
     RPC2_Unsigned AllocHost = 0;
 
     /* Status parameters. */
@@ -1006,7 +1010,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
  	    vp->PackVS(VSG_MEMBERS, &OldVS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
-	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, target_fidvar, target_fid, VSG_MEMBERS);
+	    ARG_MARSHALL(IN_OUT_MODE, VenusFid, target_fidvar, target_fid, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS);
@@ -1017,10 +1021,12 @@ int fsobj::ConnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	    code = (int) MRPC_MakeMulti(ViceVMakeDir_OP, ViceVMakeDir_PTR,
 					VSG_MEMBERS, m->rocc.handles,
 					m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					&fid, name, target_statusvar_ptrs,
-					target_fidvar_ptrs, parent_statusvar_ptrs,
-					AllocHost, &sid, &OldVS, VSvar_ptrs, 
-					VCBStatusvar_ptrs, &PiggyBS);
+					MakeViceFid(&fid), name,
+					target_statusvar_ptrs,
+					target_fidvar_ptrs,
+					parent_statusvar_ptrs, AllocHost, &sid,
+					&OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
+					&PiggyBS);
 	    MULTI_END_MESSAGE(ViceVMakeDir_OP);
 	    CFSOP_POSTLUDE("store::mkdir done\n");
 
@@ -1093,10 +1099,10 @@ RepExit:
 	long cbtemp; cbtemp = cbbreaks;
 	CFSOP_PRELUDE("store::Mkdir %-30s\n", name, NullFid);
 	UNI_START_MESSAGE(ViceVMakeDir_OP);
-	code = (int) ViceVMakeDir(c->connid, &fid, (RPC2_String) name,
-				  &target_status, &target_fid,
-				  &parent_status, 0, &Dummy, 
-				  &OldVS, &VS, &VCBStatus, &PiggyBS);
+	code = (int) ViceVMakeDir(c->connid, MakeViceFid(&fid), (RPC2_String)
+				  name, &target_status,
+				  MakeViceFid(&target_fid), &parent_status, 0,
+				  &Dummy, &OldVS, &VS, &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVMakeDir_OP);
 	CFSOP_POSTLUDE("store::mkdir done\n");
 
@@ -1152,7 +1158,7 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr, char
 
     int code = 0;
     fsobj *target_fso = 0;
-    ViceFid target_fid;
+    VenusFid target_fid;
     RPC2_Unsigned AllocHost = 0;
 
     if (!vol->IsReplicated()) {
@@ -1331,9 +1337,10 @@ int fsobj::ConnectedRmdir(Date_t Mtime, vuid_t vuid, char *name, fsobj *target_f
 	    code = (int) MRPC_MakeMulti(ViceVRemoveDir_OP, ViceVRemoveDir_PTR,
 				  VSG_MEMBERS, m->rocc.handles,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  &fid, name, parent_statusvar_ptrs,
-				  target_statusvar_ptrs, ph, &sid, 
-				  &OldVS, VSvar_ptrs, VCBStatusvar_ptrs, &PiggyBS);
+				  MakeViceFid(&fid), name,
+				  parent_statusvar_ptrs, target_statusvar_ptrs,
+				  ph, &sid, &OldVS, VSvar_ptrs,
+				  VCBStatusvar_ptrs, &PiggyBS);
 	    MULTI_END_MESSAGE(ViceVRemoveDir_OP);
 	    CFSOP_POSTLUDE("store::rmdir done\n");
 
@@ -1401,9 +1408,10 @@ RepExit:
 	/* Make the RPC call. */
 	CFSOP_PRELUDE("store::Rmdir %-30s\n", name, target_fso->fid);
 	UNI_START_MESSAGE(ViceVRemoveDir_OP);
-	code = (int) ViceVRemoveDir(c->connid, &fid, (RPC2_String)name,
-				   &parent_status, &target_status, 0, &Dummy,
-				   &OldVS, &VS, &VCBStatus, &PiggyBS);
+	code = (int) ViceVRemoveDir(c->connid, MakeViceFid(&fid),
+				    (RPC2_String)name, &parent_status,
+				    &target_status, 0, &Dummy, &OldVS, &VS,
+				    &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVRemoveDir_OP);
 	CFSOP_POSTLUDE("store::rmdir done\n");
 
@@ -1530,7 +1538,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
     int code = 0;
     fsobj *target_fso = 0;
-    ViceFid target_fid = NullFid;
+    VenusFid target_fid = NullFid;
     RPC2_Unsigned AllocHost = 0;
 
     /* Status parameters. */
@@ -1593,7 +1601,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	{
 	    /* Make multiple copies of the IN/OUT and OUT parameters. */
  	    vp->PackVS(VSG_MEMBERS, &OldVS);
-	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, target_fidvar, target_fid, VSG_MEMBERS);
+	    ARG_MARSHALL(IN_OUT_MODE, VenusFid, target_fidvar, target_fid, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
 	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
 	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
@@ -1605,7 +1613,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 	    code = (int) MRPC_MakeMulti(ViceVSymLink_OP, ViceVSymLink_PTR,
 				  VSG_MEMBERS, m->rocc.handles,
 				  m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				  &fid, name, contents,
+				  MakeViceFid(&fid), name, contents,
 				  target_fidvar_ptrs, target_statusvar_ptrs,
 				  parent_statusvar_ptrs, AllocHost, &sid,
 				  &OldVS, VSvar_ptrs, VCBStatusvar_ptrs, &PiggyBS);
@@ -1681,11 +1689,11 @@ RepExit:
 	long cbtemp; cbtemp = cbbreaks;
 	CFSOP_PRELUDE("store::Symlink %-30s\n", contents, NullFid);
 	UNI_START_MESSAGE(ViceVSymLink_OP);
-	code = (int) ViceVSymLink(c->connid, &fid, (RPC2_String)name, 
-				  (RPC2_String)contents, 
-				  &target_fid, &target_status,
-				  &parent_status, 0, &Dummy, 
-				  &OldVS, &VS, &VCBStatus, &PiggyBS);
+	code = (int) ViceVSymLink(c->connid, MakeViceFid(&fid),
+				  (RPC2_String)name, (RPC2_String)contents,
+				  MakeViceFid(&target_fid), &target_status,
+				  &parent_status, 0, &Dummy, &OldVS, &VS,
+				  &VCBStatus, &PiggyBS);
 	UNI_END_MESSAGE(ViceVSymLink_OP);
 	CFSOP_POSTLUDE("store::symlink done\n");
 
@@ -1742,7 +1750,7 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, vuid_t vuid, fsobj **t_fso_addr,
 
     int code = 0;
     fsobj *target_fso = 0;
-    ViceFid target_fid = NullFid;
+    VenusFid target_fid = NullFid;
     RPC2_Unsigned AllocHost = 0;
 
     if (!vol->IsReplicated()) {
@@ -1869,7 +1877,7 @@ int fsobj::SetVV(ViceVersionVector *newvv, vuid_t vuid) {
 		code = (int) MRPC_MakeMulti(ViceSetVV_OP, ViceSetVV_PTR,
 				      VSG_MEMBERS, m->rocc.handles,
 				      m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				      &fid, newvv, &PiggyBS);
+				      MakeViceFid(&fid), newvv, &PiggyBS);
 		MULTI_END_MESSAGE(ViceSetVV_OP);
 		CFSOP_POSTLUDE("store::setvv done\n");
 
@@ -1918,7 +1926,7 @@ RepExit:
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE("store::SetVV %-30s\n", comp, fid);
 	    UNI_START_MESSAGE(ViceSetVV_OP);
-	    code = (int) ViceSetVV(c->connid, &fid, newvv, &PiggyBS);
+	    code = (int) ViceSetVV(c->connid, MakeViceFid(&fid), newvv, &PiggyBS);
 	    UNI_END_MESSAGE(ViceSetVV_OP);
 	    CFSOP_POSTLUDE("store::setvv done\n");
 

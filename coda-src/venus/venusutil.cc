@@ -84,7 +84,7 @@ extern "C" {
 FILE *logFile = 0;
 int LogLevel = 0;
 int MallocTrace = 0;
-const ViceFid NullFid = {0, 0, 0};
+const VenusFid NullFid = {0, 0, 0};
 const vv_t NullVV = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0}, 0};
 VFSStatistics VFSStats;
 RPCOpStatistics RPCOpStats;
@@ -792,7 +792,7 @@ long Vtime() {
 
 
 /* 
- * compares fids embedded in a ViceFidAndVersionVector. 
+ * compares fids embedded in a VenusFidAndVersionVector. 
  * assumes that the fids are in the same volume.
  */
 int FAV_Compare(ViceFidAndVV *fav1, ViceFidAndVV *fav2) {

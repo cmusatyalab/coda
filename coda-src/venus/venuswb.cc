@@ -162,30 +162,36 @@ void writebackserver::main(void)
     }
 }
 
-long RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
+long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid)
 {
     volent *v;
+    VolFid vfid;
 
     LOG(1, ("RevokeWBPermit(): Vid = %d\n", Vid));
 
     if (!Vid) return 0;
 
-    v = VDB->Find(Vid);
+#warning "need realm here"
+    vfid.Realm = 0;
+    vfid.Volume = Vid;
+
+    v = VDB->Find(&vfid);
     if (v && v->IsReplicated())
 	((repvol *)v)->StopWriteback(NULL);
 
     return 0;
 }
 
-long WriteBackFetch(RPC2_Handle RPCid, VolumeId Vid, ViceFid *Fid)
+long VENUS_WriteBackFetch(RPC2_Handle RPCid, VolumeId Vid, ViceFid *Fid)
 {
     return 0;
 }
 
 /* WriteBackNEWCONNECTION() */
-long WriteBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
-		     RPC2_Integer SecurityLevel, RPC2_Integer EncryptionType,
-		     RPC2_Integer AuthType, RPC2_CountedBS *ClientIdent) 
+long VENUS_WriteBackConnect(RPC2_Handle RPCid, RPC2_Integer SideEffectType,
+			    RPC2_Integer SecurityLevel, RPC2_Integer
+			    EncryptionType, RPC2_Integer AuthType,
+			    RPC2_CountedBS *ClientIdent) 
 {
     /* Get the {host,port} pair for this call. */
     RPC2_PeerInfo thePeer;

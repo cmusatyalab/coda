@@ -307,8 +307,8 @@ void fsobj::Release(int writep, int execp)
 
             /* Fudge size of files that were deleted while open. */
             if (DYING(this)) {
-                LOG(0, ("fsobj::Release: last writer && dying (%x.%x.%x)\n",
-                        fid.Volume, fid.Vnode, fid.Unique));
+                LOG(0, ("fsobj::Release: last writer && dying (%s)\n",
+                        FID_(&fid)));
                 RVMLIB_REC_OBJECT(stat.Length);
                 stat.Length = 0;	    /* Necessary for blocks maintenance! */
             }
@@ -397,7 +397,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 	}
 
 	/* Record the parent fid and release the object. */
-	ViceFid parent_fid = pfid;
+	VenusFid parent_fid = pfid;
 	if (FID_EQ(&NullFid, &parent_fid))
 	    { print(logFile); CHOKE("fsobj::Access: pfid == Null"); }
 	UnLock(level);
@@ -476,7 +476,7 @@ int fsobj::Access(long rights, int modes, vuid_t vuid)
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
-int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t vuid, int flags)
+int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, vuid_t vuid, int flags)
 {
     LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n",
 	      comp, name, vuid));
@@ -492,7 +492,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, ViceFid *inc_fid, char *name, vuid_t 
     int	traverse_mtpts = (inc_fid != 0);	/* ? -JJK */
 
     fsobj *target_fso = 0;
-    ViceFid target_fid;
+    VenusFid target_fid;
 
     /* Map name --> fid. */
     {

@@ -66,10 +66,11 @@ int repvol::GetPermit(vuid_t vuid)
     int i,permits_recvd = 0;
     connent *c;
     int code = GetAdmConn(&c);
+
     ViceFid fid;
     fid.Volume = vid;
-    fid.Vnode = 0;
-    fid.Unique = 0;
+    fid.Vnode = fid.Unique = 0;
+
     if (code != 0)
 	return code;
 
@@ -85,8 +86,8 @@ int repvol::GetPermit(vuid_t vuid)
     }
 
     /* Marshall arguments */
-    ARG_MARSHALL(IN_MODE, VolumeId, vidvar,vid, VSG_MEMBERS);
-    ARG_MARSHALL(IN_MODE, ViceFid, fidvar,fid, VSG_MEMBERS);
+    ARG_MARSHALL(IN_MODE, VolumeId, vidvar, vid, VSG_MEMBERS);
+    ARG_MARSHALL(IN_MODE, ViceFid, fidvar, fid, VSG_MEMBERS);
     ARG_MARSHALL(OUT_MODE, RPC2_Integer, permitvar, permit, VSG_MEMBERS);
 
     /* Send the MultiRPC */
@@ -94,7 +95,7 @@ int repvol::GetPermit(vuid_t vuid)
     code = (int) MRPC_MakeMulti(ViceGetWBPermit_OP, ViceGetWBPermit_PTR,
 				VSG_MEMBERS, m->rocc.handles,
 				m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				vid, &fid, permitvar_ptrs);
+				vid, fid, permitvar_ptrs);
     MULTI_END_MESSAGE(ViceGetWBPermit_OP);
     MULTI_RECORD_STATS(ViceGetWBPermit_OP);
 

@@ -76,14 +76,6 @@ void LRDBDaemon(void)
     }
 }
 
-/* MARIA testing */
-char *PrintFid(ViceFid *fid) {
-    static char fidString[128];
-    snprintf(fidString, 128, "%x.%x.%x", fid->Volume, fid->Vnode, fid->Unique);
-    return(fidString);
-}
-
-
 /*
   BEGIN_HTML
   <a name="checklocalsubtree"><strong> periodically check whether there are 
@@ -105,7 +97,7 @@ void lrdb::CheckLocalSubtree()
     rfment *rfm;
     while ((rfm = next())) {
 	if (!rfm->RootCovered()) {
-	    ViceFid *RootFid = rfm->GetRootParentFid();
+	    VenusFid *RootFid = rfm->GetRootParentFid();
 	    OBJ_ASSERT(this, RootFid != NULL);
 	    fsobj *RootParentObj = FSDB->Find(RootFid);
 	    OBJ_ASSERT(this, RootParentObj != NULL);
@@ -117,10 +109,9 @@ void lrdb::CheckLocalSubtree()
 		       RootPath, rfm->GetName());
 	    char fullpath[MAXPATHLEN];
 	    snprintf(fullpath, MAXPATHLEN, "%s/%s", RootPath, rfm->GetName());
-	    ViceFid *objFid = rfm->GetGlobalRootFid();
+	    VenusFid *objFid = rfm->GetGlobalRootFid();
 	    CODA_ASSERT(objFid);
-	    LOG(0, ("LocalInconsistentObj: objFid=%x.%x.%x\n",
-		    objFid->Volume, objFid->Vnode, objFid->Unique));
+	    LOG(0, ("LocalInconsistentObj: objFid=%s\n", FID_(objFid)));
 	    /* NotifyUsersObjectInConflict(fullpath, objFid); */
 	}
     }

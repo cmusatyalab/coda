@@ -61,7 +61,6 @@ extern "C" {
 #include "venusvol.h"
 #include "vproc.h"
 
-
 /* Forward declarations. */
 class connent;
 class conn_iterator;
@@ -225,6 +224,8 @@ class srvent : private RefCountedObject {
   friend class fsobj;
   friend void repvol::SetStagingServer(struct in_addr *srvr);
 
+  friend class Realm;
+
     /* The server list. */
     static olist *srvtab;
     static char srvtab_sync;
@@ -245,7 +246,7 @@ class srvent : private RefCountedObject {
     struct timeval lastobs;	/* time of most recent estimate */
   
     /* Constructors, destructors, and private utility routines. */
-    srvent(struct in_addr *host, int isrootserver);
+    srvent(struct in_addr *host);
     srvent(srvent&) { abort(); }	/* not supported! */
     int operator=(srvent&) { abort(); return(0); }	/* not supported! */
     ~srvent();
@@ -256,6 +257,8 @@ class srvent : private RefCountedObject {
     static int allocs;
     static int deallocs;
 #endif
+    Realm *realm;
+
     int GetConn(connent **c, vuid_t vuid, int force =0);
 
     int GetStatistics(ViceStatistics *);

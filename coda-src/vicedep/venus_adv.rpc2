@@ -170,7 +170,7 @@ typedef RPC2_Struct
 8:HoardCommands	(IN RPC2_Integer UserID, IN HoardCmd commands[]);
 
 /* Return the result of a completed ASR. */
-9:ResultOfASR		(IN VolumeId vid, IN RPC2_Integer ASRid, IN RPC2_Integer result);
+9:ResultOfASR		(IN RPC2_Integer realm, IN VolumeId volume, IN RPC2_Integer ASRid, IN RPC2_Integer result);
 
 /* Tell Venus we're about to die (when we know about it). */
 10:ImminentDeath(IN RPC2_String HostName, IN RPC2_Integer Port);

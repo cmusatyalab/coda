@@ -172,7 +172,7 @@ void vdb::GetDown()
         while ((v = n) != NULL) {
             n = next();
             if (v->refcnt == 0) {
-                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVid()));
+                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVolumeId()));
                 delete v;
             }
         }
@@ -183,7 +183,7 @@ void vdb::GetDown()
         while ((v = n) != NULL) {
             n = next();
             if (v->refcnt == 0) {
-                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVid()));
+                LOG(10, ("vdb::GetDown destroying %x\n", v->GetVolumeId()));
                 delete v;
             }
         }

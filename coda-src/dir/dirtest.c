@@ -456,7 +456,7 @@ void dt_convert(int argc, char **argv)
 	CODA_ASSERT( fd >= 0);
 	close(fd);
 
-	DH_Convert(dh, argv[2], vol);
+	DH_Convert(dh, argv[2], vol, 0);
 
 	return;
 }

@@ -80,7 +80,8 @@ struct pnode {
     RPC2_PacketBuffer *pbuf;
     pnode *next;
     char name[32];
-    int kid, tmp, req;
+    int realm, volume;
+    int kid, req;
 };
 
 RPC2_Handle contact_venus(const char *);

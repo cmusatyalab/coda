@@ -41,7 +41,7 @@ extern "C" {
 #include "vice.h"
 
 struct GetFid {
-    ViceFid fid;
+    VenusFid fid;
     ViceVersionVector vv;
 };
 
@@ -61,8 +61,7 @@ void main(int argc, char **argv) {
 	exit(-1);
     }
 
-    printf("FID = (%x.%x.%x)\n",
-	    out.fid.Volume, out.fid.Vnode, out.fid.Unique);
+    printf("FID = (%s)\n", FID_(&out.fid));
     printf("\tVV = {[");
     for (int i = 0; i < VSG_MEMBERS; i++)
 	printf(" %d", (&(out.vv.Versions.Site0))[i]);

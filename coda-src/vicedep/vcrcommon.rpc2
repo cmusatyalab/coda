@@ -54,6 +54,11 @@ Pittsburgh, PA.
 %}
 
 %{
+#ifndef _REALMID_T_
+#define _REALMID_T_
+typedef RPC2_Unsigned   RealmId; /* seen only by venus */
+#endif
+
 #ifndef _FID_T_
 #define _FID_T_
 %}

@@ -563,7 +563,7 @@ int worker(void *arg) {
 		    quit("Error waiting for ASR to finish: %s", strerror(errno));
 		if (WIFEXITED(status)) code = WEXITSTATUS(status);
 		else code = -1;
-		if ((rc = C_ResultOfASR(VenusCID, pinfo->tmp, pinfo->kid, code)) != RPC2_SUCCESS)
+		if ((rc = C_ResultOfASR(VenusCID, pinfo->realm, pinfo->volume, pinfo->kid, code)) != RPC2_SUCCESS)
 		    quit(RPC2_ErrorMsg(rc));
 		pinfo->kid = 0;
 	    }
@@ -817,7 +817,9 @@ long S_InvokeASR(RPC2_Handle _cid, RPC2_String pathname, RPC2_Integer vol_id,
     }
     else {
 	pinfo->kid = ret;
-	pinfo->tmp = vol_id;
+#warning "need realm here"
+	pinfo->realm = 0;
+	pinfo->volume = vol_id;
 	*ASRid = ret;
 	*ASRrc = SKK_SUCCESS;
     }

@@ -342,12 +342,14 @@ int dir_PrintChar(char *addr, int nbits, char *buff)
  * Conversion from Coda to BSD dir entry format
  */
 
-static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId vol)
+static int dir_DirEntry2VDirent(PDirEntry ep, struct venus_dirent *vd, VolumeId vol, RealmId realm)
 {
-	struct ViceFid fid;
+	CodaFid fid;
 	
 	CODA_ASSERT(ep && vd);
-        fid_NFidV2Fid(&ep->fid, vol, &fid);
+
+	fid.opaque[0] = realm;
+        fid_NFidV2Fid(&ep->fid, vol, (ViceFid *)&fid.opaque[1]);
 	
 	vd->d_fileno = coda_f2i(&fid);
 #ifdef CDT_UNKNOWN
@@ -801,7 +803,7 @@ int dir_HkCompare(PDirEntry de, void *hook)
 }
 
 /* Rewrite a Coda directory in Venus' BSD format for a container file */
-int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
+int DIR_Convert (PDirHeader dir, char *file, VolumeId vol, RealmId realm)
 {
 	struct DirEntry *ep;
 	int fd;
@@ -857,7 +859,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 				break;
 
 			/* optimistically write the directory entry: */
-			direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol);
+			direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol, realm);
 			/* if what we just wrote crosses a boundary: */
 			if (((offset + direntlen) ^ offset) & ~(DIRBLKSIZ - 1)) {
 				/* Note that offset still points to the *previous* directory 
@@ -869,7 +871,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 				((struct venus_dirent *) (buf + oldoffset))->d_reclen += pad;
 				offset += pad;
 				/* do it again ... shifted by pad */
-				direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol);
+				direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol, realm);
 			}
 			oldoffset = offset;
 			offset += direntlen;

@@ -130,7 +130,7 @@ void vproc::vget(struct venus_cnode *vpp, struct cfid *cfidp) {
 	u.u_nc->print(logFile);
 
     for (;;) {
-	Begin_VFS(cfidp->cfid_fid.Volume, CODA_VGET);
+	Begin_VFS(&cfidp->cfid_fid, CODA_VGET);
 	if (u.u_error) break;
 
 	u.u_error = FSDB->Get(&f, &cfidp->cfid_fid, CRTORUID(u.u_cred), RC_STATUS);
@@ -185,8 +185,7 @@ void vproc::open(struct venus_cnode *cp, int flags) {
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_OPEN,
-		  writep ? VM_MUTATING : VM_OBSERVING);
+	Begin_VFS(&cp->c_fid, CODA_OPEN, writep ? VM_MUTATING : VM_OBSERVING);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -253,8 +252,7 @@ void vproc::close(struct venus_cnode *cp, int flags)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_CLOSE,
-		  writep ? VM_MUTATING : VM_OBSERVING);
+	Begin_VFS(&cp->c_fid, CODA_CLOSE, writep ? VM_MUTATING : VM_OBSERVING);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -324,7 +322,7 @@ void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_GETATTR);
+	Begin_VFS(&cp->c_fid, CODA_GETATTR);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -411,7 +409,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	CHOKE("vproc::setattr: no attributes specified");
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_SETATTR);
+	Begin_VFS(&cp->c_fid, CODA_SETATTR);
 	if (u.u_error) break;
 
 	/* If we are truncating a file to any non-zero size we NEED the data */
@@ -426,7 +424,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 	 * having an inaccessible object we have to make sure to fetch the
 	 * data as well. */
 	volent *v = 0;
-	u.u_error = VDB->Get(&v, cp->c_fid.Volume);
+	u.u_error = VDB->Get(&v, MakeVolFid(&cp->c_fid));
 	if (u.u_error) goto FreeLocks;
 	if (v->IsWriteDisconnected())
 	    rcrights |= RC_DATA;
@@ -542,7 +540,7 @@ void vproc::access(struct venus_cnode *cp, int mode)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_ACCESS);
+	Begin_VFS(&cp->c_fid, CODA_ACCESS);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -581,7 +579,7 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
     fsobj *target_fso = 0;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_LOOKUP);
+	Begin_VFS(&dcp->c_fid, CODA_LOOKUP);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -597,7 +595,7 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 	    parent_fso = 0;		    /* Fake a FSDB->Put(&parent_fso); */
 	}
 	else {
-	    ViceFid inc_fid;
+	    VenusFid inc_fid;
 	    u.u_error = parent_fso->Lookup(&target_fso, &inc_fid, name, CRTORUID(u.u_cred), flags);
 	    if (u.u_error) {
 		if (u.u_error == EINCONS) {
@@ -657,7 +655,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_CREATE);
+	Begin_VFS(&dcp->c_fid, CODA_CREATE);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -670,7 +668,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 	if ((LRDB->repair_root_fid) && (parent_fso->IsLocalObj() || 
 					LRDB->RFM_IsRootParent(&parent_fso->fid))) {
 	    /* cross mount-point when under local/global repair */
-	    ViceFid dummy;
+	    VenusFid dummy;
 	    u.u_error = parent_fso->Lookup(&target_fso, &dummy, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
 	} else {
 	    u.u_error = parent_fso->Lookup(&target_fso, 0, name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
@@ -695,7 +693,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 	    }
 
 	    /* We need the data now. XXX -JJK */
-	    ViceFid target_fid = target_fso->fid;
+	    VenusFid target_fid = target_fso->fid;
 	    FSDB->Put(&target_fso);
 	    u.u_error = FSDB->Get(&target_fso, &target_fid, CRTORUID(u.u_cred), RC_DATA);
 	    if (u.u_error) goto FreeLocks;
@@ -763,7 +761,7 @@ void vproc::remove(struct venus_cnode *dcp, char *name)
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_REMOVE);
+	Begin_VFS(&dcp->c_fid, CODA_REMOVE);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -809,7 +807,7 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
 {
 
     LOG(1, ("vproc::link: fid = %s, td_fid = %s, toname = %s\n",
-	    FID_(&scp->c_fid), FID_2(&dcp->c_fid), toname));
+	    FID_(&scp->c_fid), FID_(&dcp->c_fid), toname));
 
     fsobj *parent_fso = 0;
     fsobj *source_fso = 0;
@@ -828,7 +826,7 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
 	{ u.u_error = EISDIR; return; }
 
     /* Verify that the source is in the same volume as the target parent. */
-    if (scp->c_fid.Volume != dcp->c_fid.Volume)
+    if (!FID_VolEQ(&scp->c_fid, &dcp->c_fid))
         { u.u_error = EXDEV; return; }
 
 #if 0 /* not possible when source == file and target parent == dir. --JH */
@@ -838,7 +836,7 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
 #endif
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_LINK);
+	Begin_VFS(&dcp->c_fid, CODA_LINK);
 	if (u.u_error) break;
 
         /* Get the source and target objects in correct lock order */
@@ -909,7 +907,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 {
 
     LOG(1, ("vproc::rename: fid = %s, td_fid = %s, name = %s, toname = %s\n",
-	     FID_(&spcp->c_fid), FID_2(&tpcp->c_fid), name, toname));
+	     FID_(&spcp->c_fid), FID_(&tpcp->c_fid), name, toname));
 
     int	SameParent = FID_EQ(&spcp->c_fid, &tpcp->c_fid);
     int	TargetExists = 0;
@@ -927,11 +925,11 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
     if (u.u_error) return;
 
     /* Ensure that objects are in the same volume. */
-    if (spcp->c_fid.Volume != tpcp->c_fid.Volume)
+    if (!FID_VolEQ(&spcp->c_fid, &tpcp->c_fid))
 	{ u.u_error = EXDEV; return; }
 
     for (;;) {
-	Begin_VFS(spcp->c_fid.Volume, CODA_RENAME);
+	Begin_VFS(&spcp->c_fid, CODA_RENAME);
 	if (u.u_error) break;
 
 	/* Acquire the parent(s). */
@@ -988,7 +986,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 		{ u.u_error = EINVAL; goto FreeLocks; }
 
 	    if (s_fso->IsDir()) {
-		ViceFid s_fid = s_fso->fid;
+		VenusFid s_fid = s_fso->fid;
 		FSDB->Put(&s_fso);
 
 		u.u_error = FSDB->Get(&s_fso, &s_fid, CRTORUID(u.u_cred), RC_DATA, name);
@@ -1008,7 +1006,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 		{ u.u_error = EINVAL; goto FreeLocks; }
 
 	    if (t_fso->IsDir()) {
-		ViceFid t_fid = t_fso->fid;
+		VenusFid t_fid = t_fso->fid;
 		FSDB->Put(&t_fso);
 
 		u.u_error = FSDB->Get(&t_fso, &t_fid, CRTORUID(u.u_cred), RC_DATA, toname);
@@ -1055,7 +1053,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	    /* This shoots the locking protocol to hell! -JJK */
 	    /* This fails, perhaps incorrectly, if user doesn't have read permission up to volume root! -JJK */
 	    if (!SameParent && s_fso->IsDir() && !t_parent_fso->IsRoot()) {
-		ViceFid test_fid = t_parent_fso->pfid;
+		VenusFid test_fid = t_parent_fso->pfid;
 		for (;;) {
 		    if (FID_EQ(&s_fso->fid, &test_fid))
 			{ u.u_error = ELOOP; goto FreeLocks; }
@@ -1136,7 +1134,7 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name,
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_MKDIR);
+	Begin_VFS(&dcp->c_fid, CODA_MKDIR);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -1194,7 +1192,7 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_RMDIR);
+	Begin_VFS(&dcp->c_fid, CODA_RMDIR);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -1215,7 +1213,7 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Must have data for the target. */
-	ViceFid target_fid; target_fid = target_fso->fid;
+	VenusFid target_fid; target_fid = target_fso->fid;
 	FSDB->Put(&target_fso);
 	u.u_error = FSDB->Get(&target_fso, &target_fid, CRTORUID(u.u_cred), RC_DATA, name);
 	if (u.u_error) goto FreeLocks;
@@ -1254,8 +1252,8 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
 		    struct coda_vattr *vap, char *name) 
 {
 
-    LOG(1, ("vproc::symlink: fid = (%x.%x.%x), contents = %s, name = %s\n",
-	     dcp->c_fid.Volume, dcp->c_fid.Vnode, dcp->c_fid.Unique, contents, name));
+    LOG(1, ("vproc::symlink: fid = (%s), contents = %s, name = %s\n",
+	    FID_(&dcp->c_fid), contents, name));
 
     fsobj *parent_fso = 0;
     fsobj *target_fso = 0;
@@ -1265,7 +1263,7 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
     if (u.u_error) return;
 
     for (;;) {
-	Begin_VFS(dcp->c_fid.Volume, CODA_SYMLINK);
+	Begin_VFS(&dcp->c_fid, CODA_SYMLINK);
 	if (u.u_error) break;
 
 	/* Get the parent object and verify that it is a directory. */
@@ -1328,7 +1326,7 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_READLINK);
+	Begin_VFS(&cp->c_fid, CODA_READLINK);
 	if (u.u_error) break;
 
 	/* Get the object. */
@@ -1363,9 +1361,9 @@ FreeLocks:
 	k_Purge(&cp->c_fid, 1);
 
 	/* Make a "fake" name for the inconsistent object. */
-	sprintf(buf, "@%08lx.%08lx.%08lx",
-		cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique);
-	string->cs_len = 27;
+	sprintf(buf, "@%08lx.%08lx.%08lx.%08lx",
+		cp->c_fid.Realm, cp->c_fid.Volume, cp->c_fid.Vnode, cp->c_fid.Unique);
+	string->cs_len = 36;
     }
 }
 
@@ -1377,7 +1375,7 @@ void vproc::fsync(struct venus_cnode *cp)
     fsobj *f = 0;
 
     for (;;) {
-	Begin_VFS(cp->c_fid.Volume, CODA_FSYNC);
+	Begin_VFS(&cp->c_fid, CODA_FSYNC);
 	if (u.u_error) break;
 
 	/* Get the object. */

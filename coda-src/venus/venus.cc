@@ -73,7 +73,7 @@ extern "C" {
 /* *****  Exported variables  ***** */
 /* globals in the .bss are implicitly initialized to 0 according to ANSI-C standards */
 vproc *Main;
-ViceFid	rootfid;
+VenusFid	rootfid;
 long rootnodeid;
 int CleanShutDown;
 int SearchForNOreFind;  // Look for better detection method for iterrupted hoard walks. mre 1/18/93
@@ -575,3 +575,4 @@ static void SetRlimits() {
 	{ perror("setrlimit"); exit(-1); }
 #endif
 }
+

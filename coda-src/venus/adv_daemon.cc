@@ -256,12 +256,17 @@ long S_HoardCommands(RPC2_Handle _cid, RPC2_Integer userId, long numCommands, Ho
     return RPC2_SUCCESS;
 }
 
-long S_ResultOfASR(RPC2_Handle _cid, VolumeId vid, RPC2_Integer ASRid, RPC2_Integer result) {
+long S_ResultOfASR(RPC2_Handle _cid, RPC2_Integer realm, VolumeId volume, RPC2_Integer ASRid, RPC2_Integer result) {
   volent *vol = NULL;
 
-  LOG(0, ("ResultOfASR: VID = %d, ASRid = %d, result = %d\n", vid, ASRid, result));
+  LOG(0, ("ResultOfASR: VID = %x.%x, ASRid = %d, result = %d\n",
+	  realm, volume, ASRid, result));
 
-  vol = VDB->Find(vid);
+  VolFid vfid;
+  vfid.Realm = realm;
+  vfid.Volume = volume;
+
+  vol = VDB->Find(&vfid);
   CODA_ASSERT(vol && vol->IsReplicated());
   repvol *vp = (repvol *)vol;
 

@@ -257,7 +257,7 @@ void MarinerLog(const char *fmt, ...) {
 }
 
 /* This should be made an option to a more general logging facility! -JJK */
-void MarinerReport(ViceFid *fid, vuid_t vuid) {
+void MarinerReport(VenusFid *fid, vuid_t vuid) {
     int first = 1;
     char buf[MAXPATHLEN];
     int len;
@@ -518,11 +518,11 @@ void mariner::main(void)
 	}
 	else if (STREQ(argv[0], "fidstat") && argc == 2) {
 	    /* Lookup the object and print it out. */
-	    ViceFid fid;
-	    if (sscanf(argv[1], "%lx.%lx.%lx", &fid.Volume, &fid.Vnode, &fid.Unique) == 3)
+	    VenusFid fid;
+	    if (sscanf(argv[1], "%lx.%lx.%lx.%lx", &fid.Realm, &fid.Volume, &fid.Vnode, &fid.Unique) == 4)
 		FidStat(&fid);
 	    else
-		Write("badly formed fid; try (%%x.%%x.%%x)\n");
+		Write("badly formed fid; try (%%x.%%x.%%x.%%x)\n");
 	}
 	else if (STREQ(argv[0], "rpc2stat")) {
 	    Rpc2Stat();
@@ -553,17 +553,16 @@ void mariner::PathStat(char *path) {
 	Write("namev(%s) failed (%d)\n", path, u.u_error);
 	return;
     }
-    ViceFid fid = tcp.c_fid;
+    VenusFid fid = tcp.c_fid;
 
-    Write("PathStat: %s --> %x.%x.%x\n",
-	   path, fid.Volume, fid.Vnode, fid.Unique);
+    Write("PathStat: %s --> %s\n", path, FID_(&fid));
 
     /* Print status of corresponding fsobj. */
     FidStat(&fid);
 }
 
 
-void mariner::FidStat(ViceFid *fid) {
+void mariner::FidStat(VenusFid *fid) {
     /* Set up context. */
     u.Init();
     u.u_cred.cr_uid = (uid_t)V_UID;
@@ -572,21 +571,20 @@ void mariner::FidStat(ViceFid *fid) {
 
     fsobj *f = 0;
     for (;;) {
-	Begin_VFS(fid->Volume, CODA_VGET);
+	Begin_VFS(fid, CODA_VGET);
 	if (u.u_error) {
-	    Write("Begin_VFS(%x) failed (%d)\n", fid->Volume, u.u_error);
+	    Write("Begin_VFS(%s) failed (%d)\n", FID_(fid), u.u_error);
 	    break;
 	}
 
 	u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS,
 			      NULL, NULL, 1);
 	if (u.u_error) {
-	    Write("fsdb::Get(%x.%x.%x) failed (%d)\n",
-		  fid->Volume, fid->Vnode, fid->Unique, u.u_error);
+	    Write("fsdb::Get(%s) failed (%d)\n", FID_(fid), u.u_error);
 	    goto FreeLocks;
 	}
 
-	Write("FidStat(%x.%x.%x):\n", fid->Volume, fid->Vnode, fid->Unique);
+	Write("FidStat(%s):\n", FID_(fid));
 	f->print(fd);
 
 FreeLocks:

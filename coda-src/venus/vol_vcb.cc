@@ -62,10 +62,10 @@ int vcbbreaks = 0;	/* count of broken volume callbacks */
 char VCBEnabled = 1;	/* use VCBs by default */
 
 
-int vdb::CallBackBreak(VolumeId vid)
+int vdb::CallBackBreak(VolFid *vfid)
 {
     int rc = 0;
-    volent *v = VDB->Find(vid);
+    volent *v = VDB->Find(vfid);
 
     if (v && v->IsReplicated() &&
         (rc = ((repvol *)v)->CallBackBreak()))
@@ -207,10 +207,10 @@ int repvol::GetVolAttr(vuid_t vuid)
                     continue;
 
                 LOG(1000, ("volent::GetVolAttr: packing volume %s, vid %p, vvv:\n",
-                           rv->GetName(), rv->GetVid()));
+                           rv->GetName(), rv->GetVolumeId()));
                 if (LogLevel >= 1000) PrintVV(logFile, &rv->VVV);
 
-                VidList[nVols].Vid = rv->GetVid();
+                VidList[nVols].Vid = rv->GetVolumeId();
                 for (i = 0; i < VSG_MEMBERS; i++) {
                     *((RPC2_Unsigned *)&((char *)VSBS.SeqBody)[VSBS.SeqLen]) =
                         htonl((&rv->VVV.Versions.Site0)[i]);
@@ -283,10 +283,13 @@ int repvol::GetVolAttr(vuid_t vuid)
 		      name, nVols, numVFlags));
             
             volent *v;
+	    VolFid vfid;
+	    vfid.Realm = realm->id;
 
 	    /* now set status of volumes */
 	    for (i = 0; i < numVFlags; i++)  /* look up the object */
-		if ((v = VDB->Find(VidList[i].Vid))) {
+		vfid.Volume = VidList[i].Vid;
+		if ((v = VDB->Find(&vfid))) {
                     CODA_ASSERT(v->IsReplicated());
                     repvol *vp = (repvol *)v;
 		    fso_vol_iterator next(NL, vp);
@@ -296,7 +299,7 @@ int repvol::GetVolAttr(vuid_t vuid)
 		    case 1:  /* OK, callback */
 			if (cbtemp == cbbreaks) {
 			    LOG(1000, ("volent::GetVolAttr: vid 0x%x valid\n",
-                                       vp->GetVid()));
+                                       vp->GetVolumeId()));
 	                    vp->SetCallBack();
 
 			    /* validate cached access rights for the caller */
@@ -309,12 +312,12 @@ int repvol::GetVolAttr(vuid_t vuid)
 			break;
 		    case 0:  /* OK, no callback */
 			LOG(0, ("volent::GetVolAttr: vid 0x%x valid, no "
-                                "callback\n", vp->GetVid()));
+                                "callback\n", vp->GetVolumeId()));
 			vp->ClearCallBack();
 			break;
 		    default:  /* not OK */
 			LOG(1, ("volent::GetVolAttr: vid 0x%x invalid\n",
-                                vp->GetVid()));
+                                vp->GetVolumeId()));
 			vp->ClearCallBack();
 			Recov_BeginTrans();
 			    RVMLIB_REC_OBJECT(vp->VVV);
@@ -426,9 +429,8 @@ int repvol::ValidateFSOs()
 	if (HAVEDATA(f) && !DATAVALID(f)) 
 	    whatToGet |= RC_DATA;
 
-	LOG(100, ("volent::ValidateFSOs: vget(%x.%x.%x, %x, %d)\n",
-		f->fid.Volume, f->fid.Vnode, f->fid.Unique,
-		whatToGet, f->stat.Length));
+	LOG(100, ("volent::ValidateFSOs: vget(%s, %x, %d)\n",
+		  FID_(&f->fid), whatToGet, f->stat.Length));
 
 	fsobj *tf = 0;
 	code = FSDB->Get(&tf, &f->fid, CRTORUID(vp->u.u_cred), whatToGet);

@@ -103,7 +103,7 @@ const int RETRY_LIMIT = 10;
 struct cfid {
     u_short     cfid_len;
     u_short     cfid_fill;
-    ViceFid     cfid_fid;
+    VenusFid     cfid_fid;
 };
 
 
@@ -135,7 +135,7 @@ struct uarea {
     int	u_error;		/* implicit return code */
     struct coda_cred u_cred;	/* implicit user identifier */
     int	u_priority;		/* to be used in resource requests */
-    ViceFid u_cdir;		/* for name lookup */
+    VenusFid u_cdir;		/* for name lookup */
     int	u_flags;		/*  "	" */
     namectxt *u_nc;		/*  "	" */
     volent *u_vol;		/* for volume-level concurrency control */
@@ -182,7 +182,7 @@ class vproc : public olink {
     static int counter;
     static char rtry_sync;
 
-    void do_ioctl(ViceFid *, unsigned int, struct ViceIoctl *);
+    void do_ioctl(VenusFid *, unsigned int, struct ViceIoctl *);
 
     void init(void);
 
@@ -218,7 +218,10 @@ class vproc : public olink {
     virtual ~vproc();
 
     /* Volume-level concurrency control. */
-    void Begin_VFS(VolumeId, int, int =-1);
+    void Begin_VFS(VolFid *, int, int =-1);
+    void Begin_VFS(VenusFid *fid, int op, int arg=-1) {
+	Begin_VFS(MakeVolFid(fid), op, arg);
+    }
     void End_VFS(int * =0);
 
     /* The vproc interface: mostly matching kernel requests.  */
@@ -252,7 +255,7 @@ class vproc : public olink {
 
     /* Pathname translation. */
     int namev(char *, int, struct venus_cnode *);
-    void GetPath(ViceFid *, char *, int *, int =1);
+    void GetPath(VenusFid *, char *, int *, int =1);
     void verifyname(char *name, int flags);
 #define NAME_NO_DOTS      1 /* don't allow '.', '..', '/' */
 #define NAME_NO_CONFLICT  2 /* don't allow @XXXXXXXX.YYYYYYYY.ZZZZZZZZ */
@@ -299,7 +302,7 @@ extern int VprocInterrupted();
 /* Things which should be in vnode.h? -JJK */
 
 extern void va_init(struct coda_vattr *);
-extern long FidToNodeid(ViceFid *);
+extern long FidToNodeid(VenusFid *);
 
 /* Explanation: 
    CRTOEUID is only used by HDBD_Request (hdb_deamon.cc)
@@ -346,7 +349,7 @@ extern long FidToNodeid(ViceFid *);
 
 struct venus_cnode {
 	u_short	    c_flags;	/* flags (see below) */
-	ViceFid	    c_fid;	/* file handle */
+	VenusFid	    c_fid;	/* file handle */
 	dev_t	    c_device;	/* associated vnode device */
 	ino_t	    c_inode;	/* associated vnode inode */
 	char        c_cfname[CNODE_CFNAME_LEN]; /* container file name */
@@ -355,7 +358,7 @@ struct venus_cnode {
 
 #define	MAKE_CNODE(vp, fid, type)\
 {\
-    (vp).c_fid = fid;\
+    (vp).c_fid = *((VenusFid *)&(fid));\
     (vp).c_type = type;\
     (vp).c_flags = 0;\
 }

@@ -69,8 +69,12 @@ void repvol::Resolve()
     int code = 0;
     vproc *v = VprocSelf();
 
+    VolFid vfid;
+    vfid.Realm = realm->id;
+    vfid.Volume = vid;
+
     /* Grab control of the volume. */
-    v->Begin_VFS(vid, CODA_RESOLVE);
+    v->Begin_VFS(&vfid, CODA_RESOLVE);
     VOL_ASSERT(this, v->u.u_error == 0);
 
     /* Flush all COP2 entries. */
@@ -98,10 +102,9 @@ void repvol::Resolve()
 	    if (code != 0) goto HandleResult;
 
 	    /* Make the RPC call. */
-	    MarinerLog("store::Resolve (%x.%x.%x)\n",
-		       r->fid.Volume, r->fid.Vnode, r->fid.Unique);
+	    MarinerLog("store::Resolve (%s)\n", FID_(&r->fid));
 	    UNI_START_MESSAGE(ViceResolve_OP);
-	    code = ViceResolve(c->connid, &r->fid);
+	    code = ViceResolve(c->connid, MakeViceFid(&r->fid));
 	    UNI_END_MESSAGE(ViceResolve_OP);
 	    MarinerLog("store::resolve done\n");
 
@@ -115,12 +118,11 @@ void repvol::Resolve()
 	if (f) f->Demote();
 
 	if (code == VNOVNODE) {
-	    ViceFid *pfid;
+	    VenusFid *pfid;
 	    if (f) {
 		pfid = &(f->pfid);
-		if ( ( ! FID_EQ(pfid, &NullFid)) && 
-		     (pfid->Volume == r->fid.Volume) 
-		     && (pfid->Vnode != r->fid.Vnode) ) {
+		if (!FID_EQ(pfid, &NullFid) && FID_VolEQ(pfid, &r->fid) &&
+		    (pfid->Vnode != r->fid.Vnode) ) {
 
 		    LOG(10,("Resolve: Submitting parent for resolution\n"));
 		    ResSubmit(NULL, pfid);
@@ -161,9 +163,9 @@ Exit:
 
 
 /* Asynchronous resolve is indicated by NULL waitblk. */
-void repvol::ResSubmit(char **waitblkp, ViceFid *fid)
+void repvol::ResSubmit(char **waitblkp, VenusFid *fid)
 {
-    VOL_ASSERT(this, fid->Volume == vid);
+    VOL_ASSERT(this, fid->Realm == realm->id && fid->Volume == vid);
 
     /* Create a new resolver entry for the fid, unless one already exists. */
     {
@@ -211,9 +213,8 @@ int repvol::ResAwait(char *waitblk)
 
 /* *****  Resent  ***** */
 
-resent::resent(ViceFid *Fid) {
-    LOG(10, ("resent::resent: fid = (%x.%x.%x)\n",
-	      Fid->Volume, Fid->Vnode, Fid->Unique));
+resent::resent(VenusFid *Fid) {
+    LOG(10, ("resent::resent: fid = (%s)\n", FID_(Fid)));
 
     fid = *Fid;
     result = -1;
@@ -245,8 +246,7 @@ resent::~resent() {
     deallocs++;
 #endif
 
-    LOG(10, ("resent::~resent: fid = (%x.%x.%x)\n",
-	      fid.Volume, fid.Vnode, fid.Unique));
+    LOG(10, ("resent::~resent: fid = (%s)\n", FID_(&fid)));
 
     CODA_ASSERT(refcnt == 0);
 }
@@ -286,8 +286,8 @@ void resent::print(FILE *fp) {
 
 
 void resent::print(int afd) {
-    fdprint(afd, "%#08x : fid = (%x.%x.%x), result = %d, refcnt = %d\n",
-	     (long)this, fid.Volume, fid.Vnode, fid.Unique, result, refcnt);
+    fdprint(afd, "%#08x : fid = (%s), result = %d, refcnt = %d\n",
+	     (long)this, FID_(&fid), result, refcnt);
 }
 
 

@@ -42,13 +42,12 @@ extern "C" {
 
 
 /* must be called from within a transaction */
-void repvol::TranslateCMLFid(ViceFid *global, ViceFid *local)
+void repvol::TranslateCMLFid(VenusFid *global, VenusFid *local)
 {
     VOL_ASSERT(this, global && local);
-    LOG(100, ("volent::TranslateCMLFid: global = 0x%x.%x.%x local = 0x%x.%x.%x\n",
-	      global->Volume, global->Vnode, global->Unique,
-	      local->Volume, local->Vnode, local->Unique));
-    VOL_ASSERT(this, vid == global->Volume);
+    LOG(100, ("volent::TranslateCMLFid: global = %s local = %s\n",
+	      FID_(global), FID_(local)));
+    VOL_ASSERT(this, realm->id == global->Realm && vid == global->Volume);
     cml_iterator next(CML, CommitOrder);
     cmlent *m;
     while ((m = next())) {
@@ -144,11 +143,11 @@ void repvol::CheckLocalSubtree()
      */
     lgm_iterator next(LRDB->local_global_map);
     lgment *lgm;
-    ViceFid *gfid;
+    VenusFid *gfid;
     int contain_local_obj = 0;
     while ((lgm = next())) {
 	gfid = lgm->GetGlobalFid();
-	if (gfid->Volume == vid) {
+	if (gfid->Realm == realm->id && gfid->Volume == vid) {
 	    contain_local_obj = 1;
 	    break;
 	}

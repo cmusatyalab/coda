@@ -70,19 +70,19 @@ static int filecopy(int here, int there)
 
 /* ********** beginning of cmlent methods ********** */
 /* must be called from within a transaction */
-void cmlent::TranslateFid(ViceFid *global, ViceFid *local)
+void cmlent::TranslateFid(VenusFid *global, VenusFid *local)
 {
     OBJ_ASSERT(this, global && local);
     LOG(100, ("cmlent::TranslateFid: global = %s local = %s\n",
-	      FID_(global), FID_2(local)));
-    ViceFid *Fids[3];
+	      FID_(global), FID_(local)));
+    VenusFid *Fids[3];
     GetAllFids(Fids);
     int count = 0;
     for (int i = 0; i < 3; i++) {
         /* Check if Fids[i] is global */
-	if (Fids[i] && memcmp(Fids[i], global, sizeof(ViceFid)) == 0) {
+	if (Fids[i] && FID_EQ(Fids[i], global)) {
             RVMLIB_REC_OBJECT(*Fids[i]);
-            memcpy(Fids[i], local, sizeof(ViceFid));
+            Fids[i] = local;
             count++;
 	}
     }
@@ -94,7 +94,7 @@ int cmlent::LocalFakeify()
 {
     int rc;
     ViceVersionVector *VVs[3];
-    ViceFid *Fids[3];
+    VenusFid *Fids[3];
     GetVVandFids(VVs, Fids);
     /* 
      * note that for each cmlent, Fids[0] is always the root fid of the
@@ -102,7 +102,7 @@ int cmlent::LocalFakeify()
      * for a rename operation where Fids[2] could be the root fid of
      * another subtree that is affected by the operation.
      */
-    ViceFid *fid = Fids[0];
+    VenusFid *fid = Fids[0];
     OBJ_ASSERT(this, !FID_VolIsLocal(fid));
     fsobj *root;
     OBJ_ASSERT(this, root = FSDB->Find(fid));
@@ -118,11 +118,10 @@ int cmlent::LocalFakeify()
     if (rc != 0) return rc;
     
     fid = Fids[2];
-    if (fid == NULL || FID_VolIsLocal(fid)) {
+    if (!fid || FID_VolIsLocal(fid)) {
 	SetRepairFlag();
 	return (0);
     }
-    OBJ_ASSERT(this, !FID_VolIsLocal(fid));
     OBJ_ASSERT(this, root = FSDB->Find(fid));
     if (DYING(root)) {
 	LOG(100, ("cmlent::LocalFakeify: object %s removed\n",
@@ -138,7 +137,7 @@ int cmlent::LocalFakeify()
 }
 
 /* CheckRepair step 1: check mutation operand(s) */
-static int CheckRepair_GetObjects(const char *operation, ViceFid *fid,
+static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
 				  fsobj **global, fsobj **local,
 				  char *msg, int *mcode, int *rcode)
 {
@@ -213,7 +212,7 @@ static int CheckRepair_CheckVVConflict(fsobj *fso, ViceVersionVector *VV,
 static int CheckRepair_CheckNameConflict(fsobj *fso, char *name, int need,
 					 char *msg, int *mcode, int *rcode)
 {
-    ViceFid dummy;
+    VenusFid dummy;
     char path[MAXPATHLEN];
     int exists;
 
@@ -513,7 +512,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 {
     OBJ_ASSERT(this, msg != NULL);
     int code = 0;
-    ViceFid *fid;
+    VenusFid *fid;
     fsobj *GObj, *LObj;
     fsobj *GPObj, *LPObj;
     char GlobalPath[MAXPATHLEN], LocalPath[MAXPATHLEN];
@@ -531,7 +530,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GObj && LObj && GObj->IsFile() && LObj->IsFile());
 	    LOG(100, ("cmlent::DoRepair: do store on %s and %s\n",
-		      FID_(&GObj->fid), FID_2(&LObj->fid)));
+		      FID_(&GObj->fid), FID_(&LObj->fid)));
 
 	    if (!HAVEALLDATA(LObj))
 		CHOKE("DoRepair: Store with no local data!");
@@ -568,7 +567,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 		break;
 	    }
 	    LOG(100, ("cmlent::DoRepair: do chmod on %s and %s\n",
-		      FID_(&GObj->fid), FID_2(&LObj->fid)));
+		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    unsigned short NewMode = LObj->stat.Mode;		/* use local new mode */
 	    GObj->stat.Mode = NewMode;			        /* set mode for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1, 
@@ -591,7 +590,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GObj && LObj);
 	    LOG(100, ("cmlent::DoRepair: do chown on %s and %s\n",
-		      FID_(&GObj->fid), FID_2(&LObj->fid)));
+		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    vuid_t NewOwner = LObj->stat.Owner; 		/* use local new owner */
 	    GObj->stat.Owner = NewOwner; 	    		/* set for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1, 
@@ -615,7 +614,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GObj && LObj);
 	    LOG(100, ("cmlent::DoRepair: do utimes on %s and %s\n",
-		      FID_(&GObj->fid), FID_2(&LObj->fid)));
+		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    Date_t NewDate = LObj->stat.Date;			/* use local date */
 	    GObj->stat.Date = NewDate;	    			/* set time-stamp for global-obj */
 	    code = GObj->RepairSetAttr((unsigned long)-1, NewDate, (unsigned short)-1,
@@ -638,7 +637,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do create on parent %s and %s\n",
-		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
+		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_create.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
@@ -669,7 +668,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do link on parent %s and %s\n",
-		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
+		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_link.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -678,7 +677,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GObj && LObj && GObj->IsFile() && LObj->IsFile());
 	    LOG(100, ("cmlent::DoRepair: do link on target %s and %s\n",
-		      FID_(&GObj->fid), FID_2(&LObj->fid)));
+		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    code = GPObj->RepairLink((char *)Name, GObj);
 	    GPObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
@@ -698,7 +697,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do mkdir on parent %s and %s\n",
-		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
+		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_mkdir.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
@@ -729,7 +728,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do symlink on parent %s and %s\n",
-		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
+		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_symlink.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
@@ -763,7 +762,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do remove on parent %s and %s\n",
-		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
+		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_remove.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -792,7 +791,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do rmdir on parent %s and %s\n",
-		      FID_(&GPObj->fid), FID_2(&LPObj->fid)));
+		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_rmdir.CFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -823,7 +822,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GSPObj && LSPObj && GSPObj->IsDir() && LSPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do rename on source parent %s and %s\n",
-		      FID_(&GSPObj->fid), FID_2(&LSPObj->fid)));
+		      FID_(&GSPObj->fid), FID_(&LSPObj->fid)));
 	    fid = &u.u_rename.TPFid;
 	    code = LRDB->FindRepairObject(fid, &GTPObj, &LTPObj);
 	    if (code != 0) {
@@ -832,7 +831,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GTPObj && LTPObj && GTPObj->IsDir() && LTPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do rename on target parent %s and %s\n",
-		      FID_(&GTPObj->fid), FID_2(&LTPObj->fid)));
+		      FID_(&GTPObj->fid), FID_(&LTPObj->fid)));
 	    fid = &u.u_rename.SFid;
 	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
 	    if (code != 0) {
@@ -841,7 +840,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    }
 	    OBJ_ASSERT(this, GObj && LObj);
 	    LOG(100, ("cmlent::DoRepair: do rename on source object %s and %s\n",
-		      FID_(&GObj->fid), FID_2(&LObj->fid)));
+		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    code = GTPObj->RepairRename(GSPObj, (char *)Name,
 					GObj, (char *)NewName,
 					(fsobj *)NULL);
@@ -952,7 +951,7 @@ void cmlent::GetLocalOpMsg(char *msg)
 		break;
 	}
     case CML_Repair_OP:
-	{	ViceFid *fid = &u.u_repair.Fid;
+	{	VenusFid *fid = &u.u_repair.Fid;
 		LOG(0, ("cmlent::GetLocalOpMsg: Disconnected Repair on %s\n",
 			FID_(fid)));
 		sprintf(msg, "disconnected repair on %s", FID_(fid));
@@ -987,7 +986,7 @@ void cmlent::SetRepairMutationFlag()
 }
 
 /* need not be called from within a transaction */
-int cmlent::InLocalRepairSubtree(ViceFid *LocalRootFid)
+int cmlent::InLocalRepairSubtree(VenusFid *LocalRootFid)
 {
     /*
      * check whether the objects mutated by this cmlent belongs to
@@ -996,7 +995,7 @@ int cmlent::InLocalRepairSubtree(ViceFid *LocalRootFid)
     OBJ_ASSERT(this, LocalRootFid && FID_VolIsLocal(LocalRootFid));
     LOG(100, ("cmlent::InLocalRepairSubtree: LocalRootFid = %s\n",
 	      FID_(LocalRootFid)));
-    ViceFid *Fids[3];
+    VenusFid *Fids[3];
     fsobj *OBJ;
     ViceVersionVector *VVs[3];
     GetVVandFids(VVs, Fids);
@@ -1012,7 +1011,7 @@ int cmlent::InLocalRepairSubtree(ViceFid *LocalRootFid)
 }
 
 /* need not be called from within a transaction */
-int cmlent::InGlobalRepairSubtree(ViceFid *GlobalRootFid)
+int cmlent::InGlobalRepairSubtree(VenusFid *GlobalRootFid)
 {
     /*
      * check whether this cmlent is a mutation that was performed to mutate
@@ -1034,7 +1033,7 @@ int cmlent::InGlobalRepairSubtree(ViceFid *GlobalRootFid)
 	return 0;
     }
 
-    ViceFid *Fids[3];
+    VenusFid *Fids[3];
     ViceVersionVector *VVs[3];
     GetVVandFids(VVs, Fids);
     fsobj *OBJ;
@@ -1050,7 +1049,7 @@ int cmlent::InGlobalRepairSubtree(ViceFid *GlobalRootFid)
 }
 
 /* need not be called from within a transaction */
-void cmlent::GetVVandFids(ViceVersionVector *vvs[], ViceFid *fids[]) 
+void cmlent::GetVVandFids(ViceVersionVector *vvs[], VenusFid *fids[]) 
 {
     fids[0] = 0; fids[1] = 0; fids[2] = 0;
     vvs[0] = 0; vvs[1] = 0; vvs[2] = 0;
@@ -1134,7 +1133,7 @@ void cmlent::GetVVandFids(ViceVersionVector *vvs[], ViceFid *fids[])
 }
 
 /* need not be called from within a transaction */
-void cmlent::GetAllFids(ViceFid *fids[]) 
+void cmlent::GetAllFids(VenusFid *fids[]) 
 {
     fids[0] = 0; fids[1] = 0; fids[2] = 0;
     switch(opcode) {
@@ -1212,7 +1211,7 @@ void cmlent::SetTid(int Tid)
 
 int cmlent::ContainLocalFid()
 {
-    ViceFid *Fids[3];
+    VenusFid *Fids[3];
     GetAllFids(Fids);
     for (int i = 0; i < 3; i++) {
 	if (Fids[i] == NULL) continue;

@@ -188,26 +188,33 @@ void callbackserver::main(void)
  * changed, we assume it was for us. */
 long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
 {
+    ViceFid nullf = {0,0,0};
+    VenusFid vf;
+
     srvent *s = FindServerByCBCid(RPCid);
-    LOG(1, ("CallBack: host = %s, fid = (%x.%x.%x)\n",
-	     s->name, fid->Volume, fid->Vnode, fid->Unique));
+    if (!s) {
+	LOG(0, ("Callback from unknown host?\n"));
+	return 0;
+    }
+
+    MakeVenusFid(&vf, s->realm->id, fid);
+    LOG(1, ("CallBack: host = %s, fid = (%s)\n", s->name, FID_(&vf)));
 
     /* Notify Codacon. */
     {
-	if (FID_EQ(fid, &NullFid))
+	if (FID_EQ(fid, &nullf))
 	    MarinerLog("callback::BackProbe %s\n", s->name);
 	else
-	    MarinerLog("callback::Callback %s (%x.%x.%x)\n",
-		       s->name, fid->Volume, fid->Vnode, fid->Unique);
+	    MarinerLog("callback::Callback %s (%s)\n", s->name, FID_(&vf));
     }
 
-    if (fid->Volume == 0) return(0);	/* just a probe */
+    if (!vf.Volume) return(0);	/* just a probe */
 
-    if (fid->Vnode && fid->Unique)	/* file callback */
-	if (FSDB->CallBackBreak(fid))
+    if (vf.Vnode && vf.Unique)	/* file callback */
+	if (FSDB->CallBackBreak(&vf))
 	    cbbreaks++;
 
-    if (VDB->CallBackBreak(fid->Volume))
+    if (VDB->CallBackBreak(MakeVolFid(&vf)))
         cbbreaks++;
 
     return(0);
@@ -216,14 +223,17 @@ long VENUS_CallBack(RPC2_Handle RPCid, ViceFid *fid)
 
 long VENUS_CallBackFetch(RPC2_Handle RPCid, ViceFid *Fid, SE_Descriptor *BD)
 {
+    VenusFid vf;
     srvent *s = FindServerByCBCid(RPCid);
-    LOG(1, ("CallBackFetch: host = %s, fid = (%x.%x.%x)\n",
-	     s->name, Fid->Volume, Fid->Vnode, Fid->Unique));
+
+    MakeVenusFid(&vf, s->realm->id, Fid);
+
+    LOG(1, ("CallBackFetch: host = %s, fid = (%s)\n", s->name, FID_(&vf)));
 
     long code = 0, fd;
 
     /* Get the object. */
-    fsobj *f = FSDB->Find(Fid);
+    fsobj *f = FSDB->Find(&vf);
     if (f == 0)
 	{ code = ENOENT; goto GetLost; }
 

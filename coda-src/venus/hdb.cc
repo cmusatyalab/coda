@@ -509,18 +509,18 @@ int hdb::MakeAdviceRequestFile(char *HoardListFileName) {
   	        case -1:	
 		    /* Determine object should NOT be fetched. */
 		    f->SetFetchAllowed(HF_DontFetch);
-        	    fprintf(HoardListFILE, "%lx.%lx.%lx & -1 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
+        	    fprintf(HoardListFILE, "%s & -1 & %s & %d & %s & %d\n", FID_(&f->fid), ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
 		    break;
 	        case 0:
 		    /* Cannot determine automatically; give user choice.*/
                     f->SetFetchAllowed(HF_DontFetch);
-        	    fprintf(HoardListFILE, "%lx.%lx.%lx & 0 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
+        	    fprintf(HoardListFILE, "%s & 0 & %s & %d & %s & %d\n", FID_(&f->fid), ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
 		    nonempty++;
 		    break;
 	        case 1:
 		    /* Determine object should DEFINITELY be fetched. */
 		    f->SetFetchAllowed(HF_Fetch);
-		    fprintf(HoardListFILE, "%lx.%lx.%lx & 1 & %s & %d & %s & %d\n", f->fid.Volume, f->fid.Vnode, f->fid.Unique, ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
+		    fprintf(HoardListFILE, "%s & 1 & %s & %d & %s & %d\n", FID_(&f->fid), ObjWithinVolume, f->HoardPri, estimatedCostString, estimatedBlockDiff);
 		    nonempty++;
 		    break;
  	        default:
@@ -561,7 +561,7 @@ void hdb::RequestHoardWalkAdvice() {
     char HoardAdviceFileName[256];
     char HoardListFileName[256];
     userent *u;
-    ViceFid fid;
+    VenusFid fid;
     fsobj *g;
     int rc;
 
@@ -606,27 +606,27 @@ void hdb::RequestHoardWalkAdvice() {
     
     while (!feof(HoardAdviceFILE)) {
 	int ask_state;
-        fscanf(HoardAdviceFILE, "%lx.%lx.%lx %d\n", &(fid.Volume), &(fid.Vnode), &(fid.Unique), &ask_state);
+        fscanf(HoardAdviceFILE, "%lx.%lx.%lx.%lx %d\n", &(fid.Realm), &(fid.Volume), &(fid.Vnode), &(fid.Unique), &ask_state);
         g = FSDB->Find(&fid);
         if (g == NULL) 
             continue;   // The object has appearently disappeared...
         else {
             if (ask_state == 2) {
-	      LOG(200, ("RequestHoardWalkAdvice: setting %x.%x.%x to fetch, but don't ask\n", fid.Volume, fid.Vnode, fid.Unique));
+	      LOG(200, ("RequestHoardWalkAdvice: setting %s to fetch, but don't ask\n", FID_(&fid)));
                 g->SetAskingAllowed(HA_DontAsk);
                 g->SetFetchAllowed(HF_Fetch);
             } else if (ask_state == 1) {
-	      LOG(200, ("RequestHoardWalkAdvice: setting %x.%x.%x to don't fetch/don't ask\n", fid.Volume, fid.Vnode, fid.Unique));
+	      LOG(200, ("RequestHoardWalkAdvice: setting %s to don't fetch/don't ask\n", FID_(&fid)));
 	      g->SetAskingAllowed(HA_DontAsk);
 	      g->SetFetchAllowed(HF_DontFetch);
             } else if (ask_state == 0) {
-	      LOG(200, ("RequestHoardWalkAdvice: setting %x.%x.%x to fetch\n", fid.Volume, fid.Vnode, fid.Unique));
+	      LOG(200, ("RequestHoardWalkAdvice: setting %s to fetch\n", FID_(&fid)));
 	      g->SetFetchAllowed(HF_Fetch);
             } else if (ask_state == 3) {
-	      LOG(200, ("RequestHoardWalkAdvice: setting %x.%x.%x to don't fetch\n", fid.Volume, fid.Vnode, fid.Unique));
+	      LOG(200, ("RequestHoardWalkAdvice: setting %s to don't fetch\n", FID_(&fid)));
 	      g->SetFetchAllowed(HF_DontFetch);
 	    } else {
-	      LOG(0, ("RequestHoardWalkAdvice: Unrecognized result of %d from advice monitor for %x.%x.%x (will fetch anyway)\n", ask_state, fid.Volume, fid.Vnode, fid.Unique));
+	      LOG(0, ("RequestHoardWalkAdvice: Unrecognized result of %d from advice monitor for %s (will fetch anyway)\n", ask_state, FID_(&fid)));
 	      g->SetFetchAllowed(HF_Fetch);
 	    }
         }
@@ -665,16 +665,15 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	/* Perform a vget(). */
 	LOG(1, ("hdb::Walk: vget(%s, %d, %d, %d)\n",
 		FID_(&f->fid), f->priority, f->HoardVuid, f->stat.Length));
-	ViceFid tfid = f->fid;
+	VenusFid tfid = f->fid;
 	for (;;) {
-	    vp->Begin_VFS(tfid.Volume, CODA_VGET);
+	    vp->Begin_VFS(&tfid, CODA_VGET);
 	    if (vp->u.u_error) break;
 
 	    fsobj *tf = 0;
-	    vp->u.u_error = FSDB->Get(&tf, &tfid,
-				      CRTORUID(vp->u.u_cred), RC_STATUS);
+	    vp->u.u_error = FSDB->Get(&tf, &tfid, CRTORUID(vp->u.u_cred), RC_STATUS);
 
-	    if (tf != NULL)
+	    if (tf)
 	        statusBytesFetched += tf->stat.Length;
 
 	    FSDB->Put(&tf);
@@ -706,11 +705,11 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	(*interrupt_failures)++;
 	if (g == NULL)
 	{
-	    LOG(0, ("Hoard Walk interrupted -- object missing! <%x.%x.%x>\n", tfid.Volume, tfid.Vnode, tfid.Unique));
+	    LOG(0, ("Hoard Walk interrupted -- object missing! <%s>\n", FID_(&tfid)));
 	}
 	else
 	{
-	    LOG(0, ("Hoard Walk interrupted -- object different! <%x.%x.%x>\n", g->fid.Volume, g->fid.Vnode, g->fid.Unique));
+	    LOG(0, ("Hoard Walk interrupted -- object different! <%s>\n", FID_(&g->fid)));
 	}
 	LOG(0, ("Number of interrupt failures = %d\n", *interrupt_failures));
 
@@ -720,16 +719,14 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	 * having to reFind the object. 
 	 */
 	if (SearchForNOreFind) {
-	    if (f == NULL) 
+	    if (!f) 
 		LOG(0, ("HoardWalk f was NULL!"));
 	    else {
 		if (f->state == FsoRunt)
-		    LOG(0, ("HoardWalk f is FsoRunt! tfid=<%x.%x.%x> f->fid=<%x.%x.%x>", 
-			    tfid.Volume, tfid.Vnode, tfid.Unique, f->fid.Volume, 
-			    f->fid.Vnode, f->fid.Unique));
+		    LOG(0, ("HoardWalk f is FsoRunt! tfid=<%s> f->fid=<%s>", 
+			    FID_(&tfid), FID_(&f->fid)));
 		if (f->fid.Volume == 0)
-		    LOG(0, ("HoardWalk vid=0, f->fid=<%x.%x.%x>", f->fid.Volume,
-			    f->fid.Volume, f->fid.Vnode, f->fid.Unique));
+		    LOG(0, ("HoardWalk vid=0, f->fid=<%s>", FID_(&f->fid)));
 		f->print();
 	    }
         }
@@ -748,12 +745,14 @@ void hdb::ListPriorityQueue() {
     }
 }
 
-int hdb::GetSuspectPriority(int vid, char *pathname, int uid) {
+int hdb::GetSuspectPriority(VolFid *vfid, char *pathname, int uid)
+{
     char *lastslash;
     bstree_iterator next(*prioq, BstDescending);
     bsnode *b;
 
-    LOG(100, ("hdb::GetSuspectPriority:  vid = %x, pathname = %s, uid = %d\n", vid, pathname, uid));
+    LOG(100, ("hdb::GetSuspectPriority: vid = %x.%x, pathname = %s, uid = %d\n",
+	      vfid->Realm, vfid->Volume, pathname, uid));
     fflush(logFile);
 
     /* make a prefix for testing child expansions */
@@ -765,7 +764,9 @@ int hdb::GetSuspectPriority(int vid, char *pathname, int uid) {
     while ((b = next())) {
 	namectxt *n = strbase(namectxt, b, prio_handle);
 	if (LogLevel >= 100) { n->print(logFile); fflush(logFile); }
-	if ((n->cdir.Volume == vid) && ((n->vuid == uid) || (n->vuid == ALL_UIDS))) {
+	if (n->cdir.Realm == vfid->Realm &&
+	    n->cdir.Volume == vfid->Volume &&
+	    ((n->vuid == uid) || (n->vuid == ALL_UIDS))) {
 	    /* First, deal with direct match */
 	    if (strcmp(n->path, pathname) == 0) {
 		fflush(logFile);
@@ -911,9 +912,10 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch, int *BytesFetched) {
 	if (indigentnc == 0)
 	    CHOKE("hdb::Walk: enospc_failure but no indigent namectxts on queue");
 
-	sprintf(ibuf, "\n   ENOSPC:  [%lx, %s], [%d, %d]\n",
-		indigentnc->cdir.Volume, indigentnc->path,
-		FSDB->MakePri(0, indigentnc->priority), indigentnc->vuid);
+	sprintf(ibuf, "\n   ENOSPC:  [%lx.%lx, %s], [%d, %d]\n",
+		indigentnc->cdir.Realm, indigentnc->cdir.Volume,
+		indigentnc->path, FSDB->MakePri(0, indigentnc->priority),
+		indigentnc->vuid);
     }
     MarinerLog("cache::EndStatusWalk [%d]\n   [%d, %d, %d, %d] [%d, %d, %d] [%d, %d, %1.1f]%s",
 	       FSDB->htab.count(),
@@ -964,14 +966,14 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 	    if (!HOARDABLE(f)) continue;
 
 	    if (DATAVALID(f)) {
-	      LOG(200, ("AVAILABLE:  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
-		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      LOG(200, ("AVAILABLE:  fid=<%s> comp=%s priority=%d blocks=%d\n", 
+		      FID_(&f->fid), f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
 	      continue;
 	    }
 	    if ((ReceivedAdvice) && (!f->IsFetchAllowed())) {
-	      LOG(200, ("UNAVAILABLE (fetch not allowed):  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
-		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      LOG(200, ("UNAVAILABLE (fetch not allowed):  fid=<%s> comp=%s priority=%d blocks=%d\n", 
+		      FID_(&f->fid), f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
 	      continue;
 	    }
@@ -984,12 +986,11 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 	    vp->u.u_priority = f->priority;
 	    
 	    /* Prefetch the object.  This is like vproc::vget(), only we want the data. */
-	    LOG(1, ("hdb::Walk: prefetch(%x.%x.%x, %d, %d, %d)\n",
-		    f->fid.Volume, f->fid.Vnode, f->fid.Unique,
-		    f->priority, f->HoardVuid, f->stat.Length));
-	    ViceFid tfid = f->fid;
+	    LOG(1, ("hdb::Walk: prefetch(%s, %d, %d, %d)\n",
+		    FID_(&f->fid), f->priority, f->HoardVuid, f->stat.Length));
+	    VenusFid tfid = f->fid;
 	    for (;;) {
-	        vp->Begin_VFS(tfid.Volume, CODA_VGET);
+	        vp->Begin_VFS(&tfid, CODA_VGET);
 		if (vp->u.u_error) break;
 
 		fsobj *tf = 0;
@@ -1026,8 +1027,8 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 
 	    /* Object not on prioq --> iterator no longer valid */
 	    if (f == 0 || !REPLACEABLE(f)) {
-		LOG(0, ("hdb::Walk: (%x.%x.%x) !FOUND or !REPLACEABLE after prefetch\n",
-			tfid.Volume, tfid.Vnode, tfid.Unique));
+		LOG(0, ("hdb::Walk: (%s) !FOUND or !REPLACEABLE after prefetch\n",
+			FID_(&tfid)));
 		iterate = 1;
 		break;
 	    }
@@ -1036,14 +1037,14 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 	    CODA_ASSERT(f != 0);
 	    blocks = BLOCKS(f);
 	    if (DATAVALID(f)) {
-	      LOG(100, ("AVAILABLE (fetched):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n", 
-		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      LOG(100, ("AVAILABLE (fetched):  fid=<%s> comp=%s priority=%d blocks=%d\n", 
+			FID_(&f->fid), f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
 	      BytesFetched += f->stat.Length;
 	      HoardWalkProgress(BytesFetched, TotalBytesToFetch);
 	    } else {
-	      LOG(100, ("UNAVAILABLE (fetch failed):  fid=<%x.%x.%x> comp=%s priority=%d blocks=%d\n",
-		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      LOG(100, ("UNAVAILABLE (fetch failed):  fid=<%s> comp=%s priority=%d blocks=%d\n",
+		      FID_(&f->fid), f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
 	    }
 	}
@@ -1072,28 +1073,28 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 	    if (!HOARDABLE(f)) continue;
 
 	    if (DATAVALID(f)) {
-	      LOG(200, ("AVAILABLE:  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
-		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      LOG(200, ("AVAILABLE:  fid=<%s> comp=%s priority=%d blocks=%d\n", 
+			FID_(&f->fid), f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSavailable);
 	      continue;
 	    }
 
 	    if ((ReceivedAdvice) && (!f->IsFetchAllowed())) {
-	      LOG(200, ("UNAVAILABLE:  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
-		      f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	      LOG(200, ("UNAVAILABLE:  fid=<%s> comp=%s priority=%d blocks=%d\n", 
+			FID_(&f->fid), f->comp, f->priority, blocks));
 	      TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
 	      continue;
 	    }
 
-	    LOG(200, ("UNAVAILABLE:  fid=<%x,%x,%x> comp=%s priority=%d blocks=%d\n", 
-		    f->fid.Volume, f->fid.Vnode, f->fid.Unique, f->comp, f->priority, blocks));
+	    LOG(200, ("UNAVAILABLE:  fid=<%s> comp=%s priority=%d blocks=%d\n", 
+		      FID_(&f->fid), f->comp, f->priority, blocks));
 	    TallyAllHDBentries(f->hdb_bindings, blocks, TSunavailable);
 
 	    if (indigent_fsobjs == 0) {
 		char path[MAXPATHLEN];
 		f->GetPath(path);
-		sprintf(ibuf, "\n   ENOSPC:  [%lx, %s], [%d, %d]\n",
-			f->fid.Volume, path,
+		sprintf(ibuf, "\n   ENOSPC:  [%lx.%lx, %s], [%d, %d]\n",
+			f->fid.Realm, f->fid.Volume, path,
 			f->priority, f->HoardVuid);
 	    }
 	    
@@ -1320,6 +1321,8 @@ hdbent::hdbent(VolumeId Vid, char *Name, vuid_t Vuid,
 
     RVMLIB_REC_OBJECT(*this);
     MagicNumber = HDBENT_MagicNumber;
+#warning "XXX init hdbent.realm"
+    realm = 0;
     vid = Vid;
     {
 	int len = (int) strlen(Name) + 1;
@@ -1345,9 +1348,10 @@ void hdbent::ResetTransient() {
     if (MagicNumber != HDBENT_MagicNumber)
 	{ print(logFile); CHOKE("hdbent::ResetTransient: bogus MagicNumber"); }
 
-    ViceFid cdir;
+    VenusFid cdir;
+    cdir.Realm = realm;
     cdir.Volume = vid;
-    FID_MakeRoot(&cdir);
+    FID_MakeRoot(MakeViceFid(&cdir));
     nc = new namectxt(&cdir, path, vuid, priority,
 		       expand_children, expand_descendents);
 }
@@ -1538,11 +1542,11 @@ void *namectxt::operator new(size_t len) {
 }
 
 
-namectxt::namectxt(ViceFid *Cdir, char *Path, vuid_t Vuid,
+namectxt::namectxt(VenusFid *Cdir, char *Path, vuid_t Vuid,
 		    int Priority, int Children, int Descendents) {
 
-    LOG(10, ("namectxt::namectxt: (%x.%x.%x, %s), %d, %d\n",
-	      Cdir->Volume, Cdir->Vnode, Cdir->Unique, Path, Vuid, Priority));
+    LOG(10, ("namectxt::namectxt: (%s, %s), %d, %d\n",
+	      FID_(Cdir), Path, Vuid, Priority));
 
     cdir = *Cdir;
     path = Path;
@@ -1585,9 +1589,9 @@ namectxt::namectxt(ViceFid *Cdir, char *Path, vuid_t Vuid,
 /* It should share code with the constructor for non-meta-expanded contexts! */
 namectxt::namectxt(namectxt *Parent, char *Component) {
 
-    LOG(10, ("namectxt::namectxt: (%x.%x.%x, %s/%s), %d, %d\n",
-	      Parent->cdir.Volume, Parent->cdir.Vnode, Parent->cdir.Unique,
-	      Parent->path, Component, Parent->vuid, Parent->priority));
+    LOG(10, ("namectxt::namectxt: (%s, %s/%s), %d, %d\n",
+	     FID_(&Parent->cdir), Parent->path, Component, Parent->vuid,
+	     Parent->priority));
 
     cdir = Parent->cdir;
     path = new char[strlen(Parent->path) + 1 + strlen(Component) + 1];
@@ -1653,8 +1657,8 @@ namectxt::~namectxt() {
     NameCtxt_deallocs++;
 #endif
 
-    LOG(10, ("namectxt::~namectxt: (%x.%x.%x, %s), %d, %d\n",
-	      cdir.Volume, cdir.Vnode, cdir.Unique, path, vuid, priority));
+    LOG(10, ("namectxt::~namectxt: (%s, %s), %d, %d\n",
+	     FID_(&cdir), path, vuid, priority));
 
     /* Context must not be busy! */
     if (inuse)
@@ -2222,8 +2226,8 @@ void namectxt::MetaExpand() {
     if (!expand_children && !expand_descendents)
 	return;
 
-    LOG(10, ("namectxt::MetaExpand: (%x.%x.%x, %s)\n",
-	      cdir.Volume, cdir.Vnode, cdir.Unique, path));
+    LOG(10, ("namectxt::MetaExpand: (%s, %s)\n",
+	      FID_(&cdir), path));
 
     /* ?MARIA?  So what's the order of the expansion list.  
        Why is the last element the interesting one?
@@ -2264,22 +2268,21 @@ void namectxt::MetaExpand() {
 	 move the old children onto a new list and save some work???
        */
 
-	LOG(1, ("namectxt::MetaExpand: enumerating (%x.%x.%x)\n",
-		f->fid.Volume, f->fid.Vnode, f->fid.Unique));
+	LOG(1, ("namectxt::MetaExpand: enumerating (%s)\n", FID_(&f->fid)));
 
 	/* Iterate through current contents of directory.
 	 * The idea is to make a new children list of namectxts corresponding
 	 * to directory entries. The elements of the new list are either moved
 	 * from the current list (if found), or created fresh (if not found).
 	 */
-	ViceFid tfid = f->fid;
+	VenusFid tfid = f->fid;
 	{
 	    /* Must have valid data for directory! */
 	    /* XXX There should be a generic "prefetch" routine! */
 	    vproc *vp = VprocSelf();
 	    vp->u.u_priority = f->priority;
 	    for (;;) {
-		vp->Begin_VFS(tfid.Volume, CODA_VGET);
+		vp->Begin_VFS(&tfid, CODA_VGET);
 		if (vp->u.u_error) break;
 
 		fsobj *tf = 0;
@@ -2328,9 +2331,8 @@ void namectxt::MetaExpand() {
 
 /* This is called within vproc::vget or vproc::lookup upon a successful operation. */
 void namectxt::CheckComponent(fsobj *f) {
-    LOG(100, ("namectxt::CheckComponent: (%x.%x.%x, %s), %s, f = %x\n",
-	       cdir.Volume, cdir.Vnode, cdir.Unique,
-	       path, PRINT_PESTATE(state), f));
+    LOG(100, ("namectxt::CheckComponent: (%s, %s), %s, f = %x\n",
+	      FID_(&cdir), path, PRINT_PESTATE(state), f));
 
     if (state != PeSuspect && state != PeIndigent && state != PeInconsistent)
 	{ print(logFile); CHOKE("namectxt::CheckComponent: bogus state"); }
@@ -2391,9 +2393,8 @@ void namectxt::CheckComponent(fsobj *f) {
 
 
 void namectxt::print(int fd, void *filter) {
-    fdprint(fd, "\tcdir = (%x.%x.%x), path = %s, vuid = %d, priority = %d (%d, %d)\n",
-	     cdir.Volume, cdir.Vnode, cdir.Unique,
-	     path, vuid, priority, depth, random);
+    fdprint(fd, "\tcdir = (%s), path = %s, vuid = %d, priority = %d (%d, %d)\n",
+	     FID_(&cdir), path, vuid, priority, depth, random);
     fdprint(fd, "\tstate = %s, flags = [%d %d %d %d %d %d]\n",
 	     PRINT_PESTATE(state), inuse, dying, demote_pending,
 	     meta_expanded, expand_children, expand_descendents);
@@ -2425,9 +2426,9 @@ void namectxt::print(int fd, void *filter) {
 }
 
 void namectxt::getpath(char *buf) {
-        volent *v = VDB->Find(cdir.Volume);
+        volent *v = VDB->Find(MakeVolFid(&cdir));
 	if (v) v->GetMountPath(buf, 0);
-	if (!v || !strcmp(buf, "???")) sprintf(buf, "0x%lx", cdir.Volume);
+	if (!v || !strcmp(buf, "???")) sprintf(buf, "0x%lx.%lx", cdir.Realm, cdir.Volume);
 	strcat(buf, "/");
 	if (path[0] == '.') strcat(buf, &path[2]); /* strip leading "./" */
 	else strcat(buf, path);

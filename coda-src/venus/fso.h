@@ -200,7 +200,7 @@ class fsdb {
     ~fsdb() { abort(); }
 
     /* Allocation/Deallocation routines. */
-    fsobj *Create(ViceFid *, LockLevel, int, char *);
+    fsobj *Create(VenusFid *, LockLevel, int, char *);
     int FreeFsoCount();
     int AllocFso(int, fsobj **);
     int GrabFreeFso(int, fsobj **);
@@ -221,15 +221,15 @@ class fsdb {
     void FlushRefVec();
 
   public:
-    fsobj *Find(const ViceFid *);
+    fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
-    int Get(fsobj **fso, ViceFid *fid, vuid_t vuid, int rights, char *comp=0,
+    int Get(fsobj **fso, VenusFid *fid, vuid_t vuid, int rights, char *comp=0,
 	    int *rcode=0, int GetInconsistent=0);
     void Put(fsobj **);
     void Flush();
-    void Flush(VolumeId);
-    int TranslateFid(ViceFid *, ViceFid *);
-    int CallBackBreak(const ViceFid *);
+    void Flush(VolFid *);
+    int TranslateFid(VenusFid *, VenusFid *);
+    int CallBackBreak(const VenusFid *);
     void ResetUser(vuid_t);
     void ClearPriorities();
     void InvalidateMtPts();
@@ -403,12 +403,12 @@ class fsobj {
   friend class mgrpent;
   friend class hdb;
   friend class lrdb;
-  friend void RecoverPathName(char *, ViceFid *, ClientModifyLog *, cmlent *);
+  friend void RecoverPathName(char *, VenusFid *, ClientModifyLog *, cmlent *);
 
     int MagicNumber;
 
     /* Keys. */
-    ViceFid fid;				/* unique id for object */
+    VenusFid fid;				/* unique id for object */
     char *comp;					/* most recently used component */
     /*T*/volent *vol;				/* pointer to object's volume */
 
@@ -438,7 +438,7 @@ class fsobj {
     } u;
 
     /* Child/Parent linkage. */
-    ViceFid pfid;
+    VenusFid pfid;
     /*T*/fsobj *pfso;				/* back pointer from child to parent */
     /*T*/dlist *children;			/* for directories; list of cached children */
     /*T*/dlink child_link;			/* link used for that list */
@@ -485,7 +485,7 @@ class fsobj {
     void *operator new(size_t); /* dummy to pacify g++ */
     void operator delete(void *, size_t);
     fsobj(int);
-    fsobj(ViceFid *, char *);
+    fsobj(VenusFid *, char *);
     void ResetPersistent();
     void ResetTransient();
     fsobj(fsobj&) { abort(); }                          /* not supported! */
@@ -516,7 +516,7 @@ class fsobj {
     void MakeClean();
 
     /* Mount state. */
-    int TryToCover(ViceFid *, vuid_t);
+    int TryToCover(VenusFid *, vuid_t);
     void CoverMtPt(fsobj *);
     void UncoverMtPt();
     void MountRoot(fsobj *);
@@ -582,17 +582,17 @@ class fsobj {
     void UnLock(LockLevel);
 
     /* Interface to the dir package. */
-    void dir_Create(char *, ViceFid *);
+    void dir_Create(char *, VenusFid *);
     int dir_Length();
     void dir_Delete(char *);
     void dir_MakeDir();
-    int dir_LookupByFid(char *, ViceFid *);
+    int dir_LookupByFid(char *, VenusFid *);
     void dir_Rebuild();
     int dir_IsEmpty();
-    int dir_IsParent(ViceFid *);
+    int dir_IsParent(VenusFid *);
     void dir_Zap();
     void dir_Flush();
-    void dir_TranslateFid(ViceFid *, ViceFid *);
+    void dir_TranslateFid(VenusFid *, VenusFid *);
     void dir_Print();
 
     /* Private portions of the CFS interface. */
@@ -661,15 +661,15 @@ class fsobj {
     void Release(int writep, int execp);
     int Close(int writep, int execp, vuid_t vuid);
     int Access(long, int, vuid_t);
-    int Lookup(fsobj **, ViceFid *, char *, vuid_t, int);
+    int Lookup(fsobj **, VenusFid *, char *, vuid_t, int);
     int Readdir(char *, int, int, int *, vuid_t);
     int Readlink(char *, int, int *, vuid_t);
 
     /* Miscellaneous utility routines. */
-    int dir_Lookup(char *, ViceFid *, int);
+    int dir_Lookup(char *, VenusFid *, int);
     int CheckAcRights(vuid_t, long rights, int connected);
     void GetVattr(struct coda_vattr *);		/* translate attributes to VFS format */
-    void GetFid(ViceFid *f) { *f = fid; }
+    void GetFid(VenusFid *f) { *f = fid; }
     void ReturnEarly();
     void GetPath(char *, int =0);		/* from volume-root (NOT Venus-root) */
     ViceVersionVector *VV() { return(&stat.VV); }
@@ -706,17 +706,17 @@ class fsobj {
     void SetLocalObj();						/*T*/
     void UnsetLocalObj();					/*T*/
     int IsLocalObj() { return flags.local; }			/*N*/
-    int IsAncestor(ViceFid *);					/*N*/
+    int IsAncestor(VenusFid *);					/*N*/
     int ReplaceLocalFakeFid();					/*U*/
     int LocalFakeify();						/*U*/
     int LocalFakeifyRoot();					/*U*/
 
-    void MixedToGlobal(ViceFid *, ViceFid *, char *);        	/*U*/
-    void MixedToLocal(ViceFid *, ViceFid *, char *);        	/*U*/
-    void GlobalToMixed(ViceFid *, ViceFid *, char *);        	/*U*/
-    void LocalToMixed(ViceFid *, ViceFid *, char *);        	/*U*/
-    void DeLocalRootParent(fsobj *, ViceFid *, fsobj *);	/*U*/
-    void RecoverRootParent(ViceFid *, char *);			/*U*/
+    void MixedToGlobal(VenusFid *, VenusFid *, char *);        	/*U*/
+    void MixedToLocal(VenusFid *, VenusFid *, char *);        	/*U*/
+    void GlobalToMixed(VenusFid *, VenusFid *, char *);        	/*U*/
+    void LocalToMixed(VenusFid *, VenusFid *, char *);        	/*U*/
+    void DeLocalRootParent(fsobj *, VenusFid *, fsobj *);	/*U*/
+    void RecoverRootParent(VenusFid *, char *);			/*U*/
 
     int RepairStore();
     int RepairSetAttr(unsigned long, Date_t, vuid_t, unsigned short, RPC2_CountedBS *);
@@ -736,7 +736,7 @@ class fso_iterator : public rec_ohashtab_iterator {
     volent *cvol;	    /* 0 --> all volumes */
 
   public:
-    fso_iterator(LockLevel, const ViceFid * =(ViceFid *)-1);
+    fso_iterator(LockLevel, const VenusFid * =(VenusFid *)-1);
     fsobj *operator()();
 };
 

@@ -248,8 +248,13 @@ void VolInit()
     /* Grab a refcount on the local (repair) volume to avoid automatic garbage
      * collection */
     VolumeId LocalVid;
+    VolFid vfid;
+
     FID_MakeVolFake(&LocalVid);
-    VDB->Find(LocalVid)->hold();
+#warning "defaultrealm == 0?"
+    vfid.Realm = 0;
+    vfid.Volume = LocalVid;
+    VDB->Find(&vfid)->hold();
 
     /* Fire up the daemon. */
     VOLD_Init();
@@ -338,8 +343,9 @@ found_rootvolname:
 	return(0);
     }
 
-    rootfid.Volume = v->GetVid();
-    FID_MakeRoot(&rootfid);
+    rootfid.Realm = v->GetRealmId();
+    rootfid.Volume = v->GetVolumeId();
+    FID_MakeRoot(MakeViceFid(&rootfid));
     VDB->Put(&v);
 
     return(1);
@@ -381,20 +387,21 @@ void vdb::operator delete(void *deadobj, size_t len) {
     abort(); /* what else? */
 }
 
-volent *vdb::Find(VolumeId volnum)
+volent *vdb::Find(VolFid *vfid)
 {
-    repvol_iterator rvnext(&volnum);
-    volrep_iterator vrnext(&volnum);
+    repvol_iterator rvnext(vfid);
+    volrep_iterator vrnext(vfid);
     volent *v;
 
     while ((v = rvnext()) || (v = vrnext()))
-        if (v->GetVid() == volnum) return(v);
+        if (v->GetRealmId() == vfid->Realm && v->GetVolumeId() == vfid->Volume)
+	    return(v);
 
     return(0);
 }
 
 
-volent *vdb::Find(char *volname)
+volent *vdb::Find(const char *volname)
 {
     repvol_iterator rvnext;
     volrep_iterator vrnext;
@@ -410,12 +417,17 @@ volent *vdb::Find(char *volname)
 static int GetVolReps(VolumeInfo *volinfo, volrep *volreps[VSG_MEMBERS])
 {
     int i, err = 0;
+    VolFid vfid;
+
+#warning "need realm here"
+    vfid.Realm = 0;
 
     memset(volreps, 0, VSG_MEMBERS * sizeof(volrep *));
     for (i = 0; i < VSG_MEMBERS && !err; i++) {
-        if (!(&volinfo->RepVolMap.Volume0)[i]) continue;
-            
-        err = VDB->Get((volent **)&volreps[i],(&volinfo->RepVolMap.Volume0)[i]);
+        vfid.Volume = (&volinfo->RepVolMap.Volume0)[i];
+        if (!vfid.Volume) continue;
+
+        err = VDB->Get((volent **)&volreps[i], &vfid);
         if (!err) err = volreps[i]->IsReplicated();
     }
     return err;
@@ -441,15 +453,20 @@ void repvol::Reconfigure(void)
 }
 
 /* MUST NOT be called from within transaction! */
-volent *vdb::Create(VolumeInfo *volinfo, char *volname)
+volent *vdb::Create(VolumeInfo *volinfo, const char *volname)
 {
     volent *v = 0;
     repvol *vp;
     volrep *volreps[VSG_MEMBERS];
     int i, err;
 
+    VolFid vfid;
+#warning "need realm here"
+    vfid.Realm = 0;
+    vfid.Volume = volinfo->Vid;
+
     /* Check whether the key is already in the database. */
-    if ((v = Find(volinfo->Vid))) {
+    if ((v = Find(&vfid))) {
 	if (strncmp(v->name, volname, V_MAXVOLNAMELEN) != 0) {
 	    eprint("reinstalling volume %s (%s)", v->GetName(), volname);
 
@@ -542,17 +559,17 @@ volent *vdb::Create(VolumeInfo *volinfo, char *volname)
 
 
 /* MUST NOT be called from within transaction! */
-int vdb::Get(volent **vpp, VolumeId vid)
+int vdb::Get(volent **vpp, VolFid *vfid)
 {
-    LOG(100, ("vdb::Get: vid = %x\n", vid));
+    LOG(100, ("vdb::Get: vid = %x.%x\n", vfid->Realm, vfid->Volume));
 
     *vpp = 0;
 
-    if (vid == 0)
+    if (!vfid->Volume)
 	return(VNOVOL);
 
     /* First see if it's already in the table by number. */
-    volent *v = Find(vid);
+    volent *v = Find(vfid);
     if (v) {
 	v->hold();
 	*vpp = v;
@@ -565,9 +582,9 @@ int vdb::Get(volent **vpp, VolumeId vid)
 #if 1 /* XXX change this to hex after 5.3.9 servers are deployed */
       /* doesn't work as VLDB entries are still hashed by the old
        * volume-id representation */
-    sprintf(volname, "%lu", vid);
+    sprintf(volname, "%lu", vfid->Volume);
 #else
-    sprintf(volname, "%#08lx", vid);
+    sprintf(volname, "%#08lx", vfid->Volume);
 #endif
 
     return(Get(vpp, volname));
@@ -576,7 +593,7 @@ int vdb::Get(volent **vpp, VolumeId vid)
 
 /* MUST NOT be called from within transaction! */
 /* This call ALWAYS goes through to servers! */
-int vdb::Get(volent **vpp, char *volname)
+int vdb::Get(volent **vpp, const char *volname)
 {
     int code = 0;
 
@@ -616,13 +633,13 @@ int vdb::Get(volent **vpp, char *volname)
 	if (v) goto Exit;
 	return(ETIMEDOUT);
     }
-    if (v && v->GetVid() != volinfo.Vid) {
+    if (v && v->GetVolumeId() != volinfo.Vid) {
 	eprint("Mapping changed for volume %s (%x --> %x)",
-	       volname, v->GetVid(), volinfo.Vid);
+	       volname, v->GetVolumeId(), volinfo.Vid);
 
 	/* Put a (unique) fakename in the old volent. */
 	char fakename[V_MAXVOLNAMELEN];
-	sprintf(fakename, "%lu", v->GetVid());
+	sprintf(fakename, "%lu", v->GetVolumeId());
 	CODA_ASSERT(Find(fakename) == 0);
 	Recov_BeginTrans();
 	rvmlib_set_range(v->name, V_MAXVOLNAMELEN);
@@ -672,7 +689,7 @@ void vdb::Put(volent **vpp)
 
     volent *v = *vpp;
     LOG(100, ("vdb::Put: (%x, %s), refcnt = %d\n",
-	       v->GetVid(), v->GetName(), v->refcnt));
+	       v->GetVolumeId(), v->GetName(), v->refcnt));
     *vpp = 0;
 
     v->release();
@@ -839,7 +856,7 @@ void *volent::operator new(size_t len)
 }
 
 /* MUST be called from within transaction! */
-volent::volent(VolumeId volid, char *volname)
+volent::volent(VolumeId volid, const char *volname)
 {
     LOG(10, ("volent::volent: (%x, %s)\n", volid, volname));
 
@@ -1353,7 +1370,11 @@ void volrep::DownMember(struct in_addr *host)
 
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
-        volent *v = VDB->Find(ReplicatedVol());
+	VolFid vfid;
+	volent *v;
+	vfid.Realm = realm->id;
+	vfid.Volume = ReplicatedVol();
+        v = VDB->Find(&vfid);
         if (v) {
             CODA_ASSERT(v->IsReplicated());
             ((repvol *)v)->DownMember(host);
@@ -1389,7 +1410,11 @@ void volrep::UpMember(void)
 
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
-        volent *v = VDB->Find(ReplicatedVol());
+	VolFid vfid;
+	volent *v;
+	vfid.Realm = realm->id;
+	vfid.Volume = ReplicatedVol();
+        v = VDB->Find(&vfid);
         if (v) {
             CODA_ASSERT(v->IsReplicated());
             ((repvol *)v)->UpMember();
@@ -1431,7 +1456,11 @@ void volrep::WeakMember()
     flags.weaklyconnected = 1;
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
-        volent *v = VDB->Find(ReplicatedVol());
+	VolFid vfid;
+	volent *v;
+	vfid.Realm = realm->id;
+	vfid.Volume = ReplicatedVol();
+        v = VDB->Find(&vfid);
         if (v) {
             CODA_ASSERT(v->IsReplicated());
             ((repvol *)v)->WeakMember();
@@ -1456,7 +1485,11 @@ void volrep::StrongMember()
     flags.weaklyconnected = 0;
     /* if we are a volume replica notify our replicated parent */
     if (IsReadWriteReplica()) {
-        volent *v = VDB->Find(ReplicatedVol());
+	VolFid vfid;
+	volent *v;
+	vfid.Realm = realm->id;
+	vfid.Volume = ReplicatedVol();
+        v = VDB->Find(&vfid);
         if (v) {
             CODA_ASSERT(v->IsReplicated());
             ((repvol *)v)->StrongMember();
@@ -1547,7 +1580,7 @@ int repvol::LeaveWriteback(vuid_t vuid)
     return 0;
 }
 
-int repvol::SyncCache(ViceFid * fid)
+int repvol::SyncCache(VenusFid * fid)
 {
     LOG(1,("volent::SyncCache()\n"));
 
@@ -1572,7 +1605,7 @@ int repvol::SyncCache(ViceFid * fid)
     return 0;
 }
 
-int repvol::StopWriteback(ViceFid *fid)
+int repvol::StopWriteback(VenusFid *fid)
 {
     int code = 0;
 
@@ -1701,8 +1734,8 @@ void volent::UnLock(VolLockType l)
     Signal();
 }
 
-volrep::volrep(VolumeId vid, char *name, struct in_addr *addr, int readonly,
-               VolumeId parent) : volent(vid, name)
+volrep::volrep(VolumeId vid, const char *name, struct in_addr *addr,
+	       int readonly, VolumeId parent) : volent(vid, name)
 {
     LOG(10, ("volrep::volrep: host: %s readonly: %d parent: %#08x)\n",
              inet_ntoa(*addr), readonly, parent));
@@ -1811,7 +1844,8 @@ int volent::Collate(connent *c, int code, int TranslateEINCOMP)
     return(code);
 }
 
-repvol::repvol(VolumeId vid, char *name, volrep *reps[VSG_MEMBERS]) : volent(vid, name)
+repvol::repvol(VolumeId vid, const char *name, volrep *reps[VSG_MEMBERS]) :
+    volent(vid, name)
 {
     LOG(10, ("repvol::repvol %08x %08x %08x %08x %08x %08x %08x %08x\n",
              reps[0], reps[1], reps[2], reps[3],
@@ -1980,7 +2014,7 @@ void repvol::GetBandwidth(unsigned long *bw)
     if (*bw == 0) *bw = INIT_BW;
 }
 
-int repvol::AllocFid(ViceDataType Type, ViceFid *target_fid,
+int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 		      RPC2_Unsigned *AllocHost, vuid_t vuid, int force)
 {
     LOG(10, ("repvol::AllocFid: (%x, %d), uid = %d\n", vid, Type, vuid));
@@ -2007,6 +2041,7 @@ int repvol::AllocFid(ViceDataType Type, ViceFid *target_fid,
 		CHOKE("repvol::AllocFid: bogus Type (%d)", Type);
 	}
 	if (Fids->Count > 0) {
+	    target_fid->Realm = realm->id;
 	    target_fid->Volume = vid;
 	    target_fid->Vnode = Fids->Vnode;
 	    target_fid->Unique = Fids->Unique;
@@ -2019,8 +2054,7 @@ int repvol::AllocFid(ViceDataType Type, ViceFid *target_fid,
 		   Fids->Count--;
 	    Recov_EndTrans(MAXFP);
 
-	    LOG(100, ("repvol::AllocFid: target_fid = (%x.%x.%x)\n",
-		      target_fid->Volume, target_fid->Vnode, target_fid->Unique));
+	    LOG(100, ("repvol::AllocFid: target_fid = %s\n", FID_(target_fid)));
 	    return(0);
 	}
     }
@@ -2124,6 +2158,7 @@ int repvol::AllocFid(ViceDataType Type, ViceFid *target_fid,
 		    Fids->Count = NewFids.Count;
 		    Fids->AllocHost = /*ph*/(unsigned long)-1;
 		       
+		    target_fid->Realm = realm->id;
 		    target_fid->Volume = vid;
 		    target_fid->Vnode = Fids->Vnode;
 		    target_fid->Unique = Fids->Unique;
@@ -2141,8 +2176,7 @@ Exit:
     }
 
     if (code == 0)
-	LOG(10, ("repvol::AllocFid: target_fid = (%x.%x.%x)\n",
-		 target_fid->Volume, target_fid->Vnode, target_fid->Unique));
+	LOG(10, ("repvol::AllocFid: target_fid = %s\n", FID_(target_fid)));
     return(code);
 }
 
@@ -2176,7 +2210,7 @@ void volent::GetVids(VolumeId out[VSG_MEMBERS])
         ((repvol *)this)->GetVids(out);
     } else {
         memset(out, 0, VSG_MEMBERS * sizeof(VolumeId));
-        out[0] = ((volrep *)this)->GetVid();
+        out[0] = ((volrep *)this)->GetVolumeId();
     }
 }
 
@@ -2185,13 +2219,13 @@ void repvol::GetVids(VolumeId out[VSG_MEMBERS])
     memset(out, 0, VSG_MEMBERS * sizeof(VolumeId));
 
     if (ro_replica) {
-	out[0] = ro_replica->GetVid();
+	out[0] = ro_replica->GetVolumeId();
 	return;
     }
 
     for (int i = 0; i < VSG_MEMBERS; i++)
         if (volreps[i])
-            out[i] = volreps[i]->GetVid();
+            out[i] = volreps[i]->GetVolumeId();
 }
 
 int repvol::IsHostedBy(const struct in_addr *host)
@@ -2321,14 +2355,14 @@ int repvol::Collate_COP2(mgrpent *m, int code)
 }
 
 
-ViceFid repvol::GenerateLocalFid(ViceDataType fidtype)
+VenusFid repvol::GenerateLocalFid(ViceDataType fidtype)
 {
-    ViceFid fid;
+    VenusFid fid;
 
     if ( fidtype == Directory ) 
-	    FID_MakeDiscoDir(&fid, vid, FidUnique);
+	    FID_MakeDiscoDir(MakeViceFid(&fid), vid, FidUnique);
     else 
-	    FID_MakeDiscoFile(&fid, vid, FidUnique);
+	    FID_MakeDiscoFile(MakeViceFid(&fid), vid, FidUnique);
 
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(FidUnique);
@@ -2340,10 +2374,10 @@ ViceFid repvol::GenerateLocalFid(ViceDataType fidtype)
 
 
 /* MUST be called from within a transaction */
-ViceFid repvol::GenerateFakeFid() 
+VenusFid repvol::GenerateFakeFid() 
 {
-    ViceFid fid;
-    FID_MakeSubtreeRoot(&fid, vid, FidUnique);
+    VenusFid fid;
+    FID_MakeSubtreeRoot(MakeViceFid(&fid), vid, FidUnique);
 
     RVMLIB_REC_OBJECT(FidUnique);
     FidUnique++;
@@ -2659,9 +2693,10 @@ void volent::GetMountPath(char *buf, int ok_to_assert)
     /* Need to suppress assertion when called via hoard verify,
        because expected invariants may not always be true */
 
-    ViceFid fid;
+    VenusFid fid;
+    fid.Realm = realm->id;
     fid.Volume = vid;
-    FID_MakeRoot(&fid);
+    FID_MakeRoot(MakeViceFid(&fid));
     fsobj *f = FSDB->Find(&fid);
     if (f) {
 	f->GetPath(buf, 1);
@@ -2715,9 +2750,9 @@ void repvol::print_repvol(int afd)
     /* Replicas */
     fdprint(afd, "\tvolume replicas: [ ");
     for (int i = 0; i < VSG_MEMBERS; i++)
-        fdprint(afd, "%#08x, ", volreps[i] ? volreps[i]->GetVid() : 0);
+        fdprint(afd, "%#08x, ", volreps[i] ? volreps[i]->GetVolumeId() : 0);
     fdprint(afd, "]\n");
-    fdprint(afd, "\tstaging volume: %#08x\n",ro_replica?ro_replica->GetVid():0);
+    fdprint(afd, "\tstaging volume: %#08x\n",ro_replica?ro_replica->GetVolumeId():0);
 
     fdprint(afd, "\tVersion stamps = [");
     for (int i = 0; i < VSG_MEMBERS; i++)

@@ -69,7 +69,7 @@ extern "C" {
 
 
 /* local-repair modification */
-void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
+void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
     /*
      *    We partition the ioctls into 3 categories:
      *      O - those on a particular object
@@ -93,7 +93,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 	    int volmode = ((com == VIOCSETAL || com == VIOC_AFS_DELETE_MT_PT ||
 			    com == VIOC_SETVV) ? VM_MUTATING : VM_OBSERVING);
 	    for (;;) {
-		Begin_VFS(fid->Volume, CODA_IOCTL, volmode);
+		Begin_VFS(fid, CODA_IOCTL, volmode);
 		if (u.u_error) break;
 
 		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
@@ -308,9 +308,9 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 
 		    case VIOC_GETPFID:
 			{
-			if (data->in_size != (int)sizeof(ViceFid))
+			if (data->in_size != (int)sizeof(VenusFid))
 			    { u.u_error = EINVAL; break; }
-			ViceFid *fid = (ViceFid *)data->in;
+			VenusFid *fid = (VenusFid *)data->in;
 
 			FSDB->Put(&f);
 			u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
@@ -321,15 +321,15 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 			    if (f->u.mtpoint == 0) 
 				{ u.u_error = ENOENT; break; }
 
-			    ViceFid mtptfid = f->u.mtpoint->fid;
+			    VenusFid mtptfid = f->u.mtpoint->fid;
 			    FSDB->Put(&f);
 			    u.u_error = FSDB->Get(&f, &mtptfid, CRTORUID(u.u_cred), RC_STATUS);
 			    if (u.u_error) break;
 		        }
 
 			/* Copy out the parent fid. */
-			memmove((void *) data->out, (const void *)&f->pfid, (int)sizeof(ViceFid));
-			data->out_size = (short)sizeof(ViceFid);
+			memmove((void *) data->out, (const void *)&f->pfid, (int)sizeof(VenusFid));
+			data->out_size = (short)sizeof(VenusFid);
 
 			break;
 			}
@@ -363,7 +363,7 @@ O_FreeLocks:
 	    fsobj *f = 0;
 
 	    for (;;) {
-		Begin_VFS(fid->Volume, CODA_IOCTL, VM_OBSERVING);
+		Begin_VFS(fid, CODA_IOCTL, VM_OBSERVING);
 		if (u.u_error) break;
 
 		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS,
@@ -404,8 +404,7 @@ O_FreeLocks:
 		     * --JH */
 		    {
 		    /* ASR flush operation allowed only for files */
-		    LOG(100, ("Going to reset lastresolved time for %x.%x.%x\n",
-			      fid->Volume, fid->Vnode, fid->Unique));
+		    LOG(100, ("Going to reset lastresolved time for %s\n", FID_(fid)));
 		    u.u_error = f->SetLastResolved(0);
 		    break;
 		    }
@@ -418,13 +417,13 @@ O_FreeLocks:
 		    }
 		    /* Backup and use volroot's mount point if directed. */
 		    if (data->in_size == sizeof(int) && *(int *)data->in != 0) {
-			if (f->fid.Volume == rootfid.Volume ||
+			if (FID_VolEQ(&f->fid, &rootfid) ||
 			    !FID_IsVolRoot(&f->fid) || f->u.mtpoint == 0) {
 			    u.u_error = EINVAL;
 			    break;
 			}
 
-			ViceFid mtptfid = f->u.mtpoint->fid;
+			VenusFid mtptfid = f->u.mtpoint->fid;
 			FSDB->Put(&f);
 			u.u_error = FSDB->Get(&f, &mtptfid, CRTORUID(u.u_cred),
 					      RC_STATUS, NULL, NULL, 1);
@@ -434,8 +433,8 @@ O_FreeLocks:
 		    char *cp = (char *)data->out;
 
 		    /* Copy out the fid. */
-		    memcpy(cp, &f->fid, sizeof(ViceFid));
-		    cp += sizeof(ViceFid);
+		    memcpy(cp, &f->fid, sizeof(VenusFid));
+		    cp += sizeof(VenusFid);
 
 		    /* Copy out the VV. This will be garbage unless the
 		     * object is replicated! */
@@ -481,7 +480,7 @@ OI_FreeLocks:
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
 #endif
 	    volent *v = 0;
-	    if ((u.u_error = VDB->Get(&v, fid->Volume)) != 0) break;
+	    if ((u.u_error = VDB->Get(&v, MakeVolFid(fid)))) break;
 
 	    int volmode = ((com == VIOC_REPAIR || com == VIOC_PURGEML) ?
 			   VM_MUTATING : VM_OBSERVING);
@@ -623,7 +622,7 @@ OI_FreeLocks:
 
 		    /* Volume status block. */
 		    VolumeStatus volstat;
-		    memmove((void *) (char *)&volstat, (const void *)cp, (int)sizeof(VolumeStatus));
+		    memcpy(&volstat, cp, sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
 
 		    /* Volume name. */
@@ -700,7 +699,7 @@ OI_FreeLocks:
 		    /* MiniCache vnodes that have the "wrong" type! -JJK */
 		    (void)k_Purge();
 
-		    FSDB->Flush(fid->Volume);
+		    FSDB->Flush(MakeVolFid(fid));
 		    Recov_SetBound(DMFP);
 
 		    break;
@@ -1022,17 +1021,21 @@ V_FreeLocks:
 		      if (data->in_size != (int)sizeof(VolumeId)) {
 			u.u_error = EINVAL; break;
 		      }
-		      VolumeId *vol_id = (VolumeId *)data->in;
-		      volent *vv = VDB->Find(*vol_id);
-		      if (vv == 0) {
-			MarinerLog("Could not find volume = %x\n", *vol_id);
+		      VolFid vfid;
+#warning "need realm here"
+		      vfid.Realm = 0;
+		      vfid.Volume = *(VolumeId *)data->in;
+		      volent *vv = VDB->Find(&vfid);
+		      if (!vv) {
+			MarinerLog("Could not find volume = %x.%x\n",
+				   vfid.Realm, vfid.Volume);
 			u.u_error = EINVAL;
 			break;
 		      }
 		      vv->GetMountPath((char *)data->out, 0);
 		      if (strcmp((char *)data->out, "???") == 0) {
-			MarinerLog("Could not get mount point path for %x\n",
-				   *vol_id);
+			MarinerLog("Could not get mount point path for %x.%x\n",
+				   vfid.Realm, vfid.Volume);
 			u.u_error = EINVAL;
 			break;
 		      }
@@ -1288,9 +1291,9 @@ V_FreeLocks:
 
 		case VIOC_GETPATH:
 		    {
-		    if (data->in_size != (int)sizeof(ViceFid))
+		    if (data->in_size != (int)sizeof(VenusFid))
 			{ u.u_error = EINVAL; break; }
-		    ViceFid *fid = (ViceFid *)data->in;
+		    VenusFid *fid = (VenusFid *)data->in;
 		    int	out_size = MAXPATHLEN;	    /* needed since data->out_size is a short! */
 		    GetPath(fid, (char *) data->out, &out_size, 0);
 		    data->out_size = out_size;
@@ -1410,7 +1413,7 @@ V_FreeLocks:
 			case REP_CMD_END:
 			    {			
 				int commit, dummy;
-				ViceFid *squirrelFid;
+				VenusFid *squirrelFid;
 
 				CODA_ASSERT(LRDB);
 				squirrelFid = LRDB->RFM_LookupGlobalRoot(LRDB->repair_root_fid);

@@ -125,7 +125,7 @@ fsobj::fsobj(int i) : cf(i) {
 
 
 /* MUST be called from within transaction! */
-fsobj::fsobj(ViceFid *key, char *name) : cf() {
+fsobj::fsobj(VenusFid *key, char *name) : cf() {
     LOG(10, ("fsobj::fsobj: fid = (%s), comp = %s\n", FID_(key),
 	     name == NULL ? "(no name)" : name));
 
@@ -233,7 +233,7 @@ void fsobj::ResetTransient()
 
     /* Link to volume, and initialize volume specific members. */
     {
-	if ((vol = VDB->Find(fid.Volume)) == 0)
+	if ((vol = VDB->Find(MakeVolFid(&fid))) == 0)
 	    { print(logFile); CHOKE("fsobj::ResetTransient: couldn't find volume"); }
 	vol->hold();
     }
@@ -1038,7 +1038,7 @@ void fsobj::SetParent(VnodeId vnode, Unique_t unique) {
 
 	/* Install new parent fid. */
 	RVMLIB_REC_OBJECT(pfid);
-	pfid.Volume = fid.Volume;
+	pfid = fid;
 	pfid.Vnode = vnode;
 	pfid.Unique = unique;
     }
@@ -1091,7 +1091,7 @@ void fsobj::MakeClean() {
 /* local-repair modification */
 /* MUST NOT be called from within transaction! */
 /* Call with object write-locked. */
-int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
+int fsobj::TryToCover(VenusFid *inc_fid, vuid_t vuid) {
     if (!HAVEALLDATA(this))
 	{ print(logFile); CHOKE("fsobj::TryToCover: called without data"); }
 
@@ -1127,10 +1127,10 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
     /* Look up the volume that is to be mounted on us. */
     volent *tvol = 0;
     if (IsFake()) {
-	VolumeId tvid;
-	if (sscanf(data.symlink, "@%lx.%*x.%*x", &tvid) != 1)
-	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get tvid"); }
-	code = VDB->Get(&tvol, tvid);
+	VolFid vfid;
+	if (sscanf(data.symlink, "@%lx.%lx.%*x.%*x", &vfid.Realm, &vfid.Volume) != 2)
+	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get vfid"); }
+	code = VDB->Get(&tvol, &vfid);
     }
     else {
 	/* Turn volume name into a proper string. */
@@ -1147,7 +1147,9 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
 
     /* Don't allow a volume to be mounted inside itself! */
     /* but only when its mount root is the global-root-obj of a local subtree */
-    if ((fid.Volume == tvol->vid) && !LRDB->RFM_IsGlobalChild(&fid)) {
+    if (fid.Realm == tvol->GetRealmId() &&
+	fid.Volume == tvol->GetVolumeId() &&
+	!LRDB->RFM_IsGlobalChild(&fid)) {
 	eprint("TryToCover(%s): recursive mount!", data.symlink);
 	VDB->Put(&tvol);
 	return(ELOOP);
@@ -1155,14 +1157,16 @@ int fsobj::TryToCover(ViceFid *inc_fid, vuid_t vuid) {
 
     /* Get volume root. */
     fsobj *rf = 0;
-    ViceFid root_fid;
+    VenusFid root_fid;
+    root_fid.Realm = tvol->GetRealmId();
+#warning "Check for cross-realm mounts here"
     root_fid.Volume = tvol->vid;
     if (IsFake()) {
 	if (sscanf(data.symlink, "@%*x.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
 	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get <tvolid, tunique>"); }
     }
     else {
-	    FID_MakeRoot(&root_fid);
+	    FID_MakeRoot(MakeViceFid(&root_fid));
     }
     code = FSDB->Get(&rf, &root_fid, vuid, RC_STATUS, comp);
     if (code != 0) {
@@ -1218,7 +1222,7 @@ void fsobj::CoverMtPt(fsobj *root_fso) {
 	{ print(logFile); CHOKE("fsobj::CoverMtPt: no data.symlink!"); }
 
     LOG(10, ("fsobj::CoverMtPt: fid = (%s), rootfid = (%s)\n",
-	     FID_(&fid), FID_2(&root_fso->fid)));
+	     FID_(&fid), FID_(&root_fso->fid)));
 
     RVMLIB_REC_OBJECT(*this);
 
@@ -1242,7 +1246,7 @@ void fsobj::UncoverMtPt() {
 	{ print(logFile); CHOKE("fsobj::UncoverMtPt: no u.root!"); }
 
     LOG(10, ("fsobj::UncoverMtPt: fid = (%s), rootfid = (%s)\n",
-	      FID_(&fid), FID_2(&u.root->fid)));
+	      FID_(&fid), FID_(&u.root->fid)));
 
     RVMLIB_REC_OBJECT(*this);
 
@@ -1267,7 +1271,7 @@ void fsobj::MountRoot(fsobj *mtpt_fso) {
 	{ print(logFile); CHOKE("fsobj::MountRoot: u.mtpoint exists!"); }
 
     LOG(10, ("fsobj::MountRoot: fid = %s, mtptfid = %s\n",
-	     FID_(&fid), FID_2(&mtpt_fso->fid)));
+	     FID_(&fid), FID_(&mtpt_fso->fid)));
 
     RVMLIB_REC_OBJECT(*this);
 
@@ -1288,7 +1292,7 @@ void fsobj::UnmountRoot() {
 	{ print(logFile); CHOKE("fsobj::UnmountRoot: no u.mtpoint!"); }
 
     LOG(10, ("fsobj::UnmountRoot: fid = (%s), mtptfid = (%s)\n",
-	      FID_(&fid), FID_2(&u.mtpoint->fid)));
+	      FID_(&fid), FID_(&u.mtpoint->fid)));
 
     RVMLIB_REC_OBJECT(*this);
 
@@ -1317,7 +1321,7 @@ void fsobj::AttachChild(fsobj *child) {
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::AttachChild: not dir"); }
 
     LOG(100, ("fsobj::AttachChild: (%s), (%s)\n",
-	       FID_(&fid), FID_2(&child->fid)));
+	       FID_(&fid), FID_(&child->fid)));
 
     DisableReplacement();
 
@@ -1337,7 +1341,7 @@ void fsobj::DetachChild(fsobj *child) {
 	{ print(logFile); child->print(logFile); CHOKE("fsobj::DetachChild: not dir"); }
 
     LOG(100, ("fsobj::DetachChild: (%s), (%s)\n",
-	       FID_(&fid), FID_2(&child->fid)));
+	       FID_(&fid), FID_(&child->fid)));
 
     DemoteHdbBindings();	    /* in case an expansion would no longer be satisfied! */
 
@@ -1986,7 +1990,7 @@ int fsobj::Fakeify()
     struct in_addr volumehosts[VSG_MEMBERS];
     srvent *s;
     int i;
-    if (FID_IsFakeRoot(&fid)) {		/* Fake MTLink */
+    if (FID_IsFakeRoot(MakeViceFid(&fid))) {		/* Fake MTLink */
 	    /* Initialize status. */
 	    stat.DataVersion = 1;
 	    stat.Mode = 0644;
@@ -2007,7 +2011,7 @@ int fsobj::Fakeify()
 		LOG(100,("fsobj::Fakeify: parent fid for the fake link is %s\n",
 			 FID_(&pfid)));
 		flags.local = 1;
-		ViceFid *LocalFid = LRDB->RFM_LookupLocalRoot(&pfid);
+		VenusFid *LocalFid = LRDB->RFM_LookupLocalRoot(&pfid);
 		FSO_ASSERT(this, LocalFid);
 		/* Write out the link contents. */
 		data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
@@ -2024,7 +2028,7 @@ int fsobj::Fakeify()
 		    LOG(100, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
 			      FID_(&pfid)));
 		    flags.local = 1;
-		    ViceFid *GlobalFid = LRDB->RFM_LookupGlobalRoot(&pfid);
+		    VenusFid *GlobalFid = LRDB->RFM_LookupGlobalRoot(&pfid);
 		    FSO_ASSERT(this, GlobalFid);
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
@@ -2043,7 +2047,7 @@ int fsobj::Fakeify()
 		    /* Write out the link contents. */
 		    data.symlink = (char *)rvmlib_rec_malloc((unsigned) stat.Length);
 		    rvmlib_set_range(data.symlink, stat.Length);
-		    sprintf(data.symlink, "@%08lx.%08lx.%08lx", vp->GetVid(), pfid.Vnode, pfid.Unique);
+		    sprintf(data.symlink, "@%08lx.%08lx.%08lx", vp->GetVolumeId(), pfid.Vnode, pfid.Unique);
 		    LOG(100, ("fsobj::Fakeify: making %s a symlink %s\n",
 			      FID_(&fid), data.symlink));
 		} else {
@@ -2108,14 +2112,14 @@ int fsobj::Fakeify()
 		    sprintf(Name, "%s", s->name);
 		else
 		    sprintf(Name, "%08lx", volumehosts[i]);
-		ViceFid FakeFid = vp->GenerateFakeFid();
+		VenusFid FakeFid = vp->GenerateFakeFid();
 		LOG(1, ("fsobj::Fakeify: new entry (%s, %s)\n",
 			Name, FID_(&FakeFid)));
 		dir_Create(Name, &FakeFid);
 	    }
 #if 0
 	    { /* testing 1..2..3.. trying to show the local copy as well */
-		ViceFid FakeFid = vp->GenerateFakeFid();
+		VenusFid FakeFid = vp->GenerateFakeFid();
 		dir_Create("localhost", &FakeFid);
 	    }
 #endif
@@ -2254,7 +2258,7 @@ void fsobj::ReturnEarly() {
 
 	    out = (union outputArgs *)w->msg->msg_buf;
 	    out->coda_create.oh.result = 0;
-	    out->coda_create.VFid = fid;
+	    out->coda_create.Fid = *(CodaFid *)&fid;
 	    DemoteLock();
 	    GetVattr(&out->coda_create.attr);
 	    PromoteLock();
@@ -2301,7 +2305,7 @@ void fsobj::GetPath(char *buf, int fullpath) {
 	if (!fullpath)
 	    { strcpy(buf, "."); return; }
 
-	if (fid.Volume == rootfid.Volume)
+	if (FID_VolEQ(&fid, &rootfid))
 	    { strcpy(buf, venusRoot); return; }
 
 	if (u.mtpoint == 0)
@@ -2311,7 +2315,7 @@ void fsobj::GetPath(char *buf, int fullpath) {
 	return;
     }
 
-    if (pfso == 0 && !FID_EQ(&pfid, &NullFid)) {
+    if (!pfso && !FID_EQ(&pfid, &NullFid)) {
 	fsobj *pf = FSDB->Find(&pfid);
 	if (pf != 0 && HAVESTATUS(pf) && !GCABLE(pf)) {
 	    pfso = pf;
@@ -2319,7 +2323,7 @@ void fsobj::GetPath(char *buf, int fullpath) {
 	}
     }
 
-    if (pfso != 0)
+    if (pfso)
 	pfso->GetPath(buf, fullpath);
     else
 	strcpy(buf, "???");
@@ -2602,7 +2606,7 @@ void fsobj::ListCacheLong(FILE* fp)
 
 /* *****  Iterator  ***** */
 
-fso_iterator::fso_iterator(LockLevel level, const ViceFid *key) : rec_ohashtab_iterator(FSDB->htab, key) {
+fso_iterator::fso_iterator(LockLevel level, const VenusFid *key) : rec_ohashtab_iterator(FSDB->htab, key) {
     clevel = level;
     cvol = 0;
 }
@@ -2665,10 +2669,9 @@ void fsobj::GetOperationState(int *conn, int *tid)
 	    else
 	      cfo = cfo->pfso;
 	}
-	if ((cfo != NULL) && (!memcmp((const void *)&(cfo->pfid), (const void *)LRDB->repair_root_fid, (int)sizeof(ViceFid)) ||
-            !memcmp((const void *)&(cfo->pfid), (const void *)LRDB->RFM_FakeRootToParent(LRDB->repair_root_fid), (int)sizeof(ViceFid)))) {
+	if (cfo && FID_EQ(&(cfo->pfid), LRDB->repair_root_fid) ||
+            FID_EQ(&(cfo->pfid), LRDB->RFM_FakeRootToParent(LRDB->repair_root_fid)))
 	    repair_mutation = 1;
-	}
     }
     if (repair_mutation) {
 	*tid = LRDB->repair_session_tid;

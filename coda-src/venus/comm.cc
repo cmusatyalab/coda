@@ -84,7 +84,6 @@ extern void SFTP_Activate (SFTP_Initializer *initPtr);
 #include "adv_monitor.h"
 #include "adv_daemon.h"
 
-
 int COPModes = 6;	/* ASYNCCOP2 | PIGGYCOP2 */
 int UseMulticast = 0;
 char myHostName[MAXHOSTNAMELEN];
@@ -692,7 +691,8 @@ void GetServer(srvent **spp, struct in_addr *host)
 	return;
     }
 
-    s = new srvent(host, 0);
+    s = new srvent(host);
+
     srvent::srvtab->insert(&s->tblhandle);
 
     *spp = s;
@@ -1062,10 +1062,10 @@ void ServerPrint(FILE *f)
 }
 
 
-srvent::srvent(struct in_addr *Host, int isrootserver)
+#warning "init srvent.realm"
+srvent::srvent(struct in_addr *Host)
 {
-    LOG(1, ("srvent::srvent: host = %s, isroot = %d\n",
-            inet_ntoa(*Host), isrootserver));
+    LOG(1, ("srvent::srvent: host = %s\n", inet_ntoa(*Host)));
 
     struct hostent *h = gethostbyaddr((char *)Host, sizeof(struct in_addr), AF_INET);
     if (h) {
@@ -1083,7 +1083,7 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
     Xbinding = 0;
     probeme = 0;
     forcestrong = 0;
-    rootserver = isrootserver;
+    rootserver = 0;
     isweak = 0;
     bw     = INIT_BW;
     bwmax  = INIT_BW;
@@ -1093,7 +1093,6 @@ srvent::srvent(struct in_addr *Host, int isrootserver)
     allocs++;
 #endif
 }
-
 
 srvent::~srvent()
 {

@@ -232,7 +232,7 @@ class hdb {
     /* Helper Routines hdb::Walk */
     void ValidateCacheStatus(vproc *, int *, int *);
     void ListPriorityQueue();
-    int GetSuspectPriority(int, char *, int);
+    int GetSuspectPriority(VolFid *, char *, int);
     void WalkPriorityQueue(vproc *, int *, int *);
     int CalculateTotalBytesToFetch();
     void StatusWalk(vproc *, int *, int *);
@@ -271,6 +271,7 @@ class hdbent {
     int MagicNumber;
 
     /* Key. */
+    RealmId realm;
     VolumeId vid;
     char *path;
 
@@ -325,7 +326,7 @@ class namectxt {
 	friend void NotifyUsersOfKillEvent(dlist *, int);
 
 	/* Key. */
-	ViceFid cdir;			/* starting directory of expansion */
+	VenusFid cdir;			/* starting directory of expansion */
 	char *path;			/* subsequent components */
 
 	/* Assoc(key). */
@@ -345,7 +346,7 @@ class namectxt {
 
     /* Expander info. */
     dlist *children;			/* list of expanded children */
-    ViceFid expander_fid;		/* Fid of expanded directory */
+    VenusFid expander_fid;		/* Fid of expanded directory */
     ViceVersionVector expander_vv;	/* VersionVector of expanded directory */
     long expander_dv;			/* DataVersion of expanded directory */
 
@@ -368,7 +369,7 @@ class namectxt {
 
   public:
     void *operator new(size_t);
-    namectxt(ViceFid *, char *, vuid_t, int, int, int);
+    namectxt(VenusFid *, char *, vuid_t, int, int, int);
     namectxt(namectxt *, char *);
     namectxt(namectxt&);		/* not supported! */
     int operator=(namectxt&);		/* not supported! */

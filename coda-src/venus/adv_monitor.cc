@@ -152,7 +152,8 @@ int adv_monitor::RequestASRInvokation(repvol *vol, char *pathname, vuid_t vuid)
   if (!InterestArray[callType]) return(0);
 
   vol->lock_asr();
-  rc = C_InvokeASR(handle, (RPC2_String)pathname, vol->GetVid(), vuid, &ASRid, &ASRrc);
+#warning "ASR realm"
+  rc = C_InvokeASR(handle, (RPC2_String)pathname, vol->GetVolumeId(), vuid, &ASRid, &ASRrc);
   CheckError(rc, callType); /* resets connection and unlocks asr if RPC2 fails */
 
   if (rc == RPC2_SUCCESS) {
@@ -294,7 +295,7 @@ void adv_monitor::SwapProgramLog() {
     numLines = 0;
 }
 
-void adv_monitor::LogProgramAccess(int pid, int pgid, ViceFid *fid) {
+void adv_monitor::LogProgramAccess(int pid, int pgid, VenusFid *fid) {
     if (programFILE != NULL) {
       /*       outputcommandname(programFILE, pgid);     
 	   s/pgid/pid/   Why was the pgid being passed here???  -Remi */
