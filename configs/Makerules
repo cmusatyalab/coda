@@ -280,12 +280,14 @@ lint: $(SOURCES)
 	$(AR) rv $@ $?
 	$(RANLIB) $@
 
-%.doc: %.mss
-	-scribe $?  # Scribe doesn't exist most places.
+.PRECIOUS: %.client.c %.server.c %.multi.c %.h
 
-# %.client.cc %.server.cc %.multi.cc %.client.c %.server.c %.multi.c %.h: %.rpc2
-%.client.cc %.server.cc %.multi.cc  %.h: %.rpc2
+%.client.c %.server.c %.multi.c %.h: %.rpc2
 	${RP2GEN} ${RP2FLAGS} $<
+
+#%.client.cc %.server.cc %.multi.cc  %.h: %.rpc2
+#	${RP2GEN} -n ${RP2FLAGS} $<
+
 
 ifndef NO_LEX
 lex.yy.c:
