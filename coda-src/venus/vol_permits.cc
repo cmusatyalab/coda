@@ -46,7 +46,6 @@ extern "C" {
 /* interfaces */
 #include <vice.h>
 #include <writeback.h>
-#include <mond.h>
 
 /* from venus */
 #include "comm.h"

@@ -45,53 +45,19 @@ void LRDBDaemon(void);/*N*/ /* used to be member of class lrdb (Satya 3/31/95) *
 #define MAXNAMELEN 255
 #endif
 
-typedef struct {
-    int SubtreeNum;
-    int MaxSubtreeSize;
-    int MaxSubtreeHgt;
-    int MaxMutationNum;
-    int TotalSubtreeSize;
-    int TotalSubtreeHgt;
-    int TotalMutationNum;
-} SubtreeStats;
-
-typedef struct {
-    int SessionNum;
-    int CommitNum;
-    int AbortNum;
-    int CheckNum;
-    int PreserveNum;
-    int DiscardNum;
-    int RemoveNum;
-    int GlobalViewNum;
-    int LocalViewNum;
-    int KeepLocalNum;
-    int ListLocalNum;
-    int RepMutationNum;
-    int MissTargetNum;
-    int MissParentNum;
-    int AclDenyNum;
-    int UpdateUpdateNum;
-    int NameNameNum;
-    int RemoveUpdateNum;    
-} RepairStats;
-
-/*
-  BEGIN_HTML
-  <a name="lrdb"><strong> the definition of lrdb (local repair database) </strong></a> 
-  END_HTML
-*/
+/* lrdb - the definition of lrdb (local repair database) */
 /* 
  * class lrdb (local-repair(representation)-data-base) contains all the
- * global information that are needed for creating and maintaining representaions
- * of local subtrees created by disconnected mutation in the face of reintegration
- * failure, and used by the repair tool for reconciliation of the local state
- * with the global state.
- * Note: For data fields, letter P indicates the data field is to be maintained as
- * a persistent entity while letter T indicates the data field is transient. For
- * methods, letter T indicates the method must be called from within a transaction,
- * letter U means the method must not be called from within a transaction and letter
- * N means that the method need not be called from within a transaction. 
+ * global information that are needed for creating and maintaining
+ * representaions of local subtrees created by disconnected mutation in the
+ * face of reintegration failure, and used by the repair tool for
+ * reconciliation of the local state with the global state. Note: For data
+ * fields, letter P indicates the data field is to be maintained as a
+ * persistent entity while letter T indicates the data field is transient. For
+ * methods, letter T indicates the method must be called from within a
+ * transaction, letter U means the method must not be called from within a
+ * transaction and letter N means that the method need not be called from
+ * within a transaction. 
  */
 class lrdb {
     struct Lock rfm_lock;		/* for synchronization on root_fid_map list */
@@ -163,8 +129,6 @@ public:
     dlist repair_obj_list;	/*T*//* list of fsobj-ptrs of involved local objects */
     dlist repair_vol_list;	/*T*//* list of volent-ptrs of involved volumes */
     dlist repair_cml_list;	/*T*//* list of cmlent-ptrs of involved mutations */
-    SubtreeStats subtree_stats;	/*T*//* stats about localized subtrees */
-    RepairStats repair_stats;	/*T*//* stats about the local-global repair session */
 
     /* below are methods for repair local subtrees */
     void BeginRepairSession(ViceFid *, int, char *);				/*U*/
@@ -185,7 +149,6 @@ public:
     void ReplaceRepairFid(ViceFid *, ViceFid *);				/*U*/
     void CheckLocalSubtree();							/*N*/
     void RemoveSubtree(ViceFid *);						/*U*/
-    void GetSubtreeStats(ViceFid *);						/*N*/
     int GetRepairSessionTid() { return repair_session_tid; }		
 
     /* below are debugging methods */
@@ -194,11 +157,7 @@ public:
     void print();								/*N*/
 };
 
-/*
-  BEGIN_HTML
-  <a name="lgment"><strong> the entry of the local-global fid-map is defined in lgment </strong></a> 
-  END_HTML
-*/
+/* lgment - the entry of the local-global fid-map is defined in lgment */
 /* class for logal-global-map entry */
 class lgment : public rec_dlink {
     ViceFid local;				/*P*/

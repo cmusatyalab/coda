@@ -109,11 +109,10 @@ void lrdb::BeginRepairSession(ViceFid *RootFid, int RepMode, char *msg)
 	VolumeId Vols[VSG_MEMBERS];
 	vuid_t LockUids[VSG_MEMBERS];
 	unsigned long LockWSs[VSG_MEMBERS];
-	(void)vol->EnableRepair(ALL_UIDS, Vols, LockUids, LockWSs);
+	vol->EnableRepair(ALL_UIDS, Vols, LockUids, LockWSs);
     }
 
     strcpy(msg, "0");
-    repair_stats.SessionNum++;
 }
 
 /*
@@ -130,11 +129,6 @@ void lrdb::EndRepairSession(int Commit, char *msg)
      */
     OBJ_ASSERT(this, (Commit == 0 || Commit == 1) && msg != NULL);
     int rc, delocalization;
-
-    if (Commit == 1) 
-      repair_stats.CommitNum++;
-    else
-      repair_stats.AbortNum++;
 
     /* initialize the return message */
     sprintf(msg, "repair session completed");
@@ -185,13 +179,6 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		    }
 		    CODA_ASSERT(vol->IsReplicated());
 		    rc = ((repvol *)vol)->IncReintegrate(repair_session_tid);
-		    {	/* collect mutation stats */
-			cml_iterator next(*(vol->GetCML()), CommitOrder);
-			cmlent *m;
-			while ((m = next()))
-			  if (m->GetTid() == repair_session_tid)
-			    repair_stats.RepMutationNum++;
-		    }
 		    if (rc != 0) {
 			sprintf(msg, "commit failed(%d) on volume %lx",
 				rc, vol->GetVid());
@@ -281,7 +268,6 @@ void lrdb::ContinueRepairSession(char *msg)
 {
     OBJ_ASSERT(this, msg != NULL);
 
-    repair_stats.CheckNum++;
     {	/* sanity checks */
 	if (repair_root_fid == NULL) {
 	    sprintf(msg,"there is no ongoing repair session");
@@ -298,38 +284,6 @@ void lrdb::ContinueRepairSession(char *msg)
 	    return;
 	}
     }
-
-    {	/* perform local mutation checks, produce repair tool message */
-	char opmsg[1024];
-	char checkmsg[1024];
-	int mcode, rcode;
-	current_search_cml->GetLocalOpMsg(opmsg);
-	current_search_cml->CheckRepair(checkmsg, &mcode, &rcode);
-	sprintf(msg, "local mutation: %s\n%s", opmsg, checkmsg);
-	
-	switch (mcode) {
-	case MUTATION_MISS_TARGET:
-	    repair_stats.MissTargetNum++;
-	    break;
-	case MUTATION_MISS_PARENT:
-	    repair_stats.MissParentNum++;
-	    break;
-	case MUTATION_ACL_FAILURE:
-	    repair_stats.AclDenyNum++;
-	    break;
-	case MUTATION_VV_CONFLICT:
-	    repair_stats.UpdateUpdateNum++;
-	    break;
-	case MUTATION_NN_CONFLICT:
-	    repair_stats.NameNameNum++;
-	    break;
-	case MUTATION_RU_CONFLICT:
-	    repair_stats.RemoveUpdateNum++;
-	    break;
-	default:
-	    break;
-	}
-    }    
 }
 
 /*
@@ -353,7 +307,6 @@ void lrdb::DiscardLocalMutation(char *msg)
     current_search_cml->GetLocalOpMsg(opmsg);
     sprintf(msg, "discard local mutation %s", opmsg);
     AdvanceCMLSearch();
-    repair_stats.DiscardNum++;
 }
 
 /*
@@ -375,7 +328,6 @@ void lrdb::DiscardAllLocalMutation(char *msg)
     }
     sprintf(msg, "discard all local mutations");
     current_search_cml = NULL;
-    repair_stats.RemoveNum++;
 }
 
 /*
@@ -386,8 +338,6 @@ void lrdb::DiscardAllLocalMutation(char *msg)
 /* need not be called from within a transaction */
 void lrdb::PreserveLocalMutation(char *msg)
 {
-    repair_stats.PreserveNum++;
-
     OBJ_ASSERT(this, msg);
     if (current_search_cml == NULL) {
 	sprintf(msg, "no futher mutation left\n");
@@ -424,8 +374,6 @@ void lrdb::PreserveLocalMutation(char *msg)
 /* need not be called from within a transaction */
 void lrdb::PreserveAllLocalMutation(char *msg)
 {
-    repair_stats.KeepLocalNum++;
-
     OBJ_ASSERT(this, msg);
     if (current_search_cml == NULL) {
 	sprintf(msg, "no futher mutation left\n");
@@ -575,8 +523,6 @@ void lrdb::InitCMLSearch(ViceFid *FakeRootFid)
 /* must not be called from within a transaction */
 void lrdb::ListCML(ViceFid *FakeRootFid, FILE *fp)
 {
-    repair_stats.ListLocalNum++;
-
     /* list the CML records of subtree rooted at FakeRootFid in text form */
     OBJ_ASSERT(this, FakeRootFid);
     dlist vol_list;
@@ -974,11 +920,6 @@ char lrdb::GetSubtreeView()
 /* must not be called from within a transaction */
 void lrdb::SetSubtreeView(char NewView, char *msg)
 {
-    if (NewView == SUBTREE_GLOBAL_VIEW)
-      repair_stats.GlobalViewNum++;
-    if (NewView == SUBTREE_LOCAL_VIEW)
-      repair_stats.LocalViewNum++;
-
     if (repair_root_fid == NULL) {
 	sprintf(msg,"there is no ongoing repair session");
 	return;

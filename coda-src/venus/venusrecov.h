@@ -99,7 +99,6 @@ struct RecovVenusGlobals {
     vdb	*recov_VDB;		    /* Volume database */
     hdb	*recov_HDB;		    /* Hoard database */
     lrdb *recov_LRDB;		    /* Local repair database */
-    vcbdb *recov_VCBDB;		    /* VCB usage data */
 
     char *recov_HeapAddr;	    /* Base of recoverable heap */
     unsigned int recov_HeapLength;  /* Length of recoverable heap (in bytes) */

@@ -188,17 +188,10 @@ void VolInit()
 	FID_MakeVolFake(&LocalVol.Vid);
         LocalVol.Type = BACKVOL; /* backup volume == read-only replica */
 	CODA_ASSERT(VDB->Create(&LocalVol, "Local"));
-	
-	/* allocate database for VCB usage. */
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(VCBDB);
-	VCBDB = new vcbdb;
-	Recov_EndTrans(0);
     }
 
     /* Initialize transient members. */
     VDB->ResetTransient();
-    VCBDB->ResetTransient();
 
     /* Scan the database. */
     eprint("starting VDB scan");
@@ -973,11 +966,6 @@ int volent::Enter(int mode, vuid_t vuid)
         ((repvol *)this)->WantCallBack())
     {
         repvol *rv = (repvol *)this;
-	if (just_transitioned && !rv->HaveStamp()) {    
-	    /* we missed an opportunity */
-	    vcbevent ve(fso_list->count());
-	    ReportVCBEvent(NoStamp, vid, &ve);
-	}
 	if ((!rv->HaveStamp() && vp->type == VPT_HDBDaemon) ||
             (rv->HaveStamp() && (vp->type != VPT_VolDaemon || !just_transitioned)))
         {

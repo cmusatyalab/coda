@@ -45,7 +45,6 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
-#include <mond.h>
 
 /* from venus */
 #include "comm.h"
@@ -104,8 +103,6 @@ int repvol::GetVolAttr(vuid_t vuid)
 	 * validated, we bail.
 	 */
 	if (VV_Cmp(&VVV, &NullVV) == VV_EQ) {
-	    InitVCBData(vid);
-
 	    if ((code = ValidateFSOs())) 
 		goto RepExit;
 
@@ -133,10 +130,6 @@ int repvol::GetVolAttr(vuid_t vuid)
 
 	    if (cbtemp == cbbreaks) 
 		CollateVCB(m, VSvar_bufs, CBStatusvar_bufs);
-
-	    /* if we've acquired a vcb, report statistics */
-	    if (VCBStatus == CallBackSet) 
-		ReportVCBEvent(Acquire, vid);
         } else {
 	    /* 
 	     * Figure out how many volumes to validate.
@@ -293,7 +286,6 @@ int repvol::GetVolAttr(vuid_t vuid)
                     repvol *vp = (repvol *)v;
 		    fso_vol_iterator next(NL, vp);
 		    fsobj *f;
-		    vcbevent ve(vp->fso_list->count());
 
 		    switch (VFlags[i]) {
 		    case 1:  /* OK, callback */
@@ -308,8 +300,6 @@ int repvol::GetVolAttr(vuid_t vuid)
 				    f->PromoteAcRights(ALL_UIDS);
 				    f->PromoteAcRights(vuid);
 			        }
-			    
-			    ReportVCBEvent(Validate, vp->GetVid(), &ve);
 		        } 
 			break;
 		    case 0:  /* OK, no callback */
@@ -325,9 +315,6 @@ int repvol::GetVolAttr(vuid_t vuid)
 			    RVMLIB_REC_OBJECT(vp->VVV);
 			    vp->VVV = NullVV;   
 			Recov_EndTrans(MAXFP);
-
-			ReportVCBEvent(FailedValidate, vp->GetVid(), &ve);
-
 			break;
 		    }
 		} else {
@@ -339,7 +326,6 @@ int repvol::GetVolAttr(vuid_t vuid)
 
 RepExit:
     PutMgrp(&m);
-    DeleteVCBData();
     
     return(code);
 }
@@ -492,15 +478,6 @@ int repvol::CallBackBreak()
 
 void repvol::ClearCallBack()
 {
-    /*
-     * Count vcb's cleared on this volume because of connectivity
-     * changes. 
-     */
-    if (VCBStatus == CallBackSet) {
-	vcbevent ve(fso_list->count());
-	ReportVCBEvent(Clear, vid, &ve);
-    }
-
     VCBStatus = NoCallBack;
 }
 
@@ -528,249 +505,4 @@ int repvol::WantCallBack()
 	getit = 1;
 
     return(getit);
-}
-
-/* *****  VCB data collection ***** */
-
-/* 
- * to collect data on volume callback usage, we maintain
- * a vdb/volent-like arrangement in RVM.  Eventually, 
- * this should go into mond.  This data must be maintained
- * separately from the vdb/volent because volents can
- * be deleted.
- */
-
-/* Allocate database from recoverable store. */
-void *vcbdb::operator new(size_t len) {
-    vcbdb *v = 0;
-
-    /* Allocate recoverable store for the object. */
-    v = (vcbdb *)rvmlib_rec_malloc((int) len);
-    CODA_ASSERT(v);
-    return(v);
-}
-
-vcbdb::vcbdb() : htab(VCBDB_NBUCKETS, VOL_HashFN) {
-
-    RVMLIB_REC_OBJECT(*this);
-    MagicNumber = VCBDB_MagicNumber;
-}
-
-
-void vcbdb::ResetTransient() {
-    /* Sanity checks. */
-    if (MagicNumber != VCBDB_MagicNumber)
-	CHOKE("vcbdb::ResetTransient: bad magic number (%d)", MagicNumber);
-
-    htab.SetHFn(VOL_HashFN);
-}
-
-
-/* MUST NOT be called from within transaction! */
-vcbdent *vcbdb::Create(VolumeId vid, const char *volname)
-{
-    vcbdent *v = 0;
-
-    /* Check whether the key is already in the database. */
-    if ((v = Find(vid)) != 0) {
-	{ v->print(logFile); CHOKE("vcbdb::Create: key exists"); }
-    }
-
-    /* Fashion a new object. */
-    Recov_BeginTrans();
-	v = new vcbdent(vid, volname);
-    Recov_EndTrans(MAXFP);
-
-    if (v == 0)
-	LOG(0, ("vcbdb::Create: (%x, %s) failed\n", vid, volname));
-    return(v);
-}
-
-
-vcbdent *vcbdb::Find(VolumeId volnum) {
-    vcbd_iterator next(&volnum);
-    vcbdent *v;
-    while ((v = next()))
-	if (v->vid == volnum) return(v);
-
-    return(0);
-}
-
-
-void vcbdb::print(int fd) {
-    vcbd_iterator next;
-    vcbdent *v;
-
-    fdprint(fd, "\n***** VCB Statistics *****\n");
-    while ((v = next()))
-	v->print(fd);
-}
-
-
-/* MUST be called from within transaction! */
-void *vcbdent::operator new(size_t len){
-    vcbdent *v = 0;
-
-    v = (vcbdent *)rvmlib_rec_malloc((int) len);
-    CODA_ASSERT(v);
-    return(v);
-}
-
-
-vcbdent::vcbdent(VolumeId Vid, const char *volname) {
-
-    LOG(10, ("vcbdent::vcbdent: (%x, %s)\n", vid, volname));
-
-    RVMLIB_REC_OBJECT(*this);
-    MagicNumber = VCBDENT_MagicNumber;
-    strcpy(name, volname);
-    vid = Vid;
-    memset((void *)&data, 0, (int)sizeof(VCBStatistics));
-
-    VCBDB->htab.insert(&vid, &handle);
-}
-
-
-void vcbdent::print(int fd) {
-    fdprint(fd, "%#08x : %-16s : vol = %x\n\tEvent\t\t    num   objs   check    fail   no-ofail\n",
-	    (long) this, name, vid);
-    
-    fdprint(fd, "\tAcquire\t\t%6d\t%6d\t%6d\t%6d\t%6d\n",
-	    data.Acquires, data.AcquireObjs, data.AcquireChecked, 
-	    data.AcquireFailed, data.AcquireNoObjFails);
-    fdprint(fd,"\tValidate\t%6d\t%6d\n\tFailedValidate\t%6d\t%6d\n",
-	    data.Validates, data.ValidateObjs, data.FailedValidates, 
-	    data.FailedValidateObjs);
-    fdprint(fd,"\tBreaks\t\t%6d\t%6d\t%6d volonly\t%6d refs\n",
-	    data.Breaks, data.BreakObjs, data.BreakVolOnly, data.BreakRefs);
-    fdprint(fd,"\tClears\t\t%6d\t%6d\t%6d refs\n\tNoStamp\t\t%6d\t%6d\n",
-	    data.Clears, data.ClearObjs, data.ClearRefs, data.NoStamp, 
-	    data.NoStampObjs);
-}
-
-
-vcbd_iterator::vcbd_iterator(void *key) : rec_ohashtab_iterator(VCBDB->htab, key) {
-}
-
-
-vcbdent *vcbd_iterator::operator()() {
-    rec_olink *o = rec_ohashtab_iterator::operator()();
-    if (!o) return(0);
-
-    vcbdent *v = strbase(vcbdent, o, handle);
-    return(v);
-}
-
-
-
-/* manipulation of vcbevents */
-
-/* tag a vproc with a vcb data block for volume vid. */
-void InitVCBData(VolumeId vid) {
-    vproc *vp = VprocSelf();
-
-    volent *vol = VDB->Find(vid);
-    if (!vol) CHOKE("InitVCBData: Can't find volume 0x%x!", vid);
-
-    vp->ve = new vcbevent(vol->fso_list->count());
-}
-
-
-/* add data fields in vcb data block. */
-void AddVCBData(unsigned nc, unsigned nf) {
-    vproc *vp = VprocSelf();
-    if (vp->ve) {
-	vp->ve->nchecked += nc;
-	vp->ve->nfailed += nf;
-    }
-}
-
-
-/* remove vcb data block from vproc */
-void DeleteVCBData() {
-    vproc *vp = VprocSelf();
-    if (vp->ve) {
-	delete vp->ve;
-	vp->ve = NULL;
-    }
-}
-
-
-/* 
- * Accumulates the VCB event into the RVM database.
- * For now, also prints into the log.
- * The event data may be sent in explicitly, or if
- * not, taken from the stash on the vproc.
- */
-void ReportVCBEvent(VCBEventType event, VolumeId vid, vcbevent *ve)
-{
-    /* if ve == NULL, look for data on the vproc. */
-    if (ve == NULL) {
-	vproc *vp = VprocSelf();
-	if (vp->ve) ve = vp->ve;
-	else return;	/* nothing to report! */
-    }
-
-    volent *vol = VDB->Find(vid);
-
-    /* find (or create) entry for this volume */
-    vcbdent *v = VCBDB->Find(vid);
-    if (!v) {
-	if (!vol) CHOKE("ReportVCBEvent: Can't find volume 0x%x!", vid);
-    
-	v = VCBDB->Create(vol->GetVid(), vol->GetName());
-    }
-
-    Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(v->data);
-	switch(event) {
-	case Acquire:
-	    v->data.Acquires++;
-	    v->data.AcquireObjs += ve->nobjs;
-	    v->data.AcquireChecked += ve->nchecked;
-	    v->data.AcquireFailed += ve->nfailed;
-	    /* need the following for false sharing calculations */
-	    if (ve->nfailed == 0)
-		v->data.AcquireNoObjFails++;
-
-	    break;
-
-	case Validate:
-	    v->data.Validates++;
-	    v->data.ValidateObjs += ve->nobjs;
-	    break;
-
-	case FailedValidate:
-	    v->data.FailedValidates++;
-	    v->data.FailedValidateObjs += ve->nobjs;
-	    break;
-
-	case Break:
-	    v->data.Breaks++;
-	    v->data.BreakObjs += ve->nobjs;
-	    v->data.BreakVolOnly += ve->volonly;
-            CODA_ASSERT(vol->IsReplicated());
-	    v->data.BreakRefs += ((repvol *)vol)->VCBHits;
-	    ((repvol *)vol)->VCBHits = 0;
-	    break;
-
-	case Clear:
-	    v->data.Clears++;
-	    v->data.ClearObjs += ve->nobjs;
-            CODA_ASSERT(vol->IsReplicated());
-	    v->data.ClearRefs += ((repvol *)vol)->VCBHits;
-	    ((repvol *)vol)->VCBHits = 0;
-	    break;
-
-	case NoStamp:
-	    v->data.NoStamp++;
-	    v->data.NoStampObjs += ve->nobjs;
-	    break;
-
-	default:
-	    CHOKE("ReportVCBEvent: Unknown event %d!", event);	
-	    break;
-	}
-    Recov_EndTrans(MAXFP);
-
 }

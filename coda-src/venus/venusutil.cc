@@ -287,7 +287,6 @@ void VenusPrint(int fd, int argc, char **argv) {
     if (hdbp || allp)     if (RecovInited && HDB) HDB->print(fd);
     if (mallocp || allp)  MallocPrint(fd);
     if (lrdbp || allp)    if (RecovInited && LRDB) LRDB->print(fd);
-    if (vcbdbp || allp)   if (RecovInited && VCBDB) VCBDB->print(fd);
     fdprint(fd, "************************\n\n");
 }
 

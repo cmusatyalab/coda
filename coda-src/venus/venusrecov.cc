@@ -153,7 +153,6 @@ int RecovVenusGlobals::validate()
     if (!VALID_REC_PTR(recov_VDB)) return(0);
     if (!VALID_REC_PTR(recov_HDB)) return(0);
     if (!VALID_REC_PTR(recov_LRDB)) return(0);
-    if (!VALID_REC_PTR(recov_VCBDB)) return(0);
 
     return(1);
 }
@@ -178,8 +177,8 @@ void RecovVenusGlobals::print(int fd) {
 	    recov_CleanShutDown, recov_RootVolName);
     fdprint(fd, "The following pointers should be between %x and %x:\n",
 	    recov_HeapAddr, recov_HeapAddr + recov_HeapLength);
-    fdprint(fd, "Ptrs = [%x %x %x %x %x], Heap = [%x] HeapLen = %x\n",
-	     recov_FSDB, recov_VDB, recov_HDB, recov_LRDB, recov_VCBDB, 
+    fdprint(fd, "Ptrs = [%x %x %x %x], Heap = [%x] HeapLen = %x\n",
+	     recov_FSDB, recov_VDB, recov_HDB, recov_LRDB, 
 	     recov_HeapAddr, recov_HeapLength);
 
     fdprint(fd, "UUID = %08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x\n",

@@ -995,7 +995,6 @@ int fsobj::LocalFakeify()
 		     &GlobalChildFid, &LocalChildFid, comp);
     Recov_EndTrans(MAXFP);
 
-    LRDB->GetSubtreeStats(&fid);
     return(0);
 }
 
@@ -1142,7 +1141,6 @@ int fsobj::LocalFakeifyRoot()
     LRDB->root_fid_map.insert(rfm);
     Recov_EndTrans(MAXFP);
 
-    LRDB->GetSubtreeStats(&fid);
     return(0);
 }
 

@@ -194,7 +194,8 @@ int fsobj::Fetch(vuid_t vuid) {
 		    memset((void *)data.dir, 0, sizeof(VenusDirData));
 		    FSO_ASSERT(this, (stat.Length & (DIR_PAGESIZE - 1)) == 0);
 		    RVMLIB_REC_OBJECT(*data.dir);
-		    DH_Alloc(&data.dir->dh, stat.Length, DIR_DATA_IN_RVM);
+		    DH_Alloc(&data.dir->dh, stat.Length,
+                             RvmType == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
 		    sei->Tag = FILEINVM;
 		    sei->FileInfo.ByAddr.vmfile.MaxSeqLen = stat.Length;
 		    sei->FileInfo.ByAddr.vmfile.SeqBody = 
@@ -840,7 +841,6 @@ int fsobj::GetAttr(vuid_t vuid, RPC2_BoundedBS *acl)
 
 RepExit:
 	PutMgrp(&m);
-	AddVCBData(nchecked, nfailed);
 	if (IsFakeDir() && code == EINCONS) {
 	    code = 0;
 	}

@@ -32,7 +32,6 @@ extern "C" {
 
 /* interfaces */
 #include <vcrcommon.h>
-#include <mond.h>
 
 /* from venus */
 #include "fso.h"
@@ -41,67 +40,6 @@ extern "C" {
 #include "venusvol.h"
 #include "worker.h"
 
-
-/* ********** Mist Routines ********** */
-
-void lrdb::GetSubtreeStats(ViceFid *lrfid)
-{
-    /* Sanity checks */
-    OBJ_ASSERT(this,lrfid &&  RFM_IsLocalRoot(lrfid));
-    fsobj *lrobj = FSDB->Find(lrfid);
-    OBJ_ASSERT(this, lrobj);
-
-    LOG(100, ("lrdb::GetSubtreeStats: local root fid = 0x%x.%x.%x\n",
-	      lrfid->Volume, lrfid->Vnode, lrfid->Unique));
-
-    dlist stack;
-    optent *opt = new optent(lrobj);		/* INIT: insert local root into stack */
-    opt->SetTag(1);				/* INIT: initial subtree height is 1 */
-    int size = 0, height = 0, mutation = 0;	/* INIT: initial stats value */
-    stack.prepend(opt);				/* INIT: push root into the stack */
-    
-    while (stack.count() > 0) {			/* DFS Search */
-	opt = (optent *)stack.get();		/* POP */
-	fsobj *fso = opt->GetFso();		/* POP: get current fso node */
-	int chgt = opt->GetTag();		/* POP: get current height */
-	delete opt;				/* POP: GC search stack node */
-	
-	if (DIRTY(fso)) 			/* STATS: accumulate mutations if any */
-	  mutation += fso->mle_bindings->count();
-	size++;					/* STATS: increment subtree size */
-	if (height < chgt) height = chgt;	/* STATS: increment subtree height if possible */
-	
-	if (fso->children != 0) {			/* PUSH: check children */
-	    dlist_iterator next(*(fso->children));	/* PUSH: iterate child list */
-	    dlink *d;
-	    while ((d = next())) {
-		fsobj *cf = strbase(fsobj, d, child_link);
-		opt = new optent(cf);			/* PUSH: found another child */
-		opt->SetTag(chgt + 1);			/* PUSH: adjust node height */
-		stack.prepend(opt);			/* PUSH: insert into the stack */
-	    }
-	} else {
-	    if (fso->IsMtPt()) {			/* PUSH: check for mount point */
-		FSO_ASSERT(this, fso->u.root);
-		opt = new optent(fso->u.root);		/* PUSH: treat mount point as child */
-		opt->SetTag(chgt + 1);			/* PUSH: adjust node height */
-		stack.prepend(opt);			/* PUSH: insert into the stack */
-	    }
-	}
-    }
-    OBJ_ASSERT(this, stack.count() == 0);
-    LOG(100, ("lrdb::GetSubtreeStats: size = %d height = %d mutation = %d\n",
-	      size, height, mutation));
-
-    /* report stats */
-    subtree_stats.SubtreeNum++;
-    if (subtree_stats.MaxSubtreeSize < size) subtree_stats.MaxSubtreeSize = size;
-    if (subtree_stats.MaxSubtreeHgt < height) subtree_stats.MaxSubtreeHgt = height;
-    if (subtree_stats.MaxMutationNum < mutation) subtree_stats.MaxMutationNum = mutation;
-    subtree_stats.TotalSubtreeSize += size;
-    subtree_stats.TotalSubtreeHgt += height;
-    subtree_stats.TotalMutationNum += mutation;
-}
 
 /* ********** begining of lrdb methods ********** */
 /* must be called from within a transaction */
@@ -673,8 +611,6 @@ void lrdb::ResetTransient()
     memset((void *)&repair_obj_list, 0, (int)sizeof(dlist));
     memset((void *)&repair_vol_list, 0, (int)sizeof(dlist));
     memset((void *)&repair_cml_list, 0, (int)sizeof(dlist));
-    memset((void *)&subtree_stats, 0, (int)sizeof(LocalSubtreeStats));
-    memset((void *)&repair_stats, 0, (int)sizeof(RepairSessionStats));
 }
 
 void lrdb::print(FILE *fp)
@@ -783,23 +719,6 @@ void lrdb::print(int fd)
 	    rfm->print(fd);
 	    fdprint(fd, "====================================\n");
 	}
-    }
-    {	/* print out the stats */
-	fdprint(fd, "subtree_stats = [%d %d %d %d %d %d %d]\n", subtree_stats.SubtreeNum, 
-		subtree_stats.MaxSubtreeSize, subtree_stats.MaxSubtreeHgt, 
-		subtree_stats.MaxMutationNum, subtree_stats.TotalSubtreeSize,
-		subtree_stats.TotalSubtreeHgt, subtree_stats.TotalMutationNum);
-    
-	fdprint(fd, "repair_stats = [%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d]\n",
-		repair_stats.SessionNum, repair_stats.CommitNum,
-		repair_stats.AbortNum, repair_stats.CheckNum,
-		repair_stats.PreserveNum, repair_stats.DiscardNum,
-		repair_stats.RemoveNum, repair_stats.GlobalViewNum,
-		repair_stats.LocalViewNum, repair_stats.KeepLocalNum,
-		repair_stats.ListLocalNum, repair_stats.RepMutationNum,
-		repair_stats.MissTargetNum, repair_stats.MissParentNum,
-		repair_stats.AclDenyNum, repair_stats.UpdateUpdateNum,
-		repair_stats.NameNameNum, repair_stats.RemoveUpdateNum);
     }
 }
 

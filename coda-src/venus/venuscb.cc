@@ -204,15 +204,8 @@ long CallBack(RPC2_Handle RPCid, ViceFid *fid) {
 	if (FSDB->CallBackBreak(fid))
 	    cbbreaks++;
 
-    if (VDB->CallBackBreak(fid->Volume)) {
-	InitVCBData(fid->Volume);    
-	if (fid->Vnode == 0 && fid->Unique == 0)
-		AddVCBData(1);
-	ReportVCBEvent(Break, fid->Volume);
-	DeleteVCBData();
-
+    if (VDB->CallBackBreak(fid->Volume))
         cbbreaks++;
-    }
 
     return(0);
 }

@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
     DaemonInit();   /* before any Daemons initialize and after LogInit */
     StatsInit();
     SigInit();      /* set up signal handlers */
-    DIR_Init(DIR_DATA_IN_RVM);
+    DIR_Init(RvmType == VM ? DIR_DATA_IN_VM : DIR_DATA_IN_RVM);
     RecovInit();    /* set up RVM and recov daemon */
     CommInit();     /* set up RPC2, {connection,server,mgroup} lists, probe daemon */
     UserInit();     /* fire up user daemon */

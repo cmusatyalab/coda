@@ -41,7 +41,6 @@ extern "C" {
 
 /* interfaces */
 #include <vice.h>
-#include <mond.h>
 
 /* from util */
 #include <dlist.h>
@@ -71,7 +70,6 @@ class vdb;
 class volent;
 class cop2ent;
 class resent;
-class vcbdent;
 
 /* volume pgid locking type */
 /* Was: EXCLUSIVE, *SHARED*: name clash on Solaris */
@@ -107,12 +105,6 @@ const unsigned V_DEFAULTAGE = 60;		/* in SECONDS */
 const unsigned V_UNSETAGE = (unsigned)-1;	/* huge */
 const unsigned V_DEFAULTREINTLIMIT = 30000;	/* in MILLESECONDS */
 const unsigned V_UNSETREINTLIMIT = (unsigned)-1;/* huge */
-
-#define VCBDB	(rvg->recov_VCBDB)
-const int VCBDB_MagicNumber = 3433089;
-const int VCBDB_NBUCKETS = 32;
-const int VCBDENT_MagicNumber = 8334738;
-
 
 /* Volume-User modes. */
 #define	VM_MUTATING	    0x1
@@ -456,111 +448,6 @@ class cml_iterator {
 };
 
 
-/* *****  Declaractions for VCB data collection ***** */
-
-typedef enum { Acquire,		/* new once/volent instantiation */
-	       Validate, 	/* successful volume validation */
-	       FailedValidate, 
-	       Break,       	/* broken volume callback */
-	       Clear, 		/* cleared callback due to connectivity change */
-	       NoStamp,		/* missed opportunity for volume validation */
-} VCBEventType;
-
-/* 
- * Data block for a vcb event.  Used for acquire and break events,
- * for which data is scattered throughout the code path.  We tag 
- * the thread (vproc) with this structure to gather the data.
- */
-struct vcbevent {
-  unsigned	nobjs;		/* # objects cached in volume */
-  unsigned	nchecked;	/* # objects that were checked (no callback) */
-  unsigned	nfailed;	/* # checks that failed */
-
-  vcbevent(unsigned n = 0) {
-    nobjs = n;
-    nchecked = 0;
-    nfailed = 0;
-  }
-};
-
-#define volonly nchecked	/* for break event, steal a field to */
-                                /* distinguish between obj and vol breaks */
-
-#define	PRINT_VCBEVENT(event)	((event) == Acquire ? "Acquire" :\
-				 (event) == Validate ? "Validate" :\
-				 (event) == FailedValidate ? "FailedValidate":\
-				 (event) == Break ? "Break":\
-				 (event) == Clear ? "Clear":\
-				 (event) == NoStamp ? "NoStamp":\
-				 "???")
-
-/* 
- * Volume callback database.  We need this in addition to the vdb
- * because volents can get flushed.
- */
-class vcbdb {
-  friend void VolInit();
-  friend class vcbd_iterator;
-  friend class vcbdent;
-  friend void ReportVCBEvent(VCBEventType, VolumeId, vcbevent *);
-
-    int MagicNumber;
-
-    /* The hash table. */
-    rec_ohashtab htab;
-
-    /* Constructors, destructors. */
-    void *operator new(size_t);
-    vcbdb();
-    ~vcbdb() { abort(); } 	/* it never goes away... */
-    void operator delete(void *, size_t) { abort(); } /* can never be invoked */
-    void ResetTransient();
-
-    /* Allocation/Deallocation routines. */
-    vcbdent *Create(VolumeId, const char *);
-
-  public:
-    vcbdent *Find(VolumeId);
-
-    void print() { print(stdout); }
-    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
-    void print(int);
-};
-
-
-class vcbdent {
-  friend class vcbdb;
-  friend class vcbd_iterator;
-  friend void ReportVCBEvent(VCBEventType, VolumeId, vcbevent *);
-  friend void CheckVCB();
-
-    int MagicNumber;
-
-    VolumeId vid;			/* key */
-    char name[V_MAXVOLNAMELEN];
-
-    rec_olink handle;			/* link for htab */
-
-    void *operator new(size_t);
-    vcbdent(VolumeId, const char *);
-    ~vcbdent() { abort(); }	/* it never goes away... */
-    void operator delete(void *, size_t) { abort(); } /* can never be invoked */
-
-    struct VCBStatistics data;	/* in mond-convenient format */
-
-  public:
-    void print() { print(stdout); }
-    void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
-    void print(int);
-};
-
-class vcbd_iterator : public rec_ohashtab_iterator {
-
-  public:
-    vcbd_iterator(void * =(void *)-1);
-    vcbdent *operator()();
-};
-
 void VolDaemon(void) /* used to be member of class vdb (Satya 3/31/95) */;
 void TrickleReintegrate(); /* used to be in class vdb (Satya 5/20/95) */
 
@@ -708,7 +595,6 @@ class volent {
   friend class volrep_iterator;
   friend class vproc;                /* flags.autowriteback */
   friend void Reintegrate(repvol *); /* flags.sync_reintegrate */
-  friend void InitVCBData(VolumeId); /* fso_list->count() */
 
     int MagicNumber;
 
@@ -842,7 +728,6 @@ class repvol : public volent {
     friend class volent; /* CML_Lock */
     friend long CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
     friend void Resolve(volent *);
-    friend void ReportVCBEvent(VCBEventType, VolumeId, vcbevent *);
     friend void VolInit(void);
 
     volrep *vsg[VSG_MEMBERS];      /* underlying volume replicas */
@@ -1131,13 +1016,6 @@ extern void Resolve(volent *);
 /* vol_cml.c */
 extern void RecoverPathName(char *, ViceFid *, ClientModifyLog *, cmlent *);
 extern int PathAltered(ViceFid *, char *, ClientModifyLog *, cmlent *);
-
-/* vol_vcb.c */
-extern void InitVCBData(VolumeId);
-extern void AddVCBData(unsigned, unsigned =0);
-extern void DeleteVCBData();
-extern void ReportVCBEvent(VCBEventType, VolumeId, vcbevent * =NULL);
-
 
 #define	VOL_ASSERT(v, ex)\
 {\
