@@ -83,7 +83,7 @@ Pittsburgh, PA.
 /* simple test, we normally want to mmap our stacks whenever possible, except
  * when we compile venus for Win95 and Solaris */
 #undef MMAP_LWP_STACKS
-#if defined(HAVE_MMAP) && !defined(DJGPP) && !defined(sun)
+#if defined(HAVE_MMAP) && !defined(DJGPP) 
 #define MMAP_LWP_STACKS 1
 
 #ifdef __BSD44__
