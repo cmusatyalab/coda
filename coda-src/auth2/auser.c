@@ -244,7 +244,6 @@ static struct RPC2_addrinfo *GetAuthServers(const char *realm)
 {
     struct RPC2_addrinfo *res = NULL;
 
-    GetRealmServers(realm, "codasrv", &res);
     GetRealmServers(realm, "codaauth2", &res);
 
     if (!res) {

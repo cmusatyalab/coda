@@ -99,6 +99,8 @@ int main(int argc, char **argv)
     SecretToken		 stoken;
     EncryptedSecretToken estoken;
 
+    rpc2_InitRandom();
+
     /* query user for important information */
     viceid   = read_int   ("ViceID                   ? ");
     duration = read_float ("Token validity (hours)   ? ");
