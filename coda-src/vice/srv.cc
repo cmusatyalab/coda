@@ -1074,6 +1074,9 @@ void PrintCounters(FILE *fp)
 	rvm_print_statistics(&rvmstats, fp);
 	rvm_free_statistics(&rvmstats);
     }
+    SLog(0, "Printing RDS statistics\n");
+    rds_print_stats();
+
     Statistics = 0;
     SLog(0, "done\n");
 #ifdef _TIMECALLS_
