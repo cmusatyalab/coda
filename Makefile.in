@@ -43,8 +43,14 @@ rcs RCS:
 	find * -type d -print | while  read thedir ; do  ln -s $(TOPOBJ)/RCSLINK/$$thedir $$thedir/RCS; done
 
 reconfigure:
+	$(TOPDIR)/configure --enable-platform=$(SYS) $(TAIL)
+TAIL=
+ifdef SHOB
+TAIL  += --enable-shareobj=$(SHOB)
+endif
 ifdef SECSRC
-	$(TOPDIR)/configure --enable-platform=$(SYS) --enable-srcdir=$(SECSRC)
-else
-	$(TOPDIR)/configure --enable-platform=$(SYS)
+TAIL  += --enable-srcdir=$(SECSRC)
+endif
+ifdef RCSDIR
+TAIL  += --enable-rcsdir=$(RCSDIR)
 endif
