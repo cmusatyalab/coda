@@ -92,7 +92,7 @@ int repvol::GetPermit(uid_t uid)
     code = (int) MRPC_MakeMulti(ViceGetWBPermit_OP, ViceGetWBPermit_PTR,
 				VSG_MEMBERS, m->rocc.handles,
 				m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				vid, fid, permitvar_ptrs);
+				vid, &fid, permitvar_ptrs);
     MULTI_END_MESSAGE(ViceGetWBPermit_OP);
     MULTI_RECORD_STATS(ViceGetWBPermit_OP);
 
