@@ -25,7 +25,7 @@
 # improvements or extensions that  they  make,  and  to  grant  Carnegie
 # Mellon the rights to redistribute these changes without encumbrance.
 # 
-# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/scripts/RCS/Makefile.in,v 4.5 1997/04/29 21:27:25 rvb Exp braam $";
+# static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/ss/coda-src/scripts/RCS/Makefile.in,v 4.6 1997/06/02 13:07:18 braam Exp braam $";
 
 
 # 
@@ -61,7 +61,7 @@ TOPOBJ = @TOPOBJ@
 include $(MAKDIR)/Makeconf
 
 UPDATE-SCRIPTS	= files.bin files.db files.etc files.lib files.root
-VOL-SCRIPTS	= clone createvol createvol_rep purgevol purgevol_rep bldvldb.sh
+VOL-SCRIPTS	= clone createvol createvol_rep createvol_rep_ss purgevol purgevol_rep bldvldb.sh
 SUP-SCRIPTS	= supfile.pmax supfile.rt supfile.i386
 VENUS-SCRIPTS	= vutil newvenus swapmach
 INIT-SCRIPTS	= initfs initmtpts
