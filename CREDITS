@@ -73,17 +73,17 @@ here is the list:
                               Coda backup  subsystem;  RVM  extensions
                               for dynamic storage allocation.
 
-   Maria Ebling (1989-now)    Design  and  implementation  of hoarding
+   Maria Ebling (1989-98)     Design  and  implementation  of hoarding
                               extensions   for   weak    connectivity;
                               original author of Coda manual.
 
-   Lily B. Mummert (1989-now) Design, implementation and evaluation of
+   Lily B. Mummert (1989-97)  Design, implementation and evaluation of
                               mechanisms     for      weakly-connected
                               operation.
 
    Hank Mashburn (1990-94)    Design and implementation of RVM.
 
-   Brian Noble (1991-now)     Empirical   usage  data  collection  and
+   Brian Noble (1991-98 )     Empirical   usage  data  collection  and
                               analysis;  implementation  of  Potemkin;
                               NetBSD port.
 
@@ -95,25 +95,31 @@ here is the list:
                               IOT  mechanism;  enhancements  to  Venus
                               repair capability.
 
-   Josh Raiff (1993-now)      Coda    system   manager;   design   and
+   Josh Raiff (1993-97)       Coda    system   manager;   design   and
                               implementation of norton;  restructuring
                               of Coda to use GNU build environment
 
    Bob Baron (1994-now)       Mach  wizardry;  x86 guru; PCMCIA driver
                               support; WaveLAN support.
 
-   Hiroshi Inamura (1994-now) FreeBSD port
+   Hiroshi Inamura (1994-97)  FreeBSD port
 
    Peter Braam (1996-now)     Linux port including Linux minicache;
 			      restructuring  to  use
                               GNU build environment, partition system,
 			      numerous bug fixes. Windows NT port.
 
-   Yui-wah Lee (1996-now)     Linux port (rvm) 
+   Yui-wah Lee (1996-now)     Linux port (rvm). Research on strong clients.
 	
-   Elliot Lee  (1997-now)     Sparc Linux port, glibc port.
+   Elliot Lee  (1997-98)      Sparc Linux port, glibc port.
 
-   Michael Callahan (1996-now) Windows Client 95 port.
+   Michael Callahan (1996-now)Windows Client 95 port.
+
+   Robert Watson (1998-now)   Kerberos support (with Peter)
+   
+   Shafeeq Sinnamohideen (1998-now) RPC2 improvements
+
+   Jan Harkes (1998-now)      Improvements to weak connectivity.
 
    
 Work on Coda has been supported by many funding agencies and

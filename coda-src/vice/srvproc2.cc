@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.13 1998/06/16 15:43:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srvproc2.cc,v 4.14 1998/08/05 23:50:24 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -72,12 +72,8 @@ extern "C" {
 #ifdef __linux__
 #include <linux/if_ether.h>
 #endif
-#ifdef __BSD44__
+#ifdef __MACH__
 #include <netinet/if_ether.h>
-#endif
-#if defined(__GLIBC__) && __GLIBC__ >= 2
-#include <libelf/nlist.h>
-#else
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
@@ -128,6 +124,8 @@ unsigned int etherBytesWritten = 0;
 /* *****  Private variables  ***** */
 
 PRIVATE	unsigned Cont_Sws = 0;		/* Count context switches for LWP */
+
+#ifdef __MACH__
 PRIVATE struct nlist RawStats[] =
 {
 #define CPTIME 0
@@ -162,6 +160,7 @@ PRIVATE struct nlist RawStats[] =
 	0
     },
 };
+#endif
 
 
 /* *****  External routines ***** */
@@ -1104,7 +1103,6 @@ PRIVATE void SetSystemStats(ViceStatistics *stats)
     for(i = 0; i < DK_NDRIVE; i++) {
 	stats->TotalIO += xfer[i];
     }
-#endif  
 /*
  * Mach doesn't do swapping.  Later we should use an alternative means of finding
  * memory usage and process size; for now we will consider them 0.
@@ -1130,6 +1128,7 @@ PRIVATE void SetSystemStats(ViceStatistics *stats)
     }
     stats->ProcessSize = sbrk(0) >> 10;
 */
+#endif  
 }
 
 

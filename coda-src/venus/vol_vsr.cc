@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.4 1998/01/10 18:39:13 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vol_vsr.cc,v 4.5 1998/03/06 20:20:53 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -70,15 +70,11 @@ extern "C" {
 
 #include <fcntl.h>
 
-#if defined(__GLIBC__) && __GLIBC__ >= 2
-#include <libelf/nlist.h>
-#else
-#ifndef DJGPP
+#ifdef __BSD44__
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
 extern int nlist(const char*, struct nlist[]);
-#endif
 #endif
 
     
@@ -133,7 +129,7 @@ PRIVATE int hertz = 0;
 
 
 /* Raw Statistic Entry. */
-#ifndef DJGPP
+#ifdef __BSD44__
 PRIVATE struct nlist RawStats[] = 
 {
 #define CPTIME	0

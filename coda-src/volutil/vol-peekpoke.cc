@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-peekpoke.cc,v 4.4 1998/01/10 18:40:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-peekpoke.cc,v 4.5 1998/04/14 21:00:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,9 +55,7 @@ extern "C" {
 #include <struct.h>
 
 #include <ctype.h>
-#if defined(__GLIBC__) && __GLIBC__ >= 2
-#include <libelf/nlist.h>
-#else
+#ifdef __MACH__
 #include <nlist.h>
 /* nlist.h defines this function but it isnt getting included because it is
    guarded by an ifdef of CMU which isnt getting defined.  XXXXX pkumar 6/13/95 */ 
