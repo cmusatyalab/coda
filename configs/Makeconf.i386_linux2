@@ -15,12 +15,12 @@ GFLAG         = -gstabs
 CPP           = gcc -E -x c-header
 LIBCURSES     = -lncurses
 LIBCOMPAT     =
-IFSNAME       = libuifs.a
-IFSDIR	      = coda-src/sys
+INODEFSNAME   = libuinodefs.a
+INODEFSDIR    = kernel-src/inodefs/linux
 LIBTRACE      = ../venus/libfaketrace.a
 LIBREADLINE   = /usr/lib/libreadline.a
 LIBIBERTY     = /usr/lib/libiberty.a
-machine_ifs   = 
+machine_inodefs   = 
 #for rvm
 LIBTHREADS    =
 LIBMACH       = 
