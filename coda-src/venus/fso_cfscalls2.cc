@@ -461,6 +461,14 @@ static char systype [] = "i386_nbsd1";
 static char cputype [] = "arm32";
 static char systype [] = "arm32_nbsd1";
 #endif
+#ifdef sparc
+static char cputype [] = "sparc";
+static char systype [] = "sparc_nbsd1";
+#endif
+#ifdef sun3
+static char cputype [] = "sun3";
+static char systype [] = "sun3_nbsd1";
+#endif
 #endif /* __NetBSD__ */
 
 #ifdef __FreeBSD__

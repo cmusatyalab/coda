@@ -32,6 +32,12 @@ extern "C" {
 #include <string.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#ifdef __BSD44__
+#include <ufs/ufs/dir.h>
+#undef	DIRSIZ
+#else
+#define DIRBLKSIZ	0x200
+#endif
 #include <cfs/coda.h>
 #include <lwp.h>
 #include <lock.h>
@@ -791,6 +797,9 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	int num;
 	char *buf;
 	int offset = 0;
+	int oldoffset = 0;
+	int direntlen;
+
 #ifdef DJGPP
 	int rc;
 #endif
@@ -802,6 +811,18 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 	CODA_ASSERT( fd >= 0 );
 
 	len = DIR_Length(dir);
+#ifdef NOTE
+	/* Because of a poor bsd libc readdir(), directory entries
+	   cannot span a dir block boundary.  Actually, the kernel
+	   also writes directories this way.  Because we can't know until
+	   we write out the directory how much we will have to pad
+	   things, just assume that we will have to pad one 
+	   maximum-sized directory entry for each chunk of
+	   directory we write.
+	 */
+#endif /* __BSD44__ */
+	len += (len / DIRBLKSIZ + 1) * ((sizeof(struct venus_dirent) + 3) & ~3);
+	len = ((len + (DIRBLKSIZ - 1)) & ~(DIRBLKSIZ - 1));
 
 #ifndef DJGPP
 	CODA_ASSERT( ftruncate(fd, len) == 0 );
@@ -820,22 +841,43 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol)
 			ep = dir_GetBlob(dir, num);
 			if (!ep) 
 				break;
-			vd = (struct venus_dirent *)(buf + offset);
-			offset += dir_DirEntry2VDirent(ep, vd, vol);
+
+			/* optimistically write the directory entry: */
+			direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol);
+			/* if what we just wrote crosses a boundary: */
+			if (((offset + direntlen) ^ offset) & ~(DIRBLKSIZ - 1)) {
+				/* Note that offset still points to the *previous* directory 
+				   entry.  Calculate how much we have to add to its d_reclen 
+				   and offset for the padding: */
+				int pad = ((offset + (DIRBLKSIZ - 1)) & 
+						~(DIRBLKSIZ - 1)) - offset;
+
+				((struct venus_dirent *) (buf + oldoffset))->d_reclen += pad;
+				offset += pad;
+				/* do it again ... shifted by pad */
+				direntlen = dir_DirEntry2VDirent(ep, (struct venus_dirent *) (buf + offset), vol);
+			}
+			oldoffset = offset;
+			offset += direntlen;
 			num = ntohs(ep->next);
 		}
 	}
 	/* add a final entry */
 	vd = (struct venus_dirent *)(buf + offset);
 	vd->d_fileno = 0;
-	vd->d_reclen = len - offset + 1;
+	vd->d_reclen = ((offset + (DIRBLKSIZ - 1)) & ~(DIRBLKSIZ - 1)) - offset;
+#define minEntry 12 /* XXX */
+	if (vd->d_reclen < minEntry) 
+		((struct venus_dirent *) (buf + oldoffset))->d_reclen += vd->d_reclen;
+	offset += vd->d_reclen;
 
 #ifdef DJGPP
-	rc  = write(fd, buf, len);
+	rc  = write(fd, buf, offset);
 	free(buf);
-	CODA_ASSERT(rc == len);
+	CODA_ASSERT(rc == offset);
 #else 
 	CODA_ASSERT(munmap(buf, len) == 0);
+	CODA_ASSERT( ftruncate(fd, offset) == 0 );
 #endif
 	CODA_ASSERT(close(fd) == 0);
 	return 0;
