@@ -239,6 +239,7 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     Vnode *vptr = 0;
     int errorcode = 0;
     Inode tmpinode = 0;
+    int fd = -1;
 
     SLog(9,  "RS_FetchFile(%x.%x.%x %x)", Fid->Volume,
 	     Fid->Vnode, Fid->Unique, PrimaryHost);
@@ -262,17 +263,17 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     memset(&sid, 0, sizeof(SE_Descriptor));
     sid.Tag = SMARTFTP;
     sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
-    sid.Value.SmartFTPD.Tag = FILEBYINODE;
-    sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
+    sid.Value.SmartFTPD.Tag = FILEBYFD;
 
     if (vptr->disk.inodeNumber)
-	sid.Value.SmartFTPD.FileInfo.ByInode.Inode = vptr->disk.inodeNumber;
+	    fd = iopen(V_device(volptr), vptr->disk.inodeNumber, O_RDONLY);
     else {
 	/* no inode for this file - send over an empty file */
 	tmpinode = icreate(V_device(volptr), 0, V_id(volptr), 
 			   vptr->vnodeNumber, vptr->disk.uniquifier, 0);
-	sid.Value.SmartFTPD.FileInfo.ByInode.Inode = tmpinode;
+	fd = iopen(V_device(volptr), tmpinode, O_RDONLY);
     }
+    sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
     
     if ((errorcode = RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
 	SLog(0,  "RS_FetchFile: InitSideEffect failed %d", 
@@ -291,6 +292,8 @@ long RS_FetchFile(RPC2_Handle RPCid, ViceFid *Fid,
     SetResStatus(vptr, Status);
     
 FreeLocks:
+    if (fd != 1) close(fd);
+
     if (vptr){
 	if (tmpinode){
 	    SLog(9,  "RS_FetchFile: Getting rid of tmp inode");
@@ -323,6 +326,7 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
     Device device;
     VolumeId parentId;		
     int res = 0;
+    int fd = -1;
 
     CODA_ASSERT(Request == ResStoreData);
     conninfo *cip = GetConnectionInfo(RPCid);
@@ -386,15 +390,17 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 
 	/* fetch the file to be forced */
 	{	
+	    fd = iopen(V_device(volptr), newinode, O_WRONLY | O_TRUNC);
+
 	    /* set up the SFTP structure */
 	    memset(&sid, 0, sizeof(SE_Descriptor));
 	    sid.Tag = SMARTFTP;
 	    sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	    sid.Value.SmartFTPD.SeekOffset = 0;
-	    sid.Value.SmartFTPD.Tag = FILEBYINODE;
+	    sid.Value.SmartFTPD.Tag = FILEBYFD;
 	    sid.Value.SmartFTPD.ByteQuota = Length;
-	    sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
-	    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = newinode;
+	    sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
+
 	    if ((errorcode = RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
 		ChangeDiskUsage(volptr, (nBlocks(vptr->disk.length)-nBlocks(Length)));
 		SLog(0,  "RS_ForceFile Error in InitSideEffect %d", errorcode);
@@ -459,6 +465,8 @@ long RS_ForceFile(RPC2_Handle RPCid, ViceFid *Fid,
 #undef MAXFIDS 
 
 FreeLocks:
+    if (fd != -1) close(fd);
+
     if (newinode) {
 	CODA_ASSERT(!idec(V_device(volptr), newinode, V_parentId(volptr)));
     }

@@ -83,8 +83,6 @@ void Quit();
 
 int maxFilterID = 999;
 
-int iopen(int dummy1, int dummy2, int dummy3) {/* fake ITC system call */} 
-
 void InitFail() {
     InitRPC();
 }

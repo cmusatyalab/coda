@@ -1017,16 +1017,19 @@ void fsobj::UnsetLocalObj()
 /* this method will be called when the volume is exclusively locked */
 int fsobj::LocalFakeifyRoot()
 {   
+    fsobj *MtPt, *pf;
+
     LOG(100, ("fsobj::LocalFakeifyRoot: %s, %x.%x.%x\n",
 	      comp, fid.Volume, fid.Vnode, fid.Unique));
 
     /* step 1: sanity checks */
-    fsobj *MtPt = u.mtpoint;
-    fsobj *pf = MtPt->pfso;
-    if (pf == NULL) {
+    if (!u.mtpoint || !u.mtpoint->pfso) {
 	LOG(100, ("fsobj::LocalFakeifyRoot: can not find parent\n"));
 	return ENOENT;
     }
+
+    MtPt = u.mtpoint;
+    pf = MtPt->pfso;
 
     /* 
      * step 2. replace fid of objects in the subtree rooted at "this" 

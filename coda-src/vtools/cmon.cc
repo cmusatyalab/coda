@@ -60,9 +60,6 @@ extern "C" {
 
 #include "vice.h"
 
-int iopen(int x, int y, int z){return(0);};  /* BLETCH!! */
-
-
 #ifdef __cplusplus
 }
 #endif __cplusplus

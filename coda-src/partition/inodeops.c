@@ -19,6 +19,11 @@ listed in the file CREDITS.
 #include <vcrcommon.h>
 #include <partition.h>
 
+#include <fcntl.h>
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 Inode 
 icreate (Device devno, Inode ino, u_long volume, u_long vnode, 
@@ -41,6 +46,8 @@ iopen(Device devno, Inode inode, int flag)
     struct DiskPartition *dp;
     int rc = -1;
     
+    flag |= O_BINARY;
+
     dp = DP_Find(devno);
 
     if ( dp )

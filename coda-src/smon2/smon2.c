@@ -55,8 +55,6 @@ listed in the file CREDITS.
 
 #include "vice.h"
 
-int iopen(int x, int y, int z){return(0);};  /* BLETCH!! */
-
 typedef enum {DEAD, NEWBORN, ALIVE} SrvState;
 
 struct server

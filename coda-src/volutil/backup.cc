@@ -165,16 +165,6 @@ extern long volDump_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*,
 static void unlockReplicas(volinfo_t *vol);
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-int iopen(long dev, long ino, long flags) { return 0; }
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
-
 
 /* get_volId parses the VolumeList file to obtain the volId and
  * whether to do a full dump or an incremental dump of the volume. It

@@ -188,42 +188,46 @@ int CacheFile::Copy(char *destname, ino_t *ino, int recovering = 0)
     struct stat tstat;
     char buf[DIR_PAGESIZE];
 
+    if (mkpath(destname, V_MODE | 0100) < 0) {
+        LOG(0, ("CacheFile::Copy: could not make path for %s\n", name));
+	return -1;
+    }
     if ((tfd = ::open(destname, O_RDWR | O_CREAT | O_TRUNC| O_BINARY, V_MODE)) < 0) {
-	LOG(0, ("CacheFile::Copy: open failed (%d)", errno));
+	LOG(0, ("CacheFile::Copy: open failed (%d)\n", errno));
 	return -1;
     }
 #ifndef DJGPP
     if (::fchmod(tfd, V_MODE) < 0)
-	CHOKE("CacheFile::Copy: fchmod failed (%d)", errno);
+	CHOKE("CacheFile::Copy: fchmod failed (%d)\n", errno);
 #ifdef __CYGWIN32__
     if (::chown(destname, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	CHOKE("CacheFile::ResetCopy: fchown failed (%d)", errno);
+	CHOKE("CacheFile::ResetCopy: fchown failed (%d)\n", errno);
 #else
     if (::fchown(tfd, (uid_t)V_UID, (gid_t)V_GID) < 0)
-	CHOKE("CacheFile::Copy: fchown failed (%d)", errno);
+	CHOKE("CacheFile::Copy: fchown failed (%d)\n", errno);
 #endif
 #endif
     if ((ffd = ::open(name, O_RDONLY| O_BINARY, V_MODE)) < 0)
-	CHOKE("CacheFile::Copy: source open failed (%d)", errno);
+	CHOKE("CacheFile::Copy: source open failed (%d)\n", errno);
 
     for (;;) {
         n = ::read(ffd, buf, (int) sizeof(buf));
-	LOG(100,("CacheFile::Copy: copying %d bytes", n));
+	LOG(100,("CacheFile::Copy: copying %d bytes\n", n));
         if (n == 0)
 	    break;
         if (n < 0)
-	    CHOKE("CacheFile::Copy: read failed! (%d)", errno);
+	    CHOKE("CacheFile::Copy: read failed! (%d)\n", errno);
 	if (::write(tfd, buf, n) != n) {
-	    LOG(0, ("CacheFile::Copy: write failed! (%d)", errno));
+	    LOG(0, ("CacheFile::Copy: write failed! (%d)\n", errno));
 	    return -1;
 	}
     }
     if (::fstat(tfd, &tstat) < 0)
-	CHOKE("CacheFile::Copy: fstat failed (%d)", errno);
+	CHOKE("CacheFile::Copy: fstat failed (%d)\n", errno);
     if (::close(tfd) < 0)
-	CHOKE("CacheFile::Copy: close failed (%d)", errno);
+	CHOKE("CacheFile::Copy: close failed (%d)\n", errno);
     if (::close(ffd) < 0)
-	CHOKE("CacheFile::Copy: source close failed (%d)", errno);
+	CHOKE("CacheFile::Copy: source close failed (%d)\n", errno);
     
     CODA_ASSERT(recovering || (off_t)length == tstat.st_size);
     if (ino)

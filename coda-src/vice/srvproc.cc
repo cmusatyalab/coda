@@ -105,8 +105,11 @@ extern "C" {
 
 #ifdef _TIMECALLS_
 #include "timecalls.h"
-#endif _TIMECALLS_
+#endif /* _TIMECALLS_ */
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif /* O_BINARY */
 
 /* From Vol package. */
 extern void VCheckDiskUsage(Error *, Volume *, int );
@@ -3508,6 +3511,7 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
     PDirHandle dh;
     PDirHeader buf = 0;
     int size = 0;
+    int fd = -1;
 
     {
 	/* When we are continueing a trickle/interrupted fetch, the version
@@ -3546,9 +3550,9 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	sid.Value.SmartFTPD.ByteQuota = -1;
 	if (vptr->disk.type != vDirectory) {
 	    if (vptr->disk.inodeNumber) {
-		sid.Value.SmartFTPD.Tag = FILEBYINODE;
-		sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
-		sid.Value.SmartFTPD.FileInfo.ByInode.Inode = vptr->disk.inodeNumber;
+		fd = iopen(V_device(volptr), vptr->disk.inodeNumber, O_RDONLY);
+		sid.Value.SmartFTPD.Tag = FILEBYFD;
+		sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
 	    } else {
 		sid.Value.SmartFTPD.Tag = FILEBYNAME;
 		sid.Value.SmartFTPD.FileInfo.ByName.ProtectionBits = 0;
@@ -3579,6 +3583,10 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 		SLog(9, "Tag = FILEINVM, len = %d buf = %x",
 			sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen,
 			sid.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody);
+		break;
+	    case FILEBYFD:
+		SLog(9, "Tag = FILEBYFD, fd = %d",
+			sid.Value.SmartFTPD.FileInfo.ByFD.fd);
 		break;
 	    default:
 		SLog(9, "BOGUS TAG");
@@ -3634,6 +3642,8 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
     }
 
 Exit:
+    if (fd != -1) close(fd);
+
     if (vptr->disk.type == vDirectory)
 	    VN_PutDirHandle(vptr);
     return(errorCode);
@@ -3709,9 +3719,12 @@ void PerformStore(ClientEntry *client, VolumeId VSGVolnum, Volume *volptr,
 
 
 int StoreBulkTransfer(RPC2_Handle RPCid, ClientEntry *client, Volume *volptr,
-		       Vnode *vptr, Inode newinode, RPC2_Integer Length) {
+		       Vnode *vptr, Inode newinode, RPC2_Integer Length)
+{
     int errorCode = 0;
     ViceFid Fid;
+    int fd = -1;
+
     Fid.Volume = V_id(volptr);
     Fid.Vnode = vptr->vnodeNumber;
     Fid.Unique = vptr->disk.uniquifier;
@@ -3723,16 +3736,17 @@ START_TIMING(Store_Xfer);
 	struct timeval StartTime, StopTime;
 	TM_GetTimeOfDay(&StartTime, 0);
 
+	fd = iopen(V_device(volptr), newinode, O_WRONLY | O_TRUNC);
+
 	SE_Descriptor sid;
 	memset(&sid, 0, sizeof(SE_Descriptor));
 	sid.Tag = client->SEType;
 	sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
 	sid.Value.SmartFTPD.SeekOffset = 0;
 	sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
-	sid.Value.SmartFTPD.Tag = FILEBYINODE;
+	sid.Value.SmartFTPD.Tag = FILEBYFD;
 	sid.Value.SmartFTPD.ByteQuota = Length;
-	sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
-	sid.Value.SmartFTPD.FileInfo.ByInode.Inode = newinode;
+	sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
 
 	if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
 	    SLog(0, "StoreBulkTransfer: InitSE failed (%d), (%x.%x.%x)",
@@ -3778,6 +3792,8 @@ START_TIMING(Store_Xfer);
     }
 
 Exit:
+    if (fd != -1) close(fd);
+
 END_TIMING(Store_Xfer);
     return(errorCode);
 }

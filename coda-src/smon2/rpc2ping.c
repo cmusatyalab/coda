@@ -31,9 +31,6 @@ listed in the file CREDITS.
 #include <lwp.h>
 #include <ports.h>
 
-/* sftp wants this one defined, sigh */
-int iopen(int x, int y, int z){return(0);}
-
 void Initialize(void)
 {
     PROCESS         *pid;

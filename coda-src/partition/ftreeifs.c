@@ -259,9 +259,9 @@ static int f_init (union PartitionData **data,
  * and lseek to the data offset.
  */
 
-static int f_iopen(struct DiskPartition *dp, Inode inode_number,int flag)
+static int f_iopen(struct DiskPartition *dp, Inode inode_number, int flag)
 {
-    char	filename[FNAMESIZE];
+    char filename[FNAMESIZE];
     int	fd;
 
     /* Attempt open. */
@@ -271,12 +271,12 @@ static int f_iopen(struct DiskPartition *dp, Inode inode_number,int flag)
         return -1;
     }
 
-	f_inotostr(dp, inode_number, filename);
-	fd = open(filename, flag, 0600);
-	if (fd<0)
-	    return -1;	
+    f_inotostr(dp, inode_number, filename);
+    fd = open(filename, flag, 0600);
+    if (fd<0)
+	return -1;	
 
-	return fd;
+    return fd;
 }
 
 

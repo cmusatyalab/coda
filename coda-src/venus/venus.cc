@@ -632,23 +632,3 @@ struct vstab *getvsent() {
 
     return(&v);
 }    
-
-#ifdef __cplusplus
-extern "C" {
-#endif __cplusplus
-
-/*
- * SFTP needs this declared but Venus doesn't actually use it.
- * N.B. If Venus ever uses the FILEBYINODE transfer option this
- * will have to be changed!
- */
-int iopen(int dev, int inode_number, int flag)
-{
-    CODA_ASSERT(0);
-    return 0;
-}
-
-#ifdef __cplusplus
-}
-#endif __cplusplus
-

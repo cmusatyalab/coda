@@ -74,6 +74,10 @@ extern "C" {
 #include <inconsist.h>
 #include <vice.private.h>
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif /* O_BINARY */
+
 extern void MakeLogNonEmpty(Vnode *);
 extern void HandleWeakEquality(Volume *, Vnode *, ViceVersionVector *);
 
@@ -461,10 +465,9 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
     sid.Value.SmartFTPD.TransmissionDirection = CLIENTTOSERVER;
     sid.Value.SmartFTPD.SeekOffset = status.st_size;	
     sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
-    sid.Value.SmartFTPD.Tag = FILEBYINODE;
+    sid.Value.SmartFTPD.Tag = FILEBYFD;
     sid.Value.SmartFTPD.ByteQuota = Length;
-    sid.Value.SmartFTPD.FileInfo.ByInode.Device = RHandle->Device;
-    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = RHandle->Inode;
+    sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
 
     if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
 	SLog(0, "ViceSendReintFragment: InitSE failed (%d), (%d,%d,%d)",
@@ -2014,14 +2017,20 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    sid.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
 		    sid.Value.SmartFTPD.SeekOffset = 0;
 		    sid.Value.SmartFTPD.hashmark = (SrvDebugLevel > 2 ? '#' : '\0');
-		    sid.Value.SmartFTPD.Tag = FILEBYINODE;
 		    sid.Value.SmartFTPD.ByteQuota = r->u.u_store.Length;
-		    sid.Value.SmartFTPD.FileInfo.ByInode.Device = V_device(volptr);
-		    sid.Value.SmartFTPD.FileInfo.ByInode.Inode = v->f_finode;
+		    sid.Value.SmartFTPD.Tag = FILEBYFD;
 
-		    errorCode = CallBackFetch(he->id,
-					      &r->u.u_store.UntranslatedFid,
-					      &sid);
+		    {
+			int fd = iopen(V_device(volptr), v->f_finode,
+				       O_WRONLY | O_TRUNC);
+
+			sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
+
+			errorCode = CallBackFetch(he->id,
+						  &r->u.u_store.UntranslatedFid,
+						  &sid);
+			close(fd);
+		    }
 
 		    if ( errorCode < RPC2_ELIMIT ) {
 			/* We have to release the lock, because
