@@ -349,10 +349,10 @@ int coda_getaddrinfo(const char *node, const char *service,
 #ifdef PF_INET6
 	/* check whether we were given an IP address in a format that doesn't
 	 * match the hinted address family */
-	if (hints->ai_family != PF_INET6 && inet_pton(PF_INET, node, &tmp) > 0)
+	if (hints->ai_family == PF_INET6 && inet_pton(PF_INET, node, &tmp) > 0)
 		return RPC2_EAI_BADFLAGS;
 
-	if (hints->ai_family != PF_INET && inet_pton(PF_INET6, node, &tmp) > 0)
+	if (hints->ai_family == PF_INET && inet_pton(PF_INET6, node, &tmp) > 0)
 	    return RPC2_EAI_BADFLAGS;
 #endif
 
