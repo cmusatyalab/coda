@@ -173,12 +173,6 @@ extern "C" {
 #define	VIOC_ADAPTIVE		_VICEIOCTL(CFS_IOCTL_BASE + 49)	/* Allow bandwidth adaptation driven connectivity */
 #define	VIOC_LISTCACHE		_VICEIOCTL(CFS_IOCTL_BASE + 50)	/* List cache status */
 #define	VIOC_GET_MT_PT		_VICEIOCTL(CFS_IOCTL_BASE + 51)	/* Get mount point path from volume id */
-#define VIOC_BEGINWB            _VICEIOCTL(CFS_IOCTL_BASE + 200) /* start writeback from volume id */
-#define VIOC_ENDWB              _VICEIOCTL(CFS_IOCTL_BASE + 201) /* end writeback from volume id */
-#define VIOC_STATUSWB           _VICEIOCTL(CFS_IOCTL_BASE + 202) /* fetch status from volume id */
-#define VIOC_AUTOWB             _VICEIOCTL(CFS_IOCTL_BASE + 203) /* toggle autowriteback */
-#define VIOC_SYNCCACHE          _VICEIOCTL(CFS_IOCTL_BASE + 204) /* reintegrate now ! */
-#define VIOC_REDIR		_VICEIOCTL(CFS_IOCTL_BASE + 205) /* redirect volume traffic to a staging server */
 
 /*  The following change is made in order to reduce the number of
  * command codes for the local/global repair interface. We now use
@@ -206,6 +200,13 @@ extern "C" {
 #define REP_CMD_MIXED_VIEW	11
 
 #define VIOC_UNLOADKERNEL       _VICEIOCTL(CFS_IOCTL_BASE + 53) /* Unload kernel module, only Win9x so far */
+#define VIOC_BEGINWB            _VICEIOCTL(CFS_IOCTL_BASE + 200) /* start writeback from volume id */
+#define VIOC_ENDWB              _VICEIOCTL(CFS_IOCTL_BASE + 201) /* end writeback from volume id */
+#define VIOC_STATUSWB           _VICEIOCTL(CFS_IOCTL_BASE + 202) /* fetch status from volume id */
+#define VIOC_AUTOWB             _VICEIOCTL(CFS_IOCTL_BASE + 203) /* toggle autowriteback */
+#define VIOC_SYNCCACHE          _VICEIOCTL(CFS_IOCTL_BASE + 204) /* reintegrate now ! */
+#define VIOC_REDIR		_VICEIOCTL(CFS_IOCTL_BASE + 205) /* redirect volume traffic to a staging server */
+#define	VIOC_ADD_MT_PT		_VICEIOCTL(CFS_IOCTL_BASE + 206) /* Add mount point */
 
 #endif /* _VENUS_IOCTL_H_ */
 

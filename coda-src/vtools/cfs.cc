@@ -1953,7 +1953,8 @@ static void LsMount (int argc, char *argv[], int opslot)
 static void MkMount (int argc, char *argv[], int opslot)
 {
     int rc;
-    char *vol, *dir;
+    struct ViceIoctl vio;
+    char *dir, *entry, *vol;
     char buf[MAXPATHLEN+2];
 
     switch (argc)
@@ -1963,8 +1964,21 @@ static void MkMount (int argc, char *argv[], int opslot)
         default: printf("Usage: %s\n", cmdarray[opslot].usetxt); exit(-1);
         }
 
-    sprintf(buf, "#%s.", vol);
-    rc = symlink(buf, dir);
+    entry = strrchr(dir, '/');
+    if (!entry) {
+	entry = dir;
+	dir = ".";
+    } else {
+	*entry = '\0';
+	entry++;
+    }
+
+    sprintf(buf, "%s/%s", entry, vol);
+    vio.in_size = strlen(entry) + strlen(vol) + 2;
+    vio.in = buf;
+    vio.out_size = 0;
+    vio.out = 0;
+    rc = pioctl(dir, VIOC_ADD_MT_PT, &vio, 1);
     if (rc < 0) { PERROR(dir); exit(-1); }
     }
 

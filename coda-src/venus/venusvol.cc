@@ -560,25 +560,32 @@ int vdb::Get(volent **vpp, Volid *volid)
 
 /* MUST NOT be called from within transaction! */
 /* This call ALWAYS goes through to servers! */
-int vdb::Get(volent **vpp, Realm *realm, const char *name)
+int vdb::Get(volent **vpp, Realm *prealm, const char *name)
 {
     int code = 0;
     volent *v = NULL;
     char *realm_name = NULL;
+    Realm *realm;
     char *volname = strdup(name), *name2 = NULL;
     CODA_ASSERT(volname);
-
-    realm->GetRef();
 
     SplitRealmFromName(volname, &realm_name);
 
     if (realm_name) {
-	realm->PutRef();
 	realm = REALMDB->GetRealm(realm_name);
 	CODA_ASSERT(realm);
+    } else {
+	realm = prealm;
+	realm->GetRef();
     }
 
     if (volname[0] == '\0') {
+	/* never mount a realm's rootvolume within the realm itself! */
+	if (realm == prealm) {
+	    code = ELOOP;
+	    goto error_exit;
+	}
+
 	name2 = volname;
 	volname = (char *)malloc(V_MAXVOLNAMELEN);
 	CODA_ASSERT(volname);

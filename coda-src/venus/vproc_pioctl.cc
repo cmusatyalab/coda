@@ -84,6 +84,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 	case VIOCGETAL:
 	case VIOCFLUSH:
 	case VIOCPREFETCH:
+	case VIOC_ADD_MT_PT:
 	case VIOC_AFS_DELETE_MT_PT:
 	case VIOC_AFS_STAT_MT_PT:
         case VIOC_GETPFID:
@@ -91,13 +92,18 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 	    {
 	    fsobj *f = 0;
 
-	    int volmode = ((com == VIOCSETAL || com == VIOC_AFS_DELETE_MT_PT ||
-			    com == VIOC_SETVV) ? VM_MUTATING : VM_OBSERVING);
+	    int volmode = (com == VIOCSETAL || com == VIOC_ADD_MT_PT ||
+			    com == VIOC_AFS_DELETE_MT_PT || com == VIOC_SETVV) ?
+			   VM_MUTATING : VM_OBSERVING;
+	    int rcrights = RC_STATUS;
+	    if (com == VIOC_ADD_MT_PT || com == VIOC_AFS_DELETE_MT_PT)
+		rcrights |= RC_DATA;
+
 	    for (;;) {
 		Begin_VFS(fid, CODA_IOCTL, volmode);
 		if (u.u_error) break;
 
-		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), RC_STATUS);
+		u.u_error = FSDB->Get(&f, fid, CRTORUID(u.u_cred), rcrights);
 		if (u.u_error) goto O_FreeLocks;
 
 		switch(com) {
@@ -201,6 +207,84 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			break;
 			}
 
+		    case VIOC_ADD_MT_PT:
+			{
+			/* A mount-link is virtually identical to a symlink.
+			 * In fact Coda stores mount-links as symlinks on the
+			 * server. The only visible differences are that the
+			 * mount-link has a Unix modemask of 0644, while a
+			 * symlink has 0755. And a mountpoint's contents always
+			 * start with '#', '@' (or '%'?)
+			 *
+			 * This code is almost identical to vproc::symlink in
+			 * vproc_vfscalls. -JH
+			 */
+			fsobj *target_fso = NULL;
+			char contents[CODA_MAXNAMLEN+1];
+			char *link_name = (char *) data->in;
+			char *arg = strchr(link_name, '/');
+
+			if (!arg) { u.u_error = EINVAL; break; };
+			*arg = '\0'; arg++;
+
+			/* Disallow special names. */
+			verifyname(link_name, NAME_NO_DOTS | NAME_NO_CONFLICT |
+				   NAME_NO_EXPANSION);
+                        if (u.u_error) break;
+
+			/* Verify that parent is a directory. */
+			if (!f->IsDir()) { u.u_error = ENOTDIR; break; }
+
+			/* Verify that the target doesn't exist. */
+			u.u_error = f->Lookup(&target_fso, 0, link_name, CRTORUID(u.u_cred), CLU_CASE_SENSITIVE);
+			FSDB->Put(&target_fso);
+			if (u.u_error == 0) { u.u_error = EEXIST; break; }
+			if (u.u_error != ENOENT) { break; }
+			u.u_error = 0;
+
+			/* Verify that we have insert permission. */
+			u.u_error = f->Access((long)PRSFS_INSERT, 0, CRTORUID(u.u_cred));
+			if (u.u_error) { break; }
+
+			/*
+			 * Regular mount-links start with a '@', optionally
+			 * followed by a volume name (GetRootVolume is used in
+			 * case the volume name is not specified), optionally
+			 * followed by '@' and a realm/domain name (the realm
+			 * of the parent volume is used if this is not
+			 * specified), and end with a single '.'.
+			 *
+			 * The ending character doesn't seem too important, it
+			 * looks like the '.' was added mostly because of the
+			 * buggy implementation of TryToCover which strips the
+			 * last character of the volume name.
+			 *
+			 * There are references in the code that indicate there
+			 * used to be mount-links that started with '%'. I
+			 * don't know what they were used for.
+			 *
+			 * Internally, Venus creates mount-links starting with
+			 * '@', followed by a Fid (volume.vnode.unique),
+			 * optionally followed by '@' and a realm/domain name.
+			 * These are used for conflicts and during repair to
+			 * mount a specific object in the fake repair volume.
+			 *
+			 * -JH
+			 */
+			/* make it a 'magic' mount name */
+			snprintf(contents, CODA_MAXNAMLEN,  "#%s.", arg);
+			contents[CODA_MAXNAMLEN] = '\0';
+
+			/* Do the operation. */
+			f->PromoteLock();
+			u.u_error = f->Symlink(contents, link_name,
+					       CRTORUID(u.u_cred), 0644,
+					       FSDB->StdPri());
+			if (u.u_error) { break; }
+			/* set vattr fields? */
+			break;
+			}
+
 		    case VIOC_AFS_DELETE_MT_PT:
 			{
 			fsobj *target_fso = 0;
@@ -247,7 +331,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned int com, struct ViceIoctl *data) {
 			/* Do the remove. */
 			f->PromoteLock();
 			target_fso->PromoteLock();
-			u.u_error = f->Remove((char *)(char *) data->in, target_fso, CRTORUID(u.u_cred));
+			u.u_error = f->Remove(target_name, target_fso, CRTORUID(u.u_cred));
 			k_Purge(&target_fso->fid, 1);
 
 

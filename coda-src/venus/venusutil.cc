@@ -336,6 +336,7 @@ char *IoctlOpStr(int opcode) {
 	case VIOCFLUSHCB:	    return("Flush CB");
 	case VIOCNEWCELL:	    return("New Cell");
 	case VIOCGETCELL:	    return("Get Cell");
+	case VIOC_ADD_MT_PT:	    return("Add Mount Point");
 	case VIOC_AFS_DELETE_MT_PT: return("[AFS] Delete Mount Point");
 	case VIOC_AFS_STAT_MT_PT:   return("[AFS] Stat Mount Point");
 	case VIOC_FILE_CELL_NAME:   return("File Cell Name");

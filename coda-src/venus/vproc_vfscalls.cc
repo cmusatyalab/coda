@@ -1298,14 +1298,9 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
-	unsigned short Mode;
-	Mode = ((contents[0] == '%' || contents[0] == '#' || contents[0] == '@') &&
-		(contents[strlen(contents) - 1] == '.'))
-	  ? 0644		/* mount point */
-	  : 0755;		/* real symbolic link */
 	parent_fso->PromoteLock();
 	u.u_error = parent_fso->Symlink(contents, name, CRTORUID(u.u_cred),
-					Mode, FSDB->StdPri());
+					0755, FSDB->StdPri());
 	if (u.u_error) goto FreeLocks;
 
 	/* Set vattr fields? */
