@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.4 1998/01/08 13:32:26 satya Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.5 1998/04/14 20:59:46 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -66,6 +66,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <ctype.h>
 #include <sys/param.h>
 #include <string.h>
+
 #include "rp2.h"
 #define _PAD(n)((((n)-1) | 3) + 1)
 
@@ -147,7 +148,8 @@ char *MultiTypes[] = {	"RPC2_INTEGER_TAG",
 			"RPC2_BULKDESCRIPTOR_TAG",
 			"RPC2_ENCRYPTIONKEY_TAG",
 			"RPC2_STRUCT_TAG",
-			"RPC2_ENUM_TAG"
+			"RPC2_ENUM_TAG",
+			"RPC2_DOUBLE_TAG"
 };
 
 cinclude(filename, who, where)
@@ -191,7 +193,6 @@ cdefine(id, value, who, where)
 {
     fprintf(where, "#define %s\t%s\n", id, value);
 }
-
 ctype(e, who, where)
     register ENTRY *e;
     WHO who;
@@ -210,15 +211,16 @@ ctype(e, who, where)
 static rp2_bool legal_struct_fields[] = {
 
 	/* RPC2_Integer */		RP2_TRUE,
-	/* RPC2_Unsigned */		RP2_TRUE,
-	/* RPC2_Byte */			RP2_TRUE,
+	/* RPC2_Unsigned */	RP2_TRUE,
+	/* RPC2_Byte */		RP2_TRUE,
 	/* RPC2_String */		RP2_TRUE,	/* Untested */
-	/* RPC2_CountedBS */		RP2_TRUE, /* Untested */
-	/* RPC2_BoundedBS */		RP2_TRUE, 
+	/* RPC2_CountedBS */	RP2_TRUE, /* Untested */
+	/* RPC2_BoundedBS */	RP2_TRUE, 
 	/* RPC2_BulkDescriptor */	RP2_FALSE,  /* Untested */
 	/* RPC2_EncryptionKey */	RP2_TRUE,   /* Untested */
 	/* RPC2_Struct */		RP2_TRUE,
-	/* RPC2_Enum */			RP2_TRUE
+	/* RPC2_Enum */		RP2_TRUE,
+	/* RPC2_Double */		RP2_TRUE
 };
 
 static print_type(t, where, name)
@@ -234,7 +236,8 @@ static print_type(t, where, name)
 	case RPC2_COUNTEDBS_TAG:
 	case RPC2_BOUNDEDBS_TAG:
 	case RPC2_BULKDESCRIPTOR_TAG:
-	case RPC2_ENCRYPTIONKEY_TAG:	printf("RP2GEN [can't happen]: impossible type in PRINT_TYPE: %d\n", t->tag);
+	case RPC2_ENCRYPTIONKEY_TAG:
+	case RPC2_DOUBLE_TAG: printf("RP2GEN [can't happen]: impossible type in PRINT_TYPE: %d\n", t->tag);
 					abort();
 	case RPC2_STRUCT_TAG:		{
 					    register VAR **v;
@@ -440,21 +443,11 @@ static locals(where)
 static common(where)
     register FILE *where;
 {
-    if (strictproto) {
 	fputs("\n#ifdef __cplusplus\nextern \"C\" {\n#endif __cplusplus\n", where);
 	fputs("\n#include <sys/types.h>\n#include <netinet/in.h>\n#include <sys/time.h>\n", where);
 	fputs("#include <string.h>\n", where);
-	fputs("#ifdef __MACH__\n#include <sysent.h>\n#include <libc.h>\n#endif /* __MACH__ */\n", where);
-	fputs("#ifndef __MACH__\n#include <unistd.h>\n#include <stdlib.h>\n#endif /*__BSD44__*/\n", where);
+	fputs("#include <unistd.h>\n#include <stdlib.h>\n\n", where);
 	fputs("\n#ifdef __cplusplus\n}\n#endif __cplusplus\n", where);
-    }
-    else {
-	fputs("\n#include <sys/types.h>\n#include <netinet/in.h>\n#include <sys/time.h>\n", where);
-	fputs("\nextern char *strcpy();", where);
-	fputs("\nextern int bcopy(), strlen();", where);
-	fputs("\nextern char *malloc();", where);
-	fputs("\nextern int free();\n", where);
-    }
 
     fputs("\n#define _PAD(n)\t((((n)-1) | 3) + 1)\n", where);
 
@@ -548,15 +541,16 @@ static int deref_table[][4] = {
 
 				  /* NONE */ /* IN */ /* OUT */ /* IN OUT */
 	/* RPC2_Integer */	{	-2,	0,	1,	1 },
-	/* RPC2_Unsigned */	{	-2,	0,	1,	1 },
-	/* RPC2_Byte */		{	-2,	0,	1,	1 },
+	/* RPC2_Unsigned */{	-2,	0,	1,	1 },
+	/* RPC2_Byte */	{	-2,	0,	1,	1 },
 	/* RPC2_String */	{	-2,	0,	1,	0 },  /* changed OUT from -1 to 1 */
-	/* RPC2_CountedBS */	{	-2,	1,	1,	1 },  /* changed OUT from -1 to 1 */
-	/* RPC2_BoundedBS */	{	-2,	1,	1,	1 },  /* changed OUT from -1 to 1 */
+	/* RPC2_CountedBS */{	-2,	1,	1,	1 },  /* changed OUT from -1 to 1 */
+	/* RPC2_BoundedBS */{	-2,	1,	1,	1 },  /* changed OUT from -1 to 1 */
 	/* RPC2_BulkDescriptor*/{	-2,	-1,	-1,	1 },
 	/* RPC2_EncryptionKey */{	-2,	0,	1,	1 },
 	/* RPC2_Struct */	{	-2,	1,	1,	1 },
-	/* RPC2_Enum */		{	-2,	0,	1,	1 }
+	/* RPC2_Enum */		{	-2,	0,	1,	1 },
+	/* RPC2_Double */	{	-2,	0,	1,	1 }
 };
 
 static spit_parm(parm, who, where, header)
@@ -711,6 +705,9 @@ static spit_body(proc, in_parms, out_parms, where)
 	fprintf(where, "\n    /* Pack arguments */\n    %s = %s->Body;\n", ptr, reqbuffer);
 	for (parm=proc->formals; *parm!=NIL; parm++)
 	    if ((*parm)->mode != OUT_MODE) pack(CLIENT, *parm, "", ptr, where);
+    } else {
+	/* Reference _ptr to avoid compiler warning in stub */
+        fprintf (where, "\n    %s = 0; /* This avoids compiler warning */\n", ptr); 
     }
 
     /* Generate RPC2 call */
@@ -855,6 +852,8 @@ static print_size(who, parm, prefix, where)
 	case RPC2_UNSIGNED_TAG:
 	case RPC2_ENUM_TAG:		fputc('4', where);
 					break;
+	case RPC2_DOUBLE_TAG:		fputc('8', where);
+					break;
 	case RPC2_STRING_TAG:		fprintf(where, "4+_PAD(strlen((char *)%s)+1)", name);
 					break;
 	case RPC2_COUNTEDBS_TAG:	fputs("4+_PAD(", where);
@@ -909,6 +908,13 @@ static inc4(what, where)
     FILE *where;
 {
     fprintf(where, "    %s += 4;\n", what);
+}
+
+static inc8(what, where)
+    char *what;
+    FILE *where;
+{
+    fprintf(where, "    %s += 8;\n", what);
 }
 
 static set_timeout(proc, where)
@@ -970,6 +976,11 @@ static pack(who, parm, prefix, ptr, where)
 					if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
 					fprintf(where, "%s);\n", name);
 					inc4(ptr, where);
+					break;
+	case RPC2_DOUBLE_TAG:		fprintf(where, "    *(RPC2_Double *) %s = ", ptr);
+					if (who == CLIENT && mode == IN_OUT_MODE) fputc('*', where);
+					fprintf(where, "%s;\n", name);
+					inc8(ptr, where);
 					break;
 	case RPC2_STRING_TAG:		fprintf(where, "    %s = strlen((char *)%s);\n", length, name);
 					fprintf(where, "    *(RPC2_Integer *) %s = htonl(%s);\n", ptr, length);
@@ -1076,6 +1087,11 @@ static unpack(who, parm, prefix, ptr, where)
 					fprintf(where, "%s = (%s) ntohl(*(RPC2_Integer *) %s);\n",
 						name, parm->type->name, ptr);
 					inc4(ptr, where);
+					break;
+	case RPC2_DOUBLE_TAG:		fputs("    ", where);
+					if (mode != NO_MODE && who == CLIENT) fputc('*', where);
+						fprintf(where, "%s = *(RPC2_Double *) %s;\n", name, ptr);
+					inc8(ptr, where);
 					break;
 	case RPC2_STRING_TAG:		/* 1st get length */
 					fprintf(where, "    %s = ntohl(*(RPC2_Integer *) %s) + 1;\n", length, ptr);
@@ -1297,6 +1313,9 @@ static one_server_proc(proc, where)
 		    unpack(SERVER, *formals, "", ptr, where);
 		}
 	    }
+    } else {
+	/* Refetence _ptr to avoid compiler warning in stub */
+        fprintf (where, "\n    %s = 0; /* This avoids compiler warning */\n", ptr); 
     }
 
     /* Call the user's routine */
@@ -1417,7 +1436,8 @@ static pass_parm(parm, where)
 	case RPC2_BYTE_TAG:
 	case RPC2_INTEGER_TAG:
 	case RPC2_UNSIGNED_TAG:
-	case RPC2_ENUM_TAG:		if (parm->type->bound == NIL && (mode == OUT_MODE || mode == IN_OUT_MODE))
+	case RPC2_ENUM_TAG:
+	case RPC2_DOUBLE_TAG:		if (parm->type->bound == NIL && (mode == OUT_MODE || mode == IN_OUT_MODE))
 					    fputc('&', where);
 					fputs(parm->name, where);
 					break;
@@ -1450,7 +1470,7 @@ static execute(head, where)
     extern char *copy();
     int sawnewconn;
 
-    fprintf(where, "\n%s_ExecuteRequest(RPC2_Handle %s, RPC2_PacketBuffer *%s, SE_Descriptor *%s)\n", subsystem.subsystem_name, cid, reqbuffer, bd);
+    fprintf(where, "\nint %s_ExecuteRequest(RPC2_Handle %s, RPC2_PacketBuffer *%s, SE_Descriptor *%s)\n", subsystem.subsystem_name, cid, reqbuffer, bd);
 
     /* Body of routine */
     fprintf(where, "{\n    RPC2_PacketBuffer *%s;\n    long %s;\n", rspbuffer, rpc2val);
@@ -1573,6 +1593,8 @@ static pr_size(parm, where, TOP, proc, arg)
 	case RPC2_INTEGER_TAG:
 	case RPC2_UNSIGNED_TAG:
 	case RPC2_ENUM_TAG:		fputc('4', where);
+					break;
+	case RPC2_DOUBLE_TAG:		fputc('8', where);
 					break;
 	case RPC2_STRING_TAG:
 	case RPC2_COUNTEDBS_TAG:

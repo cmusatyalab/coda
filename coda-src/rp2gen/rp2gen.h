@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rp2gen/rp2gen.h,v 1.1 1996/11/22 19:08:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2gen.h,v 4.1 1997/01/08 21:50:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,6 +63,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 typedef int RPC2_Integer;
 
 typedef unsigned int RPC2_Unsigned;
+
+typedef double RPC2_Double;
 
 typedef unsigned char RPC2_Byte;
 
