@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.cc,v 4.8 1998/10/30 18:29:49 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/res/rescomm.cc,v 4.9 98/11/02 16:45:08 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,6 +55,7 @@ extern "C" {
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include <lwp.h>
 #include <rpc2.h>
@@ -180,6 +181,8 @@ res_mgrpent::~res_mgrpent() {
 int res_mgrpent::CreateMember(unsigned long host) {
     int i;
 
+    CODA_ASSERT (host != 0);
+
     /* Don't re-create members that already exist. */
     LogMsg(20, SrvDebugLevel, stdout,  "res_mgrepent::CreateMember(%x)", host);
     for (i = 0; i < VSG_MEMBERS; i++)
@@ -189,7 +192,10 @@ int res_mgrpent::CreateMember(unsigned long host) {
     for (i = 0; i < VSG_MEMBERS; i++)
 	if (Hosts[i] == host) break;
     if (i == VSG_MEMBERS) 
+    {
 	LogMsg(0, SrvDebugLevel, stdout, "res_mgrpent::CreateMember: no host (%x)", host);
+	CODA_ASSERT(0);
+    }
     
     int code = 0;
     
@@ -455,9 +461,9 @@ int srvent::Connect(RPC2_Handle *cidp, int Force) {
 	/* do the bind */
 	RPC2_HostIdent hid;
 	hid.Tag = RPC2_HOSTBYINETADDR;
-	hid.Value.InetAddress = htonl(host);
-	RPC2_PortalIdent pid;
-	pid.Tag = RPC2_PORTALBYNAME;
+	hid.Value.InetAddress.s_addr = htonl(host);
+	RPC2_PortIdent pid;
+	pid.Tag = RPC2_PORTBYNAME;
 	strcpy(pid.Value.Name, "codasrv");
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
@@ -671,11 +677,12 @@ conninfo::conninfo(RPC2_Handle rpcid, int sl) {
 
     CODA_ASSERT(RPC2_GetPeerInfo(rpcid, &peer) == RPC2_SUCCESS);
     CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
-    CODA_ASSERT(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
-    RemoteAddr = peer.RemoteHost.Value.InetAddress;
-    RemotePortNum = peer.RemotePortal.Value.InetPortNumber;
-    LogMsg(100, SrvDebugLevel, stdout,  "conninfo: remote host = %x.%x", 
-	     RemoteAddr, RemotePortNum);
+    CODA_ASSERT(peer.RemotePort.Tag == RPC2_PORTBYINETNUMBER);
+    RemoteAddr = peer.RemoteHost.Value.InetAddress.s_addr;
+    RemotePortNum = peer.RemotePort.Value.InetPortNumber;
+    LogMsg(100, SrvDebugLevel, stdout,  "conninfo: remote host = %s.%x", 
+	     inet_ntoa(peer.RemoteHost.Value.InetAddress),
+	     RemotePortNum);
 }
 
 conninfo::~conninfo() {

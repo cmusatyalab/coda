@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.25 1998/10/30 18:29:58 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/srv.cc,v 4.26 98/11/02 16:46:43 rvb Exp $";
 #endif /*_BLURB_*/
 
 /*
@@ -178,7 +178,7 @@ int large = 500;		/* control size of lru cache for large vnode */
 int small = 500;		/* control size of lru cache for small vnodes */
 
 extern char *SmonHost;
-extern int SmonPortal; 
+extern int SmonPort; 
 
 #ifdef PERFORMANCE
 /* added array of thread id's for thread_info, Puneet */
@@ -352,7 +352,7 @@ main(int argc, char *argv[])
     FILE   *file;
     struct stat buff;
     PROCESS parentPid, serverPid, resPid, smonPid, resworkerPid;
-    RPC2_PortalIdent portal1, *portallist[1];
+    RPC2_PortIdent port1, *portlist[1];
     RPC2_SubsysIdent server;
     SFTP_Initializer sei;
     ProgramType *pt;
@@ -367,7 +367,7 @@ main(int argc, char *argv[])
 	SLog(0, "[-noauth] [-forcesalvage] [-quicksalvage]");
 	SLog(0, "[-cp (connections in process)] [-cm (connections max)");
 	SLog(0, "[-cam] [-nc] [-rvm logdevice datadevice length] [-nores] [-trunc percent]");
-	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondportal portalnumber]");
+	SLog(0, " [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] [-mondhost hostname] [-mondport portnumber]");
 	SLog(0, "[-debarrenize] [-optstore]");
 	SLog(0, " [-rvmopt] [-newchecklevel checklevel] [-canonicalize] [-usenscclock");
 
@@ -461,26 +461,26 @@ main(int argc, char *argv[])
 
 #ifdef __CYGWIN32__
 	/* XXX -JJK */
-	portal1.Tag = RPC2_PORTALBYINETNUMBER;
-	portal1.Value.InetPortNumber = htons(PORT_codasrv);
+	port1.Tag = RPC2_PORTBYINETNUMBER;
+	port1.Value.InetPortNumber = htons(PORT_codasrv);
 #else
-    portal1.Tag = RPC2_PORTALBYNAME;
-    strcpy(portal1.Value.Name, "codasrv");
+    port1.Tag = RPC2_PORTBYNAME;
+    strcpy(port1.Value.Name, "codasrv");
 #endif
-    portallist[0] = &portal1;
+    portlist[0] = &port1;
 
     SFTP_SetDefaults(&sei);
     /* set optimal window size and send ahead parameters */
     sei.WindowSize = SrvWindowSize;
     sei.AckPoint = sei.SendAhead = SrvSendAhead;
     sei.EnforceQuota = 1;
-    sei.Portal.Tag = RPC2_PORTALBYINETNUMBER;
-    sei.Portal.Value.InetPortNumber = htons(PORT_codasrvse);
+    sei.Port.Tag = RPC2_PORTBYINETNUMBER;
+    sei.Port.Value.InetPortNumber = htons(PORT_codasrvse);
     SFTP_Activate(&sei);
     struct timeval to;
     to.tv_sec = timeout;
     to.tv_usec = 0;
-    CODA_ASSERT(RPC2_Init(RPC2_VERSION, 0, &portal1, retrycnt, &to) == RPC2_SUCCESS);
+    CODA_ASSERT(RPC2_Init(RPC2_VERSION, 0, &port1, retrycnt, &to) == RPC2_SUCCESS);
     RPC2_InitTraceBuffer(trace);
     RPC2_Trace = trace;
 
@@ -1501,8 +1501,8 @@ static int ParseArgs(int argc, char *argv[])
 		SmonHost = argv[++i];
 	    }
 	else
-	    if (!strcmp(argv[i], "-mondportal")) {
-		SmonPortal = atoi(argv[++i]);
+	    if (!strcmp(argv[i], "-mondport")) {
+		SmonPort = atoi(argv[++i]);
 	    }
 	else 
 	    if (!strcmp(argv[i], "-debarrenize")) {

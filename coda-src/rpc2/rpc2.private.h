@@ -55,6 +55,11 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 
+#include <netinet/in.h>
+#include <signal.h>
+#include "coda_assert.h"
+#include "dllist.h"
+
 #define bool long
 
 
@@ -111,6 +116,11 @@ OBJ_HENTRY = 48127
 #define O_BINARY 0
 #endif
 
+/* MINRTO/MAXRTO are used to avoid unbounded timeouts */
+#define RPC2_MINRTO   10000        /* min rto (rtt + variance) is 10 msec */
+#define RPC2_MAXRTO   30000000     /* max rto (rtt + variance) is 30 seconds */
+#define UNSET_BW ((unsigned long)-1)
+
 /* Definitions for Flags field of connections */
 #define CE_OLDV  0x1  /* old version detected during bind */
 
@@ -132,6 +142,8 @@ struct CEntry		/* describes a single RPC connection */
     enum {OBJ_CENTRY = 868} MagicNumber;
     struct CEntry *Qname;
 
+    struct dllist_head Chain;
+
     /* State, identity  and sequencing */
     long State;
     RPC2_Handle UniqueCID;
@@ -145,11 +157,13 @@ struct CEntry		/* describes a single RPC connection */
     RPC2_Integer EncryptionType;
 
     /* PeerInfo */
-    RPC2_Handle PeerHandle;	/* peer's connection ID */
-    RPC2_HostIdent PeerHost;	/* Internet or other address */
-    RPC2_PortalIdent PeerPortal;	/* Internet port or other portal */
-    RPC2_Integer PeerUnique;	/* Unique integer used in Init1 bind request from peer */
-    struct HEntry *HostInfo;	/* Link to host table and liveness information */
+    RPC2_Handle      PeerHandle; /* peer's connection ID */
+    RPC2_HostIdent   PeerHost;	 /* Internet or other address */
+    RPC2_PortIdent   PeerPort; /* Internet port or other portal */
+    RPC2_Integer     PeerUnique; /* Unique integer used in Init1 bind request
+				    from peer */
+    struct HEntry *HostInfo;	 /* Link to host table and liveness
+				    information */
 
     /* Auxiliary stuff */
     struct SE_Definition *SEProcs;	/* pointer to  side effect routines */
@@ -171,12 +185,9 @@ struct CEntry		/* describes a single RPC connection */
 #define LOWERLIMIT 300000               /* floor on lower limit, usec. */
     unsigned long LowerLimit;           /* minimum retry interval, usec */
 
-#define RPC2_RTT_SHIFT 3                /* Bits to right of binary point of RTT */
     long RTT;                           /* Smoothed RTT estimate, 1msec units. */
 #define TimeStampEcho RTT           	/* If Role == SERVER, cannabalize for 
 					   rpc timing */
-#define RPC2_RTTVAR_SCALE 4             /* Scale of stored RTTVar (alpha = .75) */
-#define RPC2_RTTVAR_SHIFT 2             /* Bits to right of binary point of RTTVar */
     long RTTVar;                        /* Variance of RTT, 1msec units. */
 #define RequestTime RTTVar              /* If Role == SERVER, cannabalize for
 					   rpc timing */
@@ -198,7 +209,7 @@ struct MEntry			/* describes an RPC multicast connection */
     /* Multicast Group Connection info */
     RPC2_Integer	    State;	    /* eg {C,S}_AWAITREQUEST */
     RPC2_HostIdent	    ClientHost;	    /* |		*/
-    RPC2_PortalIdent	    ClientPortal;   /* | Unique ID	*/
+    RPC2_PortIdent	    ClientPort;     /* | Unique ID	*/
     RPC2_Handle		    MgroupID;	    /* |		*/
     RPC2_Integer	    NextSeqNumber;  /* for mgrp connection */
     RPC2_Integer	    SubsysId;
@@ -232,7 +243,7 @@ struct MEntry			/* describes an RPC multicast connection */
 
     /* Other information - Only needed by client */
     RPC2_HostIdent	    IPMHost;	    /* IP Multicast Host Address */
-    RPC2_PortalIdent	    IPMPortal;	    /* IP Multicast Portal Number */
+    RPC2_PortIdent	    IPMPort;	    /* IP Multicast Port Number */
     RPC2_PacketBuffer	    *CurrentPacket; /* current multicast packet */
 	};
 
@@ -311,17 +322,28 @@ struct HEntry {
 		     MagicNumber;
     struct HEntry    *Qname;	/* LinkEntry field */
     struct HEntry    *HLink;	/* for host hash */
-    unsigned long    Host;      /* IP address */
-    unsigned short   Portal;	/* Internet port number */
-    HEType	     Type; 	/* what sort of thing is at the other end */
-    struct timeval   LastWord;	/* Most recent time we've heard from this host, portal */
+    struct in_addr   Host;      /* IP address */
+    struct timeval   LastWord;	/* Most recent time we've heard from this host*/
 
     RPC2_NetLogEntry Log[RPC2_MAXLOGLENGTH];
-                                /* circular buffer for recent observations on latency
-				   (round trip times) if an RPC portal, or bandwidth
-				   (file transfer times) if an SFTP portal */
+				/* circular buffer for recent observations on
+				   round trip times and packet sizes */
     unsigned NumEntries;	/* number of observations recorded */
-    };
+
+#define RPC2_RTT_SHIFT    3     /* Bits to right of binary point of RTT */
+#define RPC2_RTTVAR_SHIFT 2     /* Bits to right of binary point of RTTVar */
+    unsigned long   RTT;	/* RTT          (us<<RPC2_RTT_SHIFT) */
+    unsigned long   RTTVar;	/* RTT variance (us<<RPC2_RTTVAR_SHIFT) */
+
+#define RPC2_BW_SHIFT    3
+#define RPC2_BWVAR_SHIFT 2
+    unsigned long   BW;		/* BW          (B/s<<RPC2_BW_SHIFT) */
+    unsigned long   BWVar;	/* BW variance (B/s<<RPC2_BWVAR_SHIFT) */
+
+#define AVG_SHIFT 2
+    unsigned long   LastBytes;	/* last packet size */
+    struct timeval  LastTime;	/* last transfer elapsed time */
+};
 
 
 /*-------------- Format of special packets ----------------*/
@@ -332,8 +354,8 @@ struct Init1Body			/* Client to Server: format of packets with opcode of RPC2_IN
     {
     RPC2_NewConnectionBody FakeBody;	/* body of fake packet from RPC2_GetRequest() */
     RPC2_Integer XRandom;		/* encrypted random number */
-    RPC2_HostIdent SenderHost;
-    RPC2_PortalIdent SenderPortal;
+    RPC2_HostIdent   SenderHost;   /* XXX backward compatibility, only sent */
+    RPC2_PortIdent   SenderPort;   /* XXX backward compatibility, only sent */
     RPC2_Integer Uniquefier;		/* to allow detection of retransmissions */
     RPC2_Integer Spare1;
     RPC2_Integer Spare2;
@@ -431,8 +453,8 @@ extern long rpc2_HostFreeCount, rpc2_HostCount, rpc2_HostCreationCount;
 /*------------- Miscellaneous  global data  ------------*/
 extern long rpc2_RequestSocket;	/* fd of RPC socket  */
 				/* we may need more when we deal with many domains */
-extern RPC2_PortalIdent rpc2_LocalPortal;	/* of rpc2_RequestSocket */
-extern RPC2_HostIdent   rpc2_LocalHost;		/* of rpc2_RequestSocket */
+extern RPC2_PortIdent   rpc2_LocalPort;	/* of rpc2_RequestSocket */
+extern RPC2_HostIdent   rpc2_LocalHost;	/* of rpc2_RequestSocket */
 extern struct TM_Elem *rpc2_TimerQueue;
 extern struct CBUF_Header *rpc2_TraceBuffHeader;
 extern PROCESS rpc2_SocketListenerPID;	/* used in IOMGR_Cancel() calls */
@@ -440,87 +462,97 @@ extern unsigned long rpc2_LamportClock;
 extern struct timeval rpc2_InitTime;    /* base for timestamps */
 extern long Retry_N;
 extern struct timeval *Retry_Beta;
+#define MaxRetryInterval Retry_Beta[0]
 extern struct timeval SaveResponse;
 
 /* List manipulation routines */
-extern void rpc2_Replenish();
-extern struct LinkEntry *rpc2_MoveEntry();
-extern struct SL_Entry *rpc2_AllocSle();
-extern void rpc2_FreeSle(), rpc2_ActivateSle(), rpc2_DeactivateSle();
-extern struct SubsysEntry *rpc2_AllocSubsys();
-extern void rpc2_FreeSubsys();
+void rpc2_Replenish();
+struct LinkEntry *rpc2_MoveEntry();
+struct SL_Entry *rpc2_AllocSle();
+void rpc2_FreeSle(), rpc2_ActivateSle(), rpc2_DeactivateSle();
+struct SubsysEntry *rpc2_AllocSubsys();
+void rpc2_FreeSubsys();
 
 /* Socket creation */
-extern long rpc2_CreateIPSocket();
+long rpc2_CreateIPSocket();
 
 /* Packet  routines */
-extern long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
-extern void rpc2_XmitPacket(), rpc2_InitPacket();
-extern long  rpc2_RecvPacket();
-extern void rpc2_htonp(), rpc2_ntohp();
-extern long rpc2_SetRetry(), rpc2_CancelRetry();
-extern void rpc2_ResetLowerLimit();
-extern void rpc2_UpdateRTT(), rpc2_ResetObs();
-extern void rpc2_ProcessPackets(), rpc2_ExpireEvents();
+long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
+void rpc2_XmitPacket(long whichSocket, RPC2_PacketBuffer *whichPB,
+		     RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort);
+void rpc2_InitPacket();
+long rpc2_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichBuff);
+void rpc2_htonp(RPC2_PacketBuffer *p);
+void rpc2_ntohp(RPC2_PacketBuffer *p);
+long rpc2_SetRetry(), rpc2_CancelRetry();
+void rpc2_ResetLowerLimit();
+void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr);
+void rpc2_ResetObs();
+void rpc2_ProcessPackets(), rpc2_ExpireEvents();
 
 /* Connection manipulation routines  */
-extern void rpc2_InitConn(), rpc2_FreeConn(), rpc2_SetConnError();
-extern struct CEntry *rpc2_AllocConn();
+void rpc2_InitConn(), rpc2_FreeConn(), rpc2_SetConnError();
+struct CEntry *rpc2_AllocConn();
 struct CEntry *rpc2_FindCEAddr(RPC2_Handle whichHandle);
-struct CEntry *rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal, RPC2_Integer whichUnique);
+struct CEntry *rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, RPC2_Integer whichUnique);
 struct CEntry *rpc2_GetConn(RPC2_Handle handle);
-extern void rpc2_IncrementSeqNumber(struct CEntry *);
+void rpc2_IncrementSeqNumber(struct CEntry *);
 /*  XXX where is this baby extern bool rpc2_TestState(); */
 
 /* Host manipulation routines */
 void rpc2_InitHost(void);
-struct HEntry *rpc2_FindHEAddr(unsigned long whichHost, unsigned short whichPortal);
-struct HEntry *rpc2_FindHEAddrByType(unsigned long whichHost, HEType type);
-struct HEntry *rpc2_GetHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal);
-struct HEntry *rpc2_GetHostByType(RPC2_HostIdent *host, HEType type);
-struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal, HEType type);
-void rpc2_FreeHost(register struct HEntry **whichHost);
-void rpc2_GetHostLog(register struct HEntry *whichHost, RPC2_NetLog *log);
+struct HEntry *rpc2_FindHEAddr(struct in_addr *whichHost);
+struct HEntry *rpc2_GetHost(RPC2_HostIdent *host);
+struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host);
+void rpc2_FreeHost(struct HEntry **whichHost);
+void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log);
 int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry);
-void rpc2_ClearHostLog(register struct HEntry *whichHost);
+void rpc2_ClearHostLog(struct HEntry *whichHost);
+void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
+			  RPC2_Unsigned Bytes);
+void rpc2_UpdateEstimates(struct HEntry *whichHost, struct timeval *elapsed,
+			  RPC2_Unsigned Bytes);
+void rpc2_RetryInterval(struct HEntry *host, RPC2_Unsigned Bytes, int retry,
+			struct timeval *tv);
 
 /* Multicast group manipulation routines */
-extern void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), 
-	rpc2_DeleteMgrp();
-extern struct MEntry *rpc2_AllocMgrp(), *rpc2_GetMgrp();
+void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();
+struct MEntry *rpc2_AllocMgrp(), *rpc2_GetMgrp();
 
 /* Hold queue routines */
-extern void rpc2_HoldPacket(), rpc2_UnholdPacket();
+void rpc2_HoldPacket(), rpc2_UnholdPacket();
 
 /* Host manipulation routine */
-extern long rpc2_GetLocalHost();
+long rpc2_GetLocalHost();
 
 /* RPC2_GetRequest() filter matching function */
-extern bool rpc2_FilterMatch();
+bool rpc2_FilterMatch();
 
 /* Autonomous LWPs */
-extern void rpc2_SocketListener(), rpc2_ClockTick();
+void rpc2_SocketListener(), rpc2_ClockTick();
 
 /* Packet timestamp creation */
-extern unsigned long rpc2_MakeTimeStamp();
+unsigned long rpc2_TVTOTS(const struct timeval *tv);
+void          rpc2_TSTOTV(const long ts, struct timeval *tv);
+unsigned long rpc2_MakeTimeStamp();
 
 /* Debugging routines */
-extern void rpc2_PrintTMElem(), rpc2_PrintFilter(), rpc2_PrintSLEntry(),
+void rpc2_PrintTMElem(), rpc2_PrintFilter(), rpc2_PrintSLEntry(),
 	rpc2_PrintCEntry(), rpc2_PrintTraceElem(), rpc2_PrintPacketHeader(),
-	rpc2_PrintHostIdent(), rpc2_PrintPortalIdent(), rpc2_PrintSEDesc();
+	rpc2_PrintHostIdent(), rpc2_PrintPortIdent(), rpc2_PrintSEDesc();
 extern FILE *ErrorLogFile;
 
-extern void rpc2_InitRandom();
-extern long rpc2_TrueRandom();
+void rpc2_InitRandom();
+long rpc2_TrueRandom();
 
 /* encryption */
-void rpc2_ApplyD(register RPC2_PacketBuffer *pb, register struct CEntry *ce);
-void rpc2_ApplyE(register RPC2_PacketBuffer *pb, register struct CEntry *ce);
+void rpc2_ApplyD(RPC2_PacketBuffer *pb, struct CEntry *ce);
+void rpc2_ApplyE(RPC2_PacketBuffer *pb, struct CEntry *ce);
 
 int rpc2_time();
 long rpc2_InitRetry(long HowManyRetries, struct timeval *Beta0);
 
-void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal, 
+void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, 
 		 RPC2_Integer whichUnique, RPC2_Handle whichConn);
 
 
@@ -540,14 +572,14 @@ void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal,
 /* The lengths of the names really should be #defined. */
 #define rpc2_HostIdentEqual(_hi1p_,_hi2p_) \
 (((_hi1p_)->Tag == RPC2_HOSTBYINETADDR && (_hi2p_)->Tag == RPC2_HOSTBYINETADDR)? \
- ((_hi1p_)->Value.InetAddress == (_hi2p_)->Value.InetAddress): \
+ ((_hi1p_)->Value.InetAddress.s_addr == (_hi2p_)->Value.InetAddress.s_addr): \
  (((_hi1p_)->Tag == RPC2_HOSTBYNAME && (_hi2p_)->Tag == RPC2_HOSTBYNAME)? \
   (strncmp((_hi1p_)->Value.Name, (_hi2p_)->Value.Name, 64) == 0):0))
 
-#define rpc2_PortalIdentEqual(_pi1p_,_pi2p_) \
-(((_pi1p_)->Tag == RPC2_PORTALBYINETNUMBER && (_pi2p_)->Tag == RPC2_PORTALBYINETNUMBER)? \
+#define rpc2_PortIdentEqual(_pi1p_,_pi2p_) \
+(((_pi1p_)->Tag == RPC2_PORTBYINETNUMBER && (_pi2p_)->Tag == RPC2_PORTBYINETNUMBER)? \
  ((_pi1p_)->Value.InetPortNumber == (_pi2p_)->Value.InetPortNumber): \
- (((_pi1p_)->Tag == RPC2_PORTALBYNAME && (_pi2p_)->Tag == RPC2_PORTALBYNAME)? \
+ (((_pi1p_)->Tag == RPC2_PORTBYNAME && (_pi2p_)->Tag == RPC2_PORTBYNAME)? \
   (strncmp((_pi1p_)->Value.Name, (_pi2p_)->Value.Name, 20) == 0):0))
 
 
@@ -580,7 +612,7 @@ extern long rpc2_FreezeHWMark, rpc2_HoldHWMark;
 /* Conditional debugging output macros: no side effect in these! */
 extern FILE *rpc2_logfile;
 extern FILE *rpc2_tracefile;
-extern char *rpc2_timestring();
+char *rpc2_timestring();
 #ifdef RPC2DEBUG
 #define say(when, what, how...)\
     do { \
@@ -591,10 +623,6 @@ extern char *rpc2_timestring();
 #else 
 #define say(when, what, how)	
 #endif RPC2DEBUG
-
-#include <signal.h>
-#include "coda_assert.h"
-
 
 #ifndef TRUE
 #define TRUE 1
@@ -619,7 +647,7 @@ do {\
 do {\
     (top)->tv_sec += (fromp)->tv_sec;\
     (top)->tv_usec += (fromp)->tv_usec;\
-    if ((top)->tv_usec > 1000000)\
+    if ((top)->tv_usec >= 1000000)\
       { (top)->tv_sec++; (top)->tv_usec -= 1000000; }\
 } while(0);
 
@@ -632,6 +660,6 @@ do {\
 #define TSTOTV(_tvp_, _ts_)\
 do {\
     (_tvp_)->tv_sec = (_ts_) / 1000;\
-    (_tvp_)->tv_usec = ((_ts_) * 1000) % 1000000;\
+    (_tvp_)->tv_usec = ((_ts_) % 1000) * 1000;\
 } while(0);
 

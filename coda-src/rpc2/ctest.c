@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.5 1998/10/31 00:54:47 rnw Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ctest.c,v 4.6 98/11/02 16:45:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,6 +64,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/stat.h>
 #include <signal.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include "lwp.h"
 #include "timer.h"
 #include "rpc2.h"
@@ -83,8 +84,8 @@ void DoBinding(RPC2_Handle *cid);
 void PrintHelp(void);
 void PrintStats(void);
 void ClearStats(void);
-void GetPortal(    RPC2_PortalIdent *p);
-void GetWho(register RPC2_CountedBS *w, long s, RPC2_EncryptionKey e);
+void GetPort(    RPC2_PortIdent *p);
+void GetWho(RPC2_CountedBS *w, long s, RPC2_EncryptionKey e);
 
 extern struct SStats rpc2_Sent;
 extern struct RStats rpc2_Recvd;
@@ -156,7 +157,7 @@ int main(int arg, char **argv)
 #endif PROFILE
 
 	if(WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, 
-				  (RPC2_PortalIdent *)NULL, 0, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
+				  (RPC2_PortIdent *)NULL, 0, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
 	exit(-1);
 
 #ifdef OLDLWP
@@ -503,34 +504,25 @@ void ClearStats()
 void GetHost(RPC2_HostIdent *h)
 {
     char buff[100];
-    char *nextc;
 
-    h->Tag = RPC2_HOSTBYINETADDR;
-    printf("Host id? ");
-    (void) scanf("%s", buff);
-    nextc = buff;    
-    h->Value.InetAddress = (atoi(nextc) << 24);
-    nextc = (char *)index(nextc, '.') + 1;
-    h->Value.InetAddress |= (atoi(nextc) << 16);
-    nextc = (char *)index(nextc, '.') + 1;
-    h->Value.InetAddress |= (atoi(nextc) << 8);
-    nextc = (char *)index(nextc, '.') + 1;
-    h->Value.InetAddress |= atoi(nextc);
+    do {
+	h->Tag = RPC2_HOSTBYINETADDR;
+	printf("Host id? ");
+	(void) scanf("%s", buff);
+    } while (inet_aton(buff, &h->Value.InetAddress) != 0);
+}
 
-    h->Value.InetAddress = htonl(h->Value.InetAddress);
-    }
-
-void GetPortal(    RPC2_PortalIdent *p)
+void GetPort(    RPC2_PortIdent *p)
     {
     long i;
 
-    p->Tag = RPC2_PORTALBYINETNUMBER;
-    printf("Portal number? "); (void) scanf("%ld", &i);
+    p->Tag = RPC2_PORTBYINETNUMBER;
+    printf("Port number? "); (void) scanf("%ld", &i);
     p->Value.InetPortNumber = i;
     p->Value.InetPortNumber = htons(p->Value.InetPortNumber);
     }
 
-void GetWho(register RPC2_CountedBS *w, long s, RPC2_EncryptionKey e)
+void GetWho(RPC2_CountedBS *w, long s, RPC2_EncryptionKey e)
 {
     if (s != RPC2_OPENKIMONO)
 	{
@@ -563,7 +555,7 @@ void PrintHelp(void)
 void DoBinding(RPC2_Handle *cid)
 {
     RPC2_HostIdent hid;
-    RPC2_PortalIdent sid;
+    RPC2_PortIdent sid;
     RPC2_SubsysIdent ssid;
     RPC2_BindParms bparms;
     RPC2_EncryptionKey ekey;
@@ -572,7 +564,7 @@ void DoBinding(RPC2_Handle *cid)
 
     hid.Tag = RPC2_HOSTBYNAME;
     printf("Host? "); (void) scanf("%s", hid.Value.Name);
-    GetPortal(&sid);
+    GetPort(&sid);
     ssid.Tag = RPC2_SUBSYSBYID;
     ssid.Value.SubsysId = SUBSYS_SRV;
 

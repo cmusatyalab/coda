@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.11 1998/10/30 18:30:02 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-restore.cc,v 4.12 98/11/02 16:47:14 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -129,7 +129,7 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     DumpBuffer_t *dbuf;
     char *DumpBuf;
     RPC2_HostIdent hid;
-    RPC2_PortalIdent pid;
+    RPC2_PortIdent pid;
     RPC2_SubsysIdent sid;
     RPC2_BindParms bparms;
     RPC2_Handle cid;
@@ -181,7 +181,7 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition, RPC2_String f
     }
 
     hid = peerinfo.RemoteHost;
-    pid = peerinfo.RemotePortal;
+    pid = peerinfo.RemotePort;
     sid.Tag = RPC2_SUBSYSBYID;
     sid.Value.SubsysId = VOLDUMP_SUBSYSTEMID;
     bparms.SecurityLevel = RPC2_OPENKIMONO;

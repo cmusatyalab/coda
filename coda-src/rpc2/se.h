@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/rpc2/se.h,v 1.1 1996/11/22 19:07:50 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/se.h,v 4.1 97/01/08 21:50:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -195,7 +195,7 @@ typedef struct SFTPI
     			this many packets in total; -1 (default) says no limit;
 			Caveat user: packet starvation can cause mysterious
 			RPC2_SEFAIL2s */
-    RPC2_PortalIdent Portal;	/* initialization required on server side */
+    RPC2_PortIdent Port;	/* initialization required on server side */
     } SFTP_Initializer;
 
 

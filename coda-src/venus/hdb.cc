@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.14 1998/09/29 16:38:16 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/hdb.cc,v 4.15 98/11/02 16:46:10 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -700,10 +700,14 @@ void hdb::ValidateCacheStatus(vproc *vp, int *interrupt_failures, int *statusByt
 	/* Essentially, the else's of the above nested if's */
 	(*interrupt_failures)++;
 	if (g == NULL)
+	{
 	    LOG(0, ("Hoard Walk interrupted -- object missing! <%x.%x.%x>\n", tfid.Volume, tfid.Vnode, tfid.Unique));
+	}
 	else
+	{
 	    LOG(0, ("Hoard Walk interrupted -- object different! <%x.%x.%x>\n", g->fid.Volume, g->fid.Vnode, g->fid.Unique));
-	LOG(0, ("Number of interrupt failures = %d\n", interrupt_failures));
+	}
+	LOG(0, ("Number of interrupt failures = %d\n", *interrupt_failures));
 
 	/* 
 	 * Find some interesting info.  My goal is to see if there 

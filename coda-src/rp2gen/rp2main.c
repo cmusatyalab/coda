@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.5 1998/09/29 16:38:01 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/rp2main.c,v 4.6 98/10/09 21:57:39 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -131,6 +131,7 @@ static int32_t h_hack_begin();
 static int32_t h_hack_end();
 static int32_t header();
 static int32_t do_procs();
+static int32_t SetupFiles();
 
 
 main(argc, argv)

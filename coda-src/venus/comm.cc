@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.25 1998/10/30 18:29:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/comm.cc,v 4.26 98/11/02 16:45:58 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -255,14 +255,13 @@ void CommInit() {
 
     RPC2_Perror = 0;
 
-    /* Portal initialization. */
-    /* Multicast requires that (sftp_portal = rpc2_portal + 1). */
+    /* Port initialization. */
     struct servent *s = getservbyname("venus", "udp");
     if (s == 0) 
 	CHOKE("CommInit: getservbyname failed; check /etc/services");
-    RPC2_PortalIdent portal1;
-    portal1.Tag = RPC2_PORTALBYINETNUMBER;
-    portal1.Value.InetPortNumber = s->s_port;
+    RPC2_PortIdent port1;
+    port1.Tag = RPC2_PORTBYINETNUMBER;
+    port1.Value.InetPortNumber = s->s_port;
 
     /* SFTP initialization. */
     s = getservbyname("venus-se", 0);
@@ -275,8 +274,8 @@ void CommInit() {
     sei.AckPoint = sftp_ackpoint;
     sei.PacketSize = sftp_packetsize;
     sei.EnforceQuota = 1;
-    sei.Portal.Tag = RPC2_PORTALBYINETNUMBER;
-    sei.Portal.Value.InetPortNumber = s->s_port;
+    sei.Port.Tag = RPC2_PORTBYINETNUMBER;
+    sei.Port.Value.InetPortNumber = s->s_port;
 
     SFTP_Activate(&sei);
 
@@ -284,7 +283,7 @@ void CommInit() {
     struct timeval tv;
     tv.tv_sec = rpc2_timeout;
     tv.tv_usec = 0;
-    if (RPC2_Init(RPC2_VERSION, 0, &portal1, rpc2_retries, &tv) != RPC2_SUCCESS)
+    if (RPC2_Init(RPC2_VERSION, 0, &port1, rpc2_retries, &tv) != RPC2_SUCCESS)
 	CHOKE("CommInit: RPC2_Init failed");
 
     /* Failure package initialization. */
@@ -952,18 +951,18 @@ long HandleProbe(int HowMany, RPC2_Handle *Handles, long offset, long rpcval) {
     RPC2_Handle RPCid = Handles[offset];
 
     if (RPCid != 0) {
-	/* Get the {host,portal} pair for this call. */
+	/* Get the {host,port} pair for this call. */
 	RPC2_PeerInfo thePeer;
 	long rc = RPC2_GetPeerInfo(RPCid, &thePeer);
 	if (thePeer.RemoteHost.Tag != RPC2_HOSTBYINETADDR ||
-	    thePeer.RemotePortal.Tag != RPC2_PORTALBYINETNUMBER) {
+	    thePeer.RemotePort.Tag != RPC2_PORTBYINETNUMBER) {
 	    LOG(0, ("HandleProbe: RPC2_GetPeerInfo return code = %d\n", rc));
 	    LOG(0, ("HandleProbe: thePeer.RemoteHost.Tag = %d\n", thePeer.RemoteHost.Tag));
-	    LOG(0, ("HandleProbe: thePeer.RemotePortal.Tag = %d\n", thePeer.RemotePortal.Tag));
+	    LOG(0, ("HandleProbe: thePeer.RemotePort.Tag = %d\n", thePeer.RemotePort.Tag));
 	    return 0;
 	    /* CHOKE("HandleProbe: getpeerinfo returned bogus type!"); */
 	}
-	unsigned long host = ntohl(thePeer.RemoteHost.Value.InetAddress);
+	unsigned long host = ntohl(thePeer.RemoteHost.Value.InetAddress.s_addr);
 
 	/* Locate the server and update its status. */
 	srvent *s = FindServer(host);
@@ -2175,7 +2174,8 @@ int mgrpent::DHCheck(vv_t **RVVs, int ph_ix, int *dh_ixp, int PHReq) {
 }
 
 
-int mgrpent::GetHostSet() {
+int mgrpent::GetHostSet()
+{
     int i;
     LOG(100, ("mgrpent::GetHostSet: vsgaddr = %#08x, uid = %d, mid = %d\n",
 	      VSGAddr, uid, McastInfo.Mgroup));
@@ -2813,7 +2813,7 @@ void vsgent::GetBandwidth(long *Bandwidth) {
 
 
 int vsgent::Connect(RPC2_Handle *midp, int *authp, vuid_t vuid) {
-    LOG(100, ("vsgent::Connect: addr = %x, uid = %d\n", Addr, vuid));
+    LOG(10, ("vsgent::Connect: addr = %x, uid = %d\n", Addr, vuid));
 
     int code = 0;
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp5.c,v 4.2 1998/09/15 14:28:01 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp5.c,v 4.3 98/11/02 16:45:26 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,7 +84,7 @@ void B_ShiftLeft(bMask, bShift)		/* rightmost bits are ZERO-filled */
 	(shift) high-order bits of *(first+1) will become the low-order bits of *current.
     */
     
-    register unsigned int shift, *current, *first, *last;
+    unsigned int shift, *current, *first, *last;
     
     shift = bShift & 31;	/* modulo 32 */
     
@@ -126,7 +126,7 @@ void B_ShiftRight(bMask, bShift)		/* leftmost bits are ONE-filled */
 	(shift) low-order bits of *(first-1) will become the high-order bits of *current.
     */
     
-    register unsigned int shift, *current, *first;
+    unsigned int shift, *current, *first;
     
     shift = bShift & 31;	/* modulo 32 */
     current = bMask + BITMASKWIDTH - 1;
@@ -155,15 +155,15 @@ void B_ShiftRight(bMask, bShift)		/* leftmost bits are ONE-filled */
 
 
 void B_Assign(dest, src)
-    register unsigned int *dest, *src;
+    unsigned int *dest, *src;
     {
     bcopy(src, dest, sizeof(int)*BITMASKWIDTH);
     }
 
 
 void B_CopyToPacket(bMask, whichPacket)
-    register unsigned int *bMask;
-    register RPC2_PacketBuffer *whichPacket;
+    unsigned int *bMask;
+    RPC2_PacketBuffer *whichPacket;
     {
     CODA_ASSERT(BITMASKWIDTH <= 2);	/* for now */
     whichPacket->Header.BitMask0 = (unsigned) bMask[0];
@@ -171,8 +171,8 @@ void B_CopyToPacket(bMask, whichPacket)
     }
 
 void B_CopyFromPacket(whichPacket, bMask)
-    register unsigned int *bMask;
-    register RPC2_PacketBuffer *whichPacket;
+    unsigned int *bMask;
+    RPC2_PacketBuffer *whichPacket;
     {
     CODA_ASSERT(BITMASKWIDTH <= 2);	/* for now */
     bMask[0] = (unsigned) whichPacket->Header.BitMask0;

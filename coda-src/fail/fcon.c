@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fcon.c,v 4.5 1998/09/29 16:37:36 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/fcon.c,v 4.6 98/11/02 16:44:43 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -88,7 +88,7 @@ int Fcon_LWP()
     while (1) {
 	cid = 0;
 	if ((err = RPC2_GetRequest(&reqfilter, &cid, &reqbuffer, NULL,
-				   NULL, NULL, NULL)) < RPC2_WLIMIT)
+				   NULL, 0, NULL)) < RPC2_WLIMIT)
 	    PrintRPCError(err, cid);
 	RPC2_SetColor(cid, FAIL_IMMUNECOLOR);
 	if ((err = Fcon_ExecuteRequest(cid, reqbuffer, (SE_Descriptor *) 0)) < RPC2_WLIMIT)

@@ -58,6 +58,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define _RPC2_
 
 #include <cargs.h> /* from LWP */
+#include <sys/time.h>  
+#include <netinet/in.h>
+
 
 /* This string is used in RPC initialization calls to ensure that the
 runtime system and the header files are mutually consistent.  Also
@@ -216,12 +219,12 @@ System Limits
 
 
 
-/* Host, Mgrp, Portal and Subsys Representations */
+/* Host, Mgrp, Port and Subsys Representations */
 
 typedef	enum {RPC2_HOSTBYNAME = 39, RPC2_HOSTBYINETADDR = 17, 
 	      RPC2_DUMMYHOST=88888} HostTag;
-typedef	enum {RPC2_PORTALBYINETNUMBER = 53, RPC2_PORTALBYNAME = 64, 
-	      RPC2_DUMMYPORTAL = 99999} PortalTag;
+typedef	enum {RPC2_PORTBYINETNUMBER = 53, RPC2_PORTBYNAME = 64, 
+	      RPC2_DUMMYPORT = 99999} PortTag;
 typedef enum {RPC2_SUBSYSBYID = 71, RPC2_SUBSYSBYNAME = 84} SubsysTag;
 typedef	enum {RPC2_MGRPBYINETADDR = 111, RPC2_MGRPBYNAME = 137} MgrpTag;
 
@@ -245,10 +248,18 @@ extern long RPC2_DebugLevel;
 extern long RPC2_Perror;
 extern long RPC2_Trace;
 
+/* Misc. global variables
+ *
+ * RPC2_strict_ip_matching enables stricter matching of incoming packets on
+ * sender ip/port addresses. When this is enabled, multihomed or masqueraded
+ * hosts will get rejected when they send their packet from the wrong IP
+ * address. But connections are less likely to get spoofed.
+ */
+extern long RPC2_strict_ip_matching;
 
 
 /*
-************************* Data Types known to RPGen ********************************
+************************* Data Types known to RPGen ***********************
 */
 typedef
     long RPC2_Integer;     /*32-bit,  2's  complement representation.  On other machines, an explicit
@@ -321,7 +332,7 @@ typedef
 	HostTag Tag;
 	union
 	    {
-	    unsigned long InetAddress;	/* NOTE: in network order, not host order */
+	    struct in_addr InetAddress;	/* NOTE: in network order, not host order */
 	    char Name[64];	/* minimum length for use with domain names */
 	    }
 	    Value;
@@ -331,7 +342,7 @@ typedef
 typedef
     struct 
     	{
-	PortalTag Tag;
+	PortTag Tag;
 	union
 	    {
 	    unsigned short InetPortNumber; /* NOTE: in network order, not host order */
@@ -339,7 +350,7 @@ typedef
 	    }
 	    Value;
 	}
-    RPC2_PortalIdent;
+    RPC2_PortIdent;
 
 typedef
     struct 
@@ -361,7 +372,7 @@ typedef
 	MgrpTag Tag;
 	union
 	    {
-	    unsigned long   InetAddress;    /* NOTE: in network order, not host order */
+	    struct in_addr  InetAddress;    /* NOTE: in network order, not host order */
 	    char	    Name[64];	    /* minimum length for use with domain names */
 	    }
 	    Value;
@@ -373,7 +384,7 @@ typedef
     struct		/* data structure filled by RPC2_GetPeerInfo() call */
 	{
 	RPC2_HostIdent 	 RemoteHost;
-	RPC2_PortalIdent RemotePortal;
+	RPC2_PortIdent   RemotePort;
 	RPC2_SubsysIdent RemoteSubsys;
 	RPC2_Handle	 RemoteHandle;
 	RPC2_Integer	 SecurityLevel;
@@ -387,76 +398,92 @@ typedef
 replies.  The runtime system provides efficient buffer storage
 management routines --- use them!  */
 
-typedef
-    struct RPC2_PacketBuffer
-	{
-	struct RPC2_PacketBufferPrefix
-	    {
-/*
-	    NOTE:   The Prefix is only used by the runtime system on the local machine.
-		    Neither clients nor servers ever deal with it.
-		    It is never transmitted.
-*/
-	    struct RPC2_PacketBuffer *Next;	/* pointer to next element in buffer chain */
-	    struct RPC2_PacketBuffer *Prev;	/* pointer to prev element in buffer chain */
-	    enum {OBJ_PACKETBUFFER = 3247517}  MagicNumber;	/* to detect storage corruption */
-	    struct RPC2_PacketBuffer **Qname;	/* name of queue this packet is on */
-	    long  BufferSize;	/* Set at malloc() time; size of entire packet, including prefix. */
-	    long  LengthOfPacket;	/* size of data actually transmitted: header+body */
-	    long File[3];
-	    long Line;
-	    }
-	    Prefix;
+typedef struct RPC2_PacketBuffer {
+    struct RPC2_PacketBufferPrefix {
+/* 
+ * NOTE: The Prefix is only used by the runtime system on the local machine.
+ *	 Neither clients nor servers ever deal with it.
+ *	 It is never transmitted.
+ */
+	/* these four elements are used by the list routines */
+	struct RPC2_PacketBuffer *Next;   /* next element in buffer chain */
+	struct RPC2_PacketBuffer *Prev;	  /* prev element in buffer chain */
+	enum {OBJ_PACKETBUFFER = 3247517} MagicNumber;/* to detect corruption */
+	struct RPC2_PacketBuffer **Qname; /* pointer to the queue this packet
+					     is on */
+
+	long  BufferSize;		  /* Set at malloc() time; size of
+					     entire packet, including prefix. */
+	long  LengthOfPacket;		  /* size of data actually
+					     transmitted, header+body */
+	long File[3];
+	long Line;
+
+	/* these fields are set when we receive the packet. */
+	RPC2_HostIdent		PeerHost;
+	RPC2_PortIdent		PeerPort;
+	struct timeval		RecvStamp;
+    } Prefix;
 
 /*
 	The transmitted packet begins here.
 */
-	struct RPC2_PacketHeader
-	    {
-	    /* The first four fields are never encrypted */
-	    RPC2_Integer  ProtoVersion;	/* Set by runtime system */
-	    RPC2_Integer  RemoteHandle;	/* Set by runtime system; -1 indicates unencrypted error packet */
-	    RPC2_Integer  LocalHandle;	/* Set by runtime system */
-	    RPC2_Integer  Flags;	/* Used by runtime system
-	    only.  First byte reserved for side effect use.  Second
-	    byte reserved for indicating color (see libfail
-	    documentation).  Last two bytes reserved for RPC2 use. */
+    struct RPC2_PacketHeader {
+	/* The first four fields are never encrypted */
+	RPC2_Integer  ProtoVersion;	/* Set by runtime system */
+	RPC2_Integer  RemoteHandle;	/* Set by runtime system; -1 indicates
+					   unencrypted error packet */
+	RPC2_Integer  LocalHandle;	/* Set by runtime system */
+	RPC2_Integer  Flags;	/* Used by runtime system only.  First byte
+				   reserved for side effect use. Second byte
+				   reserved for indicating color (see libfail
+				   documentation). Last two bytes reserved for
+				   RPC2 use. */
 
-	    /* Everything below here can be encrypted */
-	    RPC2_Unsigned  BodyLength;	/* of the portion after the header. Set by client.*/
-	    RPC2_Unsigned  SeqNumber;	/* unique identifier for this message on this connection;
-					    set by runtime system; odd on packets from client to server;
-					    even on packets from server to client */
-	    RPC2_Integer  Opcode; 	/*  Values  greater than 0 are subsystem-specific: set by client.
-					    Values less than 0 reserved: set by runtime system.
-					    Type of packet determined by Opcode value: > 0 ==> request packet.
-					    Values of RPC2_REPLY ==> reply packet, RPC2_ACK ==> ack packet, and so on */
-	    RPC2_Unsigned SEFlags;	/* Bits for use by side effect routines */
-	    RPC2_Unsigned SEDataOffset;	/* Offset of piggy-backed side effect data, from the start of Body */
-	    RPC2_Unsigned SubsysId; 	/* Subsystem identifier. Filled by runtime system. */
-	    RPC2_Integer  ReturnCode;	/* Set by server on replies; meaningless on request packets*/
-	    RPC2_Unsigned Lamport;	/* For distributed clock mechanism */
-	    RPC2_Integer  Uniquefier;	/* Used only in Init1 packets; truly unique random number */
-	    RPC2_Unsigned TimeStamp;    /* Used for rpc timing. */
-	    RPC2_Integer  BindTime;     /* Used to send the bind time to server. Temporary, i hope. */
-	    }
-	    Header;
+	/* Everything below here can be encrypted */
+	RPC2_Unsigned  BodyLength;   /* of the portion after the header. Set
+					by client.*/
+	RPC2_Unsigned  SeqNumber;    /* unique identifier for this message on
+					this connection; set by runtime
+					system; odd on packets from client to
+					server; even on packets from server to
+					client */
+	RPC2_Integer  Opcode;        /* Values  greater than 0 are
+					subsystem-specific: set by client.
+					Values less than 0 reserved: set by
+					runtime system. Type of packet
+					determined by Opcode value: > 0 ==>
+					request packet. Values of RPC2_REPLY
+					==> reply packet, RPC2_ACK ==> ack
+					packet, and so on */
+	RPC2_Unsigned SEFlags;	    /* Bits for use by side effect routines */
+	RPC2_Unsigned SEDataOffset; /* Offset of piggy-backed side effect
+				       data, from the start of Body */
+	RPC2_Unsigned SubsysId;     /* Subsystem identifier. Filled by runtime
+				       system. */
+	RPC2_Integer  ReturnCode;   /* Set by server on replies; meaningless
+				       on request packets*/
+	RPC2_Unsigned Lamport;	    /* For distributed clock mechanism */
+	RPC2_Integer  Uniquefier;   /* Used only in Init1 packets; truly
+				       unique random number */
+	RPC2_Unsigned TimeStamp;    /* Used for rpc timing. */
+	RPC2_Integer  BindTime;     /* Used to send the bind time to server.
+				       Temporary, i hope. */
+    } Header;
     
-	RPC2_Byte Body[1]; /* 	Arbitrary length body.
-				For requests: IN and INOUT parameters;
-				For replies: OUT and INOUT parameters;
-				Header.BodyLength gives the length of this field */
-	}
-    RPC2_PacketBuffer;	/*The second and third fields actually get sent over the wire */
-
+    RPC2_Byte Body[1]; /* Arbitrary length body. For requests: IN and INOUT
+			  parameters; For replies: OUT and INOUT parameters;
+			  Header.BodyLength gives the length of this field */
+} RPC2_PacketBuffer; /* The second and third fields actually get sent over
+			  the wire */
 
 
 /* Meaning of Flags field in RPC2 packet header.
-   First (leftmost) byte of Flags field is reserved for use by side effect routines.
-   This is in addition to the SEFlags field. Flags is not encrypted, but SEFLAGS is.
-   Second byte of Flags field is reserved for indicating packet color by libfail.
-   Third and fourth bytes are used as genuine RPC2 flags
-*/
+ * First (leftmost) byte of Flags field is reserved for use by side effect
+ * routines. This is in addition to the SEFlags field. Flags is not encrypted,
+ * but SEFLAGS is. Second byte of Flags field is reserved for indicating
+ * packet color by libfail. Third and fourth bytes are used as genuine RPC2
+ * flags */
 #define RPC2_RETRY	0x1	/* set by runtime system */
 #define RPC2_ENCRYPTED	0x2	/* set by runtime system */
 #define	RPC2_MULTICAST	0x4	/* set by runtime system */
@@ -565,9 +592,6 @@ typedef
     RPC2_Multicast;
 
 
-/* Structures for network performance information */
-#include <sys/time.h>  
-
 #define RPC2_MAXLOGLENGTH  32
 #define RPC2_MAXQUANTUM  ((unsigned)-1)
 
@@ -628,7 +652,7 @@ RPC2 runtime routines:
 #endif /* (__cplusplus | __STDC__) */
 
 
-extern long RPC2_Init (char *VersionId, RPC2_Options *Options, RPC2_PortalIdent *PortalList, long RetryCount, struct timeval *KeepAliveInterval);
+extern long RPC2_Init (char *VersionId, RPC2_Options *Options, RPC2_PortIdent *PortList, long RetryCount, struct timeval *KeepAliveInterval);
 void RPC2_SetLog(FILE *, int);
 extern long RPC2_Export (RPC2_SubsysIdent *Subsys);
 extern long RPC2_DeExport (RPC2_SubsysIdent *Subsys);
@@ -648,7 +672,7 @@ extern long RPC2_MakeRPC (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request,
 extern long RPC2_MultiRPC (int HowMany, RPC2_Handle ConnHandleList[], RPC2_Integer RCList[],
 	RPC2_Multicast *MCast, RPC2_PacketBuffer *Request, SE_Descriptor SDescList[],
 	long (*UnpackMulti)(), ARG_INFO *ArgInfo, struct timeval *BreathOfLife);
-extern long RPC2_NewBinding (RPC2_HostIdent *Host, RPC2_PortalIdent *Portal,
+extern long RPC2_NewBinding (RPC2_HostIdent *Host, RPC2_PortIdent *Port,
 	 RPC2_SubsysIdent *Subsys, RPC2_BindParms *BParms, RPC2_Handle *ConnHandle);
 extern long RPC2_InitSideEffect (RPC2_Handle ConnHandle, SE_Descriptor *SDesc);
 extern long RPC2_CheckSideEffect (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags);
@@ -665,7 +689,7 @@ extern long RPC2_DumpState (FILE *OutFile, long Verbosity);
 extern long RPC2_InitTraceBuffer (long HowMany);
 extern long RPC2_LamportTime ();
 extern long RPC2_Enable (RPC2_Handle ConnHandle);
-extern long RPC2_CreateMgrp (RPC2_Handle *MgroupHandle, RPC2_McastIdent *MulticastHost, RPC2_PortalIdent *MulticastPortal, RPC2_SubsysIdent *Subsys, RPC2_Integer SecurityLevel, RPC2_EncryptionKey SessionKey, RPC2_Integer EncryptionType, long SideEffectType);
+extern long RPC2_CreateMgrp (RPC2_Handle *MgroupHandle, RPC2_McastIdent *MulticastHost, RPC2_PortIdent *MulticastPort, RPC2_SubsysIdent *Subsys, RPC2_Integer SecurityLevel, RPC2_EncryptionKey SessionKey, RPC2_Integer EncryptionType, long SideEffectType);
 extern long RPC2_AddToMgrp (RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle);
 extern long RPC2_RemoveFromMgrp (RPC2_Handle MgroupHandle, RPC2_Handle ConnHandle);
 extern long RPC2_DeleteMgrp (RPC2_Handle MgroupHandle);
@@ -684,7 +708,7 @@ extern long getsubsysbyname (char *subsysName);
 extern int RPC2_R2SError (int error);
 extern int RPC2_S2RError (int error);
 
-int struct_len(register ARG **a_types, register PARM **args);
+int struct_len(ARG **a_types, PARM **args);
 
 /* These shouldn't really be here: they are internal RPC2 routines
    But some applications (e.g. Coda auth server) use them */

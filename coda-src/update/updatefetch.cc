@@ -196,7 +196,7 @@ static int FetchFile(char *RemoteFileName, char *LocalFileName, int mode)
 static void Connect()
 {
     long     rc;
-    RPC2_PortalIdent sid;
+    RPC2_PortIdent sid;
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hid;
     RPC2_CountedBS dummy;
@@ -218,7 +218,7 @@ static void Connect()
 
     hid.Tag = RPC2_HOSTBYNAME;
     strcpy(hid.Value.Name, host);
-    sid.Tag = RPC2_PORTALBYINETNUMBER;
+    sid.Tag = RPC2_PORTBYINETNUMBER;
     sid.Value.InetPortNumber = port;
     ssid.Tag = RPC2_SUBSYSBYID;
     ssid.Value.SubsysId = SUBSYS_UPDATE;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ct.c,v 4.2 1998/04/14 21:06:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ct.c,v 4.3 98/05/07 17:23:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,7 +87,7 @@ void rpc2_ClockTick()
     {/* Non terminating LWP */
     struct SL_Entry *sl;
     struct timeval tval;
-    register long timenow;
+    long timenow;
     
     sl = rpc2_AllocSle(OTHER, NULL);
     tval.tv_sec = TICKINTERVAL;
@@ -104,8 +104,8 @@ void rpc2_ClockTick()
 
 	if (RPC2_Trace && rpc2_TraceBuffHeader)
 	    {
-	    register struct TraceElem *te;
-	    register struct te_CLOCKTICK *tea;
+	    struct TraceElem *te;
+	    struct te_CLOCKTICK *tea;
 	    te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);
 	    tea = &te->Args.ClockTickEntry;
 	    te->CallCode = CLOCKTICK;

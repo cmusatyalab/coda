@@ -132,7 +132,7 @@ Get the latest tarball of Coda sources.
 
 example:
 
-ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-4.6.4.tgz
+ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-4.6.x.tgz
 
 Also get:
 

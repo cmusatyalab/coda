@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.9 1998/08/26 17:08:11 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2b.c,v 4.10 98/11/02 16:45:22 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -81,14 +81,14 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 
 #define NETWORKS 8
-static long get_netaddr();
+static unsigned int get_netaddr(long sock);
 extern int errno;
 
 
 long RPC2_Init(
 	       char *VId,		/* magic version string */
 	       RPC2_Options *Options,
-	       RPC2_PortalIdent *Port,	/* array of portal ids */
+	       RPC2_PortIdent *Port,	/* array of portal ids */
 	       long RetryCount,	   /* max number of retries before breaking conn*/
 	       struct timeval *KAInterval	/* for keeping long RPC requests alive  */
 	       )
@@ -116,15 +116,15 @@ long RPC2_Init(
     rpc2_InitHost();
 
     if (Port) 
-	    rpc2_LocalPortal = *Port; 
+	    rpc2_LocalPort = *Port; 
     else 
-	    rpc2_LocalPortal.Tag = (PortalTag)0;  
+	    rpc2_LocalPort.Tag = (PortTag)0;  
     
     rc = rpc2_CreateIPSocket(&rpc2_RequestSocket, &rpc2_LocalHost,
-	    	&rpc2_LocalPortal);
+	    	&rpc2_LocalPort);
 
     if ( Port ) 
-	    *Port = rpc2_LocalPortal; 
+	    *Port = rpc2_LocalPort; 
 
     if (rc < RPC2_ELIMIT) 
 	    rpc2_Quit(rc);
@@ -162,8 +162,8 @@ long RPC2_Init(
 long RPC2_Export(IN Subsys)
     RPC2_SubsysIdent *Subsys;
     {
-    register long i, myid;
-    register struct SubsysEntry *sp;
+    long i, myid;
+    struct SubsysEntry *sp;
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_Export()\n");
@@ -196,7 +196,7 @@ long RPC2_Export(IN Subsys)
 long RPC2_DeExport(IN Subsys)
     RPC2_SubsysIdent *Subsys;
     {
-    register long i, myid;
+    long i, myid;
     struct SubsysEntry *sp;
 
     rpc2_Enter();
@@ -280,7 +280,7 @@ static RPC2_PacketBuffer *GetPacket(psize)
 long rpc2_AllocBuffer(IN long MinBodySize, OUT RPC2_PacketBuffer **BuffPtr, 
 		      IN char *File, IN long Line)
 {
-	register long thissize;
+	long thissize;
 
 	rpc2_Enter();
 	thissize = MinBodySize + sizeof(RPC2_PacketBuffer);
@@ -399,7 +399,7 @@ long RPC2_GetPrivatePointer(IN ConnHandle, OUT PrivatePtr)
     RPC2_Handle ConnHandle;
     char **PrivatePtr;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     rpc2_Enter();
 
@@ -417,7 +417,7 @@ long RPC2_SetPrivatePointer(IN ConnHandle, IN PrivatePtr)
     RPC2_Handle ConnHandle;
     char *PrivatePtr;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_SetPrivatePointer()\n");
@@ -435,7 +435,7 @@ long RPC2_GetSEPointer(IN ConnHandle, OUT SEPtr)
     RPC2_Handle ConnHandle;
     struct SFTP_Entry **SEPtr;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_GetSEPointer()\n");
@@ -451,7 +451,7 @@ long RPC2_SetSEPointer(IN ConnHandle, IN SEPtr)
     RPC2_Handle ConnHandle;
     struct SFTP_Entry *SEPtr;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_SetSEPointer()\n");
@@ -468,7 +468,7 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     RPC2_Handle ConnHandle;
     RPC2_PeerInfo *PeerInfo;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_GetPeerInfo()\n");
@@ -477,7 +477,7 @@ long RPC2_GetPeerInfo(IN ConnHandle, OUT PeerInfo)
     if (ceaddr == NULL) rpc2_Quit(RPC2_NOCONNECTION);
 
     PeerInfo->RemoteHost = ceaddr->PeerHost;	/* structure assignment */
-    PeerInfo->RemotePortal = ceaddr->PeerPortal;  /* structure assignment */
+    PeerInfo->RemotePort = ceaddr->PeerPort;  /* structure assignment */
     PeerInfo->RemoteSubsys.Tag = RPC2_SUBSYSBYID;
     PeerInfo->RemoteSubsys.Value.SubsysId = ceaddr->SubsysId;
     PeerInfo->RemoteHandle = ceaddr->PeerHandle;
@@ -576,7 +576,7 @@ long RPC2_SetBindLimit(IN bindLimit)
 
 long RPC2_Enable(RPC2_Handle whichConn)
 {
-	register struct CEntry *ceaddr;
+	struct CEntry *ceaddr;
 
 	say(0, RPC2_DebugLevel, "RPC2_Enable()\n");
 
@@ -594,7 +594,7 @@ long RPC2_SetColor(Conn, Color)
     RPC2_Handle Conn;
     RPC2_Integer Color;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     say(0, RPC2_DebugLevel, "RPC2_SetColor()\n");
 
@@ -609,7 +609,7 @@ long RPC2_GetColor(Conn, Color)
     RPC2_Handle Conn;
     RPC2_Integer *Color;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     say(0, RPC2_DebugLevel, "RPC2_GetColor()\n");
 
@@ -625,7 +625,7 @@ long RPC2_GetPeerLiveness(IN ConnHandle, OUT Time, OUT SETime)
     struct timeval *Time;
     struct timeval *SETime;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_GetPeerLiveness()\n");
@@ -676,7 +676,7 @@ long RPC2_GetNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
     RPC2_NetLog *RPCLog;
     RPC2_NetLog *SELog;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     say(0, RPC2_DebugLevel, "RPC2_GetNetInfo()\n");
 
@@ -726,7 +726,7 @@ long RPC2_PutNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
     RPC2_NetLog *RPCLog;
     RPC2_NetLog *SELog;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
     int i;
 
     say(0, RPC2_DebugLevel, "RPC2_PutNetInfo()\n");
@@ -777,7 +777,7 @@ long RPC2_PutNetInfo(IN Conn, INOUT RPCLog, INOUT SELog)
 long RPC2_ClearNetInfo(IN Conn)
     RPC2_Handle Conn;
     {
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
 
     rpc2_Enter();
     say(999, RPC2_DebugLevel, "RPC2_ClearNetInfo()\n");
@@ -803,12 +803,11 @@ long RPC2_ClearNetInfo(IN Conn)
     }  
 
     
-long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortalIdent *pvar)
+long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortIdent *pvar)
 {
 	struct sockaddr_in bindaddr;
 	struct servent *sentry;
 	int blen = 0x8000 ;
-
 
 	/* Allocate socket */
 	*svar = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -852,7 +851,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortalIdent *pva
 					
 	/* set port address for bind() */
 	switch (pvar->Tag) {
-	case RPC2_PORTALBYNAME:
+	case RPC2_PORTBYNAME:
 		sentry = getservbyname(pvar->Value.Name, "udp");
 		if (sentry == NULL) 
 			return(RPC2_BADSERVER);
@@ -861,11 +860,11 @@ long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortalIdent *pva
 		break;
 	
 		/*  XXXX NO INETNUMBER , just ports */
-	case RPC2_PORTALBYINETNUMBER:
+	case RPC2_PORTBYINETNUMBER:
 		bindaddr.sin_port = pvar->Value.InetPortNumber;
 		break;
 
-	case RPC2_DUMMYPORTAL:
+	case RPC2_DUMMYPORT:
 	default:
 		bindaddr.sin_port = 0;	/* kernel will assign */
 	}
@@ -879,26 +878,23 @@ long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortalIdent *pva
 	}
 
 	/* Retrieve fully resolved socket address */
-	if (pvar->Tag == RPC2_DUMMYPORTAL) {
-		hvar->Tag = RPC2_DUMMYHOST;
-		hvar->Value.InetAddress = 0;
-	} else {
-		hvar->Tag = RPC2_HOSTBYINETADDR;
-		hvar->Value.InetAddress = get_netaddr(*svar);
-		if (hvar->Value.InetAddress == 0) 
-			return (RPC2_FAIL);
-		blen = sizeof(bindaddr);
-		if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) 
-			return(RPC2_FAIL);
-		pvar->Tag = RPC2_PORTALBYINETNUMBER;
-		pvar->Value.InetPortNumber = bindaddr.sin_port;
-	}
+	CODA_ASSERT(pvar->Tag != RPC2_DUMMYPORT);
+
+	hvar->Tag = RPC2_HOSTBYINETADDR;
+	hvar->Value.InetAddress.s_addr = get_netaddr(*svar);
+	if (hvar->Value.InetAddress.s_addr == 0) 
+	    return (RPC2_FAIL);
+	blen = sizeof(bindaddr);
+	if (getsockname(*svar, (struct sockaddr *)&bindaddr, &blen) < 0) 
+	    return(RPC2_FAIL);
+	pvar->Tag = RPC2_PORTBYINETNUMBER;
+	pvar->Value.InetPortNumber = bindaddr.sin_port;
 
 #ifdef RPC2DEBUG
 	if (RPC2_DebugLevel > 9) {
 		rpc2_PrintHostIdent(hvar, rpc2_tracefile);
 		printf("    ");
-		rpc2_PrintPortalIdent(pvar, rpc2_tracefile);
+		rpc2_PrintPortIdent(pvar, rpc2_tracefile);
 		printf("\n");
 	}
 #endif RPC2DEBUG
@@ -907,7 +903,7 @@ long rpc2_CreateIPSocket(long *svar, RPC2_HostIdent *hvar, RPC2_PortalIdent *pva
 }
 
 /* get internet address from kernel, zero on error */
-static long get_netaddr(long sock)
+static unsigned int get_netaddr(long sock)
 {
 #ifdef DJGPP
       return __djgpp_get_my_host();   /* MJC--hack! */
@@ -928,7 +924,7 @@ static long get_netaddr(long sock)
 	CODA_ASSERT (0);
     }
     printf("get_netaddr returning: %lx\n", *(long *)(h->h_addr_list[0]));
-    return (*(long *)(h->h_addr_list[0]));
+    return (*(unsigned int *)(h->h_addr_list[0]));
 #endif
 #else 
     struct ifconf ifc;
@@ -967,7 +963,7 @@ long rpc2_GetLocalHost(localhost, remotehost)
     CODA_ASSERT(remotehost->Tag == RPC2_HOSTBYINETADDR);
     /* horrible hack -- figure out how to do this with MSTCP */
     localhost->Tag = RPC2_HOSTBYINETADDR;
-    localhost->Value.InetAddress = __djgpp_get_my_host();
+    localhost->Value.InetAddress.s_addr = __djgpp_get_my_host();
     return 0;
 #elif __CYGWIN32__
     char hostname[128];
@@ -986,15 +982,15 @@ long rpc2_GetLocalHost(localhost, remotehost)
     }
 
     localhost->Tag = RPC2_HOSTBYINETADDR;
-    memcpy(&localhost->Value.InetAddress, h->h_addr, h->h_length);
-    fprintf (stderr, "rpc2_GetLocalHost: name %s len %d ip %x\n",
-	     hostname, h->h_length, ntohl(localhost->Value.InetAddress));
+    localhost->Value.InetAddress.s_addr = h->h_addr.s_addr;
+    fprintf (stderr, "rpc2_GetLocalHost: name %s len %d ip %s\n",
+	     hostname, h->h_length, inet_ntoa(localhost->Value.InetAddress));
     return 0;
 #else
     CODA_ASSERT(remotehost->Tag == RPC2_HOSTBYINETADDR);
     sin.sin_family = AF_INET;
     sin.sin_port = htons(1);	/* dummy port number */
-    sin.sin_addr.s_addr = remotehost->Value.InetAddress;
+    sin.sin_addr.s_addr = remotehost->Value.InetAddress.s_addr;
     if((s = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
 	return -1;
     if(connect(s, (struct sockaddr *)&sin,i) == -1) {
@@ -1007,29 +1003,50 @@ long rpc2_GetLocalHost(localhost, remotehost)
     }
     close(s);
     localhost->Tag = RPC2_HOSTBYINETADDR;
-    localhost->Value.InetAddress = sin.sin_addr.s_addr;
+    localhost->Value.InetAddress.s_addr = sin.sin_addr.s_addr;
     return 0;
 #endif
-    }
+}
+
+unsigned long rpc2_TVTOTS(const struct timeval *tv)
+    /* makes a longword time stamp in 1 msec units since rpc2_InitTime  */
+{
+    struct timeval delta;
+    unsigned long diff;
+
+    delta = *tv;
+
+    SUBTIME(&delta, &rpc2_InitTime);
+    TVTOTS(&delta, diff);
+
+    if (diff == 0) diff = 1;  /* just in case we called right away */
+    return(diff);
+}
+
+void rpc2_TSTOTV(const long ts, struct timeval *tv)
+    /* converts a longword time stamp in 1 msec units since rpc2_InitTime back
+     * to real-time */
+{
+    TSTOTV(tv, ts);
+    ADDTIME(tv, &rpc2_InitTime);
+    return;
+}
 
 unsigned long rpc2_MakeTimeStamp()
     /* makes a longword time stamp in 1 msec units since rpc2_InitTime  */
-    {
+{
     struct timeval now;
-    unsigned long diff;
 
     /* use the approximate version b/c gettimeofday is called often */
     FT_AGetTimeOfDay(&now, (struct timezone *)0);
-    SUBTIME(&now, &rpc2_InitTime);
-    TVTOTS(&now, diff);
-    if (diff == 0) diff = 1;  /* just in case we called right away */
-    return(diff);
-    }
+
+    return rpc2_TVTOTS(&now);
+}
 
 
 void rpc2_ResetObs(obsp, ceaddr) 
     long *obsp;
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
     {
     long delta = ceaddr->reqsize * 8 * 100 / rpc2_Bandwidth;
     say(4, RPC2_DebugLevel, "rpc2_ResetObs: conn 0x%lx, obs %ld, delta %ld, new %ld\n", 
@@ -1039,15 +1056,21 @@ void rpc2_ResetObs(obsp, ceaddr)
 
 
 /* Retransmission timer stuff */
-void rpc2_UpdateRTT(tStamp, ceaddr)
-    RPC2_Unsigned tStamp;
-    register struct CEntry *ceaddr;
-    {
-    long obs = rpc2_MakeTimeStamp() + 1;
-    long diff; 
+void rpc2_UpdateRTT(RPC2_PacketBuffer *pb, struct CEntry *ceaddr)
+{
+    struct timeval observed, sent;
+    long obs, diff; 
     unsigned long upperlimit;
     struct timeval *beta0;
     RPC2_NetLogEntry entry;
+
+    if (!pb->Header.TimeStamp) return;
+
+    rpc2_TSTOTV(pb->Header.TimeStamp, &sent);
+    observed = pb->Prefix.RecvStamp;
+    SUBTIME(&observed, &sent);
+
+    rpc2_UpdateEstimates(ceaddr->HostInfo, &observed, ceaddr->reqsize);
 
     /* 
      * Requests can be sent and received in the same tick.  
@@ -1056,12 +1079,12 @@ void rpc2_UpdateRTT(tStamp, ceaddr)
      * the clock may tick on the server (service time > 0) but not
      * on the client. Coerce this case to 1.
      */
-    obs -= tStamp;
+    TVTOTS(&observed, obs);
     if (obs <= 0) obs = 1;
 
     /* log the round-trip time observation in the host log */
     entry.Tag = RPC2_MEASURED_NLE;
-    entry.Value.Measured.Bytes = ceaddr->reqsize-2*sizeof(struct RPC2_PacketHeader);
+    entry.Value.Measured.Bytes = ceaddr->reqsize; //-2*sizeof(struct RPC2_PacketHeader);
     entry.Value.Measured.ElapsedTime = obs;
     entry.Value.Measured.Conn = ceaddr->UniqueCID;
     (void) rpc2_AppendHostLog(ceaddr->HostInfo, &entry);
@@ -1105,5 +1128,5 @@ void rpc2_UpdateRTT(tStamp, ceaddr)
 
     /* now adjust retransmission intervals with new Lowerlimit */
     (void) rpc2_SetRetry(ceaddr);
-    }
+}
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ffs.c,v 4.1 1997/01/08 21:50:22 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/ffs.c,v 4.2 98/04/14 21:06:58 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -56,10 +56,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 */
 
 /* return the position of the first big in x which is set */
-long ffs(x)
-    register long x;
+long ffs(long x)
     {
-    register long i;
+    long i;
     if (x == 0) return(-1);
     else
 	for (i = 1;; i++)

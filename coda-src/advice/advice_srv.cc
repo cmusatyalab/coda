@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.11 1998/10/07 20:29:38 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/advice_srv.cc,v 4.12 98/11/02 16:44:22 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -134,7 +134,7 @@ void ReplacementLogHandler();
 extern char **environ;
 
 /* RPC Variables */
-extern RPC2_PortalIdent rpc2_LocalPortal;
+extern RPC2_PortIdent rpc2_LocalPort;
 
 RPC2_Handle cid;
 RPC2_RequestFilter reqfilter;
@@ -544,11 +544,11 @@ void ShutdownHandler(char *c) {
   if (!AwaitingUserResponse) 
     /* Inform Venus of our untimely demise. */
     ObtainWriteLock(&VenusLock);
-    (void) C_ImminentDeath(VenusCID, (RPC2_String) HostName, uid, rpc2_LocalPortal.Value.InetPortNumber);
+    (void) C_ImminentDeath(VenusCID, (RPC2_String) HostName, uid, rpc2_LocalPort.Value.InetPortNumber);
     ReleaseWriteLock(&VenusLock);
 
   (void) RPC2_Unbind(VenusCID);
-  (void) RPC2_Unbind(rpc2_LocalPortal.Value.InetPortNumber);
+  (void) RPC2_Unbind(rpc2_LocalPort.Value.InetPortNumber);
 
   fclose(LogFile);
   fclose(EventFile);

@@ -106,7 +106,7 @@ static void lwpinsert(register PROCESS p, register struct QUEUE *q);
 static void lwpmove(PROCESS p, struct QUEUE *from, struct QUEUE *to);
 static void Dispatcher();
 static void Initialize_PCB (PROCESS temp, int priority, char *stack, int stacksize, PFIC ep, char *parm, char *name);
-static int  Internal_Signal(register char *event);
+static int  Internal_Signal(char *event);
 static void Abort_LWP(char *msg);
 static void Exit_LWP();
 static void Dump_One_Process (PROCESS pid, FILE *fp, int dofree);
@@ -190,8 +190,8 @@ stackinfo     *vminfo[MAXTHREADS];
 /* Iterator macro */
 #define for_all_elts(var, q, body)\
 	{\
-	    register PROCESS var, _NEXT_;\
-	    register int _I_;\
+	    PROCESS var, _NEXT_;\
+	    int _I_;\
 	    for (_I_=q.count, var = q.head; _I_>0; _I_--, var=_NEXT_) {\
 		_NEXT_ = var -> next;\
 		body\
@@ -1452,11 +1452,10 @@ static void Initialize_PCB(temp, priority, stack, stacksize, ep, parm, name)
 }
 
 
-static int Internal_Signal(event)
-    register char *event;
+static int Internal_Signal(char *event)
 {
     int rc = LWP_ENOWAIT;
-    register int i;
+    int i;
 
     lwpdebug(0, "Entered Internal_Signal [event id %p]", event);
     if (!lwp_init) return LWP_EINIT;
@@ -1464,13 +1463,17 @@ static int Internal_Signal(event)
 
     for_all_elts(temp, blocked, {     /* for all pcb's on the blocked q */
         if (temp->status == WAITING)
-            for (i=0; i < temp->eventcnt; i++) { /* check each event in list */
-                if (temp -> eventlist[i] == event) {
+	{
+            for (i=0; i < temp->eventcnt; i++)
+	    { /* check each event in list */
+                if (temp -> eventlist[i] == event)
+		{
                     temp -> eventlist[i] = NULL;
                     rc = LWP_SUCCESS;
                     /* reduce waitcnt by 1 for the signal */
                     /* if wcount reaches 0 then make the process runnable */
-                    if (--temp->waitcnt == 0) {
+                    if (--temp->waitcnt == 0)
+		    {
                         temp -> status = READY;
                         temp -> wakevent = i+1;
                         lwpmove(temp, &blocked, &runnable[temp->priority]);
@@ -1487,6 +1490,7 @@ static int Internal_Signal(event)
 		    }
 		}
 	    }
+	}
     })
     return rc;
 }    

@@ -513,7 +513,7 @@ static Inode maxino(struct DiskPartition *dp)
 {
     struct dirent **namelist;
     int n, i;
-    Inode max;
+    Inode max = 0;
 
 #ifndef __CYGWIN32__    
     n = scandir(dp->name, &namelist, 0, &inosort);

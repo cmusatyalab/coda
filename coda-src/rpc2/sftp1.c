@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.11 1998/09/15 14:27:59 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp1.c,v 4.12 98/11/02 16:45:24 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -117,7 +117,7 @@ long SFTP_Init()
     say(0, SFTP_DebugLevel, "SFTP_Init()\n");
 
     /* Create socket for SFTP packets */
-    if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Host, &sftp_Portal) != RPC2_SUCCESS)
+    if (rpc2_CreateIPSocket(&sftp_Socket, &sftp_Host, &sftp_Port) != RPC2_SUCCESS)
 	return(RPC2_FAIL);
 
 
@@ -129,7 +129,7 @@ long SFTP_Init()
     }
 
 void SFTP_SetDefaults(initPtr)
-    register SFTP_Initializer *initPtr;
+    SFTP_Initializer *initPtr;
     /* Should be called before SFTP_Activate() */
     {
     initPtr->PacketSize = SFTP_DEFPACKETSIZE;
@@ -142,17 +142,17 @@ void SFTP_SetDefaults(initPtr)
     initPtr->DoPiggy = TRUE;
     initPtr->DupThreshold = 16;
     initPtr->MaxPackets = -1;
-    initPtr->Portal.Tag = RPC2_PORTALBYINETNUMBER;
-    initPtr->Portal.Value.InetPortNumber = htons(0);
+    initPtr->Port.Tag = RPC2_PORTBYINETNUMBER;
+    initPtr->Port.Value.InetPortNumber = htons(0);
     }
 
 
 void SFTP_Activate(initPtr)
-    register SFTP_Initializer *initPtr;
+    SFTP_Initializer *initPtr;
     /* Should be called before RPC2_Init() */
     {
-    register struct SE_Definition *sed;
-    register long size;
+    struct SE_Definition *sed;
+    long size;
 
     if (initPtr != NULL)
 	{
@@ -166,7 +166,7 @@ void SFTP_Activate(initPtr)
 	SFTP_DoPiggy = initPtr->DoPiggy;
 	SFTP_DupThreshold = initPtr->DupThreshold;
 	SFTP_MaxPackets = initPtr->MaxPackets;
-	sftp_Portal = initPtr->Portal;			/* structure assignment */
+	sftp_Port = initPtr->Port;			/* structure assignment */
 	}
     CODA_ASSERT(SFTP_SendAhead <= 16);	/* 'cause of readv() bogosity */
 
@@ -209,7 +209,7 @@ long SFTP_Bind1(IN ConnHandle, IN ClientIdent)
     RPC2_Handle ConnHandle;
     RPC2_CountedBS *ClientIdent;
     {
-    register struct SFTP_Entry *se;
+    struct SFTP_Entry *se;
 
     say(0, SFTP_DebugLevel, "SFTP_Bind()\n");
 
@@ -229,9 +229,15 @@ long SFTP_Bind2(IN ConnHandle, IN BindTime)
 
     CODA_ASSERT(RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS);
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
-    if (BindTime) sftp_InitRTT(BindTime, se);
-    se->HostInfo = rpc2_GetHostByType(&se->PInfo.RemoteHost, SMARTFTP_HE);
-                   /* guess at host info until peer portal is known */
+    se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
+    if (BindTime)
+    {
+        /* XXX Do some estimate of the amount of transferred data --JH */
+	RPC2_UpdateEstimates(se->HostInfo, BindTime,
+			     2 * sizeof(struct RPC2_PacketHeader));
+        rpc2_RetryInterval(se->HostInfo, 2 * sizeof(struct RPC2_PacketHeader),
+			   1, &se->RInterval);
+    }
     
     return(RPC2_SUCCESS);
     }
@@ -253,7 +259,7 @@ long SFTP_NewConn(IN ConnHandle, IN ClientIdent)
     RPC2_Handle ConnHandle;
     RPC2_CountedBS *ClientIdent;
     {
-    register struct SFTP_Entry *se;
+    struct SFTP_Entry *se;
 
     say(0, SFTP_DebugLevel, "SFTP_NewConn()\n");
 
@@ -261,8 +267,7 @@ long SFTP_NewConn(IN ConnHandle, IN ClientIdent)
     se->WhoAmI = SFSERVER;
     se->LocalHandle = ConnHandle;
     RPC2_GetPeerInfo(ConnHandle, &se->PInfo);
-    se->HostInfo = rpc2_GetHostByType(&se->PInfo.RemoteHost, SMARTFTP_HE);
-                   /* take a guess at host info until peer portal is known */
+    se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
     RPC2_SetSEPointer(ConnHandle, se);
 
     return(RPC2_SUCCESS);    
@@ -341,7 +346,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
     RPC2_PacketBuffer *Reply;
     {
     struct SFTP_Entry *se;
-    register int i, nbytes;
+    int i, nbytes;
 
     say(0, SFTP_DebugLevel, "SFTP_MakeRPC2()\n");
     
@@ -396,7 +401,7 @@ long SFTP_MakeRPC2(IN ConnHandle, INOUT SDesc, INOUT Reply)
 
 long SFTP_GetRequest(IN ConnHandle, INOUT Request)
     RPC2_Handle ConnHandle;
-    register RPC2_PacketBuffer *Request;
+    RPC2_PacketBuffer *Request;
     {
     struct SFTP_Entry *se;
     long len;
@@ -406,8 +411,15 @@ long SFTP_GetRequest(IN ConnHandle, INOUT Request)
     CODA_ASSERT (RPC2_GetSEPointer(ConnHandle, &se) == RPC2_SUCCESS &&  se != NULL);
     if (se->WhoAmI != SFSERVER) FAIL(se, RPC2_SEFAIL2);
     se->ThisRPCCall = Request->Header.SeqNumber;   /* acquire client's RPC call number */
-    if ((se->RTT == 0) && (Request->Header.BindTime))
-	sftp_InitRTT(Request->Header.BindTime, se); /* initialize RTT */
+
+    if (Request->Header.BindTime)
+    {
+        /* XXX Do some estimate of the amount of transferred data --JH */
+	RPC2_UpdateEstimates(se->HostInfo, Request->Header.BindTime,
+			     2 * sizeof(struct RPC2_PacketHeader));
+        rpc2_RetryInterval(se->HostInfo, 2 * sizeof(struct RPC2_PacketHeader),
+			   1, &se->RInterval);
+    }
 
     se->PiggySDesc = NULL; /* default is no piggybacked file */
     if ((Request->Header.SEFlags & SFTP_PIGGY))
@@ -463,7 +475,7 @@ long SFTP_CheckSE(IN ConnHandle, INOUT SDesc, IN Flags)
     {
     long rc, flen;
     struct SFTP_Entry *se;
-    register struct SFTP_Descriptor *sftpd;
+    struct SFTP_Descriptor *sftpd;
     struct FileInfoByAddr *p;
 	
 
@@ -644,9 +656,9 @@ long SFTP_GetTime(IN ConnHandle, INOUT Time)
     if ((rc = RPC2_GetSEPointer(ConnHandle, &se)) != RPC2_SUCCESS)
 	    return(rc);
 
-    if (se == NULL) return(RPC2_NOCONNECTION);
+    if (se == NULL || se->HostInfo == NULL) return(RPC2_NOCONNECTION);
 
-    *Time = se->LastWord;
+    *Time = se->HostInfo->LastWord;
     return(RPC2_SUCCESS);
     }
 
@@ -671,7 +683,7 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
      * the right type has appeared since the bind.
      */
     if (se->HostInfo == NULL) 
-	se->HostInfo = rpc2_GetHostByType(&se->PInfo.RemoteHost, SMARTFTP_HE);
+	se->HostInfo = rpc2_GetHost(&se->PInfo.RemoteHost);
 	
     *HPtr = se->HostInfo;
     return(RPC2_SUCCESS);
@@ -679,14 +691,14 @@ long SFTP_GetHostInfo(IN ConnHandle, INOUT HPtr)
 
 
 
-
 /*-------------------- Data transmission routines -----------------------*/
 static long GetFile(sEntry)
-    register struct SFTP_Entry *sEntry;
+    struct SFTP_Entry *sEntry;
     /* Local file is already opened */
     {
-    register long i;
-    register long startmode = TRUE;
+    struct CEntry *ce;
+    long i, packetsize;
+    long startmode = TRUE;
     RPC2_PacketBuffer *pb;
     
     sEntry->XferState = XferInProgress;
@@ -697,13 +709,24 @@ static long GetFile(sEntry)
     sEntry->RecvFirst = sEntry->RecvLastContig + 1;
     bzero(sEntry->RecvTheseBits, sizeof(int)*BITMASKWIDTH);
 
+    ce = rpc2_GetConn(sEntry->LocalHandle);
+    sEntry->TimeEcho = ce ? ce->TimeStampEcho : 0;
+    sEntry->RequestTime = ce ? ce->RequestTime : 0;
+
     if (sftp_SendStart(sEntry) < 0)
     	{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}	/* Initiate */
 
+    /* Set timeout to be large enough for size of (possibly sent) ack + size
+     * of the next data packet */
+    packetsize = sEntry->PacketSize + 2 * sizeof(struct RPC2_PacketHeader);
     while (sEntry->XferState == XferInProgress)
 	{
-	for (i = 0; i < sEntry->RetryCount; i++)
-	    {
+	for (i = 1; i <= sEntry->RetryCount; i++)
+	{
+	    /* get a new retry interval estimate */
+	    rpc2_RetryInterval(sEntry->HostInfo, packetsize, i,
+			       &sEntry->RInterval);
+
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
 
 	    /* Make sure nothing bad happened while we were waiting */
@@ -714,55 +737,46 @@ static long GetFile(sEntry)
 
 	    /* Did we receive a packet? */
 	    if (pb == NULL)
-		{
-		/*
-		 * if we have retried at least once, and we waited for more
-		 * than 15 seconds. Give up.  -JH
-		 */
-		if (i > 1 && sEntry->RInterval.tv_sec >= 15)
-			break;
-
-		/* 
-		 * don't back off unless we have a rtt estimate. This is 
-		 * this is more for dealing with old clients/servers than
-		 * anything else.
-		 */
-		if (sEntry->RTT) sftp_Backoff(sEntry);
+	    {
+		sftp_timeouts++;
+		sEntry->Retransmitting = TRUE;
+		say(4, SFTP_DebugLevel, "GetFile: Backoff\n");
 
 		if (startmode)
-		    {
+		{
 		    if (sftp_SendStart(sEntry) < 0)
-			{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
-		    }
-		else
-		    {
-		    if (sftp_SendTrigger(sEntry) < 0)
-			{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
-		    }
-		continue;
+		    {QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
 		}
+		else
+		{
+		    if (sftp_SendTrigger(sEntry) < 0)
+		    {QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
+		}
+		continue;
+	    }
 
 	    /* If so process it */
-	    switch((int) pb->Header.Opcode)	/* punt CtrlSeqNumber consistency for now */
-		{
-		case SFTP_NAK:
-			CODA_ASSERT(FALSE); /* my SEntry state should already be ERRORR */
-		case SFTP_DATA:
-			goto GotData;
+	    switch((int) pb->Header.Opcode)
+		/* punt CtrlSeqNumber consistency for now */
+	    {
+	    case SFTP_NAK:
+		CODA_ASSERT(FALSE); /* my SEntry state should already be ERRORR */
+	    case SFTP_DATA:
+		goto GotData;
 
-		case SFTP_BUSY:
-		        sftp_Recvd.Busies++;
-			if (startmode)
-			    { sftp_busy++; i = 0; SFTP_FreeBuffer(&pb); }
-			else
-			    BOGUS(pb);
-			continue;
+	    case SFTP_BUSY:
+		sftp_Recvd.Busies++;
+		if (startmode)
+		{ sftp_busy++; i = 0; SFTP_FreeBuffer(&pb); }
+		else
+		    BOGUS(pb);
+		continue;
 
-		default:
-			BOGUS(pb);
-			break;
-		}
+	    default:
+		BOGUS(pb);
+		break;
 	    }
+	}
 	sftp_SetError(sEntry, ERROR);
 	QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
 
@@ -782,12 +796,13 @@ GotData:
 
 
 /* Local file is already opened */
-static long PutFile(register struct SFTP_Entry *sEntry)
+static long PutFile(struct SFTP_Entry *sEntry)
 {
     RPC2_PacketBuffer *pb;
     struct CEntry     *ce;
-    register long i;
-
+    long i;
+    unsigned long bytes;
+    
     sEntry->SDesc->Value.SmartFTPD.BytesTransferred = 0;
     sEntry->SDesc->Value.SmartFTPD.QuotaExceeded = 0;
     sEntry->HitEOF = FALSE;
@@ -801,18 +816,23 @@ static long PutFile(register struct SFTP_Entry *sEntry)
      * may not span more than one round-trip, and no RTT update would
      * occur. */
     ce = rpc2_GetConn(sEntry->LocalHandle);
-    if (ce == NULL)
-	sEntry->TimeEcho = 0;
-    else
-	sEntry->TimeEcho = ce->TimeStampEcho;
+    sEntry->TimeEcho = ce ? ce->TimeStampEcho : 0;
+    sEntry->RequestTime = ce ? ce->RequestTime : 0;
 
     bzero(sEntry->SendTheseBits, sizeof(int)*BITMASKWIDTH);
 
     if (sftp_SendStrategy(sEntry) < 0)
 	{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
 
+    /* estimated size of an sftp data transfer */
+    bytes = ((sEntry->PacketSize + sizeof(struct RPC2_PacketHeader)) *
+	     sEntry->WindowSize) + sizeof(struct RPC2_PacketHeader);
+
     while (sEntry->XferState == XferInProgress) {
-	for (i = 0; i < sEntry->RetryCount; i++) {
+	for (i = 1; i <= sEntry->RetryCount; i++) {
+	    /* get a new retry interval estimate */
+	    rpc2_RetryInterval(sEntry->HostInfo, bytes, i, &sEntry->RInterval);
+
 	    pb = (RPC2_PacketBuffer *)AwaitPacket(&sEntry->RInterval, sEntry);
 
 	    /* Make sure nothing bad happened while we were waiting */
@@ -825,21 +845,17 @@ static long PutFile(register struct SFTP_Entry *sEntry)
 	    if (pb != NULL)
 		goto GotAck;
 
-	    sEntry->TimeEcho = 0;
+	    say(4, SFTP_DebugLevel, "PutFile: backing off\n");
+	    sftp_timeouts++;
+	    sEntry->Retransmitting = TRUE;
+
 	    if (sftp_SendStrategy(sEntry) < 0)
 		{QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);}
-
-	    /* 
-	     * don't back off unless we have a rtt estimate. This is 
-	     * this is more for dealing with old clients/servers than
-	     * anything else.
-	     */
-	    if (sEntry->RTT) sftp_Backoff(sEntry);
 	}
 	sftp_SetError(sEntry, ERROR);
 	QUIT(sEntry, SE_FAILURE, RPC2_SEFAIL2);
 GotAck:
-	if (i == 0) /* got an ack on the first try. allow RTT updates now */
+	if (i == 1) /* got an ack on the first try. allow RTT updates now */
 	    sEntry->Retransmitting = FALSE;
 
 	switch ((int) pb->Header.Opcode) {
@@ -862,8 +878,8 @@ GotAck:
 
 
 static RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
-    register struct timeval *tOut;
-    register struct SFTP_Entry *sEntry;
+    struct timeval *tOut;
+    struct SFTP_Entry *sEntry;
     
     /* Awaits for a packet on sEntry or  timeout tOut
 	Returns pointer to arrived packet or NULL
@@ -902,10 +918,10 @@ static RPC2_PacketBuffer *AwaitPacket(tOut, sEntry)
     
 
 static void AddTimerEntry(whichElem)
-    register struct TM_Elem *whichElem;
+    struct TM_Elem *whichElem;
     {
-    register struct TM_Elem *t;
-    register long mytime;
+    struct TM_Elem *t;
+    long mytime;
 
     mytime = whichElem->TotalTime.tv_sec*1000000 + whichElem->TotalTime.tv_usec;
     t = TM_GetEarliest(sftp_Chain);
@@ -917,17 +933,18 @@ static void AddTimerEntry(whichElem)
 
 /*---------------------- Piggybacking routines -------------------------*/
 
-int sftp_AddPiggy(whichP, dPtr, dSize, maxSize)
-    RPC2_PacketBuffer **whichP;	/* packet to be enlarged */
-    char *dPtr;		/* data to be piggybacked */
-    long dSize;		/* length of data at dPtr */
-    long maxSize;	/* how large whichP can grow to */
+int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize,
+		  long maxSize)
+/* whichP	- packet to be enlarged
+ * dPtr		- data to be piggybacked
+ * dSize	- length of data at dPtr
+ * maxSize	- how large whichP can grow to */
     /* If specified data can be piggy backed within a packet no larger than maxSize,
 	adds the data and sets SEFlags and SEDataOffset.
 	Enlarges packet if needed.
 	Returns 0 if data has been piggybacked, -1 if maxSize would be exceeded
     */
-    {
+{
     say(9, SFTP_DebugLevel, "sftp_AddPiggy: %ld\n", dSize);
     
     if (MakeBigEnough(whichP, dSize, maxSize) < 0) return (-1);
@@ -944,20 +961,18 @@ int sftp_AddPiggy(whichP, dPtr, dSize, maxSize)
     (*whichP)->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) +
 			    (*whichP)->Header.BodyLength;
     return(0);
-    }
+}
 
 
-static long MakeBigEnough(whichP, extraBytes, maxSize)
-    RPC2_PacketBuffer **whichP;
-    long extraBytes;
-    long maxSize;
+static long MakeBigEnough(RPC2_PacketBuffer **whichP, long extraBytes,
+			  long maxSize)
     /* Checks if whichP is a packet buffer to which extraBytes can be appended.  
     	If so returns whichP unmodified.
 	Otherwise, allocates new packet, copies old contents to it, and sets whichP to new packet.
 	If reallocation would cause packet size to exceed maxSize, no reallocation is done.
 	Returns 0 if extraBytes can be appended to whichP; -1 otherwise.
     */
-    {
+{
     long freebytes, curlen;
     RPC2_PacketBuffer *pb;
 
@@ -972,19 +987,18 @@ static long MakeBigEnough(whichP, extraBytes, maxSize)
     bcopy(&(*whichP)->Header, &pb->Header, curlen);
     *whichP = pb;	/* DON'T free old packet !!! */
     return(0);
-    }
+}
 
 
-long sftp_AppendFileToPacket(sEntry, whichP)
-    register struct SFTP_Entry *sEntry;
-    register RPC2_PacketBuffer **whichP;
+long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry,
+			     RPC2_PacketBuffer **whichP)
     /* Tries to add a file to the end of whichP
     Returns:
  	+X  if X bytes have been piggybacked.
 	-1 in case of system call failure
 	-2 if appending file would make packet larger than SFTP_MAXPACKETSIZE
     */
-    {
+{
     long rc, maxbytes, filelen;
     static char GlobalJunk[SFTP_MAXBODYSIZE];	/* buffer for read();
 				    avoids huge local on my stack */
@@ -1008,15 +1022,14 @@ long sftp_AppendFileToPacket(sEntry, whichP)
     /* cleanup and quit */
     CLOSE(sEntry);
     return(filelen);
-    }
+}
 
 
-long sftp_ExtractFileFromPacket(sEntry, whichP)
-    register struct SFTP_Entry *sEntry;
-    register RPC2_PacketBuffer *whichP;
+long sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry,
+				RPC2_PacketBuffer *whichP)
     /* Plucks off piggybacked file.
        Returns number of bytes plucked off, or < 0 if error */
-    {
+{
     long len, rc;
 
     len = whichP->Header.BodyLength - whichP->Header.SEDataOffset;
@@ -1028,20 +1041,19 @@ long sftp_ExtractFileFromPacket(sEntry, whichP)
     /* shorten the packet */
     whichP->Header.BodyLength -= len;
     return(len);
-    }
+}
 
 
-int sftp_AppendParmsToPacket(sEntry, whichP)
-    register struct SFTP_Entry *sEntry;
-    register RPC2_PacketBuffer **whichP;
+int sftp_AppendParmsToPacket(struct SFTP_Entry *sEntry,
+			     RPC2_PacketBuffer **whichP)
     /* Clients append parms to RPC request packets,
        servers to SE control packets. 
        Returns 0 on success, -1 on failure */
-    {
+{
     struct SFTP_Parms sp;
 
-    sp.Portal = sftp_Portal;	/* structure assignment */
-    sp.Portal.Tag = (PortalTag)htonl(sp.Portal.Tag);
+    sp.Port = sftp_Port;	/* structure assignment */
+    sp.Port.Tag = (PortTag)htonl(sp.Port.Tag);
     sp.WindowSize = htonl(sEntry->WindowSize);
     sp.SendAhead = htonl(sEntry->SendAhead);
     sp.AckPoint = htonl(sEntry->AckPoint);
@@ -1061,14 +1073,13 @@ int sftp_AppendParmsToPacket(sEntry, whichP)
 	}
 
     return(0);
-    }
+}
 
 
-int sftp_ExtractParmsFromPacket(sEntry, whichP)
-    register struct SFTP_Entry *sEntry;
-    register RPC2_PacketBuffer *whichP;
+int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry,
+				RPC2_PacketBuffer *whichP)
     /* Plucks off piggybacked parms. Returns 0 on success, -1 on failure */
-    {
+{
     struct SFTP_Parms sp;
 
     if (whichP->Header.BodyLength - whichP->Header.SEDataOffset < sizeof(struct SFTP_Parms))
@@ -1076,19 +1087,18 @@ int sftp_ExtractParmsFromPacket(sEntry, whichP)
 
     /* We copy out the data physically:
        else structure alignment problem on IBM-RTs */
-    bcopy(&whichP->Body[whichP->Header.BodyLength - sizeof(struct SFTP_Parms)], &sp, sizeof(struct SFTP_Parms));
+    memcpy(&sp, &whichP->Body[whichP->Header.BodyLength - sizeof(struct SFTP_Parms)], sizeof(struct SFTP_Parms));
 
     if (sEntry->WhoAmI == SFSERVER)
-	{
-	sEntry->PeerPortal = sp.Portal;	/* structure assignment */
-	sEntry->PeerPortal.Tag = (PortalTag)ntohl(sp.Portal.Tag);
+    {
+	sEntry->PeerPort = sp.Port; /* structure assignment */
+	sEntry->PeerPort.Tag = (PortTag)ntohl(sp.Port.Tag);
 
-	/* Set up host/portal linkage. */
-	sEntry->HostInfo = rpc2_GetHost(&sEntry->PInfo.RemoteHost, &sEntry->PeerPortal);
+	/* Set up host/port linkage. */
+	sEntry->HostInfo = rpc2_GetHost(&sEntry->PInfo.RemoteHost);
 	if (sEntry->HostInfo == NULL) 
-	    sEntry->HostInfo = rpc2_AllocHost(&sEntry->PInfo.RemoteHost, 
-					      &sEntry->PeerPortal, SMARTFTP_HE);
-	}
+	    sEntry->HostInfo = rpc2_AllocHost(&sEntry->PInfo.RemoteHost);
+    }
     else
 	CODA_ASSERT(sEntry->WhoAmI == SFCLIENT);
 
@@ -1122,12 +1132,12 @@ int sftp_ExtractParmsFromPacket(sEntry, whichP)
     whichP->Header.BodyLength -= sizeof(struct SFTP_Parms);
 
     return(0);
-    }
+}
 
 /*---------------------- Miscellaneous routines ----------------------*/
-struct SFTP_Entry *sftp_AllocSEntry()
+struct SFTP_Entry *sftp_AllocSEntry(void)
     {
-    register struct SFTP_Entry *sfp;
+    struct SFTP_Entry *sfp;
 
     CODA_ASSERT((sfp = (struct SFTP_Entry *)malloc(sizeof(struct SFTP_Entry))) != NULL);
     bzero(sfp, sizeof(struct SFTP_Entry));	/* all fields initialized to 0 */
@@ -1142,27 +1152,24 @@ struct SFTP_Entry *sftp_AllocSEntry()
     sfp->RInterval.tv_sec = SFTP_RetryInterval/1000;
     sfp->RInterval.tv_usec = (SFTP_RetryInterval*1000) % 1000000;
     sfp->Retransmitting = FALSE;
+    sfp->RequestTime = 0;
     return(sfp);
     }
 
-void sftp_FreeSEntry(se)
-    struct SFTP_Entry *se;
-    {
-    register int i;
+void sftp_FreeSEntry(struct SFTP_Entry *se)
+{
+    int i;
 
     CLOSE(se);
     if (se->PiggySDesc) sftp_FreePiggySDesc(se);
     for (i = 0; i < MAXOPACKETS; i++)
 	if (se->ThesePackets[i] != NULL) SFTP_FreeBuffer(&se->ThesePackets[i]);
     free(se);
-    }
+}
 
-void sftp_AllocPiggySDesc(se, len, direction)
-    struct SFTP_Entry *se;
-    long len;
-    enum WhichWay direction;
-    
-    {
+void sftp_AllocPiggySDesc(struct SFTP_Entry *se, long len,
+			  enum WhichWay direction)
+{
     struct FileInfoByAddr *p;
 
     CODA_ASSERT(se->PiggySDesc == NULL);	/* can't already exist */
@@ -1184,12 +1191,11 @@ void sftp_AllocPiggySDesc(se, len, direction)
     p->vmfile.MaxSeqLen = len;
     p->vmfile.SeqLen = len;
     p->vmfilep = 0;
-    }
+}
 
 
-void sftp_FreePiggySDesc(se)
-    struct SFTP_Entry *se;
-    {
+void sftp_FreePiggySDesc(struct SFTP_Entry *se)
+{
     struct FileInfoByAddr *p;
 
     CODA_ASSERT(se->PiggySDesc);  /* better not be NULL! */
@@ -1198,25 +1204,23 @@ void sftp_FreePiggySDesc(se)
     free(p->vmfile.SeqBody);
     free(se->PiggySDesc);
     se->PiggySDesc = NULL;
-    }
+}
 
-void sftp_SetError(s, e)
-    register struct SFTP_Entry *s;
-    enum SFState e;
+void sftp_SetError(struct SFTP_Entry *s, enum SFState e)
     /* separate routine for easy debugging*/
-    {
+{
     s->WhoAmI = e;
-    }
+}
 
 
 
 /*-------------------------- Debugging routines ------------------------*/
 
 long SFTP_PrintSED(IN SDesc, IN outFile)
-    register SE_Descriptor *SDesc;
-    register FILE *outFile;
+    SE_Descriptor *SDesc;
+    FILE *outFile;
     {
-    register struct SFTP_Descriptor *sftpd;
+    struct SFTP_Descriptor *sftpd;
     sftpd = &SDesc->Value.SmartFTPD;
     
     CODA_ASSERT(SDesc->Tag == SMARTFTP);	/* I shouldn't be called otherwise */

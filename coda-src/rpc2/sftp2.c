@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp2.c,v 4.4 1998/09/15 14:28:00 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp2.c,v 4.5 98/11/02 16:45:25 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,6 +69,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include "lwp.h"
@@ -82,21 +83,18 @@ extern errno;
 
 static void ClientPacket();
 static void ServerPacket();
-static void ExaminePacket();
-static void SFSendNAK();
+static void ExaminePacket(RPC2_PacketBuffer *whichPacket);
+static void SFSendNAK(RPC2_PacketBuffer *pb);
 static void sftp_ProcessPackets();
 static bool sftp_MorePackets();
 static void ScanTimerQ();
-static int AwaitEvent(), hostcmp();
-
-#define NAKIT(se)\
-    SFSendNAK((se)->PInfo.RemoteHandle, &((se)->PInfo.RemoteHost), &((se)->PeerPortal))
+static int AwaitEvent();
 
 #define BOGUS(pb)\
     (sftp_TraceBogus(2, __LINE__), sftp_bogus++, SFTP_FreeBuffer(&pb))
 
 void sftp_Listener(void)
-    {/* LWP that listens for SFTP packets */
+{/* LWP that listens for SFTP packets */
     
     TM_Init(&sftp_Chain);
 
@@ -109,8 +107,9 @@ void sftp_Listener(void)
 	
 	sftp_ProcessPackets();
 	}
-    }
+}
 
+/* This function is not called by the sftp code itself */
 void SFTP_DispatchProcess(void)
     {
     struct timeval tv;
@@ -135,17 +134,12 @@ void SFTP_DispatchProcess(void)
 static void sftp_ProcessPackets()
 {
     RPC2_PacketBuffer *pb;
-    RPC2_HostIdent rhost;
-    RPC2_PortalIdent rportal;
     int rc;
-
-    bzero(&rhost, sizeof(rhost));	/* Else bcmp() in ExaminePacket() may give bogus results */
-    bzero(&rportal, sizeof(rportal));	/* ditto */
 
     /* A packet has arrived: read it in  */
 
     SFTP_AllocBuffer(SFTP_MAXBODYSIZE, &pb);
-    rc = sftp_RecvPacket(sftp_Socket, pb, &rhost, &rportal);
+    rc = sftp_RecvPacket(sftp_Socket, pb);
     if (rc < 0)
 	{
 	/* If errno = 0, libfail killed the packet.
@@ -156,14 +150,14 @@ static void sftp_ProcessPackets()
 	}
 
     /* Go look at this  packet */
-    ExaminePacket(pb, &rhost, &rportal);
+    ExaminePacket(pb);
 }
 
 static void ScanTimerQ()
     {
-    register int i;
-    register struct SLSlot *s;
-    register struct TM_Elem *t;
+    int i;
+    struct SLSlot *s;
+    struct TM_Elem *t;
 
     /* scan timer queue and notify timed out events */
     for (i = TM_Rescan(sftp_Chain); i > 0; i--)
@@ -177,9 +171,27 @@ static void ScanTimerQ()
     }
 
 
-static bool sftp_MorePackets(rpc2, sftp)
-bool *rpc2, *sftp;
-    {
+/* This function is only called by SFTP_DispatchProcess, which is not called
+ * by the sftp code itself */
+static bool sftp_MorePackets(bool *rpc2, bool *sftp)
+{
+/* This ioctl peeks into the socket's receive queue, and reports the amount
+ * of data ready to be read. Linux officially uses TIOCINQ, but it's an alias
+ * for FIONREAD, so this should work too. --JH */
+#if defined(FIONREAD)
+    int ready_rpc2 = 0, ready_sftp = 0;
+
+    *rpc2 = ((ioctl(rpc2_RequestSocket, FIONREAD, &ready_rpc2) == 0) &&
+	     (ready_rpc2 != 0));
+
+    *sftp = ((ioctl(sftp_Socket, FIONREAD, &ready_sftp) == 0) &&
+	     (ready_sftp != 0));
+    
+    fprintf(stderr, "sftp_MorePackets: rpc2 %d, sftp %d\n",
+	    ready_rpc2, ready_sftp);
+
+    return (*rpc2 || *sftp);
+#else
     struct timeval tv;
     long rmask, wmask, emask;
 
@@ -187,22 +199,23 @@ bool *rpc2, *sftp;
     emask = rmask = (1 << sftp_Socket) | (1 << rpc2_RequestSocket);
     wmask = 0;
     /* We use select rather than IOMGR_Select to avoid overheads. This is acceptable
-    	only because we are doing a polling select */
+       only because we are doing a polling select */
     if (select(8*sizeof(long), &rmask, &wmask, &emask, &tv) > 0)
-	{
+    {
 	*rpc2 = rmask & (1 << rpc2_RequestSocket);
 	*sftp = rmask & (1 << sftp_Socket);
 	return(TRUE);
-	}
-    else return(FALSE);
     }
+    else return(FALSE);
+#endif
+}
 
 static int AwaitEvent()
     /* Awaits for a packet or earliest timeout and returns code from IOMGR_Select() */
     {
     int emask, rmask, wmask, rc;
-    register struct timeval *tvp;
-    register struct TM_Elem *t;
+    struct timeval *tvp;
+    struct TM_Elem *t;
     
     /* wait for packet or earliest timeout */
     t = TM_GetEarliest(sftp_Chain);
@@ -218,12 +231,8 @@ static int AwaitEvent()
     }
 
 
-static void ExaminePacket(whichPacket, whichHost, whichPortal)
-    RPC2_PacketBuffer *whichPacket;
-    RPC2_HostIdent *whichHost;
-    RPC2_PortalIdent *whichPortal;
+static void ExaminePacket(RPC2_PacketBuffer *pb)
     {
-    RPC2_PacketBuffer	*pb = whichPacket;
     struct SFTP_Entry	*sfp;
     struct CEntry	*ce;
 
@@ -233,8 +242,9 @@ static void ExaminePacket(whichPacket, whichHost, whichPortal)
 
     /* Translate the packet to the singlecast channel if it was multicasted */
     if (ntohl(pb->Header.Flags) & RPC2_MULTICAST)
-	if (!SFXlateMcastPacket(pb, whichHost, whichPortal))
-	    /* Can't NAK since we (probably) don't know the real sender's handle! */
+	if (!SFXlateMcastPacket(pb))
+	    /* Can't NAK since we (probably) don't know the real sender's
+	     * handle! */
 	    /* IMPLEMENT MCNAK's!!! */
 	    { BOGUS(pb); return; }
 
@@ -242,15 +252,17 @@ static void ExaminePacket(whichPacket, whichHost, whichPortal)
     if ((ce = rpc2_GetConn(ntohl(pb->Header.RemoteHandle))) == NULL ||
 	TestState(ce, CLIENT, C_HARDERROR) ||
 	TestState(ce, SERVER, S_HARDERROR) ||
+//	pb->Header.LocalHandle != ce->PeerHandle ||
 	(sfp = (struct SFTP_Entry *)ce->SideEffectPtr) == NULL ||
 	sfp->WhoAmI == ERROR ||
 	sfp->WhoAmI == DISKERROR)
-	{
-	if (ntohl(pb->Header.LocalHandle) != -1)	/* don't NAK NAKs! */
-	    SFSendNAK(ntohl(pb->Header.LocalHandle), whichHost, whichPortal);
+    {
+	/* SFSendNAK expects host-order */
+	pb->Header.RemoteHandle = ntohl(pb->Header.RemoteHandle);
+	SFSendNAK(pb); /* NAK this packet */
 	BOGUS(pb);
 	return;
-	}
+    }
 
     /* Decrypt and net-to-host the packet. */
     if (ntohl(pb->Header.Flags) & RPC2_ENCRYPTED) sftp_Decrypt(pb, sfp);
@@ -267,9 +279,13 @@ static void ExaminePacket(whichPacket, whichHost, whichPortal)
 	}
 
     /* SANITY CHECK: validate socket-level and connection-level host values. */
-    if (hostcmp(whichHost, &sfp->PInfo.RemoteHost) == FALSE)
-	/* Can't compare portals, since SFTP socket is not RPC socket */
-	{ SFSendNAK(pb->Header.LocalHandle, whichHost, whichPortal); BOGUS(pb); return; }
+    if (rpc2_HostIdentEqual(&pb->Prefix.PeerHost, &sfp->PInfo.RemoteHost) == FALSE)
+	/* Can't compare ports, since SFTP socket is not RPC socket */
+    {
+	SFSendNAK(pb); /* NAK this packet */
+	BOGUS(pb);
+	return;
+    }
 	    
     /* SANITY CHECK: make sure this pertains to the current RPC call. */
     if (pb->Header.ThisRPCCall != sfp->ThisRPCCall)
@@ -279,40 +295,22 @@ static void ExaminePacket(whichPacket, whichHost, whichPortal)
 	return;
 	}
 
-    /* Client records SFTP portal here since we may need to use it before we record other parms. */
+    /* Client records SFTP port here since we may need to use it before we record other parms. */
     if (sfp->GotParms == FALSE && sfp->WhoAmI == SFCLIENT)
-	{
-	/* SANITY CHECK: validate peer's SFTP Portal for multicast. */
-	/* The requirement is that (Server.SFTP.Portal = Server.RPC.Portal + 1). */
-	if (sfp->UseMulticast)
-	    {
-	    long s_portal = ntohs(whichPortal->Value.InetPortNumber);
-	    long r_portal = ntohs(sfp->PInfo.RemotePortal.Value.InetPortNumber);
-	    if (s_portal != r_portal + 1)
-		{
-		say(9, SFTP_DebugLevel, "Bad Peer Portal: 0x%lx\tExpecting: 0x%lx\n", s_portal, r_portal + 1);
-		SFSendNAK(pb->Header.LocalHandle, whichHost, whichPortal);
-		BOGUS(pb);
-		return;
-		}
-	    }
-
-	sfp->PeerPortal	= *whichPortal;	    /* structure assignment */
-
-	/* Set up host/portal linkage. */
-	sfp->HostInfo = rpc2_GetHost(&sfp->PInfo.RemoteHost, &sfp->PeerPortal);
-	if (sfp->HostInfo == NULL) 
-	    sfp->HostInfo = rpc2_AllocHost(&sfp->PInfo.RemoteHost, 
-					   &sfp->PeerPortal, SMARTFTP_HE);
+    {
+	sfp->PeerPort = pb->Prefix.PeerPort;	/* structure assignment */
+	sfp->HostInfo = ce->HostInfo;		/* Set up host/port linkage. */
 
 	/* Can't set GotParms to TRUE yet; must pluck off other parms. */
-	}
+    }
 
     /* update the last-heard-from times for this SFTP entry, and the 
-       connection-independent entry for this host/SFTP portal. */
-    FT_GetTimeOfDay(&sfp->LastWord, (struct timezone *)0);
+       connection-independent entry for this host/SFTP port. */
     CODA_ASSERT(sfp->HostInfo != NULL);
-    sfp->HostInfo->LastWord = sfp->LastWord;	/* structure assignment */
+    sfp->HostInfo->LastWord = pb->Prefix.RecvStamp; /* structure assignment */
+
+    /* remember packet arrival time to compensate RTT errors */
+    sfp->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
 
     /* Go handle the packet appropriately. */
     sftp_TraceStatus(sfp, 2, __LINE__);
@@ -323,10 +321,10 @@ static void ExaminePacket(whichPacket, whichHost, whichPortal)
 
 static void ServerPacket(whichPacket, whichEntry)
     RPC2_PacketBuffer *whichPacket;
-    register struct SFTP_Entry *whichEntry;
+    struct SFTP_Entry *whichEntry;
     /* Find a sleeping LWP to deal with this packet */
     {
-    register struct SLSlot *sls;
+    struct SLSlot *sls;
 
     /* WARNING: we are assuming state TIMEOUT is essentially the same as state WAITING from the point of
 	of view of the test below; this will be true if no LWP yields control while its SLSlot state is
@@ -349,7 +347,7 @@ static void ServerPacket(whichPacket, whichEntry)
 
 static void ClientPacket(whichPacket, whichEntry)
     RPC2_PacketBuffer *whichPacket;
-    register struct SFTP_Entry *whichEntry;
+    struct SFTP_Entry *whichEntry;
     {
     /* Deal with this packet on Listener's thread of control */
 
@@ -362,49 +360,50 @@ static void ClientPacket(whichPacket, whichEntry)
 	case SFTP_ACK:
 	    /* Makes sense only if we are on source side */
 	    if (IsSource(whichEntry))
-		{
+	    {
 		if (sftp_AckArrived(whichPacket, whichEntry) < 0)
-		    {
-		    NAKIT(whichEntry);
-		    sftp_SetError(whichEntry, ERROR);
-		    }
-		}
-	    else
 		{
-		BOGUS(whichPacket);
+		    SFSendNAK(whichPacket); /* NAK this packet */
+		    sftp_SetError(whichEntry, ERROR);
 		}
+	    }
+	    else
+	    {
+		BOGUS(whichPacket);
+	    }
 	    break;
 	
 	case SFTP_DATA:
 	    /* Makes sense only if we are on sink side */
 	    if (IsSink(whichEntry))
-		{
+	    {
 		if (sftp_DataArrived(whichPacket, whichEntry) < 0)
-		    {
-		    if (whichEntry->WhoAmI != DISKERROR) sftp_SetError(whichEntry, ERROR);
-		    NAKIT(whichEntry);
-		    }
-		}
-	    else
 		{
-		BOGUS(whichPacket);
+		    if (whichEntry->WhoAmI != DISKERROR)
+			sftp_SetError(whichEntry, ERROR);
+		    SFSendNAK(whichPacket); /* NAK this packet */
 		}
+	    }
+	    else
+	    {
+		BOGUS(whichPacket);
+	    }
 	    break;
 	
 	case SFTP_START:
 	    /* Makes sense only on client between file transfers */
 	    if (IsSource(whichEntry))
-		{
+	    {
 		if (sftp_StartArrived(whichPacket, whichEntry) < 0)
-		    {
-		    NAKIT(whichEntry);
-		    sftp_SetError(whichEntry, ERROR);
-		    }
-		}
-	    else
 		{
-		BOGUS(whichPacket);
+		    SFSendNAK(whichPacket); /* NAK this packet */
+		    sftp_SetError(whichEntry, ERROR);
 		}
+	    }
+	    else
+	    {
+		BOGUS(whichPacket);
+	    }
 	    break;
 	
 	default:
@@ -414,12 +413,15 @@ static void ClientPacket(whichPacket, whichEntry)
     }
 
 
-static void SFSendNAK(remoteHandle, whichHost, whichPortal)
-    RPC2_Handle remoteHandle;
-    RPC2_HostIdent *whichHost;
-    RPC2_PortalIdent *whichPortal;
-    {
+static void SFSendNAK(RPC2_PacketBuffer *pb)
+{
     RPC2_PacketBuffer *nakpb;
+    RPC2_Handle remoteHandle  = pb->Header.LocalHandle;
+    RPC2_HostIdent *whichHost = &pb->Prefix.PeerHost;
+    RPC2_PortIdent *whichPort = &pb->Prefix.PeerPort;
+
+    /* don't NAK NAK's */
+    if (remoteHandle == -1) return;
 
     sftp_Sent.Naks++;
     say(0, SFTP_DebugLevel, "SFSendNAK\n");
@@ -432,25 +434,6 @@ static void SFSendNAK(remoteHandle, whichHost, whichPortal)
     nakpb->Header.Opcode = SFTP_NAK;
     /* All other fields are irrelevant in a NAK packet */
     rpc2_htonp(nakpb);
-    sftp_XmitPacket(sftp_Socket, nakpb, whichHost, whichPortal);    /* ignore return code */
+    sftp_XmitPacket(sftp_Socket, nakpb, whichHost, whichPort);    /* ignore return code */
     SFTP_FreeBuffer(&nakpb);
-    }
-
-
-static int hostcmp(host1, host2)
-    register RPC2_HostIdent *host1;
-    register RPC2_HostIdent *host2;
-    /* Returns TRUE iff host1 and host2 are the same. FALSE otherwise */
-    {
-    if (host1->Tag != host2->Tag) return(FALSE);
-    
-    switch(host1->Tag)
-	{
-	case RPC2_HOSTBYINETADDR:
-	    if (host1->Value.InetAddress == host2->Value.InetAddress) return(TRUE);
-	    else return(FALSE);
-
-	default: CODA_ASSERT(FALSE);
-	}
-    /*NOTREACHED*/
-    }
+}

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.4 1998/09/29 16:38:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/host.c,v 4.5 98/11/02 16:45:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -61,6 +61,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <string.h>
@@ -84,46 +85,44 @@ of the Coda License.
 
 /* Code to track host liveness 
 
-   We track liveness by host-portal pair, as we're really interested
-   in the liveness of the server process.  Response times are recorded
-   in the appropriate host-portal pair, and exported to applications.
+   We track liveness by host ip-address, as we're really interested
+   in the bandwidth and latency of connection between us and the server
+   machine.
+   Response times and bandwidth/latency estimates are calculated and
+   exported to applications, and other parts of the rpc2/sftp code.
    This is similar to the "Lastword" shared between an RPC connection
    and its side effect.  However, unlike the "Lastword" sharing, these
    times cannot be used to suppress retransmissions _between_
    connections, because of the possibility of lost request packets.
-
-   Entries are kept in a hash table. Since most hosts have multiple
-   connections to a give server or service, and services are published
-   on certain well-known portal ids, we hash on a combination of the
-   low byte of the host address and the low byte of the portal.  Both
-   are in network order, and are assumed to be numbers, not names.  */
+   Hosts are kept in a hash table.
+   We hash on the low bytes of the host address (in network order) */
  
 #define HOSTHASHBUCKETS 64
-#define HASHHOST(h,p) (((p & 0x0f00) >> 4 | (h & 0x0f000000) >> 24) & (HOSTHASHBUCKETS-1))
+#define HASHHOST(h) ((((h)->s_addr & 0xff000000) >> 24) & (HOSTHASHBUCKETS-1))
                                         /* mod HOSTHASHBUCKETS */
-static struct HEntry **HostHashTable;	/* malloc'ed hash table static stize */
+static struct HEntry **HostHashTable;	/* malloc'ed hash table static size */
 
 void rpc2_InitHost()
 {
 	HostHashTable = (struct HEntry **)malloc(HOSTHASHBUCKETS*sizeof(struct HEntry *));
 	CODA_ASSERT(HostHashTable != 0);
-	bzero(HostHashTable, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
+	memset(HostHashTable, 0, HOSTHASHBUCKETS*sizeof(struct HEntry *));	
 }
 
-/* Returns pointer to the host entry corresponding to (hostid,
-   portalid) Returns NULL if (host,portal) does not exist.  */
-struct HEntry *rpc2_FindHEAddr(IN unsigned long whichHost, IN unsigned short whichPortal)
+/* Returns pointer to the host entry corresponding to hostid
+   Returns NULL if host does not exist.  */
+struct HEntry *rpc2_FindHEAddr(IN struct in_addr *whichHost)
 {
-	register long bucket;
-	register struct HEntry *headdr;
+	long bucket;
+	struct HEntry *headdr;
 	
-	if (whichHost == 0 || whichPortal == 0) 
+	if (whichHost == 0)
 		return(NULL);
 
-	bucket = HASHHOST(whichHost,whichPortal);
+	bucket = HASHHOST(whichHost);
 	headdr = HostHashTable[bucket];
 	while (headdr)  {
-		if ((headdr->Host == whichHost) && (headdr->Portal == whichPortal))
+		if (headdr->Host.s_addr == whichHost->s_addr)
 			return(headdr);
 		headdr = headdr->HLink;
 	}
@@ -132,78 +131,48 @@ struct HEntry *rpc2_FindHEAddr(IN unsigned long whichHost, IN unsigned short whi
 }
 
 
-/* 
- * search the table looking for an HEntry with the given host
- * and type.  This is approximate in that there may be more than
- * one; this routine returns the first one it finds.
- */
-
-struct HEntry *rpc2_FindHEAddrByType(IN unsigned long whichHost, IN HEType type)
+struct HEntry *rpc2_GetHost(RPC2_HostIdent *host)
 {
-	register long bucket;
-	register struct HEntry *headdr;
-	
-	if (whichHost == 0 || type == UNSET_HE) 
-		return(NULL);
-
-	for (bucket = 0; bucket < HOSTHASHBUCKETS; bucket++) {
-		headdr = HostHashTable[bucket];
-		while (headdr) {
-			if ((headdr->Host == whichHost) && (headdr->Type == type))
-				return(headdr);
-			headdr = headdr->HLink;
-		}
-	}
-	
-	return(NULL);
-}
-
-
-struct HEntry *rpc2_GetHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal) 
-{
-	register struct HEntry *he;
-	he = rpc2_FindHEAddr(host->Value.InetAddress, portal->Value.InetPortNumber);
-	if (he == NULL) 
-		return(NULL);
-	CODA_ASSERT(he->MagicNumber == OBJ_HENTRY);
+	struct HEntry *he;
+	he = rpc2_FindHEAddr(&host->Value.InetAddress);
+	CODA_ASSERT(!he || he->MagicNumber == OBJ_HENTRY);
 	return(he);
 }
 
 
-struct HEntry *rpc2_GetHostByType(RPC2_HostIdent *host, HEType type) 
+struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host)
 {
-	register struct HEntry *he;
-	he = rpc2_FindHEAddrByType(host->Value.InetAddress, type);
-	if (he == NULL) 
-		return(NULL);
-	CODA_ASSERT(he->MagicNumber == OBJ_HENTRY);
-	return(he);
-}
-
-
-struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal, HEType type)
-{
-	register long bucket;
+	long bucket;
 	struct HEntry *he;
 	
 	if (rpc2_HostFreeCount == 0)
-		rpc2_Replenish(&rpc2_HostFreeList, &rpc2_HostFreeCount, sizeof(struct HEntry),
-			       &rpc2_HostCreationCount, OBJ_HENTRY);
+		rpc2_Replenish(&rpc2_HostFreeList, &rpc2_HostFreeCount,
+			       sizeof(struct HEntry), &rpc2_HostCreationCount,
+			       OBJ_HENTRY);
 	
-	he = (struct HEntry *)rpc2_MoveEntry(&rpc2_HostFreeList, &rpc2_HostList,
-					     (struct HEntry *)NULL, &rpc2_HostFreeCount, &rpc2_HostCount);
+	he = (struct HEntry *)rpc2_MoveEntry(&rpc2_HostFreeList,
+					     &rpc2_HostList,
+					     (struct HEntry *)NULL,
+					     &rpc2_HostFreeCount,
+					     &rpc2_HostCount);
 	CODA_ASSERT (he->MagicNumber == OBJ_HENTRY);
 
 	/* Initialize */
-	he->Host = host->Value.InetAddress;
-	he->Portal = portal->Value.InetPortNumber;
-	he->Type = type;
+	he->Host.s_addr = host->Value.InetAddress.s_addr;
 	he->LastWord.tv_sec = he->LastWord.tv_usec = 0;
-	bzero(he->Log, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
+	memset(he->Log, 0, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
 	he->NumEntries = 0;
 
+	he->RTT       = 0;
+	he->RTTVar    = 0;
+	he->BW        = 16 << RPC2_BW_SHIFT;
+	he->BWVar     = 16 << RPC2_BWVAR_SHIFT;
+	he->LastBytes = 0;
+	he->LastTime.tv_sec  = 0;
+	he->LastTime.tv_usec = 0;
+
 	/* insert into hash table */
-	bucket = HASHHOST(he->Host, he->Portal);
+	bucket = HASHHOST(&he->Host);
 	he->HLink = HostHashTable[bucket];
 	HostHashTable[bucket] = he;
 	
@@ -212,9 +181,9 @@ struct HEntry *rpc2_AllocHost(RPC2_HostIdent *host, RPC2_PortalIdent *portal, HE
 
 /* releases the host entry pointed to by whichHost.
    Sets whichHost to NULL. */
-void rpc2_FreeHost(register struct HEntry **whichHost)
+void rpc2_FreeHost(struct HEntry **whichHost)
 {
-	register long bucket;
+	long bucket;
 	struct HEntry **link;
 	
 	CODA_ASSERT((*whichHost)->MagicNumber == OBJ_HENTRY);
@@ -224,7 +193,7 @@ void rpc2_FreeHost(register struct HEntry **whichHost)
 		       &rpc2_HostCount, &rpc2_HostFreeCount);
 	
 	/* remove from hash table */
-	bucket = HASHHOST((*whichHost)->Host,(*whichHost)->Portal);
+	bucket = HASHHOST(&(*whichHost)->Host);
 	link = &HostHashTable[bucket];
 	while (*link) {
 		if (*link == *whichHost) {
@@ -236,7 +205,7 @@ void rpc2_FreeHost(register struct HEntry **whichHost)
 }
 
 
-void rpc2_GetHostLog(register struct HEntry *whichHost, RPC2_NetLog *log)
+void rpc2_GetHostLog(struct HEntry *whichHost, RPC2_NetLog *log)
 {
 	unsigned long quantum = 0;
 	unsigned wontexceed = RPC2_MAXLOGLENGTH;  /* as many as we can return */
@@ -300,14 +269,171 @@ int rpc2_AppendHostLog(struct HEntry *whichHost, RPC2_NetLogEntry *entry)
 	FT_AGetTimeOfDay(&(whichHost->Log[ix].TimeStamp),
 			 (struct timezone *)0);
 	whichHost->NumEntries++;
+
 	return(1);
 }
 
 
 /* clear the log */
-void rpc2_ClearHostLog(register struct HEntry *whichHost)
+void rpc2_ClearHostLog(struct HEntry *whichHost)
 {
 	CODA_ASSERT(whichHost->MagicNumber == OBJ_HENTRY);
 	whichHost->NumEntries = 0;
-	bzero(whichHost->Log, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
+	memset(whichHost->Log, 0, RPC2_MAXLOGLENGTH*sizeof(RPC2_NetLogEntry));
 }
+
+void RPC2_UpdateEstimates(struct HEntry *host, RPC2_Unsigned ElapsedTime,
+			  RPC2_Unsigned Bytes)
+{
+    struct timeval tv;
+
+    TSTOTV(&tv, ElapsedTime);
+    rpc2_UpdateEstimates(host, &tv, Bytes);
+}
+
+/* Here we update the RTT and Bandwidth estimates,
+ * ElapsedTime  is the observed roundtrip-time in milliseconds
+ * Bytes        is the number of bytes transferred */
+void rpc2_UpdateEstimates(struct HEntry *host, struct timeval *elapsed,
+			  RPC2_Unsigned Bytes)
+{
+    unsigned long  elapsed_us;
+    long	   eRTT;     /* estimated null roundtrip time */
+    long	   eBW;      /* estimated bandwidth */
+    unsigned long  eU;       /* temporary unsigned variable */
+    long	   eL;       /* temporary signed variable */
+
+    unsigned long  estimate, i, tries = 0;
+    struct timeval tv;
+
+    if (!host) return;
+
+    if (elapsed->tv_sec < 0) elapsed->tv_sec = elapsed->tv_usec = 0;
+    elapsed_us = elapsed->tv_sec * 1000000 + elapsed->tv_usec;
+
+    /* for estimating the efficiency of the calculation */
+    rpc2_RetryInterval(host, Bytes, 1, &tv);
+    estimate = tv.tv_sec * 1000000 + tv.tv_usec;
+    i = 1;
+    while (estimate && (elapsed_us > (estimate * i))) { tries++; i <<= 1; }
+
+    /* we need to clamp Bytes to a maximum value that avoids overflows in the
+     * following calculations  */
+    if (Bytes > 0xffff) Bytes = 0xffff;
+
+    /* calculate an estimated rtt */
+    eRTT = (host->RTT >> RPC2_RTT_SHIFT) - (host->RTTVar >> RPC2_RTTVAR_SHIFT);
+    if (eRTT < 0) { eRTT = 0; }
+
+    if (elapsed_us > eRTT)
+    {
+	eU  = elapsed_us - eRTT;
+	eBW = ((Bytes << 16) / eU) << 4;
+	eBW -= (host->BW >> RPC2_BW_SHIFT);
+	host->BW += eBW;
+
+	if (eBW < 0) eBW = -eBW;
+    }
+    else eBW = 0;
+
+    /* Invariant: eBW contains the absolute difference between the previous
+     * calculated bandwidth and the new measurement */
+
+    eBW -= (host->BWVar >> RPC2_BWVAR_SHIFT);
+    host->BWVar += eBW;
+
+    /* from here on eBW contains a lower estimate on the effective bandwidth */
+    /* eRTT will contain a updated RTT estimate */
+    eBW = (host->BW >> RPC2_BW_SHIFT) -
+	((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
+    if (eBW < 16) eBW = 16;
+
+    /* get a new RTT estimate in elapsed_us */
+    if (Bytes < host->LastBytes)
+    {
+	eU = ((Bytes << 16) / eBW) << 4;
+	if (elapsed_us > eU) eL = elapsed_us - eU;
+	else		 eL = 0;
+
+	/* the RTT & RTT variance are shifted analogous to Jacobson's
+	* article in SIGCOMM'88 */
+
+	eL -= (host->RTT >> RPC2_RTT_SHIFT);
+	host->RTT += eL;
+
+	if (eL < 0) eL = -eL;
+    }
+    else eL = 0;
+
+    eL -= (host->RTTVar >> RPC2_RTTVAR_SHIFT);
+    host->RTTVar += eL;
+
+    host->LastBytes = Bytes;
+    host->LastTime  = *elapsed;
+
+    say(0, RPC2_DebugLevel,
+	"Est: %s %4lu %4ld.%06lu/%-5lu RTT:%lu/%lu us BW:%lu/%lu B/s, x%ld\n",
+	    inet_ntoa(host->Host), estimate,
+	    elapsed->tv_sec, elapsed->tv_usec, Bytes,
+	    host->RTT>>RPC2_RTT_SHIFT, host->RTTVar>>RPC2_RTTVAR_SHIFT,
+	    host->BW>>RPC2_BW_SHIFT, host->BWVar>>RPC2_BWVAR_SHIFT, tries);
+
+    return;
+}
+
+void rpc2_RetryInterval(struct HEntry *host, RPC2_Unsigned Bytes, int retry,
+			struct timeval *tv)
+{
+    unsigned long rto;
+    long          effBW;
+    int           i, shift = 1;
+
+    if (!host || !tv) return;
+
+    if (retry == 0 || retry > Retry_N)
+    {
+	*tv = MaxRetryInterval;
+	return;
+    }
+
+    rto = (host->RTT >> RPC2_RTT_SHIFT) + host->RTTVar;
+
+    /* because we have subtracted the time to took to transfer data from our
+     * RTT estimate (it is latency estimate), we have to add in the time to
+     * send our packet into the estimated RTO */
+
+    effBW = (host->BW >> RPC2_BW_SHIFT);
+    // - ((host->BWVar >> RPC2_BWVAR_SHIFT) >> 1);
+
+    if (effBW <= 0) effBW = 16;
+
+    /* make sure we don't overflow during the shifts */
+    if (Bytes > 0xffff) Bytes = 0xffff;
+
+    rto += ((Bytes << 16) / effBW) << 4;
+    
+    /* minimum bound for rtt estimates to compensate for scheduling etc. */
+    if (rto < RPC2_MINRTO) rto = RPC2_MINRTO;
+
+    for (i = 1; i < retry; i++) rto <<= shift;
+
+    if (rto > RPC2_MAXRTO) rto = RPC2_MAXRTO;
+
+    tv->tv_sec  = rto / 1000000;
+    tv->tv_usec = rto % 1000000;
+
+    return;
+}
+
+unsigned long RPC2_GetRTT(struct HEntry *host, unsigned long *RTTvar)
+{
+    if (RTTvar) *RTTvar = host->RTT >> RPC2_RTTVAR_SHIFT;
+    return (host->RTT >> RPC2_RTT_SHIFT);
+}
+
+unsigned long RPC2_GetBandwidth(struct HEntry *host, unsigned long *BWvar)
+{
+    if (BWvar) *BWvar = host->BWVar >> RPC2_BWVAR_SHIFT;
+    return (host->BW >> RPC2_BW_SHIFT);
+}
+

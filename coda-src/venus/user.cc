@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.11 1998/10/02 15:11:32 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/user.cc,v 4.12 98/11/02 16:46:19 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -410,9 +410,9 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	/* Attempt to create the mgrp. */
 	RPC2_McastIdent mcid;
 	mcid.Tag = RPC2_MGRPBYINETADDR;
-	mcid.Value.InetAddress = htonl(host);
-	RPC2_PortalIdent pid;
-	pid.Tag = RPC2_PORTALBYNAME;
+	mcid.Value.InetAddress.s_addr = htonl(host);
+	RPC2_PortIdent pid;
+	pid.Tag = RPC2_PORTBYNAME;
 	strcpy(pid.Value.Name, "codasrv");
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
@@ -451,9 +451,9 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	/* Attempt the bind. */
 	RPC2_HostIdent hid;
 	hid.Tag = RPC2_HOSTBYINETADDR;
-	hid.Value.InetAddress = htonl(host);
-	RPC2_PortalIdent pid;
-	pid.Tag = RPC2_PORTALBYNAME;
+	hid.Value.InetAddress.s_addr = htonl(host);
+	RPC2_PortIdent pid;
+	pid.Tag = RPC2_PORTBYNAME;
 	strcpy(pid.Value.Name, "codasrv");
 	RPC2_SubsysIdent ssid;
 	ssid.Tag = RPC2_SUBSYSBYID;
@@ -483,7 +483,7 @@ int userent::Connect(RPC2_Handle *cid, int *auth, unsigned long host) {
 	vc.WorkStationName = (RPC2_String) myHostName;
 	vc.VenusName = (RPC2_String) "venus";
 
-	char *sname = (FindServer(ntohl(hid.Value.InetAddress)))->name;
+	char *sname = (FindServer(ntohl(hid.Value.InetAddress.s_addr)))->name;
 	LOG(1, ("userent::Connect: NewConnectFS(%s)\n", sname)); 
 	MarinerLog("fetch::NewConnectFS %s\n", sname);
 	UNI_START_MESSAGE(ViceNewConnectFS_OP);

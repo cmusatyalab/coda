@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.6 1998/09/29 16:37:24 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/rpcs.cc,v 4.7 98/11/02 16:44:29 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -84,7 +84,7 @@ extern "C" {
 #define DFT_USERTIMEOUT 30
 
 /* RPC Variables */
-extern RPC2_PortalIdent rpc2_LocalPortal;
+extern RPC2_PortIdent rpc2_LocalPort;
 
 /* Log Levels */
 int RPCdebugging = 100;
@@ -133,7 +133,7 @@ long S_LostConnection(RPC2_Handle _cid)
     IncrementCounter(&LostConnectionCount, ARRIVED);
 
     WeLostTheConnection = TRUE;
-    (void) RPC2_Unbind(rpc2_LocalPortal.Value.InetPortNumber);
+    (void) RPC2_Unbind(rpc2_LocalPort.Value.InetPortNumber);
 
     /* Inform the CodaConsole */
     sprintf(msg, "InvalidateIndicators\n");

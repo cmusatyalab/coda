@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.8 1998/08/26 21:24:25 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/advice.cc,v 4.9 98/11/02 16:45:55 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1127,7 +1127,7 @@ void adviceconn::CheckConnection() {
 
 void adviceconn::ReturnConnection() {
   RPC2_HostIdent hid;
-  RPC2_PortalIdent pid;
+  RPC2_PortIdent pid;
   RPC2_SubsysIdent sid;
   RPC2_Handle cid;
   long rc;
@@ -1143,7 +1143,7 @@ void adviceconn::ReturnConnection() {
 
   hid.Tag = RPC2_HOSTBYNAME;
   strcpy(hid.Value.Name, hostname);
-  pid.Tag = RPC2_PORTALBYINETNUMBER;
+  pid.Tag = RPC2_PORTBYINETNUMBER;
   pid.Value.InetPortNumber = port;
   sid.Tag = RPC2_SUBSYSBYID;
   sid.Value.SubsysId = ADMONSUBSYSID;

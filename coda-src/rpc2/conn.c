@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/conn.c,v 4.4 1998/08/26 17:08:07 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/conn.c,v 4.5 98/11/02 16:45:15 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,133 +69,111 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include "rpc2.h"
 #include "rpc2.private.h"
 
+/* HASHLENGTH should be a power of two, because we use modulo HASHLENGTH-1 to
+ * find the appropriate hash bucket */
+#define HASHLENGTH 512
 
-/* This code assumes that longs are 32 bits in length */
-#define  MAXHASHLENGTH  65536	/* of hash table; 2**16; max possible number of connections concurrently in use  */
-#define  INITHASHLENGTH 64	/* of hash table; should be power of two; small for testing */
-static long CurrentLength;	/* of hash table; should be power of two; never decreases */
-static long EntriesInUse;
-static RPC2_Handle LastHandleAllocated;
+/* the hash table of size HASHLEN buckets */
+static struct dllist_head HashTable[HASHLENGTH];
 
-/* the malloc'ed hash table of size CurrentLength entries */
-static struct CEntry **HashTable;	
-
-
-/* Hash algorithm (courtesy Bob Sidebotham): Start table at
-   INITHASHLENGTH and realloc() it, as needed, in powers of two upto
-   MAXHASHLENGTH.  Use modulo function to compute hash value, but
-   always do it modulo MAXHASHLENGTH, not modulo CurrentLength.  This
-   guarantees that hash values will not change as table gets
-   realloc()ed.  Computing modulo is cheap since MAXHASHLENGTH is a
-   power of two ==> mask with (MAXHASHLENGTH-1).
-
-   We avoid clashes altogether, since the legal input keys are always
-   created by us.  If a potential handle would cause a clash, never
-   allocate that handle, but try sequentially thereafter until a
-   suitable one is found.  If a potential handle would yield a hash
-   value in the region (MAXHASHLENGTH-CurrentLength), we have two
-   choices: wrap around and try from the beginning or extend the
-   hashtable to the next power of two.  Which one we choose depends on
-   what fraction of the current slots are in use.  If this is high we
-   realloc; else we wrap around.
-
-   Limitations: this hash table can allocate at most MAXHASHLENGTH
-   conncurrent connections; over the life of the program, however, at
-   most 2**30 entries can be allocated before connection ids wrap
-   around via 0.  */
-
+static long EntriesInUse = -1;
 
 void rpc2_InitConn()
 {
-	HashTable = (struct CEntry **)malloc(INITHASHLENGTH*sizeof(*HashTable));
-	CODA_ASSERT(HashTable != NULL);
-	bzero(HashTable, INITHASHLENGTH*sizeof(struct CEntry *)); 
-	CurrentLength = INITHASHLENGTH;
-	LastHandleAllocated = 0;
-	EntriesInUse = 0;
+    int i;
+    
+    /* safety check, never initialize twice */
+    CODA_ASSERT(EntriesInUse == -1);
+
+    for (i = 0; i < HASHLENGTH; i++)
+    {
+        list_head_init(&HashTable[i]);
+    }
+
+    EntriesInUse = 0;
 }
 
 /* Returns pointer to the connection data structure corresponding to
    whichHandle.  Returns NULL if whichHandle does not refer to an
    existing connection.  */
-struct CEntry *rpc2_FindCEAddr(IN register RPC2_Handle whichHandle)
+struct CEntry *rpc2_FindCEAddr(IN RPC2_Handle whichHandle)
 {
-	register long index;
-	register struct CEntry *ceaddr;
-	/* modulo MAXHASHLENGTH */
-	index = whichHandle & (MAXHASHLENGTH-1);	
-	if (whichHandle == 0) 
-		return(NULL);
-	if (index > CurrentLength-1) 
-		return(NULL);
-	if ((ceaddr = HashTable[index]) == NULL) 
-		return (NULL);
-	if (ceaddr->UniqueCID != whichHandle) 
-		return (NULL);
-	return(ceaddr);
+    long                i;
+    struct dllist_head *ptr;
+    struct CEntry      *ceaddr;
+
+    if (whichHandle == 0) return(NULL);
+
+    /* bucket is handle modulo HASHLENGTH */
+    i= whichHandle & (HASHLENGTH-1);	
+
+    /* and walk the chain */
+    for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
+    {
+        /* compare the entry to our handle */
+        ceaddr = list_entry(ptr, struct CEntry, Chain);
+        CODA_ASSERT(ceaddr->MagicNumber == OBJ_CENTRY);
+
+        if (ceaddr->UniqueCID == whichHandle) 
+        {
+            /* we are likely to see more lookups for this CEntry, so put it at
+             * the front of the chain */
+            list_del(ptr); list_add(ptr, &HashTable[i]);
+
+            return (ceaddr);
+        }
+    }
+
+    return (NULL);
 }
 
 
 /* Allocates a new handle corresponding to ceaddr, and sets the
    UniqueCID field of ceaddr. */
-static void Uniquefy(IN register struct CEntry *ceaddr)
+static void Uniquefy(IN struct CEntry *ceaddr)
 {
-    register long i;
-    long first = (++LastHandleAllocated) & (MAXHASHLENGTH-1);
-    /* very first entry to try; only assignment to it is here */
+    long handle, index;
 
-    for (i = first; i < CurrentLength; i++)
-	if (HashTable[i] == NULL)  {
-	    HashTable[i] = ceaddr; 
-	    LastHandleAllocated += i - first;
-	    ceaddr->UniqueCID = LastHandleAllocated;
-	    EntriesInUse++;
-	    return;
-	}
-    /* Decide here to realloc() or wrap around */
-    if (EntriesInUse < CurrentLength/2 || CurrentLength == MAXHASHLENGTH)  {
-	    /* wrap around */
-	    /* Next power of two in top half */
-	    LastHandleAllocated = ((LastHandleAllocated >> 16)+1) << 16; 
-	    for (i = 0; i < CurrentLength; i++)
-		    if (HashTable[i] == NULL) {
-			    HashTable[i] = ceaddr;
-			    LastHandleAllocated += i;
-			    ceaddr->UniqueCID = LastHandleAllocated;
-			    EntriesInUse++;
-			    return;
-		    }
-	    /* we should never get here! */
-	    CODA_ASSERT(1 == 0);	
-	} else {
-		/* realloc() */
-		say(9, RPC2_DebugLevel, 
-		    "Reallocing HashTable with EntriesInUse = %ld and CurrentLength = %ld\n",  
-		     EntriesInUse, CurrentLength);
-		HashTable = (struct CEntry **) 
-			realloc(HashTable, 2*CurrentLength*sizeof(*HashTable));
-		CODA_ASSERT(HashTable);
-		/* zero out new allocation */
-		bzero(&HashTable[CurrentLength], CurrentLength*sizeof(struct CEntry *));
-		HashTable[CurrentLength] = ceaddr;
-		LastHandleAllocated += CurrentLength - first;
-		ceaddr->UniqueCID = LastHandleAllocated;
-		EntriesInUse++;
-		CurrentLength *= 2;
-		return;
-	}
+    /* rpc2_NextRandom will only return int's up to 2^30, effectively we will
+     * have broken down before we use this many entries on either the time it
+     * takes to find an available handle, or the memory usage. Still, I don't
+     * want this function to get stuck into an endless search. --JH */
+    CODA_ASSERT(EntriesInUse < (1073741824 >> 1)); /* 50% utilization */
+
+    /* this might take some time once we get a lot of used handles. But even
+     * with a `full' table (within the constraint above), we should, on
+     * average, find a free handle after walking two chains. Advice for those
+     * who are afraid of long bucket chain lookups: increase HASHLENGTH */
+    do
+    {
+        handle = rpc2_NextRandom(NULL);
+
+	/* skip the handles which have special meaning */
+	if (handle == 0 || handle == -1)
+	    continue;
+    }
+    while(rpc2_FindCEAddr(handle) != NULL);
+
+    /* set the handle */
+    ceaddr->UniqueCID = handle;
+
+    /* add to the bucket */
+    index = handle & (HASHLENGTH-1);
+    list_add(&ceaddr->Chain, &HashTable[index]);
     
+    EntriesInUse++;
 }
 
 
 struct CEntry *rpc2_AllocConn()
 {
     struct CEntry *ce;
-    
+
     rpc2_AllocConns++;
     if (rpc2_ConnFreeCount == 0)
-	    rpc2_Replenish(&rpc2_ConnFreeList, &rpc2_ConnFreeCount, sizeof(struct CEntry),
-	    &rpc2_ConnCreationCount, OBJ_CENTRY);
+        rpc2_Replenish(&rpc2_ConnFreeList, &rpc2_ConnFreeCount,
+                       sizeof(struct CEntry), &rpc2_ConnCreationCount,
+                       OBJ_CENTRY);
 
     ce = (struct CEntry *)rpc2_MoveEntry(&rpc2_ConnFreeList, &rpc2_ConnList,
 		 (struct CEntry *)NULL, &rpc2_ConnFreeCount, &rpc2_ConnCount);
@@ -206,6 +184,7 @@ struct CEntry *rpc2_AllocConn()
     ce->UniqueCID = 0;
     ce->NextSeqNumber = 0;	
     ce->SubsysId = 0;
+    list_head_init(&ce->Chain);
     ce->Flags = 0;
     ce->SecurityLevel = 0;
     ce->EncryptionType = 0;
@@ -230,13 +209,14 @@ struct CEntry *rpc2_AllocConn()
 
     /* Then make it unique */
     Uniquefy(ce);
+
     return(ce);
 }
 
 /* Frees the connection whichConn */
 void rpc2_FreeConn(RPC2_Handle whichConn)
 {
-    register long i;
+    long i;
     RPC2_PacketBuffer *pb;
     struct CEntry *ce;
 
@@ -268,23 +248,37 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     SetRole(ce, FREE);
     rpc2_MoveEntry(&rpc2_ConnList, &rpc2_ConnFreeList, ce,
 			&rpc2_ConnCount, &rpc2_ConnFreeCount);
+    
+    list_del(&ce->Chain);
     EntriesInUse--;
-    HashTable[whichConn & (MAXHASHLENGTH-1)] = NULL;
 }
-
 
 static void PrintHashTable()
 {
-    register long i;
-    printf("CurrentLength = %ld\tEntriesInUse = %ld\tMAXHASHLENGTH = %d\n", CurrentLength, EntriesInUse, MAXHASHLENGTH);
-    for (i=0; i < CurrentLength; i++)
-	printf("HashTable[%ld] = 0x%lx\n", i, (long)HashTable[i]);
+    struct dllist_head *ptr;
+    struct CEntry      *ce;
+    long                i;
+
+    printf("EntriesInUse = %ld\tHASHLENGTH = %d\n", EntriesInUse, HASHLENGTH);
+
+    for (i=0; i < HASHLENGTH; i++)
+    {
+        printf("HashTable[%ld] =", i);
+
+        for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
+        {
+            ce = list_entry(ptr, struct CEntry, Chain);
+            CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
+
+            printf(" %p", ce);
+        }
+
+        printf("\n");
+    }
 }
 
 
-
-
-void rpc2_SetConnError(IN register struct CEntry *ce)
+void rpc2_SetConnError(IN struct CEntry *ce)
 {
     CODA_ASSERT (ce->MagicNumber == OBJ_CENTRY);
 
@@ -304,7 +298,7 @@ void rpc2_SetConnError(IN register struct CEntry *ce)
 which is valid.  On Init1 we do not have a local handle yet.  Each
 Init1 packet and its retries have a truly random Uniquefier, generated
 by the client.  The retries also have the RETRY bit set in the packet
-headers.  The triple (Host,Portal,Uniquefier) is totally unique even
+headers.  The triple (Host,Port,Uniquefier) is totally unique even
 across client reboots.
     
 In the worst case the mapping involves a linear search of the
@@ -320,7 +314,7 @@ connections exceeds a certain threshold.  Setting RPC2_Small
 suppresses the RBCache mechanism altogether.
 
 If this doesn't work well enough we may have to go to a hash table
-data structure that maps each (host, portal, uniquefier) triple to a
+data structure that maps each (host, port, uniquefier) triple to a
 connection handle.  That will almost certainly be more complex to
 build and maintain.  */
 
@@ -328,13 +322,13 @@ build and maintain.  */
 struct RecentBind
 {
     RPC2_HostIdent Host;	/* Remote Host */
-    RPC2_PortalIdent Portal;	/* Remote Portal */
+    RPC2_PortIdent Port;	/* Remote Port */
     RPC2_Integer Unique;	/* Uniquefier value in Init1 packet */
     RPC2_Handle MyConn;		/* Local handle allocated for this connection */
 };
 
 #define RBSIZE 300	/* max size of RBCache for large RPC */
-#define RBCACHE_THRESHOLD 50	/* RBCache never used for less than RBCACHE_THRESHOLD connections */
+#define RBCACHE_THRESHOLD 50	/* RBCache never used for less than RBCACHE_TRESHOLD connections */
 static struct RecentBind *RBCache;	/* Wraps around; reused in LRU order.
 					Conditionally allocated. */
 static int RBWrapped = 0;	/* RBCache is full and has wrapped around */
@@ -343,11 +337,11 @@ static int RBCacheOn = 0;	/* 0 = RBCacheOff, 1 = RBCacheOn */
 
 /* Adds information about a new bind to the RBCache; throws out the
    oldest entry if needed */
-void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal, 
+void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, 
 		 RPC2_Integer whichUnique, RPC2_Handle whichConn)
 {
-    if (rpc2_ConnCount <= RBCACHE_THRESHOLD) 
-	    return;
+    if (rpc2_ConnCount <= RBCACHE_THRESHOLD)
+            return;
 
     if (!RBCacheOn) {
 	    /* first use of RBCache- must allocate cache */
@@ -356,8 +350,8 @@ void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal,
     }
 
     bzero(&RBCache[NextRB], sizeof(struct RecentBind));
-    RBCache[NextRB].Host = *whichHost;		/* struct assignment */
-    RBCache[NextRB].Portal = *whichPortal;	/* struct assignment */
+    RBCache[NextRB].Host = *whichHost;	/* struct assignment */
+    RBCache[NextRB].Port = *whichPort;	/* struct assignment */
     RBCache[NextRB].Unique = whichUnique;
     RBCache[NextRB].MyConn = whichConn;
     
@@ -368,20 +362,21 @@ void rpc2_NoteBinding(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal,
     }
 }
 
-/* Identifies the connection corr to (whichHost, whichPortal) with
+/* Identifies the connection corr to (whichHost, whichPort) with
    uniquefier whichUnique, if it exists.  Returns the address of the
    connection block, or NULL if no such binding exists.  The code
    first looks in RBCache[] and if that fails, it walks the connection
    list.    */
 
 struct CEntry *
-rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal, 
-		      register RPC2_Integer whichUnique)
+rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort, 
+		      RPC2_Integer whichUnique)
 {
-    register struct RecentBind *rbn;
+    struct RecentBind *rbn;
     int next, count;
-    register struct CEntry *ce;
-    register int i;
+    struct CEntry *ce;
+    struct dllist_head *ptr;
+    int i, j;
     
     /* If RBCache is being used, check it first; search it backwards,
      * to increase chances of hit on recent binds.  */
@@ -399,7 +394,7 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal,
 		    /* do cheapest test first */
 		    if (rbn->Unique == whichUnique		
 			&& rpc2_HostIdentEqual(&rbn->Host, whichHost)
-			&& rpc2_PortalIdentEqual(&rbn->Portal, whichPortal)) {
+			&& rpc2_PortIdentEqual(&rbn->Port, whichPort)) {
 			    say(0, RPC2_DebugLevel, "RBCache hit after %d tries\n", i+1);
 			    return(rpc2_FindCEAddr(rbn->MyConn));
 		    }
@@ -414,17 +409,28 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal,
 	    say(0, RPC2_DebugLevel, "RBCache miss after %d tries\n", RBSIZE);
     }
     
-    /* It was not in the RBCache; scan the connection list */
+    /* It was not in the RBCache; scan all the connections */
     
-    for (ce = rpc2_ConnList, i = 0; i < rpc2_ConnCount; i++, ce = ce->NextEntry) {
-	    if (ce->PeerUnique == whichUnique		/* do cheapest test first */
-		&& rpc2_HostIdentEqual(&ce->PeerHost, whichHost)
-		&& rpc2_PortalIdentEqual(&ce->PeerPortal, whichPortal)) {
-		    say(0, RPC2_DebugLevel, "Match after searching %d connection entries\n", i+1);
-		    return(ce);
-	    }
+    for (i=0, j=0; i < HASHLENGTH; i++)
+    {
+        for (ptr = HashTable[i].next; ptr != &HashTable[i]; ptr = ptr->next)
+        {
+            ce = list_entry(ptr, struct CEntry, Chain);
+            CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
+
+            j++; /* count # searched connections */
+
+            if (ce->PeerUnique == whichUnique  /* do cheapest test first */
+                && rpc2_HostIdentEqual(&ce->PeerHost, whichHost)
+                && rpc2_PortIdentEqual(&ce->PeerPort, whichPort))
+            {
+                say(0, RPC2_DebugLevel, "Match after searching %d connection entries\n", j);
+                return(ce);
+            }
+        }
     }
-    say(0, RPC2_DebugLevel, "No match after searching %ld connections\n", rpc2_ConnCount);
+    say(0, RPC2_DebugLevel, "No match after searching %ld connections\n",
+        rpc2_ConnCount);
 
     return(NULL);
 }
@@ -432,10 +438,10 @@ rpc2_ConnFromBindInfo(RPC2_HostIdent *whichHost, RPC2_PortalIdent *whichPortal,
 
 struct CEntry *rpc2_GetConn(RPC2_Handle handle)
 {
-	register struct CEntry *ce;
+	struct CEntry *ce;
+
 	ce = rpc2_FindCEAddr(handle);
-	if (ce == NULL) 
-		return(NULL);
-	CODA_ASSERT(ce->MagicNumber == OBJ_CENTRY);
+	CODA_ASSERT(!ce || ce->MagicNumber == OBJ_CENTRY);
+
 	return(ce);
 }

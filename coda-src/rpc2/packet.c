@@ -30,7 +30,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.7 1998/10/05 20:32:59 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/packet.c,v 4.8 98/11/02 16:45:20 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,6 +65,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <sys/file.h>
+#include <sys/ioctl.h>
 #include <errno.h>
 #include "lwp.h"
 #include "timer.h"
@@ -115,11 +116,8 @@ static long DontFailPacket(predicate, pb, addr, sock)
     return (dontFail);
     }
 
-void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
-    register long whichSocket;
-    register RPC2_PacketBuffer *whichPB;
-    register RPC2_HostIdent *whichHost;
-    register RPC2_PortalIdent *whichPortal;
+void rpc2_XmitPacket(IN long whichSocket, IN RPC2_PacketBuffer *whichPB,
+		     IN RPC2_HostIdent *whichHost, IN RPC2_PortIdent *whichPort)
 {
     int n;
 
@@ -128,11 +126,11 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
 #ifdef RPC2DEBUG
     if (RPC2_DebugLevel > 9)
 	{
-	printf("\t");
+	fprintf(rpc2_logfile, "\t");
 	rpc2_PrintHostIdent(whichHost, 0);
-	printf("    ");
-	rpc2_PrintPortalIdent(whichPortal, 0);
-	printf("\n");
+	fprintf(rpc2_logfile, "    ");
+	rpc2_PrintPortIdent(whichPort, 0);
+	fprintf(rpc2_logfile, "\n");
 	rpc2_PrintPacketHeader(whichPB, 0);
 	}
 #endif RPC2DEBUG
@@ -153,10 +151,10 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
 	    {
 	    struct sockaddr_in sa;
 
-	    CODA_ASSERT(whichPortal->Tag == RPC2_PORTALBYINETNUMBER);
+	    CODA_ASSERT(whichPort->Tag == RPC2_PORTBYINETNUMBER);
 	    sa.sin_family = AF_INET;
-	    sa.sin_addr.s_addr = whichHost->Value.InetAddress;	/* In network order */
-	    sa.sin_port = whichPortal->Value.InetPortNumber; /* In network order */
+	    sa.sin_addr.s_addr = whichHost->Value.InetAddress.s_addr;	/* In network order */
+	    sa.sin_port = whichPort->Value.InetPortNumber; /* In network order */
 
 	    if (ntohl(whichPB->Header.Flags) & RPC2_MULTICAST)
 		{
@@ -207,15 +205,14 @@ void rpc2_XmitPacket(IN whichSocket, IN whichPB, IN whichHost, IN whichPortal)
 }
 
 /* Reads the next packet from whichSocket into whichBuff, sets its
-   LengthOfPacket field, fills in whichHost and whichPortal, and
+   LengthOfPacket field, fills in whichHost and whichPort, and
    returns 0; Returns -3 iff a too-long packet arrived.  Returns -1 on
    any other system call error.
 
    Note that whichBuff should at least be able to accomodate 1 byte
    more than the longest receivable packet.  Only Internet packets are
    dealt with currently.  */
-long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff, 
-		     OUT RPC2_HostIdent *whichHost, OUT RPC2_PortalIdent *whichPortal)
+long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff) 
 {
     long rc, len;
     int fromlen;
@@ -229,18 +226,22 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff,
     
     /* WARNING: only Internet works; no warnings */
     fromlen = sizeof(sa);
-    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0, 
-        (struct sockaddr *) &sa, &fromlen);
+    rc = recvfrom(whichSocket, &whichBuff->Header, len, 0,
+		  (struct sockaddr *) &sa, &fromlen);
 
     if (rc < 0) {
 	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
 	    return(-1);
     }
 
-    whichHost->Tag = RPC2_HOSTBYINETADDR;
-    whichHost->Value.InetAddress = sa.sin_addr.s_addr;
-    whichPortal->Tag = RPC2_PORTALBYINETNUMBER;
-    whichPortal->Value.InetPortNumber = sa.sin_port;
+    /* do we really need to zero these? */
+    memset(&whichBuff->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
+    memset(&whichBuff->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
+
+    whichBuff->Prefix.PeerHost.Tag = RPC2_HOSTBYINETADDR;
+    whichBuff->Prefix.PeerHost.Value.InetAddress.s_addr = sa.sin_addr.s_addr;
+    whichBuff->Prefix.PeerPort.Tag = RPC2_PORTBYINETNUMBER;
+    whichBuff->Prefix.PeerPort.Value.InetPortNumber = sa.sin_port;
 
 #ifdef RPC2DEBUG
     TR_RECV();
@@ -268,6 +269,16 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff,
 	    return(-3);
     }
 
+    /* Try to get an accurate arrival time estimate for this packet */
+    /* This ioctl might be used on linux systems only, but you never know */
+#if defined(SIOCGSTAMP)
+    rc = ioctl(whichSocket, SIOCGSTAMP, &whichBuff->Prefix.RecvStamp);
+    if (rc < 0)
+#endif
+    {
+	FT_GetTimeOfDay(&whichBuff->Prefix.RecvStamp, (struct timezone *)0);
+    }
+
     return(0);
 }
 
@@ -291,8 +302,8 @@ long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
 		/*  HowManyRetries" should be less than 30; -1 for default */
 	        /*  Beta0: NULL for default */
 {
-    register long betax, timeused, beta0;	/* entirely in microseconds */
-    register long i;
+    long betax, timeused, beta0;	/* entirely in microseconds */
+    long i;
 
     if (HowManyRetries >= 30) return(-1);	/* else overflow with 32-bit integers */
     if (HowManyRetries < 0) HowManyRetries = DefaultRetryCount;	/* it's ok, call by value */
@@ -344,7 +355,7 @@ long rpc2_InitRetry(IN long HowManyRetries, IN struct timeval *Beta0)
 
 
 long rpc2_SetRetry(IN Conn)
-    register struct CEntry *Conn;
+    struct CEntry *Conn;
 
     /*
       Resets the retry intervals for the given connection
@@ -355,8 +366,8 @@ long rpc2_SetRetry(IN Conn)
       applies here.
     */
     {
-    register long betax, timeused, beta0;	/* entirely in microseconds */
-    register long i;
+    long betax, timeused, beta0;	/* entirely in microseconds */
+    long i;
 
     CODA_ASSERT(Conn);
 
@@ -399,8 +410,8 @@ long rpc2_SetRetry(IN Conn)
 
 /* HACK. if bandwidth is low, increase retry intervals appropriately */
 void rpc2_ResetLowerLimit(IN Conn, IN Packet)
-    register struct CEntry *Conn;
-    register RPC2_PacketBuffer *Packet;
+    struct CEntry *Conn;
+    RPC2_PacketBuffer *Packet;
 {
     unsigned long delta, bits;
 
@@ -421,8 +432,8 @@ void rpc2_ResetLowerLimit(IN Conn, IN Packet)
 
 
 long rpc2_CancelRetry(IN Conn, IN Sle)
-    register struct CEntry *Conn;
-    register struct SL_Entry *Sle;	
+    struct CEntry *Conn;
+    struct SL_Entry *Sle;	
     /* 
      * see if we've heard anything from a side effect
      * since we've been asleep. If so, pretend we got
@@ -466,9 +477,9 @@ long rpc2_CancelRetry(IN Conn, IN Sle)
 
 
 long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
-    register struct CEntry *Conn;
-    register struct SL_Entry *Sle;	
-    register RPC2_PacketBuffer *Packet;
+    struct CEntry *Conn;
+    struct SL_Entry *Sle;	
+    RPC2_PacketBuffer *Packet;
     struct timeval *TimeOut;
     {
     struct SL_Entry *tlp;
@@ -497,7 +508,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     say(9, RPC2_DebugLevel, "Sending try at %d on 0x%lx (timeout %ld.%06ld)\n", 
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
-    rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPortal);
+    rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPort);
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
@@ -555,7 +566,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		rpc2_Sent.Retries += 1;
-		rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPortal);
+		rpc2_XmitPacket(rpc2_RequestSocket, Packet, &Conn->PeerHost, &Conn->PeerPort);
 		break;	/* switch */
 		
 	    default: CODA_ASSERT(FALSE);
@@ -577,8 +588,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 /* For optimization reasons, only do this for machines where the host order
  * does not equal the net order.
  */
-void rpc2_htonp(p)
-    RPC2_PacketBuffer *p;
+void rpc2_htonp(RPC2_PacketBuffer *p)
     {
 #if	defined(vax) || defined(mips) || defined(i386) || defined(arm32) || defined(ns32k)
     p->Header.ProtoVersion = htonl(p->Header.ProtoVersion);
@@ -603,8 +613,7 @@ void rpc2_htonp(p)
  * does not equal the net order.
  */
 
-void rpc2_ntohp(p)
-    RPC2_PacketBuffer *p;
+void rpc2_ntohp(RPC2_PacketBuffer *p)
     {
 #if	defined(vax) || defined(mips) || defined(i386) || defined(arm32) || defined(ns32k) 
     p->Header.ProtoVersion = ntohl(p->Header.ProtoVersion);
@@ -634,6 +643,9 @@ void rpc2_InitPacket(RPC2_PacketBuffer *pb, struct CEntry *ce, long bodylen)
 	pb->Header.Lamport	    = RPC2_LamportTime();
 	pb->Header.BodyLength = bodylen;
 	pb->Prefix.LengthOfPacket = sizeof(struct RPC2_PacketHeader) + bodylen;
+	memset(&pb->Prefix.PeerHost, 0, sizeof(RPC2_HostIdent));
+	memset(&pb->Prefix.PeerPort, 0, sizeof(RPC2_PortIdent));
+	memset(&pb->Prefix.RecvStamp, 0, sizeof(struct timeval));
 	if (ce)	{
 		pb->Header.RemoteHandle = ce->PeerHandle;
 		pb->Header.LocalHandle  = ce->UniqueCID;

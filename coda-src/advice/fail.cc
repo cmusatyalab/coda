@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/fail.cc,v 4.5 1998/09/29 16:37:23 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/advice/fail.cc,v 4.6 98/11/02 16:44:25 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -171,7 +171,7 @@ void InitRPC() {
 int NewConn(char *hostname, short port, unsigned long *cid) {
     int rc;
     RPC2_HostIdent hident;
-    RPC2_PortalIdent pident;
+    RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
     RPC2_BindParms bparms;
 
@@ -181,7 +181,7 @@ int NewConn(char *hostname, short port, unsigned long *cid) {
     sident.Value.SubsysId = FCONSUBSYSID;
     sident.Tag = RPC2_SUBSYSBYID;
 
-    pident.Tag = RPC2_PORTALBYINETNUMBER;
+    pident.Tag = RPC2_PORTBYINETNUMBER;
     pident.Value.InetPortNumber = htons(port);
 
     bparms.SecurityLevel = RPC2_OPENKIMONO;

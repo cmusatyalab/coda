@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.5 1998/08/26 17:08:08 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi1.c,v 4.6 98/11/02 16:45:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -133,14 +133,14 @@ long RPC2_MultiRPC(IN HowMany, IN ConnHandleList, IN RCList, IN MCast,
     RPC2_Handle	ConnHandleList[];
     RPC2_Integer RCList[];	/* NULL or list of per-connection return codes */
     RPC2_Multicast *MCast;		/* NULL if multicast not used */
-    register RPC2_PacketBuffer *Request;/* Gets clobbered during call: BEWARE */
+    RPC2_PacketBuffer *Request;/* Gets clobbered during call: BEWARE */
     SE_Descriptor SDescList[];
     long (*UnpackMulti)();
-    register ARG_INFO *ArgInfo;
+    ARG_INFO *ArgInfo;
     struct timeval *BreathOfLife;
 {
     struct CEntry **ceaddr;
-    register RPC2_PacketBuffer **req;	/* server specific copies of request packet */
+    RPC2_PacketBuffer **req;	/* server specific copies of request packet */
     RPC2_PacketBuffer **preq;		/* keep original buffers for reference */
     struct SL_Entry **slarray;
     MultiCon *context;
@@ -666,28 +666,31 @@ struct MEntry *me;
 
 
 	/* MultiRPC version */
-static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
-		ConnArray, SLArray, PacketArray, ArgInfo, SDescList, UnpackMulti, TimeOut, RCList)
-    int HowMany;			/* how many servers to send to */
-    RPC2_Handle ConnHandleList[];	/* array of connection ids */
-    RPC2_Multicast *MCast;		/* NULL or pointer to multicast information */
-    struct MEntry *me;			/* used if MCast is non-NULL */
-    struct CEntry *ConnArray[];		/* Array of HowMany CEntry structures */
-    struct SL_Entry *SLArray[];		/* Array of (HowMany+2) SL entry pointers: last is set to NULL, */
+static long mrpc_SendPacketsReliably(
+    int HowMany,			/* how many servers to send to */
+    RPC2_Handle ConnHandleList[],	/* array of connection ids */
+    RPC2_Multicast *MCast,		/* NULL or pointer to multicast
+					   information */
+    struct MEntry *me,			/* used if MCast is non-NULL */
+    struct CEntry *ConnArray[],		/* Array of HowMany CEntry structures */
+    struct SL_Entry *SLArray[],		/* Array of (HowMany+2) SL entry
+					   pointers: last is set to NULL, */
 					/* last but one of type TIMER  */
-    register RPC2_PacketBuffer *PacketArray[];	/* Array of HowMany packet buffer pointers */
-    register ARG_INFO *ArgInfo;		/* Structure of client information (built in MakeMulti) */
-    SE_Descriptor SDescList[];		/* array of side effect descriptors */
-    long (*UnpackMulti)();		/* pointer to unpacking routine */
-    struct timeval *TimeOut;		/* client specified timeout */
-    long *RCList;			/* array to put return codes */
+    RPC2_PacketBuffer *PacketArray[],	/* Array of HowMany packet buffer
+					   pointers */
+    ARG_INFO *ArgInfo,			/* Structure of client information
+					   (built in MakeMulti) */
+    SE_Descriptor SDescList[],		/* array of side effect descriptors */
+    long (*UnpackMulti)(),		/* pointer to unpacking routine */
+    struct timeval *TimeOut,		/* client specified timeout */
+    long *RCList)			/* array to put return codes */
     {
-    register struct SL_Entry *slp, **slarray;
+    struct SL_Entry *slp, **slarray;
     RPC2_PacketBuffer *preply, **Reply;  /* RPC2 Response buffers */
     struct CEntry *c_entry;
     long finalrc, secode;
-    register long thispacket, hopeleft;
-    register long *indexlist, i;	/* array for permuted indices */
+    long thispacket, hopeleft;
+    long *indexlist, i;			/* array for permuted indices */
     struct timeval *tout;
     int packets = 1; 			/* packet counter for LWP yield */
     int busy = 0;
@@ -695,7 +698,7 @@ static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
     long finalind = HowMany - 1;
     PacketCon *context;
     long exchange();
-    unsigned long       timestamp;
+    unsigned long timestamp;
 
 #define	EXIT_MRPC_SPR(rc)\
 	{\
@@ -736,10 +739,11 @@ static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
     /* initialize reply pointers and return codes */
     bzero(Reply, sizeof(char *) * HowMany);
 
-    say(9, RPC2_DebugLevel, "Sending initial packets at time %d\n", rpc2_time());
     timestamp = rpc2_MakeTimeStamp();
+    say(9, RPC2_DebugLevel, "Sending initial packets at time %d\n", timestamp);
 
     /* Do an initial send of packets on all good connections */
+    /* for estimating the effiency of the calculation */
     /* should separate this into separate LWP for efficiency */
     for (thispacket = HowMany - 1; thispacket >= 0; thispacket--)
 	{
@@ -768,7 +772,7 @@ static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 
 	    PacketArray[thispacket]->Header.TimeStamp = htonl(timestamp);
 	    rpc2_XmitPacket(rpc2_RequestSocket, PacketArray[thispacket],
-		    &(ConnArray[thispacket]->PeerHost), &(ConnArray[thispacket]->PeerPortal));
+		    &(ConnArray[thispacket]->PeerHost), &(ConnArray[thispacket]->PeerPort));
 	    }
 
         if (rpc2_Bandwidth) 
@@ -789,7 +793,7 @@ static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 	{
 	say(9, RPC2_DebugLevel, "Sending multicast packet at time %d\n", rpc2_time());
 	me->CurrentPacket->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
-	rpc2_XmitPacket(rpc2_RequestSocket, me->CurrentPacket, &me->IPMHost, &me->IPMPortal);
+	rpc2_XmitPacket(rpc2_RequestSocket, me->CurrentPacket, &me->IPMHost, &me->IPMPort);
 	me->NextSeqNumber += 2;	/* blindly increment the multicast sequence number??? */
 	}
 
@@ -884,7 +888,7 @@ static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		    /* call side-effect routine, and ignore result */
 		    if (GOODSEDLE(thispacket) &&
 			 c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
-			(*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), preply);
+			(*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
 		    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_NAKED, thispacket) == -1)
 		        /* enough responses, return */
 		        EXIT_MRPC_SPR(finalrc)
@@ -909,9 +913,11 @@ static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 			i = exchange(indexlist, i, finalind--);
 			finalrc = RPC2_FAIL;
 			if (RCList) RCList[thispacket] = RPC2_DEAD;
+
 			/* call side-effect routine, and ignore result */
 			if (GOODSEDLE(thispacket) && c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
-			    (*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), preply);
+			    (*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
+
 			if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_DEAD, thispacket) == -1)
 			    /* enough responses, return */
 			    EXIT_MRPC_SPR(finalrc)
@@ -928,7 +934,7 @@ static long mrpc_SendPacketsReliably(HowMany, ConnHandleList,  MCast, me,
 		    PacketArray[thispacket]->Header.Flags = htonl((ntohl(PacketArray[thispacket]->Header.Flags) | RPC2_RETRY));
 		    PacketArray[thispacket]->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		    rpc2_Sent.Retries += 1;	/* RPC retries are currently NOT multicasted! -JJK */
-		    rpc2_XmitPacket(rpc2_RequestSocket, PacketArray[thispacket], &c_entry->PeerHost, &c_entry->PeerPortal);
+		    rpc2_XmitPacket(rpc2_RequestSocket, PacketArray[thispacket], &c_entry->PeerHost, &c_entry->PeerPort);
 		    break;	/* switch */
 		    
 		default:    /* abort */
@@ -1014,7 +1020,7 @@ static void MSend_Cleanup(SLArray, ConnArray, SDescList, indexlist, finalind,
     PacketCon *context;
     {
     long thispacket, i;
-    register struct SL_Entry *slp;
+    struct SL_Entry *slp;
 
     for (i = 0; i <= finalind; i++)
 	{

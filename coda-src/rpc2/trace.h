@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/trace.h,v 4.1 1997/01/08 21:50:34 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/trace.h,v 4.2 98/06/04 22:38:06 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -170,7 +170,7 @@ struct TraceElem
 	    int SecurityLevel;
 	    int EncryptionType;
 	    RPC2_HostIdent Host;
-	    RPC2_PortalIdent Portal;
+	    RPC2_PortIdent Port;
 	    RPC2_SubsysIdent Subsys;
 	    int SideEffectType;
 	    int IsNullClientIdent;
@@ -273,7 +273,7 @@ struct TraceElem
 	    RPC2_PacketBuffer whichPB;
 	    long whichSocket;
 	    RPC2_HostIdent  whichHost;
-	    RPC2_PortalIdent whichPortal;
+	    RPC2_PortIdent whichPort;
 	    }
 	    XmitPacketEntry;
 	    
@@ -287,7 +287,7 @@ struct TraceElem
 	    {
 	    RPC2_Handle MgroupHandle;
 	    RPC2_McastIdent McastHost;
-	    RPC2_PortalIdent Port;
+	    RPC2_PortIdent Port;
 	    RPC2_SubsysIdent Subsys;
 	    RPC2_Integer SecurityLevel;
 	    int IsEncrypted;
@@ -315,7 +315,7 @@ struct TraceElem
 	    RPC2_PacketBuffer pb;
 	    long pb_address;
 	    RPC2_HostIdent ThisHost;
-	    RPC2_PortalIdent ThisPortal;
+	    RPC2_PortIdent ThisPort;
 	    }
 	    XlateMcastPacketEntry;
 
@@ -329,8 +329,8 @@ struct TraceElem
 #define TR_SENDRESPONSE() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_SENDRESPONSE *tea;\
+	struct TraceElem *te;\
+	struct te_SENDRESPONSE *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.SendResponseEntry;\
 	te->CallCode = SENDRESPONSE;\
@@ -344,8 +344,8 @@ struct TraceElem
 #define TR_GETREQUEST() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_GETREQUEST *tea;\
+	struct TraceElem *te;\
+	struct te_GETREQUEST *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.GetRequestEntry;\
 	te->CallCode = GETREQUEST;\
@@ -360,8 +360,8 @@ struct TraceElem
 #define TR_MAKERPC() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_MAKERPC *tea;\
+	struct TraceElem *te;\
+	struct te_MAKERPC *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.MakeRPCEntry;\
 	te->CallCode = MAKERPC;\
@@ -380,8 +380,8 @@ struct TraceElem
 #define TR_BIND() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_BIND *tea;\
+	struct TraceElem *te;\
+	struct te_BIND *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.BindEntry;\
 	te->CallCode = BIND;\
@@ -389,7 +389,7 @@ struct TraceElem
 	tea->SecurityLevel = Bparms->SecurityLevel;\
 	tea->EncryptionType = Bparms->EncryptionType;\
 	tea->Host = *Host;	/* structure assignment */\
-	tea->Portal = *Portal;	/* structure assignment */\
+	tea->Port = *Port;	/* structure assignment */\
 	tea->Subsys = *Subsys;	/* structure assignment */\
 	tea->SideEffectType = Bparms->SideEffectType;\
 	if (Bparms->ClientIdent == NULL) tea->IsNullClientIdent = TRUE;\
@@ -408,8 +408,8 @@ struct TraceElem
 #define TR_INITSE()do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_INITSIDEEFFECT *tea;\
+	struct TraceElem *te;\
+	struct te_INITSIDEEFFECT *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.InitSideEffectEntry;\
 	te->CallCode = INITSIDEEFFECT;\
@@ -423,8 +423,8 @@ struct TraceElem
 #define TR_CHECKSE()do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_CHECKSIDEEFFECT *tea;\
+	struct TraceElem *te;\
+	struct te_CHECKSIDEEFFECT *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.CheckSideEffectEntry;\
 	te->CallCode = CHECKSIDEEFFECT;\
@@ -438,8 +438,8 @@ struct TraceElem
 #define TR_UNBIND() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_UNBIND  *tea;\
+	struct TraceElem *te;\
+	struct te_UNBIND  *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.UnbindEntry;\
 	te->CallCode = UNBIND;\
@@ -450,8 +450,8 @@ struct TraceElem
 #define TR_MULTI() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_MULTIRPC *tea;\
+	struct TraceElem *te;\
+	struct te_MULTIRPC *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.MultiRPCEntry;\
 	te->CallCode = MULTIRPC;\
@@ -470,8 +470,8 @@ struct TraceElem
 #define TR_MSENDRELIABLY() do { \
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_MSENDPACKETSRELIABLY *tea;\
+	struct TraceElem *te;\
+	struct te_MSENDPACKETSRELIABLY *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.MSendPacketsReliablyEntry;\
 	te->CallCode = MSENDPACKETSRELIABLY;\
@@ -492,8 +492,8 @@ struct TraceElem
 #define TR_XMIT() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_XMITPACKET *tea;\
+	struct TraceElem *te;\
+	struct te_XMITPACKET *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.XmitPacketEntry;\
 	te->CallCode = XMITPACKET;\
@@ -503,14 +503,14 @@ struct TraceElem
 	tea->whichPB = *whichPB;	/* structure assignment */\
 	rpc2_htonp(&tea->whichPB);\
 	tea->whichHost = *whichHost;	/* structure assignment */\
-	tea->whichPortal = *whichPortal;	/* structure assignment */\
+	tea->whichPort = *whichPort;	/* structure assignment */\
 	} }while(0)
 
 #define TR_RECV() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_SLNEWPACKET *tea;\
+	struct TraceElem *te;\
+	struct te_SLNEWPACKET *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.SLNewPacketEntry;\
 	te->CallCode = SLNEWPACKET;\
@@ -523,8 +523,8 @@ struct TraceElem
 #define TR_SENDRELIABLY() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_SENDRELIABLY *tea;\
+	struct TraceElem *te;\
+	struct te_SENDRELIABLY *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.SendReliablyEntry;\
 	te->CallCode = SENDRELIABLY;\
@@ -545,15 +545,15 @@ struct TraceElem
 #define TR_CREATEMGRP() do { \
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_CREATEMGRP *tea;\
+	struct TraceElem *te;\
+	struct te_CREATEMGRP *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.CreateMgrpEntry;\
 	te->CallCode = CREATEMGRP;\
 	strncpy(te->ActiveLWP, LWP_Name(), sizeof(te->ActiveLWP)-1);\
 	tea->MgroupHandle = *MgroupHandle;\
 	tea->McastHost = *MulticastHost;    /* structure assignment */\
-	tea->Port = *MulticastPortal;	    /* structure assignment */\
+	tea->Port = *MulticastPort;	    /* structure assignment */\
 	tea->Subsys = *Subsys;		    /* structure assignment */\
 	tea->SecurityLevel = SecurityLevel;\
 	tea->IsEncrypted = ((SessionKey == NULL) ? 0 : 1);\
@@ -564,8 +564,8 @@ struct TraceElem
 #define TR_ADDTOMGRP() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_ADDTOMGRP *tea;\
+	struct TraceElem *te;\
+	struct te_ADDTOMGRP *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.AddToMgrpEntry;\
 	te->CallCode = ADDTOMGRP;\
@@ -577,8 +577,8 @@ struct TraceElem
 #define TR_REMOVEFROMMGRP() do { \
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_REMOVEFROMMGRP *tea;\
+	struct TraceElem *te;\
+	struct te_REMOVEFROMMGRP *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.RemoveFromMgrpEntry;\
 	te->CallCode = REMOVEFROMMGRP;\
@@ -590,15 +590,15 @@ struct TraceElem
 #define TR_XLATEMCASTPACKET() do {\
     if (RPC2_Trace && rpc2_TraceBuffHeader)\
 	{\
-	register struct TraceElem *te;\
-	register struct te_XLATEMCASTPACKET *tea;\
+	struct TraceElem *te;\
+	struct te_XLATEMCASTPACKET *tea;\
 	te = (struct TraceElem *)CBUF_NextSlot(rpc2_TraceBuffHeader);\
 	tea = &te->Args.XlateMcastPacketEntry;\
 	te->CallCode = XLATEMCASTPACKET;\
 	tea->pb = *pb;			/* structure assignment */\
 	tea->pb_address = (long) pb;\
-	tea->ThisHost = *ThisHost;	/* structure assignment */\
-	tea->ThisPortal = *ThisPortal;	/* structure assignment */\
+	tea->ThisHost = pb->Prefix.PeerHost;	/* structure assignment */\
+	tea->ThisPort = pb->Prefix.PeerPort;	/* structure assignment */\
 	} } while (0)
 
 

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.8 98/08/23 16:40:20 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp.h,v 4.9 98/09/15 14:27:59 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -183,11 +183,10 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define SFTPMAGIC	4902057
 #define MAXOPACKETS	64	/* Maximum no of outstanding packets; multiple of 32 */
 #define BITMASKWIDTH	(MAXOPACKETS / 32)	/* No of elements in integer array */
-#define MINDELTASS	0	/* minimum milliseconds between invocations of SendStrategy due to an ACK */
 
 struct SFTP_Parms
     {/* sent in SFTP_START packets, and piggy-backed on very first RPC call on a connection */
-    RPC2_PortalIdent Portal;
+    RPC2_PortIdent Port;
     long WindowSize;
     long SendAhead;
     long AckPoint;
@@ -206,48 +205,54 @@ struct SFTP_Entry		/* per-connection data structure */
     {
     long  Magic;		/* SFTPMAGIC */
     enum  SFState WhoAmI;
-    RPC2_Handle LocalHandle;	/* which RPC2 conn on this side do I correspond to? */
+    RPC2_Handle LocalHandle;	/* which RPC2 conn on this side do I
+				   correspond to? */
     RPC2_PeerInfo PInfo;	/* all the RPC info  about the other side */
-    RPC2_PortalIdent  PeerPortal;	/* SFTP portal on other side */
-    struct timeval LastWord; 	/* Most recent time we've heard from our peer */
-    struct HEntry *HostInfo;	/* Connection-independent host/portal info.
-				    set by ExaminePacket on client side (if !GotParms), and
-				    sftp_ExtractParmsFromPacket on server side */
-    long ThisRPCCall;		/* Client-side RPC sequence number of the call in progress.
-				    Used to reject outdated SFTP packets that may be floating
-				    around after the next RPC has begun. Set on client side
-				    in SFTP_MakeRPC1() and on server side on SFTP_GetRequest() */
-    long GotParms;		/* FALSE initially; TRUE after I have discovered my peer's parms */
-    long SentParms;		/* FALSE initially; TRUE after I have sent my parms to peer */
-    SE_Descriptor *SDesc; 	/* set by SFTP_MakeRPC1 on client side,
-				    by SFTP_InitSE and SFTP_CheckSE on server side */
-    long openfd;		/* file descriptor: valid during actual transfer */
-    struct SLSlot *Sleeper;	/* SLSlot of LWP sleeping on this connection, or NULL */
+    RPC2_PortIdent  PeerPort;	/* SFTP port on other side */
+    struct HEntry *HostInfo;	/* Connection-independent host info. set by
+				   ExaminePacket on client side (if
+				   !GotParms), and sftp_ExtractParmsFromPacket
+				   on server side */
+    long ThisRPCCall;		/* Client-side RPC sequence number of the call
+				   in progress. Used to reject outdated SFTP
+				   packets that may be floating around after
+				   the next RPC has begun. Set on client side
+				   in SFTP_MakeRPC1() and on server side on
+				   SFTP_GetRequest() */
+    long GotParms;		/* FALSE initially; TRUE after I have
+				   discovered my peer's parms */
+    long SentParms;		/* FALSE initially; TRUE after I have sent my
+				   parms to peer */
+    SE_Descriptor *SDesc; 	/* set by SFTP_MakeRPC1 on client side, by
+				   SFTP_InitSE and SFTP_CheckSE on server side
+				 */
+    long openfd;		/* file descriptor: valid during actual
+				   transfer */
+    struct SLSlot *Sleeper;	/* SLSlot of LWP sleeping on this connection,
+				   or NULL */
     long PacketSize;		/* Amount of  data in each packet */
-    long WindowSize;		/* Max Number of outstanding packets without acknowledgement <= MAXOPACKETS */
-    long SendAhead;		/* How many more packets to send after demanding an ack. Equal to read-ahead  */
-    long AckPoint;		/* After how many send ahead packets should an ack be demanded? */
-    long DupThreshold;		/* How many duplicate data packets can I see before sending Ack spontaneously? */
+    long WindowSize;		/* Max Number of outstanding packets without
+				   acknowledgement <= MAXOPACKETS */
+    long SendAhead;		/* How many more packets to send after
+				   demanding an ack. Equal to read-ahead  */
+    long AckPoint;		/* After how many send ahead packets should an
+				   ack be demanded? */
+    long DupThreshold;		/* How many duplicate data packets can I see
+				   before sending Ack spontaneously? */
     long RetryCount;		/* How many times to retry Ack request */
-    long ReadAheadCount;	/* How many packets have been read by read strategy routine */
+    long ReadAheadCount;	/* How many packets have been read by read
+				   strategy routine */
     long CtrlSeqNumber;		/* Seq number of last control packet sent out */
-    struct timeval RInterval;	/* retransmission interval; initially SFTP_RetryInterval milliseconds */
+    struct timeval RInterval;	/* retransmission interval; initially
+				   SFTP_RetryInterval milliseconds */
     long Retransmitting;        /* FALSE initially; TRUE prevents RTT update */
-
-#define SFTP_RTT_SCALE 8        /* scale of stored RTT. (uses TCP alpha = .875) */
-#define SFTP_RTT_SHIFT 3        /* number of bits to the right of the binary point of RTT */
-    long RTT;                   /* Current RTT estimate (like TCP's "smooth RTT") in 1 msec units */
-
-#define SFTP_RTTVAR_SCALE 4     /* scale of stored RTTvar. (uses TCP alpha = .75) */
-#define SFTP_RTTVAR_SHIFT 2     /* number of bits to the right of the binary point of RTTvar */
-    long RTTVar;                /* Variance of above in 1 msec units */
-    unsigned long TimeEcho;     /* Timestamp to send on next packet */
-    struct timeval LastSS;	/* time SendStrategy was last invoked by an Ack on this connection */
-    SE_Descriptor *PiggySDesc;	/* malloc()ed copy of SDesc; held on until SendResponse, if piggybacking
-					might take place */
-
-#define SFTP_MINRTO   100        /* min rto (rtt + variance) is 100 msec */
-#define SFTP_MAXRTO   300000     /* max rto (rtt + variance) is 300 seconds */
+    unsigned long TimeEcho;     /* Timestamp to send on next packet (valid
+				   when not retransmitting) */
+    struct timeval LastSS;	/* time SendStrategy was last invoked by an
+				   Ack on this connection */
+    SE_Descriptor *PiggySDesc;	/* malloc()ed copy of SDesc; held on until
+				   SendResponse, if piggybacking might take
+				   place */
 
 /*  Transmission Parameters:
 
@@ -294,20 +299,21 @@ struct SFTP_Entry		/* per-connection data structure */
     long RecvMostRecent;	/* Highest numbered data packet seen so far */
     long DupsSinceAck;		/* Duplicates seen since the last ack I sent */
 
+    unsigned long RequestTime;  /* arrival time of packet, to correct RTT
+				   estimates for processing time */
+
     unsigned long RecvTheseBits[BITMASKWIDTH];	/* Packets in RecvLastContig+1..RecvMostRecent that I have received */
     RPC2_PacketBuffer *ThesePackets[MAXOPACKETS];
-    					/* Packets being currently dealt with.
-    					There can be at most MAXOPACKETS outstanding, in the range
-					LastContig+1..LastContig+WindowSize.
-					The index of the i'th packet is given by (i % MAXOPACKETS).
-					
-					Some of these pointers, may be NULL for the following reasons:
-						Receiving side:  The packets have not been received, or have
-								been received and written to disk already.
-						Sending side:  The packets have been sent, and an ACK for them
-								has been received.
-
-					*/
+    /* Packets being currently dealt with. There can be at most MAXOPACKETS
+     * outstanding, in the range LastContig+1..LastContig+WindowSize. The
+     * index of the i'th packet is given by (i % MAXOPACKETS).
+     *					
+     * Some of these pointers, may be NULL for the following reasons:
+     * Receiving side:  The packets have not been received, or have
+     *			been received and written to disk already.
+     * Sending side: The packets have been sent, and an ACK for them has been
+     * received.
+     */
     };
 
 
@@ -350,12 +356,15 @@ extern PROCESS sftp_ListenerPID;	/* pid of listener */
 extern struct TM_Elem *sftp_Chain;	/* head of linked list of all sleeping LWPs waiting for a packet or a timeout */
 extern long sftp_Socket;		/* for all SFTP traffic */
 extern RPC2_HostIdent sftp_Host;
-extern RPC2_PortalIdent sftp_Portal;
+extern RPC2_PortIdent sftp_Port;
 extern long SFTP_DebugLevel;
 
 
 
-extern void sftp_Listener();
+long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket);
+int  sftp_XmitPacket(long whichSocket, RPC2_PacketBuffer *whichPacket,
+		     RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort);
+void sftp_Listener(void);
 
 #define IsSource(sfe)\
     ((sfe->WhoAmI == SFCLIENT && sfe->SDesc && sfe->SDesc->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER) ||\
@@ -391,64 +400,65 @@ extern long SFTP_DupThreshold;
 extern long SFTP_DoPiggy;	/* FALSE to suppress piggybacking */
 
 /* SE routines invoked by base RPC2 code */
-extern long SFTP_Init();
-extern long SFTP_Bind1 (RPC2_Handle ConnHandle, RPC2_CountedBS *ClientIdent);
-extern long SFTP_Bind2 (RPC2_Handle ConnHandle, RPC2_Unsigned BindTime);
-extern long SFTP_Unbind (RPC2_Handle ConnHandle);
-extern long SFTP_NewConn (RPC2_Handle ConnHandle, RPC2_CountedBS *ClientIdent);
-extern long SFTP_MakeRPC1 (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, RPC2_PacketBuffer **RequestPtr);
-extern long SFTP_MakeRPC2 (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, RPC2_PacketBuffer *Reply);
-extern long SFTP_MultiRPC1();
-extern long SFTP_MultiRPC2();
-extern long SFTP_CreateMgrp();
-extern long SFTP_AddToMgrp();
-extern long SFTP_InitMulticast();
-extern long SFTP_DeleteMgrp();
-extern long SFTP_GetRequest (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request);
-extern long SFTP_InitSE (RPC2_Handle ConnHandle, SE_Descriptor *SDesc);
-extern long SFTP_CheckSE (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags);
-extern long SFTP_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer **Reply);
-extern long SFTP_PrintSED (SE_Descriptor *SDesc, FILE *outFile);
-extern void SFTP_SetDefaults (SFTP_Initializer *initPtr);
-extern void SFTP_Activate (SFTP_Initializer *initPtr);
-extern long SFTP_GetTime (RPC2_Handle ConnHandle, struct timeval *Time);
-extern long SFTP_GetHostInfo (RPC2_Handle ConnHandle, struct HEntry **hPtr);
+long SFTP_Init();
+long SFTP_Bind1 (RPC2_Handle ConnHandle, RPC2_CountedBS *ClientIdent);
+long SFTP_Bind2 (RPC2_Handle ConnHandle, RPC2_Unsigned BindTime);
+long SFTP_Unbind (RPC2_Handle ConnHandle);
+long SFTP_NewConn (RPC2_Handle ConnHandle, RPC2_CountedBS *ClientIdent);
+long SFTP_MakeRPC1 (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, RPC2_PacketBuffer **RequestPtr);
+long SFTP_MakeRPC2 (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, RPC2_PacketBuffer *Reply);
+long SFTP_MultiRPC1();
+long SFTP_MultiRPC2();
+long SFTP_CreateMgrp();
+long SFTP_AddToMgrp();
+long SFTP_InitMulticast();
+long SFTP_DeleteMgrp();
+long SFTP_GetRequest (RPC2_Handle ConnHandle, RPC2_PacketBuffer *Request);
+long SFTP_InitSE (RPC2_Handle ConnHandle, SE_Descriptor *SDesc);
+long SFTP_CheckSE (RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags);
+long SFTP_SendResponse (RPC2_Handle ConnHandle, RPC2_PacketBuffer **Reply);
+long SFTP_PrintSED (SE_Descriptor *SDesc, FILE *outFile);
+void SFTP_SetDefaults (SFTP_Initializer *initPtr);
+void SFTP_Activate (SFTP_Initializer *initPtr);
+long SFTP_GetTime (RPC2_Handle ConnHandle, struct timeval *Time);
+long SFTP_GetHostInfo (RPC2_Handle ConnHandle, struct HEntry **hPtr);
 
 /* Internal SFTP routines */
-extern int sftp_InitIO();
-extern int sftp_DataArrived();
-extern int sftp_WriteStrategy();
-extern int sftp_AckArrived();
-extern int sftp_SendStrategy();
-extern int sftp_ReadStrategy();
-extern int sftp_SendStart();
-extern int sftp_StartArrived();
-extern int sftp_SendTrigger();
-extern void sftp_InitPacket();
-extern void sftp_InitTrace();
+int sftp_InitIO(struct SFTP_Entry *sEntry);
+int sftp_DataArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry);
+int sftp_WriteStrategy(struct SFTP_Entry *sEntry);
+int sftp_AckArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry);
+int sftp_SendStrategy(struct SFTP_Entry *sEntry);
+int sftp_ReadStrategy(struct SFTP_Entry *sEntry);
+int sftp_SendStart(struct SFTP_Entry *sEntry);
+int sftp_StartArrived(RPC2_PacketBuffer *pBuff, struct SFTP_Entry *sEntry);
+int sftp_SendTrigger(struct SFTP_Entry *sEntry);
+void sftp_InitPacket(RPC2_PacketBuffer *pb, struct SFTP_Entry *sfe, long bodylen);
+void sftp_InitTrace(void);
+int sftp_vfwritefile(SE_Descriptor *sdesc, int openfd, char *buf, int nbytes);
 void sftp_vfclose(SE_Descriptor *sdesc, int openfd);
-int sftp_vfwritefile(register SE_Descriptor *sdesc, int openfd, char *buf, int nbytes);
-int sftp_piggybackfileread(register SE_Descriptor *sdesc, long openfd, char *buf);
-int sftp_piggybackfilesize(register SE_Descriptor *sdesc, long openfd);
+int sftp_piggybackfileread(SE_Descriptor *sdesc, long openfd, char *buf);
+int sftp_piggybackfilesize(SE_Descriptor *sdesc, long openfd);
 void sftp_TraceBogus(long filenum, long linenum);
+void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum);
+void sftp_DumpTrace(char *fName);
 
-extern void sftp_InitRTT();
-extern void sftp_UpdateRTT();
-extern void sftp_Backoff();
-extern int SFXlateMcastPacket();
-extern int MC_CheckAckorNak();
-extern int MC_CheckStart();
+void sftp_UpdateRTT(RPC2_PacketBuffer *pb, struct SFTP_Entry *sEntry,
+		    unsigned long bytes);
+int SFXlateMcastPacket(RPC2_PacketBuffer *pb);
+int MC_CheckAckorNak(struct SFTP_Entry *whichEntry);
+int MC_CheckStart(struct SFTP_Entry *whichEntry);
 
-extern struct SFTP_Entry *sftp_AllocSEntry();
-extern void sftp_FreeSEntry();
-extern void sftp_AllocPiggySDesc();
-extern void sftp_FreePiggySDesc();
-extern int sftp_AppendParmsToPacket();
-extern int sftp_ExtractParmsFromPacket();
-extern long sftp_AppendFileToPacket();
-extern long sftp_ExtractFileFromPacket();
-extern int sftp_AddPiggy();
-extern void sftp_SetError();
+struct SFTP_Entry *sftp_AllocSEntry(void);
+void sftp_FreeSEntry(struct SFTP_Entry *se);
+void sftp_AllocPiggySDesc(struct SFTP_Entry *se, long len, enum WhichWay direction);
+void sftp_FreePiggySDesc(struct SFTP_Entry *se);
+int sftp_AppendParmsToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whichP);
+int sftp_ExtractParmsFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
+long sftp_AppendFileToPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer **whichP);
+long sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry, RPC2_PacketBuffer *whichP);
+int sftp_AddPiggy(RPC2_PacketBuffer **whichP, char *dPtr, long dSize, long maxSize);
+void sftp_SetError(struct SFTP_Entry *s, enum SFState e);
 
 
 extern long sftp_datas, sftp_datar, sftp_acks, sftp_ackr, sftp_busy,
@@ -485,3 +495,8 @@ extern long SFTP_MaxPackets;
 
 /* Predicate to test if file is in vm */
 #define MEMFILE(s) (s->Value.SmartFTPD.Tag == FILEINVM)
+
+/* test if we can send an TimeEcho reponse */
+#define VALID_TIMEECHO(se) (!(se)->Retransmitting && \
+			    (se)->TimeEcho != 0   && \
+			    (se)->RequestTime != 0)

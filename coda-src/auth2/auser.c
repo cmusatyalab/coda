@@ -324,7 +324,7 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
 {
     RPC2_BindParms bp;
     RPC2_HostIdent hident;
-    RPC2_PortalIdent pident;
+    RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
     RPC2_EncryptionKey hkey;
     RPC2_CountedBS cident;
@@ -334,7 +334,7 @@ static int TryBinding(RPC2_Integer AuthenticationType, char *viceName,
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, AuthHost);
-    pident.Tag = RPC2_PORTALBYNAME;
+    pident.Tag = RPC2_PORTBYNAME;
     strcpy(pident.Value.Name, AUTH_SERVICE);
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = htonl(AUTH_SUBSYSID);

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.5 1998/08/26 17:08:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sl.c,v 4.6 98/11/02 16:45:27 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -76,6 +76,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -89,7 +90,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
  
 void rpc2_IncrementSeqNumber();
 void FreeHeld();
-bool XlateMcastPacket();
+bool XlateMcastPacket(RPC2_PacketBuffer *pb);
 void HandleInitMulticast();
 void rpc2_ProcessPackets();
 void rpc2_ExpireEvents();
@@ -104,13 +105,9 @@ static void
 	    SendBusy(), HandleBusy(),
 	    HandleOldRequest(), HandleNewRequest(), HandleCurrentRequest(),
 	    HandleInit1(), HandleInit2(), HandleInit3(), HandleInit4(), 
-	    HandleNak(), SendNak(),
-	    HandleRetriedBind();
+	    HandleNak(), HandleRetriedBind();
 
-/* Host and portal of origin of most recently received packed */
-static RPC2_HostIdent rpc2_ThisHost;
-static RPC2_PortalIdent rpc2_ThisPortal;
-
+static void SendNak(RPC2_PacketBuffer *pb);
 
 #define EXTRADEBUG 1
 #ifdef	EXTRADEBUG
@@ -127,9 +124,11 @@ static RPC2_PortalIdent rpc2_ThisPortal;
 
 #define NAKIT(p) do { 	/* bogus packet; NAK it and then throw it away */\
     rpc2_Recvd.Bogus++;\
-    SendNak(p->Header.LocalHandle, &rpc2_ThisHost, &rpc2_ThisPortal);\
+    SendNak(p);\
     RPC2_FreeBuffer(&p); } while (0) 
 
+/* Flag to toggle ip-address/port matching for received packets */
+long RPC2_strict_ip_matching = 1;
 
 void rpc2_SocketListener()
 {
@@ -174,7 +173,7 @@ void RPC2_DispatchProcess()
 
 void rpc2_ProcessPackets()
 {
-	register struct CEntry *ce = NULL;
+	struct CEntry *ce = NULL;
 	RPC2_PacketBuffer *pb = NULL;
 	
 	/* We are guaranteed that there is a packet in the socket
@@ -197,7 +196,7 @@ void rpc2_ProcessPackets()
 	/* If the packet came in on the multicast channel, validate it
 	   and translate it onto the point-to-point channel. */
 	if (ntohl(pb->Header.Flags) & RPC2_MULTICAST)
-		if (! (XlateMcastPacket(pb, &rpc2_ThisHost, &rpc2_ThisPortal)))
+		if (! (XlateMcastPacket(pb)))
 			return;
 
 	if (ntohl(pb->Header.RemoteHandle) == 0)
@@ -217,7 +216,7 @@ void rpc2_ProcessPackets()
     
 	/* update the host entry if there is one */
 	if (ce && ce->HostInfo) 
-		FT_GetTimeOfDay(&ce->HostInfo->LastWord, (struct timezone *)0);
+	    ce->HostInfo->LastWord = pb->Prefix.RecvStamp;
 
 	/* See if smaller packet buffer will do */
 	pb = ShrinkPacket(pb);
@@ -235,9 +234,9 @@ void rpc2_ProcessPackets()
 
 void rpc2_ExpireEvents()
 {
-	register int i;
+	int i;
 	struct SL_Entry *sl;
-	register struct TM_Elem *t;
+	struct TM_Elem *t;
 
 	for (i = TM_Rescan(rpc2_TimerQueue); i > 0; i--) {
 		t = TM_GetExpired(rpc2_TimerQueue);
@@ -257,6 +256,15 @@ static bool MorePackets()
 	fd_set rmask, emask;
 	int maxfd;
 	
+/* This ioctl peeks into the socket's receive queue, and reports the amount
+ * of data ready to be read. Linux officially uses TIOCINQ, but it's an alias
+ * for FIONREAD, so this should work too. --JH */
+#if defined(FIONREAD)
+	int amount_ready = 0;
+	if (ioctl(rpc2_RequestSocket, FIONREAD, &amount_ready) == 0 &&
+	    amount_ready != 0)
+	    return(TRUE);
+#endif
 	tv.tv_sec = tv.tv_usec = 0;	    /* do polling select */
 	FD_ZERO(&rmask);
 	FD_ZERO(&emask);
@@ -278,7 +286,7 @@ static bool PacketCame()
     /*  Await the earliest future event or a packet.
     	Returns TRUE if packet came, FALSE if earliest event expired */
 {
-	register struct TM_Elem *t;
+	struct TM_Elem *t;
 	struct timeval *tvp;
 	int rmask, wmask, emask;
 
@@ -309,8 +317,7 @@ static RPC2_PacketBuffer *PullPacket()
 	if ( !pb ) 
 		CODA_ASSERT(0);
 	CODA_ASSERT(pb->Prefix.Qname == &rpc2_PBList);
-	if (rpc2_RecvPacket(rpc2_RequestSocket, pb, 
-			    &rpc2_ThisHost, &rpc2_ThisPortal) < 0) {
+	if (rpc2_RecvPacket(rpc2_RequestSocket, pb) < 0) {
 		say(9, RPC2_DebugLevel, "Recv error, ignoring.\n");
 		RPC2_FreeBuffer(&pb);
 		return(NULL);
@@ -320,9 +327,9 @@ static RPC2_PacketBuffer *PullPacket()
 #ifdef RPC2DEBUG
 	if (RPC2_DebugLevel > 9) {
 		fprintf(rpc2_tracefile, "Packet received from   ");
-		rpc2_PrintHostIdent(&rpc2_ThisHost, 0);
+		rpc2_PrintHostIdent(&pb->Prefix.PeerHost, 0);
 		fprintf(rpc2_tracefile, "    ");
-		rpc2_PrintPortalIdent(&rpc2_ThisPortal, 0);
+		rpc2_PrintPortIdent(&pb->Prefix.PeerPort, 0);
 		fprintf(rpc2_tracefile, "\n");
 	}
 #endif RPC2DEBUG
@@ -347,7 +354,7 @@ static bool PoisonPacket(RPC2_PacketBuffer *pb)
 }
 
 
-static void Tell(register RPC2_PacketBuffer *pb, register struct CEntry *ce)
+static void Tell(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
 #ifdef RPC2DEBUG
 	if (RPC2_DebugLevel < 10) 
@@ -368,7 +375,7 @@ static void Tell(register RPC2_PacketBuffer *pb, register struct CEntry *ce)
 /* Special packet from socketlistener: never encrypted */
 static void HandleSLPacket(RPC2_PacketBuffer *pb)
 {
-	register struct CEntry *ce;
+	struct CEntry *ce;
 
 	rpc2_ntohp(pb);
 	
@@ -397,17 +404,27 @@ static void HandleSLPacket(RPC2_PacketBuffer *pb)
 
 static struct CEntry *FindOrNak(RPC2_PacketBuffer *pb)
 {
-	register struct CEntry *ce;
+	struct CEntry *ce;
 	
 	ce = rpc2_GetConn(ntohl(pb->Header.RemoteHandle));
-	if (ce == NULL
-	    || TestState(ce, CLIENT, C_HARDERROR) 
-	    || TestState(ce, SERVER, S_HARDERROR)) {
-		pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
-		/* NAKIT() expects host order */
-		NAKIT(pb);
-		return(NULL);
+
+	if (ce == NULL ||
+	    TestState(ce, CLIENT, C_HARDERROR) ||
+	    TestState(ce, SERVER, S_HARDERROR) ||
+        //    pb->Header.LocalHandle != ce->PeerHandle ||
+
+	/* Optionally do a bit stronger checking whether the sender of the
+	 * packet is really a match. --JH */
+	    (RPC2_strict_ip_matching &&
+	     (!rpc2_HostIdentEqual(&pb->Prefix.PeerHost, &(ce->PeerHost)) ||
+	      !rpc2_PortIdentEqual(&pb->Prefix.PeerPort, &(ce->PeerPort)))))
+	{
+	    /* NAKIT() expects host order */
+	    pb->Header.LocalHandle = ntohl(pb->Header.LocalHandle);
+	    NAKIT(pb);
+	    return(NULL);
 	}
+
 	return(ce);
 }
 
@@ -601,6 +618,9 @@ static RPC2_PacketBuffer *ShrinkPacket(RPC2_PacketBuffer *pb)
 		RPC2_AllocBuffer(pb->Header.BodyLength, &pb2);
 		if ( !pb2 ) 
 			return pb;
+		pb2->Prefix.PeerHost = pb->Prefix.PeerHost;
+		pb2->Prefix.PeerPort = pb->Prefix.PeerPort;
+		pb2->Prefix.RecvStamp = pb->Prefix.RecvStamp;
 		pb2->Prefix.LengthOfPacket = pb->Prefix.LengthOfPacket;
 		bcopy(&pb->Header, &pb2->Header, pb->Prefix.LengthOfPacket);
 		RPC2_FreeBuffer(&pb);
@@ -669,7 +689,7 @@ bool rpc2_FilterMatch(whichF, whichP)
 
 
 static void SendBusy(ce, doEncrypt)
-    register struct CEntry *ce;
+    struct CEntry *ce;
     int doEncrypt;	/* == 1 ==> encrypt this packet */
     {
     RPC2_PacketBuffer *pb;
@@ -685,23 +705,28 @@ static void SendBusy(ce, doEncrypt)
     rpc2_htonp(pb);
     if (doEncrypt) rpc2_ApplyE(pb, ce);
 
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPortal);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
     RPC2_FreeBuffer(&pb);
     }
 
 /* Keep alive for current request */
 static void HandleBusy(RPC2_PacketBuffer *pb,  struct CEntry *ce)
 {
-	register struct SL_Entry *sl;
+	struct SL_Entry *sl;
 
 	say(0, RPC2_DebugLevel, "HandleBusy()\n");
 
 	rpc2_Recvd.Busies++;
 	if (BogusSl(ce, pb)) 
 		return;
+
+	/* update rtt/bw measurements */
 	ce->reqsize += pb->Prefix.LengthOfPacket;
-	if (pb->Header.TimeStamp) 
-		rpc2_UpdateRTT(pb->Header.TimeStamp, ce);
+	rpc2_UpdateRTT(pb, ce);
+
+	/* now continue waiting for the real reply again */
+	ce->reqsize -= pb->Prefix.LengthOfPacket;
+
 	rpc2_Recvd.GoodBusies++;
 	sl = ce->MySl;
 	rpc2_DeactivateSle(sl, KEPTALIVE);
@@ -713,9 +738,9 @@ static void HandleBusy(RPC2_PacketBuffer *pb,  struct CEntry *ce)
 /* client receives a reply and bundles it off to the right sle */
 static void HandleCurrentReply(pb, ce)
 	RPC2_PacketBuffer *pb;
-register struct CEntry *ce;
+struct CEntry *ce;
 {
-	register struct SL_Entry *sl;
+	struct SL_Entry *sl;
 
 	say(0, RPC2_DebugLevel, "HandleCurrentReply()\n");
 	rpc2_Recvd.Replies++;
@@ -723,8 +748,7 @@ register struct CEntry *ce;
 	if (BogusSl(ce, pb)) 
 		return;
 	ce->reqsize += pb->Prefix.LengthOfPacket;
-	if (pb->Header.TimeStamp) 
-		rpc2_UpdateRTT(pb->Header.TimeStamp, ce);
+	rpc2_UpdateRTT(pb, ce);
 	rpc2_Recvd.GoodReplies++;
 	sl = ce->MySl;
 	sl->Packet = pb;
@@ -738,7 +762,7 @@ register struct CEntry *ce;
 /* Looks like server code */
 static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	register struct SL_Entry *sl;
+	struct SL_Entry *sl;
 
 	say(0, RPC2_DebugLevel, "HandleNewRequest()\n");
 
@@ -749,7 +773,7 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	}
 
 	ce->TimeStampEcho = pb->Header.TimeStamp;
-	ce->RequestTime = rpc2_MakeTimeStamp();
+	ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
 
 	if (IsMulticast(pb)) {
 		rpc2_MRecvd.Requests++;
@@ -794,11 +818,11 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 }
 
 /* Find a server REQ sle with matching filter for this packet */
-static struct SL_Entry *FindRecipient(register RPC2_PacketBuffer *pb)
+static struct SL_Entry *FindRecipient(RPC2_PacketBuffer *pb)
 	
 {
-	register long i;
-	register struct SL_Entry *sl;
+	long i;
+	struct SL_Entry *sl;
 
 	sl = rpc2_SLReqList;
 	for (i=0; i < rpc2_SLReqCount; i++) {
@@ -821,6 +845,9 @@ static void HandleCurrentRequest(RPC2_PacketBuffer *pbX, struct CEntry *ceA)
 		rpc2_Recvd.Requests++;
 
 	ceA->TimeStampEcho = pbX->Header.TimeStamp;
+	/* if we're modifying the TimeStampEcho, we also have to reset the
+	 * RequestTime */
+	ceA->RequestTime = rpc2_TVTOTS(&pbX->Prefix.RecvStamp);
 	SendBusy(ceA, TRUE);
 	RPC2_FreeBuffer(&pbX);
 }
@@ -828,8 +855,8 @@ static void HandleCurrentRequest(RPC2_PacketBuffer *pbX, struct CEntry *ceA)
 
 static void HandleInit1(RPC2_PacketBuffer *pb)
 {
-	register struct CEntry *ce;
-	register struct SL_Entry *sl;
+	struct CEntry *ce;
+	struct SL_Entry *sl;
 
 	say(0, RPC2_DebugLevel, "HandleInit1()\n");
 
@@ -837,10 +864,14 @@ static void HandleInit1(RPC2_PacketBuffer *pb)
 
 	/* Have we seen this bind request before? */
 	if (pb->Header.Flags & RPC2_RETRY) {
-		ce = rpc2_ConnFromBindInfo(&rpc2_ThisHost, &rpc2_ThisPortal,
-					   pb->Header.Uniquefier);
+		ce = rpc2_ConnFromBindInfo(&pb->Prefix.PeerHost,
+					   &pb->Prefix.PeerPort,
+					    pb->Header.Uniquefier);
 		if (ce)	{
 			ce->TimeStampEcho = pb->Header.TimeStamp;
+			/* if we're modifying the TimeStampEcho, we also have
+			 * to reset the RequestTime */
+			ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
 			HandleRetriedBind(pb, ce);
 			return;
 		}
@@ -890,6 +921,12 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	if (TestState(ce, SERVER, S_STARTBIND)) {
 		/* Cases (1) and (2) */
 		say(0, RPC2_DebugLevel, "Busying Init1 on 0x%lx\n",  ce->UniqueCID);
+		/* we want to have busies not confusing regular RTT
+		 * calculations */
+		ce->TimeStampEcho = pb->Header.TimeStamp;
+		/* if we're modifying the TimeStampEcho, we also have to reset
+		 * the RequestTime */
+		ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
 		SendBusy(ce, FALSE);
 		RPC2_FreeBuffer(&pb);
 		return;
@@ -900,7 +937,7 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 		    ce->UniqueCID);
 		ce->HeldPacket->Header.TimeStamp = htonl(ce->TimeStampEcho);
 		rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket, 
-				&ce->PeerHost, &ce->PeerPortal);
+				&ce->PeerHost, &ce->PeerPort);
 		RPC2_FreeBuffer(&pb);
 		return;
 	}
@@ -911,9 +948,9 @@ static void HandleRetriedBind(RPC2_PacketBuffer *pb, struct CEntry *ce)
 
 
 
-static void HandleInit2(RPC2_PacketBuffer *pb,     register struct CEntry *ce)
+static void HandleInit2(RPC2_PacketBuffer *pb,     struct CEntry *ce)
 {
-	register struct SL_Entry *sl;
+	struct SL_Entry *sl;
 
 	say(0, RPC2_DebugLevel, "HandleInit2()\n");
 
@@ -922,8 +959,7 @@ static void HandleInit2(RPC2_PacketBuffer *pb,     register struct CEntry *ce)
 	if (BogusSl(ce, pb)) 
 		return;
 	ce->reqsize += pb->Prefix.LengthOfPacket;
-	if (pb->Header.TimeStamp) 
-		rpc2_UpdateRTT(pb->Header.TimeStamp, ce);
+	rpc2_UpdateRTT(pb, ce);
 	sl = ce->MySl;
 	sl->Packet = pb;
 	if (ce->SecurityLevel == RPC2_OPENKIMONO)  	
@@ -936,9 +972,9 @@ static void HandleInit2(RPC2_PacketBuffer *pb,     register struct CEntry *ce)
 
 static void HandleInit4(pb, ce)
     RPC2_PacketBuffer *pb;
-    register struct CEntry *ce;
+    struct CEntry *ce;
     {
-    register struct SL_Entry *sl;
+    struct SL_Entry *sl;
 
     say(0, RPC2_DebugLevel, "HandleInit4()\n");
 
@@ -946,7 +982,7 @@ static void HandleInit4(pb, ce)
 
     if (BogusSl(ce, pb)) return;
     ce->reqsize += pb->Prefix.LengthOfPacket;
-    if (pb->Header.TimeStamp) rpc2_UpdateRTT(pb->Header.TimeStamp, ce);
+    rpc2_UpdateRTT(pb, ce);
     sl = ce->MySl;
     sl->Packet = pb;
     SetState(ce, C_THINK);
@@ -957,7 +993,7 @@ static void HandleInit4(pb, ce)
 
 static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 {
-	register struct SL_Entry *sl;
+	struct SL_Entry *sl;
 
 	say(0, RPC2_DebugLevel, "HandleInit3()\n");
 
@@ -969,7 +1005,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 			/* My Init4 must have got lost; resend it */
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);    
 			rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket,
-					&ce->PeerHost, &ce->PeerPortal);
+					&ce->PeerHost, &ce->PeerPort);
 		}  else 
 			say(0, RPC2_DebugLevel, "Bogus Init3\n");
 		/* Throw packet away anyway */
@@ -980,7 +1016,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	/* Expected Init3 */
 	if (BogusSl(ce, pb)) return;
 	ce->TimeStampEcho = pb->Header.TimeStamp;
-	ce->RequestTime = rpc2_MakeTimeStamp();
+	ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
 	sl = ce->MySl;
 	sl->Packet = pb;
 	SetState(ce, S_FINISHBIND);
@@ -989,7 +1025,7 @@ static void HandleInit3(RPC2_PacketBuffer *pb, struct CEntry *ce)
 }
 
 
-static void HandleNak(RPC2_PacketBuffer *pb,  register struct CEntry *ce)
+static void HandleNak(RPC2_PacketBuffer *pb,  struct CEntry *ce)
 {
 	say(0, RPC2_DebugLevel, "HandleNak()\n");
     
@@ -1004,12 +1040,13 @@ static void HandleNak(RPC2_PacketBuffer *pb,  register struct CEntry *ce)
 }
 
 
-/* Sends a NAK packet for remoteHandle on (whichHost, whichPortal) pair */
-static void SendNak(register RPC2_Handle remoteHandle,  
-		    register RPC2_HostIdent *whichHost,
-		    register RPC2_PortalIdent *whichPortal)
+/* Sends a NAK packet for remoteHandle on (whichHost, whichPort) pair */
+static void SendNak(RPC2_PacketBuffer *pb)
 {
 	RPC2_PacketBuffer *nakpb;
+	RPC2_Handle remoteHandle  = pb->Header.LocalHandle;
+	RPC2_HostIdent *whichHost = &pb->Prefix.PeerHost;
+	RPC2_PortIdent *whichPort = &pb->Prefix.PeerPort;
 
 	say(0, RPC2_DebugLevel, "Sending NAK\n");
 	RPC2_AllocBuffer(0, &nakpb);
@@ -1019,7 +1056,7 @@ static void SendNak(register RPC2_Handle remoteHandle,
 	nakpb->Header.Opcode = RPC2_NAKED;
 
 	rpc2_htonp(nakpb);
-	rpc2_XmitPacket(rpc2_RequestSocket, nakpb, whichHost, whichPortal);
+	rpc2_XmitPacket(rpc2_RequestSocket, nakpb, whichHost, whichPort);
 	RPC2_FreeBuffer(&nakpb);
 	rpc2_Sent.Naks++;
 }
@@ -1033,8 +1070,8 @@ static void SendNak(register RPC2_Handle remoteHandle,
 
 static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 {
-	register struct Init1Body *ib1;
-	register struct CEntry *ce;
+	struct Init1Body *ib1;
+	struct CEntry *ce;
 
 	say(9, RPC2_DebugLevel, " Request on brand new connection\n");
 
@@ -1048,23 +1085,9 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 		return(NULL);
 	}
 
-	ib1->SenderHost.Tag = (HostTag)ntohl(ib1->SenderHost.Tag);
-    	/* Value field remains in net order always */
-	ib1->SenderPortal.Tag = (PortalTag)ntohl(ib1->SenderPortal.Tag);
-	/* Value field remains in net order always */
-	/* have to decrypt XRandom before ntoh()ing it */
-
-	if (ib1->SenderHost.Tag != RPC2_HOSTBYINETADDR || 
-	    ib1->SenderPortal.Tag != RPC2_PORTALBYINETNUMBER) {
-		/* only Internet packets initially */
-		say(0, RPC2_DebugLevel, 
-		    "Ignoring INIT1 packet with invalid Tag fields\n");
-		return(NULL);
-	}
-    
 	ce = rpc2_AllocConn();
 	ce->TimeStampEcho = pb->Header.TimeStamp;
-	ce->RequestTime = rpc2_MakeTimeStamp();
+	ce->RequestTime = rpc2_TVTOTS(&pb->Prefix.RecvStamp);
 
 	switch((int) pb->Header.Opcode) {
 	case RPC2_INIT1OPENKIMONO:
@@ -1097,9 +1120,9 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 	SetRole(ce, SERVER);
 	SetState(ce, S_STARTBIND);
 	ce->PeerHandle = pb->Header.LocalHandle;
-	ce->SubsysId = pb->Header.SubsysId;
-	ce->PeerHost = ib1->SenderHost;	/* structure assignment */
-	ce->PeerPortal = ib1->SenderPortal;	/* structure assignment */
+	ce->SubsysId   = pb->Header.SubsysId;
+	ce->PeerHost   = pb->Prefix.PeerHost;  	/* structure assignment */
+	ce->PeerPort = pb->Prefix.PeerPort;	/* structure assignment */
 	ce->PeerUnique = pb->Header.Uniquefier;
 	ce->SEProcs = NULL;
 	ce->Color = GetPktColor(pb);
@@ -1112,7 +1135,7 @@ static struct CEntry *MakeConn(struct RPC2_PacketBuffer *pb)
 	}
 #endif RPC2DEBUG
 	
-	rpc2_NoteBinding(&rpc2_ThisHost, &rpc2_ThisPortal, 
+	rpc2_NoteBinding(&pb->Prefix.PeerHost, &pb->Prefix.PeerPort, 
 			 pb->Header.Uniquefier, ce->UniqueCID);
 	return(ce);
 }
@@ -1136,14 +1159,14 @@ static void HandleOldRequest(   RPC2_PacketBuffer *pb, struct CEntry *ce)
 	if (ce->HeldPacket != NULL) {
 			ce->HeldPacket->Header.TimeStamp = htonl(pb->Header.TimeStamp);
 			rpc2_XmitPacket(rpc2_RequestSocket, ce->HeldPacket,
-					&ce->PeerHost, &ce->PeerPortal);
+					&ce->PeerHost, &ce->PeerPort);
 		}
 	RPC2_FreeBuffer(&pb);
 }
 
 void FreeHeld(struct SL_Entry *sle)
 {
-	register struct CEntry *ce;
+	struct CEntry *ce;
     
 	ce = rpc2_GetConn(sle->Conn);
 	RPC2_FreeBuffer(&ce->HeldPacket);
@@ -1153,7 +1176,7 @@ void FreeHeld(struct SL_Entry *sle)
 
 static bool BogusSl(struct CEntry *ce, RPC2_PacketBuffer *pb)
 {
-	register struct SL_Entry *sl;
+	struct SL_Entry *sl;
 
 	sl = ce->MySl;
 	if (sl == NULL){ 

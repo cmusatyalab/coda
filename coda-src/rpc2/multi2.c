@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi2.c,v 4.5 1998/09/15 14:27:58 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/multi2.c,v 4.6 98/11/02 16:45:18 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -87,7 +87,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #define _PADWORD(n)(((n)+1) & ~1)
 #define _PADLONG(n)_PAD(n)
 
-
+extern int mkcall(long (*ClientHandler)(), int ArgCount, int HowMany,
+		  RPC2_Handle ConnList[], long offset, long rpcval, int *args);
 
 extern long HandleResult();
 long MRPC_UnpackMulti();
@@ -168,11 +169,11 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case RPC2_BYTE_TAG:	/* 2: begin of case RPC2_BYTE_TAG */
 		    switch(a_types->mode) {
 		    case IN_MODE:	
-			    va_array[i].integer = va_arg(ap, RPC2_Byte);
+			    va_array[i].byte = va_arg(ap, RPC2_Byte);
 			    break;
 		    case OUT_MODE:
 		    case IN_OUT_MODE:
-			    va_array[i].integerp = va_arg(ap, RPC2_Byte **);
+			    va_array[i].bytep = va_arg(ap, RPC2_Byte **);
 			    break;
 		    default:
 			    CODA_ASSERT(0);      
@@ -181,11 +182,11 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case RPC2_STRING_TAG:	/* 3: begin of case RPC2_STRING_TAG */
 		    switch(a_types->mode) {
 		    case IN_MODE:	
-			    va_array[i].integer = va_arg(ap, RPC2_String);
+			    va_array[i].string = va_arg(ap, RPC2_String);
 			    break;
 		    case OUT_MODE:
 		    case IN_OUT_MODE:
-			    va_array[i].integerp = va_arg(ap, RPC2_String **);
+			    va_array[i].stringp = va_arg(ap, RPC2_String **);
 			    break;
 		    default:
 			    CODA_ASSERT(0);      
@@ -194,11 +195,11 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case RPC2_COUNTEDBS_TAG:/* 4: begin of case RPC2_COUNTEDBS_TAG */
 		    switch(a_types->mode) {
 		    case IN_MODE:	
-			    va_array[i].integer = va_arg(ap, RPC2_CountedBS *);
+			    va_array[i].cbs = va_arg(ap, RPC2_CountedBS *);
 			    break;
 		    case OUT_MODE:
 		    case IN_OUT_MODE:
-			    va_array[i].integerp = va_arg(ap, RPC2_CountedBS **);
+			    va_array[i].cbsp = va_arg(ap, RPC2_CountedBS **);
 			    break;
 		    default:
 			    CODA_ASSERT(0);      
@@ -207,11 +208,11 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case RPC2_BOUNDEDBS_TAG:/* 5: begin of case RPC2_BOUNDEDBS_TAG */
 		    switch(a_types->mode) {
 		    case IN_MODE:	
-			    va_array[i].integer = va_arg(ap, RPC2_BoundedBS *);
+			    va_array[i].bbs = va_arg(ap, RPC2_BoundedBS *);
 			    break;
 		    case OUT_MODE:
 		    case IN_OUT_MODE:
-			    va_array[i].integerp = va_arg(ap, RPC2_BoundedBS **);
+			    va_array[i].bbsp = va_arg(ap, RPC2_BoundedBS **);
 			    break;
 		    default:
 			    CODA_ASSERT(0);      
@@ -223,7 +224,7 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 		    case OUT_MODE:
 		    case IN_OUT_MODE:	/* not sure if this is correct way: bulk descriptor is
 					   not documented in Ch.2 of RPC2 manual*/
-			    va_array[i].integerp = va_arg(ap, long *); 
+			    va_array[i].bd = va_arg(ap, long *); 
 			    break;
 		    default:
 			    CODA_ASSERT(0);      
@@ -232,11 +233,11 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case RPC2_ENCRYPTIONKEY_TAG:  /* 7: begin of case RPC2_ENCRYPTIONKEY_TAG */
 		    switch(a_types->mode) {
 		    case IN_MODE:	
-			    va_array[i].integer = va_arg(ap, RPC2_EncryptionKey *);
+			    va_array[i].key = va_arg(ap, RPC2_EncryptionKey *);
 			    break;
 		    case OUT_MODE:
 		    case IN_OUT_MODE:
-			    va_array[i].integerp = va_arg(ap, RPC2_EncryptionKey **);
+			    va_array[i].keyp = va_arg(ap, RPC2_EncryptionKey **);
 			    break;
 		    default:
 			    CODA_ASSERT(0);      
@@ -245,11 +246,11 @@ long MRPC_MakeMulti(int ServerOp, ARG ArgTypes[], RPC2_Integer HowMany,
 	    case RPC2_STRUCT_TAG:	/* 8: begin of case RPC2_STRUCT_TAG */
 		    switch(a_types->mode) {
 		    case IN_MODE:	
-			    va_array[i].integer = va_arg(ap, union PARM *);
+			    va_array[i].structp = va_arg(ap, union PARM *);
 			    break;
 		    case OUT_MODE:
 		    case IN_OUT_MODE:
-			    va_array[i].integerp = va_arg(ap, union PARM **);
+			    va_array[i].structpp = va_arg(ap, union PARM **);
 			    break;
 		    default:
 			    CODA_ASSERT(0);      
@@ -398,7 +399,7 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
     RPC2_Byte byte;
     long _length;
     MODE mode = a_types->mode;
-    register PARM *arg = *args;
+    PARM *arg = *args;
     RPC2_CountedBS *cbsbodyp;
     RPC2_BoundedBS *bbsbodyp;
 
@@ -419,16 +420,19 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 			      break;
 	   case RPC2_BYTE_TAG:
 			      if (a_types->bound != 0) {	/* Byte array */
-				if (mode == IN_MODE) {
-				  bcopy(arg->bytep, (RPC2_Byte *)(*_ptr), a_types->bound);
+				if (mode == IN_MODE)
+				{
+				  memcpy(*_ptr, arg->bytep, a_types->bound);
 				  (*args)++;
 				}
-				else if(mode == IN_OUT_MODE) {
-				  bcopy((char *)**arg->bytep, (RPC2_Byte *)(*_ptr), a_types->bound);
+				else if(mode == IN_OUT_MODE)
+				{
+				  memcpy(*_ptr, **arg->bytep, a_types->bound);
 				  (*args)++;
 				}
-				else if (mode == NO_MODE) {	/* structure field */
-				  bcopy(&(arg->byte), (RPC2_Byte *)(*_ptr), a_types->bound);
+				else if (mode == NO_MODE)
+				{	/* structure field */
+				  memcpy(*_ptr, &arg->byte, a_types->bound);
 				  incr_struct_byte(a_types, args);
 				}
 #if SIZE == 4
@@ -493,19 +497,19 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 				cbsbodyp = (RPC2_CountedBS *)arg;
 			        _length = cbsbodyp->SeqLen;
 			        ((*_ptr)++)->integer = htonl(_length);
-			        bcopy(cbsbodyp->SeqBody, (RPC2_Byte *)(*_ptr), _length);
+				memcpy(*_ptr, cbsbodyp->SeqBody, _length);
 				/* Later *args is added by 4. Now add 4 for SeqLen */
 				(*args)++; /* Ugly!! */
 			      }
 			      else if (mode == IN_OUT_MODE) {
 			        _length = (*arg->cbsp)->SeqLen;
 			        ((*_ptr)++)->integer = htonl(_length);
-			        bcopy((*arg->cbsp)->SeqBody, (RPC2_Byte *)(*_ptr), _length);
+			        memcpy(*_ptr, (*arg->cbsp)->SeqBody, _length);
 			      }
 			      else {
 			        _length = arg->cbs->SeqLen;
 			        ((*_ptr)++)->integer = htonl(_length);
-			        bcopy(arg->cbs->SeqBody, (RPC2_Byte *)(*_ptr), _length);
+			        memcpy(*_ptr, arg->cbs->SeqBody, _length);
 			      }
 #if SIZE == 4
 			      (*_ptr) += (_PAD(_length) >> 2);
@@ -522,7 +526,7 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 			        ((*_ptr)++)->integer = htonl(bbsbodyp->MaxSeqLen);
 			        _length = bbsbodyp->SeqLen;
 			        ((*_ptr)++)->integer = htonl(_length);
-			        bcopy(bbsbodyp->SeqBody, (RPC2_Byte *)(*_ptr), _length);
+			        memcpy(*_ptr, bbsbodyp->SeqBody, _length);
 				/* Later *args is added by 4. Now add 4 for SeqLen */
 				(*args)++; /* Ugly!! */
 				/* Later *args is added by 4. Now add 4 for MaxSeqLen */
@@ -532,13 +536,13 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 			        ((*_ptr)++)->integer = htonl((*arg->bbsp)->MaxSeqLen);
 			        _length = (*arg->bbsp)->SeqLen;
 			        ((*_ptr)++)->integer = htonl(_length);
-			        bcopy((*arg->bbsp)->SeqBody, (RPC2_Byte *)(*_ptr), _length);
+			        memcpy(*_ptr, (*arg->bbsp)->SeqBody, _length);
 			      }
 			      else {
 			        ((*_ptr)++)->integer = htonl(arg->bbs->MaxSeqLen);
 			        _length = arg->bbs->SeqLen;
 			        ((*_ptr)++)->integer = htonl(_length);
-			        bcopy(arg->bbs->SeqBody, (RPC2_Byte *)(*_ptr), _length);
+			        memcpy(*_ptr, arg->bbs->SeqBody, _length);
 			      }
 #if SIZE == 4
 			      (*_ptr) += (_PAD(_length) >> 2);
@@ -551,10 +555,10 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 			      break;
 	   case RPC2_ENCRYPTIONKEY_TAG:
 			       if (mode == IN_OUT_MODE) {
-			         bcopy((*arg->keyp[0]), (RPC2_Byte *)(*_ptr), RPC2_KEYSIZE);
+			         memcpy(*_ptr, (*arg->keyp[0]), RPC2_KEYSIZE);
 			       }
 			       else {
-			         bcopy(*arg->key, (RPC2_Byte *)(*_ptr), RPC2_KEYSIZE);
+			         memcpy(*_ptr, *arg->key, RPC2_KEYSIZE);
 			       }
 #if SIZE == 4
 			      (*_ptr) += RPC2_KEYSIZE >> 2;
@@ -576,7 +580,7 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 
 /* Returns the buffer length needed for the given structure (called
    recursively) */
-int struct_len(register ARG **a_types, register PARM **args)
+int struct_len(ARG **a_types, PARM **args)
 {
 	ARG *field;
 	PARM **strp, *str;
@@ -686,7 +690,8 @@ long MRPC_UnpackMulti(int HowMany, RPC2_Handle ConnHandleList[],
    /* Call client routine with arguments and RPC2 return code */
     args = ArgInfo->Args;
     if (ArgInfo->HandleResult)
-	ret = mkcall(ArgInfo->HandleResult, ArgInfo->ArgCount, HowMany, ConnHandleList, offset, rpcval, args);
+	ret = mkcall(ArgInfo->HandleResult, ArgInfo->ArgCount, HowMany,
+		     ConnHandleList, offset, rpcval, args);
     else ret = 0;
     if (rspbuffer != NULL) {
 	RPC2_FreeBuffer(&rspbuffer);
@@ -805,7 +810,8 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 		case RPC2_BYTE_TAG:
 				if (a_types->bound != 0) {
 				   if (mode == NO_MODE) {
-				     bcopy((RPC2_Byte *)(*_ptr), &(args->byte), a_types->bound);
+				     memcpy(&(args->byte), *_ptr,
+					    a_types->bound);
 #if SIZE == 4
 				     (*_ptr) += (a_types->size) >> 2;
 #else
@@ -813,7 +819,8 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 #endif
 				   }
 				   else {
-				     bcopy((RPC2_Byte *)(*_ptr), (char *)*(args->bytep[offset]), a_types->bound);
+				     memcpy(*(args->bytep[offset]),
+					    *_ptr, a_types->bound);
 				     (*_ptr) ++;
 				   }
 				}
@@ -835,11 +842,12 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				_length = ntohl((*_ptr)->integer) + 1;
 				(*_ptr)++;
 				if (mode != NO_MODE) {
-				   bcopy((RPC2_Byte *)(*_ptr), *(args->stringp[offset]), _length);
+				   memcpy(*(args->stringp[offset]), *_ptr,
+					  _length);
 				  (*args->stringp[offset])[_length - 1] = '\0';
 				}
 				else {
-				   bcopy((RPC2_Byte *)(*_ptr), args->string, _length);
+				   memcpy(args->string, *_ptr, _length);
 				   args->string[_length - 1] = '\0';  /* used to be [length] */
 				}
 #if SIZE == 4
@@ -852,7 +860,8 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				if (mode != NO_MODE) {
 				  args->cbsp[offset]->SeqLen = ntohl((*_ptr)->integer);
 				  (*_ptr)++;
-				  bcopy((RPC2_Byte *)(*_ptr), args->cbsp[offset]->SeqBody, args->cbsp[offset]->SeqLen);
+				  memcpy(args->cbsp[offset]->SeqBody, *_ptr,
+					 args->cbsp[offset]->SeqLen);
 #if SIZE == 4
 				  (*_ptr) += (_PAD(args->cbsp[offset]->SeqLen)) >> 2;
 #else
@@ -863,7 +872,8 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				  cbsbodyp = (RPC2_CountedBS *)args;
 				  cbsbodyp->SeqLen = ntohl((*_ptr)->integer);
 				  (*_ptr)++;
-				  bcopy((RPC2_Byte *)(*_ptr), cbsbodyp->SeqBody, cbsbodyp->SeqLen);
+				  memcpy(cbsbodyp->SeqBody, *_ptr,
+					 cbsbodyp->SeqLen);
 #if SIZE == 4
 				  (*_ptr) += (_PAD(cbsbodyp->SeqLen)) >> 2;
 #else
@@ -877,7 +887,8 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				  (*_ptr)++;
 				  args->bbsp[offset]->SeqLen = ntohl((*_ptr)->integer);
 				  (*_ptr)++;
-				  bcopy((RPC2_Byte *)(*_ptr), args->bbsp[offset]->SeqBody, args->bbsp[offset]->SeqLen);
+				  memcpy(args->bbsp[offset]->SeqBody, *_ptr,
+					 args->bbsp[offset]->SeqLen);
 #if SIZE == 4
 				  (*_ptr) += (_PAD(args->bbsp[offset]->SeqLen)) >> 2;
 #else
@@ -890,7 +901,8 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				  (*_ptr)++;
 				  bbsbodyp->SeqLen = ntohl((*_ptr)->integer);
 				  (*_ptr)++;
-				  bcopy((RPC2_Byte *)(*_ptr), bbsbodyp->SeqBody, bbsbodyp->SeqLen);
+				  memcpy(bbsbodyp->SeqBody, *_ptr,
+					 bbsbodyp->SeqLen);
 #if SIZE == 4
 				  (*_ptr) += (_PAD(bbsbodyp->SeqLen)) >> 2;
 #else
@@ -904,9 +916,9 @@ void unpack(ARG *a_types, PARM *args, PARM **_ptr, long offset)
 				break;
 		case RPC2_ENCRYPTIONKEY_TAG:
 				if (mode == IN_OUT_MODE) {
-				bcopy((RPC2_Byte *)(*_ptr), args->keyp[offset], RPC2_KEYSIZE);
+				memcpy(args->keyp[offset], *_ptr, RPC2_KEYSIZE);
 				}
-				else bcopy((RPC2_Byte *)(*_ptr), *(args->key), RPC2_KEYSIZE);
+				else memcpy(*(args->key), *_ptr, RPC2_KEYSIZE);
 #if SIZE == 4
 				(*_ptr) += (_PAD(RPC2_KEYSIZE)) >> 2;
 #else

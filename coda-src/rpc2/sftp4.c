@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp4.c,v 4.3 98/08/26 17:08:14 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/sftp4.c,v 4.4 98/09/15 14:28:01 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 
@@ -92,11 +92,8 @@ struct TraceEntry
 struct CBUF_Header *TraceBuf;
 #endif RPC2DEBUG
 
-int sftp_XmitPacket(whichSocket, whichPacket, whichHost, whichPortal)
-    long whichSocket;
-    RPC2_PacketBuffer *whichPacket;
-    RPC2_HostIdent *whichHost;
-    RPC2_PortalIdent *whichPortal;
+int sftp_XmitPacket(long whichSocket, RPC2_PacketBuffer *whichPacket,
+		    RPC2_HostIdent *whichHost, RPC2_PortIdent *whichPort)
     {
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
@@ -106,7 +103,7 @@ int sftp_XmitPacket(whichSocket, whichPacket, whichHost, whichPortal)
     te->ph = whichPacket->Header;	/* structure assignment */
 #endif RPC2DEBUG
 
-    rpc2_XmitPacket(whichSocket, whichPacket, whichHost, whichPortal);
+    rpc2_XmitPacket(whichSocket, whichPacket, whichHost, whichPort);
 
     if (ntohl(whichPacket->Header.Flags) & RPC2_MULTICAST)
 	{
@@ -126,11 +123,7 @@ int sftp_XmitPacket(whichSocket, whichPacket, whichHost, whichPortal)
     return(RPC2_SUCCESS);
     }
 
-long sftp_RecvPacket(whichSocket, whichPacket, whichHost, whichPortal)
-    long whichSocket;
-    RPC2_PacketBuffer *whichPacket;
-    RPC2_HostIdent *whichHost;
-    RPC2_PortalIdent *whichPortal;
+long sftp_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichPacket)
     {
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
@@ -138,7 +131,7 @@ long sftp_RecvPacket(whichSocket, whichPacket, whichHost, whichPortal)
 
     long rc;
     
-    rc = rpc2_RecvPacket(whichSocket, whichPacket, whichHost, whichPortal);
+    rc = rpc2_RecvPacket(whichSocket, whichPacket);
     if (rc < 0) return(rc);
 
     if (ntohl(whichPacket->Header.Flags) & RPC2_MULTICAST)
@@ -165,10 +158,7 @@ long sftp_RecvPacket(whichSocket, whichPacket, whichHost, whichPortal)
     return(rc);
     }
 
-void sftp_TraceStatus(sEntry, filenum, linenum)
-    register struct SFTP_Entry *sEntry;
-    int filenum;
-    int linenum;
+void sftp_TraceStatus(struct SFTP_Entry *sEntry, int filenum, int linenum)
     {
 #ifdef RPC2DEBUG
     struct TraceEntry *te;
@@ -230,7 +220,7 @@ static void PrintSFEntry(tEntry, tId, outFile)
     {
 #ifdef RPC2DEBUG
     char *s;
-    register struct RPC2_PacketHeader *ph;
+    struct RPC2_PacketHeader *ph;
 
     switch(tEntry->tcode)
 	{
@@ -255,16 +245,21 @@ static void PrintSFEntry(tEntry, tId, outFile)
 	default:         s = "?????"; break;
 	}
     
-    fprintf(outFile, "%6s  %6lu  0x%08lx  0x%08lx  %6lu  0x%08lx|%08lx  0x%08lx  0x%08lx  %4lu\n",
-	s, ntohl(ph->SeqNumber), ntohl(ph->Flags), ntohl(ph->SEFlags), ntohl(ph->GotEmAll), 
-	ntohl(ph->BitMask0), ntohl(ph->BitMask1), ntohl(ph->RemoteHandle), ntohl(ph->LocalHandle),
-	ntohl(ph->BodyLength));
+    fprintf(outFile, "%6s  %6lu  0x%08lx  0x%08lx  %6lu  0x%08lx|%08lx  0x%08lx  0x%08lx  %4lu\n", s,
+		(unsigned long)ntohl(ph->SeqNumber),
+		(unsigned long)ntohl(ph->Flags),
+		(unsigned long)ntohl(ph->SEFlags),
+		(unsigned long)ntohl(ph->GotEmAll),
+		(unsigned long)ntohl(ph->BitMask0),
+		(unsigned long)ntohl(ph->BitMask1),
+		(unsigned long)ntohl(ph->RemoteHandle),
+		(unsigned long)ntohl(ph->LocalHandle),
+		(unsigned long)ntohl(ph->BodyLength));
 #endif RPC2DEBUG
     }
 
-int sftp_DumpTrace(fName)
-    char *fName;
-    {
+void sftp_DumpTrace(char *fName)
+{
 #ifdef RPC2DEBUG
     FILE *dumpfile;
     
@@ -279,10 +274,10 @@ int sftp_DumpTrace(fName)
     CBUF_WalkBuff(TraceBuf, PrintSFEntry, TRACELEN, dumpfile);
     fclose(dumpfile);
 #endif RPC2DEBUG
-    }
+}
 
 
-void sftp_InitTrace()
+void sftp_InitTrace(void)
     {
 #ifdef RPC2DEBUG
     TraceBuf = (struct CBUF_Header *)CBUF_Init(sizeof(struct  TraceEntry), TRACELEN, "SFTP Trace");

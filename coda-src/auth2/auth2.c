@@ -114,7 +114,7 @@ static void InitAl();
 static void CheckTokenKey();
 long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionKey sKey);	/* multiplex to other functions */
 
-void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortalIdent *pPortal);	/* to log authentication failures */
+void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortIdent *pPort);	/* to log authentication failures */
 
 int GetViceId(RPC2_CountedBS *cIdent);	/* must be post-name conversion */
 
@@ -352,12 +352,12 @@ static void InitRPC()
     {
     PROCESS mylpid;
     RPC2_Integer rc;
-    RPC2_PortalIdent port;
+    RPC2_PortIdent port;
     RPC2_SubsysIdent subsysid;
 
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
 
-    port.Tag = RPC2_PORTALBYNAME;
+    port.Tag = RPC2_PORTBYNAME;
     strcpy(port.Value.Name, AUTH_SERVICE);
     if ((rc = RPC2_Init(RPC2_VERSION, 0, &port, -1, NULL)) != RPC2_SUCCESS) {
 	LogMsg(-1, 0, stdout, "RPC2_Init failed with %s", RPC2_ErrorMsg(rc));
@@ -481,15 +481,12 @@ long GetKeys(RPC2_Integer *AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Encr
 }
 
 
-void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortalIdent *pPortal)
+void LogFailures(RPC2_Integer AuthenticationType, RPC2_CountedBS *cIdent, RPC2_Integer eType, RPC2_HostIdent *pHost, RPC2_PortIdent *pPort)
     {
-    unsigned it;
     CODA_ASSERT(pHost->Tag == RPC2_HOSTBYINETADDR);
-    it = pHost->Value.InetAddress;
     *(cIdent->SeqBody+cIdent->SeqLen-1) = 0;  /* just to make sure */
-    LogMsg(-1, 0, stdout, "Authentication failed for \"%s\" from %d.%d.%d.%d",
-	 cIdent->SeqBody, (it>>24)&0xff, (it>>16)&0xff, (it>>8)&0xff, it&0xff);
-
+    LogMsg(-1, 0, stdout, "Authentication failed for \"%s\" from %s",
+	 cIdent->SeqBody, inet_ntoa(pHost->Value.InetAddress));
     }
 
 

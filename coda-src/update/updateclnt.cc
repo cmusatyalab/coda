@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.15 1998/08/31 12:23:29 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/update/updateclnt.cc,v 4.16 98/11/02 16:45:40 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -300,7 +300,7 @@ static void ProcessArgs(int argc, char **argv)
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "usage: update [-d (debug level)] ");
 	    LogMsg(0, SrvDebugLevel, stdout, 
-		   "[-h (operator console hostname)] [-q (portal name)]");
+		   "[-h (operator console hostname)] [-q (port name)]");
 	    LogMsg(0, SrvDebugLevel, stdout, 
 		   "[-r (reps of w for long wait time)] [-w (short wait time)]\n");
 	    exit(-1);
@@ -519,7 +519,7 @@ static void ReConnect()
 {
     long     rc;
     struct timeval  time;
-    RPC2_PortalIdent sid;
+    RPC2_PortIdent sid;
     RPC2_SubsysIdent ssid;
     RPC2_HostIdent hid;
     RPC2_CountedBS dummy;
@@ -552,7 +552,7 @@ static void ReConnect()
 	    
 	    hid.Tag = RPC2_HOSTBYNAME;
 	    strcpy(hid.Value.Name, host);
-	    sid.Tag = RPC2_PORTALBYINETNUMBER;
+	    sid.Tag = RPC2_PORTBYINETNUMBER;
 	    sid.Value.InetPortNumber = port;
 	    ssid.Tag = RPC2_SUBSYSBYID;
 	    ssid.Value.SubsysId= SUBSYS_UPDATE;
@@ -666,13 +666,13 @@ static int U_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     Sets RPCid to the value of the connection id.    */
 
     RPC2_HostIdent hident;
-    RPC2_PortalIdent pident;
+    RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
     long     rcode;
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
-    pident.Tag = RPC2_PORTALBYNAME;
+    pident.Tag = RPC2_PORTBYNAME;
     strcpy(pident.Value.Name, "codasrv");
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.8 1998/10/29 15:29:03 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/vol-dump.cc,v 4.9 98/11/02 16:47:09 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -55,7 +55,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.8 $
+#define RCSVERSION $Revision: 4.9 $
 
 /* vol-dump.c */
 
@@ -153,7 +153,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     DumpBuffer_t *dbuf;
     char *DumpBuf = 0;
     RPC2_HostIdent hid;
-    RPC2_PortalIdent pid;
+    RPC2_PortIdent pid;
     RPC2_SubsysIdent sid;
     RPC2_BindParms bparms;
     RPC2_Handle cid;
@@ -246,7 +246,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     }
 
     hid = peerinfo.RemoteHost;
-    pid = peerinfo.RemotePortal;
+    pid = peerinfo.RemotePort;
     sid.Tag = RPC2_SUBSYSBYID;
     sid.Value.SubsysId = VOLDUMP_SUBSYSTEMID;
     bparms.SecurityLevel = RPC2_OPENKIMONO;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.15 1998/10/03 16:59:25 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venusvm.cc,v 4.16 98/11/02 16:46:22 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -99,7 +99,7 @@ extern int nlist(const char*, struct nlist[]);
 #endif
 
 #define	DFLT_VMONHOST	"barber.coda.cs.cmu.edu"
-#define	DFLT_VMONPORTAL	1356
+#define	DFLT_VMONPORT	1356
 
 static const int WarnInterval = 2*60*60;      /* every two hours */
 static const int VmonMaxDataSize = 1024 * 1024;       /* one meg */
@@ -298,7 +298,7 @@ static void GetStatistics(RvmStatistics *);
 
 char *VmonHost = DFLT_VMONHOST;		    /* may be overridden from command line */
 unsigned long VmonAddr = 0;
-int VmonPortal = DFLT_VMONPORTAL;	    /* may be overridden from command line */
+int VmonPort = DFLT_VMONPORT;	    /* may be overridden from command line */
 
 /*  *****  Vmon  *****  */
 
@@ -961,14 +961,14 @@ static int ValidateVmonHandle() {
     RPC2_HostIdent hid;
     if (VmonAddr) { 	/* use the stashed address to avoid name lookups */
 	hid.Tag = RPC2_HOSTBYINETADDR;
-	hid.Value.InetAddress = htonl(VmonAddr);
+	hid.Value.InetAddress.s_addr = htonl(VmonAddr);
     } else {
 	hid.Tag = RPC2_HOSTBYNAME;
 	strcpy(hid.Value.Name, VmonHost);
     }
-    RPC2_PortalIdent pid;
-    pid.Tag = RPC2_PORTALBYINETNUMBER;
-    pid.Value.InetPortNumber = htons(VmonPortal);
+    RPC2_PortIdent pid;
+    pid.Tag = RPC2_PORTBYINETNUMBER;
+    pid.Value.InetPortNumber = htons(VmonPort);
     RPC2_SubsysIdent ssid;
     ssid.Tag = RPC2_SUBSYSBYID;
     ssid.Value.SubsysId = MondSubsysId;
@@ -982,7 +982,7 @@ static int ValidateVmonHandle() {
     long code = RPC2_NewBinding(&hid, &pid, &ssid, &bp, &VmonHandle);
 
     LOG(1, ("ValidateVmonHandle: bind to [ %s, %d, %d ] returned (%d, %d)\n",
-	     VmonHost, VmonPortal, MondSubsysId, code, VmonHandle));
+	     VmonHost, VmonPort, MondSubsysId, code, VmonHandle));
     if (code != 0) {
 	VmonHandle = 0;
 	return(0);

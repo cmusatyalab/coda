@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.17 1998/11/02 16:46:19 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/venus.cc,v 4.18 98/11/11 15:59:00 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -306,7 +306,7 @@ static void ParseCmdline(int argc, char **argv) {
 	    else if (STREQ(argv[i], "-mondhost"))
 		i++, VmonHost = argv[i];
 	    else if (STREQ(argv[i], "-mondportal"))
-		i++, VmonPortal = atoi(argv[i]);
+		i++, VmonPort = atoi(argv[i]);
 	    else if (STREQ(argv[i], "-init"))        /* brain wipe rvm */
 		InitMetaData = 1;
 	    else if (STREQ(argv[i], "-rvmt"))

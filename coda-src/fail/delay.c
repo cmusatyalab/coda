@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/delay.c,v 4.4 1998/09/29 16:37:35 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/fail/delay.c,v 4.5 98/11/02 16:44:43 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -317,7 +317,7 @@ static int Delay_LWP()
 	    dq = &DelayQueues.queues[i];
 
 	    if (dq->numPackets) {		/* Something is waiting. */
-		if ((dq->timer.tv_sec == NULL) && (dq->timer.tv_usec == NULL)) {
+		if ((dq->timer.tv_sec == 0) && (dq->timer.tv_usec == 0)) {
 		    /* Expired event: send packet, set new timer */
 		    packetInfo *pp = dq->delayQueue;
 		    

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/cbuf.c,v 4.2 1998/04/14 21:06:57 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/cbuf.c,v 4.3 98/05/07 17:23:51 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -69,12 +69,9 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 #ifdef RPC2DEBUG
 
-struct CBUF_Header *CBUF_Init(elemSize, noofElems, printName)
-    long elemSize;
-    long noofElems;
-    char *printName;
-    {
-    register struct CBUF_Header *bufId;
+struct CBUF_Header *CBUF_Init(long elemSize, long noofElems, char *printName)
+{
+    struct CBUF_Header *bufId;
 
     bufId = (struct CBUF_Header *)malloc(sizeof(struct CBUF_Header));
     if (bufId == NULL) return(NULL);
@@ -86,48 +83,58 @@ struct CBUF_Header *CBUF_Init(elemSize, noofElems, printName)
     bufId->Buffer = (char *)malloc(elemSize*noofElems);    
     if (bufId->Buffer == NULL && noofElems != 0) return(NULL);
     return(bufId);
-    }
+}
 
-char *CBUF_NextSlot(bufId)
-    register struct CBUF_Header *bufId;
-    {
-    register char *p;
+char *CBUF_NextSlot(struct CBUF_Header *bufId)
+{
+    char *p;
     bufId->TotalElemsAdded++;
     bufId->LastAllocatedSlot++;
-    if (bufId->LastAllocatedSlot > bufId->NoOfElems-1) bufId->LastAllocatedSlot = 0;
+    if (bufId->LastAllocatedSlot > bufId->NoOfElems-1)
+	bufId->LastAllocatedSlot = 0;
     p = bufId->Buffer + (bufId->LastAllocatedSlot)*(bufId->ElemSize);
     return(p);
-    }
+}
 
 
-void CBUF_WalkBuff(bufId, userProc, howMany, outFile)
-    register struct CBUF_Header *bufId;
-    void (*userProc)();	/* called with (<ptr to elem>, <index of elem>, outFile) */
-    long howMany;	/* userProc is invoked only for the last howMany elems */
-    FILE *outFile;	/* opened for writing already */
-    {
-    register long i, j;
+void CBUF_WalkBuff(struct CBUF_Header *bufId, void (*userProc)(), long howMany,
+		   FILE *outFile)
+/* userProc	called with (<ptr to elem>, <index of elem>, outFile)
+ * howMany;	userProc is invoked only for the last howMany elems
+ * outFile;	opened for writing already */
+{
+    long i, j;
+
     if (bufId->TotalElemsAdded <= bufId->NoOfElems)
-	{
-	for (i = 0; i < bufId->TotalElemsAdded; i++)
-	    if (bufId->TotalElemsAdded - i <= howMany) (*userProc)(bufId->Buffer+(i*bufId->ElemSize), i, outFile);
-	}
-    else
-	{
-	for (j = 0, i = (bufId->LastAllocatedSlot == bufId->NoOfElems-1) ? 0 : bufId->LastAllocatedSlot+1;
-		 j < bufId->NoOfElems; j++, (i == bufId->NoOfElems-1) ?  (i = 0) : i++)
-	    if (bufId->NoOfElems - j <= howMany)
-		(*userProc)(bufId->Buffer+(i*bufId->ElemSize), bufId->TotalElemsAdded - bufId->NoOfElems + j, outFile);
-	}
-    
-    }
-
-
-void CBUF_Free(whichBuff)
-    struct CBUF_Header **whichBuff;
     {
+	for (i = 0; i < bufId->TotalElemsAdded; i++)
+	    if (bufId->TotalElemsAdded - i <= howMany)
+		(*userProc)(bufId->Buffer+(i*bufId->ElemSize), i, outFile);
+    }
+    else
+    {
+	i = (bufId->LastAllocatedSlot == bufId->NoOfElems-1) ? 0 :
+	    bufId->LastAllocatedSlot+1;
+
+	for (j = 0; j < bufId->NoOfElems; j++)
+	{
+	    if (bufId->NoOfElems - j <= howMany)
+		(*userProc)(bufId->Buffer+(i*bufId->ElemSize),
+			    bufId->TotalElemsAdded - bufId->NoOfElems + j,
+			    outFile);
+
+	    if (i == bufId->NoOfElems-1) i = 0;
+	    else			 i++;
+	}
+    }
+    
+}
+
+
+void CBUF_Free(struct CBUF_Header **whichBuff)
+{
     free((*whichBuff)->Buffer);
     free(*whichBuff);
     *whichBuff = NULL;
-    }
+}
 #endif RPC2DEBUG

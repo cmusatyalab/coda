@@ -1,5 +1,5 @@
 /*
- *      $Id: simpleclient.c,v 1.4 1998/11/02 16:44:59 rvb Exp $   
+ *      $Id: simpleclient.c,v 1.5 98/11/02 17:54:24 rvb Exp $   
  */
 
 /* Simple client to excercise the RPC2 procedure calls */
@@ -29,7 +29,7 @@ void main(void)
 {
 	RPC2_BindParms bp;
 	RPC2_HostIdent hident;
-	RPC2_PortalIdent pident;
+	RPC2_PortIdent pident;
 	RPC2_SubsysIdent sident;
 	RPC2_CountedBS cident;
 	long	rc;
@@ -46,7 +46,7 @@ void main(void)
 	hident.Tag = RPC2_HOSTBYNAME;
 	strcpy(hident.Value.Name, "localhost");
 
-	pident.Tag = RPC2_PORTALBYINETNUMBER;
+	pident.Tag = RPC2_PORTBYINETNUMBER;
 	pident.Value.InetPortNumber = ntohs(PORT_rpc2portmap);
 
 	sident.Tag = RPC2_SUBSYSBYID;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2test.c,v 4.5 1998/09/29 16:38:04 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2test.c,v 4.6 98/11/02 16:45:22 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -79,6 +79,7 @@ int lwp_nextindex;
 #include "rpc2.h"
 #include "rpc2.private.h"
 #include "se.h"
+#include "sftp.h"
 
 #define SUBSYS_SRV 1001
 
@@ -99,15 +100,35 @@ static long rpc2rc;
 #define WhatHappened(X) ((rpc2rc = X), printf("%s\n", RPC2_ErrorMsg(rpc2rc)), rpc2rc)
 #define FLUSH() (fflush(stdout))
 #define MYNAME (LWP_Name())
-#define TESTPORTAL 5000  /* for advertising services */
+#define TESTPORT 5000  /* for advertising services */
 
 #define TBSIZE 1000 /* Size of RPC2 trace buffer, if enabled */
 
-static long ListenerBody(), WorkerBody(), ClientBody(), GetPasswd();
-static void GetVar(), GetStringVar();
-static BulkErr(), mytime(), MakeFiles(), GetConns(), DoBindings(),
-	MakeWorkers(), MakeClients(), InitRPC(), GetRoot(), GetParms(),
-	RanDelay(), HandleRPCFailure(), PrintStats(), SelectParms();
+static long ListenerBody(char *listenerName);
+static long WorkerBody(char *workerName);
+static long ClientBody(char *clientName);
+static long GetPasswd(RPC2_CountedBS *Who, RPC2_EncryptionKey *Key1,
+		      RPC2_EncryptionKey *Key2);
+static void GetVar(long *gVar, char *gPrompt);
+static void GetStringVar(char *gSVar, char *gPrompt);
+
+static void DumpAndQuit(int opcode);
+static void SelectParms(long *cid, long *opcode);
+static void BulkErr(RPC2_Handle cid, SE_Descriptor *sed, int retcode, int op);
+static time_t mytime(void);
+static void MakeFiles(void);
+static int mkfile(char *name, int length);
+static void GetConns(void);
+static void DoBindings(void);
+static void MakeWorkers(void);
+static void MakeClients(void);
+static void InitRPC(void);
+static void GetRoot(void);
+static void GetParms(void);
+static void RanDelay(int t);
+static void HandleRPCFailure(long cid, long rcode, long op);
+static void PrintStats(void);
+static void mktee(char *logfile);
 
 static char **SysFiles;	/* list of files to be used */
 static SysFileCount;    /* How many there are */
@@ -133,15 +154,15 @@ FILE *LogFile;	/* in "/tmp/rpc2test/rpc2test.log" */
 long VerboseFlag;	/* TRUE if full output is to be produced */
 char NextHashMark = '#';	/* each worker and client increments by one */
  
-RPC2_PortalIdent PortalId;
+RPC2_PortIdent PortId;
 RPC2_SubsysIdent SubsysId;
 char TestDir[256];
 
 
 static long ClientsReady;  /* How many clients are ready; will be signalled by main() to start real action  */
 
-char *TimeNow()
-    {
+char *TimeNow(void)
+{
     int t;
     
     t = mytime();
@@ -150,22 +171,21 @@ char *TimeNow()
 #else 
     return(ctime(&t));
 #endif ibmrt
-    }
+}
 
 
-char *MakeName(leaf)
-    char *leaf;
-    {
+char *MakeName(char *leaf)
+{
     static char buf[200];
 
     strcpy(buf, TestDir);
     strcat(buf, "/");
     strcat(buf, leaf);
     return(buf);
-    }
+}
 
-main()
-    {
+void main(void)
+{
     long go;
 
     GetRoot();  /* Also creates a child process for transcribing stdout */
@@ -185,12 +205,11 @@ main()
 
     LWP_NoYieldSignal((char *)&ClientsReady);
     LWP_WaitProcess((char *)main);  /* infinite wait */
-    }
+}
 
 
-static long WorkerBody(workerName)
-    char *workerName;
-    {
+static long WorkerBody(char *workerName)
+{
     long i, rc;
     RPC2_RequestFilter reqfilter;
     RPC2_PacketBuffer *InBuff, *OutBuff;
@@ -220,7 +239,7 @@ static long WorkerBody(workerName)
 	RanDelay(MaxComputeTime);
 
 	if (InBuff != NULL) RPC2_FreeBuffer(&InBuff);
-	i = RPC2_GetRequest(&reqfilter, &workercid, &InBuff, NULL, NULL, NULL, NULL);
+	i = RPC2_GetRequest(&reqfilter, &workercid, &InBuff, NULL, NULL, 0, NULL);
 	if (i != RPC2_SUCCESS)
 	    {
 	    printf("\n%s: GetRequest failed (%s) at %s", MYNAME, RPC2_ErrorMsg(i), TimeNow());
@@ -343,24 +362,21 @@ static long WorkerBody(workerName)
 	i = RPC2_SendResponse(workercid, OutBuff);
 	if (i != RPC2_SUCCESS) 
 	    {
-	    printf ("\n%s: response for opcode %d on connection 0x%X  failed (%s) at %s", 
-		MYNAME,	InBuff->Header.Opcode, workercid, RPC2_ErrorMsg(i), TimeNow());
+	    printf ("\n%s: response for opcode %d on connection 0x%lX  failed (%s) at %s", 
+		MYNAME,	(int)InBuff->Header.Opcode, workercid,
+		RPC2_ErrorMsg(i), TimeNow());
 	    DumpAndQuit(InBuff->Header.Opcode);
 	    }
 	if (InBuff->Header.Opcode == 7)
 	    CODA_ASSERT(RPC2_Unbind(workercid) == RPC2_SUCCESS);
 	}
-    }
+}
 	
-static BulkErr(cid, sed, retcode, op)
-    RPC2_Handle cid;
-    SE_Descriptor *sed;
-    int retcode;
-    int op;
-    {
+static void BulkErr(RPC2_Handle cid, SE_Descriptor *sed, int retcode, int op)
+{
     char *x;
 
-    printf ("\n%s: File transfer failed  conn: 0x%x   code: %s  op: %d  time: %s\n", 
+    printf ("\n%s: File transfer failed  conn: 0x%lx   code: %s  op: %d  time: %s\n", 
 	MYNAME,	cid, RPC2_ErrorMsg(retcode), op, TimeNow());
     if (sed->Value.SmartFTPD.TransmissionDirection == CLIENTTOSERVER)
 	x = "CLIENTTOSERVER";
@@ -369,14 +385,13 @@ static BulkErr(cid, sed, retcode, op)
     printf("\t\tFile: %s  Direction: %s\n",
     	sed->Value.SmartFTPD.FileInfo.ByName.LocalFileName, x);
     DumpAndQuit(op);  
-    }
+}
 
 
 
 
-static long ListenerBody(listenerName)
-    char *listenerName;
-    {
+static long ListenerBody(char *listenerName)
+{
     long i;
     RPC2_RequestFilter reqfilter;
     RPC2_PacketBuffer *InBuff;
@@ -409,8 +424,9 @@ static long ListenerBody(listenerName)
 		{
 		newconnbody = (RPC2_NewConnectionBody *)InBuff->Body;
 
-		say(0, VerboseFlag, ("Newconn: 0x%x  \"%s\"  at  %s",
-			newcid, &newconnbody->ClientIdent.SeqBody, TimeNow()));
+		say(0, VerboseFlag, "Newconn: 0x%lx  \"%s\"  at  %s",
+			newcid, (char*)&newconnbody->ClientIdent.SeqBody,
+			TimeNow());
 
 		RPC2_Enable(newcid);	/* unfreeze the connection */
 		break;
@@ -422,15 +438,14 @@ static long ListenerBody(listenerName)
 	    }
 
 	}
-    }
+}
 
 
-static long ClientBody(clientName)
-    char *clientName;
-    {
+static long ClientBody(char *clientName)
+{
     long thisconn, thisopcode;
     RPC2_PacketBuffer *request, *reply;
-    long retcode, rpctime;
+    long retcode, rpctime = 0;
     struct timeval t1, t2;
     char myprivatefile[256];
     char myhashmark;
@@ -468,8 +483,9 @@ static long ClientBody(clientName)
 	ConnVector[thisconn].Status = BUSY;
 	request->Header.Opcode = thisopcode;
 	
-	say(0, VerboseFlag, ("Making request %ld to %s for %s\n", thisopcode,
-		ConnVector[thisconn].RemoteHost.Value.Name, ConnVector[thisconn].NameBuf));
+	say(0, VerboseFlag, "Making request %ld to %s for %s\n", thisopcode,
+		ConnVector[thisconn].RemoteHost.Value.Name,
+		ConnVector[thisconn].NameBuf);
 
 	switch(thisopcode)
 	    {
@@ -495,8 +511,9 @@ static long ClientBody(clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, " %s says square of %ld is %ld (%ld msecs)\n",
-		    	ConnVector[thisconn].RemoteHost.Value.Name, x, ntohl(*(long *)reply->Body), rpctime);
+		    say(0, VerboseFlag, " %s says square of %ld is %d (%ld msecs)\n",
+			ConnVector[thisconn].RemoteHost.Value.Name, x,
+			ntohl(*(long *)reply->Body), rpctime);
 		    break;
 		    }
 		else HandleRPCFailure(thisconn, retcode, ntohl(request->Header.Opcode));
@@ -512,7 +529,7 @@ static long ClientBody(clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, "%s says cube of %ld is %ld (%ld msecs)\n",
+		    say(0, VerboseFlag, "%s says cube of %ld is %d (%ld msecs)\n",
 		    	ConnVector[thisconn].RemoteHost.Value.Name, x, ntohl(*(long *)reply->Body), rpctime);
 		    break;
 		    }
@@ -595,8 +612,9 @@ static long ClientBody(clientName)
 		MakeTimedCall(NULL);
 		if (retcode == RPC2_SUCCESS)
 		    {
-		    say(0, VerboseFlag, "Unbound connection to %s for %s after %d calls\n",
-			ConnVector[thisconn].RemoteHost.Value.Name, ConnVector[thisconn].Identity.SeqBody,
+		    say(0, VerboseFlag, "Unbound connection to %s for %s after %ld calls\n",
+			ConnVector[thisconn].RemoteHost.Value.Name,
+			ConnVector[thisconn].Identity.SeqBody,
 			ConnVector[thisconn].CallsMade);
 		    CODA_ASSERT(RPC2_Unbind(ConnVector[thisconn].ConnHandle) == RPC2_SUCCESS);
 		    }
@@ -615,7 +633,7 @@ static long ClientBody(clientName)
 		bp.ClientIdent = &ConnVector[thisconn].Identity;
 		bp.SharedSecret = (RPC2_EncryptionKey *)ConnVector[thisconn].Password; 
 		retcode = RPC2_NewBinding(&ConnVector[thisconn].RemoteHost,
-					  &PortalId, &SubsysId, &bp, 
+					  &PortId, &SubsysId, &bp, 
 					  &ConnVector[thisconn].ConnHandle); 
 		if (retcode < RPC2_ELIMIT)
 		    {
@@ -623,8 +641,9 @@ static long ClientBody(clientName)
 		    }
 		else
 		    {
-		    say(0, VerboseFlag, ("Rebound connection to %s for %s\n",
-			ConnVector[thisconn].RemoteHost.Value.Name, ConnVector[thisconn].Identity.SeqBody));
+		    say(0, VerboseFlag, "Rebound connection to %s for %s\n",
+			ConnVector[thisconn].RemoteHost.Value.Name,
+			ConnVector[thisconn].Identity.SeqBody);
 		    }
 		break;
 		}
@@ -662,53 +681,55 @@ static long ClientBody(clientName)
 	
 	}
 
-    }
+}
 
 
 
-iopen()
-    {
+void iopen(void )
+{
     CODA_ASSERT(1 == 0);
-    }
+}
 
-static struct Password 
-    {
-    char *name;
-    char *password;
-    }
-    PList[] = { "satya", "banana", "john", "howard", "mike", "kazar", "jim", "morris",
-	"tom", "peters", "mikew", "west",  "carolyn", "council"};
-	
+static struct Password {
+    char *name; char *password;
+} PList[] = {
+    {"satya",   "banana"},
+    {"john",    "howard"},
+    {"mike",    "kazar"},
+    {"jim",     "morris"},
+    {"tom",     "peters"},
+    {"mikew",   "west"},
+    {"carolyn", "council"}
+};
 
 
-static long GetPasswd(Who, Key1, Key2)
-    RPC2_CountedBS *Who;
-    RPC2_EncryptionKey Key1, Key2;
-    {
-    register long i;
+static long GetPasswd(RPC2_CountedBS *Who, RPC2_EncryptionKey *Key1,
+		      RPC2_EncryptionKey *Key2)
+{
+    long i;
     long maxpw = sizeof(PList)/sizeof(struct Password);
 
     for (i = 0; i < maxpw; i++)
 	if(strcmp(PList[i].name, Who->SeqBody) == 0)
 	    {
 	    bcopy("          ", Key1, RPC2_KEYSIZE);
-	    strcpy(Key1, PList[i].password);
+	    strcpy((char *)Key1, PList[i].password);
 	    bcopy(Key1, Key2, RPC2_KEYSIZE);
 	    return(0);
 	    }
     return(-1);
-    }
+}
 
-static mytime()
-    {
+static time_t mytime(void)
+{
     struct timeval t;
     TM_GetTimeOfDay(&t, NULL);
     return(t.tv_sec);
-    }
+}
 
 
-static MakeFiles()
-    {
+static void MakeFiles(void)
+{
     /* Variety of sizes to test file transfer ability
 	Files get created in test directory  */
 
@@ -726,12 +747,12 @@ static MakeFiles()
 	}
 
     SysFiles = fname;
-    }
+}
 
 
 
-static GetConns()
-    {
+static void GetConns(void)
+{
     int i;
     char myname[30];
 
@@ -749,12 +770,11 @@ static GetConns()
 	ConnVector[i].Identity.SeqBody = (RPC2_ByteSeq)ConnVector[i].NameBuf;
 	ConnVector[i].Identity.SeqLen = 1+strlen(ConnVector[i].NameBuf);
 	}
-    
-    }
+}
 
 
-static DoBindings()
-    {
+static void DoBindings(void)
+{
     int i, rc;
     RPC2_BindParms bp;
 
@@ -765,7 +785,7 @@ static DoBindings()
 	 bp.SideEffectType = SMARTFTP;
 	 bp.ClientIdent = &ConnVector[i].Identity;
 	 bp.SharedSecret = (RPC2_EncryptionKey *)ConnVector[i].Password;
-	 rc = RPC2_NewBinding(&ConnVector[i].RemoteHost, &PortalId, 
+	 rc = RPC2_NewBinding(&ConnVector[i].RemoteHost, &PortId, 
 			      &SubsysId, &bp,&ConnVector[i].ConnHandle); 
 	if (rc < RPC2_ELIMIT)
 	     {
@@ -775,11 +795,10 @@ static DoBindings()
 	     continue;
 	     }
 	}
-    
-    }
+}
 
-static MakeWorkers()
-    {
+static void MakeWorkers(void)
+{
     int i;
     char thisname[20];
     PROCESS thispid;
@@ -789,11 +808,11 @@ static MakeWorkers()
 	sprintf(thisname, "Worker%02d", i);
 	LWP_CreateProcess((PFIC)WorkerBody, 16384, LWP_NORMAL_PRIORITY, thisname, thisname, &thispid);
 	}
-    }
+}
 
 
-static MakeClients()
-    {
+static void MakeClients(void)
+{
     int i;
     char thisname[20];
     PROCESS thispid;
@@ -803,24 +822,24 @@ static MakeClients()
 	sprintf(thisname, "Client%02d", i);
 	LWP_CreateProcess((PFIC)ClientBody, 16384, LWP_NORMAL_PRIORITY, thisname, thisname, &thispid);
 	}
-    }
+}
 
 
-static InitRPC()
-    {
+static void InitRPC(void)
+{
     SFTP_Initializer sftpi;
     char *cstring;
     int rc;
 
     LWP_Init(LWP_VERSION, LWP_NORMAL_PRIORITY, &ParentPid);
 
-    PortalId.Tag = RPC2_PORTALBYINETNUMBER;
-    PortalId.Value.InetPortNumber = htons(TESTPORTAL);
+    PortId.Tag = RPC2_PORTBYINETNUMBER;
+    PortId.Value.InetPortNumber = htons(TESTPORT);
 
     SFTP_SetDefaults(&sftpi);
     SFTP_Activate(&sftpi);
 
-    rc = RPC2_Init(RPC2_VERSION, 0, &PortalId, -1, NULL);
+    rc = RPC2_Init(RPC2_VERSION, 0, &PortId, -1, NULL);
     if (rc != RPC2_SUCCESS)
 	{
 	printf("RPC2_Init() --> %s\n", RPC2_ErrorMsg(rc));
@@ -836,21 +855,20 @@ static InitRPC()
 
     cstring = "Listener1";
     LWP_CreateProcess((PFIC)ListenerBody, 16384, LWP_NORMAL_PRIORITY, cstring, cstring, &ListenerPid);
-    }
+}
 
 
-static GetRoot()
-    {
-
+static void GetRoot(void)
+{
     printf("Test dir: ");
     fflush(stdin);
-    gets(TestDir);
+    fgets(TestDir, sizeof(TestDir), stdin);
 
     mktee(MakeName("rpc2.log"));
-    }
+}
 
-static GetParms()
-    {
+static void GetParms(void)
+{
     GetVar(&RPC2_DebugLevel, "Debug level? (0): ");
     GetVar(&VerboseFlag, "Verbosity (0): ");
     GetVar(&Announce, "Announce? (100): ");
@@ -861,12 +879,11 @@ static GetParms()
     GetVar(&MaxComputeTime, "Max compute time (ms): ");
     GetVar(&MaxListenPause, "Max listen pause (ms): ");
     GetVar(&AvoidBulk, "Avoid bulk transfer? (0): ");
-    }
+}
 
 
-static RanDelay(t)
-    int t;	/* milliseconds */
-    {
+static void RanDelay(int t) /* milliseconds */
+{
     int tx;
     struct timeval tval;
 
@@ -880,32 +897,28 @@ static RanDelay(t)
 	FLUSH();
 	CODA_ASSERT(IOMGR_Select(32, 0,0,0, &tval) == 0);
 	}
-    }
+}
 
 
-static void GetVar(gVar, gPrompt)
-    long *gVar;
-    char *gPrompt;
-    {
+static void GetVar(long *gVar, char *gPrompt)
+{
     char LineBuf[100];
 
     if (isatty(fileno(stdin))) printf(gPrompt);
-    gets(LineBuf); *gVar = atoi(LineBuf);
+    fgets(LineBuf, sizeof(LineBuf), stdin); *gVar = atoi(LineBuf);
     if (!isatty(fileno(stdin))) printf( "%s%ld\n", gPrompt, *gVar);
-    }
+}
 
-static void GetStringVar(gSVar, gPrompt)
-    char *gSVar, *gPrompt;
-    {
+static void GetStringVar(char *gSVar, char *gPrompt)
+{
     if (isatty(fileno(stdin))) printf(gPrompt);
-    gets(gSVar);
+    fgets(gSVar, sizeof(gSVar), stdin);
     *(gSVar + strlen(gSVar)) = 0;
     if (!isatty(fileno(stdin))) printf( "%s%s\n", gPrompt, gSVar);
-    }
+}
 
-static HandleRPCFailure(cid, rcode, op)
-    long cid, rcode, op;
-    {
+static void HandleRPCFailure(long cid, long rcode, long op)
+{
 
     ConnVector[cid].Status = BROKEN;
 
@@ -923,36 +936,36 @@ static HandleRPCFailure(cid, rcode, op)
 	return;
 	}
 
-    printf ("\n%s: call %d on 0x%X to %s for %s failed (%s) at %s", MYNAME,
+    printf ("\n%s: call %ld on 0x%lX to %s for %s failed (%s) at %s", MYNAME,
 	op, ConnVector[cid].ConnHandle,
 	ConnVector[cid].RemoteHost.Value.Name,
 	ConnVector[cid].NameBuf, RPC2_ErrorMsg(rcode), TimeNow());
     DumpAndQuit(op);
-    }
+}
 
 
-static PrintStats()
-    {
+static void PrintStats(void)
+{
     printf("Packets:    Sent=%ld  Retries=%ld  Received=%ld  Bogus=%ld\n",
 	rpc2_Sent.Total, rpc2_Sent.Retries, rpc2_Recvd.Total, rpc2_Recvd.Bogus);
     printf("Bytes:      Sent=%ld  Received=%ld\n", rpc2_Sent.Bytes, rpc2_Recvd.Bytes);
-    printf("Creation:   Spkts=%d  Mpkts=%d  Lpkts=%d  SLEs=%d  Conns=%d\n",
+    printf("Creation:   Spkts=%ld  Mpkts=%ld  Lpkts=%ld  SLEs=%ld  Conns=%ld\n",
 		rpc2_PBSmallCreationCount, rpc2_PBMediumCreationCount, 
 		rpc2_PBLargeCreationCount, rpc2_SLCreationCount, rpc2_ConnCreationCount);
-    printf("Free:       Spkts=%d  Mpkts=%d  Lpkts=%d  SLEs=%d  Conns=%d\n",
+    printf("Free:       Spkts=%ld  Mpkts=%ld  Lpkts=%ld  SLEs=%ld  Conns=%ld\n",
 		rpc2_PBSmallFreeCount, rpc2_PBMediumFreeCount, 
 		rpc2_PBLargeFreeCount, rpc2_SLFreeCount, rpc2_ConnFreeCount);
-    printf("            Unbinds=%d  FreeConns=%d\n", rpc2_Unbinds, rpc2_FreeConns);
+    printf("            Unbinds=%ld  FreeConns=%ld\n", rpc2_Unbinds, rpc2_FreeConns);
     printf("SFTP:       WindowFulls=%ld  AcksLost=%ld  Duplicates=%ld  Bogus=%ld LostUnbinds=%ld  ConnBusies=%ld\n",
 		sftp_windowfulls, sftp_ackslost, sftp_duplicates, sftp_bogus,
 		lostunbinds, connbusies);
 
     FLUSH();
-    }
+}
 
-static SelectParms(cid, opcode)
-    long *cid, *opcode;
-    {
+
+static void SelectParms(long *cid, long *opcode)
+{
     do
 	{
 	*cid = rpc2_NextRandom(0) % CVCount;
@@ -972,14 +985,11 @@ static SelectParms(cid, opcode)
 	    }
 	while (AvoidUnbinds && *opcode == 7);
 	}
-    }
+}
 
 
-
-
-DumpAndQuit(opcode)
-    int	opcode;	/* of failing call; 0 if not an RPC call */
-    {
+void DumpAndQuit(int opcode) /* of failing call; 0 if not an RPC call */
+{
     FILE *tracefile;
     
     
@@ -992,14 +1002,13 @@ DumpAndQuit(opcode)
 	    sftp_DumpTrace(MakeName("sftp.trace"));
 	}
     exit(-1);
-    }
+}
 
 
-mktee(logfile)
-    char *logfile;
-    /* Creates a child process that will transcribe everything printed by the parent
-    	on stdout to both stdout and logfile */
-    {
+void mktee(char *logfile)
+    /* Creates a child process that will transcribe everything printed by the
+     * parent on stdout to both stdout and logfile */
+{
     int pid;
     int filedes[2];
     char *teeargs[3];
@@ -1039,12 +1048,10 @@ mktee(logfile)
 	perror("execve");   /* should never get here */
 	exit(-1);
 	}
-    }
+}
 
-mkfile(name, length)
-    char *name;
-    int length;
-    {
+static int mkfile(char *name, int length)
+{
     int fd;
     fd = open(name, O_WRONLY|O_CREAT|O_TRUNC, 0644);
     if (fd < 0)
@@ -1056,4 +1063,4 @@ mkfile(name, length)
     write(fd, "0", 1);
     close(fd);    
     return(0);
-    }
+}

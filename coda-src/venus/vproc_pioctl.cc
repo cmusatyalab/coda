@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.13 1998/11/02 16:46:33 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/venus/vproc_pioctl.cc,v 4.14 98/11/11 15:59:01 smarc Exp $";
 #endif /*_BLURB_*/
 
 
@@ -183,7 +183,7 @@ void vproc::do_ioctl(ViceFid *fid, unsigned int com, struct ViceIoctl *data) {
 
 			/* This is drastic, but I'm having trouble getting rid of */
 			/* MiniCache vnodes that have the "wrong" type! -JJK */
-			(void)k_Purge();
+			(void)k_Purge(fid, 1);
 
 			f = FSDB->Find(fid);
 			if (f != 0) {
@@ -660,7 +660,7 @@ O_FreeLocks:
 
 		    /* This is drastic, but I'm having trouble getting rid of */
 		    /* MiniCache vnodes that have the "wrong" type! -JJK */
-		    (void)k_Purge();
+		    (void)k_Purge(fid, 1);
 
 		    break;
 		    }

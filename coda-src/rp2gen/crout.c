@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.13 1998/08/05 23:49:41 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rp2gen/crout.c,v 4.14 98/09/29 16:38:00 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1325,11 +1325,13 @@ static check_new_connection(proc)
     /* Check argument types */
     for (formals = proc->formals, len=0; *formals!=NIL; formals++, len++) ;
     formals = proc->formals;
-    if (len != 5 || formals[0]->type->type->tag != RPC2_INTEGER_TAG ||
-		    formals[1]->type->type->tag != RPC2_INTEGER_TAG ||
-		    formals[2]->type->type->tag != RPC2_INTEGER_TAG ||
-		    formals[3]->type->type->tag != RPC2_INTEGER_TAG ||
-		    formals[4]->type->type->tag != RPC2_COUNTEDBS_TAG) {
+    if (len != 5 ||
+	formals[0]->type->type->tag != RPC2_INTEGER_TAG || /* SideEffectType */
+	formals[1]->type->type->tag != RPC2_INTEGER_TAG || /* SecurityLevel */
+	formals[2]->type->type->tag != RPC2_INTEGER_TAG || /* EncryptionType */
+	formals[3]->type->type->tag != RPC2_INTEGER_TAG || /* AuthType */
+/*	formals[4]->type->type->tag != RPC2_INTEGER_TAG || * BirthTime */
+	formals[4]->type->type->tag != RPC2_COUNTEDBS_TAG) { /* ClientIdent */
 	puts("RP2GEN: bad parameters for NEW_CONNECTION procedure");
 	exit(1);
     }

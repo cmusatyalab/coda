@@ -28,7 +28,7 @@ Carnegie Mellon encourages users of this software to return any
 improvements or extensions that they make, and to grant Carnegie
 Mellon the rights to redistribute these changes without encumbrance.  */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.15 1998/10/09 21:57:46 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/volutil/backup.cc,v 4.16 98/11/02 16:47:00 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -1145,7 +1145,7 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
     Sets RPCid to the value of the connection id.    */
 
     RPC2_HostIdent hident;
-    RPC2_PortalIdent pident;
+    RPC2_PortIdent pident;
     RPC2_SubsysIdent sident;
     RPC2_BindParms bparms;
     RPC2_Handle rpcid;
@@ -1153,7 +1153,7 @@ static void V_BindToServer(char *fileserver, RPC2_Handle *RPCid)
 
     hident.Tag = RPC2_HOSTBYNAME;
     strcpy(hident.Value.Name, fileserver);
-    pident.Tag = RPC2_PORTALBYNAME;
+    pident.Tag = RPC2_PORTBYNAME;
     strcpy(pident.Value.Name, "codasrv");
     sident.Tag = RPC2_SUBSYSBYID;
     sident.Value.SubsysId = UTIL_SUBSYSID;

@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/debug.c,v 4.6 1998/09/15 14:27:57 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/debug.c,v 4.7 98/11/02 16:45:16 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -60,7 +60,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/time.h>
 #include "lwp.h"
 #include "timer.h"
@@ -71,7 +71,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 
 /*----- Routines to aid in debugging -----*/
 
-char *rpc2_timestring()
+char *rpc2_timestring(void)
 {
 	struct timeval t;
 	static char mytime[9];
@@ -91,8 +91,8 @@ char *rpc2_timestring()
 		
 	
 
-static char *WhichMagic(x)
-    {
+static char *WhichMagic(int x)
+{
     static char buf[20];
     switch(x)
 	{
@@ -103,23 +103,19 @@ static char *WhichMagic(x)
 	case OBJ_HENTRY:	return("OBJ_HENTRY");
 	default:		(void) sprintf(buf, "%d", x); return(buf);
 	}
-    }
+}
 
-void rpc2_PrintTMElem(tPtr, tFile)
-    register struct TM_Elem *tPtr;
-    FILE *tFile;
-    {
+void rpc2_PrintTMElem(struct TM_Elem *tPtr, FILE *tFile)
+{
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "MyAddr = 0x%lx Next = 0x%lx  Prev = 0x%lx  TotalTime = %ld:%ld  TimeLeft = %ld:%ld  BackPointer = %p\n",
     	(long)tPtr, (long)tPtr->Next, (long)tPtr->Prev, tPtr->TotalTime.tv_sec, tPtr->TotalTime.tv_usec,
 	tPtr->TimeLeft.tv_sec, tPtr->TimeLeft.tv_usec, tPtr->BackPointer);
     (void) fflush(tFile);
-    }
+}
 
-void rpc2_PrintFilter(fPtr, tFile)
-    register RPC2_RequestFilter *fPtr;
-    FILE *tFile;
-    {
+void rpc2_PrintFilter(RPC2_RequestFilter *fPtr, FILE *tFile)
+{
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "FromWhom = %s  OldOrNew = %s  ", 
 	fPtr->FromWhom == ANY ? "ANY" : (fPtr->FromWhom == ONECONN ? "ONECONN" : (fPtr->FromWhom == ONESUBSYS ? "ONESUBSYS" : "??????")),
@@ -132,12 +128,10 @@ void rpc2_PrintFilter(fPtr, tFile)
 	}
     fprintf(tFile, "\n");
     (void) fflush(tFile);
-    }
+}
 
-void rpc2_PrintSLEntry(slPtr, tFile)
-    register struct SL_Entry *slPtr;
-    FILE *tFile;
-    {
+void rpc2_PrintSLEntry(struct SL_Entry *slPtr, FILE *tFile)
+{
     if (tFile == NULL) tFile = rpc2_logfile;
     
     fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx PrevEntry = 0x%lx  MagicNumber = %s  ReturnCode = %s\n\tTElem==>  ", (long)slPtr, (long)slPtr->NextEntry, (long)slPtr->PrevEntry, WhichMagic(slPtr->MagicNumber), 
@@ -167,35 +161,30 @@ void rpc2_PrintSLEntry(slPtr, tFile)
     rpc2_PrintTMElem(&slPtr->TElem, tFile);
     fprintf(tFile, "\n");
     (void) fflush(tFile);
-    }
+}
 
 
-void rpc2_PrintHEntry(hPtr, tFile)
-    register struct HEntry *hPtr;
-    FILE *tFile;
-    {
-    register long a = ntohl(hPtr->Host);
+void rpc2_PrintHEntry(struct HEntry *hPtr, FILE *tFile)
+{
     int head, ix;
 
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     fprintf(tFile, "\nHost 0x%lx state is...\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s\n",
 	(long)hPtr, (long)hPtr->Next, (long)hPtr->Prev, WhichMagic(hPtr->MagicNumber));
-    fprintf(tFile, "\tHost entry type = ");
-    switch ((int) hPtr->Type) 
-        {
-	case RPC2_HE: fprintf(tFile, "RPC2\n"); break;
-	case SMARTFTP_HE: fprintf(tFile, "SMART FTP\n"); break;
-	case UNSET_HE: 
-	default:  fprintf(tFile, "????\n");
-	}
 
-    fprintf(tFile, "\tHost.InetAddress = %lu.%lu.%lu.%lu, Portal.InetPortNumber = %u\n",
-	    ((unsigned long)(a & 0xff000000))>>24, 
-	    (unsigned long) (a & 0x00ff0000)>>16, 
-	    (unsigned long) (a & 0x0000ff00)>>8, 
-	    (unsigned long) a & 0x000000ff, ntohs(hPtr->Portal));
+    fprintf(tFile, "\tHost.InetAddress = %s\n", inet_ntoa(hPtr->Host));
     fprintf(tFile, "\tLastWord = %ld.%06ld\n", hPtr->LastWord.tv_sec, hPtr->LastWord.tv_usec);
+    fprintf(tFile, "\tRTT = %ld.%03ld, RTTvar = %ld.%03ld\n",
+	    hPtr->RTT >> RPC2_RTT_SHIFT,
+	    hPtr->RTT % ((1 << RPC2_RTT_SHIFT) - 1),
+	    hPtr->RTTVar >> RPC2_RTTVAR_SHIFT,
+	    hPtr->RTTVar % ((1 << RPC2_RTTVAR_SHIFT) - 1));
+    fprintf(tFile, "\tBW = %ld.%03ld, BWvar = %ld.%03ld\n",
+	    hPtr->BW >> RPC2_BW_SHIFT,
+	    hPtr->BW % ((1 << RPC2_BW_SHIFT) - 1),
+	    hPtr->BWVar >> RPC2_BWVAR_SHIFT,
+	    hPtr->BWVar % ((1 << RPC2_BWVAR_SHIFT) - 1));
     fprintf(tFile, "\tObservation Log Entries = %d (%d kept)\n", 
 	    hPtr->NumEntries, RPC2_MAXLOGLENGTH);
     
@@ -206,7 +195,7 @@ void rpc2_PrintHEntry(hPtr, tFile)
 	switch(hPtr->Log[ix].Tag) 
 	    {
 	    case RPC2_MEASURED_NLE:
-		fprintf(tFile, "\t\tentry %d: %ld.%06ld, conn %d, %ld bytes, %ld msec\n",
+		fprintf(tFile, "\t\tentry %d: %ld.%06ld, conn 0x%lx, %ld bytes, %ld msec\n",
 			ix, hPtr->Log[ix].TimeStamp.tv_sec, 
 			hPtr->Log[ix].TimeStamp.tv_usec,
 			hPtr->Log[ix].Value.Measured.Conn,
@@ -225,13 +214,11 @@ void rpc2_PrintHEntry(hPtr, tFile)
 	head++;
     }
     (void) fflush(tFile);
-    }
+}
 
 
-void rpc2_PrintCEntry(cPtr, tFile)
-    register struct CEntry *cPtr;
-    FILE *tFile;
-    {
+void rpc2_PrintCEntry(struct CEntry *cPtr, FILE *tFile)
+{
     long i;
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s  Role = %s  State = ",
@@ -290,18 +277,16 @@ void rpc2_PrintCEntry(cPtr, tFile)
     fprintf(tFile, "Peer==> ");    
     rpc2_PrintHostIdent(&cPtr->PeerHost, tFile);
     fprintf(tFile, "    ");
-    rpc2_PrintPortalIdent(&cPtr->PeerPortal, tFile);
+    rpc2_PrintPortIdent(&cPtr->PeerPort, tFile);
     if (cPtr->HostInfo)
 	rpc2_PrintHEntry(cPtr->HostInfo, tFile);
 
     fprintf(tFile, "\n");
     (void) fflush(tFile);
-    }
+}
 
-void rpc2_PrintMEntry(mPtr, tFile)
-    register struct MEntry *mPtr;
-    FILE *tFile;
-    {
+void rpc2_PrintMEntry(struct MEntry *mPtr, FILE *tFile)
+{
     long i;
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     fprintf(tFile, "MyAddr: 0x%lx\n\tNextEntry = 0x%lx  PrevEntry = 0x%lx  MagicNumber = %s  Role = %s  State = ",
@@ -339,16 +324,16 @@ void rpc2_PrintMEntry(mPtr, tFile)
 	
     fprintf(tFile, "Client Host Ident:\n");
     rpc2_PrintHostIdent(&mPtr->ClientHost, tFile);
-    fprintf(tFile, "Client PortalIdent:\n");
-    rpc2_PrintPortalIdent(&mPtr->ClientPortal, tFile);
+    fprintf(tFile, "Client PortIdent:\n");
+    rpc2_PrintPortIdent(&mPtr->ClientPort, tFile);
 
     if (TestRole(mPtr,CLIENT)) {
 	fprintf(tFile, "\n\tMaxlisteners = %ld  Listeners = %ld\n",
 	    mPtr->me_conns.me_client.mec_maxlisteners, mPtr->me_conns.me_client.mec_howmanylisteners);
 	fprintf(tFile, "IP Multicast Host Address:\n");
 	rpc2_PrintHostIdent(&mPtr->IPMHost, tFile);
-	fprintf(tFile, "IP Multicast Portal Number:\n");
-	rpc2_PrintPortalIdent(&mPtr->IPMPortal, tFile);
+	fprintf(tFile, "IP Multicast Port Number:\n");
+	rpc2_PrintPortIdent(&mPtr->IPMPort, tFile);
 	fprintf(tFile, "Current multicast packet:\n");
 	rpc2_PrintPacketHeader(mPtr->CurrentPacket, tFile);
     }
@@ -359,25 +344,19 @@ void rpc2_PrintMEntry(mPtr, tFile)
 	
     fprintf(tFile, "\n");
     (void) fflush(tFile);
-    }
+}
 
 
-void rpc2_PrintHostIdent(hPtr, tFile)
-    register RPC2_HostIdent *hPtr;
-    FILE *tFile;
-    {
+void rpc2_PrintHostIdent(RPC2_HostIdent *hPtr, FILE *tFile)
+{
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     switch (hPtr->Tag)
 	{
 	case RPC2_HOSTBYINETADDR:
 	case RPC2_MGRPBYINETADDR:
 		{
-		register long a = ntohl(hPtr->Value.InetAddress);
-		fprintf(tFile, "Host.InetAddress = %lu.%lu.%lu.%lu",
-			((unsigned long)(a & 0xff000000))>>24, 
-			(unsigned long) (a & 0x00ff0000)>>16, 
-			(unsigned long) (a & 0x0000ff00)>>8, 
-			(unsigned long) a & 0x000000ff);
+		fprintf(tFile, "Host.InetAddress = %s",
+			inet_ntoa(hPtr->Value.InetAddress));
 		break;	
 		}
 	
@@ -390,35 +369,31 @@ void rpc2_PrintHostIdent(hPtr, tFile)
 	}
 
     (void) fflush(tFile);
-    }
+}
 
-void rpc2_PrintPortalIdent(pPtr, tFile)
-    register RPC2_PortalIdent *pPtr;
-    FILE *tFile;
-    {
+void rpc2_PrintPortIdent(RPC2_PortIdent *pPtr, FILE *tFile)
+{
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     switch (pPtr->Tag)
 	{
-	case RPC2_PORTALBYINETNUMBER:
-		fprintf(tFile, "Portal.InetPortNumber = %u", ntohs(pPtr->Value.InetPortNumber));
+	case RPC2_PORTBYINETNUMBER:
+		fprintf(tFile, "Port.InetPortNumber = %u", ntohs(pPtr->Value.InetPortNumber));
 		break;	
 	
-	case RPC2_PORTALBYNAME:
-		fprintf(tFile, "Portal.Name = \"%s\"", pPtr->Value.Name);
+	case RPC2_PORTBYNAME:
+		fprintf(tFile, "Port.Name = \"%s\"", pPtr->Value.Name);
 		break;
 	
-	default:	fprintf(tFile, "Portal = ??????");
+	default:	fprintf(tFile, "Port = ??????");
 	}
 
 
     (void) fflush(tFile);
-    }
+}
 
 
-void rpc2_PrintSubsysIdent(Subsys, tFile)
-    register RPC2_SubsysIdent *Subsys;
-    FILE *tFile;
-    {
+void rpc2_PrintSubsysIdent(RPC2_SubsysIdent *Subsys, FILE *tFile)
+{
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
     switch(Subsys->Tag) {
 	case RPC2_SUBSYSBYNAME:
@@ -434,27 +409,28 @@ void rpc2_PrintSubsysIdent(Subsys, tFile)
 		say(-1, RPC2_DebugLevel, "BOGUS Tag value in Subsys!\n");
 		CODA_ASSERT(0);
     }
-    }
+}
 
 /*
  *	The packet should be in *network* byte order.
  */
 
-void rpc2_PrintPacketHeader(pb, tFile)
-    register RPC2_PacketBuffer *pb;
-    FILE *tFile;
+void rpc2_PrintPacketHeader(RPC2_PacketBuffer *pb, FILE *tFile)
 {
     if (tFile == NULL) tFile = rpc2_logfile;	/* it's ok, call-by-value */
 
     fprintf(tFile, "\tPrefix: BufferSize = %ld  LengthOfPacket = %ld  ",
 	    pb->Prefix.BufferSize, pb->Prefix.LengthOfPacket);
-    fprintf(tFile, "MagicNumber = %ld, Q = %lu\n",
-	    (long) pb->Prefix.MagicNumber, pb->Prefix.Qname);
+    fprintf(tFile, "MagicNumber = %ld\n", (long) pb->Prefix.MagicNumber);
+    fprintf(tFile, "Q = %p, RecvStamp = %ld.%06ld\n", pb->Prefix.Qname,
+	    pb->Prefix.RecvStamp.tv_sec, pb->Prefix.RecvStamp.tv_usec);
     fprintf(tFile, "\tHeader: ProtoVersion = 0x%lx  RemoteHandle = 0x%lx  ",
-	    ntohl(pb->Header.ProtoVersion), ntohl(pb->Header.RemoteHandle));
+	    (unsigned long)ntohl(pb->Header.ProtoVersion),
+	    (unsigned long)ntohl(pb->Header.RemoteHandle));
     fprintf(tFile, "LocalHandle = 0x%lx  BodyLength = %lu  SeqNumber = %lu\n",
-	    ntohl(pb->Header.LocalHandle), ntohl(pb->Header.BodyLength),
-	    ntohl(pb->Header.SeqNumber));
+	    (unsigned long)ntohl(pb->Header.LocalHandle),
+	    (unsigned long)ntohl(pb->Header.BodyLength),
+	    (unsigned long)ntohl(pb->Header.SeqNumber));
 
     switch((int) ntohl(pb->Header.Opcode)) {
 	case RPC2_INIT1OPENKIMONO:
@@ -502,31 +478,31 @@ void rpc2_PrintPacketHeader(pb, tFile)
 		break;
 
 	default:
-		fprintf(tFile, "\t\tOpcode = %lu", ntohl(pb->Header.Opcode));
+		fprintf(tFile, "\t\tOpcode = %lu",
+			(unsigned long)ntohl(pb->Header.Opcode));
 		break;
 	}
 
     fprintf(tFile, "  SEFlags = 0x%lx  SEDataOffset = %lu  ",
-	    ntohl(pb->Header.SEFlags), ntohl(pb->Header.SEDataOffset));
+	    (unsigned long)ntohl(pb->Header.SEFlags),
+	    (unsigned long)ntohl(pb->Header.SEDataOffset));
     fprintf(tFile, "SubsysId = %lu  ReturnCode = %lu\n",
-	    ntohl(pb->Header.SubsysId), ntohl(pb->Header.ReturnCode));
+	    (unsigned long)ntohl(pb->Header.SubsysId),
+	    (unsigned long)ntohl(pb->Header.ReturnCode));
     fprintf(tFile, "\t\tFlags = 0x%lx  Uniquefier = %lu  Lamport = %lu\n",
-	    ntohl(pb->Header.Flags), ntohl(pb->Header.Uniquefier),
-	    ntohl(pb->Header.Lamport));
+	    (unsigned long)ntohl(pb->Header.Flags),
+	    (unsigned long)ntohl(pb->Header.Uniquefier),
+	    (unsigned long)ntohl(pb->Header.Lamport));
     fprintf(tFile, "\t\tTimeStamp = %lu  BindTime = %lu\n",
-	    ntohl(pb->Header.TimeStamp), ntohl(pb->Header.BindTime));
+	    (unsigned long)ntohl(pb->Header.TimeStamp),
+	    (unsigned long)ntohl(pb->Header.BindTime));
     fprintf(tFile, "\n");
 
     (void) fflush(tFile);
 }
 
-
-
-
-
-
-static char *CallName(x)
-    {
+static char *CallName(int x)
+{
     switch(x)
 	{
 	case INIT:		return("RPC2_Init");
@@ -558,14 +534,12 @@ static char *CallName(x)
 	case XLATEMCASTPACKET:	return("XlateMcastPacket");
 	}
     return("?????");
-    }
+}
 
 
-void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
-    register struct TraceElem *whichTE;
-    long whichIndex;
-    register FILE *outFile;
-    {
+void rpc2_PrintTraceElem(struct TraceElem *whichTE, long whichIndex,
+			 FILE *outFile)
+{
     long i;
     fprintf(outFile, "\nTrace Entry %ld:	<<<<<< %s: %s", whichIndex, whichTE->ActiveLWP, CallName(whichTE->CallCode));
     switch(whichTE->CallCode)
@@ -586,7 +560,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case EXPORT:
 		{
-		register struct te_EXPORT *tea;
+		struct te_EXPORT *tea;
 		tea = &whichTE->Args.ExportEntry;
 		if (tea->Subsys.Tag == RPC2_SUBSYSBYID)
 		    fprintf(outFile, "Subsys:	Tag = RPC2_SUBSYSBYID    SubsysId = %ld\n", tea->Subsys.Value.SubsysId);
@@ -597,7 +571,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case DEEXPORT:
 		{
-		register struct te_DEEXPORT *tea;
+		struct te_DEEXPORT *tea;
 		tea = &whichTE->Args.DeExportEntry;
 		if (tea->Subsys.Tag == RPC2_SUBSYSBYID)
 		    fprintf(outFile, "Subsys:	Tag = RPC2_SUBSYSBYID    SubsysId = %ld\n", tea->Subsys.Value.SubsysId);
@@ -608,7 +582,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case ALLOCBUFFER:
 		{
-		register struct te_ALLOCBUFFER *tea;
+		struct te_ALLOCBUFFER *tea;
 		tea = &whichTE->Args.AllocBufferEntry;
 		fprintf(outFile, "MinBodySize:  %d\n", tea->MinBodySize);
 		break;	/* switch */
@@ -616,7 +590,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case FREEBUFFER:
 		{
-		register struct te_FREEBUFFER *tea;
+		struct te_FREEBUFFER *tea;
 		tea = &whichTE->Args.FreeBufferEntry;
 		fprintf(outFile, "*BuffPtr:  0x%lx\n", (long)tea->BuffPtr);
 		break;	/* switch */
@@ -624,7 +598,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case SENDRESPONSE:
 		{
-		register struct te_SENDRESPONSE *tea;
+		struct te_SENDRESPONSE *tea;
 		tea = &whichTE->Args.SendResponseEntry;
 		fprintf(outFile, "ConnHandle: 0x%lx\n", tea->ConnHandle);
 		break;	/* switch */
@@ -632,7 +606,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case GETREQUEST:
 		{
-		register struct te_GETREQUEST *tea;
+		struct te_GETREQUEST *tea;
 		tea = &whichTE->Args.GetRequestEntry;
 		fprintf(outFile, "Filter: "); rpc2_PrintFilter(&tea->Filter, outFile);
 		if (tea->IsNullBreathOfLife) fprintf(outFile, "BreathOfLife:  NULL\n");
@@ -643,7 +617,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case MAKERPC:
 		{
-		register struct te_MAKERPC *tea;
+		struct te_MAKERPC *tea;
 		tea = &whichTE->Args.MakeRPCEntry;
 		fprintf(outFile, "Conn: 0x%lx  ", tea->ConnHandle);
 		fprintf(outFile, "Enqueue: %d  ", tea->EnqueueRequest);
@@ -657,14 +631,16 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case MULTIRPC:
 		{
-		register struct te_MULTIRPC *tea;
+		struct te_MULTIRPC *tea;
 		tea = &whichTE->Args.MultiRPCEntry;
-		fprintf(outFile, "ConnHandle: 0x%lx\n", tea->ConnHandle);
-		fprintf(outFile, "Request:    OriginalAddress = 0x%lx    ", (long)tea->Request_Address);
+		fprintf(outFile, "ConnHandle: 0x%lx\n",
+			(unsigned long)tea->ConnHandle);
+		fprintf(outFile, "Request:    OriginalAddress = %p    ",
+			tea->Request_Address);
 		rpc2_PrintPacketHeader(&tea->Request, outFile);
 		if (tea->IsNullSDesc) fprintf(outFile, "SDesc:    NULL\n");
 		else {fprintf(outFile, "SDesc: "); rpc2_PrintSEDesc(&tea->SDesc, outFile);}
-		fprintf(outFile, "HandleResult: 0x%lx\n", tea->HandleResult);
+		fprintf(outFile, "HandleResult: %p\n", tea->HandleResult);
 		if (tea->IsNullBreathOfLife) fprintf(outFile, "BreathOfLife:  NULL\n");
 		else fprintf(outFile, "BreathOfLife:	%ld.%ld\n", tea->BreathOfLife.tv_sec, tea->BreathOfLife.tv_usec);
 		break;	/* switch */
@@ -672,7 +648,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case BIND:
 		{
-		register struct te_BIND *tea;
+		struct te_BIND *tea;
 		tea = &whichTE->Args.BindEntry;
 		fprintf(outFile, "SecurityLevel:   %s    EncryptionType: %d\n", (tea->SecurityLevel == RPC2_OPENKIMONO) ? "RPC2_OPENKIMONO" :
 			(tea->SecurityLevel == RPC2_SECURE) ? "RPC2_SECURE" : (tea->SecurityLevel == RPC2_AUTHONLY) ?
@@ -685,11 +661,8 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 			break;
 		    
 		    case RPC2_HOSTBYINETADDR:
-			fprintf(outFile, "Host:     Tag = RPC2_HOSTBYINETADDR	InetAddress = %lu.%lu.%lu.%lu\n",
-			 	(unsigned long) tea->Host.Value.InetAddress & 0xff000000, 
-				(unsigned long) tea->Host.Value.InetAddress & 0x00ff0000,
-				(unsigned long) tea->Host.Value.InetAddress & 0x0000ff00, 
-				(unsigned long) tea->Host.Value.InetAddress & 0x000000ff);
+			fprintf(outFile, "Host:     Tag = RPC2_HOSTBYINETADDR	InetAddress = %s\n",
+				inet_ntoa(tea->Host.Value.InetAddress));
 			break;
 
 		    default:
@@ -697,18 +670,18 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 			break;
 		    }
 
-		switch (tea->Portal.Tag)
+		switch (tea->Port.Tag)
 		    {
-		    case RPC2_PORTALBYNAME:
-			fprintf(outFile, "Portal:    Tag = RPC2_PORTALBYNAME    Name = \"%s\"\n", tea->Portal.Value.Name);
+		    case RPC2_PORTBYNAME:
+			fprintf(outFile, "Port:    Tag = RPC2_PORTBYNAME    Name = \"%s\"\n", tea->Port.Value.Name);
 			break;
 			
-		    case RPC2_PORTALBYINETNUMBER:
-			fprintf(outFile, "Portal:    Tag = RPC2_PORTALBYINETNUMBER    InetNumber = \"%u\"\n", (unsigned) tea->Portal.Value.InetPortNumber);		    
+		    case RPC2_PORTBYINETNUMBER:
+			fprintf(outFile, "Port:    Tag = RPC2_PORTBYINETNUMBER    InetNumber = \"%u\"\n", (unsigned) tea->Port.Value.InetPortNumber);		    
 			break;
 			
 		    default:
-			fprintf(outFile, "Portal:    ??????\n");
+			fprintf(outFile, "Port:    ??????\n");
 			break;
 		    }
 
@@ -752,7 +725,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case INITSIDEEFFECT:
 		{
-		register struct te_INITSIDEEFFECT *tea;
+		struct te_INITSIDEEFFECT *tea;
 		tea = &whichTE->Args.InitSideEffectEntry;
 		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
 		if (tea->IsNullSDesc) fprintf(outFile, "SDesc:    NULL\n");
@@ -762,7 +735,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case CHECKSIDEEFFECT:
 		{
-		register struct te_CHECKSIDEEFFECT *tea;
+		struct te_CHECKSIDEEFFECT *tea;
 		tea = &whichTE->Args.CheckSideEffectEntry;
 		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
 		if (tea->IsNullSDesc) fprintf(outFile, "SDesc:    NULL\n");
@@ -776,7 +749,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case UNBIND:
 		{
-		register struct te_UNBIND *tea;
+		struct te_UNBIND *tea;
 		tea = &whichTE->Args.UnbindEntry;
 		fprintf(outFile, "whichConn:    0x%lx\n", tea->whichConn);
 		break;	/* switch */
@@ -784,7 +757,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case GETPRIVATEPOINTER:
 		{
-		register struct te_GETPRIVATEPOINTER *tea;
+		struct te_GETPRIVATEPOINTER *tea;
 		tea = &whichTE->Args.GetPrivatePointerEntry;
 		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
 		break;	/* switch */
@@ -792,7 +765,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case SETPRIVATEPOINTER:
 		{
-		register struct te_SETPRIVATEPOINTER *tea;
+		struct te_SETPRIVATEPOINTER *tea;
 		tea = &whichTE->Args.SetPrivatePointerEntry;
 		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
 		fprintf(outFile, "PrivatePtr:    0x%lx\n", (long)tea->PrivatePtr);
@@ -801,7 +774,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case GETSEPOINTER:
 		{
-		register struct te_GETSEPOINTER *tea;
+		struct te_GETSEPOINTER *tea;
 		tea = &whichTE->Args.GetSEPointerEntry;
 		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
 		break;	/* switch */
@@ -809,7 +782,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case SETSEPOINTER:
 		{
-		register struct te_SETSEPOINTER *tea;
+		struct te_SETSEPOINTER *tea;
 		tea = &whichTE->Args.SetSEPointerEntry;
 		fprintf(outFile, "ConnHandle:    0x%lx\n", tea->ConnHandle);
 		fprintf(outFile, "SEPtr:    0x%lx\n", (long)tea->SEPtr);
@@ -818,7 +791,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case GETPEERINFO:
 		{
-		register struct te_GETPEERINFO *tea;
+		struct te_GETPEERINFO *tea;
 		tea = &whichTE->Args.GetPeerInfoEntry;
 		fprintf(outFile, "ConnHandle:    0x%lx\n", (long)tea->ConnHandle);
 		break;	/* switch */
@@ -826,7 +799,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case SLNEWPACKET:
 		{
-		register struct te_SLNEWPACKET *tea;
+		struct te_SLNEWPACKET *tea;
 		tea = &whichTE->Args.SLNewPacketEntry;
 		rpc2_PrintPacketHeader(&tea->pb, outFile);
 		break;	/* switch */
@@ -834,7 +807,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case SENDRELIABLY:
 		{
-		register struct te_SENDRELIABLY *tea;
+		struct te_SENDRELIABLY *tea;
 		tea = &whichTE->Args.SendReliablyEntry;
 		fprintf(outFile, "Conn.UniqueCID = 0x%x    ",tea->Conn_UniqueCID);
 		if (tea->IsNullTimeout) fprintf(outFile, "TimeOut:    NULL\n");
@@ -844,9 +817,9 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case MSENDPACKETSRELIABLY:
 		{
-		register struct te_MSENDPACKETSRELIABLY *tea;
+		struct te_MSENDPACKETSRELIABLY *tea;
 		tea = &whichTE->Args.MSendPacketsReliablyEntry;
-		fprintf(outFile, "HowMany:    %d    ConnArray[0]:    0x%x    ConnArray[0].UniqueCID = 0x%x\n",
+		fprintf(outFile, "HowMany:    %d    ConnArray[0]:    %p    ConnArray[0].UniqueCID = 0x%x\n",
 			tea->HowMany, tea->ConnArray0, tea->ConnArray0_UniqueCID);
 		fprintf(outFile, "PacketArray[0]:    OriginalAddress = 0x%lx    ", (long)tea->PacketArray0_Address);
 		rpc2_PrintPacketHeader(&tea->PacketArray0, outFile);
@@ -857,12 +830,12 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case XMITPACKET:
 		{
-		register struct te_XMITPACKET *tea;
+		struct te_XMITPACKET *tea;
 		tea = &whichTE->Args.XmitPacketEntry;
 		fprintf(outFile, "whichSocket = %ld\n", tea->whichSocket);
 		fprintf(outFile, "whichHost:    "); rpc2_PrintHostIdent(&tea->whichHost, outFile);
 		fprintf(outFile, "    ");
-		fprintf(outFile, "whichPortal:    "); rpc2_PrintPortalIdent(&tea->whichPortal, outFile);
+		fprintf(outFile, "whichPort:    "); rpc2_PrintPortIdent(&tea->whichPort, outFile);
 		fprintf(outFile,"\n");
 		rpc2_PrintPacketHeader(&tea->whichPB, outFile);
 		break;	/* switch */
@@ -870,7 +843,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case CLOCKTICK:
 		{
-		register struct te_CLOCKTICK *tea;
+		struct te_CLOCKTICK *tea;
 		tea = &whichTE->Args.ClockTickEntry;
 		fprintf(outFile, "TimeNow:    %d\n", tea->TimeNow);
 		break;	/* switch */
@@ -878,14 +851,14 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case CREATEMGRP:
 		{
-		register struct te_CREATEMGRP *tea;
+		struct te_CREATEMGRP *tea;
 		tea = &whichTE->Args.CreateMgrpEntry;
 		fprintf(outFile, "MgroupHandle: %ld\n", tea->MgroupHandle);
 		fprintf(outFile, "McastHost:      ");
 		rpc2_PrintHostIdent((RPC2_HostIdent *)&(tea->McastHost), outFile);
 		fprintf(outFile, "           ");
-		fprintf(outFile, "McastPortal:      ");
-		rpc2_PrintPortalIdent(&(tea->Port), outFile);
+		fprintf(outFile, "McastPort:      ");
+		rpc2_PrintPortIdent(&(tea->Port), outFile);
 		fprintf(outFile, "           ");
 		fprintf(outFile, "Subsystem:        ");
 		rpc2_PrintSubsysIdent(&(tea->Subsys), outFile);
@@ -900,7 +873,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case ADDTOMGRP:
 		{
-		register struct te_ADDTOMGRP *tea;
+		struct te_ADDTOMGRP *tea;
 		tea = &whichTE->Args.AddToMgrpEntry;
 		fprintf(outFile, "MgroupHandle:   %ld     ConnHandle:   %ld\n", tea->MgroupHandle,
 			tea->ConnHandle);
@@ -909,7 +882,7 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case REMOVEFROMMGRP:
 		{
-		register struct te_REMOVEFROMMGRP *tea;
+		struct te_REMOVEFROMMGRP *tea;
 		tea = &whichTE->Args.RemoveFromMgrpEntry;
 		fprintf(outFile, "MEntry:      "); rpc2_PrintMEntry(&tea->me, outFile);
 		fprintf(outFile, "        ");
@@ -920,33 +893,30 @@ void rpc2_PrintTraceElem(whichTE, whichIndex, outFile)
 
 	case XLATEMCASTPACKET:
 		{
-		register struct te_XLATEMCASTPACKET *tea;
+		struct te_XLATEMCASTPACKET *tea;
 		tea = &whichTE->Args.XlateMcastPacketEntry;
 		fprintf(outFile, "PacketBuffer Address:  0x%lx      PacketHeader:     ",
 			tea->pb_address);
 		rpc2_PrintPacketHeader(&tea->pb, outFile);
 		fprintf(outFile, "         ClientHost:      ");
 		rpc2_PrintHostIdent((RPC2_HostIdent *)&tea->ThisHost, outFile);
-		fprintf(outFile, "         ClientPortal:     ");
-		rpc2_PrintPortalIdent(&tea->ThisPortal, outFile);
+		fprintf(outFile, "         ClientPort:     ");
+		rpc2_PrintPortIdent(&tea->ThisPort, outFile);
 		fprintf(outFile, "\n");
 		break; /* switch */
 		}
 
 	}
     
-    }
+}
 
-
-void rpc2_PrintSEDesc(whichSDesc, whichFile)
-    register SE_Descriptor *whichSDesc;
-    register FILE *whichFile;
-    {
-    register long i;
+void rpc2_PrintSEDesc(SE_Descriptor *whichSDesc, FILE *whichFile)
+{
+    long i;
     if (whichFile == NULL) whichFile = rpc2_logfile;	/* it's ok, call by value */
     for (i = 0; i < SE_DefCount; i++)
 	if (SE_DefSpecs[i].SideEffectType == whichSDesc->Tag) break;
     if (i >= SE_DefCount) return; /* Bogus side effect */
     (*SE_DefSpecs[i].SE_PrintSEDescriptor)(whichSDesc, whichFile);
-    }
+}
 #endif RPC2DEBUG

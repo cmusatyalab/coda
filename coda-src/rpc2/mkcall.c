@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/mkcall.c,v 4.2 1998/09/15 14:27:57 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/mkcall.c,v 4.3 98/11/02 16:45:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -64,13 +64,8 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <stdio.h>
 #include "rpc2.h"
 
-int
-mkcall(ClientHandler, ArgCount, HowMany, ConnList, offset, rpcval, args)
-	int (*ClientHandler)();
-	int ArgCount, HowMany;
-	RPC2_Handle ConnList[];
-	long offset, rpcval;
-	int *args;
+int mkcall(long (*ClientHandler)(), int ArgCount, int HowMany,
+	   RPC2_Handle ConnList[], long offset, long rpcval, int *args)
 {
 	switch (ArgCount) {
 	    case 0:

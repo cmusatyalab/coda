@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.11 1998/10/30 18:29:51 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/rpc2a.c,v 4.12 98/11/02 16:45:21 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -151,10 +151,10 @@ void RPC2_SetLog(FILE *file, int level)
 
 long RPC2_SendResponse(IN ConnHandle, IN Reply)
     RPC2_Handle ConnHandle;
-    register RPC2_PacketBuffer *Reply;
+    RPC2_PacketBuffer *Reply;
     {
     RPC2_PacketBuffer *preply, *pretry;
-    register struct CEntry *ceaddr;
+    struct CEntry *ceaddr;
     long rc;
 
     rpc2_Enter();
@@ -199,8 +199,8 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
 
     if (ceaddr->TimeStampEcho) {     /* service time is now-requesttime */
 	CODA_ASSERT(ceaddr->RequestTime);
-        preply->Header.TimeStamp = ceaddr->TimeStampEcho + rpc2_MakeTimeStamp() -
-	                           ceaddr->RequestTime;
+	preply->Header.TimeStamp = ceaddr->TimeStampEcho +
+	    rpc2_MakeTimeStamp() - ceaddr->RequestTime;
     }
 
     /* Sanitize packet */
@@ -209,7 +209,7 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
 
     /* Send reply */
     say(9, RPC2_DebugLevel, "Sending reply\n");
-    rpc2_XmitPacket(rpc2_RequestSocket, preply, &ceaddr->PeerHost, &ceaddr->PeerPortal);
+    rpc2_XmitPacket(rpc2_RequestSocket, preply, &ceaddr->PeerHost, &ceaddr->PeerPort);
 
     /* Save reply for retransmission */
     bcopy(&preply->Header, &pretry->Header, preply->Prefix.LengthOfPacket);
@@ -221,15 +221,13 @@ long RPC2_SendResponse(IN ConnHandle, IN Reply)
     }
 
 
-long RPC2_GetRequest(
-		     IN RPC2_RequestFilter *Filter,
+long RPC2_GetRequest(IN RPC2_RequestFilter *Filter,
 		     OUT RPC2_Handle *ConnHandle,
-		     OUT register RPC2_PacketBuffer **Request,
+		     OUT RPC2_PacketBuffer **Request,
 		     IN struct timeval *BreathOfLife,
 		     IN long (*GetKeys)(),
 		     IN long EncryptionTypeMask,
-		     IN long (*AuthFail)()
-		     )
+		     IN long (*AuthFail)())
 {
 	struct CEntry *ce;
 	RPC2_RequestFilter myfilter;
@@ -320,7 +318,7 @@ long RPC2_GetRequest(
 	    {
 	    if (AuthFail)
 		{/* Client could be iterating through keys; log this */
-		(*AuthFail)(AuthenticationType, &cident, ce->EncryptionType, &ce->PeerHost, &ce->PeerPortal);
+		(*AuthFail)(AuthenticationType, &cident, ce->EncryptionType, &ce->PeerHost, &ce->PeerPort);
 		}
 	    DROPIT();
 	    }
@@ -337,32 +335,32 @@ long RPC2_GetRequest(
 	if (rc < RPC2_FLIMIT) {DROPIT();}
 	}
 
-    /* Set up host linkage -- host & portal numbers are resolved by now. */
-    ce->HostInfo = rpc2_GetHost(&ce->PeerHost, &ce->PeerPortal);
+    /* Set up host linkage -- host & port numbers are resolved by now. */
+    ce->HostInfo = rpc2_GetHost(&ce->PeerHost);
     if (ce->HostInfo == NULL) 
-	ce->HostInfo = rpc2_AllocHost(&ce->PeerHost, &ce->PeerPortal, RPC2_HE);
+	ce->HostInfo = rpc2_AllocHost(&ce->PeerHost);
 	
     /* And now we are really done */
     if (ce->Flags & CE_OLDV) rpc2_Quit(RPC2_OLDVERSION);
     else rpc2_Quit(RPC2_SUCCESS);
 
 #undef DROPIT
-    }
+}
 
 long RPC2_MakeRPC(IN ConnHandle, IN Request, IN SDesc, OUT Reply,
 		IN BreathOfLife, IN EnqueueRequest)
     RPC2_Handle ConnHandle;
-    register RPC2_PacketBuffer *Request;	/* Gets clobbered during call: BEWARE */
+    RPC2_PacketBuffer *Request;	/* Gets clobbered during call: BEWARE */
     SE_Descriptor *SDesc;
     RPC2_PacketBuffer **Reply;
     struct timeval *BreathOfLife;
     long EnqueueRequest;
     {
-    register struct CEntry *ce;
+    struct CEntry *ce;
     struct SL_Entry *sl;
-    register RPC2_PacketBuffer *preply;
-    RPC2_PacketBuffer *preq;	/* no register because of & */
-    long rc, secode, finalrc, opcode;
+    RPC2_PacketBuffer *preply = NULL;
+    RPC2_PacketBuffer *preq;
+    long rc, secode = RPC2_SUCCESS, finalrc, opcode;
 
     rpc2_Enter();
     say(0, RPC2_DebugLevel, "RPC2_MakeRPC()\n");
@@ -520,17 +518,14 @@ QuitMRPC:	/* finalrc has been correctly set by now */
 
     
     
-long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
-    RPC2_HostIdent   *Host;
-    RPC2_PortalIdent *Portal;
-    RPC2_SubsysIdent *Subsys;
-    RPC2_BindParms *Bparms;
-    RPC2_Handle *ConnHandle;
-    {
-    register struct CEntry *ce;	/* equal to *ConnHandle after allocation */
-    RPC2_PacketBuffer *pb;	/* cannot be register: & is used often */
-    register long i;
-    register struct Init1Body *ib;
+long RPC2_NewBinding(IN RPC2_HostIdent *Host, IN RPC2_PortIdent *Port,
+		     IN RPC2_SubsysIdent *Subsys, IN RPC2_BindParms *Bparms,
+		     IN RPC2_Handle *ConnHandle)
+{
+    struct CEntry *ce;	/* equal to *ConnHandle after allocation */
+    RPC2_PacketBuffer *pb;
+    long i;
+    struct Init1Body *ib;
     struct Init2Body *ib2;
     struct Init3Body *ib3;
     struct Init4Body *ib4;    
@@ -616,16 +611,16 @@ long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
     }
 
     /* Step1: Resolve bind parameters */
-    if (ResolveBindParms(ce, Host, Portal, Subsys) != RPC2_SUCCESS) {
+    if (ResolveBindParms(ce, Host, Port, Subsys) != RPC2_SUCCESS) {
 	    DROPCONN();
 	    rpc2_Quit(RPC2_NOBINDING);
     }
     say(9, RPC2_DebugLevel, "Bind parameters successfully resolved\n");
 
-    /* Set up host linkage -- host & portal numbers are resolved by now. */
-    ce->HostInfo = rpc2_GetHost(&ce->PeerHost, &ce->PeerPortal);
+    /* Set up host linkage -- host & port numbers are resolved by now. */
+    ce->HostInfo = rpc2_GetHost(&ce->PeerHost);
     if (ce->HostInfo == NULL) 
-	ce->HostInfo = rpc2_AllocHost(&ce->PeerHost, &ce->PeerPortal, RPC2_HE);
+	ce->HostInfo = rpc2_AllocHost(&ce->PeerHost);
 	
     /* Step2: Construct Init1 packet */
 
@@ -661,8 +656,8 @@ long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
 
     /* Fill in the body */
     ib = (struct Init1Body *)pb->Body;
-    ib->SenderPortal = rpc2_LocalPortal;	/* structure assignment */
-    ib->SenderPortal.Tag = (PortalTag)htonl(ib->SenderPortal.Tag);	/* always in network order */
+    ib->SenderPort = rpc2_LocalPort;	/* structure assignment */
+    ib->SenderPort.Tag = (PortTag)htonl(ib->SenderPort.Tag);	/* always in network order */
     if(rpc2_GetLocalHost(&ib->SenderHost, &ce->PeerHost) == -1)
 	    ib->SenderHost = rpc2_LocalHost;	/* structure assignment */
     ib->SenderHost.Tag = (HostTag)htonl(ib->SenderHost.Tag);	/* always in network order */
@@ -819,7 +814,7 @@ long RPC2_NewBinding(IN Host, IN Portal, IN Subsys, IN Bparms, OUT ConnHandle)
     ib4 = (struct Init4Body *)pb->Body;
     rpc2_Decrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body), (char *)Bparms->SharedSecret, Bparms->EncryptionType);
     ib4->XRandomPlusTwo = ntohl(ib4->XRandomPlusTwo);
-    say(9, RPC2_DebugLevel, ("XRandomPlusTwo = %l\n", ib4->XRandomPlusTwo));
+//    say(9, RPC2_DebugLevel, "XRandomPlusTwo = %l\n", ib4->XRandomPlusTwo);
     if (savexrandom+2 != ib4->XRandomPlusTwo)
     {
        DROPCONN();
@@ -851,7 +846,7 @@ BindOver:
     say(9, RPC2_DebugLevel, "Bind complete for 0x%lx\n", *ConnHandle);
     rpc2_Quit(init2rc);	/* RPC2_SUCCESS or RPC2_OLDVERSION */
     /* quit */
-    }
+}
 
 long RPC2_InitSideEffect(IN RPC2_Handle ConnHandle, IN SE_Descriptor *SDesc)
 {
@@ -883,7 +878,7 @@ static int InvokeSE(long CallType, RPC2_Handle ConnHandle,
 		     SE_Descriptor *SDesc, long Flags)
 {
     long rc;
-    register struct CEntry *ce;
+    struct CEntry *ce;
 
     ce = rpc2_GetConn(ConnHandle);
     if (ce == NULL) rpc2_Quit(RPC2_NOCONNECTION);
@@ -908,8 +903,8 @@ static int InvokeSE(long CallType, RPC2_Handle ConnHandle,
 
 long RPC2_Unbind(RPC2_Handle whichConn)
 {
-	register struct CEntry *ce;
-	register struct MEntry *me;
+	struct CEntry *ce;
+	struct MEntry *me;
 	
 	say(0, RPC2_DebugLevel, "RPC2_Unbind()\n");
 	
@@ -945,18 +940,16 @@ long RPC2_Unbind(RPC2_Handle whichConn)
 
 
 int rpc2_time()
-    {
-    struct timeval tv;
-    FT_GetTimeOfDay(&tv, NULL);
-    return(tv.tv_sec);
-    }
+{
+    return FT_ApproxTime();
+}
 
 
 void SavePacketForRetry(pb, ce)
-    register RPC2_PacketBuffer *pb;
-    register struct CEntry *ce;
+    RPC2_PacketBuffer *pb;
+    struct CEntry *ce;
     {
-    register struct SL_Entry *sl;
+    struct SL_Entry *sl;
 
     pb->Header.Flags = htonl((ntohl(pb->Header.Flags) | RPC2_RETRY));
     ce->HeldPacket = pb;
@@ -967,11 +960,11 @@ void SavePacketForRetry(pb, ce)
 
 
 
-static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN whichSubsys)
-    register struct CEntry *whichConn;
-    register RPC2_HostIdent *whichHost;
-    register RPC2_PortalIdent *whichPortal;
-    register RPC2_SubsysIdent *whichSubsys;
+static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPort, IN whichSubsys)
+    struct CEntry *whichConn;
+    RPC2_HostIdent *whichHost;
+    RPC2_PortIdent *whichPort;
+    RPC2_SubsysIdent *whichSubsys;
     
     /*  Assumes whichConn points to a newly created connection and fills its PeerAddr by resolving
 	the input parameters.  Returns RPC2_SUCCESS on successful resolution, RPC2_FAIL on failure.
@@ -985,44 +978,45 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN which
 	{
 	case RPC2_HOSTBYINETADDR:	/* you passed it in in network order! */
 		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
-		whichConn->PeerHost.Value.InetAddress = whichHost->Value.InetAddress;
+		whichConn->PeerHost.Value.InetAddress.s_addr =
+		    whichHost->Value.InetAddress.s_addr;
 		break;
 
 	case RPC2_HOSTBYNAME:
-		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
 		if ((hentry = gethostbyname (whichHost->Value.Name)) == NULL) {
 		    say(0, RPC2_DebugLevel, "ResolveBindParms: gethostbyname failed\n");
 		    return(RPC2_FAIL);
 		}
-		bcopy (hentry->h_addr, &whichConn->PeerHost.Value.InetAddress, hentry->h_length);
-	    								/* Already in network byte order */
+		whichConn->PeerHost.Tag = RPC2_HOSTBYINETADDR;
+		memcpy(&whichConn->PeerHost.Value.InetAddress, hentry->h_addr,
+		       hentry->h_length); /* Already in network byte order */
 	    break;
 
 	default:  CODA_ASSERT(FALSE);
 	}
     
-    /* Resolve portal */
-    switch(whichPortal->Tag)
+    /* Resolve port */
+    switch(whichPort->Tag)
 	{
-	case RPC2_PORTALBYINETNUMBER:	/* you passed it in network order */
-		whichConn->PeerPortal.Tag = RPC2_PORTALBYINETNUMBER;
-		whichConn->PeerPortal.Value.InetPortNumber = whichPortal->Value.InetPortNumber;
+	case RPC2_PORTBYINETNUMBER:	/* you passed it in network order */
+		whichConn->PeerPort.Tag = RPC2_PORTBYINETNUMBER;
+		whichConn->PeerPort.Value.InetPortNumber = whichPort->Value.InetPortNumber;
 		break;
 
-	case RPC2_PORTALBYNAME:
-	    if ((sentry = getservbyname (whichPortal->Value.Name, "udp")) == NULL)
+	case RPC2_PORTBYNAME:
+	    if ((sentry = getservbyname (whichPort->Value.Name, "udp")) == NULL)
 		return(RPC2_FAIL);
 	    if (htonl(1) == 1)
 		{
-		whichConn->PeerPortal.Value.InetPortNumber = sentry->s_port;
+		whichConn->PeerPort.Value.InetPortNumber = sentry->s_port;
 		}
 	    else
 		{
-		bcopy(&sentry->s_port, &whichConn->PeerPortal.Value.InetPortNumber, sizeof(short));
-		/* ghastly, but true: s_port is in network order, but stored as a 2-byte byte 
-			string in a 4-byte field */
+		bcopy(&sentry->s_port, &whichConn->PeerPort.Value.InetPortNumber, sizeof(short));
+		/* ghastly, but true: s_port is in network order, but stored
+		 * as a 2-byte byte string in a 4-byte field */
 		}
-	    whichConn->PeerPortal.Tag = RPC2_PORTALBYINETNUMBER;
+	    whichConn->PeerPort.Tag = RPC2_PORTBYINETNUMBER;
 	    break;
 
 	default:  CODA_ASSERT(FALSE);
@@ -1044,9 +1038,9 @@ static int ResolveBindParms(IN whichConn, IN whichHost, IN whichPortal, IN which
 
 static bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf)
 {
-	register struct SubsysEntry *ss;
-	register struct CEntry *ce;
-	register long i;
+	struct SubsysEntry *ss;
+	struct CEntry *ce;
+	long i;
 
 	if (inf == NULL) {
 		outf->FromWhom = ANY;
@@ -1082,7 +1076,7 @@ static bool GetFilter(RPC2_RequestFilter *inf, RPC2_RequestFilter *outf)
 static RPC2_PacketBuffer *HeldReq(RPC2_RequestFilter *filter, struct CEntry **ce)
 {
 	RPC2_PacketBuffer *pb;
-	register long i;
+	long i;
 
 	do {
 		say(9, RPC2_DebugLevel, "Scanning hold queue\n");
@@ -1163,8 +1157,8 @@ static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cid
     {
     /* Synthesize fake packet after extracting encrypted XRandom and clientident */
     long i;
-    register struct Init1Body *ib1;
-    register RPC2_NewConnectionBody *ncb;
+    struct Init1Body *ib1;
+    RPC2_NewConnectionBody *ncb;
 
     ib1 = (struct Init1Body *)(pb->Body);
     ncb = &ib1->FakeBody;
@@ -1202,8 +1196,7 @@ static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cid
     }
 
 
-static void SendOKInit2(IN ce)
-    register struct CEntry *ce;
+static void SendOKInit2(IN struct CEntry *ce)
     {
     RPC2_PacketBuffer *pb;
 
@@ -1220,17 +1213,15 @@ static void SendOKInit2(IN ce)
 	                       ce->RequestTime;
     }
     rpc2_htonp(pb);	/* convert to network order */
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPortal);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
     SavePacketForRetry(pb, ce);
     }
 
-static int ServerHandShake(IN ce, IN authenticationtype, IN cident, IN xrand, IN KeyProc, IN emask)
-    struct CEntry *ce;
-    RPC2_Integer *authenticationtype;
-    RPC2_CountedBS *cident;
-    long xrand;    /* still encrypted */
-    long (*KeyProc)();
-    long emask;
+static int ServerHandShake(IN struct CEntry *ce,
+			   IN RPC2_Integer *authenticationtype,
+			   IN RPC2_CountedBS *cident,
+			   IN long xrand /* still encrypted */,
+			   IN long (*KeyProc)(), IN long emask)
     {
     RPC2_EncryptionKey SharedSecret;
     RPC2_PacketBuffer *pb;
@@ -1246,10 +1237,10 @@ static int ServerHandShake(IN ce, IN authenticationtype, IN cident, IN xrand, IN
 	return(RPC2_NOTAUTHENTICATED);
 	}
 
-    /* Send Init2 packet and await Init3 */
     rpc2_Decrypt((char *)&xrand, (char *)&xrand, sizeof(xrand), SharedSecret, ce->EncryptionType);
     xrand = ntohl(xrand);
 
+    /* Send Init2 packet and await Init3 */
     pb = Send2Get3(ce, SharedSecret, xrand, &saveYRandom);
     if (pb == NULL) return(RPC2_NOTAUTHENTICATED);
 
@@ -1282,7 +1273,7 @@ static void RejectBind(ce, bodysize, opcode)
     pb->Header.ReturnCode = RPC2_NOTAUTHENTICATED;
 
     rpc2_htonp(pb);
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPortal);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
     RPC2_FreeBuffer(&pb);
     }
 
@@ -1305,7 +1296,7 @@ static RPC2_PacketBuffer *Send2Get3(IN ce, IN key, IN xrand, OUT yrand)
     else pb2->Header.ReturnCode = RPC2_SUCCESS;
 
     /* Do xrand, yrand munging */
-    say(9, RPC2_DebugLevel, ("XRandom = %ld\n", xrand));
+    say(9, RPC2_DebugLevel, "XRandom = %ld\n", xrand);
     ib2->XRandomPlusOne = htonl(xrand+1);
     *yrand = rpc2_NextRandom(NULL);
     ib2->YRandom = htonl(*yrand);
@@ -1390,7 +1381,7 @@ static void Send4AndSave(ce, xrand, ekey)
     rpc2_htonp(pb);
 
     /* Send packet; don't bother waiting for acknowledgement */
-    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPortal);
+    rpc2_XmitPacket(rpc2_RequestSocket, pb, &ce->PeerHost, &ce->PeerPort);
 
     SavePacketForRetry(pb, ce);
     }

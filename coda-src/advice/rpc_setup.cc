@@ -27,7 +27,7 @@ extern "C" {
 
 
 /* RPC Variables */
-extern RPC2_PortalIdent rpc2_LocalPortal;
+extern RPC2_PortIdent rpc2_LocalPort;
 RPC2_Handle VenusCID = -1;
 
 
@@ -38,7 +38,7 @@ RPC2_Handle VenusCID = -1;
 void Init_RPC(int *mainpid)
 {
   char error_msg[BUFSIZ];
-  RPC2_PortalIdent port;
+  RPC2_PortIdent port;
   RPC2_SubsysIdent sid;
   long rc ;
 
@@ -48,7 +48,7 @@ void Init_RPC(int *mainpid)
   }
 
   /* Initialize RPC2 Package */
-  port.Tag = RPC2_PORTALBYINETNUMBER;
+  port.Tag = RPC2_PORTBYINETNUMBER;
   port.Value.InetPortNumber = (int)NULL;
 
   rc = RPC2_Init(RPC2_VERSION, NULL, &port, -1, NULL) ;
@@ -75,7 +75,7 @@ RPC2_Handle connect_to_machine(char *machine_name)
   char error_msg[BUFSIZ];
   RPC2_Handle cid;
   RPC2_HostIdent hid;
-  RPC2_PortalIdent pid;
+  RPC2_PortIdent pid;
   RPC2_SubsysIdent sid;
   long rc;
   RPC2_BindParms bp;
@@ -87,7 +87,7 @@ RPC2_Handle connect_to_machine(char *machine_name)
     } ;
 
   strcpy(hid.Value.Name, machine_name);
-  pid.Tag = RPC2_PORTALBYINETNUMBER;
+  pid.Tag = RPC2_PORTBYINETNUMBER;
   pid.Value.InetPortNumber = htons(PORT_venus);
   sid.Tag = RPC2_SUBSYSBYID;
   sid.Value.SubsysId = ADSRVSUBSYSID; 
@@ -122,10 +122,10 @@ void InformVenusOfOurExistance(char *hostname, int uid, int thisPGID) {
   VenusCID = connect_to_machine(hostname);
   LogMsg(1000,LogLevel,LogFile,
         "InformVenusOfOurExistance: NewAdviceService(%s, %d, %d, %d, %d, %d)...", 
-        hostname, uid, rpc2_LocalPortal.Value.InetPortNumber, thisPGID, 
+        hostname, uid, rpc2_LocalPort.Value.InetPortNumber, thisPGID, 
         ADSRV_VERSION, ADMON_VERSION);
 
-  rc = C_NewAdviceService(VenusCID, (RPC2_String)hostname, (RPC2_Integer)uid, (RPC2_Integer)rpc2_LocalPortal.Value.InetPortNumber, (RPC2_Integer)thisPGID, (RPC2_Integer)ADSRV_VERSION, (RPC2_Integer)ADMON_VERSION, &Major, &Minor);
+  rc = C_NewAdviceService(VenusCID, (RPC2_String)hostname, (RPC2_Integer)uid, (RPC2_Integer)rpc2_LocalPort.Value.InetPortNumber, (RPC2_Integer)thisPGID, (RPC2_Integer)ADSRV_VERSION, (RPC2_Integer)ADMON_VERSION, &Major, &Minor);
 
   VenusMajorVersionNumber = (int)Major;
   VenusMinorVersionNumber = (int)Minor;

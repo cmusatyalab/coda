@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.8 1998/10/31 12:18:38 rnw Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/stest.c,v 4.9 98/11/02 16:45:28 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -63,6 +63,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #include <sys/stat.h>
 #include <sys/signal.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <math.h>
 #include "lwp.h"
 #include "timer.h"
@@ -85,7 +86,13 @@ static char LongText[3000];
 
 long FindKey();	/* To obtain keys from ClientIdent */
 long NoteAuthFailure();	/* To note authentication failures */
-static void PrintHostIdent(), PrintPortalIdent();
+static void PrintHostIdent(), PrintPortIdent();
+void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI);
+void FillStrings(void);
+void InitRPC(void);
+long WhatHappened(long X, char *Y);
+long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *pOut);
+void PrintStats(void);
 
 #define DEFAULTLWPS	1	/* The default number of LWPs */
 #define MAXLWPS		32	/* The maximum number of LWPs */
@@ -96,7 +103,7 @@ PROCESS pids[MAXLWPS] = { NULL }; /* Pid of each LWP */
 void HandleRequests();		/* Routine to serve requests */
 
 long VerboseFlag;
-RPC2_PortalIdent ThisPortal;
+RPC2_PortIdent ThisPort;
 
 long VMMaxFileSize; /* length of VMFileBuf, initially 0 */
 long VMCurrFileSize; /* number of useful bytes in VMFileBuf */
@@ -184,7 +191,7 @@ void HandleRequests(lwp)
 			      numLWPs, "server", &pids[numLWPs]);
 #endif
 	    CODA_ASSERT(i == LWP_SUCCESS);
-	    printf("New LWP %d (%d)\n", numLWPs, pids[numLWPs]);
+	    printf("New LWP %d (%p)\n", numLWPs, pids[numLWPs]);
 	    numLWPs++;
 	}
 	CODA_ASSERT(RPC2_AllocBuffer(RPC2_MAXPACKETSIZE-500, &OutBuff) == RPC2_SUCCESS);
@@ -235,29 +242,29 @@ long FindKey(IN authenticationtype, IN ClientIdent, OUT IdentKey,
     }
 
 
-iopen()
-    {
+void iopen(void)
+{
     CODA_ASSERT(1 == 0);
-    }
+}
 
 
-long NoteAuthFailure(authenticationtype, cIdent, eType, pHost, pPortal)
-    RPC2_Integer authenticationtype;
+long NoteAuthFailure(authenticationtype, cIdent, eType, pHost, pPort)
+  RPC2_Integer authenticationtype;
     RPC2_CountedBS *cIdent;
     RPC2_Integer eType;
     RPC2_HostIdent *pHost;
-    RPC2_PortalIdent *pPortal;
+    RPC2_PortIdent *pPort;
     {
     printf("Authentication using e-type %ld failed for %s from\n\t", eType, 
 	   (char *)cIdent->SeqBody);
     PrintHostIdent(pHost, (FILE *)NULL); printf("\t");
-    PrintPortalIdent(pPortal, (FILE *)NULL); printf("\n");
+    PrintPortIdent(pPort, (FILE *)NULL); printf("\n");
     return(RPC2_SUCCESS);
     }
 
 
 static void PrintHostIdent(hPtr, tFile)
-    register RPC2_HostIdent *hPtr;
+    RPC2_HostIdent *hPtr;
     FILE *tFile;
     {
     if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
@@ -265,9 +272,8 @@ static void PrintHostIdent(hPtr, tFile)
 	{
 	case RPC2_HOSTBYINETADDR:
 		{
-		register long a = ntohl(hPtr->Value.InetAddress);
-		fprintf(tFile, "Host.InetAddress = %lu.%ld.%ld.%ld",
-		    ((unsigned long)(a & 0xff000000))>>24, (a & 0x00ff0000)>>16, (a & 0x0000ff00)>>8, a & 0x000000ff);
+		fprintf(tFile, "Host.InetAddress = %s",
+			inet_ntoa(hPtr->Value.InetAddress));
 		break;	
 		}
 	
@@ -281,22 +287,22 @@ static void PrintHostIdent(hPtr, tFile)
     (void) fflush(tFile);
     }
 
-static void PrintPortalIdent(pPtr, tFile)
-    register RPC2_PortalIdent *pPtr;
+static void PrintPortIdent(pPtr, tFile)
+    RPC2_PortIdent *pPtr;
     FILE *tFile;
     {
     if (tFile == NULL) tFile = stdout;	/* it's ok, call-by-value */
     switch (pPtr->Tag)
 	{
-	case RPC2_PORTALBYINETNUMBER:
-		fprintf(tFile, "Portal.InetPortNumber = %u", (unsigned) ntohs(pPtr->Value.InetPortNumber));
+	case RPC2_PORTBYINETNUMBER:
+		fprintf(tFile, "Port.InetPortNumber = %u", (unsigned) ntohs(pPtr->Value.InetPortNumber));
 		break;	
 	
-	case RPC2_PORTALBYNAME:
-		fprintf(tFile, "Portal.Name = \"%s\"", pPtr->Value.Name);
+	case RPC2_PORTBYNAME:
+		fprintf(tFile, "Port.Name = \"%s\"", pPtr->Value.Name);
 		break;
 	
-	default:	fprintf(tFile, "Portal = ??????");
+	default:	fprintf(tFile, "Port = ??????");
 	}
 
 
@@ -305,19 +311,15 @@ static void PrintPortalIdent(pPtr, tFile)
 
 
 
-WhatHappened(X, Y)
-    long X;
-    char *Y;
-    {
+long WhatHappened(long X, char *Y)
+{
     if(VerboseFlag ||  X) printf("%s: %s (%ld)\n", Y, RPC2_ErrorMsg(X), X);
     return(X);
-    }
+}
 
 
-ProcessPacket(cIn, pIn, pOut)
-    RPC2_Handle cIn;
-    RPC2_PacketBuffer *pIn, *pOut;
-    {
+long ProcessPacket(RPC2_Handle cIn, RPC2_PacketBuffer *pIn, RPC2_PacketBuffer *pOut)
+{
     int *iptr;
     long i, opcode, replylen;
     char *cptr;
@@ -484,8 +486,8 @@ ProcessPacket(cIn, pIn, pOut)
 	case RPC2_NEWCONNECTION: /* new connection */
 	    newconnbody = (RPC2_NewConnectionBody *)pIn->Body;
 	    printf("New connection 0x%lx:   SideEffectType = %lu  SecurityLevel = %lu  ClientIdent = \"%s\"\n",
-		   cIn, ntohl((unsigned long)newconnbody->SideEffectType),  
-		   ntohl((unsigned long)newconnbody->SecurityLevel), 
+		   cIn, (unsigned long)ntohl(newconnbody->SideEffectType),  
+		   (unsigned long)ntohl(newconnbody->SecurityLevel), 
 		   (char *)&newconnbody->ClientIdent.SeqBody);
 	    i = RPC2_SUCCESS;
 	    (void) RPC2_Enable(cIn);
@@ -504,15 +506,12 @@ ProcessPacket(cIn, pIn, pOut)
 	if (i != RPC2_SUCCESS)  sftp_DumpTrace("stest.dump");
 #endif RPC2DEBUG
     return(i);
-    }
+}
 
 
-GetParms(argc, argv, sftpI)
-    long argc;
-    char *argv[];
-    SFTP_Initializer *sftpI;
-    {
-    register int i;
+void GetParms(long argc, char *argv[], SFTP_Initializer *sftpI)
+{
+    int i;
     for (i = 1; i < argc; i++)
 	{
 	if (strcmp(argv[i], "-x") == 0 && i < argc -1)
@@ -527,22 +526,22 @@ GetParms(argc, argv, sftpI)
 	    {VerboseFlag = 1; continue;}
 	if (strcmp(argv[i], "-p") == 0 && i < argc - 1)
 	    {
-	    ThisPortal.Value.InetPortNumber = atoi(argv[++i]); 
-	    ThisPortal.Value.InetPortNumber = htons(ThisPortal.Value.InetPortNumber);
+	    ThisPort.Value.InetPortNumber = atoi(argv[++i]); 
+	    ThisPort.Value.InetPortNumber = htons(ThisPort.Value.InetPortNumber);
 	    continue;
 	    }
     
 
-	printf("Usage: stest [-x debuglevel] [-sx sftpdebuglevel]  [-l maxlwps] [-v verboseflag] [-p portal]\n");
+	printf("Usage: stest [-x debuglevel] [-sx sftpdebuglevel]  [-l maxlwps] [-v verboseflag] [-p port]\n");
 	exit(-1);
 	}    
 	        
-    }
+}
 
 
-FillStrings()
-    {
-    register int i, j;
+void FillStrings(void)
+{
+    int i, j;
     for (i = 'a'; i < 'z'+1; i++)
 	{
 	j = 6*(i-'a');
@@ -552,32 +551,32 @@ FillStrings()
     LongText[0]=0;
     for (i=0; i < 10; i++)
 	(void) strcat(LongText, ShortText);
-    }
+}
 
 
-InitRPC()
-    {
-    RPC2_PortalIdent *pp;
+void InitRPC(void)
+{
+    RPC2_PortIdent *pp;
     RPC2_SubsysIdent subsysid;
 
-    ThisPortal.Tag = RPC2_PORTALBYINETNUMBER;
-    pp = (ThisPortal.Value.InetPortNumber == 0) ? NULL :  &ThisPortal;
+    ThisPort.Tag = RPC2_PORTBYINETNUMBER;
+    pp = (ThisPort.Value.InetPortNumber == 0) ? NULL :  &ThisPort;
 
     if (WhatHappened(RPC2_Init(RPC2_VERSION, (RPC2_Options *)NULL, pp,
 		      (long) 6, (struct timeval *)NULL), "Init") != RPC2_SUCCESS)
 	exit(-1);
     PrintHostIdent(&rpc2_LocalHost, (FILE *)NULL);
     printf("    ");
-    PrintPortalIdent(&rpc2_LocalPortal, (FILE *)NULL);
+    PrintPortIdent(&rpc2_LocalPort, (FILE *)NULL);
     printf("\n\n");
     subsysid.Tag = RPC2_SUBSYSBYID;
     subsysid.Value.SubsysId = SUBSYS_SRV;
     (void) RPC2_Export(&subsysid);
-    }
+}
 
 
-PrintStats()
-    {
+void PrintStats(void)
+{
     printf("RPC2:\n");
     printf("Packets Sent = %lu\tPacket Retries = %lu (of %lu)\tPackets Received = %lu\n",
 	   rpc2_Sent.Total, rpc2_Sent.Retries, 
@@ -604,4 +603,4 @@ PrintStats()
     printf("Busies Received = %lu\t\tBytes Received = %lu\n",
 	   sftp_Recvd.Busies, sftp_Recvd.Bytes);
     (void) fflush(stdout);
-    }
+}

@@ -1,4 +1,4 @@
-/* $Id: rpc2portmap.c,v 1.3 1998/09/15 22:56:59 braam Exp $ */
+/* $Id: rpc2portmap.c,v 1.4 98/11/02 16:44:59 rvb Exp $ */
 
 /* main for rpc2portmap daemon */
 
@@ -27,14 +27,14 @@ void InitRPC2(void)
 {
 	PROCESS mylpid;
 	RPC2_Integer rc;
-	RPC2_PortalIdent portalid;
+	RPC2_PortIdent portid;
 	RPC2_SubsysIdent subsysid;
 
 	CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY-1, &mylpid) == LWP_SUCCESS);
-	portalid.Tag = RPC2_PORTALBYINETNUMBER;
-	portalid.Value.InetPortNumber = ntohs(PORT_rpc2portmap);
+	portid.Tag = RPC2_PORTBYINETNUMBER;
+	portid.Value.InetPortNumber = ntohs(PORT_rpc2portmap);
 
-	if ((rc = RPC2_Init(RPC2_VERSION, 0, &portalid, -1, NULL)) != RPC2_SUCCESS)
+	if ((rc = RPC2_Init(RPC2_VERSION, 0, &portid, -1, NULL)) != RPC2_SUCCESS)
 	{
 		fprintf(portmaplog, "InitRPC: RPC2_Init() failed with (%ld) %s\n", rc, RPC2_ErrorMsg(rc));
 		exit(-1);

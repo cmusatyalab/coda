@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.12 1998/10/21 22:05:53 braam Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/vice/clientproc.cc,v 4.13 98/11/02 16:46:38 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -216,19 +216,21 @@ static HostTable *client_GetVenusId(RPC2_Handle RPCid)
 
 	CODA_ASSERT(RPC2_GetPeerInfo(RPCid, &peer) == 0);
 	CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
-	CODA_ASSERT(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
+	CODA_ASSERT(peer.RemotePort.Tag == RPC2_PORTBYINETNUMBER);
 
 	/* Look for a corresponding host entry. */
 	for (i = 0; i < maxHost; i++)
-		if (hostTable[i].host == peer.RemoteHost.Value.InetAddress &&
-		    hostTable[i].port == peer.RemotePortal.Value.InetPortNumber)
+		if ((hostTable[i].host ==
+		     peer.RemoteHost.Value.InetAddress.s_addr) &&
+		    (hostTable[i].port ==
+		     peer.RemotePort.Value.InetPortNumber))
 			break;
 	
 	/* Not found.  Make a new host entry. */
 	CODA_ASSERT(maxHost < MAXHOSTTABLEENTRIES-1);
 	if (i == maxHost) {
-		hostTable[i].host = (unsigned int) peer.RemoteHost.Value.InetAddress;
-		hostTable[i].port = peer.RemotePortal.Value.InetPortNumber;
+		hostTable[i].host = peer.RemoteHost.Value.InetAddress.s_addr;
+		hostTable[i].port = peer.RemotePort.Value.InetPortNumber;
 		hostTable[i].FirstClient = 0;
 		hostTable[i].id = 0;
 		sprintf(hostTable[i].HostName, "%08x", htonl(hostTable[i].host));
@@ -272,7 +274,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
     /* Look up the Peer info corresponding to the given RPC handle. */
     CODA_ASSERT(RPC2_GetPeerInfo(Client->RPCid, &peer) == 0);
     CODA_ASSERT(peer.RemoteHost.Tag == RPC2_HOSTBYINETADDR);
-    CODA_ASSERT(peer.RemotePortal.Tag == RPC2_PORTALBYINETNUMBER);
+    CODA_ASSERT(peer.RemotePort.Tag == RPC2_PORTBYINETNUMBER);
 
     /* Subsystem identifier. */
     sid.Tag = RPC2_SUBSYSBYID;
@@ -294,11 +296,11 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
 
     /* Attempt the bind. */
     long errorCode = RPC2_NewBinding(&peer.RemoteHost, 
-				     &peer.RemotePortal, &sid, &bp, 
+				     &peer.RemotePort, &sid, &bp, 
 				     &HostEntry->id);
     if (errorCode > RPC2_ELIMIT) {
 	    if (errorCode != 0) {
-		    SLog(0, "RPC2_Bind to %s portal %d for callback got %s",
+		    SLog(0, "RPC2_Bind to %s port %d for callback got %s",
 			 HostEntry->HostName, HostEntry->port, 
 			 ViceErrorMsg((int) errorCode));
 	    }
@@ -306,7 +308,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
 	    /* Make a gratuitous callback. */
 	    errorCode = CallBack(HostEntry->id, &NullFid);
 	    if (errorCode != 0) {
-		    SLog(0, "Callback message to %s portal %d failed %s",
+		    SLog(0, "Callback message to %s port %d failed %s",
 			 HostEntry->HostName, HostEntry->port, 
 			 ViceErrorMsg((int) errorCode));
 		    if (errorCode <= RPC2_ELIMIT) {
@@ -314,7 +316,7 @@ int CLIENT_MakeCallBackConn(ClientEntry *Client)
 		    }
 	    }
     } else {
-	    SLog(0, "RPC2_Bind to %s portal %d for callback failed %s",
+	    SLog(0, "RPC2_Bind to %s port %d for callback failed %s",
 		 HostEntry->HostName, HostEntry->port, 
 		 ViceErrorMsg((int) errorCode));
 	    HostEntry->id = 0;
@@ -341,7 +343,7 @@ void CLIENT_CallBackCheck()
 	    ObtainWriteLock(&hostTable[i].lock);
 	    long rc = CallBack(hostTable[i].id, &NullFid);
 	    if (rc <= RPC2_ELIMIT) {
-		SLog(0, "Callback failed %s for ws %s, portal %d",
+		SLog(0, "Callback failed %s for ws %s, port %d",
 		     ViceErrorMsg((int) rc), hostTable[i].HostName, 
 		     hostTable[i].port);
 		CLIENT_CleanUpHost(&hostTable[i]);

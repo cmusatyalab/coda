@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.6 1998/10/05 20:32:58 jaharkes Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/lists.c,v 4.7 98/11/02 16:45:17 rvb Exp $";
 #endif /*_BLURB_*/
 
 
@@ -78,7 +78,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 	used elsewhere in rpc2 */
 
 void rpc2_Replenish(whichList, whichCount, elemSize, creationCount, magicNumber)
-    register struct LinkEntry  **whichList;
+    struct LinkEntry  **whichList;
     long *whichCount;
     long elemSize;	/* size of each element in the list */
     long *creationCount;
@@ -116,8 +116,8 @@ void rpc2_Replenish(whichList, whichCount, elemSize, creationCount, magicNumber)
    Frequently used routine -- optimize the hell out of it.  */
 struct LinkEntry *rpc2_MoveEntry(fromPtr, toPtr, p, fromCount, toCount)
     /* pointers to header pointers of from and to lists */
-    register struct LinkEntry **fromPtr, **toPtr;
-    register struct LinkEntry *p;	/* pointer to entry to be moved */
+    struct LinkEntry **fromPtr, **toPtr;
+    struct LinkEntry *p;	/* pointer to entry to be moved */
     long *fromCount;		/* pointer to count of entries in from list */
     long *toCount;		/* pointer to count of entries in to list */
 
@@ -195,7 +195,7 @@ void rpc2_FreeSle(INOUT sl)
        Removes binding between sl and its connection */
  
     {
-    register struct SL_Entry *tsl, **fromlist;
+    struct SL_Entry *tsl, **fromlist;
     long *fromcount;
     struct CEntry *ce;
     
@@ -227,11 +227,11 @@ void rpc2_FreeSle(INOUT sl)
     }
 
 void rpc2_ActivateSle (selem, exptime)
-    register struct SL_Entry *selem;
-    register struct timeval *exptime;
+    struct SL_Entry *selem;
+    struct timeval *exptime;
     {
-    register struct TM_Elem *t, *oldt;
-    register long delta;
+    struct TM_Elem *t, *oldt;
+    long delta;
 
     CODA_ASSERT(selem->MagicNumber == OBJ_SLENTRY);
     selem->TElem.BackPointer = (char *)selem;
@@ -262,7 +262,7 @@ void rpc2_ActivateSle (selem, exptime)
     }
 
 void rpc2_DeactivateSle(sl, rc)
-    register struct SL_Entry *sl;
+    struct SL_Entry *sl;
     enum RetVal rc;
     {
     struct timeval *t;
@@ -284,7 +284,7 @@ struct SubsysEntry *rpc2_AllocSubsys()
     	Returns NULL if unable to allocate such an entry.
     */
     {
-    register struct SubsysEntry *ss;
+    struct SubsysEntry *ss;
     if (rpc2_SSFreeCount == 0)
     	rpc2_Replenish((struct LinkEntry **)&rpc2_SSFreeList,
 		&rpc2_SSFreeCount, sizeof(struct SubsysEntry),
@@ -296,7 +296,7 @@ struct SubsysEntry *rpc2_AllocSubsys()
     }
 
 void rpc2_FreeSubsys(whichSubsys)
-    register struct SubsysEntry **whichSubsys;
+    struct SubsysEntry **whichSubsys;
     /* Releases the subsystem  entry pointed to by whichSubsys.
 	Sets whichSubsys to NULL;  */
 	{

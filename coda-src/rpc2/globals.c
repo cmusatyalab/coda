@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.1 1997/01/08 21:50:22 rvb Exp $";
+static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.2 98/04/14 21:06:59 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -77,7 +77,7 @@ long RPC2_Perror=1, RPC2_DebugLevel=0, RPC2_Trace = 0; /* see rpc2.h */
 
 long rpc2_RequestSocket;
 RPC2_HostIdent rpc2_LocalHost;
-RPC2_PortalIdent rpc2_LocalPortal;
+RPC2_PortIdent rpc2_LocalPort;
 
 struct TM_Elem *rpc2_TimerQueue;
 struct CBUF_Header *rpc2_TraceBuffHeader = NULL;
@@ -133,7 +133,7 @@ long rpc2_AllocMgrps, rpc2_FreeMgrps;
 
 long rpc2_HoldHWMark, rpc2_FreezeHWMark;
 
-char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.1 1997/01/08 21:50:22 rvb Exp $";
+char *rpc2_LastEdit = "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/rpc2/globals.c,v 4.2 98/04/14 21:06:59 braam Exp $";
 
 long rpc2_errno;
 
