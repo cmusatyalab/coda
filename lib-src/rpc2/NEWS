@@ -1,6 +1,7 @@
 New in 1.10:
 
 * Fixed crash in SendResponse when request decoding has failed.
+* Applied MacOS X (Darwin) patches from Timothy Wood.
 
 New in 1.9:
 
