@@ -10,7 +10,7 @@
 Use of RVM outside Carnegie Mellon University requires a license.
 */
 
-static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/rvm-src/seg/rvm_machutil.c,v 1.2 1997/01/07 18:44:51 rvb Exp";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./rvm-src/seg/rvm_machutil.c,v 1.1 1996/11/22 19:17:14 braam Exp $";
 #endif _BLURB_
 
 

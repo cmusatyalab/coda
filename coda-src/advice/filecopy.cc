@@ -1,7 +1,7 @@
 #ifndef _BLURB_
 #define _BLURB_
 
-static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/advice/filecopy.cc,v 1.1.1.1 1996/11/22 19:12:12 rvb Exp";
+static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/advice/filecopy.cc,v 1.1 1996/11/22 19:12:12 braam Exp $";
 #endif _BLURB_
 
 
@@ -53,10 +53,7 @@ static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/advic
  *  canned that code.  The simple thing seems to be good enough.
  *
  *  HISTORY
- * filecopy.cc,v
- * Revision 1.1.1.1  1996/11/22 19:12:12  rvb
- *  almost done
- *
+ * $Log: filecopy.cc,v $
  * Revision 1.1  1996/11/22 19:12:12  braam
  * First Checkin (pre-release)
  *

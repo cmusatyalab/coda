@@ -34,7 +34,7 @@
  * SUCH DAMAGE.
  *
  *	from: @(#)SYS.h	5.5 (Berkeley) 5/7/91
- *	SYS.h,v 1.1.1.1 1996/11/22 19:16:31 rvb Exp
+ *	$Id: SYS.h,v 1.1 1996/11/22 19:16:31 braam Exp $
  */
 
 #include <machine/asm.h>

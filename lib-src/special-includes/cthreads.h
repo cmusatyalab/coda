@@ -6,10 +6,7 @@
  */
 /*
  * HISTORY
- * cthreads.h,v
- * Revision 1.1.1.1  1996/11/22 19:19:06  rvb
- *  almost done
- *
+ * $Log: cthreads.h,v $
  * Revision 1.1  1996/11/22 19:19:06  braam
  * First Checkin (pre-release)
  *

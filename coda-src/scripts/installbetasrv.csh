@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/scripts/installbetasrv.csh,v 1.1.1.1 1996/11/24 18:50:16 rvb Exp";
+#static char *rcsid = "$Header: /home/braam/src/coda-src/scripts/RCS/installbetasrv.csh,v 1.2 1996/11/24 18:50:16 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -65,7 +65,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/scripts/installbetasrv.csh,v 1.1.1.1 1996/11/24 18:50:16 rvb Exp";
+#static char *rcsid = "$Header: /home/braam/src/coda-src/scripts/RCS/installbetasrv.csh,v 1.2 1996/11/24 18:50:16 braam Exp $";
 #endif /*_BLURB_*/
 
 

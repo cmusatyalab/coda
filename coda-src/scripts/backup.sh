@@ -30,7 +30,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/scripts/backup.sh,v 1.1.1.1 1996/11/22 19:06:40 rvb Exp";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/backup.sh,v 1.1 1996/11/22 19:06:40 braam Exp $";
 #endif /*_BLURB_*/
 
 
@@ -67,7 +67,7 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/scripts/backup.sh,v 1.1.1.1 1996/11/22 19:06:40 rvb Exp";
+#static char *rcsid = "$Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./coda-src/scripts/backup.sh,v 1.1 1996/11/22 19:06:40 braam Exp $";
 #endif /*_BLURB_*/
 
 if ( ($#argv < 1) || (($#argv > 1) && ($#argv < 3))) then

@@ -1,7 +1,7 @@
 ***    PLEASE DO ALL FURTHER DEVELOPMENT ON THIS MERGED VERSION OF LWP ****
 
 Created: 08/17/1988, Satya
-Version: /afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/lib-src/mlwp/README.old,v 1.1.1.1 1996/11/22 19:18:48 rvb Exp
+Version: $Header: /afs/cs.cmu.edu/project/coda-braam/src/coda-4.0.1/RCSLINK/./lib-src/mlwp/README,v 1.1 1996/11/22 19:18:48 braam Exp $
 
 [1] Merger of Andrew-LWP (coda/exp/lwp) and cthread-LWP (coda/exp/ctlwp).
     "OLD" corresponds to Andrew-LWP

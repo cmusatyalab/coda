@@ -29,7 +29,7 @@ improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
 
-static char *rcsid = "/afs/cs/project/coda-rvb/cvs/src/coda-4.0.1/coda-src/venus/fso_cfscalls0.cc,v 1.3 1997/01/07 18:42:04 rvb Exp";
+static char *rcsid = "$Header: /home/braam/src/coda-src/venus/RCS/fso_cfscalls0.cc,v 1.2 1996/11/24 20:57:19 braam Exp $";
 #endif /*_BLURB_*/
 
 
