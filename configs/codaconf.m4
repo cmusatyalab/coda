@@ -36,7 +36,7 @@ if test $cross_compiling = yes ; then
     # probably WinXX, existing ${initsuffix} should be fine.
     AC_MSG_RESULT(cross compiling, using ${initsuffix})
 
-elif test -d ${prefix}/${initsuffix}/init.d ; then
+elif test -d ${prefix}/${initsuffix}/init.d -a ! -h ${prefix}/${initsuffix}/init.d ; then
     # probably Debian or Solaris, or other SysV standard setup.
     initsuffix=${initsuffix}/init.d
     AC_MSG_RESULT(standard SysV)
