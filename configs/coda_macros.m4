@@ -119,12 +119,13 @@ AC_DEFUN(CODA_CHECK_OPENSSL,
    [AC_CHECK_HEADERS(openssl/md5.h openssl/sha.h)
     coda_save_LIBS="$LIBS"
     AC_SEARCH_LIBS(SHA1_Init, crypto, [test "$ac_cv_search_SHA1_Init" = "none required" || LIBCRYPTO="$ac_cv_search_SHA1_Init"])
+    AC_CHECK_FUNCS([MD5_Init SHA1_Init])
     LIBS="$coda_save_LIBS"])
-  AC_CHECK_FUNCS(MD5_Init SHA1_Init, $LIBCRYPTO)])
+    CODA_OPTION_LIBRARY(openssl)])
 
 AC_DEFUN(CODA_CHECK_LIBCOMERR,
- [AC_SEARCH_LIBS(com_err, com_err,
-    [test "$ac_cv_search_com_err" = "none required" || LIBCOMERR="$ac_cv_search_com_err"])])
+ [AC_CHECK_HEADERS(com_err.h)
+  AC_SEARCH_LIBS(com_err, com_err, [test "$ac_cv_search_com_err" = "none required" || LIBCOMERR="$ac_cv_search_com_err"])])
 
 AC_SUBST(LIBKRB4)
 AC_DEFUN(CODA_CHECK_KRB4,
@@ -133,39 +134,42 @@ AC_DEFUN(CODA_CHECK_KRB4,
    [CODA_CHECK_LIBCOMERR
     AC_CHECK_HEADERS(krb.h des.h)
     coda_save_LIBS="$LIBS"
+    LIBS="$LIBCOMERR $LIBS"
     AC_SEARCH_LIBS(krb_get_lrealm, krb4 krb,
-      [test "$ac_cv_search_krb_get_lrealm" = "none required" || LIBKRB4="$ac_cv_search_krb_get_lrealm ${LIBKRB4}"], , $LIBCOMERR)
+      [test "$ac_cv_search_krb_get_lrealm" = "none required" || LIBKRB4="$ac_cv_search_krb_get_lrealm ${LIBKRB4}"])
     LIBS="$coda_save_LIBS"
     if test "$ac_cv_search_krb_get_lrealm" != no ; then
 	AC_DEFINE(HAVE_KRB4, 1, [Define if kerberos 4 is available])
-    fi])])
+    fi])
+    CODA_OPTION_LIBRARY(krb4)])
 
 AC_SUBST(LIBKRB5)
 AC_DEFUN(CODA_CHECK_KRB5,
  [AC_ARG_WITH(krb5,
    [  --with-krb5			Link against kerberos5 libraries],
-   [AC_CHECK_HEADERS(krb5.h com_err.h)
+   [CODA_CHECK_LIBCOMERR
+    AC_CHECK_HEADERS(krb5.h)
     if test "$ac_cv_header_krb5_h" = yes -a "$ac_cv_header_com_err_h" = yes;then
 	coda_save_LIBS="$LIBS"
-	CODA_CHECK_LIBCOMERR
+	LIBS="$LIBCOMERR $LIBS"
 	dnl is this MIT-krb5 or Heimdal
 	MITKRB5="no"
 	AC_SEARCH_LIBS(krb5_encrypt, k5crypto,
-	    [MITKRB5="yes" ; LIBKRB5="$ac_cv_search_krb5_encrypt ${LIBKRB5}"],, $LIBCOMERR)
+	    [MITKRB5="yes" ; LIBKRB5="$ac_cv_search_krb5_encrypt ${LIBKRB5}"])
 	if test "$MITKRB5" = no ; then
 	    AC_SEARCH_LIBS(crypt, crypt,
-		[test "$ac_cv_search_crypt" = "none required" || LIBKRB5="$ac_cv_search_crypt ${LIBKRB5}"],, $LIBCOMERR)
+		[test "$ac_cv_search_crypt" = "none required" || LIBKRB5="$ac_cv_search_crypt ${LIBKRB5}"])
 	    dnl Heimdal cygwin might need libdes
 	    dnl AC_SEARCH_LIBS(unknown_symbol, des,
-	    dnl     [test "$ac_cv_search_unknown_symbol" = "none required" || LIBKRB5="$ac_cv_search_unknown_symbol ${LIBKRB5}"],, $LIBCOMERR)
+	    dnl     [test "$ac_cv_search_unknown_symbol" = "none required" || LIBKRB5="$ac_cv_search_unknown_symbol ${LIBKRB5}"])
 	    AC_SEARCH_LIBS(roken_concat, roken,
-		[test "$ac_cv_search_roken_concat" = "none required" || LIBKRB5="$ac_cv_search_roken_concat ${LIBKRB5}"],, $LIBCOMERR)
+		[test "$ac_cv_search_roken_concat" = "none required" || LIBKRB5="$ac_cv_search_roken_concat ${LIBKRB5}"])
 	    AC_SEARCH_LIBS(copy_PrincipalName, asn1,
-		[test "$ac_cv_search_copy_Principal" = "none required" || LIBKRB5="$ac_cv_search_copy_PrincipalName ${LIBKRB5}"],, $LIBCOMERR)
+		[test "$ac_cv_search_copy_Principal" = "none required" || LIBKRB5="$ac_cv_search_copy_PrincipalName ${LIBKRB5}"])
 	fi
 	dnl Everyone wants libkrb5
 	AC_SEARCH_LIBS(krb5_init_context, krb5,
-	    [test "$ac_cv_search_krb5_init_context" = "none required" || LIBKRB5="$ac_cv_search_krb5_init_context ${LIBKRB5}"],, $LIBCOMERR)
+	    [test "$ac_cv_search_krb5_init_context" = "none required" || LIBKRB5="$ac_cv_search_krb5_init_context ${LIBKRB5}"])
 	LIBS="$coda_save_LIBS"
 	if test "$ac_cv_search_krb5_init_context" != no ; then
 	    AC_DEFINE(HAVE_KRB5, 1, [Define if kerberos 5 is available])
@@ -177,7 +181,8 @@ AC_DEFUN(CODA_CHECK_KRB5,
 	fi
     else
 	AC_MSG_WARN([Couldn't find krb5.h and com_err.h headers, not using kerberos 5])
-    fi])])
+    fi])
+    CODA_OPTION_LIBRARY(krb5)])
 
 
 dnl ---------------------------------------------
@@ -229,11 +234,11 @@ AC_DEFUN(CODA_OPTION_LIBRARY,
             LDFLAGS="${LDFLAGS} -R${pfx}"
       fi]) ])
 
-AC_DEFUN(CODA_OPTION_CRYPTO,
-  [AC_ARG_WITH($1,
-    [  --with-$1			Link against $1 libraries],
-    [AC_DEFINE(USE_`$1 | $as_tr_cpp`, 1, [Define if you want to use $1 libraries])])
-   CODA_OPTION_LIBRARY($1)])
+dnl AC_DEFUN(CODA_OPTION_CRYPTO,
+dnl   [AC_ARG_WITH($1,
+dnl     [  --with-$1			Link against $1 libraries],
+dnl     [AC_DEFINE(USE_`$1 | $as_tr_cpp`, 1, [Define if you want to use $1 libraries])])
+dnl    CODA_OPTION_LIBRARY($1)])
 
 AC_DEFUN(CODA_OPTION_LWP_PT,
   [AC_ARG_WITH(lwp-pt,

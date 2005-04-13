@@ -28,10 +28,6 @@ CODA_OPTION_SUBSYS(rvm)
 CODA_OPTION_SUBSYS(rpc2)
 CODA_OPTION_LWP_PT
 
-CODA_OPTION_CRYPTO(openssl)
-CODA_OPTION_CRYPTO(krb4)
-CODA_OPTION_CRYPTO(krb5)
-
 CODA_PROG_NATIVECC
 
 dnl Now we can derive things like systype/cputype/initdir
