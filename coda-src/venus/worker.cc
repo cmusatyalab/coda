@@ -377,8 +377,10 @@ void VFSMount()
 	mountdata.version = CODA_MOUNT_VERSION;
 	mountdata.fd = worker::muxfd;
 
-	error = mount("coda", venusRoot, "coda",  MS_MGC_VAL,
+	error = mount("coda", venusRoot, "coda",
+		      MS_MGC_VAL | MS_NOATIME | MS_NODEV | MS_NOSUID,
 		      islinux20 ? (void *)&kernDevice : (void *)&mountdata);
+
 
 	if (!error) {
 	    FILE *fd = setmntent("/etc/mtab", "a");
@@ -387,7 +389,7 @@ void VFSMount()
 		ent.mnt_fsname = "coda";
 		ent.mnt_dir    = venusRoot;
 		ent.mnt_type   = "coda";
-		ent.mnt_opts   = "rw";
+		ent.mnt_opts   = "rw,noatime,nosuid,nodev";
 		ent.mnt_freq   = 0;
 		ent.mnt_passno = 0;
 		addmntent(fd, &ent);
