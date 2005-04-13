@@ -79,6 +79,13 @@ void repvol::Reintegrate()
 {
     LOG(0, ("repvol::Reintegrate\n"));
 
+    if (!ReadyToReintegrate())
+	return;
+
+    /* prevent ASRs from slipping in and adding records we might reintegrate. */
+    if (DisableASR(V_UID))
+	return;
+
     /* 
      * this flag keeps multiple reintegrators from interfering with
      * each other in the same volume.  This is necessary even with 
@@ -86,16 +93,6 @@ void repvol::Reintegrate()
      * iterations of the loop below.  Without the flag, other threads
      * may slip in between commit or abort of a record.
      */
-    if (IsReintegrating())
-	return;
-
-#if 0
-    u = realm->GetUser(CML.owner);
-    CODA_ASSERT(u != NULL);
-    /* if (SkkEnabled) u->NotifyReintegrationActive(name); */
-    PutUser(&u);
-#endif
-
     flags.reintegrating = 1;
 
     /* enter the volume */
@@ -107,9 +104,6 @@ void repvol::Reintegrate()
 
     v->Begin_VFS(&volid, CODA_REINTEGRATE);
     VOL_ASSERT(this, v->u.u_error == 0);
-
-    /* prevent ASRs from slipping in and leaving records we might reintegrate. */
-    DisableASR(V_UID);
 
     /* lock the CML to prevent a checkpointer from getting confused. */
     ObtainReadLock(&CML_lock);
@@ -177,7 +171,9 @@ void repvol::Reintegrate()
     } while(code == 0 && ((flags.sync_reintegrate && nrecs) || nrecs == 100));
 
     flags.reintegrating = 0;
-    /* we have to disable this to avoid recursion when exiting the volume */
+
+    /* we have to clear sync_reintegrateto avoid recursion when exiting the
+     * volume since that might trigger another volume transition */
     flags.sync_reintegrate = 0;
 
     /* 
@@ -185,12 +181,13 @@ void repvol::Reintegrate()
      * the owner must remain set (it is overloaded).  In that case the last
      * mutator will clear the owner on volume exit.
      */
-    if (CML.count() == 0  &&  mutator_count == 0)
+    if (CML.count() == 0 && mutator_count == 0)
         CML.owner = UNSET_UID;
 
     /* trigger a transition if necessary */
-    if ((CML.count() == 0 || (CML.count() > 0 && !ContainUnrepairedCML()))
-	&& flags.logv == 0 && state == Logging) {
+    if ((CML.count() == 0 || !ContainUnrepairedCML()) &&
+	flags.logv == 0 && state == Logging)
+    {
 	flags.transition_pending = 1;
     }
 
@@ -562,8 +559,8 @@ CheckResult:
  */
 int repvol::ReadyToReintegrate()
 {
-    int ready = 0;
-    userent *u = realm->GetUser(CML.owner); /* if CML is non-empty, u != 0 */
+    userent *u; 
+    int tokensvalid;
 
     /* 
      * we're a bit draconian about ASRs.  We want to avoid reintegrating
@@ -573,18 +570,26 @@ int repvol::ReadyToReintegrate()
      * is Venus-wide, so the check is correct but more conservative than 
      * we would like.
      */
-    if (IsWriteDisconnected() && 
-	(CML.count() > 0) && u->TokensValid() &&
-	!asr_running() && !IsReintegrating()) {
-	    cmlent *m;
-	    cml_iterator next(CML, CommitOrder);
+    if (flags.transition_pending || !IsWriteDisconnected() ||
+	CML.count() == 0 || asr_running() || IsReintegrating())
+	return 0;
 
-	    while ((m = next()) && m->ReintReady()) 
-		ready++;
-    }
-
+    u = realm->GetUser(CML.owner); /* if CML is non-empty, u != 0 */
+    tokensvalid = u->TokensValid();
     PutUser(&u);
-    return(ready);
+
+    if (!tokensvalid)
+	return 0;
+
+    cml_iterator next(CML, CommitOrder);
+    cmlent *m;
+
+    m = next();
+
+    if (m && m->ReintReady())
+	return 1;
+
+    return 0;
 }
 
 
@@ -592,16 +597,7 @@ int repvol::ReadyToReintegrate()
 int cmlent::ReintReady()
 {
     /* check volume state */
-    repvol *vol = strbase(repvol, log, CML);
-    if (!(vol->IsWriteDisconnected())) {
-	LOG(100, ("cmlent::ReintReady: not write-disconnected\n"));
-	return 0;
-    }
-
-    if (vol->flags.transition_pending) {
-	LOG(100, ("cmlent::ReintReady: transition_pending\n"));
-	return 0;
-    }
+    repvol *vol;
 
     /* check if its repair flag is set */
     if (flags.to_be_repaired || flags.repair_mutation) {
@@ -622,10 +618,15 @@ int cmlent::ReintReady()
 	return 0; 
     }
 
+    /* ignore age when forcing a reintegration or when trying to return to
+     * fully connected mode */
+    vol = strbase(repvol, log, CML);
+    if (vol->flags.sync_reintegrate || !vol->flags.logv)
+	return 1;
+
     /* if vol staying write disconnected, check age. does not apply to ASRs */
     /* nor when returning from writeback */
-    if (!(vol->asr_running()) && vol->flags.logv && !Aged() && 
-	!vol->flags.sync_reintegrate) {
+    if (!Aged()) {
 	LOG(100, ("cmlent::ReintReady: record too young\n"));
 	return 0; 
     }

@@ -309,12 +309,9 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 
 	this_time = m->ReintTime(bw);
 
-	/* Only limit on reintegration time if the logv flag is set.
+	/* Only limit on reintegration time if the logv flag is set
 	 * otherwise we are trying get back to connected state. --JH */
-
-	/* Ignore BW in case of forced reintegration  */
-	if (!vol->asr_running() && vol->flags.logv &&
-            !vol->flags.sync_reintegrate &&
+	if (vol->flags.logv && !vol->flags.sync_reintegrate &&
 	    (this_time + cur_reintegration_time > vol->ReintLimit))
 		break;
 	/* 
@@ -362,45 +359,42 @@ cmlent *ClientModifyLog::GetFatHead(int tid)
     cml_iterator next(*this, CommitOrder);
     unsigned long bw; /* bandwidth in bytes/sec */
 
-    /* Avoid weak reintegration when an ASR is in progress */
-    if (vol->asr_running())
-        return ((cmlent *)0);
+    if (!vol->ReadyToReintegrate())
+        return NULL;
 
     /* Get the first entry in the CML */
     m = next();
 
-    /* The head of the CML must exists, be a store operation, and ready
-     * for reintegration. */
-    if (!m || m->opcode != CML_Store_OP || !m->ReintReady())
-        return((cmlent *)0);
+    /* The head of the CML must exists, and be a store operation */
+    if (!m || m->opcode != CML_Store_OP)
+        return NULL;
 
     /* get the current bandwidth estimate */
     vol->GetBandwidth(&bw);
 
     /* If we already have a reintegration handle, or if the reintegration time
      * exceeds the limit, we need to do a partial reintegration of the store. */
-    if (m->HaveReintegrationHandle() || m->ReintTime(bw) > vol->ReintLimit) {
-        /*
-         * Don't use the settid call because it is transactional.
-         * Here the tid is transient.
-         */
-        m->tid = tid;
+    if (!m->HaveReintegrationHandle() && m->ReintTime(bw) <= vol->ReintLimit)
+	return NULL;
 
-	/* 
-	 * freeze the record to prevent cancellation.  Note that
-	 * reintegrating --> frozen, but the converse is not true.
-	 * Records are frozen until the outcome of a reintegration
-	 * is known; this may span multiple reintegration attempts
-	 * and different transactions.
-	 */
-	Recov_BeginTrans();
-	CODA_ASSERT(m->Freeze() == 0);
-	Recov_EndTrans(MAXFP);
+    /*
+     * Don't use the settid call because it is transactional.
+     * Here the tid is transient.
+     */
+    m->tid = tid;
 
-        return(m);
-    }
+    /* 
+     * freeze the record to prevent cancellation.  Note that
+     * reintegrating --> frozen, but the converse is not true.
+     * Records are frozen until the outcome of a reintegration
+     * is known; this may span multiple reintegration attempts
+     * and different transactions.
+     */
+    Recov_BeginTrans();
+    CODA_ASSERT(m->Freeze() == 0);
+    Recov_EndTrans(MAXFP);
 
-    return((cmlent *)0);
+    return m;
 }
 
 

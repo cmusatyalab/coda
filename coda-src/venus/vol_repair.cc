@@ -941,6 +941,9 @@ int repvol::DisableASR(uid_t uid)
 {
     LOG(100, ("repvol::DisableASR: vol = %x, uid = %d\n", vid, uid));
 
+    if (asr_running())
+	return EBUSY;
+
     if (!IsASRAllowed()) {
 	LOG(100, ("volent::DisableASr: ASR for %x already disabled", vid));
     }
@@ -950,7 +953,7 @@ int repvol::DisableASR(uid_t uid)
 	(void)k_Purge();     /* we should be able to do this on a volume/user basis! */
     }
 
-    return(0);
+    return 0;
 }
 
 void repvol::lock_asr()
