@@ -245,49 +245,46 @@ userent::~userent() {
     Invalidate();
 }
 
-long userent::SetTokens(SecretToken *asecret, ClearToken *aclear) {
+long userent::SetTokens(SecretToken *asecret, ClearToken *aclear)
+{
     LOG(100, ("userent::SetTokens: uid = %d\n", uid));
 
-    if (uid == (uid_t)-1)
-	return EPERM;
-
-    if (uid == V_UID) {
-	eprint("root acquiring Coda tokens!");
-    }
-
+    /* grab an extra reference on the realm until the token expires */
     if (!tokensvalid) {
 	Realm *realm = REALMDB->GetRealm(realmid);
-	/* grab an extra reference that is kept until the token invalidation */
 	realm->GetRef();
 	realm->PutRef();
     }
 
     /* N.B. Using direct assignment to the Token structs rather than the bcopys (now memcpy) doesn't seem to work! XXXX Bogus comment? Phil Nelson*/
-    tokensvalid = 1;
     memcpy(&secret, asecret, sizeof(SecretToken));
     memcpy(&clear, aclear, sizeof(ClearToken));
-LOG(100, ("SetTokens calling Reset\n"));
+    tokensvalid = 1;
+
+    LOG(100, ("SetTokens calling Reset\n"));
     Reset();
 
     /* Inform the advice monitor that user now has tokens. */
-    LOG(100, ("calling TokensAcquired with %d\n", (clear.EndTimestamp-CLOCK_SKEW)));
+    LOG(100, ("calling TokensAcquired with %d\n",
+	      (clear.EndTimestamp-CLOCK_SKEW)));
     adv_mon.TokensAcquired((clear.EndTimestamp - CLOCK_SKEW));
-    LOG(100, ("returned from TokensAcquired\n"));
 
 
     /* Make dirty volumes "owned" by this user available for reintegration. */
     repvol_iterator next;
     repvol *v;
-    while ((v = next()))
-	if (v->IsDisconnected() && v->GetCML()->Owner() == uid) {
+    while ((v = next())) {
+	if (v->IsReintegratePending() && v->GetCML()->Owner() == uid) {
 	    v->flags.transition_pending = 1;
 	    v->ClearReintegratePending();
 	}
+    }
 
     return(1);
 }
 
-long userent::GetTokens(SecretToken *asecret, ClearToken *aclear) {
+long userent::GetTokens(SecretToken *asecret, ClearToken *aclear)
+{
     LOG(100, ("userent::GetTokens: uid = %d, tokensvalid = %d\n", uid, tokensvalid));
 
     if (!tokensvalid) return(ENOTCONN);
