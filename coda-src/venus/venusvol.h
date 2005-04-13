@@ -821,6 +821,7 @@ class repvol : public volent {
     int PartialReintegrate(int);
     void SetReintegratePending();
     void CheckReintegratePending();
+    int IsReintegratePending() { return flags.reintegratepending; }
     void ClearReintegratePending();
     int IsReintegrating() { return flags.reintegrating; }
     int ReadyToReintegrate();
