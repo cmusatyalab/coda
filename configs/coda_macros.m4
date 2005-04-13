@@ -118,11 +118,8 @@ AC_DEFUN(CODA_CHECK_OPENSSL,
    [  --with-openssl			Link against openssl library],
    [AC_CHECK_HEADERS(openssl/md5.h openssl/sha.h)
     coda_save_LIBS="$LIBS"
-    AC_SEARCH_LIBS(SHA1_Init, crypto)
-    LIBS="$coda_save_LIBS"
-    if test "$ac_cv_search_SHA1_Init" != no; then
-       test "$ac_cv_search_SHA1_Init" != "none required" || LIBCRYPTO="$ac_cv_search_SHA1_Init"}"
-    fi])
+    AC_SEARCH_LIBS(SHA1_Init, crypto, [test "$ac_cv_search_SHA1_Init" = "none required" || LIBCRYPTO="$ac_cv_search_SHA1_Init"])
+    LIBS="$coda_save_LIBS"])
   AC_CHECK_FUNCS(MD5_Init SHA1_Init, $LIBCRYPTO)])
 
 AC_DEFUN(CODA_CHECK_LIBCOMERR,
