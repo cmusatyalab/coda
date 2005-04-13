@@ -28,7 +28,9 @@ extern "C" {
 #include <stdlib.h>
 #include <assert.h>
 
+#ifdef HAVE_DES_H
 #include <des.h>
+#endif
 #include <krb.h>
 
 #include <codaconf.h>
@@ -37,7 +39,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif __cplusplus
+#endif /* __cplusplus */
 
 /* The following can be specified/overridden using /etc/coda/auth.conf */
 static char *kerberos4kinit;   /* defaults to "kinit" */
@@ -78,8 +80,8 @@ int Krb4ServerInit(void)
     return 0;
 }
 
-int do_GetSecret(char *hostname, char **identity, int *ilen, 
-                 char **secret, int *slen)
+int do_GetSecret(char *hostname, const char **identity, int *ilen, 
+                 const char **secret, int *slen)
 {
     struct ktext *authenticator = NULL;
     struct credentials *cred = NULL;
@@ -143,8 +145,8 @@ out:
     return rc;
 }
 
-int Krb4GetSecret(char *hostname, char **identity, int *ilen, 
-                  char **secret, int *slen, int interactive)
+int Krb4GetSecret(char *hostname, const char **identity, int *ilen, 
+                  const char **secret, int *slen, int interactive)
 {
     int rc;
     rc = do_GetSecret(hostname, identity, ilen, secret, slen);

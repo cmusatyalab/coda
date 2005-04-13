@@ -25,6 +25,7 @@ extern "C" {
 #include <config.h>
 #endif
 
+#include <stdlib.h>
 #include <krb5.h>
 #include <com_err.h>
 
@@ -48,6 +49,22 @@ static char *kerberos5keytab;  /* server only */
 static krb5_context   krb5context;
 static krb5_principal krb5principal;
 static krb5_keytab    krb5keytab = NULL;
+
+#ifdef HAVE_HEIMDAL
+#define tkt_realm(t)    ((t)->client->realm)
+#define tkt_realmlen(t) (strlen((t)->client->realm))
+#define tkt_client(t)   ((t)->client)
+#define tkt_key(t)	((t)->ticket.key)
+#define key_data(k)     ((k)->keyvalue.data)
+#define key_length(k)   ((k)->keyvalue.length)
+#else
+#define tkt_realm(t)    ((t)->enc_part2->client->realm.data)
+#define tkt_realmlen(t) ((t)->enc_part2->client->realm.length)
+#define tkt_client(t)   ((t)->enc_part2->client)
+#define tkt_key(t)	((t)->session)
+#define key_data(k)     ((k)->contents)
+#define key_length(k)   ((k)->length)
+#endif
 
 static int Krb5CommonInit(void)
 {
@@ -239,7 +256,7 @@ cleanup_principal:
     }
 
     /* we now have the key in session_key -- hopefully ->length, ->data */
-    HashSecret(session_key->contents, session_key->length, *secret);
+    HashSecret(key_data(session_key), key_length(session_key), *secret);
     *slen = RPC2_KEYSIZE;
 
     *identity = authenticator.data;
@@ -287,15 +304,14 @@ int Krb5Validate(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_Encrypti
     }
 
     /* Check whether the realm is correct */
-    if (strncmp(ticket->enc_part2->client->realm.data, kerberos5realm,
-		ticket->enc_part2->client->realm.length)) {
+    if (strncmp(tkt_realm(ticket), kerberos5realm, tkt_realmlen(ticket))) {
 	/* names differ */
 	fprintf(stderr, "incorrect realm in ticket\n");
 	goto out;    
     }
 
     /* success authenticating someone, but who? */
-    krc = krb5_unparse_name(krb5context, ticket->enc_part2->client, &cp);
+    krc = krb5_unparse_name(krb5context, tkt_client(ticket), &cp);
     if (krc) {
 	/* this is a bad situation -- kerberos server should not generate
 	   bad names in its authenticators? */
@@ -318,9 +334,7 @@ int Krb5Validate(RPC2_CountedBS * cIdent, RPC2_EncryptionKey hKey, RPC2_Encrypti
     /* now prepare the keys */
 
     /* hKey is the md5 hash of the kerberos session secret */
-    HashSecret(ticket->enc_part2->session->contents,
-	       ticket->enc_part2->session->length,
-	       hKey);
+    HashSecret(key_data(&tkt_key(ticket)), key_length(&tkt_key(ticket)), hKey);
 
     /* sKey is a random sequence of bytes */
     GenerateSecret(sKey);
