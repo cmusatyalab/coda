@@ -230,7 +230,7 @@ if [ $isscm = N ]; then
     # non critical files
     for which in ROOTVOLUME
     do
-        updatefetch -h $scmhost -r db/$which -l $which
+        updatefetch -h $scmhost -r db/$which -l $which 2>/dev/null || true
     done
     echo "Done."
 
@@ -274,7 +274,6 @@ servers
 scm
 update.tk
 volutil.tk
-ROOTVOLUME
 VLDB
 VRDB
 VRList
