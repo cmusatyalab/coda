@@ -109,7 +109,7 @@ int U_Authenticate(struct RPC2_addrinfo *srvs, const int AuthenticationType,
 		   const int verbose, const int interactive)
 {
 	RPC2_Handle	RPCid;
-	int		rc;
+	int		rc = 0;
 	int             bound = 0;
 	char            passwd[128];
 	int		secretlen;
