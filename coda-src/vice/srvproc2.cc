@@ -324,7 +324,7 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 
     CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, (Rights *)&rights, (Rights *)&anyrights) == 0);
 
-    if((SystemUser(client)) && (!(rights & PRSFS_READ))) {
+    if(!SystemUser(client) && !(rights & PRSFS_READ)) {
 	errorCode = EACCES;
 	goto Final;
     }
