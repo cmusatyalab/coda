@@ -293,8 +293,7 @@ long FS_ViceOpenReintHandle(RPC2_Handle RPCid, ViceFid *Fid,
     dlist *vlist = new dlist((CFN)VLECmp);
     vle *v;
 
-    SLog(0/*1*/, "ViceOpenReintHandle: Fid = (%x.%x.%x)",
-	     Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(0/*1*/, "ViceOpenReintHandle: Fid = %s", FID_(Fid));
 
     if ((errorCode = ValidateParms(RPCid, &client, NULL, &Fid->Volume, 0, NULL)))
 	goto FreeLocks;
@@ -1259,8 +1258,7 @@ START_TIMING(Reintegrate_GetObjects);
 	while ((v = (vle *)next())) {
 	    if (v->vptr != 0) continue;
 
-	    SLog(10,  "GetReintegrateObjects: acquiring (%x.%x.%x)",
-		    v->fid.Volume, v->fid.Vnode, v->fid.Unique);
+	    SLog(10,  "GetReintegrateObjects: acquiring %s", FID_(&v->fid));
 	    if ((errorCode = GetFsObj(&v->fid, &volptr, &v->vptr, 
 				     WRITE_LOCK, VOL_NO_LOCK, 0, 0,
 				     v->d_inodemod))) {
@@ -1378,9 +1376,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    v->f_sid = r->sid;
 
 		    /* Cancel previous truncate. */
-		    SLog(3,  "CheckSemanticsAndPerform: cancelling truncate (%x.%x.%x, %d, %d)",
-			 v->fid.Volume, v->fid.Vnode, v->fid.Unique,
-			 v->f_tinode, v->f_tlength);
+		    SLog(3,  "CheckSemanticsAndPerform: cancelling truncate (%s, %d, %d)",
+			 FID_(&v->fid), v->f_tinode, v->f_tlength);
 		    v->f_tinode = 0;
 		    v->f_tlength = 0;
 
@@ -1493,9 +1490,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
 		    /* Note need to truncate later. */
 		    if (truncp) {
-			SLog(3,  "CheckSemanticsAndPerform: noting truncation (%x.%x.%x, %d, %d), (%d, %d)",
-			     v->fid.Volume, v->fid.Vnode, v->fid.Unique,
-			     v->f_tinode, v->f_tlength,
+			SLog(3,  "CheckSemanticsAndPerform: noting truncation (%s, %d, %d), (%d, %d)",
+			     FID_(&v->fid), v->f_tinode, v->f_tlength,
 			     v->vptr->disk.inodeNumber, v->vptr->disk.length);
 			v->f_tinode = v->vptr->disk.inodeNumber;
 			v->f_tlength = v->vptr->disk.length;
@@ -1632,9 +1628,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			child_v->vptr->disk.inodeNumber = 0;
 
 			/* Cancel previous truncate. */
-			SLog(3,  "CheckSemanticsAndPerform: cancelling truncate (%x.%x.%x, %d, %d)",
-				child_v->fid.Volume, child_v->fid.Vnode, child_v->fid.Unique,
-				child_v->f_tinode, child_v->f_tlength);
+			SLog(3,  "CheckSemanticsAndPerform: cancelling truncate (%s, %d, %d)",
+				FID_(&child_v->fid), child_v->f_tinode, child_v->f_tlength);
 			child_v->f_tinode = 0;
 			child_v->f_tlength = 0;
 		    }
@@ -2159,15 +2154,16 @@ START_TIMING(Reintegrate_PutObjects);
 	    if ((!ISDIR(v->fid) || v->d_reintupdate) && !v->vptr->delete_me) {
 		ReintFinalCOP(v, volptr, NewVS);
 	    } else {
-		SLog(2, "PutReintegrateObjects: un-mutated or deleted fid 0x%x.%x.%x",
-		       v->fid.Volume, v->fid.Vnode, v->fid.Unique);
+		SLog(2, "PutReintegrateObjects: un-mutated or deleted fid %s",
+		       FID_(&v->fid));
 	    }
 
 	    /* write down stale directory fids */
 	    if (ISDIR(v->fid) && v->d_reintstale && StaleDirs) { /* compatibility check */
-		SLog(0, "PutReintegrateObjects: stale directory fid 0x%x.%x.%x, num %d, max %d",
-		       V_groupId(volptr), v->fid.Vnode, v->fid.Unique,
-		       *NumDirs, MaxDirs);
+		ViceFid fid = v->fid;
+		fid.Volume = V_groupId(volptr);
+		SLog(0, "PutReintegrateObjects: stale directory fid %s, num %d, max %d",
+		     FID_(&fid), *NumDirs, MaxDirs);
 		if (*NumDirs < MaxDirs) {
 		    StaleDirs[(*NumDirs)] = v->fid;	/* send back replicated ID */
 		    StaleDirs[(*NumDirs)++].Volume = V_groupId(volptr);

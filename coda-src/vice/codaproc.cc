@@ -801,7 +801,7 @@ int CheckFileRepairSemantics(vle *ov, vle *pv, Volume *volptr,
 #ifdef notdef
     if (ov->vptr->disk.owner != status->Owner){
 	/* client is trying to modify the owner */
-	if (SystemUser(client)){
+	if (!SystemUser(client)){
 	    SLog(0,  "CheckFileRepairSem: Ownership violation ");
 	    return(EACCES);
 	}
@@ -816,15 +816,15 @@ int CheckRepairACLSemantics(ClientEntry *client, Vnode *vptr, Volume *volptr,
 {
     Rights  rights, anyrights;
     
-    SLog(9,  "Entering CheckACLSemantics");
+    SLog(9, "Entering CheckACLSemantics");
 
     SetAccessList(vptr, *aCL, *aCLSize);
 
     CODA_ASSERT(GetRights(client->CPS, *aCL, *aCLSize, &rights, &anyrights) == 0);
     if (!(rights & PRSFS_ADMINISTER) &&
-	 (client->Id != (long)vptr->disk.owner) &&
-	 (SystemUser(client))){
-	SLog(0,  "CheckACLSemantics: No access ");
+	client->Id != (long)vptr->disk.owner &&
+	!SystemUser(client)){
+	SLog(0, "CheckACLSemantics: No access ");
 	return(EACCES);
     }
     return(0);
@@ -1213,7 +1213,7 @@ int CheckDirRepairSemantics(vle *ov, dlist *vlist, Volume *volptr,
 	    /* must be a system administrator */
 	    /* POLICY ISSUE - maybe allow the user to set ownership to himself
 	     * if he has administrative acl rights on the directory */
-	    if (SystemUser(client)) {
+	    if (!SystemUser(client)) {
 		SLog(0,  "DirRepairSemantics: Error for REPAIR_SETOWNER; need to be system administrator");
 		return(EACCES);
 	    }
@@ -2205,8 +2205,7 @@ static int FidSort(ViceFid *fids) {
     if (SrvDebugLevel >= 9) {
 	SLog(9,  "FidSort: nfids = %d", nfids);
 	for (int k = 0; k < MAXFIDS; k++)
-	    SLog(9,  ", Fid[%d] = (%x.%x.%x)",
-		    k, fids[k].Volume, fids[k].Vnode, fids[k].Unique);
+	    SLog(9,  ", Fid[%d] = %s", k, FID_(&fids[k]));
 	SLog(9,  "");
     }
 
@@ -2235,8 +2234,7 @@ static int FidSort(ViceFid *fids) {
     if (SrvDebugLevel >= 9) {
 	SLog(9,  "FidSort: nfids = %d", nfids);
 	for (int k = 0; k < MAXFIDS; k++)
-	    SLog(9,  ", Fid[%d] = (%x.%x.%x)",
-		    k, fids[k].Volume, fids[k].Vnode, fids[k].Unique);
+	    SLog(9,  ", Fid[%d] = %s", k, FID_(&fids[k]));
 	SLog(9,  "");
     }
 

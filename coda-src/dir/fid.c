@@ -217,9 +217,9 @@ int FID_IsVolRoot(const struct ViceFid *fid)
 
 char *FID_(const struct ViceFid *fid)
 {
-	static char buf[2][28];
+	static char buf[4][28];
 	static int i = 0;
-	i = 1 - i;
+	if (++i >= 4) i = 0;
 	sprintf(buf[i], "%x.%x.%x", (unsigned)fid->Volume,
 		(unsigned)fid->Vnode, (unsigned)fid->Unique);
 	return buf[i];

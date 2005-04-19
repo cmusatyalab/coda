@@ -156,8 +156,8 @@ void cpman::func(int parm)
 			cpe->StoreId.Host, cpe->StoreId.Uniquifier);
 		for (int i = 0; i < MAXFIDS; i++)
 		    if (!FID_EQ(&cpe->fids[i], &NullFid))
-			LogMsg(1, SrvDebugLevel, stdout,  ", fids[%d] = (0x%x.%x.%x)",
-				i, cpe->fids[i].Volume, cpe->fids[i].Vnode, cpe->fids[i].Unique);
+			LogMsg(1, SrvDebugLevel, stdout,  ", fids[%d] = %s",
+				i, FID_(&cpe->fids[i]));
 		LogMsg(1, SrvDebugLevel, stdout,  ", expired on BusyQueue");
 	    }
 	    
@@ -182,9 +182,8 @@ void cpman::add(cpent *cpe) {
 	    cpe->StoreId.Host, cpe->StoreId.Uniquifier);	
     for (int i = 0; i < MAXFIDS; i++) 
 	    if (!FID_EQ(&cpe->fids[i], &NullFid))
-		    LogMsg(9, SrvDebugLevel, stdout,  ", fids[%d] = (0x%x.%x.%x)",
-			   i, cpe->fids[i].Volume, 
-			   cpe->fids[i].Vnode, cpe->fids[i].Unique);
+		    LogMsg(9, SrvDebugLevel, stdout,  ", fids[%d] = %s",
+			   i, FID_(&cpe->fids[i]));
     LogMsg(9, SrvDebugLevel, stdout,  ", added to BusyQueue");
     
     objects.append(&cpe->StoreId, cpe);

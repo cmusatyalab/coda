@@ -281,9 +281,8 @@ AddCallBack: Establish a callback for afid with
 
 CallBackStatus AddCallBack(HostTable *client, ViceFid *afid) 
 {
-    SLog(3, "AddCallBack for Fid 0x%x.%x.%x, Venus %s.%d", afid->Volume,
-	 afid->Vnode, afid->Unique, inet_ntoa(client->host),
-	 ntohs(client->port));
+    SLog(3, "AddCallBack for Fid %s, Venus %s.%d",
+	 FID_(afid), inet_ntoa(client->host), ntohs(client->port));
 
     char aVCB = (afid->Vnode == 0 && afid->Unique == 0);
 
@@ -305,8 +304,8 @@ CallBackStatus AddCallBack(HostTable *client, ViceFid *afid)
 
     /* Shouldn't ever call AddCallBack() while doing a BreakCallBack()! */
     if (CheckLock(&tf->cblock)) {
-	LogMsg(0, SrvDebugLevel, stdout, "AddCallBack: breaking callback, 0x%x.%x.%x",	
-	       afid->Volume, afid->Vnode, afid->Unique);
+	LogMsg(0, SrvDebugLevel, stdout, "AddCallBack: breaking callback, %s",	
+	       FID_(afid));
 	return(NoCallBack);
     }
 
@@ -345,8 +344,7 @@ static int order_helist(const void *x, const void *y)
 void BreakCallBack(HostTable *client, ViceFid *afid) {
     struct CallBackEntry *tc;
 
-    LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack for Fid 0x%x.%x.%x",
-	     afid->Volume, afid->Vnode, afid->Unique);
+    LogMsg(3, SrvDebugLevel, stdout, "BreakCallBack for Fid %s", FID_(afid));
     if (client) LogMsg(3, SrvDebugLevel, stdout, "Venus %s.%d",
 		       inet_ntoa(client->host), ntohs(client->port));
     else LogMsg(3, SrvDebugLevel, stdout, "No connection");
@@ -513,8 +511,8 @@ static void SDeleteCallBack(HostTable *client, struct FileEntry *af)
 		(*lc) = nc;
 		tf->users--;
 	    }
-	    SLog(3, "SDeleteCallBack for Fid 0x%x.%x.%x, Venus %s.%d",
-		 af->theFid.Volume, af->theFid.Vnode, af->theFid.Unique,
+	    SLog(3, "SDeleteCallBack for Fid %s, Venus %s.%d",
+		 FID_(&af->theFid),
 		 inet_ntoa(client->host), ntohs(client->port));
 	    break;
 	}
@@ -550,8 +548,7 @@ void DeleteVenus(HostTable *client)
 /* Delete all the status on a file--used when a file is removed. */
 void DeleteFile(ViceFid *afid) 
 {
-    LogMsg(3, SrvDebugLevel, stdout, "DeleteFile for Fid 0x%x.%x.%x",
-	     afid->Volume, afid->Vnode, afid->Unique);
+    LogMsg(3, SrvDebugLevel, stdout, "DeleteFile for Fid %s", FID_(afid));
 
     char aVCB = (afid->Vnode == 0 && afid->Unique == 0);
     struct FileEntry *tf = FindEntry(afid);
@@ -713,9 +710,8 @@ void PrintCallBackState(FILE *fp)
 			tcbe = tcbe->next;
 		    }
 		    if (countcbe != tfe->users) 
-			fprintf(fp, "For Fid %lx.%lx.%lx users = %d when counted = %d\n",
-				tfe->theFid.Volume, tfe->theFid.Vnode, 
-				tfe->theFid.Unique, tfe->users, countcbe);
+			fprintf(fp, "For Fid %s users = %d when counted = %d\n",
+				FID_(&tfe->theFid), tfe->users, countcbe);
 		    
 		    allocatedCBEs += countcbe;
 		    CBSEnt->CBEs += countcbe;
@@ -770,15 +766,13 @@ static void PrintCBE(struct CallBackEntry *tcbe, FILE *fp)
 
 static void GetCallBacks(ViceFid *fid, FILE *fp) 
 {
-    fprintf(fp, "Printing callbacks for 0x%lx.%lx.%lx\n", 
-	    fid->Volume, fid->Vnode, fid->Unique);
+    fprintf(fp, "Printing callbacks for %s\n", FID_(fid));
     struct FileEntry *tfe = FindEntry(fid);
     if (tfe) 
 	for (struct CallBackEntry *tcbe = tfe->callBacks; tcbe; tcbe = tcbe->next) 
 	    PrintCBE(tcbe, fp);
 
-    fprintf(fp, "End of callbacks for %lx.%lx.%lx\n",
-	    fid->Volume, fid->Vnode, fid->Unique); 
+    fprintf(fp, "End of callbacks for %s\n", FID_(fid));
 }
 
 static void GetCallBacks(VolumeId vid, FILE *fp) 
@@ -800,8 +794,7 @@ static void GetCallBacks(VolumeId vid, FILE *fp)
 	for (struct FileEntry *tf = hashTable[j]; tf; tf = nf) {
 	    nf = tf->next;
 	    if (tf->theFid.Volume == vid && tf->theFid.Vnode && tf->theFid.Unique) {
-		fprintf(fp, "FID 0x%lx.%lx.%lx\n", tf->theFid.Volume, tf->theFid.Vnode,
-			tf->theFid.Unique);
+		fprintf(fp, "FID %s\n", FID_(&tf->theFid));
 		for (struct CallBackEntry *tcbe = tf->callBacks; tcbe; tcbe = tcbe->next)
 		    PrintCBE(tcbe, fp);
 	    }

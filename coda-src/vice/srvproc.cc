@@ -538,17 +538,13 @@ START_TIMING(ViceValidateAttrs_Total);
 		    CodaAddCallBack(client->VenusId, &Piggies[i].Fid, VSGVolnum);
 	    }
 
-	    SLog(8, "ViceValidateAttrs: (%x.%x.%x) ok",
-		 Piggies[i].Fid.Volume, 
-		 Piggies[i].Fid.Vnode, 
-		 Piggies[i].Fid.Unique);
+	    SLog(8, "ViceValidateAttrs: %s ok", FID_(&Piggies[i].Fid));
 	    continue;
 	}
 
 InvalidObj:
-	SLog(1, "ViceValidateAttrs: (%x.%x.%x) failed (%s)!",
-	     Piggies[i].Fid.Volume, Piggies[i].Fid.Vnode, 
-	     Piggies[i].Fid.Unique, why_failed);
+	SLog(1, "ViceValidateAttrs: %s failed (%s)!",
+	     FID_(&Piggies[i].Fid), why_failed);
     }
     VFlagBS->SeqLen = NumPiggyFids;
 
@@ -582,8 +578,7 @@ long FS_ViceGetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Unsigned InconOK,
     vle *v = 0;
 
 START_TIMING(GetACL_Total);
-    SLog(1, "ViceGetACL: Fid = (%x.%x.%x), Repair = %d",
-	     Fid->Volume, Fid->Vnode, Fid->Unique, InconOK);
+    SLog(1, "ViceGetACL: Fid = %s, Repair = %d", FID_(Fid), InconOK);
 
     /* Validate parameters. */
     {
@@ -650,8 +645,7 @@ long FS_ViceStore(RPC2_Handle RPCid, ViceFid *Fid,
     vle *av = 0;
 
 START_TIMING(Store_Total);
-    SLog(1, "ViceStore: Fid = (%x.%x.%x)",
-	     Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(1, "ViceStore: Fid = %s", FID_(Fid));
 
     /* Validate parameters. */
     {
@@ -756,8 +750,7 @@ long FS_ViceSetAttr(RPC2_Handle RPCid, ViceFid *Fid, ViceStatus *Status,
     vle *av = 0;
 
 START_TIMING(SetAttr_Total);
-    SLog(1, "ViceSetAttr: Fid = (%x.%x.%x)",
-	     Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(1, "ViceSetAttr: Fid = %s", FID_(Fid));
 
     /* Validate parameters. */
     {
@@ -888,8 +881,7 @@ long FS_ViceSetACL(RPC2_Handle RPCid, ViceFid *Fid, RPC2_CountedBS *AccessList,
     vle *v = 0;
 
 START_TIMING(SetACL_Total);
-    SLog(1, "ViceSetACL: Fid = (%x.%x.%x)",
-	     Fid->Volume, Fid->Vnode, Fid->Unique);
+    SLog(1, "ViceSetACL: Fid = %s", FID_(Fid));
 
     /* Validate parameters. */
     {
@@ -997,16 +989,14 @@ START_TIMING(Create_Total);
 
 	/* Sanity. */
 	if (FID_EQ(Did, Fid)) {
-	    SLog(0, "ViceCreate: Did = Fid (%x.%x.%x)",
-		    Did->Volume, Did->Vnode, Did->Unique);
+	    SLog(0, "ViceCreate: Did = Fid %s", FID_(Did));
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
 
 	/* Deprecated/Inapplicable parameters. */
 	if (!FID_EQ(&NullFid, BidFid)) {
-	    SLog(0, "ViceCreate: non-Null BidFid (%x.%x.%x)",
-		    BidFid->Volume, BidFid->Vnode, BidFid->Unique);
+	    SLog(0, "ViceCreate: non-Null BidFid %s", FID_(BidFid));
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
@@ -1267,8 +1257,7 @@ START_TIMING(Link_Total);
 
 	/* Sanity. */
 	if (FID_EQ(Did, Fid)) {
-	    SLog(0, "ViceLink: Did = Fid (%x.%x.%x)",
-		    Did->Volume, Did->Vnode, Did->Unique);
+	    SLog(0, "ViceLink: Did = Fid %s", FID_(Did));
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
@@ -1378,9 +1367,8 @@ long FS_ViceVRename(RPC2_Handle RPCid, ViceFid *OldDid, RPC2_String OldName,
     vle *tv = 0;
 START_TIMING(Rename_Total);
     
-    SLog(1, "ViceRename: (%x.%x.%x), %s --> (%x.%x.%x), %s",
-	    OldDid->Volume, OldDid->Vnode, OldDid->Unique, OldName,
-	    NewDid->Volume, NewDid->Vnode, NewDid->Unique, NewName);
+    SLog(1, "ViceRename: %s, %s --> %s, %s",
+	 FID_(OldDid), OldName, FID_(NewDid), NewName);
 
     /* Validate parameters. */
     {
@@ -1864,8 +1852,7 @@ long FS_ViceVSymLink(RPC2_Handle RPCid, ViceFid *Did, RPC2_String NewName,
 
 START_TIMING(SymLink_Total);
 
-    SLog(1, "ViceSymLink: (%x.%x.%x), %s --> %s",
-	    Did->Volume, Did->Vnode, Did->Unique, NewName, OldName);
+    SLog(1, "ViceSymLink: %s, %s --> %s", FID_(Did), NewName, OldName);
 
     /* Validate parameters. */
     {
@@ -1886,8 +1873,7 @@ START_TIMING(SymLink_Total);
 
 	/* Sanity. */
 	if (FID_EQ(Did, Fid)) {
-	    SLog(0, "ViceSymLink: Did = Fid (%x.%x.%x)",
-		    Did->Volume, Did->Vnode, Did->Unique);
+	    SLog(0, "ViceSymLink: Did = Fid %s", FID_(Did));
 	    errorCode = EINVAL;
 	    goto FreeLocks;
 	}
@@ -2288,7 +2274,7 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 
 int SystemUser(ClientEntry *client)
 {
-    return AL_IsAMember(SystemId, client->CPS);
+    return AL_IsAMember(SystemId, client->CPS) == 0;
 }
 
 
@@ -2402,9 +2388,8 @@ int AllocVnode(Vnode **vptr, Volume *volptr, ViceDataType vtype, ViceFid *Fid,
     *blocks = 0;
 
 START_TIMING(AllocVnode_Total);
-    SLog(10, "AllocVnode: Fid = (%x.%x.%x), type = %d, pFid = (%x.%x.%x), Owner = %d",
-	     Fid->Volume, Fid->Vnode, Fid->Unique, vtype,
-	     pFid->Volume, pFid->Vnode, pFid->Unique, ClientId);
+    SLog(10, "AllocVnode: Fid = %s, type = %d, pFid = %s, Owner = %d",
+	 FID_(Fid), vtype, FID_(pFid), ClientId);
 
     /* Validate parameters. */
     if (ReplicatedOp)
@@ -2524,19 +2509,18 @@ int CheckFetchSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
 	/* LOOKUP or READ permission (normally) required. */
 	/* READ mode-bits also (normally) required for files. */
-	if (SystemUser(client)) {
+	if (!SystemUser(client)) {
 	    if (((*vptr)->disk.type == vDirectory && !(*rights & PRSFS_LOOKUP)) ||
 		((*vptr)->disk.type != vDirectory && !(*rights & PRSFS_READ))) {
-		SLog(1, "CheckFetchSemantics: rights violation (%x : %x) (%x.%x.%x)",
-			*rights, *anyrights,
-			Fid.Volume, Fid.Vnode, Fid.Unique);
+		SLog(1, "CheckFetchSemantics: rights violation (%x : %x) %s",
+		     *rights, *anyrights, FID_(&Fid));
 		return(EACCES);
 	    }
 
 	    if (!IsOwner && (*vptr)->disk.type == vFile) {
 		if (CheckReadMode(client, *vptr)) {
-		    SLog(1, "CheckFetchSemantics: mode-bits violation (%x.%x.%x)",
-			    Fid.Volume, Fid.Vnode, Fid.Unique);
+		    SLog(1, "CheckFetchSemantics: mode-bits violation %s",
+			 FID_(&Fid));
 		    return(EACCES);
 		}
 	    }
@@ -2597,13 +2581,11 @@ int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
     /* Integrity checks. */
     {
 	if ((*vptr)->disk.type != vDirectory) {
-	    SLog(0, "CheckGetACLSemantics: non-directory (%x.%x.%x)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckGetACLSemantics: non-directory %s", FID_(&Fid));
 	    return(ENOTDIR);
 	}
 	if (AccessList->MaxSeqLen == 0) {
-	    SLog(0, "CheckGetACLSemantics: zero-len ACL (%x.%x.%x)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckGetACLSemantics: zero-len ACL %s", FID_(&Fid));
 	    return(EINVAL);
 	}
     }
@@ -2623,9 +2605,8 @@ int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
 	CODA_ASSERT(AL_Externalize(aCL, (AL_ExternalAccessList *)eACL) == 0);
 	int eACLlen = (int)(strlen((char *)*eACL) + 1);
 	if (eACLlen > AccessList->MaxSeqLen) {
-	    SLog(0, "CheckGetACLSemantics: eACLlen (%d) > ACL->MaxSeqLen (%d) (%x.%x.%x)",
-		    eACLlen, AccessList->MaxSeqLen,
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckGetACLSemantics: eACLlen (%d) > ACL->MaxSeqLen (%d) %s",
+		 eACLlen, AccessList->MaxSeqLen, FID_(&Fid));
 	    return(E2BIG);
 	}
 	SLog(10, "CheckGetACLSemantics: ACL is:\n%s", *eACL);
@@ -2652,8 +2633,8 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
 	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
-	    SLog(0, "CheckStoreSemantics: (%x.%x.%x), VCP error (%d)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
+	    SLog(0, "CheckStoreSemantics: %s, VCP error (%d)",
+		 FID_(&Fid), errorCode);
 	    return(errorCode);
 	}
     }
@@ -2661,8 +2642,7 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     /* Integrity checks. */
     {
 	if ((*vptr)->disk.type != vFile) {
-	    SLog(0, "CheckStoreSemantics: (%x.%x.%x) not a file",
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckStoreSemantics: %s not a file", FID_(&Fid));
 	    return(EISDIR);
 	}
     }
@@ -2681,8 +2661,8 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 
 	/* WRITE permission (normally) required. */
 	if (!(*rights & PRSFS_WRITE) && !(IsOwner && Virginal)) {
-	    SLog(0, "CheckStoreSemantics: rights violation (%x : %x) (%x.%x.%x)",
-		    *rights, *anyrights, Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckStoreSemantics: rights violation (%x : %x) %s",
+		 *rights, *anyrights, FID_(&Fid));
 	    return(EACCES);
 	}
     }
@@ -2716,8 +2696,8 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
 	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
-	    SLog(0, "CheckSetAttrSemantics: (%x.%x.%x), VCP error (%d)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
+	    SLog(0, "CheckSetAttrSemantics: %s, VCP error (%d)",
+		 FID_(&Fid), errorCode);
 	    return(errorCode);
 	}
     }
@@ -2726,21 +2706,20 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     {
 	if (truncp) { 
 	    if ((*vptr)->disk.type != vFile) {
-		SLog(0, "CheckSetAttrSemantics: non-file truncate (%x.%x.%x)",
-			Fid.Volume, Fid.Vnode, Fid.Unique);
+		SLog(0, "CheckSetAttrSemantics: non-file truncate %s",
+		     FID_(&Fid));
 		return(EISDIR);
 	    }
 	    if (Length > (long)(*vptr)->disk.length) {
-		SLog(0, "CheckSetAttrSemantics: truncate length bad (%x.%x.%x)",
-			Fid.Volume, Fid.Vnode, Fid.Unique);
+		SLog(0, "CheckSetAttrSemantics: truncate length bad %s",
+		     FID_(&Fid));
 		return(EINVAL);
 	    }
 	}
 
 	/* just log a message if nothing is changing - don't be paranoid about returning an error */
 	if (chmodp + chownp + truncp + utimesp == 0) {
-	    SLog(0, "CheckSetAttrSemantics: no attr set (%x.%x.%x)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckSetAttrSemantics: no attr set %s", FID_(&Fid));
 	}
     }
 
@@ -2759,8 +2738,8 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	if (IsOwner && Virginal) {
 	    /* Bypass protection checks on first store after a create EXCEPT for chowns. */
 	    if (chownp) {
-		SLog(0, "CheckSetAttrSemantics: owner chown'ing virgin (%x.%x.%x)",
-			Fid.Volume, Fid.Vnode, Fid.Unique);
+		SLog(0, "CheckSetAttrSemantics: owner chown'ing virgin %s",
+		     FID_(&Fid));
 		return(EACCES);
 	    }
 	}
@@ -2771,17 +2750,15 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		/* INSERT | DELETE for directories. */
 		if ((*vptr)->disk.type == vDirectory) {
 		    if (!(*rights & (PRSFS_INSERT | PRSFS_DELETE))) {
-			SLog(0, "CheckSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
-				*rights, *anyrights,
-				Fid.Volume, Fid.Vnode, Fid.Unique);
+			SLog(0, "CheckSetAttrSemantics: rights violation (%x : %x) %s",
+				*rights, *anyrights, FID_(&Fid));
 			return(EACCES);
 		    }
 		}
 		else {
 		    if (!(*rights & PRSFS_WRITE)) {
-			SLog(0, "CheckSetAttrSemantics: rights violation (%x : %x) (%x.%x.%x)",
-				*rights, *anyrights,
-				Fid.Volume, Fid.Vnode, Fid.Unique);
+			SLog(0, "CheckSetAttrSemantics: rights violation (%x : %x) %s",
+				*rights, *anyrights, FID_(&Fid));
 			return(EACCES);
 		    }
 		}
@@ -2791,14 +2768,13 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 		}
 
 		if (chownp && !IsOwner) {
-		    SLog(0, "CheckSetAttrSemantics: non-owner chown'ing (%x.%x.%x)",
-			    Fid.Volume, Fid.Vnode, Fid.Unique);
+		    SLog(0, "CheckSetAttrSemantics: non-owner chown'ing %s",
+			 FID_(&Fid));
 		    return(EACCES);
 		}
 
 		if (truncp && CheckWriteMode(client, (*vptr)) != 0) {
-		    SLog(0, "CheckSetAttrSemantics: truncating (%x.%x.%x)",
-			    Fid.Volume, Fid.Vnode, Fid.Unique);
+		    SLog(0, "CheckSetAttrSemantics: truncating %s", FID_(&Fid));
 		    return(EACCES);
 		}
 
@@ -2829,8 +2805,8 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
 	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
-	    SLog(0, "CheckSetACLSemantics: (%x.%x.%x), VCP error (%d)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
+	    SLog(0, "CheckSetACLSemantics: %s, VCP error (%d)",
+		 FID_(&Fid), errorCode);
 	    return(errorCode);
 	}
     }
@@ -2838,13 +2814,11 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
     /* Integrity checks. */
     {
 	if ((*vptr)->disk.type != vDirectory) {
-	    SLog(0, "CheckSetACLSemantics: non-directory (%x.%x.%x)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckSetACLSemantics: non-directory %s", FID_(&Fid));
 	    return(ENOTDIR);
 	}
 	if (AccessList->SeqLen == 0) {
-	    SLog(0, "CheckSetACLSemantics: zero-len ACL (%x.%x.%x)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckSetACLSemantics: zero-len ACL %s", FID_(&Fid));
 	    return(EINVAL);
 	}
     }
@@ -2862,20 +2836,18 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* ADMINISTER permission (normally) required. */
-	if (!(*rights & PRSFS_ADMINISTER) && !IsOwner && SystemUser(client)) {
-	    SLog(0, "CheckSetACLSemantics: rights violation (%x : %x) (%x.%x.%x)",
-		    *rights, *anyrights,
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	if (!(*rights & PRSFS_ADMINISTER) && !IsOwner && !SystemUser(client)) {
+	    SLog(0, "CheckSetACLSemantics: rights violation (%x : %x) %s",
+		    *rights, *anyrights, FID_(&Fid));
 	    return(EACCES);
 	}
 	if (AL_Internalize((AL_ExternalAccessList) AccessList->SeqBody, newACL) != 0) {
-	    SLog(0, "CheckSetACLSemantics: ACL internalize failed (%x.%x.%x)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckSetACLSemantics: ACL internalize failed %s",
+		 FID_(&Fid));
 	    return(EINVAL);
 	}
 	if ((*newACL)->MySize + 4 > aCLSize) {
-	    SLog(0, "CheckSetACLSemantics: ACL too big (%x.%x.%x)",
-		    Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "CheckSetACLSemantics: ACL too big %s", FID_(&Fid));
 	    return(E2BIG);
 	}
     }
@@ -2958,8 +2930,8 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	{
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*s_dirvptr) : (void *)&(*s_dirvptr)->disk.dataVersion);
 	    if ((errorCode = VCmpProc(ReplicatedOp, (*s_dirvptr)->disk.type, arg1, s_dirVersion))) {
-		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
-			SDid.Volume, SDid.Vnode, SDid.Unique, errorCode);
+		SLog(0, "CheckRenameSemantics: %s, VCP error (%d)",
+		     FID_(&SDid), errorCode);
 		return(errorCode);
 	    }
 	}
@@ -2969,8 +2941,8 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	{
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*t_dirvptr) : (void *)&(*t_dirvptr)->disk.dataVersion);
 	    if ((errorCode = VCmpProc(ReplicatedOp, (*t_dirvptr)->disk.type, arg1, t_dirVersion))) {
-		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
-			TDid.Volume, TDid.Vnode, TDid.Unique, errorCode);
+		SLog(0, "CheckRenameSemantics: %s, VCP error (%d)",
+		     FID_(&TDid), errorCode);
 		return(errorCode);
 	    }
 	}
@@ -2979,8 +2951,8 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	{
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*s_vptr) : (void *)&(*s_vptr)->disk.dataVersion);
 	    if ((errorCode = VCmpProc(ReplicatedOp, (*s_vptr)->disk.type, arg1, s_Version))) {
-		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
-			SFid.Volume, SFid.Vnode, SFid.Unique, errorCode);
+		SLog(0, "CheckRenameSemantics: %s, VCP error (%d)",
+		     FID_(&SFid), errorCode);
 		return(errorCode);
 	    }
 	}
@@ -2989,8 +2961,8 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	if (TargetExists) {
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*t_vptr) : (void *)&(*t_vptr)->disk.dataVersion);
 	    if ((errorCode = VCmpProc(ReplicatedOp, (*t_vptr)->disk.type, arg1, t_Version))) {
-		SLog(0, "CheckRenameSemantics: (%x.%x.%x), VCP error (%d)",
-			TFid.Volume, TFid.Vnode, TFid.Unique, errorCode);
+		SLog(0, "CheckRenameSemantics: %s, VCP error (%d)",
+		     FID_(&TFid), errorCode);
 		return(errorCode);
 	    }
 	}
@@ -3015,24 +2987,21 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 	    if ((*s_vptr)->disk.vparent != SDid.Vnode ||
 		(*s_vptr)->disk.uparent != SDid.Unique) {
-		SLog(0, "CheckRenameSemantics: source (%x.%x.%x) not in parent (%x.%x.%x)", 
-			SFid.Volume, SFid.Vnode, SFid.Unique,
-			SDid.Volume, SDid.Vnode, SDid.Unique);
+		SLog(0, "CheckRenameSemantics: source %s not in parent %s", 
+		     FID_(&SFid), FID_(&SDid));
 		return(EINVAL);
 	    }
 
 	    if (FID_EQ(&SDid, &SFid) || FID_EQ(&TDid, &SFid)) {
-		SLog(0, "CheckRenameSemantics: (%x.%x.%x) (%x.%x.%x) (%x.%x.%x) (%x.%x.%x)", 
-			SDid.Volume, SDid.Vnode, SDid.Unique,
-			TDid.Volume, TDid.Vnode, TDid.Unique,
-			SFid.Volume, SFid.Vnode, SFid.Unique,
-			TFid.Volume, TFid.Vnode, TFid.Unique);
+		SLog(0, "CheckRenameSemantics: %s %s %s %s", 
+		     FID_(&SDid), FID_(&TDid), FID_(&SFid), FID_(&TFid));
 		return(ELOOP);
 	    }
 
 	    /* Cannot allow rename out of a directory if file has multiple links! */
 	    if (!SameParent && (*s_vptr)->disk.type == vFile && (*s_vptr)->disk.linkCount > 1) {
-		SLog(0, "CheckRenameSemantics: !SameParent and multiple links (%x.%x.%x)",   SFid.Volume, SFid.Vnode, SFid.Unique);
+		SLog(0, "CheckRenameSemantics: !SameParent and multiple links %s",
+		    FID_(&SFid));
 		return(EXDEV);
 	    }
 	}
@@ -3047,18 +3016,14 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	    if (TargetExists) {
 		if ((*t_vptr)->disk.vparent != TDid.Vnode ||
 		    (*t_vptr)->disk.uparent != TDid.Unique) {
-		    SLog(0, "CheckRenameSemantics: target (%x.%x.%x) not in parent (%x.%x.%x)", 
-			    TFid.Volume, TFid.Vnode, TFid.Unique,
-			    TDid.Volume, TDid.Vnode, TDid.Unique);
+		    SLog(0, "CheckRenameSemantics: target %s not in parent %s", 
+			 FID_(&TFid), FID_(&TDid));
 		    return(EINVAL);
 		}
 
 		if (FID_EQ(&SDid, &TFid) || FID_EQ(&TDid, &TFid) || FID_EQ(&SFid, &TFid)) {
-		    SLog(0, "CheckRenameSemantics: (%x.%x.%x) (%x.%x.%x) (%x.%x.%x) (%x.%x.%x)", 
-			    SDid.Volume, SDid.Vnode, SDid.Unique,
-			    TDid.Volume, TDid.Vnode, TDid.Unique,
-			    SFid.Volume, SFid.Vnode, SFid.Unique,
-			    TFid.Volume, TFid.Vnode, TFid.Unique);
+		    SLog(0, "CheckRenameSemantics: %s %s %s %s", 
+			 FID_(&SDid), FID_(&TDid), FID_(&SFid), FID_(&TFid));
 		    return(ELOOP);
 		}
 
@@ -3133,9 +3098,10 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 			 * no need to call VPutVnode in that case.  If the vnode
 			 * is not on the vlist, return rather than be antisocial.
 			 */
-			SLog(0, 
-			       "CheckRenameSemantics: avoiding deadlock on %x.%x.%x",
-			       V_id(*volptr), TestFid.Vnode, TestFid.Unique);
+			ViceFid fid = TestFid;
+			fid.Volume = V_id(*volptr);
+			SLog(0, "CheckRenameSemantics: avoiding deadlock on %s",
+			     FID_(&fid));
 			if (vlist) {
 			    vle *v = FindVLE(*vlist, &TestFid);
 			    if (v) {
@@ -3165,8 +3131,8 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 	    CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, sd_rights, sd_anyrights) == 0);
 
 	    if (!(*sd_rights & PRSFS_DELETE)) {
-		SLog(0, "CheckRenameSemantics: sd rights violation (%x : %x) (%x.%x.%x)", 
-			*sd_rights, *sd_anyrights, SDid.Volume, SDid.Vnode, SDid.Unique);
+		SLog(0, "CheckRenameSemantics: sd rights violation (%x : %x) %s", 
+		     *sd_rights, *sd_anyrights, FID_(&SDid));
 		return(EACCES);
 	    }
 	}
@@ -3183,8 +3149,8 @@ int CheckRenameSemantics(ClientEntry *client, Vnode **s_dirvptr, Vnode **t_dirvp
 
 	    if (!(*td_rights & PRSFS_INSERT) ||
 		(TargetExists && !(*td_rights & PRSFS_DELETE))) {
-		SLog(0, "CheckRenameSemantics: td rights violation (%x : %x) (%x.%x.%x)", 
-			*td_rights, *td_anyrights, TDid.Volume, TDid.Vnode, TDid.Unique);
+		SLog(0, "CheckRenameSemantics: td rights violation (%x : %x) %s", 
+		     *td_rights, *td_anyrights, FID_(&TDid));
 		return(EACCES);
 	    }
 	}
@@ -3271,16 +3237,15 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
     if (VCmpProc) {
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*dirvptr) : (void *)&(*dirvptr)->disk.dataVersion);
 	if ((errorCode = VCmpProc(ReplicatedOp, (*dirvptr)->disk.type, arg1, dirVersion))) {
-	    SLog(0, "%s: (%x.%x.%x), VCP error (%d)",
-		    ProcName, Did.Volume, Did.Vnode, Did.Unique, errorCode);
+	    SLog(0, "%s: %s, VCP error (%d)", ProcName, FID_(&Did), errorCode);
 	    return(errorCode);
 	}
 
 	if (vptr) {
 	    arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	    if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, Version))) {
-		SLog(0, "%s: (%x.%x.%x), VCP error (%d)",
-			ProcName, Fid.Volume, Fid.Vnode, Fid.Unique, errorCode);
+		SLog(0, "%s: %s, VCP error (%d)",
+		     ProcName, FID_(&Fid), errorCode);
 		return(errorCode);
 	    }
 	}
@@ -3289,8 +3254,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
     /* Integrity checks. */
     {
 	if ((*dirvptr)->disk.type != vDirectory){
-	    SLog(0, "%s: (%x.%x.%x) not a directory",
-		    ProcName, Did.Volume, Did.Vnode, Did.Unique);
+	    SLog(0, "%s: %s not a directory", ProcName, FID_(&Did));
 	    return(ENOTDIR);
 	}
 
@@ -3317,8 +3281,7 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 		case CLMS_Create:
 		case CLMS_Link:
 		    if ((*vptr)->disk.type != vFile) {
-			SLog(0, "%s: (%x.%x.%x) not a file", 
-				ProcName, Fid.Volume, Fid.Vnode, Fid.Unique);
+			SLog(0, "%s: %s not a file", ProcName, FID_(&Fid));
 			return(EISDIR);
 		    }
 		    break;
@@ -3332,17 +3295,15 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
 
 		case CLMS_SymLink:
 		    if ((*vptr)->disk.type != vSymlink) {
-			SLog(0, "%s: (%x.%x.%x) not a symlink", 
-				ProcName, Fid.Volume, Fid.Vnode, Fid.Unique);
+			SLog(0, "%s: %s not a symlink", ProcName, FID_(&Fid));
 			return(EISDIR);
 		    }
 		    break;
 	    }
 
 	    if (((*vptr)->disk.vparent != Did.Vnode) || ((*vptr)->disk.uparent != Did.Unique)){
-		SLog(0, "%s: cross-directory link (%x.%x.%x), (%x.%x.%x)",
-			ProcName, Did.Volume, Did.Vnode, Did.Unique,
-			Fid.Volume, Fid.Vnode, Fid.Unique);
+		SLog(0, "%s: cross-directory link %s, %s",
+		     ProcName, FID_(&Did), FID_(&Fid));
 		return(EXDEV);
 	    }
 	}
@@ -3351,23 +3312,21 @@ static int Check_CLMS_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vp
     /* Protection checks. */
     if (MakeProtChecks) {
 	/* Get the access list. */
-	SLog(9, "%s: Going to get acl (%x.%x.%x)",
-		ProcName, Did.Volume, Did.Vnode, Did.Unique);
+	SLog(9, "%s: Going to get acl %s", ProcName, FID_(&Did));
 	AL_AccessList *aCL = 0;
 	int aCLSize = 0;
 	SetAccessList(*dirvptr, aCL, aCLSize);
 
 	/* Get this client's rights. */
-	SLog(9, "%s: Going to get rights (%x.%x.%x)",
-		ProcName, Did.Volume, Did.Vnode, Did.Unique);
+	SLog(9, "%s: Going to get rights %s", ProcName, FID_(&Did));
 	Rights t_rights; if (rights == 0) rights = &t_rights;
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
 	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* INSERT permission required. */
 	if (!(*rights & PRSFS_INSERT)) {
-	    SLog(0, "%s: rights violation (%x : %x) (%x.%x.%x)",
-		    ProcName, *rights, *anyrights, Did.Volume, Did.Vnode, Did.Unique);
+	    SLog(0, "%s: rights violation (%x : %x) %s",
+		 ProcName, *rights, *anyrights, FID_(&Did));
 	    return(EACCES);
 	}
     }
@@ -3412,8 +3371,7 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
     /* Integrity checks. */
     {
 	if ((*dirvptr)->disk.type != vDirectory) {
-	    SLog(0, "%s: parent (%x.%x.%x) not a directory", 
-		    ProcName, Did.Volume, Did.Vnode, Did.Unique);
+	    SLog(0, "%s: parent %s not a directory", ProcName, FID_(&Did));
 	    return(ENOTDIR);
 	}
 
@@ -3465,8 +3423,8 @@ static int Check_RR_Semantics(ClientEntry *client, Vnode **dirvptr, Vnode **vptr
 
 	/* DELETE permission required. */
 	if (!(*rights & PRSFS_DELETE)) {
-	    SLog(0, "%s: rights violation (%x : %x) (%x.%x.%x)", 
-		    ProcName, *rights, *anyrights, Did.Volume, Did.Vnode, Did.Unique);
+	    SLog(0, "%s: rights violation (%x : %x) %s", 
+		 ProcName, *rights, *anyrights, FID_(&Did));
 	    return(EACCES);
 	}
     }
@@ -3577,13 +3535,13 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	}
 	if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
 	    SLog(0, "FetchBulkTransfer: InitSE failed (%d), %s",
-		    errorCode, FID_(&Fid));
+		 errorCode, FID_(&Fid));
 	    goto Exit;
 	}
 
 	if ((errorCode = (int) RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT) {
-	    SLog(0, "FetchBulkTransfer: CheckSE failed (%d), (%x.%x.%x)",
-		    errorCode, Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "FetchBulkTransfer: CheckSE failed (%d), %s",
+		 errorCode, FID_(&Fid));
 	    if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 	    goto Exit;
 	}
@@ -3594,8 +3552,8 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 
 	RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
 	if (len != Length) {
-	    SLog(0, "FetchBulkTransfer: length discrepancy (%d : %d), (%x.%x.%x), %s %s.%d",
-		 Length, len, Fid.Volume, Fid.Vnode, Fid.Unique,
+	    SLog(0, "FetchBulkTransfer: length discrepancy (%d : %d), %s, %s %s.%d",
+		 Length, len, FID_(&Fid),
 		 client->UserName, inet_ntoa(client->VenusId->host),
 		 ntohs(client->VenusId->port));
 	    errorCode = EINVAL;
@@ -3619,8 +3577,8 @@ int FetchBulkTransfer(RPC2_Handle RPCid, ClientEntry *client,
 	else
 	    Counters[FETCHD5]++;
 
-	SLog(2, "FetchBulkTransfer: transferred %d bytes (%x.%x.%x)",
-		Length, Fid.Volume, Fid.Vnode, Fid.Unique);
+	SLog(2, "FetchBulkTransfer: transferred %d bytes %s",
+	     Length, FID_(&Fid));
     }
 
 Exit:
@@ -3762,24 +3720,23 @@ START_TIMING(Store_Xfer);
 	sid.Value.SmartFTPD.FileInfo.ByFD.fd = fd;
 
 	if((errorCode = (int) RPC2_InitSideEffect(RPCid, &sid)) <= RPC2_ELIMIT) {
-	    SLog(0, "StoreBulkTransfer: InitSE failed (%d), (%x.%x.%x)",
-		    errorCode, Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "StoreBulkTransfer: InitSE failed (%d), %s",
+		 errorCode, FID_(&Fid));
 	    goto Exit;
 	}
 
 	if ((errorCode = (int) RPC2_CheckSideEffect(RPCid, &sid, SE_AWAITLOCALSTATUS)) <= RPC2_ELIMIT) {
-	    SLog(0, "StoreBulkTransfer: CheckSE failed (%d), (%x.%x.%x)",
-		    errorCode, Fid.Volume, Fid.Vnode, Fid.Unique);
+	    SLog(0, "StoreBulkTransfer: CheckSE failed (%d), %s",
+		 errorCode, FID_(&Fid));
 	    if (errorCode == RPC2_SEFAIL1) errorCode = EIO;
 	    goto Exit;
 	}
 
 	RPC2_Integer len = sid.Value.SmartFTPD.BytesTransferred;
 	if (Length != -1 && Length != len) {
-	    SLog(0, "StoreBulkTransfer: length discrepancy (%d : %d), (%x.%x.%x), %s %s.%d",
-		    Length, len, Fid.Volume, Fid.Vnode, Fid.Unique,
-		    client->UserName, inet_ntoa(client->VenusId->host),
-		    ntohs(client->VenusId->port));
+	    SLog(0, "StoreBulkTransfer: length discrepancy (%d : %d), %s, %s %s.%d",
+		 Length, len, FID_(&Fid), client->UserName,
+		 inet_ntoa(client->VenusId->host),ntohs(client->VenusId->port));
 	    errorCode = EINVAL;
 	    goto Exit;
 	}
@@ -3801,8 +3758,8 @@ START_TIMING(Store_Xfer);
 	else
 	    Counters[STORED5]++;
 
-	SLog(2, "StoreBulkTransfer: transferred %d bytes (%x.%x.%x)",
-		Length, Fid.Volume, Fid.Vnode, Fid.Unique);
+	SLog(2, "StoreBulkTransfer: transferred %d bytes %s",
+	     Length, FID_(&Fid));
     }
 
 Exit:
@@ -4637,9 +4594,8 @@ START_NSC_TIMING(PutObjects_Inodes);
 		    if (v->f_sinode)
 			CODA_ASSERT(idec((int) device, (int) v->f_sinode, parentId) == 0);
 		    if (v->f_tinode) {
-			SLog(3, "PutObjects: truncating (%x.%x.%x, %d, %d)",
-				v->fid.Volume, v->fid.Vnode, v->fid.Unique,
-				v->f_tinode, v->f_tlength);
+			SLog(3, "PutObjects: truncating (%s, %d, %d)",
+			     FID_(&v->fid), v->f_tinode, v->f_tlength);
 
 			int fd;
 			if ((fd = iopen((int) device, (int) v->f_tinode, O_RDWR)) < 0) {

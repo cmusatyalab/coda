@@ -324,7 +324,7 @@ long FS_ViceGetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 
     CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, (Rights *)&rights, (Rights *)&anyrights) == 0);
 
-    if(!SystemUser(client) && !(rights & PRSFS_READ)) {
+    if(!(rights & PRSFS_READ) && !SystemUser(client)) {
 	errorCode = EACCES;
 	goto Final;
     }
@@ -455,12 +455,12 @@ long FS_ViceSetVolumeStatus(RPC2_Handle RPCid, VolumeId vid, VolumeStatus *statu
 
     CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, (Rights *)&rights, (Rights *)&anyrights) == 0);
 
-    if(SystemUser(client)) {
+    if (!SystemUser(client)) {
 	errorCode = EACCES;
 	goto Final;
     }
 
-    if(status->MinQuota > -1)
+    if (status->MinQuota > -1)
 	V_minquota(volptr) = (int) status->MinQuota;
 
     if(status->MaxQuota > -1) {
@@ -548,7 +548,7 @@ long FS_ViceSetRootVolume(RPC2_Handle RPCid, RPC2_String volume)
 	goto exit;
     }
 
-    if(!SystemUser(client)) {
+    if (!SystemUser(client)) {
 	errorCode = EACCES;
 	goto exit;
     }
