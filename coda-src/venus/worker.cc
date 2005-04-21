@@ -1237,6 +1237,8 @@ void worker::main(void)
 
 		if (type != 'V') {
 		    u.u_error = EOPNOTSUPP;
+		    out->coda_ioctl.data =
+			(char *)sizeof(struct coda_ioctl_out); 
                     out->coda_ioctl.len = 0;		
 		    size = sizeof(struct coda_ioctl_out);
 		    break;
@@ -1244,10 +1246,12 @@ void worker::main(void)
 
 		if (nr == _VIOC_UNLOADKERNEL) {
                     out->oh.result = 0;
+		    out->coda_ioctl.data =
+			(char *)sizeof(struct coda_ioctl_out); 
                     out->coda_ioctl.len = 0;		
                     /* we have to Resign here because we will exit before
                      * leaving the switch */
-                    Resign(msg, (int)sizeof(struct coda_ioctl_out) + data.out_size);
+                    Resign(msg, sizeof(struct coda_ioctl_out));
 
                     LOG(0, ("TERM: Venus exiting\n"));
                     RecovFlush(1);

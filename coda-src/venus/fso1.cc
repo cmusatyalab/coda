@@ -2402,6 +2402,7 @@ void fsobj::ReturnEarly() {
 	    {
 	    /* Huh. IOCTL in the kernel thinks there may be return data. Assume not. */
 	    out = (union outputArgs *)w->msg->msg_buf;
+	    out->coda_ioctl.data = (char *)sizeof(struct coda_ioctl_out); 
 	    out->coda_ioctl.len = 0; 
 	    out->coda_ioctl.oh.result = 0;
 	    w->Return(w->msg, sizeof (struct coda_ioctl_out));

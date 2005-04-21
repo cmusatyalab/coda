@@ -193,6 +193,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			    worker *w = (worker *)this;
 			    union outputArgs *out;
 			    out = (union outputArgs *)w->msg->msg_buf;
+			    out->coda_ioctl.data =
+				(char *)sizeof(struct coda_ioctl_out);
 			    out->coda_ioctl.len = 0;
 			    out->coda_ioctl.oh.result = 0;
 			    w->Return(w->msg, sizeof (struct coda_ioctl_out));
