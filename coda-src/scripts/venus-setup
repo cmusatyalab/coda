@@ -49,7 +49,7 @@ fi
 #restart=0
 #[ ! -f /etc/coda/venus.conf ] && restart=1
 
-codaconfedit venus.conf realm $REALM
+[ "$REALM" ] && codaconfedit venus.conf realm $REALM
 codaconfedit venus.conf cacheblocks $CACHESIZE
 
 #if [ $restart = 1 ] ; then
@@ -100,9 +100,9 @@ makedir () {
 	newdir=`basename $dir`
 	dir=`dirname $dir`
     done
-    echo "Creating $dir/$newdir, mode $1"
+    echo "=> Creating $dir/$newdir, mode $1"
     if ! mkdir $dir/$newdir ; then
-        echo Could not make \"$dir/$newdir\".  Aborting....
+        echo "  Could not make \"$dir/$newdir\".  Aborting...."
         exit 1
     fi
     if [ $dir = / ] ; then
@@ -121,6 +121,51 @@ makedir 700 $pid_filedir
 makedir 700 $run_control_file_dir
 makedir 700 $rvm_logdir
 makedir 700 $rvm_datadir
+
+# tell the kernel about the new module 
+if [ X$OS = XLinux ] ; then
+    # make sure the module dependencies are current
+    /sbin/depmod -a
+    # udev managed /dev
+    if [ -d /dev/.udevdb -o -f /dev/.udev.tdb ] ; then
+	# udev relies on modules being autoloaded because their hardware got
+	# detected. But since there is no hardware for the Coda kernel module
+	# we have to make sure it is loaded automatically at boot
+	if ! grep coda /etc/modules > /dev/null 2>&1 ; then
+	    echo "=> Adding 'coda' to /etc/modules so that the kernel module is"
+	    echo "   loaded automatically whenever the system boots"
+	    echo coda >> /etc/modules
+	fi
+	# since we aren't booting this time, make sure the module is loaded
+	echo "== Loading coda kernel module."
+	modprobe coda && sleep 5
+    fi
+    # devfs managed /dev
+    if [ -d /etc/devfs ] ; then
+	if ! grep cfs0 /etc/devfs/devices > /dev/null 2>&1 ; then
+	    echo "=> Adding 'cfs0' to /etc/devfs/devices so that devfs creates"
+	    echo "   an entry for /dev/cfs0 so that the Coda kernel module"
+	    echo "   can be autoloaded when the /dev/cfs0 or /dev/coda/0"
+	    echo "   device is accessed"
+	    echo "cfs0 c 67 0 root root 0200" >> /etc/devfs/devices
+	    /etc/init.d/devfsd restart
+	fi
+    fi
+    # static /dev
+    if [ -f /etc/modules.conf ] ; then
+	MODULES=/etc/modules.conf
+    else
+	MODULES=/etc/conf.modules
+    fi
+    if ! grep coda $MODULES > /dev/null 2>&1 ; then
+	echo "=> Adding aliases to $MODULES so that modprobe can"
+	echo "   handle autoloading of the Coda kernel module when"
+	echo "   /dev/cfs0 is accessed"
+	echo >> $MODULES
+	echo 'alias char-major-67 coda' >> $MODULES
+	echo 'alias /dev/coda coda' >> $MODULES
+    fi
+fi
 
 if [ $OS = CYGWI ]; then
 
@@ -144,7 +189,7 @@ else
 	$mountpoint/NOT_REALLY_CODA
   fi
 
-  # make the psdev
+  # make the psdev, on udev and devfs systems the device should exist by now
   if [ ! -c /dev/cfs0 -o ! -c /dev/coda/0 ] ; then
     if [ ! -x /dev/MAKEDEV ] ; then
       echo 'You need a character device for the Coda kernel module'
@@ -161,25 +206,6 @@ touch $cachedir/INIT
 if [ -f /usr/coda/etc/vstab ] ; then
     echo "To avoid confusion, remove /usr/coda/etc/vstab, we have switched to"
     echo "the /etc/coda/venus.conf file for configuring the client."
-fi
-
-# tell the kernel about the new module 
-if [ X$OS = XLinux -a ! -f /etc/debian_version ]; then 
-    MODULES=/etc/conf.modules
-    [ -f /etc/modules.conf ] && MODULES=/etc/modules.conf
-    if ! grep coda $MODULES > /dev/null; then
-        echo >> $MODULES
-	echo '# old style and devfs style auto module loading'
-        echo 'alias char-major-67 coda' >> $MODULES
-        echo 'alias /dev/coda coda' >> $MODULES
-    fi
-    if [ -d /etc/devfs ] ; then
-    	if ! grep cfs0 /etc/devfs/devices > /dev/null; then
-	    echo "cfs0 c 67 0 root root 0200" >> /etc/devfs/devices
-	    /etc/init.d/devfsd restart
-	fi
-    fi
-    /sbin/depmod -a
 fi
 
 # Make sure the ports are listed in /etc/services
