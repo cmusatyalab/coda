@@ -73,7 +73,9 @@ rm -rf $RPM_BUILD_DIR/obj-%{version}
 mkdir $RPM_BUILD_DIR/obj-%{version}
 cd $RPM_BUILD_DIR/obj-%{version}
 $RPM_BUILD_DIR/coda-%{version}/configure --prefix=/usr '--mandir=${prefix}/share/man'
-#  --with-crypto \
+#  --with-openssl \
+#  --with-krb4 \
+#  --with-krb5 \
 #  --with-krb4-includes=/usr/kerberos/include/kerberosIV \
 #  --with-krb4-libraries=/usr/kerberos/lib \
 #  --with-krb5-includes=/usr/kerberos/include \
