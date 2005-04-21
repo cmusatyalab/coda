@@ -441,7 +441,8 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
     volid.Volume = volinfo->Vid;
 
     /* Check whether the key is already in the database. */
-    if ((v = Find(&volid))) {
+    v = Find(&volid);
+    if (v) {
 	if (strcmp(v->name, volname) != 0) {
 	    eprint("reinstalling volume %s (%s)", v->GetName(), volname);
 
@@ -464,7 +465,6 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
 	    err = GetVolReps(realm->Id(), volinfo, volreps);
 	    if (!err) {
 		Recov_BeginTrans();
-
 		for (i = 0; i < VSG_MEMBERS; i++) {
 		    /* did the volume replica change? */
 		    if (vp->volreps[i] != volreps[i]) {
@@ -652,10 +652,8 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 
 	goto error_exit;
     }
-    if (v) {
-	if (v->GetVolumeId() == volinfo.Vid)
-	    goto Exit;
-
+    if (v && v->GetVolumeId() != volinfo.Vid)
+    {
 	eprint("Mapping changed for volume %s@%s (%x --> %x)",
 	       volname, realm->Name(), v->GetVolumeId(), volinfo.Vid);
 
@@ -681,7 +679,9 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
 	v->release();
     }
 
-    /* Attempt the create. */
+    /* Attempt the create will be mostly a noop if the volume already existed,
+     * but it will grow or shrink the volume correctly if the volume
+     * replication group has changed. */
     v = Create(realm, &volinfo, volname);
 
     if (!v) {
