@@ -2793,7 +2793,7 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 			   ViceVersionVector *VV, FileVersion DataVersion,
 			   Rights *rights, Rights *anyrights,
 			   RPC2_CountedBS *AccessList, AL_AccessList **newACL) {
-    int errorCode = 0;
+    int rc = 0;
     ViceFid Fid;
     Fid.Volume = V_id(*volptr);
     Fid.Vnode = (*vptr)->vnodeNumber;
@@ -2804,10 +2804,10 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
     if (VCmpProc) {
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
-	if ((errorCode = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
+	if ((rc = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
 	    SLog(0, "CheckSetACLSemantics: %s, VCP error (%d)",
-		 FID_(&Fid), errorCode);
-	    return(errorCode);
+		 FID_(&Fid), rc);
+	    return rc;
 	}
     }
 
@@ -2815,11 +2815,11 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
     {
 	if ((*vptr)->disk.type != vDirectory) {
 	    SLog(0, "CheckSetACLSemantics: non-directory %s", FID_(&Fid));
-	    return(ENOTDIR);
+	    return ENOTDIR;
 	}
 	if (AccessList->SeqLen == 0) {
 	    SLog(0, "CheckSetACLSemantics: zero-len ACL %s", FID_(&Fid));
-	    return(EINVAL);
+	    return EINVAL;
 	}
     }
 
@@ -2839,20 +2839,20 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 	if (!(*rights & PRSFS_ADMINISTER) && !IsOwner && !SystemUser(client)) {
 	    SLog(0, "CheckSetACLSemantics: rights violation (%x : %x) %s",
 		    *rights, *anyrights, FID_(&Fid));
-	    return(EACCES);
+	    return EACCES;
 	}
-	if (AL_Internalize((AL_ExternalAccessList) AccessList->SeqBody, newACL) != 0) {
-	    SLog(0, "CheckSetACLSemantics: ACL internalize failed %s",
-		 FID_(&Fid));
-	    return(EINVAL);
+	rc = AL_Internalize((AL_ExternalAccessList)AccessList->SeqBody, newACL);
+	if (rc) {
+	    SLog(0, "CheckSetACLSemantics: ACL internalize failed %s with %d",
+		 FID_(&Fid), rc);
+	    return rc;
 	}
 	if ((*newACL)->MySize + 4 > aCLSize) {
 	    SLog(0, "CheckSetACLSemantics: ACL too big %s", FID_(&Fid));
-	    return(E2BIG);
+	    return ENOSPC;
 	}
     }
-
-    return(0);
+    return 0;
 }
 
 
