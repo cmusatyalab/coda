@@ -2316,7 +2316,8 @@ void fsobj::UnLock(LockLevel level) {
 
 /*  *****  Miscellaneous Utility Routines  *****  */
 
-void fsobj::GetVattr(struct coda_vattr *vap) {
+void fsobj::GetVattr(struct coda_vattr *vap)
+{
     /* Most attributes are derived from the VenusStat structure. */
     vap->va_type = FTTOVT(stat.VnodeType);
     vap->va_mode = stat.Mode;
@@ -2331,13 +2332,17 @@ void fsobj::GetVattr(struct coda_vattr *vap) {
 		       ? FidToNodeid(&u.mtpoint->fid)
 		       : FidToNodeid(&fid);
 
-    vap->va_nlink = stat.LinkCount;
+    /* hack to avoid an optimization where find skips subdirectories if
+     * there are any mountpoints in the current directory (since the
+     * mountlinks don't are not represented in the link count). */
+    vap->va_nlink = S_ISDIR(stat.Mode) ? 1 : stat.LinkCount;
     vap->va_blocksize = V_BLKSIZE;
     vap->va_rdev = 1;
 
     /* If the object is currently open for writing we must physically 
        stat it to get its size and time info. */
-    if (WRITING(this)) {
+    if (WRITING(this))
+    {
 	struct stat tstat;
 	cf.Stat(&tstat);
 
