@@ -2274,7 +2274,7 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 
 int SystemUser(ClientEntry *client)
 {
-    return AL_IsAMember(SystemId, client->CPS) == 0;
+    return AL_IsAMember(SystemId, client->CPS);
 }
 
 

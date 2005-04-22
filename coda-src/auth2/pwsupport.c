@@ -480,9 +480,7 @@ int IsAdministrator(struct UserInfo *pU)
 	if (pU->UserCPS == NULL)
 		if (AL_GetInternalCPS(pU->ViceId, &pU->UserCPS) != 0)
 			return(FALSE);
-	if (AL_IsAMember(AdminID, pU->UserCPS) != 0)
-		return(FALSE);
-	return(TRUE);
+	return (AL_IsAMember(AdminID, pU->UserCPS) ? TRUE : FALSE);
 }
 
 /* Returns TRUE iff x would result in NullKey or DeleteKey when encrypted with

@@ -190,10 +190,7 @@ static int IsAdminUser(RPC2_CountedBS *cid)
     rc = AL_IsAMember(SystemId, CPS);
     AL_FreeCPS(&CPS);
 
-    if (rc == -1)
-	return 0;
-
-    return 1;
+    return rc;
 }
 
 static long VolGetKey(RPC2_Integer *authtype, RPC2_CountedBS *cid,

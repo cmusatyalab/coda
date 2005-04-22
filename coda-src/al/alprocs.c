@@ -523,13 +523,15 @@ int AL_GetExternalCPS(IN int Id, OUT PRS_ExternalCPS *ECPS){
 
 
 /* Returns 0 iff Id is in the CPS. Else returns -1. */
-int AL_IsAMember(int Id, PRS_InternalCPS *CPS){
+int AL_IsAMember(int Id, PRS_InternalCPS *CPS)
+{
 	int i;
     
 	/* Yes, I know we can do a binary search on IdList */
 	for (i=0;i < CPS->InclEntries;i++)
-		if (CPS->IdList[i] == Id) return(0);
-	return(-1);
+		if (CPS->IdList[i] == Id)
+		    return(1);
+	return(0);
 }
 
 
