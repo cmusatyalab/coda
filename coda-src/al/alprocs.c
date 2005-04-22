@@ -296,8 +296,8 @@ int AL_Internalize(IN AL_ExternalAccessList Elist, OUT AL_AccessList **Alist){
 	int m, p;
 	char tbuf[PRS_MAXNAMELEN+1];
 
-	if (sscanf(Elist, "%d\n%d\n", &p, &m) != 2) return (-1);
-	if (p + m > AL_MaxExtEntries) return(-1);
+	if (sscanf(Elist, "%d\n%d\n", &p, &m) != 2) return EINVAL;
+	if (p + m > AL_MaxExtEntries) return E2BIG;
 	AL_NewAlist(p + m, Alist);
 	(*Alist)->PlusEntriesInUse = p;
 	(*Alist)->MinusEntriesInUse = m;
@@ -312,11 +312,12 @@ int AL_Internalize(IN AL_ExternalAccessList Elist, OUT AL_AccessList **Alist){
 		if (sscanf(nextc, "%s\t%d\n", tbuf,
 			   &((*Alist)->ActualEntries[i].Rights)) != 2){
 			AL_FreeAlist(Alist);
-			return(-1);
+			return EINVAL;
 		}
 		if (AL_NameToId(tbuf, &((*Alist)->ActualEntries[i].Id)) < 0){
 			AL_FreeAlist(Alist);
-			return(-1);
+			return ENOENT; /* Unusual error, but we can't return
+					  EINVAL for everything */
 		}
 		nextc = (char *)(1 + strchr(nextc, '\n'));
 	}
@@ -325,7 +326,7 @@ int AL_Internalize(IN AL_ExternalAccessList Elist, OUT AL_AccessList **Alist){
 	       (int (*)(const void *, const void *))CmpPlus); 
 	qsort( (char *)&((*Alist)->ActualEntries[m]),m, sizeof(AL_AccessEntry),
  	       (int (*)(const void *, const void *))CmpMinus); 
-	return(0);
+	return 0;
 }
 
 

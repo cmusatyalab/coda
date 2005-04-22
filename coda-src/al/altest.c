@@ -459,14 +459,15 @@ static void Op_3()		/* ExternalAlist:   New, Free, Fill, Print, Internalize, hto
     
 	    case 5:		 /* Internalize */
 		    {
-		    int i, w;
+		    int i, w, rc;
 
 		    if ( (w = AskSlot(EVEC, "Which ExternalAlist? ")) < 0) break;
 		    if ( (i = NewSlot(AVEC)) < 0) break;
 		    printf("Vec[%d][%d] allocated\n", AVEC, i);
     
-		    if (AL_Internalize(Vec[EVEC][w].Gptr.E, &(Vec[AVEC][i].Gptr.A)) != 0)
-			{printf("AL_Internalize() failed.\n");break;}
+		    rc = AL_Internalize(Vec[EVEC][w].Gptr.E, &(Vec[AVEC][i].Gptr.A));
+		    if (rc)
+			{printf("AL_Internalize() failed %d.\n", rc);break;}
 		    break;
 		    }
     
