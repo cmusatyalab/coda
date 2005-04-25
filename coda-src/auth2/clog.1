@@ -1,0 +1,79 @@
+.TH "CLOG" "1" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+clog \- Authenticate to the Coda distributed file system
+.SH SYNOPSIS
+
+\fBclog\fR [ \fB-pipe\fR ] [ \fB-test\fR ] [ \fB-host \fIhostname\fB\fR ] [ \fB-coda | -kerberos4 | -kerberos5\fR ] [ \fB-tofile \fIfile\fB\fR ] [ \fB-fromfile \fIfile\fB\fR ] \fB[username][@realm]\fR
+
+.SH "DESCRIPTION"
+.PP
+This command enables users to get tokens to use for authenticated
+communication with a Coda File System.  The given name and a password or
+kerberos token are passed to an \fBAuthentication
+Server\fR\&. The \fBAuthentication Server\fR returns
+a set of tokens encoding the chosen identity if the password is correct.
+\fBclog\fR passes these tokens to the
+\fBvenus\fR process, which acts as the users agent for file
+manipulation. These tokens have a limited lifetime, becoming invalid after
+25 hours. If an attempt is made to operate on a Coda File System object
+while the user is not authenticated, the user will assume the privileges
+of the \fBAnonymous\fR user.
+.PP
+\fBclog\fR accepts the following arguments:
+.TP
+\fB-pipe\fR
+For use in shell scripts, the password is read from stdin.
+This option is also enabled when stdin is not a tty.
+.TP
+\fB-test\fR
+Test the clog-venus token passing code.
+.TP
+\fB-host\fR
+Specify the host where the authentication server is
+running.
+.TP
+\fB-coda | -kerberos4 | -kerberos5\fR
+Authentication mechanism, use kerberos tickets or coda
+password to identify yourself to the authentication server.
+.TP
+\fB-tofile\fR
+After obtaining a token from the authentication server,
+write it to a file.
+.TP
+\fB-fromfile\fR
+Instead of connecting to the authentication server, read a
+previously saved token from a file and pass it to venus.
+.TP
+\fB[username][@realm]\fR
+Coda user name you wish to be identified as within the
+specified realm. If the username is not specified, clog tries to
+use the local login name. If the Coda realm name is not specified
+clog falls back to using the default realm name as specified in
+the venus.conf configuration file.
+.SH "BUGS"
+.PP
+.TP 0.2i
+\(bu
+The on-disk tokens are not encrypted.
+.TP 0.2i
+\(bu
+The \fB-pipe\fR option should be dropped, there
+already is an isatty(stdin) test which is sufficient for most
+cases.
+.TP 0.2i
+\(bu
+The \fB-test\fR option should also test the
+reading and writing code of token files.
+.SH "SEE ALSO"
+.PP
+\fBcunlog\fR(1),
+\fBvenus\fR(8)
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+1987, Adapted from AFS-2
+.TP 0.2i
+\(bu
+Maria R. Ebling, 1990, Created man page

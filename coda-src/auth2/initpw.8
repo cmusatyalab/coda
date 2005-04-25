@@ -1,0 +1,41 @@
+.TH "INITPW" "8" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+initpw \- Initialize the auth2 password database
+.SH SYNOPSIS
+
+\fBinitpw\fR [ \fB-k \fIkey\fB\fR ]
+
+.SH "DESCRIPTION"
+.PP
+\fBinitpw\fR initializes the \fBauth2\fR
+password database by reading entries as specified in
+\fBpasswd.coda\fR(5)
+and writes the corresponding encrypted entries to stdout.
+.PP
+\fBinitpw\fR supports the following command line
+options:
+.TP
+\fB-k\fR
+Using the \fB-k\fR option allows you to specify
+the encryption key to use when encrypting cleartext passwords.
+Currently you must give "drseuss " as the key.
+.SH "EXAMPLE"
+.PP
+initpw -k "drseuss " < /vice/db/passwd.coda >
+/vice/db/auth2.pw
+.SH "SEE ALSO"
+.PP
+\fBauth2\fR(8),
+\fBpasswd.coda\fR(5)
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+1987, Adapted from AFS-2
+.TP 0.2i
+\(bu
+Joshua Raiff, 1993, Created man page
+.TP 0.2i
+\(bu
+Lesa Gresh, 1998, modified

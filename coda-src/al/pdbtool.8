@@ -1,0 +1,34 @@
+.TH "PDBTOOL" "8" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+pdbtool \- Manage user/group database on Coda server
+.SH SYNOPSIS
+
+\fBpdbtool\fR [ \fB\fIcommand\fB\fR ]
+
+.SH "DESCRIPTION"
+.PP
+This command provides an interface that allows one to manage and
+control the user database. This is the key database behind the
+\fBAuthentication Server\fR\&. The database maintains the CPS
+for each user, which is given to venus when a user logs in. The
+\fBpdbtool\fR allow the system administrator to create new
+users and groups, plus control which groups users are members of.
+\fBpdbtool\fR provides a simple user interface and is usable
+on the server system only. Type \fBhelp\fR to list the
+commands.
+.PP
+\fBpdbtool\fR accepts any of the commands as an
+argument. If no arguments are given it prompts for a command.
+.SH "BUGS"
+.PP
+Is still somewhat difficult to use and may not provide all of
+functionally required by some users.  Has hard coded file locations. :)
+.SH "SEE ALSO"
+.PP
+\fBauth2\fR(8)
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+Mathew G. Monroe, 1998-1999, Coda 5.0, Created

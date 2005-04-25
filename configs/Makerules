@@ -237,7 +237,7 @@ endif
 realclean:
 	-$(RM) *.o *.a  *.d core manpage.links manpage.refs
 	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c *.print.c $(RP2HEADERS)
-	-$(RM) $(EXECUTABLES) $(MANPAGES) $(LIBRARIES) $(TESTS) $(EXTRACLEAN)
+	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) $(EXTRACLEAN)
 	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \
 	      c_bin_install c_sbin_install s_bin_install s_sbin_install \
 	      c_man_install s_man_install
@@ -302,18 +302,6 @@ show showvar:
 
 %.client.c %.server.c %.multi.c %.h: %.rpc2
 	${RP2GEN} ${RP2FLAGS} $<
-
-%.1: %.sgml
-	${TOPDIR}/tools/db2man $< $@
-
-%.5: %.sgml
-	${TOPDIR}/tools/db2man $< $@
-
-%.8: %.sgml
-	${TOPDIR}/tools/db2man $< $@
-
-.PHONY FORCE:
-
 
 ###############################################################
 # 		Finally ...

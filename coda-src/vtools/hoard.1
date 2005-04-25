@@ -1,0 +1,116 @@
+.TH "HOARD" "1" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+hoard \- Hoard database front-end
+.SH SYNOPSIS
+
+\fBhoard\fR [ \fB-d\fR ] [ \fB-f \fIsource\fB |
+\fIcmds\fB\fR ]
+
+.SH "DESCRIPTION"
+.PP
+\fBhoard\fR is a front-end to the \fBhoard
+database\fR (HDB) managed by the Coda cache manager,
+\fBVenus\fR\&.  The HDB provides a means for users to
+explicitly control Venus caching behavior.  HDB entries specify the degree
+of a users interest in particular file system objects.  Venus combines
+this information with implicit knowledge that it has about file access
+patterns to try to keep the "best" set of objects in its cache at all
+times.  The HDB is maintained in non-volatile storage, so it survives
+Venus restarts and client reboots.
+.PP
+Users manipulate the HDB by issuing commands to the hoard program.
+The following hoard commands are currently recognized:
+.TP
+\fBadd \fIfilename\fB \fIattributes\fB \fR
+.TP
+\fBclear \fIuid\fB \fR
+.TP
+\fBdelete \fIfilename\fB \fR
+.TP
+\fBlist \fIoutfile\fB \fIuid\fB \fR
+.TP
+\fBmodify \fIfilename\fB \fIattributes\fB \fR
+.PP
+Hoard distinguishes between \fBchildren\fR of a
+directory, which are members of the directory,
+\fBdescendants\fR which are either children or descendants
+of childres of the directory.
+.PP
+Commands may be abbreviated by their first letter.  Parameters in
+angle brackets are optional, and have default values if unspecified.  The
+\fBattributes\fR parameter is specified as a string of
+options separated by : characters.  The currently recognized options are:
+.TP
+\fB1-1000\fR
+Assign this object the hoard \fBpriority\fR
+indicated.
+.TP
+\fBc\fR
+Current \fBchildren\fR of this directory will
+inherit its hoard status.
+.TP
+\fBc+\fR
+Current and future \fBchildren\fR of this
+directory will inherit its hoard status.
+.TP
+\fBd\fR
+Current \fBdescendents\fR of this directory
+will inherit its hoard status.
+.TP
+\fBd+\fR
+Current and future \fBdescendents\fR of this
+directory will inherit its hoard status
+.PP
+If the \fBuid\fR in the clear and list commands is
+unspecified, the entries of all users are cleared or listed respectively.
+The default hoard \fBpriority\fR is 10.
+.SS "EXAMPLE HOARD COMMAND FILE"
+
+.nf
+clear
+add /coda/project/coda/src 100:d+
+add /coda/usr/jjk/.login   1000
+.fi
+.PP
+Access to the hoard database is restricted in the following ways.
+All hoard commands fail unless the effective-uid is root--the hoard
+program should be made setuid to root to ensure this.  Special permission
+is given to commands where the real-uid is root or that of the
+\fBprimary\fR user, i.e., the user at the console.  Root
+and primary users may add entries and access existing entries without
+restriction.  Other users may not add hoard entries, and they may only
+clear, delete, list, or modify their own entries.
+.PP
+The command-line options are:
+.TP
+\fB-d\fR
+Enables debugging output.
+.TP
+\fB-f\fR
+Take commands from \fIsource\fR\&. -f
+must be the last argument if specified. An argument of - means,
+use \fBstdin\fR as the source file. Source
+statements may be given directly on the command line (one per
+line) by enclosing them in single quotes.
+.SH "DIAGNOSTICS"
+.PP
+Hoard copies command lines that it cannot parse to
+\fBstderr\fR\&. If a syntactically correct command is
+rejected by Venus, the corresponding pioctl, its arguments, and the errno
+are copied to \fBstderr\fR\&.
+.SH "BUGS"
+.TP 0.2i
+\(bu
+Negative priorities should be allowed.
+.TP 0.2i
+\(bu
+A mount point of \fB/coda\fR is assumed by
+the pioctl library.
+.SH "SEE ALSO"
+.PP
+\fBvenus\fR(8)
+.SH "AUTHORS"
+.TP 0.2i
+\(bu
+Jay Kistler, 1990, Created

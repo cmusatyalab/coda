@@ -2,6 +2,7 @@ debian/tmp/coda/NOT_REALLY_CODA
 debian/tmp/etc/coda/realms
 debian/tmp/etc/coda/sidekick.intr.ex
 debian/tmp/etc/coda/venus.conf.ex
+debian/tmp/usr/bin/au
 debian/tmp/usr/bin/cfs
 debian/tmp/usr/bin/clog
 debian/tmp/usr/bin/cmon
@@ -19,13 +20,13 @@ debian/tmp/usr/bin/coda_replay
 debian/tmp/usr/bin/spy
 debian/tmp/usr/bin/xaskuser
 debian/tmp/usr/bin/xfrepair
-debian/tmp/usr/sbin/au
 debian/tmp/usr/sbin/coda-client-logrotate
 debian/tmp/usr/sbin/codaconfedit
 debian/tmp/usr/sbin/sidekick
 debian/tmp/usr/sbin/venus
 debian/tmp/usr/sbin/volmunge
 debian/tmp/usr/sbin/vutil
+debian/tmp/usr/share/man/man1/au.1
 debian/tmp/usr/share/man/man1/cfs.1
 debian/tmp/usr/share/man/man1/clog.1
 debian/tmp/usr/share/man/man1/cmon.1
@@ -36,5 +37,4 @@ debian/tmp/usr/share/man/man1/cunlog.1
 debian/tmp/usr/share/man/man1/hoard.1
 debian/tmp/usr/share/man/man1/repair.1
 debian/tmp/usr/share/man/man1/spy.1
-debian/tmp/usr/share/man/man8/au.8
 debian/tmp/usr/share/man/man8/venus.8

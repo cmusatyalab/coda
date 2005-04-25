@@ -1,0 +1,70 @@
+.TH "VICETAB" "5" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+vicetab \- information about Coda server data partitions
+.SH "DESCRIPTION"
+.PP
+\fBvicetab\fR is a table of Coda data
+partitions found on individual servers comprising a Coda netowrk
+server. This includes partition(s) used by the backup coordinator to
+store dump files to placed on a suitable backup media. This file
+must be shared among all machines comprising a Coda hub so edits
+should be done only on the designated SCM.
+.SS "EXAMPLE VICETAB FILE"
+
+.nf
+tye             /vicepa         ftree  depth=5,width=8
+tye             /vicepb         ftree  width=8,depth=5 
+taverner        /vicepa         ftree  width=8,depth=5
+taverner        /usr/vicepb     ftree  depth=4,width=8
+tallis          /vicepa         ftree  width=8,depth=5
+tallis          /vicepb         ftree  width=8,depth=5
+dvorak          /backup1        backup
+dvorak          /backup2        backup
+dvorak          /backup3        backup
+.fi
+.PP
+Where column 1 specifies the server as returned by the system
+call gethostbyname().
+.PP
+Column 2 specifies the directory of the Coda data tree which
+must be a local file system partition for optimal performance.
+\fBNOTE: if a server serves than more than one Coda data
+parition, each data partition must have a seperate entry in
+vicetab.\fR 
+.PP
+Column 3 specifies the Coda partition type.
+.TP 0.2i
+\(bu
+\fBftree\fR an "inode number" directory and
+file naming system for storing the Coda filesystem into a local
+file system tree structure: e.g. inode 4711 in base 10 with
+width 1 and depth 5 would become 0/4/7/1/1. So, using the above
+example, a width of 4 and a depth of 2 would make the file name
+4/711.  If this storage type is specified, the width and depth
+must also be given in the 4th column seperated by a comma.
+.PP
+Column 4 specifies the width and depth of the ftree.
+.TP 0.2i
+\(bu
+\fBwidth\fR the maximum "width" of an ftree
+data partition.
+.TP 0.2i
+\(bu
+\fBdepth\fR the maximum "depth" of an ftree
+data partition.
+.PP
+In the case of the backup coordinator, only the first three
+columns are used, with a partition type of \fBbackup\fR
+specified in the third column.
+.PP
+This file should only be edited on the designated SCM machine
+and then allowed to propagate.
+.SH "BUGS"
+.PP
+None we currently are aware of.
+.SH "AUTHOR"
+.PP
+.TP 0.2i
+\(bu
+Henry M. Pierce, 1997, created

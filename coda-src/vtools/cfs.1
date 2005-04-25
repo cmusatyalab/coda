@@ -1,0 +1,311 @@
+.TH "CFS" "1" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+cfs \- Coda File System Interface Program
+.SH SYNOPSIS
+
+\fBcfs adaptive|strong\fR
+
+
+\fBcfs beginrepair\fR \fB\fIfile\fB\fR
+
+
+\fBcfs checkpointml\fR
+
+
+\fBcfs checkservers\fR
+
+
+\fBcfs checkvolumes\fR
+
+
+\fBcfs clearpriorities\fR
+
+
+\fBcfs @cpu|@sys\fR
+
+
+\fBcfs endrepair\fR \fB\fIfile\fB\fR
+
+
+\fBcfs examineclosure\fR
+
+
+\fBcfs flushcache\fR
+
+
+\fBcfs flushobject\fR \fB\fIpath\fB\fR [ \fB\fIpath\fB\fR\fI ...\fR ]
+
+
+\fBcfs flushvolume\fR \fB\fIpath\fB\fR [ \fB\fIpath\fB\fR\fI ...\fR ]
+
+
+\fBcfs getfid\fR \fB\fIpath\fB\fR [ \fB\fIpath\fB\fR\fI ...\fR ]
+
+
+\fBcfs getpath\fR \fB\fIfid\fB\fR [ \fB\fIfid\fB\fR\fI ...\fR ]
+
+
+\fBcfs getmountpoint\fR \fB\fIvolid\fB\fR
+
+
+\fBcfs listacl\fR \fB\fIdir\fB\fR [ \fB\fIdir\fB\fR\fI ...\fR ]
+
+
+\fBcfs listcache\fR \fB\fIdir\fB\fR [ \fB\fIdir\fB\fR\fI ...\fR ]
+
+
+\fBcfs listvol\fR \fB\fIdir\fB\fR [ \fB\fIdir\fB\fR\fI ...\fR ]
+
+
+\fBcfs lsmount\fR \fB\fIdir\fB\fR [ \fB\fIdir\fB\fR\fI ...\fR ]
+
+
+\fBcfs mkmount\fR \fB\fIdirectory\fB\fR \fB\fIvolumename\fB\fR [ \fB-rw\fR ]
+
+
+\fBcfs purgeml\fR
+
+
+\fBcfs replayclosure\fR
+
+
+\fBcfs rmmount\fR \fB\fIdir\fB\fR [ \fB\fIdir\fB\fR\fI ...\fR ]
+
+
+\fBcfs setacl\fR [ \fB-clear\fR ] [ \fB-negative\fR ] \fB\fIdir\fB\fR \fB\fIid\fB\fR \fB\fIrights\fB\fR [ \fB\fIid\fB \fIrights\fB\fR\fI ...\fR ]
+
+
+\fBcfs truncatelog\fR
+
+
+\fBcfs waitforever\fR [ \fB-on\fR ] [ \fB-off\fR ]
+
+
+\fBcfs whereis\fR \fB\fIdir\fB\fR [ \fB\fIdir\fB\fR\fI ...\fR ]
+
+
+\fBcfs disconnect\fR
+
+
+\fBcfs reconnect\fR
+
+
+\fBcfs writedisconnect\fR [ \fB-age \fIsecs\fB\fR ] [ \fB-time \fIsecs\fB\fR ] \fB\fIdir\fB\fR
+
+
+\fBcfs writereconnect\fR
+
+.SH "DESCRIPTION"
+.PP
+\fBcfs\fR allows users to perform operations specific
+to the Coda File System.  Most often, people use it to see how much of
+their allocated storage space they are currently using and to change the
+protection on their personal directories.  \fBcfs\fR will
+change the protection or "rights" on directories but not on individual
+files. To change permissions on individual files, use
+\fBchmod\fR(1)\&.
+.TP
+\fBadaptive|strong\fR
+Use `strong' to override adaptation to changing network
+conditions. Revert to automatic adaptation using `adaptive'. This
+command is useful to force strong connectivity semantics even over
+slow or unreliable links.
+.TP
+\fBcheckpointml\fR
+Checkpoint volume modify log.  This command will create a
+checkpoint file /usr/coda/spool/uid/vol@mountpt\&.  Where uid is your local user id,
+vol is the volume being checkpointed,
+and mountpt is the volume's mount point.
+
+Abbreviation: \fBck\fR\&.  
+.TP
+\fBcheckservers\fR
+Check the status of the Coda file servers.  Report on servers
+that are down.
+.TP
+\fBcheckvolumes\fR
+Check volume/name mappings.
+.TP
+\fBclearpriorities\fR
+Clear short-term priorities used for cache management.
+.TP
+\fB@cpu|@sys\fR
+When the end of a pathname component in a symlink is either @sys
+or @cpu, the local venus will replace these magic strings with a
+platform dependent string. These cfs commands can be used to check
+what the precise expansion values depending on the current OS/cpu.
+.TP
+\fBbeginrepair\fR
+Tell venus to expand a conflict. The dangling symlink becomes a
+directory that contains readonly copies of all the versions of the
+object as found on the various replicas.
+
+Abbreviation: \fBbr\fR\&.
+.TP
+\fBendrepair\fR
+Tell venus to end a repair session on file.  Useful if repair is
+exits without finishing the repair session.
+
+Abbreviation: \fBer\fR\&.
+.TP
+\fBexamineclosure\fR
+Examine reintegration closure.  Using \fBcfs\fR
+\fBexamineclosure\fR will display the fixfile used to
+reintegrate changes that were made while operating in disconnected
+mode.
+
+Abbreviation: \fBec\fR
+.TP
+\fBflushcache\fR
+Flush entire cache.  Care must be taken when using the
+\fBcfs\fR \fBflushcache\fR command, as
+flushing the cache while operating in disconnected mode may result in
+loss of data.
+.TP
+\fBflushobject\fR
+Flush objects from cache. \fBcfs\fR
+\fBflushobject\fR tells venus to remove the given objects
+from the cache.
+
+Abbreviation: \fBfl\fR
+.TP
+\fBflushvolume\fR
+Flush all data in specified volumes.  Care must be taken when
+using the \fBcfs\fR \fBflushvolume\fR command,
+as flushing the cache while operating in disconnected mode may result
+in loss of data.
+.TP
+\fBgetfid\fR
+Map the given paths to Coda file ids. 
+
+Abbreviation: \fBgf\fR
+.TP
+\fBgetpath\fR
+Map fid to volume-relative path. \fBcfs\fR
+\fBgetpath\fR will display the path for each of the given
+fids. 
+
+Abbreviation: \fBgp\fR
+.TP
+\fBlistacl\fR
+List access control list for each of the given directories.  
+
+Abbreviation: \fBla\fR
+.TP
+\fBlistcache\fR
+List the contents of the entire cache or the given volumes
+(directories).
+
+Abbreviation: \fBlc\fR
+.TP
+\fBlistvol\fR
+Display the current status of the volume in which the directory
+is stored.  
+
+Abbreviation: \fBlv\fR
+.TP
+\fBlsmount\fR
+List the countents of a mount point.  This command can be used
+to tell what volume a mount point refers to.
+.TP
+\fBmkmount\fR
+Create a mount point.  Mount \fBvolume name\fR at
+the point in the file system described by
+\fBfilename\fR\&.  If the \fB-rw\fR flag
+is set, never use the corresponding read-only volume for a volume.
+Otherwise, if a read-only volume exists (and the parent is also a
+read-only volume), use the read-only volume.  
+
+Abbreviation: \fBmkm\fR
+.TP
+\fBpurgeml\fR
+Purge volume modify log.  Care must be taken
+when using the \fBcfs\fR \fBpurgeml\fR
+command, as it may result in loss of data.
+.TP
+\fBreplayclosure\fR
+Replay reintegration closure.
+
+Abbreviation: \fBrc\fR
+.TP
+\fBrmmount\fR
+Remove a mount point from the file system. The volume itself is
+not changed.  
+
+Abbreviation: \fBrmm\fR
+.TP
+\fBsetacl\fR
+Set access control list.  Sets the access control list for each
+\fBid\fR\&.  The \fB-clear\fR switch
+clears the access control list except for the entries given on the
+call to \fBcfs\fR\&.  The \fB-negative\fR
+switch denies the given permissions, rather than granting them.
+\fBRights\fR are a subset of
+\fBrwidlak\fR which are read, write, insert, delete,
+lookup, administer, and lock respectively.  See the section on
+\fBFile Protection\fR in the \fICoda File
+System Users and System Administrators Manual\fR for more
+detail.  
+
+Abbreviation: \fBsa\fR
+.TP
+\fBtruncatelog\fR
+Truncate the RVM log at this instant.
+
+Abbreviation: \fBtl\fR
+.TP
+\fBwaitforever\fR
+Tells venus whether it should wait forever for dead file servers
+or not.  By default, venus does not wait; it returns ETIMEDOUT.  For
+certain batch jobs, waiting is better than not waiting.
+
+Abbreviation: \fBwf\fR
+.TP
+\fBwhereis\fR
+List the servers that the given files reside on.
+.TP
+\fBdisconnect\fR
+Partition your client from the Coda file servers.
+.TP
+\fBreconnect\fR
+Reconnect to the Coda file servers.  \fBcfs\fR
+\fBreconnect\fR will undo the effects of a
+\fBcfs\fR \fBdisconnect\fR\&.
+.TP
+\fBwritedisconnect\fR
+Tell venus to write disconnect on the given volumes, or all
+volumes if none are provided.  Write disconnected operation will fetch
+files from the server, but does not propagate changes back
+immediately.
+
+An \fB-age\fR argument gives the age of the CML
+before it should be reintegrated.  The \fB-time\fR
+arguments gives the number of seconds the sending of a reintegration
+fragment should take.
+
+Abbreviation: \fBwd\fR
+.TP
+\fBwritereconnect\fR
+Strongly connect to the servers.
+
+Abbreviation: \fBwr\fR
+.SH "SEE ALSO"
+.PP
+\fBchmod\fR(1)
+.SH "AUTHORS"
+.TP 0.2i
+\(bu
+1987, Adapted from AFS-2s fs
+.TP 0.2i
+\(bu
+Maria R. Ebling, 1990, Created man page
+.TP 0.2i
+\(bu
+M. Satyanarayanan, 1992, cfs rewritten from scratch
+.TP 0.2i
+\(bu
+Joshua Raiff, 1993, Man page rewritten
+.TP 0.2i
+\(bu
+Joshua Raiff, 1995, Updated

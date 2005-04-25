@@ -168,7 +168,6 @@ EOF
     if [ x${pkg} = xclient ]
     then
 	cat >> ${dst} << EOF
-sbin/au
 sbin/sidekick
 sbin/codaconfedit
 sbin/coda-setup-ports
@@ -177,6 +176,7 @@ sbin/venus
 sbin/venus-setup
 sbin/volmunge
 sbin/vutil
+bin/au
 bin/cfs
 bin/clog
 bin/cmon
@@ -194,6 +194,7 @@ bin/coda_replay
 bin/spy
 bin/xaskuser
 bin/xfrepair
+man/man1/au.1
 man/man1/cfs.1
 man/man1/clog.1
 man/man1/cmon.1
@@ -204,7 +205,6 @@ man/man1/cunlog.1
 man/man1/hoard.1
 man/man1/repair.1
 man/man1/spy.1
-man/man8/au.8
 man/man8/venus.8
 etc/coda/realms
 etc/coda/venus.conf.ex

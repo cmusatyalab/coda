@@ -1,0 +1,205 @@
+.TH "VENUS" "8" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+venus \- Coda client cache manager
+.SH SYNOPSIS
+
+\fBvenus\fR [ \fB-k \fIkernel device\fB\fR ] [ \fB-cf \fIcache files\fB\fR ] [ \fB-c \fIcache blocks\fB\fR ] [ \fB-mles \fICML entries\fB\fR ] [ \fB-d \fIdebuglevel\fB\fR ] [ \fB-rpcdebug \fIrpc2 debuglevel\fB\fR ] [ \fB-f \fIcache directory\fB\fR ] [ \fB-m \fICOP modes\fB\fR ] [ \fB-console \fIconsole file\fB\fR ] [ \fB-retries \fIRPC2 retries\fB\fR ] [ \fB-timeout \fIRPC2 timeout\fB\fR ] [ \fB-ws \fISFTP window size\fB\fR ] [ \fB-sa \fISFTP sendahead\fB\fR ] [ \fB-ap \fISFTP ackpoint\fB\fR ] [ \fB-init\fR ] [ \fB-hdbes \fIhoard entries\fB\fR ] [ \fB-rvmt \fIRVM type\fB\fR ] [ \fB-maxprefetchers \fIfetch threads\fB\fR ] [ \fB-maxworkers \fIworker threads\fB\fR ] [ \fB-maxcbservers \fIcallback threads\fB\fR ] [ \fB-vld \fIRVM log device\fB\fR ] [ \fB-vlds \fIRVM log size\fB\fR ] [ \fB-vdd \fIRVM data device\fB\fR ] [ \fB-vdds \fIRVM data size\fB\fR ] [ \fB-rdscs \fIRVM data chunk size\fB\fR ] [ \fB-rdsnl \fIRVM data nr lists\fB\fR ] [ \fB-logopts 0 | 1\fR ] [ \fB-swt \fIweight\fB\fR ] [ \fB-mwt \fIweight\fB\fR ] [ \fB-ssf \fIscale factor\fB\fR ] [ \fBmount point\fR ]
+
+.SH "DESCRIPTION"
+.PP
+\fBvenus\fR manages a cache of files and
+directories for a client workstation.  It has a host of parameters
+and configuration options.  Default values of everything are
+compiled into \fBvenus\fR\&. Some of these are overridden
+by the values in the \fBvenus.conf\fR file, provided
+that it exists.  Both default and venus.conf values may be
+overridden with command-line arguments.  Venus must be run as root.
+.PP
+The command-line options are:
+.TP
+\fB-k\fR
+Take \fIkernel device\fR to be
+the device for kernel/venus communication.
+
+Default: \fB/dev/cfs0\fR
+.TP
+\fB-cf\fR
+Limit the size of the file cache to \fIcache
+files\fR entries.
+.TP
+\fB-c\fR
+Limit the size of the file cache to \fIcache
+blocks\fR 1K blocks.
+.TP
+\fB-mles\fR
+Number of Client Modification Log entries.
+.TP
+\fB-vols\fR
+Limit the size of the volume cache to
+\fIvolumes\fR entries.
+.TP
+\fB-vsgs\fR
+Limit the size of the VSG cache to
+\fIvsgs\fR entries.
+.TP
+\fB-d\fR
+Initialize the debug level to \fIdebug
+level\fR\&.
+
+Default: \fB0\fR
+.TP
+\fB-f\fR
+Take \fIcache directory\fR to be
+the directory for the file, volume, and VSG caches.  On some
+platforms \fBvenus\fR garbage collects any
+files it doesnt recognize in the cache directory so use
+caution when supplying this argument.
+
+Venus will create the directory if it doesnt already
+exist. The directory should have mode bits of
+\fBrwx------\fR to protect the cache from
+malicious local users.
+
+Default: \fB/usr/coda/venus.cache\fR
+.TP
+\fB-m\fR
+Controls what Coda Optimistic Protocol (COP) options
+are enabled.  \fICOP modes\fR is
+interpreted according to the following bit-mask: [ 
+PIGGYCOP2 | ASYNCCOP2 | ASYNCCOP1 ].  Only some
+combinations are legal.
+
+Default: \fB[ PIGGYCOP2 | ASYNCCOP2 ]\fR
+.TP
+\fB-console\fR
+Redirects console messages to \fIconsole
+file\fR\&.
+
+Default: \fB/dev/console\fR
+.TP
+\fB-retries\fR
+Sets the number of RPC2 retries to \fIRPC2
+retries\fR\&.
+
+Default: \fB5\fR
+.TP
+\fB-timeout\fR
+Sets the RPC2 timeout period to \fIRPC2
+timeout\fR seconds.
+
+Default: \fB15\fR
+.TP
+\fB-ws\fR
+Sets the SFTP window size to \fISFTP window
+size\fR packets.
+
+Default: \fB8\fR
+.TP
+\fB-sa\fR
+Sets the SFTP send ahead to \fISFTP send
+ahead\fR packets.
+
+Default: \fB4\fR
+.TP
+\fB-ap\fR
+Sets the SFTP ack point to \fISFTP ack
+point\fR packets.
+
+Default: \fB4\fR
+.TP
+\fB-init\fR
+Initializes (i.e., clears) file, volume, and VSG caches.
+.TP
+\fB-hdbes\fR
+Number of hoard database entries.
+.TP
+\fB-rvmt\fR
+Media that RVM resides on. Meaningful values are: 2
+(use a file to persistently back RVM memory) and 3 (do not
+use a file as RVM backing store, no persistency).
+.TP
+\fB-maxprefetchers\fR
+Maximum number of threads doing prefetch ioctls.
+.TP
+\fB-maxworkers\fR
+Number of worker threads.
+.TP
+\fB-maxcbservers\fR
+Number of callback server threads.
+.TP
+\fB-vld\fR
+Location of the venus log file or partition.
+
+Default: \fB/usr/coda/LOG\fR
+.TP
+\fB-vlds\fR
+Size of the log file or partition.
+.TP
+\fB-vdd\fR
+Location of the venus data file or partition.
+
+Default: \fB/usr/coda/DATA\fR
+.TP
+\fB-vdds\fR
+Size of the data file or partition.
+.TP
+\fB-rdscs\fR
+Specify RDS chunk size.
+.TP
+\fB-rdsnl\fR
+Number of RDS nlists.
+.TP
+\fB-logopts\fR
+Turn on log optimization.
+.TP
+\fB-swt\fR
+Short term cache priority weight.
+.TP
+\fB-mwt\fR
+Medium term cache priority weight.
+.TP
+\fB-ssf\fR
+Short term cache scale factor.
+.TP
+\fBmount point\fR
+Directory to serve as the mount point for Coda.
+
+Default: \fB/coda\fR
+.SH "DIAGNOSTICS"
+.PP
+Venus writes debugging information into the file
+\fIcache directory\fR/venus.log. The verbosity
+of this output is controlled by the \fIdebug
+level\fR parameter.  High priority messages are
+also written to the console (which may be redirected with the
+console option at start-up).  Fatal errors will cause the internal
+state of venus to be dumped to the log file, and a core file to be
+left in \fIcache directory\fR/core.
+.PP
+Venus writes its process id into the file \fIcache
+directory\fR/pid.  The
+\fBvutil\fR(8)
+program reads the pid file and dynamically alter Venus behavior by
+sending signals to it.
+.PP
+Venus may be unable to unmount itself cleanly when it exits.
+Usually this is due to processes which have references to vnodes in
+the Coda namespace (e.g., a process is cd'ed somewhere in Coda).
+Once these references are released, /coda can be unmounted.
+.SH "BUGS"
+.PP
+A mount point of \fB/coda\fR is assumed by the
+pioctl library.
+.SH "SEE ALSO"
+.PP
+\fBvenus.conf\fR,
+\fBvutil\fR(8)
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+Jay Kistler, 1990, Created
+.TP 0.2i
+\(bu
+Joshua Raiff, 1993, Documented added switches

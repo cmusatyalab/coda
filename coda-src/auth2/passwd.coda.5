@@ -1,0 +1,40 @@
+.TH "PASSWD.CODA" "5" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+passwd.coda \- Coda user identification file
+.SH "DESCRIPTION"
+.PP
+This file specifies initial cleartext passwords for Coda
+users.  The format of the file is:  
+
+.nf
+uid<TAB>actual cleartext password<TAB>any desired info
+.fi
+.PP
+Where:
+.TP
+\fB\fIViceId\fB\fR
+is a Coda user id.
+.TP
+\fB\fICleartext Password\fB\fR
+is the password to use for this
+\fIViceId\fR\&.
+.TP
+\fB\fIOther user info\fB\fR
+is the other information about the user you want to
+include, e.g. the user name.
+.PP
+\fBWARNING\fR this file must be owned by root
+and not be readable by any other user.
+.PP
+This file is translated into a Coda encrypted password file by
+\fBinitpw\fR(8)\&.
+.SH "SEE ALSO"
+.PP
+\fBinitpw\fR(8),
+\fBpdbtool\fR(8)
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+Lesa Gresh, 1998, created

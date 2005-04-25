@@ -1,0 +1,27 @@
+.TH "CUNLOG" "1" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+cunlog \- Tell the Coda client to release authentication    tokens
+.SH SYNOPSIS
+
+\fBcunlog\fR [ \fB@realm\fR ]
+
+.SH "DESCRIPTION"
+.PP
+This command enables a user to inform the Coda Cache Manager,
+\fBvenus\fR, to release the authentication tokens for that
+user. Without these tokens, the user will not be able to access or modify
+his or her protected files until he or she re-authenticates by running
+\fBclog\fR\&.
+.SH "SEE ALSO"
+.PP
+\fBclog\fR(1),
+\fBctokens\fR(1)
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+1987, Adapted from AFS-2s unlog
+.TP 0.2i
+\(bu
+David Steere, 1990, Created man page

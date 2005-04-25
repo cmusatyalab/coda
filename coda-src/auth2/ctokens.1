@@ -1,0 +1,30 @@
+.TH "CTOKENS" "1" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+ctokens \- List Coda tokens
+.SH SYNOPSIS
+
+\fBctokens\fR [ \fB@realm\fR ]
+
+.SH "DESCRIPTION"
+.PP
+The \fBctokens\fR command enables users to query
+\fBvenus\fR for information about the set of authentication
+tokens it holds for the user. The \fBctokens\fR command
+prints out the ID of the current user and whether or not the user is
+currently authenticated.
+.PP
+You can optionally specify Coda realm to query the token
+availability for that specific realm.
+.SH "SEE ALSO"
+.PP
+\fBclog\fR(1),
+\fBcunlog\fR(1)
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+1987, Adapted from AFS-2s unlog
+.TP 0.2i
+\(bu
+David C. Steere, 1990, Created man page

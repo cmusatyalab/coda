@@ -1,0 +1,62 @@
+.TH "AU" "1" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+au \- Activate user account
+.SH SYNOPSIS
+
+\fBau\fR [ \fB-x\fR ] [ \fB-h \fIhost\fB\fR ] [ \fB-p \fIport\fB\fR ] \fBnu | cp | cu | du\fR
+
+.SH "DESCRIPTION"
+.PP
+\fBau\fR is used by an administrator to add, delete, or
+change user information. \fBau\fR will first prompt for the
+administrators Coda user name and password. It will then connect to the
+\fBauth2\fR daemon on the server to perform the requested
+operation.
+.PP
+\fBau\fR supports the following options:
+.TP
+\fB-x\fR
+Turns on debugging.
+.TP
+\fB-h\fR
+Attach to \fIhost\fR to do the
+authentication. \fIhost\fR should be the SCM
+server.
+.TP
+\fB-p\fR
+\fIport\fR to bind to. The default
+port is codaauth2 (370/udp).
+.TP
+\fBnu\fR
+New user. The \fBnu\fR option tells the
+\fBauth2\fR daemon to add a new password entry to the
+Coda password database.
+.TP
+\fBcp\fR
+Change password. Use this to change a users vice
+password.
+.TP
+\fBcu\fR
+Change user information. Use this to change password and
+other user information.
+.TP
+\fBdu\fR
+Delete user. The \fBdu\fR option tells the
+\fBauth2\fR daemon to remove the password from the
+Coda password database, thereby disabling the account.
+.SH "DIAGNOSTICS"
+.PP
+You must be a Coda system administrator to ru \fBau\fR\&.
+.SH "BUGS"
+.PP
+\fBau\fR echos new passwords to the terminal
+as they are typed in.
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+1987, Adapted from AFS-2
+.TP 0.2i
+\(bu
+Joshua Raiff, 1993, Created man page

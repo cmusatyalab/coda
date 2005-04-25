@@ -1,0 +1,159 @@
+.TH "CMON" "1" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+cmon \- Coda server monitor
+.SH SYNOPSIS
+
+\fBcmon\fR [ \fB-a\fR ] [ \fB-t \fIprobeinterval\fB\fR ] \fB\fIserver\fB\fR [ \fB\fIserver\fB\fR\fI ...\fR ]
+
+.SH "DESCRIPTION"
+.PP
+\fBcmon\fR probes the specified list of servers
+once every \fBprobeinterval\fR seconds and reports on
+their status. If a server is down or unreachable,
+\fBcmon\fR tries to reestablish contact with it once
+every \fBprobeinterval\fR seconds.  It uses the
+\fBcurses\fR(3) package for screen management and can be used
+on dumb terminals.  Run \fBcmon\fR in a terminal
+emulator (like
+\fBxterm\fR(1)).
+.PP
+Some \fBcmon\fR data can be displayed in relative
+or absolute modes.  In relative mode, data is reported with
+reference to the interval between the last two probes.  In absolute
+mode, the accumulated value since initialization is reported.
+\fBcmon\fR can be toggled between absolute and real
+modes of presentation from the keyboard.  Typing
+a will cause data to be presented in absolute
+mode.  Typing r will present it in relative mode.
+A mode change will only take place at the next probe.
+.SH "OPTIONS"
+.PP
+The command-line options are:
+.TP
+\fB-a\fR
+Report data in absolute mode.
+.TP
+\fB-t\fR
+Probe servers every \fIprobeinterval\fR seconds. Default is 60.
+.SH "OUTPUT"
+.PP
+The data reported by \fBcmon\fR is organized
+under four headings: \fBTIM\fR, \fBCPU\fR,
+\fBRPC\fR, and \fBDSK\fR\&.
+.PP
+The \fBTIM\fR data is as follows:
+.TP
+\fBmon\fR
+time at which this \fBcmon\fR process was
+created.
+.TP
+\fBprob\fR
+time at which the server was last probed.
+.TP
+\fBsucc\fR
+time at which the server last responded to a probe.
+.TP
+\fBup\fR
+time at which the server process was started.
+.TP
+\fBbind\fR
+number of times contact was reestablished after a
+failed probe. A probe may fail due to server or network
+failures.
+.PP
+The \fBCPU\fR data is as follows:
+.TP
+\fBsys\fR
+Relative or absolute number of seconds of system CPU
+time used on the server.
+.TP
+\fBuser\fR
+Relative or absolute number of seconds of user CPU
+time (regular or niced) used on the server.
+.TP
+\fButil\fR
+Relative or absolute number of system and user seconds
+divided by corresponding time of accumulation.
+.PP
+The \fBRPC\fR data is as follows:
+.TP
+\fBconn\fR
+Number of RPC connections.
+.TP
+\fBwkst\fR
+Number of workstations connected to server.  Note that
+each instance of \fBcmon\fR shows up as a
+workstation.
+.TP
+\fBcall\fR
+Relative or absolute number of RPC calls received.
+.TP
+\fBpki\fR
+Relative or absolute number of RPC packets received.
+Includes duplicates and other bogus packets. Also includes
+bulk transfer packets.
+.TP
+\fBpko\fR
+Relative or absolute number of packets sent. Includes
+retransmissions. Also includes bulk transfer packets.
+.TP
+\fBbyi\fR
+Bytes corresponding to \fBpki\fR\&.
+.TP
+\fBbyo\fR
+bytes corresponding to \fBpko\fR\&.
+.PP
+The \fBDSK\fR data is as follows:
+.TP
+\fBmax1\fR
+Identity and percent usage of most full disk partition
+on server.  The identity is the name of mount point. Names
+longer than 5 characters are truncated to the first 3
+characters, a $ character, and the last character.
+.TP
+\fBmax2\fR
+Identity and percent usage of second most full disk.
+.TP
+\fBmax3\fR
+Identity and percent usage of third most full disk.
+.SH "DIAGNOSTICS"
+.PP
+If a server is down or unreachable, statisitics for it are
+reported as "???".
+.PP
+Relative data is undefined until two or more probes have been
+made.  Such data is reported as "***" between the very first and
+second probes.
+.SH "BUGS"
+.TP 0.2i
+\(bu
+Relative computations are just based on the
+difference between the two most recent probes.  A smarter approach
+(especially for CPU utilization) would be to use some kind of
+weighted history.
+.TP 0.2i
+\(bu
+The display is optimized for maximum packing of
+information into a small screen area. It may be cryptic for a
+novice.
+.TP 0.2i
+\(bu
+No disk information is available about the root
+partition on a server.
+.TP 0.2i
+\(bu
+Will core dump if run in a window with fewer than 25
+lines.
+.TP 0.2i
+\(bu
+No way to force a redisplay (eg ^L).
+.SH "SEE ALSO"
+.PP
+\fBcodacon\fR(1),
+\fBvutil\fR(8),
+\fBcurses\fR(3)
+.SH "AUTHORS"
+.TP 0.2i
+\(bu
+M. Satyanarayanan, 1990, Created

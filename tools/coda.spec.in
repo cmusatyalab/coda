@@ -162,7 +162,6 @@ exit 0
 /etc/coda/venus.conf.ex
 /etc/coda/sidekick.intr.ex
 /etc/rc.d/init.d/venus.init
-/usr/sbin/au
 /usr/sbin/sidekick
 /usr/sbin/codaconfedit
 /usr/sbin/coda-setup-ports
@@ -171,6 +170,7 @@ exit 0
 /usr/sbin/venus-setup
 /usr/sbin/volmunge
 /usr/sbin/vutil
+/usr/bin/au
 /usr/bin/cfs
 /usr/bin/clog
 /usr/bin/cmon
@@ -188,6 +188,7 @@ exit 0
 /usr/bin/spy
 /usr/bin/xaskuser
 /usr/bin/xfrepair
+/usr/share/man/man1/au.1.gz
 /usr/share/man/man1/cfs.1.gz
 /usr/share/man/man1/clog.1.gz
 /usr/share/man/man1/cmon.1.gz
@@ -198,7 +199,6 @@ exit 0
 /usr/share/man/man1/hoard.1.gz
 /usr/share/man/man1/repair.1.gz
 /usr/share/man/man1/spy.1.gz
-/usr/share/man/man8/au.8.gz
 /usr/share/man/man8/venus.8.gz
 
 %files server	

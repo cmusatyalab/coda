@@ -1,0 +1,91 @@
+.TH "NORTON" "8" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+norton \- Coda File System RVM debugger
+.SH SYNOPSIS
+
+\fBnorton\fR \fB\fIRVM_log\fB\fR \fB\fIRVM_data\fB\fR \fB\fIRVM_data_length\fB\fR
+
+.SH "DESCRIPTION"
+.PP
+\fBnorton\fR is a utility program that allows you
+to display Coda file server structures that are stored in
+\fBRVM\fR\&.  Eventually, \fBnorton\fR
+will be a full special purpose debugger that allows you to
+manipulate the structures as well.  \fBnorton\fRs
+command interface uses the gnu \fBreadline\fR library
+which features Emacs style command editting as well as maintaining a
+command history.  Command completion is also supported by using
+\fB<tab>\fR and \fB<esc>-?\fR\&.
+.PP
+The available commands are:
+.TP
+\fBshow directory \fIvolid\fB \fIvnum\fB \fIuniqifier\fB \fR
+Lists the contents of the directory indicated by
+\fIvolid.vnum.uniqifier\fR\&. Each entries
+vnode number and uniquifier are also listed.
+.TP
+\fBdelete name \fIvolid\fB \fIvnum\fB \fIuniqifier\fB \fIfile\fB \fIflag\fB \fR
+Remove \fIfile\fR from the
+directory specified by
+\fIvolid.vnode.uniqifier\fR\&. If flag is
+nonzero the linkcount of the directory is reduced by one.
+
+\fBNOTE: delete name does not do anything to
+the vnodes associated with \fIfile\fB,
+you must remove the vnodes by hand or update their link
+count.\fR
+.TP
+\fBdelete volume \fIvolid\fB \fR
+Mark a volume with a "destroyme" flag, so that the
+salvager will destroy it on the next server startup.
+.TP
+\fBexamine \fIaddr\fB \fIlen\fB \fR
+Print \fIlen\fR bytes starting
+from \fIaddr\fR in hex and ascii.
+.TP
+\fBlist volumes\fR
+Display a list of all the volumes on the server. This
+list includes the volume index, name, number, and type.
+.TP
+\fBshow free large | small \fR
+Display all of the vnodes on either the large or small
+free vnode list.
+.TP
+\fBshow heap\fR
+Display RVM heap usage.
+.TP
+\fBshow index \fIvolname | volid\fB \fR
+Display the RVM index of the given volume name or
+number.
+.TP
+\fBshow vnode \fIvolid\fB \fIvnode | ?\fB \fIuniqifier\fB \fR
+Show the specified vnode.  If an \fB?\fR is
+given rather than a vnode number, all of the volumes vnode
+lists are searched for a vnode with a matching uniquifier.
+.TP
+\fBshow volume \fIvolname | volid\fB \fR
+Show a summary of the specified volume.
+.TP
+\fBshow volumedetails \fIvolname | volid\fB \fR
+Show all of the RVM state of the specified
+volume.
+.TP
+\fBcreate name \fIparent_volid\fB \fIparent_vnode\fB \fIparent_uniqifier\fB \fIname\fB \fIchild_vnode\fB \fIchild_uniqifier\fB \fR
+Insert a vnode in a directory. The parent fid gives
+the directory in which name is to be inserted. The child fid
+refers to the child vnode. The link count of the directory
+is increased if the child is a directory vnode.  
+.TP
+\fBx \fIaddr\fB \fIlen\fB \fR
+Print \fIlen\fR bytes starting
+from \fIaddr\fR in hex and ascii. An
+alias for \fBexamine\fR\&.
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+Joshua Raiff, 1995, Created
+.TP 0.2i
+\(bu
+Peter Braam, 1997, new features

@@ -1,0 +1,44 @@
+.TH "SPY" "1" "25 April 2005" "Coda Distributed File System" ""
+
+.SH NAME
+spy \- Report all Coda file that are opened
+.SH SYNOPSIS
+
+\fBspy\fR [ \fB-host \fIhostname\fB\fR ] [ \fB-uid \fIuid\fB\fR ]
+
+.SH "DESCRIPTION"
+.PP
+\fBspy\fR will connect to \fBvenus\fR on
+the given host and report all Coda files that are opened.  This is useful
+for generating \fBhoard\fR files as programs can have hidden
+dependencies.  Using spy will ensure that any file that is opened gets
+included in the \fBhoard\fR database. Sending
+\fBspy\fR a \fBSIGTERM\fR will cause
+\fBspy\fR to flush all of its output buffers and terminate.
+.PP
+\fBspy\fR supports the following options:
+.TP
+\fB-host\fR
+Name of Coda coda client to bind to.  If this option is
+omitted, then the current host will be used.
+.TP
+\fB-uid\fR
+Only report on file activity from user
+\fIuid\fR\&.  If the \fB-uid\fR
+switch is omitted, then all CFS file activity is reported.
+.PP
+To use \fBspy\fR to create a \fBhoard\fR
+file sort the output and remove any duplicates, By using
+\fBspy\fR you ensure that you did not forget to
+\fBhoard\fR a file with a hidden dependency.  For example,
+when you \fBhoard X\fR, you might need the
+\fBuncompress\fR(1)
+program in order to use the fonts.
+.SH "SEE ALSO"
+.PP
+\fBhoard\fR(1)
+.SH "AUTHORS"
+.PP
+.TP 0.2i
+\(bu
+Joshua Raiff, 1993, Created man page
