@@ -47,7 +47,7 @@ endif
 ###############################################################
 
 client-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 $(MANPAGES) hdrinstall installclient mkdep
+	 hdrinstall installclient mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    echo "----> Entering $$d"; \
@@ -72,7 +72,7 @@ endif
 ###############################################################
 
 server-install: $(LIBRARIES) $(HEADERS) $(EXECUTABLES) $(SCRIPTS) $(TESTS)\
-	 $(MANPAGES) hdrinstall installserver mkdep
+	 hdrinstall installserver mkdep
 ifdef SUBDIRS
 	@for d in $(SUBDIRS) ; do \
 	    echo "----> Entering $$d"; \
@@ -182,7 +182,7 @@ c_man_install: $(CMANPAGES)
 ifdef CMANPAGES
 	for page in $(CMANPAGES) ; do \
 	    sect=`echo $$page | sed 's/.*\\.//'` ;\
-	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $$page ; \
+	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $(srcdir)/$$page ; \
 	done
 endif
 
@@ -190,7 +190,7 @@ s_man_install: $(SMANPAGES)
 ifdef SMANPAGES
 	for page in $(SMANPAGES) ; do \
 	    sect=`echo $$page | sed 's/.*\\.//'` ; \
-	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $$page ; \
+	    $(TOPDIR)/tools/our-install 644 $(MANDIR)/man$$sect $(srcdir)/$$page ; \
 	done
 endif
 
@@ -237,7 +237,7 @@ ifdef SUBDIRS
 endif
 
 realclean:
-	-$(RM) *.o *.a  *.d core manpage.links manpage.refs
+	-$(RM) *.o *.a  *.d core
 	-$(RM) *.client.cc *.client.c *.server.cc *.server.c *.multi.cc *.multi.c *.print.c $(RP2HEADERS)
 	-$(RM) $(EXECUTABLES) $(LIBRARIES) $(TESTS) $(EXTRACLEAN)
 	-$(RM) chdrinstall rp2hdrinstall libinstall bininstall scriptinstall \
