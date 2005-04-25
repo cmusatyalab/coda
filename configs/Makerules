@@ -12,9 +12,11 @@ all: Coda
 # build a single subdirectory
 ##################
 ifdef SUBDIRS
-$(SUBDIRS): FORCE
+.PHONY: $(SUBDIRS)
+$(SUBDIRS):
 	${MAKE} -C $@ all; 
 endif
+
 
 ###############################################################
 #  recursively descend into subdirs and install all
