@@ -7,7 +7,7 @@ Release: @REL@
 Source: ftp://ftp.coda.cs.cmu.edu/pub/coda/src/coda-%{version}.tar.gz
 Requires: bc
 Copyright: GPL
-BuildRoot: %{_buildroot}/coda-build
+BuildRoot: %{_builddir}/coda-build
 #BuildRequires: lwp-devel ncurses-devel rpc2-devel rvm-devel
 # libtermcap-devel
 Group: Networking/Daemons
