@@ -186,6 +186,7 @@ int main(int argc, char **argv)
     long portmapid;
     struct stat statbuf;
     char *miscdir;
+    int port = 0;
 
     /* process the command line arguments */
     for (i = 1; i < argc; i++) {
@@ -194,6 +195,8 @@ int main(int argc, char **argv)
 	    SrvDebugLevel = atoi(argv[++i]);  
 	else if (!strcmp(argv[i], "-l"))
 	    lwps = atoi(argv[++i]);
+	else if (!strcmp(argv[i], "-port"))
+	    port = atoi(argv[++i]);
 	else if (!strcmp(argv[i], "-p")) {
 	    prefix = argv[++i];
 	} else if (!strcmp(argv[i], "-q")) {
@@ -262,7 +265,7 @@ int main(int argc, char **argv)
     CODA_ASSERT(LWP_Init(LWP_VERSION, LWP_MAX_PRIORITY - 1, &parentPid) == LWP_SUCCESS);
 
     port1.Tag = RPC2_PORTBYINETNUMBER;
-    port1.Value.InetPortNumber = 0;
+    port1.Value.InetPortNumber = htons(port);
 
     SFTP_SetDefaults(&sftpi);
     sftpi.PacketSize = 1024;
