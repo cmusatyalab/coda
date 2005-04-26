@@ -522,14 +522,17 @@ again:
 		 * ...
 		 */
 
-		fprintf(ldiffile, "dn: cn=%s,%s\n"
+		PDB_lookupById(rec.owner_id, &s);
+		CODA_ASSERT(s != NULL);
+		fprintf(ldiffile,
+			"dn: cn=%s,%s\n"
 			"objectClass: top\n"
 			"objectClass: groupOfNames\n"
 			"objectClass: posixGroup\n"
 			"#description:\n"
-			"cn: %s\ngidNumber: %d\nowner: cn=%s,%s\n",
-			rec.name, basedn, rec.name, -rec.id, rec.owner_name,
-			basedn);
+			"cn: %s\ngidNumber: %d\nowner: %s,%s\n",
+			rec.name, basedn, rec.name, -rec.id, s, basedn);
+		free(s);
 
 		for (i = 0; i < rec.groups_or_members.size; i++) {
 		    PDB_lookupById(rec.groups_or_members.data[i], &s);
@@ -591,8 +594,10 @@ void tool_export(int argc, char *argv[])
 		/* escape the :'s in the group names */
 		s = rec.name; while ((s = strchr(s, ':')) != NULL) *s = '%';
 
-		fprintf(groupfile, "%s:*:%d:%s", rec.name, rec.id,
-						 rec.owner_name);
+		PDB_lookupById(rec.owner_id, &s);
+		fprintf(groupfile, "%s:*:%d:%s", rec.name, rec.id, s);
+		free(s);
+
 		for (i = 0; i < rec.groups_or_members.size; i++) {
 		    if (rec.groups_or_members.data[i] == rec.owner_id)
 			continue;

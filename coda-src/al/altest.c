@@ -467,7 +467,7 @@ static void Op_3()		/* ExternalAlist:   New, Free, Fill, Print, Internalize, hto
     
 		    rc = AL_Internalize(Vec[EVEC][w].Gptr.E, &(Vec[AVEC][i].Gptr.A));
 		    if (rc)
-			{printf("AL_Internalize() failed %d.\n", rc);break;}
+			printf("AL_Internalize() failed %s.\n", strerror(rc));
 		    break;
 		    }
     

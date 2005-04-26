@@ -290,11 +290,10 @@ int AL_Externalize(IN AL_AccessList *Alist, OUT AL_ExternalAccessList *Elist){
    successful conversion. Returns -1 if ANY name in the access list is not
    translatable, or if the total number of entries is greater than
    AL_MaxExtEntries. */
-int AL_Internalize(IN AL_ExternalAccessList Elist, OUT AL_AccessList **Alist){
-	register int i;
-	register char *nextc;
-	int m, p;
-	char tbuf[PRS_MAXNAMELEN+1];
+int AL_Internalize(IN AL_ExternalAccessList Elist, OUT AL_AccessList **Alist)
+{
+	int i, m, p;
+	char *nextc, tbuf[PRS_MAXNAMELEN+1];
 
 	if (sscanf(Elist, "%d\n%d\n", &p, &m) != 2) return EINVAL;
 	if (p + m > AL_MaxExtEntries) return E2BIG;
