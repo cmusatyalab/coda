@@ -2792,7 +2792,8 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 			   int ReplicatedOp, VCP VCmpProc,
 			   ViceVersionVector *VV, FileVersion DataVersion,
 			   Rights *rights, Rights *anyrights,
-			   RPC2_CountedBS *AccessList, AL_AccessList **newACL) {
+			   RPC2_CountedBS *AccessList, AL_AccessList **newACL)
+{
     int rc = 0;
     ViceFid Fid;
     Fid.Volume = V_id(*volptr);
@@ -2804,9 +2805,9 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
     if (VCmpProc) {
 	void *arg1 = (ReplicatedOp ? (void *)&Vnode_vv(*vptr) : (void *)&(*vptr)->disk.dataVersion);
 	void *arg2 = (ReplicatedOp ? (void *)VV : (void *)&DataVersion);
-	if ((rc = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2))) {
-	    SLog(0, "CheckSetACLSemantics: %s, VCP error (%d)",
-		 FID_(&Fid), rc);
+	rc = VCmpProc(ReplicatedOp, (*vptr)->disk.type, arg1, arg2);
+	if (rc) {
+	    SLog(0, "CheckSetACLSemantics: %s, VCP error (%d)", FID_(&Fid), rc);
 	    return rc;
 	}
     }
@@ -2814,11 +2815,11 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
     /* Integrity checks. */
     {
 	if ((*vptr)->disk.type != vDirectory) {
-	    SLog(0, "CheckSetACLSemantics: non-directory %s", FID_(&Fid));
+	    SLog(0, "CheckSetACLSemantics: %s not a directory", FID_(&Fid));
 	    return ENOTDIR;
 	}
 	if (AccessList->SeqLen == 0) {
-	    SLog(0, "CheckSetACLSemantics: zero-len ACL %s", FID_(&Fid));
+	    SLog(0, "CheckSetACLSemantics: %s zero-len ACL", FID_(&Fid));
 	    return EINVAL;
 	}
     }
@@ -2831,24 +2832,26 @@ int CheckSetACLSemantics(ClientEntry *client, Vnode **vptr, Volume **volptr,
 	SetAccessList(*vptr, aCL, aCLSize);
 
 	/* Get this client's rights. */
-	Rights t_rights; if (rights == 0) rights = &t_rights;
-	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
+	Rights t_rights, t_anyrights;
+	if (!rights)    rights = &t_rights;
+	if (!anyrights) anyrights = &t_anyrights;
 	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* ADMINISTER permission (normally) required. */
 	if (!(*rights & PRSFS_ADMINISTER) && !IsOwner && !SystemUser(client)) {
-	    SLog(0, "CheckSetACLSemantics: rights violation (%x : %x) %s",
-		    *rights, *anyrights, FID_(&Fid));
+	    SLog(0, "CheckSetACLSemantics: %s Rights violation (%x : %x)",
+		 FID_(&Fid), *rights, *anyrights);
 	    return EACCES;
 	}
 	rc = AL_Internalize((AL_ExternalAccessList)AccessList->SeqBody, newACL);
 	if (rc) {
-	    SLog(0, "CheckSetACLSemantics: ACL internalize failed %s with %d",
-		 FID_(&Fid), rc);
+	    SLog(0, "CheckSetACLSemantics: %s ACL internalize failed (%s)",
+		 FID_(&Fid), strerror(rc));
 	    return rc;
 	}
 	if ((*newACL)->MySize + 4 > aCLSize) {
-	    SLog(0, "CheckSetACLSemantics: ACL too big %s", FID_(&Fid));
+	    SLog(0, "CheckSetACLSemantics: %s Not enough space to store ACL",
+		 FID_(&Fid));
 	    return ENOSPC;
 	}
     }
