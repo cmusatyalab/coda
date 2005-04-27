@@ -61,6 +61,7 @@ install-stamp: build-stamp
 	rm -f `pwd`/debian/tmp/etc/init.d/update.init
 	rm -f `pwd`/debian/tmp/etc/init.d/venus.init
 	rm -f `pwd`/debian/tmp/usr/sbin/venus-setup
+	rm -f `pwd`/debian/tmp/usr/share/man/man8/venus-setup.8
 
 	touch install-stamp
 

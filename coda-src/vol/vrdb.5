@@ -1,0 +1,94 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "vrdb" 5 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+vrdb - Volume Replication Data Base specification
+.Pp
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+The volume replication data base is stored in binary form in /vice/db/VRDB on each file server.
+The \fImakevrdb\fP option of the \fIvolutil\fP(8) program constructs the VRDB on the system control machine (SCM).
+.Pp
+The data base consists of fixed-length records, each of which describes a replicated (aka group) volume.
+Each file server copies the VRDB into memory at start-up and whenever an updated version of it is received.
+The data base is used to map group volume names and numbers into a VSG and the set of read-write volumes which comprise it.
+.Pp
+The VRDB is generated from an ASCII version stored on the SCM in /vice/vol/VRList.
+The VRList is updated as a side-effect of every create and purge of a replicated volume.
+Its format is:
+.Pp
+<group volname>  <group volnum>  <# of replicas>  <rwvol 1>  ...  <rwvol 8>  <VSG num>
+.Pp
+A sample line from the VRList is:
+.Pp
+\fBproject.coda.src 7f000010 3 c9000012 ca000013 cb000013 0 0 0 0 0 E0000107\fP
+.Pp
+Note that all volume and VSG numbers are given in hex.  Details of the VRDB structure can be found in <vrdb.h>\&.
+.Pp
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+\fI/vice/db/VRDB\fP
+.Pp
+\fI/vice/vol/VRList\fP
+.Pp
+.Pp
+.Pp
+.SH BUGS
+
+.Pp
+File servers keep the in-memory copy as a singly-linked list.
+It should be converted to a pair of hash-tables, one keyed by group volname, the other by group volnum, for fast lookup.
+.Pp
+The maximum number of replication sites is fixed at 8.  Adding, deleting, or moving replication sites after creation is not supported.
+.Pp
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+volutil (8), maxgroupid (5), vsgdb (5)
+.Pp
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Jay Kistler, 1990, created
+.Pp
+.Pp

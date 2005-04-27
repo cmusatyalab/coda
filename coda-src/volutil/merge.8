@@ -1,0 +1,88 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "merge" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+merge - merge incremental dumps onto full dumps for restore
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBmerge\fP <output file> <full dump> <incremental dump>
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+\fBmerge\fP is a utility that allows one to apply incremental dumps to a full
+dump and produce a new full dump which reflects a later state of the volume.
+The new dump can then be used to restore the volume, or can be merged with other
+incrementals.
+.Pp
+An incremental or full dump reflects the state of the volume at the time it
+was dumped. Full dumps can be restored so that a user may access an older
+state of a volume. Incremental dumps do not necessarily have sufficient
+information to be restored. For instance, all the vnodes in the dump may not
+be present. The merging process allows a full image of a state that was only
+incrementally dumped to be restored.
+.Pp
+Currently incrementals apply to the last successful full dump that was done.
+As an example, say full dumps for a volume are done on Sundays, with
+incrementals being taken the rest of the week. If an administrator wishes to
+restore a volume to Wednesdays state, he would have to fetch the full
+dumpfile from Sunday and the incremental dumpfile for Wednesday. Once these
+are present, the administrator would use the merge program to create a new
+updated full dump for Wednesdays state, and restore it to the server (using
+volutil(8) restore).
+.Pp
+Information in the dump header is used to place a total ordering on the
+dumps. This way incrementals can only be applied to the dump with repect to
+which they were taken. In addition, incrementals cannot be applied to other
+incrementals, and the dumps to be merged must have been created from the same
+volume replica. The merge program checks these things, and reports failures
+if they are violated.
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+volutil (8), restore (1)
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+David C. Steere, 1991, created
+.Pp
+.Pp

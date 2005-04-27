@@ -1,0 +1,110 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "servers" 5 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+servers - map server names to numbers
+.Pp
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+Each file server has a file, \fI/vice/db/servers\fP, which maps server names to numbers.
+The server numbers are 8 bit numbers so a maximum of 256 servers can be supported.
+Once a server number has been assigned, it may \fBnot\fP be reused.
+You should not reassign a server a new id without initializing the server.
+.Pp
+The server numbers are used in too many places, probably the most important is
+in the creation of volumes.  The server creating a volume uses its server number
+as the first byte of the four-byte volume identification number in order to ensure uniqueness.
+.Pp
+NOTE: Replicated volume numbers must also be unique, so we reserve part of the range,
+0-127 (0-7F hex), for this purpose.  Real server numbers must \fBnot\fP be allocated from
+the other subrange, and vice-versa.
+.Pp
+The format of the file is the full server name (e.g. mahler.coda.cs.cmu.edu) 
+followed by a tab and then the servers number.  Any line beginning with a \&"\e#\&" 
+is considered a comment and is ignored.  The following is an example servers 
+file:
+.Pp
+.DS
+.sp 
+.ft RR
+.nf
+MAHLER.CODA.CS.CMU.EDU          201
+GRIEG.CODA.CS.CMU.EDU           204
+HAYDN.CODA.CS.CMU.EDU           205
+WAGNER.CODA.CS.CMU.EDU          206
+DEBUSSY.CODA.CS.CMU.EDU         212
+SCARLATTI.CODA.CS.CMU.EDU       214
+ROSSINI.CODA.CS.CMU.EDU         215
+PUCCINI.CODA.CS.CMU.EDU         216
+GERSHWIN.CODA.CS.CMU.EDU        218
+SCHUMANN.CODA.CS.CMU.EDU        219
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.Pp
+.Pp
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+/vice/db/servers
+.Pp
+.Pp
+.SH BUGS
+
+.Pp
+The server numbers and replicated volume prefixes are pulled from the same number space.
+Separation is enforced only by convention.
+.Pp
+This file and /vice/db/hosts should be combined.
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+vrdb (5), vsgdb (5), maxgroupid (5), hosts (5)
+.Pp
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Maria R. Ebling, 1990, Created
+.Pp
+.Pp

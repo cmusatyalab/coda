@@ -200,6 +200,8 @@ exit 0
 /usr/share/man/man1/repair.1.gz
 /usr/share/man/man1/spy.1.gz
 /usr/share/man/man8/venus.8.gz
+/usr/share/man/man8/venus-setup.8.gz
+/usr/share/man/man8/volmunge.8.gz
 
 %files server	
 /etc/coda/server.conf.ex
@@ -238,12 +240,27 @@ exit 0
 /usr/bin/rpc2ping
 /usr/bin/rvmsizer
 /usr/bin/smon2
+/usr/share/man/man5/maxgroupid.5.gz
 /usr/share/man/man5/passwd.coda.5.gz
+/usr/share/man/man5/servers.5.gz
 /usr/share/man/man5/vicetab.5.gz
+/usr/share/man/man5/volumelist.5.gz
+/usr/share/man/man5/vrdb.5.gz
+/usr/share/man/man5/servers.5.gz
 /usr/share/man/man8/auth2.8.gz
+/usr/share/man/man8/bldvldb.sh.8.gz
+/usr/share/man/man8/codasrv.8.gz
+/usr/share/man/man8/createvol_rep.8.gz
 /usr/share/man/man8/initpw.8.gz
-/usr/share/man/man8/pdbtool.8.gz
 /usr/share/man/man8/norton.8.gz
+/usr/share/man/man8/pdbtool.8.gz
+/usr/share/man/man8/purgevol_rep.8.gz
+/usr/share/man/man8/startserver.8.gz
+/usr/share/man/man8/updateclnt.8.gz
+/usr/share/man/man8/updatesrv.8.gz
+/usr/share/man/man8/vice-setup.8.gz
+/usr/share/man/man8/volutil.8.gz
+/usr/share/man/man8/vutil.8.gz
 /etc/rc.d/init.d/codasrv.init
 /etc/rc.d/init.d/auth2.init
 /etc/rc.d/init.d/update.init
@@ -258,4 +275,10 @@ exit 0
 /usr/sbin/updateclnt
 /usr/sbin/updatefetch
 /usr/sbin/volutil
+/usr/share/man/man5/backuplogs.5.gz
+/usr/share/man/man5/dumpfile.5.gz
+/usr/share/man/man5/dumplist.5.gz
+/usr/share/man/man8/backup.8.gz
+/usr/share/man/man8/merge.8.gz
+/usr/share/man/man8/readdump.8.gz
 

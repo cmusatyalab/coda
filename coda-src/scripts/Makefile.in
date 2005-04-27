@@ -36,6 +36,10 @@ VICE-SETUP      = vice-setup vice-setup-rvm vice-setup-scm vice-setup-srvdir vic
 
 BACKUP-SCRIPTS	= backup.sh tape.pl
 
+CMANPAGES := venus-setup.8 volmunge.8
+SMANPAGES := bldvldb.sh.8 createvol_rep.8 maxgroupid.5 purgevol_rep.8 \
+    startserver.8 vice-setup.8 volumelist.5 vutil.8
+
 ifeq ($(SYS),linux)
   # use SYSV style init scripts
   CINIT-SCRIPTS   = venus.init

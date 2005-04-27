@@ -1,0 +1,219 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "updateclnt" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+updateclnt - update client executables
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBupdateclnt\fP [ -d debug_level ] [ -h host_name ] [ -q service_name ] [ -w wait_interval ] [ -r reps ]
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+The \fBupdateclnt\fP command is a client process to the \fIupdatesrv\fP process.  It is used to keep the binaries and data bases on a file server in sync with those on a control machine.  The arguments include:
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-d\fP \fIdebug_level\fP"
+.nr bi 1
+.Pp
+This option changes the debugging level.  The higher the debug_level, the more information is printed.  Maximum debugging level is 10.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-h\fP \fIhost_name\fP"
+.nr bi 1
+.Pp
+This is the hostname of the 
+control machine with which this process keeps up-to-date.  Default: scm.  
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-q\fP \fIservice_name\fP"
+.nr bi 1
+.Pp
+This is the name in 
+\fI/etc/services\fP that should be used as the connect portal on 
+the machine specified by \fBhost_name\fP above.  Default: rupdsrv.  
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-w\fP \fIwait_interval\fP"
+.nr bi 1
+.Pp
+The interval 
+between probes, in seconds.  The lower this number, the quicker the
+servers will be updated when a change occurs and the more cpu and network
+resources required.  Default: 300s (5min).  
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-b\fP"
+.nr bi 1
+.Pp
+This option forces a .BAK file to be kept for any file that is changed.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-r\fP \fIreps\fP"
+.nr bi 1
+.Pp
+This is the number of wait intervals
+between long checks.  Files are checked at two intervals.  The interval
+specified by \fB-w\fP is used for those files in \fI/vice/db\fP\&.  All
+other files are checked once each \fB-r\fP repetitions of length
+\fB-w\fP\&. Default: 6, so the long interval is 30min.  
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+\fBUpdateclnt\fP checks \fI/vice/db\fP every
+\fIwait_interval\fP seconds.  This directory contains a file 
+called \fIfiles\fP\&.  Each file specified in it has its current date
+checked at the server, and a new copy of the file is fetched if the date does
+not match that on the control machine.  The format of the \fIfiles\fP file
+is defined below.
+.Pp
+.Pp
+.SH EXAMPLES
+
+.Pp
+The command \fBupdateclnt -h mahler\fP would cause the client machine to
+check the host \&"mahler\&" every 5 minutes to see if any of the
+\fI/vice/db\fP files have changed and every 30 minutes to see if any other
+files have changed.  Normally the command is invoked by issuing the
+\fBupdatemon (8)\fP command with the same operands.  
+.Pp
+.Pp
+.SH FORMAT
+
+.Pp
+The format of the \fIfiles\fP file is one file name per line. A \&"-\&" as the first character on the line causes the file to be deleted instead of copied.
+.Pp
+.Pp
+.Pp
+.SH DIAGNOSTICS
+
+.Pp
+The updateclnt program can have its debug level turned on while it is running by sending a \fBkill -TSTP\fP signal to a running updateclnt.  To reset the debug level back to zero, send a \fBkill -HUP\fP signal to the running updateclnt. This also causes the UpdateLog file to not be written anymore.
+.Pp
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/srv/UpdateLog\fP"
+.nr bi 1
+.Pp
+is the name of the log file for the updateclnt command.  It can be viewed by using the command
+\fItail -f /vice/file/UpdateLog\fP\&.  It is only written if debugging has been started.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/srv/UpdatePid\fP"
+.nr bi 1
+.Pp
+is the pid of the updateclnt process.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/srv/UpdateMon\fP"
+.nr bi 1
+.Pp
+is the pid of the updatemon process that is keeping updateclnt running.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+.Pp
+.SH BUGS
+
+.Pp
+There is no easy way to add to the list of directories checked.
+.Pp
+The \fI-r\fP option is now obsolete as \fBupdateclnt\fP does not update
+any directory other then \fI/vice/db\fP\&.
+.Pp
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+updatesrv (8)
+.Pp
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Maria R. Ebling, 1990, Adapted from AFS
+.Pp
+.Pp

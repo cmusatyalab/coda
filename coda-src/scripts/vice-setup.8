@@ -1,0 +1,372 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "vice-setup" 1 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+\fBVice-setup\fP setup a Coda server
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBVice-setup\fP
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+\fBVice-setup\fP is the user front-end to a family of scripts designed 
+to setup a Coda server based on question-answer responses.  This avoids 
+an otherwise tedious and error-prone-manual method.  The most critical
+question asked for the vice-setup family of scripts to work 
+properly is:
+.Pp
+.DS
+.sp 
+.ft RR
+.nf
+Is this the master server, aka the SCM machine? (y/n) 
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.Pp
+Answering ``yes'' to this question causes the following 
+sequence of scripts to be called from within \fBvice-setup\fP:
+.Pp
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+\fBvice-setup-scm\fP
+.nr bi 1
+.Pp
+\fBvice-setup-user\fP
+.nr bi 1
+.Pp
+\fBvice-setup-rvm\fP
+.nr bi 1
+.Pp
+\fBvice-setup-srvdir\fP
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+where as answering ``no'' causes only the following scripts to run
+from \fBvice-setup\fP:
+.Pp
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+\fBvice-setup-rvm\fP
+.nr bi 1
+.Pp
+\fBvice-setup-srvdir\fP
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+.SH OVERVIEW
+
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.Pp
+.IP "\fBVice-setup\fP"
+.nr bi 1
+.Pp
+is designed to be called directly by
+the administrator to setup a server. It performs the
+following tasks common to both SCM and non-SCM servers:
+.Pp
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+Creates the directories, \fI/vice,/vice/{backup,db,srv,vol}\fP
+and, \fI/vice/vol/remote\fP if they do not already exist.
+.nr bi 1
+.Pp
+Creates and sets up the authentication files needed for interserver
+and interclient communication.
+.nr bi 1
+.Pp
+Creates and sets up, \fI/vice/db/files\fP, which are a set of common
+Coda files distributed from the SCM via, \fBupdateclnt\fP, and 
+\fBupdatesrv\fP\&.
+.nr bi 1
+.Pp
+Adds Coda port numbers to, \fI/etc/services\fP if not already 
+present.
+.nr bi 1
+.Pp
+Sets up the Coda server to start at system startup if so indicated.
+.nr bi 1
+.Pp
+Records the hostname in, \fI/vice/hostname\fP\&.
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.IP "\fBVice-setup-scm\fP"
+.nr bi 1
+.Pp
+This script is only run if ``yes'' is given as an answer to the SCM question.
+.Pp
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+Prompts for a Coda server ID in the range of 0-255,
+and creates the file, \fI/vice/db/servers\fP, with this information.
+.nr bi 1
+.Pp
+Creates, \fI/vice/db/scm\fP, with the hostname of the SCM machine
+being setup.
+.nr bi 1
+.Pp
+Creates, \fI/vice/db/VSGDB\fP, with the root volume number
+``E0000100''.
+.nr bi 1
+.Pp
+Prompts for the name of the root volume and stores this information in, 
+\fI/vice/db/ROOTVOLUME\fP\&.
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.IP "\fBVice-setup-user\fP"
+.nr bi 1
+.Pp
+This script is only run by, \fBvice-setup\fP, when the machine
+is designated as the SCM.
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+This sets up the System:Administrator group and Coda user
+``admin'' then initializes, \fI/vice/db/vice.pdb\fP\&.
+.nr bi 1
+.Pp
+Creates, \fI/vice/db/passwd.coda\fP, needed to setup the
+initial password system.
+.nr bi 1
+.Pp
+Creates, \fI/vice/db/auth.pw\fP\&.
+.if \n(ll>1 .RE
+.nr ll -1
+.IP "\fBVice-setup-rvm\fP"
+.nr bi 1
+.Pp
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+Prompts for the RVM_LOG device.
+.nr bi 1
+.Pp
+Prompts for the size of the RVM_LOG device.
+.nr bi 1
+.Pp
+Prompts for the RVM_DATA device.
+.nr bi 1
+.Pp
+Prompts for the RVM_DATA size based on default values.
+These values must be typed exactly right to be accepted.  For example,
+22M must be typed exactly as, \&"22M\&".
+.nr bi 1
+.Pp
+Initializes the RVM_LOG and RVM_DATA devices
+based on the values given for RVM initialization.
+.nr bi 1
+.Pp
+Creates, /vice/srv.conf, with the values given for RVM.
+.if \n(ll>1 .RE
+.nr ll -1
+.IP "\fBVice-setup-srvdir\fP"
+.nr bi 1
+.Pp
+This script sets up the data storage area for a Coda service.
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+Prompts for the location a data storage area (default
+is, /vicepa).
+.nr bi 1
+.Pp
+Creates the empty file, \fI/vicepa/FTREEDB\fP, which must exist in order for,
+\fBmakeftree\fP, to function.
+.nr bi 1
+.Pp
+Creates, \fI/vice/db/vicetab\fP\&.
+.nr bi 1
+.Pp
+Initializes the data storage area with, \fBmakeftree\fP\&.
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+For a detailed explanation of each question asked by the scripts,
+please see the chapter, ``Installing a Coda Server'' in the Coda Manual.
+.Pp
+.SH BUGS
+
+.Pp
+Many of the highlights are:
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+\fBVice-setup-scm\fP: does not actually create the ROOTVOLUME
+it prompts for.  It only sets up the accounting files that point the
+server(s) to the root volume.  The actual volume must be created
+after the server is started for the first time with, \fBcreatevol_rep\fP\&.
+.nr bi 1
+.Pp
+\fBVice-setup-rvm\fP: will not warn you if run a second time after
+setting up an otherwise working server.  This essentially causes all
+data stored on the Coda server in question to be wiped out.
+.nr bi 1
+.Pp
+\fBVice-setup-user\fP: there is no flexibility in
+setting up an administrative user called anything other than
+``admin''.
+.nr bi 1
+.Pp
+\fBVice-setup-user\fP: there is a security hole in, 
+\fBinitpw\fP, that could allow unauthorized Coda ``admin'' 
+access and/or denial of service if an unauthorized user gains 
+root access to the SCM.
+.nr bi 1
+.Pp
+\fBVice-setup-user\fP: a user ``admin'' with a uid of 500
+must exist on each client that needs to have admin access to
+Coda.  There is no practical way to test for this.  The hardcoding 
+of uid 500 may cause additional trouble at some sites.
+.nr bi 1
+.Pp
+\fBVice-setup-rvm\fP: will add entries to, \fI/vice/srv.conf\fP,
+each time it is run without removing the previous contents.  If more than
+one line of server information is present in, \fIsrv.conf\fP, a 
+``multiple instance error'' is returned by, \fBsrv\fP, because multiple 
+lines in, \fIsrv.conf\fP, are treated as a single set of command line
+arguments to \fBsrv\fP\&.  Essentially, the resulting error is made
+sufficiently out of context and is difficult to detect.
+.nr bi 1
+.Pp
+\fBVice-setup\fP: does not determine the host IP address.
+.nr bi 1
+.Pp
+Error messages returned by the scripts or the programs called
+from within the scripts do not jump out and bark at you.  Instead, 
+errors are easily missed while running the scripts and these errors 
+tend to come back and bite you later.
+.nr bi 1
+.Pp
+If a non-SCM server is being setup, you still must respond
+with tokens to, \fBvice-setup\fP, when asked.  However, the 
+response must be identical to the SCM or the ticket files must be copied 
+from the SCM manually for interserver communication to work correctly.
+.nr bi 1
+.Pp
+\fBauth2\fP, \fBupdateclnt\fP and \fBupdatesrv\fP must be 
+started manually on a non-SCM to suck down the real versions of these files 
+from the actual SCM.  This error in logic can be misleading.
+.nr bi 1
+.Pp
+On non-SCM Servers, the following files on the SCM must be
+edited or copied from the SCM manually before running: 
+\fBvice-setup\fP:
+.Pp
+\fI/vice/db/services\fP
+.Pp
+\fI/vice/db/hosts\fP
+.Pp
+to complete the setup of a non-SCM server.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.SH FILES
+
+.Pp
+\fI/vice/db/vicetab\fP: the Vice Table Configuration file for srv.
+.Pp
+\fI/vice/vol/VolumeList\fP: volumeList of the server.
+.Pp
+\fI/vice/db/scm\fP:  the SCM hostname.
+.Pp
+\fI/vice/hostname\fP: the host's hostname.
+.Pp
+\fI/vice/srv.conf\fP: the \fBsrv\fP configuration file.
+.Pp
+\fI/vice/db/services\fP
+.Pp
+\fI/vice/db/ROOTVOLUME\fP
+.Pp
+\fI/vice/db/VSGDB\fP
+.Pp
+\fI/vice/db/vice.pfc\fP
+.Pp
+\fI/vice/db/vice.pdb\fP
+.Pp
+.Pp
+And many more files are touched by these scripts than are listed here.
+.Pp
+.SH SEE ALSO
+
+.Pp
+srv (8), rvmutl (8), rdsinit (8), auth2 (8), authmom (8), updatemon (8),
+updatesrv (8), updateclnt (8), startserver (8), srv.conf (8), createvol_rep (8),
+pwd2pdb (8), initpw (8), makeftree (8), vicetab (5)
+.Pp
+.Pp
+
+Coda Manual: ``Installing A Coda Server''
+.Pp
+The RVM Manual
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Henry M. Pierce, 1998, created
+.Pp

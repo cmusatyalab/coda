@@ -1,0 +1,86 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "maxgroupid" 5 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+maxgroupid - replicated volume number allocation mechanism
+.Pp
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+The system control machine (SCM) has a file, \fI/vice/vol/maxgroupid\fP, which contains the maximum replicated (aka group) volume number that has ever been allocated in the system.
+This is used as a simple way to guarantee that group volume numbers are unique.
+.Pp
+Replicated (or group) volume ids  are allocated out of the same
+namespace as replica ids and non-replicated volumes ids.  The latter
+two types of ids have a 1 byte (8 bit) prefix to identify the server
+on which they are stored.  We suggest using prefixes in the range
+00-7F for replicated volume ids, and prefixes in the range 80-FF for
+other volumes.  When initializing a system, put the number you wish to
+use for the first replicated volume in \fI/vice/vol/maxgroupid\fP\&.  For
+example, if you wish to use 7f000000 as the first replicated volume,
+create \fI/vice/vol/maxgroupid\fP with the number 2130706432.
+.Pp
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+\fI/vice/vol/maxgroupid\fP on the SCM
+.Pp
+.Pp
+.Pp
+.SH BUGS
+
+.Pp
+This file should be salvaged, but it is not.
+.Pp
+Removing this file (without reinitializing the whole system) is a recipe for disaster.
+Grave confusion will result if group (or any other) volumes are created with the same number.
+.Pp
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+servers (5), createvol_rep (8)
+.Pp
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Jay Kistler, 1990, Created
+.Pp
+.Pp

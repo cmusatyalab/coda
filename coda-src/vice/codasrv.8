@@ -1,0 +1,384 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "codasrv" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+codasrv - CFS file server
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBcodasrv\fP [-d (debug level)] [-rpcdebug rpc2debuglevel] [-p (number of processes)] [-b (buffers)] 
+.Pp
+[-l (large vnodes)] [-s (small vnodes)] [-k (stack size)] 
+.Pp
+[-w (wait interval)] [-r (RPC retry count)] 
+.Pp
+[-o (RPC timeout)] [-c (check interval)] 
+.Pp
+[-t (RPC trace buffers)] [-forcesalvage] 
+.Pp
+[-quicksalvage] [-rvm logdevice datadevice length] [-nores] 
+.Pp
+[-trunc percent] [-nocmp] [-nopy] [-nodumpvm] [-nosalvageonshutdown] 
+.Pp
+[-mondhost hostname] [-mondportal port] [-debarrenize] [-optstore]
+.Pp
+[-rvmopt] [-newchecklevel checklevel] 
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+\fBcodasrv\fP is the CFS \fIvice\fP file server.  It services requests from
+client machines \fBvenus\fP processes and maintains the file system.
+.Pp
+\fBSrv\fPs command line options are:
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-d\fP \fI<debug level>\fP"
+.nr bi 1
+.Pp
+Sets the internal
+debugging level to \fI<debug level>\fP\&.  This controls the amount of
+debugging output \fBcodasrv\fP will generate.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-p\fP \fI<number of processes>\fP"
+.nr bi 1
+.Pp
+Sets the number
+of light weight processes that will be used to handle concurrent
+requests.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-b\fP \fIbuffers\fP"
+.nr bi 1
+.Pp
+Sets the number of internal
+buffers used by \fBcodasrv\fP for the dir package.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-l\fP \fI<large vnodes>\fP"
+.nr bi 1
+.Pp
+number of large vnodes in lru cache
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-s\fP \fI<small vnodes>\fP"
+.nr bi 1
+.Pp
+number of small vnodes in lru cache
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-k\fP \fI<stack size>\fP"
+.nr bi 1
+.Pp
+stack size of LWP threads in Kbytes
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-w\fP \fI<wait interval>\fP"
+.nr bi 1
+.Pp
+interval for CallBackCheckLWP to see which clients are alive
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-r\fP \fI<RPC retry count>\fP"
+.nr bi 1
+.Pp
+number of times a call is retried before reporting death
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-o\fP \fI<RPC timeout>\fP"
+.nr bi 1
+.Pp
+default timeout for all rpcs
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-c\fP \fI<check interval>\fP"
+.nr bi 1
+.Pp
+The interval at which shutdown is checked
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-t\fP \fI<RPC trace buffers>\fP"
+.nr bi 1
+.Pp
+number of entries in the rpc trace buffer
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-forcesalvage\fP"
+.nr bi 1
+.Pp
+force a full salvage on all volumes
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-quicksalvage\fP"
+.nr bi 1
+.Pp
+salvage only the headers of the volumes - currently it always does a full
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-rvm\fP \fIlogdevice datadevice length\fP"
+.nr bi 1
+.Pp
+The \fB-rvm\fP
+switch allows you to specify the locaction of the log device, data
+device, and length of the recoverable segment used by the server. This parameter is not optional.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-nores\fP"
+.nr bi 1
+.Pp
+Turn off resolution on the servers
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-trunc\fP \fIpercent\fP"
+.nr bi 1
+.Pp
+Specify how full the log can get before 
+it is truncated.  Default is 50%
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-nocmp\fP"
+.nr bi 1
+.Pp
+Directory replica contents will not be checked for equality at end of resolution
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-nopy\fP"
+.nr bi 1
+.Pp
+Suppress polling and yielding by threads that run for a long period 
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-nodumpvm\fP"
+.nr bi 1
+.Pp
+Do not dump in-memory copy of recoverable segment before shutdown
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-nosalvageonshutdown\fP"
+.nr bi 1
+.Pp
+Do not salvage volumes on shutdown
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-mondhost\fP \fIhostname\fP"
+.nr bi 1
+.Pp
+Host where \fImond\fP database is stored
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-mondportal\fP \fIport\fP"
+.nr bi 1
+.Pp
+Port to use when contacting the \fImond\fP host.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-debarrenize\fP"
+.nr bi 1
+.Pp
+Create an inode for a vnode if the inode cannot be found by the salvager 
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-opstore\fP"
+.nr bi 1
+.Pp
+Optimized Stores - return to the client before sftp completes
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-rvmopt\fP"
+.nr bi 1
+.Pp
+Turn on inter/intra transaction rvm optimizations
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-newchecklevel\fP \fIchecklevel\fP"
+.nr bi 1
+.Pp
+Set the level of checking done by new plumber.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+/vice/srv/SrvErr
+.Pp
+/vice/srv/SrvLog*
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+startserver (8)
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Joshua Raiff, 1993, Created man page
+.Pp
+.Pp
+.Pp
+.Pp

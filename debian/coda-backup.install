@@ -4,3 +4,9 @@ debian/tmp/usr/sbin/parserecdump
 debian/tmp/usr/sbin/backup
 debian/tmp/usr/sbin/readdump
 debian/tmp/usr/sbin/merge
+debian/tmp/usr/share/man/man5/backuplogs.5
+debian/tmp/usr/share/man/man5/dumpfile.5
+debian/tmp/usr/share/man/man5/dumplist.5
+debian/tmp/usr/share/man/man8/backup.8
+debian/tmp/usr/share/man/man8/merge.8
+debian/tmp/usr/share/man/man8/readdump.8

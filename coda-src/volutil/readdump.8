@@ -1,0 +1,155 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "readdump" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+readdump - Utility to examine dumpfiles created by the Coda backup facility
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBreaddump\fP [dumpfile]
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+The \fBreaddump\fP program is an interactive facility to allow the user to
+get information from a dump file produced by the Coda backup mechanism. For
+now it is simply a way of looking at the information in a dump file. One
+cannot use it to modify the dump file.
+.Pp
+The \fBreaddump\fP program supports the following commands:
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBopenDumpFile\fP  <dumpfile>"
+.nr bi 1
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBshowHeader\fP"
+.nr bi 1
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBshowVolumeDiskData\fP"
+.nr bi 1
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBsetIndex\fP  <index type>"
+.nr bi 1
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBnextVnode\fP"
+.nr bi 1
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBskipVnodes\fP <nVnodes>"
+.nr bi 1
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBquit\fP"
+.nr bi 1
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+\fBreaddump\fP uses the \fIci\fP command interface, which allows the
+use of unique prefixes for commands. Unspecified parameters will be prompted
+for, and default values can be used. The \fIshowHeader\fP command prints
+out the header of the dump, which is seperate from the header of the volume
+that was dumped. The \fIshowVolumeDiskData\fP prints out the header of the
+volume.
+.Pp
+The dump contains two streams of vnodes, one for directories and one for
+files and symbolic links. The \fIsetIndex\fP command specifies to
+\fBreaddump\fP which stream you wish to examine. Once an index has been
+specified, the \fInextVnode\fP command displays the next Vnode (object) in
+the stream. Note that movement through the stream is one-directional. To
+revisit a Vnode, use the \fIsetIndex\fP command to reset the program back
+to the beginning of the stream.  One can jump through the index by use of the
+\fIskipVnodes\fP command, which takes the number of vnodes to skip, and
+reads past (without displaying) that many vnodes in the stream.
+.Pp
+.Pp
+.Pp
+.SH Future Work
+
+.Pp
+Usage of this facility should suggest more commands to help administrators
+parse dumpfiles. In particular, a command to seek ahead to a specified offset
+in the dump would be useful. 
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+merge (8), backup (8), volutil (8), Coda Manual
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+David C. Steere, 1991, Created
+.Pp
+.Pp

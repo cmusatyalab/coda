@@ -1,0 +1,150 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "bldvldb.sh" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+bldvldb.sh - build a new Volume Location Data Base (VLDB)
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBbldvldb.sh\fP
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+\fBbldvldb.sh\fP builds a new volume location data base \fBVLDB\fP\&.  
+It uses the 
+\fI/vice/db/hosts\fP file to get a list of servers to use to retrieve
+the current list of volumes.  It gets the list from the 
+\fI/vice/vol/VolumeList\fP file on each server.  It combines the list 
+into \fI/vice/vol/BigVolumeList\fP and 
+passes the combined list as a parameter to the \fBvolutil makevldb\fP
+command.  This command produces a new \fBVLDB\fP in \fI/vice/db\fP and 
+updates the files \fIAllVolumes\fP and \fIpartitions\fP in \fI/vice/vol\fP\&.
+You must have root priveledges to run this command.
+.Pp
+.Pp
+.Pp
+.SH DIAGNOSTICS
+
+.Pp
+This command can only be issued on the System Control Machine (SCM). Bldvldb uses
+two mechanisms to get the VolumeList files from the various servers in
+\fI/vice/db/hosts\fP\&. The first is ftp. In order for this to succeed, there has to
+be a file called \&".anonr\&" in the directory \fI/vice/vol\fP, which is globally
+readable and contains a line with the word \&"VolumeList\&" in it. If
+\fBbldvldb.sh\fP is unable to get the file via ftp, it will attempt to use
+the CMU RFS remote file system. If neither mechanism works, \fBbldvldb.sh\fP will
+skip over that servers volumes when building the \fBVLDB\fP\&.  The
+databases are propagated via the update protocol.  This takes up to
+five minutes.  Attempts to access a new volume from a client, prior to the
+propagation of all the databases to all servers, may fail.
+.Pp
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/vol/AllVolumes\fP"
+.nr bi 1
+.Pp
+is created
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/db/VLDB\fP"
+.nr bi 1
+.Pp
+is created
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/vol/VolumeList\fP"
+.nr bi 1
+.Pp
+on each server is used to build the VLDB
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/db/hosts\fP"
+.nr bi 1
+.Pp
+is a list of the active servers
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/vol/BigVolumeList\fP"
+.nr bi 1
+.Pp
+is the result of combining \fI/vice/vol/VolumeList\fP from each server
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+update (8), volutil (8)
+.Pp
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Puneet Kumar, 1990, Created
+.Pp
+.Pp

@@ -1,0 +1,115 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "purgevol_rep" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+purgevol_rep - delete a replicated volume
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBpurgevol_rep\fP <volumename>
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+\fBpurgevol_rep\fP is a front-end to the \fIvolutil
+purgevol_rep\fP command and is used to delete a replicated volume
+from the Coda system.  \fBpurgevol_rep\fP determines the replicated
+volumeIds corresponding to this volume by examining the readable version of
+the \fIVRDB\fP located in \fI/vice/vol/VRList\fP\&. It then uses the
+\fIvolutil\fP utility to purge the individual replicas at the sites of
+replication. Next, it removes the entry for the deleted volume from the
+\fI/vice/vol/VRList\fP and builds a new \fIVRDB\fP\&.  Finally, it builds
+a new \fIVLDB\fP using the \fIbldvldb\fP(8) script. Like the other
+volume utilities, \fBpurgevol_rep\fP must be run on the SCM by
+root.
+.Pp
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/vol/AllVolumes\fP"
+.nr bi 1
+.Pp
+updated by removing the entries for 
+the replicas of the purged volume.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/vol/VolumeList\fP"
+.nr bi 1
+.Pp
+updated by the remote server as a 
+side effect of purging the volume.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fI/vice/vol/VRList\fP"
+.nr bi 1
+.Pp
+updated by deleting the entry for the 
+purged volume.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+bldvldb.sh(8), purgevol(8), volutil(8)
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+David Steere, 1990, Created
+.Pp
+.Pp

@@ -47,6 +47,8 @@ include $(TOPDIR)/Makeconf
 EXECUTABLES = updatesrv updateclnt updatefetch
 SSBINS      = $(EXECUTABLES)
 
+SMANPAGES := updateclnt.8 updatesrv.8
+
 RP2FILES    = update.rpc2
 RP2HEADERS  = $(notdir ${RP2FILES:.rpc2=.h})
 

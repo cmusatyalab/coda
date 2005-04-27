@@ -1,0 +1,188 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "vutil" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+vutil - venus utility program
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBvutil\fP [-cop COP modes] [ -cs ] 
+[-d debug level] [-mc 0 \(br 1 ] [-p 0 \(br 1]
+.Pp
+[-shutdown] [-stats] [-swap]
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+\fBvutil\fP dynamically alters various parameters on a running Venus.  It
+reads the value of the file /usr/coda/venus.cache/pid and sends signals to
+that process.
+.Pp
+The parameters are:
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-cop\fP \fICOP modes\fP"
+.nr bi 1
+.Pp
+Controls what Coda Optimistic
+Protocol (COP) options are enabled.  \fICOP modes\fP is interpreted
+according to the following bit-mask: [PIGGYCOP2 \(br ASYNCCOP2 \(br ASYNCCOP1
+]\&.  Only some combinations are legal.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-cs\fP"
+.nr bi 1
+.Pp
+Clears internal counters used in statistics reporting.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-d\fP \fIdebug level\fP"
+.nr bi 1
+.Pp
+Sets the debug level to \fIdebug
+level\fP\&.  Meaningful values are {0, 1, 10, 100, 1000}\&.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-mc\fP \fI0 \(br 1\fP"
+.nr bi 1
+.Pp
+Enable/disables multicast 
+(0 = ``OFF,'' 1 = ``ON'')
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-p\fP \fI0 \(br 1\fP"
+.nr bi 1
+.Pp
+Enables/disables profiling 
+(0 = ``OFF,'' 1 = ``ON'')
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-shutdown\fP"
+.nr bi 1
+.Pp
+Shuts Venus down gracefully.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.Pp
+.IP "\fB-stats\fP"
+.nr bi 1
+.Pp
+Causes Venus to dump internal counters and other
+statistics to its log file.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-swap\fP"
+.nr bi 1
+.Pp
+Causes Venus to move its current log
+file to <log-file>\&.old and reinitialize <log-file>\&.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+.SH DIAGNOSTICS
+
+.Pp
+Only the super user can run \fBvutil\fP\&.
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+\fI/usr/coda/venus.cache/pid\fP
+.Pp
+\fI/usr/coda/venus.cahe/venus.log\fP
+.Pp
+.Pp
+.Pp
+.SH BUGS
+
+.Pp
+Venus cache directory is assumed to be \fI/usr/coda/venus.cache\fP\&.
+.Pp
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+venus LEFTPAREN 8)
+.Pp
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Jay Kistler, 1990, Created
+.Pp
+.Pp

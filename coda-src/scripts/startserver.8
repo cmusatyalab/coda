@@ -1,0 +1,76 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "startserver" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+startserver - Start the CFS file server
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBstartserver\fP
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+\fBstartserver\fP is used to start the CFS file server process.  It will
+clean up old log files, then start the server.  This script is useful
+for starting the server with the same configuration every time its run.
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+\fIcodasrv\fP
+.Pp
+\fI/vice/srv/SrvErr\fP
+.Pp
+\fI/vice/srv/SrvLog*\fP
+.Pp
+\fI/vice/srv/srv.conf\fP
+.Pp
+.SH SEE ALSO
+
+.Pp
+codasrv (8)
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Joshua Raiff, 1993, Created man page
+.Pp
+.Pp
+.Pp
+.Pp

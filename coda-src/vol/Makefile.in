@@ -58,6 +58,7 @@ LIBVOLOBJS= dirvnode.o cvnode.o volume.o vutil.o vldb.o fssync.o index.o \
 	    recova.o recovb.o recovc.o volhash.o dumpcamstorage.o vrdb.o \
 	    vlist.o lockqueue.o vollocate.o vol-debug.o 
 
+SMANPAGES := vrdb.5
 
 libvol.a: ${LIBVOLOBJS}
 

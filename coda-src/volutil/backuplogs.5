@@ -1,0 +1,191 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "backuplogs" 5 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+backuplogs.<DDMMMYY> - Format of a Coda backup log file
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+A backuplog is created each day with day, month and year
+appended to the name \&"backuplogs\&".  The file backuplogs contains
+the following information collected by the backup and BSD dump
+programs:
+.nr ll +1
+.nr t\n(ll 0
+.if \n(ll>1 .RS
+.nr bi 1
+.Pp
+the cloning process of each replica that makes up a Volume
+.Pp
+.nr bi 1
+.Pp
+the dump of each replica to local tape
+.Pp
+.nr bi 1
+.Pp
+Attempts to retry failed operations such as unable to contact a server
+.Pp
+.nr bi 1
+.Pp
+Successfully volumes (incrementals are marked, otherwise full backups are assumed
+.Pp
+.nr bi 1
+.Pp
+Lists any volumes that failed to be backed up
+.Pp
+.nr bi 1
+.Pp
+Lists any partially backup volumes (e.g if a replica was missed)
+.Pp
+.nr bi 1
+.Pp
+BSD Dump statistics
+.Pp
+.nr bi 1
+.Pp
+the disk image file names dumped to tape
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+This file may be used to identify successful, partially successful,
+partially failed, or complete failures of a backup to occur.  It is
+also used to identify the replica file names that make up a Volume
+to used by \fImerge\fP(8) to restore a replica.  Also note
+that the BSD restore command is used to retrieve files from a tape 
+listed in the backuplogs.<date> file.  Restore should be done
+via restore(1) command provided by the BSD-DUMP facility.  The the 
+most recent incremental(s) are then merged with the most recent full backup
+of a volume.
+.Pp
+.Pp
+.SH EXAMPLE
+
+.Pp
+.Pp
+.DS
+.sp
+.ft RR
+.nf
+date: Mon 01/05/98
+
+00:05:26 Partition /backup1: 2561728 available size (1K blocks, minfree=5%), 256
+1715 free blocks.
+00:05:26 Partition /backup2: 2561728 available size (1K blocks, minfree=5%), 256
+1715 free blocks.
+00:05:26 Partition /backup3: 2559782 available size (1K blocks, minfree=5%), 255
+9767 free blocks.
+00:05:26 VLDBLookup: VLDB_size unset. Calling VCheckVLDB()
+00:05:26 7f0003f4: cloning
+00:05:29        e20000af->e20000b0
+00:05:33        e10000bd->e10000be
+00:05:36        e30000ae->e30000af
+00:09:34 7f0003ef: cloning
+00:09:57        e2000093->e20000ad
+00:10:27        e10000a1->e10000bb
+00:10:57        e3000092->e30000b4
+00:29:02 Dumping 7f0003f4.e20000af to /backup1/05Jan1998/massenet.coda.cs.cmu.ed
+u-7f0003f4.e20000af ...
+00:29:02                Transferred 112131 bytes
+
+00:29:02 Dumping 7f0003f4.e10000bd to /backup2/05Jan1998/poulenc.coda.cs.cmu.edu
+-7f0003f4.e10000bd ...
+00:29:03                Transferred 112131 bytes
+
+00:29:03 Dumping 7f0003f4.e30000ae to /backup1/05Jan1998/rameau.coda.cs.cmu.edu-7f0003f4.e30000ae ...
+00:29:14                Transferred 3768325 bytes
+01:12:12 Dumping 7f0003ef.e2000093 to /backup1/05Jan1998/massenet.coda.cs.cmu.edu-7f0003ef.e2000093 ...
+01:18:31                Transferred 119182513 bytes
+
+01:18:31 Dumping 7f0003ef.e10000a1 to /backup2/05Jan1998/poulenc.coda.cs.cmu.edu-7f0003ef.e10000a1 ...
+01:33:44                Transferred 119182513 bytes
+
+01:33:44 Dumping 7f0003ef.e3000092 to /backup3/05Jan1998/rameau.coda.cs.cmu.edu-7f0003ef.e3000092 ...
+01:42:03                Transferred 119172268 bytes
+
+03:58:16                Transferred 309842 bytes
+
+03:58:19
+03:58:19 Attempting to retry any failed operations.
+03:58:19
+03:58:19 Successfully backed-up Volumes:
+03:58:19 0x7f0003f4 (incremental)       f:u.satya2
+03:58:19 0x7f0003ef                     f:u.mre
+03:58:19 Only partially successfully backed-up Volumes:
+03:58:19
+03:58:19 Volumes that FAILED backup:
+03:58:19
+03:58:19 Volumes that were NOT backed-up:
+03:58:19 0x7f000394                     t.test
+
+[STATISTICAL SUMMERIES OF THE DUMP NORMALLY APPEAR HERE]
+
+---------> Partition /backup:
+---------> command: mt -f /dev/nst0 rewind
+---------> command: restore -b 500 -s 1 -f /dev/nst0 -t /
+Level 0 dump of /backup on dvorak.coda.cs.cmu.edu:/dev/sda1
+Label: none
+Dump   date: Mon Jan  5 04:05:14 1998
+Dumped from: the epoch
+         2      .
+        11      ./lost+found
+      2041      ./05Jan1998
+      4081      ./05Jan1998/massenet.coda.cs.cmu.edu
+      4082      ./05Jan1998/massenet.coda.cs.cmu.edu/7f0003f4.e20000af
+      4087      ./05Jan1998/massenet.coda.cs.cmu.edu/7f0003ef.e2000093
+      6121      ./05Jan1998/poulenc.coda.cs.cmu.edu
+      6122      ./05Jan1998/poulenc.coda.cs.cmu.edu/7f0003f4.e10000bd
+      6127      ./05Jan1998/poulenc.coda.cs.cmu.edu/7f0003ef.e10000a1
+      8161      ./05Jan1998/rameau.coda.cs.cmu.edu
+      8162      ./05Jan1998/rameau.coda.cs.cmu.edu/7f0003f4.e30000ae
+      8167      ./05Jan1998/rameau.coda.cs.cmu.edu/7f0003ef.e3000092
+.DE
+.fi 
+.ec
+.ft P
+.sp
+.SH SEE ALSO
+
+.Pp
+backup (8), dump (1), restore (1), dumplist (5), vicetab (5), merge (8)
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Joshua Raiff, 1993, Taken from the System Administrators Guide.
+.Pp
+Henry M. Pierce, 1998, updated.
+.Pp

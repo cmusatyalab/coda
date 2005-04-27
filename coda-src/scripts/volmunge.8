@@ -1,0 +1,96 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "volmunge" 1 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME \fBvolmunge\fP - manipulates objects within Coda.
+
+.SH SYNOPSIS
+\fBvolmunge\fP <-adfmov> dir
+
+.Pp
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.Pp
+.IP "\fB-a\fP"
+.nr bi 1
+.Pp
+Prints out everything but does not cross volume boundaries.
+.IP "\fB-d\fP"
+.nr bi 1
+.Pp
+Prints out UNIX directories, but not volume mount points.
+.IP "\fB-f\fP"
+.nr bi 1
+.Pp
+Prints out all objects which are not volume mount points (eg
+UNIX files and UNIX directories); this preforms a stat()
+call on all non-volume objects which is ideal for forcing resolution 
+on a volume.
+.IP "\fB-m\fP"
+.nr bi 1
+.Pp
+Prints out those objects which are volume mount points.
+.IP "\fB-o\fP"
+.nr bi 1
+.Pp
+Prints out those objects which are UNIX files and preforms an open() call 
+on the file.
+.IP "\fB-v\fP"
+.nr bi 1
+.Pp
+Prints out the volume name of a volume's mount point.
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.SH DESCRIPTION
+
+.Pp
+.Pp
+\fBvolmunge\fP: is ideal for identifying Coda objects versus
+regular UNIX files (including UNIX directories) stored within the
+Coda filesystem.  It will work recursively.
+.Pp
+Because the, \fB-f\fP and \fB-o\fP, call the stat(), and open()
+functions respectively, resolution many be forced with volmunge
+if one is reconstituting a replicated Coda volume or group of volumes
+mounted on top of each other.
+.Pp
+.SH SEE ALSO
+
+.Pp
+find (1), perl (1)
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Henry M. Pierce, 1998, created
+.Pp

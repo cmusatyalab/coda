@@ -49,6 +49,9 @@ SSBINS      = $(EXECUTABLES)
 LIBRARIES   = libvolutil.a libvolserv.a
 HEADERS     = volutil.private.h
 
+SMANPAGES := backup.8 backuplogs.5 dumpfile.5 dumplist.5 merge.8 readdump.8 \
+    volutil.8
+
 DEPLIBS := ${LIBVOL} ${LIBVV} $(LIBVICEDEP) ${LIBPARTITION} ${LIBUTIL} \
 	${LIBSYSENT} ${LIBBASE}
 

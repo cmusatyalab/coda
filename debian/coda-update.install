@@ -2,3 +2,5 @@ debian/tmp/usr/sbin/rpc2portmap
 debian/tmp/usr/sbin/updatesrv
 debian/tmp/usr/sbin/updateclnt
 debian/tmp/usr/sbin/updatefetch
+debian/tmp/usr/share/man/man8/updateclnt.8
+debian/tmp/usr/share/man/man8/updatesrv.8

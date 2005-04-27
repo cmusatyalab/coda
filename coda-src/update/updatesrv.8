@@ -1,0 +1,171 @@
+.if n .ds Q \&"
+.if t .ds Q ``
+.if n .ds U \&"
+.if t .ds U ''
+.TH "updatesrv" 8 
+.tr \&
+.nr bi 0
+.nr ll 0
+.nr el 0
+.de DS
+..
+.de DE
+..
+.de Pp
+.ie \\n(ll>0 \{\
+.ie \\n(bi=1 \{\
+.nr bi 0
+.if \\n(t\\n(ll=0 \{.IP \\(bu\}
+.if \\n(t\\n(ll=1 \{.IP \\n+(e\\n(el.\}
+.\}
+.el .sp 
+.\}
+.el \{\
+.ie \\nh=1 \{\
+.LP
+.nr h 0
+.\}
+.el .PP 
+.\}
+..
+.SH NAME  
+
+.Pp
+updatesrv - update server files
+.Pp
+.Pp
+.Pp
+.SH SYNOPSIS
+
+.Pp
+\fBupdatesrv\fP [ \fB-d\fP debug_level ] [ \fB-l\fP number_of_lwps ] [ \fB-p\fP prefix ] [ \fB-s\fP ] [ \fB-q\fP service_number ] 
+.Pp
+.Pp
+.Pp
+.SH DESCRIPTION
+
+.Pp
+The \fBupdatesrv\fP command is a read-only server that responds to requests for files by name.  The operands that it accepts are:
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-d\fP debug_level"
+.nr bi 1
+.Pp
+This is used to increase the level 
+of messages written to the log file.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-l\fP \fInumber_of_lwps\fP"
+.nr bi 1
+.Pp
+This operand is 
+used to specify how many lwps will be used to answer file requests.  
+Default: 2.  
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-p\fP \fIprefix\fP"
+.nr bi 1
+.Pp
+This name, prefixed to all file
+requests, is used to limit the files that can be requested. 
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fB-q\fP \fIservice_name\fP"
+.nr bi 1
+.Pp
+This is the service name 
+in \fI/etc/services\fP that is to be used.  Default: rupdsrv.  
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+.SH EXAMPLES
+
+.Pp
+The command \fBupdatesrv -s -p /\fP would invoke the updatesrv process
+and cause the files to be served relative to / on the server machine.
+.Pp
+The command \fBupdatesrv -s -p /vice/bin\fP would cause the files to be
+served relative to /vice/bin on the server machine.  
+.Pp
+.Pp
+.Pp
+.SH DIAGNOSTICS
+
+.Pp
+.Pp
+The UpdateLog file will contain useful information.  Issuing a \fBkill
+-TSTP\fP signal to a running updatesrv will increase the level of debugging
+messages.  The debugging messages can be turned off by issuing a \fBkill
+-HUP\fP signal.  This will also cause the log file to no longer be written.
+.Pp
+.Pp
+.Pp
+.SH FILES
+
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBUpdateLog\fP"
+.nr bi 1
+.Pp
+This log of the messages from \fBupdatesrv\fP is kept in the directory specified by the \fB-p\fP operand on the invocation.  This log file is only written when debugging is enabled.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.nr ll +1
+.nr t\n(ll 2
+.if \n(ll>1 .RS
+.IP "\fBpid\fP"
+.nr bi 1
+.Pp
+This file contains the pid of the updatesrv process.  It is kept in the directory specified on the \fB-p\fP operand on invocation of the command.
+.Pp
+.if \n(ll>1 .RE
+.nr ll -1
+.Pp
+.Pp
+.Pp
+.SH BUGS
+
+.Pp
+It does not yet use any password authentication to stop others from using it to fetch files from servers.
+.Pp
+.Pp
+.Pp
+.SH SEE ALSO
+
+.Pp
+checkvenus(8)
+updateclnt(8)
+.Pp
+.Pp
+.Pp
+.SH AUTHOR
+
+.Pp
+Maria R. Ebling, 1990, Adapted from AFS-2
+.Pp
+.Pp
+.Pp
+.Pp
