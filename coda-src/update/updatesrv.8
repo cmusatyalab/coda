@@ -2,7 +2,7 @@
 .if t .ds Q ``
 .if n .ds U \&"
 .if t .ds U ''
-.TH "updatesrv" 8 
+.TH "updatesrv" "8" "" "" ""
 .tr \&
 .nr bi 0
 .nr ll 0
@@ -28,29 +28,22 @@
 .el .PP 
 .\}
 ..
-.SH NAME  
-
+.SH "NAME"
+updatesrv \- update server files
+.SH "SYNOPSIS"
 .Pp
-updatesrv - update server files
-.Pp
-.Pp
-.Pp
-.SH SYNOPSIS
-
-.Pp
-\fBupdatesrv\fP [ \fB-d\fP debug_level ] [ \fB-l\fP number_of_lwps ] [ \fB-p\fP prefix ] [ \fB-s\fP ] [ \fB-q\fP service_number ] 
+\fBupdatesrv\fP [ \fB\-d\fP debug_level ] [ \fB\-l\fP number_of_lwps ] [ \fB\-p\fP prefix ] [ \fB\-s\fP ] [ \fB\-port\fP listen_port ] 
 .Pp
 .Pp
 .Pp
-.SH DESCRIPTION
-
+.SH "DESCRIPTION"
 .Pp
-The \fBupdatesrv\fP command is a read-only server that responds to requests for files by name.  The operands that it accepts are:
+The \fBupdatesrv\fP command is a read\-only server that responds to requests for files by name.  The operands that it accepts are:
 .Pp
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fB-d\fP debug_level"
+.IP "\fB\-d\fP debug_level"
 .nr bi 1
 .Pp
 This is used to increase the level 
@@ -62,7 +55,7 @@ of messages written to the log file.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fB-l\fP \fInumber_of_lwps\fP"
+.IP "\fB\-l\fP \fInumber_of_lwps\fP"
 .nr bi 1
 .Pp
 This operand is 
@@ -75,7 +68,7 @@ Default: 2.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fB-p\fP \fIprefix\fP"
+.IP "\fB\-p\fP \fIprefix\fP"
 .nr bi 1
 .Pp
 This name, prefixed to all file
@@ -87,40 +80,36 @@ requests, is used to limit the files that can be requested.
 .nr ll +1
 .nr t\n(ll 2
 .if \n(ll>1 .RS
-.IP "\fB-q\fP \fIservice_name\fP"
+.IP "\fB\-port\fP \fIlisten_port\fP"
 .nr bi 1
 .Pp
-This is the service name 
-in \fI/etc/services\fP that is to be used.  Default: rupdsrv.  
+This is the UDP port on which we should be listening. If not specified updatesrv will use a random port. 
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
 .Pp
 .Pp
-.SH EXAMPLES
-
+.SH "EXAMPLES"
 .Pp
-The command \fBupdatesrv -s -p /\fP would invoke the updatesrv process
+The command \fBupdatesrv \-s \-p /\fP would invoke the updatesrv process
 and cause the files to be served relative to / on the server machine.
 .Pp
-The command \fBupdatesrv -s -p /vice/bin\fP would cause the files to be
+The command \fBupdatesrv \-s \-p /vice/bin\fP would cause the files to be
 served relative to /vice/bin on the server machine.  
 .Pp
 .Pp
 .Pp
-.SH DIAGNOSTICS
-
+.SH "DIAGNOSTICS"
 .Pp
 .Pp
 The UpdateLog file will contain useful information.  Issuing a \fBkill
--TSTP\fP signal to a running updatesrv will increase the level of debugging
+\-TSTP\fP signal to a running updatesrv will increase the level of debugging
 messages.  The debugging messages can be turned off by issuing a \fBkill
--HUP\fP signal.  This will also cause the log file to no longer be written.
+\-HUP\fP signal.  This will also cause the log file to no longer be written.
 .Pp
 .Pp
 .Pp
-.SH FILES
-
+.SH "FILES"
 .Pp
 .nr ll +1
 .nr t\n(ll 2
@@ -128,7 +117,7 @@ messages.  The debugging messages can be turned off by issuing a \fBkill
 .IP "\fBUpdateLog\fP"
 .nr bi 1
 .Pp
-This log of the messages from \fBupdatesrv\fP is kept in the directory specified by the \fB-p\fP operand on the invocation.  This log file is only written when debugging is enabled.
+This log of the messages from \fBupdatesrv\fP is kept in the directory specified by the \fB\-p\fP operand on the invocation.  This log file is only written when debugging is enabled.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
@@ -139,32 +128,29 @@ This log of the messages from \fBupdatesrv\fP is kept in the directory specified
 .IP "\fBpid\fP"
 .nr bi 1
 .Pp
-This file contains the pid of the updatesrv process.  It is kept in the directory specified on the \fB-p\fP operand on invocation of the command.
+This file contains the pid of the updatesrv process.  It is kept in the directory specified on the \fB\-p\fP operand on invocation of the command.
 .Pp
 .if \n(ll>1 .RE
 .nr ll -1
 .Pp
 .Pp
 .Pp
-.SH BUGS
-
+.SH "BUGS"
 .Pp
 It does not yet use any password authentication to stop others from using it to fetch files from servers.
 .Pp
 .Pp
 .Pp
-.SH SEE ALSO
-
+.SH "SEE ALSO"
 .Pp
 checkvenus(8)
 updateclnt(8)
 .Pp
 .Pp
 .Pp
-.SH AUTHOR
-
+.SH "AUTHOR"
 .Pp
-Maria R. Ebling, 1990, Adapted from AFS-2
+Maria R. Ebling, 1990, Adapted from AFS\-2
 .Pp
 .Pp
 .Pp
