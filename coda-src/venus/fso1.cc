@@ -2322,7 +2322,7 @@ void fsobj::GetVattr(struct coda_vattr *vap)
     vap->va_type = FTTOVT(stat.VnodeType);
     vap->va_mode = stat.Mode;
 
-    if (S_ISREG(stat.Mode)) /* strip the setuid bits on files! */
+    if (stat.VnodeType == File) /* strip the setuid bits on files! */
         vap->va_mode &= ~(S_ISUID | S_ISGID);
 
     vap->va_uid = (uid_t) stat.Owner;
@@ -2335,7 +2335,7 @@ void fsobj::GetVattr(struct coda_vattr *vap)
     /* hack to avoid an optimization where find skips subdirectories if
      * there are any mountpoints in the current directory (since the
      * mountlinks don't are not represented in the link count). */
-    vap->va_nlink = S_ISDIR(stat.Mode) ? 1 : stat.LinkCount;
+    vap->va_nlink = (stat.VnodeType == Directory) ? 1 : stat.LinkCount;
     vap->va_blocksize = V_BLKSIZE;
     vap->va_rdev = 1;
 
