@@ -431,7 +431,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
             if (vap->va_mode != VA_IGNORE_MODE) {
                 /* setuid is not desirable on a distributed fs. Use a link to
                  * a local binary to preserve local policies */
-                if (S_ISREG(vap->va_mode) &&
+                if (f->IsFile() &&
                     vap->va_mode & (S_ISUID | S_ISGID))
                 {
                     u.u_error = EPERM;
