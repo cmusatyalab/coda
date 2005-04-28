@@ -510,7 +510,7 @@ static int IncVVGroup(ViceVersionVector **VV, int *domindex)
 	    continue;
 
 	case VV_DOM:
-	    *domindex = 1;
+	    *domindex = i;
 	    break;
 
 	case VV_INC:
