@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2005 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -18,6 +18,10 @@ listed in the file CREDITS.
 
 /************************************* fid table entry */
 
+#ifndef _POTEMKIN_H_
+#define _POTEMKIN_H_
+
+
 #ifndef MAXNAMLEN
 #define MAXNAMLEN  255
 #endif  /* MAXNAMLEN */
@@ -26,9 +30,10 @@ listed in the file CREDITS.
 #define V_BLKSIZE  8192
 #endif  /* V_BLKSIZE */
 
+
 typedef struct fid_ent_s {
-    ViceFid           fid;
-    enum coda_vtype        type;
+    struct CodaFid    fid;
+    enum coda_vtype   type;
     ds_list_t        *kids;
     struct fid_ent_s *parent;
     char              name[MAXNAMLEN+1];
@@ -89,6 +94,37 @@ static void coda_iattr_to_vattr(struct iattr *, struct coda_vattr *);
 #define MOUNT_CFS 1
 #endif
 
+#ifndef CFID_REALM  
+#define CFID_REALM 0
+#endif  /* CFID_REALM */
+
+#ifndef CFID_VOLUME
+#define CFID_VOLUME 1
+#endif  /* CFID_VOLUME */
+
+#ifndef CFID_VNODE  
+#define CFID_VNODE 2
+#endif  /* CFID_VNODE */
+
+#ifndef CFID_UNIQUE  
+#define CFID_UNIQUE 3
+#endif  /* CFID_REALM */
 
 
+/* Taken from venusfid.h and modified -- AW */
 
+
+inline char *FID_(const struct CodaFid *fid)
+{
+    static char buf[2][37];
+    static int i = 0;
+    i = 1 - i;
+    sprintf(buf[i], "%x.%x.%x.%x",
+	    (unsigned int)fid->opaque[CFID_REALM], 
+	    (unsigned int)fid->opaque[CFID_VOLUME],
+	    (unsigned int)fid->opaque[CFID_VNODE], 
+	    (unsigned int)fid->opaque[CFID_UNIQUE]);
+    return buf[i];
+}
+
+#endif /* _POTEMKIN_H_ */

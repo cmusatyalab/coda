@@ -3,7 +3,7 @@
                            Coda File System
                               Release 6
 
-          Copyright (c) 1987-2003 Carnegie Mellon University
+          Copyright (c) 1987-2005 Carnegie Mellon University
                   Additional copyrights listed below
 
 This  code  is  distributed "AS IS" without warranty of any kind under
@@ -31,11 +31,15 @@ listed in the file CREDITS.
 #include <sys/file.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/utsname.h>
+#include <sys/wait.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <venusioctl.h>
+#include <sys/mount.h>
+#include <sys/fsuid.h>
 
 #ifdef sun
-#include <sys/mount.h>
 #include <sys/mnttab.h>
 #include <sys/mntent.h>
 #endif
@@ -44,7 +48,6 @@ listed in the file CREDITS.
 #include <sys/socket.h>
 #include <netinet/in.h>
 #define lstat stat
-#define seteuid setuid
 #endif
 
 
@@ -78,6 +81,16 @@ listed in the file CREDITS.
 #define INADDR_LOOPBACK 0x7f000001
 #endif
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
+#ifndef O_DIRECTORY
+#define O_DIRECTORY 0200000
+#endif
+
+
+
 /************************************************ Argument globals */
 char       *KernDevice = "/dev/cfs0";                    /* -kd */
 char       *RootDir    = "\temp";                    /* -rd */
@@ -91,8 +104,8 @@ ds_hash_t        *FidTab;         /* Table of known vnodes, by fid */
 unsigned long     Uniq=2;         /* Next uniqifier/vnode to assign */
 unsigned long     Volno=1;        /* Which volume to use */
 int               KernFD=-1;      /* how to contact the kernel */
-ViceFid          *RootFid=NULL;   /* Root fid */
-fid_ent_t        *RootFep=NULL;   /* Root fid-entry */
+struct CodaFid   *RootFid=NULL;   /* Root fid */
+fid_ent_t *RootFep=NULL;   /* Root fid-entry */
 
 /************************************************ Zombify */
 
@@ -117,7 +130,7 @@ long
 fid_hash(void *a) {
     fid_ent_t *f = a;
     
-    return(f->fid.Unique);
+    return(f->fid.opaque[CFID_UNIQUE]);
 }
 
 long
@@ -125,7 +138,8 @@ fid_comp(void *a1, void *a2) {
     fid_ent_t *f1 = a1;
     fid_ent_t *f2 = a2;
 
-    return((long)f1->fid.Unique - (long)f2->fid.Unique);
+    return((long)f1->fid.opaque[CFID_UNIQUE] - 
+	   (long)f2->fid.opaque[CFID_UNIQUE]);
 }
 
 fid_ent_t *
@@ -133,8 +147,8 @@ fid_create(char *name, fid_ent_t *parent)
 {
     fid_ent_t  *result;
     result = (fid_ent_t *) malloc (sizeof(fid_ent_t));
-    result->fid.Volume = Volno;
-    result->fid.Vnode = result->fid.Unique = Uniq++;
+    result->fid.opaque[CFID_VOLUME] = Volno;
+    result->fid.opaque[CFID_VNODE] = result->fid.opaque[CFID_UNIQUE] = Uniq++;
     result->type = C_VNON;
     result->kids = ds_list_create(fid_comp, TRUE, FALSE);
     result->parent = parent;
@@ -257,30 +271,25 @@ fid_print(FILE *ostr, fid_ent_t *fep)
 	break;
     }
 
-    fprintf(ostr,"(%x.%x.%x)\t%s\t%s\n",
-	    fep->fid.Volume, fep->fid.Vnode, fep->fid.Unique,
-	    fep->name, typestr);
+    fprintf(ostr,"(%s)\t%s\t%s\n", FID_(&fep->fid), fep->name, typestr);
+
     fullname = fid_fullname(fep);
     fprintf(ostr,"\t%s\n",fullname);
     free(fullname);
     if (fep->parent) {
-	fprintf(ostr,"\tPARENT: (%x.%x.%x)\n",
-		fep->parent->fid.Volume,
-		fep->parent->fid.Vnode,
-		fep->parent->fid.Unique);
+	fprintf(ostr,"\tPARENT: (%s)\n", FID_(&fep->parent->fid));
     }
     fprintf(ostr,"\t***CHILDREN***\n");
     i = ds_list_iter_create(fep->kids);
     while ((childp = ds_list_iter_next(i)) != NULL) {
-	fprintf(ostr,"\t\t(%x.%x.%x)\n",
-		childp->fid.Volume, childp->fid.Vnode, childp->fid.Unique);
+      fprintf(ostr,"\t\t(%s)\n", FID_(&childp->fid));
     }
     ds_list_iter_destroy(i);
     fprintf(ostr,"\n");
 }
 
 void
-dump_fids(int sig, int code)
+dump_fids(int sig)
 {
     ds_hash_iter_t  *i;
     fid_ent_t       *fep;
@@ -350,7 +359,7 @@ int MsgRead(char *m)
 		 return(-1);
 	 /* printf("MsgRead: returning %d\n", cc); */
 	 return(cc);
-}
+	 }
 
 
 
@@ -386,8 +395,14 @@ void
 Setup() {
     union outputArgs msg;
     struct sigaction  sa;
+
+#if defined(DJGPP) || defined(__CYGWIN32__)
+
     struct sockaddr_in addr;
     int rc;
+
+#endif
+ 
 
     /* Step 1: change to root directory */
     CODA_ASSERT(!(chdir(RootDir)));
@@ -423,33 +438,69 @@ Setup() {
 	    == sizeof(struct coda_out_hdr));
 
 #ifdef __linux__
-    if ( fork() == 0 ) {
-      int error;
-      error = mount("coda", MountPt, "coda",  MS_MGC_VAL , &KernDevice);
-      if ( error ) {
-	pid_t parent;
-	perror("Killing parent, mount error:");
-	parent = getppid();
-	kill(parent, SIGKILL);
-	exit(1);
-      } else {
-	FILE *fd;
-	struct mntent ent;
-	fd = setmntent("/etc/mtab", "a");
-	if ( fd > 0 ) { 
-	  ent.mnt_fsname="Coda";
-	  ent.mnt_dir=MountPt;
-	  ent.mnt_type= "coda";
-	  ent.mnt_opts = "rw";
-	  ent.mnt_freq = 0;
-	  ent.mnt_passno = 0;
-	  error = addmntent(fd, & ent);
-	  error = endmntent(fd);
-	  exit(0);
-	}
-      }
-    }
+    
+    /* Adapted from coda-src/venus/worker.cc */
+
+    pid_t child = fork();
+
+    if (child == 0) {
+		pid_t parent;
+		int error = 0;
+	
+		parent = getppid();
+
+		/* Use a double fork to avoid having to reap zombie processes
+		 * http://www.faqs.org/faqs/unix-faq/faq/part3/section-13.html
+		 *
+		 * The child will be reaped by Venus immediately, and as a result the
+		 * grandchild has no parent and init will take care of the 'orphan'.
+		 */
+		if (fork() != 0)
+		    goto child_done;
+
+		struct coda_mount_data mountdata;
+		mountdata.version = CODA_MOUNT_VERSION;
+		mountdata.fd = KernFD;
+			
+		error = mount("coda", MountPt, "coda",  MS_MGC_VAL, (void *) &mountdata);			
+
+		if (!error) {
+		  FILE *fd = setmntent("/etc/mtab", "a");
+		  struct mntent ent;
+		  if (fd) { 
+		    ent.mnt_fsname = RootDir;
+		    ent.mnt_dir    = MountPt;
+		    ent.mnt_type   = "coda";
+		    ent.mnt_opts   = "rw";
+		    ent.mnt_freq   = 0;
+		    ent.mnt_passno = 0;
+		    addmntent(fd, &ent);
+		    endmntent(fd);
+		  }
+		}
+		if (error < 0) {
+		    fprintf(stderr, "CHILD: mounting failed. Killing parent.\n");
+		    kill(parent, SIGKILL);
+		} 
+		else {
+		  if(verbose) {
+		    printf("%s now mounted.", MountPt);
+		    fflush(stdout);
+		  }
+		  kill(parent, SIGUSR1);
+		}
+    child_done:
+		exit(error < 0 ? 1 : 0);
+   }
+	
+    /* we just wait around to reap the first child */
+   pid_t pid;
+   do {
+     pid = waitpid(child, NULL, 0);
+   } while (pid == -1 && errno == EINTR);
+   
 #endif
+
 #ifdef __BSD44__
     CODA_ASSERT (!mount(MOUNT_CFS, MountPt, 0, KernDevice));
 #endif
@@ -553,7 +604,7 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
     vbuf->va_nlink = sbuf->st_nlink;
     vbuf->va_uid = sbuf->st_uid;
     vbuf->va_gid = sbuf->st_gid;
-    /* vbuf->va_fileid = fep->fid.Vnode; */
+    /* vbuf->va_fileid = fep->fid.opaque[CFID_VNODE]; */
     /* va_fileid has to be the vnode number of the cache file.  Sorry. */
     vbuf->va_fileid = sbuf->st_ino;
     /*    vbuf->va_fileid = coda_f2i(&(fep->fid)); */
@@ -569,10 +620,10 @@ fill_vattr(struct stat *sbuf, fid_ent_t *fep, struct coda_vattr *vbuf)
     vbuf->va_ctime = sbuf->st_ctimespec;
     vbuf->va_flags = sbuf->st_flags;
 #endif
-    vbuf->va_gen = fep->fid.Unique;
+    vbuf->va_gen = fep->fid.opaque[CFID_UNIQUE];
     vbuf->va_rdev = 0; /* Can't have special devices in /coda */
     vbuf->va_bytes = sbuf->st_size; /* Should this depend on cache/uncache? */
-    vbuf->va_filerev = fep->fid.Vnode; 
+    vbuf->va_filerev = fep->fid.opaque[CFID_VNODE]; 
 }
 
 
@@ -603,14 +654,13 @@ DoRoot(union inputArgs *in, union outputArgs *out, int *reply)
 	RootFep = root;
 	RootFid = &(root->fid);
     }
-    out->coda_root.VFid.Volume = RootFid->Volume;
-    out->coda_root.VFid.Vnode = RootFid->Vnode;
-    out->coda_root.VFid.Unique = RootFid->Unique;
+    out->coda_root.Fid.opaque[CFID_VOLUME] = RootFid->opaque[CFID_VOLUME];
+    out->coda_root.Fid.opaque[CFID_VNODE] = RootFid->opaque[CFID_VNODE];
+    out->coda_root.Fid.opaque[CFID_UNIQUE] = RootFid->opaque[CFID_UNIQUE];
     out->oh.result = 0;
 
     if (verbose) {
-	printf("Returning root: fid (%x.%x.%x)\n",RootFid->Volume,
-	       RootFid->Vnode, RootFid->Unique);
+      printf("Returning root: fid (%s)\n",FID_(RootFid));
     }
     *reply = VC_OUTSIZE(coda_root_out);
     return;
@@ -619,14 +669,14 @@ DoRoot(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid              *fp;
+    struct CodaFid              *fp;
     int                  *flags;
     fid_ent_t            *fep;
     fid_ent_t             dummy;
     char                 *path=NULL;
     struct stat           sbuf;
 
-    fp = &(in->coda_open.VFid);
+    fp = &(in->coda_open.Fid);
     flags = &(in->coda_open.flags);
 
     dummy.fid = *fp;
@@ -634,9 +684,8 @@ DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
     
     path = fid_fullname(fep);
     if (verbose) {
-	printf("Geting dev,inode for fid (%x.%x.%x): %s",fp->Volume,
-	       fp->Vnode, fp->Unique, path);
-	fflush(stdout);
+      printf("Geting dev,inode for fid (%s): %s",FID_(fp), path);
+		fflush(stdout);
     }
     if (lstat(path,&sbuf)) {
 	out->oh.result = errno;
@@ -659,16 +708,21 @@ DoOpen(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid              *fp;
+    struct CodaFid       *fp;
     int                  *flags;
     fid_ent_t            *fep;
     fid_ent_t             dummy;
     char                 *path=NULL;
     struct stat           sbuf;
-    char *slash;
-    char *begin;
+    char *begin=NULL;
 
-    fp = &(in->coda_open_by_path.VFid);
+#if defined(DJGPP) || defined(__CYGWIN32__)
+
+    char *slash;
+
+#endif
+
+    fp = &(in->coda_open_by_path.Fid);
     flags = &(in->coda_open_by_path.flags);
 
     dummy.fid = *fp;
@@ -676,8 +730,7 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
     
     path = fid_fullname(fep);
     if (verbose) {
-	printf("Geting name for fid (%x.%x.%x): %s",fp->Volume,
-	       fp->Vnode, fp->Unique, path);
+      printf("Geting name for fid (%s): %s", FID_(fp), path);
 	fflush(stdout);
     }
     if (lstat(path,&sbuf)) {
@@ -709,17 +762,74 @@ DoOpenByPath(union inputArgs *in, union outputArgs *out, int *reply)
     return;
 }
 
+
+/* adapted from worker.cc for new Linux cached file open()s */
+void
+DoOpenByFD(union inputArgs *in, union outputArgs *out, int *reply)
+{
+  struct CodaFid *fp;
+  struct stat     sbuf;
+  int            *flags;
+  fid_ent_t      *fep;
+  fid_ent_t       dummy;
+  char           *path=NULL;
+
+  fp = &(in->coda_open_by_fd.Fid);
+  flags = &(in->coda_open_by_fd.flags);
+  
+  dummy.fid = *fp;
+  CODA_ASSERT((fep = ds_hash_member(FidTab, &dummy)) != NULL);
+
+  path = fid_fullname(fep);
+
+  if (verbose) {
+    printf("Get-ing by fd for fid (%s), ", FID_(fp));
+    fflush(stdout);
+  }
+  if (lstat(path,&sbuf)) {
+    out->oh.result = errno;
+    goto exit;
+  }
+
+  
+  out->coda_open_by_fd.fd = -1;
+  
+  if(S_ISDIR(sbuf.st_mode)) {
+    out->coda_open_by_fd.fd = open(path, O_RDONLY | O_BINARY);
+  }
+  else if(S_ISREG(sbuf.st_mode)) {
+    out->coda_open_by_fd.fd = open(path, O_RDWR | O_BINARY);
+  }
+
+  if (out->coda_open_by_fd.fd < 0) {
+    out->oh.result = errno;
+    goto exit;
+  }
+  out->oh.result = 0;
+
+  if (verbose) {
+    printf("....found, fd: %d\n", out->coda_open_by_fd.fd);
+    fflush(stdout);
+  }
+
+  
+ exit:
+    if (path) free(path);
+    *reply = VC_OUTSIZE(coda_open_by_fd_out);
+
+    return;
+}
+
 void
 DoClose(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid  *fp;
+    struct CodaFid  *fp;
 
-    fp = &(in->coda_close.VFid);
+    fp = &(in->coda_close.Fid);
 
     /* Close always succeeds */
     if (verbose) {
-	printf("Trival close for fid (%x.%x.%x)\n", fp->Volume,
-	       fp->Vnode, fp->Unique);
+      printf("Trival close for fid (%s)\n", FID_(fp));
 	fflush(stdout);
     }
     out->oh.result = 0;
@@ -730,14 +840,13 @@ DoClose(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoAccess(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid  *fp;
+    struct CodaFid  *fp;
 
-    fp = &(in->coda_close.VFid);
+    fp = &(in->coda_close.Fid);
 
     /* Access always succeeds, for now */
     if (verbose) {
-	printf("Trival access for fid (%x.%x.%x)\n", fp->Volume,
-	       fp->Vnode, fp->Unique);
+      printf("Trival access for fid (%s)\n", FID_(fp));
 	fflush(stdout);
     }
     out->oh.result = 0;
@@ -748,7 +857,7 @@ DoAccess(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid           *fp;
+    struct CodaFid           *fp;
     char              *name;
     fid_ent_t         *fep;
     fid_ent_t         *childp=NULL;
@@ -758,13 +867,12 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
     char              *path=NULL;
     struct stat        sbuf;
     
-    fp = &(in->coda_lookup.VFid);
+    fp = &(in->coda_lookup.Fid);
     CODA_ASSERT((int)in->coda_lookup.name == VC_INSIZE(coda_lookup_in));
     name = (char*)in + (int)in->coda_lookup.name;
 
     if (verbose) {
-	printf("Doing lookup of (%s) in fid (%x.%x.%x)\n",
-	       name, fp->Volume, fp->Vnode, fp->Unique);
+	printf("Doing lookup of (%s) in fid (%s)\n", name, FID_(fp));
 	fflush(stdout);
     }
     
@@ -838,7 +946,7 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
 
  found:
     /* Okay. We now have a valid vnode in childp, we'll succeed */
-    out->coda_lookup.VFid = childp->fid;
+    out->coda_lookup.Fid = childp->fid;
     out->coda_lookup.vtype = childp->type;
     out->oh.result = 0;
     if (verbose) {
@@ -861,19 +969,18 @@ DoLookup(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoGetattr(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid          *fp;
+    struct CodaFid          *fp;
     fid_ent_t        *fep;
     fid_ent_t         dummy;
     struct stat       st;
     struct coda_vattr     *vbuf;
     char             *path = NULL;
     
-    fp = &(in->coda_getattr.VFid);
+    fp = &(in->coda_getattr.Fid);
     vbuf = &(out->coda_getattr.attr);
 
     if (verbose) {
-	printf("Doing getattr for fid (%x.%x.%x)\n",
-	       fp->Volume, fp->Vnode, fp->Unique);
+      printf("Doing getattr for fid (%s)\n", FID_(fp));
     }
     
     dummy.fid = *fp;
@@ -919,14 +1026,13 @@ DoRdwr(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid         *fp;
+    struct CodaFid         *fp;
     fid_ent_t       *fep;
-    ViceFid         *newFp;
+    struct CodaFid         *newFp;
     fid_ent_t       *newFep=NULL;
     fid_ent_t        dummy;
     struct coda_vattr    *attr;
     struct coda_vattr    *newAttr;
-    struct coda_cred    *cred;
     int              exclp;
     int              mode;
     int              readp;
@@ -941,11 +1047,9 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     struct stat      sbuf;
     int              fd;
     uid_t            suid;
-    gid_t            sgid;
 
-    fp = &(in->coda_create.VFid);
+    fp = &(in->coda_create.Fid);
     attr = &(in->coda_create.attr);
-    cred = &(in->ih.cred);
     exclp = in->coda_create.excl;
     mode = in->coda_create.mode;
     readp = mode & C_M_READ;
@@ -953,13 +1057,12 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     truncp = (attr->va_size == 0);
     CODA_ASSERT((int)in->coda_create.name == VC_INSIZE(coda_create_in));
     name = (char*)in + (int)in->coda_create.name;
-    newFp = &(out->coda_create.VFid);
+    newFp = &(out->coda_create.Fid);
     newAttr = &(out->coda_create.attr);
 
     if (verbose) {
-	printf("Doing create of (%s) in fid (%x.%x.%x) mode 0%o %s\n",
-	       name, fp->Volume, fp->Vnode, fp->Unique, mode, 
-	       (exclp ? "excl" : ""));
+	printf("Doing create of (%s) in fid (%s) mode 0%o %s\n",
+	       name, FID_(fp), mode, (exclp ? "excl" : ""));
     }
     
     /* Where are we creating this? */
@@ -1063,24 +1166,19 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
     omode = mode & 0777;   /* XXX - but that's what the man page says */
 
     /* Set the creator for this file */
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid((uid_t) in->ih.uid);
 
     /* Do the open */
     if ((fd = open(path, oflags, omode)) < 0) {
 	out->oh.result = errno;
-	CODA_ASSERT(!seteuid(suid));
-	CODA_ASSERT(!setgid(sgid));
+	setfsuid(getuid());
 	goto exit;
     } else {
 	close(fd);
     }
 
-    /* Reset our effective uid/gid */
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    /* Reset our effective uid */
+    setfsuid(getuid());
 
     /* Stat the thing so that we can set it's type correctly. */
     /* Complain miserably if it isn't a plain file! */
@@ -1119,27 +1217,23 @@ DoCreate(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid         *fp;
+    struct CodaFid         *fp;
     fid_ent_t       *fep;
     fid_ent_t       *victimFep=NULL;
     bool             created=FALSE;
-    struct coda_cred    *cred;
     fid_ent_t        dummy;
     char            *name=NULL;
     char            *path=NULL;
     ds_list_iter_t  *iter;
     struct stat      sbuf;
     uid_t            suid;
-    gid_t            sgid;
 
-    fp = &(in->coda_remove.VFid);
-    cred = &(in->ih.cred);
+    fp = &(in->coda_remove.Fid);
     CODA_ASSERT((int)in->coda_remove.name == VC_INSIZE(coda_remove_in));
     name = (char*)in + (int)in->coda_remove.name;
     
     if (verbose) {
-	printf("Doing remove of (%s) in fid (%x.%x.%x)\n",
-	       name, fp->Volume, fp->Vnode, fp->Unique);
+	printf("Doing remove of (%s) in fid (%s)\n", name, FID_(fp));
     }
     
     /* Get the directory from which we are removing */
@@ -1233,21 +1327,16 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
     
     
     /* Do the unlink.  Need to try it as the user calling us */
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid(in->ih.uid);
 
     if (unlink(path)) {
-	out->oh.result = errno;
-	CODA_ASSERT(!seteuid(suid));
-	CODA_ASSERT(!setgid(sgid));
+	out->oh.result = errno;	
+	setfsuid(getuid());
 	goto exit;
     }
     
     /* reset our effictive credentials */
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    setfsuid(getuid());
 
     /* We are now doomed to succeed */
     /* If the victimFep was already known, remove & destroy it */
@@ -1274,23 +1363,19 @@ DoRemove(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid          *fp;
-    struct coda_cred     *cred;
+    struct CodaFid          *fp;
     struct coda_vattr     *vap;
     fid_ent_t        *fep;
     fid_ent_t         dummy;
     char             *path=NULL;
     uid_t             suid;
-    gid_t             sgid;
     struct timeval    times[2];
 
-    fp = &(in->coda_setattr.VFid);
-    cred = &(in->ih.cred);
+    fp = &(in->coda_setattr.Fid);
     vap = &(in->coda_setattr.attr);
 
     if (verbose) {
-	printf("Doing setattr for fid (%x.%x.%x)\n",
-	       fp->Volume, fp->Vnode, fp->Unique);
+      printf("Doing setattr for fid (%s)\n", FID_(fp));
     }
     
     /* 
@@ -1364,10 +1449,7 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
      * perhaps only part of the setattr will happen...this is bad, but 
      * we can live with it for the purposes of potemkin.
      */
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid(in->ih.uid);
 
     /* Are we truncating the file? */
     if ((u_long)vap->va_size != (u_long)-1) {
@@ -1426,8 +1508,7 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
     out->oh.result = 0;
     
  exit:
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    setfsuid(getuid());
  earlyexit:
     if (path) free(path);
     *reply = VC_OUT_NO_DATA;
@@ -1438,9 +1519,9 @@ DoSetattr(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoRename(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid          *sdfp;
+    struct CodaFid          *sdfp;
     fid_ent_t        *sdfep;
-    ViceFid          *tdfp;
+    struct CodaFid          *tdfp;
     fid_ent_t        *tdfep;
     fid_ent_t         dummy;
     char             *sname;
@@ -1451,22 +1532,18 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
     bool              screated=FALSE;
     fid_ent_t        *tfep=NULL;
     bool              tcreated=FALSE;
-    struct coda_cred     *cred;
     ds_list_iter_t   *iter;
     struct stat       sbuf;
     uid_t             suid;
-    gid_t             sgid;
     
     sdfp = &(in->coda_rename.sourceFid);
     tdfp = &(in->coda_rename.destFid);
-    cred = &(in->ih.cred);
     sname = (char*)in + (int)in->coda_rename.srcname;
     tname = (char*)in + (int)in->coda_rename.destname;
 
     if (verbose) {
-	printf("Rename: moving %s from (%x.%x.%x) to %s in (%x.%x.%x)\n",
-		sname, sdfp->Volume, sdfp->Vnode, sdfp->Unique,
-		tname, tdfp->Volume, tdfp->Vnode, tdfp->Unique);
+	printf("Rename: moving %s from (%s) to %s in (%s)\n",
+	       sname, FID_(sdfp), tname, FID_(tdfp));
     }
 
     /* Grab source directory, make sure it's a directory. */
@@ -1552,20 +1629,15 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
     }
 
     /* Step 3: try to do the rename. */
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid(in->ih.uid);
 
     if (rename(spath,tpath)) {
-	CODA_ASSERT(!seteuid(suid));
-	CODA_ASSERT(!setgid(sgid));
-	out->oh.result = errno;
-	printf("RENAME: rename failed %s\n",strerror(errno));
-	goto exit;
+      setfsuid(getuid());
+      out->oh.result = errno;
+      printf("RENAME: rename failed %s\n",strerror(errno));
+      goto exit;
     }
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    setfsuid(getuid());
 
     /* We will now succeed */
     out->oh.result = 0;
@@ -1611,33 +1683,29 @@ DoRename(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid          *fp;
+    struct CodaFid          *fp;
     fid_ent_t        *fep;
-    ViceFid          *newFp;
+    struct CodaFid          *newFp;
     fid_ent_t        *newFep=NULL;
     fid_ent_t         dummy;
     struct coda_vattr     *attr;
     struct coda_vattr     *newAttr;
-    struct coda_cred     *cred;
     int               mode;
     char             *name=NULL;
     char             *path=NULL;
     struct stat       sbuf;
     uid_t             suid;
-    gid_t             sgid;
     
-    fp = &(in->coda_mkdir.VFid);
+    fp = &(in->coda_mkdir.Fid);
     attr = &(in->coda_mkdir.attr);
-    cred = &(in->ih.cred);
     CODA_ASSERT((int)in->coda_mkdir.name == VC_INSIZE(coda_mkdir_in));
     name = (char*)in + (int)in->coda_mkdir.name;
-    newFp = &(out->coda_mkdir.VFid);
+    newFp = &(out->coda_mkdir.Fid);
     newAttr = &(out->coda_mkdir.attr);
     mode = attr->va_mode & 07777; /* XXX, but probably not */
 
     if (verbose) {
-	printf("Doing mkdir of (%s) in fid (%x.%x.%x)\n",
-	       name, fp->Volume, fp->Vnode, fp->Unique);
+	printf("Doing mkdir of (%s) in fid (%s)\n", name, FID_(fp));
     }
 
     /* Where are we creating this? */
@@ -1688,23 +1756,18 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
     path = fid_fullname(newFep);
 
     /* Set the creator for this file */
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid(in->ih.uid);
 
     /* Do the mkdir */
     if (mkdir(path,mode)) {
 	printf("MKDIR: mkdir failed (%s)\n",strerror(errno));
 	out->oh.result = errno;
-	CODA_ASSERT(!seteuid(suid));
-	CODA_ASSERT(!setgid(sgid));
+	setfsuid(getuid());
 	goto exit;
     }
 
     /* Reset our effective uid/gid */
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    setfsuid(getuid());
 
     /* Stat it so we can set type, return coda_vattr correctly */
     if (lstat(path,&sbuf)) {
@@ -1738,27 +1801,23 @@ DoMkdir(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid           *fp;
+    struct CodaFid    *fp;
     fid_ent_t         *fep;
     fid_ent_t         *victimFep = NULL;
     bool               created=FALSE;
-    struct coda_cred      *cred;
     fid_ent_t          dummy;
     char              *name=NULL;
     char              *path=NULL;
     ds_list_iter_t    *iter;
     struct stat        sbuf;
     uid_t              suid;
-    gid_t              sgid;
 
-    fp = &(in->coda_rmdir.VFid);
-    cred = &(in->ih.cred);
+    fp = &(in->coda_rmdir.Fid);
     CODA_ASSERT((int)in->coda_rmdir.name == VC_INSIZE(coda_rmdir_in));
     name = (char*)in + (int)in->coda_rmdir.name;
 
     if (verbose) {
-	printf("Doing rmdir of (%s) in fid (%x.%x.%x)\n",
-	       name, fp->Volume, fp->Vnode, fp->Unique);
+	printf("Doing rmdir of (%s) in fid (%s)\n", name, FID_(fp));
     }
 
     /* Get the directory from which we are removing */
@@ -1780,6 +1839,7 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 	goto exit;
     }
     
+    //ADAM - Take out these filename blocks
     /* Don't allow names of the form @XXXXXXXX.XXXXXXXX.XXXXXXXX */
     if ((strlen(name) == 27) 
 	&& (name[0] == '@') 
@@ -1857,21 +1917,16 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 
 
     /* Do the rmdir. */
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid(in->ih.uid);
 
     if (rmdir(path)) {
 	out->oh.result = errno;
-	CODA_ASSERT(!seteuid(suid));
-	CODA_ASSERT(!setgid(sgid));
+	setfsuid(getuid());
 	goto exit;
     }
     
     /* reset our effictive credentials */
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    setfsuid(getuid());
 
     /* We are now doomed to succeed */
     /* If the victimFep was already known, remove it */
@@ -1896,22 +1951,18 @@ DoRmdir(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid            *fp;
+    struct CodaFid     *fp;
     fid_ent_t          *fep;
     fid_ent_t           dummy;
-    struct coda_cred       *cred;
-    char               *path;
+    char               *path=NULL;
     int                *count;
     uid_t               suid;
-    gid_t               sgid;
 
-    fp = &(in->coda_readlink.VFid);
+    fp = &(in->coda_readlink.Fid);
     count = &(out->coda_readlink.count);
-    cred = &(in->ih.cred);
 
     if (verbose) {
-	printf("Doing readlink for fid (%x.%x.%x)\n",
-	       fp->Volume, fp->Vnode, fp->Unique);
+	printf("Doing readlink for fid (%s)\n", FID_(fp));
     }
     
     /* Grab the fid to readlink */
@@ -1922,14 +1973,13 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
 	out->oh.result = ENOTDIR;
 	goto exit;
     }
+
     /* Get the full pathname */
     path = fid_fullname(fep);
+
     /* Do the readlink */
 
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid(in->ih.uid);
 
     out->coda_readlink.data = (char*)VC_OUTSIZE(coda_readlink_out);
 #ifndef DJGPP
@@ -1937,8 +1987,7 @@ DoReadlink(union inputArgs *in, union outputArgs *out, int *reply)
 		      (char*)out+(int)out->coda_readlink.data,
 		      VC_MAXDATASIZE-1);
 #endif
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    setfsuid(getuid());
 
     if (*count < 0) {
 	printf("READLINK: readlink of %s failed (%s)\n",
@@ -1966,29 +2015,24 @@ DoIoctl(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoLink(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid         *dfp;
+    struct CodaFid         *dfp;
     fid_ent_t       *dfep;
-    ViceFid         *tfp;
+    struct CodaFid         *tfp;
     fid_ent_t       *tfep;
     fid_ent_t        dummy;
     fid_ent_t       *lfep=NULL;
-    struct coda_cred    *cred;
     char            *name;
     char            *lpath=NULL;
     char            *tpath=NULL;
     uid_t            suid;
-    gid_t            sgid;
 
     dfp = &(in->coda_link.destFid);
     tfp = &(in->coda_link.sourceFid);
-    cred = &(in->ih.cred);
     CODA_ASSERT((int)in->coda_link.tname == VC_INSIZE(coda_link_in));
     name = (char*)in + (int)in->coda_link.tname;
     
     if (verbose) {
-	printf("Doing hard link to fid (%x.%x.%x) in fid (%x.%x.%x)",
-	       tfp->Volume, tfp->Vnode, tfp->Unique,
-	       dfp->Volume, dfp->Vnode, dfp->Unique);
+	printf("Doing hard link to fid (%s) in fid (%s)", FID_(tfp),FID_(dfp));
 	printf(" with name %s\n", name);
     }
 
@@ -2057,20 +2101,15 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
     tpath = fid_fullname(tfep);
 
     /* Do the link */
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid(in->ih.uid);
 
     if (link(tpath,lpath)) {
 	out->oh.result = errno;
-	CODA_ASSERT(!seteuid(suid));
-	CODA_ASSERT(!setgid(sgid));
+	setfsuid(getuid());
 	goto exit;
     }
 
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    setfsuid(getuid());
 
     /* Link created.  We're in good shape */
     /* Touch the file.  Ignore failure */
@@ -2100,27 +2139,24 @@ DoLink(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid        *fp;
+    struct CodaFid *fp;
     fid_ent_t      *fep;
-    fid_ent_t      *newFep;
+    fid_ent_t      *newFep=NULL;
     fid_ent_t       dummy;
     struct coda_vattr   *attr;
-    struct coda_cred   *cred;
     char           *name;
     char           *path=NULL;
     char           *contents;
     uid_t           suid;
-    gid_t           sgid;
 
-    fp = &(in->coda_symlink.VFid);
+    fp = &(in->coda_symlink.Fid);
     attr = &(in->coda_symlink.attr);
     contents = (char*)in + (int)(in->coda_symlink.srcname);
     name = (char*)in + (int)(in->coda_symlink.tname);
-    cred = &(in->ih.cred);
 
     if (verbose) {
-	printf("Trying to create symlink %s in (%x.%x.%x) to %s\n",
-	       name, fp->Volume, fp->Vnode, fp->Unique, contents);
+	printf("Trying to create symlink %s in (%s) to %s\n",
+	       name, FID_(fp), contents);
     }
 	
     dummy.fid = *fp;
@@ -2160,20 +2196,15 @@ DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
     path = fid_fullname(newFep);
     
     /* Set up credentials */
-    suid = getuid();
-    sgid = getgid();
-    CODA_ASSERT(!setgid(cred->cr_groupid));
-    CODA_ASSERT(!seteuid(cred->cr_uid));
+    setfsuid(in->ih.uid);
 
     if (symlink(contents, path)) {
 	out->oh.result = errno;
-	CODA_ASSERT(!seteuid(suid));
-	CODA_ASSERT(!setgid(sgid));
+	setfsuid(getuid());
 	goto exit;
     }	
     
-    CODA_ASSERT(!seteuid(suid));
-    CODA_ASSERT(!setgid(sgid));
+    setfsuid(getuid());
 
     /* We know it's a symlink */
     newFep->type = C_VLNK;
@@ -2194,14 +2225,13 @@ DoSymlink(union inputArgs *in, union outputArgs *out, int *reply)
 void
 DoFsync(union inputArgs *in, union outputArgs *out, int *reply)
 {
-    ViceFid  *fp;
+    struct CodaFid *fp;
     
-    fp = &(in->coda_fsync.VFid);
+    fp = &(in->coda_fsync.Fid);
 
     /* Fsync always succeeds, for now */
     if (verbose) {
-	printf("Trival fsync for fid (%x.%x.%x)\n", fp->Volume,
-	       fp->Vnode, fp->Unique);
+      printf("Trival fsync for fid (%s)\n", FID_(fp));
 	fflush(stdout);
     }
     out->oh.result = 0;
@@ -2211,6 +2241,27 @@ DoFsync(union inputArgs *in, union outputArgs *out, int *reply)
 
 void
 DoVget(union inputArgs *in, union outputArgs *out, int *reply)
+{
+    out->oh.result = EOPNOTSUPP;
+    return;
+}
+
+void
+DoStatFS(union inputArgs *in, union outputArgs *out, int *reply)
+{
+    out->oh.result = EOPNOTSUPP;
+    return;
+}
+
+void
+DoStore(union inputArgs *in, union outputArgs *out, int *reply)
+{
+    out->oh.result = EOPNOTSUPP;
+    return;
+}
+
+void
+DoRelease(union inputArgs *in, union outputArgs *out, int *reply)
 {
     out->oh.result = EOPNOTSUPP;
     return;
@@ -2232,7 +2283,7 @@ Dispatch(union inputArgs *in, union outputArgs *out, int *reply) {
 	DoRoot(in,out,reply);
 	break;
     case CODA_OPEN:
-	DoOpen(in,out,reply);
+        DoOpen(in,out,reply);
 	break;
     case CODA_CLOSE:
 	DoClose(in,out,reply);
@@ -2279,6 +2330,19 @@ Dispatch(union inputArgs *in, union outputArgs *out, int *reply) {
     case CODA_OPEN_BY_PATH:
 	DoOpenByPath(in,out,reply);
 	break;
+    case CODA_OPEN_BY_FD:
+        DoOpenByFD(in,out,reply);
+        break;
+    case CODA_STATFS:
+        DoStatFS(in,out,reply);
+	break;
+    case CODA_STORE:
+        DoStore(in,out,reply);
+	break;
+    case CODA_RELEASE:
+        DoRelease(in,out,reply);
+	break;
+
     default:
 	out->oh.result = EOPNOTSUPP;
 	fprintf(stderr,"** Not Supported **");
@@ -2363,6 +2427,12 @@ Service()
 
 	/* Write out the result */
 	CODA_ASSERT((rc = MsgWrite(outbuf, reply_size)) >= 0);
+
+	/* Close any open fd from open_by_fd here */
+	if(in->ih.opcode == CODA_OPEN_BY_FD)
+	  if(!(out->coda_open_by_fd.fd < 0))
+	    close(out->coda_open_by_fd.fd);
+          
 	if (rc < reply_size) {
 	    fprintf(stderr,"Wrote fragment %d/%d --", rc, reply_size);
 	    perror(NULL);
