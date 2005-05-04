@@ -849,19 +849,19 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
             if (u.u_error) goto FreeLocks;
         }
 
-        /* Don't allow hardlinks across different directories */
-        if (!parent_fso->dir_IsParent(&scp->c_fid)) {
-            /* Source exists, but it is not in the target parent. */
-            u.u_error = EXDEV;
-            goto FreeLocks;
-        }
-                                                             
 	/* Verify that the target doesn't exist. */
 	u.u_error = parent_fso->Lookup(&target_fso, 0, toname, u.u_uid,
 				       CLU_CASE_SENSITIVE);
 	if (u.u_error == 0) { u.u_error = EEXIST; goto FreeLocks; }
 	if (u.u_error != ENOENT) goto FreeLocks;
 	u.u_error = 0;
+
+        /* Don't allow hardlinks across different directories */
+        if (!parent_fso->dir_IsParent(&scp->c_fid)) {
+            /* Source exists, but it is not in the target parent. */
+            u.u_error = EXDEV;
+            goto FreeLocks;
+        }
 
 	/* Verify that we have insert permission on the target parent. */
 	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
