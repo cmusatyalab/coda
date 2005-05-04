@@ -76,7 +76,7 @@ do
     volname=`echo "$volumelist" | grep "I$volid" | cut -d' ' -f1 | cut -c2-`
 
     if [ $dryrun = 0 ] ; then
-      echo "Purging $volname ($volid) from $host"
+      echo "Purging $volname ($volid) from $SRV"
       volutil -h "$SRV" purge "$volid" "$volname" 2>/dev/null
     else
       echo "Would have purged $volname ($volid) from $SRV"
