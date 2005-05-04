@@ -87,7 +87,7 @@ long RS_FetchLogs(RPC2_Handle RPCid, ViceFid *Fid, RPC2_Integer *size,
     }
     // dump log to buffer 
     {
-	SLog(9, "RS_FetchLogs: Dumping  log for %s\n", FID_(Fid));
+	SLog(9, "RS_FetchLogs: Dumping log for %s\n", FID_(Fid));
 	DumpLog(VnLog(v->vptr), volptr, &buf, (int *)size, (int *)nentries);
 	PollAndYield();
     }

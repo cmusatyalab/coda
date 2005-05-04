@@ -562,6 +562,8 @@ void DumpLog(rec_dlist *log, Volume *vp, char **buf, int *bufsize, int *nentries
     CODA_ASSERT(buf);
     int lastentry = 0;
 
+    if (!log) return;
+
     *nentries = *nentries + log->count();	// assume nentries has been initialized by caller
     rec_dlist_iterator next(*log);
     recle *r;
