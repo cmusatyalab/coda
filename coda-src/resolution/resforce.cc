@@ -173,6 +173,7 @@ void UpdateRunts(res_mgrpent *mgrp, ViceVersionVector **VV, ViceFid *Fid)
 		     mgrp->rrcc.retcodes[i], i);
 	}
     }
+
     /* we killed all the non-runt hosts, we should probably bring them back for
      * the rest of the resolution process */
     for (i = 0; i < VSG_MEMBERS; i++)
