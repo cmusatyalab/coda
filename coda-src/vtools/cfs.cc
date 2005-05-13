@@ -1927,10 +1927,9 @@ static void LsMount (int argc, char *argv[], int opslot)
                 }
             }
 
-
         /* Next see if you can chdir to the target */
 	s = myrealpath(argv[i], path, sizeof(path));
-        if (rc < 0) {
+        if (!s) {
             if (errno == ENOTDIR)
 		fprintf(stderr, "%s - Not a mount point\n", argv[i]);
             else
