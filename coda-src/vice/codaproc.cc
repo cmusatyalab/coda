@@ -663,7 +663,7 @@ static int PerformFileRepair(vle *ov, Volume *volptr, VolumeId VSGVolnum,
 	CodaBreakCallBack(0, Fid, VSGVolnum);
     }
 
-    if (ov->vptr->disk.inodeNumber != 0)
+    if (ov->vptr->disk.inodeNumber)
 	ov->f_sinode = ov->vptr->disk.inodeNumber;
     
     {

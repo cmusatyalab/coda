@@ -2615,6 +2615,10 @@ int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
     return(0);
 }
 
+static int IsVirgin(Vnode *vptr)
+{
+    return (vptr->disk.type != vDirectory) && !vptr->disk.inodeNumber;
+}
 
 int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 			 Volume **volptr, int ReplicatedOp, VCP VCmpProc,
@@ -2626,7 +2630,6 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     Fid.Vnode = (*vptr)->vnodeNumber;
     Fid.Unique = (*vptr)->disk.uniquifier;
     int IsOwner = (client->Id == (long)(*vptr)->disk.owner);
-    int Virginal = ((*vptr)->disk.inodeNumber == 0);
 
     /* Concurrency-control checks. */
     if (VCmpProc) {
@@ -2660,7 +2663,7 @@ int CheckStoreSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	/* WRITE permission (normally) required. */
-	if (!(*rights & PRSFS_WRITE) && !(IsOwner && Virginal)) {
+	if (!(*rights & PRSFS_WRITE) && !(IsOwner && IsVirgin(*vptr))) {
 	    SLog(0, "CheckStoreSemantics: rights violation (%x : %x) %s",
 		 *rights, *anyrights, FID_(&Fid));
 	    return(EACCES);
@@ -2689,7 +2692,6 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
     int chownp = Mask & SET_OWNER;
     int truncp = Mask & SET_LENGTH;
     int utimesp = Mask & SET_TIME;
-    int Virginal = ((*vptr)->disk.inodeNumber == 0);
 
     /* Concurrency-control checks. */
     if (VCmpProc) {
@@ -2735,7 +2737,7 @@ int CheckSetAttrSemantics(ClientEntry *client, Vnode **avptr, Vnode **vptr,
 	Rights t_anyrights; if (anyrights == 0) anyrights = &t_anyrights;
 	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
-	if (IsOwner && Virginal) {
+	if (IsOwner && IsVirgin(*vptr)) {
 	    /* Bypass protection checks on first store after a create EXCEPT for chowns. */
 	    if (chownp) {
 		SLog(0, "CheckSetAttrSemantics: owner chown'ing virgin %s",
