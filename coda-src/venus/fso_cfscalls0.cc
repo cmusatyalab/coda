@@ -1469,7 +1469,7 @@ int fsobj::Store(unsigned long NewLength, Date_t Mtime, uid_t uid)
 
 /* MUST be called from within transaction! */
 void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
-			  Date_t NewDate, cuid_t NewOwner,
+			  Date_t NewDate, uid_t NewOwner,
                           unsigned short NewMode)
 {
     /* Update local state. */

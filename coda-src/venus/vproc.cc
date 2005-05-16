@@ -798,7 +798,7 @@ void va_init(struct coda_vattr *vap) {
     vap->va_gid = VA_IGNORE_GID;
     vap->va_fileid = VA_IGNORE_ID;
     vap->va_mtime.tv_sec = VA_IGNORE_TIME1;
-    vap->va_mtime.tv_nsec = VA_IGNORE_TIME2;
+    vap->va_mtime.tv_nsec = 0;
     vap->va_bytes = VA_IGNORE_STORAGE;
     vap->va_nlink = VA_IGNORE_NLINK;
     vap->va_size = VA_IGNORE_SIZE;
