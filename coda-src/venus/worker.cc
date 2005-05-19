@@ -1354,14 +1354,15 @@ void worker::main(void)
 		MAKE_CNODE(vtarget, in->coda_open_by_fd.Fid, 0);
 		open(&vtarget, in->coda_open_by_fd.flags);
 		
-                openfd = -1;
 		if (u.u_error == 0) {
-		    MarinerReport(&vtarget.c_fid, u.u_uid);
+		    int flags = (in->coda_open_by_fd.flags & C_O_WRITE) ?
+			O_RDWR : O_RDONLY;
+		    flags |= O_BINARY;
 
-		    openfd = ::open(vtarget.c_cfname, O_RDWR|O_BINARY, V_MODE);
+		    MarinerReport(&vtarget.c_fid, u.u_uid);
+		    openfd = ::open(vtarget.c_cfname, flags, V_MODE);
 		    out->coda_open_by_fd.fd = openfd;
-                    LOG(10, ("CODA_OPEN_BY_FD: fd = %d\n",
-                             out->coda_open_by_fd.fd));
+                    LOG(10, ("CODA_OPEN_BY_FD: fd = %d\n", openfd));
 		    size = sizeof (struct coda_open_by_fd_out);
 		}
 		break;
