@@ -180,7 +180,7 @@ GotIt:
     ntoh_SecretToken(&st);
     
     gettimeofday(&t, 0);
-    if (t.tv_sec < st.BeginTimestamp || t.tv_sec > st.EndTimestamp) {
+    if (t.tv_sec > st.EndTimestamp) {
 	LogMsg(10, SrvDebugLevel, stdout,
 	       "End time stamp %d > time %d for user %d",
 		st.EndTimestamp,t.tv_sec,st.ViceId);
