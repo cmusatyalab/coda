@@ -209,7 +209,7 @@ int srvent::GetConn(connent **cpp, uid_t uid, int Force)
 	struct ConnKey Key; Key.host = host; Key.uid = uid;
 	conn_iterator next(&Key);
 	while ((c = next())) {
-	    if (!c->HasRef()) {
+	    if (!c->HasRef() && !c->dying) {
 		c->GetRef();
                 *cpp = c;
                 return 0;
@@ -256,12 +256,12 @@ void PutConn(connent **cpp)
     if (!c->HasRef())
 	{ c->print(logFile); CHOKE("PutConn: conn not in use"); }
 
-    if (c->dying) {
+    c->PutRef();
+
+    if (!c->HasRef() && c->dying) {
 	connent::conntab->remove(&c->tblhandle);
 	delete c;
     }
-    else
-	c->PutRef();
 }
 
 
