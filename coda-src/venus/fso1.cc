@@ -673,6 +673,8 @@ int fsobj::Flush() {
 /* Called as result of {GetAttr, ValidateAttr, GetData, ValidateData}. */
 void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
 {
+    int isrunt = !HAVESTATUS(this);
+
     /* Mount points are never updated. */
     if (IsMtPt())
 	{ print(logFile); CHOKE("fsobj::UpdateStatus: IsMtPt!"); }
@@ -682,16 +684,21 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
 
     LOG(100, ("fsobj::UpdateStatus: (%s), uid = %d\n", FID_(&fid), uid));
 
-    if (HAVESTATUS(this)) {		/* {ValidateAttr} */
-      if (!StatusEq(vstat, 0))
-	    ReplaceStatus(vstat, UpdateSet);
-    }
-    else {				/* {GetAttr} */
+    /*
+     * We have to update the status when we have,
+     *  - runt objects (first GetAttr for the fso)
+     *  - UpdateSet is non-NULL (Store/SetAttr/Create/..., mutating operations)
+     *  - vstat differs (ValidateAttrs)
+     */
+    if (isrunt || UpdateSet || !StatusEq(vstat, 0))
 	ReplaceStatus(vstat, UpdateSet);
-	Matriculate();
-    }
 
-    /* Set access rights and parent (if they differ). */
+    /* If this object is a runt, there may be others waiting for the create
+     * to finalize */
+    if (isrunt)
+	Matriculate();
+
+    /* Update access rights and parent (if they differ). */
     if (IsDir())
 	SetAcRights(uid, vstat->MyAccess, vstat->AnyAccess);
 
@@ -1223,12 +1230,9 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 
     /* Do the mount magic. */
     Recov_BeginTrans();
-    if (IsFake() && !rf->IsRoot()) {
-	    RVMLIB_REC_OBJECT(rf->mvstat);
-	    RVMLIB_REC_OBJECT(rf->u.mtpoint);
-	    rf->mvstat = ROOT;
-	    rf->u.mtpoint = 0;
-    }
+    RVMLIB_REC_OBJECT(rf->mvstat);
+    CODA_ASSERT(rf->u.mtpoint == 0);
+    rf->mvstat = ROOT;
     rf->MountRoot(this);
     CoverMtPt(rf);
     Recov_EndTrans(MAXFP);
@@ -2328,7 +2332,7 @@ void fsobj::GetVattr(struct coda_vattr *vap)
     vap->va_uid = (uid_t) stat.Owner;
     vap->va_gid = V_GID;
 
-    vap->va_fileid = (IsRoot() && u.mtpoint && !IsVenusRoot())
+    vap->va_fileid = (IsRoot() && u.mtpoint)
 		       ? FidToNodeid(&u.mtpoint->fid)
 		       : FidToNodeid(&fid);
 
@@ -2694,31 +2698,17 @@ void fsobj::ListCache(FILE *fp, int long_format, unsigned int valid)
      list fsobjs
           such as valid (valid == 1), non-valid (valid == 2) or all (valid == 3) */
 
+  int isvalid = DATAVALID(this) && STATUSVALID(this);
   char path[MAXPATHLEN];
   GetPath(path, 0);		/* Get relative pathname. */    
 
-  switch (valid) {
-  case 1: /* only valid */
-    if ( DATAVALID(this) && STATUSVALID(this) )
-      if (!long_format)
-	ListCacheShort(fp);
-      else
-	ListCacheLong(fp);
-    break;
-  case 2: /* only non-valid */
-    if ( !DATAVALID(this) || !STATUSVALID(this) )
-      if (!long_format)
-	ListCacheShort(fp);
-      else
-	ListCacheLong(fp);
-    break;
-  case 3: /* all */
-  default:
-      if (!long_format)
-	ListCacheShort(fp);
-      else
-	ListCacheLong(fp);
-  }
+  if (valid == 1 && !isvalid) return;
+  if (valid == 2 && isvalid) return;
+
+  if (!long_format)
+      ListCacheShort(fp);
+  else
+      ListCacheLong(fp);
 }
 
 void fsobj::ListCacheShort(FILE* fp)
