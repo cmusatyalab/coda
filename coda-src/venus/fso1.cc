@@ -690,7 +690,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
      *  - UpdateSet is non-NULL (Store/SetAttr/Create/..., mutating operations)
      *  - vstat differs (ValidateAttrs)
      */
-    if (isrunt || !StatusEq(vstat, (UpdateSet != NULL)))
+    if (isrunt || UpdateSet || !StatusEq(vstat))
 	ReplaceStatus(vstat, UpdateSet);
 
     /* If this object is a runt, there may be others waiting for the create
@@ -707,10 +707,10 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
 
 
 /* Need not be called from within transaction. */
-int fsobj::StatusEq(ViceStatus *vstat, int Mutating)
+int fsobj::StatusEq(ViceStatus *vstat)
 {
     int eq = 1;
-    int log = (Mutating || HAVEDATA(this));
+    int log = HAVEDATA(this);
 
     if (stat.Length != vstat->Length) {
 	eq = 0;
@@ -730,7 +730,7 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating)
 			FID_(&fid), stat.DataVersion, vstat->DataVersion));
 	}
     } else {
-	if (!Mutating && VV_Cmp(&stat.VV, &vstat->VV) != VV_EQ) {
+	if (VV_Cmp(&stat.VV, &vstat->VV) != VV_EQ) {
 	    eq = 0;
 	    if (log)
 		LOG(0, ("fsobj::StatusEq: (%s), VVs differ\n", FID_(&fid)));
@@ -766,9 +766,6 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating)
 	    LOG(0, ("fsobj::StatusEq: (%s), VnodeType %d != %d\n",
 		    FID_(&fid), stat.VnodeType, (int)vstat->VnodeType));
     }
-    /* We should update the status when this was a mutating operation */
-    if (Mutating) eq = 0;
-
     return(eq);
 }
 
