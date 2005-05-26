@@ -690,7 +690,7 @@ void fsobj::UpdateStatus(ViceStatus *vstat, vv_t *UpdateSet, uid_t uid)
      *  - UpdateSet is non-NULL (Store/SetAttr/Create/..., mutating operations)
      *  - vstat differs (ValidateAttrs)
      */
-    if (isrunt || UpdateSet || !StatusEq(vstat, 0))
+    if (isrunt || !StatusEq(vstat, (UpdateSet != NULL)))
 	ReplaceStatus(vstat, UpdateSet);
 
     /* If this object is a runt, there may be others waiting for the create
@@ -766,6 +766,8 @@ int fsobj::StatusEq(ViceStatus *vstat, int Mutating)
 	    LOG(0, ("fsobj::StatusEq: (%s), VnodeType %d != %d\n",
 		    FID_(&fid), stat.VnodeType, (int)vstat->VnodeType));
     }
+    /* We should update the status when this was a mutating operation */
+    if (Mutating) eq = 0;
 
     return(eq);
 }
