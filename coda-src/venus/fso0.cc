@@ -254,8 +254,7 @@ void FSOInit() {
 	    fso_iterator next(NL);
 	    fsobj *cf;
 	    while ((cf = next()))
-		if (!cf->IsRoot())
-		    cf->SetParent(cf->pfid.Vnode, cf->pfid.Unique);
+		cf->SetParent(cf->pfid.Vnode, cf->pfid.Unique);
 	}
 
 	/* Recover fsobj <--> cmlent bindings: a grid-like data structure. */
