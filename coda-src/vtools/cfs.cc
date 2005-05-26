@@ -121,6 +121,7 @@ static void FlushObject(int, char**, int);
 static void FlushVolume(int, char**, int);
 static void FlushASR(int, char**, int); 
 static void GetFid(int, char**, int);
+static void GetPFid(int, char**, int);
 static void MarkFidIncon(int, char**, int);
 static void GetPath(int, char**, int);
 static void GetMountPoint(int, char**, int);
@@ -250,6 +251,11 @@ struct command cmdarray[] =
         {"getfid", "gf", GetFid, 
             "cfs getfid <path> [<path> <path> ...]",
             "Map path to fid",
+            NULL
+        },
+        {"getpfid", NULL, GetPFid, 
+            "cfs getpfid <fid> [<fid> <fid> ...]",
+            "Map fid to parent fid",
             NULL
         },
         {"getpath", "gp", GetPath, 
@@ -1275,6 +1281,50 @@ static void GetFid(int argc, char *argv[], int opslot)
         printf("VV = %-24s  ", buf);
         printf("STOREID = %lx.%lx  FLAGS = 0x%lx\n", vv.StoreId.Host, 
                 vv.StoreId.Uniquifier, vv.Flags);
+    }
+}
+
+static void GetPFid(int argc, char *argv[], int opslot)
+{
+    int i, rc, w;
+    struct ViceIoctl vio;
+    ViceFid fid;
+    char buf[100];
+
+    if (argc < 3)
+        {
+        printf("Usage: %s\n", cmdarray[opslot].usetxt);
+        exit(-1);
+        }
+
+    w = getlongest(argc, argv);
+
+    for (i = 2; i < argc; i++)
+    {
+        if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
+        /* Validate next fid */
+	char tmp;
+        if (sscanf(argv[i], "%lx.%lx.%lx@%c", &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) != 4)
+	{
+            printf("Malformed fid: should look like %%x.%%x.%%x@<realm>\n");
+            continue;
+	}
+
+        /* Get its path */
+	char *realmname = strrchr(argv[i], '@')+1;
+	memcpy(piobuf, &fid, sizeof(ViceFid));
+	strcpy(piobuf + sizeof(ViceFid), realmname);
+        vio.in = piobuf;
+        vio.in_size = sizeof(ViceFid) + strlen(realmname) + 1;
+	vio.out = (char *)&fid;
+	vio.out_size = sizeof(fid);
+
+	rc = pioctl("/coda", _VICEIOCTL(_VIOC_GETPFID), &vio, 0);
+        if (rc < 0) { PERROR("VIOC_GETPFID"); continue; }
+
+	sprintf(buf, "%x.%x.%x", (unsigned int)fid.Volume,
+		(unsigned int)fid.Vnode, (unsigned int)fid.Unique);
+        printf("FID = %-20s\n", buf);
     }
 }
 
