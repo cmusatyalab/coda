@@ -448,36 +448,37 @@ void ClientModifyLog::HandleFailedMLE()
     cmlent *m, *n;
     cml_iterator next(*this, CommitOrder);
 
-    m = next(); n = next();
-    while (m) {
-	if (m->flags.failed) {
-	    m->flags.failed = 0;	/* only do this once */
-
-	    /* 
-	     * this record may already have been localized because of
-	     * a cascading failure, i.e. a retry finding another
-	     * failure earlier in the log.
-	     */
-	    if (m->ContainLocalFid())
-		continue;
-
-	    /* localize or abort */
-	    if ((m->LocalFakeify() != 0) && (!m->IsToBeRepaired())) {
-		    Recov_BeginTrans();			       
-		    m->abort();
-		    Recov_EndTrans(MAXFP);
-	    } else {
-		    Recov_BeginTrans();
-		    RVMLIB_REC_OBJECT(vol->flags);
-		    vol->flags.has_local_subtree = 1;
-		Recov_EndTrans(MAXFP);
-
-		/* tell the user where the localized object is */
-		LRDB->CheckLocalSubtree();
-	    }
-	}
-	m = n;
+    n = next();
+    while ((m = n) != NULL) {
 	n = next();
+
+	if (!m->flags.failed)
+	    continue;
+
+	m->flags.failed = 0;	/* only do this once */
+
+	/* 
+	 * this record may already have been localized because of
+	 * a cascading failure, i.e. a retry finding another
+	 * failure earlier in the log.
+	 */
+	if (m->ContainLocalFid())
+	    continue;
+
+	/* localize or abort */
+	if ((m->LocalFakeify() != 0) && (!m->IsToBeRepaired())) {
+	    Recov_BeginTrans();			       
+	    m->abort();
+	    Recov_EndTrans(MAXFP);
+	} else {
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(vol->flags);
+	    vol->flags.has_local_subtree = 1;
+	    Recov_EndTrans(MAXFP);
+
+	    /* tell the user where the localized object is */
+	    LRDB->CheckLocalSubtree();
+	}
     }
 }
 
@@ -2246,18 +2247,15 @@ void ClientModifyLog::IncCommit(ViceVersionVector *UpdateSet, int Tid)
 	rec_dlist_iterator next(list);
 	rec_dlink *d = next();			/* get first element */
 
-	while (1) {
-	    if (!d) break;			/* list exhausted */
+	while (d) {
 	    cmlent *m = strbase(cmlent, d, handle);
+	    d = next();	/* advance d before it is un-listed by m->commit */
 	    if (m->GetTid() == Tid) {
-		/* special case -- last of records already committed at server */
-		if (m->flags.committed) 	/* commit this and return */
+		/* special case -- last of records already committed at server
+		 * exit the loop when this has been committed */
+		if (m->flags.committed)
 		    d = NULL;
-		else 
-		    d = next();	/* advance d before it is un-listed by m->commit */
 		m->commit(UpdateSet);
-	    } else {
-		d = next();
 	    }
 	}
     Recov_EndTrans(DMFP);
