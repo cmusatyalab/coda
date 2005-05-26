@@ -575,8 +575,7 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 	    parent_fso = 0;		    /* Fake a FSDB->Put(&parent_fso); */
 	}
 	else if (STREQ(name, "..")) {
-	    if (parent_fso->IsRoot() && parent_fso->u.mtpoint &&
-		!parent_fso->IsVenusRoot())
+	    if (parent_fso->IsRoot() && parent_fso->u.mtpoint)
 		u.u_error = FSDB->Get(&target_fso, &parent_fso->u.mtpoint->pfid, u.u_uid, RC_DATA);
 	    else {
 		target_fso = parent_fso->pfso;
