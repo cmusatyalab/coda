@@ -383,17 +383,26 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			}
 
 		    case _VIOC_GETPFID:
-			{
-			if (data->in_size != (int)sizeof(VenusFid))
+		    {
+			if (data->in_size <= sizeof(VenusFid) || 
+			    *((char *)data->in + data->in_size - 1) != '\0')
 			    { u.u_error = EINVAL; break; }
-			VenusFid *fid = (VenusFid *)data->in;
+
+			ViceFid fid;
+			memcpy(&fid, data->in, sizeof(ViceFid));
+			char *realmname = (char *)data->in + sizeof(ViceFid);
+			Realm *realm = REALMDB->GetRealm(realmname);
+
+			VenusFid vfid;
+			MakeVenusFid(&vfid, realm->Id(), &fid);
 
 			FSDB->Put(&f);
-			u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS);
+
+			u.u_error = FSDB->Get(&f, &vfid, u.u_uid, RC_STATUS);
 			if (u.u_error) break;
 
 			/* if we're at a mount point, back up over it. */
-			if (f->IsRoot() && !f->IsVenusRoot()) {
+			if (f->IsRoot()) {
 			    if (f->u.mtpoint == 0) 
 				{ u.u_error = ENOENT; break; }
 
@@ -404,8 +413,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 		        }
 
 			/* Copy out the parent fid. */
-			memcpy(data->out, &f->pfid, sizeof(VenusFid));
-			data->out_size = (short)sizeof(VenusFid);
+			memcpy(data->out, MakeViceFid(&f->pfid), sizeof(ViceFid));
+			data->out_size = (short)sizeof(ViceFid);
 
 			break;
 			}
@@ -494,8 +503,7 @@ O_FreeLocks:
 		    }
 		    /* Backup and use volroot's mount point if directed. */
 		    if (data->in_size == sizeof(int) && *(int *)data->in != 0) {
-			if (FID_EQ(&f->fid, &rootfid) ||
-			    !FID_IsVolRoot(&f->fid) || f->u.mtpoint == 0) {
+			if (!FID_IsVolRoot(&f->fid) || f->u.mtpoint == 0) {
 			    u.u_error = EINVAL;
 			    break;
 			}
