@@ -1005,13 +1005,18 @@ void lrdb::SetSubtreeView(char NewView, char *msg)
 
 	    /* check global child object */
 	    fsobj *child = (fsobj *)NULL;
-	    VenusFid dummy;
-	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "global", vp->u.u_uid, CLU_CASE_SENSITIVE) == 0);
+	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, NULL, "global",
+						 vp->u.u_uid,
+						 CLU_CASE_SENSITIVE |
+						 CLU_TRAVERSE_MTPT) == 0);
 	    child->UnLock(RD);
 
 	    /* check local child object */
 	    child = (fsobj *)NULL;
-	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, &dummy, "local", vp->u.u_uid, CLU_CASE_SENSITIVE) == 0);
+	    OBJ_ASSERT(this, FakeRootObj->Lookup(&child, NULL, "local",
+						 vp->u.u_uid,
+						 CLU_CASE_SENSITIVE |
+						 CLU_TRAVERSE_MTPT) == 0);
 	    child->UnLock(RD);
 	}
 

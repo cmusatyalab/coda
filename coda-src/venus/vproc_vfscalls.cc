@@ -590,7 +590,8 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 	}
 	else {
 	    VenusFid inc_fid;
-	    u.u_error = parent_fso->Lookup(&target_fso, &inc_fid, name, u.u_uid, flags);
+	    u.u_error = parent_fso->Lookup(&target_fso, &inc_fid, name, u.u_uid,
+					   flags | CLU_TRAVERSE_MTPT);
 	    if (u.u_error) {
 		if (u.u_error == EINCONS) {
 		    u.u_error = 0;
@@ -649,6 +650,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
     if (u.u_error) return;
 
     for (;;) {
+	int flags = CLU_CASE_SENSITIVE;
 	Begin_VFS(&dcp->c_fid, CODA_CREATE);
 	if (u.u_error) break;
 
@@ -659,14 +661,13 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Get the target object (if it exists). */
-	if ((LRDB->repair_root_fid) && (parent_fso->IsLocalObj() || 
-					LRDB->RFM_IsRootParent(&parent_fso->fid))) {
+	if (LRDB->repair_root_fid &&
+	    (parent_fso->IsLocalObj() ||
+	     LRDB->RFM_IsRootParent(&parent_fso->fid)))
 	    /* cross mount-point when under local/global repair */
-	    VenusFid dummy;
-	    u.u_error = parent_fso->Lookup(&target_fso, &dummy, name, u.u_uid, CLU_CASE_SENSITIVE);
-	} else {
-	    u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
-	}
+	    flags |= CLU_TRAVERSE_MTPT;
+
+	u.u_error = parent_fso->Lookup(&target_fso, NULL, name, u.u_uid, flags);
 	if (u.u_error == 0) {
 	    FSDB->Put(&parent_fso);	    /* avoid deadlock! */
 
@@ -765,7 +766,8 @@ void vproc::remove(struct venus_cnode *dcp, char *name)
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Get the target object. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, NULL, name, u.u_uid,
+				       CLU_CASE_SENSITIVE);
 	if (u.u_error) goto FreeLocks;
 
 	/* Verify that it is not a directory. */
@@ -849,7 +851,7 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
         }
 
 	/* Verify that the target doesn't exist. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, toname, u.u_uid,
+	u.u_error = parent_fso->Lookup(&target_fso, NULL, toname, u.u_uid,
 				       CLU_CASE_SENSITIVE);
 	if (u.u_error == 0) { u.u_error = EEXIST; goto FreeLocks; }
 	if (u.u_error != ENOENT) goto FreeLocks;
@@ -966,10 +968,11 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	{
 	    fsobj *f = (SameParent ? t_parent_fso : s_parent_fso);
 #ifdef DJGPP
-	    u.u_error = f->Lookup(&s_fso, 0, name, u.u_uid, CLU_CASE_INSENSITIVE);
+	    int flags = CLU_CASE_INSENSITIVE;
 #else
-	    u.u_error = f->Lookup(&s_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
+	    int flags = CLU_CASE_SENSITIVE;
 #endif
+	    u.u_error = f->Lookup(&s_fso, NULL, name, u.u_uid, flags);
 	    if (u.u_error) goto FreeLocks;
 
 	    if (s_fso->IsMtPt() || s_fso->IsMTLink())
@@ -983,7 +986,8 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 		if (u.u_error) goto FreeLocks;
 	    }
 	}
-	u.u_error = t_parent_fso->Lookup(&t_fso, 0, toname, u.u_uid, CLU_CASE_SENSITIVE);
+	u.u_error = t_parent_fso->Lookup(&t_fso, NULL, toname, u.u_uid,
+					 CLU_CASE_SENSITIVE);
 	if (u.u_error) {
 	    if (u.u_error != ENOENT) goto FreeLocks;
 	    u.u_error = 0;
@@ -1133,7 +1137,8 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name,
 	if (!parent_fso->IsDir()) { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Verify that the target doesn't exist. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, NULL, name, u.u_uid,
+				       CLU_CASE_SENSITIVE);
 	if (u.u_error == 0) { u.u_error = EEXIST; goto FreeLocks; }
 	if (u.u_error != ENOENT) goto FreeLocks;
 	u.u_error = 0;
@@ -1191,7 +1196,8 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
 	if (!parent_fso->IsDir()) { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Get the target object. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, NULL, name, u.u_uid,
+				       CLU_CASE_SENSITIVE);
 	if (u.u_error) goto FreeLocks;
 
 	/* Sanity check. */
@@ -1262,7 +1268,8 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
 	if (!parent_fso->IsDir()) { u.u_error = ENOTDIR; goto FreeLocks; }
 
 	/* Verify that the target doesn't exist. */
-	u.u_error = parent_fso->Lookup(&target_fso, 0, name, u.u_uid, CLU_CASE_SENSITIVE);
+	u.u_error = parent_fso->Lookup(&target_fso, NULL, name, u.u_uid,
+				       CLU_CASE_SENSITIVE);
 	if (u.u_error == 0) { u.u_error = EEXIST; goto FreeLocks; }
 	if (u.u_error != ENOENT) goto FreeLocks;
 	u.u_error = 0;

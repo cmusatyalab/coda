@@ -235,7 +235,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			if (!f->IsDir()) { u.u_error = ENOTDIR; break; }
 
 			/* Verify that the target doesn't exist. */
-			u.u_error = f->Lookup(&target_fso, 0, link_name, u.u_uid, CLU_CASE_SENSITIVE);
+			u.u_error = f->Lookup(&target_fso, NULL, link_name,
+					      u.u_uid, CLU_CASE_SENSITIVE);
 			FSDB->Put(&target_fso);
 			if (u.u_error == 0) { u.u_error = EEXIST; break; }
 			if (u.u_error != ENOENT) { break; }
@@ -297,7 +298,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			    { u.u_error = ENOTDIR; break; }
 
 			/* Get the target object. */
-			u.u_error = f->Lookup(&target_fso, 0, target_name, u.u_uid, CLU_CASE_SENSITIVE);
+			u.u_error = f->Lookup(&target_fso, NULL, target_name,
+					      u.u_uid, CLU_CASE_SENSITIVE);
 			if (u.u_error) break;
 
 			/* Verify that target is a mount point (either valid or dangling). */
@@ -350,7 +352,8 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                         }
 
 			/* Get the target object. */
-			u.u_error = f->Lookup(&target_fso, 0, target_name, u.u_uid, CLU_CASE_SENSITIVE);
+			u.u_error = f->Lookup(&target_fso, NULL, target_name,
+					      u.u_uid, CLU_CASE_SENSITIVE);
 			if (u.u_error) {
 			    FSDB->Put(&target_fso);
 			    break;

@@ -211,20 +211,21 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	/* Check for local repair expansion */
 	if ((code == 0) && FAKEROOTFID(*RepairFid)) {
 	    localFake = 1;
-	    VenusFid inc; /* Required for getting Lookup() to traverse mount points */
-	    code = f->Lookup(&global, &inc, "global", uid, CLU_CASE_SENSITIVE);
+	    code = f->Lookup(&global, NULL, "global", uid,
+			     CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
 	    if (code != 0) {
 		FSDB->Put(&f);
 		return(code);
 	    }
-	    code = f->Lookup(&local, &inc, "local", uid, CLU_CASE_SENSITIVE);
+	    code = f->Lookup(&local, NULL, "local", uid,
+			     CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
 	    if (code != 0) {
 		FSDB->Put(&global);
 		FSDB->Put(&f);
 		return(code);
 	    }
-	    LOG(100, ("Local-Repair expansion, got (%s) inc (%s)\n", 
-		      FID_(&global->fid), FID_(&inc)));
+	    LOG(100, ("Local-Repair expansion, got (%s)\n", 
+		      FID_(&global->fid)));
 	    gfid = global->fid;
 	    lfid = local->fid;
 	    rFid = &gfid;
@@ -399,7 +400,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 			fsobj *e = NULL;
 
 			CODA_ASSERT(local != NULL);
-			code = local->Lookup(&e, NULL, rep_ent[i].name, uid, CLU_CASE_SENSITIVE);
+			code = local->Lookup(&e, NULL, rep_ent[i].name, uid,
+					     CLU_CASE_SENSITIVE);
 			if (code != 0) {
 			    LOG(15, ("Repair: local(%s)->Lookup(%s) error", 
 				     FID_(&local->fid), rep_ent[i].name));
@@ -410,7 +412,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 			FSDB->Put(&e);
 			
 			if (rep_ent[i].opcode == REPAIR_RENAME) {
-			    code = local->Lookup(&e, NULL, rep_ent[i].newname, uid, CLU_CASE_SENSITIVE);
+			    code = local->Lookup(&e, NULL, rep_ent[i].newname,
+						 uid, CLU_CASE_SENSITIVE);
 			    if (code != 0) {
 				LOG(15, ("Repair: (%s)->Lookup(%s) error", 
 					 FID_(&local->fid), rep_ent[i].newname));

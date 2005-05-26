@@ -501,7 +501,7 @@ class fsobj {
     void GC();
     int Flush();
     void UpdateStatus(ViceStatus *, ViceVersionVector *, uid_t);
-    int StatusEq(ViceStatus *, int);
+    int StatusEq(ViceStatus *);
     void ReplaceStatus(ViceStatus *, ViceVersionVector *);
     int CheckRcRights(int);
     void SetRcRights(int);
@@ -660,7 +660,12 @@ class fsobj {
     void Release(int writep);
     int Close(int writep, uid_t uid);
     int Access(long, int, uid_t);
-    int Lookup(fsobj **, VenusFid *, char *, uid_t, int);
+    int Lookup(fsobj **, VenusFid *, char *, uid_t, int flags);
+// These are defined in lib-src/kernel-includes/coda.h
+// #define CLU_CASE_SENSITIVE	0x01
+// #define CLU_CASE_INSENSITIVE 0x02
+#define CLU_CASE_MASK		0x03
+#define CLU_TRAVERSE_MTPT	0x04
     int Readdir(char *, int, int, int *, uid_t);
     int Readlink(char *, unsigned long, int *, uid_t);
 

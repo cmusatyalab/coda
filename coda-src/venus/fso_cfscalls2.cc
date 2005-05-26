@@ -462,7 +462,8 @@ int fsobj::Access(long rights, int modes, uid_t uid)
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
-int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t uid, int flags)
+int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name,
+		  uid_t uid, int flags)
 {
     LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n", GetComp(), name, uid));
 
@@ -471,7 +472,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 
     int code = 0;
     *target_fso_addr = 0;
-    int	traverse_mtpts = (inc_fid != 0);	/* ? -JJK */
+    int	traverse_mtpts = flags & CLU_TRAVERSE_MTPT;	/* ? -JJK */
     Realm *realm = NULL;
 
     fsobj *target_fso = 0;
@@ -488,7 +489,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 
 	/* Lookup the target object. */
 	{
-	    code = dir_Lookup(name, &target_fid, flags);
+	    code = dir_Lookup(name, &target_fid, flags & CLU_CASE_MASK);
 
 	    if (code) {
 		if (vol->GetRealmId() != LocalRealm->Id() ||
