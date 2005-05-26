@@ -613,7 +613,7 @@ int fsobj::IsAncestor(VenusFid *Fid)
 	if (FID_EQ(&cfo->fid, Fid))
 	    return 1;
 
-	if (cfo->IsRoot() && !cfo->IsVenusRoot()) {
+	if (cfo->IsRoot()) {
 	    if (!cfo->u.mtpoint)
 		break;
 
