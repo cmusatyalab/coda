@@ -461,14 +461,16 @@ void srvent::Reset() {
 
     /* Kill all conninfos with this server */
     conninfo_iterator conninfo_next;
-    conninfo *cip;
-    while((cip = conninfo_next()))
+    conninfo *cip, *n = NULL;
+    while((cip = n ? n : conninfo_next())) {
+	n = NULL;
 	if (cip->GetRemoteHost() == host){
 	    conninfo::CInfoTab->remove(&cip->tblhandle);
 	    conninfo::ncinfos--;
+	    n = conninfo_next();
 	    delete cip;
 	}
-    
+    }
 }
 
 void srvent::ServerError(int *codep) {
