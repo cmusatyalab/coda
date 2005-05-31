@@ -652,7 +652,9 @@ void resClean (int nreplicas, resreplica *dirs, struct listhdr *lh)
     }
 }
 
-int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt, char *dpath, char *childname) {
+int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt,
+	      char *dpath, char *childname)
+{
     /* returns fid and absolute path of parent */
     int rc;
     struct ViceIoctl vi;
