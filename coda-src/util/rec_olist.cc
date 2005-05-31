@@ -199,47 +199,21 @@ void rec_olist::print(int fd) {
 rec_olist_iterator::rec_olist_iterator(rec_olist& l) {
     clist = &l;
     clink = (rec_olink *)-1;
-    nlink = (rec_olink *)-1;
 }
 
 
 rec_olink *rec_olist_iterator::operator()() {
-    if ( clist->last() == 0 ) {	/* empty list */
-	clink = (rec_olink *)-1;
-	nlink = (rec_olink *)-1;
-	return 0;
-    }
+    if (clink == (rec_olink *)-1)	/* state == NOTSTARTED */
+	clink = clist->first();
     
-    switch((unsigned int)clink) {
-	case -1:		/* state == NOTSTARTED */
-	    clink = clist->first();
-	    if ( clink != 0 ) {
-		nlink = clink->next; /* clink may be deleted before next iter.,
-				        keep ptr to next rec_olink now */
-		return clink;
-	    } else {
-		nlink = (rec_olink *)-1;
-		return 0;
-	    }
-	    
-	    break;
+    else if (clink == clist->last())	/* hit end of list */
+	clink = (rec_olink *)0;
 
-        case 0:			/* not reached */
-	    return 0;
+    else if (clink)			/* state == INPROGRESS */
+	clink = clink->next;
 
-	default:		/* state == INPROGRESS */
-	    if (clink == clist->last()) { /* last already done */
-		clink = (rec_olink *)0;
-		nlink = (rec_olink *)-1;
-		return 0;
-	    }
-	    CODA_ASSERT(nlink != (rec_olink *)-1);
-	    clink = nlink;	/* we saved nlink in last iteration */
-	    nlink = clink->next; /* clink may be del. before next iter.,
-				    keep ptr to next rec_olink now*/
-	    return clink;
-    }
-    
+    /* else clink == 0 ... state == DONE */
+    return clink;
 }
 
 

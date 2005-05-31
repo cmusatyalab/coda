@@ -84,13 +84,12 @@ class olist {
 
 class olist_iterator {
     olist *clist;	    // current olist
-    olink *clink;	    // current olink; may be deleted before next iter.
-    olink *nlink;	    // nlink save ahead the ptr to next olink in list
+    olink *clink;	    // current olink
   public:
     olist_iterator(olist&);
     olink *operator()();    // return next object or 0
-                            // Support safe deletion of currently
-                            // returned entry.  See dlist.h also.
+                            // Does NOT support safe deletion of currently
+                            // returned entry.
     void reset();           // allow re-use of iterator (Satya, 5/04)
 };
 
@@ -114,7 +113,6 @@ class olink {		    // objects are derived from this class
         presence of object with an arbitrary tag, rather than just 
           match on object pointer */
     int otagmatch (void *otag, otagcompare_t cmpfn);
-
 };
 
 #endif /* _UTIL_LIST_H_ */

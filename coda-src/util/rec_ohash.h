@@ -85,6 +85,8 @@ class rec_ohashtab_iterator {
     rec_ohashtab *chashtab;				/* current rec_ohashtab */
     int	allbuckets;					/* iterate over all or single bucket */
     int	cbucket;					/* current bucket */
+
+  protected:
     rec_olist_iterator *nextlink;			/* current olist iterator */
 
   public:

@@ -144,7 +144,7 @@ olink *olist::remove(olink *p) {
 olink *olist::first() {
     if (tail ==	0) return(0);	    // empty list
 
-					   return(tail->next);
+    return(tail->next);
 }
 
 
@@ -222,51 +222,26 @@ olink *olist::FindObject(void *tag, otagcompare_t cmpfn) {
 olist_iterator::olist_iterator(olist& l) {
     clist = &l;
     clink = (olink *)-1;
-    nlink = (olink *)-1;
 }
 
 
 olink *olist_iterator::operator()() {
-    if ( clist->last() == 0 )	{/* empty list */
-	clink = (olink *)-1;
-	nlink = (olink *)-1;
-	return 0;
-    }
-    
-    switch((unsigned int)clink) {
-    case -1:		/* state == NOTSTARTED */
+    if (clink == (olink *)-1)		/* state == NOTSTARTED */
 	clink = clist->first();
-	if ( clink != 0 ) { 
-	    nlink = clink->next; /* clink may be deleted before next iter.,
-				    keep ptr to next olink now */
-	    return clink;
-	} else {
-	    nlink = (olink *)-1;
-	    return 0;
-	}
 
-    case 0:		/* not reached */
-	return 0;
+    else if (clink == clist->last())	/* hit end of list */
+	clink = (olink *)0;
+    
+    else if (clink)			/* state == INPROGRESS */
+	clink = clink->next;
 
-    default:		/* state == INPROGRESS */
-	if (clink == clist->last()) {	/* last already done */
-	    clink = (olink *)0;
-	    nlink = (olink *)-1;
-	    return 0;
-	}
-	CODA_ASSERT(nlink != (olink *)-1);
-	clink = nlink;		/* we saved nlink in last iteration */
-	nlink = clink->next;	/* clink may be del. before next iter.,
-				   keep ptr to next olink now */
-	return clink;
-    }
-
+    /* else clink == 0 ... state == DONE */
+    return clink;
 }
 
 /* reset internal state */
 void olist_iterator::reset() {
     clink = (olink *)-1;
-    nlink = (olink *)-1;
 }
 
 
