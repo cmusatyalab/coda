@@ -148,9 +148,8 @@ void cpman::func(int parm)
 	long currtime = time(0);
 	ObtainWriteLock(&lock);
 
-	ohashtab_iterator next(objects);
-	cpent *cpe;
-	if ((cpe = (cpent *)next()) && (cpe->time + CPTIMEOUT <= currtime) && !cpe->deqing) {
+	cpent *cpe = (cpent *)objects.first();
+	if (cpe && (cpe->time + CPTIMEOUT <= currtime) && !cpe->deqing) {
 	    if (SrvDebugLevel >= 1) {
 		LogMsg(1, SrvDebugLevel, stdout,  "StoreId = (%x.%x)",
 			cpe->StoreId.Host, cpe->StoreId.Uniquifier);
