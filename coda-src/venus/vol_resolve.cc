@@ -103,7 +103,7 @@ void repvol::Resolve()
 	    struct in_addr *phost = m->GetPrimaryHost();
 	    CODA_ASSERT(phost->s_addr != 0);
             srvent *s = GetServer(phost, GetRealmId());
-	    code = s->GetConn(&c, V_UID);
+	    code = s->GetConn(&c, ANYUSER_UID);
             PutServer(&s);
 	    if (code != 0) goto HandleResult;
 

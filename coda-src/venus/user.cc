@@ -365,13 +365,8 @@ LOG(100, ("After HDB::ResetUser in userent::Reset\n"));
 	struct ConnKey Key; Key.host.s_addr = INADDR_ANY; Key.uid = uid;
 	conn_iterator next(&Key);
 	connent *c = 0;
-	connent *tc = 0;
-	for (c = next(); c != 0; c = tc) {
-	    tc = next(); /* read ahead */
-	    if (tc) tc->GetRef(); /* make sure we don't lose the next connent */
-	    (void)c->Suicide(1);
-	    if (tc) tc->PutRef();
-	}
+	while ((c = next()))
+	    c->Suicide();
     }
 
     /* Delete the user's mgrps. */

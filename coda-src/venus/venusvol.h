@@ -584,8 +584,7 @@ class volent {
   friend class fsobj;
   friend class userent;
   friend class vdb;
-  friend class repvol_iterator;
-  friend class volrep_iterator;
+  friend class volent_iterator;
   friend class vproc; /* End_VFS(int *); wants vol->realm->GetUser() */
 
     int MagicNumber;
@@ -922,13 +921,20 @@ class repvol : public volent {
     void print_repvol(int);
 };
 
-class repvol_iterator : public rec_ohashtab_iterator {
+class volent_iterator : public rec_ohashtab_iterator {
+  public:
+    volent_iterator(rec_ohashtab &hashtab, Volid *key);
+    ~volent_iterator();
+    volent *operator()();
+};
+
+class repvol_iterator : public volent_iterator {
   public:
     repvol_iterator(Volid * =(Volid *)-1);
     repvol *operator()();
 };
 
-class volrep_iterator : public rec_ohashtab_iterator {
+class volrep_iterator : public volent_iterator {
   public:
     volrep_iterator(Volid * =(Volid *)-1);
     volrep *operator()();
@@ -999,8 +1005,9 @@ extern char VCBEnabled;
 /*  *****  Functions/Procedures  *****  */
 
 /* venusvol.c */
-extern void VolInit();
-extern int VOL_HashFN(void *);
+void VolInit(void);
+void VolInitPost(void);
+int VOL_HashFN(void *);
 
 /* vol_COP2.c */
 const unsigned int COP2SIZE = 1024;

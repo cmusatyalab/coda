@@ -183,7 +183,7 @@ retry:
 	sin = (struct sockaddr_in *)p->ai_addr;
 
 	s = ::GetServer(&sin->sin_addr, Id());
-	code = s->GetConn(cpp, V_UID);
+	code = s->GetConn(cpp, ANYUSER_UID);
 	PutServer(&s);
 	switch(code) {
 	case ERETRY:

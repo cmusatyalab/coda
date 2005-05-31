@@ -160,25 +160,18 @@ void vdb::GetDown()
     Recov_BeginTrans();
     { /* find reclaimable replicated volumes */
         repvol_iterator next;
-        repvol *v, *n = next();
-        while ((v = n) != NULL) {
-            n = next();
-            if (v->refcnt == 0 && v->CML.count() == 0) {
+        repvol *v;
+        while ((v = next())) {
+            if (v->refcnt == 1 && v->CML.count() == 0)
                 LOG(10, ("vdb::GetDown destroying %x\n", v->GetVolumeId()));
-                delete v;
-            }
         }
     }
     { /* find reclaimable volume replicas */
         volrep_iterator next;
-        volrep *v, *n = next();
-        while ((v = n) != NULL) {
-            n = next();
-            if (v->refcnt == 0) {
+        volrep *v;
+        while ((v = next()))
+            if (v->refcnt == 1)
                 LOG(10, ("vdb::GetDown destroying %x\n", v->GetVolumeId()));
-                delete v;
-            }
-        }
     }
     Recov_EndTrans(0);
 }
@@ -219,11 +212,9 @@ void vdb::TakeTransition()
     volent *v;
     while ((v = rvnext()) || (v = vrnext())) {
 	if (v->IsFake()) continue;
-
 	LOG(1000, ("vdb::TakeTransition: checking %s\n", v->name));
-	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
+	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0)
 	    v->Exit(VM_OBSERVING, V_UID);
-	}
     }
 }
 
@@ -268,9 +259,9 @@ void vdb::CheckReintegratePending()
     LOG(100, ("vdb::CheckReintegratePending: \n"));
 
     /* For each volume. */
-    repvol_iterator vnext;
+    repvol_iterator next;
     repvol *v;
-    while ((v = vnext()))
+    while ((v = next()))
 	v->CheckReintegratePending();
 }
 
@@ -290,10 +281,9 @@ void TrickleReintegrate()
     LOG(100, ("TrickleReintegrate(): \n"));
     
     /* For each volume. */
-    repvol_iterator vnext;
+    repvol_iterator next;
     repvol *v;
-
-    while ((v = vnext())) {
+    while ((v = next())) {
 	LOG(1000, ("TrickleReintegrate: checking %s\n", v->GetName()));
 	if (v->Enter((VM_OBSERVING | VM_NDELAY), V_UID) == 0) {
 	    /* force a connectivity check? */

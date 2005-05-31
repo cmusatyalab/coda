@@ -191,8 +191,9 @@ int main(int argc, char **argv)
     UserInit();     /* fire up user daemon */
     VSGDBInit();    /* init VSGDB */
     RealmDBInit();
-    VolInit();      /* init VDB, daemon */
+    VolInit();	    /* init VDB, daemon */
     FSOInit();      /* allocate FSDB if necessary, recover FSOs, start FSO daemon */
+    VolInitPost();  /* drop extra volume refcounts */
     HDB_Init();     /* allocate HDB if necessary, scan entries, start the HDB daemon */
     MarinerInit();  /* set up mariner socket */
     WorkerInit();   /* open kernel device */

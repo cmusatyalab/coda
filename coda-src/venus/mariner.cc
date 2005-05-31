@@ -225,9 +225,11 @@ void MarinerMux(fd_set *mask)
 
     /* Dispatch mariners which have pending requests, and kill dying mariners. */
     mariner_iterator next;
-    mariner *m;
-    while ((m = next())) {
+    mariner *m, *n = NULL;
+    while ((m = n ? n : next())) {
+	n = NULL;
 	if (m->dying) {
+	    n = next();
 	    delete m;
 	    continue;
 	}
@@ -235,6 +237,7 @@ void MarinerMux(fd_set *mask)
 	    m->DataReady = 1;
 	    if (m->idle) {
 		if (m->Read() < 0) {
+		    n = next();
 		    delete m;
 		    continue;
 		}

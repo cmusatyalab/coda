@@ -363,7 +363,7 @@ int hdb::Clear(hdb_clear_msg *m, uid_t local_id) {
     Recov_BeginTrans();
     hdb_iterator next(m->cuid);
     hdbent *h = next();
-    while (h != 0) {
+    while (h) {
 	    hdbent *succ = next();
 	    delete h;
 	    h = succ;

@@ -209,7 +209,9 @@ int srvent::GetConn(connent **cpp, uid_t uid, int Force)
 	struct ConnKey Key; Key.host = host; Key.uid = uid;
 	conn_iterator next(&Key);
 	while ((c = next())) {
-	    if (!c->HasRef() && !c->dying) {
+	    /* the iterator grabs a reference, so in-use connections
+	     * will have a refcount of 2 */
+	    if (c->RefCount() <= 1 && !c->dying) {
 		c->GetRef();
                 *cpp = c;
                 return 0;
@@ -245,7 +247,7 @@ void PutConn(connent **cpp)
 {
     connent *c = *cpp;
     *cpp = 0;
-    if (c == 0) {
+    if (!c) {
 	LOG(100, ("PutConn: null conn\n"));
 	return;
     }
@@ -253,15 +255,13 @@ void PutConn(connent **cpp)
     LOG(100, ("PutConn: host = %s, uid = %d, cid = %d, auth = %d\n",
 	      c->srv->Name(), c->uid, c->connid, c->authenticated));
 
-    if (!c->HasRef())
-	{ c->print(logFile); CHOKE("PutConn: conn not in use"); }
-
     c->PutRef();
 
-    if (!c->HasRef() && c->dying) {
-	connent::conntab->remove(&c->tblhandle);
-	delete c;
-    }
+    if (c->RefCount() || !c->dying)
+	return;
+
+    connent::conntab->remove(&c->tblhandle);
+    delete c;
 }
 
 
@@ -284,7 +284,8 @@ void ConnPrint(int fd) {
     /* Iterate through the individual entries. */
     conn_iterator next;
     connent *c;
-    while ((c = next())) c->print(fd);
+    while ((c = next()))
+	c->print(fd);
 
     fdprint(fd, "\n");
 }
@@ -313,6 +314,7 @@ connent::connent(srvent *server, uid_t Uid, RPC2_Handle cid, int authflag)
 
 
 connent::~connent() {
+    int code;
 #ifdef	VENUSDEBUG
     deallocs++;
 #endif
@@ -320,43 +322,33 @@ connent::~connent() {
     LOG(1, ("connent::~connent: host = %s, uid = %d, cid = %d, auth = %d\n",
 	    srv->Name(), uid, connid, authenticated));
 
-    int code = (int) RPC2_Unbind(connid);
-    connid = 0;
-    PutServer(&srv);
-    LOG(1, ("connent::~connent: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
-}
+    CODA_ASSERT(!RefCount());
 
-
-int connent::Suicide(int disconnect)
-{
-    LOG(1, ("connent::Suicide: disconnect = %d\n", disconnect));
-
-    /* Mark this conn as dying. */
-    dying = 1;
-
-    /* Can't do any more if it is busy. */
-    if (HasRef()) return(0);
-
-    GetRef();
-
-    /* Be nice and disconnect if requested. */
-    if (disconnect) {
+    /* Be nice and disconnect if the server is available. */
+    if (srv->ServerIsUp()) {
 	/* Make the RPC call. */
 	MarinerLog("fetch::DisconnectFS %s\n", srv->Name());
 	UNI_START_MESSAGE(ViceDisconnectFS_OP);
-	int code = (int) ViceDisconnectFS(connid);
+	code = (int) ViceDisconnectFS(connid);
 	UNI_END_MESSAGE(ViceDisconnectFS_OP);
 	MarinerLog("fetch::disconnectfs done\n");
 	code = CheckResult(code, 0);
 	UNI_RECORD_STATS(ViceDisconnectFS_OP);
     }
 
-    connent *myself = this; // needed because &this is illegal
-    PutConn(&myself);
-
-    return(1);
+    code = (int) RPC2_Unbind(connid);
+    connid = 0;
+    PutServer(&srv);
+    LOG(1, ("connent::~connent: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
 }
 
+
+/* Mark this conn as dying. */
+void connent::Suicide(void)
+{
+    LOG(1, ("connent::Suicide\n"));
+    dying = 1;
+}
 
 /* Maps return codes from Vice:
 	0		Success,
@@ -431,19 +423,35 @@ conn_iterator::conn_iterator(struct ConnKey *Key) : olist_iterator((olist&)*conn
 }
 
 
-connent *conn_iterator::operator()() {
-    olink *o;
-    while ((o = olist_iterator::operator()())) {
-	connent *c = strbase(connent, o, tblhandle);
-	if (c->dying) continue;
-	if (key == (struct ConnKey *)0) return(c);
-	if ((key->host.s_addr == c->srv->host.s_addr ||
-             key->host.s_addr == INADDR_ANY) &&
-	    (key->uid == c->uid || key->uid == ANYUSER_UID))
-	    return(c);
+conn_iterator::~conn_iterator()
+{
+    if (clink && clink != (void *)-1) {
+	connent *c = strbase(connent, clink, tblhandle);
+	PutConn(&c);
     }
+}
 
-    return(0);
+connent *conn_iterator::operator()()
+{
+    olink *o, *prev = clink;
+    connent *next = NULL;
+
+    while ((o = olist_iterator::operator()())) {
+	next = strbase(connent, o, tblhandle);
+	if (next->dying) continue;
+	if (!key || ((key->host.s_addr == next->srv->host.s_addr ||
+		      key->host.s_addr == INADDR_ANY) &&
+		     (key->uid == next->uid || key->uid == ANYUSER_UID)))
+	{
+	    next->GetRef();
+	    break;
+	}
+    }
+    if (prev && prev != (void *)-1) {
+	connent *c = strbase(connent, prev, tblhandle);
+	PutConn(&c);
+    }
+    return o ? next : NULL;
 }
 
 
@@ -588,7 +596,7 @@ void probeslave::main(void)
             srvent *s = FindServer(Host);
 	    if (s) {
 		s->GetRef();
-		s->GetConn((connent **)result, V_UID, 1);
+		s->GetConn((connent **)result, ANYUSER_UID, 1);
 		PutServer(&s);
 	    }
 	    }
@@ -705,7 +713,7 @@ void MultiBind(int HowMany, struct in_addr *Hosts, connent **Connections)
 	if (!s) continue;
 
 	s->GetRef();
-	code = s->GetConn(&c, V_UID);
+	code = s->GetConn(&c, ANYUSER_UID);
 	PutServer(&s);
 
 	if (code == 0) {
@@ -1021,7 +1029,7 @@ int srvent::GetStatistics(ViceStatistics *Stats)
 
     memset(Stats, 0, sizeof(ViceStatistics));
     
-    code = GetConn(&c, V_UID);
+    code = GetConn(&c, ANYUSER_UID);
     if (code != 0) goto Exit;
 
     /* Make the RPC call. */
@@ -1043,25 +1051,20 @@ void srvent::Reset()
 {
     LOG(1, ("srvent::Reset: host = %s\n", name));
 
-    /* Kill all direct connections to this server. */
-    {
-	struct ConnKey Key; Key.host = host; Key.uid = ANYUSER_UID;
-	conn_iterator conn_next(&Key);
-	connent *c = 0;
-	connent *tc = 0;
-	for (c = conn_next(); c != 0; c = tc) {
-	    tc = conn_next();		/* read ahead */
-	    if (tc) tc->GetRef();
-	    (void)c->Suicide(0);
-	    if (tc) tc->PutRef();
-	}
-    }
-
     /* Unbind callback connection for this server. */
     if (connid) {
 	int code = (int) RPC2_Unbind(connid);
 	LOG(1, ("srvent::Reset: RPC2_Unbind -> %s\n", RPC2_ErrorMsg(code)));
 	connid = 0;
+    }
+
+    /* Kill all direct connections to this server. */
+    {
+	struct ConnKey Key; Key.host = host; Key.uid = ANYUSER_UID;
+	conn_iterator conn_next(&Key);
+	connent *c = 0;
+	while ((c = conn_next()))
+	    c->Suicide();
     }
 
     /* Send a downevent to volumes associated with this server */

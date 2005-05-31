@@ -178,7 +178,7 @@ unsigned int repvol::deallocs = 0;
 #endif
 
 /* local-repair modification */
-void VolInit()
+void VolInit(void)
 {
     /* Allocate the database if requested. */
     if (InitMetaData) {					/* <==> VDB == 0 */
@@ -198,11 +198,14 @@ void VolInit()
 	{
 	    int FoundMLEs = 0;
 
-            { /* Need to initialize volume replica transient members first. */
+	    { /* Need to initialize volume replica transient members first. */
                 volrep_iterator next;
                 volrep *v;
-                while ((v = next()))
+                while ((v = next())) {
                     v->ResetTransient();
+		    /* grab extra reference until all fsos are initialized */
+		    v->hold();
+		}
             }
             eprint("\t%d volume replicas", VDB->volrep_hash.count());
             {
@@ -211,6 +214,8 @@ void VolInit()
                 while ((v = next())) {
                     /* Initialize transient members. */
                     v->ResetTransient();
+		    /* grab extra reference until all fsos are initialized */
+		    v->hold();
                     FoundMLEs += v->CML.count();
                 }
             }
@@ -263,6 +268,15 @@ void VolInit()
     VOLD_Init();
 }
 
+void VolInitPost(void)
+{
+    /* fsos are initialized, drop the extra references. */
+    repvol_iterator rnext;
+    volrep_iterator vnext;
+    volent *v;
+    while ((v = rnext()) || (v = vnext()))
+	v->release();
+}
 
 int VOL_HashFN(const void *key)
 {
@@ -369,7 +383,6 @@ volent *vdb::Find(Volid *volid)
 	    return(v);
 	}
     }
-
     return(0);
 }
 
@@ -526,9 +539,9 @@ volent *vdb::Create(Realm *realm, VolumeInfo *volinfo, const char *volname)
         }
     }
 
-    if (v) v->hold();
-    else LOG(0, ("vdb::Create: (%x.%x, %s, %d) failed\n", realm->Id(),
-		 volinfo->Vid, volname, 0/*AllocPriority*/));
+    if (!v)
+	LOG(0, ("vdb::Create: (%x.%x, %s, %d) failed\n", realm->Id(),
+		volinfo->Vid, volname, 0/*AllocPriority*/));
     return(v);
 }
 
@@ -799,7 +812,7 @@ int vdb::WriteDisconnect(unsigned age, unsigned time)
     int code = 0;
 
     while ((v = next())) {
-        code = v->WriteDisconnect(age, time); 
+        code = v->WriteDisconnect(age, time);
         if (code) break;
     }
     return(code);
@@ -927,7 +940,7 @@ void volent::ResetVolTransients()
      * sync doesn't need to be initialized. 
      * It's used only for LWP_Wait and LWP_Signal. 
      */
-    refcnt = 0;
+    refcnt = 1;
 }
 
 
@@ -965,8 +978,6 @@ void volent::hold(void)
 
 void volent::release(void)
 {
-    int intrans;
-
     refcnt--;
 
     CODA_ASSERT(refcnt >= 0);
@@ -978,17 +989,14 @@ void volent::release(void)
     if (IsReplicated() && ((repvol *)this)->CML.count() != 0)
 	return;
 
-    /* we could be called when there already is a transaction ongoing or we
-     * might have to start our own transaction... */
-    intrans = rvmlib_in_transaction();
-    if (!intrans)
-	Recov_BeginTrans();
+    /* we could be called when there already is a transaction ongoing, we
+     * could start our own transaction, or just leave it up to getdown... */
+    int intrans = rvmlib_in_transaction();
 
+    if (!intrans) Recov_BeginTrans();
     if (IsReplicated()) delete (repvol *)this;
-    else	        delete (volrep *)this;
-
-    if (!intrans)
-	Recov_EndTrans(MAXFP);
+    else		delete (volrep *)this;
+    if (!intrans) Recov_EndTrans(MAXFP);
 }
 
 int volent::IsReadWriteReplica()
@@ -2771,27 +2779,62 @@ void volent::ListCache(FILE* fp, int long_format, unsigned int valid)
 }
 
 
-/*  *****  Volume Iterator  *****  */
+/*  *****  Volume Iterators  *****  */
 
-repvol_iterator::repvol_iterator(Volid *key) : rec_ohashtab_iterator(VDB->repvol_hash, (void *)key) { }
+volent_iterator::volent_iterator(rec_ohashtab &hashtab, Volid *key) :
+    rec_ohashtab_iterator(hashtab, (void *)key) { }
 
-volrep_iterator::volrep_iterator(Volid *key) : rec_ohashtab_iterator(VDB->volrep_hash, (void *)key) { }
+repvol_iterator::repvol_iterator(Volid *key) :
+    volent_iterator(VDB->repvol_hash, key) { }
+
+volrep_iterator::volrep_iterator(Volid *key) :
+    volent_iterator(VDB->volrep_hash, key) { }
+
+volent_iterator::~volent_iterator()
+{
+    rec_olink *c = NULL;
+    if (nextlink)
+	c = nextlink->clink;
+    if (c && c != (void *)-1) {
+	volent *prev = strbase(volent, c, handle);
+	prev->release();
+    }
+}
+
+volent *volent_iterator::operator()()
+{
+    rec_olink *o, *c = NULL;
+    volent *next = NULL;
+
+    if (nextlink)
+	c = nextlink->clink;
+
+    o = rec_ohashtab_iterator::operator()();
+    if (o) {
+	next = strbase(volent, o, handle);
+	next->hold();
+    }
+
+    if (c && c != (void *)-1) {
+	volent *prev = strbase(volent, c, handle);
+	prev->release();
+    }
+    return next;
+}
 
 repvol *repvol_iterator::operator()()
 {
-    rec_olink *o = rec_ohashtab_iterator::operator()();
-    if (!o) return(0);
-
-    repvol *v = strbase(repvol, o, handle);
-    return(v);
+    volent *v = volent_iterator::operator()();
+    if (!v) return(0);
+    assert(v->IsReplicated());
+    return (repvol *)v;
 }
 
 volrep *volrep_iterator::operator()()
 {
-    rec_olink *o = rec_ohashtab_iterator::operator()();
-    if (!o) return(0);
-
-    volrep *v = strbase(volrep, o, handle);
-    return(v);
+    volent *v = volent_iterator::operator()();
+    if (!v) return(0);
+    assert(!v->IsReplicated());
+    return (volrep *)v;
 }
 

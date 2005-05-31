@@ -171,11 +171,11 @@ class connent {
 #endif /* VENUSDEBUG */
     RPC2_Handle connid;		/* RPC connid. */
 
-    int	Suicide(int);		/* 1 --> dead, 0 --> dying */
+    void Suicide(void);
     int CheckResult(int, VolumeId, int TranslateEINCOMP = 1);
     void GetRef(void) { inuse++; }
     void PutRef(void) { CODA_ASSERT(inuse); inuse--; }
-    int HasRef(void) { return inuse; }
+    int RefCount(void) { return inuse; }
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
@@ -193,6 +193,7 @@ class conn_iterator : public olist_iterator {
 
   public:
     conn_iterator(struct ConnKey * =(struct ConnKey *)0);
+    ~conn_iterator();
     connent *operator()();
 };
 
