@@ -136,12 +136,15 @@ vrent *vrtab::ReverseFind(VolumeId rwvolnum, int *idx)
 
 void vrtab::clear() {
     ohashtab_iterator next(*this, (void *)-1);
-    vrent *vre;
+    vrent *vre = (vrent *)next();
 
-    while ((vre = (vrent *)next())) {
-	ohashtab::remove((void *)vre->volnum, vre);
-	namehtb.remove(vre->key, &(vre->namehtblink));
-	delete vre;
+    while (vre) {
+	vrent *dying = vre;
+	vre = (vrent *)next();
+
+	ohashtab::remove((void *)dying->volnum, dying);
+	namehtb.remove(dying->key, &(dying->namehtblink));
+	delete dying;
     }
 }
 
