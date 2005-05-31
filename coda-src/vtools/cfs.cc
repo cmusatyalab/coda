@@ -2663,7 +2663,7 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
 	    else {
 		printf("%d CML entries remaining for volume %s\n",cml_count,volname);
 		if (conflict)
-		    printf("Reintegrationf failed due to a conflict\n");
+		    printf("Reintegration failed due to a conflict\n");
 	    }
 	}
 	
