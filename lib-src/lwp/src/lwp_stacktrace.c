@@ -15,8 +15,16 @@ listed in the file CREDITS.
 
 #*/
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <sys/types.h>
 #include "lwp_stacktrace.h"
+
+#ifndef HAVE_REGISTER_T
+typedef int register_t;
+#endif
 
 void lwp_stacktrace(FILE *fp, void *top, stack_t *stack)
 {
@@ -34,7 +42,7 @@ void lwp_stacktrace(FILE *fp, void *top, stack_t *stack)
     esp = (register_t *)top;
     esp -= 2;
 
-    fprintf(fp, "Call Trace:\n [<????????>]");
+    fprintf(fp, "Call Trace:\n [<unknown>]");
     while (esp) {
 	ebp = *(esp++); /* LEAVE */
 	ip  = *(esp++); /* RET */
