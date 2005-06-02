@@ -40,7 +40,11 @@ Pittsburgh, PA.
 #ifndef _VLDB_H_
 #define _VLDB_H_ 1
 
+#ifdef HAVE_STDINT_H
 #include <stdint.h>
+#else
+typedef unsigned int uint32_t;
+#endif
 
 /* Note: this structure happens to be 64 bytes long which isn't real important.
  * But it seemed like a nice number, and the code currently does use a shift. */

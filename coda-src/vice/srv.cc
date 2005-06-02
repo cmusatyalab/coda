@@ -1222,7 +1222,8 @@ void SwapLog()
     
     /* Print out time/date, since date info has "scrolled off" */
     TM_GetTimeOfDay(&tp, 0);
-    SLog(0, "Coda Vice, version " PACKAGE_VERSION "\tlog started at %s", ctime(&tp.tv_sec));
+    SLog(0, "Coda Vice, version " PACKAGE_VERSION "\tlog started at %s",
+	 ctime((const time_t *)&tp.tv_sec));
 }
 
 static void FileMsg()

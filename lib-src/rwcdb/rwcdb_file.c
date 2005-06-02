@@ -33,6 +33,10 @@ Coda are listed in the file CREDITS.
 #include "rwcdb_pack.h"
 #include "rwcdb.h"
 
+#ifndef MAP_FAILED
+#define MAP_FAILED ((void *)-1)
+#endif
+
 /* To avoid using too much memory, as we already have RVM and such using up
  * gobs of address space, any databases larger than the following threshold
  * will not be mmapped. */

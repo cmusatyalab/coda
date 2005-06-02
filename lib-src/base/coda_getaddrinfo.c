@@ -69,16 +69,20 @@ Coda are listed in the file CREDITS.
 #endif /* !T_SRV */
 #endif /* !NS_INT32SZ */
 
+#ifdef PF_INET6
 #ifndef HAVE_STRUCT_IN6_ADDR
 struct in6_addr {
     u_int8_t u6_addr[16];
 };
+#endif
+#ifndef HAVE_STRUCT_SOCKADDR_IN6
 struct sockaddr_in6 {
     u_int16_t sin6_family;
     u_int16_t sin6_port;
     u_int32_t sin6_flowinfo;
     struct in6_addr sin6_addr;
 };
+#endif
 #endif
 
 #include "coda_getaddrinfo.h"
@@ -328,7 +332,10 @@ int coda_getaddrinfo(const char *node, const char *service,
     err = RPC2_EAI_NONAME;
     if (hints && (hints->ai_flags & CODA_AI_RES_SRV))
     {
-	char *end, tmp[sizeof(struct in6_addr)];
+#ifdef PF_INET6
+	char tmp[sizeof(struct in6_addr)];
+#endif
+	char *end;
 
 	/* We want to clear the CODA_AI_RES_SRV, but hints is const
 	 * so we make a copy */

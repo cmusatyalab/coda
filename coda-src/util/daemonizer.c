@@ -22,7 +22,9 @@ listed in the file CREDITS.
 
 #include <sys/time.h>
 #include <sys/types.h>
+#ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
+#endif
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
