@@ -84,8 +84,8 @@ class olist {
 
 class olist_iterator {
     olist *clist;	    // current olist
-    olink *clink;	    // current olink
   public:
+    olink *clink;	    // current olink
     olist_iterator(olist&);
     olink *operator()();    // return next object or 0
                             // Does NOT support safe deletion of currently
