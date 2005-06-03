@@ -25,12 +25,12 @@ BACKUPDIR=/backup
 DATE=`date +%d%b%Y`
 BACKUPLOG=/vice/backuplogs/backuplog.$DATE
 DUMPLOG=/vice/backuplogs/dumplog.$DATE
-ADDR=backuplogs@coda.cs.cmu.edu
+ADDR=root@localhost
 DUMPLIST=/vice/db/dumplist
 
 
 # send Henry and the robot the dumplist
-mail -s dumplist weblist@coda.cs.cmu.edu < $DUMPLIST
+mail -s dumplist $ADDR < $DUMPLIST
 
 # run backup
 backup -t 135 /vice/db/dumplist /backup > $BACKUPLOG 2>&1
