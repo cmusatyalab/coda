@@ -246,7 +246,6 @@ exit 0
 /usr/share/man/man5/vicetab.5.gz
 /usr/share/man/man5/volumelist.5.gz
 /usr/share/man/man5/vrdb.5.gz
-/usr/share/man/man5/servers.5.gz
 /usr/share/man/man8/auth2.8.gz
 /usr/share/man/man8/bldvldb.sh.8.gz
 /usr/share/man/man8/codasrv.8.gz
