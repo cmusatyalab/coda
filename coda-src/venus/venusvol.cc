@@ -284,12 +284,12 @@ int VOL_HashFN(const void *key)
     return volid->Realm + volid->Volume;
 }
 
-static int GetRootVolume(Realm *realm, char **buf)
+static void GetRootVolume(Realm *realm, char **buf)
 {
     connent *c = NULL;
     RPC2_BoundedBS RVN;
     char *rvn = NULL;
-    int code, ret = 0;
+    int code;
 
 
     /* Get the connection. */
@@ -297,7 +297,6 @@ static int GetRootVolume(Realm *realm, char **buf)
 	LOG(100, ("GetRootVolume: can't get admin connection for realm %s!\n",
 		  realm->Name()));
 	RPCOpStats.RPCOps[ViceGetRootVolume_OP].bad++;
-	ret = -1;
 	goto err_exit;
     }
 
@@ -332,7 +331,6 @@ err_exit:
 	free(rvn);
 
     *buf = strdup(realm->GetRootVolName());
-    return ret;
 }
 
 /* Allocate database from recoverable store. */
@@ -609,10 +607,7 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
      * root volume, try to get it from the servers */
     if (volname[0] == '\0' && realm != prealm) {
 	free(volname);
-	if (GetRootVolume(realm, &volname)) {
-	    code = ENOTCONN;
-	    goto error_exit;
-	}
+	GetRootVolume(realm, &volname);
     }
 
     /* Ivan Popov's suggestion, we just need to allow for long volume

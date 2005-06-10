@@ -149,10 +149,10 @@ void Realm::PutRef(void)
 /* MUST NOT be called from within a transaction */
 int Realm::GetAdmConn(connent **cpp)
 {
-    struct RPC2_addrinfo *p;
+    struct RPC2_addrinfo *p, *tmp;
     int code = 0;
-    int tryagain = 0;
     int unknown = !rootservers;
+    int resolve = unknown;
 
     LOG(100, ("GetAdmConn: \n"));
 
@@ -162,17 +162,20 @@ int Realm::GetAdmConn(connent **cpp)
     *cpp = 0;
 
 retry:
-    if (!rootservers)
-	GetRealmServers(name, "codasrv", &rootservers);
-    else {
+    if (resolve) {
+	resolve = 0;
+	GetRealmServers(name, "codasrv", &tmp);
+	if (!tmp)
+	    return ETIMEDOUT;
+	if (rootservers)
+	    RPC2_freeaddrinfo(rootservers);
+	rootservers = tmp;
+    } else {
 	coda_reorder_addrinfo(&rootservers);
 	/* our cached addresses might be stale, re-resolve if we can't reach
 	 * any of the servers */
-	tryagain = 1;
+	resolve = 1;
     }
-
-    if (!rootservers)
-	return ETIMEDOUT;
 
     /* Get a connection to any custodian. */
     for (p = rootservers; p; p = p->ai_next) {
@@ -187,7 +190,7 @@ retry:
 	PutServer(&s);
 	switch(code) {
 	case ERETRY:
-	    tryagain = 1;
+	    resolve = 1;
 	case ETIMEDOUT:
 	    continue;
 
@@ -220,12 +223,8 @@ retry:
 	    return code;
 	}
     }
-    if (tryagain) {
-	RPC2_freeaddrinfo(rootservers);
-	rootservers = NULL;
-	tryagain = 0;
+    if (resolve)
 	goto retry;
-    }
     return ETIMEDOUT;
 }
 
