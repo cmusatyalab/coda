@@ -32,7 +32,6 @@ extern "C" {
 }
 #endif
 
-#include <rvmlib.h>
 #include "realm.h"
 #include "realmdb.h"
 #include "comm.h"
@@ -78,8 +77,7 @@ Realm::~Realm(void)
     rec_list_del(&realms);
     if (rootservers) {
 	eprint("Removing realm '%s'", name);
-
-	RPC2_freeaddrinfo(rootservers);
+	PutRootServers(rootservers);
 	rootservers = NULL;
     }
     rvmlib_rec_free(name); 
@@ -101,6 +99,7 @@ Realm::~Realm(void)
 void Realm::ResetTransient(void)
 {
     rootservers = NULL;
+    generation = 0;
     refcount = 0;
     system_anyuser = new userent(Id(), ANYUSER_UID);
 
@@ -145,53 +144,98 @@ void Realm::PutRef(void)
 #endif
 }
 
+void Realm::GetRootServers(void)
+{
+    struct RPC2_addrinfo *p;
+    struct sockaddr_in *sin;
+    srvent *s;
+
+    rootservers = NULL;
+    GetRealmServers(name, "codasrv", &rootservers);
+
+    /* grab an extra reference count on all root servers */
+    for (p = rootservers; p; p = p->ai_next) {
+	if (p->ai_family != PF_INET)
+	    continue;
+
+	sin = (struct sockaddr_in *)p->ai_addr;
+	s = ::GetServer(&sin->sin_addr, Id());
+	s->GetRef();
+	PutServer(&s);
+    }
+}
+
+void Realm::PutRootServers(RPC2_addrinfo *oldservers)
+{
+    struct RPC2_addrinfo *p;
+    struct sockaddr_in *sin;
+    srvent *s;
+
+    /* drop the reference count on the old root servers */
+    for (p = oldservers; p; p = p->ai_next) {
+	if (p->ai_family != PF_INET)
+	    continue;
+
+	sin = (struct sockaddr_in *)p->ai_addr;
+	s = ::GetServer(&sin->sin_addr, Id());
+	s->PutRef();
+	PutServer(&s);
+    }
+    RPC2_freeaddrinfo(oldservers);
+}
+
 /* Get a connection to any server (as root). */
 /* MUST NOT be called from within a transaction */
 int Realm::GetAdmConn(connent **cpp)
 {
-    struct RPC2_addrinfo *p, *tmp;
-    int code = 0;
-    int unknown = !rootservers;
-    int resolve = unknown;
+    struct RPC2_addrinfo *p, *oldservers = NULL;
+    struct sockaddr_in *sin;
+    srvent *s;
+    int code = 0, unknown, resolve, oldgen;
 
-    LOG(100, ("GetAdmConn: \n"));
+    LOG(100, ("GetAdmConn: %s\n", name));
 
     if (STREQ(name, LOCALREALM))
 	return ETIMEDOUT;
 
     *cpp = 0;
 
+    unknown = resolve = !rootservers;
 retry:
     if (resolve) {
+	oldservers = rootservers;
+	GetRootServers();
+	PutRootServers(oldservers);
 	resolve = 0;
-	GetRealmServers(name, "codasrv", &tmp);
-	if (!tmp)
-	    return ETIMEDOUT;
-	if (rootservers)
-	    RPC2_freeaddrinfo(rootservers);
-	rootservers = tmp;
+	generation++;
     } else {
 	coda_reorder_addrinfo(&rootservers);
-	/* our cached addresses might be stale, re-resolve if we can't reach
-	 * any of the servers */
+	/* our cached addresses might be stale, re-resolve if we end up not
+	 * reaching any of the servers */
 	resolve = 1;
     }
 
     /* Get a connection to any custodian. */
+interrupted:
+    oldgen = generation;
     for (p = rootservers; p; p = p->ai_next) {
-	struct sockaddr_in *sin;
-	srvent *s;
+	if (p->ai_family != PF_INET)
+	    continue;
 
-	CODA_ASSERT(p->ai_family == PF_INET);
 	sin = (struct sockaddr_in *)p->ai_addr;
 
 	s = ::GetServer(&sin->sin_addr, Id());
 	code = s->GetConn(cpp, ANYUSER_UID);
 	PutServer(&s);
+
 	switch(code) {
 	case ERETRY:
 	    resolve = 1;
 	case ETIMEDOUT:
+	    /* we yielded and someone else might have re-resolved the
+	     * list of servers */
+	    if (oldgen != generation)
+		goto interrupted;
 	    continue;
 
 	case 0:
@@ -215,17 +259,21 @@ retry:
 		    Recov_EndTrans(MAXFP);
 		}
 	    }
-	    return code;
+	    goto exit_done;
 
 	default:
 	    if (code < 0)
 		eprint("GetAdmConn: bogus code (%d)", code);
-	    return code;
+	    goto exit_done;
 	}
     }
     if (resolve)
 	goto retry;
-    return ETIMEDOUT;
+
+    code = ETIMEDOUT;
+
+exit_done:
+    return code;
 }
 
 

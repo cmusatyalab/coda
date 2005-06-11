@@ -60,6 +60,9 @@ public:
     void SetRootVolName(char *name);
     const char *GetRootVolName(void) { return rootvolname; }
 
+    void GetRootServers(void);
+    void PutRootServers(RPC2_addrinfo *oldservers);
+
     /* MUST NOT be called from within a transaction */
     int GetAdmConn(connent **cpp); /*N*/
 
@@ -76,6 +79,7 @@ private:
 
 /*T*/unsigned int refcount;
 /*T*/struct RPC2_addrinfo *rootservers;
+/*T*/int generation;
 /*T*/userent *system_anyuser;
 };
 
