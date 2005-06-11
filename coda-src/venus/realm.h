@@ -60,8 +60,7 @@ public:
     void SetRootVolName(char *name);
     const char *GetRootVolName(void) { return rootvolname; }
 
-    void GetRootServers(void);
-    void PutRootServers(RPC2_addrinfo *oldservers);
+    void ReplaceRootServers(struct RPC2_addrinfo *newsrvs = NULL);
 
     /* MUST NOT be called from within a transaction */
     int GetAdmConn(connent **cpp); /*N*/

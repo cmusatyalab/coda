@@ -77,8 +77,7 @@ Realm::~Realm(void)
     rec_list_del(&realms);
     if (rootservers) {
 	eprint("Removing realm '%s'", name);
-	PutRootServers(rootservers);
-	rootservers = NULL;
+	ReplaceRootServers();
     }
     rvmlib_rec_free(name); 
     rvmlib_rec_free(rootvolname); 
@@ -99,7 +98,6 @@ Realm::~Realm(void)
 void Realm::ResetTransient(void)
 {
     rootservers = NULL;
-    generation = 0;
     refcount = 0;
     system_anyuser = new userent(Id(), ANYUSER_UID);
 
@@ -144,17 +142,14 @@ void Realm::PutRef(void)
 #endif
 }
 
-void Realm::GetRootServers(void)
+void Realm::ReplaceRootServers(struct RPC2_addrinfo *newsrvs)
 {
-    struct RPC2_addrinfo *p;
+    struct RPC2_addrinfo *p, *oldsrvs;
     struct sockaddr_in *sin;
     srvent *s;
 
-    rootservers = NULL;
-    GetRealmServers(name, "codasrv", &rootservers);
-
-    /* grab an extra reference count on all root servers */
-    for (p = rootservers; p; p = p->ai_next) {
+    /* grab an extra reference count to pin down the new servers */
+    for (p = newsrvs; p; p = p->ai_next) {
 	if (p->ai_family != PF_INET)
 	    continue;
 
@@ -163,16 +158,12 @@ void Realm::GetRootServers(void)
 	s->GetRef();
 	PutServer(&s);
     }
-}
 
-void Realm::PutRootServers(RPC2_addrinfo *oldservers)
-{
-    struct RPC2_addrinfo *p;
-    struct sockaddr_in *sin;
-    srvent *s;
+    oldsrvs = rootservers;
+    rootservers = newsrvs;
 
     /* drop the reference count on the old root servers */
-    for (p = oldservers; p; p = p->ai_next) {
+    for (p = oldsrvs; p; p = p->ai_next) {
 	if (p->ai_family != PF_INET)
 	    continue;
 
@@ -181,14 +172,14 @@ void Realm::PutRootServers(RPC2_addrinfo *oldservers)
 	s->PutRef();
 	PutServer(&s);
     }
-    RPC2_freeaddrinfo(oldservers);
+    RPC2_freeaddrinfo(oldsrvs);
 }
 
 /* Get a connection to any server (as root). */
 /* MUST NOT be called from within a transaction */
 int Realm::GetAdmConn(connent **cpp)
 {
-    struct RPC2_addrinfo *p, *oldservers = NULL;
+    struct RPC2_addrinfo *p, *tmp = NULL;
     struct sockaddr_in *sin;
     srvent *s;
     int code = 0, unknown, resolve, oldgen;
@@ -203,22 +194,21 @@ int Realm::GetAdmConn(connent **cpp)
     unknown = resolve = !rootservers;
 retry:
     if (resolve) {
-	oldservers = rootservers;
-	GetRootServers();
-	PutRootServers(oldservers);
+	struct RPC2_addrinfo *newsrvs = NULL;
+	GetRealmServers(name, "codasrv", &newsrvs);
+	ReplaceRootServers(newsrvs);
 	resolve = 0;
-	generation++;
     } else {
 	coda_reorder_addrinfo(&rootservers);
 	/* our cached addresses might be stale, re-resolve if we end up not
 	 * reaching any of the servers */
 	resolve = 1;
     }
+    tmp = RPC2_copyaddrinfo(rootservers);
 
     /* Get a connection to any custodian. */
 interrupted:
-    oldgen = generation;
-    for (p = rootservers; p; p = p->ai_next) {
+    for (p = tmp; p; p = p->ai_next) {
 	if (p->ai_family != PF_INET)
 	    continue;
 
@@ -232,10 +222,6 @@ interrupted:
 	case ERETRY:
 	    resolve = 1;
 	case ETIMEDOUT:
-	    /* we yielded and someone else might have re-resolved the
-	     * list of servers */
-	    if (oldgen != generation)
-		goto interrupted;
 	    continue;
 
 	case 0:
@@ -273,6 +259,8 @@ interrupted:
     code = ETIMEDOUT;
 
 exit_done:
+    if (tmp)
+	RPC2_freeaddrinfo(tmp);
     return code;
 }
 
