@@ -121,7 +121,7 @@ void GetRealmServers(const char *name, const char *service,
     int namelen, found = 0;
 
     if (!name || name[0] == '\0')
-	CODACONF_STR(name, "realm", "DEFAULT");
+	CODACONF_STR(name, "realm", "localhost");
 
     if (!name || name[0] == '\0' || name[0] == '.' ||
 	strcmp(name, "localhost") == 0) /* is not a globally accessible realm */
