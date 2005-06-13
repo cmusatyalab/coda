@@ -182,7 +182,7 @@ int Realm::GetAdmConn(connent **cpp)
     struct RPC2_addrinfo *p, *tmp = NULL;
     struct sockaddr_in *sin;
     srvent *s;
-    int code = 0, unknown, resolve, oldgen;
+    int code = 0, unknown, resolve;
 
     LOG(100, ("GetAdmConn: %s\n", name));
 
@@ -207,7 +207,6 @@ retry:
     tmp = RPC2_copyaddrinfo(rootservers);
 
     /* Get a connection to any custodian. */
-interrupted:
     for (p = tmp; p; p = p->ai_next) {
 	if (p->ai_family != PF_INET)
 	    continue;
