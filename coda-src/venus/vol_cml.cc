@@ -2073,7 +2073,10 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 	    code != ERETRY && code != EWOULDBLOCK && code != ETIMEDOUT) 
 	    MarkFailedMLE((int) Index);
 	
-	if (code != 0) goto Exit;
+	if (code != 0) {
+	    PutConn(&c);
+	    goto Exit;
+	}
 
 	bufsize += sed.Value.SmartFTPD.BytesTransferred;
 	LOG(10, ("ViceReintegrate: transferred %d bytes\n",

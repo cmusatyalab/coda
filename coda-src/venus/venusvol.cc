@@ -291,7 +291,6 @@ static void GetRootVolume(Realm *realm, char **buf)
     char *rvn = NULL;
     int code;
 
-
     /* Get the connection. */
     if (realm->GetAdmConn(&c) != 0) {
 	LOG(100, ("GetRootVolume: can't get admin connection for realm %s!\n",
@@ -318,8 +317,6 @@ static void GetRootVolume(Realm *realm, char **buf)
     code = c->CheckResult(code, 0);
     UNI_RECORD_STATS(ViceGetRootVolume_OP);
 
-    PutConn(&c);
-
     if (!code) {
 	realm->SetRootVolName(rvn);
 	LOG(10, ("GetRootVolume: (%s) received name: %s, code: %d\n",
@@ -329,6 +326,7 @@ static void GetRootVolume(Realm *realm, char **buf)
 err_exit:
     if (rvn)
 	free(rvn);
+    PutConn(&c);
 
     *buf = strdup(realm->GetRootVolName());
 }
