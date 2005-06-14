@@ -1174,26 +1174,19 @@ int fsobj::GetACL(RPC2_BoundedBS *acl, uid_t uid)
 {
     LOG(10, ("fsobj::GetACL: (%s), uid = %d\n", GetComp(), uid));
 
-    if (!HOARDING(this) && !LOGGING(this)) {
-	FSO_ASSERT(this, EMULATING(this));
-
-	/* We don't cache ACLs! */
-	return(ETIMEDOUT);
-    }
-
     if (IsFake() || IsLocalObj()) {
 	/* Just read/lookup rights for System:AnyUser */
 	const char *fakeacl = "1\n0\nSystem:AnyUser\t9\n";
 	acl->SeqLen = strlen(fakeacl) + 1;
 	memcpy(acl->SeqBody, fakeacl, acl->SeqLen);
-	return(0);
+	return 0;
     }
 
     /* check if the object is FETCHABLE first! */
-    if (FETCHABLE(this))
-	return(GetAttr(uid, acl));
-    else 
-	return(ETIMEDOUT);
+    if (!FETCHABLE(this))
+	return ETIMEDOUT;
+
+    return GetAttr(uid, acl);
 }
 
 
