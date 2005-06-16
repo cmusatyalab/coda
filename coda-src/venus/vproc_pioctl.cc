@@ -52,7 +52,6 @@ extern "C" {
 
 /* from vicedep */
 #include <venusioctl.h>
-#include <writeback.h>
 /* from venus */
 #include "comm.h"
 #include "fso.h"

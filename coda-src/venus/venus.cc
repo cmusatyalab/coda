@@ -54,7 +54,6 @@ extern "C" {
 #include "user.h"
 #include "venus.private.h"
 #include "venuscb.h"
-#include "venuswb.h"
 #include "venusrecov.h"
 #include "venusvol.h"
 #include "vproc.h"
@@ -198,7 +197,6 @@ int main(int argc, char **argv)
     MarinerInit();  /* set up mariner socket */
     WorkerInit();   /* open kernel device */
     CallBackInit(); /* set up callback subsystem and create callback server threads */
-    WritebackInit(); /* set up writeback subsystem */
     AdviceInit();   /* set up AdSrv and start the advice daemon */
     LRInit();	    /* set up local-repair database */
 

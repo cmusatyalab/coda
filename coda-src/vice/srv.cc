@@ -955,10 +955,6 @@ void PrintCounters(FILE *fp)
     SLog(0, "GetVolVS %d", Counters[GETVOLVS]);
     SLog(0, "ValidateVols %d", Counters[VALIDATEVOLS]);
 
-    SLog(0, "GetWBPermit %d", Counters[ViceGetWBPermit_OP]); 
-    SLog(0, "TossWBPermit %d", Counters[ViceTossWBPermit_OP]); 
-    SLog(0, "RejectWBPermit %d", Counters[ViceRejectWBPermit_OP]); 
-
     SLog(0, "GetAttrPlusSHA %d", Counters[GETATTRPLUSSHA]); 
     SLog(0, "ValidateAttrsPlusSHA %d", Counters[VALIDATEATTRSPLUSSHA]); 
 

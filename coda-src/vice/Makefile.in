@@ -63,8 +63,7 @@ objects=srvproc.o	\
 	clientproc.o	\
 	vicecb.o	\
 	smon.o		\
-	ViceErrorMsg.o	\
-	writeback.o
+	ViceErrorMsg.o
 
 codasrv: ${objects} srv.o ${DEPLIBS}
 	$(CXX) $(LDFLAGS) srv.o ${objects} ${SRVLIBS} -o codasrv

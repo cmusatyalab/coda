@@ -465,7 +465,6 @@ void vproc::GetStamp(char *buf) {
 	case VPT_Worker:	t = 'W'; break;
 	case VPT_Mariner:	t = 'M'; break;
 	case VPT_CallBack:	t = 'C'; break;
-        case VPT_WriteBack:     t = 'w'; break;
 	case VPT_HDBDaemon:	t = 'H'; break;
 	case VPT_Reintegrator:	t = 'I'; break;
 	case VPT_Resolver:	t = 'R'; break;

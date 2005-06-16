@@ -57,7 +57,6 @@ extern "C" {
 #include <vice.h>
 #include <venusioctl.h>
 #include <prs.h>
-#include <writeback.h>
 #include <codaconf.h>
 #include <inconsist.h>
 #include <coda_config.h>

@@ -51,7 +51,7 @@ INCLFLAGS = -I. -I$(srcdir)
 # vcrcommon is special, as it only generates a header file and the link rule
 # for libvicedep would complain about vcrcommon.xxx.o not being available. 
 RP2FILES = adv_skk.rpc2 callback.rpc2 cml.rpc2 res.rpc2 mond.rpc2 \
-	   vice.rpc2 voldump.rpc2 volutil.rpc2 writeback.rpc2 venus_adv.rpc2
+	   vice.rpc2 voldump.rpc2 volutil.rpc2 venus_adv.rpc2
 
 RP2CLOBJ = $(notdir ${RP2FILES:.rpc2=.client.o})
 RP2SROBJ = $(notdir ${RP2FILES:.rpc2=.server.o})

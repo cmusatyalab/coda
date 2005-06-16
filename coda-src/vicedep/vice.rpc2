@@ -147,7 +147,7 @@ typedef RPC2_Struct
 	RPC2_Integer	BlocksInUse;
 	RPC2_Integer	PartBlocksAvail;
 	RPC2_Integer	PartMaxBlocks;
-	RPC2_Integer	WriteBackHolder;
+	RPC2_Integer	Unused;
 }	VolumeStatus;
 
 typedef RPC2_Struct
@@ -493,14 +493,11 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		     IN RPC2_CountedBS PiggyCOP2,
 		     IN OUT SE_Descriptor BD);
 
-60: ViceGetWBPermit (IN VolumeId Vid,
-		     IN ViceFid Fid,
-		     OUT RPC2_Integer Permit);
+/* 60: ViceGetWBPermit (IN VolumeId Vid, IN ViceFid Fid, OUT RPC2_Integer Permit); */
 
-61: ViceTossWBPermit (IN VolumeId Vid,
-		      IN ViceFid Fid);
+/* 61: ViceTossWBPermit (IN VolumeId Vid, IN ViceFid Fid); */
 
-62: ViceRejectWBPermit (IN VolumeId Vid);
+/* 62: ViceRejectWBPermit (IN VolumeId Vid); */
 
 
 /* ViceGetAttrPlusSHA() should completely replace ViceGetAttr().

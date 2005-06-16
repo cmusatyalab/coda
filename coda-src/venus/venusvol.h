@@ -489,7 +489,6 @@ class vdb {
     /* Daemon functions. */
     void GetDown();
     void FlushCOP2();
-    void WriteBack();
     void CheckPoint(unsigned long);
     void CheckReintegratePending();
     void CheckLocalSubtree();

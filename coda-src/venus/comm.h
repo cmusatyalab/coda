@@ -221,7 +221,6 @@ class srvent : private RefCountedObject {
   friend long VENUS_CallBackFetch(RPC2_Handle, ViceFid *, SE_Descriptor *);
   friend long VENUS_CallBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
   friend long VENUS_RevokeWBPermit(RPC2_Handle RPCid, VolumeId Vid);
-  friend long WriteBackConnect(RPC2_Handle, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_Integer, RPC2_CountedBS *);
   friend int FailDisconnect(int, struct in_addr *);
   friend int FailReconnect(int, struct in_addr *);
   friend int FailSlow(unsigned *);

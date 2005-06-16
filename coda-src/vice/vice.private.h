@@ -25,7 +25,6 @@ extern void CLIENT_GetWorkStats(int *, int *, unsigned int);
 extern void CLIENT_PrintClients();
 extern void CLIENT_CallBackCheck();
 int CLIENT_MakeCallBackConn(ClientEntry *Client);
-int CLIENT_MakeWriteBackConn(HostTable * VenusId);
 
 char *ViceErrorMsg(int errorCode);
 
@@ -38,6 +37,4 @@ extern void BreakCallBack(HostTable *, ViceFid *);
 extern void DeleteVenus (HostTable *);
 extern void DeleteFile (ViceFid *);
 extern int InitCallBack ();
-extern int CheckWriteBack(ViceFid * Fid);
 
-extern int NoWritebackConn;
