@@ -461,7 +461,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name,
 
     int code = 0;
     *target_fso_addr = 0;
-    int	traverse_mtpts = flags & CLU_TRAVERSE_MTPT;	/* ? -JJK */
+    int	traverse_mtpts = flags & CLU_TRAVERSE_MTPT;
     Realm *realm = NULL;
 
     fsobj *target_fso = 0;
@@ -470,11 +470,11 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name,
     /* Map name --> fid. */
     {
 	/* Verify that we have lookup permission. */
+	/* Access will never return EINCONS here as we are a directory and
+	 * will not recurse up to our parent. */
 	code = Access((long)PRSFS_LOOKUP, 0, uid);
-	if (code) {
-	    if (code == EINCONS && inc_fid != 0) *inc_fid = fid;
+	if (code)
 	    return(code);
-	}
 
 	/* Lookup the target object. */
 	{
