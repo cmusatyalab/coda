@@ -72,16 +72,11 @@ extern "C" {
 
 /* Call with object write-locked. */
 /* MUST NOT be called from within a transaction. */
-int fsobj::Open(int writep, int truncp, venus_cnode *cp, uid_t uid) 
+int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid) 
 {
     LOG(10, ("fsobj::Open: (%s, %d, %d), uid = %d\n",
 	      GetComp(), writep, truncp, uid));
 
-    if (cp) {
-	    cp->c_device = 0;
-	    cp->c_inode = 0;
-	    cp->c_cfname[0] = '\0';
-    }
     int code = 0;
 
     if (IsSymLink())
@@ -173,14 +168,8 @@ int fsobj::Open(int writep, int truncp, venus_cnode *cp, uid_t uid)
 	}
     }
 
-    /* <device, inode> handle is OUT parameter. */
-    if (cp) {
-            CacheFile *container = IsDir() ? data.dir->udcf : data.file;
-
-	    cp->c_device = FSDB->device;
-	    cp->c_inode = container->Inode();
-	    strncpy(cp->c_cfname, container->Name(), CNODE_CFNAME_LEN-1);
-    }
+    if (cp)
+	cp->c_cf = IsDir() ? data.dir->udcf : data.file;
 
 Exit:
     if (code != 0) {

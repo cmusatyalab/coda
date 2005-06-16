@@ -166,8 +166,8 @@ FreeLocks:
 
 /* ***** Vnode Operations  ***** */
 
-void vproc::open(struct venus_cnode *cp, int flags) {
-
+void vproc::open(struct venus_cnode *cp, int flags)
+{
     LOG(1, ("vproc::open: fid = %s , flags = %x\n", 
 	    FID_(&cp->c_fid), flags));
 
@@ -724,8 +724,6 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 	/* Set OUT parameters. */
 	target_fso->GetVattr(vap);
 	MAKE_CNODE2(*cp, target_fso->fid, C_VREG);
-	cp->c_device = FSDB->device;
-	cp->c_inode = target_fso->data.file->Inode();
 
 FreeLocks:
 	FSDB->Put(&parent_fso);

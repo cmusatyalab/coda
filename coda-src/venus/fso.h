@@ -187,10 +187,6 @@ class fsdb {
     /*T*/char matriculation_sync;
     /*T*/int matriculation_count;
 
-    /* Device handle for opening files by <dev,ino> rather than name. */
-     int damnit;
-    /*T*/dev_t device;
-
     /* Constructors, destructors. */
     void *operator new(size_t);
     void operator delete(void *, size_t);
@@ -277,7 +273,6 @@ class CacheFile {
     long length;
     long validdata; /* amount of successfully fetched data */
     int  refcnt;
-    ino_t inode;				/* for iopen() */
     char name[CACHEFILENAMELEN];		/* "xx/xx/xx/xx" */
     int numopens;
 
@@ -296,7 +291,7 @@ class CacheFile {
     void Validate();
     void Reset();
     int  Copy(CacheFile *destination);
-    int  Copy(char *destname, ino_t *ino = NULL, int recovering = 0);
+    int  Copy(char *destname, int recovering = 0);
 
     void IncRef() { refcnt++; } /* creation already does an implicit incref */
     int  DecRef();             /* returns refcnt, unlinks if refcnt becomes 0 */
@@ -307,7 +302,6 @@ class CacheFile {
     void SetValidData(long);
 
     char *Name()         { return(name); }
-    ino_t Inode()        { return(inode); }
     long Length()        { return(length); }
     long ValidData(void) { return(validdata); }
     int  IsPartial(void) { return(length != validdata); }

@@ -57,7 +57,6 @@ CacheFile::CacheFile(int i)
     /* RVMLIB_REC_OBJECT(*this); */
     sprintf(name, "%02X/%02X/%02X/%02X",
 	    (i>>24) & 0xff, (i>>16) & 0xff, (i>>8) & 0xff, i & 0xff);
-    inode = (ino_t)-1;
     length = validdata = 0;
     refcnt = 1;
     numopens = 0;
@@ -68,7 +67,7 @@ CacheFile::CacheFile(int i)
 
 CacheFile::CacheFile()
 {
-    CODA_ASSERT(inode == (ino_t)-1 || length == 0);
+    CODA_ASSERT(length == 0);
     refcnt = 1;
     numopens = 0;
 }
@@ -77,7 +76,7 @@ CacheFile::CacheFile()
 CacheFile::~CacheFile()
 {
     LOG(10, ("CacheFile::~CacheFile: %s (this=0x%x)\n", name, this));
-    CODA_ASSERT(inode == (ino_t)-1 || length == 0);
+    CODA_ASSERT(length == 0);
 }
 
 
@@ -92,7 +91,7 @@ void CacheFile::Validate()
 /* MUST NOT be called from within transaction! */
 void CacheFile::Reset()
 {
-    if (inode != (ino_t)-1 && length != 0) {
+    if (access(name, F_OK) == 0 && length != 0) {
         Recov_BeginTrans();
 	Truncate(0);
 	Recov_EndTrans(MAXFP);
@@ -101,31 +100,27 @@ void CacheFile::Reset()
 
 int CacheFile::ValidContainer()
 {
-    int code = 0;
     struct stat tstat;
+    int rc;
     
-    if (inode == (ino_t)-1)
-        return 0;
-    int valid = (code = ::stat(name, &tstat)) == 0 &&
+    rc = ::stat(name, &tstat);
+    if (rc) return 0;
+
+    int valid =
 #if !defined(DJGPP) && !defined(__CYGWIN32__)
       tstat.st_uid == (uid_t)V_UID &&
       tstat.st_gid == (gid_t)V_GID &&
       (tstat.st_mode & ~S_IFMT) == V_MODE &&
-      tstat.st_ino == inode &&
 #endif
       tstat.st_size == (off_t)length;
 
     if (!valid && LogLevel >= 0) {
 	dprint("CacheFile::ValidContainer: %s invalid\n", name);
-	if (code == 0)
-	    dprint("\t(%u, %u), (%u, %u), (%o, %o), (%d, %d), (%d, %d)\n",
-		   tstat.st_uid, (uid_t)V_UID, tstat.st_gid, (gid_t)V_GID,
-		   (tstat.st_mode & ~S_IFMT), V_MODE,
-		   tstat.st_ino, inode, tstat.st_size, length);
-	else
-	    dprint("\tstat failed (%d)\n", errno);
+	dprint("\t(%u, %u), (%u, %u), (%o, %o), (%d, %d)\n",
+	       tstat.st_uid, (uid_t)V_UID, tstat.st_gid, (gid_t)V_GID,
+	       (tstat.st_mode & ~S_IFMT), V_MODE,
+	       tstat.st_size, length);
     }
-
     return(valid);
 }
 
@@ -158,7 +153,6 @@ void CacheFile::Create(int newlength)
     if (::close(tfd) < 0)
 	CHOKE("CacheFile::ResetContainer: close failed (%d)", errno);
 
-    inode = tstat.st_ino;
     validdata = 0;
     length = newlength;
     refcnt = 1;
@@ -171,21 +165,17 @@ void CacheFile::Create(int newlength)
  */
 int CacheFile::Copy(CacheFile *destination)
 {
-    ino_t ino;
+    Copy(destination->name);
 
-    Copy(destination->name, &ino);
-
-    destination->inode  = ino;
     destination->length = length;
     destination->validdata = validdata;
-
     return 0;
 }
 
-int CacheFile::Copy(char *destname, ino_t *ino, int recovering)
+int CacheFile::Copy(char *destname, int recovering)
 {
-    LOG(10, ("CacheFile::Copy: from %s, %d, %d/%d, to %s\n",
-	     name, inode, validdata, length, destname));
+    LOG(10, ("CacheFile::Copy: from %s, %d/%d, to %s\n",
+	     name, validdata, length, destname));
 
     int tfd, ffd;
     struct stat tstat;
@@ -218,17 +208,15 @@ int CacheFile::Copy(char *destname, ino_t *ino, int recovering)
 	::close(tfd);
 	return -1;
     }
+    if (::close(ffd) < 0)
+	CHOKE("CacheFile::Copy: source close failed (%d)\n", errno);
 
     if (::fstat(tfd, &tstat) < 0)
 	CHOKE("CacheFile::Copy: fstat failed (%d)\n", errno);
     if (::close(tfd) < 0)
 	CHOKE("CacheFile::Copy: close failed (%d)\n", errno);
-    if (::close(ffd) < 0)
-	CHOKE("CacheFile::Copy: source close failed (%d)\n", errno);
     
     CODA_ASSERT(recovering || (off_t)length == tstat.st_size);
-    if (ino)
-        *ino = tstat.st_ino;
 
     return 0;
 }
@@ -249,20 +237,13 @@ int CacheFile::DecRef()
 /* N.B. length member is NOT updated as side-effect! */
 void CacheFile::Stat(struct stat *tstat)
 {
-    CODA_ASSERT(inode != (ino_t)-1);
-
     CODA_ASSERT(::stat(name, tstat) == 0);
-#if ! defined(DJGPP) && ! defined(__CYGWIN32__)
-    CODA_ASSERT(tstat->st_ino == inode);
-#endif
 }
 
 
 /* MUST be called from within transaction! */
 void CacheFile::Truncate(long newlen)
 {
-    CODA_ASSERT(inode != (ino_t)-1);
-
     if (length != newlen) {
 	RVMLIB_REC_OBJECT(*this);
 	length = validdata = newlen;
@@ -283,8 +264,6 @@ void CacheFile::Truncate(long newlen)
 /* MUST be called from within transaction! */
 void CacheFile::SetLength(long newlen)
 {
-    CODA_ASSERT(inode != (ino_t)-1);
-
     LOG(0, ("Cachefile::SetLength %d\n", newlen));
 
     if (length != newlen) {
@@ -296,8 +275,6 @@ void CacheFile::SetLength(long newlen)
 /* MUST be called from within transaction! */
 void CacheFile::SetValidData(long newoffset)
 {
-    CODA_ASSERT(inode != (ino_t)-1);
-
     LOG(0, ("Cachefile::SetValidData %d\n", newoffset));
 
     if (validdata != newoffset) {
@@ -308,14 +285,12 @@ void CacheFile::SetValidData(long newoffset)
 
 void CacheFile::print(int fdes)
 {
-    fdprint(fdes, "[ %s, %d, %d/%d ]\n", name, inode, validdata, length);
+    fdprint(fdes, "[ %s, %d/%d ]\n", name, validdata, length);
 }
 
 int CacheFile::Open(int flags)
 {
-    int fd;
-
-    fd = ::open(name, flags|O_BINARY, V_MODE);
+    int fd = ::open(name, flags | O_BINARY, V_MODE);
 
     CODA_ASSERT (fd != -1);
     numopens++;
@@ -325,14 +300,8 @@ int CacheFile::Open(int flags)
 
 int CacheFile::Close(int fd)
 {
-    int ret;
-
-    if (fd == -1)
-        return 0;
-
-    ret = ::close(fd);
+    CODA_ASSERT(fd != -1 && numopens);
     numopens--;
-
-    return ret;
+    return ::close(fd);
 }
 

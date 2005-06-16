@@ -423,10 +423,6 @@ void fsdb::ResetTransient() {
      * It's used only for LWP_Wait and LWP_Signal. 
      */
     matriculation_count = 0;
-
-    struct stat tstat;
-    if (::stat(".", &tstat) < 0) CHOKE("fsdb::ResetTransient: cachedir stat");
-    device = tstat.st_dev;
 }
 
 
@@ -1529,8 +1525,8 @@ void fsdb::print(int fd, int SummaryOnly) {
     PrintCacheStats("File ATTR:     ", &FileAttrStats, fd);
     PrintCacheStats("File DATA:     ", &FileDataStats, fd);
     fdprint(fd, "VolumeLevelMisses = %d\n", VolumeLevelMiss);
-    fdprint(fd, "recomputes = %d, reorders = %d, matr count = %d, device = %d\n",
-	     Recomputes, Reorders, matriculation_count, device);
+    fdprint(fd, "recomputes = %d, reorders = %d, matr count = %d\n",
+	     Recomputes, Reorders, matriculation_count);
 
     if (!SummaryOnly) {
 	fso_iterator next(NL);

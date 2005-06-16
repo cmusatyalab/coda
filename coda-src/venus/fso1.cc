@@ -456,7 +456,7 @@ void fsobj::Recover()
 		snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,GetComp(),idx++);
 	    } while (::access(spoolfile, F_OK) == 0 || errno != ENOENT); 
 
-	    data.file->Copy(spoolfile, NULL, 1);
+	    data.file->Copy(spoolfile, 1);
 	    eprint("\t(lost file data backed up to %s)", spoolfile);
 	}
 	Recov_BeginTrans();

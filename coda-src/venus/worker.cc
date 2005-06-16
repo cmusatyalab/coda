@@ -1334,10 +1334,11 @@ void worker::main(void)
 		open(&vtarget, in->coda_open.flags);
 		
 		if (u.u_error == 0) {
+		    struct stat tstat;
 		    MarinerReport(&vtarget.c_fid, u.u_uid);
-
-		    out->coda_open.dev = vtarget.c_device;
-		    out->coda_open.inode = vtarget.c_inode;
+		    vtarget.c_cf->Stat(&tstat);
+		    out->coda_open.dev = tstat.st_dev;
+		    out->coda_open.inode = tstat.st_ino;
 		    size = sizeof (struct coda_open_out);
 		}
 		break;
@@ -1357,10 +1358,9 @@ void worker::main(void)
 		if (u.u_error == 0) {
 		    int flags = (in->coda_open_by_fd.flags & C_O_WRITE) ?
 			O_RDWR : O_RDONLY;
-		    flags |= O_BINARY;
 
 		    MarinerReport(&vtarget.c_fid, u.u_uid);
-		    openfd = ::open(vtarget.c_cfname, flags, V_MODE);
+		    openfd = vtarget.c_cf->Open(flags);
 		    out->coda_open_by_fd.fd = openfd;
                     LOG(10, ("CODA_OPEN_BY_FD: fd = %d\n", openfd));
 		    size = sizeof (struct coda_open_by_fd_out);
@@ -1388,7 +1388,7 @@ void worker::main(void)
                     char *begin = (char *)(&out->coda_open_by_path.path + 1);
                     out->coda_open_by_path.path = begin - (char *)out;
                     sprintf(begin, "%s%s/%s", CachePrefix, CacheDir, 
-                            vtarget.c_cfname);
+                            vtarget.c_cf->Name());
 #if defined(DJGPP) || defined(__CYGWIN32__)
                     slash = begin;
                     for (slash = begin ; *slash ; slash++ ) {
@@ -1519,7 +1519,7 @@ void worker::main(void)
         Resign(msg, size);
 
         if (opcode == CODA_OPEN_BY_FD && openfd != -1)
-            ::close(openfd);
+	    vtarget.c_cf->Close(openfd);
 
         if (opcode == CODA_OPEN ||
             opcode == CODA_OPEN_BY_FD ||

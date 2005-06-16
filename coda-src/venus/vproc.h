@@ -314,14 +314,12 @@ extern long FidToNodeid(VenusFid *);
    inputbuffer, which is the same pointer as the output buffer.
 */
 
-#define CNODE_CFNAME_LEN 128
+class CacheFile;
 
 struct venus_cnode {
-	u_short	    c_flags;	/* flags (see below) */
-	VenusFid	    c_fid;	/* file handle */
-	dev_t	    c_device;	/* associated vnode device */
-	ino_t	    c_inode;	/* associated vnode inode */
-	char        c_cfname[CNODE_CFNAME_LEN+1]; /* container file name */
+	u_short     c_flags;	/* flags (see below) */
+	VenusFid    c_fid;	/* file handle */
+	CacheFile  *c_cf;	/* container file object */
 	int         c_type;
 };
 
