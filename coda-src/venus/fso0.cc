@@ -549,7 +549,8 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	    vp->Begin_VFS(MakeVolid(key), CODA_VGET);
 	    if (vp->u.u_error) break;
 
-	    vp->u.u_error = Get(f_addr, key, uid, rights, comp);
+	    vp->u.u_error = Get(f_addr, key, uid, rights, comp, rcode,
+				GetInconsistent);
 
 	    if (vp->u.u_error != 0)
 		Put(f_addr);
