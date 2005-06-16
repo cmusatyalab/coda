@@ -2108,9 +2108,7 @@ int ClientModifyLog::COP1(char *buf, int bufsize, ViceVersionVector *UpdateSet,
 
 	/* Indicate that objects should be resolved on commit. */
 	vol->flags.resolve_me = 1;
-
 	PutConn(&c);
-
     } else {
 	RPC2_CountedBS OldVS;
 	vol->PackVS(VSG_MEMBERS, &OldVS);
