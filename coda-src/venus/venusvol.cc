@@ -890,7 +890,6 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
 
     flags.reserved = 0;
     flags.has_local_subtree = 0;
-    flags.logv = 0;
     pgid = NO_ASR;
 }
 
@@ -1338,9 +1337,9 @@ void volent::TakeTransition()
     }
     rv = (repvol *)this;
 
-    LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, logv = %d, "
+    LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, "
 	    "CML = %d, Res = %d\n",
-	    name, PRINT_VOLSTATE(state), avsgsize, flags.logv,
+	    name, PRINT_VOLSTATE(state), avsgsize,
 	    rv->GetCML()->count(), rv->ResListCount()));
 
     /* Compute next state. */
@@ -1563,12 +1562,11 @@ int repvol::WriteDisconnect(unsigned age, unsigned time)
 {
     Recov_BeginTrans();
         RVMLIB_REC_OBJECT(*this);
-        flags.logv = 1;
         if (age != AgeLimit || time != ReintLimit ||
             age == V_UNSETAGE || time == V_UNSETREINTLIMIT) {
-            if (age == V_UNSETAGE) 
+            if (age == V_UNSETAGE)
                 AgeLimit = V_DEFAULTAGE;
-            else 
+            else
                 AgeLimit = age;
 
             if (time == V_UNSETREINTLIMIT) 
@@ -1587,7 +1585,6 @@ int repvol::WriteReconnect()
 {
     Recov_BeginTrans();
         RVMLIB_REC_OBJECT(*this);
-        flags.logv = 0;
         AgeLimit = V_UNSETAGE;
         ReintLimit = V_UNSETREINTLIMIT;
     Recov_EndTrans(MAXFP);
@@ -2709,11 +2706,11 @@ void volent::print(int afd)
     fdprint(afd, "%#08x : %-16s : vol = %x @%s\n", (long)this, name, vid,
 	    realm->Name());
 
-    fdprint(afd, "\trefcnt = %d, fsos = %d, logv = %d, weak = %d\n",
-	    refcnt, nfsos, flags.logv, flags.weaklyconnected);
+    fdprint(afd, "\trefcnt = %d, fsos = %d, weak = %d\n",
+	    refcnt, nfsos, flags.weaklyconnected);
     fdprint(afd, "\tstate = %s, t_p = %d, d_p = %d, counts = [%d %d %d %d], repair = %d\n",
 	    PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
-	    observer_count, mutator_count, waiter_count, resolver_count, 
+	    observer_count, mutator_count, waiter_count, resolver_count,
 	    flags.repair_mode);
     fdprint(afd, "\tshrd_count = %d and excl_count = %d excl_pgid = %d\n",
 	    shrd_count, excl_count, excl_pgid);

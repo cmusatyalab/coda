@@ -541,7 +541,7 @@ struct VolFlags {
       unsigned replicated : 1;  /* is this a replicated vol or a vol replica */
 /* T*/unsigned transition_pending : 1;
 /* T*/unsigned demotion_pending : 1;
-/*R */unsigned logv : 1;        /* log mutations, allow fetches */
+/*R */unsigned unused : 1;
 /*RT*/unsigned allow_asrinvocation : 1; /* asr's allowed in this volume */
 /*RT*/unsigned asr_running : 1; /* only 1 ASR allowed per volume at a time */
 /*R */unsigned has_local_subtree : 1; /* indicating whether this volume contains local subtrees */

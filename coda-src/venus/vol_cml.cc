@@ -312,13 +312,13 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 
 	this_time = m->ReintTime(bw);
 
-	/* Only limit on reintegration time when we are not forcing a
-	 * synchronous reintegration and and we already have at least
-	 * one CML entry queued */
-	if (vol->flags.logv && !vol->flags.sync_reintegrate && *nrecs &&
+	/* Only limit reintegration time when we are not forcing a
+	 * synchronous reintegration and and we have at least
+	 * one CML entry queued. --JH */
+	if (!vol->flags.sync_reintegrate && *nrecs &&
 	    (this_time + cur_reintegration_time > vol->ReintLimit))
 		break;
-	/* 
+	/*
 	 * freeze the record to prevent cancellation.  Note that
 	 * reintegrating --> frozen, but the converse is not true.
 	 * Records are frozen until the outcome of a reintegration

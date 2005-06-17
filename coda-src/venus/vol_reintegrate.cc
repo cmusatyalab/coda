@@ -184,13 +184,6 @@ void repvol::Reintegrate()
     if (CML.count() == 0 && mutator_count == 0)
         CML.owner = UNSET_UID;
 
-    /* trigger a transition if necessary */
-    if ((CML.count() == 0 || !ContainUnrepairedCML()) &&
-	flags.logv == 0 && state == Logging)
-    {
-	flags.transition_pending = 1;
-    }
-
     /* if code was non-zero, return EINVAL to End_VFS to force this
        reintegration to inc fail count rather than success count */
     VOL_ASSERT(this, v->u.u_error == 0);
@@ -677,13 +670,12 @@ int cmlent::ReintReady()
     /* check if this record is part of a transaction (IOT, etc.) */
     if (tid > 0) {
 	LOG(0, ("cmlent::ReintReady: transactional cmlent\n"));
-	return 0; 
+	return 0;
     }
 
-    /* ignore age when forcing a reintegration or when trying to return to
-     * fully connected mode */
+    /* ignore age when forcing a reintegration */
     vol = strbase(repvol, log, CML);
-    if (vol->flags.sync_reintegrate || !vol->flags.logv)
+    if (vol->flags.sync_reintegrate)
 	return 1;
 
     /* if vol staying write disconnected, check age. does not apply to ASRs */
