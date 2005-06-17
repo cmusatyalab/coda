@@ -103,10 +103,6 @@ int repvol::Repair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	       FID_(RepairFid), RepairFile, uid));
     switch (state) {
 
-    case Hoarding:
-      LOG(0,("repvol::Repair: Volume was hoarding\n"));
-      return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
-
     case Logging:
       if (1 /* to be replaced by a predicate for not being issued by ASR */) {
 	LOG(0,("repvol::Repair: Volume was logging, ConnectedRepair\n"));

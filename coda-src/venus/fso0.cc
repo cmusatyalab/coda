@@ -831,10 +831,10 @@ RestartFind:
 		  return(code);
 		}
 	  }
-	  
+
 	  f->DemoteLock();
 	} else {	/* !FETCHABLE(f) */
-	  if (!HOARDING(f) && !LOGGING(f) && !EMULATING(f)) /* = Resolving */
+	  if (!LOGGING(f) && !EMULATING(f)) /* = Resolving */
 		{
 		  LOG(100, ("(MARIA) TIMEOUT after something...\n"));
 		  Put(&f);

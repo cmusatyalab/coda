@@ -607,44 +607,31 @@ class fsobj {
 
     /* Private portions of the CFS interface. */
     void LocalStore(Date_t, unsigned long);
-    int ConnectedStore(Date_t, uid_t, unsigned long);
     int DisconnectedStore(Date_t, uid_t, unsigned long, int);
     void LocalSetAttr(Date_t, unsigned long, Date_t,
 		       uid_t, unsigned short);
-    int ConnectedSetAttr(Date_t, uid_t, unsigned long, Date_t,
-			  uid_t, unsigned short, RPC2_CountedBS *);
     int DisconnectedSetAttr(Date_t, uid_t, unsigned long, Date_t,
 			     uid_t, unsigned short, int);
+    int ConnectedSetAcl(uid_t, RPC2_CountedBS *);
     void LocalCreate(Date_t, fsobj *, char *,
 		      uid_t, unsigned short);
-    int ConnectedCreate(Date_t, uid_t, fsobj **,
-			 char *, unsigned short, int);
     int DisconnectedCreate(Date_t, uid_t, fsobj **,
 			    char *, unsigned short, int, int);
     void LocalRemove(Date_t, char *, fsobj *);
-    int ConnectedRemove(Date_t, uid_t, char *, fsobj *);
     int DisconnectedRemove(Date_t, uid_t, char *, fsobj *, int);
     void LocalLink(Date_t, char *, fsobj *);
-    int ConnectedLink(Date_t, uid_t, char *, fsobj *);
     int DisconnectedLink(Date_t, uid_t, char *, fsobj *, int);
     void LocalRename(Date_t, fsobj *, char *,
 		      fsobj *, char *, fsobj *);
-    int ConnectedRename(Date_t, uid_t, fsobj *,
-			 char *, fsobj *, char *, fsobj *);
     int DisconnectedRename(Date_t, uid_t, fsobj *,
 			    char *, fsobj *, char *, fsobj *, int);
     void LocalMkdir(Date_t, fsobj *, char *, uid_t, unsigned short);
-    int ConnectedMkdir(Date_t, uid_t, fsobj **,
-			char *, unsigned short, int);
     int DisconnectedMkdir(Date_t, uid_t, fsobj **,
 			   char *, unsigned short, int, int);
     void LocalRmdir(Date_t, char *, fsobj *);
-    int ConnectedRmdir(Date_t, uid_t, char *, fsobj *);
     int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *, int);
     void LocalSymlink(Date_t, fsobj *, char *,
 		       char *, uid_t, unsigned short);
-    int ConnectedSymlink(Date_t, uid_t, fsobj **, char *,
-			  char *, unsigned short, int);
     int DisconnectedSymlink(Date_t, uid_t, fsobj **, char *,
 			     char *, unsigned short, int, int);
     int GetContainerFD(void);
@@ -656,7 +643,7 @@ class fsobj {
     int GetAttr(uid_t, RPC2_BoundedBS * =0);
     int GetACL(RPC2_BoundedBS *, uid_t);
     int Store(unsigned long, Date_t, uid_t);
-    int SetAttr(struct coda_vattr *, uid_t, RPC2_CountedBS * =0);
+    int SetAttr(struct coda_vattr *, uid_t);
     int SetACL(RPC2_CountedBS *, uid_t);
     int Create(char *, fsobj **, uid_t, unsigned short, int);
     int Remove(char *, fsobj *, uid_t);
@@ -723,7 +710,7 @@ class fsobj {
     void ListCacheLong(FILE *);
 
     /* local-repair additions */
-    void GetOperationState(int *, int *);                       /*N*/
+    void GetOperationState(int *tid);				/*N*/
     cmlent *FinalCmlent(int);                                   /*N*/
     void SetComp(char *);                                       /*U*/
     const char *GetComp(void);
@@ -785,7 +772,6 @@ void FSOD_ReclaimFSOs(void);
 #define FSO_RELE(f)	    { (f)->refcnt--; }
 
 /* Some useful state predicates. */
-#define	HOARDING(f)	((f)->vol->state == Hoarding)
 #define	EMULATING(f)	((f)->vol->state == Emulating)
 #define LOGGING(f)      ((f)->vol->state == Logging)
 #define RESOLVING(f)    ((f)->vol->state == Resolving)
@@ -806,8 +792,7 @@ void FSOD_ReclaimFSOs(void);
 #define	ACTIVE(f)	(WRITING(f) || EXECUTING(f))
 #define	BUSY(f)		((f)->refcnt > 0 || EXECUTING(f))
 #define	HOARDABLE(f)	((f)->HoardPri > 0)
-#define	FETCHABLE(f)	(!DYING(f) &&\
-			 (HOARDING(f) || (LOGGING(f) && !DIRTY(f))) &&\
+#define	FETCHABLE(f)	(!DYING(f) && LOGGING(f) && !DIRTY(f) &&\
 			 (!HAVESTATUS(f) || !ACTIVE(f)))
 /* we are replaceable whenever we are linked into FSDB->prioq */
 #define	REPLACEABLE(f)	((f)->prio_handle.tree() != 0)

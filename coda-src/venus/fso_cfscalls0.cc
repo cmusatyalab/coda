@@ -191,7 +191,7 @@ int fsobj::Fetch(uid_t uid)
     /* Sanity checks. */
     {
 	/* Better not be disconnected or dirty! */
-	FSO_ASSERT(this, (HOARDING(this) || (LOGGING(this) && !DIRTY(this))));
+	FSO_ASSERT(this, (LOGGING(this) && !DIRTY(this)));
 
 	/* We never fetch data if we don't already have status. */
 	if (!HAVESTATUS(this))
@@ -550,7 +550,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     /* Sanity checks. */
     {
 	/* Better not be disconnected or dirty! */
-	FSO_ASSERT(this, (HOARDING(this) || (LOGGING(this) && !DIRTY(this))));
+	FSO_ASSERT(this, (LOGGING(this) && !DIRTY(this)));
 
 #if 0 /* this has fallen out of date -- Adam */
 	if (IsFake()) {
@@ -1216,206 +1216,6 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
 }
 
 
-int fsobj::ConnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength)
-{
-    FSO_ASSERT(this, HOARDING(this));
-
-    int code = 0, fd = -1;
-    char prel_str[256];
-    sprintf(prel_str, "store::Store %%s [%ld]\n", NBLOCKS(NewLength));
-
-    /* Status parameters. */
-    ViceStatus status;
-    VenusToViceStatus(&stat, &status);
-    {
-	/* Temporary!  Until RPC interface is fixed!  -JJK */
-	status.Date = Mtime;
-    }
-
-    /* COP2 Piggybacking. */
-    char PiggyData[COP2SIZE];
-    RPC2_CountedBS PiggyBS;
-    PiggyBS.SeqLen = 0;
-    PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
-
-    /* Set up the SE descriptor. */
-    SE_Descriptor dummysed;
-    memset(&dummysed, 0, sizeof(SE_Descriptor));
-    SE_Descriptor *sed = 0;
-    {
-	/* Must be a file! */
-	sed = &dummysed;
-	sed->Tag = SMARTFTP;
-	struct SFTP_Descriptor *sei = &sed->Value.SmartFTPD;
-	sei->TransmissionDirection = CLIENTTOSERVER;
-	sei->hashmark = 0;
-	sei->SeekOffset = 0;
-	sei->ByteQuota = -1;
-
-        /* and open a safe fd to the containerfile */
-        fd = data.file->Open(O_RDONLY);
-
-        sei->Tag = FILEBYFD;
-        sei->FileInfo.ByFD.fd = fd;
-    }
-
-    /* VCB arguments */
-    RPC2_Integer VS = 0;
-    CallBackStatus VCBStatus = NoCallBack;
-    RPC2_CountedBS OldVS;
-    OldVS.SeqLen = 0;
-    OldVS.SeqBody = 0;
-
-    if (vol->IsReplicated()) {
-	ViceStoreId sid;
-	mgrpent *m = 0;
-	int asy_resolve = 0;
-        repvol *vp = (repvol *)vol;
-
-	/* Acquire an Mgroup. */
-	code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
-	if (code != 0) goto RepExit;
-
-	/* The COP1 call. */
-	long cbtemp; cbtemp = cbbreaks;
-	vv_t UpdateSet;
-
-	Recov_BeginTrans();
-	sid = vp->GenerateStoreId();
-	Recov_EndTrans(MAXFP);
-	{
-	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    int ph_ix; unsigned long ph;
-            ph = ntohl(m->GetPrimaryHost(&ph_ix)->s_addr);
-
-	    vp->PackVS(VSG_MEMBERS, &OldVS);
-
-	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
-	    ARG_MARSHALL(IN_OUT_MODE, SE_Descriptor, sedvar, *sed, VSG_MEMBERS);
-	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
-	    ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS);
-
-	    /* Make the RPC call. */
-	    CFSOP_PRELUDE(prel_str, comp, fid);
-	    MULTI_START_MESSAGE(ViceStore_OP);
-	    code = (int) MRPC_MakeMulti(ViceStore_OP, ViceStore_PTR,
-					VSG_MEMBERS, m->rocc.handles,
-					m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					MakeViceFid(&fid), statusvar_ptrs,
-					NewLength, ph, &sid, &OldVS,
-					VSvar_ptrs, VCBStatusvar_ptrs,
-					&PiggyBS, sedvar_bufs);
-	    MULTI_END_MESSAGE(ViceStore_OP);
-	    CFSOP_POSTLUDE("store::store done\n");
-
-	    free(OldVS.SeqBody);
-	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vp->Collate_COP1(m, code, &UpdateSet);
-	    MULTI_RECORD_STATS(ViceStore_OP);
-	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
-	    if (code != 0) goto RepExit;
-
-	    /* Collate volume callback information */
-	    if (cbtemp == cbbreaks)
-		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
-
-	    /* Finalize COP2 Piggybacking. */
-	    if (PIGGYCOP2)
-		vp->ClearCOP2(&PiggyBS);
-
-	    /* Manually compute the OUT parameters from the mgrpent::Store() call! -JJK */
-	    int dh_ix; dh_ix = -1;
-	    (void)m->DHCheck(0, ph_ix, &dh_ix);
-	    ARG_UNMARSHALL(statusvar, status, dh_ix);
-	    {
-		long bytes = sedvar_bufs[dh_ix].Value.SmartFTPD.BytesTransferred;
-		LOG(10, ("(Multi)ViceStore: stored %d bytes\n", bytes));
-		if (bytes != (long)status.Length) {
-		    print(logFile);
-		    CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
-			bytes, status.Length);
-		}
-	    }
-	}
-
-	/* Do Store locally. */
-	Recov_BeginTrans();
-	LocalStore(Mtime, NewLength);
-	UpdateStatus(&status, &UpdateSet, uid);
-	Recov_EndTrans(CMFP);
-	if (ASYNCCOP2) ReturnEarly();
-
-	/* Send the COP2 message or add an entry for piggybacking. */
-        (void)vp->COP2(m, &sid, &UpdateSet);
-
-RepExit:
-	if (m) m->Put();
-	switch(code) {
-	    case 0:
-		if (asy_resolve)
-		    vp->ResSubmit(0, &fid);
-		break;
-
-	    default:
-		/* Simulate a disconnection, to be followed by reconnection/reintegration. */
-		Recov_BeginTrans();
-		code = vp->LogStore(Mtime, uid, &fid, NewLength);
-
-		if (code == 0) {
-			LocalStore(Mtime, NewLength);
-			vp->flags.transition_pending = 1;
-		}
-		Recov_EndTrans(DMFP);
-		break;
-	}
-    }
-    else {
-	/* Acquire a Connection. */
-	connent *c;
-	ViceStoreId Dummy;      /* ViceStore needs an address for indirection */
-        volrep *vp = (volrep *)vol;
-	code = vp->GetConn(&c, uid);
-	if (code != 0) goto NonRepExit;
-
-	/* Make the RPC call. */
-	CFSOP_PRELUDE(prel_str, comp, fid);
-	UNI_START_MESSAGE(ViceStore_OP);
-	code = (int) ViceStore(c->connid, MakeViceFid(&fid), &status,
-			       NewLength, 0, &Dummy, &OldVS, &VS, &VCBStatus,
-			       &PiggyBS, sed);
-	UNI_END_MESSAGE(ViceStore_OP);
-	CFSOP_POSTLUDE("store::store done\n");
-
-	/* Examine the return code to decide what to do next. */
-	code = vp->Collate(c, code);
-	UNI_RECORD_STATS(ViceStore_OP);
-	if (code != 0) goto NonRepExit;
-
-	{
-	    long bytes = sed->Value.SmartFTPD.BytesTransferred;
-	    LOG(10, ("ViceStore: stored %d bytes\n", bytes));
-	    if (bytes != (long)status.Length) {
-		print(logFile);
-		CHOKE("fsobj::Store: bytes mismatch (%d, %d)",
-		    bytes, status.Length);
-	    }
-	}
-
-	/* Do Store locally. */
-	Recov_BeginTrans();
-	LocalStore(Mtime, NewLength);
-	UpdateStatus(&status, 0, uid);
-	Recov_EndTrans(CMFP);
-
-NonRepExit:
-	PutConn(&c);
-    }
-    
-    data.file->Close(fd);
-
-    return(code);
-}
-
 int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength, int Tid)
 {
     FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
@@ -1446,14 +1246,10 @@ int fsobj::Store(unsigned long NewLength, Date_t Mtime, uid_t uid)
 
     int code = 0;
 
-    int conn, tid;
-    GetOperationState(&conn, &tid);
-    if (conn == 0) {
-	code = DisconnectedStore(Mtime, uid, NewLength, tid);
-    }
-    else {
-	code = ConnectedStore(Mtime, uid, NewLength);
-    }
+    int tid;
+    GetOperationState(&tid);
+
+    code = DisconnectedStore(Mtime, uid, NewLength, tid);
 
     if (code != 0) {
 	Recov_BeginTrans();
@@ -1501,49 +1297,116 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
                      WRITE, NBLOCKS(sizeof(fsobj)));
 }
 
-int fsobj::ConnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
-			     Date_t NewDate, uid_t NewOwner,
-                             unsigned short NewMode, RPC2_CountedBS *acl)
-{
-    FSO_ASSERT(this, HOARDING(this));
+int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength, Date_t NewDate,
+			       uid_t NewOwner, unsigned short NewMode, int Tid) {
+    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
     int code = 0;
-    int setacl = (acl != 0);
-    const char *prel_str=setacl?"store::setacl %s\n"  :"store::setattr %s\n";
-    const char *post_str=setacl?"store::setacl done\n":"store::setattr done\n";
 
-    RPC2_Integer Mask = 0; 
+    Recov_BeginTrans();
+    RPC2_Integer tNewMode = (short)NewMode;	    /* sign-extend!!! */
 
-    /* Dummy argument for ACL. */
-    RPC2_CountedBS dummybs;
-    dummybs.SeqLen = 0;
-    if (!setacl)
-	acl = &dummybs;
+    CODA_ASSERT(vol->IsReplicated());
+    code = ((repvol *)vol)->LogSetAttr(Mtime, uid, &fid, NewLength, NewDate,
+                                        NewOwner, (RPC2_Unsigned)tNewMode, Tid);
+    if (code == 0)
+	    LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
+    Recov_EndTrans(DMFP);
+
+    return(code);
+}
+
+int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
+{
+	Date_t NewDate = (Date_t) -1;
+	unsigned long NewLength = (unsigned long) -1;
+	uid_t NewOwner = VA_IGNORE_UID;
+	unsigned short NewMode = VA_IGNORE_MODE;
+
+
+	LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n", GetComp(), uid));
+	VPROC_printvattr(vap);
+
+	if ( vap->va_size != VA_IGNORE_SIZE )
+		NewLength = vap->va_size;
+
+	if ( (vap->va_mtime.tv_sec != VA_IGNORE_TIME1) &&
+	      (vap->va_mtime.tv_sec != (time_t)stat.Date))
+		NewDate = vap->va_mtime.tv_sec;
+
+        if (vap->va_uid != VA_IGNORE_UID && vap->va_uid != stat.Owner)
+		NewOwner = vap->va_uid;
+
+	if (vap->va_mode != VA_IGNORE_MODE) {
+            /* Only retain the actual user/group/other permission bits */
+            vap->va_mode &= (S_IRWXU | S_IRWXG | S_IRWXO);
+            if (vap->va_mode != stat.Mode)
+                NewMode= vap->va_mode;
+        }
+
+	/* When we are truncating to zero length, should create any missing
+	 * container files */
+	if (!NewLength && !HAVEDATA(this)) {
+	    Recov_BeginTrans();
+	    RVMLIB_REC_OBJECT(data.file);
+	    RVMLIB_REC_OBJECT(cf);
+	    data.file = &cf;
+            data.file->Create();
+	    Recov_EndTrans(MAXFP);
+	}
+
+	/* Only update cache file when truncating and open for write! */
+	if (NewLength != (unsigned long)-1 && WRITING(this)) {
+		Recov_BeginTrans();
+		data.file->Truncate((unsigned) NewLength);
+		Recov_EndTrans(MAXFP);
+		NewLength = VA_IGNORE_SIZE;
+	}
+
+	/* Avoid performing action where possible. */
+	if (NewLength == (unsigned long)-1 && NewDate == (Date_t)-1 &&
+	    NewOwner == VA_IGNORE_UID && NewMode == VA_IGNORE_MODE)
+	{
+		return(0);
+	}
+
+	int code = 0;
+	Date_t Mtime = Vtime();
+
+	int tid;
+	GetOperationState(&tid);
+
+	code = DisconnectedSetAttr(Mtime, uid, NewLength, NewDate,
+				   NewOwner, NewMode, tid);
+
+	if (code != 0) {
+		Demote();
+	}
+	return(code);
+}
+
+
+int fsobj::ConnectedSetAcl(uid_t uid, RPC2_CountedBS *acl)
+{
+#warning "setacl"
+    /* FSO_ASSERT(this, HOARDING(this)); */
+    FSO_ASSERT(this, 0);
+    CODA_ASSERT(acl != 0);
+
+    int code = 0;
+    const char *prel_str="store::setacl %s\n";
+    const char *post_str="store::setacl done\n";
 
     /* Status parameters. */
     ViceStatus status;
     VenusToViceStatus(&stat, &status);
 
-    status.Date = NewDate;
-    status.Owner = NewOwner;
-    status.Mode = NewMode;
-    status.Length = NewLength; 
+    status.Date = (Date_t)-1;
+    status.Owner = (uid_t)-1;
+    status.Mode = (unsigned short)-1;
+    status.Length = (unsigned long)-1;
 
-    if (NewDate != (Date_t)-1)
-      Mask |= SET_TIME;
-
-    if (NewOwner != (uid_t)-1)
-      Mask |= SET_OWNER;
-
-    if (NewMode != (unsigned short)-1)
-      Mask |= SET_MODE;
-
-    if (NewLength != (unsigned long)-1) {
-	Mask |= SET_LENGTH;
-	Mask |= SET_TIME;
-	status.Date = Mtime;
-    }
-    LOG(100,("fsobj::ConnectedSetAttr Mask = %o\n", Mask));
+    LOG(100,("fsobj::ConnectedSetAcl\n"));
 
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];
@@ -1587,40 +1450,23 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
 
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE(prel_str, comp, fid);
-	    if (setacl) {
-		MULTI_START_MESSAGE(ViceSetACL_OP);
-		code = (int)MRPC_MakeMulti(ViceSetACL_OP, ViceSetACL_PTR,
-					   VSG_MEMBERS, m->rocc.handles,
-					   m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					   MakeViceFid(&fid), acl,
-					   statusvar_ptrs, ph, &sid, &OldVS,
-					   VSvar_ptrs, VCBStatusvar_ptrs,
-					   &PiggyBS);
-		MULTI_END_MESSAGE(ViceSetACL_OP);
-		CFSOP_POSTLUDE(post_str);
+	    MULTI_START_MESSAGE(ViceSetACL_OP);
+	    code = (int)MRPC_MakeMulti(ViceSetACL_OP, ViceSetACL_PTR,
+				       VSG_MEMBERS, m->rocc.handles,
+				       m->rocc.retcodes, m->rocc.MIp, 0, 0,
+				       MakeViceFid(&fid), acl,
+				       statusvar_ptrs, ph, &sid, &OldVS,
+				       VSvar_ptrs, VCBStatusvar_ptrs,
+				       &PiggyBS);
+	    MULTI_END_MESSAGE(ViceSetACL_OP);
+	    CFSOP_POSTLUDE(post_str);
 
-		free(OldVS.SeqBody);
-		/* Collate responses from individual servers and decide what to
-		 * do next. */
-		code = vp->Collate_COP1(m, code, &UpdateSet);
-		MULTI_RECORD_STATS(ViceSetACL_OP);
-	    } else {
-		MULTI_START_MESSAGE(ViceSetAttr_OP);
-		code = (int)MRPC_MakeMulti(ViceSetAttr_OP, ViceSetAttr_PTR,
-					   VSG_MEMBERS, m->rocc.handles,
-					   m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					   MakeViceFid(&fid), statusvar_ptrs,
-					   Mask, ph, &sid, &OldVS, VSvar_ptrs,
-					   VCBStatusvar_ptrs, &PiggyBS);
-		MULTI_END_MESSAGE(ViceSetAttr_OP);
-		CFSOP_POSTLUDE(post_str);
+	    free(OldVS.SeqBody);
+	    /* Collate responses from individual servers and decide what to
+	     * do next. */
+	    code = vp->Collate_COP1(m, code, &UpdateSet);
+	    MULTI_RECORD_STATS(ViceSetACL_OP);
 
-		free(OldVS.SeqBody);
-		/* Collate responses from individual servers and decide what to
-		 * do next. */
-		code = vp->Collate_COP1(m, code, &UpdateSet);
-		MULTI_RECORD_STATS(ViceSetAttr_OP);
-	    }
 	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	    if (code != 0) goto RepExit;
 
@@ -1639,10 +1485,7 @@ int fsobj::ConnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
 	    ARG_UNMARSHALL(statusvar, status, dh_ix);
 	}
 
-	/* Do setattr locally. */
 	Recov_BeginTrans();
-	if (!setacl)
-		LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
 	UpdateStatus(&status, &UpdateSet, uid);
 	Recov_EndTrans(CMFP);
 	if (ASYNCCOP2) ReturnEarly();
@@ -1678,35 +1521,21 @@ RepExit:
 
 	/* Make the RPC call. */
 	CFSOP_PRELUDE(prel_str, comp, fid);
-	if (setacl) {
-	    UNI_START_MESSAGE(ViceSetACL_OP);
-	    code = (int) ViceSetACL(c->connid, MakeViceFid(&fid), acl, &status,
-				    0, &Dummy, &OldVS, &VS, &VCBStatus,
-				    &PiggyBS);
-	    UNI_END_MESSAGE(ViceSetACL_OP);
-	    CFSOP_POSTLUDE("store::setacl done\n");
+	UNI_START_MESSAGE(ViceSetACL_OP);
+	code = (int) ViceSetACL(c->connid, MakeViceFid(&fid), acl, &status,
+				0, &Dummy, &OldVS, &VS, &VCBStatus,
+				&PiggyBS);
+	UNI_END_MESSAGE(ViceSetACL_OP);
+	CFSOP_POSTLUDE("store::setacl done\n");
 
-	    /* Examine the return code to decide what to do next. */
-	    code = vp->Collate(c, code);
-	    UNI_RECORD_STATS(ViceSetACL_OP);
-	} else {
-	    UNI_START_MESSAGE(ViceSetAttr_OP);
-	    code = (int) ViceSetAttr(c->connid, MakeViceFid(&fid), &status,
-				     Mask, 0, &Dummy, &OldVS, &VS, &VCBStatus,
-				     &PiggyBS);
-	    UNI_END_MESSAGE(ViceSetAttr_OP);
-	    CFSOP_POSTLUDE("store::setattr done\n");
+	/* Examine the return code to decide what to do next. */
+	code = vp->Collate(c, code);
+	UNI_RECORD_STATS(ViceSetACL_OP);
 
-	    /* Examine the return code to decide what to do next. */
-	    code = vp->Collate(c, code);
-	    UNI_RECORD_STATS(ViceSetAttr_OP);
-	}
 	if (code != 0) goto NonRepExit;
 
 	/* Do setattr locally. */
 	Recov_BeginTrans();
-	if (!setacl)
-		LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
 	UpdateStatus(&status, NULL, uid);
 	Recov_EndTrans(CMFP);
 
@@ -1717,106 +1546,13 @@ NonRepExit:
     return(code);
 }
 
-int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength, Date_t NewDate, 
-			       uid_t NewOwner, unsigned short NewMode, int Tid) {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
-    int code = 0;
-
-    Recov_BeginTrans();
-    RPC2_Integer tNewMode =	(short)NewMode;	    /* sign-extend!!! */
-
-    CODA_ASSERT(vol->IsReplicated());
-    code = ((repvol *)vol)->LogSetAttr(Mtime, uid, &fid, NewLength, NewDate,
-                                        NewOwner, (RPC2_Unsigned)tNewMode, Tid);
-    if (code == 0)
-	    LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
-    Recov_EndTrans(DMFP);
-
-    return(code);
-}
-
-int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid, RPC2_CountedBS *acl) 
-{
-	Date_t NewDate = (Date_t) -1;
-	unsigned long NewLength = (unsigned long) -1;
-	uid_t NewOwner = VA_IGNORE_UID;
-	unsigned short NewMode = VA_IGNORE_MODE;
-
-
-	LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n", GetComp(), uid));
-	VPROC_printvattr(vap);
-    
-	if ( vap->va_size != VA_IGNORE_SIZE ) 
-		NewLength = vap->va_size;
-
-	if ( (vap->va_mtime.tv_sec != VA_IGNORE_TIME1) && 
-	      (vap->va_mtime.tv_sec != (time_t)stat.Date))
-		NewDate = vap->va_mtime.tv_sec;
-
-        if (vap->va_uid != VA_IGNORE_UID && vap->va_uid != stat.Owner)
-		NewOwner = vap->va_uid;
-
-	if (vap->va_mode != VA_IGNORE_MODE) {
-            /* Only retain the actual user/group/other permission bits */
-            vap->va_mode &= (S_IRWXU | S_IRWXG | S_IRWXO);
-            if (vap->va_mode != stat.Mode)
-                NewMode= vap->va_mode;
-        }
-
-	/* When we are truncating to zero length, should create any missing
-	 * container files */
-	if (!NewLength && !HAVEDATA(this)) {
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(data.file);
-	    RVMLIB_REC_OBJECT(cf);
-	    data.file = &cf;
-            data.file->Create();
-	    Recov_EndTrans(MAXFP);
-	}
-	
-	/* Only update cache file when truncating and open for write! */
-	if (NewLength != (unsigned long)-1 && WRITING(this)) {
-		Recov_BeginTrans();
-		data.file->Truncate((unsigned) NewLength);
-		Recov_EndTrans(MAXFP);
-		NewLength = (unsigned long)VA_IGNORE_SIZE;
-	}
-
-	/* Avoid performing action where possible. */
-	if (NewLength == (unsigned long)-1 && NewDate == (Date_t)-1 &&
-	    NewOwner == VA_IGNORE_UID && NewMode == VA_IGNORE_MODE) {
-		if (acl == 0) return(0);
-	} else {
-		FSO_ASSERT(this, acl == 0);
-	}
-
-	int code = 0;
-	Date_t Mtime = Vtime();
-	
-	int conn, tid;
-	GetOperationState(&conn, &tid);
-	
-	if (conn == 0) {
-                code = DisconnectedSetAttr(Mtime, uid, NewLength, NewDate,
-                                           NewOwner, NewMode, tid);
-	} else {
-		code = ConnectedSetAttr(Mtime, uid, NewLength, NewDate, 
-                                        NewOwner, NewMode, acl);
-	}
-
-	if (code != 0) {
-		Demote();
-	}
-	return(code);
-}
-
-
 int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
     LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
 
-    if (!HOARDING(this)) {
+    /* if (!HOARDING(this)) */
+#warning "setacl"
+    if (1) {
 	FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
 
 	/* We don't cache ACLs! */
@@ -1827,9 +1563,7 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 	/* Ignore attempts to set ACLs on fake objects. */
 	return(EPERM);
 
-    struct coda_vattr va;
-    va_init(&va);
-    int code = SetAttr(&va, uid, acl);
+    int code = ConnectedSetAcl(uid, acl);
 
     if (code == 0) {
 	/* Cached rights are suspect now! */
@@ -1884,222 +1618,6 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
     }
 }
 
-
-int fsobj::ConnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
-			    char *name, unsigned short Mode, int target_pri)
-{
-    FSO_ASSERT(this, HOARDING(this));
-
-    int code = 0;
-    fsobj *target_fso = 0;
-    VenusFid target_fid;
-    RPC2_Unsigned AllocHost = 0;
-
-    /*Status parameters. */
-    ViceStatus parent_status;
-    VenusToViceStatus(&stat, &parent_status);
-    ViceStatus target_status;
-    target_status.Mode = Mode;
-    {
-	/* Temporary!  Until RPC interface is fixed!  -JJK */
-	parent_status.Date = Mtime;
-	target_status.DataVersion = 0;
-	target_status.VV = NullVV;
-    }
-
-    /* COP2 Piggybacking. */
-    char PiggyData[COP2SIZE];
-    RPC2_CountedBS PiggyBS;
-    PiggyBS.SeqLen = 0;
-    PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
-
-    /* VCB Arguments */
-    RPC2_Integer VS = 0;
-    CallBackStatus VCBStatus = NoCallBack;
-    RPC2_CountedBS OldVS; 
-    OldVS.SeqLen = 0;
-    OldVS.SeqBody = 0;
-
-    if (vol->IsReplicated()) {
-	ViceStoreId sid;
-	mgrpent *m = 0;
-	int asy_resolve = 0;
-        repvol *vp = (repvol *)vol;
-
-	/* Allocate a fid for the new object. */
-	code = vp->AllocFid(File, &target_fid, &AllocHost, uid);
-	if (code != 0) goto RepExit;
-
-	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
-	if (target_fso == 0) {
-	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
-			     NBLOCKS(sizeof(fsobj)));
-	    code = ENOSPC;
-	    goto RepExit;
-	}
-	UpdateCacheStats(&FSDB->FileAttrStats, CREATE,
-			 NBLOCKS(sizeof(fsobj)));
-
-	/* Acquire an Mgroup. */
-	code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
-	if (code != 0) goto RepExit;
-
-	/* The COP1 call. */
-	long cbtemp; cbtemp = cbbreaks;
-	vv_t UpdateSet;
-
-	Recov_BeginTrans();
-	sid = vp->GenerateStoreId();
-	Recov_EndTrans(MAXFP);
-	{
-	    ViceFid target = *MakeViceFid(&target_fid);
-	    ViceFid nullfid = {0,0,0};
-
-	    /* Make multiple copies of the IN/OUT and OUT parameters. */
-	    vp->PackVS(VSG_MEMBERS, &OldVS);
-	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, target_statusvar, target_status, VSG_MEMBERS);
-	    ARG_MARSHALL(IN_OUT_MODE, ViceFid, targetvar, target, VSG_MEMBERS);
-	    ARG_MARSHALL(IN_OUT_MODE, ViceStatus, parent_statusvar, parent_status, VSG_MEMBERS);
-	    ARG_MARSHALL(OUT_MODE, RPC2_Integer, VSvar, VS, VSG_MEMBERS);
-	    ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS);
-
-	    /* Make the RPC call. */
-	    CFSOP_PRELUDE("store::Create %-30s\n", name, NullFid);
-	    MULTI_START_MESSAGE(ViceVCreate_OP);
-	    code = (int) MRPC_MakeMulti(ViceVCreate_OP, ViceVCreate_PTR,
-					VSG_MEMBERS, m->rocc.handles,
-					m->rocc.retcodes, m->rocc.MIp, 0, 0,
-					MakeViceFid(&fid), &nullfid, name,
-					target_statusvar_ptrs, targetvar_ptrs,
-					parent_statusvar_ptrs, AllocHost, &sid,
-					&OldVS, VSvar_ptrs, VCBStatusvar_ptrs,
-					&PiggyBS);
-	    MULTI_END_MESSAGE(ViceVCreate_OP);
-	    CFSOP_POSTLUDE("store::create done\n");
-
-	    free(OldVS.SeqBody);
-	    /* Collate responses from individual servers and decide what to do next. */
-	    code = vp->Collate_COP1(m, code, &UpdateSet);
-	    MULTI_RECORD_STATS(ViceVCreate_OP);
-	    if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
-	    if (code != 0) goto RepExit;
-
-	    /* Collate volume callback information */
-	    if (cbtemp == cbbreaks)
-		vp->CollateVCB(m, VSvar_bufs, VCBStatusvar_bufs);
-
-	    /* Finalize COP2 Piggybacking. */
-	    if (PIGGYCOP2)
-		vp->ClearCOP2(&PiggyBS);
-
-	    /* Manually compute the OUT parameters from the mgrpent::Create() call! -JJK */
-	    int dh_ix; dh_ix = -1;
-	    (void)m->DHCheck(0, -1, &dh_ix);
-	    ARG_UNMARSHALL(target_statusvar, target_status, dh_ix);
-	    ARG_UNMARSHALL(targetvar, target, dh_ix);
-	    ARG_UNMARSHALL(parent_statusvar, parent_status, dh_ix);
-	    MakeVenusFid(&target_fid, target_fid.Realm, &target);
-	}
-
-	/* Do Create locally. */
-	Recov_BeginTrans();
-	LocalCreate(Mtime, target_fso, name, uid, Mode);
-	UpdateStatus(&parent_status, &UpdateSet, uid);
-	/* New objects already have a cleared SHA */
-	target_fso->UpdateStatus(&target_status, &UpdateSet, uid);
-	Recov_EndTrans(CMFP);
-	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
-	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
-	if (ASYNCCOP2) target_fso->ReturnEarly();
-
-	/* Send the COP2 message or add an entry for piggybacking. */
-        vp->COP2(m, &sid, &UpdateSet);
-
-RepExit:
-	if (m) m->Put();
-	switch(code) {
-	    case 0:
-		if (asy_resolve) {
-		    vp->ResSubmit(0, &fid);
-		    if (target_fso != 0)
-			vp->ResSubmit(0, &target_fso->fid);
-		}
-		break;
-
-	    case ETIMEDOUT:
-	    case ESYNRESOLVE:
-	    case EINCONS:
-		code = ERETRY;
-		break;
-
-	    default:
-		break;
-	}
-    }
-    else {
-	/* Acquire a Connection. */
-	connent *c;
-	ViceStoreId Dummy;                  /* Need an address for ViceCreate */
-	ViceFid nullf = {0, 0, 0};
-        volrep *vp = (volrep *)vol;
-	code = vp->GetConn(&c, uid);
-	if (code != 0) goto NonRepExit;
-
-	/* Make the RPC call. */
-	long cbtemp; cbtemp = cbbreaks;
-	CFSOP_PRELUDE("store::Create %-30s\n", name, NullFid);
-	UNI_START_MESSAGE(ViceVCreate_OP);
-	code = (int) ViceVCreate(c->connid, MakeViceFid(&fid), &nullf,
-				 (RPC2_String)name, &target_status,
-				 MakeViceFid(&target_fid), &parent_status, 0,
-				 &Dummy, &OldVS, &VS, &VCBStatus, &PiggyBS);
-	UNI_END_MESSAGE(ViceVCreate_OP);
-	CFSOP_POSTLUDE("store::create done\n");
-
-	/* Examine the return code to decide what to do next. */
-	code = vp->Collate(c, code);
-	UNI_RECORD_STATS(ViceVCreate_OP);
-	if (code != 0) goto NonRepExit;
-
-	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
-	if (target_fso == 0) {
-	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
-			     NBLOCKS(sizeof(fsobj)));
-	    code = ENOSPC;
-	    goto NonRepExit;
-	}
-	UpdateCacheStats(&FSDB->FileAttrStats, CREATE,
-			 NBLOCKS(sizeof(fsobj)));
-
-	/* Do Create locally. */
-	Recov_BeginTrans();
-	LocalCreate(Mtime, target_fso, name, uid, Mode);
-	UpdateStatus(&parent_status, NULL, uid);
-	target_fso->UpdateStatus(&target_status, NULL, uid);
-	Recov_EndTrans(CMFP);
-	if (target_status.CallBack == CallBackSet && cbtemp == cbbreaks)
-	    target_fso->SetRcRights(RC_STATUS | RC_DATA);
-
-NonRepExit:
-	PutConn(&c);
-    }
-
-    if (code == 0) {
-	*t_fso_addr = target_fso;
-    }
-    else {
-	if (target_fso != 0) {
-	    FSO_ASSERT(target_fso, !HAVESTATUS(target_fso));
-	    Recov_BeginTrans();
-	    target_fso->Kill();
-	    Recov_EndTrans(DMFP);
-	    FSDB->Put(&target_fso);
-	}
-    }
-    return(code);
-}
 
 int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
                               char *name, unsigned short Mode, int target_pri,
@@ -2175,17 +1693,11 @@ int fsobj::Create(char *name, fsobj **target_fso_addr,
     Date_t Mtime = Vtime();
     *target_fso_addr = 0;
 
-    int conn, tid;
-    GetOperationState(&conn, &tid);
+    int tid;
+    GetOperationState(&tid);
 
-    if (conn == 0) {
-	code = DisconnectedCreate(Mtime, uid, target_fso_addr,
-				  name, Mode, target_pri, tid);
-    }
-    else {
-	code = ConnectedCreate(Mtime, uid, target_fso_addr,
-			       name, Mode, target_pri);
-    }
+    code = DisconnectedCreate(Mtime, uid, target_fso_addr,
+			      name, Mode, target_pri, tid);
 
     if (code != 0) {
 	Demote();

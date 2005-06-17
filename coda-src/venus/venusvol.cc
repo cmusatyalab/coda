@@ -32,32 +32,23 @@ listed in the file CREDITS.
 /*
  *    Implementation of the Venus Volume abstraction.
  *
- *    Each volume is always in one of five states.  These states, and
+ *    Each volume is always in one of three states.  These states, and
  *    the next state table are: (there are some caveats, which are
  *    discussed prior to the TakeTransition function)
  *
- *    Hoarding	(H)	(|AVSG| > 0) ? (logv ? L : (CML_Count > 0) ? L : (res_cnt > 0) ? S : H) : E
- *    Resolving	(S)	(|AVSG| > 0) ? (logv ? L : (CML_Count > 0) ? L : H) : E
- *    Emulating	(E)	(|AVSG| > 0) ? (logv ? L : (CML_Count > 0) ? L : (res_cnt > 0) ? S : H) : E
- *    Logging   (L)     (|AVSG| > 0) ? ((res_cnt > 0) ? S : logv ? L : (CML_Count > 0) ? L : H) : E
+ *    Resolving	(S)	(|AVSG| > 0) ? (res_cnt > 0) ? S : L : E
+ *    Emulating	(E)	(|AVSG| > 0) ? (res_cnt > 0) ? S : L : E
+ *    Logging   (L)     (|AVSG| > 0) ? (res_cnt > 0) ? S : L : E
  *
- *    State is initialized to Hoarding at startup, unless the volume
- *    is "dirty" in which case it is Emulating.
+ *    State is initialized to Logging at startup.
  *
- *    Logging state may be triggered by discovery of weak connectivity, or an
- *    application-specific resolution.
- *    All of these are rolled into the flag "logv".  In this state, cache
- *    misses may be serviced, but modify activity is recorded in the CML.
- *    Resolution must be permitted in logging state because references
- *    resulting in cache misses may require it.
- *
- *    Note that non-replicated volumes have only two states, {Hoarding, Emulating}.
+ *    In this state, cache misses may be serviced, but modify activity is
+ *    recorded in the CML. Resolution must be permitted in logging state
+ *    because references resulting in cache misses may require it.
  *
  *    Events which prompt state transition are:
  *       1. Communications state change
  *       2. Begin/End of resolve session
- *       3. End of reintegration session
- *       4. Begin/End modify logging session
  *
  *    Volume state is an attempt to separate the logical state of the
  *    system---represented by the volume state---from the
@@ -92,10 +83,9 @@ listed in the file CREDITS.
  *        read-only, or if the volume is currently in disconnected
  *        mode (i.e., state = Emulating).  The CFS call attempts to
  *        validate the object (by fetching status and/or data) if it
- *        is invalid and the volume is connected.  Mutating CFS calls
- *        are written through to servers if in connected mode.
- *        Mutating operations are recorded on a (per-volume) ModifyLog
- *        if in disconnected mode.  Pending state changes are noticed
+ *        is invalid and the volume is connected.
+ *        Mutating operations are recorded on a (per-volume) ModifyLog.
+ *        Pending state changes are noticed
  *        by the Get{Conn,Mgrp} and certain Collate{...} calls.  They
  *        return ERETRY in such cases, which is to be passed up to the
  *        VFS layer.
@@ -113,14 +103,14 @@ listed in the file CREDITS.
  *        bounds.
  *
  *
- *    A volume in {Hoarding, Emulating, Logging} state may be entered
+ *    A volume in {Emulating, Logging} state may be entered
  *    in either Mutating or Observing mode. There may be only one
  *    mutating user in a volume at a time, although that user may have
  *    multiple mutating threads.  Observers do not conflict with each
  *    other, nor with the mutator (if present). Thus, this scheme
  *    differs from classical Shared/Exclusive locking.  Also note that
  *    no user threads, mutating or not, may enter a volume in
- *    {Reintegrating, Resolving} state. These restrictions do not
+ *    {Resolving} state. These restrictions do not
  *    apply to non-rw-replicated volumes, of course.
  * */
 
@@ -908,7 +898,7 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
 /* local-repair modification */
 void volent::ResetVolTransients()
 {
-    state = Hoarding;
+    state = Logging;
     observer_count = 0;
     mutator_count = 0;
     waiter_count = 0;
@@ -1070,11 +1060,10 @@ int volent::Enter(int mode, uid_t uid)
      * volumes have as well.
      * We'd like them all to take transitions/demotions first so we can check
      * them en masse.  We risk sticking a real request with this overhead, but
-     * only if a request arrives in the next few (5) seconds!  
+     * only if a request arrives in the next few (5) seconds!
      */
     vproc *vp = VprocSelf();
-    if (VCBEnabled && IsReplicated() && 
-        (state == Hoarding || state == Logging) && 
+    if (VCBEnabled && IsReplicated() && state == Logging &&
         ((repvol *)this)->WantCallBack())
     {
         repvol *rv = (repvol *)this;
@@ -1342,7 +1331,7 @@ void volent::TakeTransition()
 
     if (!IsReplicated()) {
 	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
-	state = (avsgsize == 0) ? Emulating : Hoarding;
+	state = (avsgsize == 0) ? Emulating : Logging;
 	flags.transition_pending = 0;
 	Signal();
 	return;
@@ -1355,19 +1344,15 @@ void volent::TakeTransition()
 	    rv->GetCML()->count(), rv->ResListCount()));
 
     /* Compute next state. */
-    CODA_ASSERT(state == Hoarding || state == Emulating || state == Logging ||
-		state == Resolving);
+    CODA_ASSERT(state == Emulating || state == Logging || state == Resolving);
 
-    nextstate = Hoarding;
+    nextstate = Logging;
     /* if the AVSG is empty we are disconnected */
     if (avsgsize == 0)
 	nextstate = Emulating;
 
     else if (rv->ResListCount())
 	nextstate = Resolving;
-
-    else if (flags.logv || rv->GetCML()->count())
-	nextstate = Logging;
 
     /* Special cases here. */
     /*
@@ -1380,7 +1365,7 @@ void volent::TakeTransition()
     /* 2. We refuse to transit to reintegration unless owner has auth tokens.
      * 3. We force "zombie" volumes to emulation state until they are
      *    un-zombied. */
-    if (nextstate == Logging && rv->GetCML()->count() > 0) {
+    if (nextstate == Logging && IsReplicated() && rv->GetCML()->count() > 0) {
 	userent *u = rv->realm->GetUser(rv->GetCML()->Owner());
 	if (!u->TokensValid()) {
 	    rv->SetReintegratePending();
@@ -1395,13 +1380,14 @@ void volent::TakeTransition()
 
     switch(state) {
         case Logging:
-	    if (flags.sync_reintegrate)
-		rv->Reintegrate();
-	    else if (rv->ReadyToReintegrate()) 
-		::Reintegrate(rv);
+	    if (IsReplicated()) {
+		if (flags.sync_reintegrate)
+		    rv->Reintegrate();
+		else if (rv->ReadyToReintegrate())
+		    ::Reintegrate(rv);
+	    }
             // Fall through
 
-        case Hoarding:
         case Emulating:
 	    Signal();
 	    break;
@@ -1493,7 +1479,7 @@ void repvol::UpMember(void)
 
     LOG(10, ("repvol::UpMember: vid = %08x\n", vid));
 
-    /* Consider transitting to Hoarding state. */
+    /* Consider transitting to Logging state. */
     if (AVSGsize() == 1)
 	flags.transition_pending = 1;
 
@@ -2087,7 +2073,7 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 	*target_fid = GenerateLocalFid(Type);
     }
     else {
-	VOL_ASSERT(this, (state == Hoarding || (state == Logging && force)));
+	VOL_ASSERT(this, (state == Logging && force));
 
 	/* COP2 Piggybacking. */
 	char PiggyData[COP2SIZE];
@@ -2471,10 +2457,6 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	*age = rv->AgeLimit;
 	*hogtime = rv->ReintLimit;
     }
-    if (state == Hoarding && (*conflict || *cml_count > 0)) {
-	LOG(0, ("volent::GetVolStat: Strange! A connected volume 0x%x has "
-		"conflict or cml_count != 0 (=%d)?\n", vid, *cml_count));
-    }
 
     if (IsFake() || state == Emulating || local_only) {
 	memset(volstat, 0, sizeof(VolumeStatus));
@@ -2494,7 +2476,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	code = 0;
     }
     else {
-	VOL_ASSERT(this, (state == Hoarding || state == Logging));
+	VOL_ASSERT(this, (state == Logging));
 
 	if (IsReplicated()) {
 	    /* Acquire an Mgroup. */
@@ -2592,7 +2574,7 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	code = ETIMEDOUT;
     }
     else {
-	VOL_ASSERT(this, (state == Hoarding || state == Logging));  /* let this go in wcc? -lily */
+	VOL_ASSERT(this, (state == Logging));  /* let this go in wcc? -lily */
 
         /* COP2 Piggybacking. */
 	char PiggyData[COP2SIZE];

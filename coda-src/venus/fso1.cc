@@ -2907,20 +2907,13 @@ fsobj *fso_iterator::operator()() {
     }
 }
 
-void fsobj::GetOperationState(int *conn, int *tid)
+void fsobj::GetOperationState(int *tid)
 {
-    if (HOARDING(this)) {
-	*conn = 1;
-	*tid = 0;
-	return;
-    }
     if (EMULATING(this)) {
-	*conn = 0;
 	*tid = -1;
 	return;
     }
 
     OBJ_ASSERT(this, LOGGING(this));
     *tid = -1;
-    *conn = 0;
 }

@@ -527,8 +527,7 @@ class vdb {
 
 
 /* A volume is in exactly one of these states. */
-typedef enum {	Hoarding,
-		Emulating,
+typedef enum {  Emulating,
 		Logging,
 		Resolving,
 } VolumeStateType;
@@ -664,7 +663,6 @@ class volent {
     int IsBackup() { return (!flags.replicated && flags.readonly); }
     int IsReplicated() { return flags.replicated; }
     int IsReadWriteReplica();
-    int IsHoarding() { return (state == Hoarding); }
     int IsDisconnected() { return (state == Emulating); }
     int IsWriteDisconnected() { return (state == Logging); }
     int IsWeaklyConnected() { return flags.weaklyconnected; }
@@ -1051,8 +1049,7 @@ extern int PathAltered(VenusFid *, char *, ClientModifyLog *, cmlent *);
     }\
 }
 
-#define	PRINT_VOLSTATE(state)	((state) == Hoarding ? "Hoarding" :\
-				 (state) == Resolving ? "Resolving" :\
+#define	PRINT_VOLSTATE(state)	((state) == Resolving ? "Resolving" :\
 				 (state) == Emulating ? "Emulating" :\
 				 (state) == Logging ? "Logging":\
 				 "???")

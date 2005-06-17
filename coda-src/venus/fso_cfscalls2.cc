@@ -417,8 +417,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
     if (disconnected)
 	return rights ? EACCES : 0;
 
-    /* XXX we might be 'RESOLVING', what will happen then? -JH */
-    FSO_ASSERT(this, (HOARDING(this) || (LOGGING(this) && !DIRTY(this))));
+    FSO_ASSERT(this, (LOGGING(this) && !DIRTY(this)));
 
     /* We must re-fetch status; rights will be returned as a side-effect. */
     /* Promote the lock level if necessary. */

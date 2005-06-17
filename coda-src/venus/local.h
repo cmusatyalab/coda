@@ -121,10 +121,6 @@ public:
 #define REPAIR_OVER_WRITE	0x2
 #define REPAIR_FORCE_REMOVE	0x4
 
-/* constants for repair session mode */
-#define REP_SCRATCH_MODE	0x1
-#define REP_DIRECT_MODE		0x2
-
 /* constant for the initial value of repair transaction-id number generator */
 #define	REP_INIT_TID		1000000
 

@@ -553,7 +553,7 @@ void vproc::Begin_VFS(Volid *volid, int vfsop, int volmode)
     u.u_vfsop = vfsop;
 
     if (u.u_volmode == VM_MUTATING && u.u_vol->IsReplicated() &&
-	u.u_vol->IsWriteDisconnected())
+	!u.u_vol->IsDisconnected())
     {
 	struct timeval delay = { 1, 0 };
 	int free_fsos, free_mles, free_blocks;

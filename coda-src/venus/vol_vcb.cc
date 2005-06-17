@@ -90,7 +90,7 @@ int repvol::GetVolAttr(uid_t uid)
 {
     LOG(100, ("repvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
 
-    VOL_ASSERT(this, (state == Hoarding || state == Logging));
+    VOL_ASSERT(this, (state == Logging));
 
     unsigned int i;
     int code = 0;
@@ -206,8 +206,7 @@ int repvol::GetVolAttr(uid_t uid)
                 if (vsg != rv->vsg)
                     continue;
 
-		if ((!rv->IsHoarding() && !rv->IsWriteDisconnected()) ||
-                    !rv->WantCallBack() ||
+		if ((!rv->IsWriteDisconnected()) || !rv->WantCallBack() ||
                     VV_Cmp(&rv->VVV, &NullVV) == VV_EQ)
                     continue;
 
