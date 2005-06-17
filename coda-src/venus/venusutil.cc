@@ -394,8 +394,6 @@ const char *IoctlOpStr(unsigned char nr)
 	case _VIOC_SET_MIXED_VIEW:	return("Set Mixed View");
 	case _VIOC_WD_ALL:		return("WD All");
 	case _VIOC_WR_ALL:		return("WR All");
-	case _VIOC_STRONG:		return("Strong");
-	case _VIOC_ADAPTIVE:		return("Adaptive");
 	case _VIOC_LISTCACHE:		return("List Cache");
 	case _VIOC_GET_MT_PT:		return("Get Mt Pt");
 	case _VIOC_SYNCCACHE:		return("Sync Cache");

@@ -102,7 +102,6 @@ struct command
 
 
 /* One handler routine for each opcode */
-static void Adaptive(int, char**, int);
 static void BeginRepair(int, char**, int);
 static void CheckServers(int, char**, int);
 static void CheckPointML(int, char**, int);
@@ -139,7 +138,6 @@ static void RmMount(int, char**, int);
 static void SetACL(int, char**, int);
 static void SetQuota(int, char **, int);
 static void SetVolume(int, char **, int);
-static void Strong(int, char**, int);
 static void TruncateLog(int, char **, int);
 static void UnloadKernel(int, char **, int);
 static void WaitForever(int, char**, int);
@@ -166,17 +164,7 @@ static void At_CPU(int, char **, int);
 
 struct command cmdarray[] =
     {
-        {"adaptive", NULL, Adaptive, 
-           "cfs adaptive",
-           "allow venus to automatically adapt to bandwidth changes",
-           NULL
-        },
-        {"strong", NULL, Strong, 
-           "cfs strong",
-           "force venus to consider all connections strong",
-           NULL
-        },
-        {"beginrepair", "br", BeginRepair, 
+        {"beginrepair", "br", BeginRepair,
            "cfs beginrepair <inc-obj-name>",
            "Expose replicas of inc. objects",
            NULL
@@ -2410,32 +2398,6 @@ static void SetQuota    (int argc, char *argv[], int opslot)
 	rc = pioctl(argv[i], _VICEIOCTL(_VIOCSETVOLSTAT), &vio, 1);
 	if (rc <0) { PERROR("Setting new quota"); return; }
     }
-}
-
-static void Strong(int argc, char *argv[], int opslot)
-{
-    int rc;
-
-    if (argc < 2) {
-	printf("Usage: %s\n", cmdarray[opslot].usetxt);
-	exit(-1);
-    }
-
-    rc = simple_pioctl(NULL, _VIOC_STRONG, 1);
-    if (rc < 0){ PERROR("VIOC_STRONG"); exit(-1); }
-}
-
-static void Adaptive(int argc, char *argv[], int opslot)
-{
-    int rc;
-
-    if (argc < 2) {
-	printf("Usage: %s\n", cmdarray[opslot].usetxt);
-	exit(-1);
-    }
-
-    rc = simple_pioctl(NULL, _VIOC_ADAPTIVE, 1);
-    if (rc < 0){ PERROR("VIOC_ADAPTIVE"); exit(-1); }
 }
 
 static void TruncateLog(int argc, char *argv[], int opslot)

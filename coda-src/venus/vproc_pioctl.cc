@@ -1353,8 +1353,6 @@ OI_FreeLocks:
 	case _VIOC_TRUNCATELOG:
 	case _VIOC_DISCONNECT:
 	case _VIOC_RECONNECT:
-	case _VIOC_STRONG:
-	case _VIOC_ADAPTIVE:
 	case _VIOC_LISTCACHE:
 	case _VIOC_GET_MT_PT:
 	case _VIOC_WD_ALL:
@@ -1750,25 +1748,6 @@ OI_FreeLocks:
 #undef hostids
 		    if (u.u_error < 0) u.u_error = EINVAL; /* fail returns -1 */
 
-		    break;
-		    }
-
-		/* cfs strong: Force strong connectivity to all servers */
-	        case _VIOC_STRONG:
-		    {
-		    srv_iterator next;
-		    srvent *s;
-		    while ((s = next()))
-			s->ForceStrong(1);
-		    break;
-		    }
-		/* cfs adaptive: Allow dynamic adaptation of connectivity */
-	        case _VIOC_ADAPTIVE:
-		    {
-		    srv_iterator next;
-		    srvent *s;
-		    while ((s = next()))
-			s->ForceStrong(0);
 		    break;
 		    }
 

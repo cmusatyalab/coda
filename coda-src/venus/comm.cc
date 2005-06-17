@@ -906,7 +906,6 @@ srvent::srvent(struct in_addr *Host, RealmId realm)
     connid = -1;
     Xbinding = 0;
     probeme = 0;
-    forcestrong = 0;
     isweak = 0;
     bw     = INIT_BW;
     bwmax  = INIT_BW;
@@ -1199,15 +1198,11 @@ long srvent::GetBandwidth(unsigned long *Bandwidth)
     /* update last observation time */
     RPC2_GetLastObs(connid, &lastobs);
 
-    /* 
+    /*
      * Signal if we've crossed the weakly-connected threshold. Note
      * that the connection is considered strong until proven otherwise.
-     *
-     * The user can block the strong->weak transition using the
-     * 'cfs strong' command (and turn adaptive mode back on with
-     * 'cfs adaptive').
      */
-    if (!isweak && !forcestrong && bwmax < WCThresh) {
+    if (!isweak && bwmax < WCThresh) {
 	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
 	VDB->WeakEvent(&host);
@@ -1228,33 +1223,6 @@ long srvent::GetBandwidth(unsigned long *Bandwidth)
     LOG(1, ("srvent::GetBandwidth (%s) returns %d bytes/sec\n",
 	      name, *Bandwidth));
     return(0);
-}
-
-
-/* 
- * Force server connectivity to strong, or resume with the normal bandwidth
- * adaptive mode (depending on the `on' flag).
- */
-void srvent::ForceStrong(int on) {
-    forcestrong = on;
-
-    /* forced switch to strong mode */
-    if (forcestrong && isweak) {
-	isweak = 0;
-	MarinerLog("connection::strong %s\n", name);
-	VDB->StrongEvent(&host);
-        adv_mon.ServerConnectionStrong(name);
-    }
-
-    /* switch back to adaptive mode */
-    if (!forcestrong && !isweak && bwmax < WCThresh) {
-	isweak = 1;
-	MarinerLog("connection::weak %s\n", name);
-	VDB->WeakEvent(&host);
-        adv_mon.ServerConnectionWeak(name);
-    }
-
-    return;
 }
 
 
