@@ -153,16 +153,7 @@ typedef struct ClientEntry {
 #define GETATTRPLUSSHA ViceGetAttrPlusSHA_OP
 #define GETACL ViceGetACL_OP
 #define FETCH ViceFetch_OP
-#define SETATTR ViceSetAttr_OP
 #define SETACL ViceSetACL_OP
-#define STORE ViceStore_OP
-#define REMOVE ViceVRemove_OP
-#define CREATE ViceVCreate_OP
-#define RENAME ViceVRename_OP
-#define SYMLINK ViceVSymLink_OP
-#define LINK ViceVLink_OP
-#define MAKEDIR ViceVMakeDir_OP
-#define REMOVEDIR ViceVRemoveDir_OP
 #define REMOVECALLBACK ViceRemoveCallBack_OP
 #define SETLOCK ViceSetLock_OP
 #define RELEASELOCK ViceReleaseLock_OP

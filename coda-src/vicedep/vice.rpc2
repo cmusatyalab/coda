@@ -269,6 +269,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		 IN RPC2_CountedBS PiggyCOP2,
 		 IN OUT SE_Descriptor BD);
 
+/*
 4: ViceSetAttr (IN ViceFid Fid,
 		IN OUT ViceStatus Status,
 		IN RPC2_Integer Mask,
@@ -278,6 +279,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		OUT RPC2_Integer NewVS,
 		OUT CallBackStatus VCBStatus,
 		IN RPC2_CountedBS PiggyCOP2);
+*/
 
 5: ViceSetACL (IN ViceFid Fid,
 	       IN RPC2_CountedBS AccessList,
@@ -289,6 +291,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 	       OUT CallBackStatus VCBStatus,
 	       IN RPC2_CountedBS PiggyCOP2);
 
+/*
 6: ViceStore (IN ViceFid Fid,
 	      IN OUT ViceStatus Status,
 	      IN RPC2_Integer Length,
@@ -299,6 +302,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 	      OUT CallBackStatus VCBStatus,
 	      IN RPC2_CountedBS PiggyCOP2,
 	      IN OUT SE_Descriptor BD);
+*/
 
 15: ViceGetRootVolume (IN OUT RPC2_BoundedBS Volume);
 
@@ -376,6 +380,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		      IN OUT RPC2_BoundedBS VFlagBS);
 
 /* new update calls */
+/*
 45: ViceVRemove	(IN ViceFid Did,
 		 IN RPC2_String Name,
 		 IN OUT ViceStatus DirStatus,
@@ -462,6 +467,7 @@ ViceNewConnection (IN RPC2_Integer SideEffectType,
 		    OUT RPC2_Integer NewVS,
 		    OUT CallBackStatus VCBStatus,
 		    IN RPC2_CountedBS PiggyCOP2);
+*/
 
 55: ViceOpenReintHandle	(IN ViceFid Fid,
 			 OUT ViceReintHandle RHandle);
