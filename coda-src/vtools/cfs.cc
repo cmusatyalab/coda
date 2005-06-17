@@ -62,8 +62,7 @@ extern "C" {
 #include <coda_config.h>
 
 /* From venusvol.h.  A volume is in exactly one of these states. */
-typedef enum {	Hoarding,
-		Emulating,
+typedef enum {  Emulating,
 		Logging,
 		Resolving,
 } VolumeStateType;
@@ -2771,10 +2770,9 @@ static char *xlate_vvtype(ViceVolumeType vvt)
 static char *print_conn_state(VolumeStateType conn_state)
 {
     switch(conn_state) {
-    case Hoarding: return("Connected");
     case Emulating: return("Disconnected");
     case Logging: return("WriteDisconnected");
-    case Resolving: return("Connected");
+    case Resolving: return("Resolving");
     default: return("????");
     }
 }
