@@ -507,6 +507,10 @@ int LWP_CreateProcess(void (*ep)(void *), int stacksize, int priority,
  * LWP_DestroyProcess if the current process is destroyed. */
 static void lwp_Reaper(void)
 {
+    /* On FreeBSD we cannot enter a second time into a context that was
+     * created by makecontext. So we save the current state here to get
+     * a safe re-entry point. */
+    getcontext(&reaper);
     Free_PCB(lwp_cpptr);
     lwp_cpptr = NULL;
     LWP_DispatchProcess();
@@ -555,6 +559,8 @@ static void lwp_Tracer(void)
 {
     int i;
 
+    /* See comment in lwp_Reaper() */
+    getcontext(&tracer);
     for (i=0; i<MAX_PRIORITIES; i++)
 	for_all_elts(x, runnable[i], {
 		     fprintf(lwp_logfile, "[Priority %d]\n", i);
