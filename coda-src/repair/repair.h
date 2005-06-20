@@ -34,8 +34,9 @@ listed in the file CREDITS.
 #define NOT_IN_SESSION 0
 #define	LOCAL_GLOBAL   1
 #define SERVER_SERVER  2
+#define MIXED_CONFLICT 3
 
-extern struct repvol *RepairVol; /* volume under repair */
+extern struct conflict *ConflictObj; /* volume under repair */
 extern int allowclear, interactive, repair_DebugFlag, session;
 
 int checklocal(char *arg);
@@ -62,9 +63,6 @@ void rep_PreserveLocal   (int largc, char **largv);
 void rep_PreserveAllLocal(int largc, char **largv);
 void rep_RemoveInc       (int largc, char **largv);
 void rep_ReplaceInc      (int largc, char **largv);
-void rep_SetGlobalView   (int largc, char **largv);
-void rep_SetLocalView    (int largc, char **largv);
-void rep_SetMixedView    (int largc, char **largv);
 
 #define INITHELPMSG 	\
 "This repair tool can be used to manually repair server/server \n\

@@ -43,6 +43,7 @@ extern "C" {
 /* interfaces */
 #include <vice.h>
 #include <lka.h>
+#include <struct.h>
 
 #ifdef __cplusplus
 }
@@ -551,17 +552,19 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 	/* Better not be disconnected or dirty! */
 	FSO_ASSERT(this, (HOARDING(this) || (LOGGING(this) && !DIRTY(this))));
 
+#if 0 /* this has fallen out of date -- Adam */
 	if (IsFake()) {
 	    FSO_ASSERT(this, acl == 0);
 
 	    /* We never fetch fake directory without having status and data. */
-	    if (IsFakeDir() && !HAVEALLDATA(this))
-		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeDir && !HAVEALLDATA"); }
+	    if ( (IsFakeDir()||IsExpandedDir()) && !HAVEALLDATA(this)) /* might not be necessary -- Adam 5/17/05 */
+		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeDir or IsExpandedDir && !HAVEALLDATA"); }
 
 	    /* We never fetch fake mtpts (covered or uncovered). */
 	    if (IsFakeMtPt() || IsFakeMTLink())
 		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeMtPt || IsFakeMTLink"); }
 	}
+#endif
     }
 
     int code = 0;
@@ -819,10 +822,12 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 				 * is a side-effect.
 				 */
 				if (HAVEDATA(pobj) && !ACTIVE(pobj) &&
-				    !pobj->IsFakeDir() && !DIRTY(pobj))
+				    !pobj->IsFakeDir() &&
+				    !pobj->IsExpandedDir() && !DIRTY(pobj))
+				  /* Adam 5/17/05 */
 				{
 				    Recov_BeginTrans();
-				    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats 
+				    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats
 						      : &FSDB->FileDataStats),
 						     REPLACE, BLOCKS(pobj));
 				    pobj->DiscardData();
@@ -955,7 +960,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
 
 	    /* Handle successful validation of fake directory! */
-	    if (IsFakeDir()) {
+	    if (IsFakeDir() || IsExpandedDir()) { /* XXX:? Adam 5/17/05 */
 		LOG(0, ("fsobj::GetAttr: (%s) validated fake directory\n",
 			FID_(&fid)));
 
@@ -1036,9 +1041,11 @@ RepExit:
 		break;
 
 	    case EINCONS:
+#if 0
 		Recov_BeginTrans();
 		Kill();
 		Recov_EndTrans(CMFP);
+#endif
 		break;
 
 	    case ENXIO:
@@ -1157,15 +1164,16 @@ NonRepExit:
 	PutConn(&c);
     }
 
-    if (code != 0) {
-	Recov_BeginTrans();
-	/* Demote or discard existing status. */
-	if (HAVESTATUS(this) && code != ENOENT)
-		Demote();
-	else
-		Kill();
-	Recov_EndTrans(DMFP);
+    if (code && code != EINCONS) {
+      Recov_BeginTrans();
+      /* Demote or discard existing status. */
+      if (HAVESTATUS(this) && code != ENOENT)
+	Demote();
+      else
+	Kill();
+      Recov_EndTrans(DMFP);
     }
+
     return(code);
 }
 
@@ -1923,7 +1931,7 @@ int fsobj::ConnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 	if (code != 0) goto RepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -2055,7 +2063,7 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -2115,7 +2123,7 @@ int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
-    target_fso = FSDB->Create(&target_fid, target_pri, name);
+    target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
     if (target_fso == 0) {
 	UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			 NBLOCKS(sizeof(fsobj)));

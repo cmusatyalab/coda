@@ -108,9 +108,11 @@ int repvol::EnableRepair(uid_t uid, VolumeId *RWVols,
     LOG(100, ("volent::EnableRepair: vol = %x, uid = %d\n", vid, uid));
     int code = 0, i;
 
+#if 0
     /* Place volume in "repair mode." */
     if (flags.repair_mode != 1)
 	flags.repair_mode = 1;
+#endif
 
     /* RWVols, LockUids, and LockWSs are OUT parameters. */
     memset(LockUids, 0, VSG_MEMBERS * sizeof(uid_t));
@@ -795,7 +797,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	/* attempt the create now */
 	LOG(100, ("DisconnectedRepair: Going to create %s\n", FID_(RepairFid)));
 	/* need to get the priority from the vproc pointer */
-	f = FSDB->Create(RepairFid, vp->u.u_priority, (char *)NULL);
+	f = FSDB->Create(RepairFid, vp->u.u_priority, NULL, NULL);
 			/* don't know the component name */
 	if (f == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE, NBLOCKS(sizeof(fsobj)));

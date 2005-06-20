@@ -47,7 +47,7 @@ extern "C" {
 class adv_monitor {
     friend class userent;
     friend class fsobj;
-    friend int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights, char *comp, int *rcode, int GetInconstent);
+    friend int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights, char *comp, VenusFid *parent, int *rcode, int GetInconstent);
     friend long S_ImminentDeath(RPC2_Handle _cid, RPC2_String hostname, RPC2_Integer port);
  private:
 

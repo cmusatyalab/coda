@@ -255,6 +255,7 @@ class cmlent {
     UserId uid;			/* author of operation */
     int tid;			/* local-repair addition */
     CmlFlags flags;		/* local-repair addition */
+    /*T*/int expansions;
 
     /* Discriminant and sub-type specific members. */
     int opcode;
@@ -407,7 +408,7 @@ class cmlent {
     void SetTid(int);                                           /*U*/
     int ReintReady();                                           /*U*/
     int ContainLocalFid();                                      /*N*/
-    void TranslateFid(VenusFid *, VenusFid *);                    /*T*/
+    void TranslateFid(VenusFid *, VenusFid *);                  /*T*/
     int LocalFakeify();                                         /*U*/
     void CheckRepair(char *, int *, int *);                     /*N*/
     int DoRepair(char *, int);                                  /*U*/
@@ -416,9 +417,10 @@ class cmlent {
     void SetRepairMutationFlag();                               /*U*/
     int IsToBeRepaired() { return flags.to_be_repaired; }       /*N*/
     int IsRepairMutation() { return flags.repair_mutation; }    /*N*/
-    int InLocalRepairSubtree(VenusFid *);                        /*N*/
-    int InGlobalRepairSubtree(VenusFid *);                       /*N*/
-    void GetVVandFids(ViceVersionVector *[3], VenusFid *[3]);    /*N*/
+    int IsExpanded() { return expansions; }                     /*T*/
+    int InLocalRepairSubtree(VenusFid *);                       /*N*/
+    int InGlobalRepairSubtree(VenusFid *);                      /*N*/
+    void GetVVandFids(ViceVersionVector *[3], VenusFid *[3]);   /*N*/
     void GetAllFids(VenusFid *[3]);    				/*N*/
 };
 
@@ -610,6 +612,8 @@ class volent {
     VolFlags flags;
     /*T*/VolumeStateType state;
 
+    Unique_t FidUnique;
+
     rec_olink handle;			/* link for repvol_hash/volrep_hash */
 
     /* Fso's. */
@@ -666,9 +670,16 @@ class volent {
     void GetBandwidth(unsigned long *bw);
 
     /* local-repair addition */
+    VenusFid GenerateFakeFid();
     RealmId GetRealmId()   { return realm->Id(); }     /*N*/
     VolumeId GetVolumeId() { return vid; }           /*N*/
     const char *GetName() { return name; }      /*N*/
+
+    fsobj *NewFakeDirObj(char *comp);
+    fsobj *NewFakeMountLinkObj(VenusFid *fid, char *comp);
+    int IsRepairVol(void) {
+	return (realm->Id() == LocalRealm->Id() && vid == FakeRepairVolumeId);
+    }
 
     void print() { print(stdout); }
     void print(FILE *fp) { fflush(fp); print(fileno(fp)); }
@@ -750,7 +761,6 @@ class repvol : public volent {
 
     unsigned AgeLimit;			/* min age of log records in SECONDS */
     unsigned ReintLimit;		/* work limit, in MILLISECONDS */
-    Unique_t FidUnique;
     RPC2_Unsigned SidUnique;
     int reint_id_gen;                   /* reintegration id generator */
     /*T*/int cur_reint_tid;             /* tid of reintegration in progress */
@@ -812,7 +822,6 @@ class repvol : public volent {
 
     /* Allocation routines. */
     VenusFid GenerateLocalFid(ViceDataType);
-    VenusFid GenerateFakeFid();
     ViceStoreId GenerateStoreId();
 
     /* Reintegration routines. */

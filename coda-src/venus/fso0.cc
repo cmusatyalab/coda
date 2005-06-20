@@ -447,7 +447,7 @@ fsobj *fsdb::Find(const VenusFid *key)
 /* MUST NOT be called from within transaction! */
 /* Caller MUST guarantee that the volume is cached and stable! */
 /* Should priority be an implicit argument? -JJK */
-fsobj *fsdb::Create(VenusFid *key, int priority, char *comp)
+fsobj *fsdb::Create(VenusFid *key, int priority, char *comp, VenusFid *parent)
 {
     fsobj *f = 0;
     int rc = 0;
@@ -466,10 +466,32 @@ fsobj *fsdb::Create(VenusFid *key, int priority, char *comp)
 	FSDB->FreeFso(f);
         f = new (FROMFREELIST, priority) fsobj(key, comp);
     }
+
+    if (f && !f->IsRoot()) {
+	if (!parent) {
+	    /* Laboriously scan database to find our parent! */
+	    struct dllist_head *p;
+	    list_for_each(p, f->vol->fso_list) {
+		fsobj *pf = list_entry_plusplus(p, fsobj, vol_handle);
+
+		if (!pf->IsDir() || pf->IsMtPt()) continue;
+		if (!HAVEALLDATA(pf)) continue;
+		if (!pf->dir_IsParent(&f->fid)) continue;
+
+		parent = &pf->fid;
+		break; /* Found! */
+	    }
+	}
+	if (parent)
+	    f->SetParent(parent->Vnode, parent->Unique);
+    }
     Recov_EndTrans(MAXFP);
 
     if (!f)
 	LOG(0, ("fsdb::Create: (%s, %d) failed\n", FID_(key), priority));
+    else
+	LOG(100, ("fsdb::Create: (%s, %d) suceeeded\n", FID_(key), priority));
+
     return(f);
 }
 
@@ -496,7 +518,7 @@ fsobj *fsdb::Create(VenusFid *key, int priority, char *comp)
  * poor user can do about it.
  */
 int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
-	      char *comp, int *rcode, int GetInconsistent)
+	      char *comp, VenusFid *parent, int *rcode, int GetInconsistent)
 {
   int getdata = (rights & RC_DATA);
 
@@ -544,29 +566,32 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	vp->u.u_flags = saved_ctxt.u_flags;
 	vp->u.u_pid = saved_ctxt.u_pid;
 	vp->u.u_pgid = saved_ctxt.u_pgid;
-	
+
 	/* Do the Get on behalf of another volume. */
 	for (;;) {
-	  vp->Begin_VFS(MakeVolid(key), CODA_VGET);
-	  if (vp->u.u_error) break;
-	  
-	  vp->u.u_error = Get(f_addr, key, uid, rights, comp, rcode,
-						  GetInconsistent);
-	  
-	  if (vp->u.u_error != 0)
+	    int retry_call;
+
+	    vp->Begin_VFS(MakeVolid(key), CODA_VGET);
+	    if (vp->u.u_error) break;
+
+	    vp->u.u_error = Get(f_addr, key, uid, rights, comp, parent, rcode,
+				GetInconsistent);
+
+	    if (vp->u.u_error != 0)
 		Put(f_addr);
-	  int retry_call = 0;
-	  vp->End_VFS(&retry_call);
-	  if (!retry_call) break;
+
+	    retry_call = 0;
+	    vp->End_VFS(&retry_call);
+	    if (!retry_call) break;
 	}
 	code = vp->u.u_error;
-	
+
 	/* Restore the user context. */
 	vp->u = saved_ctxt;
-	
+
 	return(code);
   }
-  
+
   fsobj *f = 0;
 
   int	reference = (vp->u.u_flags & REFERENCE);
@@ -613,18 +638,19 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	  VDB->Put(&v);
 	  return(ETIMEDOUT);
 	}
-	
+
 	/* Attempt the create. */
-	f = Create(key, vp->u.u_priority, comp);
-	
+	f = Create(key, vp->u.u_priority, comp, parent);
+
 	/* Release the volume. */
 	VDB->Put(&v);
-	
+
 	if (!f)
 	  return(ENOSPC);
-	
+
 	/* Transform object into fake mtpt if necessary. */
 	if (FID_IsLocalFake(key) || FID_IsFakeRoot(MakeViceFid(key))) {
+	  LOG(0, ("fsdb::Get: transforming %s (%s) into fake mtpt with Fakeify()\n", f->GetComp(), FID_(&f->fid)));
 	  if (f->Fakeify()) {
 		LOG(0, ("fsdb::Get: can't transform %s (%s) into fake mt pt\n",
 				f->GetComp(), FID_(&f->fid)));
@@ -661,19 +687,27 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	
 	/* Read-lock the entry. */
 	f->Lock(RD);
-	
+
 	/* Update component. */
 	if (comp && comp[0] != '\0' &&
-		!STREQ(comp, ".") && !STREQ(comp, "..") && !STREQ(comp, f->comp)) {
-	  Recov_BeginTrans();
-	  f->SetComp(comp);
-	  Recov_EndTrans(MAXFP);
+	    !STREQ(comp, ".") && !STREQ(comp, "..") && !STREQ(comp, f->comp))
+	{
+	    Recov_BeginTrans();
+	    f->SetComp(comp);
+	    Recov_EndTrans(MAXFP);
 	}
-  }
-  
-  /* Consider fetching status and/or data. */
-  if (!f->IsLocalObj() &&
-	  ((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f)))) {
+
+	/* Update parent linkage */
+	if (parent && !f->pfso) {
+	    Recov_BeginTrans();
+	    f->SetParent(parent->Vnode, parent->Unique);
+	    Recov_EndTrans(MAXFP);
+	}
+    }
+
+    /* Consider fetching status and/or data. */
+    if (!f->IsLocalObj() &&
+	((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f)))) {
 	/* Note that we CANNOT fetch, and must use whatever status/data we have, if : */
 	/*     - the file is being exec'ed (or the VM system refuses to release its pages) */
 	/*     - the file is open for write */
@@ -688,31 +722,16 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	   * ALWAYS know how many blocks to allocate when fetching data. */
 	  if (!STATUSVALID(f)) {
 		code = f->GetAttr(uid);
-		
+
 		if (rcode) *rcode = code;	/* added for local-repair */
+
 		/* Conjure a fake directory to represent an inconsistent object. */
-		if (code == EINCONS) { 
-		  LOG(0, ("fsdb::Get: Object inconsistent. (key = <%s>)\n", 
-				  FID_(key)));
+		if (code == EINCONS && !f->IsFake()) {
+		    k_Purge(&f->fid, 1);
+		    f->flags.fake = 1;
+		    LOG(0, ("fsdb::Get: Object inconsistent, declaring it fake! (key = <%s>)\n",
+			    FID_(key)));
 #if 0
-		  userent *u;
-		  char path[MAXPATHLEN];
-		  
-		  f->GetPath(path,1);
-		  GetUser(&u, f->vol->realm, uid);
-		  CODA_ASSERT(u != NULL);
-		  PutUser(&u);
-		  
-		  /* We notify all users that objects are in conflict because
-		   * it is often the case that uid=-1, so we notify nobody.
-		   * It'd be better if we could notify the user whose
-		   * activities triggered this object to go inconsistent.
-		   * However, that person is difficult to determine and could
-		   * be the hoard daemon.  Notifying everyone seems to be a
-		   * reasonable alternative, if not terribly satisfying. */
-		  /* NotifyUsersOb`jectInConflict(path, key); */
-#endif
-		  
 		  k_Purge(&f->fid, 1);
 		  if (f->refcnt > 1) {
 			/* If refcnt is greater than 1, it means we aren't the
@@ -742,10 +761,10 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 			 and if the refcnt test above didn't catch that
 			 the Put wouldn't, we're hosed!  We'll most likely
 			 get a "Create: key found" fatal error. */
-		  f = Create(key, vp->u.u_priority, comp);
+		  f = Create(key, vp->u.u_priority, comp, parent);
 		  if (!f)
 			return(ENOSPC);
-		  
+
 		  /* 
 		   * Transform object into fake directory.  If that doesn't
 		   * work, return EIO...NOT EINCONS, which will get passed
@@ -755,21 +774,24 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 		   */
 		  eprint("%s (%s) inconsistent!", f->GetComp(), FID_(&f->fid));
 		  if (f->Fakeify()) {
+		      LOG(0, ("fsdb::Get: transforming %s (%s) into fake directory failed!\n",
+			      f->GetComp(), FID_(&f->fid)));
 			Recov_BeginTrans();
 			f->Kill();
 			Recov_EndTrans(MAXFP);
 			Put(&f);
 			return(EIO);
 		  }
+#endif
 		}
-		
-		if (code != 0) {
+
+		if (code) {
 		    if (code == ETIMEDOUT)
 			LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
 		    if (code == EINCONS && GetInconsistent) {
-		        code = 0;
+			code = 0;
 		    } else {
-		        Put(&f);
+			Put(&f);
 			return(code);
 		    }
 		}
@@ -934,10 +956,10 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	  }
 	}
   }
-  
+
   /* Examine the possibility of executing an ASR. */
   if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated() &&
-      !((repvol *)f->vol)->IsUnderRepair(uid))
+      !((repvol *)f->vol)->IsUnderRepair(uid) && !f->IsExpandedObj())
   {
 	int ASRInvokable;
 	repvol *v;

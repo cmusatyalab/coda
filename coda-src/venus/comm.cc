@@ -451,27 +451,18 @@ connent *conn_iterator::operator()()
  *    contacted (i.e., at initialization), -2 indicates that the server has just NAK'ed an RPC.
  */
 
-#define	SRVRQ_LOCK()
-#define	SRVRQ_UNLOCK()
-#define	SRVRQ_WAIT()	    VprocWait((char *)&srvent::srvtab_sync)
-#define	SRVRQ_SIGNAL()	    VprocSignal((char *)&srvent::srvtab_sync)
-
 void Srvr_Wait() {
-    SRVRQ_LOCK();
     LOG(0, ("WAITING(SRVRQ):\n"));
     START_TIMING();
-    SRVRQ_WAIT();
+    VprocWait((char *)&srvent::srvtab_sync);
     END_TIMING();
     LOG(0, ("WAIT OVER, elapsed = %3.1f\n", elapsed));
-    SRVRQ_UNLOCK();
 }
 
 
 void Srvr_Signal() {
-    SRVRQ_LOCK();
     LOG(10, ("SIGNALLING(SRVRQ):\n"));
-    SRVRQ_SIGNAL();
-    SRVRQ_UNLOCK();
+    VprocSignal((char *)&srvent::srvtab_sync);
 }
 
 

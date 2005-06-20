@@ -35,19 +35,19 @@ extern "C" {
 static int srvstr(char *rwpath, char *retbuf, int size);
 static int volstat(char *path, char *space, int size);
 
-/* Assumes pathname refers to a conflict
- * Allocates new repvol and returns it in repv
+/* Assumes pathname refers to a conflict object
+ * Allocates new conflict and returns it in conf
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
-int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) {
+int repair_newrep(char *pathname, struct conflict **conf, char *msg, int msgsize) {
     char msgbuf[DEF_BUF], reppath[MAXPATHLEN], prefix[MAXPATHLEN], suffix[MAXPATHLEN];
-    VolumeId vid;
     char realm[MAXHOSTNAMELEN];
 
-    if (repv == NULL) {
-	strerr(msg, msgsize, "NULL repv");
+    if (conf == NULL) {
+	strerr(msg, msgsize, "NULL conf");
 	return(-1);
     }
 
+#if 0 /* XXX; don't think this is necessary anymore? */
     if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msg, msgsize) < 0)
 	return(-1);
 
@@ -55,196 +55,115 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
 	strerr(msg, msgsize, "Could not get volume mount point: %s", msgbuf);
 	return(-1);
     }
+#endif
 
-    *repv = (struct repvol *)calloc(1, sizeof(struct repvol)); /* inits all fields to 0 */
-    if (*repv == NULL) { 
+    *conf = (struct conflict *)calloc(1, sizeof(struct conflict)); /* inits all fields to 0 */
+    if (*conf == NULL) {
 	strerr(msg, msgsize, "Malloc failed");
 	return(-1);
     }
 
-    sprintf((*repv)->rodir, "%s", reppath); /* remember conflict path */
-    (*repv)->vid = vid;                     /* remember the volume id */
-//    strcpy((*repv)->realm, realm);
-    strcpy((*repv)->mnt, prefix);           /* remember its mount point */
-    sprintf((*repv)->vname, "%#x@%s", vid, realm);
-    /* GETVOLSTAT doesn't work on rep vols, so just use hex version of volid */
+    sprintf((*conf)->rodir, "%s", pathname); /* remember conflict path */
     return(0);
 }
 
-/* rwarray:	non-zero elements specify volids of replicas
- * arraylen:	how many elements in rwarray
- *
- *  Determines conflict type and fills in repv->local
- *  Allocates and links each rw replica in rwarray 
- *     (after matching against directory entries)
- *  "mount" in function name is historical
+/*
+ *  Determines conflict type and fills in conflict->local
+ *  Allocates and links each replica based on directory entries
+ *  "mount" and "rw" in function name are historical (neither true)
  *  Returns 0 on success, -1 on failure (after cleaning up)
  */
-int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *msg, int msgsize) {
+int repair_mountrw(struct conflict *conf, char *msg, int msgsize) {
     char tmppath[MAXPATHLEN], buf[DEF_BUF], space[DEF_BUF], *ptr, *volname;
     int i, confl, cmlcnt;
-    struct volrep *rwv, *rwtail = NULL;
+    struct replica *rwv, *rwtail = NULL;
     struct dirent *de;
-    VolumeStatus *vs;
     DIR *d;
 
-    if (repv == NULL) {
-	strerr(msg, msgsize, "NULL repv");
+    if (conf == NULL) {
+	strerr(msg, msgsize, "NULL conflict");
 	return(-1);
     }
 
-    /* determine conflict type (local/global or server/server) */
-    if (volstat(repv->rodir, buf, sizeof(buf))) {
-	strerr(msg, msgsize, "VIOCGETVOLSTAT %s failed", tmppath);
-	return(-1);
-    }
-    ptr = buf; /* invariant: ptr always point to next obj to be read */
-    vs = (VolumeStatus *)ptr;
-    ptr += sizeof(VolumeStatus);
-    volname = ptr;
-    ptr += strlen(volname) + 1 + sizeof(int); /* skip past connection state */
-    memcpy(&confl, ptr, sizeof(int));
-    ptr += sizeof(int);
-    memcpy (&cmlcnt, ptr, sizeof(int));
-    repv->local = (confl && (cmlcnt > 0)) ? 1 : 0;
-
-    if ((d = opendir(repv->rodir)) == NULL) {
-	strerr(msg, msgsize, "opendir failed: %s", strerror(errno));
-	return(-1);
+    if ((d = opendir(conf->rodir)) == NULL) {
+      printf("Oh shit! opendir:%s\n",conf->rodir);
+      strerr(msg, msgsize, "opendir failed: %s", strerror(errno));
+      return(-1);
     }
 
-    if (repv->local) { /* local/global conflict */
+    while ((de = readdir(d)) != NULL) {
+      if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..") ||
+	  !strcmp(de->d_name, ".localcache"))
+	continue;
 
-	/* rwarray is useless here, since it holds the vid's of the replicas
-	 * of the volume in conflict, while the directory entries 
-	 * (local and global) have the vid's of the local fake volume (0xffffffff) 
-	 * and the volume itself, not the replicas */
+      /* allocate new replica and link it in */
+      rwv = (struct replica *)calloc(1, sizeof(struct replica));
+      if (rwv == NULL) goto CLEANUP;
+      if (rwtail != NULL) rwtail->next = rwv;
+      else conf->head = rwv;
+      rwtail = rwv;
 
-	i = 0;
-	while ((de = readdir(d)) != NULL) {
-	    if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..")) continue;
+#if 0 /* XXX: this seems to be done in BeginRepair more correctly */
+      if(!strcmp(de->d_name, "_localcache"))
+	conf->local = 1;
+#endif
 
-	    snprintf(tmppath, sizeof(tmppath), "%s/%s", repv->rodir, de->d_name);
-	    if (volstat(tmppath, space, sizeof(space))) {
-		strerr(msg, msgsize, "VIOCGETVOLSTAT %s failed", tmppath);
-		continue;
-	    }
+      snprintf(tmppath, sizeof(tmppath), "%s/%s", conf->rodir, de->d_name);
 
-	    /* allocate new replica and link it in */
-	    rwv = (struct volrep *)calloc(1, sizeof(struct volrep));
-	    if (rwv == NULL) goto CLEANUP;
-	    if (rwtail != NULL) rwtail->next = rwv;
-	    else repv->rwhead = rwv;
-	    rwtail = rwv;
+      /* set replica values */
+      if (repair_getfid(tmppath, &rwv->fid, rwv->realmname, NULL,
+			msg, msgsize) < 0) {
+        printf("Oh shit! getfid %s!\n",tmppath);
+	goto CLEANUP;
+      }
 
-	    /* set replica values */
-	    rwv->vid = ((VolumeStatus *)space)->Vid;
-	    strcpy(rwv->vname, space + sizeof(VolumeStatus));
-	    strcpy(rwv->compname, de->d_name);
+      strcpy(rwv->compname, de->d_name);
 
-	    if (strcmp(de->d_name, "global") == 0) { /* global entry */
-		if ((vs->Vid != rwv->vid)
-		    || (strcmp(rwv->vname, volname) != 0)) {
-		    strerr(msg, msgsize, "Global entry mismatch");
-		    goto CLEANUP;
-		}
-		strcpy(rwv->srvname, "global"); /* XXXX */
-	    }
-	    else if (strcmp(de->d_name, "local") == 0) { /* local entry */
-		if (((strcmp(rwv->vname, "Repair") != 0) &&
-		     (strcmp(rwv->vname, "A_Local_Fake_Volume") != 0)) ||
-		    (rwv->vid != 0xffffffff)) {
-		    strerr(msg, msgsize, "Local entry mismatch");
-		    goto CLEANUP;
-		}
-		strcpy(rwv->srvname, "localhost"); /* XXXX */
-	    }
-	    else { /* problem */
-		strerr(msg, msgsize, "Unexpected entry \"%s\"", de->d_name);
-		goto CLEANUP;
-	    }
-	    i++;
-	}
-	if (i != 2) {
-	    strerr(msg, msgsize, "Too %s directory entries", ((i < 2) ? "few" : "many"));
-	    goto CLEANUP;
-	}
-    }
-    else { /* server/server conflict */
-
-	while ((de = readdir(d)) != NULL) {
-	    if (!strcmp(de->d_name, ".") || !strcmp(de->d_name, "..")) continue;
-
-	    snprintf(tmppath, sizeof(tmppath), "%s/%s", repv->rodir, de->d_name);
-	    if (volstat(tmppath, space, sizeof(space))) {
-		strerr(msg, msgsize, "VIOCGETVOLSTAT %s failed", tmppath);
-		continue;
-	    }
-
-	    for (i = 0; i < arraylen; i++) { /* find the array entry for this de */
-		if (!rwarray[i]) continue;  /* pioctl output need not be contiguous */
-		if (rwarray[i] == ((VolumeStatus *)space)->Vid) { /* found it! */
-
-		    /* allocate new replica and link it in */
-		    rwv = (struct volrep *)calloc(1, sizeof(struct volrep));
-		    if (rwv == NULL) goto CLEANUP;
-		    if (rwtail != NULL) rwtail->next = rwv;
-		    else repv->rwhead = rwv;
-		    rwtail = rwv;
-
-		    /* set replica values */
-		    rwv->vid = ((VolumeStatus *)space)->Vid;
-		    strcpy(rwv->vname, space + sizeof(VolumeStatus));
-		    strcpy(rwv->compname, de->d_name);
-		    if (srvstr(tmppath, rwv->srvname, sizeof(rwv->srvname)) < 0)
-			goto CLEANUP;
-
-		    rwarray[i] = 0; /* blank this array entry */
-		    break;
-		}
-	    }
-	    if (i == arraylen) {
-		strerr(msg, msgsize, "No such replica vid=%08x", ((VolumeStatus *)space)->Vid);
-		goto CLEANUP;
-	    }
-	}
-
+      if(!strcmp(de->d_name, "_localcache")) {
+	strcpy(rwv->srvname,"localhost");
+      }
+      else if (srvstr(tmppath, rwv->srvname, sizeof(rwv->srvname)) < 0) {
+        printf("Oh shit! srvstr:%s!\n",tmppath);
+	goto CLEANUP;
+      }
     }
 
     if (closedir(d) < 0) {
-	strerr(msg, msgsize, "closedir failed: %s", strerror(errno));
-	d = NULL;
-	goto CLEANUP;
+      printf("Oh shit! closedir!\n");
+      strerr(msg, msgsize, "closedir failed: %s", strerror(errno));
+      d = NULL;
+      goto CLEANUP;
     }
 
     return(0);
 
  CLEANUP:
-    while ((rwv = repv->rwhead) != NULL) {
-	repv->rwhead = rwv->next;
-	free(rwv);
+    printf("Oh shit! Cleaning\n");
+    while ((rwv = conf->head) != NULL) {
+      conf->head = rwv->next;
+      free(rwv);
     }
     if (d != NULL) closedir(d);
     return(-1);
 }
 
 /* Frees all data structures associated with repv. */
-void repair_finish(struct repvol *repv)
+void repair_finish(struct conflict *conf)
 {
-    struct volrep *rwv;
+    struct replica *rwv;
 
-    if (repv == NULL) {
-	printf("Error:  trying to free null repvol\n");
+    if (conf == NULL) {
+	printf("Error:  trying to free null conflict\n");
 	exit(2);
     }
-    while ((rwv = repv->rwhead) != NULL) {
-	repv->rwhead = rwv->next;
+    while ((rwv = conf->head) != NULL) {
+	conf->head = rwv->next;
 	free(rwv);
     }
-    free(repv);
+    free(conf);
 }
 
-/* fills in retbuf with string identifying the server housing replica 
+/* fills in retbuf with string identifying the server housing replica
  * retbuf contains error message if pioctl (or something else) fails
  * returns 0 on success, -1 on failure */    
 static int srvstr(char *rwpath, char *retbuf, int size) {
@@ -271,14 +190,4 @@ static int srvstr(char *rwpath, char *retbuf, int size) {
     if (thp != NULL) snprintf(retbuf, size, "%s", thp->h_name);
     else snprintf(retbuf, size, "%s", inet_ntoa(*(struct in_addr *)&hosts[0]));
     return(0);
-}
-
-static int volstat(char *path, char *space, int size) {
-    struct ViceIoctl vioc;
-    memset(space, 0, size);
-    vioc.in = NULL;
-    vioc.in_size = 0;
-    vioc.out = space;
-    vioc.out_size = size;
-    return(pioctl(path, _VICEIOCTL(_VIOCGETVOLSTAT), &vioc, 1));
 }

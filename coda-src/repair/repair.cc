@@ -20,7 +20,7 @@ listed in the file CREDITS.
 #include "repair.h"
 
 int allowclear = 0, session = NOT_IN_SESSION, repair_DebugFlag = 0;
-struct repvol *RepairVol = NULL;
+struct conflict *ConflictObj = NULL;
 char cfix[MAXPATHLEN];
 
 static char *coda_mountpoint;
@@ -41,9 +41,6 @@ command_t list[] = {
     {"preservealllocal", rep_PreserveAllLocal, 0, ""}, /* no args */
     {"discardlocal",     rep_DiscardLocal,     0, ""}, /* no args */
     {"discardalllocal",  rep_DiscardAllLocal,  0, ""}, /* no args */
-    {"setglobalview",    rep_SetGlobalView,    0, ""}, /* no args */
-    {"setmixedview",     rep_SetMixedView,     0, ""}, /* no args */
-    {"setlocalview",     rep_SetLocalView,     0, ""}, /* no args */
     {"help",             rep_Help,             0, ""}, /* no args */
     { NULL, NULL, 0, ""},
 };
@@ -56,7 +53,7 @@ command_t list[] = {
 
 int main(int argc, char **argv)
 {
-    struct repvol *repv;
+    struct conflict *conf;
     char msgbuf[DEF_BUF];
 
     memset(cfix, 0, sizeof(cfix));
@@ -71,19 +68,19 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
 	else {
-	    if ((BeginRepair(argv[2], &repv, msgbuf, sizeof(msgbuf))) < 0) {
+	    if ((BeginRepair(argv[2], &conf, msgbuf, sizeof(msgbuf))) < 0) {
 		fprintf(stderr, "%s\nError beginning repair\n", msgbuf);
 		exit(1);
 	    }
-	    if (repv->local) { /* local/global conflict */
-		if (DiscardAllLocal(repv, msgbuf, sizeof(msgbuf)) < 0)
+	    if (conf->local) { /* local/global conflict XXX */
+		if (DiscardAllLocal(conf, msgbuf, sizeof(msgbuf)) < 0)
 		    fprintf(stderr, "%s\nError discarding local mutations\n", msgbuf);
 	    }
 	    else { /* server/server conflict */
-		if (RemoveInc(repv, msgbuf, sizeof(msgbuf)) < 0)
+		if (RemoveInc(conf, msgbuf, sizeof(msgbuf)) < 0)
 		    fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
 	    }
-	    if (EndRepair(repv, 1, msgbuf, sizeof(msgbuf)) < 0)
+	    if (EndRepair(conf, 1, msgbuf, sizeof(msgbuf)) < 0)
 		fprintf(stderr, "%s\nError ending repair\n", msgbuf);
 	    Parser_exit(0, NULL);
 	    execlp("rm", "rm", "-Rf", argv[2], (char *)NULL);
@@ -235,7 +232,7 @@ void INT(int, int, struct sigcontext *) {
 
 void rep_BeginRepair(int largc, char **largv) {
     char userpath[MAXPATHLEN], msgbuf[DEF_BUF];
-    struct repvol *repv;
+    struct conflict *conf;
     int rc;
 
     switch (session) {
@@ -259,26 +256,35 @@ void rep_BeginRepair(int largc, char **largv) {
     }
 
     /* Begin the repair */
-    if ((rc = BeginRepair(userpath, &repv, msgbuf, sizeof(msgbuf))) < 0) {
+    if ((rc = BeginRepair(userpath, &conf, msgbuf, sizeof(msgbuf))) < 0) {
 	fprintf(stderr, "%s\nbeginrepair failed.\n", msgbuf);
 	return;
     }
-    RepairVol = repv;
-    session = (repv->local) ? LOCAL_GLOBAL : SERVER_SERVER;
+    ConflictObj = conf;
+    session = (conf->local) ? LOCAL_GLOBAL : SERVER_SERVER;
     if (session == LOCAL_GLOBAL) {
-	printf("Local-global %s repair session started.\n", (repv->dirconf ? "directory" : "file"));
-	printf("Available Commands:\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n",
-	       "checklocal", "listlocal", "preservelocal", "preservealllocal", "discardlocal",
-	       "discardalllocal", "setglobalview", "setmixedview", "setlocalview");
+	printf("Local-global %s repair session started.\n", (conf->dirconf ? "directory" : "file"));
+	printf("Available Commands:\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n",
+	       "checklocal", "listlocal", "preservelocal", "preservealllocal",
+	       "discardlocal", "discardalllocal");
 	printf("A list of local mutations is available in the .cml file in the coda spool directory\n");
     }
-    else { /* (session == SERVER_SERVER) */
-	printf("Server-server %s repair session started.\n", (repv->dirconf ? "directory" : "file"));
-	if (repv->dirconf) /* directory conflict */
+    else if(session == SERVER_SERVER) {
+	printf("Server-server %s repair session started.\n", (conf->dirconf ? "directory" : "file"));
+	if (conf->dirconf) /* directory conflict */
 	    printf("Available commands:\n\t%s\n\t%s\n\t%s\n", "comparedirs", "removeinc", "dorepair");
 	else /* file conflict */
 	    printf("Available commands:\n\t%s\n\t%s\n\n", "replaceinc", "removeinc");
     }
+#if 0
+    else if(session == MIXED_SESSION) {
+	printf("Mixed local-global/server-server %s repair session started.\n", (conf->dirconf ? "directory" : "file"));
+	if (conf->dirconf) /* directory conflict */
+	    printf("I'm not sure if there are any available commands.\n");
+	else /* file conflict */
+	    printf("I'm not sure if there are any available commands.\n");
+    }
+#endif
     fflush(stdout);
 }
 
@@ -314,7 +320,7 @@ void rep_ClearInc(int largc, char **largv) {
 	printf("Clear Inconsistency: This command is obsolete.");
 	printf("You don't need to use this anymore\n");
     }
-    else if (ClearInc(RepairVol, msgbuf, sizeof(msgbuf)) < 0)
+    else if (ClearInc(ConflictObj, msgbuf, sizeof(msgbuf)) < 0)
 	fprintf(stderr, "Error clearing inconsistency: %s\n", msgbuf);
 }
 
@@ -337,16 +343,16 @@ void rep_CompareDirs(int largc, char **largv) {
 	return;
 
     if (session == LOCAL_GLOBAL) {
-	if ((ret = CompareDirs(RepairVol, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
-	    if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) >= 0) {
+	if ((ret = CompareDirs(ConflictObj, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
+	    if (DoRepair(ConflictObj, fixfile, stdout, msgbuf, sizeof(msgbuf)) >= 0) {
 		rep_PreserveAllLocal(0, NULL);
 		return;
 	    }
 	}
     }
     else { /* session == SERVER_SERVER */
-	while ((ret = CompareDirs(RepairVol, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
-	    if (DoRepair(RepairVol, fixfile, stdout, msgbuf, sizeof(msgbuf)) < 0)
+	while ((ret = CompareDirs(ConflictObj, fixfile, &inf, msgbuf, sizeof(msgbuf))) == -2) {
+	    if (DoRepair(ConflictObj, fixfile, stdout, msgbuf, sizeof(msgbuf)) < 0)
 		break;
 	}
     }
@@ -360,7 +366,7 @@ void rep_DiscardAllLocal(int largc, char **largv) {
 
     if (checkIfLocal("discardalllocal")) return;
 
-    if (DiscardAllLocal(RepairVol, msgbuf, sizeof(msgbuf)) < 0)
+    if (DiscardAllLocal(ConflictObj, msgbuf, sizeof(msgbuf)) < 0)
 	fprintf(stderr, "%s\ndiscardalllocal failed\n", msgbuf);
 }
 
@@ -395,7 +401,7 @@ void rep_DoRepair(int largc, char **largv) {
     /* Obtain parameters and confirmation from user */
     if (getrepairargs(largc, largv, ufixpath) < 0) return;
 
-    if (DoRepair(RepairVol, ufixpath, stdout, msgbuf, sizeof(msgbuf)) < 0)
+    if (DoRepair(ConflictObj, ufixpath, stdout, msgbuf, sizeof(msgbuf)) < 0)
       fprintf(stderr, "%s\nRepair failed.\n", msgbuf);
 }
 
@@ -410,8 +416,8 @@ void rep_EndRepair(int largc, char **largv) {
 	break;
     case LOCAL_GLOBAL:
 	commit = (Parser_getbool("Commit the local-global repair session?", 1)) ? 1 : 0;
-    case SERVER_SERVER: 
-	if (EndRepair(RepairVol, commit, msgbuf, sizeof(msgbuf)) < 0) {
+    case SERVER_SERVER:
+      if (EndRepair(ConflictObj, commit, msgbuf, sizeof(msgbuf)) < 0) {
 	    fprintf(stderr, "%s\nError ending repair session\n", msgbuf);
 	    exit(2);
 	}
@@ -430,7 +436,7 @@ void rep_Exit(int largc, char **largv)
 {
     /* terminate the current session, if there is one */
     if (session != NOT_IN_SESSION)
-	rep_EndRepair(0, NULL);
+	rep_EndRepair(largc, largv);
 
     Parser_exit(0, NULL); /* exit the repair tool */
 }
@@ -518,32 +524,34 @@ void rep_PreserveLocal(int largc, char **largv) {
 }
 
 void rep_RemoveInc(int largc, char **largv) {
-    int rc, dirconf;
-    char msgbuf[DEF_BUF];
+    int dirconf;
 
     if (checkserver("removeinc")) return;
     printf("\"removeinc\" will terminate the current repair session\n");
 
-    dirconf = RepairVol->dirconf; /* remember conflict type (since Endrepair will free it) */
+    dirconf = ConflictObj->dirconf; /* remember conflict type (since Endrepair will free it) */
 
-    printf("Completely remove %s?", RepairVol->rodir);
+    printf("Completely remove %s?", ConflictObj->rodir);
     if (!Parser_getbool("", 1)) {
 	printf("Operation aborted.\n");
 	return;
     }
 
+#if 0
     /* remove the inconsistency */
-    if ((rc = RemoveInc(RepairVol, msgbuf, sizeof(msgbuf))) < 0)
+    if ((rc = RemoveInc(ConflictObj, msgbuf, sizeof(msgbuf))) < 0)
 	fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
     /* end the repair session */
-    else if ((rc = EndRepair(RepairVol, 0, msgbuf, sizeof(msgbuf))) < 0)
+    else if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0)
 	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
 
     if (!rc) { /* no error - try to remove the object */
-	if (((dirconf) ? rmdir(RepairVol->rodir) : unlink(RepairVol->rodir)) < 0)
+	if (((dirconf) ? rmdir(ConflictObj->rodir) : unlink(RepairVol->rodir)) < 0)
 	    fprintf(stderr, "%s\nCould not remove %s\n", strerror(errno), RepairVol->rodir);
     }
     else exit(2);
+#endif
+
 }
 
 void rep_ReplaceInc(int largc, char **largv)
@@ -556,14 +564,14 @@ void rep_ReplaceInc(int largc, char **largv)
     struct stat sbuf;
 
     if (checkserver("replaceinc")) return;
-    if (RepairVol->dirconf) {
+    if (ConflictObj->dirconf) {
 	printf("\"replaceinc\" can only be used to repair file conflicts\n");
 	return;
     }
     printf("\"replaceinc\" will terminate the current repair session\n");
 
     if (largc == 1) {
-	printf("Pathname of object to replace %s ", RepairVol->rodir);
+	printf("Pathname of object to replace %s ", ConflictObj->rodir);
 	Parser_getstr("with?", "", mergefile, MAXPATHLEN);
     }
     else if (largc == 2)
@@ -585,78 +593,17 @@ void rep_ReplaceInc(int largc, char **largv)
 	sprintf(fixpath, "@%x.%x.%x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
     else strcpy(fixpath, mergefile);
 
-    printf("Replace %s\n   with %s?", RepairVol->rodir, mergefile);
+    printf("Replace %s\n   with %s?", ConflictObj->rodir, mergefile);
     if (!Parser_getbool("", 1)) {
 	printf("Operation aborted.\n");
 	return;
     }
 
-    if ((rc = EndRepair(RepairVol, 0, msgbuf, sizeof(msgbuf))) < 0)
+    if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0)
 	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
 
-    if ((dorep(RepairVol, fixpath, NULL, 0) < 0) && (errno != ETOOMANYREFS)) {
+    if ((dorep(ConflictObj, fixpath, NULL, 0) < 0) && (errno != ETOOMANYREFS)) {
 	fprintf(stderr, "Error repairing conflict: %s\n", strerror(errno));
 	return;
     }
-}
-
-void rep_SetGlobalView(int largc, char **largv)
-{
-    struct ViceIoctl vioc;
-    int rc;
-    char space[DEF_BUF];
-    char buf[BUFSIZ];
-
-    if (checkIfLocal("setglobalview")) return;
-
-    vioc.out = space;
-    vioc.out_size = DEF_BUF;
-    sprintf(buf, "%d", REP_CMD_GLOBAL_VIEW);
-    vioc.in = buf;
-    vioc.in_size = (short) strlen(buf) + 1;
-
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_GLOBAL_VIEW)");
-    printf("%s\n", vioc.out);
-    fflush(stdout);
-}
-
-void rep_SetLocalView(int largc, char **largv) {
-    struct ViceIoctl vioc;
-    int rc;
-    char space[DEF_BUF];
-    char buf[BUFSIZ];
-
-    if (checkIfLocal("setlocalview")) return;
-
-    vioc.out = space;
-    vioc.out_size = DEF_BUF;
-    sprintf(buf, "%d", REP_CMD_LOCAL_VIEW);
-    vioc.in = buf;
-    vioc.in_size = (short) strlen(buf) + 1;
-
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_LOCAL_VIEW)");
-    printf("%s\n", vioc.out);
-    fflush(stdout);
-}
-
-void rep_SetMixedView(int largc, char **largv) {
-    struct ViceIoctl vioc;
-    int rc;
-    char space[DEF_BUF];
-    char buf[BUFSIZ];
-
-    if (checkIfLocal("setmixedview")) return;
-
-    vioc.out = space;
-    vioc.out_size = DEF_BUF;
-    sprintf(buf, "%d", REP_CMD_MIXED_VIEW);
-    vioc.in = buf;
-    vioc.in_size = (short) strlen(buf) + 1;
-
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_MIXED_VIEW)");
-    printf("%s\n", vioc.out);
-    fflush(stdout);
 }

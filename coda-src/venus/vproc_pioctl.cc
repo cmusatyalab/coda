@@ -90,14 +90,14 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 	    fsobj *f = 0;
 
 	    int volmode = (nr == _VIOCSETAL || nr == _VIOC_ADD_MT_PT ||
-			   nr == _VIOC_AFS_DELETE_MT_PT || nr == _VIOC_SETVV) ?
-			   VM_MUTATING : VM_OBSERVING;
+			   nr == _VIOC_AFS_DELETE_MT_PT || nr == _VIOC_SETVV)
+	      ? VM_MUTATING : VM_OBSERVING;
 	    int rcrights = RC_STATUS;
 	    if (nr == _VIOC_ADD_MT_PT || nr == _VIOC_AFS_DELETE_MT_PT)
 		rcrights |= RC_DATA;
 
 	    for (;;) {
-		Begin_VFS(fid, CODA_IOCTL, volmode);
+	        Begin_VFS(fid, CODA_IOCTL, volmode);
 		if (u.u_error) break;
 
 		u.u_error = FSDB->Get(&f, fid, u.u_uid, rcrights);
@@ -268,6 +268,12 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			 * mount a specific object in the fake repair volume.
 			 *
 			 * -JH
+			 *
+			 * Additionally, collapsing an expanded object that
+			 * was previously a mount point modifies the old mount-
+			 * link to start with '$'. This is to avoid problems
+			 * with ignoring dangling symlinks within
+			 * TryToCover, and is never visible to the user. - Adam
 			 */
 			/* make it a 'magic' mount name */
 			snprintf(contents, CODA_MAXNAMLEN,  "#%s.", arg);
@@ -442,47 +448,97 @@ O_FreeLocks:
 
 	/* Object-based. Allowing access to inconsistent objects. */
 	case _VIOC_ENABLEREPAIR:
+	case _VIOC_DISABLEREPAIR:
+        case _VIOC_EXPANDOBJECT:
+        case _VIOC_COLLAPSEOBJECT:
 	case _VIOC_FLUSHASR:
 	case _VIOC_GETFID:
 	    {
 	    fsobj *f = 0;
 
+	    int volmode = (nr == _VIOC_EXPANDOBJECT ||
+			   nr == _VIOC_ENABLEREPAIR ||
+			   nr == _VIOC_COLLAPSEOBJECT ||
+			   nr == _VIOC_DISABLEREPAIR)
+	      ? VM_MUTATING : VM_OBSERVING;
+
+	    int rcrights = RC_STATUS;
+
+	    if (nr == _VIOC_EXPANDOBJECT || nr == _VIOC_ENABLEREPAIR ||
+		nr == _VIOC_COLLAPSEOBJECT || nr == _VIOC_DISABLEREPAIR)
+	      rcrights |= RC_DATA;
+
 	    for (;;) {
-		Begin_VFS(fid, CODA_IOCTL, VM_OBSERVING);
+		Begin_VFS(fid, CODA_IOCTL, volmode);
 		if (u.u_error) break;
 
 		u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS,
-				      NULL, NULL, 1);
-		if (u.u_error) goto OI_FreeLocks;
+				      NULL, NULL, NULL, 1);
+		if (u.u_error && u.u_error != EINCONS) goto OI_FreeLocks;
 
 		switch(nr) {
+
 		case _VIOC_ENABLEREPAIR:
-		    {
+		  {
 		    /* Try to enable target volume for repair by this user. */
 		    VolumeId  *RWVols  = (VolumeId *)data->out;
 		    uid_t    *LockUids = (uid_t *)&(RWVols[VSG_MEMBERS]);
 		    unsigned long *LockWSs =
-			(unsigned long *)&(LockUids[VSG_MEMBERS]);
+		      (unsigned long *)&(LockUids[VSG_MEMBERS]);
 		    char      *endp     = (char *)&(LockWSs[VSG_MEMBERS]);
 
 		    /* actually EnableRepair operates on the volume, but we
 		     * also check if the object is really inconsistent */
 		    if (f->IsFake() && f->vol->IsReplicated())
-                        u.u_error =
-			    ((repvol *)f->vol)->EnableRepair(u.u_uid,
-							     RWVols,
-							     LockUids,
-							     LockWSs);
-                    else
-                        u.u_error = EOPNOTSUPP;
+		      u.u_error =
+			((repvol *)f->vol)->EnableRepair(u.u_uid,
+							 RWVols,
+							 LockUids,
+							 LockWSs);
+		    else
+		      u.u_error = EOPNOTSUPP;
 
 		    data->out_size = (endp - data->out);
+		  }
+
+		case _VIOC_EXPANDOBJECT:
+		  {
+		    f->PromoteLock();
+		    u.u_error = f->ExpandObject();
 
 		    /* Make sure the kernel drops the symlink */
 		    (void)k_Purge(fid, 1);
 		    (void)k_Purge(&f->pfid, 1);
 		    break;
-		    }
+		  }
+
+		case _VIOC_DISABLEREPAIR:
+#if 0
+		  {
+		    /* Disable repair of target volume by this user. */
+		    if (v->IsReplicated())
+		      u.u_error =
+			((repvol *)v)->DisableRepair(u.u_uid);
+		    else
+		      u.u_error = EOPNOTSUPP;
+
+		    (void)k_Purge(fid, 1);
+
+		    break;
+		  }
+#endif
+		  LOG(0,("vproc::do_ioctl: _VIOC_COLLAPSEOBJECT\n"));
+
+		case _VIOC_COLLAPSEOBJECT:
+		  {
+		    f->PromoteLock();
+		    u.u_error = f->CollapseObject();
+
+		    /* Make sure the kernel drops the subtree */
+		    (void)k_Purge(&f->fid, 1);
+		    (void)k_Purge(&f->pfid, 1);
+		    break;
+		  }
 
 		case _VIOC_FLUSHASR:
 		    /* This function used to be built around FSDB->Find, which
@@ -512,7 +568,7 @@ O_FreeLocks:
 			VenusFid mtptfid = f->u.mtpoint->fid;
 			FSDB->Put(&f);
 			u.u_error = FSDB->Get(&f, &mtptfid, u.u_uid, RC_STATUS,
-					      NULL, NULL, 1);
+					      NULL, NULL, NULL, 1);
 			if (u.u_error) break;
 		    }
 
@@ -550,7 +606,6 @@ OI_FreeLocks:
 	case _VIOCSETVOLSTAT:
 	case _VIOCWHEREIS:
 	case _VIOC_FLUSHVOLUME:
-	case _VIOC_DISABLEREPAIR:
 	case _VIOC_REPAIR:
 	case _VIOC_GETSERVERSTATS:
 	case _VIOC_CHECKPOINTML:
@@ -804,19 +859,6 @@ OI_FreeLocks:
 		    break;
 		    }
 
-		case _VIOC_DISABLEREPAIR:
-		    {
-		    /* Disable repair of target volume by this user. */
-                    if (v->IsReplicated())
-                        u.u_error =
-                            ((repvol *)v)->DisableRepair(u.u_uid);
-                    else
-                        u.u_error = EOPNOTSUPP;
-
-		    (void)k_Purge(fid, 1);
-
-		    break;
-		    }
 /*
   BEGIN_HTML
   <a name="dorepair"><strong> dorepair handler </strong></a>
@@ -835,8 +877,10 @@ OI_FreeLocks:
                     if (v->IsReplicated())
                         u.u_error = ((repvol *)v)->Repair(fid, RepairFile,
                                        u.u_uid, RWVols, ReturnCodes);
+		    else
+		      LOG(0, ("VIOC_REPAIR called on non-replicated volume!\n"));
 
- 	            LOG(0, ("MARIA: VIOC_REPAIR calls volent::Repair which returns %d\n",u.u_error));
+		    LOG(0, ("VIOC_REPAIR calls volent::Repair which returns %d\n",u.u_error));
 		    /* We don't have the object so can't provide a pathname
 		     * if ((SkkEnabled) && (u.u_error == 0)) {
 		     *   NotifyUsersObjectConsistent("???UNKNOWN???",fid);
@@ -1471,12 +1515,10 @@ V_FreeLocks:
   END_HTML
 */
 			case REP_CMD_END:
-			    {			
+			    {
 				int commit, dummy;
-				VenusFid *squirrelFid;
 
 				CODA_ASSERT(LRDB);
-				squirrelFid = LRDB->RFM_LookupGlobalRoot(LRDB->repair_root_fid);
 
 				sscanf((char *) data->in, "%d %d", &dummy, &commit);
 				LRDB->EndRepairSession(commit, (char *) data->out);

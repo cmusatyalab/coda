@@ -109,6 +109,8 @@ extern "C" {
 #define _VIOC_FLUSHVOLUME	(37)	/* flush whole volume's data */
 #define _VIOC_LISTCACHE_VOLUME	(39)	/* list volume's cached status */
 #define _VIOC_LOOKASIDE         (40) /* Add or remove  cache lookaside databases (Satya, 1/2003) */
+#define _VIOC_EXPANDOBJECT	(41) /* Turn fso into fake directory to expose underlying replicas */
+#define _VIOC_COLLAPSEOBJECT	(42) /* Collapse an expanded fso */
 
 /* These were defined with numbers that wrapped around the 8-bit size of the nr
  * component in the ioctl */

@@ -171,6 +171,8 @@ void fsobj::ResetPersistent()
     flags.owrite = 0;
     flags.dirty = 0;
     flags.local = 0;
+    flags.expanded = 0;
+    flags.modified = 0;
     mvstat = NORMAL;
     pfid = NullFid;
     CleanStat.Length = (unsigned long)-1;
@@ -292,8 +294,9 @@ fsobj::~fsobj() {
 	while ((d = children->first())) {
 	    fsobj *cf = strbase(fsobj, d, child_link);
 
-	    /* If this is a FakeDir delete all associated FakeMtPts since they are no longer useful! */
-	    if (IsFakeDir())
+	    /* If this is an expanded directory, delete all associated
+	     * mountlinks since they are no longer useful! - Adam 5/17/05*/
+	    if (IsExpandedDir())
 		cf->Kill();
 
 	    DetachChild(cf);
@@ -588,7 +591,7 @@ void fsobj::Demote(void)
 {
     if (!HAVESTATUS(this) || DYING(this)) return;
     //if (IsMtPt() || IsFakeMTLink()) return;
-    if (IsFakeMTLink()) return;
+    if (IsFakeMTLink() || IsExpandedMTLink()) return;
 
     LOG(10, ("fsobj::Demote: fid = (%s)\n", FID_(&fid)));
 
@@ -601,7 +604,7 @@ void fsobj::Demote(void)
 
     /* Kernel demotion must be severe for non-directories (i.e., purge name- as well as attr-cache) */
     /* because pfid is suspect and the only way to revalidate it is via a cfs_lookup call. -JJK */
-    int severely = (!IsDir() || IsFakeDir());
+    int severely = (!IsDir() || IsFakeDir() || IsExpandedDir()); /* Adam 5/17/05 */
     k_Purge(&fid, severely);
 }
 
@@ -1117,55 +1120,69 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 	eprint("TryToCover: bogus link length");
 	return(EINVAL);
     }
+
     char type = data.symlink[0];
-    switch(type) {
-	case '#':
-	case '@':
-	    break;
-
-	default:
-	    eprint("TryToCover: bogus mount point type (%c)", type);
-	    return(EINVAL);
-    }
-
-    /* Look up the volume that is to be mounted on us. */
 
     /* Turn volume name into a proper string. */
     data.symlink[len-1] = '\0';
 
+    VenusFid root_fid;
+    FID_MakeRoot(MakeViceFid(&root_fid));
+
+    /* Look up the volume that is to be mounted on us. */
+
     volent *tvol = 0;
-    if (IsFake()) {
+
+    switch(type) {
+    case '#':
+      code = VDB->Get(&tvol, vol->realm, &data.symlink[1], this);
+      break;
+
+    case '@':
+      if (!IsExpandedObj()) {
+	LOG(0,("fsobj::TryToCover: (%s) -> %s wasn't expanded! Dangling symlink?\n",FID_(&fid),data.symlink));
+	code = ENOENT;
+	break;
+      }
+    case '$':
+      {
 	Volid vid;
 	char *realmname, tmp;
-	Realm *r = vol->realm;
 	int n;
+	Realm *r = vol->realm;
 
-	n = sscanf(data.symlink, "@%x.%*x.%*x@%c", &vid.Volume, &tmp);
-	if (n < 1) {
-	    print(logFile);
-	    CHOKE("fsobj::TryToCover: couldn't get volume id");
+	n = sscanf(data.symlink, "%*c%lx.%lx.%lx@%c", &vid.Volume,
+		   &root_fid.Vnode, &root_fid.Unique, &tmp);
+	if (n < 3) {
+	  LOG(0,("fsobj::TryToCover: (%s) -> %s failed parse.\n",
+		 FID_(&fid), data.symlink));
+	  print(logFile);
+	  CHOKE("fsobj::TryToCover: couldn't parse mountlink");
 	}
 
 	r->GetRef();
 
-	if (n == 2) {
-	    /* strrchr should succeed now because sscanf succeeded. */
-	    realmname = strrchr(data.symlink, '@')+1;
+	if (n == 4) {
+	  /* strrchr should succeed now because sscanf succeeded. */
+	  realmname = strrchr(data.symlink, '@')+1;
 
-	    r->PutRef();
-	    r = REALMDB->GetRealm(realmname);
-	}
-	vid.Realm = r->Id();
-
-	code = VDB->Get(&tvol, &vid);
-
+	  r->PutRef();
+	  r = REALMDB->GetRealm(realmname);
+        }
+        vid.Realm = r->Id();
 	r->PutRef();
+
+        code = VDB->Get(&tvol, &vid);
+      }
+      break;
+
+    default:
+      eprint("TryToCover: bogus mount point type (%c)", type);
+      return(EINVAL);
     }
-    else
-	code = VDB->Get(&tvol, vol->realm, &data.symlink[1], this);
 
     if (code != 0) {
-	LOG(100, ("fsobj::TryToCover: vdb::Get(%s) failed (%d)\n", data.symlink, code));
+	LOG(0, ("fsobj::TryToCover: vdb::Get(%s) failed (%d)\n", data.symlink, code));
 	return(code);
     }
 
@@ -1189,23 +1206,20 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 
     /* Get volume root. */
     fsobj *rf = 0;
-    VenusFid root_fid;
     root_fid.Realm = tvol->GetRealmId();
     root_fid.Volume = tvol->vid;
-    if (IsFake()) {
-	if (sscanf(data.symlink, "@%*x.%x.%x", &root_fid.Vnode, &root_fid.Unique) != 2)
-	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get <tvolid, tunique>"); }
-    }
-    else {
-	    FID_MakeRoot(MakeViceFid(&root_fid));
-    }
-    code = FSDB->Get(&rf, &root_fid, uid, RC_STATUS, comp);
+
+    code = FSDB->Get(&rf, &root_fid, uid, RC_STATUS, comp, NULL, NULL, 1);
     if (code != 0) {
-	LOG(100, ("fsobj::TryToCover: Get root (%s) failed (%d)\n",
+	LOG(0, ("fsobj::TryToCover: Get root (%s) failed (%d)\n",
 		  FID_(&root_fid), code));
 
 	VDB->Put(&tvol);
-	if (code == EINCONS && inc_fid != 0) *inc_fid = root_fid;
+	if (code == EINCONS && inc_fid != 0) {
+	  LOG(0, ("fsobj::TryToCover: returning inconsistent fid. (%d)\n",
+		  FID_(&root_fid), code));
+	  *inc_fid = root_fid;
+	}
 	return(code);
     }
     rf->PromoteLock();
@@ -1228,11 +1242,13 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 
     /* Do the mount magic. */
     Recov_BeginTrans();
+
     RVMLIB_REC_OBJECT(rf->mvstat);
     CODA_ASSERT(rf->u.mtpoint == 0);
     rf->mvstat = ROOT;
     rf->MountRoot(this);
     CoverMtPt(rf);
+
     Recov_EndTrans(MAXFP);
 
     FSDB->Put(&rf);
@@ -1312,7 +1328,8 @@ void fsobj::MountRoot(fsobj *mtpt_fso) {
 /* MUST be called from within transaction! */
 /* Call with object write-locked. */
 void fsobj::UnmountRoot() {
-    if (!IsRoot()) 
+  fsobj *mtpoint;
+    if (!IsRoot())
 	{ print(logFile); CHOKE("fsobj::UnmountRoot: mvstat != ROOT"); }
     if (!u.mtpoint)
 	{ print(logFile); CHOKE("fsobj::UnmountRoot: no u.mtpoint!"); }
@@ -1323,18 +1340,22 @@ void fsobj::UnmountRoot() {
     RVMLIB_REC_OBJECT(*this);
 
     /* Exit old state (ROOT, with link). */
+    mtpoint = u.mtpoint;
     u.mtpoint = 0;
     k_Purge(&fid);
 
     /* Enter new state (ROOT, without link). */
     if (!FID_IsVolRoot(&fid)) {
-	mvstat = NORMAL;	    /* couldn't be mount point, could it? */       
-	/* this object could be the global root of a local/global subtree */
-	if (FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
-	    LOG(0, ("fsobj::UnmountRoot: (%s) a previous mtroot without pfid, kill it\n",
-		    FID_(&fid)));
+	mvstat = NORMAL;	    /* couldn't be mount point, could it? */
+	/* this object could be a server replica from an expand */
+	/*if (FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
+	if(mtpoint->IsExpandedObj() && !IsLocalObj()) {
+	  //	    LOG(0, ("fsobj::UnmountRoot: (%s) a previous mtroot without pfid, kill it\n", FID_(&fid)));
+	  LOG(10, ("fsobj::UnmountRoot: (%s) Server replica from previous expand, kill it\n", FID_(&fid)));
 	    Kill();
-	}
+	    }*/
+	/* it could also just get garbage collected */
+
     }
 }
 
@@ -1968,7 +1989,7 @@ void fsobj::DiscardData() {
 int fsobj::Fakeify()
 {
     VenusFid fakefid;
-    LOG(1, ("fsobj::Fakeify: %s, (%s)\n", comp, FID_(&fid)));
+    LOG(10, ("fsobj::Fakeify: %s, (%s)\n", comp, FID_(&fid)));
 
     fsobj *pf = 0;
     if (!IsRoot()) {
@@ -1988,7 +2009,7 @@ int fsobj::Fakeify()
 		    break; /* Found! */
 	    }
 	    if (p == &vol->fso_list) {
-		LOG(0, ("fsobj::Fakeify: %s, (%s), parent not found\n",
+		LOG(10, ("fsobj::Fakeify: %s, (%s), parent not found\n",
 			comp, FID_(&fid)));
 		Recov_BeginTrans();
 		Matriculate();
@@ -2039,7 +2060,7 @@ int fsobj::Fakeify()
 		fakefid.Unique = realm->Id();
 
 		dir_Create(realm->Name(), &fakefid);
-		LOG(20, ("fsobj::Fakeify: created fake codaroot entry for %s\n",
+		LOG(10, ("fsobj::Fakeify: created fake codaroot entry for %s\n",
 			 realm->Name()));
 	    }
 	    LOG(10, ("fsobj::Fakeify: created fake codaroot directory\n"));
@@ -2090,7 +2111,7 @@ int fsobj::Fakeify()
 	    fakefid.Unique = vp->GetVolumeId();
 	    dir_Create("localhost", &fakefid);
 
-	    LOG(1, ("fsobj::Fakeify: new entry (localhost, %s)\n", FID_(&fakefid)));
+	    LOG(10, ("fsobj::Fakeify: new entry (localhost, %s)\n", FID_(&fakefid)));
 
 	    /* Make entries for each of the rw-replicas. */
 	    vp->GetHosts(volumehosts);
@@ -2102,7 +2123,7 @@ int fsobj::Fakeify()
 		fakefid.Unique = volumeids[i];
 		dir_Create(s->name, &fakefid);
 
-		LOG(1, ("fsobj::Fakeify: new entry (%s, %s)\n", s->name, FID_(&fakefid)));
+		LOG(10, ("fsobj::Fakeify: new entry (%s, %s)\n", s->name, FID_(&fakefid)));
 	    }
 	} else {
 	    /* get the actual object we're mounted on */
@@ -2132,125 +2153,13 @@ int fsobj::Fakeify()
 	    sprintf(data.symlink, "@%08x.%08x.%08x@%s.",
 		    LinkFid.Volume, LinkFid.Vnode, LinkFid.Unique, realmname);
 
-	    LOG(0, ("fsobj::Fakeify: making %s a symlink %s\n",
+	    LOG(10, ("fsobj::Fakeify: making %s a symlink %s\n",
 		    FID_(&fid), data.symlink));
 
 	    UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
 	}
 	flags.local = 1;
 	goto done;
-    }
-
-    /* XXX I eventually want to end up removing the rest of this function -JH */
-    LOG(0, ("fsobj::Fakeify: going into the old code\n"));
-
-    if (FID_IsFakeRoot(MakeViceFid(&fid))) {		/* Fake MTLink */
-	ViceFid LinkFid;
-	const char *realmname;
-
-	stat.Mode = 0644;
-	stat.LinkCount = 1;
-	stat.VnodeType = SymbolicLink;
-
-	flags.fake = 1;
-
-	/* local-repair modification */
-	if (STREQ(comp, "local")) {
-	    /* the first special case, fake link for a local object */
-	    LOG(100,("fsobj::Fakeify: fake link for a local object %s\n",
-		     FID_(&fid)));
-	    LOG(100,("fsobj::Fakeify: parent fid for the fake link is %s\n",
-		     FID_(&pfid)));
-	    flags.local = 1;
-	    VenusFid *Fid = LRDB->RFM_LookupLocalRoot(&pfid);
-
-	    LinkFid = *MakeViceFid(Fid);
-	    realmname = LocalRealm->Name();
-	}
-	else if (STREQ(comp, "global")) {
-	    /* the second specical case, fake link for a global object */
-	    LOG(100, ("fsobj::Fakeify: fake link for a global object %s\n",
-		      FID_(&fid)));
-	    LOG(100, ("fsobj::Fakeify: parent fid for the fake link is %s\n",
-		      FID_(&pfid)));
-	    flags.local = 1;
-	    VenusFid *Fid = LRDB->RFM_LookupGlobalRoot(&pfid);
-	    FSO_ASSERT(this, Fid && Fid->Realm == vol->realm->Id());
-
-	    LinkFid = *MakeViceFid(Fid);
-	    realmname = vol->realm->Name();
-	} else {
-	    CODA_ASSERT(vol->IsReplicated());
-	    repvol *vp = (repvol *)vol;
-	    struct in_addr host;
-	    int i;
-
-	    /* the normal fake link */
-	    /* get the volumeid corresponding to the server name */
-	    for (i = 0; i < VSG_MEMBERS; i++) {
-		if (!vp->volreps[i]) continue;
-		vp->volreps[i]->Host(&host);
-
-		srvent *s = FindServer(&host);
-		if (s && s->name && STREQ(s->name, comp))
-		    break;
-	    }
-	    if (i == VSG_MEMBERS) // server not found 
-		CHOKE("fsobj::fakeify couldn't find the server for %s\n",
-		      comp);
-
-	    LinkFid.Volume = vp->volreps[i]->GetVolumeId();
-	    LinkFid.Vnode  = pfid.Vnode;
-	    LinkFid.Unique = pfid.Unique;
-	    realmname = vp->volreps[i]->realm->Name();
-	}
-
-	/* Write out the link contents. */
-	/* "@XXXXXXXX.YYYYYYYY.ZZZZZZZZ@RRRRRRRRR." */
-	stat.Length = 29 + strlen(realmname);
-	data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
-	rvmlib_set_range(data.symlink, stat.Length+1);
-	sprintf(data.symlink, "@%08x.%08x.%08x@%s.",
-		LinkFid.Volume, LinkFid.Vnode, LinkFid.Unique, realmname);
-
-	LOG(0, ("fsobj::Fakeify: making %s a symlink %s\n",
-		  FID_(&fid), data.symlink));
-
-	UpdateCacheStats(&FSDB->FileDataStats, CREATE, BLOCKS(this));
-    } else {				/* Fake Directory */
-	stat.Mode = 0555;
-	stat.LinkCount = 2;
-	stat.VnodeType = Directory;
-	/* Access rights are not needed, this whole volume is readonly! */
-
-	/* Create the target directory. */
-	dir_MakeDir();
-
-	repvol *vp = (repvol *)vol;
-	struct in_addr volumehosts[VSG_MEMBERS];
-
-	flags.fake = 1;
-
-	/* Make entries for each of the rw-replicas. */
-	vp->GetHosts(volumehosts);
-	for (int i = 0; i < VSG_MEMBERS; i++) {
-	    if (!volumehosts[i].s_addr) continue;
-	    srvent *s = FindServer(&volumehosts[i]);
-	    char Name[CODA_MAXNAMLEN+1], *name;
-
-	    if (s && s->name)
-		name = s->name;
-	    else
-		name = inet_ntoa(volumehosts[i]);
-
-	    snprintf(Name, CODA_MAXNAMLEN, "%s", name);
-	    Name[CODA_MAXNAMLEN] = '\0';
-
-	    VenusFid FakeFid = vp->GenerateFakeFid();
-	    LOG(1, ("fsobj::Fakeify: new entry (%s, %s)\n",
-		    Name, FID_(&FakeFid)));
-	    dir_Create(Name, &FakeFid);
-	}
     }
 
 done:
@@ -2667,7 +2576,7 @@ void fsobj::print(int fdes) {
 		    SpecificUser[i].inuse, SpecificUser[i].valid);
 	fdprint(fdes, " }\n");
     }
-    fdprint(fdes, "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d\n",
+    fdprint(fdes, "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
 	     vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
 	     flags.fake, flags.fetching, flags.local);
     fdprint(fdes, "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",

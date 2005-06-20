@@ -120,6 +120,8 @@ static void FlushASR(int, char**, int);
 static void GetFid(int, char**, int);
 static void GetPFid(int, char**, int);
 static void MarkFidIncon(int, char**, int);
+static void ExpandObject(int, char**, int);
+static void CollapseObject(int, char**, int);
 static void GetPath(int, char**, int);
 static void GetMountPoint(int, char**, int);
 static void Help(int, char **, int);
@@ -384,7 +386,17 @@ struct command cmdarray[] =
 	    "cfs forcereintegrate <dir> [<dir> <dir> ...]",
 	    "Force modifications in a disconnected volume to the server",
 	    NULL
-	}
+	},
+        {"expand", NULL, ExpandObject,
+            "cfs expand <path> [<path> <path> ...]",
+            "Expand object into a fake directory, exposing the underlying versions",
+            NULL
+        },
+        {"collapse", NULL, CollapseObject,
+            "cfs collapse <path> [<path> <path> ...]",
+            "Collapse expanded object (see cfs expand)",
+            NULL
+        }
     };
 
 /* Number of commands in cmdarray */
@@ -622,39 +634,41 @@ static int dirincoda(char *path)
     return(rc == 0);
 }
 
+static int simple_pioctl(char *path, unsigned char opcode, int follow)
+{
+    struct ViceIoctl vio;
+
+    vio.in = 0;
+    vio.in_size = 0;
+    vio.out = 0;
+    vio.out_size = 0;
+
+    return pioctl(path, _VICEIOCTL(opcode), &vio, follow);
+}
+
 static void CheckVolumes(int argc, char *argv[], int opslot)
 {
     int rc;
-    struct ViceIoctl vio;
 
     if (argc != 2) {
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
 
-    vio.in = 0;
-    vio.in_size = 0;
-    vio.out = 0;
-    vio.out_size = 0;
-    rc = pioctl(NULL, _VICEIOCTL(_VIOCCKBACK), &vio, 1);
+    rc = simple_pioctl(NULL, _VIOCCKBACK, 1);
     if (rc < 0) { PERROR("VIOC_VIOCCKBACK"); exit(-1); }
 }
 
 static void ClearPriorities(int argc, char *argv[], int opslot)
 {
     int rc;
-    struct ViceIoctl vio;
 
     if (argc != 2) {
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
 
-    vio.in = 0;
-    vio.in_size = 0;
-    vio.out = 0;
-    vio.out_size = 0;
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_CLEARPRIORITIES), &vio, 0);
+    rc = simple_pioctl(NULL, _VIOC_CLEARPRIORITIES, 0);
     if (rc < 0) { PERROR("  VIOC_CLEARPRIORITIES"); exit(-1); }
 }
 
@@ -961,25 +975,19 @@ static int validateclosurespec(char *name, char *volname, char *volrootpath)
 static void FlushCache(int argc, char *argv[], int opslot)
 {
     int rc;
-    struct ViceIoctl vio;
 
     if (argc != 2) {
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
 
-    vio.in = 0;
-    vio.in_size = 0;
-    vio.out = 0;
-    vio.out_size = 0;
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_FLUSHCACHE), &vio, 1);
+    rc = simple_pioctl(NULL, _VIOC_FLUSHCACHE, 1);
     if (rc < 0) { PERROR("VIOC_FLUSHCACHE"); exit(-1);}
 }
 
 static void FlushObject(int argc, char *argv[], int opslot)
 {
     int i, w, rc;
-    struct ViceIoctl vio;
 
     if (argc < 3)
     {
@@ -992,11 +1000,7 @@ static void FlushObject(int argc, char *argv[], int opslot)
     {
 	if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
 
-	vio.in = 0;
-	vio.in_size = 0;
-	vio.out = 0;
-	vio.out_size = 0;
-	rc = pioctl(argv[i], _VICEIOCTL(_VIOCFLUSH), &vio, 0);
+	rc = simple_pioctl(argv[i], _VIOCFLUSH, 0);
 	if (rc < 0)
 	{
 	    fflush(stdout);
@@ -1009,14 +1013,12 @@ static void FlushObject(int argc, char *argv[], int opslot)
 	}
 	else {if (argc > 3) printf("\n");}
     }
-
 }
 
 
 static void FlushVolume(int argc, char *argv[], int opslot)
 {
     int i, w, rc;
-    struct ViceIoctl vio;
 
     if (argc < 3)
     {
@@ -1029,11 +1031,7 @@ static void FlushVolume(int argc, char *argv[], int opslot)
     {
 	if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
 
-	vio.in = 0;
-	vio.in_size = 0;
-	vio.out = 0;
-	vio.out_size = 0;
-	rc = pioctl(argv[i], _VICEIOCTL(_VIOC_FLUSHVOLUME), &vio, 0);
+	rc = simple_pioctl(argv[i], _VIOC_FLUSHVOLUME, 0);
 	if (rc < 0) { PERROR("  VIOC_FLUSHVOLUME"); continue;}
 	else {if (argc > 3) printf("\n");}
     }
@@ -1288,6 +1286,50 @@ static int pioctl_SetVV(char *path, ViceVersionVector *vv)
     rc = pioctl(path, _VICEIOCTL(_VIOC_SETVV), &vio, 0);
 #endif
     return rc;
+}
+
+static void ExpandObject(int argc, char *argv[], int opslot)
+{
+    int i, w;
+
+    if (argc < 3)
+    {
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
+    }
+
+    w = getlongest(argc, argv);
+
+    for (i = 2; i < argc; i++)
+    {
+	/* echo input if more than one fid */
+	if (argc > 3) printf("%s\n", argv[i]);
+
+	if (simple_pioctl(argv[i], _VIOC_EXPANDOBJECT, 0) < 0)
+	    { PERROR("VIOC_EXPANDOBJECT"); continue; }
+    }
+}
+
+static void CollapseObject(int argc, char *argv[], int opslot)
+{
+    int i, w;
+
+    if (argc < 3)
+    {
+	printf("Usage: %s\n", cmdarray[opslot].usetxt);
+	exit(-1);
+    }
+
+    w = getlongest(argc, argv);
+
+    for (i = 2; i < argc; i++)
+    {
+	/* echo input if more than one fid */
+	if (argc > 3) printf("%s\n", argv[i]);
+
+	if (simple_pioctl(argv[i], _VIOC_COLLAPSEOBJECT, 0) < 0)
+	    { PERROR("VIOC_COLLAPSEOBJECT"); continue; }
+    }
 }
 
 static void MarkFidIncon(int argc, char *argv[], int opslot)
@@ -1996,7 +2038,6 @@ static void MkMount (int argc, char *argv[], int opslot)
 static void PurgeML(int argc, char *argv[], int opslot)
 {
     int  rc;
-    struct ViceIoctl vio;
     char *codadir;
 
     switch(argc)
@@ -2009,11 +2050,7 @@ static void PurgeML(int argc, char *argv[], int opslot)
     }
 
 
-    vio.in_size = 0;
-    vio.in = 0;
-    vio.out_size = 0;
-    vio.out = 0;
-    rc = pioctl(codadir, _VICEIOCTL(_VIOC_PURGEML), &vio, 1);
+    rc = simple_pioctl(codadir, _VIOC_PURGEML, 1);
     if (rc) { PERROR("VIOC_PURGEML"); exit(-1); }
 }
 
@@ -2323,71 +2360,50 @@ static void SetQuota    (int argc, char *argv[], int opslot)
     }
 }
 
-static void Strong(int argc, char *argv[], int opslot) 
+static void Strong(int argc, char *argv[], int opslot)
 {
     int rc;
-    struct ViceIoctl vio;
 
     if (argc < 2) {
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
 
-    vio.in = 0;
-    vio.in_size = 0;
-    vio.out = 0;
-    vio.out_size = 0;
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_STRONG), &vio, 1);
+    rc = simple_pioctl(NULL, _VIOC_STRONG, 1);
     if (rc < 0){ PERROR("VIOC_STRONG"); exit(-1); }
 }
 
-static void Adaptive(int argc, char *argv[], int opslot) 
+static void Adaptive(int argc, char *argv[], int opslot)
 {
     int rc;
-    struct ViceIoctl vio;
 
     if (argc < 2) {
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
 
-    vio.in = 0;
-    vio.in_size = 0;
-    vio.out = 0;
-    vio.out_size = 0;
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_ADAPTIVE), &vio, 1);
+    rc = simple_pioctl(NULL, _VIOC_ADAPTIVE, 1);
     if (rc < 0){ PERROR("VIOC_ADAPTIVE"); exit(-1); }
 }
 
 static void TruncateLog(int argc, char *argv[], int opslot)
 {
     int rc;
-    struct ViceIoctl vio;
 
     if (argc != 2) {
 	printf("Usage: %s\n", cmdarray[opslot].usetxt);
 	exit(-1);
     }
 
-    vio.in = 0;
-    vio.in_size = 0;
-    vio.out = 0;
-    vio.out_size = 0;
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_TRUNCATELOG), &vio, 1);
+    rc = simple_pioctl(NULL, _VIOC_TRUNCATELOG, 1);
     if (rc < 0) { PERROR("  VIOC_TRUNCATELOG"); exit(-1); }
 }
 
-
 static void UnloadKernel(int argc, char *argv[], int opslot)
 {
-    struct ViceIoctl vio;
     int rc;
 
-    vio.in_size = 0;
-    vio.in = 0;
-    vio.out_size = 0;
-    vio.out = 0;
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_UNLOADKERNEL), &vio, 0);
+    rc = simple_pioctl(NULL, _VIOC_UNLOADKERNEL, 0);
     if (rc < 0) { PERROR("  VIOC_UNLOADKERNEL"); exit(-1); }
 }
 
@@ -2504,7 +2520,6 @@ static void WriteDisconnect(int argc, char *argv[], int opslot)
 static void ForceReintegrate(int argc, char *argv[], int opslot)
 {
     int  i = 2, rc, w;
-    struct ViceIoctl vio;
     VolumeStatus *vs;
     char *volname;
     int conflict;
@@ -2518,21 +2533,17 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
 
     w = getlongest(argc, argv);
 
-    vio.in = piobuf;
-    vio.in_size = 0;
-    vio.out = 0;
-    vio.out_size = 0;
-
     for (i = 2; i < argc; i++) {
 	if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
 
-	rc = pioctl(argv[i], _VICEIOCTL(_VIOC_SYNCCACHE), &vio, 0);
+	rc = simple_pioctl(argv[i], _VIOC_SYNCCACHE, 0);
 	fflush(stdout);
 	if (rc < 0) {
 	    PERROR("VIOC_SYNCCACHE");
 	    fprintf(stderr, "  VIOC_SYNCCACHE returns %d\n",rc);
-	}
-	else {   /* test CML entries remaining by doing a ListVolume*/
+	} else {   /* test CML entries remaining by doing a ListVolume*/
+	    struct ViceIoctl vio;
+
 	    vio.in = 0;
 	    vio.in_size = 0;
 	    vio.out_size = CFS_PIOBUFSIZE;
@@ -2566,8 +2577,6 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
 			printf("Reintegration failed due to a conflict\n");
 		}
 	    }
-
-
 	}
     }
 }
@@ -2575,15 +2584,9 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
 static void WriteReconnect(int argc, char *argv[], int opslot)
 {
     int  i, w, rc;
-    struct ViceIoctl vio;
-
-    vio.in_size = 0;
-    vio.in = 0;
-    vio.out_size = 0;
-    vio.out = 0;
 
     if (argc == 2) {      /* do them all */
-	rc = pioctl(NULL, _VICEIOCTL(_VIOC_WR_ALL), &vio, 1);
+	rc = simple_pioctl(NULL, _VIOC_WR_ALL, 1);
 	if (rc) { PERROR("VIOC_WR_ALL"); exit(-1); }
     } else {
 	w = getlongest(argc, argv);
@@ -2591,7 +2594,7 @@ static void WriteReconnect(int argc, char *argv[], int opslot)
 	{
 	    if (argc > 3) printf("  %*s\n", w, argv[i]); /* echo input if more than one fid */
 
-	    rc = pioctl(argv[i], _VICEIOCTL(_VIOC_ENDML), &vio, 1);
+	    rc = simple_pioctl(argv[i], _VIOC_ENDML, 1);
 	    if (rc) { PERROR("VIOC_ENDML"); exit(-1); }
 	}
     }

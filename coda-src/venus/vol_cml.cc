@@ -409,9 +409,10 @@ void ClientModifyLog::MarkFailedMLE(int ix)
     repvol *vol = strbase(repvol, this, CML);
     int i = 0;
 
+    LOG(10, ("ClientModifyLog::MarkFailedMLE: checking the log..\n"));
     cml_iterator next(*this);
     cmlent *m;
-    while ((m = next())) 
+    while ((m = next()))
 	if (m->tid == vol->cur_reint_tid) 
 	  if (i++ == ix || ix == -1) {
 	    char opmsg[1024];
@@ -456,42 +457,17 @@ void ClientModifyLog::MarkCommittedMLE(RPC2_Unsigned Uniquifier)
  */
 void ClientModifyLog::HandleFailedMLE(void)
 {
-    repvol *vol = strbase(repvol, this, CML);
     cmlent *m, *n;
     cml_iterator next(*this, CommitOrder);
 
     n = next();
     while ((m = n) != NULL) {
 		n = next();
-		
+
 		if (!m->flags.failed)
 		  continue;
-		
+
 		m->flags.failed = 0;	/* only do this once */
-		
-		/* 
-		 * this record may already have been localized because of
-		 * a cascading failure, i.e. a retry finding another
-		 * failure earlier in the log.
-		 */
-		if (m->ContainLocalFid())
-		  continue;
-		
-		/* localize or abort */
-		if ((m->LocalFakeify() != 0) && (!m->IsToBeRepaired())) {
-		  Recov_BeginTrans();			       
-		  m->abort();
-		  Recov_EndTrans(MAXFP);
-		} else {
-		  Recov_BeginTrans();
-		  RVMLIB_REC_OBJECT(vol->flags);
-		  vol->flags.has_local_subtree = 1;
-		  Recov_EndTrans(MAXFP);
-		  
-		  /* tell the user where the localized object is */
-		  LRDB->CheckLocalSubtree();
-		}
-		
 		m->SetRepairFlag();
     }
 }
@@ -698,6 +674,8 @@ void cmlent::ResetTransient()
     
     flags.failed = 0;
     flags.committed = 0;
+
+    expansions = 0;
 
     switch(opcode) {
 	case CML_Store_OP:

@@ -302,7 +302,16 @@ void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap)
 
 	/* Get the object. */
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
-	if (u.u_error) goto FreeLocks;
+
+	/* mark local-global conflicts by iterating through cmlent bindings.
+	 * we need to check expansion to show _localcache replicas -- Adam */
+	if(!u.u_error && f && f->IsToBeRepaired() && !f->IsExpandedObj()) {
+	  u.u_error = EINCONS;
+	  LOG(0,("vproc::getattr: local-global conflict detected, fid: (%s)\n",FID_(&cp->c_fid)));
+	}
+
+	if (u.u_error)
+	  goto FreeLocks;
 
 	/* No rights required to get attributes? -JJK */
 
@@ -322,7 +331,7 @@ FreeLocks:
 
 	/* Make a "fake" vattr block for the inconsistent object. */
 	va_init(vap);
-	vap->va_mode = 0444;
+	vap->va_mode = 0644;
 	vap->va_type = FTTOVT(SymbolicLink);
 	vap->va_uid = V_UID;
 	vap->va_gid = V_GID;
@@ -1322,10 +1331,13 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
 
 	/* Get the object. */
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_DATA);
+
+	if (!u.u_error && f && f->IsToBeRepaired()/* && !f->IsExpandedObj()*/)
+	  u.u_error = EINCONS;
 	if (u.u_error) goto FreeLocks;
 
 	/* Verify that it is a symlink. */
-	if (!f->IsSymLink())
+	if (f && !f->IsSymLink())
 	    { u.u_error = EINVAL; goto FreeLocks; }
 
 	/* Verify that we have read permission for it. */

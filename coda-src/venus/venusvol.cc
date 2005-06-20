@@ -1336,40 +1336,45 @@ void volent::TakeTransition()
 {
     CODA_ASSERT(flags.transition_pending && !VOLBUSY(this));
 
-    int size = AVSGsize();
-    repvol *rv = NULL;
-    if (IsReplicated()) rv = (repvol *)this;
+    VolumeStateType nextstate;
+    int avsgsize = AVSGsize();
+    repvol *rv;
 
-    LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, logv = %d\n",
-	     name, PRINT_VOLSTATE(state), size, flags.logv));
-    if (IsReplicated())
-        LOG(1, ("\tCML = %d, Res = %d\n",
-                rv->GetCML()->count(), rv->ResListCount()));
+    if (!IsReplicated()) {
+	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
+	state = (avsgsize == 0) ? Emulating : Hoarding;
+	flags.transition_pending = 0;
+	Signal();
+	return;
+    }
+    rv = (repvol *)this;
+
+    LOG(1, ("volent::TakeTransition: %s, state = %s, |AVSG| = %d, logv = %d, "
+	    "CML = %d, Res = %d\n",
+	    name, PRINT_VOLSTATE(state), avsgsize, flags.logv,
+	    rv->GetCML()->count(), rv->ResListCount()));
 
     /* Compute next state. */
-    VolumeStateType nextstate;
-
     CODA_ASSERT(state == Hoarding || state == Emulating || state == Logging ||
 		state == Resolving);
 
     nextstate = Hoarding;
     /* if the AVSG is empty we are disconnected */
-    if (size == 0) nextstate = Emulating;
+    if (avsgsize == 0)
+	nextstate = Emulating;
 
-    else if (IsReplicated()) {
-        if (rv->ResListCount())
-            nextstate = Resolving;
+    else if (rv->ResListCount())
+	nextstate = Resolving;
 
-        else if (flags.logv || rv->GetCML()->count())
-            nextstate = Logging;
-    }
+    else if (flags.logv || rv->GetCML()->count())
+	nextstate = Logging;
 
     /* Special cases here. */
     /*
      * 1.  If the volume is transitioning _to_ emulating, any reintegations
      *     will not be stopped because of lack of tokens.
      */
-    if (nextstate == Emulating && IsReplicated())
+    if (nextstate == Emulating)
 	rv->ClearReintegratePending();
 
     /* 2. We refuse to transit to reintegration unless owner has auth tokens.
@@ -2390,7 +2395,7 @@ VenusFid repvol::GenerateLocalFid(ViceDataType fidtype)
 
 
 /* MUST be called from within a transaction */
-VenusFid repvol::GenerateFakeFid()
+VenusFid volent::GenerateFakeFid()
 {
     VenusFid fid;
     FID_MakeSubtreeRoot(MakeViceFid(&fid), vid, FidUnique);

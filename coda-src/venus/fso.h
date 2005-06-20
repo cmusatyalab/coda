@@ -191,7 +191,7 @@ class fsdb {
     ~fsdb() { abort(); }
 
     /* Allocation/Deallocation routines. */
-    fsobj *Create(VenusFid *, int, char *);
+    fsobj *Create(VenusFid *, int, char *comp, VenusFid *parent);
     int FreeFsoCount();
     int AllocFso(int, fsobj **);
     int GrabFreeFso(int, fsobj **);
@@ -215,7 +215,7 @@ class fsdb {
     fsobj *Find(const VenusFid *);
     /* rcode arg added for local repair */
     int Get(fsobj **fso, VenusFid *fid, uid_t uid, int rights, char *comp=NULL,
-	    int *rcode=NULL, int GetInconsistent=0);
+	    VenusFid *parent=NULL, int *rcode=NULL, int GetInconsistent=0);
     void Put(fsobj **);
     void Flush();
     void Flush(Volid *);
@@ -342,7 +342,9 @@ struct FsoFlags {
     unsigned local: 1;				/* local fake fid */
     /*T*/unsigned ckmtpt : 1;			/* mount point needs checked? */
     /*T*/unsigned fetching : 1;			/* fetch in progress? */
-    unsigned padding : 10;
+    unsigned expanded : 1;			/* are we an expanded object */
+    unsigned modified : 1;			/* modified for expansion? */
+    unsigned padding : 8;
 };
 
 enum MountStatus {  NORMAL,
@@ -562,6 +564,17 @@ class fsobj {
     int IsFakeMtPt() { return(flags.fake && IsMtPt()); }
     int IsFakeMTLink() { return(flags.fake && IsMTLink()); }
 
+    /* expansion related functions */
+    int ExpandObject(void);
+    int CollapseObject(void);
+    int IsExpandedObj(void) { return(flags.expanded); }
+    int IsExpandedDir(void) { return(flags.expanded && IsDir()); }
+    int IsExpandedMTLink(void) { return(flags.expanded && IsMTLink()); }
+    int IsModifiedObj(void) { return(flags.modified); }
+    void SetMtLinkContents(VenusFid *fid);
+    void ExpandCMLEntries(void);
+    void CollapseCMLEntries(void);
+
     /* Local synchronization. */
     void Lock(LockLevel);
     void PromoteLock();
@@ -655,7 +668,7 @@ class fsobj {
     void Release(int writep);
     int Close(int writep, uid_t uid);
     int Access(int rights, int modes, uid_t);
-    int Lookup(fsobj **, VenusFid *, char *, uid_t, int flags);
+    int Lookup(fsobj **, VenusFid *, char *, uid_t, int flags, int GetInconsistent=0);
 // These are defined in lib-src/kernel-includes/coda.h
 // #define CLU_CASE_SENSITIVE	0x01
 // #define CLU_CASE_INSENSITIVE 0x02
@@ -777,7 +790,7 @@ void FSOD_ReclaimFSOs(void);
 #define LOGGING(f)      ((f)->vol->state == Logging)
 #define RESOLVING(f)    ((f)->vol->state == Resolving)
 #define	DIRTY(f)	((f)->flags.dirty)
-#define	HAVESTATUS(f)	((f)->state != FsoRunt)
+#define	HAVESTATUS(f)	((f)->state != FsoRunt || f->IsFake())
 #define	STATUSVALID(f)	((f)->IsValid(RC_STATUS))
 #define	HAVEDATA(f)	((f)->data.havedata != 0)
 #define	PARTIALDATA(f)	((f)->IsFile() && (f)->cf.IsPartial())

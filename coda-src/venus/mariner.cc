@@ -578,7 +578,7 @@ void mariner::FidStat(VenusFid *fid) {
 	    break;
 	}
 
-	u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS, NULL, NULL, 1);
+	u.u_error = FSDB->Get(&f, fid, u.u_uid, RC_STATUS, NULL, NULL, NULL, 1);
 	if (u.u_error) {
 	    Write("fsdb::Get(%s) failed (%d)\n", FID_(fid), u.u_error);
 	    goto FreeLocks;

@@ -814,6 +814,7 @@ int fsobj::ReplaceLocalFakeFid()
 int fsobj::LocalFakeify()
 {
     LOG(100, ("fsobj::LocalFakeify: %s, %s\n", comp, FID_(&fid)));
+#if 0
     fsobj *MtPt = NULL;
     int code = 0;
 
@@ -920,7 +921,7 @@ int fsobj::LocalFakeify()
     Recov_EndTrans(MAXFP);
 
     vproc *vp = VprocSelf();
-    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, vp->u.u_priority, comp);
+    fsobj *FakeRoot = FSDB->Create(&FakeRootFid, vp->u.u_priority, comp, NULL);
     if (NULL == FakeRoot) {
 	LOG(0, ("fsobj::LocalFakeify: can not create Fake Root for %s\n",
 		FID_(&GlobalRootFid)));
@@ -993,6 +994,7 @@ int fsobj::LocalFakeify()
 
     FSDB->Put(&FakeRoot);
 
+#endif
     return(0);
 }
 

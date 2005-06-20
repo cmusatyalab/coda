@@ -41,7 +41,6 @@ VLIBS := $(DEPLIBS) $(LIBRDSLWP) $(LIBSEG) $(LIBRVMLWP) $(LIBRPC2) $(LIBSE) \
 
 VOBJS = adv_monitor.o adv_daemon.o binding.o comm.o comm_daemon.o daemon.o fso0.o fso1.o fso_cachefile.o fso_cfscalls0.o fso_cfscalls1.o fso_cfscalls2.o fso_daemon.o fso_dir.o hdb.o hdb_daemon.o local_cml.o local_daemon.o local_fake.o local_fso.o local_subtree.o local_repair.o local_vol.o mariner.o mgrp.o venus.o venuscb.o venusrecov.o venusutil.o venusvol.o vol_daemon.o vol_cml.o vol_reintegrate.o vol_repair.o vol_resolve.o vol_vcb.o vol_COP2.o vproc.o vproc_pathname.o vproc_pioctl.o vproc_vfscalls.o vsg.o worker.o sighand.o spool.o tallyent.o user.o nt_util.o realmdb.o realm.o
 
-
 include $(TOPDIR)/configs/Makerules
 
 venus:  ${VOBJS} $(DEPLIBS)

@@ -977,7 +977,7 @@ int fsobj::ConnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 	if (code != 0) goto RepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->DirAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -1107,7 +1107,7 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->DirAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -1168,7 +1168,7 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr, char *
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
-    target_fso = FSDB->Create(&target_fid, target_pri, name);
+    target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
     if (target_fso == 0) {
 	UpdateCacheStats(&FSDB->DirAttrStats, NOSPACE,
 			 NBLOCKS(sizeof(fsobj)));
@@ -1576,7 +1576,7 @@ int fsobj::ConnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 	if (code != 0) goto RepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -1705,7 +1705,7 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Allocate the fsobj. */
-	target_fso = FSDB->Create(&target_fid, target_pri, name);
+	target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
 	if (target_fso == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			     NBLOCKS(sizeof(fsobj)));
@@ -1767,7 +1767,7 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
-    target_fso = FSDB->Create(&target_fid, target_pri, name);
+    target_fso = FSDB->Create(&target_fid, target_pri, name, &fid);
     if (target_fso == 0) {
 	UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE,
 			 NBLOCKS(sizeof(fsobj)));

@@ -274,7 +274,6 @@ void vdb::CheckLocalSubtree()
         v->CheckLocalSubtree();
 }
 
-
 /* Note: no longer in class vdb, since VolDaemon isn't (Satya, 5/20/95) */
 void TrickleReintegrate()
 {

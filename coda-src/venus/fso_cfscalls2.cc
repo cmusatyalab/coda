@@ -450,10 +450,9 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 /* local-repair modification */
 /* inc_fid is an OUT parameter which allows caller to form "fake symlink" if it desires. */
 /* Explicit parameter for TRAVERSE_MTPTS? -JJK */
-int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name,
-		  uid_t uid, int flags)
+int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t uid, int flags, int GetInconsistent)
 {
-    LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d\n", GetComp(), name, uid));
+  LOG(10, ("fsobj::Lookup: (%s/%s), uid = %d, GetInconsistent = %d\n", GetComp(), name, uid, GetInconsistent));
 
     /* We're screwed if (name == "." or ".."). -JJK */
     CODA_ASSERT(!STREQ(name, ".") && !STREQ(name, ".."));
@@ -484,6 +483,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name,
 		    vol->GetVolumeId() != FakeRootVolumeId)
 		    return code;
 
+		LOG(10,("fsobj::Lookup: dir_Lookup failed (%s)\n",name));
 		/* regular lookup failed, but if we are in the fake root
 		 * volume, we can try to check for a new realm */
 
@@ -504,8 +504,8 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name,
     {
 	int status = RC_STATUS;
 get_object:
-	code = FSDB->Get(&target_fso, &target_fid, uid, status, name);
-	if (code) {
+	code = FSDB->Get(&target_fso, &target_fid, uid, status, name, NULL, NULL, GetInconsistent);
+	if (code && !(GetInconsistent && code == EINCONS)) {
 	    if (code == EINCONS && inc_fid != 0)
 		*inc_fid = target_fid;
 	    goto done;
@@ -529,6 +529,7 @@ get_object:
 	    if (target_fso->IsMTLink()) {
 		/* We must have the data here. */
 		if (!HAVEALLDATA(target_fso)) {
+		    LOG(10,("fsobj::Lookup: didn't have data for uncovered mtpt\n"));
 		    FSDB->Put(&target_fso);
 		    status |= RC_DATA;
 		    goto get_object;
@@ -537,6 +538,7 @@ get_object:
 		target_fso->PromoteLock();
 		code = target_fso->TryToCover(inc_fid, uid);
 		if (code == EINCONS || code == ERETRY) {
+		  LOG(0,("fsobj::Lookup: fsdb::TryToCover failed(code=%d)\n",code));
 		    FSDB->Put(&target_fso);
 		    goto done;
 		}
@@ -546,7 +548,7 @@ get_object:
 
 	    /* If the target is a covered mount point, cross it. */
 	    if (target_fso->IsMtPt()) {
-		LOG(100, ("fsobj::Lookup: crossing mount point\n"));
+		LOG(10, ("fsobj::Lookup: crossing mount point\n"));
 
 		/* Get the volume root, and release the mount point. */
 		fsobj *root_fso = target_fso->u.root;
@@ -577,7 +579,7 @@ int fsobj::Readlink(char *buf, unsigned long len, int *cc, uid_t uid)
 	      GetComp(), buf, len, cc, uid));
 
     if (!HAVEALLDATA(this))
-	  { print(logFile); CHOKE("fsobj::Readlink: called without data"); }
+	{ print(logFile); CHOKE("fsobj::Readlink: called without data and isn't fake!"); }
 
     if (!IsSymLink() && !IsMtPt())
 	  return(EINVAL);

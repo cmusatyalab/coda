@@ -94,8 +94,13 @@ userent *Realm::GetUser(uid_t uid)
 int Realm::NewUserToken(uid_t uid, SecretToken *secretp, ClearToken *clearp)
 {
     LOG(100, ("Realm::NewUserToken local uid '%d' for realm '%s'\n", uid,name));
-    userent *u = GetUser(uid);
+    userent *u;
     int ret;
+
+    if (uid == ANYUSER_UID)
+	return EPERM;
+
+    u = GetUser(uid);
 
     if (u == system_anyuser) {
 	PutUser(&u);

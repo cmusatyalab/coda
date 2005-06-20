@@ -46,80 +46,72 @@ extern "C" {
 /* must not be called from within a transaction */
 
 
+#define LOCALCACHE "_localcache"
+#define LOCALCACHE_HIDDEN ".localcache"
+
 /*
   BEGIN_HTML
-  <a name="beginrepair"><strong> begining a local-global repair session </strong></a>
+  <a name="beginrepair"><strong> beginning a local-global repair session </strong></a>
   END_HTML
 */
 void lrdb::BeginRepairSession(VenusFid *RootFid, int RepMode, char *msg)
 {
-    /*
-     * IN:  RootFid is the fid of the new repair session's subtree root node.
-     *	    RepMode is the mode (scratch or direct) of the repair session.
-     * OUT: msg is the string that contains the error code to the caller.
-     */
-    OBJ_ASSERT(this, RootFid && !FID_IsLocalFake(RootFid) && msg);
-    LOG(100, ("lrdb::BeginRepairSession: RootFid = %s RepMode = %d\n",
-	      FID_(RootFid), RepMode));
+  fsobj *expand = NULL, *localcache = NULL;
+  VenusFid xfid;
+  int rc,code = -1;
 
-    if (repair_root_fid) {
-	strcpy(msg, "1"); /* local/global repair session already in progress */
-	return;
+  /*
+   * IN:  RootFid is the fid of the new repair session's subtree root node.
+   *	    RepMode is the mode (scratch or direct) of the repair session.
+   * OUT: msg is the string that contains the error code to the caller.
+   *
+   *      0 - Local/Global repair session
+   *      1 - Local/Global already in progress (meaningless)
+   *      2 - Server/Server repair session
+   *      3 - Local/Global and Server/Server repair session (Does this work?)
+   */
+
+  CODA_ASSERT(msg);
+
+  LOG(0, ("lrdb::BeginRepairSession: RootFid = %s RepMode = %d\n",
+	  FID_(RootFid), RepMode));
+
+  expand = FSDB->Find(RootFid); /* expanded directory */
+  CODA_ASSERT(expand && expand->IsExpandedObj());
+
+  vproc *vp = VprocSelf();
+
+  rc = expand->Lookup(&localcache, &xfid, LOCALCACHE_HIDDEN, vp->u.u_uid,
+		      CLU_CASE_SENSITIVE, 1);
+
+  if(!rc && localcache) {
+    LOG(0,("lrdb::BeginRepairSession: (%s) server/server conflict\n",FID_(&localcache->fid)));
+    code = 2;
+  }
+  else { /* wasn't a server/server */
+    rc = expand->Lookup(&localcache, &xfid, LOCALCACHE, vp->u.u_uid,
+			CLU_CASE_SENSITIVE);
+    if(rc || !localcache) {
+      LOG(0,("lrdb::BeginRepairSession: Lookup() failed for LOCALCACHE:%d\n",rc));
+      sprintf(msg,"%d",-1);
+      return;
     }
+  }
 
-    if (!RFM_IsFakeRoot(RootFid)) {
-	strcpy(msg, "2"); /* server/server repair session */
-	return;	
+  CODA_ASSERT(localcache);
+  LOG(0,("lrdb::BeginRepairSession: (%s) local\n",FID_(&localcache->fid)));
+
+  if(localcache->IsToBeRepaired()) {
+    LOG(0,("lrdb::BeginRepairSession: (%s) local/global conflict\n",FID_(&localcache->fid)));
+    if(code) {
+      LOG(0,("lrdb::BeginRepairSession: (%s) mixed lgss conflict! have fun!\n",FID_(&localcache->fid)));
+      code = 3;
     }
+  }
 
-    /* Need to do a strcpy(msg, "3"); somewhere about here when 
-     * expanding global => verdi, mozart, marais (or the like) 
-     * 
-     * At some point, we might want to do away with this
-     * "magic number" stuff and use an enum type or #define's
-     */
-
-    repair_root_fid = RootFid;
-    repair_session_mode = RepMode;	/* default repair session mode */
-
-    {	/* iterate the RFM map and set the repair session initial view */
-	rfm_iterator next(root_fid_map);
-	rfment *rfm;
-	while ((rfm = next())) {
-	    if (FID_EQ(rfm->GetFakeRootFid(), repair_root_fid)) {
-		Recov_BeginTrans();
-		RVMLIB_REC_OBJECT(subtree_view);
-		subtree_view = rfm->GetView();
-		Recov_EndTrans(MAXFP);
-		break;
-	    }
-	}
-    }
-
-    if (repair_session_mode == REP_SCRATCH_MODE) { /* set cml-tid for repair mutation */
-	Recov_BeginTrans();
-	RVMLIB_REC_OBJECT(repair_tid_gen);
-	repair_tid_gen++;
-	Recov_EndTrans(MAXFP);
-	repair_session_tid = - repair_tid_gen;
-    } else {
-	repair_session_tid = -1;
-    }
-
-    InitCMLSearch(RootFid);
-
-    /* set repair flag for relavant volumes */
-    vpt_iterator next(repair_vol_list);
-    vptent *vpt;
-    while ((vpt = next())) {
-	repvol *vol = vpt->GetVol();
-	VolumeId Vols[VSG_MEMBERS];
-	uid_t LockUids[VSG_MEMBERS];
-	unsigned long LockWSs[VSG_MEMBERS];
-	vol->EnableRepair(ANYUSER_UID, Vols, LockUids, LockWSs);
-    }
-
-    strcpy(msg, "0"); /* local/global repair session successfully begun! */
+  FSDB->Put(&localcache);
+  sprintf(msg, "%d", code);
+  return;
 }
 
 /*
@@ -760,7 +752,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 	/* map local fid into its global counterpart and find the global object */
 	VenusFid  *GFid;
 	OBJ_ASSERT(this, GFid = LGM_LookupGlobal(fid));
-	rcode = FSDB->Get(global, GFid, vp->u.u_uid, RC_DATA, 0, &gcode);
+	rcode = FSDB->Get(global, GFid, vp->u.u_uid, RC_DATA, NULL, NULL, &gcode);
 	if (rcode == 0) {
 	    LOG(100, ("lrdb::FindRepairObject: found global fsobj for %s\n",
 		      FID_(GFid)));
@@ -779,7 +771,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
     } else {
 	*local = (fsobj *)NULL;	 	/* fid is global, so local object must be NULL */
 	*global = (fsobj *)NULL;	/* initialized global object */
-	rcode = FSDB->Get(global, fid, vp->u.u_uid, RC_DATA, 0 , &gcode);
+	rcode = FSDB->Get(global, fid, vp->u.u_uid, RC_DATA, NULL, NULL, &gcode);
 	if (rcode == 0) {
 	    LOG(100, ("lrdb::FindRepairObject: found global fsobj for %s\n",
 		      FID_(fid)));
@@ -808,7 +800,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 	PFid = &OBJ->pfid;
 	OBJ_ASSERT(this, !FID_EQ(PFid, &NullFid));
 	gcode = 0;
-	rcode = FSDB->Get(&parent, PFid, vp->u.u_uid, RC_DATA, 0 , &gcode);
+	rcode = FSDB->Get(&parent, PFid, vp->u.u_uid, RC_DATA, NULL, NULL, &gcode);
 	if (rcode == 0) {
 	    parent->UnLock(RD);		/* unlock read-locked parent */
 	    /* even if rcode is zero, gcode may still be EINCONS because of succeeded fakeification */
@@ -831,7 +823,7 @@ int lrdb::do_FindRepairObject(VenusFid *fid, fsobj **global, fsobj **local)
 	PFid = &OBJ->pfid;
 	OBJ_ASSERT(this, !FID_EQ(PFid, &NullFid));
 	gcode = 0;
-	rcode = FSDB->Get(&parent, PFid, vp->u.u_uid, RC_DATA, 0, &gcode);
+	rcode = FSDB->Get(&parent, PFid, vp->u.u_uid, RC_DATA, NULL, NULL, &gcode);
 	if (rcode == 0) {
 	    parent->UnLock(RD);		/* unlock read-locked parent */
 	    /* even if rcode is zero, gcode may still be EINCONS because of succeeded fakeification */
