@@ -761,8 +761,8 @@ class repvol : public volent {
     ClientModifyLog CML;
     struct Lock CML_lock;               /* for synchronization */
 
-    unsigned AgeLimit;			/* min age of log records in SECONDS */
-    unsigned ReintLimit;		/* work limit, in MILLISECONDS */
+    unsigned int AgeLimit;		/* min age of log records in SECONDS */
+    unsigned int ReintLimit;		/* work limit, in MILLISECONDS */
     RPC2_Unsigned SidUnique;
     int reint_id_gen;                   /* reintegration id generator */
     /*T*/int cur_reint_tid;             /* tid of reintegration in progress */
@@ -821,6 +821,7 @@ class repvol : public volent {
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
     void SetStagingServer(struct in_addr *srvr);
     void Reconfigure(void);
+    int IsSync(void) { return ReintLimit == 0; }
 
     /* Allocation routines. */
     VenusFid GenerateLocalFid(ViceDataType);

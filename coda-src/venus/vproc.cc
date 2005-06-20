@@ -605,7 +605,8 @@ wait_for_reintegration:
 
 /* local-repair modification */
 /* Retryp MUST be non-null in order to do any form of waiting. */
-void vproc::End_VFS(int *retryp) {
+void vproc::End_VFS(int *retryp)
+{
     LOG(1, ("vproc::End_VFS(%s): code = %d\n",
 	     VenusOpStr(u.u_vfsop), u.u_error));
 
@@ -614,6 +615,18 @@ void vproc::End_VFS(int *retryp) {
     /* Exit the volume. */
     if (u.u_vol == 0) goto Exit;
     u.u_vol->Exit(u.u_volmode, u.u_uid);
+
+    /* sync reintegrate whenever we create or destroy an object. Ignore open
+     * because those don't result in action until close, and setattr because
+     * those are mostly cosmetic and don't affect access to the object */
+    if (u.u_volmode == VM_MUTATING && u.u_vol->IsReplicated() &&
+	u.u_vfsop != CODA_OPEN && u.u_vfsop != CODA_SETATTR &&
+	u.u_error == 0)
+    {
+	repvol *rv = (repvol *)u.u_vol;
+	if (rv->IsSync())
+	    rv->Reintegrate();
+    }
 
     /* Handle synchronous resolves. */
     if (u.u_error == ESYNRESOLVE) {
@@ -648,8 +661,11 @@ void vproc::End_VFS(int *retryp) {
 	{ u.u_error = EINTR; goto Exit; }
 
     /* Caller should be prepared to retry! */
-    if (!retryp)
-	{ if (u.u_error == ERETRY) u.u_error = EWOULDBLOCK; goto Exit; }
+    if (!retryp) {
+	if (u.u_error == ERETRY)
+	    u.u_error = EWOULDBLOCK;
+	goto Exit;
+    }
 
     switch(u.u_error) {
 	case ERETRY:
