@@ -528,9 +528,10 @@ class vdb {
 
 
 /* A volume is in exactly one of these states. */
-typedef enum {  Emulating,
-		Logging,
-		Resolving,
+typedef enum {
+    Emulating = 1,
+    Logging,
+    Resolving,
 } VolumeStateType;
 
 

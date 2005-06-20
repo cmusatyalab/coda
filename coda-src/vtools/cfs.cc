@@ -62,9 +62,10 @@ extern "C" {
 #include <coda_config.h>
 
 /* From venusvol.h.  A volume is in exactly one of these states. */
-typedef enum {  Emulating,
-		Logging,
-		Resolving,
+typedef enum {
+    Emulating = 1,
+    Logging,
+    Resolving,
 } VolumeStateType;
 
 #ifdef  __linux__
