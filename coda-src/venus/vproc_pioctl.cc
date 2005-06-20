@@ -1626,42 +1626,6 @@ V_FreeLocks:
 				data->out_size = (short)strlen((char *) data->out) + 1;
 				break;
 			    }
-/*
-  BEGIN_HTML
-  <a name="setlocalview"><strong> setlocalview handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_LOCAL_VIEW:
-			    {
-				LRDB->SetSubtreeView(SUBTREE_LOCAL_VIEW, (char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				break;
-			    }
-/*
-  BEGIN_HTML
-  <a name="setglobalview"><strong> setglobalview handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_GLOBAL_VIEW:
-			    {
-				LRDB->SetSubtreeView(SUBTREE_GLOBAL_VIEW, (char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				break;
-			    }
-/*
-  BEGIN_HTML
-  <a name="setmixedview"><strong> setmixedview handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_MIXED_VIEW:
-			    {
-				LRDB->SetSubtreeView(SUBTREE_MIXED_VIEW, (char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				break;
-			    }
 			default:
 			    eprint("bogus REP_CMD(%d)", rep_cmd);
 			}
