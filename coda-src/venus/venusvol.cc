@@ -1380,7 +1380,7 @@ void volent::TakeTransition()
 
     switch(state) {
         case WriteDisconnected:
-	    if (flags.sync_reintegrate)
+	    if (rv->IsSync())
 		rv->Reintegrate();
 	    else if (rv->ReadyToReintegrate())
 		::Reintegrate(rv);

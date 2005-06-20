@@ -3880,14 +3880,16 @@ void cmlent::writeops(FILE *fp)
 /* this routine determines if a cmlent is old enough to reintegrate. */
 int cmlent::Aged()
 {
-    int oldenough = 0;
+    time_t curTime = Vtime();
     repvol *vol = strbase(repvol, log, CML);
 
-    time_t curTime = Vtime();
-    if ((curTime - time) >= vol->AgeLimit)
-	oldenough = 1;
+    if (vol->IsSync())
+	return 1;
 
-    return oldenough;
+    if ((curTime - time) >= vol->AgeLimit)
+	return 1;
+
+    return 0;
 }
 
 

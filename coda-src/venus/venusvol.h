@@ -821,7 +821,7 @@ class repvol : public volent {
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
     void SetStagingServer(struct in_addr *srvr);
     void Reconfigure(void);
-    int IsSync(void) { return ReintLimit == 0; }
+    int IsSync(void) { return (flags.sync_reintegrate || ReintLimit == 0); }
 
     /* Allocation routines. */
     VenusFid GenerateLocalFid(ViceDataType);

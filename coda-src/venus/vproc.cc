@@ -612,9 +612,7 @@ void vproc::End_VFS(int *retryp)
 
     if (retryp) *retryp = 0;
 
-    /* Exit the volume. */
     if (u.u_vol == 0) goto Exit;
-    u.u_vol->Exit(u.u_volmode, u.u_uid);
 
     /* sync reintegrate whenever we create or destroy an object. Ignore open
      * because those don't result in action until close, and setattr because
@@ -623,10 +621,12 @@ void vproc::End_VFS(int *retryp)
 	u.u_vfsop != CODA_OPEN && u.u_vfsop != CODA_SETATTR &&
 	u.u_error == 0)
     {
-	repvol *rv = (repvol *)u.u_vol;
-	if (rv->IsSync())
-	    rv->Reintegrate();
+	if (((repvol *)u.u_vol)->IsSync())
+	    u.u_vol->flags.transition_pending = 1;
     }
+
+    /* Exit the volume. */
+    u.u_vol->Exit(u.u_volmode, u.u_uid);
 
     /* Handle synchronous resolves. */
     if (u.u_error == ESYNRESOLVE) {

@@ -651,9 +651,6 @@ int repvol::ReadyToReintegrate()
 /* need not be called from within a transaction */
 int cmlent::ReintReady()
 {
-    /* check volume state */
-    repvol *vol;
-
     /* check if its repair flag is set */
     if (flags.to_be_repaired || flags.repair_mutation) {
 	LOG(0, ("cmlent::ReintReady: this is a repair related cmlent\n"));
@@ -673,19 +670,11 @@ int cmlent::ReintReady()
 	return 0;
     }
 
-    /* ignore age when forcing a reintegration */
-    vol = strbase(repvol, log, CML);
-    if (vol->flags.sync_reintegrate)
+    if (Aged())
 	return 1;
 
-    /* if vol staying write disconnected, check age. does not apply to ASRs */
-    /* nor when returning from writeback */
-    if (ReintLimit != 0 && !Aged()) {
-	LOG(100, ("cmlent::ReintReady: record too young\n"));
-	return 0;
-    }
-
-    return 1;
+    LOG(100, ("cmlent::ReintReady: record too young\n"));
+    return 0;
 }
 
 
