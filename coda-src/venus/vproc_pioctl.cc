@@ -777,7 +777,7 @@ OI_FreeLocks:
 		    if (u.u_error) break;
 
 		    /* Format is (status, name, conn_state, conflict,
-		       cml_count, offlinemsg, motd) */
+		       cml_count, offlinemsg, motd, age, hogtime) */
 		    /* First we make sure we won't overflow data->out */
 		    if ( (sizeof(VolumeStatus) + /* volstat */
 			 strlen(name) + 1 + /* name */

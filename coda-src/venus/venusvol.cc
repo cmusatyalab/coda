@@ -1549,10 +1549,8 @@ void repvol::StrongMember()
 	flags.weaklyconnected = 0;
 }
 
-int repvol::WriteDisconnect(unsigned int age, unsigned int time)
+int repvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
 {
-    time *= 1000; /* convert seconds to milliseconds */
-
     Recov_BeginTrans();
 
     if (age != V_UNSETAGE && age != AgeLimit) {
@@ -1560,9 +1558,9 @@ int repvol::WriteDisconnect(unsigned int age, unsigned int time)
 	AgeLimit = age;
     }
 
-    if (time != V_UNSETREINTLIMIT && time != ReintLimit) {
+    if (hogtime != V_UNSETREINTLIMIT && hogtime != ReintLimit) {
 	RVMLIB_REC_OBJECT(ReintLimit);
-	ReintLimit = time;
+	ReintLimit = hogtime;
     }
 
     Recov_EndTrans(MAXFP);
@@ -1818,8 +1816,8 @@ repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBER
     memcpy(volreps, reps, VSG_MEMBERS * sizeof(volrep *));
 
     VVV = NullVV;
-    AgeLimit = V_DEFAULTAGE;
-    ReintLimit = V_DEFAULTREINTLIMIT;
+    AgeLimit = 0;      /* seconds */
+    ReintLimit = 1000; /* milliseconds */
     reint_id_gen = 100;
     flags.replicated = 1;
 

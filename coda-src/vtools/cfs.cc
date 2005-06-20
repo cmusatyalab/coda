@@ -144,6 +144,7 @@ static void WaitForever(int, char**, int);
 static void WhereIs(int, char**, int);
 static void WriteDisconnect(int, char**, int);
 static void Strong(int, char**, int);
+static void Adaptive(int, char**, int);
 static void ForceReintegrate(int, char**, int);
 static void ListLocal(int, char**, int);
 static void CheckLocal(int, char**, int);
@@ -365,15 +366,20 @@ struct command cmdarray[] =
             "Heal partition to servers from cfs disconnect",
             NULL
         },
-        {"writedisconnect", "wd", WriteDisconnect, 
+        {"writedisconnect", "wd", WriteDisconnect,
             "cfs writedisconnect [-age <sec>] [-hogtime <sec>] [<dir> <dir> <dir> ...]",
-            "Set write-disconnection parameters for all volumes, or volumes specified",
+            "Set write-disconnection parameters for all volumes, or volumes specified\n(default parameters -age 60 -hogtime 30.0)",
             NULL
         },
+        {"adaptive", NULL, Adaptive,
+	    "cfs adaptive [<dir> <dir> <dir> ...]",
+	    "Reintegrate changes quickly, but allow for adaptation to low bandwidth\nalias for 'cfs writedisconnect -age 0 -hogtime 1.0'",
+	    NULL
+        },
         {"strong", NULL, Strong,
-            "cfs strong [<dir> <dir> <dir> ...]",
-            "alias for 'cfs writedisconnect -age 0 -time 0",
-            NULL
+	    "cfs strong [<dir> <dir> <dir> ...]",
+	    "Force synchronous reintegration when an operation completes.\nalias for 'cfs writedisconnect -age 0 -hogtime 0'",
+	    NULL
         },
 	{"forcereintegrate", "fr", ForceReintegrate,
 	    "cfs forcereintegrate [<dir> <dir> <dir> ...]",
@@ -2528,23 +2534,31 @@ static void WD(int argc, char *argv[], unsigned int age, unsigned int hogtime)
 static void WriteDisconnect(int argc, char *argv[], int opslot)
 {
     unsigned int age, hogtime;
-    int i = 2;
 
     age = hogtime = (unsigned int)-1;
     while (argc > 2) {
-	if (strcmp(argv[i], "-age") == 0) {
+	if (strcmp(argv[2], "-age") == 0)
 	    age = atoi(argv[3]);
-	    argv += 2;
-	    argc -= 2;
-	    continue;
-	}
-	if (strcmp(argv[i], "-hogtime") == 0) {
-	    hogtime = atoi(argv[i+1]);
-	    argv += 2;
-	    argc -= 2;
-	}
+
+	else if (strcmp(argv[2], "-hogtime") == 0)
+	    hogtime = (unsigned int)(atof(argv[3]) * 1000.0);
+
+	else break;
+
+	argv += 2;
+	argc -= 2;
+    }
+    /* if age and hogtime are not specified, set default values */
+    if (age == (unsigned int)-1 && hogtime == (unsigned int)-1) {
+	age = 60; /* seconds */
+	hogtime = 30000; /* milliseconds */
     }
     WD(argc, argv, age, hogtime);
+}
+
+static void Adaptive(int argc, char *argv[], int opslot)
+{
+    WD(argc, argv, 0, 1000);
 }
 
 static void Strong(int argc, char *argv[], int opslot)

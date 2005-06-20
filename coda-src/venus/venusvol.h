@@ -92,9 +92,7 @@ const int MLENTMaxFreeEntries = 32;
 
 const int UNSET_TID = -1;
 
-const unsigned V_DEFAULTAGE = 60;		/* in SECONDS */
 const unsigned V_UNSETAGE = (unsigned)-1;	/* huge */
-const unsigned V_DEFAULTREINTLIMIT = 30000;	/* in MILLESECONDS */
 const unsigned V_UNSETREINTLIMIT = (unsigned)-1;/* huge */
 
 /* Volume-User modes. */
