@@ -663,8 +663,7 @@ OI_FreeLocks:
 	case _VIOC_GETSERVERSTATS:
 	case _VIOC_CHECKPOINTML:
 	case _VIOC_PURGEML:
-	case _VIOC_BEGINML:
-	case _VIOC_ENDML:
+	case _VIOC_WD:
 	case _VIOC_ENABLEASR:
 	case _VIOC_DISABLEASR: 
 	case _VIOC_LISTCACHE_VOLUME:
@@ -960,7 +959,7 @@ OI_FreeLocks:
                         u.u_error = ((repvol *)v)->PurgeMLEs(u.u_uid);
 		    break;
 		    }
-     	        case _VIOC_BEGINML:
+		case _VIOC_WD:
 		    {
 		    /* 
 		     * Begin logging mutations to this volume. 
@@ -968,30 +967,13 @@ OI_FreeLocks:
 		     * fetches may be performed but mutations are logged.
 		     */
 		    char *startp = (char *) data->in;
-#define agep ((unsigned *)(startp))
-#define timep ((unsigned *)(agep + 1))
+#define agep ((unsigned int *)(startp))
+#define timep ((unsigned int *)(agep + 1))
                     u.u_error = EOPNOTSUPP;
                     if (v->IsReplicated())
                         u.u_error = ((repvol *)v)->WriteDisconnect(*agep, *timep); 
 #undef timep
 #undef agep
-		    if (u.u_error == 0) 
-			eprint("Logging updates to volume %s", v->GetName());
-
-		    break;
-		    }
-		case _VIOC_ENDML:
-		    {
-		    /* 
-		     * Stop logging mutations to this volume, and
-		     * schedule it for reintegration if appropriate.
-		     */
-                    u.u_error = EOPNOTSUPP;
-                    if (v->IsReplicated())
-                        u.u_error = ((repvol *)v)->WriteReconnect();    
-		    if (u.u_error == 0) 
-			eprint("Propagating updates to volume %s (|CML| = %d)", 
-			       v->GetName(), ((repvol *)v)->GetCML()->count());
 		    break;
 		    }
 		case _VIOC_ENABLEASR:
@@ -1356,7 +1338,7 @@ OI_FreeLocks:
 	case _VIOC_LISTCACHE:
 	case _VIOC_GET_MT_PT:
 	case _VIOC_WD_ALL:
-	case _VIOC_WR_ALL:
+	case _VIOC_SYNCCACHE_ALL:
 	case _VIOC_UNLOADKERNEL:
 	case _VIOC_LOOKASIDE:
 	    {
@@ -1754,18 +1736,14 @@ OI_FreeLocks:
 		case _VIOC_WD_ALL:
 		    {
 		    char *startp = (char *) data->in;
-#define agep ((unsigned *)(startp))
-#define timep ((unsigned *)(agep + 1))
+#define agep ((unsigned int *)(startp))
+#define timep ((unsigned int *)(agep + 1))
 		    u.u_error = VDB->WriteDisconnect(*agep, *timep);
-		    if (u.u_error == 0)
-			eprint("Logging updates to all volumes");
 		    break;
 		    }
-		case _VIOC_WR_ALL:
+		case _VIOC_SYNCCACHE_ALL:
 		    {
-		    u.u_error = VDB->WriteReconnect();
-		    if (u.u_error == 0)
-			eprint("Propagating updates to all volumes");
+		    u.u_error = VDB->SyncCache();
 		    break;
 		    }
 		}

@@ -141,9 +141,9 @@ static void TruncateLog(int, char **, int);
 static void UnloadKernel(int, char **, int);
 static void WaitForever(int, char**, int);
 static void WhereIs(int, char**, int);
-static void ForceReintegrate(int, char**, int);
 static void WriteDisconnect(int, char**, int);
-static void WriteReconnect(int, char**, int);
+static void Strong(int, char**, int);
+static void ForceReintegrate(int, char**, int);
 static void ListLocal(int, char**, int);
 static void CheckLocal(int, char**, int);
 static void PreserveLocal(int, char**, int);
@@ -365,18 +365,18 @@ struct command cmdarray[] =
             NULL
         },
         {"writedisconnect", "wd", WriteDisconnect, 
-            "cfs writedisconnect [-age <sec>] [<dir> <dir> <dir> ...]",
-            "Write disconnect all volumes, or volumes specified",
+            "cfs writedisconnect [-age <sec>] [-hogtime <sec>] [<dir> <dir> <dir> ...]",
+            "Set write-disconnection parameters for all volumes, or volumes specified",
             NULL
         },
-        {"writereconnect", "wr", WriteReconnect, 
-            "cfs writereconnect [<dir> <dir> <dir> ...]",
-            "Write connect all volumes, or volumes specified",
+        {"strong", NULL, Strong,
+            "cfs strong [<dir> <dir> <dir> ...]",
+            "alias for 'cfs writedisconnect -age 0 -time 0",
             NULL
         },
 	{"forcereintegrate", "fr", ForceReintegrate,
-	    "cfs forcereintegrate <dir> [<dir> <dir> ...]",
-	    "Force mutations in a disconnected volume to the server",
+	    "cfs forcereintegrate [<dir> <dir> <dir> ...]",
+	    "Force modifications in all or specified volumes to the server",
 	    NULL
 	},
         {"expand", NULL, ExpandObject,
@@ -2497,56 +2497,84 @@ static void WaitForever (int argc, char *argv[], int opslot)
     if (rc < 0){ PERROR("VIOC_WAITFOREVER"); exit(-1); }
 }
 
-
-static void WriteDisconnect(int argc, char *argv[], int opslot)
+static void WD(int argc, char *argv[], unsigned int age, unsigned int hogtime)
 {
-    int  i = 2, rc, w = 0;
     struct ViceIoctl vio;
-    unsigned age = (unsigned)-1, time = (unsigned)-1;  /* huge*/
+    int rc, i, w;
 
-    if (i < argc && (strcmp(argv[i], "-age") == 0)) {age=atoi(argv[i+1]); i+=2;}
-    if (i < argc && (strcmp(argv[i], "-time") == 0)) {time=atoi(argv[i+1]); i+=2;}
-
-    ((unsigned *)piobuf)[0] = age;
-    ((unsigned *)piobuf)[1] = time;
+    ((unsigned int *)piobuf)[0] = age;
+    ((unsigned int *)piobuf)[1] = hogtime;
     vio.in = piobuf;
-    vio.in_size = 2 * (int) sizeof(unsigned);
+    vio.in_size = 2 * (int) sizeof(unsigned int);
     vio.out = 0;
     vio.out_size = 0;
 
-    if (argc == i)      /* no more args -- do them all */
+    if (argc == 2)      /* no more args -- do them all */
     {
 	rc = pioctl(NULL, _VICEIOCTL(_VIOC_WD_ALL), &vio, 1);
 	if (rc) { PERROR("VIOC_WD_ALL"); exit(-1); }
-    } else {
+    }
+    else
+    {
 	w = getlongest(argc, argv);
-	for (int j = i; j < argc; j++)
+	for (i = 2; i < argc; i++)
 	{
-	    if (argc > i+1) printf("  %*s\n", w, argv[j]); /* echo input if more than one fid */
+	    if (argc > 3) printf("  %*s\n", w, argv[i]); /* echo input if more than one fid */
 
-	    rc = pioctl(argv[j], _VICEIOCTL(_VIOC_BEGINML), &vio, 0);
-	    if (rc < 0) { PERROR("VIOC_BEGINML"); exit(-1); }
+	    rc = pioctl(argv[i], _VICEIOCTL(_VIOC_WD), &vio, 0);
+	    if (rc < 0) { PERROR("VIOC_WD"); exit(-1); }
 	}
     }
 }
 
+static void WriteDisconnect(int argc, char *argv[], int opslot)
+{
+    unsigned int age, hogtime;
+    int i = 2;
+
+    age = hogtime = (unsigned int)-1;
+    while (argc > 2) {
+	if (strcmp(argv[i], "-age") == 0) {
+	    age = atoi(argv[3]);
+	    argv += 2;
+	    argc -= 2;
+	    continue;
+	}
+	if (strcmp(argv[i], "-hogtime") == 0) {
+	    hogtime = atoi(argv[i+1]);
+	    argv += 2;
+	    argc -= 2;
+	}
+    }
+    WD(argc, argv, age, hogtime);
+}
+
+static void Strong(int argc, char *argv[], int opslot)
+{
+    WD(argc, argv, 0, 0);
+}
+
 static void ForceReintegrate(int argc, char *argv[], int opslot)
 {
-    int  i = 2, rc, w;
+    int i = 2, rc, w;
     VolumeStatus *vs;
+    struct ViceIoctl vio;
     char *volname;
     int conflict;
     int cml_count;
     char *ptr;
 
-    if (argc < 3) {
-	printf("Usage: %s\n", cmdarray[opslot].usetxt);
-	exit(-1);
+    if (argc == 2)      /* do them all */
+    {
+	rc = simple_pioctl(NULL, _VIOC_SYNCCACHE_ALL, 1);
+	if (rc) { PERROR("VIOC_SYNCCACHE_ALL"); exit(1); }
+	return;
     }
 
     w = getlongest(argc, argv);
 
-    for (i = 2; i < argc; i++) {
+    for (i = 2; i < argc; i++)
+    {
 	if (argc > 3) printf("  %*s:  ", w, argv[i]); /* echo input if more than one fid */
 
 	rc = simple_pioctl(argv[i], _VIOC_SYNCCACHE, 0);
@@ -2554,62 +2582,42 @@ static void ForceReintegrate(int argc, char *argv[], int opslot)
 	if (rc < 0) {
 	    PERROR("VIOC_SYNCCACHE");
 	    fprintf(stderr, "  VIOC_SYNCCACHE returns %d\n",rc);
-	} else {   /* test CML entries remaining by doing a ListVolume*/
-	    struct ViceIoctl vio;
-
-	    vio.in = 0;
-	    vio.in_size = 0;
-	    vio.out_size = CFS_PIOBUFSIZE;
-	    vio.out = piobuf;
-
-	    /* Do the pioctl */
-	    rc = pioctl(argv[i], _VICEIOCTL(_VIOCGETVOLSTAT), &vio, 1);
-	    if (rc < 0) {
-		PERROR("VIOC_GETVOLSTAT");
-		fprintf(stderr, "  VIOC_GETVOLSTAT returns %d\n", rc);
-	    }
-	    else {  /* Get pointers to output fields */
-		/* Format is (status, name, conn_state, conflict,
-		   cml_count, offlinemsg, motd) */
-		ptr = piobuf;		/* invariant: ptr always point to next obj
-					   to be read */
-		vs = (VolumeStatus *)ptr;
-		ptr += sizeof(VolumeStatus);
-		volname = ptr;
-		ptr += strlen(volname)+1;
-		ptr += sizeof(int);
-		memcpy ((void *)&conflict, (void *)ptr, sizeof(int));
-		ptr += sizeof(int);
-		memcpy ((void *)&cml_count, (void *)ptr, sizeof(int));
-
-		if (!cml_count)
-		    printf("Modifications to %s reintegrated to server\n",volname);
-		else {
-		    printf("%d CML entries remaining for volume %s\n",cml_count,volname);
-		    if (conflict)
-			printf("Reintegration failed due to a conflict\n");
-		}
-	    }
+	    continue;
 	}
-    }
-}
 
-static void WriteReconnect(int argc, char *argv[], int opslot)
-{
-    int  i, w, rc;
+	/* test CML entries remaining by doing a ListVolume */
+	vio.in = 0;
+	vio.in_size = 0;
+	vio.out_size = CFS_PIOBUFSIZE;
+	vio.out = piobuf;
 
-    if (argc == 2) {      /* do them all */
-	rc = simple_pioctl(NULL, _VIOC_WR_ALL, 1);
-	if (rc) { PERROR("VIOC_WR_ALL"); exit(-1); }
-    } else {
-	w = getlongest(argc, argv);
-	for (i = 2; i < argc; i++)
-	{
-	    if (argc > 3) printf("  %*s\n", w, argv[i]); /* echo input if more than one fid */
-
-	    rc = simple_pioctl(argv[i], _VIOC_ENDML, 1);
-	    if (rc) { PERROR("VIOC_ENDML"); exit(-1); }
+	/* Do the pioctl */
+	rc = pioctl(argv[i], _VICEIOCTL(_VIOCGETVOLSTAT), &vio, 1);
+	if (rc < 0) {
+	    PERROR("VIOC_GETVOLSTAT");
+	    fprintf(stderr, "  VIOC_GETVOLSTAT returns %d\n", rc);
+	    continue;
 	}
+	/* Get pointers to output fields */
+	/* (status, name, conn_state, conflict, cml_count, offlinemsg, motd) */
+	ptr = piobuf;		/* invariant: ptr always point to next obj
+				   to be read */
+	vs = (VolumeStatus *)ptr;
+	ptr += sizeof(VolumeStatus);
+	volname = ptr;
+	ptr += strlen(volname)+1;
+	ptr += sizeof(int);
+	memcpy ((void *)&conflict, (void *)ptr, sizeof(int));
+	ptr += sizeof(int);
+	memcpy ((void *)&cml_count, (void *)ptr, sizeof(int));
+
+	if (cml_count) {
+	    printf("%d CML entries remaining for volume %s\n",cml_count,volname);
+	    if (conflict)
+		printf("Reintegration failed due to a conflict\n");
+	}
+	else
+	    printf("Modifications to %s reintegrated to server\n",volname);
     }
 }
 

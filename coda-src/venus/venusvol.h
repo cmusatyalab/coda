@@ -509,9 +509,10 @@ class vdb {
     void WeakEvent(struct in_addr *host);
     void StrongEvent(struct in_addr *host);
 
-    void AttachFidBindings();
-    int WriteDisconnect(unsigned =V_UNSETAGE, unsigned =V_UNSETREINTLIMIT);
-    int WriteReconnect();
+    void AttachFidBindings(void);
+    int WriteDisconnect(unsigned int age=V_UNSETAGE,
+			unsigned int time=V_UNSETREINTLIMIT);
+    int SyncCache(void);
     void GetCmlStats(cmlstats&, cmlstats&);
 
     int CallBackBreak(Volid *);
@@ -838,15 +839,15 @@ class repvol : public volent {
     int GetReintId();                           /*U*/
     void CheckTransition();                     /*N*/
     void IncAbort(int);                         /*U*/
-    int SyncCache(VenusFid * fid);
+    int SyncCache(VenusFid *fid = NULL);
 
     void RestoreObj(VenusFid *);
     int	CheckPointMLEs(uid_t, char *);
     int LastMLETime(unsigned long *);
     int PurgeMLEs(uid_t);
     void ResetStats() { CML.ResetHighWater(); }
-    int WriteDisconnect(unsigned =V_UNSETAGE, unsigned =V_UNSETREINTLIMIT);
-    int WriteReconnect();
+    int WriteDisconnect(unsigned int age=V_UNSETAGE,
+			unsigned int time=V_UNSETREINTLIMIT);
 
     /* local-repair modifications to the following methods */
     /* Modlog routines. */

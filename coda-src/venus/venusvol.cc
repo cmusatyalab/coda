@@ -790,7 +790,7 @@ void vdb::AttachFidBindings()
 }
 
 
-int vdb::WriteDisconnect(unsigned age, unsigned time)
+int vdb::WriteDisconnect(unsigned int age, unsigned int time)
 {
     repvol_iterator next;
     repvol *v;
@@ -804,14 +804,14 @@ int vdb::WriteDisconnect(unsigned age, unsigned time)
 }
 
 
-int vdb::WriteReconnect()
+int vdb::SyncCache()
 {
     repvol_iterator next;
     repvol *v;
     int code = 0;
 
     while ((v = next())) {
-        code = v->WriteReconnect();
+        code = v->SyncCache();
         if (code) break;
     }
     return(code);
@@ -1550,38 +1550,23 @@ void repvol::StrongMember()
 	flags.weaklyconnected = 0;
 }
 
-int repvol::WriteDisconnect(unsigned age, unsigned time)
+int repvol::WriteDisconnect(unsigned int age, unsigned int time)
 {
+    time *= 1000; /* convert seconds to milliseconds */
+
     Recov_BeginTrans();
-        RVMLIB_REC_OBJECT(*this);
-        if (age != AgeLimit || time != ReintLimit ||
-            age == V_UNSETAGE || time == V_UNSETREINTLIMIT) {
-            if (age == V_UNSETAGE)
-                AgeLimit = V_DEFAULTAGE;
-            else
-                AgeLimit = age;
 
-            if (time == V_UNSETREINTLIMIT) 
-                ReintLimit = V_DEFAULTREINTLIMIT;
-            else 
-                ReintLimit = time*1000;
-        }
+    if (age != V_UNSETAGE && age != AgeLimit) {
+	RVMLIB_REC_OBJECT(AgeLimit);
+	AgeLimit = age;
+    }
+
+    if (time != V_UNSETREINTLIMIT && time != ReintLimit) {
+	RVMLIB_REC_OBJECT(ReintLimit);
+	ReintLimit = time;
+    }
+
     Recov_EndTrans(MAXFP);
-    flags.transition_pending = 1;
-
-    return 0;
-}
-
-
-int repvol::WriteReconnect()
-{
-    Recov_BeginTrans();
-        RVMLIB_REC_OBJECT(*this);
-        AgeLimit = V_UNSETAGE;
-        ReintLimit = V_UNSETREINTLIMIT;
-    Recov_EndTrans(MAXFP);
-    flags.transition_pending = 1;
-
     return 0;
 }
 
@@ -1834,8 +1819,8 @@ repvol::repvol(Realm *r, VolumeId vid, const char *name, volrep *reps[VSG_MEMBER
     memcpy(volreps, reps, VSG_MEMBERS * sizeof(volrep *));
 
     VVV = NullVV;
-    AgeLimit = V_UNSETAGE;
-    ReintLimit = V_UNSETREINTLIMIT;
+    AgeLimit = V_DEFAULTAGE;
+    ReintLimit = V_DEFAULTREINTLIMIT;
     reint_id_gen = 100;
     flags.replicated = 1;
 

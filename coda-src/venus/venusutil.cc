@@ -375,8 +375,7 @@ const char *IoctlOpStr(unsigned char nr)
 	case _VIOC_DISCONNECT:		return("Disconnect");
 	case _VIOC_RECONNECT:		return("Reconnect");
 	case _VIOC_GETPFID:		return("Get Parent Fid");
-	case _VIOC_BEGINML:		return("Begin Modify Logging");
-	case _VIOC_ENDML:		return("End Modify Logging");
+	case _VIOC_WD:			return("Set Reintegration Parameters");
 	case _VIOC_HDB_VERIFY:		return("HDB Verify");
 	case _VIOC_HDB_ENABLE:		return("HDB Enable");
 	case _VIOC_HDB_DISABLE:		return("HDB Disable");
@@ -392,8 +391,8 @@ const char *IoctlOpStr(unsigned char nr)
 	case _VIOC_SET_LOCAL_VIEW:	return("Set Local View");
 	case _VIOC_SET_GLOBAL_VIEW:	return("Set Global View");
 	case _VIOC_SET_MIXED_VIEW:	return("Set Mixed View");
-	case _VIOC_WD_ALL:		return("WD All");
-	case _VIOC_WR_ALL:		return("WR All");
+	case _VIOC_WD_ALL:		return("Set Reint Params for All");
+	case _VIOC_SYNCCACHE_ALL:	return("Sync Cache All");
 	case _VIOC_LISTCACHE:		return("List Cache");
 	case _VIOC_GET_MT_PT:		return("Get Mt Pt");
 	case _VIOC_SYNCCACHE:		return("Sync Cache");
