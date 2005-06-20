@@ -612,7 +612,6 @@ class fsobj {
 		       uid_t, unsigned short);
     int DisconnectedSetAttr(Date_t, uid_t, unsigned long, Date_t,
 			     uid_t, unsigned short, int tid=-1);
-    int ConnectedSetAcl(uid_t, RPC2_CountedBS *);
     void LocalCreate(Date_t, fsobj *, char *,
 		      uid_t, unsigned short);
     int DisconnectedCreate(Date_t, uid_t, fsobj **,

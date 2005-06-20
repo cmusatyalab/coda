@@ -692,111 +692,106 @@ int fsobj::SetVV(ViceVersionVector *newvv, uid_t uid)
 
     int code = 0;
 
-#warning "setvv"
-    /* if (!HOARDING(this)) { */
-    if (1) {
-	/* This is a connected-mode only routine! */
+    /* This is a connected-mode only routine! */
+    if (!WRITEDISCONNECTED(this))
 	code = ETIMEDOUT;
-    }
-    else {
-/*	FSO_ASSERT(this, HOARDING(this)); */
-	FSO_ASSERT(this, 0);
 
-	/* COP2 Piggybacking. */
-	char PiggyData[COP2SIZE];
-	RPC2_CountedBS PiggyBS;
-	PiggyBS.SeqLen = 0;
-	PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
+    FSO_ASSERT(this, WRITEDISCONNECTED(this));
 
-	if (vol->IsReplicated()) {
-	    mgrpent *m = 0;
-            repvol *vp = (repvol *)vol;
+    /* COP2 Piggybacking. */
+    char PiggyData[COP2SIZE];
+    RPC2_CountedBS PiggyBS;
+    PiggyBS.SeqLen = 0;
+    PiggyBS.SeqBody = (RPC2_ByteSeq)PiggyData;
 
-	    /* Acquire an Mgroup. */
-	    code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
-	    if (code != 0) goto RepExit;
+    if (vol->IsReplicated()) {
+	mgrpent *m = 0;
+	repvol *vp = (repvol *)vol;
 
-	    /* The SetVV call. */
-	    {
-		/* Make the RPC call. */
-		CFSOP_PRELUDE("store::SetVV %-30s\n", comp, fid);
-		MULTI_START_MESSAGE(ViceSetVV_OP);
-		code = (int) MRPC_MakeMulti(ViceSetVV_OP, ViceSetVV_PTR,
-				      VSG_MEMBERS, m->rocc.handles,
-				      m->rocc.retcodes, m->rocc.MIp, 0, 0,
-				      MakeViceFid(&fid), newvv, &PiggyBS);
-		MULTI_END_MESSAGE(ViceSetVV_OP);
-		CFSOP_POSTLUDE("store::setvv done\n");
+	/* Acquire an Mgroup. */
+	code = vp->GetMgrp(&m, uid, (PIGGYCOP2 ? &PiggyBS : 0));
+	if (code != 0) goto RepExit;
 
-		/* Collate responses from individual servers and decide what to do next. */
-		code = vp->Collate_COP2(m, code);
-		MULTI_RECORD_STATS(ViceSetVV_OP);
-		if (code != 0) goto RepExit;
-
-		/* Finalize COP2 Piggybacking. */
-		if (PIGGYCOP2)
-		    vp->ClearCOP2(&PiggyBS);
-	    }
-
-	    /* Do op locally. */
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(stat);
-            stat.VV = *newvv;
-            Recov_EndTrans(CMFP);
-
-RepExit:
-            if (m) m->Put();
-            switch(code) {
-            case 0:
-                break;
-
-            case ETIMEDOUT:
-                code = ERETRY;
-                break;
-
-            case ESYNRESOLVE:
-            case EINCONS:
-                CHOKE("fsobj::SetVV: code = %d", code);
-                break;
-
-            default:
-                break;
-            }
-        }
-	else {
-	    /* Acquire a Connection. */
-	    connent *c;
-            volrep *vp = (volrep *)vol;
-	    code = vp->GetConn(&c, uid);
-	    if (code != 0) goto NonRepExit;
-
+	/* The SetVV call. */
+	{
 	    /* Make the RPC call. */
 	    CFSOP_PRELUDE("store::SetVV %-30s\n", comp, fid);
-	    UNI_START_MESSAGE(ViceSetVV_OP);
-	    code = (int) ViceSetVV(c->connid, MakeViceFid(&fid), newvv, &PiggyBS);
-	    UNI_END_MESSAGE(ViceSetVV_OP);
+	    MULTI_START_MESSAGE(ViceSetVV_OP);
+	    code = (int) MRPC_MakeMulti(ViceSetVV_OP, ViceSetVV_PTR,
+					VSG_MEMBERS, m->rocc.handles,
+					m->rocc.retcodes, m->rocc.MIp, 0, 0,
+					MakeViceFid(&fid), newvv, &PiggyBS);
+	    MULTI_END_MESSAGE(ViceSetVV_OP);
 	    CFSOP_POSTLUDE("store::setvv done\n");
 
-	    /* Examine the return code to decide what to do next. */
-	    code = vp->Collate(c, code);
-	    UNI_RECORD_STATS(ViceSetVV_OP);
-	    if (code != 0) goto NonRepExit;
+	    /* Collate responses from individual servers and decide what to do next. */
+	    code = vp->Collate_COP2(m, code);
+	    MULTI_RECORD_STATS(ViceSetVV_OP);
+	    if (code != 0) goto RepExit;
 
-	    /* Do op locally. */
-	    Recov_BeginTrans();
-	    RVMLIB_REC_OBJECT(stat);
-	    stat.VV = *newvv;
-	    Recov_EndTrans(CMFP);
+	    /* Finalize COP2 Piggybacking. */
+	    if (PIGGYCOP2)
+		vp->ClearCOP2(&PiggyBS);
+	}
+
+	/* Do op locally. */
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(stat);
+	stat.VV = *newvv;
+	Recov_EndTrans(CMFP);
+
+RepExit:
+	if (m) m->Put();
+	switch(code) {
+	case 0:
+	    break;
+
+	case ETIMEDOUT:
+	    code = ERETRY;
+	    break;
+
+	case ESYNRESOLVE:
+	case EINCONS:
+	    CHOKE("fsobj::SetVV: code = %d", code);
+	    break;
+
+	default:
+	    break;
+	}
+    }
+    else {
+	/* Acquire a Connection. */
+	connent *c;
+	volrep *vp = (volrep *)vol;
+	code = vp->GetConn(&c, uid);
+	if (code != 0) goto NonRepExit;
+
+	/* Make the RPC call. */
+	CFSOP_PRELUDE("store::SetVV %-30s\n", comp, fid);
+	UNI_START_MESSAGE(ViceSetVV_OP);
+	code = (int) ViceSetVV(c->connid, MakeViceFid(&fid), newvv, &PiggyBS);
+	UNI_END_MESSAGE(ViceSetVV_OP);
+	CFSOP_POSTLUDE("store::setvv done\n");
+
+	/* Examine the return code to decide what to do next. */
+	code = vp->Collate(c, code);
+	UNI_RECORD_STATS(ViceSetVV_OP);
+	if (code != 0) goto NonRepExit;
+
+	/* Do op locally. */
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(stat);
+	stat.VV = *newvv;
+	Recov_EndTrans(CMFP);
 
 NonRepExit:
-	    PutConn(&c);
-	}
+	PutConn(&c);
     }
 
     /* Replica control rights are invalid in any case. */
     Demote();
 
-  LOG(0, ("MARIA:  We just SetVV'd.\n"));
+    LOG(0, ("MARIA:  We just SetVV'd.\n"));
 
     return(code);
 }

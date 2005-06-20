@@ -2018,9 +2018,7 @@ void SetStatus(struct Vnode *vptr, ViceStatus *status, Rights rights, Rights any
     status->CallBack = NoCallBack;
     status->vparent = vptr->disk.vparent;
     status->uparent = vptr->disk.uparent;
-
 }
-
 
 int GetRights(PRS_InternalCPS *CPS, AL_AccessList *ACL, int ACLSize,
 	       Rights *rights, Rights *anyrights )

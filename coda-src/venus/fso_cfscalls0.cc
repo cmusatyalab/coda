@@ -1316,7 +1316,6 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 	uid_t NewOwner = VA_IGNORE_UID;
 	unsigned short NewMode = VA_IGNORE_MODE;
 
-
 	LOG(10, ("fsobj::SetAttr: (%s), uid = %d\n", GetComp(), uid));
 	VPROC_printvattr(vap);
 
@@ -1376,21 +1375,37 @@ int fsobj::SetAttr(struct coda_vattr *vap, uid_t uid)
 }
 
 
-int fsobj::ConnectedSetAcl(uid_t uid, RPC2_CountedBS *acl)
+int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
 {
-#warning "setacl"
-    /* FSO_ASSERT(this, HOARDING(this)); */
-    FSO_ASSERT(this, 0);
+    LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
+
+    if (!WRITEDISCONNECTED(this))
+	return ETIMEDOUT;
+
+    if (IsFake() || IsLocalObj())
+	/* Ignore attempts to set ACLs on fake objects. */
+	return EPERM;
+
+    if (DIRTY(this))
+	return EBUSY;
+
+    /* Since we cannot log this operation in the CML we should not be
+     * disconnected. The server also responds with a new status block that
+     * includes new access rights, so the object should not have pending
+     * operations in the log. */
     CODA_ASSERT(acl != 0);
 
     int code = 0;
-    const char *prel_str="store::setacl %s\n";
-    const char *post_str="store::setacl done\n";
 
     /* Status parameters. */
     ViceStatus status;
-    VenusToViceStatus(&stat, &status);
+    memset(&status, 0, sizeof(status));
 
+    /* setacl really only looks at these two */
+    status.DataVersion = stat.DataVersion;
+    status.VV = stat.VV;
+
+    /* but we clear these just in case... */
     status.Date = (Date_t)-1;
     status.Owner = (uid_t)-1;
     status.Mode = (unsigned short)-1;
@@ -1439,7 +1454,7 @@ int fsobj::ConnectedSetAcl(uid_t uid, RPC2_CountedBS *acl)
 	    ARG_MARSHALL(OUT_MODE, CallBackStatus, VCBStatusvar, VCBStatus, VSG_MEMBERS)
 
 	    /* Make the RPC call. */
-	    CFSOP_PRELUDE(prel_str, comp, fid);
+	    CFSOP_PRELUDE("store::setacl %s\n", comp, fid);
 	    MULTI_START_MESSAGE(ViceSetACL_OP);
 	    code = (int)MRPC_MakeMulti(ViceSetACL_OP, ViceSetACL_PTR,
 				       VSG_MEMBERS, m->rocc.handles,
@@ -1449,7 +1464,7 @@ int fsobj::ConnectedSetAcl(uid_t uid, RPC2_CountedBS *acl)
 				       VSvar_ptrs, VCBStatusvar_ptrs,
 				       &PiggyBS);
 	    MULTI_END_MESSAGE(ViceSetACL_OP);
-	    CFSOP_POSTLUDE(post_str);
+	    CFSOP_POSTLUDE("store::setacl done\n");
 
 	    free(OldVS.SeqBody);
 	    /* Collate responses from individual servers and decide what to
@@ -1510,7 +1525,7 @@ RepExit:
 	if (code != 0) goto NonRepExit;
 
 	/* Make the RPC call. */
-	CFSOP_PRELUDE(prel_str, comp, fid);
+	CFSOP_PRELUDE("store::setacl %s\n", comp, fid);
 	UNI_START_MESSAGE(ViceSetACL_OP);
 	code = (int) ViceSetACL(c->connid, MakeViceFid(&fid), acl, &status,
 				0, &Dummy, &OldVS, &VS, &VCBStatus,
@@ -1533,30 +1548,9 @@ NonRepExit:
 	PutConn(&c);
     }
 
-    return(code);
-}
-
-int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
-{
-    LOG(10, ("fsobj::SetACL: (%s), uid = %d\n", GetComp(), uid));
-
-    /* if (!HOARDING(this)) */
-#warning "setacl"
-    if (1) {
-	/* We don't cache ACLs! */
-	return(ETIMEDOUT);
-    }
-
-    if (IsFake() || IsLocalObj())
-	/* Ignore attempts to set ACLs on fake objects. */
-	return(EPERM);
-
-    int code = ConnectedSetAcl(uid, acl);
-
-    if (code == 0) {
-	/* Cached rights are suspect now! */
+    /* Cached rights are suspect now! */
+    if (code == 0)
 	Demote();
-    }
 
     return(code);
 }
