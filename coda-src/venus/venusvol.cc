@@ -1521,12 +1521,8 @@ void repvol::WeakMember()
 {
     /* Normally a weakmember event implies that WeakVSGSize > 0, however
      * we might get weak events from VSG servers when using a staging server. */
-    if (!IsWeaklyConnected() && WeakVSGSize() > 0) {
-        WriteDisconnect();
-
-        flags.transition_pending = 1;
+    if (!IsWeaklyConnected() && WeakVSGSize() > 0)
 	flags.weaklyconnected = 1;
-    }
 }
 
 void volrep::StrongMember()
@@ -1550,12 +1546,8 @@ void volrep::StrongMember()
 void repvol::StrongMember()
 {
     /* vsg check is for 0, not 1, because the conn is already strong */
-    if (WeakVSGSize() == 0) {
-        WriteReconnect();
-
-        flags.transition_pending = 1;
+    if (WeakVSGSize() == 0)
 	flags.weaklyconnected = 0;
-    }
 }
 
 int repvol::WriteDisconnect(unsigned age, unsigned time)
