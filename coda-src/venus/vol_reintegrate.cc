@@ -292,8 +292,8 @@ int repvol::IncReintegrate(int tid)
 	return 0;
     }
 
-    /* check if volume state is Logging or not */
-    if (state != Logging) return ETIMEDOUT;	/* it must be Emulating */
+    /* check if volume state is WriteDisconnected or not */
+    if (!IsWriteDisconnected()) return ETIMEDOUT; /* it must be Disconnected */
 
     int code = 0;
     int done;

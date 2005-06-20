@@ -191,7 +191,7 @@ int fsobj::Fetch(uid_t uid)
     /* Sanity checks. */
     {
 	/* Better not be disconnected or dirty! */
-	FSO_ASSERT(this, (LOGGING(this) && !DIRTY(this)));
+	FSO_ASSERT(this, (WRITEDISCONNECTED(this) && !DIRTY(this)));
 
 	/* We never fetch data if we don't already have status. */
 	if (!HAVESTATUS(this))
@@ -550,7 +550,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     /* Sanity checks. */
     {
 	/* Better not be disconnected or dirty! */
-	FSO_ASSERT(this, (LOGGING(this) && !DIRTY(this)));
+	FSO_ASSERT(this, (WRITEDISCONNECTED(this) && !DIRTY(this)));
 
 #if 0 /* this has fallen out of date -- Adam */
 	if (IsFake()) {
@@ -1218,8 +1218,6 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
 
 int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength, int Tid)
 {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
 
     if (!vol->IsReplicated()) {
@@ -1296,8 +1294,6 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
 
 int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength, Date_t NewDate,
 			       uid_t NewOwner, unsigned short NewMode, int Tid) {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
 
     Recov_BeginTrans();
@@ -1547,8 +1543,6 @@ int fsobj::SetACL(RPC2_CountedBS *acl, uid_t uid)
     /* if (!HOARDING(this)) */
 #warning "setacl"
     if (1) {
-	FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
 	/* We don't cache ACLs! */
 	return(ETIMEDOUT);
     }
@@ -1617,8 +1611,6 @@ int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
                               char *name, unsigned short Mode, int target_pri,
                               int Tid)
 {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
     fsobj *target_fso = 0;
     VenusFid target_fid;

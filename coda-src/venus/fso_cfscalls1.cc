@@ -93,8 +93,6 @@ void fsobj::LocalRemove(Date_t Mtime, char *name, fsobj *target_fso) {
 
 /* local-repair modification */
 int fsobj::DisconnectedRemove(Date_t Mtime, uid_t uid, char *name, fsobj *target_fso, int Tid) {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
 
     if (!vol->IsReplicated()) {
@@ -166,8 +164,6 @@ void fsobj::LocalLink(Date_t Mtime, char *name, fsobj *source_fso) {
 /* local-repair modification */
 int fsobj::DisconnectedLink(Date_t Mtime, uid_t uid, char *name, fsobj *source_fso, int Tid)
 {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
 
     if (!vol->IsReplicated()) {
@@ -297,8 +293,6 @@ void fsobj::LocalRename(Date_t Mtime, fsobj *s_parent_fso, char *s_name,
 int fsobj::DisconnectedRename(Date_t Mtime, uid_t uid, fsobj *s_parent_fso, char *s_name,
 			      fsobj *s_fso, char *t_name, fsobj *t_fso, int Tid)
 {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
     int TargetExists = (t_fso != 0);
 
@@ -399,8 +393,6 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr, char *name,
 			     unsigned short Mode, int target_pri, int Tid)
 {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
     fsobj *target_fso = 0;
     VenusFid target_fid;
@@ -515,8 +507,6 @@ void fsobj::LocalRmdir(Date_t Mtime, char *name, fsobj *target_fso) {
 
 /* local-repair modification */
 int fsobj::DisconnectedRmdir(Date_t Mtime, uid_t uid, char *name, fsobj *target_fso, int Tid) {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
 
     if (!vol->IsReplicated()) {
@@ -608,8 +598,6 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 			       char *name, char *contents, unsigned short Mode,
 			       int target_pri, int Tid)
 {
-    FSO_ASSERT(this, (EMULATING(this) || LOGGING(this)));
-
     int code = 0;
     fsobj *target_fso = 0;
     VenusFid target_fid = NullFid;
@@ -705,7 +693,8 @@ int fsobj::SetVV(ViceVersionVector *newvv, uid_t uid)
     int code = 0;
 
 #warning "setvv"
-    if (EMULATING(this) || LOGGING(this)) {
+    /* if (!HOARDING(this)) { */
+    if (1) {
 	/* This is a connected-mode only routine! */
 	code = ETIMEDOUT;
     }

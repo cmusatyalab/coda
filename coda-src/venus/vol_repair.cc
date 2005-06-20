@@ -101,31 +101,15 @@ int repvol::Repair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 {
     LOG(0, ("volent::Repair: fid = %s, file = %s, uid = %d\n",
 	       FID_(RepairFid), RepairFile, uid));
-    switch (state) {
+    if (IsDisconnected())
+	return ETIMEDOUT;
 
-    case Logging:
-      if (1 /* to be replaced by a predicate for not being issued by ASR */) {
-	LOG(0,("repvol::Repair: Volume was logging, ConnectedRepair\n"));
+    if (IsResolving())
+	return ERETRY;
+
+    if (1 /* to be replaced by a predicate for not being issued by ASR */)
 	return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
-      }
-      else {
-	LOG(0,("repvol::Repair: Volume was logging, DisconnectedRepair\n"));
-	return DisconnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
-      }
-
-    case Emulating:
-      LOG(0,("repvol::Repair: Volume was emulating\n"));
-      return ETIMEDOUT;
-
-    case Resolving:
-      LOG(0,("repvol::Repair: Volume was resolving\n"));
-      return ERETRY;
-
-    default:
-      CHOKE("volent::Repair: bogus volume state %d", state);
-    }
-
-    return -1;
+    return DisconnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
 }
 
 /* Translate RepairFile to cache entry if "REPAIRFILE_BY_FID." */

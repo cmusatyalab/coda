@@ -63,8 +63,8 @@ extern "C" {
 
 /* From venusvol.h.  A volume is in exactly one of these states. */
 typedef enum {
-    Emulating = 1,
-    Logging,
+    Disconnected = 1,
+    WriteDisconnected,
     Resolving,
 } VolumeStateType;
 
@@ -1898,7 +1898,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	printf("  Reintegration age: %u sec, hogtime %.3f sec\n",
 	       age, hogtime / 1000.0);
 	/* info not avail if disconnected, or if we did a local query */
-	if (conn_state!=Emulating && local_only == 0) {
+	if (conn_state != Disconnected && local_only == 0) {
 	    printf("  Minimum quota is %u,", vs->MinQuota);
 	    if (vs->MaxQuota > 0)
 		printf(" maximum quota is %u\n", vs->MaxQuota);
@@ -1909,14 +1909,11 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	}
 	if (conflict)
 	    printf("  *** There are pending conflicts in this volume ***\n");
-	if (conn_state == Logging || conn_state == Emulating)
+	if (cml_count)
 	    printf("  There are %d CML entries pending for reintegration (%llu bytes)\n", cml_count, cml_bytes);
 	printf("\n");
     }
-
-
 }
-
 
 static void LookAside(int argc, char *argv[], int opslot)
 {
@@ -2779,10 +2776,10 @@ static char *xlate_vvtype(ViceVolumeType vvt)
 static char *print_conn_state(VolumeStateType conn_state)
 {
     switch(conn_state) {
-    case Emulating: return("Disconnected");
-    case Logging: return("WriteDisconnected");
-    case Resolving: return("Resolving");
-    default: return("????");
+    case Disconnected:	    return("Disconnected");
+    case WriteDisconnected: return("WriteDisconnected");
+    case Resolving:	    return("Resolving");
+    default:		    return("????");
     }
 }
 

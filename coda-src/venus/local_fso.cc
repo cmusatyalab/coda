@@ -102,8 +102,7 @@ cmlent *fsobj::FinalCmlent(int tid)
 
 int fsobj::RepairStore()
 {
-    /* same as ConnectedStore without perform simulation disconnection */
-    FSO_ASSERT(this, LOGGING(this));
+    FSO_ASSERT(this, WRITEDISCONNECTED(this));
 
     vproc *vp = VprocSelf();
     Date_t Mtime = Vtime();

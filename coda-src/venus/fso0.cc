@@ -614,14 +614,14 @@ RestartFind:
 	  goto RestartFind;
 	}
 	
-	if (v->state == Resolving) {
+	if (v->IsResolving()) {
 	  LOG(0, ("Volume resolving and file not cached, retrying VDB->Get!\n"));
 	  VDB->Put(&v);
 	  return(ERETRY);
 	}
 	
 	/* Cut-out early if volume is disconnected! */
-	if (v->state == Emulating) {
+	if (v->IsDisconnected()) {
 	  LOG(100, ("Volume disconnected and file not cached!\n"));
 	  VDB->Put(&v);
 	  return(ETIMEDOUT);
@@ -834,7 +834,7 @@ RestartFind:
 
 	  f->DemoteLock();
 	} else {	/* !FETCHABLE(f) */
-	  if (!LOGGING(f) && !EMULATING(f)) /* = Resolving */
+	  if (RESOLVING(f))
 		{
 		  LOG(100, ("(MARIA) TIMEOUT after something...\n"));
 		  Put(&f);

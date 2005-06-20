@@ -36,11 +36,11 @@ listed in the file CREDITS.
  *    the next state table are: (there are some caveats, which are
  *    discussed prior to the TakeTransition function)
  *
- *    Resolving	(S)	(|AVSG| > 0) ? (res_cnt > 0) ? S : L : E
- *    Emulating	(E)	(|AVSG| > 0) ? (res_cnt > 0) ? S : L : E
- *    Logging   (L)     (|AVSG| > 0) ? (res_cnt > 0) ? S : L : E
+ *    Disconnected	(D)	(|AVSG| == 0) ? D : (res_cnt > 0) ? R : W
+ *    Resolving		(R)	(|AVSG| == 0) ? D : (res_cnt > 0) ? R : W
+ *    WriteDisconnected (W)     (|AVSG| == 0) ? D : (res_cnt > 0) ? R : W
  *
- *    State is initialized to Logging at startup.
+ *    State is initialized to WriteDisconnected at startup.
  *
  *    In this state, cache misses may be serviced, but modify activity is
  *    recorded in the CML. Resolution must be permitted in logging state
@@ -81,7 +81,7 @@ listed in the file CREDITS.
  *        operations on fsobjs.  A CFS call uses an fsobj if it is
  *        valid.  An object is valid if it has a callback, is
  *        read-only, or if the volume is currently in disconnected
- *        mode (i.e., state = Emulating).  The CFS call attempts to
+ *        mode (i.e., state = Disconnected).  The CFS call attempts to
  *        validate the object (by fetching status and/or data) if it
  *        is invalid and the volume is connected.
  *        Mutating operations are recorded on a (per-volume) ModifyLog.
@@ -103,7 +103,7 @@ listed in the file CREDITS.
  *        bounds.
  *
  *
- *    A volume in {Emulating, Logging} state may be entered
+ *    A volume in {Disconnected, WriteDisconnected} state may be entered
  *    in either Mutating or Observing mode. There may be only one
  *    mutating user in a volume at a time, although that user may have
  *    multiple mutating threads.  Observers do not conflict with each
@@ -897,7 +897,7 @@ volent::volent(Realm *r, VolumeId volid, const char *volname)
 /* local-repair modification */
 void volent::ResetVolTransients()
 {
-    state = Logging;
+    state = WriteDisconnected;
     observer_count = 0;
     mutator_count = 0;
     waiter_count = 0;
@@ -1062,7 +1062,7 @@ int volent::Enter(int mode, uid_t uid)
      * only if a request arrives in the next few (5) seconds!
      */
     vproc *vp = VprocSelf();
-    if (VCBEnabled && IsReplicated() && state == Logging &&
+    if (VCBEnabled && IsReplicated() && IsWriteDisconnected() &&
         ((repvol *)this)->WantCallBack())
     {
         repvol *rv = (repvol *)this;
@@ -1088,7 +1088,7 @@ int volent::Enter(int mode, uid_t uid)
 		 */
 		int proc_key = vp->u.u_pgid;
 		while ((excl_count > 0 && proc_key != excl_pgid) ||
-                       state == Resolving ||
+                       IsResolving() ||
                        (IsReplicated() && WriteLocked(&((repvol *)this)->CML_lock)) ||
                        flags.transition_pending) {
 		    if (mode & VM_NDELAY) return (EWOULDBLOCK);
@@ -1178,8 +1178,8 @@ int volent::Enter(int mode, uid_t uid)
 		 * transition is pending.
 		 */
 		int proc_key = vp->u.u_pgid;
-		while ((excl_count > 0 && proc_key != excl_pgid) || state == Resolving
-		        || flags.transition_pending) {
+		while ((excl_count > 0 && proc_key != excl_pgid) ||
+		       IsResolving() || flags.transition_pending) {
 		    if (mode & VM_NDELAY) return (EWOULDBLOCK);
 		    LOG(0, ("volent::Enter: observe with proc_key = %d\n",
 			    proc_key));
@@ -1255,7 +1255,7 @@ void volent::Exit(int mode, uid_t uid)
     switch(mode & (VM_MUTATING | VM_OBSERVING | VM_RESOLVING)) {
 	case VM_MUTATING:
 	    {
- 	    if (state == Resolving || mutator_count <= 0)
+	    if (IsResolving() || mutator_count <= 0)
 		{ print(logFile); CHOKE("volent::Exit: mutating"); }
 
 	    mutator_count--;
@@ -1267,9 +1267,9 @@ void volent::Exit(int mode, uid_t uid)
                 !((repvol *)this)->IsReintegrating()) {
 		/* Special-case here. */
                 /* If we just cancelled the last log record for a volume that
-                 * was being kept in Emulating state due to auth-token
+                 * was being kept in Disconnected state due to auth-token
                  * absence, we need to provoke a transition! */
-		if (state == Emulating && !flags.transition_pending)
+		if (IsDisconnected() && !flags.transition_pending)
 		    flags.transition_pending = 1;
 
 		((repvol *)this)->GetCML()->owner = UNSET_UID;
@@ -1279,7 +1279,7 @@ void volent::Exit(int mode, uid_t uid)
 
 	case VM_OBSERVING:
 	    {
- 	    if (state == Resolving || observer_count <= 0)
+	    if (IsResolving() || observer_count <= 0)
 		{ print(logFile); CHOKE("volent::Exit: observing"); }
 
 	    observer_count--;
@@ -1290,7 +1290,7 @@ void volent::Exit(int mode, uid_t uid)
 	case VM_RESOLVING:
 	    {
 	    CODA_ASSERT(IsReplicated());
-	    if (state != Resolving || resolver_count == 0 || !flags.transition_pending)
+	    if (!IsResolving() || resolver_count == 0 || !flags.transition_pending)
 		{ print(logFile); CHOKE("volent::Exit: resolving"); }
 
 	    resolver_count--;
@@ -1330,7 +1330,7 @@ void volent::TakeTransition()
 
     if (!IsReplicated()) {
 	LOG(1, ("volent::TakeTransition %s |AVSG| = %d\n", name, avsgsize));
-	state = (avsgsize == 0) ? Emulating : Logging;
+	state = (avsgsize == 0) ? Disconnected : WriteDisconnected;
 	flags.transition_pending = 0;
 	Signal();
 	return;
@@ -1343,12 +1343,12 @@ void volent::TakeTransition()
 	    rv->GetCML()->count(), rv->ResListCount()));
 
     /* Compute next state. */
-    CODA_ASSERT(state == Emulating || state == Logging || state == Resolving);
+    CODA_ASSERT(IsDisconnected() || IsWriteDisconnected() || IsResolving());
 
-    nextstate = Logging;
+    nextstate = WriteDisconnected;
     /* if the AVSG is empty we are disconnected */
     if (avsgsize == 0)
-	nextstate = Emulating;
+	nextstate = Disconnected;
 
     else if (rv->ResListCount())
 	nextstate = Resolving;
@@ -1358,17 +1358,18 @@ void volent::TakeTransition()
      * 1.  If the volume is transitioning _to_ emulating, any reintegations
      *     will not be stopped because of lack of tokens.
      */
-    if (nextstate == Emulating)
+    if (nextstate == Disconnected)
 	rv->ClearReintegratePending();
 
     /* 2. We refuse to transit to reintegration unless owner has auth tokens.
      * 3. We force "zombie" volumes to emulation state until they are
      *    un-zombied. */
-    if (nextstate == Logging && IsReplicated() && rv->GetCML()->count() > 0) {
+    if (nextstate == WriteDisconnected && rv->GetCML()->count() > 0)
+    {
 	userent *u = rv->realm->GetUser(rv->GetCML()->Owner());
 	if (!u->TokensValid()) {
 	    rv->SetReintegratePending();
-	    nextstate = Emulating;
+	    nextstate = Disconnected;
 	}
 	PutUser(&u);
     }
@@ -1378,16 +1379,14 @@ void volent::TakeTransition()
     flags.transition_pending = 0;
 
     switch(state) {
-        case Logging:
-	    if (IsReplicated()) {
-		if (flags.sync_reintegrate)
-		    rv->Reintegrate();
-		else if (rv->ReadyToReintegrate())
-		    ::Reintegrate(rv);
-	    }
+        case WriteDisconnected:
+	    if (flags.sync_reintegrate)
+		rv->Reintegrate();
+	    else if (rv->ReadyToReintegrate())
+		::Reintegrate(rv);
             // Fall through
 
-        case Emulating:
+        case Disconnected:
 	    Signal();
 	    break;
 
@@ -1441,7 +1440,7 @@ void repvol::DownMember(struct in_addr *host)
 
     ResetStats();
 
-    /* Consider transitioning to Emulating state. */
+    /* Consider transitioning to Disconnected state. */
     if (AVSGsize() == 0) {
 	flags.transition_pending = 1;
         /* Coherence is now suspect */
@@ -1478,7 +1477,7 @@ void repvol::UpMember(void)
 
     LOG(10, ("repvol::UpMember: vid = %08x\n", vid));
 
-    /* Consider transitting to Logging state. */
+    /* Consider transitting to WriteDisconnected state. */
     if (AVSGsize() == 1)
 	flags.transition_pending = 1;
 
@@ -2043,11 +2042,11 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
      * a mutator executing during reintegration need not (and should not) 
      * be required to contact the servers.
      */
-    if (state == Emulating || (state == Logging && !force)) {
+    if (IsDisconnected() || (IsWriteDisconnected() && !force)) {
 	*target_fid = GenerateLocalFid(Type);
     }
     else {
-	VOL_ASSERT(this, (state == Logging && force));
+	VOL_ASSERT(this, (IsWriteDisconnected() && force));
 
 	/* COP2 Piggybacking. */
 	char PiggyData[COP2SIZE];
@@ -2432,7 +2431,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	*hogtime = rv->ReintLimit;
     }
 
-    if (IsFake() || state == Emulating || local_only) {
+    if (IsFake() || IsDisconnected() || local_only) {
 	memset(volstat, 0, sizeof(VolumeStatus));
 	volstat->Vid = vid;
 	volstat->Type = VolStatType();	
@@ -2450,7 +2449,7 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 	code = 0;
     }
     else {
-	VOL_ASSERT(this, (state == Logging));
+	VOL_ASSERT(this, (IsWriteDisconnected()));
 
 	if (IsReplicated()) {
 	    /* Acquire an Mgroup. */
@@ -2543,12 +2542,12 @@ int volent::SetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
 
     int code = 0;
 
-    if (state == Emulating) {
+    if (IsDisconnected()) {
 	/* We do not cache this data! */
 	code = ETIMEDOUT;
     }
     else {
-	VOL_ASSERT(this, (state == Logging));  /* let this go in wcc? -lily */
+	VOL_ASSERT(this, (IsWriteDisconnected()));  /* let this go in wcc? -lily */
 
         /* COP2 Piggybacking. */
 	char PiggyData[COP2SIZE];

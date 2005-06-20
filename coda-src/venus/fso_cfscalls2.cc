@@ -101,7 +101,7 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 	    FSDB->owriteq->append(&owrite_handle);
 	    RVMLIB_REC_OBJECT(flags);
 	    flags.owrite = 1;
-	    Recov_EndTrans(((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP));
+	    Recov_EndTrans(DMFP);
 	}
     }
 
@@ -294,7 +294,7 @@ void fsobj::Release(int writep)
                 RVMLIB_REC_OBJECT(stat.Length);
                 stat.Length = 0;	    /* Necessary for blocks maintenance! */
             }
-            Recov_EndTrans(((EMULATING(this) || LOGGING(this)) ? DMFP : CMFP));
+            Recov_EndTrans(DMFP);
         }
     }
 
@@ -409,7 +409,9 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 	return(code);
     }
 
-    disconnected = EMULATING(this) || (DIRTY(this) && LOGGING(this));
+    disconnected = DISCONNECTED(this) ||
+	(WRITEDISCONNECTED(this) && DIRTY(this));
+
     code = CheckAcRights(uid, rights, !disconnected);
     if (code != ENOENT)
 	return code;
@@ -417,7 +419,7 @@ int fsobj::Access(int rights, int modes, uid_t uid)
     if (disconnected)
 	return rights ? EACCES : 0;
 
-    FSO_ASSERT(this, (LOGGING(this) && !DIRTY(this)));
+    FSO_ASSERT(this, (WRITEDISCONNECTED(this) && !DIRTY(this)));
 
     /* We must re-fetch status; rights will be returned as a side-effect. */
     /* Promote the lock level if necessary. */

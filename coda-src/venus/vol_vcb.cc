@@ -90,7 +90,7 @@ int repvol::GetVolAttr(uid_t uid)
 {
     LOG(100, ("repvol::GetVolAttr: %s, vid = 0x%x\n", name, vid));
 
-    VOL_ASSERT(this, (state == Logging));
+    VOL_ASSERT(this, IsWriteDisconnected());
 
     unsigned int i;
     int code = 0;
