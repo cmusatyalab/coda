@@ -37,8 +37,7 @@ supported by Transarc Corporation, Pittsburgh, PA.
 #ifndef _PRS_
 #define _PRS_
 
-
-#define PRS_VERSION "$Header: /afs/cs/project/coda-src/cvs/coda/coda-src/al/prs.h,v 1.3 2001/01/18 14:31:05 jaharkes Exp $"
+#define PRS_VERSION "PRS v2003.05.23"
 
 #define PRS_MAXNAMELEN 100    /* Maximum length of group and user names */
 

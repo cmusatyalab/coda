@@ -29,7 +29,6 @@
 #Mellon the rights to redistribute these changes without encumbrance.
 #*/
 #
-#static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/potemkin/ds/Makefile.in,v 1.3 1998/09/29 16:39:16 braam Exp $";
 #endif /*_BLURB_*/
 
 # Coda top level Makefile

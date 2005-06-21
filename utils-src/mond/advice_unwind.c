@@ -28,8 +28,6 @@ Carnegie  Mellon  encourages  users  of  this  software  to return any
 improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
-
-static char *rcsid = "$Header: /coda-src/coda/utils-src/mond/advice_unwind.c,v 3.11 2003/07/23 21:41:31 jaharkes Exp $";
 #endif /*_BLURB_*/
 
 

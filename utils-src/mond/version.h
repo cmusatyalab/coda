@@ -28,8 +28,6 @@ Carnegie  Mellon  encourages  users  of  this  software  to return any
 improvements or extensions that  they  make,  and  to  grant  Carnegie
 Mellon the rights to redistribute these changes without encumbrance.
 */
-
-static char *rcsid = "$Header: /afs/cs/project/coda-src/cvs/coda/utils-src/mond/version.h,v 3.2 1995/10/09 19:27:11 satya Exp $";
 #endif /*_BLURB_*/
 
 
