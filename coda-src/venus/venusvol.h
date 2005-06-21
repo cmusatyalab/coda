@@ -80,13 +80,6 @@ class resent;
 /* Was: EXCLUSIVE, *SHARED*: name clash on Solaris */
 enum VolLockType { EX_VOL_LK, SH_VOL_LK };
 
-/* XXX These should be in vice.h! */
-/* On the wire, all these operations map to OLDCML_NewStore_PTR */
-#define	OLDCML_Truncate_OP	100
-#define	OLDCML_Utimes_OP	101
-#define	OLDCML_Chown_OP	        102
-#define	OLDCML_Chmod_OP	        103
-
 
 /*  *****  Constants  *****  */
 
