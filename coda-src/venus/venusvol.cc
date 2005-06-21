@@ -758,9 +758,6 @@ void vdb::WeakEvent(struct in_addr *host)
     while ((v = next()))
         if (v->IsHostedBy(host))
             v->WeakMember();
-
-    /* provoke state transitions now */
-    VprocSignal(&voldaemon_sync);
 }
 
 void vdb::StrongEvent(struct in_addr *host)
@@ -774,9 +771,6 @@ void vdb::StrongEvent(struct in_addr *host)
     while ((v = next()))
         if (v->IsHostedBy(host))
             v->StrongMember();
-
-    /* provoke state transitions now */
-    VprocSignal(&voldaemon_sync);
 }
 
 
