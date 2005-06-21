@@ -245,7 +245,6 @@ class srvent : private RefCountedObject {
     RPC2_Handle	connid;		/* The callback connid. */
     unsigned Xbinding : 1;	/* 1 --> BINDING, 0 --> NOT_BINDING */
     unsigned probeme : 1;	/* should ProbeD probe this server? */
-    unsigned unused : 1;
     unsigned isweak : 1;	/* is this server considered weak */
     unsigned long bw;		/* bandwidth estimate, Bytes/sec */
     unsigned long bwmax;	/* max bandwidth estimate, Bytes/sec */
