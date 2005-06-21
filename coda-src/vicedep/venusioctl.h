@@ -181,8 +181,10 @@ extern "C" {
 #define _VIOC_SET_LOCAL_VIEW    (CFS_IOCTL_BASE + 43) /* Set local repair session view */
 #define _VIOC_SET_GLOBAL_VIEW   (CFS_IOCTL_BASE + 44) /* Set global repair session view */
 #define _VIOC_SET_MIXED_VIEW    (CFS_IOCTL_BASE + 45) /* Set mixed repair session view */
-#define _VIOC_WD_ALL 		(CFS_IOCTL_BASE + 46) /* set write-disconnect paramenters on all volumes */
+#define _VIOC_WD_ALL 		(CFS_IOCTL_BASE + 46) /* set write-disconnect parameters on all volumes */
 #define _VIOC_SYNCCACHE_ALL    	(CFS_IOCTL_BASE + 47) /* force reintegrate all volumes */
+/*#define _VIOC_STRONG		(CFS_IOCTL_BASE + 48)  * Force strong connectivity */
+/*#define _VIOC_ADAPTIVE	(CFS_IOCTL_BASE + 49)  * Allow bandwidth adaptation driven connectivity */
 #define _VIOC_LISTCACHE		(CFS_IOCTL_BASE + 50)	/* List cache status */
 #define _VIOC_GET_MT_PT		(CFS_IOCTL_BASE + 51)	/* Get mount point path from volume id */
 
