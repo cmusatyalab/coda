@@ -665,8 +665,8 @@ class volent {
     int IsReadWriteReplica();
     int IsDisconnected() { return (state == Disconnected); }
     int IsWriteDisconnected() { return (state == WriteDisconnected); }
+    int IsWeaklyConnected(void);
     int IsResolving() { return (state == Resolving); }
-    int IsWeaklyConnected() { return flags.weaklyconnected; }
     int IsFake() { return (realm == LocalRealm); }
     void GetMountPath(char *, int =1);
     void GetBandwidth(unsigned long *bw);
@@ -723,9 +723,10 @@ class volrep : public volent {
     void GetBandwidth(unsigned long *bw);
 
     void DownMember(struct in_addr *host);
-    void UpMember();
-    void WeakMember();
-    void StrongMember();
+    void UpMember(void);
+    void WeakMember(void);
+    void StrongMember(void);
+    int IsWeaklyConnected() { return flags.weaklyconnected; }
 
     /* Utility routines. */
     void Host(struct in_addr *addr) { *addr = host; }
@@ -801,9 +802,8 @@ class repvol : public volent {
     void GetBandwidth(unsigned long *bw);
 
     void DownMember(struct in_addr *host);
-    void UpMember();
-    void WeakMember();
-    void StrongMember();
+    void UpMember(void);
+    int IsWeaklyConnected(void);
 
     int Collate_NonMutating(mgrpent *, int);
     int Collate_COP1(mgrpent *, int, ViceVersionVector *);
@@ -817,7 +817,6 @@ class repvol : public volent {
     void GetHosts(struct in_addr hosts[VSG_MEMBERS]);
     void GetVids(VolumeId out[VSG_MEMBERS]);
     int AVSGsize();
-    int WeakVSGSize();
     int IsHostedBy(const struct in_addr *addr); /* XXX not called? */
     void SetStagingServer(struct in_addr *srvr);
     void Reconfigure(void);

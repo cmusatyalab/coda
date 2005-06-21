@@ -1495,52 +1495,30 @@ void repvol::UpMember(void)
 void volrep::WeakMember()
 {
     flags.weaklyconnected = 1;
-    /* if we are a volume replica notify our replicated parent */
-    if (IsReadWriteReplica()) {
-	Volid volid;
-	volent *v;
-	volid.Realm = realm->Id();
-	volid.Volume = ReplicatedVol();
-        v = VDB->Find(&volid);
-        if (v) {
-            CODA_ASSERT(v->IsReplicated());
-            ((repvol *)v)->WeakMember();
-	    v->release();
-        }
-    }
-}
-
-void repvol::WeakMember()
-{
-    /* Normally a weakmember event implies that WeakVSGSize > 0, however
-     * we might get weak events from VSG servers when using a staging server. */
-    if (!IsWeaklyConnected() && WeakVSGSize() > 0)
-	flags.weaklyconnected = 1;
 }
 
 void volrep::StrongMember()
 {
     flags.weaklyconnected = 0;
-    /* if we are a volume replica notify our replicated parent */
-    if (IsReadWriteReplica()) {
-	Volid volid;
-	volent *v;
-	volid.Realm = realm->Id();
-	volid.Volume = ReplicatedVol();
-        v = VDB->Find(&volid);
-        if (v) {
-            CODA_ASSERT(v->IsReplicated());
-            ((repvol *)v)->StrongMember();
-	    v->release();
-        }
-    }
 }
 
-void repvol::StrongMember()
+int repvol::IsWeaklyConnected()
 {
-    /* vsg check is for 0, not 1, because the conn is already strong */
-    if (WeakVSGSize() == 0)
-	flags.weaklyconnected = 0;
+    if (ro_replica)
+	return ro_replica->IsWeaklyConnected();
+
+    for (int i = 0; i < VSG_MEMBERS; i++)
+        if (volreps[i] && volreps[i]->IsWeaklyConnected())
+	    return 1;
+
+    return 0;
+}
+
+int volent::IsWeaklyConnected()
+{
+    return IsReplicated() ?
+	    ((repvol *)this)->IsWeaklyConnected() :
+	    ((volrep *)this)->IsWeaklyConnected();
 }
 
 int repvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
@@ -2222,20 +2200,6 @@ int repvol::AVSGsize(void)
             avsgsize++;
 
     return avsgsize;
-}
-
-int repvol::WeakVSGSize()
-{
-    int count = 0;
-    
-    if (ro_replica)
-	return ro_replica->IsWeaklyConnected() ? 1 : 0;
-
-    for (int i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i] && volreps[i]->IsWeaklyConnected())
-            count++;
-
-    return(count);
 }
 
 /* volume id's for staging volumes */
