@@ -1001,7 +1001,6 @@ V_FreeLocks:
 	case _VIOC_TRUNCATELOG:
 	case _VIOC_DISCONNECT:
 	case _VIOC_RECONNECT:
-	case _VIOC_SLOW:
 	case _VIOC_STRONG:
 	case _VIOC_ADAPTIVE:
 	case _VIOC_LISTCACHE:
@@ -1400,18 +1399,6 @@ V_FreeLocks:
 #undef hostids
 		    if (u.u_error < 0) u.u_error = EINVAL; /* fail returns -1 */
 
-		    break;
-		    }
-
-	        case _VIOC_SLOW:
-		    {
-		    if (data->in_size != (int)sizeof(unsigned))
-			{ u.u_error = EINVAL; break; }
-
-		    unsigned *speed = (unsigned *)data->in;
-
-		    u.u_error = FailSlow(speed);
-		    if (u.u_error < 0) u.u_error = EINVAL; /* fail returns -1 */
 		    break;
 		    }
 

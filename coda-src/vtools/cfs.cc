@@ -139,7 +139,6 @@ static void RmMount(int, char**, int);
 static void SetACL(int, char**, int);
 static void SetQuota(int, char **, int);
 static void SetVolume(int, char **, int);
-static void Slow(int, char **, int);
 static void Strong(int, char**, int);
 static void TruncateLog(int, char **, int);
 static void UnloadKernel(int, char **, int);
@@ -388,24 +387,6 @@ struct command cmdarray[] =
 	    "Force modifications in a disconnected volume to the server",
 	    NULL
 	}
-#if 0 /* disabled these until the compression/filcon stuff works --JH */
-        ,
-	{"slow", NULL, Slow, 
-            "cfs slow <speed (bps)>",
-            "Set network speed",
-            NULL
-        },
-        {"compress", NULL, Compress, 
-            "cfs compress <file> [<file> <file> ...]",
-            "Compress cached files",
-            NULL
-        },
-        {"uncompress", NULL, Uncompress, 
-            "cfs uncompress <file> [<file> <file> ...]",
-            "Uncompress cached files",
-            NULL
-        }
-#endif
     };
 
 /* Number of commands in cmdarray */
@@ -682,30 +663,6 @@ static void ClearPriorities(int argc, char *argv[], int opslot)
     rc = pioctl(mountpoint, _VICEIOCTL(_VIOC_CLEARPRIORITIES), &vio, 0);
     if (rc < 0) { PERROR("  VIOC_CLEARPRIORITIES"); exit(-1); }
 }
-
-#ifdef UNUSED
-static void Compress(int argc, char *argv[], int opslot)
-{
-    int i, rc; 
-    struct ViceIoctl vio;
-
-    if (argc < 3) {
-        printf("Usage: %s\n", cmdarray[opslot].usetxt);
-        exit(-1);
-    }
-
-    for (i = 2; i < argc; i++) {
-        if (argc > 3) printf("  %s", argv[i]);
-        vio.in = 0;
-        vio.in_size = 0;
-        vio.out = 0;
-        vio.out_size = 0;
-        rc = pioctl(argv[i], _VICEIOCTL(_VIOC_COMPRESS), &vio, 1);
-        if (rc < 0) { PERROR("VIOC_COMPRESS"); continue; }
-        if (argc > 3) printf("\n");
-    }
-}
-#endif
 
 static void Redir (int argc, char *argv[], int opslot)
 {
@@ -2373,28 +2330,6 @@ static void SetQuota    (int argc, char *argv[], int opslot)
     }
 }
 
-#ifdef UNUSED
-static void Slow(int argc, char *argv[], int opslot) 
-{
-    int rc;
-    struct ViceIoctl vio;
-    unsigned speed;
-
-    if (argc < 3) {
-	printf("Usage: %s\n", cmdarray[opslot].usetxt);
-	exit(-1);
-    }
-
-    speed = atoi(argv[2]);
-    vio.in = (char *)&speed;
-    vio.in_size = (int) sizeof(speed);
-    vio.out = 0;
-    vio.out_size = 0;
-    rc = pioctl(mountpoint, _VICEIOCTL(_VIOC_SLOW), &vio, 1);
-    if (rc < 0){ PERROR("VIOC_SLOW"); exit(-1);}    
-}
-#endif
-
 static void Strong(int argc, char *argv[], int opslot) 
 {
     int rc;
@@ -2449,31 +2384,6 @@ static void TruncateLog(int argc, char *argv[], int opslot)
     if (rc < 0) { PERROR("  VIOC_TRUNCATELOG"); exit(-1); }
 }
 
-
-#ifdef UNUSED
-static void Uncompress(int argc, char *argv[], int opslot)
-{
-    int i, rc; 
-    struct ViceIoctl vio;
-
-    if (argc < 3) {
-        printf("Usage: %s\n", cmdarray[opslot].usetxt);
-        exit(-1);
-    }
-
-    for (i = 2; i < argc; i++)
-    {
-        if (argc > 3) printf("  %s", argv[i]);
-        vio.in = 0;
-        vio.in_size = 0;
-        vio.out = 0;
-        vio.out_size = 0;
-        rc = pioctl(argv[i], _VICEIOCTL(_VIOC_UNCOMPRESS), &vio, 1);
-        if (rc < 0) { PERROR("  VIOC_UNCOMPRESS"); continue; }
-        if (argc > 3) printf("\n");
-    }
-}
-#endif
 
 static void UnloadKernel(int argc, char *argv[], int opslot)
 {

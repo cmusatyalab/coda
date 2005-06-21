@@ -247,34 +247,31 @@ void vproc::close(struct venus_cnode *cp, int flags)
 
     fsobj *f = 0;
 
-    for (;;) {
-	Begin_VFS(&cp->c_fid, CODA_CLOSE, writep ? VM_MUTATING : VM_OBSERVING);
-	if (u.u_error) break;
+    Begin_VFS(&cp->c_fid, CODA_CLOSE, writep ? VM_MUTATING : VM_OBSERVING);
+    if (u.u_error) goto Exit;
 
-	/* Get the object. */
-        /* We used to fetch the DATA too.  However, this creates problems
-         * if you are in the DYING state and you have an active reference to
-         * the file (since you cannot fetch and you cannot garbage collect).
-         * We're reasonably confident that closing an object without having
-         * the DATA causes no problems; however, we'll leave a zero-level 
-         * log statement in as evidence to the contrary... (mre:6/14/94) 
-         */
-        u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
-        if (u.u_error) goto FreeLocks;
+    /* Get the object. */
+    /* We used to fetch the DATA too.  However, this creates problems
+     * if you are in the DYING state and you have an active reference to
+     * the file (since you cannot fetch and you cannot garbage collect).
+     * We're reasonably confident that closing an object without having
+     * the DATA causes no problems; however, we'll leave a zero-level 
+     * log statement in as evidence to the contrary... (mre:6/14/94) 
+     */
+    u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
+    if (u.u_error) goto FreeLocks;
 
-        if (!DYING(f) && !HAVEALLDATA(f)) 
-          LOG(0, ("vproc::close: Don't have DATA and not DYING! (fid = %s, flags = %x)\n", FID_(&cp->c_fid), flags));
+    if (!DYING(f) && !HAVEALLDATA(f)) 
+	LOG(0, ("vproc::close: Don't have DATA and not DYING! (fid = %s, flags = %x)\n", FID_(&cp->c_fid), flags));
 
-	/* Do the operation. */
-	u.u_error = f->Close(writep, u.u_uid /*, not_written */);
+    /* Do the operation. */
+    u.u_error = f->Close(writep, u.u_uid /*, not_written */);
 
 FreeLocks:
-	FSDB->Put(&f);
-	int retry_call = 0;
-	End_VFS(&retry_call);
-	if (!retry_call) break;
-    }
+    FSDB->Put(&f);
+    End_VFS(NULL);
 
+Exit:
     if (u.u_error == EINCONS) {
 	u.u_error = EINVAL;	    /* XXX -JJK */
 	k_Purge(&cp->c_fid, 1);

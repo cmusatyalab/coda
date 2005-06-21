@@ -647,15 +647,6 @@ void vproc::End_VFS(int *retryp) {
     if (VprocInterrupted())
 	{ u.u_error = EINTR; goto Exit; }
 
-    /* Cannot retry CODA_CLOSE operations! */
-    if (type == VPT_Worker) {
-	worker *w = (worker *)this;
-	if (w->opcode == CODA_CLOSE) {
-	    u.u_error = EINVAL;
-	    goto Exit;
-	}
-    }
-
     /* Caller should be prepared to retry! */
     if (!retryp)
 	{ if (u.u_error == ERETRY) u.u_error = EWOULDBLOCK; goto Exit; }

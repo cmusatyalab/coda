@@ -368,8 +368,6 @@ const char *IoctlOpStr(unsigned char nr)
 	case _VIOC_HDB_WALK:		return("HDB Walk");
 	case _VIOC_CLEARPRIORITIES:	return("Clear Priorities");
 	case _VIOC_GETPATH:		return("Get Path");
-	case _VIOC_COMPRESS:		return("Compress");
-	case _VIOC_UNCOMPRESS:		return("Uncompress");
 	case _VIOC_CHECKPOINTML:	return("Checkpoint Modify Log");
 	case _VIOC_PURGEML:		return("Purge Modify Log");
 	case _VIOC_BEGINRECORDING:	return("Begin Recording References");
@@ -377,7 +375,6 @@ const char *IoctlOpStr(unsigned char nr)
 	case _VIOC_TRUNCATELOG:		return("Truncate Log");
 	case _VIOC_DISCONNECT:		return("Disconnect");
 	case _VIOC_RECONNECT:		return("Reconnect");
-	case _VIOC_SLOW:		return("Slow");
 	case _VIOC_GETPFID:		return("Get Parent Fid");
 	case _VIOC_BEGINML:		return("Begin Modify Logging");
 	case _VIOC_ENDML:		return("End Modify Logging");

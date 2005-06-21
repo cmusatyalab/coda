@@ -144,24 +144,24 @@ extern "C" {
 
 #define _VIOC_GETPATH		(CFS_IOCTL_BASE + 16)	/* Map Fid to vol-relative path. */
 
-#define _VIOC_COMPRESS		(CFS_IOCTL_BASE + 17)	/* Compress an object. */
-#define _VIOC_UNCOMPRESS	(CFS_IOCTL_BASE + 18)	/* Uncompress an object. */
+/*#define _VIOC_COMPRESS	(CFS_IOCTL_BASE + 17)  * Compress an object. */
+/*#define _VIOC_UNCOMPRESS	(CFS_IOCTL_BASE + 18)  * Uncompress an object. */
 
-#define _VIOC_CHECKPOINTML	(CFS_IOCTL_BASE + 19)	/* Checkpoint a volume's ML. */
-#define _VIOC_PURGEML		(CFS_IOCTL_BASE + 20)	/* Purge a volume's ML. */
+#define _VIOC_CHECKPOINTML	(CFS_IOCTL_BASE + 19) /* Checkpoint a volume's ML. */
+#define _VIOC_PURGEML		(CFS_IOCTL_BASE + 20) /* Purge a volume's ML. */
 
-#define _VIOC_BEGINRECORDING	(CFS_IOCTL_BASE + 21)	/* Begin recording references. */
-#define _VIOC_ENDRECORDING	(CFS_IOCTL_BASE + 22)	/* End recording references. */
+#define _VIOC_BEGINRECORDING	(CFS_IOCTL_BASE + 21) /* Begin recording references. */
+#define _VIOC_ENDRECORDING	(CFS_IOCTL_BASE + 22) /* End recording references. */
 #define _VIOC_TRUNCATELOG       (CFS_IOCTL_BASE + 23) /* Truncate the log */
 #define _VIOC_DISCONNECT        (CFS_IOCTL_BASE + 24) /* Partition from all servers */
 #define _VIOC_RECONNECT         (CFS_IOCTL_BASE + 25) /* Heal previous partition */
-#define _VIOC_SLOW              (CFS_IOCTL_BASE + 26) /* Slow the network down */
-#define _VIOC_GETPFID           (CFS_IOCTL_BASE + 27) /* Get fid of object's parent */
+/*#define _VIOC_SLOW		(CFS_IOCTL_BASE + 26)  * Slow the network down */
+#define _VIOC_GETPFID		(CFS_IOCTL_BASE + 27) /* Get fid of object's parent */
 #define _VIOC_BEGINML           (CFS_IOCTL_BASE + 28) /* Log updates to a volume */
 #define _VIOC_ENDML             (CFS_IOCTL_BASE + 29) /* Stop logging (write back) */
 
-#define _VIOC_HDB_VERIFY	(CFS_IOCTL_BASE + 30)	/* Compare hoard database to cache contents */
-/* #define	_VIOC_BWHINT	(CFS_IOCTL_BASE + 31)	* Give a bandwidth hint */
+#define _VIOC_HDB_VERIFY	(CFS_IOCTL_BASE + 30) /* Compare hoard database to cache contents */
+/*#define _VIOC_BWHINT		(CFS_IOCTL_BASE + 31)  * Give a bandwidth hint */
 
 #define _VIOC_HDB_ENABLE	(CFS_IOCTL_BASE + 32)	/* Enable hoard walks */
 #define _VIOC_HDB_DISABLE	(CFS_IOCTL_BASE + 33)	/* Disable hoard walks */

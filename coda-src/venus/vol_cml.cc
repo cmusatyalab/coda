@@ -309,9 +309,10 @@ void ClientModifyLog::GetReintegrateable(int tid, int *nrecs)
 
 	this_time = m->ReintTime(bw);
 
-	/* Only limit on reintegration time if the logv flag is set
-	 * otherwise we are trying get back to connected state. --JH */
-	if (vol->flags.logv && !vol->flags.sync_reintegrate &&
+	/* Only limit on reintegration time when we are not forcing a
+	 * synchronous reintegration and and we already have at least
+	 * one CML entry queued */
+	if (vol->flags.logv && !vol->flags.sync_reintegrate && *nrecs &&
 	    (this_time + cur_reintegration_time > vol->ReintLimit))
 		break;
 	/* 
