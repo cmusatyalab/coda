@@ -58,7 +58,6 @@ extern "C" {
 #include "fso.h"
 #include "venusrecov.h"
 #include "venus.private.h"
-#include "venusvol.h"
 #include "vproc.h"
 
 /* Forward declarations. */
@@ -70,6 +69,10 @@ class RepOpCommCtxt;
 class mgrpent;
 class probeslave;
 
+/* forward declarations for venusvol.h */
+class volent;
+class repvol;
+
 /* Bogus forward declarations to placate C++! */
 
 extern void ConnPrint();
@@ -79,7 +82,6 @@ extern void ServerPrint();
 extern void ServerPrint(FILE *);
 
 extern unsigned long WCThresh;
-
 
 
 /*  *****  Constants  *****  */
@@ -122,7 +124,6 @@ const int DFLT_WCS  = 1800;		    /* 30 minutes */
  *  Servers:
  *
 */
-
 class connent {
   friend void CommInit();
   friend void Conn_Wait();
@@ -137,7 +138,7 @@ class connent {
   friend int GetTime(long *, long *);
   friend class vdb;
   friend class volent;
-  friend void repvol::Resolve(void);
+  friend class repvol;
   friend class ClientModifyLog;
   friend class cmlent;
 
@@ -226,7 +227,7 @@ class srvent : private RefCountedObject {
   friend class userent;
   friend class vproc;
   friend class fsobj;
-  friend void repvol::SetStagingServer(struct in_addr *srvr);
+  friend class repvol;
 
   friend class Realm;
   friend connent *conn_iterator::operator()();
@@ -282,7 +283,7 @@ class srvent : private RefCountedObject {
     void ServerUp(RPC2_Handle);
     int	ServerIsDown() { return(connid == 0); }
     int ServerIsUp() { return(connid != 0); }
-    int ServerIsWeak() { return(connid > 0 && bw <= WCThresh); }
+    int ServerIsWeak() { return (connid && isweak); }
     /* quasi-up != up */
 
     const char *Name(void) { return name; }

@@ -747,33 +747,6 @@ void vdb::UpEvent(struct in_addr *host)
     VprocSignal(&voldaemon_sync);
 }
 
-void vdb::WeakEvent(struct in_addr *host)
-{
-    LOG(10, ("vdb::WeakEvent: host = %s\n", inet_ntoa(*host)));
-
-    /* Notify each volume of its failure. We only need to notify underlying
-     * replicas, they will notify their replicated parent */
-    volrep_iterator next;
-    volrep *v;
-    while ((v = next()))
-        if (v->IsHostedBy(host))
-            v->WeakMember();
-}
-
-void vdb::StrongEvent(struct in_addr *host)
-{
-    LOG(10, ("vdb::StrongEvent: host = %s\n", inet_ntoa(*host)));
-
-    /* Notify each volume of its failure. We only need to notify underlying
-     * replicas, they will notify their replicated parent */
-    volrep_iterator next;
-    volrep *v;
-    while ((v = next()))
-        if (v->IsHostedBy(host))
-            v->StrongMember();
-}
-
-
 /* MUST be called from within transaction! */
 void vdb::AttachFidBindings()
 {
@@ -908,7 +881,6 @@ void volent::ResetVolTransients()
     flags.reintegrating = 0;
     flags.repair_mode = 0;		    /* normal mode */
     flags.resolve_me = 0;
-    flags.weaklyconnected = 0;
     flags.available = 1;
     flags.sync_reintegrate = 0;
 
@@ -1480,26 +1452,11 @@ void repvol::UpMember(void)
     ResetStats();
 }
 
-/* 
- * volent::{Weak,Strong} member.  Cope with a change in 
- * connectivity for a VSG member by  setting the volume
- * weakly connected, and by write-disconnecting or write-reconnecting 
- * the volume.  Note that both of these indications are necessary;
- * while for replicated volumes 
- * 	weakly connected --> write-disconnected 
- * it is not the case that write-disconnected --> weakly connected.
- * In particular, the volume may be write-disconnected for an ASR.
- * Note that write disconnection does not apply to read-only and
- * non-replicated volumes.
- */
-void volrep::WeakMember()
+int volent::IsWeaklyConnected()
 {
-    flags.weaklyconnected = 1;
-}
-
-void volrep::StrongMember()
-{
-    flags.weaklyconnected = 0;
+    return IsReplicated() ?
+	((repvol *)this)->IsWeaklyConnected() :
+	((volrep *)this)->IsWeaklyConnected();
 }
 
 int repvol::IsWeaklyConnected()
@@ -1512,13 +1469,6 @@ int repvol::IsWeaklyConnected()
 	    return 1;
 
     return 0;
-}
-
-int volent::IsWeaklyConnected()
-{
-    return IsReplicated() ?
-	    ((repvol *)this)->IsWeaklyConnected() :
-	    ((volrep *)this)->IsWeaklyConnected();
 }
 
 int repvol::WriteDisconnect(unsigned int age, unsigned int hogtime)
@@ -1856,6 +1806,9 @@ int volrep::GetConn(connent **c, uid_t uid)
 {
     int code = ERETRY;
     *c = 0;
+
+    if (!volserver)
+	return ETIMEDOUT;
 
     while (code == ERETRY && !flags.transition_pending) {
         code = volserver->GetConn(c, uid);
@@ -2638,8 +2591,7 @@ void volent::print(int afd)
     fdprint(afd, "%#08x : %-16s : vol = %x @%s\n", (long)this, name, vid,
 	    realm->Name());
 
-    fdprint(afd, "\trefcnt = %d, fsos = %d, weak = %d\n",
-	    refcnt, nfsos, flags.weaklyconnected);
+    fdprint(afd, "\trefcnt = %d, fsos = %d\n", refcnt, nfsos);
     fdprint(afd, "\tstate = %s, t_p = %d, d_p = %d, counts = [%d %d %d %d], repair = %d\n",
 	    PRINT_VOLSTATE(state), flags.transition_pending, flags.demotion_pending,
 	    observer_count, mutator_count, waiter_count, resolver_count,

@@ -58,6 +58,7 @@ extern "C" {
 #include <voldefs.h>
 
 /* from venus */
+#include "comm.h"
 #include "venusrecov.h"
 #include "realmdb.h"
 #include "venus.private.h"
@@ -504,8 +505,6 @@ class vdb {
 
     void DownEvent(struct in_addr *host);
     void UpEvent(struct in_addr *host);
-    void WeakEvent(struct in_addr *host);
-    void StrongEvent(struct in_addr *host);
 
     void AttachFidBindings(void);
     int WriteDisconnect(unsigned int age=V_UNSETAGE,
@@ -549,8 +548,7 @@ struct VolFlags {
 /*RT*/unsigned reintegrating : 1; /* are we reintegrating now? */
 /*RT*/unsigned repair_mode : 1;	/* 0 --> normal, 1 --> repair */
 /*RT*/unsigned resolve_me: 1;   /* resolve reintegrated objects */
-/*RT*/unsigned weaklyconnected : 1; /* are we weakly connected? */ 
-/*  */unsigned unused1 : 2;
+/*  */unsigned unused1 : 3;
 /*RT*/unsigned sync_reintegrate : 1; /* perform reintegration synchronously*/
 /*  */unsigned unused2 : 2;
 /*V */unsigned readonly : 1;   /* is this a readonly (backup) volume replica */
@@ -700,9 +698,10 @@ class volrep : public volent {
 
     VolumeId replicated;        /* replicated `parent' volume */
     struct in_addr host;        /* server that has this volume */
-    
-    /* not yet used */
+
 /*T*/srvent *volserver;          /* srvent of the server hosting this volume */
+
+    /* not yet used */
 /*T*/struct dllist_head vollist; /* links volumes to a srvent */
 
     volrep(Realm *r, VolumeId vid, const char *name,
@@ -724,9 +723,7 @@ class volrep : public volent {
 
     void DownMember(struct in_addr *host);
     void UpMember(void);
-    void WeakMember(void);
-    void StrongMember(void);
-    int IsWeaklyConnected() { return flags.weaklyconnected; }
+    int IsWeaklyConnected() { return volserver && volserver->ServerIsWeak(); }
 
     /* Utility routines. */
     void Host(struct in_addr *addr) { *addr = host; }

@@ -63,6 +63,7 @@ extern "C" {
 #include "mariner.h"
 #include "user.h"
 #include "venus.private.h"
+#include "venusvol.h"
 #include "vsg.h"
 #include "worker.h"
 

@@ -1205,16 +1205,14 @@ long srvent::GetBandwidth(unsigned long *Bandwidth)
     if (!isweak && bwmax < WCThresh) {
 	isweak = 1;
 	MarinerLog("connection::weak %s\n", name);
-	VDB->WeakEvent(&host);
         adv_mon.ServerConnectionWeak(name);
     }
     else if (isweak && bwmin > WCThresh) {
 	isweak = 0;
 	MarinerLog("connection::strong %s\n", name);
-	VDB->StrongEvent(&host);
         adv_mon.ServerConnectionStrong(name);
     }
-	
+
     *Bandwidth = bw;
     if (bw != oldbw) {
 	MarinerLog("connection::bandwidth %s %d %d %d\n", name,bwmin,bw,bwmax);

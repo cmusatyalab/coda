@@ -60,6 +60,7 @@ extern void rpc2_PrintSEDesc(SE_Descriptor *, FILE *);
 #include "mariner.h"
 #include "venus.private.h"
 #include "venuscb.h"
+#include "venusvol.h"
 #include "worker.h"
 
 

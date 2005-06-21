@@ -17,6 +17,7 @@ listed in the file CREDITS.
 #*/
 
 #include "adv_monitor.h"
+#include "venusvol.h"
 
 adv_monitor adv_mon;
 

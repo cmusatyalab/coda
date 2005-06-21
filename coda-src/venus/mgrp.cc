@@ -30,6 +30,7 @@ extern "C" {
 #include "mariner.h"
 #include "mgrp.h"
 #include "venus.private.h"
+#include "venusvol.h"
 #include "vsg.h"
 
 char mgrpent::mgrp_sync;

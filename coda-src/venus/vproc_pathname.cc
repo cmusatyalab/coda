@@ -47,6 +47,7 @@ extern "C" {
 #include "fso.h"
 #include "venus.private.h"
 #include "venusrecov.h"
+#include "venusvol.h"
 #include "vproc.h"
 
 
