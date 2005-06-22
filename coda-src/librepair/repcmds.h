@@ -62,7 +62,7 @@ extern "C" {
 #include <resolve.h>
 #include <venusioctl.h>
 
-#define MAXVOLNAME   100   /* XXXX -- get the true definition for this */
+#define MAXVOLNAME     32
 #define MAXHOSTS       8     /* XXXX --- get the true definition for this */
 #define HOSTNAMLEN     64    /* XXXX -- get the true definition for this */
 /* MAXPATHLEN defined in <sys/param.h>, length in bytes of OUT path parameters */

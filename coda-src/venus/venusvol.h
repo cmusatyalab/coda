@@ -879,8 +879,6 @@ class repvol : public volent {
     void CheckLocalSubtree();			/*U*/
 
     /* Repair routines. */
-    int EnableRepair(uid_t, VolumeId *, uid_t *, unsigned long *);
-    int DisableRepair(uid_t);
     int Repair(VenusFid *, char *, uid_t, VolumeId *, int *);
     int ConnectedRepair(VenusFid *, char *, uid_t, VolumeId *, int *);
     int DisconnectedRepair(VenusFid *, char *, uid_t, VolumeId *, int *);

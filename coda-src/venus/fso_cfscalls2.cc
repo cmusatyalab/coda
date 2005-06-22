@@ -471,8 +471,10 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 	/* Access will never return EINCONS here as we are a directory and
 	 * will not recurse up to our parent. */
 	code = Access(PRSFS_LOOKUP, C_A_F_OK, uid);
-	if (code)
+	if (code) {
+	    LOG(0, ("fsobj::Lookup: Access denied! code: %d\n", code));
 	    return(code);
+	}
 
 	/* Lookup the target object. */
 	{
@@ -499,6 +501,8 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 	    }
 	}
     }
+
+    LOG(10,("fsobj::Lookup: Found fid (%s)\n",FID_(&target_fid)));
 
     /* Map fid --> fso. */
     {

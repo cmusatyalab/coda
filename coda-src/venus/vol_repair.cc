@@ -94,56 +94,39 @@ extern "C" {
  *          * rw-replicas
  * */
 
-
-/*
-  BEGIN_HTML
-  <a name="enablerepair"><strong> mark the volume to be in a repair state </strong></a>
-  END_HTML
-*/
-/* AVSG is returned in rwvols. */
-/* LockUids and LockWSs parameters are deprecated! */
-int repvol::EnableRepair(uid_t uid, VolumeId *RWVols,
-                         uid_t *LockUids, unsigned long *LockWSs)
-{
-    LOG(100, ("volent::EnableRepair: vol = %x, uid = %d\n", vid, uid));
-    int code = 0, i;
-
-#if 0
-    /* Place volume in "repair mode." */
-    if (flags.repair_mode != 1)
-	flags.repair_mode = 1;
-#endif
-
-    /* RWVols, LockUids, and LockWSs are OUT parameters. */
-    memset(LockUids, 0, VSG_MEMBERS * sizeof(uid_t));
-    memset(LockWSs, 0, VSG_MEMBERS * sizeof(unsigned long));
-    memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
-    for (i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i]) RWVols[i] = volreps[i]->GetVolumeId();
-
-    return(code);
-}
-
 /* local-repair modification */
 /* Attempt the Repair. */
 int repvol::Repair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 		    VolumeId *RWVols, int *ReturnCodes)
 {
-    LOG(100, ("volent::Repair: fid = %s, file = %s, uid = %d\n",
+    LOG(0, ("volent::Repair: fid = %s, file = %s, uid = %d\n",
 	       FID_(RepairFid), RepairFile, uid));
     switch (state) {
+
     case Hoarding:
-	return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
+      LOG(0,("repvol::Repair: Volume was hoarding\n"));
+      return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
+
     case Logging:
-	if (1 /* to be replaced by a predicate for not being issued by ASR */)
-	    return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
-	else
-	    return DisconnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
+      if (1 /* to be replaced by a predicate for not being issued by ASR */) {
+	LOG(0,("repvol::Repair: Volume was logging, ConnectedRepair\n"));
+	return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
+      }
+      else {
+	LOG(0,("repvol::Repair: Volume was logging, DisconnectedRepair\n"));
+	return DisconnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
+      }
+
     case Emulating:
-	return ETIMEDOUT;
+      LOG(0,("repvol::Repair: Volume was emulating\n"));
+      return ETIMEDOUT;
+
     case Resolving:
-	return ERETRY;
-    default: CHOKE("volent::Repair: bogus volume state %d", state);
+      LOG(0,("repvol::Repair: Volume was resolving\n"));
+      return ERETRY;
+
+    default:
+      CHOKE("volent::Repair: bogus volume state %d", state);
     }
 
     return -1;
@@ -163,7 +146,7 @@ static int GetRepairF(char *RepairFile, uid_t uid, fsobj **RepairF)
 	return 0;
 
     /* strrchr should succeed now because sscanf succeeded. */
-    char *realmname = strrchr(RepairFile, '@')+2;
+    char *realmname = strrchr(RepairFile, '@')+1;
     Realm *realm = REALMDB->GetRealm(realmname);
     RepairFileFid.Realm = realm->Id();
 
@@ -171,10 +154,14 @@ static int GetRepairF(char *RepairFile, uid_t uid, fsobj **RepairF)
 
     realm->PutRef();
 
-    if (code) return code;
+    if (code) {
+      LOG(0,("GetRepairF: fsdb::Get failed with code: %d\n", code));
+      return code;
+    }
 
     if (!(*RepairF)->IsFile()) {
 	FSDB->Put(RepairF);
+	LOG(0,("GetRepairF: wasn't a file!\n"));
 	return EINVAL;
     }
     return 0;
@@ -185,12 +172,12 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 {
     int code = 0, i, j, fd = -1, localFake = 0;
     int *LCarr = NULL; /* repLC, mvLC */
-    fsobj *RepairF = NULL, *global = NULL, *local = NULL;
-    VenusFid gfid, lfid, *rFid = NULL;
+    fsobj *RepairF = NULL;
+    VenusFid *rFid = NULL;
     VenusFid *fidarr = NULL; /* entryFid, mvFid, mvPFid */
-    struct listhdr *hlist = NULL, *l = NULL;
+    struct listhdr *hlist = NULL;
     dlist CMLappends;
-    
+
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
@@ -201,39 +188,21 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	fsobj *f = NULL;
 
 	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS);
-	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
+
+	if (code != EINCONS && !f->IsExpandedObj()) {
 	    if (code == 0) {
 		eprint("Repair: %s (%s) consistent", f->GetComp(), FID_(RepairFid));
+		LOG(0,("repvol::Repair: %s (%s) consistent", f->GetComp(),
+		       FID_(RepairFid)));
 		code = EINVAL;	    /* XXX -JJK */
 	    }
 	    FSDB->Put(&f);
 	    return(code);
 	}
 
-	/* Check for local repair expansion */
-	if ((code == 0) && FAKEROOTFID(*RepairFid)) {
-	    localFake = 1;
-	    code = f->Lookup(&global, NULL, "global", uid,
-			     CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
-	    if (code != 0) {
-		FSDB->Put(&f);
-		return(code);
-	    }
-	    code = f->Lookup(&local, NULL, "local", uid,
-			     CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
-	    if (code != 0) {
-		FSDB->Put(&global);
-		FSDB->Put(&f);
-		return(code);
-	    }
-	    LOG(100, ("Local-Repair expansion, got (%s)\n", 
-		      FID_(&global->fid)));
-	    gfid = global->fid;
-	    lfid = local->fid;
-	    rFid = &gfid;
-	}
-	else /* normal repair, proceed as usual */
-	    rFid = RepairFid; 
+	localFake = f->IsToBeRepaired();
+
+	rFid = RepairFid; /* XXX: I guess? -Adam */
 
 	FSDB->Put(&f);
     }
@@ -242,16 +211,17 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
     /* This would NOT be necessary if ViceRepair took a "PiggyCOP2" parameter! */
     {
 	code = FlushCOP2();
-	if (code != 0) { FSDB->Put(&local); FSDB->Put(&global); return(code); }
+	if (code != 0) {
+	  LOG(0,("repvol::ConnectedRepair: FlushCOP2 failed with code %d!\n", code));
+	  return(code);
+	}
     }
 
     code = GetRepairF(RepairFile, uid, &RepairF);
     if (code) {
-	FSDB->Put(&local);
-	FSDB->Put(&global);
-	return code;
+      LOG(0,("repvol::ConnectedRepair: GetRepairF failed with code %d!\n", code));
+      return code;
     }
-
     Recov_BeginTrans();
     ViceStoreId sid = GenerateStoreId();
     Recov_EndTrans(MAXFP);
@@ -261,8 +231,10 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
     /* Acquire an Mgroup. */
     code = GetMgrp(&m, uid);
-    if (code != 0) goto Exit;
-
+    if (code != 0) {
+      LOG(0,("repvol::ConnectedRepair: GetMgrp failed with code %d!\n", code));
+      goto Exit;
+    }
     /* The COP1 call. */
     vv_t UpdateSet;
     {
@@ -363,9 +335,11 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
         sei->FileInfo.ByFD.fd = fd;
 
 	/* For directory conflicts only! (for file conflicts, there is no fixfile)
-	 * If localhost is specified in fixfile, get info for pruning CML entries  
-	 * Must do this here, since later would get errno 157 (Resource temporarily unavailable) */
-	if (ISDIR(*RepairFid)) 
+	 * If localhost is specified in fixfile, get info for pruning CML entries
+	 * Must do this here, since later would get errno 157 (Resource temporarily
+	 * unavailable) */
+#if 0
+	if (ISDIR(*RepairFid))
 	{
 	    int hcount;
 	    struct repair *rep_ent;
@@ -432,6 +406,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
 	    }
 	}
+#endif
 
 	if (::lseek(fd, 0, SEEK_SET) != 0)
 	    { code = errno; goto Exit; }
@@ -486,9 +461,10 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	if (code != 0) goto Exit;
     }
 
+#if 0
     /* For directory conflicts only! (for file conflicts, there is no fixfile)
      * Prune CML entries if localhost is specified in fixfile */
-    if (ISDIR(*RepairFid)) 
+    if (ISDIR(*RepairFid))
     {
 	time_t modtime;
 	int rc;
@@ -588,6 +564,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    }
 	}
     }
+#endif
 
     /* Send the COP2 message.  Don't Piggy!  */
     (void)COP2(m, &sid, &UpdateSet, 1);
@@ -599,8 +576,6 @@ Exit:
     }
 
     if (m) m->Put();
-    FSDB->Put(&local);
-    FSDB->Put(&global);
     FSDB->Put(&RepairF);
 
     if (LCarr != NULL) free(LCarr);
@@ -613,13 +588,11 @@ Exit:
 	if (f != 0) {
 	    f->Lock(WR);
 	    Recov_BeginTrans();
-	        f->Kill();
+	    f->flags.fake = 0; /* so we can update status */
+	    f->Kill();
 	    Recov_EndTrans(MAXFP);
 	    FSDB->Put(&f);
-
-	    /* Ought to flush its descendents too! */
 	}
-
 	/* Invoke an asynchronous resolve for directories. */
 	if (ISDIR(*RepairFid)) {
 	    ResSubmit(0, RepairFid);
@@ -907,20 +880,7 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfi
     f->flags.dirty = 1;
 
     return(0);
-}    
-
-int repvol::DisableRepair(uid_t uid)
-{
-    LOG(100, ("volent::DisableRepair: vol = %x, uid = %d\n", vid, uid));
-
-    if (IsUnderRepair(uid))
-        flags.repair_mode = 0;
-    else
-        LOG(0, ("volent::DisableRepair: %x not under repair\n", vid));
-
-    return(0);
 }
-
 
 /* If (uid == ANYUSER_UID) the enquiry is taken to be "does anyone on the WS have the volume under repair". */
 int repvol::IsUnderRepair(uid_t uid)

@@ -235,7 +235,9 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 	    repvol *vol = vpt->GetVol();
 	    OBJ_ASSERT(this, vol);
 	    vol->CheckTransition();
+#if 0
 	    (void)vol->DisableRepair(ANYUSER_UID);
+#endif
 	}
     }
 

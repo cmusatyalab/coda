@@ -451,21 +451,23 @@ O_FreeLocks:
 	case _VIOC_DISABLEREPAIR:
         case _VIOC_EXPANDOBJECT:
         case _VIOC_COLLAPSEOBJECT:
+        case _VIOC_REPAIR:
 	case _VIOC_FLUSHASR:
 	case _VIOC_GETFID:
 	    {
 	    fsobj *f = 0;
 
-	    int volmode = (nr == _VIOC_EXPANDOBJECT ||
-			   nr == _VIOC_ENABLEREPAIR ||
-			   nr == _VIOC_COLLAPSEOBJECT ||
-			   nr == _VIOC_DISABLEREPAIR)
+	    int volmode =
+	      (nr == _VIOC_EXPANDOBJECT || nr == _VIOC_ENABLEREPAIR ||
+	       nr == _VIOC_COLLAPSEOBJECT || nr == _VIOC_DISABLEREPAIR ||
+	       nr == _VIOC_REPAIR)
 	      ? VM_MUTATING : VM_OBSERVING;
 
 	    int rcrights = RC_STATUS;
 
 	    if (nr == _VIOC_EXPANDOBJECT || nr == _VIOC_ENABLEREPAIR ||
-		nr == _VIOC_COLLAPSEOBJECT || nr == _VIOC_DISABLEREPAIR)
+		nr == _VIOC_COLLAPSEOBJECT || nr == _VIOC_DISABLEREPAIR ||
+		nr == _VIOC_REPAIR)
 	      rcrights |= RC_DATA;
 
 	    for (;;) {
@@ -479,28 +481,6 @@ O_FreeLocks:
 		switch(nr) {
 
 		case _VIOC_ENABLEREPAIR:
-		  {
-		    /* Try to enable target volume for repair by this user. */
-		    VolumeId  *RWVols  = (VolumeId *)data->out;
-		    uid_t    *LockUids = (uid_t *)&(RWVols[VSG_MEMBERS]);
-		    unsigned long *LockWSs =
-		      (unsigned long *)&(LockUids[VSG_MEMBERS]);
-		    char      *endp     = (char *)&(LockWSs[VSG_MEMBERS]);
-
-		    /* actually EnableRepair operates on the volume, but we
-		     * also check if the object is really inconsistent */
-		    if (f->IsFake() && f->vol->IsReplicated())
-		      u.u_error =
-			((repvol *)f->vol)->EnableRepair(u.u_uid,
-							 RWVols,
-							 LockUids,
-							 LockWSs);
-		    else
-		      u.u_error = EOPNOTSUPP;
-
-		    data->out_size = (endp - data->out);
-		  }
-
 		case _VIOC_EXPANDOBJECT:
 		  {
 		    f->PromoteLock();
@@ -513,22 +493,6 @@ O_FreeLocks:
 		  }
 
 		case _VIOC_DISABLEREPAIR:
-#if 0
-		  {
-		    /* Disable repair of target volume by this user. */
-		    if (v->IsReplicated())
-		      u.u_error =
-			((repvol *)v)->DisableRepair(u.u_uid);
-		    else
-		      u.u_error = EOPNOTSUPP;
-
-		    (void)k_Purge(fid, 1);
-
-		    break;
-		  }
-#endif
-		  LOG(0,("vproc::do_ioctl: _VIOC_COLLAPSEOBJECT\n"));
-
 		case _VIOC_COLLAPSEOBJECT:
 		  {
 		    f->PromoteLock();
@@ -537,6 +501,95 @@ O_FreeLocks:
 		    /* Make sure the kernel drops the subtree */
 		    (void)k_Purge(&f->fid, 1);
 		    (void)k_Purge(&f->pfid, 1);
+		    break;
+		  }
+
+		  /*
+		    BEGIN_HTML
+		    <a name="dorepair"><strong> dorepair handler </strong></a>
+		    END_HTML
+		  */
+		case _VIOC_REPAIR:
+		  {
+		    if(f->IsExpandedDir()) {
+		      int rc;
+		      fsobj *fakedir = f;
+
+		      /* find the expanded object */
+		      f = NULL;
+		      rc = fakedir->Lookup(&f, NULL, LOCALCACHE, u.u_uid,
+				    CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT, 1);
+		      if(rc)
+			rc = fakedir->Lookup(&f, NULL, LOCALCACHE_HIDDEN,
+			   u.u_uid, CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT, 1);
+		      if(rc) {
+			LOG(0,("VIOC_REPAIR: Lookup() failed for LOCALCACHE:%d\n", rc));
+			break;
+		      }
+		      else
+			CODA_ASSERT(f);
+
+		      LOG(0,("VIOC_REPAIR: called on expanded directory (%s)! redirecting to localcache (%s)\n", FID_(&fakedir->fid), FID_(&f->fid)));
+
+		      FSDB->Put(&fakedir);
+		    }
+
+#ifdef TIMING
+		    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
+#endif
+		    /* whether we need this depends on the granularity of repair calls */
+		    volent *v = 0;
+		    if ((u.u_error = VDB->Get(&v, MakeVolid(&f->fid)))) break;
+
+		    int entered = 0;
+		    if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
+		      CODA_ASSERT("V_FreeLocks!\n");//goto V_FreeLocks;
+		    entered = 1;
+
+		    /* Try to repair target object. */
+#define	RepairFile  ((char *)data->in)
+#define	startp	    (data->out)
+#define	RWVols	    ((VolumeId *)(startp))
+#define	ReturnCodes ((int *)(RWVols + VSG_MEMBERS))
+#define	endp	    ((char *)(ReturnCodes + VSG_MEMBERS))
+		    data->out_size = (endp - startp);
+
+                    u.u_error = EOPNOTSUPP;
+
+		    if(v->IsReplicated()) {
+		      VenusFid fid = f->fid;
+		      LOG(0, ("VIOC_REPAIR calling repvol::Repair (%s)\n",
+			      FID_(&f->fid)));
+		      FSDB->Put(&f);
+		      u.u_error = ((repvol *)v)->Repair(&fid, RepairFile,
+							u.u_uid, RWVols,
+							ReturnCodes);
+		    }
+		    else
+		      LOG(0, ("VIOC_REPAIR: non-replicated volume!\n"));
+
+		    LOG(0, ("VIOC_REPAIR: repvol::Repair returns %d\n",
+			    u.u_error));
+
+		    /* We don't have the object so can't provide a pathname
+		     * if ((SkkEnabled) && (u.u_error == 0)) {
+		     *   NotifyUsersObjectConsistent("???UNKNOWN???",fid);
+		     * } */
+
+#undef	RepairFile
+#undef	startp
+#undef	RWVols
+#undef	ReturnCodes
+#undef	endp
+		    if (entered) v->Exit(volmode, u.u_uid);
+		    float elapsed = 0.0;
+#ifdef TIMING
+
+		    gettimeofday(&u.u_tv2, 0);
+		    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
+#endif
+
+		    VDB->Put(&v);
 		    break;
 		  }
 
@@ -593,7 +646,8 @@ O_FreeLocks:
 		    }
 		}
 OI_FreeLocks:
-		FSDB->Put(&f);
+		if(f)
+		  FSDB->Put(&f);
 		int retry_call = 0;
 		End_VFS(&retry_call);
 		if (!retry_call) break;
@@ -606,7 +660,6 @@ OI_FreeLocks:
 	case _VIOCSETVOLSTAT:
 	case _VIOCWHEREIS:
 	case _VIOC_FLUSHVOLUME:
-	case _VIOC_REPAIR:
 	case _VIOC_GETSERVERSTATS:
 	case _VIOC_CHECKPOINTML:
 	case _VIOC_PURGEML:
@@ -624,7 +677,7 @@ OI_FreeLocks:
 	    volent *v = 0;
 	    if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
 
-	    int volmode = ((nr == _VIOC_REPAIR || nr == _VIOC_PURGEML) ?
+	    int volmode = ((nr == _VIOC_PURGEML) ?
 			   VM_MUTATING : VM_OBSERVING);
 	    int entered = 0;
 	    if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
@@ -855,42 +908,6 @@ OI_FreeLocks:
 
 		    FSDB->Flush(MakeVolid(fid));
 		    Recov_SetBound(DMFP);
-
-		    break;
-		    }
-
-/*
-  BEGIN_HTML
-  <a name="dorepair"><strong> dorepair handler </strong></a>
-  END_HTML
-*/
-		case _VIOC_REPAIR:
-		    {
-		    /* Try to repair target object. */
-#define	RepairFile  ((char *)data->in)
-#define	startp	    (data->out)
-#define	RWVols	    ((VolumeId *)(startp))
-#define	ReturnCodes ((int *)(RWVols + VSG_MEMBERS))
-#define	endp	    ((char *)(ReturnCodes + VSG_MEMBERS))
-		    data->out_size = (endp - startp);
-                    u.u_error = EOPNOTSUPP;
-                    if (v->IsReplicated())
-                        u.u_error = ((repvol *)v)->Repair(fid, RepairFile,
-                                       u.u_uid, RWVols, ReturnCodes);
-		    else
-		      LOG(0, ("VIOC_REPAIR called on non-replicated volume!\n"));
-
-		    LOG(0, ("VIOC_REPAIR calls volent::Repair which returns %d\n",u.u_error));
-		    /* We don't have the object so can't provide a pathname
-		     * if ((SkkEnabled) && (u.u_error == 0)) {
-		     *   NotifyUsersObjectConsistent("???UNKNOWN???",fid);
-		     * } */
-		    
-#undef	RepairFile
-#undef	startp
-#undef	RWVols
-#undef	ReturnCodes
-#undef	endp
 
 		    break;
 		    }

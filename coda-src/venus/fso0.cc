@@ -799,11 +799,11 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	  /* If we want data and we don't have any then fetch new stuff. */
 	  /* we have to re-check FETCHABLE because it may have changed as
 		 a result of the inconsistent object manipulation above. */
-	  if (getdata && FETCHABLE(f) && !HAVEALLDATA(f)) {
-		/* Turn off advice effects for the time being  -Remi 
+	  if (getdata && FETCHABLE(f) && !HAVEALLDATA(f) && !f->IsFake()) {
+		/* Turn off advice effects for the time being  -Remi
 		   CacheMissAdvice advice = CoerceToMiss; */
 		CacheMissAdvice advice = FetchFromServers;
-		
+
 		if (f->vol->IsWeaklyConnected()) {
 		  char pathname[MAXPATHLEN];
 		  int hoard_priority = 0;

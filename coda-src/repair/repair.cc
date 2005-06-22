@@ -420,8 +420,11 @@ void rep_EndRepair(int largc, char **largv) {
       if (EndRepair(ConflictObj, commit, msgbuf, sizeof(msgbuf)) < 0) {
 	    fprintf(stderr, "%s\nError ending repair session\n", msgbuf);
 	    exit(2);
-	}
-	break;
+      }
+      break;
+    case MIXED_CONFLICT:
+      /* not implemented yet */
+      break;
     default:
 	fprintf(stderr, "Unknown session type\n");
 	exit(1);
@@ -524,12 +527,11 @@ void rep_PreserveLocal(int largc, char **largv) {
 }
 
 void rep_RemoveInc(int largc, char **largv) {
-    int dirconf;
+  int dirconf,rc;
+  char msgbuf[DEF_BUF],rodir[DEF_BUF];
 
     if (checkserver("removeinc")) return;
     printf("\"removeinc\" will terminate the current repair session\n");
-
-    dirconf = ConflictObj->dirconf; /* remember conflict type (since Endrepair will free it) */
 
     printf("Completely remove %s?", ConflictObj->rodir);
     if (!Parser_getbool("", 1)) {
@@ -537,7 +539,10 @@ void rep_RemoveInc(int largc, char **largv) {
 	return;
     }
 
-#if 0
+    /* remember conflict type and path (since Endrepair will free them) */
+    dirconf = ConflictObj->dirconf;
+    strcpy(rodir, ConflictObj->rodir);
+
     /* remove the inconsistency */
     if ((rc = RemoveInc(ConflictObj, msgbuf, sizeof(msgbuf))) < 0)
 	fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
@@ -546,12 +551,12 @@ void rep_RemoveInc(int largc, char **largv) {
 	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
 
     if (!rc) { /* no error - try to remove the object */
-	if (((dirconf) ? rmdir(ConflictObj->rodir) : unlink(RepairVol->rodir)) < 0)
-	    fprintf(stderr, "%s\nCould not remove %s\n", strerror(errno), RepairVol->rodir);
+	if (((dirconf) ? rmdir(rodir)
+	     : unlink(rodir)) < 0)
+	    fprintf(stderr, "%s\nCould not remove %s\n",
+		    strerror(errno), rodir);
     }
-    else exit(2);
-#endif
-
+    exit(2);
 }
 
 void rep_ReplaceInc(int largc, char **largv)

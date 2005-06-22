@@ -41,9 +41,6 @@ extern "C" {
 #include "venusvol.h"
 #include "worker.h"
 
-#define LOCALCACHE "_localcache"
-#define LOCALCACHE_HIDDEN ".localcache"
-
 /// Expand an object (typically a conflict).
 /**
  * We're not really doing much to the object itself because we want it to stay
@@ -64,8 +61,8 @@ extern "C" {
  */
 int fsobj::ExpandObject(void)
 {
-    fsobj *mod_fso, *fakedir;
-    int isroot;
+  fsobj *mod_fso, *fakedir, *localcache;
+    int isroot, rc;
     char name[CODA_MAXNAMLEN+1];
 
     /* do not expand an already expanded object, technically not a problem
@@ -119,7 +116,7 @@ int fsobj::ExpandObject(void)
 	fsobj *fakelink;
 	char *name = LOCALCACHE;
 
-	if(IsFake())
+	if(IsFake() || !HAVEALLDATA(this))
 	  name = LOCALCACHE_HIDDEN;
 
 	fakelink = fakedir->vol->NewFakeMountLinkObj(&fid, name);
@@ -188,12 +185,33 @@ int fsobj::ExpandObject(void)
     flags.local = 1; /* so we don't get Kill()ed on a collapse */
 
     fakedir->Matriculate();
+
+#if 0 /* XXX: not working: trying to cover localcache mtpt asap  */
+    vproc *vp = VprocSelf();
+
+    /* cover the local mountpoint asap */
+    rc = fakedir->Lookup(&localcache, NULL, LOCALCACHE, vp->u.u_uid,
+			 (CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT), 1);
+    if(rc)
+      rc = fakedir->Lookup(&localcache, NULL, LOCALCACHE_HIDDEN, vp->u.u_uid,
+			   (CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT), 1);
+    if(rc) {
+      LOG(0,("fsobj::ExpandObject: Lookup() failed for LOCALCACHE:%d\n",rc));
+      return rc;
+    }
+    else
+      FSDB->Put(&localcache);
+#endif
+
+    FSO_HOLD(this);
+
     FSDB->Put(&fakedir);
     Recov_EndTrans(MAXFP);
 
     /* make sure we tell the kernel about the changes */
     k_Purge(&mod_fso->fid, 1);
     k_Purge(&fid, 0);
+
 
     return 0;
 }
@@ -284,8 +302,7 @@ void fsobj::SetMtLinkContents(VenusFid *fid)
  */
 int fsobj::CollapseObject(void)
 {
-    fsobj *mtlink, *link_fso = NULL, *localcache = NULL, *mod_fso;
-    VenusFid xfid;
+    fsobj *mtlink, *link_fso = NULL, *localcache = NULL, *mod_fso = NULL;
     int rc;
 
     /* We could be called either on a modified mountlink, a fake mountlink in
@@ -300,6 +317,7 @@ int fsobj::CollapseObject(void)
     }
 
     if(!IsDir() || !vol->IsRepairVol()) {
+      LOG(0,("fsobj::CollapseObject: unorthodox collapse!\n"));
       /* refocus the collapse, if possible (XXX: this hasn't been tested) */
       if(IsMTLink()) {
 
@@ -310,7 +328,8 @@ int fsobj::CollapseObject(void)
 	  /* Here we are a replica or a replica's mtlink; probably a
 	   * Lookup wasn't triggered before a collapse */
 
-	  LOG(0,("fsobj::CollapseObject: was a replica mtlink, refocusing collapse on parent\n"));
+	  LOG(0,("fsobj::CollapseObject: I'm a replica mtlink, refocusing collapse on parent\n"));
+	  CODA_ASSERT(pfso);
 	  return pfso->CollapseObject();
 	}
 	else {
@@ -330,19 +349,24 @@ int fsobj::CollapseObject(void)
     /* find the expanded object */
     vproc *vp = VprocSelf();
 
-    rc = Lookup(&localcache, &xfid, LOCALCACHE, vp->u.u_uid, CLU_CASE_SENSITIVE, 1);
+    rc = Lookup(&localcache, NULL, LOCALCACHE, vp->u.u_uid,
+		CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT, 1);
     if(rc)
-      rc = Lookup(&localcache, &xfid, LOCALCACHE_HIDDEN, vp->u.u_uid, CLU_CASE_SENSITIVE, 1);
+      rc = Lookup(&localcache, NULL, LOCALCACHE_HIDDEN, vp->u.u_uid,
+		  CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT, 1);
     if(rc) {
       LOG(0,("fsobj::CollapseObject: Lookup() failed for LOCALCACHE:%d\n",rc));
       return rc;
     }
+    else
+      CODA_ASSERT(localcache);
 
-    CODA_ASSERT(localcache);
-
-    LOG(10,("fsobj::CollapseObject: Fake directory (%s) collapse attempted, LOCALCACHE is %s\n", FID_(&fid), FID_(&localcache->fid)));
+    LOG(10,
+      ("fsobj::CollapseObject: Fake directory (%s) collapse attempted, LOCALCACHE is %s\n",
+       FID_(&fid), FID_(&localcache->fid)));
 
     Recov_BeginTrans();
+
     /* detach the fake mountlink */
     mtlink = u.mtpoint;
     UnmountRoot();
@@ -369,10 +393,12 @@ int fsobj::CollapseObject(void)
 	LOG(10, ("fsobj:CollapseObject: changed existing mountlink to %s -> %s\n",
 	    FID_(&mod_fso->fid), mod_fso->data.symlink));
     } else {
-        LOG(10,("fsobj::CollapseObject: relinking LOCALCACHE to parent\n"));
-
 	mod_fso = mtlink->pfso;
 	CODA_ASSERT(mod_fso);
+
+        LOG(10,("fsobj::CollapseObject: relinking %s(%s) to %s(%s)\n",
+		mtlink->comp, FID_(&localcache->fid), mod_fso->comp,
+		FID_(&mod_fso->fid)));
 
 	RVMLIB_REC_OBJECT(*mod_fso);
 	mod_fso->dir_Delete(mtlink->comp);
@@ -380,17 +406,10 @@ int fsobj::CollapseObject(void)
 	mtlink->pfso = NULL;
 	mtlink->pfid = NullFid;
 
-#if 0
-	localcache->SetComp(comp);
-#endif
-
 	mod_fso->dir_Create(mtlink->comp, &localcache->fid);
 	mod_fso->AttachChild(localcache);
 	localcache->pfso = mod_fso;
 
-        LOG(10,("fsobj::CollapseObject: relinked %s(%s) to %s(%s)\n",
-		mtlink->comp, FID_(&localcache->fid), mod_fso->comp,
-		FID_(&mod_fso->fid)));
 	/* kill the mountlink to our fake directory */
 	mtlink->Kill();
     }
@@ -402,6 +421,7 @@ int fsobj::CollapseObject(void)
     /* kill the expanded directory and its descendants */
     Kill();
 
+    FSO_RELE(localcache);
     Recov_EndTrans(MAXFP);
 
     FSDB->Put(&localcache);

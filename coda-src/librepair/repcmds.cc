@@ -491,13 +491,13 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
       return(-1);
     }
 
-#if 0
     if ((nreplicas = getVolrepNames(conf, &names, msgbuf, sizeof(msgbuf))) <= 0) {
 	strerr(msg, msgsize, "Error getting replica names: %s", msgbuf);
 	return(-1);
     }
 
     if (conf->dirconf) { /* directory conflict */
+#if 0
 	/* get the directory entries and create list of children to be removed */
 	if (getunixdirreps(nreplicas, names, &dirs)) {
 	    strerr(msg, msgsize, "Could not get needed replica information");
@@ -517,7 +517,7 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 	    goto Error;
 	}
 
-	rc = dorep(repv, tmppath, NULL, 0); /* do the repair */
+	rc = dorep(conf, tmppath, NULL, 0); /* do the repair */
 	if (rc < 0 && errno != ETOOMANYREFS) {
 	    strerr(msg, msgsize, "REPAIR %s: %s", repv->rodir, strerror(errno));
 	    unlink(tmppath); /* Clean up */
@@ -525,9 +525,9 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 	}
 	unlink(tmppath); /* Clean up */
 
-	/* clear the inconsistency if needed and possible */ 
-	if ((rc = repair_getfid(repv->rodir, NULL, NULL, &confvv, msgbuf, sizeof(msgbuf))) < 0) {
-	    strerr(msg, msgsize, "repair_getfid(%s): %s", repv->rodir, msgbuf);
+	/* clear the inconsistency if needed and possible */
+	if ((rc = repair_getfid(conf->rodir, NULL, NULL, &confvv, msgbuf, sizeof(msgbuf))) < 0) {
+	    strerr(msg, msgsize, "repair_getfid(%s): %s", conf->rodir, msgbuf);
 	    goto Error;
 	}
 	if (!((confvv.StoreId.Host == (unsigned long)-1) && (confvv.StoreId.Uniquifier == (unsigned long)-1))) {
@@ -537,10 +537,11 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 	    goto Error;
 	}
 	/* object is still inconsistent -- try to clear it */
-	if ((rc = ClearInc(repv, msgbuf, sizeof(msgbuf))) < 0) {
+	if ((rc = ClearInc(conf, msgbuf, sizeof(msgbuf))) < 0) {
 	    strerr(msg, msgsize, "Error clearing inconsistency: %s", msgbuf);
 	    goto Error;
 	}
+#endif
     }
     else { /* file conflict */
 	rc = repair_getfid(names[0], &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf));
@@ -551,9 +552,9 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 
 	sprintf(tmppath, "@%08x.%08x.%08x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
 
-	rc = dorep(repv, tmppath, NULL, 0); /* do the repair */
+	rc = dorep(conf, tmppath, NULL, 0); /* do the repair */
 	if ((rc < 0) && (errno != ETOOMANYREFS))
-	    strerr(msg, msgsize, "REPAIR %s: %s", repv->rodir, strerror(errno));
+	    strerr(msg, msgsize, "REPAIR %s: %s", conf->rodir, strerror(errno));
     }
 
  Error:
@@ -563,7 +564,6 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
     for (i = 0; i < nreplicas; i++)
 	freeif(names[i]);
     free(names);
-#endif
     return(rc);
 }
 
@@ -773,12 +773,11 @@ void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **repairlist
 /* Allocates and returns an array of replica names (complete paths) in ***names
  * Returns number of replicas in array on success, -1 on failure (after cleaning up) */
 int getVolrepNames(struct conflict *conf, char ***names, char *msg, int msgsize) {
-#if 0
-    struct volrep *rwv;
+    struct replica *rwv;
     int i, nreps;
 
     /* count and allocate replicas */
-    for (nreps = 0, rwv = repv->rwhead; rwv != NULL; rwv = rwv->next, nreps++);
+    for (nreps = 0, rwv = conf->head; rwv != NULL; rwv = rwv->next, nreps++);
     if (nreps == 0) {
 	strerr(msg, msgsize, "No accessible replicas");
 	return(-1);
@@ -787,11 +786,12 @@ int getVolrepNames(struct conflict *conf, char ***names, char *msg, int msgsize)
 	strerr(msg, msgsize, "Malloc failed");
 	return(-1);
     }
+
     for (i = 0; i < nreps; (*names)[i++] = NULL); /* initialize all to NULL */
 
-    for (i = 0, rwv = repv->rwhead; rwv != NULL; rwv = rwv->next, i++) {
+    for (i = 0, rwv = conf->head; rwv != NULL; rwv = rwv->next, i++) {
 	/* 3 is for middle slash, trailing slash (if directory) and closing '\0' */
-	(*names)[i] = (char *)malloc((strlen(rwv->compname) + strlen(repv->rodir) + 3) * sizeof(char));
+	(*names)[i] = (char *)malloc((strlen(rwv->compname) + strlen(conf->rodir) + 3) * sizeof(char));
 	if ((*names)[i] == NULL) {
 	    for (i = 0; i < nreps; nreps++) freeif((*names)[i]);
 	    free(*names);
@@ -799,13 +799,11 @@ int getVolrepNames(struct conflict *conf, char ***names, char *msg, int msgsize)
 	    return(-1);
 	}
 
-	if (repv->dirconf) sprintf((*names)[i], "%s/%s/", repv->rodir, rwv->compname);
-	else sprintf((*names)[i], "%s/%s" , repv->rodir, rwv->compname);
+	if (conf->dirconf) sprintf((*names)[i], "%s/%s/", conf->rodir, rwv->compname);
+	else sprintf((*names)[i], "%s/%s" , conf->rodir, rwv->compname);
     }
 
     return (nreps);
-#endif
-    return 0;
 }
 
 

@@ -575,6 +575,9 @@ class fsobj {
     void ExpandCMLEntries(void);
     void CollapseCMLEntries(void);
 
+#define LOCALCACHE "_localcache"
+#define LOCALCACHE_HIDDEN ".localcache"
+
     /* Local synchronization. */
     void Lock(LockLevel);
     void PromoteLock();
