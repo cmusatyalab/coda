@@ -100,8 +100,7 @@ void repvol::CheckTransition()
     VOL_ASSERT(this, state == Logging);
     if (CML.count() == 0)
       CML.owner = UNSET_UID;
-    if ((CML.count() == 0 || (CML.count() > 0 && !ContainUnrepairedCML()))
-	&& flags.logv == 0)
+    if ((CML.count() == 0 || !ContainUnrepairedCML()) && flags.logv == 0)
       flags.transition_pending = 1;
 }
 

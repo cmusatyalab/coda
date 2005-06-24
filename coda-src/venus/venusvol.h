@@ -194,11 +194,10 @@ class ClientModifyLog {
 
     void AttachFidBindings();
 
-    long logBytes() {return bytes;}
-    long logBytesHighWater() {return bytesHighWater;}
-    long size();
+    long logBytes() { return bytes; }
+    long logBytesHighWater() { return bytesHighWater; }
     int count() { return list.count(); }
-    long countHighWater() {return entriesHighWater;}
+    long countHighWater() { return entriesHighWater; }
     uid_t Owner() { return owner; }
 
     void print() { print(stdout); }
@@ -636,7 +635,8 @@ class volent {
 
     /* User-visible volume status. */
     int GetVolStat(VolumeStatus *, RPC2_BoundedBS *,
-		   VolumeStateType *, int *, int *,
+		   VolumeStateType *, unsigned int *age, unsigned int *hogtime,
+		   int *conflict, int *cml_size, uint64_t *cml_bytes,
 		    RPC2_BoundedBS *, RPC2_BoundedBS *, uid_t, int local_only);
     int SetVolStat(VolumeStatus *, RPC2_BoundedBS *,
 		    RPC2_BoundedBS *, RPC2_BoundedBS *, uid_t);

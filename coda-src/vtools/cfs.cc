@@ -1765,8 +1765,9 @@ static void ListVolume(int argc, char *argv[], int opslot)
     VolumeStatus *vs;
     char *volname, *omsg, *motd;
     VolumeStateType conn_state;
-    int conflict;
-    int cml_count;
+    int conflict, cml_count;
+    unsigned int age, hogtime;
+    uint64_t cml_bytes;
     char *ptr;
     int local_only = 0;
 
@@ -1794,23 +1795,23 @@ static void ListVolume(int argc, char *argv[], int opslot)
         
         /* Get pointers to output fields */
 	/* Format is (status, name, conn_state, conflict,
-	   cml_count, offlinemsg, motd) */
+	   cml_count, offlinemsg, motd, age, hogtime, cml_bytes) */
 	ptr = piobuf;		/* invariant: ptr always point to next obj
 				   to be read */
         vs = (VolumeStatus *)ptr;
 	ptr += sizeof(VolumeStatus);
-        volname = ptr;
-	ptr += strlen(volname)+1;
-	memcpy ((void *)&conn_state, (void *)ptr, sizeof(int));
-	ptr += sizeof(int);
-	memcpy ((void *)&conflict, (void *)ptr, sizeof(int));
-	ptr += sizeof(int);
-	memcpy ((void *)&cml_count, (void *)ptr, sizeof(int));
-	ptr += sizeof(int);
-        omsg = ptr;
-	ptr += strlen(omsg)+1;
-        motd = ptr;
-	ptr += strlen(motd)+1;
+        volname = ptr; ptr += strlen(volname)+1;
+
+	conn_state = (VolumeStateType)*((int *)ptr)++;
+	conflict   = *((int *)ptr)++;
+	cml_count  = *((int *)ptr)++;
+
+	omsg = ptr; ptr += strlen(omsg)+1;
+	motd = ptr; ptr += strlen(motd)+1;
+
+	age	  = *((unsigned int *)ptr)++;
+	hogtime	  = *((unsigned int *)ptr)++;
+	cml_bytes = *((uint64_t *)ptr)++;
 
         /* Print output fields */
         if (argc > 3) printf("  %s:\n", argv[i]);  /* print directory name if more than one */
@@ -1820,6 +1821,8 @@ static void ListVolume(int argc, char *argv[], int opslot)
         if (*motd) printf("  Message of the day is \"%s\"\n", motd);
         printf("  Volume type is %s\n", xlate_vvtype(vs->Type));
 	printf("  Connection State is %s\n", print_conn_state(conn_state));
+	printf("  Reintegration age: %u sec, hogtime %.3f sec\n",
+	       age, hogtime / 1000.0);
 	/* info not avail if disconnected, or if we did a local query */
 	if (conn_state!=Emulating && local_only == 0) {
 	    printf("  Minimum quota is %lu,", vs->MinQuota);
@@ -1833,8 +1836,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	if (conflict)
 	    printf("  *** There are pending conflicts in this volume ***\n");
 	if (conn_state == Logging || conn_state == Emulating)
-	    printf("  There are %d CML entries pending for reintegration\n",
-		   cml_count);
+	    printf("  There are %d CML entries pending for reintegration (%llu bytes)\n", cml_count, cml_bytes);
         printf("\n");
         }
 

@@ -2423,22 +2423,28 @@ ViceVolumeType volent::VolStatType(void)
 
 /* local-repair modification */
 int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
-		       VolumeStateType *conn_state, int *conflict,
-                       int*cml_count, RPC2_BoundedBS *msg,
-                       RPC2_BoundedBS *motd, uid_t uid, int local_only)
+		       VolumeStateType *conn_state,
+		       unsigned int *age, unsigned int *hogtime,
+		       int *conflict, int *cml_count, uint64_t *cml_bytes,
+		       RPC2_BoundedBS *msg, RPC2_BoundedBS *motd,
+		       uid_t uid, int local_only)
 {
     int code = 0;
 
     LOG(100, ("volent::GetVolStat: vid = %x, uid = %d\n", vid, uid));
 
     *conn_state = state;
-    *conflict = 0;
-    *cml_count = 0;
+    *age = *hogtime = 0;
+    *conflict = *cml_count = 0;
+    *cml_bytes = 0;
     if (IsReplicated()) {
         repvol *rv = (repvol *)this;
         rv->CheckLocalSubtree();       /* unset has_local_subtree if possible */
         *conflict = rv->HasLocalSubtree();
         *cml_count = rv->GetCML()->count();
+        *cml_bytes = rv->GetCML()->logBytes();
+	*age = rv->AgeLimit;
+	*hogtime = rv->ReintLimit;
     }
     if (state == Hoarding && (*conflict || *cml_count > 0)) {
 	LOG(0, ("volent::GetVolStat: Strange! A connected volume 0x%x has "

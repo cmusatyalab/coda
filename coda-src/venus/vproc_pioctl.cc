@@ -651,8 +651,9 @@ OI_FreeLocks:
 		    MOTD.SeqLen = 0;
 
 		    VolumeStateType conn_state;
-		    int             conflict;
-		    int             cml_count;
+		    unsigned int    age, hogtime;
+		    int             conflict, cml_count;
+		    uint64_t	    cml_bytes;
 		    int		    local_only = 0;
 		    if (data->in_size == sizeof(int) &&
 			*(int *)data->in == 1)
@@ -660,7 +661,9 @@ OI_FreeLocks:
 
 		    /* Retrieve the volume status from the server(s). */
 		    u.u_error = v->GetVolStat(&volstat, &Name, &conn_state,
+					      &age, &hogtime,
 					      &conflict, &cml_count,
+					      &cml_bytes,
 					      &OfflineMsg, &MOTD, u.u_uid,
 					      local_only);
 		    if (u.u_error) break;
@@ -674,7 +677,10 @@ OI_FreeLocks:
 			 sizeof(int) + /* conflict */
 			 sizeof(int) + /* cml_count */
 			 strlen(offlinemsg) + 1 + /* offlinemsg */
-			 strlen(motd) + 1) /* motd */
+			 strlen(motd) + 1 + /* motd */
+			 sizeof(unsigned int) + /* age */
+			 sizeof(unsigned int) + /* hogtime */
+			 sizeof(uint64_t))	/* cml_bytes */
 			 > VC_MAXDATASIZE ) {
 			LOG(0, ("vproc::do_ioctl: VIOCGETVOLSTAT: buffer is "
 				"not large enough to hold the message\n"));
@@ -687,18 +693,20 @@ OI_FreeLocks:
 						     be copied into */
 		    memcpy(cp, &volstat, sizeof(VolumeStatus));
 		    cp += sizeof(VolumeStatus);
-		    strcpy(cp, name);
-		    cp += strlen(name) + 1;
-		    memcpy (cp, &conn_state, sizeof(int));
-		    cp += sizeof(int);
-		    memcpy (cp, &conflict, sizeof(int));
-		    cp += sizeof(int);
-		    memcpy (cp, &cml_count, sizeof(int));
-		    cp += sizeof(int);
-		    strcpy(cp, offlinemsg);
-		    cp += strlen(offlinemsg) + 1;
-		    strcpy(cp, motd);
-		    cp += strlen(motd) + 1;
+		    strcpy(cp, name); cp += strlen(name) + 1;
+
+		    /* do we have to worry about alignment? */
+		    *((int *)cp)++ = (int)conn_state;
+		    *((int *)cp)++ = conflict;
+		    *((int *)cp)++ = cml_count;
+
+		    strcpy(cp, offlinemsg); cp += strlen(offlinemsg) + 1;
+		    strcpy(cp, motd); cp += strlen(motd) + 1;
+
+		    *((unsigned int *)cp)++ = age;
+		    *((unsigned int *)cp)++ = hogtime;
+		    *((uint64_t *)cp)++ = cml_bytes;
+
 		    data->out_size = (cp - data->out);
 		    break;
 		    }
