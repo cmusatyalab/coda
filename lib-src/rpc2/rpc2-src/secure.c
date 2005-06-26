@@ -136,7 +136,7 @@ unsigned int rpc2_NextRandom(char *StatePtr)
     if (!StatePtr) StatePtr = RNState;	/* it's ok, call by value */
     prev_state = setstate(StatePtr);
 
-    x = ((unsigned int)random() >> 2) & 0x3fff; /* limit to 2**30 */
+    x = ((unsigned int)random() >> 1) & 0x3fffffff; /* limit to 2**30 */
 
     setstate(prev_state);
     return(x);
