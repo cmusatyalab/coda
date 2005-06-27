@@ -109,6 +109,13 @@ void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...)
 {
     va_list ap;
     char *stack = ucp->uc_stack.ss_sp;
+
+#ifdef HAVE_SIGALTSTACK
+    struct sigaction action, oldaction;
+    sigset_t sigs, oldsigs;
+    stack_t oldstack;
+#endif
+
     assert(stack != NULL);
 
     child = ucp;
@@ -132,9 +139,6 @@ void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...)
     savecontext(_thread, &parent, stack);
 
 #else /* HAVE_SIGALTSTACK */
-    struct sigaction action, oldaction;
-    sigset_t sigs, oldsigs;
-    stack_t oldstack;
 
     action.sa_handler = (void(*)(int))_thread;
     action.sa_flags = SA_ONSTACK;
