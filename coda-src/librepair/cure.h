@@ -19,9 +19,9 @@ listed in the file CREDITS.
 #include <vcrcommon.h>
 
 /* routines included in other files */
-int ObjExists (resreplica *, long , long );
+int ObjExists(resreplica *dir, VnodeId vnode, Unique_t unique);
 int RepairRename (int , resreplica *, resdir_entry **, int, listhdr **,
-		  char *, VolumeId, char *realm);
+		  VolumeId, char *realm);
 int RepairSubsetCreate (int , resreplica *, resdir_entry **, int , listhdr **,
 			VolumeId);
 int RepairSubsetRemove (int, resreplica *, resdir_entry **, int , listhdr **);

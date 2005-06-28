@@ -1462,7 +1462,13 @@ void worker::main(void)
         out->oh.result = u.u_error;
         Resign(msg, size);
 
-        if (opcode == CODA_OPEN_BY_FD && openfd != -1)
+
+	VenusFid fid;
+	KernelToVenusFid(&fid, &saveFid);
+
+	/* extra case added to deal with dangling references to a collapse */
+        if (opcode == CODA_OPEN_BY_FD && openfd != -1
+	    && !FID_IsExpandedDir(&fid))
 	    vtarget.c_cf->Close(openfd);
 
         if (opcode == CODA_OPEN ||

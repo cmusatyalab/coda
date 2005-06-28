@@ -113,7 +113,7 @@ struct repair {
 */
    
 struct listhdr {
-    VolumeId replicaId;		/* unique id of this replica (== its rw volid) */
+    ViceFid replicaFid;		/* unique fid of this replica */
     unsigned int repairCount;	/* number of entries in array repairList[] */
     struct repair *repairList;	/* pointer to array of repair entries for this replica */
 };

@@ -54,13 +54,14 @@ extern "C" {
 int ObjExists(resreplica *dir, VnodeId vnode, Unique_t unique)
 {
     for (int i = dir->entry1; i < (dir->entry1 + dir->nentries); i++)
-	if ((*(direntriesarr + i)).vno == vnode && (*(direntriesarr + i)).uniqfier == unique)
-	    return 1;
+      if ((*(direntriesarr + i)).fid.Vnode == vnode &&
+	  (*(direntriesarr + i)).fid.Unique == unique)
+	return 1;
     return 0;
 }
 
 int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
-		  int nDirEntries, listhdr **ops, char *volmtpt,
+		  int nDirEntries, listhdr **ops,
 		  VolumeId RepVolume, char *realm)
 {
     char parentpath[MAXHOSTS][MAXPATHLEN];
@@ -79,11 +80,11 @@ int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
     // get the paths for parents 
     int nobjfound = 0;
     ViceFid tmpfid;
-    tmpfid.Vnode = deGroup[0]->vno;
-    tmpfid.Unique = deGroup[0]->uniqfier;
+    tmpfid.Vnode = deGroup[0]->fid.Vnode;
+    tmpfid.Unique = deGroup[0]->fid.Unique;
     for (i = 0; i < nreplicas; i++) {
-	tmpfid.Volume = dirs[i].replicaid;
-	if (!GetParent(realm, &tmpfid, &parentfid[i], volmtpt, parentpath[i], childpath[i])) {
+	tmpfid.Volume = dirs[i].fid.Volume;
+	if (!GetParent(realm, &tmpfid, &parentfid[i], parentpath[i], childpath[i])) {
 	    nobjfound ++;
 	    usepath[i] = 1;
 	}
@@ -122,10 +123,10 @@ int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
     struct repair rep;
     if (i == nreplicas) {
 	printf("No renames specified - will try to remove object\n");
-	int isDir = ISDIRVNODE(deGroup[0]->vno);
+	int isDir = ISDIRVNODE(deGroup[0]->fid.Vnode);
 	for (int j = 0; j < nreplicas; j++) 
-	    if ((parentfid[j].Vnode == dirs[j].vnode) && 
-		(parentfid[j].Unique == dirs[j].uniqfier) && 
+	    if ((parentfid[j].Vnode == dirs[j].fid.Vnode) &&
+		(parentfid[j].Unique == dirs[j].fid.Unique) &&
 		usepath[j]) {
 		if (isDir)
 		    rep.opcode = REPAIR_REMOVED;
@@ -173,7 +174,7 @@ int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 /* do not have that object and places that info in the repair ops list */
 int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, listhdr **ops, VolumeId RepVolume)
 {
-    int isDir = ISDIRVNODE(deGroup[0]->vno);
+    int isDir = ISDIRVNODE(deGroup[0]->fid.Vnode);
     struct repair rep;
     int *ObjFound;
     int i;
@@ -211,10 +212,11 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 		    /* directory with a different name or in the  */
 		    /* replist with creates */
 		    /* then it is a CREATEL, ow it is a CREATEF */
-		    if (ObjExists(&(dirs[i]), deGroup[0]->vno, 
-				  deGroup[0]->uniqfier) 
+		    if (ObjExists(&(dirs[i]), deGroup[0]->fid.Vnode,
+				  deGroup[0]->fid.Unique)
 			|| InRepairList(&((*ops)[i]),  REPAIR_CREATEF, 
-					deGroup[0]->vno, deGroup[0]->uniqfier))
+					deGroup[0]->fid.Vnode,
+					deGroup[0]->fid.Unique))
 			    rep.opcode = REPAIR_CREATEL;
 		    else 
 			    rep.opcode = REPAIR_CREATEF;
@@ -228,8 +230,8 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 
 	strcpy(&(rep.name[0]), &(deGroup[0]->name[0]));
 	rep.parms[0] = RepVolume;
-	rep.parms[1] = deGroup[0]->vno;
-	rep.parms[2] = deGroup[0]->uniqfier;
+	rep.parms[1] = deGroup[0]->fid.Vnode;
+	rep.parms[2] = deGroup[0]->fid.Unique;
 	InsertListHdr(&rep, ops, i);
     }
     free(ObjFound);
@@ -240,7 +242,7 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 /* have that object and places that info in the repair ops list */
 int RepairSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nDirEntries, listhdr **ops)
 {
-    int isDir = ISDIRVNODE(deGroup[0]->vno);
+    int isDir = ISDIRVNODE(deGroup[0]->fid.Vnode);
     struct repair rep;
     int *ObjFound;
     int i;

@@ -172,10 +172,10 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 {
     int code = 0, i, j, fd = -1, localFake = 0;
     int *LCarr = NULL; /* repLC, mvLC */
-    fsobj *RepairF = NULL;
+    fsobj *RepairF = NULL, *local = NULL;
     VenusFid *rFid = NULL;
     VenusFid *fidarr = NULL; /* entryFid, mvFid, mvPFid */
-    struct listhdr *hlist = NULL;
+    struct listhdr *hlist = NULL, *l = NULL;
     dlist CMLappends;
 
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
@@ -187,13 +187,12 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
     {
 	fsobj *f = NULL;
 
-	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS);
+	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS, NULL, NULL, NULL, 1);
 
-	if (code != EINCONS && !f->IsExpandedObj()) {
+	if (code || !f || !f->IsFake()) {
 	    if (code == 0) {
 		eprint("Repair: %s (%s) consistent", f->GetComp(), FID_(RepairFid));
-		LOG(0,("repvol::Repair: %s (%s) consistent", f->GetComp(),
-		       FID_(RepairFid)));
+		LOG(0,("repvol::Repair: %s (%s) consistent", f->GetComp(), FID_(RepairFid)));
 		code = EINVAL;	    /* XXX -JJK */
 	    }
 	    FSDB->Put(&f);
@@ -202,17 +201,18 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
 	localFake = f->IsToBeRepaired();
 
-	rFid = RepairFid; /* XXX: I guess? -Adam */
-
+	rFid = RepairFid;
 	FSDB->Put(&f);
     }
 
     /* Flush all COP2 entries. */
-    /* This would NOT be necessary if ViceRepair took a "PiggyCOP2" parameter! */
+    /* This would NOT be necessary if ViceRepair took
+     * a "PiggyCOP2" parameter! */
     {
 	code = FlushCOP2();
 	if (code != 0) {
-	  LOG(0,("repvol::ConnectedRepair: FlushCOP2 failed with code %d!\n", code));
+	  LOG(0,("repvol::ConnectedRepair: FlushCOP2 failed with code %d!\n",
+		 code));
 	  return(code);
 	}
     }
@@ -338,7 +338,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	 * If localhost is specified in fixfile, get info for pruning CML entries
 	 * Must do this here, since later would get errno 157 (Resource temporarily
 	 * unavailable) */
-#if 0
+
 	if (ISDIR(*RepairFid))
 	{
 	    int hcount;
@@ -351,7 +351,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    }
 
 	    for (i = 0; i < hcount; i++)
-		if (IS_LOCAL_VID(hlist[i].replicaId))
+		if (IS_LOCAL_VID(hlist[i].replicaFid.Volume))
 		    { l = &(hlist[i]); break; }
 
 	    if (l != NULL) {
@@ -406,7 +406,6 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
 	    }
 	}
-#endif
 
 	if (::lseek(fd, 0, SEEK_SET) != 0)
 	    { code = errno; goto Exit; }
@@ -461,7 +460,6 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	if (code != 0) goto Exit;
     }
 
-#if 0
     /* For directory conflicts only! (for file conflicts, there is no fixfile)
      * Prune CML entries if localhost is specified in fixfile */
     if (ISDIR(*RepairFid))
@@ -564,7 +562,6 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    }
 	}
     }
-#endif
 
     /* Send the COP2 message.  Don't Piggy!  */
     (void)COP2(m, &sid, &UpdateSet, 1);
@@ -588,7 +585,7 @@ Exit:
 	if (f != 0) {
 	    f->Lock(WR);
 	    Recov_BeginTrans();
-	    f->flags.fake = 0; /* so we can update status */
+	    f->flags.fake = 0; /* so we can update status! */
 	    f->Kill();
 	    Recov_EndTrans(MAXFP);
 	    FSDB->Put(&f);

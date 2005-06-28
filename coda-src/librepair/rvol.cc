@@ -47,12 +47,10 @@ int repair_newrep(char *pathname, struct conflict **conf, char *msg, int msgsize
 	return(-1);
     }
 
-#if 0 /* XXX; don't think this is necessary anymore? */
-    if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msg, msgsize) < 0)
-	return(-1);
-
-    if (repair_getmnt(reppath, prefix, suffix, &vid, realm, msgbuf, sizeof(msgbuf)) < 0) {
-	strerr(msg, msgsize, "Could not get volume mount point: %s", msgbuf);
+    /* XXX: The importance of being leftmost needs to be looked at. -Adam */
+#if 0
+    if (repair_isleftmost(pathname, reppath, MAXPATHLEN, msg, msgsize) < 0) {
+	strerr(msg, msgsize, "pathname not leftmost");
 	return(-1);
     }
 #endif

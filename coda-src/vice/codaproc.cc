@@ -714,7 +714,7 @@ int GetMyRepairList(ViceFid *Fid, struct listhdr *replicaList, int
     int	i;
     int found = -1;
     for (i = 0; i < replicaCount; i++)
-	if (memcmp((const void *)&(replicaList[i].replicaId), (const void *) &(Fid->Volume), (int)sizeof(VolumeId)))
+	if (memcmp((const void *)&(replicaList[i].replicaFid.Volume), (const void *) &(Fid->Volume), (int)sizeof(VolumeId)))
 	    continue;
 	else
 	    /* found an entry */

@@ -98,5 +98,13 @@ inline void MakeVenusFid(VenusFid *vf, const u_int32_t realm, const ViceFid *fid
 
 int FID_IsLocalFake(VenusFid *fid);
 
+inline int FID_IsExpandedDir(ViceFid *vf) {
+  return (vf->Volume == FakeRepairVolumeId) && FID_IsFakeRoot(vf);
+}
+
+inline int FID_IsExpandedDir(VenusFid *vf) {
+  return FID_IsLocalFake(vf) && FID_IsExpandedDir(MakeViceFid(vf));
+}
+
 #endif /* _VENUSFID_H_ */
 

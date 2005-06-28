@@ -234,19 +234,19 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 	  /* get index of direntry */
 	  i = nextindex();
 	  if (Fid.Vnode != 1 || Fid.Unique != 1) {
-	      direntriesarr[i].vno = Fid.Vnode;
-	      direntriesarr[i].uniqfier = Fid.Unique;
+	      direntriesarr[i].fid.Vnode = Fid.Vnode;
+	      direntriesarr[i].fid.Unique = Fid.Unique;
 	      direntriesarr[i].MtPt = 0;
 	  }
 	  else {
 	      if (res_getmtptfid(path, &Fid, &VV)) return -1;
-	      direntriesarr[i].vno = Fid.Vnode;
-	      direntriesarr[i].uniqfier = Fid.Unique;
+	      direntriesarr[i].fid.Vnode = Fid.Vnode;
+	      direntriesarr[i].fid.Unique = Fid.Unique;
 	      direntriesarr[i].MtPt = 1;
 	  }
 	  strcpy(direntriesarr[i].name, dp->d_name);
 	  direntriesarr[i].VV = VV;
-	  direntriesarr[i].replicaid = j;
+	  direntriesarr[i].fid.Volume = j;
 	  direntriesarr[i].lookedAt = 0;
 	  count++;
 	  free(path);
@@ -256,9 +256,9 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
       /* fill in the resreplica */
       if (res_getfid(names[j], &Fid, &VV)) return -1;
       dirs[j].nentries = count;
-      dirs[j].replicaid = Fid.Volume;
-      dirs[j].vnode = Fid.Vnode;
-      dirs[j].uniqfier = Fid.Unique;
+      dirs[j].fid.Volume = Fid.Volume;
+      dirs[j].fid.Vnode = Fid.Vnode;
+      dirs[j].fid.Unique = Fid.Unique;
       dirs[j].path = (char *)malloc(strlen(names[j]) + 1);
       strcpy(dirs[j].path, names[j]);
       /* fill in access list and modebits */
@@ -290,12 +290,13 @@ static int nextindex()
     return(nextavailindex);
 }
 
-void MarkEntriesByFid (VnodeId Vnode, Unique_t unique)
+void MarkEntriesByFid (VnodeId Vnode, Unique_t Unique)
 {
     resdir_entry *direntryptr = direntriesarr;
     for(int i = 0; i < totaldirentries; i++)
-	if ((direntryptr[i].vno == Vnode) && (direntryptr[i].uniqfier == unique))
-	    direntryptr[i].lookedAt = 1;
+	if ((direntryptr[i].fid.Vnode == Vnode) &&
+	    (direntryptr[i].fid.Unique == Unique))
+	  direntryptr[i].lookedAt = 1;
     
 }
 
@@ -306,7 +307,7 @@ void MarkEntriesByGroup (resdir_entry **mark_arr, int nentries)
 	mark_arr[i]->lookedAt = 1;
 }
 
-int GetConflictType (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int *conflictType, char *volmtpt, char *realm)
+int GetConflictType (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int *conflictType, char *realm)
 {
     int i;
     *conflictType = STRONGLY_EQUAL;
@@ -330,7 +331,7 @@ void InitListHdr (int nreplicas, resreplica *dirs, struct listhdr **opList)
 {   struct listhdr *lh;
     *opList = lh = (struct listhdr *) malloc(nreplicas * sizeof(struct listhdr));
     for (int i = 0; i < nreplicas; i++){
-	lh[i].replicaId = dirs[i].replicaid;
+	lh[i].replicaFid = dirs[i].fid;
 	lh[i].repairCount = 0;
 	lh[i].repairList = NULL;
     }
@@ -379,7 +380,7 @@ int IsCreatedEarlier (struct listhdr **opList, int index, VnodeId vnode, Unique_
 
 void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 		      int nentries, int conflictType, listhdr **opList,
-		      char *volmtpt, VolumeId RepVolume, char *realm)
+		      VolumeId RepVolume, char *realm)
 {
     /* call the appropriate repair function */
     switch (conflictType){
@@ -388,7 +389,7 @@ void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
       case ALL_PRESENT:
 	break;
       case SUBSET_RENAME:
-	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt,
+	RepairRename(nreplicas, dirs, deGroup, nentries, opList,
 		     RepVolume, realm);
 	break;
       case SUBSET_CREATE:
@@ -410,7 +411,7 @@ void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
     /* mark the group - if conflict is resolvable */
     MarkEntriesByGroup(deGroup, nentries);
     if (conflictType == SUBSET_RENAME) 
-	MarkEntriesByFid(deGroup[0]->vno, deGroup[0]->uniqfier);
+      MarkEntriesByFid(deGroup[0]->fid.Vnode, deGroup[0]->fid.Unique);
 }
 
 int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct listhdr **opList, struct repinfo *inf) {
@@ -460,7 +461,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	resdir_entry *rde = sortedArrByName[i];
 	printf("%s%s\n\tFid: (%08x.%08x) VV:(%d %d %d %d %d %d %d %d)(%x.%x)\n",
 	       dirs[rde->replicaid].path, sortedArrByName[first]->name,
-	       rde->vno, rde->uniqfier, rde->VV.Versions.Site0,
+	       rde->fid.Vnode, rde->fid.Unique, rde->VV.Versions.Site0,
 	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
 	       rde->VV.Versions.Site4, rde->VV.Versions.Site5, rde->VV.Versions.Site6,
 	       rde->VV.Versions.Site7, rde->VV.StoreId.Host, rde->VV.StoreId.Uniquifier);
@@ -514,15 +515,16 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	for (i = 0; i < nobjects; i++) {
 	    if (!answers[i]) {
 		if (goodvnode == (VnodeId)-1) {
-		    goodvnode = sortedArrByName[i+first]->vno;
-		    goodunique = sortedArrByName[i+first]->uniqfier;
+		    goodvnode = sortedArrByName[i+first]->fid.Vnode;
+		    goodunique = sortedArrByName[i+first]->fid.Unique;
 		}
-		else if (goodvnode != sortedArrByName[i+first]->vno ||
-			 goodunique != sortedArrByName[i+first]->uniqfier) {
+		else if (goodvnode != sortedArrByName[i+first]->fid.Vnode ||
+			 goodunique != sortedArrByName[i+first]->fid.Unique) {
 		    printf("Please try to rename or remove one of the two objects:\n");
 		    printf("(%08x.%08x) and (%08x.%08x) with name %s\n",
-			   goodvnode, goodunique, sortedArrByName[i+first]->vno, 
-			   sortedArrByName[i+first]->uniqfier,
+			   goodvnode, goodunique,
+			   sortedArrByName[i+first]->fid.Vnode,
+			   sortedArrByName[i+first]->fid.Unique,
 			   sortedArrByName[first]->name);
 		    return(-1);
 		}
@@ -534,7 +536,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 	for (i = 0; i < nobjects; i++) {
 	    struct repair rep;
 	    if (answers[i]) {
-		if (ISDIRVNODE(sortedArrByName[first+i]->vno))
+		if (ISDIRVNODE(sortedArrByName[first+i]->fid.Vnode))
 		    rep.opcode = REPAIR_REMOVED;
 		else
 		    rep.opcode = REPAIR_REMOVEFSL;
@@ -550,7 +552,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 
 /* dirresolve : returns NNCONFLICTS(-1) if this resolve is definitely not the last needed compare/repair 
    return 0 if the compare implied that the resulting repair will make the directories equal */
-int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct listhdr **opList, char *volmtpt, VolumeId RepVolume, struct repinfo *inf, char *realm)
+int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct listhdr **opList, VolumeId RepVolume, struct repinfo *inf, char *realm)
 {
     int i;
 
@@ -574,8 +576,10 @@ int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct lis
 	    next++;
 	
 	for (i = first+1; i < next; i++) {
-	    if ((sortedArrByName[i]->vno != sortedArrByName[first]->vno) || 
-		(sortedArrByName[i]->uniqfier != sortedArrByName[first]->uniqfier)) {
+	    if ((sortedArrByName[i]->fid.Vnode !=
+		 sortedArrByName[first]->fid.Vnode) ||
+		(sortedArrByName[i]->fid.Unique !=
+		 sortedArrByName[first]->fid.Unique)) {
 		/* name/name conflict exists - process it */
 		if (NameNameResolve(first, next, nreplicas, dirs, opList, inf)) {
 		    nConflicts++;
@@ -598,19 +602,22 @@ int dirresolve (int nreplicas, resreplica *dirs, int (*cbfn)(char *), struct lis
 	  (int (*)(const void *, const void *))resdirCompareByFidName);
     int j;
     for (i = 0, j = 1; i < totaldirentries; i += j){
-	int conflict, rc;
+	int conflict = 0, rc;
 	for (j = 1; (i + j) < totaldirentries; j ++)
 	    if (resdirCompareByFidName(&(sortedArrByFidName[i]), &sortedArrByFidName[i+j]))
 	 	break;
 	if (sortedArrByFidName[i]->lookedAt) continue;
-	rc = GetConflictType(nreplicas, dirs, &(sortedArrByFidName[i]), j, &conflict, volmtpt, realm);
+
+	rc = GetConflictType(nreplicas, dirs, &(sortedArrByFidName[i]),
+			     j, &conflict, realm);
 	if (rc){
 	    if (inf->interactive)
-		printf("**** Couldnt get conflict type for %s ****\n", sortedArrByFidName[i]->name);
+		printf("**** Couldnt get conflict type for %s ****\n",
+		       sortedArrByFidName[i]->name);
 	    nConflicts++;
 	}
 	else 
-	    ResolveConflict(nreplicas, dirs, &(sortedArrByFidName[i]), j, conflict, opList, volmtpt, RepVolume, realm);
+	    ResolveConflict(nreplicas, dirs, &(sortedArrByFidName[i]), j, conflict, opList, RepVolume, realm);
     }
     free(sortedArrByFidName);
     return 0;
@@ -624,11 +631,17 @@ int resdirCompareByName (resdir_entry **a, resdir_entry **b)
 /* this sorts by Fid as the primary index and the name as the secondary index */
 int resdirCompareByFidName (resdir_entry **a, resdir_entry **b)
 {
-    if ((u_long)((*a)->vno) < (u_long)((*b)->vno)) return -1;
-    else if ((u_long)((*a)->vno) > (u_long)((*b)->vno)) return 1; 
-    if ((u_long)((*a)->uniqfier) < (u_long)((*b)->uniqfier)) return -1;
-    else if ((u_long)((*a)->uniqfier) > (u_long)((*b)->uniqfier)) return 1;
-    return (strcmp((*a)->name, (*b)->name));
+  if ((*a)->fid.Vnode < (*b)->fid.Vnode)
+    return -1;
+  else if ((*a)->fid.Vnode > (*b)->fid.Vnode)
+    return 1;
+
+  if ((*a)->fid.Unique < (*b)->fid.Unique)
+    return -1;
+  else if ((*a)->fid.Unique > (*b)->fid.Unique)
+    return 1;
+
+  return (strcmp((*a)->name, (*b)->name));
 }
 
 /* clean up routine */
@@ -655,8 +668,7 @@ void resClean (int nreplicas, resreplica *dirs, struct listhdr *lh)
     }
 }
 
-int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt,
-	      char *dpath, char *childname)
+int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *dpath, char *childname)
 {
     /* returns fid and absolute path of parent */
     int rc;
@@ -685,22 +697,12 @@ int GetParent(char *realm, ViceFid *cfid, ViceFid *dfid, char *volmtpt,
 	return(rc);
     }
 
-#if 0 /* this seems to be wrong, replaced it by conditionalizing the
-	 strcpy a few lines down. --JH */
-    if (!volmtpt) {
-	strcpy(dpath, path);
-	return(0);
-    }
-#endif
-
     /* form the absolute path name of the parent */
     char *lastcomp = rindex(tmp, '/');
     char *firstcomp = index(tmp, '/');
     if (lastcomp) *lastcomp = '\0';
 
-    /* if a volmtpt has not been passed along use the default mountpoint */
-    if (volmtpt) strcpy(path, volmtpt);
-    else	 strcpy(path, "/coda");
+    strcpy(path, "/coda");
 
     if (firstcomp && (firstcomp != lastcomp)) {
 	strcat(path, "/");

@@ -520,44 +520,23 @@ fsobj *fsdb::Create(VenusFid *key, int priority, char *comp, VenusFid *parent)
 int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	      char *comp, VenusFid *parent, int *rcode, int GetInconsistent)
 {
-  int getdata = (rights & RC_DATA);
+    int getdata = (rights & RC_DATA);
+    int code = 0;
+    *f_addr = 0;		     /* OUT parameter valid on success only. */
+    vproc *vp = VprocSelf();
 
-  LOG(100, ("fsdb::Get-mre: key = (%s), uid = %d, rights = %d, comp = %s\n",
-			FID_(key), uid, rights, comp));
-  
-  { 	/* a special check for accessing already localized object */
-	volent *vol = VDB->Find(MakeVolid(key));
-	if (vol && vol->IsReplicated()) {
-	  repvol *vp = (repvol *)vol;
-	  if (!vp->IsUnderRepair(ANYUSER_UID) && vp->HasLocalSubtree()) {
-		lgm_iterator next(LRDB->local_global_map);
-		lgment *lgm;
-		VenusFid *gfid;
-		while ((lgm = next())) {
-		  gfid = lgm->GetGlobalFid();
-		  if (FID_EQ(gfid, key)) {
-			LOG(0, ("fsdb::Get: trying to access localized object %s\n",
-					FID_(key)));
-			return EACCES;
-		  }
-		}
-	  }
-	}
-	VDB->Put(&vol);
-  }
-  
-  int code = 0;
-  *f_addr = 0;				/* OUT parameter valid on success only. */
-  vproc *vp = VprocSelf();
-  
-  /* if (vp->type != VPT_HDBDaemon)
-   *  NotifyUserOfProgramAccess(uid, vp->u.u_pid, vp->u.u_pgid, key); */
-  
-  /* Volume state synchronization. */
-  /* If a thread is already "in" one volume, we must switch contexts before entering another. */
-  if (vp->u.u_vol && 
-	  !(vp->u.u_vol->GetRealmId() == key->Realm &&
-		vp->u.u_vol->GetVolumeId() == key->Volume)) {
+    LOG(100, ("fsdb::Get: key = (%s), uid = %d, rights = %d, comp = %s\n",
+	       FID_(key), uid, rights, comp));
+
+    /* if (vp->type != VPT_HDBDaemon)
+     *  NotifyUserOfProgramAccess(uid, vp->u.u_pid, vp->u.u_pgid, key); */
+
+    /* Volume state synchronization. */
+    /* If a thread is already "in" one volume, we must switch contexts before entering another. */
+    if (vp->u.u_vol &&
+	!(vp->u.u_vol->GetRealmId() == key->Realm &&
+	  vp->u.u_vol->GetVolumeId() == key->Volume))
+    {
 	/* Preserve the user context. */
 	struct uarea saved_ctxt = vp->u;
 	vp->u.Init();
@@ -590,17 +569,26 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	vp->u = saved_ctxt;
 
 	return(code);
-  }
+    }
 
-  fsobj *f = 0;
+    fsobj *f = 0;
+    int	reference = (vp->u.u_flags & REFERENCE);
 
-  int	reference = (vp->u.u_flags & REFERENCE);
-  int   isdir = -1;
-  
-  /* Find the fsobj, or create a fresh one. */
- RestartFind:
-  f = Find(key);
-  if (f == NULL) {
+    /* Find the fsobj, or create a fresh one. */
+RestartFind:
+    f = Find(key);
+
+    if (f == NULL) {
+
+        /* if it's in the local realm and the repair vol, and is a fake root,
+	   it must have left a dangling reference during a collapse */
+          if (FID_IsExpandedDir(key)) {
+
+	    LOG(0, ("Failed to get (%s), probably a collapsed expansion dir!\n", FID_(key)));
+
+	    return(EIO);
+	  }
+
 	/* 
 	 * check if the key is a locally generated fid.  We should never send
 	 * these to the server.  This check is not to be confused with
@@ -646,9 +634,11 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	VDB->Put(&v);
 
 	if (!f)
-	  return(ENOSPC);
+	    return(ENOSPC);
 
-	/* Transform object into fake mtpt if necessary. */
+	/* Transform object into fake mtpt if necessary (for /coda) */
+	/* The first clause catches the /coda root, the second catches
+	   realms as they are demand loaded */
 	if (FID_IsLocalFake(key) || FID_IsFakeRoot(MakeViceFid(key))) {
 	  LOG(0, ("fsdb::Get: transforming %s (%s) into fake mtpt with Fakeify()\n", f->GetComp(), FID_(&f->fid)));
 	  if (f->Fakeify()) {
@@ -705,9 +695,24 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	}
     }
 
+    if(f->IsFake()) {
+      /* at minimum, another predicate should probably be added to make
+       * sure the fsobj can refetch status/data (maybe GetInconsistent?) */
+
+      if(GetInconsistent) { /* this is probably not what we want to do */
+	code = 0;
+	*f_addr = f;
+      }
+      else {
+	code = EINCONS;
+	FSDB->Put(&f);
+      }
+      return(code);
+    }
+
     /* Consider fetching status and/or data. */
-    if (!f->IsLocalObj() &&
-	((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f)))) {
+    if (!f->IsLocalObj() && ((!getdata && !STATUSVALID(f))
+			     || (getdata && !DATAVALID(f)))) {
 	/* Note that we CANNOT fetch, and must use whatever status/data we have, if : */
 	/*     - the file is being exec'ed (or the VM system refuses to release its pages) */
 	/*     - the file is open for write */
@@ -725,75 +730,19 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 
 		if (rcode) *rcode = code;	/* added for local-repair */
 
-		/* Conjure a fake directory to represent an inconsistent object. */
+		/* Mark fsobj in server/server conflict */
 		if (code == EINCONS && !f->IsFake()) {
 		    k_Purge(&f->fid, 1);
 		    f->flags.fake = 1;
-		    LOG(0, ("fsdb::Get: Object inconsistent, declaring it fake! (key = <%s>)\n",
+		    LOG(0, ("fsdb::Get: (%s) in server/server conflict\n",
 			    FID_(key)));
-#if 0
-		  k_Purge(&f->fid, 1);
-		  if (f->refcnt > 1) {
-			/* If refcnt is greater than 1, it means we aren't the
-			 * only one with an active reference to this object.
-			 * If this is the case, then the following Put cannot
-			 * possibly clear all the references to this file.  If
-			 * we were to go ahead and call the Create in this
-			 * situation, we'd get a fatal error ("Create: key
-			 * found"). So, we return ETOOMANYREFS and put an
-			 * informative message in the log rather than allowing
-			 * the fatal error. */
-			f->ClearRcRights();
-			Put(&f);
-			LOG(0, ("fsdb::Get: Object with active reference has gone inconsistent.\n\t Cannot conjure fake directory until object is inactive. (key =  <%s>)\n", FID_(key)));
-			return(ETOOMANYREFS);
-		  }
-
-		  isdir = f->IsDir();
-
-		  Put(&f);
-		  code = 0;
-		  
-		  /* Attempt the create. */
-		  /* N.B. The volume should be explicitly pinned here! 
-			 XXX mre 10/21/94 The volume is pinned prior to fsdb::Get call */
-		  /* N.B. If preceding PUT didn't clear all references,
-			 and if the refcnt test above didn't catch that
-			 the Put wouldn't, we're hosed!  We'll most likely
-			 get a "Create: key found" fatal error. */
-		  f = Create(key, vp->u.u_priority, comp, parent);
-		  if (!f)
-			return(ENOSPC);
-
-		  /* 
-		   * Transform object into fake directory.  If that doesn't
-		   * work, return EIO...NOT EINCONS, which will get passed
-		   * back to the user as ENOENT (too alarming).  We must kill
-		   * the object here, otherwise Venus will think it is
-		   * "matriculating" and wait (forever) for it to finish.
-		   */
-		  eprint("%s (%s) inconsistent!", f->GetComp(), FID_(&f->fid));
-		  if (f->Fakeify()) {
-		      LOG(0, ("fsdb::Get: transforming %s (%s) into fake directory failed!\n",
-			      f->GetComp(), FID_(&f->fid)));
-			Recov_BeginTrans();
-			f->Kill();
-			Recov_EndTrans(MAXFP);
-			Put(&f);
-			return(EIO);
-		  }
-#endif
+		    /* fall through if we're not GetInconsistent-ing */
 		}
-
-		if (code) {
-		    if (code == ETIMEDOUT)
-			LOG(100, ("(MARIA) Code is TIMEDOUT after GetAttr...\n"));
-		    if (code == EINCONS && GetInconsistent) {
-			code = 0;
-		    } else {
-			Put(&f);
-			return(code);
-		    }
+		if (code && !(code == EINCONS && GetInconsistent)) {
+                    if (code == ETIMEDOUT)
+                      LOG(100, ("fsdb::Get: TIMEDOUT after GetAttr\n"));
+		    Put(&f);
+		    return(code);
 		}
 	  }
 	  /* If we want data and we don't have any then fetch new stuff. */
@@ -977,7 +926,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	 * the required information. */
 
 	realobj = Find(key);
-	if((isdir < 0) || (realobj == NULL)) {
+	if (!realobj) {
 	  LOG(0, ("fsdb::Get:Find failed!\n"));
 	  Put(&f);
 	  return EINCONS;
@@ -1030,8 +979,7 @@ int fsdb::Get(fsobj **f_addr, VenusFid *key, uid_t uid, int rights,
 	
 	else if (ASRInvokable) { /* Execute ASR. */
 	  LOG(0, ("fsdb::Get: Launching for (%s)... \n", FID_(key)));
-	  if((realobj->LaunchASR(SERVER_SERVER, 
-						   (isdir ? DIRECTORY_CONFLICT : FILE_CONFLICT))) == 0)
+	  if (realobj->LaunchASR(SERVER_SERVER, realobj->IsDir() ? DIRECTORY_CONFLICT : FILE_CONFLICT) == 0)
 		code = ERETRY;  /* wait a short duration and retry */
 	  else
 		code = EINCONS;

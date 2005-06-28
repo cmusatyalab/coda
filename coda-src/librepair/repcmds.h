@@ -68,10 +68,13 @@ extern "C" {
 /* MAXPATHLEN defined in <sys/param.h>, length in bytes of OUT path parameters */
 #define DEF_BUF        2048  /* XXXX -- temporary buffer size */
 
-int rep_ioctl(struct ViceIoctl *vioc);
+#define LOCAL_GLOBAL   1
+#define SERVER_SERVER  2
+#define MIXED_CONFLICT 3
 
-/* Replicated volume under repair */
+/* Replicated filesystem object under repair */
 struct conflict {
+    ViceFid fid;
     struct replica *head;  /* Singly-linked list of volume replicas */
     char rodir[MAXPATHLEN]; /* directory where replicas are mounted */
     char local;	  /* a flag indicating whether this is a local volume entry

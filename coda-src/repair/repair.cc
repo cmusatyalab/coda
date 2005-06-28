@@ -232,22 +232,31 @@ void INT(int, int, struct sigcontext *) {
 
 void rep_BeginRepair(int largc, char **largv) {
     char userpath[MAXPATHLEN], msgbuf[DEF_BUF];
-    struct conflict *conf;
     int rc;
 
-    switch (session) {
-    case SERVER_SERVER:
-	printf("Server/server repair session already in progress.\n");
-	return;
-	break;
+    switch(session) {
     case LOCAL_GLOBAL:
-	printf("Local/global repair session already in progress.\n");
-	return;
-	break;
+      printf("Local/global repair session already in progress.\n");
+      return;
+      break;
+
+    case SERVER_SERVER:
+      printf("Server/server repair session already in progress.\n");
+      return;
+      break;
+
+    case MIXED_CONFLICT:
+      printf("Mixed Local-global/server-server repair session already in progress.\n");
+      return;
+      break;
+
+    default:
+      break;
     }
 
     if (largc == 1)
-	Parser_getstr("Pathname of object in conflict?", "", userpath, MAXPATHLEN);
+	Parser_getstr("Pathname of object in conflict?", "",
+		      userpath, MAXPATHLEN);
     else if (largc == 2)
 	strncpy(userpath, largv[1], MAXPATHLEN);
     else {
@@ -256,35 +265,47 @@ void rep_BeginRepair(int largc, char **largv) {
     }
 
     /* Begin the repair */
-    if ((rc = BeginRepair(userpath, &conf, msgbuf, sizeof(msgbuf))) < 0) {
+    if ((rc = BeginRepair(userpath, &ConflictObj, msgbuf, sizeof(msgbuf))) < 0) {
 	fprintf(stderr, "%s\nbeginrepair failed.\n", msgbuf);
 	return;
     }
-    ConflictObj = conf;
-    session = (conf->local) ? LOCAL_GLOBAL : SERVER_SERVER;
-    if (session == LOCAL_GLOBAL) {
-	printf("Local-global %s repair session started.\n", (conf->dirconf ? "directory" : "file"));
-	printf("Available Commands:\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n",
-	       "checklocal", "listlocal", "preservelocal", "preservealllocal",
-	       "discardlocal", "discardalllocal");
-	printf("A list of local mutations is available in the .cml file in the coda spool directory\n");
+    switch(ConflictObj->local) {
+
+    case LOCAL_GLOBAL:
+      printf("Local-global %s repair session started.\n",
+	     (ConflictObj->dirconf ? "directory" : "file"));
+      printf("Available Commands:\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n\t%s\n",
+	     "checklocal", "listlocal", "preservelocal", "preservealllocal",
+	     "discardlocal", "discardalllocal");
+      printf("A list of local mutations is available in the .cml file in the coda spool directory\n");
+      break;
+
+    case SERVER_SERVER:
+      printf("Server-server %s repair session started.\n", (ConflictObj->dirconf ? "directory" : "file"));
+
+      if (ConflictObj->dirconf) /* directory conflict */
+	printf("Available commands:\n\t%s\n\t%s\n\t%s\n", "comparedirs",
+	       "removeinc", "dorepair");
+      else /* file conflict */
+	printf("Available commands:\n\t%s\n\t%s\n\n", "replaceinc",
+	       "removeinc");
+
+      break;
+
+    case MIXED_CONFLICT:
+      printf("Mixed local-global/server-server %s repair session started.\n",
+	     (ConflictObj->dirconf ? "directory" : "file"));
+
+      printf("This really hasn't been tried before, so good luck..\n");
+      break;
+
+    default:
+      printf("Unknown %s conflict type %d!\n",
+	     (ConflictObj->dirconf ? "directory" : "file"),
+	     ConflictObj->local);
     }
-    else if(session == SERVER_SERVER) {
-	printf("Server-server %s repair session started.\n", (conf->dirconf ? "directory" : "file"));
-	if (conf->dirconf) /* directory conflict */
-	    printf("Available commands:\n\t%s\n\t%s\n\t%s\n", "comparedirs", "removeinc", "dorepair");
-	else /* file conflict */
-	    printf("Available commands:\n\t%s\n\t%s\n\n", "replaceinc", "removeinc");
-    }
-#if 0
-    else if(session == MIXED_SESSION) {
-	printf("Mixed local-global/server-server %s repair session started.\n", (conf->dirconf ? "directory" : "file"));
-	if (conf->dirconf) /* directory conflict */
-	    printf("I'm not sure if there are any available commands.\n");
-	else /* file conflict */
-	    printf("I'm not sure if there are any available commands.\n");
-    }
-#endif
+    session = ConflictObj->local;
+
     fflush(stdout);
 }
 
@@ -411,24 +432,27 @@ void rep_EndRepair(int largc, char **largv) {
 
     switch (session) {
     case NOT_IN_SESSION:
-	printf("There is no repair session to end\n");
-	return;
-	break;
+      printf("There is no repair session to end\n");
+      return;
+      break;
     case LOCAL_GLOBAL:
-	commit = (Parser_getbool("Commit the local-global repair session?", 1)) ? 1 : 0;
+      commit =
+	(Parser_getbool("Commit the local-global repair session?", 1)) ? 1 : 0;
     case SERVER_SERVER:
       if (EndRepair(ConflictObj, commit, msgbuf, sizeof(msgbuf)) < 0) {
-	    fprintf(stderr, "%s\nError ending repair session\n", msgbuf);
-	    exit(2);
+	fprintf(stderr, "%s\nError ending repair session\n", msgbuf);
+	exit(2);
       }
       break;
     case MIXED_CONFLICT:
       /* not implemented yet */
+      printf("In time, this will work..\n");
+      exit(1);
       break;
     default:
-	fprintf(stderr, "Unknown session type\n");
-	exit(1);
-	break;
+      fprintf(stderr, "Unknown session type\n");
+      exit(1);
+      break;
     }
     session = NOT_IN_SESSION;
     printf("Repair session completed.\n");
@@ -611,4 +635,5 @@ void rep_ReplaceInc(int largc, char **largv)
 	fprintf(stderr, "Error repairing conflict: %s\n", strerror(errno));
 	return;
     }
+    exit(2);
 }

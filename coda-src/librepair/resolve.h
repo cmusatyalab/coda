@@ -63,11 +63,10 @@ struct repinfo {
  * by the resolution subsystem */
 typedef struct {
     char    name[MAXNAMELEN + 1];   /* name of the entry */
-    VnodeId  vno;		    /* vnode number */
-    Unique_t uniqfier;		    /* for vice dirs; 0 for unix */
+    ViceFid fid;
     ViceVersionVector	VV;
     int	    MtPt;		    /* Is this child a mount point? */
-    int	    replicaid;
+    int	    replicaid;              /* XXX: do we need this? -Adam */
     int	    lookedAt;
 } resdir_entry;
 
@@ -75,9 +74,10 @@ typedef struct {
 typedef struct {
     int	    entry1;		    /* index of first child in table */
     int	    nentries;		    /* number of children */
-    long    replicaid;		    /* id of this replica */
-    VnodeId  vnode;		    /* fid of the parent directory */
-    Unique_t uniqfier;
+    ViceFid fid;
+  //    long    replicaid;		    /* volume id of this replica */
+  //    VnodeId  vnode;		    /* fid of the parent directory */
+  //    Unique_t uniqfier;
     char    *path;		    /* path name of the RO mounted copy */
     u_short modebits;
     struct  Acl *al;
@@ -91,7 +91,6 @@ extern int nextavailindex;
 extern resdir_entry	**sortedArrByFidName;	/* for sorting the direntries in fid order*/
 extern resdir_entry	**sortedArrByName;	/* for sorting the direntries in name order */
 extern int totaldirentries;
-/* extern VolumeId RepVolume; */
 extern int  nConflicts;
 
 
@@ -100,8 +99,9 @@ extern int InsertListHdr (struct repair *, struct listhdr **, int );
 extern int InRepairList (struct listhdr *, unsigned, VnodeId, Unique_t);
 extern int IsCreatedEarlier(struct listhdr **, int, VnodeId, Unique_t);
 extern int getunixdirreps (int , char **, resreplica **);
-extern int dirresolve (int , resreplica *, int (*)(char *), struct listhdr **, char *, VolumeId, struct repinfo *, char *realm);
+extern int dirresolve (int, resreplica *, int (*)(char *), struct listhdr **,
+		       VolumeId, struct repinfo *, char *realm);
 extern void resClean (int, resreplica *, struct listhdr *);
-extern int GetParent (char *realm, ViceFid *, ViceFid *, char *, char *, char *);
+extern int GetParent (char *realm, ViceFid *, ViceFid *, char *, char *);
 
 #endif

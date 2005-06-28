@@ -312,7 +312,8 @@ int fsobj::CollapseObject(void)
      * up on the expanded fake directory object */
 
     if(!IsExpandedObj()) {
-      LOG(0,("fsobj::CollapseObject: (%s) not an expanded object\n",FID_(&fid)));
+      LOG(0,("fsobj::CollapseObject: (%s) not an expanded object\n",
+	     FID_(&fid)));
       return EINVAL;
     }
 
@@ -333,16 +334,14 @@ int fsobj::CollapseObject(void)
 	  return pfso->CollapseObject();
 	}
 	else {
-
-	  /* Here we are the expanded directory's mtlink; it would be odd if
-	   * we ever failed covering a mtpt in the local repair volume */
+	  /* Here we are the mtlink to the expanded directory */
 
 	  CODA_ASSERT(u.root);
 	  LOG(0,("fsobj::CollapseObject: was a expanded directory mtlink, refocusing collapse on root\n"));
 	  return u.root->CollapseObject();
 	}
       }
-      LOG(0,("fsobj::CollapseObject: (%s) replica collapse failed\n",FID_(&fid)));
+      LOG(0,("fsobj::CollapseObject: (%s) replica collapse failed (is this volume replicated?)\n", FID_(&fid)));
       return EINVAL;
     }
 
@@ -361,9 +360,7 @@ int fsobj::CollapseObject(void)
     else
       CODA_ASSERT(localcache);
 
-    LOG(10,
-      ("fsobj::CollapseObject: Fake directory (%s) collapse attempted, LOCALCACHE is %s\n",
-       FID_(&fid), FID_(&localcache->fid)));
+    LOG(10, ("fsobj::CollapseObject: Fake directory (%s) collapse attempted, LOCALCACHE is %s\n", FID_(&fid), FID_(&localcache->fid)));
 
     Recov_BeginTrans();
 

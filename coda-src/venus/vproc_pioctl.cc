@@ -1520,9 +1520,11 @@ V_FreeLocks:
 				CODA_ASSERT(obj);
 				sscanf((char *) data->in, "%d %d", &dummy, &mode);
 				LRDB->BeginRepairSession(&obj->fid,
-							 mode ? REP_SCRATCH_MODE : REP_DIRECT_MODE, 
+				    mode ? REP_SCRATCH_MODE : REP_DIRECT_MODE,
 							 (char *) data->out);
-				data->out_size = (short)sizeof((char *) data->out);
+				data->out_size =
+				  (short)sizeof((char *) data->out);
+
 				u.u_error = 0;
 				break;
 			    }

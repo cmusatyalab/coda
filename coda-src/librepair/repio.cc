@@ -120,7 +120,7 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
     
     /* Write out header for each replica */
     for (i = 0; i < replicaCount; i++) {
-	x = htonl(replicaList[i].replicaId);
+        x = htonl(replicaList[i].replicaFid.Volume);
 	ewrite(fd, &x, sizeof(int));
 
 	x = htonl(replicaList[i].repairCount);
@@ -191,7 +191,7 @@ int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **r
 
     for (i = 0; i < *replicaCount; i++) {
 	fread(&x, sizeof(int), 1, ff); CHKERR();
-	(*replicaList)[i].replicaId  = ntohl(x);
+	(*replicaList)[i].replicaFid.Volume  = ntohl(x);
 	fread(&x, sizeof(int), 1, ff); CHKERR();
 	(*replicaList)[i].repairCount  = ntohl(x);	
     }
@@ -436,7 +436,7 @@ int repair_parsefile(char *fname, int *hdcount, struct listhdr **hdarray)
 
 	if (rentry.opcode == REPAIR_REPLICA) { /* new replica */
 	    growarray((char **)hdarray, hdcount, sizeof(struct listhdr));
-	    (*hdarray)[*hdcount - 1].replicaId = rentry.parms[0];
+	    (*hdarray)[*hdcount - 1].replicaFid.Volume = rentry.parms[0];
 	    (*hdarray)[*hdcount - 1].repairCount = 0;
 	    (*hdarray)[*hdcount - 1].repairList = 0;
 	}
@@ -567,7 +567,7 @@ void repair_printfile(char *fname) {
     repair_getdfile(fname, 0, &repcount, &list);
     for (i = 0; i < repcount; i++) {
 	printf("New replica: volume id %08x has %d repair entries\n",
-	       list[i].replicaId, list[i].repairCount);
+	       list[i].replicaFid.Volume, list[i].repairCount);
 	for (j = 0; j < list[i].repairCount; j++) 
 	    repair_printline(&list[i].repairList[j], stdout);
     }
