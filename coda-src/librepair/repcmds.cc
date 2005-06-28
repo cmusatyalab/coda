@@ -536,7 +536,6 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 	    goto Error;
 	}
 
-	printf("Attempting REPAIR\n");
 	rc = dorep(conf, tmppath, NULL, 0); /* do the repair */
 	if (rc < 0 && errno != ETOOMANYREFS) {
 	    strerr(msg, msgsize, "REPAIR %s: %s", conf->rodir, strerror(errno));
