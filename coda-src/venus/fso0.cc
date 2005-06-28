@@ -582,7 +582,7 @@ RestartFind:
 
         /* if it's in the local realm and the repair vol, and is a fake root,
 	   it must have left a dangling reference during a collapse */
-          if (FID_IsExpandedDir(key)) {
+        if (FID_IsExpandedDir(key)) {
 
 	    LOG(0, ("Failed to get (%s), probably a collapsed expansion dir!\n", FID_(key)));
 
@@ -693,21 +693,6 @@ RestartFind:
 	    f->SetParent(parent->Vnode, parent->Unique);
 	    Recov_EndTrans(MAXFP);
 	}
-    }
-
-    if(f->IsFake()) {
-      /* at minimum, another predicate should probably be added to make
-       * sure the fsobj can refetch status/data (maybe GetInconsistent?) */
-
-      if(GetInconsistent) { /* this is probably not what we want to do */
-	code = 0;
-	*f_addr = f;
-      }
-      else {
-	code = EINCONS;
-	FSDB->Put(&f);
-      }
-      return(code);
     }
 
     /* Consider fetching status and/or data. */
