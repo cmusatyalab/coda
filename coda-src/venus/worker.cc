@@ -1085,6 +1085,7 @@ void worker::main(void)
 
     for (;;) {
 	openfd = -1;
+
 	/* Wait for new request. */
 	AwaitRequest();
 
@@ -1462,13 +1463,8 @@ void worker::main(void)
         out->oh.result = u.u_error;
         Resign(msg, size);
 
-
-	VenusFid fid;
-	KernelToVenusFid(&fid, &saveFid);
-
 	/* extra case added to deal with dangling references to a collapse */
-        if (opcode == CODA_OPEN_BY_FD && openfd != -1
-	    && !FID_IsExpandedDir(&fid))
+        if (opcode == CODA_OPEN_BY_FD && openfd != -1)
 	    vtarget.c_cf->Close(openfd);
 
         if (opcode == CODA_OPEN ||
