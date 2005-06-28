@@ -92,10 +92,10 @@ static char *eatwhite(char *), *eatnonwhite(char *);
 static int acldecode(char *, unsigned int *);
 static int growarray(char **arrayaddr, int *arraysize, int elemsize);
 
-
 #define ewrite(f, b, l) do { if (write(f, b, l) != l) goto err; } while(0);
+
 int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
-    /*	fname		name of file to write list to
+    /*	fname		filename to write list to
      *	replicaCount 	no of replicas
      *	replicaList	array of headers, one per replica
      *
@@ -106,25 +106,22 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
     int i, k, n;
     unsigned int x, j;
     struct repair *r;
-    int fd;
+    FILE *file = NULL;
 
-    fd = open(fname, O_WRONLY|O_CREAT|O_EXCL|O_BINARY);
-    if (fd < 0) {
-	perror(fname);
-	return -1;
-    }
+    file = fopen(fname, "w+");
+    CODA_ASSERT(file);
     
     /* Write out number of replicas */
     x = htonl(replicaCount);
-    ewrite(fd, &x, sizeof(int));
+    fwrite(&x, sizeof(int), 1, file);
     
     /* Write out header for each replica */
     for (i = 0; i < replicaCount; i++) {
         x = htonl(replicaList[i].replicaFid.Volume);
-	ewrite(fd, &x, sizeof(int));
+	fwrite(&x, sizeof(int), 1, file);
 
 	x = htonl(replicaList[i].repairCount);
-	ewrite(fd, &x, sizeof(int));
+	fwrite(&x, sizeof(int), 1, file);
     }
 
     /* Write out list of repairs for each replica */
@@ -132,29 +129,30 @@ int repair_putdfile(char *fname, int replicaCount, struct listhdr *replicaList)
 	r = replicaList[i].repairList;
 	for (j = 0; j < replicaList[i].repairCount; j++) {
 	    x = htonl(r[j].opcode);
-	    ewrite(fd, &x, sizeof(int));
+	    fwrite(&x, sizeof(int), 1, file);
 
 	    n = strlen(r[j].name);
-	    ewrite(fd, r[j].name, n);
+	    fwrite(r[j].name, sizeof(char), n, file);
 
-	    ewrite(fd, "\n", 1);
+	    fwrite("\n", sizeof(char), 1, file);
 
 	    n = strlen(r[j].newname);
-	    ewrite(fd, r[j].newname, n);
+	    fwrite(r[j].newname, sizeof(char), n, file);
 
-	    ewrite(fd, "\n", 1);
+	    fwrite("\n", sizeof(char), 1, file);
+
 	    for (k = 0; k < REPAIR_MAX; k++) {
-		x = htonl(r[j].parms[k]);
-		ewrite(fd, &x, sizeof(int));
+	        x = htonl(r[j].parms[k]);
+		fwrite(&x, sizeof(int), 1, file);
 	    }
 	}
     }
-    close(fd);
+
+    fclose(file);
     return 0;
 
 err:
     perror("repair_putdfile");
-    close(fd);
     return -1;
 }
 

@@ -1535,6 +1535,7 @@ V_FreeLocks:
 */
 			case REP_CMD_END:
 			    {
+#if 0
 				int commit, dummy;
 
 				CODA_ASSERT(LRDB);
@@ -1553,6 +1554,7 @@ V_FreeLocks:
 				} else {
 				  LOG(0, ("MARIA:  End local repair failed\n"));
 				}
+#endif
 				break;
 			    }
 /*

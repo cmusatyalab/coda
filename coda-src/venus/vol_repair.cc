@@ -189,12 +189,14 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
 	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS, NULL, NULL, NULL, 1);
 
-	if (code || !f || !f->IsFake()) {
+	if (code || !f) {
 	    if (code == 0) {
-		eprint("Repair: %s (%s) consistent", f->GetComp(), FID_(RepairFid));
-		LOG(0,("repvol::Repair: %s (%s) consistent", f->GetComp(), FID_(RepairFid)));
+		eprint("Repair: %s (%s) consistent\n", f->GetComp(), FID_(RepairFid));
+		LOG(0,("repvol::Repair: %s (%s) consistent\n", f->GetComp(), FID_(RepairFid)));
 		code = EINVAL;	    /* XXX -JJK */
 	    }
+	    LOG(0, ("repvol::Repair: %s (%s) fsdb::Get failed with code %d\n",
+		   f->GetComp(), FID_(RepairFid), code));
 	    FSDB->Put(&f);
 	    return(code);
 	}
@@ -204,6 +206,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	rFid = RepairFid;
 	FSDB->Put(&f);
     }
+
+    LOG(0, ("repvol::Repair: (%s) inconsistent!\n", FID_(RepairFid)));
 
     /* Flush all COP2 entries. */
     /* This would NOT be necessary if ViceRepair took
@@ -235,6 +239,9 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
       LOG(0,("repvol::ConnectedRepair: GetMgrp failed with code %d!\n", code));
       goto Exit;
     }
+
+    LOG(0, ("repvol::Repair: (%s) attempting COP1!\n", FID_(RepairFid)));
+
     /* The COP1 call. */
     vv_t UpdateSet;
     {
@@ -339,6 +346,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	 * Must do this here, since later would get errno 157 (Resource temporarily
 	 * unavailable) */
 
+	LOG(0, ("repvol::Repair: (%s) attempting fixfile stuff!\n", FID_(RepairFid)));
 	if (ISDIR(*RepairFid))
 	{
 	    int hcount;
@@ -347,6 +355,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    /* parse input file and obtain internal rep  */
 	    if (repair_getdfile(fd, &hcount, &hlist) < 0) {
 		code = errno; /* XXXX - Could use a more meaningful return code here */
+		LOG(0, ("repvol::Repair: (%s) repair_getdfile failed!\n",
+			FID_(RepairFid)));
 		goto Exit;
 	    }
 
@@ -363,6 +373,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 		    fidarr = (VenusFid *)calloc((l->repairCount * 3), sizeof(VenusFid));
 		    if ((LCarr == NULL) || (fidarr == NULL)) {
 			code = ENOMEM;
+			LOG(0, ("repvol::Repair: (%s) LCarr calloc failed!\n",
+				FID_(RepairFid)));
 			goto Exit;
 		    }
 		}
@@ -379,7 +391,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 			code = local->Lookup(&e, NULL, rep_ent[i].name, uid,
 					     CLU_CASE_SENSITIVE);
 			if (code != 0) {
-			    LOG(15, ("Repair: local(%s)->Lookup(%s) error", 
+			    LOG(0, ("Repair: local(%s)->Lookup(%s) error",
 				     FID_(&local->fid), rep_ent[i].name));
 			    goto Exit;
 			}
@@ -391,7 +403,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 			    code = local->Lookup(&e, NULL, rep_ent[i].newname,
 						 uid, CLU_CASE_SENSITIVE);
 			    if (code != 0) {
-				LOG(15, ("Repair: (%s)->Lookup(%s) error", 
+				LOG(0, ("Repair: (%s)->Lookup(%s) error",
 					 FID_(&local->fid), rep_ent[i].newname));
 				goto Exit;
 			    }
@@ -420,6 +432,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
   repair actions </strong> </a>
   END_HTML
 */
+	LOG(0, ("repvol::Repair: (%s) Attempting RPC call!\n",
+		FID_(RepairFid)));
 
 	/* Make the RPC call. */
 	MarinerLog("store::Repair (%s)\n", FID_(rFid));
@@ -460,6 +474,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	if (code != 0) goto Exit;
     }
 
+    LOG(0, ("repvol::Repair: (%s) pruning CML from fixfile!\n",
+	    FID_(RepairFid)));
     /* For directory conflicts only! (for file conflicts, there is no fixfile)
      * Prune CML entries if localhost is specified in fixfile */
     if (ISDIR(*RepairFid))
@@ -541,17 +557,17 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 		case REPAIR_CREATEL:	 /* Create (hard) link */
 		case REPAIR_SETACL:	 /* Set rights */
 		case REPAIR_SETNACL:	 /* Set negative rights */
-		    LOG(1, ("Unexpected local repair command code (%d)", rep_ent[i].opcode));
+		    LOG(0, ("Unexpected local repair command code (%d)", rep_ent[i].opcode));
 		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
 		    break;
 
 		case REPAIR_REPLICA: 
-		    LOG(1, ("Unexpected REPAIR_REPLICA -- truncated fixfile?"));
+		    LOG(0, ("Unexpected REPAIR_REPLICA -- truncated fixfile?"));
 		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
 		    break;
 
 		default:
-		    LOG(1, ("Unknown local repair command code (%d)", rep_ent[i].opcode));
+		    LOG(0, ("Unknown local repair command code (%d)", rep_ent[i].opcode));
 		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
 		    break;
 		}
@@ -563,6 +579,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	}
     }
 
+    LOG(0, ("repvol::Repair: (%s) sending COP2!\n", FID_(RepairFid)));
     /* Send the COP2 message.  Don't Piggy!  */
     (void)COP2(m, &sid, &UpdateSet, 1);
 
@@ -585,7 +602,7 @@ Exit:
 	if (f != 0) {
 	    f->Lock(WR);
 	    Recov_BeginTrans();
-	    f->flags.fake = 0; /* so we can update status! */
+	    f->flags.fake = 0; /* so we can refetch status before death?? */
 	    f->Kill();
 	    Recov_EndTrans(MAXFP);
 	    FSDB->Put(&f);

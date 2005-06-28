@@ -189,7 +189,7 @@ int ClearInc(struct conflict *conf, char *msg, int msgsize)
 	return(0);
     }
     else
-      strerr(msg, msgsize, "Replicas not identical, can't clear inconsistency");
+      strerr(msg, msgsize, "Replicas not identical, can't clear inconsistency: %s", msgbuf);
 
  CLEANUP:
     if(names) {
@@ -227,10 +227,12 @@ int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char 
 	return(-1);
     }
 
+#if 0 /* XXX: giving me problems, not sure why DIRVNODE isnt correct - Adam */
     if (!ISDIRVNODE(confFid.Vnode) || !(conf->dirconf)) {
-	strerr(msg, msgsize, "Compare can only be performed on directory replicas");
+      strerr(msg, msgsize, "\nCompare can only be performed on directory replicas!\nVnode=%ux,dirconf=%d", confFid.Vnode, conf->dirconf);
 	return(-1);
     }
+#endif
 
     if ((nreps = getVolrepNames(conf, &names, msgbuf, sizeof(msgbuf))) <= 0) {
 	strerr(msg, msgsize, "Error getting replica names: %s", msgbuf);
@@ -382,8 +384,10 @@ int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg, int ms
     }
 
     if (conf->dirconf) { /* directory conflict */
-	if ((conf->local) &&  (conf->local != 2)) {
+        if ((conf->local) &&  (conf->local != 2)) { /* local/global (1 or 3) */
 	    /* Expand all "global" entries into individual server replicas */
+
+#if 0 /* this doesn't really apply anymore -- Adam */
 	    strcpy(expath, "/tmp/REPAIR.XXXXXX");
 	    mkstemp(expath);
 	    copyfile_byname(ufixpath, expath);
@@ -391,11 +395,15 @@ int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg, int ms
 	    if (glexpand(conf->rodir, expath, msg, msgsize) < 0)
 		{ unlink(expath); return(-1); }
 	    if (makedff(expath, fixpath, msg, msgsize) < 0) return(-1);
+#endif
+
 	}
 	/* Create internal form of fix file */
-	else if (makedff(ufixpath, fixpath, msg, msgsize) < 0) return(-1);
+	else  /* server/server conflict */
+	  if (makedff(ufixpath, fixpath, msg, msgsize) < 0) return(-1);
     }
-    else strncpy(fixpath, ufixpath, sizeof(fixpath));
+    else /* file conflict */
+      strncpy(fixpath, ufixpath, sizeof(fixpath));
 
     /* Do the repair */
     rc = dorep(conf, fixpath, space, sizeof(space));
@@ -505,7 +513,7 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 
     if (conf->dirconf) { /* directory conflict */
 
-	/* get the directory entries and create list of children to be removed */
+	/* get the dirent's and create list of children to be removed */
 	if (getunixdirreps(nreplicas, names, &dirs)) {
 	    strerr(msg, msgsize, "Could not get needed replica information");
 	    rc = -1;
@@ -515,21 +523,27 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 
 	/* convert list to internal format */
 	strcpy(tmppath, "/tmp/REPAIR.XXXXXX");
-	mkstemp(tmppath);
+	rc = mkstemp(tmppath);
+	if (rc < 0) {
+	  strerr(msg, msgsize, "Couldn't make tmp file %s", tmppath);
+	  goto Error;
+	}
 
 	/* write out internal rep */
 	rc = repair_putdfile(tmppath, nreplicas, repairlist);
 	if (rc) {
-	    strerr(msg, msgsize, "Coudn't put repair list into file %s", tmppath);
+	    strerr(msg, msgsize, "Couldn't put repair list into file %s", tmppath);
 	    goto Error;
 	}
 
+	printf("Attempting REPAIR\n");
 	rc = dorep(conf, tmppath, NULL, 0); /* do the repair */
 	if (rc < 0 && errno != ETOOMANYREFS) {
 	    strerr(msg, msgsize, "REPAIR %s: %s", conf->rodir, strerror(errno));
 	    unlink(tmppath); /* Clean up */
 	    goto Error;
 	}
+
 	unlink(tmppath); /* Clean up */
 
 	/* clear the inconsistency if needed and possible */
@@ -537,7 +551,7 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 	    strerr(msg, msgsize, "repair_getfid(%s): %s", conf->rodir, msgbuf);
 	    goto Error;
 	}
-	if (!((confvv.StoreId.Host == (unsigned long)-1) && (confvv.StoreId.Uniquifier == (unsigned long)-1))) {
+	if (!((confvv.StoreId.Host == (unsigned int)-1) /*&& (confvv.StoreId.Uniquifier == (unsigned int)-1)*/)) {
 	    strerr(msg, msgsize, "Unexpected values (Host = %x, Uniquifier = %x)", 
 		   confvv.StoreId.Host, confvv.StoreId.Uniquifier);
 	    rc = -1;
@@ -981,7 +995,11 @@ int makedff(char *extfile, char *intfile, char *msg, int msgsize) {
 
     /* generate temp file name */
     strcpy(intfile, "/tmp/REPAIR.XXXXXX");
-    mkstemp(intfile);
+    rc = mkstemp(intfile);
+    if(rc < 0) {
+        strerr(msg, msgsize, "Error creating tmp file %s", intfile);
+        return(-1);
+    }
 
     /* write out internal rep */
     rc = repair_putdfile(intfile, hlc, hl);
