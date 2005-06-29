@@ -59,7 +59,7 @@ extern "C" {
 
 extern void ViceTerminate();
 extern void ViceUpdateDB();
-extern void SwapLog();
+extern void SwapLog(int ign);
 extern void SwapMalloc();
 extern long int volUtil_ExecuteRequest(RPC2_Handle, RPC2_PacketBuffer*, SE_Descriptor*);
 
@@ -276,8 +276,9 @@ long S_VolShutdown(RPC2_Handle cid) {
   <tt>SrvLog</tt> to <tt>SrvLog-1</tt></strong></a> 
   END_HTML
 */
-long S_VolSwaplog(RPC2_Handle cid) {
-    SwapLog();
+long S_VolSwaplog(RPC2_Handle cid)
+{
+    SwapLog(0);
     return(RPC2_SUCCESS);
 }
 

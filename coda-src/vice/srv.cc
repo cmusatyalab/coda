@@ -240,8 +240,8 @@ static void CheckLWP(void *);
 
 static void ClearCounters();
 static void FileMsg();
-static void SetDebug();
-static void ResetDebug();
+static void SetDebug(int ign);
+static void ResetDebug(int ign);
 static void ShutDown();
 
 static int ReadConfigFile(void);
@@ -254,26 +254,11 @@ static void InitializeServerRVM(char *name);
 #include <rvmtesting.h>
 #endif
 
-/* Signal handlers in Linux will not be passed the arguments code and scp */
-#ifdef __BSD44__
-struct sigcontext OldContext; /* zombie() saves original context here */
-#endif
 extern void dumpvm();
 
-
-/* Signal handlers in Linux will not be passed the arguments code and scp */
-#ifndef	__BSD44__
-void zombie(int sig) {
-#else
-void zombie(int sig, int code, struct sigcontext *scp) {
-    memcpy(&OldContext, scp, sizeof(struct sigcontext));
-#endif
-
-#ifndef  __BSD44__
+void zombie(int sig)
+{
     SLog(0,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d ******", sig);
-#else
-    SLog(0,  "****** FILE SERVER INTERRUPTED BY SIGNAL %d CODE %d ******", sig, code);
-#endif    
     SLog(0,  "****** Aborting outstanding transactions, stand by...");
     /* leave a sign to prevent automatic restart, ignore failures */
     creat("CRASH", 00600);
@@ -367,7 +352,7 @@ int main(int argc, char *argv[])
 
     unlink("NEWSRV");
 
-    SwapLog();
+    SwapLog(0);
 
     /* CamHistoInit(); */	
     /* Initialize CamHisto package */
@@ -1121,7 +1106,7 @@ void PrintCounters(FILE *fp)
 }
 
 
-static void SetDebug()
+static void SetDebug(int ign)
 {
 
     if (SrvDebugLevel > 0) {
@@ -1138,7 +1123,7 @@ static void SetDebug()
 }
 
 
-static void ResetDebug()
+static void ResetDebug(int ign)
 {
     AL_DebugLevel = 0;
     RPC2_DebugLevel = 0;
@@ -1203,7 +1188,7 @@ void rds_printer(char *fmt ...)
  * process such as logrotate has moved the old logfile aside we'll start
  * writing to a new logfile.
  */
-void SwapLog()
+void SwapLog(int ign)
 {
     struct timeval tp;
 
@@ -1617,6 +1602,7 @@ void Die(char *msg)
 static int DaemonizeSrv(char *pidfile)
 { 
     int parent = -1; 
+    struct sigaction sa;
 
     if (SrvDebugLevel == 0)
 	parent = daemonize();
@@ -1635,24 +1621,32 @@ static int DaemonizeSrv(char *pidfile)
 	}
     }
 #endif
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_flags = SA_RESTART;
+    
+    sa.sa_handler = ResetDebug;
+    sigaction(SIGUSR2, &sa, NULL);
 
-    signal(SIGUSR2, (void (*)(int))ResetDebug);
 #ifndef __CYGWIN32__
-    signal(SIGWINCH, (void (*)(int))SetDebug);
+    sa.sa_handler = SetDebug;
+    sigaction(SIGWINCH, &sa, NULL);
 #endif
-    signal(SIGHUP,  (void (*)(int))SwapLog);
+
+    sa.sa_handler = SwapLog;
+    sigaction(SIGHUP, &sa, NULL);
 
     /* Signals that are zombied allow debugging via gdb */
-    signal(SIGTRAP, (void (*)(int))zombie);
-    signal(SIGILL,  (void (*)(int))zombie);
-    signal(SIGFPE,  (void (*)(int))zombie);
-    signal(SIGSEGV, (void (*)(int))zombie);
+    sa.sa_handler = zombie;
+    sigaction(SIGTRAP, &sa, NULL);
+    sigaction(SIGILL, &sa, NULL);
+    sigaction(SIGFPE, &sa, NULL);
+    sigaction(SIGSEGV, &sa, NULL);
 
-#ifdef	RVMTESTING
-    signal(SIGBUS, (void (*)(int))my_sigBus); /* Defined in util/rvmtesting.c */
-#else
-    signal(SIGBUS,  (void (*)(int))zombie);
+#ifdef RVMTESTING
+    sa.sa_handler = my_sigBus; /* Defined in util/rvmtesting.c */
 #endif
+    sigaction(SIGBUS, &sa, NULL);
+
     return parent;
 }
 

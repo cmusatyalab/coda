@@ -122,6 +122,10 @@ makedir 700 $run_control_file_dir
 makedir 700 $rvm_logdir
 makedir 700 $rvm_datadir
 
+contains () {
+	grep "$2" "$1" > /dev/null 2>&1
+}
+
 # tell the kernel about the new module 
 if [ X$OS = XLinux ] ; then
     # make sure the module dependencies are current
@@ -131,18 +135,30 @@ if [ X$OS = XLinux ] ; then
 	# udev relies on modules being autoloaded because their hardware got
 	# detected. But since there is no hardware for the Coda kernel module
 	# we have to make sure it is loaded automatically at boot
-	if ! grep coda /etc/modules > /dev/null 2>&1 ; then
+
+	# FC3
+	if contains /etc/rc.sysinit /etc/rc.modules ; then
+	    if [ ! -f /etc/rc.modules ] ; then
+		echo "#!/bin/sh" > /etc/rc.modules
+		chmod 755 /etc/rc.modules
+	    fi
+	    if ! contains /etc/rc.modules coda ; then
+		echo "/sbin/modprobe coda" >> /etc/rc.modules
+	    fi
+
+	# debian
+	elif ! contains /etc/modules coda ; then
 	    echo "=> Adding 'coda' to /etc/modules so that the kernel module is"
 	    echo "   loaded automatically whenever the system boots"
 	    echo coda >> /etc/modules
 	fi
 	# since we aren't booting this time, make sure the module is loaded
 	echo "== Loading coda kernel module."
-	modprobe coda && sleep 5
+	/sbin/modprobe coda && sleep 5
     fi
     # devfs managed /dev
     if [ -d /etc/devfs ] ; then
-	if ! grep cfs0 /etc/devfs/devices > /dev/null 2>&1 ; then
+	if ! contains /etc/devfs/devices cfs0 ; then
 	    echo "=> Adding 'cfs0' to /etc/devfs/devices so that devfs creates"
 	    echo "   an entry for /dev/cfs0 so that the Coda kernel module"
 	    echo "   can be autoloaded when the /dev/cfs0 or /dev/coda/0"
@@ -157,7 +173,7 @@ if [ X$OS = XLinux ] ; then
     else
 	MODULES=/etc/conf.modules
     fi
-    if ! grep coda $MODULES > /dev/null 2>&1 ; then
+    if ! contains $MODULES coda ; then
 	echo "=> Adding aliases to $MODULES so that modprobe can"
 	echo "   handle autoloading of the Coda kernel module when"
 	echo "   /dev/cfs0 is accessed"

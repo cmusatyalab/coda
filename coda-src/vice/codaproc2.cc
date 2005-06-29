@@ -1026,7 +1026,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 
 	while (i < (*volptr)->nReintegrators) {
 	    if ((r->sid.Host == (*volptr)->reintegrators[i].Host) &&
-		(r->sid.Uniquifier <= (*volptr)->reintegrators[i].Uniquifier)) {
+		((long)r->sid.Uniquifier - (long)(*volptr)->reintegrators[i].Uniquifier <= 0)) {
 		SLog(0, "ValidateReintegrateParms: Already seen id %u < %u)",
 		     r->sid.Uniquifier, (*volptr)->reintegrators[i].Uniquifier);
 		errorCode = VLOGSTALE;
@@ -2186,13 +2186,9 @@ START_TIMING(Reintegrate_PutObjects);
 	    int i = 0;
 
 	    /* replace the entry for this client if one exists */
-	    while (i < volptr->nReintegrators) {
-		if (volptr->reintegrators[i].Host == sid.Host) {
-		    volptr->reintegrators[i] = sid;
+	    for (i = 0; i < volptr->nReintegrators; i++)
+		if (volptr->reintegrators[i].Host == sid.Host)
 		    break;
-		}
-		i++;
-	    }
 
 	    /* no entry for this client, make one */
 	    if (i == volptr->nReintegrators) {
@@ -2202,14 +2198,14 @@ START_TIMING(Reintegrate_PutObjects);
 			malloc(sizeof(ViceStoreId) * (i + VNREINTEGRATORS));
 		    if (volptr->reintegrators) {
 			memcpy(newlist, volptr->reintegrators,
-			       sizeof(ViceStoreId) * (i + VNREINTEGRATORS));
+			       sizeof(ViceStoreId) * i);
 			free(volptr->reintegrators);
 		    }
 		    volptr->reintegrators = newlist;
 		}
-		volptr->reintegrators[i] = sid;
 		volptr->nReintegrators++;
 	    }
+	    volptr->reintegrators[i] = sid;
 	}
     }
 

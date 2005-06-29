@@ -1138,9 +1138,10 @@ void worker::main(void)
     int     saveFlags = 0;
     int     opcode;
     int     size;
-    int     openfd = -1;
+    int     openfd;
 
     for (;;) {
+	openfd = -1;
 	/* Wait for new request. */
 	AwaitRequest();
 
