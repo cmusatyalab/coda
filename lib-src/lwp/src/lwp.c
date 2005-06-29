@@ -519,7 +519,7 @@ static void lwp_Reaper(void)
 
 static void Dump_One_Process(PROCESS pid, FILE *fp)
 {
-    stack_t *stack = &pid->ctx.uc_stack;
+    stack_t *stack = &pid->stack;
     int i;
 
     fprintf(fp,"***LWP: process %s (%p)\n", pid->name, pid);
@@ -731,7 +731,7 @@ static void Abort_LWP(char *msg)
 
 static void Free_PCB(PROCESS pid)
 {
-    stack_t *stack = &pid->ctx.uc_stack;
+    stack_t *stack = &pid->stack;
 
     lwpdebug(0, "Entered Free_PCB");
 
@@ -787,8 +787,8 @@ static int lwp_DispatchProcess(int dummy)
        the guard word at the front of the stack being damaged.
        WARNING!  This code assumes that stacks grow downward. */
     if (lwp_cpptr && lwp_cpptr->stackcheck &&
-        (lwp_cpptr->stackcheck != *(int *)lwp_cpptr->ctx.uc_stack.ss_sp ||
-	 (char *)&dummy < (char *)lwp_cpptr->ctx.uc_stack.ss_sp))
+        (lwp_cpptr->stackcheck != *(int *)lwp_cpptr->stack.ss_sp ||
+	 (char *)&dummy < (char *)lwp_cpptr->stack.ss_sp))
     {
 	switch (lwp_overflowAction) {
 	    case LWP_SOABORT:
@@ -875,8 +875,8 @@ static void Initialize_PCB(PROCESS temp, int priority, char *stack,
 	temp->stackcheck = *(int *)stack;
 
 	getcontext(&temp->ctx);
-	temp->ctx.uc_stack.ss_sp = stack;
-	temp->ctx.uc_stack.ss_size = stacksize;
+	temp->stack.ss_sp = temp->ctx.uc_stack.ss_sp = stack;
+	temp->stack.ss_size = temp->ctx.uc_stack.ss_size = stacksize;
 	temp->ctx.uc_link = &reaper; /* whenever a thread exits, we
 					automatically reap it and schedule
 					another runnable thread */
@@ -965,8 +965,8 @@ static int Stack_Used(stack_t *stack)
 
 int LWP_StackUsed(PROCESS pid, int *max, int *used)
 {
-    *max = pid->ctx.uc_stack.ss_size;
-    *used = Stack_Used(&pid->ctx.uc_stack);
+    *max = pid->stack.ss_size;
+    *used = Stack_Used(&pid->stack);
     if (*used == 0)
 	return LWP_NO_STACK;
     return LWP_SUCCESS;

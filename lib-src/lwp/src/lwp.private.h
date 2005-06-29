@@ -89,6 +89,7 @@ struct lwp_pcb {			/* process control block */
                                            incremented on each lwp_create_process */ 
   struct timeval lastReady;		/* if ready, time placed in the run queue */
 
+  stack_t    stack;			/* allocated stack for this thread */
   ucontext_t ctx;			/* saved context for next dispatch */
   };
 
