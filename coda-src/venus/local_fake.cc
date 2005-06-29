@@ -98,7 +98,9 @@ int fsobj::ExpandObject(void)
     } else {
         LOG(10,("fsobj::ExpandObject(): non-root expansion\n"));
 	mod_fso->dir_LookupByFid(name,&fid);
-	mod_fso->dir_Delete(name);
+	mod_fso->dir_Delete(name); /* XXX: we fail here if we get a callback
+				    * during an expansion (HAVEALLDATA fails
+				    * on any replica) */
 	mod_fso->DetachChild(this);
 	pfso = NULL;
 	//pfid = NullFid; * Needed to link ourselves back during collapse */
@@ -202,6 +204,9 @@ int fsobj::ExpandObject(void)
     else
       FSDB->Put(&localcache);
 #endif
+
+    /* mark any CML entries related to ourselves 'expanded' */
+    ExpandCMLEntries();
 
     FSO_HOLD(this);
 
@@ -415,6 +420,8 @@ int fsobj::CollapseObject(void)
     localcache->flags.expanded = 0;
     localcache->flags.local = 0;
 
+    localcache->CollapseCMLEntries();
+
     /* kill the expanded directory and its descendants */
     Kill();
 
@@ -442,10 +449,12 @@ int fsobj::IsToBeRepaired(void) {
        * when we have a directory conflict and expand it, but the _localcache
        * replica's children show up as inconsistent due to bindings. */
 
-      if (m->IsToBeRepaired() && !m->IsExpanded()) {
-	LOG(0, ("fsobj::IsToBeRepaired: %s in local-global conflict!\n", FID_(&fid)));
+      if (m->IsToBeRepaired()) {
+	LOG(10, ("fsobj::IsToBeRepaired: (%s) in local/global conflict!\n",
+		 FID_(&fid)));
 	return 1;
       }
+      /* else this cmlent is reintegratable */
     }
   }
   return 0;
@@ -510,7 +519,29 @@ void fsobj::CollapseCMLEntries(void) {
       CODA_ASSERT(m);
 
       RVMLIB_REC_OBJECT(*m);
-      m->expansions--;
+
+      if(m->expansions > 0)
+	m->expansions--;
     }
   }
+}
+
+/* need not be called from within transaction */
+int fsobj::HasExpandedCMLEntries(void) {
+  if(mle_bindings) {
+    dlist_iterator next(*mle_bindings);
+    dlink *d;
+
+    while(( d = next() )) {
+      binding *b = strbase(binding, d, bindee_handle);
+      cmlent *m = (cmlent *)b->binder;
+
+      CODA_ASSERT(m);
+
+      if(m->expansions > 0)
+	return 1;
+    }
+  }
+
+  return 0;
 }

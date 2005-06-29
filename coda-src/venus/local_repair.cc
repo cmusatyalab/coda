@@ -58,14 +58,14 @@ void lrdb::BeginRepairSession(VenusFid *RootFid, int RepMode, char *msg)
 {
   fsobj *expand = NULL, *localcache = NULL;
   VenusFid xfid;
-  int rc,code = -1;
+  int rc,code = 0;
 
   /*
    * IN:  RootFid is the fid of the new repair session's subtree root node.
    *	    RepMode is the mode (scratch or direct) of the repair session.
    * OUT: msg is the string that contains the error code to the caller.
    *
-   *      0 - Local/Global already in progress (historical and meaningless)
+   *      0 - No conflict detected
    *      1 - Local/Global repair session
    *      2 - Server/Server repair session
    *      3 - Local/Global and Server/Server repair session (Does this work?)
@@ -77,35 +77,38 @@ void lrdb::BeginRepairSession(VenusFid *RootFid, int RepMode, char *msg)
 	  FID_(RootFid), RepMode));
 
   expand = FSDB->Find(RootFid); /* expanded directory */
-  CODA_ASSERT(expand && expand->IsExpandedObj());
+  CODA_ASSERT(expand);
+
+  if(!expand->IsExpandedObj()) {
+    LOG(0,("lrdb::BeginRepairSession: (%s) not expanded!\n",
+	   FID_(&localcache->fid)));
+    sprintf(msg, "%d", -1);
+    return;
+  }
 
   vproc *vp = VprocSelf();
 
   rc = expand->Lookup(&localcache, &xfid, LOCALCACHE_HIDDEN, vp->u.u_uid,
 		      CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT, 1);
 
-  if(!rc && localcache) {
-    LOG(0,("lrdb::BeginRepairSession: (%s) server/server conflict\n",FID_(&localcache->fid)));
-    code = 2;
-  }
-  else { /* wasn't a server/server */
+  if(!localcache)
     rc = expand->Lookup(&localcache, &xfid, LOCALCACHE, vp->u.u_uid,
-			CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT);
-    if(rc || !localcache) {
-      LOG(0,("lrdb::BeginRepairSession: Lookup() failed for LOCALCACHE:%d\n the expansion may be invalid..", rc));
-      sprintf(msg, "%d", -1);
-      return;
-    }
-  }
+			CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT, 1);
 
   CODA_ASSERT(localcache);
   LOG(0,("lrdb::BeginRepairSession: (%s) is your localcache copy\n",
 	 FID_(&localcache->fid)));
 
+  if(!rc && localcache->IsFake()) {
+    LOG(0,("lrdb::BeginRepairSession: (%s) server/server conflict\n",
+	   FID_(&localcache->fid)));
+    code = 2;
+  }
+
   if(localcache->IsToBeRepaired()) {
     LOG(0,("lrdb::BeginRepairSession: (%s) local/global conflict\n",
 	   FID_(&localcache->fid)));
-    if(code) {
+    if(code == 2) {
       LOG(0,("lrdb::BeginRepairSession: (%s) mixed lg/ss conflict, enjoy!\n",
 	     FID_(&localcache->fid)));
       code = 3;

@@ -31,16 +31,13 @@ listed in the file CREDITS.
 
 #include "repcmds.h"
 
-#define NOT_IN_SESSION 0
-#define	LOCAL_GLOBAL   1
-#define SERVER_SERVER  2
-#define MIXED_CONFLICT 3
+#define NOT_IN_SESSION      0
+#define FILE_SESSION        1
+#define DIRECTORY_SESSION   2
 
-extern struct conflict *ConflictObj; /* volume under repair */
+extern struct conflict *ConflictObj; /* conflict under repair */
 extern int allowclear, interactive, repair_DebugFlag, session;
 
-int checklocal(char *arg);
-int checkserver(char *arg);
 void GetArgs(int argc, char *argv[]);
 int  getcompareargs(int, char **, char **, char **, char **, char **, char **);
 int  getrepairargs(int, char **, char *);
@@ -49,18 +46,12 @@ void INT(int, int, struct sigcontext *);
 
 /* User-visible parser commands (possibly interactive) */
 void rep_BeginRepair     (int largc, char **largv);
-void rep_CheckLocal      (int largc, char **largv);
 void rep_ClearInc        (int largc, char **largv);
 void rep_CompareDirs     (int largc, char **largv);
-void rep_DiscardLocal    (int largc, char **largv);
-void rep_DiscardAllLocal (int largc, char **largv);
 void rep_DoRepair        (int largc, char **largv);
 void rep_EndRepair       (int largc, char **largv);
 void rep_Exit            (int largc, char **largv);
 void rep_Help            (int largc, char **largv);
-void rep_ListLocal       (int largc, char **largv);
-void rep_PreserveLocal   (int largc, char **largv);
-void rep_PreserveAllLocal(int largc, char **largv);
 void rep_RemoveInc       (int largc, char **largv);
 void rep_ReplaceInc      (int largc, char **largv);
 

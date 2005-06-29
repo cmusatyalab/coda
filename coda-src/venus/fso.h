@@ -572,8 +572,11 @@ class fsobj {
     int IsExpandedMTLink(void) { return(flags.expanded && IsMTLink()); }
     int IsModifiedObj(void) { return(flags.modified); }
     void SetMtLinkContents(VenusFid *fid);
+
+    /* cmlent expansion related functions */
     void ExpandCMLEntries(void);
     void CollapseCMLEntries(void);
+    int HasExpandedCMLEntries(void);
 
 #define LOCALCACHE "_localcache"
 #define LOCALCACHE_HIDDEN ".localcache"

@@ -33,7 +33,7 @@ int  isLocal(resreplica *dir);
 void printAcl(struct Acl *);
 
 /* Assumes pathname is the path of a conflict
- * Fills in repv with repvol created in beginning repair
+ * Fills in conf with conflict struct created in beginning repair
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
 int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize)
 {
@@ -495,7 +495,7 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
     ViceVersionVector confvv;
     vv_t fixvv;
     char *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL, **names;
-    int nreplicas, rc, i;
+    int nreplicas, rc, i, fd = 0;
     struct listhdr *repairlist = NULL;
     resreplica *dirs = NULL;
 
@@ -523,8 +523,9 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 
 	/* convert list to internal format */
 	strcpy(tmppath, "/tmp/REPAIR.XXXXXX");
-	rc = mkstemp(tmppath);
-	if (rc < 0) {
+	fd = mkstemp(tmppath);
+	if (fd < 0) {
+	  rc = -1;
 	  strerr(msg, msgsize, "Couldn't make tmp file %s", tmppath);
 	  goto Error;
 	}
@@ -532,26 +533,37 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 	/* write out internal rep */
 	rc = repair_putdfile(tmppath, nreplicas, repairlist);
 	if (rc) {
-	    strerr(msg, msgsize, "Couldn't put repair list into file %s", tmppath);
+	    strerr(msg, msgsize, "Couldn't put repair list into file %s",
+		   tmppath);
+	    if(fd > 2)
+	      close(fd);
+	    unlink(tmppath); /* Clean up */
 	    goto Error;
 	}
 
 	rc = dorep(conf, tmppath, NULL, 0); /* do the repair */
 	if (rc < 0 && errno != ETOOMANYREFS) {
-	    strerr(msg, msgsize, "REPAIR %s: %s", conf->rodir, strerror(errno));
+	    strerr(msg, msgsize, "REPAIR %s: %s", conf->rodir,
+		   strerror(errno));
+	    if(fd > 2)
+	      close(fd);
 	    unlink(tmppath); /* Clean up */
 	    goto Error;
 	}
 
+	if(fd > 2)
+	  close(fd);
 	unlink(tmppath); /* Clean up */
 
 	/* clear the inconsistency if needed and possible */
-	if ((rc = repair_getfid(conf->rodir, NULL, NULL, &confvv, msgbuf, sizeof(msgbuf))) < 0) {
+	if ((rc = repair_getfid(conf->rodir, NULL, NULL, &confvv, msgbuf,
+				sizeof(msgbuf))) < 0) {
 	    strerr(msg, msgsize, "repair_getfid(%s): %s", conf->rodir, msgbuf);
 	    goto Error;
 	}
-	if (!((confvv.StoreId.Host == (unsigned int)-1) /*&& (confvv.StoreId.Uniquifier == (unsigned int)-1)*/)) {
-	    strerr(msg, msgsize, "Unexpected values (Host = %x, Uniquifier = %x)", 
+	if (!((confvv.StoreId.Host == (unsigned int)-1)
+	      /*&& (confvv.StoreId.Uniquifier == (unsigned int)-1)*/)) {
+	    strerr(msg, msgsize, "Unexpected values (Host = %x, Uniquifier = %x)",
 		   confvv.StoreId.Host, confvv.StoreId.Uniquifier);
 	    rc = -1;
 	    goto Error;
@@ -563,25 +575,31 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 	}
     }
     else { /* file conflict */
-	rc = repair_getfid(names[0], &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf));
+	rc = repair_getfid(names[0], &fixfid, fixrealm, &fixvv,
+			   msgbuf, sizeof(msgbuf));
 	if (rc) {
 	    strerr(msg, msgsize, "repair_getfid(%s): %s", names[0], msgbuf);
 	    goto Error;
 	}
 
-	sprintf(tmppath, "@%08x.%08x.%08x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
+	sprintf(tmppath, "@%08x.%08x.%08x@%s",
+		fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
 
 	rc = dorep(conf, tmppath, NULL, 0); /* do the repair */
 	if ((rc < 0) && (errno != ETOOMANYREFS))
-	    strerr(msg, msgsize, "REPAIR %s: %s", conf->rodir, strerror(errno));
+	    strerr(msg, msgsize, "REPAIR %s: %s",
+		   conf->rodir, strerror(errno));
     }
 
  Error:
+
     /* clean up malloced memory */
     if (conf->dirconf) /* directory conflict */
 	resClean(nreplicas, dirs, repairlist);
+
     for (i = 0; i < nreplicas; i++)
 	freeif(names[i]);
+
     free(names);
     return(rc);
 }

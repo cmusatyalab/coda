@@ -304,8 +304,9 @@ void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap)
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
 
 	/* mark local-global conflicts by iterating through cmlent bindings.
-	 * we need to check expansion to show _localcache replicas -- Adam */
-	if(!u.u_error && f && f->IsToBeRepaired() && !f->IsExpandedObj()) {
+	 * we need to check cmlent's to show _localcache children -- Adam */
+	if(!u.u_error && f && f->IsToBeRepaired()
+	   && !f->HasExpandedCMLEntries()) {
 	  u.u_error = EINCONS;
 	  LOG(0,("vproc::getattr: local-global conflict detected, fid: (%s)\n",FID_(&cp->c_fid)));
 	}
