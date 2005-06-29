@@ -1,3 +1,13 @@
+New in 2.1:
+
+* Sometimes we can only switch to a context created by makecontext once.
+  Refreshing the context information with getcontext to make the jump into the
+  thread reaper repeatable.
+* Move declarations before code, gcc-2.95 likes that better. (Greg Troxel)
+* The uc_stack in a ucontext may be clobbered by the context switching
+  functions. Use a separate copy in the lwp process info for stack overflow
+  checks and deallocation purposes.
+
 New in 2.0:
 
 * Use ucontext.h provided functions for thread creation and switching.
