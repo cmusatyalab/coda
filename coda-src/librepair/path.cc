@@ -297,6 +297,8 @@ static int repair_getvid(char *path, VolumeId *vid, char *realm, char *msg, int 
     ViceFid vfid;
     ViceVersionVector vv;
 
+    CODA_ASSERT(0);
+
     if (repair_getfid(path, &vfid, realm, &vv, msgbuf, sizeof(msgbuf)) < 0) {
 	strerr(msg, msgsize, "repair_getfid: %s", msgbuf);
 	return(-1);

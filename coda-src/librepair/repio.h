@@ -45,9 +45,10 @@ listed in the file CREDITS.
                           somewhere in /usr/include/sys? */
 #endif
 
-/* VolumeId of local fake repair volumes start with 0xff */
-#ifndef IS_LOCAL_VID
-#define IS_LOCAL_VID(vid) (((vid & 0xff000000) == 0xff000000))
+/* Realm of localcache objects should be 0xffffffff */
+#ifndef IS_LOCAL
+#define IS_LOCAL(realm) (realm == 0xffffffff)
+//#define IS_LOCAL(realm) (!strcmp("localhost", realm))
 #endif
 
 struct repair {

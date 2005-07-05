@@ -43,8 +43,14 @@ int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize)
 
     /* Create a new conflict struct */
     if (repair_newrep(pathname, conf, msgbuf, sizeof(msgbuf)) < 0) {
-	strerr(msg, msgsize, "Could not allocate new conflict: %s", msgbuf);
-	return(-1);
+      strerr(msg, msgsize, "Could not allocate new conflict: %s", msgbuf);
+      return(-1);
+    }
+
+    if (repair_getfid((*conf)->rodir, &((*conf)->fid), (*conf)->realm,
+		      &((*conf)->VV), msgbuf, sizeof(msgbuf))) {
+      strerr(msg, msgsize, "repair_getfid(%s): %s", (*conf)->rodir, msgbuf);
+      return(-1);
     }
 
     /* Perform a replica expansion */
@@ -55,10 +61,8 @@ int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize)
     memset(space, 0, sizeof(space));
     rc = pioctl((*conf)->rodir, _VICEIOCTL(_VIOC_ENABLEREPAIR), &vioc, 0);
     if (rc < 0) {
-	if (errno == EWOULDBLOCK)
-	    strerr(msg, msgsize, "Repair/Expansion in progress on volume at \"%s\"", (*conf)->rodir);
-	else
-	    strerr(msg, msgsize, "ENABLEREPAIR %s: %s", (*conf)->rodir, strerror(errno));
+        strerr(msg, msgsize, "ENABLEREPAIR failed on %s: %s",
+	       (*conf)->rodir, strerror(errno));
 	repair_finish(*conf);
 	return(-1);
     }
@@ -82,38 +86,27 @@ int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize)
 	return(-1);
     }
 
-    /* Determine conflict type */
+    /* Determine conflict method type */
     sscanf(vioc.out, "%d", &rc);
     if (rc == 0) {
-	(*conf)->local = 0; /* possibly no conflict? */
 	if (EndRepair(*conf, 0, msgbuf, sizeof(msgbuf)) < 0)
-	  strerr(msg, msgsize, "No conflict, %s", msgbuf);
+	  strerr(msg, msgsize, "No conflict\nEndRepair failed: %s", msgbuf);
 	else
 	  strerr(msg, msgsize, "No conflict");
 	return(-1);
     }
-    else if (rc == 1) {
+    else if (rc == 1)
 	(*conf)->local = LOCAL_GLOBAL;
-    }
     else if (rc == 2)
-	(*conf)->local = SERVER_SERVER; /* server/server */
+	(*conf)->local = SERVER_SERVER;
     else if (rc == 3)
-	(*conf)->local = MIXED_CONFLICT; /* mixed lg/ss */
+	(*conf)->local = MIXED_CONFLICT;
     else { /* (rc < 0) || (rc > 3) */
 	strerr(msg, msgsize, "Bogus return code from venus (%d)", rc);
 	repair_finish(*conf);
 	return(-1);
     }
-    if (findtype(*conf) < 0) {
-      if (EndRepair(*conf, 0, msgbuf, sizeof(msgbuf)) < 0)
-	strerr(msg, msgsize, "Could not determine conflict type, %s", msgbuf);
-      else
-	strerr(msg, msgsize, "Could not determine conflict type");
-      return(-1);
-    }
-
-    if( (rc = repair_getfid(pathname, &(*conf)->fid, NULL, NULL, msgbuf,
-			    sizeof(msgbuf)))) {
+    if (findtype(*conf) < 0) { /* decides: directory or file? */
       if (EndRepair(*conf, 0, msgbuf, sizeof(msgbuf)) < 0)
 	strerr(msg, msgsize, "Could not determine conflict type, %s", msgbuf);
       else
@@ -139,7 +132,7 @@ int ClearInc(struct conflict *conf, char *msg, int msgsize)
     memset(&inf, 0, sizeof(inf));
 
     if (conf == NULL) {
-	strerr(msg, msgsize, "NULL conf");
+	strerr(msg, msgsize, "NULL conflict");
 	return(-1);
     }
 
@@ -154,12 +147,15 @@ int ClearInc(struct conflict *conf, char *msg, int msgsize)
     confFid.Vnode = confFid.Unique = 0;
     /* do the compare */
     if (!CompareDirs(conf, "/dev/null", &inf, msgbuf, sizeof(msgbuf))) {
-	/* XXXX if a get fid is done between two setvv's resolve might get called 
-	   - therefore get the vv for each replica  before doing the setvv */
+
+      /* XXXX if a get fid is done between two setvv's resolve might get called
+	 - therefore get the vv for each replica before doing the setvv */
+
 	for (i = 0; i < nreplicas; i++) {
-	    if ((rc = repair_getfid(names[i], &Fid[i], NULL, &vv[i], msgbuf,
-				    sizeof(msgbuf))) < 0) {
-		strerr(msg, msgsize, "repair_getfid(%s): %s", names[i], msgbuf);
+	    if ((rc = repair_getfid(names[i], &Fid[i], NULL, &vv[i],
+				    msgbuf, sizeof(msgbuf))) < 0) {
+		strerr(msg, msgsize, "repair_getfid(%s): %s",
+		       names[i], msgbuf);
 		goto CLEANUP;
 	    }
 	}
@@ -178,7 +174,8 @@ int ClearInc(struct conflict *conf, char *msg, int msgsize)
 	    vioc.out_size = 0;
 	    rc = pioctl(names[i], _VICEIOCTL(_VIOC_SETVV), &vioc, 0);
 	    if (rc) {
-		strerr(msg, msgsize, "SETVV %s: %s", names[i], strerror(errno));
+		strerr(msg, msgsize, "SETVV %s: %s",
+		       names[i], strerror(errno));
 		goto CLEANUP;
 	    }
 	}
@@ -207,7 +204,6 @@ int ClearInc(struct conflict *conf, char *msg, int msgsize)
 int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char *msg, int msgsize)
 {
     char msgbuf[DEF_BUF];
-    ViceFid confFid;
     char **names;
     char realm[MAXHOSTNAMELEN];
     int ret, i, nreps, nConflicts = 0, setmode = 0, setacl = 0, setowner = 0;
@@ -222,17 +218,10 @@ int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char 
       return(-1);
     }
 
-    if (repair_getfid(conf->rodir, &confFid, realm, NULL, msgbuf, sizeof(msgbuf))) {
-	strerr(msg, msgsize, "repair_getfid(%s): %s", conf->rodir, msgbuf);
-	return(-1);
+    if (!(conf->dirconf)) {
+      strerr(msg, msgsize, "\nCompare can only be performed on directory replicas!\ndirconf=%d", conf->dirconf);
+      return(-1);
     }
-
-#if 0 /* XXX: giving me problems, not sure why DIRVNODE isnt correct - Adam */
-    if (!ISDIRVNODE(confFid.Vnode) || !(conf->dirconf)) {
-      strerr(msg, msgsize, "\nCompare can only be performed on directory replicas!\nVnode=%ux,dirconf=%d", confFid.Vnode, conf->dirconf);
-	return(-1);
-    }
-#endif
 
     if ((nreps = getVolrepNames(conf, &names, msgbuf, sizeof(msgbuf))) <= 0) {
 	strerr(msg, msgsize, "Error getting replica names: %s", msgbuf);
@@ -244,12 +233,11 @@ int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char 
     else if (!strcmp(fixfile, "stderr")) file = stderr;
     else {
 	if ((file = fopen(fixfile, "w")) == NULL) {
-	    strerr(msg, msgsize, "Could not open file %s for writing: %s", fixfile, strerror(errno));
+	    strerr(msg, msgsize, "Could not open file %s for writing: %s",
+		   fixfile, strerror(errno));
 	    goto Cleanup;
 	}
     }
-
-    /* Set the global RepVolume to the volume we are repairing */
 
     if (getunixdirreps(nreps, names, &dirs)) {
 	strerr(msg, msgsize, "Could not get replica information");
@@ -319,7 +307,7 @@ int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char 
 	nConflicts++;
     }
 
-    if ((confFid.Vnode == 1) && (confFid.Unique == 1) &&
+    if ((conf->fid.Vnode == 1) && (conf->fid.Unique == 1) &&
 	(compareQuotas(nreps, names))) {
 	nConflicts++;
 	printf("Your volume quota is different on the various replicas\n");
@@ -345,34 +333,11 @@ int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char 
     return(-1);
 }
 
-/* Discards all local mutations to volume under repair
- * Returns 0 on success, -1 on error and fills in msg if non-NULL */
-int DiscardAllLocal(struct conflict *conf, char *msg, int msgsize) {
-    char space[DEF_BUF];
-    char buf[BUFSIZ];
-    struct ViceIoctl vioc;
-    int rc;
-
-    if ((conf == NULL) || !(conf->local)) {
-      strerr(msg, msgsize, conf ? "Not local/global conflict" : "Invalid conflict");
-      return(-1);
-    }
-
-    sprintf(buf, "%d", REP_CMD_DISCARD_ALL);
-    vioc.in = buf;
-    vioc.in_size = (short)strlen(buf) + 1;
-    vioc.out = space;
-    vioc.out_size = sizeof(space);
-    rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) strerr(msg, msgsize, "%s", space);
-    return(rc);
-}
-
-/* Does a repair on repv using fixfile at ufixpath
+/* Does a repair on conf using fixfile at ufixpath
  * Fprints results to res if non-NULL
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
 int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg, int msgsize) {
-    char space[DEF_BUF], fixpath[MAXPATHLEN], expath[MAXPATHLEN];
+    char space[DEF_BUF], fixpath[MAXPATHLEN];
     VolumeId *vids;
     struct replica *rwv;
     int *rcodes;
@@ -383,32 +348,18 @@ int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg, int ms
       return(-1);
     }
 
-    if (conf->dirconf) { /* directory conflict */
-        if ((conf->local) &&  (conf->local != 2)) { /* local/global (1 or 3) */
-	    /* Expand all "global" entries into individual server replicas */
-
-#if 0 /* this doesn't really apply anymore -- Adam */
-	    strcpy(expath, "/tmp/REPAIR.XXXXXX");
-	    mkstemp(expath);
-	    copyfile_byname(ufixpath, expath);
-	    if (chmod(expath, 0644) < 0) { unlink(expath); return(-1); }
-	    if (glexpand(conf->rodir, expath, msg, msgsize) < 0)
-		{ unlink(expath); return(-1); }
-	    if (makedff(expath, fixpath, msg, msgsize) < 0) return(-1);
-#endif
-
-	}
-	/* Create internal form of fix file */
-	else  /* server/server conflict */
-	  if (makedff(ufixpath, fixpath, msg, msgsize) < 0) return(-1);
+    if (conf->dirconf) {   /* directory conflict */
+      if (makedff(ufixpath, fixpath, msg, msgsize) < 0)
+	return(-1);
     }
-    else /* file conflict */
+    else                   /*  file conflict */
       strncpy(fixpath, ufixpath, sizeof(fixpath));
 
     /* Do the repair */
     rc = dorep(conf, fixpath, space, sizeof(space));
     if (rc < 0 && errno != ETOOMANYREFS) {
-	strerr(msg, msgsize, "VIOC_REPAIR %s: %s", conf->rodir, strerror(errno));
+	strerr(msg, msgsize, "VIOC_REPAIR failed on %s: %s",
+	       conf->rodir, strerror(errno));
 	return(-1);
     }
 
@@ -429,18 +380,17 @@ int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg, int ms
 		else fprintf(res, ".\n");
 		vids[i] = 0;
 	    }
-	    else fprintf(res, "No return code for actions performed on %s! (vid %08x)\n", rwv->srvname, rwv->fid.Volume);
+	    else
+	      if(rwv->fid.Volume != conf->fid.Volume)
+		fprintf(res, "No return code for actions performed on %s! (vid %08x)\n", rwv->srvname, rwv->fid.Volume);
 	}
 	for (i = 0; (i < MAXHOSTS); i++)
 	    if (vids[i]) fprintf(res, "Return code %d for unexpected vid %08x!\n", rcodes[i], vids[i]);
     }
 
     /* Clean up */
-    if (conf->dirconf) {
+    if (conf->dirconf)
 	unlink(fixpath); /* ignore rc */
-	if ((conf->local) &&  (conf->local != 2))
-	    unlink(expath); /* ignore rc again */
-    }
 
     return(0);
 }
@@ -492,7 +442,6 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
     char msgbuf[DEF_BUF], tmppath[MAXPATHLEN];
     ViceFid fixfid;
     char fixrealm[MAXHOSTNAMELEN];
-    ViceVersionVector confvv;
     vv_t fixvv;
     char *user = NULL, *rights = NULL, *owner = NULL, *mode = NULL, **names;
     int nreplicas, rc, i, fd = 0;
@@ -555,19 +504,6 @@ int RemoveInc(struct conflict *conf, char *msg, int msgsize)
 	  close(fd);
 	unlink(tmppath); /* Clean up */
 
-	/* clear the inconsistency if needed and possible */
-	if ((rc = repair_getfid(conf->rodir, NULL, NULL, &confvv, msgbuf,
-				sizeof(msgbuf))) < 0) {
-	    strerr(msg, msgsize, "repair_getfid(%s): %s", conf->rodir, msgbuf);
-	    goto Error;
-	}
-	if (!((confvv.StoreId.Host == (unsigned int)-1)
-	      /*&& (confvv.StoreId.Uniquifier == (unsigned int)-1)*/)) {
-	    strerr(msg, msgsize, "Unexpected values (Host = %x, Uniquifier = %x)",
-		   confvv.StoreId.Host, confvv.StoreId.Uniquifier);
-	    rc = -1;
-	    goto Error;
-	}
 	/* object is still inconsistent -- try to clear it */
 	if ((rc = ClearInc(conf, msgbuf, sizeof(msgbuf))) < 0) {
 	    strerr(msg, msgsize, "Error clearing inconsistency: %s", msgbuf);
@@ -798,7 +734,7 @@ void getremovelists(int nreplicas, resreplica *dirs, struct listhdr **repairlist
 	    rep.parms[0] = 0;
 	    rep.parms[1] = 0;
 	    rep.parms[2] = 0;
-	    InsertListHdr(&rep, repairlist, i);
+	    InsertListHdr(nreplicas, &rep, repairlist, i);
 	}
     }
 }
@@ -854,146 +790,6 @@ int compareFids(ViceFid *a, ViceFid *b) {
     return 1;
 
   return 0;
-}
-
-
-static void growarray(char ***arrayaddr, unsigned int *arraysize)
-{
-    *arraysize += 1; /* grow by one element */
-    if (*arraysize > 1)
-    	*arrayaddr = (char **)realloc(*arrayaddr, (*arraysize)*sizeof(char *));
-    else 
-	*arrayaddr = (char **)malloc(sizeof(char *));    
-}
-
-/*  Appends expanded entried to (ASCII) fixfile
- *  Returns 0 on success, -1 on failure */
-int glexpand(char *rodir, char *fixfile, char *msg, int msgsize)
-{
-    int rc, lineno = 0;
-    unsigned int j, k, cnt, gls = 0;
-    struct in_addr *custodians;
-    VolumeId *repID, sID[VSG_MEMBERS];
-    struct hostent *hent;
-    struct ViceIoctl vio;
-    char **snames = NULL, **glents = NULL, *tail = NULL;
-    char mangle[MAXPATHLEN], line[MAXPATHLEN], gline[MAXPATHLEN];
-    char piobuf[2048]; /* max size of pioctl buffer */
-    struct repair rentry;
-    FILE *ff;
-    
-    if ((ff = fopen(fixfile, "r")) == NULL) {
-        strerr(msg, msgsize, "Could not open ASCII fixfile");
-        return(-1);
-    }
-
-    gline[0] = '\0';
-    for (fgets(line, sizeof(line), ff); !(feof(ff)); fgets(line, sizeof(line), ff)) {
-	lineno++;
-	strcpy(mangle, line);
-
-	/* parse it */
-	mangle[strlen(mangle)-1] = '\0'; /* nuke trailing \n */
-	rc = repair_parseline(mangle, &rentry);
-	switch(rc) {
-	case 0:  /* good line */
-	    if (rentry.opcode == REPAIR_REPLICA) { /* new replica */
-		if (strlen(gline) > 0) goto Out;
-		if (!strcmp(rentry.name, "global")) {
-		    strcpy(gline, line);
-		}
-	    }
-	    else if (strlen(gline) > 0) {
-		growarray(&glents, &gls);
-		glents[(gls - 1)] = strdup(line);
-	    }
-	    break; 	    
-	case -2: /* blankline */
-	    continue;
-	case -1: /* some other bogosity */
-	    strerr(msg, msgsize, "%s: Syntax error, line %d\n", fixfile, lineno);
-	    fclose(ff);
-	    return(-1);
-	}
-    }
- Out:
-    if (fclose(ff) != 0) {
-	strerr(msg, msgsize, "Error closing ASCII fixfile: %s", strerror(errno));
-	return(-1);
-    }
-    for (j = 0; j < strlen(gline); j++) {
-	if (strncmp(&(gline[j]), "global", 6) == 0) {
-	    gline[j] = '\0';
-	    tail = &(gline[j+6]);
-	    break;
-	}
-    }
-    if (tail == NULL) {
-	strerr(msg, msgsize, "No \"global\" ASCII fixfile");
-	return(-1);
-    }
-
-    /* Set up parms to pioctl */
-    vio.in = 0;
-    vio.in_size = 0;
-    vio.out = piobuf;
-    vio.out_size = sizeof(piobuf);
-
-    /* Do the pioctl */
-    rc = pioctl(rodir, _VICEIOCTL(_VIOCWHEREIS), &vio, 1);
-    if (rc < 0) {
-        strerr(msg, msgsize, "VIOCWHEREIS failed");
-        return(-1);
-    }
-
-    /* pioctl returns array of IP addrs */
-    custodians = (struct in_addr *)piobuf;
-    repID = (VolumeId *)(piobuf + (sizeof(struct in_addr) * VSG_MEMBERS));
-
-    /* Count up hosts */
-    for (cnt = 0, j = 0; j < 8; j++)
-	if (custodians[j].s_addr == 0) cnt++;
-
-    /* Create array of server names */
-    snames = (char **)calloc(cnt, sizeof(char *));
-    for (cnt = 0, j = 0; j < 8; j++) {
-	if (custodians[j].s_addr == 0) continue;
-
-	hent = gethostbyaddr((char *)&custodians[j], sizeof(long), AF_INET);
-	sID[cnt] = repID[j];
-	if (hent) {
-	    snames[cnt] = strdup(hent->h_name);
-	    for (k = 0; k < strlen(snames[cnt]); k++)
-		snames[cnt][k] = tolower(snames[j][k]);
-	}
-	else 
-	    snames[cnt] = inet_ntoa(custodians[j]);
-	cnt++;
-    }
-
-    /* Append the new entries */
-    if ((ff = fopen(fixfile, "a")) == NULL) {
-	strerr(msg, msgsize, "Error opening ASCII fixfile: %s", strerror(errno));
-	return(-1);
-    }
-    fprintf(ff, "\n");
-    for (j = 0; j < cnt; j++) {
-	//	fprintf(ff, "%s%s%s", gline, snames[j], tail);
-	fprintf(ff, "%s%s %08x \n", gline, snames[j], sID[j]);
-	for (k = 0; k < gls; k++)
-	    fprintf(ff, "%s", glents[k]);
-	fprintf(ff, "\n");
-    }
-
-    /* Clean up */
-    for (j = 0; j < cnt; j++) 
-	free(snames[j]);
-    free(snames);
-    if (fclose(ff) != 0) {
-	strerr(msg, msgsize, "Error closing ASCII fixfile: %s", strerror(errno));
-	return(-1);
-    }
-    return(0);
 }
 
 /*  extfile: external (ASCII) rep

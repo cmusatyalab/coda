@@ -523,13 +523,13 @@ O_FreeLocks:
 			rc = fakedir->Lookup(&f, NULL, LOCALCACHE_HIDDEN,
 			   u.u_uid, CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT, 1);
 		      if(rc) {
-			LOG(0,("VIOC_REPAIR: Lookup() failed for LOCALCACHE:%d\n", rc));
+			LOG(0, ("VIOC_REPAIR: Lookup() failed for LOCALCACHE:%d\n", rc));
 			break;
 		      }
 		      else
 			CODA_ASSERT(f);
 
-		      LOG(0,("VIOC_REPAIR: called on expanded directory (%s)! redirecting to localcache (%s)\n", FID_(&fakedir->fid), FID_(&f->fid)));
+		      LOG(0, ("VIOC_REPAIR: called on expanded directory (%s)! redirecting to localcache (%s)\n", FID_(&fakedir->fid), FID_(&f->fid)));
 
 		      FSDB->Put(&fakedir);
 		    }

@@ -75,12 +75,14 @@ extern "C" {
 /* Replicated filesystem object under repair */
 struct conflict {
     ViceFid fid;
+    ViceVersionVector VV;
     struct replica *head;  /* Singly-linked list of volume replicas */
     char rodir[MAXPATHLEN]; /* directory where replicas are mounted */
+    char realm[HOSTNAMLEN];
     char local;	  /* a flag indicating whether this is a local volume entry
 		   * 0: server/server conflict
 		   * 1: local/global conflict
-		   * 2: mixed lg/ss */
+		   * 2: mixed lg/ss XXX This comment is all wrong*/
     char dirconf; /* a flag indicating whether this is a directory conflict
 		   *  -- if true it's a directory conflict, else a file conflict */
 };
@@ -88,6 +90,7 @@ struct conflict {
 /* Element in singly-linked list of volume replicas of a replicated volume */
 struct replica {
     ViceFid fid;                  /* fid of this replica*/
+    ViceVersionVector VV;
     char realmname[HOSTNAMLEN];   /* realm name of this object */
     char srvname[HOSTNAMLEN]; /* XXX: name of server on which this replica is located? */
     char compname[MAXNAMLEN]; /* component name corresponding to this rw id */
@@ -98,14 +101,12 @@ struct replica {
 int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize);
 int ClearInc(struct conflict *conf, char *msg, int msgsize);
 int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char *msg, int msgsize);
-int DiscardAllLocal(struct conflict *conf, char *msg, int msgsize);
 int DoRepair(struct conflict *conf, char *ufixpath, FILE *res, char *msg, int msgsize);
 int EndRepair(struct conflict *conf, int commit, char *msg, int msgsize);
 int RemoveInc(struct conflict *conf, char *msg, int msgsize);
 
 /* Other utility functions */
 int dorep(struct conflict *conf, char *fixpath, char *buf, int len);
-int glexpand(char *rodir, char *fixfile, char *msg, int msgsize);
 int makedff(char *extfile, char *intfile, char *msg, int msgsize);
 
 /* Volume data structure manipulation routines -- rvol.cc */
@@ -116,6 +117,7 @@ void repair_finish(struct conflict *conf);
 /* Path processing routines -- path.cc */
 int  repair_getfid(char *path, ViceFid *outfid, char *outrealm, ViceVersionVector *outvv, char *msg, int msgsize);
 int  repair_inconflict(char *name, ViceFid *conflictfid, char *conflictrealm);
+int  repair_isleftmost(char *path,char *realpath, int len, char *msg, int msgsize);
 
 #define freeif(pointer)				\
 do {						\

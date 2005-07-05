@@ -88,6 +88,9 @@ extern "C" {
 #include "coda_assert.h"
 #include "repio.h"
 
+
+#define DEF_BUF 2048
+
 static char *eatwhite(char *), *eatnonwhite(char *);
 static int acldecode(char *, unsigned int *);
 static int growarray(char **arrayaddr, int *arraysize, int elemsize);
@@ -171,34 +174,69 @@ int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **r
     int i, k;
     unsigned int x, j;
     struct repair *r;
-    FILE *ff;
+    FILE *ff = NULL;
     char *s;
+    char errmsg[DEF_BUF];
 
-#define CHKERR() if (ferror(ff) || feof(ff)) goto ERR
+    perror("repair_getdfile: starting\n");
+
+    if (replicaList == NULL) {
+      sprintf(errmsg, "repair_getdfile: bad replicaList ptr!");
+      goto ERR;
+    }
 
     if (fname == NULL) ff = fdopen(infd, "r");
     else               ff = fopen(fname, "r");
-    if (!ff) { perror((fname ? fname : "input fd")); return(-1); }
+    if (!ff) {
+      sprintf(errmsg, "repair_getdfile: couldn't open file!");
+      perror(errmsg);
+      return -1;
+    }
+
+    perror("repair_getdfile: file opened");
     
-    fread(&x, sizeof(int), 1, ff); CHKERR();
+    fread(&x, sizeof(int), 1, ff);
+    if (ferror(ff) || feof(ff)) {
+      sprintf(errmsg, "repair_getdfile: replicaCount parsing failed!");
+      goto ERR;
+    }
     *replicaCount = ntohl(x);
 
     *replicaList = (struct listhdr *) calloc(*replicaCount, sizeof(struct listhdr));
+    if (*replicaList == NULL) {
+      sprintf(errmsg, "repair_getdfile: replicaList allocation failed!\n\telements= %x\tx= %d\tsizeof(struct listhdr)= %d\n", *replicaCount, x, sizeof(struct listhdr));
+      goto ERR;
+    }
 
-    if (*replicaList == NULL) goto ERR;
-
+    perror("repair_getdfile: list created");
     for (i = 0; i < *replicaCount; i++) {
-	fread(&x, sizeof(int), 1, ff); CHKERR();
+
+	fread(&x, sizeof(int), 1, ff);
+	if (ferror(ff) || feof(ff)) {
+	  sprintf(errmsg, "repair_getdfile: fread failed!");
+	  goto ERR;
+	}
 	(*replicaList)[i].replicaFid.Volume  = ntohl(x);
-	fread(&x, sizeof(int), 1, ff); CHKERR();
+
+	fread(&x, sizeof(int), 1, ff);
+	if (ferror(ff) || feof(ff)) {
+	  sprintf(errmsg, "repair_getdfile: fread failed!");
+	  goto ERR;
+	}
+
 	(*replicaList)[i].repairCount  = ntohl(x);	
     }
+
+    perror("repair_getdfile: replicas parsed");
 
     for (i = 0; i < *replicaCount; i++) {
 	if ((*replicaList)[i].repairCount > 0){
 	    r = (struct repair *) calloc((*replicaList)[i].repairCount,
 					 sizeof(struct repair));
-	    if (!r)  return(-1);
+	    if (!r) {
+	      sprintf(errmsg, "repair_getdfile: repair calloc failed!\n\tcount = %d\tsize = %d\n\n", (*replicaList)[i].repairCount, sizeof(struct repair));
+	      goto ERR;
+	    }
 	    (*replicaList)[i].repairList = r;
 	}
 	else {
@@ -207,32 +245,54 @@ int repair_getdfile(char *fname, int infd, int *replicaCount, struct listhdr **r
 	}
 	
 	for (j = 0; j < (*replicaList)[i].repairCount; j++) {
-	    fread(&x, sizeof(int), 1, ff); CHKERR();
+	    fread(&x, sizeof(int), 1, ff);
+	    if (ferror(ff) || feof(ff)) {
+	      sprintf(errmsg, "repair_getdfile: fread failed!\n");
+	      goto ERR;
+	    }
 	    r[j].opcode = ntohl(x);
 
 	    s = r[j].name;
-	    fgets(s, MAXNAMELEN, ff); CHKERR();
+	    fgets(s, MAXNAMELEN, ff);
+	    if (ferror(ff) || feof(ff)) {
+	      sprintf(errmsg, "repair_getdfile: fread failed!\n");
+	      goto ERR;
+	    }
 	    *(s + strlen(s) - 1) = 0;  /* nuke the '\n' left behind by fgets() */
 
 	    s = r[j].newname;
-	    fgets(s, MAXNAMELEN, ff); CHKERR();
+	    fgets(s, MAXNAMELEN, ff);
+	    if (ferror(ff) || feof(ff)) {
+	      sprintf(errmsg, "repair_getdfile: fread failed!\n");
+	      goto ERR;
+	    }
 	    *(s + strlen(s) - 1) = 0;  /* nuke the '\n' left behind by fgets() */
 
 	    for (k = 0; k < REPAIR_MAX; k++) {
-		fread(&x, sizeof(int), 1, ff); CHKERR();
+		fread(&x, sizeof(int), 1, ff);
+		if (ferror(ff) || feof(ff)) {
+		  sprintf(errmsg, "repair_getdfile: fread failed!\n");
+		  goto ERR;
+		}
 		r[j].parms[k] = ntohl(x);
 	    }
 	}
+	perror("repair_getdfile: replica processed");
     }
-    if (fname != NULL) fclose(ff);
+    if (fname != NULL)
+      fclose(ff);
+
+    perror("repair_getdfile: completed!");
+
     return(0);
 
  ERR: /* Error exit */
-    if (fname == NULL) perror("input fd");
-    else { perror(fname); fclose(ff); }
+    perror(errmsg);
+    if(fname != NULL)
+      fclose(ff);
+
     return(-1);
 }
-#undef CHKERR
 
 int repair_getdfile(char *fname, int *replicaCount, struct listhdr **replicaList)
    { return(repair_getdfile(fname, 0, replicaCount, replicaList)); }
@@ -255,7 +315,7 @@ int repair_parseline(char *line, struct repair *rs)
      */
 {
     char *c, *d, *eos;
-    int i;
+    int i, localhost = 0;
 
 #define NEXTFIELD()								\
     /* Set c to start of next field, d to the null at the end of this field */	\
@@ -380,7 +440,7 @@ int repair_parseline(char *line, struct repair *rs)
 	c = eatwhite(c);
 	if (*c) return(-1);
     }
-    return(0);
+    return localhost;
 }
 #undef NEXTFIELD
 #undef ADVANCE
@@ -397,7 +457,7 @@ int repair_parsefile(char *fname, int *hdcount, struct listhdr **hdarray)
      *  Returns -1 with err msg if errors (including syntax errors) were found.
      */
 {
-    int rc, lineno;
+  int rc, lineno;
     char line[MAXPATHLEN];
     FILE *rf;
     struct repair rentry;
@@ -433,19 +493,19 @@ int repair_parsefile(char *fname, int *hdcount, struct listhdr **hdarray)
 	}
 
 	if (rentry.opcode == REPAIR_REPLICA) { /* new replica */
-	    growarray((char **)hdarray, hdcount, sizeof(struct listhdr));
-	    (*hdarray)[*hdcount - 1].replicaFid.Volume = rentry.parms[0];
-	    (*hdarray)[*hdcount - 1].repairCount = 0;
-	    (*hdarray)[*hdcount - 1].repairList = 0;
+	  growarray((char **)hdarray, hdcount, sizeof(struct listhdr));
+	  (*hdarray)[*hdcount - 1].replicaFid.Volume = rentry.parms[0];
+	  (*hdarray)[*hdcount - 1].repairCount = 0;
+	  (*hdarray)[*hdcount - 1].repairList = 0;
 	}
 	else { /* another entry for the current replica */
-	    struct repair **rearray;
-	    int *recount;
-	    
-	    rearray = &((*hdarray)[(*hdcount - 1)].repairList);
-	    recount  = (int *)&((*hdarray)[(*hdcount - 1)].repairCount);
-	    growarray((char **)rearray, recount, sizeof(struct repair));
-	    (*rearray)[*recount - 1] = rentry; /* struct assignment */
+	  struct repair **rearray;
+	  int *recount;
+
+	  rearray = &((*hdarray)[(*hdcount - 1)].repairList);
+	  recount  = (int *)&((*hdarray)[(*hdcount - 1)].repairCount);
+	  growarray((char **)rearray, recount, sizeof(struct repair));
+	  (*rearray)[*recount - 1] = rentry; /* struct assignment */
 	}
     }
 
@@ -562,10 +622,12 @@ void repair_printfile(char *fname) {
     int repcount, i;
     struct listhdr *list;
     unsigned int j;
+    char buf[200];
     repair_getdfile(fname, 0, &repcount, &list);
     for (i = 0; i < repcount; i++) {
-	printf("New replica: volume id %08x has %d repair entries\n",
+        sprintf(buf, "New replica: volume id %08x has %d repair entries\n",
 	       list[i].replicaFid.Volume, list[i].repairCount);
+	perror(buf);
 	for (j = 0; j < list[i].repairCount; j++) 
 	    repair_printline(&list[i].repairList[j], stdout);
     }

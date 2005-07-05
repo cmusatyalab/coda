@@ -1303,7 +1303,7 @@ int repvol::LogMkdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 /* local-repair modification */
 int repvol::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
                      const VenusFid *CFid, int tid) {
-    LOG(1, ("repvol::LogRmdir: %d, %d, (%s), %s, (%s) %d\n",
+    LOG(0, ("repvol::LogRmdir: %d, %d, (%s), %s, (%s) %d\n",
 	     Mtime, uid, FID_(PFid), Name, FID_(CFid), tid));
 
     int ObjectCreated = 0;
@@ -1374,10 +1374,12 @@ int repvol::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 		    case CML_RemoveDir_OP:
                     case CML_SymLink_OP:
                         if (ObjectCreated && !DependentChildren) {
+#if 0 /* XXX: won't get optimized on reintegration conflict, cant repair! */
                             if (CreateReintegrating) {
                                 RVMLIB_REC_OBJECT(m->flags);
                                 m->flags.cancellation_pending = 1;
                             } else
+#endif
                                 cancellation = m->cancel();
                         }
                         break;
@@ -1731,6 +1733,39 @@ int cmlent::cancel()
 
 	case CML_MakeDir_OP:
 	    {
+#if 0
+	      /* Cancelling MakeDir must cancel all related cmlents! */
+	      /* XXX: Adam: recursion needs to be built in for cancel! */
+	    cmlent *pre_store_mle = 0;
+	    cmlent *post_store_mle = 0;
+
+	    {
+		cml_iterator next(*(ClientModifyLog *)log, CommitOrder, &u.u_chown.Fid, this);
+		cmlent *m;
+		while ((m = next())) {
+		    if (m->opcode == CML_Store_OP) {
+			    post_store_mle = m;
+			    break;
+		    }
+		}
+	    }
+
+	    if (post_store_mle) {
+		cml_iterator next(*(ClientModifyLog *)log, AbortOrder, &u.u_chown.Fid, this);
+		cmlent *m;
+		while ((m = next())) {
+		    if (m->opcode == CML_Store_OP) {
+			    pre_store_mle = m;
+			    break;
+		    }
+		}
+	    }
+
+	    if (pre_store_mle && post_store_mle)
+		(void) pre_store_mle->cancel();
+	    }
+	    break;
+#endif
 	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_mkdir.PFid);
 	    CODA_ASSERT(m != 0);
 	    if (m != this) {

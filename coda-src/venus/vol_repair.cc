@@ -189,7 +189,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
 	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS, NULL, NULL, NULL, 1);
 
-	if (code || !f) {
+	CODA_ASSERT(f); //would be ridiculous to fail here
+	if (code || (!f->IsFake() && !f->IsToBeRepaired())) {
 	    if (code == 0) {
 		eprint("Repair: %s (%s) consistent\n", f->GetComp(), FID_(RepairFid));
 		LOG(0,("repvol::Repair: %s (%s) consistent\n", f->GetComp(), FID_(RepairFid)));
@@ -223,7 +224,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 
     code = GetRepairF(RepairFile, uid, &RepairF);
     if (code) {
-      LOG(0,("repvol::ConnectedRepair: GetRepairF failed with code %d!\n", code));
+      LOG(0, ("repvol::ConnectedRepair: GetRepairF failed with code %d!\n",
+	      code));
       return code;
     }
     Recov_BeginTrans();
@@ -236,7 +238,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
     /* Acquire an Mgroup. */
     code = GetMgrp(&m, uid);
     if (code != 0) {
-      LOG(0,("repvol::ConnectedRepair: GetMgrp failed with code %d!\n", code));
+      LOG(0, ("repvol::ConnectedRepair: GetMgrp failed with code %d!\n",
+	      code));
       goto Exit;
     }
 
@@ -279,6 +282,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    struct stat tstat;
 	    if (::stat(RepairFile, &tstat) < 0) {
 		code = errno;
+		LOG(0, ("repvol::Repair: (%s) Failed stat of RepairFile (%s)!\n", FID_(RepairFid), RepairFile));
 		goto Exit;
 	    }
 
@@ -303,6 +307,8 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 #endif
 		default:
 		    code = EINVAL;
+		    LOG(0, ("repvol::Repair: (%s) invalid Vnode type!\n",
+			    FID_(RepairFid)));
 		    goto Exit;
 	    }
 	}
@@ -338,31 +344,37 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
         if (RepairF) fd = RepairF->data.file->Open(O_RDONLY);
         else         fd = open(RepairFile, O_RDONLY, (int)V_MODE);
 
+	if(fd < 0) {
+	  LOG(0, ("repvol::Repair: (%s) failed opening fixfile (%s)!\n",
+		  FID_(RepairFid), RepairFile));
+	  goto Exit;
+	}
+
         sei->Tag = FILEBYFD;
         sei->FileInfo.ByFD.fd = fd;
 
-	/* For directory conflicts only! (for file conflicts, there is no fixfile)
-	 * If localhost is specified in fixfile, get info for pruning CML entries
-	 * Must do this here, since later would get errno 157 (Resource temporarily
-	 * unavailable) */
+	/* For directory conflicts only! (for file conflicts, there is no
+	 * fixfile)  If localhost is specified in fixfile, get info for
+	 * pruning CML entries.  Must do this here, since later would get
+	 * errno 157 (Resource temporarily unavailable) */
 
-	LOG(0, ("repvol::Repair: (%s) attempting fixfile stuff!\n", FID_(RepairFid)));
+	LOG(0, ("repvol::Repair: (%s) attempting fixfile parse\n",
+		FID_(RepairFid)));
 	if (ISDIR(*RepairFid))
 	{
 	    int hcount;
 	    struct repair *rep_ent;
 
-	    /* parse input file and obtain internal rep  */
+	    /* parse input file and obtain internal rep */
 	    if (repair_getdfile(fd, &hcount, &hlist) < 0) {
 		code = errno; /* XXXX - Could use a more meaningful return code here */
-		LOG(0, ("repvol::Repair: (%s) repair_getdfile failed!\n",
-			FID_(RepairFid)));
+		LOG(0, ("repvol::Repair: (%s) repair_getdfile failed: %d, fd = %d\n", FID_(RepairFid), code, fd));
 		goto Exit;
 	    }
 
 	    for (i = 0; i < hcount; i++)
-		if (IS_LOCAL_VID(hlist[i].replicaFid.Volume))
-		    { l = &(hlist[i]); break; }
+	      if ((hlist[i].replicaFid.Volume == RepairFid->Volume))
+		{ l = &(hlist[i]); break; } /* localhost */
 
 	    if (l != NULL) {
 		/* found localhost in fixfile */
@@ -387,10 +399,20 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 		    {
 			fsobj *e = NULL;
 
-			CODA_ASSERT(local != NULL);
+			/* we can get data because (l != NULL) => _localcache exists */
+			code = FSDB->Get(&local, RepairFid, uid, RC_DATA,
+					 NULL, NULL, NULL, 1);
+			if(code || !local) {
+			  LOG(0, ("Repair: FSDB->Get(%s) error: %d", FID_(RepairFid),
+				  rep_ent[i].name));
+			  if(local)
+			    FSDB->Put(&local);
+			  goto Exit;
+			}
+
 			code = local->Lookup(&e, NULL, rep_ent[i].name, uid,
 					     CLU_CASE_SENSITIVE);
-			if (code != 0) {
+			if (code) {
 			    LOG(0, ("Repair: local(%s)->Lookup(%s) error",
 				     FID_(&local->fid), rep_ent[i].name));
 			    goto Exit;
@@ -412,15 +434,14 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 			    LCarr[(l->repairCount + i)] = e->stat.LinkCount;
 			    FSDB->Put(&e);
 			}
+			FSDB->Put(&local);
 		    }
-
 		}
-
 	    }
 	}
 
 	if (::lseek(fd, 0, SEEK_SET) != 0)
-	    { code = errno; goto Exit; }
+	  { code = errno; goto Exit; }
 
 	/* Make multiple copies of the IN/OUT and OUT parameters. */
 	ARG_MARSHALL(IN_OUT_MODE, ViceStatus, statusvar, status, VSG_MEMBERS);
@@ -432,7 +453,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
   repair actions </strong> </a>
   END_HTML
 */
-	LOG(0, ("repvol::Repair: (%s) Attempting RPC call!\n",
+	LOG(0, ("repvol::Repair: (%s) Attempting RPC call\n",
 		FID_(RepairFid)));
 
 	/* Make the RPC call. */
@@ -450,7 +471,11 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	code = Collate_COP1(m, code, &UpdateSet);
 	if (code == EASYRESOLVE) { asy_resolve = 1; code = 0; }
 	MULTI_RECORD_STATS(ViceRepair_OP);
-	if (code != 0 && code != ESYNRESOLVE) goto Exit;
+	if (code != 0 && code != ESYNRESOLVE) {
+	  LOG(0, ("repvol::Repair: (%s) Collate_COP1 failed: %d!\n",
+		  FID_(RepairFid), code));
+	  goto Exit;
+	}
 
 	/* Collate ReturnCodes. */
 	struct in_addr VSGHosts[VSG_MEMBERS];
@@ -471,111 +496,115 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	    }
 	if (HostCount != m->rocc.HowMany)
 	    CHOKE("volent::Repair: collate failed");
-	if (code != 0) goto Exit;
+	if (code != 0) {
+	  LOG(0, ("repvol::Repair: (%s) can you even get here? code:%d!\n",
+		  FID_(RepairFid), code));
+	  goto Exit;
+	}
     }
 
-    LOG(0, ("repvol::Repair: (%s) pruning CML from fixfile!\n",
-	    FID_(RepairFid)));
     /* For directory conflicts only! (for file conflicts, there is no fixfile)
      * Prune CML entries if localhost is specified in fixfile */
-    if (ISDIR(*RepairFid))
-    {
+    if (ISDIR(*RepairFid) && (l != NULL)) {
 	time_t modtime;
 	int rc;
 	struct repair *rep_ent;
 
-	if (l != NULL) {
-	    /* found localhost in fixfile */
-	    rep_ent = l->repairList;
+	LOG(0, ("repvol::Repair: (%s) pruning CML from fixfile!\n",
+		FID_(RepairFid)));
 
-	    rc = time(&modtime);
-	    if (rc == (time_t)-1) {
-	      code = errno;
-	      goto Exit;
-	    }
+	/* found localhost in fixfile */
+	rep_ent = l->repairList;
 
-	    for (unsigned int i = 0; i < l->repairCount; i++) {
+	rc = time(&modtime);
+	if (rc == (time_t)-1) {
+	  LOG(0, ("repvol::Repair: (%s) time() failed!\n",
+		  FID_(RepairFid)));
+	  code = errno;
+	  goto Exit;
+	}
 
-		switch (rep_ent[i].opcode) {
+	for (unsigned int i = 0; i < l->repairCount; i++) {
 
-		case REPAIR_REMOVEFSL: /* Remove file or (hard) link */
-		    Recov_BeginTrans();
-		    CML.cancelFreezes(1);
-		    code = LogRemove(modtime, uid, rFid, rep_ent[i].name,
-				     &(fidarr[i]), LCarr[i], UNSET_TID);
-		    CML.cancelFreezes(0);
-		    Recov_EndTrans(CMFP);
-		    break;
-		case REPAIR_REMOVED:   /* Remove dir */
-		    Recov_BeginTrans();
-		    CML.cancelFreezes(1);
-		    code = LogRmdir(modtime, uid, rFid, rep_ent[i].name,
-				    &(fidarr[i]), UNSET_TID);
-		    CML.cancelFreezes(0);
-		    Recov_EndTrans(CMFP);
-		    break;
-		case REPAIR_SETMODE:
-		    Recov_BeginTrans();
-		    CML.cancelFreezes(1);
-		    code = LogChmod(modtime, uid, rFid, 
-				    (RPC2_Unsigned)rep_ent[i].parms[0], UNSET_TID);
-		    CML.cancelFreezes(0);
-		    Recov_EndTrans(CMFP);
-		    break;
-		case REPAIR_SETOWNER: /* Have to be a sys administrator for this */
-		    Recov_BeginTrans();
-		    CML.cancelFreezes(1);
-		    code = LogChown(modtime, uid, rFid, 
-				    (UserId)rep_ent[i].parms[0], UNSET_TID);
-		    CML.cancelFreezes(0);
-		    Recov_EndTrans(CMFP);
-		    break;
-		case REPAIR_SETMTIME:
-		    Recov_BeginTrans();
-		    CML.cancelFreezes(1);
-		    code = LogUtimes(modtime, uid, rFid, 
-				     (Date_t)rep_ent[i].parms[0], UNSET_TID);
-		    CML.cancelFreezes(0);
-		    Recov_EndTrans(CMFP);
-		    break;
-		case REPAIR_RENAME:
-		    Recov_BeginTrans();
-		    CML.cancelFreezes(1);
-		    code = LogRename(modtime, uid, rFid, rep_ent[i].name, 
-				     &(fidarr[((2 * l->repairCount) + i)]), 
-				     rep_ent[i].name, &(fidarr[i]), 
-				     &(fidarr[(l->repairCount + i)]), 
-				     LCarr[(l->repairCount + i)], UNSET_TID);
-		    CML.cancelFreezes(0);
-		    Recov_EndTrans(CMFP);
-		    break;
+	  switch (rep_ent[i].opcode) {
 
-		/* These should never occur in the fixfile for the local replica */
-		case REPAIR_CREATEF: 	 /* Create file */
-		case REPAIR_CREATED:	 /* Create directory */
-		case REPAIR_CREATES:	 /* Create sym link */
-		case REPAIR_CREATEL:	 /* Create (hard) link */
-		case REPAIR_SETACL:	 /* Set rights */
-		case REPAIR_SETNACL:	 /* Set negative rights */
-		    LOG(0, ("Unexpected local repair command code (%d)", rep_ent[i].opcode));
-		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
-		    break;
+	  case REPAIR_REMOVEFSL: /* Remove file or (hard) link */
+	    Recov_BeginTrans();
+	    CML.cancelFreezes(1);
+	    code = LogRemove(modtime, uid, rFid, rep_ent[i].name,
+			     &(fidarr[i]), LCarr[i], UNSET_TID);
+	    CML.cancelFreezes(0);
+	    Recov_EndTrans(CMFP);
+	    break;
+	  case REPAIR_REMOVED:   /* Remove dir */
+	    Recov_BeginTrans();
+	    CML.cancelFreezes(1);
+	    code = LogRmdir(modtime, uid, rFid, rep_ent[i].name,
+			    &(fidarr[i]), UNSET_TID);
+	    CML.cancelFreezes(0);
+	    Recov_EndTrans(CMFP);
+	    break;
+	  case REPAIR_SETMODE:
+	    Recov_BeginTrans();
+	    CML.cancelFreezes(1);
+	    code = LogChmod(modtime, uid, rFid,
+			    (RPC2_Unsigned)rep_ent[i].parms[0], UNSET_TID);
+	    CML.cancelFreezes(0);
+	    Recov_EndTrans(CMFP);
+	    break;
+	  case REPAIR_SETOWNER: /* Have to be a sys administrator for this */
+	    Recov_BeginTrans();
+	    CML.cancelFreezes(1);
+	    code = LogChown(modtime, uid, rFid,
+			    (UserId)rep_ent[i].parms[0], UNSET_TID);
+	    CML.cancelFreezes(0);
+	    Recov_EndTrans(CMFP);
+	    break;
+	  case REPAIR_SETMTIME:
+	    Recov_BeginTrans();
+	    CML.cancelFreezes(1);
+	    code = LogUtimes(modtime, uid, rFid,
+			     (Date_t)rep_ent[i].parms[0], UNSET_TID);
+	    CML.cancelFreezes(0);
+	    Recov_EndTrans(CMFP);
+	    break;
+	  case REPAIR_RENAME:
+	    Recov_BeginTrans();
+	    CML.cancelFreezes(1);
+	    code = LogRename(modtime, uid, rFid, rep_ent[i].name,
+			     &(fidarr[((2 * l->repairCount) + i)]),
+			     rep_ent[i].name, &(fidarr[i]),
+			     &(fidarr[(l->repairCount + i)]),
+			     LCarr[(l->repairCount + i)], UNSET_TID);
+	    CML.cancelFreezes(0);
+	    Recov_EndTrans(CMFP);
+	    break;
 
-		case REPAIR_REPLICA: 
-		    LOG(0, ("Unexpected REPAIR_REPLICA -- truncated fixfile?"));
-		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
-		    break;
+	    /* These should never occur in the fixfile for the local replica */
+	  case REPAIR_CREATEF: 	 /* Create file */
+	  case REPAIR_CREATED:	 /* Create directory */
+	  case REPAIR_CREATES:	 /* Create sym link */
+	  case REPAIR_CREATEL:	 /* Create (hard) link */
+	  case REPAIR_SETACL:	 /* Set rights */
+	  case REPAIR_SETNACL:	 /* Set negative rights */
+	    LOG(0, ("Unexpected local repair command code (%d)", rep_ent[i].opcode));
+	    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
+	    break;
 
-		default:
-		    LOG(0, ("Unknown local repair command code (%d)", rep_ent[i].opcode));
-		    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
-		    break;
-		}
+	  case REPAIR_REPLICA:
+	    LOG(0, ("Unexpected REPAIR_REPLICA -- truncated fixfile?"));
+	    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
+	    break;
 
-		/* we still want to send a COP2 to finalize the repair of the
-		 * server-server conflict. */
-		// if (code != 0) goto Exit;
-	    }
+	  default:
+	    LOG(0, ("Unknown local repair command code (%d)", rep_ent[i].opcode));
+	    code = EINVAL; /* XXXX - Could use a more meaningful return code here */
+	    break;
+	  }
+
+	  /* we still want to send a COP2 to finalize the repair of the
+	   * server-server conflict. */
+	  // if (code != 0) goto Exit;
 	}
     }
 
@@ -612,6 +641,11 @@ Exit:
 	    ResSubmit(0, RepairFid);
 	}
     }
+    else if ((code == 0) && localFake) {
+      /* XXX: walk the cml here, unsetting to_be_repaired on everything */
+      /* a 'cfs forcereintegrate' should then succeed and clear the inc */
+    }
+
     if (code ==	ESYNRESOLVE) code = EMULTRSLTS;	/* "multiple results" */
 
     return(code);

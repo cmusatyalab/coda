@@ -136,7 +136,7 @@ int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 		rep.parms[0] = 0;
 		rep.parms[1] = 0;
 		rep.parms[2] = 0;
-		InsertListHdr(&rep, ops, j);
+		InsertListHdr(nreplicas, &rep, ops, j);
 	    }
     }
     else 
@@ -162,7 +162,7 @@ int RepairRename (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 	    rep.parms[2] = parentfid[j].Unique;
 	    rep.parms[3] = parentfid[i].Vnode;
 	    rep.parms[4] = parentfid[i].Unique;
-	    InsertListHdr(&rep, ops, j);
+	    InsertListHdr(nreplicas, &rep, ops, j);
 	    
 	    //printf("%s/%s in (%x.%x) should be renamed to %s in (%x.%x)\n",
 	    // parentpath[j], childpath[j], parentfid[j].Vnode, parentfid[j].Unique,
@@ -232,7 +232,7 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 	rep.parms[0] = RepVolume;
 	rep.parms[1] = deGroup[0]->fid.Vnode;
 	rep.parms[2] = deGroup[0]->fid.Unique;
-	InsertListHdr(&rep, ops, i);
+	InsertListHdr(nreplicas, &rep, ops, i);
     }
     free(ObjFound);
     return (0);
@@ -271,7 +271,7 @@ int RepairSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 	rep.parms[0] = 0;
 	rep.parms[1] = 0;
 	rep.parms[2] = 0;
-	InsertListHdr(&rep, ops, i);
+	InsertListHdr(nreplicas, &rep, ops, i);
     }
     free(ObjFound);
     return (0); 

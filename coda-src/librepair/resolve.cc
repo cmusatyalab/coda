@@ -234,19 +234,19 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 	  /* get index of direntry */
 	  i = nextindex();
 	  if (Fid.Vnode != 1 || Fid.Unique != 1) {
-	      direntriesarr[i].fid.Vnode = Fid.Vnode;
-	      direntriesarr[i].fid.Unique = Fid.Unique;
 	      direntriesarr[i].MtPt = 0;
 	  }
 	  else {
 	      if (res_getmtptfid(path, &Fid, &VV)) return -1;
-	      direntriesarr[i].fid.Vnode = Fid.Vnode;
-	      direntriesarr[i].fid.Unique = Fid.Unique;
 	      direntriesarr[i].MtPt = 1;
 	  }
 	  strcpy(direntriesarr[i].name, dp->d_name);
 	  direntriesarr[i].VV = VV;
-	  direntriesarr[i].fid.Volume = j;
+
+	  direntriesarr[i].fid.Vnode = Fid.Vnode;
+	  direntriesarr[i].fid.Unique = Fid.Unique;
+	  direntriesarr[i].fid.Volume = Fid.Volume;
+
 	  direntriesarr[i].lookedAt = 0;
 	  count++;
 	  free(path);
@@ -256,6 +256,9 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
       /* fill in the resreplica */
       if (res_getfid(names[j], &Fid, &VV)) return -1;
       dirs[j].nentries = count;
+
+      CODA_ASSERT(Fid.Volume != 0xffffffff);
+
       dirs[j].fid.Volume = Fid.Volume;
       dirs[j].fid.Vnode = Fid.Vnode;
       dirs[j].fid.Unique = Fid.Unique;
@@ -329,7 +332,7 @@ int GetConflictType (int nreplicas, resreplica *dirs, resdir_entry **deGroup, in
 
 void InitListHdr (int nreplicas, resreplica *dirs, struct listhdr **opList)
 {   struct listhdr *lh;
-    *opList = lh = (struct listhdr *) malloc(nreplicas * sizeof(struct listhdr));
+  *opList = lh = (struct listhdr *) malloc(nreplicas * sizeof(struct listhdr));
     for (int i = 0; i < nreplicas; i++){
 	lh[i].replicaFid = dirs[i].fid;
 	lh[i].repairCount = 0;
@@ -338,11 +341,22 @@ void InitListHdr (int nreplicas, resreplica *dirs, struct listhdr **opList)
 }
 
 /* inserts a copy of a repair struct into the repair ops list */
-int InsertListHdr (struct repair *rep, struct listhdr **ops, int index)
+int InsertListHdr (int nreplicas, struct repair *rep, struct listhdr **ops, VolumeId replicaVolId)
 {
-    int size = (*ops)[index].repairCount;
+    int size, index;
     struct repair *repList;
     
+    if(!ops)
+      return -1;
+
+    for(index = 0; index < nreplicas; index++)
+	if((*ops)[index].replicaFid.Volume == replicaVolId)
+	  break;
+
+    CODA_ASSERT(index < nreplicas);
+
+    size = (*ops)[index].repairCount;
+
     repList = (struct repair *)malloc(sizeof(struct repair) * (size + 1));
     if (repList == 0) return -1;
     if (size > 0) 
@@ -438,29 +452,15 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     }
     if (uselsoutput) {
 	char cmd[2 * MAXPATHLEN];
-	resdir_entry *rde;
-	char *path, *replicaname;
-	char cwdpath[MAXPATHLEN];
-	char *cwd = getcwd(cwdpath, MAXPATHLEN);
-	chdir(replicatedname);
-	for (i = first; i < last; i++) {
-	    rde = sortedArrByName[i];
-	    path = dirs[rde->replicaid].path;  	// this has a trailing /
-	    path[strlen(path)-1] = '\0'; 		// erase the last /
-	    replicaname = rindex(path, '/') + 1;
-	    sprintf(cmd, "/bin/ls -lF %s/%s",
-		    replicaname, sortedArrByName[first]->name);
-	    system(cmd);
-	    path[strlen(path)]='/';	// pretty gross!
-	}
+	sprintf(cmd, "/bin/ls -lF %s/", replicatedname);
+	system(cmd);
 	printf("\n\n");
-	if (cwd) chdir(cwd);
     }
     
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
 	printf("%s%s\n\tFid: (%08x.%08x) VV:(%d %d %d %d %d %d %d %d)(%x.%x)\n",
-	       dirs[rde->replicaid].path, sortedArrByName[first]->name,
+	       dirs[i].path, sortedArrByName[first]->name,
 	       rde->fid.Vnode, rde->fid.Unique, rde->VV.Versions.Site0,
 	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
 	       rde->VV.Versions.Site4, rde->VV.Versions.Site5, rde->VV.Versions.Site6,
@@ -473,7 +473,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     CODA_ASSERT((last-first) <= MAXHOSTS);
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
-	sprintf(nnpath, "%s%s", dirs[rde->replicaid].path, rde->name);
+	sprintf(nnpath, "%s%s", dirs[i].path, rde->name);
 	if (inf->interactive) {
 	    printf("Should %s be removed? ", nnpath);
 	    answers[i-first] = Parser_getbool("", 0);
@@ -542,7 +542,8 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 		    rep.opcode = REPAIR_REMOVEFSL;
 		strcpy(rep.name, sortedArrByName[first+i]->name);
 		rep.parms[0] = rep.parms[1] = rep.parms[2] = 0;
-		InsertListHdr(&rep, opList, sortedArrByName[first+i]->replicaid);
+		InsertListHdr(nreplicas, &rep, opList,
+			      sortedArrByName[first+i]->fid.Volume);
 	    }
 	}
 	return(1);
