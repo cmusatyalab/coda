@@ -625,7 +625,7 @@ Exit:
     if (fidarr != NULL) free(fidarr);
     if (hlist != NULL) free(hlist);
 
-    if ((code == 0) && !localFake) {
+    if ((code == 0) && !localFake) { /* successful server/server */
 	/* Purge the fake object. */
 	fsobj *f = FSDB->Find(RepairFid);
 	if (f != 0) {
@@ -641,9 +641,10 @@ Exit:
 	    ResSubmit(0, RepairFid);
 	}
     }
-    else if ((code == 0) && localFake) {
-      /* XXX: walk the cml here, unsetting to_be_repaired on everything */
-      /* a 'cfs forcereintegrate' should then succeed and clear the inc */
+    else if ((code == 0) && localFake) { /* successful local/global */
+      /* Walk the cml here, unsetting to_be_repaired on everything.
+       * A 'cfs forcereintegrate' should then succeed/clear the conflict. */
+      CML.ClearToBeRepaired();
     }
 
     if (code ==	ESYNRESOLVE) code = EMULTRSLTS;	/* "multiple results" */

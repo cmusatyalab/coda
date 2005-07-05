@@ -4189,3 +4189,23 @@ cmlent *cml_iterator::operator()() {
 	}
     }
 }
+
+/*
+ * Unmark all cmlent's to_be_repaired flag. Useful after repair.
+ */
+void ClientModifyLog::ClearToBeRepaired(void)
+{
+    cmlent *m;
+    cml_iterator next(*this, CommitOrder);
+    int num = 0;
+
+    while ((m = next()))
+      if (m->flags.to_be_repaired) {
+	Recov_BeginTrans();
+	RVMLIB_REC_OBJECT(m->flags);
+	m->flags.to_be_repaired = 0;
+	Recov_EndTrans(MAXFP);
+	num++;
+      }
+    LOG(0, ("ClientModifyLog::ClearRepairFlags: cleared %d entries\n", num));
+}
