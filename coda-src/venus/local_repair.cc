@@ -541,24 +541,21 @@ void lrdb::InitCMLSearch(VenusFid *FakeRootFid)
 
 /*
   BEGIN_HTML
-  <a name="listlocal"><strong> traverse the local subtree, gather and
+  <a name="listlocal"><strong> traverse fid's volume, gather and
   print all the involved local mutation operations </strong></a>
   END_HTML
 */
+/* THIS COULD BE fsdb IF WE WANT TO GET RID OF local-repair db */
 /* must not be called from within a transaction */
-void lrdb::ListCML(VenusFid *FakeRootFid, FILE *fp)
+void lrdb::ListCML(VenusFid *fid, FILE *fp)
 {
     /* list the CML records of subtree rooted at FakeRootFid in text form */
-    OBJ_ASSERT(this, FakeRootFid);
+    OBJ_ASSERT(this, fid);
     dlist vol_list;
 
-    LOG(100, ("lrdb::ListCML: FakeRootFid = %s\n", FID_(FakeRootFid)));
-    VenusFid *LocalRootFid = RFM_LookupLocalRoot(FakeRootFid);
-    VenusFid *GlobalRootFid = RFM_LookupGlobalRoot(FakeRootFid);
-    OBJ_ASSERT(this, LocalRootFid && GlobalRootFid);
-
+    LOG(100, ("lrdb::ListCML: fid = %s\n", FID_(fid)));
     {	/* travese the subtree of the local replica */
-	fsobj *LocalRoot = FSDB->Find(LocalRootFid);
+	fsobj *LocalRoot = FSDB->Find(fid);
 	OBJ_ASSERT(this, LocalRoot);
 	dlist Stack;
 	optent *opt = new optent(LocalRoot);
@@ -566,13 +563,9 @@ void lrdb::ListCML(VenusFid *FakeRootFid, FILE *fp)
 	while (Stack.count() > 0) {		/* While Stack is not empty */
 	    opt = (optent *)Stack.get();	/* Pop the Stack */
 	    fsobj *obj = opt->GetFso();		/* get the current tree node fsobj object */
-	    OBJ_ASSERT(this, obj && obj->IsLocalObj());
 	    VenusFid *LFid = &obj->fid;
-	    VenusFid *GFid = LGM_LookupGlobal(LFid);
-	    OBJ_ASSERT(this, FID_IsLocalFake(LFid) && GFid != NULL);	    
-
 	    {	/* built vol_list */
-		volent *Vol = VDB->Find(MakeVolid(GFid));
+		volent *Vol = VDB->Find(MakeVolid(LFid));
                 CODA_ASSERT(Vol && Vol->IsReplicated());
                 repvol *vp = (repvol *)Vol;
 		vpt_iterator next(vol_list);
@@ -616,12 +609,8 @@ void lrdb::ListCML(VenusFid *FakeRootFid, FILE *fp)
 	while ((vpt = next())) {
 	    cml_iterator next(*(vpt->GetVol()->GetCML()), CommitOrder);
 	    cmlent *m;
-	    while ((m = next())) {
-		/* check that this cmlent belongs to the subtree rooted	at LocalRoot */
-		if (m->InLocalRepairSubtree(LocalRootFid)) {
-		    m->writeops(fp);
-		}
-	    }
+	    while ((m = next()))
+	      m->writeops(fp);
 	}
     }
 

@@ -1628,21 +1628,17 @@ V_FreeLocks:
 				int dummy;
 				char fpath[CODA_MAXPATHLEN];
 				sscanf((char *) data->in, "%d %s", &dummy, fpath);
-				if (LRDB->repair_root_fid == NULL) {
-				    sprintf((char *) data->out, "no repair session going on\n");
-				    u.u_error = ENOENT;
+
+				FILE *fp = fopen(fpath, "w");
+				if (fp == NULL) {
+				  u.u_error = ENOENT;
+				  sprintf((char *) data->out, "cannot open %s\n", fpath);
 				} else {
-				    FILE *fp = fopen(fpath, "w");
-				    if (fp == NULL) {
-					u.u_error = ENOENT;
-					sprintf((char *) data->out, "can not open %s\n", fpath);
-				    } else {
-					LRDB->ListCML(LRDB->repair_root_fid, fp);
-					sprintf((char *) data->out, "local mutations are:\n");
-					fflush(fp);
-					fclose(fp);
-					u.u_error = 0;
-				    }
+				  LRDB->ListCML(fid, fp); /* ???? */
+				  sprintf((char *) data->out, "local mutations are:\n");
+				  fflush(fp);
+				  fclose(fp);
+				  u.u_error = 0;
 				}
 				data->out_size = (short)strlen((char *) data->out) + 1;
 				break;

@@ -449,11 +449,9 @@ int fsobj::IsToBeRepaired(void) {
        * when we have a directory conflict and expand it, but the _localcache
        * replica's children show up as inconsistent due to bindings. */
 
-      if (m->IsToBeRepaired()) {
-	LOG(10, ("fsobj::IsToBeRepaired: (%s) in local/global conflict!\n",
-		FID_(&fid)));
+      if (m->IsToBeRepaired())
 	return 1;
-      }
+
       /* else this cmlent is not in conflict */
     }
   }
