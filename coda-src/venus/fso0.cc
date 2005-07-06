@@ -717,12 +717,22 @@ RestartFind:
 
 		/* Mark fsobj in server/server conflict */
 		if (code == EINCONS && !f->IsFake()) {
-		    k_Purge(&f->fid, 1);
-		    f->flags.fake = 1;
-		    LOG(0, ("fsdb::Get: (%s) in server/server conflict\n",
-			    FID_(key)));
-		    /* fall through if we're not GetInconsistent-ing */
-		}
+		  char path[MAXPATHLEN];
+		  f->GetPath(path, PATH_FULL);
+
+		  Recov_BeginTrans();
+		  RVMLIB_REC_OBJECT(f->flags);
+		  f->flags.fake = 1;
+		  Recov_EndTrans(MAXFP);
+
+		  k_Purge(&f->fid, 1);
+
+		  LOG(0, ("fsdb::Get: %s(%s) in server/server conflict\n",
+			  path, FID_(key)));
+		  MarinerLog("fsobj::CONFLICT (server/server): %s\n\t(%s)\n",
+			     path, FID_(key));
+		} /* s/s conflict objs fall through if(GetInconsistent) */
+
 		if (code && !(code == EINCONS && GetInconsistent)) {
                     if (code == ETIMEDOUT)
                       LOG(100, ("fsdb::Get: TIMEDOUT after GetAttr\n"));

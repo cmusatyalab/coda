@@ -61,7 +61,7 @@ extern "C" {
  */
 int fsobj::ExpandObject(void)
 {
-  fsobj *mod_fso, *fakedir, *localcache;
+    fsobj *mod_fso, *fakedir, *localcache;
     int isroot, rc;
     char name[CODA_MAXNAMLEN+1];
 
@@ -451,10 +451,10 @@ int fsobj::IsToBeRepaired(void) {
 
       if (m->IsToBeRepaired()) {
 	LOG(10, ("fsobj::IsToBeRepaired: (%s) in local/global conflict!\n",
-		 FID_(&fid)));
+		FID_(&fid)));
 	return 1;
       }
-      /* else this cmlent is reintegratable */
+      /* else this cmlent is not in conflict */
     }
   }
   return 0;

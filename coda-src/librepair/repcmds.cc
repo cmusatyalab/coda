@@ -283,8 +283,10 @@ int CompareDirs(struct conflict *conf, char *fixfile, struct repinfo *inf, char 
 	    CODA_ASSERT(!compareFids(&k[i].replicaFid, &rwv->fid));
 	}
 	fprintf(file,"\nreplica %s %08x \n", rwv->srvname, k[i].replicaFid.Volume);
-	for (j = 0; j < k[i].repairCount; j++)
+	for (j = 0; j < k[i].repairCount; j++) {
 	    repair_printline(&(k[i].repairList[j]), file);
+	    nConflicts++;
+	}
 	if ( setacl )
 	    fprintf(file, "\tsetacl %s %s\n", inf->user, inf->rights);
 	if ( setmode )

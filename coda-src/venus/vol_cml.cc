@@ -409,20 +409,20 @@ void ClientModifyLog::MarkFailedMLE(int ix)
     repvol *vol = strbase(repvol, this, CML);
     int i = 0;
 
-    LOG(10, ("ClientModifyLog::MarkFailedMLE: checking the log..\n"));
     cml_iterator next(*this);
     cmlent *m;
     while ((m = next()))
 	if (m->tid == vol->cur_reint_tid) 
 	  if (i++ == ix || ix == -1) {
-	    char opmsg[1024];
-	    
-	    m->GetLocalOpMsg(opmsg);
-	    
-	    LOG(0, ("ClientModifyLog::MarkFailedMLE: failed "
-		    "reintegrating: %s\n", opmsg));
+	    char path[MAXPATHLEN];
+	    RecoverPathName(path, &m->u.u_repair.Fid, this, m);
 
-		//	    k_Purge(&conflict->pfid, 1);
+	    LOG(0, ("fsdb::Get: %s(%s) in local/global conflict\n",
+		    path, FID_(&m->u.u_repair.Fid)));
+	    MarinerLog("fsobj::CONFLICT (local/global): %s\n\t(%s)\n",
+		       path, FID_(&m->u.u_repair.Fid));
+
+	    // k_Purge(&conflict->pfid, 1);
 	    k_Purge(&m->u.u_repair.Fid, 0);
 
 	    m->flags.failed = 1;
@@ -4191,7 +4191,7 @@ cmlent *cml_iterator::operator()() {
 }
 
 /*
- * Unmark all cmlent's to_be_repaired flag. Useful after repair.
+ * Unmark all cmlent's to_be_repaired flag. Useful after DoRepair.
  */
 void ClientModifyLog::ClearToBeRepaired(void)
 {

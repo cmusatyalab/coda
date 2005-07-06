@@ -643,7 +643,8 @@ Exit:
     }
     else if ((code == 0) && localFake) { /* successful local/global */
       /* Walk the cml here, unsetting to_be_repaired on everything.
-       * A 'cfs forcereintegrate' should then succeed/clear the conflict. */
+       * A 'cfs forcereintegrate' should then succeed/clear the conflict,
+       * if it doesn't happen on its own. */
       CML.ClearToBeRepaired();
     }
 
