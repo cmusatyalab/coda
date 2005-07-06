@@ -668,7 +668,7 @@ static void VolDumpLWP(void *arg)
 
 }
 
-long WriteDump(RPC2_Handle rpcid, unsigned long offset, unsigned long *nbytes, VolumeId volid, SE_Descriptor *BD)
+long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
     long rc = 0;
     struct rockInfo *rock;
@@ -797,7 +797,7 @@ static void restorefromback(void)
     exit(0);
 }
 
-long ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, VolumeId volid, SE_Descriptor *BD)
+long S_ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, VolumeId volid, SE_Descriptor *BD)
 {
     long rc = 0;
     struct rockInfo *rock;

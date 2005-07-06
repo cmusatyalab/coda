@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.29 $
+#define RCSVERSION $Revision: 4.30 $
 
 /* vol-dump.c */
 
@@ -713,7 +713,7 @@ long S_VolDumpEstimate(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
     Error error;
     FILE *Ancient = NULL;
     VolumeId volnum;
-    unsigned long estimates[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    RPC2_Unsigned estimates[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     /* To keep C++ 2.0 happy */
     VolumeId volumeNumber = (VolumeId)formal_volumeNumber;

@@ -377,7 +377,9 @@ int IsCreatedEarlier (struct listhdr **opList, int index, VnodeId vnode, Unique_
     return 0;
 }
 
-void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int nentries, int conflictType, listhdr **opList, char *volmtpt, VolumeId RepVolume, char *realm)
+void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
+		      int nentries, int conflictType, listhdr **opList,
+		      char *volmtpt, VolumeId RepVolume, char *realm)
 {
     /* call the appropriate repair function */
     switch (conflictType){
@@ -386,7 +388,8 @@ void ResolveConflict (int nreplicas, resreplica *dirs, resdir_entry **deGroup, i
       case ALL_PRESENT:
 	break;
       case SUBSET_RENAME:
-	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt, RepVolume, realm);
+	RepairRename(nreplicas, dirs, deGroup, nentries, opList, volmtpt,
+		     RepVolume, realm);
 	break;
       case SUBSET_CREATE:
 	RepairSubsetCreate(nreplicas, dirs, deGroup, nentries, opList, RepVolume);

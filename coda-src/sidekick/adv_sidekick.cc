@@ -644,7 +644,7 @@ long S_ServerConnectionWeak(RPC2_Handle _cid, RPC2_String ServerName) {
     return(RPC2_SUCCESS);
 }
 
-long S_NetworkQualityEstimate(RPC2_Handle _cid, long numEstimates, QualityEstimate serverList[]) {
+long S_NetworkQualityEstimate(RPC2_Handle _cid, RPC2_Integer numEstimates, QualityEstimate serverList[]) {
 
     return(RPC2_SUCCESS);
 }

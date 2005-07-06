@@ -209,8 +209,8 @@ static void Connect()
     RPC2_CountedBS cident;
     RPC2_EncryptionKey secret;
     char hostname[64];
-    long portmapid;
-    long port;
+    RPC2_Integer portmapid;
+    RPC2_Integer port;
 
     portmapid = portmap_bind(host);
     if ( !portmapid ) {

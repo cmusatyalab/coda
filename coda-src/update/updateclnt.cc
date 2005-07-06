@@ -591,8 +591,8 @@ static void ReConnect()
     RPC2_CountedBS cident;
     RPC2_EncryptionKey secret;
     char hostname[64];
-    long portmapid;
-    long port;
+    RPC2_Integer portmapid;
+    RPC2_Integer port;
 
     if (con) {
 	LogMsg(0, SrvDebugLevel, stdout, "Unbinding\n");

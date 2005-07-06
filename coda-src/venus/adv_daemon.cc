@@ -167,7 +167,7 @@ long S_ConnectionAlive(RPC2_Handle _cid, RPC2_Integer userId) {
     else return CAENOTVALID;
 }
 
-long S_RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, long numEvents, InterestValuePair events[]) {
+long S_RegisterInterest(RPC2_Handle _cid, RPC2_Integer userId, RPC2_Integer numEvents, InterestValuePair events[]) {
   LOG(0, ("RegisterInterest\n"));
   adv_mon.RegisterInterest((uid_t)userId, numEvents, events);
   return RPC2_SUCCESS;
@@ -252,7 +252,7 @@ long S_OutputUsageStatistics(RPC2_Handle _cid, RPC2_Integer userId, RPC2_String 
   return RPC2_SUCCESS;
 }
 
-long S_HoardCommands(RPC2_Handle _cid, RPC2_Integer userId, long numCommands, HoardCmd commands[]) {
+long S_HoardCommands(RPC2_Handle _cid, RPC2_Integer userId, RPC2_Integer numCommands, HoardCmd commands[]) {
     LOG(0, ("E HoardCommands\n"));
     return RPC2_SUCCESS;
 }

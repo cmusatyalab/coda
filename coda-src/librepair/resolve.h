@@ -27,6 +27,7 @@ listed in the file CREDITS.
 /* Header file for definitions used by the 
  * resolution subsystem  
  */
+#include <vcrcommon.h>
 
 #ifdef MAXNAMELEN
 #undef MAXNAMELEN

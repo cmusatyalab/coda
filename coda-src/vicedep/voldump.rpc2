@@ -17,6 +17,7 @@ Coda are listed in the file CREDITS.
 #*/
 %}
 
+Server Prefix "S";
 Subsystem "volDump";
 
 #define VOLDUMP_SUBSYSTEMID 123

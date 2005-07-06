@@ -50,9 +50,12 @@ Pittsburgh, PA.
 #define FALSE	0
 #endif
 
-typedef unsigned int bit32;	/* Unsigned, 32 bits */
-typedef unsigned short bit16;	/* Unsigned, 16 bits */
-typedef unsigned char byte;	/* Unsigned, 8 bits */
+#include <rpc2/rpc2.h>
+#include <stdint.h>
+
+typedef u_int32_t bit32;	/* Unsigned, 32 bits */
+typedef u_int16_t bit16;	/* Unsigned, 16 bits */
+typedef u_int8_t  byte;		/* Unsigned, 8 bits */
 
 typedef bit32	Device;		/* Unix device number */
 typedef bit32	Inode;		/* Unix inode number */
@@ -60,10 +63,10 @@ typedef bit32	Error;		/* Error return code */
 
 #ifndef _FID_T_
 #define _FID_T_
-typedef unsigned long VolumeId;
-typedef unsigned long VolId;
-typedef unsigned long VnodeId;
-typedef unsigned long Unique_t;
+typedef RPC2_Unsigned VolumeId;
+typedef RPC2_Unsigned VolId;
+typedef RPC2_Unsigned VnodeId;
+typedef RPC2_Unsigned Unique_t;
 typedef bit32 FileVersion;
 #endif
 
