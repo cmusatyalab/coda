@@ -657,10 +657,26 @@ int compareVV(int nreplicas, char **names, struct conflict *conf)
 	vvp[i] = NULL;
 
     for (i = 0; i < nreplicas; i++) {
-	if (repair_getfid(names[i], NULL, NULL, &vv[nhosts], msgbuf, sizeof(msgbuf)))
-	    printf("Couldn't get vv for %s: %s\n", names[i], msgbuf);
-	else
-	    nhosts++;
+      char replicaname[MAXPATHLEN], *lastslash = NULL;
+
+      /* Puneet's way to get replica name */
+      strcpy(replicaname, names[i]);
+      lastslash = rindex(replicaname, '/'); // the trailing /
+      if(lastslash == NULL)
+	continue;
+      *lastslash = '\0';
+      lastslash = rindex(replicaname, '/'); // the / before the replica name
+      if (lastslash == NULL)
+	continue;
+      lastslash++;
+
+      if(!strcmp(lastslash, "_localcache")) /* local VV's don't mean anything */
+	continue;
+
+      if (repair_getfid(names[i], NULL, NULL, &vv[nhosts], msgbuf, sizeof(msgbuf)))
+	printf("Couldn't get vv for %s: %s\n", names[i], msgbuf);
+      else
+	nhosts++;
     }
     for (i = 0; i < nhosts; i++)
 	vvp[i] = &vv[i];

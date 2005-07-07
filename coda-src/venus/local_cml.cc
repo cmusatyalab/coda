@@ -77,52 +77,6 @@ void cmlent::TranslateFid(VenusFid *global, VenusFid *local)
     LOG(100, ("cmlent::TranslateFid: %d fids have been replaced\n", count));
 }
 
-/* must not be called from within a transaction */
-int cmlent::LocalFakeify()
-{
-    int rc;
-    VenusFid *Fids[3];
-    GetAllFids(Fids);
-    /* 
-     * note that for each cmlent, Fids[0] is always the root fid of the
-     * subtree that are affected by the IFT. the only exception is 
-     * for a rename operation where Fids[2] could be the root fid of
-     * another subtree that is affected by the operation.
-     */
-    VenusFid *fid = Fids[0];
-    OBJ_ASSERT(this, !FID_IsLocalFake(fid));
-    fsobj *root;
-    OBJ_ASSERT(this, root = FSDB->Find(fid));
-    if (DYING(root)) {
-	LOG(100, ("cmlent::LocalFakeify: object %s removed\n",
-		  FID_(fid)));
-	/* it must belong to some local subtree to be repaired */
-	SetRepairFlag();
-	/* prevent this cmlent from being aborted or reintegrated later */
-	return ENOENT;
-    }
-    rc = root->LocalFakeify();
-    if (rc != 0) return rc;
-    
-    fid = Fids[2];
-    if (!fid || FID_IsLocalFake(fid)) {
-	SetRepairFlag();
-	return (0);
-    }
-    OBJ_ASSERT(this, root = FSDB->Find(fid));
-    if (DYING(root)) {
-	LOG(100, ("cmlent::LocalFakeify: object %s removed\n",
-		  FID_(fid)));
-	SetRepairFlag();
-	return ENOENT;
-    }
-    rc = root->LocalFakeify();
-    if (rc == 0) {
-	SetRepairFlag();	
-    }
-    return rc;
-}
-
 /* CheckRepair step 1: check mutation operand(s) */
 static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
 				  fsobj **global, fsobj **local,
@@ -133,7 +87,9 @@ static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
 
     LOG(100, ("cmlent::CheckRepair: %s on %s\n", operation, FID_(fid)));
 
-    rc = LRDB->FindRepairObject(fid, global, local);
+    //    rc = FSDB->Get(local, fid, 0, ????);
+    rc = ETXTBSY;
+
     if (rc != 0) {
 	/* figure out what the error was */
 	(*local)->GetPath(path, 1);
@@ -240,7 +196,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
     fsobj *GlobalObjs[3] = {NULL, NULL, NULL};
     fsobj *LocalObjs[3]  = {NULL, NULL, NULL};
     strcpy(msg, "no conflict");
-    
+    /* expand, if not already */
     switch (opcode) {
     case CML_Store_OP:
 	/* step 1 */
@@ -485,6 +441,7 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
     }
     if (!rc)
 	*mcode = *rcode = 0;
+    /* collapse (only if we weren't expanded before) */
 
     LOG(100, ("cmlent::CheckRepair: mcode = %d rcode = %d msg = %s\n", *mcode, *rcode, msg));
 }

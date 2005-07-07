@@ -59,15 +59,17 @@ struct repinfo {
     char interactive;         /* flag indicating whether repair is interactive */
 };
 
-/* definition of each directory entry in memory as used 
- * by the resolution subsystem */
+/* definition of directory entries within a directory conflict replica
+ * as used by the resolution subsystem */
 typedef struct {
     char    name[MAXNAMELEN + 1];   /* name of the entry */
+  /* char    realm  // not needed because cross-realm mtpts aren't supported
+   * (Jan has a good comment on authentication issues somewhere) */
     ViceFid fid;
     ViceVersionVector	VV;
     int	    MtPt;		    /* Is this child a mount point? */
-    int	    replicaid;              /* XXX: do we need this? -Adam */
     int	    lookedAt;
+    int     index;                  /* Functions as a index for resreplica arrays */
 } resdir_entry;
 
 /* definition of the parent directory replica */
@@ -75,9 +77,6 @@ typedef struct {
     int	    entry1;		    /* index of first child in table */
     int	    nentries;		    /* number of children */
     ViceFid fid;
-  //    long    replicaid;		    /* volume id of this replica */
-  //    VnodeId  vnode;		    /* fid of the parent directory */
-  //    Unique_t uniqfier;
     char    *path;		    /* path name of the RO mounted copy */
     u_short modebits;
     struct  Acl *al;
@@ -90,7 +89,7 @@ extern int direntriesarrsize;
 extern int nextavailindex;
 extern resdir_entry	**sortedArrByFidName;	/* for sorting the direntries in fid order*/
 extern resdir_entry	**sortedArrByName;	/* for sorting the direntries in name order */
-extern int totaldirentries;
+extern int  totaldirentries;
 extern int  nConflicts;
 
 

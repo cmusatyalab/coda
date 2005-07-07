@@ -1565,7 +1565,7 @@ int cmlent::cancel()
 {
     time_t curTime = Vtime();
 
-    if (flags.to_be_repaired) {
+    if (IsToBeRepaired()) {
 	if (log->cancelFrozenEntries && IsFrozen()) {
 	    LOG(0, ("cmlent::cancel: frozen cmlent with local fid, thawing and cancelling\n"));
 	    Thaw();

@@ -184,7 +184,7 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 	ObjFound[i] = 0;
     /* set flag whereever object exists */
     for (i = 0; i < nDirEntries ; i++)
-	ObjFound[(deGroup[i]->replicaid)] = 1;
+	ObjFound[(deGroup[i]->index)] = 1;
 
     /* object has to be created at all zero sites in ObjFound */
     for (i = 0; i < nreplicas; i ++){
@@ -198,8 +198,8 @@ int RepairSubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 		char *str;
 		struct stat buf;
 
-		str = (char *)malloc(strlen(deGroup[0]->name) + strlen(dirs[deGroup[0]->replicaid].path) + 1);
-		strcpy(str, dirs[deGroup[0]->replicaid].path);
+		str = (char *)malloc(strlen(deGroup[0]->name) + strlen(dirs[deGroup[0]->index].path) + 1);
+		strcpy(str, dirs[deGroup[0]->index].path);
 		strcat(str, deGroup[0]->name);
 #ifdef S_IFLNK
 		lstat(str, &buf);
@@ -253,7 +253,7 @@ int RepairSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup,
 	ObjFound[i] = 0;
     /* set flag whereever object exists */
     for (i = 0; i < nDirEntries ; i++)
-	ObjFound[(deGroup[i]->replicaid)] = 1;
+	ObjFound[(deGroup[i]->index)] = 1;
 
     /* object has to be removed at all 1 sites in ObjFound */
     for (i = 0; i < nreplicas; i ++){

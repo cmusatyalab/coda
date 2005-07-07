@@ -1564,10 +1564,8 @@ V_FreeLocks:
 */
 			case REP_CMD_CHECK:
 			    {
-				LRDB->ContinueRepairSession((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				break;
+			      CODA_ASSERT(0); //deprecated!
+			      break;
 			    }
 /*
   BEGIN_HTML
@@ -1600,10 +1598,32 @@ V_FreeLocks:
 */
 			case REP_CMD_DISCARD:
 			    {
-				LRDB->DiscardLocalMutation((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				break;
+			      volent *v = 0;
+			      if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
+
+			      int volmode = VM_MUTATING;
+			      int entered = 0;
+			      if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
+				goto Disc_FreeLocks;
+
+			      entered = 1;
+			      if(!v->IsReplicated()) {
+				u.u_error = EINVAL;
+				goto Disc_FreeLocks;
+			      }
+
+			      LRDB->DiscardLocalMutation((repvol *)v, (char *) data->out);
+			      data->out_size = (short)strlen((char *) data->out) + 1;
+			      u.u_error = 0;
+
+			    Disc_FreeLocks:
+			      if (entered)
+				v->Exit(volmode, u.u_uid);
+
+			      VDB->Put(&v);
+			      if (u.u_error == ERETRY)
+				u.u_error = EWOULDBLOCK;
+			      return;
 			    }
 /*
   BEGIN_HTML

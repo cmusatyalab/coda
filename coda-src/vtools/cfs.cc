@@ -147,7 +147,6 @@ static void WhereIs(int, char**, int);
 static void ForceReintegrate(int, char**, int);
 static void WriteDisconnect(int, char**, int);
 static void WriteReconnect(int, char**, int);
-static void CheckLocal(int, char**, int);
 static void ListLocal(int, char**, int);
 static void PreserveLocal(int, char**, int);
 static void PreserveAllLocal(int, char**, int);
@@ -403,13 +402,8 @@ struct command cmdarray[] =
             "Collapse expanded object (see cfs expand)",
             NULL
         },
-        {"checklocal", NULL, CheckLocal,
-            "cfs checklocal <dir>",
-            "Check local mutations for conflicts",
-            NULL
-        },
         {"listlocal", NULL, ListLocal,
-            "cfs listlocal",
+            "cfs listlocal <dir>",
             "List all local mutations on this client",
             NULL
         },
@@ -685,16 +679,20 @@ static int simple_pioctl(char *path, unsigned char opcode, int follow)
 static int repair_pioctl(char *path, unsigned char opcode, int follow)
 {
     struct ViceIoctl vio;
-    char buf[6];
+    char buf[6], space[2048];
+    int rc;
 
     sprintf(buf, "%d", opcode);
 
     vio.in = buf;
     vio.in_size = (short) strlen(buf) + 1;
-    vio.out = 0;
-    vio.out_size = 0;
+    vio.out = space;
+    vio.out_size = 2048;
 
-    return pioctl(path, _VICEIOCTL(_VIOC_REP_CMD), &vio, follow);
+
+    rc = pioctl(path, _VICEIOCTL(_VIOC_REP_CMD), &vio, follow);
+    printf(space);
+    return rc;
 }
 
 static void CheckVolumes(int argc, char *argv[], int opslot)
@@ -2651,34 +2649,16 @@ static void WriteReconnect(int argc, char *argv[], int opslot)
     }
 }
 
-static void CheckLocal(int argc, char *argv[], int opslot)
-    {
-    int  rc;
-    char *codadir;
-
-    switch(argc)
-        {
-        case 3: codadir = argv[2]; break;
-
-        default:
-            printf("Usage: %s\n", cmdarray[opslot].usetxt);
-            exit(-1);
-        }
-
-    rc = repair_pioctl(codadir, REP_CMD_CHECK, 1);
-    if (rc) { PERROR("VIOC_REP_CMD(REP_CMD_CHECK)"); exit(-1); }
-    }
-
 #define DEF_BUF 2048
 static void ListLocal(int argc, char *argv[], int opslot)
     {
       int  rc, fd, n;
-      char buf[DEF_BUF], filename[MAXPATHLEN], space[DEF_BUF];
+      char *volume, buf[DEF_BUF], filename[MAXPATHLEN], space[DEF_BUF];
       struct ViceIoctl vio;
 
       switch(argc)
         {
-        case 2: break;
+        case 3: volume = argv[2]; break;
 
         default:
 	  printf("Usage: %s\n", cmdarray[opslot].usetxt);
@@ -2696,7 +2676,7 @@ static void ListLocal(int argc, char *argv[], int opslot)
       vio.out = space;
       vio.out_size = DEF_BUF;
 
-      rc = pioctl(NULL, _VICEIOCTL(_VIOC_REP_CMD), &vio, 0);
+      rc = pioctl(volume, _VICEIOCTL(_VIOC_REP_CMD), &vio, 0);
       printf("%s\n", vio.out);
       if (rc) {
 	PERROR("VIOC_REP_CMD(REP_CMD_LIST)");

@@ -69,6 +69,7 @@ int nextavailindex = -1;
 resdir_entry	**sortedArrByFidName;	/* for sorting the direntries in fid order*/
 resdir_entry	**sortedArrByName;	/* for sorting the direntries in name order */
 int totaldirentries = 0;
+
 /* VolumeId RepVolume; */
 int nConflicts;
 static char AclBuf[2048];
@@ -201,10 +202,11 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
   /* allocate space for dir entries  - allocate some extra nodes */
   direntriesarrsize = (nreplicas + 1) * (buf.st_size/AVGDIRENTRYSIZE);
   CODA_ASSERT(direntriesarr = (resdir_entry *)malloc(direntriesarrsize * sizeof(resdir_entry)));
-  nextavailindex = -1;
-  totaldirentries = 0;
 
-  for(j = 0; j < nreplicas; j++){
+  totaldirentries = 0;
+  nextavailindex = -1;
+
+  for(j = 0; j < nreplicas; j++) {
       int count;
       ViceFid Fid;
       ViceVersionVector VV;
@@ -237,8 +239,9 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 	      direntriesarr[i].MtPt = 0;
 	  }
 	  else {
-	      if (res_getmtptfid(path, &Fid, &VV)) return -1;
-	      direntriesarr[i].MtPt = 1;
+	    if (res_getmtptfid(path, &Fid, &VV))
+	      return -1;
+	    direntriesarr[i].MtPt = 1;
 	  }
 	  strcpy(direntriesarr[i].name, dp->d_name);
 	  direntriesarr[i].VV = VV;
@@ -247,6 +250,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 	  direntriesarr[i].fid.Unique = Fid.Unique;
 	  direntriesarr[i].fid.Volume = Fid.Volume;
 
+	  direntriesarr[i].index = j;
 	  direntriesarr[i].lookedAt = 0;
 	  count++;
 	  free(path);
@@ -257,7 +261,7 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
       if (res_getfid(names[j], &Fid, &VV)) return -1;
       dirs[j].nentries = count;
 
-      CODA_ASSERT(Fid.Volume != 0xffffffff);
+      CODA_ASSERT(Fid.Volume != 0xffffffff); /* will trigger if we have an expanded dirent */
 
       dirs[j].fid.Volume = Fid.Volume;
       dirs[j].fid.Vnode = Fid.Vnode;
@@ -270,8 +274,10 @@ int getunixdirreps (int nreplicas, char *names[], resreplica **reps)
 	  return(-1);
       }
       dirs[j].modebits = buf.st_mode;
-      if (!(dirs[j].al = res_getacl(names[j]))) /* return -1; */
+      if (!(dirs[j].al = res_getacl(names[j]))) { /* return -1; */
 	  fprintf(stderr, "\t--> getacl on \"%s\" FAILED!!!\n", names[j]);
+	  return -1;
+      }
       dirs[j].owner = buf.st_uid;
   }
   return(0);
@@ -341,16 +347,17 @@ void InitListHdr (int nreplicas, resreplica *dirs, struct listhdr **opList)
 }
 
 /* inserts a copy of a repair struct into the repair ops list */
-int InsertListHdr (int nreplicas, struct repair *rep, struct listhdr **ops, VolumeId replicaVolId)
+int InsertListHdr (int nreplicas, struct repair *rep, struct listhdr **ops, VolumeId rvol)
 {
     int size, index;
     struct repair *repList;
-    
+    unsigned int rVolume = (unsigned int)rvol;
+
     if(!ops)
       return -1;
 
     for(index = 0; index < nreplicas; index++)
-	if((*ops)[index].replicaFid.Volume == replicaVolId)
+	if((*ops)[index].replicaFid.Volume == rVolume)
 	  break;
 
     CODA_ASSERT(index < nreplicas);
@@ -436,8 +443,10 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     int uselsoutput = 0;
     int i;
     char replicatedname[MAXPATHLEN];
-    strcpy(replicatedname, dirs[sortedArrByName[first]->replicaid].path);
-    char *lastslash = rindex(replicatedname, '/'); // the trailing /
+    char *lastslash;
+
+    strcpy(replicatedname, dirs[sortedArrByName[first]->index].path);
+    lastslash = rindex(replicatedname, '/'); // the trailing /
     if (!lastslash) 
 	printf("Couldn't find the parent directory of %s\n", sortedArrByName[first]->name);
     else {
@@ -460,7 +469,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
 	printf("%s%s\n\tFid: (%08x.%08x) VV:(%d %d %d %d %d %d %d %d)(%x.%x)\n",
-	       dirs[i].path, sortedArrByName[first]->name,
+	       dirs[rde->index].path, sortedArrByName[i]->name,
 	       rde->fid.Vnode, rde->fid.Unique, rde->VV.Versions.Site0,
 	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
 	       rde->VV.Versions.Site4, rde->VV.Versions.Site5, rde->VV.Versions.Site6,
@@ -469,11 +478,11 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     int answers[MAXHOSTS];
     char nnpath[MAXPATHLEN], fixedpath[MAXPATHLEN], lnpath[MAXPATHLEN];
     struct stat sbuf;
-    for (i= 0; i < MAXHOSTS; i++) answers[i] = -1;
+    for (i = 0; i < MAXHOSTS; i++) answers[i] = -1;
     CODA_ASSERT((last-first) <= MAXHOSTS);
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
-	sprintf(nnpath, "%s%s", dirs[i].path, rde->name);
+	sprintf(nnpath, "%s%s", dirs[rde->index].path, rde->name);
 	if (inf->interactive) {
 	    printf("Should %s be removed? ", nnpath);
 	    answers[i-first] = Parser_getbool("", 0);

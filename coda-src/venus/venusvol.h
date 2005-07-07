@@ -184,7 +184,7 @@ class ClientModifyLog {
     void MarkCommittedMLE(RPC2_Unsigned);
     void CancelPending();
     void ClearPending();
-    void ClearToBeRepaired();
+    void ClearToBeRepaired(); /* must not be called within transaction! */
     void CancelStores();
 
     void GetReintegrateable(int, int *);

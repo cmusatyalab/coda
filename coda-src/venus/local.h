@@ -130,8 +130,7 @@ public:
     /* below are methods for repair local subtrees */
     void BeginRepairSession(VenusFid *, int, char *);				/*U*/
     void EndRepairSession(int, char *);						/*U*/
-    void ContinueRepairSession(char *);						/*U*/
-    void DiscardLocalMutation(char *);					        /*N*/
+    void DiscardLocalMutation(repvol *, char *);				/*?*/
     void DiscardAllLocalMutation(char *);				        /*N*/
     void PreserveLocalMutation(char *);						/*N*/
     void PreserveAllLocalMutation(char *);					/*N*/

@@ -138,7 +138,7 @@ static int Renamed (int nreplicas, resreplica *dirs, resdir_entry **deGroup, int
 
     // check if object exists in some other directory
     for (i = 0; i < nDirEntries; i++) {
-	repfound[deGroup[i]->replicaid] = 1;
+	repfound[deGroup[i]->index] = 1;
 #ifdef notdef
 	long replicaid = deGroup[i]->replicaid;
 	for (int j = 0; j < nreplicas; j++) {
@@ -193,7 +193,7 @@ static int SubsetCreate (int nreplicas, resreplica *dirs, resdir_entry **deGroup
     /* This should be a subset remove except when there are */
     /* Hard Links */
     /* nsites == nreplicas */
-    if ((nl = nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid]))) == 1 || ISDIRVNODE(deGroup[0]->fid.Vnode))
+    if ((nl = nlinks(deGroup[0], &(dirs[deGroup[0]->index]))) == 1 || ISDIRVNODE(deGroup[0]->fid.Vnode))
 	/* file has no hard link or object is */
 	/* a directory (no hard links) */
 	return 0;
@@ -224,7 +224,7 @@ static int SubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **deGroup
 
     if (nSites > nDirEntries && nSites == nreplicas) {
 	/* we can be sure only when object is a file and has no hard links */
-	if (!ISDIRVNODE(deGroup[0]->fid.Vnode) && nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid])) >= 2){
+	if (!ISDIRVNODE(deGroup[0]->fid.Vnode) && nlinks(deGroup[0], &(dirs[deGroup[0]->index])) >= 2){
 	    printf("Object %s has hard links; Resolution cannot be automated\n", deGroup[0]->name);
 	    return 0;
 	}
@@ -252,7 +252,7 @@ static int MaybeSubsetRemove (int nreplicas, resreplica *dirs, resdir_entry **de
 
     if (nSites > nDirEntries && nSites == nreplicas) {
 	/* we can be sure only when object is a file and has no hard links */
-	if (!ISDIRVNODE(deGroup[0]->fid.Vnode) && nlinks(deGroup[0], &(dirs[deGroup[0]->replicaid])) >= 2){
+	if (!ISDIRVNODE(deGroup[0]->fid.Vnode) && nlinks(deGroup[0], &(dirs[deGroup[0]->index])) >= 2){
 	    printf("Object %s has hard links; Resolution cannot be automated\n", deGroup[0]->name);
 	    return 0;
 	}

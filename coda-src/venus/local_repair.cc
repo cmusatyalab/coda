@@ -276,62 +276,50 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 
 /*
   BEGIN_HTML
-  <a name="checklocal"><strong> the checklocal repair command is implemented by 
-  the ContinueRepairSession() method. </strong></a>
-  END_HTML
-*/
-/* need not be called from within a transaction */
-void lrdb::ContinueRepairSession(char *msg)
-{
-    OBJ_ASSERT(this, msg != NULL);
-
-    {	/* sanity checks */
-	if (repair_root_fid == NULL) {
-	    sprintf(msg,"there is no ongoing repair session");
-	    return;
-	}
-
-	if (subtree_view != SUBTREE_MIXED_VIEW) {
-	    sprintf(msg, "must set mixed repair-view");
-	    return;
-	}
-
-	if (current_search_cml == NULL) {
-	    sprintf(msg, "all local mutations processed");
-	    return;
-	}
-    }
-    {   /* perform local mutation checks, produce repair tool message */
-        char opmsg[1024];
-        char checkmsg[1024];
-        int mcode, rcode;
-        current_search_cml->GetLocalOpMsg(opmsg);
-        current_search_cml->CheckRepair(checkmsg, &mcode, &rcode);
-        sprintf(msg, "local mutation: %s\n%s", opmsg, checkmsg);
-    }
-}
-
-/*
-  BEGIN_HTML
   <a name="discard"><strong> discard the current mutation operation </strong></a>
   END_HTML
 */
 /* need not be called from within a transaction */
-void lrdb::DiscardLocalMutation(char *msg)
+void lrdb::DiscardLocalMutation(repvol *vol, char *msg)
 {
-    OBJ_ASSERT(this, msg);
-    if (current_search_cml == NULL) {
-	sprintf(msg, "no further mutation left\n");
-	return;
-    }
-    if (subtree_view != SUBTREE_MIXED_VIEW) {
-	sprintf(msg, "must set mixed repair-view");
-	return;
-    }
+    int rc;
     char opmsg[1024];
-    current_search_cml->GetLocalOpMsg(opmsg);
-    sprintf(msg, "discard local mutation %s", opmsg);
-    AdvanceCMLSearch();
+    ClientModifyLog *CML;
+
+    OBJ_ASSERT(this, msg != NULL);
+    CML = vol->GetCML();
+    if(!CML) {
+      sprintf(msg, "Client Modify Log not available for this volume!\n");
+      return;
+    }
+    cml_iterator next(*CML);
+    cmlent *m = next();
+    if(!m) {
+      sprintf(msg, "Client Modify Log is empty for this volume!\n");
+      return;
+    }
+
+    m->GetLocalOpMsg(opmsg);
+
+    if(!m->IsToBeRepaired()) {
+      sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!", opmsg);
+      return;
+    }
+    CODA_ASSERT(m->IsFrozen());
+
+    LOG(0,("lrdb::DiscardLocalMutation: dropping head of CML: %s\n", opmsg));
+    Recov_BeginTrans();
+    CML->cancelFreezes(1);
+    rc = m->cancel();
+    CML->cancelFreezes(0);
+    Recov_EndTrans(CMFP);
+
+    if(rc) {
+      LOG(0, ("lrdb::DiscardLocalMutation: cancel failed!\n"));
+      sprintf(msg, "discard of local mutation failed");
+    }
+    LOG(0, ("lrdb::DiscardLocalMutation ended\n"));
+    sprintf(msg, "discarded local mutation %s", opmsg);
 }
 
 /*

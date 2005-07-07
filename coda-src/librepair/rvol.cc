@@ -36,8 +36,7 @@ extern "C" {
  * Allocates new conflict and returns it in conf
  * Returns 0 on success, -1 on error and fills in msg if non-NULL */
 int repair_newrep(char *pathname, struct conflict **conf, char *msg, int msgsize) {
-    char msgbuf[DEF_BUF], reppath[MAXPATHLEN], prefix[MAXPATHLEN], suffix[MAXPATHLEN];
-    char realm[MAXHOSTNAMELEN];
+  char reppath[MAXPATHLEN];
 
     if (conf == NULL) {
 	strerr(msg, msgsize, "NULL conf");
@@ -66,8 +65,7 @@ int repair_newrep(char *pathname, struct conflict **conf, char *msg, int msgsize
  *  Returns 0 on success, -1 on failure (after cleaning up)
  */
 int repair_mountrw(struct conflict *conf, char *msg, int msgsize) {
-    char tmppath[MAXPATHLEN], buf[DEF_BUF], space[DEF_BUF], *ptr, *volname;
-    int i, confl, cmlcnt;
+    char tmppath[MAXPATHLEN];
     struct replica *rwv, *rwtail = NULL;
     struct dirent *de;
     DIR *d;
