@@ -2464,8 +2464,6 @@ int volent::GetVolStat(VolumeStatus *volstat, RPC2_BoundedBS *Name,
     if (IsReplicated()) {
 	cmlstats current, cancelled;
 	repvol *rv = (repvol *)this;
-	rv->CheckLocalSubtree();       /* unset has_local_subtree if possible */
-	*conflict = rv->HasLocalSubtree();
 	rv->GetCML()->IncGetStats(current, cancelled, UNSET_TID);
 	*cml_count = current.store_count + current.other_count;
 	*cml_bytes = (size_t)(current.store_size + current.store_contents_size +

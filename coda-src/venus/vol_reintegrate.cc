@@ -453,13 +453,8 @@ extern struct timeval *VprocRetryBeta;
 		CML.CheckPoint(0);
 		ObtainReadLock(&CML_lock);
 
-		CML.CancelPending();       
-		/*
-		 * localize or abort the record if this is not a local repair
-		 * session.  Local repair does its own error handling.
-		 */
-		if (tid != LRDB->GetRepairSessionTid())
-		    CML.HandleFailedMLE();
+		CML.CancelPending();
+		CML.HandleFailedMLE();
 
 		break;
 	    }

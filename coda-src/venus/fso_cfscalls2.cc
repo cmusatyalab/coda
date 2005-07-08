@@ -352,13 +352,6 @@ int fsobj::Access(int rights, int modes, uid_t uid)
 	LockLevel level;
 	VenusFid parent_fid;
 
-	/* check if the object is GlobalRootObj for a local-fake tree */
-	/* we can safely return 0 here. because if the parent's acl is updated
-	 * during disconnection, then "this" object won't become a global root
-	 * node. */
-	if (LRDB->RFM_IsGlobalRoot(&fid))
-	    return 0;
-
 	/* Check mode bits if necessary. */
 	/* There should be a special case if this user is the creator.
 	   This code used to have a test for `virginity', but only the kernel

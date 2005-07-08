@@ -86,7 +86,6 @@ void VolDaemon(void)
     time_t LastCOP2Check = curr_time;
     time_t LastCheckPoint = curr_time;
     time_t LastRPM = curr_time;
-    time_t LastLocalSubtree = curr_time;
     time_t LastTrickleReintegrate = curr_time;
 
     for (;;) {
@@ -134,12 +133,6 @@ void VolDaemon(void)
 		VDB->CheckReintegratePending();
 	    }
 
-	    /* Check LocalSubtree */
-	    if (curr_time - LastLocalSubtree >= LocalSubtreeCheckInterval) {
-		LastLocalSubtree = curr_time;
-		
-		VDB->CheckLocalSubtree();
-	    }
 	}
 
 	END_TIMING();
@@ -265,14 +258,6 @@ void vdb::CheckReintegratePending()
 	v->CheckReintegratePending();
 }
 
-
-void vdb::CheckLocalSubtree()
-{
-    repvol_iterator next;
-    repvol *v;
-    while ((v = next()))
-        v->CheckLocalSubtree();
-}
 
 /* Note: no longer in class vdb, since VolDaemon isn't (Satya, 5/20/95) */
 void TrickleReintegrate()

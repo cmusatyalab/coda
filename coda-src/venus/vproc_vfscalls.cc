@@ -676,13 +676,6 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 	if (!parent_fso->IsDir())
 	    { u.u_error = ENOTDIR; goto FreeLocks; }
 
-	/* Get the target object (if it exists). */
-	if (LRDB->repair_root_fid &&
-	    (parent_fso->IsLocalObj() ||
-	     LRDB->RFM_IsRootParent(&parent_fso->fid)))
-	    /* cross mount-point when under local/global repair */
-	    flags |= CLU_TRAVERSE_MTPT;
-
 	u.u_error = parent_fso->Lookup(&target_fso, NULL, name, u.u_uid, flags);
 	if (u.u_error == 0) {
 	    FSDB->Put(&parent_fso);	    /* avoid deadlock! */

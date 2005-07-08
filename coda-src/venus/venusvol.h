@@ -870,14 +870,17 @@ class repvol : public volent {
 		  Date_t, UserId, RPC2_Unsigned, int = UNSET_TID);
     /* local-repair modifications to the above methods */
 
+    /* CML routines */
+    void ListCML(FILE *fp);
+    void PreserveAllLocalMutation(char *msg);
+    void PreserveLocalMutation(char *msg);
+    void DiscardAllLocalMutation(char *msg);
+    void DiscardLocalMutation(char *msg);
 
     /* local-repair */
-    void TranslateCMLFid(VenusFid *, VenusFid *); /*T*/
     void ClearRepairCML();                      /*U*/
     ClientModifyLog *GetCML() { return &CML; }  /*N*/
     int ContainUnrepairedCML();			/*N*/
-    int HasLocalSubtree() { return flags.has_local_subtree; }
-    void CheckLocalSubtree();			/*U*/
 
     /* Repair routines. */
     int Repair(VenusFid *, char *, uid_t, VolumeId *, int *);

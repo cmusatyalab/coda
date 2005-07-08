@@ -469,13 +469,17 @@ void fsobj::Recover()
 	goto Failure;
     }
 
+#if 0 /* XXX: We need fake objects to collapse an expand that wasn't
+       * collapsed before venus was terminated! -- Adam 7/8/05 */
     /* Get rid of fake objects, and other objects that are not likely to be
      * useful anymore. */
-    if (IsFake() && !LRDB->RFM_IsFakeRoot(&fid)) {
+    if (IsFake()) {
 	LOG(0, ("fsobj::Recover: (%s) is a fake object\n",
 		FID_(&fid)));
 	goto Failure;
     }
+#endif
+
     if (!IsFake() && !vol->IsReplicated() && !IsLocalObj()) {
 	LOG(0, ("fsobj::Recover: (%s) is probably in a backup volume\n",
 		FID_(&fid)));
@@ -1035,7 +1039,7 @@ void fsobj::ClearAcRights(uid_t uid)
 /* local-repair modification */
 /* MUST be called from within transaction (at least if <vnode, unique> != pfid.<Vnode, Unique>)! */
 void fsobj::SetParent(VnodeId vnode, Unique_t unique) {
-    if (IsRoot() || (vnode == 0 && unique == 0) || LRDB->RFM_IsGlobalRoot(&fid))
+    if (IsRoot() || (vnode == 0 && unique == 0))
 	return;
 
     /* Update pfid if necessary. */
@@ -1188,8 +1192,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 
     /* Don't allow a volume to be mounted inside itself! */
     /* but only when its mount root is the global-root-obj of a local subtree */
-    if (fid.Realm == tvol->GetRealmId() && fid.Volume == tvol->GetVolumeId() &&
-	!LRDB->RFM_IsGlobalChild(&fid)) {
+    if (fid.Realm == tvol->GetRealmId() && fid.Volume == tvol->GetVolumeId()) {
 	eprint("TryToCover(%s): recursive mount!", data.symlink);
 	VDB->Put(&tvol);
 	return(ELOOP);
@@ -2721,11 +2724,6 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
   v = (repvol *) vol;
 
   /* Prepare args for launch. */
-
-  if(conflict_type != SERVER_SERVER) {
-    LRDB->GetLocalObjData(rootPath, path, &object_type);
-  }
-  else
   { 
     /* Conflict path is the first argument to ASRLauncher. */
 
@@ -2871,10 +2869,7 @@ int fsobj::LaunchASR(int conflict_type, int object_type) {
    * This is used when we receive a SIGCHLD at the end of our launch. */
   
   ASRpid = pid;
-  if(conflict_type == SERVER_SERVER)
-    ASRfid = fid;
-  else
-    LRDB->GetLocalConflictFid(&ASRfid);
+  ASRfid = fid;
   ASRuid = uid;
 
   if(write(pfd[1], (void *) "go", 2) < 0)
@@ -2926,34 +2921,6 @@ void fsobj::GetOperationState(int *conn, int *tid)
     }
 
     OBJ_ASSERT(this, LOGGING(this));
-    /* 
-     * check to see if the object is within the global portion of a subtree
-     * that is currently being repaired. (only when a repair session is on)
-     */
     *tid = -1;
-    int repair_mutation = 0;
-    if (LRDB->repair_root_fid != NULL) {
-	fsobj *cfo = this;
-	while (cfo != NULL) {
-	    if (cfo->IsLocalObj())
-	      break;
-	    if (cfo->IsRoot())
-	      cfo = cfo->u.mtpoint->pfso;
-	    else
-	      cfo = cfo->pfso;
-	}
-	if (cfo && FID_EQ(&(cfo->pfid), LRDB->repair_root_fid) ||
-            FID_EQ(&(cfo->pfid), LRDB->RFM_FakeRootToParent(LRDB->repair_root_fid)))
-	    repair_mutation = 1;
-    }
-    if (repair_mutation) {
-	*tid = LRDB->repair_session_tid;
-	if (LRDB->repair_session_mode == REP_SCRATCH_MODE) {
-	    *conn = 0;
-	} else {
-	    *conn = 1;
-	}
-    } else {
-	*conn = 0;
-    }
+    *conn = 0;
 }

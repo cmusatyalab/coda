@@ -34,8 +34,7 @@ class fsdb;
 class fsobj;
 class fso_iterator;
 
-class cmlent;			    /* we have compiler troubles if volume.h is included! */
-class lrdb;
+class cmlent;	    /* we have compiler troubles if volume.h is included! */
 
 #ifdef __cplusplus
 extern "C" {
@@ -578,8 +577,8 @@ class fsobj {
     void CollapseCMLEntries(void);
     int HasExpandedCMLEntries(void);
 
-#define LOCALCACHE "_localcache"
-#define LOCALCACHE_HIDDEN ".localcache"
+#define LOCALCACHE "_localcache"    /* implies we have a locally cached copy */
+#define LOCALCACHE_HIDDEN ".localcache" /* implies we don't */
 
     /* Local synchronization. */
     void Lock(LockLevel);
@@ -732,9 +731,6 @@ class fsobj {
     void UnsetLocalObj();					/*T*/
     int IsLocalObj() { return flags.local; }			/*N*/
     int IsAncestor(VenusFid *);					/*N*/
-    int ReplaceLocalFakeFid();					/*U*/
-    int LocalFakeify();						/*U*/
-    int LocalFakeifyRoot();					/*U*/
 
     void MixedToGlobal(VenusFid *, VenusFid *, char *);        	/*U*/
     void MixedToLocal(VenusFid *, VenusFid *, char *);        	/*U*/

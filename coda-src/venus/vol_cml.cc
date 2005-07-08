@@ -655,11 +655,6 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int Tid ..
     if (log->bytes > log->bytesHighWater)
 	log->bytesHighWater = log->bytes;
 
-    if (Tid == LRDB->repair_session_tid) {
-	/* this mutation is done for the current local-global repair session */
-	flags.repair_mutation = 1;
-    }
-
     LOG(1, ("cmlent::cmlent: tid = (%x.%d), uid = %d, op = %s\n",
 	    sid.Host, sid.Uniquifier, uid, PRINT_MLETYPE(op)));
 }
@@ -1589,8 +1584,6 @@ int cmlent::cancel()
 
     LOG(10, ("cmlent::cancel: age = %d\n", curTime-time));
     if (LogLevel >= 10) print(logFile);
-
-    LRDB->Cancel(this); /* Remove this CML from current local-repair session if necessary */
 
     /* Parameters for possible utimes to be done AFTER cancelling this record. */
     int DoUtimes = 0;
@@ -3268,83 +3261,13 @@ int repvol::PurgeMLEs(uid_t uid)
     if (IsReplicated() && ((repvol *)this)->IsReintegrating())
       return EACCES;
 
-    if (LRDB->repair_root_fid &&
-	LRDB->repair_root_fid->Realm == realm->Id() &&
-	LRDB->repair_root_fid->Volume == vid)
-      /* 
-       * check if there is on-going local/global repair session that
-       * is working on a subtree in this volume.
-       * do not proceed if so because we can't remove the subtreee.
-       */
-      return EACCES;
-
     LOG(0, ("volent::PurgeMLEs:(%s) (%x.%x)\n", name, realm->Id(), vid));
 
-    {
-	/* 
-	 * Step 1: cleanup every localized subtree whose root object
-	 * belongs to this volume.
-	 */
+    /*
+     * Step 1 was removed on 7/8/05
+     */
 
-	{
-	    /* count and record the number of fid-map entries to be removed */
-	    int fid_map_entry_cnt = 0;
-	    lgm_iterator next(LRDB->local_global_map);
-	    lgment *lgm;
-	    while ((lgm = next())) {
-		VenusFid *GlobalFid = lgm->GetGlobalFid();
-		if (GlobalFid->Realm == realm->Id() && GlobalFid->Volume == vid)
-		    fid_map_entry_cnt++;
-	    }
-	    LOG(0, ("volent::PurgeMLEs: there are %d local-global-map entries to be cleaned\n",
-		    fid_map_entry_cnt));
-	}
-
-	int subtree_removal;
-	do {
-	    subtree_removal = 0;
-	    rfm_iterator next(LRDB->root_fid_map);
-	    rfment *rfm;
-	    
-	    while ((rfm = next())) {
-		if (rfm->RootCovered()) continue;
-		VenusFid *RootFid = rfm->GetFakeRootFid();
-		if (!(RootFid->Realm == realm->Id() && RootFid->Volume == vid))
-		    continue;
-		LOG(0, ("volent::PurgeMLEs: remove subtree rooted at %s\n", 
-			FID_(RootFid)));
-		LRDB->RemoveSubtree(RootFid);
-		subtree_removal = 1;
-		break;
-	    }
-	} while (subtree_removal);
-
-	{
-	    /* double check to make sure that there is no left over entries for the volume */
-	    int left_over_entry;
-	    do {
-		left_over_entry = 0;
-		lgm_iterator next(LRDB->local_global_map);
-		lgment *lgm;
-		while ((lgm = next())) {
-		    VenusFid *GlobalFid = lgm->GetGlobalFid();
-		    if (!(GlobalFid->Realm == realm->Id() &&
-			  GlobalFid->Volume == vid))
-			continue;
-		    LOG(0, ("volent::PurgeMLEs: found a left over entry\n"));
-		    lgm->print(logFile);
-		    fflush(logFile);
-		    left_over_entry = 1;
-		    Recov_BeginTrans();
-			   OBJ_ASSERT(this, LRDB->local_global_map.remove(lgm) == lgm);
-			   delete lgm;
-		    Recov_EndTrans(MAXFP);
-		    break;
-		}
-	    } while (left_over_entry);
-	}
-    }
-    {	/* 
+    {	/*
 	 * Step 2: cleanup everything in the CML, even there are records
 	 * marked as to-be-repaired or repair-mutation.
 	 */
@@ -3370,38 +3293,15 @@ int repvol::PurgeMLEs(uid_t uid)
 	    Recov_EndTrans(MAXFP);
 	}
 	VOL_ASSERT(this, CML.count() == 0);
-    }  
-
-    {	/*
-	 * Step 3: cleanup remaining local object that belongs to this
-	 * volume. this is necessary because there could subtree rooted
-	 * at another volume but containing local objects within this volume.
-	 */
-	lgm_iterator next(LRDB->local_global_map);
-	lgment *lgm, *to_be_removed = NULL;
-	while ((lgm = next())) {
-	    if (to_be_removed) {
-		VOL_ASSERT(this, LRDB->local_global_map.remove(to_be_removed) == to_be_removed);
-		delete to_be_removed;
-		to_be_removed = NULL;
-	    }
-	    VenusFid *gfid = lgm->GetGlobalFid();
-	    if (!(gfid->Realm != realm->Id() && gfid->Volume == vid))
-		continue;
-	    VenusFid *lfid = lgm->GetLocalFid();	    
-	    fsobj *lobj;
-	    VOL_ASSERT(this, lobj = FSDB->Find(lfid));
-	    /* kill the local object */
-	    Recov_BeginTrans();
-		   lobj->Kill(0);
-	    Recov_EndTrans(CMFP);
-	    to_be_removed = lgm;
-	}
     }
+
+    /*
+     * Step 3 was removed on 7/8/05
+     */
 
     /* trigger a volume state transition */
     flags.transition_pending = 1;
-    
+
     return(0);
 }
 

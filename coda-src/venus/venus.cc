@@ -201,7 +201,6 @@ int main(int argc, char **argv)
     WorkerInit();   /* open kernel device */
     CallBackInit(); /* set up callback subsystem and create callback server threads */
     AdviceInit();   /* set up AdSrv and start the advice daemon */
-    LRInit();	    /* set up local-repair database */
 
     /* Get the Root Volume. */
     eprint("Mounting root volume...");

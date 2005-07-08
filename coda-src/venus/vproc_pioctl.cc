@@ -670,6 +670,8 @@ OI_FreeLocks:
 	case _VIOC_LISTCACHE_VOLUME:
 	case _VIOC_SYNCCACHE:
 	case _VIOC_REDIR:
+	case _VIOC_REP_CMD:
+
 	    {
 #ifdef TIMING
  	    gettimeofday(&u.u_tv1, 0); u.u_tv2.tv_sec = 0;
@@ -677,7 +679,7 @@ OI_FreeLocks:
 	    volent *v = 0;
 	    if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
 
-	    int volmode = ((nr == _VIOC_PURGEML) ?
+	    int volmode = ((nr == _VIOC_PURGEML || nr == _VIOC_REP_CMD) ?
 			   VM_MUTATING : VM_OBSERVING);
 	    int entered = 0;
 	    if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
@@ -1030,23 +1032,272 @@ OI_FreeLocks:
 			((repvol *)v)->SetStagingServer(&staging_server);
 			break;
 	      }
-	    }
-		
-V_FreeLocks:
-	    if (entered) v->Exit(volmode, u.u_uid);
- 	    float elapsed = 0.0;
+
+	    case _VIOC_REP_CMD:
+	      {
+		int rep_cmd;
+		CODA_ASSERT(sscanf((char *) data->in, "%d", &rep_cmd) == 1);
+		switch (rep_cmd) {
+
+/*
+  BEGIN_HTML
+  <a name="endrepair"><strong> beginrepair handler </strong></a>
+  END_HTML
+*/
+		case REP_CMD_BEGIN:
+		  {
+		    /* This ioctl only figures out what type of conflict
+		     * we are dealing with and verifies the object is
+		     * expanded correctly. No mutations are performed.
+		     * The idea of 'beginning repair' is historical, and
+		     * there is no problem calling this on the same directory
+		     * or volume many times without an 'endrepair'. */
+		    /*
+		     *      1 - Local/Global repair session
+		     *      2 - Server/Server repair session
+		     *      3 - Both Local/Global and Server/Server
+		     */
+
+		    int code = -1, rc;
+		    fsobj *dir = NULL, *localcache = NULL;
+		    char *msg;
+
+		    msg = (char *)data->out;
+		    if(!msg) {
+		      LOG(0, ("REP_CMD_BEGIN: (%s) bad data->out parameter\n",
+			     FID_(fid)));
+		      code = -1;
+		      goto BEGIN_cleanup;
+		    }
+
+		    dir = FSDB->Find(fid);
+		    if(!dir) {
+		      LOG(0, ("REP_CMD_BEGIN: (%s) <= this object missing!\n",
+			     FID_(fid)));
+		      code = -1;
+		      goto BEGIN_cleanup;
+		    }
+
+		    if(!dir->IsExpandedDir()) {
+		      LOG(0, ("REP_CMD_BEGIN: (%s) not an expanded dir\n",
+			      FID_(fid)));
+		      code = -1;
+		      goto BEGIN_cleanup;
+		    }
+
+		    rc = dir->Lookup(&localcache, fid, LOCALCACHE_HIDDEN,
+					u.u_uid, CLU_CASE_SENSITIVE |
+					CLU_TRAVERSE_MTPT, 1);
+
+		    if(!localcache)
+		      rc = dir->Lookup(&localcache, fid, LOCALCACHE,
+					  u.u_uid, CLU_CASE_SENSITIVE |
+					  CLU_TRAVERSE_MTPT, 1);
+		    if(!localcache || (rc && rc != EINCONS)) {
+		      LOG(0, ("REP_CMD_BEGIN: (%s) failed finding localcache "
+			      "object.. bad news.\n", FID_(fid)));
+		      code = -1;
+		      goto BEGIN_cleanup;
+		    }
+
+		    if(localcache->IsFake())
+		      code = 2;
+
+		    if(localcache->IsToBeRepaired())
+		      if(code == 2)
+			code = 3;
+		      else
+			code = 1;
+
+
+		  BEGIN_cleanup:
+		    if(localcache)
+		      FSDB->Put(&localcache);
+
+		    sprintf(msg, "%d", code);
+		    data->out_size =
+		      (short)sizeof((char *) data->out);
+
+		    u.u_error = 0;
+		    break;
+		  }
+/*
+  BEGIN_HTML
+  <a name="endrepair"><strong> endrepair handler </strong></a>
+  END_HTML
+*/
+		case REP_CMD_END:
+		  {
+		    /*
+		     * This ioctl literally does nothing. The only applicable
+		     * use is probably for unfreezing volumes if mechanisms
+		     * are implemented to freeze state upon conflict discovery.
+		     * Even then, that might be better suited to the
+		     * _VIOC_REPAIR ioctl, which figures out if any repair
+		     * actually occurred and if it was successful.
+		     */
+		    char *msg;
+
+		    msg = (char *)data->out;
+		    if(!msg) {
+		      u.u_error = EIO;
+		      goto END_cleanup;
+		    }
+
+		    if(!v->IsReplicated()) {
+		      sprintf(msg, "non-replicated volume\n");
+		      u.u_error = EINVAL;
+		      goto END_cleanup;
+		    }
+
+		    sprintf(msg, "Repair completed!\n");
+		    u.u_error = 0;
+
+		  END_cleanup:
+		    data->out_size = (short)strlen((char *) data->out) + 1;
+		    break;
+		  }
+/*
+  BEGIN_HTML
+  <a name="checklocal"><strong> checklocal handler </strong></a>
+  END_HTML
+*/
+		case REP_CMD_CHECK:
+		  {
+		    char *msg;
+		    msg = (char *)data->out;
+		    if(!msg) {
+		      LOG(0, ("REP_CMD_CHECK: (%s) bad data->out parameter\n",
+			     FID_(fid)));
+		      u.u_error = EIO;
+		      goto CHECK_cleanup;
+		    }
+
+		    sprintf(msg, "checklocal ioctl is no longer supported\n");
+		    u.u_error = 0;
+
+		  CHECK_cleanup:
+		    data->out_size = (short)strlen((char *) data->out) + 1;
+		    break;
+		  }
+/*
+  BEGIN_HTML
+  <a name="preservelocal"><strong> preservelocal handler </strong></a>
+  END_HTML
+*/
+		case REP_CMD_PRESERVE:
+		  {
+		    //		    LRDB->PreserveLocalMutation((char *) data->out);
+		    data->out_size = (short)strlen((char *) data->out) + 1;
+		    u.u_error = 0;
+		    break;
+		  }
+/*
+  BEGIN_HTML
+  <a name="preservealllocal"><strong> preservealllocal handler </strong></a>
+  END_HTML
+*/
+		case REP_CMD_PRESERVE_ALL:
+		  {
+		    //		    LRDB->PreserveAllLocalMutation((char *) data->out);
+		    data->out_size = (short)strlen((char *) data->out) + 1;
+		    u.u_error = 0;
+		    break;
+		  }
+/*
+  BEGIN_HTML
+  <a name="discardlocal"><strong> discardlocal handler </strong></a>
+  END_HTML
+*/
+		case REP_CMD_DISCARD:
+		  {
+		    volent *v = 0;
+		    if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
+
+		    int volmode = VM_MUTATING;
+		    int entered = 0;
+		    if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
+		      goto Disc_FreeLocks;
+
+		    entered = 1;
+		    if(!v->IsReplicated()) {
+		      u.u_error = EINVAL;
+		      goto Disc_FreeLocks;
+		    }
+
+		    //		    LRDB->DiscardLocalMutation((repvol *)v, (char *) data->out);
+		    data->out_size = (short)strlen((char *) data->out) + 1;
+		    u.u_error = 0;
+
+		  Disc_FreeLocks:
+		    if (entered)
+		      v->Exit(volmode, u.u_uid);
+
+		    VDB->Put(&v);
+		    if (u.u_error == ERETRY)
+		      u.u_error = EWOULDBLOCK;
+		    return;
+		  }
+/*
+  BEGIN_HTML
+  <a name="discardalllocal"><strong> discardalllocal handler </strong></a>
+  END_HTML
+*/
+		case REP_CMD_DISCARD_ALL:
+		  {
+		    //		    LRDB->DiscardAllLocalMutation((char *) data->out);
+		    data->out_size = (short)strlen((char *) data->out) + 1;
+		    u.u_error = 0;
+		    break;
+		  }
+/*
+  BEGIN_HTML
+  <a name="listlocal"><strong> listlocal handler </strong></a>
+  END_HTML
+*/
+		case REP_CMD_LIST:
+		  {
+		    /* list local mutations belonging to this session */
+		    int dummy;
+		    char fpath[CODA_MAXPATHLEN];
+		    sscanf((char *) data->in, "%d %s", &dummy, fpath);
+
+		    FILE *fp = fopen(fpath, "w");
+		    if (fp == NULL) {
+		      u.u_error = ENOENT;
+		      sprintf((char *) data->out, "cannot open %s\n", fpath);
+		    }
+		    else {
+		      //		      LRDB->ListCML(fid, fp); /* ???? */
+		      sprintf((char *) data->out, "local mutations are:\n");
+		      fflush(fp);
+		      fclose(fp);
+		      u.u_error = 0;
+		    }
+		    data->out_size = (short)strlen((char *) data->out) + 1;
+		    break;
+		  }
+		default:
+		  eprint("bogus REP_CMD(%d)", rep_cmd);
+		}
+		break;
+	      }
+
+	    V_FreeLocks:
+	      if (entered) v->Exit(volmode, u.u_uid);
+	      float elapsed = 0.0;
 #ifdef TIMING
- 	    
-	    gettimeofday(&u.u_tv2, 0);
-	    elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
+
+	      gettimeofday(&u.u_tv2, 0);
+	      elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 #endif
-		
-	    VDB->Put(&v);
+
+	      VDB->Put(&v);
 	    }
 	    if (u.u_error == ERETRY)
 		  u.u_error = EWOULDBLOCK;
 	    return;
-
+	    }
 	/* FS-based. */
 	case _VIOCSETTOK:
 	case _VIOCGETTOK:
@@ -1076,8 +1327,7 @@ V_FreeLocks:
 	case _VIOC_GET_MT_PT:
 	case _VIOC_WD_ALL:
 	case _VIOC_WR_ALL:
-	case _VIOC_REP_CMD:
-	case _VIOC_UNLOADKERNEL:	
+	case _VIOC_UNLOADKERNEL:
 	case _VIOC_LOOKASIDE:
 	    {
 	    switch(nr) {
@@ -1503,171 +1753,11 @@ V_FreeLocks:
    	        case _VIOC_WR_ALL:
 		    {
 		    u.u_error = VDB->WriteReconnect();
-		    if (u.u_error == 0) 
+		    if (u.u_error == 0)
 			eprint("Propagating updates to all volumes");
 		    break;
-		    }    	        
-		case _VIOC_REP_CMD:
-		    {
-			int rep_cmd;
-			CODA_ASSERT(sscanf((char *) data->in, "%d", &rep_cmd) == 1);
-			switch (rep_cmd) {
-			case REP_CMD_BEGIN:
-			    {
-				/* begin a repair session */
-				int mode, dummy;
-				fsobj *obj = FSDB->Find(fid);
-				CODA_ASSERT(obj);
-				sscanf((char *) data->in, "%d %d", &dummy, &mode);
-				LRDB->BeginRepairSession(&obj->fid,
-				    mode ? REP_SCRATCH_MODE : REP_DIRECT_MODE,
-							 (char *) data->out);
-				data->out_size =
-				  (short)sizeof((char *) data->out);
+		    }
 
-				u.u_error = 0;
-				break;
-			    }
-/*
-  BEGIN_HTML
-  <a name="endrepair"><strong> endrepair handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_END:
-			    {
-#if 0
-				int commit, dummy;
-
-				CODA_ASSERT(LRDB);
-
-				sscanf((char *) data->in, "%d %d", &dummy, &commit);
-				LRDB->EndRepairSession(commit, (char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				if (strncmp((char *) data->out, "repair session completed", strlen("repair session completed")) == 0) {
-
-				  LOG(0, ("MARIA:  End local repair successful\n"));
-				  /* We don't have the object so can't provide a pathname
-				   * if (SkkEnabled) {
-				   *   NotifyUsersObjectConsistent("???UNKNOWN???", squirrelFid);
-				   * } */
-				} else {
-				  LOG(0, ("MARIA:  End local repair failed\n"));
-				}
-#endif
-				break;
-			    }
-/*
-  BEGIN_HTML
-  <a name="checklocal"><strong> checklocal handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_CHECK:
-			    {
-			      CODA_ASSERT(0); //deprecated!
-			      break;
-			    }
-/*
-  BEGIN_HTML
-  <a name="preservelocal"><strong> preservelocal handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_PRESERVE:
-			    {
-				LRDB->PreserveLocalMutation((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				break;
-			    }
-/*
-  BEGIN_HTML
-  <a name="preservealllocal"><strong> preservealllocal handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_PRESERVE_ALL:
-			    {
-				LRDB->PreserveAllLocalMutation((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				break;
-			    }
-/*
-  BEGIN_HTML
-  <a name="discardlocal"><strong> discardlocal handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_DISCARD:
-			    {
-			      volent *v = 0;
-			      if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
-
-			      int volmode = VM_MUTATING;
-			      int entered = 0;
-			      if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
-				goto Disc_FreeLocks;
-
-			      entered = 1;
-			      if(!v->IsReplicated()) {
-				u.u_error = EINVAL;
-				goto Disc_FreeLocks;
-			      }
-
-			      LRDB->DiscardLocalMutation((repvol *)v, (char *) data->out);
-			      data->out_size = (short)strlen((char *) data->out) + 1;
-			      u.u_error = 0;
-
-			    Disc_FreeLocks:
-			      if (entered)
-				v->Exit(volmode, u.u_uid);
-
-			      VDB->Put(&v);
-			      if (u.u_error == ERETRY)
-				u.u_error = EWOULDBLOCK;
-			      return;
-			    }
-/*
-  BEGIN_HTML
-  <a name="discardalllocal"><strong> discardalllocal handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_DISCARD_ALL:
-			    {
-				LRDB->DiscardAllLocalMutation((char *) data->out);
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				u.u_error = 0;
-				break;
-			    }
-/*
-  BEGIN_HTML
-  <a name="listlocal"><strong> listlocal handler </strong></a>
-  END_HTML
-*/
-			case REP_CMD_LIST:
-			    {  
-				/* list local mutations belonging to this session */
-				int dummy;
-				char fpath[CODA_MAXPATHLEN];
-				sscanf((char *) data->in, "%d %s", &dummy, fpath);
-
-				FILE *fp = fopen(fpath, "w");
-				if (fp == NULL) {
-				  u.u_error = ENOENT;
-				  sprintf((char *) data->out, "cannot open %s\n", fpath);
-				} else {
-				  LRDB->ListCML(fid, fp); /* ???? */
-				  sprintf((char *) data->out, "local mutations are:\n");
-				  fflush(fp);
-				  fclose(fp);
-				  u.u_error = 0;
-				}
-				data->out_size = (short)strlen((char *) data->out) + 1;
-				break;
-			    }
-			default:
-			    eprint("bogus REP_CMD(%d)", rep_cmd);
-			}
-			break;
-		    }		    
 		}
 	    }
 	    if (u.u_error == ERETRY)
