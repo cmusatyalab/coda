@@ -218,6 +218,8 @@ class ClientModifyLog {
     void IncGetStats(cmlstats&, cmlstats&, int =UNSET_TID); /*N*/
     int IncReallocFids(int);                            /*U*/
     int HaveElements(int);                              /*N*/
+    int DiscardLocalMutation(char *);                  /*U*/
+    int ListCML(FILE *);
 };
 
 /* local-repair addition */
@@ -410,7 +412,6 @@ class cmlent {
     int ReintReady();                                           /*U*/
     int ContainLocalFid();                                      /*N*/
     void TranslateFid(VenusFid *, VenusFid *);                  /*T*/
-    int LocalFakeify();                                         /*U*/
     void CheckRepair(char *, int *, int *);                     /*N*/
     int DoRepair(char *, int);                                  /*U*/
     void GetLocalOpMsg(char *);                                 /*N*/
@@ -419,8 +420,6 @@ class cmlent {
     int IsToBeRepaired() { return flags.to_be_repaired; }       /*N*/
     int IsRepairMutation() { return flags.repair_mutation; }    /*N*/
     int IsExpanded() { return expansions; }                     /*T*/
-    int InLocalRepairSubtree(VenusFid *);                       /*N*/
-    int InGlobalRepairSubtree(VenusFid *);                      /*N*/
     void GetVVandFids(ViceVersionVector *[3], VenusFid *[3]);   /*N*/
     void GetAllFids(VenusFid *[3]);    				/*N*/
 };

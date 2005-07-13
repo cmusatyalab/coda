@@ -2649,11 +2649,10 @@ static void WriteReconnect(int argc, char *argv[], int opslot)
     }
 }
 
-#define DEF_BUF 2048
 static void ListLocal(int argc, char *argv[], int opslot)
     {
       int  rc, fd, n;
-      char *volume, buf[DEF_BUF], filename[MAXPATHLEN], space[DEF_BUF];
+      char *volume, buf[CFS_PIOBUFSIZE], filename[MAXPATHLEN];
       struct ViceIoctl vio;
 
       switch(argc)
@@ -2673,24 +2672,23 @@ static void ListLocal(int argc, char *argv[], int opslot)
 
       vio.in = buf;
       vio.in_size = (short) strlen(buf) + 1;
-      vio.out = space;
-      vio.out_size = DEF_BUF;
+      vio.out = 0;
+      vio.out_size = 0;
 
       rc = pioctl(volume, _VICEIOCTL(_VIOC_REP_CMD), &vio, 0);
-      printf("%s\n", vio.out);
       if (rc) {
 	PERROR("VIOC_REP_CMD(REP_CMD_LIST)");
 	exit(-1);
       }
       else {
-	while((n = read(fd, buf, DEF_BUF)) > 0)
+	while((n = read(fd, buf, CFS_PIOBUFSIZE)) > 0)
 	  write(1, buf, n);
       }
 
       close(fd);
       unlink(filename);
     }
-#undef DEF_BUF
+
 
 static void PreserveLocal(int argc, char *argv[], int opslot)
     {

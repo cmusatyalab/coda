@@ -973,6 +973,8 @@ OI_FreeLocks:
                     u.u_error = EOPNOTSUPP;
                     if (v->IsReplicated())
                         u.u_error = ((repvol *)v)->WriteDisconnect(*agep, *timep); 
+#undef timep
+#undef agep
 		    if (u.u_error == 0) 
 			eprint("Logging updates to volume %s", v->GetName());
 
@@ -1038,148 +1040,140 @@ OI_FreeLocks:
 		int rep_cmd;
 		CODA_ASSERT(sscanf((char *) data->in, "%d", &rep_cmd) == 1);
 		switch (rep_cmd) {
-
 /*
   BEGIN_HTML
-  <a name="endrepair"><strong> beginrepair handler </strong></a>
+  <a name="beginrepair"><strong> beginrepair handler </strong></a>
   END_HTML
 */
-		case REP_CMD_BEGIN:
-		  {
-		    /* This ioctl only figures out what type of conflict
-		     * we are dealing with and verifies the object is
-		     * expanded correctly. No mutations are performed.
-		     * The idea of 'beginning repair' is historical, and
-		     * there is no problem calling this on the same directory
-		     * or volume many times without an 'endrepair'. */
-		    /*
-		     *      1 - Local/Global repair session
-		     *      2 - Server/Server repair session
-		     *      3 - Both Local/Global and Server/Server
-		     */
+		  case REP_CMD_BEGIN:
+		    {
+		      /* This ioctl only figures out what type of conflict
+		       * we are dealing with and verifies the object is
+		       * expanded correctly. No mutations are performed.
+		       * The idea of 'beginning repair' is historical, and
+		       * there is no problem calling this on the same directory
+		       * or volume many times without an 'endrepair'. */
+		      /*
+		       *      1 - Local/Global repair session
+		       *      2 - Server/Server repair session
+		       *      3 - Both Local/Global and Server/Server
+		       */
 
-		    int code = -1, rc;
-		    fsobj *dir = NULL, *localcache = NULL;
-		    char *msg;
+		      int code = -1, rc;
+		      fsobj *dir = NULL, *localcache = NULL;
+		      char *msg;
 
-		    msg = (char *)data->out;
-		    if(!msg) {
-		      LOG(0, ("REP_CMD_BEGIN: (%s) bad data->out parameter\n",
-			     FID_(fid)));
-		      code = -1;
-		      goto BEGIN_cleanup;
+		      msg = (char *)data->out;
+		      if(!msg) {
+			LOG(0, ("REP_CMD_BEGIN: (%s) bad data->out parameter\n",
+				FID_(fid)));
+			code = -1;
+			goto BEGIN_cleanup;
+		      }
+
+		      dir = FSDB->Find(fid);
+		      if(!dir) {
+			LOG(0, ("REP_CMD_BEGIN: (%s) <= this object missing!\n",
+				FID_(fid)));
+			code = -1;
+			goto BEGIN_cleanup;
+		      }
+
+		      if(!dir->IsExpandedDir()) {
+			LOG(0, ("REP_CMD_BEGIN: (%s) not an expanded dir\n",
+				FID_(fid)));
+			code = -1;
+			goto BEGIN_cleanup;
+		      }
+
+		      rc = dir->Lookup(&localcache, fid, LOCALCACHE_HIDDEN,
+				       u.u_uid, CLU_CASE_SENSITIVE |
+				       CLU_TRAVERSE_MTPT, 1);
+
+		      if(!localcache)
+			rc = dir->Lookup(&localcache, fid, LOCALCACHE,
+					 u.u_uid, CLU_CASE_SENSITIVE |
+					 CLU_TRAVERSE_MTPT, 1);
+		      if(!localcache || (rc && rc != EINCONS)) {
+			LOG(0, ("REP_CMD_BEGIN: (%s) failed finding localcache "
+				"object.. bad news.\n", FID_(fid)));
+			code = -1;
+			goto BEGIN_cleanup;
+		      }
+
+		      if(localcache->IsFake())
+			code = 2;
+
+		      if(localcache->IsToBeRepaired())
+			if(code == 2)
+			  code = 3;
+			else
+			  code = 1;
+
+		    BEGIN_cleanup:
+		      if(localcache)
+			FSDB->Put(&localcache);
+
+		      sprintf(msg, "%d", code);
+		      data->out_size = (short)sizeof((char *) data->out);
+
+		      u.u_error = 0;
+		      break;
 		    }
-
-		    dir = FSDB->Find(fid);
-		    if(!dir) {
-		      LOG(0, ("REP_CMD_BEGIN: (%s) <= this object missing!\n",
-			     FID_(fid)));
-		      code = -1;
-		      goto BEGIN_cleanup;
-		    }
-
-		    if(!dir->IsExpandedDir()) {
-		      LOG(0, ("REP_CMD_BEGIN: (%s) not an expanded dir\n",
-			      FID_(fid)));
-		      code = -1;
-		      goto BEGIN_cleanup;
-		    }
-
-		    rc = dir->Lookup(&localcache, fid, LOCALCACHE_HIDDEN,
-					u.u_uid, CLU_CASE_SENSITIVE |
-					CLU_TRAVERSE_MTPT, 1);
-
-		    if(!localcache)
-		      rc = dir->Lookup(&localcache, fid, LOCALCACHE,
-					  u.u_uid, CLU_CASE_SENSITIVE |
-					  CLU_TRAVERSE_MTPT, 1);
-		    if(!localcache || (rc && rc != EINCONS)) {
-		      LOG(0, ("REP_CMD_BEGIN: (%s) failed finding localcache "
-			      "object.. bad news.\n", FID_(fid)));
-		      code = -1;
-		      goto BEGIN_cleanup;
-		    }
-
-		    if(localcache->IsFake())
-		      code = 2;
-
-		    if(localcache->IsToBeRepaired())
-		      if(code == 2)
-			code = 3;
-		      else
-			code = 1;
-
-
-		  BEGIN_cleanup:
-		    if(localcache)
-		      FSDB->Put(&localcache);
-
-		    sprintf(msg, "%d", code);
-		    data->out_size =
-		      (short)sizeof((char *) data->out);
-
-		    u.u_error = 0;
-		    break;
-		  }
 /*
   BEGIN_HTML
   <a name="endrepair"><strong> endrepair handler </strong></a>
   END_HTML
 */
-		case REP_CMD_END:
-		  {
-		    /*
-		     * This ioctl literally does nothing. The only applicable
-		     * use is probably for unfreezing volumes if mechanisms
-		     * are implemented to freeze state upon conflict discovery.
-		     * Even then, that might be better suited to the
-		     * _VIOC_REPAIR ioctl, which figures out if any repair
-		     * actually occurred and if it was successful.
-		     */
-		    char *msg;
+		  case REP_CMD_END:
+		    {
+		      /*
+		       * This ioctl literally does nothing. The only applicable
+		       * use might be for unfreezing volumes if mechanisms
+		       * are implemented to freeze state upon server-server
+		       * conflict discovery.
+		       *
+		       * Even then, that might be better suited to the
+		       * _VIOC_REPAIR ioctl, which figures out if any repair
+		       * actually occurred and if it was successful.
+		       */
+		      char *msg;
 
-		    msg = (char *)data->out;
-		    if(!msg) {
-		      u.u_error = EIO;
-		      goto END_cleanup;
+		      msg = (char *)data->out;
+		      if(!msg) {
+			u.u_error = EINVAL;
+			break;
+		      }
+
+		      u.u_error = EOPNOTSUPP;
+		      if(v->IsReplicated()) {
+			sprintf(msg, "no action performed\n");
+			u.u_error = 0;
+		      }
+
+		      data->out_size = (short)strlen(msg) + 1;
+		      break;
 		    }
-
-		    if(!v->IsReplicated()) {
-		      sprintf(msg, "non-replicated volume\n");
-		      u.u_error = EINVAL;
-		      goto END_cleanup;
-		    }
-
-		    sprintf(msg, "Repair completed!\n");
-		    u.u_error = 0;
-
-		  END_cleanup:
-		    data->out_size = (short)strlen((char *) data->out) + 1;
-		    break;
-		  }
 /*
   BEGIN_HTML
   <a name="checklocal"><strong> checklocal handler </strong></a>
   END_HTML
 */
-		case REP_CMD_CHECK:
-		  {
-		    char *msg;
-		    msg = (char *)data->out;
-		    if(!msg) {
-		      LOG(0, ("REP_CMD_CHECK: (%s) bad data->out parameter\n",
-			     FID_(fid)));
-		      u.u_error = EIO;
-		      goto CHECK_cleanup;
+		  case REP_CMD_CHECK:
+		    {
+		      char *msg;
+
+		      msg = (char *)data->out;
+		      if(!msg) {
+			u.u_error = EINVAL;
+			break;
+		      }
+
+		      sprintf(msg, "checklocal ioctl is no longer supported\n");
+		      data->out_size = (short)strlen(msg) + 1;
+		      u.u_error = EOPNOTSUPP;
+		      break;
 		    }
-
-		    sprintf(msg, "checklocal ioctl is no longer supported\n");
-		    u.u_error = 0;
-
-		  CHECK_cleanup:
-		    data->out_size = (short)strlen((char *) data->out) + 1;
-		    break;
-		  }
 /*
   BEGIN_HTML
   <a name="preservelocal"><strong> preservelocal handler </strong></a>
@@ -1187,7 +1181,7 @@ OI_FreeLocks:
 */
 		case REP_CMD_PRESERVE:
 		  {
-		    //		    LRDB->PreserveLocalMutation((char *) data->out);
+		    //u.u_error = v->GetCML();->PreserveLocalMutation((char *) data->out);
 		    data->out_size = (short)strlen((char *) data->out) + 1;
 		    u.u_error = 0;
 		    break;
@@ -1199,7 +1193,7 @@ OI_FreeLocks:
 */
 		case REP_CMD_PRESERVE_ALL:
 		  {
-		    //		    LRDB->PreserveAllLocalMutation((char *) data->out);
+		    //u.u_error = v->GetCML();->PreserveAllLocalMutation((char *) data->out);
 		    data->out_size = (short)strlen((char *) data->out) + 1;
 		    u.u_error = 0;
 		    break;
@@ -1211,32 +1205,27 @@ OI_FreeLocks:
 */
 		case REP_CMD_DISCARD:
 		  {
-		    volent *v = 0;
-		    if ((u.u_error = VDB->Get(&v, MakeVolid(fid)))) break;
-
-		    int volmode = VM_MUTATING;
-		    int entered = 0;
-		    if ((u.u_error = v->Enter(volmode, u.u_uid)) != 0)
-		      goto Disc_FreeLocks;
-
-		    entered = 1;
-		    if(!v->IsReplicated()) {
+		    char *msg;
+		    msg = (char *)data->out;
+		    if(!msg) {
 		      u.u_error = EINVAL;
-		      goto Disc_FreeLocks;
+		      break;
 		    }
 
-		    //		    LRDB->DiscardLocalMutation((repvol *)v, (char *) data->out);
-		    data->out_size = (short)strlen((char *) data->out) + 1;
-		    u.u_error = 0;
+		    u.u_error = EOPNOTSUPP;
+		    if(v->IsReplicated()) {
+		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		      if(!cml) {
+			sprintf(msg, "no client modify log on this volume\n");
+			data->out_size = (short)strlen(msg) + 1;
+			u.u_error = EINVAL;
+			break;
+		      }
+		      u.u_error = cml->DiscardLocalMutation(msg);
+		    }
 
-		  Disc_FreeLocks:
-		    if (entered)
-		      v->Exit(volmode, u.u_uid);
-
-		    VDB->Put(&v);
-		    if (u.u_error == ERETRY)
-		      u.u_error = EWOULDBLOCK;
-		    return;
+		    data->out_size = (short)strlen(msg) + 1;
+		    break;
 		  }
 /*
   BEGIN_HTML
@@ -1245,9 +1234,9 @@ OI_FreeLocks:
 */
 		case REP_CMD_DISCARD_ALL:
 		  {
-		    //		    LRDB->DiscardAllLocalMutation((char *) data->out);
-		    data->out_size = (short)strlen((char *) data->out) + 1;
-		    u.u_error = 0;
+		    /* Not supported. Use PURGEML instead. */
+		    data->out_size = 0;
+		    u.u_error = EOPNOTSUPP;
 		    break;
 		  }
 /*
@@ -1258,30 +1247,34 @@ OI_FreeLocks:
 		case REP_CMD_LIST:
 		  {
 		    /* list local mutations belonging to this session */
-		    int dummy;
 		    char fpath[CODA_MAXPATHLEN];
+		    int dummy;
+
 		    sscanf((char *) data->in, "%d %s", &dummy, fpath);
 
-		    FILE *fp = fopen(fpath, "w");
-		    if (fp == NULL) {
-		      u.u_error = ENOENT;
-		      sprintf((char *) data->out, "cannot open %s\n", fpath);
+		    u.u_error = EOPNOTSUPP;
+		    if(v->IsReplicated()) {
+		      FILE *fp = fopen(fpath, "w");
+		      u.u_error = EINVAL; /* EBADF even though not a fd? */
+		      if (fp) {
+			ClientModifyLog *cml = ((repvol *)v)->GetCML();
+			if(cml) {
+			  int count = cml->ListCML(fp);
+			  fprintf(fp, "%d entries total in the modify log for volume %s\n", count, v->GetName());
+			}
+			fflush(fp);
+			fclose(fp);
+			u.u_error = 0;
+		      }
 		    }
-		    else {
-		      //		      LRDB->ListCML(fid, fp); /* ???? */
-		      sprintf((char *) data->out, "local mutations are:\n");
-		      fflush(fp);
-		      fclose(fp);
-		      u.u_error = 0;
-		    }
-		    data->out_size = (short)strlen((char *) data->out) + 1;
 		    break;
 		  }
 		default:
 		  eprint("bogus REP_CMD(%d)", rep_cmd);
+		  break;
 		}
-		break;
 	      }
+	    }
 
 	    V_FreeLocks:
 	      if (entered) v->Exit(volmode, u.u_uid);
@@ -1291,9 +1284,7 @@ OI_FreeLocks:
 	      gettimeofday(&u.u_tv2, 0);
 	      elapsed = SubTimes(&(u.u_tv2), &(u.u_tv1));
 #endif
-
 	      VDB->Put(&v);
-	    }
 	    if (u.u_error == ERETRY)
 		  u.u_error = EWOULDBLOCK;
 	    return;
@@ -1746,18 +1737,17 @@ OI_FreeLocks:
 #define agep ((unsigned *)(startp))
 #define timep ((unsigned *)(agep + 1))
 		    u.u_error = VDB->WriteDisconnect(*agep, *timep);
-		    if (u.u_error == 0) 
+		    if (u.u_error == 0)
 			eprint("Logging updates to all volumes");
 		    break;
 		    }
-   	        case _VIOC_WR_ALL:
+		case _VIOC_WR_ALL:
 		    {
 		    u.u_error = VDB->WriteReconnect();
 		    if (u.u_error == 0)
 			eprint("Propagating updates to all volumes");
 		    break;
 		    }
-
 		}
 	    }
 	    if (u.u_error == ERETRY)

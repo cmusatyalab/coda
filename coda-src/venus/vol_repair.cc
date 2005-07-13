@@ -607,6 +607,15 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	  // if (code != 0) goto Exit;
 	}
     }
+    else if (!ISDIR(*RepairFid) && localFake) { /* local/global file rep */
+      char msg[2048];
+      /* Walk the cml here, unsetting to_be_repaired on everything.
+       * A 'cfs forcereintegrate' should then succeed/clear the conflict,
+       * if it doesn't happen on its own. */
+      CODA_ASSERT(!CML.DiscardLocalMutation(msg));
+      CML.ClearToBeRepaired();
+    }
+
 
     LOG(0, ("repvol::Repair: (%s) sending COP2!\n", FID_(RepairFid)));
     /* Send the COP2 message.  Don't Piggy!  */
@@ -640,12 +649,6 @@ Exit:
 	if (ISDIR(*RepairFid)) {
 	    ResSubmit(0, RepairFid);
 	}
-    }
-    else if ((code == 0) && localFake) { /* successful local/global */
-      /* Walk the cml here, unsetting to_be_repaired on everything.
-       * A 'cfs forcereintegrate' should then succeed/clear the conflict,
-       * if it doesn't happen on its own. */
-      CML.ClearToBeRepaired();
     }
 
     if (code ==	ESYNRESOLVE) code = EMULTRSLTS;	/* "multiple results" */

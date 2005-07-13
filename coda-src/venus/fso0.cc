@@ -862,38 +862,38 @@ RestartFind:
 	   *     return(ETOOMANYREFS);
 	   *   }
 	   */
-	  if (DYING(f)) 
+	  if (DYING(f))
 		LOG(0, ("Active reference prevents refetching object! "
 				"Allowing access to stale status! (key = <%s>)\n",
 				FID_(key)));
-	  
+
 	  else if (!STATUSVALID(f))
 		LOG(0, ("Allowing access to stale status! (key = <%s>)\n",
 				FID_(key)));
-	  
+
 	  if (getdata) {
-		if (DYING(f)) { 
+		if (DYING(f)) {
 		  LOG(0, ("Active reference prevents refetching object! "
 				  "Disallowing access to stale data! (key = <%s>)\n",
 				  FID_(key)));
 		  Put(&f);
 		  return(ETOOMANYREFS);
-		} 
-		
+		}
+
 		if (!HAVEALLDATA(f)) {
 		  int found;
-		  
+
 		  /* try the lookaside cache */
 		  f->PromoteLock();
 		  found = f->LookAside();
 		  f->DemoteLock();
-		  
+
 		  if (!found) {
 			Put(&f);
 			return(ETIMEDOUT);
 		  }
 		}
-		
+
 		if (!DATAVALID(f))
 		  LOG(0, ("Allowing access to stale data! (key = <%s>)\n",
 				  FID_(key)));
@@ -903,16 +903,15 @@ RestartFind:
 
   /* Examine the possibility of executing an ASR. */
   if (!GetInconsistent && f->IsFake() && f->vol->IsReplicated() &&
-      !((repvol *)f->vol)->IsUnderRepair(uid) && !f->IsExpandedObj())
+      !f->IsExpandedObj())
   {
 	int ASRInvokable;
 	repvol *v;
 	struct timeval tv;
 	fsobj *realobj;
-	
+
 	LOG(0, ("fsdb::Get:Volume (%u) NOT under repair and IsFake(%s)\n",
 			uid, FID_(&f->fid)));
-	
 
 	/* At this point, we have Fakeify'd the real object, and f is the
 	 * fake object served in its place. Unfortunately, it is not linked
@@ -925,20 +924,19 @@ RestartFind:
 	  LOG(0, ("fsdb::Get:Find failed!\n"));
 	  Put(&f);
 	  return EINCONS;
-	}	
-	
+	}
+
 	v = (repvol *)realobj->vol;
 	gettimeofday(&tv, 0);
-    
-	
+
 	/* Check that:
 	 * 1.) An ASRLauncher path was parsed in venus.conf.
 	 * 2.) This thread is a worker.
 	 * 3.) ASR's are allowed and enabled to execute within this volume.
 	 * 4.) An ASR is not currently running within this volume.
-	 * 5.) The timeout interval for ASR launching has expired. 
+	 * 5.) The timeout interval for ASR launching has expired.
 	 */
-	
+
 	ASRInvokable = ((ASRLauncherFile != NULL) && (vp->type == VPT_Worker) &&
 					v->IsASRAllowed() && !v->asr_running() &&
 					((tv.tv_sec - realobj->lastresolved) > ASR_INTERVAL) &&
@@ -962,41 +960,41 @@ RestartFind:
 	if(((tv.tv_sec - realobj->lastresolved) <= ASR_INTERVAL))
 	  LOG(0, ("fsdb::Get: ASR executed too recently for this object\n"
 			  "fsdb::Get: New time: %d\tOld time: %d\tDiff:%d\n",
-			  tv.tv_sec, realobj->lastresolved, 
+			  tv.tv_sec, realobj->lastresolved,
 			  tv.tv_sec - realobj->lastresolved));
 
 	if(!v->IsASRAllowed())
 	  LOG(0, ("fsdb::Get: ASRs disabled in this volume by some user\n"));
-	
+
 	if(v->asr_running() && vp->u.u_pgid != v->asr_pgid())
-	  code = ERETRY;     /* Bounce out anything which tries to hold 
-						  * kernel locks while repairing. */
-	
+	    code = ERETRY;     /* Bounce out anything which tries to hold
+				* kernel locks while repairing. */
+
 	else if (ASRInvokable) { /* Execute ASR. */
 	  LOG(0, ("fsdb::Get: Launching for (%s)... \n", FID_(key)));
 	  if (realobj->LaunchASR(SERVER_SERVER, realobj->IsDir() ? DIRECTORY_CONFLICT : FILE_CONFLICT) == 0)
 		code = ERETRY;  /* wait a short duration and retry */
 	  else
 		code = EINCONS;
-	} 
+	}
 	else {
 	  LOG(0, ("fsdb::Get: ASR not invokable for %s\n", FID_(key)));
 	  code = EINCONS;
 	}
-	
+
 	Put(&f);
 	return(code);
   }
-  
+
   /* Update priority. */
   if (reference)
 	f->Reference();
   f->ComputePriority();
-  
+
   *f_addr = f;
   return(0);
 }
-  
+
 /* MUST NOT be called from within transaction! */
 void fsdb::Put(fsobj **f_addr) {
     if (!(*f_addr)) { LOG(100, ("fsdb::Put: Null FSO\n")); return; }

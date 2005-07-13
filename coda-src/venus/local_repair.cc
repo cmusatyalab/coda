@@ -48,40 +48,45 @@ extern "C" {
   END_HTML
 */
 /* need not be called from within a transaction */
-void repvol::DiscardLocalMutation(char *msg)
+int ClientModifyLog::DiscardLocalMutation(char *msg)
 {
     int rc;
     char opmsg[1024];
 
-    CODA_ASSERT(msg != NULL);
-    cml_iterator next(CML, CommitOrder);
+    cml_iterator next(*this, CommitOrder);
     cmlent *m = next();
     if(!m) {
-      sprintf(msg, "Client Modify Log is empty for this volume!\n");
-      return;
+      if(msg) sprintf(msg, "Client Modify Log is empty for this volume!\n");
+      return EINVAL;
     }
 
     m->GetLocalOpMsg(opmsg);
 
     if(!m->IsToBeRepaired()) {
-      sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!", opmsg);
-      return;
+      if(msg) sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!", opmsg);
+      return EINVAL;
     }
+
     CODA_ASSERT(m->IsFrozen());
 
-    LOG(0,("lrdb::DiscardLocalMutation: dropping head of CML: %s\n", opmsg));
+    LOG(0, ("lrdb::DiscardLocalMutation: dropping head of CML: %s\n", opmsg));
     Recov_BeginTrans();
-    CML.cancelFreezes(1);
+    cancelFreezes(1);
     rc = m->cancel();
-    CML.cancelFreezes(0);
+    cancelFreezes(0);
     Recov_EndTrans(CMFP);
 
-    if(rc) {
-      LOG(0, ("lrdb::DiscardLocalMutation: cancel failed!\n"));
+    if(rc != 1) {
+      LOG(0, ("lrdb::DiscardLocalMutation: cancel failed: %d\n", rc));
       sprintf(msg, "discard of local mutation failed");
     }
-    LOG(0, ("lrdb::DiscardLocalMutation ended\n"));
-    sprintf(msg, "discarded local mutation %s", opmsg);
+    else {
+      LOG(0, ("lrdb::DiscardLocalMutation: cancel succeeded!\n"));
+      sprintf(msg, "discarded local mutation %s", opmsg);
+      rc = 0;
+    }
+
+    return rc;
 }
 
 /*
@@ -93,7 +98,7 @@ void repvol::DiscardLocalMutation(char *msg)
 void repvol::DiscardAllLocalMutation(char *msg)
 {
     OBJ_ASSERT(this, msg);
-    sprintf(msg, "discard all local mutations");
+    sprintf(msg, "use purgeml instead!\n");
 }
 
 /*
@@ -172,13 +177,13 @@ void repvol::PreserveAllLocalMutation(char *msg)
   END_HTML
 */
 /* must not be called from within a transaction */
-void repvol::ListCML(FILE *fp)
+int ClientModifyLog::ListCML(FILE *fp)
 {
-#if 0
+#if 0 /* old way */
     /* list the CML records of subtree rooted at FakeRootFid in text form */
     dlist vol_list;
 
-    LOG(100, ("lrdb::ListCML: fid = %s\n", FID_(fid)));
+    LOG(100, ("lrdb::ListCML\n"));
     {	/* travese the subtree of the local replica */
 	fsobj *LocalRoot = FSDB->Find(fid);
 	OBJ_ASSERT(this, LocalRoot);
@@ -246,5 +251,17 @@ void repvol::ListCML(FILE *fp)
 	OBJ_ASSERT(this, vol_list.count() == 0);
     }
 #endif
+
+    cml_iterator next(*this, CommitOrder);
+    cmlent *m;
+    int count = 0;
+    CODA_ASSERT(fp);
+
+    while((m = next())) {
+      m->writeops(fp);
+      count++;
+    }
+
+    return count;
 }
 
