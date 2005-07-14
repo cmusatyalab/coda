@@ -1160,20 +1160,27 @@ OI_FreeLocks:
   END_HTML
 */
 		  case REP_CMD_CHECK:
-		    {
-		      char *msg;
-
-		      msg = (char *)data->out;
-		      if(!msg) {
-			u.u_error = EINVAL;
-			break;
-		      }
-
-		      sprintf(msg, "checklocal ioctl is no longer supported\n");
-		      data->out_size = (short)strlen(msg) + 1;
+		  {
+		    char *msg;
+		    msg = (char *)data->out;
+		    if(!msg)
+		      u.u_error = EINVAL;
+		    else
 		      u.u_error = EOPNOTSUPP;
-		      break;
+		    if(msg && v->IsReplicated()) {
+		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		      CODA_ASSERT(cml);
+		      LOG(0, ("Checking Head on %s...\n", v->GetName()));
+		      cml->CheckCMLHead(msg);
+		      u.u_error = 0;
 		    }
+		    else
+		      sprintf(msg, "not a replicated volume\n");
+
+		    data->out_size = (short)strlen(msg) + 1;
+		    break;
+		  }
+
 /*
   BEGIN_HTML
   <a name="preservelocal"><strong> preservelocal handler </strong></a>
@@ -1181,11 +1188,25 @@ OI_FreeLocks:
 */
 		case REP_CMD_PRESERVE:
 		  {
-		    //u.u_error = v->GetCML();->PreserveLocalMutation((char *) data->out);
-		    data->out_size = (short)strlen((char *) data->out) + 1;
-		    u.u_error = 0;
+		    char *msg;
+		    msg = (char *)data->out;
+		    if(!msg) {
+		      u.u_error = EINVAL;
+		      break;
+		    }
+
+		    u.u_error = EOPNOTSUPP;
+		    if(v->IsReplicated()) {
+		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		      CODA_ASSERT(cml);
+		      u.u_error = 0;
+		      cml->PreserveLocalMutation(msg);
+		    }
+
+		    data->out_size = (short)strlen(msg) + 1;
 		    break;
 		  }
+
 /*
   BEGIN_HTML
   <a name="preservealllocal"><strong> preservealllocal handler </strong></a>
@@ -1193,11 +1214,31 @@ OI_FreeLocks:
 */
 		case REP_CMD_PRESERVE_ALL:
 		  {
-		    //u.u_error = v->GetCML();->PreserveAllLocalMutation((char *) data->out);
-		    data->out_size = (short)strlen((char *) data->out) + 1;
-		    u.u_error = 0;
+		    char *msg;
+		    msg = (char *)data->out;
+		    if(!msg) {
+		      u.u_error = EINVAL;
+		      break;
+		    }
+
+		    u.u_error = EOPNOTSUPP;
+		    if(v->IsReplicated()) {
+		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		      CODA_ASSERT(cml);
+		      if(!cml) {
+			sprintf(msg, "no client modify log on this volume\n");
+			data->out_size = (short)strlen(msg) + 1;
+			u.u_error = EINVAL;
+			break;
+		      }
+		      u.u_error = 0;
+		      cml->PreserveAllLocalMutation(msg);
+		    }
+
+		    data->out_size = (short)strlen(msg) + 1;
 		    break;
 		  }
+
 /*
   BEGIN_HTML
   <a name="discardlocal"><strong> discardlocal handler </strong></a>
@@ -1215,6 +1256,7 @@ OI_FreeLocks:
 		    u.u_error = EOPNOTSUPP;
 		    if(v->IsReplicated()) {
 		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
+		      CODA_ASSERT(cml);
 		      if(!cml) {
 			sprintf(msg, "no client modify log on this volume\n");
 			data->out_size = (short)strlen(msg) + 1;
@@ -1258,10 +1300,9 @@ OI_FreeLocks:
 		      u.u_error = EINVAL; /* EBADF even though not a fd? */
 		      if (fp) {
 			ClientModifyLog *cml = ((repvol *)v)->GetCML();
-			if(cml) {
-			  int count = cml->ListCML(fp);
-			  fprintf(fp, "%d entries total in the modify log for volume %s\n", count, v->GetName());
-			}
+			CODA_ASSERT(cml);
+			int count = cml->ListCML(fp);
+			fprintf(fp, "%d entries total in the modify log for volume %s\n", count, v->GetName());
 			fflush(fp);
 			fclose(fp);
 			u.u_error = 0;

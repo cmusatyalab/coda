@@ -41,6 +41,36 @@ extern "C" {
 #include "vproc.h"
 #include "worker.h"
 
+/*
+  BEGIN_HTML
+  <a name="checklocal"><strong> The checklocal repair command is implemented by
+  the ContinueRepairSession() method. </strong></a>
+  END_HTML
+*/
+/* need not be called from within a transaction */
+void ClientModifyLog::CheckCMLHead(char *msg)
+{
+    cml_iterator next(*this, CommitOrder);
+    cmlent *m = next();
+
+    OBJ_ASSERT(this, msg != NULL);
+
+    if(!m) {
+      if(msg)
+	sprintf(msg, "no local mutations\n");
+      return;
+    }
+
+    {   /* perform local mutation checks, produce repair tool message */
+        char opmsg[1024];
+        char checkmsg[1024];
+        int mcode, rcode;
+        m->GetLocalOpMsg(opmsg);
+        m->CheckRepair(checkmsg, &mcode, &rcode);
+        sprintf(msg, "local mutation: %s\n%s", opmsg, checkmsg);
+        LOG(0, ("ClientModifyLog::CheckCMLHead: %s", msg));
+    }
+}
 
 /*
   BEGIN_HTML
@@ -56,14 +86,14 @@ int ClientModifyLog::DiscardLocalMutation(char *msg)
     cml_iterator next(*this, CommitOrder);
     cmlent *m = next();
     if(!m) {
-      if(msg) sprintf(msg, "Client Modify Log is empty for this volume!\n");
+      if(msg) sprintf(msg, "no local mutations for this volume\n");
       return EINVAL;
     }
 
     m->GetLocalOpMsg(opmsg);
 
     if(!m->IsToBeRepaired()) {
-      if(msg) sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!", opmsg);
+      if(msg) sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!\n", opmsg);
       return EINVAL;
     }
 
@@ -82,7 +112,7 @@ int ClientModifyLog::DiscardLocalMutation(char *msg)
     }
     else {
       LOG(0, ("lrdb::DiscardLocalMutation: cancel succeeded!\n"));
-      sprintf(msg, "discarded local mutation %s", opmsg);
+      sprintf(msg, "discarded local mutation %s\n", opmsg);
       rc = 0;
     }
 
@@ -98,7 +128,7 @@ int ClientModifyLog::DiscardLocalMutation(char *msg)
 void repvol::DiscardAllLocalMutation(char *msg)
 {
     OBJ_ASSERT(this, msg);
-    sprintf(msg, "use purgeml instead!\n");
+    sprintf(msg, "use purgeml instead\n");
 }
 
 /*
@@ -107,26 +137,25 @@ void repvol::DiscardAllLocalMutation(char *msg)
   END_HTML
 */
 /* need not be called from within a transaction */
-void repvol::PreserveLocalMutation(char *msg)
+void ClientModifyLog::PreserveLocalMutation(char *msg)
 {
     OBJ_ASSERT(this, msg);
-#if 0
     char opmsg[1024], checkmsg[1024];
-    current_search_cml->GetLocalOpMsg(opmsg);
-
     int mcode, rcode;
-    current_search_cml->CheckRepair(checkmsg, &mcode, &rcode);
-    if (rcode == REPAIR_FAILURE) {
-	/* it is impossible to perform the orignial local mutation */
-	sprintf(msg, "%s\n can not re-do %s in the global area", checkmsg, opmsg);
-	return;
-    }
 
-    int rc = current_search_cml->DoRepair(msg, rcode);
-    if (rc == 0) {
-	AdvanceCMLSearch();
+    cml_iterator next(*this, CommitOrder);
+    cmlent *m;
+
+    if((m = next())) {
+      m->GetLocalOpMsg(opmsg);
+      m->CheckRepair(checkmsg, &mcode, &rcode);
+      if (rcode == REPAIR_FAILURE) {
+	/* it is impossible to perform the original local mutation */
+	sprintf(msg, "%s\n cannot reintegrate %s\n", checkmsg, opmsg);
+	return;
+      }
+      m->DoRepair(msg, rcode);
     }
-#endif
 }
 
 /*
@@ -137,37 +166,37 @@ void repvol::PreserveLocalMutation(char *msg)
   END_HTML
 */
 /* need not be called from within a transaction */
-void repvol::PreserveAllLocalMutation(char *msg)
+void ClientModifyLog::PreserveAllLocalMutation(char *msg)
 {
     OBJ_ASSERT(this, msg);
-#if 0
     char opmsg[1024], checkmsg[1024];
     int mcode, rcode, rc, opcnt = 0;
-    while (current_search_cml != NULL) {
-	current_search_cml->GetLocalOpMsg(opmsg);
-	if (current_search_cml->GetTid() > 0) {
-	    sprintf(msg, "%s belongs to transaction %d\n %d local mutation(s) replayed\n",
-		    opmsg, current_search_cml->GetTid(), opcnt);
+
+    cml_iterator next(*this, CommitOrder);
+    cmlent *m;
+
+    while((m = next())) {
+	m->GetLocalOpMsg(opmsg);
+	if (m->GetTid() > 0) {
+	    sprintf(msg, "%s belongs to transaction %d\n %d local mutation(s) replayed\n", opmsg, m->GetTid(), opcnt);
 	    return;
 	}
 	mcode = 0;
-	current_search_cml->CheckRepair(checkmsg, &mcode, &rcode);
+	m->CheckRepair(checkmsg, &mcode, &rcode);
 	if (rcode == REPAIR_FAILURE) {
-	    /* it is impossible to perform the orignial local mutation */	    
-	    sprintf(msg, "%d local mutation(s) redone in the global subtree\n %s\n can not re-do %s in the global replica", opcnt, checkmsg, opmsg);
+	    /* it is impossible to perform the original local mutation */
+	    sprintf(msg, "%d local mutation(s) reintegrated \n %s\n cannot reintegrate %s\n", opcnt, checkmsg, opmsg);
 	    return;
 	}
 	/* mcode is left set when CheckRepair found a non-fatal error */
-	if (mcode || !(rc = current_search_cml->DoRepair(checkmsg, rcode))) {
-	    AdvanceCMLSearch();
+	if (mcode || !(rc = m->DoRepair(checkmsg, rcode))) {
 	    opcnt++;
 	} else {
-	    sprintf(msg, "%d local mutation(s) redone in the global subtree\n %s\n can not re-do %s in the global replica", opcnt, checkmsg, opmsg);
+	    sprintf(msg, "%d local mutation(s) reintegrated\n %s\n cannot reintegrate %s\n", opcnt, checkmsg, opmsg);
 	    return;
 	}
     }
-    sprintf(msg, "All %d local mutation(s) redone in the global subtree\n", opcnt);
-#endif
+    sprintf(msg, "All %d local mutation(s) reintegrated\n", opcnt);
 }
 
 /*
@@ -179,79 +208,6 @@ void repvol::PreserveAllLocalMutation(char *msg)
 /* must not be called from within a transaction */
 int ClientModifyLog::ListCML(FILE *fp)
 {
-#if 0 /* old way */
-    /* list the CML records of subtree rooted at FakeRootFid in text form */
-    dlist vol_list;
-
-    LOG(100, ("lrdb::ListCML\n"));
-    {	/* travese the subtree of the local replica */
-	fsobj *LocalRoot = FSDB->Find(fid);
-	OBJ_ASSERT(this, LocalRoot);
-	dlist Stack;
-	optent *opt = new optent(LocalRoot);
-	Stack.prepend(opt);			/* Init the Stack with local root */
-	while (Stack.count() > 0) {		/* While Stack is not empty */
-	    opt = (optent *)Stack.get();	/* Pop the Stack */
-	    fsobj *obj = opt->GetFso();		/* get the current tree node fsobj object */
-	    VenusFid *LFid = &obj->fid;
-	    {	/* built vol_list */
-		volent *Vol = VDB->Find(MakeVolid(LFid));
-                CODA_ASSERT(Vol && Vol->IsReplicated());
-                repvol *vp = (repvol *)Vol;
-		vpt_iterator next(vol_list);
-		vptent *vpt;
-		while ((vpt = next())) {
-		    if (vpt->GetVol() == vp) break;
-		}
-		if (vpt == NULL) {
-		    /* volume not already in list, insert it */
-		    vpt = new vptent(vp);	
-		    vol_list.append(vpt);
-		}
-		vp->release();
-	    }
-	    
-	    if (obj->children != 0) {		/* Push the Stack */
-		dlist_iterator next(*(obj->children));
-		dlink *d;
-		while ((d = next())) {
-		    fsobj *cf = strbase(fsobj, d, child_link);
-		    if (GCABLE(cf)) continue;
-		    opt = new optent(cf);
-		    Stack.prepend(opt);
-		}
-	    } else {
-		/* check for covered mount point */
-		if (obj->IsMtPt()) {
-		    /* PUSH the mount root into the stack */
-		    FSO_ASSERT(this, obj->u.root);
-		    opt = new optent(obj->u.root);
-		    Stack.prepend(opt);
-		}
-	    }
-	}
-	OBJ_ASSERT(this, vol_list.count() > 0);
-    }
-    
-    {	/* gather related cmlents into cml_list list */
-	vpt_iterator next(vol_list);
-	vptent *vpt;
-	while ((vpt = next())) {
-	    cml_iterator next(*(vpt->GetVol()->GetCML()), CommitOrder);
-	    cmlent *m;
-	    while ((m = next()))
-	      m->writeops(fp);
-	}
-    }
-
-    {	/* garbage collect vol_list */
-	vptent *vpt;
-	while ((vpt = (vptent *)vol_list.get()))
-	  delete vpt;
-	OBJ_ASSERT(this, vol_list.count() == 0);
-    }
-#endif
-
     cml_iterator next(*this, CommitOrder);
     cmlent *m;
     int count = 0;

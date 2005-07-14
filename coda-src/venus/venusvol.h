@@ -218,8 +218,11 @@ class ClientModifyLog {
     void IncGetStats(cmlstats&, cmlstats&, int =UNSET_TID); /*N*/
     int IncReallocFids(int);                            /*U*/
     int HaveElements(int);                              /*N*/
-    int DiscardLocalMutation(char *);                  /*U*/
-    int ListCML(FILE *);
+    int DiscardLocalMutation(char *);                   /*U*/
+    void PreserveLocalMutation(char *);                 /*U*/
+    void PreserveAllLocalMutation(char *);              /*U*/
+    void CheckCMLHead(char *msg);                       /*U*/
+    int ListCML(FILE *);                                /*N*/
 };
 
 /* local-repair addition */

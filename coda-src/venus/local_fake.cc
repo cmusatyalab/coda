@@ -97,7 +97,7 @@ int fsobj::ExpandObject(void)
 	mod_fso->UncoverMtPt();
     } else {
         LOG(10,("fsobj::ExpandObject(): non-root expansion\n"));
-	mod_fso->dir_LookupByFid(name,&fid);
+	mod_fso->dir_LookupByFid(name, &fid);
 	mod_fso->dir_Delete(name); /* XXX: we fail here if we get a callback
 				    * during an expansion (HAVEALLDATA fails
 				    * on any replica) */

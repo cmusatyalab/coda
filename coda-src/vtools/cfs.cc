@@ -148,10 +148,10 @@ static void ForceReintegrate(int, char**, int);
 static void WriteDisconnect(int, char**, int);
 static void WriteReconnect(int, char**, int);
 static void ListLocal(int, char**, int);
+static void CheckLocal(int, char**, int);
 static void PreserveLocal(int, char**, int);
 static void PreserveAllLocal(int, char**, int);
 static void DiscardLocal(int, char**, int);
-static void DiscardAllLocal(int, char**, int);
 
 static void At_SYS(int, char **, int);
 static void At_CPU(int, char **, int);
@@ -389,7 +389,7 @@ struct command cmdarray[] =
         },
 	{"forcereintegrate", "fr", ForceReintegrate,
 	    "cfs forcereintegrate <dir> [<dir> <dir> ...]",
-	    "Force modifications in a disconnected volume to the server",
+	    "Force mutations in a disconnected volume to the server",
 	    NULL
 	},
         {"expand", NULL, ExpandObject,
@@ -402,31 +402,31 @@ struct command cmdarray[] =
             "Collapse expanded object (see cfs expand)",
             NULL
         },
-        {"listlocal", NULL, ListLocal,
-            "cfs listlocal <dir>",
-            "List all local mutations on this client",
-            NULL
-        },
-        {"preservelocal", NULL, PreserveLocal,
-            "cfs preservelocal <dir>",
-            "Preserve local mutation",
-            NULL
-        },
-        {"preservealllocal", NULL, PreserveAllLocal,
-            "cfs preservealllocal <dir>",
-            "Preserve all local mutations",
+        {"checklocal", NULL, CheckLocal,
+            "cfs checklocal <dir>",
+            "Check semantics of the head of a volume's CML",
             NULL
         },
         {"discardlocal", NULL, DiscardLocal,
             "cfs discardlocal <path>",
-            "Discard single local mutation",
+            "Discard the inconsistent head of a volume's CML",
             NULL
         },
-        {"discardalllocal", NULL, DiscardAllLocal,
-            "cfs discardalllocal",
-            "Discard all local mutations causing conflicts",
+        {"listlocal", NULL, ListLocal,
+            "cfs listlocal <dir>",
+            "List local mutations within a volume",
             NULL
-        }
+        },
+        {"preservelocal", NULL, PreserveLocal,
+            "cfs preservelocal <dir>",
+            "Preserve single local mutation within a volume",
+            NULL
+        },
+        {"preservealllocal", NULL, PreserveAllLocal,
+            "cfs preservealllocal <dir>",
+            "Preserve all local mutations within a volume",
+            NULL
+        },
     };
 
 /* Number of commands in cmdarray */
@@ -691,7 +691,10 @@ static int repair_pioctl(char *path, unsigned char opcode, int follow)
 
 
     rc = pioctl(path, _VICEIOCTL(_VIOC_REP_CMD), &vio, follow);
-    printf(space);
+
+    if(vio.out_size)
+      printf(space);
+
     return rc;
 }
 
@@ -2652,12 +2655,12 @@ static void WriteReconnect(int argc, char *argv[], int opslot)
 static void ListLocal(int argc, char *argv[], int opslot)
     {
       int  rc, fd, n;
-      char *volume, buf[CFS_PIOBUFSIZE], filename[MAXPATHLEN];
+      char *codadir, buf[CFS_PIOBUFSIZE], filename[MAXPATHLEN];
       struct ViceIoctl vio;
 
       switch(argc)
         {
-        case 3: volume = argv[2]; break;
+        case 3: codadir = argv[2]; break;
 
         default:
 	  printf("Usage: %s\n", cmdarray[opslot].usetxt);
@@ -2675,7 +2678,7 @@ static void ListLocal(int argc, char *argv[], int opslot)
       vio.out = 0;
       vio.out_size = 0;
 
-      rc = pioctl(volume, _VICEIOCTL(_VIOC_REP_CMD), &vio, 0);
+      rc = pioctl(codadir, _VICEIOCTL(_VIOC_REP_CMD), &vio, 0);
       if (rc) {
 	PERROR("VIOC_REP_CMD(REP_CMD_LIST)");
 	exit(-1);
@@ -2747,13 +2750,14 @@ static void DiscardLocal(int argc, char *argv[], int opslot)
     if (rc) { PERROR("VIOC_REP_CMD(REP_CMD_DISCARD)"); exit(-1); }
     }
 
-static void DiscardAllLocal(int argc, char *argv[], int opslot)
+static void CheckLocal(int argc, char *argv[], int opslot)
     {
     int  rc;
+    char *codadir;
 
     switch(argc)
         {
-        case 2: break;
+       case 3: codadir = argv[2]; break;
 
         default:
             printf("Usage: %s\n", cmdarray[opslot].usetxt);
@@ -2761,8 +2765,8 @@ static void DiscardAllLocal(int argc, char *argv[], int opslot)
         }
 
 
-    rc = repair_pioctl(NULL, REP_CMD_DISCARD_ALL, 1);
-    if (rc) { PERROR("VIOC_REP_CMD(REP_CMD_DISCARD_ALL)"); exit(-1); }
+    rc = repair_pioctl(codadir, REP_CMD_CHECK, 1);
+    if (rc) { PERROR("VIOC_REP_CMD(REP_CMD_CHECK)"); exit(-1); }
     }
 
 static void At_SYS(int argc, char *argv[], int opslot)

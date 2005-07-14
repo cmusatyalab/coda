@@ -732,10 +732,6 @@ class fsobj {
     int IsLocalObj() { return flags.local; }			/*N*/
     int IsAncestor(VenusFid *);					/*N*/
 
-    void MixedToGlobal(VenusFid *, VenusFid *, char *);        	/*U*/
-    void MixedToLocal(VenusFid *, VenusFid *, char *);        	/*U*/
-    void GlobalToMixed(VenusFid *, VenusFid *, char *);        	/*U*/
-    void LocalToMixed(VenusFid *, VenusFid *, char *);        	/*U*/
     void DeLocalRootParent(fsobj *, VenusFid *, fsobj *);	/*U*/
     void RecoverRootParent(VenusFid *, char *);			/*U*/
 

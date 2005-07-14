@@ -1725,50 +1725,36 @@ int cmlent::cancel()
 	    break;
 
 	case CML_MakeDir_OP:
-	    {
-#if 0
-	      /* Cancelling MakeDir must cancel all related cmlents! */
-	      /* XXX: Adam: recursion needs to be built in for cancel! */
+	  {
 	    cmlent *pre_store_mle = 0;
 	    cmlent *post_store_mle = 0;
 
 	    {
-		cml_iterator next(*(ClientModifyLog *)log, CommitOrder, &u.u_chown.Fid, this);
-		cmlent *m;
-		while ((m = next())) {
-		    if (m->opcode == CML_Store_OP) {
-			    post_store_mle = m;
-			    break;
-		    }
+	      cml_iterator next(*(ClientModifyLog *)log, CommitOrder, &u.u_chown.Fid, this);
+	      cmlent *m;
+	      while ((m = next())) {
+		if (m->opcode == CML_Store_OP) {
+		  post_store_mle = m;
+		  break;
 		}
+	      }
 	    }
 
 	    if (post_store_mle) {
-		cml_iterator next(*(ClientModifyLog *)log, AbortOrder, &u.u_chown.Fid, this);
-		cmlent *m;
-		while ((m = next())) {
-		    if (m->opcode == CML_Store_OP) {
-			    pre_store_mle = m;
-			    break;
-		    }
+	      cml_iterator next(*(ClientModifyLog *)log, AbortOrder, &u.u_chown.Fid, this);
+	      cmlent *m;
+	      while ((m = next())) {
+		if (m->opcode == CML_Store_OP) {
+		  pre_store_mle = m;
+		  break;
 		}
+	      }
 	    }
 
 	    if (pre_store_mle && post_store_mle)
-		(void) pre_store_mle->cancel();
-	    }
-	    break;
-#endif
-	    cmlent *m = ((ClientModifyLog *)log)->UtimesWriter(&u.u_mkdir.PFid);
-	    CODA_ASSERT(m != 0);
-	    if (m != this) {
-		DoUtimes = 1;
-		UtimesVuid = uid;
-		UtimesFid = u.u_mkdir.PFid;
-		UtimesMtime = time;
-	    }
-	    }
-	    break;
+	      (void) pre_store_mle->cancel();
+	  }
+	  break;
 
 	case CML_RemoveDir_OP:
 	    {
