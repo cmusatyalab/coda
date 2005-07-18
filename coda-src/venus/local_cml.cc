@@ -56,6 +56,62 @@ extern "C" {
 /* interfaces */
 #include <cml.h>
 
+/* Find a consistent server replica to act as our 'global'.
+ * All of this is necessary to create these replica objects in fsdb::Get. */
+static int GetGlobalReplica(fsobj **global, VenusFid *fid) {
+  struct in_addr volumehosts[VSG_MEMBERS];
+  VolumeId volumeids[VSG_MEMBERS];
+  volent *vol;
+  repvol *rvol;
+  int rc;
+  VenusFid replicafid = *fid;
+  vproc *vp = VprocSelf();
+
+  CODA_ASSERT(global);
+
+  VDB->Get(&vol, MakeVolid(fid));
+
+  if(vol && vol->IsReplicated()) {
+    rvol = (repvol *)vol;
+    rvol->GetHosts(volumehosts);
+    rvol->GetVids(volumeids);
+    for (int i = 0; i < VSG_MEMBERS; i++) {
+      if (!volumehosts[i].s_addr) continue;
+      srvent *s = FindServer(&volumehosts[i]);
+      CODA_ASSERT(s != NULL);
+
+      replicafid.Volume = volumeids[i];
+      rc = FSDB->Get(global, &replicafid, vp->u.u_uid, RC_DATA);
+      if(*global) {
+	if(rc) { /* any error code is no good, even EINCONS */
+	  /* This will probably be an error point when we get to handling
+	   * mixed local/global and server/server conflicts, where EINCONS
+	   * would be an acceptable error return. */
+	  FSDB->Put(global);
+	  continue;
+	}
+	else {
+	  LOG(0, ("CheckRepair_GetObjects: using global (%s) -> %s\n",
+		  FID_(&replicafid), FID_(fid)));
+	  FSDB->Put(global);
+	  break;
+	}
+      }
+      /* otherwise, it didn't work. continue */
+    }
+  }
+
+  *global = FSDB->Find(&replicafid);
+
+  if(vol)
+    VDB->Put(&vol);
+
+  if(*global)
+    return 0;
+
+  return -1;
+}
+
 /* ********** beginning of cmlent methods ********** */
 /* CheckRepair step 1: check mutation operand(s) */
 static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
@@ -68,55 +124,14 @@ static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
 
     LOG(100, ("cmlent::CheckRepair: %s on %s\n", operation, FID_(fid)));
 
-    rc = FSDB->Get(local, fid, vp->u.u_uid, RC_DATA); /* DATA? */
-
-    CODA_ASSERT(*local);
-
-    { /* find a consistent server replica to act as our 'global' */
-	struct in_addr volumehosts[VSG_MEMBERS];
-	VolumeId volumeids[VSG_MEMBERS];
-	volent *vol;
-	repvol *rvol;
-	VenusFid replicafid = *fid;
-
-	VDB->Get(&vol, MakeVolid(fid));
-
-	if(vol && vol->IsReplicated()) {
-	  rvol = (repvol *)vol;
-	  rvol->GetHosts(volumehosts);
-	  rvol->GetVids(volumeids);
-	  for (int i = 0; i < VSG_MEMBERS; i++) {
-	    if (!volumehosts[i].s_addr) continue;
-	    srvent *s = FindServer(&volumehosts[i]);
-	    CODA_ASSERT(s != NULL);
-
-	    replicafid.Volume = volumeids[i];
-	    rc = FSDB->Get(global, &replicafid, vp->u.u_uid, RC_DATA);
-	    if(*global) {
-	      if(rc) { /* any error code is no good, even EINCONS */
-		/* This will probably be an error point when we get to handling
-		 * mixed local/global and server/server conflicts, where EINCONS
-		 * would be an acceptable error return. */
-		FSDB->Put(global);
-		continue;
-	      }
-	      else {
-		LOG(0, ("CheckRepair_GetObjects: using global (%s) -> %s\n",
-			FID_(&replicafid), FID_(fid)));
-		break;
-	      }
-	    }
-	    /* otherwise, it didn't work. continue */
-	  }
-	}
-
-	if(vol)
-	  VDB->Put(&vol);
-    }
-
+    /* Get is used instead of Find to get a useful error code */
+    rc = FSDB->Get(local, fid, vp->u.u_uid, RC_DATA);
     if (rc != 0) {
 	/* figure out what the error was */
-	(*local)->GetPath(path, 1);
+
+        path[0] = '\0';
+	if(*local)
+	  (*local)->GetPath(path, 1);
 	*mcode = MUTATION_MISS_TARGET;
 	*rcode = REPAIR_FAILURE;
 	switch (rc) {
@@ -141,7 +156,12 @@ static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
 	return rc;
     }
 
-    CODA_ASSERT(*global != NULL);
+    FSDB->Put(local); /* release RW lock */
+    *local = FSDB->Find(fid); /* find the object instead */
+
+    rc = GetGlobalReplica(global, fid);
+    CODA_ASSERT(*global); /* bad news at the moment */
+
     return 0;
 }
 
@@ -477,6 +497,19 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
     LOG(0, ("cmlent::CheckRepair: mcode = %d rcode = %d msg = %s\n", *mcode, *rcode, msg));
 }
 
+
+static int DoRepair_GetObjects(VenusFid *fid, fsobj **global, fsobj **local)
+{
+    LOG(100, ("cmlent::DoRepair: (%s)\n", FID_(fid)));
+
+    *local = FSDB->Find(fid);
+    GetGlobalReplica(global, fid);
+
+    CODA_ASSERT((*global) && (*local)); /* bad news at the moment*/
+
+    return 0;
+}
+
 /*
   BEGIN_HTML
   <a name="dorepair"><strong> replay the actual actions required by
@@ -486,7 +519,6 @@ void cmlent::CheckRepair(char *msg, int *mcode, int *rcode)
 /* must not be called from within a transaction */
 int cmlent::DoRepair(char *msg, int rcode)
 {
-#if 0
     OBJ_ASSERT(this, msg != NULL);
     int code = 0;
     VenusFid *fid;
@@ -500,9 +532,10 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    * file of the global, then s Store call on the global object.
 	    */
 	    fid = &u.u_store.Fid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != 0) {
-		sprintf(msg, "can not obtain global mutation objects (%d)", code);
+		sprintf(msg, "can not obtain global mutation objects (%d)\n",
+			code);
 		break;
 	    }
 	    OBJ_ASSERT(this, GObj && LObj && GObj->IsFile() && LObj->IsFile());
@@ -510,27 +543,28 @@ int cmlent::DoRepair(char *msg, int rcode)
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
 
 	    if (!HAVEALLDATA(LObj))
-		CHOKE("DoRepair: Store with no local data!");
+		CHOKE("DoRepair: Store with no local data!\n");
 
 	    /* copy the local-obj cache file into the global-obj cache */
 	    LObj->data.file->Copy(GObj->data.file);
 
 	    /* set the global-obj length to the local-obj length */
 	    GObj->stat.Length = LObj->stat.Length;
-	    code = GObj->RepairStore();
-	    GObj->GetPath(GlobalPath, 1);
+
+	    /* call on _replicated_ volume (used to be global) */
+	    code = LObj->RepairStore();
 	    if (rcode == REPAIR_OVER_WRITE) {
 		LObj->GetPath(LocalPath, 1);
 		if (code == 0) {
-		    sprintf(msg, "overwrite %s with %s succeeded", GlobalPath, LocalPath);
+		    sprintf(msg, "overwrite %s succeeded\n", LocalPath);
 		} else {
-		    sprintf(msg, "overwrite %s with %s failed(%d)", GlobalPath, LocalPath, code);
+		    sprintf(msg, "overwrite %s failed(%d)\n", LocalPath, code);
 		}
 	    } else {
 		if (code == 0) {
-		    sprintf(msg, "store %s succeeded", GlobalPath);
+		    sprintf(msg, "store %s succeeded\n", LocalPath);
 		} else {
-		    sprintf(msg, "store %s failed(%d)", GlobalPath, code);
+		    sprintf(msg, "store %s failed(%d)\n", LocalPath, code);
 		}
 	    }
 	    break;
@@ -538,9 +572,10 @@ int cmlent::DoRepair(char *msg, int rcode)
     case CML_Chmod_OP:
 	{
 	    fid = &u.u_chmod.Fid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != 0) {
-		sprintf(msg, "can not obtain global mutation objects (%d)", code);
+		sprintf(msg, "can not obtain global mutation objects (%d)\n", code);
 		break;
 	    }
 	    LOG(100, ("cmlent::DoRepair: do chmod on %s and %s\n",
@@ -550,17 +585,19 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1,
 				       (unsigned short)-1, NewMode,
 				       (RPC2_CountedBS *)NULL);
-	    GObj->GetPath(GlobalPath, 1);
+	    LObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "chmod %s succeeded", GlobalPath);
+		sprintf(msg, "chmod %s succeeded", LocalPath);
 	    } else {
-		sprintf(msg, "chmod %s failed(%d)", GlobalPath, code);
+		sprintf(msg, "chmod %s failed(%d)", LocalPath, code);
 	    }
 	    break;
 	}
     case CML_Chown_OP:
-	{   fid = &u.u_chown.Fid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+	{
+	    fid = &u.u_chown.Fid;
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -573,18 +610,19 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1,
 				       NewOwner, (unsigned short)-1,
 				       (RPC2_CountedBS *)NULL);
-	    GObj->GetPath(GlobalPath, 1);
+	    LObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "chown %s succeeded", GlobalPath);
+		sprintf(msg, "chown %s succeeded", LocalPath);
 	    } else {
-		sprintf(msg, "chown %s failed(%d)", GlobalPath, code);
+		sprintf(msg, "chown %s failed(%d)", LocalPath, code);
 	    }
 	    break;
 	}
     case CML_Utimes_OP:
 	{
 	    fid = &u.u_chown.Fid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -592,62 +630,70 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, GObj && LObj);
 	    LOG(100, ("cmlent::DoRepair: do utimes on %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
-	    Date_t NewDate = LObj->stat.Date;			/* use local date */
-	    GObj->stat.Date = NewDate;	    			/* set time-stamp for global-obj */
-	    code = GObj->RepairSetAttr((unsigned long)-1, NewDate, (unsigned short)-1,
-				       (unsigned short)-1, NULL);
-	    GObj->GetPath(GlobalPath, 1);
+	    Date_t NewDate = LObj->stat.Date;		/* use local date */
+	    GObj->stat.Date = NewDate;	    /* set time-stamp for global-obj */
+	    code = GObj->RepairSetAttr((unsigned long)-1, NewDate,
+				       (unsigned short)-1, (unsigned short)-1,
+				       NULL);
+	    LObj->GetPath(GlobalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "setattr %s succeeded", GlobalPath);
+		sprintf(msg, "setattr %s succeeded", LocalPath);
 	    } else {
-		sprintf(msg, "setattr %s failed(%d)", GlobalPath, code);
+		sprintf(msg, "setattr %s failed(%d)", LocalPath, code);
 	    }
 	    break;
 	}
     case CML_Create_OP:
 	{   /* do fid replacement after the creation succeeded. */
 	    fid = &u.u_create.PFid;
-	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
+	    code = DoRepair_GetObjects(fid, &GPObj, &LPObj);
 	    if (code != 0) {
-		sprintf(msg, "can not obtain global mutation objects (%d)", code);
+		sprintf(msg, "can not obtain global mutation objects (%d)",
+			code);
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do create on parent %s and %s\n",
 		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_create.CFid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
-		sprintf(msg, "create semantic re-validation failed (%d)", code);
+		sprintf(msg, "create semantic re-validation failed (%d)",
+			code);
 		break;
 	    }
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsFile());
 	    unsigned short NewMode = LObj->stat.Mode;
 	    fsobj *target = NULL;
-	    code = GPObj->RepairCreate(&target, (char *)Name, NewMode, FSDB->StdPri());
-	    GPObj->GetPath(GlobalPath, 1);
+	    code = GPObj->RepairCreate(&target, (char *)Name, NewMode,
+				       FSDB->StdPri());
+	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "create %s/%s succeeded", GlobalPath, (char *)Name);
-		target->UnLock(WR);		/* release write lock on the new object */
-		LRDB->ReplaceRepairFid(&target->fid, &u.u_create.CFid);
+		sprintf(msg, "create %s/%s succeeded", LocalPath,
+			(char *)Name);
+		target->UnLock(WR);  /* release write lock on the new object */
 	    } else {
-		sprintf(msg, "create %s/%s failed(%d)", GlobalPath, (char *)Name, code);
+		sprintf(msg, "create %s/%s failed(%d)", LocalPath,
+			(char *)Name, code);
 	    }
 	    break;
 	}
     case CML_Link_OP:
 	{
 	    fid = &u.u_link.PFid;
-	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
+	    code = DoRepair_GetObjects(fid, &GPObj, &LPObj);
 	    if (code != 0) {
-		sprintf(msg, "can not obtain global mutation objects (%d)", code);
+		sprintf(msg, "can not obtain global mutation objects (%d)",
+			code);
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do link on parent %s and %s\n",
 		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_link.CFid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -656,18 +702,18 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do link on target %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    code = GPObj->RepairLink((char *)Name, GObj);
-	    GPObj->GetPath(GlobalPath, 1);
+	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "link %s/%s succeeded", GlobalPath, (char *)Name);
+		sprintf(msg, "link %s/%s succeeded", LocalPath, (char *)Name);
 	    } else {
-		sprintf(msg, "link %s/%s failed(%d)", GlobalPath, (char *)Name, code);
+		sprintf(msg, "link %s/%s failed(%d)", LocalPath, (char *)Name, code);
 	    }
 	    break;
 	}
     case CML_MakeDir_OP:
 	{
 	    fid = &u.u_link.PFid;
-	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
+	    code = DoRepair_GetObjects(fid, &GPObj, &LPObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -676,7 +722,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do mkdir on parent %s and %s\n",
 		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_mkdir.CFid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
 		sprintf(msg, "mkdir semantic re-validation failed (%d)", code);
 		break;
@@ -684,21 +731,22 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsDir());
 	    unsigned short NewMode = LObj->stat.Mode;
 	    fsobj *target = NULL;
-	    code = GPObj->RepairMkdir(&target, (char *)Name, NewMode, FSDB->StdPri());
-	    GPObj->GetPath(GlobalPath, 1);
+	    code = GPObj->RepairMkdir(&target, (char *)Name,
+				      NewMode, FSDB->StdPri());
+	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "mkdir %s/%s succeeded", GlobalPath, (char *)Name);
-		target->UnLock(WR);			/* relese write lock on the new object */
-		LRDB->ReplaceRepairFid(&target->fid, &u.u_mkdir.CFid);
+		sprintf(msg, "mkdir %s/%s succeeded", LocalPath, (char *)Name);
+		target->UnLock(WR);  /* release write lock on the new object */
 	    } else {
-		sprintf(msg, "mkdir %s/%s failed(%d)", GlobalPath, (char *)Name, code);
+		sprintf(msg, "mkdir %s/%s failed(%d)",
+			LocalPath, (char *)Name, code);
 	    }
 	    break;
 	}
     case CML_SymLink_OP:
 	{
 	    fid = &u.u_symlink.PFid;
-	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
+	    code = DoRepair_GetObjects(fid, &GPObj, &LPObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -707,9 +755,11 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do symlink on parent %s and %s\n",
 		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_symlink.CFid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != EIO && code != ENOENT) {
-		sprintf(msg, "symlink semantic re-validation failed (%d)", code);
+		sprintf(msg, "symlink semantic re-validation failed (%d)",
+			code);
 		break;
 	    }
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsSymLink());
@@ -717,31 +767,32 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    fsobj *target = NULL;
 	    code = GPObj->RepairSymlink(&target, (char *)NewName,
 					(char *)Name, NewMode, FSDB->StdPri());
-	    GPObj->GetPath(GlobalPath, 1);
+	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
 		sprintf(msg, "symlink %s/%s -> %s succeeded",
-			GlobalPath, (char *)NewName, (char *)Name);
-		target->UnLock(WR);			/* relese write lock on the new object */
-		LRDB->ReplaceRepairFid(&target->fid, &u.u_symlink.CFid);
+			LocalPath, (char *)NewName, (char *)Name);
+		target->UnLock(WR);   /* relese write lock on the new object */
 	    } else {
 		sprintf(msg, "symlink %s/%s -> %s failed(%d)",
-			GlobalPath, (char *)NewName, (char *)Name, code);
+			LocalPath, (char *)NewName, (char *)Name, code);
 	    }
 	    break;
 	}
     case CML_Remove_OP:
 	{
 	    fid = &u.u_remove.PFid;
-	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
+	    code = DoRepair_GetObjects(fid, &GPObj, &LPObj);
 	    if (code != 0) {
-		sprintf(msg, "can not obtain global mutation objects (%d)", code);
+		sprintf(msg, "can not obtain global mutation objects (%d)",
+			code);
 		break;
 	    }
 	    OBJ_ASSERT(this, GPObj && LPObj && GPObj->IsDir() && LPObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do remove on parent %s and %s\n",
 		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_remove.CFid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -750,18 +801,18 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do remove on global target %s\n",
 		      FID_(&GObj->fid)));
 	    code = GPObj->RepairRemove((char *)Name, GObj);
-	    GPObj->GetPath(GlobalPath, 1);
+	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "remove %s/%s succeeded", GlobalPath, (char *)Name);
+		sprintf(msg, "remove %s/%s succeeded", LocalPath, (char *)Name);
 	    } else {
-		sprintf(msg, "remove %s/%s failed(%d)", GlobalPath, (char *)Name, code);
+		sprintf(msg, "remove %s/%s failed(%d)", LocalPath, (char *)Name, code);
 	    }
 	    break;
 	}
     case CML_RemoveDir_OP:
 	{
 	    fid = &u.u_rmdir.PFid;
-	    code = LRDB->FindRepairObject(fid, &GPObj, &LPObj);
+	    code = DoRepair_GetObjects(fid, &GPObj, &LPObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -770,7 +821,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do rmdir on parent %s and %s\n",
 		      FID_(&GPObj->fid), FID_(&LPObj->fid)));
 	    fid = &u.u_rmdir.CFid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -779,11 +831,11 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do rmdir on global target %s\n",
 		      FID_(&GObj->fid)));
 	    code = GPObj->RepairRmdir((char *)Name, GObj);
-	    GPObj->GetPath(GlobalPath, 1);
+	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
-		sprintf(msg, "rmdir %s/%s succeeded", GlobalPath, (char *)Name);
+		sprintf(msg, "rmdir %s/%s succeeded", LocalPath, (char *)Name);
 	    } else {
-		sprintf(msg, "rmdir %s/%s failed(%d)", GlobalPath, (char *)Name, code);
+		sprintf(msg, "rmdir %s/%s failed(%d)", LocalPath, (char *)Name, code);
 	    }
 	    break;
 	}
@@ -792,7 +844,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    fsobj *GSPObj, *LSPObj;
 	    fsobj *GTPObj, *LTPObj;
 	    fid = &u.u_rename.SPFid;
-	    code = LRDB->FindRepairObject(fid, &GSPObj, &LSPObj);
+	    code = DoRepair_GetObjects(fid, &GSPObj, &LSPObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -801,7 +853,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do rename on source parent %s and %s\n",
 		      FID_(&GSPObj->fid), FID_(&LSPObj->fid)));
 	    fid = &u.u_rename.TPFid;
-	    code = LRDB->FindRepairObject(fid, &GTPObj, &LTPObj);
+	    code = DoRepair_GetObjects(fid, &GTPObj, &LTPObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -810,7 +862,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do rename on target parent %s and %s\n",
 		      FID_(&GTPObj->fid), FID_(&LTPObj->fid)));
 	    fid = &u.u_rename.SFid;
-	    code = LRDB->FindRepairObject(fid, &GObj, &LObj);
+
+	    code = DoRepair_GetObjects(fid, &GObj, &LObj);
 	    if (code != 0) {
 		sprintf(msg, "can not obtain global mutation objects (%d)", code);
 		break;
@@ -849,9 +902,6 @@ int cmlent::DoRepair(char *msg, int rcode)
 	CHOKE("cmlent::DoRepair: bogus opcode %d", opcode);
     }
     return code;
-#else
-    return 0;
-#endif
 }
 
 
