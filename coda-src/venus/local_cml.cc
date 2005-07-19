@@ -545,13 +545,15 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    if (!HAVEALLDATA(LObj))
 		CHOKE("DoRepair: Store with no local data!\n");
 
-	    /* copy the local-obj cache file into the global-obj cache */
-	    LObj->data.file->Copy(GObj->data.file);
-
-	    /* set the global-obj length to the local-obj length */
-	    GObj->stat.Length = LObj->stat.Length;
-
 	    /* call on _replicated_ volume (used to be global) */
+	    /* since our VV struct must match global VV, do a SetLocalVV */
+	    code = LObj->SetLocalVV(GObj->VV());
+	    if(code) {
+	      LOG(0, ("cmlent::DoRepair: Updating local VV failed!: %d\n",
+		      code));
+	      sprintf(msg, "store failed(couldn't set VV)\n");
+	      break;
+	    }
 	    code = LObj->RepairStore();
 	    if (rcode == REPAIR_OVER_WRITE) {
 		LObj->GetPath(LocalPath, 1);
@@ -581,8 +583,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do chmod on %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    unsigned short NewMode = LObj->stat.Mode;		/* use local new mode */
-	    GObj->stat.Mode = NewMode;			        /* set mode for global-obj */
-	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1,
+	    code = LObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1,
 				       (unsigned short)-1, NewMode,
 				       (RPC2_CountedBS *)NULL);
 	    LObj->GetPath(LocalPath, 1);
@@ -606,8 +607,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do chown on %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    uid_t NewOwner = LObj->stat.Owner; 		/* use local new owner */
-	    GObj->stat.Owner = NewOwner; 	    		/* set for global-obj */
-	    code = GObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1,
+	    code = LObj->RepairSetAttr((unsigned long)-1, (unsigned long)-1,
 				       NewOwner, (unsigned short)-1,
 				       (RPC2_CountedBS *)NULL);
 	    LObj->GetPath(LocalPath, 1);
@@ -631,8 +631,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    LOG(100, ("cmlent::DoRepair: do utimes on %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
 	    Date_t NewDate = LObj->stat.Date;		/* use local date */
-	    GObj->stat.Date = NewDate;	    /* set time-stamp for global-obj */
-	    code = GObj->RepairSetAttr((unsigned long)-1, NewDate,
+	    code = LObj->RepairSetAttr((unsigned long)-1, NewDate,
 				       (unsigned short)-1, (unsigned short)-1,
 				       NULL);
 	    LObj->GetPath(GlobalPath, 1);
@@ -666,7 +665,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsFile());
 	    unsigned short NewMode = LObj->stat.Mode;
 	    fsobj *target = NULL;
-	    code = GPObj->RepairCreate(&target, (char *)Name, NewMode,
+	    code = LPObj->RepairCreate(&target, (char *)Name, NewMode,
 				       FSDB->StdPri());
 	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
@@ -701,7 +700,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, GObj && LObj && GObj->IsFile() && LObj->IsFile());
 	    LOG(100, ("cmlent::DoRepair: do link on target %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
-	    code = GPObj->RepairLink((char *)Name, GObj);
+	    code = LPObj->RepairLink((char *)Name, GObj);
 	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
 		sprintf(msg, "link %s/%s succeeded", LocalPath, (char *)Name);
@@ -731,7 +730,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsDir());
 	    unsigned short NewMode = LObj->stat.Mode;
 	    fsobj *target = NULL;
-	    code = GPObj->RepairMkdir(&target, (char *)Name,
+	    code = LPObj->RepairMkdir(&target, (char *)Name,
 				      NewMode, FSDB->StdPri());
 	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
@@ -765,7 +764,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, LObj != NULL && LObj->IsSymLink());
 	    unsigned short NewMode = LObj->stat.Mode;
 	    fsobj *target = NULL;
-	    code = GPObj->RepairSymlink(&target, (char *)NewName,
+	    code = LPObj->RepairSymlink(&target, (char *)NewName,
 					(char *)Name, NewMode, FSDB->StdPri());
 	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
@@ -800,7 +799,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, GObj != NULL && (LObj == NULL || DYING(LObj) || LObj->stat.LinkCount > 0));
 	    LOG(100, ("cmlent::DoRepair: do remove on global target %s\n",
 		      FID_(&GObj->fid)));
-	    code = GPObj->RepairRemove((char *)Name, GObj);
+	    code = LPObj->RepairRemove((char *)Name, GObj);
 	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
 		sprintf(msg, "remove %s/%s succeeded", LocalPath, (char *)Name);
@@ -830,7 +829,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, GObj != NULL && (LObj == NULL || DYING(LObj)) && GObj->IsDir());
 	    LOG(100, ("cmlent::DoRepair: do rmdir on global target %s\n",
 		      FID_(&GObj->fid)));
-	    code = GPObj->RepairRmdir((char *)Name, GObj);
+	    code = LPObj->RepairRmdir((char *)Name, GObj);
 	    LPObj->GetPath(LocalPath, 1);
 	    if (code == 0) {
 		sprintf(msg, "rmdir %s/%s succeeded", LocalPath, (char *)Name);
@@ -871,7 +870,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    OBJ_ASSERT(this, GObj && LObj);
 	    LOG(100, ("cmlent::DoRepair: do rename on source object %s and %s\n",
 		      FID_(&GObj->fid), FID_(&LObj->fid)));
-	    code = GTPObj->RepairRename(GSPObj, (char *)Name,
+	    code = LTPObj->RepairRename(GSPObj, (char *)Name,
 					GObj, (char *)NewName,
 					(fsobj *)NULL);
 	    /*
@@ -880,8 +879,8 @@ int cmlent::DoRepair(char *msg, int rcode)
 	     * preceeded by a remove operation for that target object.
 	     */
 	    char SPath[MAXPATHLEN], TPath[MAXPATHLEN];
-	    GSPObj->GetPath(SPath, 1);
-	    GTPObj->GetPath(TPath, 1);
+	    LSPObj->GetPath(SPath, 1);
+	    LTPObj->GetPath(TPath, 1);
 	    if (code == 0) {
 		sprintf(msg, "rename %s/%s -> %s/%s succeeded",
 			SPath, (char *)Name, TPath, (char *)NewName);

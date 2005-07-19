@@ -109,9 +109,8 @@ int fsobj::RepairStore()
     Date_t Mtime = Vtime();
     unsigned long NewLength = stat.Length;
 
-    LOG(0, ("fsobj::RepairStore: (%s)\n", FID_(&fid)));
 
-#if 0
+#if 0 /*doesn't apply anymore */
     if (LRDB->repair_session_mode == REP_SCRATCH_MODE) {
 	return DisconnectedStore(Mtime, vp->u.u_uid, NewLength, LRDB->repair_session_tid);
     }
@@ -127,6 +126,8 @@ int fsobj::RepairStore()
 	/* Temporary!  Until RPC interface is fixed!  -JJK */
 	status.Date = Mtime;
     }
+
+    LOG(0, ("fsobj::RepairStore: (%s)\n\tVV->StoreId.Host:%d  VV->StoreId.Uniquifier:%d\n", FID_(&fid), status.VV.StoreId.Host, status.VV.StoreId.Uniquifier));
 
     /* COP2 Piggybacking. */
     char PiggyData[COP2SIZE];
@@ -170,10 +171,7 @@ int fsobj::RepairStore()
 
 	/* Acquire an Mgroup. */
 	code = rvp->GetMgrp(&m, vp->u.u_uid, (PIGGYCOP2 ? &PiggyBS : 0));
-	if (code != 0) {
-	  LOG(0, ("fsobj::RepairStore: GetMgrp failed! (%s)\n", FID_(&fid)));
-	  goto RepExit;
-	}
+	if (code != 0) goto RepExit;
 
 	/* The COP1 call. */
 	long cbtemp; cbtemp = cbbreaks;
@@ -413,4 +411,23 @@ int fsobj::RepairSymlink(fsobj **t_fso_addr, char *name, char *contents,
     else
 #endif
       return ConnectedSymlink(Mtime, vp->u.u_uid, t_fso_addr, name, contents, Mode, target_pri);
+}
+
+/*  *****  SetLocalVV  *****  */
+
+/* Used by Repair routines when sending local information to the servers! */
+/* Call with object write-locked? */
+int fsobj::SetLocalVV(ViceVersionVector *newvv)
+{
+    LOG(0, ("fsobj::SetLocalVV: (%s)\n", GetComp()));
+
+    FSO_ASSERT(this, newvv != NULL);
+
+    /* Do op locally. */
+    Recov_BeginTrans();
+    RVMLIB_REC_OBJECT(stat);
+    stat.VV = *newvv;
+    Recov_EndTrans(CMFP);
+
+    return(0);
 }

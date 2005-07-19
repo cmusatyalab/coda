@@ -1052,7 +1052,9 @@ OI_FreeLocks:
 		       * expanded correctly. No mutations are performed.
 		       * The idea of 'beginning repair' is historical, and
 		       * there is no problem calling this on the same directory
-		       * or volume many times without an 'endrepair'. */
+		       * or volume many times without an 'endrepair', or
+		       * attempting any form of repair without calling this
+		       * first. */
 		      /*
 		       *      1 - Local/Global repair session
 		       *      2 - Server/Server repair session
@@ -1169,8 +1171,6 @@ OI_FreeLocks:
 		      u.u_error = EOPNOTSUPP;
 		    if(msg && v->IsReplicated()) {
 		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
-		      CODA_ASSERT(cml);
-		      LOG(0, ("Checking Head on %s...\n", v->GetName()));
 		      cml->CheckCMLHead(msg);
 		      u.u_error = 0;
 		    }
@@ -1195,10 +1195,10 @@ OI_FreeLocks:
 		      break;
 		    }
 
+		    msg[0] = '\0';
 		    u.u_error = EOPNOTSUPP;
 		    if(v->IsReplicated()) {
 		      ClientModifyLog *cml = ((repvol *)v)->GetCML();
-		      CODA_ASSERT(cml);
 		      u.u_error = 0;
 		      cml->PreserveLocalMutation(msg);
 		    }

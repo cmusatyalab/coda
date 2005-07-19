@@ -687,13 +687,13 @@ static int repair_pioctl(char *path, unsigned char opcode, int follow)
     vio.in = buf;
     vio.in_size = (short) strlen(buf) + 1;
     vio.out = space;
-    vio.out_size = 2048;
+    vio.out_size = 0;
 
 
     rc = pioctl(path, _VICEIOCTL(_VIOC_REP_CMD), &vio, follow);
 
     if(vio.out_size)
-      printf(space);
+      printf(vio.out);
 
     return rc;
 }

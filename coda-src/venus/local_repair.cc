@@ -147,14 +147,22 @@ void ClientModifyLog::PreserveLocalMutation(char *msg)
     cmlent *m;
 
     if((m = next())) {
+      int rc;
       m->GetLocalOpMsg(opmsg);
       m->CheckRepair(checkmsg, &mcode, &rcode);
       if (rcode == REPAIR_FAILURE) {
 	/* it is impossible to perform the original local mutation */
-	sprintf(msg, "%s\n cannot reintegrate %s\n", checkmsg, opmsg);
 	return;
       }
-      m->DoRepair(msg, rcode);
+      rc = m->DoRepair(msg, rcode);
+      if(!rc) { /* success! get rid of it locally, or it'll hang around */
+	sprintf(msg, "%s\n cannot reintegrate %s\n", checkmsg, opmsg);
+	Recov_BeginTrans();
+	cancelFreezes(1);
+	rc = m->cancel();
+	cancelFreezes(0);
+	Recov_EndTrans(CMFP);
+      }
     }
 }
 

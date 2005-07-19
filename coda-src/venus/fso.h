@@ -735,6 +735,8 @@ class fsobj {
     void DeLocalRootParent(fsobj *, VenusFid *, fsobj *);	/*U*/
     void RecoverRootParent(VenusFid *, char *);			/*U*/
 
+    int SetLocalVV(ViceVersionVector *);
+
     int RepairStore();
     int RepairSetAttr(unsigned long, Date_t, uid_t, unsigned short, RPC2_CountedBS *);
     int RepairCreate(fsobj **, char *, unsigned short, int);

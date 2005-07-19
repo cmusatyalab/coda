@@ -356,7 +356,7 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	/* For directory conflicts only! (for file conflicts, there is no
 	 * fixfile)  If localhost is specified in fixfile, get info for
 	 * pruning CML entries.  Must do this here, since later would get
-	 * errno 157 (Resource temporarily unavailable) */
+	 * errno 157/ERETRY (Resource temporarily unavailable) */
 
 	LOG(0, ("repvol::Repair: (%s) attempting fixfile parse\n",
 		FID_(RepairFid)));

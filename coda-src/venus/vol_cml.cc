@@ -419,7 +419,7 @@ void ClientModifyLog::MarkFailedMLE(int ix)
 
 	    LOG(0, ("fsdb::Get: %s(%s) in local/global conflict\n",
 		    path, FID_(&m->u.u_repair.Fid)));
-	    MarinerLog("fsobj::CONFLICT (local/global): %s\n\t(%s)\n",
+	    MarinerLog("fsobj::CONFLICT (local/global): %s (%s)\n",
 		       path, FID_(&m->u.u_repair.Fid));
 
 	    // k_Purge(&conflict->pfid, 1);

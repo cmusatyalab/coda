@@ -729,7 +729,7 @@ RestartFind:
 
 		  LOG(0, ("fsdb::Get: %s(%s) in server/server conflict\n",
 			  path, FID_(key)));
-		  MarinerLog("fsobj::CONFLICT (server/server): %s\n\t(%s)\n",
+		  MarinerLog("fsobj::CONFLICT (server/server): %s (%s)\n",
 			     path, FID_(key));
 		} /* s/s conflict objs fall through if(GetInconsistent) */
 
