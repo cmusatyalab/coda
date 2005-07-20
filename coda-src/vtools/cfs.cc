@@ -378,7 +378,7 @@ struct command cmdarray[] =
         },
         {"strong", NULL, Strong,
 	    "cfs strong [<dir> <dir> <dir> ...]",
-	    "Force synchronous reintegration when an operation completes.\nalias for 'cfs writedisconnect -age 0 -hogtime 0'",
+	    "Force synchronous reintegration whenever an operation completes.\nalias for 'cfs writedisconnect -age 0 -hogtime 0'",
 	    NULL
         },
 	{"forcereintegrate", "fr", ForceReintegrate,
