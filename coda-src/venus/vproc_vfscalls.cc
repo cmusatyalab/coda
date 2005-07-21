@@ -304,12 +304,10 @@ void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap)
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
 
 	/* mark local-global conflicts by iterating through cmlent bindings.
-	 * we need to check cmlent's to show _localcache children -- Adam */
+	 * we need to check cmlent's to show _localcache's children -- Adam */
 	if(!u.u_error && f && f->IsToBeRepaired()
-	   && !f->HasExpandedCMLEntries()) {
+	   && !f->HasExpandedCMLEntries())
 	  u.u_error = EINCONS;
-	  LOG(0,("vproc::getattr: local-global conflict detected, fid: (%s)\n",FID_(&cp->c_fid)));
-	}
 
 	if (u.u_error)
 	  goto FreeLocks;
@@ -328,7 +326,7 @@ FreeLocks:
 
     /* do we need to do this here? -JH */
     if (u.u_error == EINCONS) {
-	u.u_error = 0;
+        u.u_error = 0;
 
 	/* Make a "fake" vattr block for the inconsistent object. */
 	va_init(vap);
@@ -623,7 +621,8 @@ void vproc::lookup(struct venus_cnode *dcp, char *name,
 
 	/* Set OUT parameter. */
 	MAKE_CNODE2(*cp, target_fso->fid, FTTOVT(target_fso->stat.VnodeType));
-	if (target_fso->IsFake() || target_fso->IsMTLink())
+	if (target_fso->IsToBeRepaired() || target_fso->IsFake()
+	    || target_fso->IsMTLink())
 	    cp->c_flags |= C_INCON;
 
 FreeLocks:
@@ -1326,7 +1325,8 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
 	/* Get the object. */
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_DATA);
 
-	if (!u.u_error && f && f->IsToBeRepaired()/* && !f->IsExpandedObj()*/)
+	if (!u.u_error && f && f->IsToBeRepaired()
+	    && !f->HasExpandedCMLEntries())
 	  u.u_error = EINCONS;
 	if (u.u_error) goto FreeLocks;
 

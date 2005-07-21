@@ -264,12 +264,17 @@ RepExit:
 	}
     }
     else {
+      LOG(0, ("fsobj::RepairStore: volrep\n", FID_(&fid)));
+
 	/* Acquire a Connection. */
 	connent *c;
 	ViceStoreId Dummy;      /* ViceStore needs an address for indirection */
         volrep *rvp = (volrep *)vol;
 	code = rvp->GetConn(&c, vp->u.u_uid);
-	if (code != 0) goto NonRepExit;
+	if (code != 0) {
+	  LOG(0, ("fsobj::RepairStore: rvp->GetConn failed (%d)\n", code));
+	  goto NonRepExit;
+	}
 
 	/* Make the RPC call. */
 	CFSOP_PRELUDE(prel_str, comp, fid);
@@ -283,7 +288,10 @@ RepExit:
 	/* Examine the return code to decide what to do next. */
 	code = rvp->Collate(c, code);
 	UNI_RECORD_STATS(ViceStore_OP);
-	if (code != 0) goto NonRepExit;
+	if (code != 0) {
+	  LOG(0, ("fsobj::RepairStore: rvp->Collate failed (%d)\n", code));
+	  goto NonRepExit;
+	}
 
 	{
 	    long bytes = sed->Value.SmartFTPD.BytesTransferred;

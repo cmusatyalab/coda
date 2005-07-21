@@ -14,7 +14,7 @@ listed in the file CREDITS.
                         Additional copyrights
                            none currently
 
-#*/
+*/
 
 #include <codaconf.h>
 #include "repcmds.h"

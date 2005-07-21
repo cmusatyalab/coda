@@ -412,20 +412,24 @@ void ClientModifyLog::MarkFailedMLE(int ix)
     cml_iterator next(*this);
     cmlent *m;
     while ((m = next()))
-	if (m->tid == vol->cur_reint_tid) 
+	if (m->tid == vol->cur_reint_tid)
 	  if (i++ == ix || ix == -1) {
 	    char path[MAXPATHLEN];
-	    RecoverPathName(path, &m->u.u_repair.Fid, this, m);
+	    fsobj *conflict;
 
-	    LOG(0, ("fsdb::Get: %s(%s) in local/global conflict\n",
-		    path, FID_(&m->u.u_repair.Fid)));
-	    MarinerLog("fsobj::CONFLICT (local/global): %s (%s)\n",
-		       path, FID_(&m->u.u_repair.Fid));
-
-	    // k_Purge(&conflict->pfid, 1);
+	    /* we need to purge the object's _parent_ to avoid
+	     * "cannot read symbolic link" errors on a open/lookup
+	     * of the parent directory (XXX not working) */
+	    CODA_ASSERT((conflict = FSDB->Find(&m->u.u_repair.Fid)));
+	    conflict->GetPath(path, 1);
+	    k_Purge(&conflict->pfid, 1);
 	    k_Purge(&m->u.u_repair.Fid, 0);
 
 	    m->flags.failed = 1;
+
+	    LOG(0, ("ClientModifyLog::MarkFailedMLE: %s(%s) in local/global conflict\n", path, FID_(&m->u.u_repair.Fid)));
+	    MarinerLog("ClientModifyLog::CONFLICT (local/global): %s (%s)\n",
+		       path, FID_(&m->u.u_repair.Fid));
 	  }
 }
 

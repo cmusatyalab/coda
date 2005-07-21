@@ -14,7 +14,7 @@ listed in the file CREDITS.
                         Additional copyrights
                            none currently
 
-#*/
+*/
 
 #include <codaconf.h>
 #include "repair.h"
@@ -66,18 +66,16 @@ int main(int argc, char **argv)
 		fprintf(stderr, "%s\nError beginning repair\n", msgbuf);
 		exit(1);
 	    }
-#if 0
-	    if (conf->local) { /* local/global conflict XXX */
-		if (DiscardAllLocal(conf, msgbuf, sizeof(msgbuf)) < 0)
-		    fprintf(stderr, "%s\nError discarding local mutations\n", msgbuf);
+
+	    if (conf->local) {
+	      /* local/global conflict, used to be discardalllocal */
+	      fprintf(stderr, "Use purgeml instead. \n");
+
 	    }
 	    else { /* server/server conflict */
-#endif
 		if (RemoveInc(conf, msgbuf, sizeof(msgbuf)) < 0)
 		    fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
-#if 0
 	    }
-#endif
 	    if (EndRepair(conf, 1, msgbuf, sizeof(msgbuf)) < 0)
 		fprintf(stderr, "%s\nError ending repair\n", msgbuf);
 	    Parser_exit(0, NULL);
@@ -429,156 +427,17 @@ void rep_ReplaceInc(int largc, char **largv)
 	return;
     }
 
-    if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0)
+    if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0) {
 	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
-
-    if ((dorep(ConflictObj, fixpath, NULL, 0) < 0) && (errno != ETOOMANYREFS)) {
-	fprintf(stderr, "Error repairing conflict: %s\n", strerror(errno));
-	return;
+	exit(2);
     }
+
+    if ((dorep(ConflictObj, fixpath, NULL, 0) < 0) && (errno != ETOOMANYREFS)){
+	fprintf(stderr, "Error repairing conflict: %s\n", strerror(errno));
+    }
+    else {
+	fprintf(stderr, "Repair successful.\n");
+    }
+
     exit(2);
 }
-
-/* the following code is obsolete but may be useful for new cfs commands */
-#if 0
-
-void rep_CheckLocal(int largc, char **largv) {
-    struct ViceIoctl vioc;
-    int rc;
-    char space[DEF_BUF];
-    char buf[DEF_BUF];
-
-    if (checkIfLocal("checklocal")) return;
-
-    sprintf(buf, "%d", REP_CMD_CHECK);
-    vioc.in = buf;
-    vioc.in_size = strlen(vioc.in) + 1;
-    vioc.out = space;
-    vioc.out_size = DEF_BUF;
-
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_CHECK)");
-    printf("%s\n", vioc.out);
-    fflush(stdout);
-}
-
-void rep_PreserveLocal(int largc, char **largv) {
-    struct ViceIoctl vioc;
-    int rc;
-    char space[DEF_BUF];
-    char buf[BUFSIZ];
-
-    if (checkIfLocal("preservelocal")) return;
-
-    vioc.out = space;
-    vioc.out_size = DEF_BUF;
-    sprintf(buf, "%d", REP_CMD_PRESERVE);
-    vioc.in = buf;
-    vioc.in_size = (short) strlen(buf) + 1;
-
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMU_PRESERVE)");
-    printf("%s\n", vioc.out);
-    fflush(stdout);
-}
-
-void rep_ListLocal(int largc, char **largv)
-{
-    int fd;
-    struct ViceIoctl vioc;
-    int rc, n;
-    char space[DEF_BUF];
-    char buf[DEF_BUF];
-    char filename[MAXPATHLEN];
-
-    if (checkIfLocal("listlocal")) return;
-
-    vioc.out = space;
-    vioc.out_size = DEF_BUF;
-    strcpy(filename, "/tmp/listlocal.XXXXXX");
-    fd = mkstemp(filename);
-    if (fd < 0) {
-	perror(filename);
-	return;
-    }
-
-    vioc.in = buf;
-    sprintf(buf, "%d %s", REP_CMD_LIST, filename);
-    vioc.in_size = (short) strlen(vioc.in) + 1;
-
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_LIST)");
-    printf("%s\n", vioc.out);
-    fflush(stdout);
-    if (rc == 0) {
-	while ((n = read(fd, buf, DEF_BUF)) > 0)
-	    write(1, buf, n);
-    }
-    close(fd);
-    unlink(filename);
-}
-
-void rep_PreserveAllLocal(int largc, char **largv) {
-    struct ViceIoctl vioc;
-    int rc;
-    char space[DEF_BUF];
-    char buf[BUFSIZ];
-
-    if (checkIfLocal("preservealllocal")) return;
-
-    /* Release volume-level locks */
-    vioc.out = space;
-    vioc.out_size = DEF_BUF;
-    sprintf(buf, "%d", REP_CMD_PRESERVE_ALL);
-    vioc.in = buf;
-    vioc.in_size = (short) strlen(buf) + 1;
-
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_PRESERVE_ALL)");
-    printf("%s\n", vioc.out);
-    fflush(stdout);
-}
-
-void rep_DiscardAllLocal(int largc, char **largv) {
-    char msgbuf[DEF_BUF];
-
-    if (checkIfLocal("discardalllocal")) return;
-
-    if (DiscardAllLocal(ConflictObj, msgbuf, sizeof(msgbuf)) < 0)
-	fprintf(stderr, "%s\ndiscardalllocal failed\n", msgbuf);
-}
-
-void rep_DiscardLocal(int largc, char **largv) {
-    struct ViceIoctl vioc;
-    int rc;
-    char space[DEF_BUF];
-    char buf[BUFSIZ];
-
-    if (checkIfLocal("discardlocal")) return;
-
-    vioc.out = space;
-    vioc.out_size = DEF_BUF;
-    sprintf(buf, "%d", REP_CMD_DISCARD);
-    vioc.in = buf;
-    vioc.in_size = (short) strlen(buf) + 1;
-
-    rc = pioctl("/coda", _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0);
-    if (rc < 0) perror("VIOC_REP_CMD(REP_CMD_DISCARD)");
-    printf("%s\n", vioc.out);
-    fflush(stdout);
-}
-
-int checkIfLocal(char *arg) {
-    switch (session) {
-    case SERVER_SERVER:
-	printf("\"%s\" can only be used to repair a local/global conflict\n", arg);
-	return(1);
-	break;
-    case NOT_IN_SESSION:
-	printf("You must do \"beginrepair\" first\n");
-	return(1);
-	break;
-    }
-    return(0);
-}
-#endif

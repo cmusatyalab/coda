@@ -61,9 +61,10 @@ extern "C" {
  */
 int fsobj::ExpandObject(void)
 {
-    fsobj *mod_fso, *fakedir, *localcache;
-    int isroot, rc;
+    fsobj *mod_fso, *fakedir;
     char name[CODA_MAXNAMLEN+1];
+    VenusFid dirfid;
+    int isroot;
 
     /* do not expand an already expanded object, technically not a problem
      * but it is kind of pointless and would complicate collapsing slightly */
@@ -98,9 +99,7 @@ int fsobj::ExpandObject(void)
     } else {
         LOG(10,("fsobj::ExpandObject(): non-root expansion\n"));
 	mod_fso->dir_LookupByFid(name, &fid);
-	mod_fso->dir_Delete(name); /* XXX: we fail here if we get a callback
-				    * during an expansion (HAVEALLDATA fails
-				    * on any replica) */
+	mod_fso->dir_Delete(name);
 	mod_fso->DetachChild(this);
 	pfso = NULL;
 	//pfid = NullFid; * Needed to link ourselves back during collapse */
@@ -110,6 +109,7 @@ int fsobj::ExpandObject(void)
     {
 	volent *repairvol = VDB->Find(LocalRealm, "Repair");
 	fakedir = repairvol->NewFakeDirObj(name);
+	dirfid = fakedir->fid;
 	VDB->Put(&repairvol);
     }
 
@@ -188,23 +188,6 @@ int fsobj::ExpandObject(void)
 
     fakedir->Matriculate();
 
-#if 0 /* XXX: not working: trying to cover localcache mtpt asap  */
-    vproc *vp = VprocSelf();
-
-    /* cover the local mountpoint asap */
-    rc = fakedir->Lookup(&localcache, NULL, LOCALCACHE, vp->u.u_uid,
-			 (CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT), 1);
-    if(rc)
-      rc = fakedir->Lookup(&localcache, NULL, LOCALCACHE_HIDDEN, vp->u.u_uid,
-			   (CLU_CASE_SENSITIVE | CLU_TRAVERSE_MTPT), 1);
-    if(rc) {
-      LOG(0,("fsobj::ExpandObject: Lookup() failed for LOCALCACHE:%d\n",rc));
-      return rc;
-    }
-    else
-      FSDB->Put(&localcache);
-#endif
-
     /* mark any CML entries related to ourselves 'expanded' */
     ExpandCMLEntries();
 
@@ -216,7 +199,6 @@ int fsobj::ExpandObject(void)
     /* make sure we tell the kernel about the changes */
     k_Purge(&mod_fso->fid, 1);
     k_Purge(&fid, 0);
-
 
     return 0;
 }
@@ -323,7 +305,7 @@ int fsobj::CollapseObject(void)
     }
 
     if(!IsDir() || !vol->IsRepairVol()) {
-      LOG(0,("fsobj::CollapseObject: unorthodox collapse!\n"));
+      LOG(0, ("fsobj::CollapseObject: unorthodox collapse!\n"));
       /* refocus the collapse, if possible (XXX: this hasn't been tested) */
       if(IsMTLink()) {
 
@@ -346,11 +328,12 @@ int fsobj::CollapseObject(void)
 	  return u.root->CollapseObject();
 	}
       }
-      LOG(0,("fsobj::CollapseObject: (%s) replica collapse failed (is this volume replicated?)\n", FID_(&fid)));
+      LOG(0, ("fsobj::CollapseObject: (%s) replica collapse failed\n",
+	      FID_(&fid)));
       return EINVAL;
     }
 
-    /* find the expanded object */
+    /* find the expanded object, covering mountpoint if necessary */
     vproc *vp = VprocSelf();
 
     rc = Lookup(&localcache, NULL, LOCALCACHE, vp->u.u_uid,

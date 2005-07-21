@@ -160,7 +160,10 @@ static int CheckRepair_GetObjects(const char *operation, VenusFid *fid,
     *local = FSDB->Find(fid); /* find the object instead */
 
     rc = GetGlobalReplica(global, fid);
-    CODA_ASSERT(*global); /* bad news at the moment */
+    if(rc || !(*global)) {
+      LOG(0, ("CheckRepair_GetObjects: Couldn't find a global replica for fid (%s)!\n", FID_(fid)));
+      return rc;
+    }
 
     return 0;
 }
@@ -545,6 +548,7 @@ int cmlent::DoRepair(char *msg, int rcode)
 	    if (!HAVEALLDATA(LObj))
 		CHOKE("DoRepair: Store with no local data!\n");
 
+#if 0 /* old */
 	    /* call on _replicated_ volume (used to be global) */
 	    /* since our VV struct must match global VV, do a SetLocalVV */
 	    code = LObj->SetLocalVV(GObj->VV());
@@ -555,8 +559,57 @@ int cmlent::DoRepair(char *msg, int rcode)
 	      break;
 	    }
 	    code = LObj->RepairStore();
+#else /* new, uses individual VV's */
+	    {
+	      struct in_addr volumehosts[VSG_MEMBERS];
+	      VolumeId volumeids[VSG_MEMBERS];
+	      VenusFid replicafid = *fid;
+	      fsobj *replicas[VSG_MEMBERS];
+	      volent *vol;
+	      vproc *vp = VprocSelf();
+
+	      VDB->Get(&vol, MakeVolid(fid));
+	      CODA_ASSERT(vol && vol->IsReplicated());
+
+	      repvol *rv = (repvol *)vol;
+
+	      rv->GetHosts(volumehosts);
+	      rv->GetVids(volumeids);
+	      VDB->Put(&vol);
+
+	      if (!HAVEALLDATA(LObj))
+		CHOKE("DoRepair: Store with no local data!");
+
+	      code = 0;
+	      for (int i = 0; (i < VSG_MEMBERS) && !code; i++) {
+		if (!volumehosts[i].s_addr) continue;
+		srvent *s = FindServer(&volumehosts[i]);
+		CODA_ASSERT(s != NULL);
+
+		replicafid.Volume = volumeids[i];
+		code = FSDB->Get(&(replicas[i]), &replicafid,
+				 vp->u.u_uid, RC_DATA);
+		if(code || !replicas[i]) {
+		  LOG(0, ("cmlent::DoRepair: failed fsdb::Get of %s(%d)\n",
+			  FID_(&replicafid), code));
+		  if(replicas[i])
+		    FSDB->Put(&(replicas[i]));
+		  break;
+		}
+
+		/* copy the local-obj cache file into the global-obj cache */
+		LObj->data.file->Copy(replicas[i]->data.file);
+
+		code = replicas[i]->RepairStore();
+		LOG(0, ("cmlent::DoRepair: repair-storing (%s) %s\n",
+			FID_(&replicafid), (code ? "failed" : "succeeded")));
+
+		FSDB->Put(&(replicas[i]));
+	      }
+	    }
+#endif
+	    LObj->GetPath(LocalPath, 1);
 	    if (rcode == REPAIR_OVER_WRITE) {
-		LObj->GetPath(LocalPath, 1);
 		if (code == 0) {
 		    sprintf(msg, "overwrite %s succeeded\n", LocalPath);
 		} else {

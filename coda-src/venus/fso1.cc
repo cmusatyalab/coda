@@ -1144,7 +1144,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 
     case '@':
       if (!IsExpandedObj()) {
-	LOG(0,("fsobj::TryToCover: (%s) -> %s wasn't expanded! Dangling symlink?\n",FID_(&fid),data.symlink));
+	LOG(0, ("fsobj::TryToCover: (%s) -> %s wasn't expanded! Dangling symlink?\n",FID_(&fid),data.symlink));
 	code = ENOENT;
 	break;
       }
