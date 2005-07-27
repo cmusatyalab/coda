@@ -28,7 +28,8 @@ listed in the file CREDITS.
 
 /* next most portable alternative is to use sigaltstack */
 #ifdef HAVE_SIGALTSTACK
-#define returnto(ctx) return
+jmp_buf parent;
+#define returnto(ctx) longjmp(*ctx, 1)
 #else
 /* otherwise, use the old LWP savecontext/returnto assembly routines */
 struct lwp_context {	/* saved context for dispatcher */
@@ -157,8 +158,9 @@ void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...)
     /* handle the SIGUSR1 signal */
     sigfillset(&sigs);
     sigdelset(&sigs, SIGUSR1);
-    while (child)
-	sigsuspend(&sigs);
+    if (!setjmp(parent))
+	while (child)
+	    sigsuspend(&sigs);
 
     /* The new context should be set up, now revert to the old state... */
     sigaltstack(&oldstack, NULL);
