@@ -107,8 +107,6 @@ int repvol::Repair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
     if (IsResolving())
 	return ERETRY;
 
-    if (1 /* to be replaced by a predicate for not being issued by ASR */)
-	return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
     return DisconnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
 }
 
@@ -147,6 +145,7 @@ static int GetRepairF(char *RepairFile, uid_t uid, fsobj **RepairF)
     return 0;
 }
 
+#if 0
 int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 			    VolumeId *RWVols, int *ReturnCodes)
 {
@@ -635,6 +634,8 @@ Exit:
 
     return(code);
 }
+#endif
+
 
 /* disablerepair - unset the volume from the repair state */
 int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
@@ -645,8 +646,8 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
     ViceStatus status;
     vproc *vp = VprocSelf();
     CODA_ASSERT(vp);
-    
-    LOG(10, ("volent::DisConnectedRepair: fid = (%s), file = %s, uid = %d\n",
+
+    LOG(0, ("volent::DisConnectedRepair: fid = (%s), file = %s, uid = %d\n",
 	     FID_(RepairFid), RepairFile, uid));
 
     VenusFid tpfid;
@@ -665,6 +666,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	return(EINVAL);		/* XXX - PK*/
     }
 
+#if 0
     /* Verify that RepairFid is inconsistent. */
     {
 	fsobj *f = 0;
@@ -683,12 +685,43 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	tpfid.Unique = f->pfid.Unique;
 	FSDB->Put(&f);
     }
+#endif
+
+    /* Verify that RepairFid is inconsistent. */
+    {
+	fsobj *f = NULL;
+
+	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS, NULL, NULL, NULL, 1);
+
+	CODA_ASSERT(f);
+	if (code || (!f->IsFake() && !f->IsToBeRepaired())) {
+	    if (code == 0) {
+		eprint("Repair: %s (%s) consistent\n", f->GetComp(),
+		       FID_(RepairFid));
+		LOG(0, ("repvol::Repair: %s (%s) consistent\n", f->GetComp(),
+		       FID_(RepairFid)));
+		code = EINVAL;	    /* XXX -JJK */
+	    }
+	    LOG(0, ("repvol::Repair: %s (%s) fsdb::Get failed with code %d\n",
+		   f->GetComp(), FID_(RepairFid), code));
+	    FSDB->Put(&f);
+	    return(code);
+	}
+
+	/* save the fid of the parent of the inconsistent object */
+	tpfid.Vnode = f->pfid.Vnode;
+	tpfid.Unique = f->pfid.Unique;
+	FSDB->Put(&f);
+    }
+
+    LOG(0, ("repvol::Repair: (%s) inconsistent!\n", FID_(RepairFid)));
+
     /* check rights - can user write the file to be repaired */
     {
 	LOG(100, ("DisconnectedRepair: Going to check access control (%s)\n",
 		  FID_(&tpfid)));
 	if (!tpfid.Vnode) {
-	    LOG(10, ("DisconnectedRepair: Parent fid is NULL - cannot check access control\n"));
+	    LOG(0, ("DisconnectedRepair: Parent fid is NULL - cannot check access control\n"));
 	    return(EACCES);
 	}
 	/* check the parent's rights for write permission*/
@@ -697,21 +730,21 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	if (code == 0) {
 	    code = parentf->Access(PRSFS_WRITE, C_A_W_OK, vp->u.u_uid);
 	    if (code) {
-		LOG(10, ("DisconnectedRepair: Access disallowed (%s)\n",
+		LOG(0, ("DisconnectedRepair: Access disallowed (%s)\n",
 			 FID_(&tpfid)));
 		FSDB->Put(&parentf);
 		return(code);
 	    }
 	}
 	else {
-	    LOG(100, ("DisconnectedRepair: Couldn't get parent (%s)\n",
+	    LOG(0, ("DisconnectedRepair: Couldn't get parent (%s)\n",
 		      FID_(&tpfid)));
 	    if (parentf) FSDB->Put(&parentf);
 	    return(code);
 	}
 	FSDB->Put(&parentf);
     }
-    LOG(100, ("DisconnectedRepair: going to check repair file %s\n", RepairFile));
+    LOG(0, ("DisconnectedRepair: going to check repair file %s\n", RepairFile));
     code = GetRepairF(RepairFile, uid, &RepairF);
     if (code) return code;
 
@@ -756,6 +789,8 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	    struct stat tstat;
 	    if (::stat(RepairFile, &tstat) < 0) {
 		code = errno;
+		LOG(0, ("DisconnectedRepair: (%s) stat failed\n",
+			FID_(RepairFid)));
 		goto Exit;
 	    }
 
@@ -767,6 +802,8 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	    status.LinkCount = (RPC2_Integer)tstat.st_nlink;
 	    if (tstat.st_mode & S_IFMT != S_IFREG) {
 		code = EINVAL;
+		LOG(0, ("DisconnectedRepair: (%s) not a regular file\n",
+			FID_(RepairFid)));
 		goto Exit;
 	    }
 	}
@@ -792,8 +829,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 		 * and ask user to retry */
 		f->ClearRcRights();
 		FSDB->Put(&f);
-		LOG(0, ("DisconnectedRepair: (%s) has active references - cannot repair\n",
-			FID_(RepairFid)));
+		LOG(0, ("DisconnectedRepair: (%s) has active references - cannot repair\n", FID_(RepairFid)));
 		code = ERETRY;
 		goto Exit;
 	    }
@@ -801,19 +837,21 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	    /* Ought to flush its descendents too? XXX -PK */
 	}
 	/* attempt the create now */
-	LOG(100, ("DisconnectedRepair: Going to create %s\n", FID_(RepairFid)));
+	LOG(0, ("DisconnectedRepair: Going to create %s\n", FID_(RepairFid)));
 	/* need to get the priority from the vproc pointer */
 	f = FSDB->Create(RepairFid, vp->u.u_priority, NULL, NULL);
 			/* don't know the component name */
 	if (f == 0) {
 	    UpdateCacheStats(&FSDB->FileAttrStats, NOSPACE, NBLOCKS(sizeof(fsobj)));
+	    LOG(0, ("DisconnectedRepair: Create failed (%s)\n",
+		    FID_(RepairFid)));
 	    code = ENOSPC;
-	    goto Exit; 
+	    goto Exit;
 	}
 
 	Date_t Mtime = Vtime();
 
-	LOG(100, ("DisconnectedRepair: Going to call LocalRepair(%s)\n",
+	LOG(0, ("DisconnectedRepair: Going to call LocalRepair(%s)\n",
 		  FID_(RepairFid)));
 	Recov_BeginTrans();
 	   code = LogRepair(Mtime, uid, RepairFid, status.Length, status.Date,
@@ -882,7 +920,7 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfi
 
 	int srcfd = open(fname, O_RDONLY | O_BINARY, V_MODE);
 	CODA_ASSERT(srcfd);
-	LOG(100, ("LocalRepair: Going to open %s\n", f->data.file->Name()));
+	LOG(0, ("LocalRepair: Going to open %s\n", f->data.file->Name()));
         int tgtfd = open(f->data.file->Name(), O_WRONLY|O_TRUNC|O_BINARY,
                          V_MODE);
 	CODA_ASSERT(tgtfd>0);
@@ -902,7 +940,7 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfi
 	CODA_ASSERT(rc == 0);
 
 	if ((unsigned long)stbuf.st_size != status->Length) {
-	    LOG(10, ("LocalRepair: Length mismatch - actual stored %u bytes, expected %u bytes\n",
+	    LOG(0, ("LocalRepair: Length mismatch - actual stored %u bytes, expected %u bytes\n",
 		     stbuf.st_size, status->Length));
 	    return(EIO); 	/* XXX - what else can we return? */
 	}
