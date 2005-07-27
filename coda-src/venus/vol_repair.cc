@@ -666,27 +666,6 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	return(EINVAL);		/* XXX - PK*/
     }
 
-#if 0
-    /* Verify that RepairFid is inconsistent. */
-    {
-	fsobj *f = 0;
-	code = FSDB->Get(&f, RepairFid, uid, RC_STATUS);
-	if (!(code == 0 && f->IsFakeDir()) && code != EINCONS) {
-	    if (code == 0) {
-		eprint("DisconnectedRepair: %s (%s) consistent",
-		       f->GetComp(), FID_(RepairFid));
-		code = EINVAL;	    /* XXX */
-	    }
-	    FSDB->Put(&f);
-	    return(code);
-	}
-	/* save the fid of the parent of the inconsistent object */
-	tpfid.Vnode = f->pfid.Vnode;
-	tpfid.Unique = f->pfid.Unique;
-	FSDB->Put(&f);
-    }
-#endif
-
     /* Verify that RepairFid is inconsistent. */
     {
 	fsobj *f = NULL;
@@ -696,14 +675,15 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	CODA_ASSERT(f);
 	if (code || (!f->IsFake() && !f->IsToBeRepaired())) {
 	    if (code == 0) {
-		eprint("Repair: %s (%s) consistent\n", f->GetComp(),
-		       FID_(RepairFid));
-		LOG(0, ("repvol::Repair: %s (%s) consistent\n", f->GetComp(),
-		       FID_(RepairFid)));
+		eprint("DisconnectedRepair: %s (%s) consistent\n",
+		       f->GetComp(), FID_(RepairFid));
+		LOG(0, ("DisconnectedRepair: %s (%s) consistent\n",
+			f->GetComp(), FID_(RepairFid)));
 		code = EINVAL;	    /* XXX -JJK */
 	    }
-	    LOG(0, ("repvol::Repair: %s (%s) fsdb::Get failed with code %d\n",
-		   f->GetComp(), FID_(RepairFid), code));
+	    else
+	      LOG(0, ("DisconnectedRepair: %s (%s) Get failed with code %d\n",
+		      f->GetComp(), FID_(RepairFid), code));
 	    FSDB->Put(&f);
 	    return(code);
 	}
@@ -714,11 +694,10 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	FSDB->Put(&f);
     }
 
-    LOG(0, ("repvol::Repair: (%s) inconsistent!\n", FID_(RepairFid)));
-
+    LOG(0, ("DisconnectedRepair: (%s) inconsistent!\n", FID_(RepairFid)));
     /* check rights - can user write the file to be repaired */
     {
-	LOG(100, ("DisconnectedRepair: Going to check access control (%s)\n",
+	LOG(0, ("DisconnectedRepair: Going to check access control (%s)\n",
 		  FID_(&tpfid)));
 	if (!tpfid.Vnode) {
 	    LOG(0, ("DisconnectedRepair: Parent fid is NULL - cannot check access control\n"));
@@ -744,7 +723,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	}
 	FSDB->Put(&parentf);
     }
-    LOG(0, ("DisconnectedRepair: going to check repair file %s\n", RepairFile));
+    LOG(0, ("DisconnectedRepair: checking repair file %s\n", RepairFile));
     code = GetRepairF(RepairFile, uid, &RepairF);
     if (code) return code;
 
@@ -778,6 +757,8 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	/* set up status block */
 	memset((void *)&status, 0, (int)sizeof(ViceStatus));
 	if (RepairF != 0) {
+	  LOG(0, ("DisconnectedRepair: RepairF found! (%s)\n",
+		  FID_(&RepairF->fid)));
 	    status.Length = RepairF->stat.Length;
 	    status.Date = RepairF->stat.Date;
 	    status.Owner = RepairF->stat.Owner;
@@ -786,6 +767,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	    status.VnodeType = RepairF->stat.VnodeType;
 	}
 	else {
+	  LOG(0, ("DisconnectedRepair: RepairF not found!\n"));
 	    struct stat tstat;
 	    if (::stat(RepairFile, &tstat) < 0) {
 		code = errno;
@@ -796,7 +778,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 
 	    status.Length = (RPC2_Unsigned)tstat.st_size;
 	    status.Date = (Date_t)tstat.st_mtime;
-	    RPC2_Integer se_uid = (short)tstat.st_uid;		/* sign-extend uid! */
+	    RPC2_Integer se_uid = (short)tstat.st_uid;	/* sign-extend uid! */
 	    status.Owner = (UserId)se_uid;
 	    status.Mode = (RPC2_Unsigned)tstat.st_mode & 0777;
 	    status.LinkCount = (RPC2_Integer)tstat.st_nlink;
@@ -809,7 +791,6 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	}
 	status.DataVersion = (FileVersion)1;	  /* Anything but -1? -JJK */
 	status.VV = tvv;
-
     }
 
     /* fake the call */
@@ -817,21 +798,26 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	/* first kill the fake directory if it exists */
 	fsobj *f = FSDB->Find(RepairFid);
 	if (f != 0) {
-	    LOG(0, ("DisconnectedRepair: Going to kill %s\n", FID_(RepairFid)));
+	    LOG(0, ("DisconnectedRepair: Going to kill %s, refcnt: %d\n",
+		    FID_(&f->fid), f->refcnt));
+
+	    if(f->IsExpandedObj())
+	      f->CollapseObject(); /* drop FSO_HOLD ref */
+
 	    f->Lock(WR);
 	    Recov_BeginTrans();
-	       f->Kill();
-	     Recov_EndTrans(MAXFP);
+	    f->Kill();
+	    Recov_EndTrans(MAXFP);
 
 	    if (f->refcnt > 1) {
-		/* Put isn't going to release the object so can't call create
-		 * Instead of failing, put an informative message on console
-		 * and ask user to retry */
-		f->ClearRcRights();
-		FSDB->Put(&f);
-		LOG(0, ("DisconnectedRepair: (%s) has active references - cannot repair\n", FID_(RepairFid)));
-		code = ERETRY;
-		goto Exit;
+	      LOG(0, ("DisconnectedRepair: (%s) has %d active references - cannot repair\n", FID_(RepairFid), f->refcnt));
+	      /* Put isn't going to release the object so can't call create
+	       * Instead of failing, put an informative message on console
+	       * and ask user to retry */
+	      f->ClearRcRights();
+	      FSDB->Put(&f);
+	      code = ERETRY;
+	      goto Exit;
 	    }
 	    FSDB->Put(&f);
 	    /* Ought to flush its descendents too? XXX -PK */

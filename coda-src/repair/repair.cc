@@ -69,12 +69,12 @@ int main(int argc, char **argv)
 
 	    if (conf->local) {
 	      /* local/global conflict, used to be discardalllocal */
-	      fprintf(stderr, "Use purgeml instead. \n");
-
+	      fprintf(stderr, "Use purgeml instead.\n");
 	    }
 	    else { /* server/server conflict */
 		if (RemoveInc(conf, msgbuf, sizeof(msgbuf)) < 0)
-		    fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
+		    fprintf(stderr, "%s\nError removing inconsistency\n",
+			    msgbuf);
 	    }
 	    if (EndRepair(conf, 1, msgbuf, sizeof(msgbuf)) < 0)
 		fprintf(stderr, "%s\nError ending repair\n", msgbuf);
@@ -369,10 +369,10 @@ void rep_RemoveInc(int largc, char **largv) {
 
     /* remove the inconsistency */
     if ((rc = RemoveInc(ConflictObj, msgbuf, sizeof(msgbuf))) < 0)
-	fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
+      fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
     /* end the repair session */
-    else if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0)
-	fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
+    if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0)
+      fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
 
     if (!rc) { /* no error - try to remove the object */
 	if (((dirconf) ? rmdir(rodir)

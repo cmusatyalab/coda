@@ -93,13 +93,15 @@ int ClientModifyLog::DiscardLocalMutation(char *msg)
     m->GetLocalOpMsg(opmsg);
 
     if(!m->IsToBeRepaired()) {
-      if(msg) sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!\n", opmsg);
+      if(msg) sprintf(msg, "\tLocal mutation:\n\t%s\n\tnot in conflict!\n",
+		      opmsg);
       return EINVAL;
     }
 
-    CODA_ASSERT(m->IsFrozen());
+    /* XXX: Dependencies need to be checked here! */
 
     LOG(0, ("lrdb::DiscardLocalMutation: dropping head of CML: %s\n", opmsg));
+    CODA_ASSERT(m->IsFrozen());
     Recov_BeginTrans();
     cancelFreezes(1);
     rc = m->cancel();

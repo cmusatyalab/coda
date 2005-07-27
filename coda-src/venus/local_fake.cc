@@ -305,32 +305,29 @@ int fsobj::CollapseObject(void)
     }
 
     if(!IsDir() || !vol->IsRepairVol()) {
-      LOG(0, ("fsobj::CollapseObject: unorthodox collapse!\n"));
-      /* refocus the collapse, if possible (XXX: this hasn't been tested) */
-      if(IsMTLink()) {
-
+      /* refocus the collapse, if possible */
+      LOG(0, ("fsobj::CollapseObject: unorthodox collapse, refocusing!\n"));
+      if(IsMtPt()) {
 	CODA_ASSERT(pfso);
-
 	if(pfso->IsExpandedObj()) {
-
-	  /* Here we are a replica or a replica's mtlink; probably a
-	   * Lookup wasn't triggered before a collapse */
-
-	  LOG(0,("fsobj::CollapseObject: I'm a replica mtlink, refocusing collapse on parent\n"));
+	  /* replica mtpt */
+	  LOG(0,("fsobj::CollapseObject: (%s) is a replica mtpt, refocusing collapse on parent\n", FID_(&fid)));
 	  CODA_ASSERT(pfso);
 	  return pfso->CollapseObject();
 	}
 	else {
-	  /* Here we are the mtlink to the expanded directory */
-
+	  /* fake directory mtpt */
 	  CODA_ASSERT(u.root);
-	  LOG(0,("fsobj::CollapseObject: was a expanded directory mtlink, refocusing collapse on root\n"));
+	  LOG(0,("fsobj::CollapseObject: (%s) is a expanded directory mtlink, refocusing collapse on root\n", FID_(&fid)));
 	  return u.root->CollapseObject();
 	}
       }
-      LOG(0, ("fsobj::CollapseObject: (%s) replica collapse failed\n",
-	      FID_(&fid)));
-      return EINVAL;
+      else {
+	/* replica */
+	CODA_ASSERT(u.mtpoint);
+	LOG(0, ("fsobj::CollapseObject: (%s) is a replica, refocusing on mtpt\n", FID_(&fid)));
+	return u.mtpoint->CollapseObject();
+      }
     }
 
     /* find the expanded object, covering mountpoint if necessary */
