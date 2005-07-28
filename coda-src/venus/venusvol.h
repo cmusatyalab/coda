@@ -232,7 +232,8 @@ struct CmlFlags {
     unsigned cancellation_pending : 1;		/* once unfrozen */
     /*T*/unsigned failed : 1;			/* offending record */
     /*T*/unsigned committed : 1;		/* committed at server */
-    unsigned reserved : 26;
+    unsigned prepended : 1;
+    unsigned reserved : 25;
 };
 
 
@@ -848,24 +849,24 @@ class repvol : public volent {
 
     /* local-repair modifications to the following methods */
     /* Modlog routines. */
-    int LogStore(time_t, uid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
+    int LogStore(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
     int LogSetAttr(time_t, uid_t, VenusFid *,
-		    RPC2_Unsigned, Date_t, UserId, RPC2_Unsigned, int = UNSET_TID);
-    int LogTruncate(time_t, uid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogUtimes(time_t, uid_t, VenusFid *, Date_t, int = UNSET_TID);
-    int LogChown(time_t, uid_t, VenusFid *, UserId, int = UNSET_TID);
-    int LogChmod(time_t, uid_t, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogCreate(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRemove(time_t, uid_t, VenusFid *, char *, const VenusFid *, int, int = UNSET_TID);
-    int LogLink(time_t, uid_t, VenusFid *, char *, VenusFid *, int = UNSET_TID);
+		    RPC2_Unsigned, Date_t, UserId, RPC2_Unsigned, int prepend);
+    int LogTruncate(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogUtimes(time_t, uid_t, VenusFid *, Date_t, int prepend);
+    int LogChown(time_t, uid_t, VenusFid *, UserId, int prepend);
+    int LogChmod(time_t, uid_t, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogCreate(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogRemove(time_t, uid_t, VenusFid *, char *, const VenusFid *, int, int prepend);
+    int LogLink(time_t, uid_t, VenusFid *, char *, VenusFid *, int prepend);
     int LogRename(time_t, uid_t, VenusFid *, char *,
-		   VenusFid *, char *, VenusFid *, const VenusFid *, int, int = UNSET_TID);
-    int LogMkdir(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
-    int LogRmdir(time_t, uid_t, VenusFid *, char *, const VenusFid *, int = UNSET_TID);
+		   VenusFid *, char *, VenusFid *, const VenusFid *, int, int prepend);
+    int LogMkdir(time_t, uid_t, VenusFid *, char *, VenusFid *, RPC2_Unsigned, int prepend);
+    int LogRmdir(time_t, uid_t, VenusFid *, char *, const VenusFid *, int prepend);
     int LogSymlink(time_t, uid_t, VenusFid *, char *,
-		    char *, VenusFid *, RPC2_Unsigned, int = UNSET_TID);
+		    char *, VenusFid *, RPC2_Unsigned, int prepend);
     int LogRepair(time_t, uid_t, VenusFid *, RPC2_Unsigned,
-		  Date_t, UserId, RPC2_Unsigned, int = UNSET_TID);
+		  Date_t, UserId, RPC2_Unsigned, int prepend);
     /* local-repair modifications to the above methods */
 
     /* CML routines */

@@ -92,25 +92,25 @@ void fsobj::LocalRemove(Date_t Mtime, char *name, fsobj *target_fso) {
 
 
 /* local-repair modification */
-int fsobj::DisconnectedRemove(Date_t Mtime, uid_t uid, char *name, fsobj *target_fso, int Tid) {
+int fsobj::DisconnectedRemove(Date_t Mtime, uid_t uid, char *name,
+			      fsobj *target_fso, int prepend)
+{
     int code = 0;
+    repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
-    }
+    if (!vol->IsReplicated())
+	return ETIMEDOUT;
+    rv = (repvol *)vol;
 
     Recov_BeginTrans();
-    code = ((repvol *)vol)->LogRemove(Mtime, uid, &fid, name,
-                                      &target_fso->fid,
-                                      target_fso->stat.LinkCount, Tid);
+    code = rv->LogRemove(Mtime, uid, &fid, name, &target_fso->fid,
+			 target_fso->stat.LinkCount, prepend);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
 	    LocalRemove(Mtime, name, target_fso);
     Recov_EndTrans(DMFP);
 
-Exit:
     return(code);
 }
 
@@ -162,24 +162,24 @@ void fsobj::LocalLink(Date_t Mtime, char *name, fsobj *source_fso) {
 
 
 /* local-repair modification */
-int fsobj::DisconnectedLink(Date_t Mtime, uid_t uid, char *name, fsobj *source_fso, int Tid)
+int fsobj::DisconnectedLink(Date_t Mtime, uid_t uid, char *name,
+			    fsobj *source_fso, int prepend)
 {
     int code = 0;
+    repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
-    }
+    if (!vol->IsReplicated())
+	return ETIMEDOUT;
+    rv = (repvol *)vol;
 
     Recov_BeginTrans();
-    code = ((repvol *)vol)->LogLink(Mtime, uid, &fid, name, &source_fso->fid, Tid);
+    code = rv->LogLink(Mtime, uid, &fid, name, &source_fso->fid, prepend);
     
     if (code == 0)
 	    /* This MUST update second-class state! */
 	    LocalLink(Mtime, name, source_fso);
     Recov_EndTrans(DMFP);
 
-Exit:
     return(code);
 }
 
@@ -290,30 +290,28 @@ void fsobj::LocalRename(Date_t Mtime, fsobj *s_parent_fso, char *s_name,
 
 
 /* local-repair modification */
-int fsobj::DisconnectedRename(Date_t Mtime, uid_t uid, fsobj *s_parent_fso, char *s_name,
-			      fsobj *s_fso, char *t_name, fsobj *t_fso, int Tid)
+int fsobj::DisconnectedRename(Date_t Mtime, uid_t uid, fsobj *s_parent_fso,
+			      char *s_name, fsobj *s_fso, char *t_name,
+			      fsobj *t_fso, int prepend)
 {
     int code = 0;
     int TargetExists = (t_fso != 0);
+    repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
-    }
+    if (!vol->IsReplicated())
+	return ETIMEDOUT;
+    rv = (repvol *)vol;
 
     Recov_BeginTrans();
-    code = ((repvol *)vol)->LogRename(Mtime, uid, &s_parent_fso->fid, s_name,
-                                      &fid, t_name, &s_fso->fid,
-                                      (TargetExists ? &t_fso->fid : &NullFid),
-                                      (TargetExists ? t_fso->stat.LinkCount:0),
-                                      Tid);
+    code = rv->LogRename(Mtime, uid, &s_parent_fso->fid, s_name, &fid, t_name,
+			 &s_fso->fid, (TargetExists ? &t_fso->fid : &NullFid),
+			 (TargetExists ? t_fso->stat.LinkCount:0), prepend);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
 	    LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
     Recov_EndTrans(DMFP);
 
-Exit:
     return(code);
 }
 
@@ -390,22 +388,25 @@ void fsobj::LocalMkdir(Date_t Mtime, fsobj *target_fso, char *name,
 
 
 /* local-repair modification */
-int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr, char *name,
-			     unsigned short Mode, int target_pri, int Tid)
+int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
+			     char *name, unsigned short Mode, int target_pri,
+			     int prepend)
 {
     int code = 0;
     fsobj *target_fso = 0;
     VenusFid target_fid;
     RPC2_Unsigned AllocHost = 0;
+    repvol *rv;
 
     if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
-    
+    rv = (repvol *)vol;
+
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
-    code = ((repvol *)vol)->AllocFid(Directory, &target_fid, &AllocHost, uid);
+    code = rv->AllocFid(Directory, &target_fid, &AllocHost, uid);
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
@@ -420,8 +421,8 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr, char *
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = ((repvol *)vol)->LogMkdir(Mtime, uid, &fid, name,
-                                     &target_fso->fid, Mode, Tid);
+    code = rv->LogMkdir(Mtime, uid, &fid, name, &target_fso->fid, Mode,
+			prepend);
 
     if (code == 0) {
 	    /* This MUST update second-class state! */
@@ -506,24 +507,24 @@ void fsobj::LocalRmdir(Date_t Mtime, char *name, fsobj *target_fso) {
 
 
 /* local-repair modification */
-int fsobj::DisconnectedRmdir(Date_t Mtime, uid_t uid, char *name, fsobj *target_fso, int Tid) {
+int fsobj::DisconnectedRmdir(Date_t Mtime, uid_t uid, char *name,
+			     fsobj *target_fso, int prepend)
+{
     int code = 0;
+    repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
-    }
+    if (!vol->IsReplicated())
+	return ETIMEDOUT;
+    rv = (repvol *)vol;
 
     Recov_BeginTrans();
-    code = ((repvol *)vol)->LogRmdir(Mtime, uid, &fid, name,
-                                     &target_fso->fid, Tid);
+    code = rv->LogRmdir(Mtime, uid, &fid, name, &target_fso->fid, prepend);
 
     if (code == 0)
 	    /* This MUST update second-class state! */
 	    LocalRmdir(Mtime, name, target_fso);
     Recov_EndTrans(DMFP);
 
-Exit:
     return(code);
 }
 
@@ -596,21 +597,23 @@ void fsobj::LocalSymlink(Date_t Mtime, fsobj *target_fso, char *name,
 /* local-repair modification */
 int fsobj::DisconnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 			       char *name, char *contents, unsigned short Mode,
-			       int target_pri, int Tid)
+			       int target_pri, int prepend)
 {
     int code = 0;
     fsobj *target_fso = 0;
     VenusFid target_fid = NullFid;
     RPC2_Unsigned AllocHost = 0;
+    repvol *rv;
 
     if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
+    rv = (repvol *)vol;
     
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
-    code = ((repvol *)vol)->AllocFid(SymbolicLink, &target_fid, &AllocHost, uid);
+    code = rv->AllocFid(SymbolicLink, &target_fid, &AllocHost, uid);
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
@@ -625,8 +628,8 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = ((repvol *)vol)->LogSymlink(Mtime, uid, &fid, name, contents,
-                                       &target_fso->fid, Mode, Tid);
+    code = rv->LogSymlink(Mtime, uid, &fid, name, contents, &target_fso->fid,
+			  Mode, prepend);
     
     if (code == 0) {
 	    /* This MUST update second-class state! */

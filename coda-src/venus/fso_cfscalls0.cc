@@ -1216,25 +1216,25 @@ void fsobj::LocalStore(Date_t Mtime, unsigned long NewLength)
 }
 
 
-int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength, int Tid)
+int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength,
+			     int prepend)
 {
     int code = 0;
+    repvol *rv;
 
-    if (!vol->IsReplicated()) {
-	code = ETIMEDOUT;
-	goto Exit;
-    }
+    if (!vol->IsReplicated())
+	return ETIMEDOUT;
+    rv = (repvol *)vol;
 
     Recov_BeginTrans();
 	/* Failure to log a store would be most unpleasant for the user! */
 	/* Probably we should try to guarantee that it never happens (e.g., by reserving a record at open). */
-    code = ((repvol *)vol)->LogStore(Mtime, uid, &fid, NewLength, Tid);
+    code = rv->LogStore(Mtime, uid, &fid, NewLength, prepend);
     
     if (code == 0)
 	    LocalStore(Mtime, NewLength);
     Recov_EndTrans(DMFP);
 
-Exit:
     return(code);
 }
 
@@ -1292,16 +1292,23 @@ void fsobj::LocalSetAttr(Date_t Mtime, unsigned long NewLength,
                      WRITE, NBLOCKS(sizeof(fsobj)));
 }
 
-int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength, Date_t NewDate,
-			       uid_t NewOwner, unsigned short NewMode, int Tid) {
+int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
+			       Date_t NewDate, uid_t NewOwner,
+			       unsigned short NewMode, int prepend)
+{
     int code = 0;
+    repvol *rv;
+
+    if (!vol->IsReplicated())
+	return ETIMEDOUT;
+    rv = (repvol *)vol;
 
     Recov_BeginTrans();
     RPC2_Integer tNewMode = (short)NewMode;	    /* sign-extend!!! */
 
     CODA_ASSERT(vol->IsReplicated());
-    code = ((repvol *)vol)->LogSetAttr(Mtime, uid, &fid, NewLength, NewDate,
-                                        NewOwner, (RPC2_Unsigned)tNewMode, Tid);
+    code = rv->LogSetAttr(Mtime, uid, &fid, NewLength, NewDate, NewOwner,
+			  (RPC2_Unsigned)tNewMode, prepend);
     if (code == 0)
 	    LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
     Recov_EndTrans(DMFP);
@@ -1603,21 +1610,23 @@ void fsobj::LocalCreate(Date_t Mtime, fsobj *target_fso, char *name,
 
 int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
                               char *name, unsigned short Mode, int target_pri,
-                              int Tid)
+                              int prepend)
 {
     int code = 0;
     fsobj *target_fso = 0;
     VenusFid target_fid;
     RPC2_Unsigned AllocHost = 0;
+    repvol *rv;
 
     if (!vol->IsReplicated()) {
 	code = ETIMEDOUT;
 	goto Exit;
     }
-    
+    rv = (repvol *)vol;
+
     /* Allocate a fid for the new object. */
     /* if we time out, return so we will try again with a local fid. */
-    code = ((repvol *)vol)->AllocFid(File, &target_fid, &AllocHost, uid);
+    code = rv->AllocFid(File, &target_fid, &AllocHost, uid);
     if (code != 0) goto Exit;
 
     /* Allocate the fsobj. */
@@ -1632,7 +1641,8 @@ int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
 		      NBLOCKS(sizeof(fsobj)));
 
     Recov_BeginTrans();
-    code = ((repvol *)vol)->LogCreate(Mtime, uid, &fid, name, &target_fso->fid, Mode, Tid);
+    code = rv->LogCreate(Mtime, uid, &fid, name, &target_fso->fid, Mode,
+			 prepend);
 
     if (code == 0) {
 	    /* This MUST update second-class state! */

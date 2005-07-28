@@ -525,19 +525,21 @@ void *cmlent::operator new(size_t len) {
 
 
 /* MUST be called from within transaction! */
-cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int Tid ...)
+cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int prepend ...)
 {
     LOG(1, ("cmlent::cmlent(...)\n"));
     RVMLIB_REC_OBJECT(*this);
     RPC2_String name, newname;
 
     log = Log;
-    this->tid = Tid;
+    this->tid = -1;
     flags.to_be_repaired = 0;
     flags.repair_mutation = 0;
     flags.frozen = 0;
     flags.cancellation_pending = 0;
-    log->list.append(&handle);
+    flags.prepended = prepend;
+    if (prepend) log->list.prepend(&handle);
+    else	 log->list.append(&handle);
 
     repvol *vol = strbase(repvol, log, CML);
     sid = vol->GenerateStoreId();
@@ -548,7 +550,7 @@ cmlent::cmlent(ClientModifyLog *Log, time_t Mtime, uid_t Uid, int op, int Tid ..
     name = newname = NULL;
     Name = NewName = NULL;
     va_list ap;
-    va_start(ap, Tid);
+    va_start(ap, prepend);
     switch(op) {
 	case CML_Store_OP:
 	    u.u_store.Fid = *va_arg(ap, VenusFid *);
@@ -964,12 +966,12 @@ void cmlent::print(int afd) {
 
 /* local-repair modification */
 int repvol::LogStore(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
-                     NewLength, int tid)
+                     NewLength, int prepend)
 {
     LOG(1, ("repvol::LogStore: %d, %d, (%s), %d %d\n",
-	     Mtime, uid, FID_(Fid), NewLength, tid));
+	     Mtime, uid, FID_(Fid), NewLength, prepend));
 
-    if (LogOpts) {
+    if (LogOpts && !prepend) {
 	/* Cancel stores, as long as they are not followed by chowns. */
 	/* Cancel utimes'. */
 	int cancellation;
@@ -999,7 +1001,7 @@ int repvol::LogStore(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
 	} while (cancellation);
     }
 
-    cmlent *store_mle = new cmlent(&CML, Mtime, uid, CML_Store_OP, tid, Fid, NewLength);
+    cmlent *store_mle = new cmlent(&CML, Mtime, uid, CML_Store_OP, prepend, Fid, NewLength);
     return(store_mle == 0 ? ENOSPC : 0);
 }
 
@@ -1007,23 +1009,23 @@ int repvol::LogStore(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
 /* local-repair modification */
 int repvol::LogSetAttr(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
                        NewLength, Date_t NewDate, UserId NewOwner,
-                       RPC2_Unsigned NewMode, int tid)
+                       RPC2_Unsigned NewMode, int prepend)
 {
     /* Record a separate log entry for each attribute that is being set. */
     if (NewLength != (RPC2_Unsigned)-1) {
-	int code = LogTruncate(Mtime, uid, Fid, NewLength, tid);
+	int code = LogTruncate(Mtime, uid, Fid, NewLength, prepend);
 	if (code != 0) return(code);
     }
     if (NewDate != (Date_t)-1) {
-	int code = LogUtimes(Mtime, uid, Fid, NewDate, tid);
+	int code = LogUtimes(Mtime, uid, Fid, NewDate, prepend);
 	if (code != 0) return(code);
     }
     if (NewOwner != (UserId)-1) {
-	int code = LogChown(Mtime, uid, Fid, NewOwner, tid);
+	int code = LogChown(Mtime, uid, Fid, NewOwner, prepend);
 	if (code != 0) return(code);
     }
     if (NewMode != (RPC2_Unsigned)-1) {
-	int code = LogChmod(Mtime, uid, Fid, NewMode, tid);
+	int code = LogChmod(Mtime, uid, Fid, NewMode, prepend);
 	if (code != 0) return(code);
     }
 
@@ -1033,24 +1035,24 @@ int repvol::LogSetAttr(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
 
 /* local-repair modification */
 int repvol::LogTruncate(time_t Mtime, uid_t uid, VenusFid *Fid, RPC2_Unsigned
-                        NewLength, int tid)
+                        NewLength, int prepend)
 {
     LOG(1, ("repvol::LogTruncate: %d, %d, (%s), %d %d\n",
-	     Mtime, uid, FID_(Fid), NewLength, tid));
+	     Mtime, uid, FID_(Fid), NewLength, prepend));
 
     /* Treat truncates as stores for now. -JJK */
-    return(LogStore(Mtime, uid, Fid, NewLength, tid));
+    return(LogStore(Mtime, uid, Fid, NewLength, prepend));
 }
 
 
 /* local-repair modification */
 int repvol::LogUtimes(time_t Mtime, uid_t uid, VenusFid *Fid, Date_t NewDate,
-                      int tid)
+                      int prepend)
 {
     LOG(1, ("repvol::LogUtimes: %d, %d, (%s), %d %d\n",
-	     Mtime, uid, FID_(Fid), NewDate, tid));
+	     Mtime, uid, FID_(Fid), NewDate, prepend));
 
-    if (LogOpts) {
+    if (LogOpts && !prepend) {
 	int cancellation;
 	do {
 	    cancellation = 0;
@@ -1066,19 +1068,19 @@ int repvol::LogUtimes(time_t Mtime, uid_t uid, VenusFid *Fid, Date_t NewDate,
 	} while (cancellation);
     }
 
-    cmlent *utimes_mle = new cmlent(&CML, Mtime, uid, CML_Utimes_OP, tid, Fid, NewDate);
+    cmlent *utimes_mle = new cmlent(&CML, Mtime, uid, CML_Utimes_OP, prepend, Fid, NewDate);
     return(utimes_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
 int repvol::LogChown(time_t Mtime, uid_t uid, VenusFid *Fid, UserId NewOwner,
-                     int tid)
+                     int prepend)
 {
     LOG(1, ("repvol::LogChown: %d, %d, (%s), %d %d\n",
-	     Mtime, uid, FID_(Fid), NewOwner, tid));
+	     Mtime, uid, FID_(Fid), NewOwner, prepend));
 
-    if (LogOpts) {
+    if (LogOpts && !prepend) {
 	int cancellation;
 	do {
 	    cancellation = 0;
@@ -1094,19 +1096,19 @@ int repvol::LogChown(time_t Mtime, uid_t uid, VenusFid *Fid, UserId NewOwner,
 	} while (cancellation);
     }
 
-    cmlent *chown_mle = new cmlent(&CML, Mtime, uid, CML_Chown_OP, tid, Fid, NewOwner);
+    cmlent *chown_mle = new cmlent(&CML, Mtime, uid, CML_Chown_OP, prepend, Fid, NewOwner);
     return(chown_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
 int repvol::LogChmod(time_t Mtime, uid_t uid, VenusFid *Fid,
-                     RPC2_Unsigned NewMode, int tid)
+                     RPC2_Unsigned NewMode, int prepend)
 {
     LOG(1, ("repvol::LogChmod: %d, %d, (%s), %o %d\n",
-	     Mtime, uid, FID_(Fid), NewMode, tid));
+	     Mtime, uid, FID_(Fid), NewMode, prepend));
 
-    if (LogOpts) {
+    if (LogOpts && !prepend) {
 	int cancellation;
 	do {
 	    cancellation = 0;
@@ -1130,19 +1132,19 @@ int repvol::LogChmod(time_t Mtime, uid_t uid, VenusFid *Fid,
 	} while (cancellation);
     }
 
-    cmlent *chmod_mle = new cmlent(&CML, Mtime, uid, CML_Chmod_OP, tid, Fid, NewMode);
+    cmlent *chmod_mle = new cmlent(&CML, Mtime, uid, CML_Chmod_OP, prepend, Fid, NewMode);
     return(chmod_mle == 0 ? ENOSPC : 0);
 }
 
 
 /* local-repair modification */
 int repvol::LogCreate(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
-                      VenusFid *CFid, RPC2_Unsigned Mode, int tid)
+                      VenusFid *CFid, RPC2_Unsigned Mode, int prepend)
 {
     LOG(1, ("repvol::LogCreate: %d, %d, (%s), %s, (%s), %o %d\n",
-	     Mtime, uid, FID_(PFid), Name, FID_(CFid), Mode, tid));
+	     Mtime, uid, FID_(PFid), Name, FID_(CFid), Mode, prepend));
 
-    cmlent *create_mle = new cmlent(&CML, Mtime, uid, CML_Create_OP, tid,
+    cmlent *create_mle = new cmlent(&CML, Mtime, uid, CML_Create_OP, prepend,
 				     PFid, Name, CFid, Mode);
     return(create_mle == 0 ? ENOSPC : 0);
 }
@@ -1150,14 +1152,14 @@ int repvol::LogCreate(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
 /* local-repair modification */
 int repvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
-                      const VenusFid *CFid, int LinkCount, int tid)
+                      const VenusFid *CFid, int LinkCount, int prepend)
 {
     LOG(1, ("repvol::LogRemove: %d, %d, (%s), %s, (%s), %d %d\n",
-	     Mtime, uid, FID_(PFid), Name, FID_(CFid), LinkCount, tid));
+	     Mtime, uid, FID_(PFid), Name, FID_(CFid), LinkCount, prepend));
 
     int ObjectCreated = 0;
 
-    if (LogOpts) {
+    if (LogOpts && !prepend) {
 	if (LinkCount == 1) {
 	    /* 
 	     * if the object was created here, we may be able to do an 
@@ -1236,7 +1238,7 @@ int repvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 	}
     }
 
-    cmlent *unlink_mle = new cmlent(&CML, Mtime, uid, CML_Remove_OP, tid,
+    cmlent *unlink_mle = new cmlent(&CML, Mtime, uid, CML_Remove_OP, prepend,
 				     PFid, Name, CFid, LinkCount);
     if (ObjectCreated && unlink_mle) {	/* must be reintegrating */
 	RVMLIB_REC_OBJECT(unlink_mle->flags);
@@ -1249,11 +1251,11 @@ int repvol::LogRemove(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
 /* local-repair modification */
 int repvol::LogLink(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
-                    VenusFid *CFid, int tid) {
+                    VenusFid *CFid, int prepend) {
     LOG(1, ("repvol::LogLink: %d, %d, (%s), %s, (%s) %d\n",
-	     Mtime, uid, FID_(PFid), Name, FID_(CFid), tid));
+	     Mtime, uid, FID_(PFid), Name, FID_(CFid), prepend));
 
-    cmlent *link_mle = new cmlent(&CML, Mtime, uid, CML_Link_OP, tid,
+    cmlent *link_mle = new cmlent(&CML, Mtime, uid, CML_Link_OP, prepend,
 				   PFid, Name, CFid);
     return(link_mle == 0 ? ENOSPC : 0);
 }
@@ -1263,24 +1265,24 @@ int repvol::LogLink(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 int repvol::LogRename(time_t Mtime, uid_t uid, VenusFid *SPFid,
                       char *OldName, VenusFid *TPFid, char *NewName,
                       VenusFid *SFid, const VenusFid *TFid, int LinkCount,
-		      int tid)
+		      int prepend)
 {
     /* Record "target remove" as a separate log entry. */
     if (!FID_EQ(TFid, &NullFid)) {
 	int code;
 	if (ISDIR(*TFid))
-	    code = LogRmdir(Mtime, uid, TPFid, NewName, TFid, tid);
+	    code = LogRmdir(Mtime, uid, TPFid, NewName, TFid, prepend);
 	else
-	    code = LogRemove(Mtime, uid, TPFid, NewName, TFid, LinkCount, tid);
+	    code = LogRemove(Mtime, uid, TPFid, NewName, TFid, LinkCount, prepend);
 	if (code != 0) return(code);
 
     }
 
     LOG(1, ("repvol::LogRename: %d, %d, (%s), %s, (%s), %s, (%s) %d\n",
 	     Mtime, uid, FID_(SPFid), OldName, FID_(TPFid), NewName,
-	     FID_(SFid), tid));
+	     FID_(SFid), prepend));
 
-    cmlent *rename_mle = new cmlent(&CML, Mtime, uid, CML_Rename_OP, tid,
+    cmlent *rename_mle = new cmlent(&CML, Mtime, uid, CML_Rename_OP, prepend,
 				     SPFid, OldName, TPFid, NewName, SFid);
     return(rename_mle == 0 ? ENOSPC : 0);
 }
@@ -1288,12 +1290,12 @@ int repvol::LogRename(time_t Mtime, uid_t uid, VenusFid *SPFid,
 
 /* local-repair modification */
 int repvol::LogMkdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
-                     VenusFid *CFid, RPC2_Unsigned Mode, int tid)
+                     VenusFid *CFid, RPC2_Unsigned Mode, int prepend)
 {
     LOG(1, ("repvol::LogMkdir: %d, %d, (%s), %s, (%s), %o %d\n",
-	     Mtime, uid, FID_(PFid), Name, FID_(CFid), Mode, tid));
+	     Mtime, uid, FID_(PFid), Name, FID_(CFid), Mode, prepend));
 
-    cmlent *mkdir_mle = new cmlent(&CML, Mtime, uid, CML_MakeDir_OP, tid,
+    cmlent *mkdir_mle = new cmlent(&CML, Mtime, uid, CML_MakeDir_OP, prepend,
 				    PFid, Name, CFid, Mode);
     return(mkdir_mle == 0 ? ENOSPC : 0);
 }
@@ -1301,14 +1303,14 @@ int repvol::LogMkdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 
 /* local-repair modification */
 int repvol::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
-                     const VenusFid *CFid, int tid) {
+                     const VenusFid *CFid, int prepend) {
     LOG(0, ("repvol::LogRmdir: %d, %d, (%s), %s, (%s) %d\n",
-	     Mtime, uid, FID_(PFid), Name, FID_(CFid), tid));
+	     Mtime, uid, FID_(PFid), Name, FID_(CFid), prepend));
 
     int ObjectCreated = 0;
     int DependentChildren = 0;
 
-    if (LogOpts) {
+    if (LogOpts && !prepend) {
 	int CreateReintegrating = 0;	/* see comments in LogRemove */
 	{
 	    cml_iterator next(CML, CommitOrder, CFid);
@@ -1404,7 +1406,7 @@ int repvol::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 	}
     }
 
-    cmlent *rmdir_mle = new cmlent(&CML, Mtime, uid, CML_RemoveDir_OP, tid,
+    cmlent *rmdir_mle = new cmlent(&CML, Mtime, uid, CML_RemoveDir_OP, prepend,
 				    PFid, Name, CFid);
 
     if (ObjectCreated && !DependentChildren && rmdir_mle) {
@@ -1418,12 +1420,12 @@ int repvol::LogRmdir(time_t Mtime, uid_t uid, VenusFid *PFid, char *Name,
 /* local-repair modification */
 int repvol::LogSymlink(time_t Mtime, uid_t uid, VenusFid *PFid,
                        char *Name, char *Contents, VenusFid *CFid,
-                       RPC2_Unsigned Mode, int tid)
+                       RPC2_Unsigned Mode, int prepend)
 {
     LOG(1, ("repvol::LogSymlink: %d, %d, (%s), %s, %s, (%s), %o %d\n",
-	    Mtime, uid, FID_(PFid), Name, Contents, FID_(CFid), Mode, tid));
+	    Mtime, uid, FID_(PFid), Name, Contents, FID_(CFid), Mode, prepend));
 
-    cmlent *symlink_mle = new cmlent(&CML, Mtime, uid, CML_SymLink_OP, tid,
+    cmlent *symlink_mle = new cmlent(&CML, Mtime, uid, CML_SymLink_OP, prepend,
 				      PFid, Name, Contents, CFid, Mode);
     return(symlink_mle == 0 ? ENOSPC : 0);
 }
@@ -1431,13 +1433,13 @@ int repvol::LogSymlink(time_t Mtime, uid_t uid, VenusFid *PFid,
 /* local-repair modification */
 int repvol::LogRepair(time_t Mtime, uid_t uid, VenusFid *Fid,
                       RPC2_Unsigned Length, Date_t Date, UserId Owner,
-                      RPC2_Unsigned Mode, int tid)
+                      RPC2_Unsigned Mode, int prepend)
 {
     LOG(1, ("repvol::LogRepair: %d %d (%s) attrs [%u %d %u %o] %d\n",
-	    Mtime, uid, FID_(Fid), Length, Date, Owner, Mode, tid));
+	    Mtime, uid, FID_(Fid), Length, Date, Owner, Mode, prepend));
 
-    cmlent *repair_mle = new cmlent(&CML, Mtime, uid, CML_Repair_OP, tid,
-				    Fid, Length, Date, Owner, Mode, tid);
+    cmlent *repair_mle = new cmlent(&CML, Mtime, uid, CML_Repair_OP, prepend,
+				    Fid, Length, Date, Owner, Mode, prepend);
     return(repair_mle == 0 ? ENOSPC : 0);
 }
 
@@ -1930,6 +1932,8 @@ int ClientModifyLog::OutOfOrder(int tid)
     int suspect = 0;
 
     while ((m = next())) {
+	if (m->flags.prepended)
+	    return 1;
 	if (m->GetTid() != tid) { /* detect skipped entries */
 	    suspect = 1;
 	} else if (suspect) /* found a tid after we skipped any cmlentries? */

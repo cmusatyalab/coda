@@ -108,8 +108,7 @@ int fsobj::RepairStore()
     Date_t Mtime = Vtime();
     unsigned long NewLength = stat.Length;
 
-    return DisconnectedStore(Mtime, vp->u.u_uid, NewLength, -1);
-			     /* LRDB->repair_session_tid); */
+    return DisconnectedStore(Mtime, vp->u.u_uid, NewLength, 1);
 }
 
 int fsobj::RepairSetAttr(unsigned long NewLength, Date_t NewDate,
@@ -119,7 +118,7 @@ int fsobj::RepairSetAttr(unsigned long NewLength, Date_t NewDate,
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     return DisconnectedSetAttr(Mtime, vp->u.u_uid, NewLength, NewDate, NewOwner,
-			       NewMode, -1); /* LRDB->repair_session_tid); */
+			       NewMode, 1);
 }
 
 int fsobj::RepairCreate(fsobj **t_fso_addr, char *name, unsigned short Mode, int target_pri)
@@ -127,21 +126,19 @@ int fsobj::RepairCreate(fsobj **t_fso_addr, char *name, unsigned short Mode, int
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     return DisconnectedCreate(Mtime, vp->u.u_uid, t_fso_addr, name, Mode,
-			      target_pri, -1); /* LRDB->repair_session_tid); */
+			      target_pri, 1);
 }
 
 int fsobj::RepairRemove(char *name, fsobj *target_fso) {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    return DisconnectedRemove(Mtime, vp->u.u_uid, name, target_fso, -1);
-			      /* LRDB->repair_session_tid); */
+    return DisconnectedRemove(Mtime, vp->u.u_uid, name, target_fso, 1);
 }
 
 int fsobj::RepairLink(char *name, fsobj *source_fso) {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    return DisconnectedLink(Mtime, vp->u.u_uid, name, source_fso, -1);
-			    /* LRDB->repair_session_tid); */
+    return DisconnectedLink(Mtime, vp->u.u_uid, name, source_fso, 1);
 }
 
 int fsobj::RepairRename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso, char *t_name, fsobj *t_fso)
@@ -149,7 +146,7 @@ int fsobj::RepairRename(fsobj *s_parent_fso, char *s_name, fsobj *s_fso, char *t
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     return DisconnectedRename(Mtime, vp->u.u_uid, s_parent_fso, s_name, s_fso,
-			      t_name, t_fso, -1); /* LRDB->repair_session_tid); */
+			      t_name, t_fso, 1);
 }
 
 
@@ -158,15 +155,14 @@ int fsobj::RepairMkdir(fsobj **t_fso_addr, char *name, unsigned short Mode, int 
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     return DisconnectedMkdir(Mtime, vp->u.u_uid, t_fso_addr, name, Mode,
-			     target_pri, -1); /* LRDB->repair_session_tid); */
+			     target_pri, 1);
 }
 
 int fsobj::RepairRmdir(char *name, fsobj *target_fso)
 {
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
-    return DisconnectedRmdir(Mtime, vp->u.u_uid, name, target_fso, -1);
-			     /* LRDB->repair_session_tid); */
+    return DisconnectedRmdir(Mtime, vp->u.u_uid, name, target_fso, 1);
 }
 
 int fsobj::RepairSymlink(fsobj **t_fso_addr, char *name, char *contents,
@@ -175,8 +171,7 @@ int fsobj::RepairSymlink(fsobj **t_fso_addr, char *name, char *contents,
     Date_t Mtime = Vtime();
     vproc *vp = VprocSelf();
     return DisconnectedSymlink(Mtime, vp->u.u_uid, t_fso_addr, name, contents,
-			       Mode, target_pri, -1);
-			       /* LRDB->repair_session_tid); */
+			       Mode, target_pri, 1);
 }
 
 /*  *****  SetLocalVV  *****  */

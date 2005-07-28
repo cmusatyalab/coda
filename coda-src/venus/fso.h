@@ -607,32 +607,32 @@ class fsobj {
 
     /* Private portions of the CFS interface. */
     void LocalStore(Date_t, unsigned long);
-    int DisconnectedStore(Date_t, uid_t, unsigned long, int tid=-1);
+    int DisconnectedStore(Date_t, uid_t, unsigned long, int prepend=0);
     void LocalSetAttr(Date_t, unsigned long, Date_t,
 		       uid_t, unsigned short);
     int DisconnectedSetAttr(Date_t, uid_t, unsigned long, Date_t,
-			     uid_t, unsigned short, int tid=-1);
+			     uid_t, unsigned short, int prepend=0);
     void LocalCreate(Date_t, fsobj *, char *,
 		      uid_t, unsigned short);
     int DisconnectedCreate(Date_t, uid_t, fsobj **,
-			    char *, unsigned short, int, int tid=-1);
+			    char *, unsigned short, int, int prepend=0);
     void LocalRemove(Date_t, char *, fsobj *);
-    int DisconnectedRemove(Date_t, uid_t, char *, fsobj *, int tid=-1);
+    int DisconnectedRemove(Date_t, uid_t, char *, fsobj *, int prepend=0);
     void LocalLink(Date_t, char *, fsobj *);
-    int DisconnectedLink(Date_t, uid_t, char *, fsobj *, int tid=-1);
+    int DisconnectedLink(Date_t, uid_t, char *, fsobj *, int prepend=0);
     void LocalRename(Date_t, fsobj *, char *,
 		      fsobj *, char *, fsobj *);
     int DisconnectedRename(Date_t, uid_t, fsobj *,
-			    char *, fsobj *, char *, fsobj *, int tid=-1);
+			    char *, fsobj *, char *, fsobj *, int prepend=0);
     void LocalMkdir(Date_t, fsobj *, char *, uid_t, unsigned short);
     int DisconnectedMkdir(Date_t, uid_t, fsobj **,
-			   char *, unsigned short, int, int tid=-1);
+			   char *, unsigned short, int, int prepend=0);
     void LocalRmdir(Date_t, char *, fsobj *);
-    int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *, int tid=-1);
+    int DisconnectedRmdir(Date_t, uid_t, char *, fsobj *, int prepend=0);
     void LocalSymlink(Date_t, fsobj *, char *,
 		       char *, uid_t, unsigned short);
     int DisconnectedSymlink(Date_t, uid_t, fsobj **, char *,
-			     char *, unsigned short, int, int tid=-1);
+			     char *, unsigned short, int, int prepend=0);
     int GetContainerFD(void);
     int LookAside(void);
 

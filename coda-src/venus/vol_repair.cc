@@ -841,7 +841,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 		  FID_(RepairFid)));
 	Recov_BeginTrans();
 	   code = LogRepair(Mtime, uid, RepairFid, status.Length, status.Date,
-			    status.Owner, status.Mode);
+			    status.Owner, status.Mode, 1);
 	   /*
 	    * LogRepair puts a ViceRepair_OP record into the CML and it
 	    * will be reintegrated to the servers at the end of the ASR
