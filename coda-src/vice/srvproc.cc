@@ -220,8 +220,9 @@ START_TIMING(Fetch_Total);
 
 	    VN_VN2PFid(v->vptr, volptr, &pFid);
 	    av = AddVLE(*vlist, &pFid);
+	    // We only use the parent node for ACL checks, allow inconsistency
 	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, 
-				     NO_LOCK, InconOK, 0, 0)))
+				     NO_LOCK, 1, 0, 0)))
 		goto FreeLocks;
 	}
     }
@@ -325,8 +326,9 @@ START_TIMING(GetAttr_Total);
 
 	    VN_VN2PFid(v->vptr, volptr, &pFid);
 	    av = AddVLE(*vlist, &pFid);
+	    // We only use the parent node for ACL checks, allow inconsistency
 	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
-				     READ_LOCK, NO_LOCK, InconOK, 0, 0)))
+				     READ_LOCK, NO_LOCK, 1, 0, 0)))
 		goto FreeLocks;
 	}
     }
@@ -508,8 +510,9 @@ START_TIMING(ViceValidateAttrs_Total);
 		pFid.Vnode = v->vptr->disk.vparent;
 		pFid.Unique = v->vptr->disk.uparent;
 		av = AddVLE(*vlist, &pFid);
+		// We only use the parent node for ACL checks, allow inconsistency
 		if ((iErrorCode = GetFsObj(&pFid, &volptr, &av->vptr, 
-					  READ_LOCK, NO_LOCK, 0, 0, 0))) {
+					  READ_LOCK, NO_LOCK, 1, 0, 0))) {
 		    strcpy(why_failed, "GetFsObj 2");
 		    goto InvalidObj;
 		}
@@ -666,7 +669,8 @@ START_TIMING(Store_Total);
 	pFid.Vnode = v->vptr->disk.vparent;
 	pFid.Unique = v->vptr->disk.uparent;
 	av = AddVLE(*vlist, &pFid);
-	if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0, 0)))
+	// We only use the parent node for ACL checks, allow inconsistency
+	if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 1, 0, 0)))
 	    goto FreeLocks;
     }
 
@@ -774,7 +778,8 @@ START_TIMING(SetAttr_Total);
 	    pFid.Vnode = v->vptr->disk.vparent;
 	    pFid.Unique = v->vptr->disk.uparent;
 	    av = AddVLE(*vlist, &pFid);
-	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 0, 0, 0)))
+	    // We only use the parent node for ACL checks, allow inconsistency
+	    if ((errorCode = GetFsObj(&pFid, &volptr, &av->vptr, READ_LOCK, NO_LOCK, 1, 0, 0)))
 		goto FreeLocks;
 	}
     }
