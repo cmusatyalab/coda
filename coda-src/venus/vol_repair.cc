@@ -107,6 +107,8 @@ int repvol::Repair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
     if (IsResolving())
 	return ERETRY;
 
+    if (1 /* to be replaced by a predicate for not being issued by ASR */)
+	return ConnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
     return DisconnectedRepair(RepairFid, RepairFile, uid, RWVols, ReturnCodes);
 }
 
@@ -145,7 +147,6 @@ static int GetRepairF(char *RepairFile, uid_t uid, fsobj **RepairF)
     return 0;
 }
 
-#if 0
 int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 			    VolumeId *RWVols, int *ReturnCodes)
 {
@@ -634,8 +635,6 @@ Exit:
 
     return(code);
 }
-#endif
-
 
 /* disablerepair - unset the volume from the repair state */
 int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
