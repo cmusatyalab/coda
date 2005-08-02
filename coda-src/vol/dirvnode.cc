@@ -80,7 +80,7 @@ int VN_DCommit(Vnode *vnp)
 
 	if (vnp->delete_me) {
 		/* directory was deleted */
-		DLog(29, "VN_DCommit: deleted directory, vnode = %d",  
+		DLog(29, "VN_DCommit: deleted directory, vnode = %x",  
 		     vnp->vnodeNumber);
 		vnp->disk.inodeNumber = 0;
 		/* if this vnode was just cloned, there won't be a pdi upon 
@@ -89,7 +89,7 @@ int VN_DCommit(Vnode *vnp)
 			DI_Dec(pdi);
 	} else if (vnp->changed) {
 		/* directory was modified - commit the pages */
-		DLog(29, "VN_DCommit: Commiting pages for dir vnode = %d", 
+		DLog(29, "VN_DCommit: Commiting pages for dir vnode = %x", 
 			vnp->vnodeNumber);
 		/* copy the VM pages into RVM */
 		DI_DhToDi(pdce);
@@ -143,22 +143,20 @@ PDirHandle VN_SetDirHandle(struct Vnode *vn)
 		pdce = DC_New();
 		vn->dh = pdce;
 		vn->dh_refc = 1;
-		SLog(5, "VN_GetDirHandle NEW Vnode %#x Uniq %#x cnt %d\n",
+		SLog(5, "VN_GetDirHandle NEW %x.%x: cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(pdce));
 	} else if ( vn->disk.inodeNumber ) {
 		pdce = DC_Get((PDirInode)vn->disk.inodeNumber);
 		vn->dh = pdce;
 		vn->dh_refc++;
-		SLog(5, "VN_GetDirHandle for Vnode %#x Uniq" 
-		     " %#x cnt %d, vn_cnt %d\n",
+		SLog(5, "VN_GetDirHandle for %x.%x: cnt %d, vn_cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, 
 		     DC_Count(pdce), vn->dh_refc);
 	} else {
 		pdce = vn->dh;
 		DC_SetCount(pdce, DC_Count(pdce) + 1);
 		vn->dh_refc++;
-		SLog(5, "VN_GetDirHandle NEW-seen Vnode %#x Uniq %#x " 
-		     "cnt %d, vn_ct %d\n",
+		SLog(5, "VN_GetDirHandle NEW-seen %x.%x: cnt %d, vn_ct %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, 
 		     DC_Count(pdce), vn->dh_refc);
 	}
@@ -175,7 +173,7 @@ void VN_PutDirHandle(struct Vnode *vn)
 	CODA_ASSERT(vn->dh);
 
 	if (vn->dh) {
-		SLog(5, "VN_PutDirHandle: Vn %x Uniq %x: cnt %d, vn_cnt %d\n",
+		SLog(5, "VN_PutDirHandle: %x.%x: cnt %d, vn_cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, 
 		     DC_Count(vn->dh)-1, vn->dh_refc-1);
 		DC_Put(vn->dh);
@@ -190,7 +188,7 @@ void VN_PutDirHandle(struct Vnode *vn)
 void VN_DropDirHandle(struct Vnode *vn)
 {
 	if (vn->dh) {
-		SLog(5, "VN_DropDirHandle for Vnode %x Unique %x: cnt %d, vn_cnt %d\n",
+		SLog(5, "VN_DropDirHandle for %x.%x: cnt %d, vn_cnt %d\n",
 		     vn->vnodeNumber, vn->disk.uniquifier, DC_Count(vn->dh), vn->dh_refc);
 		DC_Drop(vn->dh);
 	}
@@ -260,5 +258,4 @@ void VN_CopyOnWrite(struct Vnode *vn)
 	
 	SLog(5, "VN_CopyOnWrite: New other_count: %d dh_refc %d", 
 	     others_count, vn->dh_refc);
-
 }

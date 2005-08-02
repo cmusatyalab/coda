@@ -2237,7 +2237,7 @@ static void CopyOnWrite(Vnode *vptr, Volume *volptr)
 
 	if (vptr->disk.type == vDirectory) {
 
-		SLog(0, "CopyOnWrite: Copying directory vnode = %d", 
+		SLog(0, "CopyOnWrite: Copying directory vnode = %x", 
 		     vptr->vnodeNumber);
 		VN_CopyOnWrite(vptr);
 

@@ -384,12 +384,12 @@ int SpoolVMLogRecord(dlist *vlist, vle *v, Volume *vol, ViceStoreId *stid,
 
     /* Don't spool when resolution has been forced off */
     if (!AllowResolution) {
-	SLog(0,"Caution, replicated volume 0x%lx, resolution is turned off.\n",
+	SLog(0,"Caution, replicated volume %lx, resolution is turned off.\n",
 	     V_id(vol));
 	return 0;
     }
 
-    SLog(9, "Entering SpoolVMLogRecord(0x%lx.%lx.%lx)",
+    SLog(9, "Entering SpoolVMLogRecord(%lx.%lx.%lx)",
 	 V_id(vol), v->vptr->vnodeNumber, v->vptr->disk.uniquifier);
 
     int index = -1;
