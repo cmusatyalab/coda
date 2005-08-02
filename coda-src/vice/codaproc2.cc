@@ -208,7 +208,8 @@ static int AllocReintegrateVnode(Volume **, dlist *, ViceFid *, ViceFid *,
 
 static int AddParent(Volume **, dlist *, ViceFid *);
 static int ReintNormalVCmp(int, VnodeType, void *, void *);
-static void ReintPrelimCOP(vle *, const ViceStoreId *, ViceStoreId *, Volume *);
+static void ReintPrelimCOP(vle *, const ViceStoreId *oldSID,
+			   const ViceStoreId *newSID);
 static void ReintFinalCOP(vle *, Volume *, RPC2_Integer *);
 static int ValidateRHandle(VolumeId, ViceReintHandle *);
 
@@ -1370,7 +1371,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    HandleWeakEquality(volptr, v->vptr, &r->VV[0]);
 		    PerformStore(client, VSGVolnum, volptr, v->vptr, v->f_finode,
 				 0, r->u.u_store.Length, r->Mtime, &r->sid);
-		    ReintPrelimCOP(v, &r->VV[0].StoreId, &r->sid, volptr);
+		    ReintPrelimCOP(v, &r->VV[0].StoreId, &r->sid);
 
 		    /* Cancel previous StoreData. */
 		    v->f_sid = r->sid;
@@ -1458,10 +1459,11 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				   r->u.u_utimes.Date, r->u.u_chown.Owner,
 				   r->u.u_chmod.Mode, Mask, &r->sid,
 				   &c_inode);
-		    ReintPrelimCOP(v, &r->VV[0].StoreId, &r->sid, volptr);
+		    ReintPrelimCOP(v, &r->VV[0].StoreId, &r->sid);
 
 		    {
-			int opcode = (v->d_needsres)
+			int opcode = (v->vptr->disk.type == vDirectory &&
+				      v->d_needsres)
 			    ? ResolveViceNewStore_OP : RES_NewStore_OP;
 			SLog(5, "Spooling Reintegration newstore record \n");
 			if ((errorCode = 
@@ -1544,8 +1546,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 						  &deltablocks);
 			CODA_ASSERT(errorCode == 0);
 
-			ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
-			ReintPrelimCOP(child_v, &NullSid, &r->sid, volptr);
+			ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid);
+			ReintPrelimCOP(child_v, &NullSid, &r->sid);
 
 			{
 			    int opcode = (parent_v->d_needsres)
@@ -1598,8 +1600,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    PerformRemove(client, VSGVolnum, volptr, parent_v->vptr,
 				  child_v->vptr, r->Name[0], r->Mtime,
 				  0, &r->sid, &parent_v->d_cinode, &tblocks);
-		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
-		    ReintPrelimCOP(child_v, &r->VV[1].StoreId, &r->sid, volptr);
+		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid);
+		    ReintPrelimCOP(child_v, &r->VV[1].StoreId, &r->sid);
 
 		    {
 			int opcode = (parent_v->d_needsres)
@@ -1665,8 +1667,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 					    r->Name[0], r->Mtime, 0, &r->sid,
 					    &parent_v->d_cinode, &deltablocks);
 		    CODA_ASSERT(errorCode == 0);
-		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
-		    ReintPrelimCOP(child_v, &r->VV[1].StoreId, &r->sid, volptr);
+		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid);
+		    ReintPrelimCOP(child_v, &r->VV[1].StoreId, &r->sid);
 
 		    {
 			int opcode = (parent_v->d_needsres)
@@ -1753,12 +1755,12 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 				  r->Name[0], r->Name[1],
 				  r->Mtime, 0, &r->sid, &sd_v->d_cinode, &td_v->d_cinode,
 				  (s_v->vptr->disk.type == vDirectory ? &s_v->d_cinode : 0), NULL);
-		    ReintPrelimCOP(sd_v, &r->VV[0].StoreId, &r->sid, volptr);
+		    ReintPrelimCOP(sd_v, &r->VV[0].StoreId, &r->sid);
 		    if (!SameParent)
-			ReintPrelimCOP(td_v, &r->VV[1].StoreId, &r->sid, volptr);
-		    ReintPrelimCOP(s_v, &r->VV[2].StoreId, &r->sid, volptr);
+			ReintPrelimCOP(td_v, &r->VV[1].StoreId, &r->sid);
+		    ReintPrelimCOP(s_v, &r->VV[2].StoreId, &r->sid);
 		    if (TargetExists)
-			ReintPrelimCOP(t_v, &NullSid, &r->sid, volptr); /* XXX wrong? */
+			ReintPrelimCOP(t_v, &NullSid, &r->sid); /* XXX wrong? */
 		    {
 			if (!SameParent) {
 			    /* SpoolRenameLogRecord() only allows one opcode, so we must */
@@ -1828,8 +1830,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 					     &parent_v->d_cinode,
 					     &deltablocks);
 		    CODA_ASSERT(errorCode == 0);
-		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
-		    ReintPrelimCOP(child_v, &NullSid, &r->sid, volptr);
+		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid);
+		    ReintPrelimCOP(child_v, &NullSid, &r->sid);
 
 		    {
 			int p_opcode = (parent_v->d_needsres)
@@ -1896,8 +1898,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    PerformRmdir(client, VSGVolnum, volptr, parent_v->vptr,
 				 child_v->vptr, r->Name[0], r->Mtime,
 				 0, &r->sid, &parent_v->d_cinode, &tblocks);
-		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
-		    ReintPrelimCOP(child_v, &r->VV[1].StoreId, &r->sid, volptr);
+		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid);
+		    ReintPrelimCOP(child_v, &r->VV[1].StoreId, &r->sid);
 
 		    {
 			int opcode = (parent_v->d_needsres)
@@ -1968,8 +1970,8 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 					       &parent_v->d_cinode,
 					       &deltablocks);
 		    CODA_ASSERT(errorCode == 0);
-		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid, volptr);
-		    ReintPrelimCOP(child_v, &NullSid, &r->sid, volptr);
+		    ReintPrelimCOP(parent_v, &r->VV[0].StoreId, &r->sid);
+		    ReintPrelimCOP(child_v, &NullSid, &r->sid);
 
 		    {
 			int opcode = (parent_v->d_needsres)
@@ -2398,13 +2400,14 @@ static int ReintNormalVCmp(int ReplicatedOp, VnodeType type,
 
 /* This probably ought to be folded into the PerformXXX routines!  -JJK */
 static void ReintPrelimCOP(vle *v, const ViceStoreId *OldSid,
-			   ViceStoreId *NewSid, Volume *volptr) 
+			   const ViceStoreId *NewSid) 
 {
 	/* Directories which are not identical to "old" contents MUST be
 	   stamped with unique Sid at end! */
-	if (!SID_EQ(Vnode_vv(v->vptr).StoreId, *OldSid))
+	if (v->vptr->disk.type == vDirectory &&
+	    !SID_EQ(Vnode_vv(v->vptr).StoreId, *OldSid))
 	    v->d_needsres = 1;
-	
+
 	Vnode_vv(v->vptr).StoreId = *NewSid;
 }
 
