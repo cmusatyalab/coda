@@ -51,7 +51,6 @@ class vdb;
 class RealmDB;
 class hdb;
 class vmselist;
-class lrdb;
 class vcbdb;
 
 /*  *****  Constants  *****  */
@@ -98,7 +97,6 @@ struct RecovVenusGlobals {
     vdb	*recov_VDB;		    /* Volume database */
     RealmDB *recov_REALMDB;	    /* Realm database */
     hdb	*recov_HDB;		    /* Hoard database */
-    lrdb *recov_LRDB;		    /* Local repair database */
 
     char *recov_HeapAddr;	    /* Base of recoverable heap */
     unsigned int recov_HeapLength;  /* Length of recoverable heap (in bytes) */

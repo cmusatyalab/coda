@@ -727,7 +727,7 @@ RestartFind:
 
 		  k_Purge(&f->fid, 1);
 
-		  LOG(0, ("fsdb::Get: %s(%s) in server/server conflict\n",
+		  LOG(0, ("fsdb::Get: %s (%s) in server/server conflict\n",
 			  path, FID_(key)));
 		  MarinerLog("fsobj::CONFLICT (server/server): %s (%s)\n",
 			     path, FID_(key));

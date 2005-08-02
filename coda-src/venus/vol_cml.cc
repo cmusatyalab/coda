@@ -414,20 +414,21 @@ void ClientModifyLog::MarkFailedMLE(int ix)
     while ((m = next()))
 	if (m->tid == vol->cur_reint_tid)
 	  if (i++ == ix || ix == -1) {
-	    char path[MAXPATHLEN];
+	    char path[MAXPATHLEN], opmsg[1024];
 	    fsobj *conflict;
 
-	    /* we need to purge the object's _parent_ to avoid
-	     * "cannot read symbolic link" errors on a open/lookup
-	     * of the parent directory (XXX not working) */
+	    m->GetLocalOpMsg(opmsg);
+
+	    LOG(0, ("ClientModifyLog::MarkFailedMLE: failed reintegrating: %s\n", opmsg));
+
 	    CODA_ASSERT((conflict = FSDB->Find(&m->u.u_repair.Fid)));
 	    conflict->GetPath(path, 1);
-	    k_Purge(&conflict->pfid, 1);
+		//	    k_Purge(&conflict->pfid, 1);
 	    k_Purge(&m->u.u_repair.Fid, 0);
 
 	    m->flags.failed = 1;
 
-	    LOG(0, ("ClientModifyLog::MarkFailedMLE: %s(%s) in local/global conflict\n", path, FID_(&m->u.u_repair.Fid)));
+	    LOG(0, ("ClientModifyLog::MarkFailedMLE: %s(%s) now in local/global conflict\n", path, FID_(&m->u.u_repair.Fid)));
 	    MarinerLog("ClientModifyLog::CONFLICT (local/global): %s (%s)\n",
 		       path, FID_(&m->u.u_repair.Fid));
 	  }

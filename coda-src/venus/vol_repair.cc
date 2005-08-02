@@ -135,13 +135,13 @@ static int GetRepairF(char *RepairFile, uid_t uid, fsobj **RepairF)
     realm->PutRef();
 
     if (code) {
-      LOG(0,("GetRepairF: fsdb::Get failed with code: %d\n", code));
+      LOG(0, ("GetRepairF: fsdb::Get failed with code: %d\n", code));
       return code;
     }
 
     if (!(*RepairF)->IsFile()) {
 	FSDB->Put(RepairF);
-	LOG(0,("GetRepairF: wasn't a file!\n"));
+	LOG(0, ("GetRepairF: wasn't a file!\n"));
 	return EINVAL;
     }
     return 0;
@@ -646,7 +646,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
     vproc *vp = VprocSelf();
     CODA_ASSERT(vp);
 
-    LOG(0, ("volent::DisConnectedRepair: fid = (%s), file = %s, uid = %d\n",
+    LOG(0, ("volent::DisconnectedRepair: fid = (%s), file = %s, uid = %d\n",
 	     FID_(RepairFid), RepairFile, uid));
 
     VenusFid tpfid;
@@ -655,7 +655,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
     memset(ReturnCodes, 0, VSG_MEMBERS * sizeof(int));
     memset(RWVols, 0, VSG_MEMBERS * sizeof(VolumeId));
     for (i = 0; i < VSG_MEMBERS; i++)
-        if (volreps[i]) RWVols[i] = volreps[i]->GetVolumeId();
+	if (volreps[i]) RWVols[i] = volreps[i]->GetVolumeId();
 
     /* Verify that RepairFid is a file fid */
     /* can't repair directories while disconnected */

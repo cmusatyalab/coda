@@ -392,7 +392,6 @@ class fsobj {
   friend class resent;
   friend class mgrpent;
   friend class hdb;
-  friend class lrdb;
   friend class Realm; /* ~Realm */
   friend void RecoverPathName(char *, VenusFid *, ClientModifyLog *, cmlent *);
 

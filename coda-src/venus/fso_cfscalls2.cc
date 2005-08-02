@@ -465,10 +465,8 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 	/* Access will never return EINCONS here as we are a directory and
 	 * will not recurse up to our parent. */
 	code = Access(PRSFS_LOOKUP, C_A_F_OK, uid);
-	if (code) {
-	    LOG(0, ("fsobj::Lookup: Access denied! code: %d\n", code));
+	if (code)
 	    return(code);
-	}
 
 	/* Lookup the target object. */
 	{
@@ -479,7 +477,6 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 		    vol->GetVolumeId() != FakeRootVolumeId)
 		    return code;
 
-		LOG(10,("fsobj::Lookup: dir_Lookup failed (%s)\n",name));
 		/* regular lookup failed, but if we are in the fake root
 		 * volume, we can try to check for a new realm */
 
@@ -495,8 +492,6 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name, uid_t 
 	    }
 	}
     }
-
-    LOG(10,("fsobj::Lookup: Found fid (%s)\n",FID_(&target_fid)));
 
     /* Map fid --> fso. */
     {
@@ -527,7 +522,6 @@ get_object:
 	    if (target_fso->IsMTLink()) {
 		/* We must have the data here. */
 		if (!HAVEALLDATA(target_fso)) {
-		    LOG(10,("fsobj::Lookup: didn't have data for uncovered mtpt\n"));
 		    FSDB->Put(&target_fso);
 		    status |= RC_DATA;
 		    goto get_object;
@@ -536,7 +530,6 @@ get_object:
 		target_fso->PromoteLock();
 		code = target_fso->TryToCover(inc_fid, uid);
 		if (code == EINCONS || code == ERETRY) {
-		  LOG(0,("fsobj::Lookup: fsdb::TryToCover failed(code=%d)\n",code));
 		    FSDB->Put(&target_fso);
 		    goto done;
 		}
@@ -546,8 +539,6 @@ get_object:
 
 	    /* If the target is a covered mount point, cross it. */
 	    if (target_fso->IsMtPt()) {
-		LOG(10, ("fsobj::Lookup: crossing mount point\n"));
-
 		/* Get the volume root, and release the mount point. */
 		fsobj *root_fso = target_fso->u.root;
 		root_fso->Lock(RD);

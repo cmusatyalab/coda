@@ -394,6 +394,9 @@ void fsobj::Recover()
     /* Validate state. */
     switch(state) {
 	case FsoRunt:
+	    if(IsFake()) /* Don't toss away our localcache! */
+	      break;
+
 	    /* Objects that hadn't matriculated can be safely discarded. */
 	    eprint("\t(%s, %s) runt object being discarded...",
 		   comp, FID_(&fid));
@@ -469,21 +472,14 @@ void fsobj::Recover()
 	goto Failure;
     }
 
-#if 0 /* XXX: We need fake objects to collapse an expand that wasn't
-       * collapsed before venus was terminated! -- Adam 7/8/05 */
-    /* Get rid of fake objects, and other objects that are not likely to be
-     * useful anymore. */
-    if (IsFake()) {
-	LOG(0, ("fsobj::Recover: (%s) is a fake object\n",
-		FID_(&fid)));
-	goto Failure;
-    }
-#endif
-
     if (!IsFake() && !vol->IsReplicated() && !IsLocalObj()) {
 	LOG(0, ("fsobj::Recover: (%s) is probably in a backup volume\n",
 		FID_(&fid)));
 	goto Failure;
+    }
+
+    if(IsFake()) {
+      k_Purge(&fid, 1);
     }
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
@@ -496,16 +492,14 @@ void fsobj::Recover()
     }
 
     /* Check the cache file. */
-    switch(stat.VnodeType) {
-	case File:
-	    {
-
+    if(!IsFake()) {
+      switch(stat.VnodeType) {
+        case File:
 	    if (!HAVEDATA(this) && cf.Length() != 0) {
 		eprint("\t(%s, %s) cache file validation failed",
 		       comp, FID_(&fid));
 		FSDB->FreeBlocks(NBLOCKS(cf.Length()));
 		cf.Reset();
-	    }
 	    }
 	    break;
 
@@ -526,6 +520,7 @@ void fsobj::Recover()
 
 	case Invalid:
 	    CHOKE("fsobj::Recover: bogus VnodeType (%d)", stat.VnodeType);
+      }
     }
 
     if (LogLevel >= 1) print(logFile);
