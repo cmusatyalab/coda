@@ -245,21 +245,21 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
 		goto FreeLocks;
 	}
 
-	SLog(1, "Starting ValidateReintegrateParms for %#x", Vid);
+	SLog(1, "Starting ValidateReintegrateParms for %x", Vid);
 
 	/* Phase I. */
 	if ((errorCode = ValidateReintegrateParms(RPCid, &Vid, &volptr, &client,
 						 LogSize, &rlog, Index, 0)))
 		goto FreeLocks;
 	
-	SLog(1, "Starting  GetReintegrateObjects for %#x", Vid);
+	SLog(1, "Starting GetReintegrateObjects for %x", Vid);
 
 	/* Phase II. */
 	if ((errorCode = GetReintegrateObjects(client, &rlog, vlist, 
 					      &blocks, Index)))
 		goto FreeLocks;
 
-	SLog(1, "Starting  CheckSemanticsAndPerform for %#x", Vid);
+	SLog(1, "Starting CheckSemanticsAndPerform for %x", Vid);
 
 	/* Phase III. */
 	if ((errorCode = CheckSemanticsAndPerform(client, Vid, VSGVolnum, &rlog,
@@ -269,7 +269,7 @@ long FS_ViceReintegrate(RPC2_Handle RPCid, VolumeId Vid, RPC2_Integer LogSize,
  FreeLocks:
 	/* Phase IV. */
 
-	SLog(1, "Starting PutReintegrateObjects for %#x", Vid);
+	SLog(1, "Starting PutReintegrateObjects for %x", Vid);
 
 	PutReintegrateObjects(errorCode, volptr, &rlog, vlist, blocks,
 			      OutOfOrder, client, MaxDirs, NumDirs, StaleDirs,
@@ -336,7 +336,7 @@ long FS_ViceQueryReintHandle(RPC2_Handle RPCid, VolumeId Vid,
     int fd = -1;
     struct stat status;
 
-    SLog(0/*1*/, "ViceQueryReintHandle for volume 0x%x", Vid);
+    SLog(0/*1*/, "ViceQueryReintHandle for volume %x", Vid);
 
     *Length = (RPC2_Unsigned)-1;
 
@@ -395,7 +395,7 @@ long FS_ViceSendReintFragment(RPC2_Handle RPCid, VolumeId Vid,
     struct stat status;
     SE_Descriptor sid;
 
-    SLog(0/*1*/, "ViceSendReintFragment for volume 0x%x", Vid);
+    SLog(0/*1*/, "ViceSendReintFragment for volume %x", Vid);
 
     /* Map RPC handle to client structure. */
     if ((errorCode = (int) RPC2_GetPrivatePointer(RPCid, (char **)&client)) != RPC2_SUCCESS) {
@@ -624,8 +624,7 @@ static int ValidateReintegrateParms(RPC2_Handle RPCid, VolumeId *Vid,
 	    goto Exit;
 	}
 
-	SLog(1,  "Reintegrate transferred %d bytes.",
-		sid.Value.SmartFTPD.BytesTransferred);
+	SLog(1, "Reintegrate transferred %d bytes.", sid.Value.SmartFTPD.BytesTransferred);
     }
 
     OldName = new char[MAXNAMELEN+1];
@@ -1314,7 +1313,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 
     /* Check each operation and perform it. */
     /* Note: the data transfer part of stores is delayed until all other operations have completed. */
-	SLog(1, "Starting  CheckSemanticsAndPerform for %#x", Vid);
+	SLog(1, "Starting CheckSemanticsAndPerform for %x", Vid);
 
     {
 	struct dllist_head *p;
@@ -1462,8 +1461,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 		    ReintPrelimCOP(v, &r->VV[0].StoreId, &r->sid);
 
 		    {
-			int opcode = (v->vptr->disk.type == vDirectory &&
-				      v->d_needsres)
+			int opcode = (v->vptr->disk.type == vDirectory && v->d_needsres)
 			    ? ResolveViceNewStore_OP : RES_NewStore_OP;
 			SLog(5, "Spooling Reintegration newstore record \n");
 			if ((errorCode = 
@@ -1655,8 +1653,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 			goto Exit;
 
 		    /* directory concurrency check */
-		    if (VV_Cmp(&Vnode_vv(parent_v->vptr), 
-			       &r->VV[0]) != VV_EQ)
+		    if (VV_Cmp(&Vnode_vv(parent_v->vptr), &r->VV[0]) != VV_EQ)
 			parent_v->d_reintstale = 1;
 
 		    /* Perform. */
@@ -2004,7 +2001,7 @@ START_TIMING(Reintegrate_CheckSemanticsAndPerform);
 	if (count < Yield_CheckAndPerform_Period - 1)
 	    PollAndYield();
     }
-    SLog(1, "Starting  BulkTransfers for %#x", Vid);
+    SLog(1, "Starting  BulkTransfers for %x", Vid);
 
     /* Make sure we don't get killed by accident */
     he = client->VenusId;
@@ -2153,7 +2150,8 @@ START_TIMING(Reintegrate_PutObjects);
 	dlist_iterator next(*vlist);
 	vle *v;
 	while ((v = (vle *)next())) {
-	    if ((!ISDIR(v->fid) || v->d_reintupdate) && !v->vptr->delete_me) {
+	    if ((v->vptr->disk.type != vDirectory || v->d_reintupdate) &&
+		!v->vptr->delete_me) {
 		ReintFinalCOP(v, volptr, NewVS);
 	    } else {
 		SLog(2, "PutReintegrateObjects: un-mutated or deleted fid %s",
@@ -2161,13 +2159,15 @@ START_TIMING(Reintegrate_PutObjects);
 	    }
 
 	    /* write down stale directory fids */
-	    if (ISDIR(v->fid) && v->d_reintstale && StaleDirs) { /* compatibility check */
+	    if (StaleDirs && v->vptr->disk.type == vDirectory && 
+		(v->d_reintstale || v->d_needsres)) { /* compatibility check */
 		ViceFid fid = v->fid;
 		fid.Volume = V_groupId(volptr);
 		SLog(0, "PutReintegrateObjects: stale directory fid %s, num %d, max %d",
 		     FID_(&fid), *NumDirs, MaxDirs);
 		if (*NumDirs < MaxDirs) {
-		    StaleDirs[(*NumDirs)] = v->fid;	/* send back replicated ID */
+		    StaleDirs[(*NumDirs)] = v->fid;
+		    /* send back replicated ID */
 		    StaleDirs[(*NumDirs)++].Volume = V_groupId(volptr);
 		}
 	    }
@@ -2245,7 +2245,7 @@ static int AllocReintegrateVnode(Volume **volptr, dlist *vlist,
     vle *v; v = AddVLE(*vlist, cFid);
     CODA_ASSERT(v->vptr == 0);
     v->vptr = vptr;
-    if ( ISDIR(*cFid) )
+    if (v->vptr->disk.type == vDirectory)
 	    v->d_inodemod = 1;
 
 Exit:
@@ -2402,13 +2402,17 @@ static int ReintNormalVCmp(int ReplicatedOp, VnodeType type,
 static void ReintPrelimCOP(vle *v, const ViceStoreId *OldSid,
 			   const ViceStoreId *NewSid) 
 {
-	/* Directories which are not identical to "old" contents MUST be
-	   stamped with unique Sid at end! */
-	if (v->vptr->disk.type == vDirectory &&
-	    !SID_EQ(Vnode_vv(v->vptr).StoreId, *OldSid))
-	    v->d_needsres = 1;
+    ViceStoreId *current = &Vnode_vv(v->vptr).StoreId;
 
-	Vnode_vv(v->vptr).StoreId = *NewSid;
+    /* Directories which are not identical to "old" contents MUST be
+       stamped with unique Sid at end! */
+    if (v->vptr->disk.type == vDirectory && !SID_EQ(*current, *OldSid)) {
+	SLog(10,  "ReintPrelimCOP: %s needsres (sid %x.%x != oldsid %x.%x)", FID_(&v->fid),
+	     current->Host, current->Uniquifier, OldSid->Host, OldSid->Uniquifier);
+	v->d_needsres = 1;
+    }
+
+    *current = *NewSid;
 }
 
 
@@ -2434,7 +2438,9 @@ static void ReintFinalCOP(vle *v, Volume *volptr, RPC2_Integer *VS)
 	   (2) we must log a ResolveNULL_OP so that resolution 
 	   works correctly. 
 	*/
-	if (v->vptr->disk.type == vDirectory && v->d_needsres) {
+	if (v->vptr->disk.type == vDirectory && v->d_needsres &&
+	    AllowResolution && V_RVMResOn(volptr))
+	{
 	    int ret = SpoolVMLogRecord(NULL, v, volptr, FinalSid,
 				       ResolveNULL_OP, 0);
 	    CODA_ASSERT(ret == 0);
