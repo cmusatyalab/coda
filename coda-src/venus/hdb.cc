@@ -200,7 +200,7 @@ static void HoardWalkProgress(int fetched, int total)
     lastPercentage = thisPercentage;
 
     LOG(0, ("HoardWalkProgress(%d)\n", thisPercentage));
-    MarinerLog("progress::hoarding %dx\n", thisPercentage);
+    MarinerLog("progress::hoarding %d%%\n", thisPercentage);
 }
 
 /* Allocate database from recoverable store. */
