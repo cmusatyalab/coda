@@ -842,6 +842,7 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 {
     struct sockaddr_storage bindaddr;
     socklen_t blen;
+    int on = 1;
     int err = RPC2_FAIL;
     int flags, rc;
     unsigned short port = 0, *sa_port;
@@ -886,18 +887,27 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
 	 * (possibly indefinitely). */
 	flags = fcntl(*svar, F_GETFL, 0);
 	fcntl(*svar, F_SETFL, flags | O_NONBLOCK);
+
+        switch (addr->ai_family) {
+	case PF_INET:
+	    rc = setsockopt(*svar, SOL_IP, IP_RECVERR, &on, sizeof(on));
+	    if (rc)
+		perror("setsockopt(SOL_IP, IP_RECVERR)");
+	    break;
+	case PF_INET6:
+	    rc = setsockopt(*svar, IPPROTO_IPV6, IPV6_RECVERR, &on, sizeof(on));
+	    if (rc)
+		perror("setsockopt(IPPROTO_IPV6, IPV6_RECVERR)");
+	    break;
+	}
 #if 0
 	rc = setsockopt(*svar, SOL_SOCKET, SO_SNDBUF, &blen, sizeof(blen));
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
-	}
+	if ( rc )
+	    perror("setsockopt(SOL_SOCKET,SO_SNDBUF)");
 
 	rc = setsockopt(*svar, SOL_SOCKET, SO_RCVBUF, &blen, sizeof(blen));
-	if ( rc ) {
-		perror("setsockopt: ");
-		exit(1);
-	}
+	if ( rc )
+	    perror("setsockopt(SOL_SOCKET, SO_RCVBUF)");
 #endif
 	/* Now bind the socket */
 	if (bind(*svar, addr->ai_addr, addr->ai_addrlen) < 0) {

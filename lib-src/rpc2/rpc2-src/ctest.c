@@ -653,7 +653,7 @@ void DoBinding(RPC2_Handle *cid)
     else
 	{
 	bparms.EncryptionType = RPC2_XOR;
-	bparms.SharedSecret = (RPC2_EncryptionKey *)ekey;
+	bparms.SharedSecret = &ekey;
 	}
 
     bparms.AuthenticationType = 0;	/* server doesn't care */

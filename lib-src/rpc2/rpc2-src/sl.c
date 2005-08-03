@@ -167,11 +167,8 @@ void rpc2_ProcessPackets(int fd)
 	RPC2_PacketBuffer *pb = NULL;
         unsigned int i, ProtoVersion;
 	
-	/* We are guaranteed that there is a packet in the socket
-           buffer at this point */
 	pb = PullPacket(fd);
-	if (pb == NULL) 
-		return;
+	if (!pb) return;
 	assert(pb->Prefix.Qname == &rpc2_PBList);
 
         if (pb->Prefix.LengthOfPacket < sizeof(struct RPC2_PacketHeader)) {
@@ -838,7 +835,7 @@ static void HandleNewRequest(RPC2_PacketBuffer *pb, struct CEntry *ce)
 	sl = ce->MySl;
 	/* Free held packet and SL entry */
 	if (sl != NULL) {
-		rpc2_DeactivateSle(sl, 0);
+		rpc2_DeactivateSle(sl, RPC2_ABANDONED);
 		FreeHeld(sl);
 	}
 

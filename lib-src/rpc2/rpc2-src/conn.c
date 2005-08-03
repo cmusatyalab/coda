@@ -254,7 +254,7 @@ void rpc2_FreeConn(RPC2_Handle whichConn)
     if (ce->HeldPacket != NULL)
 	RPC2_FreeBuffer(&ce->HeldPacket);
     if (ce->MySl != NULL) {
-	rpc2_DeactivateSle(ce->MySl);
+	rpc2_DeactivateSle(ce->MySl, RPC2_ABANDONED);
     	rpc2_FreeSle(&ce->MySl);
     }
 
@@ -464,5 +464,28 @@ rpc2_ConnFromBindInfo(struct RPC2_addrinfo *addr, RPC2_Integer whichUnique)
         rpc2_ConnCount);
 
     return(NULL);
+}
+
+void rpc2_HostUnreach(struct RPC2_addrinfo *addr)
+{
+    struct dllist_head *ptr;
+    struct CEntry *ce;
+    struct SL_Entry *sl;
+
+    for (ptr = rpc2_ConnList.next; ptr != &rpc2_ConnList; ptr = ptr->next)
+    {
+	ce = list_entry(ptr, struct CEntry, connlist);
+	assert(ce->MagicNumber == OBJ_CENTRY);
+
+	if (!RPC2_cmpaddrinfo(ce->HostInfo->Addr, addr))
+	    continue;
+
+	if (!ce->MySl)
+	    continue;
+
+	sl = ce->MySl;
+	rpc2_DeactivateSle(sl, RPC2_ABANDONED);
+	LWP_NoYieldSignal((char *)sl);
+    }
 }
 

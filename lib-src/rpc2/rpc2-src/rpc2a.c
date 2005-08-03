@@ -700,7 +700,7 @@ try_next_addr:
     say(9, RPC2_DebugLevel, "Sending INIT1 packet on %#x\n", *ConnHandle);
     /* create call entry */
     sl = rpc2_AllocSle(OTHER, ce);
-    rpc2_SendReliably(ce, sl, pb, (struct timeval *)&ce->Retry_Beta[0]);
+    rc = rpc2_SendReliably(ce, sl, pb, (struct timeval *)&ce->Retry_Beta[0]);
 
     switch(sl->ReturnCode)
 	{

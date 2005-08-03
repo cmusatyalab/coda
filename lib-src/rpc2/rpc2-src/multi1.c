@@ -634,7 +634,7 @@ static long mrpc_SendPacketsReliably(
 	/* send the packet and activate socket listener entry */
 	/* if we are multicasting, don't send the packet, but activate the sle's */
 	if (!MCast)
-	    {
+	{
 	    /* offer control to Socket Listener every 32 packets to prevent buffer overflow */
 	    if ((packets++ & 0x1f) && (packets < pcon->indexlen - 6)) {
 	       LWP_DispatchProcess();
@@ -642,8 +642,26 @@ static long mrpc_SendPacketsReliably(
             }
 
 	    mcon[thispacket].req->Header.TimeStamp = htonl(timestamp);
-	    rpc2_XmitPacket(mcon[thispacket].req, mcon[thispacket].ceaddr->HostInfo->Addr, 0);
+	    if (rpc2_XmitPacket(mcon[thispacket].req, mcon[thispacket].ceaddr->HostInfo->Addr, 0) == -1) {
+		mcon[thispacket].retcode = RPC2_FAIL;
+		exchange(pcon, thispacket);
+		goodpackets--;
+		busy++;
+
+		/* ugly code, repeated several times below here...
+		 * really could use a good cleanup */
+		finalrc = RPC2_FAIL;
+		mcon[thispacket].retcode = RPC2_DEAD;
+		/* ugly code */
+		if (GOODSEDLE(thispacket) && c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
+		    (*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
+		if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL,
+				   RPC2_DEAD, thispacket) == -1)
+		    /* enough responses, return */
+		    EXIT_MRPC_SPR(finalrc)
+		continue;
 	    }
+	}
 
         if (rpc2_Bandwidth) 
 	    rpc2_ResetLowerLimit(mcon[thispacket].ceaddr, mcon[thispacket].req);
@@ -766,6 +784,18 @@ static long mrpc_SendPacketsReliably(
 		    else
 		        /* continue waiting for responses */
 		        break;
+
+		case RPC2_ABANDONED:
+		    slp->ReturnCode = TIMEOUT;
+		    finalrc = RPC2_FAIL;
+		    mcon[thispacket].retcode = RPC2_DEAD;
+		    /* ugly code */
+		    if (GOODSEDLE(thispacket) && c_entry->SEProcs != NULL && c_entry->SEProcs->SE_MultiRPC2 != NULL)
+			    (*c_entry->SEProcs->SE_MultiRPC2)(ConnHandleList[thispacket], &(SDescList[thispacket]), NULL);
+		    if ((*UnpackMulti)(HowMany, ConnHandleList, ArgInfo, NULL, RPC2_DEAD, thispacket) == -1)
+			/* enough responses, return */
+			EXIT_MRPC_SPR(finalrc)
+		    break;
 
 		case TIMEOUT:
 		    if ((hopeleft = rpc2_CancelRetry(c_entry, slp)))

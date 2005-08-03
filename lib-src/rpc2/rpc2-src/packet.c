@@ -37,6 +37,9 @@ Pittsburgh, PA.
 
 */
 
+#include <linux/types.h>
+#include <linux/errqueue.h>
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -109,7 +112,78 @@ static long FailPacket(int (*predicate)(), RPC2_PacketBuffer *pb,
     return drop;
 }
 
-void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *addr, int confirm)
+/* Check if there is an outstanding ICMP errors on the socket */
+static int coda_recverr(int s)
+{
+    struct sockaddr_storage sa;
+    struct msghdr msg = { 0, };
+    ssize_t ret;
+    struct RPC2_addrinfo *peer;
+
+    msg.msg_name	= &sa;
+    msg.msg_namelen	= sizeof(sa);
+
+    ret = recvmsg(s, &msg, MSG_ERRQUEUE);
+    if (ret < 0 || !(msg.msg_flags & MSG_ERRQUEUE))
+	return -1;
+
+    if (msg.msg_namelen) {
+	peer = RPC2_allocaddrinfo((struct sockaddr *)&sa, msg.msg_namelen,
+				  SOCK_DGRAM, IPPROTO_UDP);
+
+	rpc2_HostUnreach(peer);
+
+	if (RPC2_DebugLevel) {
+	    char buf[RPC2_ADDRSTRLEN] = "unknown host";
+	    RPC2_formataddrinfo(peer, buf, sizeof(buf));
+	    fprintf(rpc2_logfile, "Got MSG_ERRQUEUE from %s\n", buf);
+	}
+	RPC2_freeaddrinfo(peer);
+	return 0;
+    }
+
+#if 0
+    char control[4096];
+    msg.msg_control	= control;
+    msg.msg_controllen	= sizeof(control);
+
+    struct cmsghdr *cmsg;
+    struct sock_extended_err *ee = NULL;
+    struct sockaddr *offender;
+    socklen_t olen;
+
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg))
+    {
+	if ((cmsg->cmsg_level==SOL_IP && cmsg->cmsg_type==IP_RECVERR) ||
+	    (cmsg->cmsg_level==IPPROTO_IPV6 && cmsg->cmsg_type==IPV6_RECVERR))
+	{
+	    ee = (struct sock_extended_err *)CMSG_DATA(cmsg);
+	    break;
+	}
+    }
+    if (ee) {
+	say(-1, RPC2_DebugLevel, "ERRQUEUE MSG errno %d origin %d type %d code %d info %d\n",
+	    ee->ee_errno, ee->ee_origin, ee->ee_type, ee->ee_code, ee->ee_info);
+	
+	offender = SO_EE_OFFENDER(ee);
+	switch (offender->sa_family) {
+	case PF_UNSPEC: olen = 0; break;
+	case PF_INET:	olen = sizeof(struct sockaddr_in); break;
+	case PF_INET6:	olen = sizeof(struct sockaddr_in6); break;
+	}
+
+	peer = RPC2_allocaddrinfo(offender, olen, SOCK_DGRAM, IPPROTO_UDP);
+	RPC2_formataddrinfo(peer, buf, sizeof(buf));
+	RPC2_freeaddrinfo(peer);
+	say(-1, RPC2_DebugLevel, "ERRQUEUE MSG offender %s\n", buf);
+    }
+#endif
+
+    return -1;
+}
+
+
+int rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *addr, int confirm)
 {
     int whichSocket, n, flags = 0;
 
@@ -149,45 +223,52 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
 	whichSocket = rpc2_v4RequestSocket;
 
     if (whichSocket == -1)
-	return; // RPC2_NOCONNECTION
+	return -1; // RPC2_NOCONNECTION
 
     if (FailPacket(Fail_SendPredicate, whichPB, addr, whichSocket))
-	return;
+	return 0;
 
+retry:
     if (confirm)
 	flags = msg_confirm;
 
     n = sendto(whichSocket, &whichPB->Header, whichPB->Prefix.LengthOfPacket,
 	       flags, addr->ai_addr, addr->ai_addrlen);
 
-#ifdef __linux__
-    if (n == -1 && errno == ECONNREFUSED)
-    {
-	/* On linux ECONNREFUSED is a result of a previous sendto
-	 * triggering an ICMP bad host/port response. This
-	 * behaviour seems to be required by RFC1122, but in
-	 * practice this is not implemented by other UDP stacks.
-	 * We retry the send, because the failing host was possibly
-	 * not the one we tried to send to this time. --JH
-	 */
-	n = sendto(whichSocket, &whichPB->Header,
-		   whichPB->Prefix.LengthOfPacket, 0,
-		   addr->ai_addr, addr->ai_addrlen);
-    } else
-#endif
-    if (n == -1 && errno == EAGAIN)
-    {
-	/* operation failed probably because the send buffer was full. we could
-	 * try to select for write and retry, or we could just consider this
-	 * packet lost on the network.
-	 */
-    } else
+    if (n == -1) {
+	switch (errno) {
+	/* send buffer full? just drop the packet */
+	case EAGAIN:
+	case ENOBUFS:
+	case ENOMEM:
+	    return 0;
 
-    if (n == -1 && errno == EINVAL && msg_confirm) {
-	/* maybe the kernel didn't like the MSG_CONFIRM flag. */
-	msg_confirm = 0;
+	/* interrupted before sending data, retry */
+	case EINTR:
+	    goto retry;
+
+	/* locally generated error? maybe the interface is down */
+	case ENETDOWN:
+	case ENETUNREACH:
+	case EHOSTDOWN:
+	case EHOSTUNREACH:
+	    return -1;
+
+	/* the kernel didn't like the MSG_CONFIRM flag? */
+	case EINVAL:
+	    if (msg_confirm) {
+		msg_confirm = 0;
+		goto retry;
+	    }
+	    break;
+
+	/* or maybe we have to clear a queued ICMP error first */
+	case ECONNREFUSED:
+	    if (coda_recverr(whichSocket) == 0)
+		goto retry;
+	    break;
+	}
     }
-    else
 
     if (RPC2_Perror && n != whichPB->Prefix.LengthOfPacket)
     {
@@ -195,6 +276,7 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
 	sprintf(msg, "Xmit_Packet socket %d", whichSocket);
 	perror(msg);
     }
+    return 0;
 }
 
 /* Reads the next packet from whichSocket into whichBuff, sets its
@@ -220,15 +302,13 @@ long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff)
     /* WARNING: only Internet works; no warnings */
     fromlen = sizeof(sa);
     rc = recvfrom(whichSocket, &whichBuff->Header, len, 0,
-		  (struct sockaddr *) &sa, &fromlen);
+		  (struct sockaddr *)&sa, &fromlen);
 
-    if (rc < 0 && errno == EAGAIN) {
-	/* the packet might have had a corrupt udp checksum */
-	return -1;
-    }
-    if (rc < 0) {
-	    say(10, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
-	    return(-1);
+    if (rc == -1) {
+	/* maybe corrupt udp checksum or we got an ICMP error */
+	if (errno != EAGAIN && coda_recverr(whichSocket) != 0)
+	    say(0, RPC2_DebugLevel, "Error in recvf from: errno = %d\n", errno);
+	return(-1);
     }
 
     whichBuff->Prefix.PeerAddr =
@@ -483,7 +563,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     struct timeval *TimeOut;
     {
     struct SL_Entry *tlp;
-    long hopeleft, finalrc;
+    long hopeleft, finalrc = RPC2_SUCCESS;
     struct timeval *tout;
     struct timeval *ThisRetryBeta;
 
@@ -506,7 +586,11 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     say(9, RPC2_DebugLevel, "Sending try at %ld on %#x (timeout %ld.%06ld)\n",
 			     rpc2_time(), Conn->UniqueCID,
 			     ThisRetryBeta[1].tv_sec, ThisRetryBeta[1].tv_usec);
-    rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
+
+    if (rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0) == -1) {
+	rpc2_DeactivateSle(Sle, TIMEOUT);
+	goto exit;
+    }
 
     if (rpc2_Bandwidth) rpc2_ResetLowerLimit(Conn, Packet);
 
@@ -516,7 +600,6 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
     Sle->RetryIndex = 1;
     rpc2_ActivateSle(Sle, &ThisRetryBeta[1]);
 
-    finalrc = RPC2_SUCCESS;
     do
 	{
 	hopeleft = 0;
@@ -543,6 +626,11 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		rpc2_ActivateSle(Sle, &ThisRetryBeta[0]);
 		break;	/* switch */
 		
+	    case RPC2_ABANDONED:
+		Sle->ReturnCode = TIMEOUT;
+		hopeleft = 0;
+		break;
+
 	    case TIMEOUT:
 		if ((hopeleft = rpc2_CancelRetry(Conn, Sle)))
 		    break;      /* switch; we heard from side effect recently */
@@ -564,7 +652,10 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 		if (TestRole(Conn, CLIENT))   /* restamp retries if client */
 		    Packet->Header.TimeStamp = htonl(rpc2_MakeTimeStamp());
 		rpc2_Sent.Retries += 1;
-		rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0);
+		if (rpc2_XmitPacket(Packet, Conn->HostInfo->Addr, 0) == -1) {
+		    rpc2_DeactivateSle(Sle, TIMEOUT);
+		    hopeleft = 0;
+		}
 		break;	/* switch */
 		
 	    default: assert(FALSE);
@@ -572,6 +663,7 @@ long rpc2_SendReliably(IN Conn, IN Sle, IN Packet, IN TimeOut)
 	}
     while (hopeleft);
 
+exit:
     if (tlp)
     	{
 	rpc2_DeactivateSle(tlp, 0);  	/* delete  time bomb */

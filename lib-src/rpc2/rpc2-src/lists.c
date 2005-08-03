@@ -249,7 +249,8 @@ void rpc2_DeactivateSle(sl, rc)
     t = &sl->TElem.TotalTime;
     if (t->tv_sec == -1 && t->tv_usec == -1) return; /* not timed */
     else {
-	TM_Remove(rpc2_TimerQueue, &sl->TElem);
+	if (sl->TElem.Next)
+	    TM_Remove(rpc2_TimerQueue, &sl->TElem);
 	t->tv_sec = t->tv_usec = -1;	/* keep routine idempotent */
     }
     }

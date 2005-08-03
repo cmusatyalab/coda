@@ -484,8 +484,8 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr, short *P
 
 /* Packet  routines */
 long rpc2_SendReliably(), rpc2_MSendPacketsReliably();
-void rpc2_XmitPacket(RPC2_PacketBuffer *whichPB,
-		     struct RPC2_addrinfo *addr, int confirm);
+int rpc2_XmitPacket(RPC2_PacketBuffer *whichPB,
+		    struct RPC2_addrinfo *addr, int confirm);
 void rpc2_InitPacket();
 int rpc2_MorePackets(void);
 long rpc2_RecvPacket(long whichSocket, RPC2_PacketBuffer *whichBuff);
@@ -523,6 +523,10 @@ void RPC2_UpdateEstimates(struct HEntry *whichHost, RPC2_Unsigned ElapsedTime,
 void rpc2_RetryInterval(RPC2_Handle whichConn, RPC2_Unsigned InBytes,
 			RPC2_Unsigned OutBytes, int *retry, int maxretry,
 			struct timeval *tv);
+
+/* really only does stuff on connections, so this one is in conn.c */
+void rpc2_HostUnreach(struct RPC2_addrinfo *addr);
+
 
 /* Multicast group manipulation routines */
 void rpc2_InitMgrp(), rpc2_FreeMgrp(), rpc2_RemoveFromMgrp(), rpc2_DeleteMgrp();
