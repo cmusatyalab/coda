@@ -851,7 +851,7 @@ int DIR_Convert (PDirHeader dir, char *file, VolumeId vol, RealmId realm)
 #ifdef MMAP_DIR_CONTENTS
 	CODA_ASSERT( ftruncate(fd, len) == 0 );
 	buf = mmap(0, len, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
-	CODA_ASSERT( (int) buf != -1 );
+	CODA_ASSERT(buf != MAP_FAILED);
 #else
 	buf = malloc(len);
 	CODA_ASSERT(buf);
@@ -1043,7 +1043,7 @@ int dir_FindCaseInsensitive(PDirEntry de, void *hook){
 
       	/* lowercase name to look for */
 	for (p = name; p < name + length; p++)
-		if (isupper(*p))
+		if (isupper((int)*p))
 	       		*p += 'a' - 'A';
 
 	name2 = strdup(de->name);
@@ -1051,7 +1051,7 @@ int dir_FindCaseInsensitive(PDirEntry de, void *hook){
 
       	/* lowercase name2 */       
 	for (p = name2; p < name2 + length2; p++)
-      	       	if (isupper(*p))
+      	       	if (isupper((int)*p))
 			*p += 'a' - 'A';
 
 	if (!strcmp(name, name2)){

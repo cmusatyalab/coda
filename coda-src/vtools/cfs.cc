@@ -609,14 +609,15 @@ static int dirincoda(char *path)
     int rc;
     char buf[MAXPATHLEN];
     struct ViceIoctl vio;
+    char *cwd;
 
     /* First see if you can chdir to the target */
     rc = chdir(path);
     if (rc < 0) return(0);
     
     /* Now find out where we really are */
-    rc = (int)getcwd(buf, MAXPATHLEN);
-    if (rc == 0) return(0);
+    if (getcwd(buf, MAXPATHLEN) == NULL)
+	return(0);
     
     /* Are we in Kansas, Toto? */
     vio.in = 0;

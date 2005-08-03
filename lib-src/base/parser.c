@@ -74,7 +74,7 @@ static char * skipwhitespace(char * s)
     
     len = (int)strlen(s);
     
-    for (t = s; t <= s + len && isspace(*t); t++);
+    for (t = s; t <= s + len && isspace((int)*t); t++);
     return(t);
 }
 
@@ -82,7 +82,7 @@ static char * skiptowhitespace(char * s)
 {
     char * t;
     
-    for (t = s; *t && !isspace(*t); t++);
+    for (t = s; *t && !isspace((int)*t); t++);
     return(t);
 }
 

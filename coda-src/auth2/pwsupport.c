@@ -264,7 +264,7 @@ void AppendPW(int vId, RPC2_EncryptionKey eKey, char *otherInfo, int agentId)
 	char buf[100], *bnext;
 	RPC2_EncryptionKey tempkey;
 	struct stat buff;
-	long cl;
+	time_t cl;
 
 	/* Encrypt the key first */
 	rpc2_Encrypt((char *)eKey, (char *)tempkey, RPC2_KEYSIZE,

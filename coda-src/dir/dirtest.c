@@ -173,7 +173,7 @@ void dt_vdir(int argc, char **argv)
 	     
 	len = statb.st_size;
 	buf = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
-	CODA_ASSERT( (int )buf != -1 );
+	CODA_ASSERT(buf != MAP_FAILED);
 
 	offset = 0;
 	while( 1 ) {

@@ -137,7 +137,7 @@ void GetRealmServers(const char *name, const char *service,
 	    if (line[0] == '#') continue;
 
 	    if (strncmp(line, name, namelen) == 0 &&
-		(line[namelen] == '\0' || isspace(line[namelen])))
+		(line[namelen] == '\0' || isspace((int)line[namelen])))
 	    {
 		ResolveRootServers(&line[namelen], service, &results);
 		found = 1;

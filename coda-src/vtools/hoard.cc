@@ -947,7 +947,7 @@ static int GetVid(VolumeId *vid, char *realm, char *name)
 	strcpy(realm, gf_msg.realm);
     }
 
-    DEBUG(printf("GetVid: %s -> %x@%s\n", name, (unsigned int)vid, realm);)
+    DEBUG(printf("GetVid: %s -> %x@%s\n", name, *vid, realm);)
 
     return err;
 }

@@ -544,7 +544,7 @@ int s_list_coda_inodes(struct DiskPartition *dp, char *resultFile,
         struct ViceInodeInfo info;
 	ino = atol(ent->d_name);
 
-	if ( !isdigit(*(ent->d_name)) )
+	if ( !isdigit((int)*(ent->d_name)) )
 	    continue;
 	rc = UifsGetHeader(dp, ino, &info);
 	if ( rc == 0 ) {
