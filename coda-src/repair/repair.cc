@@ -177,7 +177,7 @@ int getrepairargs(int largc, char **largv, char *fixpath)
 	return(-1);
     }
     if (!repair_getfid(fixpath, NULL, NULL, NULL, NULL, 0)) {
-	fprintf(stderr, "%s is in %s and cannot be used as the fix file\n", fixpath, coda_mountpoint);
+	fprintf(stderr, "%s is in %s and cannot be used as the fixfile\n", fixpath, coda_mountpoint);
 	return(-1);
     }
     strncpy(cfix, fixpath, sizeof(cfix));
@@ -285,15 +285,14 @@ void rep_CompareDirs(int largc, char **largv) {
     inf.interactive = 1;
 
     /* Obtain parameters from user */
-    if (getcompareargs(largc, largv, &fixfile, &inf) < 0) {
-      fprintf(stderr, "failed getting arguments from user\n");
-      fprintf(stderr, "comparedirs failed\n");
+    if (getcompareargs(largc, largv, &fixfile, &inf) < 0)
       return;
-    }
 
+    msgbuf[0] = '\0';
     ret = CompareDirs(ConflictObj, fixfile, &inf, msgbuf, sizeof(msgbuf));
-    if(ret != -2)
-      fprintf(stderr, "%s\ncomparedirs failed\n", msgbuf);
+    printf(msgbuf);
+    if(ret == -1)
+      fprintf(stderr, "comparedirs failed!\n");
 }
 
 void rep_DoRepair(int largc, char **largv) {
@@ -354,33 +353,38 @@ void rep_Help(int largc, char **largv) {
 void rep_RemoveInc(int largc, char **largv) {
   int dirconf,rc;
   char msgbuf[DEF_BUF],rodir[DEF_BUF];
+  if (session == NOT_IN_SESSION) {
+    printf("You must do \"beginrepair\" first\n");
+    return;
+  }
+  printf("\"removeinc\" will terminate the current repair session\n");
 
-    printf("\"removeinc\" will terminate the current repair session\n");
+  printf("Completely remove %s?", ConflictObj->rodir);
+  if (!Parser_getbool("", 1)) {
+    printf("Operation aborted.\n");
+    return;
+  }
 
-    printf("Completely remove %s?", ConflictObj->rodir);
-    if (!Parser_getbool("", 1)) {
-	printf("Operation aborted.\n");
-	return;
-    }
+  /* remember conflict type and path (since Endrepair will free them) */
+  dirconf = ConflictObj->dirconf;
+  strcpy(rodir, ConflictObj->rodir);
 
-    /* remember conflict type and path (since Endrepair will free them) */
-    dirconf = ConflictObj->dirconf;
-    strcpy(rodir, ConflictObj->rodir);
+  /* remove the inconsistency */
+  if ((rc = RemoveInc(ConflictObj, msgbuf, sizeof(msgbuf))) < 0)
+    fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
+  /* end the repair session */
+  if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0)
+    fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
 
-    /* remove the inconsistency */
-    if ((rc = RemoveInc(ConflictObj, msgbuf, sizeof(msgbuf))) < 0)
-      fprintf(stderr, "%s\nError removing inconsistency\n", msgbuf);
-    /* end the repair session */
-    if ((rc = EndRepair(ConflictObj, 0, msgbuf, sizeof(msgbuf))) < 0)
-      fprintf(stderr, "%s\nError ending repair session.\n", msgbuf);
-
-    if (!rc) { /* no error - try to remove the object */
-	if (((dirconf) ? rmdir(rodir)
-	     : unlink(rodir)) < 0)
-	    fprintf(stderr, "%s\nCould not remove %s\n",
-		    strerror(errno), rodir);
-    }
-    exit(2);
+  if (!rc) { /* no error - try to remove the object */
+    if (((dirconf) ? rmdir(rodir)
+	 : unlink(rodir)) < 0)
+      fprintf(stderr, "%s\nCould not remove %s\n",
+	      strerror(errno), rodir);
+    else
+      printf("Repair successful.\n");
+  }
+  exit(2);
 }
 
 void rep_ReplaceInc(int largc, char **largv)
@@ -391,6 +395,11 @@ void rep_ReplaceInc(int largc, char **largv)
     char fixrealm[MAXHOSTNAMELEN];
     vv_t fixvv;
     struct stat sbuf;
+
+    if (session == NOT_IN_SESSION) {
+	printf("You must do \"beginrepair\" first\n");
+	return;
+    }
 
     if (ConflictObj->dirconf) {
 	printf("\"replaceinc\" can only be used to repair file conflicts\n");

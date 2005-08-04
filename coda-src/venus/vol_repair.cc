@@ -938,15 +938,6 @@ int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfi
     return(0);
 }
 
-/* If (uid == ANYUSER_UID) the enquiry is taken to be "does anyone on the WS have the volume under repair". */
-int repvol::IsUnderRepair(uid_t uid)
-{
-    LOG(100, ("repvol::IsUnderRepair: vol = %x, uid = %d\n", vid, uid));
-
-    return (flags.repair_mode);
-}
-
-
 /* Enable ASR invocation for this volume (as a volume service)  */
 int repvol::EnableASR(uid_t uid)
 {

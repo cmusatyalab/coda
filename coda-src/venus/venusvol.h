@@ -929,9 +929,6 @@ class repvol : public volent {
     void asr_pgid(pid_t new_pgid);
     pid_t asr_pgid() { return pgid; }
 
-    /* Repair routines */
-    int IsUnderRepair(uid_t);
-
     void print_repvol(int);
 };
 

@@ -551,20 +551,6 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
     {
 	/* Better not be disconnected or dirty! */
 	FSO_ASSERT(this, (WRITEDISCONNECTED(this) && !DIRTY(this)));
-
-#if 0 /* this has fallen out of date -- Adam */
-	if (IsFake()) {
-	    FSO_ASSERT(this, acl == 0);
-
-	    /* We never fetch fake directory without having status and data. */
-	    if ( (IsFakeDir()||IsExpandedDir()) && !HAVEALLDATA(this)) /* might not be necessary -- Adam 5/17/05 */
-		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeDir or IsExpandedDir && !HAVEALLDATA"); }
-
-	    /* We never fetch fake mtpts (covered or uncovered). */
-	    if (IsFakeMtPt() || IsFakeMTLink())
-		{ print(logFile); CHOKE("fsobj::GetAttr: IsFakeMtPt || IsFakeMTLink"); }
-	}
-#endif
     }
 
     int code = 0;
@@ -803,6 +789,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 					pobj->GetComp(), FID_(&FAVs[i].Fid)));
 				
 				if (REPLACEABLE(pobj) && !BUSY(pobj)) {
+				  LOG(1, ("fsobj::GetAttr: Killing (%s), REPLACEABLE and !BUSY\n", pobj->GetComp()));
 				    Recov_BeginTrans();
 				    pobj->Kill(0);
 				    Recov_EndTrans(MAXFP);
@@ -824,7 +811,6 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 				if (HAVEDATA(pobj) && !ACTIVE(pobj) &&
 				    !pobj->IsFakeDir() &&
 				    !pobj->IsExpandedDir() && !DIRTY(pobj))
-				  /* Adam 5/17/05 */
 				{
 				    Recov_BeginTrans();
 				    UpdateCacheStats((IsDir() ? &FSDB->DirDataStats
@@ -958,7 +944,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		       printbuf);
 	    }
 
-
+#if 0 /* XXX: How can this be right? */
 	    /* Handle successful validation of fake directory! */
 	    if (IsFakeDir() || IsExpandedDir()) { /* XXX:? Adam 5/17/05 */
 		LOG(0, ("fsobj::GetAttr: (%s) validated fake directory\n",
@@ -971,6 +957,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 		code = ERETRY;
 		goto RepExit;
 	    }
+#endif
 
 	    /* Handle failed validations. */
 	    if (HAVESTATUS(this) && VV_Cmp(&status.VV, &stat.VV) != VV_EQ) {
@@ -1027,9 +1014,6 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
 RepExit:
 	if (m) m->Put();
-	if (IsFakeDir() && code == EINCONS) {
-	    code = 0;
-	}
 	switch(code) {
 	    case 0:
 		if (asy_resolve)
@@ -1041,11 +1025,10 @@ RepExit:
 		break;
 
 	    case EINCONS:
-#if 0
-		Recov_BeginTrans();
-		Kill();
-		Recov_EndTrans(CMFP);
-#endif
+	      /* We used to kill inconsistent objects, but that is not a
+	       * useful thing to do anymore, as the object now simply has
+	       * its attributes changed and functions as a .localcache
+	       * object in server/server conflict expansions. -- Adam */
 		break;
 
 	    case ENXIO:
@@ -1164,13 +1147,13 @@ NonRepExit:
 	PutConn(&c);
     }
 
-    if (code && code != EINCONS) {
+    if (code && (code != EINCONS)) {
       Recov_BeginTrans();
       /* Demote or discard existing status. */
       if (HAVESTATUS(this) && code != ENOENT)
 	Demote();
       else
-	Kill();
+	  Kill();
       Recov_EndTrans(DMFP);
     }
 
@@ -1231,7 +1214,10 @@ int fsobj::DisconnectedStore(Date_t Mtime, uid_t uid, unsigned long NewLength,
 	/* Probably we should try to guarantee that it never happens (e.g., by reserving a record at open). */
     code = rv->LogStore(Mtime, uid, &fid, NewLength, prepend);
     
-    if (code == 0)
+    if (code == 0 && prepend == 0)
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalStore(Mtime, NewLength);
     Recov_EndTrans(DMFP);
 
@@ -1309,7 +1295,10 @@ int fsobj::DisconnectedSetAttr(Date_t Mtime, uid_t uid, unsigned long NewLength,
     CODA_ASSERT(vol->IsReplicated());
     code = rv->LogSetAttr(Mtime, uid, &fid, NewLength, NewDate, NewOwner,
 			  (RPC2_Unsigned)tNewMode, prepend);
-    if (code == 0)
+    if (code == 0 && prepend == 0)
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalSetAttr(Mtime, NewLength, NewDate, NewOwner, NewMode);
     Recov_EndTrans(DMFP);
 
@@ -1644,8 +1633,11 @@ int fsobj::DisconnectedCreate(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     code = rv->LogCreate(Mtime, uid, &fid, name, &target_fso->fid, Mode,
 			 prepend);
 
-    if (code == 0) {
+    if (code == 0 && prepend == 0) {
 	    /* This MUST update second-class state! */
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalCreate(Mtime, target_fso, name, uid, Mode);
 
 	    /* target_fso->stat is not initialized until LocalCreate */

@@ -725,7 +725,7 @@ RestartFind:
 		  f->flags.fake = 1;
 		  Recov_EndTrans(MAXFP);
 
-		  k_Purge(&f->fid, 1);
+		  //k_Purge(&f->fid, 1); /* isn't doing anything useful */
 
 		  LOG(0, ("fsdb::Get: %s (%s) in server/server conflict\n",
 			  path, FID_(key)));
@@ -734,6 +734,8 @@ RestartFind:
 		} /* s/s conflict objs fall through if(GetInconsistent) */
 
 		if (code && !(code == EINCONS && GetInconsistent)) {
+                    if (code == EINCONS)
+                      LOG(0, ("fsdb::Get: EINCONS after GetAttr\n"));
                     if (code == ETIMEDOUT)
                       LOG(100, ("fsdb::Get: TIMEDOUT after GetAttr\n"));
 		    Put(&f);

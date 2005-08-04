@@ -106,8 +106,11 @@ int fsobj::DisconnectedRemove(Date_t Mtime, uid_t uid, char *name,
     code = rv->LogRemove(Mtime, uid, &fid, name, &target_fso->fid,
 			 target_fso->stat.LinkCount, prepend);
 
-    if (code == 0)
+    if (code == 0 && prepend == 0)
 	    /* This MUST update second-class state! */
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalRemove(Mtime, name, target_fso);
     Recov_EndTrans(DMFP);
 
@@ -175,8 +178,11 @@ int fsobj::DisconnectedLink(Date_t Mtime, uid_t uid, char *name,
     Recov_BeginTrans();
     code = rv->LogLink(Mtime, uid, &fid, name, &source_fso->fid, prepend);
     
-    if (code == 0)
+    if (code == 0 && prepend == 0)
 	    /* This MUST update second-class state! */
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalLink(Mtime, name, source_fso);
     Recov_EndTrans(DMFP);
 
@@ -307,8 +313,11 @@ int fsobj::DisconnectedRename(Date_t Mtime, uid_t uid, fsobj *s_parent_fso,
 			 &s_fso->fid, (TargetExists ? &t_fso->fid : &NullFid),
 			 (TargetExists ? t_fso->stat.LinkCount:0), prepend);
 
-    if (code == 0)
+    if (code == 0 && prepend == 0)
 	    /* This MUST update second-class state! */
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalRename(Mtime, s_parent_fso, s_name, s_fso, t_name, t_fso);
     Recov_EndTrans(DMFP);
 
@@ -424,8 +433,11 @@ int fsobj::DisconnectedMkdir(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     code = rv->LogMkdir(Mtime, uid, &fid, name, &target_fso->fid, Mode,
 			prepend);
 
-    if (code == 0) {
+    if (code == 0 && prepend == 0) {
 	    /* This MUST update second-class state! */
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalMkdir(Mtime, target_fso, name, uid, Mode);
 
 	    /* target_fso->stat is not initialized until LocalMkdir */
@@ -520,8 +532,11 @@ int fsobj::DisconnectedRmdir(Date_t Mtime, uid_t uid, char *name,
     Recov_BeginTrans();
     code = rv->LogRmdir(Mtime, uid, &fid, name, &target_fso->fid, prepend);
 
-    if (code == 0)
+    if (code == 0 && prepend == 0)
 	    /* This MUST update second-class state! */
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalRmdir(Mtime, name, target_fso);
     Recov_EndTrans(DMFP);
 
@@ -631,8 +646,11 @@ int fsobj::DisconnectedSymlink(Date_t Mtime, uid_t uid, fsobj **t_fso_addr,
     code = rv->LogSymlink(Mtime, uid, &fid, name, contents, &target_fso->fid,
 			  Mode, prepend);
     
-    if (code == 0) {
+    if (code == 0 && prepend == 0) {
 	    /* This MUST update second-class state! */
+            /* It's already been updated if we're 'prepending',
+	     * which basically means it is a repair-related operation,
+	     * and doing it again would trigger an assertion. */
 	    LocalSymlink(Mtime, target_fso, name, contents, uid, Mode);
 
 	    /* target_fso->stat is not initialized until LocalSymlink */

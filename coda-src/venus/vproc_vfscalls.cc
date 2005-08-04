@@ -303,10 +303,10 @@ void vproc::getattr(struct venus_cnode *cp, struct coda_vattr *vap)
 	/* Get the object. */
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
 
-	/* mark local-global conflicts by iterating through cmlent bindings.
-	 * we need to check cmlent's to show _localcache's children -- Adam */
-	if(!u.u_error && f && f->IsToBeRepaired()
-	   && !f->HasExpandedCMLEntries())
+	/* Check if it is in conflict. */
+	if(!u.u_error && f &&
+	   ((f->IsToBeRepaired() && !f->HasExpandedCMLEntries()) ||
+	    (f->IsFake() && !f->IsExpandedObj())))
 	  u.u_error = EINCONS;
 
 	if (u.u_error)

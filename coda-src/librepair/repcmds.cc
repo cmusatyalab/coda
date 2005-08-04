@@ -1,3 +1,4 @@
+
 /* BLURB gpl
 
                            Coda File System
@@ -43,13 +44,13 @@ int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize)
 
     /* Create a new conflict struct */
     if (repair_newrep(pathname, conf, msgbuf, sizeof(msgbuf)) < 0) {
-      strerr(msg, msgsize, "Could not allocate new conflict: %s", msgbuf);
+      strerr(msg, msgsize, "Error beginning repair: %s", msgbuf);
       return(-1);
     }
 
     if (repair_getfid((*conf)->rodir, &((*conf)->fid), (*conf)->realm,
 		      &((*conf)->VV), msgbuf, sizeof(msgbuf))) {
-      strerr(msg, msgsize, "repair_getfid(%s): %s", (*conf)->rodir, msgbuf);
+      strerr(msg, msgsize, "Error beginning repair: %s", msgbuf);
       return(-1);
     }
 
@@ -61,27 +62,26 @@ int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize)
     memset(space, 0, sizeof(space));
     rc = pioctl((*conf)->rodir, _VICEIOCTL(_VIOC_ENABLEREPAIR), &vioc, 0);
     if (rc < 0) {
-        strerr(msg, msgsize, "ENABLEREPAIR failed on %s: %s",
-	       (*conf)->rodir, strerror(errno));
+        strerr(msg, msgsize, "Error beginning repair: %s", strerror(errno));
 	repair_finish(*conf);
 	return(-1);
     }
 
     /* Get the replicas, i.e. just insert into list in conf */
     if ((rc = repair_mountrw(*conf, msgbuf, sizeof(msgbuf))) < 0) {
-	strerr(msg, msgsize, "%s\nCould not allocate replica list", msgbuf);
+	strerr(msg, msgsize, "Could not create replica list: %s", msgbuf);
 	repair_finish(*conf);
 	return(-1);
     }
 
     /* Begin the repair */
-    sprintf(cmd, "%d 1", REP_CMD_BEGIN); /* XXX: it should lock vol; doesn't */
+    sprintf(cmd, "%d 1", REP_CMD_BEGIN);
     vioc.in = cmd;
     vioc.in_size = (short)(strlen(cmd) + 1);
     vioc.out = space;
     vioc.out_size = (short)sizeof(space);
     if ((rc = pioctl((*conf)->rodir, _VICEIOCTL(_VIOC_REP_CMD), &vioc, 0)) < 0) {
-        strerr(msg, msgsize, "REP_CMD_BEGIN failed: %s", strerror(errno));
+        strerr(msg, msgsize, "Error beginning repair: %s", strerror(errno));
 	repair_finish(*conf);
 	return(-1);
     }
@@ -92,7 +92,7 @@ int BeginRepair(char *pathname, struct conflict **conf, char *msg, int msgsize)
 	if (EndRepair(*conf, 0, msgbuf, sizeof(msgbuf)) < 0)
 	  strerr(msg, msgsize, "No conflict\nEndRepair failed: %s", msgbuf);
 	else
-	  strerr(msg, msgsize, "No conflict");
+	  strerr(msg, msgsize, "No conflict detected.");
 	return(-1);
     }
     else if (rc == 1)
