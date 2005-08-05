@@ -321,8 +321,8 @@ dnl Looks for the fltk library
 dnl 
 
 AC_DEFUN(CODA_CHECK_FLTK,
-   [ dln do our own check for fltk library since it appears
-     dln in unusual places on some OSes.
+   [ # do our own check for fltk library since it appears
+     # in unusual places on some OSes.
      UNAME=`uname -s`
      FLTKPREFIX=
      VCODACON=
@@ -349,7 +349,7 @@ AC_DEFUN(CODA_CHECK_FLTK,
          CYGWIN*)
             echo "Will build native windows binary for vcodacon. "
             GUILIBS="-mwindows -lfltk -lole32 -luuid -lcomctl32 -lwsock32 "
-            GUIFLAGS="-DWIN32 -fno-exceptions -mwindows "
+            GUIFLAGS="-fno-exceptions -mwindows "
             ;;
          *)
             echo -n "Checking for libX11.a... "
