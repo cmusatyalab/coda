@@ -336,7 +336,7 @@ AC_DEFUN(CODA_CHECK_FLTK,
      AC_SUBST(GUILIBS)
      AC_SUBST(XINCDIR)
      AC_SUBST(XLIBDIR)
-     echo -n "Checking for libfltk.a ...  "
+     echo -n "Checking for libfltk.a... "
      for d in /usr /usr/local /usr/pkg /usr/X11R6 ; do
        if test -f $d/lib/libfltk.a ; then
          FLTKPREFIX=$d
@@ -344,15 +344,15 @@ AC_DEFUN(CODA_CHECK_FLTK,
        fi
      done
      if test x${FLTKPREFIX} != x ; then
-       echo "Yes."
+       echo "yes"
        case $UNAME in
          CYGWIN*)
-            echo "Will build native windows binary for gui/vis. "
+            echo "Will build native windows binary for vcodacon. "
             GUILIBS="-mwindows -lfltk -lole32 -luuid -lcomctl32 -lwsock32 "
             GUIFLAGS="-DWIN32 -fno-exceptions -mwindows "
             ;;
          *)
-            echo -n "Checking for libX11.a ...   "
+            echo -n "Checking for libX11.a... "
             for d in /usr/X11R6 /usr/X11 /usr/openwin ; do
               if test -f $d/lib/libX11.a ; then
                 X11PREFIX=$d
@@ -363,7 +363,7 @@ AC_DEFUN(CODA_CHECK_FLTK,
               echo "No, aborting."
               exit 1;
 	    else
-              echo "Yes."
+              echo "yes"
             fi
             echo libX11.a is $X11PREFIX/lib/libX11.a
             GUILIBS="-lfltk -lX11 -lm"
@@ -377,6 +377,6 @@ AC_DEFUN(CODA_CHECK_FLTK,
        esac
        VCODACON=vcodacon
      else
-	echo "No."
+	echo "no"
 	echo "libfltk.a not found, not building vcodacon."
      fi])
