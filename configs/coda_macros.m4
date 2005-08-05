@@ -316,3 +316,67 @@ AC_DEFUN(CODA_CHECK_READLINE,
    AC_CHECK_LIB(readline, rl_completion_matches,
      [AC_DEFINE(HAVE_RL_COMPLETION_MATCHES, 1, [Define if you have readline 4.2 or later])], [], $LIBTERMCAP)])
 
+dnl -----------------
+dnl Looks for the fltk library
+dnl 
+
+AC_DEFUN(CODA_CHECK_FLTK,
+   [ dln do our own check for fltk library since it appears
+     dln in unusual places on some OSes.
+     UNAME=`uname -s`
+     FLTKPREFIX=
+     VCODACON=
+     GUIFLAGS=
+     GUILIBS=
+     XINCDIR=
+     XLIBDIR=
+     AC_SUBST(FLTKPREFIX)
+     AC_SUBST(VCODACON)
+     AC_SUBST(GUIFLAGS)
+     AC_SUBST(GUILIBS)
+     AC_SUBST(XINCDIR)
+     AC_SUBST(XLIBDIR)
+     echo -n "Checking for libfltk.a ...  "
+     for d in /usr /usr/local /usr/pkg /usr/X11R6 ; do
+       if test -f $d/lib/libfltk.a ; then
+         FLTKPREFIX=$d
+         break
+       fi
+     done
+     if test x${FLTKPREFIX} != x ; then
+       echo "Yes."
+       case $UNAME in
+         CYGWIN*)
+            echo "Will build native windows binary for gui/vis. "
+            GUILIBS="-mwindows -lfltk -lole32 -luuid -lcomctl32 -lwsock32 "
+            GUIFLAGS="-DWIN32 -fno-exceptions -mwindows "
+            ;;
+         *)
+            echo -n "Checking for libX11.a ...   "
+            for d in /usr/X11R6 /usr/X11 /usr/openwin ; do
+              if test -f $d/lib/libX11.a ; then
+                X11PREFIX=$d
+                break
+              fi
+            done
+            if test x$X11PREFIX = x ; then
+              echo "No, aborting."
+              exit 1;
+	    else
+              echo "Yes."
+            fi
+            echo libX11.a is $X11PREFIX/lib/libX11.a
+            GUILIBS="-lfltk -lX11 -lm"
+            XLIBDIR="-L$X11PREFIX/lib"
+            XINCDIR="-I$X11PREFIX/include"
+            if test X$UNAME = XSunOS  ; then
+               GUIFLAGS="-D__Solaris__"
+               GUILIBS="-lsocket -lnsl"
+            fi
+            ;;
+       esac
+       VCODACON=vcodacon
+     else
+	echo "No."
+	echo "libfltk.a not found, not building vcodacon."
+     fi])

@@ -7,3 +7,4 @@
 
 MACHINE_FLAGS  := $(MACHINE_FLAGS) -D__CYGWIN32__ -gstabs
 SHORTSYS      	= cygwin
+GUIFLAG         = -mwindows

@@ -71,6 +71,7 @@ CODA_CHECK_LWP_PT
 CODA_CHECK_LIBTERMCAP
 CODA_CHECK_LIBCURSES
 CODA_CHECK_READLINE
+CODA_CHECK_FLTK
 
 CODA_CHECK_OPENSSL
 CODA_CHECK_KRB4
@@ -179,6 +180,7 @@ coda-src/update/Makefile
 coda-src/norton/Makefile 
 coda-src/asr/Makefile 
 coda-src/egasr/Makefile  
+coda-src/vcodacon/Makefile
 utils-src/Makefile 
 utils-src/potemkin/Makefile 
 utils-src/potemkin/ds/Makefile 
