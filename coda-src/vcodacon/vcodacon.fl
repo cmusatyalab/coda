@@ -1,0 +1,274 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0106 
+header_name {.h} 
+code_name {.cc}
+decl {\#include "FL/fl_ask.H"} {} 
+
+decl {\#include <stdlib.h>} {} 
+
+decl {\#include "util.h"} {} 
+
+decl {\#include "monitor.h"} {} 
+
+decl {monitor Monitor;} {} 
+
+Function {} {open
+} {
+  code {
+
+/*	$Id$	*/
+
+// BLURB gpl
+//
+//                           Coda File System
+//                              Release 6
+//
+//          Copyright (c) 1987-2005 Carnegie Mellon University
+//                  Additional copyrights listed below
+//
+// This  code  is  distributed "AS IS" without warranty of any kind under
+// the terms of the GNU General Public Licence Version 2, as shown in the
+// file  LICENSE.  The  technical and financial  contributors to Coda are
+// listed in the file CREDITS.
+//} {}
+  Fl_Window clog {
+    label clog open
+    xywh {134 348 320 100} type Double color 7 hide
+  } {
+    Fl_Input clogUserName {
+      label {User Name:}
+      xywh {90 5 225 30}
+    }
+    Fl_Input clogPassword {
+      label {Password:}
+      xywh {90 35 225 25} type Secret
+    }
+    Fl_Return_Button {} {
+      label clog
+      callback {do_clog(clogUserName->value(),
+        clogPassword->value());
+clog->hide();}
+      xywh {15 65 90 25} color 47
+    }
+  }
+  Fl_Window Console {open
+    xywh {30 97 570 395} type Double color 7 hide resizable
+  } {
+    Fl_Browser codacontext {
+      xywh {0 25 575 375} resizable
+    }
+    Fl_Button {} {
+      label {codacon text log}
+      xywh {0 0 120 25} box NO_BOX color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button {} {
+      label {Close Window}
+      callback {Console->hide();}
+      xywh {450 0 120 25} color 1
+    }
+  }
+  Fl_Window Configure {
+    label Configure open selected
+    xywh {720 345 455 180} type Double color 7 hide
+  } {
+    Fl_Check_Button {mesgs[1]} {
+      label bandwidth
+      xywh {20 50 25 25} down_box DOWN_BOX
+    }
+    Fl_Check_Button {mesgs[2]} {
+      label BackProbe
+      xywh {20 75 25 25} down_box DOWN_BOX
+    }
+    Fl_Check_Button {mesgs[3]} {
+      label fetch
+      xywh {20 100 25 25} down_box DOWN_BOX
+    }
+    Fl_Check_Button {mesgs[4]} {
+      label hoarding
+      xywh {165 50 25 25} down_box DOWN_BOX
+    }
+    Fl_Check_Button {mesgs[5]} {
+      label progress
+      xywh {165 75 25 25} down_box DOWN_BOX
+    }
+    Fl_Check_Button {mesgs[6]} {
+      label Callback
+      xywh {165 100 25 25} down_box DOWN_BOX
+    }
+    Fl_Check_Button {mesgs[7]} {
+      label Replace
+      user_data 1
+      xywh {285 50 25 25} down_box DOWN_BOX
+    }
+    Fl_Check_Button {mesgs[8]} {
+      label store
+      xywh {285 75 25 25} down_box DOWN_BOX
+    }
+    Fl_Check_Button {mesgs[9]} {
+      label {any others}
+      xywh {285 100 25 25} down_box DOWN_BOX
+    }
+    Fl_Button {} {
+      label {Log to text window}
+      xywh {25 15 340 30} box FLAT_BOX color 7 labelfont 1 labelsize 18
+    }
+    Fl_Return_Button {} {
+      label Close
+      callback {Configure->hide();}
+      xywh {20 145 100 25} color 1
+    }
+    Fl_Button {} {
+      label Save
+      xywh {165 145 90 25} color 2
+    }
+  }
+  Fl_Window MainWin {
+    label {Coda Console} open
+    xywh {862 282 225 125} type Double color 7 hide
+  } {
+    Fl_Menu_Bar {} {open
+      xywh {0 0 125 25} color 7
+    } {
+      submenu {} {
+        label File open
+        xywh {0 0 100 20}
+      } {
+        menuitem {} {
+          label {view ACL}
+          callback {fl_alert("Not Implemented.");}
+          xywh {10 10 100 20}
+        }
+        menuitem {} {
+          label {set ACL}
+          callback {fl_alert("Not Implemented.");}
+          xywh {10 10 100 20}
+        }
+        menuitem {} {
+          label Exit
+          callback {exit(0);}
+          xywh {0 0 100 20}
+        }
+      }
+      submenu {} {
+        label Tools open
+        xywh {0 0 100 20}
+      } {
+        menuitem {} {
+          label CLog
+          callback {clog->show();}
+          xywh {5 5 100 20}
+        }
+        menuitem {} {
+          label Cunlog
+          callback {fl_alert("Not Implemented.");}
+          xywh {5 5 100 20}
+        }
+        menuitem {} {
+          label Ctokens
+          callback {fl_alert("Not Implemented.");}
+          xywh {15 15 100 20}
+        }
+        menuitem {} {
+          label Configure
+          callback {Configure->show();}
+          xywh {0 0 100 20}
+        }
+      }
+    }
+    Fl_Progress {XferProg[0]} {
+      xywh {125 50 100 25} selection_color 2
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Progress {XferProg[1]} {
+      xywh {125 75 100 25} selection_color 2
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Progress {XferProg[2]} {
+      xywh {125 100 100 25} selection_color 2
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Output {Xfer[0]} {
+      xywh {0 50 125 25} box FLAT_BOX
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Output {Xfer[1]} {
+      xywh {0 75 125 25} box FLAT_BOX
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Output {Xfer[2]} {
+      xywh {0 100 125 25} box FLAT_BOX
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button {Vol[0]} {
+      label VI
+      xywh {0 25 25 25} color 3
+    }
+    Fl_Button {Vol[1]} {
+      label VI
+      xywh {25 25 25 25} color 3
+    }
+    Fl_Button {Vol[2]} {
+      label VI
+      xywh {50 25 25 25} color 3
+    }
+    Fl_Button {Vol[3]} {
+      label VI
+      xywh {75 25 25 25} color 3
+    }
+    Fl_Button {Vol[4]} {
+      label VI
+      xywh {100 25 25 25} color 3
+    }
+    Fl_Button {Vol[5]} {
+      label VI
+      xywh {125 25 25 25} color 3
+    }
+    Fl_Button {Vol[6]} {
+      label VI
+      xywh {150 25 25 25} color 3
+    }
+    Fl_Button {Vol[7]} {
+      label VI
+      xywh {175 25 25 25} color 3
+    }
+    Fl_Button VWalk {
+      label H
+      tooltip {Hoard Walk in progress} xywh {150 0 25 25} color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button VConn {
+      label V
+      callback {// red when no connection
+// green when a connection
+
+Monitor.Start();}
+      tooltip {Venus Connection Status} xywh {200 0 25 25} color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button VAct {
+      label A
+      callback {// Blinks when there is activity
+// click on it gets the log
+
+Console->show();}
+      tooltip {codacon activity} xywh {175 0 25 25} color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button VStore {
+      label S
+      callback {// Clear when no store in progress
+// blue when store in progress.}
+      tooltip {Store in progress indicator} xywh {125 0 25 25} color 7
+      code0 {o->clear_visible_focus();}
+    }
+  }
+  code {// Initialization
+MainInit (&argc, &argv);
+
+// Open mariner port and initialize the monitor
+Monitor.Start();} {}
+} 
+
+Function {make_window()} {open
+} {} 
