@@ -38,7 +38,7 @@ III =  util vicedep dir
   VI =  auth2 vv lka
  VII =  vol librepair venus
 VIII =  repair sidekick
-  IX =  resolution volutil vtools
+  IX =  resolution volutil vtools @VCODACON@
    X =  vice
   XI =  update asr egasr norton smon2
 
