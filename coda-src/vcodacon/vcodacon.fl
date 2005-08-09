@@ -49,8 +49,9 @@ clog->hide();}
       xywh {15 65 90 25} color 47
     }
   }
-  Fl_Window Console {open
-    xywh {30 97 570 395} type Double color 7 hide resizable
+  Fl_Window Console {
+    label {Coda Console Text} open
+    xywh {34 120 570 395} type Double color 7 hide resizable
   } {
     Fl_Browser codacontext {
       xywh {0 25 575 375} resizable
@@ -123,7 +124,7 @@ clog->hide();}
   }
   Fl_Window MainWin {
     label {Coda Console} open
-    xywh {225 255 225 125} type Double color 7 visible
+    xywh {229 278 225 125} type Double color 7 visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 100 25} color 7
@@ -185,7 +186,7 @@ clog->hide();}
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
-      label {Text Output}
+      label {Text Output} selected
       xywh {0 100 225 25} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
@@ -261,7 +262,7 @@ Console->show();}
     Fl_Button VDisConn {
       label D
       callback {// Hidden when connected
-// Yellow and visible when disconnected} selected
+// Yellow and visible when disconnected}
       tooltip {Disconnected operation} xywh {200 25 25 25} color 7
       code0 {o->clear_visible_focus();}
     }
