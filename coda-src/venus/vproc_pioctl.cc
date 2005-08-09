@@ -696,16 +696,17 @@ OI_FreeLocks:
 		    strcpy(cp, name); cp += strlen(name) + 1;
 
 		    /* do we have to worry about alignment? */
-		    *((int *)cp)++ = (int)conn_state;
-		    *((int *)cp)++ = conflict;
-		    *((int *)cp)++ = cml_count;
+		    *(int32_t *)cp = (int32_t)conn_state; cp += sizeof(int32_t);
+		    *(int32_t *)cp = (int32_t)conflict;   cp += sizeof(int32_t);
+		    *(int32_t *)cp = (int32_t)cml_count;  cp += sizeof(int32_t);
 
 		    strcpy(cp, offlinemsg); cp += strlen(offlinemsg) + 1;
 		    strcpy(cp, motd); cp += strlen(motd) + 1;
 
-		    *((unsigned int *)cp)++ = age;
-		    *((unsigned int *)cp)++ = hogtime;
-		    *((uint64_t *)cp)++ = cml_bytes;
+		    *(uint32_t *)cp = (uint32_t)age;     cp += sizeof(uint32_t);
+		    *(uint32_t *)cp = (uint32_t)hogtime; cp += sizeof(uint32_t);
+		    *(uint64_t *)cp = (uint64_t)cml_bytes;
+		    cp += sizeof(uint64_t);
 
 		    data->out_size = (cp - data->out);
 		    break;

@@ -1803,16 +1803,22 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	ptr += sizeof(VolumeStatus);
         volname = ptr; ptr += strlen(volname)+1;
 
-	conn_state = (VolumeStateType)*((int *)ptr)++;
-	conflict   = *((int *)ptr)++;
-	cml_count  = *((int *)ptr)++;
+	conn_state = (VolumeStateType)*(int32_t *)ptr;
+	ptr += sizeof(int32_t);
+	conflict = *(int32_t *)ptr;
+	ptr += sizeof(int32_t);
+	cml_count = *(int32_t *)ptr;
+	ptr += sizeof(int32_t);
 
 	omsg = ptr; ptr += strlen(omsg)+1;
 	motd = ptr; ptr += strlen(motd)+1;
 
-	age	  = *((unsigned int *)ptr)++;
-	hogtime	  = *((unsigned int *)ptr)++;
-	cml_bytes = *((uint64_t *)ptr)++;
+	age = *(uint32_t *)ptr;
+	ptr += sizeof(uint32_t);
+	hogtime	= *(uint32_t *)ptr;
+	ptr += sizeof(uint32_t);
+	cml_bytes = *(uint64_t *)ptr;
+	ptr += sizeof(uint64_t);
 
         /* Print output fields */
         if (argc > 3) printf("  %s:\n", argv[i]);  /* print directory name if more than one */
