@@ -100,7 +100,8 @@ static char *srvdomainname(const char *node, const char *service,
     return domain;
 }
 
-static int DN_HOST(char *msg, int mlen, char **ptr, char *dest)
+static int DN_HOST(unsigned char *msg, int mlen, unsigned char **ptr,
+		   char *dest)
 {
     int len = dn_expand(msg, msg + mlen, *ptr, dest, MAXHOSTNAMELEN);
     if (len < 0 || len > MAXHOSTNAMELEN) return -1;
@@ -108,7 +109,7 @@ static int DN_HOST(char *msg, int mlen, char **ptr, char *dest)
     return 0;
 }
 
-static int DN_SHORT(char *msg, int mlen, char **ptr, int *dest)
+static int DN_SHORT(unsigned char *msg, int mlen, unsigned char **ptr, int *dest)
 {
     if (*ptr + NS_INT16SZ > msg + mlen)
 	return -1;
@@ -117,7 +118,7 @@ static int DN_SHORT(char *msg, int mlen, char **ptr, int *dest)
     return 0;
 }
 
-static int DN_INT(char *msg, int mlen, char **ptr, int *dest)
+static int DN_INT(unsigned char *msg, int mlen, unsigned char **ptr, int *dest)
 {
     if (*ptr + NS_INT32SZ > msg + mlen)
 	return -1;
@@ -126,11 +127,12 @@ static int DN_INT(char *msg, int mlen, char **ptr, int *dest)
     return 0;
 }
 
-static int parse_res_reply(char *answer, int alen,
+static int parse_res_reply(unsigned char *answer, int alen,
 			   const struct RPC2_addrinfo *hints,
 			   struct RPC2_addrinfo **res)
 {
-    char *p = answer, name[MAXHOSTNAMELEN];
+    unsigned char *p = answer;
+    char name[MAXHOSTNAMELEN];
     int priority, weight, port, dummy;
     int err = RPC2_EAI_AGAIN, tmperr;
 
@@ -219,7 +221,8 @@ static int do_srv_lookup(const char *node, const char *service,
     fprintf(stderr, "Doing SRV record lookup for %s %s\n", node, service);
 #endif
 
-    char answer[1024], *srvdomain;
+    unsigned char answer[1024];
+    char *srvdomain;
     int len;
     const char *proto = (hints && hints->ai_protocol == IPPROTO_UDP) ?
 	"udp" : "tcp";
