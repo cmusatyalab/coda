@@ -32,6 +32,8 @@ void MainInit (int *argcp, char ***argvp)
   // Initialize the visual tool
   for (int i=0; i<8; i++) Vol[i]->hide();
   for (int i=0; i<3; i++) XferProg[i]->hide();
+  VDisConn->hide();
+  VDisConn->color(FL_YELLOW);
 
 }
 

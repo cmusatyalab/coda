@@ -35,6 +35,7 @@
 // "Static" acces
 static monitor *TheMon = NULL;
 static int StoreCount = 0;
+static int ReintCount = 0;
 
 // Call back routines for add_fd and add_timeout
 static void GetNextLine(int fd, void *isnull) 
@@ -197,6 +198,20 @@ void monitor::NextLine() {
 	  VStore->color(FL_WHITE);
 	  VStore->redraw();
 	}
+      }
+
+      else if (strstr(inputline, "store::Reintegrate")) {
+        if (ReintCount++ == 0) {
+          VReint->color(FL_BLUE);
+          VReint->redraw();
+        }
+      }
+
+      else if (strstr(inputline, "store::reintegrate done")) {
+        if (--ReintCount == 0) {
+          VReint->color(FL_WHITE);
+          VReint->redraw();
+        }
       }
 
       else if (strstr(inputline, "pattern to look for")) {

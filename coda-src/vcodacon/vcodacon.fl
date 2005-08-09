@@ -123,10 +123,10 @@ clog->hide();}
   }
   Fl_Window MainWin {
     label {Coda Console} open
-    xywh {521 380 225 125} type Double color 7 visible
+    xywh {225 255 225 125} type Double color 7 visible
   } {
     Fl_Menu_Bar {} {open
-      xywh {0 0 125 25} color 7
+      xywh {0 0 100 25} color 7
     } {
       submenu {} {
         label File open
@@ -185,7 +185,7 @@ clog->hide();}
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
-      label {Text Output} selected
+      label {Text Output}
       xywh {0 100 225 25} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
@@ -232,7 +232,7 @@ clog->hide();}
 // green when a connection
 
 Monitor.Start();}
-      tooltip {Venus Connection Status} xywh {200 0 25 25} color 7
+      tooltip {Venus Connection Status} xywh {100 0 25 25} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VAct {
@@ -241,14 +241,28 @@ Monitor.Start();}
 // click on it gets the log
 
 Console->show();}
-      tooltip {codacon activity} xywh {175 0 25 25} color 7
+      tooltip {codacon activity} xywh {125 0 25 25} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VStore {
       label S
       callback {// Clear when no store in progress
 // blue when store in progress.}
-      tooltip {Store in progress indicator} xywh {125 0 25 25} color 7
+      tooltip {Store in progress indicator} xywh {175 0 25 25} color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button VReint {
+      label R
+      callback {// Clear when no reintegrate in progress
+// yellow when reintegrate in progress.}
+      tooltip {Reintegrate in progress indicator} xywh {200 0 25 25} color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button VDisConn {
+      label D
+      callback {// Hidden when connected
+// Yellow and visible when disconnected} selected
+      tooltip {Disconnected operation} xywh {200 25 25 25} color 7
       code0 {o->clear_visible_focus();}
     }
   }
