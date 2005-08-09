@@ -97,7 +97,7 @@ struct DirStat {
 	int    flush;
 } dir_stats;
 
-inline void DIR_check_trans(char *where, char *file)
+inline void DIR_check_trans(const char *where, const char *file)
 {
 	if ( DIR_rvm() && (! rvmlib_in_transaction()) ) {
 		fprintf(stderr, "Aborting: no transaction in %s (%s)!\n", where, file);

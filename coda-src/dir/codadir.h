@@ -165,7 +165,7 @@ int DIR_Compare (PDirHeader, PDirHeader);
 int DIR_Length(PDirHeader);
 void DIR_Print(PDirHeader, FILE *f);
 #define DIR_intrans()  DIR_check_trans(__FUNCTION__, __FILE__)
-void DIR_check_trans(char *where, char *file);
+void DIR_check_trans(const char *where, const char *file);
 struct PageHeader *DIR_Page(struct DirHeader *dirh, int page);
 
 
