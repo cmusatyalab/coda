@@ -23,12 +23,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <codaconf.h>
+
 #include "monitor.h"
 #include "vcodacon.h"
 
-#include "Fl/Fl.h"
-#include "Fl/Enumerations.h"
-#include "Fl/fl_ask.h"
+#include <FL/Fl.H>
+#include <FL/Enumerations.H>
+#include <FL/fl_ask.H>
 
 // "Static" acces
 static monitor *TheMon = NULL;
@@ -53,21 +55,26 @@ static void AgeColor(void *)
 static void ClearXfer(void *data)
 {
   int ix = (int)data;
-
-  Xfer[ix]->value("");
-  Xfer[ix]->hide();
-  XferProg[ix]->hide();
+  if (!XferProg[ix]->active() && XferProg[ix]->visible())
+    XferProg[ix]->hide();
 }
 
 // Run to start at the beginning of the application
 void monitor::Start(void)
 {
+  char *marinerport;
+
   // printf ("monitor::Start\n");
-  if (TheMon == NULL)
+  if (TheMon == NULL) {
+    codaconf_init("venus.conf");
     TheMon = this;
+  }
+
+  marinerport = codaconf_lookup("marinersocket", "/usr/coda/spool/mariner");
+
   if (!conn.isOpen()) {
 #if  defined(HAVE_SYS_UN_H) && !defined(WIN32)
-    if (!conn.TcpOpen ("/usr/coda/spool/mariner"))
+    if (!conn.TcpOpen (marinerport))
 #endif
       if (!conn.TcpOpen ("localhost", CODACONPORT)) {
 	// Not open ..  register for time out.
@@ -137,25 +144,29 @@ void monitor::NextLine() {
 
 	// Update proper progress bar
 	int ix; 
-        for (ix = 0; (ix < 3) && (strcmp(name, Xfer[ix]->value()) != 0) ; ix++)
+        for (ix = 0; (ix < 3) && (strcmp(name, XferProg[ix]->label()) != 0) ; ix++)
 	  /* look again */ ;
 	if (ix == 3)
-	  for (ix = 0; (ix < 3) && Xfer[ix]->visible(); ix++)
+	  for (ix = 0; (ix < 3) && XferProg[ix]->visible(); ix++)
+	    /* look again */ ;
+	if (ix == 3)
+	  for (ix = 0; (ix < 3) && XferProg[ix]->active(); ix++)
 	    /* look again */ ;
 	if (ix == 3)
 	  return;
 	// Found the right one
 	XferProg[ix]->value(percent);
-	if (!Xfer[ix]->visible()) {
-	  Xfer[ix]->value(name);
-	  Xfer[ix]->show();
+	if (!XferProg[ix]->active()) {
+	  XferProg[ix]->label(name);
+	  XferProg[ix]->activate();
 	  XferProg[ix]->show();
 	} else
 	  XferProg[ix]->redraw();
 
 	if (percent == 100) {
 	  // schedule clearing of it!
-	  Fl::add_timeout(0.5, ClearXfer, (void *)ix);
+	  XferProg[ix]->deactivate();
+	  Fl::add_timeout(10, ClearXfer, (void *)ix);
 	}
       }
 

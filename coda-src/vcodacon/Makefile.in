@@ -36,11 +36,11 @@ CMANPAGES   = # vcodacon.1
 DEBUG =  -DDEBUG
 
 INCLUDES =  -I$(FLTKPREFIX)/include @XINCDIR@
-CXXFLAGS += $(DEBUG) -I$(srcdir) $(INCLUDES) @GUIFLAGS@
+CXXFLAGS += $(DEBUG) $(INCLUDES) @GUIFLAGS@
 LDFLAGS += -L$(FLTKPREFIX)/lib @XLIBDIR@
 DEPLIBS := 
 	   
-LIBS := @GUILIBS@
+LIBS := @GUILIBS@ $(LIBBASE)
 
 OBJS = vcodacon.o Inet.o monitor.o util.o 
 
@@ -49,6 +49,8 @@ vcodacon: ${OBJS} $(DEPLIBS)
 
 vcodacon.cc vcodacon.h: vcodacon.fl 
 	fluid -c $(srcdir)/vcodacon.fl
+
+EXTRACLEAN = vcodacon.cc vcodacon.h
 
 include $(TOPDIR)/configs/Makerules
 

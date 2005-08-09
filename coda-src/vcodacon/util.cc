@@ -23,15 +23,15 @@
 #include <stdlib.h>
 #include "vcodacon.h"
 #include "util.h"
-#include "Fl/fl_ask.H"
+#include <FL/fl_ask.H>
 
 
 void MainInit (int *argcp, char ***argvp)
 {
 
-  // Initiailze the visual tool
+  // Initialize the visual tool
   for (int i=0; i<8; i++) Vol[i]->hide();
-  for (int i=0; i<3; i++) XferProg[i]->hide(), Xfer[i]->hide();
+  for (int i=0; i<3; i++) XferProg[i]->hide();
 
 }
 

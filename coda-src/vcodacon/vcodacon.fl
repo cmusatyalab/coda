@@ -14,9 +14,7 @@ decl {monitor Monitor;} {}
 
 Function {} {open
 } {
-  code {
-
-/*	$Id$	*/
+  code {/*	$Id$	*/
 
 // BLURB gpl
 //
@@ -69,7 +67,7 @@ clog->hide();}
     }
   }
   Fl_Window Configure {
-    label Configure open selected
+    label Configure open
     xywh {720 345 455 180} type Double color 7 hide
   } {
     Fl_Check_Button {mesgs[1]} {
@@ -125,7 +123,7 @@ clog->hide();}
   }
   Fl_Window MainWin {
     label {Coda Console} open
-    xywh {862 282 225 125} type Double color 7 hide
+    xywh {521 380 225 125} type Double color 7 visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 125 25} color 7
@@ -177,27 +175,18 @@ clog->hide();}
       }
     }
     Fl_Progress {XferProg[0]} {
-      xywh {125 50 100 25} selection_color 2
+      label {Text Output}
+      xywh {0 50 225 25} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[1]} {
-      xywh {125 75 100 25} selection_color 2
+      label {Text Output}
+      xywh {0 75 225 25} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
-      xywh {125 100 100 25} selection_color 2
-      code0 {o->clear_visible_focus();}
-    }
-    Fl_Output {Xfer[0]} {
-      xywh {0 50 125 25} box FLAT_BOX
-      code0 {o->clear_visible_focus();}
-    }
-    Fl_Output {Xfer[1]} {
-      xywh {0 75 125 25} box FLAT_BOX
-      code0 {o->clear_visible_focus();}
-    }
-    Fl_Output {Xfer[2]} {
-      xywh {0 100 125 25} box FLAT_BOX
+      label {Text Output} selected
+      xywh {0 100 225 25} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Button {Vol[0]} {
