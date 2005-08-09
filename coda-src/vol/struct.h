@@ -22,19 +22,9 @@ listed in the file CREDITS.
  * access to information relating to the fields of a structure
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <coda_offsetof.h>
 
-#include <sys/types.h>
-#include <stddef.h>
-
-#ifdef CODA_PTR_TO_MEMBER
-#define fldoff(type, member)        ((size_t)(&type::member))
-#else
-#define fldoff(type, member)        offsetof(type, member)
-#endif
-
-#define fldsiz(type, member)        (sizeof(((type *)0)->member))
-#define strbase(type, p, member)    ((type *)((char *)(p)-fldoff(type, member)))
+#define fldoff(type, member)       coda_offsetof(type,member)
+#define fldsiz(type, member)       (sizeof(((type *)0)->member))
+#define strbase(type, p, member)   ((type *)((char *)(p)-fldoff(type,member)))
 

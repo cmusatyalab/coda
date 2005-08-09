@@ -19,12 +19,7 @@ Coda are listed in the file CREDITS.
 #ifndef _DLIST_H_
 #define _DLIST_H_
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <sys/types.h>
-#include <stddef.h>
+#include "coda_offsetof.h"
 
 /*
  * doubly linked list implementation -- based on linux 
@@ -42,12 +37,8 @@ struct dllist_head {
 #define list_entry(ptr, type, member) \
 	((type *)((char *)(ptr)-offsetof(type, member)))
 
-#ifdef CODA_PTR_TO_MEMBER
 #define list_entry_plusplus(ptr, type, member) \
-	((type *)((char *)(ptr)-(size_t)(&type::member)))
-#else
-#define list_entry_plusplus(ptr, type, member) list_entry(ptr, type, member)
-#endif
+	((type *)((char *)(ptr)-coda_offsetof(type, member)))
 
 #define list_for_each(ptr, head) \
         for (ptr = (head).next; ptr != &(head); ptr = ptr->next)
