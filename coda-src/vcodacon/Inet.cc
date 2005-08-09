@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if !defined(WIN32) || defined(CYGWIN)
+#if !defined(WIN32) || defined(__CYGWIN__)
 
 #include <unistd.h>
 #include <errno.h>

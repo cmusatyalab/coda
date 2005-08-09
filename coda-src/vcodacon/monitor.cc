@@ -186,13 +186,17 @@ void monitor::NextLine() {
       }
 
       else if (strstr(inputline, "store::Store")) {
-	if (StoreCount++ == 0)
+	if (StoreCount++ == 0) {
 	  VStore->color(FL_BLUE);
+	  VStore->redraw();
+	}
       }
 
       else if (strstr(inputline, "store::store done")) {
-	if (--StoreCount == 0)
+	if (--StoreCount == 0) {
 	  VStore->color(FL_WHITE);
+	  VStore->redraw();
+	}
       }
 
       else if (strstr(inputline, "pattern to look for")) {
