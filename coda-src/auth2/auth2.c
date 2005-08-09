@@ -113,7 +113,6 @@ RPC2_EncryptionKey TokenKey;	/* Used for encrypting server tokens;
 				    modified by SetKeys() routine; changed periodically  */
 int TokenTime = 0;	/* last modified time on TokenKey file	*/
 static char *Auth2TKFile = NULL;	/* name of token key file */
-static int AUTime = 0;			/* used to tell if binaries have changed */
 
 static int CheckOnly = 0;	/* only allow password checking at this server */
 static int DoRedirectLog = 1;	/* set to zero by -r switch on command line */
@@ -222,7 +221,6 @@ static void InitGlobals(int argc, char **argv)
 {
     register int i;
     int	len;
-    struct stat buff;
 
     len = strlen(argv[0]);
     for (i=0; i<len; i++)
@@ -287,8 +285,6 @@ static void InitGlobals(int argc, char **argv)
     }    
 
     CheckTokenKey();
-
-    AUTime = buff.st_mtime;
 }
 
 
