@@ -379,6 +379,7 @@ typedef enum {FROMHEAP, FROMFREELIST} fso_alloc_t; /* placement argument to oper
 typedef enum { HF_Fetch, HF_DontFetch } HoardFetchState;
 typedef enum { HA_Ask, HA_DontAsk } HoardAskState;
 
+class ClientModifyLog;
 class fsobj {
   friend void FSOInit();
   friend int FSO_PriorityFN(bsnode *, bsnode *);
