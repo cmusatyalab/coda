@@ -205,6 +205,9 @@ void monitor::NextLine() {
 	  VStore->color(FL_WHITE);
 	  VStore->redraw();
 	}
+	// Just make sure it never goes negative
+	if (StoreCount < 0)
+	  StoreCount = 0;
       }
 
       else if (strstr(inputline, "store::Reintegrate")) {
@@ -219,6 +222,9 @@ void monitor::NextLine() {
           VReint->color(FL_WHITE);
           VReint->redraw();
         }
+	// Just make sure it never goes negative
+	if (ReintCount < 0)
+	  ReintCount = 0;
       }
 
       else if (strstr(inputline, "pattern to look for")) {
