@@ -26,6 +26,7 @@
 #include <codaconf.h>
 
 #include "monitor.h"
+#include "util.h"
 #include "vcodacon.h"
 
 #include <FL/Fl.H>
@@ -102,6 +103,7 @@ void monitor::Start(void)
 void monitor::NextLine() {
   char inputline [LINESIZE];
   int  rdsize;
+  static int index = 0;
 
   if (conn.isOpen()) {
 
@@ -145,24 +147,29 @@ void monitor::NextLine() {
 
 	// Update proper progress bar
 	int ix; 
-        for (ix = 0; (ix < 3) && (strcmp(name, XferProg[ix]->label()) != 0) ; ix++)
-	  /* look again */ ;
+        for (ix = 0; ix < 3; ix++)
+	    if (XferProg[ix]->active() && strcmp(name, XferLabel[ix]) == 0)
+		break;
 	if (ix == 3)
-	  for (ix = 0; (ix < 3) && XferProg[ix]->visible(); ix++)
-	    /* look again */ ;
-	if (ix == 3)
-	  for (ix = 0; (ix < 3) && XferProg[ix]->active(); ix++)
-	    /* look again */ ;
-	if (ix == 3)
-	  return;
+	  for (ix = 0; ix < 3; ix++)
+	      if (!XferProg[ix]->visible())
+		  break;
+	if (ix == 3) {
+	    ix = index++;
+	    if (index == 3)
+		index = 0;
+	}
 	// Found the right one
-	XferProg[ix]->value(percent);
 	if (!XferProg[ix]->active()) {
-	  XferProg[ix]->label(name);
+	  if (XferLabel[ix])
+	    free(XferLabel[ix]);
+	  XferLabel[ix] = strdup(name);
+	  XferProg[ix]->label(XferLabel[ix]);
 	  XferProg[ix]->activate();
-	  XferProg[ix]->show();
-	} else
-	  XferProg[ix]->redraw();
+	  if (!XferProg[ix]->visible())
+	    XferProg[ix]->show();
+	}
+	XferProg[ix]->value(percent);
 
 	if (percent == 100) {
 	  // schedule clearing of it!

@@ -25,16 +25,19 @@
 #include "util.h"
 #include <FL/fl_ask.H>
 
-
+char *XferLabel[3];
+  
 void MainInit (int *argcp, char ***argvp)
 {
 
   // Initialize the visual tool
   for (int i=0; i<8; i++) Vol[i]->hide();
-  for (int i=0; i<3; i++) XferProg[i]->hide();
+  for (int i=0; i<3; i++) {
+      XferLabel[i] = NULL;
+      XferProg[i]->hide();
+  }
   VDisConn->hide();
   VDisConn->color(FL_YELLOW);
-
 }
 
 
