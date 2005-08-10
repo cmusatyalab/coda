@@ -195,7 +195,7 @@ void monitor::NextLine() {
 
       else if (strstr(inputline, "store::Store")) {
 	if (StoreCount++ == 0) {
-	  VStore->color(FL_BLUE);
+	  VStore->color(FL_CYAN);
 	  VStore->redraw();
 	}
       }
@@ -209,7 +209,7 @@ void monitor::NextLine() {
 
       else if (strstr(inputline, "store::Reintegrate")) {
         if (ReintCount++ == 0) {
-          VReint->color(FL_BLUE);
+          VReint->color(FL_CYAN);
           VReint->redraw();
         }
       }
