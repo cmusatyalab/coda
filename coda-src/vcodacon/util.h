@@ -24,3 +24,5 @@ extern char *XferLabel[3];
 void MainInit (int *argcp, char ***argvp);
 
 void do_clog(const char *, const char *);
+
+int do_findRealm (const char *);

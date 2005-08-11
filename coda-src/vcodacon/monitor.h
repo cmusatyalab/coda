@@ -36,6 +36,8 @@ class monitor {
     monitor() {
       actcolor = 255;
       browsersize = 100;
+      StoreCount = 0;
+      ReintCount = 0;
     }
 
     void Start();
@@ -55,7 +57,9 @@ class monitor {
     Inet conn;
     int actcolor;
     int browsersize;
-  
+
+    int StoreCount;
+    int ReintCount;
 };
 
 void NextLine(void);

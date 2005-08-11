@@ -35,8 +35,6 @@
 
 // "Static" acces
 static monitor *TheMon = NULL;
-static int StoreCount = 0;
-static int ReintCount = 0;
 
 // Call back routines for add_fd and add_timeout
 static void GetNextLine(int fd, void *isnull) 

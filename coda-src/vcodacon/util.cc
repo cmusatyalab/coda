@@ -21,9 +21,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "vcodacon.h"
 #include "util.h"
 #include <FL/fl_ask.H>
+#include <sys/stat.h>
 
 char *XferLabel[3];
   
@@ -52,4 +54,30 @@ void do_clog(const char *user, const char *pass)
 
   if (rv)
     fl_alert ("clog for %s failed.", user);
+}
+
+
+// Stat /coda/name to find a realm
+
+int do_findRealm (const char *realm)
+{
+  char fullname[258];
+  int realmlen = strlen(realm);
+
+  struct stat sb;
+  int rv;
+
+  if (realmlen > 250) {
+    fl_alert ("%s: name too long", realm);
+    return 0;
+  }
+
+  snprintf (fullname, 258, "/coda/%s", realm);
+  
+  rv = stat ( fullname, &sb );
+
+  if (rv < 0 || ((sb.st_mode & S_IFMT) != S_IFDIR))
+    return 0;
+
+  return 1;
 }

@@ -29,9 +29,31 @@ Function {} {open
 // file  LICENSE.  The  technical and financial  contributors to Coda are
 // listed in the file CREDITS.
 //} {}
-  Fl_Window clog {
+  Fl_Window FindRealm {
+    label {Find Realm} open
+    xywh {70 89 390 70} type Double color 7 hide
+  } {
+    Fl_Input RealmName {
+      label {Realm Name:}
+      xywh {95 5 285 30}
+    }
+    Fl_Return_Button {} {
+      label Find
+      callback {if (do_findRealm(RealmName->value()))
+  FindRealm->hide();
+else
+  fl_alert("Could not find realm %s", RealmName->value());}
+      xywh {25 40 90 25} color 47
+    }
+    Fl_Button {} {
+      label cancel
+      callback {FindRealm->hide();}
+      xywh {255 40 85 25}
+    }
+  }
+  Fl_Window Clog {
     label clog open
-    xywh {134 348 320 100} type Double color 7 hide
+    xywh {460 255 320 100} type Double color 7 hide
   } {
     Fl_Input clogUserName {
       label {User Name:}
@@ -45,8 +67,13 @@ Function {} {open
       label clog
       callback {do_clog(clogUserName->value(),
         clogPassword->value());
-clog->hide();}
+Clog->hide();}
       xywh {15 65 90 25} color 47
+    }
+    Fl_Button {} {
+      label cancel
+      callback {Clog->hide();}
+      xywh {200 65 85 25}
     }
   }
   Fl_Window Console {
@@ -76,7 +103,7 @@ clog->hide();}
       xywh {20 50 25 25} down_box DOWN_BOX
     }
     Fl_Check_Button {mesgs[2]} {
-      label BackProbe
+      label BackProbe selected
       xywh {20 75 25 25} down_box DOWN_BOX
     }
     Fl_Check_Button {mesgs[3]} {
@@ -124,7 +151,7 @@ clog->hide();}
   }
   Fl_Window MainWin {
     label {Coda Console} open
-    xywh {229 278 225 125} type Double color 7 visible
+    xywh {316 676 225 125} type Double color 7 visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 100 25} color 7
@@ -133,6 +160,12 @@ clog->hide();}
         label File open
         xywh {0 0 100 20}
       } {
+        menuitem {} {
+          label {find realm}
+          callback {RealmName->value("");
+FindRealm->show();}
+          xywh {0 0 100 20}
+        }
         menuitem {} {
           label {view ACL}
           callback {fl_alert("Not Implemented.");}
@@ -155,7 +188,7 @@ clog->hide();}
       } {
         menuitem {} {
           label CLog
-          callback {clog->show();}
+          callback {Clog->show();}
           xywh {5 5 100 20}
         }
         menuitem {} {
@@ -186,7 +219,7 @@ clog->hide();}
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
-      label {Text Output} selected
+      label {Text Output}
       xywh {0 100 225 25} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
