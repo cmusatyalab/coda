@@ -1989,36 +1989,6 @@ int fsobj::Fakeify()
     VenusFid fakefid;
     LOG(10, ("fsobj::Fakeify: %s, (%s)\n", comp, FID_(&fid)));
 
-    fsobj *pf = 0;
-    if (!IsRoot()) {
-	if (fid.Volume == FakeRootVolumeId)
-	    pf = FSDB->Find(&rootfid);
-
-	else {
-	    /* Laboriously scan database to find our parent! */
-	    struct dllist_head *p;
-	    list_for_each(p, vol->fso_list) {
-		pf = list_entry_plusplus(p, fsobj, vol_handle);
-
-		if (!pf->IsDir() || pf->IsMtPt()) continue;
-		if (!HAVEALLDATA(pf)) continue;
-
-		if (pf->dir_IsParent(&fid))
-		    break; /* Found! */
-	    }
-	    if (p == &vol->fso_list) {
-		LOG(10, ("fsobj::Fakeify: %s, (%s), parent not found\n",
-			comp, FID_(&fid)));
-		Recov_BeginTrans();
-		Matriculate();
-		Recov_EndTrans(MAXFP);
-		return ENOENT;
-	    }
-	}
-    }
-
-    // Either (pf == 0 and this is the volume root) OR (pf != 0 and it isn't)
-
     Recov_BeginTrans();
     RVMLIB_REC_OBJECT(*this);
 
@@ -2026,12 +1996,6 @@ int fsobj::Fakeify()
     stat.DataVersion = 1;
     stat.Owner = V_UID;
     stat.Date = Vtime();
-    
-    if (pf) {
-	pfid = pf->fid;
-	pfso = pf;
-	pf->AttachChild(this);
-    }
 
     fakefid.Realm  = LocalRealm->Id();
     fakefid.Volume = FakeRootVolumeId;
