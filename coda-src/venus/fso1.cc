@@ -908,7 +908,7 @@ int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
 
 exit_found:
     PutUser(&ue);
-    return (rights & allowed) ? 0 : EACCES;
+    return (!rights || (rights & allowed)) ? 0 : EACCES;
 }
 
 

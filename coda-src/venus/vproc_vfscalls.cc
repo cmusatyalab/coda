@@ -196,9 +196,8 @@ void vproc::open(struct venus_cnode *cp, int flags)
 
 	/* Verify that we have the necessary permission. */
 	if (readp) {
-	    long rights = f->IsFile() ? PRSFS_READ : PRSFS_LOOKUP;
-	    int modes = f->IsFile() ? C_A_R_OK : 0;
-	    u.u_error = f->Access(rights, modes, u.u_uid);
+	    int rights = f->IsFile() ? PRSFS_READ : PRSFS_LOOKUP;
+	    u.u_error = f->Access(rights, C_A_R_OK, u.u_uid);
 	    if (u.u_error) goto FreeLocks;
 	}
 	if (writep || truncp) {
@@ -211,9 +210,8 @@ void vproc::open(struct venus_cnode *cp, int flags)
 	         Otherwise, either write or insert suffices (to support
                    insert only directories). 
 	    */
-	    long rights = (truncp ?  (long)PRSFS_WRITE :
-				     (long)(PRSFS_WRITE | PRSFS_INSERT));
-	    int modes = (createp ? C_A_C_OK : C_A_W_OK);
+	    int rights = truncp ? PRSFS_WRITE : (PRSFS_WRITE | PRSFS_INSERT);
+	    int modes = createp ? C_A_C_OK : C_A_W_OK;
 	    u.u_error = f->Access(rights, modes, u.u_uid);
 	    if (u.u_error) goto FreeLocks;
 	}
@@ -443,7 +441,7 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 		if (f->stat.Owner != (uid_t)vap->va_uid)
 		    { u.u_error = EACCES; goto FreeLocks; }
 #endif
-		u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, u.u_uid);
+		u.u_error = f->Access(PRSFS_ADMINISTER, C_A_F_OK, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
 
@@ -454,14 +452,14 @@ void vproc::setattr(struct venus_cnode *cp, struct coda_vattr *vap) {
 		    goto FreeLocks; 
 		}
 
-		u.u_error = f->Access((long)PRSFS_WRITE, C_A_W_OK, u.u_uid);
+		u.u_error = f->Access(PRSFS_WRITE, C_A_W_OK, u.u_uid);
 		if (u.u_error) 
 		    goto FreeLocks;
 	    }
 
 	    /* utimes */
 	    if (vap->va_mtime.tv_sec != VA_IGNORE_TIME1) {
-		    u.u_error = f->Access((long)PRSFS_WRITE, 0, u.u_uid);
+		    u.u_error = f->Access(PRSFS_WRITE, C_A_F_OK, u.u_uid);
 		    if (u.u_error) goto FreeLocks;
 	    }
 	}
@@ -491,27 +489,27 @@ void vproc::access(struct venus_cnode *cp, int mode)
     LOG(1, ("vproc::access: fid = %s, mode = %#o\n", FID_(&cp->c_fid), mode));
 
     /* Translation of Unix mode bits to AFS protection classes. */
-    static long DirAccessMap[8] = {
-	0,
-	PRSFS_LOOKUP,
-	PRSFS_INSERT | PRSFS_DELETE,
-	PRSFS_LOOKUP | PRSFS_INSERT | PRSFS_DELETE,
-	PRSFS_LOOKUP,
-	PRSFS_LOOKUP,
-	PRSFS_LOOKUP | PRSFS_INSERT | PRSFS_DELETE,
-	PRSFS_LOOKUP | PRSFS_INSERT | PRSFS_DELETE
+    static int DirAccessMap[8] = {
+/*---*/	0,
+/*--x*/	PRSFS_LOOKUP,
+/*-w-*/	PRSFS_INSERT | PRSFS_DELETE,
+/*-wx*/	PRSFS_LOOKUP | PRSFS_INSERT | PRSFS_DELETE,
+/*r--*/	PRSFS_LOOKUP,
+/*r-x*/	PRSFS_LOOKUP,
+/*rw-*/	PRSFS_LOOKUP | PRSFS_INSERT | PRSFS_DELETE,
+/*rwx*/	PRSFS_LOOKUP | PRSFS_INSERT | PRSFS_DELETE
     };
-    static long FileAccessMap[8] = {
-	0,
-	PRSFS_READ,
-	PRSFS_WRITE,
-	PRSFS_READ | PRSFS_WRITE,
-	PRSFS_READ,
-	PRSFS_READ,
-	PRSFS_READ | PRSFS_WRITE,
-	PRSFS_READ | PRSFS_WRITE
+    static int FileAccessMap[8] = {
+/*---*/	0,
+/*--x*/	PRSFS_READ,
+/*-w-*/	PRSFS_WRITE,
+/*-wx*/	PRSFS_READ | PRSFS_WRITE,
+/*r--*/	PRSFS_READ,
+/*r-x*/	PRSFS_READ,
+/*rw-*/	PRSFS_READ | PRSFS_WRITE,
+/*rwx*/	PRSFS_READ | PRSFS_WRITE
     };
-    long rights = 0;
+    int rights = 0;
     int modes = 0;
 
     fsobj *f = 0;
@@ -524,10 +522,11 @@ void vproc::access(struct venus_cnode *cp, int mode)
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_STATUS);
 	if (u.u_error) goto FreeLocks;
 
-	modes = mode & (OWNERBITS >> 6);
-	rights = f->IsDir()
-	  ? DirAccessMap[modes]
-	  : FileAccessMap[modes];
+	modes = C_A_F_OK;
+	if (mode & R_OK) modes |= C_A_R_OK;
+	if (mode & W_OK) modes |= C_A_W_OK;
+	if (mode & X_OK) modes |= C_A_X_OK;
+	rights = f->IsDir() ? DirAccessMap[modes] : FileAccessMap[modes];
 	u.u_error = f->Access(rights, modes, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
@@ -676,11 +675,11 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 
 	    /* Verify that we have the necessary permissions. */
 	    if (readp) {
-		u.u_error = target_fso->Access((long)PRSFS_READ, C_A_R_OK, u.u_uid);
+		u.u_error = target_fso->Access(PRSFS_READ, C_A_R_OK, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
 	    if (writep || truncp) {
-		u.u_error = target_fso->Access((long)PRSFS_WRITE, C_A_W_OK, u.u_uid);
+		u.u_error = target_fso->Access(PRSFS_WRITE, C_A_W_OK, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
 
@@ -707,7 +706,7 @@ void vproc::create(struct venus_cnode *dcp, char *name, struct coda_vattr *vap,
 	    u.u_error = 0;
 
 	    /* Verify that we have create permission. */
-	    u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
+	    u.u_error = parent_fso->Access(PRSFS_INSERT, C_A_F_OK, u.u_uid);
 	    if (u.u_error) goto FreeLocks;
 
 	    /* Do the create. */
@@ -770,7 +769,7 @@ void vproc::remove(struct venus_cnode *dcp, char *name)
 	    { u.u_error = EISDIR; goto FreeLocks; }
 
 	/* Verify that we have delete permission for the parent. */
-	u.u_error = parent_fso->Access((long)PRSFS_DELETE, 0, u.u_uid);
+	u.u_error = parent_fso->Access(PRSFS_DELETE, C_A_F_OK, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the remove. */
@@ -860,11 +859,11 @@ void vproc::link(struct venus_cnode *scp, struct venus_cnode *dcp,
         }
 
 	/* Verify that we have insert permission on the target parent. */
-	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
+	u.u_error = parent_fso->Access(PRSFS_INSERT, C_A_F_OK, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Verify that we have write permission on the source. */
-	u.u_error = source_fso->Access((long)PRSFS_WRITE, 0, u.u_uid);
+	u.u_error = source_fso->Access(PRSFS_WRITE, C_A_F_OK, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
@@ -942,10 +941,10 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	/* Verify that we have the necessary permissions in the parent(s). */
 	{
 	    fsobj *f = (SameParent ? t_parent_fso : s_parent_fso);
-	    u.u_error = f->Access((long)PRSFS_DELETE, 0, u.u_uid);
+	    u.u_error = f->Access(PRSFS_DELETE, C_A_F_OK, u.u_uid);
 	    if (u.u_error) goto FreeLocks;
 	}
-	u.u_error = t_parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
+	u.u_error = t_parent_fso->Access(PRSFS_INSERT, C_A_F_OK, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Acquire the source and target (if it exists). */
@@ -1020,7 +1019,7 @@ void vproc::rename(struct venus_cnode *spcp, char *name,
 	if (TargetExists) {
 	    /* Verify that we have delete permission in the target parent. */
 	    if (!SameParent) {
-		u.u_error = t_parent_fso->Access((long)PRSFS_DELETE, 0, u.u_uid);
+		u.u_error = t_parent_fso->Access(PRSFS_DELETE, C_A_F_OK, u.u_uid);
 		if (u.u_error) goto FreeLocks;
 	    }
 
@@ -1139,7 +1138,7 @@ void vproc::mkdir(struct venus_cnode *dcp, char *name,
 	u.u_error = 0;
 
 	/* Verify that we have insert permission. */
-	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
+	u.u_error = parent_fso->Access(PRSFS_INSERT, C_A_F_OK, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
@@ -1214,7 +1213,7 @@ void vproc::rmdir(struct venus_cnode *dcp, char *name)
 	    { u.u_error = ENOTEMPTY; goto FreeLocks; }
 
 	/* Verify that we have delete permission for the parent. */
-	u.u_error = parent_fso->Access((long)PRSFS_DELETE, 0, u.u_uid);
+	u.u_error = parent_fso->Access(PRSFS_DELETE, C_A_F_OK, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
@@ -1270,7 +1269,7 @@ void vproc::symlink(struct venus_cnode *dcp, char *contents,
 	u.u_error = 0;
 
 	/* Verify that we have insert permission. */
-	u.u_error = parent_fso->Access((long)PRSFS_INSERT, 0, u.u_uid);
+	u.u_error = parent_fso->Access(PRSFS_INSERT, C_A_F_OK, u.u_uid);
 	if (u.u_error) goto FreeLocks;
 
 	/* Do the operation. */
@@ -1325,7 +1324,7 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
 
 	/* Verify that we have read permission for it. */
 /*
-	 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, u.u_uid);
+	 u.u_error = f->Access(PRSFS_LOOKUP, C_A_F_OK, u.u_uid);
 	 if (u.u_error)
 	     { if (u.u_error == EINCONS) u.u_error = ENOENT; goto FreeLocks; }
 */

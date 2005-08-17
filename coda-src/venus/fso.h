@@ -654,7 +654,7 @@ class fsobj {
     int Sync(uid_t uid);
     void Release(int writep);
     int Close(int writep, uid_t uid);
-    int Access(long, int, uid_t);
+    int Access(int rights, int modes, uid_t);
     int Lookup(fsobj **, VenusFid *, char *, uid_t, int flags);
 // These are defined in lib-src/kernel-includes/coda.h
 // #define CLU_CASE_SENSITIVE	0x01

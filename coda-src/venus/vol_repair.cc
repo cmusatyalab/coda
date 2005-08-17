@@ -686,7 +686,7 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 	fsobj *parentf = 0;
 	code = FSDB->Get(&parentf, &tpfid, uid, RC_STATUS);
 	if (code == 0) {
-	    code = parentf->Access(PRSFS_WRITE, W_OK, vp->u.u_uid);
+	    code = parentf->Access(PRSFS_WRITE, C_A_W_OK, vp->u.u_uid);
 	    if (code) {
 		LOG(10, ("DisconnectedRepair: Access disallowed (%s)\n",
 			 FID_(&tpfid)));

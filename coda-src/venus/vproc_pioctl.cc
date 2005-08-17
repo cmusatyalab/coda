@@ -117,7 +117,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			/* always change ACLs.  Alternatively, we
                            could have venus cache the identity */
 			/* of administrators. */
-			/* u.u_error = f->Access((long)PRSFS_ADMINISTER, 0, u.u_uid); if (u.u_error) break; */
+			/* u.u_error = f->Access(PRSFS_ADMINISTER, C_A_F_OK, u.u_uid); if (u.u_error) break; */
 
 			/* Do the operation. */
 			RPC2_CountedBS acl;
@@ -144,7 +144,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                            could have venus cache the identity */
 			/* of administrators. */
 /*
-			 u.u_error = f->Access((long)PRSFS_LOOKUP, 0, u.u_uid);
+			 u.u_error = f->Access(PRSFS_LOOKUP, C_A_F_OK, u.u_uid);
 			 if (u.u_error) break;
 */
 
@@ -242,7 +242,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			u.u_error = 0;
 
 			/* Verify that we have insert permission. */
-			u.u_error = f->Access((long)PRSFS_INSERT, 0, u.u_uid);
+			u.u_error = f->Access(PRSFS_INSERT, C_A_F_OK, u.u_uid);
 			if (u.u_error) { break; }
 
 			/*
@@ -309,7 +309,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
                         }
 
 			/* Verify that we have delete permission for the parent. */
-			u.u_error = f->Access((long)PRSFS_DELETE, 0, u.u_uid);
+			u.u_error = f->Access(PRSFS_DELETE, C_A_F_OK, u.u_uid);
 			if (u.u_error) {
                             FSDB->Put(&target_fso);
                             break;
@@ -363,7 +363,7 @@ void vproc::do_ioctl(VenusFid *fid, unsigned char nr, struct ViceIoctl *data)
 			    { u.u_error = ENOTDIR; FSDB->Put(&target_fso); break; }
 
 			/*Verify that we have read permission for it. */
-			u.u_error = target_fso->Access((long)PRSFS_LOOKUP, 0, u.u_uid);
+			u.u_error = target_fso->Access(PRSFS_LOOKUP, C_A_F_OK, u.u_uid);
 			if (u.u_error) { FSDB->Put(&target_fso); break; }
 
 			/* Retrieve the link contents from the cache. */

@@ -318,7 +318,7 @@ int fsobj::Close(int writep, uid_t uid)
 
 /* local-repair modification */
 /* Need to incorporate System:Administrator knowledge here! -JJK */
-int fsobj::Access(long rights, int modes, uid_t uid) 
+int fsobj::Access(int rights, int modes, uid_t uid) 
 {
     LOG(10, ("fsobj::Access : (%s, %d, %d), uid = %d\n",
 	      GetComp(), rights, modes, uid));
@@ -343,15 +343,33 @@ int fsobj::Access(long rights, int modes, uid_t uid)
     }
 
     /* If the object is not a directory, the access check must be made
-       with respect to its parent. */
-    /* In that case we release the non-directory object during the
-       check, and reacquire it on exit. */
-    /* N.B.  The only time we should be called on a mount point is via
-       "fs lsmount"! -JJK */
+       with respect to its parent. In that case we release the non-directory
+       object during the check, and reacquire it on exit.
+       N.B.  The only time we should be called on a mount point is via "fs
+       lsmount"! -JJK
+     */
     if (!IsDir() || IsMtPt()) {
-	/* Pin the object and record the lock level. */
-	FSO_HOLD(this);
-	LockLevel level = (writers > 0 ? WR : RD);
+	LockLevel level;
+	VenusFid parent_fid;
+
+	/* check if the object is GlobalRootObj for a local-fake tree */
+	/* we can safely return 0 here. because if the parent's acl is updated
+	 * during disconnection, then "this" object won't become a global root
+	 * node. */
+	if (LRDB->RFM_IsGlobalRoot(&fid))
+	    return 0;
+
+	/* Check mode bits if necessary. */
+	/* There should be a special case if this user is the creator.
+	   This code used to have a test for `virginity', but only the kernel
+	   can decide on this, asking Venus to do so leads to a race condition.
+	   --JH
+	*/
+	if (!(modes & C_A_C_OK))
+	    if (((modes & C_A_X_OK) && !(stat.Mode & OWNEREXEC)) ||
+		((modes & C_A_W_OK) && !(stat.Mode & OWNERWRITE)) ||
+		((modes & C_A_R_OK) && !(stat.Mode & OWNERREAD)))
+		return EACCES;
 
 	/* Refine the permissions according to the file mode bits. */
 #if 0
@@ -368,21 +386,17 @@ int fsobj::Access(long rights, int modes, uid_t uid)
 	rights &= fileModeMap[(stat.Mode & OWNERBITS) >> 6];
 #endif
 
-	/* check if the object is GlobalRootObj for a local-fake tree */
-	if (LRDB->RFM_IsGlobalRoot(&fid)) {
-	    /* 
-	     * we can safely retrun 0 here. because if the parent's acl is updated
-	     * during disconnection, then "this" object won't become a global root node.
-	     */
-	    FSO_RELE(this);
-	    return(0);
-	}
+	/* Pin the object and record the lock level. */
+	FSO_HOLD(this);
+	level = (writers > 0 ? WR : RD);
 
 	/* Record the parent fid and release the object. */
-	VenusFid parent_fid = pfid;
+	parent_fid = pfid;
 	if (FID_EQ(&NullFid, &parent_fid))
 	    { print(logFile); CHOKE("fsobj::Access: pfid == Null"); }
+
 	UnLock(level);
+
 	//FSO_RELE(this); this was moved up here by someone to avoid problems
 	//in FSDB->Get. But it's really bad, because we lose the guarantee that
 	//the current object doesn't get swept from under us while we release
@@ -392,35 +406,20 @@ int fsobj::Access(long rights, int modes, uid_t uid)
 	fsobj *parent_fso = 0;
 	code = FSDB->Get(&parent_fso, &parent_fid, uid, RC_STATUS);
 	if (code == 0)
-	    code = parent_fso->Access(rights, 0, uid);
+	    code = parent_fso->Access(rights, C_A_F_OK, uid);
 	FSDB->Put(&parent_fso);
 
 	/* Reacquire the child at the appropriate level and unpin it. */
 	Lock(level);
 	FSO_RELE(this);
 
-	/* Check mode bits if necessary. */
-	/* There should be a special case if this user is the creator.
-	   This code used to have a test for `virginity', but only the kernel
-	   can decide on this, asking Venus to do so leads to a race condition.
-	   --JH
-	*/
-	if (!(modes & C_A_C_OK))
-	    if (((modes & C_A_X_OK) && (stat.Mode & OWNEREXEC) == 0) ||
-		((modes & C_A_W_OK) && (stat.Mode & OWNERWRITE) == 0) ||
-		((modes & C_A_R_OK) && (stat.Mode & OWNERREAD) == 0))
-		code = EACCES;
-
 	return(code);
     }
-
-    /* No sense checking when there is no hope of success. */
-    if (rights == 0) return(EACCES);
 
     disconnected = EMULATING(this) || (DIRTY(this) && LOGGING(this));
     code = CheckAcRights(uid, rights, !disconnected);
     if (code != ENOENT)
-	return(code);
+	return code;
 
     if (disconnected)
 	return EACCES;
@@ -472,7 +471,7 @@ int fsobj::Lookup(fsobj **target_fso_addr, VenusFid *inc_fid, char *name,
 	/* Verify that we have lookup permission. */
 	/* Access will never return EINCONS here as we are a directory and
 	 * will not recurse up to our parent. */
-	code = Access((long)PRSFS_LOOKUP, 0, uid);
+	code = Access(PRSFS_LOOKUP, C_A_F_OK, uid);
 	if (code)
 	    return(code);
 
