@@ -1325,8 +1325,9 @@ void vproc::readlink(struct venus_cnode *cp, struct coda_string *string)
 	/* Get the object. */
 	u.u_error = FSDB->Get(&f, &cp->c_fid, u.u_uid, RC_DATA);
 
-	if (!u.u_error && f && f->IsToBeRepaired()
-	    && !f->HasExpandedCMLEntries())
+	if(!u.u_error && f &&
+	   ((f->IsToBeRepaired() && !f->HasExpandedCMLEntries()) ||
+	    (f->IsFake() && !f->IsExpandedObj())))
 	  u.u_error = EINCONS;
 	if (u.u_error) goto FreeLocks;
 
