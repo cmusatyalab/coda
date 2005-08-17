@@ -103,7 +103,7 @@ Clog->hide();}
       xywh {20 50 25 25} down_box DOWN_BOX
     }
     Fl_Check_Button {mesgs[2]} {
-      label BackProbe selected
+      label BackProbe
       xywh {20 75 25 25} down_box DOWN_BOX
     }
     Fl_Check_Button {mesgs[3]} {
@@ -150,14 +150,14 @@ Clog->hide();}
     }
   }
   Fl_Window MainWin {
-    label {Coda Console} open
-    xywh {316 676 225 125} type Double color 7 visible
+    label VCodaCon open
+    xywh {826 712 195 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
-      xywh {0 0 100 25} color 7
+      xywh {0 0 55 20} color 7
     } {
       submenu {} {
-        label File open
+        label Menu open
         xywh {0 0 100 20}
       } {
         menuitem {} {
@@ -176,88 +176,61 @@ FindRealm->show();}
           callback {fl_alert("Not Implemented.");}
           xywh {10 10 100 20}
         }
+        submenu {} {
+          label Tools open
+          xywh {5 5 100 20}
+        } {
+          menuitem {} {
+            label CLog
+            callback {Clog->show();}
+            xywh {10 10 100 20}
+          }
+          menuitem {} {
+            label Cunlog
+            callback {fl_alert("Not Implemented.");}
+            xywh {10 10 100 20}
+          }
+          menuitem {} {
+            label Ctokens
+            callback {fl_alert("Not Implemented.");}
+            xywh {20 20 100 20}
+          }
+          menuitem {} {
+            label Configure
+            callback {Configure->show();}
+            xywh {5 5 100 20}
+          }
+        }
         menuitem {} {
           label Exit
           callback {exit(0);}
           xywh {0 0 100 20}
         }
       }
-      submenu {} {
-        label Tools open
-        xywh {0 0 100 20}
-      } {
-        menuitem {} {
-          label CLog
-          callback {Clog->show();}
-          xywh {5 5 100 20}
-        }
-        menuitem {} {
-          label Cunlog
-          callback {fl_alert("Not Implemented.");}
-          xywh {5 5 100 20}
-        }
-        menuitem {} {
-          label Ctokens
-          callback {fl_alert("Not Implemented.");}
-          xywh {15 15 100 20}
-        }
-        menuitem {} {
-          label Configure
-          callback {Configure->show();}
-          xywh {0 0 100 20}
-        }
-      }
     }
     Fl_Progress {XferProg[0]} {
-      label {Text Output}
-      xywh {0 50 225 25} selection_color 2 align 80 deactivate
+      label {Text Output} selected
+      xywh {0 20 195 20} selection_color 2 align 80 deactivate resizable
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[1]} {
       label {Text Output}
-      xywh {0 75 225 25} selection_color 2 align 80 deactivate
+      xywh {0 40 195 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
       label {Text Output}
-      xywh {0 100 225 25} selection_color 2 align 80 deactivate
+      xywh {0 60 195 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
-    Fl_Button {Vol[0]} {
-      label VI
-      xywh {0 25 25 25} color 3
-    }
-    Fl_Button {Vol[1]} {
-      label VI
-      xywh {25 25 25 25} color 3
-    }
-    Fl_Button {Vol[2]} {
-      label VI
-      xywh {50 25 25 25} color 3
-    }
-    Fl_Button {Vol[3]} {
-      label VI
-      xywh {75 25 25 25} color 3
-    }
-    Fl_Button {Vol[4]} {
-      label VI
-      xywh {100 25 25 25} color 3
-    }
-    Fl_Button {Vol[5]} {
-      label VI
-      xywh {125 25 25 25} color 3
-    }
-    Fl_Button {Vol[6]} {
-      label VI
-      xywh {150 25 25 25} color 3
-    }
-    Fl_Button {Vol[7]} {
-      label VI
-      xywh {175 25 25 25} color 3
+    Fl_Button VConfl {
+      label C
+      tooltip {Volume in conflict} xywh {175 0 20 20} color 7
+      code0 {o->clear_visible_focus();}
     }
     Fl_Button VWalk {
       label H
-      tooltip {Hoard Walk in progress} xywh {150 0 25 25} color 7
+      tooltip {Hoard Walk in progress} xywh {95 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VConn {
@@ -266,7 +239,7 @@ FindRealm->show();}
 // green when a connection
 
 Monitor.Start();}
-      tooltip {Venus Connection Status} xywh {100 0 25 25} color 7
+      tooltip {Venus Connection Status} xywh {55 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VAct {
@@ -275,28 +248,28 @@ Monitor.Start();}
 // click on it gets the log
 
 Console->show();}
-      tooltip {codacon activity} xywh {125 0 25 25} color 7
+      tooltip {codacon activity} xywh {75 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VStore {
       label S
       callback {// Clear when no store in progress
 // blue when store in progress.}
-      tooltip {Store in progress indicator} xywh {175 0 25 25} color 7
+      tooltip {Store in progress indicator} xywh {115 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VReint {
       label R
       callback {// Clear when no reintegrate in progress
 // yellow when reintegrate in progress.}
-      tooltip {Reintegrate in progress indicator} xywh {200 0 25 25} color 7
+      tooltip {Reintegrate in progress indicator} xywh {135 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VDisConn {
       label D
       callback {// Hidden when connected
 // Yellow and visible when disconnected}
-      tooltip {Disconnected operation} xywh {200 25 25 25} color 7
+      tooltip {Disconnected operation} xywh {155 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
   }
