@@ -137,8 +137,12 @@ int main(int argc, char **argv)
     ParseCmdline(argc, argv);
     DefaultCmdlineParms();   /* read /etc/coda/venus.conf */
 
+    // Cygwin runs as a service and doesn't need to daemonize.
+#ifndef __CYGWIN__
     if (LogLevel == 0)
 	parent = daemonize();
+#endif
+
     update_pidfile(VenusPidFile);
 
     /* open the console file and print vital info */
