@@ -209,7 +209,7 @@ FindRealm->show();}
       }
     }
     Fl_Progress {XferProg[0]} {
-      label {Text Output} selected
+      label {Text Output}
       xywh {0 20 195 20} selection_color 2 align 80 deactivate resizable
       code0 {o->clear_visible_focus();}
     }
@@ -279,6 +279,3 @@ MainInit (&argc, &argv);
 // Open mariner port and initialize the monitor
 Monitor.Start();} {}
 } 
-
-Function {make_window()} {open
-} {} 
