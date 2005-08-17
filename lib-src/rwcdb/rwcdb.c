@@ -199,17 +199,20 @@ int rwcdb_init(struct rwcdb *c, const char *file, const int mode)
     if (db_file_open(&c->rf, file, O_RDONLY) == 0)
         return 0;
     
-    if (c->rf.fd != -1) {
-        free(c->file);
-        return -1;
-    }
+    if (c->rf.fd != -1)
+	goto err_out;
 
     /* try to create a new database */
     if (owrite(c) != -1 && rwcdb_sync(c) != -1)
         return 0;
 
     db_file_close(&c->wf);
-    free(c->file);
+
+err_out;
+    if (c->file) {
+	free(c->file);
+	c->file = NULL;
+    }
     return -1;
 }
 
@@ -220,7 +223,10 @@ int rwcdb_free(struct rwcdb *c)
 
     db_file_close(&c->rf);
 
-    free(c->file);
+    if (c->file) {
+	free(c->file);
+	c->file = NULL;
+    }
     return 1;
 }
 
