@@ -49,15 +49,24 @@ void MainInit (int *argcp, char ***argvp)
 void do_clog(const char *user, const char *pass)
 {
   char cmd [255];
-  int  rv; 
+  FILE *p; 
+  int  stat;
+  int  sl;
 
-  snprintf (cmd, 255, "bash -c \"clog %s\"", user);
-  rv = system (cmd);
+  snprintf (cmd, 255, "clog -pipe %s", user);
+  p = popen(cmd, "w");
 
-  if (rv)
-    fl_alert ("clog for %s failed.", user);
+  if (!p) {
+    fl_alert ("could not start clog", user);
+    return;
+  }
+
+  fprintf (p, "%s\n", pass);
+  stat = pclose(p);
+
+  if (stat)
+    fl_alert ("clog failed", user);
 }
-
 
 // Stat /coda/name to find a realm
 
