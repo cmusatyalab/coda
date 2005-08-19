@@ -633,7 +633,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 
     if (in_parms) {
 	/* Now, do the packing */
-	fprintf(where, "\n    /* Pack arguments */\n    %s = %s->Body;\n", ptr, reqbuffer);
+	fprintf(where, "\n    /* Pack arguments */\n    %s = (char *)%s->Body;\n", ptr, reqbuffer);
 	for (parm=proc->formals; *parm!=NIL; parm++)
 	    if ((*parm)->mode != OUT_MODE ||
 		(*parm)->type->type->tag == RPC2_BOUNDEDBS_TAG)
@@ -658,7 +658,7 @@ static void spit_body(PROC *proc, rp2_bool in_parms, rp2_bool out_parms, FILE *w
 
     /* Unpack arguments */
     if (out_parms) {
-	fprintf(where, "\n    /* Unpack arguments */\n    %s = %s->Body;\n", ptr, rspbuffer);
+	fprintf(where, "\n    /* Unpack arguments */\n    %s = (char *)%s->Body;\n", ptr, rspbuffer);
 	fprintf(where,"     _EOB = (char *)%s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", rspbuffer, rspbuffer);
 	for (parm=proc->formals; *parm!=NIL; parm++)
 	    if ((*parm)->mode != IN_MODE) unpack(RP2_CLIENT, *parm, "", ptr, where);
@@ -1116,7 +1116,7 @@ static void unpack(WHO who, VAR *parm, char *prefix, char *ptr, FILE *where)
 			fprintf(where, "    if (%s + _PAD(%s.SeqLen) > _EOB)\n"
 				BUFFEROVERFLOW, ptr, name);
                         buffer_checked = 1;
-			fprintf(where, "    %s.SeqBody = %s;\n", name, ptr);
+			fprintf(where, "    %s.SeqBody = (RPC2_Byte *)%s;\n", name, ptr);
 			fprintf(where, "    %s += _PAD(%s.SeqLen);\n", ptr, name);
 			break;
 		}
@@ -1328,7 +1328,7 @@ static void one_server_proc(PROC *proc, FILE *where)
     if (in_parms) {
 	/* Unpack parameters */
 	fputs("\n    /* Unpack parameters */\n", where);
-	fprintf(where, "    %s = %s->Body;\n", ptr, reqbuffer);
+	fprintf(where, "    %s = (char *)%s->Body;\n", ptr, reqbuffer);
 	fprintf(where,"     _EOB = (char *)%s + %s->Prefix.LengthOfPacket + \n\t\t\tsizeof(struct RPC2_PacketBufferPrefix);\n", reqbuffer, reqbuffer);
 	for (formals=proc->formals; *formals!=NIL; formals++)
 	    if ((*formals)->type->type->tag != RPC2_BULKDESCRIPTOR_TAG) {
@@ -1399,7 +1399,7 @@ static void one_server_proc(PROC *proc, FILE *where)
     if (out_parms) {
 	/* Pack return parameters */
 	fputs("\n    /* Pack return parameters */\n", where);
-	fprintf(where, "    %s = %s->Body;\n", ptr, rspbuffer);
+	fprintf(where, "    %s = (char *)%s->Body;\n", ptr, rspbuffer);
 	fprintf(where, "    _EOB = (char *)%s + %s->Prefix.BufferSize;\n", 
 		rspbuffer, rspbuffer);
     }
