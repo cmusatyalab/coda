@@ -1,5 +1,5 @@
 # data file for the Fltk User Interface Designer (fluid)
-version 1.0106 
+version 1.0104 
 header_name {.h} 
 code_name {.cc}
 decl {\#include "FL/fl_ask.H"} {} 
@@ -94,6 +94,24 @@ Clog->hide();}
       xywh {450 0 120 25} color 1
     }
   }
+  Fl_Window CTokens {
+    label {Tokens List} open
+    xywh {44 130 575 270} type Double color 7 hide resizable
+  } {
+    Fl_Browser TokenList {
+      xywh {0 25 575 245} resizable
+    }
+    Fl_Button {} {
+      label {codacon text log}
+      xywh {0 0 120 25} box NO_BOX color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button {} {
+      label {Close Window}
+      callback {CTokens->hide();} selected
+      xywh {450 0 120 25} color 1
+    }
+  }
   Fl_Window Configure {
     label Configure open
     xywh {720 345 455 180} type Double color 7 hide
@@ -151,7 +169,7 @@ Clog->hide();}
   }
   Fl_Window MainWin {
     label VCodaCon open
-    xywh {826 712 195 80} type Double color 7 resizable visible
+    xywh {1096 338 195 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 55 20} color 7
@@ -166,18 +184,8 @@ Clog->hide();}
 FindRealm->show();}
           xywh {0 0 100 20}
         }
-        menuitem {} {
-          label {view ACL}
-          callback {fl_alert("Not Implemented.");}
-          xywh {10 10 100 20}
-        }
-        menuitem {} {
-          label {set ACL}
-          callback {fl_alert("Not Implemented.");}
-          xywh {10 10 100 20}
-        }
         submenu {} {
-          label Tools open
+          label Tokens open
           xywh {5 5 100 20}
         } {
           menuitem {} {
@@ -186,20 +194,20 @@ FindRealm->show();}
             xywh {10 10 100 20}
           }
           menuitem {} {
+            label Ctokens
+            callback {do_ctokens();}
+            xywh {20 20 100 20}
+          }
+          menuitem {} {
             label Cunlog
             callback {fl_alert("Not Implemented.");}
             xywh {10 10 100 20}
           }
-          menuitem {} {
-            label Ctokens
-            callback {fl_alert("Not Implemented.");}
-            xywh {20 20 100 20}
-          }
-          menuitem {} {
-            label Configure
-            callback {Configure->show();}
-            xywh {5 5 100 20}
-          }
+        }
+        menuitem {} {
+          label Configure
+          callback {Configure->show();}
+          xywh {10 10 100 20}
         }
         menuitem {} {
           label Exit

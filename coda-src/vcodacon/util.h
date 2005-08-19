@@ -25,4 +25,6 @@ void MainInit (int *argcp, char ***argvp);
 
 void do_clog(const char *, const char *);
 
+void do_ctokens (void);
+
 int do_findRealm (const char *);

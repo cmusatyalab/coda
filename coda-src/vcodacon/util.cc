@@ -57,7 +57,7 @@ void do_clog(const char *user, const char *pass)
   p = popen(cmd, "w");
 
   if (!p) {
-    fl_alert ("could not start clog", user);
+    fl_alert ("could not start clog");
     return;
   }
 
@@ -65,7 +65,26 @@ void do_clog(const char *user, const char *pass)
   stat = pclose(p);
 
   if (stat)
-    fl_alert ("clog failed", user);
+    fl_alert ("clog failed");
+}
+
+void do_ctokens(void)
+{
+  FILE *p;
+  char line[100];
+  char cmd[100];
+
+  snprintf (cmd, 100, "ctokens");  
+  p = popen(cmd,"r");
+  if (!p) {
+    fl_alert ("could not start ctokens");
+    return ;
+  }
+  TokenList->clear();
+  CTokens->show();
+  while (fgets(line, 100, p))
+    TokenList->add(line,NULL);
+  pclose(p);  
 }
 
 // Stat /coda/name to find a realm
