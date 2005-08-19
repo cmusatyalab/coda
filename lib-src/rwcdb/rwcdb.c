@@ -208,7 +208,7 @@ int rwcdb_init(struct rwcdb *c, const char *file, const int mode)
 
     db_file_close(&c->wf);
 
-err_out;
+err_out:
     if (c->file) {
 	free(c->file);
 	c->file = NULL;
