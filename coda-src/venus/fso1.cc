@@ -52,6 +52,9 @@ extern "C" {
 #include <time.h>
 #include <coda.h>
 
+/* from libal */
+#include <prs.h>
+
 #ifdef __cplusplus
 }
 #endif
@@ -898,6 +901,10 @@ int fsobj::CheckAcRights(uid_t uid, long rights, int connected)
 	/* Do we have access via System:AnyUser? */
 	if (AnyUser.inuse && (!connected || AnyUser.valid)) {
 	    allowed = AnyUser.rights;
+
+	    /* don't allow mutating operations by non-authenticated users */
+	    if (ue == vol->realm->system_anyuser)
+		allowed &= ~(PRSFS_INSERT | PRSFS_DELETE | PRSFS_WRITE);
 	    goto exit_found;
 	}
     }
