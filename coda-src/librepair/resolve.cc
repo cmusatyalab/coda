@@ -347,18 +347,13 @@ void InitListHdr (int nreplicas, resreplica *dirs, struct listhdr **opList)
 }
 
 /* inserts a copy of a repair struct into the repair ops list */
-int InsertListHdr (int nreplicas, struct repair *rep, struct listhdr **ops, VolumeId rvol)
+int InsertListHdr (int nreplicas, struct repair *rep, struct listhdr **ops, int index)
 {
-    int size, index;
+    int size;
     struct repair *repList;
-    unsigned int rVolume = (unsigned int)rvol;
 
     if(!ops)
       return -1;
-
-    for(index = 0; index < nreplicas; index++)
-	if((*ops)[index].replicaFid.Volume == rVolume)
-	  break;
 
     CODA_ASSERT(index < nreplicas);
 
@@ -519,7 +514,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 
     if (nno) {
 	/* check that only single unique object will exist */
-	VnodeId goodvnode = (VnodeId)-1;
+	VnodeId  goodvnode = (VnodeId)-1;
 	Unique_t goodunique = (Unique_t)-1;
 	for (i = 0; i < nobjects; i++) {
 	    if (!answers[i]) {
@@ -544,6 +539,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     if (nyes) {
 	for (i = 0; i < nobjects; i++) {
 	    struct repair rep;
+	    int index;
 	    if (answers[i]) {
 		if (ISDIRVNODE(sortedArrByName[first+i]->fid.Vnode))
 		    rep.opcode = REPAIR_REMOVED;
@@ -551,8 +547,13 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 		    rep.opcode = REPAIR_REMOVEFSL;
 		strcpy(rep.name, sortedArrByName[first+i]->name);
 		rep.parms[0] = rep.parms[1] = rep.parms[2] = 0;
-		InsertListHdr(nreplicas, &rep, opList,
-			      sortedArrByName[first+i]->fid.Volume);
+
+		for (index = 0; index < nreplicas; index++)
+		    if (((*opList)[index]).replicaFid.Volume ==
+			sortedArrByName[first+i]->fid.Volume)
+			break;
+
+		InsertListHdr(nreplicas, &rep, opList, index);
 	    }
 	}
 	return(1);

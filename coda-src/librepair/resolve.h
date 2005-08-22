@@ -94,7 +94,7 @@ extern int  nConflicts;
 
 
 extern void InitListHdr (int , resreplica *, struct listhdr **);
-extern int InsertListHdr (int , struct repair *, struct listhdr **, VolumeId);
+extern int InsertListHdr (int , struct repair *, struct listhdr **, int);
 extern int InRepairList (struct listhdr *, unsigned, VnodeId, Unique_t);
 extern int IsCreatedEarlier(struct listhdr **, int, VnodeId, Unique_t);
 extern int getunixdirreps (int , char **, resreplica **);
