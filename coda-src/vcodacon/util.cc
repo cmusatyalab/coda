@@ -84,7 +84,9 @@ void do_ctokens(void)
   CTokens->show();
   while (fgets(line, 100, p))
     TokenList->add(line,NULL);
-  pclose(p);  
+  pclose(p);
+  TokenList->show();
+  TokenList->redraw();
 }
 
 // Stat /coda/name to find a realm

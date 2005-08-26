@@ -102,13 +102,13 @@ Clog->hide();}
       xywh {0 25 575 245} resizable
     }
     Fl_Button {} {
-      label {codacon text log}
+      label {ctokens output}
       xywh {0 0 120 25} box NO_BOX color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button {} {
       label {Close Window}
-      callback {CTokens->hide();} selected
+      callback {CTokens->hide();}
       xywh {450 0 120 25} color 1
     }
   }
@@ -169,7 +169,7 @@ Clog->hide();}
   }
   Fl_Window MainWin {
     label VCodaCon open
-    xywh {1096 338 195 80} type Double color 7 resizable visible
+    xywh {1081 338 195 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 55 20} color 7
@@ -218,16 +218,19 @@ FindRealm->show();}
     }
     Fl_Progress {XferProg[0]} {
       label {Text Output}
+      callback {XferProg[0]->hide();}
       xywh {0 20 195 20} selection_color 2 align 80 deactivate resizable
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[1]} {
       label {Text Output}
+      callback {XferProg[2]->hide();}
       xywh {0 40 195 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
       label {Text Output}
+      callback {XferProg[3]->hide();} selected
       xywh {0 60 195 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
