@@ -42,6 +42,11 @@ static void GetNextLine(int fd, void *isnull)
   TheMon->NextLine();
 }
 
+static void ConnExcept(int fd, void *isnull)
+{
+  TheMon->ForceClose();
+}
+
 static void TryAgain(void *)
 {
   TheMon->Start();
@@ -88,6 +93,7 @@ void monitor::Start(void)
     // Set up things properly
     
     Fl::add_fd (conn.FileNo(), FL_READ, GetNextLine);
+    Fl::add_fd (conn.FileNo(), FL_EXCEPT, ConnExcept);
     VConn->color(FL_GREEN);
     VConn->redraw();
     VAct->color( (Fl_Color)actcolor );
@@ -247,6 +253,8 @@ void monitor::ForceClose()
 {
   /* need to try to restart it ... */
 
+  Fl::remove_fd(conn.FileNo());
+
   printf ("ForceClose closed!\n");
   conn.Close();
   VConn->color(FL_RED);
@@ -254,6 +262,7 @@ void monitor::ForceClose()
 
   /* anything else? */
 
+  Start();
 }
 
 void monitor::AgeActColor()

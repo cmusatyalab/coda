@@ -1,5 +1,5 @@
 # data file for the Fltk User Interface Designer (fluid)
-version 1.0104 
+version 1.0106 
 header_name {.h} 
 code_name {.cc}
 decl {\#include "FL/fl_ask.H"} {} 
@@ -169,7 +169,7 @@ Clog->hide();}
   }
   Fl_Window MainWin {
     label VCodaCon open
-    xywh {1081 338 195 80} type Double color 7 resizable visible
+    xywh {1090 700 195 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 55 20} color 7
@@ -230,18 +230,8 @@ FindRealm->show();}
     }
     Fl_Progress {XferProg[2]} {
       label {Text Output}
-      callback {XferProg[3]->hide();} selected
+      callback {XferProg[3]->hide();}
       xywh {0 60 195 20} selection_color 2 align 80 deactivate
-      code0 {o->clear_visible_focus();}
-    }
-    Fl_Button VConfl {
-      label C
-      tooltip {Volume in conflict} xywh {175 0 20 20} color 7
-      code0 {o->clear_visible_focus();}
-    }
-    Fl_Button VWalk {
-      label H
-      tooltip {Hoard Walk in progress} xywh {95 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VConn {
@@ -249,7 +239,7 @@ FindRealm->show();}
       callback {// red when no connection
 // green when a connection
 
-Monitor.Start();}
+Monitor.ForceClose();}
       tooltip {Venus Connection Status} xywh {55 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
@@ -260,6 +250,12 @@ Monitor.Start();}
 
 Console->show();}
       tooltip {codacon activity} xywh {75 0 20 20} color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button VWalk {
+      label H
+      callback {system("hoard walk");} selected
+      tooltip {Hoard Walk in progress} xywh {95 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VStore {
@@ -281,6 +277,11 @@ Console->show();}
       callback {// Hidden when connected
 // Yellow and visible when disconnected}
       tooltip {Disconnected operation} xywh {155 0 20 20} color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button VConfl {
+      label C
+      tooltip {Volume in conflict} xywh {175 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
   }
