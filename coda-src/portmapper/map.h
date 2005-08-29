@@ -28,6 +28,7 @@ listed in the file CREDITS.
 #define _MAP_H
 
 #include <dllist.h>
+#include "portmapper.h"
 
 /* Hash for a particular protocol -- by name */
 #define NAMEHASHSIZE	397
@@ -44,8 +45,10 @@ struct protoentry
 
 long portmap_bind(char *host);
 void initnamehashtable(void);
-struct protoentry *find_mapping(char *name, int version, int protocol, int port);
-void register_mapping(char *name, int version, int protocol, int port);
+struct protoentry *find_mapping(PM_Name name, PM_Version version,
+				PM_Protocol protocol, PM_Port port);
+void register_mapping(PM_Name name, PM_Version version, PM_Protocol protocol,
+		      PM_Port port);
 void delete_mapping(struct protoentry *pe);
 
 #endif

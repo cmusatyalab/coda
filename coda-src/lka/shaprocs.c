@@ -36,8 +36,8 @@ listed in the file CREDITS.
 
 /* "Helper" functions for SHA */
 
-void ViceSHAtoHex (unsigned char sha[SHA_DIGEST_LENGTH],
-		   char *printbuf, int printbuflen)
+void ViceSHAtoHex(unsigned char sha[SHA_DIGEST_LENGTH],
+		  char *printbuf, int printbuflen)
 {
     /* Convert a Vice SHA structure into a printable hex string in a
        buffer of length printbuflen (at least 40 chars long) */
@@ -55,7 +55,7 @@ void ViceSHAtoHex (unsigned char sha[SHA_DIGEST_LENGTH],
 
 
 int CopyAndComputeViceSHA(int infd, int outfd,
-			   unsigned char sha[SHA_DIGEST_LENGTH])
+			  unsigned char sha[SHA_DIGEST_LENGTH])
 {
     /* ComputeViceSHA() takes an open file and returns its SHA value
        in a Vice SHA structure. If outfd is not -1, we copy the while
@@ -67,7 +67,7 @@ int CopyAndComputeViceSHA(int infd, int outfd,
     SHA_CTX cx;
 
 #define SHACHUNKSIZE 4096  /* might be better to set to fs block size? */
-    char shachunk[SHACHUNKSIZE];
+    unsigned char shachunk[SHACHUNKSIZE];
 
     SHA1_Init(&cx);
     while (1) {

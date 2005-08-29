@@ -57,21 +57,21 @@ static char * date(time_t date, char *result)
 void PrintVV(vv_t *vv) {
     int i;
     
-    printf("{[");
+    printf("[");
     for (i = 0; i < VSG_MEMBERS; i++)
-        printf(" %ld", (&(vv->Versions.Site0))[i]);
-    printf(" ] [ %ld %ld ] [ 0x%#lx ]}\n",
+        printf(" %d", (&(vv->Versions.Site0))[i]);
+    printf(" ] [ %x %x ] [ %#x ]\n",
              vv->StoreId.Host, vv->StoreId.Uniquifier, vv->Flags);
 }
 
 
 
 void print_volume(VolHead * vol) {
-    printf("    Id: 0x%lx  \tName: %s \tParent: 0x%lx\n",
+    printf("    Id: %08x  \tName: %s \tParent: %08x\n",
 	   vol->header.id,
 	   vol->data.volumeInfo->name,
 	   vol->header.parent);
-    printf("    GroupId: 0x%lx \tPartition: %s\n",
+    printf("    GroupId: %08x \tPartition: %s\n",
 	   vol->data.volumeInfo->groupId,
 	   vol->data.volumeInfo->partition);
     printf("    Version Vector: ");
@@ -79,12 +79,12 @@ void print_volume(VolHead * vol) {
     printf("\n    \t\tNumber vnodes	Number Lists	Lists\n");
     printf("    \t\t-------------	------------	----------\n");
     printf("    small\t%13u\t%12u\t%p\n",
-	   (unsigned int)vol->data.nsmallvnodes,
-	   (unsigned int)vol->data.nsmallLists,
+	   vol->data.nsmallvnodes,
+	   vol->data.nsmallLists,
 	   vol->data.smallVnodeLists);
     printf("    large\t%13u\t%12u\t%p\n",
-	   (unsigned int)vol->data.nlargevnodes,
-	   (unsigned int)vol->data.nlargeLists,
+	   vol->data.nlargevnodes,
+	   vol->data.nlargeLists,
 	   vol->data.largeVnodeLists);
 }
 
@@ -99,7 +99,7 @@ void print_volume_details(VolHead *vol)
 	   vol->data.volumeInfo->inService ? "TRUE" : "FALSE",
 	   vol->data.volumeInfo->blessed ? "TRUE" : "FALSE",
 	   vol->data.volumeInfo->needsSalvaged ? "TRUE" : "FALSE");
-    printf("    Uniquifier: 0x%u\t", vol->data.volumeInfo->uniquifier);
+    printf("    Uniquifier: %x\t", vol->data.volumeInfo->uniquifier);
     printf("type: ");
     switch (vol->data.volumeInfo->type) {
       case RWVOL: 	printf("rw\n"); 	break;
@@ -108,11 +108,11 @@ void print_volume_details(VolHead *vol)
       case REPVOL:	printf("rep\n"); 	break;
       default:	printf("*** UNKNOWN ***\n");
     }
-    printf("    Clone: 0x%lx\tbackupId: 0x%lx\trestoredFromId: 0x%lx\n", 
+    printf("    Clone: %08x\tbackupId: %08x\trestoredFromId: %08x\n", 
 	   vol->data.volumeInfo->cloneId,
 	   vol->data.volumeInfo->backupId,
 	   vol->data.volumeInfo->restoredFromId);
-    printf("    destroyMe: 0x%x\tdontSalvage: 0x%x\n",
+    printf("    destroyMe: %d\tdontSalvage: %d\n",
 	   vol->data.volumeInfo->destroyMe, vol->data.volumeInfo->dontSalvage);
 //    PrintVV(vol->data.volumeInfo->versionvector);
     printf("    needsCallback: %s\tResOn: %s\n",
@@ -258,7 +258,7 @@ void list_vols() {
 	    continue;
 	}
 
-	printf("%6d 0x%8lx 0x%8lx ", i, header->id, header->parent);
+	printf("%6d %08x %08x ", i, header->id, header->parent);
 	switch (header->type) {
 	  case RWVOL: 	printf("rw\n"); 	break;
 	  case ROVOL: 	printf("ro\n"); 	break;
@@ -317,7 +317,7 @@ void show_volume(VolumeId volid)
     vol = GetVol(volid);
 
     if (vol) print_volume(vol);
-    else printf("Unable to find volume id 0x%lx\n", volid);
+    else printf("Unable to find volume id %08x\n", volid);
 }
 
 
@@ -353,7 +353,7 @@ void delete_volume_byid(VolumeId volid)
     if ( vol )
 	delete_volume(vol);
     else
-	printf("Unable to find volume 0x%lx\n", volid);
+	printf("Unable to find volume %08x\n", volid);
 
 
 }
@@ -393,7 +393,7 @@ void show_volume_details(VolumeId volid)
 	print_volume(vol);
 	print_volume_details(vol);
     } else {
-	printf("Unable to find volume id 0x%lx\n", volid);
+	printf("Unable to find volume id %08x\n", volid);
     }
 }
 
@@ -448,11 +448,11 @@ void show_index(VolumeId volid)
 	    continue;
 	}
 
-	printf("    Volume '0x%lx' is at index %d\n", volid, i);
+	printf("    Volume '%08x' is at index %d\n", volid, i);
 	return;
     }
 
-    printf("Unable to find volume id 0x%lx\n", volid);
+    printf("Unable to find volume id %08x\n", volid);
 }
 
 
@@ -522,7 +522,7 @@ void rename_volume_byid(VolumeId volid, char *newname)
     if ( vol )
 	rename_volume(vol, newname);
     else
-	printf("Unable to find volume 0x%lx\n", volid);
+	printf("Unable to find volume %08x\n", volid);
 
 
 }

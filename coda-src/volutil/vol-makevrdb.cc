@@ -76,18 +76,19 @@ long S_VolMakeVRDB(RPC2_Handle rpcid, RPC2_String formal_infile) {
 	goto Exit;
     }
     while (fgets(line, sizeof(line), vrlist) != NULL) {
+	unsigned int unused;
 	int servercount, n;
 	vrent *vre = new vrent();
 	CODA_ASSERT(vre);
 
 	lineno++;
-	n = sscanf(line, "%s %lx %d %lx %lx %lx %lx %lx %lx %lx %lx %lx",
+	n = sscanf(line, "%s %x %d %x %x %x %x %x %x %x %x %x",
 		   vre->key, &vre->volnum, &servercount,
 		   &vre->ServerVolnum[0], &vre->ServerVolnum[1],
 		   &vre->ServerVolnum[2], &vre->ServerVolnum[3],
 		   &vre->ServerVolnum[4], &vre->ServerVolnum[5],
 		   &vre->ServerVolnum[6], &vre->ServerVolnum[7],
-		   &vre->dontuse_vsgaddr);
+		   &unused);
 	if (n < 3 || n > 12 || strlen(vre->key) >= V_MAXVOLNAMELEN) {
 	    LogMsg(0, VolDebugLevel, stdout, "Bad input line(%d): %s", lineno, line);
 	    LogMsg(0, VolDebugLevel, stdout, "makevrdb aborted");

@@ -80,14 +80,14 @@ void ststore::print(int fd) {
     SLog(1, 
 	   "ststore:print Owner %u, Mode %u\n",
 	   owner, mode);
-    sprintf(buf, "    stType = status; Owner: %lu Mode %lu Author %lu Date %lu \n", 
+    sprintf(buf, "    stType = status; Owner: %u Mode %u Author %u Date %u \n", 
 		    owner, mode, author, mtime);
     write(fd, buf, (int)strlen(buf));
     FILE *fp = fdopen(fd, "w");
     if (fp) {
 	SLog(1,
 	       "ststore:print going to print vv\n");
-	PrintVV(fp, &vv);
+	FPrintVV(fp, &vv);
     }
     else 
 	SLog(0,
@@ -113,14 +113,14 @@ void newstore::print(int fd) {
     SLog(1, 
 	   "newstore:print Owner %u, Mode %u\n",
 	   owner, mode);
-    sprintf(buf, "    newstore Owner: %lu Mode %lu Author %lu Date %lu Mask %lo \n",
+    sprintf(buf, "    newstore Owner: %u Mode %o Author %u Date %u Mask %o \n",
 		    owner, mode, author, mtime, mask);
     write(fd, buf, (int)strlen(buf));
     FILE *fp = fdopen(fd, "w");
     if (fp) {
 	SLog(1,
 	       "newstore:print going to print vv\n");
-	PrintVV(fp, &vv);
+	FPrintVV(fp, &vv);
     }
     else 
 	SLog(0,
@@ -137,9 +137,9 @@ void create_rle::init(VnodeId v, Unique_t u, UserId o, char *s) {
 void create_rle::print(int fd) {
     char buf[512];
     SLog(1, 
-	   "create_rle::print name %s, vn 0x%x.%x\n",
+	   "create_rle::print name %s, vn %08x.%08x\n",
 	   name, cvnode, cunique);
-    sprintf(buf, "    %s [0x%lx.%lx] owner %lu\n", &name[0], cvnode, cunique, owner);
+    sprintf(buf, "    %s [%08x.%08x] owner %u\n", &name[0], cvnode, cunique, owner);
     write(fd, buf, (int)strlen(buf));
 }
 
@@ -153,9 +153,9 @@ void symlink_rle::init(VnodeId v, Unique_t u, UserId o, char *s) {
 void symlink_rle::print(int fd) {
     char buf[512];
     SLog(1, 
-	   "symlink_rle::print name %s 0x%x.%x\n",
+	   "symlink_rle::print name %s %08x.%08x\n",
 	   name, cvnode, cunique);
-    sprintf(buf, "    %s [0x%lx.%lx] owner %lu\n", &name[0], cvnode, cunique, owner);
+    sprintf(buf, "    %s [%08x.%08x] owner %u\n", &name[0], cvnode, cunique, owner);
     write(fd, buf, (int)strlen(buf));
 }
 
@@ -170,9 +170,9 @@ void link_rle::init(VnodeId v, Unique_t u, ViceVersionVector *vv, char *s) {
 void link_rle::print(int fd) {
     char buf[512];
     SLog(1, 
-	   "link_rle::print name %s vnode 0x%x.%x\n",
+	   "link_rle::print name %s vnode %08x.%08x\n",
 	   name, cvnode, cunique);
-    sprintf(buf, "    %s [0x%lx.%lx][%ld %ld %ld %ld %ld %ld %ld %ld (%lx.%lx)(0x%lx)]\n",
+    sprintf(buf, "    %s [%08x.%08x][%d %d %d %d %d %d %d %d (%x.%x)(%#x)]\n",
 	    &name[0], cvnode, cunique, 
 	    cvv.Versions.Site0, cvv.Versions.Site1, 
 	    cvv.Versions.Site2, cvv.Versions.Site3, 
@@ -194,9 +194,9 @@ void mkdir_rle::init(VnodeId v, Unique_t u, UserId o, char *s) {
 void mkdir_rle::print(int fd) {
     char buf[512];
     SLog(1, 
-	   "mkdir_rle:print name is %s, vn = %ld, unique = %ld\n",
+	   "mkdir_rle:print name is %s, vn = %08x.%08x\n",
 	   name, cvnode, cunique);
-    sprintf(buf, "    %s [0x%lx.%lx] owner %lu\n", &name[0], cvnode, cunique, owner);
+    sprintf(buf, "    %s [%08x.%08x] owner %u\n", &name[0], cvnode, cunique, owner);
     write(fd, buf, (int)strlen(buf));
 }
 
@@ -210,9 +210,9 @@ void rm_rle::init(VnodeId v, Unique_t u, ViceVersionVector *vv, char *s) {
 void rm_rle::print(int fd) {
     char buf[512];
     SLog(1, 
-	   "rm_rle::print name %s vnode 0x%lx.%lx\n",
+	   "rm_rle::print name %s vnode %08x.%08x\n",
 	   name, cvnode, cunique);
-    sprintf(buf, "    %s [0x%lx.%lx][%ld %ld %ld %ld %ld %ld %ld %ld (%lx.%lx)(0x%lx)]\n",
+    sprintf(buf, "    %s [%08x.%08x][%d %d %d %d %d %d %d %d (%x.%x)(%#x)]\n",
 	    &name[0], cvnode, cunique, 
 	    cvv.Versions.Site0, cvv.Versions.Site1, 
 	    cvv.Versions.Site2, cvv.Versions.Site3, 
@@ -236,9 +236,9 @@ void rmdir_rle::init(VnodeId v, Unique_t u, rec_dlist *rdl, ViceStoreId *lcp,
 void rmdir_rle::print(int fd) {
     char buf[512];
     SLog(1, 
-	   "rmdir_rle::print name %s vnode 0x%lx.%lx\n",
+	   "rmdir_rle::print name %s vnode %08x.%08x\n",
 	   name, cvnode, cunique);
-    sprintf(buf, "    %s [0x%lx.%lx] del storeid [0x%lx.%lx]\n", 
+    sprintf(buf, "    %s [%08x.%08x] del storeid [%x.%x]\n", 
 	    &name[0], cvnode, cunique, csid.Host, csid.Uniquifier);
     write(fd, buf, (int)strlen(buf));
 }
@@ -269,9 +269,9 @@ void rename_rle::init(unsigned short srctgt, VnodeId odv, Unique_t odu, VnodeId 
 
 void rename_rle::print(int fd) {
     char buf[512];
-    SLog(1, "name %s dir 0x%lx.%lx",
+    SLog(1, "name %s dir %08x.%08x",
 	   oldname, otherdirv, otherdiru);
-    sprintf(buf, "    %s other dir (0x%lx.%lx) %s (0x%lx.%lx)[%ld %ld %ld %ld %ld %ld %ld %ld 0x%lx.%lx 0x%lx]\n renamed to %s\n",
+    sprintf(buf, "    %s other dir (%08x.%08x) %s (%08x.%08x)[%d %d %d %d %d %d %d %d][%x.%x][%#x]\n renamed to %s\n",
 	    type == SOURCE ? "(src)" : "(target)",
 	    otherdirv, otherdiru, oldname, svnode, sunique, 
 	    svv.Versions.Site0, svv.Versions.Site1, 
@@ -282,7 +282,7 @@ void rename_rle::print(int fd) {
 	    svv.Flags, (char *)oldname + newname_offset);
     write(fd, buf, (int)strlen(buf));
     if (tvnode && tunique) {
-	sprintf(buf, "    Deleted target: 0x%lx.%lx [%ld %ld %ld %ld %ld %ld %ld %ld 0x%lx.%lx 0x%lx]\n", 
+	sprintf(buf, "    Deleted target: %08x.%08x [%d %d %d %d %d %d %d %d][%x.%x][%#x]\n", 
 		tvnode, tunique, 
 		tvv.Versions.Site0, tvv.Versions.Site1, 
 		tvv.Versions.Site2, tvv.Versions.Site3, 
@@ -296,8 +296,7 @@ void rename_rle::print(int fd) {
 
 
 void setquota_rle::init(int oquota, int nquota) {
-    SLog(0,
-           "setquota_rle::init quota changed from %ld to %ld\n",
+    SLog(0, "setquota_rle::init quota changed from %d to %d\n",
 	   oquota, nquota);
     oldquota = oquota;
     newquota = nquota;

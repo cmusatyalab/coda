@@ -154,34 +154,34 @@ static void RRDCreate(struct server *s)
 
 static void RRDUpdate(struct server *s)
 {
-    printf("update %s.rrd %lu:%lu:", s->srvname,
+    printf("update %s.rrd %u:%u:", s->srvname,
            s->vs.CurrentTime, s->vs.CurrentConnections);
 
-    printf("%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
+    printf("%u:%u:%u:%u:%u:%u:%u:%u:%u:",
            s->vs.TotalViceCalls, s->vs.TotalFetches, s->vs.FetchDatas,
            s->vs.FetchedBytes, s->vs.FetchDataRate, s->vs.TotalStores,
            s->vs.StoreDatas, s->vs.StoredBytes, s->vs.StoreDataRate);
 
-    printf("%lu:%lu:%lu:%lu:%lu:%lu:",
+    printf("%u:%u:%u:%u:%u:%u:",
            s->vs.TotalRPCBytesSent, s->vs.TotalRPCBytesReceived,
            s->vs.TotalRPCPacketsSent, s->vs.TotalRPCPacketsReceived,
            s->vs.TotalRPCPacketsLost, s->vs.TotalRPCBogusPackets);
 
-    printf("%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
+    printf("%u:%u:%u:%u:%u:%u:%u:",
            s->vs.SystemCPU, s->vs.UserCPU, s->vs.NiceCPU, s->vs.IdleCPU,
            s->vs.TotalIO, s->vs.ActiveVM, s->vs.TotalVM);
 
-    printf("%lu:%lu:%lu:%lu:%lu:%lu:",
+    printf("%u:%u:%u:%u:%u:%u:",
            s->vs.EtherNetTotalErrors, s->vs.EtherNetTotalWrites,
            s->vs.EtherNetTotalInterupts, s->vs.EtherNetGoodReads,
            s->vs.EtherNetTotalBytesWritten, s->vs.EtherNetTotalBytesRead);
 
-    printf("%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu:",
+    printf("%u:%u:%u:%u:%u:%u:%u:%u:%u:%u:",
            s->vs.ProcessSize, s->vs.WorkStations, s->vs.ActiveWorkStations,
            s->vs.MinFlt, s->vs.MajFlt, s->vs.NSwaps, s->vs.UsrTime,
            s->vs.SysTime, s->vs.VmRSS, s->vs.VmData);
 
-    printf("%lu:%lu:%lu:%lu:%lu:%lu:%lu:%lu",
+    printf("%u:%u:%u:%u:%u:%u:%u:%u",
            s->vs.Disk1.Name ? s->vs.Disk1.BlocksAvailable : 0,
            s->vs.Disk1.Name ? s->vs.Disk1.TotalBlocks : 0,
            s->vs.Disk2.Name ? s->vs.Disk2.BlocksAvailable : 0,

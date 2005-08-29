@@ -541,7 +541,7 @@ static void VListVolume(char **buf, unsigned int *buflen,
 
 retry:
     n = snprintf(*buf + *offset, *buflen - *offset,
-		 "%c%s I%lx H%x P%s m%x M%x U%x W%lx C%lx D%lx B%lx A%x\n",
+		 "%c%s I%x H%x P%s m%x M%x U%x W%x C%x D%x B%x A%x\n",
 		 type, V_name(vp), V_id(vp), ThisServerId, vp->partition->name,
 		 V_minquota(vp), V_maxquota(vp), V_diskused(vp),
 		 V_parentId(vp), V_creationDate(vp), V_copyDate(vp),
@@ -1389,7 +1389,7 @@ void PrintVolumesInHashTable()
 		printf("PrintVolumesInHashTable: Lookint at index %d\n", i);
 		Volume *vp = VolumeHashTable[i];
 		while(vp){
-			printf("PVInHT: volume id %lx hashid %lu is in HT\n",
+			printf("PVInHT: volume id %x hashid %u is in HT\n",
 			       V_id(vp), vp->hashid);
 			vp = vp->hashNext;
 		}

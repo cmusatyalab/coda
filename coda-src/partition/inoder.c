@@ -94,12 +94,12 @@ main(int argc, char **argv)
 	    
 	    if ( rc == 0 ) {
 		printf("Header for inode %u\n", ino);
-		printf(" lnk   %ld\n", header.lnk);
-		printf(" vol   0x%lx\n", header.volume);
-		printf(" vnode 0x%lx\n", header.vnode);
-		printf(" uniq  0x%lx\n", header.unique);
+		printf(" lnk   %d\n", header.lnk);
+		printf(" vol   %x\n", header.volume);
+		printf(" vnode %x\n", header.vnode);
+		printf(" uniq  %x\n", header.unique);
 		printf(" vers  %u\n", header.dataversion);
-		printf(" magic %ld\n", header.magic);
+		printf(" magic %d\n", header.magic);
 		exit(0);
 	    } else {
 		printf("Error getting inode header %u\n", ino);

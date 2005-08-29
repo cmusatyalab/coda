@@ -54,7 +54,7 @@ int GetSecret(char *tokenfile, RPC2_EncryptionKey key)
     struct stat statbuf;
     static time_t mtime = 0;
     static off_t size = 0;
-    static unsigned char cached_key[RPC2_KEYSIZE];
+    static RPC2_Byte cached_key[RPC2_KEYSIZE];
 
     int fd, n;
     unsigned char buf[512];

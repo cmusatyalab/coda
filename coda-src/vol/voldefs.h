@@ -55,7 +55,7 @@ Pittsburgh, PA.
 
 /* All volumes will have a volume header name in this format */
 /*#define VFORMAT "V%010lu.vol"*/
-#define VFORMAT "V%010lu"
+#define VFORMAT "V%010u"
 
 /* Pathname for the maximum volume id ever created by this server */
 #define MAXVOLIDPATH	vice_file("vol/maxvolid")

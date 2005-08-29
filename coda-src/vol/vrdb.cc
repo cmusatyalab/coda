@@ -245,7 +245,6 @@ vrent::vrent() {
     volnum = 0;
     nServers = 0;
     memset(ServerVolnum, 0, sizeof(ServerVolnum));
-    dontuse_vsgaddr = 0;
 }
 
 
@@ -254,7 +253,6 @@ vrent::vrent(vrent& vre) {
     volnum = vre.volnum;
     nServers = vre.nServers;
     memcpy(ServerVolnum, vre.ServerVolnum, sizeof(ServerVolnum));
-    dontuse_vsgaddr = vre.dontuse_vsgaddr;
 }
 
 
@@ -317,7 +315,7 @@ int vrent::GetVolumeInfo(VolumeInfo *Info) {
 	}
 	(&Info->Server0)[i] = hostaddr;
     }
-    Info->VSGAddr = dontuse_vsgaddr;
+    Info->VSGAddr = 0;
     for (i = 0; i < nServers; i++)
 	(&Info->RepVolMap.Volume0)[i] = ServerVolnum[i];
 
@@ -331,8 +329,6 @@ void vrent::hton() {
 
     for (int i = 0; i < VSG_MEMBERS; i++)
       ServerVolnum[i] = htonl(ServerVolnum[i]);
-
-    dontuse_vsgaddr = htonl(dontuse_vsgaddr);
 }
 
 void vrent::ntoh() {
@@ -342,8 +338,6 @@ void vrent::ntoh() {
 
     for (int i = 0; i < VSG_MEMBERS; i++)
       ServerVolnum[i] = ntohl(ServerVolnum[i]);
-
-    dontuse_vsgaddr = ntohl(dontuse_vsgaddr);
 }
 
 void vrent::print() {
@@ -359,8 +353,8 @@ void vrent::print(FILE *fp) {
 
 void vrent::print(int afd) {
     char buf[512];
-    sprintf(buf, "%p : %s : 0x%lx, %d, (x.x.x.x.x.x.x.x), 0x%lx\n",
-	    this, key, volnum, nServers, dontuse_vsgaddr);
+    sprintf(buf, "%p : %s : %08x, %d, (x.x.x.x.x.x.x.x)\n",
+	    this, key, volnum, nServers);
     write(afd, buf, strlen(buf));
 
 }
@@ -370,13 +364,13 @@ int vrent::dump(int afd)
     char buf[512];
     int i, n, len;
 
-    len = sprintf(buf, "%s %lx %d ", key, volnum, nServers);
+    len = sprintf(buf, "%s %08x %d ", key, volnum, nServers);
 
     for (i = 0; i < VSG_MEMBERS; i++) {
-	n = sprintf(buf + len, "%lx ", ServerVolnum[i]);
+	n = sprintf(buf + len, "%08x ", ServerVolnum[i]);
 	len += n;
     }
-    n = sprintf(buf + len, "%lX\n", dontuse_vsgaddr);
+    n = sprintf(buf + len, "0\n");
     len += n;
 
     n = write(afd, buf, len);

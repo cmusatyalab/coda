@@ -86,7 +86,7 @@ static int GetTokens(const char *realm)
 	return -1;
     }
 
-    fprintf(stdout, "\tCoda user id:\t %lu\n", clear.ViceId);
+    fprintf(stdout, "\tCoda user id:\t %d\n", clear.ViceId);
 
     /* Check for expiration. */
     if (clear.EndTimestamp <= time(0)) {

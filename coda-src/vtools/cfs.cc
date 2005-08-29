@@ -609,7 +609,6 @@ static int dirincoda(char *path)
     int rc;
     char buf[MAXPATHLEN];
     struct ViceIoctl vio;
-    char *cwd;
 
     /* First see if you can chdir to the target */
     rc = chdir(path);
@@ -1231,13 +1230,8 @@ static void GetFid(int argc, char *argv[], int opslot)
 	sprintf(buf, "%x.%x.%x@%s", (unsigned int)fid.Volume,
 		(unsigned int)fid.Vnode, (unsigned int)fid.Unique, realmname);
         printf("FID = %-20s  ", buf);
-        sprintf(buf, "[%ld %ld %ld %ld %ld %ld %ld %ld]",
-               vv.Versions.Site0, vv.Versions.Site1, vv.Versions.Site2,
-               vv.Versions.Site3, vv.Versions.Site4, vv.Versions.Site5,
-               vv.Versions.Site6, vv.Versions.Site7);
-        printf("VV = %-24s  ", buf);
-        printf("STOREID = %lx.%lx  FLAGS = 0x%lx\n", vv.StoreId.Host, 
-                vv.StoreId.Uniquifier, vv.Flags);
+	SPrintVV(buf, sizeof(buf), &vv);
+        printf("VV = %-24s\n", buf);
     }
 }
 
@@ -1261,7 +1255,7 @@ static void GetPFid(int argc, char *argv[], int opslot)
         if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
         /* Validate next fid */
 	char tmp;
-        if (sscanf(argv[i], "%lx.%lx.%lx@%c", &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) != 4)
+        if (sscanf(argv[i], "%x.%x.%x@%c", &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) != 4)
 	{
             printf("Malformed fid: should look like %%x.%%x.%%x@<realm>\n");
             continue;
@@ -1351,7 +1345,7 @@ static void GetPath(int argc, char *argv[], int opslot)
         if (argc > 3) printf("  %*s  ", w, argv[i]); /* echo input if more than one fid */
         /* Validate next fid */
 	char tmp;
-        if (sscanf(argv[i], "%lx.%lx.%lx@%c", &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) != 4)
+        if (sscanf(argv[i], "%x.%x.%x@%c", &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) != 4)
 	{
             printf("Malformed fid: should look like %%x.%%x.%%x@<realm>\n");
             continue;
@@ -1822,7 +1816,7 @@ static void ListVolume(int argc, char *argv[], int opslot)
 
         /* Print output fields */
         if (argc > 3) printf("  %s:\n", argv[i]);  /* print directory name if more than one */
-        printf("  Status of volume 0x%lx (%lu) named \"%s\"\n",
+        printf("  Status of volume %08x (%u) named \"%s\"\n",
             vs->Vid, vs->Vid, volname);
         if (*omsg) printf("  Offline message is \"%s\"\n", omsg);
         if (*motd) printf("  Message of the day is \"%s\"\n", motd);
@@ -1832,12 +1826,12 @@ static void ListVolume(int argc, char *argv[], int opslot)
 	       age, hogtime / 1000.0);
 	/* info not avail if disconnected, or if we did a local query */
 	if (conn_state!=Emulating && local_only == 0) {
-	    printf("  Minimum quota is %lu,", vs->MinQuota);
+	    printf("  Minimum quota is %u,", vs->MinQuota);
 	    if (vs->MaxQuota > 0)
-		printf(" maximum quota is %lu\n", vs->MaxQuota);
+		printf(" maximum quota is %u\n", vs->MaxQuota);
 	    else printf(" maximum quota is unlimited\n");
-	    printf("  Current blocks used are %lu\n", vs->BlocksInUse);
-	    printf("  The partition has %lu blocks available out of %lu\n",
+	    printf("  Current blocks used are %u\n", vs->BlocksInUse);
+	    printf("  The partition has %u blocks available out of %u\n",
 		   vs->PartBlocksAvail, vs->PartMaxBlocks);
 	}
 	if (conflict)
@@ -2324,10 +2318,10 @@ static void SetQuota    (int argc, char *argv[], int opslot)
         
         /* Get pointers to output fields */
         vs = (VolumeStatus *)piobuf;
-        printf("maximum quota is %lu\n", vs->MaxQuota);
+        printf("maximum quota is %u\n", vs->MaxQuota);
 
         vs->MaxQuota = atoi(argv[i+1]);
-        printf("New value of vs->MaxQuota will be set to %lu\n", vs->MaxQuota);
+        printf("New value of vs->MaxQuota will be set to %u\n", vs->MaxQuota);
 
         vio.in_size  = CFS_PIOBUFSIZE;
         vio.in       = piobuf;

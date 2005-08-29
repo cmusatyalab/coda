@@ -63,8 +63,8 @@ struct repinfo {
  * by the resolution subsystem */
 typedef struct {
     char    name[MAXNAMELEN + 1];   /* name of the entry */
-    long    vno;		    /* vnode number */
-    long    uniqfier;		    /* for vice dirs; 0 for unix */
+    VnodeId  vno;		    /* vnode number */
+    Unique_t uniqfier;		    /* for vice dirs; 0 for unix */
     ViceVersionVector	VV;
     int	    MtPt;		    /* Is this child a mount point? */
     int	    replicaid;

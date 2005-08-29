@@ -87,9 +87,9 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
     }
 
     SLog(9, "ForceVV: vector passed in is :");
-    if (SrvDebugLevel >= 9) PrintVV(stdout, VV);
+    if (SrvDebugLevel >= 9) FPrintVV(stdout, VV);
     SLog(9, "ForceVV: vector in the vnode is :");
-    if (SrvDebugLevel >= 9) PrintVV(stdout, &Vnode_vv(vptr));
+    if (SrvDebugLevel >= 9) FPrintVV(stdout, &Vnode_vv(vptr));
     
     /* check that the new version vector is >=  old vv */
     res = VV_Cmp(&Vnode_vv(vptr), VV);
@@ -98,8 +98,8 @@ long RS_ForceVV(RPC2_Handle RPCid, ViceFid *Fid, ViceVersionVector *VV,
 	errorcode = EINCOMPATIBLE;
 	SLog(0, "RS_ForceVV: Version Vectors are inconsistent");
 	SLog(0, "RS_ForceVV: Vectors are: ");
-	PrintVV(stdout, VV);
-	PrintVV(stdout, &Vnode_vv(vptr));
+	FPrintVV(stdout, VV);
+	FPrintVV(stdout, &Vnode_vv(vptr));
 	goto FreeLocks;
     }
 

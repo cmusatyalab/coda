@@ -122,7 +122,7 @@ long PWGetKeys(RPC2_CountedBS *cIdent, RPC2_EncryptionKey hKey, RPC2_EncryptionK
 		LogMsg(0, AuthDebugLevel, stdout, "Problem statting auth2.pw");
 
 	memcpy(hKey, PWArray[vid], RPC2_KEYSIZE);
-	rpc2_Decrypt((char *)hKey, (char *)hKey, RPC2_KEYSIZE, (unsigned char *)FileKey, RPC2_XOR);
+	rpc2_Decrypt(hKey, hKey, RPC2_KEYSIZE, FileKey, RPC2_XOR);
 	for (i=0; i < RPC2_KEYSIZE; i++)
 		sKey[i] = rpc2_NextRandom(NULL);	/* random session key */
 
@@ -379,7 +379,7 @@ long PWChangeUser(RPC2_Handle cid, RPC2_Integer viceId, RPC2_EncryptionKey newKe
 
 	if (AuthDebugLevel)
 	{
-		printf("AuthChangeUser(%ld, \"", viceId);
+		printf("AuthChangeUser(%d, \"", viceId);
 		for (i = 0; i < RPC2_KEYSIZE; i++)
 			printf("%c", newKey[i]);
 		printf("\", \"%s\")\n", (char *)otherInfo);
@@ -428,7 +428,7 @@ long PWChangePasswd(RPC2_Handle cid, RPC2_Integer viceId, RPC2_String Passwd)
 
 	if (AuthDebugLevel)
 	{
-		printf("AuthChangePasswd(%ld, \"", viceId);
+		printf("AuthChangePasswd(%d, \"", viceId);
 		for (i = 0; i < RPC2_KEYSIZE; i++)
 			printf("%c", newPasswd[i]);
 		printf("\")");

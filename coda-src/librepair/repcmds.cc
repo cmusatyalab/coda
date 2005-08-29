@@ -275,7 +275,7 @@ int CompareDirs(struct repvol *repv, char *fixfile, struct repinfo *inf, char *m
 		rwv = rwv->next;
 	    CODA_ASSERT(k[i].replicaId == rwv->vid);
 	}
-	fprintf(file,"\nreplica %s %lx \n", rwv->srvname, k[i].replicaId);
+	fprintf(file,"\nreplica %s %08x \n", rwv->srvname, k[i].replicaId);
 	for (j = 0; j < k[i].repairCount; j++)
 	    repair_printline(&(k[i].repairList[j]), file);
 	if ( setacl )
@@ -355,7 +355,7 @@ int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgs
     char space[DEF_BUF], fixpath[MAXPATHLEN], expath[MAXPATHLEN];
     VolumeId *vids;
     struct volrep *rwv;
-    long *rcodes;
+    int *rcodes;
     int i, rc;
 
     if (repv == NULL) {
@@ -389,24 +389,24 @@ int DoRepair(struct repvol *repv, char *ufixpath, FILE *res, char *msg, int msgs
     /* Print out the results of VIOC_REPAIR pioctl */
     if (res != NULL) {
 	vids = (VolumeId *)space;
-	rcodes = (long *)(((long *)space) + MAXHOSTS);
+	rcodes = (int *)&((VolumeId *)space)[MAXHOSTS];
 	for (rwv = repv->rwhead; rwv != NULL; rwv = rwv->next) {
 	    for (i = 0; ((i < MAXHOSTS) && (vids[i] != rwv->vid)); i++);
 	    if  (i < MAXHOSTS) {
 		fprintf(res, "Repair actions performed on %s have %s",
 			rwv->srvname, rcodes[i] ? "failed" : "succeeded");
 		if (rcodes[i]) {
-		    fprintf(res, " (%ld).\n%s%s", rcodes[i], 
+		    fprintf(res, " (%d).\n%s%s", rcodes[i], 
 			    "Possible causes: disconnection, lack of authentication, lack of server space\n",
 			    "Fix file contains operations that are in conflict against the server replica.\n");
 		}
 		else fprintf(res, ".\n");
 		vids[i] = 0;
 	    }
-	    else fprintf(res, "No return code for actions performed on %s! (vid 0x%lx)\n", rwv->srvname, rwv->vid);
+	    else fprintf(res, "No return code for actions performed on %s! (vid %08x)\n", rwv->srvname, rwv->vid);
 	}
 	for (i = 0; (i < MAXHOSTS); i++)
-	    if (vids[i]) fprintf(res, "Return code %d for unexpected vid 0x%lx!\n", rcodes[i], vids[i]);
+	    if (vids[i]) fprintf(res, "Return code %d for unexpected vid %08x!\n", rcodes[i], vids[i]);
     }
 
     /* Clean up */
@@ -508,7 +508,7 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize)
 	    goto Error;
 	}
 	if (!((confvv.StoreId.Host == (unsigned long)-1) && (confvv.StoreId.Uniquifier == (unsigned long)-1))) {
-	    strerr(msg, msgsize, "Unexpected values (Host = %ld, Uniquifier = %ld)", 
+	    strerr(msg, msgsize, "Unexpected values (Host = %x, Uniquifier = %x)", 
 		   confvv.StoreId.Host, confvv.StoreId.Uniquifier);
 	    rc = -1;
 	    goto Error;
@@ -526,7 +526,7 @@ int RemoveInc(struct repvol *repv, char *msg, int msgsize)
 	    goto Error;
 	}
 
-	sprintf(tmppath, "@%lx.%lx.%lx@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
+	sprintf(tmppath, "@%08x.%08x.%08x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
 
 	rc = dorep(repv, tmppath, NULL, 0); /* do the repair */
 	if ((rc < 0) && (errno != ETOOMANYREFS))
@@ -901,7 +901,7 @@ int glexpand(char *rodir, char *fixfile, char *msg, int msgsize)
     fprintf(ff, "\n");
     for (j = 0; j < cnt; j++) {
 	//	fprintf(ff, "%s%s%s", gline, snames[j], tail);
-	fprintf(ff, "%s%s %lx \n", gline, snames[j], sID[j]);
+	fprintf(ff, "%s%s %08x \n", gline, snames[j], sID[j]);
 	for (k = 0; k < gls; k++)
 	    fprintf(ff, "%s", glents[k]);
 	fprintf(ff, "\n");

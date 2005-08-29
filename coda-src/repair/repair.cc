@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	    if (EndRepair(repv, 1, msgbuf, sizeof(msgbuf)) < 0)
 		fprintf(stderr, "%s\nError ending repair\n", msgbuf);
 	    Parser_exit(0, NULL);
-	    execlp("rm", "rm", "-Rf", argv[2]);
+	    execlp("rm", "rm", "-Rf", argv[2], (char *)NULL);
 	    fprintf(stderr, "\nError removing %s: %s\n", argv[2], strerror(errno));
 	    exit(1);
 	}
@@ -570,7 +570,7 @@ void rep_ReplaceInc(int largc, char **largv)
 	return;
     }
     if (!repair_getfid(mergefile, &fixfid, fixrealm, &fixvv, msgbuf, sizeof(msgbuf)) && (fixvv.StoreId.Host != (unsigned long)-1))
-	sprintf(fixpath, "@%lx.%lx.%lx@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
+	sprintf(fixpath, "@%x.%x.%x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
     else strcpy(fixpath, mergefile);
 
     printf("Replace %s\n   with %s?", RepairVol->rodir, mergefile);

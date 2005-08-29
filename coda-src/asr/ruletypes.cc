@@ -137,7 +137,7 @@ void depname_t::print(int fd) {
 	    (strlen(dname)> 0) ? '/' : ' ', 
 	    fname);
     write(fd, buf, (int)strlen(buf));
-    sprintf(buf, "(0x%lx.%lx.%lx) ", fid.Volume, fid.Vnode, fid.Unique);
+    sprintf(buf, "(%08x.%08x.%08x)", fid.Volume, fid.Vnode, fid.Unique);
     write(fd, buf, (int) strlen(buf));
 }
 
@@ -467,7 +467,7 @@ void rule_t::GetRepInfo(char *dname, char *fname)
 	
 	// it's a sym link, alright 
 	if (symval[0] == '@') {
-	    sscanf(symval, "@%lx.%lx.%lx@",
+	    sscanf(symval, "@%x.%x.%x@",
 		   &incfid.Volume, &incfid.Vnode, &incfid.Unique);
 	    strcpy(increalm, strrchr(symval, '@') + 1);
 	}
@@ -542,7 +542,7 @@ void rule_t::print(int fd) {
     write (fd, buf, (int) strlen(buf));
     
     if (incfid.Volume) {
-	sprintf(buf, "Inc object is %s/%s (%lx.%lx.%lx@%s) with %d replicas\n",
+	sprintf(buf, "Inc object is %s/%s (%08x.%08x.%08x@%s) with %d replicas\n",
 		idname, ifname, incfid.Volume, incfid.Vnode, incfid.Unique,
 		increalm, nreplicas);
 	write(fd, buf, (int) strlen(buf));

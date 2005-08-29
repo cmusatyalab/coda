@@ -16,12 +16,6 @@ listed in the file CREDITS.
 
 #*/
 
-
-
-
-
-
-
 /*
  *
  * Routines for inconsistency handling in CODA.
@@ -40,6 +34,7 @@ extern "C" {
 #include "coda_string.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #ifdef __cplusplus
 }
@@ -304,12 +299,27 @@ void GetMaxVV(vv_t *newvv, vv_t **vvgroup, int domindex)
     }
 }
 
-void PrintVV(FILE *fp, vv_t *v)
+void SPrintVV(char *buf, size_t len, ViceVersionVector *v)
 {
-    fprintf(fp, "{[");
-    for (int i = 0; i < VSG_MEMBERS; i++)
-	fprintf(fp, " %ld", (&(v->Versions.Site0))[i]);
-    fprintf(fp, " ] [ %ld %ld ] [ %#x ]}\n",
-	     v->StoreId.Host, v->StoreId.Uniquifier, (unsigned int)v->Flags);
+#if VSG_MEMBERS != 8
+#error "I was expecting VSG_MEMBERS to be 8"
+#endif
+    int n;
+    n = snprintf(buf, len, "[ %d %d %d %d %d %d %d %d ] [ %x.%x ] [ %#x ]",
+		 v->Versions.Site0, v->Versions.Site1,
+		 v->Versions.Site2, v->Versions.Site3,
+		 v->Versions.Site4, v->Versions.Site5,
+		 v->Versions.Site6, v->Versions.Site7,
+		 v->StoreId.Host, v->StoreId.Uniquifier,
+		 v->Flags);
+    assert(n >= 0 && (size_t)n < len);
+    buf[len-1] = '\0';
+}
+
+void FPrintVV(FILE *fp, ViceVersionVector *v)
+{
+    char buf[256];
+    SPrintVV(buf, sizeof(buf), v);
+    fprintf(fp, "%s\n", buf);
 }
 

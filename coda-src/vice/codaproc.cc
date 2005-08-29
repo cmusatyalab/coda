@@ -324,10 +324,8 @@ long FS_ViceResolve(RPC2_Handle cid, ViceFid *Fid)
 	    goto FreeGroups;
     }
     reson = GetResFlag(tmpvid);
-    SLog(9,  "ViceResolve: Getting Mgroup for VSG %x", vre->dontuse_vsgaddr);
     if (GetResMgroup(&mgrp, hosts)){
 	    /* error getting mgroup */
-	    SLog(0,  "ViceResolve: No mgroup for vsg %x", vre->dontuse_vsgaddr);
 	    errorCode = EINVAL;
 	    goto FreeGroups;
     }
@@ -2519,8 +2517,8 @@ void SetVSStatus(ClientEntry *client, Volume *volptr, RPC2_Integer *NewVS,
   END_HTML
 */
 long FS_ViceValidateVols(RPC2_Handle cid, RPC2_Integer numVids,
-		      ViceVolumeIdStruct Vids[], RPC2_CountedBS *VSBS,
-		      RPC2_BoundedBS *VFlagBS)
+			 ViceVolumeIdStruct Vids[], RPC2_CountedBS *VSBS,
+			 RPC2_BoundedBS *VFlagBS)
 {
     long errorCode = 0;
     ClientEntry *client = 0;

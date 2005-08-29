@@ -264,6 +264,8 @@ void repvol::AddCOP2(ViceStoreId *StoreId, ViceVersionVector *VV)
 
 void repvol::ClearCOP2(RPC2_CountedBS *BS)
 {
+    unsigned int cursor;
+
     if (BS->SeqLen == 0) return;
 
     LOG(100, ("volent::ClearCOP2: vol = %x\n", vid));
@@ -271,7 +273,7 @@ void repvol::ClearCOP2(RPC2_CountedBS *BS)
     if (BS->SeqLen % COP2EntrySize != 0)
 	CHOKE("volent::ClearCOP2: bogus SeqLen (%d)", BS->SeqLen);
 
-    for (int cursor = 0; cursor < BS->SeqLen; cursor += COP2EntrySize) {
+    for (cursor = 0; cursor < BS->SeqLen; cursor += COP2EntrySize) {
 	ViceStoreId sid;
 	ntohsid((ViceStoreId *)&BS->SeqBody[cursor], &sid);
 	cop2ent *c = FindCOP2(&sid);

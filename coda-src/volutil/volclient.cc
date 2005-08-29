@@ -428,7 +428,7 @@ static void salvage(void)
     if (these_args > 0)
 	path = this_argp[0];
     if (these_args == 2) {
-	if (sscanf(this_argp[1], "%lx", &vid) != 1){
+	if (sscanf(this_argp[1], "%x", &vid) != 1){
 	    fprintf(stderr, "salvage: invalid volume id specified; salvage aborted\n");
 	    exit(1);
 	}
@@ -602,8 +602,8 @@ static void dump(void)
  */
 static void dumpestimate(void)
 {
-    long rc = 0;
-    long volid;
+    int rc = 0;
+    VolumeId volid;
     VolDumpEstimates sizes;
     
     if (these_args < 3) {
@@ -611,7 +611,7 @@ static void dumpestimate(void)
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%lX", &volid) != 1){
+    if (sscanf(this_argp[2], "%x", &volid) != 1){
 	fprintf(stderr, "Dump: Bad Volumeid %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -623,7 +623,7 @@ static void dumpestimate(void)
 	exit(-1);
     }
 
-    printf("Level0> %lu %lu %lu %lu %lu %lu %lu %lu %lu %lu <Level9\n",
+    printf("Level0> %u %u %u %u %u %u %u %u %u %u <Level9\n",
 	   sizes.Lvl0, sizes.Lvl1, sizes.Lvl2, sizes.Lvl3, sizes.Lvl4,
 	   sizes.Lvl5, sizes.Lvl6, sizes.Lvl7, sizes.Lvl8, sizes.Lvl9);
     fprintf(stderr, "VolDumpEstimate completed\n");
@@ -659,7 +659,7 @@ static void VolDumpLWP(void *arg)
 	if (rc == RPC2_SUCCESS) {
 	    rc = volDump_ExecuteRequest(mycid, myrequest, NULL);
 	    if (rc) {
-		fprintf(stderr, "VolDumpLWP: request %ld failed with %s\n",
+		fprintf(stderr, "VolDumpLWP: request %d failed with %s\n",
 			myrequest->Header.Opcode, RPC2_ErrorMsg((int)rc));
 	    }
 	}
@@ -677,13 +677,13 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
     CODA_ASSERT(LWP_GetRock(ROCKTAG, (char **)&rock) == LWP_SUCCESS);
 
     if (volid != rock->volid) {
-	fprintf(stderr, "Got a WriteDump for %lx, I'm dumping %lx!\n",
+	fprintf(stderr, "Got a WriteDump for %08x, I'm dumping %08x!\n",
 		volid, rock->volid);
 	exit(-1);
     }
 
     if (rock->numbytes != offset) {
-	fprintf(stderr, "Offset %ld != rock->numbytes %ld\n",
+	fprintf(stderr, "Offset %d != rock->numbytes %ld\n",
 		offset, rock->numbytes);
     }
     
@@ -705,7 +705,7 @@ long S_WriteDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Unsigned *nbytes,
     }
 
     if (sed.Value.SmartFTPD.BytesTransferred != (int)*nbytes) {
-	fprintf(stderr, "Transmitted bytes %ld != requested bytes %ld!\n",
+	fprintf(stderr, "Transmitted bytes %d != requested bytes %ld!\n",
 	    *nbytes, sed.Value.SmartFTPD.BytesTransferred);
 	*nbytes = sed.Value.SmartFTPD.BytesTransferred;
     }
@@ -811,7 +811,7 @@ long S_ReadDump(RPC2_Handle rpcid, RPC2_Unsigned offset, RPC2_Integer *nbytes, V
     }
     
     if (volid != rock->volid) {
-	fprintf(stderr, "Got a ReadDump for %lx, I'm reading %lx!\n", volid, rock->volid);
+	fprintf(stderr, "Got a ReadDump for %08x, I'm reading %08x!\n", volid, rock->volid);
 	exit(-1);
     }
 
@@ -907,14 +907,14 @@ static void dumpmem(void)
  */
 static void rvmsize(void)
 {
-    long volid;
+    VolumeId volid;
     RVMSize_data data;
     
     if (these_args != 3) {
 	fprintf(stderr, "Usage: volutil rvmsize <volid>\n");
 	exit(-1);
     }
-    if (sscanf(this_argp[2], "%lX", &volid) != 1){
+    if (sscanf(this_argp[2], "%x", &volid) != 1){
 	fprintf(stderr, "RVMSize: Bad Volumeid %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -924,10 +924,10 @@ static void rvmsize(void)
 	fprintf(stderr, "VolRVMSize failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %lx used a total of %ld bytes.\n", volid, data.VolumeSize);
-    printf("\t%ld small vnodes used %ld bytes.\n", data.nSmallVnodes, data.SmallVnodeSize);
-    printf("\t%ld large vnodes used %ld bytes.\n", data.nLargeVnodes, data.LargeVnodeSize);
-    printf("\t and %ld bytes of DirPages.\n", data.DirPagesSize);
+    printf("Volume %08x used a total of %d bytes.\n", volid, data.VolumeSize);
+    printf("\t%d small vnodes used %d bytes.\n", data.nSmallVnodes, data.SmallVnodeSize);
+    printf("\t%d large vnodes used %d bytes.\n", data.nLargeVnodes, data.LargeVnodeSize);
+    printf("\t and %d bytes of DirPages.\n", data.DirPagesSize);
     exit(0);
 }
 
@@ -942,14 +942,14 @@ static void rvmsize(void)
  */
 static void backup(void)
 {
-    long Vid, backupVid;
+    VolumeId Vid, backupVid;
 
     if (these_args != 3) {
 	fprintf(stderr, "Usage: volutil backup volumeId\n");
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%lX", &Vid) != 1){
+    if (sscanf(this_argp[2], "%x", &Vid) != 1){
 	fprintf(stderr, "VolMakeBackups: Bogus volume number %s\n",
 		this_argp[2]);
 	exit(-1);
@@ -960,7 +960,7 @@ static void backup(void)
 	fprintf(stderr, "VolMakeBackups failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Backup (id = %lx) of Volume %lx created\n", backupVid, Vid);
+    printf("Backup (id = %08x) of Volume %08x created\n", backupVid, Vid);
     exit(0);
 }
 
@@ -1163,15 +1163,15 @@ static void showvnode(void)
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%lX", &volumeNumber) != 1){
+    if (sscanf(this_argp[2], "%x", &volumeNumber) != 1){
 	fprintf(stderr, "showvnode: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
-    if (sscanf(this_argp[3], "%lX", &vnodeNumber) != 1){
+    if (sscanf(this_argp[3], "%x", &vnodeNumber) != 1){
 	fprintf(stderr, "showvnode: Bogus vnode number %s\n", this_argp[3]);
 	exit(-1);
     }
-    if (sscanf(this_argp[4], "%lX", &unique) != 1) {
+    if (sscanf(this_argp[4], "%x", &unique) != 1) {
 	fprintf(stderr, "showvnode: Bogus Uniquifier %s\n", this_argp[4]);
 	exit(-1);
     }
@@ -1210,15 +1210,15 @@ static void setvv(void)
 	exit(-1);
     }
     
-    if (sscanf(this_argp[2], "%lX", &volumeNumber) != 1){
+    if (sscanf(this_argp[2], "%x", &volumeNumber) != 1){
 	fprintf(stderr, "setvv: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
-    if (sscanf(this_argp[3], "%lX", &vnodeNumber) != 1){
+    if (sscanf(this_argp[3], "%x", &vnodeNumber) != 1){
 	fprintf(stderr, "setvv: Bogus vnode number %s\n", this_argp[3]);
 	exit(-1);
     }
-    if (sscanf(this_argp[4], "%lX", &unique) != 1) {
+    if (sscanf(this_argp[4], "%x", &unique) != 1) {
 	fprintf(stderr, "setvv: Bogus vnode uniquifier %s\n", this_argp[4]);
 	exit(-1);
     }
@@ -1260,7 +1260,7 @@ static void purge(void)
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%lX", &volid) != 1){
+    if (sscanf(this_argp[2], "%x", &volid) != 1){
 	fprintf(stderr, "Purge: Bad Volume Id %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -1270,7 +1270,7 @@ static void purge(void)
 	fprintf(stderr, "VolPurge failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %lx (%s) successfully purged\n", volid, this_argp[3]);
+    printf("Volume %08x (%s) successfully purged\n", volid, this_argp[3]);
     exit(0);
 }
 /*
@@ -1280,7 +1280,7 @@ static void purge(void)
 */
 static void lock(void)
 {
-    long Vid;
+    VolumeId Vid;
     ViceVersionVector	vvv;
     long rc;
     
@@ -1289,7 +1289,7 @@ static void lock(void)
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%lX", &Vid) != 1){
+    if (sscanf(this_argp[2], "%x", &Vid) != 1){
 	fprintf(stderr, "VolLock: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -1299,7 +1299,7 @@ static void lock(void)
 	fprintf(stderr, "VolLock failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Locked volume %lx had a VVV of (%ld,%ld,%ld,%ld,%ld,%ld,%ld,%ld)\n",
+    printf("Locked volume %08x had a VVV of (%d,%d,%d,%d,%d,%d,%d,%d)\n",
 	   Vid, vvv.Versions.Site0, vvv.Versions.Site1, vvv.Versions.Site2,
 	   vvv.Versions.Site3, vvv.Versions.Site4, vvv.Versions.Site5,
 	   vvv.Versions.Site6, vvv.Versions.Site7);
@@ -1313,14 +1313,14 @@ static void lock(void)
 */
 static void unlock(void)
 {
-    long Vid;
+    VolumeId Vid;
     
     if (these_args != 3) {
 	fprintf(stderr, "Usage: volutil unlock volumeId\n");
 	exit(-1);
     }
 
-    if (sscanf(this_argp[2], "%lX", &Vid) != 1){
+    if (sscanf(this_argp[2], "%x", &Vid) != 1){
 	fprintf(stderr, "VolUnlock: Bogus volume number %s\n", this_argp[2]);
 	exit(-1);
     }
@@ -1330,7 +1330,7 @@ static void unlock(void)
 	fprintf(stderr, "VolUnlock failed with %s\n", RPC2_ErrorMsg((int)rc));
 	exit(-1);
     }
-    printf("Volume %lx is unlocked.\n", Vid);
+    printf("Volume %08x is unlocked.\n", Vid);
     exit(0);
 }
 
@@ -1650,9 +1650,9 @@ static void showcallbacks(void)
 	exit(-1);
     }
     
-    if ((sscanf(this_argp[2], "%lX", &fid.Volume) != 1) ||
-	(sscanf(this_argp[3], "%lX", &fid.Vnode) != 1) ||
-	(sscanf(this_argp[4], "%lX", &fid.Unique) != 1)) {
+    if ((sscanf(this_argp[2], "%x", &fid.Volume) != 1) ||
+	(sscanf(this_argp[3], "%x", &fid.Vnode) != 1) ||
+	(sscanf(this_argp[4], "%x", &fid.Unique) != 1)) {
 	fprintf(stderr, "Usage: volutil showcallbacks <volumeid> <vnode> <unique> <out-file>\n");
 	exit(-1);
     }
@@ -1713,7 +1713,7 @@ static void getmaxvol(void)
         fprintf(stderr, "Couldn't get maxvolid: %s\n", RPC2_ErrorMsg((int)rc));
 	exit (-1);
     }
-    printf("Maximum volume id is 0x%lX\n", maxid);
+    printf("Maximum volume id is %08x\n", maxid);
     exit (0);
 }
 
@@ -1727,7 +1727,7 @@ static void setmaxvol(void)
 {
     VolumeId volid;
 
-    if ((these_args != 3) || (sscanf(this_argp[2], "%lX", &volid) != 1)) {
+    if ((these_args != 3) || (sscanf(this_argp[2], "%x", &volid) != 1)) {
         fprintf(stderr, "Usage: volutil setmaxvol <volumeid>\n");
 	exit(-1);
     }
@@ -1741,7 +1741,7 @@ static void setmaxvol(void)
 	exit(-1);
     }
 
-    printf("Maximum volume id set to 0x%lx\n", volid);
+    printf("Maximum volume id set to %08x\n", volid);
     exit(0);
 }
 
@@ -1766,18 +1766,18 @@ static void usageerr(char *args)
     exit(-1);
 }
 
-static int sscani(char *s, RPC2_Integer *px)
+static int sscani(char *s, RPC2_Unsigned *px)
 {
-    long k;
+    RPC2_Unsigned k;
     int	q;
 
     while(isspace(*s)) s++;
 
-    if (*s != '0')	  q = sscanf(s, "%ld", &k);
-    else if (*++s != 'x') q = sscanf(s, "%lo", &k);
-    else		  q = sscanf(++s, "%lx", &k);
+    if (*s != '0')	  q = sscanf(s, "%u", &k);
+    else if (*++s != 'x') q = sscanf(s, "%o", &k);
+    else		  q = sscanf(++s, "%x", &k);
 
-    *px = (RPC2_Integer) k;
+    *px = k;
     return(q);
 }
 
@@ -1794,7 +1794,7 @@ static void peekint(void)
 
     if ((rc = VolPeekInt(rpcid, (RPC2_String) this_argp[2], &value)) != RPC2_SUCCESS)
 	peekpokeerr();
-    printf("%s contains 0x%lx\n", this_argp[2], (long) value);
+    printf("%s contains %x\n", this_argp[2], value);
     exit (0);
 }
 
@@ -1806,14 +1806,14 @@ static void peekint(void)
 */
 static void pokeint(void)
 {
-    RPC2_Integer value;
+    RPC2_Unsigned value;
 
     if ((these_args != 4) || (sscani(this_argp[3], &value) != 1))
 	usageerr("<address> <value>");
 
-    if ((rc = VolPokeInt(rpcid, (RPC2_String) this_argp[2], value)) != RPC2_SUCCESS)
+    if ((rc = VolPokeInt(rpcid, (RPC2_String)this_argp[2], value)) != RPC2_SUCCESS)
 	peekpokeerr();
-    fprintf(stderr, "0x%lx stored at %s\n", (long) value, this_argp[2]);
+    fprintf(stderr, "%x stored at %s\n", value, this_argp[2]);
     exit(0);
 }
 
@@ -1825,9 +1825,11 @@ static void pokeint(void)
 static void peekmem(void)
 {
     RPC2_BoundedBS buf;
+    RPC2_Unsigned tmp;
 
-    if ((these_args != 4) || (sscani(this_argp[3], &buf.MaxSeqLen) != 1))
+    if ((these_args != 4) || (sscani(this_argp[3], &tmp) != 1))
 	usageerr("<address> <size>");
+    buf.MaxSeqLen = tmp;
 
     if ((buf.SeqBody = (RPC2_String) malloc((int) buf.MaxSeqLen + 1)) == NULL) {
 	fprintf(stderr, "volutil: Out of memory\n");
@@ -1851,10 +1853,11 @@ static void peekmem(void)
 static void pokemem(void)
 {
     RPC2_CountedBS buf;
+    RPC2_Unsigned tmp;
 
-    if ((these_args != 5) || (sscani(this_argp[3], &buf.SeqLen) != 1))
+    if ((these_args != 5) || (sscani(this_argp[3], &tmp) != 1))
 	usageerr("<address> <size> <value>");
-
+    buf.SeqLen = tmp;
     buf.SeqBody = (RPC2_String) this_argp[4];
 
     if ((rc = VolPokeMem(rpcid, (RPC2_String) this_argp[2], &buf)) != RPC2_SUCCESS)
@@ -1873,9 +1876,11 @@ static void pokemem(void)
 static void peekxmem(void)
 {
     RPC2_BoundedBS buf;
+    RPC2_Unsigned tmp;
 
-    if ((these_args != 4) || (sscani(this_argp[3], &buf.MaxSeqLen) != 1))
+    if ((these_args != 4) || (sscani(this_argp[3], &tmp) != 1))
 	usageerr("<address> <size>");
+    buf.MaxSeqLen = tmp;
 
     if ((buf.SeqBody = (RPC2_String) malloc((int) buf.MaxSeqLen)) == NULL) {
 	fprintf(stderr, "volutil: Out of memory\n");
@@ -1901,9 +1906,11 @@ static void pokexmem(void)
     RPC2_CountedBS buf;
     char	*t, *s;
     RPC2_Integer size;
+    RPC2_Unsigned tmp;
 
-    if ((these_args != 5) || (sscani(this_argp[3], &buf.SeqLen) != 1))
+    if ((these_args != 5) || (sscani(this_argp[3], &tmp) != 1))
 	usageerr("<address> <size> <hexvalue>");
+    buf.SeqLen = tmp;
 
     if ((buf.SeqBody = (RPC2_String) malloc((int) buf.SeqLen)) == NULL) {
 	fprintf(stderr, "volutil: Out of memory\n");

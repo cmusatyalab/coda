@@ -600,7 +600,7 @@ long S_AuthChangePasswd (RPC2_Handle cid, RPC2_Integer viceId,
 
     if (AuthDebugLevel)
 	{
-	printf("AuthChangePasswd(%ld, \"", viceId);
+	printf("AuthChangePasswd(%d, \"", viceId);
 	for (i = 0; i < RPC2_KEYSIZE; i++)
 	    printf("%c", newPasswd[i]);
 	printf("\")");

@@ -288,8 +288,7 @@ int main(int argc, char **argv)
 	    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
 	    return 1;
     }
-    rc = portmapper_client_register_sqsh(portmapid, 
-					 (unsigned char *) "codaupdate", 
+    rc = portmapper_client_register_sqsh(portmapid, (RPC2_String)"codaupdate",
 					 0, 17,
 					 ntohs(port1.Value.InetPortNumber));
 

@@ -39,17 +39,18 @@ Pittsburgh, PA.
 
 #ifndef VICEINODE_INCLUDED
 #define VICEINODE_INCLUDED 1
+#include <vcrcommon.h>
 #include <voltypes.h>
 
 
 /* used by the inode methods */
 struct i_header {
-    long    lnk;
+    int32_t    lnk;
     VolumeId   volume;
     VnodeId    vnode;
     Unique_t   unique;
     FileVersion dataversion;
-    long    magic;
+    int32_t    magic;
 };
 
 
@@ -59,13 +60,13 @@ struct i_header {
  */
 struct ViceInodeInfo {
     bit32	InodeNumber;
-    int		ByteCount;
-    int		LinkCount;
+    int32_t	ByteCount;
+    int32_t	LinkCount;
     VolumeId	VolumeNo;
     VnodeId	VnodeNumber;
     Unique_t	VnodeUniquifier;
     FileVersion	InodeDataVersion;
-    long        Magic;
+    int32_t     Magic;
 }; 
 
 #define INODESPECIAL 0xffffffff	/* This vnode number will never

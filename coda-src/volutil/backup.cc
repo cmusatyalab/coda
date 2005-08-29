@@ -198,7 +198,7 @@ int getVolId(FILE *VolumeList, VolumeId *volId, int *flags, char *comment)
 	return(-1);
     }
 	
-    if (sscanf(string, "%lx %40s %40s", volId, incstr, comment) != 3) {
+    if (sscanf(string, "%x %40s %40s", volId, incstr, comment) != 3) {
 	if (!feof(VolumeList)) 
 	    LogMsg(3, Debug, stdout, "Bad input line, -%s-\n", string);
 	return(-1);
@@ -287,7 +287,7 @@ int getReplica(repinfo_t *rep) {
     VolumeId volId = rep->repvolId;
     rep->serverNum = 0;
     
-    sprintf(volIdstr, "%lu", volId);
+    sprintf(volIdstr, "%08x", volId);
     vldbp = VLDBLookup(volIdstr);
     if (vldbp == NULL) {
 	LogMsg(0, 0, stdout, "Volume replica %x doesn't exist!\n", volId);
@@ -312,7 +312,6 @@ int PreparePartitionEntries(void)
     struct DiskPartition *dp;
     struct dllist_head *tmp, *next;
     time_t now = time(0);
-    char *name = dp->name;
     
     strftime(today, sizeof(today), "%d%b%Y", localtime(&now));
     sprintf(todayName, "/");
@@ -330,8 +329,7 @@ int PreparePartitionEntries(void)
 		    tmp = next;
 		    continue; 
 	    }
-	    name = dp->name;
-	    if ((strlen(todayName) + strlen(name) < sizeof(dp->name))) {
+	    if ((strlen(todayName) + strlen(dp->name) < sizeof(dp->name))) {
 		    strcat(dp->name, todayName);
 		    if (mkdir(dp->name, 0755) != 0) {
 			    VLog(0, "Error '%s' creating directory %s.", 
@@ -609,10 +607,10 @@ int dumpVolume(volinfo_t *vol)
 
 	part = findBestPartition();
 	if (vol->flags & REPLICATED) 
-		sprintf(buf, "%s/%s-%lx.%lx", part->name,
+		sprintf(buf, "%s/%s-%08x.%08x", part->name,
 			Hosts[reps[i].serverNum].name, volId, reps[i].repvolId);
 	    else 
-		sprintf(buf, "%s/%s-%lx", part->name, Hosts[reps[i].serverNum].name, volId);
+		sprintf(buf, "%s/%s-%08x", part->name, Hosts[reps[i].serverNum].name, volId);
 	
 
 	/* Remove the file if it already exists. Since we made the
@@ -652,10 +650,10 @@ int dumpVolume(volinfo_t *vol)
 	
 	char link[66];
 	if (vol->flags & REPLICATED)
-		sprintf(link,"%s/%lx.%lx",Hosts[reps[i].serverNum].name,
+		sprintf(link,"%s/%08x.%08x",Hosts[reps[i].serverNum].name,
 			volId, reps[i].repvolId);
 	else
-		sprintf(link, "%s/%lx", Hosts[reps[i].serverNum].name, volId);
+		sprintf(link, "%s/%08x", Hosts[reps[i].serverNum].name, volId);
 	    
 	/* Remove the link if it exists. See comment by previous
 	   unlink. */
@@ -958,9 +956,9 @@ int main(int argc, char **argv) {
 	    if (okay) {
 
 		if (vol->flags & INCREMENTAL)
-		    sprintf(buf, "0x%8lx (incremental)\t(", vol->volId);
+		    sprintf(buf, "%08x (incremental)\t(", vol->volId);
 		else  {
-		    sprintf(buf, "0x%8lx \t(", vol->volId);
+		    sprintf(buf, "%08x \t(", vol->volId);
 		    fullDump++;
 		}
 		
@@ -1000,7 +998,7 @@ int main(int argc, char **argv) {
 
 	    if (!okay) {   /* Only print out those that failed. */
 	    
-		sprintf(buf, "%#08lx\t(", vol->volId);
+		sprintf(buf, "%08x\t(", vol->volId);
 		ptr += strlen(buf);
 		
 		/* Use the letter for the last stage each replica passed. */

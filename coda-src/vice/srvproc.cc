@@ -391,7 +391,7 @@ START_TIMING(GetAttr_Total);
 
 	if (SrvDebugLevel > 1) {
 	    char printbuf[2*SHA_DIGEST_LENGTH+1]; 
-	    ViceSHAtoHex(MySHA->SeqBody, printbuf, sizeof(printbuf));
+	    ViceSHAtoHex((unsigned char *)MySHA->SeqBody, printbuf, sizeof(printbuf));
 	    fprintf(stdout, "ViceGetAttrPlusSHA: SHA = %s\n", printbuf);
 	}
     }
@@ -466,7 +466,7 @@ START_TIMING(ViceValidateAttrs_Total);
 		goto Exit;
     }
  	
-    if ( NumPiggyFids > VFlagBS->MaxSeqLen ) {
+    if (VFlagBS->MaxSeqLen < NumPiggyFids) {
 	    SLog(0, "Client sending wrong output buffer while validating"
 		 ": %s; MaxSeqLen %d, should be %d", 
 		 FID_(PrimaryFid), VFlagBS->MaxSeqLen, NumPiggyFids);
@@ -2608,9 +2608,9 @@ int CheckGetACLSemantics(ClientEntry *client, Vnode **vptr,
 	CODA_ASSERT(GetRights(client->CPS, aCL, aCLSize, rights, anyrights) == 0);
 
 	CODA_ASSERT(AL_Externalize(aCL, (AL_ExternalAccessList *)eACL) == 0);
-	int eACLlen = (int)(strlen((char *)*eACL) + 1);
-	if (eACLlen > AccessList->MaxSeqLen) {
-	    SLog(0, "CheckGetACLSemantics: eACLlen (%d) > ACL->MaxSeqLen (%d) %s",
+	unsigned int eACLlen = strlen((char *)*eACL) + 1;
+	if (AccessList->MaxSeqLen < eACLlen) {
+	    SLog(0, "CheckGetACLSemantics: eACLlen (%u) > ACL->MaxSeqLen (%u) %s",
 		 eACLlen, AccessList->MaxSeqLen, FID_(&Fid));
 	    return(E2BIG);
 	}

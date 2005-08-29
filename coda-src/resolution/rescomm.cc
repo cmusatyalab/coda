@@ -118,7 +118,7 @@ void RepResCommCtxt::print(FILE *fp) {
 
 void RepResCommCtxt::print(int fd) {
     char buf[80];
-    sprintf(buf, "%#08lx : HowMany = %ld\n", (long)this, HowMany);
+    sprintf(buf, "%p : HowMany = %d\n", this, HowMany);
     write(fd, buf, strlen(buf));
 }
 

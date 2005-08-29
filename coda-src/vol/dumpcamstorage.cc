@@ -105,7 +105,7 @@ void dump_storage(int level, char *s)
     }
     printf("    }\n    SmallVnodeIndex = %d;\n", SRV_RVM(SmallVnodeIndex));
     printf("    LargeVnodeIndex = %d;\n", SRV_RVM(LargeVnodeIndex));
-    printf("    MaxVolId = %lx;\n}\n", SRV_RVM(MaxVolId));
+    printf("    MaxVolId = %x;\n}\n", SRV_RVM(MaxVolId));
 
 }
 
@@ -116,7 +116,7 @@ void print_VolHead(struct VolHead *VolHead, int volindex)
 	printf("\t\tversion stamp = %x, %u\n", VolHead->header.stamp.magic,
 					    VolHead->header.stamp.version);
     }
-    printf("\t\tid = %lx\n\t\tparentid = %lx\n\t\ttype = %u\n", VolHead->header.id,
+    printf("\t\tid = %x\n\t\tparentid = %x\n\t\ttype = %u\n", VolHead->header.id,
 				VolHead->header.parent, VolHead->header.type);
 }
 
@@ -180,32 +180,32 @@ void print_VnodeDiskObject(VnodeDiskObject *vnode)
 	return;
     printf("\t\t\ttype = %u\n\t\t\tcloned = %u\n\t\t\tmode = %o\n\t\t\tlinks = %u\n",
 	vnode->type, vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("\t\t\tlength = %u\n\t\t\tunique = %lu\n\t\t\tversion = %lu\n\t\t\tinode = %u\n",
+    printf("\t\t\tlength = %u\n\t\t\tunique = %08x\n\t\t\tversion = %u\n\t\t\tinode = %u\n",
 	vnode->length, vnode->uniquifier, vnode->dataVersion, vnode->inodeNumber);
     PrintVersionVector(vnode->versionvector, "\t\t\t");
-    printf("\t\t\tvolindex = %d\n\t\t\tmodtime = %lu\n\t\t\tauthor = %lu\n\t\t\towner = %lu\n\t\t\tparent = %lx.%lx\n",
+    printf("\t\t\tvolindex = %d\n\t\t\tmodtime = %u\n\t\t\tauthor = %u\n\t\t\towner = %u\n\t\t\tparent = %08x.%08x\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner, vnode->vparent, vnode->uparent);
-    printf("\t\t\tmagic = %x\n\t\t\tservermodtime = %lu\n",
+    printf("\t\t\tmagic = %x\n\t\t\tservermodtime = %u\n",
 	vnode->vnodeMagic, vnode->serverModifyTime);
 }
 
 static void PrintVersionVector(vv_t vv, char *indent) {
 
     fprintf(stdout, "%s", indent);
-    PrintVV(stdout, &vv);
+    FPrintVV(stdout, &vv);
 }
 
 void print_VolumeDiskData(VolumeDiskData *ddata)
 {
     int i = 0;
     printf("\t\t\tversion stamp = %x, %u\n", ddata->stamp.magic, ddata->stamp.version);
-    printf("\t\t\tid = %lx\n\t\t\tpartition = %s\n\t\t\tname = %s\n\t\t\tinUse = %u\n\t\t\tinService = %u\n",
+    printf("\t\t\tid = %08x\n\t\t\tpartition = %s\n\t\t\tname = %s\n\t\t\tinUse = %u\n\t\t\tinService = %u\n",
 	    ddata->id, ddata->partition, ddata->name, ddata->inUse, ddata->inService);
 
     if (ddata->stamp.magic != 0) {
 	printf("\t\t\tblessed = %u\n\t\t\tneedsSalvaged = %u\n\t\t\tuniquifier= %u\n\t\t\ttype = %d\n",
 	    ddata->blessed, ddata->needsSalvaged, ddata->uniquifier, ddata->type);
-	printf("\t\t\tparentId = %lx\n\t\t\tgrpId = %lx\n\t\t\tcloneId = %lx\n\t\t\tbackupId = %lx\n\t\t\trestoreFromId = %lx\n",
+	printf("\t\t\tparentId = %08x\n\t\t\tgrpId = %08x\n\t\t\tcloneId = %08x\n\t\t\tbackupId = %08x\n\t\t\trestoreFromId = %08x\n",
 	    ddata->parentId, ddata->groupId, ddata->cloneId, ddata->backupId, ddata->restoredFromId);
 	printf("\t\t\tneedsCallback = %u\n\t\t\tdestroyMe = %u\n\t\t\tdontSalvage = %u\n\t\t\treserveb3 = %u\n",
 	    ddata->needsCallback, ddata->destroyMe, ddata->dontSalvage, ddata->reserveb3);
@@ -237,7 +237,7 @@ void print_VolumeDiskData(VolumeDiskData *ddata)
     }
     printf("\n");
 
-    printf("\t\t\tfilecount = %d\n\t\t\tlinkcount = %u\n\t\t\tdiskused = %d\n\t\t\tdayUse = %d\n\t\t\tdayUseDate = %lu\n",
+    printf("\t\t\tfilecount = %d\n\t\t\tlinkcount = %u\n\t\t\tdiskused = %d\n\t\t\tdayUse = %d\n\t\t\tdayUseDate = %u\n",
 	ddata->filecount, ddata->linkcount, ddata->diskused, ddata->dayUse, ddata->dayUseDate);
     printf("\t\t\t");
     for (i = 0; i < 3; i++) {
@@ -272,9 +272,9 @@ void print_VolumeDiskData(VolumeDiskData *ddata)
     }
     printf("\n");
 
-    printf("\t\t\tcreationDate = %lu\n\t\t\taccessDate = %lu\n\t\t\tupdateDate = %lu\n\t\t\texpirationDate = %lu\n",
+    printf("\t\t\tcreationDate = %u\n\t\t\taccessDate = %u\n\t\t\tupdateDate = %u\n\t\t\texpirationDate = %u\n",
 	ddata->creationDate, ddata->accessDate, ddata->updateDate, ddata->expirationDate);
-    printf("\t\t\tbackupDate = %lu\n\t\t\tcopyDate = %lu\n", ddata->backupDate, ddata->copyDate);
+    printf("\t\t\tbackupDate = %u\n\t\t\tcopyDate = %u\n", ddata->backupDate, ddata->copyDate);
     printf("\t\t\t");
     for (i = 0; i < 3; i++) {
 	printf("reserved4[%d] = %u, ", i, ddata->reserved4[i]);
@@ -308,7 +308,7 @@ void PrintCamVnode(int level, int volindex, int vclass, VnodeId vnodeindex,
 	printf("Error %u from ExtractVnode; aborting vnode dump\n", ec);
 	return;
     }
-    printf("Printing %s vnode %lu, (index %ld) from volume %u\n",
+    printf("Printing %s vnode %08x, (index %u) from volume %u\n",
 	    ((vclass == vLarge)?"Large":"Small"),
 	    bitNumberToVnodeNumber(vnodeindex,vclass), vnodeindex, volindex);
     print_VnodeDiskObject(vnode);

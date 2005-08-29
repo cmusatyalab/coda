@@ -75,12 +75,12 @@ static int ReadGlobalState(int fd) {
 	return 0;
     }
 
-    if (norton_debug) printf("Read maximum vol ID: 0x%lx\n", maxvolid);
+    if (norton_debug) printf("Read maximum vol ID: %08x\n", maxvolid);
 
     rvmlib_begin_transaction(restore);
     VSetMaxVolumeId(maxvolid);
     rvmlib_end_transaction(flush, &(status));
-    if (norton_debug) printf("Set max vol id to 0x%08lx.  RVM Status = %d\n",
+    if (norton_debug) printf("Set max vol id to %08x.  RVM Status = %d\n",
 		      maxvolid, status);
     return 1;
 }
@@ -347,7 +347,7 @@ static int DumpVnodeList(int fd, struct VolumeData *vol, int vol_index,
 
     nvnodes = v_index.vnodes();
     if (norton_debug) {
-	printf("Volume 0x%lx, has %d %s vnodes\n", vol->volumeInfo->id,
+	printf("Volume %08x, has %d %s vnodes\n", vol->volumeInfo->id,
 	       nvnodes, VNODECLASS(vclass));
     }
     
@@ -469,7 +469,7 @@ static int ReadVnodeList(int fd, Volume *vp, VnodeClass vclass, int ResOn) {
 	    perror("Reading vnode number\n");
 	    return 0;
 	}
-	if (norton_debug) printf("Reading vnode number 0x%lx\n", vnode_num);
+	if (norton_debug) printf("Reading vnode number %08x\n", vnode_num);
 
 	memset((void *)(void *)vnode, 0, VNODESIZE(vclass));
 	
@@ -606,8 +606,8 @@ static void NortonSetupVolume(VolHead *vh, Volume *vp, int volindex)
 // Can't re-use code in vol-salvage since this comes from command line.
 static void GetSkipVols(int num, VolumeId *ids, char *vol_nums[]) {
     while(num > 0) {
-	sscanf(*vol_nums, "%lx", ids);
-	printf("Skipping volume: 0x%lx\n", *ids);
+	sscanf(*vol_nums, "%x", ids);
+	printf("Skipping volume: %08x\n", *ids);
 	vol_nums++;
 	ids++;
 	num--;
@@ -647,7 +647,7 @@ static int HasBackVols(VolumeId *skipvols, int nskipvols) {
 		continue;
 	    } else {
 		ret = TRUE;
-		printf("backup volume: %s(0x%lx)\n",
+		printf("backup volume: %s (%08x)\n",
 		       vol->data.volumeInfo->name,
 		       vol->data.volumeInfo->id);
 	    }
@@ -697,12 +697,12 @@ static int load_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
 	}
 
 	if (InSkipVolumeList(vol_head.header.id, skipvols, nskipvols)) {
-	    printf("Skipping volume 0x%lx\n", vol_head.header.id);
+	    printf("Skipping volume %08x\n", vol_head.header.id);
 	    SkipToNextVolHead(dump_fd);
 	    continue;
 	}
 	else
-	    printf("Reading volume 0x%lx\n", vol_head.header.id);
+	    printf("Reading volume %08x\n", vol_head.header.id);
 
 	rvmlib_begin_transaction(restore);
 
@@ -714,11 +714,11 @@ static int load_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
 
 	if ((volindex = NewVolHeader(&vol_head.header, &err)) == -1) {
 	    if (err == VVOLEXISTS) {
-		fprintf(stderr, "Volume 0X%x already exists!  Aborting\n",
+		fprintf(stderr, "Volume %08x already exists!  Aborting\n",
 			vol_head.header.id);
 	    } else {
 		fprintf(stderr,
-			"Error code %d while creating volume %x, Aborting\n",
+			"Error code %d while creating volume %08x, Aborting\n",
 			err, vol_head.header.id);
 	    }
 	    rvmlib_abort(VFAIL);
@@ -871,7 +871,7 @@ static int dump_server_state(char *dump_file, VolumeId *skipvols, int nskipvols)
 	  continue;
 	}
 	    
-	printf("Writing volume 0x%lx\n", vol->data.volumeInfo->id);
+	printf("Writing volume %08x\n", vol->data.volumeInfo->id);
 
 	if (!DumpVolHead(dump_fd, vol) ||
 	    !DumpVolDiskData(dump_fd, vol->data.volumeInfo) ||

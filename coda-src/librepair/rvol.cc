@@ -66,7 +66,7 @@ int repair_newrep(char *pathname, struct repvol **repv, char *msg, int msgsize) 
     (*repv)->vid = vid;                     /* remember the volume id */
 //    strcpy((*repv)->realm, realm);
     strcpy((*repv)->mnt, prefix);           /* remember its mount point */
-    sprintf((*repv)->vname, "%#lx@%s", vid, realm);
+    sprintf((*repv)->vname, "%#x@%s", vid, realm);
     /* GETVOLSTAT doesn't work on rep vols, so just use hex version of volid */
     return(0);
 }
@@ -204,7 +204,7 @@ int repair_mountrw(struct repvol *repv, VolumeId *rwarray, int arraylen, char *m
 		}
 	    }
 	    if (i == arraylen) {
-		strerr(msg, msgsize, "No such replica vid=0x%lx", ((VolumeStatus *)space)->Vid);
+		strerr(msg, msgsize, "No such replica vid=%08x", ((VolumeStatus *)space)->Vid);
 		goto CLEANUP;
 	    }
 	}

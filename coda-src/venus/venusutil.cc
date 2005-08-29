@@ -428,7 +428,7 @@ void VVPrint(FILE *fp, vv_t **vvp) {
     for (int i = 0; i < VSG_MEMBERS; i++)
 	if (vvp[i]) {
 	    fprintf(fp, "\t\t%d: ", i);
-	    PrintVV(fp, vvp[i]);
+	    FPrintVV(fp, vvp[i]);
 	}
 }
 

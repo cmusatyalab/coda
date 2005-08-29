@@ -217,7 +217,8 @@ static void Connect()
 	    fprintf(stderr, "Cannot bind to rpc2portmap; exiting\n");
 	    exit(1);
     }
-    rc = portmapper_client_lookup_pbynvp(portmapid, (unsigned char *)"codaupdate", 0, 17, &port);
+    rc = portmapper_client_lookup_pbynvp(portmapid, (RPC2_String)"codaupdate",
+					 0, 17, &port);
 
     RPC2_Unbind(portmapid);
     if ( rc ) {

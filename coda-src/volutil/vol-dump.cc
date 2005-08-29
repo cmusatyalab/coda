@@ -37,7 +37,7 @@ Pittsburgh, PA.
 
 */
 
-#define RCSVERSION $Revision: 4.30 $
+#define RCSVERSION $Revision$
 
 /* vol-dump.c */
 
@@ -116,7 +116,7 @@ static int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp,
 {
     int oldUnique;
 
-    DumpDouble(dbuf, (byte) D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
+    DumpDouble(dbuf, D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
     DumpInt32(dbuf, 'v', V_id(vp));
     DumpInt32(dbuf, 'p', V_parentId(vp));
     DumpString(dbuf, 'n',V_name(vp));
@@ -134,12 +134,12 @@ static int DumpDumpHeader(DumpBuffer_t *dbuf, Volume *vp,
 	}
     }
 
-    return DumpDouble(dbuf, (byte) 'I', oldUnique, unique);
+    return DumpDouble(dbuf, 'I', oldUnique, unique);
 }
 
 static int DumpVolumeDiskData(DumpBuffer_t *dbuf, VolumeDiskData *vol)
 {
-    DumpTag(dbuf, (byte) D_VOLUMEDISKDATA);
+    DumpTag(dbuf, D_VOLUMEDISKDATA);
     DumpInt32(dbuf, 'i',vol->id);
     DumpInt32(dbuf, 'v',vol->stamp.version);
     DumpString(dbuf, 'n',vol->name);
@@ -180,9 +180,9 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
     int i;
     SLog(9, "Dumping vnode number %x", vnodeNumber);
     if (!v || v->type == vNull) {
-	return DumpTag(dbuf, (byte) D_NULLVNODE);
+	return DumpTag(dbuf, D_NULLVNODE);
     }
-    DumpDouble(dbuf, (byte) D_VNODE, vnodeNumber, v->uniquifier);
+    DumpDouble(dbuf, D_VNODE, vnodeNumber, v->uniquifier);
     DumpByte(dbuf, 't', v->type);
     DumpShort(dbuf, 'b', v->modeBits);
     DumpShort(dbuf, 'l', v->linkCount); /* May not need this */
@@ -209,7 +209,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
 		SLog(0, 0, stdout,
 		       "dump: Unable to open inode %d for vnode 0x%x; not dumped",
 		       v->inodeNumber, vnodeNumber);
-		DumpTag(dbuf, (byte) D_BADINODE);
+		DumpTag(dbuf, D_BADINODE);
 	    } else {
 		if (DumpFile(dbuf, D_FILEDATA, fd, vnodeNumber) == -1) {
 		    SLog(0, "Dump: DumpFile failed.");
@@ -221,7 +221,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
 	    SLog(0, 0, stdout,
 		   "dump: ACKK! Found barren inode in RO volume. (%x.%x)\n",
 		   vnodeNumber, v->uniquifier);
-	    DumpTag(dbuf, (byte) D_BADINODE);
+	    DumpTag(dbuf, D_BADINODE);
 	}
     } else {
             DirInode *dip;
@@ -231,7 +231,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
 	dip = (DirInode *)(v->inodeNumber);
 
 	/* Dump the Access Control List */
-	if (DumpByteString(dbuf, 'A', (byte *) VVnodeDiskACL(v), VAclDiskSize(v)) == -1) {
+	if (DumpByteString(dbuf, 'A', (char *)VVnodeDiskACL(v), VAclDiskSize(v)) == -1) {
 	    SLog(0, "DumpVnode: BumpByteString failed.");
 	    return -1;
 	}
@@ -242,7 +242,7 @@ static int DumpVnodeDiskObject(DumpBuffer_t *dbuf, VnodeDiskObject *v,
 		return -1;
 
 	for ( i = 0; i < size; i++) {
-		if (DumpByteString(dbuf, (byte)'P', (byte *)DI_Page(dip, i), DIR_PAGESIZE) == -1)
+		if (DumpByteString(dbuf, 'P', (char *)DI_Page(dip, i), DIR_PAGESIZE) == -1)
 		return -1;
 	}
 
@@ -265,11 +265,11 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
     vcp = &VnodeClassInfo_Array[vclass];
 
     if (vclass == vLarge) {
-	DumpTag(dbuf, (byte) D_LARGEINDEX);
+	DumpTag(dbuf, D_LARGEINDEX);
 	nVnodes = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nlargevnodes;
 	nLists = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nlargeLists;
     } else {
-	DumpTag(dbuf, (byte) D_SMALLINDEX);
+	DumpTag(dbuf, D_SMALLINDEX);
 	nVnodes = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nsmallvnodes;
 	nLists = SRV_RVM(VolumeList[V_volumeindex(vp)]).data.nsmallLists;
     }
@@ -375,7 +375,7 @@ static int DumpVnodeIndex(DumpBuffer_t *dbuf, Volume *vp,
 		     */
 		    
 		    int VnodeNumber = bitNumberToVnodeNumber(vnodeIndex, vclass);
-		    if (DumpDouble(dbuf, (byte) D_RMVNODE, VnodeNumber, vventry->unique) == -1) {
+		    if (DumpDouble(dbuf, D_RMVNODE, VnodeNumber, vventry->unique) == -1) {
 			SLog(0, 0, stdout, "Dump RMVNODE failed, aborting.");
 			return -1;
 		    }
@@ -651,7 +651,7 @@ long S_VolNewDump(RPC2_Handle rpcid, RPC2_Unsigned formal_volumeNumber,
 	goto failure;
     }
 
-    dbuf = InitDumpBuf((byte *)DumpBuf, (long)DUMPBUFSIZE, V_id(vp), cid);
+    dbuf = InitDumpBuf(DumpBuf, (long)DUMPBUFSIZE, V_id(vp), cid);
 
     /* Dump the volume.*/
     DumpListVVHeader(VVListFd, vp, *Incremental, unique);

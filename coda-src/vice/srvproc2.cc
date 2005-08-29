@@ -907,8 +907,8 @@ static void SetSystemStats_bsd44(ViceStatistics *stats)
  * running on the server host. */
 void SetSystemStats_linux(ViceStatistics *stats)
 {
-    unsigned long d1, d2, d3, d4;
-    static char   line[1024];
+    uint32_t d1, d2, d3, d4;
+    static char line[1024];
     FILE *f;
 
 #define PARSELINE(file, pattern, args...) do { int i; \
@@ -919,19 +919,19 @@ void SetSystemStats_linux(ViceStatistics *stats)
 
     f = fopen("/proc/stat", "r");
     if (f) {
-	PARSELINE(f, "cpu %lu %lu %lu %lu", &stats->UserCPU, &stats->NiceCPU,
+	PARSELINE(f, "cpu %u %u %u %u", &stats->UserCPU, &stats->NiceCPU,
 		  &stats->SystemCPU, &stats->IdleCPU);
-	PARSELINE(f, "disk %lu %lu %lu %lu", &d1, &d2, &d3, &d4);
+	PARSELINE(f, "disk %u %u %u %u", &d1, &d2, &d3, &d4);
 	stats->TotalIO = d1 + d2 + d3 + d4;
-        PARSELINE(f, "btime %lu", &stats->BootTime);
+        PARSELINE(f, "btime %u", &stats->BootTime);
 	fclose(f);
     }
 
     f = fopen("/proc/self/status", "r");
     if (f) {
-	PARSELINE(f, "VmSize: %lu kB", &stats->ProcessSize);
-	PARSELINE(f, "VmRSS: %lu kB",  &stats->VmRSS);
-	PARSELINE(f, "VmData: %lu kB", &stats->VmData);
+	PARSELINE(f, "VmSize: %u kB", &stats->ProcessSize);
+	PARSELINE(f, "VmRSS: %u kB",  &stats->VmRSS);
+	PARSELINE(f, "VmData: %u kB", &stats->VmData);
 	fclose(f);
     }
 }

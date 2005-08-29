@@ -308,7 +308,7 @@ int executor(char *pathname, int vuid, int req_no)
 		    quit("File %s is not a regular file (and hence cannot be used for repair)", fixed);
 
 		if (!repair_getfid(fixed, &fixfid, fixrealm, &fixvv, space, sizeof(space)) && (fixvv.StoreId.Host != (unsigned long)-1))
-		    sprintf(fixfile, "@%lx.%lx.%lx@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
+		    sprintf(fixfile, "@%08x.%08x.%08x@%s", fixfid.Volume, fixfid.Vnode, fixfid.Unique, fixrealm);
 		else strcpy(fixfile, fixed);
 
 		if (EndRepair(repv, 1, space, sizeof(space)) < 0)

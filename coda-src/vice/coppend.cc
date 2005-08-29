@@ -107,7 +107,7 @@ void cpent::print(FILE *fp) {
 void cpent::print(int fd) {
     char buf[80];
 
-    sprintf(buf, "StoreId = (0x%lx.%lx), time = %ld, deqing = %d\n",
+    sprintf(buf, "StoreId = (%x.%x), time = %ld, deqing = %d\n",
 	     StoreId.Host, StoreId.Uniquifier, time, deqing);
 
     write(fd, buf, (int)strlen(buf));

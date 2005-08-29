@@ -92,6 +92,7 @@ extern "C" {
 }
 #endif
 
-extern void PrintVV (FILE *, vv_t *);
+void SPrintVV(char *buf, size_t len, ViceVersionVector *);
+void FPrintVV(FILE *, ViceVersionVector *);
 
 #endif /* _INCON_ */

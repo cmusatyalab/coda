@@ -2119,7 +2119,7 @@ START_TIMING(Reintegrate_PutObjects);
     SLog(10, 	"PutReintegrateObjects: Vid = %x, errorCode = %d",
 	     volptr ? V_id(volptr) : 0, errorCode);
 
-    ViceStoreId sid;
+    ViceStoreId sid = { 0, };
     struct dllist_head *p;
     int count = 0;
 

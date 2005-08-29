@@ -79,7 +79,7 @@ extern "C" {
  * If the buffer overflows, write to file descriptor fd, or use an rpc
  * if doing newstyle dumps (if rpcid > 0)
  */
-DumpBuffer_t *InitDumpBuf(byte *ptr, long size, VolumeId volId,
+DumpBuffer_t *InitDumpBuf(char *ptr, long size, VolumeId volId,
 			  RPC2_Handle rpcid)
 {
     DumpBuffer_t *buf;
@@ -87,7 +87,7 @@ DumpBuffer_t *InitDumpBuf(byte *ptr, long size, VolumeId volId,
 
     buf = (DumpBuffer_t *)malloc(sizeof(DumpBuffer_t));
     buf->DumpBufPtr = buf->DumpBuf = ptr;
-    buf->DumpBufEnd = (byte *)ptr + size;
+    buf->DumpBufEnd = ptr + size;
     buf->VOLID = (int)volId;
     buf->rpcid = rpcid;
     buf->offset = 0;
@@ -96,7 +96,7 @@ DumpBuffer_t *InitDumpBuf(byte *ptr, long size, VolumeId volId,
     return buf;
 }
 
-DumpBuffer_t *InitDumpBuf(byte *ptr, long size, int fd)
+DumpBuffer_t *InitDumpBuf(char *ptr, long size, int fd)
 {
     LogMsg(20, VolDebugLevel, stdout, "InitDumpbuf: ptr %x size %d fd %d", ptr, size, fd);
 
@@ -121,7 +121,7 @@ int FlushBuf(DumpBuffer_t *buf)
 	sed.Value.SmartFTPD.ByteQuota = -1;
 	sed.Value.SmartFTPD.SeekOffset = 0;
 	sed.Value.SmartFTPD.Tag = FILEINVM;
-	sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = buf->DumpBuf;
+	sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = (RPC2_Byte *)buf->DumpBuf;
 	sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = 
 	sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = nbytes =
 	    buf->DumpBufPtr - buf->DumpBuf;  /* Number of bytes in the buffer */
@@ -156,9 +156,9 @@ int FlushBuf(DumpBuffer_t *buf)
     return 0;
 }    
 
-byte *Reserve(DumpBuffer_t *buf, int n)
+char *Reserve(DumpBuffer_t *buf, int n)
 {
-    byte *current = buf->DumpBufPtr;
+    char *current = buf->DumpBufPtr;
     if (current+n > buf->DumpBufEnd) {
         if (FlushBuf(buf) == -1) return NULL;
 	current = buf->DumpBufPtr;
@@ -169,9 +169,9 @@ byte *Reserve(DumpBuffer_t *buf, int n)
 }
 
 /* Throughout this code are implicit assumptions as to the size of objects */
-int DumpTag(DumpBuffer_t *buf, byte tag)
+int DumpTag(DumpBuffer_t *buf, char tag)
 {
-    byte *p = Reserve(buf, 1);
+    char *p = Reserve(buf, 1);
     if (p) {
 	*p = tag;
 	return 0;
@@ -179,9 +179,9 @@ int DumpTag(DumpBuffer_t *buf, byte tag)
     return -1;
 }
 
-int DumpByte(DumpBuffer_t *buf, byte tag, byte value)
+int DumpByte(DumpBuffer_t *buf, char tag, char value)
 {
-    byte *p = Reserve(buf, 2);
+    char *p = Reserve(buf, 2);
     if (p) {
 	*p++ = tag;
 	*p = value;
@@ -191,13 +191,13 @@ int DumpByte(DumpBuffer_t *buf, byte tag, byte value)
 }
 
 #define putlong(p, v) \
- *p++ =(byte)(v>>24); *p++ = (byte)(v>>16); *p++ = (byte)(v>>8); *p++ = (byte)(v);
+ *p++ =(unsigned char)(v>>24); *p++ = (unsigned char)(v>>16); *p++ = (unsigned char)(v>>8); *p++ = (unsigned char)(v);
 
-#define putshort(p, v) *p++ = (byte)(v>>8); *p++ = (byte)(v);
+#define putshort(p, v) *p++ = (unsigned char)(v>>8); *p++ = (unsigned char)(v);
 
-int DumpDouble(DumpBuffer_t *buf, byte tag, unsigned int value1, unsigned int value2)
+int DumpDouble(DumpBuffer_t *buf, char tag, unsigned int value1, unsigned int value2)
 {
-    byte *p = Reserve(buf, 1 + 2 * sizeof(unsigned int));
+    char *p = Reserve(buf, 1 + 2 * sizeof(unsigned int));
     if (p) {
 	*p++ = tag;
 	putlong(p, value1);
@@ -207,9 +207,9 @@ int DumpDouble(DumpBuffer_t *buf, byte tag, unsigned int value1, unsigned int va
     return -1;
 }
 
-int DumpInt32(DumpBuffer_t *buf, byte tag, unsigned int value)
+int DumpInt32(DumpBuffer_t *buf, char tag, unsigned int value)
 {
-    byte *p = Reserve(buf, 1 + sizeof(unsigned int));
+    char *p = Reserve(buf, 1 + sizeof(unsigned int));
     if (p) {
 	*p++ = tag;
 	putlong(p, value);
@@ -218,9 +218,9 @@ int DumpInt32(DumpBuffer_t *buf, byte tag, unsigned int value)
     return -1;
 }
 
-int DumpArrayInt32(DumpBuffer_t *buf, byte tag, unsigned int *array, int nelem)
+int DumpArrayInt32(DumpBuffer_t *buf, char tag, unsigned int *array, int nelem)
 {
-    byte *p = Reserve(buf, 1 + sizeof(unsigned int) +
+    char *p = Reserve(buf, 1 + sizeof(unsigned int) +
 		      (nelem * sizeof(unsigned int)));
     if (p) {
 	*p++ = tag;
@@ -234,32 +234,31 @@ int DumpArrayInt32(DumpBuffer_t *buf, byte tag, unsigned int *array, int nelem)
     return -1;
 }
 
-int DumpShort(DumpBuffer_t *buf, byte tag, unsigned int value)
+int DumpShort(DumpBuffer_t *buf, char tag, unsigned int value)
 {
-    byte *p = Reserve(buf, 1 + sizeof(short));
+    char *p = Reserve(buf, 1 + sizeof(short));
     if (p) {
 	*p++ = tag;
-	*p++ = value>>8;
-	*p = (byte) value;
+	putshort(p, value);
 	return 0;
     }
     return -1;
 }
 
-int DumpBool(DumpBuffer_t *buf, byte tag, unsigned int value)
+int DumpBool(DumpBuffer_t *buf, char tag, unsigned int value)
 {
-    byte *p = Reserve(buf, 2);	/* Assume bool is same as byte */
+    char *p = Reserve(buf, 2);	/* Assume bool is same as byte */
     if (p) {
 	*p++ = tag;
-	*p = (byte) value;
+	*p = (char) value;
 	return 0;
     }
     return -1;
 }
 
-int DumpString(DumpBuffer_t *buf, byte tag, char *s)
+int DumpString(DumpBuffer_t *buf, char tag, char *s)
 {
-    byte *p;
+    char *p;
     int n;
     n = strlen(s)+1;
     if ((p = Reserve(buf, 1 + n + sizeof(unsigned int)))) {
@@ -271,9 +270,9 @@ int DumpString(DumpBuffer_t *buf, byte tag, char *s)
     return -1;
 }
 
-int DumpByteString(DumpBuffer_t *buf, byte tag, byte *bs, int nbytes)
+int DumpByteString(DumpBuffer_t *buf, char tag, char *bs, int nbytes)
 {
-    byte *p = Reserve(buf, 1+nbytes);
+    char *p = Reserve(buf, 1+nbytes);
     if (p) {
 	*p++ = tag;
 	memcpy(p, bs, nbytes);
@@ -285,7 +284,7 @@ int DumpByteString(DumpBuffer_t *buf, byte tag, byte *bs, int nbytes)
 /*
  * If any of these operations fail, the others will be nullops.
  */
-int DumpVV(DumpBuffer_t *buf, byte tag, struct ViceVersionVector *vv)
+int DumpVV(DumpBuffer_t *buf, char tag, struct ViceVersionVector *vv)
 {
     DumpTag(buf, tag);
     DumpInt32(buf, '0', vv->Versions.Site0);
@@ -299,13 +298,13 @@ int DumpVV(DumpBuffer_t *buf, byte tag, struct ViceVersionVector *vv)
     DumpInt32(buf, 's', vv->StoreId.Host);
     DumpInt32(buf, 'u', vv->StoreId.Uniquifier);
     DumpInt32(buf, 'f', vv->Flags);
-    return DumpTag(buf, (byte)D_ENDVV);
+    return DumpTag(buf, (char)D_ENDVV);
 }
 
-int DumpFile(DumpBuffer_t *buf, byte tag, int fd, int vnode)
+int DumpFile(DumpBuffer_t *buf, char tag, int fd, int vnode)
 {
     long n, nbytes, howMany;
-    byte *p;
+    char *p;
     struct stat status;
     fstat(fd, &status);
 

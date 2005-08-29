@@ -54,7 +54,7 @@ long S_GetVolumeList(RPC2_Handle rpcid, SE_Descriptor *formal_sed)
     sed.Tag = SMARTFTP;
     sed.Value.SmartFTPD.TransmissionDirection = SERVERTOCLIENT;
     sed.Value.SmartFTPD.Tag = FILEINVM;
-    sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = (unsigned char *)buf;
+    sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = (RPC2_Byte *)buf;
     sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen = buflen;
 
     if ((rc = RPC2_InitSideEffect(rpcid, &sed)) <= RPC2_ELIMIT) 

@@ -91,7 +91,7 @@ static int getfid (char *path, ViceFid *Fid, ViceVersionVector *VV, struct ViceI
 		perror("res_getfid: readlink");
 		return errno;	
 	}
-	sscanf(symval, "@%lx.%lx.%lx", &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
+	sscanf(symval, "@%x.%x.%x", &(Fid->Volume), &(Fid->Vnode), &(Fid->Unique));
 
 	/* return garbage in VV */
 	return 0;
@@ -290,7 +290,7 @@ static int nextindex()
     return(nextavailindex);
 }
 
-void MarkEntriesByFid (long Vnode, long unique)
+void MarkEntriesByFid (VnodeId Vnode, Unique_t unique)
 {
     resdir_entry *direntryptr = direntriesarr;
     for(int i = 0; i < totaldirentries; i++)
@@ -458,7 +458,7 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
     
     for (i = first; i < last; i++) {
 	resdir_entry *rde = sortedArrByName[i];
-	printf("%s%s\n\tFid: (%lx.%lx) VV:(%ld %ld %ld %ld %ld %ld %ld %ld)(%lx.%lx)\n",
+	printf("%s%s\n\tFid: (%08x.%08x) VV:(%d %d %d %d %d %d %d %d)(%x.%x)\n",
 	       dirs[rde->replicaid].path, sortedArrByName[first]->name,
 	       rde->vno, rde->uniqfier, rde->VV.Versions.Site0,
 	       rde->VV.Versions.Site1, rde->VV.Versions.Site2, rde->VV.Versions.Site3,
@@ -509,18 +509,18 @@ int NameNameResolve(int first, int last, int nreplicas, resreplica *dirs, struct
 
     if (nno) {
 	/* check that only single unique object will exist */
-	long goodvnode = -1;
-	long goodunique = -1;
+	VnodeId goodvnode = (VnodeId)-1;
+	Unique_t goodunique = (Unique_t)-1;
 	for (i = 0; i < nobjects; i++) {
 	    if (!answers[i]) {
-		if (goodvnode == -1) {
+		if (goodvnode == (VnodeId)-1) {
 		    goodvnode = sortedArrByName[i+first]->vno;
 		    goodunique = sortedArrByName[i+first]->uniqfier;
 		}
 		else if (goodvnode != sortedArrByName[i+first]->vno ||
 			 goodunique != sortedArrByName[i+first]->uniqfier) {
 		    printf("Please try to rename or remove one of the two objects:\n");
-		    printf("(%lx.%lx) and (%lx.%lx) with name %s\n",
+		    printf("(%08x.%08x) and (%08x.%08x) with name %s\n",
 			   goodvnode, goodunique, sortedArrByName[i+first]->vno, 
 			   sortedArrByName[i+first]->uniqfier,
 			   sortedArrByName[first]->name);

@@ -156,7 +156,7 @@ static int GetRepairF(char *RepairFile, uid_t uid, fsobj **RepairF)
 
     *RepairF = NULL;
 
-    if (sscanf(RepairFile, "@%lx.%lx.%lx@%c", &RepairFileFid.Volume,
+    if (sscanf(RepairFile, "@%x.%x.%x@%c", &RepairFileFid.Volume,
 	       &RepairFileFid.Vnode, &RepairFileFid.Unique, &tmp) != 4)
 	return 0;
 
@@ -331,10 +331,10 @@ int repvol::ConnectedRepair(VenusFid *RepairFid, char *RepairFile, uid_t uid,
 	/* A little debugging help. */
 	if (LogLevel >= 1) {
 	    fprintf(logFile, "Repairing %s:\n", FID_(rFid));
-	    fprintf(logFile, "\tIV = %ld, VT = %d, LC = %ld, LE = %ld, DV = %ld, DA = %ld\n",
+	    fprintf(logFile, "\tIV = %d, VT = %d, LC = %d, LE = %d, DV = %d, DA = %d\n",
 		    status.InterfaceVersion, status.VnodeType, status.LinkCount,
 		    status.Length, status.DataVersion, status.Date);
-	    fprintf(logFile, "\tAU = %ld, OW = %ld, CB = %d, MA = %d, AA = %d, MO = %ld\n",
+	    fprintf(logFile, "\tAU = %d, OW = %d, CB = %d, MA = %x, AA = %x, MO = %o\n",
 		    status.Author, status.Owner, status.CallBack,
 		    (int)status.MyAccess, (int)status.AnyAccess, status.Mode);
 	    vv_t *tvvs[VSG_MEMBERS];
@@ -843,7 +843,8 @@ int repvol::DisconnectedRepair(VenusFid *RepairFid, char *RepairFile,
 }
 
 /* MUST be called from within a transaction */
-int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfid) {
+int repvol::LocalRepair(fsobj *f, ViceStatus *status, char *fname, VenusFid *pfid)
+{
     LOG(100, ("LocalRepair: %s local file %s \n",
 	      FID_(&f->fid), fname));
     RVMLIB_REC_OBJECT(*f);

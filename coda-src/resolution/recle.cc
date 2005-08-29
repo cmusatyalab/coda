@@ -280,14 +280,14 @@ void recle::print(FILE *fp) {
 
 void recle::print(int fd) {
     char buf[512];
-    sprintf(buf, "    **Server: 0x%lx StoreId: 0x%lx.%lx \n", 
+    sprintf(buf, "    **Server: %x StoreId: %x.%x \n", 
 	    serverid, storeid.Host, storeid.Uniquifier);
     write(fd, buf, (int) strlen(buf));
 
-    sprintf(buf, "    Directory(0x%lx.%lx)\n    Opcode: %s \n",
+    sprintf(buf, "    Directory(%08x.%08x)\n    Opcode: %s \n",
 	    dvnode, dunique, PRINTOPCODE(opcode));
     write(fd, buf, (int) strlen(buf));
-    sprintf(buf, "    index is %ld, sequence number %d, var length is %d\n",
+    sprintf(buf, "    index is %u, sequence number %d, var length is %d\n",
 	    index, seqno, size);
     write(fd, buf, (int) strlen(buf));
 

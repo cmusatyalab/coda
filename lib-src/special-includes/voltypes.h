@@ -61,6 +61,7 @@ typedef bit32	Device;		/* Unix device number */
 typedef bit32	Inode;		/* Unix inode number */
 typedef bit32	Error;		/* Error return code */
 
+#if 0
 #ifndef _FID_T_
 #define _FID_T_
 typedef RPC2_Unsigned VolumeId;
@@ -68,6 +69,7 @@ typedef RPC2_Unsigned VolId;
 typedef RPC2_Unsigned VnodeId;
 typedef RPC2_Unsigned Unique_t;
 typedef bit32 FileVersion;
+#endif
 #endif
 
 #endif

@@ -34,7 +34,7 @@ class rsle;
 class recle : public rec_dlink {
 //friend class rsle;
   public:
-    unsigned long	serverid;
+    uint32_t		serverid;
     ViceStoreId 	storeid;
     RPC2_Unsigned 	opcode;
     VnodeId		dvnode;
@@ -47,7 +47,7 @@ class recle : public rec_dlink {
     
     int GetDumpSize(); 			// size of buffer for dumping entry
   // public:		
-    unsigned long	index;		/* index of entry in the log */
+    uint32_t		index;		/* index of entry in the log */
     int			seqno;		/* monotonically increasing 
 					   number for log records */
     recle();

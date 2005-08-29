@@ -564,7 +564,7 @@ void repair_printfile(char *fname) {
     unsigned int j;
     repair_getdfile(fname, 0, &repcount, &list);
     for (i = 0; i < repcount; i++) {
-	printf("New replica: volume id %lx has %d repair entries\n",
+	printf("New replica: volume id %08x has %d repair entries\n",
 	       list[i].replicaId, list[i].repairCount);
 	for (j = 0; j < list[i].repairCount; j++) 
 	    repair_printline(&list[i].repairList[j], stdout);

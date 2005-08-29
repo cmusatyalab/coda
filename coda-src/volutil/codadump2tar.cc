@@ -398,7 +398,7 @@ int ProcessDirectory()
   if (rc < 0) return -1;
 
   if (DEBUG_HEAVY) {
-    fprintf(stderr, "\nNext Vnode: deleted = %d    offset = %ld\n",
+    fprintf(stderr, "\nNext Vnode: deleted = %d    offset = %lld\n",
 	    deleted, offset);
     PrintVnodeDiskObject(stderr, vdo, vn);
   } 
@@ -500,7 +500,7 @@ int ProcessFileOrSymlink()
   if (rc < 0) return -1;
 
   if (DEBUG_HEAVY) {
-    fprintf(stderr, "\nNext Vnode: deleted = %d    offset = %ld\n",
+    fprintf(stderr, "\nNext Vnode: deleted = %d    offset = %lld\n",
 	    deleted, offset);
     PrintVnodeDiskObject(stderr, &smallv, vn);
   } 
@@ -671,7 +671,7 @@ size_t DumpObject::GetComponent(char *buf, size_t len, int idx)
     {
 	if (oid.vnode == 1 && oid.uniquifier == 1)
 	     n = snprintf(buf, len, "%s", RootName);
-	else n = snprintf(buf, len, "%s/lost+found/0x%08lx.%08lx",
+	else n = snprintf(buf, len, "%s/lost+found/%08x.%08x",
 			  RootName, oid.vnode, oid.uniquifier);
 	if (n < 0) {
 	    *buf = '\0';

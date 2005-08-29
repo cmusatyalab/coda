@@ -280,7 +280,7 @@ struct Volume {
     byte	specialStatus;	/* An error code to return on VGetVolume: the
 				   volume is unavailable for the reason quoted,
 				   currently VBUSY or VMOVED */
-    long	updateTime;	/* Time that this volume was put on the updated
+    int32_t	updateTime;	/* Time that this volume was put on the updated
 				   volume list--the list of volumes that will be
 				   salvaged should the file server crash */
     struct	Lock lock;	/* internal lock */

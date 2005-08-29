@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 
     char *DumpBuf = (char *)malloc(DUMPBUFSIZE);
     CODA_ASSERT(DumpBuf != NULL);
-    DumpBuffer_t *dbuf = InitDumpBuf((byte *)DumpBuf, (long)DUMPBUFSIZE, DumpFd);
+    DumpBuffer_t *dbuf = InitDumpBuf(DumpBuf, DUMPBUFSIZE, DumpFd);
     
     /* At this point both headers should have been read and checked. Write out
        the merged header to the dump file. */
@@ -182,10 +182,10 @@ int main(int argc, char **argv)
     }
 
     /* At this point the tables should reflect the merged state. */
-    DumpTag(dbuf, (byte) D_LARGEINDEX); 
+    DumpTag(dbuf, D_LARGEINDEX); 
     WriteTable(dbuf, &LTable, vLarge);     /* Output the list of vnodes */
 
-    DumpTag(dbuf, (byte) D_SMALLINDEX);   
+    DumpTag(dbuf, D_SMALLINDEX);   
     WriteTable(dbuf, &STable, vSmall);	/* Output the list of vnodes */
 
     DumpEnd(dbuf);	/* Output an EndMarker on the output stream. */
@@ -317,7 +317,7 @@ static void ModifyTable(dumpstream *dump, VnodeClass vclass, vtable *Table)
 /* Write the combined headers to the output dump file. */
 static void WriteDumpHeader(DumpBuffer_t *buf, struct DumpHeader *head, struct DumpHeader *ihead)
 {
-    DumpDouble(buf, (byte) D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
+    DumpDouble(buf, D_DUMPHEADER, DUMPBEGINMAGIC, DUMPVERSION);
     DumpInt32(buf, 'v', head->volumeId);
     DumpInt32(buf, 'p', head->parentId);
     DumpString(buf, 'n', head->volumeName);
@@ -354,7 +354,7 @@ static void WriteTable(DumpBuffer_t *buf, vtable *table, VnodeClass vclass)
 
 static void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v, int vnodeNumber)
 {
-    DumpDouble(buf, (byte) D_VNODE, vnodeNumber, v->uniquifier);
+    DumpDouble(buf, D_VNODE, vnodeNumber, v->uniquifier);
     DumpByte(buf, 't', v->type);
     DumpShort(buf, 'b', v->modeBits);
     DumpShort(buf, 'l', v->linkCount); /* May not need this */
@@ -369,14 +369,14 @@ static void WriteVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *v, int vnod
 
     if (v->type == vDirectory) {
 	/* Dump the Access Control List */
-	DumpByteString(buf, 'A', (byte *) VVnodeDiskACL(v), VAclDiskSize(v));
+	DumpByteString(buf, 'A', (char *)VVnodeDiskACL(v), VAclDiskSize(v));
     }
 }
 
 
 static void DumpVolumeDiskData(DumpBuffer_t *buf, register VolumeDiskData *vol)
 {
-    DumpTag(buf, (byte) D_VOLUMEDISKDATA);
+    DumpTag(buf, D_VOLUMEDISKDATA);
     DumpInt32(buf, 'i',vol->id);
     DumpInt32(buf, 'v',vol->stamp.version);
     DumpString(buf, 'n',vol->name);

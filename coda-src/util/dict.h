@@ -99,6 +99,7 @@ class assockey {
   protected:
     /* Protected ctor ensures this is abstract class! */
     assockey() { ; }
+    virtual ~assockey();
 
   public:
     virtual int	operator==(assockey& Key)   /* MUST be redefined by deriver! */

@@ -56,7 +56,7 @@ void InitRPC2(void)
 
 	if ((rc = RPC2_Init(RPC2_VERSION, 0, &portid, -1, NULL)) != RPC2_SUCCESS)
 	{
-		fprintf(portmaplog, "InitRPC: RPC2_Init() failed with (%ld) %s\n", rc, RPC2_ErrorMsg(rc));
+		fprintf(portmaplog, "InitRPC: RPC2_Init() failed with (%d) %s\n", rc, RPC2_ErrorMsg(rc));
 		exit(-1);
 	}
 

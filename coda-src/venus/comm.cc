@@ -743,7 +743,7 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles)
     if (LogLevel >= 1) {
 	dprint("MultiProbe: HowMany = %d\n\tHandles = [ ", HowMany);
 	for (int i = 0; i < HowMany; i++)
-	    fprintf(logFile, "%lx ", Handles[i]);
+	    fprintf(logFile, "%x ", Handles[i]);
 	fprintf(logFile, "]\n");
     }
 
@@ -769,8 +769,8 @@ void MultiProbe(int HowMany, RPC2_Handle *Handles)
     MarinerLog("fetch::Probe\n");
     MULTI_START_MESSAGE(ViceGetTime_OP);
     int code = (int) MRPC_MakeMulti(ViceGetTime_OP, ViceGetTime_PTR,
-			       HowMany, Handles, (RPC2_Integer *)0, 0,
-			       HandleProbe, 0, secs_ptrs, usecs_ptrs);
+			       HowMany, Handles, 0, 0, HandleProbe, 0,
+			       secs_ptrs, usecs_ptrs);
     MULTI_END_MESSAGE(ViceGetTime_OP);
     MarinerLog("fetch::probe done\n");
 

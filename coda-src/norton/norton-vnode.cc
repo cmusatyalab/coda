@@ -55,15 +55,15 @@ void PrintVnodeDiskObject(VnodeDiskObject *vnode)
     }
     printf("\tcloned = %u\tmode = %o\tlinks = %u\n",
 	   vnode->cloned, vnode->modeBits, vnode->linkCount);
-    printf("    length = %u\tunique = %lu\tversion = %lu\tinode = %u\n",
+    printf("    length = %u\tunique = %08x\tversion = %u\tinode = %u\n",
 	   vnode->length, vnode->uniquifier, vnode->dataVersion,
 	   vnode->inodeNumber); 
     printf("    vv = ");
     PrintVV(&vnode->versionvector);
-    printf("    volindex = %d\tmodtime = %lu\tauthor = %lu\towner = %lu\n",
+    printf("    volindex = %d\tmodtime = %u\tauthor = %u\towner = %u\n",
 	vnode->vol_index, vnode->unixModifyTime, vnode->author, vnode->owner);
-    printf("    parent = 0x%lx.0x%lx\tmagic = 0x%x\n    servermodtime = %lu\n",
-	   vnode->vparent, vnode->uparent, (unsigned int)vnode->vnodeMagic,
+    printf("    parent = %08x.%08x\tmagic = %x\n    servermodtime = %u\n",
+	   vnode->vparent, vnode->uparent, vnode->vnodeMagic,
 	   vnode->serverModifyTime); 
 }
 
@@ -97,7 +97,7 @@ void show_vnode(VolumeId volid, Unique_t uniquifier)
 	}
 	    
 
-	printf("    vnode number: 0x%lx\tvnode index: 0x%lx\n", 2*(vnodeindex+1), vnodeindex);
+	printf("    vnode number: %08x\tvnode index: %u\n", 2*(vnodeindex+1), vnodeindex);
 	PrintVnodeDiskObject(vnode);
 	if (vnode->log) {
 	    printf("\n    Vnode Resolution Log:\n");
@@ -129,7 +129,7 @@ void show_vnode(VolumeId volid, VnodeId vnum, Unique_t uniquifier)
 	return;
     }
 
-    printf("    vnode number: 0x%lx\tvnode index: 0x%lx\n", vnum, vnodeindex);
+    printf("    vnode number: %08x\tvnode index: %u\n", vnum, vnodeindex);
     PrintVnodeDiskObject(vnode);
     if (vnode->log) {
 	printf("\n    Vnode Resolution Log:\n");

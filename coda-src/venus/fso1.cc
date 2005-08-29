@@ -1141,7 +1141,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
 	Realm *r = vol->realm;
 	int n;
 
-	n = sscanf(data.symlink, "@%lx.%*x.%*x@%c", &vid.Volume, &tmp);
+	n = sscanf(data.symlink, "@%x.%*x.%*x@%c", &vid.Volume, &tmp);
 	if (n < 1) {
 	    print(logFile);
 	    CHOKE("fsobj::TryToCover: couldn't get volume id");
@@ -1194,7 +1194,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
     root_fid.Realm = tvol->GetRealmId();
     root_fid.Volume = tvol->vid;
     if (IsFake()) {
-	if (sscanf(data.symlink, "@%*x.%lx.%lx", &root_fid.Vnode, &root_fid.Unique) != 2)
+	if (sscanf(data.symlink, "@%*x.%x.%x", &root_fid.Vnode, &root_fid.Unique) != 2)
 	    { print(logFile); CHOKE("fsobj::TryToCover: couldn't get <tvolid, tunique>"); }
     }
     else {
@@ -2128,7 +2128,7 @@ int fsobj::Fakeify()
 	    stat.Length = 29 + strlen(realmname);
 	    data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
 	    rvmlib_set_range(data.symlink, stat.Length+1);
-	    sprintf(data.symlink, "@%08lx.%08lx.%08lx@%s.",
+	    sprintf(data.symlink, "@%08x.%08x.%08x@%s.",
 		    LinkFid.Volume, LinkFid.Vnode, LinkFid.Unique, realmname);
 
 	    LOG(0, ("fsobj::Fakeify: making %s a symlink %s\n",
@@ -2209,7 +2209,7 @@ int fsobj::Fakeify()
 	stat.Length = 29 + strlen(realmname);
 	data.symlink = (char *)rvmlib_rec_malloc(stat.Length+1);
 	rvmlib_set_range(data.symlink, stat.Length+1);
-	sprintf(data.symlink, "@%08lx.%08lx.%08lx@%s.",
+	sprintf(data.symlink, "@%08x.%08x.%08x@%s.",
 		LinkFid.Volume, LinkFid.Vnode, LinkFid.Unique, realmname);
 
 	LOG(0, ("fsobj::Fakeify: making %s a symlink %s\n",

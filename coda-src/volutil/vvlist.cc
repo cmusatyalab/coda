@@ -58,10 +58,10 @@ extern "C" {
 void getlistfilename(char *filename, VolumeId groupId, VolumeId repId, char *suffix)
 {
     if (groupId > 0)
-	sprintf(filename, "%s/%lx.%lx.", vice_sharedfile("backup"),
+	sprintf(filename, "%s/%x.%x.", vice_sharedfile("backup"),
 		groupId, repId);
     else
-	sprintf(filename, "%s/%lx.", vice_sharedfile("backup"), repId);
+	sprintf(filename, "%s/%x.", vice_sharedfile("backup"), repId);
 	
     strcat(filename, suffix);
 }
@@ -78,7 +78,7 @@ int ValidListVVHeader(FILE *Ancient, Volume *vp, int *unique)
     
     fgets(buffer, LISTLINESIZE, Ancient);
 
-    if (sscanf(buffer, "%s dump of backup vol %x(%x) for R/W vol %x\n",
+    if (sscanf(buffer, "%s dump of backup vol %08x(%x) for R/W vol %08x\n",
 	   dummy, &volid, unique, &parid) < 4)
 	return FALSE;
 
@@ -98,11 +98,11 @@ void DumpListVVHeader(int VVListFd, Volume *vp, unsigned int dumplevel,
 
     /* Don't put "\n" on sprintf format since ctime() puts one there. */
     if (V_type(vp) == BACKVOL) /* Only Backups or R/O are dumped. */
-	sprintf(buffer, "%s dump of backup vol %lx(%x) for R/W vol %lx, (level %d) backup at %s",
+	sprintf(buffer, "%s dump of backup vol %08x(%x) for R/W vol %08x, (level %d) backup at %s",
 		(dumplevel ? "Incremental" : "Full"),
 		V_id(vp), unique, V_parentId(vp), dumplevel, ctime(&time));
     else 
-	sprintf(buffer, "%s dump of clone vol %lx(%x) for R/W vol %lx, (level %d) cloned at %s",
+	sprintf(buffer, "%s dump of clone vol %08x(%x) for R/W vol %08x, (level %d) cloned at %s",
 		(dumplevel ? "Incremental" : "Full"),
 		V_id(vp), unique, V_parentId(vp), dumplevel, ctime(&time));
 
@@ -118,7 +118,7 @@ void ListVV(int fd, int vnode, VnodeDiskObject *vnp, unsigned int dumplevel)
     
     if (fd < 0) return;
 
-    sprintf(buffer, "%d.%ld (%ld.%ld.%ld.%ld.%ld.%ld.%ld.%ld) (%lx.%lx) %u\n",
+    sprintf(buffer, "%08x.%08x (%d.%d.%d.%d.%d.%d.%d.%d) (%x.%x) %u\n",
 		    vnode, vnp->uniquifier,
 		    vv->Versions.Site0,     vv->Versions.Site1, 
 		    vv->Versions.Site2,     vv->Versions.Site3, 

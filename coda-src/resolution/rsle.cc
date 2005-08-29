@@ -478,7 +478,7 @@ void rsle::print(FILE *fp){
 void rsle::print(int fd) {
     char buf[512];
     sprintf(buf, 
-	    "index 0x%x seqno %d stid 0x%lx.%lx\nDir (0x%lx.%lx)\nopcode %s\n",
+	    "index %d seqno %d stid %x.%x\nDir (%08x.%08x)\nopcode %s\n",
 	    index, seqno, storeid.Host, storeid.Uniquifier, dvn, du, 
 	    PRINTOPCODE(opcode));
     write(fd, buf, strlen(buf));

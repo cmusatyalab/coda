@@ -690,7 +690,7 @@ int dumpstream::getNextVnode(VnodeDiskObject *vdop, VnodeId *vnodeNumber, int *d
 
 /* Copy the file or directory data which should be next in the stream to out */
 /* Actually use the bogus Dump mechanism in DumpFD, it should be rewritten soon.*/
-extern byte *Reserve(DumpBuffer_t *, int);
+extern char *Reserve(DumpBuffer_t *, int);
 int
 dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 {
@@ -721,7 +721,7 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 		LogMsg(0, VolDebugLevel, stderr, "Error reading dump file %s.", name);
 		return -1;
 	    }
-	    DumpByteString(dbuf, (byte)'P', (byte *)buf, DIR_PAGESIZE);
+	    DumpByteString(dbuf, 'P', buf, DIR_PAGESIZE);
 	}
     } else if (IndexType == vSmall) {
 	/* May not have a file associated with this vnode? don't think so...*/
@@ -731,13 +731,13 @@ dumpstream::copyVnodeData(DumpBuffer_t *dbuf)
 	long filesize, size = DIR_PAGESIZE;
 	if (!GetInt32(stream, (unsigned int *)&filesize)) 
 	    return -1;
-	byte *p;
+	char *p;
 	DumpInt32(dbuf, D_FILEDATA, filesize);
 	for (nbytes = filesize; nbytes; nbytes -= size) {
 	    if (nbytes < size)
 		size = nbytes;
 	    p = Reserve(dbuf, size);	/* Mark off size bytes in output */
-	    if (fread((char *)p, size, 1, stream) != 1) {
+	    if (fread(p, size, 1, stream) != 1) {
 		LogMsg(0, VolDebugLevel, stderr, "Error reading dump file %s.", name);
 		return -1;
 	    }
@@ -847,10 +847,10 @@ int dumpstream::CopyBytesToFile(FILE *outfile, int nbytes) {
 
 
 void PrintDumpHeader(FILE * outfile, struct DumpHeader *dh) {
-    fprintf(outfile, "Volume id = 0x%08lx, Volume name = '%s'\n", 
+    fprintf(outfile, "Volume id = %08x, Volume name = '%s'\n", 
 	 dh->volumeId, dh->volumeName);
-    fprintf(outfile, "Parent id = 0x%08lx  Timestamp = %s", 
+    fprintf(outfile, "Parent id = %08x  Timestamp = %s", 
 	 dh->parentId, ctime((time_t *)&dh->backupDate));
-    fprintf(outfile, "Dump uniquifiers: oldest = 0x%08x   latest = 0x%08x\n",
+    fprintf(outfile, "Dump uniquifiers: oldest = %08x   latest = %08x\n",
 	 dh->oldest, dh->latest);
 }

@@ -113,7 +113,7 @@ static char *get(DumpBuffer_t *buf, int size, int *error)
 	    sed.Value.SmartFTPD.ByteQuota = -1;
 	    sed.Value.SmartFTPD.SeekOffset = 0;
 	    sed.Value.SmartFTPD.Tag = FILEINVM;
-	    sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = buf->DumpBufPtr;
+	    sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody = (RPC2_Byte *)buf->DumpBufPtr;
 	    sed.Value.SmartFTPD.FileInfo.ByAddr.vmfile.MaxSeqLen = nbytes = 
 		buf->DumpBufEnd - buf->DumpBufPtr; /* # of bytes in the buf */
 
@@ -247,7 +247,7 @@ int ReadString(DumpBuffer_t *buf, char *to, int max)
     return TRUE;
 }
 
-int ReadByteString(DumpBuffer_t *buf, byte *to, int size)
+int ReadByteString(DumpBuffer_t *buf, char *to, int size)
 {
     int error = 0;
     byte *str = (byte *)get(buf, size, &error);

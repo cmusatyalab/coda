@@ -581,7 +581,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
     /* SHA value (not always used) */
     RPC2_BoundedBS mysha; 
-    mysha.SeqBody = VenusSHA;
+    mysha.SeqBody = (RPC2_Byte *)VenusSHA;
     mysha.MaxSeqLen = SHA_DIGEST_LENGTH;
     mysha.SeqLen = 0; 
 
@@ -948,7 +948,7 @@ int fsobj::GetAttr(uid_t uid, RPC2_BoundedBS *acl)
 
 	    if (LogLevel >= 10 && mysha.SeqLen == SHA_DIGEST_LENGTH) {
 		char printbuf[2*SHA_DIGEST_LENGTH+1];
-		ViceSHAtoHex(mysha.SeqBody, printbuf, sizeof(printbuf));
+		ViceSHAtoHex(VenusSHA, printbuf, sizeof(printbuf));
 		dprint("mysha(%d, %d) = %s\n.", mysha.MaxSeqLen, mysha.SeqLen,
 		       printbuf);
 	    }

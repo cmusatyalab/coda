@@ -37,7 +37,7 @@ listed in the file CREDITS.
 struct dllist_head namehashtable[NAMEHASHSIZE];
 
 /* takes a nul-terminated name, returns a hash % NAMEHASHSIZE */
-int namehash(char *name)
+int namehash(PM_Name name)
 {
 	/* Elfhash from UNIX SVR4 */
 	int h=0, g;
@@ -68,7 +68,8 @@ void initnamehashtable(void)
 	protocol (if -1)
 	port (if -1)
 */
-struct protoentry *find_mapping(char *name, int version, int protocol, int port)
+struct protoentry *find_mapping(PM_Name name, PM_Version version,
+				PM_Protocol protocol, PM_Port port)
 {
 	struct dllist_head *le;
 	struct protoentry *pe;
@@ -93,7 +94,7 @@ struct protoentry *find_mapping(char *name, int version, int protocol, int port)
 			continue;
 		if (port != -1 && port != pe->port)
 			continue;
-		if (strcmp(name, pe->name) != 0)
+		if (strcmp((char *)name, pe->name) != 0)
 			continue;
 
 		/* found it, or at least something remarkably similar */
@@ -105,7 +106,8 @@ struct protoentry *find_mapping(char *name, int version, int protocol, int port)
 
 /* register a new service -- assumes that there are no collisions -- be
    careful to delete the old one first */
-void register_mapping(char *name, int version, int protocol, int port)
+void register_mapping(PM_Name name, PM_Version version, PM_Protocol protocol,
+		      PM_Port port)
 {
 	struct protoentry *pe;
 	int bucket;
@@ -117,7 +119,7 @@ void register_mapping(char *name, int version, int protocol, int port)
 	CODA_ASSERT(pe = (struct protoentry *)
 			malloc(sizeof(struct protoentry)));
 
-	pe->name = strdup(name);
+	pe->name = strdup((char *)name);
 	pe->version = version;
 	pe->protocol = protocol;
 	pe->port = port;

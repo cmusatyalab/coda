@@ -89,7 +89,7 @@ int LookAsideAndFillContainer (unsigned char sha[SHA_DIGEST_LENGTH], int cfd,
       /* check next lkdb for sha value */
       dbp->attempts++;
       if (lkdb_GetFilenameFromSHA(dbp, sha, hitpathname, sizeof(hitpathname),
-				 emsgbuf, emsgbuflen))
+				  emsgbuf, emsgbuflen))
       {
 	  dbp->hits++;
 	  goto FoundSHA; /* success! */
@@ -251,9 +251,9 @@ err:
 }
 
 int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
-			   unsigned char sha[SHA_DIGEST_LENGTH],
-			   char *hitpath, int hitpathlen,
-			   char *emsgbuf, int emsgbuflen)
+			    unsigned char sha[SHA_DIGEST_LENGTH],
+			    char *hitpath, int hitpathlen,
+			    char *emsgbuf, int emsgbuflen)
 {
 /* GetFilenameFromSHA() probes this db for key sha;  if successful,
    copies the value corresponding  to this key into the buffer hitpath.
@@ -273,7 +273,7 @@ int lkdb_GetFilenameFromSHA(struct lkdb *dbp,
       return 0;
   }
 
-  rc = rwcdb_find(&dbp->dbh, sha, SHA_DIGEST_LENGTH);
+  rc = rwcdb_find(&dbp->dbh, (char *)sha, SHA_DIGEST_LENGTH);
   if (rc != 1) return 0; // not found
 
   dlen = rwcdb_datalen(&dbp->dbh);

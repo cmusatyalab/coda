@@ -90,7 +90,7 @@ static void PrintDirStatus(ViceStatus *status)
     SLog(0, "LinkCount(%d), Length(%d), Author(%u), Owner(%u), Mode(%u), Parent(0x%x.%x)",
 	   status->LinkCount, status->Length, status->Author, status->Owner,
 	   status->Mode, status->vparent, status->uparent);
-    PrintVV(stdout, &(status->VV));
+    FPrintVV(stdout, &(status->VV));
 }
 
 static int CompareDirStatus(ViceStatus *status, res_mgrpent *mgrp, ViceVersionVector **VV)
@@ -129,7 +129,7 @@ static void DumpDirContents(SE_Descriptor *sid_bufs, ViceFid *fid)
 	int length = sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqLen;
 	if (length) {
 	    char fname[256];
-	    sprintf(fname, "/tmp/dir.0x%lx.0x%lx.%d", fid->Vnode, fid->Unique, j);
+	    sprintf(fname, "/tmp/dir.%08x.%08x.%d", fid->Vnode, fid->Unique, j);
 	    int fd = open(fname, O_CREAT | O_TRUNC | O_RDWR, 0777);
 	    CODA_ASSERT(fd > 0);
 	    write(fd, sid_bufs[j].Value.SmartFTPD.FileInfo.ByAddr.vmfile.SeqBody, 
@@ -201,7 +201,7 @@ static int ResolveInc(res_mgrpent *mgrp, ViceFid *Fid, ViceVersionVector **VV)
     int dirlength = MAXPAGES * PAGESIZE + VAclSize(foo);
     ViceStatus status;
     int DirsEqual = 0;
-    ViceVersionVector *newVV;
+    ViceVersionVector *newVV = { 0, };
     int size;
     unsigned long succflags[VSG_MEMBERS];
     int errorcode = EINCONS;

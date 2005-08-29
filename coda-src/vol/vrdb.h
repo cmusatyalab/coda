@@ -75,7 +75,7 @@ class vrent : public olink {
     olink	namehtblink;
     /*byte*/unsigned char nServers;
     VolumeId ServerVolnum[VSG_MEMBERS];
-    unsigned long dontuse_vsgaddr;
+    uint32_t unused;
 
     vrent();
     vrent(vrent&);

@@ -91,7 +91,7 @@ class lqent : public dlink{
   friend long ViceUnlockVol(RPC2_Handle, VolumeId);
 
     VolumeId Vid;
-    long Time;
+    time_t Time;
     int deqing;
     
     lqent(VolumeId);

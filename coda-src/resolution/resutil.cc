@@ -267,7 +267,7 @@ void AllocIncBSEntry(RPC2_BoundedBS *bbs, char *name, ViceFid *Fid,
     int modlength = 0;
     if ((modlength = (namelength % sizeof(long)))) 
 	namelength += sizeof(long) - modlength;
-    if ((int)(bbs->SeqLen + namelength + SIZEOF_INCFID) > bbs->MaxSeqLen) {
+    if (bbs->SeqLen + namelength + SIZEOF_INCFID > bbs->MaxSeqLen) {
 	SLog(0,  "AllocIncPBEntry: NO MORE SPACE IN BUFFER");
 	CODA_ASSERT(0);
     }

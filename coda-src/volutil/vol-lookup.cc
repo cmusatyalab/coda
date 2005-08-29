@@ -117,13 +117,13 @@ long int S_VolLookup(RPC2_Handle rpcid, RPC2_String formal_vol, SE_Descriptor *f
 	int printed, i;
 	register RPC2_Unsigned *sptr;
 	RPC2_Unsigned s;
-	fprintf(infofile, "Info for vol \"%s\": volume id %lx, %s volume\n", vol, info.Vid, voltypes[info.Type]);
+	fprintf(infofile, "Info for vol \"%s\": volume id %08x, %s volume\n", vol, info.Vid, voltypes[info.Type]);
     	fprintf(infofile, "Associates: ");
 	for (printed=0, p = &info.Type0, i = 0; i<MAXVOLTYPES; i++, p++) {
 	    if (*p) {
 		if (printed)
 		    fprintf(infofile, ",");
-		fprintf(infofile, " %s volume %lx", voltypes[i], *p);
+		fprintf(infofile, " %s volume %08x", voltypes[i], *p);
 		printed++;
 	    }
 	}

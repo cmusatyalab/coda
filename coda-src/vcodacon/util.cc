@@ -51,7 +51,6 @@ void do_clog(const char *user, const char *pass)
   char cmd [255];
   FILE *p; 
   int  stat;
-  int  sl;
 
   snprintf (cmd, 255, "clog -pipe %s", user);
   p = popen(cmd, "w");

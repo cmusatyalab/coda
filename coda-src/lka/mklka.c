@@ -238,7 +238,7 @@ int WalkTree(char *troot, char *prefix, struct rwcdb *dbh)
     }
 
     /* Insert record into db */
-    rc = rwcdb_insert(dbh, shabuf, SHA_DIGEST_LENGTH, path, dlen);
+    rc = rwcdb_insert(dbh, (char *)shabuf, SHA_DIGEST_LENGTH, path, dlen);
     if (rc != 1) {
       printf("%s: insert into database failed\n", nextf->fts_path);
       rc = -1; goto WalkDone;

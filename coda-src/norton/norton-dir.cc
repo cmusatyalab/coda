@@ -219,7 +219,7 @@ delete_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name, int flag)
 
     error = DH_Delete(pdh, name);
     if (error) {
-	fprintf(stderr, "ERROR: DH_Delete() returns %ld, aborting\n", error);
+	fprintf(stderr, "ERROR: DH_Delete() returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;
     }
@@ -337,7 +337,7 @@ create_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name,
     vfid.Unique = cunique;
     error = DH_Create(pdh, name, &vfid);
     if (error) {
-	fprintf(stderr, "ERROR: Create() returns %ld, aborting\n", error);
+	fprintf(stderr, "ERROR: Create() returns %d, aborting\n", error);
 	rvmlib_abort(VFAIL);
 	return;
     }
@@ -368,7 +368,7 @@ create_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name,
 
     error = ReplaceVnode(volindex, vclass, vnodeindex, unique, vnode);
     if (error) {
-	fprintf(stderr, "ReplaceVnode returns %ld, for parent, aborting\n", 
+	fprintf(stderr, "ReplaceVnode returns %d, for parent, aborting\n", 
 		error);
 	rvmlib_abort(VFAIL);
 	return;
@@ -376,7 +376,7 @@ create_name(VolumeId volid, VnodeId vnum, Unique_t unique, char *name,
 
     error = ReplaceVnode(volindex, cvclass, cvnodeindex, cunique, cvnode);
     if (error) {
-	fprintf(stderr, "ReplaceVnode returns %ld, for child, abort\n", error);
+	fprintf(stderr, "ReplaceVnode returns %d, for child, abort\n", error);
 	rvmlib_abort(VFAIL);
 	return;
     }

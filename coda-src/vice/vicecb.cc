@@ -737,7 +737,7 @@ void PrintCallBackState(FILE *fp)
 	{
 	int i;
             for (i = 0;  i < numVolumes; i++) {
-	        fprintf(fp, "\t0x%lx  %d FEs (%d VEs), %d CBEs (%d VCBEs)\n",
+	        fprintf(fp, "\t%08x  %d FEs (%d VEs), %d CBEs (%d VCBEs)\n",
 		        CBStats[i].volid, CBStats[i].FEs, CBStats[i].VEs,
 		        CBStats[i].CBEs, CBStats[i].VCBEs);
 	    
@@ -777,13 +777,13 @@ static void GetCallBacks(ViceFid *fid, FILE *fp)
 
 static void GetCallBacks(VolumeId vid, FILE *fp) 
 {
-    fprintf(fp, "Printing callbacks for 0x%lx\n", vid);
+    fprintf(fp, "Printing callbacks for %08x\n", vid);
 
     /* print volume callbacks first */
     ViceFid fid = NullFid; fid.Volume = vid;
     struct FileEntry *tfe = FindEntry(&fid);
     if (tfe) {
-	fprintf(fp, "VID 0x%lx  Volume Callback\n", vid);
+	fprintf(fp, "VID %08x  Volume Callback\n", vid);
 	for (struct CallBackEntry *tcbe = tfe->callBacks; tcbe; tcbe = tcbe->next) 
 	    PrintCBE(tcbe, fp);
     }
@@ -800,7 +800,7 @@ static void GetCallBacks(VolumeId vid, FILE *fp)
 	    }
         }
     }
-    fprintf(fp, "End of callbacks for %lx\n", vid);
+    fprintf(fp, "End of callbacks for %08x\n", vid);
 }
 
 // print all the callbacks for given fid.

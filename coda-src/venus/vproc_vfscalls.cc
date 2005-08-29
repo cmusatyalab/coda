@@ -1349,7 +1349,7 @@ FreeLocks:
 	/* Make a "fake" name for the inconsistent object. */
 	Realm *realm = REALMDB->GetRealm(cp->c_fid.Realm);
 	CODA_ASSERT(realm);
-	len = snprintf(buf, len, "@%08lx.%08lx.%08lx@%s", cp->c_fid.Volume,
+	len = snprintf(buf, len, "@%08x.%08x.%08x@%s", cp->c_fid.Volume,
 		       cp->c_fid.Vnode, cp->c_fid.Unique, realm->Name());
 	string->cs_len = 28 + strlen(realm->Name());
 	realm->PutRef();

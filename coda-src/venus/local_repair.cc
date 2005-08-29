@@ -187,7 +187,7 @@ void lrdb::EndRepairSession(int Commit, char *msg)
 		    CODA_ASSERT(vol->IsReplicated());
 		    rc = ((repvol *)vol)->IncReintegrate(repair_session_tid);
 		    if (rc != 0) {
-			sprintf(msg, "commit failed(%d) on volume %lx",
+			sprintf(msg, "commit failed(%d) on volume %08x",
 				rc, vol->GetVolumeId());
 			return;
 		    }

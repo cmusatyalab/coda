@@ -271,16 +271,16 @@ int main(int argc, char **argv)
 	    }
 
 	    fprintf(stderr,"net order:\n");		
-	    fprintf(stderr,"\tAuthHandle = %ld\n",testCTok.AuthHandle);
-	    fprintf(stderr,"\tViceId = %ld\n",testCTok.ViceId);
-	    fprintf(stderr,"\tBeginTimestamp = %ld\n",testCTok.BeginTimestamp);
-	    fprintf(stderr,"\tEndTimestamp = %ld\n",testCTok.EndTimestamp);
+	    fprintf(stderr,"\tAuthHandle = %d\n",testCTok.AuthHandle);
+	    fprintf(stderr,"\tViceId = %d\n",testCTok.ViceId);
+	    fprintf(stderr,"\tBeginTimestamp = %d\n",testCTok.BeginTimestamp);
+	    fprintf(stderr,"\tEndTimestamp = %d\n",testCTok.EndTimestamp);
 	    U_NetToHostClearToken(&testCTok);
 	    fprintf(stderr,"host order:\n");
-	    fprintf(stderr,"\tAuthHandle = %ld\n",testCTok.AuthHandle);
-	    fprintf(stderr,"\tViceId = %ld\n",testCTok.ViceId);
-	    fprintf(stderr,"\tBeginTimestamp = %ld\n",testCTok.BeginTimestamp);
-	    fprintf(stderr,"\tEndTimestamp = %ld\n",testCTok.EndTimestamp);
+	    fprintf(stderr,"\tAuthHandle = %d\n",testCTok.AuthHandle);
+	    fprintf(stderr,"\tViceId = %d\n",testCTok.ViceId);
+	    fprintf(stderr,"\tBeginTimestamp = %d\n",testCTok.BeginTimestamp);
+	    fprintf(stderr,"\tEndTimestamp = %d\n",testCTok.EndTimestamp);
 
 	    printf("Done ! ! ! !\n");
     }

@@ -904,6 +904,7 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch, int *BytesFetched) {
     strcpy(ibuf, "\n");
     if (enospc_failure) {
 	/* Find first indigent namectxt (for informational purposes only). */
+	Realm *realm;
 	bstree_iterator next(*prioq, BstDescending);
 	bsnode *b;
 	namectxt *indigentnc = 0;
@@ -918,10 +919,12 @@ void hdb::StatusWalk(vproc *vp, int *TotalBytesToFetch, int *BytesFetched) {
 	if (indigentnc == 0)
 	    CHOKE("hdb::Walk: enospc_failure but no indigent namectxts on queue");
 
-	sprintf(ibuf, "\n   ENOSPC:  [%lx.%lx, %s], [%d, %d]\n",
-		indigentnc->cdir.Realm, indigentnc->cdir.Volume,
+	realm = REALMDB->GetRealm(indigentnc->cdir.Realm);
+	sprintf(ibuf, "\n   ENOSPC:  [%08x@%s, %s], [%d, %d]\n",
+		indigentnc->cdir.Volume, realm->Name(),
 		indigentnc->path, FSDB->MakePri(0, indigentnc->priority),
 		indigentnc->uid);
+	realm->PutRef();
     }
     MarinerLog("cache::EndStatusWalk [%d]\n   [%d, %d, %d, %d] [%d, %d, %d] [%d, %d, %1.1f]%s",
 	       FSDB->htab.count(),
@@ -1095,10 +1098,13 @@ void hdb::DataWalk(vproc *vp, int TotalBytesToFetch, int BytesFetched) {
 
 	    if (indigent_fsobjs == 0) {
 		char path[MAXPATHLEN];
+		Realm *realm;
 		f->GetPath(path);
-		sprintf(ibuf, "\n   ENOSPC:  [%lx.%lx, %s], [%d, %d]\n",
-			f->fid.Realm, f->fid.Volume, path,
+		realm = REALMDB->GetRealm(f->fid.Realm);
+		sprintf(ibuf, "\n   ENOSPC:  [%08x@%s, %s], [%d, %d]\n",
+			f->fid.Volume, realm->Name(), path,
 			f->priority, f->HoardVuid);
+		realm->PutRef();
 	    }
 	    
 	    indigent_fsobjs++;
@@ -2439,8 +2445,11 @@ void namectxt::print(int fd, void *filter)
 void namectxt::getpath(char *buf) {
         volent *v = VDB->Find(MakeVolid(&cdir));
 	if (v) v->GetMountPath(buf, 0);
-	if (!v || STREQ(buf, "???"))
-	    sprintf(buf, "%lx.%lx", cdir.Realm, cdir.Volume);
+	if (!v || STREQ(buf, "???")) {
+	    Realm *realm = REALMDB->GetRealm(cdir.Realm);
+	    sprintf(buf, "%08x@%s", cdir.Volume, realm->Name());
+	    realm->PutRef();
+	}
 
 	strcat(buf, "/");
 	if (path[0] == '.') strcat(buf, &path[2]); /* strip leading "./" */

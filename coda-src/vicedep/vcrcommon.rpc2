@@ -87,9 +87,9 @@ typedef int vuid_t;
 
 typedef RPC2_Struct 
 {
-	RPC2_Unsigned	Volume;
-	RPC2_Unsigned	Vnode;
-	RPC2_Unsigned	Unique;
+	VolumeId	Volume;
+	VnodeId		Vnode;
+	Unique_t	Unique;
 }	ViceFid;
 
 %{ 

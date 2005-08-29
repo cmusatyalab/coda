@@ -606,9 +606,8 @@ static void ReConnect()
 	return;
     }
 
-    rc = portmapper_client_lookup_pbynvp(portmapid,
-					 (unsigned char *)"codaupdate", 0, 17,
-					 &port);
+    rc = portmapper_client_lookup_pbynvp(portmapid, (RPC2_String)"codaupdate",
+					 0, 17, &port);
     RPC2_Unbind(portmapid);
     if (rc) {
 	fprintf(stderr, "Cannot get port from rpc2portmap; exiting\n");

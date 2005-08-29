@@ -220,7 +220,7 @@ int repair_inconflict(char *name, ViceFid *conflictfid, char *conflictrealm)
     /* it's a sym link, alright */
     if (symval[0] == '@') {
 	if (conflictfid) {
-	    sscanf(symval, "@%lx.%lx.%lx@", &conflictfid->Volume,
+	    sscanf(symval, "@%x.%x.%x@", &conflictfid->Volume,
 		   &conflictfid->Vnode, &conflictfid->Unique);
 	}
 	if (conflictrealm)

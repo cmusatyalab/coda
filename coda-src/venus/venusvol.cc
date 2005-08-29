@@ -565,9 +565,9 @@ int vdb::Get(volent **vpp, Volid *volid)
 #if 1 /* XXX change this to hex after 5.3.9 servers are deployed */
       /* doesn't work as VLDB entries are still hashed by the old
        * volume-id representation */
-    sprintf(volname, "%lu", volid->Volume);
+    sprintf(volname, "%u", volid->Volume);
 #else
-    sprintf(volname, "%#08lx", volid->Volume);
+    sprintf(volname, "%08x", volid->Volume);
 #endif
 
     int err = ENOENT;
@@ -660,12 +660,12 @@ int vdb::Get(volent **vpp, Realm *prealm, const char *name, fsobj *f)
     }
     if (v && v->GetVolumeId() != volinfo.Vid)
     {
-	eprint("Mapping changed for volume %s@%s (%x --> %x)",
+	eprint("Mapping changed for volume %s@%s (%08x --> %08x)",
 	       volname, realm->Name(), v->GetVolumeId(), volinfo.Vid);
 
 	/* Put a (unique) fakename in the old volent. */
 	char fakename[V_MAXVOLNAMELEN];
-	sprintf(fakename, "%lu", v->GetVolumeId());
+	sprintf(fakename, "%08x", v->GetVolumeId());
 	CODA_ASSERT(Find(realm, fakename) == 0);
 
 	Recov_BeginTrans();
@@ -2083,6 +2083,9 @@ int repvol::AllocFid(ViceDataType Type, VenusFid *target_fid,
 	    /* The Remote AllocFid call. */
 	    {
 		ViceFidRange NewFids;
+		NewFids.Vnode = 0;
+		NewFids.Unique = 0;
+		NewFids.Stride = 0;
 		NewFids.Count = 32;
 
 		/* Make multiple copies of the IN/OUT and OUT parameters. */
@@ -2766,7 +2769,7 @@ void volent::ListCache(FILE* fp, int long_format, unsigned int valid)
 {
     char mountpath[MAXPATHLEN];
     GetMountPath(mountpath, 0);
-    fprintf(fp, "%s: %lx\n", mountpath, vid);
+    fprintf(fp, "%s: %08x\n", mountpath, vid);
 
     struct dllist_head *p;
     list_for_each(p, fso_list) {

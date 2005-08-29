@@ -58,9 +58,9 @@ struct DumpHeader {
 };
 
 typedef struct {
-    byte *DumpBuf;		/* Start of buffer for spooling */
-    byte *DumpBufPtr;		/* Current position in buffer */
-    byte *DumpBufEnd;		/* End of buffer */
+    char *DumpBuf;		/* Start of buffer for spooling */
+    char *DumpBufPtr;		/* Current position in buffer */
+    char *DumpBufEnd;		/* End of buffer */
     unsigned long offset;	/* Number of bytes read or written so far. */
     RPC2_Handle rpcid;		/* RPCid of connection, NULL if dumping to file */
     int DumpFd;			/* fd to which to flush or VolId if using RPC */
@@ -70,20 +70,20 @@ typedef struct {
 #define VOLID DumpFd		/* Overload this field if using newstyle dump */
     
 /* Exported Routines (from dumpstuff.c) */
-extern DumpBuffer_t *InitDumpBuf(byte *buf, long size, VolumeId volid,
+extern DumpBuffer_t *InitDumpBuf(char *buf, long size, VolumeId volid,
 				 RPC2_Handle rpcid);
-extern DumpBuffer_t *InitDumpBuf(byte *buf, long size, int fd);
-extern int DumpDouble(DumpBuffer_t *, byte, unsigned int, unsigned int);
-extern int DumpInt32(DumpBuffer_t *, byte tag, unsigned int value);
-extern int DumpByte(DumpBuffer_t *, byte tag, byte value);
-extern int DumpBool(DumpBuffer_t *, byte tag, unsigned int value);
-extern int DumpArrayInt32(DumpBuffer_t *, byte, unsigned int *, int nelem);
-extern int DumpShort(DumpBuffer_t *, byte tag, unsigned int value);
-extern int DumpString(DumpBuffer_t *, byte tag, char *s);
-extern int DumpByteString(DumpBuffer_t *, byte tag, byte *bs, int nbytes);
-extern int DumpVV(DumpBuffer_t *, byte tag, struct ViceVersionVector *vv);
-extern int DumpFile(DumpBuffer_t *, byte tag, int fd, int vnode);
-extern int DumpTag(DumpBuffer_t *, byte tag);
+extern DumpBuffer_t *InitDumpBuf(char *buf, long size, int fd);
+extern int DumpDouble(DumpBuffer_t *, char, unsigned int, unsigned int);
+extern int DumpInt32(DumpBuffer_t *, char tag, unsigned int value);
+extern int DumpByte(DumpBuffer_t *, char tag, char value);
+extern int DumpBool(DumpBuffer_t *, char tag, unsigned int value);
+extern int DumpArrayInt32(DumpBuffer_t *, char, unsigned int *, int nelem);
+extern int DumpShort(DumpBuffer_t *, char tag, unsigned int value);
+extern int DumpString(DumpBuffer_t *, char tag, char *s);
+extern int DumpByteString(DumpBuffer_t *, char tag, char *bs, int nbytes);
+extern int DumpVV(DumpBuffer_t *, char tag, struct ViceVersionVector *vv);
+extern int DumpFile(DumpBuffer_t *, char tag, int fd, int vnode);
+extern int DumpTag(DumpBuffer_t *, char tag);
 extern int DumpEnd(DumpBuffer_t *);
 
 /* Exported Routines (from readstuff.c) */
@@ -92,7 +92,7 @@ extern int PutTag(char, DumpBuffer_t *);
 extern int ReadShort(DumpBuffer_t *,  unsigned short *sp); 
 extern int ReadInt32(DumpBuffer_t *, unsigned int *lp);
 extern int ReadString(DumpBuffer_t *, char *to, int max);
-extern int ReadByteString(DumpBuffer_t *, byte *to,int size);
+extern int ReadByteString(DumpBuffer_t *, char *to, int size);
 extern int ReadDumpHeader(DumpBuffer_t *, struct DumpHeader *hp);
 extern int ReadVolumeDiskData(DumpBuffer_t *, VolumeDiskData *vol);
 extern int ReadVV(DumpBuffer_t *, vv_t *vv);

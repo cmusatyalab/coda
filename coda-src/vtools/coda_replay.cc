@@ -159,21 +159,21 @@ int ValidateHeader(hblock& hdr) {
     switch(hdr.dbuf.linkflag) {
 	case STOREDATA:
 	    if (tflag || vflag) {
-		fprintf(stderr, "StoreData(%s) [ %o, %d, %d, %lu, %lu ]\n",
+		fprintf(stderr, "%s: StoreData(%s) [ %o, %d, %d, %lu, %lu ]\n",
 			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case LINK:
 	    if (tflag || vflag) {
-		fprintf(stderr, "Link(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
+		fprintf(stderr, "%s: Link(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
 			EXE, hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case SYMLINK:
 	    if (tflag || vflag) {
-		fprintf(stderr, "SymLink(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
+		fprintf(stderr, "%s: SymLink(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
 			EXE, hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid,
 			size, mtime);
 	    }
@@ -181,21 +181,21 @@ int ValidateHeader(hblock& hdr) {
 
 	case STORESTATUS:
 	    if (tflag || vflag) {
-		fprintf(stderr, "StoreStatus(%s) [ %o, %d, %d, %lu, %lu ]\n",
+		fprintf(stderr, "%s: StoreStatus(%s) [ %o, %d, %d, %lu, %lu ]\n",
 			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case REMOVE:
 	    if (tflag || vflag) {
-		fprintf(stderr, "Remove(%s) [ %o, %d, %d, %lu, %lu ]\n",
+		fprintf(stderr, "%s: Remove(%s) [ %o, %d, %d, %lu, %lu ]\n",
 			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case RENAME:
 	    if (tflag || vflag) {
-		fprintf(stderr, "Rename(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
+		fprintf(stderr, "%s: Rename(%s, %s) [ %o, %d, %d, %lu, %lu ]\n",
 			EXE, hdr.dbuf.linkname, hdr.dbuf.name, mode, uid, gid,
 			size, mtime);
 	    }
@@ -203,14 +203,14 @@ int ValidateHeader(hblock& hdr) {
 
 	case MKDIR:
 	    if (tflag || vflag) {
-		fprintf(stderr, "Mkdir(%s) [ %o, %d, %d, %lu, %lu ]\n",
+		fprintf(stderr, "%s: Mkdir(%s) [ %o, %d, %d, %lu, %lu ]\n",
 			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;
 
 	case RMDIR:
 	    if (tflag || vflag) {
-		fprintf(stderr, "Rmdir(%s) [ %o, %d, %d, %lu, %lu ]\n",
+		fprintf(stderr, "%s: Rmdir(%s) [ %o, %d, %d, %lu, %lu ]\n",
 			EXE, hdr.dbuf.name, mode, uid, gid, size, mtime);
 	    }
 	    break;

@@ -75,7 +75,7 @@ int IsObjInc(char *name, ViceFid *fid, char *realm)
 	if (rc < 0) return(0);
 
 	/* it's a sym link, alright */
-	n = sscanf(symval, "@%lx.%lx.%lx@%s",
+	n = sscanf(symval, "@%x.%x.%x@%s",
 		   &fid->Volume, &fid->Vnode, &fid->Unique, realm);
 
 	return(n == 4);

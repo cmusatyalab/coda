@@ -184,9 +184,9 @@ long RS_ClearIncon(RPC2_Handle RPCid, ViceFid *Fid,
 
     if (SrvDebugLevel >= 9) {
 	SLog(9, "ClearIncon: vector passed in is (fid %s):", FID_(Fid));
-	PrintVV(stdout, VV);
+	FPrintVV(stdout, VV);
 	SLog(9, "ClearIncon: vector in the vnode is (fid %s) :", FID_(Fid));
-	PrintVV(stdout, &Vnode_vv(vptr));
+	FPrintVV(stdout, &Vnode_vv(vptr));
     }
     
     // make sure vectors are equal
@@ -196,8 +196,8 @@ long RS_ClearIncon(RPC2_Handle RPCid, ViceFid *Fid,
     } else {
 	errorcode = EINCOMPATIBLE;
 	SLog(0, "RS_ClearIncon: Version Vectors are incompatible for %s", FID_(Fid));
-	PrintVV(stdout, VV);
-	PrintVV(stdout, &Vnode_vv(vptr));
+	FPrintVV(stdout, VV);
+	FPrintVV(stdout, &Vnode_vv(vptr));
 	goto FreeLocks;
     }
 

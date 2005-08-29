@@ -177,21 +177,21 @@ long int S_VolInfo(RPC2_Handle rpcid, RPC2_String formal_volkey, RPC2_Integer du
 
 #define typestring(type) (type == RWVOL? "read/write": type == ROVOL? "readonly": type == BACKVOL? "backup": "unknown")
 
-static void PrintHeader(register Volume *vp)
+static void PrintHeader(Volume *vp)
 {
     char d1[100];
     char d2[100];
 
-    fprintf(infofile, "Volume header for volume %lx (%s)\n", V_id(vp), V_name(vp));
-    fprintf(infofile, "stamp.magic = %lx, stamp.version = %lu\n", V_stamp(vp).magic,
+    fprintf(infofile, "Volume header for volume %08x (%s)\n", V_id(vp), V_name(vp));
+    fprintf(infofile, "stamp.magic = %x, stamp.version = %u\n", V_stamp(vp).magic,
 	V_stamp(vp).version);
     fprintf(infofile, "partition = (%s)\n", V_partname(vp));
     fprintf(infofile, "inUse = %d, inService = %d, blessed = %d, needsSalvaged = %d, dontSalvage = %d\n",
 	V_inUse(vp), V_inService(vp), V_blessed(vp), V_needsSalvaged(vp), V_dontSalvage(vp));
-    fprintf(infofile, "type = %d (%s), uniquifier = %lu, needsCallback = %d, destroyMe = %x\n",
+    fprintf(infofile, "type = %d (%s), uniquifier = %u, needsCallback = %d, destroyMe = %x\n",
 	V_type(vp), typestring(V_type(vp)), V_uniquifier(vp), V_needsCallback(vp), 
 	V_destroyMe(vp));
-    fprintf(infofile, "id = %lx, parentId = %lx, cloneId = %lx, backupId = %lx, restoredFromId = %lx\n",
+    fprintf(infofile, "id = %08x, parentId = %08x, cloneId = %08x, backupId = %08x, restoredFromId = %08x\n",
 	V_id(vp), V_parentId(vp), V_cloneId(vp), V_backupId(vp), V_restoredFromId(vp));
     fprintf(infofile, "maxquota = %d, minquota = %d, maxfiles = %d, filecount = %d, diskused = %d\n",
 	V_maxquota(vp), V_minquota(vp), V_maxfiles(vp), V_filecount(vp), V_diskused(vp));
@@ -201,14 +201,14 @@ static void PrintHeader(register Volume *vp)
     fprintf(infofile, "backupDate = %s, expirationDate = %s\n", d1, d2);
     date(V_accessDate(vp), d1); date(V_updateDate(vp), d2);
     fprintf(infofile, "accessDate = %s, updateDate = %s\n", d1, d2);
-    fprintf(infofile, "owner = %lu, accountNumber = %lu\n", V_owner(vp), V_accountNumber(vp));
+    fprintf(infofile, "owner = %u, accountNumber = %u\n", V_owner(vp), V_accountNumber(vp));
     date(V_dayUseDate(vp), d1);
     fprintf(infofile, "dayUse = %u; week = (%u, %u, %u, %u, %u, %u, %u), dayUseDate = %s\n",
 	V_dayUse(vp), V_weekUse(vp)[0], V_weekUse(vp)[1], V_weekUse(vp)[2],
 	V_weekUse(vp)[3],V_weekUse(vp)[4],V_weekUse(vp)[5],V_weekUse(vp)[6], d1);
     if (V_groupId(vp) != 0) {
-	fprintf(infofile, "replicated groupId = %lx\n", V_groupId(vp));
-	PrintVV(infofile, &(V_versionvector(vp)));
+	fprintf(infofile, "replicated groupId = %08x\n", V_groupId(vp));
+	FPrintVV(infofile, &(V_versionvector(vp)));
     }
 }
 
@@ -230,11 +230,11 @@ static void printvns(Volume *vp, VnodeClass vclass)
 
 void PrintVnode(FILE *outfile, VnodeDiskObject *vnode, VnodeId vnodeNumber)
 {
-    fprintf(outfile, "Vnode %lu.%lu.%lu, cloned = %u, length = %lu, inode = %lu\n",
+    fprintf(outfile, "Vnode %08x.%08x.%08x, cloned = %u, length = %u, inode = %u\n",
         vnodeNumber, vnode->uniquifier, vnode->dataVersion, vnode->cloned,
 	vnode->length, vnode->inodeNumber);
     fprintf(outfile, "link count = %u, type = %u, volume index = %d\n", vnode->linkCount, vnode->type, vnode->vol_index);
-    PrintVV(outfile, &(vnode->versionvector));
+    FPrintVV(outfile, &(vnode->versionvector));
 }
 
 static void date(time_t date, char *result)

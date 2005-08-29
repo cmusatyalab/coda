@@ -51,7 +51,7 @@ extern "C" {
 (((a).Vnode == (b).Vnode) && \
  ((a).Unique == (b).Unique))
 
-int ObjExists(resreplica *dir, long vnode, long unique)
+int ObjExists(resreplica *dir, VnodeId vnode, Unique_t unique)
 {
     for (int i = dir->entry1; i < (dir->entry1 + dir->nentries); i++)
 	if ((*(direntriesarr + i)).vno == vnode && (*(direntriesarr + i)).uniqfier == unique)

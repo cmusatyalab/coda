@@ -523,7 +523,7 @@ void mariner::main(void)
 	    /* Lookup the object and print it out. */
 	    VenusFid fid;
 	    char tmp;
-	    if (sscanf(argv[1], "%lx.%lx.%lx@%c",
+	    if (sscanf(argv[1], "%x.%x.%x@%c",
 		       &fid.Volume, &fid.Vnode, &fid.Unique, &tmp) == 4)
 	    {
 		/* strrchr should succeed now because sscanf succeeded. */

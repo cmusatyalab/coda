@@ -190,7 +190,7 @@ long S_VolRestore(RPC2_Handle rpcid, RPC2_String formal_partition,
 	return VFAIL;
     }
     /* Initialize dump buffer. */
-    dbuf = InitDumpBuf((byte *)DumpBuf, (long)DUMPBUFSIZE, *volid, cid);
+    dbuf = InitDumpBuf(DumpBuf, DUMPBUFSIZE, *volid, cid);
     
     status = RestoreVolume(dbuf, partition, volname, volid);
     if (status != 0) {
@@ -661,7 +661,7 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	    break;
 	  case 'A':
 	    CODA_ASSERT(vdop->type == vDirectory);
-	    ReadByteString(buf, (byte *)VVnodeDiskACL(vdop), VAclDiskSize(vdop));
+	    ReadByteString(buf, (char *)VVnodeDiskACL(vdop), VAclDiskSize(vdop));
 	    break;
 	}
     }
@@ -687,11 +687,11 @@ static int ReadVnodeDiskObject(DumpBuffer_t *buf, VnodeDiskObject *vdop,
 	for (int i = 0; i < npages; i++){
 	    (*dinode)->di_pages[i] = (long *)malloc(DIR_PAGESIZE);
 	    int tmp = ReadTag(buf);
-	    if ((byte)tmp != 'P'){
+	    if (tmp != 'P'){
 		VLog(0, "Restore: Dir page does not have a P tag");
 		return -1;
 	    }
-	    if (!ReadByteString(buf, (byte *)((*dinode)->di_pages[i]), DIR_PAGESIZE)) {
+	    if (!ReadByteString(buf, (char *)((*dinode)->di_pages[i]), DIR_PAGESIZE)) {
 		VLog(0, "Restore: Failure reading dir page, aborting.");
 		return -1;
 	    }

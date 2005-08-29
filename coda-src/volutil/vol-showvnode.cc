@@ -131,18 +131,18 @@ long S_VolShowVnode(RPC2_Handle rpcid, RPC2_Unsigned formal_volid,
     }
 
     infofile = fopen(INFOFILE, "w");
-    fprintf(infofile, "%lx.%lx(%lx), %s, cloned=%d, mode=%o, links=%d, length=%ld\n",
+    fprintf(infofile, "%08x.%08x (%x), %s, cloned=%d, mode=%o, links=%d, length=%d\n",
 	vnodeid, vnp->disk.uniquifier, vnp->disk.dataVersion,
 	vnp->disk.type == vFile? "file": vnp->disk.type == vDirectory? "directory":
 	vnp->disk.type == vSymlink? "symlink" : "unknown type",
 	vnp->disk.cloned, vnp->disk.modeBits, vnp->disk.linkCount,
 	vnp->disk.length);
-    fprintf(infofile, "inode=0x%lx, parent=%lx.%lx, serverTime=%s",
+    fprintf(infofile, "inode=%x, parent=%08x.%08x, serverTime=%s",
 	vnp->disk.inodeNumber, vnp->disk.vparent, vnp->disk.uparent, ctime((time_t *)&vnp->disk.serverModifyTime));
-    fprintf(infofile, "author=%lu, owner=%lu, modifyTime=%s, volumeindex = %d",
+    fprintf(infofile, "author=%u, owner=%u, modifyTime=%s, volumeindex = %d",
         vnp->disk.author, vnp->disk.owner, ctime((time_t *)&vnp->disk.unixModifyTime),
 	vnp->disk.vol_index);
-    PrintVV(infofile, &(vnp->disk.versionvector));
+    FPrintVV(infofile, &(vnp->disk.versionvector));
 
     if (vnp->disk.type == vDirectory) {
 	PDCEntry pdce;

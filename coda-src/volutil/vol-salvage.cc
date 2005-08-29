@@ -1233,14 +1233,14 @@ static void GetSkipVolumeNumbers() {
 	skipvolnums = (VolumeId *)malloc(nskipvols * sizeof(VolumeId));
     { /* drop scope for int i below; to avoid identifier clash */
 	for (int i = 0; i < nskipvols; i++)
-	    fscanf(skipsalv, "%lx\n", &(skipvolnums[i]));
+	    fscanf(skipsalv, "%x\n", &(skipvolnums[i]));
     } /* drop scope for int i above; to avoid identifier clash */
 
 	fclose(skipsalv);
-	VLog(1, "The Volume numbers to be skipped salvaging are :");
-	for (int i = 0; i < nskipvols; i++){
-	    VLog(1, "Volume %x", skipvolnums[i]);
-	}
+	if (nskipvols)
+	    VLog(0, "The Volume numbers to be skipped salvaging are :");
+	for (int i = 0; i < nskipvols; i++)
+	    VLog(0, "Volume %08x", skipvolnums[i]);
     }
 }
 

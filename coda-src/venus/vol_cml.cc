@@ -3627,10 +3627,10 @@ int cmlent::checkpoint(FILE *fp) {
 		strcpy(CacheFileName, f->data.file->Name());
 	    }
 	    sprintf(hdr.dbuf.mode, "%6o ", 0644);
-	    sprintf(hdr.dbuf.uid, "%6lo ", uid);
+	    sprintf(hdr.dbuf.uid, "%6o ", uid);
 	    sprintf(hdr.dbuf.gid, "%6o ", -1);
-	    sprintf(hdr.dbuf.size, "%11lo ", u.u_store.Length);
-	    sprintf(hdr.dbuf.mtime, "%11lo ", time);
+	    sprintf(hdr.dbuf.size, "%11o ", u.u_store.Length);
+	    sprintf(hdr.dbuf.mtime, "%11o ", time);
 	    hdr.dbuf.linkflag = '\0';
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
 	    if (u.u_store.Length != 0)
@@ -3661,10 +3661,10 @@ int cmlent::checkpoint(FILE *fp) {
 	    GetPath(hdr.dbuf.name, &u.u_mkdir.CFid);
 	    strcat(hdr.dbuf.name, "/");
 	    sprintf(hdr.dbuf.mode, "%6o ", 0755);
-	    sprintf(hdr.dbuf.uid, "%6lo ", uid);
+	    sprintf(hdr.dbuf.uid, "%6o ", uid);
 	    sprintf(hdr.dbuf.gid, "%6o ", -1);
-	    sprintf(hdr.dbuf.size, "%11lo ", (long)0);
-	    sprintf(hdr.dbuf.mtime, "%11lo ", time);
+	    sprintf(hdr.dbuf.size, "%11o ", 0);
+	    sprintf(hdr.dbuf.mtime, "%11o ", time);
 	    hdr.dbuf.linkflag = '\0';
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
 	    }
@@ -3674,10 +3674,10 @@ int cmlent::checkpoint(FILE *fp) {
 	    {
 	    GetPath(hdr.dbuf.name, &u.u_symlink.CFid);
 	    sprintf(hdr.dbuf.mode, "%6o ", 0755);
-	    sprintf(hdr.dbuf.uid, "%6lo ", uid);
+	    sprintf(hdr.dbuf.uid, "%6o ", uid);
 	    sprintf(hdr.dbuf.gid, "%6o ", -1);
-	    sprintf(hdr.dbuf.size, "%11lo ", (long)0);
-	    sprintf(hdr.dbuf.mtime, "%11lo ", time);
+	    sprintf(hdr.dbuf.size, "%11o ", 0);
+	    sprintf(hdr.dbuf.mtime, "%11o ", time);
 	    hdr.dbuf.linkflag = '2';
 	    strcpy(hdr.dbuf.linkname, (char *)Name);
 	    if ((code = WriteHeader(fp, hdr)) != 0) break;
@@ -3863,7 +3863,7 @@ void cmlent::writeops(FILE *fp)
     switch(opcode) {
     case CML_Store_OP:
 	RecoverPathName(path, &u.u_store.Fid, log, this);
-	sprintf(msg, "Store \t%s (length = %ld)", path, u.u_store.Length);
+	sprintf(msg, "Store \t%s (length = %d)", path, u.u_store.Length);
 	break;
 
     case CML_Utimes_OP:
@@ -3873,12 +3873,12 @@ void cmlent::writeops(FILE *fp)
 
     case CML_Chown_OP:
 	RecoverPathName(path, &u.u_chown.Fid, log, this);
-	sprintf(msg, "Chown \t%s (owner = %ld)", path, u.u_chown.Owner);
+	sprintf(msg, "Chown \t%s (owner = %d)", path, u.u_chown.Owner);
 	break;
 
     case CML_Chmod_OP:
 	RecoverPathName(path, &u.u_chmod.Fid, log, this);
-	sprintf(msg, "Chmod \t%s (mode = %lo)", path, u.u_chmod.Mode);
+	sprintf(msg, "Chmod \t%s (mode = %o)", path, u.u_chmod.Mode);
 	break;
 
     case CML_Create_OP:

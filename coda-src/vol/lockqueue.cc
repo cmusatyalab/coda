@@ -102,7 +102,7 @@ int lqman::func(void)
 
     for (;;) {
 	LogMsg(1, SrvDebugLevel, stdout,  "LockQueue Manager woken up");
-	long currtime = time(0);
+	time_t currtime = time(0);
 	ObtainWriteLock(&lock);
 
 	{
@@ -116,7 +116,7 @@ int lqman::func(void)
 		       "LockQueue Manager: found entry for volume 0x%x",
 		       lqe->Vid);
 		if ((lqe->Time + LQTIMEOUT <= currtime) && !lqe->deqing) {
-		    printf("LQMan: Unlocking %lx\n", lqe->Vid);
+		    printf("LQMan: Unlocking %08x\n", lqe->Vid);
 		    objects.remove(lqe);
 		    ForceUnlockVol(lqe->Vid);
 		    delete lqe;
@@ -211,7 +211,7 @@ void lqent::print(FILE *fp) {
 void lqent::print(int fd) {
     char buf[80];
     
-    sprintf(buf, "VolumeId = 0x%lx, time = %ld, deqing = %d\n",
+    sprintf(buf, "VolumeId = %08x, time = %ld, deqing = %d\n",
 	     Vid, Time, deqing);
     write(fd, buf, (int)strlen(buf));
 }
