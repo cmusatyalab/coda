@@ -397,7 +397,7 @@ void fsobj::Recover()
     /* Validate state. */
     switch(state) {
 	case FsoRunt:
-	    if(IsFake()) /* Don't toss away our localcache! */
+	    if (IsFake()) /* Don't toss away our localcache! */
 	      break;
 
 	    /* Objects that hadn't matriculated can be safely discarded. */
@@ -455,19 +455,7 @@ void fsobj::Recover()
 
     /* Files that were open for write must be "closed" and discarded. */
     if (flags.owrite) {
-	FSO_ASSERT(this, HAVEDATA(this));
 	eprint("\t(%s, %s) found owrite object, discarding", comp, FID_(&fid));
-	if (IsFile()) {
-	    char spoolfile[MAXPATHLEN];
-	    int idx = 0;
-
-	    do {
-		snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,GetComp(),idx++);
-	    } while (::access(spoolfile, F_OK) == 0 || errno != ENOENT); 
-
-	    data.file->Copy(spoolfile, 1);
-	    eprint("\t(lost file data backed up to %s)", spoolfile);
-	}
 	Recov_BeginTrans();
 	RVMLIB_REC_OBJECT(flags);
 	flags.owrite = 0;
@@ -481,9 +469,8 @@ void fsobj::Recover()
 	goto Failure;
     }
 
-    if(IsFake()) {
-      k_Purge(&fid, 1);
-    }
+    if (IsFake())
+	k_Purge(&fid, 1);
 
     /* Get rid of a former mount-root whose fid is not a volume root and whose
      * pfid is NullFid */
@@ -495,7 +482,7 @@ void fsobj::Recover()
     }
 
     /* Check the cache file. */
-    if(!IsFake()) {
+    if (!IsFake()) {
       switch(stat.VnodeType) {
         case File:
 	    if (!HAVEDATA(this) && cf.Length() != 0) {
@@ -540,6 +527,16 @@ Failure:
          * later step of recovery). */
         {
 	    if (HAVEDATA(this)) {
+		char spoolfile[MAXPATHLEN];
+		int idx = 0;
+
+		do {
+		    snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,GetComp(),idx++);
+		} while (::access(spoolfile, F_OK) == 0 || errno != ENOENT);
+
+		data.file->Copy(spoolfile, 1);
+		eprint("\t(lost file data backed up to %s)", spoolfile);
+
                 Recov_BeginTrans();
                 /* Normally we can't discard dirty files, but here we just
                  * decided that there is no other way. */
