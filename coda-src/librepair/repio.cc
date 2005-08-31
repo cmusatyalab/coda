@@ -369,6 +369,8 @@ int repair_parseline(char *line, struct repair *rs)
 	}
 	else if (rs->opcode == REPAIR_SETOWNER)
 	    sscanf(c, "%d", &rs->parms[i]);
+	else if (rs->opcode == REPAIR_SETMODE)
+	    sscanf(c, "%o", &rs->parms[i]);
 	else
 	    sscanf(c, "%x", &rs->parms[i]);
     }
