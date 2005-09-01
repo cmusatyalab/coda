@@ -53,7 +53,19 @@ echo Setting up servers file.
 # making hostname
 #
 
-hn=`hostname -f`
+if [ x$hn = x ] ; then
+  if [ `uname -s` != Linux ] ; then
+    domain=""
+    while [ x$domain = x ] ; do
+      echo -n "What is the domain name for your servers? "
+      read domain
+    done
+    hn=`hostname -s`.$domain
+  else
+    hn=`hostname -f`
+  fi
+fi
+
 cd ${vicedir}/db
 
 if [ $numservers -eq 1 ]; then

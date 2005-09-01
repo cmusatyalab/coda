@@ -53,6 +53,19 @@ fi
 echo "Welcome to the Coda Server Setup script!"
 echo
 
+if [ `uname -s` != Linux ] ; then
+  domain=""
+  while [ x$domain = x ] ; do
+    echo -n "What is the domain name for your servers? "
+    read domain
+  done
+  hn=`hostname -s`.$domain
+  export domain
+else
+  hn=`hostname -f`
+fi
+export hn
+
 #
 # initial information
 #
@@ -322,7 +335,7 @@ esac
 #
 # ${vicedir}/hostname 
 # 
-hn=`hostname -f`
+
 echo $hn > ${vicedir}/hostname
 
 #
