@@ -1449,9 +1449,9 @@ void fsobj::ComputePriority(int Force) {
     if (Force || priority == -1 || new_priority != priority) {
 	FSDB->Reorders++;		    /* transient value; punt set_range */
 
-	DisableReplacement();		    /* remove... */
-	priority = new_priority;	    /* update key... */
-	EnableReplacement();		    /* reinsert... */
+	DisableReplacement();		/* remove... */
+	priority = new_priority;    	/* update key... */
+	EnableReplacement();	 	/* reinsert... */
     }
 }
 
@@ -1475,7 +1475,7 @@ void fsobj::EnableReplacement() {
 	return;
 
     /* Are ALL conditions for replaceability met? */
-    if (DYING(this) || !HAVESTATUS(this) || DIRTY(this) ||
+    if (DYING(this) || !HAVESTATUS(this) || DIRTY(this) || IsLocalObj() ||
 	 READING(this) || WRITING(this) || (children && children->count() > 0) ||
 	 IsMtPt() || (IsSymLink() && hdb_bindings && hdb_bindings->count() > 0))
 	return;
@@ -2253,6 +2253,7 @@ int fsobj::Fakeify()
     }
 
 done:
+    DisableReplacement();
     /* notify blocked threads that the fso is ready. */
     Matriculate();
     Recov_EndTrans(CMFP);
