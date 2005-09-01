@@ -496,15 +496,13 @@ O_FreeLocks:
 		  u.u_error = 0;
 		case _VIOC_COLLAPSEOBJECT:
 		  {
-		    if(f->IsExpandedObj()) {
 		      f->PromoteLock();
 		      u.u_error = f->CollapseObject();
-		    }
 
-		    /* Make sure the kernel drops the subtree */
-		    (void)k_Purge(&f->fid, 1);
-		    (void)k_Purge(&f->pfid, 1);
-		    break;
+		      /* Make sure the kernel drops the subtree */
+		      (void)k_Purge(&f->fid, 1);
+		      (void)k_Purge(&f->pfid, 1);
+		      break;
 		  }
 
 		  /*

@@ -99,7 +99,6 @@ int fsobj::ExpandObject(void)
 	mod_fso->dir_Delete(name);
 	mod_fso->DetachChild(this);
 	pfso = NULL;
-	pfid = NullFid; /* has to be null for collapses after a restart */
     }
 
     /* create a fake directory */
@@ -163,7 +162,6 @@ int fsobj::ExpandObject(void)
 	RVMLIB_REC_OBJECT(*mod_fso);
 	mod_fso->DiscardData();
 	mod_fso->SetMtLinkContents(&fakedir->fid);
-	mod_fso->flags.expanded = 1;
 	LOG(10, ("volent::ExpandObject: changed mountlink to %s -> %s\n",
 	    FID_(&mod_fso->fid), mod_fso->data.symlink));
     } else {
@@ -180,6 +178,7 @@ int fsobj::ExpandObject(void)
 
     RVMLIB_REC_OBJECT(mod_fso->flags);
     mod_fso->flags.modified = 1;
+    mod_fso->flags.local = 1;
     flags.expanded = 1;
     flags.local = 1; /* so we don't get Kill()ed on a collapse */
 
@@ -191,7 +190,7 @@ int fsobj::ExpandObject(void)
     FSO_HOLD(this);
 
     FSDB->Put(&fakedir);
-    Recov_EndTrans(MAXFP);
+    Recov_EndTrans(DMFP);
 
     /* make sure we tell the kernel about the changes */
     k_Purge(&mod_fso->fid, 1);
@@ -218,7 +217,6 @@ fsobj *volent::NewFakeDirObj(char *comp)
     dir->stat.LinkCount = 1;
     dir->stat.VnodeType = Directory;
     dir->flags.local = 1;   /* because it is in the repair volume */
-    dir->flags.expanded = 1;/* because it is involved in an expansion */
 
     dir->dir_MakeDir();
 
@@ -245,7 +243,6 @@ fsobj *volent::NewFakeMountLinkObj(VenusFid *fid, char *comp)
     link->stat.LinkCount = 1;
     link->stat.VnodeType = SymbolicLink;
     link->flags.local = 1;
-    link->flags.expanded = 1;
 
     link->SetMtLinkContents(fid);
 
@@ -295,7 +292,7 @@ int fsobj::CollapseObject(void)
      * We probably should 'normalize' this so that any possible call will end
      * up on the expanded fake directory object */
 
-    if(!IsExpandedObj()) {
+    if(!IsLocalObj()) {
       LOG(0, ("fsobj::CollapseObject: (%s) not an expanded object\n",
 	      FID_(&fid)));
       return EINVAL;
@@ -303,26 +300,31 @@ int fsobj::CollapseObject(void)
 
     if(!IsDir() || !vol->IsRepairVol()) {
       /* refocus the collapse, if possible (crawl towards the fake dir) */
-      if(IsMtPt()) {
+      if(IsMTLink()) {
 	CODA_ASSERT(pfso);
-	if(pfso->IsExpandedObj()) {
+	if(pfso->IsLocalObj()) {
 	  /* replica mountpoint */
 	  CODA_ASSERT(pfso);
-	  LOG(10, ("fsobj::CollapseObject: (%s) is a replica mountpoint, refocusing collapse on 'fake' parent directory\n", FID_(&fid)));
+	  LOG(10, ("fsobj::CollapseObject: (%s) is a replica mountlink, refocusing collapse on 'fake' parent directory\n", FID_(&fid)));
 	  return pfso->CollapseObject();
 	}
-	else {
-	  /* fake directory mountpoint */
-	  CODA_ASSERT(u.root);
-	  LOG(10, ("fsobj::CollapseObject: (%s) is a expanded directory's mountpoint, refocusing collapse on its root\n", FID_(&fid)));
+
+	if (TryToCover(NULL, V_UID) == 0) {
+	  LOG(10, ("fsobj::CollapseObject: (%s) is a expanded directory's mountlink, refocusing collapse on its root\n", FID_(&fid)));
 	  return u.root->CollapseObject();
 	}
+	LOG(0, ("fsobj::CollapseObject: (%s) unable to find expanded directory\n", FID_(&fid)));
+	return EIO;
       }
       else {
 	/* replica (local or global) */
-	CODA_ASSERT(u.mtpoint);
-	LOG(10, ("fsobj::CollapseObject: (%s) is a replica, refocusing on the replica's mountpoint\n", FID_(&fid)));
-	return u.mtpoint->CollapseObject();
+	if (IsMtPt()) {
+	    CODA_ASSERT(u.mtpoint);
+	    LOG(10, ("fsobj::CollapseObject: (%s) is a replica, refocusing on the replica's mountpoint\n", FID_(&fid)));
+	    return u.mtpoint->CollapseObject();
+	}
+	LOG(0, ("fsobj::CollapseObject: (%s) unable to find expanded parent\n", FID_(&fid)));
+	return EIO;
       }
     }
 
@@ -365,7 +367,6 @@ int fsobj::CollapseObject(void)
 	mtlink->SetMtLinkContents(&localcache->fid);
 	mtlink->data.symlink[0] = '$';
 	mod_fso = mtlink;
-	mod_fso->flags.expanded = 0;
     } else {
 	mod_fso = mtlink->pfso;
 	CODA_ASSERT(mod_fso);
@@ -384,6 +385,7 @@ int fsobj::CollapseObject(void)
     }
 
     mod_fso->flags.modified = 0;
+    mod_fso->flags.local = 0;
     localcache->flags.expanded = 0;
     localcache->flags.local = 0;
 
@@ -392,15 +394,13 @@ int fsobj::CollapseObject(void)
     /* kill the expanded directory and its descendants */
     Kill();
 
-    if(localcache->refcnt >
-       (localcache->readers + localcache->writers + localcache->openers))
-      FSO_RELE(localcache);
+    FSO_RELE(localcache);
     /* XXX: We seem to be losing a temporary reference
      * to localcache when we shutdown and restart venus.
      * It could be that the FSO_HOLD in ExpandObject
      * is not recorded in RVM and gets lost. This conditional
      * may not fix every case of this problem. -AW */
-    Recov_EndTrans(MAXFP);
+    Recov_EndTrans(DMFP);
 
     FSDB->Put(&localcache);
     return rc;

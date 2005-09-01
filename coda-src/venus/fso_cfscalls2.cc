@@ -168,8 +168,10 @@ int fsobj::Open(int writep, int truncp, struct venus_cnode *cp, uid_t uid)
 	}
     }
 
-    if (cp)
+    if (cp) {
 	cp->c_cf = IsDir() ? data.dir->udcf : data.file;
+	if (!cp->c_cf) code = EIO;
+    }
 
 Exit:
     if (code != 0) {

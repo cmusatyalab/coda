@@ -256,7 +256,11 @@ void FSOInit() {
 	    fso_iterator next(NL);
 	    fsobj *cf;
 	    while ((cf = next()))
-		cf->SetParent(cf->pfid.Vnode, cf->pfid.Unique);
+		if (!cf->IsExpandedObj())
+		    cf->SetParent(cf->pfid.Vnode, cf->pfid.Unique);
+		else
+		    /* expanded objects need to be pinned down */
+		    FSO_HOLD(cf);
 	}
 
 	/* Recover fsobj <--> cmlent bindings: a grid-like data structure. */
@@ -696,21 +700,20 @@ RestartFind:
     }
 
     /* Consider fetching status and/or data. */
-    if (!f->IsLocalObj() && ((!getdata && !STATUSVALID(f))
-			     || (getdata && !DATAVALID(f)))) {
+    if ((!getdata && !STATUSVALID(f)) || (getdata && !DATAVALID(f))) {
 	/* Note that we CANNOT fetch, and must use whatever status/data we have, if : */
 	/*     - the file is being exec'ed (or the VM system refuses to release its pages) */
 	/*     - the file is open for write */
 	/*     - the object has been deleted (it must also be open for read at this point) */
 	/*     - the object's volume is disconnected */
 	/*     - the object's volume is in logging mode and the object is dirty */
-	if (FETCHABLE(f)) {
-	  f->PromoteLock();
-	  
-	  /* Fetch status-only if we don't have any or if it is suspect. We
-	   * do this even if we want data and we don't have any so that we
-	   * ALWAYS know how many blocks to allocate when fetching data. */
-	  if (!STATUSVALID(f)) {
+	if (!f->IsLocalObj() && FETCHABLE(f)) {
+	    f->PromoteLock();
+
+	    /* Fetch status-only if we don't have any or if it is suspect. We
+	     * do this even if we want data and we don't have any so that we
+	     * ALWAYS know how many blocks to allocate when fetching data. */
+	    if (!STATUSVALID(f)) {
 		code = f->GetAttr(uid);
 
 		if (rcode) *rcode = code;	/* added for local-repair */
@@ -827,7 +830,7 @@ RestartFind:
 		/* Restart operation in case of inconsistency. */
 		if (code == EINCONS)
 		  code = ERETRY;
-		
+
 		if (code != 0) {
 		  Put(&f);
 		  return(code);
@@ -836,67 +839,69 @@ RestartFind:
 
 	  f->DemoteLock();
 	} else {	/* !FETCHABLE(f) */
-	  if (RESOLVING(f))
-		{
-		  LOG(100, ("(MARIA) TIMEOUT after something...\n"));
-		  Put(&f);
-		  return(ETIMEDOUT);
-		}
-	  
-	  if (!HAVESTATUS(f)) {
+	    if (RESOLVING(f))
+	    {
+		LOG(100, ("(MARIA) TIMEOUT !fetchable and resolving...\n"));
 		Put(&f);
 		return(ETIMEDOUT);
-	  }
-	  
-	  /*
-	   * Unfortunately, trying to limit access to stale STATUS
-	   * won't work because in order to gracefully recover from
-	   * the active reference to a now inconsistent object, we
-	   * have to be able to close the object.  In order to close
-	   * the object, we have to be able to get the STATUS of the
-	   * object...  I guess we allow full access to the stale
-	   * STATUS, but log that we did so.
-	   *
-	   *   if (DYING(f)) {
-	   *     LOG(0, ("Active reference prevents refetching object!  Providing limited access to stale status!\n"));
-	   *     *f_addr = f;
-	   *     Put(&f);
-	   *     return(ETOOMANYREFS);
-	   *   }
-	   */
-	  if (DYING(f))
+	    }
+
+	    if (!HAVESTATUS(f)) {
+		Put(&f);
+		return(ETIMEDOUT);
+	    }
+
+	    /*
+	     * Unfortunately, trying to limit access to stale STATUS
+	     * won't work because in order to gracefully recover from
+	     * the active reference to a now inconsistent object, we
+	     * have to be able to close the object.  In order to close
+	     * the object, we have to be able to get the STATUS of the
+	     * object...  I guess we allow full access to the stale
+	     * STATUS, but log that we did so.
+	     *
+	     *   if (DYING(f)) {
+	     *     LOG(0, ("Active reference prevents refetching object!  Providing limited access to stale status!\n"));
+	     *     *f_addr = f;
+	     *     Put(&f);
+	     *     return(ETOOMANYREFS);
+	     *   }
+	     */
+	    if (DYING(f))
 		LOG(0, ("Active reference prevents refetching object! "
-				"Allowing access to stale status! (key = <%s>)\n",
-				FID_(key)));
+			"Allowing access to stale status! (key = <%s>)\n",
+			FID_(key)));
 
-	  else if (!STATUSVALID(f))
+	    else if (!STATUSVALID(f))
 		LOG(0, ("Allowing access to stale status! (key = <%s>)\n",
-				FID_(key)));
+			FID_(key)));
 
-	  if (getdata) {
+	    if (getdata) {
 		if (DYING(f)) {
-		  LOG(0, ("Active reference prevents refetching object! "
-				  "Disallowing access to stale data! (key = <%s>)\n",
-				  FID_(key)));
-		  Put(&f);
-		  return(ETOOMANYREFS);
+		    LOG(0, ("Active reference prevents refetching object! "
+			    "Disallowing access to stale data! (key = <%s>)\n",
+			    FID_(key)));
+		    Put(&f);
+		    return(ETOOMANYREFS);
 		}
 
 		if (!HAVEALLDATA(f)) {
-		  int found;
+		    int found = 0;
 
-		  /* try the lookaside cache */
-		  f->PromoteLock();
-		  found = f->LookAside();
-		  f->DemoteLock();
+		    /* try the lookaside cache */
+		    if (!f->IsLocalObj()) {
+			f->PromoteLock();
+			found = f->LookAside();
+			f->DemoteLock();
+		    }
 
-		  if (!found) {
+		    if (!found) {
 			Put(&f);
 			return(ETIMEDOUT);
 		  }
 		}
 
-		if (!DATAVALID(f))
+		if (!DATAVALID(f) && !f->IsLocalObj())
 		  LOG(0, ("Allowing access to stale data! (key = <%s>)\n",
 				  FID_(key)));
 	  }
@@ -1441,7 +1446,7 @@ void fsdb::ReclaimBlocks(int priority, int nblocks) {
 	if (ufs_blocks == 0) continue;
 
 	/* Can't reclaim if busy. */
-	if (BUSY(f)) continue;
+	if (BUSY(f) || f->IsLocalObj()) continue;
 
 	/* Reclaim data.  Return if we've got enough. */
 	MarinerLog("cache::Replace [data] %s [%d, %d]\n",

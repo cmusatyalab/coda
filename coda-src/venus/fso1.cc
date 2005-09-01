@@ -246,10 +246,9 @@ void fsobj::ResetTransient()
     /* Add to volume list */
     list_add(&vol_handle, &vol->fso_list);
 
-    if (IsLocalObj()) {
+    if (IsLocalObj() && state != FsoRunt)
 	/* set valid RC status for local object */
-	SetRcRights(RC_DATA | RC_STATUS);
-    }
+	SetRcRights(RC_STATUS | RC_DATA);
 }
 
 
@@ -299,7 +298,7 @@ fsobj::~fsobj() {
 
 	    /* If this is an expanded directory, delete all associated
 	     * mountlinks since they are no longer useful! - Adam 5/17/05*/
-	    if (IsExpandedDir())
+	    if (IsLocalObj())
 		cf->Kill();
 
 	    DetachChild(cf);
@@ -460,7 +459,7 @@ void fsobj::Recover()
 	RVMLIB_REC_OBJECT(flags);
 	flags.owrite = 0;
 	Recov_EndTrans(0);
-	goto Failure;
+	goto FailSafe;
     }
 
     if (!IsFake() && !vol->IsReplicated() && !IsLocalObj()) {
@@ -478,7 +477,7 @@ void fsobj::Recover()
 	FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
 	LOG(0, ("fsobj::Recover: (%s) is a non-volume root whose pfid is NullFid\n",
 		FID_(&fid)));
-	goto Failure;
+	goto FailSafe;
     }
 
     /* Check the cache file. */
@@ -516,6 +515,19 @@ void fsobj::Recover()
     if (LogLevel >= 1) print(logFile);
     return;
 
+FailSafe:
+    if (HAVEDATA(this)) {
+	char spoolfile[MAXPATHLEN];
+	int idx = 0;
+
+	do {
+	    snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,GetComp(),idx++);
+	} while (::access(spoolfile, F_OK) == 0 || errno != ENOENT);
+
+	data.file->Copy(spoolfile, 1);
+	eprint("\t(lost file data backed up to %s)", spoolfile);
+    }
+
 Failure:
     {
 	LOG(0, ("fsobj::Recover: invalid fso (%s, %s), attempting to GC...\n",
@@ -527,29 +539,19 @@ Failure:
          * later step of recovery). */
         {
 	    if (HAVEDATA(this)) {
-		char spoolfile[MAXPATHLEN];
-		int idx = 0;
-
-		do {
-		    snprintf(spoolfile,MAXPATHLEN,"%s/%s-%u",SpoolDir,GetComp(),idx++);
-		} while (::access(spoolfile, F_OK) == 0 || errno != ENOENT);
-
-		data.file->Copy(spoolfile, 1);
-		eprint("\t(lost file data backed up to %s)", spoolfile);
-
-                Recov_BeginTrans();
-                /* Normally we can't discard dirty files, but here we just
-                 * decided that there is no other way. */
-                flags.dirty = 0;
-                DiscardData();
-                Recov_EndTrans(MAXFP);
+		Recov_BeginTrans();
+		/* Normally we can't discard dirty files, but here we just
+		 * decided that there is no other way. */
+		flags.dirty = 0;
+		DiscardData();
+		Recov_EndTrans(MAXFP);
 	    }
-            if (cf.Length()) {
-                /* Reclaim cache-file blocks. */
-                FSDB->FreeBlocks(NBLOCKS(cf.Length()));
+	    if (cf.Length()) {
+		/* Reclaim cache-file blocks. */
+		FSDB->FreeBlocks(NBLOCKS(cf.Length()));
 		cf.Reset();
 	    }
-        }
+	}
 
 	/* Kill bogus object. */
 	/* Caution: Do NOT GC since linked objects may not be valid yet! */
@@ -590,7 +592,7 @@ void fsobj::Demote(void)
 {
     if (!HAVESTATUS(this) || DYING(this)) return;
     //if (IsMtPt() || IsFakeMTLink()) return;
-    if (IsFakeMTLink() || IsExpandedMTLink()) return;
+    if (IsFakeMTLink() || (IsLocalObj() && IsMTLink())) return;
 
     LOG(10, ("fsobj::Demote: fid = (%s)\n", FID_(&fid)));
 
@@ -603,7 +605,7 @@ void fsobj::Demote(void)
 
     /* Kernel demotion must be severe for non-directories (i.e., purge name- as well as attr-cache) */
     /* because pfid is suspect and the only way to revalidate it is via a cfs_lookup call. -JJK */
-    int severely = (!IsDir() || IsFakeDir() || IsExpandedDir()); /* Adam 5/17/05 */
+    int severely = (!IsDir() || IsFakeDir() || IsLocalObj()); /* Adam 5/17/05 */
     k_Purge(&fid, severely);
 }
 
@@ -1142,7 +1144,7 @@ int fsobj::TryToCover(VenusFid *inc_fid, uid_t uid)
       break;
 
     case '@':
-      if (!IsExpandedObj()) {
+      if (!IsLocalObj()) {
 	LOG(0, ("fsobj::TryToCover: (%s) -> %s wasn't expanded! Dangling symlink?\n",FID_(&fid),data.symlink));
 	code = ENOENT;
 	break;
@@ -1347,18 +1349,8 @@ void fsobj::UnmountRoot() {
     k_Purge(&fid);
 
     /* Enter new state (ROOT, without link). */
-    if (!FID_IsVolRoot(&fid)) {
+    if (!FID_IsVolRoot(&fid))
 	mvstat = NORMAL;	    /* couldn't be mount point, could it? */
-	/* this object could be a server replica from an expand */
-	/*if (FID_EQ(&pfid, &NullFid) && !IsLocalObj()) {
-	if(mtpoint->IsExpandedObj() && !IsLocalObj()) {
-	  //	    LOG(0, ("fsobj::UnmountRoot: (%s) a previous mtroot without pfid, kill it\n", FID_(&fid)));
-	  LOG(10, ("fsobj::UnmountRoot: (%s) Server replica from previous expand, kill it\n", FID_(&fid)));
-	    Kill();
-	    }*/
-	/* it could also just get garbage collected */
-
-    }
 }
 
 
@@ -2544,7 +2536,7 @@ void fsobj::print(int fdes) {
     }
     fdprint(fdes, "\tvoltype = [%d %d %d], fake = %d, fetching = %d local = %d, expanded = %d\n",
 	     vol->IsBackup(), vol->IsReplicated(), vol->IsReadWriteReplica(),
-	     flags.fake, flags.fetching, flags.local);
+	     flags.fake, flags.fetching, flags.local, flags.expanded);
     fdprint(fdes, "\trep = %d, data = %d, owrite = %d, dirty = %d, shadow = %d ckmtpt\n",
 	     REPLACEABLE(this), HAVEDATA(this), flags.owrite, flags.dirty,
 	     shadow != 0, flags.ckmtpt);
