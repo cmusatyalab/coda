@@ -27,6 +27,7 @@ run_control_file=/usr/coda/venus.cache/VENUS_CTRL
 prog=$0
 kill=kill
 vpid=`cat $pid_file`
+umask 0
 
 usage ()
 {
