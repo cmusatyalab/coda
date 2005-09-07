@@ -29,6 +29,7 @@ listed in the file CREDITS.
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <assert.h>
 #include "coda_flock.h"
@@ -52,11 +53,18 @@ static int check_child_completion(int fd)
     return (n && check) ? 0 : 1;
 }
 
+#if !defined (__CYGWIN32__)
 static int pidfd = -1;
+#else
+static int lockfd = -1;
+#endif
+
 void update_pidfile(char *pidfile)
 {
     char str[11]; /* can we assume that pid_t is limited to 32-bit? */
     int rc, n;
+
+#if !defined(__CYGWIN32__)
 
     pidfd = open(pidfile, O_WRONLY | O_CREAT, 0640);
     if (pidfd < 0) {
@@ -71,6 +79,45 @@ void update_pidfile(char *pidfile)
 	exit(1);
     }
 
+#else
+
+    /* On Cygwin, locking the pid file makes it impossible for
+       vutil to open the file to the venus' pid.  Use a different
+       lock file. */
+
+    char lockname[MAXPATHLEN];
+    int  pidfd;
+    int  namelen = strlen(pidfile);
+
+    if ((namelen+4) > MAXPATHLEN) {
+      fprintf(stderr, "pid file name too long.\n");
+      exit(1);
+    }
+
+    n = snprintf (lockname, MAXPATHLEN, "%s.lk", pidfile);
+    assert(n > namelen);
+    
+    lockfd = open(lockname, O_WRONLY | O_CREAT, 0640);
+    if (lockfd < 0) {
+	fprintf(stderr, "Can't open lock file \"%s\"\n", lockname);
+	exit(1);
+    }
+
+    rc = myflock(lockfd, MYFLOCK_EX, MYFLOCK_NB);
+    if (rc < 0) {
+	fprintf(stderr, "Can't lock lock file \"%s\", am I already running?\n",
+		lockname);
+	exit(1);
+    }
+
+    pidfd = open(pidfile, O_WRONLY | O_CREAT, 0640);
+    if (pidfd < 0) {
+	fprintf(stderr, "Can't open pidfile \"%s\"\n", pidfile);
+	exit(1);
+    }
+
+#endif
+
     n = snprintf(str, sizeof(str), "%d\n", getpid());
     assert(n >= 0 && n < sizeof(str));
 
@@ -81,7 +128,13 @@ void update_pidfile(char *pidfile)
 	fprintf(stderr, "Can't update pidfile \"%s\"\n", pidfile);
 	exit(1);
     }
+
+#if !defined(__CYGWIN32__)
     /* leave pidfd open otherwise we lose the lock */
+#else
+    /* leave lockfd open, close the pidfd.  */
+    close(pidfd);
+#endif
 }
 
 
