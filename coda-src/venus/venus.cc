@@ -257,7 +257,7 @@ int main(int argc, char **argv)
     fflush(logFile);
     fflush(stderr);
 
-    MarinerLog("shutdown in progress");
+    MarinerLog("shutdown in progress\n");
 
     LWP_TerminateProcessSupport();
 

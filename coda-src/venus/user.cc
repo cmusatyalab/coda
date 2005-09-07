@@ -172,7 +172,7 @@ int AuthorizedUser(uid_t thisUser)
 
 int ConsoleUser(uid_t user)
 {
-#ifdef DJGPP
+#if defined(DJGPP) || defined(__CYGWIN32__)
     return(1);
 
 #elif __linux__
@@ -204,7 +204,8 @@ int ConsoleUser(uid_t user)
     uid_t uid = ANYUSER_UID;
 
     FILE *fp = fopen(UTMP_FILE, "r");
-    if (fp == NULL) return(uid);
+    if (fp == NULL)
+      return(0);
     struct utmp u;
     while (fread((char *)&u, (int)sizeof(struct utmp), 1, fp) == 1) {
 	if (STREQ(u.ut_line, CONSOLE)) {
