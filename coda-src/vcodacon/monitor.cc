@@ -57,6 +57,15 @@ static void AgeColor(void *)
   TheMon->AgeActColor();
 }
 
+static int Vattrnum = 0;
+static void ClearVattr(void *)
+{
+  if (--Vattrnum == 0) {
+    VAttr->color(FL_WHITE);
+    VAttr->redraw();
+  }
+}
+
 static void ClearXfer(void *data)
 {
   int ix = (int)data;
@@ -193,7 +202,7 @@ void monitor::NextLine() {
       }
 
       else if (strstr(inputline, "shutdown in progress")
-	       || strstr(inputline, "zombie state:")) {
+	       || strstr(inputline, "zombie state")) {
 	ForceClose();
       }
 
@@ -231,7 +240,21 @@ void monitor::NextLine() {
 	  ReintCount = 0;
       }
 
-      else if (strstr(inputline, "pattern to look for")) {
+      else if (strstr(inputline, "fetch::ValidateAttrs")
+	       || strstr(inputline, "fetch::GetAttr") 
+	       || strstr(inputline, "store::GetVolumeinfo")) {
+	if (Vattrnum++ == 0) {
+	  VAttr->color(FL_CYAN);
+	  VAttr->redraw();
+	}
+	Fl::add_timeout(5, ClearVattr, (void *)NULL);
+      }
+
+      else if (strstr(inputline, "Local inconsistent object")) {
+	VConfl->color(FL_RED);
+	VConfl->redraw();
+	ConflList->add(inputline,NULL);
+	ConflList->bottomline(ConflList->size());
       }
 
       else if (strstr(inputline, "pattern to look for")) {

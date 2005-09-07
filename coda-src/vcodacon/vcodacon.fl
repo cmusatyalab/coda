@@ -1,5 +1,5 @@
 # data file for the Fltk User Interface Designer (fluid)
-version 1.0106 
+version 1.0104 
 header_name {.h} 
 code_name {.cc}
 decl {\#include "FL/fl_ask.H"} {} 
@@ -78,20 +78,15 @@ Clog->hide();}
   }
   Fl_Window Console {
     label {Coda Console Text} open
-    xywh {34 120 570 395} type Double color 7 hide resizable
+    xywh {185 143 535 190} type Double color 7 hide resizable
   } {
     Fl_Browser codacontext {
-      xywh {0 25 575 375} resizable
-    }
-    Fl_Button {} {
-      label {codacon text log}
-      xywh {0 0 120 25} box NO_BOX color 7
-      code0 {o->clear_visible_focus();}
+      xywh {0 25 535 165} resizable
     }
     Fl_Button {} {
       label {Close Window}
       callback {Console->hide();}
-      xywh {450 0 120 25} color 1
+      xywh {0 0 120 25} color 1
     }
   }
   Fl_Window CTokens {
@@ -102,19 +97,33 @@ Clog->hide();}
       xywh {0 25 575 245} resizable
     }
     Fl_Button {} {
-      label {ctokens output}
-      xywh {0 0 120 25} box NO_BOX color 7
-      code0 {o->clear_visible_focus();}
+      label {Close Window}
+      callback {CTokens->hide();}
+      xywh {0 0 120 25} color 1
+    }
+  }
+  Fl_Window Conflicts {
+    label {Conflict Log} open
+    xywh {54 140 575 141} type Double color 7 hide resizable
+  } {
+    Fl_Browser ConflList {
+      xywh {0 25 575 115} resizable
     }
     Fl_Button {} {
       label {Close Window}
-      callback {CTokens->hide();}
-      xywh {450 0 120 25} color 1
+      callback {Conflicts->hide();}
+      xywh {0 0 120 25} color 1
+    }
+    Fl_Button {} {
+      label {Clear Window}
+      callback {ConflList->clear();
+ConflList->redraw();}
+      xywh {140 0 120 25} color 23
     }
   }
   Fl_Window Configure {
     label Configure open
-    xywh {720 345 455 180} type Double color 7 hide
+    xywh {765 115 455 211} type Double color 7 hide
   } {
     Fl_Check_Button {mesgs[1]} {
       label bandwidth
@@ -160,19 +169,24 @@ Clog->hide();}
     Fl_Return_Button {} {
       label Close
       callback {Configure->hide();}
-      xywh {20 145 100 25} color 1
+      xywh {20 165 100 25} color 1
     }
     Fl_Button {} {
       label Save
-      xywh {165 145 90 25} color 2
+      callback {Monitor.SetBrowserSize((int)TextWinSize->value());}
+      xywh {290 170 90 25} color 2
+    }
+    Fl_Value_Input TextWinSize {
+      label {Text window maximum lines}
+      xywh {20 130 55 25} align 8 minimum 5 maximum 100000 step 1 value 100
     }
   }
   Fl_Window MainWin {
     label VCodaCon open
-    xywh {1090 700 195 80} type Double color 7 resizable visible
+    xywh {790 862 211 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
-      xywh {0 0 55 20} color 7
+      xywh {0 0 50 20} color 7
     } {
       submenu {} {
         label Menu open
@@ -219,19 +233,19 @@ FindRealm->show();}
     Fl_Progress {XferProg[0]} {
       label {Text Output}
       callback {XferProg[0]->hide();}
-      xywh {0 20 195 20} selection_color 2 align 80 deactivate resizable
+      xywh {0 20 210 20} selection_color 2 align 80 deactivate resizable
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[1]} {
       label {Text Output}
       callback {XferProg[2]->hide();}
-      xywh {0 40 195 20} selection_color 2 align 80 deactivate
+      xywh {0 40 210 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
       label {Text Output}
       callback {XferProg[3]->hide();}
-      xywh {0 60 195 20} selection_color 2 align 80 deactivate
+      xywh {0 60 210 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VConn {
@@ -240,7 +254,7 @@ FindRealm->show();}
 // green when a connection
 
 Monitor.ForceClose();}
-      tooltip {Venus Connection Status} xywh {55 0 20 20} color 7
+      tooltip {Venus Connection Status} xywh {50 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VAct {
@@ -249,39 +263,48 @@ Monitor.ForceClose();}
 // click on it gets the log
 
 Console->show();}
-      tooltip {codacon activity} xywh {75 0 20 20} color 7
+      tooltip {codacon activity} xywh {70 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VWalk {
       label H
-      callback {system("hoard walk");} selected
-      tooltip {Hoard Walk in progress} xywh {95 0 20 20} color 7
+      callback {system("PATH=/bin:/usr/bin:/usr/local/bin hoard walk");}
+      tooltip {Hoard Walk in progress} xywh {90 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VStore {
       label S
       callback {// Clear when no store in progress
 // blue when store in progress.}
-      tooltip {Store in progress indicator} xywh {115 0 20 20} color 7
+      tooltip {Store in progress indicator} xywh {130 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VReint {
       label R
       callback {// Clear when no reintegrate in progress
-// yellow when reintegrate in progress.}
-      tooltip {Reintegrate in progress indicator} xywh {135 0 20 20} color 7
+// yellow when reintegrate in progress.
+VReint->color(FL_WHITE);}
+      tooltip {Reintegrate in progress indicator} xywh {150 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VDisConn {
       label D
       callback {// Hidden when connected
 // Yellow and visible when disconnected}
-      tooltip {Disconnected operation} xywh {155 0 20 20} color 7
+      tooltip {Disconnected operation} xywh {170 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
     Fl_Button VConfl {
       label C
-      tooltip {Volume in conflict} xywh {175 0 20 20} color 7
+      callback {VConfl->color(FL_WHITE);
+VConfl->redraw();
+Conflicts->show();} selected
+      tooltip {Volume in conflict} xywh {190 0 20 20} color 7
+      code0 {o->clear_visible_focus();}
+    }
+    Fl_Button VAttr {
+      label G
+      tooltip {Getting volume or file attributes} xywh {110 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }
   }
