@@ -820,12 +820,11 @@ void fsobj::SetRcRights(int rights)
     if (vol->IsBackup() || IsFake())
 	return;
 
+    if (!HAVEALLDATA(this))
+	rights &= ~RC_DATA;
+
     LOG(100, ("fsobj::SetRcRights: (%s), rights = %d\n", FID_(&fid), rights));
 
-    /* There is a problem if the rights are set that we have valid data,
-     * but we actually don't have data yet. */
-    FSO_ASSERT(this, !(rights & RC_DATA) ||
-	             ((rights & RC_DATA) && HAVEALLDATA(this)));
     RcRights = rights;
 }
 
