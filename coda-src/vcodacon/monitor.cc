@@ -257,6 +257,22 @@ void monitor::NextLine() {
 	ConflList->bottomline(ConflList->size());
       }
 
+      else if (strstr(inputline, "fetch::DisconnectFS")) {
+	if (DisFsCount++ == 0) {
+	  VDisConn->color(FL_YELLOW);
+	  VDisConn->redraw();
+	}
+	ConflList->add(inputline,NULL);
+	ConflList->bottomline(ConflList->size());
+      }
+
+      else if (strstr(inputline, "fetch::disconnectfs done")) {
+	if (--DisFsCount == 0) {
+	  VDisConn->color(FL_WHITE);
+	  VDisConn->redraw();
+	}
+      }
+
       else if (strstr(inputline, "pattern to look for")) {
       }
 

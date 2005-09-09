@@ -89,7 +89,7 @@ else
     }
     Fl_Button {} {
       label cancel
-      callback {Cunlog->hide();} selected
+      callback {Cunlog->hide();}
       xywh {215 45 85 25}
     }
     Fl_Choice cunlogRealm {
@@ -124,8 +124,8 @@ else
     }
   }
   Fl_Window Conflicts {
-    label {Conflict Log} open
-    xywh {54 140 575 141} type Double color 7 hide resizable
+    label {Conflict & Disconnect Log} open
+    xywh {27 85 575 141} type Double color 7 hide resizable
   } {
     Fl_Browser ConflList {
       xywh {0 25 575 115} resizable
@@ -204,7 +204,7 @@ ConflList->redraw();}
   }
   Fl_Window MainWin {
     label VCodaCon open
-    xywh {731 900 211 80} type Double color 7 resizable visible
+    xywh {725 899 211 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 50 20} color 7
@@ -253,19 +253,19 @@ FindRealm->show();}
     }
     Fl_Progress {XferProg[0]} {
       label {Text Output}
-      callback {XferProg[0]->hide();}
+      callback {XferProg[0]->deactivate();}
       xywh {0 20 210 20} selection_color 2 align 80 deactivate resizable
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[1]} {
       label {Text Output}
-      callback {XferProg[2]->hide();}
+      callback {XferProg[1]->deactivate();}
       xywh {0 40 210 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
     Fl_Progress {XferProg[2]} {
       label {Text Output}
-      callback {XferProg[3]->hide();}
+      callback {XferProg[3]->deactivate();} selected
       xywh {0 60 210 20} selection_color 2 align 80 deactivate
       code0 {o->clear_visible_focus();}
     }
@@ -311,7 +311,9 @@ VReint->color(FL_WHITE);}
     Fl_Button VDisConn {
       label D
       callback {// Hidden when connected
-// Yellow and visible when disconnected}
+// Yellow and visible when disconnecte
+// Which FS loged to the conflict & disconnect log
+Conflicts->show();}
       tooltip {Disconnected operation} xywh {170 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }

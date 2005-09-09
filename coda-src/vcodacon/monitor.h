@@ -38,6 +38,7 @@ class monitor {
       browsersize = 100;
       StoreCount = 0;
       ReintCount = 0;
+      DisFsCount = 0;
     }
 
     void Start();
@@ -60,6 +61,7 @@ class monitor {
 
     int StoreCount;
     int ReintCount;
+    int DisFsCount;
 };
 
 void NextLine(void);
