@@ -89,7 +89,7 @@ else
     }
     Fl_Button {} {
       label cancel
-      callback {Clog->hide();}
+      callback {Cunlog->hide();} selected
       xywh {215 45 85 25}
     }
     Fl_Choice cunlogRealm {
@@ -203,8 +203,8 @@ ConflList->redraw();}
     }
   }
   Fl_Window MainWin {
-    label VCodaCon
-    xywh {729 895 211 80} type Double color 7 resizable visible
+    label VCodaCon open
+    xywh {731 900 211 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 50 20} color 7

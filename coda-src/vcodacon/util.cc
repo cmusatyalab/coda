@@ -27,24 +27,10 @@
 #include "util.h"
 #include <FL/fl_ask.H>
 #include <sys/stat.h>
+#include <codaconf.h>
 
 char *XferLabel[3];
   
-void MainInit (int *argcp, char ***argvp)
-{
-
-  // Initialize the visual tool
-  // for (int i=0; i<8; i++) Vol[i]->hide();
-  for (int i=0; i<3; i++) {
-      XferLabel[i] = NULL;
-      XferProg[i]->hide();
-  }
-  // VDisConn->hide();
-  // VDisConn->color(FL_YELLOW);
-  // VConfl->hide();
-  // VConfl->color(FL_RED);
-}
-
 
 /* For clog/cunlog */
 
@@ -115,7 +101,6 @@ int update_realmlist(void)
   return 1;
 } 
 
-
 //  Do the clog ...
 void do_clog ()
 {
@@ -166,7 +151,7 @@ void do_cunlog ()
   int  stat;
   int  ix;
 
-  ix = clogRealm->value();
+  ix = cunlogRealm->value();
 
   if (ix < 0) { 
     fl_alert ("Please select a realm.\n");
@@ -199,6 +184,7 @@ void menu_clog(void)
     clogRealm->clear();
     for (ix=0; ix < nrealm; ix++)
       clogRealm->add(realmlist[ix], 0, NULL);
+    clogRealm->value(0);
     clogPassword->value("");
     Clog->show();
   } else
@@ -234,6 +220,7 @@ void menu_cunlog(void)
     cunlogRealm->clear();
     for (ix=0; ix < nrealm; ix++)
       cunlogRealm->add(realmlist[ix], 0, NULL);
+    cunlogRealm->value(0);
     Cunlog->show();
   } else
     fl_alert ("Could not look in directory %s for realms.\n", codadir);
@@ -263,4 +250,24 @@ int do_findRealm (const char *realm)
     return 0;
 
   return 1;
+}
+
+// The main program ...
+
+
+void MainInit (int *argcp, char ***argvp)
+{
+  char *myrealm;
+
+  // Initialize the visual tool
+  // for (int i=0; i<8; i++) Vol[i]->hide();
+  for (int i=0; i<3; i++) {
+      XferLabel[i] = NULL;
+      XferProg[i]->hide();
+  }
+  
+  myrealm = codaconf_lookup("realm", NULL);
+  if (myrealm) {
+    add_realm(myrealm); 
+  }
 }
