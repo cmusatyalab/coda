@@ -31,7 +31,7 @@ Function {} {open
 //} {}
   Fl_Window FindRealm {
     label {Find Realm} open
-    xywh {70 89 390 70} type Double color 7 hide
+    xywh {59 624 390 70} type Double color 7 hide
   } {
     Fl_Input RealmName {
       label {Realm Name:}
@@ -41,40 +41,61 @@ Function {} {open
       label Find
       callback {if (do_findRealm(RealmName->value()))
   FindRealm->hide();
-else
+else 
   fl_alert("Could not find realm %s", RealmName->value());}
-      xywh {25 40 90 25} color 47
+      xywh {60 40 90 25} color 47
     }
     Fl_Button {} {
       label cancel
       callback {FindRealm->hide();}
-      xywh {255 40 85 25}
+      xywh {240 40 85 25}
     }
   }
   Fl_Window Clog {
     label clog open
-    xywh {460 255 320 100} type Double color 7 hide
+    xywh {27 783 399 101} type Double color 7 hide
   } {
     Fl_Input clogUserName {
       label {User Name:}
-      xywh {90 5 225 30}
+      xywh {90 5 110 30}
     }
     Fl_Input clogPassword {
       label {Password:}
-      xywh {90 35 225 25} type Secret
+      xywh {275 5 110 30} type Secret
     }
     Fl_Return_Button {} {
       label clog
-      callback {do_clog(clogUserName->value(),
-        clogPassword->value());
-Clog->hide();}
-      xywh {15 65 90 25} color 47
+      callback {do_clog();}
+      xywh {45 70 90 25} color 47
     }
     Fl_Button {} {
       label cancel
       callback {Clog->hide();}
-      xywh {200 65 85 25}
+      xywh {250 70 85 25}
     }
+    Fl_Choice clogRealm {
+      label {Realm:} open
+      xywh {90 40 295 25} down_box BORDER_BOX
+    } {}
+  }
+  Fl_Window Cunlog {
+    label cunlog open
+    xywh {235 859 377 80} type Double color 7 hide
+  } {
+    Fl_Return_Button {} {
+      label cunlog
+      callback {do_cunlog();}
+      xywh {35 45 90 25} color 47
+    }
+    Fl_Button {} {
+      label cancel
+      callback {Clog->hide();}
+      xywh {215 45 85 25}
+    }
+    Fl_Choice cunlogRealm {
+      label {Realm:} open
+      xywh {65 10 295 25} down_box BORDER_BOX
+    } {}
   }
   Fl_Window Console {
     label {Coda Console Text} open
@@ -122,7 +143,7 @@ ConflList->redraw();}
     }
   }
   Fl_Window Configure {
-    label Configure open
+    label Configure
     xywh {765 115 455 211} type Double color 7 hide
   } {
     Fl_Check_Button {mesgs[1]} {
@@ -182,8 +203,8 @@ ConflList->redraw();}
     }
   }
   Fl_Window MainWin {
-    label VCodaCon open
-    xywh {790 862 211 80} type Double color 7 resizable visible
+    label VCodaCon
+    xywh {729 895 211 80} type Double color 7 resizable visible
   } {
     Fl_Menu_Bar {} {open
       xywh {0 0 50 20} color 7
@@ -204,17 +225,17 @@ FindRealm->show();}
         } {
           menuitem {} {
             label CLog
-            callback {Clog->show();}
+            callback {menu_clog();}
             xywh {10 10 100 20}
           }
           menuitem {} {
             label Ctokens
-            callback {do_ctokens();}
+            callback {menu_ctokens();}
             xywh {20 20 100 20}
           }
           menuitem {} {
             label Cunlog
-            callback {fl_alert("Not Implemented.");}
+            callback {menu_cunlog();}
             xywh {10 10 100 20}
           }
         }
@@ -298,7 +319,7 @@ VReint->color(FL_WHITE);}
       label C
       callback {VConfl->color(FL_WHITE);
 VConfl->redraw();
-Conflicts->show();} selected
+Conflicts->show();}
       tooltip {Volume in conflict} xywh {190 0 20 20} color 7
       code0 {o->clear_visible_focus();}
     }

@@ -23,8 +23,14 @@ extern char *XferLabel[3];
 
 void MainInit (int *argcp, char ***argvp);
 
-void do_clog(const char *, const char *);
+void do_clog(void);
 
-void do_ctokens (void);
+void do_cunlog(void);
+
+void menu_clog (void);
+
+void menu_ctokens (void);
+
+void menu_cunlog (void);
 
 int do_findRealm (const char *);
