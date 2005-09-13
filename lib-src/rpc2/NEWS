@@ -1,3 +1,9 @@
+New in 1.28:
+
+* Do not truncate random numbers to 15 bits.
+* Check clientident length (Ivan Popov).
+* Fix gcc4 warnings.
+
 New in 1.27:
 
 * Fixes for LWP-2.0
