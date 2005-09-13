@@ -28,8 +28,10 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <windows.h>
 #include <winbase.h>
+#include <w32api/dbt.h>
 
 #include "coda_string.h"
 #include "coda.h"
@@ -60,6 +62,9 @@ wcslen (PWCHAR wstr)
     while (*wstr++) len++;
     return len;
 }
+
+
+static DEV_BROADCAST_VOLUME DevBcst;
 
 
 // Can't use "normal" parameters due ot the fact that this will 
@@ -128,7 +133,26 @@ nt_do_mounts (void *junk)
 	    eprint ("Umount failed. (Not a problem on startup.)");
 	    return 1;
 	}
-    } 
+    } else {
+        /* Let "others" know about the change! */
+        DWORD BcstFlag;
+	WPARAM ChKind;
+
+        DevBcst.dbcv_devicetype = DBT_DEVTYP_VOLUME;
+	DevBcst.dbcv_size = sizeof(DEV_BROADCAST_VOLUME);
+	DevBcst.dbcv_flags = DBTF_NET;
+	DevBcst.dbcv_unitmask =  1 << (toupper(drive) - 'A');
+
+	if (mount)
+	    ChKind = DBT_DEVICEARRIVAL;
+	else
+	    ChKind = DBT_DEVICEREMOVECOMPLETE;
+	BcstFlag = BSM_ALLCOMPONENTS | BSM_ALLDESKTOPS;
+
+	BroadcastSystemMessage (BSF_IGNORECURRENTTASK, &BcstFlag,
+				    WM_DEVICECHANGE, ChKind, 
+				    (LPARAM) &DevBcst);
+    }
 
     return 0;
 }
@@ -284,212 +308,4 @@ void nt_stop_ipc (void)
     doexit = 1;
 }
 
-
-
-#if 0
-//
-// NT service routines ... to get venus to run nicely and between
-// logins, it must run as a service ... Thus all this goo....
-//
-
-// The main program for venus changes names ....
-
-int venus_main (int, char**);
-
-// "global" State ...
-
-static SERVICE_STATUS          mystat;
-static SERVICE_STATUS_HANDLE   myhand;
-
-// Service defines ......
-
-#define ServiceName "venus"
-
-// Service prototypes
-
-static void ntsrv_start (DWORD argc, LPSTR *argv);
-static void ntsrv_install (void);
-static void ntsrv_remove (void);
-static void ntsrv_ctrl (DWORD op);
-
-
-
-// This is the main program for running under the service manager
-int
-main (int argc, char **argv)
-{
-    SERVICE_TABLE_ENTRY Dispatch[] = {
-	{ TEXT(ServiceName), (LPSERVICE_MAIN_FUNCTION)ntsrv_start },
-	{ NULL, NULL }
-    };
-    
-    if (argc == 2 && strcmp("-install", argv[1]) == 0) {
-	ntsrv_install();
-	return 0;
-    }
-    
-    if (argc == 2 && strcmp("-remove", argv[1]) == 0) {
-	ntsrv_remove();
-	return 0;
-    }
-
-    if (!StartServiceCtrlDispatcher (Dispatch)) {
-	return venus_main (argc, argv);
-    }
-    
-    return 0;
-}
-
-
-// Service Control Handler Function
-
-static void ntsrv_ctrl (DWORD op)
-{
-    if (op == SERVICE_CONTROL_STOP || op == SERVICE_CONTROL_SHUTDOWN) {
-	
-	// Say we are stopping ...
-	
-	mystat.dwCurrentState  = SERVICE_STOP_PENDING;
-	mystat.dwWin32ExitCode = 0;
-	mystat.dwCheckPoint    = 1;
-	mystat.dwWaitHint      = 2000;
-	
-	if (SetServiceStatus (myhand, &mystat)) {
-	    eprint ("ntsrv_ctrl: SetServiceStatus (1) error %d\n",
-		     GetLastError());
-	}
-
-	// Now kill ourselves!  and return (main tell about final state?)
-	kill (getpid(), SIGTERM);
-	return;
-    }
-    
-    (void) SetServiceStatus (myhand, &mystat);
-    return;
-}
-
-
-static void ntsrv_start (DWORD argc, LPSTR *argv)
-{
-    myhand = RegisterServiceCtrlHandler (TEXT(ServiceName), (LPHANDLER_FUNCTION)ntsrv_ctrl);
-    
-    if (!myhand) {
-	eprint ("srv_start: Could not register Ctrl Handler (%d)\n",
-		GetLastError());
-	return;
-    }
-
-    // Next, say we are running ....
-    
-    mystat.dwServiceType      = SERVICE_WIN32_OWN_PROCESS;
-    mystat.dwCurrentState     = SERVICE_RUNNING;
-    mystat.dwControlsAccepted = SERVICE_ACCEPT_STOP;
-    mystat.dwWin32ExitCode    = 0;
-    mystat.dwServiceSpecificExitCode = 0;
-    mystat.dwCheckPoint       = 0;
-    mystat.dwWaitHint         = 0;
-
-    if (SetServiceStatus (myhand, &mystat)) {
-	eprint ("srv_start: SetServiceStatus (2) error %d\n",
-		GetLastError());
-    }
-
-    // Call the real program main!
-    
-    venus_main (argc, argv);
-    
-    // Now say we are stopped ...
-    
-    mystat.dwCurrentState  = SERVICE_STOPPED;
-    mystat.dwWin32ExitCode = 0;
-    mystat.dwCheckPoint    = 0;
-    mystat.dwWaitHint      = 0;
-    
-    if (SetServiceStatus (myhand, &mystat)) {
-	eprint ("srv_start: SetServiceStatus (4) error %d\n",
-		GetLastError());
-    }
-    
-    return;
-    
-}
-
-
-void ntsrv_install (void)
-{
-    char name[MAXPATHLEN];
-    
-    SC_HANDLE SCMan;
-    SC_HANDLE Srv;
-    
-    if (GetModuleFileName (NULL, name, MAXPATHLEN) == 0) {
-	printf ("Could not get the program's file name!  Aborting.\n");
-	return;
-    }
-    
-    SCMan = OpenSCManager (NULL, NULL, SC_MANAGER_ALL_ACCESS);
-    
-    if (!SCMan) {
-	printf ("Could not talk to the service manager. Aborting.\n");
-	return;
-    }
-    
-    Srv = CreateService (SCMan, TEXT(ServiceName), TEXT(ServiceName), 
-			 SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS, 
-			 SERVICE_DEMAND_START,  SERVICE_ERROR_NORMAL, 
-			 name, NULL,  NULL, TEXT("\0\0"), NULL, NULL);
-    
-    if (Srv) {
-	printf ("'%s' service installed.\n", ServiceName);
-	CloseServiceHandle(Srv);
-    } else {
-	printf ("'%s' service not installed.\n", ServiceName);
-    }
-    
-    CloseServiceHandle(SCMan);
-} 
-
-
-void ntsrv_remove (void) 
-{
-    SC_HANDLE       SCMan;
-    SC_HANDLE       Srv;
-    SERVICE_STATUS  SrvStat;
-    
-    SCMan = OpenSCManager (NULL, NULL, SC_MANAGER_ALL_ACCESS);
-    
-    if (!SCMan) {
-	printf ("Could not talk to the service manager. Aborting.\n");
-	return;
-    }
-    
-    Srv = OpenService(SCMan, TEXT(ServiceName), SERVICE_ALL_ACCESS);
-    
-    if (!Srv) {
-        printf ("No such service: '%s'\n", ServiceName);
-	CloseServiceHandle (SCMan);
-	return;
-    }
-    
-    // Is it stopped?
-    if (QueryServiceStatus (Srv, &SrvStat) ) {
-        if (SrvStat.dwCurrentState != SERVICE_STOPPED) {
-	    printf ("Please stop the service first.\n");
-	    CloseServiceHandle (Srv);
-	    CloseServiceHandle (SCMan);
-	    return;
-	}
-    }
-    
-    // Now delete it.
-    if (DeleteService (Srv))
-	printf ("Service Deleted.\n");
-    else
-	printf ("Service was not deleted:  error number %ld\n", (long)GetLastError());
-    
-    CloseServiceHandle (Srv);
-    CloseServiceHandle (SCMan);
-}
-
-#endif
 #endif
