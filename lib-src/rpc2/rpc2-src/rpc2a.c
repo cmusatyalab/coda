@@ -1095,14 +1095,18 @@ static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cid
 
     *xrand  = ib1->XRandom;		/* Still encrypted */
     *authenticationtype = ntohl(ncb->AuthenticationType);
+
     cident->SeqLen = ntohl(ncb->ClientIdent.SeqLen);
     cident->SeqBody = (RPC2_ByteSeq) &ncb->ClientIdent.SeqBody;
 
-    /* For RP2Gen or other stub generators:
-	(1) leave FakeBody fields in network order
-	(2) copy text of client ident to SeqBody
-    */
-    memcpy(cident->SeqBody, ib1->Text, cident->SeqLen);
+    /* check ClientIdent length since we're pointing the cident body back into
+     * the received packet buffer */
+    if ((char *)&ib1->Text + cident->SeqLen >
+	(char *)&pb->Header + pb->Prefix.LengthOfPacket)
+    {
+	return(RPC2_FAIL);
+    }
+    memmove(cident->SeqBody, &ib1->Text, cident->SeqLen);
 
     /* Obtain pointer to appropriate set of SE routines */
     ce->SEProcs = NULL;
