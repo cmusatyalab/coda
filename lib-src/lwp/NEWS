@@ -7,6 +7,9 @@ New in 2.1:
 * The uc_stack in a ucontext may be clobbered by the context switching
   functions. Use a separate copy in the lwp process info for stack overflow
   checks and deallocation purposes.
+* Use setjmp/longjmp to jump out of the signal context when using sigaltstack
+  to spawn a new thread instead of simply returning. This avoids corruption of
+  the newly created context. (Phil Nelson)
 
 New in 2.0:
 
