@@ -676,7 +676,7 @@ try_next_addr:
 	memcpy(ib->Text, Bparms->ClientIdent->SeqBody, Bparms->ClientIdent->SeqLen);
 	}
     assert(sizeof(RPC2_VERSION) < sizeof(ib->Version));
-    (void) strcpy(ib->Version, RPC2_VERSION);
+    strcpy((char *)ib->Version, RPC2_VERSION);
 
     rpc2_htonp(pb);	/* convert header to network order */
 
@@ -687,7 +687,7 @@ try_next_addr:
 	ib->XRandom = htonl(savexrandom);
 
 	rpc2_Encrypt((char *)&ib->XRandom, (char *)&ib->XRandom, sizeof(ib->XRandom),
-		(char *)Bparms->SharedSecret, Bparms->EncryptionType);	/* in-place encryption */
+		     *Bparms->SharedSecret, Bparms->EncryptionType);	/* in-place encryption */
 	}
 
     /* Step3: Send INIT1 packet  and wait for reply */
@@ -742,8 +742,7 @@ try_next_addr:
     if (Bparms->SecurityLevel != RPC2_OPENKIMONO) {
 	    ib2 = (struct Init2Body *)pb->Body;
 	    rpc2_Decrypt((char *)ib2, (char *)ib2, sizeof(struct Init2Body), 
-			 (char *)Bparms->SharedSecret,
-			 Bparms->EncryptionType);
+			 *Bparms->SharedSecret, Bparms->EncryptionType);
 	    ib2->XRandomPlusOne = ntohl(ib2->XRandomPlusOne);
 	    say(9, RPC2_DebugLevel, "XRandomPlusOne = %ld\n", 
 		ib2->XRandomPlusOne);
@@ -774,7 +773,7 @@ try_next_addr:
 
     ib3 = (struct Init3Body *)pb->Body;
     ib3->YRandomPlusOne = htonl(saveyrandom+1);
-    rpc2_Encrypt((char *)ib3, (char *)ib3, sizeof(struct Init3Body), (char *)Bparms->SharedSecret, Bparms->EncryptionType);	/* in-place encryption */
+    rpc2_Encrypt((char *)ib3, (char *)ib3, sizeof(struct Init3Body), *Bparms->SharedSecret, Bparms->EncryptionType);	/* in-place encryption */
 
     /* send packet and await positive acknowledgement (i.e., RPC2_INIT4 packet) */
 
@@ -819,7 +818,7 @@ try_next_addr:
 
     /* We have a good INIT4 packet in pb */
     ib4 = (struct Init4Body *)pb->Body;
-    rpc2_Decrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body), (char *)Bparms->SharedSecret, Bparms->EncryptionType);
+    rpc2_Decrypt((char *)ib4, (char *)ib4, sizeof(struct Init4Body), *Bparms->SharedSecret, Bparms->EncryptionType);
     ib4->XRandomPlusTwo = ntohl(ib4->XRandomPlusTwo);
 //    say(9, RPC2_DebugLevel, "XRandomPlusTwo = %l\n", ib4->XRandomPlusTwo);
     if (savexrandom+2 != ib4->XRandomPlusTwo)
@@ -1087,7 +1086,7 @@ static long MakeFake(INOUT pb, IN ce, OUT xrand, OUT authenticationtype, OUT cid
     ib1 = (struct Init1Body *)(pb->Body);
     ncb = &ib1->FakeBody;
 
-    if (strcmp(ib1->Version, RPC2_VERSION) != 0)
+    if (strcmp((char *)ib1->Version, RPC2_VERSION) != 0)
 	{
 	say(9, RPC2_DebugLevel, "Old Version  Mine: \"%s\"  His: \"%s\"\n",
 				 RPC2_VERSION, (char *)ib1->Version);

@@ -208,7 +208,7 @@ void rpc2_XmitPacket(IN RPC2_PacketBuffer *whichPB, IN struct RPC2_addrinfo *add
 long rpc2_RecvPacket(IN long whichSocket, OUT RPC2_PacketBuffer *whichBuff) 
 {
     long rc, len;
-    int fromlen;
+    size_t fromlen;
     struct sockaddr_storage sa;
 
     say(0, RPC2_DebugLevel, "rpc2_RecvPacket()\n");

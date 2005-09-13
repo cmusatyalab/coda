@@ -235,9 +235,9 @@ static void WorkerBody(void *arg)
 	    {
 	    case 1: /* return Unix epoch time */
 		{
-		strcpy(OutBuff->Body, TimeNow());
+		strcpy((char *)OutBuff->Body, TimeNow());
 		OutBuff->Header.ReturnCode = RPC2_SUCCESS;
-		OutBuff->Header.BodyLength = sizeof(struct RPC2_PacketHeader) + strlen(OutBuff->Body) + 1;
+		OutBuff->Header.BodyLength = sizeof(struct RPC2_PacketHeader) + strlen((char *)OutBuff->Body) + 1;
 		break;
 		}
 		
@@ -262,9 +262,9 @@ static void WorkerBody(void *arg)
 
 	    case 4: /* Return your machine name */
 		{
-		gethostname(OutBuff->Body, 100);
+		gethostname((char *)OutBuff->Body, 100);
 		OutBuff->Header.ReturnCode = RPC2_SUCCESS;
-		OutBuff->Header.BodyLength = strlen(OutBuff->Body) + 1;
+		OutBuff->Header.BodyLength = strlen((char *)OutBuff->Body) + 1;
 		break;
 		}
 
@@ -343,7 +343,7 @@ static void WorkerBody(void *arg)
 	    default: /* unknown opcode */
 		OutBuff->Header.ReturnCode = RPC2_FAIL;
 		OutBuff->Header.BodyLength = 1 + strlen("Get your act together");
-		strcpy(OutBuff->Body, "Get your act together");
+		strcpy((char *)OutBuff->Body, "Get your act together");
 	    break;
 	    }
 
@@ -709,7 +709,7 @@ static long GetPasswd(RPC2_Integer *AuthenticationType, RPC2_CountedBS *Who,
     long maxpw = sizeof(PList)/sizeof(struct Password);
 
     for (i = 0; i < maxpw; i++)
-	if(strcmp(PList[i].name, Who->SeqBody) == 0)
+	if(strcmp((char *)PList[i].name, (char *)Who->SeqBody) == 0)
 	    {
 	    memcpy(Key1, "          ", RPC2_KEYSIZE);
 	    strcpy((char *)Key1, PList[i].password);

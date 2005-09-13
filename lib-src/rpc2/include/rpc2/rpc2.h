@@ -536,12 +536,12 @@ typedef
 typedef
     struct
 	{
-	long SecurityLevel;
-	long EncryptionType;
+	RPC2_Integer SecurityLevel;
+	RPC2_Integer EncryptionType;
 	RPC2_EncryptionKey *SharedSecret;
 	RPC2_Integer AuthenticationType;
 	RPC2_CountedBS *ClientIdent;
-	long SideEffectType;
+	RPC2_Integer SideEffectType;
 	RPC2_Integer Color;
 	}
     RPC2_BindParms;
@@ -740,11 +740,11 @@ int struct_len(ARG **a_types, PARM **args);
 /* These shouldn't really be here: they are internal RPC2 routines
    But some applications (e.g. Coda auth server) use them */
 
-extern void rpc2_Encrypt (char *FromBuffer, char *ToBuffer,
-		long HowManyBytes, char *WhichKey, long EncryptionType);
+void rpc2_Encrypt (char *FromBuffer, char *ToBuffer, size_t HowManyBytes,
+		   RPC2_EncryptionKey WhichKey, RPC2_Integer EncryptionType);
 
-void rpc2_Decrypt (char *FromBuffer, char *ToBuffer, long  HowManyBytes,
-    RPC2_EncryptionKey WhichKey, int EncryptionType);
+void rpc2_Decrypt (char *FromBuffer, char *ToBuffer, size_t HowManyBytes,
+		   RPC2_EncryptionKey WhichKey, RPC2_Integer EncryptionType);
 
 void rpc2_InitRandom(void);
 unsigned int rpc2_NextRandom (char *StatePtr);

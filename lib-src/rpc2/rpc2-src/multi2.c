@@ -461,16 +461,16 @@ void pack(ARG *a_types, PARM **args, PARM **_ptr)
 			      break;
 	   case RPC2_STRING_TAG:
 			      if (mode == IN_OUT_MODE) {
-				_length = strlen((*arg->stringp[0]));
+				_length = strlen((char *)(*arg->stringp[0]));
 				(*_ptr)->integer = htonl(_length);
 				(*_ptr)++;
-				(void) strcpy((RPC2_Byte *)(*_ptr), (*arg->stringp[0]));
+				(void) strcpy((char *)(*_ptr), (char *)(*arg->stringp[0]));
 			      }
 			      else {
-				_length = strlen(arg->string);
+				_length = strlen((char *)arg->string);
 				(*_ptr)->integer = htonl(_length);
 				(*_ptr)++;
-				(void) strcpy((RPC2_Byte *)(*_ptr), arg->string);
+				(void) strcpy((char *)(*_ptr), (char *)arg->string);
 			      }
 			      ((RPC2_Byte *)(*_ptr))[_length] = '\0';
 #if SIZE == 4
@@ -715,8 +715,8 @@ int get_len(ARG **a_types, PARM **args, MODE mode)
 			return ((*a_types)->size);
 	case RPC2_STRING_TAG:
 	     		if (mode == IN_OUT_MODE) 
-			  return((*a_types)->size = SIZE+_PAD(strlen((*(*args)->stringp[0]))+1));
-			else return((*a_types)->size = SIZE+_PAD(strlen((*args)->string)+1));
+			  return((*a_types)->size = SIZE+_PAD(strlen((char *)(*(*args)->stringp[0]))+1));
+			else return((*a_types)->size = SIZE+_PAD(strlen((char *)(*args)->string)+1));
 	case RPC2_COUNTEDBS_TAG:
 			if (mode == NO_MODE) {
 			  cbsbodyp = (RPC2_CountedBS *)(*args);

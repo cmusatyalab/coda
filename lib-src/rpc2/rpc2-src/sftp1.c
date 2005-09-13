@@ -519,7 +519,7 @@ long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
 	    if (se->PiggySDesc) {
 		/* use squirrelled-away data */
 		p = &se->PiggySDesc->Value.SmartFTPD.FileInfo.ByAddr;
-		rc = sftp_vfwritefile(se, p->vmfile.SeqBody, p->vmfile.SeqLen);
+		rc = sftp_vfwritefile(se, (char *)p->vmfile.SeqBody, p->vmfile.SeqLen);
 		if (rc < 0) {
 		    sftp_SetError(se, DISKERROR);
 		    se->SDesc->LocalStatus = SE_FAILURE;
@@ -550,7 +550,7 @@ long SFTP_CheckSE(RPC2_Handle ConnHandle, SE_Descriptor *SDesc, long Flags)
 
 		sftp_AllocPiggySDesc(se, flen, SERVERTOCLIENT);
 		p = &se->PiggySDesc->Value.SmartFTPD.FileInfo.ByAddr;	    
-		rc = sftp_piggybackfileread(se, p->vmfile.SeqBody);
+		rc = sftp_piggybackfileread(se, (char *)p->vmfile.SeqBody);
 		if (rc < 0)
 		    {
 		    sftp_SetError(se, DISKERROR);
@@ -1027,7 +1027,7 @@ off_t sftp_ExtractFileFromPacket(struct SFTP_Entry *sEntry,
     off_t len;
 
     len = whichP->Header.BodyLength - whichP->Header.SEDataOffset;
-    rc = sftp_vfwritefile(sEntry, &whichP->Body[whichP->Header.BodyLength-len],
+    rc = sftp_vfwritefile(sEntry, (char *)&whichP->Body[whichP->Header.BodyLength-len],
 			  len); 
     sftp_vfclose(sEntry);
     if (rc < 0) return (rc);

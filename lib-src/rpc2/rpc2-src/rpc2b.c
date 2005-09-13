@@ -844,7 +844,7 @@ long rpc2_CreateIPSocket(int af, int *svar, struct RPC2_addrinfo *addr,
     socklen_t blen;
     int err = RPC2_FAIL;
     int flags, rc;
-    short port = 0, *sa_port;
+    unsigned short port = 0, *sa_port;
 
     if (Port && *Port != 0)
 	port = *Port;

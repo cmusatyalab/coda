@@ -437,7 +437,7 @@ int open_connection(target_t target)
 }
 
 /* another connect function that is still referenced from some places */
-int NewConn(char *hostname, short port, unsigned long *cid)
+int NewConn(char *hostname, short port, RPC2_Integer *cid)
 {
     int rc;
     RPC2_HostIdent hident;

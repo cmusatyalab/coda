@@ -93,7 +93,7 @@ RPC2_BoundedBS *name;
 	name->SeqLen = name->MaxSeqLen;
 	namebuf[name->SeqLen - 1] = '\0';
     }
-    strcpy(name->SeqBody, namebuf);
+    strcpy((char *)name->SeqBody, namebuf);
     return 0;
 }
 

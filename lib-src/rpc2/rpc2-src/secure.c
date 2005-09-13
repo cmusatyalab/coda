@@ -56,9 +56,9 @@ void rpc2_Encrypt(IN FromBuffer, OUT ToBuffer, IN HowManyBytes, IN WhichKey, IN 
     char *FromBuffer;		/* The string of bytes to be encrypted.*/
     char *ToBuffer;		/* Where to put the encrypted string.
 				    Equal to FromBuffer ==> inplace. */
-    long  HowManyBytes;		/* The number of bytes in FromBuffer. */
-    char *WhichKey;		/* The encryption key to be used. */
-    long EncryptionType;	/* one of the supported types */
+    size_t  HowManyBytes;		/* The number of bytes in FromBuffer. */
+    RPC2_EncryptionKey WhichKey;		/* The encryption key to be used. */
+    RPC2_Integer EncryptionType;	/* one of the supported types */
 
     /* Does a trivial Exclusive-OR of FromBuffer and puts result in ToBuffer */
     
@@ -87,9 +87,9 @@ void rpc2_Encrypt(IN FromBuffer, OUT ToBuffer, IN HowManyBytes, IN WhichKey, IN 
 void rpc2_Decrypt(IN FromBuffer, OUT ToBuffer,  IN HowManyBytes, IN WhichKey, IN EncryptionType)
     char *FromBuffer;		/* The string of bytes to be decrypted. */
     char *ToBuffer;		/* Where to put the decrypted bytes. Equal to FromBuffer for inplace encryption */
-    long  HowManyBytes;		/* The number of bytes in Buffer */
+    size_t  HowManyBytes;		/* The number of bytes in Buffer */
     RPC2_EncryptionKey WhichKey;	/* The decryption key to be used */
-    int EncryptionType;
+    RPC2_Integer EncryptionType;
 
     {
     assert(EncryptionType == RPC2_XOR);
