@@ -123,7 +123,10 @@ void do_clog ()
     return;
   }
 
-  snprintf (cmd, 255, "clog -pipe %s@%s", user, realmlist[ix]);
+  if (realmlist)
+    snprintf (cmd, 255, "clog -pipe %s@%s", user, realmlist[ix]);
+  else
+    snprintf (cmd, 255, "clog -pipe %s", user);
   p = popen(cmd, "w");
 
   if (!p) {
@@ -217,6 +220,10 @@ void menu_cunlog(void)
   int ix;
 
   if (update_realmlist()) {
+    if (!realmlist) {
+      fl_alert("No known realms for cunlog.");
+      return;
+    }
     cunlogRealm->clear();
     for (ix=0; ix < nrealm; ix++)
       cunlogRealm->add(realmlist[ix], 0, NULL);
@@ -252,8 +259,9 @@ int do_findRealm (const char *realm)
   return 1;
 }
 
-// The main program ...
 
+
+// The main program ...
 
 void MainInit (int *argcp, char ***argvp)
 {
@@ -265,7 +273,8 @@ void MainInit (int *argcp, char ***argvp)
       XferLabel[i] = NULL;
       XferProg[i]->hide();
   }
-  
+
+  codaconf_init("venus.conf");
   myrealm = codaconf_lookup("realm", NULL);
   if (myrealm) {
     add_realm(myrealm); 

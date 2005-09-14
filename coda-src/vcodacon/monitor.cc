@@ -80,7 +80,6 @@ void monitor::Start(void)
 
   // printf ("monitor::Start\n");
   if (TheMon == NULL) {
-    codaconf_init("venus.conf");
     TheMon = this;
   }
 
